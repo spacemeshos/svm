@@ -11,7 +11,8 @@ description="Spacemesh Virtual Machine"
 publish = false
 
 [dependencies]
-wasmer-runtime = "0.4.2"
+wasmer-runtime = { version = "0.4.2", features = ["wasmer-singlepass-backend"] }
+wasmer-runtime-c-api = "0.4.2"
 wasmparser = "0.31.1"
 
 [dev-dependencies]
