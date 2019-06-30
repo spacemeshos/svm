@@ -11,8 +11,10 @@ description="Spacemesh Virtual Machine"
 publish = false
 
 [dependencies]
-wasmer-runtime = { version = "0.4.2", features = ["wasmer-singlepass-backend"] }
-wasmer-runtime-c-api = "0.4.2"
+wasmer-runtime = { git = "https://github.com/yaronwittenstein/wasmer", features = ["wasmer-singlepass-backend"] }
+wasmer-runtime-core = { git = "https://github.com/yaronwittenstein/wasmer" }
+wasmer-runtime-c-api = { git = "https://github.com/yaronwittenstein/wasmer" }
+wasmer-singlepass-backend = { git = "https://github.com/yaronwittenstein/wasmer" }
 wasmparser = "0.31.1"
 
 [dev-dependencies]
