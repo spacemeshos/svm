@@ -6,11 +6,17 @@ license = "MIT"
 edition = "2018"
 readme = "README.md"
 repository = "https://github.com/spacemeshos/svm"
+homepage = "https://github.com/spacemeshos/svm"
 description="Spacemesh Virtual Machine"
 publish = false
 
 [dependencies]
 wasmer-runtime = "0.4.2"
+wasmparser = "0.31.1"
 
 [dev-dependencies]
 wabt = "0.7.4"
+
+[features]
+default = ["wasm_1_0_0"]
+wasm_1_0_0 = []
