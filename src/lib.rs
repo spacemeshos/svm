@@ -5,8 +5,9 @@
 //! under _Spacemesh_ Golang Full Node and the future Rust Full Node
 
 extern crate wasmer_runtime;
+extern crate wasmer_runtime_c_api;
+extern crate wasmer_singlepass_backend;
 extern crate wasmparser;
 
-mod parser;
-
-pub use parser::parse_wasm;
+mod middleware;
+mod vm;

@@ -1,34 +1,46 @@
-use wasmparser::{Operator, ParserState, WasmDecoder};
+use wasmer_runtime_core::codegen::{Event, EventSink, FunctionMiddleware};
+use wasmer_runtime_core::module::ModuleInfo;
+use wasmer_runtime_core::wasmparser::Operator;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ParseError {
     UnsupportedOpcode,
 }
 
-type ParserResult = Result<(), ParseError>;
+struct SpacemeshWasmMiddleware;
 
-/// The `parse_wasm` function has two main objectives:
+impl SpacemeshWasmMiddleware {
+    fn new() -> Self {
+        Self {}
+    }
+}
+
+/// The `SpacemeshWasmMiddleware` chain middleware has two main objectives:
 /// * validation - make sure the wasm is valid and doesn't contain and opcodes not supported by `svm` (for example: floats)
 /// * preprocessing - we want to know whether the input contains loops or not.
-/// In case there no loop we can later compute ahead-of-time the gas for each function,
-/// otherwise we'll have a dynamic get metering used
-pub fn parse_wasm(wasm: &[u8]) -> ParserResult {
-    let mut parser = wasmparser::Parser::new(wasm);
+///   In case there no loop we can later compute ahead-of-time the gas for each function,
+///   otherwise we'll have a dynamic get metering used
+impl FunctionMiddleware for SpacemeshWasmMiddleware {
+    type Error = ParseError;
 
-    loop {
-        let state = parser.read();
+    fn feed_event<'a, 'b: 'a>(
+        &mut self,
+        event: Event<'a, 'b>,
+        module_info: &ModuleInfo,
+        sink: &mut EventSink<'a, 'b>,
+    ) -> Result<(), Self::Error> {
+        match event {
+            Event::Wasm(op) => parse_wasm_opcode(op)?,
+            Event::WasmOwned(ref op) => parse_wasm_opcode(op)?,
+            _ => (),
+        };
 
-        match state {
-            ParserState::CodeOperator(opcode) => parse_wasm_mvp_opcode(opcode)?,
-            _ => continue,
-        }
+        Ok(())
     }
-
-    Ok(())
 }
 
 /// we explicitly whitelist the supported opcodes
-fn parse_wasm_mvp_opcode(opcode: &Operator) -> ParserResult {
+fn parse_wasm_opcode(opcode: &Operator) -> Result<(), ParseError> {
     match opcode {
         Operator::Unreachable
         | Operator::Nop
@@ -146,9 +158,21 @@ fn parse_wasm_mvp_opcode(opcode: &Operator) -> ParserResult {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use wasmer_runtime::error::CompileError;
+    use wasmer_runtime_core::backend::Compiler;
+    use wasmer_runtime_core::codegen::{MiddlewareChain, StreamingCompiler};
+    use wasmer_runtime_core::compile_with;
+    use wasmer_singlepass_backend::{FunctionCodeGenerator, ModuleCodeGenerator};
 
     #[test]
     fn test_parser_floats_are_not_supported() {
+        let compiler: StreamingCompiler<ModuleCodeGenerator, _, _, _, _> =
+            StreamingCompiler::new(move || {
+                let mut chain = MiddlewareChain::new();
+                chain.push(SpacemeshWasmMiddleware::new());
+                chain
+            });
+
         let input = r#"
             (module
                 (func $to_float (param i32) (result f32)
@@ -159,6 +183,14 @@ mod tests {
 
         let wasm = wabt::wat2wasm(input).unwrap();
 
-        assert_eq!(Err(ParseError::UnsupportedOpcode), parse_wasm(&wasm));
+        let res = compile_with(&wasm, &compiler);
+
+        assert!(res.is_err());
+
+        if let Err(wasmer_runtime_core::error::CompileError::InternalError { msg }) = res {
+            assert_eq!("Codegen(\"UnsupportedOpcode\")", msg.as_str());
+        } else {
+            unreachable!()
+        }
     }
 }
