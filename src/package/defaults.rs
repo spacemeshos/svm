@@ -13,7 +13,7 @@ impl hash_db::Hasher for DefaultCodeHasher {
     const LENGTH: usize = CODE_HASH_LENGTH;
 
     fn hash(code: &[u8]) -> CodeHash {
-        let mut out = [0; 32];
+        let mut out = [0; CODE_HASH_LENGTH];
         Keccak::keccak256(code, &mut out);
         out
     }

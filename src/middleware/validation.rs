@@ -4,19 +4,19 @@ use wasmer_runtime_core::wasmparser::Operator;
 
 use super::error::ParseError;
 
-pub struct ValidationMiddleware;
-
-impl ValidationMiddleware {
-    fn new() -> Self {
-        Self {}
-    }
-}
-
 /// The `ValidationMiddleware` has two main objectives:
 /// * validation - make sure the wasm is valid and doesn't contain and opcodes not supported by `svm` (for example: floats)
 /// * preprocessing - we want to know whether the input contains loops or not.
 ///   In case there no loop we can later compute ahead-of-time the gas for each function,
 ///   otherwise we'll have a dynamic get metering used
+pub struct ValidationMiddleware;
+
+impl ValidationMiddleware {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
 impl FunctionMiddleware for ValidationMiddleware {
     type Error = ParseError;
 
@@ -156,19 +156,11 @@ fn parse_wasm_opcode(opcode: &Operator) -> Result<(), ParseError> {
 mod tests {
     use super::*;
     use wasmer_runtime::error::CompileError;
-    use wasmer_runtime_core::backend::Compiler;
-    use wasmer_runtime_core::codegen::{MiddlewareChain, StreamingCompiler};
     use wasmer_runtime_core::compile_with;
-    use wasmer_singlepass_backend::ModuleCodeGenerator;
 
     #[test]
     fn test_parser_floats_are_not_supported() {
-        let compiler: StreamingCompiler<ModuleCodeGenerator, _, _, _, _> =
-            StreamingCompiler::new(move || {
-                let mut chain = MiddlewareChain::new();
-                chain.push(ValidationMiddleware::new());
-                chain
-            });
+        let compiler = svm_compiler!();
 
         let input = r#"
             (module

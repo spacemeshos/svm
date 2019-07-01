@@ -14,6 +14,9 @@ extern crate wasmer_runtime_c_api;
 extern crate wasmer_singlepass_backend;
 extern crate wasmparser;
 
+#[macro_use]
+mod compiler;
+
 mod middleware;
 mod package;
 mod vm;
