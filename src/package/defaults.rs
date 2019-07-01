@@ -1,7 +1,7 @@
 use hash256_std_hasher::Hash256StdHasher;
 use tiny_keccak::Keccak;
 
-use super::traits::CodeHash;
+use super::code_hash::{CodeHash, CODE_HASH_LENGTH};
 
 pub struct DefaultCodeHasher;
 
@@ -10,7 +10,7 @@ impl hash_db::Hasher for DefaultCodeHasher {
 
     type StdHasher = Hash256StdHasher;
 
-    const LENGTH: usize = 32;
+    const LENGTH: usize = CODE_HASH_LENGTH;
 
     fn hash(code: &[u8]) -> CodeHash {
         let mut out = [0; 32];

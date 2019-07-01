@@ -1,4 +1,4 @@
-pub type CodeHash = [u8; 32];
+use super::code_hash::CodeHash;
 
 /// This trait defines the interface for storing / retrieving a unit of code.
 ///

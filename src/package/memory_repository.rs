@@ -1,17 +1,18 @@
-use super::traits::{CodeHash, CodeRepository};
+use super::code_hash::CodeHash;
+use super::traits::CodeRepository;
 use std::collections::HashMap;
 
-pub struct MemoryCodeRepository {
+pub struct MemoryRepository {
     db: HashMap<CodeHash, Vec<u8>>,
 }
 
-impl MemoryCodeRepository {
+impl MemoryRepository {
     fn new() -> Self {
         Self { db: HashMap::new() }
     }
 }
 
-impl CodeRepository for MemoryCodeRepository {
+impl CodeRepository for MemoryRepository {
     fn exists(&self, code_hash: &CodeHash) -> bool {
         let entry = self.db.get(code_hash);
         entry.is_some()
