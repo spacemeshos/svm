@@ -7,8 +7,7 @@ edition = "2018"
 readme = "README.md"
 repository = "https://github.com/spacemeshos/svm"
 homepage = "https://github.com/spacemeshos/svm"
-description="Spacemesh Virtual Machine"
-publish = false
+description = "Spacemesh Virtual Machine"
 
 [dependencies]
 wasmer-runtime = { git = "https://github.com/yaronwittenstein/wasmer" }

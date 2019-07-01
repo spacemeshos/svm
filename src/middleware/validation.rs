@@ -2,25 +2,22 @@ use wasmer_runtime_core::codegen::{Event, EventSink, FunctionMiddleware};
 use wasmer_runtime_core::module::ModuleInfo;
 use wasmer_runtime_core::wasmparser::Operator;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ParseError {
-    UnsupportedOpcode,
-}
+use super::error::ParseError;
 
-struct SpacemeshWasmMiddleware;
+pub struct ValidationMiddleware;
 
-impl SpacemeshWasmMiddleware {
+impl ValidationMiddleware {
     fn new() -> Self {
         Self {}
     }
 }
 
-/// The `SpacemeshWasmMiddleware` chain middleware has two main objectives:
+/// The `ValidationMiddleware` has two main objectives:
 /// * validation - make sure the wasm is valid and doesn't contain and opcodes not supported by `svm` (for example: floats)
 /// * preprocessing - we want to know whether the input contains loops or not.
 ///   In case there no loop we can later compute ahead-of-time the gas for each function,
 ///   otherwise we'll have a dynamic get metering used
-impl FunctionMiddleware for SpacemeshWasmMiddleware {
+impl FunctionMiddleware for ValidationMiddleware {
     type Error = ParseError;
 
     fn feed_event<'a, 'b: 'a>(
@@ -162,14 +159,14 @@ mod tests {
     use wasmer_runtime_core::backend::Compiler;
     use wasmer_runtime_core::codegen::{MiddlewareChain, StreamingCompiler};
     use wasmer_runtime_core::compile_with;
-    use wasmer_singlepass_backend::{FunctionCodeGenerator, ModuleCodeGenerator};
+    use wasmer_singlepass_backend::ModuleCodeGenerator;
 
     #[test]
     fn test_parser_floats_are_not_supported() {
         let compiler: StreamingCompiler<ModuleCodeGenerator, _, _, _, _> =
             StreamingCompiler::new(move || {
                 let mut chain = MiddlewareChain::new();
-                chain.push(SpacemeshWasmMiddleware::new());
+                chain.push(ValidationMiddleware::new());
                 chain
             });
 
