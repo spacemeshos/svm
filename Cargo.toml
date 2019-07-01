@@ -15,6 +15,11 @@ wasmer-runtime-core = { git = "https://github.com/yaronwittenstein/wasmer" }
 wasmer-runtime-c-api = { git = "https://github.com/yaronwittenstein/wasmer" }
 wasmer-singlepass-backend = { git = "https://github.com/yaronwittenstein/wasmer" }
 wasmparser = "0.31.1"
+hash-db = "0.12.4"
+trie-db = "0.12.4"
+memory-db = "0.12.4"
+hash256-std-hasher = "0.12.4"
+tiny-keccak = "1.4.2"
 
 [dev-dependencies]
 wabt = "0.7.4"
