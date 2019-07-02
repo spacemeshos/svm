@@ -23,8 +23,8 @@ impl FunctionMiddleware for ValidationMiddleware {
     fn feed_event<'a, 'b: 'a>(
         &mut self,
         event: Event<'a, 'b>,
-        module_info: &ModuleInfo,
-        sink: &mut EventSink<'a, 'b>,
+        _module_info: &ModuleInfo,
+        _sink: &mut EventSink<'a, 'b>,
     ) -> Result<(), Self::Error> {
         match event {
             Event::Wasm(op) => parse_wasm_opcode(op)?,
@@ -154,7 +154,6 @@ fn parse_wasm_opcode(opcode: &Operator) -> Result<(), ParseError> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::compile_program;
     use wasmer_runtime::error::CompileError;
 
@@ -176,7 +175,7 @@ mod tests {
 
         assert!(res.is_err());
 
-        if let Err(wasmer_runtime_core::error::CompileError::InternalError { msg }) = res {
+        if let Err(CompileError::InternalError { msg }) = res {
             assert_eq!("Codegen(\"UnsupportedOpcode\")", msg.as_str());
         } else {
             unreachable!()

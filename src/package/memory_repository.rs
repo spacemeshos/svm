@@ -2,6 +2,7 @@ use super::code_hash::CodeHash;
 use super::traits::CodeRepository;
 use std::collections::HashMap;
 
+#[allow(unused)]
 pub struct MemoryRepository {
     db: HashMap<CodeHash, Vec<u8>>,
 }

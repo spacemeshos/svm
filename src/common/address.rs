@@ -1,4 +1,4 @@
-use crate::utils::{u32_to_le_array, u64_to_le_array, u8_pair_add, u8_triple_add};
+use crate::utils::{u32_to_le_array, u8_pair_add, u8_triple_add};
 use std::ops::Add;
 
 /// _Spacemesh_ account address are 32 bytes
@@ -27,6 +27,8 @@ impl From<u32> for Address {
 #[cfg(test)]
 impl From<u64> for Address {
     fn from(n: u64) -> Address {
+        use crate::utils::u64_to_le_array;
+
         let mut addr = [0; 32];
 
         let [n0, n1, n2, n3, n4, n5, n6, n7] = u64_to_le_array(n);

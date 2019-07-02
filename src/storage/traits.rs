@@ -1,9 +1,9 @@
-use crate::Address;
+use crate::common::Address;
 
-/// `RawStorage` is the most low-level trait for dealing with a contract's storage.
+/// `StoragePages` is the most low-level trait for dealing with a contract's storage.
 /// For performance concerns, we work on pages units (a page is 4096 bytes)
 /// Each read / write operation will involve exactly one page
-pub trait RawStorage {
+pub trait StoragePages {
     fn read_page(&self, page: i32);
 
     fn write_page(&mut self, page: i32);
@@ -22,9 +22,17 @@ pub trait StoragePageHasher {
     fn hash(address: Address, page: u32) -> [u8; 32];
 }
 
+/// `KVStore` is a trait for defining an interface against key-value stores. for example `leveldb / rocksdb`
+pub trait KVStore {
+    fn get(key: &[u8]) -> Vec<u8>;
+
+    fn store(key: &[u8], value: &[u8]);
+}
+
 /// The `declare_storage_api` will be imported by the smart contract wasm programs.
 /// Reading data will be copied from the backing storage into temporary buffers.
 /// Then the smart contract program will copy that data into the wasm instance memory / stack.
+#[allow(unused)]
 macro_rules! declare_storage_api {
     () => {{
         extern "C" {
