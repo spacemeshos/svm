@@ -20,6 +20,7 @@ trie-db = "0.12.4"
 memory-db = "0.12.4"
 hash256-std-hasher = "0.12.4"
 tiny-keccak = "1.4.2"
+byteorder = "1.3.2"
 
 [dev-dependencies]
 wabt = "0.7.4"

@@ -4,6 +4,7 @@
 //! This `svm` crate is responsible on implementing the Spacemesh Virtual Machine for running Smart Contracts
 //! under _Spacemesh_ Golang Full Node and the future Rust Full Node
 
+extern crate byteorder;
 extern crate hash256_std_hasher;
 extern crate hash_db;
 extern crate memory_db;
@@ -18,12 +19,11 @@ extern crate wasmparser;
 mod compiler;
 
 mod address;
-mod balance;
 mod middleware;
 mod package;
 mod storage;
+mod utils;
 mod vm;
 
 pub use address::Address;
-pub use balance::Balance;
 pub use compiler::compile_program;

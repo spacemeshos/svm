@@ -1,17 +1,31 @@
 use super::traits::RawStorage;
+use super::DefaultHasher;
+use crate::Address;
+use hash_db::Hasher;
 use std::collections::HashMap;
+use std::ops::Add;
 
-pub struct SampleKV {
-    data: HashMap<[usize; 32], Vec<u8>>,
+pub struct SamplePagesKV {
+    contract_addr: Address,
+    data: HashMap<[u8; 32], Vec<u8>>,
 }
 
-impl SampleKV {
-    fn store(&mut self, k: &[usize; 32], v: &[u8]) {
-        self.data.insert(*k, v.to_vec());
+impl SamplePagesKV {
+    pub fn new(contract_addr: Address) -> Self {
+        Self {
+            contract_addr,
+            data: HashMap::new(),
+        }
     }
 
-    fn get(&self, k: &[usize; 32]) -> Vec<u8> {
-        let v = self.data.get(k);
+    fn store_page(&mut self, page: i32, v: &[u8]) {
+        let page_hash = self.compute_page_hash(page);
+        self.data.insert(page_hash, v.to_vec());
+    }
+
+    fn get_page(&self, page: i32) -> Vec<u8> {
+        let page_hash = self.compute_page_hash(page);
+        let v = self.data.get(&page_hash);
 
         if let Some(inner) = v {
             inner.to_vec()
@@ -19,20 +33,27 @@ impl SampleKV {
             Vec::new()
         }
     }
+
+    #[inline(always)]
+    fn compute_page_hash(&self, page: i32) -> [u8; 32] {
+        let page_addr: [u8; 33] = self.contract_addr.add(page as u32);
+
+        DefaultHasher::hash_key(&page_addr)
+    }
 }
 
 pub struct SampleContractStorage<'kv> {
-    kv: &'kv mut SampleKV,
+    kv: &'kv mut SamplePagesKV,
 }
 
 impl<'kv> SampleContractStorage<'kv> {
-    pub fn new(kv: &'kv mut SampleKV) -> Self {
-        Self { kv: kv }
+    pub fn new(kv: &'kv mut SamplePagesKV) -> Self {
+        Self { kv }
     }
 }
 
 impl<'kv> RawStorage for SampleContractStorage<'kv> {
-    fn read_page(page: i32) {}
+    fn read_page(&self, page: i32) {}
 
-    fn write_page(page: i32) {}
+    fn write_page(&mut self, page: i32) {}
 }

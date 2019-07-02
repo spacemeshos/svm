@@ -1,3 +1,4 @@
+use crate::utils::u32_to_be_array;
 use hash256_std_hasher::Hash256StdHasher;
 use tiny_keccak::Keccak;
 
@@ -10,9 +11,18 @@ impl hash_db::Hasher for DefaultHasher {
 
     const LENGTH: usize = 32;
 
-    fn hash(code: &[u8]) -> Self::Out {
+    fn hash(key: &[u8]) -> Self::Out {
         let mut out = [0; Self::LENGTH];
-        Keccak::keccak256(code, &mut out);
+        Keccak::keccak256(key, &mut out);
         out
+    }
+}
+
+/// we introduce `hash_key` in order to avoid the need to do each time:
+/// # <DefaultHasher as hash_db::Hasher>::hash(&key)
+impl DefaultHasher {
+    #[inline(always)]
+    pub fn hash_key(key: &[u8]) -> <DefaultHasher as hash_db::Hasher>::Out {
+        <DefaultHasher as hash_db::Hasher>::hash(key)
     }
 }

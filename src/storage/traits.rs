@@ -1,10 +1,25 @@
-/// `RawStorage` - This is the low-level interface for dealing with a contract's storage.
+use crate::Address;
+
+/// `RawStorage` is the most low-level trait for dealing with a contract's storage.
 /// For performance concerns, we work on pages units (a page is 4096 bytes)
 /// Each read / write operation will involve exactly one page
 pub trait RawStorage {
-    fn read_page(page: i32);
+    fn read_page(&self, page: i32);
 
-    fn write_page(page: i32);
+    fn write_page(&mut self, page: i32);
+}
+
+/// `StoragePageHasher` is a trait defining that a contract storage-page hash must be determied by
+/// both the contract storage and the page index.
+///
+/// We must have both parameters taken into account since:
+/// * Computing a page-hash for two differnt contracts and the same `page index` must result in a different page-hash.
+///   That's why we need the contract address.
+///
+/// * Similarly, computing a page-hash two variables located at different storage-pages under the same contract
+/// must also result in a different page-hash.
+pub trait StoragePageHasher {
+    fn hash(address: Address, page: u32) -> [u8; 32];
 }
 
 /// The `declare_storage_api` will be imported by the smart contract wasm programs.
