@@ -155,8 +155,8 @@ fn parse_wasm_opcode(opcode: &Operator) -> Result<(), ParseError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::compile_program;
     use wasmer_runtime::error::CompileError;
-    use wasmer_runtime_core::compile_with;
 
     #[test]
     fn test_parser_floats_are_not_supported() {
@@ -172,7 +172,7 @@ mod tests {
 
         let wasm = wabt::wat2wasm(input).unwrap();
 
-        let res = compile_with(&wasm, &compiler);
+        let res = compile_program(&wasm);
 
         assert!(res.is_err());
 

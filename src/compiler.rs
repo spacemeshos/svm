@@ -1,3 +1,6 @@
+use wasmer_runtime_core::error::CompileResult;
+use wasmer_runtime_core::Module;
+
 /// The `svm_compiler` macro returns a `wasmer single pass compiler` with middlewares required by the `svm`
 #[macro_export]
 macro_rules! svm_compiler {
@@ -22,4 +25,12 @@ macro_rules! svm_compiler {
 
         compiler
     }};
+}
+
+/// This function is responsible on compiling a wasm program using the `wasmer single-pass compiler`
+/// and the middlewares required by `svm`
+pub fn compile_program(wasm: &[u8]) -> CompileResult<Module> {
+    let compiler = svm_compiler!();
+
+    wasmer_runtime_core::compile_with(wasm, &compiler)
 }

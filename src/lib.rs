@@ -17,6 +17,13 @@ extern crate wasmparser;
 #[macro_use]
 mod compiler;
 
+mod address;
+mod balance;
 mod middleware;
 mod package;
+mod storage;
 mod vm;
+
+pub use address::Address;
+pub use balance::Balance;
+pub use compiler::compile_program;
