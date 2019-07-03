@@ -17,11 +17,11 @@ mod tests {
         let mut kv = Rc::new(RefCell::new(MemKVStore::new()));
         let mut storage = MemStoragePages::new(addr, kv);
 
-        assert_eq!(Vec::<u8>::new(), storage.read_page(0));
+        assert_eq!(None, storage.read_page(0));
     }
 
     #[test]
-    fn first_time_write_an_empty_page() {
+    fn writing_a_page_does_not_auto_commit_changes_to_underlying_kv() {
         let addr = Address::from(0x11_22_33_44 as u32);
 
         let mut kv = Rc::new(RefCell::new(MemKVStore::new()));
@@ -29,7 +29,7 @@ mod tests {
 
         storage.write_page(0, &vec![10, 20, 30]);
 
-        assert_eq!(vec![10, 20, 30], storage.read_page(0));
+        assert_eq!(vec![10, 20, 30], storage.read_page(0).unwrap());
     }
 
     #[test]
@@ -47,7 +47,7 @@ mod tests {
         storage1.write_page(0, &vec![10, 20, 30]);
         storage2.write_page(0, &vec![40, 50, 60]);
 
-        assert_eq!(vec![10, 20, 30], storage1.read_page(0));
-        assert_eq!(vec![40, 50, 60], storage2.read_page(0));
+        assert_eq!(vec![10, 20, 30], storage1.read_page(0).unwrap());
+        assert_eq!(vec![40, 50, 60], storage2.read_page(0).unwrap());
     }
 }

@@ -23,13 +23,13 @@ where
 {
     type K = MemKey;
 
-    fn get(&self, key: Self::K) -> Vec<u8> {
+    fn get(&self, key: Self::K) -> Option<Vec<u8>> {
         let entry = self.map.get(&key);
 
         if entry.is_some() {
-            entry.unwrap().clone()
+            Some(entry.unwrap().clone())
         } else {
-            Vec::new()
+            None
         }
     }
 
@@ -49,7 +49,7 @@ mod tests {
         let kv = MemKVStore::new();
         let addr = Address::from(0x11_22_33_44 as u32);
 
-        assert_eq!(Vec::<u8>::new(), kv.get(addr.0));
+        assert_eq!(None, kv.get(addr.0));
     }
 
     #[test]
@@ -59,7 +59,7 @@ mod tests {
 
         kv.store(addr.0, &vec![10, 20, 30]);
 
-        assert_eq!(vec![10, 20, 30], kv.get(addr.0));
+        assert_eq!(vec![10, 20, 30], kv.get(addr.0).unwrap());
     }
 
     #[test]
@@ -68,9 +68,9 @@ mod tests {
         let addr = Address::from(0x11_22_33_44 as u32);
 
         kv.store(addr.0, &vec![10, 20, 30]);
-        assert_eq!(vec![10, 20, 30], kv.get(addr.0));
+        assert_eq!(vec![10, 20, 30], kv.get(addr.0).unwrap());
 
         kv.store(addr.0, &vec![40, 50, 60]);
-        assert_eq!(vec![40, 50, 60], kv.get(addr.0));
+        assert_eq!(vec![40, 50, 60], kv.get(addr.0).unwrap());
     }
 }

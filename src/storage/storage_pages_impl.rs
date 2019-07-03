@@ -31,7 +31,7 @@ impl<SPH: StoragePageHasher, KV: KVStore<K = PageKey>> StoragePagesImpl<SPH, KV>
 }
 
 impl<SPH: StoragePageHasher, KV: KVStore<K = PageKey>> StoragePages for StoragePagesImpl<SPH, KV> {
-    fn read_page(&mut self, page: u32) -> Vec<u8> {
+    fn read_page(&mut self, page: u32) -> Option<Vec<u8>> {
         let ph = self.compute_page_hash(page);
 
         self.db.borrow().get(ph)

@@ -5,7 +5,7 @@ pub trait KVStore {
     type K: AsRef<[u8]> + Copy + Clone + std::cmp::PartialEq + Sized;
 
     #[must_use]
-    fn get(&self, key: Self::K) -> Vec<u8>;
+    fn get(&self, key: Self::K) -> Option<Vec<u8>>;
 
     fn store(&mut self, key: Self::K, value: &[u8]);
 }
@@ -16,7 +16,7 @@ pub trait KVStore {
 /// That is flushed to the underlying database only when calling `commit`
 pub trait StoragePages {
     #[must_use]
-    fn read_page(&mut self, page: u32) -> Vec<u8>;
+    fn read_page(&mut self, page: u32) -> Option<Vec<u8>>;
 
     fn write_page(&mut self, page: u32, data: &[u8]);
 
