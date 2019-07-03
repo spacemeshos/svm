@@ -1,6 +1,8 @@
 use super::traits::{KVStore, StoragePageHasher, StoragePages};
+use super::MemKVStore;
 use crate::common::Address;
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::rc::Rc;
 
@@ -8,15 +10,15 @@ type PageKey = [u8; 32];
 
 pub struct StoragePagesImpl<SPH: StoragePageHasher, KV: KVStore<K = PageKey>> {
     contract_addr: Address,
-    kv_store: Rc<RefCell<KV>>,
+    db: Rc<RefCell<KV>>,
     ph_marker: PhantomData<SPH>,
 }
 
 impl<SPH: StoragePageHasher, KV: KVStore<K = PageKey>> StoragePagesImpl<SPH, KV> {
-    pub fn new(contract_addr: Address, kv_store: Rc<RefCell<KV>>) -> Self {
+    pub fn new(contract_addr: Address, db: Rc<RefCell<KV>>) -> Self {
         Self {
             contract_addr,
-            kv_store,
+            db,
             ph_marker: PhantomData,
         }
     }
@@ -29,15 +31,19 @@ impl<SPH: StoragePageHasher, KV: KVStore<K = PageKey>> StoragePagesImpl<SPH, KV>
 }
 
 impl<SPH: StoragePageHasher, KV: KVStore<K = PageKey>> StoragePages for StoragePagesImpl<SPH, KV> {
-    fn read_page(&self, page: u32) -> Vec<u8> {
+    fn read_page(&mut self, page: u32) -> Vec<u8> {
         let ph = self.compute_page_hash(page);
 
-        self.kv_store.borrow().get(ph)
+        self.db.borrow().get(ph)
     }
 
     fn write_page(&mut self, page: u32, data: &[u8]) {
         let ph = self.compute_page_hash(page);
 
-        self.kv_store.borrow_mut().store(ph, data);
+        self.db.borrow_mut().store(ph, data);
     }
+
+    fn clear(&mut self) {}
+
+    fn commit(&mut self) {}
 }

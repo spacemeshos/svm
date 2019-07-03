@@ -1,8 +1,8 @@
 use crate::common::Address;
 
-/// `KVStore` is a trait for defining an interface against key-value stores. for example `leveldb / rocksdb`
+/// `KVStore` is a trait for defining an interface against key-value stores. for example `hashmap / leveldb / rocksdb`
 pub trait KVStore {
-    type K: AsRef<[u8]> + Copy + Clone + std::hash::Hash + Sized;
+    type K: AsRef<[u8]> + Copy + Clone + std::cmp::PartialEq + Sized;
 
     #[must_use]
     fn get(&self, key: Self::K) -> Vec<u8>;
@@ -13,11 +13,16 @@ pub trait KVStore {
 /// `StoragePages` is the most low-level trait for dealing with a contract's storage.
 /// For performance concerns, we work on pages units (a page is 4096 bytes)
 /// Each read / write operation will involve exactly one page
+/// That is flushed to the underlying database only when calling `commit`
 pub trait StoragePages {
     #[must_use]
-    fn read_page(&self, page: u32) -> Vec<u8>;
+    fn read_page(&mut self, page: u32) -> Vec<u8>;
 
     fn write_page(&mut self, page: u32, data: &[u8]);
+
+    fn clear(&mut self);
+
+    fn commit(&mut self);
 }
 
 /// `StoragePageHasher` is a trait defining that a contract storage-page hash must be determied by
@@ -36,7 +41,7 @@ pub trait StoragePageHasher {
 
 /// The `declare_storage_api` will be imported by the smart contract wasm programs.
 /// Reading data will be copied from the backing storage into temporary buffers.
-/// Then the smart contract program will copy that data into the wasm instance memory / stack.
+/// Then the smart contract program will copy that data into the wasm instance's memory / stack.
 #[allow(unused)]
 macro_rules! declare_storage_api {
     () => {{

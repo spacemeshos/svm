@@ -1,7 +1,7 @@
 use super::traits::StoragePages;
 use super::{DefaultPageHasher, MemKVStore, StoragePagesImpl};
 
-pub type MemStoragePages = StoragePagesImpl<DefaultPageHasher, MemKVStore>;
+pub type MemStoragePages<K> = StoragePagesImpl<DefaultPageHasher, MemKVStore<K>>;
 
 #[cfg(test)]
 mod tests {

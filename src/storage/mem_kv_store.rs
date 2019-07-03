@@ -1,11 +1,15 @@
 use super::traits::KVStore;
 use std::collections::HashMap;
 
-pub struct MemKVStore {
-    map: HashMap<Vec<u8>, Vec<u8>>,
+/// An implementation for a key-value store (implements `KVStore`) store backed by an underlying `HashMap`
+pub struct MemKVStore<MemKey> {
+    map: HashMap<MemKey, Vec<u8>>,
 }
 
-impl MemKVStore {
+impl<MemKey> MemKVStore<MemKey>
+where
+    MemKey: AsRef<[u8]> + Copy + Clone + Sized + std::cmp::Eq + std::hash::Hash,
+{
     pub fn new() -> Self {
         Self {
             map: HashMap::new(),
@@ -13,11 +17,14 @@ impl MemKVStore {
     }
 }
 
-impl KVStore for MemKVStore {
-    type K = [u8; 32];
+impl<MemKey> KVStore for MemKVStore<MemKey>
+where
+    MemKey: AsRef<[u8]> + Copy + Clone + Sized + std::cmp::Eq + std::hash::Hash,
+{
+    type K = MemKey;
 
     fn get(&self, key: Self::K) -> Vec<u8> {
-        let entry = self.map.get(key.as_ref());
+        let entry = self.map.get(&key);
 
         if entry.is_some() {
             entry.unwrap().clone()
@@ -27,7 +34,7 @@ impl KVStore for MemKVStore {
     }
 
     fn store(&mut self, key: Self::K, value: &[u8]) {
-        self.map.insert(key.to_vec(), value.to_vec());
+        self.map.insert(key, value.to_vec());
     }
 }
 
