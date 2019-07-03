@@ -25,6 +25,7 @@ macro_rules! svm_compiler {
 
 /// This function is responsible on compiling a wasm program using the `wasmer single-pass compiler`
 /// and the middlewares required by `svm`
+#[must_use]
 pub fn compile_program(wasm: &[u8]) -> CompileResult<Module> {
     let compiler = svm_compiler!();
 

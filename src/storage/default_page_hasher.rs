@@ -8,8 +8,8 @@ pub struct PageHasherImpl<H> {
     hash_mark: PhantomData<H>,
 }
 
-impl<H: KeyHasher<Out = [u8; 32]>> StoragePageHasher for PageHasherImpl<H> {
-    fn hash(address: Address, page: u32) -> H::Out {
+impl<H: KeyHasher<Hash = [u8; 32]>> StoragePageHasher for PageHasherImpl<H> {
+    fn hash(address: Address, page: u32) -> H::Hash {
         let page_addr: [u8; 33] = address.add(page as u32);
 
         H::hash(&page_addr)

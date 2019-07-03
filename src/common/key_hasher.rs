@@ -1,6 +1,6 @@
-/// A low-level trait for defining an hasher
+/// A low-level trait for defining a hasher
 pub trait KeyHasher {
-    type Out: AsRef<[u8]> + Copy + Clone + std::fmt::Debug;
+    type Hash: AsRef<[u8]> + Copy + Clone + std::fmt::Debug + Sized;
 
-    fn hash(key: &[u8]) -> Self::Out;
+    fn hash(key: &[u8]) -> Self::Hash;
 }

@@ -1,12 +1,23 @@
 use crate::common::Address;
 
+/// `KVStore` is a trait for defining an interface against key-value stores. for example `leveldb / rocksdb`
+pub trait KVStore {
+    type K: AsRef<[u8]> + Copy + Clone + std::hash::Hash + Sized;
+
+    #[must_use]
+    fn get(&self, key: Self::K) -> Vec<u8>;
+
+    fn store(&mut self, key: Self::K, value: &[u8]);
+}
+
 /// `StoragePages` is the most low-level trait for dealing with a contract's storage.
 /// For performance concerns, we work on pages units (a page is 4096 bytes)
 /// Each read / write operation will involve exactly one page
 pub trait StoragePages {
-    fn read_page(&self, page: i32);
+    #[must_use]
+    fn read_page(&self, page: u32) -> Vec<u8>;
 
-    fn write_page(&mut self, page: i32);
+    fn write_page(&mut self, page: u32, data: &[u8]);
 }
 
 /// `StoragePageHasher` is a trait defining that a contract storage-page hash must be determied by
@@ -19,14 +30,8 @@ pub trait StoragePages {
 /// * Similarly, computing a page-hash two variables located at different storage-pages under the same contract
 /// must also result in a different page-hash.
 pub trait StoragePageHasher {
+    #[must_use]
     fn hash(address: Address, page: u32) -> [u8; 32];
-}
-
-/// `KVStore` is a trait for defining an interface against key-value stores. for example `leveldb / rocksdb`
-pub trait KVStore {
-    fn get(key: &[u8]) -> Vec<u8>;
-
-    fn store(key: &[u8], value: &[u8]);
 }
 
 /// The `declare_storage_api` will be imported by the smart contract wasm programs.
