@@ -16,9 +16,9 @@ pub trait KVStore {
 /// That is flushed to the underlying database only when calling `commit`
 pub trait StoragePages {
     #[must_use]
-    fn read_page(&mut self, page: u32) -> Option<Vec<u8>>;
+    fn read_page(&mut self, page_idx: u32) -> Option<Vec<u8>>;
 
-    fn write_page(&mut self, page: u32, data: &[u8]);
+    fn write_page(&mut self, page_idx: u32, data: &[u8]);
 
     fn clear(&mut self);
 
