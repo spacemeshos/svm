@@ -10,11 +10,11 @@ pub trait KVStore {
     fn store(&mut self, key: Self::K, value: &[u8]);
 }
 
-/// `StoragePages` is the most low-level trait for dealing with a contract's storage.
+/// `PagesStorage` is the most low-level trait for dealing with a contract's storage.
 /// For performance concerns, we work on pages units (a page is 4096 bytes)
 /// Each read / write operation will involve exactly one page
 /// That is flushed to the underlying database only when calling `commit`
-pub trait StoragePages {
+pub trait PagesStorage {
     #[must_use]
     fn read_page(&mut self, page_idx: u32) -> Option<Vec<u8>>;
 

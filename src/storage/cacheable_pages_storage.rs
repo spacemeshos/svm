@@ -1,4 +1,4 @@
-use super::traits::{KVStore, PageHasher, StoragePages};
+use super::traits::{KVStore, PageHasher, PagesStorage};
 use crate::Address;
 
 type PageKey = [u8; 32];
@@ -12,7 +12,7 @@ enum CachedPage {
     Cached(Vec<u8>),
 }
 
-pub struct CacheableStoragePages<'sp, SP: StoragePages> {
+pub struct CacheablePagesStorage<'sp, PS: PagesStorage> {
     /// The `ith item` will say whether the `ith page` is dirty
     dirty_pages: Vec<bool>,
 
@@ -20,11 +20,11 @@ pub struct CacheableStoragePages<'sp, SP: StoragePages> {
     cached_pages: Vec<CachedPage>,
 
     /// The underlying storage pages
-    storage_pages: &'sp mut SP,
+    storage_pages: &'sp mut PS,
 }
 
-impl<'sp, SP: StoragePages> CacheableStoragePages<'sp, SP> {
-    fn new(storage_pages: &'sp mut SP, max_pages: usize) -> Self {
+impl<'sp, PS: PagesStorage> CacheablePagesStorage<'sp, PS> {
+    fn new(storage_pages: &'sp mut PS, max_pages: usize) -> Self {
         Self {
             dirty_pages: vec![false; max_pages],
 
@@ -40,7 +40,7 @@ impl<'sp, SP: StoragePages> CacheableStoragePages<'sp, SP> {
     }
 }
 
-impl<'sp, SP: StoragePages> StoragePages for CacheableStoragePages<'sp, SP> {
+impl<'sp, PS: PagesStorage> PagesStorage for CacheablePagesStorage<'sp, PS> {
     fn read_page(&mut self, page_idx: u32) -> Option<Vec<u8>> {
         // we can have an `assert` here since we are given the maximum storage-pages upon initialization
         assert!(self.cached_pages.len() > page_idx as usize);
@@ -161,12 +161,12 @@ mod tests {
     use super::*;
 
     use crate::storage::traits::KVStore;
-    use crate::storage::{DefaultPageHasher, MemKVStore, MemStoragePages, StoragePagesImpl};
+    use crate::storage::{DefaultPageHasher, MemKVStore, MemPagesStorage, PagesStorageImpl};
     use std::cell::RefCell;
     use std::rc::Rc;
 
     pub type MemCacheableStoragePages<'sp, K = [u8; 32]> =
-        CacheableStoragePages<'sp, MemStoragePages<K>>;
+        CacheablePagesStorage<'sp, MemPagesStorage<K>>;
 
     macro_rules! setup_cache {
         ($cache: ident, $db: ident, $addr: expr, $max_pages: expr) => {
@@ -175,7 +175,7 @@ mod tests {
             let mut $db = Rc::new(RefCell::new(MemKVStore::new()));
             let mut db_clone = Rc::clone(&$db);
 
-            let mut inner = MemStoragePages::new(addr, db_clone);
+            let mut inner = MemPagesStorage::new(addr, db_clone);
 
             let mut $cache = MemCacheableStoragePages::new(&mut inner, $max_pages);
         };

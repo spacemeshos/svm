@@ -1,4 +1,4 @@
-use super::traits::{KVStore, PageHasher, StoragePages};
+use super::traits::{KVStore, PageHasher, PagesStorage};
 use super::MemKVStore;
 use crate::common::Address;
 use std::cell::RefCell;
@@ -8,14 +8,14 @@ use std::rc::Rc;
 
 type PageKey = [u8; 32];
 
-pub struct StoragePagesImpl<PH: PageHasher, KV: KVStore<K = PageKey>> {
+pub struct PagesStorageImpl<PH: PageHasher, KV: KVStore<K = PageKey>> {
     contract_addr: Address,
     db: Rc<RefCell<KV>>,
     uncommitted: MemKVStore<PageKey>,
     ph_marker: PhantomData<PH>,
 }
 
-impl<PH: PageHasher, KV: KVStore<K = PageKey>> StoragePagesImpl<PH, KV> {
+impl<PH: PageHasher, KV: KVStore<K = PageKey>> PagesStorageImpl<PH, KV> {
     pub fn new(contract_addr: Address, db: Rc<RefCell<KV>>) -> Self {
         Self {
             contract_addr,
@@ -37,7 +37,7 @@ impl<PH: PageHasher, KV: KVStore<K = PageKey>> StoragePagesImpl<PH, KV> {
     }
 }
 
-impl<PH: PageHasher, KV: KVStore<K = PageKey>> StoragePages for StoragePagesImpl<PH, KV> {
+impl<PH: PageHasher, KV: KVStore<K = PageKey>> PagesStorage for PagesStorageImpl<PH, KV> {
     fn read_page(&mut self, page_idx: u32) -> Option<Vec<u8>> {
         let ph = self.compute_page_hash(page_idx);
 
