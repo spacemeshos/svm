@@ -12,7 +12,7 @@ enum CachedPage {
     Cached(Vec<u8>),
 }
 
-pub struct CacheablePagesStorage<'sp, PS: PagesStorage> {
+pub struct CacheablePages<'sp, PS: PagesStorage> {
     /// The `ith item` will say whether the `ith page` is dirty
     dirty_pages: Vec<bool>,
 
@@ -23,7 +23,7 @@ pub struct CacheablePagesStorage<'sp, PS: PagesStorage> {
     storage_pages: &'sp mut PS,
 }
 
-impl<'sp, PS: PagesStorage> CacheablePagesStorage<'sp, PS> {
+impl<'sp, PS: PagesStorage> CacheablePages<'sp, PS> {
     fn new(storage_pages: &'sp mut PS, max_pages: usize) -> Self {
         Self {
             dirty_pages: vec![false; max_pages],
@@ -40,7 +40,7 @@ impl<'sp, PS: PagesStorage> CacheablePagesStorage<'sp, PS> {
     }
 }
 
-impl<'sp, PS: PagesStorage> PagesStorage for CacheablePagesStorage<'sp, PS> {
+impl<'sp, PS: PagesStorage> PagesStorage for CacheablePages<'sp, PS> {
     fn read_page(&mut self, page_idx: u32) -> Option<Vec<u8>> {
         // we can have an `assert` here since we are given the maximum storage-pages upon initialization
         assert!(self.cached_pages.len() > page_idx as usize);
@@ -165,8 +165,7 @@ mod tests {
     use std::cell::RefCell;
     use std::rc::Rc;
 
-    pub type MemCacheableStoragePages<'sp, K = [u8; 32]> =
-        CacheablePagesStorage<'sp, MemPagesStorage<K>>;
+    pub type MemCacheablePages<'sp, K = [u8; 32]> = CacheablePages<'sp, MemPagesStorage<K>>;
 
     macro_rules! setup_cache {
         ($cache: ident, $db: ident, $addr: expr, $max_pages: expr) => {
@@ -177,7 +176,7 @@ mod tests {
 
             let mut inner = MemPagesStorage::new(addr, db_clone);
 
-            let mut $cache = MemCacheableStoragePages::new(&mut inner, $max_pages);
+            let mut $cache = MemCacheablePages::new(&mut inner, $max_pages);
         };
     }
 
