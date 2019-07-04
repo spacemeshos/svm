@@ -1,5 +1,4 @@
 use super::traits::{KVStore, PageHasher, StoragePages};
-use super::StoragePagesImpl;
 use crate::Address;
 
 type PageKey = [u8; 32];
@@ -13,7 +12,7 @@ enum CachedPage {
     Cached(Vec<u8>),
 }
 
-pub struct CacheableStoragePages<PH: PageHasher, KV: KVStore<K = PageKey>> {
+pub struct CacheableStoragePages<'sp, SP: StoragePages> {
     /// The `ith item` will say whether the `ith page` is dirty
     dirty_pages: Vec<bool>,
 
@@ -21,11 +20,11 @@ pub struct CacheableStoragePages<PH: PageHasher, KV: KVStore<K = PageKey>> {
     cached_pages: Vec<CachedPage>,
 
     /// The underlying storage pages
-    storage_pages: StoragePagesImpl<PH, KV>,
+    storage_pages: &'sp mut SP,
 }
 
-impl<PH: PageHasher, KV: KVStore<K = PageKey>> CacheableStoragePages<PH, KV> {
-    fn new(storage_pages: StoragePagesImpl<PH, KV>, max_pages: usize) -> Self {
+impl<'sp, SP: StoragePages> CacheableStoragePages<'sp, SP> {
+    fn new(storage_pages: &'sp mut SP, max_pages: usize) -> Self {
         Self {
             dirty_pages: vec![false; max_pages],
 
@@ -41,7 +40,7 @@ impl<PH: PageHasher, KV: KVStore<K = PageKey>> CacheableStoragePages<PH, KV> {
     }
 }
 
-impl<PH: PageHasher, KV: KVStore<K = PageKey>> StoragePages for CacheableStoragePages<PH, KV> {
+impl<'sp, SP: StoragePages> StoragePages for CacheableStoragePages<'sp, SP> {
     fn read_page(&mut self, page_idx: u32) -> Option<Vec<u8>> {
         // we can have an `assert` here since we are given the maximum storage-pages upon initialization
         assert!(self.cached_pages.len() > page_idx as usize);
@@ -166,21 +165,20 @@ mod tests {
     use std::cell::RefCell;
     use std::rc::Rc;
 
-    pub type MemCacheableStoragePages<K = [u8; 32]> =
-        CacheableStoragePages<DefaultPageHasher, MemKVStore<K>>;
+    pub type MemCacheableStoragePages<'sp, K = [u8; 32]> =
+        CacheableStoragePages<'sp, MemStoragePages<K>>;
 
     macro_rules! setup_cache {
-        ($addr: expr, $max_pages: expr) => {{
+        ($cache: ident, $db: ident, $addr: expr, $max_pages: expr) => {
             let addr = Address::from($addr as u32);
 
-            let mut kv = Rc::new(RefCell::new(MemKVStore::new()));
-            let mut kv_clone = Rc::clone(&kv);
-            let mut inner = MemStoragePages::new(addr, kv);
+            let mut $db = Rc::new(RefCell::new(MemKVStore::new()));
+            let mut db_clone = Rc::clone(&$db);
 
-            let mut cache = MemCacheableStoragePages::new(inner, $max_pages);
+            let mut inner = MemStoragePages::new(addr, db_clone);
 
-            (cache, kv_clone)
-        }};
+            let mut $cache = MemCacheableStoragePages::new(&mut inner, $max_pages);
+        };
     }
 
     macro_rules! page_hash {
@@ -193,14 +191,14 @@ mod tests {
 
     #[test]
     fn loading_a_non_empty_page_into_the_cache() {
-        let (mut cache, _db) = setup_cache!(0x11_22_33_44, 10);
+        setup_cache!(cache, db, 0x11_22_33_44, 10);
 
         assert_eq!(None, cache.read_page(0));
     }
 
     #[test]
     fn loading_a_empty_page_into_the_cache_and_then_doing_commit() {
-        let (mut cache, db) = setup_cache!(0x11_22_33_44, 10);
+        setup_cache!(cache, db, 0x11_22_33_44, 10);
         let page = vec![10, 20, 30];
 
         cache.write_page(0, &page);
@@ -212,7 +210,7 @@ mod tests {
 
     #[test]
     fn writing_a_page_marks_it_as_dirty() {
-        let (mut cache, _db) = setup_cache!(0x11_22_33_44, 10);
+        setup_cache!(cache, db, 0x11_22_33_44, 10);
 
         assert_eq!(false, cache.is_dirty(0));
 
@@ -224,7 +222,7 @@ mod tests {
 
     #[test]
     fn commit_persists_each_dirty_page() {
-        let (mut cache, db) = setup_cache!(0x11_22_33_44, 10);
+        setup_cache!(cache, db, 0x11_22_33_44, 10);
         let page = vec![10, 20, 30];
 
         cache.write_page(0, &page);
