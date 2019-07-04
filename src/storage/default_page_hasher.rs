@@ -1,4 +1,4 @@
-use super::traits::StoragePageHasher;
+use super::traits::PageHasher;
 use crate::common::{DefaultKeyHasher, KeyHasher};
 use crate::Address;
 use std::marker::PhantomData;
@@ -8,7 +8,7 @@ pub struct PageHasherImpl<H> {
     hash_mark: PhantomData<H>,
 }
 
-impl<H: KeyHasher<Hash = [u8; 32]>> StoragePageHasher for PageHasherImpl<H> {
+impl<H: KeyHasher<Hash = [u8; 32]>> PageHasher for PageHasherImpl<H> {
     fn hash(address: Address, page: u32) -> H::Hash {
         let page_addr: [u8; 33] = address.add(page as u32);
 

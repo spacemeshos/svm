@@ -25,7 +25,7 @@ pub trait StoragePages {
     fn commit(&mut self);
 }
 
-/// `StoragePageHasher` is a trait defining that a contract storage-page hash must be determied by
+/// `PageHasher` is a trait defining that a contract storage-page hash must be determied by
 /// both the contract storage and the page index.
 ///
 /// We must have both parameters taken into account since:
@@ -34,7 +34,7 @@ pub trait StoragePages {
 ///
 /// * Similarly, computing a page-hash two variables located at different storage-pages under the same contract
 /// must also result in a different page-hash.
-pub trait StoragePageHasher {
+pub trait PageHasher {
     #[must_use]
     fn hash(address: Address, page: u32) -> [u8; 32];
 }
