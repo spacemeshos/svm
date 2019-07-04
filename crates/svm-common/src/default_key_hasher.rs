@@ -2,6 +2,7 @@ use super::KeyHasher;
 
 use tiny_keccak::Keccak;
 
+/// Implements the `KeyHasher` trait using the `keccak256` hashing algorithm (output: 32 bytes)
 pub struct DefaultKeyHasher;
 
 impl KeyHasher for DefaultKeyHasher {

@@ -1,14 +1,16 @@
-use super::traits::{KVStore, PageHasher, PagesStorage};
-use crate::Address;
+use super::traits::PagesStorage;
 
 type PageKey = [u8; 32];
 
 #[derive(Debug, Clone)]
 enum CachedPage {
+    /// We didn't load the page yet from the underlying db
     NotCached,
 
+    /// We've loaded page from the underlying db, but no data was there
     CachedEmpty,
 
+    /// We've loaded the page from the underlying db and it had data
     Cached(Vec<u8>),
 }
 
@@ -27,9 +29,7 @@ impl<'sp, PS: PagesStorage> CacheablePages<'sp, PS> {
     fn new(storage_pages: &'sp mut PS, max_pages: usize) -> Self {
         Self {
             dirty_pages: vec![false; max_pages],
-
             cached_pages: vec![CachedPage::NotCached; max_pages],
-
             storage_pages,
         }
     }
@@ -159,16 +159,18 @@ impl<'sp, PS: PagesStorage> PagesStorage for CacheablePages<'sp, PS> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    use crate::storage::traits::KVStore;
-    use crate::storage::{DefaultPageHasher, MemKVStore, MemPagesStorage, PagesStorageImpl};
-    use std::cell::RefCell;
-    use std::rc::Rc;
+    use crate::traits::KVStore;
+    use crate::MemPagesStorage;
 
     pub type MemCacheablePages<'sp, K = [u8; 32]> = CacheablePages<'sp, MemPagesStorage<K>>;
 
     macro_rules! setup_cache {
         ($cache: ident, $db: ident, $addr: expr, $max_pages: expr) => {
+            use crate::MemKVStore;
+            use std::cell::RefCell;
+            use std::rc::Rc;
+            use svm_common::{Address, KeyHasher};
+
             let addr = Address::from($addr as u32);
 
             let mut $db = Rc::new(RefCell::new(MemKVStore::new()));
@@ -182,6 +184,9 @@ mod tests {
 
     macro_rules! page_hash {
         ($addr: expr, $page_idx: expr) => {{
+            use crate::traits::PageHasher;
+            use crate::DefaultPageHasher;
+
             let addr = Address::from($addr as u32);
 
             DefaultPageHasher::hash(addr, $page_idx)

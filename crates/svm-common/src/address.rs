@@ -6,8 +6,7 @@ use std::ops::Add;
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct Address(pub [u8; 32]);
 
-/// **only** for tests
-#[cfg(test)]
+/// Should be used **only** for tests
 impl From<u32> for Address {
     fn from(n: u32) -> Address {
         let mut addr = [0; 32];
@@ -23,8 +22,7 @@ impl From<u32> for Address {
     }
 }
 
-/// **only** for tests
-#[cfg(test)]
+/// Should be used **only** for tests
 impl From<u64> for Address {
     fn from(n: u64) -> Address {
         use crate::utils::u64_to_le_array;

@@ -1,8 +1,7 @@
-use super::traits::PageHasher;
-use crate::common::{DefaultKeyHasher, KeyHasher};
-use crate::Address;
+use crate::traits::PageHasher;
 use std::marker::PhantomData;
 use std::ops::Add;
+use svm_common::{Address, DefaultKeyHasher, KeyHasher};
 
 pub struct PageHasherImpl<H> {
     hash_mark: PhantomData<H>,

@@ -6,10 +6,9 @@ pub type MemPagesStorage<K> = PagesStorageImpl<DefaultPageHasher, MemKVStore<K>>
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::storage::DefaultPageHasher;
-    use crate::Address;
     use std::cell::RefCell;
     use std::rc::Rc;
+    use svm_common::Address;
 
     #[test]
     fn a_page_does_not_exit_by_default() {
@@ -35,7 +34,7 @@ mod tests {
 
         // writing `page 0` with data `[10, 20, 30]`
         // changes aren't commited directly to `kv`
-        // storage `storage1` saves the a pending commit page,
+        // storage `storage1` saves the pending commit page,
         // storage `storage2` won't see that changes before `storage1` doing `commit`
         storage1.write_page(0, &vec![10, 20, 30]);
         assert_eq!(vec![10, 20, 30], storage1.read_page(0).unwrap());
@@ -80,7 +79,7 @@ mod tests {
         storage.commit();
 
         assert_eq!(vec![40, 50, 60], storage.read_page(0).unwrap());
-        // no pending change
+        // no pending changes
         assert_eq!(0, storage.uncommitted_len());
     }
 

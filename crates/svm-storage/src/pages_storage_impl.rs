@@ -1,10 +1,9 @@
 use super::traits::{KVStore, PageHasher, PagesStorage};
 use super::MemKVStore;
-use crate::common::Address;
 use std::cell::RefCell;
-use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::rc::Rc;
+use svm_common::Address;
 
 type PageKey = [u8; 32];
 

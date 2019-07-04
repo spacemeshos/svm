@@ -3,20 +3,20 @@ use super::traits::PagesStorage;
 #[derive(Debug, Clone, PartialEq)]
 pub struct PageSlice {
     dirty: bool,
-
     page_idx: u32,
-
     offset: u32,
-
     data: Vec<u8>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum CachedPageSlice {
+    /// We didn't load the page-slice yet from the underlying db
     NotCached,
 
+    /// We've loaded page-slice from the underlying db, but no data was there
     CachedEmpty,
 
+    /// We've loaded the page-slice from the underlying db and it had data
     Cached(PageSlice),
 }
 

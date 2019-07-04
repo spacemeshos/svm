@@ -47,7 +47,7 @@ where
 mod tests {
     use super::*;
 
-    use crate::Address;
+    use svm_common::Address;
 
     #[test]
     fn a_key_does_not_exit_by_default() {
