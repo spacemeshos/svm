@@ -1,11 +1,12 @@
-use super::traits::PagesStorage;
 use super::{DefaultPageHasher, MemKVStore, PagesStorageImpl};
 
+/// `MemPagesStorage` is an storage-pages backed by an in-memory key-value store (`MemKVStore`)
 pub type MemPagesStorage<K> = PagesStorageImpl<DefaultPageHasher, MemKVStore<K>>;
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::traits::PagesStorage;
     use std::cell::RefCell;
     use std::rc::Rc;
     use svm_common::Address;
@@ -14,7 +15,7 @@ mod tests {
     fn a_page_does_not_exit_by_default() {
         let addr = Address::from(0x11_22_33_44 as u32);
 
-        let mut kv = Rc::new(RefCell::new(MemKVStore::new()));
+        let kv = Rc::new(RefCell::new(MemKVStore::new()));
         let mut storage = MemPagesStorage::new(addr, kv);
 
         assert_eq!(None, storage.read_page(0));
@@ -24,8 +25,8 @@ mod tests {
     fn writing_a_page_does_not_auto_commit_it_to_underlying_kv() {
         let addr = Address::from(0x11_22_33_44 as u32);
 
-        let mut kv = Rc::new(RefCell::new(MemKVStore::new()));
-        let mut kv_clone = Rc::clone(&kv);
+        let kv = Rc::new(RefCell::new(MemKVStore::new()));
+        let kv_clone = Rc::clone(&kv);
 
         // both `storage1` and `storage2` service the same contract address `addr`
         // and both share the the same underlying key-value store
@@ -60,7 +61,7 @@ mod tests {
     fn writing_the_same_page_twice_before_committing() {
         let addr = Address::from(0x11_22_33_44 as u32);
 
-        let mut kv = Rc::new(RefCell::new(MemKVStore::new()));
+        let kv = Rc::new(RefCell::new(MemKVStore::new()));
         let mut storage = MemPagesStorage::new(addr, kv);
 
         // first write
@@ -88,8 +89,8 @@ mod tests {
         let addr1 = Address::from(0x11_22_33_44 as u32);
         let addr2 = Address::from(0x55_66_77_88 as u32);
 
-        let mut kv = Rc::new(RefCell::new(MemKVStore::new()));
-        let mut kv_clone = Rc::clone(&kv);
+        let kv = Rc::new(RefCell::new(MemKVStore::new()));
+        let kv_clone = Rc::clone(&kv);
 
         // `storagee1` and `storage2` share the same underlying `kv store`
         let mut storage1 = MemPagesStorage::new(addr1, kv);

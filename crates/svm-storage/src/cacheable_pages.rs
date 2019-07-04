@@ -1,7 +1,5 @@
 use super::traits::PagesStorage;
 
-type PageKey = [u8; 32];
-
 #[derive(Debug, Clone)]
 enum CachedPage {
     /// We didn't load the page yet from the underlying db
@@ -14,6 +12,9 @@ enum CachedPage {
     Cached(Vec<u8>),
 }
 
+/// `CacheablePages` serves us a cache layer for reading contract storage page.
+/// In addition, it tracks dirty pages (pages that have been changed during the execution of a
+/// smart contract).
 pub struct CacheablePages<'sp, PS: PagesStorage> {
     /// The `ith item` will say whether the `ith page` is dirty
     dirty_pages: Vec<bool>,
@@ -26,6 +27,7 @@ pub struct CacheablePages<'sp, PS: PagesStorage> {
 }
 
 impl<'sp, PS: PagesStorage> CacheablePages<'sp, PS> {
+    #[allow(dead_code)]
     fn new(storage_pages: &'sp mut PS, max_pages: usize) -> Self {
         Self {
             dirty_pages: vec![false; max_pages],
@@ -169,12 +171,12 @@ mod tests {
             use crate::MemKVStore;
             use std::cell::RefCell;
             use std::rc::Rc;
-            use svm_common::{Address, KeyHasher};
+            use svm_common::Address;
 
             let addr = Address::from($addr as u32);
 
-            let mut $db = Rc::new(RefCell::new(MemKVStore::new()));
-            let mut db_clone = Rc::clone(&$db);
+            let $db = Rc::new(RefCell::new(MemKVStore::new()));
+            let db_clone = Rc::clone(&$db);
 
             let mut inner = MemPagesStorage::new(addr, db_clone);
 

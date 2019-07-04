@@ -1,3 +1,4 @@
+/// Converts an unsigned 32-bit integer into a 4-byte array (ordered in Big-Endian)
 #[inline(always)]
 pub fn u32_to_be_array(num: u32) -> [u8; 4] {
     let b3 = ((num >> 24) & 0xFF) as u8;
@@ -8,6 +9,7 @@ pub fn u32_to_be_array(num: u32) -> [u8; 4] {
     [b3, b2, b1, b0]
 }
 
+/// Converts an unsigned 32-bit integer into a 4-byte array (ordered in Little-Endian)
 #[inline(always)]
 pub fn u32_to_le_array(num: u32) -> [u8; 4] {
     let b0 = ((num >> 24) & 0xFF) as u8;
@@ -18,6 +20,7 @@ pub fn u32_to_le_array(num: u32) -> [u8; 4] {
     [b3, b2, b1, b0]
 }
 
+/// Converts an unsigned 64-bit integer into a 8-byte array (ordered in Big-Endian)
 #[inline(always)]
 pub fn u64_to_be_array(num: u64) -> [u8; 8] {
     let b7 = ((num >> 56) & 0xFF) as u8;
@@ -32,6 +35,7 @@ pub fn u64_to_be_array(num: u64) -> [u8; 8] {
     [b7, b6, b5, b4, b3, b2, b1, b0]
 }
 
+/// Converts an unsigned 64-bit integer into a 8-byte array (ordered in Little-Endian)
 #[inline(always)]
 pub fn u64_to_le_array(num: u64) -> [u8; 8] {
     let b0 = ((num >> 56) & 0xFF) as u8;
@@ -46,6 +50,13 @@ pub fn u64_to_le_array(num: u64) -> [u8; 8] {
     [b7, b6, b5, b4, b3, b2, b1, b0]
 }
 
+/// Adds 2 unsigned bytes and returns also the carry.
+///
+/// # Example
+///
+/// u8_pair_add(10, 20)   -> returns (0, 30)
+/// u8_pair_add(255, 10)  -> returns (1, 9)
+///
 #[inline(always)]
 pub fn u8_pair_add(a: u8, b: u8) -> (u8, u8) {
     let c = (a as u16) + (b as u16);
@@ -56,6 +67,10 @@ pub fn u8_pair_add(a: u8, b: u8) -> (u8, u8) {
     (c1, c0)
 }
 
+/// Adds 3 unsigned bytes and returns also the carry.
+///
+/// u8_triple_add(10, 20, 30)   -> returns (0, 60)
+/// u8_triple_add(255, 5, 5)    -> returns (1, 9)
 #[inline(always)]
 pub fn u8_triple_add(a: u8, b: u8, c: u8) -> (u8, u8) {
     let d = (a as u16) + (b as u16) + (c as u16);

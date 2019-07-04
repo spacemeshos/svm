@@ -1,5 +1,5 @@
 #![deny(missing_docs)]
-#![allow(unused)]
+#![deny(unused)]
 
 //! `svm-storage` crate is responsible on the contract storage part of the `svm`
 //! Each smart contract has its own storage
@@ -12,9 +12,10 @@ mod mem_pages_storage;
 mod pages_storage_impl;
 mod traits;
 
-// use cacheable_pages::CacheablePages;
-// use cacheable_pages_slices::CacheablePagesSlices;
 use default_page_hasher::DefaultPageHasher;
 use mem_kv_store::MemKVStore;
-use mem_pages_storage::MemPagesStorage;
+pub use mem_pages_storage::MemPagesStorage;
 use pages_storage_impl::PagesStorageImpl;
+
+pub use cacheable_pages::CacheablePages;
+// pub use cacheable_pages_slices::CacheablePagesSlices;
