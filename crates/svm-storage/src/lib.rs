@@ -1,5 +1,5 @@
 #![deny(missing_docs)]
-#![deny(unused)]
+#![allow(unused)]
 
 //! `svm-storage` crate is responsible on the contract storage part of the `svm`
 //! Each smart contract has its own storage

@@ -2,33 +2,33 @@ use super::traits::PagesStorage;
 
 #[derive(Debug, Clone)]
 enum CachedPage {
-    /// We didn't load the page yet from the underlying db
+    // We didn't load the page yet from the underlying db
     NotCached,
 
-    /// We've loaded page from the underlying db, but no data was there
+    // We've loaded page from the underlying db, but no data was there
     CachedEmpty,
 
-    /// We've loaded the page from the underlying db and it had data
+    // We've loaded the page from the underlying db and it had data
     Cached(Vec<u8>),
 }
 
 /// `CacheablePages` serves us a cache layer for reading contract storage page.
 /// In addition, it tracks dirty pages (pages that have been changed during the execution of a
 /// smart contract).
-pub struct CacheablePages<'sp, PS: PagesStorage> {
-    /// The `ith item` will say whether the `ith page` is dirty
+pub struct CacheablePages<'ps, PS: PagesStorage> {
+    // The `ith item` will say whether the `ith page` is dirty
     dirty_pages: Vec<bool>,
 
-    /// The `ith item` will say whether the `ith page` is cached
+    // The `ith item` will say whether the `ith page` is cached
     cached_pages: Vec<CachedPage>,
 
-    /// The underlying storage pages
-    storage_pages: &'sp mut PS,
+    // The underlying storage pages
+    storage_pages: &'ps mut PS,
 }
 
-impl<'sp, PS: PagesStorage> CacheablePages<'sp, PS> {
+impl<'ps, PS: PagesStorage> CacheablePages<'ps, PS> {
     #[allow(dead_code)]
-    fn new(storage_pages: &'sp mut PS, max_pages: usize) -> Self {
+    fn new(storage_pages: &'ps mut PS, max_pages: usize) -> Self {
         Self {
             dirty_pages: vec![false; max_pages],
             cached_pages: vec![CachedPage::NotCached; max_pages],
@@ -42,7 +42,7 @@ impl<'sp, PS: PagesStorage> CacheablePages<'sp, PS> {
     }
 }
 
-impl<'sp, PS: PagesStorage> PagesStorage for CacheablePages<'sp, PS> {
+impl<'ps, PS: PagesStorage> PagesStorage for CacheablePages<'ps, PS> {
     fn read_page(&mut self, page_idx: u32) -> Option<Vec<u8>> {
         // we can have an `assert` here since we are given the maximum storage-pages upon initialization
         assert!(self.cached_pages.len() > page_idx as usize);
@@ -164,7 +164,7 @@ mod tests {
     use crate::traits::KVStore;
     use crate::MemPagesStorage;
 
-    pub type MemCacheablePages<'sp, K = [u8; 32]> = CacheablePages<'sp, MemPagesStorage<K>>;
+    pub type MemCacheablePages<'ps, K = [u8; 32]> = CacheablePages<'ps, MemPagesStorage<K>>;
 
     macro_rules! setup_cache {
         ($cache: ident, $db: ident, $addr: expr, $max_pages: expr) => {
@@ -196,14 +196,14 @@ mod tests {
     }
 
     #[test]
-    fn loading_a_non_empty_page_into_the_cache() {
+    fn loading_an_empty_page_into_the_cache() {
         setup_cache!(cache, db, 0x11_22_33_44, 10);
 
         assert_eq!(None, cache.read_page(0));
     }
 
     #[test]
-    fn loading_a_empty_page_into_the_cache_and_then_doing_commit() {
+    fn write_page_and_then_commit() {
         setup_cache!(cache, db, 0x11_22_33_44, 10);
         let page = vec![10, 20, 30];
 
