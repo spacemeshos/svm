@@ -1,7 +1,7 @@
 use super::{DefaultPageHasher, MemKVStore, PagesStorageImpl};
 
-/// `MemPagesStorage` is an storage-pages backed by an in-memory key-value store (`MemKVStore`)
-pub type MemPagesStorage<K> = PagesStorageImpl<DefaultPageHasher, MemKVStore<K>>;
+/// `MemPages` is an storage-pages backed by an in-memory key-value store (`MemKVStore`)
+pub type MemPages<K> = PagesStorageImpl<DefaultPageHasher, MemKVStore<K>>;
 
 #[cfg(test)]
 mod tests {
@@ -16,7 +16,7 @@ mod tests {
         let addr = Address::from(0x11_22_33_44 as u32);
 
         let kv = Rc::new(RefCell::new(MemKVStore::new()));
-        let mut storage = MemPagesStorage::new(addr, kv);
+        let mut storage = MemPages::new(addr, kv);
 
         assert_eq!(None, storage.read_page(0));
     }
@@ -30,8 +30,8 @@ mod tests {
 
         // both `storage1` and `storage2` service the same contract address `addr`
         // and both share the the same underlying key-value store
-        let mut storage1 = MemPagesStorage::new(addr, kv);
-        let mut storage2 = MemPagesStorage::new(addr, kv_clone);
+        let mut storage1 = MemPages::new(addr, kv);
+        let mut storage2 = MemPages::new(addr, kv_clone);
 
         // writing `page 0` with data `[10, 20, 30]`
         // changes aren't commited directly to `kv`
@@ -62,7 +62,7 @@ mod tests {
         let addr = Address::from(0x11_22_33_44 as u32);
 
         let kv = Rc::new(RefCell::new(MemKVStore::new()));
-        let mut storage = MemPagesStorage::new(addr, kv);
+        let mut storage = MemPages::new(addr, kv);
 
         // first write
         storage.write_page(0, &vec![10, 20, 30]);
@@ -93,8 +93,8 @@ mod tests {
         let kv_clone = Rc::clone(&kv);
 
         // `storagee1` and `storage2` share the same underlying `kv store`
-        let mut storage1 = MemPagesStorage::new(addr1, kv);
-        let mut storage2 = MemPagesStorage::new(addr2, kv_clone);
+        let mut storage1 = MemPages::new(addr1, kv);
+        let mut storage2 = MemPages::new(addr2, kv_clone);
 
         storage1.write_page(0, &vec![10, 20, 30]);
         storage2.write_page(0, &vec![40, 50, 60]);
