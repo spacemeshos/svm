@@ -26,8 +26,17 @@ pub struct PageCache<'ps, PS: PagesStorage> {
     storage_pages: &'ps mut PS,
 }
 
+/// A `PageCache` is caching layer on top of a storage pages.
+/// Each page change marks the page as dirty but the changes
+/// are persisted to storage pages only upon `commit`
 impl<'ps, PS: PagesStorage> PageCache<'ps, PS> {
-    #[allow(dead_code)]
+    /// Initializes a new `PageCache` instance.
+    ///
+    /// * `storage_pages` - the underlying page-oriented page interface wrapping an underlying database.
+    ///   doing a `storage_pages.commit()` should persist data to the underlying database.
+    ///
+    /// * `max_pages` - the maximum pages the `PageCache` instance could use when doing read / write.
+    ///   A page index is within the range `0..(max_pages - 1)` (inclusive)
     pub fn new(storage_pages: &'ps mut PS, max_pages: usize) -> Self {
         Self {
             dirty_pages: vec![false; max_pages],

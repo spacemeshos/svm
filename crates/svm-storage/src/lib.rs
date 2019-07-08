@@ -1,4 +1,4 @@
-// #![deny(missing_docs)]
+#![deny(missing_docs)]
 #![allow(unused)]
 
 //! `svm-storage` crate is responsible on the contract storage part of the `svm`
@@ -7,6 +7,7 @@
 mod default_page_hasher;
 mod mem_kv_store;
 mod mem_pages;
+mod page;
 mod page_cache;
 mod page_slice_cache;
 mod pages_storage_impl;

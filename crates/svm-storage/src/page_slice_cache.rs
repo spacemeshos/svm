@@ -1,10 +1,12 @@
+use super::page;
+use super::page::{PageIndex, SliceIndex};
 use super::traits::PagesStorage;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, PartialEq, Hash)]
 pub struct PageSliceLayout {
-    slice_idx: u32,
-    page_idx: u32,
+    slice_idx: SliceIndex,
+    page_idx: PageIndex,
     offset: u32,
     len: u32,
 }
@@ -28,6 +30,9 @@ pub enum CachedPageSlice {
     Cached(PageSlice),
 }
 
+/// `PageSliceCache` is a caching layer on top of the `PageCache`.
+/// While `PageCache` deals with data involving only page units, `PageSliceCache` has fine-grained
+/// control for various sized of data.
 pub struct PageSliceCache<'pc, PC> {
     // The `ith item` will say whether the `ith page slice` is dirty
     cached_slices: Vec<CachedPageSlice>,
@@ -36,6 +41,14 @@ pub struct PageSliceCache<'pc, PC> {
 }
 
 impl<'pc, PC: PagesStorage> PageSliceCache<'pc, PC> {
+    /// Initializes a new `PageSliceCache` instance.
+    ///
+    /// * `page_cache` - an instance of `PageCache` in charge of supplying the persisted pages
+    ///  upon requests (`read_page`) and for propagating new pages versions (`write_page`).
+    ///  However, persistence only takes place by triggerring `commit`
+    ///
+    /// * `max_page_slices` - the maximum number of page-slices the `PageSliceCache` instance could
+    ///   use when doing read / write. A page slice index is within the range `0..(max_page_slices - 1)` (inclusive)
     pub fn new(page_cache: &'pc mut PC, max_page_slices: usize) -> Self {
         Self {
             page_cache,
@@ -51,7 +64,7 @@ impl<'pc, PC: PagesStorage> PageSliceCache<'pc, PC> {
     /// * In case the page slice is empty we cache it as `CachedEmpty`.
     ///   Else, we cache it as `Cached(PageSlice)` and mark the page-slice as non-dirty
     pub fn read_page_slice(&mut self, layout: &PageSliceLayout) -> Option<Vec<u8>> {
-        let slice_index = layout.slice_idx as usize;
+        let slice_index = layout.slice_idx.0 as usize;
 
         assert!(slice_index < self.cached_slices.len());
 
@@ -62,7 +75,7 @@ impl<'pc, PC: PagesStorage> PageSliceCache<'pc, PC> {
                 // page-slice isn't cached, so we first need to load the underlying page from
                 // `page_cache`.
 
-                let page: Option<Vec<u8>> = self.page_cache.read_page(layout.page_idx);
+                let page: Option<Vec<u8>> = self.page_cache.read_page(layout.page_idx.0);
 
                 if page.is_some() {
                     // `page` has been fetched from the `page cache`
@@ -112,7 +125,7 @@ impl<'pc, PC: PagesStorage> PageSliceCache<'pc, PC> {
         // We don't mind whether the underlying page is already in the cache or not.
         // We just save the new written page-slice and mark it as `dirty`.
 
-        let slice_index = layout.slice_idx as usize;
+        let slice_index = layout.slice_idx.0 as usize;
 
         assert!(slice_index < self.cached_slices.len());
 
@@ -160,7 +173,7 @@ impl<'pc, PC: PagesStorage> PageSliceCache<'pc, PC> {
         for cs in &self.cached_slices {
             if let CachedPageSlice::Cached(ref slice) = cs {
                 if slice.dirty {
-                    let page_idx = slice.layout.page_idx;
+                    let page_idx = slice.layout.page_idx.0;
 
                     let entry: &mut Vec<_> = page_slices.entry(page_idx).or_insert(Vec::new());
                     entry.push(slice.clone());
@@ -178,8 +191,7 @@ impl<'pc, PC: PagesStorage> PageSliceCache<'pc, PC> {
                 let page_bytes = if let Some(bytes) = self.page_cache.read_page(page_idx) {
                     bytes
                 } else {
-                    // TODO: add a const for page-size
-                    vec![0; 4096]
+                    page::zero_page()
                 };
 
                 (page_idx, page_bytes)
@@ -259,8 +271,8 @@ mod tests {
         setup_cache!(cache, db, 0x11_22_33_44, 10, 100);
 
         let layout = PageSliceLayout {
-            slice_idx: 0,
-            page_idx: 1,
+            slice_idx: SliceIndex(0),
+            page_idx: PageIndex(1),
             offset: 100,
             len: 200,
         };
@@ -273,8 +285,8 @@ mod tests {
         setup_cache!(cache, db, 0x11_22_33_44, 10, 100);
 
         let layout = PageSliceLayout {
-            slice_idx: 0,
-            page_idx: 1,
+            slice_idx: SliceIndex(0),
+            page_idx: PageIndex(1),
             offset: 100,
             len: 3,
         };
@@ -295,8 +307,8 @@ mod tests {
         setup_cache!(cache, db, 0x11_22_33_44, 10, 100);
 
         let layout = PageSliceLayout {
-            slice_idx: 0,
-            page_idx: 1,
+            slice_idx: SliceIndex(0),
+            page_idx: PageIndex(1),
             offset: 100,
             len: 3,
         };
@@ -317,8 +329,8 @@ mod tests {
         setup_cache!(cache, db, 0x11_22_33_44, 10, 100);
 
         let layout = PageSliceLayout {
-            slice_idx: 0,
-            page_idx: 1,
+            slice_idx: SliceIndex(0),
+            page_idx: PageIndex(1),
             offset: 100,
             len: 3,
         };
@@ -350,8 +362,8 @@ mod tests {
         setup_cache!(cache, db, 0x11_22_33_44, 10, 100);
 
         let layout = PageSliceLayout {
-            slice_idx: 0,
-            page_idx: 1,
+            slice_idx: SliceIndex(0),
+            page_idx: PageIndex(1),
             offset: 100,
             len: 3,
         };
@@ -388,15 +400,15 @@ mod tests {
         setup_cache!(cache, db, 0x11_22_33_44, 10, 100);
 
         let layout1 = PageSliceLayout {
-            slice_idx: 0,
-            page_idx: 1,
+            slice_idx: SliceIndex(0),
+            page_idx: PageIndex(1),
             offset: 100,
             len: 3,
         };
 
         let layout2 = PageSliceLayout {
-            slice_idx: 1,
-            page_idx: 1,
+            slice_idx: SliceIndex(1),
+            page_idx: PageIndex(1),
             offset: 200,
             len: 2,
         };
