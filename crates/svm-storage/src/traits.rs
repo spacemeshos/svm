@@ -46,13 +46,23 @@ pub trait PageHasher {
 macro_rules! include_extern_storage {
     () => {
         extern "C" {
-            fn mem_copy_to_reg_copy(reg: i32, mem_ptr: i32, mem_len: i32);
+            // memory => buffer
+            fn mem_to_buf_copy(src_mem_ptr: i32, dst_buf: i32, offset: i32, len: i32);
 
-            fn reg_copy_to_mem_copy(reg: i32, mem_ptr: i32, mem_len: i32);
+            // buffer => memory
+            fn buf_to_mem_copy(src_buf: i32, dst_mem_ptr: i32, offset: i32, len: i32);
 
-            fn storage_read_to_reg(var_page: i32, var_page_offset: i32, var_len: i32, reg: i32);
+            // memory => register
+            fn mem_to_reg_copy(src_mem_ptr: i32, dst_reg: i32, offset: i32, len: i32);
 
-            fn storage_set_from_reg(var_page: i32, var_page_offset: i32, reg: i32);
+            // register => memory
+            fn reg_to_mem_copy(src_reg: i32, dst_mem_ptr: i32, offset: i32, len: i32);
+
+            // stoarge => register
+            fn storage_read_to_reg(src_page: i32, dst_reg: i32, offset: i32, len: i32);
+
+            // register => stoarge
+            fn storage_set_from_reg(src_reg: i32, dst_page: i32, offset: i32, len: i32);
         }
     };
 }
