@@ -12,4 +12,3 @@ publish = false
 
 [dependencies]
 svm-common = { path = "../svm-common" }
-

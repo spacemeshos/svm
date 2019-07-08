@@ -4,7 +4,7 @@ use wasmer_runtime_core::Module;
 /// The `svm_compiler` macro returns a `wasmer single pass compiler` with middlewares required by the `svm`.
 /// Since we can't say explicitly all the wildcards (`_`) we can't define a function
 /// returning a `StreamingCompiler<SinglePassMCG, _, _, _, _>` so we use a rust macro instead
-acro_rules! svm_compiler {
+macro_rules! svm_compiler {
     () => {{
         use crate::middleware::ValidationMiddleware;
 

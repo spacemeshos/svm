@@ -116,7 +116,10 @@ impl<'ps, PS: PagesStorage> PagesStorage for PageCache<'ps, PS> {
     }
 
     /// * we clear both `dirty_pages` and `cached_pages`
+    ///
     /// * we call `clear` on `storage_pages`
+    ///
+    /// Should be used for tests
     fn clear(&mut self) {
         for dirty in &mut self.dirty_pages {
             *dirty = false;
@@ -135,7 +138,7 @@ impl<'ps, PS: PagesStorage> PagesStorage for PageCache<'ps, PS> {
     ///
     /// * we call `storage_pages.commit` to flush the persist the changes
     ///
-    /// * we call `clear`
+    /// since a smart contract is a short-lived program, we don't clear after `commit`
     fn commit(&mut self) {
         for ((page_idx, dirty), cached_page) in
             (&mut self.dirty_pages.iter().enumerate()).zip(&mut self.cached_pages.iter())
@@ -162,8 +165,6 @@ impl<'ps, PS: PagesStorage> PagesStorage for PageCache<'ps, PS> {
         }
 
         self.storage_pages.commit();
-
-        self.clear();
     }
 }
 

@@ -16,6 +16,7 @@ wasmer-runtime-core = { git = "https://github.com/yaronwittenstein/wasmer" }
 wasmer-runtime-c-api = { git = "https://github.com/yaronwittenstein/wasmer" }
 wasmer-singlepass-backend = { git = "https://github.com/yaronwittenstein/wasmer" }
 wasmparser = "0.31.1"
+svm-storage = { path = "../svm-storage/" }
 
 [dev-dependencies]
 wabt = "0.7.4"
