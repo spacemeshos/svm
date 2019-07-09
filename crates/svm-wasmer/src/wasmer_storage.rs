@@ -9,7 +9,7 @@ pub const REGS_64_COUNT: usize = 8;
 #[derive(Debug)]
 /// `SvmCtx` is a container for the accessible data by `wasmer` instances
 /// Its fields are:
-/// * `regs_64` - an static array (`REGS_64_COUNT` elements) of `WasmerReg64`
+/// * `regs_64` - a static array (`REGS_64_COUNT` elements) of `WasmerReg64`
 pub struct SvmCtx {
     pub(crate) regs_64: [WasmerReg64; REGS_64_COUNT],
 }
@@ -45,6 +45,7 @@ macro_rules! ctx_regs_reg {
     }};
 }
 
+/// Casts the `wasmer` instance context (type: `Ctx`) data field (of type `*mut c_void`) into `&mut SvmCtx`
 macro_rules! wasmer_ctx_data_regs {
     ($data: expr) => {{
         let data_ptr: *mut SvmCtx = $data as *mut _;
@@ -53,12 +54,14 @@ macro_rules! wasmer_ctx_data_regs {
     }};
 }
 
+/// Extract from `wasmer` instance context (type: `Ctx)`, its data casted into `&mut SvmCtx`
 macro_rules! wasmer_ctx_regs {
     ($ctx: expr) => {{
         wasmer_ctx_data_regs!($ctx.data)
     }};
 }
 
+/// Return a `wasmer` memory view of cells `mem_start, mem_start + 1, .. , mem_start + len` (exclusive)
 macro_rules! wasmer_mem_cells {
     ($ctx: expr, $mem_start: expr, $len: expr) => {{
         let start = $mem_start as usize;
@@ -68,6 +71,7 @@ macro_rules! wasmer_mem_cells {
     }};
 }
 
+/// Extracts from `wasmer` instance context (type: `Ctx`) a mutable borrow for the register indexed `reg_idx`
 macro_rules! wasmer_reg {
     ($ctx: expr, $reg_idx: expr) => {{
         assert!($reg_idx >= 0 && $reg_idx < REGS_64_COUNT as i32);
