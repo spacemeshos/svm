@@ -1,11 +1,12 @@
 use std::cell::Cell;
+use std::fmt::{self, Debug, Formatter};
 use wasmer_runtime_core::memory::{Memory, MemoryView};
 
 macro_rules! impl_register {
     ($bytes_count: expr, $reg_ident: ident) => {
         #[repr(transparent)]
         #[derive(Copy, Clone)]
-        pub struct $reg_ident([u8; $bytes_count]);
+        pub struct $reg_ident(pub(crate) [u8; $bytes_count]);
 
         impl $reg_ident {
             #[inline(always)]
@@ -25,6 +26,18 @@ macro_rules! impl_register {
                 for (byte, cell) in self.0.iter().zip(cells) {
                     cell.set(*byte);
                 }
+            }
+        }
+
+        impl Debug for $reg_ident {
+            fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+                writeln!(f, "{:?}", &self.0[..])
+            }
+        }
+
+        impl PartialEq for $reg_ident {
+            fn eq(&self, other: &Self) -> bool {
+                &self.0[..] == &other.0[..]
             }
         }
     };
