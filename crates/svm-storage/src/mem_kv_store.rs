@@ -4,6 +4,7 @@ use std::collections::HashMap;
 /// An implementation for a key-value store (implements `KVStore`) store backed by an underlying `HashMap`
 pub struct MemKVStore<MemKey> {
     // TODO: make `map` private and implement an `IntoIterator` for `MemKVStore`
+    /// the underlying `HashMap`
     pub map: HashMap<MemKey, Vec<u8>>,
 }
 
@@ -11,12 +12,14 @@ impl<MemKey> MemKVStore<MemKey>
 where
     MemKey: AsRef<[u8]> + Copy + Clone + Sized + std::cmp::Eq + std::hash::Hash,
 {
+    /// Initializes a new `MemKVStore`
     pub fn new() -> Self {
         Self {
             map: HashMap::new(),
         }
     }
 
+    /// Clears the key-value store
     pub fn clear(&mut self) {
         self.map.clear();
     }

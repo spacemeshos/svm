@@ -1,5 +1,6 @@
-#![deny(missing_docs)]
-#![deny(unused)]
+// #![deny(missing_docs)]
+// #![deny(unused)]
+#![allow(unused)]
 
 //! `svm-wasmer` crate is the glue between `svm` constract storage to `wasmer` live instances
 mod wasmer_register;

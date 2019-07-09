@@ -2,24 +2,42 @@ use wasmer_runtime_core::vm::Ctx;
 
 use super::wasmer_register::WasmerReg64;
 
+use std::cell::RefCell;
+use std::marker::PhantomData;
+use std::rc::Rc;
+use svm_common::Address;
+
+use svm_storage::null_storage::{NullPageCache, NullPageSliceCache, NullPagesStorage};
+use svm_storage::traits::PagesStorage;
+use svm_storage::{MemKVStore, MemPages, PageCache, PageSliceCache};
+
 /// The number of allocated `64-bit` wasmer registers for each `SvmCtx`
 pub const REGS_64_COUNT: usize = 8;
 
 #[repr(C)]
-#[derive(Debug)]
 /// `SvmCtx` is a container for the accessible data by `wasmer` instances
 /// Its fields are:
 /// * `regs_64` - a static array (`REGS_64_COUNT` elements) of `WasmerReg64`
-pub struct SvmCtx {
+///
+/// Explanation about `SvmCtx` lifetimes and generics:
+/// * `a  - the lifetime of the mutable borrowed `PageSliceCache`
+/// * `pc - the lifetime of the inner `PageCache` within `PageSliceCache` (`pc - stands for page-cache)
+/// *  PS - a type implementing the trait `PagesStorage` (`PS` stands for `PagesStorage`)
+pub struct SvmCtx<'a, 'pc: 'a, PS> {
     pub(crate) regs_64: [WasmerReg64; REGS_64_COUNT],
+
+    pub(crate) storage: &'a mut PageSliceCache<'pc, PS>,
 }
 
-impl SvmCtx {
+impl<'a, 'pc: 'a, PS> SvmCtx<'a, 'pc, PS> {
     /// Initializes a new empty `SvmCtx`
-    pub fn new() -> Self {
+    ///
+    /// params:
+    /// * `storage` - a mutably borrowed `PageSliceCache`
+    pub fn new(storage: &'a mut PageSliceCache<'pc, PS>) -> Self {
         let regs_64 = [WasmerReg64::new(); REGS_64_COUNT];
 
-        Self { regs_64 }
+        Self { regs_64, storage }
     }
 }
 
@@ -35,7 +53,7 @@ macro_rules! ctx_regs_reg {
         /// Because we like to keep the option to  mutate a couple of registers simultaneously
         /// without the Rust borrow checker getting angry...
         /// so instead we use _Unsafe Rust_
-        let regs_ptr: *mut WasmerReg64 = $regs.regs_64.as_mut_ptr();
+        let regs_ptr: *mut WasmerReg64 = $regs.as_mut_ptr();
 
         let reg_idx_ptr: *mut WasmerReg64 = unsafe { regs_ptr.offset($reg_idx as isize) };
 
@@ -48,9 +66,11 @@ macro_rules! ctx_regs_reg {
 /// Casts the `wasmer` instance context (type: `Ctx`) data field (of type `*mut c_void`) into `&mut SvmCtx`
 macro_rules! wasmer_ctx_data_regs {
     ($data: expr) => {{
-        let data_ptr: *mut SvmCtx = $data as *mut _;
-        let data: &mut SvmCtx = unsafe { &mut *data_ptr };
-        data
+        let data_ptr = $data as *mut _;
+
+        let regs_ptr: &mut [WasmerReg64; REGS_64_COUNT] = unsafe { &mut *data_ptr };
+
+        regs_ptr
     }};
 }
 
@@ -94,44 +114,62 @@ pub fn mem_to_reg_copy(ctx: &mut Ctx, src_mem_ptr: i32, dst_reg: i32, len: i32) 
 
 /// Copies the content of `wasmer` register indexed `src_reg` into `wasmer` memory cells under addresses:
 /// `dst_mem_ptr, dst_mem_ptr + 1, .. , dst_mem_ptr + len (exclusive)`
-pub fn reg_to_mem_copy(ctx: &mut Ctx, src_reg: i32, dst_mem_ptr: i32, len: i32) {
+pub fn reg_to_mem_copy<PS: PagesStorage>(ctx: &mut Ctx, src_reg: i32, dst_mem_ptr: i32, len: i32) {
     let reg = wasmer_reg!(ctx, src_reg);
     let cells = wasmer_mem_cells!(ctx, dst_mem_ptr, len);
 
     reg.copy_to_wasmer_mem(cells);
 }
 
-// #[allow(unused)]
-// pub fn storage_read_to_reg(_ctx: &mut Ctx, _page: i32, _offset: i32, _len: i32, _reg: i32) {
-//     //
-// }
+// // #[allow(unused)]
+// // pub fn storage_read_to_reg(_ctx: &mut Ctx, _page: i32, _offset: i32, _len: i32, _reg: i32) {
+// //     //
+// // }
 //
-// #[allow(unused)]
-// pub fn storage_set_from_reg(_ctx: &mut Ctx, _page: i32, _offset: i32, _reg: i32) {
-//     //
-// }
-
+// // #[allow(unused)]
+// // pub fn storage_set_from_reg(_ctx: &mut Ctx, _page: i32, _offset: i32, _reg: i32) {
+// //     //
+// // }
+//
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    use std::cell::Cell;
+    use std::cell::{Cell, RefCell};
     use std::ffi::c_void;
+    use std::rc::Rc;
 
-    fn state_creator(regs: &SvmCtx) -> (*mut c_void, fn(*mut c_void)) {
-        let data: *mut c_void = regs.clone() as *const _ as *mut c_void;
+    fn state_creator<PS: PagesStorage>(ctx: &SvmCtx<PS>) -> (*mut c_void, fn(*mut c_void)) {
+        let data: *mut c_void = ctx.clone() as *const _ as *mut c_void;
         let dtor: fn(*mut c_void) = |_| {};
 
         (data, dtor)
     }
 
+    // macro_rules! alloc_null_storage {
+    //     () => {
+    //         alloc_null_storage!(pages, page_cache, page_slice_cache, 10, 100)
+    //     };
+    //
+    //     ($pages: ident, $page_cache: ident, $page_slice_cache: ident, $max_pages: expr, $max_page_slices: expr) => {{
+    //         let mut $pages = NullPagesStorage::new();
+    //         let mut $page_cache = NullPageCache::new(&mut $pages, $max_pages);
+    //
+    //         NullPageSliceCache::new(&mut $page_cache, $max_page_slices)
+    //     }};
+    // }
+
     #[test]
     fn reg_copy_from_wasmer_mem() {
-        let regs = SvmCtx::new();
+        let mut pages = NullPagesStorage::new();
+        let mut page_cache = NullPageCache::new(&mut pages, 1);
+        let mut storage = NullPageSliceCache::new(&mut page_cache, 10);
+        let ctx = SvmCtx::new(&mut storage);
 
-        let (data, _dtor) = state_creator(&regs);
+        let (data, _dtor) = state_creator(&ctx);
 
         let regs = wasmer_ctx_data_regs!(data);
+
         let reg0: &mut WasmerReg64 = ctx_regs_reg!(regs, 0);
         let reg1: &mut WasmerReg64 = ctx_regs_reg!(regs, 1);
 
@@ -159,12 +197,15 @@ mod tests {
 
     #[test]
     fn reg_copy_to_wasmer_mem() {
-        let regs = SvmCtx::new();
+        let mut pages = NullPagesStorage::new();
+        let mut page_cache = NullPageCache::new(&mut pages, 1);
+        let mut storage = NullPageSliceCache::new(&mut page_cache, 10);
+        let ctx = SvmCtx::new(&mut storage);
 
-        let (data, _dtor) = state_creator(&regs);
+        let (data, _dtor) = state_creator(&ctx);
 
-        let regs = wasmer_ctx_data_regs!(data);
-        let reg0: &mut WasmerReg64 = ctx_regs_reg!(regs, 0);
+        let ctx = wasmer_ctx_data_regs!(data);
+        let reg0: &mut WasmerReg64 = ctx_regs_reg!(ctx, 0);
 
         // initialize register `0` with data
         let cells = vec![
@@ -192,7 +233,7 @@ mod tests {
         // copying register `0` content into memory
         reg0.copy_to_wasmer_mem(&cells);
 
-        // asserint that the fake wasmer memory has been changes
+        // asserting that the fake wasmer memory has the right changes
         assert_eq!(
             vec![10, 20, 30, 40, 50, 60, 70, 80],
             cells.iter().map(|c| c.get()).collect::<Vec<u8>>()

@@ -13,12 +13,18 @@ mod page_slice_cache;
 mod pages_storage_impl;
 
 #[macro_use]
-mod traits;
+/// Storage related traits
+pub mod traits;
+
+/// Do-nothing implementation for various storage related abstractions.
+/// Very usable for code requiring a storage dependencies it doesn't care about
+pub mod null_storage;
 
 use default_page_hasher::DefaultPageHasher;
-use mem_kv_store::MemKVStore;
 use pages_storage_impl::PagesStorageImpl;
 
+pub use mem_kv_store::MemKVStore;
 pub use mem_pages::MemPages;
+
 pub use page_cache::PageCache;
 pub use page_slice_cache::PageSliceCache;

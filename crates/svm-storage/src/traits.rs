@@ -2,11 +2,14 @@ use svm_common::Address;
 
 /// `KVStore` is a trait for defining an interface against key-value stores. for example `hashmap / leveldb / rocksdb`
 pub trait KVStore {
+    /// `K` stands for `key`
     type K: AsRef<[u8]> + Copy + Clone + std::cmp::PartialEq + Sized;
 
     #[must_use]
+    /// Retrieves the value pointed by `key` (Optional)
     fn get(&self, key: Self::K) -> Option<Vec<u8>>;
 
+    /// Stores `key` -> `value` association
     fn store(&mut self, key: Self::K, value: &[u8]);
 }
 
@@ -16,12 +19,17 @@ pub trait KVStore {
 /// That is flushed to the underlying database only when calling `commit`
 pub trait PagesStorage {
     #[must_use]
+    /// Retrieves the content of page indexed `page_idx` (Optional)
     fn read_page(&mut self, page_idx: u32) -> Option<Vec<u8>>;
 
+    /// Overrides the page indexed `page_idx` with the content of `data` (and marking it as `dirty`)
+    /// Important: does NOT persist new page version yet (see: `commit`)
     fn write_page(&mut self, page_idx: u32, data: &[u8]);
 
+    /// Clears all the in-memory cached pages. (main usage: for tests)
     fn clear(&mut self);
 
+    /// Persist the pending in-memory dirty pages into the backed database
     fn commit(&mut self);
 }
 
@@ -36,6 +44,7 @@ pub trait PagesStorage {
 /// must also result in a different page-hash.
 pub trait PageHasher {
     #[must_use]
+    /// Calculates hash derived from an `address` + a `page`
     fn hash(address: Address, page: u32) -> [u8; 32];
 }
 

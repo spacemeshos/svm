@@ -422,6 +422,7 @@ dependencies = [
 name = "svm-wasmer"
 version = "0.0.0"
 dependencies = [
+ "svm-common 0.0.0",
  "svm-storage 0.0.0",
  "wasmer-runtime-core 0.5.1 (git+https://github.com/yaronwittenstein/wasmer)",
 ]
