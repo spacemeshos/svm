@@ -1,6 +1,5 @@
 use std::cell::Cell;
 use std::fmt::{self, Debug, Formatter};
-use wasmer_runtime_core::memory::{Memory, MemoryView};
 
 macro_rules! impl_register {
     ($bytes_count: expr, $reg_ident: ident) => {

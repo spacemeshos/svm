@@ -1,19 +1,22 @@
-use std::cell::Cell;
-use std::ffi::c_void;
-use wasmer_runtime_core::{memory::Memory, memory::MemoryView, vm::Ctx};
+use wasmer_runtime_core::vm::Ctx;
 
 use super::wasmer_register::WasmerReg64;
 
+/// The number of allocated `64-bit` wasmer registers for each `SvmCtx`
 pub const REGS_64_COUNT: usize = 8;
 
 #[repr(C)]
 #[derive(Debug)]
-pub struct CtxRegs {
+/// `SvmCtx` is a container for the accessible data by `wasmer` instances
+/// Its fields are:
+/// * `regs_64` - an static array (`REGS_64_COUNT` elements) of `WasmerReg64`
+pub struct SvmCtx {
     pub(crate) regs_64: [WasmerReg64; REGS_64_COUNT],
 }
 
-impl CtxRegs {
-    fn new() -> Self {
+impl SvmCtx {
+    /// Initializes a new empty `SvmCtx`
+    pub fn new() -> Self {
         let regs_64 = [WasmerReg64::new(); REGS_64_COUNT];
 
         Self { regs_64 }
@@ -32,7 +35,7 @@ macro_rules! ctx_regs_reg {
         /// Because we like to keep the option to  mutate a couple of registers simultaneously
         /// without the Rust borrow checker getting angry...
         /// so instead we use _Unsafe Rust_
-        let regs_ptr: *mut WasmerReg64 = unsafe { $regs.regs_64.as_mut_ptr() };
+        let regs_ptr: *mut WasmerReg64 = $regs.regs_64.as_mut_ptr();
 
         let reg_idx_ptr: *mut WasmerReg64 = unsafe { regs_ptr.offset($reg_idx as isize) };
 
@@ -44,8 +47,8 @@ macro_rules! ctx_regs_reg {
 
 macro_rules! wasmer_ctx_data_regs {
     ($data: expr) => {{
-        let data_ptr: *mut CtxRegs = unsafe { $data as *mut _ };
-        let data: &mut CtxRegs = unsafe { &mut *data_ptr };
+        let data_ptr: *mut SvmCtx = $data as *mut _;
+        let data: &mut SvmCtx = unsafe { &mut *data_ptr };
         data
     }};
 }
@@ -75,27 +78,34 @@ macro_rules! wasmer_reg {
     }};
 }
 
-fn mem_to_reg_copy(ctx: &mut Ctx, src_mem_ptr: i32, dst_reg: i32, offset: i32, len: i32) {
+/// Copies the content of `wasmer` memory cells under addresses:
+/// `src_mem_ptr, src_mem_ptr + 1, .. , src_mem_ptr + len (exclusive)`
+/// into `wasmer` register indexed `dst_reg`
+pub fn mem_to_reg_copy(ctx: &mut Ctx, src_mem_ptr: i32, dst_reg: i32, len: i32) {
     let reg = wasmer_reg!(ctx, dst_reg);
     let cells = wasmer_mem_cells!(ctx, src_mem_ptr, len);
 
     reg.copy_from_wasmer_mem(cells);
 }
 
-fn reg_to_mem_copy(ctx: &mut Ctx, src_reg: i32, dst_mem_ptr: i32, len: i32) {
+/// Copies the content of `wasmer` register indexed `src_reg` into `wasmer` memory cells under addresses:
+/// `dst_mem_ptr, dst_mem_ptr + 1, .. , dst_mem_ptr + len (exclusive)`
+pub fn reg_to_mem_copy(ctx: &mut Ctx, src_reg: i32, dst_mem_ptr: i32, len: i32) {
     let reg = wasmer_reg!(ctx, src_reg);
     let cells = wasmer_mem_cells!(ctx, dst_mem_ptr, len);
 
     reg.copy_to_wasmer_mem(cells);
 }
 
-fn storage_read_to_reg(_ctx: &mut Ctx, page: i32, offset: i32, len: i32, reg: i32) {
-    //
-}
-
-fn storage_set_from_reg(_ctx: &mut Ctx, page: i32, offset: i32, reg: i32) {
-    //
-}
+// #[allow(unused)]
+// pub fn storage_read_to_reg(_ctx: &mut Ctx, _page: i32, _offset: i32, _len: i32, _reg: i32) {
+//     //
+// }
+//
+// #[allow(unused)]
+// pub fn storage_set_from_reg(_ctx: &mut Ctx, _page: i32, _offset: i32, _reg: i32) {
+//     //
+// }
 
 #[cfg(test)]
 mod tests {
@@ -103,12 +113,9 @@ mod tests {
 
     use std::cell::Cell;
     use std::ffi::c_void;
-    use wasmer_runtime_core::{import::ImportObject, vm::Ctx};
 
-    fn dtor(data: *mut c_void) {}
-
-    fn state_creator(regs: &CtxRegs) -> (*mut c_void, fn(*mut c_void)) {
-        let data: *mut c_void = unsafe { regs.clone() as *const _ as *mut c_void };
+    fn state_creator(regs: &SvmCtx) -> (*mut c_void, fn(*mut c_void)) {
+        let data: *mut c_void = regs.clone() as *const _ as *mut c_void;
         let dtor: fn(*mut c_void) = |_| {};
 
         (data, dtor)
@@ -116,7 +123,7 @@ mod tests {
 
     #[test]
     fn reg_copy_from_wasmer_mem() {
-        let regs = CtxRegs::new();
+        let regs = SvmCtx::new();
 
         let (data, _dtor) = state_creator(&regs);
 
@@ -148,7 +155,7 @@ mod tests {
 
     #[test]
     fn reg_copy_to_wasmer_mem() {
-        let regs = CtxRegs::new();
+        let regs = SvmCtx::new();
 
         let (data, _dtor) = state_creator(&regs);
 
