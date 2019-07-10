@@ -3,23 +3,31 @@ use super::page::{PageIndex, SliceIndex};
 use super::traits::PagesStorage;
 use std::collections::HashMap;
 
+/// Defines a page-slice memory layout.
 #[derive(Debug, Clone, PartialEq, Hash)]
 pub struct PageSliceLayout {
-    slice_idx: SliceIndex,
-    page_idx: PageIndex,
-    offset: u32,
-    len: u32,
+    /// The slice index
+    pub slice_idx: SliceIndex,
+
+    /// The page index the slices belong to
+    pub page_idx: PageIndex,
+
+    /// The page offset where the slice starts
+    pub offset: u32,
+
+    /// The length of the slice in bytes
+    pub len: u32,
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct PageSlice {
+struct PageSlice {
     dirty: bool,
     data: Vec<u8>,
     layout: PageSliceLayout,
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum CachedPageSlice {
+enum CachedPageSlice {
     // We didn't load the page-slice yet from the underlying db
     NotCached,
 
@@ -73,7 +81,7 @@ impl<'pc, PC: PagesStorage> PageSliceCache<'pc, PC> {
         match slice {
             CachedPageSlice::NotCached => {
                 // page-slice isn't cached, so we first need to load the underlying page from
-                // `page_cache`.
+                // `page_cache`
 
                 let page: Option<Vec<u8>> = self.page_cache.read_page(layout.page_idx.0);
 
@@ -233,8 +241,6 @@ mod tests {
 
     pub type MemPageCache<'pc, K = [u8; 32]> = PageCache<'pc, MemPages<K>>;
 
-    pub type MemPageSliceCache<'pc, K = [u8; 32]> = PageSliceCache<'pc, MemPageCache<'pc, K>>;
-
     macro_rules! page_hash {
         ($addr: expr, $page_idx: expr) => {{
             use crate::traits::PageHasher;
@@ -262,7 +268,7 @@ mod tests {
 
             let mut page_cache = MemPageCache::new(&mut inner, $max_pages);
 
-            let mut $page_slice_cache = MemPageSliceCache::new(&mut page_cache, $max_page_slices);
+            let mut $page_slice_cache = PageSliceCache::new(&mut page_cache, $max_page_slices);
         };
     }
 

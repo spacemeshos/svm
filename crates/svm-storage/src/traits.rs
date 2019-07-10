@@ -5,8 +5,8 @@ pub trait KVStore {
     /// `K` stands for `key`
     type K: AsRef<[u8]> + Copy + Clone + std::cmp::PartialEq + Sized;
 
-    #[must_use]
     /// Retrieves the value pointed by `key` (Optional)
+    #[must_use]
     fn get(&self, key: Self::K) -> Option<Vec<u8>>;
 
     /// Stores `key` -> `value` association
@@ -18,8 +18,8 @@ pub trait KVStore {
 /// Each read / write operation will involve exactly one page
 /// That is flushed to the underlying database only when calling `commit`
 pub trait PagesStorage {
-    #[must_use]
     /// Retrieves the content of page indexed `page_idx` (Optional)
+    #[must_use]
     fn read_page(&mut self, page_idx: u32) -> Option<Vec<u8>>;
 
     /// Overrides the page indexed `page_idx` with the content of `data` (and marking it as `dirty`)
@@ -43,8 +43,8 @@ pub trait PagesStorage {
 /// * Similarly, computing a page-hash two variables located at different storage-pages under the same contract
 /// must also result in a different page-hash.
 pub trait PageHasher {
-    #[must_use]
     /// Calculates hash derived from an `address` + a `page`
+    #[must_use]
     fn hash(address: Address, page: u32) -> [u8; 32];
 }
 

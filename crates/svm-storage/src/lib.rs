@@ -12,8 +12,8 @@ mod page_cache;
 mod page_slice_cache;
 mod pages_storage_impl;
 
-#[macro_use]
 /// Storage related traits
+#[macro_use]
 pub mod traits;
 
 /// Do-nothing implementation for various storage related abstractions.
@@ -26,5 +26,7 @@ use pages_storage_impl::PagesStorageImpl;
 pub use mem_kv_store::MemKVStore;
 pub use mem_pages::MemPages;
 
+pub use page::{PageIndex, SliceIndex};
+
 pub use page_cache::PageCache;
-pub use page_slice_cache::PageSliceCache;
+pub use page_slice_cache::{PageSliceCache, PageSliceLayout};

@@ -9,3 +9,4 @@ publish = false
 svm-common = { path = "../svm-common" }
 svm-storage = { path = "../svm-storage" }
 wasmer-runtime-core = { git = "https://github.com/yaronwittenstein/wasmer" }
+memoffset = "0.4.0"

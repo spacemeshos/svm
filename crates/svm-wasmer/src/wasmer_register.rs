@@ -23,24 +23,24 @@ macro_rules! impl_register {
         pub struct $reg_ident(pub(crate) [u8; $bytes_count]);
 
         impl $reg_ident {
-            #[inline(always)]
             /// we initialize the register content with zero bytes
+            #[inline(always)]
             pub(crate) fn new() -> Self {
                 Self([0; $bytes_count])
             }
 
-            #[inline(always)]
             /// Copies the data given in `cells` into the register content
+            #[inline(always)]
             pub(crate) fn copy_from_wasmer_mem(&mut self, cells: &[Cell<u8>]) {
                 for i in 0..$bytes_count {
                     self.0[i] = cells[i].get();
                 }
             }
 
-            #[inline(always)]
             /// Copies the data of the register into the input `cells`.
             /// It works even though we receive `cells` as `&[Cell<u8>]` and not `&mut[Cell<u8>]`
             /// thanks to the interior mutability of `Cell<T>`
+            #[inline(always)]
             pub(crate) fn copy_to_wasmer_mem(&self, cells: &[Cell<u8>]) {
                 for (byte, cell) in self.0.iter().zip(cells) {
                     cell.set(*byte);
