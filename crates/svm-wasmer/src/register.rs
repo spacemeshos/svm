@@ -3,8 +3,6 @@ use std::fmt::{self, Debug, Formatter};
 
 /// `impl_register` macro implements a `wasmer register`.
 ///
-/// input params:
-///
 /// * `bytes_count` - the number of bytes the register holds
 ///
 /// * `reg_ident` - the symbolic name of the register.

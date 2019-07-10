@@ -1,4 +1,3 @@
-use memoffset::{offset_of, span_of};
 use wasmer_runtime_core::vm::Ctx;
 
 use std::cell::RefCell;
@@ -10,7 +9,7 @@ use svm_storage::null_storage::{NullPageCache, NullPageSliceCache, NullPagesStor
 use svm_storage::traits::PagesStorage;
 use svm_storage::{MemKVStore, MemPages, PageCache, PageSliceCache};
 
-use super::wasmer_register::WasmerReg64;
+use crate::register::WasmerReg64;
 
 /// The number of allocated `64-bit` wasmer registers for each `SvmCtx`
 pub const REGS_64_COUNT: usize = 8;
@@ -33,7 +32,6 @@ pub struct SvmCtx<'a, 'pc: 'a, PS> {
 impl<'a, 'pc: 'a, PS> SvmCtx<'a, 'pc, PS> {
     /// Initializes a new empty `SvmCtx`
     ///
-    /// params:
     /// * `storage` - a mutably borrowed `PageSliceCache`
     pub fn new(storage: &'a mut PageSliceCache<'pc, PS>) -> Self {
         let regs_64 = [WasmerReg64::new(); REGS_64_COUNT];
@@ -42,8 +40,11 @@ impl<'a, 'pc: 'a, PS> SvmCtx<'a, 'pc, PS> {
     }
 }
 
-macro_rules! ctx_regs_reg {
+#[macro_export]
+macro_rules! svm_regs_reg {
     ($regs: expr, $reg_idx: expr) => {{
+        use crate::register::WasmerReg64;
+
         assert!($reg_idx >= 0 && $reg_idx < REGS_64_COUNT as i32);
 
         /// We don't do:
@@ -64,20 +65,60 @@ macro_rules! ctx_regs_reg {
     }};
 }
 
+#[macro_export]
+macro_rules! svm_read_page_slice {
+    ($storage: expr, $page_idx: expr, $slice_idx: expr, $offset: expr, $len: expr) => {{
+        let layout = PageSliceLayout {
+            page_idx: PageIndex($page_idx),
+            slice_idx: SliceIndex($slice_idx),
+            offset: $offset,
+            len: $len,
+        };
+
+        let slice = $storage.read_page_slice(&layout);
+
+        if slice.is_some() {
+            slice.unwrap()
+        } else {
+            Vec::new()
+        }
+    }};
+}
+
+#[macro_export]
+macro_rules! svm_write_page_slice {
+    ($storage: expr, $page_idx: expr, $slice_idx: expr, $offset: expr, $len: expr, $data: expr) => {{
+        let layout = PageSliceLayout {
+            page_idx: PageIndex($page_idx),
+            slice_idx: SliceIndex($slice_idx),
+            offset: $offset,
+            len: $len,
+        };
+
+        $storage.write_page_slice(&layout, $data);
+    }};
+}
+
 /// Casts the `wasmer` instance context (type: `Ctx`) data field (of type `*mut c_void`) into `&mut [WasmerReg64; REGS_64_COUNT]`
-macro_rules! wasmer_ctx_data_regs {
+#[macro_export]
+macro_rules! wasmer_data_regs {
     ($data: expr) => {{
+        use crate::register::WasmerReg64;
+
         let data_ptr = $data as *mut _;
 
         let regs: &mut [WasmerReg64; REGS_64_COUNT] = unsafe { &mut *data_ptr };
-
         regs
     }};
 }
 
 /// Casts the `wasmer` instance context (type: `Ctx`) data field (of type `*mut c_void`) into `&mut PageSliceCache<PS>`
-macro_rules! wasmer_ctx_data_storage {
+#[macro_export]
+macro_rules! wasmer_data_storage {
     ($data: expr, $PS: ident) => {{
+        use svm_storage::PageSliceCache;
+        use crate::register::WasmerReg64;
+
         let data_ptr: *mut u8 = $data as *mut _;
 
         // TODO: figure out why we need to add `std::mem::usize_of::<usize>()` to the starting offset of `SvmCtx` storage
@@ -85,9 +126,7 @@ macro_rules! wasmer_ctx_data_storage {
             std::mem::size_of::<WasmerReg64>() * REGS_64_COUNT + std::mem::size_of::<usize>();
 
         let storage_ptr: *mut u8 = unsafe { data_ptr.offset(storage_offset as isize) };
-
         let storage_ptr = storage_ptr as *mut PageSliceCache<$PS>;
-
         let storage: &mut PageSliceCache<$PS> = unsafe { &mut *storage_ptr };
 
         storage
@@ -95,7 +134,8 @@ macro_rules! wasmer_ctx_data_storage {
 }
 
 /// Returns a `wasmer` memory view of cells `mem_start, mem_start + 1, .. , mem_start + len` (exclusive)
-macro_rules! wasmer_mem_cells {
+#[macro_export]
+macro_rules! wasmer_ctx_mem_cells {
     ($ctx: expr, $mem_start: expr, $len: expr) => {{
         let start = $mem_start as usize;
         let end = start + $len as usize;
@@ -105,43 +145,16 @@ macro_rules! wasmer_mem_cells {
 }
 
 /// Extracts from `wasmer` instance context (type: `Ctx`) a mutable borrow for the register indexed `reg_idx`
-macro_rules! wasmer_reg {
-    ($ctx: expr, $reg_idx: expr) => {{
+#[macro_export]
+macro_rules! wasmer_ctx_data_reg {
+    ($data: expr, $reg_idx: expr) => {{
         assert!($reg_idx >= 0 && $reg_idx < REGS_64_COUNT as i32);
 
-        let regs = wasmer_ctx_data_regs!($ctx.data);
+        let regs = wasmer_data_regs!($data);
 
-        ctx_regs_reg!(regs, $reg_idx)
+        svm_regs_reg!(regs, $reg_idx)
     }};
 }
-
-/// Copies the content of `wasmer` memory cells under addresses:
-/// `src_mem_ptr, src_mem_ptr + 1, .. , src_mem_ptr + len (exclusive)`
-/// into `wasmer` register indexed `dst_reg`
-pub fn mem_to_reg_copy(ctx: &mut Ctx, src_mem_ptr: i32, dst_reg: i32, len: i32) {
-    let reg = wasmer_reg!(ctx, dst_reg);
-    let cells = wasmer_mem_cells!(ctx, src_mem_ptr, len);
-
-    reg.copy_from_wasmer_mem(cells);
-}
-
-/// Copies the content of `wasmer` register indexed `src_reg` into `wasmer` memory cells under addresses:
-/// `dst_mem_ptr, dst_mem_ptr + 1, .. , dst_mem_ptr + len (exclusive)`
-pub fn reg_to_mem_copy<PS: PagesStorage>(ctx: &mut Ctx, src_reg: i32, dst_mem_ptr: i32, len: i32) {
-    let reg = wasmer_reg!(ctx, src_reg);
-    let cells = wasmer_mem_cells!(ctx, dst_mem_ptr, len);
-
-    reg.copy_to_wasmer_mem(cells);
-}
-
-pub fn storage_read_to_reg(ctx: &mut Ctx, _page: i32, _offset: i32, _len: i32, _reg: i32) {
-    //
-}
-
-// // #[allow(unused)]
-// // pub fn storage_set_from_reg(_ctx: &mut Ctx, _page: i32, _offset: i32, _reg: i32) {
-// //     //
-// // }
 
 #[cfg(test)]
 mod tests {
@@ -173,10 +186,10 @@ mod tests {
 
         let (data, _dtor) = wasmer_import_object_data(&ctx);
 
-        let regs = wasmer_ctx_data_regs!(data);
+        let regs = wasmer_data_regs!(data);
 
-        let reg0: &mut WasmerReg64 = ctx_regs_reg!(regs, 0);
-        let reg1: &mut WasmerReg64 = ctx_regs_reg!(regs, 1);
+        let reg0: &mut WasmerReg64 = svm_regs_reg!(regs, 0);
+        let reg1: &mut WasmerReg64 = svm_regs_reg!(regs, 1);
 
         // registers `0` and `1` are initialized with zeros
         assert_eq!(vec![0; 8], &reg0.0[..]);
@@ -209,8 +222,8 @@ mod tests {
 
         let (data, _dtor) = wasmer_import_object_data(&ctx);
 
-        let regs = wasmer_ctx_data_regs!(data);
-        let reg0: &mut WasmerReg64 = ctx_regs_reg!(regs, 0);
+        let regs = wasmer_data_regs!(data);
+        let reg0: &mut WasmerReg64 = svm_regs_reg!(regs, 0);
 
         // initialize register `0` with data
         let cells = vec![
@@ -257,22 +270,79 @@ mod tests {
         let (data, _dtor) = wasmer_import_object_data(&ctx);
 
         // extracting `storage` out of `wasmer` instance `data` field
-        let storage: &mut PageSliceCache<NullPageCache> =
-            wasmer_ctx_data_storage!(data, NullPageCache);
+        let storage: &mut PageSliceCache<_> = wasmer_data_storage!(data, MemPageCache);
 
         let layout = PageSliceLayout {
-            slice_idx: SliceIndex(0),
             page_idx: PageIndex(1),
+            slice_idx: SliceIndex(0),
             offset: 100,
             len: 3,
         };
 
         assert_eq!(Vec::<u8>::new(), storage.read_page_slice(&layout).unwrap());
 
-        storage.write_page_slice(&layout, vec![10, 20, 30]);
+        storage.write_page_slice(&layout, &vec![10, 20, 30]);
 
         // starting over, extracting `storage` out of `wasmer` instance `data` field
-        let storage = wasmer_ctx_data_storage!(data, NullPageCache);
+        let storage = wasmer_data_storage!(data, NullPageCache);
         assert_eq!(vec![10, 20, 30], storage.read_page_slice(&layout).unwrap());
+    }
+
+    #[test]
+    fn wasmer_storage_read_to_reg() {
+        let addr = Address::from(0x12_34_56_78 as u32);
+        let db = Rc::new(RefCell::new(MemKVStore::new()));
+        let mut inner = MemPages::new(addr, db);
+        let mut page_cache = MemPageCache::new(&mut inner, 5);
+        let mut storage = PageSliceCache::new(&mut page_cache, 100);
+        let mut ctx = SvmCtx::new(&mut storage);
+
+        let (data, _dtor) = wasmer_import_object_data(&ctx);
+
+        let layout = PageSliceLayout {
+            page_idx: PageIndex(1),
+            slice_idx: SliceIndex(0),
+            offset: 100,
+            len: 3,
+        };
+
+        let regs = wasmer_data_regs!(data);
+        let reg0 = svm_regs_reg!(regs, 0);
+        let storage = wasmer_data_storage!(data, MemPageCache);
+
+        storage.write_page_slice(&layout, &vec![10, 20, 30]);
+
+        /// reading from page `1`, slice `0`, 3 bytes starting from offset `100`
+        let slice = svm_read_page_slice!(storage, 1, 0, 100, 3);
+
+        reg0.set(&slice);
+        assert_eq!([10, 20, 30, 0, 0, 0, 0, 0], reg0.get());
+    }
+
+    #[test]
+    fn wasmer_storage_set_from_reg() {
+        let addr = Address::from(0x12_34_56_78 as u32);
+        let db = Rc::new(RefCell::new(MemKVStore::new()));
+        let mut inner = MemPages::new(addr, db);
+        let mut page_cache = MemPageCache::new(&mut inner, 5);
+        let mut storage = PageSliceCache::new(&mut page_cache, 100);
+        let mut ctx = SvmCtx::new(&mut storage);
+
+        let (data, _dtor) = wasmer_import_object_data(&ctx);
+
+        let regs = wasmer_data_regs!(data);
+
+        /// writing `[10, 20, 30, 0, 0, 0, 0, 0]` to register `0`
+        let reg0 = svm_regs_reg!(regs, 0);
+        reg0.set(&vec![10, 20, 30]);
+
+        let slice = svm_read_page_slice!(storage, 1, 0, 100, 3);
+        assert_eq!(Vec::<u8>::new(), slice);
+
+        /// writing at page `1`, slice `0`, starting from offset `100` the content of register `0`
+        svm_write_page_slice!(storage, 1, 0, 100, 3, &reg0.get());
+
+        let slice = svm_read_page_slice!(storage, 1, 0, 100, 3);
+        assert_eq!(vec![10, 20, 30], slice);
     }
 }

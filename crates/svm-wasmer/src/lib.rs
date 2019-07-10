@@ -3,7 +3,16 @@
 #![allow(unused)]
 
 //! `svm-wasmer` crate is the glue between `svm` constract storage to `wasmer` live instances
-mod wasmer_register;
 
-/// `wasmer_storage` implements the high-level API to be consumed by `wasmer` instances
-pub mod wasmer_storage;
+/// Implements a `svm-wasmer` register abstraction to ease interfacing
+/// with the contract-storage / `wasmer` instance memory
+mod register;
+
+/// `macros` implements the high-level macros to be consumed by `svm-wasmer` libcalls when dealing
+/// with `storage` / `registers`
+#[macro_use]
+mod macros;
+
+/// Implements the `svm` vmcalls (a.k.a libcalls / hostcalls / syscalls)
+/// to be intergrated into `wasmer` instances running in the `svm`
+mod vmcalls;

@@ -129,7 +129,7 @@ impl<'pc, PC: PagesStorage> PageSliceCache<'pc, PC> {
     }
 
     /// * We insert the new page slice into `cached_slices` as `Cached(PageSlice)` and mark it as dirty
-    pub fn write_page_slice(&mut self, layout: &PageSliceLayout, data: Vec<u8>) {
+    pub fn write_page_slice(&mut self, layout: &PageSliceLayout, data: &[u8]) {
         // We don't mind whether the underlying page is already in the cache or not.
         // We just save the new written page-slice and mark it as `dirty`.
 
@@ -140,7 +140,7 @@ impl<'pc, PC: PagesStorage> PageSliceCache<'pc, PC> {
         let slice = PageSlice {
             layout: layout.clone(),
             dirty: true,
-            data,
+            data: data[0..(layout.len as usize)].to_vec(), // TODO: add a test checking for `layout.len`
         };
 
         std::mem::replace(
@@ -299,7 +299,7 @@ mod tests {
 
         assert_eq!(None, cache.read_page_slice(&layout));
 
-        cache.write_page_slice(&layout, vec![10, 20, 30]);
+        cache.write_page_slice(&layout, &vec![10, 20, 30]);
 
         assert_eq!(Some(vec![10, 20, 30]), cache.read_page_slice(&layout));
 
@@ -319,7 +319,7 @@ mod tests {
             len: 3,
         };
 
-        cache.write_page_slice(&layout, vec![10, 20, 30]);
+        cache.write_page_slice(&layout, &vec![10, 20, 30]);
         cache.commit();
 
         let ph = page_hash!(0x11_22_33_44, 1);
@@ -341,15 +341,14 @@ mod tests {
             len: 3,
         };
 
-        cache.write_page_slice(&layout, vec![10, 20, 30]);
+        cache.write_page_slice(&layout, &vec![10, 20, 30]);
         cache.commit();
 
         let ph = page_hash!(0x11_22_33_44, 1);
 
         let page = db.borrow().get(ph).unwrap();
         assert_eq!(vec![10, 20, 30], &page[100..103]);
-
-        cache.write_page_slice(&layout, vec![40, 50, 60]);
+        &cache.write_page_slice(&layout, &vec![40, 50, 60]);
 
         // new page is on the page-cache, but not persisted yet
         assert_eq!(Some(vec![40, 50, 60]), cache.read_page_slice(&layout));
@@ -377,7 +376,7 @@ mod tests {
         let ph = page_hash!(0x11_22_33_44, 1);
 
         // 1) first page write
-        cache.write_page_slice(&layout, vec![10, 20, 30]);
+        cache.write_page_slice(&layout, &vec![10, 20, 30]);
 
         // 2) commit
         cache.commit();
@@ -388,7 +387,7 @@ mod tests {
         assert_eq!(vec![10, 20, 30], cache.read_page_slice(&layout).unwrap());
 
         // 4) page override
-        cache.write_page_slice(&layout, vec![40, 50, 60]);
+        cache.write_page_slice(&layout, &vec![40, 50, 60]);
         assert_eq!(vec![40, 50, 60], cache.read_page_slice(&layout).unwrap());
 
         // 5) commit again
@@ -421,8 +420,8 @@ mod tests {
 
         let ph = page_hash!(0x11_22_33_44, 1);
 
-        cache.write_page_slice(&layout1, vec![10, 20, 30]);
-        cache.write_page_slice(&layout2, vec![40, 50]);
+        cache.write_page_slice(&layout1, &vec![10, 20, 30]);
+        cache.write_page_slice(&layout2, &vec![40, 50]);
 
         assert_eq!(vec![10, 20, 30], cache.read_page_slice(&layout1).unwrap());
         assert_eq!(vec![40, 50], cache.read_page_slice(&layout2).unwrap());
