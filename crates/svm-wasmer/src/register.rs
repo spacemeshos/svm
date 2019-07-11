@@ -30,8 +30,18 @@ macro_rules! impl_register {
             /// Copies the data given in `cells` into the register content
             #[inline(always)]
             pub(crate) fn copy_from_wasmer_mem(&mut self, cells: &[Cell<u8>]) {
-                for i in 0..$bytes_count {
-                    self.0[i] = cells[i].get();
+                let padding = $bytes_count as isize - cells.len() as isize;
+
+                if padding >= 0 {
+                    for (i, cell) in cells.iter().enumerate() {
+                        self.0[i] = cell.get();
+                    }
+
+                    for i in cells.len()..$bytes_count {
+                        self.0[i] = 0;
+                    }
+                } else {
+                    panic!("`cells` can't fit register");
                 }
             }
 
@@ -102,7 +112,60 @@ mod tests {
     }
 
     #[test]
-    fn set_exact_register_bytes_size() {
+    fn copy_from_wasmer_mem_exact_register_capacity() {
+        let cells = [
+            Cell::new(10),
+            Cell::new(20),
+            Cell::new(30),
+            Cell::new(40),
+            Cell::new(50),
+            Cell::new(60),
+            Cell::new(70),
+            Cell::new(80),
+        ];
+
+        let mut reg = WasmerReg64::new();
+        assert_eq!([0; 8], reg.get());
+
+        reg.copy_from_wasmer_mem(&cells);
+
+        assert_eq!([10, 20, 30, 40, 50, 60, 70, 80], reg.get());
+    }
+
+    #[test]
+    fn copy_from_wasmer_mem_less_than_register_capacity() {
+        let mut reg = WasmerReg64::new();
+        reg.set(&vec![10; 8]);
+        assert_eq!([10; 8], reg.get());
+
+        let cells = [Cell::new(10), Cell::new(20), Cell::new(30)];
+
+        reg.copy_from_wasmer_mem(&cells);
+
+        assert_eq!([10, 20, 30, 0, 0, 0, 0, 0], reg.get());
+    }
+
+    // #[test]
+    // #[should_panic]
+    // fn copy_from_wasmer_mem_bigger_than_register_capacity() {
+    //     let mut reg = WasmerReg64::new();
+    //     let cells = [
+    //         Cell::new(10),
+    //         Cell::new(20),
+    //         Cell::new(30),
+    //         Cell::new(40),
+    //         Cell::new(50),
+    //         Cell::new(60),
+    //         Cell::new(70),
+    //         Cell::new(80),
+    //         Cell::new(90),
+    //     ];
+    //
+    //     reg.copy_from_wasmer_mem(&cells);
+    // }
+
+    #[test]
+    fn set_exact_register_capcity() {
         let mut reg = WasmerReg64::new();
         assert_eq!([0; 8], reg.get());
 

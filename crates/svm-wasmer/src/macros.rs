@@ -99,7 +99,7 @@ macro_rules! svm_write_page_slice {
     }};
 }
 
-/// Casts the `wasmer` instance context (type: `Ctx`) data field (of type `*mut c_void`) into `&mut [WasmerReg64; REGS_64_COUNT]`
+/// Casts the `wasmer` instance context data field (of type `*mut c_void`) into `&mut [WasmerReg64; REGS_64_COUNT]`
 #[macro_export]
 macro_rules! wasmer_data_regs {
     ($data: expr) => {{
@@ -108,11 +108,12 @@ macro_rules! wasmer_data_regs {
         let data_ptr = $data as *mut _;
 
         let regs: &mut [WasmerReg64; REGS_64_COUNT] = unsafe { &mut *data_ptr };
+
         regs
     }};
 }
 
-/// Casts the `wasmer` instance context (type: `Ctx`) data field (of type `*mut c_void`) into `&mut PageSliceCache<PS>`
+/// Casts the `wasmer` instance context data field (of type `*mut c_void`) into `&mut PageSliceCache<PS>`
 #[macro_export]
 macro_rules! wasmer_data_storage {
     ($data: expr, $PS: ident) => {{
@@ -133,13 +134,21 @@ macro_rules! wasmer_data_storage {
     }};
 }
 
+/// Extracts from `wasmer` instance context data field (of type `*mut c_void`), a mutable borrow for the register indexed `reg_idx`
+#[macro_export]
+macro_rules! wasmer_data_reg {
+    ($data: expr, $reg_idx: expr) => {{
+        assert!($reg_idx >= 0 && $reg_idx < REGS_64_COUNT as i32);
+
+        let regs = wasmer_data_regs!($data);
+        svm_regs_reg!(regs, $reg_idx)
+    }};
+}
+
 /// Returns a `wasmer` memory view of cells `mem_start, mem_start + 1, .. , mem_start + len` (exclusive)
 #[macro_export]
 macro_rules! wasmer_ctx_mem_cells {
     ($ctx: expr, $mem_start: expr, $len: expr) => {{
-        dbg!($mem_start);
-        dbg!($len);
-
         let start = $mem_start as usize;
         let end = start + $len as usize;
 
@@ -150,13 +159,9 @@ macro_rules! wasmer_ctx_mem_cells {
 
 /// Extracts from `wasmer` instance context (type: `Ctx`) a mutable borrow for the register indexed `reg_idx`
 #[macro_export]
-macro_rules! wasmer_data_reg {
-    ($data: expr, $reg_idx: expr) => {{
-        assert!($reg_idx >= 0 && $reg_idx < REGS_64_COUNT as i32);
-
-        let regs = wasmer_data_regs!($data);
-
-        svm_regs_reg!(regs, $reg_idx)
+macro_rules! wasmer_ctx_reg {
+    ($ctx: expr, $reg_idx: expr) => {{
+        wasmer_data_reg!($ctx.data, $reg_idx)
     }};
 }
 

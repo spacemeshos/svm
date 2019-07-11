@@ -17,10 +17,10 @@ macro_rules! include_wasmer_svm_vmcalls {
         /// * `len`         - The length of the memory slice we want to copy (in bytes)
         /// * `dst_reg`     - The destination register we want to load the memory slice into
         pub fn mem_to_reg_copy(ctx: &mut Ctx, src_mem_ptr: i32, len: i32, dst_reg: i32) {
-            let reg = wasmer_data_reg!(ctx.data, dst_reg);
             let cells = wasmer_ctx_mem_cells!(ctx, src_mem_ptr, len);
+            let reg = wasmer_data_reg!(ctx.data, dst_reg);
 
-            // reg.copy_from_wasmer_mem(cells);
+            reg.copy_from_wasmer_mem(cells);
         }
 
         /// Copies the content of `wasmer` register indexed `src_reg` into `wasmer` memory cells under addresses:
@@ -32,7 +32,8 @@ macro_rules! include_wasmer_svm_vmcalls {
         ///                   This parameter *must* not be greater than the register capacity
         /// * `dst_mem_ptr` - Pointer to the first memory address we want to start copying content to
         pub fn reg_to_mem_copy(ctx: &mut Ctx, src_reg: i32, len: i32, dst_mem_ptr: i32) {
-            // let reg = wasmer_data_reg!(ctx.data, src_reg);
+            let reg = wasmer_data_reg!(ctx.data, src_reg);
+
             // let cells = wasmer_ctx_mem_cells!(ctx, dst_mem_ptr, len);
             //
             // reg.copy_to_wasmer_mem(cells);
@@ -69,24 +70,15 @@ mod tests {
     use std::rc::Rc;
 
     use super::*;
+    use crate::register::WasmerReg64;
     use svm_common::Address;
     use svm_storage::{MemKVStore, MemPages, PageCache, PageSliceCache};
 
     #[macro_use]
-    use wasmer_runtime::{Instance, func, Func, imports, instantiate};
+    use wasmer_runtime::{Instance, func, Func, compile, imports};
     use wasmer_runtime::wasm::Type;
 
     pub type MemPageCache<'pc, K = [u8; 32]> = PageCache<'pc, MemPages<K>>;
-
-    fn wasmer_import_object_data<PS>(ctx: &SvmCtx<PS>) -> (*mut c_void, fn(*mut c_void))
-    where
-        PS: PagesStorage,
-    {
-        let data: *mut c_void = ctx.clone() as *const _ as *mut c_void;
-        let dtor: fn(*mut c_void) = |_| {};
-
-        (data, dtor)
-    }
 
     /// injecting the `svm vmcalls` implemented with `MemPageCache` as the `PageCache` type
     include_wasmer_svm_vmcalls!(MemPageCache);
@@ -105,38 +97,50 @@ mod tests {
                   get_local $src_mem_ptr
                   get_local $len
                   get_local $dst_reg
-                  call $svm_mem_to_reg_copy))
-        "#;
+                  call $svm_mem_to_reg_copy))"#;
 
         let wasm = wabt::wat2wasm(&wasm).unwrap();
 
+        let module = compile(&wasm).unwrap();
+
         let import_object = imports! {
             || {
-                let addr = Address::from(0x12_34_56_78 as u32);
-                let db = Rc::new(RefCell::new(MemKVStore::new()));
-                let mut inner = MemPages::new(addr, db);
-                let mut page_cache = MemPageCache::new(&mut inner, 5);
-                let mut storage = PageSliceCache::new(&mut page_cache, 100);
+                 let addr = Address::from(0x12_34_56_78 as u32);
+                 let db = Rc::new(RefCell::new(MemKVStore::new()));
+                 let mut inner = MemPages::new(addr, db);
+                 let mut page_cache = MemPageCache::new(&mut inner, 5);
+                 let mut storage = PageSliceCache::new(&mut page_cache, 100);
+                 let ctx = SvmCtx::new(&mut storage);
 
-                let svm_ctx = SvmCtx::new(&mut storage);
-                wasmer_import_object_data(&svm_ctx)
+                 let boxed = Box::new(ctx);
+                 let data = Box::into_raw(boxed) as *mut c_void;
+                 let dtor: fn(*mut c_void) = |_| {};
+
+                 let data_ptr = data as *mut _;
+
+                 (data, dtor)
             },
             "svm" => {
                 "mem_to_reg_copy" => func!(mem_to_reg_copy),
             },
         };
 
-        let mut instance = instantiate(&wasm, &import_object).unwrap();
+        let mut instance = module.instantiate(&import_object).unwrap();
 
-        // initializing memory cells `0..3` with values `10, 20, 30` respectively
+        /// initializing memory cells `0..3` with values `10, 20, 30` respectively
         let mem = instance.context_mut().memory(0);
         let cells: &[Cell<u8>] = &mem.view()[0..3];
         cells[0].set(10);
         cells[1].set(20);
         cells[2].set(30);
 
-        let do_copy: Func<(i32, i32, i32)> = instance.func("do_copy_to_reg").unwrap();
+        let reg = wasmer_ctx_reg!(instance.context(), 2);
+        assert_eq!([0, 0, 0, 0, 0, 0, 0, 0], reg.get());
 
+        let do_copy: Func<(i32, i32, i32)> = instance.func("do_copy_to_reg").unwrap();
         do_copy.call(0, 3, 2);
+
+        let reg = wasmer_ctx_reg!(instance.context(), 2);
+        assert_eq!([10, 20, 30, 0, 0, 0, 0, 0], reg.get());
     }
 }
