@@ -1,48 +1,62 @@
 use wasmer_runtime::Ctx;
 
-use std::cell::RefCell;
-use std::marker::PhantomData;
-use std::rc::Rc;
-use svm_common::Address;
-
-use svm_storage::null_storage::{NullPageCache, NullPageSliceCache, NullPagesStorage};
 use svm_storage::traits::PagesStorage;
-use svm_storage::{MemKVStore, MemPages, PageCache, PageSliceCache};
+use svm_storage::PageSliceCache;
 
-use crate::register::WasmerReg64;
+#[macro_export]
+macro_rules! create_boxed_svm_ctx {
+    ($addr: expr, $KV: ident, $PS: ident, $PC: ident, $max_pages: expr, $max_pages_slices: expr) => {{
+        use std::cell::RefCell;
+        use std::rc::Rc;
 
-/// The number of allocated `64-bit` wasmer registers for each `SvmCtx`
-pub const REGS_64_COUNT: usize = 8;
+        let addr = Address::from($addr as u32);
+        let db = Rc::new(RefCell::new($KV::new()));
 
-/// `SvmCtx` is a container for the accessible data by `wasmer` instances
-/// Its fields are:
-/// * `regs_64` - a static array (`REGS_64_COUNT` elements) of `WasmerReg64`
-///
-/// Explanation about `SvmCtx` lifetimes and generics:
-/// * `a  - the lifetime of the mutable borrowed `PageSliceCache`
-/// * `pc - the lifetime of the inner `PageCache` within `PageSliceCache` (`pc - stands for page-cache)
-/// *  PS - a type implementing the trait `PagesStorage` (`PS` stands for `PagesStorage`)
-#[repr(C)]
-pub struct SvmCtx<'a, 'pc: 'a, PS> {
-    pub(crate) regs_64: [WasmerReg64; REGS_64_COUNT],
+        // pages storage
+        let pages = $PS::new(addr, db);
+        let boxed_pages = Box::new(pages);
+        let pages_ptr = Box::into_raw(boxed_pages) as *mut _;
+        let pages = unsafe { &mut *pages_ptr };
 
-    pub(crate) storage: &'a mut PageSliceCache<'pc, PS>,
+        /// page cache
+        let page_cache = $PC::new(pages, $max_pages);
+        let boxed_page_cache = Box::new(page_cache);
+        let page_cache_ptr = Box::into_raw(boxed_page_cache) as *mut $PC;
+        let page_cache: &mut $PC = unsafe { &mut *page_cache_ptr };
+
+        /// storage
+        let storage = PageSliceCache::new(page_cache, $max_pages_slices);
+        let boxed_storage = Box::new(storage);
+        let storage_ptr = Box::into_raw(boxed_storage) as *mut PageSliceCache<$PC>;
+        let storage: &mut PageSliceCache<$PC> = unsafe { &mut *storage_ptr };
+
+        let mut ctx = SvmCtx::new(storage);
+
+        Box::new(ctx)
+    }};
 }
 
-impl<'a, 'pc: 'a, PS> SvmCtx<'a, 'pc, PS> {
-    /// Initializes a new empty `SvmCtx`
-    ///
-    /// * `storage` - a mutably borrowed `PageSliceCache`
-    pub fn new(storage: &'a mut PageSliceCache<'pc, PS>) -> Self {
-        let regs_64 = [WasmerReg64::new(); REGS_64_COUNT];
+#[macro_export]
+macro_rules! create_svm_import_object {
+    ($addr: expr, $KV: ident, $PS: ident, $PC: ident, $max_pages: expr, $max_pages_slices: expr) => {{
+        || {
+            let boxed_ctx =
+                create_boxed_svm_ctx!($addr, $KV, $PS, $PC, $max_pages, $max_pages_slices);
 
-        Self { regs_64, storage }
-    }
+            let data = Box::into_raw(boxed_ctx) as *mut c_void;
+            let dtor: fn(*mut c_void) = |_| {};
+
+            let data_ptr = data as *mut _;
+
+            (data, dtor)
+        }
+    }};
 }
 
 #[macro_export]
 macro_rules! svm_regs_reg {
     ($regs: expr, $reg_idx: expr) => {{
+        use crate::ctx::REGS_64_COUNT;
         use crate::register::WasmerReg64;
 
         assert!($reg_idx >= 0 && $reg_idx < REGS_64_COUNT as i32);
@@ -103,6 +117,7 @@ macro_rules! svm_write_page_slice {
 #[macro_export]
 macro_rules! wasmer_data_regs {
     ($data: expr) => {{
+        use crate::ctx::REGS_64_COUNT;
         use crate::register::WasmerReg64;
 
         let data_ptr = $data as *mut _;
@@ -119,6 +134,7 @@ macro_rules! wasmer_data_storage {
     ($data: expr, $PS: ident) => {{
         use svm_storage::PageSliceCache;
         use crate::register::WasmerReg64;
+        use crate::ctx::REGS_64_COUNT;
 
         let data_ptr: *mut u8 = $data as *mut _;
 
@@ -138,6 +154,8 @@ macro_rules! wasmer_data_storage {
 #[macro_export]
 macro_rules! wasmer_data_reg {
     ($data: expr, $reg_idx: expr) => {{
+        use crate::ctx::REGS_64_COUNT;
+
         assert!($reg_idx >= 0 && $reg_idx < REGS_64_COUNT as i32);
 
         let regs = wasmer_data_regs!($data);
@@ -169,11 +187,20 @@ macro_rules! wasmer_ctx_reg {
 mod tests {
     use super::*;
 
+    use crate::ctx::SvmCtx;
+    use crate::register::WasmerReg64;
+
+    use svm_common::Address;
+
+    use svm_storage::null_storage::{NullPageCache, NullPageSliceCache, NullPagesStorage};
+
     use std::cell::{Cell, RefCell};
     use std::ffi::c_void;
     use std::rc::Rc;
 
-    use svm_storage::{PageIndex, PageSliceLayout, SliceIndex};
+    use svm_storage::{
+        MemKVStore, MemPages, PageCache, PageIndex, PageSliceCache, PageSliceLayout, SliceIndex,
+    };
 
     pub type MemPageCache<'pc, K = [u8; 32]> = PageCache<'pc, MemPages<K>>;
 

@@ -70,12 +70,14 @@ mod tests {
     use std::rc::Rc;
 
     use super::*;
+    use crate::ctx::SvmCtx;
     use crate::register::WasmerReg64;
+
     use svm_common::Address;
     use svm_storage::{MemKVStore, MemPages, PageCache, PageSliceCache};
 
     #[macro_use]
-    use wasmer_runtime::{Instance, func, Func, compile, imports};
+    use wasmer_runtime::{Instance, func, Func, compile, imports, error, Module};
     use wasmer_runtime::wasm::Type;
 
     pub type MemPageCache<'pc, K = [u8; 32]> = PageCache<'pc, MemPages<K>>;
@@ -83,43 +85,42 @@ mod tests {
     /// injecting the `svm vmcalls` implemented with `MemPageCache` as the `PageCache` type
     include_wasmer_svm_vmcalls!(MemPageCache);
 
-    #[test]
-    fn vmcalls_mem_to_reg_copy() {
-        let wasm = r#"
-            (module
-                ;; import `svm` vmcalls
-                (func $svm_mem_to_reg_copy (import "svm" "mem_to_reg_copy") (param i32 i32 i32))
-
-                (memory 1)  ;; memory `0` (default) is initialized with a `1 page`
-
-                ;; exported function to be called
-                (func (export "do_copy_to_reg") (param $src_mem_ptr i32) (param $len i32) (param $dst_reg i32)
-                  get_local $src_mem_ptr
-                  get_local $len
-                  get_local $dst_reg
-                  call $svm_mem_to_reg_copy))"#;
-
+    fn wasmer_compile_module(wasm: &str) -> error::CompileResult<Module> {
         let wasm = wabt::wat2wasm(&wasm).unwrap();
 
-        let module = compile(&wasm).unwrap();
+        compile(&wasm)
+    }
+
+    fn init_wasmer_instance_mem(instance: &mut Instance, start: usize, data: &[u8]) {
+        let mem = instance.context_mut().memory(0);
+        let cells: &[Cell<u8>] = &mem.view()[start..start + data.len()];
+
+        for (i, byte) in data.iter().enumerate() {
+            cells[start + i].set(*byte);
+        }
+    }
+
+    const WASM_MEM_TO_REG_COPY: &'static str = r#"
+        (module
+            ;; import `svm` vmcalls
+            (func $svm_mem_to_reg_copy (import "svm" "mem_to_reg_copy") (param i32 i32 i32))
+
+            (memory 1)  ;; memory `0` (default) is initialized with a `1 page`
+
+            ;; exported function to be called
+            (func (export "do_copy_to_reg") (param $src_mem_ptr i32) (param $len i32) (param $dst_reg i32)
+              get_local $src_mem_ptr
+              get_local $len
+              get_local $dst_reg
+              call $svm_mem_to_reg_copy))"#;
+
+    #[test]
+    fn vmcalls_mem_to_reg_copy() {
+        let module = wasmer_compile_module(WASM_MEM_TO_REG_COPY).unwrap();
 
         let import_object = imports! {
-            || {
-                 let addr = Address::from(0x12_34_56_78 as u32);
-                 let db = Rc::new(RefCell::new(MemKVStore::new()));
-                 let mut inner = MemPages::new(addr, db);
-                 let mut page_cache = MemPageCache::new(&mut inner, 5);
-                 let mut storage = PageSliceCache::new(&mut page_cache, 100);
-                 let ctx = SvmCtx::new(&mut storage);
+            create_svm_import_object!(0x12_34_56_78, MemKVStore, MemPages, MemPageCache, 5, 100),
 
-                 let boxed = Box::new(ctx);
-                 let data = Box::into_raw(boxed) as *mut c_void;
-                 let dtor: fn(*mut c_void) = |_| {};
-
-                 let data_ptr = data as *mut _;
-
-                 (data, dtor)
-            },
             "svm" => {
                 "mem_to_reg_copy" => func!(mem_to_reg_copy),
             },
@@ -128,11 +129,7 @@ mod tests {
         let mut instance = module.instantiate(&import_object).unwrap();
 
         /// initializing memory cells `0..3` with values `10, 20, 30` respectively
-        let mem = instance.context_mut().memory(0);
-        let cells: &[Cell<u8>] = &mem.view()[0..3];
-        cells[0].set(10);
-        cells[1].set(20);
-        cells[2].set(30);
+        init_wasmer_instance_mem(&mut instance, 0, &[10, 20, 30]);
 
         let reg = wasmer_ctx_reg!(instance.context(), 2);
         assert_eq!([0, 0, 0, 0, 0, 0, 0, 0], reg.get());

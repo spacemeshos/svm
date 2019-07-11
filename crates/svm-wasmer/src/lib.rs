@@ -4,6 +4,9 @@
 
 //! `svm-wasmer` crate is the glue between `svm` constract storage to `wasmer` live instances
 
+/// Implements the `SvmCtx` use for running `svm-wasmer` instances
+mod ctx;
+
 /// Implements a `svm-wasmer` register abstraction to ease interfacing
 /// with the contract-storage / `wasmer` instance memory
 mod register;
