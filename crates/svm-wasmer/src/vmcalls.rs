@@ -17,7 +17,7 @@ macro_rules! include_wasmer_svm_vmcalls {
         /// * `len`         - The length of the memory slice we want to copy (in bytes)
         /// * `dst_reg`     - The destination register we want to load the memory slice into
         pub fn mem_to_reg_copy(ctx: &mut Ctx, src_mem_ptr: i32, len: i32, dst_reg: i32) {
-            // let reg = wasmer_data_reg!(ctx.data, dst_reg);
+            let reg = wasmer_data_reg!(ctx.data, dst_reg);
             let cells = wasmer_ctx_mem_cells!(ctx, src_mem_ptr, len);
 
             // reg.copy_from_wasmer_mem(cells);
@@ -64,15 +64,29 @@ macro_rules! include_wasmer_svm_vmcalls {
 
 #[cfg(test)]
 mod tests {
+    use std::cell::{Cell, RefCell};
+    use std::ffi::c_void;
+    use std::rc::Rc;
+
     use super::*;
-    use std::cell::Cell;
-    use svm_storage::{MemPages, PageCache};
+    use svm_common::Address;
+    use svm_storage::{MemKVStore, MemPages, PageCache, PageSliceCache};
 
     #[macro_use]
     use wasmer_runtime::{Instance, func, Func, imports, instantiate};
     use wasmer_runtime::wasm::Type;
 
     pub type MemPageCache<'pc, K = [u8; 32]> = PageCache<'pc, MemPages<K>>;
+
+    fn wasmer_import_object_data<PS>(ctx: &SvmCtx<PS>) -> (*mut c_void, fn(*mut c_void))
+    where
+        PS: PagesStorage,
+    {
+        let data: *mut c_void = ctx.clone() as *const _ as *mut c_void;
+        let dtor: fn(*mut c_void) = |_| {};
+
+        (data, dtor)
+    }
 
     /// injecting the `svm vmcalls` implemented with `MemPageCache` as the `PageCache` type
     include_wasmer_svm_vmcalls!(MemPageCache);
@@ -88,16 +102,25 @@ mod tests {
 
                 ;; exported function to be called
                 (func (export "do_copy_to_reg") (param $src_mem_ptr i32) (param $len i32) (param $dst_reg i32)
-                    get_local $src_mem_ptr
-                    get_local $len
-                    get_local $dst_reg
-                    call $svm_mem_to_reg_copy
-                    ))
+                  get_local $src_mem_ptr
+                  get_local $len
+                  get_local $dst_reg
+                  call $svm_mem_to_reg_copy))
         "#;
 
         let wasm = wabt::wat2wasm(&wasm).unwrap();
 
         let import_object = imports! {
+            || {
+                let addr = Address::from(0x12_34_56_78 as u32);
+                let db = Rc::new(RefCell::new(MemKVStore::new()));
+                let mut inner = MemPages::new(addr, db);
+                let mut page_cache = MemPageCache::new(&mut inner, 5);
+                let mut storage = PageSliceCache::new(&mut page_cache, 100);
+
+                let svm_ctx = SvmCtx::new(&mut storage);
+                wasmer_import_object_data(&svm_ctx)
+            },
             "svm" => {
                 "mem_to_reg_copy" => func!(mem_to_reg_copy),
             },
