@@ -1,4 +1,4 @@
-use wasmer_runtime_core::vm::Ctx;
+use wasmer_runtime::Ctx;
 
 use std::cell::RefCell;
 use std::marker::PhantomData;
@@ -137,16 +137,20 @@ macro_rules! wasmer_data_storage {
 #[macro_export]
 macro_rules! wasmer_ctx_mem_cells {
     ($ctx: expr, $mem_start: expr, $len: expr) => {{
+        dbg!($mem_start);
+        dbg!($len);
+
         let start = $mem_start as usize;
         let end = start + $len as usize;
 
-        &$ctx.memory(0).view()[start..end]
+        /// we must state explicitly that we view each mem cell as a `u8`
+        &$ctx.memory(0).view::<u8>()[start..end]
     }};
 }
 
 /// Extracts from `wasmer` instance context (type: `Ctx`) a mutable borrow for the register indexed `reg_idx`
 #[macro_export]
-macro_rules! wasmer_ctx_data_reg {
+macro_rules! wasmer_data_reg {
     ($data: expr, $reg_idx: expr) => {{
         assert!($reg_idx >= 0 && $reg_idx < REGS_64_COUNT as i32);
 

@@ -8,5 +8,8 @@ publish = false
 [dependencies]
 svm-common = { path = "../svm-common" }
 svm-storage = { path = "../svm-storage" }
-wasmer-runtime-core = { git = "https://github.com/yaronwittenstein/wasmer" }
+wasmer-runtime = { git = "https://github.com/yaronwittenstein/wasmer", features = ["singlepass"] }
 memoffset = "0.4.0"
+
+[dev-dependencies]
+wabt = "0.7.4"
