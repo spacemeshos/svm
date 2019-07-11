@@ -119,7 +119,7 @@ mod tests {
         let module = wasmer_compile_module(WASM_MEM_TO_REG_COPY).unwrap();
 
         let import_object = imports! {
-            create_svm_import_object!(0x12_34_56_78, MemKVStore, MemPages, MemPageCache, 5, 100),
+            lazy_create_svm_import_object!(0x12_34_56_78, MemKVStore, MemPages, MemPageCache, 5, 100),
 
             "svm" => {
                 "mem_to_reg_copy" => func!(mem_to_reg_copy),

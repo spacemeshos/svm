@@ -9,47 +9,51 @@ macro_rules! create_boxed_svm_ctx {
         use std::cell::RefCell;
         use std::rc::Rc;
 
+        let kv = $KV::new();
+
         let addr = Address::from($addr as u32);
-        let db = Rc::new(RefCell::new($KV::new()));
+        let db = Rc::new(RefCell::new(kv));
 
         // pages storage
         let pages = $PS::new(addr, db);
         let boxed_pages = Box::new(pages);
-        let pages_ptr = Box::into_raw(boxed_pages) as *mut _;
-        let pages = unsafe { &mut *pages_ptr };
+        let leaked_pages: &mut _ = Box::leak(boxed_pages);
 
         /// page cache
-        let page_cache = $PC::new(pages, $max_pages);
+        let page_cache = $PC::new(leaked_pages, $max_pages);
         let boxed_page_cache = Box::new(page_cache);
-        let page_cache_ptr = Box::into_raw(boxed_page_cache) as *mut $PC;
-        let page_cache: &mut $PC = unsafe { &mut *page_cache_ptr };
+        let page_cache: &mut _ = Box::leak(boxed_page_cache);
 
         /// storage
         let storage = PageSliceCache::new(page_cache, $max_pages_slices);
         let boxed_storage = Box::new(storage);
-        let storage_ptr = Box::into_raw(boxed_storage) as *mut PageSliceCache<$PC>;
-        let storage: &mut PageSliceCache<$PC> = unsafe { &mut *storage_ptr };
+        let storage: &mut _ = Box::leak(boxed_storage);
 
         let mut ctx = SvmCtx::new(storage);
+        let boxed_ctx = Box::new(ctx);
 
-        Box::new(ctx)
+        Box::leak(boxed_ctx)
     }};
 }
 
 #[macro_export]
 macro_rules! create_svm_import_object {
     ($addr: expr, $KV: ident, $PS: ident, $PC: ident, $max_pages: expr, $max_pages_slices: expr) => {{
-        || {
-            let boxed_ctx =
-                create_boxed_svm_ctx!($addr, $KV, $PS, $PC, $max_pages, $max_pages_slices);
+        let ctx = create_boxed_svm_ctx!($addr, $KV, $PS, $PC, $max_pages, $max_pages_slices);
 
-            let data = Box::into_raw(boxed_ctx) as *mut c_void;
-            let dtor: fn(*mut c_void) = |_| {};
+        let data = ctx as *mut _ as *mut c_void;
+        let dtor: fn(*mut c_void) = |_| {};
 
-            let data_ptr = data as *mut _;
+        let data_ptr = data as *mut _;
 
-            (data, dtor)
-        }
+        (data, dtor)
+    }};
+}
+
+#[macro_export]
+macro_rules! lazy_create_svm_import_object {
+    ($addr: expr, $KV: ident, $PS: ident, $PC: ident, $max_pages: expr, $max_pages_slices: expr) => {{
+        || create_svm_import_object!($addr, $KV, $PS, $PC, $max_pages, $max_pages_slices)
     }};
 }
 
@@ -302,7 +306,6 @@ mod tests {
         let mut page_cache = MemPageCache::new(&mut inner, 1);
         let mut storage = PageSliceCache::new(&mut page_cache, 10);
         let ctx = SvmCtx::new(&mut storage);
-
         let (data, _dtor) = wasmer_import_object_data(&ctx);
 
         // extracting `storage` out of `wasmer` instance `data` field
