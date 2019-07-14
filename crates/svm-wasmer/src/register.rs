@@ -60,6 +60,13 @@ macro_rules! impl_register {
                 self.0
             }
 
+            /// Returns a copy of the register first `n` bytes as a byte-array
+            pub(crate) fn getn(&self, n: usize) -> Vec<u8> {
+                assert!(n <= $bytes_count);
+
+                self.0[0..n].to_vec()
+            }
+
             /// Overrides the content of the register with the input `bytes` (byte-array).
             /// Pads remaining bytes with `0` in case `bytes` is small than the register capacity.
             /// Panics when `bytes` is larger then the register capacity.
@@ -142,6 +149,7 @@ mod tests {
 
         reg.copy_from_wasmer_mem(&cells);
 
+        assert_eq!(vec![10, 20, 30], reg.getn(3));
         assert_eq!([10, 20, 30, 0, 0, 0, 0, 0], reg.get());
     }
 
@@ -172,6 +180,7 @@ mod tests {
         reg.set(&vec![10, 20, 30, 40, 50, 60, 70, 80]);
 
         assert_eq!([10, 20, 30, 40, 50, 60, 70, 80], reg.get());
+        assert_eq!(vec![10, 20, 30, 40, 50, 60, 70, 80], reg.getn(8));
     }
 
     #[test]
@@ -183,6 +192,7 @@ mod tests {
         // now we `set` less than register bytes on register `0` (which already has data in it)
         reg.set(&vec![20, 30, 40]);
 
+        assert_eq!(vec![20, 30, 40], reg.getn(3));
         assert_eq!([20, 30, 40, 0, 0, 0, 0, 0], reg.get());
     }
 
