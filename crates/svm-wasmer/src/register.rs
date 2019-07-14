@@ -196,6 +196,19 @@ mod tests {
         assert_eq!([20, 30, 40, 0, 0, 0, 0, 0], reg.get());
     }
 
+    #[test]
+    fn set_empty_slice() {
+        let mut reg = WasmerReg64::new();
+        reg.set(&vec![10; 8]);
+        assert_eq!([10; 8], reg.get());
+
+        // now we `set` [] on register `0` (which already has data in it)
+        reg.set(&vec![]);
+
+        assert_eq!(Vec::<u8>::new(), reg.getn(0));
+        assert_eq!([0, 0, 0, 0, 0, 0, 0, 0], reg.get());
+    }
+
     // #[test]
     // #[should_panic(expected = "`bytes` can't fit register")]
     // fn setting_data_larger_than_register_capacity_raises() {
