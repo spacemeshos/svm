@@ -68,7 +68,39 @@ macro_rules! include_wasmer_svm_vmcalls {
                 len as u32
             );
 
-            dbg!(slice);
+            reg.set(&slice);
+        }
+
+        /// Loads from the `svm-wasmer` instance's storage a page-slice into the memory address given
+        ///
+        /// * `ctx`         - `wasmer` context (holds a `data` field. we use is `SvmCtx`)
+        /// * `src_page`    - Page index
+        /// * `src_slic`    - Page slice index
+        /// * `offset`      - Slice starting offset (within the given page)
+        /// * `len`         - The length of the slice in bytes
+        /// * `dst_mem_ptr` - The destination memory address to start copying the page-slice into
+        pub fn storage_read_to_mem(
+            ctx: &mut wasmer_runtime::Ctx,
+            src_page: i32,
+            src_slice: i32,
+            offset: i32,
+            len: i32,
+            dst_mem_ptr: i32,
+        ) {
+            let cells = wasmer_ctx_mem_cells!(ctx, dst_mem_ptr, len);
+            let storage = wasmer_data_storage!(ctx.data, $PC);
+
+            let slice = svm_read_page_slice!(
+                storage,
+                src_page as u32,
+                src_slice as u32,
+                offset as u32,
+                len as u32
+            );
+
+            for (cell, byte) in cells.iter().zip(slice.iter()) {
+                cell.set(*byte);
+            }
         }
     };
 }
@@ -81,7 +113,9 @@ mod tests {
     use crate::ctx::SvmCtx;
 
     use svm_common::Address;
-    use svm_storage::{MemKVStore, MemPages, PageCacheImpl, PageSliceCache};
+    use svm_storage::{
+        MemKVStore, MemPages, PageCacheImpl, PageIndex, PageSliceCache, PageSliceLayout, SliceIndex,
+    };
 
     use wasmer_runtime::{compile, error, func, imports, Func, Instance, Module};
 
@@ -148,12 +182,28 @@ mod tests {
 
             ;; exported function to be called
             (func (export "do_copy_to_reg") (param i32 i32 i32 i32 i32)
-              get_local 0
-              get_local 1
-              get_local 2
-              get_local 3
-              get_local 4
+              get_local 0 ;; src_page
+              get_local 1 ;; src_slice
+              get_local 2 ;; offset
+              get_local 3 ;; len
+              get_local 4 ;; dst_reg
               call $storage_read_to_reg))"#;
+
+    const WASM_STORAGE_TO_MEM_COPY: &'static str = r#"
+        (module
+            ;; import `svm` vmcalls
+            (func $storage_read_to_mem (import "svm" "storage_read_to_mem") (param i32 i32 i32 i32 i32))
+
+            (memory 1)  ;; memory `0` (default) is initialized with a `1 page`
+
+            ;; exported function to be called
+            (func (export "do_copy_to_mem") (param i32 i32 i32 i32 i32)
+              get_local 0 ;; src_page
+              get_local 1 ;; src_slice
+              get_local 2 ;; offset
+              get_local 3 ;; len
+              get_local 4 ;; dst_mem_ptr
+              call $storage_read_to_mem))"#;
 
     #[test]
     fn vmcalls_mem_to_reg_copy() {
@@ -214,28 +264,76 @@ mod tests {
         assert_eq!([Cell::new(10), Cell::new(20), Cell::new(30)], cells);
     }
 
-    // #[test]
-    // fn vmcalls_storage_read_to_reg() {
-    //     let module = wasmer_compile_module(WASM_STORAGE_TO_REG_COPY).unwrap();
-    //
-    //     let import_object = imports! {
-    //         lazy_create_svm_import_object!(0x12_34_56_78, MemKVStore, MemPages, MemPageCache, 5, 100),
-    //
-    //         "svm" => {
-    //             "storage_read_to_reg" => func!(storage_read_to_reg),
-    //         },
-    //     };
-    //
-    //     let instance = module.instantiate(&import_object).unwrap();
-    //
-    //     let do_copy: Func<(i32, i32, i32, i32, i32)> = instance.func("do_copy_to_reg").unwrap();
-    //
-    //     let src_page = 1;
-    //     let src_slice = 10;
-    //     let offset = 100;
-    //     let len = 3;
-    //     let dest_reg = 2;
-    //
-    //     let _ = do_copy.call(src_page, src_slice, offset, len, dest_reg);
-    // }
+    #[test]
+    fn vmcalls_storage_read_to_reg() {
+        let module = wasmer_compile_module(WASM_STORAGE_TO_REG_COPY).unwrap();
+
+        let import_object = imports! {
+            lazy_create_svm_import_object!(0x12_34_56_78, MemKVStore, MemPages, MemPageCache, 5, 100),
+
+            "svm" => {
+                "storage_read_to_reg" => func!(storage_read_to_reg),
+            },
+        };
+
+        let mut instance = module.instantiate(&import_object).unwrap();
+        let storage = wasmer_data_storage!(instance.context_mut().data, MemPageCache);
+
+        let layout = PageSliceLayout {
+            page_idx: PageIndex(1),
+            slice_idx: SliceIndex(10),
+            offset: 100,
+            len: 3,
+        };
+
+        // we write `[10, 20, 30]` into storage slice `10` (page `1`, cells: `100..103`)
+        storage.write_page_slice(&layout, &vec![10, 20, 30]);
+
+        // we first initialize register `2` with some garbage data which should be overriden
+        // after calling the exported `do_copy` function
+        let reg = wasmer_ctx_reg!(instance.context(), 2, MemPageCache);
+        reg.set(&[255; 8]);
+
+        let do_copy: Func<(i32, i32, i32, i32, i32)> = instance.func("do_copy_to_reg").unwrap();
+
+        // we copy storage `slice 0` (page `1`, cells: `100..103`) into register `2`
+        assert!(do_copy.call(1, 10, 100, 3, 2).is_ok());
+
+        let reg = wasmer_ctx_reg!(instance.context(), 2, MemPageCache);
+        assert_eq!([10, 20, 30, 0, 0, 0, 0, 0], reg.get());
+    }
+
+    #[test]
+    fn vmcalls_storage_read_to_mem() {
+        let module = wasmer_compile_module(WASM_STORAGE_TO_MEM_COPY).unwrap();
+
+        let import_object = imports! {
+            lazy_create_svm_import_object!(0x12_34_56_78, MemKVStore, MemPages, MemPageCache, 5, 100),
+
+            "svm" => {
+                "storage_read_to_mem" => func!(storage_read_to_mem),
+            },
+        };
+
+        let mut instance = module.instantiate(&import_object).unwrap();
+        let storage = wasmer_data_storage!(instance.context_mut().data, MemPageCache);
+
+        let layout = PageSliceLayout {
+            page_idx: PageIndex(1),
+            slice_idx: SliceIndex(10),
+            offset: 100,
+            len: 3,
+        };
+
+        // we write `[10, 20, 30]` into storage slice `10` (page `1`, cells `100..103`)
+        storage.write_page_slice(&layout, &vec![10, 20, 30]);
+
+        let do_copy: Func<(i32, i32, i32, i32, i32)> = instance.func("do_copy_to_mem").unwrap();
+
+        // we copy storage `slice 0` (page `1`, cells: `100..103`) into memory starting from address = 200
+        assert!(do_copy.call(1, 10, 100, 3, 200).is_ok());
+
+        let cells = wasmer_ctx_mem_cells!(instance.context(), 200, 3);
+        assert_eq!(&[Cell::new(10), Cell::new(20), Cell::new(30)], cells);
+    }
 }

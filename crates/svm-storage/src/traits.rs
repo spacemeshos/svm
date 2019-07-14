@@ -52,7 +52,7 @@ pub trait PageHasher {
     fn hash(address: Address, page: u32) -> [u8; 32];
 }
 
-/// The `include_extern_storage` will be imported by the smart contract wasm programs.
+/// The `include_extern_storage` will be imported by smart contract wasm programs.
 /// Reading data will be copied from the backing storage into temporary buffers.
 /// Then the smart contract program will copy that data into the wasm instance's memory / stack.
 #[macro_export]

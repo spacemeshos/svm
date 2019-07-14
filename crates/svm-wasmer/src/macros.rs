@@ -16,12 +16,12 @@ macro_rules! create_boxed_svm_ctx {
         let boxed_pages = Box::new(pages);
         let leaked_pages: &mut _ = Box::leak(boxed_pages);
 
-        /// page cache
+        // page cache
         let page_cache = $PC::new(leaked_pages, $max_pages);
         let boxed_page_cache = Box::new(page_cache);
         let page_cache: &mut _ = Box::leak(boxed_page_cache);
 
-        /// storage
+        // storage
         let storage = PageSliceCache::new(page_cache, $max_pages_slices);
         let boxed_storage = Box::new(storage);
         let storage: &mut _ = Box::leak(boxed_storage);
@@ -36,7 +36,7 @@ macro_rules! create_boxed_svm_ctx {
     }};
 }
 
-/// Builds a `svm wasmer` import object to be used for creating a wasm instance.
+/// Builds a `svm wasmer` import object to be used when creating a `wasmer` instance.
 #[macro_export]
 macro_rules! create_svm_import_object {
     ($addr: expr, $KV: ident, $PS: ident, $PC: ident, $max_pages: expr, $max_pages_slices: expr) => {{
@@ -77,7 +77,6 @@ macro_rules! svm_regs_reg {
         let regs_ptr: *mut WasmerReg64 = $regs.as_mut_ptr();
 
         let reg_idx_ptr: *mut WasmerReg64 = unsafe { regs_ptr.offset($reg_idx as isize) };
-
         let reg: &mut WasmerReg64 = unsafe { &mut *reg_idx_ptr };
 
         reg
@@ -267,7 +266,7 @@ mod tests {
         let (data, _dtor) = wasmer_fake_import_object_data(&ctx);
 
         let regs = wasmer_data_regs!(data, NullPageCache);
-        let reg0: &mut WasmerReg64 = svm_regs_reg!(regs, 0);
+        let reg0 = svm_regs_reg!(regs, 0);
 
         // initialize register `0` with data
         let cells = vec![
@@ -307,7 +306,6 @@ mod tests {
         let ctx = create_boxed_svm_ctx!(0x12_34_56_78, MemKVStore, MemPages, MemPageCache, 5, 100);
 
         let (data, _dtor) = wasmer_fake_import_object_data(&ctx);
-
         let storage = wasmer_data_storage!(data, MemPageCache);
 
         let layout = PageSliceLayout {
@@ -321,8 +319,6 @@ mod tests {
 
         storage.write_page_slice(&layout, &vec![10, 20, 30]);
 
-        // starting over, extracting `storage` out of `wasmer` instance `data` field
-        let storage = wasmer_data_storage!(data, MemPageCache);
         assert_eq!(vec![10, 20, 30], storage.read_page_slice(&layout).unwrap());
     }
 
