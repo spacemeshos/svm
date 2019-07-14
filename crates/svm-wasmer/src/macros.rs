@@ -85,6 +85,8 @@ macro_rules! svm_regs_reg {
 #[macro_export]
 macro_rules! svm_read_page_slice {
     ($storage: expr, $page_idx: expr, $slice_idx: expr, $offset: expr, $len: expr) => {{
+        use svm_storage::{PageIndex, PageSliceLayout, SliceIndex};
+
         let layout = PageSliceLayout {
             page_idx: PageIndex($page_idx),
             slice_idx: SliceIndex($slice_idx),
@@ -106,6 +108,8 @@ macro_rules! svm_read_page_slice {
 #[macro_export]
 macro_rules! svm_write_page_slice {
     ($storage: expr, $page_idx: expr, $slice_idx: expr, $offset: expr, $len: expr, $data: expr) => {{
+        use svm_storage::{PageIndex, SliceIndex};
+
         let layout = PageSliceLayout {
             page_idx: PageIndex($page_idx),
             slice_idx: SliceIndex($slice_idx),

@@ -2,7 +2,7 @@
 /// The `vmacalls` are functions imported into each running `svm wasmer` instance.
 #[macro_export]
 macro_rules! include_wasmer_svm_vmcalls {
-    ($PS: ident) => {
+    ($PC: ident) => {
         /// Copies the contents of `wasmer` memory cells under addresses:
         /// `src_mem_ptr, src_mem_ptr + 1, .. , src_mem_ptr + len (exclusive)`
         /// into `wasmer` register indexed `dst_reg`
@@ -41,8 +41,7 @@ macro_rules! include_wasmer_svm_vmcalls {
             reg.copy_to_wasmer_mem(cells);
         }
 
-        /// Loads from the `svm-wasmer` instance's storage a page-slice into the register
-        /// indexed `dest_reg`
+        /// Loads from the `svm-wasmer` instance's storage a page-slice into the register indexed `dest_reg`
         ///
         /// * `ctx`      - `wasmer` context (holds a `data` field. we use is `SvmCtx`)
         /// * `src_page` - Page index
@@ -52,15 +51,27 @@ macro_rules! include_wasmer_svm_vmcalls {
         /// * `dst_reg`  - The destination register we want to load the page-slice into
         pub fn storage_read_to_reg(
             ctx: &mut wasmer_runtime::Ctx,
-            _src_page: i32,
-            _src_slice: i32,
-            _offset: i32,
-            _len: i32,
+            src_page: i32,
+            src_slice: i32,
+            offset: i32,
+            len: i32,
             dst_reg: i32,
         ) {
-            let _reg = wasmer_data_reg!(ctx.data, dst_reg);
+            let reg = wasmer_data_reg!(ctx.data, dst_reg);
 
-            let _storage = wasmer_data_storage!(ctx.data, $PS);
+            let storage = wasmer_data_storage!(ctx.data, $PC);
+
+            dbg!(storage);
+
+            // let slice = svm_read_page_slice!(
+            //     storage,
+            //     src_page as u32,
+            //     src_slice as u32,
+            //     offset as u32,
+            //     len as u32
+            // );
+            //
+            // dbg!(slice);
         }
     };
 }
@@ -206,21 +217,28 @@ mod tests {
         assert_eq!([Cell::new(10), Cell::new(20), Cell::new(30)], cells);
     }
 
-    // #[test]
-    // fn vmcalls_storage_read_to_reg() {
-    //     let module = wasmer_compile_module(WASM_STORAGE_TO_REG_COPY).unwrap();
-    //
-    //     let import_object = imports! {
-    //         lazy_create_svm_import_object!(0x12_34_56_78, MemKVStore, MemPages, MemPageCache, 5, 100),
-    //
-    //         "svm" => {
-    //             "storage_read_to_reg" => func!(storage_read_to_reg),
-    //         },
-    //     };
-    //
-    //     let mut instance = module.instantiate(&import_object).unwrap();
-    //
-    //     let do_copy: Func<(i32, i32, i32)> = instance.func("do_copy_to_reg").unwrap();
-    //     do_copy.call(2, 3, 0);
-    // }
+    #[test]
+    fn vmcalls_storage_read_to_reg() {
+        let module = wasmer_compile_module(WASM_STORAGE_TO_REG_COPY).unwrap();
+
+        let import_object = imports! {
+            lazy_create_svm_import_object!(0x12_34_56_78, MemKVStore, MemPages, MemPageCache, 5, 100),
+
+            "svm" => {
+                "storage_read_to_reg" => func!(storage_read_to_reg),
+            },
+        };
+
+        let instance = module.instantiate(&import_object).unwrap();
+
+        let do_copy: Func<(i32, i32, i32, i32, i32)> = instance.func("do_copy_to_reg").unwrap();
+
+        let src_page = 1;
+        let src_slice = 10;
+        let offset = 100;
+        let len = 3;
+        let dest_reg = 2;
+
+        let _ = do_copy.call(src_page, src_slice, offset, len, dest_reg);
+    }
 }

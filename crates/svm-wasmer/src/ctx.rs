@@ -6,8 +6,8 @@ use svm_storage::PageSliceCache;
 pub const REGS_64_COUNT: usize = 8;
 
 /// `SvmCtx` is a container for the accessible data by `wasmer` instances
-/// Its fields are:
 /// * `regs_64` - a static array (`REGS_64_COUNT` elements) of `WasmerReg64`
+/// * `storage` - an instance of `PageSliceCache`
 ///
 /// Explanation about `SvmCtx` lifetimes and generics:
 /// * `a  - the lifetime of the mutable borrowed `PageSliceCache`

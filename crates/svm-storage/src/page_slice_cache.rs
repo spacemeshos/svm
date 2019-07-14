@@ -3,7 +3,7 @@ use super::page::{PageIndex, SliceIndex};
 use super::traits::PageCache;
 use std::collections::HashMap;
 
-/// Defines a page-slice memory layout.
+/// Defines a page-slice memory
 #[derive(Debug, Clone, PartialEq, Hash)]
 pub struct PageSliceLayout {
     /// The slice index
@@ -46,6 +46,31 @@ pub struct PageSliceCache<'pc, PC> {
     cached_slices: Vec<CachedPageSlice>,
 
     page_cache: &'pc mut PC,
+}
+
+impl<'pc, PC: PageCache> std::fmt::Debug for PageSliceCache<'pc, PC> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        writeln!(f, "[DEBUG] PageCacheSlice");
+        writeln!(f, "#Allocated slices: {}", self.cached_slices.len());
+
+        for (i, slice) in self.cached_slices.iter().enumerate() {
+            match slice {
+                CachedPageSlice::NotCached => {
+                    // skip
+                }
+                CachedPageSlice::CachedEmpty => {
+                    writeln!(f, "Slice {}: empty", i);
+                }
+                CachedPageSlice::Cached(ps) => {
+                    writeln!(f, "Slice {}: has data", i);
+                    writeln!(f, "   dirty: {}", ps.dirty);
+                    writeln!(f, "   data:  {:?}", ps.data);
+                }
+            }
+        }
+
+        writeln!(f, "")
+    }
 }
 
 impl<'pc, PC: PageCache> PageSliceCache<'pc, PC> {
