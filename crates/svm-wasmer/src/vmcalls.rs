@@ -87,7 +87,6 @@ macro_rules! include_wasmer_svm_vmcalls {
             len: i32,
             dst_mem_ptr: i32,
         ) {
-            let cells = wasmer_ctx_mem_cells!(ctx, dst_mem_ptr, len);
             let storage = wasmer_data_storage!(ctx.data, $PC);
 
             let slice = svm_read_page_slice!(
@@ -98,9 +97,7 @@ macro_rules! include_wasmer_svm_vmcalls {
                 len as u32
             );
 
-            for (cell, byte) in cells.iter().zip(slice.iter()) {
-                cell.set(*byte);
-            }
+            wasmer_ctx_mem_cells_write!(ctx, dst_mem_ptr, slice);
         }
 
         /// Write into `svm-wasmer` storage a page-slice copied from memory
@@ -158,15 +155,6 @@ mod tests {
         let wasm = wabt::wat2wasm(&wasm).unwrap();
 
         compile(&wasm)
-    }
-
-    fn init_wasmer_instance_mem(instance: &mut Instance, start: usize, data: &[u8]) {
-        let mem = instance.context_mut().memory(0);
-        let cells: &[Cell<u8>] = &mem.view()[start..start + data.len()];
-
-        for (i, byte) in data.iter().enumerate() {
-            cells[start + i].set(*byte);
-        }
     }
 
     fn init_wasmer_instance_reg<PC>(instance: &mut Instance, reg_idx: i32, data: &[u8]) {
@@ -265,15 +253,15 @@ mod tests {
 
         let mut instance = module.instantiate(&import_object).unwrap();
 
-        // initializing memory cells `0..3` with values `10, 20, 30` respectively
-        init_wasmer_instance_mem(&mut instance, 0, &[10, 20, 30]);
+        // initializing memory cells `200..203` with values `10, 20, 30` respectively
+        wasmer_ctx_mem_cells_write!(instance.context(), 200, &[10, 20, 30]);
 
         // asserting register content is empty prior copy
         let reg = wasmer_ctx_reg!(instance.context(), 2, MemPageCache);
         assert_eq!([0, 0, 0, 0, 0, 0, 0, 0], reg.get());
 
         let do_copy: Func<(i32, i32, i32)> = instance.func("do_copy_to_reg").unwrap();
-        assert!(do_copy.call(0, 3, 2).is_ok());
+        assert!(do_copy.call(200, 3, 2).is_ok());
 
         // asserting regiter content is `10, 20, 30, 0, ... 0`
         let reg = wasmer_ctx_reg!(instance.context(), 2, MemPageCache);
@@ -324,13 +312,7 @@ mod tests {
 
         let mut instance = module.instantiate(&import_object).unwrap();
         let storage = wasmer_data_storage!(instance.context_mut().data, MemPageCache);
-
-        let layout = PageSliceLayout {
-            page_idx: PageIndex(1),
-            slice_idx: SliceIndex(10),
-            offset: 100,
-            len: 3,
-        };
+        let layout = svm_page_slice_layout!(1, 10, 100, 3);
 
         // we write `[10, 20, 30]` into storage slice `10` (page `1`, cells: `100..103`)
         storage.write_page_slice(&layout, &vec![10, 20, 30]);
@@ -363,13 +345,7 @@ mod tests {
 
         let mut instance = module.instantiate(&import_object).unwrap();
         let storage = wasmer_data_storage!(instance.context_mut().data, MemPageCache);
-
-        let layout = PageSliceLayout {
-            page_idx: PageIndex(1),
-            slice_idx: SliceIndex(10),
-            offset: 100,
-            len: 3,
-        };
+        let layout = svm_page_slice_layout!(1, 10, 100, 3);
 
         // we write `[10, 20, 30]` into storage slice `10` (page `1`, cells `100..103`)
         storage.write_page_slice(&layout, &vec![10, 20, 30]);
@@ -398,17 +374,9 @@ mod tests {
         let mut instance = module.instantiate(&import_object).unwrap();
         let storage = wasmer_data_storage!(instance.context_mut().data, MemPageCache);
 
-        let cells = wasmer_ctx_mem_cells!(instance.context(), 200, 3);
-        cells[0].set(10);
-        cells[1].set(20);
-        cells[2].set(30);
+        wasmer_ctx_mem_cells_write!(instance.context(), 200, &[10, 20, 30]);
 
-        let layout = PageSliceLayout {
-            page_idx: PageIndex(1),
-            slice_idx: SliceIndex(10),
-            offset: 100,
-            len: 3,
-        };
+        let layout = svm_page_slice_layout!(1, 10, 100, 3);
 
         assert_eq!(None, storage.read_page_slice(&layout));
 

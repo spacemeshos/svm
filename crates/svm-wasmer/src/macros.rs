@@ -83,19 +83,28 @@ macro_rules! svm_regs_reg {
     }};
 }
 
+/// Builds an instance of `PageSliceLayout`
+#[macro_export]
+macro_rules! svm_page_slice_layout {
+    ($page_idx: expr, $slice_idx: expr, $offset: expr, $len: expr) => {{
+        use svm_storage::{PageIndex, PageSliceLayout, SliceIndex};
+
+        PageSliceLayout {
+            page_idx: PageIndex($page_idx),
+            slice_idx: SliceIndex($slice_idx),
+            offset: $offset,
+            len: $len,
+        }
+    }};
+}
+
 /// Calls `read_page_slice` on the given `PageSliceCache`
 #[macro_export]
 macro_rules! svm_read_page_slice {
     ($storage: expr, $page_idx: expr, $slice_idx: expr, $offset: expr, $len: expr) => {{
         use svm_storage::{PageIndex, PageSliceLayout, SliceIndex};
 
-        let layout = PageSliceLayout {
-            page_idx: PageIndex($page_idx),
-            slice_idx: SliceIndex($slice_idx),
-            offset: $offset,
-            len: $len,
-        };
-
+        let layout = svm_page_slice_layout!($page_idx, $slice_idx, $offset, $len);
         let slice = $storage.read_page_slice(&layout);
 
         if slice.is_some() {
@@ -184,6 +193,18 @@ macro_rules! wasmer_ctx_mem_cells {
     }};
 }
 
+/// Copies input `data: &[u8]` into `wasmer` memory cells `mem_start, mem_start + 1, .. , mem_start + data.len()` (exclusive)
+#[macro_export]
+macro_rules! wasmer_ctx_mem_cells_write {
+    ($ctx: expr, $mem_start: expr, $data: expr) => {{
+        let cells = wasmer_ctx_mem_cells!($ctx, $mem_start, $data.len());
+
+        for (cell, byte) in cells.iter().zip($data.iter()) {
+            cell.set(*byte);
+        }
+    }};
+}
+
 /// Extracts from `wasmer` instance context (type: `Ctx`) a mutable borrow for the register indexed `reg_idx`
 #[macro_export]
 macro_rules! wasmer_ctx_reg {
@@ -268,30 +289,11 @@ mod tests {
         let regs = wasmer_data_regs!(data, NullPageCache);
         let reg0 = svm_regs_reg!(regs, 0);
 
-        // initialize register `0` with data
-        let cells = vec![
-            Cell::new(10),
-            Cell::new(20),
-            Cell::new(30),
-            Cell::new(40),
-            Cell::new(50),
-            Cell::new(60),
-            Cell::new(70),
-            Cell::new(80),
-        ];
+        reg0.set(&[10, 20, 30, 40, 50, 60, 70, 80]);
 
-        reg0.copy_from_wasmer_mem(&cells);
-        assert_eq!(vec![10, 20, 30, 40, 50, 60, 70, 80], &reg0.0[..]);
+        let cells: Vec<Cell<u8>> = (0..8).map(|_| Cell::<u8>::new(255)).collect();
 
-        // copying register `0` to a fake wasmer memory at cells: `10, 11, ... 17` (inclusive)
-        let cells: Vec<Cell<u8>> = (0..8).map(|_| Cell::<u8>::new(0)).collect();
-
-        assert_eq!(
-            vec![00, 00, 00, 00, 00, 00, 00, 00],
-            cells.iter().map(|c| c.get()).collect::<Vec<u8>>()
-        );
-
-        // copying register `0` content into memory
+        // copying register `0` content into a fake wasmer memory
         reg0.copy_to_wasmer_mem(&cells);
 
         // asserting that the fake wasmer memory has the right changes
@@ -307,34 +309,19 @@ mod tests {
 
         let (data, _dtor) = wasmer_fake_import_object_data(&ctx);
         let storage = wasmer_data_storage!(data, MemPageCache);
-
-        let layout = PageSliceLayout {
-            page_idx: PageIndex(1),
-            slice_idx: SliceIndex(0),
-            offset: 100,
-            len: 3,
-        };
+        let layout = svm_page_slice_layout!(1, 0, 100, 3);
 
         assert_eq!(None, storage.read_page_slice(&layout));
-
         storage.write_page_slice(&layout, &vec![10, 20, 30]);
-
         assert_eq!(vec![10, 20, 30], storage.read_page_slice(&layout).unwrap());
     }
 
     #[test]
     fn wasmer_storage_read_to_reg() {
         let ctx = create_boxed_svm_ctx!(0x12_34_56_78, MemKVStore, MemPages, MemPageCache, 5, 100);
-
         let (data, _dtor) = wasmer_fake_import_object_data(&ctx);
 
-        let layout = PageSliceLayout {
-            page_idx: PageIndex(1),
-            slice_idx: SliceIndex(0),
-            offset: 100,
-            len: 3,
-        };
-
+        let layout = svm_page_slice_layout!(1, 0, 100, 3);
         let regs = wasmer_data_regs!(data, MemPageCache);
         let reg0 = svm_regs_reg!(regs, 0);
         let storage = wasmer_data_storage!(data, MemPageCache);
