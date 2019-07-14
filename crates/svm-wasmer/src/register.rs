@@ -106,7 +106,7 @@ mod tests {
 
     #[test]
     fn get_defaults_to_zeros() {
-        let mut reg = WasmerReg64::new();
+        let reg = WasmerReg64::new();
 
         assert_eq!([0; 8], reg.get());
     }

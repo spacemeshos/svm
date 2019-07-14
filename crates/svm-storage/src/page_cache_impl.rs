@@ -1,4 +1,4 @@
-use super::traits::PagesStorage;
+use super::traits::{PageCache, PagesStorage};
 
 #[derive(Debug, Clone)]
 enum CachedPage {
@@ -12,10 +12,10 @@ enum CachedPage {
     Cached(Vec<u8>),
 }
 
-/// `PageCache` serves us a cache layer for reading contract storage page.
+/// `PageCacheImpl` serves us a cache layer for reading contract storage page.
 /// In addition, it tracks dirty pages (pages that have been changed during the execution of a
 /// smart contract).
-pub struct PageCache<'ps, PS: PagesStorage> {
+pub struct PageCacheImpl<'ps, PS: PagesStorage> {
     // The `ith item` will say whether the `ith page` is dirty
     dirty_pages: Vec<bool>,
 
@@ -26,16 +26,18 @@ pub struct PageCache<'ps, PS: PagesStorage> {
     storage_pages: &'ps mut PS,
 }
 
-/// A `PageCache` is caching layer on top of a storage pages.
+impl<'ps, PS: PagesStorage> PageCache for PageCacheImpl<'ps, PS> {}
+
+/// A `PageCacheImpl` is caching layer on top of a storage pages.
 /// Each page change marks the page as dirty but the changes
 /// are persisted to storage pages only upon `commit`
-impl<'ps, PS: PagesStorage> PageCache<'ps, PS> {
-    /// Initializes a new `PageCache` instance.
+impl<'ps, PS: PagesStorage> PageCacheImpl<'ps, PS> {
+    /// Initializes a new `PageCacheImpl` instance.
     ///
     /// * `storage_pages` - the underlying page-oriented page interface wrapping an underlying database.
     ///   doing a `storage_pages.commit()` should persist data to the underlying database.
     ///
-    /// * `max_pages` - the maximum pages the `PageCache` instance could use when doing read / write.
+    /// * `max_pages` - the maximum pages the `PageCacheImpl` instance could use when doing read / write.
     ///   A page index is within the range `0..(max_pages - 1)` (inclusive)
     pub fn new(storage_pages: &'ps mut PS, max_pages: usize) -> Self {
         Self {
@@ -51,7 +53,7 @@ impl<'ps, PS: PagesStorage> PageCache<'ps, PS> {
     }
 }
 
-impl<'ps, PS: PagesStorage> PagesStorage for PageCache<'ps, PS> {
+impl<'ps, PS: PagesStorage> PagesStorage for PageCacheImpl<'ps, PS> {
     fn read_page(&mut self, page_idx: u32) -> Option<Vec<u8>> {
         // we can have an `assert` here since we are given the maximum storage-pages upon initialization
         assert!(self.cached_pages.len() > page_idx as usize);
@@ -174,7 +176,7 @@ mod tests {
     use crate::traits::KVStore;
     use crate::MemPages;
 
-    pub type MemPageCache<'ps, K = [u8; 32]> = PageCache<'ps, MemPages<K>>;
+    pub type MemPageCache<'ps, K = [u8; 32]> = PageCacheImpl<'ps, MemPages<K>>;
 
     macro_rules! setup_cache {
         ($cache: ident, $db: ident, $addr: expr, $max_pages: expr) => {

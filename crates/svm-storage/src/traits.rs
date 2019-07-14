@@ -33,6 +33,10 @@ pub trait PagesStorage {
     fn commit(&mut self);
 }
 
+/// `PageCache` is a marker trait intended subclassing the `PagesStorage` tarit.
+/// It's intended to mark a `PagesStorage` as having a caching layer on top of the backing pages storage.
+pub trait PageCache: PagesStorage {}
+
 /// `PageHasher` is a trait defining that a contract storage-page hash must be determied by
 /// both the contract storage and the page index.
 ///

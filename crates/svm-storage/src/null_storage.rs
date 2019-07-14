@@ -1,5 +1,5 @@
 use super::traits::PagesStorage;
-use super::{PageCache, PageSliceCache};
+use super::{PageCacheImpl, PageSliceCache};
 
 /// A do-nothing `PagesStorage`.
 pub struct NullPagesStorage {}
@@ -24,7 +24,7 @@ impl PagesStorage for NullPagesStorage {
 }
 
 /// A do nothing `PageCache`
-pub type NullPageCache<'pc> = PageCache<'pc, NullPagesStorage>;
+pub type NullPageCache<'pc> = PageCacheImpl<'pc, NullPagesStorage>;
 
 /// A do nothing `PageSliceCache`
 pub type NullPageSliceCache<'pc> = PageSliceCache<'pc, NullPageCache<'pc>>;

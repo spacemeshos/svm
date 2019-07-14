@@ -8,7 +8,7 @@ mod default_page_hasher;
 mod mem_kv_store;
 mod mem_pages;
 mod page;
-mod page_cache;
+mod page_cache_impl;
 mod page_slice_cache;
 mod pages_storage_impl;
 
@@ -28,5 +28,5 @@ pub use mem_pages::MemPages;
 
 pub use page::{PageIndex, SliceIndex};
 
-pub use page_cache::PageCache;
+pub use page_cache_impl::PageCacheImpl;
 pub use page_slice_cache::{PageSliceCache, PageSliceLayout};

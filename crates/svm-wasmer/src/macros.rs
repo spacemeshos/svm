@@ -1,8 +1,5 @@
-use wasmer_runtime::Ctx;
-
-use svm_storage::traits::PagesStorage;
-use svm_storage::PageSliceCache;
-
+/// Creates an instance of `SvmCtx` to be injected into `wasmer` context `data` field.
+/// `svm vmcalls` will access that `SvmCtx` while runninng smart contracts
 #[macro_export]
 macro_rules! create_boxed_svm_ctx {
     ($addr: expr, $KV: ident, $PS: ident, $PC: ident, $max_pages: expr, $max_pages_slices: expr) => {{
@@ -29,13 +26,14 @@ macro_rules! create_boxed_svm_ctx {
         let boxed_storage = Box::new(storage);
         let storage: &mut _ = Box::leak(boxed_storage);
 
-        let mut ctx = SvmCtx::new(storage);
+        let ctx = SvmCtx::new(storage);
         let boxed_ctx = Box::new(ctx);
 
         Box::leak(boxed_ctx)
     }};
 }
 
+/// Builds a `svm wasmer` import object to be used for creating a wasm instance.
 #[macro_export]
 macro_rules! create_svm_import_object {
     ($addr: expr, $KV: ident, $PS: ident, $PC: ident, $max_pages: expr, $max_pages_slices: expr) => {{
@@ -44,12 +42,11 @@ macro_rules! create_svm_import_object {
         let data = ctx as *mut _ as *mut c_void;
         let dtor: fn(*mut c_void) = |_| {};
 
-        let data_ptr = data as *mut _;
-
         (data, dtor)
     }};
 }
 
+/// Returns a closure that when invoked (without args) calls `create_svm_import_object`
 #[macro_export]
 macro_rules! lazy_create_svm_import_object {
     ($addr: expr, $KV: ident, $PS: ident, $PC: ident, $max_pages: expr, $max_pages_slices: expr) => {{
@@ -57,6 +54,7 @@ macro_rules! lazy_create_svm_import_object {
     }};
 }
 
+/// Receives an array of `WasmerReg64` and returns the `reg_idx` register.
 #[macro_export]
 macro_rules! svm_regs_reg {
     ($regs: expr, $reg_idx: expr) => {{
@@ -83,6 +81,7 @@ macro_rules! svm_regs_reg {
     }};
 }
 
+/// Calls `read_page_slice` on the given `PageSliceCache`
 #[macro_export]
 macro_rules! svm_read_page_slice {
     ($storage: expr, $page_idx: expr, $slice_idx: expr, $offset: expr, $len: expr) => {{
@@ -103,6 +102,7 @@ macro_rules! svm_read_page_slice {
     }};
 }
 
+/// Calls `write_page_slice` on the given `PageSliceCache`
 #[macro_export]
 macro_rules! svm_write_page_slice {
     ($storage: expr, $page_idx: expr, $slice_idx: expr, $offset: expr, $len: expr, $data: expr) => {{
@@ -189,8 +189,6 @@ macro_rules! wasmer_ctx_reg {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     use crate::ctx::SvmCtx;
     use crate::register::WasmerReg64;
 
@@ -203,10 +201,11 @@ mod tests {
     use std::rc::Rc;
 
     use svm_storage::{
-        MemKVStore, MemPages, PageCache, PageIndex, PageSliceCache, PageSliceLayout, SliceIndex,
+        traits::PagesStorage, MemKVStore, MemPages, PageCacheImpl, PageIndex, PageSliceCache,
+        PageSliceLayout, SliceIndex,
     };
 
-    pub type MemPageCache<'pc, K = [u8; 32]> = PageCache<'pc, MemPages<K>>;
+    pub type MemPageCache<'pc, K = [u8; 32]> = PageCacheImpl<'pc, MemPages<K>>;
 
     fn wasmer_import_object_data<PS: PagesStorage>(
         ctx: &SvmCtx<PS>,
@@ -334,7 +333,7 @@ mod tests {
         let mut inner = MemPages::new(addr, db);
         let mut page_cache = MemPageCache::new(&mut inner, 5);
         let mut storage = PageSliceCache::new(&mut page_cache, 100);
-        let mut ctx = SvmCtx::new(&mut storage);
+        let ctx = SvmCtx::new(&mut storage);
 
         let (data, _dtor) = wasmer_import_object_data(&ctx);
 
@@ -351,7 +350,7 @@ mod tests {
 
         storage.write_page_slice(&layout, &vec![10, 20, 30]);
 
-        /// reading from page `1`, slice `0`, 3 bytes starting from offset `100`
+        // reading from page `1`, slice `0`, 3 bytes starting from offset `100`
         let slice = svm_read_page_slice!(storage, 1, 0, 100, 3);
 
         reg0.set(&slice);
@@ -365,20 +364,20 @@ mod tests {
         let mut inner = MemPages::new(addr, db);
         let mut page_cache = MemPageCache::new(&mut inner, 5);
         let mut storage = PageSliceCache::new(&mut page_cache, 100);
-        let mut ctx = SvmCtx::new(&mut storage);
+        let ctx = SvmCtx::new(&mut storage);
 
         let (data, _dtor) = wasmer_import_object_data(&ctx);
 
         let regs = wasmer_data_regs!(data);
 
-        /// writing `[10, 20, 30, 0, 0, 0, 0, 0]` to register `0`
+        // writing `[10, 20, 30, 0, 0, 0, 0, 0]` to register `0`
         let reg0 = svm_regs_reg!(regs, 0);
         reg0.set(&vec![10, 20, 30]);
 
         let slice = svm_read_page_slice!(storage, 1, 0, 100, 3);
         assert_eq!(Vec::<u8>::new(), slice);
 
-        /// writing at page `1`, slice `0`, starting from offset `100` the content of register `0`
+        // writing at page `1`, slice `0`, starting from offset `100` the content of register `0`
         svm_write_page_slice!(storage, 1, 0, 100, 3, &reg0.get());
 
         let slice = svm_read_page_slice!(storage, 1, 0, 100, 3);

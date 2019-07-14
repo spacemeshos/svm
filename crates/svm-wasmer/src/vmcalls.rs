@@ -1,10 +1,5 @@
-use super::macros::*;
-use svm_storage::traits::PagesStorage;
-
-use svm_storage::{MemPages, PageCache};
-
-use wasmer_runtime::Ctx;
-
+/// When called, injects the code of the `svm wasmer vmcalls`.
+/// The `vmacalls` are functions imported into each running `svm wasmer` instance.
 #[macro_export]
 macro_rules! include_wasmer_svm_vmcalls {
     ($PS: ident) => {
@@ -16,7 +11,12 @@ macro_rules! include_wasmer_svm_vmcalls {
         /// * `src_mem_ptr` - Pointer for the first memory address we want to start copying from
         /// * `len`         - The length of the memory slice we want to copy (in bytes)
         /// * `dst_reg`     - The destination register we want to load the memory slice into
-        pub fn mem_to_reg_copy(ctx: &mut Ctx, src_mem_ptr: i32, len: i32, dst_reg: i32) {
+        pub fn mem_to_reg_copy(
+            ctx: &mut wasmer_runtime::Ctx,
+            src_mem_ptr: i32,
+            len: i32,
+            dst_reg: i32,
+        ) {
             let cells = wasmer_ctx_mem_cells!(ctx, src_mem_ptr, len);
             let reg = wasmer_data_reg!(ctx.data, dst_reg);
             reg.copy_from_wasmer_mem(cells);
@@ -30,7 +30,12 @@ macro_rules! include_wasmer_svm_vmcalls {
         /// * `len`         - The length of the register content we want to copy into memory (in bytes)
         ///                   This parameter *must* not be greater than the register capacity
         /// * `dst_mem_ptr` - Pointer to the first memory address we want to start copying content to
-        pub fn reg_to_mem_copy(ctx: &mut Ctx, src_reg: i32, len: i32, dst_mem_ptr: i32) {
+        pub fn reg_to_mem_copy(
+            ctx: &mut wasmer_runtime::Ctx,
+            src_reg: i32,
+            len: i32,
+            dst_mem_ptr: i32,
+        ) {
             let reg = wasmer_data_reg!(ctx.data, src_reg);
             let cells = wasmer_ctx_mem_cells!(ctx, dst_mem_ptr, len);
             reg.copy_to_wasmer_mem(cells);
@@ -46,40 +51,35 @@ macro_rules! include_wasmer_svm_vmcalls {
         /// * `len`      - The length of the slice in bytes
         /// * `dst_reg`  - The destination register we want to load the page-slice into
         pub fn storage_read_to_reg(
-            ctx: &mut Ctx,
-            src_page: i32,
-            src_slice: i32,
-            offset: i32,
-            len: i32,
+            ctx: &mut wasmer_runtime::Ctx,
+            _src_page: i32,
+            _src_slice: i32,
+            _offset: i32,
+            _len: i32,
             dst_reg: i32,
         ) {
-            let reg = wasmer_data_reg!(ctx.data, dst_reg);
+            let _reg = wasmer_data_reg!(ctx.data, dst_reg);
 
-            let storage = wasmer_data_storage!(ctx.data, $PS);
+            let _storage = wasmer_data_storage!(ctx.data, $PS);
         }
     };
 }
 
 #[cfg(test)]
 mod tests {
-    use std::cell::{Cell, RefCell};
+    use std::cell::Cell;
     use std::ffi::c_void;
-    use std::rc::Rc;
 
-    use super::*;
     use crate::ctx::SvmCtx;
-    use crate::register::WasmerReg64;
 
     use svm_common::Address;
-    use svm_storage::{MemKVStore, MemPages, PageCache, PageSliceCache};
+    use svm_storage::{MemKVStore, MemPages, PageCacheImpl, PageSliceCache};
 
-    #[macro_use]
-    use wasmer_runtime::{Instance, func, Func, compile, imports, error, Module};
-    use wasmer_runtime::wasm::Type;
+    use wasmer_runtime::{compile, error, func, imports, Func, Instance, Module};
 
-    pub type MemPageCache<'pc, K = [u8; 32]> = PageCache<'pc, MemPages<K>>;
+    pub type MemPageCache<'pc, K = [u8; 32]> = PageCacheImpl<'pc, MemPages<K>>;
 
-    /// injecting the `svm vmcalls` implemented with `MemPageCache` as the `PageCache` type
+    // injecting the `svm vmcalls` implemented with `MemPageCache` as the `PageCache` type
     include_wasmer_svm_vmcalls!(MemPageCache);
 
     fn wasmer_compile_module(wasm: &str) -> error::CompileResult<Module> {
@@ -111,10 +111,10 @@ mod tests {
             (memory 1)  ;; memory `0` (default) is initialized with a `1 page`
 
             ;; exported function to be called
-            (func (export "do_copy_to_reg") (param $src_mem_ptr i32) (param $len i32) (param $dst_reg i32)
-              get_local $src_mem_ptr
-              get_local $len
-              get_local $dst_reg
+            (func (export "do_copy_to_reg") (param i32 i32 i32)
+              get_local 0 ;; $src_mem_ptr
+              get_local 1 ;; len
+              get_local 2 ;; dst_reg
               call $svm_mem_to_reg_copy))"#;
 
     const WASM_REG_TO_MEM_COPY: &'static str = r#"
@@ -125,11 +125,27 @@ mod tests {
             (memory 1)  ;; memory `0` (default) is initialized with a `1 page`
 
             ;; exported function to be called
-            (func (export "do_copy_to_mem") (param $src_reg i32) (param $len i32) (param $dst_mem_ptr i32)
-              get_local $src_reg
-              get_local $len
-              get_local $dst_mem_ptr
+            (func (export "do_copy_to_mem") (param i32 i32 i32)
+              get_local 0 ;; src_reg
+              get_local 1 ;; len
+              get_local 2 ;; dst_mem_ptr
               call $svm_reg_to_mem_copy))"#;
+
+    const WASM_STORAGE_TO_REG_COPY: &'static str = r#"
+        (module
+            ;; import `svm` vmcalls
+            (func $storage_read_to_reg (import "svm" "storage_read_to_reg") (param i32 i32 i32 i32 i32))
+
+            (memory 1)  ;; memory `0` (default) is initialized with a `1 page`
+
+            ;; exported function to be called
+            (func (export "do_copy_to_reg") (param i32 i32 i32 i32 i32)
+              get_local 0
+              get_local 1
+              get_local 2
+              get_local 3
+              get_local 4
+              call $storage_read_to_reg))"#;
 
     #[test]
     fn vmcalls_mem_to_reg_copy() {
@@ -145,15 +161,17 @@ mod tests {
 
         let mut instance = module.instantiate(&import_object).unwrap();
 
-        /// initializing memory cells `0..3` with values `10, 20, 30` respectively
+        // initializing memory cells `0..3` with values `10, 20, 30` respectively
         init_wasmer_instance_mem(&mut instance, 0, &[10, 20, 30]);
 
+        // asserting register content is empty prior copy
         let reg = wasmer_ctx_reg!(instance.context(), 2);
         assert_eq!([0, 0, 0, 0, 0, 0, 0, 0], reg.get());
 
         let do_copy: Func<(i32, i32, i32)> = instance.func("do_copy_to_reg").unwrap();
-        do_copy.call(0, 3, 2);
+        assert!(do_copy.call(0, 3, 2).is_ok());
 
+        // asserting regiter content is `10, 20, 30, 0, ... 0`
         let reg = wasmer_ctx_reg!(instance.context(), 2);
         assert_eq!([10, 20, 30, 0, 0, 0, 0, 0], reg.get());
     }
@@ -172,16 +190,37 @@ mod tests {
 
         let mut instance = module.instantiate(&import_object).unwrap();
 
-        /// initializing reg `2` with values `10, 20, 30` respectively
+        // initializing reg `2` with values `10, 20, 30` respectively
         init_wasmer_instance_reg(&mut instance, 2, &[10, 20, 30]);
 
+        // asserting memory is zeros before copy
         let cells = wasmer_ctx_mem_cells!(instance.context(), 0, 3);
         assert_eq!([Cell::new(0), Cell::new(0), Cell::new(0)], cells);
 
+        // copying reg `2` content into memory cells `0..3`
         let do_copy: Func<(i32, i32, i32)> = instance.func("do_copy_to_mem").unwrap();
-        do_copy.call(2, 3, 0);
+        assert!(do_copy.call(2, 3, 0).is_ok());
 
+        // asserting memory cells `0..3` have the values `10, 20, 30` respectively
         let cells = wasmer_ctx_mem_cells!(instance.context(), 0, 3);
         assert_eq!([Cell::new(10), Cell::new(20), Cell::new(30)], cells);
     }
+
+    // #[test]
+    // fn vmcalls_storage_read_to_reg() {
+    //     let module = wasmer_compile_module(WASM_STORAGE_TO_REG_COPY).unwrap();
+    //
+    //     let import_object = imports! {
+    //         lazy_create_svm_import_object!(0x12_34_56_78, MemKVStore, MemPages, MemPageCache, 5, 100),
+    //
+    //         "svm" => {
+    //             "storage_read_to_reg" => func!(storage_read_to_reg),
+    //         },
+    //     };
+    //
+    //     let mut instance = module.instantiate(&import_object).unwrap();
+    //
+    //     let do_copy: Func<(i32, i32, i32)> = instance.func("do_copy_to_reg").unwrap();
+    //     do_copy.call(2, 3, 0);
+    // }
 }

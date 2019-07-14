@@ -1,6 +1,6 @@
 use super::page;
 use super::page::{PageIndex, SliceIndex};
-use super::traits::PagesStorage;
+use super::traits::PageCache;
 use std::collections::HashMap;
 
 /// Defines a page-slice memory layout.
@@ -48,10 +48,10 @@ pub struct PageSliceCache<'pc, PC> {
     page_cache: &'pc mut PC,
 }
 
-impl<'pc, PC: PagesStorage> PageSliceCache<'pc, PC> {
+impl<'pc, PC: PageCache> PageSliceCache<'pc, PC> {
     /// Initializes a new `PageSliceCache` instance.
     ///
-    /// * `page_cache` - an instance of `PageCache` in charge of supplying the persisted pages
+    /// * `page_cache` - implements the `PageCache` trait. In charge of supplying the pages
     ///  upon requests (`read_page`) and for propagating new pages versions (`write_page`).
     ///  However, persistence only takes place by triggerring `commit`
     ///
@@ -222,7 +222,7 @@ impl<'pc, PC: PagesStorage> PageSliceCache<'pc, PC> {
         self.page_cache.commit();
     }
 
-    /// Applies `slice` on top of `page`
+    /// Applies `slice` on top of a `page`
     fn patch_page(&self, page: &mut Vec<u8>, slice: PageSlice) {
         let start = slice.layout.offset as usize;
         let end = (slice.layout.offset + slice.layout.len) as usize;
@@ -237,9 +237,9 @@ impl<'pc, PC: PagesStorage> PageSliceCache<'pc, PC> {
 mod tests {
     use super::*;
     use crate::traits::KVStore;
-    use crate::{MemPages, PageCache};
+    use crate::{MemPages, PageCacheImpl};
 
-    pub type MemPageCache<'pc, K = [u8; 32]> = PageCache<'pc, MemPages<K>>;
+    pub type MemPageCache<'pc, K = [u8; 32]> = PageCacheImpl<'pc, MemPages<K>>;
 
     macro_rules! page_hash {
         ($addr: expr, $page_idx: expr) => {{
@@ -381,7 +381,7 @@ mod tests {
         // 2) commit
         cache.commit();
 
-        // 3) load persisted page (we do a `clear` first to make sure we load from storage)
+        // 3) load persisted page (we do a `clear` first to make sure we load from the page cache)
         cache.clear();
 
         assert_eq!(vec![10, 20, 30], cache.read_page_slice(&layout).unwrap());
