@@ -59,12 +59,11 @@ impl<'pc, PC: PageCache> std::fmt::Debug for PageSliceCache<'pc, PC> {
                     // skip
                 }
                 CachedPageSlice::CachedEmpty => {
-                    writeln!(f, "Slice {}: empty", i);
+                    // writeln!(f, "Slice {}: empty", i);
                 }
                 CachedPageSlice::Cached(ps) => {
-                    writeln!(f, "Slice {}: has data", i);
-                    writeln!(f, "   dirty: {}", ps.dirty);
-                    writeln!(f, "   data:  {:?}", ps.data);
+                    // writeln!(f, "Slice {}: has data", i);
+                    // writeln!(f, "   dirty: {}", ps.dirty);
                 }
             }
         }

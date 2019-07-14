@@ -29,7 +29,10 @@ macro_rules! create_boxed_svm_ctx {
         let ctx = SvmCtx::new(storage);
         let boxed_ctx = Box::new(ctx);
 
-        Box::leak(boxed_ctx)
+        let ctx_ptr = Box::leak(boxed_ctx);
+        let ctx = unsafe { &mut *ctx_ptr };
+
+        ctx
     }};
 }
 
@@ -124,50 +127,49 @@ macro_rules! svm_write_page_slice {
 /// Casts the `wasmer` instance context data field (of type `*mut c_void`) into `&mut [WasmerReg64; REGS_64_COUNT]`
 #[macro_export]
 macro_rules! wasmer_data_regs {
-    ($data: expr) => {{
-        use crate::ctx::REGS_64_COUNT;
+    ($data: expr, $PC: ident) => {{
+        use crate::ctx::{SvmCtx, REGS_64_COUNT};
         use crate::register::WasmerReg64;
 
-        let data_ptr = $data as *mut _;
+        let ctx: &mut SvmCtx<$PC> = cast_wasmer_data_to_svm_ctx!($data, $PC);
 
-        let regs: &mut [WasmerReg64; REGS_64_COUNT] = unsafe { &mut *data_ptr };
-
-        regs
+        &mut ctx.regs_64
     }};
 }
 
-/// Casts the `wasmer` instance context data field (of type `*mut c_void`) into `&mut PageSliceCache<PS>`
+/// Casts a `wasmer` instance's `data` field (of type: `c_void`) into `SvmContext<PC>` (`PC` implements `PageCache`)
+#[macro_export]
+macro_rules! cast_wasmer_data_to_svm_ctx {
+    ($data: expr, $PC: ident) => {{
+        let ctx_ptr = $data as *mut SvmCtx<$PC>;
+        let ctx: &mut SvmCtx<$PC> = unsafe { &mut *ctx_ptr };
+
+        ctx
+    }};
+}
+
+/// Casts the `wasmer` instance context data field (of type `*mut c_void`) into `&mut PageSliceCache<PC>`
 #[macro_export]
 macro_rules! wasmer_data_storage {
-    ($data: expr, $PS: ident) => {{
-        use svm_storage::PageSliceCache;
-        use crate::register::WasmerReg64;
-        use crate::ctx::REGS_64_COUNT;
+    ($data: expr, $PC: ident) => {{
+        use crate::ctx::SvmCtx;
 
-        let data_ptr: *mut u8 = $data as *mut _;
-
-        // TODO: figure out why we need to add `std::mem::usize_of::<usize>()` to the starting offset of `SvmCtx` storage
-        let storage_offset =
-            std::mem::size_of::<WasmerReg64>() * REGS_64_COUNT + std::mem::size_of::<usize>();
-
-        let storage_ptr: *mut u8 = unsafe { data_ptr.offset(storage_offset as isize) };
-        let storage_ptr = storage_ptr as *mut PageSliceCache<$PS>;
-        let storage: &mut PageSliceCache<$PS> = unsafe { &mut *storage_ptr };
-
-        storage
+        let ctx: &mut SvmCtx<$PC> = cast_wasmer_data_to_svm_ctx!($data, $PC);
+        &mut ctx.storage
     }};
 }
 
 /// Extracts from `wasmer` instance context data field (of type `*mut c_void`), a mutable borrow for the register indexed `reg_idx`
 #[macro_export]
 macro_rules! wasmer_data_reg {
-    ($data: expr, $reg_idx: expr) => {{
-        use crate::ctx::REGS_64_COUNT;
+    ($data: expr, $reg_idx: expr, $PC: ident) => {{
+        use crate::ctx::{SvmCtx, REGS_64_COUNT};
 
         assert!($reg_idx >= 0 && $reg_idx < REGS_64_COUNT as i32);
 
-        let regs = wasmer_data_regs!($data);
-        svm_regs_reg!(regs, $reg_idx)
+        let ctx: &mut SvmCtx<$PC> = cast_wasmer_data_to_svm_ctx!($data, $PC);
+
+        svm_regs_reg!(ctx.regs_64, $reg_idx)
     }};
 }
 
@@ -186,9 +188,22 @@ macro_rules! wasmer_ctx_mem_cells {
 /// Extracts from `wasmer` instance context (type: `Ctx`) a mutable borrow for the register indexed `reg_idx`
 #[macro_export]
 macro_rules! wasmer_ctx_reg {
-    ($ctx: expr, $reg_idx: expr) => {{
-        wasmer_data_reg!($ctx.data, $reg_idx)
+    ($ctx: expr, $reg_idx: expr, $PC: ident) => {{
+        wasmer_data_reg!($ctx.data, $reg_idx, $PC)
     }};
+}
+
+use crate::ctx::SvmCtx;
+use std::ffi::c_void;
+use svm_storage::traits::PageCache;
+
+pub fn wasmer_fake_import_object_data<PC: PageCache>(
+    ctx: &SvmCtx<PC>,
+) -> (*mut c_void, fn(*mut c_void)) {
+    let data: *mut c_void = ctx.clone() as *const _ as *mut c_void;
+    let dtor: fn(*mut c_void) = |_| {};
+
+    (data, dtor)
 }
 
 #[cfg(test)]
@@ -201,8 +216,9 @@ mod tests {
     use svm_storage::null_storage::{NullPageCache, NullPageSliceCache, NullPagesStorage};
 
     use std::cell::{Cell, RefCell};
-    use std::ffi::c_void;
     use std::rc::Rc;
+
+    use super::wasmer_fake_import_object_data;
 
     use svm_storage::{
         traits::PagesStorage, MemKVStore, MemPages, PageCacheImpl, PageIndex, PageSliceCache,
@@ -211,28 +227,16 @@ mod tests {
 
     pub type MemPageCache<'pc, K = [u8; 32]> = PageCacheImpl<'pc, MemPages<K>>;
 
-    fn wasmer_import_object_data<PS: PagesStorage>(
-        ctx: &SvmCtx<PS>,
-    ) -> (*mut c_void, fn(*mut c_void)) {
-        let data: *mut c_void = ctx.clone() as *const _ as *mut c_void;
-        let dtor: fn(*mut c_void) = |_| {};
-
-        (data, dtor)
-    }
-
     #[test]
     fn reg_copy_from_wasmer_mem() {
-        let mut pages = NullPagesStorage::new();
-        let mut page_cache = NullPageCache::new(&mut pages, 1);
-        let mut storage = NullPageSliceCache::new(&mut page_cache, 10);
-        let ctx = SvmCtx::new(&mut storage);
+        let ctx = create_boxed_svm_ctx!(0x12_34_56_78, MemKVStore, MemPages, MemPageCache, 5, 100);
 
-        let (data, _dtor) = wasmer_import_object_data(&ctx);
+        let (data, _dtor) = wasmer_fake_import_object_data(&ctx);
 
-        let regs = wasmer_data_regs!(data);
+        let regs = wasmer_data_regs!(data, NullPageCache);
 
-        let reg0: &mut WasmerReg64 = svm_regs_reg!(regs, 0);
-        let reg1: &mut WasmerReg64 = svm_regs_reg!(regs, 1);
+        let reg0 = svm_regs_reg!(regs, 0);
+        let reg1 = svm_regs_reg!(regs, 1);
 
         // registers `0` and `1` are initialized with zeros
         assert_eq!(vec![0; 8], &reg0.0[..]);
@@ -258,14 +262,11 @@ mod tests {
 
     #[test]
     fn reg_copy_to_wasmer_mem() {
-        let mut pages = NullPagesStorage::new();
-        let mut page_cache = NullPageCache::new(&mut pages, 1);
-        let mut storage = NullPageSliceCache::new(&mut page_cache, 10);
-        let ctx = SvmCtx::new(&mut storage);
+        let ctx = create_boxed_svm_ctx!(0x12_34_56_78, MemKVStore, MemPages, MemPageCache, 5, 100);
 
-        let (data, _dtor) = wasmer_import_object_data(&ctx);
+        let (data, _dtor) = wasmer_fake_import_object_data(&ctx);
 
-        let regs = wasmer_data_regs!(data);
+        let regs = wasmer_data_regs!(data, NullPageCache);
         let reg0: &mut WasmerReg64 = svm_regs_reg!(regs, 0);
 
         // initialize register `0` with data
@@ -303,16 +304,11 @@ mod tests {
 
     #[test]
     fn wasmer_storage_read_write() {
-        let addr = Address::from(0x12_34_56_78 as u32);
-        let db = Rc::new(RefCell::new(MemKVStore::new()));
-        let mut inner = MemPages::new(addr, db);
-        let mut page_cache = MemPageCache::new(&mut inner, 1);
-        let mut storage = PageSliceCache::new(&mut page_cache, 10);
-        let ctx = SvmCtx::new(&mut storage);
-        let (data, _dtor) = wasmer_import_object_data(&ctx);
+        let ctx = create_boxed_svm_ctx!(0x12_34_56_78, MemKVStore, MemPages, MemPageCache, 5, 100);
 
-        // extracting `storage` out of `wasmer` instance `data` field
-        let storage: &mut PageSliceCache<_> = wasmer_data_storage!(data, MemPageCache);
+        let (data, _dtor) = wasmer_fake_import_object_data(&ctx);
+
+        let storage = wasmer_data_storage!(data, MemPageCache);
 
         let layout = PageSliceLayout {
             page_idx: PageIndex(1),
@@ -321,25 +317,20 @@ mod tests {
             len: 3,
         };
 
-        assert_eq!(Vec::<u8>::new(), storage.read_page_slice(&layout).unwrap());
+        assert_eq!(None, storage.read_page_slice(&layout));
 
         storage.write_page_slice(&layout, &vec![10, 20, 30]);
 
         // starting over, extracting `storage` out of `wasmer` instance `data` field
-        let storage = wasmer_data_storage!(data, NullPageCache);
+        let storage = wasmer_data_storage!(data, MemPageCache);
         assert_eq!(vec![10, 20, 30], storage.read_page_slice(&layout).unwrap());
     }
 
     #[test]
     fn wasmer_storage_read_to_reg() {
-        let addr = Address::from(0x12_34_56_78 as u32);
-        let db = Rc::new(RefCell::new(MemKVStore::new()));
-        let mut inner = MemPages::new(addr, db);
-        let mut page_cache = MemPageCache::new(&mut inner, 5);
-        let mut storage = PageSliceCache::new(&mut page_cache, 100);
-        let ctx = SvmCtx::new(&mut storage);
+        let ctx = create_boxed_svm_ctx!(0x12_34_56_78, MemKVStore, MemPages, MemPageCache, 5, 100);
 
-        let (data, _dtor) = wasmer_import_object_data(&ctx);
+        let (data, _dtor) = wasmer_fake_import_object_data(&ctx);
 
         let layout = PageSliceLayout {
             page_idx: PageIndex(1),
@@ -348,7 +339,7 @@ mod tests {
             len: 3,
         };
 
-        let regs = wasmer_data_regs!(data);
+        let regs = wasmer_data_regs!(data, MemPageCache);
         let reg0 = svm_regs_reg!(regs, 0);
         let storage = wasmer_data_storage!(data, MemPageCache);
 
@@ -363,16 +354,12 @@ mod tests {
 
     #[test]
     fn wasmer_storage_set_from_reg() {
-        let addr = Address::from(0x12_34_56_78 as u32);
-        let db = Rc::new(RefCell::new(MemKVStore::new()));
-        let mut inner = MemPages::new(addr, db);
-        let mut page_cache = MemPageCache::new(&mut inner, 5);
-        let mut storage = PageSliceCache::new(&mut page_cache, 100);
-        let ctx = SvmCtx::new(&mut storage);
+        let ctx = create_boxed_svm_ctx!(0x12_34_56_78, MemKVStore, MemPages, MemPageCache, 5, 100);
 
-        let (data, _dtor) = wasmer_import_object_data(&ctx);
+        let (data, _dtor) = wasmer_fake_import_object_data(ctx);
 
-        let regs = wasmer_data_regs!(data);
+        let regs = wasmer_data_regs!(data, MemPageCache);
+        let storage = wasmer_data_storage!(data, MemPageCache);
 
         // writing `[10, 20, 30, 0, 0, 0, 0, 0]` to register `0`
         let reg0 = svm_regs_reg!(regs, 0);
