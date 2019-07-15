@@ -9,6 +9,7 @@ pub struct PageHasherImpl<H> {
 
 impl<H: KeyHasher<Hash = [u8; 32]>> PageHasher for PageHasherImpl<H> {
     fn hash(address: Address, page: u32) -> H::Hash {
+        // `page_addr` is being allocated `33` and not `32` bytes due to possible addition carry
         let page_addr: [u8; 33] = address.add(page as u32);
 
         H::hash(&page_addr)
@@ -30,8 +31,9 @@ mod tests {
         ]);
 
         let addr = Address::from(0x44_33_22_11 as u32);
+        let page = 3;
 
-        let actual = DefaultPageHasher::hash(addr, 3);
+        let actual = DefaultPageHasher::hash(addr, page);
 
         assert_eq!(expected, actual);
     }

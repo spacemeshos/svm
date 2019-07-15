@@ -3,8 +3,7 @@ use std::collections::HashMap;
 
 /// An implementation for a key-value store (implements `KVStore`) store backed by an underlying `HashMap`
 pub struct MemKVStore<MemKey> {
-    // TODO: make `map` private and implement an `IntoIterator` for `MemKVStore`
-    /// the underlying `HashMap`
+    /// TODO: make `map` private and implement an `IntoIterator` for `MemKVStore` the underlying `HashMap`
     pub map: HashMap<MemKey, Vec<u8>>,
 }
 

@@ -1,7 +1,7 @@
-use super::{DefaultPageHasher, MemKVStore, PagesStorageImpl};
+use super::{DefaultPageHasher, DefaultPagesStorage, MemKVStore};
 
-/// `MemPages` is an storage-pages backed by an in-memory key-value store (`MemKVStore`)
-pub type MemPages<K> = PagesStorageImpl<DefaultPageHasher, MemKVStore<K>>;
+/// `MemPages` is a pages-storage backed by an in-memory key-value store (`MemKVStore`)
+pub type MemPages<K> = DefaultPagesStorage<DefaultPageHasher, MemKVStore<K>>;
 
 #[cfg(test)]
 mod tests {
@@ -35,10 +35,8 @@ mod tests {
 
         // writing `page 0` with data `[10, 20, 30]`
         // changes aren't commited directly to `kv`
-        // storage `storage1` saves the pending commit page,
-        // storage `storage2` won't see that changes before `storage1` doing `commit`
         storage1.write_page(0, &vec![10, 20, 30]);
-        assert_eq!(vec![10, 20, 30], storage1.read_page(0).unwrap());
+        assert_eq!(None, storage1.read_page(0));
         assert_eq!(None, storage2.read_page(0));
 
         // another assertion for the uncommitted changes
@@ -66,13 +64,11 @@ mod tests {
 
         // first write
         storage.write_page(0, &vec![10, 20, 30]);
-        assert_eq!(vec![10, 20, 30], storage.read_page(0).unwrap());
         // one pending change
         assert_eq!(1, storage.uncommitted_len());
 
-        // page-override
+        // second write (page-override)
         storage.write_page(0, &vec![40, 50, 60]);
-        assert_eq!(vec![40, 50, 60], storage.read_page(0).unwrap());
         // still, one pending change
         assert_eq!(1, storage.uncommitted_len());
 
