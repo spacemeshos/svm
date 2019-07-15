@@ -43,7 +43,11 @@ macro_rules! create_svm_import_object {
         let ctx = create_boxed_svm_ctx!($addr, $KV, $PS, $PC, $max_pages, $max_pages_slices);
 
         let data = ctx as *mut _ as *mut c_void;
-        let dtor: fn(*mut c_void) = |_| {};
+        let dtor: fn(*mut c_void) = |ctx_data| {
+            let ctx_ptr = ctx_data as *mut SvmCtx<$PC>;
+            let ctx: Box<SvmCtx<$PC>> = unsafe { Box::from_raw(ctx_ptr) };
+            drop(ctx);
+        };
 
         (data, dtor)
     }};
