@@ -8,6 +8,5 @@
 mod compiler;
 
 mod middleware;
-mod vm;
 
 pub use compiler::compile_program;

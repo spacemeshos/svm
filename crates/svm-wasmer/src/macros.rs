@@ -213,6 +213,16 @@ macro_rules! wasmer_ctx_reg {
     }};
 }
 
+/// Extracts from `wasmer` instance context (type: `Ctx`) the register indexed `reg_idx` and calls
+/// on it `set` with input `data`
+#[macro_export]
+macro_rules! wasmer_ctx_reg_write {
+    ($ctx: expr, $reg_idx: expr, $data: expr, $PC: ident) => {{
+        let reg = wasmer_data_reg!($ctx.data, $reg_idx, $PC);
+        reg.set($data);
+    }};
+}
+
 use crate::ctx::SvmCtx;
 use std::ffi::c_void;
 use svm_storage::traits::PageCache;
@@ -357,4 +367,19 @@ mod tests {
         let slice = svm_read_page_slice!(storage, 1, 0, 100, 3);
         assert_eq!(vec![10, 20, 30], slice);
     }
+
+    // #[test]
+    // fn sanity() {
+    //     // let ctx = create_boxed_svm_ctx!(0x12_34_56_78, MemKVStore, MemPages, MemPageCache, 5, 100);
+    //
+    //     let kv = MemKVStore::new();
+    //     let addr = Address::from(0x12_34_56_78 as u32);
+    //     let db = Rc::new(RefCell::new(kv));
+    //
+    //     let mut pages = MemPages::new(addr, db);
+    //     let mut page_cache = MemPageCache::new(&mut pages, 10);
+    //     let mut storage = PageSliceCache::new(&mut page_cache, 100);
+    //
+    //     let ctx = SvmCtx::new(&mut storage);
+    // }
 }

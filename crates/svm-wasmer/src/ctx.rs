@@ -30,3 +30,9 @@ impl<'a, 'pc: 'a, PC> SvmCtx<'a, 'pc, PC> {
         Self { regs_64, storage }
     }
 }
+
+impl<'a, 'pc: 'a, PC> Drop for SvmCtx<'a, 'pc, PC> {
+    fn drop(&mut self) {
+        drop(&mut self.storage);
+    }
+}

@@ -159,8 +159,6 @@ mod tests {
 
     #[test]
     fn test_parser_floats_are_not_supported() {
-        let compiler = svm_compiler!();
-
         let input = r#"
             (module
                 (func $to_float (param i32) (result f32)

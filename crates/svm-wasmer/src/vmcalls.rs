@@ -194,12 +194,6 @@ mod tests {
         compile(&wasm)
     }
 
-    fn init_wasmer_instance_reg<PC>(instance: &mut Instance, reg_idx: i32, data: &[u8]) {
-        let ctx = instance.context_mut();
-        let reg = wasmer_ctx_reg!(ctx, reg_idx, PC);
-        reg.set(data);
-    }
-
     const WASM_MEM_TO_REG_COPY: &'static str = r#"
         (module
             ;; import `svm` vmcalls
@@ -292,6 +286,33 @@ mod tests {
               get_local 4 ;; dst_offset
               call $storage_write_from_reg))"#;
 
+    // #[test]
+    // fn wasmer_dtor_frees_svm_ctx_resources() {
+    //     let module = wasmer_compile_module(
+    //         r#"
+    //         (module
+    //             (func (export "add") (param i32 i32) (result i32)
+    //                 get_local 0
+    //                 get_local 1
+    //                 i32.add))
+    //         "#,
+    //     )
+    //     .unwrap();
+    //
+    //     let import_object = imports! {
+    //         lazy_create_svm_import_object!(0x12_34_56_78, MemKVStore, MemPages, MemPageCache, 5, 100),
+    //     };
+    //
+    //     let instance = module.instantiate(&import_object).unwrap();
+    //
+    //     let add: Func<(i32, i32), i32> = instance.func("add").unwrap();
+    //     let res = add.call(10, 20);
+    //
+    //     drop(instance.context());
+    //
+    //     // asserting that `Drop` has been called on instance `SvmCtx`
+    // }
+
     #[test]
     fn vmcalls_mem_to_reg_copy() {
         let module = wasmer_compile_module(WASM_MEM_TO_REG_COPY).unwrap();
@@ -336,7 +357,7 @@ mod tests {
         let mut instance = module.instantiate(&import_object).unwrap();
 
         // initializing reg `2` with values `10, 20, 30` respectively
-        init_wasmer_instance_reg::<MemPageCache>(&mut instance, 2, &[10, 20, 30]);
+        wasmer_ctx_reg_write!(instance.context_mut(), 2, &[10, 20, 30], MemPageCache);
 
         // asserting memory is zeros before copy
         let cells = wasmer_ctx_mem_cells!(instance.context(), 0, 3);
