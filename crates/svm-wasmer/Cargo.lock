@@ -565,6 +565,7 @@ dependencies = [
 name = "svm-storage"
 version = "0.0.0"
 dependencies = [
+ "cfg-if 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "svm-common 0.0.0",
 ]
 

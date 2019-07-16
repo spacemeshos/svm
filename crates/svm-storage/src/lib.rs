@@ -6,51 +6,57 @@
 
 mod default_page_hasher;
 mod default_pages_storage;
-
-#[cfg(feature = "leveldb_kv")]
-mod level_key;
-
-#[cfg(feature = "leveldb_kv")]
-mod leveldb_kv;
-
-#[cfg(feature = "memory_kv")]
-mod mem_kv_store;
-
-#[cfg(feature = "memory_pages")]
-mod mem_pages;
-
 mod page;
 mod page_cache_impl;
 mod page_slice_cache;
 
-/// Common storage macros
-#[macro_use]
-pub mod macros;
+pub use page::{PageIndex, SliceIndex};
+pub use page_cache_impl::PageCacheImpl;
+pub use page_slice_cache::{PageSliceCache, PageSliceLayout};
 
-/// Storage related traits
-#[macro_use]
-pub mod traits;
+use default_page_hasher::DefaultPageHasher;
+use default_pages_storage::DefaultPagesStorage;
 
 /// Do-nothing implementation for various storage related abstractions.
 /// Very usable for code requiring a storage dependencies it doesn't care about
 pub mod null_storage;
 
-use default_page_hasher::DefaultPageHasher;
-use default_pages_storage::DefaultPagesStorage;
+/// Storage related traits
+#[macro_use]
+pub mod traits;
 
-#[cfg(feature = "leveldb_kv")]
-pub use level_key::*;
+/// Common storage macros
+#[macro_use]
+pub mod macros;
 
-#[cfg(feature = "leveldb_kv")]
-pub use leveldb_kv::LevelDB;
+use cfg_if::cfg_if;
 
-#[cfg(feature = "memory_kv")]
-pub use mem_kv_store::MemKVStore;
+cfg_if! {
+    if #[cfg(feature = "svm_memory")] {
+        mod mem_kv_store;
+        mod mem_pages;
 
-#[cfg(feature = "memory_pages")]
-pub use mem_pages::MemPages;
+        pub use mem_kv_store::MemKVStore;
+        pub use mem_pages::MemPages;
+    }
+}
 
-pub use page::{PageIndex, SliceIndex};
+cfg_if! {
+    if #[cfg(feature = "svm_leveldb")]  {
+        mod level_key;
+        mod leveldb_kv;
 
-pub use page_cache_impl::PageCacheImpl;
-pub use page_slice_cache::{PageSliceCache, PageSliceLayout};
+        pub use level_key::*;
+        pub use leveldb_kv::LevelDB;
+    }
+}
+
+cfg_if! {
+    if #[cfg(feature = "svm_trie")] {
+        mod trie_kv;
+        mod trie_null_hasher;
+
+        pub use trie_kv::TrieKV;
+        pub use trie_null_hasher::TrieNullHasher;
+    }
+}

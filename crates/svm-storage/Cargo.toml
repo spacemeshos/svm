@@ -11,6 +11,7 @@ description = "Spacemesh Virtual Machine"
 publish = false
 
 [dependencies]
+cfg-if = "0.1.9"
 svm-common = { path = "../svm-common" }
 
 [dependencies.leveldb]
@@ -21,9 +22,24 @@ version = "0.8.4"
 optional = true
 version = "0.0.5"
 
+[dependencies.trie-db]
+optional = true
+version = "0.14.0"
+
+[dependencies.memory-db]
+optional = true
+version = "0.14.0"
+
+[dependencies.hash-db]
+optional = true
+version = "0.14.0"
+
+[dependencies.hash256-std-hasher]
+optional = true
+version = "0.14.0"
+
 [features]
-default = ["memory", "leveldb_kv"]
-memory = ["memory_kv", "memory_pages"]
-memory_kv = []
-memory_pages = []
-leveldb_kv = ["leveldb", "db-key"]
+default = ["svm_memory", "svm_leveldb", "svm_trie"]
+svm_memory = []
+svm_leveldb = ["leveldb", "db-key"]
+svm_trie = ["trie-db", "memory-db", "hash-db", "hash256-std-hasher"]
