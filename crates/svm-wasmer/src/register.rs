@@ -153,24 +153,28 @@ mod tests {
         assert_eq!([10, 20, 30, 0, 0, 0, 0, 0], reg.get());
     }
 
-    // #[test]
-    // #[should_panic]
-    // fn copy_from_wasmer_mem_bigger_than_register_capacity() {
-    //     let mut reg = WasmerReg64::new();
-    //     let cells = [
-    //         Cell::new(10),
-    //         Cell::new(20),
-    //         Cell::new(30),
-    //         Cell::new(40),
-    //         Cell::new(50),
-    //         Cell::new(60),
-    //         Cell::new(70),
-    //         Cell::new(80),
-    //         Cell::new(90),
-    //     ];
-    //
-    //     reg.copy_from_wasmer_mem(&cells);
-    // }
+    #[test]
+    fn copy_from_wasmer_mem_bigger_than_register_capacity() {
+        let mut reg = WasmerReg64::new();
+
+        let cells = [
+            Cell::new(10),
+            Cell::new(20),
+            Cell::new(30),
+            Cell::new(40),
+            Cell::new(50),
+            Cell::new(60),
+            Cell::new(70),
+            Cell::new(80),
+            Cell::new(90),
+        ];
+
+        let res = std::panic::catch_unwind(move || {
+            reg.copy_from_wasmer_mem(&cells);
+        });
+
+        assert!(res.is_err());
+    }
 
     #[test]
     fn set_exact_register_capcity() {
@@ -209,10 +213,13 @@ mod tests {
         assert_eq!([0, 0, 0, 0, 0, 0, 0, 0], reg.get());
     }
 
-    // #[test]
-    // #[should_panic(expected = "`bytes` can't fit register")]
-    // fn setting_data_larger_than_register_capacity_raises() {
-    //     let mut reg = WasmerReg64::new();
-    //     reg.set(&vec![10; 9]);
-    // }
+    #[test]
+    fn setting_data_larger_than_register_capacity_raises() {
+        let res = std::panic::catch_unwind(|| {
+            let mut reg = WasmerReg64::new();
+            reg.set(&vec![10; 9]);
+        });
+
+        assert!(res.is_err());
+    }
 }
