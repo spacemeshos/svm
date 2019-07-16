@@ -12,6 +12,10 @@ mod page;
 mod page_cache_impl;
 mod page_slice_cache;
 
+/// Common storage macros
+#[macro_use]
+pub mod macros;
+
 /// Storage related traits
 #[macro_use]
 pub mod traits;

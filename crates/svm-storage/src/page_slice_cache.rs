@@ -261,20 +261,9 @@ impl<'pc, PC: PageCache> PageSliceCache<'pc, PC> {
 mod tests {
     use super::*;
     use crate::traits::KVStore;
-    use crate::{MemPages, PageCacheImpl};
+    use crate::{default_page_hash, MemPages, PageCacheImpl};
 
     pub type MemPageCache<'pc, K = [u8; 32]> = PageCacheImpl<'pc, MemPages<K>>;
-
-    macro_rules! page_hash {
-        ($addr: expr, $page_idx: expr) => {{
-            use crate::traits::PageHasher;
-            use crate::DefaultPageHasher;
-
-            let addr = Address::from($addr as u32);
-
-            DefaultPageHasher::hash(addr, $page_idx)
-        }};
-    }
 
     macro_rules! setup_cache {
         ($page_slice_cache: ident, $db: ident, $addr: expr, $max_pages: expr, $max_page_slices: expr) => {
@@ -328,7 +317,7 @@ mod tests {
         assert_eq!(Some(vec![10, 20, 30]), cache.read_page_slice(&layout));
 
         // page is not persisted though since we didn't `commit`
-        let ph = page_hash!(0x11_22_33_44, 0);
+        let ph = default_page_hash!(0x11_22_33_44, 0);
         assert_eq!(None, db.borrow().get(ph));
     }
 
@@ -346,7 +335,7 @@ mod tests {
         cache.write_page_slice(&layout, &vec![10, 20, 30]);
         cache.commit();
 
-        let ph = page_hash!(0x11_22_33_44, 1);
+        let ph = default_page_hash!(0x11_22_33_44, 1);
 
         assert_eq!(Some(vec![10, 20, 30]), cache.read_page_slice(&layout));
 
@@ -368,7 +357,7 @@ mod tests {
         cache.write_page_slice(&layout, &vec![10, 20, 30]);
         cache.commit();
 
-        let ph = page_hash!(0x11_22_33_44, 1);
+        let ph = default_page_hash!(0x11_22_33_44, 1);
 
         let page = db.borrow().get(ph).unwrap();
         assert_eq!(vec![10, 20, 30], &page[100..103]);
@@ -397,7 +386,7 @@ mod tests {
             len: 3,
         };
 
-        let ph = page_hash!(0x11_22_33_44, 1);
+        let ph = default_page_hash!(0x11_22_33_44, 1);
 
         // 1) first page write
         cache.write_page_slice(&layout, &vec![10, 20, 30]);
@@ -442,7 +431,7 @@ mod tests {
             len: 2,
         };
 
-        let ph = page_hash!(0x11_22_33_44, 1);
+        let ph = default_page_hash!(0x11_22_33_44, 1);
 
         cache.write_page_slice(&layout1, &vec![10, 20, 30]);
         cache.write_page_slice(&layout2, &vec![40, 50]);

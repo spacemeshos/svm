@@ -173,6 +173,8 @@ impl<'ps, PS: PagesStorage> PagesStorage for PageCacheImpl<'ps, PS> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    use crate::default_page_hash;
     use crate::traits::KVStore;
     use crate::MemPages;
 
@@ -196,17 +198,6 @@ mod tests {
         };
     }
 
-    macro_rules! page_hash {
-        ($addr: expr, $page_idx: expr) => {{
-            use crate::traits::PageHasher;
-            use crate::DefaultPageHasher;
-
-            let addr = Address::from($addr as u32);
-
-            DefaultPageHasher::hash(addr, $page_idx)
-        }};
-    }
-
     #[test]
     fn loading_an_empty_page_into_the_cache() {
         setup_cache!(cache, db, 0x11_22_33_44, 10);
@@ -222,7 +213,7 @@ mod tests {
         cache.write_page(0, &page);
         assert_eq!(vec![10, 20, 30], cache.read_page(0).unwrap());
 
-        let ph = page_hash!(0x11_22_33_44, 0);
+        let ph = default_page_hash!(0x11_22_33_44, 0);
         assert_eq!(None, db.borrow().get(ph));
     }
 
@@ -246,7 +237,7 @@ mod tests {
         cache.write_page(0, &page);
 
         // `cache.write_page` doesn't persist the page yet
-        let ph = page_hash!(0x11_22_33_44, 0);
+        let ph = default_page_hash!(0x11_22_33_44, 0);
         assert_eq!(None, db.borrow().get(ph));
 
         cache.commit();

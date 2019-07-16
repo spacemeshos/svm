@@ -7,7 +7,7 @@ publish = false
 
 [dependencies]
 svm-common = { path = "../svm-common" }
-svm-storage = { path = "../svm-storage" }
+svm-storage = { path = "../svm-storage", features = ["memory"] }
 
 [dependencies.wasmer-runtime]
 default-features = false

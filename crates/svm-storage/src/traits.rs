@@ -51,31 +51,3 @@ pub trait PageHasher {
     #[must_use]
     fn hash(address: Address, page: u32) -> [u8; 32];
 }
-
-/// The `include_extern_storage` will be imported by smart contract wasm programs.
-/// Reading data will be copied from the backing storage into temporary buffers.
-/// Then the smart contract program will copy that data into the wasm instance's memory / stack.
-#[macro_export]
-macro_rules! include_extern_storage {
-    () => {
-        extern "C" {
-            // memory => buffer
-            fn mem_to_buf_copy(src_mem_ptr: i32, dst_buf: i32, offset: i32, len: i32);
-
-            // buffer => memory
-            fn buf_to_mem_copy(src_buf: i32, dst_mem_ptr: i32, offset: i32, len: i32);
-
-            // memory => register
-            fn mem_to_reg_copy(src_mem_ptr: i32, dst_reg: i32, offset: i32, len: i32);
-
-            // register => memory
-            fn reg_to_mem_copy(src_reg: i32, dst_mem_ptr: i32, offset: i32, len: i32);
-
-            // stoarge => register
-            fn storage_read_to_reg(src_page: i32, dst_reg: i32, offset: i32, len: i32);
-
-            // register => stoarge
-            fn storage_set_from_reg(src_reg: i32, dst_page: i32, offset: i32, len: i32);
-        }
-    };
-}
