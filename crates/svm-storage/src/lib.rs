@@ -8,7 +8,7 @@ mod default_page_hasher;
 mod default_pages_storage;
 
 #[cfg(feature = "leveldb_kv")]
-mod leveldb_kv;
+mod level_key;
 
 #[cfg(feature = "memory_kv")]
 mod mem_kv_store;
@@ -36,8 +36,10 @@ use default_page_hasher::DefaultPageHasher;
 use default_pages_storage::DefaultPagesStorage;
 
 #[cfg(feature = "leveldb_kv")]
-pub use leveldb_kv::LevelDB;
+pub use level_key::*;
 
+// #[cfg(feature = "leveldb_kv")]
+//  pub use leveldb_kv::LevelDB;
 #[cfg(feature = "memory_kv")]
 pub use mem_kv_store::MemKVStore;
 

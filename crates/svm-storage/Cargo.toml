@@ -17,9 +17,13 @@ svm-common = { path = "../svm-common" }
 optional = true
 version = "0.8.4"
 
+[dependencies.db-key]
+optional = true
+version = "0.0.5"
+
 [features]
 default = ["memory", "leveldb_kv"]
 memory = ["memory_kv", "memory_pages"]
 memory_kv = []
 memory_pages = []
-leveldb_kv = ["leveldb"]
+leveldb_kv = ["leveldb", "db-key"]

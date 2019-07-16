@@ -44,6 +44,7 @@ dependencies = [
 name = "svm-storage"
 version = "0.0.0"
 dependencies = [
+ "db-key 0.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "leveldb 0.8.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "svm-common 0.0.0",
 ]
