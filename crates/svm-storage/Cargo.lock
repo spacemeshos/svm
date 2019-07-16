@@ -6,6 +6,34 @@ version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
+name = "db-key"
+version = "0.0.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "leveldb"
+version = "0.8.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "db-key 0.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "leveldb-sys 2.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.2.60 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "leveldb-sys"
+version = "2.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "libc 0.2.60 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "libc"
+version = "0.2.60"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "svm-common"
 version = "0.0.0"
 dependencies = [
@@ -16,6 +44,7 @@ dependencies = [
 name = "svm-storage"
 version = "0.0.0"
 dependencies = [
+ "leveldb 0.8.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "svm-common 0.0.0",
 ]
 
@@ -29,4 +58,8 @@ dependencies = [
 
 [metadata]
 "checksum crunchy 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "7a81dae078cea95a014a339291cec439d2f232ebe854a9d672b796c6afafa9b7"
+"checksum db-key 0.0.5 (registry+https://github.com/rust-lang/crates.io-index)" = "b72465f46d518f6015d9cf07f7f3013a95dd6b9c2747c3d65ae0cce43929d14f"
+"checksum leveldb 0.8.4 (registry+https://github.com/rust-lang/crates.io-index)" = "8438a36a31c982ac399c4477d7e3c62cc7a6bf91bb6f42837b7e1033359fcbad"
+"checksum leveldb-sys 2.0.1 (registry+https://github.com/rust-lang/crates.io-index)" = "4a4e97b4e1ee52602c3af5f47c1959e9f349217a41f1510fe4a8ac02ce3dc818"
+"checksum libc 0.2.60 (registry+https://github.com/rust-lang/crates.io-index)" = "d44e80633f007889c7eff624b709ab43c92d708caad982295768a7b13ca3b5eb"
 "checksum tiny-keccak 1.5.0 (registry+https://github.com/rust-lang/crates.io-index)" = "1d8a021c69bb74a44ccedb824a046447e2c84a01df9e5c20779750acb38e11b2"

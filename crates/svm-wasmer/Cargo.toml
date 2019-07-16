@@ -5,9 +5,13 @@ authors = ["Yaron Wittenstein <yaron.wittenstein@gmail.com>"]
 edition = "2018"
 publish = false
 
-[dependencies]
-svm-common = { path = "../svm-common" }
-svm-storage = { path = "../svm-storage", features = ["memory"] }
+[dependencies.svm-common]
+path = "../svm-common"
+
+[dependencies.svm-svm-storage]
+default-features = false
+path = "../svm-storage"
+features = ["memory"]
 
 [dependencies.wasmer-runtime]
 default-features = false
