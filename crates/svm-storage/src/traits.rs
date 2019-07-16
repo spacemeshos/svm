@@ -2,15 +2,15 @@ use svm_common::Address;
 
 /// `KVStore` is a trait for defining an interface against key-value stores. for example `hashmap / leveldb / rocksdb`
 pub trait KVStore {
-    /// `K` stands for `key`
+    /// `K` stands for `key`.
     type K: AsRef<[u8]> + Copy + Clone + std::cmp::PartialEq + Sized;
 
-    /// Retrieves the value pointed by `key` (Optional)
+    /// Retrieves the value pointed by `key` (Optional).
     #[must_use]
     fn get(&self, key: Self::K) -> Option<Vec<u8>>;
 
-    /// Stores `key` -> `value` association
-    fn store(&mut self, key: Self::K, value: &[u8]);
+    /// Stores a batch of changes. Each change is `key` -> `value` association.
+    fn store(&mut self, changes: &[(Self::K, &[u8])]);
 }
 
 /// `PagesStorage` is the most low-level trait for dealing with a contract's storage.

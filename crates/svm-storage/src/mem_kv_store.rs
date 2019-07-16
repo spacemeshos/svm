@@ -40,8 +40,10 @@ where
         }
     }
 
-    fn store(&mut self, key: Self::K, value: &[u8]) {
-        self.map.insert(key, value.to_vec());
+    fn store(&mut self, changes: &[(Self::K, &[u8])]) {
+        for (k, v) in changes {
+            self.map.insert(*k, v.to_vec());
+        }
     }
 }
 
@@ -63,8 +65,7 @@ mod tests {
         let mut kv = MemKVStore::new();
         let addr = Address::from(0x11_22_33_44 as u32);
 
-        kv.store(addr.0, &vec![10, 20, 30]);
-
+        kv.store(&[(addr.0, &[10, 20, 30])]);
         assert_eq!(vec![10, 20, 30], kv.get(addr.0).unwrap());
     }
 
@@ -72,11 +73,13 @@ mod tests {
     fn key_store_override_existing_entry() {
         let mut kv = MemKVStore::new();
         let addr = Address::from(0x11_22_33_44 as u32);
+        let change1 = (addr.0, &[10, 20, 30]);
+        let change2 = (addr.0, &[40, 50, 60]);
 
-        kv.store(addr.0, &vec![10, 20, 30]);
+        kv.store(&[(addr.0, &[10, 20, 30])]);
         assert_eq!(vec![10, 20, 30], kv.get(addr.0).unwrap());
 
-        kv.store(addr.0, &vec![40, 50, 60]);
+        kv.store(&[(addr.0, &[40, 50, 60])]);
         assert_eq!(vec![40, 50, 60], kv.get(addr.0).unwrap());
     }
 
@@ -86,8 +89,10 @@ mod tests {
         let addr1 = Address::from(0x11_22_33_44 as u32);
         let addr2 = Address::from(0x55_66_77_88 as u32);
 
-        kv.store(addr1.0, &vec![10, 20, 30]);
-        kv.store(addr2.0, &vec![40, 50, 60]);
+        let change1 = (addr1.0, &vec![10, 20, 30]);
+        let change2 = (addr2.0, &vec![40, 50, 60]);
+
+        kv.store(&[(addr1.0, &[10, 20, 30]), (addr2.0, &[40, 50, 60])]);
 
         assert_eq!(vec![10, 20, 30], kv.get(addr1.0).unwrap());
         assert_eq!(vec![40, 50, 60], kv.get(addr2.0).unwrap());

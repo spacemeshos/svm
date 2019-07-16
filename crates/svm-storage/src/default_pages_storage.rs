@@ -3,6 +3,7 @@ use super::MemKVStore;
 use svm_common::Address;
 
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::rc::Rc;
 
@@ -15,7 +16,7 @@ type PageKey = [u8; 32];
 /// * When we do `read_page` we take the input page (`u32`), compute its hash (a.k.a `page-key`)
 ///   and do a lookup on the wrapped key-value store.
 ///   Similarly, when we do `write_page`, we take the input page (`u32`), compute its hash (a.k.a `page-key`)
-///   and insert the new `page-key -> data (of type &[u8])` into the `uncommitted` `MemKVStore` (wraps a `HashMap`).
+///   and insert the new `page-key -> data (of type &[u8])` into the `uncommitted` standard Rust `HashMap`.
 ///
 /// * For Smart Contracts we use a Trie based key-value store. However `DefaultPagesStorage` is ignorant
 ///   of the actual key-value store being used.
@@ -33,7 +34,7 @@ type PageKey = [u8; 32];
 pub struct DefaultPagesStorage<PH: PageHasher, KV: KVStore<K = PageKey>> {
     contract_addr: Address,
     db: Rc<RefCell<KV>>,
-    uncommitted: MemKVStore<PageKey>,
+    uncommitted: HashMap<PageKey, Vec<u8>>,
     ph_marker: PhantomData<PH>,
 }
 
@@ -42,7 +43,7 @@ impl<PH: PageHasher, KV: KVStore<K = PageKey>> DefaultPagesStorage<PH, KV> {
         Self {
             contract_addr,
             db,
-            uncommitted: MemKVStore::new(),
+            uncommitted: HashMap::new(),
             ph_marker: PhantomData,
         }
     }
@@ -55,7 +56,7 @@ impl<PH: PageHasher, KV: KVStore<K = PageKey>> DefaultPagesStorage<PH, KV> {
 
     #[cfg(test)]
     pub fn uncommitted_len(&self) -> usize {
-        self.uncommitted.map.len()
+        self.uncommitted.len()
     }
 }
 
@@ -71,7 +72,7 @@ impl<PH: PageHasher, KV: KVStore<K = PageKey>> PagesStorage for DefaultPagesStor
     fn write_page(&mut self, page_idx: u32, data: &[u8]) {
         let ph = self.compute_page_hash(page_idx);
 
-        self.uncommitted.store(ph, data);
+        self.uncommitted.insert(ph, data.to_vec());
     }
 
     /// Clears the pending channges
@@ -81,9 +82,13 @@ impl<PH: PageHasher, KV: KVStore<K = PageKey>> PagesStorage for DefaultPagesStor
 
     /// Commits pending changes to the underlying key-value store
     fn commit(&mut self) {
-        for (key, page) in &self.uncommitted.map {
-            self.db.borrow_mut().store(key.to_owned(), page);
-        }
+        let changes: Vec<(PageKey, &[u8])> = self
+            .uncommitted
+            .iter()
+            .map(|(key, page)| (key.to_owned(), page.as_slice()))
+            .collect();
+
+        self.db.borrow_mut().store(changes.as_slice());
 
         self.clear();
     }
