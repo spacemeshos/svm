@@ -23,7 +23,10 @@ pub mod null_storage;
 use default_page_hasher::DefaultPageHasher;
 use default_pages_storage::DefaultPagesStorage;
 
+#[cfg(feature = "memory_kv")]
 pub use mem_kv_store::MemKVStore;
+
+#[cfg(feature = "memory_pages")]
 pub use mem_pages::MemPages;
 
 pub use page::{PageIndex, SliceIndex};

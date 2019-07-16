@@ -12,3 +12,9 @@ publish = false
 
 [dependencies]
 svm-common = { path = "../svm-common" }
+
+[features]
+default = ["memory"]
+memory = ["memory_kv", "memory_pages"]
+memory_kv = []
+memory_pages = []
