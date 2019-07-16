@@ -9,7 +9,7 @@ pub struct MemKVStore<MemKey> {
 
 impl<MemKey> MemKVStore<MemKey>
 where
-    MemKey: AsRef<[u8]> + Copy + Clone + Sized + std::cmp::Eq + std::hash::Hash,
+    MemKey: AsRef<[u8]> + Copy + Clone + Sized + Eq + std::hash::Hash,
 {
     /// Initializes a new `MemKVStore`
     pub fn new() -> Self {
@@ -26,7 +26,7 @@ where
 
 impl<MemKey> KVStore for MemKVStore<MemKey>
 where
-    MemKey: AsRef<[u8]> + Copy + Clone + Sized + std::cmp::Eq + std::hash::Hash,
+    MemKey: AsRef<[u8]> + Copy + Sized + Eq + std::hash::Hash,
 {
     type K = MemKey;
 

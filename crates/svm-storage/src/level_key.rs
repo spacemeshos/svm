@@ -1,8 +1,14 @@
 macro_rules! impl_leveldb_key {
     ($key_name: ident, $bytes_count: expr) => {
-        /// Implements `db_key::Key` trait. The inner data is an array of $bytes_count bytes
-        #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+        /// Implements `db_key::Key` trait. The inner data is an array of `$bytes_count` bytes
+        #[derive(Debug, Copy, Clone, PartialEq, Eq)]
         pub struct $key_name([u8; $bytes_count]);
+
+        impl AsRef<[u8]> for $key_name {
+            fn as_ref(&self) -> &[u8] {
+                &self.0
+            }
+        }
 
         impl db_key::Key for $key_name {
             fn from_u8(key: &[u8]) -> Self {
@@ -38,9 +44,15 @@ mod tests {
     }
 
     #[test]
-    fn as_slice() {
+    fn as_ref() {
         let key: LevelKeyTest3 = LevelKeyTest3::from_u8(&[10, 20, 30]);
 
+        assert_eq!(&[10, 20, 30], key.as_ref());
+    }
+
+    #[test]
+    fn as_slice() {
+        let key: LevelKeyTest3 = LevelKeyTest3::from_u8(&[10, 20, 30]);
         let data: Vec<u8> = key.as_slice(|inner: &[u8]| inner.to_vec());
 
         assert_eq!(vec![10, 20, 30], data);

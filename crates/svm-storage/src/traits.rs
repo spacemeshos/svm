@@ -3,7 +3,7 @@ use svm_common::Address;
 /// `KVStore` is a trait for defining an interface against key-value stores. for example `hashmap / leveldb / rocksdb`
 pub trait KVStore {
     /// `K` stands for `key`.
-    type K: AsRef<[u8]> + Copy + Clone + std::cmp::PartialEq + Sized;
+    type K: AsRef<[u8]> + Copy + Clone + PartialEq + Sized;
 
     /// Retrieves the value pointed by `key` (Optional).
     #[must_use]
