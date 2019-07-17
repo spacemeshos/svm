@@ -5,7 +5,7 @@
 //! Each smart contract has its own storage
 
 mod default_page_cache;
-mod default_page_hasher;
+mod default_page_index_hasher;
 mod default_pages_storage;
 mod merkle_page_storage;
 mod page_slice_cache;
@@ -20,7 +20,7 @@ pub use crate::page_slice_cache::PageSliceCache;
 /// Contains `svm storage` related default implementations for traits defined under the `traits` module.
 pub mod default {
     pub use crate::default_page_cache::DefaultPageCache;
-    pub use crate::default_page_hasher::DefaultPageHasher;
+    pub use crate::default_page_index_hasher::DefaultPageIndexHasher;
     pub use crate::default_pages_storage::DefaultPagesStorage;
 }
 

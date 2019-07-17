@@ -1,14 +1,14 @@
-/// A utility macro for computing hashes using `DefaultPageHasher`
+/// A utility macro for computing hashes using `DefaultPageIndexHasher`
 #[macro_export]
 macro_rules! default_page_hash {
     ($addr: expr, $page_idx: expr) => {{
-        use crate::default::DefaultPageHasher;
+        use crate::default::DefaultPageIndexHasher;
         use crate::page::PageIndex;
-        use crate::traits::PageHasher;
+        use crate::traits::PageIndexHasher;
 
         let addr = Address::from($addr as u32);
 
-        DefaultPageHasher::hash(addr, PageIndex($page_idx))
+        DefaultPageIndexHasher::hash(addr, PageIndex($page_idx))
     }};
 }
 

@@ -1,8 +1,8 @@
-use crate::default::{DefaultPageHasher, DefaultPagesStorage};
+use crate::default::{DefaultPageIndexHasher, DefaultPagesStorage};
 use crate::memory::MemKVStore;
 
 /// `MemPages` is a pages-storage backed by an in-memory key-value store (`MemKVStore`)
-pub type MemPages<K> = DefaultPagesStorage<DefaultPageHasher, MemKVStore<K>>;
+pub type MemPages<K> = DefaultPagesStorage<DefaultPageIndexHasher, MemKVStore<K>>;
 
 #[cfg(test)]
 mod tests {

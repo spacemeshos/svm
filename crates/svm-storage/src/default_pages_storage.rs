@@ -1,6 +1,6 @@
 use crate::memory::MemKVStore;
 use crate::page::PageIndex;
-use crate::traits::{KVStore, PageHasher, PagesStorage};
+use crate::traits::{KVStore, PageIndexHasher, PagesStorage};
 
 use svm_common::Address;
 
@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::rc::Rc;
 
-/// `DefaultPagesStorage` assume that the `PageHasher` computes a 32 bytes hashes
+/// `DefaultPagesStorage` assume that the `PageIndexHasher` computes a 32 bytes hashes
 type PageKey = [u8; 32];
 
 /// `DefaultPagesStorage` is the default implementation for the `PagesStorage` trait.
@@ -33,14 +33,14 @@ type PageKey = [u8; 32];
 ///   may fail for multiple reasons, and on such occurrence we don't want to change any state.
 ///   Another benefit is that if the underlying key-value store supports a batch write (for example
 ///   databases `leveldb` and `rocksdb` have this capability), the `commit` implementation can take advantage of it.
-pub struct DefaultPagesStorage<PH: PageHasher, KV: KVStore<K = PageKey>> {
+pub struct DefaultPagesStorage<PH: PageIndexHasher, KV: KVStore<K = PageKey>> {
     contract_addr: Address,
     db: Rc<RefCell<KV>>,
     uncommitted: HashMap<PageKey, Vec<u8>>,
     marker: PhantomData<PH>,
 }
 
-impl<PH: PageHasher, KV: KVStore<K = PageKey>> DefaultPagesStorage<PH, KV> {
+impl<PH: PageIndexHasher, KV: KVStore<K = PageKey>> DefaultPagesStorage<PH, KV> {
     /// Creates a new `DefaultPagesStorage`
     pub fn new(contract_addr: Address, db: Rc<RefCell<KV>>) -> Self {
         Self {
@@ -63,7 +63,7 @@ impl<PH: PageHasher, KV: KVStore<K = PageKey>> DefaultPagesStorage<PH, KV> {
     }
 }
 
-impl<PH: PageHasher, KV: KVStore<K = PageKey>> PagesStorage for DefaultPagesStorage<PH, KV> {
+impl<PH: PageIndexHasher, KV: KVStore<K = PageKey>> PagesStorage for DefaultPagesStorage<PH, KV> {
     /// We assume that the `page` has no pending changes (see more detailed explanation above).
     fn read_page(&mut self, page_idx: PageIndex) -> Option<Vec<u8>> {
         let ph = self.compute_page_hash(page_idx);
