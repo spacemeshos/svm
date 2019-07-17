@@ -17,12 +17,31 @@ impl AsRef<[u8]> for PageHash {
     }
 }
 
+impl From<&[u8]> for PageHash {
+    fn from(slice: &[u8]) -> PageHash {
+        assert_eq!(
+            32,
+            slice.len(),
+            "`PageHash::from` expects exactly 32 bytes input"
+        );
+
+        let mut bytes = [0; 32];
+        bytes.copy_from_slice(slice);
+
+        PageHash(bytes)
+    }
+}
+
 /// A `PagesState` is a one-dimensional tuple of `([u8; 32])` representing the merke-proof of all the pages
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub struct PagesState(pub [u8; 32]);
 
-/// TODO: add docs
-#[allow(missing_docs)]
+impl PagesState {
+    pub fn empty() -> PagesState {
+        PagesState([0; 32])
+    }
+}
+
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct Page(pub PageIndex, pub PageHash, pub Vec<u8>);
 
@@ -50,4 +69,38 @@ pub struct PageSliceLayout {
 #[inline(always)]
 pub fn zero_page() -> Vec<u8> {
     vec![0; PAGE_SIZE]
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn pages_state_empty() {
+        assert_eq!(PagesState([0; 32]), PagesState::empty())
+    }
+
+    #[test]
+    #[should_panic(expected = "`PageHash::from` expects exactly 32 bytes input")]
+    fn page_hash_expects_exactly_32_bytes_input() {
+        PageHash::from([0; 10].as_ref());
+    }
+
+    #[test]
+    fn page_hash_from_slice() {
+        let raw: [u8; 32] = [
+            01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 20, 30, 40, 50, 60, 70, 80, 90, 11, 22, 33, 44,
+            55, 66, 77, 88, 99, 251, 252, 253, 254, 255,
+        ];
+
+        let ph = PageHash::from(raw.as_ref());
+
+        assert_eq!(
+            PageHash([
+                01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 20, 30, 40, 50, 60, 70, 80, 90, 11, 22, 33,
+                44, 55, 66, 77, 88, 99, 251, 252, 253, 254, 255
+            ]),
+            ph
+        );
+    }
 }

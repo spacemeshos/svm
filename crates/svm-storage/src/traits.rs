@@ -59,17 +59,12 @@ pub trait PageHasher {
     fn hash(address: Address, page_idx: PageIndex, page_data: &[u8]) -> PageHash;
 }
 
-/// TODO: add docs
-#[allow(missing_docs)]
 pub trait PagesStateStorage: PagesStorage {
     fn set_state(&mut self, state: PagesState);
 
+    #[must_use]
     fn get_state(&self) -> PagesState;
 
+    #[must_use]
     fn get_page_hash(&self, page_idx: PageIndex) -> PageHash;
-
-    fn apply_changes(
-        &mut self,
-        pages: Vec<(PageIndex, PageHash, Option<&[u8]>)>,
-    ) -> (PageHash, Vec<(PageIndex, PageHash)>);
 }

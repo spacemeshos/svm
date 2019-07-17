@@ -1,137 +1,225 @@
 use crate::page::{PageHash, PageIndex, PagesState};
 use crate::traits::{KVStore, PageHasher, PagesStateStorage, PagesStorage};
-use svm_common::Address;
+use svm_common::{Address, KeyHasher};
 
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::rc::Rc;
 
-/// TODO: add docs
-#[allow(missing_docs)]
-pub struct MerklePageStorage<KV, PH> {
-    state: PagesState,
-    contract_addr: Address,
-    uncommitted: HashMap<PageIndex, Vec<u8>>,
-    marker: PhantomData<PH>,
-    db: Rc<RefCell<KV>>,
+#[derive(Copy, Clone, PartialEq)]
+pub struct KVStoreKey([u8; 32]);
+
+impl AsRef<[u8]> for KVStoreKey {
+    fn as_ref(&self) -> &[u8] {
+        self.0.as_ref()
+    }
 }
 
-impl<KV: KVStore<K = PageHash>, PH: PageHasher> MerklePageStorage<KV, PH> {
-    pub fn new(contract_addr: Address, db: Rc<RefCell<KV>>, state: PagesState) -> Self {
-        Self {
+enum MerklePage {
+    NotModified(PageHash),
+    Modified(PageHash, Vec<u8>),
+}
+
+/// TODO: add docs
+#[allow(missing_docs)]
+pub struct MerklePageStorage<KV, KH, PH> {
+    state: PagesState,
+    contract_addr: Address,
+    pages: Vec<MerklePage>,
+    db: Rc<RefCell<KV>>,
+    pages_count: u32,
+    ph_marker: PhantomData<PH>,
+    kh_marker: PhantomData<KH>,
+}
+
+impl<KV, KH, PH> MerklePageStorage<KV, KH, PH>
+where
+    KV: KVStore<K = KVStoreKey>,
+    KH: KeyHasher,
+    PH: PageHasher,
+{
+    pub fn new(
+        contract_addr: Address,
+        db: Rc<RefCell<KV>>,
+        state: PagesState,
+        pages_count: u32,
+    ) -> Self {
+        let mut storage = Self {
             state,
             db,
+            pages_count,
             contract_addr,
-            uncommitted: HashMap::new(),
-            marker: PhantomData,
+            pages: Vec::with_capacity(pages_count as usize),
+            ph_marker: PhantomData,
+            kh_marker: PhantomData,
+        };
+
+        storage.init_pages_state();
+
+        storage
+    }
+
+    /// Loads the entry:
+    /// state ---> [page1_hash || page2_hash || .... || pageN_hash]
+    ///
+    /// Then, populates `self.pages`. Each page is initialized with `MerklePage::NotModified(page_hash)`
+    fn init_pages_state(&mut self) {
+        let state_key = KVStoreKey(self.state.0);
+
+        if self.state == PagesState::empty() {
+            // `self.tate` is `000...0`. It means that state doesn't exist under the key-value store.
+            // This happens when a Smart Contract runs for the first time.
+            // We initialize each page with its zero-page hash `HASH(contract_addr || page_idx || 0...0)`
+
+            for page_idx in 0..(self.pages_count as usize) {
+                let ph = self.compute_zero_page_hash(PageIndex(page_idx as u32));
+                self.pages[page_idx] = MerklePage::NotModified(ph);
+            }
+        } else if let Some(v) = self.db.borrow().get(state_key) {
+            // `v` should be a concatenation of pages-hash. Each page hash consumes exactly 32 bytes
+            assert!(v.len() % 32 == 0);
+
+            for (page_idx, raw_ph) in v.chunks_exact(32).enumerate() {
+                let ph = PageHash::from(raw_ph);
+                self.pages[page_idx] = MerklePage::NotModified(ph);
+            }
+        } else {
+            panic!("Didn't find state: {:?}", self.state.0);
         }
     }
 
     #[must_use]
     #[inline(always)]
     fn compute_page_hash(&self, page_idx: PageIndex, page_data: &[u8]) -> PageHash {
-        // PH::hash(self.contract_addr, page_idx)
-        unimplemented!()
+        PH::hash(self.contract_addr, page_idx, page_data)
+    }
+
+    #[must_use]
+    #[inline(always)]
+    fn compute_zero_page_hash(&self, page_idx: PageIndex) -> PageHash {
+        PH::hash(self.contract_addr, page_idx, [0; 32].as_ref())
     }
 
     #[cfg(test)]
-    pub fn uncommitted_len(&self) -> usize {
-        self.uncommitted.len()
+    pub fn modified_pages_count(&self) -> usize {
+        self.pages.iter().fold(0, |acc, page| match page {
+            MerklePage::NotModified(..) => acc,
+            MerklePage::Modified(..) => acc + 1,
+        })
     }
 
-    fn merkle_proof(
-        &self,
-        pages_with_changes: &[(PageIndex, PageHash, &[u8])],
-        pages_without_changes: &[(PageIndex, PageHash)],
-    ) -> PageHash {
-        unimplemented!()
+    fn prepare_changeset(&self) -> (PagesState, Vec<u8>, Vec<(KVStoreKey, &[u8])>) {
+        let mut changes = Vec::new();
+
+        let new_state = PagesState([0; 32]);
+
+        let mut joined_pages_hash: Vec<u8> = Vec::with_capacity(self.pages_count as usize * 32);
+
+        // `joined_pages_hash = page1_hash || page2_hash || ... || pageN_hash`
+
+        for (page_idx, page) in self.pages.iter().enumerate() {
+            match page {
+                MerklePage::NotModified(ph) => joined_pages_hash.extend_from_slice(ph.as_ref()),
+                MerklePage::Modified(ph, data) => {
+                    let key = KVStoreKey(ph.0);
+                    let change = (key, data.as_slice());
+
+                    changes.push(change);
+
+                    joined_pages_hash.extend_from_slice(ph.as_ref());
+                }
+            }
+        }
+
+        (new_state, joined_pages_hash, changes)
     }
 }
 
-impl<KV: KVStore<K = PageHash>, PH: PageHasher> PagesStateStorage for MerklePageStorage<KV, PH> {
+impl<KV, KH, PH> PagesStateStorage for MerklePageStorage<KV, KH, PH>
+where
+    KV: KVStore<K = KVStoreKey>,
+    KH: KeyHasher,
+    PH: PageHasher,
+{
+    #[inline(always)]
     fn set_state(&mut self, state: PagesState) {
         self.state = state;
     }
 
+    #[must_use]
+    #[inline(always)]
     fn get_state(&self) -> PagesState {
         self.state
     }
 
+    #[must_use]
     fn get_page_hash(&self, page_idx: PageIndex) -> PageHash {
-        unimplemented!()
-    }
-
-    fn apply_changes(
-        &mut self,
-        pages: Vec<(PageIndex, PageHash, Option<&[u8]>)>,
-    ) -> (PageHash, Vec<(PageIndex, PageHash)>) {
-        panic!()
+        match self.pages[page_idx.0 as usize] {
+            MerklePage::NotModified(ph) => ph,
+            MerklePage::Modified(ph, _) => ph,
+        }
     }
 }
 
-impl<KV: KVStore<K = PageHash>, PH: PageHasher> PagesStorage for MerklePageStorage<KV, PH> {
+impl<KV, KH, PH> PagesStorage for MerklePageStorage<KV, KH, PH>
+where
+    KV: KVStore<K = KVStoreKey>,
+    KH: KeyHasher,
+    PH: PageHasher,
+{
     #[must_use]
     fn read_page(&mut self, page_idx: PageIndex) -> Option<Vec<u8>> {
-        // let page_hash = get_page_state(page_idx);
-        // self.db.borrow().get(page_hash)
-        None
+        match self.pages[page_idx.0 as usize] {
+            MerklePage::NotModified(ph) => None,
+            MerklePage::Modified(..) => panic!(),
+        }
     }
 
-    fn write_page(&mut self, page_idx: PageIndex, data: &[u8]) {
-        self.uncommitted.insert(page_idx, data.to_vec());
+    fn write_page(&mut self, page_idx: PageIndex, page_data: &[u8]) {
+        let ph = self.compute_page_hash(page_idx, page_data);
+
+        self.pages[page_idx.0 as usize] = MerklePage::Modified(ph, page_data.to_vec());
     }
 
     fn clear(&mut self) {
-        self.uncommitted.clear();
+        for page in &mut self.pages {
+            match page {
+                MerklePage::NotModified(..) => (),
+                MerklePage::Modified(ph, ..) => *page = MerklePage::NotModified(*ph),
+            }
+        }
     }
 
     fn commit(&mut self) {
-        let pages_with_changes: Vec<(PageIndex, PageHash, &[u8])> = self
-            .uncommitted
-            .iter()
-            .map(|(&page_idx, page_data)| {
-                let ph = self.compute_page_hash(page_idx, page_data);
-                (page_idx, ph, page_data.as_slice())
-            })
-            .collect();
+        // We have each page-hash (dirty and non-dirty) under `self.pages`
+        // Now, we'll compute the new state (merkle proof) of the Smart Contract.
+        //
+        // ```
+        // new_state = HASH(page1_hash || page2_hash || ... || pageN_hash)
+        // ```
 
-        let pages_without_changes: Vec<(PageIndex, PageHash)> = Vec::new();
+        let (new_state, joined_pages_hash, changeset) = self.prepare_changeset();
 
-        let new_state: PageHash = self.merkle_proof(
-            pages_with_changes.as_slice(),
-            pages_without_changes.as_slice(),
-        );
+        let mut entries: Vec<(KVStoreKey, &[u8])> = Vec::with_capacity(1 + changeset.len());
 
-        /// For each dirty page we calculate its new page-hash.
-        /// A page-hash is calculated as:
-        /// ```
-        /// HASH(contract_addr || page_idx || HASH(page_content))
-        /// ```
-        ///
-        /// Then, once we have each page-hash (we already have the page-hash for each non-dirty page),
-        /// we compute the new state (merkle proof) of the Smart Contract state.
-        ///
-        /// ```
-        /// new_state = HASH(page1_hash || page2_hash || ... || pageN_hash)
-        /// ```
-        ///
-        /// At last, we store under the flat key-value store (`self.db`) the following new entries:
-        /// ```
-        /// new_state  ---> [page1_hash, page2_hash, ..., pageN_hash]
-        /// page1_hash ---> page1_content
-        /// page2_hash ---> page2_content
-        /// ...
-        /// ...
-        /// pageN_hash ---> pageN_content
-        /// ```
-        ///
-        /// We save only pages that had modifications (otherwise they stayed with the same hash)
-        ///
-        let changes: Vec<&[(PageHash, &[u8])]> = Vec::with_capacity(pages_with_changes.len() + 1);
+        entries.push((KVStoreKey(new_state.0), joined_pages_hash.as_slice()));
+        for change in changeset {
+            entries.push(change)
+        }
 
-        // self.db.borrow_mut().store(changes.as_slice());
-        // self.set_root(new_state);
+        // At last, we store under the flat key-value store (`self.db`) the following new entries:
+        // ```
+        // new_state  ---> [page1_hash, page2_hash, ..., pageN_hash]
+        // page1_hash ---> page1_content
+        // page2_hash ---> page2_content
+        // ...
+        // ...
+        // pageN_hash ---> pageN_content
+        // ```
+
+        self.db.borrow_mut().store(entries.as_slice());
+        self.set_state(new_state);
 
         self.clear();
     }
