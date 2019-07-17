@@ -1,6 +1,9 @@
+use crate::page::PageIndex;
 use crate::traits::PageHasher;
+
 use std::marker::PhantomData;
 use std::ops::Add;
+
 use svm_common::{Address, DefaultKeyHasher, KeyHasher};
 
 pub struct PageHasherImpl<H> {
@@ -8,14 +11,15 @@ pub struct PageHasherImpl<H> {
 }
 
 impl<H: KeyHasher<Hash = [u8; 32]>> PageHasher for PageHasherImpl<H> {
-    fn hash(address: Address, page: u32) -> H::Hash {
+    fn hash(address: Address, page: PageIndex) -> H::Hash {
         // `page_addr` is being allocated `33` and not `32` bytes due to possible addition carry
-        let page_addr: [u8; 33] = address.add(page as u32);
+        let page_addr: [u8; 33] = address.add(page.0);
 
         H::hash(&page_addr)
     }
 }
 
+/// A default implementation for `PageIndex` hashing.
 pub type DefaultPageHasher = PageHasherImpl<DefaultKeyHasher>;
 
 #[cfg(test)]
@@ -31,7 +35,7 @@ mod tests {
         ]);
 
         let addr = Address::from(0x44_33_22_11 as u32);
-        let page = 3;
+        let page = PageIndex(3);
 
         let actual = DefaultPageHasher::hash(addr, page);
 

@@ -1,23 +1,7 @@
 use super::page;
-use super::page::{PageIndex, SliceIndex};
+use super::page::{PageIndex, PageSliceLayout, SliceIndex};
 use super::traits::PageCache;
 use std::collections::HashMap;
-
-/// Defines a page-slice memory
-#[derive(Debug, Clone, PartialEq, Hash)]
-pub struct PageSliceLayout {
-    /// The slice index
-    pub slice_idx: SliceIndex,
-
-    /// The page index the slices belong to
-    pub page_idx: PageIndex,
-
-    /// The page offset where the slice starts
-    pub offset: u32,
-
-    /// The length of the slice in bytes
-    pub len: u32,
-}
 
 #[derive(Debug, Clone, PartialEq)]
 struct PageSlice {
@@ -107,7 +91,7 @@ impl<'pc, PC: PageCache> PageSliceCache<'pc, PC> {
                 // page-slice isn't cached, so we first need to load the underlying page from
                 // `page_cache`
 
-                let page: Option<Vec<u8>> = self.page_cache.read_page(layout.page_idx.0);
+                let page: Option<Vec<u8>> = self.page_cache.read_page(layout.page_idx);
 
                 if page.is_some() {
                     // `page` has been fetched from the `page cache`
@@ -200,14 +184,14 @@ impl<'pc, PC: PageCache> PageSliceCache<'pc, PC> {
     ///   used *only* for `tests`
     pub fn commit(&mut self) {
         let mut page_slices = HashMap::<u32, Vec<PageSlice>>::new();
-        let mut pages_indexes = Vec::<u32>::new();
+        let mut pages_indexes = Vec::<PageIndex>::new();
 
         for cs in &self.cached_slices {
             if let CachedPageSlice::Cached(ref slice) = cs {
                 if slice.dirty {
-                    let page_idx = slice.layout.page_idx.0;
+                    let page_idx = slice.layout.page_idx;
 
-                    let entry: &mut Vec<_> = page_slices.entry(page_idx).or_insert(Vec::new());
+                    let entry: &mut Vec<_> = page_slices.entry(page_idx.0).or_insert(Vec::new());
                     entry.push(slice.clone());
 
                     pages_indexes.push(page_idx);
@@ -228,10 +212,10 @@ impl<'pc, PC: PageCache> PageSliceCache<'pc, PC> {
 
                 (page_idx, page_bytes)
             })
-            .collect::<HashMap<u32, Vec<u8>>>();
+            .collect::<HashMap<PageIndex, Vec<u8>>>();
 
         for (page_idx, slices) in page_slices {
-            let page = pages.get_mut(&page_idx).unwrap();
+            let page = pages.get_mut(&PageIndex(page_idx)).unwrap();
 
             for slice in slices {
                 self.patch_page(page, slice);
@@ -260,16 +244,19 @@ impl<'pc, PC: PageCache> PageSliceCache<'pc, PC> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::default::DefaultPageCache;
+    use crate::default_page_hash;
+    use crate::memory::MemPages;
     use crate::traits::KVStore;
-    use crate::{default_page_hash, MemPages, PageCacheImpl};
 
-    pub type MemPageCache<'pc, K = [u8; 32]> = PageCacheImpl<'pc, MemPages<K>>;
+    pub type MemPageCache<'pc, K = [u8; 32]> = DefaultPageCache<'pc, MemPages<K>>;
 
     macro_rules! setup_cache {
         ($page_slice_cache: ident, $db: ident, $addr: expr, $max_pages: expr, $max_page_slices: expr) => {
-            use crate::MemKVStore;
             use std::cell::RefCell;
             use std::rc::Rc;
+
+            use crate::memory::MemKVStore;
             use svm_common::Address;
 
             let addr = Address::from($addr as u32);

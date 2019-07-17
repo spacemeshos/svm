@@ -178,12 +178,15 @@ mod tests {
 
     use svm_common::Address;
     use svm_storage::{
-        MemKVStore, MemPages, PageCacheImpl, PageIndex, PageSliceCache, PageSliceLayout, SliceIndex,
+        default::DefaultPageCache,
+        memory::{MemKVStore, MemPages},
+        page::{PageIndex, PageSliceLayout, SliceIndex},
+        PageSliceCache,
     };
 
     use wasmer_runtime::{compile, error, func, imports, Func, Instance, Module};
 
-    pub type MemPageCache<'pc, K = [u8; 32]> = PageCacheImpl<'pc, MemPages<K>>;
+    pub type MemPageCache<'pc, K = [u8; 32]> = DefaultPageCache<'pc, MemPages<K>>;
 
     // injecting the `svm vmcalls` implemented with `MemPageCache` as the `PageCache` type
     include_wasmer_svm_vmcalls!(MemPageCache);

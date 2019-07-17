@@ -21,7 +21,7 @@ macro_rules! create_boxed_svm_ctx {
         let boxed_page_cache = Box::new(page_cache);
         let page_cache: &mut _ = Box::leak(boxed_page_cache);
 
-        // storage
+        // page-slice cache
         let storage = PageSliceCache::new(page_cache, $max_pages_slices);
         let boxed_storage = Box::new(storage);
         let storage: &mut _ = Box::leak(boxed_storage);
@@ -91,7 +91,7 @@ macro_rules! svm_regs_reg {
 #[macro_export]
 macro_rules! svm_page_slice_layout {
     ($page_idx: expr, $slice_idx: expr, $offset: expr, $len: expr) => {{
-        use svm_storage::{PageIndex, PageSliceLayout, SliceIndex};
+        use svm_storage::page::{PageIndex, PageSliceLayout, SliceIndex};
 
         PageSliceLayout {
             page_idx: PageIndex($page_idx),
@@ -106,7 +106,7 @@ macro_rules! svm_page_slice_layout {
 #[macro_export]
 macro_rules! svm_read_page_slice {
     ($storage: expr, $page_idx: expr, $slice_idx: expr, $offset: expr, $len: expr) => {{
-        use svm_storage::{PageIndex, PageSliceLayout, SliceIndex};
+        use svm_storage::page::{PageIndex, PageSliceLayout, SliceIndex};
 
         let layout = svm_page_slice_layout!($page_idx, $slice_idx, $offset, $len);
         let slice = $storage.read_page_slice(&layout);
@@ -123,7 +123,7 @@ macro_rules! svm_read_page_slice {
 #[macro_export]
 macro_rules! svm_write_page_slice {
     ($storage: expr, $page_idx: expr, $slice_idx: expr, $offset: expr, $len: expr, $data: expr) => {{
-        use svm_storage::{PageIndex, SliceIndex};
+        use svm_storage::page::{PageIndex, SliceIndex};
 
         let layout = PageSliceLayout {
             page_idx: PageIndex($page_idx),
@@ -255,11 +255,14 @@ mod tests {
     use super::wasmer_fake_import_object_data;
 
     use svm_storage::{
-        traits::PagesStorage, MemKVStore, MemPages, PageCacheImpl, PageIndex, PageSliceCache,
-        PageSliceLayout, SliceIndex,
+        default::DefaultPageCache,
+        memory::{MemKVStore, MemPages},
+        page::{PageIndex, PageSliceLayout, SliceIndex},
+        traits::PagesStorage,
+        PageSliceCache,
     };
 
-    pub type MemPageCache<'pc, K = [u8; 32]> = PageCacheImpl<'pc, MemPages<K>>;
+    pub type MemPageCache<'pc, K = [u8; 32]> = DefaultPageCache<'pc, MemPages<K>>;
 
     #[test]
     fn reg_copy_from_wasmer_mem() {
@@ -371,19 +374,4 @@ mod tests {
         let slice = svm_read_page_slice!(storage, 1, 0, 100, 3);
         assert_eq!(vec![10, 20, 30], slice);
     }
-
-    // #[test]
-    // fn sanity() {
-    //     // let ctx = create_boxed_svm_ctx!(0x12_34_56_78, MemKVStore, MemPages, MemPageCache, 5, 100);
-    //
-    //     let kv = MemKVStore::new();
-    //     let addr = Address::from(0x12_34_56_78 as u32);
-    //     let db = Rc::new(RefCell::new(kv));
-    //
-    //     let mut pages = MemPages::new(addr, db);
-    //     let mut page_cache = MemPageCache::new(&mut pages, 10);
-    //     let mut storage = PageSliceCache::new(&mut page_cache, 100);
-    //
-    //     let ctx = SvmCtx::new(&mut storage);
-    // }
 }

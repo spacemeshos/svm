@@ -1,5 +1,7 @@
-use super::traits::PagesStorage;
-use super::{PageCacheImpl, PageSliceCache};
+use crate::default::DefaultPageCache;
+use crate::page::PageIndex;
+use crate::traits::PagesStorage;
+use crate::PageSliceCache;
 
 /// A do-nothing `PagesStorage`.
 pub struct NullPagesStorage {}
@@ -12,11 +14,11 @@ impl NullPagesStorage {
 }
 
 impl PagesStorage for NullPagesStorage {
-    fn read_page(&mut self, page_idx: u32) -> Option<Vec<u8>> {
+    fn read_page(&mut self, page_idx: PageIndex) -> Option<Vec<u8>> {
         None
     }
 
-    fn write_page(&mut self, page_idx: u32, data: &[u8]) {}
+    fn write_page(&mut self, page_idx: PageIndex, data: &[u8]) {}
 
     fn clear(&mut self) {}
 
@@ -24,7 +26,7 @@ impl PagesStorage for NullPagesStorage {
 }
 
 /// A do nothing `PageCache`
-pub type NullPageCache<'pc> = PageCacheImpl<'pc, NullPagesStorage>;
+pub type NullPageCache<'pc> = DefaultPageCache<'pc, NullPagesStorage>;
 
 /// A do nothing `PageSliceCache`
 pub type NullPageSliceCache<'pc> = PageSliceCache<'pc, NullPageCache<'pc>>;

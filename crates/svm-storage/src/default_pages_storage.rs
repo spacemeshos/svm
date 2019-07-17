@@ -1,5 +1,7 @@
-use super::traits::{KVStore, PageHasher, PagesStorage};
-use super::MemKVStore;
+use crate::memory::MemKVStore;
+use crate::page::PageIndex;
+use crate::traits::{KVStore, PageHasher, PagesStorage};
+
 use svm_common::Address;
 
 use std::cell::RefCell;
@@ -39,6 +41,7 @@ pub struct DefaultPagesStorage<PH: PageHasher, KV: KVStore<K = PageKey>> {
 }
 
 impl<PH: PageHasher, KV: KVStore<K = PageKey>> DefaultPagesStorage<PH, KV> {
+    /// Creates a new `DefaultPagesStorage`
     pub fn new(contract_addr: Address, db: Rc<RefCell<KV>>) -> Self {
         Self {
             contract_addr,
@@ -50,7 +53,7 @@ impl<PH: PageHasher, KV: KVStore<K = PageKey>> DefaultPagesStorage<PH, KV> {
 
     #[must_use]
     #[inline(always)]
-    pub fn compute_page_hash(&self, page: u32) -> [u8; 32] {
+    fn compute_page_hash(&self, page: PageIndex) -> [u8; 32] {
         PH::hash(self.contract_addr, page)
     }
 
@@ -62,14 +65,14 @@ impl<PH: PageHasher, KV: KVStore<K = PageKey>> DefaultPagesStorage<PH, KV> {
 
 impl<PH: PageHasher, KV: KVStore<K = PageKey>> PagesStorage for DefaultPagesStorage<PH, KV> {
     /// We assume that the `page` has no pending changes (see more detailed explanation above).
-    fn read_page(&mut self, page_idx: u32) -> Option<Vec<u8>> {
+    fn read_page(&mut self, page_idx: PageIndex) -> Option<Vec<u8>> {
         let ph = self.compute_page_hash(page_idx);
 
         self.db.borrow().get(ph)
     }
 
     /// Pushes a new pending change (persistence *only* upon `commit`)
-    fn write_page(&mut self, page_idx: u32, data: &[u8]) {
+    fn write_page(&mut self, page_idx: PageIndex, data: &[u8]) {
         let ph = self.compute_page_hash(page_idx);
 
         self.uncommitted.insert(ph, data.to_vec());

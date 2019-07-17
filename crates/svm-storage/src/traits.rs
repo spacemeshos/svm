@@ -1,3 +1,4 @@
+use crate::page::PageIndex;
 use svm_common::Address;
 
 /// `KVStore` is a trait for defining an interface against key-value stores. for example `hashmap / leveldb / rocksdb`
@@ -20,11 +21,11 @@ pub trait KVStore {
 pub trait PagesStorage {
     /// Retrieves the content of page indexed `page_idx` (Optional)
     #[must_use]
-    fn read_page(&mut self, page_idx: u32) -> Option<Vec<u8>>;
+    fn read_page(&mut self, page_idx: PageIndex) -> Option<Vec<u8>>;
 
     /// Overrides the page indexed `page_idx` with the content of `data` (and marking it as `dirty`)
     /// Important: does NOT persist new page version yet (see: `commit`)
-    fn write_page(&mut self, page_idx: u32, data: &[u8]);
+    fn write_page(&mut self, page_idx: PageIndex, data: &[u8]);
 
     /// Clears all the in-memory cached pages. (main usage: for tests)
     fn clear(&mut self);
@@ -37,17 +38,24 @@ pub trait PagesStorage {
 /// It's intended to mark a `PagesStorage` as having a caching layer on top of the backing pages storage.
 pub trait PageCache: PagesStorage {}
 
-/// `PageHasher` is a trait defining that a contract storage-page hash must be determied by
+/// `PageHasher` is a trait defining that a contract storage-page hash must be determined by
 /// both the contract storage and the page index.
 ///
 /// We must have both parameters taken into account since:
-/// * Computing a page-hash for two differnt contracts and the same `page index` must result in a different page-hash.
+/// * Computing a page-hash for two different contracts and the same `page index` must result in a different page-hash.
 ///   That's why we need the contract address.
 ///
 /// * Similarly, computing a page-hash two variables located at different storage-pages under the same contract
 /// must also result in a different page-hash.
 pub trait PageHasher {
-    /// Calculates hash derived from an `address` + a `page`
+    /// Calculates a hash derived from an `address` + a `page`
     #[must_use]
-    fn hash(address: Address, page: u32) -> [u8; 32];
+    fn hash(address: Address, page: PageIndex) -> [u8; 32];
 }
+
+// /// ...
+// pub trait PagesContenetHasher {
+//     /// Calculates a hash derived from an `address` + a `page`
+//     #[must_use]
+//     fn hash(address: Address, pages: &[(u32, &[u8])]) -> [u8; 32];
+// }
