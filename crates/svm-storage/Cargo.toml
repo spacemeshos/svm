@@ -39,7 +39,7 @@ optional = true
 version = "0.14.0"
 
 [features]
-default = ["svm_memory", "svm_leveldb", "svm_trie"]
+default = ["svm_memory", "svm_leveldb"]
 svm_memory = []
 svm_leveldb = ["leveldb", "db-key"]
-svm_trie = ["trie-db", "memory-db", "hash-db", "hash256-std-hasher"]
+# svm_trie = ["trie-db", "memory-db", "hash-db", "hash256-std-hasher"]

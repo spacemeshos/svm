@@ -58,12 +58,7 @@ cfg_if! {
     }
 }
 
-cfg_if! {
-    if #[cfg(feature = "svm_trie")] {
-        mod trie_kv;
-        mod trie_null_hasher;
-
-        pub use trie_kv::TrieKV;
-        pub use trie_null_hasher::TrieNullHasher;
-    }
-}
+// cfg_if! {
+//     if #[cfg(feature = "svm_trie")] {
+//     }
+// }
