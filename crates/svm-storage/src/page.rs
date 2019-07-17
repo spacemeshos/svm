@@ -1,14 +1,26 @@
 /// A page is `4096 bytes`
 pub const PAGE_SIZE: usize = 4096;
 
-/// A `PageIndex` is a one-dimensional tuple of `(u32)`
+/// A `PageIndex` is a one-dimensional tuple of `(u32)` representing a page-index (non-negative integer)
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 #[repr(transparent)]
 pub struct PageIndex(pub u32);
 
-/// A `Page` is a tuple of `(u32, Vec<u8>)` representing `(page_index, page_content)`
+/// A `PageHash` is a one-dimensional tuple of `([u8; 32])` representing hash of the page-content (32 bytes).
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+pub struct PageHash(pub [u8; 32]);
+
+impl AsRef<[u8]> for PageHash {
+    #[inline(always)]
+    fn as_ref(&self) -> &[u8] {
+        self.0.as_ref()
+    }
+}
+
+/// TODO: add docs
+#[allow(missing_docs)]
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub struct Page(pub u32, Vec<u8>);
+pub struct Page(pub PageIndex, pub PageHash, pub Vec<u8>);
 
 /// A `SliceIndex` is a one-dimensional tuple of `(u32)`
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]

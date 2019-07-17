@@ -7,10 +7,13 @@
 mod default_page_cache;
 mod default_page_hasher;
 mod default_pages_storage;
+mod merkle_page_storage;
 mod page_slice_cache;
 
 /// Contains definitions of common page related structures. For example: `Page` / `PageIndex` / `SliceIndex`
 pub mod page;
+
+use merkle_page_storage::MerklePageStorage;
 
 pub use crate::page_slice_cache::PageSliceCache;
 

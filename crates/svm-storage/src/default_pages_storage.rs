@@ -37,7 +37,7 @@ pub struct DefaultPagesStorage<PH: PageHasher, KV: KVStore<K = PageKey>> {
     contract_addr: Address,
     db: Rc<RefCell<KV>>,
     uncommitted: HashMap<PageKey, Vec<u8>>,
-    ph_marker: PhantomData<PH>,
+    marker: PhantomData<PH>,
 }
 
 impl<PH: PageHasher, KV: KVStore<K = PageKey>> DefaultPagesStorage<PH, KV> {
@@ -47,14 +47,14 @@ impl<PH: PageHasher, KV: KVStore<K = PageKey>> DefaultPagesStorage<PH, KV> {
             contract_addr,
             db,
             uncommitted: HashMap::new(),
-            ph_marker: PhantomData,
+            marker: PhantomData,
         }
     }
 
     #[must_use]
     #[inline(always)]
-    fn compute_page_hash(&self, page: PageIndex) -> [u8; 32] {
-        PH::hash(self.contract_addr, page)
+    fn compute_page_hash(&self, page_idx: PageIndex) -> [u8; 32] {
+        PH::hash(self.contract_addr, page_idx)
     }
 
     #[cfg(test)]
