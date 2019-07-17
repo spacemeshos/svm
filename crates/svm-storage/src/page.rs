@@ -17,6 +17,10 @@ impl AsRef<[u8]> for PageHash {
     }
 }
 
+/// A `PagesState` is a one-dimensional tuple of `([u8; 32])` representing the merke-proof of all the pages
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+pub struct PagesState(pub [u8; 32]);
+
 /// TODO: add docs
 #[allow(missing_docs)]
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]

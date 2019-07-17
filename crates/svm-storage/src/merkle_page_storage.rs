@@ -1,41 +1,36 @@
-use crate::page::{PageHash, PageIndex};
-use crate::traits::{KVStore, PagesState, PagesStorage};
+use crate::page::{PageHash, PageIndex, PagesState};
+use crate::traits::{KVStore, PageHasher, PagesStateStorage, PagesStorage};
 use svm_common::Address;
 
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::marker::PhantomData;
 use std::rc::Rc;
 
 /// TODO: add docs
 #[allow(missing_docs)]
-pub struct MerklePageStorage<KV> {
-    root: PageHash,
+pub struct MerklePageStorage<KV, PH> {
+    state: PagesState,
     contract_addr: Address,
     uncommitted: HashMap<PageIndex, Vec<u8>>,
+    marker: PhantomData<PH>,
     db: Rc<RefCell<KV>>,
 }
 
-impl<KV: KVStore<K = PageHash>> MerklePageStorage<KV> {
-    pub fn new(contract_addr: Address, db: Rc<RefCell<KV>>, root: PageHash) -> Self {
+impl<KV: KVStore<K = PageHash>, PH: PageHasher> MerklePageStorage<KV, PH> {
+    pub fn new(contract_addr: Address, db: Rc<RefCell<KV>>, state: PagesState) -> Self {
         Self {
-            root,
+            state,
             db,
             contract_addr,
             uncommitted: HashMap::new(),
+            marker: PhantomData,
         }
-    }
-
-    pub fn set_root(&mut self, root: PageHash) {
-        self.root = root;
-    }
-
-    pub fn get_root(&self) -> PageHash {
-        self.root
     }
 
     #[must_use]
     #[inline(always)]
-    fn compute_page_hash(&self, page_idx: PageIndex) -> PageHash {
+    fn compute_page_hash(&self, page_idx: PageIndex, page_data: &[u8]) -> PageHash {
         // PH::hash(self.contract_addr, page_idx)
         unimplemented!()
     }
@@ -54,24 +49,33 @@ impl<KV: KVStore<K = PageHash>> MerklePageStorage<KV> {
     }
 }
 
-impl<KV: KVStore<K = PageHash>> PagesState for MerklePageStorage<KV> {
-    fn get_pages_state(&self, state: PageHash) -> Vec<(PageIndex, PageHash)> {
-        Vec::new()
+impl<KV: KVStore<K = PageHash>, PH: PageHasher> PagesStateStorage for MerklePageStorage<KV, PH> {
+    fn set_state(&mut self, state: PagesState) {
+        self.state = state;
     }
 
-    fn compute_pages_state(
+    fn get_state(&self) -> PagesState {
+        self.state
+    }
+
+    fn get_page_hash(&self, page_idx: PageIndex) -> PageHash {
+        unimplemented!()
+    }
+
+    fn apply_changes(
+        &mut self,
         pages: Vec<(PageIndex, PageHash, Option<&[u8]>)>,
     ) -> (PageHash, Vec<(PageIndex, PageHash)>) {
         panic!()
     }
 }
 
-impl<KV: KVStore<K = PageHash>> PagesStorage for MerklePageStorage<KV> {
+impl<KV: KVStore<K = PageHash>, PH: PageHasher> PagesStorage for MerklePageStorage<KV, PH> {
     #[must_use]
     fn read_page(&mut self, page_idx: PageIndex) -> Option<Vec<u8>> {
-        let ph = self.compute_page_hash(page_idx);
-
-        self.db.borrow().get(ph)
+        // let page_hash = get_page_state(page_idx);
+        // self.db.borrow().get(page_hash)
+        None
     }
 
     fn write_page(&mut self, page_idx: PageIndex, data: &[u8]) {
@@ -86,9 +90,9 @@ impl<KV: KVStore<K = PageHash>> PagesStorage for MerklePageStorage<KV> {
         let pages_with_changes: Vec<(PageIndex, PageHash, &[u8])> = self
             .uncommitted
             .iter()
-            .map(|(&page_idx, data)| {
-                let ph = self.compute_page_hash(page_idx);
-                (page_idx, ph, data.as_slice())
+            .map(|(&page_idx, page_data)| {
+                let ph = self.compute_page_hash(page_idx, page_data);
+                (page_idx, ph, page_data.as_slice())
             })
             .collect();
 

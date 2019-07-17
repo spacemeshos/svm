@@ -11,9 +11,9 @@ pub struct PageIndexHasherImpl<H> {
 }
 
 impl<H: KeyHasher<Hash = [u8; 32]>> PageIndexHasher for PageIndexHasherImpl<H> {
-    fn hash(address: Address, page: PageIndex) -> H::Hash {
+    fn hash(contract_addr: Address, page: PageIndex) -> H::Hash {
         // `page_addr` is being allocated `33` and not `32` bytes due to possible addition carry
-        let page_addr: [u8; 33] = address.add(page.0);
+        let page_addr: [u8; 33] = contract_addr.add(page.0);
 
         H::hash(&page_addr)
     }
