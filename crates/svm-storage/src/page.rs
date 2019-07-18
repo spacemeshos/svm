@@ -37,6 +37,7 @@ impl From<&[u8]> for PageHash {
 pub struct PagesState(pub [u8; 32]);
 
 impl PagesState {
+    /// Return a an empty page (filled with zeros).
     pub fn empty() -> PagesState {
         PagesState([0; 32])
     }
@@ -57,6 +58,12 @@ impl From<&[u8]> for PagesState {
     }
 }
 
+/// A `Page` consists of a tuple of `(PageIndex, PageHash, Vec<u8>`)`
+///
+/// `PageIndex` - The page indexes within the Smart Contract
+/// `PageHash`  - Hash of the page. Derived from `PageIndex` + `Page Data`.
+///               See also: `PageHasher` under `traits`
+/// `Vec<u8>`   - The page data
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct Page(pub PageIndex, pub PageHash, pub Vec<u8>);
 

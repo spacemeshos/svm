@@ -66,7 +66,7 @@ where
         let state_key = KVStoreKey(self.state.0);
 
         if self.state == PagesState::empty() {
-            // `self.tate` is `000...0`. It means that state doesn't exist under the key-value store.
+            // `self.state` is `000...0`. It means that state doesn't exist under the key-value store.
             // This happens when a Smart Contract runs for the first time.
             // We initialize each page with its zero-page hash `HASH(contract_addr || page_idx || 0...0)`
 
@@ -96,7 +96,7 @@ where
     #[must_use]
     #[inline(always)]
     fn compute_zero_page_hash(&self, page_idx: PageIndex) -> PageHash {
-        PH::hash(self.contract_addr, page_idx, [0; 32].as_ref())
+        self.compute_page_hash(page_idx, [0; 32].as_ref())
     }
 
     #[cfg(test)]
@@ -143,11 +143,6 @@ where
     KH: KeyHasher,
     PH: PageHasher,
 {
-    #[inline(always)]
-    fn set_state(&mut self, state: PagesState) {
-        self.state = state;
-    }
-
     #[must_use]
     #[inline(always)]
     fn get_state(&self) -> PagesState {
@@ -224,7 +219,7 @@ where
         // ```
 
         self.kv.borrow_mut().store(entries.as_slice());
-        self.set_state(new_state);
+        self.state = new_state;
 
         self.clear();
     }

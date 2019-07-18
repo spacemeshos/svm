@@ -22,10 +22,12 @@ where
         self.map.clear();
     }
 
+    /// Returns an iterator for the internal `HashMap`
     pub fn iter(&self) -> std::collections::hash_map::Iter<MemKey, Vec<u8>> {
         (&self.map).into_iter()
     }
 
+    /// Returns an iterator over the keys
     pub fn keys(&self) -> std::collections::hash_map::Keys<MemKey, Vec<u8>> {
         self.map.keys()
     }

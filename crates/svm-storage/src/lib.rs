@@ -1,4 +1,4 @@
-#![allow(missing_docs)]
+#![deny(missing_docs)]
 #![allow(unused)]
 
 //! `svm-storage` crate is responsible on the contract storage part of the `svm`

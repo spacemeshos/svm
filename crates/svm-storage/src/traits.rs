@@ -53,18 +53,25 @@ pub trait PageIndexHasher {
     fn hash(address: Address, page_idx: PageIndex) -> [u8; 32];
 }
 
+/// Implementors are in-charge of calculating a page hash.
+/// The page hash isderived from 3 components: `contract address` + `page-index` + `page-data`
 pub trait PageHasher {
-    /// Calculates a page-hash derived from an `contract address` + `page-index` + `page-data`
+    /// `address`  - The Smart Contract account address
+    /// `page_idx` - The page index we want to calculate its hash
+    /// `page_data - The raw content of the page
     #[must_use]
     fn hash(address: Address, page_idx: PageIndex, page_data: &[u8]) -> PageHash;
 }
 
+/// This trait should be implemented by state-oriented pages storage.
+/// Since a Smart Contract must have a state (like a source control revision) we need to have this
+/// capability implemented for real-usage Smart Contract storage.
 pub trait PagesStateStorage: PagesStorage {
-    fn set_state(&mut self, state: PagesState);
-
+    /// Returns the current storage state (i.e revision)
     #[must_use]
     fn get_state(&self) -> PagesState;
 
+    /// Returns the page-hash of a given page indexed by `page_idx`
     #[must_use]
     fn get_page_hash(&self, page_idx: PageIndex) -> PageHash;
 }
