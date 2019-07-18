@@ -246,329 +246,302 @@ mod tests {
     type MemMerklePages =
         MerklePageStorage<MemKVStore<KVStoreKey>, DefaultKeyHasher, DefaultPageHasher>;
 
-    fn compute_page_hash(addr: Address, page_idx: PageIndex, data: &[u8]) -> PageHash {
-        DefaultPageHasher::hash(addr, page_idx, data)
+    macro_rules! join_pages_hash {
+        ($pages_hash: expr) => {{
+            let mut joined = Vec::new();
+
+            for ph in $pages_hash {
+                joined.extend_from_slice(ph.as_ref());
+            }
+
+            joined
+        }};
     }
 
-    fn join_pages_hash(pages_hash: &[PageHash]) -> Vec<u8> {
-        let mut joined = Vec::new();
+    macro_rules! assert_same_keys {
+        ($expected: expr, $actual: expr) => {{
+            let mut expected: Vec<KVStoreKey> = $expected.to_vec();
+            let mut actual: Vec<KVStoreKey> = $actual.to_vec();
 
-        for ph in pages_hash {
-            joined.extend_from_slice(ph.as_ref());
-        }
+            expected.sort();
+            actual.sort();
 
-        joined
+            assert_eq!(&expected[..], &actual[..]);
+        }};
     }
 
-    fn assert_same_keys(expected: &[KVStoreKey], actual: &[KVStoreKey]) {
-        let mut expected = expected.to_vec();
-        let mut actual = actual.to_vec();
-
-        expected.sort();
-        actual.sort();
-
-        assert_eq!(expected, actual);
+    macro_rules! assert_key_value {
+        ($kv: expr, $key: expr, $expected: expr) => {{
+            let actual = $kv.borrow().get(KVStoreKey($key)).unwrap();
+            assert_eq!($expected, &actual[..]);
+        }};
     }
 
-    fn assert_key_value(db: &Rc<RefCell<MemKVStore<KVStoreKey>>>, key: [u8; 32], expected: &[u8]) {
-        let actual = db.borrow().get(KVStoreKey(key)).unwrap();
-
-        assert_eq!(expected, &actual[..]);
+    macro_rules! assert_no_key {
+        ($kv: expr, $key: expr) => {{
+            assert!($kv.borrow().get(KVStoreKey($key)).is_none());
+        }};
     }
 
-    fn assert_no_key(db: &Rc<RefCell<MemKVStore<KVStoreKey>>>, key: [u8; 32]) {
-        assert!(db.borrow().get(KVStoreKey(key)).is_none())
+    macro_rules! assert_dirty_pages_count {
+        ($storage: ident, $expected: expr) => {{
+            assert_eq!($expected, $storage.modified_pages_count());
+        }};
+    }
+
+    macro_rules! mem_merkle_pages_setup {
+        ($addr_expr: expr, $addr: ident, $storage: ident, $kv: ident, $pages_count: expr) => {
+            let $addr = Address::from($addr_expr as u32);
+            let $kv = Rc::new(RefCell::new(MemKVStore::new()));
+
+            let mut $storage =
+                MemMerklePages::new($addr, Rc::clone(&$kv), PagesState::empty(), $pages_count);
+        };
+    }
+
+    macro_rules! mem_merkle_pages_open {
+        ($addr_expr: expr, $addr: ident, $storage: ident, $kv: ident, $state: expr, $pages_count: expr) => {
+            let $addr = Address::from($addr_expr as u32);
+
+            let mut $storage = MemMerklePages::new($addr, Rc::clone(&$kv), $state, $pages_count);
+        };
+    }
+
+    macro_rules! kv_keys {
+        ($kv: ident) => {{
+            let keys: Vec<KVStoreKey> = $kv.borrow().keys().map(|key| *key).collect();
+            keys
+        }};
+    }
+
+    macro_rules! to_kv_keys {
+        ($slice: expr) => {{
+            $slice.iter().map(|v| KVStoreKey(*v)).collect::<Vec<_>>()
+        }};
+    }
+
+    macro_rules! assert_state {
+        ($expected: expr, $storage: ident) => {{
+            assert_eq!($expected, $storage.get_state());
+        }};
+    }
+
+    macro_rules! assert_page {
+        ($storage: ident, $page_idx: expr, $expected: expr) => {{
+            assert_eq!($expected, $storage.read_page(PageIndex($page_idx)));
+        }};
+    }
+
+    macro_rules! compute_page_hash {
+        ($addr: ident, $page_idx: expr, $data: expr) => {{
+            DefaultPageHasher::hash($addr, PageIndex($page_idx), $data)
+        }};
+    }
+
+    macro_rules! compute_state {
+        ($jph: expr) => {{
+            let state = Some($jph.as_slice())
+                .map(|ref_jph| {
+                    let h = DefaultKeyHasher::hash(ref_jph);
+                    PagesState::from(h.as_ref())
+                })
+                .unwrap();
+
+            state
+        }};
     }
 
     #[test]
     fn first_run_with_no_modifications_no_commit() {
-        let addr = Address::from(0x11_22_33_44 as u32);
-        let kv = Rc::new(RefCell::new(MemKVStore::new()));
-        let kv_clone = Rc::clone(&kv);
-        let pages_count = 3;
+        mem_merkle_pages_setup!(0x11_22_33_44, addr, storage, kv, 3);
 
-        let mut storage = MemMerklePages::new(addr, kv_clone, PagesState::empty(), pages_count);
-        assert_eq!(0, storage.modified_pages_count());
-
-        let actual_keys: Vec<KVStoreKey> = kv.borrow().keys().map(|key| *key).collect();
-        assert_same_keys(&[], &actual_keys[..]);
-
-        assert_eq!(PagesState::empty(), storage.get_state());
-        assert_eq!(None, storage.read_page(PageIndex(0)));
+        assert_dirty_pages_count!(storage, 0);
+        assert_same_keys!(&[], kv_keys!(kv));
+        assert_state!(PagesState::empty(), storage);
+        assert_page!(storage, 0, None);
     }
 
     #[test]
     fn first_run_with_no_modifications_with_commit() {
-        let addr = Address::from(0x11_22_33_44 as u32);
-        let kv = Rc::new(RefCell::new(MemKVStore::new()));
-        let kv_clone = Rc::clone(&kv);
-        let pages_count = 3;
-
-        let mut storage = MemMerklePages::new(addr, kv_clone, PagesState::empty(), pages_count);
-        assert_eq!(0, storage.modified_pages_count());
+        mem_merkle_pages_setup!(0x11_22_33_44, addr, storage, kv, 3);
+        assert_dirty_pages_count!(storage, 0);
         storage.commit();
 
-        let ph0 = compute_page_hash(addr, PageIndex(0), &[0; 32]);
-        let ph1 = compute_page_hash(addr, PageIndex(1), &[0; 32]);
-        let ph2 = compute_page_hash(addr, PageIndex(2), &[0; 32]);
+        let ph0 = compute_page_hash!(addr, 0, &[0; 32]);
+        let ph1 = compute_page_hash!(addr, 1, &[0; 32]);
+        let ph2 = compute_page_hash!(addr, 2, &[0; 32]);
 
-        let jph: Vec<u8> = join_pages_hash(&[ph0, ph1, ph2]);
+        let jph = join_pages_hash!(&[ph0, ph1, ph2]);
+        let state = compute_state!(jph);
 
-        let state = Some(jph.as_slice())
-            .map(|ref_jph| {
-                let h = DefaultKeyHasher::hash(ref_jph);
-                PagesState::from(h.as_ref())
-            })
-            .unwrap();
+        assert_state!(state, storage);
+        assert_same_keys!(to_kv_keys!([state.0]), kv_keys!(kv));
 
-        let actual_keys: Vec<KVStoreKey> = kv.borrow().keys().map(|key| *key).collect();
-        assert_same_keys(&[KVStoreKey(state.0)], &actual_keys[..]);
-        assert_no_key(&kv, ph0.0);
-        assert_no_key(&kv, ph1.0);
-        assert_no_key(&kv, ph2.0);
-
-        assert_eq!(state, storage.get_state());
-        assert_eq!(0, storage.modified_pages_count());
-        assert_eq!(None, storage.read_page(PageIndex(0)));
-        assert_eq!(None, storage.read_page(PageIndex(1)));
-        assert_eq!(None, storage.read_page(PageIndex(2)));
+        assert_no_key!(&kv, ph0.0);
+        assert_no_key!(&kv, ph1.0);
+        assert_no_key!(&kv, ph2.0);
+        assert_page!(storage, 0, None);
+        assert_page!(storage, 1, None);
+        assert_page!(storage, 2, None);
+        assert_dirty_pages_count!(storage, 0);
     }
 
     #[test]
     fn first_run_with_one_modified_page() {
-        let addr = Address::from(0x11_22_33_44 as u32);
-        let kv = Rc::new(RefCell::new(MemKVStore::new()));
-        let kv_clone = Rc::clone(&kv);
-        let pages_count = 2;
+        mem_merkle_pages_setup!(0x11_22_33_44, addr, storage, kv, 3);
 
-        let mut storage = MemMerklePages::new(addr, kv_clone, PagesState::empty(), pages_count);
         storage.write_page(PageIndex(0), &[10, 20, 30]);
-        assert_eq!(1, storage.modified_pages_count());
+        assert_dirty_pages_count!(storage, 1);
         storage.commit();
 
-        let ph0 = compute_page_hash(addr, PageIndex(0), &[10, 20, 30]);
-        let ph1 = compute_page_hash(addr, PageIndex(1), &[0; 32]);
-        let jph = join_pages_hash(&[ph0, ph1]);
+        let ph0 = compute_page_hash!(addr, 0, &[10, 20, 30]);
+        let ph1 = compute_page_hash!(addr, 1, &[0; 32]);
+        let ph2 = compute_page_hash!(addr, 2, &[0; 32]);
+        let jph = join_pages_hash!(&[ph0, ph1, ph2]);
+        let state = compute_state!(jph);
 
-        let state = Some(jph.as_slice())
-            .map(|ref_jph| {
-                let state = DefaultKeyHasher::hash(ref_jph);
-                PagesState::from(state.as_ref())
-            })
-            .unwrap();
-
-        let expected_keys: Vec<KVStoreKey> = vec![state.0, ph0.0]
-            .iter()
-            .map(|v| KVStoreKey(*v))
-            .collect();
-
-        let actual_keys: Vec<KVStoreKey> = kv.borrow().keys().map(|key| *key).collect();
-
-        assert_same_keys(&expected_keys[..], &actual_keys[..]);
-        assert_key_value(&kv, state.0, &jph[..]);
-        assert_key_value(&kv, ph0.0, &[10, 20, 30]);
-
-        assert_eq!(state, storage.get_state());
-        assert_eq!(0, storage.modified_pages_count());
-        assert_eq!(vec![10, 20, 30], storage.read_page(PageIndex(0)).unwrap());
-        assert_eq!(None, storage.read_page(PageIndex(1)));
+        assert_state!(state, storage);
+        assert_same_keys!(to_kv_keys!([state.0, ph0.0]), kv_keys!(kv));
+        assert_key_value!(kv, state.0, jph);
+        assert_key_value!(kv, ph0.0, [10, 20, 30]);
+        assert_page!(storage, 0, Some(vec![10, 20, 30]));
+        assert_page!(storage, 1, None);
+        assert_dirty_pages_count!(storage, 0);
     }
 
     #[test]
     fn first_run_with_two_modified_pages() {
-        let addr = Address::from(0x11_22_33_44 as u32);
-        let kv = Rc::new(RefCell::new(MemKVStore::new()));
-        let kv_clone = Rc::clone(&kv);
-        let pages_count = 2;
+        mem_merkle_pages_setup!(0x11_22_33_44, addr, storage, kv, 2);
 
-        let mut storage = MemMerklePages::new(addr, kv_clone, PagesState::empty(), pages_count);
         storage.write_page(PageIndex(0), &[10, 20, 30]);
         storage.write_page(PageIndex(1), &[40, 50, 60]);
-        assert_eq!(2, storage.modified_pages_count());
+        assert_dirty_pages_count!(storage, 2);
         storage.commit();
 
-        let ph0 = compute_page_hash(addr, PageIndex(0), &[10, 20, 30]);
-        let ph1 = compute_page_hash(addr, PageIndex(1), &[40, 50, 60]);
-        let jph = join_pages_hash(&[ph0, ph1]);
+        let ph0 = compute_page_hash!(addr, 0, &[10, 20, 30]);
+        let ph1 = compute_page_hash!(addr, 1, &[40, 50, 60]);
+        let jph = join_pages_hash!(&[ph0, ph1]);
+        let state = compute_state!(jph);
 
-        let state = Some(jph.as_slice())
-            .map(|ref_jph| {
-                let state = DefaultKeyHasher::hash(ref_jph);
-                PagesState::from(state.as_ref())
-            })
-            .unwrap();
-
-        let expected_keys: Vec<KVStoreKey> = vec![state.0, ph0.0, ph1.0]
-            .iter()
-            .map(|v| KVStoreKey(*v))
-            .collect();
-
-        let actual_keys: Vec<KVStoreKey> = kv.borrow().keys().map(|key| *key).collect();
-
-        assert_same_keys(&expected_keys[..], &actual_keys[..]);
-        assert_key_value(&kv, state.0, &jph[..]);
-        assert_key_value(&kv, ph0.0, &[10, 20, 30]);
-        assert_key_value(&kv, ph1.0, &[40, 50, 60]);
-
-        assert_eq!(state, storage.get_state());
-        assert_eq!(0, storage.modified_pages_count());
-        assert_eq!(vec![10, 20, 30], storage.read_page(PageIndex(0)).unwrap());
-        assert_eq!(vec![40, 50, 60], storage.read_page(PageIndex(1)).unwrap());
+        assert_state!(state, storage);
+        assert_same_keys!(to_kv_keys!([state.0, ph0.0, ph1.0]), kv_keys!(kv));
+        assert_key_value!(kv, state.0, jph);
+        assert_key_value!(kv, ph0.0, [10, 20, 30]);
+        assert_key_value!(kv, ph1.0, [40, 50, 60]);
+        assert_page!(storage, 0, Some(vec![10, 20, 30]));
+        assert_page!(storage, 1, Some(vec![40, 50, 60]));
+        assert_dirty_pages_count!(storage, 0);
     }
 
     #[test]
     fn second_run_after_first_run_with_no_modifications() {
         // 1st run
-        let addr = Address::from(0x11_22_33_44 as u32);
-        let kv = Rc::new(RefCell::new(MemKVStore::new()));
-        let kv_clone = Rc::clone(&kv);
-        let pages_count = 3;
-
-        let mut storage = MemMerklePages::new(addr, kv_clone, PagesState::empty(), pages_count);
+        mem_merkle_pages_setup!(0x11_22_33_44, addr, storage, kv, 3);
         storage.commit();
         let old_state = storage.get_state();
 
         // 2nd run
-        let kv_clone = Rc::clone(&kv);
-        let mut storage = MemMerklePages::new(addr, kv_clone, old_state, pages_count);
+        mem_merkle_pages_open!(0x11_22_33_44, addr, storage, kv, old_state, 3);
         storage.write_page(PageIndex(0), &[10, 20, 30]);
         storage.write_page(PageIndex(1), &[40, 50, 60]);
         storage.commit();
 
         // modifying pages `0` and `1`
-        let ph0 = compute_page_hash(addr, PageIndex(0), &[10, 20, 30]);
-        let ph1 = compute_page_hash(addr, PageIndex(1), &[40, 50, 60]);
-        let ph2 = compute_page_hash(addr, PageIndex(2), &[0; 32]);
-        let jph = join_pages_hash(&[ph0, ph1, ph2]);
+        let ph0 = compute_page_hash!(addr, 0, &[10, 20, 30]);
+        let ph1 = compute_page_hash!(addr, 1, &[40, 50, 60]);
+        let ph2 = compute_page_hash!(addr, 2, &[0; 32]);
+        let jph = join_pages_hash!(&[ph0, ph1, ph2]);
+        let new_state = compute_state!(jph);
 
-        let new_state = Some(jph.as_slice())
-            .map(|ref_jph| {
-                let state = DefaultKeyHasher::hash(ref_jph);
-                PagesState::from(state.as_ref())
-            })
-            .unwrap();
+        assert_same_keys!(
+            to_kv_keys!([old_state.0, new_state.0, ph0.0, ph1.0]),
+            kv_keys!(kv)
+        );
 
-        let expected_keys: Vec<KVStoreKey> = vec![old_state.0, new_state.0, ph0.0, ph1.0]
-            .iter()
-            .map(|v| KVStoreKey(*v))
-            .collect();
-
-        let actual_keys: Vec<KVStoreKey> = kv.borrow().keys().map(|key| *key).collect();
-
-        assert_same_keys(&expected_keys[..], &actual_keys[..]);
-        assert_key_value(&kv, new_state.0, &jph[..]);
-        assert_key_value(&kv, ph0.0, &[10, 20, 30]);
-        assert_key_value(&kv, ph1.0, &[40, 50, 60]);
-        assert_no_key(&kv, ph2.0);
+        assert_key_value!(kv, new_state.0, jph);
+        assert_key_value!(kv, ph0.0, [10, 20, 30]);
+        assert_key_value!(kv, ph1.0, [40, 50, 60]);
+        assert_no_key!(kv, ph2.0);
     }
 
     #[test]
     fn second_run_after_first_run_with_modifications() {
         // 1st run
-        let addr = Address::from(0x11_22_33_44 as u32);
-        let kv = Rc::new(RefCell::new(MemKVStore::new()));
-        let kv_clone = Rc::clone(&kv);
-        let pages_count = 3;
-
-        let mut storage = MemMerklePages::new(addr, kv_clone, PagesState::empty(), pages_count);
+        mem_merkle_pages_setup!(0x11_22_33_44, addr, storage, kv, 3);
         storage.write_page(PageIndex(0), &[11, 22, 33]);
         storage.commit();
         let old_state = storage.get_state();
 
         // 2nd run
-        let kv_clone = Rc::clone(&kv);
-        let mut storage = MemMerklePages::new(addr, kv_clone, old_state, pages_count);
+        mem_merkle_pages_open!(0x11_22_33_44, addr, storage, kv, old_state, 3);
         storage.write_page(PageIndex(0), &[10, 20, 30]);
         storage.write_page(PageIndex(1), &[40, 50, 60]);
         storage.commit();
 
         // modifying pages `0` and `1`
-        let ph0_old = compute_page_hash(addr, PageIndex(0), &[11, 22, 33]);
-        let ph0 = compute_page_hash(addr, PageIndex(0), &[10, 20, 30]);
-        let ph1 = compute_page_hash(addr, PageIndex(1), &[40, 50, 60]);
-        let ph2 = compute_page_hash(addr, PageIndex(2), &[0; 32]);
-        let jph = join_pages_hash(&[ph0, ph1, ph2]);
+        let ph0_old = compute_page_hash!(addr, 0, &[11, 22, 33]);
+        let ph0 = compute_page_hash!(addr, 0, &[10, 20, 30]);
+        let ph1 = compute_page_hash!(addr, 1, &[40, 50, 60]);
+        let ph2 = compute_page_hash!(addr, 2, &[0; 32]);
+        let jph = join_pages_hash!(&[ph0, ph1, ph2]);
+        let new_state = compute_state!(jph);
 
-        let new_state = Some(jph.as_slice())
-            .map(|ref_jph| {
-                let state = DefaultKeyHasher::hash(ref_jph);
-                PagesState::from(state.as_ref())
-            })
-            .unwrap();
+        assert_same_keys!(
+            to_kv_keys!([old_state.0, new_state.0, ph0_old.0, ph0.0, ph1.0]),
+            kv_keys!(kv)
+        );
 
-        let expected_keys: Vec<KVStoreKey> =
-            vec![old_state.0, new_state.0, ph0_old.0, ph0.0, ph1.0]
-                .iter()
-                .map(|v| KVStoreKey(*v))
-                .collect();
-
-        let actual_keys: Vec<KVStoreKey> = kv.borrow().keys().map(|key| *key).collect();
-
-        assert_same_keys(&expected_keys[..], &actual_keys[..]);
-        assert_key_value(&kv, new_state.0, &jph[..]);
-        assert_key_value(&kv, ph0.0, &[10, 20, 30]);
-        assert_key_value(&kv, ph1.0, &[40, 50, 60]);
-        assert_no_key(&kv, ph2.0);
+        assert_key_value!(kv, new_state.0, jph);
+        assert_key_value!(kv, ph0.0, [10, 20, 30]);
+        assert_key_value!(kv, ph1.0, [40, 50, 60]);
+        assert_no_key!(kv, ph2.0);
     }
 
     #[test]
     fn third_run_rollbacks_to_after_first_run() {
         // 1st run
-        let addr = Address::from(0x11_22_33_44 as u32);
-        let kv = Rc::new(RefCell::new(MemKVStore::new()));
-        let kv_clone = Rc::clone(&kv);
-        let pages_count = 3;
-
-        let mut storage = MemMerklePages::new(addr, kv_clone, PagesState::empty(), pages_count);
+        mem_merkle_pages_setup!(0x11_22_33_44, addr, storage, kv, 3);
         storage.write_page(PageIndex(0), &[11, 22, 33]);
         storage.commit();
         let state_1 = storage.get_state();
 
         // 2nd run
-        let kv_clone = Rc::clone(&kv);
-        let mut storage = MemMerklePages::new(addr, kv_clone, state_1, pages_count);
+        mem_merkle_pages_open!(0x11_22_33_44, addr, storage, kv, state_1, 3);
         storage.write_page(PageIndex(0), &[10, 20, 30]);
         storage.write_page(PageIndex(1), &[40, 50, 60]);
         storage.commit();
         let state_2 = storage.get_state();
 
         // 3rd run (rollbacks to `state_1` initial state)
-        let kv_clone = Rc::clone(&kv);
-        let mut storage = MemMerklePages::new(addr, kv_clone, state_1, pages_count);
+        mem_merkle_pages_open!(0x11_22_33_44, addr, storage, kv, state_1, 3);
 
-        let ph0_1 = compute_page_hash(addr, PageIndex(0), &[11, 22, 33]);
-        let ph1_1 = compute_page_hash(addr, PageIndex(1), &[0; 32]);
-        let ph2_1 = compute_page_hash(addr, PageIndex(2), &[0; 32]);
+        let ph0_1 = compute_page_hash!(addr, 0, &[11, 22, 33]);
+        let ph1_1 = compute_page_hash!(addr, 1, &[0; 32]);
+        let ph2_1 = compute_page_hash!(addr, 2, &[0; 32]);
 
-        let ph0_2 = compute_page_hash(addr, PageIndex(0), &[10, 20, 30]);
-        let ph1_2 = compute_page_hash(addr, PageIndex(1), &[40, 50, 60]);
-        let ph2_2 = compute_page_hash(addr, PageIndex(2), &[0; 32]);
-        let jph = join_pages_hash(&[ph0_1, ph1_1, ph2_1]);
+        let ph0_2 = compute_page_hash!(addr, 0, &[10, 20, 30]);
+        let ph1_2 = compute_page_hash!(addr, 1, &[40, 50, 60]);
+        let ph2_2 = compute_page_hash!(addr, 2, &[0; 32]);
+        let jph = join_pages_hash!(&[ph0_1, ph1_1, ph2_1]);
 
-        let expected_keys: Vec<KVStoreKey> = vec![state_1.0, state_2.0, ph0_1.0, ph0_2.0, ph1_2.0]
-            .iter()
-            .map(|v| KVStoreKey(*v))
-            .collect();
+        assert_same_keys!(
+            to_kv_keys!([state_1.0, state_2.0, ph0_1.0, ph0_2.0, ph1_2.0]),
+            kv_keys!(kv)
+        );
 
-        let actual_keys: Vec<KVStoreKey> = kv.borrow().keys().map(|key| *key).collect();
-
-        assert_same_keys(&expected_keys[..], &actual_keys[..]);
-        assert_eq!(state_1, storage.get_state());
-        assert_key_value(&kv, state_1.0, &jph[..]);
+        assert_state!(state_1, storage);
+        assert_key_value!(kv, state_1.0, jph);
 
         // 4th run (rollbacks to `state_2` initial state)
-        let kv_clone = Rc::clone(&kv);
-        let mut storage = MemMerklePages::new(addr, kv_clone, state_2, pages_count);
+        mem_merkle_pages_open!(0x11_22_33_44, addr, storage, kv, state_2, 3);
+        let jph = join_pages_hash!(&[ph0_2, ph1_2, ph2_2]);
 
-        let jph = join_pages_hash(&[ph0_2, ph1_2, ph2_2]);
+        assert_same_keys!(
+            to_kv_keys!([state_1.0, state_2.0, ph0_1.0, ph0_2.0, ph1_2.0]),
+            kv_keys!(kv)
+        );
 
-        let expected_keys: Vec<KVStoreKey> = vec![state_1.0, state_2.0, ph0_1.0, ph0_2.0, ph1_2.0]
-            .iter()
-            .map(|v| KVStoreKey(*v))
-            .collect();
-
-        assert_same_keys(&expected_keys[..], &actual_keys[..]);
-        assert_key_value(&kv, state_2.0, &jph[..]);
-        assert_eq!(state_2, storage.get_state());
+        assert_key_value!(kv, state_2.0, jph);
+        assert_state!(state_2, storage);
     }
 }
