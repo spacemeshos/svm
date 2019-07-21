@@ -3,9 +3,9 @@
 macro_rules! include_extern_storage {
     () => {
         extern "C" {
-            fn mem_to_reg_copy(src_mem_ptr: i32, len: i32, dst_reg: i32);
+            fn mem_to_reg_copy(src_mem_idx: i32, src_mem_ptr: i32, len: i32, dst_reg: i32);
 
-            fn reg_to_mem_copy(src_reg: i32, len: i32, dst_mem_ptr: i32);
+            fn reg_to_mem_copy(src_reg: i32, len: i32, dst_mem_idx: i32, dst_mem_ptr: i32);
 
             fn storage_read_to_reg(
                 src_page: i32,
@@ -20,10 +20,12 @@ macro_rules! include_extern_storage {
                 src_slice: i32,
                 offset: i32,
                 len: i32,
+                dst_mem_idx: i32,
                 dst_mem_ptr: i32,
             );
 
             fn storage_write_from_mem(
+                src_mem_idx: i32,
                 src_mem_ptr: i32,
                 len: i32,
                 dst_page: i32,
