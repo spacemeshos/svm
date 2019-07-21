@@ -8,3 +8,6 @@ pub mod node;
 
 /// Interfaces for interacting with the Contract Storage.
 pub mod storage;
+
+/// Interfaces for arithmetic calculations on registers
+pub mod register_arithmetic;

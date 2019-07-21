@@ -1,6 +1,6 @@
 /// The `include_extern_storage` will be imported by Smart Contracts.
 #[macro_export]
-macro_rules! include_extern_storage {
+macro_rules! include_extern_storage_vmcalls {
     () => {
         extern "C" {
             fn mem_to_reg_copy(src_mem_idx: i32, src_mem_ptr: i32, len: i32, dst_reg: i32);
@@ -27,6 +27,14 @@ macro_rules! include_extern_storage {
             fn storage_write_from_mem(
                 src_mem_idx: i32,
                 src_mem_ptr: i32,
+                len: i32,
+                dst_page: i32,
+                dst_slice: i32,
+                dst_offset: i32,
+            );
+
+            fn storage_write_from_reg(
+                src_reg: i32,
                 len: i32,
                 dst_page: i32,
                 dst_slice: i32,

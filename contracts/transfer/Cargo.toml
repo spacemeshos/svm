@@ -13,6 +13,7 @@ crate-type = ["cdylib"]
 panic = "abort"
 opt-level = 3
 debug = false
+lto=true
 
 [dependencies]
-svm-extern = { path = "../../svm-extern" }
+svm-extern = { path = "../../crates/svm-extern" }

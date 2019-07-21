@@ -102,6 +102,15 @@ macro_rules! impl_register {
                 &self.0[..] == &other.0[..]
             }
         }
+
+        use std::cmp::Ordering;
+
+        impl PartialOrd for $reg_ident {
+            #[inline(always)]
+            fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+                self.0.partial_cmp(&other.0)
+            }
+        }
     };
 }
 
@@ -110,6 +119,7 @@ impl_register!(8, WasmerReg64);
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::cmp::Ordering;
 
     #[test]
     fn get_defaults_to_zeros() {
@@ -221,5 +231,64 @@ mod tests {
         });
 
         assert!(res.is_err());
+    }
+
+    #[test]
+    fn ucmp_equal() {
+        let mut reg1 = WasmerReg64::new();
+        let mut reg2 = WasmerReg64::new();
+
+        reg1.set(&vec![10, 20, 30]);
+        reg2.set(&vec![10, 20, 30]);
+
+        assert_eq!(Ordering::Equal, reg1.partial_cmp(&reg2).unwrap());
+    }
+
+    #[test]
+    fn ucmp_greater_same_length() {
+        let mut reg1 = WasmerReg64::new();
+        let mut reg2 = WasmerReg64::new();
+
+        // data is layed-out in a Little-Endian Order
+        reg1.set(&vec![10, 20, 40]);
+        reg2.set(&vec![10, 20, 30]);
+
+        assert_eq!(Ordering::Greater, reg1.partial_cmp(&reg2).unwrap());
+    }
+
+    #[test]
+    fn ucmp_greater_not_same_length() {
+        let mut reg1 = WasmerReg64::new();
+        let mut reg2 = WasmerReg64::new();
+
+        // data is layed-out in a Little-Endian Order
+        reg1.set(&vec![10, 20, 40]);
+        reg2.set(&vec![20, 30]);
+
+        assert_eq!(Ordering::Greater, reg1.partial_cmp(&reg2).unwrap());
+    }
+
+    #[test]
+    fn ucmp_less_same_length() {
+        let mut reg1 = WasmerReg64::new();
+        let mut reg2 = WasmerReg64::new();
+
+        // data is layed-out in a Little-Endian Order
+        reg1.set(&vec![10, 20, 30]);
+        reg2.set(&vec![10, 20, 40]);
+
+        assert_eq!(Ordering::Less, reg1.partial_cmp(&reg2).unwrap());
+    }
+
+    #[test]
+    fn ucmp_less_not_same_length() {
+        let mut reg1 = WasmerReg64::new();
+        let mut reg2 = WasmerReg64::new();
+
+        // data is layed-out in a Little-Endian Order
+        reg1.set(&vec![20, 30]);
+        reg2.set(&vec![10, 20, 40]);
+
+        assert_eq!(Ordering::Less, reg1.partial_cmp(&reg2).unwrap());
     }
 }
