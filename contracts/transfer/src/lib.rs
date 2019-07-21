@@ -46,7 +46,7 @@ pub extern "C" fn execute(
         register_le_usub_u64(1, amount, 1);
 
         // `reg3 = reg3 + amount
-        register_le_usub_u64(3, amount, 3);
+        register_le_uadd_u64(3, amount, 3);
 
         // copy to the address under register `0` the balance stored under register `1`
         set_balance_from_reg(0, 1);
@@ -57,7 +57,8 @@ pub extern "C" fn execute(
         // Copying slice `0` (page `0`, cells: `0..8`) into register `0`
         storage_read_to_reg(0, 0, 0, 8, 0);
 
-        // svm_reg_add_i32(0, 1);
+        // `reg0 = reg0 + 1
+        register_le_uadd_u64(0, 1, 0);
 
         // persisting register `0` back to storage. (slice `0`, page `0`, cells: `0..8`)
         storage_write_from_reg(0, 8, 0, 0, 0);
