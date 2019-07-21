@@ -1,4 +1,5 @@
-contracts/precompiled
+contracts/precompiled/*.wasm
+contracts/precompiled/*.wast
 target
 tags
 .DS_Store
