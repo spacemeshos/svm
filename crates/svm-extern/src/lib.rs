@@ -3,8 +3,8 @@
 
 //! `svm-extern` crate contains the `extern "C"` interfaces that will be consumed by Rust Smart Contracts
 
-mod node;
-mod storage;
+/// Interfaces for interacting with the Node.
+pub mod node;
 
-pub use crate::node::*;
-pub use crate::storage::*;
+/// Interfaces for interacting with the Contract Storage.
+pub mod storage;

@@ -1,0 +1,18 @@
+[package]
+name = "transfer"
+version = "0.0.0"
+authors = ["Yaron Wittenstein <yaron.wittenstein@gmail.com>"]
+edition = "2018"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+crate-type = ["cdylib"]
+
+[profile.release]
+panic = "abort"
+opt-level = 3
+debug = false
+
+[dependencies]
+svm-extern = { path = "../../svm-extern" }
