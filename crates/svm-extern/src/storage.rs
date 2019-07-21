@@ -1,6 +1,4 @@
-/// The `include_extern_storage` will be imported by Smart Contracts wasm programs.
-/// Reading data will be copied from the backing storage into temporary buffers.
-/// Then the smart contract program will copy that data into the wasm instance's memory / stack.
+/// The `include_extern_storage` will be imported by Smart Contracts.
 #[macro_export]
 macro_rules! include_extern_storage {
     () => {
