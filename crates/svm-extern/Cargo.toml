@@ -1,0 +1,8 @@
+[package]
+name = "svm-extern"
+version = "0.0.0"
+authors = ["Yaron Wittenstein <yaron.wittenstein@gmail.com>"]
+edition = "2018"
+publish = false
+
+[dependencies]
