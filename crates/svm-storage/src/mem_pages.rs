@@ -9,32 +9,52 @@ mod tests {
     use super::*;
     use crate::page::PageIndex;
     use crate::traits::PagesStorage;
+    use svm_common::Address;
 
     use std::cell::RefCell;
     use std::rc::Rc;
-    use svm_common::Address;
+
+    macro_rules! mem_kv_setup {
+        ($kv: ident) => {
+            let $kv = Rc::new(RefCell::new(MemKVStore::<[u8; 32]>::new()));
+        };
+    }
+
+    macro_rules! mem_pages_setup {
+        ($addr: expr, $kv: ident, $storage: ident) => {
+            let addr = Address::from($addr as u32);
+
+            let kv_clone = Rc::clone(&$kv);
+            let mut $storage = MemPages::new(addr, kv_clone);
+        };
+    }
+
+    macro_rules! mem_pages_and_kv_setup {
+        ($addr: expr, $kv: ident, $storage: ident) => {
+            let addr = Address::from($addr as u32);
+
+            mem_kv_setup!($kv);
+            let kv_clone = Rc::clone(&$kv);
+
+            let mut $storage = MemPages::new(addr, kv_clone);
+        };
+    }
 
     #[test]
     fn a_page_does_not_exit_by_default() {
-        let addr = Address::from(0x11_22_33_44 as u32);
-
-        let kv = Rc::new(RefCell::new(MemKVStore::new()));
-        let mut storage = MemPages::new(addr, kv);
+        mem_pages_and_kv_setup!(0x11_22_33_44, kv, storage);
 
         assert_eq!(None, storage.read_page(PageIndex(0)));
     }
 
     #[test]
     fn writing_a_page_does_not_auto_commit_it_to_underlying_kv() {
-        let addr = Address::from(0x11_22_33_44 as u32);
-
-        let kv = Rc::new(RefCell::new(MemKVStore::new()));
-        let kv_clone = Rc::clone(&kv);
+        mem_kv_setup!(kv);
 
         // both `storage1` and `storage2` service the same contract address `addr`
         // and both share the the same underlying key-value store
-        let mut storage1 = MemPages::new(addr, kv);
-        let mut storage2 = MemPages::new(addr, kv_clone);
+        mem_pages_setup!(0x11_22_33_44, kv, storage1);
+        mem_pages_setup!(0x11_22_33_44, kv, storage2);
 
         // writing `page 0` with data `[10, 20, 30]`
         // changes aren't commited directly to `kv`
@@ -60,10 +80,7 @@ mod tests {
 
     #[test]
     fn writing_the_same_page_twice_before_committing() {
-        let addr = Address::from(0x11_22_33_44 as u32);
-
-        let kv = Rc::new(RefCell::new(MemKVStore::new()));
-        let mut storage = MemPages::new(addr, kv);
+        mem_pages_and_kv_setup!(0x11_22_33_44, kv, storage);
 
         // first write
         storage.write_page(PageIndex(0), &vec![10, 20, 30]);
@@ -85,15 +102,11 @@ mod tests {
 
     #[test]
     fn committing_the_same_page_under_two_different_contract_addresses() {
-        let addr1 = Address::from(0x11_22_33_44 as u32);
-        let addr2 = Address::from(0x55_66_77_88 as u32);
-
-        let kv = Rc::new(RefCell::new(MemKVStore::new()));
-        let kv_clone = Rc::clone(&kv);
+        mem_kv_setup!(kv);
 
         // `storagee1` and `storage2` share the same underlying `kv store`
-        let mut storage1 = MemPages::new(addr1, kv);
-        let mut storage2 = MemPages::new(addr2, kv_clone);
+        mem_pages_setup!(0x11_22_33_44, kv, storage1);
+        mem_pages_setup!(0x55_66_77_88, kv, storage2);
 
         storage1.write_page(PageIndex(0), &vec![10, 20, 30]);
         storage2.write_page(PageIndex(0), &vec![40, 50, 60]);

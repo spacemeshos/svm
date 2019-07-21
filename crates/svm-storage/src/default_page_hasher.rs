@@ -46,7 +46,7 @@ mod tests {
         let mut data = Vec::with_capacity(page_addr.len() + page_data_hash.len());
         data.extend_from_slice(&page_addr);
         data.extend_from_slice(&page_data_hash);
-        let expected = DefaultKeyHasher::hash(data.as_slice());
+        let expected = PageHash(DefaultKeyHasher::hash(data.as_slice()));
 
         let addr = Address::from(0x44_33_22_11 as u32);
         let page_idx = PageIndex(3);
@@ -54,6 +54,6 @@ mod tests {
 
         let actual = DefaultPageHasher::hash(addr, page_idx, page_data.as_slice());
 
-        assert_eq!(expected, actual.0);
+        assert_eq!(expected, actual);
     }
 }
