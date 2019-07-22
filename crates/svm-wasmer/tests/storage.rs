@@ -1,5 +1,3 @@
-extern crate svm_wasmer;
-
 use std::cell::Cell;
 
 use svm_wasmer::*;
@@ -122,7 +120,7 @@ macro_rules! wasmer_compile_module_file {
 
 #[test]
 #[ignore]
-fn vmcalls_mem_to_reg_copy_segfaults() {
+fn vmcalls_mem_to_reg_copy_() {
     let module = wasmer_compile_module_file!("wasm/mem_to_reg_copy.wast");
 
     let import_object = imports! {

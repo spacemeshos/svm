@@ -6,9 +6,9 @@ macro_rules! create_boxed_svm_ctx {
         use std::cell::RefCell;
         use std::rc::Rc;
 
-        use crate::ctx::SvmCtx;
         use svm_common::Address;
         use svm_storage::PageSliceCache;
+        use $crate::ctx::SvmCtx;
 
         let kv = $KV::new();
 
@@ -44,8 +44,8 @@ macro_rules! create_boxed_svm_ctx {
 #[macro_export]
 macro_rules! create_svm_import_object {
     ($addr: expr, $KV: ident, $PS: ident, $PC: ident, $max_pages: expr, $max_pages_slices: expr) => {{
-        use crate::ctx::SvmCtx;
         use std::ffi::c_void;
+        use $crate::ctx::SvmCtx;
 
         let ctx = create_boxed_svm_ctx!($addr, $KV, $PS, $PC, $max_pages, $max_pages_slices);
 
@@ -72,8 +72,8 @@ macro_rules! lazy_create_svm_import_object {
 #[macro_export]
 macro_rules! svm_regs_reg {
     ($regs: expr, $reg_idx: expr) => {{
-        use crate::ctx::REGS_64_COUNT;
-        use crate::register::WasmerReg64;
+        use $crate::ctx::REGS_64_COUNT;
+        use $crate::register::WasmerReg64;
 
         assert!($reg_idx >= 0 && $reg_idx < REGS_64_COUNT as i32);
 
@@ -113,8 +113,6 @@ macro_rules! svm_page_slice_layout {
 #[macro_export]
 macro_rules! svm_read_page_slice {
     ($storage: expr, $page_idx: expr, $slice_idx: expr, $offset: expr, $len: expr) => {{
-        use svm_storage::page::{PageIndex, PageSliceLayout, SliceIndex};
-
         let layout = svm_page_slice_layout!($page_idx, $slice_idx, $offset, $len);
         let slice = $storage.read_page_slice(&layout);
 
@@ -130,14 +128,7 @@ macro_rules! svm_read_page_slice {
 #[macro_export]
 macro_rules! svm_write_page_slice {
     ($storage: expr, $page_idx: expr, $slice_idx: expr, $offset: expr, $len: expr, $data: expr) => {{
-        use svm_storage::page::{PageIndex, PageSliceLayout, SliceIndex};
-
-        let layout = PageSliceLayout {
-            page_idx: PageIndex($page_idx),
-            slice_idx: SliceIndex($slice_idx),
-            offset: $offset,
-            len: $len,
-        };
+        let layout = svm_page_slice_layout!($page_idx, $slice_idx, $offset, $len);
 
         $storage.write_page_slice(&layout, $data);
     }};
@@ -147,8 +138,8 @@ macro_rules! svm_write_page_slice {
 #[macro_export]
 macro_rules! wasmer_data_regs {
     ($data: expr, $PC: ident) => {{
-        use crate::ctx::{SvmCtx, REGS_64_COUNT};
-        use crate::register::WasmerReg64;
+        use $crate::ctx::{SvmCtx, REGS_64_COUNT};
+        use $crate::register::WasmerReg64;
 
         let ctx: &mut SvmCtx<$PC> = cast_wasmer_data_to_svm_ctx!($data, $PC);
 
@@ -160,6 +151,8 @@ macro_rules! wasmer_data_regs {
 #[macro_export]
 macro_rules! cast_wasmer_data_to_svm_ctx {
     ($data: expr, $PC: ident) => {{
+        use $crate::ctx::SvmCtx;
+
         let ctx_ptr = $data as *mut SvmCtx<$PC>;
         let ctx: &mut SvmCtx<$PC> = unsafe { &mut *ctx_ptr };
 
@@ -171,7 +164,7 @@ macro_rules! cast_wasmer_data_to_svm_ctx {
 #[macro_export]
 macro_rules! wasmer_data_storage {
     ($data: expr, $PC: ident) => {{
-        use crate::ctx::SvmCtx;
+        use $crate::ctx::SvmCtx;
 
         let ctx: &mut SvmCtx<$PC> = cast_wasmer_data_to_svm_ctx!($data, $PC);
         &mut ctx.storage
@@ -182,7 +175,7 @@ macro_rules! wasmer_data_storage {
 #[macro_export]
 macro_rules! wasmer_data_reg {
     ($data: expr, $reg_idx: expr, $PC: ident) => {{
-        use crate::ctx::{SvmCtx, REGS_64_COUNT};
+        use $crate::ctx::{SvmCtx, REGS_64_COUNT};
 
         assert!($reg_idx >= 0 && $reg_idx < REGS_64_COUNT as i32);
 
@@ -233,9 +226,6 @@ macro_rules! wasmer_ctx_reg_write {
         reg.set($data);
     }};
 }
-
-use crate::ctx::SvmCtx;
-use svm_storage::traits::PageCache;
 
 #[cfg(test)]
 mod tests {
