@@ -6,6 +6,10 @@ macro_rules! create_boxed_svm_ctx {
         use std::cell::RefCell;
         use std::rc::Rc;
 
+        use crate::ctx::SvmCtx;
+        use svm_common::Address;
+        use svm_storage::PageSliceCache;
+
         let kv = $KV::new();
 
         let addr = Address::from($addr as u32);
@@ -40,6 +44,9 @@ macro_rules! create_boxed_svm_ctx {
 #[macro_export]
 macro_rules! create_svm_import_object {
     ($addr: expr, $KV: ident, $PS: ident, $PC: ident, $max_pages: expr, $max_pages_slices: expr) => {{
+        use crate::ctx::SvmCtx;
+        use std::ffi::c_void;
+
         let ctx = create_boxed_svm_ctx!($addr, $KV, $PS, $PC, $max_pages, $max_pages_slices);
 
         let data = ctx as *mut _ as *mut c_void;
@@ -123,7 +130,7 @@ macro_rules! svm_read_page_slice {
 #[macro_export]
 macro_rules! svm_write_page_slice {
     ($storage: expr, $page_idx: expr, $slice_idx: expr, $offset: expr, $len: expr, $data: expr) => {{
-        use svm_storage::page::{PageIndex, SliceIndex};
+        use svm_storage::page::{PageIndex, PageSliceLayout, SliceIndex};
 
         let layout = PageSliceLayout {
             page_idx: PageIndex($page_idx),

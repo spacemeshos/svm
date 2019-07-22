@@ -2,7 +2,7 @@
   ;; import `svm` vmcalls
   (func $storage_read_to_mem (import "svm" "storage_read_to_mem") (param i32 i32 i32 i32 i32 i32))
 
-  (memory 1)  ;; memory `0` (default) is initialized with a `1 page`
+  (memory 1)  ;; memory `0` (default) is initialized with one page
 
   ;; exported function to be called
   (func (export "do_copy_to_mem") (param i32 i32 i32 i32 i32)
