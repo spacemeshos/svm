@@ -15,9 +15,9 @@ pub const REGS_64_COUNT: usize = 8;
 /// *  PC - a type implementing the trait `PageCache` (`PC` stands for `PageCache`)
 #[repr(C)]
 pub struct SvmCtx<'a, 'pc: 'a, PC> {
-    pub(crate) regs_64: [WasmerReg64; REGS_64_COUNT],
+    pub regs_64: [WasmerReg64; REGS_64_COUNT],
 
-    pub(crate) storage: &'a mut PageSliceCache<'pc, PC>,
+    pub storage: &'a mut PageSliceCache<'pc, PC>,
 }
 
 impl<'a, 'pc: 'a, PC> SvmCtx<'a, 'pc, PC> {

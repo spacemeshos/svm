@@ -82,7 +82,4 @@ mod tests {
     pub type MemPageCache<'pc, K = [u8; 32]> = DefaultPageCache<'pc, MemPages<K>>;
 
     include_wasmer_svm_vmcalls!(MemPageCache);
-
-    #[test]
-    fn test_register_ucmp() {}
 }

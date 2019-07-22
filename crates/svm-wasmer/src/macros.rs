@@ -228,17 +228,7 @@ macro_rules! wasmer_ctx_reg_write {
 }
 
 use crate::ctx::SvmCtx;
-use std::ffi::c_void;
 use svm_storage::traits::PageCache;
-
-pub fn wasmer_fake_import_object_data<PC: PageCache>(
-    ctx: &SvmCtx<PC>,
-) -> (*mut c_void, fn(*mut c_void)) {
-    let data: *mut c_void = ctx.clone() as *const _ as *mut c_void;
-    let dtor: fn(*mut c_void) = |_| {};
-
-    (data, dtor)
-}
 
 #[cfg(test)]
 mod tests {
@@ -250,19 +240,27 @@ mod tests {
     use svm_storage::null_storage::{NullPageCache, NullPageSliceCache, NullPagesStorage};
 
     use std::cell::{Cell, RefCell};
+    use std::ffi::c_void;
     use std::rc::Rc;
-
-    use super::wasmer_fake_import_object_data;
 
     use svm_storage::{
         default::DefaultPageCache,
         memory::{MemKVStore, MemPages},
         page::{PageIndex, PageSliceLayout, SliceIndex},
-        traits::PagesStorage,
+        traits::{PageCache, PagesStorage},
         PageSliceCache,
     };
 
     pub type MemPageCache<'pc, K = [u8; 32]> = DefaultPageCache<'pc, MemPages<K>>;
+
+    pub fn wasmer_fake_import_object_data<PC: PageCache>(
+        ctx: &SvmCtx<PC>,
+    ) -> (*mut c_void, fn(*mut c_void)) {
+        let data: *mut c_void = ctx.clone() as *const _ as *mut c_void;
+        let dtor: fn(*mut c_void) = |_| {};
+
+        (data, dtor)
+    }
 
     #[test]
     fn reg_copy_from_wasmer_mem() {

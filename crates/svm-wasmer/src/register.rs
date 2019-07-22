@@ -23,13 +23,13 @@ macro_rules! impl_register {
         impl $reg_ident {
             /// we initialize the register content with zero bytes
             #[inline(always)]
-            pub(crate) fn new() -> Self {
+            pub fn new() -> Self {
                 Self([0; $bytes_count])
             }
 
             /// Copies the data given in `cells` into the register content
             #[inline(always)]
-            pub(crate) fn copy_from_wasmer_mem(&mut self, cells: &[Cell<u8>]) {
+            pub fn copy_from_wasmer_mem(&mut self, cells: &[Cell<u8>]) {
                 let padding = $bytes_count as isize - cells.len() as isize;
 
                 if padding >= 0 {
@@ -49,19 +49,19 @@ macro_rules! impl_register {
             /// It works even though we receive `cells` as `&[Cell<u8>]` and not `&mut[Cell<u8>]`
             /// thanks to the interior mutability of `Cell<T>`
             #[inline(always)]
-            pub(crate) fn copy_to_wasmer_mem(&self, cells: &[Cell<u8>]) {
+            pub fn copy_to_wasmer_mem(&self, cells: &[Cell<u8>]) {
                 for (byte, cell) in self.0.iter().zip(cells) {
                     cell.set(*byte);
                 }
             }
 
             /// Returns a copy of the register content as a byte array
-            pub(crate) fn get(&self) -> [u8; $bytes_count] {
+            pub fn get(&self) -> [u8; $bytes_count] {
                 self.0
             }
 
             /// Returns a copy of the register first `n` bytes as a byte-array
-            pub(crate) fn getn(&self, n: usize) -> Vec<u8> {
+            pub fn getn(&self, n: usize) -> Vec<u8> {
                 assert!(n <= $bytes_count);
 
                 self.0[0..n].to_vec()
@@ -70,7 +70,7 @@ macro_rules! impl_register {
             /// Overrides the content of the register with the input `bytes` (byte-array).
             /// Pads remaining bytes with `0` in case `bytes` is small than the register capacity.
             /// Panics when `bytes` is larger then the register capacity.
-            pub(crate) fn set(&mut self, bytes: &[u8]) {
+            pub fn set(&mut self, bytes: &[u8]) {
                 let padding = $bytes_count as isize - bytes.len() as isize;
 
                 if padding > 0 {

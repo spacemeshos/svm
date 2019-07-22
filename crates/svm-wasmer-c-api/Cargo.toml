@@ -1,0 +1,33 @@
+[package]
+name = "svm-wasmer-c-api"
+version = "0.1.0"
+authors = ["Yaron Wittenstein <yaron.wittenstein@gmail.com>"]
+edition = "2018"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib", "staticlib"]
+
+[dependencies.wasmer-runtime-c-api]
+default-features = false
+git = "https://github.com/yaronwittenstein/wasmer"
+branch = "ctx-drop-finalizer"
+features = []
+
+[dependencies.wasmer-runtime]
+default-features = false
+git = "https://github.com/yaronwittenstein/wasmer"
+branch = "ctx-drop-finalizer"
+features = ["singlepass"]
+
+[dependencies.svm-wasmer]
+default-features = false
+path = "../svm-wasmer"
+
+[dependencies.svm-storage]
+default-features = false
+path = "../svm-storage"
+features = ["svm_memory"]
+
+[dependencies]
+libc = "0.2"
