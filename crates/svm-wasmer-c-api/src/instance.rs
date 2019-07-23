@@ -8,7 +8,7 @@ use wasmer_runtime_c_api::import::wasmer_import_t;
 
 pub type MemPageCache<'pc, K = [u8; 32]> = DefaultPageCache<'pc, MemPages<K>>;
 
-include_wasmer_svm_storage_vmcalls!(MemPageCache);
+include_wasmer_svm_vmcalls!(MemPageCache);
 
 // #[no_mangle]
 // pub unsafe extern "C" fn wasmer_append_svm_imports(

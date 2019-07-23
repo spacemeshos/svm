@@ -1,13 +1,14 @@
 use crate::register::WasmerReg64;
-
+use std::ffi::c_void;
 use svm_storage::PageSliceCache;
 
 /// The number of allocated `64-bit` wasmer registers for each `SvmCtx`
 pub const REGS_64_COUNT: usize = 8;
 
 /// `SvmCtx` is a container for the accessible data by `wasmer` instances
-/// * `regs_64` - a static array (`REGS_64_COUNT` elements) of `WasmerReg64`
-/// * `storage` - an instance of `PageSliceCache`
+/// * `node_data` - a pointer to the *node* data
+/// * `regs_64`   - a static array (`REGS_64_COUNT` elements) of `WasmerReg64`
+/// * `storage`   - an instance of `PageSliceCache`
 ///
 /// Explanation about `SvmCtx` lifetimes and generics:
 /// * `a  - the lifetime of the mutable borrowed `PageSliceCache`
@@ -15,6 +16,8 @@ pub const REGS_64_COUNT: usize = 8;
 /// *  PC - a type implementing the trait `PageCache` (`PC` stands for `PageCache`)
 #[repr(C)]
 pub struct SvmCtx<'a, 'pc: 'a, PC> {
+    pub node_data: *const c_void,
+
     pub regs_64: [WasmerReg64; REGS_64_COUNT],
 
     pub storage: &'a mut PageSliceCache<'pc, PC>,
@@ -24,10 +27,14 @@ impl<'a, 'pc: 'a, PC> SvmCtx<'a, 'pc, PC> {
     /// Initializes a new empty `SvmCtx`
     ///
     /// * `storage` - a mutably borrowed `PageSliceCache`
-    pub fn new(storage: &'a mut PageSliceCache<'pc, PC>) -> Self {
+    pub fn new(node_data: *const c_void, storage: &'a mut PageSliceCache<'pc, PC>) -> Self {
         let regs_64 = [WasmerReg64::new(); REGS_64_COUNT];
 
-        Self { regs_64, storage }
+        Self {
+            node_data,
+            regs_64,
+            storage,
+        }
     }
 }
 

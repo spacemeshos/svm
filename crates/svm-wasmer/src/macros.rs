@@ -2,7 +2,7 @@
 /// `svm vmcalls` will access that `SvmCtx` while runninng smart contracts
 #[macro_export]
 macro_rules! create_boxed_svm_ctx {
-    ($addr: expr, $KV: ident, $PS: ident, $PC: ident, $max_pages: expr, $max_pages_slices: expr) => {{
+    ($node_data: expr, $addr: expr, $KV: ident, $PS: ident, $PC: ident, $max_pages: expr, $max_pages_slices: expr) => {{
         use std::cell::RefCell;
         use std::rc::Rc;
 
@@ -30,7 +30,7 @@ macro_rules! create_boxed_svm_ctx {
         let boxed_storage = Box::new(storage);
         let storage: &mut _ = Box::leak(boxed_storage);
 
-        let ctx = SvmCtx::new(storage);
+        let ctx = SvmCtx::new($node_data, storage);
         let boxed_ctx = Box::new(ctx);
 
         let ctx_ptr = Box::leak(boxed_ctx);
@@ -42,12 +42,20 @@ macro_rules! create_boxed_svm_ctx {
 
 /// Builds a `svm wasmer` import object to be used when creating a `wasmer` instance.
 #[macro_export]
-macro_rules! create_svm_import_object {
-    ($addr: expr, $KV: ident, $PS: ident, $PC: ident, $max_pages: expr, $max_pages_slices: expr) => {{
+macro_rules! create_svm_state_gen {
+    ($node_data: expr, $addr: expr, $KV: ident, $PS: ident, $PC: ident, $max_pages: expr, $max_pages_slices: expr) => {{
         use std::ffi::c_void;
         use $crate::ctx::SvmCtx;
 
-        let ctx = create_boxed_svm_ctx!($addr, $KV, $PS, $PC, $max_pages, $max_pages_slices);
+        let ctx = create_boxed_svm_ctx!(
+            $node_data,
+            $addr,
+            $KV,
+            $PS,
+            $PC,
+            $max_pages,
+            $max_pages_slices
+        );
 
         let data = ctx as *mut _ as *mut c_void;
         let dtor: fn(*mut c_void) = |ctx_data| {
@@ -60,11 +68,21 @@ macro_rules! create_svm_import_object {
     }};
 }
 
-/// Returns a closure that when invoked (without args) calls `create_svm_import_object`
+/// Returns a closure that when invoked (without args) calls `create_svm_state_gen`
 #[macro_export]
-macro_rules! lazy_create_svm_import_object {
-    ($addr: expr, $KV: ident, $PS: ident, $PC: ident, $max_pages: expr, $max_pages_slices: expr) => {{
-        || create_svm_import_object!($addr, $KV, $PS, $PC, $max_pages, $max_pages_slices)
+macro_rules! lazy_create_svm_state_gen {
+    ($node_data: expr, $addr: expr, $KV: ident, $PS: ident, $PC: ident, $max_pages: expr, $max_pages_slices: expr) => {{
+        || {
+            create_svm_state_gen!(
+                $node_data,
+                $addr,
+                $KV,
+                $PS,
+                $PC,
+                $max_pages,
+                $max_pages_slices
+            )
+        }
     }};
 }
 
@@ -209,6 +227,18 @@ macro_rules! wasmer_ctx_mem_cells_write {
     }};
 }
 
+/// Extracts from `wasmer` instance context (type: `Ctx`) the `node data` (type: `*const c_void`)
+#[macro_export]
+macro_rules! wasmer_ctx_node_data {
+    ($data: expr, $PC: ident) => {{
+        use $crate::ctx::SvmCtx;
+
+        let ctx: &mut SvmCtx<$PC> = cast_wasmer_data_to_svm_ctx!($data, $PC);
+
+        ctx.node_data
+    }};
+}
+
 /// Extracts from `wasmer` instance context (type: `Ctx`) a mutable borrow for the register indexed `reg_idx`
 #[macro_export]
 macro_rules! wasmer_ctx_reg {
@@ -237,7 +267,8 @@ mod tests {
     use svm_storage::null_storage::{NullPageCache, NullPageSliceCache, NullPagesStorage};
 
     use std::cell::{Cell, RefCell};
-    use std::ffi::c_void;
+    use std::ffi::{c_void, CString};
+    use std::os::raw::c_char;
     use std::rc::Rc;
 
     use svm_storage::{
@@ -260,8 +291,38 @@ mod tests {
     }
 
     #[test]
+    fn node_data() {
+        let s = String::from("Hello World");
+        let s_ptr: *const c_char = CString::new(s).unwrap().as_ptr();
+        let node_data: *const c_void = s_ptr as *const c_void;
+
+        let ctx = create_boxed_svm_ctx!(
+            node_data,
+            0x12_34_56_78,
+            MemKVStore,
+            MemPages,
+            MemPageCache,
+            5,
+            100
+        );
+
+        let (data, _dtor) = wasmer_fake_import_object_data(&ctx);
+        let ctx_node_data: *const c_void = wasmer_ctx_node_data!(data, MemPageCache);
+
+        assert_eq!(ctx_node_data, node_data);
+    }
+
+    #[test]
     fn reg_copy_from_wasmer_mem() {
-        let ctx = create_boxed_svm_ctx!(0x12_34_56_78, MemKVStore, MemPages, MemPageCache, 5, 100);
+        let ctx = create_boxed_svm_ctx!(
+            std::ptr::null(),
+            0x12_34_56_78,
+            MemKVStore,
+            MemPages,
+            MemPageCache,
+            5,
+            100
+        );
 
         let (data, _dtor) = wasmer_fake_import_object_data(&ctx);
 
@@ -294,7 +355,15 @@ mod tests {
 
     #[test]
     fn reg_copy_to_wasmer_mem() {
-        let ctx = create_boxed_svm_ctx!(0x12_34_56_78, MemKVStore, MemPages, MemPageCache, 5, 100);
+        let ctx = create_boxed_svm_ctx!(
+            std::ptr::null(),
+            0x12_34_56_78,
+            MemKVStore,
+            MemPages,
+            MemPageCache,
+            5,
+            100
+        );
 
         let (data, _dtor) = wasmer_fake_import_object_data(&ctx);
 
@@ -317,7 +386,15 @@ mod tests {
 
     #[test]
     fn wasmer_storage_read_write() {
-        let ctx = create_boxed_svm_ctx!(0x12_34_56_78, MemKVStore, MemPages, MemPageCache, 5, 100);
+        let ctx = create_boxed_svm_ctx!(
+            std::ptr::null(),
+            0x12_34_56_78,
+            MemKVStore,
+            MemPages,
+            MemPageCache,
+            5,
+            100
+        );
 
         let (data, _dtor) = wasmer_fake_import_object_data(&ctx);
         let storage = wasmer_data_storage!(data, MemPageCache);
@@ -330,7 +407,15 @@ mod tests {
 
     #[test]
     fn wasmer_storage_read_to_reg() {
-        let ctx = create_boxed_svm_ctx!(0x12_34_56_78, MemKVStore, MemPages, MemPageCache, 5, 100);
+        let ctx = create_boxed_svm_ctx!(
+            std::ptr::null(),
+            0x12_34_56_78,
+            MemKVStore,
+            MemPages,
+            MemPageCache,
+            5,
+            100
+        );
         let (data, _dtor) = wasmer_fake_import_object_data(&ctx);
 
         let layout = svm_page_slice_layout!(1, 0, 100, 3);
@@ -349,7 +434,15 @@ mod tests {
 
     #[test]
     fn wasmer_storage_set_from_reg() {
-        let ctx = create_boxed_svm_ctx!(0x12_34_56_78, MemKVStore, MemPages, MemPageCache, 5, 100);
+        let ctx = create_boxed_svm_ctx!(
+            std::ptr::null(),
+            0x12_34_56_78,
+            MemKVStore,
+            MemPages,
+            MemPageCache,
+            5,
+            100
+        );
 
         let (data, _dtor) = wasmer_fake_import_object_data(ctx);
 

@@ -1021,6 +1021,7 @@ dependencies = [
  "svm-common 0.0.0",
  "svm-storage 0.0.0",
  "wasmer-runtime 0.5.6 (git+https://github.com/yaronwittenstein/wasmer?branch=ctx-drop-finalizer)",
+ "wasmer-runtime-core 0.5.6 (git+https://github.com/yaronwittenstein/wasmer?branch=ctx-drop-finalizer)",
 ]
 
 [[package]]

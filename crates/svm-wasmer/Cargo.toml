@@ -5,6 +5,9 @@ authors = ["Yaron Wittenstein <yaron.wittenstein@gmail.com>"]
 edition = "2018"
 publish = false
 
+[lib]
+proc-macro = false
+
 [dependencies.svm-common]
 path = "../svm-common"
 
@@ -18,6 +21,10 @@ default-features = false
 git = "https://github.com/yaronwittenstein/wasmer"
 branch = "ctx-drop-finalizer"
 features = ["singlepass"]
+
+[dependencies.wasmer-runtime-core]
+git = "https://github.com/yaronwittenstein/wasmer"
+branch = "ctx-drop-finalizer"
 
 [dev-dependencies]
 wabt = "0.7.4"

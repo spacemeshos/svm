@@ -1,4 +1,5 @@
-macro_rules! include_wasmer_svm_vmcalls {
+#[macro_export]
+macro_rules! include_wasmer_svm_register_vmcalls {
     ($PC: ident) => {
         /// Doing an *unsigned* comparison between register `reg1` and register `reg2`.
         /// Assumption: register data is stored in Little-Endian encoding.
@@ -81,5 +82,5 @@ mod tests {
 
     pub type MemPageCache<'pc, K = [u8; 32]> = DefaultPageCache<'pc, MemPages<K>>;
 
-    include_wasmer_svm_vmcalls!(MemPageCache);
+    include_wasmer_svm_register_vmcalls!(MemPageCache);
 }
