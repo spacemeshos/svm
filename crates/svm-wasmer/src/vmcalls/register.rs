@@ -1,3 +1,5 @@
+/// When called, injects the code of the `svm wasmer register vmcalls`.
+/// The `vmcalls` are functions imported into each running `svm wasmer` instance.
 #[macro_export]
 macro_rules! include_wasmer_svm_register_vmcalls {
     ($PC: ident) => {
@@ -9,7 +11,7 @@ macro_rules! include_wasmer_svm_register_vmcalls {
         /// `0`  - if `reg1 == reg2`
         /// `-1` - if `reg1 < reg2`
         fn register_ucmp(ctx: &mut wasmer_runtime::Ctx, reg1: i32, reg2: i32) -> i32 {
-            use crate::register::WasmerReg64;
+            use $crate::register::WasmerReg64;
 
             let reg1: &WasmerReg64 = wasmer_data_reg!(ctx.data, reg1, $PC);
             let reg2: &WasmerReg64 = wasmer_data_reg!(ctx.data, reg2, $PC);
@@ -78,9 +80,7 @@ macro_rules! include_wasmer_svm_register_vmcalls {
 mod tests {
     use super::*;
 
-    use svm_storage::{default::DefaultPageCache, memory::MemPages, PageSliceCache};
+    use svm_storage::memory::MemPageCache32;
 
-    pub type MemPageCache<'pc, K = [u8; 32]> = DefaultPageCache<'pc, MemPages<K>>;
-
-    include_wasmer_svm_register_vmcalls!(MemPageCache);
+    include_wasmer_svm_register_vmcalls!(MemPageCache32);
 }

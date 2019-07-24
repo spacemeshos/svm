@@ -273,13 +273,11 @@ mod tests {
 
     use svm_storage::{
         default::DefaultPageCache,
-        memory::{MemKVStore, MemPages},
+        memory::{MemKVStore, MemPageCache32, MemPages},
         page::{PageIndex, PageSliceLayout, SliceIndex},
         traits::{PageCache, PagesStorage},
         PageSliceCache,
     };
-
-    pub type MemPageCache<'pc, K = [u8; 32]> = DefaultPageCache<'pc, MemPages<K>>;
 
     pub fn wasmer_fake_import_object_data<PC: PageCache>(
         ctx: &SvmCtx<PC>,
@@ -301,13 +299,13 @@ mod tests {
             0x12_34_56_78,
             MemKVStore,
             MemPages,
-            MemPageCache,
+            MemPageCache32,
             5,
             100
         );
 
         let (data, _dtor) = wasmer_fake_import_object_data(&ctx);
-        let ctx_node_data: *const c_void = wasmer_ctx_node_data!(data, MemPageCache);
+        let ctx_node_data: *const c_void = wasmer_ctx_node_data!(data, MemPageCache32);
 
         assert_eq!(ctx_node_data, node_data);
     }
@@ -319,7 +317,7 @@ mod tests {
             0x12_34_56_78,
             MemKVStore,
             MemPages,
-            MemPageCache,
+            MemPageCache32,
             5,
             100
         );
@@ -360,7 +358,7 @@ mod tests {
             0x12_34_56_78,
             MemKVStore,
             MemPages,
-            MemPageCache,
+            MemPageCache32,
             5,
             100
         );
@@ -391,13 +389,13 @@ mod tests {
             0x12_34_56_78,
             MemKVStore,
             MemPages,
-            MemPageCache,
+            MemPageCache32,
             5,
             100
         );
 
         let (data, _dtor) = wasmer_fake_import_object_data(&ctx);
-        let storage = wasmer_data_storage!(data, MemPageCache);
+        let storage = wasmer_data_storage!(data, MemPageCache32);
         let layout = svm_page_slice_layout!(1, 0, 100, 3);
 
         assert_eq!(None, storage.read_page_slice(&layout));
@@ -412,16 +410,16 @@ mod tests {
             0x12_34_56_78,
             MemKVStore,
             MemPages,
-            MemPageCache,
+            MemPageCache32,
             5,
             100
         );
         let (data, _dtor) = wasmer_fake_import_object_data(&ctx);
 
         let layout = svm_page_slice_layout!(1, 0, 100, 3);
-        let regs = wasmer_data_regs!(data, MemPageCache);
+        let regs = wasmer_data_regs!(data, MemPageCache32);
         let reg0 = svm_regs_reg!(regs, 0);
-        let storage = wasmer_data_storage!(data, MemPageCache);
+        let storage = wasmer_data_storage!(data, MemPageCache32);
 
         storage.write_page_slice(&layout, &vec![10, 20, 30]);
 
@@ -439,15 +437,15 @@ mod tests {
             0x12_34_56_78,
             MemKVStore,
             MemPages,
-            MemPageCache,
+            MemPageCache32,
             5,
             100
         );
 
         let (data, _dtor) = wasmer_fake_import_object_data(ctx);
 
-        let regs = wasmer_data_regs!(data, MemPageCache);
-        let storage = wasmer_data_storage!(data, MemPageCache);
+        let regs = wasmer_data_regs!(data, MemPageCache32);
+        let storage = wasmer_data_storage!(data, MemPageCache32);
 
         // writing `[10, 20, 30, 0, 0, 0, 0, 0]` to register `0`
         let reg0 = svm_regs_reg!(regs, 0);

@@ -3,6 +3,8 @@ use wasmer_runtime_core::import::Namespace;
 
 use crate::include_wasmer_svm_vmcalls;
 
+/// When called, injects the code of the `svm wasmer vmcalls` and the code that builds the initial import object
+/// containing the vmcalls.
 #[macro_export]
 macro_rules! include_wasmer_svm_env {
     ($PC: ident) => {
@@ -26,14 +28,9 @@ macro_rules! include_wasmer_svm_env {
 mod tests {
     use super::*;
 
-    use svm_storage::{
-        default::DefaultPageCache,
-        memory::{MemKVStore, MemPages},
-    };
+    use svm_storage::memory::MemPageCache32;
 
-    pub type MemPageCache<'pc, K = [u8; 32]> = DefaultPageCache<'pc, MemPages<K>>;
-
-    include_wasmer_svm_env!(MemPageCache);
+    include_wasmer_svm_env!(MemPageCache32);
 
     #[test]
     fn svm_import_object() {

@@ -1,7 +1,6 @@
-// #![deny(missing_docs)]
+#![deny(missing_docs)]
 // #![deny(unused)]
 #![allow(unused)]
-// #![allow(dead_code)]
 
 //! `svm-wasmer` crate is the glue between `svm` constract storage to `wasmer` live instances
 

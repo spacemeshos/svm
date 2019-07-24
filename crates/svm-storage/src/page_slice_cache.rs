@@ -246,10 +246,8 @@ mod tests {
     use super::*;
     use crate::default::DefaultPageCache;
     use crate::default_page_hash;
-    use crate::memory::MemPages;
+    use crate::memory::{MemPageCache, MemPages};
     use crate::traits::KVStore;
-
-    pub type MemPageCache<'pc, K = [u8; 32]> = DefaultPageCache<'pc, MemPages<K>>;
 
     macro_rules! setup_cache {
         ($page_slice_cache: ident, $db: ident, $addr: expr, $max_pages: expr, $max_page_slices: expr) => {

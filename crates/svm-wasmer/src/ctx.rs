@@ -16,10 +16,14 @@ pub const REGS_64_COUNT: usize = 8;
 /// *  PC - a type implementing the trait `PageCache` (`PC` stands for `PageCache`)
 #[repr(C)]
 pub struct SvmCtx<'a, 'pc: 'a, PC> {
+    /// A pointer to the `node` data. For example the pointer will point a struct having an access
+    /// to the Global State of each account, In order to query an account for its balance.
     pub node_data: *const c_void,
 
+    /// An array that holds the `svm wasmer` registers
     pub regs_64: [WasmerReg64; REGS_64_COUNT],
 
+    /// Accessor to the contract main storage (of type `PageSliceCache`)
     pub storage: &'a mut PageSliceCache<'pc, PC>,
 }
 

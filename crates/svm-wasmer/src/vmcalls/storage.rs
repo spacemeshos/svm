@@ -1,4 +1,4 @@
-/// When called, injects the code of the `svm wasmer vmcalls`.
+/// When called, injects the code of the `svm wasmer storage vmcalls`.
 /// The `vmcalls` are functions imported into each running `svm wasmer` instance.
 #[macro_export]
 macro_rules! include_wasmer_svm_storage_vmcalls {
@@ -20,7 +20,6 @@ macro_rules! include_wasmer_svm_storage_vmcalls {
             dst_reg: i32,
         ) {
             let cells = wasmer_ctx_mem_cells!(ctx, src_mem_idx, src_mem_ptr, len);
-
             let reg = wasmer_data_reg!(ctx.data, dst_reg, $PC);
             reg.copy_from_wasmer_mem(cells);
         }

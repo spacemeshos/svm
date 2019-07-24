@@ -16,6 +16,7 @@ use std::fmt::{self, Debug, Formatter};
 /// means: `WasmerReg64` is a `wasmer` register holding 8 bytes (64 bits)
 macro_rules! impl_register {
     ($bytes_count: expr, $reg_ident: ident) => {
+        /// Implements a `wasmer svm` register of $bytes_count bytes
         #[repr(transparent)]
         #[derive(Copy, Clone)]
         pub struct $reg_ident(pub(crate) [u8; $bytes_count]);
@@ -234,6 +235,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn ucmp_equal() {
         let mut reg1 = WasmerReg64::new();
         let mut reg2 = WasmerReg64::new();
@@ -245,6 +247,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn ucmp_greater_same_length() {
         let mut reg1 = WasmerReg64::new();
         let mut reg2 = WasmerReg64::new();
@@ -257,6 +260,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn ucmp_greater_not_same_length() {
         let mut reg1 = WasmerReg64::new();
         let mut reg2 = WasmerReg64::new();
@@ -269,6 +273,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn ucmp_less_same_length() {
         let mut reg1 = WasmerReg64::new();
         let mut reg2 = WasmerReg64::new();
@@ -281,6 +286,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn ucmp_less_not_same_length() {
         let mut reg1 = WasmerReg64::new();
         let mut reg2 = WasmerReg64::new();
