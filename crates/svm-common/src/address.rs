@@ -6,6 +6,17 @@ use std::ops::Add;
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct Address(pub [u8; 32]);
 
+impl From<*const u8> for Address {
+    fn from(addr_ptr: *const u8) -> Address {
+        let slice: &[u8] = unsafe { std::slice::from_raw_parts(addr_ptr, 32) };
+
+        let mut buf: [u8; 32] = [0; 32];
+        buf.copy_from_slice(slice);
+
+        Address(buf)
+    }
+}
+
 /// Should be used **only** for tests
 #[doc(hidden)]
 impl From<u32> for Address {
@@ -20,6 +31,15 @@ impl From<u32> for Address {
         addr[3] = n3;
 
         Address(addr)
+    }
+}
+
+/// Should be used **only** for tests
+#[doc(hidden)]
+impl From<i32> for Address {
+    #[inline(always)]
+    fn from(n: i32) -> Address {
+        Address::from(n as u32)
     }
 }
 
@@ -87,6 +107,25 @@ impl Add<u32> for Address {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn address_from_ptr() {
+        let expected = Address([
+            0x44, 0x33, 0x22, 0x11, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+        ]);
+
+        let addr_ptr = vec![
+            0x44, 0x33, 0x22, 0x11, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+        ]
+        .as_ptr();
+        let actual = Address::from(addr_ptr);
+
+        assert_eq!(expected, actual);
+    }
 
     #[test]
     fn address_from_u32() {

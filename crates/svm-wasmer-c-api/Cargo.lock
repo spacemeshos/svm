@@ -1029,6 +1029,7 @@ name = "svm-wasmer-c-api"
 version = "0.1.0"
 dependencies = [
  "libc 0.2.60 (registry+https://github.com/rust-lang/crates.io-index)",
+ "svm-common 0.0.0",
  "svm-storage 0.0.0",
  "svm-wasmer 0.0.0",
  "wasmer-runtime 0.5.6 (git+https://github.com/yaronwittenstein/wasmer?branch=ctx-drop-finalizer)",

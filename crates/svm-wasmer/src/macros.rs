@@ -11,12 +11,10 @@ macro_rules! create_boxed_svm_ctx {
         use $crate::ctx::SvmCtx;
 
         let kv = $KV::new();
-
-        let addr = Address::from($addr as u32);
         let db = Rc::new(RefCell::new(kv));
 
         // pages storage
-        let pages = $PS::new(addr, db);
+        let pages = $PS::new($addr, db);
         let boxed_pages = Box::new(pages);
         let leaked_pages: &mut _ = Box::leak(boxed_pages);
 
@@ -72,7 +70,7 @@ macro_rules! create_svm_state_gen {
 #[macro_export]
 macro_rules! lazy_create_svm_state_gen {
     ($node_data: expr, $addr: expr, $KV: ident, $PS: ident, $PC: ident, $max_pages: expr, $max_pages_slices: expr) => {{
-        || {
+        move || {
             create_svm_state_gen!(
                 $node_data,
                 $addr,
@@ -296,7 +294,7 @@ mod tests {
 
         let ctx = create_boxed_svm_ctx!(
             node_data,
-            0x12_34_56_78,
+            Address::from(0x12_34_56_78),
             MemKVStore,
             MemPages,
             MemPageCache32,
@@ -314,7 +312,7 @@ mod tests {
     fn reg_copy_from_wasmer_mem() {
         let ctx = create_boxed_svm_ctx!(
             std::ptr::null(),
-            0x12_34_56_78,
+            Address::from(0x12_34_56_78),
             MemKVStore,
             MemPages,
             MemPageCache32,
@@ -355,7 +353,7 @@ mod tests {
     fn reg_copy_to_wasmer_mem() {
         let ctx = create_boxed_svm_ctx!(
             std::ptr::null(),
-            0x12_34_56_78,
+            Address::from(0x12_34_56_78),
             MemKVStore,
             MemPages,
             MemPageCache32,
@@ -386,7 +384,7 @@ mod tests {
     fn wasmer_storage_read_write() {
         let ctx = create_boxed_svm_ctx!(
             std::ptr::null(),
-            0x12_34_56_78,
+            Address::from(0x12_34_56_78),
             MemKVStore,
             MemPages,
             MemPageCache32,
@@ -407,7 +405,7 @@ mod tests {
     fn wasmer_storage_read_to_reg() {
         let ctx = create_boxed_svm_ctx!(
             std::ptr::null(),
-            0x12_34_56_78,
+            Address::from(0x12_34_56_78),
             MemKVStore,
             MemPages,
             MemPageCache32,
@@ -434,7 +432,7 @@ mod tests {
     fn wasmer_storage_set_from_reg() {
         let ctx = create_boxed_svm_ctx!(
             std::ptr::null(),
-            0x12_34_56_78,
+            Address::from(0x12_34_56_78),
             MemKVStore,
             MemPages,
             MemPageCache32,
