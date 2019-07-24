@@ -1,6 +1,6 @@
 /// This macro includes all the register-arithmetic vmcalls (`extern "C"` interface);
 #[macro_export]
-macro_rules! include_extern_register_arithmetic_vmcalls {
+macro_rules! include_extern_register_vmcalls {
     () => {
         extern "C" {
             fn register_le_ucmp(reg1: i32, reg2: i32) -> i32;

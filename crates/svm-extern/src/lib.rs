@@ -10,4 +10,4 @@ pub mod node;
 pub mod storage;
 
 /// Interfaces for arithmetic calculations on registers
-pub mod register_arithmetic;
+pub mod register;
