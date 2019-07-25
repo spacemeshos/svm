@@ -3,105 +3,14 @@ use std::cell::Cell;
 use svm_storage::memory::{MemKVStore, MemPageCache32, MemPages};
 use svm_wasmer::*;
 
-use wasmer_runtime::{error, func, imports, Func, Module};
+use wasmer_runtime::{func, imports, Func};
 
 // injecting the `wasmer svm storage vmcalls` implemented with `MemPageCache<[u8; 32]>` as the `PageCache` type
 include_wasmer_svm_storage_vmcalls!(MemPageCache32);
 
-fn wasmer_compile_module_func(wasm: &str) -> error::CompileResult<Module> {
-    let wasm = wabt::wat2wasm(&wasm).unwrap();
-
-    wasmer_runtime::compile(&wasm)
-}
-
-const WASM_MEM_TO_REG_COPY: &'static str = r#"
-        (module
-            ;; import `svm` vmcalls
-            (func $svm_mem_to_reg_copy (import "svm" "mem_to_reg_copy") (param i32 i32 i32 i32))
-            (memory 1)  ;; memory `0` (default) is initialized with a `1 page`
-            ;; exported function to be called
-            (func (export "do_copy_to_reg") (param i32 i32 i32)
-              i32.const 0 ;; $src_mem_idx
-              get_local 0 ;; $src_mem_ptr
-              get_local 1 ;; len
-              get_local 2 ;; dst_reg
-              call $svm_mem_to_reg_copy))"#;
-
-const WASM_REG_TO_MEM_COPY: &'static str = r#"
-        (module
-            ;; import `svm` vmcalls
-            (func $svm_reg_to_mem_copy (import "svm" "reg_to_mem_copy") (param i32 i32 i32 i32))
-            (memory 1)  ;; memory `0` (default) is initialized with a `1 page`
-            ;; exported function to be called
-            (func (export "do_copy_to_mem") (param i32 i32 i32)
-              get_local 0 ;; src_reg
-              get_local 1 ;; len
-              i32.const 0 ;; dst_mem_idx
-              get_local 2 ;; dst_mem_ptr
-              call $svm_reg_to_mem_copy))"#;
-
-const WASM_STORAGE_TO_REG_COPY: &'static str = r#"
-        (module
-            ;; import `svm` vmcalls
-            (func $storage_read_to_reg (import "svm" "storage_read_to_reg") (param i32 i32 i32 i32 i32))
-            (memory 1)  ;; memory `0` (default) is initialized with a `1 page`
-            ;; exported function to be called
-            (func (export "do_copy_to_reg") (param i32 i32 i32 i32 i32)
-              get_local 0 ;; src_page
-              get_local 1 ;; src_slice
-              get_local 2 ;; offset
-              get_local 3 ;; len
-              get_local 4 ;; dst_reg
-              call $storage_read_to_reg))"#;
-
-const WASM_STORAGE_TO_MEM_COPY: &'static str = r#"
-        (module
-            ;; import `svm` vmcalls
-            (func $storage_read_to_mem (import "svm" "storage_read_to_mem") (param i32 i32 i32 i32 i32 i32))
-            (memory 1)  ;; memory `0` (default) is initialized with a `1 page`
-            ;; exported function to be called
-            (func (export "do_copy_to_mem") (param i32 i32 i32 i32 i32)
-              get_local 0 ;; src_page
-              get_local 1 ;; src_slice
-              get_local 2 ;; offset
-              get_local 3 ;; len
-              i32.const 0 ;; dst_mem_idx
-              get_local 4 ;; dst_mem_ptr
-              call $storage_read_to_mem))"#;
-
-const WASM_STORAGE_WRITE_FROM_MEM: &'static str = r#"
-        (module
-            ;; import `svm` vmcalls
-            (func $storage_write_from_mem (import "svm" "storage_write_from_mem") (param i32 i32 i32 i32 i32 i32))
-            (memory 1)  ;; memory `0` (default) is initialized with a `1 page`
-            ;; exported function to be called
-            (func (export "do_write_from_mem") (param i32 i32 i32 i32 i32)
-              i32.const 0 ;; src_mem_idx
-              get_local 0 ;; src_mem_ptr
-              get_local 1 ;; len
-              get_local 2 ;; dst_page
-              get_local 3 ;; dst_slice
-              get_local 4 ;; dst_offset
-              call $storage_write_from_mem))"#;
-
-const WASM_STORAGE_WRITE_FROM_REG: &'static str = r#"
-        (module
-            ;; import `svm` vmcalls
-            (func $storage_write_from_reg (import "svm" "storage_write_from_reg") (param i32 i32 i32 i32 i32))
-            (memory 1)  ;; memory `0` (default) is initialized with a `1 page`
-            ;; exported function to be called
-            (func (export "do_write_from_reg") (param i32 i32 i32 i32 i32)
-              get_local 0 ;; src_reg
-              get_local 1 ;; len
-              get_local 2 ;; dst_page
-              get_local 3 ;; dst_slice
-              get_local 4 ;; dst_offset
-              call $storage_write_from_reg))"#;
-
 macro_rules! wasmer_compile_module {
     ($wasm:expr) => {{
         let wasm = wabt::wat2wasm(&$wasm).unwrap();
-
         wasmer_runtime::compile(&wasm).unwrap()
     }};
 }
@@ -114,8 +23,17 @@ macro_rules! wasmer_compile_module_file {
 }
 
 #[test]
-#[ignore]
-fn vmcalls_mem_to_reg_copy_sefault_bug() {
+fn vmcalls_empty_wasm() {
+    let wasm = r#"
+        (module
+          (func (export "do_nothing")))"#;
+
+    let module = wasmer_compile_module!(&wasm);
+    let _instance = module.instantiate(&imports! {}).unwrap();
+}
+
+#[test]
+fn vmcalls_mem_to_reg_copy() {
     let module = wasmer_compile_module_file!("wasm/mem_to_reg_copy.wast");
 
     let import_object = imports! {
@@ -144,49 +62,8 @@ fn vmcalls_mem_to_reg_copy_sefault_bug() {
 }
 
 #[test]
-fn vmcalls_empty_wasm() {
-    let wasm = r#"
-        (module
-          (func (export "do_nothing")))"#;
-
-    let module = wasmer_compile_module!(&wasm);
-    let _instance = module.instantiate(&imports! {}).unwrap();
-}
-
-#[test]
-fn vmcalls_mem_to_reg_copy() {
-    let module = wasmer_compile_module_func(WASM_MEM_TO_REG_COPY).unwrap();
-    // let module = wasmer_compile_module_file!("wasm/mem_to_reg_copy.wast");
-
-    let import_object = imports! {
-        lazy_create_svm_state_gen!(std::ptr::null(), Address::from(0x12_34_56_78), MemKVStore, MemPages, MemPageCache32, 5, 100),
-
-        "svm" => {
-            "mem_to_reg_copy" => func!(mem_to_reg_copy),
-        },
-    };
-
-    let instance = module.instantiate(&import_object).unwrap();
-
-    // initializing memory #0 cells `200..203` with values `10, 20, 30` respectively
-    wasmer_ctx_mem_cells_write!(instance.context(), 0, 200, &[10, 20, 30]);
-
-    // asserting register content is empty prior copy
-    let reg = wasmer_ctx_reg!(instance.context(), 2, MemPageCache32);
-    assert_eq!([0, 0, 0, 0, 0, 0, 0, 0], reg.get());
-
-    let do_copy: Func<(i32, i32, i32)> = instance.func("do_copy_to_reg").unwrap();
-    assert!(do_copy.call(200, 3, 2).is_ok());
-
-    // asserting register content is `10, 20, 30, 0, ... 0`
-    let reg = wasmer_ctx_reg!(instance.context(), 2, MemPageCache32);
-    assert_eq!([10, 20, 30, 0, 0, 0, 0, 0], reg.get());
-}
-
-#[test]
 fn vmcalls_reg_to_mem_copy() {
-    let module = wasmer_compile_module_func(WASM_REG_TO_MEM_COPY).unwrap();
-    // let module = wasmer_compile_module_file!("wasm/reg_to_mem_copy.wast");
+    let module = wasmer_compile_module_file!("wasm/reg_to_mem_copy.wast");
 
     let import_object = imports! {
         lazy_create_svm_state_gen!(std::ptr::null(), Address::from(0x12_34_56_78), MemKVStore, MemPages, MemPageCache32, 5, 100),
@@ -216,8 +93,7 @@ fn vmcalls_reg_to_mem_copy() {
 
 #[test]
 fn vmcalls_storage_read_an_empty_page_slice_to_reg() {
-    let module = wasmer_compile_module_func(WASM_STORAGE_TO_REG_COPY).unwrap();
-    // let module = wasmer_compile_module_file!("wasm/storage_to_reg_copy.wast");
+    let module = wasmer_compile_module_file!("wasm/storage_to_reg_copy.wast");
 
     let import_object = imports! {
         lazy_create_svm_state_gen!(std::ptr::null(), Address::from(0x12_34_56_78), MemKVStore, MemPages, MemPageCache32, 5, 100),
@@ -246,8 +122,7 @@ fn vmcalls_storage_read_an_empty_page_slice_to_reg() {
 
 #[test]
 fn vmcalls_storage_read_non_empty_page_slice_to_reg() {
-    let module = wasmer_compile_module_func(WASM_STORAGE_TO_REG_COPY).unwrap();
-    // let module = wasmer_compile_module_file!("wasm/storage_to_reg_copy.wast");
+    let module = wasmer_compile_module_file!("wasm/storage_to_reg_copy.wast");
 
     let import_object = imports! {
         lazy_create_svm_state_gen!(std::ptr::null(), Address::from(0x12_34_56_78), MemKVStore, MemPages, MemPageCache32, 5, 100),
@@ -280,8 +155,7 @@ fn vmcalls_storage_read_non_empty_page_slice_to_reg() {
 
 #[test]
 fn vmcalls_storage_read_an_empty_page_slice_to_mem() {
-    let module = wasmer_compile_module_func(WASM_STORAGE_TO_MEM_COPY).unwrap();
-    // let module = wasmer_compile_module_file!("wasm/storage_to_mem_copy.wast");
+    let module = wasmer_compile_module_file!("wasm/storage_to_mem_copy.wast");
 
     let import_object = imports! {
         lazy_create_svm_state_gen!(std::ptr::null(), Address::from(0x12_34_56_78), MemKVStore, MemPages, MemPageCache32, 5, 100),
@@ -308,8 +182,7 @@ fn vmcalls_storage_read_an_empty_page_slice_to_mem() {
 
 #[test]
 fn vmcalls_storage_read_non_empty_page_slice_to_mem() {
-    let module = wasmer_compile_module_func(WASM_STORAGE_TO_MEM_COPY).unwrap();
-    // let module = wasmer_compile_module_file!("wasm/storage_to_mem_copy.wast");
+    let module = wasmer_compile_module_file!("wasm/storage_to_mem_copy.wast");
 
     let import_object = imports! {
         lazy_create_svm_state_gen!(std::ptr::null(), Address::from(0x12_34_56_78), MemKVStore, MemPages, MemPageCache32, 5, 100),
@@ -337,8 +210,8 @@ fn vmcalls_storage_read_non_empty_page_slice_to_mem() {
 
 #[test]
 fn vmcalls_storage_write_from_mem() {
-    let module = wasmer_compile_module_func(WASM_STORAGE_WRITE_FROM_MEM).unwrap();
-    // let module = wasmer_compile_module_file!("wasm/storage_write_from_mem.wast");
+    // let module = wasmer_compile_module_func(WASM_STORAGE_WRITE_FROM_MEM).unwrap();
+    let module = wasmer_compile_module_file!("wasm/storage_write_from_mem.wast");
 
     let import_object = imports! {
         lazy_create_svm_state_gen!(std::ptr::null(), Address::from(0x12_34_56_78), MemKVStore, MemPages, MemPageCache32, 5, 100),
@@ -367,8 +240,7 @@ fn vmcalls_storage_write_from_mem() {
 
 #[test]
 fn vmcalls_storage_write_from_reg() {
-    let module = wasmer_compile_module_func(WASM_STORAGE_WRITE_FROM_REG).unwrap();
-    // let module = wasmer_compile_module_file!("wasm/storage_write_from_reg.wast");
+    let module = wasmer_compile_module_file!("wasm/storage_write_from_reg.wast");
 
     let import_object = imports! {
         lazy_create_svm_state_gen!(std::ptr::null(), Address::from(0x12_34_56_78), MemKVStore, MemPages, MemPageCache32, 5, 100),

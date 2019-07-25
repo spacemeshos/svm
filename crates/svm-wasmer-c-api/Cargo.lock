@@ -1177,7 +1177,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "wasmer-clif-backend"
 version = "0.5.7"
-source = "git+https://github.com/spacemeshos/wasmer?branch=develop#c767b265d7a40a596094c707992e4812d1b779ad"
+source = "git+https://github.com/spacemeshos/wasmer?branch=develop#6cc31d3b49f1299b746125d81b88f589169239c3"
 dependencies = [
  "byteorder 1.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "cranelift-codegen 0.31.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1227,7 +1227,7 @@ dependencies = [
 [[package]]
 name = "wasmer-runtime"
 version = "0.5.7"
-source = "git+https://github.com/spacemeshos/wasmer?branch=develop#c767b265d7a40a596094c707992e4812d1b779ad"
+source = "git+https://github.com/spacemeshos/wasmer?branch=develop#6cc31d3b49f1299b746125d81b88f589169239c3"
 dependencies = [
  "lazy_static 1.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "memmap 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1239,7 +1239,7 @@ dependencies = [
 [[package]]
 name = "wasmer-runtime-c-api"
 version = "0.5.7"
-source = "git+https://github.com/spacemeshos/wasmer?branch=develop#c767b265d7a40a596094c707992e4812d1b779ad"
+source = "git+https://github.com/spacemeshos/wasmer?branch=develop#6cc31d3b49f1299b746125d81b88f589169239c3"
 dependencies = [
  "cbindgen 0.8.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.60 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1250,7 +1250,7 @@ dependencies = [
 [[package]]
 name = "wasmer-runtime-core"
 version = "0.5.7"
-source = "git+https://github.com/spacemeshos/wasmer?branch=develop#c767b265d7a40a596094c707992e4812d1b779ad"
+source = "git+https://github.com/spacemeshos/wasmer?branch=develop#6cc31d3b49f1299b746125d81b88f589169239c3"
 dependencies = [
  "bincode 1.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "blake2b_simd 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1279,7 +1279,7 @@ dependencies = [
 [[package]]
 name = "wasmer-singlepass-backend"
 version = "0.5.7"
-source = "git+https://github.com/spacemeshos/wasmer?branch=develop#c767b265d7a40a596094c707992e4812d1b779ad"
+source = "git+https://github.com/spacemeshos/wasmer?branch=develop#6cc31d3b49f1299b746125d81b88f589169239c3"
 dependencies = [
  "byteorder 1.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "colored 1.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1297,7 +1297,7 @@ dependencies = [
 [[package]]
 name = "wasmer-win-exception-handler"
 version = "0.5.7"
-source = "git+https://github.com/spacemeshos/wasmer?branch=develop#c767b265d7a40a596094c707992e4812d1b779ad"
+source = "git+https://github.com/spacemeshos/wasmer?branch=develop#6cc31d3b49f1299b746125d81b88f589169239c3"
 dependencies = [
  "bindgen 0.46.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cmake 0.1.40 (registry+https://github.com/rust-lang/crates.io-index)",
