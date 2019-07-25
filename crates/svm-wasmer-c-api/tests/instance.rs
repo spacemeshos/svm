@@ -2,6 +2,7 @@ extern crate svm_wasmer_c_api;
 
 use svm_wasmer_c_api::include_svm_wasmer_instance_api;
 
+use std::slice;
 use std::sync::Arc;
 use svm_common::Address;
 
@@ -14,7 +15,7 @@ use wasmer_runtime_c_api::{
     wasmer_byte_array, wasmer_result_t,
 };
 
-use wasmer_runtime::ImportObject;
+use wasmer_runtime::{Func, ImportObject};
 use wasmer_runtime_core::{
     export::{Context, Export, FuncPointer},
     types::{FuncSig, Type},
@@ -37,13 +38,26 @@ unsafe extern "C" fn get_balance(_ctx: &wasmer_runtime::Ctx, addr: i32) -> i64 {
 }
 
 fn cast_str_to_wasmer_byte_array(s: &str) -> wasmer_byte_array {
-    let bytes_vec = s.bytes();
-    let bytes_len: u32 = bytes_vec.len() as u32;
+    let bytes: &[u8] = s.as_bytes();
+    let bytes_ptr: *const u8 = bytes.as_ptr();
+    let bytes_len: u32 = bytes.len() as u32;
 
-    let boxed_bytes = Box::new(bytes_vec);
-    let bytes: *const u8 = Box::into_raw(boxed_bytes) as *const u8;
+    std::mem::forget(bytes);
 
-    wasmer_byte_array { bytes, bytes_len }
+    wasmer_byte_array {
+        bytes: bytes_ptr,
+        bytes_len,
+    }
+}
+
+unsafe fn cast_wasmer_byte_array_to_string(wasmer_bytes: &wasmer_byte_array) -> String {
+    let slice: &[u8] = slice::from_raw_parts(wasmer_bytes.bytes, wasmer_bytes.bytes_len as usize);
+
+    if let Ok(s) = std::str::from_utf8(slice) {
+        s.to_string()
+    } else {
+        panic!("error converting `wasmer_byte_array` to string")
+    }
 }
 
 macro_rules! svm_vmcall_as_wasmer_import_func_t {
@@ -75,7 +89,15 @@ macro_rules! wasmer_compile_module_file {
 }
 
 #[test]
-fn create_import_object() {
+fn cast_string_to_wasmer_by_array() {
+    let module_bytes = cast_str_to_wasmer_byte_array("env");
+    let module_str = unsafe { cast_wasmer_byte_array_to_string(&module_bytes) };
+
+    assert_eq!("env", module_str.as_str());
+}
+
+#[test]
+fn call_node_vmcall() {
     let node_data = NodeData {
         ip: [192, 168, 1, 10],
         os: String::from("mac"),
@@ -90,7 +112,7 @@ fn create_import_object() {
         svm_vmcall_as_wasmer_import_func_t!(get_balance, params, returns);
 
     let mut get_balance_import = wasmer_import_t {
-        module_name: cast_str_to_wasmer_byte_array("env"),
+        module_name: cast_str_to_wasmer_byte_array("node"),
         import_name: cast_str_to_wasmer_byte_array("get_balance"),
         tag: wasmer_import_export_kind::WASM_FUNCTION,
         value: wasmer_import_export_value {
@@ -100,6 +122,7 @@ fn create_import_object() {
 
     let imports: *mut wasmer_import_t = &mut get_balance_import as *mut _;
     let imports_len: libc::c_int = 1;
+    let import_object: &mut ImportObject;
 
     unsafe {
         let mut import_object_inner: *mut c_void = std::mem::MaybeUninit::uninit().assume_init();
@@ -114,21 +137,13 @@ fn create_import_object() {
             imports_len,
         );
 
-        let import_obj: &mut ImportObject = &mut *(*import_object_ptr as *mut _);
+        import_object = &mut *(*import_object_ptr as *mut _);
+    };
 
-        let ns = import_obj.get_namespace("svm").unwrap();
-        let export: Export = ns.get_export("mem_to_reg_copy").unwrap();
+    let module = wasmer_compile_module_file!("wasm/get_balance.wast");
+    let instance = module.instantiate(&import_object).unwrap();
 
-        match export {
-            Export::Function { func: func, .. } => {
-                let expected = FuncPointer::new(mem_to_reg_copy as *const _).inner();
-                let actual = func.inner();
-
-                assert_eq!(expected, actual);
-            }
-            _ => unreachable!(),
-        }
-
-        // let ns = import_obj.get_namespace("env").unwrap();
-    }
+    let gb_func: Func<i32, i64> = instance.func("get_balance_proxy").unwrap();
+    let res = gb_func.call(20).unwrap();
+    assert_eq!(100 + 20, res);
 }

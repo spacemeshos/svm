@@ -37,9 +37,16 @@ macro_rules! include_svm_wasmer_instance_api {
                 5,
                 100
             );
+
             let mut import_obj = ImportObject::new_with_data(state_gen);
+
             append_internal_imports(&mut import_obj);
-            append_external_imports(&mut import_obj, imports, imports_len);
+
+            let _res = append_external_imports(&mut import_obj, imports, imports_len);
+            // TODO: assert result
+            // if res != wasmer_result_t::WASMER_OK {
+            //     return res;
+            // }
 
             *import_object_ptr = cast_import_obj_to_ptr(import_obj);
 
@@ -51,20 +58,73 @@ macro_rules! include_svm_wasmer_instance_api {
             use wasmer_runtime_core::import::Namespace;
 
             let mut ns = Namespace::new();
-
             ns.insert("mem_to_reg_copy", func!(mem_to_reg_copy));
+
             // ...
             // ...
 
             import_obj.register("svm", ns);
         }
 
-        fn append_external_imports(
-            import_obj: &mut wasmer_runtime::ImportObject,
+        unsafe fn append_external_imports(
+            import_object: &mut wasmer_runtime::ImportObject,
             imports: *mut wasmer_import_t,
             imports_len: libc::c_int,
-        ) {
-            //
+        ) -> wasmer_result_t {
+            use std::collections::HashMap;
+            use std::slice;
+
+            use wasmer_runtime_c_api::error::{update_last_error, CApiError};
+            use wasmer_runtime_core::import::Namespace;
+
+            /// original code has been takes from `wasmer_instantiate` located at:
+            /// https://github.com/wasmerio/wasmer/blob/master/lib/runtime-c-api/src/instance.rs
+            let imports: &[wasmer_import_t] = slice::from_raw_parts(imports, imports_len as usize);
+            let mut namespaces = HashMap::new();
+
+            for import in imports {
+                let module_name = slice::from_raw_parts(
+                    import.module_name.bytes,
+                    import.module_name.bytes_len as usize,
+                );
+                let module_name = if let Ok(s) = std::str::from_utf8(module_name) {
+                    s
+                } else {
+                    update_last_error(CApiError {
+                        msg: "error converting module name to string".to_string(),
+                    });
+                    return wasmer_result_t::WASMER_ERROR;
+                };
+                let import_name = slice::from_raw_parts(
+                    import.import_name.bytes,
+                    import.import_name.bytes_len as usize,
+                );
+                let import_name = if let Ok(s) = std::str::from_utf8(import_name) {
+                    s
+                } else {
+                    update_last_error(CApiError {
+                        msg: "error converting import_name to string".to_string(),
+                    });
+                    return wasmer_result_t::WASMER_ERROR;
+                };
+
+                let namespace = namespaces.entry(module_name).or_insert_with(Namespace::new);
+
+                let export = match import.tag {
+                    wasmer_import_export_kind::WASM_FUNCTION => {
+                        let func_export = import.value.func as *mut Export;
+                        (&*func_export).clone()
+                    }
+                    _ => unreachable!(),
+                };
+                namespace.insert(import_name, export);
+            }
+
+            for (module_name, namespace) in namespaces.into_iter() {
+                import_object.register(module_name, namespace);
+            }
+
+            wasmer_result_t::WASMER_OK
         }
 
         fn cast_import_obj_to_ptr(import_obj: wasmer_runtime::ImportObject) -> *mut c_void {
