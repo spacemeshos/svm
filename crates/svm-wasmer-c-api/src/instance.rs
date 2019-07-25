@@ -1,4 +1,5 @@
 use std::ffi::c_void;
+use std::sync::Arc;
 
 use svm_common::Address;
 use svm_wasmer::ctx::SvmCtx;
@@ -8,20 +9,19 @@ use svm_storage::memory::{MemKVStore, MemPageCache32, MemPages};
 
 use wasmer_runtime::{func, imports, ImportObject};
 use wasmer_runtime_c_api::{
-    export::wasmer_import_export_value, import::wasmer_import_t, instance::wasmer_instance_t,
+    export::wasmer_import_export_value,
+    import::{wasmer_import_func_t, wasmer_import_t},
+    instance::wasmer_instance_t,
     wasmer_byte_array, wasmer_result_t,
 };
-use wasmer_runtime_core::import::Namespace;
+use wasmer_runtime_core::{
+    export::{Context, Export, FuncPointer},
+    import::Namespace,
+    types::{FuncSig, Type},
+};
 
+/// Injecting the `svm vmcalls` backed by page-cache `MemPageCache32` into this file
 include_wasmer_svm_vmcalls!(MemPageCache32);
-
-#[repr(C)]
-#[derive(Clone)]
-struct wasmer_svm_import_object_t {
-    addr: *const u8,
-    imports: *mut wasmer_import_t,
-    imports_len: libc::c_int,
-}
 
 #[no_mangle]
 pub unsafe extern "C" fn wasmer_svm_import_object(
@@ -88,23 +88,34 @@ mod tests {
         os: String,
     }
 
-    fn get_balance(ctx: &wasmer_runtime::Ctx, addr: i32) {
-        // ...
+    #[no_mangle]
+    unsafe extern "C" fn get_balance(ctx: &wasmer_runtime::Ctx, addr: i32) -> i64 {
+        return 123;
     }
 
-    fn set_balance(ctx: &wasmer_runtime::Ctx, addr: i32, balance: i32) {
-        // ...
+    fn cast_str_to_wasmer_byte_array(s: String) -> wasmer_byte_array {
+        let bytes_vec = s.into_bytes();
+        let bytes_len: u32 = bytes_vec.len() as u32;
+
+        let boxed_bytes = Box::new(bytes_vec);
+        let bytes: *const u8 = Box::into_raw(boxed_bytes) as *const u8;
+
+        wasmer_byte_array { bytes, bytes_len }
     }
 
-    // fn cast_str_to_wasmer_byte_array(s: &str) -> wasmer_byte_array {
-    //     let bytes: *const u8 = s.as_ptr();
-    //     let bytes_len: u32 = s.len() as u32;
-    //
-    //     wasmer_byte_array { bytes, bytes_len }
-    // }
+    macro_rules! func_as_wasmer_import_export_value {
+        ($func: path, $params: expr, $returns: expr) => {
+            unsafe {
+                let export = Box::new(Export::Function {
+                    func: FuncPointer::new($func as _),
+                    ctx: Context::Internal,
+                    signature: Arc::new(FuncSig::new($params, $returns)),
+                });
 
-    // fn func_as_wasmer_import_export_value() -> wasmer_import_export_value {
-    // }
+                Box::into_raw(export) as *mut wasmer_import_func_t
+            }
+        };
+    }
 
     #[test]
     fn create_import_object() {
@@ -119,7 +130,13 @@ mod tests {
         let node_data_ptr: *const c_void = &node_data as *const NodeData as *const _;
 
         let imports: *mut wasmer_import_t;
-        let imports_len: libc::c_int = 2;
+        let imports_len: libc::c_int = 1;
+
+        let params = vec![Type::I32];
+        let returns = vec![Type::I64];
+
+        let get_balance_ptr: *mut wasmer_import_export_value =
+            func_as_wasmer_import_export_value!(get_balance, params, returns) as *mut _;
 
         // wasmer_svm_import_object(import_object, addr_ptr, node_data_ptr,
     }
