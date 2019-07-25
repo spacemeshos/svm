@@ -31,6 +31,15 @@ struct NodeData {
     os: String,
 }
 
+impl Default for NodeData {
+    fn default() -> Self {
+        Self {
+            ip: [0; 4],
+            os: "max".to_string(),
+        }
+    }
+}
+
 /// Represents a fake `get_balance` node vmcall
 #[no_mangle]
 unsafe extern "C" fn get_balance(_ctx: &wasmer_runtime::Ctx, addr: i32) -> i64 {
@@ -60,7 +69,15 @@ unsafe fn cast_wasmer_byte_array_to_string(wasmer_bytes: &wasmer_byte_array) -> 
     }
 }
 
-macro_rules! svm_vmcall_as_wasmer_import_func_t {
+fn us32_addr_as_ptr(addr: u32) -> *const u8 {
+    Address::from(addr).as_ptr()
+}
+
+fn node_data_as_ptr(node_data: &NodeData) -> *const c_void {
+    node_data as *const NodeData as *const _
+}
+
+macro_rules! cast_vmcall_to_import_func_t {
     ($func: path, $params: expr, $returns: expr) => {
         unsafe {
             let export = Box::new(Export::Function {
@@ -88,6 +105,25 @@ macro_rules! wasmer_compile_module_file {
     }};
 }
 
+fn build_wasmer_import_t(
+    mode_name: &str,
+    import_name: &str,
+    func: *const wasmer_import_func_t,
+) -> wasmer_import_t {
+    wasmer_import_t {
+        module_name: cast_str_to_wasmer_byte_array(mode_name),
+        import_name: cast_str_to_wasmer_byte_array(import_name),
+        tag: wasmer_import_export_kind::WASM_FUNCTION,
+        value: wasmer_import_export_value { func },
+    }
+}
+
+fn alloc_import_obj_ptr_ptr() -> *mut *mut c_void {
+    let mut import_object_inner: *mut c_void =
+        unsafe { std::mem::MaybeUninit::uninit().assume_init() };
+    &mut import_object_inner as *mut _
+}
+
 #[test]
 fn cast_string_to_wasmer_by_array() {
     let module_bytes = cast_str_to_wasmer_byte_array("env");
@@ -97,55 +133,30 @@ fn cast_string_to_wasmer_by_array() {
 }
 
 #[test]
-fn call_node_vmcall() {
-    let node_data = NodeData {
-        ip: [192, 168, 1, 10],
-        os: String::from("mac"),
-    };
+fn call_node_get_balance() {
+    let node_data = NodeData::default();
+    let gb_ptr = cast_vmcall_to_import_func_t!(get_balance, vec![Type::I32], vec![Type::I64]);
+    let mut gb_import = build_wasmer_import_t("node", "get_balance", gb_ptr);
 
-    let addr_ptr: *const u8 = Address::from(0x11_22_33_44).as_ptr();
-    let node_data_ptr: *const c_void = &node_data as *const NodeData as *const _;
-
-    let params = vec![Type::I32];
-    let returns = vec![Type::I64];
-    let get_balance_ptr: *const wasmer_import_func_t =
-        svm_vmcall_as_wasmer_import_func_t!(get_balance, params, returns);
-
-    let mut get_balance_import = wasmer_import_t {
-        module_name: cast_str_to_wasmer_byte_array("node"),
-        import_name: cast_str_to_wasmer_byte_array("get_balance"),
-        tag: wasmer_import_export_kind::WASM_FUNCTION,
-        value: wasmer_import_export_value {
-            func: get_balance_ptr,
-        },
-    };
-
-    let imports: *mut wasmer_import_t = &mut get_balance_import as *mut _;
-    let imports_len: libc::c_int = 1;
-    let max_pages: libc::c_int = 5;
-    let max_pages_slices: libc::c_int = 100;
-    let import_object: &mut ImportObject;
+    let import_obj: &mut ImportObject;
+    let import_obj_ptr_ptr = alloc_import_obj_ptr_ptr();
 
     unsafe {
-        let mut import_object_inner: *mut c_void = std::mem::MaybeUninit::uninit().assume_init();
-        let import_object_ptr: *mut *mut c_void = &mut import_object_inner as *mut _;
-
         wasmer_svm_import_object(
-            import_object_ptr,
-            addr_ptr,
-            max_pages,
-            max_pages_slices,
-            node_data_ptr,
-            imports,
-            imports_len,
+            import_obj_ptr_ptr,
+            us32_addr_as_ptr(0x11_22_33_44), // `addr_ptr: *const u8
+            5,                               // `max_pages: libc::c_int`
+            100,                             // `max_pages_slices: libc::c_int`
+            node_data_as_ptr(&node_data),    // node_data_ptr:: *const c_void
+            &mut gb_import as *mut _,        // `imports: *mut wasmer_import_t
+            1,                               // `imports_len: libc::c_int`
         );
 
-        import_object = &mut *(*import_object_ptr as *mut _);
+        import_obj = &mut *(*import_obj_ptr_ptr as *mut _);
     };
 
     let module = wasmer_compile_module_file!("wasm/get_balance.wast");
-    let instance = module.instantiate(&import_object).unwrap();
-
+    let instance = module.instantiate(&import_obj).unwrap();
     let func: Func<i32, i64> = instance.func("get_balance_proxy").unwrap();
     let res = func.call(20).unwrap();
     assert_eq!(100 + 20, res);
