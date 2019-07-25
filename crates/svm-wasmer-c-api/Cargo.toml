@@ -40,3 +40,6 @@ features = ["svm_memory"]
 
 [dependencies]
 libc = "0.2"
+
+[dev-dependencies]
+wabt = "0.7.4"
