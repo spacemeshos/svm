@@ -18,13 +18,13 @@ features = ["svm_memory"]
 
 [dependencies.wasmer-runtime]
 default-features = false
-git = "https://github.com/yaronwittenstein/wasmer"
-branch = "ctx-drop-finalizer"
+git = "https://github.com/spacemeshos/wasmer"
+branch = "develop"
 features = ["singlepass"]
 
 [dependencies.wasmer-runtime-core]
-git = "https://github.com/yaronwittenstein/wasmer"
-branch = "ctx-drop-finalizer"
+git = "https://github.com/spacemeshos/wasmer"
+branch = "develop"
 
 [dev-dependencies]
 wabt = "0.7.4"

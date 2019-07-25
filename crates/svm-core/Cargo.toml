@@ -11,20 +11,23 @@ description = "Spacemesh Virtual Machine"
 publish = false
 
 [dependencies]
-wasmer-singlepass-backend = { git = "https://github.com/yaronwittenstein/wasmer", branch = "ctx-drop-finalizer" }
 wasmparser = "0.31.1"
 svm-storage = { path = "../svm-storage/" }
 
+[dependencies.wasmer-singlepass-backend]
+git = "https://github.com/spacemeshos/wasmer"
+branch = "develop"
+
 [dependencies.wasmer-runtime]
 default-features = false
-git = "https://github.com/yaronwittenstein/wasmer"
-branch = "ctx-drop-finalizer"
+git = "https://github.com/spacemeshos/wasmer"
+branch = "develop"
 features = ["singlepass"]
 
 [dependencies.wasmer-runtime-core]
 default-features = false
-git = "https://github.com/yaronwittenstein/wasmer"
-branch = "ctx-drop-finalizer"
+git = "https://github.com/spacemeshos/wasmer"
+branch = "develop"
 features = ["backend-singlepass"]
 
 [dev-dependencies]

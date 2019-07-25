@@ -10,20 +10,20 @@ crate-type = ["cdylib", "rlib", "staticlib"]
 
 [dependencies.wasmer-runtime-c-api]
 default-features = false
-git = "https://github.com/yaronwittenstein/wasmer"
-branch = "ctx-drop-finalizer"
+git = "https://github.com/spacemeshos/wasmer"
+branch = "develop"
 features = []
 
 [dependencies.wasmer-runtime-core]
 default-features = false
-git = "https://github.com/yaronwittenstein/wasmer"
-branch = "ctx-drop-finalizer"
+git = "https://github.com/spacemeshos/wasmer"
+branch = "develop"
 features = []
 
 [dependencies.wasmer-runtime]
 default-features = false
-git = "https://github.com/yaronwittenstein/wasmer"
-branch = "ctx-drop-finalizer"
+git = "https://github.com/spacemeshos/wasmer"
+branch = "develop"
 features = ["singlepass"]
 
 [dependencies.svm-wasmer]
