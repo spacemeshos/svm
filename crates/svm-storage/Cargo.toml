@@ -12,7 +12,10 @@ publish = false
 
 [dependencies]
 cfg-if = "0.1.9"
-svm-common = { path = "../svm-common" }
+
+[dependencies.svm-common]
+path = "../svm-common"
+version = "0.0.0"
 
 [dependencies.leveldb]
 optional = true

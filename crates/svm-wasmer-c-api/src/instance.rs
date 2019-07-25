@@ -17,6 +17,8 @@ macro_rules! include_svm_wasmer_instance_api {
         pub unsafe extern "C" fn wasmer_svm_import_object(
             import_object_ptr: *mut *mut c_void,
             addr_ptr: *const u8,
+            max_pages: libc::c_int,
+            max_page_slices: libc::c_int,
             node_data_ptr: *const c_void,
             imports: *mut wasmer_import_t,
             imports_len: libc::c_int,
@@ -24,18 +26,14 @@ macro_rules! include_svm_wasmer_instance_api {
             use svm_common::Address;
             use wasmer_runtime::ImportObject;
 
-            // TODO: replace the hardcoded `maximum_pages = 5` and `maximum_slices = 100` with:
-            // opts: *const *const wasmer_byte_array,
-            // opts_len: libc::c_int,
-
             let state_gen = lazy_create_svm_state_gen!(
                 node_data_ptr,
                 Address::from(addr_ptr),
                 $KV,
                 $PS,
                 $PC,
-                5,
-                100
+                max_pages as usize,
+                max_page_slices as usize
             );
 
             let mut import_obj = ImportObject::new_with_data(state_gen);

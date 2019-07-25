@@ -63,12 +63,12 @@ impl<'pc, PC: PageCache> PageSliceCache<'pc, PC> {
     ///  upon requests (`read_page`) and for propagating new pages versions (`write_page`).
     ///  However, persistence only takes place by triggerring `commit`
     ///
-    /// * `max_page_slices` - the maximum number of page-slices the `PageSliceCache` instance could
-    ///   use when doing read / write. A page slice index is within the range `0..(max_page_slices - 1)` (inclusive)
-    pub fn new(page_cache: &'pc mut PC, max_page_slices: usize) -> Self {
+    /// * `max_pages_slices` - the maximum number of page-slices the `PageSliceCache` instance could
+    ///   use when doing read / write. A page slice index is within the range `0..(max_pages_slices - 1)` (inclusive)
+    pub fn new(page_cache: &'pc mut PC, max_pages_slices: usize) -> Self {
         Self {
             page_cache,
-            cached_slices: vec![CachedPageSlice::NotCached; max_page_slices],
+            cached_slices: vec![CachedPageSlice::NotCached; max_pages_slices],
         }
     }
 
@@ -162,9 +162,9 @@ impl<'pc, PC: PageCache> PageSliceCache<'pc, PC> {
     #[doc(hidden)]
     #[cfg(test)]
     pub fn clear(&mut self) {
-        let max_page_slices = self.cached_slices.len();
+        let max_pages_slices = self.cached_slices.len();
 
-        self.cached_slices = vec![CachedPageSlice::NotCached; max_page_slices];
+        self.cached_slices = vec![CachedPageSlice::NotCached; max_pages_slices];
         self.page_cache.clear();
     }
 
@@ -250,7 +250,7 @@ mod tests {
     use crate::traits::KVStore;
 
     macro_rules! setup_cache {
-        ($page_slice_cache: ident, $db: ident, $addr: expr, $max_pages: expr, $max_page_slices: expr) => {
+        ($page_slice_cache: ident, $db: ident, $addr: expr, $max_pages: expr, $max_pages_slices: expr) => {
             use std::cell::RefCell;
             use std::rc::Rc;
 
@@ -266,7 +266,7 @@ mod tests {
 
             let mut page_cache = MemPageCache::new(&mut inner, $max_pages);
 
-            let mut $page_slice_cache = PageSliceCache::new(&mut page_cache, $max_page_slices);
+            let mut $page_slice_cache = PageSliceCache::new(&mut page_cache, $max_pages_slices);
         };
     }
 

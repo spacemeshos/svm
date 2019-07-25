@@ -122,16 +122,19 @@ fn call_node_vmcall() {
 
     let imports: *mut wasmer_import_t = &mut get_balance_import as *mut _;
     let imports_len: libc::c_int = 1;
+    let max_pages: libc::c_int = 5;
+    let max_pages_slices: libc::c_int = 100;
     let import_object: &mut ImportObject;
 
     unsafe {
         let mut import_object_inner: *mut c_void = std::mem::MaybeUninit::uninit().assume_init();
-
         let import_object_ptr: *mut *mut c_void = &mut import_object_inner as *mut _;
 
         wasmer_svm_import_object(
             import_object_ptr,
             addr_ptr,
+            max_pages,
+            max_pages_slices,
             node_data_ptr,
             imports,
             imports_len,
@@ -143,7 +146,7 @@ fn call_node_vmcall() {
     let module = wasmer_compile_module_file!("wasm/get_balance.wast");
     let instance = module.instantiate(&import_object).unwrap();
 
-    let gb_func: Func<i32, i64> = instance.func("get_balance_proxy").unwrap();
-    let res = gb_func.call(20).unwrap();
+    let func: Func<i32, i64> = instance.func("get_balance_proxy").unwrap();
+    let res = func.call(20).unwrap();
     assert_eq!(100 + 20, res);
 }
