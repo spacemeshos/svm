@@ -49,14 +49,14 @@ fn vmcalls_mem_to_reg_copy() {
     // initializing memory #0 cells `200..203` with values `10, 20, 30` respectively
     wasmer_ctx_mem_cells_write!(instance.context(), 0, 200, &[10, 20, 30]);
 
-    // asserting register content is empty prior copy
+    // asserting register `2` content is empty prior copy
     let reg = wasmer_ctx_reg!(instance.context(), 2, MemPageCache32);
     assert_eq!([0, 0, 0, 0, 0, 0, 0, 0], reg.get());
 
     let do_copy: Func<(i32, i32, i32)> = instance.func("do_copy_to_reg").unwrap();
     assert!(do_copy.call(200, 3, 2).is_ok());
 
-    // asserting register content is `10, 20, 30, 0, ... 0`
+    // asserting register `2` content is `10, 20, 30, 0, ... 0`
     let reg = wasmer_ctx_reg!(instance.context(), 2, MemPageCache32);
     assert_eq!([10, 20, 30, 0, 0, 0, 0, 0], reg.get());
 }

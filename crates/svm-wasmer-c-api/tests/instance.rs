@@ -69,7 +69,7 @@ unsafe fn cast_wasmer_byte_array_to_string(wasmer_bytes: &wasmer_byte_array) -> 
     }
 }
 
-fn us32_addr_as_ptr(addr: u32) -> *const u8 {
+fn u32_addr_as_ptr(addr: u32) -> *const u8 {
     Address::from(addr).as_ptr()
 }
 
@@ -124,6 +124,12 @@ fn alloc_import_obj_ptr_ptr() -> *mut *mut c_void {
     &mut import_object_inner as *mut _
 }
 
+macro_rules! deref_import_obj {
+    ($import_obj_ptr_ptr: expr) => {{
+        &mut *(*$import_obj_ptr_ptr as *mut _)
+    }};
+}
+
 #[test]
 fn cast_string_to_wasmer_by_array() {
     let module_bytes = cast_str_to_wasmer_byte_array("env");
@@ -133,6 +139,41 @@ fn cast_string_to_wasmer_by_array() {
 }
 
 #[test]
+fn call_storage_mem_to_reg_copy() {
+    let node_data = NodeData::default();
+    let import_obj: &mut ImportObject;
+    let import_obj_ptr_ptr = alloc_import_obj_ptr_ptr();
+
+    unsafe {
+        wasmer_svm_import_object(
+            import_obj_ptr_ptr,
+            u32_addr_as_ptr(0x11_22_33_44), // `addr_ptr: *const u8`
+            5,                              // `max_pages: libc::c_int`
+            100,                            // `max_pages_slices: libc::c_int`
+            node_data_as_ptr(&node_data),   // `node_data_ptr:: *const c_void`
+            std::ptr::null_mut(),           // `imports: *mut wasmer_import_t`
+            0,                              // `imports_len: libc::c_int`
+        );
+
+        import_obj = deref_import_obj!(import_obj_ptr_ptr);
+    };
+
+    let module = wasmer_compile_module_file!("wasm/mem_to_reg_copy.wast");
+    let instance = module.instantiate(&import_obj).unwrap();
+
+    // initializing memory #0 cells `200..203` with values `10, 20, 30` respectively
+    wasmer_ctx_mem_cells_write!(instance.context(), 0, 200, &[10, 20, 30]);
+
+    let func: Func<(i32, i32, i32)> = instance.func("do_copy_to_reg").unwrap();
+    assert!(func.call(200, 3, 2).is_ok());
+
+    // asserting register `2` content is `10, 20, 30, 0, ... 0`
+    let reg = wasmer_ctx_reg!(instance.context(), 2, MemPageCache32);
+    assert_eq!([10, 20, 30, 0, 0, 0, 0, 0], reg.get());
+}
+
+#[test]
+#[ignore]
 fn call_node_get_balance() {
     let node_data = NodeData::default();
     let gb_ptr = cast_vmcall_to_import_func_t!(get_balance, vec![Type::I32], vec![Type::I64]);
@@ -144,12 +185,12 @@ fn call_node_get_balance() {
     unsafe {
         wasmer_svm_import_object(
             import_obj_ptr_ptr,
-            us32_addr_as_ptr(0x11_22_33_44), // `addr_ptr: *const u8
-            5,                               // `max_pages: libc::c_int`
-            100,                             // `max_pages_slices: libc::c_int`
-            node_data_as_ptr(&node_data),    // node_data_ptr:: *const c_void
-            &mut gb_import as *mut _,        // `imports: *mut wasmer_import_t
-            1,                               // `imports_len: libc::c_int`
+            u32_addr_as_ptr(0x11_22_33_44), // `addr_ptr: *const u8`
+            5,                              // `max_pages: libc::c_int`
+            100,                            // `max_pages_slices: libc::c_int`
+            node_data_as_ptr(&node_data),   // `node_data_ptr:: *const c_void`
+            &mut gb_import as *mut _,       // `imports: *mut wasmer_import_t`
+            1,                              // `imports_len: libc::c_int`
         );
 
         import_obj = &mut *(*import_obj_ptr_ptr as *mut _);
