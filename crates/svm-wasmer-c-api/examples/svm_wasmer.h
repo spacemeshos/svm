@@ -1,5 +1,5 @@
-#ifndef WASMER_H
-#define WASMER_H
+#ifndef WASMER_SVM_H
+#define WASMER_SVM_H
 
 #include <stdarg.h>
 #include <stdbool.h>
@@ -642,4 +642,24 @@ void *wasmer_trampoline_get_context(void);
  */
 bool wasmer_validate(const uint8_t *wasm_bytes, uint32_t wasm_bytes_len);
 
-#endif /* WASMER_H */
+
+// SVM API
+
+/**
+ * Return pointer to the  `svm context node_data`.
+ * It will be used by the node vmcalls implementation.
+**/
+void *wasmer_svm_instance_context_node_data_get(const wasmer_instance_context_t *ctx);
+
+/**
+ * Creates a new Import object
+ * Returns `wasmer_result_t::WASMER_OK` upon success.
+ * Returns `wasmer_result_t::WASMER_ERROR` upon failure. Use `wasmer_last_error_length`
+ * and `wasmer_last_error_message` to get an error message.
+ */
+wasmer_result_t wasmer_svm_import_object(void *addr_ptr,
+                                         void *node_data,
+                                         wasmer_import_t *imports,
+                                         int imports_len);
+
+#endif /* WASMER_SVM_H */

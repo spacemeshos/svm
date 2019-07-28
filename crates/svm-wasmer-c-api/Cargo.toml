@@ -6,7 +6,11 @@ edition = "2018"
 publish = false
 
 [lib]
-crate-type = ["cdylib", "rlib", "staticlib"]
+crate-type = ["cdylib", "staticlib"]
+# `cdylib` - for C interoperability
+
+[profile.test]
+crate-type = ["rlib"]
 
 [dependencies.wasmer-runtime-c-api]
 default-features = false
