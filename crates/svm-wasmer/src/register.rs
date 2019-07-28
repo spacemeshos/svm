@@ -57,8 +57,13 @@ macro_rules! impl_register {
             }
 
             /// Returns a copy of the register content as a byte array
-            pub fn get(&self) -> [u8; $bytes_count] {
+            pub fn view(&self) -> [u8; $bytes_count] {
                 self.0
+            }
+
+            /// Returns a pointer to the register underlying content
+            pub unsafe fn as_ptr(&self) -> *const u8 {
+                self.0.as_ptr()
             }
 
             /// Returns a copy of the register first `n` bytes as a byte-array
@@ -123,10 +128,51 @@ mod tests {
     use std::cmp::Ordering;
 
     #[test]
-    fn get_defaults_to_zeros() {
+    fn view_defaults_to_zeros() {
         let reg = WasmerReg64::new();
 
-        assert_eq!([0; 8], reg.get());
+        assert_eq!([0; 8], reg.view());
+    }
+
+    #[test]
+    fn as_ptr_defaults_to_zeros() {
+        let reg = WasmerReg64::new();
+        let ptr = unsafe { reg.as_ptr() };
+
+        for i in 0..8 {
+            let addr = unsafe { ptr.offset(i) };
+            let byte = unsafe { std::ptr::read(addr) };
+            assert_eq!(0, byte);
+        }
+    }
+
+    fn as_ptr() {
+        let cells = [
+            Cell::new(10),
+            Cell::new(20),
+            Cell::new(30),
+            Cell::new(40),
+            Cell::new(50),
+            Cell::new(60),
+            Cell::new(70),
+            Cell::new(80),
+        ];
+
+        let mut reg = WasmerReg64::new();
+        let ptr = unsafe { reg.as_ptr() };
+
+        assert_eq!([0; 8], reg.view());
+
+        reg.copy_from_wasmer_mem(&cells);
+
+        for i in 0..8 {
+            let expected = (i + 1) * 10 as u8;
+
+            let addr = unsafe { ptr.offset(i as isize) };
+            let actual = unsafe { std::ptr::read(addr) };
+
+            assert_eq!(expected, actual);
+        }
     }
 
     #[test]
@@ -143,25 +189,24 @@ mod tests {
         ];
 
         let mut reg = WasmerReg64::new();
-        assert_eq!([0; 8], reg.get());
+        assert_eq!([0; 8], reg.view());
 
         reg.copy_from_wasmer_mem(&cells);
-
-        assert_eq!([10, 20, 30, 40, 50, 60, 70, 80], reg.get());
+        assert_eq!([10, 20, 30, 40, 50, 60, 70, 80], reg.view());
     }
 
     #[test]
     fn copy_from_wasmer_mem_less_than_register_capacity() {
         let mut reg = WasmerReg64::new();
         reg.set(&vec![10; 8]);
-        assert_eq!([10; 8], reg.get());
+        assert_eq!([10; 8], reg.view());
 
         let cells = [Cell::new(10), Cell::new(20), Cell::new(30)];
 
         reg.copy_from_wasmer_mem(&cells);
 
         assert_eq!(vec![10, 20, 30], reg.getn(3));
-        assert_eq!([10, 20, 30, 0, 0, 0, 0, 0], reg.get());
+        assert_eq!([10, 20, 30, 0, 0, 0, 0, 0], reg.view());
     }
 
     #[test]
@@ -190,11 +235,11 @@ mod tests {
     #[test]
     fn set_exact_register_capcity() {
         let mut reg = WasmerReg64::new();
-        assert_eq!([0; 8], reg.get());
+        assert_eq!([0; 8], reg.view());
 
         reg.set(&vec![10, 20, 30, 40, 50, 60, 70, 80]);
 
-        assert_eq!([10, 20, 30, 40, 50, 60, 70, 80], reg.get());
+        assert_eq!([10, 20, 30, 40, 50, 60, 70, 80], reg.view());
         assert_eq!(vec![10, 20, 30, 40, 50, 60, 70, 80], reg.getn(8));
     }
 
@@ -202,26 +247,26 @@ mod tests {
     fn set_less_than_register_capacity() {
         let mut reg = WasmerReg64::new();
         reg.set(&vec![10; 8]);
-        assert_eq!([10; 8], reg.get());
+        assert_eq!([10; 8], reg.view());
 
         // now we `set` less than register bytes on register `0` (which already has data in it)
         reg.set(&vec![20, 30, 40]);
 
         assert_eq!(vec![20, 30, 40], reg.getn(3));
-        assert_eq!([20, 30, 40, 0, 0, 0, 0, 0], reg.get());
+        assert_eq!([20, 30, 40, 0, 0, 0, 0, 0], reg.view());
     }
 
     #[test]
     fn set_empty_slice() {
         let mut reg = WasmerReg64::new();
         reg.set(&vec![10; 8]);
-        assert_eq!([10; 8], reg.get());
+        assert_eq!([10; 8], reg.view());
 
         // now we `set` [] on register `0` (which already has data in it)
         reg.set(&vec![]);
 
         assert_eq!(Vec::<u8>::new(), reg.getn(0));
-        assert_eq!([0, 0, 0, 0, 0, 0, 0, 0], reg.get());
+        assert_eq!([0, 0, 0, 0, 0, 0, 0, 0], reg.view());
     }
 
     #[test]

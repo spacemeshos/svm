@@ -427,7 +427,7 @@ mod tests {
         let slice = svm_read_page_slice!(storage, 1, 0, 100, 3);
 
         reg0.set(&slice);
-        assert_eq!([10, 20, 30, 0, 0, 0, 0, 0], reg0.get());
+        assert_eq!([10, 20, 30, 0, 0, 0, 0, 0], reg0.view());
     }
 
     #[test]
@@ -455,7 +455,7 @@ mod tests {
         assert_eq!(Vec::<u8>::new(), slice);
 
         // writing at page `1`, slice `0`, starting from offset `100` the content of register `0`
-        svm_write_page_slice!(storage, 1, 0, 100, 3, &reg0.get());
+        svm_write_page_slice!(storage, 1, 0, 100, 3, &reg0.view());
 
         let slice = svm_read_page_slice!(storage, 1, 0, 100, 3);
         assert_eq!(vec![10, 20, 30], slice);

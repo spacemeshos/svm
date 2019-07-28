@@ -1,6 +1,6 @@
 extern crate svm_wasmer_c_api;
 
-use svm_wasmer_c_api::include_svm_wasmer_instance_api;
+use svm_wasmer_c_api::include_svm_wasmer_c_api;
 
 use std::slice;
 use std::sync::Arc;
@@ -12,6 +12,7 @@ use svm_wasmer::*;
 use wasmer_runtime_c_api::{
     export::{wasmer_import_export_kind, wasmer_import_export_value},
     import::{wasmer_import_func_t, wasmer_import_t},
+    instance::wasmer_instance_context_t,
     wasmer_byte_array, wasmer_result_t,
 };
 
@@ -21,8 +22,8 @@ use wasmer_runtime_core::{
     types::{FuncSig, Type},
 };
 
-// Injects in this file the `svm wasmer` instance API backed by: (`MemKVStore, MemPages, MemPageCache32`)
-include_svm_wasmer_instance_api!(MemKVStore, MemPages, MemPageCache32);
+// Injects in this file the `svm wasmer` C-API backed by `MemKVStore, MemPages, MemPageCache32`
+include_svm_wasmer_c_api!(MemKVStore, MemPages, MemPageCache32);
 
 /// Represents a fake `Node`
 #[repr(C)]
@@ -53,18 +54,34 @@ impl Default for NodeData {
     }
 }
 
-/// Represents a fake node vmcall
+/// Represents a fake node vmcall implemented in another programming-language using the FFI interface.
+/// See test: `call_node_get_balance`
 #[no_mangle]
-unsafe extern "C" fn get_balance(_ctx: &wasmer_runtime::Ctx, addr: i32) -> i64 {
+unsafe extern "C" fn get_balance(_ctx: *mut wasmer_instance_context_t, addr: i32) -> i64 {
     return (addr + 100) as i64;
 }
 
-/// Represents a fake node vmcall
+/// Represents a fake node vmcall implemented in another programming-language using the FFI interface.
+/// See test: `call_wasmer_svm_instance_context_node_data_get`
 #[no_mangle]
-unsafe extern "C" fn set_ip(ctx: &wasmer_runtime::Ctx, new_ip: i32) {
-    let node_data: *mut c_void = wasmer_data_node_data!(ctx.data, MemPageCache32) as *mut _;
+unsafe extern "C" fn set_ip(ctx: *mut wasmer_instance_context_t, new_ip: i32) {
+    let node_data: *mut c_void = wasmer_svm_instance_context_node_data_get(ctx) as *mut _;
     let node_data: &mut NodeData = &mut *(node_data as *mut _);
     node_data.set_ip(new_ip);
+}
+
+/// Represents a fake node vmcall implemented in another programming-language using the FFI interface.
+/// See test: `call_wasmer_svm_register_ptr`
+#[no_mangle]
+unsafe extern "C" fn copy_reg_to_reg(
+    ctx: *const wasmer_instance_context_t,
+    src_reg_idx: i32,
+    dst_reg_idx: i32,
+) {
+    let src_reg_ptr: *const u8 = wasmer_svm_register_ptr(ctx, src_reg_idx);
+    let dst_reg_ptr: *mut u8 = wasmer_svm_register_ptr(ctx, dst_reg_idx) as *mut _;
+
+    std::ptr::copy_nonoverlapping(src_reg_ptr, dst_reg_ptr, 8);
 }
 
 fn cast_str_to_wasmer_byte_array(s: &str) -> wasmer_byte_array {
@@ -190,7 +207,7 @@ fn call_storage_mem_to_reg_copy() {
 
     // asserting register `2` content is `10, 20, 30, 0, ... 0`
     let reg = wasmer_ctx_reg!(instance.context(), 2, MemPageCache32);
-    assert_eq!([10, 20, 30, 0, 0, 0, 0, 0], reg.get());
+    assert_eq!([10, 20, 30, 0, 0, 0, 0, 0], reg.view());
 }
 
 #[test]
@@ -255,4 +272,43 @@ fn call_wasmer_svm_instance_context_node_data_get() {
     let _ = func.call(0x10_20_30_40).unwrap();
 
     assert_eq!([0x10, 0x20, 0x30, 0x40], node_data.ip);
+}
+
+#[test]
+fn call_wasmer_svm_register_ptr() {
+    let copy_reg2reg_ptr =
+        cast_vmcall_to_import_func_t!(copy_reg_to_reg, vec![Type::I32, Type::I32], vec![]);
+
+    let mut copy_reg2reg_import =
+        build_wasmer_import_t("node", "copy_reg_to_reg", copy_reg2reg_ptr);
+
+    let import_obj: &mut ImportObject;
+    let import_obj_ptr_ptr = alloc_import_obj_ptr_ptr();
+
+    unsafe {
+        wasmer_svm_import_object(
+            import_obj_ptr_ptr,
+            u32_addr_as_ptr(0x11_22_33_44), // `addr_ptr: *const u8`
+            5,                              // `max_pages: libc::c_int`
+            100,                            // `max_pages_slices: libc::c_int`
+            std::ptr::null(),               // `node_data_ptr:: *const c_void`
+            &mut copy_reg2reg_import as *mut _, // `imports: *mut wasmer_import_t`
+            1,                              // `imports_len: libc::c_int`
+        );
+
+        import_obj = deref_import_obj!(import_obj_ptr_ptr);
+    };
+
+    let module = wasmer_compile_module_file!("wasm/copy_reg_to_reg.wast");
+    let instance = module.instantiate(&import_obj).unwrap();
+    let func: Func<(i32, i32)> = instance.func("copy_reg_to_reg_proxy").unwrap();
+
+    let reg2 = wasmer_ctx_reg!(instance.context(), 2, MemPageCache32);
+    let reg3 = wasmer_ctx_reg!(instance.context(), 3, MemPageCache32);
+    reg2.set(&[10, 20, 30, 40, 50, 60, 70, 80]);
+    assert_eq!([0; 8], reg3.view());
+
+    let _ = func.call(2, 3).unwrap();
+
+    assert_eq!([10, 20, 30, 40, 50, 60, 70, 80], reg3.view());
 }

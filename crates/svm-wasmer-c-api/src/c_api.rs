@@ -1,18 +1,32 @@
-/// Injects to the current file:
-/// * `svm wasmer` instance API (`wasmer_svm_import_object` etc).
-/// * `svm vmcalls` (required for the instance API).
+/// Injects into the current file:
+/// * `svm wasmer` instance C-API
+/// * `svm wasmer` register C-API
+/// * `svm vmcalls` (required by the implementations of the C-API functions)
 #[macro_export]
-macro_rules! include_svm_wasmer_instance_api {
-    ($KV:ident, $PS:ident, $PC: ident) => {
+macro_rules! include_svm_wasmer_c_api {
+    ($KV:ident, $PS:ident, $PC:ident) => {
         use std::ffi::c_void;
 
         use wasmer_runtime::Ctx;
         use wasmer_runtime_c_api::error::{update_last_error, CApiError};
-        use wasmer_runtime_c_api::instance::wasmer_instance_context_t;
         use wasmer_runtime_core::import::Namespace;
 
         /// Injecting the `svm vmcalls` backed by page-cache `$PC` into this file
         include_wasmer_svm_vmcalls!($PC);
+
+        /// Returns a raw pointer to the `wasmer svm` register's internal content
+        #[no_mangle]
+        pub unsafe extern "C" fn wasmer_svm_register_ptr(
+            ctx: *const wasmer_instance_context_t,
+            reg_idx: i32,
+        ) -> *const u8 {
+            use svm_wasmer::register::WasmerReg64;
+
+            let wasmer_ctx: &Ctx = unsafe { &*(ctx as *const Ctx) };
+            let reg: &mut WasmerReg64 = wasmer_ctx_reg!(wasmer_ctx, reg_idx, $PC);
+
+            reg.as_ptr()
+        }
 
         /// Gets the `node_data` field within the `svm context` (a.k.a `data` of the wasmer context).
         #[no_mangle]
