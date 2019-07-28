@@ -1,7 +1,6 @@
 (module
   ;; import `svm` vmcalls
-  (func $svm_mem_to_reg_copy  (import "svm"  "mem_to_reg_copy") (param i32 i32 i32 i32))
-  (func $svm_get_balance      (import "node" "get_balance")     (param i32) (result i64))
+  (func $svm_get_balance  (import "node" "get_balance")  (param i32) (result i64))
 
   (memory 1)  ;; memory `0` (default) is initialized with one page
 

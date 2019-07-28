@@ -225,19 +225,19 @@ macro_rules! wasmer_ctx_mem_cells_write {
     }};
 }
 
-/// Extracts from `wasmer` instance context (type: `Ctx`) the `node data` (type: `*const c_void`)
+/// Extracts from `wasmer` instance context `data` (type: `SvmCtx`) the `node_data` field (type: `*const c_void`)
 #[macro_export]
-macro_rules! wasmer_ctx_node_data {
+macro_rules! wasmer_data_node_data {
     ($data: expr, $PC: ident) => {{
         use $crate::ctx::SvmCtx;
-
         let ctx: &mut SvmCtx<$PC> = cast_wasmer_data_to_svm_ctx!($data, $PC);
 
         ctx.node_data
     }};
 }
 
-/// Extracts from `wasmer` instance context (type: `Ctx`) a mutable borrow for the register indexed `reg_idx`
+/// Extracts from `wasmer` instance context (type: `Ctx`) a mutable borrow for the register indexed `reg_idx`.
+/// Will be used by storage vmcalls.
 #[macro_export]
 macro_rules! wasmer_ctx_reg {
     ($ctx: expr, $reg_idx: expr, $PC: ident) => {{
@@ -246,7 +246,7 @@ macro_rules! wasmer_ctx_reg {
 }
 
 /// Extracts from `wasmer` instance context (type: `Ctx`) the register indexed `reg_idx` and calls
-/// on it `set` with input `data`
+/// on it `set` with input `data`.  Will be used by storage vmcalls.
 #[macro_export]
 macro_rules! wasmer_ctx_reg_write {
     ($ctx: expr, $reg_idx: expr, $data: expr, $PC: ident) => {{
@@ -289,7 +289,7 @@ mod tests {
     #[test]
     fn node_data() {
         let s = String::from("Hello World");
-        let s_ptr: *const c_char = CString::new(s).unwrap().as_ptr();
+        let s_ptr: *const c_char = CString::new(s).unwrap().into_raw();
         let node_data: *const c_void = s_ptr as *const c_void;
 
         let ctx = create_boxed_svm_ctx!(
@@ -303,9 +303,11 @@ mod tests {
         );
 
         let (data, _dtor) = wasmer_fake_import_object_data(&ctx);
-        let ctx_node_data: *const c_void = wasmer_ctx_node_data!(data, MemPageCache32);
+        let raw_chars: *mut c_char = wasmer_data_node_data!(data, MemPageCache32) as _;
+        let raw_string = unsafe { CString::from_raw(raw_chars) };
+        let actual = raw_string.into_string().unwrap();
 
-        assert_eq!(ctx_node_data, node_data);
+        assert_eq!("Hello World", actual);
     }
 
     #[test]

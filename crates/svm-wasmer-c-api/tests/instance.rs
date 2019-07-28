@@ -27,8 +27,21 @@ include_svm_wasmer_instance_api!(MemKVStore, MemPages, MemPageCache32);
 /// Represents a fake `Node`
 #[repr(C)]
 struct NodeData {
-    ip: [u8; 4],
-    os: String,
+    pub(self) ip: [u8; 4],
+    pub(self) os: String,
+}
+
+impl NodeData {
+    fn set_ip(&mut self, ip: i32) {
+        let ip = ip as u32;
+
+        let d = ((ip >> 00) & 0xFF) as u8;
+        let c = ((ip >> 08) & 0xFF) as u8;
+        let b = ((ip >> 16) & 0xFF) as u8;
+        let a = ((ip >> 24) & 0xFF) as u8;
+
+        self.ip = [a, b, c, d];
+    }
 }
 
 impl Default for NodeData {
@@ -40,10 +53,18 @@ impl Default for NodeData {
     }
 }
 
-/// Represents a fake `get_balance` node vmcall
+/// Represents a fake node vmcall
 #[no_mangle]
 unsafe extern "C" fn get_balance(_ctx: &wasmer_runtime::Ctx, addr: i32) -> i64 {
     return (addr + 100) as i64;
+}
+
+/// Represents a fake node vmcall
+#[no_mangle]
+unsafe extern "C" fn set_ip(ctx: &wasmer_runtime::Ctx, new_ip: i32) {
+    let node_data: *mut c_void = wasmer_data_node_data!(ctx.data, MemPageCache32) as *mut _;
+    let node_data: &mut NodeData = &mut *(node_data as *mut _);
+    node_data.set_ip(new_ip);
 }
 
 fn cast_str_to_wasmer_byte_array(s: &str) -> wasmer_byte_array {
@@ -173,7 +194,6 @@ fn call_storage_mem_to_reg_copy() {
 }
 
 #[test]
-#[ignore]
 fn call_node_get_balance() {
     let node_data = NodeData::default();
     let gb_ptr = cast_vmcall_to_import_func_t!(get_balance, vec![Type::I32], vec![Type::I64]);
@@ -201,4 +221,38 @@ fn call_node_get_balance() {
     let func: Func<i32, i64> = instance.func("get_balance_proxy").unwrap();
     let res = func.call(20).unwrap();
     assert_eq!(100 + 20, res);
+}
+
+#[test]
+fn call_wasmer_svm_instance_context_node_data_get() {
+    let node_data = NodeData::default();
+    let set_ip_ptr = cast_vmcall_to_import_func_t!(set_ip, vec![Type::I32], vec![]);
+    let mut set_ip_import = build_wasmer_import_t("node", "set_ip", set_ip_ptr);
+
+    let import_obj: &mut ImportObject;
+    let import_obj_ptr_ptr = alloc_import_obj_ptr_ptr();
+
+    unsafe {
+        wasmer_svm_import_object(
+            import_obj_ptr_ptr,
+            u32_addr_as_ptr(0x11_22_33_44), // `addr_ptr: *const u8`
+            5,                              // `max_pages: libc::c_int`
+            100,                            // `max_pages_slices: libc::c_int`
+            node_data_as_ptr(&node_data),   // `node_data_ptr:: *const c_void`
+            &mut set_ip_import as *mut _,   // `imports: *mut wasmer_import_t`
+            1,                              // `imports_len: libc::c_int`
+        );
+
+        import_obj = deref_import_obj!(import_obj_ptr_ptr);
+    };
+
+    let module = wasmer_compile_module_file!("wasm/set_ip.wast");
+    let instance = module.instantiate(&import_obj).unwrap();
+    let func: Func<i32> = instance.func("set_ip_proxy").unwrap();
+
+    assert_eq!([0, 0, 0, 0], node_data.ip);
+
+    let _ = func.call(0x10_20_30_40).unwrap();
+
+    assert_eq!([0x10, 0x20, 0x30, 0x40], node_data.ip);
 }

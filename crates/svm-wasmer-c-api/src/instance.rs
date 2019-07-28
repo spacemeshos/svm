@@ -1,4 +1,4 @@
-/// Inject to the current file:
+/// Injects to the current file:
 /// * `svm wasmer` instance API (`wasmer_svm_import_object` etc).
 /// * `svm vmcalls` (required for the instance API).
 #[macro_export]
@@ -6,8 +6,22 @@ macro_rules! include_svm_wasmer_instance_api {
     ($KV:ident, $PS:ident, $PC: ident) => {
         use std::ffi::c_void;
 
+        use wasmer_runtime::Ctx;
+        use wasmer_runtime_c_api::error::{update_last_error, CApiError};
+        use wasmer_runtime_c_api::instance::wasmer_instance_context_t;
+        use wasmer_runtime_core::import::Namespace;
+
         /// Injecting the `svm vmcalls` backed by page-cache `$PC` into this file
         include_wasmer_svm_vmcalls!($PC);
+
+        /// Gets the `node_data` field within the `svm context` (a.k.a `data` of the wasmer context).
+        #[no_mangle]
+        pub extern "C" fn wasmer_svm_instance_context_node_data_get(
+            ctx: *const wasmer_instance_context_t,
+        ) -> *const c_void {
+            let wasmer_ctx: &Ctx = unsafe { &*(ctx as *const Ctx) };
+            wasmer_data_node_data!(wasmer_ctx.data, $PC)
+        }
 
         /// Creates a new `wasmer` import object.
         /// The import object will include imports of two flavors:
@@ -53,7 +67,6 @@ macro_rules! include_svm_wasmer_instance_api {
 
         fn append_internal_imports(import_obj: &mut wasmer_runtime::ImportObject) {
             use wasmer_runtime::func;
-            use wasmer_runtime_core::import::Namespace;
 
             let mut ns = Namespace::new();
             ns.insert("mem_to_reg_copy", func!(mem_to_reg_copy));
@@ -71,9 +84,6 @@ macro_rules! include_svm_wasmer_instance_api {
         ) -> wasmer_result_t {
             use std::collections::HashMap;
             use std::slice;
-
-            use wasmer_runtime_c_api::error::{update_last_error, CApiError};
-            use wasmer_runtime_core::import::Namespace;
 
             /// original code has been takes from `wasmer_instantiate` located at:
             /// https://github.com/wasmerio/wasmer/blob/master/lib/runtime-c-api/src/instance.rs
