@@ -1,5 +1,5 @@
-// #ifndef WASMER_SVM_H
-// #define WASMER_SVM_H
+#ifndef WASMER_SVM_H
+#define WASMER_SVM_H
 
 #include "wasmer.h"
 #include <stdarg.h>
@@ -8,7 +8,7 @@
 #include <stdlib.h>
 
 /**
- * Return pointer to the  `svm context node_data`.
+ * Returns a pointer to the `svm context node_data`.
  * It will be used by the node vmcalls implementation.
 **/
 void *wasmer_svm_instance_context_node_data_get(const wasmer_instance_context_t *ctx);
@@ -24,4 +24,4 @@ wasmer_result_t wasmer_svm_import_object(void *addr_ptr,
                                          wasmer_import_t *imports,
                                          uint32_t imports_len);
 
-// #endif /* WASMER_SVM_H */
+#endif /* WASMER_SVM_H */
