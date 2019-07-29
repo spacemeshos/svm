@@ -1,7 +1,7 @@
 CC = gcc
-OBJECTS = libsvm_wasmer_c_api.a libsvm_wasmer_c_api.dylib
+OBJECTS = libwasmer_runtime_c_api.dylib libsvm_wasmer_c_api.dylib
 CFLAGS = -g -Wall -I
-DEPS = svm_wasmer.h
+DEPS = counter.c wasmer.h svm_wasmer.h
 
 default: counter
 
@@ -9,7 +9,7 @@ default: counter
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 counter: $(DEPS)
-	$(CC) counter.c $(OBJECTS) -o counter
+	$(CC) $(OBJECTS) counter.c -o counter.out
 
 clean:
 	-rm -f $(OBJECTS)

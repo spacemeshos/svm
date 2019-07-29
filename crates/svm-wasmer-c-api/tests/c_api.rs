@@ -1,19 +1,17 @@
 extern crate svm_wasmer_c_api;
 
-use svm_wasmer_c_api::include_svm_wasmer_c_api;
+use svm_wasmer_c_api::mem_c_api::*;
 
-use std::slice;
-use std::sync::Arc;
-use svm_common::Address;
-
-use svm_storage::memory::{MemKVStore, MemPageCache32, MemPages};
+use svm_storage::memory::MemPageCache32;
 use svm_wasmer::*;
+
+use std::ffi::c_void;
 
 use wasmer_runtime_c_api::{
     export::{wasmer_import_export_kind, wasmer_import_export_value},
     import::{wasmer_import_func_t, wasmer_import_t},
     instance::wasmer_instance_context_t,
-    wasmer_byte_array, wasmer_result_t,
+    wasmer_byte_array,
 };
 
 use wasmer_runtime::{Func, ImportObject};
@@ -21,9 +19,6 @@ use wasmer_runtime_core::{
     export::{Context, Export, FuncPointer},
     types::{FuncSig, Type},
 };
-
-// Injects in this file the `svm wasmer` C-API backed by `MemKVStore, MemPages, MemPageCache32`
-include_svm_wasmer_c_api!(MemKVStore, MemPages, MemPageCache32);
 
 /// Represents a fake `Node`
 #[repr(C)]
@@ -98,7 +93,8 @@ fn cast_str_to_wasmer_byte_array(s: &str) -> wasmer_byte_array {
 }
 
 unsafe fn cast_wasmer_byte_array_to_string(wasmer_bytes: &wasmer_byte_array) -> String {
-    let slice: &[u8] = slice::from_raw_parts(wasmer_bytes.bytes, wasmer_bytes.bytes_len as usize);
+    let slice: &[u8] =
+        std::slice::from_raw_parts(wasmer_bytes.bytes, wasmer_bytes.bytes_len as usize);
 
     if let Ok(s) = std::str::from_utf8(slice) {
         s.to_string()
@@ -108,6 +104,7 @@ unsafe fn cast_wasmer_byte_array_to_string(wasmer_bytes: &wasmer_byte_array) -> 
 }
 
 fn u32_addr_as_ptr(addr: u32) -> *const u8 {
+    use svm_common::Address;
     Address::from(addr).as_ptr()
 }
 
@@ -118,6 +115,8 @@ fn node_data_as_ptr(node_data: &NodeData) -> *const c_void {
 macro_rules! cast_vmcall_to_import_func_t {
     ($func: path, $params: expr, $returns: expr) => {
         unsafe {
+            use std::sync::Arc;
+
             let export = Box::new(Export::Function {
                 func: FuncPointer::new($func as _),
                 ctx: Context::Internal,
