@@ -50,7 +50,7 @@ macro_rules! include_svm_wasmer_c_api {
         /// * A prepared `wasmer svm` import-object
         /// * A compiled wasmer module
         ///
-        /// instantiates a wasmer instance
+        /// Instantiates a wasmer instance
         #[no_mangle]
         pub unsafe extern "C" fn wasmer_svm_module_instantiate(
             instance_ptr_ptr: *mut *mut wasmer_instance_t,

@@ -12,10 +12,10 @@ use wasmer_runtime_c_api::{
     import::{wasmer_import_func_t, wasmer_import_t},
     instance::{wasmer_instance_context_t, wasmer_instance_t},
     module::wasmer_module_t,
-    wasmer_byte_array,
+    wasmer_byte_array, wasmer_result_t,
 };
 
-use wasmer_runtime::{Func, ImportObject, Module};
+use wasmer_runtime::{Func, ImportObject, Instance};
 use wasmer_runtime_core::{
     export::{Context, Export, FuncPointer},
     types::{FuncSig, Type},
@@ -138,15 +138,17 @@ macro_rules! wasmer_compile_module {
         let module_ptr_ptr = alloc_module_ptr_ptr();
 
         unsafe {
-            let _compile_res = wasmer_runtime_c_api::module::wasmer_compile(
+            let compile_res = wasmer_runtime_c_api::module::wasmer_compile(
                 module_ptr_ptr,
                 wasm_bytes,
                 wasm_bytes_len,
             );
-
             // TODO: assert `compile_res` is OK`
 
-            *module_ptr_ptr as *const _
+            // assert_eq!(wasmer_result_t::WASMER_OK, compile_res);
+
+            let module_ptr: *const wasmer_module_t = *module_ptr_ptr as *const _;
+            module_ptr
         }
     }};
 }
@@ -191,7 +193,13 @@ fn alloc_instance_ptr_ptr() -> *mut *mut wasmer_instance_t {
 
 macro_rules! deref_import_obj {
     ($import_obj_ptr_ptr: expr) => {{
-        &mut *(*$import_obj_ptr_ptr as *mut _)
+        unsafe { &mut *(*$import_obj_ptr_ptr as *mut _) }
+    }};
+}
+
+macro_rules! deref_instance {
+    ($instance_ptr_ptr: expr) => {{
+        unsafe { &mut *(*$instance_ptr_ptr as *mut _) }
     }};
 }
 
@@ -220,127 +228,142 @@ fn call_storage_mem_to_reg_copy() {
         );
     };
 
-    let instance_ptr_ptr: *mut *mut wasmer_instance_t = alloc_instance_ptr_ptr();
-    let import_object: *const wasmer_import_object_t = unsafe { *import_obj_ptr_ptr };
-    let module: *const wasmer_module_t = wasmer_compile_module_file!("wasm/mem_to_reg_copy.wast");
+    let import_obj: &mut ImportObject = deref_import_obj!(import_obj_ptr_ptr);
+    let import_object = import_obj as *const ImportObject as *const wasmer_import_object_t;
+
+    let instance_ptr_ptr = alloc_instance_ptr_ptr();
+    let module = wasmer_compile_module_file!("wasm/mem_to_reg_copy.wast");
 
     unsafe {
-        let instantiate_res =
-            wasmer_svm_module_instantiate(instance_ptr_ptr, module, import_object);
+        let res = wasmer_svm_module_instantiate(instance_ptr_ptr, module, import_object);
     }
 
-    // let instance = module.instantiate(&import_obj).unwrap();
-    //
-    // // initializing memory #0 cells `200..203` with values `10, 20, 30` respectively
-    // wasmer_ctx_mem_cells_write!(instance.context(), 0, 200, &[10, 20, 30]);
-    //
-    // let func: Func<(i32, i32, i32)> = instance.func("do_copy_to_reg").unwrap();
-    // assert!(func.call(200, 3, 2).is_ok());
-    //
-    // // asserting register `2` content is `10, 20, 30, 0, ... 0`
-    // let reg = wasmer_ctx_reg!(instance.context(), 2, MemPageCache32);
-    // assert_eq!([10, 20, 30, 0, 0, 0, 0, 0], reg.view());
+    let instance: &Instance = deref_instance!(instance_ptr_ptr);
+
+    // initializing memory #0 cells `200..203` with values `10, 20, 30` respectively
+    wasmer_ctx_mem_cells_write!(instance.context(), 0, 200, &[10, 20, 30]);
+
+    let func: Func<(i32, i32, i32)> = instance.func("do_copy_to_reg").unwrap();
+    assert!(func.call(200, 3, 2).is_ok());
+
+    // asserting register `2` content is `10, 20, 30, 0, ... 0`
+    let reg = wasmer_ctx_reg!(instance.context(), 2, MemPageCache32);
+    assert_eq!([10, 20, 30, 0, 0, 0, 0, 0], reg.view());
 }
 
-// #[test]
-// fn call_node_get_balance() {
-//     let node_data = NodeData::default();
-//     let gb_ptr = cast_vmcall_to_import_func_t!(get_balance, vec![Type::I32], vec![Type::I64]);
-//     let mut gb_import = build_wasmer_import_t("node", "get_balance", gb_ptr);
-//
-//     let import_obj: &mut ImportObject;
-//     let import_obj_ptr_ptr = alloc_import_obj_ptr_ptr();
-//
-//     unsafe {
-//         wasmer_svm_import_object(
-//             import_obj_ptr_ptr,
-//             u32_addr_as_ptr(0x11_22_33_44), // `addr_ptr: *const u8`
-//             5,                              // `max_pages: libc::c_int`
-//             100,                            // `max_pages_slices: libc::c_int`
-//             node_data_as_ptr(&node_data),   // `node_data_ptr:: *const c_void`
-//             &mut gb_import as *mut _,       // `imports: *mut wasmer_import_t`
-//             1,                              // `imports_len: libc::c_int`
-//         );
-//
-//         import_obj = &mut *(*import_obj_ptr_ptr as *mut _);
-//     };
-//
-//     let module = wasmer_compile_module_file!("wasm/get_balance.wast");
-//     let instance = module.instantiate(&import_obj).unwrap();
-//     let func: Func<i32, i64> = instance.func("get_balance_proxy").unwrap();
-//     let res = func.call(20).unwrap();
-//     assert_eq!(100 + 20, res);
-// }
-//
-// #[test]
-// fn call_wasmer_svm_instance_context_node_data_get() {
-//     let node_data = NodeData::default();
-//     let set_ip_ptr = cast_vmcall_to_import_func_t!(set_ip, vec![Type::I32], vec![]);
-//     let mut set_ip_import = build_wasmer_import_t("node", "set_ip", set_ip_ptr);
-//
-//     let import_obj: &mut ImportObject;
-//     let import_obj_ptr_ptr = alloc_import_obj_ptr_ptr();
-//
-//     unsafe {
-//         wasmer_svm_import_object(
-//             import_obj_ptr_ptr,
-//             u32_addr_as_ptr(0x11_22_33_44), // `addr_ptr: *const u8`
-//             5,                              // `max_pages: libc::c_int`
-//             100,                            // `max_pages_slices: libc::c_int`
-//             node_data_as_ptr(&node_data),   // `node_data_ptr:: *const c_void`
-//             &mut set_ip_import as *mut _,   // `imports: *mut wasmer_import_t`
-//             1,                              // `imports_len: libc::c_int`
-//         );
-//
-//         import_obj = deref_import_obj!(import_obj_ptr_ptr);
-//     };
-//
-//     let module = wasmer_compile_module_file!("wasm/set_ip.wast");
-//     let instance = module.instantiate(&import_obj).unwrap();
-//     let func: Func<i32> = instance.func("set_ip_proxy").unwrap();
-//
-//     assert_eq!([0, 0, 0, 0], node_data.ip);
-//
-//     let _ = func.call(0x10_20_30_40).unwrap();
-//
-//     assert_eq!([0x10, 0x20, 0x30, 0x40], node_data.ip);
-// }
-//
-// #[test]
-// fn call_wasmer_svm_register_ptr() {
-//     let copy_reg2reg_ptr =
-//         cast_vmcall_to_import_func_t!(copy_reg_to_reg, vec![Type::I32, Type::I32], vec![]);
-//
-//     let mut copy_reg2reg_import =
-//         build_wasmer_import_t("node", "copy_reg_to_reg", copy_reg2reg_ptr);
-//
-//     let import_obj: &mut ImportObject;
-//     let import_obj_ptr_ptr = alloc_import_obj_ptr_ptr();
-//
-//     unsafe {
-//         wasmer_svm_import_object(
-//             import_obj_ptr_ptr,
-//             u32_addr_as_ptr(0x11_22_33_44), // `addr_ptr: *const u8`
-//             5,                              // `max_pages: libc::c_int`
-//             100,                            // `max_pages_slices: libc::c_int`
-//             std::ptr::null(),               // `node_data_ptr:: *const c_void`
-//             &mut copy_reg2reg_import as *mut _, // `imports: *mut wasmer_import_t`
-//             1,                              // `imports_len: libc::c_int`
-//         );
-//
-//         import_obj = deref_import_obj!(import_obj_ptr_ptr);
-//     };
-//
-//     let module = wasmer_compile_module_file!("wasm/copy_reg_to_reg.wast");
-//     let instance = module.instantiate(&import_obj).unwrap();
-//     let func: Func<(i32, i32)> = instance.func("copy_reg_to_reg_proxy").unwrap();
-//
-//     let reg2 = wasmer_ctx_reg!(instance.context(), 2, MemPageCache32);
-//     let reg3 = wasmer_ctx_reg!(instance.context(), 3, MemPageCache32);
-//     reg2.set(&[10, 20, 30, 40, 50, 60, 70, 80]);
-//     assert_eq!([0; 8], reg3.view());
-//
-//     let _ = func.call(2, 3).unwrap();
-//
-//     assert_eq!([10, 20, 30, 40, 50, 60, 70, 80], reg3.view());
-// }
+#[test]
+fn call_node_get_balance() {
+    let node_data = NodeData::default();
+    let gb_ptr = cast_vmcall_to_import_func_t!(get_balance, vec![Type::I32], vec![Type::I64]);
+    let mut gb_import = build_wasmer_import_t("node", "get_balance", gb_ptr);
+    let import_obj_ptr_ptr = alloc_import_obj_ptr_ptr();
+
+    unsafe {
+        wasmer_svm_import_object(
+            import_obj_ptr_ptr,
+            u32_addr_as_ptr(0x11_22_33_44), // `addr_ptr: *const u8`
+            5,                              // `max_pages: libc::c_int`
+            100,                            // `max_pages_slices: libc::c_int`
+            node_data_as_ptr(&node_data),   // `node_data_ptr:: *const c_void`
+            &mut gb_import as *mut _,       // `imports: *mut wasmer_import_t`
+            1,                              // `imports_len: libc::c_int`
+        );
+    };
+
+    let import_obj: &mut ImportObject = deref_import_obj!(import_obj_ptr_ptr);
+    let import_object = import_obj as *const ImportObject as *const wasmer_import_object_t;
+
+    let instance_ptr_ptr = alloc_instance_ptr_ptr();
+    let module = wasmer_compile_module_file!("wasm/get_balance.wast");
+
+    unsafe {
+        let res = wasmer_svm_module_instantiate(instance_ptr_ptr, module, import_object);
+    }
+
+    let instance: &Instance = deref_instance!(instance_ptr_ptr);
+    let func: Func<i32, i64> = instance.func("get_balance_proxy").unwrap();
+    let res = func.call(20).unwrap();
+    assert_eq!(100 + 20, res);
+}
+
+#[test]
+fn call_wasmer_svm_instance_context_node_data_get() {
+    let node_data = NodeData::default();
+    let set_ip_ptr = cast_vmcall_to_import_func_t!(set_ip, vec![Type::I32], vec![]);
+    let mut set_ip_import = build_wasmer_import_t("node", "set_ip", set_ip_ptr);
+
+    let import_obj_ptr_ptr = alloc_import_obj_ptr_ptr();
+
+    unsafe {
+        wasmer_svm_import_object(
+            import_obj_ptr_ptr,
+            u32_addr_as_ptr(0x11_22_33_44), // `addr_ptr: *const u8`
+            5,                              // `max_pages: libc::c_int`
+            100,                            // `max_pages_slices: libc::c_int`
+            node_data_as_ptr(&node_data),   // `node_data_ptr:: *const c_void`
+            &mut set_ip_import as *mut _,   // `imports: *mut wasmer_import_t`
+            1,                              // `imports_len: libc::c_int`
+        );
+    };
+
+    let import_obj: &mut ImportObject = deref_import_obj!(import_obj_ptr_ptr);
+    let import_object = import_obj as *const ImportObject as *const wasmer_import_object_t;
+    let instance_ptr_ptr = alloc_instance_ptr_ptr();
+    let module = wasmer_compile_module_file!("wasm/set_ip.wast");
+
+    unsafe {
+        let res = wasmer_svm_module_instantiate(instance_ptr_ptr, module, import_object);
+    }
+
+    let instance: &Instance = deref_instance!(instance_ptr_ptr);
+    let func: Func<i32> = instance.func("set_ip_proxy").unwrap();
+
+    assert_eq!([0, 0, 0, 0], node_data.ip);
+    let _ = func.call(0x10_20_30_40).unwrap();
+    assert_eq!([0x10, 0x20, 0x30, 0x40], node_data.ip);
+}
+
+#[test]
+fn call_wasmer_svm_register_ptr() {
+    let copy_reg2reg_ptr =
+        cast_vmcall_to_import_func_t!(copy_reg_to_reg, vec![Type::I32, Type::I32], vec![]);
+
+    let mut copy_reg2reg_import =
+        build_wasmer_import_t("node", "copy_reg_to_reg", copy_reg2reg_ptr);
+
+    let import_obj_ptr_ptr = alloc_import_obj_ptr_ptr();
+
+    unsafe {
+        wasmer_svm_import_object(
+            import_obj_ptr_ptr,
+            u32_addr_as_ptr(0x11_22_33_44), // `addr_ptr: *const u8`
+            5,                              // `max_pages: libc::c_int`
+            100,                            // `max_pages_slices: libc::c_int`
+            std::ptr::null(),               // `node_data_ptr:: *const c_void`
+            &mut copy_reg2reg_import as *mut _, // `imports: *mut wasmer_import_t`
+            1,                              // `imports_len: libc::c_int`
+        );
+    };
+
+    let import_obj: &mut ImportObject = deref_import_obj!(import_obj_ptr_ptr);
+    let import_object = import_obj as *const ImportObject as *const wasmer_import_object_t;
+    let instance_ptr_ptr = alloc_instance_ptr_ptr();
+    let module = wasmer_compile_module_file!("wasm/copy_reg_to_reg.wast");
+
+    unsafe {
+        let res = wasmer_svm_module_instantiate(instance_ptr_ptr, module, import_object);
+    }
+
+    let instance: &Instance = deref_instance!(instance_ptr_ptr);
+
+    let func: Func<(i32, i32)> = instance.func("copy_reg_to_reg_proxy").unwrap();
+
+    let reg2 = wasmer_ctx_reg!(instance.context(), 2, MemPageCache32);
+    let reg3 = wasmer_ctx_reg!(instance.context(), 3, MemPageCache32);
+    reg2.set(&[10, 20, 30, 40, 50, 60, 70, 80]);
+    assert_eq!([0; 8], reg3.view());
+
+    let _ = func.call(2, 3).unwrap();
+
+    assert_eq!([10, 20, 30, 40, 50, 60, 70, 80], reg3.view());
+}
