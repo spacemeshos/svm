@@ -7,12 +7,15 @@ macro_rules! include_svm_wasmer_c_api {
     ($KV:ident, $PS:ident, $PC:ident) => {
         use std::ffi::c_void;
 
-        use wasmer_runtime::Ctx;
+        use crate::import::wasmer_import_object_t;
+
+        use wasmer_runtime::{Ctx, ImportObject, Instance, Module};
         use wasmer_runtime_c_api::{
             error::{update_last_error, CApiError},
             export::wasmer_import_export_kind,
             import::wasmer_import_t,
-            instance::wasmer_instance_context_t,
+            instance::{wasmer_instance_context_t, wasmer_instance_t},
+            module::wasmer_module_t,
             wasmer_result_t,
         };
         use wasmer_runtime_core::{export::Export, import::Namespace};
@@ -43,13 +46,40 @@ macro_rules! include_svm_wasmer_c_api {
             wasmer_data_node_data!(wasmer_ctx.data, $PC)
         }
 
+        /// Given:
+        /// * A prepared `wasmer svm` import-object
+        /// * A compiled wasmer module
+        ///
+        /// instantiates a wasmer instance
+        #[no_mangle]
+        pub unsafe extern "C" fn wasmer_svm_module_instantiate(
+            instance_ptr_ptr: *mut *mut wasmer_instance_t,
+            module: *const wasmer_module_t,
+            import_object: *const wasmer_import_object_t,
+        ) -> wasmer_runtime_c_api::wasmer_result_t {
+            let import_object: &ImportObject = &*(import_object as *const ImportObject);
+            let module: &Module = &*(module as *const Module);
+
+            let new_instance: Instance = match module.instantiate(&import_object) {
+                Ok(instance) => instance,
+                Err(error) => {
+                    update_last_error(error);
+                    return wasmer_result_t::WASMER_ERROR;
+                }
+            };
+
+            *instance_ptr_ptr = Box::into_raw(Box::new(new_instance)) as *mut wasmer_instance_t;
+
+            return wasmer_result_t::WASMER_OK;
+        }
+
         /// Creates a new `wasmer` import object.
         /// The import object will include imports of two flavors:
         /// * external vmcalls (i.e: node vmcalls)
         /// * internal vmcalls (i.e: register/storage/etc vmcalls)
         #[no_mangle]
         pub unsafe extern "C" fn wasmer_svm_import_object(
-            import_object_ptr: *mut *mut c_void,
+            imprt_obj_ptr_ptr: *mut *mut wasmer_import_object_t,
             addr_ptr: *const u8,
             max_pages: libc::c_int,
             max_page_slices: libc::c_int,
@@ -79,7 +109,7 @@ macro_rules! include_svm_wasmer_c_api {
             //     return res;
             // }
 
-            *import_object_ptr = cast_import_obj_to_ptr(import_obj);
+            *imprt_obj_ptr_ptr = cast_import_obj_to_ptr(import_obj);
 
             wasmer_result_t::WASMER_OK
         }
@@ -154,11 +184,13 @@ macro_rules! include_svm_wasmer_c_api {
             wasmer_result_t::WASMER_OK
         }
 
-        fn cast_import_obj_to_ptr(import_obj: wasmer_runtime::ImportObject) -> *mut c_void {
+        fn cast_import_obj_to_ptr(
+            import_obj: wasmer_runtime::ImportObject,
+        ) -> *mut wasmer_import_object_t {
             let boxed_import_obj = Box::new(import_obj);
             let import_obj_ptr: *mut _ = Box::into_raw(boxed_import_obj);
 
-            import_obj_ptr as *mut c_void
+            import_obj_ptr as *mut _
         }
     };
 }

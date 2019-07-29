@@ -1,6 +1,10 @@
 #include "wasmer.h"
 #include "svm_wasmer.h"
+
 #include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <assert.h>
 
 typedef struct {
   uint32_t counter;
@@ -24,15 +28,73 @@ uint32_t get_counter(wasmer_instance_context_t *ctx) {
 }
 
 int main() {
+  // Credits:
+  // original code has been copied and modified from:
+  // https://sourcegraph.com/github.com/wasmerio/wasmer/-/blob/lib/runtime-c-api/tests/test-imports.c
+
+  const char *module_name = "node";
+  wasmer_byte_array module_name_bytes;
+  module_name_bytes.bytes = (const uint8_t *) module_name;
+  module_name_bytes.bytes_len = strlen(module_name);
+
+  /* Prepare import for `inc_counter` */
+  wasmer_value_tag inc_params_sig[] = {WASM_I32};
+  wasmer_value_tag inc_returns_sig[] = {};
+  wasmer_import_func_t *inc_func = wasmer_import_func_new((void (*)(void *)) inc_counter, inc_params_sig, 1, inc_returns_sig, 0);
+  const char *inc_import_name = "inc_counter";
+  wasmer_byte_array inc_import_name_bytes;
+  inc_import_name_bytes.bytes = (const uint8_t *) inc_import_name;
+  inc_import_name_bytes.bytes_len = strlen(inc_import_name);
+  wasmer_import_t inc_func_import;
+  inc_func_import.module_name = module_name_bytes;
+  inc_func_import.import_name = inc_import_name_bytes;
+  inc_func_import.tag = WASM_FUNCTION;
+  inc_func_import.value.func = inc_func;
+
+  /* Prepare import for `get_counter` */
+  wasmer_value_tag get_params_sig[] = {};
+  wasmer_value_tag get_returns_sig[] = {WASM_I32};
+  wasmer_import_func_t *get_func = wasmer_import_func_new((void (*)(void *)) get_counter, get_params_sig, 0, get_returns_sig, 1);
+  const char *get_import_name = "get_counter";
+  wasmer_byte_array get_import_name_bytes;
+  get_import_name_bytes.bytes = (const uint8_t *) get_import_name;
+  get_import_name_bytes.bytes_len = strlen(get_import_name);
+  wasmer_import_t get_func_import;
+  get_func_import.module_name = module_name_bytes;
+  get_func_import.import_name = get_import_name_bytes;
+  get_func_import.tag = WASM_FUNCTION;
+  get_func_import.value.func = get_func;
+
   uint32_t addr = 0x11223344;
   void* addr_ptr = (void*)(&addr);
   void* node_data = (void*)(new_node_data(5));
-  wasmer_import_t* imports = NULL;
-  uint32_t imports_len = 0;
+  wasmer_import_t imports[] = {inc_func_import, get_func_import};
+  uint32_t imports_len = 2;
+  wasmer_import_object_t** import_obj_ptr_ptr = (wasmer_import_object_t**)(malloc(sizeof(wasmer_import_object_t*)));
 
-  wasmer_validate(NULL, 0);
+  // Create Import Object
+  wasmer_result_t import_result = wasmer_svm_import_object(import_obj_ptr_ptr, addr_ptr, node_data, imports, imports_len);
+  assert(import_result == WASMER_OK);
 
-  wasmer_svm_import_object(addr_ptr, node_data, imports, imports_len);
+  // Read the wasm file
+  FILE *file = fopen("wasm/counter.wast", "r");
+  fseek(file, 0, SEEK_END);
+  long bytes_len = ftell(file);
+  uint8_t *bytes = malloc(bytes_len);
+  fseek(file, 0, SEEK_SET);
+  fread(bytes, 1, bytes_len, file);
+  fclose(file);
+
+  // Compile wasm into wasmer module
+  wasmer_module_t** wasm_module = (wasmer_module_t**)malloc(sizeof(wasmer_module_t*));
+  wasmer_result_t compile_result = wasmer_compile(wasm_module, bytes, bytes_len);
+  assert(import_result == WASMER_OK);
+
+  /* pub unsafe extern "C" fn wasmer_module_instantiate( */
+  /*   module: *const wasmer_module_t, */
+  /*   instance: *mut *mut wasmer_instance_t, */
+  /*   imports: *mut wasmer_import_t, */
+  /*   imports_len: c_int, */
 
   return 0;
 }

@@ -7,6 +7,10 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+typedef struct {
+
+} wasmer_import_object_t;
+
 /**
  * Returns a pointer to the `svm context node_data`.
  * It will be used by the node vmcalls implementation.
@@ -19,7 +23,8 @@ void *wasmer_svm_instance_context_node_data_get(const wasmer_instance_context_t 
  * Returns `wasmer_result_t::WASMER_ERROR` upon failure. Use `wasmer_last_error_length`
  * and `wasmer_last_error_message` to get an error message.
  */
-wasmer_result_t wasmer_svm_import_object(void *addr_ptr,
+wasmer_result_t wasmer_svm_import_object(wasmer_import_object_t** import_object,
+                                         void *addr_ptr,
                                          void *node_data,
                                          wasmer_import_t *imports,
                                          uint32_t imports_len);
