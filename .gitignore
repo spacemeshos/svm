@@ -1,6 +1,7 @@
 contracts/precompiled/*.wasm
 contracts/precompiled/*.wast
 *.out
+libsvm_wasmer_c_api.dylib
 target
 tags
 .DS_Store
