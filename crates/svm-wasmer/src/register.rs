@@ -29,6 +29,7 @@ macro_rules! impl_register {
             }
 
             /// Copies the data given in `cells` into the register content
+            /// Pads the remaining register bytes with zeros (in case `cells.len()` is smaller than the register capacity).
             #[inline(always)]
             pub fn copy_from_wasmer_mem(&mut self, cells: &[Cell<u8>]) {
                 let padding = $bytes_count as isize - cells.len() as isize;
@@ -43,6 +44,28 @@ macro_rules! impl_register {
                     }
                 } else {
                     panic!("`cells` can't fit register");
+                }
+            }
+
+            /// Copies `count` bytes starting from raw pointer `src`.
+            /// Pads the remaining register bytes with zeros (in case `count` is smaller than the register capacity).
+            #[no_mangle]
+            pub unsafe extern "C" fn copy_from(&mut self, src: *const u8, count: u8) {
+                let count = count as isize;
+                let padding = $bytes_count as isize - count;
+
+                if padding >= 0 {
+                    for i in 0..count {
+                        let addr = src.offset(i);
+                        self.0[i as usize] = std::ptr::read(addr);
+                    }
+
+                    for i in count..$bytes_count {
+                        let addr = src.offset(i);
+                        self.0[i as usize] = 0;
+                    }
+                } else {
+                    panic!("`count` can't fit register");
                 }
             }
 
@@ -74,7 +97,7 @@ macro_rules! impl_register {
             }
 
             /// Overrides the content of the register with the input `bytes` (byte-array).
-            /// Pads remaining bytes with `0` in case `bytes` is small than the register capacity.
+            /// Pads remaining bytes with zeros (in case `bytes` is smaller than the register capacity).
             /// Panics when `bytes` is larger then the register capacity.
             pub fn set(&mut self, bytes: &[u8]) {
                 let padding = $bytes_count as isize - bytes.len() as isize;
@@ -173,6 +196,45 @@ mod tests {
 
             assert_eq!(expected, actual);
         }
+    }
+
+    #[test]
+    fn copy_from_exact_register_capacity() {
+        let data = [10, 20, 30, 40, 50, 60, 70, 80];
+
+        let mut reg = WasmerReg64::new();
+        assert_eq!([0; 8], reg.view());
+
+        unsafe { reg.copy_from(data.as_ptr(), 8) };
+        assert_eq!([10, 20, 30, 40, 50, 60, 70, 80], reg.view());
+    }
+
+    #[test]
+    fn copy_from_less_than_register_capacity() {
+        let mut reg = WasmerReg64::new();
+        reg.set(&vec![10; 8]);
+        assert_eq!([10; 8], reg.view());
+
+        let data = [10, 20, 30];
+
+        unsafe { reg.copy_from(data.as_ptr(), 3) };
+
+        assert_eq!(vec![10, 20, 30], reg.getn(3));
+        assert_eq!([10, 20, 30, 0, 0, 0, 0, 0], reg.view());
+    }
+
+    #[test]
+    #[ignore]
+    fn copy_from_bigger_than_register_capacity() {
+        let mut reg = WasmerReg64::new();
+
+        let data = [10, 20, 30, 40, 50, 60, 70, 80, 90];
+
+        let res = std::panic::catch_unwind(move || {
+            unsafe { reg.copy_from(data.as_ptr(), 9) };
+        });
+
+        assert!(res.is_err());
     }
 
     #[test]
