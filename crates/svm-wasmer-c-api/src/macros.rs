@@ -60,7 +60,7 @@ macro_rules! include_svm_wasmer_c_api {
             let import_object: &ImportObject = &*(import_object as *const ImportObject);
             let module: &Module = &*(module as *const Module);
 
-            let new_instance: Instance = match module.instantiate(&import_object) {
+            let new_instance: Instance = match module.instantiate(&&&import_object) {
                 Ok(instance) => instance,
                 Err(error) => {
                     update_last_error(error);
