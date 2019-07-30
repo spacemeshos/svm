@@ -6,3 +6,5 @@ make counter
 pushd ./wasm
 wapm run wat2wasm counter.wast
 popd
+
+./counter.out

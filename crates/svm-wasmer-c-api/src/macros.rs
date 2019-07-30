@@ -9,7 +9,7 @@ macro_rules! include_svm_wasmer_c_api {
 
         use crate::import::wasmer_import_object_t;
 
-        use wasmer_runtime::{Ctx, ImportObject, Instance, Module};
+        use wasmer_runtime::{imports, Ctx, ImportObject, Instance, Module};
         use wasmer_runtime_c_api::{
             error::{update_last_error, CApiError},
             export::wasmer_import_export_kind,
@@ -60,14 +60,13 @@ macro_rules! include_svm_wasmer_c_api {
             let import_object: &ImportObject = &*(import_object as *const ImportObject);
             let module: &Module = &*(module as *const Module);
 
-            let new_instance: Instance = match module.instantiate(&&&import_object) {
+            let new_instance: Instance = match module.instantiate(import_object) {
                 Ok(instance) => instance,
                 Err(error) => {
                     update_last_error(error);
                     return wasmer_result_t::WASMER_ERROR;
                 }
             };
-
             *instance_ptr_ptr = Box::into_raw(Box::new(new_instance)) as *mut wasmer_instance_t;
 
             return wasmer_result_t::WASMER_OK;
