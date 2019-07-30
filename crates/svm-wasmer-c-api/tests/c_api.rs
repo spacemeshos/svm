@@ -131,8 +131,6 @@ macro_rules! cast_vmcall_to_import_func_t {
 
 macro_rules! wasmer_compile_module {
     ($wasm:expr) => {{
-        use std::fmt::Debug;
-
         let mut wasm = wabt::wat2wasm(&$wasm).unwrap();
 
         let wasm_bytes = wasm.as_mut_ptr();
@@ -175,27 +173,36 @@ fn build_wasmer_import_t(
     }
 }
 
-fn alloc_import_obj_ptr_ptr() -> *mut *mut wasmer_import_object_t {
-    let mut import_object_ptr: *mut wasmer_import_object_t =
-        unsafe { std::mem::MaybeUninit::uninit().assume_init() };
-    &mut import_object_ptr as *mut _
+macro_rules! alloc_ptr_ptr {
+    ($ptr_type: ident) => {{
+        use std::alloc::Layout;
+
+        let ptr_size: usize = std::mem::size_of::<*mut $ptr_type>();
+        let layout = Layout::from_size_align(ptr_size, std::mem::align_of::<u8>()).unwrap();
+        let mut ptr: *mut $ptr_type = unsafe { std::alloc::alloc(layout) as *mut _ };
+
+        &mut ptr as *mut *mut $ptr_type
+    }};
 }
 
 fn alloc_module_ptr_ptr() -> *mut *mut wasmer_module_t {
-    let mut module_ptr: *mut wasmer_module_t =
-        unsafe { std::mem::MaybeUninit::uninit().assume_init() };
-    &mut module_ptr as *mut _
+    alloc_ptr_ptr!(wasmer_module_t)
 }
 
 fn alloc_instance_ptr_ptr() -> *mut *mut wasmer_instance_t {
-    let mut instance_ptr: *mut wasmer_instance_t =
-        unsafe { std::mem::MaybeUninit::uninit().assume_init() };
-    &mut instance_ptr as *mut _
+    alloc_ptr_ptr!(wasmer_instance_t)
+}
+
+fn alloc_import_obj_ptr_ptr() -> *mut *mut wasmer_import_object_t {
+    alloc_ptr_ptr!(wasmer_import_object_t)
 }
 
 macro_rules! deref_import_obj {
     ($import_obj_ptr_ptr: expr) => {{
-        unsafe { &mut *(*$import_obj_ptr_ptr as *mut _) }
+        unsafe {
+            let import_obj: &mut ImportObject = &mut *(*$import_obj_ptr_ptr as *mut _);
+            import_obj as *const ImportObject as *const wasmer_import_object_t
+        }
     }};
 }
 
@@ -230,9 +237,7 @@ fn call_storage_mem_to_reg_copy() {
         );
     };
 
-    let import_obj: &mut ImportObject = deref_import_obj!(import_obj_ptr_ptr);
-    let import_object = import_obj as *const ImportObject as *const wasmer_import_object_t;
-
+    let import_object = deref_import_obj!(import_obj_ptr_ptr);
     let instance_ptr_ptr = alloc_instance_ptr_ptr();
     let module = wasmer_compile_module_file!("wasm/mem_to_reg_copy.wast");
 
@@ -272,9 +277,7 @@ fn call_node_get_balance() {
         );
     };
 
-    let import_obj: &mut ImportObject = deref_import_obj!(import_obj_ptr_ptr);
-    let import_object = import_obj as *const ImportObject as *const wasmer_import_object_t;
-
+    let import_object = deref_import_obj!(import_obj_ptr_ptr);
     let instance_ptr_ptr = alloc_instance_ptr_ptr();
     let module = wasmer_compile_module_file!("wasm/get_balance.wast");
 
@@ -308,8 +311,7 @@ fn call_wasmer_svm_instance_context_node_data_get() {
         );
     };
 
-    let import_obj: &mut ImportObject = deref_import_obj!(import_obj_ptr_ptr);
-    let import_object = import_obj as *const ImportObject as *const wasmer_import_object_t;
+    let import_object = deref_import_obj!(import_obj_ptr_ptr);
     let instance_ptr_ptr = alloc_instance_ptr_ptr();
     let module = wasmer_compile_module_file!("wasm/set_ip.wast");
 
@@ -347,8 +349,7 @@ fn call_wasmer_svm_register_ptr() {
         );
     };
 
-    let import_obj: &mut ImportObject = deref_import_obj!(import_obj_ptr_ptr);
-    let import_object = import_obj as *const ImportObject as *const wasmer_import_object_t;
+    let import_object = deref_import_obj!(import_obj_ptr_ptr);
     let instance_ptr_ptr = alloc_instance_ptr_ptr();
     let module = wasmer_compile_module_file!("wasm/copy_reg_to_reg.wast");
 
