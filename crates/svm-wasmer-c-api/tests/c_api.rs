@@ -131,6 +131,8 @@ macro_rules! cast_vmcall_to_import_func_t {
 
 macro_rules! wasmer_compile_module {
     ($wasm:expr) => {{
+        use std::fmt::Debug;
+
         let mut wasm = wabt::wat2wasm(&$wasm).unwrap();
 
         let wasm_bytes = wasm.as_mut_ptr();
@@ -138,13 +140,13 @@ macro_rules! wasmer_compile_module {
         let module_ptr_ptr = alloc_module_ptr_ptr();
 
         unsafe {
-            let compile_res = wasmer_runtime_c_api::module::wasmer_compile(
+            let compile_res: wasmer_result_t = wasmer_runtime_c_api::module::wasmer_compile(
                 module_ptr_ptr,
                 wasm_bytes,
                 wasm_bytes_len,
             );
-            // TODO: assert `compile_res` is OK`
 
+            // TODO: assert `compile_res` is OK`
             // assert_eq!(wasmer_result_t::WASMER_OK, compile_res);
 
             let module_ptr: *const wasmer_module_t = *module_ptr_ptr as *const _;
