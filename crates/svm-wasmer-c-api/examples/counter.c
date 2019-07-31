@@ -129,7 +129,7 @@ int main() {
     assert(call_result1 == WASMER_OK);
 
     // Now, let's increment the counter by `7`. In order to do that we set register `2` with `7`
-    wasmer_instance_context_t *ctx = wasmer_instance_context_get(instance);
+    const wasmer_instance_context_t *ctx = wasmer_instance_context_get(instance);
     uint8_t counter[] = {7};
     wasmer_svm_register_set(ctx, 2, counter, 1);
 

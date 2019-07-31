@@ -33,12 +33,6 @@ void wasmer_svm_register_set(const wasmer_instance_context_t *ctx,
 
 
 /**
- * Extracts the instance's context and returns it
- */
-wasmer_instance_context_t *wasmer_instance_context_get(wasmer_instance_t *instance);
-
-
-/**
  * Creates a new Import object
  * Returns `wasmer_result_t::WASMER_OK` upon success.
  * Returns `wasmer_result_t::WASMER_ERROR` upon failure. Use `wasmer_last_error_length`
