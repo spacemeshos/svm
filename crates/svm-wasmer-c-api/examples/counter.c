@@ -16,7 +16,16 @@ node_data_t* new_node_data(uint32_t counter) {
    return ptr;
 }
 
-void inc_counter(wasmer_instance_context_t *ctx, uint32_t amount) {
+void inc_counter_from_reg(wasmer_instance_context_t *ctx, uint32_t reg_idx) {
+  uint8_t* reg_bytes = wasmer_svm_register_get(ctx, reg_idx);
+
+  uint8_t a = reg_bytes[0];
+  uint8_t b = reg_bytes[1];
+  uint8_t c = reg_bytes[2];
+  uint8_t d = reg_bytes[3];
+
+  uint32_t amount = a | (b << 8) | (c << 16) | (d << 24);
+
   node_data_t *nd = (node_data_t*)(wasmer_svm_instance_context_node_data_get(ctx));
   nd->counter = nd->counter + amount;
 }
@@ -24,7 +33,6 @@ void inc_counter(wasmer_instance_context_t *ctx, uint32_t amount) {
 uint32_t get_counter(wasmer_instance_context_t *ctx) {
   node_data_t *nd = (node_data_t*)(wasmer_svm_instance_context_node_data_get(ctx));
   return nd->counter;
-  return 0;
 }
 
 int main() {
@@ -40,8 +48,8 @@ int main() {
   /* Prepare import for `inc_counter` */
   wasmer_value_tag inc_params_sig[] = {WASM_I32};
   wasmer_value_tag inc_returns_sig[] = {};
-  wasmer_import_func_t *inc_func = wasmer_import_func_new((void (*)(void *)) inc_counter, inc_params_sig, 1, inc_returns_sig, 0);
-  const char *inc_import_name = "inc_counter";
+  wasmer_import_func_t *inc_func = wasmer_import_func_new((void (*)(void *)) inc_counter_from_reg, inc_params_sig, 1, inc_returns_sig, 0);
+  const char *inc_import_name = "inc_counter_from_reg";
   wasmer_byte_array inc_import_name_bytes;
   inc_import_name_bytes.bytes = (const uint8_t *) inc_import_name;
   inc_import_name_bytes.bytes_len = strlen(inc_import_name);
@@ -102,10 +110,14 @@ int main() {
   assert(get_results[0].value.I32 == 9);
   assert(call_result1 == WASMER_OK);
 
-  // Now, let's increment the counter by `7`
+  // Now, let's increment the counter by `7`. In order to do that we set register `2` with `7`
+  wasmer_instance_context_t *ctx = NULL;
+  uint8_t counter[] = {7};
+  wasmer_svm_register_set(ctx, 2, counter, 1);
+
   wasmer_value_t arg_amount;
   arg_amount.tag = WASM_I32;
-  arg_amount.value.I32 = 7;
+  arg_amount.value.I32 = 0; // register `2`
   wasmer_value_t inc_params[] = {arg_amount};
   wasmer_value_t inc_results[] = {};
   wasmer_result_t call_result2 = wasmer_instance_call(instance, "inc_counter_proxy", inc_params, 1, inc_results, 0);

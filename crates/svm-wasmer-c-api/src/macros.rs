@@ -25,7 +25,7 @@ macro_rules! include_svm_wasmer_c_api {
 
         /// Returns a raw pointer to the `wasmer svm` register's internal content
         #[no_mangle]
-        pub unsafe extern "C" fn wasmer_svm_register_ptr(
+        pub unsafe extern "C" fn wasmer_svm_register_get(
             ctx: *const wasmer_instance_context_t,
             reg_idx: i32,
         ) -> *const u8 {
@@ -35,6 +35,22 @@ macro_rules! include_svm_wasmer_c_api {
             let reg: &mut WasmerReg64 = wasmer_ctx_reg!(wasmer_ctx, reg_idx, $PC);
 
             reg.as_ptr()
+        }
+
+        /// Copies `bytes_len` bytes from raw pointer `bytes` into `wasmer svm` register indexed `reg_idx`.
+        #[no_mangle]
+        pub unsafe extern "C" fn wasmer_svm_register_set(
+            ctx: *const wasmer_instance_context_t,
+            reg_idx: i32,
+            bytes_ptr: *const u8,
+            bytes_len: u8,
+        ) {
+            use svm_wasmer::register::WasmerReg64;
+
+            let wasmer_ctx: &Ctx = &*(ctx as *const Ctx);
+            let reg: &mut WasmerReg64 = wasmer_ctx_reg!(wasmer_ctx, reg_idx, $PC);
+
+            reg.copy_from(bytes_ptr, bytes_len)
         }
 
         /// Gets the `node_data` field within the `svm context` (a.k.a `data` of the wasmer context).

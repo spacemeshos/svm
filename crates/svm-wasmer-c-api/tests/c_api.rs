@@ -10,12 +10,15 @@ use svm_wasmer::*;
 use wasmer_runtime_c_api::{
     export::{wasmer_import_export_kind, wasmer_import_export_value},
     import::{wasmer_import_func_t, wasmer_import_t},
-    instance::{wasmer_instance_context_t, wasmer_instance_t},
+    instance::{
+        wasmer_instance_call, wasmer_instance_context_get, wasmer_instance_context_t,
+        wasmer_instance_t,
+    },
     module::wasmer_module_t,
     wasmer_byte_array, wasmer_result_t,
 };
 
-use wasmer_runtime::{Func, ImportObject, Instance};
+use wasmer_runtime::{Ctx, Func, ImportObject, Instance};
 use wasmer_runtime_core::{
     export::{Context, Export, FuncPointer},
     types::{FuncSig, Type},
@@ -74,8 +77,8 @@ unsafe extern "C" fn copy_reg_to_reg(
     src_reg_idx: i32,
     dst_reg_idx: i32,
 ) {
-    let src_reg_ptr: *const u8 = wasmer_svm_register_ptr(ctx, src_reg_idx);
-    let dst_reg_ptr: *mut u8 = wasmer_svm_register_ptr(ctx, dst_reg_idx) as *mut _;
+    let src_reg_ptr: *const u8 = wasmer_svm_register_get(ctx, src_reg_idx);
+    let dst_reg_ptr: *mut u8 = wasmer_svm_register_get(ctx, dst_reg_idx) as *mut _;
 
     std::ptr::copy_nonoverlapping(src_reg_ptr, dst_reg_ptr, 8);
 }
@@ -328,7 +331,7 @@ fn call_wasmer_svm_instance_context_node_data_get() {
 }
 
 #[test]
-fn call_wasmer_svm_register_ptr() {
+fn call_wasmer_svm_register_get_set() {
     let copy_reg2reg_ptr =
         cast_vmcall_to_import_func_t!(copy_reg_to_reg, vec![Type::I32, Type::I32], vec![]);
 
@@ -358,14 +361,17 @@ fn call_wasmer_svm_register_ptr() {
     }
 
     let instance: &Instance = deref_instance!(instance_ptr_ptr);
-
     let func: Func<(i32, i32)> = instance.func("copy_reg_to_reg_proxy").unwrap();
 
-    let reg2 = wasmer_ctx_reg!(instance.context(), 2, MemPageCache32);
+    let ctx = instance.context() as *const Ctx as *const wasmer_instance_context_t;
+    let reg2 = unsafe { wasmer_svm_register_get(ctx, 2) };
     let reg3 = wasmer_ctx_reg!(instance.context(), 3, MemPageCache32);
-    reg2.set(&[10, 20, 30, 40, 50, 60, 70, 80]);
+
+    //setting register `2` with data that will be copied later to register `3`
+    unsafe { wasmer_svm_register_set(ctx, 2, [10, 20, 30, 40, 50, 60, 70, 80].as_ptr(), 8) };
     assert_eq!([0; 8], reg3.view());
 
+    // should trigger copying the contents of register `2` to register `3`
     let _ = func.call(2, 3).unwrap();
 
     assert_eq!([10, 20, 30, 40, 50, 60, 70, 80], reg3.view());

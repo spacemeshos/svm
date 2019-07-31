@@ -18,6 +18,20 @@ typedef struct {
 void *wasmer_svm_instance_context_node_data_get(const wasmer_instance_context_t *ctx);
 
 /**
+ * Returns a pointer to register internal bytes array
+ */
+uint8_t *wasmer_svm_register_get(const wasmer_instance_context_t *ctx, uint32_t reg_idx);
+
+
+/**
+  Copies `bytes_len` bytes from raw pointer `bytes` into `wasmer svm` register indexed `reg_idx`.
+ */
+void wasmer_svm_register_set(const wasmer_instance_context_t *ctx,
+                             uint32_t reg_idx,
+                             uint8_t *bytes_ptr,
+                             uint32_t bytes_len);
+
+/**
  * Creates a new Import object
  * Returns `wasmer_result_t::WASMER_OK` upon success.
  * Returns `wasmer_result_t::WASMER_ERROR` upon failure. Use `wasmer_last_error_length`
