@@ -10,25 +10,34 @@ homepage = "https://github.com/spacemeshos/svm"
 description = "Spacemesh Virtual Machine"
 publish = false
 
-[dependencies]
-wasmparser = "0.31.1"
-svm-storage = { path = "../svm-storage/" }
+[dependencies.svm-common]
+path = "../svm-common"
+version = "0.0.0"
 
-[dependencies.wasmer-singlepass-backend]
-git = "https://github.com/spacemeshos/wasmer"
-branch = "develop"
+[dependencies.svm-storage]
+default-features = false
+path = "../svm-storage"
+features = ["svm_memory"]
+version = "0.0.0"
 
 [dependencies.wasmer-runtime]
 default-features = false
 git = "https://github.com/spacemeshos/wasmer"
 branch = "develop"
-features = ["singlepass"]
+features = ["default-backend-singlepass"]
 
 [dependencies.wasmer-runtime-core]
 default-features = false
 git = "https://github.com/spacemeshos/wasmer"
 branch = "develop"
 features = ["backend-singlepass"]
+
+[dependencies.wasmer-singlepass-backend]
+git = "https://github.com/spacemeshos/wasmer"
+branch = "develop"
+
+[dependencies]
+wasmparser = "0.31.1"
 
 [dev-dependencies]
 wabt = "0.7.4"

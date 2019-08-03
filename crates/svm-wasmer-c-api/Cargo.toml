@@ -26,6 +26,10 @@ git = "https://github.com/spacemeshos/wasmer"
 branch = "develop"
 features = ["default-backend-singlepass"]
 
+[dependencies.wasmer-singlepass-backend]
+git = "https://github.com/spacemeshos/wasmer"
+branch = "develop"
+
 [dependencies.svm-wasmer]
 default-features = false
 version = "0.0.0"
