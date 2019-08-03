@@ -8,23 +8,23 @@ publish = false
 [lib]
 crate-type = ["cdylib", "staticlib", "rlib"]
 
-[dependencies.wasmer-runtime-c-api]
+[dependencies.wasmer-runtime]
 default-features = false
 git = "https://github.com/spacemeshos/wasmer"
 branch = "develop"
-features = []
+features = ["default-backend-singlepass"]
 
 [dependencies.wasmer-runtime-core]
 default-features = false
 git = "https://github.com/spacemeshos/wasmer"
 branch = "develop"
-features = []
+features = ["backend-singlepass"]
 
-[dependencies.wasmer-runtime]
+[dependencies.wasmer-runtime-c-api]
 default-features = false
 git = "https://github.com/spacemeshos/wasmer"
 branch = "develop"
-features = ["singlepass"]
+features = ["default-backend-singlepass"]
 
 [dependencies.svm-wasmer]
 default-features = false
