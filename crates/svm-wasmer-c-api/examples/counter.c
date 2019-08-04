@@ -116,7 +116,7 @@ int main() {
     assert(compile_res == WASMER_OK);
 
     wasmer_instance_t *instance = NULL;
-    wasmer_result_t instance_res = wasmer_svm_module_instantiate(&instance, module, import_object);
+    wasmer_result_t instance_res = wasmer_module_import_instantiate(&instance, module, import_object);
     assert(instance_res == WASMER_OK);
 
     // First we want to assert that the counter has been initialized with `9`

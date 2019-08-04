@@ -4,9 +4,6 @@
 
 //! This crate is responsible on providing a [FFI](https://doc.rust-lang.org/nomicon/ffi.html) interface for the `wasmer svm`.
 
-/// Contains a definition for `wasmer_import_object_t`
-pub mod import;
-
 /// Will contain macros for the `svm wasmer C-API`
 pub mod macros;
 

@@ -630,6 +630,7 @@ dependencies = [
  "wasmer-runtime 0.6.0 (git+https://github.com/spacemeshos/wasmer?branch=develop)",
  "wasmer-runtime-c-api 0.6.0 (git+https://github.com/spacemeshos/wasmer?branch=develop)",
  "wasmer-runtime-core 0.6.0 (git+https://github.com/spacemeshos/wasmer?branch=develop)",
+ "wasmer-singlepass-backend 0.6.0 (git+https://github.com/spacemeshos/wasmer?branch=develop)",
 ]
 
 [[package]]
