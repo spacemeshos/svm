@@ -132,19 +132,15 @@ macro_rules! wasmer_compile_module {
 
         let wasm_bytes = wasm.as_mut_ptr();
         let wasm_bytes_len = wasm.len() as u32;
-        let module_ptr_ptr = alloc_module_ptr_ptr();
+        let raw_module = alloc_raw_module();
 
-        let compile_res: wasmer_result_t = wasmer_runtime_c_api::module::wasmer_compile(
-            module_ptr_ptr,
-            wasm_bytes,
-            wasm_bytes_len,
-        );
+        let compile_res = wasmer_svm_compile(raw_module, wasm_bytes, wasm_bytes_len);
 
         // TODO: assert `compile_res` is OK`
         // assert_eq!(wasmer_result_t::WASMER_OK, compile_res);
 
-        let module_ptr: *const wasmer_module_t = *module_ptr_ptr as *const _;
-        module_ptr
+        let module: *const wasmer_module_t = *raw_module as *const _;
+        module
     }};
 }
 
@@ -180,7 +176,7 @@ macro_rules! alloc_ptr_ptr {
     }};
 }
 
-fn alloc_module_ptr_ptr() -> *mut *mut wasmer_module_t {
+fn alloc_raw_module() -> *mut *mut wasmer_module_t {
     alloc_ptr_ptr!(wasmer_module_t)
 }
 

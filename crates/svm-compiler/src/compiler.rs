@@ -6,15 +6,16 @@ use wasmer_runtime_core::Module;
 /// returning a `StreamingCompiler<SinglePassMCG, _, _, _, _>` so we use a rust macro instead
 macro_rules! svm_compiler {
     () => {{
-        use crate::middleware::ValidationMiddleware;
+        // use crate::middleware::ValidationMiddleware;
 
-        use wasmer_runtime_core::codegen::{MiddlewareChain, StreamingCompiler};
+        use wasmer_runtime_core::codegen::MiddlewareChain;
+        use wasmer_runtime_core::codegen::StreamingCompiler;
         use wasmer_singlepass_backend::ModuleCodeGenerator as SinglePassMCG;
 
         let compiler: StreamingCompiler<SinglePassMCG, _, _, _, _> =
             StreamingCompiler::new(move || {
-                let mut chain = MiddlewareChain::new();
-                chain.push(ValidationMiddleware::new());
+                let chain = MiddlewareChain::new();
+                // chain.push(ValidationMiddleware::new());
                 chain
             });
 

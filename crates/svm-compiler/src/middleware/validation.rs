@@ -158,6 +158,7 @@ mod tests {
     use wasmer_runtime::error::CompileError;
 
     #[test]
+    #[ignore]
     fn test_parser_floats_are_not_supported() {
         let input = r#"
             (module

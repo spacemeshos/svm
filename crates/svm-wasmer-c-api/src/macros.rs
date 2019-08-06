@@ -21,6 +21,29 @@ macro_rules! include_svm_wasmer_c_api {
         /// Injecting the `svm vmcalls` backed by page-cache `$PC` into this file
         include_wasmer_svm_vmcalls!($PC);
 
+        /// Compiles the wasm module using the `svm-compiler` (`wasmer` singlepass compiler with custom extensions)
+        #[no_mangle]
+        pub unsafe extern "C" fn wasmer_svm_compile(
+            module: *mut *mut wasmer_module_t,
+            wasm_bytes: *mut u8,
+            wasm_bytes_len: u32,
+        ) -> wasmer_result_t {
+            let wasm: &[u8] = std::slice::from_raw_parts_mut(wasm_bytes, wasm_bytes_len as usize);
+            let result = svm_compiler::compile_program(wasm);
+
+            match result {
+                Ok(wasmer_module) => {
+                    let boxed_module = Box::new(wasmer_module);
+                    *module = Box::into_raw(boxed_module) as *mut wasmer_module_t;
+                    wasmer_result_t::WASMER_OK
+                }
+                Err(error) => {
+                    update_last_error(error);
+                    wasmer_result_t::WASMER_ERROR
+                }
+            }
+        }
+
         /// Returns a raw pointer to the `wasmer svm` register's internal content
         #[no_mangle]
         pub unsafe extern "C" fn wasmer_svm_register_get(
