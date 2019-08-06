@@ -1,6 +1,6 @@
 [package]
-name = "svm-core"
-version = "0.0.1"
+name = "svm-compiler"
+version = "0.0.0"
 authors = ["Yaron Wittenstein <yaron.wittenstein@gmail.com>"]
 license = "MIT"
 edition = "2018"

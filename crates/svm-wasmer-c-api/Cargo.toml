@@ -1,12 +1,13 @@
 [package]
 name = "svm-wasmer-c-api"
-version = "0.1.0"
+version = "0.0.0"
 authors = ["Yaron Wittenstein <yaron.wittenstein@gmail.com>"]
 edition = "2018"
 publish = false
 
 [lib]
 crate-type = ["cdylib", "staticlib", "rlib"]
+
 
 [dependencies.wasmer-runtime]
 default-features = false
@@ -44,6 +45,12 @@ default-features = false
 path = "../svm-storage"
 version = "0.0.0"
 features = ["svm_memory"]
+
+[dependencies.svm-compiler]
+default-features = false
+path = "../svm-compiler"
+version = "0.0.0"
+features = []
 
 [dependencies]
 libc = "0.2"

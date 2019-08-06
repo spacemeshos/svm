@@ -601,6 +601,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "svm-compiler"
+version = "0.0.0"
+dependencies = [
+ "svm-common 0.0.0",
+ "svm-storage 0.0.0",
+ "wasmer-runtime 0.6.0 (git+https://github.com/spacemeshos/wasmer?branch=develop)",
+ "wasmer-runtime-core 0.6.0 (git+https://github.com/spacemeshos/wasmer?branch=develop)",
+ "wasmer-singlepass-backend 0.6.0 (git+https://github.com/spacemeshos/wasmer?branch=develop)",
+ "wasmparser 0.31.1 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "svm-storage"
 version = "0.0.0"
 dependencies = [
@@ -620,10 +632,11 @@ dependencies = [
 
 [[package]]
 name = "svm-wasmer-c-api"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "libc 0.2.60 (registry+https://github.com/rust-lang/crates.io-index)",
  "svm-common 0.0.0",
+ "svm-compiler 0.0.0",
  "svm-storage 0.0.0",
  "svm-wasmer 0.0.0",
  "wabt 0.7.4 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -800,6 +813,11 @@ dependencies = [
 
 [[package]]
 name = "wasmparser"
+version = "0.31.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "wasmparser"
 version = "0.35.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
@@ -937,6 +955,7 @@ dependencies = [
 "checksum wasmer-runtime-c-api 0.6.0 (git+https://github.com/spacemeshos/wasmer?branch=develop)" = "<none>"
 "checksum wasmer-runtime-core 0.6.0 (git+https://github.com/spacemeshos/wasmer?branch=develop)" = "<none>"
 "checksum wasmer-singlepass-backend 0.6.0 (git+https://github.com/spacemeshos/wasmer?branch=develop)" = "<none>"
+"checksum wasmparser 0.31.1 (registry+https://github.com/rust-lang/crates.io-index)" = "8a6f324afc05fd8282bbc49dae854a1c20f74aeff10a575b5a43453d1864db97"
 "checksum wasmparser 0.35.1 (registry+https://github.com/rust-lang/crates.io-index)" = "29f51d6103c622680dc4e17fb8173371efda8e529d97a2ba10ddf847d07705f8"
 "checksum winapi 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)" = "167dc9d6949a9b857f3451275e911c3f44255842c1f7a76f33c55103a909087a"
 "checksum winapi 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)" = "f10e386af2b13e47c89e7236a7a14a086791a2b88ebad6df9bf42040195cf770"
