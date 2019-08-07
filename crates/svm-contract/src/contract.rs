@@ -7,6 +7,5 @@ pub struct Contract {
     tag: Tag,
     name: String,
     authors: Vec<Address>,
-    admins: Vec<Address>,
     deps: Vec<Revision>,
 }
