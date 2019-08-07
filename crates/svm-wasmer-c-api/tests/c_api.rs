@@ -133,7 +133,6 @@ macro_rules! wasmer_compile_module {
         let wasm_bytes = wasm.as_mut_ptr();
         let wasm_bytes_len = wasm.len() as u32;
         let raw_module = alloc_raw_module();
-
         let compile_res = wasmer_svm_compile(raw_module, wasm_bytes, wasm_bytes_len);
 
         // TODO: assert `compile_res` is OK`
@@ -214,6 +213,7 @@ fn call_storage_mem_to_reg_copy() {
     unsafe {
         let node_data = NodeData::default();
         let raw_import_object = alloc_raw_import_object();
+
         wasmer_svm_import_object(
             raw_import_object,
             u32_addr_as_ptr(0x11_22_33_44), // `addr_ptr: *const u8`

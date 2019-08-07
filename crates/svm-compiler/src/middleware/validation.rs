@@ -1,6 +1,8 @@
-use wasmer_runtime_core::codegen::{Event, EventSink, FunctionMiddleware};
-use wasmer_runtime_core::module::ModuleInfo;
-use wasmer_runtime_core::wasmparser::Operator;
+use wasmer_runtime_core::{
+    codegen::{Event, EventSink, FunctionMiddleware},
+    module::ModuleInfo,
+    wasmparser::Operator,
+};
 
 use super::error::ParseError;
 
@@ -24,7 +26,7 @@ impl FunctionMiddleware for ValidationMiddleware {
         &mut self,
         event: Event<'a, 'b>,
         _module_info: &ModuleInfo,
-        _sink: &mut EventSink<'a, 'b>,
+        sink: &mut EventSink<'a, 'b>,
     ) -> Result<(), Self::Error> {
         match event {
             Event::Wasm(op) => parse_wasm_opcode(op)?,
@@ -32,6 +34,7 @@ impl FunctionMiddleware for ValidationMiddleware {
             _ => (),
         };
 
+        sink.push(event);
         Ok(())
     }
 }
@@ -156,10 +159,30 @@ fn parse_wasm_opcode(opcode: &Operator) -> Result<(), ParseError> {
 mod tests {
     use crate::compile_program;
     use wasmer_runtime::error::CompileError;
+    use wasmer_runtime::{imports, instantiate, Func};
 
     #[test]
-    #[ignore]
-    fn test_parser_floats_are_not_supported() {
+    fn valid_wasm_instance_sanity() {
+        let input = r#"
+            (module
+                (func (export "sum") (param i32 i32) (result i32)
+                    get_local 0
+                    get_local 1
+                    i32.add
+                ))
+            "#;
+        let wasm = wabt::wat2wasm(input).unwrap();
+        let module = compile_program(&wasm).unwrap();
+        let instance = module.instantiate(&imports! {}).unwrap();
+
+        let func: Func<(i32, i32), i32> = instance.func("sum").unwrap();
+        let res = func.call(10, 20);
+        assert!(res.is_ok());
+        assert_eq!(30, res.unwrap());
+    }
+
+    #[test]
+    fn parser_floats_are_not_supported() {
         let input = r#"
             (module
                 (func $to_float (param i32) (result f32)
@@ -169,7 +192,6 @@ mod tests {
             "#;
 
         let wasm = wabt::wat2wasm(input).unwrap();
-
         let res = compile_program(&wasm);
 
         assert!(res.is_err());

@@ -112,7 +112,7 @@ macro_rules! include_svm_wasmer_c_api {
             let mut import_object = ImportObject::new_with_data(state_gen);
             append_internal_imports(&mut import_object);
 
-            *raw_import_object = cast_import_obj_to_ptr(import_object);
+            *raw_import_object = cast_import_object_to_raw_ptr(import_object);
             let _res = wasmer_import_object_extend(*raw_import_object, imports, imports_len);
             // TODO: assert result
             // if res != wasmer_result_t::WASMER_OK {
@@ -134,7 +134,7 @@ macro_rules! include_svm_wasmer_c_api {
             import_obj.register("svm", ns);
         }
 
-        fn cast_import_obj_to_ptr(
+        fn cast_import_object_to_raw_ptr(
             import_object: wasmer_runtime::ImportObject,
         ) -> *mut wasmer_import_object_t {
             let boxed_import_obj = Box::new(import_object);
