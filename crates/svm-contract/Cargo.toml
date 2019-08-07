@@ -1,0 +1,13 @@
+[package]
+name = "svm-contract"
+version = "0.0.0"
+authors = ["Yaron Wittenstein <yaron.wittenstein@gmail.com>"]
+edition = "2018"
+publish = false
+
+[dependencies.serde]
+version = "1.0.98"
+features = ["derive"]
+
+# [dependencies.serde_bytes]
+# version = "0.11.1"
