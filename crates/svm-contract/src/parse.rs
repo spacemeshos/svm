@@ -1,6 +1,8 @@
-use crate::contract::Contract;
 use crate::traits::CodeHashStore;
-use crate::types::{Address, CodeHash, Revision, Tag};
+use crate::types::{CodeHash, Revision, Tag};
+use crate::wire_contract::WireContract;
+
+use svm_common::Address;
 
 use byteorder::{BigEndian, ReadBytesExt};
 use std::io::{Cursor, Read};
@@ -23,7 +25,7 @@ pub enum Field {
 }
 
 //
-//          Deploy Contract Wire Protocol Version 0.0
+//          Deploy Contract Wire Protocol Version
 //  -------------------------------------------------------
 //  |   proto    |                |                       |
 //  |  version   |  name length   |     name (UTF-8)      |
@@ -33,8 +35,8 @@ pub enum Field {
 //  |     (4 bytes)     |  (1 byte) |   (32 bytes each)   |
 //  |___________________|__________ |_____________________|
 //  |           |                                         |
-//  |   #deps   |           dependency #1                 |
-//  | (2 bytes) |               TBD                       |
+//  |   #deps   |           dependencies                  |
+//  | (2 bytes) |              (TBD)                      |
 //  |___________|_________________________________________|
 //  |                |                                    |
 //  |                |                                    |
@@ -44,24 +46,58 @@ pub enum Field {
 //  |________________|____________________________________|
 //
 
-/// Parsing a serialized deploy contract given as raw bytes.
-/// Returned the parsed
+/// Parsing a on-the-wire contract given as raw bytes.
+/// Returns the parsed contract as a `WireContract` struct.
 pub fn parse_contract(
     bytes: &[u8],
     store: &mut impl CodeHashStore,
-) -> Result<Contract, ParseError> {
+) -> Result<WireContract, ParseError> {
     let mut cursor = Cursor::new(bytes);
 
-    let proto_ver = cursor.read_u32::<BigEndian>().unwrap();
-    if proto_ver != 0 {
-        return Err(ParseError::UnsupportedProtoVersion(proto_ver));
+    let version = parse_version(&mut cursor)?;
+    let tag = parse_tag(&mut cursor)?;
+    let name = parse_name(&mut cursor)?;
+    let authors = parse_authors(&mut cursor)?;
+    let wasm = parse_wasm(&mut cursor)?;
+
+    let contract = WireContract {
+        name,
+        wasm,
+        tag,
+        authors,
+    };
+
+    Ok(contract)
+}
+
+fn parse_version(cursor: &mut Cursor<&[u8]>) -> Result<u32, ParseError> {
+    let version = cursor.read_u32::<BigEndian>().unwrap();
+    if version != 0 {
+        return Err(ParseError::UnsupportedProtoVersion(version));
     }
+    Ok(version)
+}
 
+fn parse_tag(cursor: &mut Cursor<&[u8]>) -> Result<Tag, ParseError> {
+    let mut tag = [0; 4];
+    cursor.read_exact(&mut tag).unwrap();
+    Ok(Tag(tag))
+}
+
+fn parse_name(cursor: &mut Cursor<&[u8]>) -> Result<String, ParseError> {
     let name_len = cursor.read_u8().unwrap();
-    let mut name = Vec::<u8>::with_capacity(name_len as usize);
-    cursor.read_exact(&mut name).unwrap();
+    // TODO: assert `name_len > 0`
 
-    let tag = cursor.read_u32::<BigEndian>().unwrap();
+    let mut name_buf = Vec::<u8>::with_capacity(name_len as usize);
+    cursor.read_exact(&mut name_buf).unwrap();
+
+    let name = String::from_utf8(name_buf).unwrap();
+    // TODO: return error if `name` isn't a valid UTF-8 string
+
+    Ok(name)
+}
+
+fn parse_authors(cursor: &mut Cursor<&[u8]>) -> Result<Vec<Address>, ParseError> {
     let authors_count = cursor.read_u8().unwrap() as usize;
     if authors_count == 0 {
         return Err(ParseError::NoAuthors);
@@ -73,15 +109,21 @@ pub fn parse_contract(
         authors.push(Address(addr));
     }
 
+    Ok(authors)
+}
+
+fn parse_deps(cursor: &mut Cursor<&[u8]>) -> Result<(), ParseError> {
     let deps_count = cursor.read_u16::<BigEndian>().unwrap();
     if deps_count > 0 {
         return Err(ParseError::DepsNotSupportedYet);
     }
 
+    Ok(())
+}
+
+fn parse_wasm(cursor: &mut Cursor<&[u8]>) -> Result<Vec<u8>, ParseError> {
     let wasm_len = cursor.read_u64::<BigEndian>().unwrap();
     let mut wasm = Vec::<u8>::with_capacity(wasm_len as usize);
 
-    // let contract = Contract {};
-    // return Ok(contract);
-    panic!()
+    Ok(wasm)
 }
