@@ -18,8 +18,96 @@ macro_rules! include_svm_wasmer_c_api {
         };
         use wasmer_runtime_core::{export::Export, import::Namespace};
 
+        use crate::c_types::svm_address_t;
+
         /// Injecting the `svm vmcalls` backed by page-cache `$PC` into this file
         include_wasmer_svm_vmcalls!($PC);
+
+        /// Validates the deployed contract trnnsaction.
+        /// Should be called while the transaction is in the `mempool` of the full-node (prior mining it).
+        #[no_mangle]
+        pub unsafe extern "C" fn wasmer_svm_deploy_contract_tx_validate(
+            tx: *const u8,
+            tx_len: u64,
+        ) -> wasmer_result_t {
+            unimplemented!()
+        }
+
+        /// Computes the new deployed contract's account address from the deployed transaction.
+        /// The computation should be determinstic and take into account:
+        ///
+        /// * tag
+        /// * author
+        /// * admins
+        /// * wasm code
+        /// * deps revisions
+        ///
+        /// Address is returned via `contract_addr` argument, and should be later dellocated
+        /// using `svm_address_destroy` function (see file: `c_types.rs`).
+        #[no_mangle]
+        pub unsafe extern "C" fn wasmer_svm_deploy_contract_compute_addr(
+            contract_addr: *const *const svm_address_t,
+            tx: *const u8,
+            tx_len: u64,
+        ) -> wasmer_result_t {
+            unimplemented!()
+        }
+
+        /// Stores the new deployed contract under a database.
+        /// Future transaction will reference the contract by it's account address.
+        /// (see `wasmer_svm_contract_exec`).
+        ///
+        /// This function should be called after performing validation (see `wasmer_svm_deploy_contract_tx_validate`).
+        ///
+        /// * `contract_addr` - The contract address. Should have been computed before.
+        /// (see `wasmer_svm_deploy_contract_compute_addr`).
+        ///
+        /// * `tx` - The deployed contract on-the-wire transaction.
+        /// * `tx_length` - The length of `tx`
+        ///
+        #[no_mangle]
+        pub unsafe extern "C" fn wasmer_svm_deploy_contract_store(
+            contract_addr: *const svm_address_t,
+            tx: *const u8,
+            tx_length: u64,
+        ) -> wasmer_result_t {
+            unimplemented!()
+        }
+
+        /// Should be called while the transaction is in the `mempool` of the full-node (prior mining it).
+        /// Mined transaction should be executed using `wasmer_svm_contract_exec`.
+        ///
+        /// * `contract_addr` - The account address of the contract.
+        /// * `gas_left` - How many gas is allocated for the transaction.
+        /// * `payload` - A pointer to the args for the execution.
+        /// * `payload_len` - The length of the `payload`.
+        /// * `func_name` - A pointer to the name of the function to execute.
+        /// * `func_name_len` - The length of `func_name`.
+        #[no_mangle]
+        pub unsafe extern "C" fn wasmer_svm_contract_validate(
+            contract_addr: *const u8,
+            gas_left: u64,
+            payload: *const u8,
+            payload_len: u32,
+            func_name: *const u8,
+            func_name_len: u32,
+        ) -> wasmer_result_t {
+            unimplemented!()
+        }
+
+        /// Triggers an execution of an already deployed contract.
+        /// For an explanation of the function args see `wasmer_svm_contract_validate`.
+        #[no_mangle]
+        pub unsafe extern "C" fn wasmer_svm_contract_exec(
+            contract_addr: *const u8,
+            gas_left: u64,
+            payload: *const u8,
+            payload_len: u32,
+            func_name: *const u8,
+            func_name_len: u32,
+        ) -> wasmer_result_t {
+            unimplemented!()
+        }
 
         /// Compiles the wasm module using the `svm-compiler` (`wasmer` singlepass compiler with custom extensions)
         #[no_mangle]

@@ -6,12 +6,8 @@ use svm_common::Address;
 #[allow(dead_code)]
 pub enum ValidateError {
     NoAuthors,
-    DepsNotSupportedYet,
-    AdminsNotSupportedYet,
     InvalidWasm,
-    MissingField(Field),
     DependencyNotFound(Revision),
-    UnsupportedProtoVersion(u32),
 }
 
 #[allow(dead_code)]
