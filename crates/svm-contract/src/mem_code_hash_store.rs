@@ -7,6 +7,7 @@ pub struct MemCodeHashStore {
     map: HashMap<CodeHash, Vec<u8>>,
 }
 
+#[allow(dead_code)]
 impl MemCodeHashStore {
     fn new() -> Self {
         Self {
