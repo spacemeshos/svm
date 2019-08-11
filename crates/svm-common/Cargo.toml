@@ -11,4 +11,5 @@ description = "Spacemesh Virtual Machine"
 publish = false
 
 [dependencies]
+byteorder = "1.3.2"
 tiny-keccak = "1.4.2"

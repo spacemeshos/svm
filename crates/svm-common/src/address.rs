@@ -2,7 +2,7 @@ use crate::utils::{u32_to_le_array, u8_pair_add, u8_triple_add};
 use std::ops::Add;
 
 /// _Spacemesh_ account address are 32 bytes
-/// An `Address` is always assumed to be in a **little-endian** order
+/// An `Address` is always assumed to be in a **Little-Endian** order
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct Address(pub [u8; 32]);
 
