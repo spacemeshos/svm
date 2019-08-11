@@ -4,7 +4,7 @@
 /// * `svm vmcalls` (required by the implementations of the C-API functions)
 #[macro_export]
 macro_rules! include_svm_wasmer_c_api {
-    ($KV:ident, $PS:ident, $PC:ident) => {
+    ($pages_storage_gen: expr, $PC: ident) => {
         use std::ffi::c_void;
 
         use wasmer_runtime::{imports, Ctx, ImportObject, Instance, Module};
@@ -19,7 +19,6 @@ macro_rules! include_svm_wasmer_c_api {
         use wasmer_runtime_core::{export::Export, import::Namespace};
 
         use crate::c_types::{svm_address_t, svm_contract_ctx_t, svm_receipt_t};
-        use svm_wasmer::contract_ctx::ContractCtx;
 
         /// Injecting the `svm vmcalls` backed by page-cache `$PC` into this file
         include_wasmer_svm_vmcalls!($PC);
@@ -119,22 +118,7 @@ macro_rules! include_svm_wasmer_c_api {
             func_name: *const u8,
             func_name_len: u32,
         ) -> wasmer_result_t {
-            let contract_ctx = ContractCtx::from_raw(
-                addr,
-                state,
-                balance,
-                sender_addr,
-                sender_balance,
-                gas_left,
-                payload,
-                payload_len,
-                func_name,
-                func_name_len,
-            );
-
-            *ctx = Box::into_raw(Box::new(contract_ctx)) as *mut svm_contract_ctx_t;
-
-            wasmer_result_t::WASMER_OK
+            unimplemented!()
         }
 
         /// Triggers an execution of an already deployed contract.
@@ -218,20 +202,27 @@ macro_rules! include_svm_wasmer_c_api {
         #[no_mangle]
         pub unsafe extern "C" fn wasmer_svm_import_object(
             raw_import_object: *mut *mut wasmer_import_object_t,
-            addr_ptr: *const u8,
+            raw_addr: *const u8,
+            raw_state: *const u8,
             max_pages: libc::c_int,
             max_page_slices: libc::c_int,
-            node_data_ptr: *const c_void,
+            node_data: *const c_void,
             imports: *mut wasmer_import_t,
             imports_len: libc::c_uint,
         ) -> wasmer_runtime_c_api::wasmer_result_t {
+            use svm_common::{Address, State};
             use wasmer_runtime::ImportObject;
 
+            let wrapped_pages_storage_gen = move || {
+                let addr = Address::from(raw_addr);
+                let state = State::from(raw_state);
+
+                $pages_storage_gen(addr, state)
+            };
+
             let state_gen = lazy_create_svm_state_gen!(
-                node_data_ptr,
-                svm_common::Address::from(addr_ptr),
-                $KV,
-                $PS,
+                node_data,
+                wrapped_pages_storage_gen,
                 $PC,
                 max_pages as usize,
                 max_page_slices as usize

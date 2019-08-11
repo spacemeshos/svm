@@ -11,7 +11,7 @@ use wasmer_runtime_c_api::{
     import::{wasmer_import_func_t, wasmer_import_object_t, wasmer_import_t},
     instance::{wasmer_instance_context_t, wasmer_instance_t, wasmer_module_import_instantiate},
     module::wasmer_module_t,
-    wasmer_byte_array, wasmer_result_t,
+    wasmer_byte_array,
 };
 
 use wasmer_runtime::{Ctx, Func, ImportObject, Instance};
@@ -108,6 +108,11 @@ fn u32_addr_as_ptr(addr: u32) -> *const u8 {
     Address::from(addr).as_ptr()
 }
 
+fn u32_state_as_ptr(state: u32) -> *const u8 {
+    use svm_common::State;
+    State::from(state).as_ptr()
+}
+
 fn node_data_as_ptr(node_data: &NodeData) -> *const c_void {
     node_data as *const NodeData as *const _
 }
@@ -163,7 +168,7 @@ fn build_wasmer_import_t(
     }
 }
 
-macro_rules! alloc_ptr_ptr {
+macro_rules! alloc_raw_ptr {
     ($ptr_type: ident) => {{
         use std::alloc::Layout;
 
@@ -176,15 +181,15 @@ macro_rules! alloc_ptr_ptr {
 }
 
 fn alloc_raw_module() -> *mut *mut wasmer_module_t {
-    alloc_ptr_ptr!(wasmer_module_t)
+    alloc_raw_ptr!(wasmer_module_t)
 }
 
 fn alloc_raw_instance() -> *mut *mut wasmer_instance_t {
-    alloc_ptr_ptr!(wasmer_instance_t)
+    alloc_raw_ptr!(wasmer_instance_t)
 }
 
 fn alloc_raw_import_object() -> *mut *mut wasmer_import_object_t {
-    alloc_ptr_ptr!(wasmer_import_object_t)
+    alloc_raw_ptr!(wasmer_import_object_t)
 }
 
 macro_rules! deref_import_obj {
@@ -216,7 +221,8 @@ fn call_storage_mem_to_reg_copy() {
 
         wasmer_svm_import_object(
             raw_import_object,
-            u32_addr_as_ptr(0x11_22_33_44), // `addr_ptr: *const u8`
+            u32_addr_as_ptr(0x11_22_33_44), // `raw_addr: *const u8`
+            u32_state_as_ptr(0xAB_CD),      // `raw_state: *const u8`
             5,                              // `max_pages: libc::c_int`
             100,                            // `max_pages_slices: libc::c_int`
             node_data_as_ptr(&node_data),   // `node_data_ptr:: *const c_void`
@@ -253,12 +259,13 @@ fn call_node_get_balance() {
 
         wasmer_svm_import_object(
             raw_import_object,
-            u32_addr_as_ptr(0x11_22_33_44), // `addr_ptr: *const u8`
-            5,                              // `max_pages: libc::c_int`
-            100,                            // `max_pages_slices: libc::c_int`
-            node_data_as_ptr(&node_data),   // `node_data_ptr:: *const c_void`
-            &mut gb_import as *mut _,       // `imports: *mut wasmer_import_t`
-            1,                              // `imports_len: libc::c_int`
+            u32_addr_as_ptr(0x11_22_33_44),  // `raw_addr: *const u8`
+            u32_state_as_ptr(0x0A_0B_0C_0D), // `raw_state: *const u8`,
+            5,                               // `max_pages: libc::c_int`
+            100,                             // `max_pages_slices: libc::c_int`
+            node_data_as_ptr(&node_data),    // `node_data_ptr:: *const c_void`
+            &mut gb_import as *mut _,        // `imports: *mut wasmer_import_t`
+            1,                               // `imports_len: libc::c_int`
         );
 
         let import_object = deref_import_obj!(raw_import_object);
@@ -284,12 +291,13 @@ fn call_wasmer_svm_instance_context_node_data_get() {
 
         wasmer_svm_import_object(
             raw_import_object,
-            u32_addr_as_ptr(0x11_22_33_44), // `addr_ptr: *const u8`
-            5,                              // `max_pages: libc::c_int`
-            100,                            // `max_pages_slices: libc::c_int`
-            node_data_as_ptr(&node_data),   // `node_data_ptr:: *const c_void`
-            &mut set_ip_import as *mut _,   // `imports: *mut wasmer_import_t`
-            1,                              // `imports_len: libc::c_int`
+            u32_addr_as_ptr(0x11_22_33_44),  // `raw_addr: *const u8`
+            u32_state_as_ptr(0x0A_0B_0C_0D), // `raw_state: *const u8`,
+            5,                               // `max_pages: libc::c_int`
+            100,                             // `max_pages_slices: libc::c_int`
+            node_data_as_ptr(&node_data),    // `node_data_ptr:: *const c_void`
+            &mut set_ip_import as *mut _,    // `imports: *mut wasmer_import_t`
+            1,                               // `imports_len: libc::c_int`
         );
 
         let import_object = deref_import_obj!(raw_import_object);
@@ -319,12 +327,13 @@ fn call_wasmer_svm_register_get_set() {
 
         wasmer_svm_import_object(
             raw_import_object,
-            u32_addr_as_ptr(0x11_22_33_44), // `addr_ptr: *const u8`
-            5,                              // `max_pages: libc::c_int`
-            100,                            // `max_pages_slices: libc::c_int`
-            std::ptr::null(),               // `node_data_ptr:: *const c_void`
+            u32_addr_as_ptr(0x11_22_33_44),  // `raw_addr: *const u8`
+            u32_state_as_ptr(0x0A_0B_0C_0D), // `raw_state: *const u8`,
+            5,                               // `max_pages: libc::c_int`
+            100,                             // `max_pages_slices: libc::c_int`
+            std::ptr::null(),                // `node_data_ptr:: *const c_void`
             &mut copy_reg2reg_import as *mut _, // `imports: *mut wasmer_import_t`
-            1,                              // `imports_len: libc::c_int`
+            1,                               // `imports_len: libc::c_int`
         );
 
         let import_object = deref_import_obj!(raw_import_object);

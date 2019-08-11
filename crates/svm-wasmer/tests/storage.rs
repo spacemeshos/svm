@@ -1,6 +1,6 @@
 use std::cell::Cell;
 
-use svm_storage::memory::{MemKVStore, MemPageCache32, MemPages};
+use svm_storage::memory::MemPageCache32;
 use svm_wasmer::*;
 
 use wasmer_runtime::{func, imports, Func};
@@ -24,16 +24,20 @@ macro_rules! wasmer_compile_module_file {
 
 macro_rules! test_create_svm_state_gen {
     () => {{
-        lazy_create_svm_state_gen!(
-            std::ptr::null(),
-            Address::from(0x12_34_56_78),
-            std::ptr::null(),
-            MemKVStore,
-            MemPages,
-            MemPageCache32,
-            5,
-            100
-        )
+        let node_data = std::ptr::null();
+
+        let pages_storage_gen = || {
+            use std::cell::RefCell;
+            use std::rc::Rc;
+            use svm_common::Address;
+            use svm_storage::memory::{MemKVStore, MemPages};
+
+            let addr = Address::from(0x12_34_56_78);
+            let kv = Rc::new(RefCell::new(MemKVStore::new()));
+            MemPages::new(addr, kv)
+        };
+
+        lazy_create_svm_state_gen!(node_data, pages_storage_gen, MemPageCache32, 5, 100)
     }};
 }
 

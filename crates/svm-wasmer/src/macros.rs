@@ -2,19 +2,15 @@
 /// `svm vmcalls` will access that `SvmCtx` while runninng smart contracts
 #[macro_export]
 macro_rules! create_svm_ctx {
-    ($node_data: expr, $addr: expr, $state: expr, $KV: ident, $PS: ident, $PC: ident, $max_pages: expr, $max_pages_slices: expr) => {{
+    ($node_data: expr, $pages_storage_gen: expr, $PC: ident, $max_pages: expr, $max_pages_slices: expr) => {{
         use std::cell::RefCell;
         use std::rc::Rc;
 
-        use svm_common::{Address, State};
         use svm_storage::PageSliceCache;
         use $crate::ctx::SvmCtx;
 
-        let kv = $KV::new();
-        let kv_rc = Rc::new(RefCell::new(kv));
-
         // pages storage
-        let pages = $PS::new($addr, kv_rc);
+        let pages = $pages_storage_gen();
         let boxed_pages = Box::new(pages);
         let leaked_pages: &mut _ = Box::leak(boxed_pages);
 
@@ -41,16 +37,13 @@ macro_rules! create_svm_ctx {
 /// Builds a `svm wasmer` import object to be used when creating a `wasmer` instance.
 #[macro_export]
 macro_rules! create_svm_state_gen {
-    ($node_data: expr, $addr: expr, $state: expr, $KV: ident, $PS: ident, $PC: ident, $max_pages: expr, $max_pages_slices: expr) => {{
+    ($node_data: expr, $pages_storage_gen: expr, $PC: ident, $max_pages: expr, $max_pages_slices: expr) => {{
         use std::ffi::c_void;
         use $crate::ctx::SvmCtx;
 
         let ctx = create_svm_ctx!(
             $node_data,
-            $addr,
-            $state,
-            $KV,
-            $PS,
+            $pages_storage_gen,
             $PC,
             $max_pages,
             $max_pages_slices
@@ -70,14 +63,11 @@ macro_rules! create_svm_state_gen {
 /// Returns a closure that when invoked (without args) calls `create_svm_state_gen`
 #[macro_export]
 macro_rules! lazy_create_svm_state_gen {
-    ($node_data: expr, $addr: expr, $state: expr, $KV: ident, $PS: ident, $PC: ident, $max_pages: expr, $max_pages_slices: expr) => {{
+    ($node_data: expr, $pages_storage_gen: expr, $PC: ident, $max_pages: expr, $max_pages_slices: expr) => {{
         move || {
             create_svm_state_gen!(
                 $node_data,
-                $addr,
-                $state,
-                $KV,
-                $PS,
+                $pages_storage_gen,
                 $PC,
                 $max_pages,
                 $max_pages_slices
@@ -293,16 +283,17 @@ mod tests {
             test_create_svm_ctx!(std::ptr::null())
         };
         ($node_data: expr) => {{
-            create_svm_ctx!(
-                $node_data,
-                Address::from(0x12_34_56_78),
-                std::ptr::null(),
-                MemKVStore,
-                MemPages,
-                MemPageCache32,
-                5,
-                100
-            )
+            use std::cell::RefCell;
+            use std::rc::Rc;
+            use svm_common::Address;
+
+            let pages_storage_gen = || {
+                let addr = Address::from(0x12_34_56_78);
+                let kv = Rc::new(RefCell::new(MemKVStore::new()));
+                MemPages::new(addr, kv)
+            };
+
+            create_svm_ctx!($node_data, pages_storage_gen, MemPageCache32, 5, 100)
         }};
     }
 
