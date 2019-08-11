@@ -2,10 +2,13 @@
 // #![deny(unused)]
 #![allow(unused)]
 
-//! `svm-wasmer` crate is the glue between `svm` constract storage to `wasmer` live instances
+//! `svm-wasmer` crate is the glue between `svm` constract storage to `wasmer` live instances.
 
-/// Implements the `SvmCtx` use for running `svm-wasmer` instances
+/// Implements `SvmCtx`. Used for running `svm-wasmer` instances.
 pub mod ctx;
+
+/// Implements the `Transaction`. Used for aggregation of the execution data of a contract transaction.
+pub mod transaction;
 
 /// Implements a `svm-wasmer` register abstraction to ease interfacing
 /// with the contract-storage / `wasmer` instance memory

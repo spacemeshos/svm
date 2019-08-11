@@ -18,7 +18,7 @@ macro_rules! include_svm_wasmer_c_api {
         };
         use wasmer_runtime_core::{export::Export, import::Namespace};
 
-        use crate::c_types::svm_address_t;
+        use crate::c_types::{svm_address_t, svm_context_t, svm_receipt_t};
 
         /// Injecting the `svm vmcalls` backed by page-cache `$PC` into this file
         include_wasmer_svm_vmcalls!($PC);
@@ -75,17 +75,43 @@ macro_rules! include_svm_wasmer_c_api {
         }
 
         /// Should be called while the transaction is in the `mempool` of the full-node (prior mining it).
-        /// Mined transaction should be executed using `wasmer_svm_contract_exec`.
-        ///
-        /// * `contract_addr` - The account address of the contract.
-        /// * `gas_left` - How many gas is allocated for the transaction.
-        /// * `payload` - A pointer to the args for the execution.
-        /// * `payload_len` - The length of the `payload`.
-        /// * `func_name` - A pointer to the name of the function to execute.
-        /// * `func_name_len` - The length of `func_name`.
+        /// Mined transaction should be executed using `wasmer_svm_contract_prepare`.
         #[no_mangle]
         pub unsafe extern "C" fn wasmer_svm_contract_validate(
             contract_addr: *const u8,
+            contract_state: *const u8,
+            contract_balance: *const u8,
+            sender_addr: *const u8,
+            sender_balance: *const u8,
+            gas_left: u64,
+            payload: *const u8,
+            payload_len: u32,
+            func_name: *const u8,
+            func_name_len: u32,
+        ) -> wasmer_result_t {
+            unimplemented!()
+        }
+
+        /// Prepares a `context` object for executing a contract transaction.
+        /// * `ctx`              - The result context object.
+        /// * `contract_addr`    - The account address of the contract.
+        /// * `contract_state`   - The hash-state of the contract storage.
+        /// * `contract_balance` - The balance of the contract account.
+        /// * `sender_addr`      - The account address of the transaction sender.
+        /// * `sender_balance`   - The balance of the transaction sender.
+        /// * `gas_left`         - How much Gas can be consumed while excuting the transaction.
+        /// * `payload`          - A pointer to the args for the execution.
+        /// * `payload_len`      - The length of the `payload`.
+        /// * `func_name`        - A pointer to the name of the function to execute.
+        /// * `func_name_len`    - The length of `func_name`.
+        #[no_mangle]
+        pub unsafe extern "C" fn wasmer_svm_contract_prepare(
+            tx: *mut *mut svm_transaction_t,
+            contract_addr: *const u8,
+            contract_state: *const u8,
+            contract_balance: *const u8,
+            sender_addr: *const u8,
+            sender_balance: *const u8,
             gas_left: u64,
             payload: *const u8,
             payload_len: u32,
@@ -96,15 +122,13 @@ macro_rules! include_svm_wasmer_c_api {
         }
 
         /// Triggers an execution of an already deployed contract.
-        /// For an explanation of the function args see `wasmer_svm_contract_validate`.
+        ///
+        /// `receipt` - The result of the contract transaction execution.
+        /// `ctx`     - The context object for the transaction (see `wasmer_svm_contract_prepare`).
         #[no_mangle]
         pub unsafe extern "C" fn wasmer_svm_contract_exec(
-            contract_addr: *const u8,
-            gas_left: u64,
-            payload: *const u8,
-            payload_len: u32,
-            func_name: *const u8,
-            func_name_len: u32,
+            receipt: *const *const svm_receipt_t,
+            ctx: *const *const svm_context_t,
         ) -> wasmer_result_t {
             unimplemented!()
         }

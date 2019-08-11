@@ -4,55 +4,6 @@ use std::ops::Add;
 
 impl_bytes_primitive!(Address, 32);
 
-/// Should be used **only** for tests
-#[doc(hidden)]
-impl From<u32> for Address {
-    fn from(n: u32) -> Address {
-        let mut addr = [0; 32];
-
-        let [n0, n1, n2, n3] = u32_to_le_array(n);
-
-        addr[0] = n0;
-        addr[1] = n1;
-        addr[2] = n2;
-        addr[3] = n3;
-
-        Address(addr)
-    }
-}
-
-/// Should be used **only** for tests
-#[doc(hidden)]
-impl From<i32> for Address {
-    #[inline(always)]
-    fn from(n: i32) -> Address {
-        Address::from(n as u32)
-    }
-}
-
-/// Should be used **only** for tests
-#[doc(hidden)]
-impl From<u64> for Address {
-    fn from(n: u64) -> Address {
-        use crate::utils::u64_to_le_array;
-
-        let mut addr = [0; 32];
-
-        let [n0, n1, n2, n3, n4, n5, n6, n7] = u64_to_le_array(n);
-
-        addr[0] = n0;
-        addr[1] = n1;
-        addr[2] = n2;
-        addr[3] = n3;
-        addr[4] = n4;
-        addr[5] = n5;
-        addr[6] = n6;
-        addr[7] = n7;
-
-        Address(addr)
-    }
-}
-
 impl Add<u32> for Address {
     type Output = [u8; 33];
 

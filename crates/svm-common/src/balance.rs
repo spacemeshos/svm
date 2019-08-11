@@ -1,4 +1,4 @@
-use byteorder::{BigEndian, ByteOrder};
+use byteorder::{ByteOrder, LittleEndian};
 
 /// Spacemesh balance primitive.
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
@@ -11,7 +11,7 @@ impl From<*const u8> for Balance {
         let mut buf: [u8; 16] = [0; 16];
         buf.copy_from_slice(slice);
 
-        let balance = BigEndian::read_u128(&buf);
+        let balance = LittleEndian::read_u128(&buf);
         Balance(balance)
     }
 }
