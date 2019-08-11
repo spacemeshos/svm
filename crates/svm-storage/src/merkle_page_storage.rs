@@ -1,6 +1,6 @@
-use crate::page::{PageHash, PageIndex, PagesState};
+use crate::page::{PageHash, PageIndex};
 use crate::traits::{KVStore, PageHasher, PagesStateStorage, PagesStorage};
-use svm_common::{Address, KeyHasher};
+use svm_common::{Address, KeyHasher, State};
 
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -23,9 +23,10 @@ enum MerklePage {
     Modified(PageHash, Vec<u8>),
 }
 
+/// `MerklePageStorage` is an implemetation of the `PagesStorage` trait that is state aware.
 pub struct MerklePageStorage<KV, KH, PH> {
-    state: PagesState,
-    contract_addr: Address,
+    state: State,
+    addr: Address,
     pages: Vec<MerklePage>,
     kv: Rc<RefCell<KV>>,
     pages_count: u32,
@@ -38,17 +39,17 @@ where
     KH: KeyHasher,
     PH: PageHasher,
 {
-    pub fn new(
-        contract_addr: Address,
-        kv: Rc<RefCell<KV>>,
-        state: PagesState,
-        pages_count: u32,
-    ) -> Self {
+    /// Creates a new instance of `MerklePageStorage`
+    /// * `addr`        - The running contract account address.
+    /// * `kv`          - The underlying kv-store used for retrieving a page raw-data when queried by its page-hash serving as a key.
+    /// * `state`       - The current contract-storage state prior execution of the current contract transaction.
+    /// * `pages_count` - The number of pages consumed by the contract storage (it's a fixed value per-contract).
+    pub fn new(addr: Address, kv: Rc<RefCell<KV>>, state: State, pages_count: u32) -> Self {
         let mut storage = Self {
             state,
             kv,
             pages_count,
-            contract_addr,
+            addr,
             pages: vec![MerklePage::Uninitialized; pages_count as usize],
             marker: PhantomData,
         };
@@ -65,17 +66,17 @@ where
     fn init_pages_state(&mut self) {
         let state_key = KVStoreKey(self.state.0);
 
-        if self.state == PagesState::empty() {
+        if self.state == State::empty() {
             // `self.state` is `000...0`. It means that state doesn't exist under the key-value store.
             // This happens when a Smart Contract runs for the first time.
-            // We initialize each page with its zero-page hash `HASH(contract_addr || page_idx || 0...0)`
+            // We initialize each page with its zero-page hash `HASH(addr || page_idx || 0...0)`
 
             for page_idx in 0..(self.pages_count as usize) {
                 let ph = self.compute_zero_page_hash(PageIndex(page_idx as u32));
                 self.pages[page_idx] = MerklePage::NotModified(ph);
             }
         } else if let Some(v) = self.kv.borrow().get(state_key) {
-            // `v` should be a concatenation of pages-hash. Each page hash consumes exactly 32 bytes
+            // `v` should be a concatenation of pages-hash. Each page hash consumes exactly 32 bytes.
             assert!(v.len() % 32 == 0);
 
             for (page_idx, raw_ph) in v.chunks_exact(32).enumerate() {
@@ -90,7 +91,7 @@ where
     #[must_use]
     #[inline(always)]
     fn compute_page_hash(&self, page_idx: PageIndex, page_data: &[u8]) -> PageHash {
-        PH::hash(self.contract_addr, page_idx, page_data)
+        PH::hash(self.addr, page_idx, page_data)
     }
 
     #[must_use]
@@ -108,7 +109,7 @@ where
         })
     }
 
-    fn prepare_changeset(&self) -> (PagesState, Vec<u8>, Vec<(KVStoreKey, &[u8])>) {
+    fn prepare_changeset(&self) -> (State, Vec<u8>, Vec<(KVStoreKey, &[u8])>) {
         let mut changes = Vec::new();
 
         let mut joined_pages_hash: Vec<u8> = Vec::with_capacity(self.pages_count as usize * 32);
@@ -131,7 +132,7 @@ where
         }
 
         let new_state_hash = KH::hash(&joined_pages_hash);
-        let new_state = PagesState::from(new_state_hash.as_ref());
+        let new_state = State::from(new_state_hash.as_ref());
 
         (new_state, joined_pages_hash, changes)
     }
@@ -145,7 +146,7 @@ where
 {
     #[must_use]
     #[inline(always)]
-    fn get_state(&self) -> PagesState {
+    fn get_state(&self) -> State {
         self.state
     }
 
@@ -225,21 +226,20 @@ where
     }
 }
 
+use crate::default::DefaultPageHasher;
+use crate::memory::MemKVStore;
+use svm_common::DefaultKeyHasher;
+pub type MemMerklePages =
+    MerklePageStorage<MemKVStore<KVStoreKey>, DefaultKeyHasher, DefaultPageHasher>;
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use svm_common::{Address, DefaultKeyHasher};
-
-    use crate::default::DefaultPageHasher;
-    use crate::memory::MemKVStore;
-    use crate::page::PagesState;
     use crate::traits::KVStore;
+    use svm_common::{Address, DefaultKeyHasher, State};
 
     use std::cell::RefCell;
     use std::rc::Rc;
-
-    type MemMerklePages =
-        MerklePageStorage<MemKVStore<KVStoreKey>, DefaultKeyHasher, DefaultPageHasher>;
 
     macro_rules! join_pages_hash {
         ($pages_hash: expr) => {{
@@ -290,7 +290,7 @@ mod tests {
             let $kv = Rc::new(RefCell::new(MemKVStore::new()));
 
             let mut $storage =
-                MemMerklePages::new($addr, Rc::clone(&$kv), PagesState::empty(), $pages_count);
+                MemMerklePages::new($addr, Rc::clone(&$kv), State::empty(), $pages_count);
         };
     }
 
@@ -338,7 +338,7 @@ mod tests {
             let state = Some($jph.as_slice())
                 .map(|ref_jph| {
                     let h = DefaultKeyHasher::hash(ref_jph);
-                    PagesState::from(h.as_ref())
+                    State::from(h.as_ref())
                 })
                 .unwrap();
 
@@ -352,7 +352,7 @@ mod tests {
 
         assert_dirty_pages_count!(storage, 0);
         assert_same_keys!(&[], kv_keys!(kv));
-        assert_state!(PagesState::empty(), storage);
+        assert_state!(State::empty(), storage);
         assert_page!(storage, 0, None);
     }
 

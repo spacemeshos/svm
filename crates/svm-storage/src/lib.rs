@@ -51,6 +51,7 @@ cfg_if! {
             pub use crate::mem_kv_store::MemKVStore;
             pub use crate::mem_pages::MemPages;
             pub use crate::mem_page_cache::{MemPageCache, MemPageCache32};
+            pub use crate::merkle_page_storage::MerklePageStorage;
         }
     }
 }

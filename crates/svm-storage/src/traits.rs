@@ -1,5 +1,5 @@
-use crate::page::{PageHash, PageIndex, PagesState};
-use svm_common::Address;
+use crate::page::{PageHash, PageIndex};
+use svm_common::{Address, State};
 
 /// `KVStore` is a trait for defining an interface against key-value stores. for example `hashmap / leveldb / rocksdb`
 pub trait KVStore {
@@ -69,7 +69,7 @@ pub trait PageHasher {
 pub trait PagesStateStorage: PagesStorage {
     /// Returns the current storage state (i.e revision)
     #[must_use]
-    fn get_state(&self) -> PagesState;
+    fn get_state(&self) -> State;
 
     /// Returns the page-hash of a given page indexed by `page_idx`
     #[must_use]

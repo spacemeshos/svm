@@ -32,32 +32,6 @@ impl From<&[u8]> for PageHash {
     }
 }
 
-/// A `PagesState` is a one-dimensional tuple of `([u8; 32])` representing the merke-proof of all the pages
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
-pub struct PagesState(pub [u8; 32]);
-
-impl PagesState {
-    /// Return a an empty page (filled with zeros).
-    pub fn empty() -> PagesState {
-        PagesState([0; 32])
-    }
-}
-
-impl From<&[u8]> for PagesState {
-    fn from(slice: &[u8]) -> PagesState {
-        assert_eq!(
-            32,
-            slice.len(),
-            "`PagesState::from` expects exactly 32 bytes input"
-        );
-
-        let mut bytes = [0; 32];
-        bytes.copy_from_slice(slice);
-
-        PagesState(bytes)
-    }
-}
-
 /// A `Page` consists of a tuple of `(PageIndex, PageHash, Vec<u8>`)`
 ///
 /// `PageIndex` - The page indexes within the Smart Contract
@@ -98,11 +72,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn pages_state_empty() {
-        assert_eq!(PagesState([0; 32]), PagesState::empty())
-    }
-
-    #[test]
     #[should_panic(expected = "`PageHash::from` expects exactly 32 bytes input")]
     fn page_hash_expects_exactly_32_bytes_input() {
         PageHash::from([0; 10].as_ref());
@@ -123,30 +92,6 @@ mod tests {
                 44, 55, 66, 77, 88, 99, 251, 252, 253, 254, 255
             ]),
             ph
-        );
-    }
-
-    #[test]
-    #[should_panic(expected = "`PagesState::from` expects exactly 32 bytes input")]
-    fn pages_state_expects_exactly_32_bytes_input() {
-        PagesState::from([0; 10].as_ref());
-    }
-
-    #[test]
-    fn pages_state_from_slice() {
-        let raw: [u8; 32] = [
-            01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 20, 30, 40, 50, 60, 70, 80, 90, 11, 22, 33, 44,
-            55, 66, 77, 88, 99, 251, 252, 253, 254, 255,
-        ];
-
-        let state = PagesState::from(raw.as_ref());
-
-        assert_eq!(
-            PagesState([
-                01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 20, 30, 40, 50, 60, 70, 80, 90, 11, 22, 33,
-                44, 55, 66, 77, 88, 99, 251, 252, 253, 254, 255
-            ]),
-            state
         );
     }
 }

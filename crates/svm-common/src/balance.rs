@@ -42,7 +42,7 @@ mod tests {
         );
 
         let balance_ptr: *const u8 = vec![
-            0x0F, 0x0E, 0x0D, 0x0C, 0x0B, 0x0A, 90, 80, 70, 60, 50, 40, 30, 20, 10, 01,
+            01, 10, 20, 30, 40, 50, 60, 70, 80, 90, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
         ]
         .as_ptr();
 
