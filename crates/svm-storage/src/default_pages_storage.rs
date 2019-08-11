@@ -34,7 +34,7 @@ type PageKey = [u8; 32];
 ///   Another benefit is that if the underlying key-value store supports a batch write (for example
 ///   databases `leveldb` and `rocksdb` have this capability), the `commit` implementation can take advantage of it.
 pub struct DefaultPagesStorage<PH: PageIndexHasher, KV: KVStore<K = PageKey>> {
-    contract_addr: Address,
+    addr: Address,
     db: Rc<RefCell<KV>>,
     uncommitted: HashMap<PageKey, Vec<u8>>,
     marker: PhantomData<PH>,
@@ -42,9 +42,9 @@ pub struct DefaultPagesStorage<PH: PageIndexHasher, KV: KVStore<K = PageKey>> {
 
 impl<PH: PageIndexHasher, KV: KVStore<K = PageKey>> DefaultPagesStorage<PH, KV> {
     /// Creates a new `DefaultPagesStorage`
-    pub fn new(contract_addr: Address, db: Rc<RefCell<KV>>) -> Self {
+    pub fn new(addr: Address, db: Rc<RefCell<KV>>) -> Self {
         Self {
-            contract_addr,
+            addr,
             db,
             uncommitted: HashMap::new(),
             marker: PhantomData,
@@ -54,7 +54,7 @@ impl<PH: PageIndexHasher, KV: KVStore<K = PageKey>> DefaultPagesStorage<PH, KV> 
     #[must_use]
     #[inline(always)]
     fn compute_page_hash(&self, page_idx: PageIndex) -> [u8; 32] {
-        PH::hash(self.contract_addr, page_idx)
+        PH::hash(self.addr, page_idx)
     }
 
     #[cfg(test)]
