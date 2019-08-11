@@ -1,28 +1,8 @@
+use crate::impl_bytes_primitive;
 use crate::utils::{u32_to_le_array, u8_pair_add, u8_triple_add};
 use std::ops::Add;
 
-/// _Spacemesh_ account address are 32 bytes
-/// An `Address` is always assumed to be in a **Little-Endian** order
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
-pub struct Address(pub [u8; 32]);
-
-impl From<*const u8> for Address {
-    fn from(addr_ptr: *const u8) -> Address {
-        let slice: &[u8] = unsafe { std::slice::from_raw_parts(addr_ptr, 32) };
-
-        let mut buf: [u8; 32] = [0; 32];
-        buf.copy_from_slice(slice);
-
-        Address(buf)
-    }
-}
-
-impl Address {
-    /// Returns a raw pointer into the `Address` internal array
-    pub fn as_ptr(&self) -> *const u8 {
-        self.0.as_ptr()
-    }
-}
+impl_bytes_primitive!(Address, 32);
 
 /// Should be used **only** for tests
 #[doc(hidden)]

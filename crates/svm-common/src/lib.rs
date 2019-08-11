@@ -7,6 +7,8 @@ mod address;
 mod balance;
 mod default_key_hasher;
 mod key_hasher;
+#[macro_use]
+mod macros;
 
 /// Utility functions for messing mainly with bytes
 pub mod utils;

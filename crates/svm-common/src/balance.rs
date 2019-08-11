@@ -1,6 +1,6 @@
 use byteorder::{BigEndian, ByteOrder};
 
-/// An `Address` is always assumed to be in a **Big-Endian** order
+/// Spacemesh balance primitive.
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub struct Balance(pub u128);
 
