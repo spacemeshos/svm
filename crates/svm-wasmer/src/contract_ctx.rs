@@ -1,8 +1,8 @@
 use svm_common::{Address, Balance, ContractState};
 
-/// `Transaction` aggregates all the data necessary for running a constract transaction.
+/// `ContractCtx` aggregates all the data necessary for executing a constract.
 /// Its data will be consumed by the running contracts and the hosting vm itself (a.ka. `svm`).
-pub struct Transaction {
+pub struct ContractCtx {
     addr: Address,
     state: ContractState,
     balance: Balance,
@@ -13,8 +13,8 @@ pub struct Transaction {
     func_name: String,
 }
 
-impl Transaction {
-    /// Creates a new instance of `Transaction` from raw inputs.
+impl ContractCtx {
+    /// Creates a new instance of `ContractCtx` from raw inputs.
     pub fn from_raw(
         addr: *const u8,
         state: *const u8,
@@ -71,7 +71,7 @@ mod tests {
         let payload = vec![10, 20, 30, 40, 50];
         let func_name = String::from("execute");
 
-        let tx = Transaction::from_raw(
+        let tx = ContractCtx::from_raw(
             addr.as_ptr(),
             state.as_ptr(),
             balance.0.to_le_bytes().as_ptr(),

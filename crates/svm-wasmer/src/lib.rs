@@ -7,8 +7,8 @@
 /// Implements `SvmCtx`. Used for running `svm-wasmer` instances.
 pub mod ctx;
 
-/// Implements the `Transaction`. Used for aggregation of the execution data of a contract transaction.
-pub mod transaction;
+/// Implements the `ContractCtx`. Used for aggregation of the execution data of a contract.
+pub mod contract_ctx;
 
 /// Implements a `svm-wasmer` register abstraction to ease interfacing
 /// with the contract-storage / `wasmer` instance memory

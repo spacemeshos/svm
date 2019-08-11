@@ -2,9 +2,9 @@
 #[repr(C)]
 pub struct svm_address_t;
 
-/// `*const svm_transaction_t` is a raw pointer to the a Rust `Transaction` struct.
+/// `*const svm_contract_ctx_t` is a raw pointer to the a Rust `ContractCtx` struct.
 #[repr(C)]
-pub struct svm_transaction_t;
+pub struct svm_contract_ctx_t;
 
 /// `*const svm_receipt_t` is a raw pointer to a Rust `Receipt` struct.
 #[repr(C)]
