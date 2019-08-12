@@ -159,9 +159,9 @@ macro_rules! include_svm_wasmer_c_api {
             ctx: *const wasmer_instance_context_t,
             reg_idx: i32,
         ) -> *const c_void {
-            use svm_wasmer::register::WasmerReg64;
+            use svm_wasmer::register::WasmerSvmReg64;
             let wasmer_ctx: &Ctx = &*(ctx as *const Ctx);
-            let reg: &mut WasmerReg64 = wasmer_ctx_reg!(wasmer_ctx, reg_idx, $PC);
+            let reg: &mut WasmerSvmReg64 = wasmer_ctx_reg!(wasmer_ctx, reg_idx, $PC);
 
             // having `c_void` instead of `u8` in the function's signature
             // makes the integration with `cgo` easier.
@@ -176,9 +176,9 @@ macro_rules! include_svm_wasmer_c_api {
             bytes: *const c_void,
             bytes_len: u8,
         ) {
-            use svm_wasmer::register::WasmerReg64;
+            use svm_wasmer::register::WasmerSvmReg64;
             let wasmer_ctx: &Ctx = &*(ctx as *const Ctx);
-            let reg: &mut WasmerReg64 = wasmer_ctx_reg!(wasmer_ctx, reg_idx, $PC);
+            let reg: &mut WasmerSvmReg64 = wasmer_ctx_reg!(wasmer_ctx, reg_idx, $PC);
 
             // having `c_void` instead of `u8` in the function's signature
             // makes the integration with `cgo` easier.

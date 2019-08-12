@@ -11,13 +11,14 @@ macro_rules! include_wasmer_svm_register_vmcalls {
         /// `0`  - if `reg1 == reg2`
         /// `-1` - if `reg1 < reg2`
         fn register_ucmp(ctx: &mut wasmer_runtime::Ctx, reg1: i32, reg2: i32) -> i32 {
-            use $crate::register::WasmerReg64;
-
-            let reg1: &WasmerReg64 = wasmer_data_reg!(ctx.data, reg1, $PC);
-            let reg2: &WasmerReg64 = wasmer_data_reg!(ctx.data, reg2, $PC);
-
-            // reg1.ucmp(reg2)
-            0
+            unimplemented!()
+            // use $crate::register::WasmerSvmReg64;
+            //
+            // let reg1: &WasmerSvmReg64 = wasmer_data_reg!(ctx.data, reg1, $PC);
+            // let reg2: &WasmerSvmReg64 = wasmer_data_reg!(ctx.data, reg2, $PC);
+            //
+            // // reg1.ucmp(reg2)
+            // 0
         }
 
         fn register_ucmp_i32(ctx: &mut wasmer_runtime::Ctx, reg: i32, val: i32) -> i32 {

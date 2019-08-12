@@ -2,7 +2,7 @@
 
 svm_extern::include_extern_storage_vmcalls!();
 svm_extern::include_extern_node_vmcalls!();
-svm_extern::include_extern_register_arithmetic_vmcalls!();
+svm_extern::include_extern_register_vmcalls!();
 
 #[no_mangle]
 pub extern "C" fn execute(
