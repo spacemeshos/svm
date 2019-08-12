@@ -18,7 +18,7 @@ macro_rules! include_svm_wasmer_c_api {
         };
         use wasmer_runtime_core::{export::Export, import::Namespace};
 
-        use crate::c_types::{svm_address_t, svm_contract_ctx_t, svm_receipt_t};
+        use crate::c_types::{svm_address_t, svm_receipt_t};
 
         /// Injecting the `svm vmcalls` backed by page-cache `$PC` into this file
         include_wasmer_svm_vmcalls!($PC);
@@ -92,46 +92,43 @@ macro_rules! include_svm_wasmer_c_api {
             unimplemented!()
         }
 
-        /// Prepares a `context` object for executing a contract transaction.
-        /// * `ctx`              - The result context object.
-        /// * `addr`             - The account address of the contract.
-        /// * `state`            - The hash-state of the contract storage.
-        /// * `balance`          - The balance of the contract account.
-        /// * `sender_addr`      - The account address of the transaction sender.
-        /// * `sender_balance`   - The balance of the transaction sender.
-        /// * `gas_left`         - How much Gas can be consumed while excuting the transaction.
-        /// * `payload`          - A pointer to the args for the execution.
-        /// * `payload_len`      - The length of the `payload`.
-        /// * `func_name`        - A pointer to the name of the function to execute.
-        /// * `func_name_len`    - The length of `func_name`.
-        #[no_mangle]
-        pub unsafe extern "C" fn wasmer_svm_contract_prepare(
-            ctx: *mut *mut svm_contract_ctx_t,
-            addr: *const u8,
-            state: *const u8,
-            balance: *const u8,
-            sender_addr: *const u8,
-            sender_balance: *const u8,
-            gas_left: u64,
-            payload: *const u8,
-            payload_len: u32,
-            func_name: *const u8,
-            func_name_len: u32,
-        ) -> wasmer_result_t {
-            unimplemented!()
-        }
+        // /// Prepares a `context` object for executing a contract transaction.
+        // /// * `addr`             - The account address of the contract.
+        // /// * `state`            - The hash-state of the contract storage.
+        // /// * `balance`          - The balance of the contract account.
+        // /// * `sender_addr`      - The account address of the transaction sender.
+        // /// * `sender_balance`   - The balance of the transaction sender.
+        // /// * `gas_left`         - How much Gas can be consumed while excuting the transaction.
+        // /// * `payload`          - A pointer to the args for the execution.
+        // /// * `payload_len`      - The length of the `payload`.
+        // /// * `func_name`        - A pointer to the name of the function to execute.
+        // /// * `func_name_len`    - The length of `func_name`.
+        // #[no_mangle]
+        // pub unsafe extern "C" fn wasmer_svm_contract_prepare(
+        //     addr: *const u8,
+        //     state: *const u8,
+        //     balance: *const u8,
+        //     sender_addr: *const u8,
+        //     sender_balance: *const u8,
+        //     gas_left: u64,
+        //     payload: *const u8,
+        //     payload_len: u32,
+        //     func_name: *const u8,
+        //     func_name_len: u32,
+        // ) -> wasmer_result_t {
+        //     unimplemented!()
+        // }
 
-        /// Triggers an execution of an already deployed contract.
-        ///
-        /// `receipt` - The receipt of the contract execution.
-        /// `ctx`     - The context object for the contract execution (see `wasmer_svm_contract_prepare`).
-        #[no_mangle]
-        pub unsafe extern "C" fn wasmer_svm_contract_exec(
-            receipt: *mut *mut svm_receipt_t,
-            ctx: *const *const svm_contract_ctx_t,
-        ) -> wasmer_result_t {
-            unimplemented!()
-        }
+        // /// Triggers an execution of an already deployed contract.
+        // ///
+        // /// `receipt` - The receipt of the contract execution.
+        // /// `ctx`     - The context object for the contract execution (see `wasmer_svm_contract_prepare`).
+        // #[no_mangle]
+        // pub unsafe extern "C" fn wasmer_svm_contract_exec(
+        //     receipt: *mut *mut svm_receipt_t,
+        // ) -> wasmer_result_t {
+        //     unimplemented!()
+        // }
 
         /// Compiles the wasm module using the `svm-compiler` (`wasmer` singlepass compiler with custom extensions)
         #[no_mangle]
@@ -161,13 +158,14 @@ macro_rules! include_svm_wasmer_c_api {
         pub unsafe extern "C" fn wasmer_svm_register_get(
             ctx: *const wasmer_instance_context_t,
             reg_idx: i32,
-        ) -> *const u8 {
+        ) -> *const c_void {
             use svm_wasmer::register::WasmerReg64;
-
             let wasmer_ctx: &Ctx = &*(ctx as *const Ctx);
             let reg: &mut WasmerReg64 = wasmer_ctx_reg!(wasmer_ctx, reg_idx, $PC);
 
-            reg.as_ptr()
+            // having `c_void` instead of `u8` in the function's signature
+            // makes the integration with `cgo` easier.
+            reg.as_ptr() as *mut u8 as *mut c_void
         }
 
         /// Copies `bytes_len` bytes from raw pointer `bytes` into `wasmer svm` register indexed `reg_idx`.
@@ -175,15 +173,17 @@ macro_rules! include_svm_wasmer_c_api {
         pub unsafe extern "C" fn wasmer_svm_register_set(
             ctx: *const wasmer_instance_context_t,
             reg_idx: i32,
-            bytes_ptr: *const u8,
+            bytes: *const c_void,
             bytes_len: u8,
         ) {
             use svm_wasmer::register::WasmerReg64;
-
             let wasmer_ctx: &Ctx = &*(ctx as *const Ctx);
             let reg: &mut WasmerReg64 = wasmer_ctx_reg!(wasmer_ctx, reg_idx, $PC);
 
-            reg.copy_from(bytes_ptr, bytes_len)
+            // having `c_void` instead of `u8` in the function's signature
+            // makes the integration with `cgo` easier.
+            let bytes = bytes as *const u8;
+            reg.copy_from(bytes, bytes_len)
         }
 
         /// Gets the `node_data` field within the `svm context` (a.k.a `data` of the wasmer context).
@@ -202,20 +202,22 @@ macro_rules! include_svm_wasmer_c_api {
         #[no_mangle]
         pub unsafe extern "C" fn wasmer_svm_import_object(
             raw_import_object: *mut *mut wasmer_import_object_t,
-            raw_addr: *const u8,
-            raw_state: *const u8,
+            raw_addr: *const c_void,
+            raw_state: *const c_void,
             max_pages: libc::c_int,
             max_page_slices: libc::c_int,
             node_data: *const c_void,
             imports: *mut wasmer_import_t,
             imports_len: libc::c_uint,
-        ) -> wasmer_runtime_c_api::wasmer_result_t {
+        ) -> wasmer_result_t {
             use svm_common::{Address, State};
             use wasmer_runtime::ImportObject;
 
+            // having `c_void` instead of `u8` in the function's signature
+            // makes the integration with `cgo` easier.
             let wrapped_pages_storage_gen = move || {
-                let addr = Address::from(raw_addr);
-                let state = State::from(raw_state);
+                let addr = Address::from(raw_addr as *const u8);
+                let state = State::from(raw_state as *const u8);
 
                 $pages_storage_gen(addr, state)
             };

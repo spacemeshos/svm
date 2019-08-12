@@ -80,19 +80,17 @@ macro_rules! lazy_create_svm_state_gen {
 #[macro_export]
 macro_rules! svm_regs_reg {
     ($regs: expr, $reg_idx: expr) => {{
-        use $crate::ctx::REGS_64_COUNT;
+        wasmer_data_ensure_reg_idx!($reg_idx);
+
+        // We don't do:
+        // ```rust
+        // let reg: &mut WasmerReg64 = $regs.regs_64[$reg_idx as usize];
+        // ```
+        //
+        // Because we like to keep the option to  mutate a couple of registers simultaneously
+        // without the Rust borrow checker getting angry...
+        // so instead we use _Unsafe Rust_
         use $crate::register::WasmerReg64;
-
-        assert!($reg_idx >= 0 && $reg_idx < REGS_64_COUNT as i32);
-
-        /// We don't do:
-        /// ```rust
-        /// let reg: &mut WasmerReg64 = $regs.regs_64[$reg_idx as usize];
-        /// ```
-        ///
-        /// Because we like to keep the option to  mutate a couple of registers simultaneously
-        /// without the Rust borrow checker getting angry...
-        /// so instead we use _Unsafe Rust_
         let regs_ptr: *mut WasmerReg64 = $regs.as_mut_ptr();
 
         let reg_idx_ptr: *mut WasmerReg64 = unsafe { regs_ptr.offset($reg_idx as isize) };
@@ -146,7 +144,7 @@ macro_rules! svm_write_page_slice {
 #[macro_export]
 macro_rules! wasmer_data_regs {
     ($data: expr, $PC: ident) => {{
-        use $crate::ctx::{SvmCtx, REGS_64_COUNT};
+        use $crate::ctx::SvmCtx;
         use $crate::register::WasmerReg64;
 
         let ctx: &mut SvmCtx<$PC> = cast_wasmer_data_to_svm_ctx!($data, $PC);
@@ -168,7 +166,7 @@ macro_rules! cast_wasmer_data_to_svm_ctx {
     }};
 }
 
-/// Casts the `wasmer` instance context data field (of type `*mut c_void`) into `&mut PageSliceCache<PC>`
+/// Casts the `wasmer` instance context data field (of type `*mut c_void`) into `&mut PageSliceCache<PC>`.
 #[macro_export]
 macro_rules! wasmer_data_storage {
     ($data: expr, $PC: ident) => {{
@@ -179,14 +177,22 @@ macro_rules! wasmer_data_storage {
     }};
 }
 
-/// Extracts from `wasmer` instance context data field (of type `*mut c_void`), a mutable borrow for the register indexed `reg_idx`
+/// Ensuring that `reg_idx` is within the `0..REGS_64_COUNT` range (exclusive).
+#[macro_export]
+macro_rules! wasmer_data_ensure_reg_idx {
+    ($reg_idx: expr) => {{
+        use $crate::ctx::REGS_64_COUNT;
+        assert!($reg_idx >= 0 && (($reg_idx as i32) < (REGS_64_COUNT as i32)));
+    }};
+}
+
+/// Extracts from `wasmer` instance context data field (of type `*mut c_void`), a mutable borrow for the register indexed `reg_idx`.
 #[macro_export]
 macro_rules! wasmer_data_reg {
     ($data: expr, $reg_idx: expr, $PC: ident) => {{
-        use $crate::ctx::{SvmCtx, REGS_64_COUNT};
+        wasmer_data_ensure_reg_idx!($reg_idx);
 
-        assert!($reg_idx >= 0 && $reg_idx < REGS_64_COUNT as i32);
-
+        use $crate::ctx::SvmCtx;
         let ctx: &mut SvmCtx<$PC> = cast_wasmer_data_to_svm_ctx!($data, $PC);
 
         svm_regs_reg!(ctx.regs_64, $reg_idx)

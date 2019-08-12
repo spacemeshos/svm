@@ -73,7 +73,7 @@ unsafe extern "C" fn copy_reg_to_reg(
     src_reg_idx: i32,
     dst_reg_idx: i32,
 ) {
-    let src_reg_ptr: *const u8 = wasmer_svm_register_get(ctx, src_reg_idx);
+    let src_reg_ptr: *const u8 = wasmer_svm_register_get(ctx, src_reg_idx) as *const _;
     let dst_reg_ptr: *mut u8 = wasmer_svm_register_get(ctx, dst_reg_idx) as *mut _;
 
     std::ptr::copy_nonoverlapping(src_reg_ptr, dst_reg_ptr, 8);
@@ -103,14 +103,14 @@ unsafe fn cast_wasmer_byte_array_to_string(wasmer_bytes: &wasmer_byte_array) -> 
     }
 }
 
-fn u32_addr_as_ptr(addr: u32) -> *const u8 {
+fn u32_addr_as_ptr(addr: u32) -> *const c_void {
     use svm_common::Address;
-    Address::from(addr).as_ptr()
+    Address::from(addr).as_ptr() as _
 }
 
-fn u32_state_as_ptr(state: u32) -> *const u8 {
+fn u32_state_as_ptr(state: u32) -> *const c_void {
     use svm_common::State;
-    State::from(state).as_ptr()
+    State::from(state).as_ptr() as _
 }
 
 fn node_data_as_ptr(node_data: &NodeData) -> *const c_void {
@@ -348,8 +348,9 @@ fn call_wasmer_svm_register_get_set() {
         let reg2 = wasmer_svm_register_get(ctx, 2);
         let reg3 = wasmer_ctx_reg!(instance.context(), 3, MemPageCache32);
 
-        //setting register `2` with data that will be copied later to register `3`
-        wasmer_svm_register_set(ctx, 2, [10, 20, 30, 40, 50, 60, 70, 80].as_ptr(), 8);
+        // setting register `2` with data that will be copied later to register `3`
+        let buf: Vec<u8> = vec![10, 20, 30, 40, 50, 60, 70, 80];
+        wasmer_svm_register_set(ctx, 2, buf.as_ptr() as *const c_void, 8);
 
         assert_eq!([0; 8], reg3.view());
 

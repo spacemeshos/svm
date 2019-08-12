@@ -24,7 +24,7 @@ pub struct SvmCtx<'a, 'pc: 'a, PC> {
     /// An array that holds the `svm wasmer` registers
     pub regs_64: [WasmerReg64; REGS_64_COUNT],
 
-    /// Accessor to the contract main storage (of type `PageSliceCache`)
+    /// An accessor to the contract's storage (of type `PageSliceCache`)
     pub storage: &'a mut PageSliceCache<'pc, PC>,
 }
 

@@ -37,7 +37,7 @@ node_data_t* new_node_data(uint32_t counter) {
 }
 
 void inc_counter_from_reg(wasmer_instance_context_t *ctx, uint32_t reg_idx) {
-    uint8_t* reg_bytes = wasmer_svm_register_get(ctx, reg_idx);
+    uint8_t* reg_bytes = (uint8_t*)wasmer_svm_register_get(ctx, reg_idx);
 
     uint8_t a = reg_bytes[0];
     uint8_t b = reg_bytes[1];
@@ -73,14 +73,15 @@ wasmer_import_t create_import(const char *module_name, const char *import_name, 
     return import;
 }
 
-wasmer_result_t create_import_object(wasmer_import_object_t** import_object, uint32_t addr, uint32_t init_counter, wasmer_import_t* imports, uint32_t imports_len) {
+wasmer_result_t create_import_object(wasmer_import_object_t** import_object, uint32_t addr, uint32_t state, uint32_t init_counter, wasmer_import_t* imports, uint32_t imports_len) {
     void* addr_ptr = (void*)(&addr);
+    void* state_ptr = (void*)(&state);
     void* node_data = (void*)(new_node_data(init_counter));
 
     uint32_t max_pages = 5;
     uint32_t max_pages_slices = 100;
 
-    return wasmer_svm_import_object(import_object, addr_ptr, max_pages, max_pages_slices, node_data, imports, imports_len);
+    return wasmer_svm_import_object(import_object, addr_ptr, state_ptr, max_pages, max_pages_slices, node_data, imports, imports_len);
 }
 
 int main() {
@@ -104,7 +105,7 @@ int main() {
 
     // Create the Import Object
     wasmer_import_object_t *import_object;
-    wasmer_result_t import_result = create_import_object(&import_object, 0x11223344, 9, imports, 2);
+    wasmer_result_t import_result = create_import_object(&import_object, 0x11223344, 0xAABBCCDD, 9, imports, 2);
     assert(import_result == WASMER_OK);
 
     // Read the wasm file
