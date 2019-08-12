@@ -76,83 +76,6 @@ macro_rules! lazy_create_svm_state_gen {
     }};
 }
 
-/// Receives an array of `WasmerSvmReg64` and returns the `reg_idx` register.
-#[macro_export]
-macro_rules! svm_regs_reg {
-    ($regs: expr, $reg_idx: expr) => {{
-        wasmer_data_ensure_reg_idx!($reg_idx);
-
-        // We don't do:
-        // ```rust
-        // let reg: &mut WasmerSvmReg64 = $regs.regs_64[$reg_idx as usize];
-        // ```
-        //
-        // Because we like to keep the option to  mutate a couple of registers simultaneously
-        // without the Rust borrow checker getting angry...
-        // so instead we use _Unsafe Rust_
-        use $crate::register::WasmerSvmReg64;
-        let regs_ptr: *mut WasmerSvmReg64 = $regs.as_mut_ptr();
-
-        let reg_idx_ptr: *mut WasmerSvmReg64 = unsafe { regs_ptr.offset($reg_idx as isize) };
-        let reg: &mut WasmerSvmReg64 = unsafe { &mut *reg_idx_ptr };
-
-        reg
-    }};
-}
-
-/// Builds an instance of `PageSliceLayout`
-#[macro_export]
-macro_rules! svm_page_slice_layout {
-    ($page_idx: expr, $slice_idx: expr, $offset: expr, $len: expr) => {{
-        use svm_storage::page::{PageIndex, PageSliceLayout, SliceIndex};
-
-        PageSliceLayout {
-            page_idx: PageIndex($page_idx),
-            slice_idx: SliceIndex($slice_idx),
-            offset: $offset,
-            len: $len,
-        }
-    }};
-}
-
-/// Calls `read_page_slice` on the given `PageSliceCache`
-#[macro_export]
-macro_rules! svm_read_page_slice {
-    ($storage: expr, $page_idx: expr, $slice_idx: expr, $offset: expr, $len: expr) => {{
-        let layout = svm_page_slice_layout!($page_idx, $slice_idx, $offset, $len);
-        let slice = $storage.read_page_slice(&layout);
-
-        if slice.is_some() {
-            slice.unwrap()
-        } else {
-            Vec::new()
-        }
-    }};
-}
-
-/// Calls `write_page_slice` on the given `PageSliceCache`
-#[macro_export]
-macro_rules! svm_write_page_slice {
-    ($storage: expr, $page_idx: expr, $slice_idx: expr, $offset: expr, $len: expr, $data: expr) => {{
-        let layout = svm_page_slice_layout!($page_idx, $slice_idx, $offset, $len);
-
-        $storage.write_page_slice(&layout, $data);
-    }};
-}
-
-/// Casts the `wasmer` instance context data field (of type `*mut c_void`) into `&mut [WasmerSvmReg64; REGS_64_COUNT]`
-#[macro_export]
-macro_rules! wasmer_data_regs {
-    ($data: expr, $PC: ident) => {{
-        use $crate::ctx::SvmCtx;
-        use $crate::register::WasmerSvmReg64;
-
-        let ctx: &mut SvmCtx<$PC> = cast_wasmer_data_to_svm_ctx!($data, $PC);
-
-        &mut ctx.regs_64
-    }};
-}
-
 /// Casts a `wasmer` instance's `data` field (of type: `c_void`) into `SvmContext<PC>` (`PC` implements `PageCache`)
 #[macro_export]
 macro_rules! cast_wasmer_data_to_svm_ctx {
@@ -166,63 +89,6 @@ macro_rules! cast_wasmer_data_to_svm_ctx {
     }};
 }
 
-/// Casts the `wasmer` instance context data field (of type `*mut c_void`) into `&mut PageSliceCache<PC>`.
-#[macro_export]
-macro_rules! wasmer_data_storage {
-    ($data: expr, $PC: ident) => {{
-        use $crate::ctx::SvmCtx;
-
-        let ctx: &mut SvmCtx<$PC> = cast_wasmer_data_to_svm_ctx!($data, $PC);
-        &mut ctx.storage
-    }};
-}
-
-/// Ensuring that `reg_idx` is within the `0..REGS_64_COUNT` range (exclusive).
-#[macro_export]
-macro_rules! wasmer_data_ensure_reg_idx {
-    ($reg_idx: expr) => {{
-        use $crate::ctx::REGS_64_COUNT;
-        assert!($reg_idx >= 0 && (($reg_idx as i32) < (REGS_64_COUNT as i32)));
-    }};
-}
-
-/// Extracts from `wasmer` instance context data field (of type `*mut c_void`), a mutable borrow for the register indexed `reg_idx`.
-#[macro_export]
-macro_rules! wasmer_data_reg {
-    ($data: expr, $reg_idx: expr, $PC: ident) => {{
-        wasmer_data_ensure_reg_idx!($reg_idx);
-
-        use $crate::ctx::SvmCtx;
-        let ctx: &mut SvmCtx<$PC> = cast_wasmer_data_to_svm_ctx!($data, $PC);
-
-        svm_regs_reg!(ctx.regs_64, $reg_idx)
-    }};
-}
-
-/// Returns a `wasmer` memory view of cells `mem_start, mem_start + 1, .. , mem_start + len` (exclusive)
-#[macro_export]
-macro_rules! wasmer_ctx_mem_cells {
-    ($ctx: expr, $mem_idx: expr, $mem_start: expr, $len: expr) => {{
-        let start = $mem_start as usize;
-        let end = start + $len as usize;
-
-        /// we must state explicitly that we view each mem cell as a `u8`
-        &$ctx.memory($mem_idx as u32).view::<u8>()[start..end]
-    }};
-}
-
-/// Copies input `data: &[u8]` into `wasmer` memory cells `mem_start, mem_start + 1, .. , mem_start + data.len()` (exclusive)
-#[macro_export]
-macro_rules! wasmer_ctx_mem_cells_write {
-    ($ctx: expr, $mem_idx: expr, $mem_start: expr, $data: expr) => {{
-        let cells = wasmer_ctx_mem_cells!($ctx, $mem_idx, $mem_start, $data.len());
-
-        for (cell, byte) in cells.iter().zip($data.iter()) {
-            cell.set(*byte);
-        }
-    }};
-}
-
 /// Extracts from `wasmer` instance context `data` (type: `SvmCtx`) the `node_data` field (type: `*const c_void`)
 #[macro_export]
 macro_rules! wasmer_data_node_data {
@@ -231,25 +97,6 @@ macro_rules! wasmer_data_node_data {
         let ctx: &mut SvmCtx<$PC> = cast_wasmer_data_to_svm_ctx!($data, $PC);
 
         ctx.node_data
-    }};
-}
-
-/// Extracts from `wasmer` instance context (type: `Ctx`) a mutable borrow for the register indexed `reg_idx`.
-/// Will be used by storage vmcalls.
-#[macro_export]
-macro_rules! wasmer_ctx_reg {
-    ($ctx: expr, $reg_idx: expr, $PC: ident) => {{
-        wasmer_data_reg!($ctx.data, $reg_idx, $PC)
-    }};
-}
-
-/// Extracts from `wasmer` instance context (type: `Ctx`) the register indexed `reg_idx` and calls
-/// on it `set` with input `data`.  Will be used by storage vmcalls.
-#[macro_export]
-macro_rules! wasmer_ctx_reg_write {
-    ($ctx: expr, $reg_idx: expr, $data: expr, $PC: ident) => {{
-        let reg = wasmer_data_reg!($ctx.data, $reg_idx, $PC);
-        reg.set($data);
     }};
 }
 
