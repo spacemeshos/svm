@@ -24,7 +24,7 @@ enum MerklePage {
 }
 
 /// `MerklePageStorage` is an implemetation of the `PagesStorage` trait that is state aware.
-pub struct MerklePageStorage<KV, KH, PH> {
+pub struct MerklePagesStorage<KV, KH, PH> {
     state: State,
     addr: Address,
     pages: Vec<MerklePage>,
@@ -33,7 +33,7 @@ pub struct MerklePageStorage<KV, KH, PH> {
     marker: PhantomData<(PH, KH)>,
 }
 
-impl<KV, KH, PH> MerklePageStorage<KV, KH, PH>
+impl<KV, KH, PH> MerklePagesStorage<KV, KH, PH>
 where
     KV: KVStore<K = KVStoreKey>,
     KH: KeyHasher,
@@ -138,7 +138,7 @@ where
     }
 }
 
-impl<KV, KH, PH> PagesStateStorage for MerklePageStorage<KV, KH, PH>
+impl<KV, KH, PH> PagesStateStorage for MerklePagesStorage<KV, KH, PH>
 where
     KV: KVStore<K = KVStoreKey>,
     KH: KeyHasher,
@@ -160,7 +160,7 @@ where
     }
 }
 
-impl<KV, KH, PH> PagesStorage for MerklePageStorage<KV, KH, PH>
+impl<KV, KH, PH> PagesStorage for MerklePagesStorage<KV, KH, PH>
 where
     KV: KVStore<K = KVStoreKey>,
     KH: KeyHasher,
@@ -230,7 +230,7 @@ use crate::default::DefaultPageHasher;
 use crate::memory::MemKVStore;
 use svm_common::DefaultKeyHasher;
 pub type MemMerklePages =
-    MerklePageStorage<MemKVStore<KVStoreKey>, DefaultKeyHasher, DefaultPageHasher>;
+    MerklePagesStorage<MemKVStore<KVStoreKey>, DefaultKeyHasher, DefaultPageHasher>;
 
 #[cfg(test)]
 mod tests {
