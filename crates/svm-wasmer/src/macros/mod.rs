@@ -1,3 +1,12 @@
+#[macro_use]
+mod memory;
+
+#[macro_use]
+mod register;
+
+#[macro_use]
+mod storage;
+
 /// Creates an instance of `SvmCtx` to be injected into `wasmer` context `data` field.
 /// `svm vmcalls` will access that `SvmCtx` while runninng smart contracts
 #[macro_export]
@@ -103,7 +112,7 @@ macro_rules! wasmer_data_node_data {
 #[cfg(test)]
 mod tests {
     use crate::ctx::SvmCtx;
-    use crate::register::WasmerSvmReg64;
+    use crate::register::SvmReg64;
 
     use svm_common::Address;
 

@@ -11,18 +11,6 @@ pub mod ctx;
 /// with the contract-storage / `wasmer` instance memory
 pub mod register;
 
-/// `macros` implements the high-level macros to be consumed by `svm-wasmer` libcalls when dealing with `svm storage`
-#[macro_use]
-pub mod storage_macros;
-
-/// `macros` implements the high-level macros to be consumed by `svm-wasmer` libcalls when dealing with `wasmer memory`
-#[macro_use]
-pub mod mem_macros;
-
-/// `macros` implements the high-level macros to be consumed by `svm-wasmer` libcalls when dealing with `svm registers`
-#[macro_use]
-pub mod register_macros;
-
 /// `macros` implements the high-level macros to be consumed by `svm-wasmer` libcalls.
 #[macro_use]
 pub mod macros;

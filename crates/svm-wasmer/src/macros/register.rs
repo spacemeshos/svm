@@ -1,9 +1,9 @@
-/// Casts the `wasmer` instance context data field (of type `*mut c_void`) into `&mut [WasmerSvmReg64; REGS_64_COUNT]`
+/// Casts the `wasmer` instance context data field (of type `*mut c_void`) into `&mut [SvmReg64; REGS_64_COUNT]`
 #[macro_export]
 macro_rules! wasmer_data_regs {
     ($data: expr, $PC: ident) => {{
         use $crate::ctx::SvmCtx;
-        use $crate::register::WasmerSvmReg64;
+        use $crate::register::SvmReg64;
 
         let ctx: &mut SvmCtx<$PC> = cast_wasmer_data_to_svm_ctx!($data, $PC);
 
@@ -20,7 +20,7 @@ macro_rules! wasmer_data_ensure_reg_idx {
     }};
 }
 
-/// Receives an array of `WasmerSvmReg64` and returns the `reg_idx` register.
+/// Receives an array of `SvmReg64` and returns the `reg_idx` register.
 #[macro_export]
 macro_rules! svm_regs_reg {
     ($regs: expr, $reg_idx: expr) => {{
@@ -28,17 +28,17 @@ macro_rules! svm_regs_reg {
 
         // We don't do:
         // ```rust
-        // let reg: &mut WasmerSvmReg64 = $regs.regs_64[$reg_idx as usize];
+        // let reg: &mut SvmReg64 = $regs.regs_64[$reg_idx as usize];
         // ```
         //
         // Because we like to keep the option to  mutate a couple of registers simultaneously
         // without the Rust borrow checker getting angry...
         // so instead we use _Unsafe Rust_
-        use $crate::register::WasmerSvmReg64;
-        let regs_ptr: *mut WasmerSvmReg64 = $regs.as_mut_ptr();
+        use $crate::register::SvmReg64;
+        let regs_ptr: *mut SvmReg64 = $regs.as_mut_ptr();
 
-        let reg_idx_ptr: *mut WasmerSvmReg64 = unsafe { regs_ptr.offset($reg_idx as isize) };
-        let reg: &mut WasmerSvmReg64 = unsafe { &mut *reg_idx_ptr };
+        let reg_idx_ptr: *mut SvmReg64 = unsafe { regs_ptr.offset($reg_idx as isize) };
+        let reg: &mut SvmReg64 = unsafe { &mut *reg_idx_ptr };
 
         reg
     }};

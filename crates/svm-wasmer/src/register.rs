@@ -10,10 +10,10 @@ use std::fmt::{self, Debug, Formatter};
 ///
 ///  For example:
 /// ```rust
-/// impl_register!(8, WasmerSvmReg64);
+/// impl_register!(8, SvmReg64);
 /// ```
 ///
-/// means: `WasmerSvmReg64` is a `wasmer` register holding 8 bytes (64 bits)
+/// means: `SvmReg64` is a `wasmer` register holding 8 bytes (64 bits)
 macro_rules! impl_register {
     ($bytes_count: expr, $reg_ident: ident) => {
         /// Implements a `wasmer svm` register of $bytes_count bytes
@@ -140,10 +140,10 @@ macro_rules! impl_register {
     };
 }
 
-impl_register!(8, WasmerSvmReg64);
-impl_register!(20, WasmerSvmReg160);
-impl_register!(32, WasmerSvmReg256);
-impl_register!(64, WasmerSvmReg512);
+impl_register!(8, SvmReg64);
+impl_register!(20, SvmReg160);
+impl_register!(32, SvmReg256);
+impl_register!(64, SvmReg512);
 
 #[cfg(test)]
 mod tests {
@@ -152,14 +152,14 @@ mod tests {
 
     #[test]
     fn view_defaults_to_zeros() {
-        let reg = WasmerSvmReg64::new();
+        let reg = SvmReg64::new();
 
         assert_eq!([0; 8], reg.view());
     }
 
     #[test]
     fn as_ptr_defaults_to_zeros() {
-        let reg = WasmerSvmReg64::new();
+        let reg = SvmReg64::new();
         let ptr = unsafe { reg.as_ptr() };
 
         for i in 0..8 {
@@ -181,7 +181,7 @@ mod tests {
             Cell::new(80),
         ];
 
-        let mut reg = WasmerSvmReg64::new();
+        let mut reg = SvmReg64::new();
         let ptr = unsafe { reg.as_ptr() };
 
         assert_eq!([0; 8], reg.view());
@@ -202,7 +202,7 @@ mod tests {
     fn copy_from_exact_register_capacity() {
         let data = [10, 20, 30, 40, 50, 60, 70, 80];
 
-        let mut reg = WasmerSvmReg64::new();
+        let mut reg = SvmReg64::new();
         assert_eq!([0; 8], reg.view());
 
         unsafe { reg.copy_from(data.as_ptr(), 8) };
@@ -211,7 +211,7 @@ mod tests {
 
     #[test]
     fn copy_from_less_than_register_capacity() {
-        let mut reg = WasmerSvmReg64::new();
+        let mut reg = SvmReg64::new();
         reg.set(&vec![10; 8]);
         assert_eq!([10; 8], reg.view());
 
@@ -226,7 +226,7 @@ mod tests {
     #[test]
     #[ignore]
     fn copy_from_bigger_than_register_capacity() {
-        let mut reg = WasmerSvmReg64::new();
+        let mut reg = SvmReg64::new();
 
         let data = [10, 20, 30, 40, 50, 60, 70, 80, 90];
 
@@ -250,7 +250,7 @@ mod tests {
             Cell::new(80),
         ];
 
-        let mut reg = WasmerSvmReg64::new();
+        let mut reg = SvmReg64::new();
         assert_eq!([0; 8], reg.view());
 
         reg.copy_from_wasmer_mem(&cells);
@@ -259,7 +259,7 @@ mod tests {
 
     #[test]
     fn copy_from_wasmer_mem_less_than_register_capacity() {
-        let mut reg = WasmerSvmReg64::new();
+        let mut reg = SvmReg64::new();
         reg.set(&vec![10; 8]);
         assert_eq!([10; 8], reg.view());
 
@@ -273,7 +273,7 @@ mod tests {
 
     #[test]
     fn copy_from_wasmer_mem_bigger_than_register_capacity() {
-        let mut reg = WasmerSvmReg64::new();
+        let mut reg = SvmReg64::new();
 
         let cells = [
             Cell::new(10),
@@ -296,7 +296,7 @@ mod tests {
 
     #[test]
     fn set_exact_register_capcity() {
-        let mut reg = WasmerSvmReg64::new();
+        let mut reg = SvmReg64::new();
         assert_eq!([0; 8], reg.view());
 
         reg.set(&vec![10, 20, 30, 40, 50, 60, 70, 80]);
@@ -307,7 +307,7 @@ mod tests {
 
     #[test]
     fn set_less_than_register_capacity() {
-        let mut reg = WasmerSvmReg64::new();
+        let mut reg = SvmReg64::new();
         reg.set(&vec![10; 8]);
         assert_eq!([10; 8], reg.view());
 
@@ -320,7 +320,7 @@ mod tests {
 
     #[test]
     fn set_empty_slice() {
-        let mut reg = WasmerSvmReg64::new();
+        let mut reg = SvmReg64::new();
         reg.set(&vec![10; 8]);
         assert_eq!([10; 8], reg.view());
 
@@ -334,7 +334,7 @@ mod tests {
     #[test]
     fn setting_data_larger_than_register_capacity_raises() {
         let res = std::panic::catch_unwind(|| {
-            let mut reg = WasmerSvmReg64::new();
+            let mut reg = SvmReg64::new();
             reg.set(&vec![10; 9]);
         });
 
@@ -344,8 +344,8 @@ mod tests {
     #[test]
     #[ignore]
     fn ucmp_equal() {
-        let mut reg1 = WasmerSvmReg64::new();
-        let mut reg2 = WasmerSvmReg64::new();
+        let mut reg1 = SvmReg64::new();
+        let mut reg2 = SvmReg64::new();
 
         reg1.set(&vec![10, 20, 30]);
         reg2.set(&vec![10, 20, 30]);
@@ -356,8 +356,8 @@ mod tests {
     #[test]
     #[ignore]
     fn ucmp_greater_same_length() {
-        let mut reg1 = WasmerSvmReg64::new();
-        let mut reg2 = WasmerSvmReg64::new();
+        let mut reg1 = SvmReg64::new();
+        let mut reg2 = SvmReg64::new();
 
         // data is layed-out in a Little-Endian Order
         reg1.set(&vec![10, 20, 40]);
@@ -369,8 +369,8 @@ mod tests {
     #[test]
     #[ignore]
     fn ucmp_greater_not_same_length() {
-        let mut reg1 = WasmerSvmReg64::new();
-        let mut reg2 = WasmerSvmReg64::new();
+        let mut reg1 = SvmReg64::new();
+        let mut reg2 = SvmReg64::new();
 
         // data is layed-out in a Little-Endian Order
         reg1.set(&vec![10, 20, 40]);
@@ -382,8 +382,8 @@ mod tests {
     #[test]
     #[ignore]
     fn ucmp_less_same_length() {
-        let mut reg1 = WasmerSvmReg64::new();
-        let mut reg2 = WasmerSvmReg64::new();
+        let mut reg1 = SvmReg64::new();
+        let mut reg2 = SvmReg64::new();
 
         // data is layed-out in a Little-Endian Order
         reg1.set(&vec![10, 20, 30]);
@@ -395,8 +395,8 @@ mod tests {
     #[test]
     #[ignore]
     fn ucmp_less_not_same_length() {
-        let mut reg1 = WasmerSvmReg64::new();
-        let mut reg2 = WasmerSvmReg64::new();
+        let mut reg1 = SvmReg64::new();
+        let mut reg2 = SvmReg64::new();
 
         // data is layed-out in a Little-Endian Order
         reg1.set(&vec![20, 30]);
