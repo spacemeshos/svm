@@ -89,8 +89,8 @@ mod tests {
         let reg1 = svm_regs_reg!(regs, 64, 1);
 
         // registers `0` and `1` are initialized with zeros
-        assert_eq!(vec![0; 8], &reg0.0[..]);
-        assert_eq!(vec![0; 8], &reg1.0[..]);
+        assert_eq!(vec![0; 8], reg0.view());
+        assert_eq!(vec![0; 8], reg1.view());
 
         // editing register `0` should not edit register `1`
         let cells = vec![
@@ -106,8 +106,8 @@ mod tests {
 
         reg0.copy_from_wasmer_mem(&cells);
 
-        assert_eq!(vec![10, 20, 30, 40, 50, 60, 70, 80], &reg0.0[..]);
-        assert_eq!(vec![00, 00, 00, 00, 00, 00, 00, 00], &reg1.0[..]);
+        assert_eq!(vec![10, 20, 30, 40, 50, 60, 70, 80], reg0.view());
+        assert_eq!(vec![00, 00, 00, 00, 00, 00, 00, 00], reg1.view());
     }
 
     #[test]
@@ -160,7 +160,7 @@ mod tests {
         let slice = svm_read_page_slice!(storage, 1, 0, 100, 3);
 
         reg0.set(&slice);
-        assert_eq!([10, 20, 30, 0, 0, 0, 0, 0], reg0.view());
+        assert_eq!(vec![10, 20, 30, 0, 0, 0, 0, 0], reg0.view());
     }
 
     #[test]

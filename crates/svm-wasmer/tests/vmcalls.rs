@@ -70,14 +70,14 @@ fn vmcalls_mem_to_reg_copy() {
 
     // asserting register `2` content is empty prior copy
     let reg = wasmer_ctx_reg!(instance.context(), 64, 2, MemPageCache32);
-    assert_eq!([0, 0, 0, 0, 0, 0, 0, 0], reg.view());
+    assert_eq!(vec![0, 0, 0, 0, 0, 0, 0, 0], reg.view());
 
     let do_copy: Func<(i32, i32, i32)> = instance.func("do_copy_to_reg").unwrap();
     assert!(do_copy.call(200, 3, 2).is_ok());
 
     // asserting register `2` content is `10, 20, 30, 0, ... 0`
     let reg = wasmer_ctx_reg!(instance.context(), 64, 2, MemPageCache32);
-    assert_eq!([10, 20, 30, 0, 0, 0, 0, 0], reg.view());
+    assert_eq!(vec![10, 20, 30, 0, 0, 0, 0, 0], reg.view());
 }
 
 #[test]
@@ -129,14 +129,14 @@ fn vmcalls_storage_read_an_empty_page_slice_to_reg() {
     let reg = wasmer_ctx_reg!(instance.context(), 64, 2, MemPageCache32);
     reg.set(&[255; 8]);
 
-    assert_eq!([255; 8], reg.view());
+    assert_eq!(vec![255; 8], reg.view());
 
     let do_copy: Func<(i32, i32, i32, i32, i32)> = instance.func("do_copy_to_reg").unwrap();
     assert!(do_copy.call(1, 10, 100, 3, 2).is_ok());
 
     // register `2` should contain zeros, since an empty page-slice is treated as a page-slice containing only zeros
     let reg = wasmer_ctx_reg!(instance.context(), 64, 2, MemPageCache32);
-    assert_eq!([0, 0, 0, 0, 0, 0, 0, 0], reg.view());
+    assert_eq!(vec![0, 0, 0, 0, 0, 0, 0, 0], reg.view());
 }
 
 #[test]
@@ -169,7 +169,7 @@ fn vmcalls_storage_read_non_empty_page_slice_to_reg() {
     assert!(do_copy.call(1, 10, 100, 3, 2).is_ok());
 
     let reg = wasmer_ctx_reg!(instance.context(), 64, 2, MemPageCache32);
-    assert_eq!([10, 20, 30, 0, 0, 0, 0, 0], reg.view());
+    assert_eq!(vec![10, 20, 30, 0, 0, 0, 0, 0], reg.view());
 }
 
 #[test]

@@ -24,52 +24,52 @@ macro_rules! wasmer_data_node_data {
 
 #[macro_export]
 macro_rules! alloc_regs {
-    ($reg_ident: ident, REGS_256_COUNT) => {{
+    (64, REGS_64_COUNT) => {{
         [
-            $reg_ident::new(),
-            $reg_ident::new(),
-            $reg_ident::new(),
-            $reg_ident::new(),
+            SvmReg::Reg64(SvmReg64::new()),
+            SvmReg::Reg64(SvmReg64::new()),
+            SvmReg::Reg64(SvmReg64::new()),
+            SvmReg::Reg64(SvmReg64::new()),
+            SvmReg::Reg64(SvmReg64::new()),
+            SvmReg::Reg64(SvmReg64::new()),
+            SvmReg::Reg64(SvmReg64::new()),
+            SvmReg::Reg64(SvmReg64::new()),
+            SvmReg::Reg64(SvmReg64::new()),
+            SvmReg::Reg64(SvmReg64::new()),
+            SvmReg::Reg64(SvmReg64::new()),
+            SvmReg::Reg64(SvmReg64::new()),
+            SvmReg::Reg64(SvmReg64::new()),
+            SvmReg::Reg64(SvmReg64::new()),
+            SvmReg::Reg64(SvmReg64::new()),
+            SvmReg::Reg64(SvmReg64::new()),
         ]
     }};
-    ($reg_ident: ident, REGS_512_COUNT) => {{
+    (160, REGS_160_COUNT) => {{
         [
-            $reg_ident::new(),
-            $reg_ident::new(),
-            $reg_ident::new(),
-            $reg_ident::new(),
+            SvmReg::Reg160(SvmReg160::new()),
+            SvmReg::Reg160(SvmReg160::new()),
+            SvmReg::Reg160(SvmReg160::new()),
+            SvmReg::Reg160(SvmReg160::new()),
+            SvmReg::Reg160(SvmReg160::new()),
+            SvmReg::Reg160(SvmReg160::new()),
+            SvmReg::Reg160(SvmReg160::new()),
+            SvmReg::Reg160(SvmReg160::new()),
         ]
     }};
-    ($reg_ident: ident, REGS_160_COUNT) => {{
+    (256, REGS_256_COUNT) => {{
         [
-            $reg_ident::new(),
-            $reg_ident::new(),
-            $reg_ident::new(),
-            $reg_ident::new(),
-            $reg_ident::new(),
-            $reg_ident::new(),
-            $reg_ident::new(),
-            $reg_ident::new(),
+            SvmReg::Reg64(SvmReg64::new()),
+            SvmReg::Reg64(SvmReg64::new()),
+            SvmReg::Reg64(SvmReg64::new()),
+            SvmReg::Reg64(SvmReg64::new()),
         ]
     }};
-    ($reg_ident: ident, REGS_64_COUNT) => {{
+    (512, REGS_512_COUNT) => {{
         [
-            $reg_ident::new(),
-            $reg_ident::new(),
-            $reg_ident::new(),
-            $reg_ident::new(),
-            $reg_ident::new(),
-            $reg_ident::new(),
-            $reg_ident::new(),
-            $reg_ident::new(),
-            $reg_ident::new(),
-            $reg_ident::new(),
-            $reg_ident::new(),
-            $reg_ident::new(),
-            $reg_ident::new(),
-            $reg_ident::new(),
-            $reg_ident::new(),
-            $reg_ident::new(),
+            SvmReg::Reg512(SvmReg512::new()),
+            SvmReg::Reg512(SvmReg512::new()),
+            SvmReg::Reg512(SvmReg512::new()),
+            SvmReg::Reg512(SvmReg512::new()),
         ]
     }};
 }

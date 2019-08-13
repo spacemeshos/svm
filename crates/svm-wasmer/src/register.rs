@@ -79,8 +79,8 @@ macro_rules! impl_register {
             }
 
             /// Returns a copy of the register content as a byte array
-            pub fn view(&self) -> [u8; $bytes_count] {
-                self.0
+            pub fn view(&self) -> Vec<u8> {
+                self.0.to_vec()
             }
 
             /// Returns a pointer to the register underlying content
@@ -145,6 +145,63 @@ impl_register!(20, SvmReg160);
 impl_register!(32, SvmReg256);
 impl_register!(64, SvmReg512);
 
+pub enum SvmReg {
+    Reg64(SvmReg64),
+    Reg160(SvmReg160),
+    Reg256(SvmReg256),
+    Reg512(SvmReg512),
+}
+
+impl SvmReg {
+    #[inline(always)]
+    pub fn copy_from_wasmer_mem(&mut self, cells: &[Cell<u8>]) {
+        match self {
+            SvmReg::Reg64(reg) => reg.copy_from_wasmer_mem(cells),
+            SvmReg::Reg160(reg) => reg.copy_from_wasmer_mem(cells),
+            SvmReg::Reg256(reg) => reg.copy_from_wasmer_mem(cells),
+            SvmReg::Reg512(reg) => reg.copy_from_wasmer_mem(cells),
+        }
+    }
+
+    #[inline(always)]
+    pub fn set(&mut self, bytes: &[u8]) {
+        match self {
+            SvmReg::Reg64(reg) => reg.set(bytes),
+            SvmReg::Reg160(reg) => reg.set(bytes),
+            SvmReg::Reg256(reg) => reg.set(bytes),
+            SvmReg::Reg512(reg) => reg.set(bytes),
+        }
+    }
+
+    #[inline(always)]
+    pub fn copy_to_wasmer_mem(&self, cells: &[Cell<u8>]) {
+        match self {
+            SvmReg::Reg64(reg) => reg.copy_to_wasmer_mem(cells),
+            SvmReg::Reg160(reg) => reg.copy_to_wasmer_mem(cells),
+            SvmReg::Reg256(reg) => reg.copy_to_wasmer_mem(cells),
+            SvmReg::Reg512(reg) => reg.copy_to_wasmer_mem(cells),
+        }
+    }
+
+    pub fn getn(&self, n: usize) -> Vec<u8> {
+        match self {
+            SvmReg::Reg64(reg) => reg.getn(n),
+            SvmReg::Reg160(reg) => reg.getn(n),
+            SvmReg::Reg256(reg) => reg.getn(n),
+            SvmReg::Reg512(reg) => reg.getn(n),
+        }
+    }
+
+    pub fn view(&self) -> Vec<u8> {
+        match self {
+            SvmReg::Reg64(reg) => reg.view(),
+            SvmReg::Reg160(reg) => reg.view(),
+            SvmReg::Reg256(reg) => reg.view(),
+            SvmReg::Reg512(reg) => reg.view(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -154,7 +211,7 @@ mod tests {
     fn view_defaults_to_zeros() {
         let reg = SvmReg64::new();
 
-        assert_eq!([0; 8], reg.view());
+        assert_eq!(vec![0; 8], reg.view());
     }
 
     #[test]
@@ -184,7 +241,7 @@ mod tests {
         let mut reg = SvmReg64::new();
         let ptr = unsafe { reg.as_ptr() };
 
-        assert_eq!([0; 8], reg.view());
+        assert_eq!(vec![0; 8], reg.view());
 
         reg.copy_from_wasmer_mem(&cells);
 
@@ -203,24 +260,24 @@ mod tests {
         let data = [10, 20, 30, 40, 50, 60, 70, 80];
 
         let mut reg = SvmReg64::new();
-        assert_eq!([0; 8], reg.view());
+        assert_eq!(vec![0; 8], reg.view());
 
         unsafe { reg.copy_from(data.as_ptr(), 8) };
-        assert_eq!([10, 20, 30, 40, 50, 60, 70, 80], reg.view());
+        assert_eq!(vec![10, 20, 30, 40, 50, 60, 70, 80], reg.view());
     }
 
     #[test]
     fn copy_from_less_than_register_capacity() {
         let mut reg = SvmReg64::new();
         reg.set(&vec![10; 8]);
-        assert_eq!([10; 8], reg.view());
+        assert_eq!(vec![10; 8], reg.view());
 
         let data = [10, 20, 30];
 
         unsafe { reg.copy_from(data.as_ptr(), 3) };
 
         assert_eq!(vec![10, 20, 30], reg.getn(3));
-        assert_eq!([10, 20, 30, 0, 0, 0, 0, 0], reg.view());
+        assert_eq!(vec![10, 20, 30, 0, 0, 0, 0, 0], reg.view());
     }
 
     #[test]
@@ -251,24 +308,24 @@ mod tests {
         ];
 
         let mut reg = SvmReg64::new();
-        assert_eq!([0; 8], reg.view());
+        assert_eq!(vec![0; 8], reg.view());
 
         reg.copy_from_wasmer_mem(&cells);
-        assert_eq!([10, 20, 30, 40, 50, 60, 70, 80], reg.view());
+        assert_eq!(vec![10, 20, 30, 40, 50, 60, 70, 80], reg.view());
     }
 
     #[test]
     fn copy_from_wasmer_mem_less_than_register_capacity() {
         let mut reg = SvmReg64::new();
         reg.set(&vec![10; 8]);
-        assert_eq!([10; 8], reg.view());
+        assert_eq!(vec![10; 8], reg.view());
 
         let cells = [Cell::new(10), Cell::new(20), Cell::new(30)];
 
         reg.copy_from_wasmer_mem(&cells);
 
         assert_eq!(vec![10, 20, 30], reg.getn(3));
-        assert_eq!([10, 20, 30, 0, 0, 0, 0, 0], reg.view());
+        assert_eq!(vec![10, 20, 30, 0, 0, 0, 0, 0], reg.view());
     }
 
     #[test]
@@ -297,11 +354,11 @@ mod tests {
     #[test]
     fn set_exact_register_capcity() {
         let mut reg = SvmReg64::new();
-        assert_eq!([0; 8], reg.view());
+        assert_eq!(vec![0; 8], reg.view());
 
         reg.set(&vec![10, 20, 30, 40, 50, 60, 70, 80]);
 
-        assert_eq!([10, 20, 30, 40, 50, 60, 70, 80], reg.view());
+        assert_eq!(vec![10, 20, 30, 40, 50, 60, 70, 80], reg.view());
         assert_eq!(vec![10, 20, 30, 40, 50, 60, 70, 80], reg.getn(8));
     }
 
@@ -309,26 +366,26 @@ mod tests {
     fn set_less_than_register_capacity() {
         let mut reg = SvmReg64::new();
         reg.set(&vec![10; 8]);
-        assert_eq!([10; 8], reg.view());
+        assert_eq!(vec![10; 8], reg.view());
 
         // now we `set` less than register bytes on register `0` (which already has data in it)
         reg.set(&vec![20, 30, 40]);
 
         assert_eq!(vec![20, 30, 40], reg.getn(3));
-        assert_eq!([20, 30, 40, 0, 0, 0, 0, 0], reg.view());
+        assert_eq!(vec![20, 30, 40, 0, 0, 0, 0, 0], reg.view());
     }
 
     #[test]
     fn set_empty_slice() {
         let mut reg = SvmReg64::new();
         reg.set(&vec![10; 8]);
-        assert_eq!([10; 8], reg.view());
+        assert_eq!(vec![10; 8], reg.view());
 
         // now we `set` [] on register `0` (which already has data in it)
         reg.set(&vec![]);
 
         assert_eq!(Vec::<u8>::new(), reg.getn(0));
-        assert_eq!([0, 0, 0, 0, 0, 0, 0, 0], reg.view());
+        assert_eq!(vec![0, 0, 0, 0, 0, 0, 0, 0], reg.view());
     }
 
     #[test]

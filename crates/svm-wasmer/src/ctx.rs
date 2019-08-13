@@ -1,6 +1,6 @@
 use crate::*;
 
-use crate::register::{SvmReg160, SvmReg256, SvmReg512, SvmReg64};
+use crate::register::{SvmReg, SvmReg160, SvmReg256, SvmReg512, SvmReg64};
 use std::ffi::c_void;
 use svm_common::Address;
 use svm_storage::PageSliceCache;
@@ -36,16 +36,16 @@ pub struct SvmCtx<'a, 'pc: 'a, PC> {
     pub node_data: *const c_void,
 
     /// An array that holds the `SvmReg64` registers
-    pub regs_64: [SvmReg64; REGS_64_COUNT],
+    pub regs_64: [SvmReg; REGS_64_COUNT],
 
     /// An array that holds the `SvmReg160` registers
-    pub regs_160: [SvmReg160; REGS_160_COUNT],
+    pub regs_160: [SvmReg; REGS_160_COUNT],
 
     /// An array that holds the `SvmReg256` registers
-    pub regs_256: [SvmReg256; REGS_256_COUNT],
+    pub regs_256: [SvmReg; REGS_256_COUNT],
 
     /// An array that holds the `SvmReg512` registers
-    pub regs_512: [SvmReg512; REGS_512_COUNT],
+    pub regs_512: [SvmReg; REGS_512_COUNT],
 
     /// An accessor to the contract's storage (of type `PageSliceCache`)
     pub storage: &'a mut PageSliceCache<'pc, PC>,
@@ -56,10 +56,10 @@ impl<'a, 'pc: 'a, PC> SvmCtx<'a, 'pc, PC> {
     ///
     /// * `storage` - a mutably borrowed `PageSliceCache`
     pub fn new(node_data: *const c_void, storage: &'a mut PageSliceCache<'pc, PC>) -> Self {
-        let regs_64 = alloc_regs!(SvmReg64, REGS_64_COUNT);
-        let regs_160 = alloc_regs!(SvmReg160, REGS_160_COUNT);
-        let regs_256 = alloc_regs!(SvmReg256, REGS_256_COUNT);
-        let regs_512 = alloc_regs!(SvmReg512, REGS_512_COUNT);
+        let regs_64 = alloc_regs!(64, REGS_64_COUNT);
+        let regs_160 = alloc_regs!(160, REGS_160_COUNT);
+        let regs_256 = alloc_regs!(256, REGS_256_COUNT);
+        let regs_512 = alloc_regs!(512, REGS_512_COUNT);
 
         Self {
             node_data,

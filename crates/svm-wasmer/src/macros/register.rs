@@ -88,11 +88,11 @@ macro_rules! svm_regs_reg {
         // Because we like to keep the option to  mutate a couple of registers simultaneously
         // without the Rust borrow checker getting angry...
         // so instead we use _Unsafe Rust_
-        use $crate::register::SvmReg64;
-        let regs_ptr: *mut reg_type_ident!(64) = $regs.as_mut_ptr();
+        use $crate::register::SvmReg;
+        let regs_ptr: *mut SvmReg = $regs.as_mut_ptr();
 
         let reg_idx_ptr = unsafe { regs_ptr.offset($reg_idx as isize) };
-        let reg: &mut reg_type_ident!(64) = unsafe { &mut *reg_idx_ptr };
+        let reg: &mut SvmReg = unsafe { &mut *reg_idx_ptr };
 
         reg
     }};
