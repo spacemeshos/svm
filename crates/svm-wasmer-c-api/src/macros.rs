@@ -157,11 +157,12 @@ macro_rules! include_svm_wasmer_c_api {
         #[no_mangle]
         pub unsafe extern "C" fn wasmer_svm_register_get(
             ctx: *const wasmer_instance_context_t,
+            reg_bits: i32,
             reg_idx: i32,
         ) -> *const c_void {
             use svm_wasmer::register::SvmReg;
             let wasmer_ctx: &Ctx = &*(ctx as *const Ctx);
-            let reg: &mut SvmReg = wasmer_ctx_reg!(wasmer_ctx, 64, reg_idx, $PC);
+            let reg: &mut SvmReg = wasmer_ctx_reg!(wasmer_ctx, reg_bits, reg_idx, $PC);
 
             // having `c_void` instead of `u8` in the function's signature
             // makes the integration with `cgo` easier.
@@ -172,13 +173,14 @@ macro_rules! include_svm_wasmer_c_api {
         #[no_mangle]
         pub unsafe extern "C" fn wasmer_svm_register_set(
             ctx: *const wasmer_instance_context_t,
+            reg_bits: i32,
             reg_idx: i32,
             bytes: *const c_void,
             bytes_len: u8,
         ) {
             use svm_wasmer::register::SvmReg;
             let wasmer_ctx: &Ctx = &*(ctx as *const Ctx);
-            let reg: &mut SvmReg = wasmer_ctx_reg!(wasmer_ctx, 64, reg_idx, $PC);
+            let reg: &mut SvmReg = wasmer_ctx_reg!(wasmer_ctx, reg_bits, reg_idx, $PC);
 
             // having `c_void` instead of `u8` in the function's signature
             // makes the integration with `cgo` easier.

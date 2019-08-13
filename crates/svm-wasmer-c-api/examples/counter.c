@@ -37,7 +37,7 @@ node_data_t* new_node_data(uint32_t counter) {
 }
 
 void inc_counter_from_reg(wasmer_instance_context_t *ctx, uint32_t reg_idx) {
-    uint8_t* reg_bytes = (uint8_t*)wasmer_svm_register_get(ctx, reg_idx);
+    uint8_t* reg_bytes = (uint8_t*)wasmer_svm_register_get(ctx, 64, reg_idx);
 
     uint8_t a = reg_bytes[0];
     uint8_t b = reg_bytes[1];
@@ -132,7 +132,7 @@ int main() {
     // Now, let's increment the counter by `7`. In order to do that we set register `2` with `7`
     const wasmer_instance_context_t *ctx = wasmer_instance_context_get(instance);
     uint8_t counter[] = {7};
-    wasmer_svm_register_set(ctx, 2, counter, 1);
+    wasmer_svm_register_set(ctx, 64, 2, counter, 1);
 
     wasmer_value_t arg_amount;
     arg_amount.tag = WASM_I32;
