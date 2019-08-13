@@ -163,6 +163,24 @@ impl SvmReg {
         }
     }
 
+    pub unsafe fn copy_from(&mut self, src: *const u8, count: u8) {
+        match self {
+            SvmReg::Reg64(reg) => reg.copy_from(src, count),
+            SvmReg::Reg160(reg) => reg.copy_from(src, count),
+            SvmReg::Reg256(reg) => reg.copy_from(src, count),
+            SvmReg::Reg512(reg) => reg.copy_from(src, count),
+        }
+    }
+
+    pub unsafe fn as_ptr(&self) -> *const u8 {
+        match self {
+            SvmReg::Reg64(reg) => reg.as_ptr(),
+            SvmReg::Reg160(reg) => reg.as_ptr(),
+            SvmReg::Reg256(reg) => reg.as_ptr(),
+            SvmReg::Reg512(reg) => reg.as_ptr(),
+        }
+    }
+
     #[inline(always)]
     pub fn set(&mut self, bytes: &[u8]) {
         match self {

@@ -7,61 +7,67 @@ macro_rules! include_wasmer_svm_storage_vmcalls {
         /// `src_mem_ptr, src_mem_ptr + 1, .. , src_mem_ptr + len (exclusive)`
         /// into `wasmer` register indexed `dst_reg`
         ///
-        /// * `ctx`         - `wasmer` context (holds a `data` field. we use `SvmCtx`)
-        /// * `src_mem_idx` - The source memory index we want to copy from
-        /// * `src_mem_ptr` - Pointer for the first memory address we want to start copying from
-        /// * `len`         - The length of the memory slice we want to copy (in bytes)
-        /// * `dst_reg`     - The destination register we want to load the memory slice into
+        /// * `ctx`          - `wasmer` context (holds a `data` field. we use `SvmCtx`)
+        /// * `src_mem_idx`  - The source memory index we want to copy from
+        /// * `src_mem_ptr`  - Pointer for the first memory address we want to start copying from
+        /// * `len`          - The length of the memory slice we want to copy (in bytes)
+        /// * `dst_reg_bits` - The type of the register (determined by its #bits) we want to copy data to
+        /// * `dst_reg_idx`  - The destination register we want to load the memory slice into
         pub fn mem_to_reg_copy(
             ctx: &mut wasmer_runtime::Ctx,
             src_mem_idx: i32,
             src_mem_ptr: i32,
             len: i32,
-            dst_reg: i32,
+            dst_reg_bits: i32,
+            dst_reg_idx: i32,
         ) {
             let cells = wasmer_ctx_mem_cells!(ctx, src_mem_idx, src_mem_ptr, len);
-            let reg = wasmer_data_reg!(ctx.data, 64, dst_reg, $PC);
+            let reg = wasmer_data_reg!(ctx.data, dst_reg_bits, dst_reg_idx, $PC);
             reg.copy_from_wasmer_mem(cells);
         }
 
         /// Copies the content of `wasmer` register indexed `src_reg` into `wasmer` memory cells under addresses:
         /// `dst_mem_ptr, dst_mem_ptr + 1, .. , dst_mem_ptr + len (exclusive)`
         ///
-        /// * `ctx`         - `wasmer` context (holds a `data` field. we use `SvmCtx`)
-        /// * `src_reg`     - The source register we want to load its content from
-        /// * `len`         - The length of the register content we want to copy into memory (in bytes)
-        ///                   This parameter *must* not be greater than the register capacity
-        /// * `dst_mem_idx` - The index of the memory we want to copy to
-        /// * `dst_mem_ptr` - Pointer to the first memory address we want to start copying content to
+        /// * `ctx`          - `wasmer` context (holds a `data` field. we use `SvmCtx`)
+        /// * `src_reg_bits` - The type of the register (determined by its #bits) we want to copy data from
+        /// * `src_reg_idx`  - The source register index we want to load its content from
+        /// * `len`          - The length of the register content we want to copy into memory (in bytes)
+        ///                    This parameter *must* not be greater than the register capacity
+        /// * `dst_mem_idx`  - The index of the memory we want to copy to
+        /// * `dst_mem_ptr`  - Pointer to the first memory address we want to start copying content to
         pub fn reg_to_mem_copy(
             ctx: &mut wasmer_runtime::Ctx,
-            src_reg: i32,
+            src_reg_bits: i32,
+            src_reg_idx: i32,
             len: i32,
             dst_mem_idx: i32,
             dst_mem_ptr: i32,
         ) {
-            let reg = wasmer_data_reg!(ctx.data, 64, src_reg, $PC);
+            let reg = wasmer_data_reg!(ctx.data, src_reg_bits, src_reg_idx, $PC);
             let cells = wasmer_ctx_mem_cells!(ctx, dst_mem_idx, dst_mem_ptr, len);
             reg.copy_to_wasmer_mem(cells);
         }
 
         /// Loads from the `svm-wasmer` instance's storage a page-slice into the register indexed `dest_reg`
         ///
-        /// * `ctx`       - `wasmer` context (holds a `data` field. we use `SvmCtx`)
-        /// * `src_page`  - Page index
-        /// * `src_slice` - Page slice index
-        /// * `offset`    - Slice starting offset (within the given page)
-        /// * `len`       - The length of the slice in bytes
-        /// * `dst_reg`   - The destination register we want to load the page-slice into
+        /// * `ctx`          - `wasmer` context (holds a `data` field. we use `SvmCtx`)
+        /// * `src_page`     - Page index
+        /// * `src_slice`    - Page slice index
+        /// * `offset`       - Slice starting offset (within the given page)
+        /// * `len`          - The length of the slice in bytes
+        /// * `dst_reg_bits` - The type of the register (determined by its #bits) we want to copy data to
+        /// * `dst_reg_idx`  - The destination register index we want to load the page-slice into
         pub fn storage_read_to_reg(
             ctx: &mut wasmer_runtime::Ctx,
             src_page: i32,
             src_slice: i32,
             offset: i32,
             len: i32,
-            dst_reg: i32,
+            dst_reg_bits: i32,
+            dst_reg_idx: i32,
         ) {
-            let reg = wasmer_data_reg!(ctx.data, 64, dst_reg, $PC);
+            let reg = wasmer_data_reg!(ctx.data, dst_reg_bits, dst_reg_idx, $PC);
             let storage = wasmer_data_storage!(ctx.data, $PC);
 
             let slice = svm_read_page_slice!(
@@ -146,21 +152,23 @@ macro_rules! include_wasmer_svm_storage_vmcalls {
 
         /// Writes into `svm-wasmer` storage, a page-slice copied from `svm wasmer` register
         ///
-        /// * `ctx`         - `wasmer` context (holds a `data` field. we use `SvmCtx`)
-        /// * `src_reg`     - Source register to start copying from
-        /// * `len`         - #register bytes to copy. Must be less than register capacity
-        /// * `dst_page`    - Destination page
-        /// * `dst_slice`   - Destination slice
-        /// * `dst_offset`  - Destination slice offset
+        /// * `ctx`          - `wasmer` context (holds a `data` field. we use `SvmCtx`)
+        /// * `src_reg_bits` - The type of the register (determined by its #bits) we want to copy data from
+        /// * `src_reg_idx`  - Source register to start copying from
+        /// * `len`          - #register bytes to copy. Must be less than register capacity
+        /// * `dst_page`     - Destination page
+        /// * `dst_slice`    - Destination slice
+        /// * `dst_offset`   - Destination slice offset
         pub fn storage_write_from_reg(
             ctx: &mut wasmer_runtime::Ctx,
-            src_reg: i32,
+            src_reg_bits: i32,
+            src_reg_idx: i32,
             len: i32,
             dst_page: i32,
             dst_slice: i32,
             dst_offset: i32,
         ) {
-            let reg = wasmer_data_reg!(ctx.data, 64, src_reg, $PC);
+            let reg = wasmer_data_reg!(ctx.data, src_reg_bits, src_reg_idx, $PC);
             let storage = wasmer_data_storage!(ctx.data, $PC);
             let data = reg.getn(len as usize);
 

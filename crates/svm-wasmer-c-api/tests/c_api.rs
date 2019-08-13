@@ -243,9 +243,9 @@ fn call_storage_mem_to_reg_copy() {
         let func: Func<(i32, i32, i32)> = instance.func("do_copy_to_reg").unwrap();
         assert!(func.call(200, 3, 2).is_ok());
 
-        // asserting register `2` content is `10, 20, 30, 0, ... 0`
-        let reg = wasmer_ctx_reg!(instance.context(), 2, MemPageCache32);
-        assert_eq!([10, 20, 30, 0, 0, 0, 0, 0], reg.view());
+        // asserting register `2` (of type `64 bits`) content is `10, 20, 30, 0, ... 0`
+        let reg = wasmer_ctx_reg!(instance.context(), 64, 2, MemPageCache32);
+        assert_eq!(vec![10, 20, 30, 0, 0, 0, 0, 0], reg.view());
     }
 }
 
@@ -346,17 +346,17 @@ fn call_wasmer_svm_register_get_set() {
 
         let ctx = instance.context() as *const Ctx as *const wasmer_instance_context_t;
         let reg2 = wasmer_svm_register_get(ctx, 2);
-        let reg3 = wasmer_ctx_reg!(instance.context(), 3, MemPageCache32);
+        let reg3 = wasmer_ctx_reg!(instance.context(), 64, 3, MemPageCache32);
 
         // setting register `2` with data that will be copied later to register `3`
         let buf: Vec<u8> = vec![10, 20, 30, 40, 50, 60, 70, 80];
         wasmer_svm_register_set(ctx, 2, buf.as_ptr() as *const c_void, 8);
 
-        assert_eq!([0; 8], reg3.view());
+        assert_eq!(vec![0; 8], reg3.view());
 
         // should trigger copying the contents of register `2` to register `3`
         let _ = func.call(2, 3).unwrap();
 
-        assert_eq!([10, 20, 30, 40, 50, 60, 70, 80], reg3.view());
+        assert_eq!(vec![10, 20, 30, 40, 50, 60, 70, 80], reg3.view());
     }
 }

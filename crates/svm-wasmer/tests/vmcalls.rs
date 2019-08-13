@@ -68,14 +68,14 @@ fn vmcalls_mem_to_reg_copy() {
     // initializing memory #0 cells `200..203` with values `10, 20, 30` respectively
     wasmer_ctx_mem_cells_write!(instance.context(), 0, 200, &[10, 20, 30]);
 
-    // asserting register `2` content is empty prior copy
+    // asserting register `2` (of type `64 bits`) content is empty prior copy
     let reg = wasmer_ctx_reg!(instance.context(), 64, 2, MemPageCache32);
     assert_eq!(vec![0, 0, 0, 0, 0, 0, 0, 0], reg.view());
 
     let do_copy: Func<(i32, i32, i32)> = instance.func("do_copy_to_reg").unwrap();
     assert!(do_copy.call(200, 3, 2).is_ok());
 
-    // asserting register `2` content is `10, 20, 30, 0, ... 0`
+    // asserting register `2` (of type `64 bits`) content is `10, 20, 30, 0, ... 0`
     let reg = wasmer_ctx_reg!(instance.context(), 64, 2, MemPageCache32);
     assert_eq!(vec![10, 20, 30, 0, 0, 0, 0, 0], reg.view());
 }
@@ -94,7 +94,7 @@ fn vmcalls_reg_to_mem_copy() {
 
     let mut instance = module.instantiate(&import_object).unwrap();
 
-    // initializing reg `2` with values `10, 20, 30` respectively
+    // initializing reg `2` (of type `64 bits`) with values `10, 20, 30` respectively
     wasmer_ctx_reg_write!(instance.context_mut(), 64, 2, &[10, 20, 30], MemPageCache32);
 
     // asserting memory #0, cells `0..3` are zeros before copy
@@ -134,7 +134,7 @@ fn vmcalls_storage_read_an_empty_page_slice_to_reg() {
     let do_copy: Func<(i32, i32, i32, i32, i32)> = instance.func("do_copy_to_reg").unwrap();
     assert!(do_copy.call(1, 10, 100, 3, 2).is_ok());
 
-    // register `2` should contain zeros, since an empty page-slice is treated as a page-slice containing only zeros
+    // register `2` (of type `64 bits) should contain zeros, since an empty page-slice is treated as a page-slice containing only zeros
     let reg = wasmer_ctx_reg!(instance.context(), 64, 2, MemPageCache32);
     assert_eq!(vec![0, 0, 0, 0, 0, 0, 0, 0], reg.view());
 }
@@ -158,7 +158,7 @@ fn vmcalls_storage_read_non_empty_page_slice_to_reg() {
     // we write `[10, 20, 30]` into storage slice `10` (page `1`, cells: `100..103`)
     storage.write_page_slice(&layout, &vec![10, 20, 30]);
 
-    // we first initialize register `2` with some garbage data which should be overriden
+    // we first initialize register `2` (of type `64 bits`) with some garbage data which should be overriden
     // after calling the exported `do_copy_to_reg` function
     let reg = wasmer_ctx_reg!(instance.context(), 64, 2, MemPageCache32);
     reg.set(&[255; 8]);
@@ -272,7 +272,7 @@ fn vmcalls_storage_write_from_reg() {
     let mut instance = module.instantiate(&import_object).unwrap();
     let storage = wasmer_data_storage!(instance.context_mut().data, MemPageCache32);
 
-    // we first initialize register `5` with `[10, 20, 30, 0, 0, 0, 0, 0]`
+    // we first initialize register `5` (of type `64 bits`) with `[10, 20, 30, 0, 0, 0, 0, 0]`
     let reg = wasmer_ctx_reg!(instance.context(), 64, 5, MemPageCache32);
     reg.set(&[10, 20, 30]);
 

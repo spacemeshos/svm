@@ -83,10 +83,8 @@ mod tests {
         let ctx = test_create_svm_ctx!();
         let (data, _dtor) = wasmer_fake_import_object_data(&ctx);
 
-        let regs = wasmer_data_regs!(data, 64, NullPageCache);
-
-        let reg0 = svm_regs_reg!(regs, 64, 0);
-        let reg1 = svm_regs_reg!(regs, 64, 1);
+        let reg0 = wasmer_data_reg!(data, 64, 0, NullPageCache);
+        let reg1 = wasmer_data_reg!(data, 64, 1, NullPageCache);
 
         // registers `0` and `1` are initialized with zeros
         assert_eq!(vec![0; 8], reg0.view());
@@ -115,8 +113,7 @@ mod tests {
         let ctx = test_create_svm_ctx!();
         let (data, _dtor) = wasmer_fake_import_object_data(&ctx);
 
-        let regs = wasmer_data_regs!(data, 64, NullPageCache);
-        let reg0 = svm_regs_reg!(regs, 64, 0);
+        let reg0 = wasmer_data_reg!(data, 64, 0, NullPageCache);
 
         reg0.set(&[10, 20, 30, 40, 50, 60, 70, 80]);
 
@@ -150,8 +147,7 @@ mod tests {
         let (data, _dtor) = wasmer_fake_import_object_data(&ctx);
 
         let layout = svm_page_slice_layout!(1, 0, 100, 3);
-        let regs = wasmer_data_regs!(data, 64, MemPageCache32);
-        let reg0 = svm_regs_reg!(regs, 64, 0);
+        let reg0 = wasmer_data_reg!(data, 64, 0, NullPageCache);
         let storage = wasmer_data_storage!(data, MemPageCache32);
 
         storage.write_page_slice(&layout, &vec![10, 20, 30]);
@@ -168,11 +164,10 @@ mod tests {
         let ctx = test_create_svm_ctx!();
         let (data, _dtor) = wasmer_fake_import_object_data(ctx);
 
-        let regs = wasmer_data_regs!(data, 64, MemPageCache32);
         let storage = wasmer_data_storage!(data, MemPageCache32);
 
         // writing `[10, 20, 30, 0, 0, 0, 0, 0]` to register `0`
-        let reg0 = svm_regs_reg!(regs, 64, 0);
+        let reg0 = wasmer_data_reg!(data, 64, 0, NullPageCache);
         reg0.set(&vec![10, 20, 30]);
 
         let slice = svm_read_page_slice!(storage, 1, 0, 100, 3);
