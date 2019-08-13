@@ -20,7 +20,7 @@ macro_rules! include_wasmer_svm_storage_vmcalls {
             dst_reg: i32,
         ) {
             let cells = wasmer_ctx_mem_cells!(ctx, src_mem_idx, src_mem_ptr, len);
-            let reg = wasmer_data_reg!(ctx.data, dst_reg, $PC);
+            let reg = wasmer_data_reg!(ctx.data, 64, dst_reg, $PC);
             reg.copy_from_wasmer_mem(cells);
         }
 
@@ -40,7 +40,7 @@ macro_rules! include_wasmer_svm_storage_vmcalls {
             dst_mem_idx: i32,
             dst_mem_ptr: i32,
         ) {
-            let reg = wasmer_data_reg!(ctx.data, src_reg, $PC);
+            let reg = wasmer_data_reg!(ctx.data, 64, src_reg, $PC);
             let cells = wasmer_ctx_mem_cells!(ctx, dst_mem_idx, dst_mem_ptr, len);
             reg.copy_to_wasmer_mem(cells);
         }
@@ -61,7 +61,7 @@ macro_rules! include_wasmer_svm_storage_vmcalls {
             len: i32,
             dst_reg: i32,
         ) {
-            let reg = wasmer_data_reg!(ctx.data, dst_reg, $PC);
+            let reg = wasmer_data_reg!(ctx.data, 64, dst_reg, $PC);
             let storage = wasmer_data_storage!(ctx.data, $PC);
 
             let slice = svm_read_page_slice!(
@@ -160,7 +160,7 @@ macro_rules! include_wasmer_svm_storage_vmcalls {
             dst_slice: i32,
             dst_offset: i32,
         ) {
-            let reg = wasmer_data_reg!(ctx.data, src_reg, $PC);
+            let reg = wasmer_data_reg!(ctx.data, 64, src_reg, $PC);
             let storage = wasmer_data_storage!(ctx.data, $PC);
             let data = reg.getn(len as usize);
 
