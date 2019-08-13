@@ -18,7 +18,7 @@ macro_rules! impl_register {
     ($bytes_count: expr, $reg_ident: ident) => {
         /// Implements a `wasmer svm` register of $bytes_count bytes
         #[repr(transparent)]
-        #[derive(Copy, Clone)]
+        #[derive(Clone)]
         pub struct $reg_ident(pub(crate) [u8; $bytes_count]);
 
         impl $reg_ident {

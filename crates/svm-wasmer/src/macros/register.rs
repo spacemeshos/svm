@@ -1,22 +1,68 @@
-/// Casts the `wasmer` instance context data field (of type `*mut c_void`) into `&mut [SvmReg64; REGS_64_COUNT]`
 #[macro_export]
-macro_rules! wasmer_data_regs {
-    ($data: expr, $PC: ident) => {{
-        use $crate::ctx::SvmCtx;
-        use $crate::register::SvmReg64;
+macro_rules! regs_count_ident {
+    (64) => {
+        $crate::ctx::REGS_64_COUNT;
+    };
+    (160) => {
+        $crate::ctx::REGS_160_COUNT;
+    };
+    (256) => {
+        $crate::ctx::REGS_256_COUNT;
+    };
+    (512) => {
+        $crate::ctx::REGS_512_COUNT;
+    };
+}
 
-        let ctx: &mut SvmCtx<$PC> = cast_wasmer_data_to_svm_ctx!($data, $PC);
+#[macro_export]
+macro_rules! reg_type_ident {
+    (64) => {
+        $crate::register::SvmReg64
+    };
+    (160) => {
+        $crate::register::SvmReg160
+    };
+    (256) => {
+        $crate::register::SvmReg256
+    };
+    (512) => {
+        $crate::register::SvmReg512
+    };
+}
 
-        &mut ctx.regs_64
-    }};
+#[macro_export]
+macro_rules! svm_ctx_regs_var {
+    ($ctx: expr, 64) => {
+        $ctx.regs_64
+    };
+    ($ctx: expr, 160) => {
+        $ctx.regs_160
+    };
+    ($ctx: expr, 256) => {
+        $ctx.regs_256
+    };
+    ($ctx: expr, 512) => {
+        $ctx.regs_512
+    };
 }
 
 /// Ensuring that `reg_idx` is within the `0..REGS_64_COUNT` range (exclusive).
 #[macro_export]
 macro_rules! wasmer_data_ensure_reg_idx {
     ($reg_idx: expr) => {{
-        use $crate::ctx::REGS_64_COUNT;
-        assert!($reg_idx >= 0 && (($reg_idx as i32) < (REGS_64_COUNT as i32)));
+        assert!($reg_idx >= 0 && (($reg_idx as i32) < (regs_count_ident!(64) as i32)));
+    }};
+}
+
+/// Casts the `wasmer` instance context data field (of type `*mut c_void`) into `&mut [SvmReg64; REGS_64_COUNT]`
+#[macro_export]
+macro_rules! wasmer_data_regs {
+    ($data: expr, $PC: ident) => {{
+        use $crate::ctx::SvmCtx;
+
+        let ctx: &mut SvmCtx<$PC> = cast_wasmer_data_to_svm_ctx!($data, $PC);
+
+        &mut ctx.regs_64
     }};
 }
 
@@ -35,10 +81,10 @@ macro_rules! svm_regs_reg {
         // without the Rust borrow checker getting angry...
         // so instead we use _Unsafe Rust_
         use $crate::register::SvmReg64;
-        let regs_ptr: *mut SvmReg64 = $regs.as_mut_ptr();
+        let regs_ptr: *mut reg_type_ident!(64) = $regs.as_mut_ptr();
 
-        let reg_idx_ptr: *mut SvmReg64 = unsafe { regs_ptr.offset($reg_idx as isize) };
-        let reg: &mut SvmReg64 = unsafe { &mut *reg_idx_ptr };
+        let reg_idx_ptr = unsafe { regs_ptr.offset($reg_idx as isize) };
+        let reg: &mut reg_type_ident!(64) = unsafe { &mut *reg_idx_ptr };
 
         reg
     }};
@@ -53,7 +99,7 @@ macro_rules! wasmer_data_reg {
         use $crate::ctx::SvmCtx;
         let ctx: &mut SvmCtx<$PC> = cast_wasmer_data_to_svm_ctx!($data, $PC);
 
-        svm_regs_reg!(ctx.regs_64, $reg_idx)
+        svm_regs_reg!(svm_ctx_regs_var!(ctx, 64), $reg_idx)
     }};
 }
 

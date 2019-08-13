@@ -1,3 +1,5 @@
+use crate::*;
+
 use crate::register::{SvmReg160, SvmReg256, SvmReg512, SvmReg64};
 use std::ffi::c_void;
 use svm_common::Address;
@@ -17,7 +19,7 @@ pub const REGS_512_COUNT: usize = 4;
 
 /// `SvmCtx` is a container for the accessible data by `wasmer` instances
 /// * `node_data` - A pointer to the *node* data
-/// * `regs_64`   - A static array (`REGS_64_COUNT` elements) of `SvmReg64`
+/// * `regs_64`   - A static array (`REGS_64_COUNT` elements)  of `SvmReg64`
 /// * `regs_160`  - A static array (`REGS_160_COUNT` elements) of `SvmReg160`
 /// * `regs_256`  - A static array (`REGS_256_COUNT` elements) of `SvmReg256`
 /// * `regs_512`  - A static array (`REGS_512_COUNT` elements) of `SvmReg512`
@@ -54,10 +56,10 @@ impl<'a, 'pc: 'a, PC> SvmCtx<'a, 'pc, PC> {
     ///
     /// * `storage` - a mutably borrowed `PageSliceCache`
     pub fn new(node_data: *const c_void, storage: &'a mut PageSliceCache<'pc, PC>) -> Self {
-        let regs_64 = [SvmReg64::new(); REGS_64_COUNT];
-        let regs_160 = [SvmReg160::new(); REGS_160_COUNT];
-        let regs_256 = [SvmReg256::new(); REGS_256_COUNT];
-        let regs_512 = [SvmReg512::new(); REGS_512_COUNT];
+        let regs_64 = alloc_regs!(SvmReg64, REGS_64_COUNT);
+        let regs_160 = alloc_regs!(SvmReg160, REGS_160_COUNT);
+        let regs_256 = alloc_regs!(SvmReg256, REGS_256_COUNT);
+        let regs_512 = alloc_regs!(SvmReg512, REGS_512_COUNT);
 
         Self {
             node_data,
