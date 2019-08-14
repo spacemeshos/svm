@@ -260,8 +260,8 @@ macro_rules! include_svm_wasmer_c_api {
             ns.insert("storage_write_from_reg", func!(storage_write_from_reg));
 
             // register
-            // ns.insert("reg_read_le_i64", reg_read_le_i64);
-            // ns.insert("reg_write_le_i64", reg_write_le_i64);
+            ns.insert("reg_read_le_i64", func!(reg_read_le_i64));
+            ns.insert("reg_write_le_i64", func!(reg_write_le_i64));
 
             import_obj.register("svm", ns);
         }
