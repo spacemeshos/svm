@@ -92,10 +92,11 @@ fn vmcalls_reg_to_mem_copy() {
         },
     };
 
-    let mut instance = module.instantiate(&import_object).unwrap();
+    let instance = module.instantiate(&import_object).unwrap();
 
     // initializing reg `2` (of type `64 bits`) with values `10, 20, 30` respectively
-    wasmer_ctx_reg_write!(instance.context_mut(), 64, 2, &[10, 20, 30], MemPageCache32);
+    let reg = wasmer_ctx_reg!(instance.context(), 64, 2, MemPageCache32);
+    reg.set(&[10, 20, 30]);
 
     // asserting memory #0, cells `0..3` are zeros before copy
     let cells = wasmer_ctx_mem_cells!(instance.context(), 0, 0, 3);
@@ -281,7 +282,7 @@ fn vmcalls_storage_write_from_reg() {
 
     let do_write: Func<(i32, i32, i32, i32, i32)> = instance.func("do_write_from_reg").unwrap();
 
-    // we copy register `5` first 3 bytes into storage (`page 1`, `slice 10`, cells: `200..203`)
+    // we copy register `5` first 3  into storage (`page 1`, `slice 10`, cells: `200..203`)
     assert!(do_write.call(5, 3, 1, 10, 200).is_ok());
 
     assert_eq!(Some(vec![10, 20, 30]), storage.read_page_slice(&layout));

@@ -70,13 +70,3 @@ macro_rules! wasmer_ctx_reg {
         wasmer_data_reg!($ctx.data, $bits_count, $reg_idx, $PC)
     }};
 }
-
-/// Extracts from `wasmer` instance context (type: `Ctx`) the register indexed `reg_idx` and calls
-/// on it `set` with input `data`.  Will be used by storage vmcalls.
-#[macro_export]
-macro_rules! wasmer_ctx_reg_write {
-    ($ctx: expr, 64, $reg_idx: expr, $data: expr, $PC: ident) => {{
-        let reg = wasmer_data_reg!($ctx.data, 64, $reg_idx, $PC);
-        reg.set($data);
-    }};
-}

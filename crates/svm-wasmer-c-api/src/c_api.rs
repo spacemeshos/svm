@@ -5,6 +5,10 @@
 #[macro_export]
 macro_rules! include_svm_wasmer_c_api {
     ($pages_storage_gen: expr, $PC: ident) => {
+        /// Injecting the `svm vmcalls` backed by PageCache `$PC` into this file
+        include_wasmer_svm_storage_vmcalls!($PC);
+        include_wasmer_svm_register_vmcalls!($PC);
+
         use std::ffi::c_void;
 
         use wasmer_runtime::{imports, Ctx, ImportObject, Instance, Module};
@@ -19,9 +23,6 @@ macro_rules! include_svm_wasmer_c_api {
         use wasmer_runtime_core::{export::Export, import::Namespace};
 
         use crate::c_types::{svm_address_t, svm_receipt_t};
-
-        /// Injecting the `svm vmcalls` backed by page-cache `$PC` into this file
-        include_wasmer_svm_vmcalls!($PC);
 
         /// Validates the deployed contract trnnsaction.
         /// Should be called while the transaction is in the `mempool` of the full-node (prior mining it).
@@ -249,10 +250,18 @@ macro_rules! include_svm_wasmer_c_api {
             use wasmer_runtime::func;
 
             let mut ns = Namespace::new();
-            ns.insert("mem_to_reg_copy", func!(mem_to_reg_copy));
 
-            // ...
-            // ...
+            // storage
+            ns.insert("mem_to_reg_copy", func!(mem_to_reg_copy));
+            ns.insert("reg_to_mem_copy", func!(reg_to_mem_copy));
+            ns.insert("storage_read_to_reg", func!(storage_read_to_reg));
+            ns.insert("storage_read_to_mem", func!(storage_read_to_mem));
+            ns.insert("storage_write_from_mem", func!(storage_write_from_mem));
+            ns.insert("storage_write_from_reg", func!(storage_write_from_reg));
+
+            // register
+            // ns.insert("reg_read_le_i64", reg_read_le_i64);
+            // ns.insert("reg_write_le_i64", reg_write_le_i64);
 
             import_obj.register("svm", ns);
         }
