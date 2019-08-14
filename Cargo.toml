@@ -1,0 +1,35 @@
+[package]
+name = "svm"
+version = "0.0.0"
+authors = ["Yaron Wittenstein <yaron.wittenstein@gmail.com>"]
+license = "MIT"
+edition = "2018"
+repository = "https://github.com/spacemeshos/svm"
+homepage = "https://github.com/spacemeshos/svm"
+description = "Spacemesh Virtual Machine"
+publish = false
+
+include = [
+  "README.md",
+  "LICENSE",
+  "Cargo.toml",
+  "Cargo.lock",
+]
+
+[dependencies]
+svm-common = { path = "crates/svm-common" }
+svm-storage = { path = "crates/svm-storage" }
+svm-compiler = { path = "crates/svm-compiler" }
+svm-contract = { path = "crates/svm-contract" }
+svm-wasmer = { path = "crates/svm-wasmer" }
+svm-wasmer-c-api = { path = "crates/svm-wasmer-c-api" }
+
+[workspace]
+members = [
+  "crates/svm-common",
+  "crates/svm-storage",
+  "crates/svm-compiler",
+  "crates/svm-wasmer",
+  "crates/svm-wasmer-c-api",
+  "crates/svm-contract",
+]

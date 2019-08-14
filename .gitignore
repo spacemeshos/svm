@@ -5,3 +5,6 @@ libsvm_wasmer_c_api.dylib
 target
 tags
 .DS_Store
+*.rs.bk
+.idea
+.vscode
