@@ -8,7 +8,6 @@ publish = false
 
 [dependencies.svm-common]
 path = "../svm-common"
-version = "0.0.0"
 
 [dependencies.serde]
 version = "1.0.98"

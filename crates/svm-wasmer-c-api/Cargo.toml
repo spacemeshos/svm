@@ -9,7 +9,6 @@ publish = false
 [lib]
 crate-type = ["cdylib", "staticlib", "rlib"]
 
-
 [dependencies.wasmer-runtime]
 default-features = false
 git = "https://github.com/spacemeshos/wasmer"
@@ -34,23 +33,19 @@ branch = "develop"
 
 [dependencies.svm-wasmer]
 default-features = false
-version = "0.0.0"
 path = "../svm-wasmer"
 
 [dependencies.svm-common]
 path = "../svm-common"
-version = "0.0.0"
 
 [dependencies.svm-storage]
 default-features = false
 path = "../svm-storage"
-version = "0.0.0"
 features = ["svm_memory"]
 
 [dependencies.svm-compiler]
 default-features = false
 path = "../svm-compiler"
-version = "0.0.0"
 features = []
 
 [dependencies]

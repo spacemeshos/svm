@@ -16,13 +16,43 @@ include = [
   "Cargo.lock",
 ]
 
+[dependencies.wasmer-runtime]
+default-features = false
+git = "https://github.com/spacemeshos/wasmer"
+branch = "develop"
+features = ["default-backend-singlepass"]
+
+[dependencies.wasmer-runtime-core]
+default-features = false
+git = "https://github.com/spacemeshos/wasmer"
+branch = "develop"
+features = ["backend-singlepass"]
+
+[dependencies.wasmer-runtime-c-api]
+default-features = false
+git = "https://github.com/spacemeshos/wasmer"
+branch = "develop"
+features = ["default-backend-singlepass"]
+
+[dependencies.wasmer-singlepass-backend]
+git = "https://github.com/spacemeshos/wasmer"
+branch = "develop"
+
 [dependencies]
+libc = "0.2"
+byteorder = "1.3.2"
+tiny-keccak = "1.4.2"
 svm-common = { path = "crates/svm-common" }
 svm-storage = { path = "crates/svm-storage" }
 svm-compiler = { path = "crates/svm-compiler" }
 svm-contract = { path = "crates/svm-contract" }
 svm-wasmer = { path = "crates/svm-wasmer" }
 svm-wasmer-c-api = { path = "crates/svm-wasmer-c-api" }
+
+[dev-dependencies]
+wabt = "0.7.4"
+
+[lib]
 
 [workspace]
 members = [
@@ -33,3 +63,7 @@ members = [
   "crates/svm-wasmer-c-api",
   "crates/svm-contract",
 ]
+exclude = [
+  "crates/svm-extern"
+]
+
