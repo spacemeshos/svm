@@ -16,6 +16,9 @@ include = [
   "Cargo.lock",
 ]
 
+[lib]
+crate-type = ["cdylib", "staticlib", "rlib"]
+
 [dependencies.wasmer-runtime]
 default-features = false
 git = "https://github.com/spacemeshos/wasmer"
@@ -51,8 +54,6 @@ svm-wasmer-c-api = { path = "crates/svm-wasmer-c-api" }
 
 [dev-dependencies]
 wabt = "0.7.4"
-
-[lib]
 
 [workspace]
 members = [
