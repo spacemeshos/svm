@@ -3,9 +3,6 @@
 #[macro_export]
 macro_rules! create_svm_ctx {
     ($node_data: expr, $pages_storage_gen: expr, $PC: ident, $max_pages: expr, $max_pages_slices: expr) => {{
-        use std::cell::RefCell;
-        use std::rc::Rc;
-
         use svm_storage::PageSliceCache;
         use $crate::ctx::SvmCtx;
 
@@ -28,7 +25,7 @@ macro_rules! create_svm_ctx {
         let boxed_ctx = Box::new(ctx);
 
         let ctx_ptr = Box::leak(boxed_ctx);
-        let ctx = unsafe { &mut *ctx_ptr };
+        let ctx = &mut *ctx_ptr;
 
         ctx
     }};

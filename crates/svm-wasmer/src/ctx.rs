@@ -1,8 +1,7 @@
 use crate::*;
 
-use crate::register::{SvmReg, SvmReg160, SvmReg256, SvmReg512, SvmReg64};
+use crate::register::{SvmReg, SvmReg160, SvmReg512, SvmReg64};
 use std::ffi::c_void;
-use svm_common::Address;
 use svm_storage::PageSliceCache;
 
 /// The number of allocated wasmer `SvmReg64` registers for each `SvmCtx`

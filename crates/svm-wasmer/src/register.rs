@@ -60,7 +60,6 @@ macro_rules! impl_register {
                     }
 
                     for i in count..$bytes_count {
-                        let addr = src.offset(i);
                         self.0[i as usize] = 0;
                     }
                 } else {
@@ -145,14 +144,24 @@ impl_register!(20, SvmReg160);
 impl_register!(32, SvmReg256);
 impl_register!(64, SvmReg512);
 
+/// A `SvmRegXXX` wrapper. Used in order to avoid `mismatched types` under macros `match` arms.
+/// Another alternative to address that problem, might have been to add a trait for the `SvmRegXXX` methods and then use a trait object.
 pub enum SvmReg {
+    /// Wrapper for a `SvmReg64` register
     Reg64(SvmReg64),
+
+    /// Wrapper for a `SvmReg160` register
     Reg160(SvmReg160),
+
+    /// Wrapper for a `SvmReg256` register
     Reg256(SvmReg256),
+
+    /// Wrapper for a `SvmReg512` register
     Reg512(SvmReg512),
 }
 
 impl SvmReg {
+    /// Delegates `copy_from_wasmer_mem` to the inner wrapped `SvmRegXXX`
     #[inline(always)]
     pub fn copy_from_wasmer_mem(&mut self, cells: &[Cell<u8>]) {
         match self {
@@ -163,6 +172,7 @@ impl SvmReg {
         }
     }
 
+    /// Delegates `copy_from` to the inner wrapped `SvmRegXXX`
     #[inline(always)]
     pub unsafe fn copy_from(&mut self, src: *const u8, count: u8) {
         match self {
@@ -173,6 +183,7 @@ impl SvmReg {
         }
     }
 
+    /// Delegates `as_ptr` to the inner wrapped `SvmRegXXX`
     #[inline(always)]
     pub unsafe fn as_ptr(&self) -> *const u8 {
         match self {
@@ -183,6 +194,7 @@ impl SvmReg {
         }
     }
 
+    /// Delegates `set` to the inner wrapped `SvmRegXXX`
     #[inline(always)]
     pub fn set(&mut self, bytes: &[u8]) {
         match self {
@@ -193,6 +205,7 @@ impl SvmReg {
         }
     }
 
+    /// Delegates `copy_to_wasmer_mem` to the inner wrapped `SvmRegXXX`
     #[inline(always)]
     pub fn copy_to_wasmer_mem(&self, cells: &[Cell<u8>]) {
         match self {
@@ -203,6 +216,7 @@ impl SvmReg {
         }
     }
 
+    /// Delegates `getn` to the inner wrapped `SvmRegXXX`
     #[inline(always)]
     pub fn getn(&self, n: usize) -> Vec<u8> {
         match self {
@@ -213,6 +227,7 @@ impl SvmReg {
         }
     }
 
+    /// Delegates `view` to the inner wrapped `SvmRegXXX`
     #[inline(always)]
     pub fn view(&self) -> Vec<u8> {
         match self {
@@ -227,7 +242,6 @@ impl SvmReg {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::cmp::Ordering;
 
     #[test]
     fn view_defaults_to_zeros() {
@@ -248,6 +262,7 @@ mod tests {
         }
     }
 
+    #[test]
     fn as_ptr() {
         let cells = [
             Cell::new(10),
@@ -294,7 +309,7 @@ mod tests {
         reg.set(&vec![10; 8]);
         assert_eq!(vec![10; 8], reg.view());
 
-        let data = [10, 20, 30];
+        let data: Vec<u8> = vec![10, 20, 30];
 
         unsafe { reg.copy_from(data.as_ptr(), 3) };
 

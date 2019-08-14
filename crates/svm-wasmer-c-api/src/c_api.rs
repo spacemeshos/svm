@@ -1,35 +1,35 @@
+///
 /// Injects into the current file:
 /// * `svm wasmer` instance C-API
 /// * `svm wasmer` register C-API
 /// * `svm vmcalls` (required by the implementations of the C-API functions)
+///
 #[macro_export]
 macro_rules! include_svm_wasmer_c_api {
     ($pages_storage_gen: expr, $PC: ident) => {
         /// Injecting the `svm vmcalls` backed by PageCache `$PC` into this file
-        include_wasmer_svm_storage_vmcalls!($PC);
-        include_wasmer_svm_register_vmcalls!($PC);
+        include_wasmer_svm_vmcalls!($PC);
 
         use std::ffi::c_void;
 
-        use wasmer_runtime::{imports, Ctx, ImportObject, Instance, Module};
+        use wasmer_runtime::Ctx;
         use wasmer_runtime_c_api::{
-            error::{update_last_error, CApiError},
-            export::wasmer_import_export_kind,
+            error::update_last_error,
             import::{wasmer_import_object_extend, wasmer_import_object_t, wasmer_import_t},
-            instance::{wasmer_instance_context_t, wasmer_instance_t},
+            instance::wasmer_instance_context_t,
             module::wasmer_module_t,
             wasmer_result_t,
         };
-        use wasmer_runtime_core::{export::Export, import::Namespace};
+        use wasmer_runtime_core::import::Namespace;
 
-        use crate::c_types::{svm_address_t, svm_receipt_t};
+        use crate::c_types::svm_address_t;
 
         /// Validates the deployed contract trnnsaction.
         /// Should be called while the transaction is in the `mempool` of the full-node (prior mining it).
         #[no_mangle]
         pub unsafe extern "C" fn wasmer_svm_deploy_contract_tx_validate(
-            tx: *const u8,
-            tx_len: u64,
+            _tx: *const u8,
+            _tx_len: u64,
         ) -> wasmer_result_t {
             unimplemented!()
         }
@@ -47,9 +47,9 @@ macro_rules! include_svm_wasmer_c_api {
         /// using `svm_address_destroy` function (see file: `c_types.rs`).
         #[no_mangle]
         pub unsafe extern "C" fn wasmer_svm_deploy_contract_compute_addr(
-            addr: *const *const svm_address_t,
-            tx: *const u8,
-            tx_len: u64,
+            _addr: *const *const svm_address_t,
+            _tx: *const u8,
+            _tx_len: u64,
         ) -> wasmer_result_t {
             unimplemented!()
         }
@@ -68,9 +68,9 @@ macro_rules! include_svm_wasmer_c_api {
         ///
         #[no_mangle]
         pub unsafe extern "C" fn wasmer_svm_deploy_contract_store(
-            addr: *const svm_address_t,
-            tx: *const u8,
-            tx_length: u64,
+            _addr: *const svm_address_t,
+            _tx: *const u8,
+            _tx_length: u64,
         ) -> wasmer_result_t {
             unimplemented!()
         }
@@ -79,16 +79,16 @@ macro_rules! include_svm_wasmer_c_api {
         /// Mined transaction should be executed using `wasmer_svm_contract_prepare`.
         #[no_mangle]
         pub unsafe extern "C" fn wasmer_svm_contract_validate(
-            addr: *const u8,
-            state: *const u8,
-            balance: *const u8,
-            sender_addr: *const u8,
-            sender_balance: *const u8,
-            gas_left: u64,
-            payload: *const u8,
-            payload_len: u32,
-            func_name: *const u8,
-            func_name_len: u32,
+            _addr: *const u8,
+            _state: *const u8,
+            _balance: *const u8,
+            _sender_addr: *const u8,
+            _sender_balance: *const u8,
+            _gas_left: u64,
+            _payload: *const u8,
+            _payload_len: u32,
+            _func_name: *const u8,
+            _func_name_len: u32,
         ) -> wasmer_result_t {
             unimplemented!()
         }

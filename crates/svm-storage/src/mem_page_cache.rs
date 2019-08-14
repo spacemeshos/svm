@@ -1,7 +1,4 @@
-use crate::{
-    default::DefaultPageCache,
-    memory::{MemKVStore, MemPages},
-};
+use crate::{default::DefaultPageCache, memory::MemPages};
 
 /// `MemPageCache` is a `DefaultPageCache` backed by `MemPages` pages-storage
 pub type MemPageCache<'pc, K> = DefaultPageCache<'pc, MemPages<K>>;

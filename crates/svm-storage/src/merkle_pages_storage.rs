@@ -3,7 +3,6 @@ use crate::traits::{KVStore, PageHasher, PagesStateStorage, PagesStorage};
 use svm_common::{Address, KeyHasher, State};
 
 use std::cell::RefCell;
-use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::rc::Rc;
 
@@ -116,7 +115,7 @@ where
 
         // `joined_pages_hash = page1_hash || page2_hash || ... || pageN_hash`
 
-        for (page_idx, page) in self.pages.iter().enumerate() {
+        for page in self.pages.iter() {
             match page {
                 MerklePage::NotModified(ph) => joined_pages_hash.extend_from_slice(ph.as_ref()),
                 MerklePage::Modified(ph, data) => {
@@ -226,17 +225,16 @@ where
     }
 }
 
-use crate::default::DefaultPageHasher;
-use crate::memory::MemKVStore;
-use svm_common::DefaultKeyHasher;
-pub type MemMerklePages =
-    MerklePagesStorage<MemKVStore<KVStoreKey>, DefaultKeyHasher, DefaultPageHasher>;
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::traits::KVStore;
     use svm_common::{Address, DefaultKeyHasher, State};
+
+    use crate::default::DefaultPageHasher;
+    use crate::memory::MemKVStore;
+    pub type MemMerklePages =
+        MerklePagesStorage<MemKVStore<KVStoreKey>, DefaultKeyHasher, DefaultPageHasher>;
 
     use std::cell::RefCell;
     use std::rc::Rc;
@@ -289,6 +287,7 @@ mod tests {
             let $addr = Address::from($addr_expr as u32);
             let $kv = Rc::new(RefCell::new(MemKVStore::new()));
 
+            #[allow(unused_mut)]
             let mut $storage =
                 MemMerklePages::new($addr, Rc::clone(&$kv), State::empty(), $pages_count);
         };
@@ -298,6 +297,7 @@ mod tests {
         ($addr_expr: expr, $addr: ident, $storage: ident, $kv: ident, $state: expr, $pages_count: expr) => {
             let $addr = Address::from($addr_expr as u32);
 
+            #[allow(unused_mut)]
             let mut $storage = MemMerklePages::new($addr, Rc::clone(&$kv), $state, $pages_count);
         };
     }

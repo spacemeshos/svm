@@ -16,23 +16,16 @@ mod import_object;
 #[cfg(test)]
 mod tests {
     use crate::ctx::SvmCtx;
-    use crate::register::SvmReg64;
 
-    use svm_common::Address;
+    use svm_storage::null_storage::NullPageCache;
 
-    use svm_storage::null_storage::{NullPageCache, NullPageSliceCache, NullPagesStorage};
-
-    use std::cell::{Cell, RefCell};
+    use std::cell::Cell;
     use std::ffi::{c_void, CString};
     use std::os::raw::c_char;
-    use std::rc::Rc;
 
     use svm_storage::{
-        default::DefaultPageCache,
         memory::{MemKVStore, MemPageCache32, MemPages},
-        page::{PageIndex, PageSliceLayout, SliceIndex},
-        traits::{PageCache, PagesStorage},
-        PageSliceCache,
+        traits::PageCache,
     };
 
     pub fn wasmer_fake_import_object_data<PC: PageCache>(

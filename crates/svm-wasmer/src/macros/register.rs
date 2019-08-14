@@ -1,3 +1,5 @@
+/// Given regiser bits count, returns the number of allocated registers of that type
+/// (constants are defined at `ctx.rs`)
 #[macro_export]
 macro_rules! regs_count_ident {
     ($bits_count: expr) => {{

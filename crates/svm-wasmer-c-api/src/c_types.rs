@@ -6,12 +6,14 @@ pub struct svm_address_t;
 #[repr(C)]
 pub struct svm_receipt_t;
 
+#[allow(unused)]
 /// Deallocates the memory of the `addr`
-fn svm_address_destroy(addr: *const svm_address_t) {
+fn svm_address_destroy(_addr: *const svm_address_t) {
     unimplemented!()
 }
 
+#[allow(unused)]
 /// Deallocates the memory of the `receipt`
-fn svm_receipt_destroy(receipt: *const svm_receipt_t) {
+fn svm_receipt_destroy(_receipt: *const svm_receipt_t) {
     unimplemented!()
 }

@@ -159,7 +159,7 @@ fn parse_wasm_opcode(opcode: &Operator) -> Result<(), ParseError> {
 mod tests {
     use crate::compile_program;
     use wasmer_runtime::error::CompileError;
-    use wasmer_runtime::{imports, instantiate, Func};
+    use wasmer_runtime::{imports, Func};
 
     #[test]
     fn valid_wasm_instance_sanity() {

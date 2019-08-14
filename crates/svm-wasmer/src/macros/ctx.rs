@@ -22,6 +22,9 @@ macro_rules! wasmer_data_node_data {
     }};
 }
 
+/// Allocates registers. This macro is called at `SvmCtx` ctor.
+/// The macro consists of essentially code duplication. in order to avoid using alternatives like
+/// having `SvmRegXXX` implement the `Copy` marker or by using Unsafe Rust.
 #[macro_export]
 macro_rules! alloc_regs {
     (64, REGS_64_COUNT) => {{

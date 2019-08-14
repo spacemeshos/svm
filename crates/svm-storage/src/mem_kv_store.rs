@@ -82,8 +82,6 @@ mod tests {
     fn key_store_override_existing_entry() {
         let mut kv = MemKVStore::new();
         let addr = Address::from(0x11_22_33_44 as u32);
-        let change1 = (addr.0, &[10, 20, 30]);
-        let change2 = (addr.0, &[40, 50, 60]);
 
         kv.store(&[(addr.0, &[10, 20, 30])]);
         assert_eq!(vec![10, 20, 30], kv.get(addr.0).unwrap());
@@ -97,9 +95,6 @@ mod tests {
         let mut kv = MemKVStore::new();
         let addr1 = Address::from(0x11_22_33_44 as u32);
         let addr2 = Address::from(0x55_66_77_88 as u32);
-
-        let change1 = (addr1.0, &vec![10, 20, 30]);
-        let change2 = (addr2.0, &vec![40, 50, 60]);
 
         kv.store(&[(addr1.0, &[10, 20, 30]), (addr2.0, &[40, 50, 60])]);
 

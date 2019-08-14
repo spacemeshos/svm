@@ -1,5 +1,5 @@
 use super::page;
-use super::page::{PageIndex, PageSliceLayout, SliceIndex};
+use super::page::{PageIndex, PageSliceLayout};
 use super::traits::PageCache;
 use std::collections::HashMap;
 
@@ -14,9 +14,6 @@ struct PageSlice {
 enum CachedPageSlice {
     // We didn't load the page-slice yet from the underlying db
     NotCached,
-
-    // We've loaded page-slice from the underlying db, but no data was there
-    CachedEmpty,
 
     // We've loaded the page-slice from the underlying db and it had data
     Cached(PageSlice),
@@ -34,20 +31,17 @@ pub struct PageSliceCache<'pc, PC> {
 
 impl<'pc, PC: PageCache> std::fmt::Debug for PageSliceCache<'pc, PC> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        writeln!(f, "[DEBUG] PageCacheSlice");
-        writeln!(f, "#Allocated slices: {}", self.cached_slices.len());
+        writeln!(f, "[DEBUG] PageCacheSlice")?;
+        writeln!(f, "#Allocated slices: {}", self.cached_slices.len())?;
 
         for (i, slice) in self.cached_slices.iter().enumerate() {
             match slice {
                 CachedPageSlice::NotCached => {
                     // skip
                 }
-                CachedPageSlice::CachedEmpty => {
-                    // writeln!(f, "Slice {}: empty", i);
-                }
                 CachedPageSlice::Cached(ps) => {
-                    // writeln!(f, "Slice {}: has data", i);
-                    // writeln!(f, "   dirty: {}", ps.dirty);
+                    writeln!(f, "Slice {}: has data", i)?;
+                    writeln!(f, "   dirty: {}", ps.dirty)?;
                 }
             }
         }
@@ -131,7 +125,6 @@ impl<'pc, PC: PageCache> PageSliceCache<'pc, PC> {
                     None
                 }
             }
-            CachedPageSlice::CachedEmpty => None,
             CachedPageSlice::Cached(slice) => Some(slice.data.to_vec()),
         }
     }
@@ -244,10 +237,11 @@ impl<'pc, PC: PageCache> PageSliceCache<'pc, PC> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::default::DefaultPageCache;
     use crate::default_page_hash;
     use crate::memory::{MemPageCache, MemPages};
     use crate::traits::KVStore;
+
+    use super::page::SliceIndex;
 
     macro_rules! setup_cache {
         ($page_slice_cache: ident, $db: ident, $addr: expr, $max_pages: expr, $max_pages_slices: expr) => {

@@ -31,7 +31,9 @@ impl_leveldb_key!(LevelKey32, 32);
 
 #[cfg(test)]
 mod tests {
+    #[allow(unused)]
     use super::*;
+
     use db_key::Key;
 
     impl_leveldb_key!(LevelKeyTest3, 3);

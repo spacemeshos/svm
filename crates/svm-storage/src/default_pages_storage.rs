@@ -1,4 +1,3 @@
-use crate::memory::MemKVStore;
 use crate::page::PageIndex;
 use crate::traits::{KVStore, PageIndexHasher, PagesStorage};
 

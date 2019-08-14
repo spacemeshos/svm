@@ -14,11 +14,11 @@ impl NullPagesStorage {
 }
 
 impl PagesStorage for NullPagesStorage {
-    fn read_page(&mut self, page_idx: PageIndex) -> Option<Vec<u8>> {
+    fn read_page(&mut self, _page_idx: PageIndex) -> Option<Vec<u8>> {
         None
     }
 
-    fn write_page(&mut self, page_idx: PageIndex, data: &[u8]) {}
+    fn write_page(&mut self, _page_idx: PageIndex, _data: &[u8]) {}
 
     fn clear(&mut self) {}
 
