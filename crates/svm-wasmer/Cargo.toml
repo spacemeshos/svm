@@ -27,5 +27,8 @@ git = "https://github.com/spacemeshos/wasmer"
 branch = "develop"
 features = ["backend-singlepass"]
 
+[dependencies]
+byteorder = "1.3.2"
+
 [dev-dependencies]
 wabt = "0.7.4"

@@ -5,8 +5,8 @@ use svm_wasmer::*;
 
 use wasmer_runtime::{func, imports, Func};
 
-// injecting the `wasmer svm storage vmcalls` implemented with `MemPageCache<[u8; 32]>` as the `PageCache` type
-include_wasmer_svm_storage_vmcalls!(MemPageCache32);
+// injecting the `wasmer svm vmcalls` implemented with `MemPageCache<[u8; 32]>` as the `PageCache` type
+include_wasmer_svm_vmcalls!(MemPageCache32);
 
 macro_rules! wasmer_compile_module {
     ($wasm:expr) => {{
@@ -229,7 +229,6 @@ fn vmcalls_storage_read_non_empty_page_slice_to_mem() {
 
 #[test]
 fn vmcalls_storage_write_from_mem() {
-    // let module = wasmer_compile_module_func(WASM_STORAGE_WRITE_FROM_MEM).unwrap();
     let module = wasmer_compile_module_file!("wasm/storage_write_from_mem.wast");
 
     let import_object = imports! {
@@ -286,4 +285,34 @@ fn vmcalls_storage_write_from_reg() {
     assert!(do_write.call(5, 3, 1, 10, 200).is_ok());
 
     assert_eq!(Some(vec![10, 20, 30]), storage.read_page_slice(&layout));
+}
+
+#[test]
+fn vmcalls_read_write_reg_le_i64() {
+    let module = wasmer_compile_module_file!("wasm/reg_read_write_le_i64.wast");
+
+    let import_object = imports! {
+        test_create_svm_state_gen!(),
+
+        "svm" => {
+            "storage_read_to_reg" => func!(storage_read_to_reg),
+            "storage_write_from_reg" => func!(storage_write_from_reg),
+            "reg_read_le_i64" => func!(reg_read_le_i64),
+            "reg_write_le_i64" => func!(reg_write_le_i64),
+        },
+    };
+
+    let instance = module.instantiate(&import_object).unwrap();
+
+    // we first initialize register `5` (of type `64 bits`) with `[254, 255, 0, 0, 0, 0, 0, 0]`
+    let reg = wasmer_ctx_reg!(instance.context(), 64, 5, MemPageCache32);
+    reg.set(&[254, 255]);
+
+    let inc: Func<i32> = instance.func("inc").unwrap();
+
+    assert!(inc.call(5).is_ok());
+    assert_eq!(vec![255, 255, 0, 0, 0, 0, 0, 0], reg.view());
+
+    assert!(inc.call(5).is_ok());
+    assert_eq!(vec![0, 0, 1, 0, 0, 0, 0, 0], reg.view());
 }

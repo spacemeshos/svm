@@ -163,6 +163,7 @@ impl SvmReg {
         }
     }
 
+    #[inline(always)]
     pub unsafe fn copy_from(&mut self, src: *const u8, count: u8) {
         match self {
             SvmReg::Reg64(reg) => reg.copy_from(src, count),
@@ -172,6 +173,7 @@ impl SvmReg {
         }
     }
 
+    #[inline(always)]
     pub unsafe fn as_ptr(&self) -> *const u8 {
         match self {
             SvmReg::Reg64(reg) => reg.as_ptr(),
@@ -201,6 +203,7 @@ impl SvmReg {
         }
     }
 
+    #[inline(always)]
     pub fn getn(&self, n: usize) -> Vec<u8> {
         match self {
             SvmReg::Reg64(reg) => reg.getn(n),
@@ -210,6 +213,7 @@ impl SvmReg {
         }
     }
 
+    #[inline(always)]
     pub fn view(&self) -> Vec<u8> {
         match self {
             SvmReg::Reg64(reg) => reg.view(),
@@ -407,76 +411,12 @@ mod tests {
     }
 
     #[test]
-    fn setting_data_larger_than_register_capacity_raises() {
+    fn set_data_larger_than_register_capacity_raises() {
         let res = std::panic::catch_unwind(|| {
             let mut reg = SvmReg64::new();
             reg.set(&vec![10; 9]);
         });
 
         assert!(res.is_err());
-    }
-
-    #[test]
-    #[ignore]
-    fn ucmp_equal() {
-        let mut reg1 = SvmReg64::new();
-        let mut reg2 = SvmReg64::new();
-
-        reg1.set(&vec![10, 20, 30]);
-        reg2.set(&vec![10, 20, 30]);
-
-        assert_eq!(Ordering::Equal, reg1.partial_cmp(&reg2).unwrap());
-    }
-
-    #[test]
-    #[ignore]
-    fn ucmp_greater_same_length() {
-        let mut reg1 = SvmReg64::new();
-        let mut reg2 = SvmReg64::new();
-
-        // data is layed-out in a Little-Endian Order
-        reg1.set(&vec![10, 20, 40]);
-        reg2.set(&vec![10, 20, 30]);
-
-        assert_eq!(Ordering::Greater, reg1.partial_cmp(&reg2).unwrap());
-    }
-
-    #[test]
-    #[ignore]
-    fn ucmp_greater_not_same_length() {
-        let mut reg1 = SvmReg64::new();
-        let mut reg2 = SvmReg64::new();
-
-        // data is layed-out in a Little-Endian Order
-        reg1.set(&vec![10, 20, 40]);
-        reg2.set(&vec![20, 30]);
-
-        assert_eq!(Ordering::Greater, reg1.partial_cmp(&reg2).unwrap());
-    }
-
-    #[test]
-    #[ignore]
-    fn ucmp_less_same_length() {
-        let mut reg1 = SvmReg64::new();
-        let mut reg2 = SvmReg64::new();
-
-        // data is layed-out in a Little-Endian Order
-        reg1.set(&vec![10, 20, 30]);
-        reg2.set(&vec![10, 20, 40]);
-
-        assert_eq!(Ordering::Less, reg1.partial_cmp(&reg2).unwrap());
-    }
-
-    #[test]
-    #[ignore]
-    fn ucmp_less_not_same_length() {
-        let mut reg1 = SvmReg64::new();
-        let mut reg2 = SvmReg64::new();
-
-        // data is layed-out in a Little-Endian Order
-        reg1.set(&vec![20, 30]);
-        reg2.set(&vec![10, 20, 40]);
-
-        assert_eq!(Ordering::Less, reg1.partial_cmp(&reg2).unwrap());
     }
 }
