@@ -636,6 +636,7 @@ dependencies = [
 name = "svm-wasmer-c-api"
 version = "0.0.0"
 dependencies = [
+ "byteorder 1.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.60 (registry+https://github.com/rust-lang/crates.io-index)",
  "svm-common 0.0.0",
  "svm-compiler 0.0.0",

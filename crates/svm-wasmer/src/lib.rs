@@ -3,7 +3,6 @@
 #![allow(unused)]
 
 //! `svm-wasmer` crate is the glue between `svm` constract-storage to `wasmer` live instances.
-extern crate byteorder;
 
 /// Implements `SvmCtx`. Used for running `svm-wasmer` instances.
 pub mod ctx;
