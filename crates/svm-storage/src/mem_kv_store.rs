@@ -2,14 +2,11 @@ use super::traits::KVStore;
 use std::collections::HashMap;
 
 /// An implementation for a key-value store (implements `KVStore`) store backed by an underlying `HashMap`
-pub struct MemKVStore<MemKey> {
-    map: HashMap<MemKey, Vec<u8>>,
+pub struct MemKVStore {
+    map: HashMap<Vec<u8>, Vec<u8>>,
 }
 
-impl<MemKey> MemKVStore<MemKey>
-where
-    MemKey: AsRef<[u8]> + Copy + Clone + Sized + Eq + std::hash::Hash,
-{
+impl MemKVStore {
     /// Initializes a new `MemKVStore`
     pub fn new() -> Self {
         Self {
@@ -23,24 +20,19 @@ where
     }
 
     /// Returns an iterator for the internal `HashMap`
-    pub fn iter(&self) -> std::collections::hash_map::Iter<MemKey, Vec<u8>> {
+    pub fn iter(&self) -> std::collections::hash_map::Iter<Vec<u8>, Vec<u8>> {
         (&self.map).into_iter()
     }
 
     /// Returns an iterator over the keys
-    pub fn keys(&self) -> std::collections::hash_map::Keys<MemKey, Vec<u8>> {
+    pub fn keys(&self) -> std::collections::hash_map::Keys<Vec<u8>, Vec<u8>> {
         self.map.keys()
     }
 }
 
-impl<MemKey> KVStore for MemKVStore<MemKey>
-where
-    MemKey: AsRef<[u8]> + Copy + Sized + Eq + std::hash::Hash,
-{
-    type K = MemKey;
-
-    fn get(&self, key: Self::K) -> Option<Vec<u8>> {
-        let entry = self.map.get(&key);
+impl KVStore for MemKVStore {
+    fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
+        let entry = self.map.get(key);
 
         if entry.is_some() {
             Some(entry.unwrap().clone())
@@ -49,9 +41,9 @@ where
         }
     }
 
-    fn store(&mut self, changes: &[(Self::K, &[u8])]) {
+    fn store(&mut self, changes: &[(&[u8], &[u8])]) {
         for (k, v) in changes {
-            self.map.insert(*k, v.to_vec());
+            self.map.insert(k.to_vec(), v.to_vec());
         }
     }
 }
@@ -66,7 +58,7 @@ mod tests {
         let kv = MemKVStore::new();
         let addr = Address::from(0x11_22_33_44 as u32);
 
-        assert_eq!(None, kv.get(addr.0));
+        assert_eq!(None, kv.get(&addr.0));
     }
 
     #[test]
@@ -74,8 +66,8 @@ mod tests {
         let mut kv = MemKVStore::new();
         let addr = Address::from(0x11_22_33_44 as u32);
 
-        kv.store(&[(addr.0, &[10, 20, 30])]);
-        assert_eq!(vec![10, 20, 30], kv.get(addr.0).unwrap());
+        kv.store(&[(&addr.0, &[10, 20, 30])]);
+        assert_eq!(vec![10, 20, 30], kv.get(&addr.0).unwrap());
     }
 
     #[test]
@@ -83,11 +75,11 @@ mod tests {
         let mut kv = MemKVStore::new();
         let addr = Address::from(0x11_22_33_44 as u32);
 
-        kv.store(&[(addr.0, &[10, 20, 30])]);
-        assert_eq!(vec![10, 20, 30], kv.get(addr.0).unwrap());
+        kv.store(&[(&addr.0, &[10, 20, 30])]);
+        assert_eq!(vec![10, 20, 30], kv.get(&addr.0).unwrap());
 
-        kv.store(&[(addr.0, &[40, 50, 60])]);
-        assert_eq!(vec![40, 50, 60], kv.get(addr.0).unwrap());
+        kv.store(&[(&addr.0, &[40, 50, 60])]);
+        assert_eq!(vec![40, 50, 60], kv.get(&addr.0).unwrap());
     }
 
     #[test]
@@ -96,14 +88,14 @@ mod tests {
         let addr1 = Address::from(0x11_22_33_44 as u32);
         let addr2 = Address::from(0x55_66_77_88 as u32);
 
-        kv.store(&[(addr1.0, &[10, 20, 30]), (addr2.0, &[40, 50, 60])]);
+        kv.store(&[(&addr1.0, &[10, 20, 30]), (&addr2.0, &[40, 50, 60])]);
 
-        assert_eq!(vec![10, 20, 30], kv.get(addr1.0).unwrap());
-        assert_eq!(vec![40, 50, 60], kv.get(addr2.0).unwrap());
+        assert_eq!(vec![10, 20, 30], kv.get(&addr1.0).unwrap());
+        assert_eq!(vec![40, 50, 60], kv.get(&addr2.0).unwrap());
 
         kv.clear();
 
-        assert_eq!(None, kv.get(addr1.0));
-        assert_eq!(None, kv.get(addr2.0));
+        assert_eq!(None, kv.get(&addr1.0));
+        assert_eq!(None, kv.get(&addr2.0));
     }
 }

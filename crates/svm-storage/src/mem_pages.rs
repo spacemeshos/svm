@@ -2,7 +2,7 @@ use crate::default::{DefaultPageIndexHasher, DefaultPagesStorage};
 use crate::memory::MemKVStore;
 
 /// A `PagesStorage` implementation backed by `MemKVStore`
-pub type MemPages<K> = DefaultPagesStorage<DefaultPageIndexHasher, MemKVStore<K>>;
+pub type MemPages = DefaultPagesStorage<DefaultPageIndexHasher, MemKVStore>;
 
 #[cfg(test)]
 mod tests {
@@ -16,7 +16,7 @@ mod tests {
 
     macro_rules! mem_kv_setup {
         ($kv: ident) => {
-            let $kv = Rc::new(RefCell::new(MemKVStore::<[u8; 32]>::new()));
+            let $kv = Rc::new(RefCell::new(MemKVStore::new()));
         };
     }
 

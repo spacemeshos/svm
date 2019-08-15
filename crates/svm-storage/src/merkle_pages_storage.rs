@@ -6,15 +6,6 @@ use std::cell::RefCell;
 use std::marker::PhantomData;
 use std::rc::Rc;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub struct KVStoreKey([u8; 32]);
-
-impl AsRef<[u8]> for KVStoreKey {
-    fn as_ref(&self) -> &[u8] {
-        self.0.as_ref()
-    }
-}
-
 #[derive(Debug, Clone)]
 enum MerklePage {
     Uninitialized,
@@ -34,7 +25,7 @@ pub struct MerklePagesStorage<KV, KH, PH> {
 
 impl<KV, KH, PH> MerklePagesStorage<KV, KH, PH>
 where
-    KV: KVStore<K = KVStoreKey>,
+    KV: KVStore,
     KH: KeyHasher,
     PH: PageHasher,
 {
@@ -63,8 +54,6 @@ where
     ///
     /// Then, populates `self.pages`. Each page is initialized with `MerklePage::NotModified(page_hash)`
     fn init_pages_state(&mut self) {
-        let state_key = KVStoreKey(self.state.0);
-
         if self.state == State::empty() {
             // `self.state` is `000...0`. It means that state doesn't exist under the key-value store.
             // This happens when a Smart Contract runs for the first time.
@@ -74,7 +63,7 @@ where
                 let ph = self.compute_zero_page_hash(PageIndex(page_idx as u32));
                 self.pages[page_idx] = MerklePage::NotModified(ph);
             }
-        } else if let Some(v) = self.kv.borrow().get(state_key) {
+        } else if let Some(v) = self.kv.borrow().get(&self.state.0) {
             // `v` should be a concatenation of pages-hash. Each page hash consumes exactly 32 bytes.
             assert!(v.len() % 32 == 0);
 
@@ -108,7 +97,7 @@ where
         })
     }
 
-    fn prepare_changeset(&self) -> (State, Vec<u8>, Vec<(KVStoreKey, &[u8])>) {
+    fn prepare_changeset(&self) -> (State, Vec<u8>, Vec<(&[u8], &[u8])>) {
         let mut changes = Vec::new();
 
         let mut joined_pages_hash: Vec<u8> = Vec::with_capacity(self.pages_count as usize * 32);
@@ -118,9 +107,8 @@ where
         for page in self.pages.iter() {
             match page {
                 MerklePage::NotModified(ph) => joined_pages_hash.extend_from_slice(ph.as_ref()),
-                MerklePage::Modified(ph, data) => {
-                    let key = KVStoreKey(ph.0);
-                    let change = (key, data.as_slice());
+                MerklePage::Modified(ref ph, ref data) => {
+                    let change: (&[u8], &[u8]) = (&ph.0, data);
 
                     changes.push(change);
 
@@ -139,7 +127,7 @@ where
 
 impl<KV, KH, PH> PagesStateStorage for MerklePagesStorage<KV, KH, PH>
 where
-    KV: KVStore<K = KVStoreKey>,
+    KV: KVStore,
     KH: KeyHasher,
     PH: PageHasher,
 {
@@ -161,14 +149,14 @@ where
 
 impl<KV, KH, PH> PagesStorage for MerklePagesStorage<KV, KH, PH>
 where
-    KV: KVStore<K = KVStoreKey>,
+    KV: KVStore,
     KH: KeyHasher,
     PH: PageHasher,
 {
     #[must_use]
     fn read_page(&mut self, page_idx: PageIndex) -> Option<Vec<u8>> {
         match self.pages[page_idx.0 as usize] {
-            MerklePage::NotModified(ph) => self.kv.borrow().get(KVStoreKey(ph.0)),
+            MerklePage::NotModified(ph) => self.kv.borrow().get(&ph.0),
             MerklePage::Modified(..) => panic!("Not allowed to read a dirty page"),
             MerklePage::Uninitialized => unreachable!(),
         }
@@ -200,9 +188,9 @@ where
 
         let (new_state, joined_pages_hash, changeset) = self.prepare_changeset();
 
-        let mut entries: Vec<(KVStoreKey, &[u8])> = Vec::with_capacity(1 + changeset.len());
+        let mut entries: Vec<(&[u8], &[u8])> = Vec::with_capacity(1 + changeset.len());
 
-        entries.push((KVStoreKey(new_state.0), joined_pages_hash.as_slice()));
+        entries.push((&new_state.0, joined_pages_hash.as_slice()));
 
         for change in changeset {
             entries.push(change)
@@ -253,8 +241,8 @@ mod tests {
 
     macro_rules! assert_same_keys {
         ($expected: expr, $actual: expr) => {{
-            let mut expected: Vec<KVStoreKey> = $expected.to_vec();
-            let mut actual: Vec<KVStoreKey> = $actual.to_vec();
+            let mut expected = $expected.iter().map(|k| k.to_vec()).collect::<Vec<Vec<u8>>>;
+            let mut actual = $actual.to_vec();
 
             expected.sort();
             actual.sort();
@@ -265,14 +253,14 @@ mod tests {
 
     macro_rules! assert_key_value {
         ($kv: expr, $key: expr, $expected: expr) => {{
-            let actual = $kv.borrow().get(KVStoreKey($key)).unwrap();
+            let actual = $kv.borrow().get(&$key).unwrap();
             assert_eq!($expected, &actual[..]);
         }};
     }
 
     macro_rules! assert_no_key {
         ($kv: expr, $key: expr) => {{
-            assert!($kv.borrow().get(KVStoreKey($key)).is_none());
+            assert!($kv.borrow().get(&$key).is_none());
         }};
     }
 
@@ -304,14 +292,8 @@ mod tests {
 
     macro_rules! kv_keys {
         ($kv: ident) => {{
-            let keys: Vec<KVStoreKey> = $kv.borrow().keys().map(|key| *key).collect();
+            let keys: Vec<Vec<u8>> = $kv.borrow().keys().map(|key| *key).collect();
             keys
-        }};
-    }
-
-    macro_rules! to_kv_keys {
-        ($slice: expr) => {{
-            $slice.iter().map(|v| KVStoreKey(*v)).collect::<Vec<_>>()
         }};
     }
 
@@ -351,7 +333,7 @@ mod tests {
         mem_merkle_pages_setup!(0x11_22_33_44, addr, storage, kv, 3);
 
         assert_dirty_pages_count!(storage, 0);
-        assert_same_keys!(&[], kv_keys!(kv));
+        assert_same_keys!(Vec::<u8>(), kv_keys!(kv));
         assert_state!(State::empty(), storage);
         assert_page!(storage, 0, None);
     }
@@ -370,7 +352,7 @@ mod tests {
         let state = compute_state!(jph);
 
         assert_state!(state, storage);
-        assert_same_keys!(to_kv_keys!([state.0]), kv_keys!(kv));
+        assert_same_keys!(vec![state.0], kv_keys!(kv));
 
         assert_no_key!(&kv, ph0.0);
         assert_no_key!(&kv, ph1.0);
@@ -396,7 +378,7 @@ mod tests {
         let state = compute_state!(jph);
 
         assert_state!(state, storage);
-        assert_same_keys!(to_kv_keys!([state.0, ph0.0]), kv_keys!(kv));
+        assert_same_keys!(vec![state.0, ph0.0], kv_keys!(kv));
         assert_key_value!(kv, state.0, jph);
         assert_key_value!(kv, ph0.0, [10, 20, 30]);
         assert_page!(storage, 0, Some(vec![10, 20, 30]));
@@ -419,7 +401,7 @@ mod tests {
         let state = compute_state!(jph);
 
         assert_state!(state, storage);
-        assert_same_keys!(to_kv_keys!([state.0, ph0.0, ph1.0]), kv_keys!(kv));
+        assert_same_keys!(vec![state.0, ph0.0, ph1.0], kv_keys!(kv));
         assert_key_value!(kv, state.0, jph);
         assert_key_value!(kv, ph0.0, [10, 20, 30]);
         assert_key_value!(kv, ph1.0, [40, 50, 60]);
@@ -448,10 +430,7 @@ mod tests {
         let jph = join_pages_hash!(&[ph0, ph1, ph2]);
         let new_state = compute_state!(jph);
 
-        assert_same_keys!(
-            to_kv_keys!([old_state.0, new_state.0, ph0.0, ph1.0]),
-            kv_keys!(kv)
-        );
+        assert_same_keys!(vec![old_state.0, new_state.0, ph0.0, ph1.0], kv_keys!(kv));
 
         assert_key_value!(kv, new_state.0, jph);
         assert_key_value!(kv, ph0.0, [10, 20, 30]);
@@ -482,7 +461,7 @@ mod tests {
         let new_state = compute_state!(jph);
 
         assert_same_keys!(
-            to_kv_keys!([old_state.0, new_state.0, ph0_old.0, ph0.0, ph1.0]),
+            vec![old_state.0, new_state.0, ph0_old.0, ph0.0, ph1.0],
             kv_keys!(kv)
         );
 
@@ -520,7 +499,7 @@ mod tests {
         let jph = join_pages_hash!(&[ph0_1, ph1_1, ph2_1]);
 
         assert_same_keys!(
-            to_kv_keys!([state_1.0, state_2.0, ph0_1.0, ph0_2.0, ph1_2.0]),
+            vec![state_1.0, state_2.0, ph0_1.0, ph0_2.0, ph1_2.0],
             kv_keys!(kv)
         );
 
@@ -532,7 +511,7 @@ mod tests {
         let jph = join_pages_hash!(&[ph0_2, ph1_2, ph2_2]);
 
         assert_same_keys!(
-            to_kv_keys!([state_1.0, state_2.0, ph0_1.0, ph0_2.0, ph1_2.0]),
+            vec![state_1.0, state_2.0, ph0_1.0, ph0_2.0, ph1_2.0],
             kv_keys!(kv)
         );
 

@@ -297,7 +297,7 @@ mod tests {
 
         // page is not persisted though since we didn't `commit`
         let ph = default_page_hash!(0x11_22_33_44, 0);
-        assert_eq!(None, db.borrow().get(ph));
+        assert_eq!(None, db.borrow().get(&ph));
     }
 
     #[test]
@@ -318,7 +318,7 @@ mod tests {
 
         assert_eq!(Some(vec![10, 20, 30]), cache.read_page_slice(&layout));
 
-        let page = db.borrow().get(ph).unwrap();
+        let page = db.borrow().get(&ph).unwrap();
         assert_eq!(vec![10, 20, 30], &page[100..103]);
     }
 
@@ -338,19 +338,19 @@ mod tests {
 
         let ph = default_page_hash!(0x11_22_33_44, 1);
 
-        let page = db.borrow().get(ph).unwrap();
+        let page = db.borrow().get(&ph).unwrap();
         assert_eq!(vec![10, 20, 30], &page[100..103]);
         &cache.write_page_slice(&layout, &vec![40, 50, 60]);
 
         // new page is on the page-cache, but not persisted yet
         assert_eq!(Some(vec![40, 50, 60]), cache.read_page_slice(&layout));
-        let page = db.borrow().get(ph).unwrap();
+        let page = db.borrow().get(&ph).unwrap();
         assert_eq!(vec![10, 20, 30], &page[100..103]);
 
         // now we also persist the new page version
         cache.commit();
 
-        let page = db.borrow().get(ph).unwrap();
+        let page = db.borrow().get(&ph).unwrap();
         assert_eq!(vec![40, 50, 60], &page[100..103]);
     }
 
@@ -383,12 +383,12 @@ mod tests {
         assert_eq!(vec![40, 50, 60], cache.read_page_slice(&layout).unwrap());
 
         // 5) commit again
-        let page = db.borrow().get(ph).unwrap();
+        let page = db.borrow().get(&ph).unwrap();
         assert_eq!(vec![10, 20, 30], &page[100..103]);
 
         cache.commit();
 
-        let page = db.borrow().get(ph).unwrap();
+        let page = db.borrow().get(&ph).unwrap();
         assert_eq!(vec![40, 50, 60], &page[100..103]);
     }
 
@@ -419,12 +419,12 @@ mod tests {
         assert_eq!(vec![40, 50], cache.read_page_slice(&layout2).unwrap());
 
         // commiting two slices under the same page
-        assert_eq!(None, db.borrow().get(ph));
+        assert_eq!(None, db.borrow().get(&ph));
 
         cache.commit();
         cache.clear();
 
-        let page = db.borrow().get(ph).unwrap();
+        let page = db.borrow().get(&ph).unwrap();
         assert_eq!(vec![10, 20, 30], &page[100..103]);
         assert_eq!(vec![40, 50], &page[200..202]);
 
