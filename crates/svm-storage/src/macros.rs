@@ -5,6 +5,7 @@ macro_rules! default_page_hash {
         use crate::default::DefaultPageIndexHasher;
         use crate::page::PageIndex;
         use crate::traits::PageIndexHasher;
+        use svm_common::Address;
 
         let addr = Address::from($addr as u32);
 

@@ -175,51 +175,59 @@ impl<'ps, PS: PagesStorage> PagesStorage for DefaultPageCache<'ps, PS> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    use crate::default_page_hash;
-    use crate::memory::{MemPageCache, MemPages};
+    use crate::memory::MemKVStore;
     use crate::traits::KVStore;
 
-    macro_rules! setup_cache {
-        ($cache: ident, $db: ident, $addr: expr, $max_pages: expr) => {
-            use crate::memory::MemKVStore;
+    use crate::default_page_hash;
+
+    macro_rules! mem_page_cache_gen {
+        ($cache_ident: ident, $kv_ident: ident, $addr: expr, $max_pages: expr) => {
+            use crate::memory::{MemKVStore, MemPageCache};
+
             use std::cell::RefCell;
             use std::rc::Rc;
+
+            let $kv_ident = Rc::new(RefCell::new(MemKVStore::new()));
+
+            let mut pages = mem_pages_gen!($addr, || Rc::clone(&$kv_ident));
+
+            let mut $cache_ident = MemPageCache::new(&mut pages, $max_pages);
+        };
+    }
+
+    macro_rules! mem_pages_gen {
+        ($addr: expr, $kv_gen: expr) => {{
+            use crate::memory::MemPages;
             use svm_common::Address;
 
             let addr = Address::from($addr as u32);
 
-            let $db = Rc::new(RefCell::new(MemKVStore::new()));
-            let db_clone = Rc::clone(&$db);
-
-            let mut inner = MemPages::new(addr, db_clone);
-
-            let mut $cache = MemPageCache::new(&mut inner, $max_pages);
-        };
+            MemPages::new(addr, $kv_gen())
+        }};
     }
 
     #[test]
     fn loading_an_empty_page_into_the_cache() {
-        setup_cache!(cache, db, 0x11_22_33_44, 10);
+        mem_page_cache_gen!(cache, db, 0x11_22_33_44, 10);
 
         assert_eq!(None, cache.read_page(PageIndex(0)));
     }
 
     #[test]
     fn write_page_and_then_commit() {
-        setup_cache!(cache, db, 0x11_22_33_44, 10);
+        mem_page_cache_gen!(cache, kv, 0x11_22_33_44, 10);
         let page = vec![10, 20, 30];
 
         cache.write_page(PageIndex(0), &page);
         assert_eq!(vec![10, 20, 30], cache.read_page(PageIndex(0)).unwrap());
 
         let ph = default_page_hash!(0x11_22_33_44, 0);
-        assert_eq!(None, db.borrow().get(ph));
+        assert_eq!(None, kv.borrow().get(ph));
     }
 
     #[test]
     fn writing_a_page_marks_it_as_dirty() {
-        setup_cache!(cache, db, 0x11_22_33_44, 10);
+        mem_page_cache_gen!(cache, db, 0x11_22_33_44, 10);
 
         assert_eq!(false, cache.is_dirty(0));
 
@@ -231,7 +239,7 @@ mod tests {
 
     #[test]
     fn commit_persists_each_dirty_page() {
-        setup_cache!(cache, db, 0x11_22_33_44, 10);
+        mem_page_cache_gen!(cache, db, 0x11_22_33_44, 10);
         let page = vec![10, 20, 30];
 
         cache.write_page(PageIndex(0), &page);
