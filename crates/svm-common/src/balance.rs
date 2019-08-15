@@ -41,10 +41,11 @@ mod tests {
                 + (0x0F << 8 * 15),
         );
 
-        let balance_ptr: *const u8 = vec![
+        let balance: Vec<u8> = vec![
             01, 10, 20, 30, 40, 50, 60, 70, 80, 90, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
-        ]
-        .as_ptr();
+        ];
+
+        let balance_ptr: *const u8 = balance.as_ptr();
 
         let actual = Balance::from(balance_ptr);
 
