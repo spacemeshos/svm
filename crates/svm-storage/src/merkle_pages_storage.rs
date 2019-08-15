@@ -228,13 +228,13 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::memory::MemMerklePages;
     use crate::traits::KVStore;
+
     use svm_common::{Address, DefaultKeyHasher, State};
 
     use crate::default::DefaultPageHasher;
     use crate::memory::MemKVStore;
-    pub type MemMerklePages =
-        MerklePagesStorage<MemKVStore<KVStoreKey>, DefaultKeyHasher, DefaultPageHasher>;
 
     use std::cell::RefCell;
     use std::rc::Rc;

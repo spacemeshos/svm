@@ -90,30 +90,6 @@ fn node_data_as_ptr(node_data: &NodeData) -> *const c_void {
     node_data as *const NodeData as *const _
 }
 
-macro_rules! wasmer_compile_module {
-    ($wasm:expr) => {{
-        let mut wasm = wabt::wat2wasm(&$wasm).unwrap();
-
-        let wasm_bytes = wasm.as_mut_ptr();
-        let wasm_bytes_len = wasm.len() as u32;
-        let raw_module = alloc_raw_module();
-        let compile_res = wasmer_svm_compile(raw_module, wasm_bytes, wasm_bytes_len);
-
-        // TODO: assert `compile_res` is OK`
-        // assert_eq!(wasmer_result_t::WASMER_OK, compile_res);
-
-        let module: *const wasmer_module_t = *raw_module as *const _;
-        module
-    }};
-}
-
-macro_rules! wasmer_compile_module_file {
-    ($file:expr) => {{
-        let wasm = include_str!($file);
-        wasmer_compile_module!(wasm)
-    }};
-}
-
 #[test]
 fn call_storage_mem_to_reg_copy() {
     unsafe {

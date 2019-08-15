@@ -115,6 +115,34 @@ macro_rules! deref_instance {
     }};
 }
 
+#[doc(hidden)]
+#[macro_export]
+macro_rules! wasmer_compile_module {
+    ($wasm:expr) => {{
+        let mut wasm = wabt::wat2wasm(&$wasm).unwrap();
+
+        let wasm_bytes = wasm.as_mut_ptr();
+        let wasm_bytes_len = wasm.len() as u32;
+        let raw_module = alloc_raw_module();
+        let compile_res = wasmer_svm_compile(raw_module, wasm_bytes, wasm_bytes_len);
+
+        // TODO: assert `compile_res` is OK`
+        // assert_eq!(wasmer_result_t::WASMER_OK, compile_res);
+
+        let module: *const wasmer_module_t = *raw_module as *const _;
+        module
+    }};
+}
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! wasmer_compile_module_file {
+    ($file:expr) => {{
+        let wasm = include_str!($file);
+        wasmer_compile_module!(wasm)
+    }};
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
