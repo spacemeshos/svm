@@ -14,6 +14,23 @@ This repository will implement the _Spacemesh_ smart contracts vm.
 More information about installing `rust nightly` can be [found here](https://doc.rust-lang.org/1.2.0/book/nightly-rust.html)
 
 
+### Build & Tests
+The `svm` project is organized into a couple of crates.
+The root crate is called `svm` and it's a workspace crate.
+
+In order to build the `svm` project crates at once and run their tests:
+```rust
+cargo +nightly build
+cargo +nightly test --all
+```
+
+If you want to build & test in release mode execute:
+```rust
+cargo +nightly build --release
+cargo +nightly test --all --release
+```
+
+
 ### Got Questions?
 - Introduce yourself and ask anything on the [spacemesh gitter channel](https://gitter.im/spacemesh-os/Lobby).
 - DM [@teamspacemesh](https://twitter.com/teamspacemesh)
