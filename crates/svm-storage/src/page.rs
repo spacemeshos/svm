@@ -6,9 +6,11 @@ pub const PAGE_SIZE: usize = 4096;
 #[repr(transparent)]
 pub struct PageIndex(pub u32);
 
-/// A `PageHash` is a one-dimensional tuple of `([u8; 32])` representing hash of the page-content (32 bytes).
+pub const PAGE_HASH_LEN: usize = 32;
+
+/// A `PageHash` is a one-dimensional tuple of `([u8; PAGE_HASH_LEN])` representing hash of the page-content.
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
-pub struct PageHash(pub [u8; 32]);
+pub struct PageHash(pub [u8; PAGE_HASH_LEN]);
 
 impl AsRef<[u8]> for PageHash {
     #[inline(always)]

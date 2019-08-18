@@ -1,5 +1,6 @@
-use crate::page::{PageHash, PageIndex};
-use crate::traits::{KVStore, PageHasher, PagesStateStorage, PagesStorage};
+use crate::page::{PageHash, PageIndex, PAGE_HASH_LEN};
+use crate::state::StateHash;
+use crate::traits::{KVStore, PageHasher, PagesStateStorage, PagesStorage, StateHasher};
 use svm_common::{Address, KeyHasher, State};
 
 use std::cell::RefCell;
@@ -14,20 +15,23 @@ enum MerklePage {
 }
 
 /// `MerklePageStorage` is an implemetation of the `PagesStorage` trait that is state aware.
-pub struct MerklePagesStorage<KV, KH, PH> {
+/// `KV` - stands for `KVStore`
+/// `PH` - stands for `PageHasher`
+/// `SH` - stands for `StateHasher`
+pub struct MerklePagesStorage<KV, PH, SH> {
     state: State,
     addr: Address,
     pages: Vec<MerklePage>,
     kv: Rc<RefCell<KV>>,
     pages_count: u32,
-    marker: PhantomData<(PH, KH)>,
+    marker: PhantomData<(PH, SH)>,
 }
 
-impl<KV, KH, PH> MerklePagesStorage<KV, KH, PH>
+impl<KV, PH, SH> MerklePagesStorage<KV, PH, SH>
 where
     KV: KVStore,
-    KH: KeyHasher,
     PH: PageHasher,
+    SH: StateHasher,
 {
     /// Creates a new instance of `MerklePageStorage`
     /// * `addr`        - The running contract account address.
@@ -97,39 +101,39 @@ where
         })
     }
 
-    fn prepare_changeset(&self) -> (State, Vec<u8>, Vec<(&[u8], &[u8])>) {
+    fn prepare_changeset(&self) -> (State, Vec<PageHash>, Vec<(&[u8], &[u8])>) {
         let mut changes = Vec::new();
 
-        let mut joined_pages_hash: Vec<u8> = Vec::with_capacity(self.pages_count as usize * 32);
+        let mut pages_hash: Vec<PageHash> = Vec::new();
 
         // `joined_pages_hash = page1_hash || page2_hash || ... || pageN_hash`
 
         for page in self.pages.iter() {
             match page {
-                MerklePage::NotModified(ph) => joined_pages_hash.extend_from_slice(ph.as_ref()),
+                MerklePage::NotModified(ph) => pages_hash.push(*ph),
                 MerklePage::Modified(ref ph, ref data) => {
                     let change: (&[u8], &[u8]) = (&ph.0, data);
 
                     changes.push(change);
 
-                    joined_pages_hash.extend_from_slice(ph.as_ref());
+                    pages_hash.push(*ph);
                 }
                 MerklePage::Uninitialized => unreachable!(),
             }
         }
 
-        let new_state_hash = KH::hash(&joined_pages_hash);
+        let new_state_hash = SH::hash(pages_hash.as_slice());
         let new_state = State::from(new_state_hash.as_ref());
 
-        (new_state, joined_pages_hash, changes)
+        (new_state, pages_hash, changes)
     }
 }
 
-impl<KV, KH, PH> PagesStateStorage for MerklePagesStorage<KV, KH, PH>
+impl<KV, PH, SH> PagesStateStorage for MerklePagesStorage<KV, PH, SH>
 where
     KV: KVStore,
-    KH: KeyHasher,
     PH: PageHasher,
+    SH: StateHasher,
 {
     #[must_use]
     #[inline(always)]
@@ -147,11 +151,11 @@ where
     }
 }
 
-impl<KV, KH, PH> PagesStorage for MerklePagesStorage<KV, KH, PH>
+impl<KV, PH, SH> PagesStorage for MerklePagesStorage<KV, PH, SH>
 where
     KV: KVStore,
-    KH: KeyHasher,
     PH: PageHasher,
+    SH: StateHasher,
 {
     #[must_use]
     fn read_page(&mut self, page_idx: PageIndex) -> Option<Vec<u8>> {
@@ -186,11 +190,12 @@ where
         // new_state = HASH(page1_hash || page2_hash || ... || pageN_hash)
         // ```
 
-        let (new_state, joined_pages_hash, changeset) = self.prepare_changeset();
+        let (new_state, pages_hash, changeset) = self.prepare_changeset();
 
         let mut entries: Vec<(&[u8], &[u8])> = Vec::with_capacity(1 + changeset.len());
 
-        entries.push((&new_state.0, joined_pages_hash.as_slice()));
+        let state_entry_val: Vec<u8> = pages_hash.iter().flat_map(|ph| ph.0.to_vec()).collect();
+        entries.push((&new_state.0, state_entry_val.as_ref()));
 
         for change in changeset {
             entries.push(change)

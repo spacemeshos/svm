@@ -1,4 +1,5 @@
 use crate::page::{PageHash, PageIndex};
+use crate::state::StateHash;
 use svm_common::{Address, State};
 
 /// `KVStore` is a trait for defining an interface against key-value stores. for example `hashmap / leveldb / rocksdb`
@@ -51,13 +52,21 @@ pub trait PageIndexHasher {
 }
 
 /// Implementors are in-charge of calculating a page hash.
-/// The page hash isderived from 3 components: `contract address` + `page-index` + `page-data`
+/// The page hash is derived from 3 components: `contract address` + `page-index` + `page-data`
 pub trait PageHasher {
     /// `address`  - The Smart Contract account address
     /// `page_idx` - The page index we want to calculate its hash
     /// `page_data - The raw content of the page
     #[must_use]
     fn hash(address: Address, page_idx: PageIndex, page_data: &[u8]) -> PageHash;
+}
+
+/// Implementors are in-charge of calculating a page hash.
+/// The page hash isderived from 3 components: `contract address` + `page-index` + `page-data`
+pub trait StateHasher {
+    /// `pages_hash` - a slice of `PageHash`
+    #[must_use]
+    fn hash(pages_hash: &[PageHash]) -> StateHash;
 }
 
 /// This trait should be implemented by state-oriented pages storage.

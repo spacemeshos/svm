@@ -8,11 +8,15 @@ mod default_page_cache;
 mod default_page_hasher;
 mod default_page_index_hasher;
 mod default_pages_storage;
+mod default_state_hasher;
 mod merkle_pages_storage;
 mod page_slice_cache;
 
-/// Contains definitions of common page related structures. For example: `Page` / `PageIndex` / `SliceIndex`
+/// Contains definitions of `Page` related structures. For example: `Page` / `PageIndex` / `SliceIndex`
 pub mod page;
+
+/// Contains definitions `State`-related.
+pub mod state;
 
 pub use crate::page_slice_cache::PageSliceCache;
 
@@ -22,6 +26,7 @@ pub mod default {
     pub use crate::default_page_hasher::DefaultPageHasher;
     pub use crate::default_page_index_hasher::DefaultPageIndexHasher;
     pub use crate::default_pages_storage::DefaultPagesStorage;
+    pub use crate::default_state_hasher::DefaultStateHasher;
 }
 
 /// Do-nothing implementation for various storage related abstractions.
