@@ -46,12 +46,14 @@ use cfg_if::cfg_if;
 cfg_if! {
     if #[cfg(feature = "svm_memory")] {
         mod mem_kv_store;
+        mod mem_merkle_page_cache;
         mod mem_merkle_pages;
 
         /// Implements `svm storage` related in-memory data-structures.
         pub mod memory {
             pub use crate::mem_kv_store::MemKVStore;
             pub use crate::mem_merkle_pages::MemMerklePages;
+            pub use crate::mem_merkle_page_cache::MemMerklePageCache;
         }
     }
 }

@@ -24,7 +24,7 @@ mod tests {
     use std::os::raw::c_char;
 
     use svm_storage::{
-        memory::{MemKVStore, MemPageCache32, MemPages},
+        memory::{MemKVStore, MemMerklePageCache},
         traits::PageCache,
     };
 
@@ -42,17 +42,30 @@ mod tests {
             test_create_svm_ctx!(std::ptr::null())
         };
         ($node_data: expr) => {{
+            use svm_common::{Address, State};
+            use svm_storage::memory::{MemMerklePageCache, MemMerklePages};
+
             use std::cell::RefCell;
             use std::rc::Rc;
-            use svm_common::Address;
+
+            let max_pages: u32 = 5;
+            let max_pages_slices: u32 = 100;
 
             let pages_storage_gen = || {
                 let addr = Address::from(0x12_34_56_78);
+                let state = State::from(0x_00_00_00_00);
                 let kv = Rc::new(RefCell::new(MemKVStore::new()));
-                MemPages::new(addr, kv)
+
+                MemMerklePages::new(addr, kv, state, max_pages)
             };
 
-            create_svm_ctx!($node_data, pages_storage_gen, MemPageCache32, 5, 100)
+            create_svm_ctx!(
+                $node_data,
+                pages_storage_gen,
+                MemMerklePageCache,
+                max_pages as usize,
+                max_pages_slices as usize
+            )
         }};
     }
 
@@ -64,7 +77,7 @@ mod tests {
 
         let ctx = test_create_svm_ctx!(node_data);
         let (data, _dtor) = wasmer_fake_import_object_data(&ctx);
-        let raw_chars: *mut c_char = wasmer_data_node_data!(data, MemPageCache32) as _;
+        let raw_chars: *mut c_char = wasmer_data_node_data!(data, MemMerklePageCache) as _;
         let raw_string = unsafe { CString::from_raw(raw_chars) };
         let actual = raw_string.into_string().unwrap();
 
@@ -126,7 +139,7 @@ mod tests {
     fn wasmer_storage_read_write() {
         let ctx = test_create_svm_ctx!();
         let (data, _dtor) = wasmer_fake_import_object_data(&ctx);
-        let storage = wasmer_data_storage!(data, MemPageCache32);
+        let storage = wasmer_data_storage!(data, MemMerklePageCache);
         let layout = svm_page_slice_layout!(1, 0, 100, 3);
 
         assert_eq!(None, storage.read_page_slice(&layout));
@@ -141,7 +154,7 @@ mod tests {
 
         let layout = svm_page_slice_layout!(1, 0, 100, 3);
         let reg0 = wasmer_data_reg!(data, 64, 0, NullPageCache);
-        let storage = wasmer_data_storage!(data, MemPageCache32);
+        let storage = wasmer_data_storage!(data, MemMerklePageCache);
 
         storage.write_page_slice(&layout, &vec![10, 20, 30]);
 
@@ -157,7 +170,7 @@ mod tests {
         let ctx = test_create_svm_ctx!();
         let (data, _dtor) = wasmer_fake_import_object_data(ctx);
 
-        let storage = wasmer_data_storage!(data, MemPageCache32);
+        let storage = wasmer_data_storage!(data, MemMerklePageCache);
 
         // writing `[10, 20, 30, 0, 0, 0, 0, 0]` to register `0`
         let reg0 = wasmer_data_reg!(data, 64, 0, NullPageCache);
