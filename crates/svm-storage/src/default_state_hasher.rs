@@ -10,9 +10,9 @@ pub struct StateHasherImpl<SH> {
     marker: PhantomData<SH>,
 }
 
-impl<SH> StateHasher for StateHasherImpl<SH>
+impl<KH> StateHasher for StateHasherImpl<KH>
 where
-    SH: KeyHasher<Hash = [u8; 32]>,
+    KH: KeyHasher<Hash = [u8; 32]>,
 {
     /// Given a slice of `PageHash`. `StateHash` is derived by:
     ///
@@ -26,7 +26,7 @@ where
             joined_pages_hash.extend_from_slice(&ph.0);
         }
 
-        let hash = SH::hash(&joined_pages_hash);
+        let hash = KH::hash(&joined_pages_hash);
 
         StateHash(hash)
     }

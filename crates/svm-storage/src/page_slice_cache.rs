@@ -12,10 +12,10 @@ struct PageSlice {
 
 #[derive(Debug, Clone, PartialEq)]
 enum CachedPageSlice {
-    // We didn't load the page-slice yet from the underlying db
+    // We didn't load the page-slice yet from the underlying kv
     NotCached,
 
-    // We've loaded the page-slice from the underlying db and it had data
+    // We've loaded the page-slice from the underlying kv and it had data
     Cached(PageSlice),
 }
 
@@ -192,8 +192,6 @@ impl<'pc, PC: PageCache> PageSliceCache<'pc, PC> {
             }
         }
 
-        pages_indexes.dedup();
-
         let mut pages = pages_indexes
             .iter()
             .map(|&page_idx| {
@@ -238,35 +236,51 @@ impl<'pc, PC: PageCache> PageSliceCache<'pc, PC> {
 mod tests {
     use super::*;
     use crate::default_page_hash;
-    use crate::memory::{MemPageCache, MemPages};
+    use crate::memory::MemMerklePages;
+    use crate::page::zero_page;
     use crate::traits::KVStore;
 
     use super::page::SliceIndex;
 
-    macro_rules! setup_cache {
-        ($page_slice_cache: ident, $db: ident, $addr: expr, $max_pages: expr, $max_pages_slices: expr) => {
+    fn fill_page(page: &mut [u8], items: &[(usize, u8)]) {
+        for (i, b) in items {
+            page[*i] = *b;
+        }
+    }
+
+    macro_rules! page_slice_cache_gen {
+        ($cache_slice_ident: ident, $pages_ident: ident,  $kv_ident: ident, $addr: expr, $state: expr, $max_pages: expr, $max_pages_slices: expr) => {
+            use crate::default::DefaultPageCache;
+            use crate::memory::{MemKVStore, MemMerklePages, MemPageCache};
+
             use std::cell::RefCell;
             use std::rc::Rc;
 
-            use crate::memory::MemKVStore;
-            use svm_common::Address;
+            let $kv_ident = Rc::new(RefCell::new(MemKVStore::new()));
+            let kv_gen = || Rc::clone(&$kv_ident);
+
+            let mut $pages_ident = mem_merkle_pages_gen!($addr, $state, kv_gen, $max_pages);
+            let mut cache = DefaultPageCache::<MemMerklePages>::new(&mut $pages_ident, $max_pages);
+
+            let mut $cache_slice_ident = PageSliceCache::new(&mut cache, $max_pages_slices);
+        };
+    }
+
+    macro_rules! mem_merkle_pages_gen {
+        ($addr: expr, $state: expr, $kv_gen: expr, $max_pages: expr) => {{
+            use crate::memory::MemMerklePages;
+            use svm_common::{Address, State};
 
             let addr = Address::from($addr as u32);
+            let state = State::from($state as u32);
 
-            let $db = Rc::new(RefCell::new(MemKVStore::new()));
-            let db_clone = Rc::clone(&$db);
-
-            let mut inner = MemPages::new(addr, db_clone);
-
-            let mut page_cache = MemPageCache::new(&mut inner, $max_pages);
-
-            let mut $page_slice_cache = PageSliceCache::new(&mut page_cache, $max_pages_slices);
-        };
+            MemMerklePages::new(addr, $kv_gen(), state, $max_pages)
+        }};
     }
 
     #[test]
     fn loading_an_empty_slice_into_the_cache() {
-        setup_cache!(cache, db, 0x11_22_33_44, 10, 100);
+        page_slice_cache_gen!(cache, pages, kv, 0x11_22_33_44, 0x00_00_00_00, 10, 100);
 
         let layout = PageSliceLayout {
             slice_idx: SliceIndex(0),
@@ -280,7 +294,7 @@ mod tests {
 
     #[test]
     fn read_an_empty_slice_then_override_it_and_then_commit() {
-        setup_cache!(cache, db, 0x11_22_33_44, 10, 100);
+        page_slice_cache_gen!(cache, pages, kv, 0x11_22_33_44, 0x00_00_00_00, 10, 100);
 
         let layout = PageSliceLayout {
             slice_idx: SliceIndex(0),
@@ -296,13 +310,14 @@ mod tests {
         assert_eq!(Some(vec![10, 20, 30]), cache.read_page_slice(&layout));
 
         // page is not persisted though since we didn't `commit`
-        let ph = default_page_hash!(0x11_22_33_44, 0);
-        assert_eq!(None, db.borrow().get(&ph));
+        let ph = default_page_hash!(0x11_22_33_44, 0, &[10, 20, 30]);
+        assert_eq!(None, kv.borrow().get(&ph.0));
     }
 
     #[test]
     fn write_slice_without_loading_it_first_and_commit() {
-        setup_cache!(cache, db, 0x11_22_33_44, 10, 100);
+        let addr = 0x11_22_33_44;
+        page_slice_cache_gen!(cache, pages, kv, addr, 0x00_00_00_00, 2, 100);
 
         let layout = PageSliceLayout {
             slice_idx: SliceIndex(0),
@@ -311,20 +326,24 @@ mod tests {
             len: 3,
         };
 
-        cache.write_page_slice(&layout, &vec![10, 20, 30]);
+        cache.write_page_slice(&layout, &[10, 20, 30]);
         cache.commit();
-
-        let ph = default_page_hash!(0x11_22_33_44, 1);
 
         assert_eq!(Some(vec![10, 20, 30]), cache.read_page_slice(&layout));
 
-        let page = db.borrow().get(&ph).unwrap();
-        assert_eq!(vec![10, 20, 30], &page[100..103]);
+        let mut expected_page = page::zero_page();
+        fill_page(&mut expected_page, &[(100, 10), (101, 20), (102, 30)]);
+
+        let ph = default_page_hash!(addr, 1, &expected_page);
+        let actual_page = kv.borrow().get(&ph.0).unwrap();
+
+        assert_eq!(expected_page, actual_page);
     }
 
     #[test]
     fn read_an_existing_slice_then_overriding_it_and_commit() {
-        setup_cache!(cache, db, 0x11_22_33_44, 10, 100);
+        let addr = 0x11_22_33_44;
+        page_slice_cache_gen!(cache, pages, kv, addr, 0x00_00_00_00, 2, 100);
 
         let layout = PageSliceLayout {
             slice_idx: SliceIndex(0),
@@ -336,27 +355,35 @@ mod tests {
         cache.write_page_slice(&layout, &vec![10, 20, 30]);
         cache.commit();
 
-        let ph = default_page_hash!(0x11_22_33_44, 1);
+        let mut expected_page = page::zero_page();
+        fill_page(&mut expected_page, &[(100, 10), (101, 20), (102, 30)]);
+        let ph1 = default_page_hash!(addr, 1, &expected_page);
+        fill_page(&mut expected_page, &[(100, 40), (101, 50), (102, 60)]);
+        let ph2 = default_page_hash!(addr, 1, &expected_page);
 
-        let page = db.borrow().get(&ph).unwrap();
+        let page = kv.borrow().get(&ph1.0).unwrap();
         assert_eq!(vec![10, 20, 30], &page[100..103]);
         &cache.write_page_slice(&layout, &vec![40, 50, 60]);
 
         // new page is on the page-cache, but not persisted yet
         assert_eq!(Some(vec![40, 50, 60]), cache.read_page_slice(&layout));
-        let page = db.borrow().get(&ph).unwrap();
+
+        let page = kv.borrow().get(&ph1.0).unwrap();
         assert_eq!(vec![10, 20, 30], &page[100..103]);
+
+        assert_eq!(None, kv.borrow().get(&ph2.0));
 
         // now we also persist the new page version
         cache.commit();
 
-        let page = db.borrow().get(&ph).unwrap();
+        let page = kv.borrow().get(&ph2.0).unwrap();
         assert_eq!(vec![40, 50, 60], &page[100..103]);
     }
 
     #[test]
     fn write_slice_and_commit_then_load_it_override_it_and_commit() {
-        setup_cache!(cache, db, 0x11_22_33_44, 10, 100);
+        let addr = 0x11_22_33_44;
+        page_slice_cache_gen!(cache, pages, kv, addr, 0x00_00_00_00, 2, 100);
 
         let layout = PageSliceLayout {
             slice_idx: SliceIndex(0),
@@ -365,7 +392,11 @@ mod tests {
             len: 3,
         };
 
-        let ph = default_page_hash!(0x11_22_33_44, 1);
+        let mut expected_page = page::zero_page();
+        fill_page(&mut expected_page, &[(100, 10), (101, 20), (102, 30)]);
+        let ph1 = default_page_hash!(addr, 1, &expected_page);
+        fill_page(&mut expected_page, &[(100, 40), (101, 50), (102, 60)]);
+        let ph2 = default_page_hash!(addr, 1, &expected_page);
 
         // 1) first page write
         cache.write_page_slice(&layout, &vec![10, 20, 30]);
@@ -383,18 +414,19 @@ mod tests {
         assert_eq!(vec![40, 50, 60], cache.read_page_slice(&layout).unwrap());
 
         // 5) commit again
-        let page = db.borrow().get(&ph).unwrap();
+        let page = kv.borrow().get(&ph1.0).unwrap();
         assert_eq!(vec![10, 20, 30], &page[100..103]);
 
         cache.commit();
 
-        let page = db.borrow().get(&ph).unwrap();
+        let page = kv.borrow().get(&ph2.0).unwrap();
         assert_eq!(vec![40, 50, 60], &page[100..103]);
     }
 
     #[test]
     fn write_two_slices_under_same_page_and_commit() {
-        setup_cache!(cache, db, 0x11_22_33_44, 10, 100);
+        let addr = 0x11_22_33_44;
+        page_slice_cache_gen!(cache, pages, kv, addr, 0x00_00_00_00, 2, 100);
 
         let layout1 = PageSliceLayout {
             slice_idx: SliceIndex(0),
@@ -410,7 +442,13 @@ mod tests {
             len: 2,
         };
 
-        let ph = default_page_hash!(0x11_22_33_44, 1);
+        let mut expected_page = page::zero_page();
+        fill_page(
+            &mut expected_page,
+            &[(100, 10), (101, 20), (102, 30), (200, 40), (201, 50)],
+        );
+
+        let ph = default_page_hash!(addr, 1, &expected_page);
 
         cache.write_page_slice(&layout1, &vec![10, 20, 30]);
         cache.write_page_slice(&layout2, &vec![40, 50]);
@@ -419,12 +457,12 @@ mod tests {
         assert_eq!(vec![40, 50], cache.read_page_slice(&layout2).unwrap());
 
         // commiting two slices under the same page
-        assert_eq!(None, db.borrow().get(&ph));
+        assert_eq!(None, kv.borrow().get(&ph.0));
 
         cache.commit();
         cache.clear();
 
-        let page = db.borrow().get(&ph).unwrap();
+        let page = kv.borrow().get(&ph.0).unwrap();
         assert_eq!(vec![10, 20, 30], &page[100..103]);
         assert_eq!(vec![40, 50], &page[200..202]);
 

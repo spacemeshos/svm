@@ -5,18 +5,18 @@ use svm_common::{Address, DefaultKeyHasher, KeyHasher};
 use std::marker::PhantomData;
 use std::ops::Add;
 
-pub struct PageHasherImpl<PH> {
-    marker: PhantomData<PH>,
+pub struct PageHasherImpl<KH> {
+    marker: PhantomData<KH>,
 }
 
-impl<PH> PageHasher for PageHasherImpl<PH>
+impl<KH> PageHasher for PageHasherImpl<KH>
 where
-    PH: KeyHasher<Hash = [u8; 32]>,
+    KH: KeyHasher<Hash = [u8; 32]>,
 {
     /// page_addr = addr + page_idx
     /// ph = HASH(page_addr || HASH(page_data))
     fn hash(addr: Address, page_idx: PageIndex, page_data: &[u8]) -> PageHash {
-        let page_data_hash = PH::hash(&page_data);
+        let page_data_hash = KH::hash(&page_data);
         let page_addr: [u8; 33] = addr.add(page_idx.0);
 
         let mut data = Vec::with_capacity(page_data_hash.len() + page_addr.len());
@@ -24,7 +24,7 @@ where
         data.extend_from_slice(&page_addr);
         data.extend_from_slice(&page_data_hash);
 
-        let ph = PH::hash(&data);
+        let ph = KH::hash(&data);
 
         PageHash(ph)
     }

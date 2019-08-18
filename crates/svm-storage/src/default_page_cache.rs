@@ -178,22 +178,7 @@ mod tests {
     use crate::memory::MemKVStore;
     use crate::traits::KVStore;
 
-    use crate::default_page_hash;
-
-    macro_rules! mem_page_cache_gen {
-        ($cache_ident: ident, $kv_ident: ident, $addr: expr, $max_pages: expr) => {
-            use crate::memory::{MemKVStore, MemPageCache};
-
-            use std::cell::RefCell;
-            use std::rc::Rc;
-
-            let $kv_ident = Rc::new(RefCell::new(MemKVStore::new()));
-            let kv_gen = || Rc::clone(&$kv_ident);
-
-            let mut pages = mem_pages_gen!($addr, kv_gen);
-            let mut $cache_ident = MemPageCache::new(&mut pages, $max_pages);
-        };
-    }
+    use crate::default_page_idx_hash;
 
     macro_rules! merkle_page_cache_gen {
         ($cache_ident: ident, $kv_ident: ident, $addr: expr, $state: expr, $max_pages: expr) => {
@@ -207,20 +192,8 @@ mod tests {
             let kv_gen = || Rc::clone(&$kv_ident);
 
             let mut pages = mem_merkle_pages_gen!($addr, $state, kv_gen, $max_pages);
-            // let mut $cache_ident = MemPageCache::new(&mut pages, $max_pages);
             let mut $cache_ident = DefaultPageCache::<MemMerklePages>::new(&mut pages, $max_pages);
         };
-    }
-
-    macro_rules! mem_pages_gen {
-        ($addr: expr, $kv_gen: expr) => {{
-            use crate::memory::MemPages;
-            use svm_common::Address;
-
-            let addr = Address::from($addr as u32);
-
-            MemPages::new(addr, $kv_gen())
-        }};
     }
 
     macro_rules! mem_merkle_pages_gen {
@@ -237,7 +210,6 @@ mod tests {
 
     #[test]
     fn loading_an_empty_page_into_the_cache() {
-        // mem_page_cache_gen!(cache, db, 0x11_22_33_44, 10);
         merkle_page_cache_gen!(cache, db, 0x11_22_33_44, 0x00_00_00_00, 10);
 
         assert_eq!(None, cache.read_page(PageIndex(0)));
@@ -245,22 +217,21 @@ mod tests {
 
     #[test]
     fn write_page_and_then_commit() {
-        mem_page_cache_gen!(cache, kv, 0x11_22_33_44, 10);
-        // merkle_page_cache_gen!(cache, kv, 0x11_22_33_44, 0x00_00_00_00, 10);
+        merkle_page_cache_gen!(cache, kv, 0x11_22_33_44, 0x00_00_00_00, 10);
 
         let page = vec![10, 20, 30];
 
         cache.write_page(PageIndex(0), &page);
         assert_eq!(vec![10, 20, 30], cache.read_page(PageIndex(0)).unwrap());
 
-        let ph = default_page_hash!(0x11_22_33_44, 0);
+        let ph = default_page_idx_hash!(0x11_22_33_44, 0);
         assert_eq!(None, kv.borrow().get(&ph));
     }
 
     #[test]
     #[ignore]
     fn writing_a_page_marks_it_as_dirty() {
-        mem_page_cache_gen!(cache, kv, 0x11_22_33_44, 10);
+        merkle_page_cache_gen!(cache, kv, 0x11_22_33_44, 0x00_00_00_00, 10);
 
         assert_eq!(false, cache.is_dirty(0));
 
@@ -273,13 +244,14 @@ mod tests {
     #[test]
     #[ignore]
     fn commit_persists_each_dirty_page() {
-        mem_page_cache_gen!(cache, kv, 0x11_22_33_44, 10);
+        merkle_page_cache_gen!(cache, kv, 0x11_22_33_44, 0x00_00_00_00, 10);
+
         let page = vec![10, 20, 30];
 
         cache.write_page(PageIndex(0), &page);
 
         // `cache.write_page` doesn't persist the page yet
-        let ph = default_page_hash!(0x11_22_33_44, 0);
+        let ph = default_page_idx_hash!(0x11_22_33_44, 0);
         assert_eq!(None, kv.borrow().get(&ph));
 
         cache.commit();

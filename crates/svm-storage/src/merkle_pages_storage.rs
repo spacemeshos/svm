@@ -82,14 +82,15 @@ where
 
     #[must_use]
     #[inline(always)]
-    fn compute_page_hash(&self, page_idx: PageIndex, page_data: &[u8]) -> PageHash {
+    pub fn compute_page_hash(&self, page_idx: PageIndex, page_data: &[u8]) -> PageHash {
         PH::hash(self.addr, page_idx, page_data)
     }
 
     #[must_use]
     #[inline(always)]
-    fn compute_zero_page_hash(&self, page_idx: PageIndex) -> PageHash {
-        self.compute_page_hash(page_idx, [0; 32].as_ref())
+    pub fn compute_zero_page_hash(&self, page_idx: PageIndex) -> PageHash {
+        let zeros_page = crate::page::zero_page();
+        self.compute_page_hash(page_idx, zeros_page.as_ref())
     }
 
     #[cfg(test)]
@@ -106,14 +107,11 @@ where
 
         let mut pages_hash: Vec<PageHash> = Vec::new();
 
-        // `joined_pages_hash = page1_hash || page2_hash || ... || pageN_hash`
-
         for page in self.pages.iter() {
             match page {
                 MerklePage::NotModified(ph) => pages_hash.push(*ph),
-                MerklePage::Modified(ref ph, ref data) => {
+                MerklePage::Modified(ph, data) => {
                     let change: (&[u8], &[u8]) = (&ph.0, data);
-
                     changes.push(change);
 
                     pages_hash.push(*ph);
@@ -228,6 +226,7 @@ mod tests {
 
     use crate::default::DefaultPageHasher;
     use crate::memory::MemKVStore;
+    use crate::page::zero_page;
 
     use std::cell::RefCell;
     use std::rc::Rc;
@@ -351,9 +350,9 @@ mod tests {
         assert_dirty_pages_count!(storage, 0);
         storage.commit();
 
-        let ph0 = compute_page_hash!(addr, 0, &[0; 32]);
-        let ph1 = compute_page_hash!(addr, 1, &[0; 32]);
-        let ph2 = compute_page_hash!(addr, 2, &[0; 32]);
+        let ph0 = compute_page_hash!(addr, 0, &zero_page());
+        let ph1 = compute_page_hash!(addr, 1, &zero_page());
+        let ph2 = compute_page_hash!(addr, 2, &zero_page());
 
         let jph = join_pages_hash!(&[ph0, ph1, ph2]);
         let state = compute_state!(jph);
@@ -379,8 +378,8 @@ mod tests {
         storage.commit();
 
         let ph0 = compute_page_hash!(addr, 0, &[10, 20, 30]);
-        let ph1 = compute_page_hash!(addr, 1, &[0; 32]);
-        let ph2 = compute_page_hash!(addr, 2, &[0; 32]);
+        let ph1 = compute_page_hash!(addr, 1, &zero_page());
+        let ph2 = compute_page_hash!(addr, 2, &zero_page());
         let jph = join_pages_hash!(&[ph0, ph1, ph2]);
         let state = compute_state!(jph);
 
@@ -433,7 +432,7 @@ mod tests {
         // modifying pages `0` and `1`
         let ph0 = compute_page_hash!(addr, 0, &[10, 20, 30]);
         let ph1 = compute_page_hash!(addr, 1, &[40, 50, 60]);
-        let ph2 = compute_page_hash!(addr, 2, &[0; 32]);
+        let ph2 = compute_page_hash!(addr, 2, &zero_page());
         let jph = join_pages_hash!(&[ph0, ph1, ph2]);
         let new_state = compute_state!(jph);
 
@@ -466,7 +465,7 @@ mod tests {
         let ph0_old = compute_page_hash!(addr, 0, &[11, 22, 33]);
         let ph0 = compute_page_hash!(addr, 0, &[10, 20, 30]);
         let ph1 = compute_page_hash!(addr, 1, &[40, 50, 60]);
-        let ph2 = compute_page_hash!(addr, 2, &[0; 32]);
+        let ph2 = compute_page_hash!(addr, 2, &zero_page());
         let jph = join_pages_hash!(&[ph0, ph1, ph2]);
         let new_state = compute_state!(jph);
 
@@ -500,12 +499,12 @@ mod tests {
         mem_merkle_pages_open!(0x11_22_33_44, addr, storage, kv, state_1, 3);
 
         let ph0_1 = compute_page_hash!(addr, 0, &[11, 22, 33]);
-        let ph1_1 = compute_page_hash!(addr, 1, &[0; 32]);
-        let ph2_1 = compute_page_hash!(addr, 2, &[0; 32]);
+        let ph1_1 = compute_page_hash!(addr, 1, &zero_page());
+        let ph2_1 = compute_page_hash!(addr, 2, &zero_page());
 
         let ph0_2 = compute_page_hash!(addr, 0, &[10, 20, 30]);
         let ph1_2 = compute_page_hash!(addr, 1, &[40, 50, 60]);
-        let ph2_2 = compute_page_hash!(addr, 2, &[0; 32]);
+        let ph2_2 = compute_page_hash!(addr, 2, &zero_page());
         let jph = join_pages_hash!(&[ph0_1, ph1_1, ph2_1]);
 
         assert_same_keys!(
