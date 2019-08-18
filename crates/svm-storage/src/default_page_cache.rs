@@ -183,7 +183,7 @@ mod tests {
     macro_rules! merkle_page_cache_gen {
         ($cache_ident: ident, $kv_ident: ident, $addr: expr, $state: expr, $max_pages: expr) => {
             use crate::default::DefaultPageCache;
-            use crate::memory::{MemKVStore, MemMerklePages, MemPageCache};
+            use crate::memory::{MemKVStore, MemMerklePages};
 
             use std::cell::RefCell;
             use std::rc::Rc;

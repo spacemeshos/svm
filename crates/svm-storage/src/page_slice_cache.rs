@@ -251,7 +251,7 @@ mod tests {
     macro_rules! page_slice_cache_gen {
         ($cache_slice_ident: ident, $pages_ident: ident,  $kv_ident: ident, $addr: expr, $state: expr, $max_pages: expr, $max_pages_slices: expr) => {
             use crate::default::DefaultPageCache;
-            use crate::memory::{MemKVStore, MemMerklePages, MemPageCache};
+            use crate::memory::{MemKVStore, MemMerklePages};
 
             use std::cell::RefCell;
             use std::rc::Rc;
