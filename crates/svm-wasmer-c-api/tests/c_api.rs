@@ -2,7 +2,7 @@ extern crate svm_wasmer_c_api;
 
 use std::ffi::c_void;
 
-use svm_storage::memory::MemPageCache32;
+use svm_storage::memory::MemMerklePageCache;
 use svm_wasmer::*;
 use svm_wasmer_c_api::c_utils::*;
 use svm_wasmer_c_api::mem_c_api::*;
@@ -77,13 +77,19 @@ unsafe extern "C" fn copy_reg_to_reg(
 #[cfg(test)]
 fn u32_addr_as_ptr(addr: u32) -> *const c_void {
     use svm_common::Address;
-    Address::from(addr).as_ptr() as _
+    let addr = Box::new(Address::from(addr));
+    let addr = Box::leak(addr);
+
+    addr.as_ptr() as _
 }
 
 #[cfg(test)]
 fn u32_state_as_ptr(state: u32) -> *const c_void {
     use svm_common::State;
-    State::from(state).as_ptr() as _
+    let state = Box::new(State::from(state));
+    let state = Box::leak(state);
+
+    state.as_ptr() as _
 }
 
 fn node_data_as_ptr(node_data: &NodeData) -> *const c_void {
@@ -98,13 +104,13 @@ fn call_storage_mem_to_reg_copy() {
 
         wasmer_svm_import_object(
             raw_import_object,
-            u32_addr_as_ptr(0x11_22_33_44), // `raw_addr: *const u8`
-            u32_state_as_ptr(0xAB_CD),      // `raw_state: *const u8`
-            5,                              // `max_pages: libc::c_int`
-            100,                            // `max_pages_slices: libc::c_int`
-            node_data_as_ptr(&node_data),   // `node_data_ptr:: *const c_void`
-            std::ptr::null_mut(),           // `imports: *mut wasmer_import_t`
-            0,                              // `imports_len: libc::c_int`
+            u32_addr_as_ptr(0x11_22_33_44),  // `raw_addr: *const u8`
+            u32_state_as_ptr(0x00_00_00_00), // `raw_state: *const u8`
+            5,                               // `max_pages: libc::c_int`
+            100,                             // `max_pages_slices: libc::c_int`
+            node_data_as_ptr(&node_data),    // `node_data_ptr:: *const c_void`
+            std::ptr::null_mut(),            // `imports: *mut wasmer_import_t`
+            0,                               // `imports_len: libc::c_int`
         );
 
         let import_object = deref_import_obj!(raw_import_object);
@@ -121,7 +127,7 @@ fn call_storage_mem_to_reg_copy() {
         assert!(func.call(200, 3, 2).is_ok());
 
         // asserting register `2` (of type `64 bits`) content is `10, 20, 30, 0, ... 0`
-        let reg = wasmer_ctx_reg!(instance.context(), 64, 2, MemPageCache32);
+        let reg = wasmer_ctx_reg!(instance.context(), 64, 2, MemMerklePageCache);
         assert_eq!(vec![10, 20, 30, 0, 0, 0, 0, 0], reg.view());
     }
 }
@@ -137,7 +143,7 @@ fn call_node_get_balance() {
         wasmer_svm_import_object(
             raw_import_object,
             u32_addr_as_ptr(0x11_22_33_44),  // `raw_addr: *const u8`
-            u32_state_as_ptr(0x0A_0B_0C_0D), // `raw_state: *const u8`,
+            u32_state_as_ptr(0x00_00_00_00), // `raw_state: *const u8`,
             5,                               // `max_pages: libc::c_int`
             100,                             // `max_pages_slices: libc::c_int`
             node_data_as_ptr(&node_data),    // `node_data_ptr:: *const c_void`
@@ -169,7 +175,7 @@ fn call_wasmer_svm_instance_context_node_data_get() {
         wasmer_svm_import_object(
             raw_import_object,
             u32_addr_as_ptr(0x11_22_33_44),  // `raw_addr: *const u8`
-            u32_state_as_ptr(0x0A_0B_0C_0D), // `raw_state: *const u8`,
+            u32_state_as_ptr(0x00_00_00_00), // `raw_state: *const u8`,
             5,                               // `max_pages: libc::c_int`
             100,                             // `max_pages_slices: libc::c_int`
             node_data_as_ptr(&node_data),    // `node_data_ptr:: *const c_void`
@@ -205,7 +211,7 @@ fn call_wasmer_svm_register_get_set() {
         wasmer_svm_import_object(
             raw_import_object,
             u32_addr_as_ptr(0x11_22_33_44),  // `raw_addr: *const u8`
-            u32_state_as_ptr(0x0A_0B_0C_0D), // `raw_state: *const u8`,
+            u32_state_as_ptr(0x00_00_00_00), // `raw_state: *const u8`,
             5,                               // `max_pages: libc::c_int`
             100,                             // `max_pages_slices: libc::c_int`
             std::ptr::null(),                // `node_data_ptr:: *const c_void`
@@ -223,7 +229,7 @@ fn call_wasmer_svm_register_get_set() {
 
         let ctx = instance.context() as *const Ctx as *const wasmer_instance_context_t;
         let reg2 = wasmer_svm_register_get(ctx, 64, 2);
-        let reg3 = wasmer_ctx_reg!(instance.context(), 64, 3, MemPageCache32);
+        let reg3 = wasmer_ctx_reg!(instance.context(), 64, 3, MemMerklePageCache);
 
         // setting register `2` with data that will be copied later to register `3`
         let buf: Vec<u8> = vec![10, 20, 30, 40, 50, 60, 70, 80];

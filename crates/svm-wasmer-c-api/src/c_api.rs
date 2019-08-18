@@ -207,8 +207,8 @@ macro_rules! include_svm_wasmer_c_api {
             raw_import_object: *mut *mut wasmer_import_object_t,
             raw_addr: *const c_void,
             raw_state: *const c_void,
-            max_pages: libc::c_int,
-            max_page_slices: libc::c_int,
+            raw_max_pages: libc::c_int,
+            raw_max_page_slices: libc::c_int,
             node_data: *const c_void,
             imports: *mut wasmer_import_t,
             imports_len: libc::c_uint,
@@ -216,13 +216,16 @@ macro_rules! include_svm_wasmer_c_api {
             use svm_common::{Address, State};
             use wasmer_runtime::ImportObject;
 
+            let max_pages: u32 = raw_max_pages as u32;
+            let max_page_slices: u32 = raw_max_page_slices as u32;
+
             // having `c_void` instead of `u8` in the function's signature
             // makes the integration with `cgo` easier.
             let wrapped_pages_storage_gen = move || {
                 let addr = Address::from(raw_addr as *const u8);
                 let state = State::from(raw_state as *const u8);
 
-                $pages_storage_gen(addr, state)
+                $pages_storage_gen(addr, state, max_pages)
             };
 
             let state_gen = lazy_create_svm_state_gen!(
