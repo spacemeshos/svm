@@ -239,9 +239,19 @@ mod tests {
         }};
     }
 
+    macro_rules! kv_keys_vec {
+        ($kv: ident) => {{
+            let keys: Vec<Vec<u8>> = $kv.borrow().keys().map(|key| key.clone()).collect();
+            keys
+        }};
+    }
+
     macro_rules! assert_same_keys {
         ($expected: expr, $actual: expr) => {{
-            let mut expected = $expected.iter().map(|k| k.to_vec()).collect::<Vec<Vec<u8>>>;
+            let mut expected = $expected
+                .iter()
+                .map(|k| k.to_vec())
+                .collect::<Vec<Vec<u8>>>();
             let mut actual = $actual.to_vec();
 
             expected.sort();
@@ -290,13 +300,6 @@ mod tests {
         };
     }
 
-    macro_rules! kv_keys {
-        ($kv: ident) => {{
-            let keys: Vec<Vec<u8>> = $kv.borrow().keys().map(|key| *key).collect();
-            keys
-        }};
-    }
-
     macro_rules! assert_state {
         ($expected: expr, $storage: ident) => {{
             assert_eq!($expected, $storage.get_state());
@@ -333,7 +336,6 @@ mod tests {
         mem_merkle_pages_setup!(0x11_22_33_44, addr, storage, kv, 3);
 
         assert_dirty_pages_count!(storage, 0);
-        assert_same_keys!(Vec::<u8>(), kv_keys!(kv));
         assert_state!(State::empty(), storage);
         assert_page!(storage, 0, None);
     }
@@ -352,7 +354,7 @@ mod tests {
         let state = compute_state!(jph);
 
         assert_state!(state, storage);
-        assert_same_keys!(vec![state.0], kv_keys!(kv));
+        assert_same_keys!(vec![state.0], kv_keys_vec!(kv));
 
         assert_no_key!(&kv, ph0.0);
         assert_no_key!(&kv, ph1.0);
@@ -378,7 +380,7 @@ mod tests {
         let state = compute_state!(jph);
 
         assert_state!(state, storage);
-        assert_same_keys!(vec![state.0, ph0.0], kv_keys!(kv));
+        assert_same_keys!(vec![state.0, ph0.0], kv_keys_vec!(kv));
         assert_key_value!(kv, state.0, jph);
         assert_key_value!(kv, ph0.0, [10, 20, 30]);
         assert_page!(storage, 0, Some(vec![10, 20, 30]));
@@ -401,7 +403,7 @@ mod tests {
         let state = compute_state!(jph);
 
         assert_state!(state, storage);
-        assert_same_keys!(vec![state.0, ph0.0, ph1.0], kv_keys!(kv));
+        assert_same_keys!(vec![state.0, ph0.0, ph1.0], kv_keys_vec!(kv));
         assert_key_value!(kv, state.0, jph);
         assert_key_value!(kv, ph0.0, [10, 20, 30]);
         assert_key_value!(kv, ph1.0, [40, 50, 60]);
@@ -430,7 +432,10 @@ mod tests {
         let jph = join_pages_hash!(&[ph0, ph1, ph2]);
         let new_state = compute_state!(jph);
 
-        assert_same_keys!(vec![old_state.0, new_state.0, ph0.0, ph1.0], kv_keys!(kv));
+        assert_same_keys!(
+            vec![old_state.0, new_state.0, ph0.0, ph1.0],
+            kv_keys_vec!(kv)
+        );
 
         assert_key_value!(kv, new_state.0, jph);
         assert_key_value!(kv, ph0.0, [10, 20, 30]);
@@ -462,7 +467,7 @@ mod tests {
 
         assert_same_keys!(
             vec![old_state.0, new_state.0, ph0_old.0, ph0.0, ph1.0],
-            kv_keys!(kv)
+            kv_keys_vec!(kv)
         );
 
         assert_key_value!(kv, new_state.0, jph);
@@ -500,7 +505,7 @@ mod tests {
 
         assert_same_keys!(
             vec![state_1.0, state_2.0, ph0_1.0, ph0_2.0, ph1_2.0],
-            kv_keys!(kv)
+            kv_keys_vec!(kv)
         );
 
         assert_state!(state_1, storage);
@@ -512,7 +517,7 @@ mod tests {
 
         assert_same_keys!(
             vec![state_1.0, state_2.0, ph0_1.0, ph0_2.0, ph1_2.0],
-            kv_keys!(kv)
+            kv_keys_vec!(kv)
         );
 
         assert_key_value!(kv, state_2.0, jph);
