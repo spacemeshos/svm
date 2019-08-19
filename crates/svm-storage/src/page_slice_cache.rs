@@ -1,6 +1,6 @@
-use super::page;
-use super::page::{PageIndex, PageSliceLayout};
-use super::traits::PageCache;
+use crate::page;
+use crate::page::{PageIndex, PageSliceLayout};
+use crate::traits::PageCache;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, PartialEq)]

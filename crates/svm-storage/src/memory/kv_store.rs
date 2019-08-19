@@ -1,4 +1,4 @@
-use super::traits::KVStore;
+use crate::traits::KVStore;
 use std::collections::HashMap;
 
 /// An implementation for a key-value store (implements `KVStore`) store backed by an underlying `HashMap`
