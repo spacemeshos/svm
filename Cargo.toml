@@ -19,6 +19,10 @@ include = [
 [lib]
 crate-type = ["cdylib", "staticlib", "rlib"]
 
+[dependencies.db-key]
+optional = true
+version = "0.0.5"
+
 [dependencies.wasmer-runtime]
 default-features = false
 git = "https://github.com/spacemeshos/wasmer"

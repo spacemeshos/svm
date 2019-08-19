@@ -16,25 +16,13 @@ cfg-if = "0.1.9"
 [dependencies.svm-common]
 path = "../svm-common"
 
-[dependencies.leveldb]
-optional = true
-version = "0.8.4"
-
 [dependencies.db-key]
 optional = true
 version = "0.0.5"
 
-[dependencies.trie-db]
+[dependencies.leveldb]
 optional = true
-version = "0.14.0"
-
-[dependencies.memory-db]
-optional = true
-version = "0.14.0"
-
-[dependencies.hash-db]
-optional = true
-version = "0.14.0"
+version = "0.8.4"
 
 [dependencies.hash256-std-hasher]
 optional = true
@@ -44,4 +32,3 @@ version = "0.14.0"
 default = ["svm_memory", "svm_leveldb"]
 svm_memory = []
 svm_leveldb = ["leveldb", "db-key"]
-# svm_trie = ["trie-db", "memory-db", "hash-db", "hash256-std-hasher"]

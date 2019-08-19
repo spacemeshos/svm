@@ -34,10 +34,6 @@ cfg_if! {
 
 cfg_if! {
     if #[cfg(feature = "svm_leveldb")]  {
-        // mod level_key;
-        // mod leveldb_kv;
-        //
-        // pub use level_key::*;
-        // pub use leveldb_kv::LevelDB;
+        pub mod leveldb;
     }
 }
