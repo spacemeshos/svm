@@ -6,6 +6,7 @@ pub const PAGE_SIZE: usize = 4096;
 #[repr(transparent)]
 pub struct PageIndex(pub u32);
 
+/// `PageHash` length is 32 bytes
 pub const PAGE_HASH_LEN: usize = 32;
 
 /// A `PageHash` is a one-dimensional tuple of `([u8; PAGE_HASH_LEN])` representing hash of the page-content.

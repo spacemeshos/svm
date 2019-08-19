@@ -1,7 +1,6 @@
-use crate::page::{PageHash, PageIndex, PAGE_HASH_LEN};
-use crate::state::StateHash;
+use crate::page::{PageHash, PageIndex};
 use crate::traits::{KVStore, PageHasher, PagesStateStorage, PagesStorage, StateHasher};
-use svm_common::{Address, KeyHasher, State};
+use svm_common::{Address, State};
 
 use std::cell::RefCell;
 use std::marker::PhantomData;
@@ -219,7 +218,6 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::memory::MemMerklePages;
     use crate::traits::KVStore;
 
     use svm_common::{Address, DefaultKeyHasher, State};
@@ -291,7 +289,7 @@ mod tests {
 
             #[allow(unused_mut)]
             let mut $storage =
-                MemMerklePages::new($addr, Rc::clone(&$kv), State::empty(), $pages_count);
+                $crate::memory::MemMerklePages::new($addr, Rc::clone(&$kv), State::empty(), $pages_count);
         };
     }
 
@@ -300,7 +298,7 @@ mod tests {
             let $addr = Address::from($addr_expr as u32);
 
             #[allow(unused_mut)]
-            let mut $storage = MemMerklePages::new($addr, Rc::clone(&$kv), $state, $pages_count);
+            let mut $storage = $crate::memory::MemMerklePages::new($addr, Rc::clone(&$kv), $state, $pages_count);
         };
     }
 
@@ -318,12 +316,17 @@ mod tests {
 
     macro_rules! compute_page_hash {
         ($addr: ident, $page_idx: expr, $data: expr) => {{
+            use $crate::default::DefaultPageHasher;;
+
             DefaultPageHasher::hash($addr, PageIndex($page_idx), $data)
         }};
     }
 
     macro_rules! compute_state {
         ($jph: expr) => {{
+            use svm_common::DefaultKeyHasher;
+            use svm_common::KeyHasher;
+
             let state = Some($jph.as_slice())
                 .map(|ref_jph| {
                     let h = DefaultKeyHasher::hash(ref_jph);

@@ -1,25 +1,29 @@
-use db_key::Key;
 use std::borrow::Borrow;
 
-pub struct LDBKey<'a>(pub &'a [u8]);
+use db_key::Key;
 
-// impl<'a> db_key::Key<'a> for LDBKey<'a> {}
-//
-// impl<'a> From<&'a [u8]> for LDBKey<'a> {
-//     fn from(key: &'a [u8]) -> Self {
-//         Self(key)
-//     }
-// }
-//
-// impl<'a> AsRef<[u8]> for LDBKey<'a> {
-//     fn as_ref(&self) -> &[u8] {
-//         self.0.as_ref()
-//     }
-// }
+/// Implements `db_key::Key`
+pub struct LDBKey(pub Vec<u8>);
 
-impl<'a> Borrow<[u8]> for LDBKey<'a> {
+impl Key for LDBKey {
+    fn from_u8(key: &[u8]) -> Self {
+        Self(key.to_vec())
+    }
+
+    fn as_slice<T, F: Fn(&[u8]) -> T>(&self, f: F) -> T {
+        f(self.0.as_slice())
+    }
+}
+
+impl Borrow<[u8]> for LDBKey {
     fn borrow(&self) -> &[u8] {
         self.0.borrow()
+    }
+}
+
+impl std::fmt::Debug for LDBKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{:?}", self.0)
     }
 }
 
@@ -27,10 +31,12 @@ impl<'a> Borrow<[u8]> for LDBKey<'a> {
 mod test {
     use super::*;
 
-    // #[test]
-    // fn ldb_key_borrow() {
-    //     let key = vec![10, 20, 30];
-    //
-    //     let ldb_key = LDBKey(key);
-    // }
+    #[test]
+    fn ldb_key_borrow() {
+        let expected = LDBKey(vec![10, 20, 30]);
+
+        let actual = LDBKey::from_u8(&[10, 20, 30]);
+
+        assert_eq!(expected.0, actual.0);
+    }
 }

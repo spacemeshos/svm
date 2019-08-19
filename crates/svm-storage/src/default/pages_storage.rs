@@ -42,6 +42,7 @@ where
     KV: KVStore,
 {
     /// Creates a new `DefaultPagesStorage`
+    #[allow(unused)]
     pub fn new(addr: Address, kv: Rc<RefCell<KV>>) -> Self {
         Self {
             addr,

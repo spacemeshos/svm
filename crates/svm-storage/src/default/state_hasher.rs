@@ -4,7 +4,6 @@ use crate::traits::StateHasher;
 use svm_common::{DefaultKeyHasher, KeyHasher};
 
 use std::marker::PhantomData;
-use std::ops::Add;
 
 pub struct StateHasherImpl<SH> {
     marker: PhantomData<SH>,
