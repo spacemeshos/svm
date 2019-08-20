@@ -1,10 +1,16 @@
-use super::LDBKey;
+use crate::leveldb::LDBKey;
 use crate::traits::KVStore;
+
+use db_key::Key;
 
 use std::path::Path;
 
-use leveldb::database::{kv::KV, Database};
-use leveldb::options::{Options, ReadOptions};
+use leveldb::database::{
+    batch::{Batch, Writebatch},
+    kv::KV,
+    Database,
+};
+use leveldb::options::{Options, ReadOptions, WriteOptions};
 
 /// An implementation of `KVStore` trait against `LevelDB`.
 pub struct LDBStore {
@@ -37,7 +43,19 @@ impl KVStore for LDBStore {
         }
     }
 
-    fn store(&mut self, _changes: &[(&[u8], &[u8])]) {
-        unimplemented!()
+    fn store(&mut self, changes: &[(&[u8], &[u8])]) {
+        let mut batch = Writebatch::<LDBKey>::new();
+
+        for (k, v) in changes {
+            let k = LDBKey::from_u8(k);
+
+            batch.put(k, v);
+        }
+
+        let res = self.db.write(WriteOptions::new(), &batch);
+
+        if res.is_err() {
+            panic!("failed writing data");
+        }
     }
 }
