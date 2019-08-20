@@ -1,3 +1,5 @@
+pub use crate::traits::{CodeHashStore, ContractAddressCompute};
+
 use serde::{Deserialize, Serialize};
 
 #[repr(transparent)]
@@ -11,3 +13,9 @@ pub struct CodeHash(pub [u8; 32]);
 #[repr(transparent)]
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Tag(pub [u8; 4]);
+
+pub trait ContractTypes {
+    type Store: CodeHashStore;
+
+    type AddressCompute: ContractAddressCompute;
+}

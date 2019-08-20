@@ -1,6 +1,8 @@
 use crate::include_svm_wasmer_c_api;
 use std::cell::RefCell;
 use std::rc::Rc;
+
+use svm_contract::NullContractTypes;
 use svm_storage::memory::{MemKVStore, MemMerklePageCache, MemMerklePages};
 use svm_wasmer::*;
 
@@ -9,5 +11,6 @@ include_svm_wasmer_c_api!(
         let kv = Rc::new(RefCell::new(MemKVStore::new()));
         MemMerklePages::new(addr, kv, state, max_pages)
     },
-    MemMerklePageCache
+    MemMerklePageCache,
+    NullContractTypes
 );
