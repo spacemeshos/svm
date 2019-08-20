@@ -27,55 +27,28 @@ macro_rules! include_svm_wasmer_c_api {
         /// Builds an instance of `svm_wasm_contract_t`.
         /// Should be called while the transaction is in the `mempool` of the full-node (prior mining it).
         #[no_mangle]
-        pub unsafe extern "C" fn wasmer_svm_build_wasm_contract(
+        pub unsafe extern "C" fn wasmer_svm_deploy_build_wasm_contract(
             contract: *mut *mut svm_wasm_contract_t,
-            tx: *const u8,
-            tx_len: u64,
+            raw_bytes: *const u8,
+            raw_bytes_len: u64,
         ) -> wasmer_result_t {
-            // use svm_contract::wasm::WasmContract;
-            //
-            // let bytes = std::slice::from_raw_parts(tx, tx_len as usize);
-            // let res = svm_contract::build_wasm_contract(&bytes);
-            //
-            // match res {
-            //     Ok(inner) => {
-            //         let raw_contact: *mut WasmContract = Box::into_raw(Box::new(inner));
-            //         *contract = raw_contact as *mut svm_wasm_contract_t
-            //
-            //         wasmer_result_t::WASMER_OK
-            //     }
-            //     Err(err) => {
-            //         update_last_error(err);
-            //         wasmer_result_t::WASMER_ERROR,
-            //     }
-            // }
-            unimplemented!()
-        }
-
-        /// Computes the new deployed contract's account address from the deployed transaction.
-        /// The computation should be determinstic and take into all wasm contract content:
-        ///
-        /// * tag
-        /// * author
-        /// * admins
-        /// * wasm code
-        /// * deps revisions
-        /// * ...
-        ///
-        /// Address is returned via `addr` argument, and should be later dellocated
-        /// using `svm_address_destroy` function (see file: `c_types.rs`).
-        #[no_mangle]
-        pub unsafe extern "C" fn wasmer_svm_contract_addr_compute(
-            _addr: *const *const svm_address_t,
-            contract: *const svm_wasm_contract_t,
-        ) {
-            use svm_contract::traits::ContractAddressCompute;
-            use svm_contract::types::ContractTypes;
             use svm_contract::wasm::WasmContract;
 
-            let contract: &WasmContract = &*(contract as *const WasmContract);
+            let bytes = std::slice::from_raw_parts(raw_bytes, raw_bytes_len as usize);
+            let res = svm_contract::build_wasm_contract::<$CONTRACT_TYPES>(&bytes);
 
-            <$CONTRACT_TYPES as ContractTypes>::AddressCompute::compute(contract);
+            match res {
+                Ok(inner_contract) => {
+                    let raw_contact: *mut WasmContract = Box::into_raw(Box::new(inner_contract));
+                    *contract = raw_contact as *mut svm_wasm_contract_t;
+
+                    wasmer_result_t::WASMER_OK
+                }
+                Err(err) => {
+                    update_last_error(err);
+                    wasmer_result_t::WASMER_ERROR
+                }
+            }
         }
 
         /// Stores the new deployed contract under a database.

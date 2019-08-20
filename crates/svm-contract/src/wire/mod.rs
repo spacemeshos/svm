@@ -1,4 +1,4 @@
-//!        Deploy Contract Wire Protocol Version
+//!      Deploy Contract Wire Protocol Version 0.0.0.0
 //!  -------------------------------------------------------
 //!  |   proto    |                |                       |
 //!  |  version   |  name length   |     name (UTF-8)      |
@@ -29,6 +29,23 @@ mod validate;
 
 pub use crate::wasm::WasmContract;
 
-pub fn build_wasm_contract(bytes: &[u8]) -> Result<WasmContract, error::Error> {
-    unimplemented!()
+use crate::traits::{CodeHashStore, ContractAddressCompute};
+use crate::types::ContractTypes;
+use parse::parse_contract;
+use validate::validate_contract;
+
+pub fn build_wasm_contract<CT: ContractTypes>(
+    bytes: &[u8],
+) -> Result<WasmContract, error::ContractError> {
+    let mut contract = parse_contract(bytes)?;
+
+    validate_contract(&contract)?;
+    add_contract_address::<CT>(&mut contract);
+
+    Ok(contract)
+}
+
+fn add_contract_address<CT: ContractTypes>(contract: &mut WasmContract) {
+    let address = <CT as ContractTypes>::AddressCompute::compute(&contract);
+    contract.address = Some(address);
 }

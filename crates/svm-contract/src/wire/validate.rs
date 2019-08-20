@@ -1,11 +1,11 @@
-use super::error::Error;
+use super::error::ContractError;
 use super::field::Field;
 
 use crate::types::Revision;
 use crate::wasm::WasmContract;
 use svm_common::Address;
 
-pub fn validate_contract(contract: &WasmContract) -> Result<(), Error> {
+pub fn validate_contract(contract: &WasmContract) -> Result<(), ContractError> {
     validate_author(contract)?;
     validate_admins(contract)?;
     validate_deps(contract)?;
@@ -14,22 +14,22 @@ pub fn validate_contract(contract: &WasmContract) -> Result<(), Error> {
     Ok(())
 }
 
-fn validate_deps(_contract: &WasmContract) -> Result<(), Error> {
+fn validate_deps(_contract: &WasmContract) -> Result<(), ContractError> {
     return Ok(());
 }
 
-fn validate_author(contract: &WasmContract) -> Result<(), Error> {
+fn validate_author(contract: &WasmContract) -> Result<(), ContractError> {
     validate_account(contract.author, Field::Author)
 }
 
-fn validate_admins(_contract: &WasmContract) -> Result<(), Error> {
+fn validate_admins(_contract: &WasmContract) -> Result<(), ContractError> {
     Ok(())
 }
 
-fn validate_account(_addr: Address, _field: Field) -> Result<(), Error> {
+fn validate_account(_addr: Address, _field: Field) -> Result<(), ContractError> {
     Ok(())
 }
 
-fn validate_wasm(_contract: &WasmContract) -> Result<(), Error> {
+fn validate_wasm(_contract: &WasmContract) -> Result<(), ContractError> {
     Ok(())
 }
