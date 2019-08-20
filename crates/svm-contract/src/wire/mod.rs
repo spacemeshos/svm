@@ -28,6 +28,7 @@ mod parse;
 mod validate;
 
 pub use crate::wasm::WasmContract;
+pub use error::ContractError;
 
 use crate::traits::ContractAddressCompute;
 use crate::types::ContractTypes;

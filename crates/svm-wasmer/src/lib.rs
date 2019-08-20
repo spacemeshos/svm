@@ -1,7 +1,10 @@
-#![deny(missing_docs)]
-#![deny(unused)]
+#![allow(missing_docs)]
+#![allow(unused)]
 
 //! `svm-wasmer` crate is the glue between `svm` constract-storage to `wasmer` live instances.
+
+/// Implements the most high-level API of `svm`.
+pub mod runtime;
 
 /// Implements `SvmCtx`. Used for running `svm-wasmer` instances.
 pub mod ctx;
