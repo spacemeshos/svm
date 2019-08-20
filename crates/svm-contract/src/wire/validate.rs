@@ -1,7 +1,6 @@
 use super::error::ContractError;
 use super::field::Field;
 
-use crate::types::Revision;
 use crate::wasm::WasmContract;
 use svm_common::Address;
 

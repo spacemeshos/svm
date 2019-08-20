@@ -17,8 +17,6 @@ mod import_object;
 mod tests {
     use crate::ctx::SvmCtx;
 
-    use svm_storage::null_storage::NullPageCache;
-
     use std::cell::Cell;
     use std::ffi::{c_void, CString};
     use std::os::raw::c_char;
@@ -89,8 +87,8 @@ mod tests {
         let ctx = test_create_svm_ctx!();
         let (data, _dtor) = wasmer_fake_import_object_data(&ctx);
 
-        let reg0 = wasmer_data_reg!(data, 64, 0, NullPageCache);
-        let reg1 = wasmer_data_reg!(data, 64, 1, NullPageCache);
+        let reg0 = wasmer_data_reg!(data, 64, 0, MemMerklePageCache);
+        let reg1 = wasmer_data_reg!(data, 64, 1, MemMerklePageCache);
 
         // registers `0` and `1` are initialized with zeros
         assert_eq!(vec![0; 8], reg0.view());
@@ -119,7 +117,7 @@ mod tests {
         let ctx = test_create_svm_ctx!();
         let (data, _dtor) = wasmer_fake_import_object_data(&ctx);
 
-        let reg0 = wasmer_data_reg!(data, 64, 0, NullPageCache);
+        let reg0 = wasmer_data_reg!(data, 64, 0, MemMerklePageCache);
 
         reg0.set(&[10, 20, 30, 40, 50, 60, 70, 80]);
 
@@ -153,7 +151,7 @@ mod tests {
         let (data, _dtor) = wasmer_fake_import_object_data(&ctx);
 
         let layout = svm_page_slice_layout!(1, 0, 100, 3);
-        let reg0 = wasmer_data_reg!(data, 64, 0, NullPageCache);
+        let reg0 = wasmer_data_reg!(data, 64, 0, MemMerklePageCache);
         let storage = wasmer_data_storage!(data, MemMerklePageCache);
 
         storage.write_page_slice(&layout, &vec![10, 20, 30]);
@@ -173,7 +171,7 @@ mod tests {
         let storage = wasmer_data_storage!(data, MemMerklePageCache);
 
         // writing `[10, 20, 30, 0, 0, 0, 0, 0]` to register `0`
-        let reg0 = wasmer_data_reg!(data, 64, 0, NullPageCache);
+        let reg0 = wasmer_data_reg!(data, 64, 0, MemMerklePageCache);
         reg0.set(&vec![10, 20, 30]);
 
         let slice = svm_read_page_slice!(storage, 1, 0, 100, 3);

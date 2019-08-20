@@ -28,8 +28,6 @@ impl std::error::Error for ContractError {
 
 impl std::fmt::Display for ContractError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        use std::error::Error;
-
         let msg = match self {
             ContractError::EmptyName => String::from("Name must not be empty"),
             ContractError::NameNotValidUTF8String => {
@@ -38,7 +36,7 @@ impl std::fmt::Display for ContractError {
             ContractError::DepsNotSupportedYet => String::from("Dependencies are supported yet"),
             ContractError::AdminsNotSupportedYet => String::from("Admins are not supported yet"),
             ContractError::NotEnoughBytes(field) => {
-                String::from(format!("Not enough bytes (Field: {})", field))
+                String::from(format!("Not enough bytes (field: {})", field))
             }
             ContractError::UnsupportedProtoVersion(ver) => {
                 String::from(format!("Unsupported protocol version: `{}`", ver))

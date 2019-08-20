@@ -8,8 +8,7 @@ pub mod types;
 pub mod wasm;
 
 mod code_hash;
-mod null_contract_types;
+mod default;
 mod wire;
 
-pub use null_contract_types::NullContractTypes;
 pub use wire::build_wasm_contract;

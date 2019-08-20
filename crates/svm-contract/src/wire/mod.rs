@@ -29,7 +29,7 @@ mod validate;
 
 pub use crate::wasm::WasmContract;
 
-use crate::traits::{CodeHashStore, ContractAddressCompute};
+use crate::traits::ContractAddressCompute;
 use crate::types::ContractTypes;
 use parse::parse_contract;
 use validate::validate_contract;

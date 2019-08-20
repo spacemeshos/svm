@@ -14,6 +14,9 @@ default-features = false
 path = "../svm-storage"
 features = ["svm_memory"]
 
+[dependencies.svm-contract]
+path = "../svm-contract"
+
 [dependencies.wasmer-runtime]
 default-features = false
 git = "https://github.com/spacemeshos/wasmer"
