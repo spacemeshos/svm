@@ -12,4 +12,4 @@ mod null_contract_types;
 mod wire;
 
 pub use null_contract_types::NullContractTypes;
-pub use wire::parse::parse_contract;
+pub use wire::build_wasm_contract;
