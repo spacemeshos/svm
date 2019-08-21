@@ -22,12 +22,14 @@
 //!  |________________|____________________________________|
 //!
 
+mod build;
 mod error;
 mod field;
 mod parse;
 mod validate;
 
 pub use crate::wasm::WasmContract;
+pub use build::WireContractBuilder;
 pub use error::ContractError;
 
 use crate::traits::ContractAddressCompute;

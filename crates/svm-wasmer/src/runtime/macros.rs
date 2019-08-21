@@ -1,6 +1,7 @@
+#[macro_export]
 macro_rules! include_svm_runtime {
-    ($PAGE_CACHE: ident, $CONTRACT_TYPES: ty) => {{
-        use crate::{include_wasmer_svm_vmcalls, Tx};
+    ($PAGE_CACHE: ident, $CONTRACT_TYPES: ty) => {
+        use crate::{include_wasmer_svm_vmcalls, runtime::Tx};
 
         use svm_common::{Address, State};
         use svm_contract::{build_wasm_contract, wasm::WasmContract, ContractError};
@@ -9,18 +10,20 @@ macro_rules! include_svm_runtime {
 
         #[inline(always)]
         pub fn contract_build(bytes: &[u8]) -> Result<WasmContract, ContractError> {
+            // 2. computes contract's address for contract using `CONTRACT_TYPES::AddressCompute` (implements `ContractAddressCompute`)
             svm_contract::build_wasm_contract::<$CONTRACT_TYPES>(&bytes)
         }
 
         #[inline(always)]
-        pub fn contract_validate(contract: &WasmContract) -> Result<WasmContract, ContractError> {
+        pub fn contract_validate_wasm(
+            contract: &WasmContract,
+        ) -> Result<WasmContract, ContractError> {
             // 1. validates the `wasm`
-            // 2. computes contract's address for contract using `CONTRACT_TYPES::AddressCompute` (implements `ContractAddressCompute`)
             unimplemented!()
         }
 
         pub fn contract_store(contract: &WasmContract) {
-            // 1. Looks if contract exists under `CONTRACT_TYPES::Store` (import `CodeHashStore`)
+            // 1. Looks if contract account exists under `CONTRACT_TYPES::Store` (import `CodeHashStore`)
             // 2. If contract exists, panics
             // 3. Else, stores contract under `CONTRACT_TYPES::Store`
             unimplemented!()
@@ -43,5 +46,5 @@ macro_rules! include_svm_runtime {
             //
             // 6. Execute the function with input `tx.FuncArgs`
         }
-    }};
+    };
 }

@@ -4,6 +4,7 @@
 //! `svm-wasmer` crate is the glue between `svm` constract-storage to `wasmer` live instances.
 
 /// Implements the most high-level API of `svm`.
+#[macro_use]
 pub mod runtime;
 
 /// Implements `SvmCtx`. Used for running `svm-wasmer` instances.

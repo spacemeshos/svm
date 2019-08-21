@@ -23,6 +23,11 @@ macro_rules! impl_bytes_primitive {
             pub fn as_ptr(&self) -> *const u8 {
                 self.0.as_ptr()
             }
+
+            /// Returns a slice into the `$primitive` internal array
+            pub fn as_slice(&self) -> &[u8] {
+                &self.0[..]
+            }
         }
 
         /// Should be used **only** for tests
