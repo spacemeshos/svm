@@ -50,5 +50,5 @@ pub fn build_wasm_contract<CT: ContractTypes>(
 
 fn add_contract_address<CT: ContractTypes>(contract: &mut WasmContract) {
     let address = <CT as ContractTypes>::AddressCompute::compute(&contract);
-    contract.address = Some(address);
+    contract.Address = Some(address);
 }

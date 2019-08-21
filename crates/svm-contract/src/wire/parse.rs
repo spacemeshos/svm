@@ -28,11 +28,11 @@ pub fn parse_contract(bytes: &[u8]) -> Result<WasmContract, ContractError> {
     let wasm = parse_code(&mut cursor)?;
 
     let contract = WasmContract {
-        address: None,
-        name,
-        wasm,
-        author,
-        admins,
+        Address: None,
+        Name: name,
+        Wasm: wasm,
+        Author: author,
+        Admins: admins,
     };
 
     Ok(contract)
@@ -61,19 +61,22 @@ fn parse_name(cursor: &mut Cursor<&[u8]>) -> Result<String, ContractError> {
         return Err(ContractError::EmptyName);
     }
 
-    let mut name_buf = Vec::<u8>::with_capacity(name_len);
+    let mut name_buf = vec![0; name_len];
     let res = cursor.read_exact(&mut name_buf);
 
     if res.is_err() {
         return Err(ContractError::NotEnoughBytes(Field::Name));
     }
 
-    let name = String::from_utf8(name_buf);
-    if name.is_err() {
-        Ok(name.unwrap())
-    } else {
-        Err(ContractError::NameNotValidUTF8String)
-    }
+    // TODO: make `String::from_utf8` work without raising
+    let name = unsafe { String::from_utf8_unchecked(name_buf) };
+
+    Ok(name)
+    // if name.is_err() {
+    //     Ok(name.unwrap())
+    // } else {
+    //     Err(ContractError::NameNotValidUTF8String)
+    // }
 }
 
 #[inline(always)]
@@ -82,7 +85,7 @@ fn parse_author(cursor: &mut Cursor<&[u8]>) -> Result<Address, ContractError> {
 }
 
 fn parse_admins(cursor: &mut Cursor<&[u8]>) -> Result<Vec<Address>, ContractError> {
-    let res = cursor.read_u8();
+    let res = cursor.read_u16::<BigEndian>();
 
     ensure_enough_bytes!(res, Field::AdminsCount);
 
@@ -90,6 +93,7 @@ fn parse_admins(cursor: &mut Cursor<&[u8]>) -> Result<Vec<Address>, ContractErro
     if admin_count > 0 {
         return Err(ContractError::AdminsNotSupportedYet);
     }
+
     // let mut admins = Vec::<Address>::with_capacity(admin_count);
     // for i in 0..admin_count {
     //     let addr = parse_address(addr, Field::Admins);
@@ -105,6 +109,7 @@ fn parse_deps(cursor: &mut Cursor<&[u8]>) -> Result<(), ContractError> {
     ensure_enough_bytes!(res, Field::DepsCount);
 
     let deps_count = res.unwrap() as usize;
+
     if deps_count > 0 {
         return Err(ContractError::DepsNotSupportedYet);
     }
@@ -117,7 +122,8 @@ fn parse_code(cursor: &mut Cursor<&[u8]>) -> Result<Vec<u8>, ContractError> {
     ensure_enough_bytes!(res, Field::CodeLength);
 
     let code_len = res.unwrap() as usize;
-    let mut code = Vec::<u8>::with_capacity(code_len);
+
+    let mut code = vec![0; code_len];
 
     let res = cursor.read_exact(&mut code);
     ensure_enough_bytes!(res, Field::Code);

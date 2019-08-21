@@ -47,6 +47,11 @@ mod tests {
     use super::*;
 
     #[test]
+    fn address_len() {
+        assert_eq!(32, Address::from(0).len());
+    }
+
+    #[test]
     fn address_from_ptr() {
         let expected = Address([
             0x44, 0x33, 0x22, 0x11, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,

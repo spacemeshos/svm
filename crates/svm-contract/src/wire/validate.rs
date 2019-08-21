@@ -18,7 +18,7 @@ fn validate_deps(_contract: &WasmContract) -> Result<(), ContractError> {
 }
 
 fn validate_author(contract: &WasmContract) -> Result<(), ContractError> {
-    validate_account(contract.author, Field::Author)
+    validate_account(contract.Author, Field::Author)
 }
 
 fn validate_admins(_contract: &WasmContract) -> Result<(), ContractError> {

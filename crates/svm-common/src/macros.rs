@@ -28,6 +28,12 @@ macro_rules! impl_bytes_primitive {
             pub fn as_slice(&self) -> &[u8] {
                 &self.0[..]
             }
+
+            /// Returns the number of bytes of `$primitive`
+            #[inline(always)]
+            pub fn len(&self) -> usize {
+                return $bytes_count;
+            }
         }
 
         /// Should be used **only** for tests
