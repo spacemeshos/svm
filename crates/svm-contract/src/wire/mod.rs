@@ -49,6 +49,6 @@ pub fn build_wasm_contract<E: ContractEnv>(
 }
 
 fn add_contract_address<E: ContractEnv>(contract: &mut WasmContract) {
-    let address = E::AddressCompute::compute(&contract);
+    let address = E::compute_address(&contract);
     contract.address = Some(address);
 }

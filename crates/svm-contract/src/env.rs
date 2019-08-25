@@ -1,17 +1,29 @@
 use crate::traits::{ContractAddressCompute, ContractStore};
+use crate::wasm::WasmContract;
 
-pub trait ContractEnv {
-    type AddressCompute: ContractAddressCompute;
+use svm_common::Address;
 
+pub trait ContractEnvTypes {
     type Store: ContractStore;
 
-    fn init_store<F: Fn() -> Self::Store>(&mut self, f: F);
+    type AddressCompute: ContractAddressCompute;
+}
 
-    fn get_store(&mut self) -> &Self::Store;
+pub trait ContractEnv {
+    type Types: ContractEnvTypes;
 
-    fn get_store_mut(&mut self) -> &mut Self::Store;
+    fn init_store<F: Fn() -> <Self::Types as ContractEnvTypes>::Store>(&mut self, f: F);
+
+    fn get_store(&mut self) -> &<Self::Types as ContractEnvTypes>::Store;
+
+    fn get_store_mut(&mut self) -> &mut <Self::Types as ContractEnvTypes>::Store;
 
     fn open_store(&mut self);
 
     fn close_store(&mut self);
+
+    #[inline(always)]
+    fn compute_address(contract: &WasmContract) -> Address {
+        <Self::Types as ContractEnvTypes>::AddressCompute::compute(contract)
+    }
 }
