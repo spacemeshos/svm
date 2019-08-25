@@ -1,19 +1,18 @@
 use svm_common::Address;
-
 use svm_contract::*;
 use svm_contract::{
-    default::DefaultContractAddressCompute, env::ContractEnv, memory::MemCodeHashStore,
+    default::DefaultContractAddressCompute, env::ContractEnv, memory::MemContractStore,
     traits::ContractAddressCompute,
 };
 
-struct TestEnv;
+struct TestEnv {}
 
 impl ContractEnv for TestEnv {
-    type Store = MemCodeHashStore;
+    type Store = MemContractStore;
 
     type AddressCompute = DefaultContractAddressCompute;
 
-    fn init_store<F: Fn() -> Self::Store>(&mut self, f: F) {
+    fn init_store<F: Fn() -> Self::Store>(&mut self, _f: F) {
         unimplemented!()
     }
 
@@ -46,10 +45,10 @@ fn build_wasm_contract() {
     let contract = svm_contract::build_wasm_contract::<TestEnv>(&bytes).unwrap();
 
     let expected_addr = DefaultContractAddressCompute::compute(&contract);
-    let actual_addr = contract.Address.as_ref().unwrap();
+    let actual_addr = contract.address.as_ref().unwrap();
     assert_eq!(expected_addr.as_slice(), actual_addr.as_slice());
 
-    assert_eq!("Contract #1", contract.Name);
-    assert_eq!(Address::from(0x10_20_30_40), contract.Author);
-    assert_eq!([0xAA, 0xBB, 0xCC, 0xDD], contract.Wasm.as_ref());
+    assert_eq!("Contract #1", contract.name);
+    assert_eq!(Address::from(0x10_20_30_40), contract.author);
+    assert_eq!([0xAA, 0xBB, 0xCC, 0xDD], contract.wasm.as_ref());
 }

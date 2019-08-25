@@ -1,4 +1,4 @@
-pub use crate::traits::{CodeHashStore, ContractAddressCompute};
+pub use crate::traits::ContractAddressCompute;
 
 use serde::{Deserialize, Serialize};
 

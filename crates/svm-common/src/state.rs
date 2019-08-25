@@ -19,7 +19,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "`State::from` expects exactly 32 bytes input")]
+    #[should_panic]
     fn pages_state_expects_exactly_32_bytes_input() {
         State::from([0; 10].as_ref());
     }

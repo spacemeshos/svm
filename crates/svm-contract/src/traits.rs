@@ -3,12 +3,10 @@ use crate::wasm::WasmContract;
 
 use svm_common::Address;
 
-pub trait CodeHashStore {
-    fn store(&mut self, core: &[u8], hash: CodeHash);
+pub trait ContractStore {
+    fn store(&mut self, contract: &WasmContract, hash: CodeHash, address: Address);
 
-    fn load(&self, hash: CodeHash) -> Option<Vec<u8>>;
-
-    fn exists(&self, hash: CodeHash) -> bool;
+    fn load(&self, address: Address) -> Option<WasmContract>;
 }
 
 pub trait ContractAddressCompute {

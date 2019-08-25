@@ -9,8 +9,8 @@ impl ContractAddressCompute for DefaultContractAddressCompute {
         // Computing the contract's account address as follows:
         // First 32 bytes of HASH(contract.Author || contract.Wasm)
 
-        let wasm_len = contract.Wasm.len();
-        let author_len = contract.Author.len();
+        let wasm_len = contract.wasm.len();
+        let author_len = contract.author.len();
         let key = vec![0; author_len + wasm_len];
 
         let mut hash = DefaultKeyHasher::hash(&key);

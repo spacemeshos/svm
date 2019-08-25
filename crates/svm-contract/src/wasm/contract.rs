@@ -10,10 +10,10 @@ use svm_common::Address;
 /// That's the reason why the `Address` field is defined of type `Option<Address>` and not simply `Address`.
 #[derive(Serialize, Deserialize)]
 pub struct WasmContract {
-    pub Address: Option<Address>,
-    pub Wasm: Vec<u8>,
-    pub Name: String,
-    pub Author: Address,
+    pub address: Option<Address>,
+    pub wasm: Vec<u8>,
+    pub name: String,
+    pub author: Address,
 }
 
 impl ContractSerializer for WasmContract {
@@ -33,9 +33,9 @@ impl ContractDeserializer for WasmContract {
 
 impl std::fmt::Debug for WasmContract {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let addr = self.preview_address(&self.Address);
-        let author = self.preview_author(&self.Author);
-        let wasm = self.preview_wasm(&self.Wasm);
+        let addr = self.preview_address(&self.address);
+        let author = self.preview_author(&self.author);
+        let wasm = self.preview_wasm(&self.wasm);
 
         let msg = [addr, author, wasm].join("\n");
 

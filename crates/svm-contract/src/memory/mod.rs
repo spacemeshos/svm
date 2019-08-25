@@ -1,3 +1,3 @@
-mod code_hash_store;
+mod contract_store;
 
-pub use code_hash_store::MemCodeHashStore;
+pub use contract_store::MemContractStore;

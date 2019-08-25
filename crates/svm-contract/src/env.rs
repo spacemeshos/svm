@@ -1,9 +1,9 @@
-use crate::traits::{CodeHashStore, ContractAddressCompute};
+use crate::traits::{ContractAddressCompute, ContractStore};
 
 pub trait ContractEnv {
     type AddressCompute: ContractAddressCompute;
 
-    type Store: CodeHashStore;
+    type Store: ContractStore;
 
     fn init_store<F: Fn() -> Self::Store>(&mut self, f: F);
 

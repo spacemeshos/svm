@@ -8,10 +8,9 @@ pub mod env;
 pub mod memory;
 pub mod traits;
 pub mod types;
+pub mod wasm;
 
-mod wasm;
 mod wire;
-
 pub use wire::build_wasm_contract;
 pub use wire::ContractError;
 pub use wire::WireContractBuilder;
