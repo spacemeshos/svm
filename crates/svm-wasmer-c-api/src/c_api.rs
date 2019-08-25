@@ -7,8 +7,8 @@
 #[macro_export]
 macro_rules! include_svm_wasmer_c_api {
     ($pages_storage_gen: expr, $PC: ident, $CONTRACT_TYPES: ty) => {
-        /// Injecting the `svm vmcalls` backed by PageCache `$PC` into this file
-        include_wasmer_svm_vmcalls!($PC);
+        /// Injecting the `svm runtime` backed by PageCache `$PC` into this file
+        include_svm_runtime!($PC, $CONTRACT_TYPES)
 
         use std::ffi::c_void;
 

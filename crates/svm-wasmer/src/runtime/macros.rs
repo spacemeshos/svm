@@ -9,7 +9,6 @@ macro_rules! include_svm_runtime {
         ) -> Result<svm_contract::wasm::WasmContract, svm_contract::ContractError> {
             use svm_contract::build_wasm_contract;
 
-            // 2. computes contract's address for contract using `CONTRACT_TYPES::AddressCompute` (implements `ContractAddressCompute`)
             svm_contract::build_wasm_contract::<$CONTRACT_TYPES>(&bytes)
         }
 

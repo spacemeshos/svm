@@ -2,10 +2,22 @@ use crate::types::CodeHash;
 use crate::wasm::WasmContract;
 use svm_common::Address;
 
-pub trait CodeHashStore {
-    fn store(&mut self, code: &[u8], hash: CodeHash);
+pub trait CodeHashLocator {
+    fn store(&mut self, hash: CodeHash, address: Address);
 
-    fn load(&self, hash: CodeHash) -> Option<Vec<u8>>;
+    fn exists(&self, hash: CodeHash) -> bool;
+}
+
+pub trait ContractLoader {
+    fn load(address: Address) -> Vec<u8>;
+}
+
+pub trait ContractSerializer {
+    fn serialize(contract: &WasmContract) -> Vec<u8>;
+}
+
+pub trait ContractDeserializer {
+    fn deserialize(bytes: &[u8]) -> WasmContract;
 }
 
 pub trait ContractAddressCompute {

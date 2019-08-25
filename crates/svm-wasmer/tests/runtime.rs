@@ -18,7 +18,7 @@ impl ContractTypes for TestContractTypes {
 include_svm_runtime!(MemMerklePageCache, TestContractTypes);
 
 #[test]
-fn build_wasm_contract() {
+fn deploy_wasm_contract() {
     let bytes = WireContractBuilder::new()
         .with_version(0)
         .with_name("Contract #1")
@@ -27,4 +27,7 @@ fn build_wasm_contract() {
         .build();
 
     let wasm_contract = contract_build(&bytes).unwrap();
+
+    // contract_store(&contract);
+    unimplemented!()
 }

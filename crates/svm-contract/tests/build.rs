@@ -2,16 +2,36 @@ use svm_common::Address;
 
 use svm_contract::*;
 use svm_contract::{
-    default::DefaultContractAddressCompute, memory::MemCodeHashStore,
-    traits::ContractAddressCompute, types::ContractTypes,
+    default::DefaultContractAddressCompute, env::ContractEnv, memory::MemCodeHashStore,
+    traits::ContractAddressCompute,
 };
 
-struct TestContractTypes;
+struct TestEnv;
 
-impl ContractTypes for TestContractTypes {
+impl ContractEnv for TestEnv {
     type Store = MemCodeHashStore;
 
     type AddressCompute = DefaultContractAddressCompute;
+
+    fn init_store<F: Fn() -> Self::Store>(&mut self, f: F) {
+        unimplemented!()
+    }
+
+    fn get_store(&mut self) -> &Self::Store {
+        unimplemented!()
+    }
+
+    fn get_store_mut(&mut self) -> &mut Self::Store {
+        unimplemented!()
+    }
+
+    fn open_store(&mut self) {
+        unimplemented!()
+    }
+
+    fn close_store(&mut self) {
+        unimplemented!()
+    }
 }
 
 #[test]
@@ -23,7 +43,7 @@ fn build_wasm_contract() {
         .with_code(&[0xAA, 0xBB, 0xCC, 0xDD])
         .build();
 
-    let contract = svm_contract::build_wasm_contract::<TestContractTypes>(&bytes).unwrap();
+    let contract = svm_contract::build_wasm_contract::<TestEnv>(&bytes).unwrap();
 
     let expected_addr = DefaultContractAddressCompute::compute(&contract);
     let actual_addr = contract.Address.as_ref().unwrap();
