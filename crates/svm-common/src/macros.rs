@@ -2,19 +2,27 @@
 #[macro_export]
 macro_rules! impl_bytes_primitive {
     ($primitive: ident, $bytes_count: expr) => {
-        /// Spacemesh `$primitive` primitive consists of $bytes_count bytes.
+        /// Spacemesh `$primitive` primitive consists of `$bytes_count` bytes.
         #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
         #[repr(transparent)]
-        pub struct $primitive(pub [u8; $bytes_count]);
+        pub struct $primitive(pub(self) [u8; $bytes_count]);
 
-        impl From<*const u8> for $primitive {
-            fn from(ptr: *const u8) -> $primitive {
-                let slice: &[u8] = unsafe { std::slice::from_raw_parts(ptr, $bytes_count) };
+        impl From<&[u8]> for $primitive {
+            fn from(slice: &[u8]) -> $primitive {
+                assert_eq!($bytes_count, slice.len());
 
                 let mut buf: [u8; $bytes_count] = [0; $bytes_count];
                 buf.copy_from_slice(slice);
 
                 $primitive(buf)
+            }
+        }
+
+        impl From<*const u8> for $primitive {
+            fn from(ptr: *const u8) -> $primitive {
+                let slice: &[u8] = unsafe { std::slice::from_raw_parts(ptr, $bytes_count) };
+
+                $primitive::from(slice)
             }
         }
 
@@ -27,6 +35,11 @@ macro_rules! impl_bytes_primitive {
             /// Returns a slice into the `$primitive` internal array
             pub fn as_slice(&self) -> &[u8] {
                 &self.0[..]
+            }
+
+            /// Returns a clone of the `$primitive` internal array
+            pub fn bytes(&self) -> [u8; $bytes_count] {
+                self.0
             }
 
             /// Returns the number of bytes of `$primitive`

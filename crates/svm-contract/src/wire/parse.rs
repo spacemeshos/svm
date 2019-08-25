@@ -21,6 +21,7 @@ pub fn parse_contract(bytes: &[u8]) -> Result<WasmContract, ContractError> {
     let mut cursor = Cursor::new(bytes);
 
     parse_version(&mut cursor)?;
+
     let name = parse_name(&mut cursor)?;
     let author = parse_author(&mut cursor)?;
     let admins = parse_admins(&mut cursor)?;
@@ -133,8 +134,9 @@ fn parse_code(cursor: &mut Cursor<&[u8]>) -> Result<Vec<u8>, ContractError> {
 
 fn parse_address(cursor: &mut Cursor<&[u8]>, field: Field) -> Result<Address, ContractError> {
     let mut addr = [0; 32];
+
     let res = cursor.read_exact(&mut addr);
     ensure_enough_bytes!(res, field);
 
-    Ok(Address(addr))
+    Ok(Address::from(addr.as_ref()))
 }

@@ -13,7 +13,12 @@ impl ContractAddressCompute for DefaultContractAddressCompute {
         let author_len = contract.Author.len();
         let key = vec![0; author_len + wasm_len];
 
-        let hash = DefaultKeyHasher::hash(&key);
-        Address(hash)
+        let mut hash = DefaultKeyHasher::hash(&key);
+
+        // `Address::from` expects input in Little-Endian order.
+        // so we reverse `hash` first
+        hash.reverse();
+
+        Address::from(hash.as_ref())
     }
 }

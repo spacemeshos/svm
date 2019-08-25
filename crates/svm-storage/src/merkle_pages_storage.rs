@@ -66,7 +66,7 @@ where
                 let ph = self.compute_zero_page_hash(PageIndex(page_idx as u32));
                 self.pages[page_idx] = MerklePage::NotModified(ph);
             }
-        } else if let Some(v) = self.kv.borrow().get(&self.state.0) {
+        } else if let Some(v) = self.kv.borrow().get(self.state.as_slice()) {
             // `v` should be a concatenation of pages-hash. Each page hash consumes exactly 32 bytes.
             assert!(v.len() % 32 == 0);
 
@@ -75,7 +75,7 @@ where
                 self.pages[page_idx] = MerklePage::NotModified(ph);
             }
         } else {
-            panic!("Didn't find state: {:?}", self.state.0);
+            panic!("Didn't find state: {:?}", self.state.as_slice());
         }
     }
 
@@ -192,7 +192,7 @@ where
         let mut entries: Vec<(&[u8], &[u8])> = Vec::with_capacity(1 + changeset.len());
 
         let state_entry_val: Vec<u8> = pages_hash.iter().flat_map(|ph| ph.0.to_vec()).collect();
-        entries.push((&new_state.0, state_entry_val.as_ref()));
+        entries.push((new_state.as_slice(), state_entry_val.as_ref()));
 
         for change in changeset {
             entries.push(change)
@@ -361,7 +361,7 @@ mod tests {
         let state = compute_state!(jph);
 
         assert_state!(state, storage);
-        assert_same_keys!(vec![state.0], kv_keys_vec!(kv));
+        assert_same_keys!(vec![state.bytes()], kv_keys_vec!(kv));
 
         assert_no_key!(&kv, ph0.0);
         assert_no_key!(&kv, ph1.0);
@@ -387,8 +387,8 @@ mod tests {
         let state = compute_state!(jph);
 
         assert_state!(state, storage);
-        assert_same_keys!(vec![state.0, ph0.0], kv_keys_vec!(kv));
-        assert_key_value!(kv, state.0, jph);
+        assert_same_keys!(vec![state.bytes(), ph0.0], kv_keys_vec!(kv));
+        assert_key_value!(kv, state.bytes(), jph);
         assert_key_value!(kv, ph0.0, [10, 20, 30]);
         assert_page!(storage, 0, Some(vec![10, 20, 30]));
         assert_page!(storage, 1, None);
@@ -410,8 +410,8 @@ mod tests {
         let state = compute_state!(jph);
 
         assert_state!(state, storage);
-        assert_same_keys!(vec![state.0, ph0.0, ph1.0], kv_keys_vec!(kv));
-        assert_key_value!(kv, state.0, jph);
+        assert_same_keys!(vec![state.bytes(), ph0.0, ph1.0], kv_keys_vec!(kv));
+        assert_key_value!(kv, state.bytes(), jph);
         assert_key_value!(kv, ph0.0, [10, 20, 30]);
         assert_key_value!(kv, ph1.0, [40, 50, 60]);
         assert_page!(storage, 0, Some(vec![10, 20, 30]));
@@ -440,11 +440,11 @@ mod tests {
         let new_state = compute_state!(jph);
 
         assert_same_keys!(
-            vec![old_state.0, new_state.0, ph0.0, ph1.0],
+            vec![old_state.bytes(), new_state.bytes(), ph0.0, ph1.0],
             kv_keys_vec!(kv)
         );
 
-        assert_key_value!(kv, new_state.0, jph);
+        assert_key_value!(kv, new_state.bytes(), jph);
         assert_key_value!(kv, ph0.0, [10, 20, 30]);
         assert_key_value!(kv, ph1.0, [40, 50, 60]);
         assert_no_key!(kv, ph2.0);
@@ -473,11 +473,11 @@ mod tests {
         let new_state = compute_state!(jph);
 
         assert_same_keys!(
-            vec![old_state.0, new_state.0, ph0_old.0, ph0.0, ph1.0],
+            vec![old_state.bytes(), new_state.bytes(), ph0_old.0, ph0.0, ph1.0],
             kv_keys_vec!(kv)
         );
 
-        assert_key_value!(kv, new_state.0, jph);
+        assert_key_value!(kv, new_state.bytes(), jph);
         assert_key_value!(kv, ph0.0, [10, 20, 30]);
         assert_key_value!(kv, ph1.0, [40, 50, 60]);
         assert_no_key!(kv, ph2.0);
@@ -511,23 +511,23 @@ mod tests {
         let jph = join_pages_hash!(&[ph0_1, ph1_1, ph2_1]);
 
         assert_same_keys!(
-            vec![state_1.0, state_2.0, ph0_1.0, ph0_2.0, ph1_2.0],
+            vec![state_1.bytes(), state_2.bytes(), ph0_1.0, ph0_2.0, ph1_2.0],
             kv_keys_vec!(kv)
         );
 
         assert_state!(state_1, storage);
-        assert_key_value!(kv, state_1.0, jph);
+        assert_key_value!(kv, state_1.bytes(), jph);
 
         // 4th run (rollbacks to `state_2` initial state)
         mem_merkle_pages_open!(0x11_22_33_44, addr, storage, kv, state_2, 3);
         let jph = join_pages_hash!(&[ph0_2, ph1_2, ph2_2]);
 
         assert_same_keys!(
-            vec![state_1.0, state_2.0, ph0_1.0, ph0_2.0, ph1_2.0],
+            vec![state_1.bytes(), state_2.bytes(), ph0_1.0, ph0_2.0, ph1_2.0],
             kv_keys_vec!(kv)
         );
 
-        assert_key_value!(kv, state_2.0, jph);
+        assert_key_value!(kv, state_2.bytes(), jph);
         assert_state!(state_2, storage);
     }
 }

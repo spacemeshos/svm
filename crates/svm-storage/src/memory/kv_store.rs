@@ -58,7 +58,7 @@ mod tests {
         let kv = MemKVStore::new();
         let addr = Address::from(0x11_22_33_44 as u32);
 
-        assert_eq!(None, kv.get(&addr.0));
+        assert_eq!(None, kv.get(addr.as_slice()));
     }
 
     #[test]
@@ -66,8 +66,8 @@ mod tests {
         let mut kv = MemKVStore::new();
         let addr = Address::from(0x11_22_33_44 as u32);
 
-        kv.store(&[(&addr.0, &[10, 20, 30])]);
-        assert_eq!(vec![10, 20, 30], kv.get(&addr.0).unwrap());
+        kv.store(&[(addr.as_slice(), &[10, 20, 30])]);
+        assert_eq!(vec![10, 20, 30], kv.get(addr.as_slice()).unwrap());
     }
 
     #[test]
@@ -75,11 +75,11 @@ mod tests {
         let mut kv = MemKVStore::new();
         let addr = Address::from(0x11_22_33_44 as u32);
 
-        kv.store(&[(&addr.0, &[10, 20, 30])]);
-        assert_eq!(vec![10, 20, 30], kv.get(&addr.0).unwrap());
+        kv.store(&[(addr.as_slice(), &[10, 20, 30])]);
+        assert_eq!(vec![10, 20, 30], kv.get(addr.as_slice()).unwrap());
 
-        kv.store(&[(&addr.0, &[40, 50, 60])]);
-        assert_eq!(vec![40, 50, 60], kv.get(&addr.0).unwrap());
+        kv.store(&[(addr.as_slice(), &[40, 50, 60])]);
+        assert_eq!(vec![40, 50, 60], kv.get(addr.as_slice()).unwrap());
     }
 
     #[test]
@@ -88,14 +88,17 @@ mod tests {
         let addr1 = Address::from(0x11_22_33_44 as u32);
         let addr2 = Address::from(0x55_66_77_88 as u32);
 
-        kv.store(&[(&addr1.0, &[10, 20, 30]), (&addr2.0, &[40, 50, 60])]);
+        kv.store(&[
+            (addr1.as_slice(), &[10, 20, 30]),
+            (addr2.as_slice(), &[40, 50, 60]),
+        ]);
 
-        assert_eq!(vec![10, 20, 30], kv.get(&addr1.0).unwrap());
-        assert_eq!(vec![40, 50, 60], kv.get(&addr2.0).unwrap());
+        assert_eq!(vec![10, 20, 30], kv.get(addr1.as_slice()).unwrap());
+        assert_eq!(vec![40, 50, 60], kv.get(addr2.as_slice()).unwrap());
 
         kv.clear();
 
-        assert_eq!(None, kv.get(&addr1.0));
-        assert_eq!(None, kv.get(&addr2.0));
+        assert_eq!(None, kv.get(addr1.as_slice()));
+        assert_eq!(None, kv.get(addr2.as_slice()));
     }
 }

@@ -9,21 +9,6 @@ impl State {
     }
 }
 
-impl From<&[u8]> for State {
-    fn from(slice: &[u8]) -> State {
-        assert_eq!(
-            32,
-            slice.len(),
-            "`State::from` expects exactly 32 bytes input"
-        );
-
-        let mut bytes = [0; 32];
-        bytes.copy_from_slice(slice);
-
-        State(bytes)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

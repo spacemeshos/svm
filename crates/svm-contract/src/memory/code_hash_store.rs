@@ -27,6 +27,13 @@ impl CodeHashStore for MemCodeHashStore {
             None => None,
         }
     }
+
+    fn exists(&self, hash: CodeHash) -> bool {
+        match self.map.get(&hash) {
+            Some(_) => true,
+            None => false,
+        }
+    }
 }
 
 #[cfg(test)]
