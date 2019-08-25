@@ -6,9 +6,9 @@
 ///
 #[macro_export]
 macro_rules! include_svm_wasmer_c_api {
-    ($pages_storage_gen: expr, $PC: ident, $CONTRACT_TYPES: ty) => {
+    ($pages_storage_gen: expr, $PC: ident, $ENV: ty) => {
         /// Injecting the `svm runtime` backed by PageCache `$PC` into this file
-        include_svm_runtime!($PC, $CONTRACT_TYPES)
+        include_svm_runtime!($PC, $ENV);
 
         use std::ffi::c_void;
 
@@ -35,7 +35,7 @@ macro_rules! include_svm_wasmer_c_api {
             use svm_contract::wasm::WasmContract;
 
             let bytes = std::slice::from_raw_parts(raw_bytes, raw_bytes_len as usize);
-            let res = svm_contract::build_wasm_contract::<$CONTRACT_TYPES>(&bytes);
+            let res = svm_contract::build_wasm_contract::<$ENV>(&bytes);
 
             match res {
                 Ok(inner_contract) => {

@@ -37,18 +37,18 @@ use crate::traits::ContractAddressCompute;
 use parse::parse_contract;
 use validate::validate_contract;
 
-pub fn build_wasm_contract<E: ContractEnv>(
+pub fn build_wasm_contract<ENV: ContractEnv>(
     bytes: &[u8],
 ) -> Result<WasmContract, error::ContractError> {
     let mut contract = parse_contract(bytes)?;
 
     validate_contract(&contract)?;
-    add_contract_address::<E>(&mut contract);
+    add_contract_address::<ENV>(&mut contract);
 
     Ok(contract)
 }
 
-fn add_contract_address<E: ContractEnv>(contract: &mut WasmContract) {
-    let address = E::compute_address(&contract);
+fn add_contract_address<ENV: ContractEnv>(contract: &mut WasmContract) {
+    let address = ENV::compute_address(&contract);
     contract.address = Some(address);
 }

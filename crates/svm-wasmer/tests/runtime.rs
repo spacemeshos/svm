@@ -3,7 +3,7 @@ use svm_contract::WireContractBuilder;
 use svm_storage::memory::MemMerklePageCache;
 use svm_wasmer::*;
 
-use svm_contract::{default::DefaultContractAddressCompute, memory::MemCodeHashStore};
+use svm_contract::default::DefaultContractAddressCompute;
 
 struct TestContractTypes;
 
