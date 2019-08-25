@@ -1,16 +1,34 @@
+use crate::traits::{ContractDeserializer, ContractSerializer};
+use serde::{Deserialize, Serialize};
+
 use svm_common::Address;
 
 /// We first parse the on-the-wire contract transaction into a `WasmContract` instance.
 /// At that stage we don't know the contract future `address` yet.
 ///
 /// It's only later, while we `validiate` the contract when we also compute its future account address and add it to the `WasmContract` instance.
-/// That's the reason why the `address` field is defined as `Option<Address>` and not simply `Address`.
+/// That's the reason why the `Address` field is defined of type `Option<Address>` and not simply `Address`.
+#[derive(Serialize, Deserialize)]
 pub struct WasmContract {
     pub Address: Option<Address>,
     pub Wasm: Vec<u8>,
     pub Name: String,
     pub Author: Address,
-    pub Admins: Vec<Address>,
+}
+
+impl ContractSerializer for WasmContract {
+    fn serialize(contract: &WasmContract) -> Vec<u8> {
+        let s = serde_json::to_string(&contract).unwrap();
+        s.into_bytes()
+    }
+}
+
+impl ContractDeserializer for WasmContract {
+    fn deserialize(bytes: Vec<u8>) -> WasmContract {
+        let s = unsafe { String::from_utf8_unchecked(bytes) };
+
+        serde_json::from_str(s.as_str()).unwrap()
+    }
 }
 
 impl std::fmt::Debug for WasmContract {

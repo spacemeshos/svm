@@ -24,7 +24,7 @@ pub fn parse_contract(bytes: &[u8]) -> Result<WasmContract, ContractError> {
 
     let name = parse_name(&mut cursor)?;
     let author = parse_author(&mut cursor)?;
-    let admins = parse_admins(&mut cursor)?;
+    let _admins = parse_admins(&mut cursor)?;
     let _deps = parse_deps(&mut cursor)?;
     let wasm = parse_code(&mut cursor)?;
 
@@ -33,7 +33,6 @@ pub fn parse_contract(bytes: &[u8]) -> Result<WasmContract, ContractError> {
         Name: name,
         Wasm: wasm,
         Author: author,
-        Admins: admins,
     };
 
     Ok(contract)

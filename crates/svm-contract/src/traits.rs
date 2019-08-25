@@ -1,5 +1,6 @@
 use crate::types::CodeHash;
 use crate::wasm::WasmContract;
+
 use svm_common::Address;
 
 pub trait CodeHashStore {
@@ -10,14 +11,14 @@ pub trait CodeHashStore {
     fn exists(&self, hash: CodeHash) -> bool;
 }
 
+pub trait ContractAddressCompute {
+    fn compute(contract: &WasmContract) -> Address;
+}
+
 pub trait ContractSerializer {
     fn serialize(contract: &WasmContract) -> Vec<u8>;
 }
 
 pub trait ContractDeserializer {
-    fn deserialize(bytes: &[u8]) -> WasmContract;
-}
-
-pub trait ContractAddressCompute {
-    fn compute(contract: &WasmContract) -> Address;
+    fn deserialize(bytes: Vec<u8>) -> WasmContract;
 }

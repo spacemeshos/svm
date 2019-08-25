@@ -3,7 +3,7 @@
 macro_rules! impl_bytes_primitive {
     ($primitive: ident, $bytes_count: expr) => {
         /// Spacemesh `$primitive` primitive consists of `$bytes_count` bytes.
-        #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+        #[derive(serde::Serialize, serde::Deserialize, Debug, Copy, Clone, Hash, PartialEq, Eq)]
         #[repr(transparent)]
         pub struct $primitive(pub(self) [u8; $bytes_count]);
 

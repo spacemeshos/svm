@@ -46,6 +46,7 @@ impl Add<u32> for Address {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json;
 
     #[test]
     fn address_len() {
@@ -208,5 +209,19 @@ mod tests {
         let actual = Address::from(0xFF_FF_00_00_00 as u64).add(0x03_00_00_00);
 
         assert_eq!(expected[..], actual[..]);
+    }
+
+    #[test]
+    fn serialize_addr() {
+        let origin = Address([
+            0x11, 0x22, 0x33, 0x44, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+        ]);
+
+        let addr_str = serde_json::to_string(&origin).unwrap();
+        let deserialized = serde_json::from_str(&addr_str).unwrap();
+
+        assert_eq!(origin, deserialized);
     }
 }

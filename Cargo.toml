@@ -49,6 +49,7 @@ branch = "develop"
 libc = "0.2"
 byteorder = "1.3.2"
 tiny-keccak = "1.4.2"
+serde = { version = "1.0.98", features = ["derive"] }
 svm-common = { path = "crates/svm-common" }
 svm-storage = { path = "crates/svm-storage" }
 svm-compiler = { path = "crates/svm-compiler" }
