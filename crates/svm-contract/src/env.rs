@@ -4,7 +4,7 @@ use crate::traits::{
 };
 use crate::types::CodeHash;
 use crate::wasm::WasmContract;
-use crate::wire::ContractError;
+use crate::wire::deploy::ContractError;
 
 use svm_common::{Address, KeyHasher};
 
@@ -40,9 +40,9 @@ pub trait ContractEnv {
     }
 
     fn build_contract(bytes: &[u8]) -> Result<WasmContract, ContractError> {
-        let mut contract = crate::wire::parse_contract(bytes)?;
+        let mut contract = crate::wire::deploy::parse_contract(bytes)?;
 
-        crate::wire::validate_contract(&contract)?;
+        crate::wire::deploy::validate_contract(&contract)?;
 
         contract.address = Some(Self::compute_address(&contract));
 

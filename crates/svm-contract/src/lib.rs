@@ -14,5 +14,5 @@ mod tx;
 mod wire;
 
 pub use tx::Tx;
-pub use wire::ContractError;
-pub use wire::WireContractBuilder;
+pub use wire::deploy::ContractError;
+pub use wire::deploy::WireContractBuilder;
