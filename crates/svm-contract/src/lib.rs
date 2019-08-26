@@ -11,6 +11,5 @@ pub mod types;
 pub mod wasm;
 
 mod wire;
-pub use wire::build_wasm_contract;
 pub use wire::ContractError;
 pub use wire::WireContractBuilder;

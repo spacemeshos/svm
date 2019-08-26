@@ -3,25 +3,38 @@ use crate::types::CodeHash;
 use crate::wasm::WasmContract;
 
 use std::collections::HashMap;
+use std::marker::PhantomData;
+
 use svm_common::Address;
 
-pub struct MemContractStore {
+pub struct MemContractStore<S, D> {
     contract_bytes: HashMap<CodeHash, Vec<u8>>,
     addr_codehash: HashMap<Address, CodeHash>,
+    marker: PhantomData<(S, D)>,
 }
 
 #[allow(dead_code)]
-impl MemContractStore {
-    fn new() -> Self {
+impl<S, D> MemContractStore<S, D>
+where
+    S: ContractSerializer,
+    D: ContractDeserializer,
+{
+    pub fn new() -> Self {
         Self {
             contract_bytes: HashMap::new(),
             addr_codehash: HashMap::new(),
+            marker: PhantomData,
         }
     }
 }
 
-impl ContractStore for MemContractStore {
-    fn store(&mut self, contract: &WasmContract, hash: CodeHash, address: Address) {
+impl<S, D> ContractStore<S, D> for MemContractStore<S, D>
+where
+    S: ContractSerializer,
+    D: ContractDeserializer,
+{
+    fn store(&mut self, contract: &WasmContract) {
+        unimplemented!()
         // self.map.insert(hash, code.to_owned());
     }
 
@@ -34,11 +47,16 @@ impl ContractStore for MemContractStore {
                     hash
                 )),
                 Some(bytes) => {
-                    let contract = WasmContract::deserialize(bytes.to_vec());
+                    let contract = D::deserialize(bytes.to_vec());
                     Some(contract)
                 }
             },
         }
+    }
+
+    fn close(&mut self) {
+        self.contract_bytes.clear();
+        self.addr_codehash.clear();
     }
 }
 

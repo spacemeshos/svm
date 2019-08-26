@@ -32,23 +32,5 @@ pub use crate::wasm::WasmContract;
 pub use build::WireContractBuilder;
 pub use error::ContractError;
 
-use crate::env::ContractEnv;
-use crate::traits::ContractAddressCompute;
-use parse::parse_contract;
-use validate::validate_contract;
-
-pub fn build_wasm_contract<ENV: ContractEnv>(
-    bytes: &[u8],
-) -> Result<WasmContract, error::ContractError> {
-    let mut contract = parse_contract(bytes)?;
-
-    validate_contract(&contract)?;
-    add_contract_address::<ENV>(&mut contract);
-
-    Ok(contract)
-}
-
-fn add_contract_address<ENV: ContractEnv>(contract: &mut WasmContract) {
-    let address = ENV::compute_address(&contract);
-    contract.address = Some(address);
-}
+pub use parse::parse_contract;
+pub use validate::validate_contract;

@@ -16,21 +16,6 @@ pub struct WasmContract {
     pub author: Address,
 }
 
-impl ContractSerializer for WasmContract {
-    fn serialize(contract: &WasmContract) -> Vec<u8> {
-        let s = serde_json::to_string(&contract).unwrap();
-        s.into_bytes()
-    }
-}
-
-impl ContractDeserializer for WasmContract {
-    fn deserialize(bytes: Vec<u8>) -> WasmContract {
-        let s = unsafe { String::from_utf8_unchecked(bytes) };
-
-        serde_json::from_str(s.as_str()).unwrap()
-    }
-}
-
 impl std::fmt::Debug for WasmContract {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let addr = self.preview_address(&self.address);

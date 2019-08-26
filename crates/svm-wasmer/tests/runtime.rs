@@ -1,25 +1,25 @@
 use svm_common::Address;
+use svm_contract::env::ContractEnv;
+use svm_contract::memory::{MemContractStore, MemoryEnv};
 use svm_contract::WireContractBuilder;
 use svm_storage::memory::MemMerklePageCache;
 use svm_wasmer::*;
 
-use svm_contract::default::DefaultContractAddressCompute;
+include_svm_runtime!(MemMerklePageCache, svm_contract::memory::MemoryEnv);
 
-struct TestContractTypes;
+#[test]
+fn deploy_wasm_contract() {
+    let bytes = WireContractBuilder::new()
+        .with_version(0)
+        .with_name("Contract #1")
+        .with_author(Address::from(0x10_20_30_40))
+        .with_code(&[0xAA, 0xBB, 0xCC, 0xDD])
+        .build();
 
-// include_svm_runtime!(MemMerklePageCache, TestContractTypes);
+    let contract = runtime::contract_build(&bytes).unwrap();
 
-// #[test]
-// fn deploy_wasm_contract() {
-//     let bytes = WireContractBuilder::new()
-//         .with_version(0)
-//         .with_name("Contract #1")
-//         .with_author(Address::from(0x10_20_30_40))
-//         .with_code(&[0xAA, 0xBB, 0xCC, 0xDD])
-//         .build();
-//
-//     let wasm_contract = contract_build(&bytes).unwrap();
-//
-//     // contract_store(&contract);
-//     unimplemented!()
-// }
+    let mut store = MemContractStore::new();
+    let mut env = MemoryEnv::new(store);
+
+    runtime::contract_store(&contract, &mut env);
+}

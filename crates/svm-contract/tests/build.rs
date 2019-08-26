@@ -1,6 +1,7 @@
 use crate::traits::ContractAddressCompute;
 use svm_common::Address;
 use svm_contract::default::DefaultContractAddressCompute;
+use svm_contract::env::ContractEnv;
 use svm_contract::memory::MemoryEnv;
 
 use svm_contract::*;
@@ -14,7 +15,7 @@ fn build_wasm_contract() {
         .with_code(&[0xAA, 0xBB, 0xCC, 0xDD])
         .build();
 
-    let contract = svm_contract::build_wasm_contract::<MemoryEnv>(&bytes).unwrap();
+    let contract = <MemoryEnv as ContractEnv>::build_wasm_contract(&bytes).unwrap();
 
     let expected_addr = DefaultContractAddressCompute::compute(&contract);
     let actual_addr = contract.address.as_ref().unwrap();
