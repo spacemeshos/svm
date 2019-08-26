@@ -10,6 +10,9 @@ pub mod traits;
 pub mod types;
 pub mod wasm;
 
+mod tx;
 mod wire;
+
+pub use tx::Tx;
 pub use wire::ContractError;
 pub use wire::WireContractBuilder;

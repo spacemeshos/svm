@@ -26,7 +26,7 @@ macro_rules! include_svm_runtime {
                 env.store_contract(&contract)
             }
 
-            pub fn contract_exec<F>(tx: $crate::runtime::Tx, env: &mut $ENV, import_object_gen: F)
+            pub fn contract_exec<F>(tx: svm_contract::Tx, env: &mut $ENV, import_object_gen: F)
             where
                 F: Fn(svm_common::Address, svm_common::State) -> wasmer_runtime::ImportObject,
             {
@@ -57,14 +57,26 @@ macro_rules! include_svm_runtime {
                                         // ...
                                     }
                                     Ok(instance) => {
-                                        // prepare input ...
-                                        let func = instance.dyn_func(tx.func_name.as_str());
+                                        let func = instance.dyn_func(&tx.func_name);
 
-                                        // let args = []
-                                        //
-                                        // let res = func.call(args);
-                                        //
-                                        // match res { ... }
+                                        match func {
+                                            Err(_) => {
+                                                // function not found
+                                            }
+                                            Ok(func) => {
+                                                let args = [];
+                                                let res = func.call(&args);
+
+                                                match res {
+                                                    Err(_) => {
+                                                        // function execution failed
+                                                    }
+                                                    Ok(_) => {
+                                                        // ...
+                                                    }
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             }

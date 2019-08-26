@@ -23,3 +23,33 @@ fn deploy_wasm_contract() {
 
     runtime::contract_store(&contract, &mut env);
 }
+
+#[test]
+#[ignore]
+fn contract_non_existing_exec() {
+    //
+}
+
+#[test]
+#[ignore]
+fn contract_exec_valid_tx() {
+    //
+}
+
+#[test]
+#[ignore]
+fn contract_exec_invalid_state() {
+    //
+}
+
+#[test]
+#[ignore]
+fn contract_exec_invalid_func_name() {
+    //
+}
+
+#[test]
+#[ignore]
+fn contract_exec_invalid_func_args() {
+    //
+}
