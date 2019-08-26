@@ -26,10 +26,53 @@ macro_rules! include_svm_runtime {
                 env.store_contract(&contract)
             }
 
-            pub fn contract_exec(tx: $crate::runtime::Tx) {
+            pub fn contract_exec<F>(tx: $crate::runtime::Tx, env: &mut $ENV, import_object_gen: F)
+            where
+                F: Fn(svm_common::Address, svm_common::State) -> wasmer_runtime::ImportObject,
+            {
                 use svm_common::{Address, State};
+                use svm_contract::env::ContractEnv;
+                use svm_contract::traits::ContractStore;
 
-                // 1. Loads contract wasmer module `tx.Address`
+                let store = env.get_store();
+
+                match store.load(tx.contract) {
+                    None => {
+                        // should return a failure
+                        // and the `tx.sender` should pay the maximum tx gas ??
+                    }
+                    Some(contract) => {
+                        let compile = wasmer_runtime::compile(&contract.wasm);
+
+                        match compile {
+                            Err(_) => {
+                                // wasm is invalid
+                            }
+                            Ok(module) => {
+                                let import_object = import_object_gen(tx.contract, tx.state);
+                                let instantiate = module.instantiate(&import_object);
+
+                                match instantiate {
+                                    Err(_) => {
+                                        // ...
+                                    }
+                                    Ok(instance) => {
+                                        // prepare input ...
+                                        let func = instance.dyn_func(tx.func_name.as_str());
+
+                                        // let args = []
+                                        //
+                                        // let res = func.call(args);
+                                        //
+                                        // match res { ... }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // 1. Loads contract wasmer module `tx.contract`
                 //  * if it's NOT in the compiled-modules-cache
                 //      * Gets the wasm code from the `ENV::Store` (implements `CodeHashStore`)
                 //      * Compile the module using `svm_compiler::compile_program(..)`
