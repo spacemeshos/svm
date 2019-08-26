@@ -33,9 +33,13 @@ where
     S: ContractSerializer,
     D: ContractDeserializer,
 {
-    fn store(&mut self, contract: &WasmContract) {
-        unimplemented!()
-        // self.map.insert(hash, code.to_owned());
+    fn store(&mut self, contract: &WasmContract, hash: CodeHash) {
+        let serialized: Vec<u8> = S::serialize(contract);
+
+        self.contract_bytes.insert(hash, serialized);
+
+        let addr = contract.address.unwrap();
+        self.addr_codehash.insert(addr, hash);
     }
 
     fn load(&self, address: Address) -> Option<WasmContract> {

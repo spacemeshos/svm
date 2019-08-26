@@ -8,7 +8,7 @@ use svm_common::Address;
 ///
 /// It's only later, while we `validiate` the contract when we also compute its future account address and add it to the `WasmContract` instance.
 /// That's the reason why the `Address` field is defined of type `Option<Address>` and not simply `Address`.
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, PartialEq)]
 pub struct WasmContract {
     pub address: Option<Address>,
     pub wasm: Vec<u8>,
@@ -32,7 +32,10 @@ impl WasmContract {
     fn preview_address(&self, addr: &Option<Address>) -> String {
         match addr {
             Some(addr) => {
-                let slice = &addr.as_slice()[24..31];
+                // since `Address` internal data is stored in a Little-Endian order
+                // we take the last bytes and display them in reverse-order.
+
+                let slice = &addr.as_slice()[24..31].to_vec().reverse();
                 format!("Address: {:?}...", slice)
             }
             None => String::from("Address: None"),

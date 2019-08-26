@@ -16,7 +16,7 @@ where
     S: ContractSerializer,
     D: ContractDeserializer,
 {
-    fn store(&mut self, contract: &WasmContract);
+    fn store(&mut self, contract: &WasmContract, hash: CodeHash);
 
     fn load(&self, address: Address) -> Option<WasmContract>;
 

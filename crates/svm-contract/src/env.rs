@@ -29,10 +29,6 @@ pub trait ContractEnv {
 
     fn close_store(&mut self);
 
-    // fn store_contract(&mut self, contract: &WasmContract) {
-    //     let store = self.get_store_mut();
-    // }
-
     #[inline(always)]
     fn compute_code_hash(contract: &WasmContract) -> CodeHash {
         <Self::Types as ContractEnvTypes>::CodeHasher::hash(&contract.wasm)
@@ -43,7 +39,7 @@ pub trait ContractEnv {
         <Self::Types as ContractEnvTypes>::AddressCompute::compute(contract)
     }
 
-    fn build_wasm_contract(bytes: &[u8]) -> Result<WasmContract, ContractError> {
+    fn build_contract(bytes: &[u8]) -> Result<WasmContract, ContractError> {
         let mut contract = crate::wire::parse_contract(bytes)?;
 
         crate::wire::validate_contract(&contract)?;
@@ -51,5 +47,13 @@ pub trait ContractEnv {
         contract.address = Some(Self::compute_address(&contract));
 
         Ok(contract)
+    }
+
+    #[inline(always)]
+    fn store_contract(&mut self, contract: &WasmContract) {
+        let hash = Self::compute_code_hash(contract);
+        let store = self.get_store_mut();
+
+        store.store(&contract, hash);
     }
 }

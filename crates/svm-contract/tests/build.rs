@@ -15,7 +15,7 @@ fn build_wasm_contract() {
         .with_code(&[0xAA, 0xBB, 0xCC, 0xDD])
         .build();
 
-    let contract = <MemoryEnv as ContractEnv>::build_wasm_contract(&bytes).unwrap();
+    let contract = <MemoryEnv as ContractEnv>::build_contract(&bytes).unwrap();
 
     let expected_addr = DefaultContractAddressCompute::compute(&contract);
     let actual_addr = contract.address.as_ref().unwrap();

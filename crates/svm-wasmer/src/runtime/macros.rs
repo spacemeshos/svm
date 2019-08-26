@@ -8,29 +8,28 @@ macro_rules! include_svm_runtime {
             pub fn contract_build(
                 bytes: &[u8],
             ) -> Result<svm_contract::wasm::WasmContract, svm_contract::ContractError> {
-                use svm_contract::build_wasm_contract;
-
-                svm_contract::build_wasm_contract::<$ENV>(&bytes)
+                <$ENV as svm_contract::env::ContractEnv>::build_contract(&bytes)
             }
 
             #[inline(always)]
-            pub fn contract_validate_wasm(
+            pub fn contract_validate(
                 contract: &svm_contract::wasm::WasmContract,
             ) -> Result<(), svm_contract::ContractError> {
-                // 1. validates the `wasm`
+                // validates the `wasm`. should use the `deterministic` feature of `wasmparser`.
+                // (avoiding floats)
                 unimplemented!()
             }
 
+            #[inline(always)]
             pub fn contract_store(contract: &svm_contract::wasm::WasmContract, env: &mut $ENV) {
-                let store = env.get_store_mut();
-
-                let hash = store.store(&contract, hash);
+                use svm_contract::env::ContractEnv;
+                env.store_contract(&contract)
             }
 
             pub fn contract_exec(tx: $crate::runtime::Tx) {
                 use svm_common::{Address, State};
 
-                // 1. Load contract wasmer module `tx.Address`
+                // 1. Loads contract wasmer module `tx.Address`
                 //  * if it's NOT in the compiled-modules-cache
                 //      * Gets the wasm code from the `ENV::Store` (implements `CodeHashStore`)
                 //      * Compile the module using `svm_compiler::compile_program(..)`
@@ -38,7 +37,7 @@ macro_rules! include_svm_runtime {
                 //
                 // 2. Validates that module has function `tx.FuncName` and that it can accept `tx.FuncArgs`
                 //
-                // 3. Build the import object with `address = tx.Address` and `state = tx.State`
+                // 3. Builds the import object with `address = tx.Address` and `state = tx.State`
                 //
                 // 4. Instantiate wasm instance
                 //
