@@ -29,7 +29,7 @@ mod validate;
 
 pub use crate::wasm::WasmContract;
 pub use build::WireContractBuilder;
-pub use error::ContractError;
+pub use error::ContractDeployError;
 
 pub use parse::parse_contract;
 pub use validate::validate_contract;

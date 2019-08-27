@@ -1,6 +1,6 @@
 use super::field::Field;
 
-pub enum ContractError {
+pub enum ContractDeployError {
     EmptyName,
     NameNotValidUTF8String,
     DepsNotSupportedYet,
@@ -11,45 +11,49 @@ pub enum ContractError {
     InvalidWasm,
 }
 
-impl std::error::Error for ContractError {
+impl std::error::Error for ContractDeployError {
     fn description(&self) -> &'static str {
         match self {
-            ContractError::EmptyName => "Name must not be empty",
-            ContractError::NameNotValidUTF8String => "Name must be a valid UTF-8 string",
-            ContractError::DepsNotSupportedYet => "Dependencies are supported yet",
-            ContractError::AdminsNotSupportedYet => "Admins are not supported yet",
-            ContractError::NotEnoughBytes(_) => "Not enough bytes",
-            ContractError::UnsupportedProtoVersion(_) => "Unsupported protocol version",
-            ContractError::NoAuthors => "Must have authors",
-            ContractError::InvalidWasm => "Invalid wasm format",
+            ContractDeployError::EmptyName => "Name must not be empty",
+            ContractDeployError::NameNotValidUTF8String => "Name must be a valid UTF-8 string",
+            ContractDeployError::DepsNotSupportedYet => "Dependencies are supported yet",
+            ContractDeployError::AdminsNotSupportedYet => "Admins are not supported yet",
+            ContractDeployError::NotEnoughBytes(_) => "Not enough bytes",
+            ContractDeployError::UnsupportedProtoVersion(_) => "Unsupported protocol version",
+            ContractDeployError::NoAuthors => "Must have authors",
+            ContractDeployError::InvalidWasm => "Invalid wasm format",
         }
     }
 }
 
-impl std::fmt::Display for ContractError {
+impl std::fmt::Display for ContractDeployError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let msg = match self {
-            ContractError::EmptyName => String::from("Name must not be empty"),
-            ContractError::NameNotValidUTF8String => {
+            ContractDeployError::EmptyName => String::from("Name must not be empty"),
+            ContractDeployError::NameNotValidUTF8String => {
                 String::from("Name must be a valid UTF-8 string")
             }
-            ContractError::DepsNotSupportedYet => String::from("Dependencies are supported yet"),
-            ContractError::AdminsNotSupportedYet => String::from("Admins are not supported yet"),
-            ContractError::NotEnoughBytes(field) => {
+            ContractDeployError::DepsNotSupportedYet => {
+                String::from("Dependencies are supported yet")
+            }
+            ContractDeployError::AdminsNotSupportedYet => {
+                String::from("Admins are not supported yet")
+            }
+            ContractDeployError::NotEnoughBytes(field) => {
                 String::from(format!("Not enough bytes (field: {})", field))
             }
-            ContractError::UnsupportedProtoVersion(ver) => {
+            ContractDeployError::UnsupportedProtoVersion(ver) => {
                 String::from(format!("Unsupported protocol version: `{}`", ver))
             }
-            ContractError::NoAuthors => String::from("Must have Authors"),
-            ContractError::InvalidWasm => String::from("Invalid wasm format"),
+            ContractDeployError::NoAuthors => String::from("Must have Authors"),
+            ContractDeployError::InvalidWasm => String::from("Invalid wasm format"),
         };
 
         write!(f, "{}", msg)
     }
 }
 
-impl std::fmt::Debug for ContractError {
+impl std::fmt::Debug for ContractDeployError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         <Self as std::fmt::Display>::fmt(self, f)
     }
