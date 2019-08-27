@@ -10,6 +10,7 @@ use std::fmt::{self, Debug, Formatter};
 ///
 ///  For example:
 /// ```rust
+/// impl_register!(4, SvmReg32);
 /// impl_register!(8, SvmReg64);
 /// ```
 ///
@@ -139,6 +140,7 @@ macro_rules! impl_register {
     };
 }
 
+impl_register!(4, SvmReg32);
 impl_register!(8, SvmReg64);
 impl_register!(20, SvmReg160);
 impl_register!(32, SvmReg256);
@@ -147,6 +149,9 @@ impl_register!(64, SvmReg512);
 /// A `SvmRegXXX` wrapper. Used in order to avoid `mismatched types` under macros `match` arms.
 /// Another alternative to address that problem, might have been to add a trait for the `SvmRegXXX` methods and then use a trait object.
 pub enum SvmReg {
+    /// Wrapper for a `SvmReg32` register
+    Reg32(SvmReg32),
+
     /// Wrapper for a `SvmReg64` register
     Reg64(SvmReg64),
 
@@ -165,6 +170,7 @@ impl SvmReg {
     #[inline(always)]
     pub fn copy_from_wasmer_mem(&mut self, cells: &[Cell<u8>]) {
         match self {
+            SvmReg::Reg32(reg) => reg.copy_from_wasmer_mem(cells),
             SvmReg::Reg64(reg) => reg.copy_from_wasmer_mem(cells),
             SvmReg::Reg160(reg) => reg.copy_from_wasmer_mem(cells),
             SvmReg::Reg256(reg) => reg.copy_from_wasmer_mem(cells),
@@ -176,6 +182,7 @@ impl SvmReg {
     #[inline(always)]
     pub unsafe fn copy_from(&mut self, src: *const u8, count: u8) {
         match self {
+            SvmReg::Reg32(reg) => reg.copy_from(src, count),
             SvmReg::Reg64(reg) => reg.copy_from(src, count),
             SvmReg::Reg160(reg) => reg.copy_from(src, count),
             SvmReg::Reg256(reg) => reg.copy_from(src, count),
@@ -187,6 +194,7 @@ impl SvmReg {
     #[inline(always)]
     pub unsafe fn as_ptr(&self) -> *const u8 {
         match self {
+            SvmReg::Reg32(reg) => reg.as_ptr(),
             SvmReg::Reg64(reg) => reg.as_ptr(),
             SvmReg::Reg160(reg) => reg.as_ptr(),
             SvmReg::Reg256(reg) => reg.as_ptr(),
@@ -198,6 +206,7 @@ impl SvmReg {
     #[inline(always)]
     pub fn set(&mut self, bytes: &[u8]) {
         match self {
+            SvmReg::Reg32(reg) => reg.set(bytes),
             SvmReg::Reg64(reg) => reg.set(bytes),
             SvmReg::Reg160(reg) => reg.set(bytes),
             SvmReg::Reg256(reg) => reg.set(bytes),
@@ -209,6 +218,7 @@ impl SvmReg {
     #[inline(always)]
     pub fn copy_to_wasmer_mem(&self, cells: &[Cell<u8>]) {
         match self {
+            SvmReg::Reg32(reg) => reg.copy_to_wasmer_mem(cells),
             SvmReg::Reg64(reg) => reg.copy_to_wasmer_mem(cells),
             SvmReg::Reg160(reg) => reg.copy_to_wasmer_mem(cells),
             SvmReg::Reg256(reg) => reg.copy_to_wasmer_mem(cells),
@@ -220,6 +230,7 @@ impl SvmReg {
     #[inline(always)]
     pub fn getn(&self, n: usize) -> Vec<u8> {
         match self {
+            SvmReg::Reg32(reg) => reg.getn(n),
             SvmReg::Reg64(reg) => reg.getn(n),
             SvmReg::Reg160(reg) => reg.getn(n),
             SvmReg::Reg256(reg) => reg.getn(n),
@@ -231,6 +242,7 @@ impl SvmReg {
     #[inline(always)]
     pub fn view(&self) -> Vec<u8> {
         match self {
+            SvmReg::Reg32(reg) => reg.view(),
             SvmReg::Reg64(reg) => reg.view(),
             SvmReg::Reg160(reg) => reg.view(),
             SvmReg::Reg256(reg) => reg.view(),

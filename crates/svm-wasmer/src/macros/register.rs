@@ -4,6 +4,7 @@
 macro_rules! regs_count_ident {
     ($bits_count: expr) => {{
         match $bits_count {
+            32 => $crate::ctx::REGS_32_COUNT,
             64 => $crate::ctx::REGS_64_COUNT,
             160 => $crate::ctx::REGS_160_COUNT,
             256 => $crate::ctx::REGS_256_COUNT,
@@ -55,6 +56,7 @@ macro_rules! wasmer_data_reg {
         let ctx: &mut SvmCtx<$PC> = cast_wasmer_data_to_svm_ctx!($data, $PC);
 
         match $bits_count {
+            32 => svm_regs_reg!(ctx.regs_32, 32, $reg_idx),
             64 => svm_regs_reg!(ctx.regs_64, 64, $reg_idx),
             160 => svm_regs_reg!(ctx.regs_160, 160, $reg_idx),
             256 => svm_regs_reg!(ctx.regs_256, 256, $reg_idx),

@@ -1,8 +1,11 @@
 use crate::*;
 
-use crate::register::{SvmReg, SvmReg160, SvmReg512, SvmReg64};
+use crate::register::{SvmReg, SvmReg160, SvmReg32, SvmReg512, SvmReg64};
 use std::ffi::c_void;
 use svm_storage::PageSliceCache;
+
+/// The number of allocated wasmer `SvmReg32` registers for each `SvmCtx`
+pub const REGS_32_COUNT: usize = 16;
 
 /// The number of allocated wasmer `SvmReg64` registers for each `SvmCtx`
 pub const REGS_64_COUNT: usize = 16;
@@ -18,6 +21,7 @@ pub const REGS_512_COUNT: usize = 4;
 
 /// `SvmCtx` is a container for the accessible data by `wasmer` instances
 /// * `node_data` - A pointer to the *node* data
+/// * `regs_32`   - A static array (`REGS_32_COUNT` elements)  of `SvmReg32`
 /// * `regs_64`   - A static array (`REGS_64_COUNT` elements)  of `SvmReg64`
 /// * `regs_160`  - A static array (`REGS_160_COUNT` elements) of `SvmReg160`
 /// * `regs_256`  - A static array (`REGS_256_COUNT` elements) of `SvmReg256`
@@ -33,6 +37,9 @@ pub struct SvmCtx<'a, 'pc: 'a, PC> {
     /// A pointer to the `node` data. For example the pointer will point a struct having an access
     /// to the Global State of each account, In order to query an account for its balance.
     pub node_data: *const c_void,
+
+    /// An array that holds the `SvmReg32` registers
+    pub regs_32: [SvmReg; REGS_32_COUNT],
 
     /// An array that holds the `SvmReg64` registers
     pub regs_64: [SvmReg; REGS_64_COUNT],
@@ -55,6 +62,7 @@ impl<'a, 'pc: 'a, PC> SvmCtx<'a, 'pc, PC> {
     ///
     /// * `storage` - a mutably borrowed `PageSliceCache`
     pub fn new(node_data: *const c_void, storage: &'a mut PageSliceCache<'pc, PC>) -> Self {
+        let regs_32 = alloc_regs!(32, REGS_32_COUNT);
         let regs_64 = alloc_regs!(64, REGS_64_COUNT);
         let regs_160 = alloc_regs!(160, REGS_160_COUNT);
         let regs_256 = alloc_regs!(256, REGS_256_COUNT);
@@ -62,6 +70,7 @@ impl<'a, 'pc: 'a, PC> SvmCtx<'a, 'pc, PC> {
 
         Self {
             node_data,
+            regs_32,
             regs_64,
             regs_160,
             regs_256,

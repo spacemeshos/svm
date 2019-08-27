@@ -27,6 +27,26 @@ macro_rules! wasmer_data_node_data {
 /// having `SvmRegXXX` implement the `Copy` marker or by using Unsafe Rust.
 #[macro_export]
 macro_rules! alloc_regs {
+    (32, REGS_32_COUNT) => {{
+        [
+            SvmReg::Reg32(SvmReg32::new()),
+            SvmReg::Reg32(SvmReg32::new()),
+            SvmReg::Reg32(SvmReg32::new()),
+            SvmReg::Reg32(SvmReg32::new()),
+            SvmReg::Reg32(SvmReg32::new()),
+            SvmReg::Reg32(SvmReg32::new()),
+            SvmReg::Reg32(SvmReg32::new()),
+            SvmReg::Reg32(SvmReg32::new()),
+            SvmReg::Reg32(SvmReg32::new()),
+            SvmReg::Reg32(SvmReg32::new()),
+            SvmReg::Reg32(SvmReg32::new()),
+            SvmReg::Reg32(SvmReg32::new()),
+            SvmReg::Reg32(SvmReg32::new()),
+            SvmReg::Reg32(SvmReg32::new()),
+            SvmReg::Reg32(SvmReg32::new()),
+            SvmReg::Reg32(SvmReg32::new()),
+        ]
+    }};
     (64, REGS_64_COUNT) => {{
         [
             SvmReg::Reg64(SvmReg64::new()),
