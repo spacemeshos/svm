@@ -7,14 +7,14 @@ macro_rules! include_svm_runtime {
             #[inline(always)]
             pub fn contract_build(
                 bytes: &[u8],
-            ) -> Result<svm_contract::wasm::WasmContract, svm_contract::ContractError> {
+            ) -> Result<svm_contract::wasm::WasmContract, svm_contract::ContractDeployError> {
                 <$ENV as svm_contract::env::ContractEnv>::build_contract(&bytes)
             }
 
             #[inline(always)]
             pub fn contract_validate(
                 contract: &svm_contract::wasm::WasmContract,
-            ) -> Result<(), svm_contract::ContractError> {
+            ) -> Result<(), svm_contract::ContractDeployError> {
                 // validates the `wasm`. should use the `deterministic` feature of `wasmparser`.
                 // (avoiding floats)
                 unimplemented!()

@@ -15,8 +15,13 @@
 //!  |_____________|_______________________________________|
 //!  |           |              |         |                |
 //!  |  #args    |  arg #1 type |  arg #1 |    . . . .     |
-//!  | (1 byte)  |  (1 byte)    |   data  |                |
+//!  | (1 byte)  |  (1 byte)    |  value  |                |
 //!  |___________|______________|_________|________________|
 //!
 
 mod build;
+mod error;
+mod field;
+
+// pub use build::WireTxBuilder;
+pub use error::ContractExecError;
