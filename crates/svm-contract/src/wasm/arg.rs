@@ -24,36 +24,36 @@ pub enum WasmArgType {
 ///
 /// * I64 - A 8-byte integer.
 ///
-/// * Fixed - A tuple of `(WasmInt, Vec<u8>)`
-///     * `WasmInt` - Stores the start offset in wasm linear-memory the copied fixed-array starts.
-///     This value isn't part of the transaction raw bytes, but it's being infered
-///     as part of initializing the wasm instance memory.
+/// * Fixed - A tuple of `(WasmIntType, Vec<u8>)`
+///     * `WasmIntType` - Represents the integer type of start offset in wasm linear-memory the copied fixed-array starts.
 ///
 ///     * `Vec<u8>` - The bytes of the fixed-array.
 ///
 /// * Slice - A tuple of `(WasmInt, WasmInt, Vec<u8>)`
-///     * `WasmInt` (the left one) - Stores the start offset in wasm linear-memory the copied fixed-array starts.
-///     This value isn't part of the transaction raw bytes, but it's being infered
-///     as part of initializing the wasm instance memory.
+///     * `WasmIntType` (the left one) - Represents the integer type of start offset of wasm linear-memory the slice starts.
 ///
-///     * `WasmInt` (the right one) - Stores the length of the slice.
+///     * `WasmIntType` (the right one) - Represents the integer type of slice bytes-length.
 ///
 ///     * `Vec<u8>` - The bytes of the slice.
+///
+///  The actual values of these `WasmArgType` **aren't** part of the execution transaction raw data.
+///  These values will be inferred as part of preparing the wasm instance for execution,
+///  When initializing the wasm instance memory and passing the call arguments to the invoked function.
 #[derive(Clone, PartialEq, Debug)]
 pub enum WasmArgValue {
     I32(u32),
     I64(u64),
-    Fixed(WasmInt, Vec<u8>),
-    Slice(WasmInt, WasmInt, Vec<u8>),
+    Fixed(WasmIntType, Vec<u8>),
+    Slice(WasmIntType, WasmIntType, Vec<u8>),
 }
 
-/// Represents a `wasm` Integer
+/// Represents a `wasm` Integer type
 /// * I32 - Represents a 4-byte integer argument.
 /// * I64 - Represents a 8-byte integer argument.
 #[derive(Copy, Clone, PartialEq, Debug)]
-pub enum WasmInt {
-    I32(i32),
-    I64(i64),
+pub enum WasmIntType {
+    I32,
+    I64,
 }
 
 /// Converts `WasmArgType` to its numeric representation
