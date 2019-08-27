@@ -16,7 +16,7 @@ macro_rules! include_svm_runtime {
                 contract: &svm_contract::wasm::WasmContract,
             ) -> Result<(), svm_contract::ContractDeployError> {
                 // validates the `wasm`. should use the `deterministic` feature of `wasmparser`.
-                // (avoiding floats)
+                // (avoiding floats etc.)
                 unimplemented!()
             }
 
