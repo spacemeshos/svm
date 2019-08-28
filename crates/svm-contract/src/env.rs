@@ -50,10 +50,6 @@ pub trait ContractEnv {
         Ok(contract)
     }
 
-    fn exec_contract(bytes: &[u8]) -> Result<Tx, ContractExecError> {
-        unimplemented!()
-    }
-
     #[inline(always)]
     fn store_contract(&mut self, contract: &WasmContract) {
         let hash = Self::compute_code_hash(contract);
