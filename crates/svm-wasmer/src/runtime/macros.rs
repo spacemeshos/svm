@@ -15,9 +15,11 @@ macro_rules! include_svm_runtime {
             pub fn contract_validate(
                 contract: &svm_contract::wasm::WasmContract,
             ) -> Result<(), svm_contract::ContractDeployError> {
-                // validates the `wasm`. should use the `deterministic` feature of `wasmparser`.
+                // TODO:
+                // validate the `wasm`. should use the `deterministic` feature of `wasmparser`.
                 // (avoiding floats etc.)
-                unimplemented!()
+
+                Ok(())
             }
 
             #[inline(always)]
@@ -31,78 +33,99 @@ macro_rules! include_svm_runtime {
                 state: svm_common::State,
                 env: &mut $ENV,
                 import_object_gen: F,
-            ) where
-                F: Fn(svm_common::Address, svm_common::State) -> wasmer_runtime::ImportObject,
+            ) -> Result<(), $crate::runtime::ContractExecError>
+            where
+                F: Fn(
+                    svm_common::Address,
+                    svm_common::State,
+                )
+                    -> Result<wasmer_runtime::ImportObject, $crate::runtime::ContractExecError>,
             {
-                use svm_common::{Address, State};
+                use svm_contract::wasm::WasmContract;
+
+                let contract = contract_load(&tx, env)?;
+                let module = contract_compile(&contract)?;
+                let import_object = import_object_gen(tx.contract, state)?;
+                let mut instance = module_instantiate(&contract, &module, &import_object)?;
+                let args = prepare_args_and_memory(&contract, &mut instance);
+                let func = get_exported_func(&instance, &tx.func_name)?;
+
+                let res = func.call(&args);
+
+                match res {
+                    Err(_) => Err($crate::runtime::ContractExecError::ExecFailed),
+                    Ok(_) => Ok(()),
+                }
+            }
+
+            fn contract_load(
+                tx: &svm_contract::Tx,
+                env: &mut $ENV,
+            ) -> Result<svm_contract::wasm::WasmContract, $crate::runtime::ContractExecError> {
                 use svm_contract::env::ContractEnv;
                 use svm_contract::traits::ContractStore;
+                use $crate::runtime::ContractExecError;
 
                 let store = env.get_store();
 
                 match store.load(tx.contract) {
-                    None => {
-                        // should return a failure
-                        // and the `tx.sender` should pay the maximum tx gas ??
-                    }
-                    Some(contract) => {
-                        let compile = wasmer_runtime::compile(&contract.wasm);
-
-                        match compile {
-                            Err(_) => {
-                                // wasm is invalid
-                            }
-                            Ok(module) => {
-                                let import_object = import_object_gen(tx.contract, state);
-                                let instantiate = module.instantiate(&import_object);
-
-                                match instantiate {
-                                    Err(_) => {
-                                        // ...
-                                    }
-                                    Ok(instance) => {
-                                        let func = instance.dyn_func(&tx.func_name);
-
-                                        match func {
-                                            Err(_) => {
-                                                // function not found
-                                            }
-                                            Ok(func) => {
-                                                let args = [];
-                                                let res = func.call(&args);
-
-                                                match res {
-                                                    Err(_) => {
-                                                        // function execution failed
-                                                    }
-                                                    Ok(_) => {
-                                                        // ...
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    None => Err(ContractExecError::NotFound(tx.contract)),
+                    Some(contract) => Ok(contract),
                 }
+            }
 
-                // 1. Loads contract wasmer module `tx.contract`
-                //  * if it's NOT in the compiled-modules-cache
-                //      * Gets the wasm code from the `ENV::Store` (implements `CodeHashStore`)
-                //      * Compile the module using `svm_compiler::compile_program(..)`
-                //      * Store into the compiled-modules-cache
-                //
-                // 2. Validates that module has function `tx.FuncName` and that it can accept `tx.FuncArgs`
-                //
-                // 3. Builds the import object with `address = tx.Address` and `state = tx.State`
-                //
-                // 4. Instantiate wasm instance
-                //
-                // 5. Get the exported function `tx.FuncName`
-                //
-                // 6. Execute the function with input `tx.FuncArgs`
+            fn contract_compile(
+                contract: &svm_contract::wasm::WasmContract,
+            ) -> Result<wasmer_runtime::Module, $crate::runtime::ContractExecError> {
+                use $crate::runtime::ContractExecError;
+
+                let compile = wasmer_runtime::compile(&contract.wasm);
+                match compile {
+                    Err(_) => {
+                        let addr = contract.address.unwrap();
+                        Err(ContractExecError::CompilationFailed(addr))
+                    }
+                    Ok(module) => Ok(module),
+                }
+            }
+
+            fn module_instantiate(
+                contract: &svm_contract::wasm::WasmContract,
+                module: &wasmer_runtime::Module,
+                import_object: &wasmer_runtime::ImportObject,
+            ) -> Result<wasmer_runtime::Instance, $crate::runtime::ContractExecError> {
+                use $crate::runtime::ContractExecError;
+
+                let instantiate = module.instantiate(&import_object);
+
+                match instantiate {
+                    Err(_) => {
+                        let addr = contract.address.unwrap();
+                        Err(ContractExecError::InstantiationFailed(addr))
+                    }
+                    Ok(instance) => Ok(instance),
+                }
+            }
+
+            fn get_exported_func<'a>(
+                instance: &'a wasmer_runtime::Instance,
+                func_name: &str,
+            ) -> Result<wasmer_runtime::DynFunc<'a>, $crate::runtime::ContractExecError> {
+                use $crate::runtime::ContractExecError;
+
+                let func = instance.dyn_func(func_name);
+
+                match func {
+                    Err(_) => Err(ContractExecError::FuncNotFound(func_name.to_string())),
+                    Ok(func) => Ok(func),
+                }
+            }
+
+            fn prepare_args_and_memory(
+                contract: &svm_contract::wasm::WasmContract,
+                instance: &mut wasmer_runtime::Instance,
+            ) -> Vec<wasmer_runtime::Value> {
+                vec![]
             }
         }
     };

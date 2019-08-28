@@ -1,5 +1,4 @@
 use svm_common::Address;
-use svm_contract::env::ContractEnv;
 use svm_contract::memory::{MemContractStore, MemoryEnv};
 use svm_contract::WireContractBuilder;
 use svm_storage::memory::MemMerklePageCache;
