@@ -26,8 +26,12 @@ macro_rules! include_svm_runtime {
                 env.store_contract(&contract)
             }
 
-            pub fn contract_exec<F>(tx: svm_contract::Tx, env: &mut $ENV, import_object_gen: F)
-            where
+            pub fn contract_exec<F>(
+                tx: svm_contract::Tx,
+                state: svm_common::State,
+                env: &mut $ENV,
+                import_object_gen: F,
+            ) where
                 F: Fn(svm_common::Address, svm_common::State) -> wasmer_runtime::ImportObject,
             {
                 use svm_common::{Address, State};
@@ -49,7 +53,7 @@ macro_rules! include_svm_runtime {
                                 // wasm is invalid
                             }
                             Ok(module) => {
-                                let import_object = import_object_gen(tx.contract, tx.state);
+                                let import_object = import_object_gen(tx.contract, state);
                                 let instantiate = module.instantiate(&import_object);
 
                                 match instantiate {
