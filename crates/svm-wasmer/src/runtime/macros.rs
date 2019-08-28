@@ -47,7 +47,7 @@ macro_rules! include_svm_runtime {
                 let module = contract_compile(&contract)?;
                 let import_object = import_object_gen(tx.contract, state)?;
                 let mut instance = module_instantiate(&contract, &module, &import_object)?;
-                let args = prepare_args_and_memory(&contract, &mut instance);
+                let args = prepare_args_and_memory(&tx, &mut instance);
                 let func = get_exported_func(&instance, &tx.func_name)?;
 
                 let res = func.call(&args);
@@ -122,10 +122,43 @@ macro_rules! include_svm_runtime {
             }
 
             fn prepare_args_and_memory(
-                contract: &svm_contract::wasm::WasmContract,
+                tx: &svm_contract::Tx,
                 instance: &mut wasmer_runtime::Instance,
             ) -> Vec<wasmer_runtime::Value> {
-                vec![]
+                use svm_contract::wasm::{WasmArgValue, WasmIntType};
+                use wasmer_runtime::Value;
+
+                let memory = instance.context_mut().memory(0);
+                let mut mem_offset = 0;
+
+                let mut wasmer_args = Vec::with_capacity(tx.func_args.len());
+
+                for arg in tx.func_args.iter() {
+                    let wasmer_arg = match arg {
+                        WasmArgValue::I32(v) => Value::I32(*v as i32),
+                        WasmArgValue::I64(v) => Value::I64(*v as i64),
+                        WasmArgValue::Fixed(ty, buf) => {
+                            let buf_mem_start = mem_offset;
+
+                            let view = memory.view();
+
+                            for byte in buf.into_iter() {
+                                view[mem_offset].set(*byte);
+                                mem_offset += 1;
+                            }
+
+                            match ty {
+                                WasmIntType::I32 => Value::I32(buf_mem_start as i32),
+                                WasmIntType::I64 => Value::I64(buf_mem_start as i64),
+                            }
+                        }
+                        WasmArgValue::Slice(..) => unimplemented!(),
+                    };
+
+                    wasmer_args.push(wasmer_arg);
+                }
+
+                wasmer_args
             }
         }
     };
