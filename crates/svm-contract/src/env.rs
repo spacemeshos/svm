@@ -4,7 +4,8 @@ use crate::traits::{
 };
 use crate::types::CodeHash;
 use crate::wasm::WasmContract;
-use crate::wire::deploy::ContractDeployError;
+use crate::wire::{deploy::ContractDeployError, exec::ContractExecError};
+use crate::Tx;
 
 use svm_common::{Address, KeyHasher};
 
@@ -47,6 +48,10 @@ pub trait ContractEnv {
         contract.address = Some(Self::compute_address(&contract));
 
         Ok(contract)
+    }
+
+    fn exec_contract(bytes: &[u8]) -> Result<Tx, ContractExecError> {
+        unimplemented!()
     }
 
     #[inline(always)]

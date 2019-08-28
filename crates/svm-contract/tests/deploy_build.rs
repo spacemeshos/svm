@@ -1,13 +1,11 @@
 use crate::traits::ContractAddressCompute;
 use svm_common::Address;
-use svm_contract::default::DefaultContractAddressCompute;
-use svm_contract::env::ContractEnv;
-use svm_contract::memory::MemoryEnv;
 
 use svm_contract::*;
+use svm_contract::{default::DefaultContractAddressCompute, env::ContractEnv, memory::MemoryEnv};
 
 #[test]
-fn build_wasm_contract() {
+fn build_contract() {
     let bytes = WireContractBuilder::new()
         .with_version(0)
         .with_name("Contract #1")
