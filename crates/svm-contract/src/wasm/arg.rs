@@ -68,6 +68,16 @@ impl Into<u8> for WasmArgType {
     }
 }
 
+/// Converts `WasmIntType` to its numeric representation
+impl Into<u8> for &WasmIntType {
+    fn into(self) -> u8 {
+        match *self {
+            WasmIntType::I32 => 0,
+            WasmIntType::I64 => 1,
+        }
+    }
+}
+
 pub enum WasmArgTypeError {
     UnsupportedType(u8),
 }

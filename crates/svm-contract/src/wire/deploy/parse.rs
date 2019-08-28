@@ -72,11 +72,6 @@ fn parse_name(cursor: &mut Cursor<&[u8]>) -> Result<String, ContractDeployError>
     let name = unsafe { String::from_utf8_unchecked(name_buf) };
 
     Ok(name)
-    // if name.is_err() {
-    //     Ok(name.unwrap())
-    // } else {
-    //     Err(ContractDeployError::NameNotValidUTF8String)
-    // }
 }
 
 #[inline(always)]

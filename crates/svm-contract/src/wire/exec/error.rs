@@ -6,6 +6,7 @@ pub enum ContractExecError {
     FuncNameNotValidUTF8String,
     EmptyFuncName,
     InvalidArgType(u8),
+    InvalidArgIntType,
 }
 
 impl std::error::Error for ContractExecError {
@@ -18,6 +19,7 @@ impl std::error::Error for ContractExecError {
             ContractExecError::NotEnoughBytes(_) => "Not enough bytes",
             ContractExecError::UnsupportedProtoVersion(_) => "Unsupported protocol version",
             ContractExecError::InvalidArgType(_) => "Invalid arg type",
+            ContractExecError::InvalidArgIntType => "Invalid arg int-type",
         }
     }
 }
