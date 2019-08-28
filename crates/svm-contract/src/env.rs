@@ -5,7 +5,7 @@ use crate::traits::{
 use crate::types::CodeHash;
 use crate::wasm::WasmContract;
 use crate::wire::{deploy::ContractDeployError, exec::ContractExecError};
-use crate::Tx;
+use crate::Transaction;
 
 use svm_common::{Address, KeyHasher};
 

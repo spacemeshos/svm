@@ -22,12 +22,14 @@ macro_rules! include_svm_wasmer_c_api {
         };
         use wasmer_runtime_core::import::Namespace;
 
-        use crate::c_types::{svm_address_t, svm_receipt_t, svm_wasm_contract_t};
+        use crate::c_types::{
+            svm_address_t, svm_receipt_t, svm_transaction_t, svm_wasm_contract_t,
+        };
 
         /// Builds an instance of `svm_wasm_contract_t`.
         /// Should be called while the transaction is in the `mempool` of the full-node (prior mining it).
         #[no_mangle]
-        pub unsafe extern "C" fn wasmer_svm_deploy_build_wasm_contract(
+        pub unsafe extern "C" fn wasmer_svm_contract_build(
             contract: *mut *mut svm_wasm_contract_t,
             raw_bytes: *const u8,
             raw_bytes_len: u64,
@@ -35,11 +37,11 @@ macro_rules! include_svm_wasmer_c_api {
             use svm_contract::wasm::WasmContract;
 
             let bytes = std::slice::from_raw_parts(raw_bytes, raw_bytes_len as usize);
-            let res = svm_contract::build_wasm_contract::<$ENV>(&bytes);
+            let res = svm_wasmer::runtime::contract_build(&bytes);
 
             match res {
-                Ok(inner_contract) => {
-                    let raw_contact: *mut WasmContract = Box::into_raw(Box::new(inner_contract));
+                Ok(wasm_contract) => {
+                    let raw_contact: *mut WasmContract = Box::into_raw(Box::new(wasm_contract));
                     *contract = raw_contact as *mut svm_wasm_contract_t;
 
                     wasmer_result_t::WASMER_OK
@@ -53,18 +55,14 @@ macro_rules! include_svm_wasmer_c_api {
 
         /// Stores the new deployed contract under a database.
         /// Future transaction will reference the contract by it's account address.
-        /// (see `wasmer_svm_contract_exec`).
+        /// (see `wasmer_svm_contract_exec`)
         ///
         /// This function should be called after performing validation (see `wasmer_svm_deploy_contract_tx_validate`).
-        ///
-        /// * `addr` - The contract address. Should have been computed before.
-        /// (see `wasmer_svm_deploy_contract_compute_addr`).
         ///
         /// * `contract` - The wasm contract to be stored
         ///
         #[no_mangle]
-        pub unsafe extern "C" fn wasmer_svm_deploy_contract_store(
-            _addr: *const svm_address_t,
+        pub unsafe extern "C" fn wasmer_svm_contract_store(
             _contract: *const svm_wasm_contract_t,
         ) -> wasmer_result_t {
             unimplemented!()
@@ -93,16 +91,28 @@ macro_rules! include_svm_wasmer_c_api {
             }
         }
 
-        // /// Triggers an execution of an already deployed contract.
-        // ///
-        // /// `receipt` - The receipt of the contract execution.
-        // /// `ctx`     - The context object for the contract execution (see `wasmer_svm_contract_prepare`).
-        // #[no_mangle]
-        // pub unsafe extern "C" fn wasmer_svm_contract_exec(
-        //     receipt: *mut *mut svm_receipt_t,
-        // ) -> wasmer_result_t {
-        //     unimplemented!()
-        // }
+        /// Builds an instance of `svm_transaction_t`.
+        /// Should be called while the transaction is in the `mempool` of the full-node (prior mining it).
+        #[no_mangle]
+        pub unsafe extern "C" fn wasmer_svm_transaction_build(
+            tx: *mut *mut svm_transaction_t,
+            raw_bytes: *const u8,
+            raw_bytes_len: u64,
+        ) -> wasmer_result_t {
+            unimplemented!()
+        }
+
+        /// Triggers a transaction execution of an already deployed contract.
+        ///
+        /// `receipt` - The receipt of the contract execution.
+        /// `tx`      - The transaction to execute.
+        #[no_mangle]
+        pub unsafe extern "C" fn wasmer_svm_transaction_exec(
+            receipt: *mut *mut svm_receipt_t,
+            tx: *const svm_transaction_t,
+        ) -> wasmer_result_t {
+            unimplemented!()
+        }
 
         /// Returns a raw pointer to the `wasmer svm` register's internal content
         #[no_mangle]

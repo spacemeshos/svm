@@ -25,13 +25,13 @@ fn deploy_wasm_contract() {
 
 #[test]
 #[ignore]
-fn contract_non_existing_exec() {
+fn contract_exec_non_existing_contract() {
     //
 }
 
 #[test]
 #[ignore]
-fn contract_exec_valid_tx() {
+fn contract_exec_valid_transaction() {
     //
 }
 

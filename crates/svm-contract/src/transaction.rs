@@ -2,14 +2,14 @@ use crate::wasm::WasmArgValue;
 use svm_common::{Address, State};
 
 #[derive(Clone, PartialEq)]
-pub struct Tx {
+pub struct Transaction {
     pub contract: Address,
     pub sender: Address,
     pub func_name: String,
     pub func_args: Vec<WasmArgValue>,
 }
 
-impl std::fmt::Debug for Tx {
+impl std::fmt::Debug for Transaction {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let contract = self.fmt_contract();
         let sender = self.fmt_sender();
@@ -22,7 +22,7 @@ impl std::fmt::Debug for Tx {
     }
 }
 
-impl Tx {
+impl Transaction {
     fn fmt_contract(&self) -> String {
         self.fmt_address("Contract", self.contract)
     }

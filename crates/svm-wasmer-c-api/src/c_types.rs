@@ -4,9 +4,13 @@ use svm_common::Address;
 #[repr(C)]
 pub struct svm_address_t;
 
-/// `*const svm_wasm_contract_t` is a raw pointer to a Rust `WasmContract` struct.
+/// `*const svm_wasm_contract_t` is a raw pointer to a Rust `svm_contract::wasm::WasmContract` struct.
 #[repr(C)]
 pub struct svm_wasm_contract_t;
+
+/// `*const svm_transaction_t` is a raw pointer to a Rust `svm_contract::Transaction` struct.
+#[repr(C)]
+pub struct svm_transaction_t;
 
 /// `*const svm_receipt_t` is a raw pointer to a Rust `Receipt` struct.
 #[repr(C)]

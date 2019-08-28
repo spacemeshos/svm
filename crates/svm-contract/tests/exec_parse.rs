@@ -1,10 +1,10 @@
 use svm_common::Address;
 
 use svm_contract::wasm::WasmArgValue;
-use svm_contract::{Tx, WireTxBuilder};
+use svm_contract::{Transaction, WireTxBuilder};
 
 #[test]
-fn exec_contract_tx_parse() {
+fn parse_transaction() {
     let bytes = WireTxBuilder::new()
         .with_version(0)
         .with_contract(Address::from(0x10_20_30_40))
@@ -13,9 +13,9 @@ fn exec_contract_tx_parse() {
         .with_func_args(&vec![WasmArgValue::I32(10), WasmArgValue::I64(20)])
         .build();
 
-    let actual = svm_contract::parse_tx(&bytes).unwrap();
+    let actual = svm_contract::parse_transaction(&bytes).unwrap();
 
-    let expected = Tx {
+    let expected = Transaction {
         contract: Address::from(0x10_20_30_40),
         sender: Address::from(0x50_60_70_80),
         func_name: "run".to_string(),

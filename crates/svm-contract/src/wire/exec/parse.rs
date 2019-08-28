@@ -2,7 +2,7 @@ use super::error::ContractExecError;
 use super::field::Field;
 
 use crate::wasm::{WasmArgType, WasmArgValue, WasmIntType};
-use crate::Tx;
+use crate::Transaction;
 use svm_common::Address;
 
 use byteorder::{BigEndian, ReadBytesExt};
@@ -21,7 +21,7 @@ macro_rules! ensure_enough_bytes {
 /// Parsing a on-the-wire smart-contract transaction given as raw bytes.
 /// Returns the parsed contract as a `WasmContract` struct.
 #[allow(dead_code)]
-pub fn parse_tx(bytes: &[u8]) -> Result<Tx, ContractExecError> {
+pub fn parse_transaction(bytes: &[u8]) -> Result<Transaction, ContractExecError> {
     let mut cursor = Cursor::new(bytes);
 
     parse_version(&mut cursor)?;
@@ -31,7 +31,7 @@ pub fn parse_tx(bytes: &[u8]) -> Result<Tx, ContractExecError> {
     let func_name = parse_func_name(&mut cursor)?;
     let func_args = parse_func_args(&mut cursor)?;
 
-    let tx = Tx {
+    let tx = Transaction {
         contract,
         sender,
         func_name,

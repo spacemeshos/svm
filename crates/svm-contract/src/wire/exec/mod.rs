@@ -26,4 +26,4 @@ mod parse;
 
 pub use build::WireTxBuilder;
 pub use error::ContractExecError;
-pub use parse::parse_tx;
+pub use parse::parse_transaction;

@@ -28,24 +28,23 @@ macro_rules! include_svm_runtime {
                 env.store_contract(&contract)
             }
 
+            #[inline(always)]
+            pub fn transaction_build(
+                bytes: &[u8],
+            ) -> Result<svm_contract::Transaction, svm_contract::ContractExecError> {
+                unimplemented!()
+            }
+
             pub fn contract_exec<F>(
-                tx: svm_contract::Tx,
+                tx: svm_contract::Transaction,
                 state: svm_common::State,
+                import_object: wasmer_runtime::ImportObject,
                 env: &mut $ENV,
-                import_object_gen: F,
-            ) -> Result<(), $crate::runtime::ContractExecError>
-            where
-                F: Fn(
-                    svm_common::Address,
-                    svm_common::State,
-                )
-                    -> Result<wasmer_runtime::ImportObject, $crate::runtime::ContractExecError>,
-            {
+            ) -> Result<(), $crate::runtime::ContractExecError> {
                 use svm_contract::wasm::WasmContract;
 
                 let contract = contract_load(&tx, env)?;
                 let module = contract_compile(&contract)?;
-                let import_object = import_object_gen(tx.contract, state)?;
                 let mut instance = module_instantiate(&contract, &module, &import_object)?;
                 let args = prepare_args_and_memory(&tx, &mut instance);
                 let func = get_exported_func(&instance, &tx.func_name)?;
@@ -59,7 +58,7 @@ macro_rules! include_svm_runtime {
             }
 
             fn contract_load(
-                tx: &svm_contract::Tx,
+                tx: &svm_contract::Transaction,
                 env: &mut $ENV,
             ) -> Result<svm_contract::wasm::WasmContract, $crate::runtime::ContractExecError> {
                 use svm_contract::env::ContractEnv;
@@ -122,7 +121,7 @@ macro_rules! include_svm_runtime {
             }
 
             fn prepare_args_and_memory(
-                tx: &svm_contract::Tx,
+                tx: &svm_contract::Transaction,
                 instance: &mut wasmer_runtime::Instance,
             ) -> Vec<wasmer_runtime::Value> {
                 use svm_contract::wasm::{WasmArgValue, WasmIntType};
