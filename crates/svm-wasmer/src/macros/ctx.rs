@@ -16,7 +16,7 @@ macro_rules! cast_wasmer_data_to_svm_ctx {
 macro_rules! wasmer_data_node_data {
     ($data: expr, $PC: path) => {{
         use $crate::ctx::SvmCtx;
-        let ctx: &mut SvmCtx<$PC> = cast_wasmer_data_to_svm_ctx!($data, $PC);
+        let ctx: &mut SvmCtx<$PC> = $crate::cast_wasmer_data_to_svm_ctx!($data, $PC);
 
         ctx.node_data
     }};

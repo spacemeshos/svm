@@ -7,11 +7,11 @@
 #[macro_export]
 macro_rules! include_svm_wasmer_c_api {
     ($pages_storage_gen: expr, $page_cache_ctor: expr, $PC: path, $ENV: path, $env_gen: expr) => {
-        /// Injecting the `svm runtime` backed by PageCache `$PC` into this file
-        include_svm_runtime!($PC, $ENV, $env_gen);
+        /// Injects `vmcalls` module
+        svm_wasmer::include_wasmer_svm_vmcalls!($PC);
 
-        /// Injecting `svm_wasmer` macros
-        use svm_wasmer::*;
+        /// Injects `runtime` module
+        svm_wasmer::include_svm_runtime!($PC, $ENV, $env_gen);
 
         use svm_common::{Address, State};
         use svm_contract::transaction::Transaction;
@@ -164,7 +164,7 @@ macro_rules! include_svm_wasmer_c_api {
             reg_idx: i32,
         ) -> *const c_void {
             let wasmer_ctx: &Ctx = from_raw!(raw_ctx, Ctx);
-            let reg: &mut SvmReg = wasmer_ctx_reg!(wasmer_ctx, reg_bits, reg_idx, $PC);
+            let reg: &mut SvmReg = svm_wasmer::wasmer_ctx_reg!(wasmer_ctx, reg_bits, reg_idx, $PC);
 
             // having `c_void` instead of `u8` in the function's signature
             // makes the integration with `cgo` easier.
@@ -181,7 +181,7 @@ macro_rules! include_svm_wasmer_c_api {
             bytes_len: u8,
         ) {
             let wasmer_ctx: &Ctx = from_raw!(raw_ctx, Ctx);
-            let reg: &mut SvmReg = wasmer_ctx_reg!(wasmer_ctx, reg_bits, reg_idx, $PC);
+            let reg: &mut SvmReg = svm_wasmer::wasmer_ctx_reg!(wasmer_ctx, reg_bits, reg_idx, $PC);
 
             // having `c_void` instead of `u8` in the function's signature
             // makes the integration with `cgo` easier.
@@ -195,7 +195,7 @@ macro_rules! include_svm_wasmer_c_api {
             raw_ctx: *const wasmer_instance_context_t,
         ) -> *const c_void {
             let wasmer_ctx: &Ctx = from_raw!(raw_ctx, Ctx);
-            wasmer_data_node_data!(wasmer_ctx.data, $PC)
+            svm_wasmer::wasmer_data_node_data!(wasmer_ctx.data, $PC)
         }
 
         /// Creates a new `wasmer` import object.
@@ -225,7 +225,7 @@ macro_rules! include_svm_wasmer_c_api {
                 $pages_storage_gen(addr, state, max_pages)
             };
 
-            let state_gen = lazy_create_svm_state_gen!(
+            let state_gen = svm_wasmer::lazy_create_svm_state_gen!(
                 node_data,
                 wrapped_pages_storage_gen,
                 $page_cache_ctor,
@@ -253,16 +253,22 @@ macro_rules! include_svm_wasmer_c_api {
             let mut ns = Namespace::new();
 
             // storage
-            ns.insert("mem_to_reg_copy", func!(mem_to_reg_copy));
-            ns.insert("reg_to_mem_copy", func!(reg_to_mem_copy));
-            ns.insert("storage_read_to_reg", func!(storage_read_to_reg));
-            ns.insert("storage_read_to_mem", func!(storage_read_to_mem));
-            ns.insert("storage_write_from_mem", func!(storage_write_from_mem));
-            ns.insert("storage_write_from_reg", func!(storage_write_from_reg));
+            ns.insert("mem_to_reg_copy", func!(vmcalls::mem_to_reg_copy));
+            ns.insert("reg_to_mem_copy", func!(vmcalls::reg_to_mem_copy));
+            ns.insert("storage_read_to_reg", func!(vmcalls::storage_read_to_reg));
+            ns.insert("storage_read_to_mem", func!(vmcalls::storage_read_to_mem));
+            ns.insert(
+                "storage_write_from_mem",
+                func!(vmcalls::storage_write_from_mem),
+            );
+            ns.insert(
+                "storage_write_from_reg",
+                func!(vmcalls::storage_write_from_reg),
+            );
 
             // register
-            ns.insert("reg_read_le_i64", func!(reg_read_le_i64));
-            ns.insert("reg_write_le_i64", func!(reg_write_le_i64));
+            ns.insert("reg_read_le_i64", func!(vmcalls::reg_read_le_i64));
+            ns.insert("reg_write_le_i64", func!(vmcalls::reg_write_le_i64));
 
             import_obj.register("svm", ns);
         }

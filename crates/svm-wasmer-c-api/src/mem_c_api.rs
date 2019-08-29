@@ -1,5 +1,3 @@
-use svm_storage::memory::MemMerklePageCache;
-
 crate::include_svm_wasmer_c_api!(
     |addr, state, max_pages| {
         use std::cell::RefCell;
@@ -15,7 +13,7 @@ crate::include_svm_wasmer_c_api!(
 
         MemMerklePageCache::new(pages_storage, max_pages)
     },
-    MemMerklePageCache,
+    svm_storage::memory::MemMerklePageCache,
     svm_contract::memory::MemoryEnv,
     || {
         use svm_contract::{

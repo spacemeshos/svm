@@ -21,8 +21,8 @@ macro_rules! include_wasmer_svm_storage_vmcalls {
             dst_reg_bits: i32,
             dst_reg_idx: i32,
         ) {
-            let cells = wasmer_ctx_mem_cells!(ctx, src_mem_idx, src_mem_ptr, len);
-            let reg = wasmer_data_reg!(ctx.data, dst_reg_bits, dst_reg_idx, $PC);
+            let cells = $crate::wasmer_ctx_mem_cells!(ctx, src_mem_idx, src_mem_ptr, len);
+            let reg = $crate::wasmer_data_reg!(ctx.data, dst_reg_bits, dst_reg_idx, $PC);
             reg.copy_from_wasmer_mem(cells);
         }
 
@@ -44,8 +44,8 @@ macro_rules! include_wasmer_svm_storage_vmcalls {
             dst_mem_idx: i32,
             dst_mem_ptr: i32,
         ) {
-            let reg = wasmer_data_reg!(ctx.data, src_reg_bits, src_reg_idx, $PC);
-            let cells = wasmer_ctx_mem_cells!(ctx, dst_mem_idx, dst_mem_ptr, len);
+            let reg = $crate::wasmer_data_reg!(ctx.data, src_reg_bits, src_reg_idx, $PC);
+            let cells = $crate::wasmer_ctx_mem_cells!(ctx, dst_mem_idx, dst_mem_ptr, len);
             reg.copy_to_wasmer_mem(cells);
         }
 
@@ -67,10 +67,10 @@ macro_rules! include_wasmer_svm_storage_vmcalls {
             dst_reg_bits: i32,
             dst_reg_idx: i32,
         ) {
-            let reg = wasmer_data_reg!(ctx.data, dst_reg_bits, dst_reg_idx, $PC);
-            let storage = wasmer_data_storage!(ctx.data, $PC);
+            let reg = $crate::wasmer_data_reg!(ctx.data, dst_reg_bits, dst_reg_idx, $PC);
+            let storage = $crate::wasmer_data_storage!(ctx.data, $PC);
 
-            let slice = svm_read_page_slice!(
+            let slice = $crate::svm_read_page_slice!(
                 storage,
                 src_page as u32,
                 src_slice as u32,
@@ -99,9 +99,9 @@ macro_rules! include_wasmer_svm_storage_vmcalls {
             dst_mem_idx: i32,
             dst_mem_ptr: i32,
         ) {
-            let storage = wasmer_data_storage!(ctx.data, $PC);
+            let storage = $crate::wasmer_data_storage!(ctx.data, $PC);
 
-            let mut slice = svm_read_page_slice!(
+            let mut slice = $crate::svm_read_page_slice!(
                 storage,
                 src_page as u32,
                 src_slice as u32,
@@ -115,7 +115,7 @@ macro_rules! include_wasmer_svm_storage_vmcalls {
                 slice.resize(len as usize, 0);
             }
 
-            wasmer_ctx_mem_cells_write!(ctx, dst_mem_idx, dst_mem_ptr, slice);
+            $crate::wasmer_ctx_mem_cells_write!(ctx, dst_mem_idx, dst_mem_ptr, slice);
         }
 
         /// Writes into `svm-wasmer` storage, a page-slice copied from `wasmer` memory
@@ -136,11 +136,11 @@ macro_rules! include_wasmer_svm_storage_vmcalls {
             dst_slice: i32,
             dst_offset: i32,
         ) {
-            let cells = wasmer_ctx_mem_cells!(ctx, src_mem_idx, src_mem_ptr, len);
+            let cells = $crate::wasmer_ctx_mem_cells!(ctx, src_mem_idx, src_mem_ptr, len);
             let data = cells.iter().map(|cell| cell.get()).collect::<Vec<u8>>();
-            let storage = wasmer_data_storage!(ctx.data, $PC);
+            let storage = $crate::wasmer_data_storage!(ctx.data, $PC);
 
-            let slice = svm_write_page_slice!(
+            let slice = $crate::svm_write_page_slice!(
                 storage,
                 dst_page as u32,
                 dst_slice as u32,
@@ -168,11 +168,11 @@ macro_rules! include_wasmer_svm_storage_vmcalls {
             dst_slice: i32,
             dst_offset: i32,
         ) {
-            let reg = wasmer_data_reg!(ctx.data, src_reg_bits, src_reg_idx, $PC);
-            let storage = wasmer_data_storage!(ctx.data, $PC);
+            let reg = $crate::wasmer_data_reg!(ctx.data, src_reg_bits, src_reg_idx, $PC);
+            let storage = $crate::wasmer_data_storage!(ctx.data, $PC);
             let data = reg.getn(len as usize);
 
-            let slice = svm_write_page_slice!(
+            let slice = $crate::svm_write_page_slice!(
                 storage,
                 dst_page as u32,
                 dst_slice as u32,

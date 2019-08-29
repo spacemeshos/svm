@@ -6,7 +6,7 @@ macro_rules! include_wasmer_svm_register_vmcalls {
         pub fn reg_read_le_i64(ctx: &mut wasmer_runtime::Ctx, reg_bits: i32, reg_idx: i32) -> i64 {
             use byteorder::{ByteOrder, LittleEndian};
 
-            let reg = wasmer_data_reg!(ctx.data, reg_bits, reg_idx, $PC);
+            let reg = $crate::wasmer_data_reg!(ctx.data, reg_bits, reg_idx, $PC);
             let buf = reg.getn(8);
 
             LittleEndian::read_i64(&buf)
@@ -23,7 +23,7 @@ macro_rules! include_wasmer_svm_register_vmcalls {
             let mut buf = [0; 8];
             LittleEndian::write_i64(&mut buf, value);
 
-            let reg = wasmer_data_reg!(ctx.data, reg_bits, reg_idx, $PC);
+            let reg = $crate::wasmer_data_reg!(ctx.data, reg_bits, reg_idx, $PC);
             reg.set(&buf);
         }
     };

@@ -14,7 +14,7 @@ macro_rules! wasmer_ctx_mem_cells {
 #[macro_export]
 macro_rules! wasmer_ctx_mem_cells_write {
     ($ctx: expr, $mem_idx: expr, $mem_start: expr, $data: expr) => {{
-        let cells = wasmer_ctx_mem_cells!($ctx, $mem_idx, $mem_start, $data.len());
+        let cells = $crate::wasmer_ctx_mem_cells!($ctx, $mem_idx, $mem_start, $data.len());
 
         for (cell, byte) in cells.iter().zip($data.iter()) {
             cell.set(*byte);

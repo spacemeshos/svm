@@ -38,7 +38,7 @@ macro_rules! create_svm_state_gen {
         use std::ffi::c_void;
         use $crate::ctx::SvmCtx;
 
-        let ctx = create_svm_ctx!(
+        let ctx = $crate::create_svm_ctx!(
             $node_data,
             $pages_storage_gen,
             $page_cache_ctor,
@@ -63,7 +63,7 @@ macro_rules! create_svm_state_gen {
 macro_rules! lazy_create_svm_state_gen {
     ($node_data: expr, $pages_storage_gen: expr, $page_cache_ctor: expr, $PC: path, $max_pages: expr, $max_pages_slices: expr) => {{
         move || {
-            create_svm_state_gen!(
+            $crate::create_svm_state_gen!(
                 $node_data,
                 $pages_storage_gen,
                 $page_cache_ctor,

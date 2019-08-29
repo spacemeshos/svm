@@ -18,7 +18,9 @@ macro_rules! regs_count_ident {
 #[macro_export]
 macro_rules! wasmer_data_ensure_reg_idx {
     ($bits_count: expr, $reg_idx: expr) => {{
-        assert!($reg_idx >= 0 && (($reg_idx as i32) < (regs_count_ident!($bits_count) as i32)));
+        assert!(
+            $reg_idx >= 0 && (($reg_idx as i32) < ($crate::regs_count_ident!($bits_count) as i32))
+        );
     }};
 }
 
@@ -26,7 +28,7 @@ macro_rules! wasmer_data_ensure_reg_idx {
 #[macro_export]
 macro_rules! svm_regs_reg {
     ($regs: expr, $bits_count: expr, $reg_idx: expr) => {{
-        wasmer_data_ensure_reg_idx!($bits_count, $reg_idx);
+        $crate::wasmer_data_ensure_reg_idx!($bits_count, $reg_idx);
 
         // We don't do:
         // ```rust
@@ -50,17 +52,17 @@ macro_rules! svm_regs_reg {
 #[macro_export]
 macro_rules! wasmer_data_reg {
     ($data: expr, $bits_count: expr, $reg_idx: expr, $PC: path) => {{
-        wasmer_data_ensure_reg_idx!($bits_count, $reg_idx);
+        $crate::wasmer_data_ensure_reg_idx!($bits_count, $reg_idx);
 
         use $crate::ctx::SvmCtx;
-        let ctx: &mut SvmCtx<$PC> = cast_wasmer_data_to_svm_ctx!($data, $PC);
+        let ctx: &mut SvmCtx<$PC> = $crate::cast_wasmer_data_to_svm_ctx!($data, $PC);
 
         match $bits_count {
-            32 => svm_regs_reg!(ctx.regs_32, 32, $reg_idx),
-            64 => svm_regs_reg!(ctx.regs_64, 64, $reg_idx),
-            160 => svm_regs_reg!(ctx.regs_160, 160, $reg_idx),
-            256 => svm_regs_reg!(ctx.regs_256, 256, $reg_idx),
-            512 => svm_regs_reg!(ctx.regs_512, 512, $reg_idx),
+            32 => $crate::svm_regs_reg!(ctx.regs_32, 32, $reg_idx),
+            64 => $crate::svm_regs_reg!(ctx.regs_64, 64, $reg_idx),
+            160 => $crate::svm_regs_reg!(ctx.regs_160, 160, $reg_idx),
+            256 => $crate::svm_regs_reg!(ctx.regs_256, 256, $reg_idx),
+            512 => $crate::svm_regs_reg!(ctx.regs_512, 512, $reg_idx),
             _ => unreachable!(),
         }
     }};
@@ -71,6 +73,6 @@ macro_rules! wasmer_data_reg {
 #[macro_export]
 macro_rules! wasmer_ctx_reg {
     ($ctx: expr, $bits_count: expr, $reg_idx: expr, $PC: path) => {{
-        wasmer_data_reg!($ctx.data, $bits_count, $reg_idx, $PC)
+        $crate::wasmer_data_reg!($ctx.data, $bits_count, $reg_idx, $PC)
     }};
 }

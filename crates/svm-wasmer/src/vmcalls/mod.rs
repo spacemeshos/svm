@@ -6,7 +6,9 @@ mod storage;
 #[macro_export]
 macro_rules! include_wasmer_svm_vmcalls {
     ($PC: path) => {
-        $crate::include_wasmer_svm_storage_vmcalls!($PC);
-        $crate::include_wasmer_svm_register_vmcalls!($PC);
+        mod vmcalls {
+            $crate::include_wasmer_svm_storage_vmcalls!($PC);
+            $crate::include_wasmer_svm_register_vmcalls!($PC);
+        }
     };
 }
