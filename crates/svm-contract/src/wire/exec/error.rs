@@ -1,6 +1,6 @@
 use super::field::Field;
 
-pub enum ContractExecError {
+pub enum TransactionBuildError {
     UnsupportedProtoVersion(u32),
     NotEnoughBytes(Field),
     FuncNameNotValidUTF8String,
@@ -9,28 +9,28 @@ pub enum ContractExecError {
     InvalidArgIntType,
 }
 
-impl std::error::Error for ContractExecError {
+impl std::error::Error for TransactionBuildError {
     fn description(&self) -> &'static str {
         match self {
-            ContractExecError::EmptyFuncName => "Func Name must not be empty",
-            ContractExecError::FuncNameNotValidUTF8String => {
+            TransactionBuildError::EmptyFuncName => "Func Name must not be empty",
+            TransactionBuildError::FuncNameNotValidUTF8String => {
                 "Func Name must be a valid UTF-8 string"
             }
-            ContractExecError::NotEnoughBytes(_) => "Not enough bytes",
-            ContractExecError::UnsupportedProtoVersion(_) => "Unsupported protocol version",
-            ContractExecError::InvalidArgType(_) => "Invalid arg type",
-            ContractExecError::InvalidArgIntType => "Invalid arg int-type",
+            TransactionBuildError::NotEnoughBytes(_) => "Not enough bytes",
+            TransactionBuildError::UnsupportedProtoVersion(_) => "Unsupported protocol version",
+            TransactionBuildError::InvalidArgType(_) => "Invalid arg type",
+            TransactionBuildError::InvalidArgIntType => "Invalid arg int-type",
         }
     }
 }
 
-impl std::fmt::Display for ContractExecError {
+impl std::fmt::Display for TransactionBuildError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", <Self as std::error::Error>::description(self))
     }
 }
 
-impl std::fmt::Debug for ContractExecError {
+impl std::fmt::Debug for TransactionBuildError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         <Self as std::fmt::Display>::fmt(self, f)
     }

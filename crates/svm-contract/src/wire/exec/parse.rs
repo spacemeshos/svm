@@ -1,8 +1,8 @@
-use super::error::ContractExecError;
+use super::error::TransactionBuildError;
 use super::field::Field;
 
+use crate::transaction::Transaction;
 use crate::wasm::{WasmArgType, WasmArgValue, WasmIntType};
-use crate::Transaction;
 use svm_common::Address;
 
 use byteorder::{BigEndian, ReadBytesExt};
@@ -13,7 +13,7 @@ use std::io::{Cursor, Read};
 macro_rules! ensure_enough_bytes {
     ($res: expr, $field: expr) => {{
         if $res.is_err() {
-            return Err(ContractExecError::NotEnoughBytes($field));
+            return Err(TransactionBuildError::NotEnoughBytes($field));
         }
     }};
 }
@@ -21,7 +21,7 @@ macro_rules! ensure_enough_bytes {
 /// Parsing a on-the-wire smart-contract transaction given as raw bytes.
 /// Returns the parsed contract as a `WasmContract` struct.
 #[allow(dead_code)]
-pub fn parse_transaction(bytes: &[u8]) -> Result<Transaction, ContractExecError> {
+pub fn parse_transaction(bytes: &[u8]) -> Result<Transaction, TransactionBuildError> {
     let mut cursor = Cursor::new(bytes);
 
     parse_version(&mut cursor)?;
@@ -41,20 +41,23 @@ pub fn parse_transaction(bytes: &[u8]) -> Result<Transaction, ContractExecError>
     Ok(tx)
 }
 
-fn parse_version(cursor: &mut Cursor<&[u8]>) -> Result<u32, ContractExecError> {
+fn parse_version(cursor: &mut Cursor<&[u8]>) -> Result<u32, TransactionBuildError> {
     let res = cursor.read_u32::<BigEndian>();
 
     ensure_enough_bytes!(res, Field::Version);
 
     let version = res.unwrap();
     if version != 0 {
-        return Err(ContractExecError::UnsupportedProtoVersion(version));
+        return Err(TransactionBuildError::UnsupportedProtoVersion(version));
     }
 
     Ok(version)
 }
 
-fn parse_address(cursor: &mut Cursor<&[u8]>, field: Field) -> Result<Address, ContractExecError> {
+fn parse_address(
+    cursor: &mut Cursor<&[u8]>,
+    field: Field,
+) -> Result<Address, TransactionBuildError> {
     let mut bytes = vec![0; 32];
 
     let res = cursor.read_exact(&mut bytes);
@@ -65,21 +68,21 @@ fn parse_address(cursor: &mut Cursor<&[u8]>, field: Field) -> Result<Address, Co
     Ok(addr)
 }
 
-fn parse_func_name(cursor: &mut Cursor<&[u8]>) -> Result<String, ContractExecError> {
+fn parse_func_name(cursor: &mut Cursor<&[u8]>) -> Result<String, TransactionBuildError> {
     let res = cursor.read_u8();
 
     ensure_enough_bytes!(res, Field::FuncName);
 
     let name_len = res.unwrap() as usize;
     if name_len == 0 {
-        return Err(ContractExecError::EmptyFuncName);
+        return Err(TransactionBuildError::EmptyFuncName);
     }
 
     let mut name_buf = vec![0; name_len];
     let res = cursor.read_exact(&mut name_buf);
 
     if res.is_err() {
-        return Err(ContractExecError::NotEnoughBytes(Field::FuncName));
+        return Err(TransactionBuildError::NotEnoughBytes(Field::FuncName));
     }
 
     // TODO: make `String::from_utf8` work without raising
@@ -88,7 +91,7 @@ fn parse_func_name(cursor: &mut Cursor<&[u8]>) -> Result<String, ContractExecErr
     Ok(name)
 }
 
-fn parse_func_args(cursor: &mut Cursor<&[u8]>) -> Result<Vec<WasmArgValue>, ContractExecError> {
+fn parse_func_args(cursor: &mut Cursor<&[u8]>) -> Result<Vec<WasmArgValue>, TransactionBuildError> {
     let args_count = read_u8(cursor, Field::ArgsCount)?;
 
     let mut args = Vec::with_capacity(args_count as usize);
@@ -101,7 +104,7 @@ fn parse_func_args(cursor: &mut Cursor<&[u8]>) -> Result<Vec<WasmArgValue>, Cont
     Ok(args)
 }
 
-fn parse_func_arg(cursor: &mut Cursor<&[u8]>) -> Result<WasmArgValue, ContractExecError> {
+fn parse_func_arg(cursor: &mut Cursor<&[u8]>) -> Result<WasmArgValue, TransactionBuildError> {
     let arg_type = parse_func_arg_type(cursor)?;
 
     let arg_val = match arg_type {
@@ -130,28 +133,30 @@ fn parse_func_arg(cursor: &mut Cursor<&[u8]>) -> Result<WasmArgValue, ContractEx
     Ok(arg_val)
 }
 
-fn parse_func_arg_type(cursor: &mut Cursor<&[u8]>) -> Result<WasmArgType, ContractExecError> {
+fn parse_func_arg_type(cursor: &mut Cursor<&[u8]>) -> Result<WasmArgType, TransactionBuildError> {
     let byte = read_u8(cursor, Field::ArgType)?;
 
     let arg_type = WasmArgType::try_from(byte);
 
     match arg_type {
         Ok(arg_type) => Ok(arg_type),
-        Err(_) => Err(ContractExecError::InvalidArgType(byte)),
+        Err(_) => Err(TransactionBuildError::InvalidArgType(byte)),
     }
 }
 
-fn parse_func_arg_int_type(cursor: &mut Cursor<&[u8]>) -> Result<WasmIntType, ContractExecError> {
+fn parse_func_arg_int_type(
+    cursor: &mut Cursor<&[u8]>,
+) -> Result<WasmIntType, TransactionBuildError> {
     let arg_type = parse_func_arg_type(cursor)?;
 
     match arg_type {
         WasmArgType::I32 => Ok(WasmIntType::I32),
         WasmArgType::I64 => Ok(WasmIntType::I64),
-        _ => Err(ContractExecError::InvalidArgIntType),
+        _ => Err(TransactionBuildError::InvalidArgIntType),
     }
 }
 
-fn read_u8(cursor: &mut Cursor<&[u8]>, field: Field) -> Result<u8, ContractExecError> {
+fn read_u8(cursor: &mut Cursor<&[u8]>, field: Field) -> Result<u8, TransactionBuildError> {
     let res = cursor.read_u8();
 
     ensure_enough_bytes!(res, field);
@@ -159,7 +164,7 @@ fn read_u8(cursor: &mut Cursor<&[u8]>, field: Field) -> Result<u8, ContractExecE
     Ok(res.unwrap())
 }
 
-fn read_u32(cursor: &mut Cursor<&[u8]>, field: Field) -> Result<u32, ContractExecError> {
+fn read_u32(cursor: &mut Cursor<&[u8]>, field: Field) -> Result<u32, TransactionBuildError> {
     let res = cursor.read_u32::<BigEndian>();
 
     ensure_enough_bytes!(res, field);
@@ -167,7 +172,7 @@ fn read_u32(cursor: &mut Cursor<&[u8]>, field: Field) -> Result<u32, ContractExe
     Ok(res.unwrap())
 }
 
-fn read_u64(cursor: &mut Cursor<&[u8]>, field: Field) -> Result<u64, ContractExecError> {
+fn read_u64(cursor: &mut Cursor<&[u8]>, field: Field) -> Result<u64, TransactionBuildError> {
     let res = cursor.read_u64::<BigEndian>();
 
     ensure_enough_bytes!(res, field);
@@ -179,7 +184,7 @@ fn read_buffer(
     cursor: &mut Cursor<&[u8]>,
     buf_len: u32,
     field: Field,
-) -> Result<Vec<u8>, ContractExecError> {
+) -> Result<Vec<u8>, TransactionBuildError> {
     let mut buf = vec![0; buf_len as usize];
 
     let res = cursor.read_exact(&mut buf);

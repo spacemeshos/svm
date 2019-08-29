@@ -27,9 +27,7 @@ mod field;
 mod parse;
 mod validate;
 
-pub use crate::wasm::WasmContract;
 pub use build::WireContractBuilder;
-pub use error::ContractDeployError;
-
+pub use error::ContractBuildError;
 pub use parse::parse_contract;
 pub use validate::validate_contract;

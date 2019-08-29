@@ -1,11 +1,11 @@
 use crate::traits::ContractAddressCompute;
-use crate::wasm::WasmContract;
+use crate::wasm::Contract;
 use svm_common::{Address, DefaultKeyHasher, KeyHasher};
 
 pub struct DefaultContractAddressCompute;
 
 impl ContractAddressCompute for DefaultContractAddressCompute {
-    fn compute(contract: &WasmContract) -> Address {
+    fn compute(contract: &Contract) -> Address {
         // Computing the contract's account address as follows:
         // First 32 bytes of HASH(contract.Author || contract.Wasm)
 

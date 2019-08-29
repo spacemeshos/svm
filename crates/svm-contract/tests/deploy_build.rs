@@ -1,6 +1,7 @@
 use crate::traits::ContractAddressCompute;
 use svm_common::Address;
 
+use svm_contract::build::WireContractBuilder;
 use svm_contract::*;
 use svm_contract::{default::DefaultContractAddressCompute, env::ContractEnv, memory::MemoryEnv};
 

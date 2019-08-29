@@ -6,13 +6,24 @@
 ///
 #[macro_export]
 macro_rules! include_svm_wasmer_c_api {
-    ($pages_storage_gen: expr, $PC: ident, $ENV: ty, $env_gen: expr) => {
+    ($pages_storage_gen: expr, $PC: ident, $ENV: path, $env_gen: expr) => {
         /// Injecting the `svm runtime` backed by PageCache `$PC` into this file
         include_svm_runtime!($PC, $ENV, $env_gen);
 
+        /// Injecting `svm_wasmer` macros
+        use svm_wasmer::*;
+
+        use svm_common::{Address, State};
+        use svm_contract::transaction::Transaction;
+        use svm_wasmer::register::SvmReg;
+
+        use crate::c_types::{
+            svm_address_t, svm_receipt_t, svm_transaction_t, svm_wasm_contract_t,
+        };
+
         use std::ffi::c_void;
 
-        use wasmer_runtime::Ctx;
+        use wasmer_runtime::{Ctx, ImportObject};
         use wasmer_runtime_c_api::{
             error::update_last_error,
             import::{wasmer_import_object_extend, wasmer_import_object_t, wasmer_import_t},
@@ -21,10 +32,6 @@ macro_rules! include_svm_wasmer_c_api {
             wasmer_result_t,
         };
         use wasmer_runtime_core::import::Namespace;
-
-        use crate::c_types::{
-            svm_address_t, svm_receipt_t, svm_transaction_t, svm_wasm_contract_t,
-        };
 
         macro_rules! cast_obj_to_raw_ptr {
             ($obj: expr, $raw_type: ident) => {{
@@ -36,7 +43,7 @@ macro_rules! include_svm_wasmer_c_api {
         }
 
         macro_rules! from_raw {
-            ($raw_obj: expr, $ty: ident) => {{
+            ($raw_obj: expr, $ty: path) => {{
                 &*($raw_obj as *const $ty)
             }};
         }
@@ -76,33 +83,10 @@ macro_rules! include_svm_wasmer_c_api {
         pub unsafe extern "C" fn wasmer_svm_contract_store(
             raw_contract: *const svm_wasm_contract_t,
         ) -> wasmer_result_t {
-            use svm_contract::wasm::WasmContract;
+            let contract = from_raw!(raw_contract, svm_contract::wasm::Contract);
+            runtime::contract_store(&contract);
 
-            let contract = from_raw!(raw_contract, WasmContract);
-
-            unimplemented!()
-        }
-
-        /// Compiles the wasm module using the `svm-compiler` (`wasmer` singlepass compiler with custom extensions)
-        #[no_mangle]
-        pub unsafe extern "C" fn wasmer_svm_compile(
-            raw_module: *mut *mut wasmer_module_t,
-            bytes: *mut u8,
-            bytes_len: u32,
-        ) -> wasmer_result_t {
-            let raw_bytes = std::slice::from_raw_parts_mut(bytes, bytes_len as usize);
-            let result = svm_compiler::compile_program(raw_bytes);
-
-            match result {
-                Ok(module) => {
-                    *raw_module = cast_obj_to_raw_ptr!(module, wasmer_module_t);
-                    wasmer_result_t::WASMER_OK
-                }
-                Err(error) => {
-                    update_last_error(error);
-                    wasmer_result_t::WASMER_ERROR
-                }
-            }
+            wasmer_result_t::WASMER_OK
         }
 
         /// Builds an instance of `svm_transaction_t`.
@@ -128,6 +112,28 @@ macro_rules! include_svm_wasmer_c_api {
             }
         }
 
+        /// Compiles the wasm module using the `svm-compiler` (`wasmer` singlepass compiler with custom extensions)
+        #[no_mangle]
+        pub unsafe extern "C" fn wasmer_svm_compile(
+            raw_module: *mut *mut wasmer_module_t,
+            bytes: *mut u8,
+            bytes_len: u32,
+        ) -> wasmer_result_t {
+            let raw_bytes = std::slice::from_raw_parts_mut(bytes, bytes_len as usize);
+            let result = svm_compiler::compile_program(raw_bytes);
+
+            match result {
+                Ok(module) => {
+                    *raw_module = cast_obj_to_raw_ptr!(module, wasmer_module_t);
+                    wasmer_result_t::WASMER_OK
+                }
+                Err(error) => {
+                    update_last_error(error);
+                    wasmer_result_t::WASMER_ERROR
+                }
+            }
+        }
+
         /// Triggers a transaction execution of an already deployed contract.
         ///
         /// `receipt` - The receipt of the contract execution.
@@ -138,10 +144,16 @@ macro_rules! include_svm_wasmer_c_api {
             raw_tx: *const svm_transaction_t,
             raw_import_object: *const wasmer_import_object_t,
         ) -> wasmer_result_t {
-            unimplemented!()
-            // let tx = Box::from_raw
-            // svm_wasmer::runtime::contract_exec(
-            // )
+            let tx = from_raw!(raw_tx, Transaction);
+            let import_object = from_raw!(raw_import_object, ImportObject);
+
+            match runtime::contract_exec(tx, import_object) {
+                Ok(_) => wasmer_result_t::WASMER_OK,
+                Err(error) => {
+                    update_last_error(error);
+                    wasmer_result_t::WASMER_ERROR
+                }
+            }
         }
 
         /// Returns a raw pointer to the `wasmer svm` register's internal content
@@ -151,7 +163,6 @@ macro_rules! include_svm_wasmer_c_api {
             reg_bits: i32,
             reg_idx: i32,
         ) -> *const c_void {
-            use svm_wasmer::register::SvmReg;
             let wasmer_ctx: &Ctx = from_raw!(raw_ctx, Ctx);
             let reg: &mut SvmReg = wasmer_ctx_reg!(wasmer_ctx, reg_bits, reg_idx, $PC);
 
@@ -169,7 +180,6 @@ macro_rules! include_svm_wasmer_c_api {
             bytes: *const c_void,
             bytes_len: u8,
         ) {
-            use svm_wasmer::register::SvmReg;
             let wasmer_ctx: &Ctx = from_raw!(raw_ctx, Ctx);
             let reg: &mut SvmReg = wasmer_ctx_reg!(wasmer_ctx, reg_bits, reg_idx, $PC);
 
@@ -203,9 +213,6 @@ macro_rules! include_svm_wasmer_c_api {
             imports: *mut wasmer_import_t,
             imports_len: libc::c_uint,
         ) -> wasmer_result_t {
-            use svm_common::{Address, State};
-            use wasmer_runtime::ImportObject;
-
             let max_pages: u32 = raw_max_pages as u32;
             let max_page_slices: u32 = raw_max_page_slices as u32;
 

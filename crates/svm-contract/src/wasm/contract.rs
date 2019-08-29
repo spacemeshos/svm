@@ -3,20 +3,20 @@ use serde::{Deserialize, Serialize};
 
 use svm_common::Address;
 
-/// We first parse the on-the-wire contract transaction into a `WasmContract` instance.
+/// We first parse the on-the-wire contract transaction into a `Contract` instance.
 /// At that stage we don't know the contract future `address` yet.
 ///
-/// It's only later, while we `validiate` the contract when we also compute its future account address and add it to the `WasmContract` instance.
+/// It's only later, while we `validiate` the contract when we also compute its future account address and add it to the `Contract` instance.
 /// That's the reason why the `Address` field is defined of type `Option<Address>` and not simply `Address`.
 #[derive(Serialize, Deserialize, PartialEq)]
-pub struct WasmContract {
+pub struct Contract {
     pub address: Option<Address>,
     pub wasm: Vec<u8>,
     pub name: String,
     pub author: Address,
 }
 
-impl std::fmt::Debug for WasmContract {
+impl std::fmt::Debug for Contract {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let addr = self.preview_address(&self.address);
         let author = self.preview_author(&self.author);
@@ -28,7 +28,7 @@ impl std::fmt::Debug for WasmContract {
     }
 }
 
-impl WasmContract {
+impl Contract {
     fn preview_address(&self, addr: &Option<Address>) -> String {
         match addr {
             Some(addr) => {

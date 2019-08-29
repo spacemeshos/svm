@@ -2,10 +2,10 @@ use crate::traits::{
     ContractAddressCompute, ContractCodeHasher, ContractDeserializer, ContractSerializer,
     ContractStore,
 };
+use crate::transaction::Transaction;
 use crate::types::CodeHash;
-use crate::wasm::WasmContract;
-use crate::wire::{deploy::ContractDeployError, exec::ContractExecError};
-use crate::Transaction;
+use crate::wasm::Contract;
+use crate::wire::{deploy::ContractBuildError, exec::TransactionBuildError};
 
 use svm_common::{Address, KeyHasher};
 
@@ -31,16 +31,16 @@ pub trait ContractEnv {
     fn close_store(&mut self);
 
     #[inline(always)]
-    fn compute_code_hash(contract: &WasmContract) -> CodeHash {
+    fn compute_code_hash(contract: &Contract) -> CodeHash {
         <Self::Types as ContractEnvTypes>::CodeHasher::hash(&contract.wasm)
     }
 
     #[inline(always)]
-    fn compute_address(contract: &WasmContract) -> Address {
+    fn compute_address(contract: &Contract) -> Address {
         <Self::Types as ContractEnvTypes>::AddressCompute::compute(contract)
     }
 
-    fn build_contract(bytes: &[u8]) -> Result<WasmContract, ContractDeployError> {
+    fn build_contract(bytes: &[u8]) -> Result<Contract, ContractBuildError> {
         let mut contract = crate::wire::deploy::parse_contract(bytes)?;
 
         crate::wire::deploy::validate_contract(&contract)?;
@@ -50,8 +50,16 @@ pub trait ContractEnv {
         Ok(contract)
     }
 
+    fn build_transaction(bytes: &[u8]) -> Result<Transaction, TransactionBuildError> {
+        let mut tx = crate::wire::exec::parse_transaction(bytes)?;
+
+        // crate::wire::exec::validate_contract(&contract)?;
+
+        Ok(tx)
+    }
+
     #[inline(always)]
-    fn store_contract(&mut self, contract: &WasmContract) {
+    fn store_contract(&mut self, contract: &Contract) {
         let hash = Self::compute_code_hash(contract);
         let store = self.get_store_mut();
 

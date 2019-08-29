@@ -1,6 +1,6 @@
 use crate::traits::{ContractDeserializer, ContractSerializer, ContractStore};
 use crate::types::CodeHash;
-use crate::wasm::WasmContract;
+use crate::wasm::Contract;
 
 use std::collections::HashMap;
 use std::marker::PhantomData;
@@ -33,7 +33,7 @@ where
     S: ContractSerializer,
     D: ContractDeserializer,
 {
-    fn store(&mut self, contract: &WasmContract, hash: CodeHash) {
+    fn store(&mut self, contract: &Contract, hash: CodeHash) {
         let serialized: Vec<u8> = S::serialize(contract);
 
         self.contract_bytes.insert(hash, serialized);
@@ -42,7 +42,7 @@ where
         self.addr_codehash.insert(addr, hash);
     }
 
-    fn load(&self, address: Address) -> Option<WasmContract> {
+    fn load(&self, address: Address) -> Option<Contract> {
         match self.addr_codehash.get(&address) {
             None => None,
             Some(hash) => match self.contract_bytes.get(&hash) {

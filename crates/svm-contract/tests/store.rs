@@ -1,9 +1,11 @@
 use svm_common::Address;
-use svm_contract::env::ContractEnv;
-use svm_contract::memory::{MemContractStore, MemoryEnv};
-use svm_contract::traits::ContractStore;
 
-use svm_contract::*;
+use svm_contract::{
+    build::WireContractBuilder,
+    env::ContractEnv,
+    memory::{MemContractStore, MemoryEnv},
+    traits::ContractStore,
+};
 
 #[test]
 fn store_wasm_contract() {

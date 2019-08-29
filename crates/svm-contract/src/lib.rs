@@ -7,15 +7,17 @@ pub mod default;
 pub mod env;
 pub mod memory;
 pub mod traits;
+pub mod transaction;
 pub mod types;
 pub mod wasm;
-
-mod transaction;
 mod wire;
 
-pub use transaction::Transaction;
-pub use wire::deploy::ContractDeployError;
-pub use wire::deploy::WireContractBuilder;
-pub use wire::exec::parse_transaction;
-pub use wire::exec::ContractExecError;
-pub use wire::exec::WireTxBuilder;
+pub mod error {
+    pub use crate::wire::deploy::ContractBuildError;
+    pub use crate::wire::exec::TransactionBuildError;
+}
+
+pub mod build {
+    pub use crate::wire::deploy::WireContractBuilder;
+    pub use crate::wire::exec::WireTxBuilder;
+}
