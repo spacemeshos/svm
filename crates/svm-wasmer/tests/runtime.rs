@@ -1,12 +1,18 @@
 use svm_common::Address;
-use svm_contract::memory::{MemContractStore, MemoryEnv};
 use svm_contract::WireContractBuilder;
 use svm_storage::memory::MemMerklePageCache;
 use svm_wasmer::*;
 
-include_svm_runtime!(MemMerklePageCache, svm_contract::memory::MemoryEnv);
+include_svm_runtime!(MemMerklePageCache, svm_contract::memory::MemoryEnv, || {
+    use svm_contract::wasm::{WasmContractJsonDeserializer as D, WasmContractJsonSerializer as S};
+
+    let store = svm_contract::memory::MemContractStore::<S, D>::new();
+
+    svm_contract::memory::MemoryEnv::new(store)
+});
 
 #[test]
+#[ignore]
 fn deploy_wasm_contract() {
     let bytes = WireContractBuilder::new()
         .with_version(0)
@@ -16,11 +22,7 @@ fn deploy_wasm_contract() {
         .build();
 
     let contract = runtime::contract_build(&bytes).unwrap();
-
-    let mut store = MemContractStore::new();
-    let mut env = MemoryEnv::new(store);
-
-    runtime::contract_store(&contract, &mut env);
+    runtime::contract_store(&contract);
 }
 
 #[test]

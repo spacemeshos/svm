@@ -1,7 +1,9 @@
 #[macro_export]
 macro_rules! include_svm_runtime {
-    ($PAGE_CACHE: ident, $ENV: ty) => {
+    ($PAGE_CACHE: ident, $ENV: ty ,$env_gen: expr) => {
         $crate::include_wasmer_svm_vmcalls!($PAGE_CACHE);
+
+        use $crate::runtime::ContractExecError;
 
         pub mod runtime {
             #[inline(always)]
@@ -12,7 +14,7 @@ macro_rules! include_svm_runtime {
             }
 
             #[inline(always)]
-            pub fn contract_validate(
+            pub fn contract_deploy_validate(
                 contract: &svm_contract::wasm::WasmContract,
             ) -> Result<(), svm_contract::ContractDeployError> {
                 // TODO:
@@ -23,8 +25,10 @@ macro_rules! include_svm_runtime {
             }
 
             #[inline(always)]
-            pub fn contract_store(contract: &svm_contract::wasm::WasmContract, env: &mut $ENV) {
+            pub fn contract_store(contract: &svm_contract::wasm::WasmContract) {
                 use svm_contract::env::ContractEnv;
+
+                let mut env = $env_gen();
                 env.store_contract(&contract)
             }
 
@@ -39,11 +43,11 @@ macro_rules! include_svm_runtime {
                 tx: svm_contract::Transaction,
                 state: svm_common::State,
                 import_object: wasmer_runtime::ImportObject,
-                env: &mut $ENV,
             ) -> Result<(), $crate::runtime::ContractExecError> {
                 use svm_contract::wasm::WasmContract;
 
-                let contract = contract_load(&tx, env)?;
+                let mut env = $env_gen();
+                let contract = contract_load(&tx, &mut env)?;
                 let module = contract_compile(&contract)?;
                 let mut instance = module_instantiate(&contract, &module, &import_object)?;
                 let args = prepare_args_and_memory(&tx, &mut instance);
