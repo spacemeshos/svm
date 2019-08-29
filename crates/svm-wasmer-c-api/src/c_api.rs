@@ -57,9 +57,9 @@ macro_rules! include_svm_wasmer_c_api {
             raw_bytes_len: u64,
         ) -> wasmer_result_t {
             let bytes = std::slice::from_raw_parts(raw_bytes, raw_bytes_len as usize);
-            let res = runtime::contract_build(&bytes);
+            let result = runtime::contract_build(&bytes);
 
-            match res {
+            match result {
                 Ok(contract) => {
                     *raw_contract = cast_obj_to_raw_ptr!(contract, svm_wasm_contract_t);
                     wasmer_result_t::WASMER_OK
@@ -239,8 +239,8 @@ macro_rules! include_svm_wasmer_c_api {
             *raw_import_object = cast_obj_to_raw_ptr!(import_object, wasmer_import_object_t);
             let _res = wasmer_import_object_extend(*raw_import_object, imports, imports_len);
             // TODO: assert result
-            // if res != wasmer_result_t::WASMER_OK {
-            //     return res;
+            // if result != wasmer_result_t::WASMER_OK {
+            //     return result;
             // }
 
             wasmer_result_t::WASMER_OK
