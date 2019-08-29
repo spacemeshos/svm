@@ -1,7 +1,7 @@
 #[macro_export]
 macro_rules! include_svm_runtime {
     ($PAGE_CACHE: path, $ENV: ty ,$env_gen: expr) => {
-        pub mod runtime {
+        mod runtime {
             use $crate::runtime::ContractExecError;
 
             use svm_contract::{
