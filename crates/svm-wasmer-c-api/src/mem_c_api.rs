@@ -10,6 +10,11 @@ crate::include_svm_wasmer_c_api!(
         let kv = Rc::new(RefCell::new(MemKVStore::new()));
         MemMerklePages::new(addr, kv, state, max_pages)
     },
+    |pages_storage, max_pages| {
+        use svm_storage::memory::MemMerklePageCache;
+
+        MemMerklePageCache::new(pages_storage, max_pages)
+    },
     MemMerklePageCache,
     svm_contract::memory::MemoryEnv,
     || {

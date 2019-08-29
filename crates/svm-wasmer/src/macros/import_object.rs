@@ -2,7 +2,7 @@
 /// `svm vmcalls` will access that `SvmCtx` while runninng smart contracts
 #[macro_export]
 macro_rules! create_svm_ctx {
-    ($node_data: expr, $pages_storage_gen: expr, $PC: ident, $max_pages: expr, $max_pages_slices: expr) => {{
+    ($node_data: expr, $pages_storage_gen: expr, $page_cache_ctor: expr, $PC: path, $max_pages: expr, $max_pages_slices: expr) => {{
         use svm_storage::PageSliceCache;
         use $crate::ctx::SvmCtx;
 
@@ -12,7 +12,7 @@ macro_rules! create_svm_ctx {
         let leaked_pages: &mut _ = Box::leak(boxed_pages);
 
         // page cache
-        let page_cache = $PC::new(leaked_pages, $max_pages);
+        let page_cache = $page_cache_ctor(leaked_pages, $max_pages);
         let boxed_page_cache = Box::new(page_cache);
         let page_cache: &mut _ = Box::leak(boxed_page_cache);
 
@@ -21,7 +21,7 @@ macro_rules! create_svm_ctx {
         let boxed_storage = Box::new(storage);
         let storage: &mut _ = Box::leak(boxed_storage);
 
-        let ctx = SvmCtx::new($node_data, storage);
+        let ctx = SvmCtx::<$PC>::new($node_data, storage);
         let boxed_ctx = Box::new(ctx);
 
         let ctx_ptr = Box::leak(boxed_ctx);
@@ -34,13 +34,14 @@ macro_rules! create_svm_ctx {
 /// Builds a `svm wasmer` import object to be used when creating a `wasmer` instance.
 #[macro_export]
 macro_rules! create_svm_state_gen {
-    ($node_data: expr, $pages_storage_gen: expr, $PC: ident, $max_pages: expr, $max_pages_slices: expr) => {{
+    ($node_data: expr, $pages_storage_gen: expr, $page_cache_ctor: expr, $PC: path, $max_pages: expr, $max_pages_slices: expr) => {{
         use std::ffi::c_void;
         use $crate::ctx::SvmCtx;
 
         let ctx = create_svm_ctx!(
             $node_data,
             $pages_storage_gen,
+            $page_cache_ctor,
             $PC,
             $max_pages,
             $max_pages_slices
@@ -60,11 +61,12 @@ macro_rules! create_svm_state_gen {
 /// Returns a closure that when invoked (without args) calls `create_svm_state_gen`
 #[macro_export]
 macro_rules! lazy_create_svm_state_gen {
-    ($node_data: expr, $pages_storage_gen: expr, $PC: ident, $max_pages: expr, $max_pages_slices: expr) => {{
+    ($node_data: expr, $pages_storage_gen: expr, $page_cache_ctor: expr, $PC: path, $max_pages: expr, $max_pages_slices: expr) => {{
         move || {
             create_svm_state_gen!(
                 $node_data,
                 $pages_storage_gen,
+                $page_cache_ctor,
                 $PC,
                 $max_pages,
                 $max_pages_slices

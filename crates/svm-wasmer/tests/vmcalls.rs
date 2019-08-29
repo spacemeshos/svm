@@ -6,7 +6,7 @@ use svm_wasmer::*;
 use wasmer_runtime::{func, imports, Func};
 
 // injecting the `wasmer svm vmcalls` implemented with `MemPageCache<[u8; 32]>` as the `PageCache` type
-include_wasmer_svm_vmcalls!(MemMerklePageCache);
+include_wasmer_svm_vmcalls!(svm_storage::memory::MemMerklePageCache);
 
 macro_rules! wasmer_compile_module {
     ($wasm:expr) => {{
@@ -44,10 +44,17 @@ macro_rules! test_create_svm_state_gen {
             MemMerklePages::new(addr, kv, state, max_pages)
         };
 
+        let page_cache_ctor = |arg_pages_storage, arg_max_pages| {
+            use svm_storage::memory::MemMerklePageCache;
+
+            MemMerklePageCache::new(arg_pages_storage, arg_max_pages)
+        };
+
         lazy_create_svm_state_gen!(
             node_data,
             pages_storage_gen,
-            MemMerklePageCache,
+            page_cache_ctor,
+            svm_storage::memory::MemMerklePageCache,
             max_pages as usize,
             max_pages_slices as usize
         )

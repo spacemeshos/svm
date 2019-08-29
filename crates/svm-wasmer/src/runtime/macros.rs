@@ -1,6 +1,6 @@
 #[macro_export]
 macro_rules! include_svm_runtime {
-    ($PAGE_CACHE: ident, $ENV: ty ,$env_gen: expr) => {
+    ($PAGE_CACHE: path, $ENV: ty ,$env_gen: expr) => {
         $crate::include_wasmer_svm_vmcalls!($PAGE_CACHE);
 
         pub mod runtime {

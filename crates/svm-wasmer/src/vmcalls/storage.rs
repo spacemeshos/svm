@@ -2,7 +2,7 @@
 /// The `vmcalls` are functions imported into each running `svm wasmer` instance.
 #[macro_export]
 macro_rules! include_wasmer_svm_storage_vmcalls {
-    ($PC: ident) => {
+    ($PC: path) => {
         /// Copies the contents of `wasmer` memory cells under addresses:
         /// `src_mem_ptr, src_mem_ptr + 1, .. , src_mem_ptr + len (exclusive)`
         /// into `wasmer` register indexed `dst_reg`

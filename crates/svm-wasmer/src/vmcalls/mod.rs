@@ -5,7 +5,7 @@ mod storage;
 /// The `vmcalls` are functions imported into each running `svm wasmer` instance.
 #[macro_export]
 macro_rules! include_wasmer_svm_vmcalls {
-    ($PC: ident) => {
+    ($PC: path) => {
         $crate::include_wasmer_svm_storage_vmcalls!($PC);
         $crate::include_wasmer_svm_register_vmcalls!($PC);
     };

@@ -6,7 +6,7 @@
 ///
 #[macro_export]
 macro_rules! include_svm_wasmer_c_api {
-    ($pages_storage_gen: expr, $PC: ident, $ENV: path, $env_gen: expr) => {
+    ($pages_storage_gen: expr, $page_cache_ctor: expr, $PC: path, $ENV: path, $env_gen: expr) => {
         /// Injecting the `svm runtime` backed by PageCache `$PC` into this file
         include_svm_runtime!($PC, $ENV, $env_gen);
 
@@ -228,6 +228,7 @@ macro_rules! include_svm_wasmer_c_api {
             let state_gen = lazy_create_svm_state_gen!(
                 node_data,
                 wrapped_pages_storage_gen,
+                $page_cache_ctor,
                 $PC,
                 max_pages as usize,
                 max_page_slices as usize

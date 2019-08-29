@@ -41,7 +41,7 @@ macro_rules! svm_write_page_slice {
 /// Casts the `wasmer` instance context data field (of type `*mut c_void`) into `&mut PageSliceCache<PC>`.
 #[macro_export]
 macro_rules! wasmer_data_storage {
-    ($data: expr, $PC: ident) => {{
+    ($data: expr, $PC: path) => {{
         use $crate::ctx::SvmCtx;
 
         let ctx: &mut SvmCtx<$PC> = cast_wasmer_data_to_svm_ctx!($data, $PC);
