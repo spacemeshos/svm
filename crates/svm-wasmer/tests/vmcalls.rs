@@ -47,13 +47,17 @@ macro_rules! test_create_svm_state_gen {
             MemMerklePageCache::new(arg_pages_storage, arg_max_pages)
         };
 
+        let opts = svm_wasmer::opts::Opts {
+            max_pages: max_pages as usize,
+            max_pages_slices: max_pages_slices as usize,
+        };
+
         svm_wasmer::lazy_create_svm_state_gen!(
             node_data,
             pages_storage_gen,
             page_cache_ctor,
             svm_storage::memory::MemMerklePageCache,
-            max_pages as usize,
-            max_pages_slices as usize
+            opts
         )
     }};
 }

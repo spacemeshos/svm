@@ -225,13 +225,17 @@ macro_rules! include_svm_wasmer_c_api {
                 $pages_storage_gen(addr, state, max_pages)
             };
 
+            let opts = svm_wasmer::opts::Opts {
+                max_pages: max_pages as usize,
+                max_pages_slices: max_page_slices as usize,
+            };
+
             let state_gen = svm_wasmer::lazy_create_svm_state_gen!(
                 node_data,
                 wrapped_pages_storage_gen,
                 $page_cache_ctor,
                 $PC,
-                max_pages as usize,
-                max_page_slices as usize
+                opts
             );
 
             let mut import_object = ImportObject::new_with_data(state_gen);

@@ -21,3 +21,5 @@ pub mod macros;
 /// Implements the `svm` vmcalls (a.k.a libcalls / hostcalls / syscalls)
 /// to be intergrated into `wasmer` instances running in the `svm`.
 pub mod vmcalls;
+
+pub mod opts;

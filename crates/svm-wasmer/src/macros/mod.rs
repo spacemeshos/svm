@@ -60,13 +60,17 @@ mod tests {
             let page_cache_ctor =
                 |arg_pages, arg_max_pages| MemMerklePageCache::new(arg_pages, arg_max_pages);
 
+            let opts = crate::opts::Opts {
+                max_pages: max_pages as usize,
+                max_pages_slices: max_pages_slices as usize,
+            };
+
             create_svm_ctx!(
                 $node_data,
                 pages_storage_gen,
                 page_cache_ctor,
                 svm_storage::memory::MemMerklePageCache,
-                max_pages as usize,
-                max_pages_slices as usize
+                opts
             )
         }};
     }
