@@ -1,8 +1,22 @@
-use svm_common::Address;
-use svm_contract::build::WireContractBuilder;
+use svm_common::{Address, State};
+use svm_contract::build::{WireContractBuilder, WireTxBuilder};
+use svm_contract::wasm::{WasmArgType, WasmArgValue};
 use svm_wasmer::*;
 
 include_svm_runtime!(
+    |addr, state, max_pages| {
+        use std::cell::RefCell;
+        use std::rc::Rc;
+        use svm_storage::memory::{MemKVStore, MemMerklePages};
+
+        let kv = Rc::new(RefCell::new(MemKVStore::new()));
+        MemMerklePages::new(addr, Rc::clone(&kv), state, max_pages as u32)
+    },
+    |arg_pages, arg_max_pages| {
+        use svm_storage::memory::MemMerklePageCache;
+
+        MemMerklePageCache::new(arg_pages, arg_max_pages)
+    },
     svm_storage::memory::MemMerklePageCache,
     svm_contract::memory::MemoryEnv,
     || {
@@ -15,6 +29,13 @@ include_svm_runtime!(
         svm_contract::memory::MemoryEnv::new(store)
     }
 );
+
+macro_rules! load_wasm_file {
+    ($file: expr) => {{
+        let wasm = include_str!($file);
+        wabt::wat2wasm(&wasm).unwrap()
+    }};
+}
 
 #[test]
 #[ignore]
@@ -33,13 +54,42 @@ fn deploy_wasm_contract() {
 #[test]
 #[ignore]
 fn contract_exec_non_existing_contract() {
-    //
+    // ...
 }
 
 #[test]
-#[ignore]
 fn contract_exec_valid_transaction() {
-    //
+    let wasm = load_wasm_file!("wasm/reg_to_mem_copy.wast");
+
+    let raw_contract = WireContractBuilder::new()
+        .with_version(0)
+        .with_name("Contract #1")
+        .with_author(Address::from(0x10_20_30_40))
+        .with_code(&wasm[..])
+        .build();
+
+    let contract = runtime::contract_build(&raw_contract).unwrap();
+    let contract_addr = contract.address.unwrap();
+
+    let raw_tx = WireTxBuilder::new()
+        .with_version(0)
+        .with_contract(contract_addr)
+        .with_sender(Address::from(0x11_22_33_44))
+        .with_func_name("????")
+        .with_func_args(&[])
+        .build();
+
+    let tx = runtime::transaction_build(&raw_tx).unwrap();
+
+    let opts = svm_wasmer::opts::Opts {
+        max_pages: 1,
+        max_pages_slices: 100,
+    };
+
+    let import_object =
+        runtime::import_object_create(contract_addr, State::from(0), std::ptr::null(), opts);
+
+    runtime::contract_exec(&tx, &import_object);
 }
 
 #[test]

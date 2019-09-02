@@ -1,8 +1,13 @@
 #[macro_export]
 macro_rules! include_svm_runtime {
-    ($PAGE_CACHE: path, $ENV: ty ,$env_gen: expr) => {
+    ($pages_storage_gen: expr, $page_cache_ctor: expr, $PC: path, $ENV: ty, $env_gen: expr) => {
         mod runtime {
             use $crate::runtime::ContractExecError;
+
+            /// injects `vmcalls` module
+            svm_wasmer::include_wasmer_svm_vmcalls!($PC);
+
+            use svm_common::{Address, State};
 
             use svm_contract::{
                 env::ContractEnv,
@@ -54,6 +59,52 @@ macro_rules! include_svm_runtime {
                     Err(_) => Err(ContractExecError::ExecFailed),
                     Ok(_) => Ok(()),
                 }
+            }
+
+            pub fn import_object_create(
+                addr: Address,
+                state: State,
+                node_data: *const std::ffi::c_void,
+                opts: $crate::opts::Opts,
+            ) -> wasmer_runtime::ImportObject {
+                use wasmer_runtime::{func, ImportObject};
+
+                let max_pages = opts.max_pages;
+                let wrapped_pages_storage_gen = move || $pages_storage_gen(addr, state, max_pages);
+
+                let state_gen = svm_wasmer::lazy_create_svm_state_gen!(
+                    node_data,
+                    wrapped_pages_storage_gen,
+                    $page_cache_ctor,
+                    $PC,
+                    opts
+                );
+
+                let mut import_object = ImportObject::new_with_data(state_gen);
+
+                let mut ns = wasmer_runtime_core::import::Namespace::new();
+
+                // storage
+                ns.insert("mem_to_reg_copy", func!(vmcalls::mem_to_reg_copy));
+                ns.insert("reg_to_mem_copy", func!(vmcalls::reg_to_mem_copy));
+                ns.insert("storage_read_to_reg", func!(vmcalls::storage_read_to_reg));
+                ns.insert("storage_read_to_mem", func!(vmcalls::storage_read_to_mem));
+                ns.insert(
+                    "storage_write_from_mem",
+                    func!(vmcalls::storage_write_from_mem),
+                );
+                ns.insert(
+                    "storage_write_from_reg",
+                    func!(vmcalls::storage_write_from_reg),
+                );
+
+                // register
+                ns.insert("reg_read_le_i64", func!(vmcalls::reg_read_le_i64));
+                ns.insert("reg_write_le_i64", func!(vmcalls::reg_write_le_i64));
+
+                import_object.register("svm", ns);
+
+                import_object
             }
 
             fn contract_load(

@@ -2,14 +2,11 @@
 /// Injects into the current file:
 /// * `svm wasmer` instance C-API
 /// * `svm wasmer` register C-API
-/// * `svm vmcalls` (required by the implementations of the C-API functions)
+/// * `svm runtime`
 ///
 #[macro_export]
 macro_rules! include_svm_wasmer_c_api {
     ($pages_storage_gen: expr, $page_cache_ctor: expr, $PC: path, $ENV: path, $env_gen: expr) => {
-        /// Injects `vmcalls` module
-        svm_wasmer::include_wasmer_svm_vmcalls!($PC);
-
         /// Injects `runtime` module
         svm_wasmer::include_svm_runtime!($PC, $ENV, $env_gen);
 
@@ -216,6 +213,11 @@ macro_rules! include_svm_wasmer_c_api {
             let max_pages: u32 = raw_max_pages as u32;
             let max_page_slices: u32 = raw_max_page_slices as u32;
 
+            let opts = svm_wasmer::opts::Opts {
+                max_pages: max_pages as usize,
+                max_pages_slices: max_page_slices as usize,
+            };
+
             // having `c_void` instead of `u8` in the function's signature
             // makes the integration with `cgo` easier.
             let wrapped_pages_storage_gen = move || {
@@ -223,11 +225,6 @@ macro_rules! include_svm_wasmer_c_api {
                 let state = State::from(raw_state as *const u8);
 
                 $pages_storage_gen(addr, state, max_pages)
-            };
-
-            let opts = svm_wasmer::opts::Opts {
-                max_pages: max_pages as usize,
-                max_pages_slices: max_page_slices as usize,
             };
 
             let state_gen = svm_wasmer::lazy_create_svm_state_gen!(
@@ -239,7 +236,7 @@ macro_rules! include_svm_wasmer_c_api {
             );
 
             let mut import_object = ImportObject::new_with_data(state_gen);
-            append_internal_imports(&mut import_object);
+            runtime::append_internal_imports(&mut import_object);
 
             *raw_import_object = cast_obj_to_raw_ptr!(import_object, wasmer_import_object_t);
             let _res = wasmer_import_object_extend(*raw_import_object, imports, imports_len);
@@ -249,32 +246,6 @@ macro_rules! include_svm_wasmer_c_api {
             // }
 
             wasmer_result_t::WASMER_OK
-        }
-
-        fn append_internal_imports(import_obj: &mut wasmer_runtime::ImportObject) {
-            use wasmer_runtime::func;
-
-            let mut ns = Namespace::new();
-
-            // storage
-            ns.insert("mem_to_reg_copy", func!(vmcalls::mem_to_reg_copy));
-            ns.insert("reg_to_mem_copy", func!(vmcalls::reg_to_mem_copy));
-            ns.insert("storage_read_to_reg", func!(vmcalls::storage_read_to_reg));
-            ns.insert("storage_read_to_mem", func!(vmcalls::storage_read_to_mem));
-            ns.insert(
-                "storage_write_from_mem",
-                func!(vmcalls::storage_write_from_mem),
-            );
-            ns.insert(
-                "storage_write_from_reg",
-                func!(vmcalls::storage_write_from_reg),
-            );
-
-            // register
-            ns.insert("reg_read_le_i64", func!(vmcalls::reg_read_le_i64));
-            ns.insert("reg_write_le_i64", func!(vmcalls::reg_write_le_i64));
-
-            import_obj.register("svm", ns);
         }
     };
 }
