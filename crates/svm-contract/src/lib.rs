@@ -5,6 +5,7 @@
 
 pub mod default;
 pub mod env;
+pub mod leveldb;
 pub mod memory;
 pub mod traits;
 pub mod transaction;

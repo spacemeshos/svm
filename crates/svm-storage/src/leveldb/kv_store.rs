@@ -18,7 +18,7 @@ pub struct LDBStore {
 }
 
 impl LDBStore {
-    fn new(path: &Path) -> Self {
+    pub fn new(path: &Path) -> Self {
         let mut opts = Options::new();
         opts.create_if_missing = true;
 

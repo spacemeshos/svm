@@ -186,10 +186,10 @@ mod tests {
             use crate::memory::{MemKVStore, MemMerklePages};
 
             use std::cell::RefCell;
-            use std::rc::Rc;
+            use std::sync::Arc;
 
-            let $kv_ident = Rc::new(RefCell::new(MemKVStore::new()));
-            let kv_gen = || Rc::clone(&$kv_ident);
+            let $kv_ident = Arc::new(RefCell::new(MemKVStore::new()));
+            let kv_gen = || Arc::clone(&$kv_ident);
 
             let mut pages = mem_merkle_pages_gen!($addr, $state, kv_gen, $max_pages);
             let mut $cache_ident = DefaultPageCache::<MemMerklePages>::new(&mut pages, $max_pages);
