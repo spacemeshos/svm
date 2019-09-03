@@ -9,6 +9,10 @@ publish = false
 [dependencies.svm-common]
 path = "../svm-common"
 
+
+[dependencies.svm-kv]
+path = "../svm-kv"
+
 [dependencies.svm-storage]
 default-features = false
 path = "../svm-storage"

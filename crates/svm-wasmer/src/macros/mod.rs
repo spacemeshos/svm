@@ -21,10 +21,9 @@ mod tests {
     use std::ffi::{c_void, CString};
     use std::os::raw::c_char;
 
-    use svm_storage::{
-        memory::{MemKVStore, MemMerklePageCache},
-        traits::PageCache,
-    };
+    use svm_kv::memory::MemKVStore;
+
+    use svm_storage::{memory::MemMerklePageCache, traits::PageCache};
 
     pub fn wasmer_fake_import_object_data<PC: PageCache>(
         ctx: &SvmCtx<PC>,

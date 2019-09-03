@@ -9,8 +9,8 @@ include_svm_runtime!(
         use std::path::Path;
         use std::sync::Arc;
 
-        use once_cell::sync::OnceCell;
-        use svm_storage::leveldb::{LDBPages, LDBStore};
+        use svm_kv::leveldb::LDBStore;
+        use svm_storage::leveldb::LDBPages;
 
         let kv = LDBStore::new(Path::new("./dbs/one"));
         let kv = Arc::new(RefCell::new(kv));

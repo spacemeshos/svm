@@ -32,7 +32,8 @@ macro_rules! test_create_svm_state_gen {
             use std::cell::RefCell;
             use std::sync::Arc;
             use svm_common::{Address, State};
-            use svm_storage::memory::{MemKVStore, MemMerklePages};
+            use svm_kv::memory::MemKVStore;
+            use svm_storage::memory::MemMerklePages;
 
             let addr = Address::from(0x12_34_56_78);
             let state = State::from(0x00_00_00_00);
