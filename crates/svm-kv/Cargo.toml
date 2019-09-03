@@ -1,0 +1,24 @@
+[package]
+name = "svm-kv"
+version = "0.0.0"
+authors = ["Yaron Wittenstein <yaron.wittenstein@gmail.com>"]
+license = "MIT"
+edition = "2018"
+readme = "README.md"
+publish = false
+
+[dependencies.svm-common]
+path = "../svm-common"
+
+[dependencies.db-key]
+optional = true
+version = "0.0.5"
+
+[dependencies.leveldb]
+optional = true
+version = "0.8.4"
+
+[features]
+default = ["memory", "default-leveldb"]
+memory = []
+default-leveldb = ["db-key", "leveldb"]

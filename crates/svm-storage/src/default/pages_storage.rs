@@ -1,5 +1,6 @@
 use crate::page::PageIndex;
-use crate::traits::{KVStore, PageIndexHasher, PagesStorage};
+use crate::traits::{PageIndexHasher, PagesStorage};
+use svm_kv::traits::KVStore;
 
 use svm_common::Address;
 

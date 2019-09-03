@@ -1,6 +1,8 @@
 use crate::page::{PageHash, PageIndex};
-use crate::traits::{KVStore, PageHasher, PagesStateStorage, PagesStorage, StateHasher};
+use crate::traits::{PageHasher, PagesStateStorage, PagesStorage, StateHasher};
+
 use svm_common::{Address, State};
+use svm_kv::traits::KVStore;
 
 use std::cell::RefCell;
 use std::marker::PhantomData;
@@ -218,13 +220,12 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::traits::KVStore;
 
     use svm_common::{Address, DefaultKeyHasher, State};
 
     use crate::default::DefaultPageHasher;
-    use crate::memory::MemKVStore;
     use crate::page::zero_page;
+    use svm_kv::memory::MemKVStore;
 
     use std::cell::RefCell;
     use std::rc::Rc;

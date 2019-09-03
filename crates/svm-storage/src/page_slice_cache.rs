@@ -238,7 +238,7 @@ mod tests {
     use crate::default_page_hash;
     use crate::memory::MemMerklePages;
     use crate::page::zero_page;
-    use crate::traits::KVStore;
+    use svm_kv::traits::KVStore;
 
     use super::page::SliceIndex;
 
@@ -251,7 +251,8 @@ mod tests {
     macro_rules! page_slice_cache_gen {
         ($cache_slice_ident: ident, $pages_ident: ident,  $kv_ident: ident, $addr: expr, $state: expr, $max_pages: expr, $max_pages_slices: expr) => {
             use crate::default::DefaultPageCache;
-            use crate::memory::{MemKVStore, MemMerklePages};
+            use crate::memory::MemMerklePages;
+            use svm_kv::memory::MemKVStore;
 
             use std::cell::RefCell;
             use std::sync::Arc;

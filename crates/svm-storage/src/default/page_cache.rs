@@ -175,15 +175,16 @@ impl<'ps, PS: PagesStorage> PagesStorage for DefaultPageCache<'ps, PS> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::memory::MemKVStore;
-    use crate::traits::KVStore;
+    use svm_kv::memory::MemKVStore;
+    use svm_kv::traits::KVStore;
 
     use crate::default_page_idx_hash;
 
     macro_rules! merkle_page_cache_gen {
         ($cache_ident: ident, $kv_ident: ident, $addr: expr, $state: expr, $max_pages: expr) => {
             use crate::default::DefaultPageCache;
-            use crate::memory::{MemKVStore, MemMerklePages};
+            use crate::memory::MemMerklePages;
+            use svm_kv::memory::MemKVStore;
 
             use std::cell::RefCell;
             use std::sync::Arc;

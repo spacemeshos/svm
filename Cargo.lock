@@ -657,6 +657,7 @@ dependencies = [
  "svm-common 0.0.0",
  "svm-compiler 0.0.0",
  "svm-contract 0.0.0",
+ "svm-kv 0.0.0",
  "svm-storage 0.0.0",
  "svm-wasmer 0.0.0",
  "svm-wasmer-c-api 0.0.0",
@@ -702,14 +703,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "svm-kv"
+version = "0.0.0"
+dependencies = [
+ "db-key 0.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "leveldb 0.8.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "svm-common 0.0.0",
+]
+
+[[package]]
 name = "svm-storage"
 version = "0.0.0"
 dependencies = [
  "cfg-if 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)",
- "db-key 0.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "hash256-std-hasher 0.14.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "leveldb 0.8.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "svm-common 0.0.0",
+ "svm-kv 0.0.0",
 ]
 
 [[package]]
