@@ -1,12 +1,13 @@
-extern crate svm_wasmer_c_api;
+extern crate svm_runtime_c_api;
 
 use std::ffi::c_void;
 
+use svm_runtime::*;
 use svm_storage::memory::MemMerklePageCache;
-use svm_wasmer::*;
-use svm_wasmer_c_api::c_utils::*;
-use svm_wasmer_c_api::mem_c_api::*;
-use svm_wasmer_c_api::*;
+
+use svm_runtime_c_api::c_utils::*;
+use svm_runtime_c_api::mem_c_api::*;
+use svm_runtime_c_api::*;
 
 use wasmer_runtime::{Ctx, Func, Instance};
 use wasmer_runtime_c_api::{
@@ -55,7 +56,7 @@ unsafe extern "C" fn get_balance(_ctx: *mut wasmer_instance_context_t, addr: i32
 /// See test: `call_wasmer_svm_instance_context_node_data_get`
 #[no_mangle]
 unsafe extern "C" fn set_ip(ctx: *mut wasmer_instance_context_t, new_ip: i32) {
-    let node_data: *mut c_void = wasmer_svm_instance_context_node_data_get(ctx) as *mut _;
+    let node_data: *mut c_void = svm_instance_context_node_data_get(ctx) as *mut _;
     let node_data: &mut NodeData = &mut *(node_data as *mut _);
     node_data.set_ip(new_ip);
 }
@@ -68,8 +69,8 @@ unsafe extern "C" fn copy_reg_to_reg(
     src_reg_idx: i32,
     dst_reg_idx: i32,
 ) {
-    let src_reg_ptr: *const u8 = wasmer_svm_register_get(ctx, 64, src_reg_idx) as *const _;
-    let dst_reg_ptr: *mut u8 = wasmer_svm_register_get(ctx, 64, dst_reg_idx) as *mut _;
+    let src_reg_ptr: *const u8 = svm_register_get(ctx, 64, src_reg_idx) as *const _;
+    let dst_reg_ptr: *mut u8 = svm_register_get(ctx, 64, dst_reg_idx) as *mut _;
 
     std::ptr::copy_nonoverlapping(src_reg_ptr, dst_reg_ptr, 8);
 }
@@ -102,7 +103,7 @@ fn call_storage_mem_to_reg_copy() {
         let node_data = NodeData::default();
         let raw_import_object = alloc_raw_import_object();
 
-        wasmer_svm_import_object(
+        svm_import_object(
             raw_import_object,
             u32_addr_as_ptr(0x11_22_33_44),  // `raw_addr: *const u8`
             u32_state_as_ptr(0x00_00_00_00), // `raw_state: *const u8`
@@ -140,7 +141,7 @@ fn call_node_get_balance() {
         let mut gb_import = build_wasmer_import_t("node", "get_balance", gb_ptr);
         let raw_import_object = alloc_raw_import_object();
 
-        wasmer_svm_import_object(
+        svm_import_object(
             raw_import_object,
             u32_addr_as_ptr(0x11_22_33_44),  // `raw_addr: *const u8`
             u32_state_as_ptr(0x00_00_00_00), // `raw_state: *const u8`,
@@ -172,7 +173,7 @@ fn call_wasmer_svm_instance_context_node_data_get() {
 
         let raw_import_object = alloc_raw_import_object();
 
-        wasmer_svm_import_object(
+        svm_import_object(
             raw_import_object,
             u32_addr_as_ptr(0x11_22_33_44),  // `raw_addr: *const u8`
             u32_state_as_ptr(0x00_00_00_00), // `raw_state: *const u8`,
@@ -208,7 +209,7 @@ fn call_wasmer_svm_register_get_set() {
 
         let raw_import_object = alloc_raw_import_object();
 
-        wasmer_svm_import_object(
+        svm_import_object(
             raw_import_object,
             u32_addr_as_ptr(0x11_22_33_44),  // `raw_addr: *const u8`
             u32_state_as_ptr(0x00_00_00_00), // `raw_state: *const u8`,
@@ -228,12 +229,12 @@ fn call_wasmer_svm_register_get_set() {
         let func: Func<(i32, i32)> = instance.func("copy_reg_to_reg_proxy").unwrap();
 
         let ctx = instance.context() as *const Ctx as *const wasmer_instance_context_t;
-        let reg2 = wasmer_svm_register_get(ctx, 64, 2);
+        let reg2 = svm_register_get(ctx, 64, 2);
         let reg3 = wasmer_ctx_reg!(instance.context(), 64, 3, MemMerklePageCache);
 
         // setting register `2` with data that will be copied later to register `3`
         let buf: Vec<u8> = vec![10, 20, 30, 40, 50, 60, 70, 80];
-        wasmer_svm_register_set(ctx, 64, 2, buf.as_ptr() as *const c_void, 8);
+        svm_register_set(ctx, 64, 2, buf.as_ptr() as *const c_void, 8);
 
         assert_eq!(vec![0; 8], reg3.view());
 

@@ -4,19 +4,19 @@ use crate::register::{SvmReg, SvmReg160, SvmReg32, SvmReg512, SvmReg64};
 use std::ffi::c_void;
 use svm_storage::PageSliceCache;
 
-/// The number of allocated wasmer `SvmReg32` registers for each `SvmCtx`
+/// The number of allocated `SvmReg32` registers for each `SvmCtx`
 pub const REGS_32_COUNT: usize = 16;
 
-/// The number of allocated wasmer `SvmReg64` registers for each `SvmCtx`
+/// The number of allocated `SvmReg64` registers for each `SvmCtx`
 pub const REGS_64_COUNT: usize = 16;
 
-/// The number of allocated wasmer `SvmReg160` registers for each `SvmCtx`
+/// The number of allocated `SvmReg160` registers for each `SvmCtx`
 pub const REGS_160_COUNT: usize = 8;
 
-/// The number of allocated wasmer `SvmReg256` registers for each `SvmCtx`
+/// The number of allocated `SvmReg256` registers for each `SvmCtx`
 pub const REGS_256_COUNT: usize = 4;
 
-/// The number of allocated wasmer `SvmReg512` registers for each `SvmCtx`
+/// The number of allocated `SvmReg512` registers for each `SvmCtx`
 pub const REGS_512_COUNT: usize = 4;
 
 /// `SvmCtx` is a container for the accessible data by `wasmer` instances

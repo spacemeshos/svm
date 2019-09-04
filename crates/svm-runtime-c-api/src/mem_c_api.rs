@@ -1,4 +1,4 @@
-crate::include_svm_wasmer_c_api!(
+crate::include_svm_runtime_c_api!(
     |addr, state, max_pages| {
         use std::cell::RefCell;
         use std::rc::Rc;

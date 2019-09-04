@@ -1,7 +1,7 @@
 use svm_common::{Address, State};
 use svm_contract::build::{WireContractBuilder, WireTxBuilder};
 use svm_contract::wasm::{WasmArgType, WasmArgValue as Value};
-use svm_wasmer::*;
+use svm_runtime::*;
 
 include_svm_runtime!(
     |addr, state, max_pages| {
@@ -93,7 +93,7 @@ fn contract_exec_valid_transaction() {
 
     let tx = runtime::transaction_build(&raw_tx).unwrap();
 
-    let opts = svm_wasmer::opts::Opts {
+    let opts = svm_runtime::opts::Opts {
         max_pages: 10,
         max_pages_slices: 100,
     };

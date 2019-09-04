@@ -1,18 +1,13 @@
-///
-/// Injects into the current file:
-/// * `svm wasmer` instance C-API
-/// * `svm wasmer` register C-API
-/// * `svm runtime`
-///
+/// Injects into the current file `svm runtime C-API`
 #[macro_export]
-macro_rules! include_svm_wasmer_c_api {
+macro_rules! include_svm_runtime_c_api {
     ($pages_storage_gen: expr, $page_cache_ctor: expr, $PC: path, $ENV: path, $env_gen: expr) => {
         /// Injects `runtime` module
-        svm_wasmer::include_svm_runtime!($PC, $ENV, $env_gen);
+        svm_runtime::include_svm_runtime!($PC, $ENV, $env_gen);
 
         use svm_common::{Address, State};
         use svm_contract::transaction::Transaction;
-        use svm_wasmer::register::SvmReg;
+        use svm_runtime::register::SvmReg;
 
         use crate::c_types::{
             svm_address_t, svm_receipt_t, svm_transaction_t, svm_wasm_contract_t,
@@ -48,7 +43,7 @@ macro_rules! include_svm_wasmer_c_api {
         /// Builds an instance of `svm_wasm_contract_t`.
         /// Should be called while the transaction is in the `mempool` of the full-node (prior mining it).
         #[no_mangle]
-        pub unsafe extern "C" fn wasmer_svm_contract_build(
+        pub unsafe extern "C" fn svm_contract_build(
             raw_contract: *mut *mut svm_wasm_contract_t,
             raw_bytes: *const u8,
             raw_bytes_len: u64,
@@ -77,7 +72,7 @@ macro_rules! include_svm_wasmer_c_api {
         /// * `raw_contract` - The wasm contract to be stored
         ///
         #[no_mangle]
-        pub unsafe extern "C" fn wasmer_svm_contract_store(
+        pub unsafe extern "C" fn svm_contract_store(
             raw_contract: *const svm_wasm_contract_t,
         ) -> wasmer_result_t {
             let contract = from_raw!(raw_contract, svm_contract::wasm::Contract);
@@ -89,7 +84,7 @@ macro_rules! include_svm_wasmer_c_api {
         /// Builds an instance of `svm_transaction_t`.
         /// Should be called while the transaction is in the `mempool` of the full-node (prior mining it).
         #[no_mangle]
-        pub unsafe extern "C" fn wasmer_svm_transaction_build(
+        pub unsafe extern "C" fn svm_transaction_build(
             raw_tx: *mut *mut svm_transaction_t,
             raw_bytes: *mut u8,
             raw_bytes_len: u64,
@@ -111,7 +106,7 @@ macro_rules! include_svm_wasmer_c_api {
 
         /// Compiles the wasm module using the `svm-compiler` (`wasmer` singlepass compiler with custom extensions)
         #[no_mangle]
-        pub unsafe extern "C" fn wasmer_svm_compile(
+        pub unsafe extern "C" fn svm_compile(
             raw_module: *mut *mut wasmer_module_t,
             bytes: *mut u8,
             bytes_len: u32,
@@ -136,7 +131,7 @@ macro_rules! include_svm_wasmer_c_api {
         /// `receipt` - The receipt of the contract execution.
         /// `tx`      - The transaction to execute.
         #[no_mangle]
-        pub unsafe extern "C" fn wasmer_svm_transaction_exec(
+        pub unsafe extern "C" fn svm_transaction_exec(
             receipt: *mut *mut svm_receipt_t,
             raw_tx: *const svm_transaction_t,
             raw_import_object: *const wasmer_import_object_t,
@@ -155,13 +150,13 @@ macro_rules! include_svm_wasmer_c_api {
 
         /// Returns a raw pointer to the `wasmer svm` register's internal content
         #[no_mangle]
-        pub unsafe extern "C" fn wasmer_svm_register_get(
+        pub unsafe extern "C" fn svm_register_get(
             raw_ctx: *const wasmer_instance_context_t,
             reg_bits: i32,
             reg_idx: i32,
         ) -> *const c_void {
             let wasmer_ctx: &Ctx = from_raw!(raw_ctx, Ctx);
-            let reg: &mut SvmReg = svm_wasmer::wasmer_ctx_reg!(wasmer_ctx, reg_bits, reg_idx, $PC);
+            let reg: &mut SvmReg = svm_runtime::wasmer_ctx_reg!(wasmer_ctx, reg_bits, reg_idx, $PC);
 
             // having `c_void` instead of `u8` in the function's signature
             // makes the integration with `cgo` easier.
@@ -170,7 +165,7 @@ macro_rules! include_svm_wasmer_c_api {
 
         /// Copies `bytes_len` bytes from raw pointer `bytes` into `wasmer svm` register indexed `reg_idx`.
         #[no_mangle]
-        pub unsafe extern "C" fn wasmer_svm_register_set(
+        pub unsafe extern "C" fn svm_register_set(
             raw_ctx: *const wasmer_instance_context_t,
             reg_bits: i32,
             reg_idx: i32,
@@ -178,7 +173,7 @@ macro_rules! include_svm_wasmer_c_api {
             bytes_len: u8,
         ) {
             let wasmer_ctx: &Ctx = from_raw!(raw_ctx, Ctx);
-            let reg: &mut SvmReg = svm_wasmer::wasmer_ctx_reg!(wasmer_ctx, reg_bits, reg_idx, $PC);
+            let reg: &mut SvmReg = svm_runtime::wasmer_ctx_reg!(wasmer_ctx, reg_bits, reg_idx, $PC);
 
             // having `c_void` instead of `u8` in the function's signature
             // makes the integration with `cgo` easier.
@@ -188,11 +183,11 @@ macro_rules! include_svm_wasmer_c_api {
 
         /// Gets the `node_data` field within the `svm context` (a.k.a `data` of the wasmer context).
         #[no_mangle]
-        pub unsafe extern "C" fn wasmer_svm_instance_context_node_data_get(
+        pub unsafe extern "C" fn svm_instance_context_node_data_get(
             raw_ctx: *const wasmer_instance_context_t,
         ) -> *const c_void {
             let wasmer_ctx: &Ctx = from_raw!(raw_ctx, Ctx);
-            svm_wasmer::wasmer_data_node_data!(wasmer_ctx.data, $PC)
+            svm_runtime::wasmer_data_node_data!(wasmer_ctx.data, $PC)
         }
 
         /// Creates a new `wasmer` import object.
@@ -200,7 +195,7 @@ macro_rules! include_svm_wasmer_c_api {
         /// * external vmcalls (i.e: node vmcalls)
         /// * internal vmcalls (i.e: register/storage/etc vmcalls)
         #[no_mangle]
-        pub unsafe extern "C" fn wasmer_svm_import_object(
+        pub unsafe extern "C" fn svm_import_object(
             raw_import_object: *mut *mut wasmer_import_object_t,
             raw_addr: *const c_void,
             raw_state: *const c_void,
@@ -213,7 +208,7 @@ macro_rules! include_svm_wasmer_c_api {
             let max_pages: u32 = raw_max_pages as u32;
             let max_page_slices: u32 = raw_max_page_slices as u32;
 
-            let opts = svm_wasmer::opts::Opts {
+            let opts = svm_runtime::opts::Opts {
                 max_pages: max_pages as usize,
                 max_pages_slices: max_page_slices as usize,
             };
@@ -227,7 +222,7 @@ macro_rules! include_svm_wasmer_c_api {
                 $pages_storage_gen(addr, state, max_pages)
             };
 
-            let state_gen = svm_wasmer::lazy_create_svm_state_gen!(
+            let state_gen = svm_runtime::lazy_create_svm_state_gen!(
                 node_data,
                 wrapped_pages_storage_gen,
                 $page_cache_ctor,

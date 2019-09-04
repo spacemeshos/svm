@@ -1,7 +1,7 @@
-/// When called, injects the code of the `svm wasmer storage vmcalls`.
-/// The `vmcalls` are functions imported into each running `svm wasmer` instance.
+/// When called, injects the code of the `svm` storage vmcalls.
+/// The `vmcalls` are functions imported into each running `svm` instance.
 #[macro_export]
-macro_rules! include_wasmer_svm_storage_vmcalls {
+macro_rules! include_svm_storage_vmcalls {
     ($PC: path) => {
         /// Copies the contents of `wasmer` memory cells under addresses:
         /// `src_mem_ptr, src_mem_ptr + 1, .. , src_mem_ptr + len (exclusive)`
@@ -49,7 +49,7 @@ macro_rules! include_wasmer_svm_storage_vmcalls {
             reg.copy_to_wasmer_mem(cells);
         }
 
-        /// Loads from the `svm-wasmer` instance's storage a page-slice into the register indexed `dest_reg`
+        /// Loads from the `svm` instance's storage a page-slice into the register indexed `dest_reg`
         ///
         /// * `ctx`          - `wasmer` context (holds a `data` field. we use `SvmCtx`)
         /// * `src_page`     - Page index
@@ -81,7 +81,7 @@ macro_rules! include_wasmer_svm_storage_vmcalls {
             reg.set(&slice);
         }
 
-        /// Loads from the `svm-wasmer` instance's storage a page-slice into the memory address given
+        /// Loads from the `svm` instance's storage a page-slice into the memory address given
         ///
         /// * `ctx`         - `wasmer` context (holds a `data` field. we use `SvmCtx`)
         /// * `src_page`    - Page index
@@ -118,7 +118,7 @@ macro_rules! include_wasmer_svm_storage_vmcalls {
             $crate::wasmer_ctx_mem_cells_write!(ctx, dst_mem_idx, dst_mem_ptr, slice);
         }
 
-        /// Writes into `svm-wasmer` storage, a page-slice copied from `wasmer` memory
+        /// Writes into `svm` storage, a page-slice copied from `wasmer` memory
         ///
         /// * `ctx`         - `wasmer` context (holds a `data` field. we use `SvmCtx`)
         /// * `src_mem_idx` - The memory index we start to copy from
@@ -150,7 +150,7 @@ macro_rules! include_wasmer_svm_storage_vmcalls {
             );
         }
 
-        /// Writes into `svm-wasmer` storage, a page-slice copied from `svm wasmer` register
+        /// Writes into `svm` storage, a page-slice copied from `svm wasmer` register
         ///
         /// * `ctx`          - `wasmer` context (holds a `data` field. we use `SvmCtx`)
         /// * `src_reg_bits` - The type of the register (determined by its #bits) we want to copy data from

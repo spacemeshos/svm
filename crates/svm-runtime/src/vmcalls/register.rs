@@ -1,7 +1,7 @@
-/// When called, injects the code of the `svm wasmer register vmcalls`.
-/// The `vmcalls` are functions imported into each running `svm wasmer` instance.
+/// When called, injects the code of the `svm register vmcalls`.
+/// The `vmcalls` are functions imported into each running `svm` instance.
 #[macro_export]
-macro_rules! include_wasmer_svm_register_vmcalls {
+macro_rules! include_svm_register_vmcalls {
     ($PC: path) => {
         pub fn reg_read_le_i64(ctx: &mut wasmer_runtime::Ctx, reg_bits: i32, reg_idx: i32) -> i64 {
             use byteorder::{ByteOrder, LittleEndian};

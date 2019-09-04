@@ -1,5 +1,5 @@
 [package]
-name = "svm-wasmer-c-api"
+name = "svm-runtime-c-api"
 version = "0.0.0"
 authors = ["Yaron Wittenstein <yaron.wittenstein@gmail.com>"]
 license = "MIT"
@@ -25,15 +25,15 @@ features = ["backend-singlepass"]
 default-features = false
 git = "https://github.com/spacemeshos/wasmer"
 branch = "develop"
-features = ["default-backend-singlepass"]
+features = ["singlepass-backend"]
 
 [dependencies.wasmer-singlepass-backend]
 git = "https://github.com/spacemeshos/wasmer"
 branch = "develop"
 
-[dependencies.svm-wasmer]
+[dependencies.svm-runtime]
 default-features = false
-path = "../svm-wasmer"
+path = "../svm-runtime"
 
 [dependencies.svm-common]
 path = "../svm-common"

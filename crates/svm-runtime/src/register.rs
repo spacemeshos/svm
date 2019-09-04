@@ -1,7 +1,7 @@
 use std::cell::Cell;
 use std::fmt::{self, Debug, Formatter};
 
-/// `impl_register` macro implements a `wasmer register`.
+/// `impl_register` macro implements a `SvmRegXXX` register.
 ///
 /// * `bytes_count` - the number of bytes the register holds
 ///
@@ -14,7 +14,7 @@ use std::fmt::{self, Debug, Formatter};
 /// impl_register!(8, SvmReg64);
 /// ```
 ///
-/// means: `SvmReg64` is a `wasmer` register holding 8 bytes (64 bits)
+/// means: `SvmReg64` is a `svm` register holding 8 bytes (64 bits)
 macro_rules! impl_register {
     ($bytes_count: expr, $reg_ident: ident) => {
         /// Implements a `wasmer svm` register of $bytes_count bytes

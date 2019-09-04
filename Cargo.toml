@@ -39,7 +39,7 @@ features = ["backend-singlepass"]
 default-features = false
 git = "https://github.com/spacemeshos/wasmer"
 branch = "develop"
-features = ["default-backend-singlepass"]
+features = ["singlepass-backend"]
 
 [dependencies.wasmer-singlepass-backend]
 git = "https://github.com/spacemeshos/wasmer"
@@ -55,8 +55,8 @@ svm-kv = { path = "crates/svm-kv" }
 svm-storage = { path = "crates/svm-storage" }
 svm-compiler = { path = "crates/svm-compiler" }
 svm-contract = { path = "crates/svm-contract" }
-svm-wasmer = { path = "crates/svm-wasmer" }
-svm-wasmer-c-api = { path = "crates/svm-wasmer-c-api" }
+svm-runtime = { path = "crates/svm-runtime" }
+svm-runtime-c-api = { path = "crates/svm-runtime-c-api" }
 
 [dev-dependencies]
 wabt = "0.7.4"
@@ -68,10 +68,9 @@ members = [
   "crates/svm-contract",
   "crates/svm-storage",
   "crates/svm-compiler",
-  "crates/svm-wasmer",
-  "crates/svm-wasmer-c-api",
+  "crates/svm-runtime",
+  "crates/svm-runtime-c-api",
 ]
 exclude = [
-  "crates/svm-extern"
+  "crates/svm-extern",
 ]
-

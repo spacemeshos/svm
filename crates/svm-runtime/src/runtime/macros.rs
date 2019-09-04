@@ -5,7 +5,7 @@ macro_rules! include_svm_runtime {
             use $crate::runtime::ContractExecError;
 
             /// injects `vmcalls` module
-            svm_wasmer::include_wasmer_svm_vmcalls!($PC);
+            svm_runtime::include_svm_vmcalls!($PC);
 
             use svm_common::{Address, State};
 
@@ -72,7 +72,7 @@ macro_rules! include_svm_runtime {
                 let max_pages = opts.max_pages;
                 let wrapped_pages_storage_gen = move || $pages_storage_gen(addr, state, max_pages);
 
-                let state_gen = svm_wasmer::lazy_create_svm_state_gen!(
+                let state_gen = svm_runtime::lazy_create_svm_state_gen!(
                     node_data,
                     wrapped_pages_storage_gen,
                     $page_cache_ctor,
