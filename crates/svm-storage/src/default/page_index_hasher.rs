@@ -12,8 +12,8 @@ pub struct PageIndexHasherImpl<H> {
 
 impl<H: KeyHasher<Hash = [u8; 32]>> PageIndexHasher for PageIndexHasherImpl<H> {
     fn hash(contract_addr: Address, page: PageIndex) -> H::Hash {
-        // `page_addr` is being allocated `33` and not `32` bytes due to possible addition carry
-        let page_addr: [u8; 33] = contract_addr.add(page.0);
+        // `page_addr` is being allocated `21` bytes and not `20` bytes due to possible additional carry
+        let page_addr: [u8; 21] = contract_addr.add(page.0);
 
         H::hash(&page_addr)
     }
@@ -30,8 +30,7 @@ mod tests {
     fn default_page_hasher_sanity() {
         let expected = DefaultKeyHasher::hash(&[
             0x14, 0x22, 0x33, 0x44, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         ]);
 
         let addr = Address::from(0x44_33_22_11 as u32);

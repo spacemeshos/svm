@@ -127,7 +127,7 @@ fn parse_code(cursor: &mut Cursor<&[u8]>) -> Result<Vec<u8>, ContractBuildError>
 }
 
 fn parse_address(cursor: &mut Cursor<&[u8]>, field: Field) -> Result<Address, ContractBuildError> {
-    let mut addr = [0; 32];
+    let mut addr = vec![0; Address::len()];
 
     let res = cursor.read_exact(&mut addr);
     ensure_enough_bytes!(res, field);

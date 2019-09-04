@@ -8,7 +8,7 @@ use svm_contract::{
 };
 
 #[test]
-fn store_wasm_contract() {
+fn store_contract() {
     let bytes = WireContractBuilder::new()
         .with_version(0)
         .with_name("Contract #1")

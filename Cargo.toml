@@ -64,11 +64,12 @@ wabt = "0.7.4"
 [workspace]
 members = [
   "crates/svm-common",
+  "crates/svm-kv",
+  "crates/svm-contract",
   "crates/svm-storage",
   "crates/svm-compiler",
   "crates/svm-wasmer",
   "crates/svm-wasmer-c-api",
-  "crates/svm-contract",
 ]
 exclude = [
   "crates/svm-extern"

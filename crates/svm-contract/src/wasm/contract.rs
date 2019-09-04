@@ -35,7 +35,9 @@ impl Contract {
                 // since `Address` internal data is stored in a Little-Endian order
                 // we take the last bytes and display them in reverse-order.
 
-                let slice = &addr.as_slice()[24..31].to_vec().reverse();
+                let slice = &addr.as_slice()[(Address::len() - 8)..Address::len()]
+                    .to_vec()
+                    .reverse();
                 format!("Address: {:?}...", slice)
             }
             None => String::from("Address: None"),

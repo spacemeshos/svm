@@ -7,18 +7,18 @@ pub struct DefaultContractAddressCompute;
 impl ContractAddressCompute for DefaultContractAddressCompute {
     fn compute(contract: &Contract) -> Address {
         // Computing the contract's account address as follows:
-        // First 32 bytes of HASH(contract.Author || contract.Wasm)
+        // First `Address::len()` bytes of `HASH(contract.author || contract.wasm)`
 
-        let wasm_len = contract.wasm.len();
-        let author_len = contract.author.len();
-        let key = vec![0; author_len + wasm_len];
+        let mut buf = Vec::with_capacity(Address::len() + contract.wasm.len());
+        buf.extend_from_slice(contract.author.as_slice());
+        buf.extend_from_slice(contract.wasm.as_slice());
 
-        let mut hash = DefaultKeyHasher::hash(&key);
+        let mut hash = DefaultKeyHasher::hash(&buf);
 
         // `Address::from` expects input in Little-Endian order.
         // so we reverse `hash` first
         hash.reverse();
 
-        Address::from(hash.as_ref())
+        Address::from(&hash[0..Address::len()])
     }
 }

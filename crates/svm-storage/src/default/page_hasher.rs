@@ -17,7 +17,7 @@ where
     /// ph = HASH(page_addr || HASH(page_data))
     fn hash(addr: Address, page_idx: PageIndex, page_data: &[u8]) -> PageHash {
         let page_data_hash = KH::hash(&page_data);
-        let page_addr: [u8; 33] = addr.add(page_idx.0);
+        let page_addr: [u8; 21] = addr.add(page_idx.0);
 
         let mut data = Vec::with_capacity(page_data_hash.len() + page_addr.len());
 
@@ -41,8 +41,7 @@ mod tests {
     fn default_page_hasher_sanity() {
         let page_addr = [
             0x14, 0x22, 0x33, 0x44, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         ];
 
         let page_data_hash = DefaultKeyHasher::hash(&[10, 20, 30]);

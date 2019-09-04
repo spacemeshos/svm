@@ -2,7 +2,7 @@
 #[macro_export]
 macro_rules! impl_bytes_primitive {
     ($primitive: ident, $bytes_count: expr) => {
-        /// Spacemesh `$primitive` primitive consists of `$bytes_count` bytes.
+        /// Spacemesh `$primitive` consists of `$bytes_count` bytes.
         #[derive(serde::Serialize, serde::Deserialize, Debug, Copy, Clone, Hash, PartialEq, Eq)]
         #[repr(transparent)]
         pub struct $primitive(pub(self) [u8; $bytes_count]);
@@ -44,7 +44,7 @@ macro_rules! impl_bytes_primitive {
 
             /// Returns the number of bytes of `$primitive`
             #[inline(always)]
-            pub fn len(&self) -> usize {
+            pub fn len() -> usize {
                 return $bytes_count;
             }
         }

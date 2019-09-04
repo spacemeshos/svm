@@ -58,7 +58,7 @@ fn parse_address(
     cursor: &mut Cursor<&[u8]>,
     field: Field,
 ) -> Result<Address, TransactionBuildError> {
-    let mut bytes = vec![0; 32];
+    let mut bytes = vec![0; Address::len()];
 
     let res = cursor.read_exact(&mut bytes);
     ensure_enough_bytes!(res, field);

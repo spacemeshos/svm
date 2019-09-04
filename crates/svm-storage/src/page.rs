@@ -23,12 +23,12 @@ impl AsRef<[u8]> for PageHash {
 impl From<&[u8]> for PageHash {
     fn from(slice: &[u8]) -> PageHash {
         assert_eq!(
-            32,
+            PAGE_HASH_LEN,
             slice.len(),
-            "`PageHash::from` expects exactly 32 bytes input"
+            "`PageHash::from` expects exactly 32 bytes input",
         );
 
-        let mut bytes = [0; 32];
+        let mut bytes = [0; PAGE_HASH_LEN];
         bytes.copy_from_slice(slice);
 
         PageHash(bytes)
