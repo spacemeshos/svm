@@ -5,12 +5,15 @@
 
 pub mod default;
 pub mod env;
-pub mod leveldb;
 pub mod memory;
 pub mod traits;
 pub mod transaction;
 pub mod types;
 pub mod wasm;
+
+#[cfg(feature = "default-leveldb")]
+pub mod leveldb;
+
 mod wire;
 
 pub mod error {

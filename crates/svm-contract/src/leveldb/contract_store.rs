@@ -4,21 +4,25 @@ use crate::wasm::Contract;
 
 use std::collections::HashMap;
 use std::marker::PhantomData;
+use std::path::Path;
 
 use svm_common::Address;
+use svm_kv::leveldb::LDBStore;
+use svm_kv::traits::KVStore;
 
 pub struct LDBContractStore<S, D> {
+    db: LDBStore,
     marker: PhantomData<(S, D)>,
 }
 
-#[allow(dead_code)]
 impl<S, D> LDBContractStore<S, D>
 where
     S: ContractSerializer,
     D: ContractDeserializer,
 {
-    pub fn new() -> Self {
+    pub fn new(path: &Path) -> Self {
         Self {
+            db: LDBStore::new(path),
             marker: PhantomData,
         }
     }
@@ -31,28 +35,27 @@ where
 {
     fn store(&mut self, contract: &Contract, hash: CodeHash) {
         let serialized: Vec<u8> = S::serialize(contract);
-
-        // self.contract_bytes.insert(hash, serialized);
-
         let addr = contract.address.unwrap();
-        // self.addr_codehash.insert(addr, hash);
+
+        let addr_hash = (addr.as_slice(), &hash.0[..]);
+        let hash_wasm = (&hash.0[..], &serialized[..]);
+        self.db.store(&[addr_hash, hash_wasm]);
     }
 
     fn load(&self, address: Address) -> Option<Contract> {
-        unimplemented!()
-        // match self.addr_codehash.get(&address) {
-        //     None => None,
-        //     Some(hash) => match self.contract_bytes.get(&hash) {
-        //         None => panic!(format!(
-        //             "Code associated with `CodeHash = {:?}` not found",
-        //             hash
-        //         )),
-        //         Some(bytes) => {
-        //             let contract = D::deserialize(bytes.to_vec());
-        //             Some(contract)
-        //         }
-        //     }
-        // }
+        match self.db.get(address.as_slice()) {
+            None => None,
+            Some(hash) => match self.db.get(&hash) {
+                None => panic!(format!(
+                    "Code associated with `CodeHash = {:?}` not found",
+                    hash
+                )),
+                Some(bytes) => {
+                    let contract = D::deserialize(bytes.to_vec());
+                    Some(contract)
+                }
+            },
+        }
     }
 
     fn close(&mut self) {}

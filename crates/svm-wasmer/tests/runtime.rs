@@ -12,7 +12,8 @@ include_svm_runtime!(
         use svm_kv::leveldb::LDBStore;
         use svm_storage::leveldb::LDBPages;
 
-        let kv = LDBStore::new(Path::new("./dbs/one"));
+        let path = Path::new("leveldb");
+        let kv = LDBStore::new(path);
         let kv = Arc::new(RefCell::new(kv));
 
         LDBPages::new(addr, Arc::clone(&kv), state, max_pages as u32)
@@ -23,15 +24,19 @@ include_svm_runtime!(
         LDBMerklePageCache::new(arg_pages_storage, arg_max_pages)
     },
     svm_storage::leveldb::LDBMerklePageCache,
-    svm_contract::memory::MemoryEnv,
+    svm_contract::leveldb::LDBEnv,
     || {
+        use std::path::Path;
+        use svm_contract::leveldb::{LDBContractStore, LDBEnv};
+
         use svm_contract::wasm::{
             WasmContractJsonDeserializer as D, WasmContractJsonSerializer as S,
         };
 
-        let store = svm_contract::memory::MemContractStore::<S, D>::new();
+        let path = Path::new("leveldb");
+        let store = LDBContractStore::<S, D>::new(path);
 
-        svm_contract::memory::MemoryEnv::new(store)
+        LDBEnv::new(store)
     }
 );
 
@@ -75,6 +80,7 @@ fn contract_exec_valid_transaction() {
 
     let contract = runtime::contract_build(&raw_contract).unwrap();
     runtime::contract_store(&contract);
+
     let contract_addr = contract.address.unwrap();
 
     let raw_tx = WireTxBuilder::new()

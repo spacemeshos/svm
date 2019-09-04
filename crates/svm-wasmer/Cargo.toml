@@ -9,7 +9,6 @@ publish = false
 [dependencies.svm-common]
 path = "../svm-common"
 
-
 [dependencies.svm-kv]
 path = "../svm-kv"
 
@@ -38,5 +37,3 @@ byteorder = "1.3.2"
 
 [dev-dependencies]
 wabt = "0.7.4"
-once_cell = "1.0.0"
-tempfile = "3.1.0"
