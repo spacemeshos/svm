@@ -171,7 +171,7 @@ impl<'pc, PC: PageCache> PageSliceCache<'pc, PC> {
     ///
     /// * For each patched cached page we do `page_cache.write_page(..)`
     ///
-    /// * We do `page_cache.commit()`
+    /// * We do `page_cache.commit()` and return the new underlying page-storage `State`.
     ///
     /// * We don't do a `clear`. In real-life usage, the `svm` will call a `commit()`
     ///   after terimnating execution of the smart contract. The `clear` method is intended to be
@@ -253,7 +253,7 @@ mod tests {
     }
 
     macro_rules! page_slice_cache_gen {
-        ($cache_slice_ident: ident, $pages_ident: ident,  $kv_ident: ident, $addr: expr, $state: expr, $max_pages: expr, $max_pages_slices: expr) => {
+        ($cache_slice_ident: ident, $pages_ident: ident, $kv_ident: ident, $addr: expr, $state: expr, $max_pages: expr, $max_pages_slices: expr) => {
             use crate::default::DefaultPageCache;
             use crate::memory::MemMerklePages;
             use svm_kv::memory::MemKVStore;
@@ -281,6 +281,30 @@ mod tests {
 
             MemMerklePages::new(addr, $kv_gen(), state, $max_pages)
         }};
+    }
+
+    macro_rules! reopen_pages_storage {
+        ($kv_ident: ident, $addr: expr, $state: expr, $max_pages: expr) => {{
+            use crate::memory::MemMerklePages;
+            use svm_common::{Address, State};
+
+            use std::sync::Arc;
+
+            let addr = Address::from($addr as u32);
+            MemMerklePages::new(addr, Arc::clone(&$kv_ident), $state, $max_pages)
+        }};
+    }
+
+    macro_rules! reopen_page_slice_cache {
+        ($cache_slice_ident: ident, $pages_ident: ident, $kv_ident: ident, $addr: expr, $state: expr, $max_pages: expr, $max_pages_slices: expr) => {
+            let mut $pages_ident = reopen_pages_storage!($kv_ident, $addr, $state, $max_pages);
+            let mut cache = crate::default::DefaultPageCache::<MemMerklePages>::new(
+                &mut $pages_ident,
+                $max_pages,
+            );
+
+            let mut $cache_slice_ident = PageSliceCache::new(&mut cache, $max_pages_slices);
+        };
     }
 
     #[test]
@@ -332,7 +356,10 @@ mod tests {
         };
 
         cache.write_page_slice(&layout, &[10, 20, 30]);
-        cache.commit();
+        let new_state = cache.commit();
+
+        // asserting persisted data. when viewing in the context of `new_state`.
+        reopen_page_slice_cache!(cache, pages, kv, addr, new_state, 2, 100);
 
         assert_eq!(Some(vec![10, 20, 30]), cache.read_page_slice(&layout));
 
@@ -464,14 +491,17 @@ mod tests {
         // commiting two slices under the same page
         assert_eq!(None, kv.borrow().get(&ph.0));
 
-        cache.commit();
-        cache.clear();
+        let new_state = cache.commit();
 
-        let page = kv.borrow().get(&ph.0).unwrap();
-        assert_eq!(vec![10, 20, 30], &page[100..103]);
-        assert_eq!(vec![40, 50], &page[200..202]);
+        // asserting persisted data. when viewing in the context of `new_state`.
+        reopen_page_slice_cache!(cache, pages, kv, addr, new_state, 2, 100);
 
         assert_eq!(vec![10, 20, 30], cache.read_page_slice(&layout1).unwrap());
         assert_eq!(vec![40, 50], cache.read_page_slice(&layout2).unwrap());
+
+        // queryind the key-value store directly
+        let page = kv.borrow().get(&ph.0).unwrap();
+        assert_eq!(vec![10, 20, 30], &page[100..103]);
+        assert_eq!(vec![40, 50], &page[200..202]);
     }
 }
