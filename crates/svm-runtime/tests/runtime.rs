@@ -99,12 +99,8 @@ macro_rules! exec_tx {
             max_pages_slices: 100,
         };
 
-        let import_object = runtime::import_object_create(
-            $tx.contract,
-            State::from($state),
-            std::ptr::null(),
-            opts,
-        );
+        let import_object =
+            runtime::import_object_create($tx.contract, $state, std::ptr::null(), opts);
 
         runtime::contract_exec(&$tx, &import_object)
     }};
@@ -135,41 +131,33 @@ fn contract_exec_valid_transaction() {
 
     let tx = runtime::transaction_build(&bytes).unwrap();
 
-    let res = exec_tx!(
-        tx,
-        0   // state zero
-    );
+    let new_state = exec_tx!(tx, State::from(0)).unwrap();
+    assert_ne!(State::from(0), new_state);
 
-    assert!(res.is_ok());
+    // release memory
+    // ??????
 
-    // executing the 2nd transaction.
-    // writing the contents of register `64:0` (first 4 bytes) into storage `page: 0, slice: 0, offset: 0`.
-    // let raw_tx = WireTxBuilder::new()
-    //     .with_version(0)
-    //     .with_contract(contract_addr)
-    //     .with_sender(Address::from(0x11_22_33_44))
-    //     .with_func_name("do_write_from_reg")
-    //     .with_func_args(&[
+    // let bytes = build_raw_tx!(
+    //     0,                   // protocol version
+    //     contract_addr,       // contract address
+    //     0x11_22_33_44,       // sender address
+    //     "do_write_from_reg", // `func_name` to execute
+    //     // `func_args`
+    //     &[
     //         Value::I32(64),
     //         Value::I32(0),
     //         Value::I32(4),
     //         Value::I32(0),
     //         Value::I32(0),
-    //         Value::I32(0),
-    //     ])
-    //     .build();
+    //         Value::I32(0)
+    //     ]
+    // );
     //
-    // let opts = svm_runtime::opts::Opts {
-    //     max_pages: 10,
-    //     max_pages_slices: 100,
-    // };
+    // let tx = runtime::transaction_build(&bytes).unwrap();
     //
-    // let tx = runtime::transaction_build(&raw_tx).unwrap();
-    // let import_object =
-    //     runtime::import_object_create(contract_addr, State::from(0), std::ptr::null(), opts);
-    //
-    // let res = runtime::contract_exec(&tx, &import_object);
-    // dbg!(res);
+    // // executing the 2nd transaction.
+    // let new_state = exec_tx!(tx, new_state).unwrap();
+    // dbg!(new_state);
 }
 
 #[test]

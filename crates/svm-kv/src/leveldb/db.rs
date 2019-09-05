@@ -58,4 +58,27 @@ impl KVStore for LDBStore {
             panic!("failed writing data");
         }
     }
+
+    fn close(mut self) {}
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn leveldb_sanity() {
+        let mut db = LDBStore::new(Path::new("leveldb-tests"));
+
+        db.store(&[(&[10, 20, 30], &[40, 50, 60])]);
+
+        let v = db.get(&[10, 20, 30]).unwrap();
+        assert_eq!(vec![40, 50, 60], v);
+
+        db.close();
+
+        let mut db = LDBStore::new(Path::new("leveldb-tests"));
+        let v = db.get(&[10, 20, 30]).unwrap();
+        assert_eq!(vec![40, 50, 60], v);
+    }
 }
