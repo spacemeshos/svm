@@ -67,43 +67,79 @@ fn contract_exec_non_existing_contract() {
     // ...
 }
 
+macro_rules! build_raw_contract {
+    ($version: expr, $name: expr, $author: expr, $file: expr) => {{
+        let wasm = load_wasm_file!($file);
+
+        WireContractBuilder::new()
+            .with_version($version)
+            .with_name($name)
+            .with_author(Address::from($author))
+            .with_code(&wasm[..])
+            .build()
+    }};
+}
+
+macro_rules! build_raw_tx {
+    ($version: expr, $contract_addr: expr, $sender_addr: expr, $func_name: expr, $func_args: expr) => {{
+        WireTxBuilder::new()
+            .with_version($version)
+            .with_contract($contract_addr)
+            .with_sender(Address::from($sender_addr))
+            .with_func_name($func_name)
+            .with_func_args($func_args)
+            .build()
+    }};
+}
+
+macro_rules! exec_tx {
+    ($tx: expr, $state: expr) => {{
+        let opts = svm_runtime::opts::Opts {
+            max_pages: 10,
+            max_pages_slices: 100,
+        };
+
+        let import_object = runtime::import_object_create(
+            $tx.contract,
+            State::from($state),
+            std::ptr::null(),
+            opts,
+        );
+
+        runtime::contract_exec(&$tx, &import_object)
+    }};
+}
+
 #[test]
 fn contract_exec_valid_transaction() {
-    // deploying the contract
-    let wasm = load_wasm_file!("wasm/runtime-1.wast");
-
-    let raw_contract = WireContractBuilder::new()
-        .with_version(0)
-        .with_name("Contract #1")
-        .with_author(Address::from(0x10_20_30_40))
-        .with_code(&wasm[..])
-        .build();
-
-    let contract = runtime::contract_build(&raw_contract).unwrap();
+    // 1) deploying the contract
+    let bytes = build_raw_contract!(
+        0,                     // protocol version
+        "Contract #1",         // contract name
+        0x10_20_30_40,         // author address
+        "wasm/runtime-1.wast"  // file holding the wasm code
+    );
+    let contract = runtime::contract_build(&bytes).unwrap();
     runtime::contract_store(&contract);
 
     let contract_addr = contract.address.unwrap();
 
-    // executing a transaction `do_reg_set`. setting register `64:0` the value `1000`.
-    let raw_tx = WireTxBuilder::new()
-        .with_version(0)
-        .with_contract(contract_addr)
-        .with_sender(Address::from(0x11_22_33_44))
-        .with_func_name("do_reg_set")
-        .with_func_args(&[Value::I64(1000), Value::I32(64), Value::I32(0)])
-        .build();
+    // 2) executing a transaction `do_reg_set`. setting register `64:0` the value `1000`.
+    let bytes = build_raw_tx!(
+        0,                                                  // protocol version
+        contract_addr,                                      // contract address
+        0x11_22_33_44,                                      // sender address
+        "do_reg_set",                                       // `func_name` to execute
+        &[Value::I64(1000), Value::I32(64), Value::I32(0)]  // `func_args`
+    );
 
-    let tx = runtime::transaction_build(&raw_tx).unwrap();
+    let tx = runtime::transaction_build(&bytes).unwrap();
 
-    let opts = svm_runtime::opts::Opts {
-        max_pages: 10,
-        max_pages_slices: 100,
-    };
+    let res = exec_tx!(
+        tx,
+        0   // state zero
+    );
 
-    let import_object =
-        runtime::import_object_create(contract_addr, State::from(0), std::ptr::null(), opts);
-
-    let res = runtime::contract_exec(&tx, &import_object);
     assert!(res.is_ok());
 
     // executing the 2nd transaction.
