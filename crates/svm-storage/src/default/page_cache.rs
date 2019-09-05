@@ -1,5 +1,6 @@
-use crate::page::PageIndex;
-use crate::traits::{PageCache, PagesStorage};
+use crate::page::{PageHash, PageIndex};
+use crate::traits::{PageCache, PagesStateStorage, PagesStorage};
+use svm_common::State;
 
 #[derive(Debug, Clone)]
 enum CachedPage {
@@ -16,7 +17,7 @@ enum CachedPage {
 /// `DefaultPageCache` serves us a cache layer for reading contract storage page.
 /// In addition, it tracks dirty pages (pages that have been changed during the execution of a
 /// smart contract).
-pub struct DefaultPageCache<'ps, PS: PagesStorage> {
+pub struct DefaultPageCache<'ps, PS: PagesStateStorage> {
     // The `ith item` will say whether the `ith page` is dirty
     dirty_pages: Vec<bool>,
 
@@ -27,12 +28,25 @@ pub struct DefaultPageCache<'ps, PS: PagesStorage> {
     pages_storage: &'ps mut PS,
 }
 
-impl<'ps, PS: PagesStorage> PageCache for DefaultPageCache<'ps, PS> {}
+impl<'ps, PS: PagesStateStorage> PageCache for DefaultPageCache<'ps, PS> {}
+
+impl<'ps, PS: PagesStateStorage> PagesStateStorage for DefaultPageCache<'ps, PS> {
+    #[inline(always)]
+    fn get_state(&self) -> State {
+        self.pages_storage.get_state()
+    }
+
+    #[must_use]
+    #[inline(always)]
+    fn get_page_hash(&self, page_idx: PageIndex) -> PageHash {
+        self.pages_storage.get_page_hash(page_idx)
+    }
+}
 
 /// A `DefaultPageCache` is caching layer on top of a storage pages.
 /// Each page change marks the page as dirty but the changes
 /// are persisted to storage pages only upon `commit`
-impl<'ps, PS: PagesStorage> DefaultPageCache<'ps, PS> {
+impl<'ps, PS: PagesStateStorage> DefaultPageCache<'ps, PS> {
     /// Initializes a new `DefaultPageCache` instance.
     ///
     /// * `pages_storage` - the underlying page-oriented page interface wrapping an underlying database.
@@ -54,7 +68,7 @@ impl<'ps, PS: PagesStorage> DefaultPageCache<'ps, PS> {
     }
 }
 
-impl<'ps, PS: PagesStorage> PagesStorage for DefaultPageCache<'ps, PS> {
+impl<'ps, PS: PagesStateStorage> PagesStorage for DefaultPageCache<'ps, PS> {
     fn read_page(&mut self, page_idx: PageIndex) -> Option<Vec<u8>> {
         // we can have an `assert` here since we are given the maximum storage-pages upon initialization
         assert!(self.cached_pages.len() > page_idx.0 as usize);

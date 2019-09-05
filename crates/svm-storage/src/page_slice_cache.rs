@@ -2,6 +2,7 @@ use crate::page;
 use crate::page::{PageIndex, PageSliceLayout};
 use crate::traits::PageCache;
 use std::collections::HashMap;
+use svm_common::State;
 
 #[derive(Debug, Clone, PartialEq)]
 struct PageSlice {
@@ -175,7 +176,8 @@ impl<'pc, PC: PageCache> PageSliceCache<'pc, PC> {
     /// * We don't do a `clear`. In real-life usage, the `svm` will call a `commit()`
     ///   after terimnating execution of the smart contract. The `clear` method is intended to be
     ///   used *only* for `tests`
-    pub fn commit(&mut self) {
+    #[must_use]
+    pub fn commit(&mut self) -> State {
         let mut page_slices = HashMap::<u32, Vec<PageSlice>>::new();
         let mut pages_indexes = Vec::<PageIndex>::new();
 
@@ -219,6 +221,8 @@ impl<'pc, PC: PageCache> PageSliceCache<'pc, PC> {
         }
 
         self.page_cache.commit();
+
+        self.page_cache.get_state()
     }
 
     /// Applies `slice` on top of a `page`
