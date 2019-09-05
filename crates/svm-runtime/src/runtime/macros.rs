@@ -45,7 +45,7 @@ macro_rules! include_svm_runtime {
             pub fn contract_exec(
                 tx: &Transaction,
                 import_object: &wasmer_runtime::ImportObject,
-            ) -> Result<(), ContractExecError> {
+            ) -> Result<State, ContractExecError> {
                 let mut env = $env_gen();
                 let contract = contract_load(tx, &mut env)?;
                 let module = contract_compile(&contract)?;
@@ -57,7 +57,12 @@ macro_rules! include_svm_runtime {
 
                 match res {
                     Err(_) => Err(ContractExecError::ExecFailed),
-                    Ok(_) => Ok(()),
+                    Ok(_) => {
+                        let storage = get_instance_svm_storage_mut(&mut instance);
+                        let state = storage.commit();
+
+                        Ok(state)
+                    }
                 }
             }
 
@@ -199,6 +204,15 @@ macro_rules! include_svm_runtime {
                 }
 
                 wasmer_args
+            }
+
+            #[inline(always)]
+            fn get_instance_svm_storage_mut(
+                instance: &mut wasmer_runtime::Instance,
+            ) -> &mut svm_storage::PageSliceCache<$PC> {
+                let wasmer_ctx: &mut wasmer_runtime::Ctx = instance.context_mut();
+
+                $crate::wasmer_data_storage!(wasmer_ctx.data, $PC)
             }
         }
     };
