@@ -15,10 +15,6 @@ impl ContractAddressCompute for DefaultContractAddressCompute {
 
         let mut hash = DefaultKeyHasher::hash(&buf);
 
-        // `Address::from` expects input in Little-Endian order.
-        // so we reverse `hash` first
-        hash.reverse();
-
         Address::from(&hash[0..Address::len()])
     }
 }

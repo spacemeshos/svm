@@ -12,7 +12,7 @@ include_svm_runtime!(
         use svm_kv::leveldb::LDBStore;
         use svm_storage::leveldb::LDBPages;
 
-        let path = Path::new("leveldb");
+        let path = Path::new("ldb-contract-storage");
         let kv = LDBStore::new(path);
         let kv = Arc::new(RefCell::new(kv));
 
@@ -33,7 +33,7 @@ include_svm_runtime!(
             WasmContractJsonDeserializer as D, WasmContractJsonSerializer as S,
         };
 
-        let path = Path::new("leveldb");
+        let path = Path::new("ldb-contract-code");
         let store = LDBContractStore::<S, D>::new(path);
 
         LDBEnv::new(store)
@@ -69,6 +69,7 @@ fn contract_exec_non_existing_contract() {
 
 #[test]
 fn contract_exec_valid_transaction() {
+    // deploying the contract
     let wasm = load_wasm_file!("wasm/runtime-1.wast");
 
     let raw_contract = WireContractBuilder::new()
@@ -83,6 +84,7 @@ fn contract_exec_valid_transaction() {
 
     let contract_addr = contract.address.unwrap();
 
+    // executing a transaction `do_reg_set`. setting register `64:0` the value `1000`.
     let raw_tx = WireTxBuilder::new()
         .with_version(0)
         .with_contract(contract_addr)
@@ -102,7 +104,36 @@ fn contract_exec_valid_transaction() {
         runtime::import_object_create(contract_addr, State::from(0), std::ptr::null(), opts);
 
     let res = runtime::contract_exec(&tx, &import_object);
-    dbg!(res);
+    assert!(res.is_ok());
+
+    // executing the 2nd transaction.
+    // writing the contents of register `64:0` (first 4 bytes) into storage `page: 0, slice: 0, offset: 0`.
+    // let raw_tx = WireTxBuilder::new()
+    //     .with_version(0)
+    //     .with_contract(contract_addr)
+    //     .with_sender(Address::from(0x11_22_33_44))
+    //     .with_func_name("do_write_from_reg")
+    //     .with_func_args(&[
+    //         Value::I32(64),
+    //         Value::I32(0),
+    //         Value::I32(4),
+    //         Value::I32(0),
+    //         Value::I32(0),
+    //         Value::I32(0),
+    //     ])
+    //     .build();
+    //
+    // let opts = svm_runtime::opts::Opts {
+    //     max_pages: 10,
+    //     max_pages_slices: 100,
+    // };
+    //
+    // let tx = runtime::transaction_build(&raw_tx).unwrap();
+    // let import_object =
+    //     runtime::import_object_create(contract_addr, State::from(0), std::ptr::null(), opts);
+    //
+    // let res = runtime::contract_exec(&tx, &import_object);
+    // dbg!(res);
 }
 
 #[test]

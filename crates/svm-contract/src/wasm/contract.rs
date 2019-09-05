@@ -32,12 +32,7 @@ impl Contract {
     fn preview_address(&self, addr: &Option<Address>) -> String {
         match addr {
             Some(addr) => {
-                // since `Address` internal data is stored in a Little-Endian order
-                // we take the last bytes and display them in reverse-order.
-
-                let slice = &addr.as_slice()[(Address::len() - 8)..Address::len()]
-                    .to_vec()
-                    .reverse();
+                let slice = &addr.as_slice()[0..8].to_vec();
                 format!("Address: {:?}...", slice)
             }
             None => String::from("Address: None"),

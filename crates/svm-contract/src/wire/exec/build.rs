@@ -119,9 +119,6 @@ impl WireTxBuilder {
     fn write_address(&self, address: Address, buf: &mut Vec<u8>) {
         let mut bytes = address.bytes();
 
-        // transforming back into *Big-Endian* order
-        bytes.reverse();
-
         buf.extend_from_slice(&bytes);
     }
 }
