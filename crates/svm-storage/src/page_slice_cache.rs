@@ -23,11 +23,13 @@ enum CachedPageSlice {
 /// `PageSliceCache` is a caching layer on top of the `PageCache`.
 /// While `PageCache` deals with data involving only page units, `PageSliceCache` has fine-grained
 /// control for various sized of data.
-pub struct PageSliceCache<'pc, PC> {
+pub struct PageSliceCache<'pc, PC: PageCache> {
     // The `ith item` will say whether the `ith page slice` is dirty
     cached_slices: Vec<CachedPageSlice>,
 
     page_cache: &'pc mut PC,
+
+    closed: bool,
 }
 
 impl<'pc, PC: PageCache> std::fmt::Debug for PageSliceCache<'pc, PC> {
@@ -62,6 +64,7 @@ impl<'pc, PC: PageCache> PageSliceCache<'pc, PC> {
     ///   use when doing read / write. A page slice index is within the range `0..(max_pages_slices - 1)` (inclusive)
     pub fn new(page_cache: &'pc mut PC, max_pages_slices: usize) -> Self {
         Self {
+            closed: false,
             page_cache,
             cached_slices: vec![CachedPageSlice::NotCached; max_pages_slices],
         }
@@ -225,6 +228,18 @@ impl<'pc, PC: PageCache> PageSliceCache<'pc, PC> {
         self.page_cache.get_state()
     }
 
+    pub fn close(&mut self) {
+        if self.closed {
+            return;
+        }
+
+        dbg!("closing `PageSliceCache`");
+
+        self.page_cache.close();
+
+        self.closed = true;
+    }
+
     /// Applies `slice` on top of a `page`
     fn patch_page(&self, page: &mut Vec<u8>, slice: PageSlice) {
         let start = slice.layout.offset as usize;
@@ -233,6 +248,25 @@ impl<'pc, PC: PageCache> PageSliceCache<'pc, PC> {
         let dst_slice = &mut page[start..end];
 
         dst_slice.copy_from_slice(&slice.data);
+    }
+}
+
+impl<'pc, PC> Drop for PageSliceCache<'pc, PC>
+where
+    PC: PageCache,
+{
+    fn drop(&mut self) {
+        if self.closed {
+            return;
+        }
+
+        dbg!("dropping `PageSliceCache`...");
+
+        // self.close();
+
+        let page_cache = self.page_cache as *mut _;
+
+        unsafe { Box::from_raw(page_cache) };
     }
 }
 

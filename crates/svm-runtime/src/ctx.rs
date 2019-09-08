@@ -2,6 +2,8 @@ use crate::*;
 
 use crate::register::{SvmReg, SvmReg160, SvmReg32, SvmReg512, SvmReg64};
 use std::ffi::c_void;
+
+use svm_storage::traits::PageCache;
 use svm_storage::PageSliceCache;
 
 /// The number of allocated `SvmReg32` registers for each `SvmCtx`
@@ -33,7 +35,7 @@ pub const REGS_512_COUNT: usize = 4;
 /// * `pc - the lifetime of the inner `PageCache` within `PageSliceCache` (`pc - stands for `PageCache`)
 /// *  PC - a type implementing the trait `PageCache` (`PC` stands for `PageCache`)
 #[repr(C)]
-pub struct SvmCtx<'a, 'pc: 'a, PC> {
+pub struct SvmCtx<'a, 'pc: 'a, PC: PageCache> {
     /// A pointer to the `node` data. For example the pointer will point a struct having an access
     /// to the Global State of each account, In order to query an account for its balance.
     pub node_data: *const c_void,
@@ -57,7 +59,10 @@ pub struct SvmCtx<'a, 'pc: 'a, PC> {
     pub storage: &'a mut PageSliceCache<'pc, PC>,
 }
 
-impl<'a, 'pc: 'a, PC> SvmCtx<'a, 'pc, PC> {
+impl<'a, 'pc: 'a, PC> SvmCtx<'a, 'pc, PC>
+where
+    PC: PageCache,
+{
     /// Initializes a new empty `SvmCtx`
     ///
     /// * `storage` - a mutably borrowed `PageSliceCache`
@@ -80,8 +85,11 @@ impl<'a, 'pc: 'a, PC> SvmCtx<'a, 'pc, PC> {
     }
 }
 
-impl<'a, 'pc: 'a, PC> Drop for SvmCtx<'a, 'pc, PC> {
+impl<'a, 'pc: 'a, PC> Drop for SvmCtx<'a, 'pc, PC>
+where
+    PC: PageCache,
+{
     fn drop(&mut self) {
-        drop(&mut self.storage);
+        dbg!("Dropping `SvmCtx`...");
     }
 }

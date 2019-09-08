@@ -33,6 +33,7 @@ branch = "develop"
 features = ["backend-singlepass"]
 
 [dependencies]
+libc = "0.2"
 byteorder = "1.3.2"
 
 [dev-dependencies]

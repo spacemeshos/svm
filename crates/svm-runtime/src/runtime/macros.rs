@@ -35,8 +35,6 @@ macro_rules! include_svm_runtime {
             pub fn contract_store(contract: &Contract) {
                 let mut env = $env_gen();
                 env.store_contract(&contract);
-
-                drop(env);
             }
 
             #[inline(always)]
@@ -56,7 +54,7 @@ macro_rules! include_svm_runtime {
                 let args = prepare_args_and_memory(tx, &mut instance);
                 let func = get_exported_func(&instance, &tx.func_name)?;
 
-                let res = match func.call(&args) {
+                match func.call(&args) {
                     Err(_) => Err(ContractExecError::ExecFailed),
                     Ok(_) => {
                         let storage = get_instance_svm_storage_mut(&mut instance);
@@ -64,9 +62,7 @@ macro_rules! include_svm_runtime {
 
                         Ok(state)
                     }
-                };
-
-                res
+                }
             }
 
             pub fn import_object_create(

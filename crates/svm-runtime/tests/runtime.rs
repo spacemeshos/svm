@@ -5,6 +5,8 @@ use svm_runtime::*;
 
 include_svm_runtime!(
     |addr, state, max_pages| {
+        dbg!("XXXXXXXXXXXXXXXXXXXX");
+
         use std::cell::RefCell;
         use std::path::Path;
         use std::rc::Rc;
@@ -16,7 +18,7 @@ include_svm_runtime!(
         let kv = RocksStore::new(path);
         let kv = Rc::new(RefCell::new(kv));
 
-        RocksPages::new(addr, Rc::clone(&kv), state, max_pages as u32)
+        RocksPages::new(addr, kv, state, max_pages as u32)
     },
     |arg_pages_storage, arg_max_pages| {
         use svm_storage::rocksdb::RocksMerklePageCache;
@@ -153,8 +155,8 @@ fn contract_exec_valid_transaction() {
     let tx = runtime::transaction_build(&bytes).unwrap();
 
     // executing the 2nd transaction.
-    let new_state = exec_tx!(tx, new_state).unwrap();
-    dbg!(new_state);
+    let res = exec_tx!(tx, new_state);
+    dbg!(res);
 }
 
 #[test]

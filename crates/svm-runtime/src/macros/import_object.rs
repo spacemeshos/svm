@@ -45,7 +45,12 @@ macro_rules! create_svm_state_gen {
         let dtor: fn(*mut c_void) = |ctx_data| {
             let ctx_ptr = ctx_data as *mut SvmCtx<$PC>;
             let ctx: Box<SvmCtx<$PC>> = unsafe { Box::from_raw(ctx_ptr) };
-            drop(ctx);
+
+            let ctx = Box::leak(ctx);
+
+            unsafe { Box::from_raw(ctx.storage as *mut _) };
+
+            std::mem::forget(ctx);
         };
 
         (data, dtor)

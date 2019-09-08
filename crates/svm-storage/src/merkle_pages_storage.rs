@@ -19,13 +19,19 @@ enum MerklePage {
 /// `KV` - stands for `KVStore`
 /// `PH` - stands for `PageHasher`
 /// `SH` - stands for `StateHasher`
-pub struct MerklePagesStorage<KV, PH, SH> {
+pub struct MerklePagesStorage<KV, PH, SH>
+where
+    KV: KVStore,
+    PH: PageHasher,
+    SH: StateHasher,
+{
     state: State,
     addr: Address,
     pages: Vec<MerklePage>,
     kv: Rc<RefCell<KV>>,
     pages_count: u32,
     marker: PhantomData<(PH, SH)>,
+    closed: bool
 }
 
 impl<KV, PH, SH> MerklePagesStorage<KV, PH, SH>
@@ -46,6 +52,7 @@ where
             pages_count,
             addr,
             pages: vec![MerklePage::Uninitialized; pages_count as usize],
+            closed: false,
             marker: PhantomData,
         };
 
@@ -214,6 +221,29 @@ where
         self.state = new_state;
 
         self.clear();
+    }
+
+    fn close(&mut self) {
+        if self.closed {
+            return;
+        }
+
+        dbg!("closing MerklePagesStorage...");
+        self.kv.borrow_mut().close();
+        self.closed = true;
+    }
+}
+
+impl<KV, PH, SH> Drop for MerklePagesStorage<KV, PH, SH>
+where
+    KV: KVStore,
+    PH: PageHasher,
+    SH: StateHasher {
+    fn drop(&mut self) {
+        dbg!("dropping `MerklePagesStorage`...");
+
+        self.close();
+
     }
 }
 

@@ -27,7 +27,7 @@ pub struct RocksEnv {
 
 impl RocksEnv {
     pub fn new(store: <RocksEnvTypes as ContractEnvTypes>::Store) -> Self {
-        dbg!("creating a new `RocksEnv` environment.");
+        println!("creating a new `RocksEnv` environment.");
 
         Self { store }
     }
@@ -51,8 +51,10 @@ impl ContractEnv for RocksEnv {
 
 impl Drop for RocksEnv {
     fn drop(&mut self) {
-        dbg!("dropping `RocksEnv`");
+        println!("started dropping `RocksEnv`...");
 
         self.close_store();
+
+        println!("finished dropping `RocksEnv`...");
     }
 }

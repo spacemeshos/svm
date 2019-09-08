@@ -4,13 +4,17 @@ use std::path::Path;
 
 /// An implementation of `KVStore` trait against `rocksdb`.
 pub struct RocksStore {
+    closed: bool,
     pub(crate) db: rocksdb::DB,
 }
 
 impl RocksStore {
     pub fn new<P: AsRef<Path>>(path: P) -> Self {
+        println!("opening rocksdb. (path = \"{}\")", path.as_ref().display());
+
         Self {
             db: rocksdb::DB::open_default(path).unwrap(),
+            closed: false,
         }
     }
 }
@@ -41,10 +45,17 @@ impl KVStore for RocksStore {
     }
 
     fn close(&mut self) {
-        dbg!("dropping `RocksStore`");
+        if self.closed {
+            return;
+        }
 
         let path = self.db.path();
-        rocksdb::DB::destroy(&rocksdb::Options::default(), path);
+
+        println!("closing rocksdb. (path = \"{}\")", path.display());
+
+        drop(&mut self.db);
+
+        self.closed = true;
     }
 }
 

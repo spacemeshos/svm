@@ -26,6 +26,8 @@ pub struct DefaultPageCache<'ps, PS: PagesStateStorage> {
 
     // The underlying storage pages
     pages_storage: &'ps mut PS,
+
+    closed: bool,
 }
 
 impl<'ps, PS: PagesStateStorage> PageCache for DefaultPageCache<'ps, PS> {}
@@ -59,6 +61,7 @@ impl<'ps, PS: PagesStateStorage> DefaultPageCache<'ps, PS> {
             dirty_pages: vec![false; max_pages],
             cached_pages: vec![CachedPage::NotCached; max_pages],
             pages_storage,
+            closed: false,
         }
     }
 
@@ -183,6 +186,27 @@ impl<'ps, PS: PagesStateStorage> PagesStorage for DefaultPageCache<'ps, PS> {
         }
 
         self.pages_storage.commit();
+    }
+
+    fn close(&mut self) {
+        if self.closed {
+            return;
+        }
+
+        dbg!("closing PageCache...");
+        self.pages_storage.close();
+        self.closed = true;
+    }
+}
+
+impl<'ps, PS: PagesStateStorage> Drop for DefaultPageCache<'ps, PS> {
+    fn drop(&mut self) {
+        dbg!("dropping `PageCache`...");
+
+        // self.close();
+        let pages_storage = self.pages_storage as *mut _;
+
+        unsafe { Box::from_raw(pages_storage) };
     }
 }
 
