@@ -3,19 +3,19 @@ use crate::traits::KVStore;
 use std::path::Path;
 
 /// An implementation of `KVStore` trait against `rocksdb`.
-pub struct RocksdbStore {
+pub struct RocksStore {
     pub(crate) db: rocksdb::DB,
 }
 
-impl RocksdbStore {
-    fn new<P: AsRef<Path>>(path: P) -> Self {
+impl RocksStore {
+    pub fn new<P: AsRef<Path>>(path: P) -> Self {
         Self {
             db: rocksdb::DB::open_default(path).unwrap(),
         }
     }
 }
 
-impl KVStore for RocksdbStore {
+impl KVStore for RocksStore {
     fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
         match self.db.get(key) {
             Ok(dbvec) => match dbvec {
@@ -41,14 +41,14 @@ impl KVStore for RocksdbStore {
     }
 
     fn close(&mut self) {
-        dbg!("dropping `RocksdbStore`");
+        dbg!("dropping `RocksStore`");
 
         let path = self.db.path();
         rocksdb::DB::destroy(&rocksdb::Options::default(), path);
     }
 }
 
-impl Drop for RocksdbStore {
+impl Drop for RocksStore {
     fn drop(&mut self) {
         self.close();
     }
@@ -60,7 +60,7 @@ mod tests {
 
     #[test]
     fn rocksdb_sanity() {
-        let mut db = RocksdbStore::new("rocksdb-tests");
+        let mut db = RocksStore::new("rocksdb-tests");
 
         db.store(&[(&[10, 20, 30], &[40, 50, 60])]);
 
@@ -69,7 +69,7 @@ mod tests {
 
         drop(db);
 
-        let mut db = RocksdbStore::new("rocksdb-tests");
+        let mut db = RocksStore::new("rocksdb-tests");
         let v = db.get(&[10, 20, 30]).unwrap();
         assert_eq!(vec![40, 50, 60], v);
     }

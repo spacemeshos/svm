@@ -7,28 +7,28 @@ use std::marker::PhantomData;
 use std::path::Path;
 
 use svm_common::Address;
-use svm_kv::leveldb::LDBStore;
+use svm_kv::rocksdb::RocksStore;
 use svm_kv::traits::KVStore;
 
-pub struct LDBContractStore<S, D> {
-    db: LDBStore,
+pub struct RocksContractStore<S, D> {
+    db: RocksStore,
     marker: PhantomData<(S, D)>,
 }
 
-impl<S, D> LDBContractStore<S, D>
+impl<S, D> RocksContractStore<S, D>
 where
     S: ContractSerializer,
     D: ContractDeserializer,
 {
     pub fn new(path: &Path) -> Self {
         Self {
-            db: LDBStore::new(path),
+            db: RocksStore::new(path),
             marker: PhantomData,
         }
     }
 }
 
-impl<S, D> ContractStore<S, D> for LDBContractStore<S, D>
+impl<S, D> ContractStore<S, D> for RocksContractStore<S, D>
 where
     S: ContractSerializer,
     D: ContractDeserializer,
@@ -58,5 +58,7 @@ where
         }
     }
 
-    fn close(&mut self) {}
+    fn close(&mut self) {
+        self.db.close();
+    }
 }

@@ -1,40 +1,40 @@
 use crate::default::{DefaultCodeHasher, DefaultContractAddressCompute};
 use crate::env::{ContractEnv, ContractEnvTypes};
-use crate::leveldb::LDBContractStore;
+use crate::rocksdb::RocksContractStore;
 use crate::traits::{
     ContractAddressCompute, ContractCodeHasher, ContractDeserializer, ContractSerializer,
     ContractStore,
 };
 use crate::wasm::{WasmContractJsonDeserializer, WasmContractJsonSerializer};
 
-pub struct LDBEnvTypes {}
+pub struct RocksEnvTypes {}
 
-impl ContractEnvTypes for LDBEnvTypes {
+impl ContractEnvTypes for RocksEnvTypes {
     type Serializer = WasmContractJsonSerializer;
 
     type Deserializer = WasmContractJsonDeserializer;
 
-    type Store = LDBContractStore<Self::Serializer, Self::Deserializer>;
+    type Store = RocksContractStore<Self::Serializer, Self::Deserializer>;
 
     type AddressCompute = DefaultContractAddressCompute;
 
     type CodeHasher = DefaultCodeHasher;
 }
 
-pub struct LDBEnv {
-    store: <LDBEnvTypes as ContractEnvTypes>::Store,
+pub struct RocksEnv {
+    store: <RocksEnvTypes as ContractEnvTypes>::Store,
 }
 
-impl LDBEnv {
-    pub fn new(store: <LDBEnvTypes as ContractEnvTypes>::Store) -> Self {
-        dbg!("creating a new `LDBEnv` environment.");
+impl RocksEnv {
+    pub fn new(store: <RocksEnvTypes as ContractEnvTypes>::Store) -> Self {
+        dbg!("creating a new `RocksEnv` environment.");
 
         Self { store }
     }
 }
 
-impl ContractEnv for LDBEnv {
-    type Types = LDBEnvTypes;
+impl ContractEnv for RocksEnv {
+    type Types = RocksEnvTypes;
 
     fn get_store(&self) -> &<Self::Types as ContractEnvTypes>::Store {
         &self.store
@@ -49,9 +49,9 @@ impl ContractEnv for LDBEnv {
     }
 }
 
-impl Drop for LDBEnv {
+impl Drop for RocksEnv {
     fn drop(&mut self) {
-        dbg!("dropping `LDBEnv`");
+        dbg!("dropping `RocksEnv`");
 
         self.close_store();
     }

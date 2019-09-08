@@ -14,6 +14,9 @@ pub mod wasm;
 #[cfg(feature = "default-leveldb")]
 pub mod leveldb;
 
+#[cfg(feature = "default-rocksdb")]
+pub mod rocksdb;
+
 mod wire;
 
 pub mod error {

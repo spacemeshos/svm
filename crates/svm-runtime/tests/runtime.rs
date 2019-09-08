@@ -9,34 +9,34 @@ include_svm_runtime!(
         use std::path::Path;
         use std::rc::Rc;
 
-        use svm_kv::leveldb::LDBStore;
-        use svm_storage::leveldb::LDBPages;
+        use svm_kv::rocksdb::RocksStore;
+        use svm_storage::rocksdb::RocksPages;
 
-        let path = Path::new("ldb-contract-storage");
-        let kv = LDBStore::new(path);
+        let path = Path::new("tests-contract-storage");
+        let kv = RocksStore::new(path);
         let kv = Rc::new(RefCell::new(kv));
 
-        LDBPages::new(addr, Rc::clone(&kv), state, max_pages as u32)
+        RocksPages::new(addr, Rc::clone(&kv), state, max_pages as u32)
     },
     |arg_pages_storage, arg_max_pages| {
-        use svm_storage::leveldb::LDBMerklePageCache;
+        use svm_storage::rocksdb::RocksMerklePageCache;
 
-        LDBMerklePageCache::new(arg_pages_storage, arg_max_pages)
+        RocksMerklePageCache::new(arg_pages_storage, arg_max_pages)
     },
-    svm_storage::leveldb::LDBMerklePageCache,
-    svm_contract::leveldb::LDBEnv,
+    svm_storage::rocksdb::RocksMerklePageCache,
+    svm_contract::rocksdb::RocksEnv,
     || {
         use std::path::Path;
-        use svm_contract::leveldb::{LDBContractStore, LDBEnv};
+        use svm_contract::rocksdb::{RocksContractStore, RocksEnv};
 
         use svm_contract::wasm::{
             WasmContractJsonDeserializer as D, WasmContractJsonSerializer as S,
         };
 
-        let path = Path::new("ldb-contract-code");
-        let store = LDBContractStore::<S, D>::new(path);
+        let path = Path::new("tests-contract-code");
+        let store = RocksContractStore::<S, D>::new(path);
 
-        LDBEnv::new(store)
+        RocksEnv::new(store)
     }
 );
 
