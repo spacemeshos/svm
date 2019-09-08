@@ -12,7 +12,7 @@ use leveldb::database::{
 };
 use leveldb::options::{Options, ReadOptions, WriteOptions};
 
-/// An implementation of `KVStore` trait against `LevelDB`.
+/// An implementation of `KVStore` trait against `leveldb`.
 pub struct LDBStore {
     pub(crate) db: Database<LDBKey>,
 }

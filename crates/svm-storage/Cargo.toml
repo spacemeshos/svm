@@ -25,6 +25,7 @@ optional = true
 version = "0.14.0"
 
 [features]
-default = ["svm_memory", "svm_leveldb"]
+default = ["svm_memory", "svm_rocksdb"]
 svm_memory = ["svm-kv/memory"]
 svm_leveldb = ["svm-kv/default-leveldb"]
+svm_rocksdb = ["svm-kv/default-rocksdb"]

@@ -19,9 +19,11 @@ include = [
 [lib]
 crate-type = ["cdylib", "staticlib", "rlib"]
 
-[dependencies.db-key]
+[dependencies.rocksdb]
+default-features = false
 optional = true
-version = "0.0.5"
+version = "0.12.3"
+features = ["lz4"]
 
 [dependencies.wasmer-runtime]
 default-features = false

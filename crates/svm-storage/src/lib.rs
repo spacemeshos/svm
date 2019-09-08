@@ -45,3 +45,10 @@ cfg_if! {
         pub mod leveldb;
     }
 }
+
+cfg_if! {
+    if #[cfg(feature = "svm_rocksdb")]  {
+        /// `LDBStore` - An implementation of `KVStore` against `Rocksdb`
+        pub mod rocksdb;
+    }
+}
