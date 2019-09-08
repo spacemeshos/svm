@@ -47,7 +47,7 @@ impl KVStore for MemKVStore {
         }
     }
 
-    fn close(self) {}
+    fn close(&mut self) {}
 }
 
 #[cfg(test)]

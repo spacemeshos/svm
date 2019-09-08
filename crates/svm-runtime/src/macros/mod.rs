@@ -43,7 +43,7 @@ mod tests {
             use svm_storage::memory::{MemMerklePageCache, MemMerklePages};
 
             use std::cell::RefCell;
-            use std::sync::Arc;
+            use std::rc::Rc;
 
             let max_pages: u32 = 5;
             let max_pages_slices: u32 = 100;
@@ -51,7 +51,7 @@ mod tests {
             let pages_storage_gen = || {
                 let addr = Address::from(0x12_34_56_78);
                 let state = State::from(0x_00_00_00_00);
-                let kv = Arc::new(RefCell::new(MemKVStore::new()));
+                let kv = Rc::new(RefCell::new(MemKVStore::new()));
 
                 MemMerklePages::new(addr, kv, state, max_pages)
             };

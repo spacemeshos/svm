@@ -8,5 +8,5 @@ pub trait KVStore {
     fn store(&mut self, changes: &[(&[u8], &[u8])]);
 
     /// Closing connection and cleanup.
-    fn close(self);
+    fn close(&mut self);
 }

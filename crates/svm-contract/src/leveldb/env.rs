@@ -27,6 +27,8 @@ pub struct LDBEnv {
 
 impl LDBEnv {
     pub fn new(store: <LDBEnvTypes as ContractEnvTypes>::Store) -> Self {
+        dbg!("creating a new `LDBEnv` environment.");
+
         Self { store }
     }
 }
@@ -44,5 +46,13 @@ impl ContractEnv for LDBEnv {
 
     fn close_store(&mut self) {
         self.store.close()
+    }
+}
+
+impl Drop for LDBEnv {
+    fn drop(&mut self) {
+        dbg!("dropping `LDBEnv`");
+
+        self.close_store();
     }
 }

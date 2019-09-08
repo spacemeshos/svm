@@ -6,7 +6,7 @@ use svm_kv::traits::KVStore;
 
 use std::cell::RefCell;
 use std::marker::PhantomData;
-use std::sync::Arc;
+use std::rc::Rc;
 
 #[derive(Debug, Clone)]
 enum MerklePage {
@@ -23,7 +23,7 @@ pub struct MerklePagesStorage<KV, PH, SH> {
     state: State,
     addr: Address,
     pages: Vec<MerklePage>,
-    kv: Arc<RefCell<KV>>,
+    kv: Rc<RefCell<KV>>,
     pages_count: u32,
     marker: PhantomData<(PH, SH)>,
 }
@@ -39,7 +39,7 @@ where
     /// * `kv`          - The underlying kv-store used for retrieving a page raw-data when queried by its page-hash serving as a key.
     /// * `state`       - The current contract-storage state prior execution of the current contract transaction.
     /// * `pages_count` - The number of pages consumed by the contract storage (it's a fixed value per-contract).
-    pub fn new(addr: Address, kv: Arc<RefCell<KV>>, state: State, pages_count: u32) -> Self {
+    pub fn new(addr: Address, kv: Rc<RefCell<KV>>, state: State, pages_count: u32) -> Self {
         let mut storage = Self {
             state,
             kv,
@@ -286,11 +286,11 @@ mod tests {
     macro_rules! mem_merkle_pages_setup {
         ($addr_expr: expr, $addr: ident, $storage: ident, $kv: ident, $pages_count: expr) => {
             let $addr = Address::from($addr_expr as u32);
-            let $kv = Arc::new(RefCell::new(MemKVStore::new()));
+            let $kv = Rc::new(RefCell::new(MemKVStore::new()));
 
             #[allow(unused_mut)]
             let mut $storage =
-                $crate::memory::MemMerklePages::new($addr, Arc::clone(&$kv), State::empty(), $pages_count);
+                $crate::memory::MemMerklePages::new($addr, Rc::clone(&$kv), State::empty(), $pages_count);
         };
     }
 
@@ -299,7 +299,7 @@ mod tests {
             let $addr = Address::from($addr_expr as u32);
 
             #[allow(unused_mut)]
-            let mut $storage = $crate::memory::MemMerklePages::new($addr, Arc::clone(&$kv), $state, $pages_count);
+            let mut $storage = $crate::memory::MemMerklePages::new($addr, Rc::clone(&$kv), $state, $pages_count);
         };
     }
 

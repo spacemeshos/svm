@@ -7,16 +7,16 @@ include_svm_runtime!(
     |addr, state, max_pages| {
         use std::cell::RefCell;
         use std::path::Path;
-        use std::sync::Arc;
+        use std::rc::Rc;
 
         use svm_kv::leveldb::LDBStore;
         use svm_storage::leveldb::LDBPages;
 
         let path = Path::new("ldb-contract-storage");
         let kv = LDBStore::new(path);
-        let kv = Arc::new(RefCell::new(kv));
+        let kv = Rc::new(RefCell::new(kv));
 
-        LDBPages::new(addr, Arc::clone(&kv), state, max_pages as u32)
+        LDBPages::new(addr, Rc::clone(&kv), state, max_pages as u32)
     },
     |arg_pages_storage, arg_max_pages| {
         use svm_storage::leveldb::LDBMerklePageCache;
@@ -134,30 +134,27 @@ fn contract_exec_valid_transaction() {
     let new_state = exec_tx!(tx, State::from(0)).unwrap();
     assert_ne!(State::from(0), new_state);
 
-    // release memory
-    // ??????
+    let bytes = build_raw_tx!(
+        0,                   // protocol version
+        contract_addr,       // contract address
+        0x11_22_33_44,       // sender address
+        "do_write_from_reg", // `func_name` to execute
+        // `func_args`
+        &[
+            Value::I32(64),
+            Value::I32(0),
+            Value::I32(4),
+            Value::I32(0),
+            Value::I32(0),
+            Value::I32(0)
+        ]
+    );
 
-    // let bytes = build_raw_tx!(
-    //     0,                   // protocol version
-    //     contract_addr,       // contract address
-    //     0x11_22_33_44,       // sender address
-    //     "do_write_from_reg", // `func_name` to execute
-    //     // `func_args`
-    //     &[
-    //         Value::I32(64),
-    //         Value::I32(0),
-    //         Value::I32(4),
-    //         Value::I32(0),
-    //         Value::I32(0),
-    //         Value::I32(0)
-    //     ]
-    // );
-    //
-    // let tx = runtime::transaction_build(&bytes).unwrap();
-    //
-    // // executing the 2nd transaction.
-    // let new_state = exec_tx!(tx, new_state).unwrap();
-    // dbg!(new_state);
+    let tx = runtime::transaction_build(&bytes).unwrap();
+
+    // executing the 2nd transaction.
+    let new_state = exec_tx!(tx, new_state).unwrap();
+    dbg!(new_state);
 }
 
 #[test]

@@ -7,7 +7,7 @@ use svm_common::Address;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::marker::PhantomData;
-use std::sync::Arc;
+use std::rc::Rc;
 
 /// `DefaultPagesStorage` is the default implementation for the `PagesStorage` trait.
 /// It serves as a wrapper to a key-value store.
@@ -32,7 +32,7 @@ use std::sync::Arc;
 ///   databases `leveldb` and `rocksdb` have this capability), the `commit` implementation can take advantage of it.
 pub struct DefaultPagesStorage<PH: PageIndexHasher, KV: KVStore> {
     addr: Address,
-    kv: Arc<RefCell<KV>>,
+    kv: Rc<RefCell<KV>>,
     uncommitted: HashMap<Vec<u8>, Vec<u8>>,
     marker: PhantomData<PH>,
 }
@@ -44,7 +44,7 @@ where
 {
     /// Creates a new `DefaultPagesStorage`
     #[allow(unused)]
-    pub fn new(addr: Address, kv: Arc<RefCell<KV>>) -> Self {
+    pub fn new(addr: Address, kv: Rc<RefCell<KV>>) -> Self {
         Self {
             addr,
             kv,

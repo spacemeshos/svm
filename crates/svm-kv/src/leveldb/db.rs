@@ -14,7 +14,7 @@ use leveldb::options::{Options, ReadOptions, WriteOptions};
 
 /// An implementation of `KVStore` trait against `LevelDB`.
 pub struct LDBStore {
-    db: Database<LDBKey>,
+    pub(crate) db: Database<LDBKey>,
 }
 
 impl LDBStore {
@@ -59,7 +59,17 @@ impl KVStore for LDBStore {
         }
     }
 
-    fn close(mut self) {}
+    fn close(&mut self) {
+        dbg!("dropping `LDBStore`");
+
+        drop(self)
+    }
+}
+
+impl Drop for LDBStore {
+    fn drop(&mut self) {
+        self.close();
+    }
 }
 
 #[cfg(test)]

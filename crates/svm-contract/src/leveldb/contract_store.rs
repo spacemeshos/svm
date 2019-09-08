@@ -47,7 +47,7 @@ where
             None => None,
             Some(hash) => match self.db.get(&hash) {
                 None => panic!(format!(
-                    "Code associated with `CodeHash = {:?}` not found",
+                    "code associated with `CodeHash = {:?}` not found",
                     hash
                 )),
                 Some(bytes) => {

@@ -34,7 +34,7 @@ macro_rules! include_svm_runtime {
             #[inline(always)]
             pub fn contract_store(contract: &Contract) {
                 let mut env = $env_gen();
-                env.store_contract(&contract)
+                env.store_contract(&contract);
 
                 drop(env);
             }
@@ -50,6 +50,7 @@ macro_rules! include_svm_runtime {
             ) -> Result<State, ContractExecError> {
                 let mut env = $env_gen();
                 let contract = contract_load(tx, &mut env)?;
+
                 let module = contract_compile(&contract)?;
                 let mut instance = module_instantiate(&contract, &module, import_object)?;
                 let args = prepare_args_and_memory(tx, &mut instance);
@@ -64,8 +65,6 @@ macro_rules! include_svm_runtime {
                         Ok(state)
                     }
                 };
-
-                drop(env);
 
                 res
             }
