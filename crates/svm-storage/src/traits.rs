@@ -20,8 +20,6 @@ pub trait PagesStorage {
 
     /// Persist the pending in-memory dirty pages into the backed database
     fn commit(&mut self);
-
-    fn close(&mut self);
 }
 
 /// `PageIndexHasher` is a trait defining that a contract storage-page hash must be determined by

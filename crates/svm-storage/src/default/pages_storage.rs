@@ -101,8 +101,4 @@ where
 
         self.clear();
     }
-
-    fn close(&mut self) {
-        self.kv.borrow_mut().close();
-    }
 }

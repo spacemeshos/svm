@@ -1,5 +1,5 @@
-#![allow(missing_docs)]
-#![allow(unused)]
+#![deny(missing_docs)]
+#![deny(unused)]
 
 //! `svm-storage` crate is responsible on the contract storage part of the `svm`
 //! Each smart contract has its own storage
@@ -31,24 +31,21 @@ use cfg_if::cfg_if;
 
 cfg_if! {
     if #[cfg(feature = "svm_memory")] {
-        /// Contains;
-        /// * `MemKVStore`         - An in-memory implementation for `KVStore`
-        /// * `MemMerklePages`     - An in-memory implementation for `PagesStorage`
-        /// * `MemMerklePageCache` - An in-memory implementation for `PageCache`
+        /// in-memory backed implementation for storage
         pub mod memory;
     }
 }
 
 cfg_if! {
     if #[cfg(feature = "svm_leveldb")]  {
-        /// `LDBStore` - An implementation of `KVStore` against `LevelDB`
+        /// `leveldb` backed implementation for storage
         pub mod leveldb;
     }
 }
 
 cfg_if! {
     if #[cfg(feature = "svm_rocksdb")]  {
-        /// `LDBStore` - An implementation of `KVStore` against `Rocksdb`
+        /// `rocksdb` backed implementation for storage
         pub mod rocksdb;
     }
 }

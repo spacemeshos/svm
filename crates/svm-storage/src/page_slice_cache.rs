@@ -228,18 +228,6 @@ impl<'pc, PC: PageCache> PageSliceCache<'pc, PC> {
         self.page_cache.get_state()
     }
 
-    pub fn close(&mut self) {
-        if self.closed {
-            return;
-        }
-
-        dbg!("closing `PageSliceCache`");
-
-        self.page_cache.close();
-
-        self.closed = true;
-    }
-
     /// Applies `slice` on top of a `page`
     fn patch_page(&self, page: &mut Vec<u8>, slice: PageSlice) {
         let start = slice.layout.offset as usize;
@@ -262,8 +250,6 @@ where
 
         dbg!("dropping `PageSliceCache`...");
 
-        // self.close();
-
         let page_cache = self.page_cache as *mut _;
 
         unsafe { Box::from_raw(page_cache) };
@@ -274,8 +260,6 @@ where
 mod tests {
     use super::*;
     use crate::default_page_hash;
-    use crate::memory::MemMerklePages;
-    use crate::page::zero_page;
     use svm_kv::traits::KVStore;
 
     use super::page::SliceIndex;

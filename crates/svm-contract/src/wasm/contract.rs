@@ -1,4 +1,3 @@
-use crate::traits::{ContractDeserializer, ContractSerializer};
 use serde::{Deserialize, Serialize};
 
 use svm_common::Address;
@@ -8,6 +7,7 @@ use svm_common::Address;
 ///
 /// It's only later, while we `validiate` the contract when we also compute its future account address and add it to the `Contract` instance.
 /// That's the reason why the `Address` field is defined of type `Option<Address>` and not simply `Address`.
+#[allow(missing_docs)]
 #[derive(Serialize, Deserialize, PartialEq)]
 pub struct Contract {
     pub address: Option<Address>,

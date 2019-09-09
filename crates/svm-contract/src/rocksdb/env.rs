@@ -1,10 +1,6 @@
 use crate::default::{DefaultCodeHasher, DefaultContractAddressCompute};
 use crate::env::{ContractEnv, ContractEnvTypes};
 use crate::rocksdb::RocksContractStore;
-use crate::traits::{
-    ContractAddressCompute, ContractCodeHasher, ContractDeserializer, ContractSerializer,
-    ContractStore,
-};
 use crate::wasm::{WasmContractJsonDeserializer, WasmContractJsonSerializer};
 
 pub struct RocksEnvTypes {}
@@ -21,14 +17,14 @@ impl ContractEnvTypes for RocksEnvTypes {
     type CodeHasher = DefaultCodeHasher;
 }
 
+/// Contract environment backed by `rocksdb` for persistence.
 pub struct RocksEnv {
     store: <RocksEnvTypes as ContractEnvTypes>::Store,
 }
 
 impl RocksEnv {
+    /// Creates a new `RocksEnv`. Injects externally the `ContractStore`
     pub fn new(store: <RocksEnvTypes as ContractEnvTypes>::Store) -> Self {
-        println!("creating a new `RocksEnv` environment.");
-
         Self { store }
     }
 }
@@ -42,19 +38,5 @@ impl ContractEnv for RocksEnv {
 
     fn get_store_mut(&mut self) -> &mut <Self::Types as ContractEnvTypes>::Store {
         &mut self.store
-    }
-
-    fn close_store(&mut self) {
-        self.store.close()
-    }
-}
-
-impl Drop for RocksEnv {
-    fn drop(&mut self) {
-        println!("started dropping `RocksEnv`...");
-
-        self.close_store();
-
-        println!("finished dropping `RocksEnv`...");
     }
 }

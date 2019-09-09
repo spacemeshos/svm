@@ -26,8 +26,6 @@ pub struct DefaultPageCache<'ps, PS: PagesStateStorage> {
 
     // The underlying storage pages
     pages_storage: &'ps mut PS,
-
-    closed: bool,
 }
 
 impl<'ps, PS: PagesStateStorage> PageCache for DefaultPageCache<'ps, PS> {}
@@ -61,7 +59,6 @@ impl<'ps, PS: PagesStateStorage> DefaultPageCache<'ps, PS> {
             dirty_pages: vec![false; max_pages],
             cached_pages: vec![CachedPage::NotCached; max_pages],
             pages_storage,
-            closed: false,
         }
     }
 
@@ -125,7 +122,6 @@ impl<'ps, PS: PagesStateStorage> PagesStorage for DefaultPageCache<'ps, PS> {
     /// * we **don't** notify the underlying `pages_storage` about the page update.
     ///   only upon `commit`, we'll will propagate the `dirty pages` into `pages_storage`
     ///   we can do that since each future `read_page` will have a cache hit so we don't need to
-    ///   ask `pages_storage` for data of an already cached page.
     fn write_page(&mut self, page_idx: PageIndex, page: &[u8]) {
         std::mem::replace(
             &mut self.cached_pages[page_idx.0 as usize],
@@ -187,23 +183,12 @@ impl<'ps, PS: PagesStateStorage> PagesStorage for DefaultPageCache<'ps, PS> {
 
         self.pages_storage.commit();
     }
-
-    fn close(&mut self) {
-        if self.closed {
-            return;
-        }
-
-        dbg!("closing PageCache...");
-        self.pages_storage.close();
-        self.closed = true;
-    }
 }
 
 impl<'ps, PS: PagesStateStorage> Drop for DefaultPageCache<'ps, PS> {
     fn drop(&mut self) {
         dbg!("dropping `PageCache`...");
 
-        // self.close();
         let pages_storage = self.pages_storage as *mut _;
 
         unsafe { Box::from_raw(pages_storage) };

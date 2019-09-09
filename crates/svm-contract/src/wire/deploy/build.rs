@@ -1,6 +1,7 @@
 use byteorder::{BigEndian, WriteBytesExt};
 use svm_common::Address;
 
+/// A raw contract builder. Used for testing.
 pub struct WireContractBuilder {
     version: Option<u32>,
     name: Option<String>,
@@ -8,6 +9,7 @@ pub struct WireContractBuilder {
     code: Option<Vec<u8>>,
 }
 
+#[allow(missing_docs)]
 impl WireContractBuilder {
     pub fn new() -> Self {
         Self {

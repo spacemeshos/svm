@@ -2,7 +2,6 @@ use crate::traits::{ContractDeserializer, ContractSerializer, ContractStore};
 use crate::types::CodeHash;
 use crate::wasm::Contract;
 
-use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::path::Path;
 
@@ -56,9 +55,5 @@ where
                 }
             },
         }
-    }
-
-    fn close(&mut self) {
-        self.db.close();
     }
 }

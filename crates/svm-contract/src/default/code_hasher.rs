@@ -2,6 +2,7 @@ use crate::traits::ContractCodeHasher;
 use crate::types::CodeHash;
 use svm_common::KeyHasher;
 
+/// Default implementation for `ContractCodeHasher`
 pub struct DefaultCodeHasher;
 
 impl ContractCodeHasher for DefaultCodeHasher {

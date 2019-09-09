@@ -31,7 +31,6 @@ where
     kv: Rc<RefCell<KV>>,
     pages_count: u32,
     marker: PhantomData<(PH, SH)>,
-    closed: bool
 }
 
 impl<KV, PH, SH> MerklePagesStorage<KV, PH, SH>
@@ -52,7 +51,6 @@ where
             pages_count,
             addr,
             pages: vec![MerklePage::Uninitialized; pages_count as usize],
-            closed: false,
             marker: PhantomData,
         };
 
@@ -222,16 +220,6 @@ where
 
         self.clear();
     }
-
-    fn close(&mut self) {
-        if self.closed {
-            return;
-        }
-
-        dbg!("closing MerklePagesStorage...");
-        self.kv.borrow_mut().close();
-        self.closed = true;
-    }
 }
 
 impl<KV, PH, SH> Drop for MerklePagesStorage<KV, PH, SH>
@@ -242,8 +230,6 @@ where
 
     fn drop(&mut self) {
         dbg!("dropping `MerklePagesStorage`...");
-
-        self.close();
     }
 }
 

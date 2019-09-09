@@ -2,6 +2,7 @@ use crate::wasm::{WasmArgType, WasmArgValue};
 use byteorder::{BigEndian, WriteBytesExt};
 use svm_common::Address;
 
+/// A raw transaction builder. Used for testing
 pub struct WireTxBuilder {
     version: Option<u32>,
     contract: Option<Address>,
@@ -10,6 +11,7 @@ pub struct WireTxBuilder {
     func_args: Option<Vec<WasmArgValue>>,
 }
 
+#[allow(missing_docs)]
 impl WireTxBuilder {
     pub fn new() -> Self {
         Self {
@@ -117,7 +119,7 @@ impl WireTxBuilder {
     }
 
     fn write_address(&self, address: Address, buf: &mut Vec<u8>) {
-        let mut bytes = address.bytes();
+        let bytes = address.bytes();
 
         buf.extend_from_slice(&bytes);
     }

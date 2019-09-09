@@ -1,5 +1,6 @@
 use super::field::Field;
 
+#[allow(missing_docs)]
 pub enum ContractBuildError {
     EmptyName,
     NameNotValidUTF8String,

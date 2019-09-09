@@ -1,11 +1,19 @@
 use crate::wasm::WasmArgValue;
-use svm_common::{Address, State};
+use svm_common::Address;
 
+/// An in-memory representation of a smart-contract transaction.
 #[derive(Clone, PartialEq)]
 pub struct Transaction {
+    /// The contract account address
     pub contract: Address,
+
+    /// Transaction sender account address
     pub sender: Address,
+
+    /// Contract function to execute
     pub func_name: String,
+
+    /// Contrant function args
     pub func_args: Vec<WasmArgValue>,
 }
 

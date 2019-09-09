@@ -7,6 +7,7 @@ use std::marker::PhantomData;
 
 use svm_common::Address;
 
+/// An in-memory implementation of `ContractStore`
 pub struct MemContractStore<S, D> {
     contract_bytes: HashMap<CodeHash, Vec<u8>>,
     addr_codehash: HashMap<Address, CodeHash>,
@@ -57,46 +58,4 @@ where
             },
         }
     }
-
-    fn close(&mut self) {
-        self.contract_bytes.clear();
-        self.addr_codehash.clear();
-    }
 }
-
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//
-//     #[test]
-//     fn one_code() {
-//         let mut store = MemContractStore::new();
-//
-//         let hash = CodeHash([10; 32]);
-//         assert_eq!(None, store.load(hash));
-//
-//         // 1st store
-//         store.store(&[10, 20, 30], hash);
-//         assert_eq!(vec![10, 20, 30], store.load(hash).unwrap());
-//
-//         // 2nd store, no change
-//         store.store(&[10, 20, 30], hash);
-//         assert_eq!(vec![10, 20, 30], store.load(hash).unwrap());
-//     }
-//
-//     #[test]
-//     fn two_codes() {
-//         let mut store1 = MemContractStore::new();
-//         let mut store2 = MemContractStore::new();
-//
-//         let hash1 = CodeHash([10; 32]);
-//         let hash2 = CodeHash([20; 32]);
-//         assert_eq!(None, store1.load(hash1));
-//         assert_eq!(None, store2.load(hash2));
-//
-//         store1.store(&[10, 20, 30], hash1);
-//         store2.store(&[40, 50, 60], hash2);
-//         assert_eq!(vec![10, 20, 30], store1.load(hash1).unwrap());
-//         assert_eq!(vec![40, 50, 60], store2.load(hash2).unwrap());
-//     }
-// }

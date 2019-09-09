@@ -1,5 +1,6 @@
 use super::field::Field;
 
+#[allow(missing_docs)]
 pub enum TransactionBuildError {
     UnsupportedProtoVersion(u32),
     NotEnoughBytes(Field),
