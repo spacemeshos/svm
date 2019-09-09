@@ -1,5 +1,7 @@
 use svm_common::Address;
 
+/// Contract execution error
+#[allow(missing_docs)]
 pub enum ContractExecError {
     NotFound(Address),
     CompilationFailed(Address),

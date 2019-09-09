@@ -1,5 +1,5 @@
-#!allow(missing_docs)]
-#![allow(unused)]
+#![deny(missing_docs)]
+#![deny(unused)]
 
 //! `svm-runtime` crate is the glue between `svm` constract-storage to `wasmer` live instances.
 
@@ -22,4 +22,5 @@ pub mod macros;
 /// to be injected into `wasmer` instances running in the `svm`.
 pub mod vmcalls;
 
+/// Options when spawning a new `svm` runtime instance
 pub mod opts;

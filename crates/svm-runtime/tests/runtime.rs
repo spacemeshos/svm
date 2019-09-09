@@ -1,6 +1,6 @@
 use svm_common::{Address, State};
 use svm_contract::build::{WireContractBuilder, WireTxBuilder};
-use svm_contract::wasm::{WasmArgType, WasmArgValue as Value};
+use svm_contract::wasm::WasmArgValue as Value;
 use svm_runtime::*;
 
 use svm_storage::page::{PageIndex, PageSliceLayout, SliceIndex};
