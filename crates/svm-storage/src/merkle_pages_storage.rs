@@ -239,11 +239,11 @@ where
     KV: KVStore,
     PH: PageHasher,
     SH: StateHasher {
+
     fn drop(&mut self) {
         dbg!("dropping `MerklePagesStorage`...");
 
         self.close();
-
     }
 }
 

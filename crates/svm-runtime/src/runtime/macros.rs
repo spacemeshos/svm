@@ -47,6 +47,7 @@ macro_rules! include_svm_runtime {
                 import_object: &wasmer_runtime::ImportObject,
             ) -> Result<State, ContractExecError> {
                 let mut env = $env_gen();
+
                 let contract = contract_load(tx, &mut env)?;
 
                 let module = contract_compile(&contract)?;
@@ -55,7 +56,7 @@ macro_rules! include_svm_runtime {
                 let func = get_exported_func(&instance, &tx.func_name)?;
 
                 match func.call(&args) {
-                    Err(_) => Err(ContractExecError::ExecFailed),
+                    Err(e) => Err(ContractExecError::ExecFailed),
                     Ok(_) => {
                         let storage = get_instance_svm_storage_mut(&mut instance);
                         let state = storage.commit();
