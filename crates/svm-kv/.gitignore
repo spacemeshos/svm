@@ -1,2 +1,2 @@
-leveldb-tests
-rocksdb-tests
+leveldb-tests/
+rocksdb-tests/
