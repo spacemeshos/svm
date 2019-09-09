@@ -1,61 +1,12 @@
 use svm_common::{Address, State};
 use svm_contract::build::{WireContractBuilder, WireTxBuilder};
 use svm_contract::wasm::WasmArgValue as Value;
-use svm_runtime::*;
 
 use svm_storage::page::{PageIndex, PageSliceLayout, SliceIndex};
 use svm_storage::PageSliceCache;
 
-macro_rules! gen_rocksdb_pages_storage {
-    ($addr: expr, $state: expr, $max_pages: expr, $contract_storage_path: expr) => {{
-        use std::cell::RefCell;
-        use std::path::Path;
-        use std::rc::Rc;
-
-        use svm_kv::rocksdb::RocksStore;
-        use svm_storage::rocksdb::RocksPages;
-
-        let path = Path::new($contract_storage_path);
-        let kv = RocksStore::new(path);
-        let kv = Rc::new(RefCell::new(kv));
-
-        RocksPages::new($addr, kv, $state, $max_pages as u32)
-    }};
-}
-
-macro_rules! gen_rocksdb_page_cache {
-    ($pages_storage: expr, $max_pages: expr) => {{
-        use svm_storage::rocksdb::RocksMerklePageCache;
-
-        RocksMerklePageCache::new($pages_storage, $max_pages)
-    }};
-}
-
-macro_rules! gen_rocksdb_env {
-    ($code_db_path: expr) => {{
-        use std::path::Path;
-        use svm_contract::rocksdb::{RocksContractStore, RocksEnv};
-
-        use svm_contract::wasm::{
-            WasmContractJsonDeserializer as D, WasmContractJsonSerializer as S,
-        };
-
-        let path = Path::new($code_db_path);
-        let store = RocksContractStore::<S, D>::new(path);
-
-        RocksEnv::new(store)
-    }};
-}
-
-include_svm_runtime!(
-    |addr, state, max_pages| {
-        gen_rocksdb_pages_storage!(addr, state, max_pages, "tests-contract-storage")
-    },
-    |pages_storage, max_pages| gen_rocksdb_page_cache!(pages_storage, max_pages),
-    svm_storage::rocksdb::RocksMerklePageCache,
-    svm_contract::rocksdb::RocksEnv,
-    || gen_rocksdb_env!("tests-contract-code")
-);
+// Injects `svm` runtime backed by `rocksdb` into the current file.
+svm_runtime::include_svm_rocksdb_runtime!("tests-contract-storage", "tests-contract-code");
 
 macro_rules! build_raw_contract {
     ($version: expr, $name: expr, $author: expr, $file: expr) => {{
@@ -162,9 +113,13 @@ fn contract_exec_valid_transaction() {
     assert_ne!(State::from(0), new_state);
 
     // reading data from storage
-    let mut pages_storage =
-        gen_rocksdb_pages_storage!(contract_addr, new_state, 10, "tests-contract-storage");
-    let page_cache = gen_rocksdb_page_cache!(&mut pages_storage, 10);
+    let mut pages_storage = svm_runtime::gen_rocksdb_pages_storage!(
+        contract_addr,
+        new_state,
+        10,
+        "tests-contract-storage"
+    );
+    let page_cache = svm_runtime::gen_rocksdb_page_cache!(&mut pages_storage, 10);
 
     let boxed_pc = Box::new(page_cache);
     let pc = Box::leak(boxed_pc);

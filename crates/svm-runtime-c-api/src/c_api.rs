@@ -2,8 +2,14 @@
 #[macro_export]
 macro_rules! include_svm_runtime_c_api {
     ($pages_storage_gen: expr, $page_cache_ctor: expr, $PC: path, $ENV: path, $env_gen: expr) => {
-        /// Injects `runtime` module
-        svm_runtime::include_svm_runtime!($PC, $ENV, $env_gen);
+        /// Injects `runtime` module into this file
+        svm_runtime::include_svm_runtime!(
+            $pages_storage_gen,
+            $page_cache_ctor,
+            $PC,
+            $ENV,
+            $env_gen
+        );
 
         use svm_common::{Address, State};
         use svm_contract::transaction::Transaction;

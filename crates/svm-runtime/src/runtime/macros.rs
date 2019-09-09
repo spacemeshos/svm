@@ -12,11 +12,11 @@
 /// * `env_gen` - a function generating an environment. The environment will be of type `ENV` above.
 #[macro_export]
 macro_rules! include_svm_runtime {
-    ($pages_storage_gen: expr, $page_cache_ctor: expr, $PC: path, $ENV: ty, $env_gen: expr) => {
+    ($pages_storage_gen: expr, $page_cache_ctor: expr, $PC: path, $ENV: path, $env_gen: expr) => {
         mod runtime {
             use $crate::runtime::ContractExecError;
 
-            /// injects `vmcalls` module
+            /// Iinjects `vmcalls` module into the current file
             svm_runtime::include_svm_vmcalls!($PC);
 
             use svm_common::{Address, State};
