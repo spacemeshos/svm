@@ -4,17 +4,16 @@ use std::path::Path;
 
 /// An implementation of `KVStore` trait against `rocksdb`.
 pub struct RocksStore {
-    closed: bool,
     pub(crate) db: rocksdb::DB,
 }
 
 impl RocksStore {
+    /// New `RocksStore` under the given `path`
     pub fn new<P: AsRef<Path>>(path: P) -> Self {
         println!("opening rocksdb. (path = \"{}\")", path.as_ref().display());
 
         Self {
             db: rocksdb::DB::open_default(path).unwrap(),
-            closed: false,
         }
     }
 }
@@ -34,34 +33,24 @@ impl KVStore for RocksStore {
         let mut batch = rocksdb::WriteBatch::default();
 
         for (k, v) in changes {
-            batch.put(k, v);
+            let res = batch.put(k, v);
+
+            if res.is_err() {
+                panic!("failed `put`-ing bach data");
+            }
         }
 
         let res = self.db.write(batch);
 
         if res.is_err() {
-            panic!("failed writing data");
+            panic!("failed `write`-ing bach");
         }
-    }
-
-    fn close(&mut self) {
-        if self.closed {
-            return;
-        }
-
-        let path = self.db.path();
-
-        println!("closing rocksdb. (path = \"{}\")", path.display());
-
-        drop(&mut self.db);
-
-        self.closed = true;
     }
 }
 
 impl Drop for RocksStore {
     fn drop(&mut self) {
-        self.close();
+        dbg!("dropping `RocksStore`");
     }
 }
 
@@ -80,7 +69,7 @@ mod tests {
 
         drop(db);
 
-        let mut db = RocksStore::new("rocksdb-tests");
+        let db = RocksStore::new("rocksdb-tests");
         let v = db.get(&[10, 20, 30]).unwrap();
         assert_eq!(vec![40, 50, 60], v);
     }

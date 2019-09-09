@@ -46,8 +46,6 @@ impl KVStore for MemKVStore {
             self.map.insert(k.to_vec(), v.to_vec());
         }
     }
-
-    fn close(&mut self) {}
 }
 
 #[cfg(test)]

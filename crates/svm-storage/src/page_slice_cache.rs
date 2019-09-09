@@ -304,7 +304,7 @@ mod tests {
     macro_rules! reopen_pages_storage {
         ($kv_ident: ident, $addr: expr, $state: expr, $max_pages: expr) => {{
             use crate::memory::MemMerklePages;
-            use svm_common::{Address, State};
+            use svm_common::Address;
 
             use std::rc::Rc;
 
@@ -403,7 +403,7 @@ mod tests {
         };
 
         cache.write_page_slice(&layout, &vec![10, 20, 30]);
-        cache.commit();
+        let _ = cache.commit();
 
         let mut expected_page = page::zero_page();
         fill_page(&mut expected_page, &[(100, 10), (101, 20), (102, 30)]);
@@ -424,7 +424,7 @@ mod tests {
         assert_eq!(None, kv.borrow().get(&ph2.0));
 
         // now we also persist the new page version
-        cache.commit();
+        let _ = cache.commit();
 
         let page = kv.borrow().get(&ph2.0).unwrap();
         assert_eq!(vec![40, 50, 60], &page[100..103]);
@@ -452,7 +452,7 @@ mod tests {
         cache.write_page_slice(&layout, &vec![10, 20, 30]);
 
         // 2) commit
-        cache.commit();
+        let _ = cache.commit();
 
         // 3) load persisted page (we do a `clear` first to make sure we load from the page cache)
         cache.clear();
@@ -467,7 +467,7 @@ mod tests {
         let page = kv.borrow().get(&ph1.0).unwrap();
         assert_eq!(vec![10, 20, 30], &page[100..103]);
 
-        cache.commit();
+        let _ = cache.commit();
 
         let page = kv.borrow().get(&ph2.0).unwrap();
         assert_eq!(vec![40, 50, 60], &page[100..103]);

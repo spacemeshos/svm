@@ -58,11 +58,6 @@ where
     fn compute_page_hash(&self, page_idx: PageIndex) -> [u8; 32] {
         PH::hash(self.addr, page_idx)
     }
-
-    #[cfg(test)]
-    pub fn uncommitted_len(&self) -> usize {
-        self.uncommitted.len()
-    }
 }
 
 impl<PH, KV> PagesStorage for DefaultPagesStorage<PH, KV>

@@ -198,7 +198,6 @@ impl<'ps, PS: PagesStateStorage> Drop for DefaultPageCache<'ps, PS> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use svm_kv::memory::MemKVStore;
     use svm_kv::traits::KVStore;
 
     use crate::default_page_idx_hash;

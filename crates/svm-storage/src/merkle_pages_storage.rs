@@ -237,9 +237,8 @@ where
 mod tests {
     use super::*;
 
-    use svm_common::{Address, DefaultKeyHasher, State};
+    use svm_common::{Address, State};
 
-    use crate::default::DefaultPageHasher;
     use crate::page::zero_page;
     use svm_kv::memory::MemKVStore;
 

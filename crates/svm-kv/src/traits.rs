@@ -6,7 +6,4 @@ pub trait KVStore {
 
     /// Stores a batch of changes. Each change is `key` -> `value` association.
     fn store(&mut self, changes: &[(&[u8], &[u8])]);
-
-    /// Closing connection and cleanup.
-    fn close(&mut self);
 }
