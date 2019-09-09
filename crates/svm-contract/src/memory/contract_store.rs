@@ -20,6 +20,7 @@ where
     S: ContractSerializer,
     D: ContractDeserializer,
 {
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {
             contract_bytes: HashMap::new(),

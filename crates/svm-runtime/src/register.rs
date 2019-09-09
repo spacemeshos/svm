@@ -24,6 +24,7 @@ macro_rules! impl_register {
 
         impl $reg_ident {
             /// we initialize the register content with zero bytes
+            #[allow(clippy::new_without_default)]
             #[inline(always)]
             pub fn new() -> Self {
                 Self([0; $bytes_count])

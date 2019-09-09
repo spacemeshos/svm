@@ -59,7 +59,7 @@ pub fn u64_to_le_array(num: u64) -> [u8; 8] {
 ///
 #[inline(always)]
 pub fn u8_pair_add(a: u8, b: u8) -> (u8, u8) {
-    let c = (a as u16) + (b as u16);
+    let c = u16::from(a) + u16::from(b);
 
     let c0 = (c & 0xFF) as u8;
     let c1 = ((c >> 8) & 0xFF) as u8;
@@ -73,7 +73,7 @@ pub fn u8_pair_add(a: u8, b: u8) -> (u8, u8) {
 /// u8_triple_add(255, 5, 5)    -> returns (1, 9)
 #[inline(always)]
 pub fn u8_triple_add(a: u8, b: u8, c: u8) -> (u8, u8) {
-    let d = (a as u16) + (b as u16) + (c as u16);
+    let d = u16::from(a) + u16::from(b) + u16::from(c);
 
     let d0 = (d & 0xFF) as u8;
     let d1 = ((d >> 8) & 0xFF) as u8;

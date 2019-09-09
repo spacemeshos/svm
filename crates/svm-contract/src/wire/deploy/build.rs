@@ -11,6 +11,7 @@ pub struct WireContractBuilder {
 
 #[allow(missing_docs)]
 impl WireContractBuilder {
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {
             version: None,

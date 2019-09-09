@@ -81,9 +81,7 @@ impl<'ps, PS: PagesStateStorage> PagesStorage for DefaultPageCache<'ps, PS> {
 
                 let page = self.pages_storage.read_page(page_idx);
 
-                if page.is_some() {
-                    let page: Vec<u8> = page.unwrap();
-
+                if let Some(page) = page {
                     // we cache the loaded page
                     std::mem::replace(
                         &mut self.cached_pages[page_idx.0 as usize],
@@ -159,25 +157,22 @@ impl<'ps, PS: PagesStateStorage> PagesStorage for DefaultPageCache<'ps, PS> {
         for ((page_idx, dirty), cached_page) in
             (&mut self.dirty_pages.iter().enumerate()).zip(&mut self.cached_pages.iter())
         {
-            match *dirty {
-                true => {
-                    match cached_page {
-                        CachedPage::Cached(ref page) => {
-                            self.pages_storage
-                                .write_page(PageIndex(page_idx as u32), page);
-                        }
-                        CachedPage::CachedEmpty | CachedPage::NotCached => {
-                            // we should never reach this code!
-                            //
-                            // if a page is dirty then it's must appear in the cache.
-                            // also we can't make a page dirty and `NotCached`
-                            unreachable!()
-                        }
+            if *dirty {
+                match cached_page {
+                    CachedPage::Cached(ref page) => {
+                        self.pages_storage
+                            .write_page(PageIndex(page_idx as u32), page);
+                    }
+                    CachedPage::CachedEmpty | CachedPage::NotCached => {
+                        // we should never reach this code!
+                        //
+                        // if a page is dirty then it's must appear in the cache.
+                        // also we can't make a page dirty and `NotCached`
+                        unreachable!()
                     }
                 }
-                false => {
-                    // page isn't dirty, we skip for the next `cached_page`
-                }
+            } else {
+                // page isn't dirty, we skip for the next `cached_page`
             }
         }
 

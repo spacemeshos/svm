@@ -49,7 +49,7 @@ impl<'pc, PC: PageCache> std::fmt::Debug for PageSliceCache<'pc, PC> {
             }
         }
 
-        writeln!(f, "")
+        writeln!(f)
     }
 }
 
@@ -91,14 +91,11 @@ impl<'pc, PC: PageCache> PageSliceCache<'pc, PC> {
 
                 let page: Option<Vec<u8>> = self.page_cache.read_page(layout.page_idx);
 
-                if page.is_some() {
-                    // `page` has been fetched from the `page cache`
-                    let data = page.unwrap();
-
+                if let Some(page) = page {
                     let slice = PageSlice {
                         layout: layout.clone(),
                         dirty: false,
-                        data: data.clone(),
+                        data: page.clone(),
                     };
 
                     std::mem::replace(
@@ -108,7 +105,7 @@ impl<'pc, PC: PageCache> PageSliceCache<'pc, PC> {
 
                     let start = layout.offset as usize;
                     let end = (layout.offset + layout.len) as usize;
-                    let slice_data = data[start..end].to_vec();
+                    let slice_data = page[start..end].to_vec();
 
                     Some(slice_data)
                 } else {
@@ -189,7 +186,7 @@ impl<'pc, PC: PageCache> PageSliceCache<'pc, PC> {
                 if slice.dirty {
                     let page_idx = slice.layout.page_idx;
 
-                    let entry: &mut Vec<_> = page_slices.entry(page_idx.0).or_insert(Vec::new());
+                    let entry: &mut Vec<_> = page_slices.entry(page_idx.0).or_insert_with(Vec::new);
                     entry.push(slice.clone());
 
                     pages_indexes.push(page_idx);

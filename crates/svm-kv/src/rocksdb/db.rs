@@ -19,6 +19,7 @@ impl RocksStore {
 }
 
 impl KVStore for RocksStore {
+    #[allow(clippy::match_wild_err_arm)]
     fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
         match self.db.get(key) {
             Ok(dbvec) => match dbvec {

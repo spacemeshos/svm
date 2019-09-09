@@ -13,6 +13,7 @@ pub struct WireTxBuilder {
 
 #[allow(missing_docs)]
 impl WireTxBuilder {
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {
             version: None,

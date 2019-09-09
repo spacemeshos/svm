@@ -7,6 +7,7 @@ pub struct MemKVStore {
 }
 
 impl MemKVStore {
+    #[allow(clippy::new_without_default)]
     /// Initializes a new `MemKVStore`
     pub fn new() -> Self {
         Self {
@@ -21,7 +22,7 @@ impl MemKVStore {
 
     /// Returns an iterator for the internal `HashMap`
     pub fn iter(&self) -> std::collections::hash_map::Iter<Vec<u8>, Vec<u8>> {
-        (&self.map).into_iter()
+        (&self.map).iter()
     }
 
     /// Returns an iterator over the keys
@@ -34,8 +35,8 @@ impl KVStore for MemKVStore {
     fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
         let entry = self.map.get(key);
 
-        if entry.is_some() {
-            Some(entry.unwrap().clone())
+        if let Some(entry) = entry {
+            Some(entry.clone())
         } else {
             None
         }

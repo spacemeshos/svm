@@ -5,6 +5,7 @@ use byteorder::{ByteOrder, LittleEndian};
 pub struct Balance(pub u128);
 
 impl From<*const u8> for Balance {
+    #[warn(clippy::not_unsafe_ptr_arg_deref)]
     fn from(balance_ptr: *const u8) -> Balance {
         let slice: &[u8] = unsafe { std::slice::from_raw_parts(balance_ptr, 16) };
 

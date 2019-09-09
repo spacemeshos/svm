@@ -41,10 +41,10 @@ impl std::fmt::Display for ContractBuildError {
                 String::from("Admins are not supported yet")
             }
             ContractBuildError::NotEnoughBytes(field) => {
-                String::from(format!("Not enough bytes (field: {})", field))
+                format!("Not enough bytes (field: {})", field)
             }
             ContractBuildError::UnsupportedProtoVersion(ver) => {
-                String::from(format!("Unsupported protocol version: `{}`", ver))
+                format!("Unsupported protocol version: `{}`", ver)
             }
             ContractBuildError::NoAuthors => String::from("Must have Authors"),
             ContractBuildError::InvalidWasm => String::from("Invalid wasm format"),

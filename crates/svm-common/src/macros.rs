@@ -19,6 +19,7 @@ macro_rules! impl_bytes_primitive {
         }
 
         impl From<*const u8> for $primitive {
+            #[warn(clippy::not_unsafe_ptr_arg_deref)]
             fn from(ptr: *const u8) -> $primitive {
                 let slice: &[u8] = unsafe { std::slice::from_raw_parts(ptr, $bytes_count) };
 
@@ -45,7 +46,7 @@ macro_rules! impl_bytes_primitive {
             /// Returns the number of bytes of `$primitive`
             #[inline(always)]
             pub fn len() -> usize {
-                return $bytes_count;
+                $bytes_count
             }
         }
 

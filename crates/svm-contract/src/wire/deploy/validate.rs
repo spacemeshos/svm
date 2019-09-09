@@ -14,7 +14,7 @@ pub fn validate_contract(contract: &Contract) -> Result<(), ContractBuildError> 
 }
 
 fn validate_deps(_contract: &Contract) -> Result<(), ContractBuildError> {
-    return Ok(());
+    Ok(())
 }
 
 fn validate_author(contract: &Contract) -> Result<(), ContractBuildError> {
