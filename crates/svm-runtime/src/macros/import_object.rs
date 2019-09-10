@@ -6,20 +6,9 @@ macro_rules! create_svm_ctx {
         use svm_storage::PageSliceCache;
         use $crate::ctx::SvmCtx;
 
-        // pages storage
         let pages = $pages_storage_gen();
-        let boxed_pages = Box::new(pages);
-        let leaked_pages: &mut _ = Box::leak(boxed_pages);
-
-        // page cache
-        let page_cache = $page_cache_ctor(leaked_pages, $opts.max_pages);
-        let boxed_page_cache = Box::new(page_cache);
-        let page_cache: &mut _ = Box::leak(boxed_page_cache);
-
-        // page-slice cache
+        let page_cache = $page_cache_ctor(pages, $opts.max_pages);
         let storage = PageSliceCache::new(page_cache, $opts.max_pages_slices);
-        let boxed_storage = Box::new(storage);
-        let storage: &mut _ = Box::leak(boxed_storage);
 
         let ctx = SvmCtx::<$PC>::new($node_data, storage);
         let boxed_ctx = Box::new(ctx);
@@ -44,13 +33,9 @@ macro_rules! create_svm_state_gen {
         let data = ctx as *mut _ as *mut c_void;
         let dtor: fn(*mut c_void) = |ctx_data| {
             let ctx_ptr = ctx_data as *mut SvmCtx<$PC>;
-            let ctx: Box<SvmCtx<$PC>> = unsafe { Box::from_raw(ctx_ptr) };
 
-            let ctx = Box::leak(ctx);
-
-            unsafe { Box::from_raw(ctx.storage as *mut _) };
-
-            std::mem::forget(ctx);
+            // triggers memory releasing
+            unsafe { Box::from_raw(ctx_ptr) };
         };
 
         (data, dtor)

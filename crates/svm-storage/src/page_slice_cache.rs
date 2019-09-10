@@ -23,16 +23,14 @@ enum CachedPageSlice {
 /// `PageSliceCache` is a caching layer on top of the `PageCache`.
 /// While `PageCache` deals with data involving only page units, `PageSliceCache` has fine-grained
 /// control for various sized of data.
-pub struct PageSliceCache<'pc, PC: PageCache> {
+pub struct PageSliceCache<PC: PageCache> {
     // The `ith item` will say whether the `ith page slice` is dirty
     cached_slices: Vec<CachedPageSlice>,
 
-    page_cache: &'pc mut PC,
-
-    closed: bool,
+    page_cache: PC,
 }
 
-impl<'pc, PC: PageCache> std::fmt::Debug for PageSliceCache<'pc, PC> {
+impl<PC: PageCache> std::fmt::Debug for PageSliceCache<PC> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         writeln!(f, "[DEBUG] PageCacheSlice")?;
         writeln!(f, "#Allocated slices: {}", self.cached_slices.len())?;
@@ -53,7 +51,7 @@ impl<'pc, PC: PageCache> std::fmt::Debug for PageSliceCache<'pc, PC> {
     }
 }
 
-impl<'pc, PC: PageCache> PageSliceCache<'pc, PC> {
+impl<PC: PageCache> PageSliceCache<PC> {
     /// Initializes a new `PageSliceCache` instance.
     ///
     /// * `page_cache` - implements the `PageCache` trait. In charge of supplying the pages
@@ -62,9 +60,8 @@ impl<'pc, PC: PageCache> PageSliceCache<'pc, PC> {
     ///
     /// * `max_pages_slices` - the maximum number of page-slices the `PageSliceCache` instance could
     ///   use when doing read / write. A page slice index is within the range `0..(max_pages_slices - 1)` (inclusive)
-    pub fn new(page_cache: &'pc mut PC, max_pages_slices: usize) -> Self {
+    pub fn new(page_cache: PC, max_pages_slices: usize) -> Self {
         Self {
-            closed: false,
             page_cache,
             cached_slices: vec![CachedPageSlice::NotCached; max_pages_slices],
         }
@@ -236,20 +233,12 @@ impl<'pc, PC: PageCache> PageSliceCache<'pc, PC> {
     }
 }
 
-impl<'pc, PC> Drop for PageSliceCache<'pc, PC>
+impl<PC> Drop for PageSliceCache<PC>
 where
     PC: PageCache,
 {
     fn drop(&mut self) {
-        if self.closed {
-            return;
-        }
-
         dbg!("dropping `PageSliceCache`...");
-
-        let page_cache = self.page_cache as *mut _;
-
-        unsafe { Box::from_raw(page_cache) };
     }
 }
 
@@ -268,7 +257,7 @@ mod tests {
     }
 
     macro_rules! page_slice_cache_gen {
-        ($cache_slice_ident: ident, $pages_ident: ident, $kv_ident: ident, $addr: expr, $state: expr, $max_pages: expr, $max_pages_slices: expr) => {
+        ($cache_slice_ident: ident, $kv_ident: ident, $addr: expr, $state: expr, $max_pages: expr, $max_pages_slices: expr) => {
             use crate::default::DefaultPageCache;
             use crate::memory::MemMerklePages;
             use svm_kv::memory::MemKVStore;
@@ -279,10 +268,10 @@ mod tests {
             let $kv_ident = Rc::new(RefCell::new(MemKVStore::new()));
             let kv_gen = || Rc::clone(&$kv_ident);
 
-            let mut $pages_ident = mem_merkle_pages_gen!($addr, $state, kv_gen, $max_pages);
-            let mut cache = DefaultPageCache::<MemMerklePages>::new(&mut $pages_ident, $max_pages);
+            let pages = mem_merkle_pages_gen!($addr, $state, kv_gen, $max_pages);
+            let cache = DefaultPageCache::<MemMerklePages>::new(pages, $max_pages);
 
-            let mut $cache_slice_ident = PageSliceCache::new(&mut cache, $max_pages_slices);
+            let mut $cache_slice_ident = PageSliceCache::new(cache, $max_pages_slices);
         };
     }
 
@@ -311,20 +300,18 @@ mod tests {
     }
 
     macro_rules! reopen_page_slice_cache {
-        ($cache_slice_ident: ident, $pages_ident: ident, $kv_ident: ident, $addr: expr, $state: expr, $max_pages: expr, $max_pages_slices: expr) => {
-            let mut $pages_ident = reopen_pages_storage!($kv_ident, $addr, $state, $max_pages);
-            let mut cache = crate::default::DefaultPageCache::<MemMerklePages>::new(
-                &mut $pages_ident,
-                $max_pages,
-            );
+        ($cache_slice_ident: ident, $kv_ident: ident, $addr: expr, $state: expr, $max_pages: expr, $max_pages_slices: expr) => {
+            let pages = reopen_pages_storage!($kv_ident, $addr, $state, $max_pages);
 
-            let mut $cache_slice_ident = PageSliceCache::new(&mut cache, $max_pages_slices);
+            let cache = crate::default::DefaultPageCache::<MemMerklePages>::new(pages, $max_pages);
+
+            let mut $cache_slice_ident = PageSliceCache::new(cache, $max_pages_slices);
         };
     }
 
     #[test]
     fn loading_an_empty_slice_into_the_cache() {
-        page_slice_cache_gen!(cache, pages, kv, 0x11_22_33_44, 0x00_00_00_00, 10, 100);
+        page_slice_cache_gen!(cache, kv, 0x11_22_33_44, 0x00_00_00_00, 10, 100);
 
         let layout = PageSliceLayout {
             slice_idx: SliceIndex(0),
@@ -338,7 +325,7 @@ mod tests {
 
     #[test]
     fn read_an_empty_slice_then_override_it_and_then_commit() {
-        page_slice_cache_gen!(cache, pages, kv, 0x11_22_33_44, 0x00_00_00_00, 10, 100);
+        page_slice_cache_gen!(cache, kv, 0x11_22_33_44, 0x00_00_00_00, 10, 100);
 
         let layout = PageSliceLayout {
             slice_idx: SliceIndex(0),
@@ -361,7 +348,7 @@ mod tests {
     #[test]
     fn write_slice_without_loading_it_first_and_commit() {
         let addr = 0x11_22_33_44;
-        page_slice_cache_gen!(cache, pages, kv, addr, 0x00_00_00_00, 2, 100);
+        page_slice_cache_gen!(cache, kv, addr, 0x00_00_00_00, 2, 100);
 
         let layout = PageSliceLayout {
             slice_idx: SliceIndex(0),
@@ -374,7 +361,7 @@ mod tests {
         let new_state = cache.commit();
 
         // asserting persisted data. when viewing in the context of `new_state`.
-        reopen_page_slice_cache!(cache, pages, kv, addr, new_state, 2, 100);
+        reopen_page_slice_cache!(cache, kv, addr, new_state, 2, 100);
 
         assert_eq!(Some(vec![10, 20, 30]), cache.read_page_slice(&layout));
 
@@ -390,7 +377,7 @@ mod tests {
     #[test]
     fn read_an_existing_slice_then_overriding_it_and_commit() {
         let addr = 0x11_22_33_44;
-        page_slice_cache_gen!(cache, pages, kv, addr, 0x00_00_00_00, 2, 100);
+        page_slice_cache_gen!(cache, kv, addr, 0x00_00_00_00, 2, 100);
 
         let layout = PageSliceLayout {
             slice_idx: SliceIndex(0),
@@ -430,7 +417,7 @@ mod tests {
     #[test]
     fn write_slice_and_commit_then_load_it_override_it_and_commit() {
         let addr = 0x11_22_33_44;
-        page_slice_cache_gen!(cache, pages, kv, addr, 0x00_00_00_00, 2, 100);
+        page_slice_cache_gen!(cache, kv, addr, 0x00_00_00_00, 2, 100);
 
         let layout = PageSliceLayout {
             slice_idx: SliceIndex(0),
@@ -473,7 +460,7 @@ mod tests {
     #[test]
     fn write_two_slices_under_same_page_and_commit() {
         let addr = 0x11_22_33_44;
-        page_slice_cache_gen!(cache, pages, kv, addr, 0x00_00_00_00, 2, 100);
+        page_slice_cache_gen!(cache, kv, addr, 0x00_00_00_00, 2, 100);
 
         let layout1 = PageSliceLayout {
             slice_idx: SliceIndex(0),
@@ -509,7 +496,7 @@ mod tests {
         let new_state = cache.commit();
 
         // asserting persisted data. when viewing in the context of `new_state`.
-        reopen_page_slice_cache!(cache, pages, kv, addr, new_state, 2, 100);
+        reopen_page_slice_cache!(cache, kv, addr, new_state, 2, 100);
 
         assert_eq!(vec![10, 20, 30], cache.read_page_slice(&layout1).unwrap());
         assert_eq!(vec![40, 50], cache.read_page_slice(&layout2).unwrap());

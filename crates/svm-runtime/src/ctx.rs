@@ -29,13 +29,8 @@ pub const REGS_512_COUNT: usize = 4;
 /// * `regs_256`  - A static array (`REGS_256_COUNT` elements) of `SvmReg256`
 /// * `regs_512`  - A static array (`REGS_512_COUNT` elements) of `SvmReg512`
 /// * `storage`   - An instance of `PageSliceCache`
-///
-/// Explanation about `SvmCtx` lifetimes and generics:
-/// * `a  - the lifetime of the mutable borrowed `PageSliceCache`
-/// * `pc - the lifetime of the inner `PageCache` within `PageSliceCache` (`pc - stands for `PageCache`)
-/// *  PC - a type implementing the trait `PageCache` (`PC` stands for `PageCache`)
 #[repr(C)]
-pub struct SvmCtx<'a, 'pc: 'a, PC: PageCache> {
+pub struct SvmCtx<PC: PageCache> {
     /// A pointer to the `node` data. For example the pointer will point a struct having an access
     /// to the Global State of each account, In order to query an account for its balance.
     pub node_data: *const c_void,
@@ -56,17 +51,17 @@ pub struct SvmCtx<'a, 'pc: 'a, PC: PageCache> {
     pub regs_512: [SvmReg; REGS_512_COUNT],
 
     /// An accessor to the contract's storage (of type `PageSliceCache`)
-    pub storage: &'a mut PageSliceCache<'pc, PC>,
+    pub storage: PageSliceCache<PC>,
 }
 
-impl<'a, 'pc: 'a, PC> SvmCtx<'a, 'pc, PC>
+impl<PC> SvmCtx<PC>
 where
     PC: PageCache,
 {
     /// Initializes a new empty `SvmCtx`
     ///
     /// * `storage` - a mutably borrowed `PageSliceCache`
-    pub fn new(node_data: *const c_void, storage: &'a mut PageSliceCache<'pc, PC>) -> Self {
+    pub fn new(node_data: *const c_void, storage: PageSliceCache<PC>) -> Self {
         let regs_32 = alloc_regs!(32, REGS_32_COUNT);
         let regs_64 = alloc_regs!(64, REGS_64_COUNT);
         let regs_160 = alloc_regs!(160, REGS_160_COUNT);
@@ -85,7 +80,7 @@ where
     }
 }
 
-impl<'a, 'pc: 'a, PC> Drop for SvmCtx<'a, 'pc, PC>
+impl<PC> Drop for SvmCtx<PC>
 where
     PC: PageCache,
 {

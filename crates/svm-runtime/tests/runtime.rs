@@ -113,20 +113,14 @@ fn contract_exec_valid_transaction() {
     assert_ne!(State::from(0), new_state);
 
     // reading data from storage
-    let mut pages_storage = svm_runtime::gen_rocksdb_pages_storage!(
+    let pages_storage = svm_runtime::gen_rocksdb_pages_storage!(
         contract_addr,
         new_state,
         10,
         "tests-contract-storage"
     );
-    let page_cache = svm_runtime::gen_rocksdb_page_cache!(&mut pages_storage, 10);
-
-    let boxed_pc = Box::new(page_cache);
-    let pc = Box::leak(boxed_pc);
-
-    let storage = PageSliceCache::new(pc, 100);
-    let boxed_storage = Box::new(storage);
-    let storage = Box::leak(boxed_storage);
+    let page_cache = svm_runtime::gen_rocksdb_page_cache!(pages_storage, 10);
+    let mut storage = PageSliceCache::new(page_cache, 100);
 
     let slice_pos = PageSliceLayout {
         slice_idx: SliceIndex(0),

@@ -17,7 +17,7 @@ enum CachedPage {
 /// `DefaultPageCache` serves us a cache layer for reading contract storage page.
 /// In addition, it tracks dirty pages (pages that have been changed during the execution of a
 /// smart contract).
-pub struct DefaultPageCache<'ps, PS: PagesStateStorage> {
+pub struct DefaultPageCache<PS: PagesStateStorage> {
     // The `ith item` will say whether the `ith page` is dirty
     dirty_pages: Vec<bool>,
 
@@ -25,12 +25,12 @@ pub struct DefaultPageCache<'ps, PS: PagesStateStorage> {
     cached_pages: Vec<CachedPage>,
 
     // The underlying storage pages
-    pages_storage: &'ps mut PS,
+    pages_storage: PS,
 }
 
-impl<'ps, PS: PagesStateStorage> PageCache for DefaultPageCache<'ps, PS> {}
+impl<PS: PagesStateStorage> PageCache for DefaultPageCache<PS> {}
 
-impl<'ps, PS: PagesStateStorage> PagesStateStorage for DefaultPageCache<'ps, PS> {
+impl<PS: PagesStateStorage> PagesStateStorage for DefaultPageCache<PS> {
     #[inline(always)]
     fn get_state(&self) -> State {
         self.pages_storage.get_state()
@@ -46,7 +46,7 @@ impl<'ps, PS: PagesStateStorage> PagesStateStorage for DefaultPageCache<'ps, PS>
 /// A `DefaultPageCache` is caching layer on top of a storage pages.
 /// Each page change marks the page as dirty but the changes
 /// are persisted to storage pages only upon `commit`
-impl<'ps, PS: PagesStateStorage> DefaultPageCache<'ps, PS> {
+impl<PS: PagesStateStorage> DefaultPageCache<PS> {
     /// Initializes a new `DefaultPageCache` instance.
     ///
     /// * `pages_storage` - the underlying page-oriented page interface wrapping an underlying database.
@@ -54,7 +54,7 @@ impl<'ps, PS: PagesStateStorage> DefaultPageCache<'ps, PS> {
     ///
     /// * `max_pages` - the maximum pages the `DefaultPageCache` instance could use when doing read / write.
     ///   A page index is within the range `0..(max_pages - 1)` (inclusive)
-    pub fn new(pages_storage: &'ps mut PS, max_pages: usize) -> Self {
+    pub fn new(pages_storage: PS, max_pages: usize) -> Self {
         Self {
             dirty_pages: vec![false; max_pages],
             cached_pages: vec![CachedPage::NotCached; max_pages],
@@ -68,7 +68,7 @@ impl<'ps, PS: PagesStateStorage> DefaultPageCache<'ps, PS> {
     }
 }
 
-impl<'ps, PS: PagesStateStorage> PagesStorage for DefaultPageCache<'ps, PS> {
+impl<PS: PagesStateStorage> PagesStorage for DefaultPageCache<PS> {
     fn read_page(&mut self, page_idx: PageIndex) -> Option<Vec<u8>> {
         // we can have an `assert` here since we are given the maximum storage-pages upon initialization
         assert!(self.cached_pages.len() > page_idx.0 as usize);
@@ -180,13 +180,9 @@ impl<'ps, PS: PagesStateStorage> PagesStorage for DefaultPageCache<'ps, PS> {
     }
 }
 
-impl<'ps, PS: PagesStateStorage> Drop for DefaultPageCache<'ps, PS> {
+impl<PS: PagesStateStorage> Drop for DefaultPageCache<PS> {
     fn drop(&mut self) {
         dbg!("dropping `PageCache`...");
-
-        let pages_storage = self.pages_storage as *mut _;
-
-        unsafe { Box::from_raw(pages_storage) };
     }
 }
 
@@ -209,8 +205,8 @@ mod tests {
             let $kv_ident = Rc::new(RefCell::new(MemKVStore::new()));
             let kv_gen = || Rc::clone(&$kv_ident);
 
-            let mut pages = mem_merkle_pages_gen!($addr, $state, kv_gen, $max_pages);
-            let mut $cache_ident = DefaultPageCache::<MemMerklePages>::new(&mut pages, $max_pages);
+            let pages = mem_merkle_pages_gen!($addr, $state, kv_gen, $max_pages);
+            let mut $cache_ident = DefaultPageCache::<MemMerklePages>::new(pages, $max_pages);
         };
     }
 

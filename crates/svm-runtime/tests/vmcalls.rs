@@ -42,10 +42,10 @@ macro_rules! test_create_svm_state_gen {
             MemMerklePages::new(addr, kv, state, max_pages)
         };
 
-        let page_cache_ctor = |arg_pages_storage, arg_max_pages| {
+        let page_cache_ctor = |pages, max_pages| {
             use svm_storage::memory::MemMerklePageCache;
 
-            MemMerklePageCache::new(arg_pages_storage, arg_max_pages)
+            MemMerklePageCache::new(pages, max_pages)
         };
 
         let opts = svm_runtime::opts::Opts {
