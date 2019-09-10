@@ -40,12 +40,12 @@ where
 
         self.contract_bytes.insert(hash, serialized);
 
-        let addr = contract.address.unwrap();
+        let addr = contract.address.clone().unwrap();
         self.addr_codehash.insert(addr, hash);
     }
 
-    fn load(&self, address: Address) -> Option<Contract> {
-        match self.addr_codehash.get(&address) {
+    fn load(&self, addr: &Address) -> Option<Contract> {
+        match self.addr_codehash.get(addr) {
             None => None,
             Some(hash) => match self.contract_bytes.get(&hash) {
                 None => panic!(format!(

@@ -18,14 +18,14 @@ fn validate_deps(_contract: &Contract) -> Result<(), ContractBuildError> {
 }
 
 fn validate_author(contract: &Contract) -> Result<(), ContractBuildError> {
-    validate_account(contract.author, Field::Author)
+    validate_account(&contract.author, Field::Author)
 }
 
 fn validate_admins(_contract: &Contract) -> Result<(), ContractBuildError> {
     Ok(())
 }
 
-fn validate_account(_addr: Address, _field: Field) -> Result<(), ContractBuildError> {
+fn validate_account(_addr: &Address, _field: Field) -> Result<(), ContractBuildError> {
     Ok(())
 }
 

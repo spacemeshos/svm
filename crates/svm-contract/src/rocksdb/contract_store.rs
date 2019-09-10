@@ -34,15 +34,15 @@ where
 {
     fn store(&mut self, contract: &Contract, hash: CodeHash) {
         let serialized: Vec<u8> = S::serialize(contract);
-        let addr = contract.address.unwrap();
+        let addr = contract.address.clone().unwrap();
 
         let addr_hash = (addr.as_slice(), &hash.0[..]);
         let hash_wasm = (&hash.0[..], &serialized[..]);
         self.db.store(&[addr_hash, hash_wasm]);
     }
 
-    fn load(&self, address: Address) -> Option<Contract> {
-        match self.db.get(address.as_slice()) {
+    fn load(&self, addr: &Address) -> Option<Contract> {
+        match self.db.get(addr.as_slice()) {
             None => None,
             Some(hash) => match self.db.get(&hash) {
                 None => panic!(format!(

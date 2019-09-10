@@ -41,7 +41,7 @@ macro_rules! exec_tx {
         };
 
         let import_object =
-            runtime::import_object_create($tx.contract, $state, std::ptr::null(), opts);
+            runtime::import_object_create($tx.contract.clone(), $state, std::ptr::null(), opts);
 
         runtime::contract_exec(&$tx, &import_object)
     }};
@@ -86,14 +86,14 @@ fn contract_exec_valid_transaction() {
     let contract = runtime::contract_build(&bytes).unwrap();
     runtime::contract_store(&contract);
 
-    let contract_addr = contract.address.unwrap();
+    let contract_addr = contract.address.as_ref().unwrap().clone();
 
     // 2) executing a transaction `reg_set_and_persist`
     // setting register `64:0` the value `1000`.
     // then, persisting it to storage (page=`0`, slice=`0`, offset=`0`)
     let bytes = build_raw_tx!(
         0,                     // protocol version
-        contract_addr,         // contract address
+        contract_addr.clone(), // contract address
         0x11_22_33_44,         // sender address
         "reg_set_and_persist", // `func_name` to execute
         // `func_args`
@@ -112,7 +112,6 @@ fn contract_exec_valid_transaction() {
     let new_state = exec_tx!(tx, State::from(0)).unwrap();
     assert_ne!(State::from(0), new_state);
 
-    // reading data from storage
     let pages_storage = svm_runtime::gen_rocksdb_pages_storage!(
         contract_addr,
         new_state,

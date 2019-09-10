@@ -67,11 +67,11 @@ impl WireTxBuilder {
     }
 
     fn write_contract(&self, buf: &mut Vec<u8>) {
-        self.write_address(self.contract.unwrap(), buf);
+        self.write_address(&self.contract, buf);
     }
 
     fn write_sender(&self, buf: &mut Vec<u8>) {
-        self.write_address(self.sender.unwrap(), buf);
+        self.write_address(&self.sender, buf);
     }
 
     fn write_func_name(&mut self, buf: &mut Vec<u8>) {
@@ -119,8 +119,8 @@ impl WireTxBuilder {
         }
     }
 
-    fn write_address(&self, address: Address, buf: &mut Vec<u8>) {
-        let bytes = address.bytes();
+    fn write_address(&self, address: &Option<Address>, buf: &mut Vec<u8>) {
+        let bytes = address.as_ref().unwrap().bytes();
 
         buf.extend_from_slice(&bytes);
     }

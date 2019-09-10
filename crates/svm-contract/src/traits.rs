@@ -27,7 +27,7 @@ where
 
     /// Given a contract account address, fetches its raw contract dada
     /// and deserializes it. Return `None` it contract doesn't exist
-    fn load(&self, address: Address) -> Option<Contract>;
+    fn load(&self, address: &Address) -> Option<Contract>;
 }
 
 /// Computes a contract account address.

@@ -86,8 +86,8 @@ macro_rules! include_svm_runtime {
             ) -> wasmer_runtime::ImportObject {
                 use wasmer_runtime::{func, ImportObject};
 
-                let max_pages = opts.max_pages;
-                let wrapped_pages_storage_gen = move || $pages_storage_gen(addr, state, max_pages);
+                let wrapped_pages_storage_gen =
+                    move || $pages_storage_gen(addr.clone(), state.clone(), opts.max_pages);
 
                 let state_gen = svm_runtime::lazy_create_svm_state_gen!(
                     node_data,
@@ -130,8 +130,8 @@ macro_rules! include_svm_runtime {
             ) -> Result<Contract, ContractExecError> {
                 let store = env.get_store();
 
-                match store.load(tx.contract) {
-                    None => Err(ContractExecError::NotFound(tx.contract)),
+                match store.load(&tx.contract) {
+                    None => Err(ContractExecError::NotFound(tx.contract.clone())),
                     Some(contract) => Ok(contract),
                 }
             }
@@ -143,7 +143,7 @@ macro_rules! include_svm_runtime {
 
                 match compile {
                     Err(_) => {
-                        let addr = contract.address.unwrap();
+                        let addr = contract.address.as_ref().unwrap().clone();
                         Err(ContractExecError::CompilationFailed(addr))
                     }
                     Ok(module) => Ok(module),
@@ -159,7 +159,7 @@ macro_rules! include_svm_runtime {
 
                 match instantiate {
                     Err(_) => {
-                        let addr = contract.address.unwrap();
+                        let addr = contract.address.as_ref().unwrap().clone();
                         Err(ContractExecError::InstantiationFailed(addr))
                     }
                     Ok(instance) => Ok(instance),

@@ -49,8 +49,8 @@ mod tests {
 
         let addr = Address::from(0xAABBCC);
 
-        let page1_hash = DefaultPageHasher::hash(addr, PageIndex(0), &page1);
-        let page2_hash = DefaultPageHasher::hash(addr, PageIndex(1), &page2);
+        let page1_hash = DefaultPageHasher::hash(addr.clone(), PageIndex(0), &page1);
+        let page2_hash = DefaultPageHasher::hash(addr.clone(), PageIndex(1), &page2);
 
         let mut joined_pages_hash = Vec::with_capacity(PAGE_HASH_LEN * 2);
         joined_pages_hash.extend_from_slice(&page1_hash.0);

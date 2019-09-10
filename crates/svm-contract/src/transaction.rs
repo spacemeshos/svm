@@ -32,14 +32,14 @@ impl std::fmt::Debug for Transaction {
 
 impl Transaction {
     fn fmt_contract(&self) -> String {
-        self.fmt_address("Contract", self.contract)
+        self.fmt_address("Contract", &self.contract)
     }
 
     fn fmt_sender(&self) -> String {
-        self.fmt_address("Sender", self.sender)
+        self.fmt_address("Sender", &self.sender)
     }
 
-    fn fmt_address(&self, field: &str, addr: Address) -> String {
+    fn fmt_address(&self, field: &str, addr: &Address) -> String {
         format!("{:?}: {:?}", field, addr)
     }
 

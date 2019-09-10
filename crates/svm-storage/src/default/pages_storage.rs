@@ -30,16 +30,16 @@ use std::rc::Rc;
 ///   may fail for multiple reasons, and on such occurrence we don't want to change any state.
 ///   Another benefit is that if the underlying key-value store supports a batch write (for example
 ///   databases `leveldb` and `rocksdb` have this capability), the `commit` implementation can take advantage of it.
-pub struct DefaultPagesStorage<PH: PageIndexHasher, KV: KVStore> {
+pub struct DefaultPagesStorage<PIH: PageIndexHasher, KV: KVStore> {
     addr: Address,
     kv: Rc<RefCell<KV>>,
     uncommitted: HashMap<Vec<u8>, Vec<u8>>,
-    marker: PhantomData<PH>,
+    marker: PhantomData<PIH>,
 }
 
-impl<PH, KV> DefaultPagesStorage<PH, KV>
+impl<PIH, KV> DefaultPagesStorage<PIH, KV>
 where
-    PH: PageIndexHasher,
+    PIH: PageIndexHasher,
     KV: KVStore,
 {
     /// Creates a new `DefaultPagesStorage`
@@ -56,13 +56,13 @@ where
     #[must_use]
     #[inline(always)]
     fn compute_page_hash(&self, page_idx: PageIndex) -> [u8; 32] {
-        PH::hash(self.addr, page_idx)
+        PIH::hash(self.addr.clone(), page_idx)
     }
 }
 
-impl<PH, KV> PagesStorage for DefaultPagesStorage<PH, KV>
+impl<PIH, KV> PagesStorage for DefaultPagesStorage<PIH, KV>
 where
-    PH: PageIndexHasher,
+    PIH: PageIndexHasher,
     KV: KVStore,
 {
     /// We assume that the `page` has no pending changes (see more detailed explanation above).

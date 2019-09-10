@@ -89,7 +89,7 @@ where
     #[must_use]
     #[inline(always)]
     pub fn compute_page_hash(&self, page_idx: PageIndex, page_data: &[u8]) -> PageHash {
-        PH::hash(self.addr, page_idx, page_data)
+        PH::hash(self.addr.clone(), page_idx, page_data)
     }
 
     #[must_use]
@@ -142,7 +142,7 @@ where
     #[must_use]
     #[inline(always)]
     fn get_state(&self) -> State {
-        self.state
+        self.state.clone()
     }
 
     #[must_use]
@@ -305,7 +305,7 @@ mod tests {
 
             #[allow(unused_mut)]
             let mut $storage =
-                $crate::memory::MemMerklePages::new($addr, Rc::clone(&$kv), State::empty(), $pages_count);
+                $crate::memory::MemMerklePages::new($addr.clone(), Rc::clone(&$kv), State::empty(), $pages_count);
         };
     }
 
@@ -314,7 +314,7 @@ mod tests {
             let $addr = Address::from($addr_expr as u32);
 
             #[allow(unused_mut)]
-            let mut $storage = $crate::memory::MemMerklePages::new($addr, Rc::clone(&$kv), $state, $pages_count);
+            let mut $storage = $crate::memory::MemMerklePages::new($addr.clone(), Rc::clone(&$kv), $state.clone(), $pages_count);
         };
     }
 
@@ -334,7 +334,7 @@ mod tests {
         ($addr: ident, $page_idx: expr, $data: expr) => {{
             use $crate::default::DefaultPageHasher;;
 
-            DefaultPageHasher::hash($addr, PageIndex($page_idx), $data)
+            DefaultPageHasher::hash($addr.clone(), PageIndex($page_idx), $data)
         }};
     }
 

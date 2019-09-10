@@ -24,8 +24,8 @@ fn store_contract() {
     env.store_contract(&origin);
 
     let store = env.get_store();
-    let addr: Address = origin.address.unwrap();
+    let addr: Address = origin.address.clone().unwrap();
 
-    let stored = store.load(addr).unwrap();
+    let stored = store.load(&addr).unwrap();
     assert_eq!(stored, origin);
 }
