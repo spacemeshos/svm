@@ -38,6 +38,9 @@ path = "../svm-runtime"
 [dependencies.svm-common]
 path = "../svm-common"
 
+[dependencies.svm-kv]
+path = "../svm-kv"
+
 [dependencies.svm-contract]
 path = "../svm-contract"
 

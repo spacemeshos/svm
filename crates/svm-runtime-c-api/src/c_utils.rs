@@ -6,6 +6,8 @@ use wasmer_runtime_c_api::{
     wasmer_byte_array,
 };
 
+use crate::c_types::svm_contract_t;
+
 #[doc(hidden)]
 pub fn cast_str_to_wasmer_byte_array(s: &str) -> wasmer_byte_array {
     let bytes: &[u8] = s.as_bytes();
@@ -81,6 +83,11 @@ macro_rules! alloc_raw_ptr {
 }
 
 #[doc(hidden)]
+pub fn alloc_raw_contract() -> *mut *mut svm_contract_t {
+    alloc_raw_ptr!(svm_contract_t)
+}
+
+#[doc(hidden)]
 pub fn alloc_raw_module() -> *mut *mut wasmer_module_t {
     alloc_raw_ptr!(wasmer_module_t)
 }
@@ -109,9 +116,21 @@ macro_rules! deref_import_obj {
 
 #[doc(hidden)]
 #[macro_export]
+macro_rules! deref_contract {
+    ($raw_contract: expr) => {{
+        use svm_contract::wasm::Contract;
+
+        &mut *(*$raw_contract as *mut Contract)
+    }};
+}
+
+#[doc(hidden)]
+#[macro_export]
 macro_rules! deref_instance {
     ($raw_instance: expr) => {{
-        &mut *(*$raw_instance as *mut _)
+        use wasmer_runtime::Instance;
+
+        &mut *(*$raw_instance as *mut Instance)
     }};
 }
 
@@ -124,7 +143,7 @@ macro_rules! wasmer_compile_module {
         let wasm_bytes = wasm.as_mut_ptr();
         let wasm_bytes_len = wasm.len() as u32;
         let raw_module = alloc_raw_module();
-        let compile_res = wasmer_svm_compile(raw_module, wasm_bytes, wasm_bytes_len);
+        let compile_res = svm_compile(raw_module, wasm_bytes, wasm_bytes_len);
 
         // TODO: assert `compile_res` is OK`
         // assert_eq!(wasmer_result_t::WASMER_OK, compile_res);

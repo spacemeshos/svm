@@ -15,9 +15,7 @@ macro_rules! include_svm_runtime_c_api {
         use svm_contract::transaction::Transaction;
         use svm_runtime::register::SvmReg;
 
-        use crate::c_types::{
-            svm_address_t, svm_receipt_t, svm_transaction_t, svm_wasm_contract_t,
-        };
+        use crate::c_types::{svm_address_t, svm_contract_t, svm_receipt_t, svm_transaction_t};
 
         use std::ffi::c_void;
 
@@ -46,11 +44,12 @@ macro_rules! include_svm_runtime_c_api {
             }};
         }
 
-        /// Builds an instance of `svm_wasm_contract_t`.
+        /// Builds an instance of `svm_contract_t`.
         /// Should be called while the transaction is in the `mempool` of the full-node (prior mining it).
+        #[must_use]
         #[no_mangle]
         pub unsafe extern "C" fn svm_contract_build(
-            raw_contract: *mut *mut svm_wasm_contract_t,
+            raw_contract: *mut *mut svm_contract_t,
             raw_bytes: *const u8,
             raw_bytes_len: u64,
         ) -> wasmer_result_t {
@@ -59,7 +58,7 @@ macro_rules! include_svm_runtime_c_api {
 
             match result {
                 Ok(contract) => {
-                    *raw_contract = cast_obj_to_raw_ptr!(contract, svm_wasm_contract_t);
+                    *raw_contract = cast_obj_to_raw_ptr!(contract, svm_contract_t);
                     wasmer_result_t::WASMER_OK
                 }
                 Err(err) => {
@@ -77,9 +76,10 @@ macro_rules! include_svm_runtime_c_api {
         ///
         /// * `raw_contract` - The wasm contract to be stored
         ///
+        #[must_use]
         #[no_mangle]
         pub unsafe extern "C" fn svm_contract_store(
-            raw_contract: *const svm_wasm_contract_t,
+            raw_contract: *const svm_contract_t,
         ) -> wasmer_result_t {
             let contract = from_raw!(raw_contract, svm_contract::wasm::Contract);
             runtime::contract_store(&contract);
@@ -89,6 +89,7 @@ macro_rules! include_svm_runtime_c_api {
 
         /// Builds an instance of `svm_transaction_t`.
         /// Should be called while the transaction is in the `mempool` of the full-node (prior mining it).
+        #[must_use]
         #[no_mangle]
         pub unsafe extern "C" fn svm_transaction_build(
             raw_tx: *mut *mut svm_transaction_t,
@@ -111,6 +112,7 @@ macro_rules! include_svm_runtime_c_api {
         }
 
         /// Compiles the wasm module using the `svm-compiler` (`wasmer` singlepass compiler with custom extensions)
+        #[must_use]
         #[no_mangle]
         pub unsafe extern "C" fn svm_compile(
             raw_module: *mut *mut wasmer_module_t,
@@ -136,6 +138,7 @@ macro_rules! include_svm_runtime_c_api {
         ///
         /// `receipt` - The receipt of the contract execution.
         /// `tx`      - The transaction to execute.
+        #[must_use]
         #[no_mangle]
         pub unsafe extern "C" fn svm_transaction_exec(
             receipt: *mut *mut svm_receipt_t,
@@ -155,6 +158,7 @@ macro_rules! include_svm_runtime_c_api {
         }
 
         /// Returns a raw pointer to the `wasmer svm` register's internal content
+        #[must_use]
         #[no_mangle]
         pub unsafe extern "C" fn svm_register_get(
             raw_ctx: *const wasmer_instance_context_t,
@@ -188,6 +192,7 @@ macro_rules! include_svm_runtime_c_api {
         }
 
         /// Gets the `node_data` field within the `svm context` (a.k.a `data` of the wasmer context).
+        #[must_use]
         #[no_mangle]
         pub unsafe extern "C" fn svm_instance_context_node_data_get(
             raw_ctx: *const wasmer_instance_context_t,
@@ -200,6 +205,7 @@ macro_rules! include_svm_runtime_c_api {
         /// The import object will include imports of two flavors:
         /// * external vmcalls (i.e: node vmcalls)
         /// * internal vmcalls (i.e: register/storage/etc vmcalls)
+        #[must_use]
         #[no_mangle]
         pub unsafe extern "C" fn svm_import_object(
             raw_import_object: *mut *mut wasmer_import_object_t,
@@ -211,35 +217,18 @@ macro_rules! include_svm_runtime_c_api {
             imports: *mut wasmer_import_t,
             imports_len: libc::c_uint,
         ) -> wasmer_result_t {
-            let max_pages: u32 = raw_max_pages as u32;
-            let max_page_slices: u32 = raw_max_page_slices as u32;
+            let addr = Address::from(raw_addr as *const u8);
+            let state = State::from(raw_state as *const u8);
 
             let opts = svm_runtime::opts::Opts {
-                max_pages: max_pages as usize,
-                max_pages_slices: max_page_slices as usize,
+                max_pages: raw_max_pages as usize,
+                max_pages_slices: raw_max_page_slices as usize,
             };
 
-            // having `c_void` instead of `u8` in the function's signature
-            // makes the integration with `cgo` easier.
-            let wrapped_pages_storage_gen = move || {
-                let addr = Address::from(raw_addr as *const u8);
-                let state = State::from(raw_state as *const u8);
-
-                $pages_storage_gen(addr, state, max_pages)
-            };
-
-            let state_gen = svm_runtime::lazy_create_svm_state_gen!(
-                node_data,
-                wrapped_pages_storage_gen,
-                $page_cache_ctor,
-                $PC,
-                opts
-            );
-
-            let mut import_object = ImportObject::new_with_data(state_gen);
-            runtime::append_internal_imports(&mut import_object);
+            let import_object = runtime::import_object_create(addr, state, node_data, opts);
 
             *raw_import_object = cast_obj_to_raw_ptr!(import_object, wasmer_import_object_t);
+
             let _res = wasmer_import_object_extend(*raw_import_object, imports, imports_len);
             // TODO: assert result
             // if result != wasmer_result_t::WASMER_OK {

@@ -4,9 +4,9 @@ use svm_common::Address;
 #[repr(C)]
 pub struct svm_address_t;
 
-/// `*const svm_wasm_contract_t` is a raw pointer to a Rust `svm_contract::wasm::WasmContract` struct.
+/// `*const svm_contract_t` is a raw pointer to a Rust `svm_contract::wasm::Contract` struct.
 #[repr(C)]
-pub struct svm_wasm_contract_t;
+pub struct svm_contract_t;
 
 /// `*const svm_transaction_t` is a raw pointer to a Rust `svm_contract::Transaction` struct.
 #[repr(C)]
@@ -27,9 +27,9 @@ fn svm_address_destroy(addr: *const svm_address_t) {
 
 #[allow(unused)]
 /// Deallocates the memory of the `receipt`
-fn svm_wasm_contract_destroy(contract: *const svm_wasm_contract_t) {
+fn svm_wasm_contract_destroy(contract: *const svm_contract_t) {
     panic!();
-    // let contract: *mut svm_wasm_contract_t = contract as _;
+    // let contract: *mut svm_contract_t = contract as _;
     // unsafe {
     //     Box::from_raw(contract as *mut WasmContract);
     // }
