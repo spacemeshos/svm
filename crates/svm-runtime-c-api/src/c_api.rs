@@ -29,7 +29,7 @@ macro_rules! include_svm_runtime_c_api {
         };
         use wasmer_runtime_core::import::Namespace;
 
-        macro_rules! cast_obj_to_raw_ptr {
+        macro_rules! into_raw {
             ($obj: expr, $raw_type: ident) => {{
                 let boxed_obj = Box::new($obj);
                 let raw_obj_ptr: *mut _ = Box::into_raw(boxed_obj);
@@ -58,7 +58,7 @@ macro_rules! include_svm_runtime_c_api {
 
             match result {
                 Ok(contract) => {
-                    *raw_contract = cast_obj_to_raw_ptr!(contract, svm_contract_t);
+                    *raw_contract = into_raw!(contract, svm_contract_t);
                     wasmer_result_t::WASMER_OK
                 }
                 Err(err) => {
@@ -66,6 +66,19 @@ macro_rules! include_svm_runtime_c_api {
                     wasmer_result_t::WASMER_ERROR
                 }
             }
+        }
+
+        #[must_use]
+        #[no_mangle]
+        pub unsafe extern "C" fn svm_contract_address_get(
+            raw_contract: *const svm_contract_t,
+        ) -> *const c_void {
+            let contract = from_raw!(raw_contract, svm_contract::wasm::Contract);
+
+            let addr: Box<Address> = Box::new(contract.address.as_ref().unwrap().clone());
+            let addr = Box::leak(addr);
+
+            addr.as_ptr() as *const c_void
         }
 
         /// Stores the new deployed contract under a database.
@@ -82,7 +95,7 @@ macro_rules! include_svm_runtime_c_api {
             raw_contract: *const svm_contract_t,
         ) -> wasmer_result_t {
             let contract = from_raw!(raw_contract, svm_contract::wasm::Contract);
-            runtime::contract_store(&contract);
+            runtime::contract_store(contract);
 
             wasmer_result_t::WASMER_OK
         }
@@ -93,15 +106,15 @@ macro_rules! include_svm_runtime_c_api {
         #[no_mangle]
         pub unsafe extern "C" fn svm_transaction_build(
             raw_tx: *mut *mut svm_transaction_t,
-            raw_bytes: *mut u8,
+            raw_bytes: *const u8,
             raw_bytes_len: u64,
         ) -> wasmer_result_t {
-            let bytes: &[u8] = std::slice::from_raw_parts_mut(raw_bytes, raw_bytes_len as usize);
+            let bytes: &[u8] = std::slice::from_raw_parts(raw_bytes, raw_bytes_len as usize);
             let result = runtime::transaction_build(bytes);
 
             match result {
                 Ok(tx) => {
-                    *raw_tx = cast_obj_to_raw_ptr!(tx, svm_transaction_t);
+                    *raw_tx = into_raw!(tx, svm_transaction_t);
                     wasmer_result_t::WASMER_OK
                 }
                 Err(error) => {
@@ -124,7 +137,7 @@ macro_rules! include_svm_runtime_c_api {
 
             match result {
                 Ok(module) => {
-                    *raw_module = cast_obj_to_raw_ptr!(module, wasmer_module_t);
+                    *raw_module = into_raw!(module, wasmer_module_t);
                     wasmer_result_t::WASMER_OK
                 }
                 Err(error) => {
@@ -227,7 +240,7 @@ macro_rules! include_svm_runtime_c_api {
 
             let import_object = runtime::import_object_create(addr, state, node_data, opts);
 
-            *raw_import_object = cast_obj_to_raw_ptr!(import_object, wasmer_import_object_t);
+            *raw_import_object = into_raw!(import_object, wasmer_import_object_t);
 
             let _res = wasmer_import_object_extend(*raw_import_object, imports, imports_len);
             // TODO: assert result

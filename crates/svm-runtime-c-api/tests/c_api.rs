@@ -114,8 +114,6 @@ macro_rules! build_raw_contract {
 
 macro_rules! build_raw_tx {
     ($contract_addr: expr, $sender_addr: expr, $func_name: expr, $func_args: expr) => {{
-        let wasm = include_bytes!($file);
-
         svm_contract::build::WireTxBuilder::new()
             .with_version(0)
             .with_contract($contract_addr)
@@ -132,15 +130,17 @@ fn call_storage_mem_to_reg_copy() {
         let node_data = NodeData::default();
         let raw_contract = alloc_raw_contract();
         let raw_import_object = alloc_raw_import_object();
-        let author_addr = Address::from(0x10_20_30_40);
+        let author_addr = Address::from([0xFF; 20].as_ref());
+        let sender_addr = Address::from([0xAB; 20].as_ref());
 
         let bytes = build_raw_contract!("wasm/mem_to_reg_copy.wast", &author_addr);
-
         let _ = svm_contract_build(raw_contract, bytes.as_ptr(), bytes.len() as u64);
+        let addr = svm_contract_address_get(*raw_contract);
         let _ = svm_contract_store(*raw_contract);
+
         let _ = svm_import_object(
             raw_import_object,
-            author_addr.as_ptr() as _,    // `raw_addr: *const c_void`
+            addr,                         // `raw_addr: *const c_void`
             State::from(0).as_ptr() as _, // `raw_state: *const c_void`
             5,                            // `max_pages: libc::c_int`
             100,                          // `max_pages_slices: libc::c_int`
@@ -149,12 +149,13 @@ fn call_storage_mem_to_reg_copy() {
             0,                            // `imports_len: libc::c_int`
         );
 
-        // let contract = deref_contract!(raw_contract);
-        // dbg!("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-        // dbg!(contract);
+        let addr = Address::from(0);
+        let bytes = build_raw_tx!(addr, sender_addr, "do_copy_to_reg", &[]);
 
-        // let contract_addr = contract.address.as_ref().unwrap().clone();
-        // let bytes = build_raw_contract!(contract_addr, "do_copy_to_reg");
+        let raw_tx = alloc_raw_transaction();
+        let raw_receipt = alloc_raw_receipt();
+        let _ = svm_transaction_build(raw_tx, bytes.as_ptr(), bytes.len() as u64);
+        let _ = svm_transaction_exec(raw_receipt, *raw_tx, *raw_import_object);
 
         // let instance: &Instance = deref_instance!(raw_instance);
         //

@@ -6,7 +6,7 @@ use wasmer_runtime_c_api::{
     wasmer_byte_array,
 };
 
-use crate::c_types::svm_contract_t;
+use crate::c_types::{svm_contract_t, svm_receipt_t, svm_transaction_t};
 
 #[doc(hidden)]
 pub fn cast_str_to_wasmer_byte_array(s: &str) -> wasmer_byte_array {
@@ -88,6 +88,11 @@ pub fn alloc_raw_contract() -> *mut *mut svm_contract_t {
 }
 
 #[doc(hidden)]
+pub fn alloc_raw_transaction() -> *mut *mut svm_transaction_t {
+    alloc_raw_ptr!(svm_transaction_t)
+}
+
+#[doc(hidden)]
 pub fn alloc_raw_module() -> *mut *mut wasmer_module_t {
     alloc_raw_ptr!(wasmer_module_t)
 }
@@ -100,6 +105,11 @@ pub fn alloc_raw_instance() -> *mut *mut wasmer_instance_t {
 #[doc(hidden)]
 pub fn alloc_raw_import_object() -> *mut *mut wasmer_import_object_t {
     alloc_raw_ptr!(wasmer_import_object_t)
+}
+
+#[doc(hidden)]
+pub fn alloc_raw_receipt() -> *mut *mut svm_receipt_t {
+    alloc_raw_ptr!(svm_receipt_t)
 }
 
 #[doc(hidden)]
