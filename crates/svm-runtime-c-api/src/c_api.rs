@@ -83,7 +83,7 @@ macro_rules! include_svm_runtime_c_api {
 
         /// Stores the new deployed contract under a database.
         /// Future transaction will reference the contract by it's account address.
-        /// (see `wasmer_svm_transaction_exec`)
+        /// (see `svm_transaction_exec`)
         ///
         /// This function should be called after performing validation.
         ///
@@ -126,29 +126,6 @@ macro_rules! include_svm_runtime_c_api {
             }
         }
 
-        /// Compiles the wasm module using the `svm-compiler` (`wasmer` singlepass compiler with custom extensions)
-        #[must_use]
-        #[no_mangle]
-        pub unsafe extern "C" fn svm_compile(
-            raw_module: *mut *mut wasmer_module_t,
-            bytes: *mut u8,
-            bytes_len: u32,
-        ) -> wasmer_result_t {
-            let raw_bytes = std::slice::from_raw_parts_mut(bytes, bytes_len as usize);
-            let result = svm_compiler::compile_program(raw_bytes);
-
-            match result {
-                Ok(module) => {
-                    *raw_module = into_raw!(module, wasmer_module_t);
-                    wasmer_result_t::WASMER_OK
-                }
-                Err(error) => {
-                    update_last_error(error);
-                    wasmer_result_t::WASMER_ERROR
-                }
-            }
-        }
-
         /// Triggers a transaction execution of an already deployed contract.
         ///
         /// `receipt` - The receipt of the contract execution.
@@ -161,9 +138,21 @@ macro_rules! include_svm_runtime_c_api {
             raw_import_object: *const wasmer_import_object_t,
         ) -> wasmer_result_t {
             let tx = from_raw!(raw_tx, Transaction);
-            let import_object = from_raw!(raw_import_object, ImportObject);
 
-            match runtime::contract_exec(tx, import_object) {
+            let opts = svm_runtime::opts::Opts {
+                max_pages: 10,
+                max_pages_slices: 100,
+            };
+
+            let import_object = runtime::import_object_create(
+                tx.contract.clone(),
+                State::from(0),
+                std::ptr::null(),
+                opts,
+            );
+            // let import_object = from_raw!(raw_import_object, ImportObject);
+
+            match runtime::contract_exec(tx, &import_object) {
                 Ok(_) => wasmer_result_t::WASMER_OK,
                 Err(error) => {
                     dbg!(&error);

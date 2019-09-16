@@ -140,11 +140,19 @@ fn call_storage_mem_to_reg_copy() {
         let raw_addr = svm_contract_compute_address(*raw_contract);
         let _ = svm_contract_store(*raw_contract, raw_addr);
 
-        let _ = svm_import_object(
+        let addr = Address::from(
+            [
+                241, 172, 232, 161, 161, 122, 224, 232, 0, 95, 56, 128, 16, 43, 211, 55, 30, 11,
+                216, 214,
+            ]
+            .as_ref(),
+        );
+
+        let res = svm_import_object(
             raw_import_object,
-            raw_addr,                     // `raw_addr: *const c_void`
+            addr.as_ptr() as _,           // `raw_addr:  *const c_void`
             State::from(0).as_ptr() as _, // `raw_state: *const c_void`
-            5,                            // `max_pages: libc::c_int`
+            5,                            // `max_pages:  libc::c_int`
             100,                          // `max_pages_slices: libc::c_int`
             node_data_as_ptr(&node_data), // `node_data_ptr:: *const c_void`
             std::ptr::null_mut(),         // `imports: *mut wasmer_import_t`
@@ -152,6 +160,14 @@ fn call_storage_mem_to_reg_copy() {
         );
 
         let addr = Address::from(raw_addr);
+        // let addr = Address::from(
+        //     [
+        //         241, 172, 232, 161, 161, 122, 224, 232, 0, 95, 56, 128, 16, 43, 211, 55, 30, 11,
+        //         216, 214,
+        //     ]
+        //     .as_ref()
+        // );
+
         let sender_addr = Address::from([0xAB; 20].as_ref());
 
         let bytes = build_raw_tx!(

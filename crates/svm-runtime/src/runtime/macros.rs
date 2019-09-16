@@ -172,13 +172,10 @@ macro_rules! include_svm_runtime {
                 module: &wasmer_runtime::Module,
                 import_object: &wasmer_runtime::ImportObject,
             ) -> Result<wasmer_runtime::Instance, ContractExecError> {
-                let instantiate = module.instantiate(&import_object);
+                let instantiate = module.instantiate(import_object);
 
                 match instantiate {
-                    Err(e) => {
-                        dbg!(e);
-                        Err(ContractExecError::InstantiationFailed(addr.clone()))
-                    }
+                    Err(e) => Err(ContractExecError::InstantiationFailed(addr.clone())),
                     Ok(instance) => Ok(instance),
                 }
             }
