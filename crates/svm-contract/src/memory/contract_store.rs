@@ -35,13 +35,11 @@ where
     S: ContractSerializer,
     D: ContractDeserializer,
 {
-    fn store(&mut self, contract: &Contract, hash: CodeHash) {
+    fn store(&mut self, contract: &Contract, addr: &Address, hash: CodeHash) {
         let serialized: Vec<u8> = S::serialize(contract);
 
         self.contract_bytes.insert(hash, serialized);
-
-        let addr = contract.address.clone().unwrap();
-        self.addr_codehash.insert(addr, hash);
+        self.addr_codehash.insert(addr.clone(), hash);
     }
 
     fn load(&self, addr: &Address) -> Option<Contract> {

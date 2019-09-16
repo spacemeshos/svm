@@ -47,11 +47,9 @@ pub trait ContractEnv {
     /// * Parses a raw contract into `Contract`
     /// * Enriches the contract with its derived address
     fn build_contract(bytes: &[u8]) -> Result<Contract, ContractBuildError> {
-        let mut contract = crate::wire::deploy::parse_contract(bytes)?;
+        let contract = crate::wire::deploy::parse_contract(bytes)?;
 
         crate::wire::deploy::validate_contract(&contract)?;
-
-        contract.address = Some(Self::compute_address(&contract));
 
         Ok(contract)
     }
@@ -65,10 +63,10 @@ pub trait ContractEnv {
 
     /// Stores contract by its `CodeHash`
     #[inline(always)]
-    fn store_contract(&mut self, contract: &Contract) {
+    fn store_contract(&mut self, contract: &Contract, addr: &Address) {
         let hash = Self::compute_code_hash(contract);
         let store = self.get_store_mut();
 
-        store.store(&contract, hash);
+        store.store(contract, addr, hash);
     }
 }

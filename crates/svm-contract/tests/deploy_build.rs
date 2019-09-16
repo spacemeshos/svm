@@ -1,9 +1,7 @@
-use crate::traits::ContractAddressCompute;
 use svm_common::Address;
 
 use svm_contract::build::WireContractBuilder;
-use svm_contract::*;
-use svm_contract::{default::DefaultContractAddressCompute, env::ContractEnv, memory::MemoryEnv};
+use svm_contract::{env::ContractEnv, memory::MemoryEnv};
 
 #[test]
 fn build_contract() {
@@ -15,10 +13,6 @@ fn build_contract() {
         .build();
 
     let contract = <MemoryEnv as ContractEnv>::build_contract(&bytes).unwrap();
-
-    let expected_addr = DefaultContractAddressCompute::compute(&contract);
-    let actual_addr = contract.address.as_ref().unwrap();
-    assert_eq!(expected_addr.as_slice(), actual_addr.as_slice());
 
     assert_eq!("Contract #1", contract.name);
     assert_eq!(Address::from(0x10_20_30_40), contract.author);

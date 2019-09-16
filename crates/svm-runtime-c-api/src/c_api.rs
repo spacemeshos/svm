@@ -70,13 +70,13 @@ macro_rules! include_svm_runtime_c_api {
 
         #[must_use]
         #[no_mangle]
-        pub unsafe extern "C" fn svm_contract_address_get(
+        pub unsafe extern "C" fn svm_contract_compute_address(
             raw_contract: *const svm_contract_t,
         ) -> *const c_void {
             let contract = from_raw!(raw_contract, svm_contract::wasm::Contract);
 
-            let addr: Box<Address> = Box::new(contract.address.as_ref().unwrap().clone());
-            let addr = Box::leak(addr);
+            let addr = runtime::contract_compute_address(contract);
+            let addr = Box::leak(Box::new(addr));
 
             addr.as_ptr() as *const c_void
         }
@@ -93,9 +93,11 @@ macro_rules! include_svm_runtime_c_api {
         #[no_mangle]
         pub unsafe extern "C" fn svm_contract_store(
             raw_contract: *const svm_contract_t,
+            raw_addr: *const c_void,
         ) -> wasmer_result_t {
             let contract = from_raw!(raw_contract, svm_contract::wasm::Contract);
-            runtime::contract_store(contract);
+            let addr = Address::from(raw_addr);
+            runtime::contract_store(contract, &addr);
 
             wasmer_result_t::WASMER_OK
         }
@@ -164,6 +166,7 @@ macro_rules! include_svm_runtime_c_api {
             match runtime::contract_exec(tx, import_object) {
                 Ok(_) => wasmer_result_t::WASMER_OK,
                 Err(error) => {
+                    dbg!(&error);
                     update_last_error(error);
                     wasmer_result_t::WASMER_ERROR
                 }

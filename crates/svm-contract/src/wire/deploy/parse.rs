@@ -28,12 +28,7 @@ pub fn parse_contract(bytes: &[u8]) -> Result<Contract, ContractBuildError> {
     parse_deps(&mut cursor)?;
     let wasm = parse_code(&mut cursor)?;
 
-    let contract = Contract {
-        address: None,
-        name,
-        wasm,
-        author,
-    };
+    let contract = Contract { name, wasm, author };
 
     Ok(contract)
 }

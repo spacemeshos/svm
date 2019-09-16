@@ -27,6 +27,14 @@ macro_rules! impl_bytes_primitive {
             }
         }
 
+        impl From<*const std::ffi::c_void> for $primitive {
+            #[warn(clippy::not_unsafe_ptr_arg_deref)]
+            #[inline(always)]
+            fn from(ptr: *const std::ffi::c_void) -> $primitive {
+                $primitive::from(ptr as *const u8)
+            }
+        }
+
         impl $primitive {
             /// Returns a raw pointer into the `$primitive` internal array
             pub fn as_ptr(&self) -> *const u8 {

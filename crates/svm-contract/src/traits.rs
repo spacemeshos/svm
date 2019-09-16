@@ -23,7 +23,7 @@ where
     D: ContractDeserializer,
 {
     /// Stores the `hash` -> `raw contract` association
-    fn store(&mut self, contract: &Contract, hash: CodeHash);
+    fn store(&mut self, contract: &Contract, address: &Address, hash: CodeHash);
 
     /// Given a contract account address, fetches its raw contract dada
     /// and deserializes it. Return `None` it contract doesn't exist

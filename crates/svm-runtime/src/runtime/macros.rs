@@ -44,9 +44,14 @@ macro_rules! include_svm_runtime {
             }
 
             #[inline(always)]
-            pub fn contract_store(contract: &Contract) {
+            pub fn contract_compute_address(contract: &Contract) -> Address {
+                <$ENV as ContractEnv>::compute_address(contract)
+            }
+
+            #[inline(always)]
+            pub fn contract_store(contract: &Contract, addr: &Address) {
                 let mut env = $env_gen();
-                env.store_contract(&contract);
+                env.store_contract(contract, addr);
             }
 
             #[inline(always)]
@@ -60,14 +65,23 @@ macro_rules! include_svm_runtime {
             ) -> Result<State, ContractExecError> {
                 let mut env = $env_gen();
 
+                dbg!("11111111111111111111111");
                 let contract = contract_load(tx, &mut env)?;
 
-                let module = contract_compile(&contract)?;
-                let mut instance = module_instantiate(&contract, &module, import_object)?;
+                dbg!("22222222222222222222222");
+                let module = contract_compile(&contract, &tx.contract)?;
+
+                dbg!("33333333333333333333333");
+                let mut instance =
+                    module_instantiate(&contract, &tx.contract, &module, import_object)?;
+
+                dbg!("44444444444444444444444");
                 let args = prepare_args_and_memory(tx, &mut instance);
+
+                dbg!("555555555555555555555555");
                 let func = get_exported_func(&instance, &tx.func_name)?;
 
-                match func.call(&args) {
+                let res = match func.call(&args) {
                     Err(e) => Err(ContractExecError::ExecFailed),
                     Ok(_) => {
                         let storage = get_instance_svm_storage_mut(&mut instance);
@@ -75,7 +89,11 @@ macro_rules! include_svm_runtime {
 
                         Ok(state)
                     }
-                }
+                };
+
+                dbg!(&res);
+
+                res
             }
 
             pub fn import_object_create(
@@ -138,30 +156,26 @@ macro_rules! include_svm_runtime {
 
             fn contract_compile(
                 contract: &Contract,
+                addr: &Address,
             ) -> Result<wasmer_runtime::Module, ContractExecError> {
                 let compile = wasmer_runtime::compile(&contract.wasm);
 
                 match compile {
-                    Err(_) => {
-                        let addr = contract.address.as_ref().unwrap().clone();
-                        Err(ContractExecError::CompilationFailed(addr))
-                    }
+                    Err(_) => Err(ContractExecError::CompilationFailed(addr.clone())),
                     Ok(module) => Ok(module),
                 }
             }
 
             fn module_instantiate(
                 contract: &Contract,
+                addr: &Address,
                 module: &wasmer_runtime::Module,
                 import_object: &wasmer_runtime::ImportObject,
             ) -> Result<wasmer_runtime::Instance, ContractExecError> {
                 let instantiate = module.instantiate(&import_object);
 
                 match instantiate {
-                    Err(_) => {
-                        let addr = contract.address.as_ref().unwrap().clone();
-                        Err(ContractExecError::InstantiationFailed(addr))
-                    }
+                    Err(_) => Err(ContractExecError::InstantiationFailed(addr.clone())),
                     Ok(instance) => Ok(instance),
                 }
             }

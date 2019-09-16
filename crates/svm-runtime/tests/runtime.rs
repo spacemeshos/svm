@@ -65,7 +65,8 @@ fn deploy_wasm_contract() {
         .build();
 
     let contract = runtime::contract_build(&bytes).unwrap();
-    runtime::contract_store(&contract);
+    let addr = runtime::contract_compute_address(&contract);
+    runtime::contract_store(&contract, &addr);
 }
 
 #[test]
@@ -84,16 +85,15 @@ fn contract_exec_valid_transaction() {
         "wasm/runtime-1.wast"  // file holding the wasm code
     );
     let contract = runtime::contract_build(&bytes).unwrap();
-    runtime::contract_store(&contract);
-
-    let contract_addr = contract.address.as_ref().unwrap().clone();
+    let addr = runtime::contract_compute_address(&contract);
+    runtime::contract_store(&contract, &addr);
 
     // 2) executing a transaction `reg_set_and_persist`
     // setting register `64:0` the value `1000`.
     // then, persisting it to storage (page=`0`, slice=`0`, offset=`0`)
     let bytes = build_raw_tx!(
         0,                     // protocol version
-        contract_addr.clone(), // contract address
+        addr.clone(),          // contract address
         0x11_22_33_44,         // sender address
         "reg_set_and_persist", // `func_name` to execute
         // `func_args`
@@ -112,12 +112,8 @@ fn contract_exec_valid_transaction() {
     let new_state = exec_tx!(tx, State::from(0)).unwrap();
     assert_ne!(State::from(0), new_state);
 
-    let pages_storage = svm_runtime::gen_rocksdb_pages_storage!(
-        contract_addr,
-        new_state,
-        10,
-        "tests-contract-storage"
-    );
+    let pages_storage =
+        svm_runtime::gen_rocksdb_pages_storage!(addr, new_state, 10, "tests-contract-storage");
     let page_cache = svm_runtime::gen_rocksdb_page_cache!(pages_storage, 10);
     let mut storage = PageSliceCache::new(page_cache, 100);
 

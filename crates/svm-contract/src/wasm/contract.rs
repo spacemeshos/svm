@@ -4,13 +4,9 @@ use svm_common::Address;
 
 /// We first parse the on-the-wire contract transaction into a `Contract` instance.
 /// At that stage we don't know the contract future `address` yet.
-///
-/// It's only later, while we `validiate` the contract when we also compute its future account address and add it to the `Contract` instance.
-/// That's the reason why the `Address` field is defined of type `Option<Address>` and not simply `Address`.
 #[allow(missing_docs)]
 #[derive(Serialize, Deserialize, PartialEq)]
 pub struct Contract {
-    pub address: Option<Address>,
     pub wasm: Vec<u8>,
     pub name: String,
     pub author: Address,
@@ -18,27 +14,16 @@ pub struct Contract {
 
 impl std::fmt::Debug for Contract {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let addr = self.preview_address(&self.address);
         let author = self.preview_author(&self.author);
         let wasm = self.preview_wasm(&self.wasm);
 
-        let msg = [addr, author, wasm].join("\n");
+        let msg = [author, wasm].join("\n");
 
         write!(f, "{}", msg)
     }
 }
 
 impl Contract {
-    fn preview_address(&self, addr: &Option<Address>) -> String {
-        match addr {
-            Some(addr) => {
-                let slice = &addr.as_slice()[0..8].to_vec();
-                format!("Address: {:?}...", slice)
-            }
-            None => String::from("Address: None"),
-        }
-    }
-
     fn preview_author(&self, author: &Address) -> String {
         format!("Author: {:?}...", &author.as_slice()[0..8])
     }

@@ -135,12 +135,12 @@ fn call_storage_mem_to_reg_copy() {
 
         let bytes = build_raw_contract!("wasm/mem_to_reg_copy.wast", &author_addr);
         let _ = svm_contract_build(raw_contract, bytes.as_ptr(), bytes.len() as u64);
-        let addr = svm_contract_address_get(*raw_contract);
-        let _ = svm_contract_store(*raw_contract);
+        let raw_addr = svm_contract_compute_address(*raw_contract);
+        let _ = svm_contract_store(*raw_contract, raw_addr);
 
         let _ = svm_import_object(
             raw_import_object,
-            addr,                         // `raw_addr: *const c_void`
+            raw_addr,                     // `raw_addr: *const c_void`
             State::from(0).as_ptr() as _, // `raw_state: *const c_void`
             5,                            // `max_pages: libc::c_int`
             100,                          // `max_pages_slices: libc::c_int`
@@ -149,28 +149,17 @@ fn call_storage_mem_to_reg_copy() {
             0,                            // `imports_len: libc::c_int`
         );
 
-        let addr = Address::from(0);
-        let bytes = build_raw_tx!(addr, sender_addr, "do_copy_to_reg", &[]);
+        // let bytes = build_raw_tx!(addr, sender_addr, "do_copy_to_reg", &[]);
+        //
+        // let raw_tx = alloc_raw_transaction();
+        // let raw_receipt = alloc_raw_receipt();
+        // let _ = svm_transaction_build(raw_tx, bytes.as_ptr(), bytes.len() as u64);
+        // let _ = svm_transaction_exec(raw_receipt, *raw_tx, *raw_import_object);
 
-        let raw_tx = alloc_raw_transaction();
-        let raw_receipt = alloc_raw_receipt();
-        let _ = svm_transaction_build(raw_tx, bytes.as_ptr(), bytes.len() as u64);
-        let _ = svm_transaction_exec(raw_receipt, *raw_tx, *raw_import_object);
-
-        // let instance: &Instance = deref_instance!(raw_instance);
-        //
-        // // initializing memory #0 cells `200..203` with values `10, 20, 30` respectively
-        // wasmer_ctx_mem_cells_write!(instance.context(), 0, 200, &[10, 20, 30]);
-        //
-        // let func: Func<(i32, i32, i32)> = instance.func("do_copy_to_reg").unwrap();
-        // assert!(func.call(200, 3, 2).is_ok());
-        //
-        // // asserting register `2` (of type `64 bits`) content is `10, 20, 30, 0, ... 0`
-        // let reg = wasmer_ctx_reg!(instance.context(), 64, 2, RocksMerklePageCache);
-        // assert_eq!(vec![10, 20, 30, 0, 0, 0, 0, 0], reg.view());
-        //
-        // let instance = instance as *const Instance;
-        // Box::from_raw(instance as *mut Instance);
+        // TODO: clean:
+        // * addr
+        // * contract ??
+        // * receipt
     }
 }
 
