@@ -5,6 +5,8 @@ use std::ffi::c_void;
 use svm_common::{Address, State};
 use svm_storage::rocksdb::RocksMerklePageCache;
 
+use svm_contract::wasm::WasmArgValue;
+
 use svm_runtime::*;
 use svm_runtime_c_api::*;
 
@@ -101,12 +103,13 @@ fn node_data_as_ptr(node_data: &NodeData) -> *const c_void {
 
 macro_rules! build_raw_contract {
     ($file: expr, $author_addr: expr) => {{
-        let wasm = include_bytes!($file);
+        let wast = include_bytes!($file);
+        let wasm = wabt::wat2wasm(wast.as_ref()).unwrap();
 
         svm_contract::build::WireContractBuilder::new()
             .with_version(0)
             .with_author($author_addr.clone())
-            .with_code(wasm)
+            .with_code(wasm.as_slice())
             .with_name($file)
             .build()
     }};
@@ -131,7 +134,6 @@ fn call_storage_mem_to_reg_copy() {
         let raw_contract = alloc_raw_contract();
         let raw_import_object = alloc_raw_import_object();
         let author_addr = Address::from([0xFF; 20].as_ref());
-        let sender_addr = Address::from([0xAB; 20].as_ref());
 
         let bytes = build_raw_contract!("wasm/mem_to_reg_copy.wast", &author_addr);
         let _ = svm_contract_build(raw_contract, bytes.as_ptr(), bytes.len() as u64);
@@ -149,12 +151,24 @@ fn call_storage_mem_to_reg_copy() {
             0,                            // `imports_len: libc::c_int`
         );
 
-        // let bytes = build_raw_tx!(addr, sender_addr, "do_copy_to_reg", &[]);
-        //
-        // let raw_tx = alloc_raw_transaction();
-        // let raw_receipt = alloc_raw_receipt();
-        // let _ = svm_transaction_build(raw_tx, bytes.as_ptr(), bytes.len() as u64);
-        // let _ = svm_transaction_exec(raw_receipt, *raw_tx, *raw_import_object);
+        let addr = Address::from(raw_addr);
+        let sender_addr = Address::from([0xAB; 20].as_ref());
+
+        let bytes = build_raw_tx!(
+            addr,
+            sender_addr,
+            "do_copy_to_reg",
+            &[
+                WasmArgValue::I32(0),
+                WasmArgValue::I32(0),
+                WasmArgValue::I32(4)
+            ]
+        );
+
+        let raw_receipt = alloc_raw_receipt();
+        let raw_tx = alloc_raw_transaction();
+        let _ = svm_transaction_build(raw_tx, bytes.as_ptr(), bytes.len() as u64);
+        let _ = svm_transaction_exec(raw_receipt, *raw_tx, *raw_import_object);
 
         // TODO: clean:
         // * addr

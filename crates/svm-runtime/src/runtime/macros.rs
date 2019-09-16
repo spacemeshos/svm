@@ -161,7 +161,7 @@ macro_rules! include_svm_runtime {
                 let compile = wasmer_runtime::compile(&contract.wasm);
 
                 match compile {
-                    Err(_) => Err(ContractExecError::CompilationFailed(addr.clone())),
+                    Err(e) => Err(ContractExecError::CompilationFailed(addr.clone())),
                     Ok(module) => Ok(module),
                 }
             }
@@ -175,7 +175,10 @@ macro_rules! include_svm_runtime {
                 let instantiate = module.instantiate(&import_object);
 
                 match instantiate {
-                    Err(_) => Err(ContractExecError::InstantiationFailed(addr.clone())),
+                    Err(e) => {
+                        dbg!(e);
+                        Err(ContractExecError::InstantiationFailed(addr.clone()))
+                    }
                     Ok(instance) => Ok(instance),
                 }
             }

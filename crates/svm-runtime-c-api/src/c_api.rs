@@ -233,8 +233,8 @@ macro_rules! include_svm_runtime_c_api {
             imports: *mut wasmer_import_t,
             imports_len: libc::c_uint,
         ) -> wasmer_result_t {
-            let addr = Address::from(raw_addr as *const u8);
-            let state = State::from(raw_state as *const u8);
+            let addr = Address::from(raw_addr);
+            let state = State::from(raw_state);
 
             let opts = svm_runtime::opts::Opts {
                 max_pages: raw_max_pages as usize,
