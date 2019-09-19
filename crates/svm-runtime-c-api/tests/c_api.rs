@@ -135,11 +135,13 @@ fn call_storage_mem_to_reg_copy() {
         let raw_import_object = alloc_raw_import_object();
         let author_addr = Address::from([0xFF; 20].as_ref());
 
+        // 1) deploy
         let bytes = build_raw_contract!("wasm/mem_to_reg_copy.wast", &author_addr);
         let _ = svm_contract_build(raw_contract, bytes.as_ptr(), bytes.len() as u64);
         let raw_addr = svm_contract_compute_address(*raw_contract);
         let _ = svm_contract_store(*raw_contract, raw_addr);
 
+        // 2) execute
         let addr = Address::from(
             [
                 241, 172, 232, 161, 161, 122, 224, 232, 0, 95, 56, 128, 16, 43, 211, 55, 30, 11,
@@ -148,10 +150,12 @@ fn call_storage_mem_to_reg_copy() {
             .as_ref(),
         );
 
+        let state = State::from(0);
+
         let res = svm_import_object(
             raw_import_object,
             addr.as_ptr() as _,           // `raw_addr:  *const c_void`
-            State::from(0).as_ptr() as _, // `raw_state: *const c_void`
+            state.as_ptr() as _,          // `raw_state: *const c_void`
             5,                            // `max_pages:  libc::c_int`
             100,                          // `max_pages_slices: libc::c_int`
             node_data_as_ptr(&node_data), // `node_data_ptr:: *const c_void`
@@ -159,20 +163,9 @@ fn call_storage_mem_to_reg_copy() {
             0,                            // `imports_len: libc::c_int`
         );
 
-        let addr = Address::from(raw_addr);
-        // let addr = Address::from(
-        //     [
-        //         241, 172, 232, 161, 161, 122, 224, 232, 0, 95, 56, 128, 16, 43, 211, 55, 30, 11,
-        //         216, 214,
-        //     ]
-        //     .as_ref()
-        // );
-
-        let sender_addr = Address::from([0xAB; 20].as_ref());
-
         let bytes = build_raw_tx!(
             addr,
-            sender_addr,
+            Address::from([0xAB; 20].as_ref()),
             "do_copy_to_reg",
             &[
                 WasmArgValue::I32(0),

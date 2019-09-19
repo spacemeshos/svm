@@ -74,11 +74,11 @@ macro_rules! alloc_raw_ptr {
     ($ptr_type: ident) => {{
         use std::alloc::Layout;
 
-        let ptr_size: usize = std::mem::size_of::<*mut $ptr_type>();
+        let ptr_size: usize = std::mem::size_of::<*mut *mut $ptr_type>();
         let layout = Layout::from_size_align(ptr_size, std::mem::align_of::<u8>()).unwrap();
-        let mut ptr: *mut $ptr_type = unsafe { std::alloc::alloc(layout) as *mut _ };
+        let raw_ptr: *mut *mut $ptr_type = unsafe { std::alloc::alloc(layout) as _ };
 
-        &mut ptr as *mut *mut $ptr_type
+        raw_ptr
     }};
 }
 

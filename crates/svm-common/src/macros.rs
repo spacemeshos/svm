@@ -41,6 +41,18 @@ macro_rules! impl_bytes_primitive {
                 self.0.as_ptr()
             }
 
+            /// Consumes the `$primitive` object and transfers ownership to a C caller
+            pub fn into_raw(self) -> *mut $primitive {
+                let boxed = Box::new(self);
+                Box::into_raw(boxed)
+            }
+
+            /// Retakes ownership of a `$primitive` that was transferred to C via `into_raw`
+            pub unsafe fn from_raw(ptr: *mut $primitive) -> $primitive {
+                let boxed: Box<$primitive> = Box::from_raw(ptr);
+                *boxed
+            }
+
             /// Returns a slice into the `$primitive` internal array
             pub fn as_slice(&self) -> &[u8] {
                 &self.0[..]
