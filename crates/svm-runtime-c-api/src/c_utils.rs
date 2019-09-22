@@ -178,26 +178,6 @@ macro_rules! deref_import_obj {
 
 #[doc(hidden)]
 #[macro_export]
-macro_rules! deref_contract {
-    ($raw_contract: expr) => {{
-        use svm_contract::wasm::Contract;
-
-        &mut *(*$raw_contract as *mut Contract)
-    }};
-}
-
-#[doc(hidden)]
-#[macro_export]
-macro_rules! deref_receipt {
-    ($raw_receipt: expr) => {{
-        use svm_runtime::runtime::Receipt;
-
-        &mut *(*$raw_receipt as *mut Receipt)
-    }};
-}
-
-#[doc(hidden)]
-#[macro_export]
 macro_rules! deref_instance {
     ($raw_instance: expr) => {{
         use wasmer_runtime::Instance;

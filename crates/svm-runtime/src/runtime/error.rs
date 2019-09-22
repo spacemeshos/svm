@@ -2,6 +2,7 @@ use svm_common::Address;
 
 /// Contract execution error
 #[allow(missing_docs)]
+#[derive(PartialEq, Clone)]
 pub enum ContractExecError {
     NotFound(Address),
     CompilationFailed(Address),

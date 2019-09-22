@@ -110,29 +110,29 @@ fn contract_exec_valid_transaction() {
     let tx = runtime::transaction_build(&bytes).unwrap();
 
     let receipt = exec_tx!(tx, State::from(0));
-    // assert_eq!(true, receipt.success);
-    // assert_eq!(None, receipt.error);
-    //
-    // let new_state = receipt.new_state.unwrap();
-    // assert_ne!(State::from(0), new_state);
-    //
-    // let pages_storage =
-    //     svm_runtime::gen_rocksdb_pages_storage!(addr, new_state, 10, "tests-contract-storage");
-    // let page_cache = svm_runtime::gen_rocksdb_page_cache!(pages_storage, 10);
-    // let mut storage = PageSliceCache::new(page_cache, 100);
-    //
-    // let slice_pos = PageSliceLayout {
-    //     slice_idx: SliceIndex(0),
-    //     page_idx: PageIndex(0),
-    //     offset: 0,
-    //     len: 8,
-    // };
-    //
-    // let slice = storage.read_page_slice(&slice_pos).unwrap();
-    // assert_eq!(
-    //     &[0x80, 0x70, 0x60, 0x50, 0x40, 0x30, 0x20, 0x10],
-    //     &slice[..]
-    // );
+    assert_eq!(true, receipt.success);
+    assert_eq!(None, receipt.error);
+
+    let new_state = receipt.new_state.unwrap();
+    assert_ne!(State::from(0), new_state);
+
+    let pages_storage =
+        svm_runtime::gen_rocksdb_pages_storage!(addr, new_state, 10, "tests-contract-storage");
+    let page_cache = svm_runtime::gen_rocksdb_page_cache!(pages_storage, 10);
+    let mut storage = PageSliceCache::new(page_cache, 100);
+
+    let slice_pos = PageSliceLayout {
+        slice_idx: SliceIndex(0),
+        page_idx: PageIndex(0),
+        offset: 0,
+        len: 8,
+    };
+
+    let slice = storage.read_page_slice(&slice_pos).unwrap();
+    assert_eq!(
+        &[0x80, 0x70, 0x60, 0x50, 0x40, 0x30, 0x20, 0x10],
+        &slice[..]
+    );
 }
 
 #[test]

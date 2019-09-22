@@ -3,7 +3,9 @@ extern crate svm_runtime_c_api;
 use std::ffi::c_void;
 
 use svm_common::{Address, State};
+use svm_storage::page::{PageIndex, PageSliceLayout, SliceIndex};
 use svm_storage::rocksdb::RocksMerklePageCache;
+use svm_storage::PageSliceCache;
 
 use svm_contract::wasm::WasmArgValue;
 
@@ -128,7 +130,7 @@ macro_rules! build_raw_tx {
 }
 
 #[test]
-fn call_storage_mem_to_reg_copy() {
+fn tx_exec_changing_state() {
     unsafe {
         let node_data = NodeData::default();
         let raw_contract = alloc_raw_contract!();
@@ -136,26 +138,16 @@ fn call_storage_mem_to_reg_copy() {
         let author_addr = Address::from([0xFF; 20].as_ref());
 
         // 1) deploy
-        let bytes = build_raw_contract!("wasm/mem_to_reg_copy.wast", &author_addr);
+        let bytes = build_raw_contract!("wasm/store.wast", &author_addr);
         let _ = svm_contract_build(raw_contract, bytes.as_ptr(), bytes.len() as u64);
         let raw_addr = svm_contract_compute_address(*raw_contract);
         let _ = svm_contract_store(*raw_contract, raw_addr);
 
         // 2) execute
-        let addr = Address::from(
-            [
-                241, 172, 232, 161, 161, 122, 224, 232, 0, 95, 56, 128, 16, 43, 211, 55, 30, 11,
-                216, 214,
-            ]
-            .as_ref(),
-        );
-
-        let state = State::from(0);
-
         let res = svm_import_object(
             raw_import_object,
-            addr.as_ptr() as _,           // `raw_addr:  *const c_void`
-            state.as_ptr() as _,          // `raw_state: *const c_void`
+            raw_addr,                     // `raw_addr:  *const c_void`
+            State::from(0).as_ptr() as _, // `raw_state: *const c_void`
             5,                            // `max_pages:  libc::c_int`
             100,                          // `max_pages_slices: libc::c_int`
             node_data_as_ptr(&node_data), // `node_data_ptr:: *const c_void`
@@ -163,15 +155,12 @@ fn call_storage_mem_to_reg_copy() {
             0,                            // `imports_len: libc::c_int`
         );
 
+        let addr = Address::from(raw_addr);
         let bytes = build_raw_tx!(
-            addr,
+            addr.clone(),
             Address::from([0xAB; 20].as_ref()),
-            "do_copy_to_reg",
-            &[
-                WasmArgValue::I32(0),
-                WasmArgValue::I32(0),
-                WasmArgValue::I32(4)
-            ]
+            "run",
+            &[WasmArgValue::I64(0x10_20_30_40_50_60_70_80)]
         );
 
         let raw_receipt = alloc_raw_receipt!();
@@ -179,7 +168,30 @@ fn call_storage_mem_to_reg_copy() {
         let _ = svm_transaction_build(raw_tx, bytes.as_ptr(), bytes.len() as u64);
         let _ = svm_transaction_exec(raw_receipt, *raw_tx, *raw_import_object);
 
-        let receipt = deref_receipt!(raw_receipt);
+        assert_eq!(true, svm_receipt_result(*raw_receipt));
+
+        let new_state = svm_receipt_new_state(*raw_receipt);
+        let new_state = State::from(new_state);
+
+        // 3) asserting data has been persisted
+        let pages_storage =
+            svm_runtime::gen_rocksdb_pages_storage!(addr, new_state, 5, "tests-contract-storage");
+        let page_cache = svm_runtime::gen_rocksdb_page_cache!(pages_storage, 5);
+        let mut storage = PageSliceCache::new(page_cache, 100);
+
+        let slice_pos = PageSliceLayout {
+            slice_idx: SliceIndex(0),
+            page_idx: PageIndex(0),
+            offset: 0,
+            len: 8,
+        };
+
+        let slice = storage.read_page_slice(&slice_pos).unwrap();
+        assert_eq!(
+            &[0x80, 0x70, 0x60, 0x50, 0x40, 0x30, 0x20, 0x10],
+            &slice[..]
+        );
+
         // TODO: clean:
         // * addr
         // * contract ??

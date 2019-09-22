@@ -13,7 +13,9 @@ macro_rules! include_svm_runtime_c_api {
 
         use svm_common::{Address, State};
         use svm_contract::transaction::Transaction;
+
         use svm_runtime::register::SvmReg;
+        use svm_runtime::runtime::Receipt;
 
         use crate::c_types::{svm_address_t, svm_contract_t, svm_receipt_t, svm_transaction_t};
 
@@ -38,7 +40,7 @@ macro_rules! include_svm_runtime_c_api {
             }};
         }
 
-        macro_rules! from_raw {
+        macro_rules! cast_to_rust_type {
             ($raw_obj: expr, $ty: path) => {{
                 &*($raw_obj as *const $ty)
             }};
@@ -73,7 +75,7 @@ macro_rules! include_svm_runtime_c_api {
         pub unsafe extern "C" fn svm_contract_compute_address(
             raw_contract: *const svm_contract_t,
         ) -> *const c_void {
-            let contract = from_raw!(raw_contract, svm_contract::wasm::Contract);
+            let contract = cast_to_rust_type!(raw_contract, svm_contract::wasm::Contract);
 
             let addr = runtime::contract_compute_address(contract);
             let addr = Box::leak(Box::new(addr));
@@ -95,7 +97,7 @@ macro_rules! include_svm_runtime_c_api {
             raw_contract: *const svm_contract_t,
             raw_addr: *const c_void,
         ) -> wasmer_result_t {
-            let contract = from_raw!(raw_contract, svm_contract::wasm::Contract);
+            let contract = cast_to_rust_type!(raw_contract, svm_contract::wasm::Contract);
             let addr = Address::from(raw_addr);
             runtime::contract_store(contract, &addr);
 
@@ -137,8 +139,8 @@ macro_rules! include_svm_runtime_c_api {
             raw_tx: *const svm_transaction_t,
             raw_import_object: *const wasmer_import_object_t,
         ) -> wasmer_result_t {
-            let tx = from_raw!(raw_tx, Transaction);
-            let import_object = from_raw!(raw_import_object, ImportObject);
+            let tx = cast_to_rust_type!(raw_tx, Transaction);
+            let import_object = cast_to_rust_type!(raw_import_object, ImportObject);
 
             let receipt = runtime::contract_exec(tx.clone(), import_object);
             *raw_receipt = into_raw!(receipt, svm_receipt_t);
@@ -154,7 +156,7 @@ macro_rules! include_svm_runtime_c_api {
             reg_bits: i32,
             reg_idx: i32,
         ) -> *const c_void {
-            let wasmer_ctx: &Ctx = from_raw!(raw_ctx, Ctx);
+            let wasmer_ctx: &Ctx = cast_to_rust_type!(raw_ctx, Ctx);
             let reg: &mut SvmReg = svm_runtime::wasmer_ctx_reg!(wasmer_ctx, reg_bits, reg_idx, $PC);
 
             // having `c_void` instead of `u8` in the function's signature
@@ -171,7 +173,7 @@ macro_rules! include_svm_runtime_c_api {
             bytes: *const c_void,
             bytes_len: u8,
         ) {
-            let wasmer_ctx: &Ctx = from_raw!(raw_ctx, Ctx);
+            let wasmer_ctx: &Ctx = cast_to_rust_type!(raw_ctx, Ctx);
             let reg: &mut SvmReg = svm_runtime::wasmer_ctx_reg!(wasmer_ctx, reg_bits, reg_idx, $PC);
 
             // having `c_void` instead of `u8` in the function's signature
@@ -186,7 +188,7 @@ macro_rules! include_svm_runtime_c_api {
         pub unsafe extern "C" fn svm_instance_context_node_data_get(
             raw_ctx: *const wasmer_instance_context_t,
         ) -> *const c_void {
-            let wasmer_ctx: &Ctx = from_raw!(raw_ctx, Ctx);
+            let wasmer_ctx: &Ctx = cast_to_rust_type!(raw_ctx, Ctx);
             svm_runtime::wasmer_data_node_data!(wasmer_ctx.data, $PC)
         }
 
@@ -225,6 +227,49 @@ macro_rules! include_svm_runtime_c_api {
             // }
 
             wasmer_result_t::WASMER_OK
+        }
+
+        #[must_use]
+        #[no_mangle]
+        #[inline(always)]
+        pub unsafe extern "C" fn svm_receipt_result(raw_receipt: *const svm_receipt_t) -> bool {
+            let receipt = cast_to_rust_type!(raw_receipt, Receipt);
+            receipt.success
+        }
+
+        #[must_use]
+        #[no_mangle]
+        #[inline(always)]
+        pub unsafe extern "C" fn svm_receipt_error(raw_receipt: *const svm_receipt_t) {
+            let receipt = cast_to_rust_type!(raw_receipt, Receipt);
+
+            if let Some(ref e) = receipt.error {
+                // TODO: implement `std::error::Error` for `svm_runtime::runtime::error::ContractExecError`
+                // update_last_error(e);
+            }
+        }
+
+        #[must_use]
+        #[no_mangle]
+        #[inline(always)]
+        pub unsafe extern "C" fn svm_receipt_new_state(
+            raw_receipt: *const svm_receipt_t,
+        ) -> *const u8 {
+            let receipt = cast_to_rust_type!(raw_receipt, Receipt);
+
+            if receipt.success {
+                let state = receipt.new_state.as_ref().unwrap();
+                state.as_ptr()
+            } else {
+                panic!("method not allowed to be called when transaction execution failed");
+            }
+        }
+
+        #[must_use]
+        #[no_mangle]
+        #[inline(always)]
+        pub unsafe extern "C" fn svm_receipt_gas_used(raw_receipt: *const svm_receipt_t) -> u64 {
+            unimplemented!()
         }
     };
 }
