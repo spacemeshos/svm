@@ -133,21 +133,17 @@ macro_rules! include_svm_runtime_c_api {
         #[must_use]
         #[no_mangle]
         pub unsafe extern "C" fn svm_transaction_exec(
-            receipt: *mut *mut svm_receipt_t,
+            raw_receipt: *mut *mut svm_receipt_t,
             raw_tx: *const svm_transaction_t,
             raw_import_object: *const wasmer_import_object_t,
         ) -> wasmer_result_t {
             let tx = from_raw!(raw_tx, Transaction);
             let import_object = from_raw!(raw_import_object, ImportObject);
 
-            match runtime::contract_exec(tx, import_object) {
-                Ok(_) => wasmer_result_t::WASMER_OK,
-                Err(error) => {
-                    dbg!(&error);
-                    update_last_error(error);
-                    wasmer_result_t::WASMER_ERROR
-                }
-            }
+            let receipt = runtime::contract_exec(tx.clone(), import_object);
+            *raw_receipt = into_raw!(receipt, svm_receipt_t);
+
+            wasmer_result_t::WASMER_ERROR
         }
 
         /// Returns a raw pointer to the `wasmer svm` register's internal content

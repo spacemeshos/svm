@@ -179,6 +179,7 @@ fn call_storage_mem_to_reg_copy() {
         let _ = svm_transaction_build(raw_tx, bytes.as_ptr(), bytes.len() as u64);
         let _ = svm_transaction_exec(raw_receipt, *raw_tx, *raw_import_object);
 
+        let receipt = deref_receipt!(raw_receipt);
         // TODO: clean:
         // * addr
         // * contract ??

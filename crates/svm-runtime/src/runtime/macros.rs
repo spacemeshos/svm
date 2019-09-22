@@ -14,7 +14,7 @@
 macro_rules! include_svm_runtime {
     ($pages_storage_gen: expr, $page_cache_ctor: expr, $PC: path, $ENV: path, $env_gen: expr) => {
         mod runtime {
-            use $crate::runtime::ContractExecError;
+            use $crate::runtime::{ContractExecError, Receipt};
 
             /// Iinjects `vmcalls` module into the current file
             svm_runtime::include_svm_vmcalls!($PC);
@@ -60,38 +60,23 @@ macro_rules! include_svm_runtime {
             }
 
             pub fn contract_exec(
-                tx: &Transaction,
+                tx: Transaction,
                 import_object: &wasmer_runtime::ImportObject,
-            ) -> Result<State, ContractExecError> {
-                let mut env = $env_gen();
-
-                dbg!("11111111111111111111111");
-                let contract = contract_load(tx, &mut env)?;
-
-                dbg!("22222222222222222222222");
-                let module = contract_compile(&contract, &tx.contract)?;
-
-                dbg!("33333333333333333333333");
-                let mut instance =
-                    module_instantiate(&contract, &tx.contract, &module, import_object)?;
-
-                dbg!("44444444444444444444444");
-                let args = prepare_args_and_memory(tx, &mut instance);
-
-                dbg!("555555555555555555555555");
-                let func = get_exported_func(&instance, &tx.func_name)?;
-
-                let res = match func.call(&args) {
-                    Err(e) => Err(ContractExecError::ExecFailed),
-                    Ok(_) => {
-                        let storage = get_instance_svm_storage_mut(&mut instance);
-                        let state = storage.commit();
-
-                        Ok(state)
-                    }
-                };
-
-                res
+            ) -> Receipt {
+                match do_contract_exec(&tx, import_object) {
+                    Err(e) => Receipt {
+                        success: false,
+                        error: Some(e),
+                        tx,
+                        new_state: None,
+                    },
+                    Ok(state) => Receipt {
+                        success: true,
+                        error: None,
+                        tx,
+                        new_state: Some(state),
+                    },
+                }
             }
 
             pub fn import_object_create(
@@ -138,6 +123,29 @@ macro_rules! include_svm_runtime {
                 import_object.register("svm", ns);
 
                 import_object
+            }
+
+            fn do_contract_exec(
+                tx: &Transaction,
+                import_object: &wasmer_runtime::ImportObject,
+            ) -> Result<State, ContractExecError> {
+                let mut env = $env_gen();
+
+                let contract = contract_load(tx, &mut env)?;
+                let module = contract_compile(&contract, &tx.contract)?;
+                let mut instance =
+                    module_instantiate(&contract, &tx.contract, &module, import_object)?;
+                let args = prepare_args_and_memory(tx, &mut instance);
+                let func = get_exported_func(&instance, &tx.func_name)?;
+
+                match func.call(&args) {
+                    Err(e) => Err(ContractExecError::ExecFailed),
+                    Ok(_) => {
+                        let storage = get_instance_svm_storage_mut(&mut instance);
+                        let state = storage.commit();
+                        Ok(state)
+                    }
+                }
             }
 
             fn contract_load(

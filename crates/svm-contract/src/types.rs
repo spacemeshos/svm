@@ -1,5 +1,4 @@
 pub use crate::traits::ContractAddressCompute;
-
 use serde::{Deserialize, Serialize};
 
 /// Represents a contract code hash
