@@ -131,8 +131,8 @@ macro_rules! build_raw_tx {
 fn call_storage_mem_to_reg_copy() {
     unsafe {
         let node_data = NodeData::default();
-        let raw_contract = alloc_raw_contract();
-        let raw_import_object = alloc_raw_import_object();
+        let raw_contract = alloc_raw_contract!();
+        let raw_import_object = alloc_raw_import_object!();
         let author_addr = Address::from([0xFF; 20].as_ref());
 
         // 1) deploy
@@ -174,8 +174,8 @@ fn call_storage_mem_to_reg_copy() {
             ]
         );
 
-        let raw_receipt = alloc_raw_receipt();
-        let raw_tx = alloc_raw_transaction();
+        let raw_receipt = alloc_raw_receipt!();
+        let raw_tx = alloc_raw_transaction!();
         let _ = svm_transaction_build(raw_tx, bytes.as_ptr(), bytes.len() as u64);
         let _ = svm_transaction_exec(raw_receipt, *raw_tx, *raw_import_object);
 

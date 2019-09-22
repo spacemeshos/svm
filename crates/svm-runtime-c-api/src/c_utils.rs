@@ -68,10 +68,45 @@ pub fn build_wasmer_import_t(
     }
 }
 
+// macro_rules! raw_ptr_c_struct {
+//     ($ptr_struct_name: ident, $c_type:path) => {
+//         #[repr(C)]
+//         pub(crate) struct $ptr_struct_name(pub(crate) *mut $c_type);
+//
+//         impl $ptr_struct_name {
+//             pub(crate) fn alloc_raw_ptr_stack() -> *mut $c_type {
+//                 let instance = $c_type { };
+//                 &mut instance as _
+//             }
+//         }
+//     };
+// }
+//
+// raw_ptr_c_struct!(svm_contract_t_ptr, crate::c_types::svm_contract_t);
+// raw_ptr_c_struct!(svm_transaction_t_ptr, crate::c_types::svm_transaction_t);
+// raw_ptr_c_struct!(svm_receipt_t_ptr, crate::c_types::svm_receipt_t);
+// raw_ptr_c_struct!(
+//     import_object_t_ptr,
+//     wasmer_runtime_c_api::import::wasmer_import_object_t
+// );
+
 #[doc(hidden)]
 #[macro_export]
-macro_rules! alloc_raw_ptr {
-    ($ptr_type: ident) => {{
+macro_rules! alloc_raw_ptr_stack {
+    ($ptr_struct_type: path, $) => {{
+        use std::alloc::Layout;
+
+        let ptr_size: usize = std::mem::size_of::<*mut *mut $ptr_type>();
+        let layout = Layout::from_size_align(ptr_size, std::mem::align_of::<u8>()).unwrap();
+        let raw_ptr: *mut *mut $ptr_type = unsafe { std::alloc::alloc(layout) as _ };
+        raw_ptr
+    }};
+}
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! alloc_raw_ptr_heap {
+    ($ptr_type: path) => {{
         use std::alloc::Layout;
 
         let ptr_size: usize = std::mem::size_of::<*mut *mut $ptr_type>();
@@ -83,33 +118,50 @@ macro_rules! alloc_raw_ptr {
 }
 
 #[doc(hidden)]
-pub fn alloc_raw_contract() -> *mut *mut svm_contract_t {
-    alloc_raw_ptr!(svm_contract_t)
+#[macro_export]
+macro_rules! alloc_raw_contract {
+    () => {{
+        alloc_raw_ptr_heap!($crate::c_types::svm_contract_t)
+    }};
 }
 
 #[doc(hidden)]
-pub fn alloc_raw_transaction() -> *mut *mut svm_transaction_t {
-    alloc_raw_ptr!(svm_transaction_t)
+#[macro_export]
+macro_rules! alloc_raw_transaction {
+    () => {{
+        alloc_raw_ptr_heap!($crate::c_types::svm_transaction_t)
+    }};
+}
+#[doc(hidden)]
+#[macro_export]
+macro_rules! alloc_raw_receipt {
+    () => {{
+        alloc_raw_ptr_heap!($crate::c_types::svm_receipt_t)
+    }};
 }
 
 #[doc(hidden)]
-pub fn alloc_raw_module() -> *mut *mut wasmer_module_t {
-    alloc_raw_ptr!(wasmer_module_t)
+#[macro_export]
+macro_rules! alloc_raw_module {
+    () => {{
+        alloc_raw_ptr_heap!(wasmer_module_t)
+    }};
 }
 
 #[doc(hidden)]
-pub fn alloc_raw_instance() -> *mut *mut wasmer_instance_t {
-    alloc_raw_ptr!(wasmer_instance_t)
+#[macro_export]
+macro_rules! alloc_raw_instance {
+    () => {{
+        alloc_raw_ptr_heap!(wasmer_instance_t)
+    }};
 }
 
 #[doc(hidden)]
-pub fn alloc_raw_import_object() -> *mut *mut wasmer_import_object_t {
-    alloc_raw_ptr!(wasmer_import_object_t)
-}
-
-#[doc(hidden)]
-pub fn alloc_raw_receipt() -> *mut *mut svm_receipt_t {
-    alloc_raw_ptr!(svm_receipt_t)
+#[macro_export]
+macro_rules! alloc_raw_import_object {
+    () => {{
+        alloc_raw_ptr_heap!(wasmer_runtime_c_api::import::wasmer_import_object_t)
+    }};
 }
 
 #[doc(hidden)]

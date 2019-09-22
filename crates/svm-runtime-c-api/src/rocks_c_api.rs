@@ -7,7 +7,7 @@ crate::include_svm_runtime_c_api!(
         use svm_storage::rocksdb::RocksPages;
 
         let kv = Rc::new(RefCell::new(RocksStore::new(std::path::Path::new(
-            "contract-storage",
+            "tests-contract-storage",
         ))));
 
         RocksPages::new(addr, kv, state, max_pages as u32)
@@ -25,7 +25,7 @@ crate::include_svm_runtime_c_api!(
             wasm::{WasmContractJsonDeserializer as D, WasmContractJsonSerializer as S},
         };
 
-        let store = RocksContractStore::<S, D>::new(std::path::Path::new("contract-code"));
+        let store = RocksContractStore::<S, D>::new(std::path::Path::new("tests-contract-code"));
         RocksEnv::new(store)
     }
 );
