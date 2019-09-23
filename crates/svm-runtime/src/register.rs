@@ -118,6 +118,13 @@ macro_rules! impl_register {
                     panic!("`bytes` can't fit register");
                 }
             }
+
+            /// Replaces a specific register byte with input `byte` at `offset` without affecting the rest.
+            pub fn replace_byte(&mut self, byte: u8, offset: i32) {
+                assert!(offset >= 0 && offset < $bytes_count);
+
+                self.0[offset as usize] = byte;
+            }
         }
 
         impl Debug for $reg_ident {
@@ -212,6 +219,18 @@ impl SvmReg {
             SvmReg::Reg160(reg) => reg.set(bytes),
             SvmReg::Reg256(reg) => reg.set(bytes),
             SvmReg::Reg512(reg) => reg.set(bytes),
+        }
+    }
+
+    /// Delegates `replace_byte` to the inner wrapped `SvmRegXXX`
+    #[inline(always)]
+    pub fn replace_byte(&mut self, byte: u8, offset: i32) {
+        match self {
+            SvmReg::Reg32(reg) => reg.replace_byte(byte, offset),
+            SvmReg::Reg64(reg) => reg.replace_byte(byte, offset),
+            SvmReg::Reg160(reg) => reg.replace_byte(byte, offset),
+            SvmReg::Reg256(reg) => reg.replace_byte(byte, offset),
+            SvmReg::Reg512(reg) => reg.replace_byte(byte, offset),
         }
     }
 

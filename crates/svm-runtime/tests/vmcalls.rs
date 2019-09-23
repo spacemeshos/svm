@@ -315,8 +315,8 @@ fn vmcalls_storage_write_from_reg() {
 }
 
 #[test]
-fn vmcalls_read_write_reg_le_i64() {
-    let module = wasmer_compile_module_file!("wasm/reg_read_write_le_i64.wast");
+fn vmcalls_reg_replace_byte_read_write_be_i64() {
+    let module = wasmer_compile_module_file!("wasm/reg_replace_read_write_be_i64.wast");
 
     let import_object = imports! {
         test_create_svm_state_gen!(),
@@ -324,22 +324,28 @@ fn vmcalls_read_write_reg_le_i64() {
         "svm" => {
             "storage_read_to_reg" => func!(vmcalls::storage_read_to_reg),
             "storage_write_from_reg" => func!(vmcalls::storage_write_from_reg),
-            "reg_read_le_i64" => func!(vmcalls::reg_read_le_i64),
-            "reg_write_le_i64" => func!(vmcalls::reg_write_le_i64),
+            "reg_replace_byte" => func!(vmcalls::reg_replace_byte),
+            "reg_read_be_i64" => func!(vmcalls::reg_read_be_i64),
+            "reg_write_be_i64" => func!(vmcalls::reg_write_be_i64),
         },
     };
 
     let instance = module.instantiate(&import_object).unwrap();
 
-    // we first initialize register `5` (of type `64 bits`) with `[254, 255, 0, 0, 0, 0, 0, 0]`
+    // we first initialize register `64:5` with `[254, 255, 0, 0, 0, 0, 0, 0]`
     let reg = svm_runtime::wasmer_ctx_reg!(instance.context(), 64, 5, MemMerklePageCache);
-    reg.set(&[254, 255]);
+    reg.set(&[0, 0, 0, 0, 0, 0, 255, 254]);
 
     let inc: Func<i32> = instance.func("inc").unwrap();
+    assert!(inc.call(5).is_ok());
+    assert_eq!(vec![0, 0, 0, 0, 0, 0, 255, 255], reg.view());
 
     assert!(inc.call(5).is_ok());
-    assert_eq!(vec![255, 255, 0, 0, 0, 0, 0, 0], reg.view());
+    assert_eq!(vec![0, 0, 0, 0, 0, 1, 0, 0], reg.view());
 
-    assert!(inc.call(5).is_ok());
-    assert_eq!(vec![0, 0, 1, 0, 0, 0, 0, 0], reg.view());
+    // now we'll change 2 bytes of register `64:5`
+    let replace: Func<(i32, i32, i32)> = instance.func("replace").unwrap();
+    assert!(replace.call(5, 10, 6).is_ok());
+    assert!(replace.call(5, 20, 7).is_ok());
+    assert_eq!(vec![0, 0, 0, 0, 0, 1, 10, 20], reg.view());
 }

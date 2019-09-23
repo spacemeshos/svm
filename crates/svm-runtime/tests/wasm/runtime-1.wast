@@ -1,6 +1,6 @@
 (module
   ;; import `svm` vmcalls
-  (func $reg_write_le_i64 (import "svm" "reg_write_le_i64") (param i64 i32 i32))
+  (func $reg_write_be_i64 (import "svm" "reg_write_be_i64") (param i64 i32 i32))
   (func $storage_write_from_reg (import "svm" "storage_write_from_reg") (param i32 i32 i32 i32 i32 i32))
   (memory 1)  ;; memory `0` (default) is initialized with one page
 
@@ -9,7 +9,7 @@
         get_local 0  ;; value
         get_local 1  ;; reg_bits
         get_local 2  ;; reg_idx
-        call $reg_write_le_i64
+        call $reg_write_be_i64
 
         ;; persist to storage
         get_local 1  ;; src_reg_bits

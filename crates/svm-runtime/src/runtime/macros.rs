@@ -117,8 +117,9 @@ macro_rules! include_svm_runtime {
                 );
 
                 // register
-                ns.insert("reg_read_le_i64", func!(vmcalls::reg_read_le_i64));
-                ns.insert("reg_write_le_i64", func!(vmcalls::reg_write_le_i64));
+                ns.insert("reg_replace_byte", func!(vmcalls::reg_replace_byte));
+                ns.insert("reg_read_be_i64", func!(vmcalls::reg_read_be_i64));
+                ns.insert("reg_write_be_i64", func!(vmcalls::reg_write_be_i64));
 
                 import_object.register("svm", ns);
 

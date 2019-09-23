@@ -1,5 +1,6 @@
 extern crate svm_runtime_c_api;
 
+use std::collections::HashMap;
 use std::ffi::c_void;
 
 use svm_common::{Address, State};
@@ -17,90 +18,79 @@ use svm_runtime_c_api::rocks_c_api::*;
 
 use wasmer_runtime::{Ctx, Func, Instance};
 use wasmer_runtime_c_api::{
+    import::wasmer_import_t,
     instance::{wasmer_instance_context_t, wasmer_module_import_instantiate},
     module::wasmer_module_t,
 };
 use wasmer_runtime_core::types::Type;
 
-/// Represents a fake `Node`
+/// Represents a fake `FullNode`
 #[repr(C)]
-struct NodeData {
-    pub(self) ip: [u8; 4],
-    pub(self) os: String,
+struct FullNode {
+    pub balance: HashMap<Address, i64>,
 }
 
-impl NodeData {
-    fn set_ip(&mut self, ip: i32) {
-        let ip = ip as u32;
-
-        let d = ((ip >> 00) & 0xFF) as u8;
-        let c = ((ip >> 08) & 0xFF) as u8;
-        let b = ((ip >> 16) & 0xFF) as u8;
-        let a = ((ip >> 24) & 0xFF) as u8;
-
-        self.ip = [a, b, c, d];
+impl FullNode {
+    pub fn set_balance(&mut self, addr: &Address, balance: i64) {
+        self.balance.insert(addr.clone(), balance);
     }
-}
 
-impl Default for NodeData {
-    fn default() -> Self {
-        Self {
-            ip: [0; 4],
-            os: "max".to_string(),
+    pub fn get_balance(&self, addr: &Address) -> i64 {
+        if let Some(balance) = self.balance.get(addr) {
+            *balance
+        } else {
+            0
         }
     }
 }
 
-/// Represents a fake node vmcall implemented in another programming-language using the FFI interface.
-/// See test: `call_node_get_balance`
-#[no_mangle]
-unsafe extern "C" fn get_balance(_ctx: *mut wasmer_instance_context_t, addr: i32) -> i64 {
-    return (addr + 100) as i64;
+impl Default for FullNode {
+    fn default() -> Self {
+        Self {
+            balance: Default::default(),
+        }
+    }
+}
+
+fn full_node_as_ptr(node: &FullNode) -> *const c_void {
+    node as *const FullNode as *const _
 }
 
 /// Represents a fake node vmcall implemented in another programming-language using the FFI interface.
-/// See test: `call_wasmer_svm_instance_context_node_data_get`
+/// See test: `call_node_get_set_balance`
 #[no_mangle]
-unsafe extern "C" fn set_ip(ctx: *mut wasmer_instance_context_t, new_ip: i32) {
-    let node_data: *mut c_void = svm_instance_context_node_data_get(ctx) as *mut _;
-    let node_data: &mut NodeData = &mut *(node_data as *mut _);
-    node_data.set_ip(new_ip);
+unsafe extern "C" fn vmcall_get_balance(
+    ctx: *mut wasmer_instance_context_t,
+    reg_bits: i32,
+    reg_idx: i32,
+) -> i64 {
+    assert_eq!(Address::len() * 8, reg_bits as usize);
+
+    let ptr: *const u8 = svm_register_get(ctx, reg_bits, reg_idx) as _;
+    let addr = Address::from(ptr);
+
+    let node: *const c_void = svm_instance_context_node_data_get(ctx);
+    let node: &FullNode = &*(node as *const FullNode);
+
+    node.get_balance(&addr)
 }
 
 /// Represents a fake node vmcall implemented in another programming-language using the FFI interface.
-/// See test: `call_wasmer_svm_register_ptr`
+/// See test: `call_node_get_set_balance`
 #[no_mangle]
-unsafe extern "C" fn copy_reg_to_reg(
-    ctx: *const wasmer_instance_context_t,
-    src_reg_idx: i32,
-    dst_reg_idx: i32,
+unsafe extern "C" fn vmcall_set_balance(
+    ctx: *mut wasmer_instance_context_t,
+    balance: i64,
+    reg_bits: i32,
+    reg_idx: i32,
 ) {
-    let src_reg_ptr: *const u8 = svm_register_get(ctx, 64, src_reg_idx) as *const _;
-    let dst_reg_ptr: *mut u8 = svm_register_get(ctx, 64, dst_reg_idx) as *mut _;
+    let ptr: *const u8 = svm_register_get(ctx, reg_bits, reg_idx) as _;
+    let addr = Address::from(ptr);
 
-    std::ptr::copy_nonoverlapping(src_reg_ptr, dst_reg_ptr, 8);
-}
+    let node: *mut c_void = svm_instance_context_node_data_get(ctx) as _;
+    let node: &mut FullNode = &mut *(node as *mut FullNode);
 
-#[cfg(test)]
-fn u32_addr_as_ptr(addr: u32) -> *const c_void {
-    use svm_common::Address;
-    let addr = Box::new(Address::from(addr));
-    let addr = Box::leak(addr);
-
-    addr.as_ptr() as _
-}
-
-#[cfg(test)]
-fn u32_state_as_ptr(state: u32) -> *const c_void {
-    use svm_common::State;
-    let state = Box::new(State::from(state));
-    let state = Box::leak(state);
-
-    state.as_ptr() as _
-}
-
-fn node_data_as_ptr(node_data: &NodeData) -> *const c_void {
-    node_data as *const NodeData as *const _
+    node.set_balance(&addr, balance);
 }
 
 macro_rules! build_raw_contract {
@@ -132,7 +122,7 @@ macro_rules! build_raw_tx {
 #[test]
 fn tx_exec_changing_state() {
     unsafe {
-        let node_data = NodeData::default();
+        let node = FullNode::default();
         let raw_contract = alloc_raw_contract!();
         let raw_import_object = alloc_raw_import_object!();
         let author_addr = Address::from([0xFF; 20].as_ref());
@@ -150,7 +140,7 @@ fn tx_exec_changing_state() {
             State::from(0).as_ptr() as _, // `raw_state: *const c_void`
             5,                            // `max_pages:  libc::c_int`
             100,                          // `max_pages_slices: libc::c_int`
-            node_data_as_ptr(&node_data), // `node_data_ptr:: *const c_void`
+            full_node_as_ptr(&node),      // `node_data_ptr:: *const c_void`
             std::ptr::null_mut(),         // `imports: *mut wasmer_import_t`
             0,                            // `imports_len: libc::c_int`
         );
@@ -173,7 +163,7 @@ fn tx_exec_changing_state() {
         let new_state = svm_receipt_new_state(*raw_receipt);
         let new_state = State::from(new_state);
 
-        // 3) asserting data has been persisted
+        // 3) asserting data has been persisted as expected
         let pages_storage =
             svm_runtime::gen_rocksdb_pages_storage!(addr, new_state, 5, "tests-contract-storage");
         let page_cache = svm_runtime::gen_rocksdb_page_cache!(pages_storage, 5);
@@ -199,44 +189,76 @@ fn tx_exec_changing_state() {
     }
 }
 
-// #[test]
-// fn call_node_get_balance() {
-//     unsafe {
-//         let node_data = NodeData::default();
-//         let gb_ptr = cast_vmcall_to_import_func_t!(get_balance, vec![Type::I32], vec![Type::I64]);
-//         let mut gb_import = build_wasmer_import_t("node", "get_balance", gb_ptr);
-//         let raw_import_object = alloc_raw_import_object();
-//
-//         svm_import_object(
-//             raw_import_object,
-//             u32_addr_as_ptr(0x11_22_33_44),  // `raw_addr: *const u8`
-//             u32_state_as_ptr(0x00_00_00_00), // `raw_state: *const u8`,
-//             5,                               // `max_pages: libc::c_int`
-//             100,                             // `max_pages_slices: libc::c_int`
-//             node_data_as_ptr(&node_data),    // `node_data_ptr:: *const c_void`
-//             &mut gb_import as *mut _,        // `imports: *mut wasmer_import_t`
-//             1,                               // `imports_len: libc::c_int`
-//         );
-//
-//         let import_object = deref_import_obj!(raw_import_object);
-//         let raw_instance = alloc_raw_instance();
-//         let module = wasmer_compile_module_file!("wasm/get_balance.wast");
-//         let res = wasmer_module_import_instantiate(raw_instance, module, import_object);
-//         let instance: &Instance = deref_instance!(raw_instance);
-//
-//         let func: Func<i32, i64> = instance.func("get_balance_proxy").unwrap();
-//         let res = func.call(20).unwrap();
-//         assert_eq!(100 + 20, res);
-//
-//         let instance = instance as *const Instance;
-//         Box::from_raw(instance as *mut Instance);
-//     }
-// }
+#[test]
+fn call_node_get_set_balance() {
+    unsafe {
+        let mut node = FullNode::default();
+        let raw_contract = alloc_raw_contract!();
+        let raw_import_object = alloc_raw_import_object!();
+        let author_addr = Address::from([0xFF; 20].as_ref());
+
+        // 1) deploy
+        let bytes = build_raw_contract!("wasm/mul_balance.wast", &author_addr);
+        let _ = svm_contract_build(raw_contract, bytes.as_ptr(), bytes.len() as u64);
+        let raw_addr = svm_contract_compute_address(*raw_contract);
+        let _ = svm_contract_store(*raw_contract, raw_addr);
+
+        // 2) execute
+        let gb_ptr = cast_vmcall_to_import_func_t!(
+            vmcall_get_balance,
+            vec![Type::I32, Type::I32],
+            vec![Type::I64]
+        );
+
+        let sb_ptr = cast_vmcall_to_import_func_t!(
+            vmcall_set_balance,
+            vec![Type::I64, Type::I32, Type::I32],
+            vec![]
+        );
+
+        let gb_import = build_wasmer_import_t("node", "vmcall_get_balance", gb_ptr);
+        let sb_import = build_wasmer_import_t("node", "vmcall_set_balance", sb_ptr);
+        let mut imports = [gb_import, sb_import];
+
+        svm_import_object(
+            raw_import_object,
+            raw_addr,                     // `raw_addr: *const u8`
+            State::from(0).as_ptr() as _, // `raw_state: *const u8`,
+            5,                            // `max_pages: libc::c_int`
+            100,                          // `max_pages_slices: libc::c_int`
+            full_node_as_ptr(&node),      // `node_data_ptr:: *const c_void`
+            imports.as_mut_ptr(),         // `imports: *mut wasmer_import_t`
+            imports.len() as _,           // `imports_len: libc::c_int`
+        );
+
+        let addr = Address::from(raw_addr);
+        let sender = Address::from([0xAB; 20].as_ref());
+
+        let bytes = build_raw_tx!(
+            addr.clone(),
+            sender,
+            "mul_balance",
+            &[WasmArgValue::I64(2)] // `balance` multiply-by factor
+        );
+
+        // we initialize account `0x00...10_20_30` with `balance = 100`
+        let balance_addr = Address::from(0x10_20_30);
+        node.set_balance(&balance_addr, 100);
+
+        let raw_receipt = alloc_raw_receipt!();
+        let raw_tx = alloc_raw_transaction!();
+        let _ = svm_transaction_build(raw_tx, bytes.as_ptr(), bytes.len() as u64);
+        let _ = svm_transaction_exec(raw_receipt, *raw_tx, *raw_import_object);
+
+        // asserting account `0x00...10_20_30` new balance is `200 (= 100 x 2)`
+        assert_eq!(200, node.get_balance(&balance_addr));
+    }
+}
 
 // #[test]
 // fn call_wasmer_svm_instance_context_node_data_get() {
 //     unsafe {
-//         let node_data = NodeData::default();
+//         let node = FullNode::default();
 //         let set_ip_ptr = cast_vmcall_to_import_func_t!(set_ip, vec![Type::I32], vec![]);
 //         let mut set_ip_import = build_wasmer_import_t("node", "set_ip", set_ip_ptr);
 //
@@ -248,7 +270,7 @@ fn tx_exec_changing_state() {
 //             u32_state_as_ptr(0x00_00_00_00), // `raw_state: *const u8`,
 //             5,                               // `max_pages: libc::c_int`
 //             100,                             // `max_pages_slices: libc::c_int`
-//             node_data_as_ptr(&node_data),    // `node_data_ptr:: *const c_void`
+//             full_node_as_ptr(&node),    // `node_data_ptr:: *const c_void`
 //             &mut set_ip_import as *mut _,    // `imports: *mut wasmer_import_t`
 //             1,                               // `imports_len: libc::c_int`
 //         );
@@ -261,9 +283,9 @@ fn tx_exec_changing_state() {
 //         let instance: &Instance = deref_instance!(raw_instance);
 //         let func: Func<i32> = instance.func("set_ip_proxy").unwrap();
 //
-//         assert_eq!([0, 0, 0, 0], node_data.ip);
+//         assert_eq!([0, 0, 0, 0], node.ip);
 //         let _ = func.call(0x10_20_30_40).unwrap();
-//         assert_eq!([0x10, 0x20, 0x30, 0x40], node_data.ip);
+//         assert_eq!([0x10, 0x20, 0x30, 0x40], node.ip);
 //     }
 // }
 //
