@@ -21,14 +21,17 @@ The root crate is called `svm` and it's a workspace crate.
 In order to build the `svm` project crates at once and run their tests:
 ```rust
 cargo +nightly build
-cargo +nightly test --all
+RUST_TEST_THREADS=1 cargo +nightly test --all
 ```
 
 If you want to build & test in release mode execute:
 ```rust
 cargo +nightly build --release
-cargo +nightly test --all --release
+RUST_TEST_THREADS=1 cargo +nightly test --all --release
 ```
+
+Note: since `leveldb` and `rocksdb` can't have parallel isolated connections to the same database (directory).
+That's why we ask `cargo` to run the tests serially (`RUST_TEST_THREADS=1`).
 
 
 ### Got Questions?

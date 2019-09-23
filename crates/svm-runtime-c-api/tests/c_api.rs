@@ -120,7 +120,7 @@ macro_rules! build_raw_tx {
 }
 
 #[test]
-fn tx_exec_changing_state() {
+fn runtime_tx_exec_changing_state() {
     unsafe {
         let node = FullNode::default();
         let raw_contract = alloc_raw_contract!();
@@ -146,9 +146,11 @@ fn tx_exec_changing_state() {
         );
 
         let addr = Address::from(raw_addr);
+        let sender = Address::from([0xAB; 20].as_ref());
+
         let bytes = build_raw_tx!(
             addr.clone(),
-            Address::from([0xAB; 20].as_ref()),
+            sender,
             "run",
             &[WasmArgValue::I64(0x10_20_30_40_50_60_70_80)]
         );
@@ -178,7 +180,7 @@ fn tx_exec_changing_state() {
 
         let slice = storage.read_page_slice(&slice_pos).unwrap();
         assert_eq!(
-            &[0x80, 0x70, 0x60, 0x50, 0x40, 0x30, 0x20, 0x10],
+            &[0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80],
             &slice[..]
         );
 
@@ -190,7 +192,7 @@ fn tx_exec_changing_state() {
 }
 
 #[test]
-fn call_node_get_set_balance() {
+fn runtime_node_vmcalls() {
     unsafe {
         let mut node = FullNode::default();
         let raw_contract = alloc_raw_contract!();
@@ -254,84 +256,3 @@ fn call_node_get_set_balance() {
         assert_eq!(200, node.get_balance(&balance_addr));
     }
 }
-
-// #[test]
-// fn call_wasmer_svm_instance_context_node_data_get() {
-//     unsafe {
-//         let node = FullNode::default();
-//         let set_ip_ptr = cast_vmcall_to_import_func_t!(set_ip, vec![Type::I32], vec![]);
-//         let mut set_ip_import = build_wasmer_import_t("node", "set_ip", set_ip_ptr);
-//
-//         let raw_import_object = alloc_raw_import_object();
-//
-//         svm_import_object(
-//             raw_import_object,
-//             u32_addr_as_ptr(0x11_22_33_44),  // `raw_addr: *const u8`
-//             u32_state_as_ptr(0x00_00_00_00), // `raw_state: *const u8`,
-//             5,                               // `max_pages: libc::c_int`
-//             100,                             // `max_pages_slices: libc::c_int`
-//             full_node_as_ptr(&node),    // `node_data_ptr:: *const c_void`
-//             &mut set_ip_import as *mut _,    // `imports: *mut wasmer_import_t`
-//             1,                               // `imports_len: libc::c_int`
-//         );
-//
-//         let import_object = deref_import_obj!(raw_import_object);
-//         let raw_instance = alloc_raw_instance();
-//         let module = wasmer_compile_module_file!("wasm/set_ip.wast");
-//
-//         let res = wasmer_module_import_instantiate(raw_instance, module, import_object);
-//         let instance: &Instance = deref_instance!(raw_instance);
-//         let func: Func<i32> = instance.func("set_ip_proxy").unwrap();
-//
-//         assert_eq!([0, 0, 0, 0], node.ip);
-//         let _ = func.call(0x10_20_30_40).unwrap();
-//         assert_eq!([0x10, 0x20, 0x30, 0x40], node.ip);
-//     }
-// }
-//
-// #[test]
-// fn call_wasmer_svm_register_get_set() {
-//     unsafe {
-//         let copy_reg2reg_ptr =
-//             cast_vmcall_to_import_func_t!(copy_reg_to_reg, vec![Type::I32, Type::I32], vec![]);
-//
-//         let mut copy_reg2reg_import =
-//             build_wasmer_import_t("node", "copy_reg_to_reg", copy_reg2reg_ptr);
-//
-//         let raw_import_object = alloc_raw_import_object();
-//
-//         svm_import_object(
-//             raw_import_object,
-//             u32_addr_as_ptr(0x11_22_33_44),  // `raw_addr: *const u8`
-//             u32_state_as_ptr(0x00_00_00_00), // `raw_state: *const u8`,
-//             5,                               // `max_pages: libc::c_int`
-//             100,                             // `max_pages_slices: libc::c_int`
-//             std::ptr::null(),                // `node_data_ptr:: *const c_void`
-//             &mut copy_reg2reg_import as *mut _, // `imports: *mut wasmer_import_t`
-//             1,                               // `imports_len: libc::c_int`
-//         );
-//
-//         let import_object = deref_import_obj!(raw_import_object);
-//         let raw_instance = alloc_raw_instance();
-//         let module = wasmer_compile_module_file!("wasm/copy_reg_to_reg.wast");
-//
-//         let res = wasmer_module_import_instantiate(raw_instance, module, import_object);
-//         let instance: &Instance = deref_instance!(raw_instance);
-//         let func: Func<(i32, i32)> = instance.func("copy_reg_to_reg_proxy").unwrap();
-//
-//         let ctx = instance.context() as *const Ctx as *const wasmer_instance_context_t;
-//         let reg2 = svm_register_get(ctx, 64, 2);
-//         let reg3 = wasmer_ctx_reg!(instance.context(), 64, 3, RocksPageCache);
-//
-//         // setting register `2` with data that will be copied later to register `3`
-//         let buf: Vec<u8> = vec![10, 20, 30, 40, 50, 60, 70, 80];
-//         svm_register_set(ctx, 64, 2, buf.as_ptr() as *const c_void, 8);
-//
-//         assert_eq!(vec![0; 8], reg3.view());
-//
-//         // should trigger copying the contents of register `2` to register `3`
-//         let _ = func.call(2, 3).unwrap();
-//
-//         assert_eq!(vec![10, 20, 30, 40, 50, 60, 70, 80], reg3.view());
-//     }
-// }
