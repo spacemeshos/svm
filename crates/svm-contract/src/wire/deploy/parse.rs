@@ -52,6 +52,7 @@ fn parse_name(cursor: &mut Cursor<&[u8]>) -> Result<String, ContractBuildError> 
     ensure_enough_bytes!(res, Field::NameLength);
 
     let name_len = res.unwrap() as usize;
+
     if name_len == 0 {
         return Err(ContractBuildError::EmptyName);
     }
@@ -112,7 +113,6 @@ fn parse_code(cursor: &mut Cursor<&[u8]>) -> Result<Vec<u8>, ContractBuildError>
     ensure_enough_bytes!(res, Field::CodeLength);
 
     let code_len = res.unwrap() as usize;
-
     let mut code = vec![0; code_len];
 
     let res = cursor.read_exact(&mut code);
