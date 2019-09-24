@@ -129,7 +129,11 @@ fn runtime_tx_exec_changing_state() {
 
         // 1) deploy
         let bytes = build_raw_contract!("wasm/store.wast", &author_addr);
-        let _ = svm_contract_build(raw_contract, bytes.as_ptr(), bytes.len() as u64);
+        let _ = svm_contract_build(
+            raw_contract,
+            bytes.as_ptr() as *const c_void,
+            bytes.len() as u64,
+        );
         let raw_addr = svm_contract_compute_address(*raw_contract);
         let _ = svm_contract_store(*raw_contract, raw_addr);
 
@@ -157,7 +161,7 @@ fn runtime_tx_exec_changing_state() {
 
         let raw_receipt = alloc_raw_receipt!();
         let raw_tx = alloc_raw_transaction!();
-        let _ = svm_transaction_build(raw_tx, bytes.as_ptr(), bytes.len() as u64);
+        let _ = svm_transaction_build(raw_tx, bytes.as_ptr() as *const c_void, bytes.len() as u64);
         let _ = svm_transaction_exec(raw_receipt, *raw_tx, *raw_import_object);
 
         assert_eq!(true, svm_receipt_result(*raw_receipt));
@@ -201,7 +205,11 @@ fn runtime_node_vmcalls() {
 
         // 1) deploy
         let bytes = build_raw_contract!("wasm/mul_balance.wast", &author_addr);
-        let _ = svm_contract_build(raw_contract, bytes.as_ptr(), bytes.len() as u64);
+        let _ = svm_contract_build(
+            raw_contract,
+            bytes.as_ptr() as *const c_void,
+            bytes.len() as u64,
+        );
         let raw_addr = svm_contract_compute_address(*raw_contract);
         let _ = svm_contract_store(*raw_contract, raw_addr);
 
@@ -249,7 +257,7 @@ fn runtime_node_vmcalls() {
 
         let raw_receipt = alloc_raw_receipt!();
         let raw_tx = alloc_raw_transaction!();
-        let _ = svm_transaction_build(raw_tx, bytes.as_ptr(), bytes.len() as u64);
+        let _ = svm_transaction_build(raw_tx, bytes.as_ptr() as *const c_void, bytes.len() as u64);
         let _ = svm_transaction_exec(raw_receipt, *raw_tx, *raw_import_object);
 
         // asserting account `0x00...10_20_30` new balance is `200 (= 100 x 2)`

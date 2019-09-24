@@ -1,6 +1,9 @@
+# abort on error
+set -e
+
 cargo +nightly build --release
 
-mv ../target/release/libsvm_wasmer_c_api.dylib ./libsvm_wasmer_c_api.dylib
+mv ../../../target/release/libsvm_runtime_c_api.dylib ./libsvm_wasmer_c_api.dylib
 
 make counter
 

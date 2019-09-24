@@ -52,10 +52,10 @@ macro_rules! include_svm_runtime_c_api {
         #[no_mangle]
         pub unsafe extern "C" fn svm_contract_build(
             raw_contract: *mut *mut svm_contract_t,
-            raw_bytes: *const u8,
+            raw_bytes: *const c_void,
             raw_bytes_len: u64,
         ) -> wasmer_result_t {
-            let bytes = std::slice::from_raw_parts(raw_bytes, raw_bytes_len as usize);
+            let bytes = std::slice::from_raw_parts(raw_bytes as *const u8, raw_bytes_len as usize);
             let result = runtime::contract_build(&bytes);
 
             match result {
@@ -110,10 +110,11 @@ macro_rules! include_svm_runtime_c_api {
         #[no_mangle]
         pub unsafe extern "C" fn svm_transaction_build(
             raw_tx: *mut *mut svm_transaction_t,
-            raw_bytes: *const u8,
+            raw_bytes: *const c_void,
             raw_bytes_len: u64,
         ) -> wasmer_result_t {
-            let bytes: &[u8] = std::slice::from_raw_parts(raw_bytes, raw_bytes_len as usize);
+            let bytes: &[u8] =
+                std::slice::from_raw_parts(raw_bytes as *const u8, raw_bytes_len as usize);
             let result = runtime::transaction_build(bytes);
 
             match result {
@@ -263,13 +264,6 @@ macro_rules! include_svm_runtime_c_api {
             } else {
                 panic!("method not allowed to be called when transaction execution failed");
             }
-        }
-
-        #[must_use]
-        #[no_mangle]
-        #[inline(always)]
-        pub unsafe extern "C" fn svm_receipt_gas_used(raw_receipt: *const svm_receipt_t) -> u64 {
-            unimplemented!()
         }
     };
 }

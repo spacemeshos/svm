@@ -8,7 +8,7 @@
 
 typedef struct {
     uint32_t counter;
-} node_data_t;
+} full_node_t;
 
 typedef struct {
     uint8_t* bytes;
@@ -30,14 +30,14 @@ wasm_file_t read_wasm_file(const char* file_name) {
     return wasm_file;
 }
 
-node_data_t* new_node_data(uint32_t counter) {
-   node_data_t* ptr = (node_data_t*)malloc(sizeof(node_data_t));
+full_node_t* full_node_new(uint32_t counter) {
+   full_node_t* ptr = (full_node_t*)malloc(sizeof(full_node_t));
    ptr->counter = counter;
    return ptr;
 }
 
 void inc_counter_from_reg(wasmer_instance_context_t *ctx, uint32_t reg_idx) {
-    uint8_t* reg_bytes = (uint8_t*)wasmer_svm_register_get(ctx, 64, reg_idx);
+    uint8_t* reg_bytes = (uint8_t*)svm_register_get(ctx, 64, reg_idx);
 
     uint8_t a = reg_bytes[0];
     uint8_t b = reg_bytes[1];
@@ -46,12 +46,12 @@ void inc_counter_from_reg(wasmer_instance_context_t *ctx, uint32_t reg_idx) {
 
     uint32_t amount = a | (b << 8) | (c << 16) | (d << 24);
 
-    node_data_t *nd = (node_data_t*)(wasmer_svm_instance_context_node_data_get(ctx));
+    full_node_t *nd = (full_node_t*)(svm_instance_context_node_data_get(ctx));
     nd->counter = nd->counter + amount;
 }
 
 uint32_t get_counter(wasmer_instance_context_t *ctx) {
-    node_data_t *nd = (node_data_t*)(wasmer_svm_instance_context_node_data_get(ctx));
+    full_node_t *nd = (full_node_t*)(svm_instance_context_node_data_get(ctx));
     return nd->counter;
 }
 
@@ -76,12 +76,12 @@ wasmer_import_t create_import(const char *module_name, const char *import_name, 
 wasmer_result_t create_import_object(wasmer_import_object_t** import_object, uint32_t addr, uint32_t state, uint32_t init_counter, wasmer_import_t* imports, uint32_t imports_len) {
     void* addr_ptr = (void*)(&addr);
     void* state_ptr = (void*)(&state);
-    void* node_data = (void*)(new_node_data(init_counter));
+    void* node = (void*)(full_node_new(init_counter));
 
     uint32_t max_pages = 5;
     uint32_t max_pages_slices = 100;
 
-    return wasmer_svm_import_object(import_object, addr_ptr, state_ptr, max_pages, max_pages_slices, node_data, imports, imports_len);
+    return svm_import_object(import_object, addr_ptr, state_ptr, max_pages, max_pages_slices, node, imports, imports_len);
 }
 
 int main() {
@@ -103,7 +103,7 @@ int main() {
 
     wasmer_import_t imports[] = {get_import, inc_import};
 
-    // Create the Import Object
+    // Create the import-object
     wasmer_import_object_t *import_object;
     wasmer_result_t import_result = create_import_object(&import_object, 0x11223344, 0xAABBCCDD, 9, imports, 2);
     assert(import_result == WASMER_OK);
@@ -132,7 +132,7 @@ int main() {
     // Now, let's increment the counter by `7`. In order to do that we set register `2` with `7`
     const wasmer_instance_context_t *ctx = wasmer_instance_context_get(instance);
     uint8_t counter[] = {7};
-    wasmer_svm_register_set(ctx, 64, 2, counter, 1);
+    svm_register_set(ctx, 64, 2, counter, 1);
 
     wasmer_value_t arg_amount;
     arg_amount.tag = WASM_I32;
