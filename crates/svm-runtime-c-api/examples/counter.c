@@ -34,7 +34,7 @@ wasm_file_t read_wasm_file(const char* file_name) {
     return wasm_file;
 }
 
-uint64_t create_wire_contract(uint8_t **bytes) {
+uint64_t create_wire_contract(uint8_t **bytes, void* author) {
     // https://github.com/spacemeshos/svm/blob/master/crates/svm-contract/src/wire/deploy/mod.rs
     wasm_file_t file = read_wasm_file("wasm/counter.wasm");
 
@@ -63,10 +63,8 @@ uint64_t create_wire_contract(uint8_t **bytes) {
     const char* name = "Example";
     memcpy(&buf[5], name, 7);
 
-    // set author address = 0xAA...AA
-    for(int i = 0; i < 20; i++) {
-        buf[12 + i] = 0xAA;
-    }
+    // set `author address`
+    memcpy(&buf[12], author, 20);
 
     // set `#admins=0`
     buf[32] = 0;
@@ -87,6 +85,45 @@ uint64_t create_wire_contract(uint8_t **bytes) {
 
     // copy contract wasm
     memcpy(&buf[44], file.bytes, file.bytes_len);
+
+    *bytes = buf;
+
+    return bytes_len;
+}
+
+uint64_t create_wire_transaction(uint8_t **bytes, void *addr, void *sender, const char* func_name, uint8_t func_name_len, uint8_t args_count, uint8_t* args_buf, uint32_t args_buf_len) {
+    // https://github.com/spacemeshos/svm/blob/master/crates/svm-contract/src/wire/exec/mod.rs
+
+    uint64_t bytes_len =
+      4  +   // proto version
+      20  +  // contract address
+      20  +  // sender address
+      1   +  // function name length
+      (uint64_t)func_name_len +  // `len(func_name0)`
+      1;    // #args
+
+    uint8_t* buf = (uint8_t*)(malloc(bytes_len));
+
+    // set `proto=0`
+    buf[0] = 0;
+    buf[1] = 0;
+    buf[2] = 0;
+    buf[3] = 0;
+
+    // set contract address
+    memcpy(&buf[4], addr, 20);
+
+    // set sender address
+    memcpy(&buf[24], sender, 20);
+
+    // set `func_name_len`
+    buf[44] = func_name_len;
+
+    // set `func_name`
+    memcpy(&buf[45], func_name, func_name_len);
+
+    // set `#args_count`
+    buf[45 + func_name_len] = args_count;
 
     *bytes = buf;
 
@@ -118,7 +155,7 @@ uint32_t get_counter(wasmer_instance_context_t *ctx) {
     return nd->counter;
 }
 
-wasmer_result_t contract_deploy(void **addr, uint8_t* bytes, uint64_t bytes_len) {
+wasmer_result_t contract_deploy(uint8_t **addr, uint8_t* bytes, uint64_t bytes_len) {
     svm_contract_t *contract;
 
     wasmer_result_t build_res = svm_contract_build(&contract, (void*)bytes, bytes_len);
@@ -126,12 +163,18 @@ wasmer_result_t contract_deploy(void **addr, uint8_t* bytes, uint64_t bytes_len)
         return build_res;
     }
 
-    *addr = svm_contract_compute_address(contract);
+    uint8_t* buf = (uint8_t*)svm_contract_compute_address(contract);
 
-    wasmer_result_t store_res = svm_contract_store(contract, addr);
+    for (int i = 0; i < 20; i++) {
+        printf("%02X ", buf[i]);
+    }
+
+    wasmer_result_t store_res = svm_contract_store(contract, (void*)buf);
     if (store_res != WASMER_OK) {
         return store_res;
     }
+
+    *addr = buf;
 
     return WASMER_OK;
 }
@@ -184,33 +227,63 @@ wasmer_import_t* prepare_imports() {
 }
 
 int main() {
-    uint8_t *bytes;
-    uint64_t bytes_len = create_wire_contract(&bytes);
+    // `author address = 0xAA..AA`
+    void *author = (void*)malloc(20);
+    memset(author, 0xBB, 20);
 
-    void *addr;
-    wasmer_result_t deploy_res = contract_deploy(&addr, bytes, bytes_len);
+    uint8_t *deploy_bytes;
+    uint64_t deploy_bytes_len = create_wire_contract(&deploy_bytes, author);
+
+    uint8_t *addr;
+    wasmer_result_t deploy_res = contract_deploy(&addr, deploy_bytes, deploy_bytes_len);
     assert(deploy_res == WASMER_OK);
 
-    /* wasmer_import_t* imports = prepare_imports(); */
-    /* uint8_t *state[] = {0, 0, 0, 0, 0, 0}; */
+    printf("Deployed contract successfully...\n");
+    printf("Contract account address:\n");
 
-    /* wasmer_import_object_t *import_object; */
-    /* wasmer_result_t import_result = create_import_object(&import_object, 0x11223344, 0x00000000, 9, imports, 2); */
-    /* assert(import_result == WASMER_OK); */
+    for (int i = 0; i < 20; i++) {
+        printf("%d ", addr[i]);
+    }
 
-    /* // Read the wasm file */
-    /* wasm_file_t wasm_file = read_wasm_file("wasm/counter.wasm"); */
-    /*  */
-    /* // Compile wasm into wasmer module */
-    /* wasmer_module_t* module = NULL; */
-    /* wasmer_result_t compile_res = wasmer_compile(&module, wasm_file.bytes, wasm_file.bytes_len); */
-    /* assert(compile_res == WASMER_OK); */
-    /*  */
-    /* wasmer_instance_t *instance = NULL; */
-    /* wasmer_result_t instance_res = wasmer_module_import_instantiate(&instance, module, import_object); */
-    /* assert(instance_res == WASMER_OK); */
-    /*  */
-    /* // First we want to assert that the counter has been initialized with `9` */
+    printf("\n\n");
+
+    wasmer_import_t* imports = prepare_imports();
+
+    // `state` consists of 32 bytes
+    uint8_t *state = (uint8_t*)malloc(32);
+
+    // we'll run with a zero-state (`00...00`)
+    memset(state, 0, 32);
+
+    // import object
+    wasmer_import_object_t *import_object;
+    wasmer_result_t import_result = create_import_object(&import_object,(void*)addr, (void*)state, 9, imports, 2);
+    assert(import_result == WASMER_OK);
+
+    // `sender address = 0xBB..BB`
+    uint8_t *sender = (uint8_t*)malloc(20);
+    memset(sender, 0xBB, 20);
+
+    // First we want to assert that the counter has been initialized with `9` as expected (see `create_import_object` above)
+    uint8_t *tx_bytes;
+    uint64_t tx_bytes_len = create_wire_transaction(
+        &tx_bytes,
+        addr,
+        (void*)sender,
+        "get_counter_proxy",
+        strlen("get_counter_proxy"),
+        0,    // `args_count = 0`
+        NULL, // `args_buf = NULL`
+        0);   // `args_buf_len = 0`
+
+    svm_transaction_t *tx;
+    wasmer_result_t tx_res = svm_transaction_build(&tx, (void*)tx_bytes, tx_bytes_len);
+    assert(tx_res == WASMER_OK);
+
+    svm_receipt_t *receipt;
+    wasmer_result_t exec_res = svm_transaction_exec(&receipt, tx, import_object);
+    assert(exec_res == WASMER_OK);
+
     /* wasmer_value_t result_one; */
     /* wasmer_value_t get_params[] = {}; */
     /* wasmer_value_t get_results[] = {result_one}; */

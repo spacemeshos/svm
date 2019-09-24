@@ -144,9 +144,10 @@ macro_rules! include_svm_runtime_c_api {
             let import_object = cast_to_rust_type!(raw_import_object, ImportObject);
 
             let receipt = runtime::contract_exec(tx.clone(), import_object);
+            dbg!(&receipt);
             *raw_receipt = into_raw!(receipt, svm_receipt_t);
 
-            wasmer_result_t::WASMER_ERROR
+            wasmer_result_t::WASMER_OK
         }
 
         /// Returns a raw pointer to the `wasmer svm` register's internal content
