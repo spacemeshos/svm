@@ -27,6 +27,7 @@ macro_rules! include_svm_runtime_c_api {
             import::{wasmer_import_object_extend, wasmer_import_object_t, wasmer_import_t},
             instance::wasmer_instance_context_t,
             module::wasmer_module_t,
+            value::wasmer_value_t,
             wasmer_result_t,
         };
         use wasmer_runtime_core::import::Namespace;
@@ -144,7 +145,7 @@ macro_rules! include_svm_runtime_c_api {
             let import_object = cast_to_rust_type!(raw_import_object, ImportObject);
 
             let receipt = runtime::contract_exec(tx.clone(), import_object);
-            dbg!(&receipt);
+            // dbg!(&receipt);
             *raw_receipt = into_raw!(receipt, svm_receipt_t);
 
             wasmer_result_t::WASMER_OK
@@ -233,15 +234,39 @@ macro_rules! include_svm_runtime_c_api {
 
         #[must_use]
         #[no_mangle]
-        #[inline(always)]
-        pub unsafe extern "C" fn svm_receipt_result(raw_receipt: *const svm_receipt_t) -> bool {
+        pub unsafe extern "C" fn svm_receipt_status(raw_receipt: *const svm_receipt_t) -> bool {
             let receipt = cast_to_rust_type!(raw_receipt, Receipt);
             receipt.success
         }
 
         #[must_use]
         #[no_mangle]
-        #[inline(always)]
+        pub unsafe extern "C" fn svm_receipt_results(
+            raw_receipt: *const svm_receipt_t,
+            results: *mut *mut wasmer_value_t,
+            results_len: *mut u32,
+        ) {
+            let receipt = cast_to_rust_type!(raw_receipt, Receipt);
+
+            if receipt.success {
+                let mut c_results = Vec::with_capacity(*results_len as usize);
+
+                for value in receipt.results.iter() {
+                    let c_value = wasmer_value_t::from(value.clone());
+                    c_results.push(c_value);
+                }
+
+                let c_results: &mut Vec<wasmer_value_t> = Box::leak(Box::new(c_results));
+
+                *results = c_results.as_mut_ptr();
+                *results_len = receipt.results.len() as u32;
+            } else {
+                panic!("method not allowed to be called when transaction execution failed");
+            }
+        }
+
+        #[must_use]
+        #[no_mangle]
         pub unsafe extern "C" fn svm_receipt_error(raw_receipt: *const svm_receipt_t) {
             let receipt = cast_to_rust_type!(raw_receipt, Receipt);
 
@@ -253,7 +278,6 @@ macro_rules! include_svm_runtime_c_api {
 
         #[must_use]
         #[no_mangle]
-        #[inline(always)]
         pub unsafe extern "C" fn svm_receipt_new_state(
             raw_receipt: *const svm_receipt_t,
         ) -> *const u8 {

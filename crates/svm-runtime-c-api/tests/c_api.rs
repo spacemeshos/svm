@@ -164,7 +164,7 @@ fn runtime_tx_exec_changing_state() {
         let _ = svm_transaction_build(raw_tx, bytes.as_ptr() as *const c_void, bytes.len() as u64);
         let _ = svm_transaction_exec(raw_receipt, *raw_tx, *raw_import_object);
 
-        assert_eq!(true, svm_receipt_result(*raw_receipt));
+        assert_eq!(true, svm_receipt_status(*raw_receipt));
 
         let new_state = svm_receipt_new_state(*raw_receipt);
         let new_state = State::from(new_state);

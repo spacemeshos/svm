@@ -99,7 +99,13 @@ wasmer_result_t svm_import_object(wasmer_import_object_t** import_object,
 /**
  * Returns `true` if transaction succedded and `false` otherwise *
  */
-bool svm_receipt_result(svm_receipt_t *receipt);
+bool svm_receipt_status(svm_receipt_t *receipt);
+
+
+/**
+ * Returns the transaction executed function results
+ */
+void svm_receipt_results(svm_receipt_t *receipt, wasmer_value_t **results, uint32_t *results_len);
 
 /**
  * If transaction failed, usus `wasmer_last_error_message` to get an error message.

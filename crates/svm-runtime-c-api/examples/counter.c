@@ -165,10 +165,6 @@ wasmer_result_t contract_deploy(uint8_t **addr, uint8_t* bytes, uint64_t bytes_l
 
     uint8_t* buf = (uint8_t*)svm_contract_compute_address(contract);
 
-    for (int i = 0; i < 20; i++) {
-        printf("%02X ", buf[i]);
-    }
-
     wasmer_result_t store_res = svm_contract_store(contract, (void*)buf);
     if (store_res != WASMER_OK) {
         return store_res;
@@ -284,15 +280,24 @@ int main() {
     wasmer_result_t exec_res = svm_transaction_exec(&receipt, tx, import_object);
     assert(exec_res == WASMER_OK);
 
-    /* wasmer_value_t result_one; */
-    /* wasmer_value_t get_params[] = {}; */
-    /* wasmer_value_t get_results[] = {result_one}; */
-    /* wasmer_result_t call_result1 = wasmer_instance_call(instance, "get_counter_proxy", get_params, 0, get_results, 1); */
-    /* printf("Result: %d\n", get_results[0].value.I32); */
-    /* assert(get_results[0].value.I32 == 9); */
-    /* assert(call_result1 == WASMER_OK); */
-    /*  */
-    /* // Now, let's increment the counter by `7`. In order to do that we set register `2` with `7` */
+    assert(svm_receipt_status(receipt) == true);
+
+    uint8_t *new_state = svm_receipt_new_state(receipt);
+
+    printf("New contract state:\n");
+    for (int i = 0; i < 32; i++) {
+        printf("%02X ", new_state[i]);
+    }
+
+    wasmer_value_t *results;
+    uint32_t results_len;
+    svm_receipt_results(receipt, &results, &results_len);
+
+    assert(results_len == 1);
+    wasmer_value_t result = results[0];
+    assert(result.value.I32 == 9);
+
+    // Now, let's increment the counter by `7`. In order to do that we set register `2` with `7`
     /* const wasmer_instance_context_t *ctx = wasmer_instance_context_get(instance); */
     /* uint8_t counter[] = {7}; */
     /* svm_register_set(ctx, 64, 2, counter, 1); */

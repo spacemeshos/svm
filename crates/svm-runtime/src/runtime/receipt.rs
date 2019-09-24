@@ -3,6 +3,8 @@ use crate::runtime::ContractExecError;
 use svm_common::State;
 use svm_contract::transaction::Transaction;
 
+use wasmer_runtime::Value;
+
 /// Runtime transaction execution receipt
 #[derive(Debug)]
 pub struct Receipt {
@@ -17,4 +19,7 @@ pub struct Receipt {
 
     /// the new contract `State` if execution succedded
     pub new_state: Option<State>,
+
+    /// returned values
+    pub results: Vec<Value>,
 }

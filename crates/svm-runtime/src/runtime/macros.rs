@@ -68,12 +68,14 @@ macro_rules! include_svm_runtime {
                         success: false,
                         error: Some(e),
                         tx,
+                        results: Vec::new(),
                         new_state: None,
                     },
-                    Ok(state) => Receipt {
+                    Ok((state, results)) => Receipt {
                         success: true,
                         error: None,
                         tx,
+                        results,
                         new_state: Some(state),
                     },
                 }
@@ -102,7 +104,7 @@ macro_rules! include_svm_runtime {
 
                 let mut ns = wasmer_runtime_core::import::Namespace::new();
 
-                // storage
+                // storage vmcalls
                 ns.insert("mem_to_reg_copy", func!(vmcalls::mem_to_reg_copy));
                 ns.insert("reg_to_mem_copy", func!(vmcalls::reg_to_mem_copy));
                 ns.insert("storage_read_to_reg", func!(vmcalls::storage_read_to_reg));
@@ -116,7 +118,7 @@ macro_rules! include_svm_runtime {
                     func!(vmcalls::storage_write_from_reg),
                 );
 
-                // register
+                // register vmcalls
                 ns.insert("reg_replace_byte", func!(vmcalls::reg_replace_byte));
                 ns.insert("reg_read_be_i64", func!(vmcalls::reg_read_be_i64));
                 ns.insert("reg_write_be_i64", func!(vmcalls::reg_write_be_i64));
@@ -126,25 +128,25 @@ macro_rules! include_svm_runtime {
                 import_object
             }
 
+            #[inline(always)]
             fn do_contract_exec(
                 tx: &Transaction,
                 import_object: &wasmer_runtime::ImportObject,
-            ) -> Result<State, ContractExecError> {
+            ) -> Result<(State, Vec<wasmer_runtime::Value>), ContractExecError> {
                 let mut env = $env_gen();
 
                 let contract = contract_load(tx, &mut env)?;
                 let module = contract_compile(&contract, &tx.contract)?;
-                let mut instance =
-                    module_instantiate(&contract, &tx.contract, &module, import_object)?;
+                let mut instance = instantiate(&contract, &tx.contract, &module, import_object)?;
                 let args = prepare_args_and_memory(tx, &mut instance);
                 let func = get_exported_func(&instance, &tx.func_name)?;
 
                 match func.call(&args) {
                     Err(e) => Err(ContractExecError::ExecFailed),
-                    Ok(_) => {
+                    Ok(results) => {
                         let storage = get_instance_svm_storage_mut(&mut instance);
                         let state = storage.commit();
-                        Ok(state)
+                        Ok((state, results))
                     }
                 }
             }
@@ -173,7 +175,7 @@ macro_rules! include_svm_runtime {
                 }
             }
 
-            fn module_instantiate(
+            fn instantiate(
                 contract: &Contract,
                 addr: &Address,
                 module: &wasmer_runtime::Module,
