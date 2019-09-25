@@ -91,7 +91,34 @@ uint64_t create_wire_contract(uint8_t **bytes, void* author) {
     return bytes_len;
 }
 
-uint64_t create_wire_transaction(uint8_t **bytes, void *addr, void *sender, const char* func_name, uint8_t func_name_len, uint8_t args_count, uint8_t* args_buf, uint32_t args_buf_len) {
+uint8_t* create_wire_int32_arg(uint32_t value) {
+    // we allocate 5 bytes for `int32` arg:
+    // 1 - arg type
+    // 4 - encoding of `value` (big-endian)
+    uint8_t* arg_buf = (uint8_t*)malloc(5);
+
+    // arg type i32 = 0
+    arg_buf[0] = 0;
+
+    // `value` is assumed to be laid-out in *little-endian* in memory
+    arg_buf[1] = (value >> 24) & 0xFF;
+    arg_buf[2] = (value >> 16) & 0xFF;
+    arg_buf[3] = (value >> 8) & 0xFF;
+    arg_buf[4] = (value >> 0) & 0xFF;
+
+    return arg_buf;
+}
+
+uint64_t create_wire_transaction(
+    uint8_t **bytes,
+    void *addr,
+    void *sender,
+    const char* func_name,
+    uint8_t func_name_len,
+    uint8_t args_count,
+    uint8_t* args_buf,
+    uint32_t args_buf_len
+) {
     // https://github.com/spacemeshos/svm/blob/master/crates/svm-contract/src/wire/exec/mod.rs
 
     uint64_t bytes_len =
@@ -100,7 +127,8 @@ uint64_t create_wire_transaction(uint8_t **bytes, void *addr, void *sender, cons
       20  +  // sender address
       1   +  // function name length
       (uint64_t)func_name_len +  // `len(func_name0)`
-      1;    // #args
+      1   +  // #args
+      args_buf_len; // `len(arg_buf)`
 
     uint8_t* buf = (uint8_t*)(malloc(bytes_len));
 
@@ -125,34 +153,32 @@ uint64_t create_wire_transaction(uint8_t **bytes, void *addr, void *sender, cons
     // set `#args_count`
     buf[45 + func_name_len] = args_count;
 
+    // `args_buf`
+    memcpy(&buf[45 + func_name_len + args_count], args_buf, args_buf_len);
+
     *bytes = buf;
 
     return bytes_len;
 }
 
 full_node_t* full_node_new(uint32_t counter) {
-   full_node_t* ptr = (full_node_t*)malloc(sizeof(full_node_t));
-   ptr->counter = counter;
-   return ptr;
+   full_node_t* node = (full_node_t*)malloc(sizeof(full_node_t));
+   node->counter = counter;
+   return node;
 }
 
-void inc_counter_from_reg(wasmer_instance_context_t *ctx, uint32_t reg_idx) {
-    uint8_t* reg_bytes = (uint8_t*)svm_register_get(ctx, 64, reg_idx);
-
-    uint8_t a = reg_bytes[0];
-    uint8_t b = reg_bytes[1];
-    uint8_t c = reg_bytes[2];
-    uint8_t d = reg_bytes[3];
-
-    uint32_t amount = a | (b << 8) | (c << 16) | (d << 24);
-
-    full_node_t *nd = (full_node_t*)(svm_instance_context_node_data_get(ctx));
-    nd->counter = nd->counter + amount;
+full_node_t* extract_ctx_nod(wasmer_instance_context_t *ctx) {
+    return (full_node_t*)(svm_instance_context_node_data_get(ctx));
 }
 
-uint32_t get_counter(wasmer_instance_context_t *ctx) {
-    full_node_t *nd = (full_node_t*)(svm_instance_context_node_data_get(ctx));
-    return nd->counter;
+void vmcall_inc_counter(wasmer_instance_context_t *ctx, uint32_t value) {
+    full_node_t *node = extract_ctx_nod(ctx);
+    node->counter = node->counter + value;
+}
+
+uint32_t vmcall_get_counter(wasmer_instance_context_t *ctx) {
+    full_node_t *node = extract_ctx_nod(ctx);
+    return node->counter;
 }
 
 wasmer_result_t contract_deploy(uint8_t **addr, uint8_t* bytes, uint64_t bytes_len) {
@@ -193,7 +219,14 @@ wasmer_import_t create_import(const char *module_name, const char *import_name, 
     return import;
 }
 
-wasmer_result_t create_import_object(wasmer_import_object_t** import_object, void *addr, void *state, uint32_t init_counter, wasmer_import_t* imports, uint32_t imports_len) {
+wasmer_result_t create_import_object(
+    wasmer_import_object_t** import_object,
+    void *addr,
+    void *state,
+    uint32_t init_counter,
+    wasmer_import_t* imports,
+    uint32_t imports_len
+) {
     void* node = (void*)(full_node_new(init_counter));
 
     uint32_t max_pages = 5;
@@ -206,14 +239,14 @@ wasmer_import_t* prepare_imports() {
     // Prepare import for `inc_counter`
     wasmer_value_tag inc_params_sig[] = {WASM_I32};
     wasmer_value_tag inc_returns_sig[] = {};
-    wasmer_import_func_t *inc_func = wasmer_import_func_new((void (*)(void *)) inc_counter_from_reg, inc_params_sig, 1, inc_returns_sig, 0);
-    wasmer_import_t inc_import = create_import("node", "inc_counter_from_reg", inc_func);
+    wasmer_import_func_t *inc_func = wasmer_import_func_new((void (*)(void *)) vmcall_inc_counter, inc_params_sig, 1, inc_returns_sig, 0);
+    wasmer_import_t inc_import = create_import("node", "vmcall_inc_counter", inc_func);
 
     // Prepare import for `get_counter`
     wasmer_value_tag get_params_sig[] = {};
     wasmer_value_tag get_returns_sig[] = {WASM_I32};
-    wasmer_import_func_t *get_func = wasmer_import_func_new((void (*)(void *)) get_counter, get_params_sig, 0, get_returns_sig, 1);
-    wasmer_import_t get_import = create_import("node", "get_counter", get_func);
+    wasmer_import_func_t *get_func = wasmer_import_func_new((void (*)(void *)) vmcall_get_counter, get_params_sig, 0, get_returns_sig, 1);
+    wasmer_import_t get_import = create_import("node", "vmcall_get_counter", get_func);
 
     wasmer_import_t *imports = (wasmer_import_t*)(malloc(sizeof(wasmer_import_t) * 2));
     imports[0] = inc_import;
@@ -260,67 +293,109 @@ int main() {
     uint8_t *sender = (uint8_t*)malloc(20);
     memset(sender, 0xBB, 20);
 
-    // First we want to assert that the counter has been initialized with `9` as expected (see `create_import_object` above)
-    uint8_t *tx_bytes;
-    uint64_t tx_bytes_len = create_wire_transaction(
-        &tx_bytes,
+    // 1) First we want to assert that the counter has been initialized with `9` as expected (see `create_import_object` above)
+    uint8_t *tx1_bytes;
+    uint64_t tx1_bytes_len = create_wire_transaction(
+        &tx1_bytes,
         addr,
         (void*)sender,
-        "get_counter_proxy",
-        strlen("get_counter_proxy"),
+        "get",
+        strlen("get"),
         0,    // `args_count = 0`
         NULL, // `args_buf = NULL`
         0);   // `args_buf_len = 0`
 
-    svm_transaction_t *tx;
-    wasmer_result_t tx_res = svm_transaction_build(&tx, (void*)tx_bytes, tx_bytes_len);
-    assert(tx_res == WASMER_OK);
+    svm_transaction_t *tx1;
+    wasmer_result_t tx1_res = svm_transaction_build(&tx1, (void*)tx1_bytes, tx1_bytes_len);
+    assert(tx1_res == WASMER_OK);
 
-    svm_receipt_t *receipt;
-    wasmer_result_t exec_res = svm_transaction_exec(&receipt, tx, import_object);
-    assert(exec_res == WASMER_OK);
+    svm_receipt_t *receipt1;
+    wasmer_result_t exec1_res = svm_transaction_exec(&receipt1, tx1, import_object);
+    assert(exec1_res == WASMER_OK);
+    assert(svm_receipt_status(receipt1) == true);
 
-    assert(svm_receipt_status(receipt) == true);
-
-    uint8_t *new_state = svm_receipt_new_state(receipt);
+    uint8_t *new_state = svm_receipt_new_state(receipt1);
 
     printf("New contract state:\n");
     for (int i = 0; i < 32; i++) {
         printf("%02X ", new_state[i]);
     }
 
-    wasmer_value_t *results;
-    uint32_t results_len;
-    svm_receipt_results(receipt, &results, &results_len);
+    wasmer_value_t *results1;
+    uint32_t results1_len;
+    svm_receipt_results(receipt1, &results1, &results1_len);
 
-    assert(results_len == 1);
-    wasmer_value_t result = results[0];
+    assert(results1_len == 1);
+    wasmer_value_t result = results1[0];
     assert(result.value.I32 == 9);
 
-    // Now, let's increment the counter by `7`. In order to do that we set register `2` with `7`
-    /* const wasmer_instance_context_t *ctx = wasmer_instance_context_get(instance); */
-    /* uint8_t counter[] = {7}; */
-    /* svm_register_set(ctx, 64, 2, counter, 1); */
-    /*  */
-    /* wasmer_value_t arg_amount; */
-    /* arg_amount.tag = WASM_I32; */
-    /* arg_amount.value.I32 = 2; // register `2` */
-    /* wasmer_value_t inc_params[] = {arg_amount}; */
-    /* wasmer_value_t inc_results[] = {}; */
-    /* wasmer_result_t call_result2 = wasmer_instance_call(instance, "inc_counter_proxy", inc_params, 1, inc_results, 0); */
-    /* assert(call_result2 == WASMER_OK); */
-    /*  */
-    /* // Assert that the counter has been modified to `9 + 7 = 16` */
-    /* wasmer_result_t call_result3 = wasmer_instance_call(instance, "get_counter_proxy", get_params, 0, get_results, 1); */
-    /* printf("Result: %d\n", get_results[0].value.I32); */
-    /* assert(get_results[0].value.I32 == 16); */
-    /* assert(call_result3 == WASMER_OK); */
-    /*  */
-    /* // Clearing resources */
+    uint8_t *arg_buf = create_wire_int32_arg(7);
+
+    /* 2) Now, let's increment the counter by `7` */
+    uint8_t *tx2_bytes;
+    uint64_t tx2_bytes_len = create_wire_transaction(
+        &tx2_bytes,
+        addr,
+        (void*)sender,
+        "inc",
+        strlen("inc"),
+        1,       // `args_count = 1`
+        arg_buf, // `args_buf = [1, 0, 0, 0, 7]`
+        5);      // `args_buf_len = 5`
+
+    svm_transaction_t *tx2;
+    wasmer_result_t tx2_res = svm_transaction_build(&tx2, (void*)tx2_bytes, tx2_bytes_len);
+    assert(tx2_res == WASMER_OK);
+
+    svm_receipt_t *receipt2;
+    wasmer_result_t exec2_res = svm_transaction_exec(&receipt2, tx2, import_object);
+    assert(exec2_res == WASMER_OK);
+    assert(svm_receipt_status(receipt2) == true);
+
+    wasmer_value_t *results2;
+    uint32_t results2_len;
+    svm_receipt_results(receipt2, &results2, &results2_len);
+    assert(results2_len == 0);
+
+    // 3) Now, we'll verify that the counter has been modified to `9 + 7 = 16`
+    uint8_t *tx3_bytes;
+    uint64_t tx3_bytes_len = create_wire_transaction(
+        &tx3_bytes,
+        addr,
+        (void*)sender,
+        "get",
+        strlen("get"),
+        0,    // `args_count = 0`
+        NULL, // `args_buf = NULL`
+        0);   // `args_buf_len = 0`
+
+    svm_transaction_t *tx3;
+    wasmer_result_t tx3_res = svm_transaction_build(&tx3, (void*)tx3_bytes, tx3_bytes_len);
+    assert(tx3_res == WASMER_OK);
+
+    svm_receipt_t *receipt3;
+    wasmer_result_t exec3_res = svm_transaction_exec(&receipt3, tx3, import_object);
+    assert(exec3_res == WASMER_OK);
+    assert(svm_receipt_status(receipt3) == true);
+
+    wasmer_value_t *results3;
+    uint32_t results3_len;
+    svm_receipt_results(receipt3, &results3, &results3_len);
+    assert(results3_len == 1);
+
+    wasmer_value_t result3 = results3[0];
+    for (int i = 0; i < 10; i++) {
+        printf("%d  ", result3.value.I32);
+    }
+
+    assert(result3.value.I32 == 16);
+
+    /* // TODO: clearing resources */
     /* wasmer_import_object_destroy(import_object); */
     /* wasmer_module_destroy(module); */
     /* wasmer_instance_destroy(instance); */
     /* free(wasm_file.bytes); */
+    /* free(args_buf); */
 
     return 0;
 }

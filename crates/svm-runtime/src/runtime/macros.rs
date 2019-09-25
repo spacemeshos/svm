@@ -196,7 +196,7 @@ macro_rules! include_svm_runtime {
                 let func = instance.dyn_func(func_name);
 
                 match func {
-                    Err(_) => Err(ContractExecError::FuncNotFound(func_name.to_string())),
+                    Err(e) => Err(ContractExecError::FuncNotFound(func_name.to_string())),
                     Ok(func) => Ok(func),
                 }
             }

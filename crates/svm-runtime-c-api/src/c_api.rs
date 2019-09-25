@@ -256,6 +256,7 @@ macro_rules! include_svm_runtime_c_api {
                     c_results.push(c_value);
                 }
 
+                // TODO: free `c_results` memory afer usage
                 let c_results: &mut Vec<wasmer_value_t> = Box::leak(Box::new(c_results));
 
                 *results = c_results.as_mut_ptr();
