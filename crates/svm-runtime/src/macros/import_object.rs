@@ -6,6 +6,8 @@ macro_rules! create_svm_ctx {
         use svm_storage::PageSliceCache;
         use $crate::ctx::SvmCtx;
 
+        log::trace!("create_svm_ctx...");
+
         let pages = $pages_storage_gen();
         let page_cache = $page_cache_ctor(pages, $opts.max_pages);
         let storage = PageSliceCache::new(page_cache, $opts.max_pages_slices);
@@ -27,7 +29,7 @@ macro_rules! create_svm_state_gen {
         use std::ffi::c_void;
         use $crate::ctx::SvmCtx;
 
-        dbg!("create_svm_state_gen...");
+        log::trace!("create_svm_state_gen...");
 
         let ctx =
             $crate::create_svm_ctx!($node_data, $pages_storage_gen, $page_cache_ctor, $PC, $opts);
@@ -48,11 +50,9 @@ macro_rules! create_svm_state_gen {
 #[macro_export]
 macro_rules! lazy_create_svm_state_gen {
     ($node_data: expr, $pages_storage_gen: expr, $page_cache_ctor: expr, $PC: path, $opts: expr) => {{
-        dbg!("lazy_create_svm_state_gen...");
+        log::trace!("lazy_create_svm_state_gen...");
 
         move || {
-            dbg!("about to execute `create_svm_state_gen!...");
-
             $crate::create_svm_state_gen!(
                 $node_data,
                 $pages_storage_gen,

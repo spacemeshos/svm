@@ -8,6 +8,8 @@ use std::cell::RefCell;
 use std::marker::PhantomData;
 use std::rc::Rc;
 
+use log::{debug, trace, error};
+
 #[derive(Debug, Clone)]
 enum MerklePage {
     Uninitialized,
@@ -64,6 +66,8 @@ where
     ///
     /// Then, populates `self.pages`. Each page is initialized with `MerklePage::NotModified(page_hash)`
     fn init_pages_state(&mut self) {
+        debug!("initializating pages-storage with state {:?}", self.state);
+
         if self.state == State::empty() {
             // `self.state` is `000...0`. It means that state doesn't exist under the key-value store.
             // This happens when a Smart Contract runs for the first time.
@@ -80,8 +84,11 @@ where
             for (page_idx, raw_ph) in v.chunks_exact(32).enumerate() {
                 let ph = PageHash::from(raw_ph);
                 self.pages[page_idx] = MerklePage::NotModified(ph);
+
+                trace!("page #{}, has page-hash {:?}", page_idx, ph);
             }
         } else {
+            error!("Didn't find state: {:?}", self.state.as_slice());
             panic!("Didn't find state: {:?}", self.state.as_slice());
         }
     }
@@ -177,6 +184,8 @@ where
     }
 
     fn clear(&mut self) {
+        debug!("clearing pages-storage...");
+
         for page in &mut self.pages {
             match page {
                 MerklePage::Modified(ph, ..) => *page = MerklePage::NotModified(*ph),
@@ -193,6 +202,8 @@ where
         // ```
         // new_state = HASH(page1_hash || page2_hash || ... || pageN_hash)
         // ```
+
+        debug!("about to commit dirty pages to underlying key-value store");
 
         let (new_state, pages_hash, changeset) = self.prepare_changeset();
 
@@ -229,7 +240,7 @@ where
     SH: StateHasher {
 
     fn drop(&mut self) {
-        dbg!("dropping `MerklePagesStorage`...");
+        debug!("dropping `MerklePagesStorage`...");
     }
 }
 

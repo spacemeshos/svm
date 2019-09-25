@@ -24,6 +24,12 @@ version = "0.12.3"
 default-features = false
 features = ["lz4"]
 
+[dependencies]
+log = "0.4"
+
+[dev-dependencies]
+env_logger = "0.7.0"
+
 [features]
 default = ["memory", "default-rocksdb"]
 memory = []

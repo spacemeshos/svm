@@ -9,6 +9,8 @@ use svm_common::Address;
 use svm_kv::rocksdb::RocksStore;
 use svm_kv::traits::KVStore;
 
+use log::info;
+
 pub struct RocksContractStore<S, D> {
     db: RocksStore,
     marker: PhantomData<(S, D)>,
@@ -33,6 +35,10 @@ where
     D: ContractDeserializer,
 {
     fn store(&mut self, contract: &Contract, addr: &Address, hash: CodeHash) {
+        info!("storing contract: \n{:?}", contract);
+        info!("     contract account address: {:?}", addr);
+        info!("     contract code-hash: {:?}", hash);
+
         let serialized: Vec<u8> = S::serialize(contract);
 
         let addr_hash = (addr.as_slice(), &hash.0[..]);
@@ -41,6 +47,8 @@ where
     }
 
     fn load(&self, addr: &Address) -> Option<Contract> {
+        info!("loading contract account {:?}", addr);
+
         match self.db.get(addr.as_slice()) {
             None => None,
             Some(hash) => match self.db.get(&hash) {
@@ -50,6 +58,8 @@ where
                 )),
                 Some(bytes) => {
                     let contract = D::deserialize(bytes.to_vec());
+                    info!("loaded contract: \n{:?}", contract);
+
                     Some(contract)
                 }
             },

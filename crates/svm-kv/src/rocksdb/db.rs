@@ -1,6 +1,7 @@
 use crate::traits::KVStore;
-
 use std::path::Path;
+
+use log::info;
 
 /// An implementation of `KVStore` trait against `rocksdb`.
 pub struct RocksStore {
@@ -10,7 +11,7 @@ pub struct RocksStore {
 impl RocksStore {
     /// New `RocksStore` under the given `path`
     pub fn new<P: AsRef<Path>>(path: P) -> Self {
-        println!("opening rocksdb. (path = \"{}\")", path.as_ref().display());
+        info!("opening rocksdb. (path = \"{}\")", path.as_ref().display());
 
         Self {
             db: rocksdb::DB::open_default(path).unwrap(),
@@ -51,7 +52,7 @@ impl KVStore for RocksStore {
 
 impl Drop for RocksStore {
     fn drop(&mut self) {
-        dbg!("dropping `RocksStore`");
+        info!("dropping `RocksStore`");
     }
 }
 

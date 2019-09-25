@@ -2,7 +2,7 @@ use crate::leveldb::LDBKey;
 use crate::traits::KVStore;
 
 use db_key::Key;
-
+use log::trace;
 use std::path::Path;
 
 use leveldb::database::{
@@ -60,7 +60,7 @@ impl KVStore for LDBStore {
     }
 
     fn close(&mut self) {
-        dbg!("dropping `LDBStore`");
+        trace!("dropping `LDBStore`");
 
         drop(self)
     }

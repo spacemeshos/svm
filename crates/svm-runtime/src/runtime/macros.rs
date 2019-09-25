@@ -14,6 +14,8 @@
 macro_rules! include_svm_runtime {
     ($pages_storage_gen: expr, $page_cache_ctor: expr, $PC: path, $ENV: path, $env_gen: expr) => {
         mod runtime {
+            use log::{debug, error, info};
+
             use $crate::runtime::{ContractExecError, Receipt};
 
             /// Iinjects `vmcalls` module into the current file
@@ -31,6 +33,8 @@ macro_rules! include_svm_runtime {
 
             #[inline(always)]
             pub fn contract_build(bytes: &[u8]) -> Result<Contract, ContractBuildError> {
+                debug!("runtime `contract_build`");
+
                 <$ENV as ContractEnv>::build_contract(bytes)
             }
 
@@ -45,17 +49,23 @@ macro_rules! include_svm_runtime {
 
             #[inline(always)]
             pub fn contract_compute_address(contract: &Contract) -> Address {
+                debug!("runtime `contract_compute_address`");
+
                 <$ENV as ContractEnv>::compute_address(contract)
             }
 
             #[inline(always)]
             pub fn contract_store(contract: &Contract, addr: &Address) {
+                debug!("runtime `contract_store`");
+
                 let mut env = $env_gen();
                 env.store_contract(contract, addr);
             }
 
             #[inline(always)]
             pub fn transaction_build(bytes: &[u8]) -> Result<Transaction, TransactionBuildError> {
+                debug!("runtime `transaction_build`");
+
                 <$ENV as ContractEnv>::build_transaction(bytes)
             }
 
@@ -63,7 +73,9 @@ macro_rules! include_svm_runtime {
                 tx: Transaction,
                 import_object: &wasmer_runtime::ImportObject,
             ) -> Receipt {
-                match do_contract_exec(&tx, import_object) {
+                debug!("runtime `contract_exec`");
+
+                let receipt = match do_contract_exec(&tx, import_object) {
                     Err(e) => Receipt {
                         success: false,
                         error: Some(e),
@@ -78,7 +90,11 @@ macro_rules! include_svm_runtime {
                         results,
                         new_state: Some(state),
                     },
-                }
+                };
+
+                debug!("receipt: {:?}", receipt);
+
+                receipt
             }
 
             pub fn import_object_create(
@@ -88,6 +104,11 @@ macro_rules! include_svm_runtime {
                 opts: $crate::opts::Opts,
             ) -> wasmer_runtime::ImportObject {
                 use wasmer_runtime::{func, ImportObject};
+
+                debug!(
+                    "runtime `import_object_create` address={:?}, state={:?}, opts={:?}",
+                    addr, state, opts
+                );
 
                 let wrapped_pages_storage_gen =
                     move || $pages_storage_gen(addr.clone(), state.clone(), opts.max_pages);
@@ -155,6 +176,8 @@ macro_rules! include_svm_runtime {
                 tx: &Transaction,
                 env: &mut $ENV,
             ) -> Result<Contract, ContractExecError> {
+                info!("runtime `contract_load`");
+
                 let store = env.get_store();
 
                 match store.load(&tx.contract) {
@@ -167,11 +190,19 @@ macro_rules! include_svm_runtime {
                 contract: &Contract,
                 addr: &Address,
             ) -> Result<wasmer_runtime::Module, ContractExecError> {
+                info!("runtime `contract_compile` (addr={:?})", addr);
+
                 let compile = wasmer_runtime::compile(&contract.wasm);
 
                 match compile {
-                    Err(e) => Err(ContractExecError::CompilationFailed(addr.clone())),
-                    Ok(module) => Ok(module),
+                    Err(e) => {
+                        error!("wasmer module compilation failed (addr={:?})", addr);
+                        Err(ContractExecError::CompilationFailed(addr.clone()))
+                    }
+                    Ok(module) => {
+                        info!("wasmer module compile succeeded");
+                        Ok(module)
+                    }
                 }
             }
 
@@ -181,6 +212,8 @@ macro_rules! include_svm_runtime {
                 module: &wasmer_runtime::Module,
                 import_object: &wasmer_runtime::ImportObject,
             ) -> Result<wasmer_runtime::Instance, ContractExecError> {
+                info!("runtime `instantiate` (wasmer module instantiate)");
+
                 let instantiate = module.instantiate(import_object);
 
                 match instantiate {
@@ -196,8 +229,14 @@ macro_rules! include_svm_runtime {
                 let func = instance.dyn_func(func_name);
 
                 match func {
-                    Err(e) => Err(ContractExecError::FuncNotFound(func_name.to_string())),
-                    Ok(func) => Ok(func),
+                    Err(e) => {
+                        error!("exported function: `{}` not found", func_name);
+                        Err(ContractExecError::FuncNotFound(func_name.to_string()))
+                    }
+                    Ok(func) => {
+                        info!("found exported function `{}`", func_name);
+                        Ok(func)
+                    }
                 }
             }
 
@@ -207,6 +246,8 @@ macro_rules! include_svm_runtime {
             ) -> Vec<wasmer_runtime::Value> {
                 use svm_contract::wasm::{WasmArgValue, WasmIntType};
                 use wasmer_runtime::Value;
+
+                debug!("runtime `prepare_args_and_memory`");
 
                 let memory = instance.context_mut().memory(0);
                 let mut mem_offset = 0;
@@ -237,6 +278,8 @@ macro_rules! include_svm_runtime {
 
                     wasmer_args.push(wasmer_arg);
                 }
+
+                debug!("wasmer args={:?}", wasmer_args);
 
                 wasmer_args
             }

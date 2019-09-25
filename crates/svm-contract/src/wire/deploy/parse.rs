@@ -4,11 +4,15 @@ use crate::wasm::Contract;
 use svm_common::Address;
 
 use byteorder::{BigEndian, ReadBytesExt};
+
+use log::{debug, error};
 use std::io::{Cursor, Read};
 
 macro_rules! ensure_enough_bytes {
     ($res: expr, $field: expr) => {{
         if $res.is_err() {
+            error!("    parse failed. not enough bytes for field: {}", $field);
+
             return Err(ContractBuildError::NotEnoughBytes($field));
         }
     }};
@@ -42,6 +46,8 @@ fn parse_version(cursor: &mut Cursor<&[u8]>) -> Result<u32, ContractBuildError> 
     if version != 0 {
         return Err(ContractBuildError::UnsupportedProtoVersion(version));
     }
+
+    debug!("    parsed raw contract version: {:?}", version);
 
     Ok(version)
 }
@@ -126,6 +132,8 @@ fn parse_address(cursor: &mut Cursor<&[u8]>, field: Field) -> Result<Address, Co
 
     let res = cursor.read_exact(&mut addr);
     ensure_enough_bytes!(res, field);
+
+    debug!("    parsed address (field={}) {:?}", field, addr);
 
     Ok(Address::from(addr.as_ref()))
 }

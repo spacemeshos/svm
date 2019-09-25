@@ -2,6 +2,8 @@ use crate::page::{PageHash, PageIndex};
 use crate::traits::{PageCache, PagesStateStorage, PagesStorage};
 use svm_common::State;
 
+use log::{debug, trace};
+
 #[derive(Debug, Clone)]
 enum CachedPage {
     // We didn't load the page yet from the underlying db
@@ -73,11 +75,14 @@ impl<PS: PagesStateStorage> PagesStorage for DefaultPageCache<PS> {
         // we can have an `assert` here since we are given the maximum storage-pages upon initialization
         assert!(self.cached_pages.len() > page_idx.0 as usize);
 
+        debug!("reading page #{}", page_idx.0);
+
         let cache_status = &self.cached_pages[page_idx.0 as usize];
 
         match cache_status {
             CachedPage::NotCached => {
                 // page isn't in the cache, so we delegate to `pages_storage`
+                debug!("cache miss for page #{}", page_idx.0);
 
                 let page = self.pages_storage.read_page(page_idx);
 
@@ -101,11 +106,15 @@ impl<PS: PagesStateStorage> PagesStorage for DefaultPageCache<PS> {
                 }
             }
             CachedPage::Cached(page) => {
+                debug!("cache hit for page #{}", page_idx.0);
+
                 // page has already been loaded from `pages_storage`.
                 // since we it hascontent we clone `page` and return the clone
                 Some(page.to_vec())
             }
             CachedPage::CachedEmpty => {
+                debug!("cache hit for page #{}. page is empty!", page_idx.0);
+
                 // page has already been loaded from `pages_storage`.
                 // but since we know it has no content we have nothing to do
                 None
@@ -121,6 +130,9 @@ impl<PS: PagesStateStorage> PagesStorage for DefaultPageCache<PS> {
     ///   only upon `commit`, we'll will propagate the `dirty pages` into `pages_storage`
     ///   we can do that since each future `read_page` will have a cache hit so we don't need to
     fn write_page(&mut self, page_idx: PageIndex, page: &[u8]) {
+        debug!("writing page #{} (not persisting)", page_idx.0);
+        trace!("page #{} content: {:?}", page_idx.0, page);
+
         std::mem::replace(
             &mut self.cached_pages[page_idx.0 as usize],
             CachedPage::Cached(page.to_vec()),
@@ -135,6 +147,8 @@ impl<PS: PagesStateStorage> PagesStorage for DefaultPageCache<PS> {
     ///
     /// Should be used for tests
     fn clear(&mut self) {
+        debug!("clearing page-cache in-memory data");
+
         for dirty in &mut self.dirty_pages {
             *dirty = false;
         }
@@ -154,6 +168,8 @@ impl<PS: PagesStateStorage> PagesStorage for DefaultPageCache<PS> {
     ///
     /// since a smart contract is a short-lived program, we don't clear after `commit`
     fn commit(&mut self) {
+        debug!("page-cache is about to commit dirty pages to underlying pages-storage");
+
         for ((page_idx, dirty), cached_page) in
             (&mut self.dirty_pages.iter().enumerate()).zip(&mut self.cached_pages.iter())
         {
@@ -182,7 +198,7 @@ impl<PS: PagesStateStorage> PagesStorage for DefaultPageCache<PS> {
 
 impl<PS: PagesStateStorage> Drop for DefaultPageCache<PS> {
     fn drop(&mut self) {
-        dbg!("dropping `PageCache`...");
+        debug!("dropping `PageCache`...");
     }
 }
 

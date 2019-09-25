@@ -6,6 +6,8 @@ use std::ffi::c_void;
 use svm_storage::traits::PageCache;
 use svm_storage::PageSliceCache;
 
+use log::debug;
+
 /// The number of allocated `SvmReg32` registers for each `SvmCtx`
 pub const REGS_32_COUNT: usize = 16;
 
@@ -85,6 +87,6 @@ where
     PC: PageCache,
 {
     fn drop(&mut self) {
-        dbg!("Dropping `SvmCtx`...");
+        debug!("Dropping `SvmCtx`...");
     }
 }

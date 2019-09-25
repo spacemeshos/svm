@@ -1,6 +1,8 @@
 use crate::traits::KVStore;
 use std::collections::HashMap;
 
+use log::info;
+
 /// An implementation for a key-value store (implements `KVStore`) store backed by an underlying `HashMap`
 pub struct MemKVStore {
     map: HashMap<Vec<u8>, Vec<u8>>,
@@ -10,6 +12,8 @@ impl MemKVStore {
     #[allow(clippy::new_without_default)]
     /// Initializes a new `MemKVStore`
     pub fn new() -> Self {
+        info!("creating a new in-memory kv");
+
         Self {
             map: HashMap::new(),
         }
@@ -17,6 +21,8 @@ impl MemKVStore {
 
     /// Clears the key-value store
     pub fn clear(&mut self) {
+        info!("clearing in-memory kv");
+
         self.map.clear();
     }
 
@@ -43,6 +49,8 @@ impl KVStore for MemKVStore {
     }
 
     fn store(&mut self, changes: &[(&[u8], &[u8])]) {
+        info!("storing in-memory kv changeset");
+
         for (k, v) in changes {
             self.map.insert(k.to_vec(), v.to_vec());
         }
@@ -54,8 +62,14 @@ mod tests {
     use super::*;
     use svm_common::Address;
 
+    fn init() {
+        let _ = env_logger::builder().is_test(true).try_init();
+    }
+
     #[test]
     fn a_key_does_not_exit_by_default() {
+        init();
+
         let kv = MemKVStore::new();
         let addr = Address::from(0x11_22_33_44 as u32);
 
@@ -64,6 +78,8 @@ mod tests {
 
     #[test]
     fn key_store_and_then_key_get() {
+        init();
+
         let mut kv = MemKVStore::new();
         let addr = Address::from(0x11_22_33_44 as u32);
 
@@ -73,6 +89,8 @@ mod tests {
 
     #[test]
     fn key_store_override_existing_entry() {
+        init();
+
         let mut kv = MemKVStore::new();
         let addr = Address::from(0x11_22_33_44 as u32);
 
@@ -85,6 +103,8 @@ mod tests {
 
     #[test]
     fn clear() {
+        init();
+
         let mut kv = MemKVStore::new();
         let addr1 = Address::from(0x11_22_33_44 as u32);
         let addr2 = Address::from(0x55_66_77_88 as u32);
