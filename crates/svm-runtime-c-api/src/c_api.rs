@@ -19,6 +19,7 @@ macro_rules! include_svm_runtime_c_api {
 
         use crate::c_types::{svm_address_t, svm_contract_t, svm_receipt_t, svm_transaction_t};
 
+        use log::{debug, error, trace};
         use std::ffi::c_void;
 
         use wasmer_runtime::{Ctx, ImportObject};
@@ -56,16 +57,20 @@ macro_rules! include_svm_runtime_c_api {
             raw_bytes: *const c_void,
             raw_bytes_len: u64,
         ) -> wasmer_result_t {
+            debug!("`svm_contract_build start`");
+
             let bytes = std::slice::from_raw_parts(raw_bytes as *const u8, raw_bytes_len as usize);
             let result = runtime::contract_build(&bytes);
 
             match result {
                 Ok(contract) => {
                     *raw_contract = into_raw!(contract, svm_contract_t);
+                    debug!("`svm_contract_build returns `WASMER_OK`");
                     wasmer_result_t::WASMER_OK
                 }
                 Err(err) => {
                     update_last_error(err);
+                    error!("`svm_contract_build returns `WASMER_ERROR`");
                     wasmer_result_t::WASMER_ERROR
                 }
             }
@@ -76,6 +81,8 @@ macro_rules! include_svm_runtime_c_api {
         pub unsafe extern "C" fn svm_contract_compute_address(
             raw_contract: *const svm_contract_t,
         ) -> *const c_void {
+            debug!("`svm_contract_compute_address`");
+
             let contract = cast_to_rust_type!(raw_contract, svm_contract::wasm::Contract);
 
             let addr = runtime::contract_compute_address(contract);
@@ -98,9 +105,13 @@ macro_rules! include_svm_runtime_c_api {
             raw_contract: *const svm_contract_t,
             raw_addr: *const c_void,
         ) -> wasmer_result_t {
+            debug!("`svm_contract_store` start");
+
             let contract = cast_to_rust_type!(raw_contract, svm_contract::wasm::Contract);
             let addr = Address::from(raw_addr);
             runtime::contract_store(contract, &addr);
+
+            debug!("`svm_contract_build returns `WASMER_OK`");
 
             wasmer_result_t::WASMER_OK
         }
@@ -121,10 +132,12 @@ macro_rules! include_svm_runtime_c_api {
             match result {
                 Ok(tx) => {
                     *raw_tx = into_raw!(tx, svm_transaction_t);
+                    debug!("`svm_contract_build returns `WASMER_OK`");
                     wasmer_result_t::WASMER_OK
                 }
                 Err(error) => {
                     update_last_error(error);
+                    error!("`svm_contract_build returns `WASMER_ERROR`");
                     wasmer_result_t::WASMER_ERROR
                 }
             }
@@ -141,12 +154,15 @@ macro_rules! include_svm_runtime_c_api {
             raw_tx: *const svm_transaction_t,
             raw_import_object: *const wasmer_import_object_t,
         ) -> wasmer_result_t {
+            debug!("`svm_transaction_exec` start");
+
             let tx = cast_to_rust_type!(raw_tx, Transaction);
             let import_object = cast_to_rust_type!(raw_import_object, ImportObject);
 
             let receipt = runtime::contract_exec(tx.clone(), import_object);
-            // dbg!(&receipt);
             *raw_receipt = into_raw!(receipt, svm_receipt_t);
+
+            debug!("`svm_contract_build returns `WASMER_OK`");
 
             wasmer_result_t::WASMER_OK
         }
@@ -159,6 +175,8 @@ macro_rules! include_svm_runtime_c_api {
             reg_bits: i32,
             reg_idx: i32,
         ) -> *const c_void {
+            debug!("`svm_register_get` register `{}:{}`", reg_bits, reg_idx);
+
             let wasmer_ctx: &Ctx = cast_to_rust_type!(raw_ctx, Ctx);
             let reg: &mut SvmReg = svm_runtime::wasmer_ctx_reg!(wasmer_ctx, reg_bits, reg_idx, $PC);
 
@@ -176,6 +194,8 @@ macro_rules! include_svm_runtime_c_api {
             bytes: *const c_void,
             bytes_len: u8,
         ) {
+            debug!("`svm_register_set` register `{}:{}`", reg_bits, reg_idx);
+
             let wasmer_ctx: &Ctx = cast_to_rust_type!(raw_ctx, Ctx);
             let reg: &mut SvmReg = svm_runtime::wasmer_ctx_reg!(wasmer_ctx, reg_bits, reg_idx, $PC);
 
@@ -191,6 +211,8 @@ macro_rules! include_svm_runtime_c_api {
         pub unsafe extern "C" fn svm_instance_context_node_data_get(
             raw_ctx: *const wasmer_instance_context_t,
         ) -> *const c_void {
+            trace!("`svm_instance_context_node_data_get`");
+
             let wasmer_ctx: &Ctx = cast_to_rust_type!(raw_ctx, Ctx);
             svm_runtime::wasmer_data_node_data!(wasmer_ctx.data, $PC)
         }
@@ -211,6 +233,8 @@ macro_rules! include_svm_runtime_c_api {
             imports: *mut wasmer_import_t,
             imports_len: libc::c_uint,
         ) -> wasmer_result_t {
+            debug!("`svm_import_object` start");
+
             let addr = Address::from(raw_addr);
             let state = State::from(raw_state);
 
@@ -229,6 +253,8 @@ macro_rules! include_svm_runtime_c_api {
             //     return result;
             // }
 
+            debug!("`svm_import_object` returns `WASMER_OK`");
+
             wasmer_result_t::WASMER_OK
         }
 
@@ -236,6 +262,8 @@ macro_rules! include_svm_runtime_c_api {
         #[no_mangle]
         pub unsafe extern "C" fn svm_receipt_status(raw_receipt: *const svm_receipt_t) -> bool {
             let receipt = cast_to_rust_type!(raw_receipt, Receipt);
+            debug!("`svm_receipt_status` status={}", receipt.success);
+
             receipt.success
         }
 
@@ -246,6 +274,8 @@ macro_rules! include_svm_runtime_c_api {
             results: *mut *mut wasmer_value_t,
             results_len: *mut u32,
         ) {
+            debug!("`svm_receipt_results`");
+
             let receipt = cast_to_rust_type!(raw_receipt, Receipt);
 
             if receipt.success {
@@ -256,13 +286,15 @@ macro_rules! include_svm_runtime_c_api {
                     c_results.push(c_value);
                 }
 
-                // TODO: free `c_results` memory afer usage
+                // TODO: free `c_results` memory after usage
                 let c_results: &mut Vec<wasmer_value_t> = Box::leak(Box::new(c_results));
 
                 *results = c_results.as_mut_ptr();
                 *results_len = receipt.results.len() as u32;
             } else {
-                panic!("method not allowed to be called when transaction execution failed");
+                let msg = "method not allowed to be called when transaction execution failed";
+                error!("{}", msg);
+                panic!("{}", msg);
             }
         }
 
