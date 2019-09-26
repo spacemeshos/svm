@@ -1005,6 +1005,7 @@ dependencies = [
  "libc 0.2.62 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "svm-common 0.0.0",
+ "svm-compiler 0.0.0",
  "svm-contract 0.0.0",
  "svm-kv 0.0.0",
  "svm-storage 0.0.0",

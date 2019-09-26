@@ -192,7 +192,7 @@ macro_rules! include_svm_runtime {
             ) -> Result<wasmer_runtime::Module, ContractExecError> {
                 info!("runtime `contract_compile` (addr={:?})", addr);
 
-                let compile = wasmer_runtime::compile(&contract.wasm);
+                let compile = svm_compiler::compile_program(&contract.wasm);
 
                 match compile {
                     Err(e) => {

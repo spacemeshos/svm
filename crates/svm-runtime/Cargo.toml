@@ -20,6 +20,9 @@ features = ["default"]
 [dependencies.svm-contract]
 path = "../svm-contract"
 
+[dependencies.svm-compiler]
+path = "../svm-compiler"
+
 [dependencies.wasmer-runtime]
 default-features = false
 git = "https://github.com/spacemeshos/wasmer"
