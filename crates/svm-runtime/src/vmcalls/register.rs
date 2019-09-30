@@ -28,7 +28,7 @@ macro_rules! include_svm_register_vmcalls {
         pub fn reg_read_be_i64(ctx: &mut wasmer_runtime::Ctx, reg_bits: i32, reg_idx: i32) -> i64 {
             use byteorder::{BigEndian, ByteOrder};
 
-            log::debug!("reg_read_be_i64 register=`{}:{}`", reg_bits, reg_idx);
+            log::debug!("`reg_read_be_i64` register=`{}:{}`", reg_bits, reg_idx);
 
             let reg = $crate::wasmer_data_reg!(ctx.data, reg_bits, reg_idx, $PC);
             let buf = reg.getn(8);
@@ -45,7 +45,7 @@ macro_rules! include_svm_register_vmcalls {
             use byteorder::{BigEndian, ByteOrder};
 
             log::debug!(
-                "reg_write_be_i64 register=`{}:{}`, value={}",
+                "`reg_write_be_i64` register=`{}:{}`, value={}",
                 reg_bits,
                 reg_idx,
                 value

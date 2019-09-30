@@ -7,7 +7,7 @@ use wasmer_runtime::{func, imports, Func};
 // injecting the `svm vmcalls` implemented with `MemPageCache<[u8; 32]>` as the `PageCache` type
 svm_runtime::include_svm_vmcalls!(svm_storage::memory::MemMerklePageCache);
 
-macro_rules! complie {
+macro_rules! compile {
     ($wasm:expr) => {{
         let wasm = wabt::wat2wasm(&$wasm).unwrap();
         svm_compiler::compile_program(&wasm).unwrap()
@@ -17,7 +17,7 @@ macro_rules! complie {
 macro_rules! wasmer_compile_module_file {
     ($file:expr) => {{
         let wasm = include_str!($file);
-        complie!(wasm)
+        compile!(wasm)
     }};
 }
 
@@ -69,7 +69,7 @@ fn vmcalls_empty_wasm() {
         (module
           (func (export "do_nothing")))"#;
 
-    let module = complie!(&wasm);
+    let module = compile!(&wasm);
     let _instance = module.instantiate(&imports! {}).unwrap();
 }
 
