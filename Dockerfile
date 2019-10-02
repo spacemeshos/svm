@@ -13,4 +13,4 @@ RUN apt-get update && \
 ENV LLVM_SYS_80_PREFIX /home/clang+llvm-8.0.0-x86_64-linux-gnu-ubuntu-16.04/
 
 WORKDIR /svm
-COPY ["/crates", "/src", "/Cargo.toml", "/Cargo.lock", "/svm/"]
+COPY . /svm
