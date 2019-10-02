@@ -1,0 +1,9 @@
+**
+contracts
+
+!Cargo.lock
+!Cargo.toml
+!src/lib.rs
+
+!crates/**
+crates/**/target
