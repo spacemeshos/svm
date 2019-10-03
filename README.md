@@ -1,4 +1,4 @@
-![logo](./docs/assets/logo-small.png)
+<img src="./docs/assets/logo.png" width=200 height=90/>
 
 This repository will implement the _Spacemesh_ smart contracts vm.
 
