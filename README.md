@@ -1,4 +1,4 @@
-## SVM (Spacemesh Virtual Machine)
+![logo](./docs/assets/logo-small.png)
 
 This repository will implement the _Spacemesh_ smart contracts vm.
 
