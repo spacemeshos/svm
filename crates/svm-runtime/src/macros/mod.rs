@@ -39,6 +39,7 @@ mod tests {
             test_create_svm_ctx!(std::ptr::null())
         };
         ($node_data: expr) => {{
+            use crate::ctx_data_wrapper::SvmCtxDataWrapper;
             use svm_common::{Address, State};
             use svm_storage::memory::{MemMerklePageCache, MemMerklePages};
 
@@ -65,7 +66,7 @@ mod tests {
             };
 
             create_svm_ctx!(
-                $node_data,
+                SvmCtxDataWrapper::new($node_data),
                 pages_storage_gen,
                 page_cache_ctor,
                 svm_storage::memory::MemMerklePageCache,

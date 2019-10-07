@@ -7,6 +7,9 @@
 #[macro_use]
 pub mod runtime;
 
+/// Wraps the `node data` (of type `*const std::ffi::c_void`) in a thread-safe way
+pub mod ctx_data_wrapper;
+
 /// Implements `SvmCtx`. Used for running `svm` instances.
 pub mod ctx;
 
