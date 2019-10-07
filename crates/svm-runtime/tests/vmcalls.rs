@@ -1,5 +1,7 @@
 use std::cell::Cell;
 
+use svm_runtime::ctx_data_wrapper::SvmCtxDataWrapper;
+
 use svm_storage::memory::MemMerklePageCache;
 
 use wasmer_runtime::{func, imports, Func};
@@ -23,7 +25,7 @@ macro_rules! wasmer_compile_module_file {
 
 macro_rules! test_create_svm_state_gen {
     () => {{
-        let node_data = std::ptr::null();
+        let node_data = SvmCtxDataWrapper::new(std::ptr::null());
 
         let max_pages = 5;
         let max_pages_slices = 100;

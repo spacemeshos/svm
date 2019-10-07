@@ -6,6 +6,8 @@ use std::ffi::c_void;
 use svm_storage::traits::PageCache;
 use svm_storage::PageSliceCache;
 
+use crate::ctx_data_wrapper::SvmCtxDataWrapper;
+
 use log::debug;
 
 /// The number of allocated `SvmReg32` registers for each `SvmCtx`
@@ -33,8 +35,8 @@ pub const REGS_512_COUNT: usize = 4;
 /// * `storage`   - An instance of `PageSliceCache`
 #[repr(C)]
 pub struct SvmCtx<PC: PageCache> {
-    /// A pointer to the `node` data. For example the pointer will point a struct having an access
-    /// to the Global State of each account, In order to query an account for its balance.
+    /// A pointer to the `node` data. For example the pointer will point a to struct having an access
+    /// to the `Global State` of each account, in order to query an account for its balance.
     pub node_data: *const c_void,
 
     /// An array that holds the `SvmReg32` registers
@@ -56,6 +58,9 @@ pub struct SvmCtx<PC: PageCache> {
     pub storage: PageSliceCache<PC>,
 }
 
+unsafe impl<PC> Sync for SvmCtx<PC> where PC: PageCache {}
+unsafe impl<PC> Send for SvmCtx<PC> where PC: PageCache {}
+
 impl<PC> SvmCtx<PC>
 where
     PC: PageCache,
@@ -63,7 +68,7 @@ where
     /// Initializes a new empty `SvmCtx`
     ///
     /// * `storage` - a mutably borrowed `PageSliceCache`
-    pub fn new(node_data: *const c_void, storage: PageSliceCache<PC>) -> Self {
+    pub fn new(data_wrapper: SvmCtxDataWrapper, storage: PageSliceCache<PC>) -> Self {
         let regs_32 = alloc_regs!(32, REGS_32_COUNT);
         let regs_64 = alloc_regs!(64, REGS_64_COUNT);
         let regs_160 = alloc_regs!(160, REGS_160_COUNT);
@@ -71,7 +76,7 @@ where
         let regs_512 = alloc_regs!(512, REGS_512_COUNT);
 
         Self {
-            node_data,
+            node_data: data_wrapper.unwrap(),
             regs_32,
             regs_64,
             regs_160,

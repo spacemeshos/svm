@@ -1,4 +1,4 @@
-/// Creates an instance of `SvmCtx` to be injected into `wasmer` context `data` field.
+/// Creates an instance of `SvmCtx` to be injected into `wasmer` context `node_data` field.
 /// `svm vmcalls` will access that `SvmCtx` while runninng smart contracts
 #[macro_export]
 macro_rules! create_svm_ctx {
@@ -34,7 +34,7 @@ macro_rules! create_svm_state_gen {
         let ctx =
             $crate::create_svm_ctx!($node_data, $pages_storage_gen, $page_cache_ctor, $PC, $opts);
 
-        let data = ctx as *mut _ as *mut c_void;
+        let node_data = ctx as *mut _ as *mut c_void;
         let dtor: fn(*mut c_void) = |ctx_data| {
             let ctx_ptr = ctx_data as *mut SvmCtx<$PC>;
 
@@ -42,7 +42,7 @@ macro_rules! create_svm_state_gen {
             unsafe { Box::from_raw(ctx_ptr) };
         };
 
-        (data, dtor)
+        (node_data, dtor)
     }};
 }
 

@@ -103,6 +103,7 @@ macro_rules! include_svm_runtime {
                 node_data: *const std::ffi::c_void,
                 opts: $crate::opts::Opts,
             ) -> wasmer_runtime::ImportObject {
+                use svm_runtime::ctx_data_wrapper::SvmCtxDataWrapper;
                 use wasmer_runtime::{func, ImportObject};
 
                 debug!(
@@ -113,8 +114,10 @@ macro_rules! include_svm_runtime {
                 let wrapped_pages_storage_gen =
                     move || $pages_storage_gen(addr.clone(), state.clone(), opts.max_pages);
 
+                let wrapped_data = SvmCtxDataWrapper::new(node_data);
+
                 let state_gen = svm_runtime::lazy_create_svm_state_gen!(
-                    node_data,
+                    wrapped_data,
                     wrapped_pages_storage_gen,
                     $page_cache_ctor,
                     $PC,
