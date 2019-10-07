@@ -1,5 +1,7 @@
 <img src="./docs/assets/logo.png" width=200 height=90/>
 
+[![Build Status](https://travis-ci.org/spacemeshos/svm.svg?branch=develop)](https://travis-ci.org/spacemeshos/svm)
+
 This repository will implement the _Spacemesh_ smart contracts vm.
 
 
