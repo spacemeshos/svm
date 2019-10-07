@@ -1,12 +1,8 @@
 use wasmer_runtime_c_api::{
     export::{wasmer_import_export_kind, wasmer_import_export_value},
-    import::{wasmer_import_func_t, wasmer_import_object_t, wasmer_import_t},
-    instance::wasmer_instance_t,
-    module::wasmer_module_t,
+    import::{wasmer_import_func_t, wasmer_import_t},
     wasmer_byte_array,
 };
-
-use crate::c_types::{svm_contract_t, svm_receipt_t, svm_transaction_t};
 
 #[doc(hidden)]
 pub fn cast_str_to_wasmer_byte_array(s: &str) -> wasmer_byte_array {
@@ -55,6 +51,7 @@ macro_rules! cast_vmcall_to_import_func_t {
     }};
 }
 
+/// a utility function to be used in `c-api` tests
 pub fn build_wasmer_import_t(
     mode_name: &str,
     import_name: &str,
@@ -67,28 +64,6 @@ pub fn build_wasmer_import_t(
         value: wasmer_import_export_value { func },
     }
 }
-
-// macro_rules! raw_ptr_c_struct {
-//     ($ptr_struct_name: ident, $c_type:path) => {
-//         #[repr(C)]
-//         pub(crate) struct $ptr_struct_name(pub(crate) *mut $c_type);
-//
-//         impl $ptr_struct_name {
-//             pub(crate) fn alloc_raw_ptr_stack() -> *mut $c_type {
-//                 let instance = $c_type { };
-//                 &mut instance as _
-//             }
-//         }
-//     };
-// }
-//
-// raw_ptr_c_struct!(svm_contract_t_ptr, crate::c_types::svm_contract_t);
-// raw_ptr_c_struct!(svm_transaction_t_ptr, crate::c_types::svm_transaction_t);
-// raw_ptr_c_struct!(svm_receipt_t_ptr, crate::c_types::svm_receipt_t);
-// raw_ptr_c_struct!(
-//     import_object_t_ptr,
-//     wasmer_runtime_c_api::import::wasmer_import_object_t
-// );
 
 #[doc(hidden)]
 #[macro_export]
@@ -144,7 +119,7 @@ macro_rules! alloc_raw_receipt {
 #[macro_export]
 macro_rules! alloc_raw_module {
     () => {{
-        alloc_raw_ptr_heap!(wasmer_module_t)
+        alloc_raw_ptr_heap!(wasmer_runtime_c_api::module::wasmer_module_t)
     }};
 }
 
@@ -152,7 +127,7 @@ macro_rules! alloc_raw_module {
 #[macro_export]
 macro_rules! alloc_raw_instance {
     () => {{
-        alloc_raw_ptr_heap!(wasmer_instance_t)
+        alloc_raw_ptr_heap!(wasmer_runtime_c_api::instance::wasmer_instance_t)
     }};
 }
 
@@ -190,6 +165,8 @@ macro_rules! deref_instance {
 #[macro_export]
 macro_rules! wasmer_compile_module {
     ($wasm:expr) => {{
+        use wasmer_runtime_c_api::module::wasmer_module_t;
+
         let mut wasm = wabt::wat2wasm(&$wasm).unwrap();
 
         let wasm_bytes = wasm.as_mut_ptr();

@@ -17,7 +17,7 @@ macro_rules! include_svm_runtime_c_api {
         use svm_runtime::register::SvmReg;
         use svm_runtime::runtime::Receipt;
 
-        use crate::c_types::{svm_address_t, svm_contract_t, svm_receipt_t, svm_transaction_t};
+        use crate::c_types::{svm_contract_t, svm_receipt_t, svm_transaction_t};
 
         use log::{debug, error, trace};
         use std::ffi::c_void;
@@ -27,11 +27,9 @@ macro_rules! include_svm_runtime_c_api {
             error::update_last_error,
             import::{wasmer_import_object_extend, wasmer_import_object_t, wasmer_import_t},
             instance::wasmer_instance_context_t,
-            module::wasmer_module_t,
             value::wasmer_value_t,
             wasmer_result_t,
         };
-        use wasmer_runtime_core::import::Namespace;
 
         macro_rules! into_raw {
             ($obj: expr, $raw_type: ident) => {{
@@ -76,6 +74,7 @@ macro_rules! include_svm_runtime_c_api {
             }
         }
 
+        /// Computes the contract to-be-deployed acccunt address and retures a pointer to it
         #[must_use]
         #[no_mangle]
         pub unsafe extern "C" fn svm_contract_compute_address(
@@ -258,6 +257,7 @@ macro_rules! include_svm_runtime_c_api {
             wasmer_result_t::WASMER_OK
         }
 
+        /// Returns the receipt outcome (`true` for success and `false` otherwise)
         #[must_use]
         #[no_mangle]
         pub unsafe extern "C" fn svm_receipt_status(raw_receipt: *const svm_receipt_t) -> bool {
@@ -267,6 +267,9 @@ macro_rules! include_svm_runtime_c_api {
             receipt.success
         }
 
+        /// Returns the transaction execution results (wasm array).
+        /// Should be called only after verifying that the transaction succeeded.
+        /// Will panic when called for a failed transaction.
         #[must_use]
         #[no_mangle]
         pub unsafe extern "C" fn svm_receipt_results(
@@ -298,17 +301,19 @@ macro_rules! include_svm_runtime_c_api {
             }
         }
 
+        /// Returns the `receipt` error in transaction failed
         #[must_use]
         #[no_mangle]
         pub unsafe extern "C" fn svm_receipt_error(raw_receipt: *const svm_receipt_t) {
             let receipt = cast_to_rust_type!(raw_receipt, Receipt);
 
-            if let Some(ref e) = receipt.error {
+            if let Some(ref _e) = receipt.error {
                 // TODO: implement `std::error::Error` for `svm_runtime::runtime::error::ContractExecError`
                 // update_last_error(e);
             }
         }
 
+        /// Returns a pointer to the new state of the contract account.
         #[must_use]
         #[no_mangle]
         pub unsafe extern "C" fn svm_receipt_new_state(
