@@ -36,7 +36,7 @@ Note: since `leveldb` and `rocksdb` can't have parallel isolated connections to 
 That's why we ask `cargo` to run the tests serially (`RUST_TEST_THREADS=1`).
 
 
-## Docker
+### Docker
 In order to build the Docker image
 ```
 docker build -t svm-build .
@@ -56,7 +56,7 @@ docker run -it svm-build
   * [ ] Strings
 * [ ] Contract-to-Contract calls
 * [ ] Events with expiration
-* [ ] Contract Dependencies
+* [ ] Contract dependencies
 
 ### Supported Operating-Systems
 * [x] Mac
@@ -64,5 +64,6 @@ docker run -it svm-build
 * [ ] Windows
 
 ### Got Questions?
+- If you'd like to contribute to _SVM_ or have questions please go to [svm gitter channel](https://gitter.im/spacemesh-os/svm)
 - Introduce yourself and ask anything on the [spacemesh gitter channel](https://gitter.im/spacemesh-os/Lobby).
 - DM [@teamspacemesh](https://twitter.com/teamspacemesh)
