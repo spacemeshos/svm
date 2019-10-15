@@ -48,13 +48,16 @@ docker run -it svm-build
 ```
 
 ### Roadmap
+* [x] Infrastructure (see the [SVM article](https://medium.com/spacemesh/svm-446b106025bd))
 * [ ] Gas metering
+* [ ] Contract-to-Contract calls
 * [ ] Storage Data-Structures
   * [ ] Array
+  * [ ] List
   * [ ] Hash
   * [ ] Set
+  * [ ] Sorted-Set
   * [ ] Strings
-* [ ] Contract-to-Contract calls
 * [ ] Events with expiration
 * [ ] Contract dependencies
 
@@ -64,6 +67,6 @@ docker run -it svm-build
 * [ ] Windows
 
 ### Got Questions?
-- If you'd like to contribute to _SVM_ or have questions please go to [svm gitter channel](https://gitter.im/spacemesh-os/svm)
+- If you'd like to contribute to _SVM_ or have questions please go to [SVM gitter channel](https://gitter.im/spacemesh-os/svm)
 - Introduce yourself and ask anything on the [spacemesh gitter channel](https://gitter.im/spacemesh-os/Lobby).
 - DM [@teamspacemesh](https://twitter.com/teamspacemesh)
