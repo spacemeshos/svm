@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/spacemeshos/svm.svg?branch=develop)](https://travis-ci.org/spacemeshos/svm)
 
-This repository will implement the _Spacemesh_ smart contracts vm.
+_Spacemesh_ Virtual Machine
 
 
 ### Project Goals
@@ -17,10 +17,10 @@ More information about installing `rust nightly` can be [found here](https://doc
 
 
 ### Build & Tests
-The `svm` project is organized into a couple of crates.
-The root crate is called `svm` and it's a workspace crate.
+The `SVM` project is organized into a couple of crates.
+The root crate is called `SVM` and it's a workspace crate.
 
-In order to build the `svm` project crates at once and run their tests:
+In order to build the `SVM` project crates at once and run their tests:
 ```rust
 cargo +nightly build
 RUST_TEST_THREADS=1 cargo +nightly test --all
@@ -35,6 +35,33 @@ RUST_TEST_THREADS=1 cargo +nightly test --all --release
 Note: since `leveldb` and `rocksdb` can't have parallel isolated connections to the same database (directory).
 That's why we ask `cargo` to run the tests serially (`RUST_TEST_THREADS=1`).
 
+
+## Docker
+In order to build the Docker image
+```
+docker build -t svm-build .
+```
+
+Then, for spawning a new container
+```
+docker run -it svm-build
+```
+
+### Roadmap
+[ ] Gas metering
+[ ] Storage Data-Structures
+  [ ] Array
+  [ ] Hash
+  [ ] Set
+  [ ] Strings
+[ ] Contract-to-Contract calls
+[ ] Events with expiration
+[ ] Contract Dependencies
+
+### Supported Operating-Systems
+[x] Mac
+[x] Linux
+[ ] Windows
 
 ### Got Questions?
 - Introduce yourself and ask anything on the [spacemesh gitter channel](https://gitter.im/spacemesh-os/Lobby).
