@@ -1,3 +1,5 @@
+;; In order to convert this file to a wasm binary:
+;; wapm run wat2wasm counter.wast
 (module
   (func $vmcall_get_counter (import "node" "vmcall_get_counter") (result i32))
   (func $vmcall_inc_counter (import "node" "vmcall_inc_counter") (param i32))

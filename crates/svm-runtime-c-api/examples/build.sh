@@ -11,11 +11,5 @@ case "${unameOut}" in
 esac
 
 mv ../../../target/release/libsvm_runtime_c_api.${ext} ./libsvm_wasmer_c_api.${ext}
-
 make counter
-
-pushd ./wasm
-wapm run wat2wasm counter.wast
-popd
-
 ./counter.out
