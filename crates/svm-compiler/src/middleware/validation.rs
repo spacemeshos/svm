@@ -10,7 +10,7 @@ use super::error::ParseError;
 /// * validation - make sure the wasm is valid and doesn't contain and opcodes not supported by `svm` (for example: floats)
 /// * preprocessing - we want to know whether the input contains loops or not.
 ///   In case there no loop we can later compute ahead-of-time the gas for each function,
-///   otherwise we'll have a dynamic get metering used
+///   otherwise we'll have a dynamic gas-metering used.
 pub struct ValidationMiddleware;
 
 impl ValidationMiddleware {
