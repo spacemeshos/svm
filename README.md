@@ -48,20 +48,20 @@ docker run -it svm-build
 ```
 
 ### Roadmap
-[ ] Gas metering
-[ ] Storage Data-Structures
-  [ ] Array
-  [ ] Hash
-  [ ] Set
-  [ ] Strings
-[ ] Contract-to-Contract calls
-[ ] Events with expiration
-[ ] Contract Dependencies
+* [ ] Gas metering
+* [ ] Storage Data-Structures
+  * [ ] Array
+  * [ ] Hash
+  * [ ] Set
+  * [ ] Strings
+* [ ] Contract-to-Contract calls
+* [ ] Events with expiration
+* [ ] Contract Dependencies
 
 ### Supported Operating-Systems
-[x] Mac
-[x] Linux
-[ ] Windows
+* [x] Mac
+* [x] Linux
+* [ ] Windows
 
 ### Got Questions?
 - Introduce yourself and ask anything on the [spacemesh gitter channel](https://gitter.im/spacemesh-os/Lobby).
