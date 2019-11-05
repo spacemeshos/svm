@@ -2,13 +2,21 @@ use std::cmp;
 use std::fmt;
 use std::ops::{Add, AddAssign, Mul, MulAssign};
 
+/// Represents the gas units for running SVM smart contracts
 #[derive(Copy, Clone, PartialEq)]
 pub enum Gas {
     /// Gas is known-ahead precisely
     Fixed(u64),
 
     /// Gas is within a range
-    Range { min: u64, max: u64 },
+    Range {
+        /// Lower-gas boundary. Below that the executed program will run out-of-gas
+        min: u64,
+
+        /// Upper-gas boundary. This value guarantees that the executed contract function
+        /// will not run out-of-gas.
+        max: u64,
+    },
 }
 
 impl fmt::Debug for Gas {

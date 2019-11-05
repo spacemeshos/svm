@@ -1,19 +1,16 @@
 use crate::block::{BlockOffsets, IfBlockOffsets};
 use crate::error::Error;
-use crate::function::{FuncBody, FuncIndex};
+use crate::function::FuncIndex;
 use crate::gas::Gas;
 use crate::program::Program;
 
 use std::collections::HashMap;
-use std::iter::Iterator;
 
-use parity_wasm::elements::{Instruction, Instructions};
+use parity_wasm::elements::Instruction;
 
-pub(crate) struct ProgramState {
-    /// Current call-stack derived from program static-analysis
+struct ProgramState {
     call_stack: Vec<FuncIndex>,
 
-    /// Cache of already estimated functions' gas
     func_gas_cache: HashMap<FuncIndex, Gas>,
 }
 
@@ -103,8 +100,8 @@ impl ProgramState {
 
 #[derive(Debug, Clone)]
 struct BlockState {
-    pub cursor: usize,
-    pub gas: Gas,
+    cursor: usize,
+    gas: Gas,
     eof: usize,
 }
 
@@ -125,28 +122,29 @@ impl BlockState {
         self.cursor += 1;
     }
 
-    fn back_cursor(&mut self) {
-        assert!(self.cursor > 0);
-
-        self.cursor -= 1;
-    }
-
     fn inc_gas(&mut self) {
-        self.gas = self.gas * Gas::Fixed(1);
+        self.gas *= Gas::Fixed(1);
     }
 }
 
+/// Receives a wasm program reprsented as a vector of parsed wasm instructions.
+/// On success returns for each function the `Gas` it requires.
+/// Otherwise, returns an `crate::error::Error`
 pub fn estimate_program_gas(program: &Program) -> Result<HashMap<FuncIndex, Gas>, Error> {
-    let mut state = ProgramState::new();
+    let mut program_state = ProgramState::new();
 
-    for func_idx in program.functions_ids().iter() {
-        estimate_function_gas(*func_idx, program, &mut state)?;
+    // we sort `functions_ids`, this is important in order to maintain determinsitic execution of unit-tests
+    let mut functions_ids: Vec<FuncIndex> = program.functions_ids().clone();
+    functions_ids.sort();
+
+    for func_idx in functions_ids.drain(..) {
+        estimate_function_gas(func_idx, program, &mut program_state)?;
     }
 
-    Ok(state.func_gas_cache)
+    Ok(program_state.func_gas_cache)
 }
 
-fn estimate_function_gas<'a>(
+fn estimate_function_gas(
     func_idx: FuncIndex,
     program: &Program,
     program_state: &mut ProgramState,
@@ -170,7 +168,7 @@ fn estimate_function_gas<'a>(
     Ok(func_gas)
 }
 
-fn estimate_vmcall(func_idx: FuncIndex, program: &Program) -> Result<Gas, Error> {
+fn estimate_vmcall(_func_idx: FuncIndex, _program: &Program) -> Result<Gas, Error> {
     unimplemented!()
 }
 
@@ -182,8 +180,7 @@ fn do_function_gas_estimation(
     let func_body = program.get_function_body(func_idx).to_vec();
     let block_offsets = BlockOffsets(0, func_body.len() - 1);
 
-    let (cont_offset, func_gas) =
-        estimate_block(program, program_state, &func_body, block_offsets)?;
+    let (_, func_gas) = estimate_block(program, program_state, &func_body, block_offsets)?;
 
     // TODO:
     // asserting we've went through all the instructions of the function `func_idx`
@@ -191,7 +188,7 @@ fn do_function_gas_estimation(
     Ok(func_gas)
 }
 
-fn estimate_block<'a>(
+fn estimate_block(
     program: &Program,
     program_state: &mut ProgramState,
     func_body: &Vec<Instruction>,
@@ -225,8 +222,7 @@ fn estimate_block<'a>(
                 block_state.gas *= called_func_gas;
             }
             Instruction::If(_) => {
-                let (_, if_offsets) =
-                    find_if_stmt_boundaries(program, program_state, func_body, &mut block_state)?;
+                let (_, if_offsets) = find_if_stmt_boundaries(func_body, &mut block_state)?;
 
                 let (_, true_gas) =
                     estimate_block(program, program_state, func_body, if_offsets.true_offsets)?;
@@ -253,7 +249,7 @@ fn estimate_block<'a>(
             Instruction::BrTable(_) => return Err(Error::BrTableNotAllowed),
             Instruction::CallIndirect(..) => return Err(Error::CallIndirectNotAllowed),
             Instruction::Nop => block_state.advance_cursor(),
-            (_) => {
+            _ => {
                 block_state.inc_gas();
                 block_state.advance_cursor();
             }
@@ -263,9 +259,7 @@ fn estimate_block<'a>(
     Ok((block_state.cursor, block_state.gas))
 }
 
-fn find_if_stmt_boundaries<'a>(
-    program: &Program,
-    program_state: &mut ProgramState,
+fn find_if_stmt_boundaries(
     func_body: &Vec<Instruction>,
     block_state: &mut BlockState,
 ) -> Result<(usize, IfBlockOffsets), Error> {
@@ -316,7 +310,7 @@ fn find_if_stmt_true_block(
             Instruction::End => {
                 block_depth -= 1;
 
-                if (block_depth == 0) {
+                if block_depth == 0 {
                     // the if-statement has no `else block`
                     true_end = block_state.cursor;
                     break;
@@ -360,7 +354,7 @@ fn find_if_stmt_else_block(
             Instruction::End => {
                 block_depth -= 1;
 
-                if (block_depth == 0) {
+                if block_depth == 0 {
                     else_end = block_state.cursor - 1;
                     break;
                 }
@@ -390,7 +384,6 @@ mod tests {
 
             let wasm = wabt::wat2wasm($code).unwrap();
             let program = read_program(&wasm);
-            dbg!(&program);
 
             estimate_program_gas(&program)
         }};
@@ -463,7 +456,7 @@ mod tests {
     }
 
     #[test]
-    fn function_gas_indirct_recursive_call_not_allowed() {
+    fn function_gas_indirect_recursive_call_not_allowed() {
         let code = r#"
           (module
             (func $func0

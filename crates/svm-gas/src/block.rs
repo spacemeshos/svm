@@ -1,4 +1,3 @@
-use parity_wasm::elements::Instruction;
 use std::fmt;
 
 #[derive(Copy, Clone)]
