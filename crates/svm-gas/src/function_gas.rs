@@ -132,8 +132,6 @@ impl BlockState {
 /// On success returns for each function the `Gas` it requires.
 /// Otherwise, returns an `crate::error::Error`
 pub fn estimate_program_gas(program: &Program) -> Result<HashMap<FuncIndex, Gas>, Error> {
-    // dbg!(program);
-
     let mut program_state = ProgramState::new();
 
     // we sort `functions_ids`, this is important in order to maintain determinsitic execution of unit-tests
@@ -412,7 +410,6 @@ fn find_if_stmt_else_block(
         _ => panic!("expects block to start with `else` block"),
     };
 
-    block_state.advance_cursor();
     let else_start = block_state.cursor.get();
     let mut else_end = 0;
 
@@ -816,12 +813,12 @@ mod tests {
                 ;; fixed(2) * range(5, 10) = range(7, 12)
         "#;
 
-        let _res = estimate_gas!(code);
-        // assert_eq!(
-        //     hashmap! {
-        //         FuncIndex(0) => Gas::Range { min: 7, max: 12 }
-        //     },
-        //     res.unwrap()
-        // );
+        let res = estimate_gas!(code);
+        assert_eq!(
+            hashmap! {
+                FuncIndex(0) => Gas::Range { min: 7, max: 12 }
+            },
+            res.unwrap()
+        );
     }
 }
