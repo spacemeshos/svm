@@ -41,8 +41,6 @@ elif [ "$SUITE" == "windowsRelease" ]; then
 	cross +nighstly build --release $EXTRAOPT $OPT; check
   cross +nightly test --release $EXTRAOPT $OPT; check
 elif [ "$SUITE" == "lint" ]; then
-	# Install rustfmt
-	rustup component add rustfmt --toolchain nightly ; check
 	cargo +nightly fmt --all -- --check ; check
 fi
 
