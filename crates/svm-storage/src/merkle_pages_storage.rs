@@ -8,7 +8,7 @@ use std::cell::RefCell;
 use std::marker::PhantomData;
 use std::rc::Rc;
 
-use log::{debug, trace, error};
+use log::{debug, error, trace};
 
 #[derive(Debug, Clone)]
 enum MerklePage {
@@ -237,8 +237,8 @@ impl<KV, PH, SH> Drop for MerklePagesStorage<KV, PH, SH>
 where
     KV: KVStore,
     PH: PageHasher,
-    SH: StateHasher {
-
+    SH: StateHasher,
+{
     fn drop(&mut self) {
         debug!("dropping `MerklePagesStorage`...");
     }
@@ -315,8 +315,12 @@ mod tests {
             let $kv = Rc::new(RefCell::new(MemKVStore::new()));
 
             #[allow(unused_mut)]
-            let mut $storage =
-                $crate::memory::MemMerklePages::new($addr.clone(), Rc::clone(&$kv), State::empty(), $pages_count);
+            let mut $storage = $crate::memory::MemMerklePages::new(
+                $addr.clone(),
+                Rc::clone(&$kv),
+                State::empty(),
+                $pages_count,
+            );
         };
     }
 
@@ -325,7 +329,12 @@ mod tests {
             let $addr = Address::from($addr_expr as u32);
 
             #[allow(unused_mut)]
-            let mut $storage = $crate::memory::MemMerklePages::new($addr.clone(), Rc::clone(&$kv), $state.clone(), $pages_count);
+            let mut $storage = $crate::memory::MemMerklePages::new(
+                $addr.clone(),
+                Rc::clone(&$kv),
+                $state.clone(),
+                $pages_count,
+            );
         };
     }
 
@@ -344,7 +353,6 @@ mod tests {
     macro_rules! compute_page_hash {
         ($addr: ident, $page_idx: expr, $data: expr) => {{
             use $crate::default::DefaultPageHasher;;
-
             DefaultPageHasher::hash($addr.clone(), PageIndex($page_idx), $data)
         }};
     }
@@ -500,7 +508,13 @@ mod tests {
         let new_state = compute_state!(jph);
 
         assert_same_keys!(
-            vec![old_state.bytes(), new_state.bytes(), ph0_old.0, ph0.0, ph1.0],
+            vec![
+                old_state.bytes(),
+                new_state.bytes(),
+                ph0_old.0,
+                ph0.0,
+                ph1.0
+            ],
             kv_keys_vec!(kv)
         );
 
