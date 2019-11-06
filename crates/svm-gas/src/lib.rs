@@ -6,6 +6,7 @@
 
 pub(crate) mod block;
 pub(crate) mod code_reader;
+pub(crate) mod cursor;
 pub(crate) mod function;
 pub(crate) mod program;
 

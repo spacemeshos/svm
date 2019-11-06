@@ -1,4 +1,5 @@
 use crate::block::{BlockOffsets, IfBlockOffsets};
+use crate::cursor::Cursor;
 use crate::error::Error;
 use crate::function::FuncIndex;
 use crate::gas::Gas;
@@ -78,7 +79,7 @@ impl ProgramState {
         //    ...))
         // ```
         //
-        // Now, if we call `estimate_function_gas` for `$function_0` piror calling `function_1`,
+        // Now, if we call `` for `$function_0` piror calling `function_1`,
         // when we reach the `call $function_1` instruction, we'll procceed to `estimate_function_gas` with `function_1`.
         //
         // Later, we'll invoke `estimate_function_gas` with `function_1` from `estimate_program_gas`.
@@ -100,7 +101,7 @@ impl ProgramState {
 
 #[derive(Debug, Clone)]
 struct BlockState {
-    cursor: usize,
+    cursor: Cursor,
     gas: Gas,
     eof: usize,
 }
@@ -109,17 +110,17 @@ impl BlockState {
     fn new(block_offsets: BlockOffsets) -> Self {
         Self {
             gas: Gas::Fixed(0),
-            cursor: block_offsets.0,
+            cursor: Cursor::new(block_offsets.0),
             eof: block_offsets.1,
         }
     }
 
     fn is_eof(&self) -> bool {
-        self.cursor > self.eof
+        self.cursor.get() > self.eof
     }
 
     fn advance_cursor(&mut self) {
-        self.cursor += 1;
+        self.cursor.next();
     }
 
     fn inc_gas(&mut self) {
@@ -131,6 +132,8 @@ impl BlockState {
 /// On success returns for each function the `Gas` it requires.
 /// Otherwise, returns an `crate::error::Error`
 pub fn estimate_program_gas(program: &Program) -> Result<HashMap<FuncIndex, Gas>, Error> {
+    // dbg!(program);
+
     let mut program_state = ProgramState::new();
 
     // we sort `functions_ids`, this is important in order to maintain determinsitic execution of unit-tests
@@ -158,11 +161,14 @@ fn estimate_function_gas(
         return Ok(func_gas.clone());
     }
 
+    log::info!("estimating gas for function {:?}", func_idx);
+
     program_state.record_func_call_start(func_idx)?;
-
     let func_gas = do_function_gas_estimation(program, program_state, func_idx)?;
-    program_state.set_gas_estimation(func_idx, func_gas);
 
+    log::info!("estimated gas for function {:?}: {:?}", func_idx, func_gas);
+
+    program_state.set_gas_estimation(func_idx, func_gas);
     program_state.record_func_call_end(func_idx)?;
 
     Ok(func_gas)
@@ -180,55 +186,73 @@ fn do_function_gas_estimation(
     let func_body = program.get_function_body(func_idx).to_vec();
     let block_offsets = BlockOffsets(0, func_body.len() - 1);
 
-    let (_, func_gas) = estimate_block(program, program_state, &func_body, block_offsets)?;
+    let (eof_offset, func_gas) =
+        estimate_block(func_idx, program, program_state, &func_body, block_offsets)?;
 
-    // TODO:
-    // asserting we've went through all the instructions of the function `func_idx`
+    assert_eq!(func_body.len(), eof_offset);
 
     Ok(func_gas)
 }
 
+/// estimated the current pointed to block and returns its gas and the offset for the instruction following it
+/// (a.k.a continuation offset)
 fn estimate_block(
+    func_idx: FuncIndex,
     program: &Program,
     program_state: &mut ProgramState,
     func_body: &Vec<Instruction>,
     block_offsets: BlockOffsets,
 ) -> Result<(usize, Gas), Error> {
+    log::debug!(
+        "[{:?}] about to estimate gas for block [{}, {}] ...",
+        func_idx,
+        block_offsets.0,
+        block_offsets.1,
+    );
+
     let mut block_state = BlockState::new(block_offsets);
 
     while !(block_state.is_eof()) {
-        let op = func_body.get(block_state.cursor).unwrap();
+        let op = func_body.get(block_state.cursor.get()).unwrap();
 
         match op {
             Instruction::End => {
                 // End of the current block, `block_state.cursor` now points to the continuation of the parent block
+                block_state.advance_cursor();
                 break;
             }
             Instruction::Block(_) => {
                 block_state.advance_cursor();
 
-                let inner_offsets = BlockOffsets(block_state.cursor, func_body.len());
+                let inner_offsets = BlockOffsets(block_state.cursor.get(), block_offsets.1);
                 let (cont_offset, inner_gas) =
-                    estimate_block(program, program_state, func_body, inner_offsets)?;
+                    estimate_block(func_idx, program, program_state, func_body, inner_offsets)?;
 
-                block_state.cursor = cont_offset;
-                block_state.gas = block_state.gas * inner_gas;
+                block_state.cursor.set(cont_offset);
+                block_state.gas *= inner_gas;
             }
-            Instruction::Call(func_idx) => {
+            Instruction::Call(called_func) => {
                 let called_func_gas =
-                    estimate_function_gas(FuncIndex(*func_idx), program, program_state)?;
+                    estimate_function_gas(FuncIndex(*called_func), program, program_state)?;
 
                 block_state.advance_cursor();
                 block_state.gas *= called_func_gas;
             }
             Instruction::If(_) => {
-                let (_, if_offsets) = find_if_stmt_boundaries(func_body, &mut block_state)?;
+                let (cont_offset, if_offsets) =
+                    find_if_stmt_boundaries(func_idx, func_body, &mut block_state)?;
 
-                let (_, true_gas) =
-                    estimate_block(program, program_state, func_body, if_offsets.true_offsets)?;
+                let (_, true_gas) = estimate_block(
+                    func_idx,
+                    program,
+                    program_state,
+                    func_body,
+                    if_offsets.true_offsets,
+                )?;
 
                 let else_gas = if if_offsets.else_offsets.is_some() {
                     let (_, gas) = estimate_block(
+                        func_idx,
                         program,
                         program_state,
                         func_body,
@@ -242,6 +266,7 @@ fn estimate_block(
 
                 let if_gas = true_gas + else_gas;
                 block_state.gas *= if_gas;
+                block_state.cursor.set(cont_offset);
             }
             Instruction::Loop(_) => return Err(Error::LoopNotAllowed),
             Instruction::Br(_) => return Err(Error::BrNotAllowed),
@@ -256,19 +281,57 @@ fn estimate_block(
         };
     }
 
-    Ok((block_state.cursor, block_state.gas))
+    log::debug!(
+        "[{:?}] estimated gas for block [{}, {}]: {:?}",
+        func_idx,
+        block_offsets.0,
+        block_offsets.1,
+        block_state.gas
+    );
+
+    Ok((block_state.cursor.get(), block_state.gas))
 }
 
+/// returns the if-statement `true-block` **inclusive** offsets and the continuation offset
+/// (the offset following the if-statement)
 fn find_if_stmt_boundaries(
+    func_idx: FuncIndex,
     func_body: &Vec<Instruction>,
     block_state: &mut BlockState,
 ) -> Result<(usize, IfBlockOffsets), Error> {
-    let (true_offsets, has_else) = find_if_stmt_true_block(func_body, block_state)?;
+    log::debug!(
+        "[{:?}] seeking if-stmt boundaries starting from offset={}...",
+        func_idx,
+        block_state.cursor.get()
+    );
 
-    let else_offsets = if has_else {
-        Some(find_if_stmt_else_block(func_body, block_state)?)
+    let (true_cont_offset, true_offsets, has_else) =
+        find_if_stmt_true_block(func_body, block_state)?;
+
+    log::debug!(
+        "[{:?}] found if-stmt true-block at [{}, {}]",
+        func_idx,
+        true_offsets.0,
+        true_offsets.1
+    );
+
+    let (if_cont_offset, else_offsets) = if has_else {
+        block_state.cursor.set(true_cont_offset);
+        block_state.cursor.prev();
+        // now `block_state.cursor` points to the `else` instruction
+
+        let (else_cont_offset, offsets) = find_if_stmt_else_block(func_body, block_state)?;
+
+        log::debug!(
+            "[{:?}] found if-stmt else-block at [{}, {}]",
+            func_idx,
+            offsets.0,
+            offsets.1
+        );
+
+        (else_cont_offset, Some(offsets))
     } else {
-        None
+        (true_cont_offset, None)
     };
 
     let offsets = IfBlockOffsets {
@@ -276,34 +339,37 @@ fn find_if_stmt_boundaries(
         else_offsets,
     };
 
-    Ok((0, offsets))
+    Ok((if_cont_offset, offsets))
 }
 
+/// returns the if-statement `true-block` **inclusive** offsets and whether it has an `else-block`
 fn find_if_stmt_true_block(
     func_body: &Vec<Instruction>,
     block_state: &mut BlockState,
-) -> Result<(BlockOffsets, bool), Error> {
-    let op = func_body.get(block_state.cursor).unwrap();
+) -> Result<(usize, BlockOffsets, bool), Error> {
+    let op = func_body.get(block_state.cursor.get()).unwrap();
 
     match op {
         Instruction::If(_) => block_state.advance_cursor(),
         _ => panic!("expects block to be an if-statement block"),
     };
 
-    let (true_start, mut true_end): (usize, usize) = (block_state.cursor, block_state.cursor);
+    let (true_start, mut true_end): (usize, usize) =
+        (block_state.cursor.get(), block_state.cursor.get());
 
     let mut block_depth = 1;
     let mut found_else = false;
 
     while !(block_state.is_eof()) {
-        let op = func_body.get(block_state.cursor).unwrap();
+        let op = func_body.get(block_state.cursor.get()).unwrap();
 
         match op {
             Instruction::Loop(_) => return Err(Error::LoopNotAllowed),
             Instruction::Block(_) | Instruction::If(_) => block_depth += 1,
             Instruction::Else if block_depth == 1 => {
                 // the if-statement has an `else block`
-                true_end = block_state.cursor;
+                block_state.cursor.prev();
+                true_end = block_state.cursor.get();
                 found_else = true;
                 break;
             }
@@ -312,7 +378,8 @@ fn find_if_stmt_true_block(
 
                 if block_depth == 0 {
                     // the if-statement has no `else block`
-                    true_end = block_state.cursor;
+                    block_state.cursor.prev();
+                    true_end = block_state.cursor.get();
                     break;
                 }
             }
@@ -326,27 +393,34 @@ fn find_if_stmt_true_block(
         panic!("invalid if-statement");
     }
 
-    let offsets = BlockOffsets(true_start, true_end - 1);
-    Ok((offsets, found_else))
+    block_state.cursor.next();
+    block_state.cursor.next();
+    let cont_offset = block_state.cursor.get();
+
+    let true_offsets = BlockOffsets(true_start, true_end);
+    Ok((cont_offset, true_offsets, found_else))
 }
 
+/// returns the if-statement `else-block` **inclusive** offsets
 fn find_if_stmt_else_block(
     func_body: &Vec<Instruction>,
     block_state: &mut BlockState,
-) -> Result<BlockOffsets, Error> {
-    let op = func_body.get(block_state.cursor).unwrap();
+) -> Result<(usize, BlockOffsets), Error> {
+    let op = func_body.get(block_state.cursor.get()).unwrap();
     match op {
         Instruction::Else => block_state.advance_cursor(),
         _ => panic!("expects block to start with `else` block"),
     };
 
-    let else_start = block_state.cursor;
+    block_state.advance_cursor();
+    let else_start = block_state.cursor.get();
     let mut else_end = 0;
 
     let mut block_depth = 1;
 
     while !(block_state.is_eof()) {
-        let op = func_body.get(block_state.cursor).unwrap();
+        let op = func_body.get(block_state.cursor.get()).unwrap();
+
         match op {
             Instruction::Block(_) | Instruction::If(_) => {
                 block_depth += 1;
@@ -355,13 +429,16 @@ fn find_if_stmt_else_block(
                 block_depth -= 1;
 
                 if block_depth == 0 {
-                    else_end = block_state.cursor - 1;
+                    block_state.cursor.prev();
+                    else_end = block_state.cursor.get();
                     break;
                 }
             }
             Instruction::Loop(_) => return Err(Error::LoopNotAllowed),
-            _ => block_state.advance_cursor(),
+            _ => (),
         }
+
+        block_state.advance_cursor();
     }
 
     if block_state.is_eof() {
@@ -370,7 +447,13 @@ fn find_if_stmt_else_block(
 
     assert!(else_end >= else_start);
 
-    Ok(BlockOffsets(else_start, else_end))
+    let else_offsets = BlockOffsets(else_start, else_end);
+
+    block_state.cursor.next();
+    block_state.cursor.next();
+    let cont_offset = block_state.cursor.get();
+
+    Ok((cont_offset, else_offsets))
 }
 
 #[cfg(test)]
@@ -518,12 +601,11 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn function_gas_br_if_not_allowed() {
         let code = r#"
           (module
-            (func $func0
-                (block (br_if 0 1) (i32.const 0))))
+            (func $func0 (result i32)
+                (block (result i32) (br_if 0 (i32.const 0) (i32.const 0)))))
         "#;
 
         let res = estimate_gas!(code);
@@ -630,44 +712,116 @@ mod tests {
         let code = r#"
           (module
             (func $func0
-                (i32.const 0)            ;; 0
-                (drop)                   ;; 1
+                (i32.const 0)
+                (drop)
 
                 ;; here we have gas cost = fixed(2)
 
-                (if (i32.const 1)        ;; 2 + 3
-
+                (if (i32.const 1)
                     ;; if-condition costs fixed(1) gas
 
                     (then
                         ;; block gas cost = fixed(4)
-                        (i32.const 2)    ;; 4
-                        (i32.const 3)    ;; 5
-                        (i32.add)        ;; 6
-                        (drop)           ;; 7
+                        (i32.const 2)
+                        (i32.const 3)
+                        (i32.add)
+                        (drop)
                     )
-                    (else                ;; 8
-                        ;; block gas cost = fixed(0)
-
-                        (nop)            ;; 9
+                    (else
+                        ;; block gas cost = fixed(2)
+                        (i32.const 0)
+                        (drop)
                     ))))
 
                 ;; total function `func0` gas:
                 ;; * before if-stmt: fixed(2)
                 ;; * if-condition: fixed(1)
-                ;; * true-block: range(0, 4)
-                ;; * else-block: fixed(0)
+                ;; * if-stmt true-block: fixed(4)
+                ;; * if-stmt else-block: fixed(2)
+                ;;
+                ;; if-stmt total gas: range(2, 4)
                 ;;
                 ;; total function `func0` gas:
-                ;; fixed(2) * fixed(1) * range(0, 4) = fixed(3) * range(0, 4) = range(3, 7)
+                ;; fixed(2) * fixed(1) * range(2, 4) = fixed(3) * range(2, 4) = range(5, 7)
         "#;
 
         let res = estimate_gas!(code);
         assert_eq!(
             hashmap! {
-                FuncIndex(0) => Gas::Range { min: 3, max: 7 }
+                FuncIndex(0) => Gas::Range { min: 5, max: 7 }
             },
             res.unwrap()
         );
+    }
+
+    #[test]
+    fn function_gas_if_stmt_with_else_nested() {
+        env_logger::init();
+
+        let code = r#"
+          (module
+            (func $func0
+                (i32.const 0)                                       ;; 0
+                (drop)                                              ;; 1
+
+                ;; here we have gas cost = fixed(2)
+
+                (if (i32.const 1)                                   ;; 2 + 3
+                    ;; if-condition costs fixed(1) gas
+
+                    (then
+                        ;; block gas cost = fixed(4)
+                        (i32.const 2)                               ;; 4
+                        (i32.const 3)                               ;; 5
+                        (i32.add)                                   ;; 6
+                        (drop)                                      ;; 7
+                    )
+                    (else                                           ;; 8
+                        (i32.const 4)                               ;; 9
+                        (drop)                                      ;; 10
+
+                        (if (i32.const 5)                           ;; 11 + 12
+                            ;; if-condition costs fixed(1) gas
+
+                            (then
+                                ;; block gas cost = fixed(2)
+                                (i32.const 6)                       ;; 13
+                                (drop)                              ;; 14
+                            )
+                            (else                                   ;; 15
+                                ;; block gas cost = fixed(6)
+                                (i32.const 7)                       ;; 16
+                                (i32.const 8)                       ;; 17
+                                (i32.const 9)                       ;; 18
+                                (i32.add)                           ;; 19
+                                (i32.add)                           ;; 20
+                                (drop)                              ;; 21
+                            ))))))                                  ;; 22 + 23 + 24
+
+
+                ;; total function `func0` gas:
+                ;; * before if-stmt: fixed(2)
+                ;; * if-condition: fixed(1)
+                ;; * if-stmt true-block: fixed(4)
+                ;; * if-stmt else-block:
+                ;;      * preamble: fixed(2)
+                ;;      * inner if-condition: fixed(1)
+                ;;      * inner if-stmt true-block: fixed(2)
+                ;;      * inner if-stmt else-block: fixed(6)
+                ;;          => inner-if stmt gas = fixed(1) * (fixed(2) + fixed(6)) = fixed(1) * range(2, 6) = range(3, 7)
+                ;;      => if-stmt else-block total gas = fixed(2) * range(3, 7) = range(5, 9)
+                ;;  => if-stmt total gas = fixed(1) * (fixed(4) + range(5, 9)) = fixed(1) * range(4, 9) = range(5, 10)
+                ;;
+                ;; total function `func0` gas:
+                ;; fixed(2) * range(5, 10) = range(7, 12)
+        "#;
+
+        let _res = estimate_gas!(code);
+        // assert_eq!(
+        //     hashmap! {
+        //         FuncIndex(0) => Gas::Range { min: 7, max: 12 }
+        //     },
+        //     res.unwrap()
+        // );
     }
 }

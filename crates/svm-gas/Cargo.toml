@@ -9,7 +9,9 @@ publish = false
 
 [dependencies]
 parity-wasm = "0.40.2"
+log = "0.4"
 
 [dev-dependencies]
 wabt = "0.7.4"
 maplit = "1.0.2"
+env_logger = "0.7.1"
