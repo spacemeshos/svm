@@ -1,11 +1,46 @@
 language: rust
+
+# This file doesn't have any script, it only contain the list of jobs.
+
+# This will only download 1 commit, that makes faster clone.
+git:
+  depth: 1
+
 rust:
   - nightly
+
+# Enabling cargo cache.
 cache: cargo
-branches:
-  only:
-  - develop
-  - master
+
+# This is the list of jobs
+jobs:
+  include:
+    # The test stage have build and test
+    # These are the linux test
+    - stage: test
+      os: linux
+      env: SUITE="debug"
+    - os: linux
+      env: SUITE="release"
+    # These are the osx test
+    - os: osx
+      env: SUITE="debug"
+    - os: osx
+      env: SUITE="release"
+    # These are the windows build, these are made on a linux vm and use cross to build in a windows cross.
+# Just uncoment these line to enable windows build.
+#    - os: linux
+#      env: SUITE="windowsDebug"
+#      service:
+#        - docker
+#    - os: linux
+#      env: SUITE="windowsRelease"
+#      service:
+#        - docker
+# These are for the lint test
+    - os: linux
+      env: SUITE="lint"
+
+
 script:
-  - cargo +nightly build --all
-  - RUST_TEST_THREADS=1 cargo +nightly test --all
+  - ./ci.sh
