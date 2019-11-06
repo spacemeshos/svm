@@ -7,10 +7,16 @@ impl Cursor {
     }
 
     #[inline(always)]
-    pub fn next(&mut self) {
-        self.0 += 1;
+    pub fn forward(&mut self, delta: usize) {
+        self.0 += delta;
     }
 
+    #[inline(always)]
+    pub fn next(&mut self) {
+        self.forward(1);
+    }
+
+    #[inline(always)]
     pub fn prev(&mut self) {
         assert!(self.0 > 0);
 

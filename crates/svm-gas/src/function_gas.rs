@@ -391,8 +391,7 @@ fn find_if_stmt_true_block(
         panic!("invalid if-statement");
     }
 
-    block_state.cursor.next();
-    block_state.cursor.next();
+    block_state.cursor.forward(2);
     let cont_offset = block_state.cursor.get();
 
     let true_offsets = BlockOffsets(true_start, true_end);
@@ -446,8 +445,7 @@ fn find_if_stmt_else_block(
 
     let else_offsets = BlockOffsets(else_start, else_end);
 
-    block_state.cursor.next();
-    block_state.cursor.next();
+    block_state.cursor.forward(2);
     let cont_offset = block_state.cursor.get();
 
     Ok((cont_offset, else_offsets))
@@ -474,7 +472,7 @@ mod tests {
         let code = r#"
           (module
             (func $func0
-                (nop))
+            	(nop))
 
             (func $func1
                 (block (nop)))
@@ -489,6 +487,34 @@ mod tests {
                 FuncIndex(0) => Gas::Fixed(0),
                 FuncIndex(1) => Gas::Fixed(0),
                 FuncIndex(2) => Gas::Fixed(0)
+            },
+            res.unwrap()
+        );
+    }
+
+    #[test]
+    fn function_gas_program_with_functions_imports() {
+        let code = r#"
+          (module
+	     (import "env" "func0" (func $env_func0 (param i32)))
+	     (import "env" "func1" (func $env_func1 (param i32)))
+	     (import "env" "func2" (func $env_func2 (param i32)))
+
+             (func $func3
+                (i32.const 0)
+                (i32.const 1)
+                (i32.const 2)
+                (i32.const 3)
+                (i32.add)
+                (i32.add)
+                (i32.add)
+                (drop)))
+        "#;
+
+        let res = estimate_gas!(code);
+        assert_eq!(
+            hashmap! {
+                FuncIndex(3) => Gas::Fixed(8),
             },
             res.unwrap()
         );
