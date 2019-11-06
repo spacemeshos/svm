@@ -12,35 +12,54 @@ rust:
 # Enabling cargo cache.
 cache: cargo
 
+# To enable artifacts add required env variable (S3 login) in a env.global list
+# following : https://docs.travis-ci.com/user/uploading-artifacts/
+# Upload will get the output of the script and upload needed file
+addons:
+  artifacts:
+    paths:
+      # Upload the output of the script.
+      - $(cat upload.txt)
+
 # This is the list of jobs
 jobs:
   include:
     # The test stage have build and test
-    # These are the linux test
     - stage: test
+    # These are for the lint test
       os: linux
-      env: SUITE="debug"
+      env: SUITE="lint"
+    # These are the linux test
     - os: linux
-      env: SUITE="release"
+      env:
+        - SUITE="debug"
+        - TEST="True"
+    - os: linux
+      env:
+        - SUITE="release"
+        - TEST="True"
     # These are the osx test
     - os: osx
-      env: SUITE="debug"
+      env:
+        - SUITE="debug"
+        - TEST="True"
     - os: osx
-      env: SUITE="release"
+      env:
+        - SUITE="release"
+        - TEST="True"
     # These are the windows build, these are made on a linux vm and use cross to build in a windows cross.
 # Just uncoment these line to enable windows build.
 #    - os: linux
-#      env: SUITE="windowsDebug"
+#      env:
+#        - SUITE="windowsDebug"
+#        - TEST="True"
 #      service:
 #        - docker
 #    - os: linux
-#      env: SUITE="windowsRelease"
+#      env:
+#        - SUITE="windowsRelease"
+#        - TEST="True"
 #      service:
 #        - docker
-# These are for the lint test
-    - os: linux
-      env: SUITE="lint"
 
-
-script:
-  - ./ci.sh
+script: "./ci.sh"
