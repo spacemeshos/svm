@@ -508,13 +508,20 @@ mod tests {
                 (i32.add)
                 (i32.add)
                 (i32.add)
-                (drop)))
+                (drop))
+
+            (func $func4
+                (i32.const 4)
+                (drop)
+                (call $func3)))
         "#;
 
         let res = estimate_gas!(code);
+
         assert_eq!(
             hashmap! {
                 FuncIndex(3) => Gas::Fixed(8),
+                FuncIndex(4) => Gas::Fixed(10),
             },
             res.unwrap()
         );
