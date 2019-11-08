@@ -22,7 +22,7 @@ crate-type = ["cdylib", "staticlib", "rlib"]
 [dependencies.rocksdb]
 default-features = false
 optional = true
-version = "0.12.3"
+version = "0.12.4"
 features = ["lz4"]
 
 [dependencies.wasmer-runtime]
