@@ -1,5 +1,5 @@
-#![deny(missing_docs)]
-#![deny(unused)]
+#![allow(missing_docs)]
+#![allow(unused)]
 
 //! This crate is responsible on doing gas estimations for SVM contracts.
 //! SVM contracts are essentially wasm programs importing the SVM vmcalls.

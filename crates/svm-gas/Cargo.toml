@@ -10,6 +10,7 @@ publish = false
 [dependencies]
 parity-wasm = "0.40.2"
 log = "0.4"
+wasmparser = "0.39.2"
 
 [dev-dependencies]
 wabt = "0.7.4"
