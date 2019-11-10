@@ -263,7 +263,7 @@ dependencies = [
 
 [[package]]
 name = "env_logger"
-version = "0.7.0"
+version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "atty 0.2.13 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -459,6 +459,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "maplit"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "memchr"
 version = "2.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -532,6 +537,11 @@ dependencies = [
  "libc 0.2.62 (registry+https://github.com/rust-lang/crates.io-index)",
  "winapi 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+
+[[package]]
+name = "parity-wasm"
+version = "0.40.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "parking_lot"
@@ -792,6 +802,7 @@ dependencies = [
  "svm-common 0.0.0",
  "svm-compiler 0.0.0",
  "svm-contract 0.0.0",
+ "svm-gas 0.0.0",
  "svm-kv 0.0.0",
  "svm-runtime 0.0.0",
  "svm-runtime-c-api 0.0.0",
@@ -824,7 +835,7 @@ dependencies = [
  "wasmer-runtime 0.8.0 (git+https://github.com/spacemeshos/wasmer?branch=develop)",
  "wasmer-runtime-core 0.8.0 (git+https://github.com/spacemeshos/wasmer?branch=develop)",
  "wasmer-singlepass-backend 0.8.0 (git+https://github.com/spacemeshos/wasmer?branch=develop)",
- "wasmparser 0.31.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "wasmparser 0.39.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -840,11 +851,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "svm-gas"
+version = "0.0.0"
+dependencies = [
+ "env_logger 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "maplit 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "parity-wasm 0.40.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "wabt 0.7.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "wasmparser 0.39.2 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "svm-kv"
 version = "0.0.0"
 dependencies = [
  "db-key 0.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "env_logger 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "env_logger 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "leveldb 0.8.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "rocksdb 0.12.4 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1105,11 +1128,6 @@ dependencies = [
 
 [[package]]
 name = "wasmparser"
-version = "0.31.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-
-[[package]]
-name = "wasmparser"
 version = "0.39.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
@@ -1198,7 +1216,7 @@ dependencies = [
 "checksum dynasm 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)" = "f36d49ab6f8ecc642d2c6ee10fda04ba68003ef0277300866745cdde160e6b40"
 "checksum dynasmrt 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)" = "a4c408a211e7f5762829f5e46bdff0c14bc3b1517a21a4bb781c716bf88b0c68"
 "checksum env_logger 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)" = "aafcde04e90a5226a6443b7aabdb016ba2f8307c847d524724bd9b346dd1a2d3"
-"checksum env_logger 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "39ecdb7dd54465526f0a56d666e3b2dd5f3a218665a030b6e4ad9e70fa95d8fa"
+"checksum env_logger 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)" = "44533bbbb3bb3c1fa17d9f2e4e38bbbaf8396ba82193c4cb1b6445d711445d36"
 "checksum errno 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)" = "c2a071601ed01b988f896ab14b95e67335d1eeb50190932a1320f7fe3cadc84e"
 "checksum errno-dragonfly 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "14ca354e36190500e1e1fb267c647932382b54053c50b14970856c0b00a35067"
 "checksum failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)" = "795bd83d3abeb9220f257e597aa0080a508b27533824adf336529648f6abf7e2"
@@ -1223,6 +1241,7 @@ dependencies = [
 "checksum librocksdb-sys 6.1.4 (registry+https://github.com/rust-lang/crates.io-index)" = "b93b02499a16b46dfa35536a54b54ca14cc27275dd766aba4f4e267c97572994"
 "checksum lock_api 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)" = "f8912e782533a93a167888781b836336a6ca5da6175c05944c86cf28c31104dc"
 "checksum log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)" = "14b6052be84e6b71ab17edffc2eeabf5c2c3ae1fdb464aae35ac50c67a44e1f7"
+"checksum maplit 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)" = "3e2e65a1a2e43cfcb47a895c4c8b10d1f4a61097f9f254f183aee60cad9c651d"
 "checksum memchr 2.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "88579771288728879b57485cc7d6b07d648c9f0141eb955f8ab7f9d45394468e"
 "checksum memmap 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)" = "e2ffa2c986de11a9df78620c01eeaaf27d94d3ff02bf81bfcca953102dd0c6ff"
 "checksum memmap 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "6585fd95e7bb50d6cc31e20d4cf9afb4e2ba16c5846fc76793f11218da9c475b"
@@ -1232,6 +1251,7 @@ dependencies = [
 "checksum num_cpus 1.10.1 (registry+https://github.com/rust-lang/crates.io-index)" = "bcef43580c035376c0705c42792c294b66974abbfd2789b511784023f71f3273"
 "checksum owning_ref 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)" = "cdf84f41639e037b484f93433aa3897863b561ed65c6e59c7073d7c561710f37"
 "checksum page_size 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)" = "f89ef58b3d32420dbd1a43d2f38ae92f6239ef12bb556ab09ca55445f5a67242"
+"checksum parity-wasm 0.40.3 (registry+https://github.com/rust-lang/crates.io-index)" = "1e39faaa292a687ea15120b1ac31899b13586446521df6c149e46f1584671e0f"
 "checksum parking_lot 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)" = "f842b1982eb6c2fe34036a4fbfb06dd185a3f5c8edfaacdf7d1ea10b07de6252"
 "checksum parking_lot_core 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)" = "b876b1b9e7ac6e1a74a6da34d25c42e17e8862aa409cbbbdcfc8d86c6f3bc62b"
 "checksum peeking_take_while 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "19b17cddbe7ec3f8bc800887bab5e717348c95ea2ca0b1bf0837fb964dc67099"
@@ -1288,7 +1308,6 @@ dependencies = [
 "checksum wasmer-runtime-c-api 0.8.0 (git+https://github.com/spacemeshos/wasmer?branch=develop)" = "<none>"
 "checksum wasmer-runtime-core 0.8.0 (git+https://github.com/spacemeshos/wasmer?branch=develop)" = "<none>"
 "checksum wasmer-singlepass-backend 0.8.0 (git+https://github.com/spacemeshos/wasmer?branch=develop)" = "<none>"
-"checksum wasmparser 0.31.1 (registry+https://github.com/rust-lang/crates.io-index)" = "8a6f324afc05fd8282bbc49dae854a1c20f74aeff10a575b5a43453d1864db97"
 "checksum wasmparser 0.39.2 (registry+https://github.com/rust-lang/crates.io-index)" = "e5083b449454f7de0b15f131eee17de54b5a71dcb9adcf11df2b2f78fad0cd82"
 "checksum which 2.0.1 (registry+https://github.com/rust-lang/crates.io-index)" = "b57acb10231b9493c8472b20cb57317d0679a49e0bdbee44b3b803a6473af164"
 "checksum winapi 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)" = "167dc9d6949a9b857f3451275e911c3f44255842c1f7a76f33c55103a909087a"

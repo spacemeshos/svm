@@ -68,5 +68,5 @@ docker run -it svm-build
 
 ### Got Questions?
 - If you'd like to contribute to _SVM_ or have questions please go to [SVM gitter channel](https://gitter.im/spacemesh-os/svm)
-- Introduce yourself and ask anything on the [spacemesh gitter channel](https://gitter.im/spacemesh-os/Lobby).
+- Introduce yourself and ask anything on the [spacemesh gitter channel](https://gitter.im/spacemesh-os/svm).
 - DM [@teamspacemesh](https://twitter.com/teamspacemesh)

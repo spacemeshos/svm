@@ -1,0 +1,18 @@
+[package]
+name = "svm-gas"
+version = "0.0.0"
+authors = ["Yaron Wittenstein <yaron.wittenstein@gmail.com>"]
+license = "MIT"
+edition = "2018"
+readme = "README.md"
+publish = false
+
+[dependencies]
+parity-wasm = "0.40.2"
+log = "0.4"
+wasmparser = "0.39.2"
+
+[dev-dependencies]
+wabt = "0.7.4"
+maplit = "1.0.2"
+env_logger = "0.7.1"
