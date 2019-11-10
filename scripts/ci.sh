@@ -30,7 +30,7 @@ upload()
 {
 	if ([ "$TRAVIS_BRANCH" == "master" ] || [ "$TRAVIS_BRANCH" == "develop" ]) && [ "$TRAVIS_EVENT_TYPE" != "pull_request" ]; then
 		# Add all file path to upload to upload.txt
-		ls ./target/debug/libsvm_runtime_c_api.{so,dylib,dll,h} > upload.txt
+		ls ./target/{debug,release}/libsvm_runtime_c_api.{so,dylib,dll,h} > upload.txt
 	fi
 }
 

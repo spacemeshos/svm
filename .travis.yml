@@ -62,4 +62,4 @@ jobs:
 #      service:
 #        - docker
 
-script: "./ci.sh"
+script: "./scripts/ci.sh"
