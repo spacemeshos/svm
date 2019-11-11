@@ -59,6 +59,8 @@ elif [ "$SUITE" == "windowsRelease" ]; then
   if [ "$TEST" == "True" ]; then cross +nightly test --release $EXTRAOPT $OPT; check ; fi
 	upload
 elif [ "$SUITE" == "lint" ]; then
+	# Install rustfmt
+	rustup component add rustfmt --toolchain nightly ; check
 	cargo +nightly fmt $OPT -- --check ; check
 fi
 
