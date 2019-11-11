@@ -37,6 +37,8 @@ upload()
 
 # This file contains file path to upload, ensure that is at least empty.
 touch upload.txt
+# Deleting older builds, they get cached.
+rm -rf ./target/{debug,release}/libsvm_runtime_c_api.{so,dylib,dll,h}
 
 # Debug and Release are the default *nix friendly ci (used by linux and osx build).
 # Windows* use docker and cross to build and test in a windows docker in linux.
