@@ -18,3 +18,5 @@ pub mod gas;
 
 /// Implements the gas estimation logic
 pub mod function_gas;
+
+pub mod estimate;
