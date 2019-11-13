@@ -14,7 +14,7 @@ fn gen_for_c() {
 
     // set target ouput dir for header
     let out_dir = env::var("OUT_DIR").unwrap();
-    let mut out_header = PathBuf::from(&out_dir);
+    let mut out_header = PathBuf::from(&out_dir).join("../../../");
     out_header.push(header_name);
     out_header.set_extension("h");
 
