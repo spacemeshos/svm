@@ -20,3 +20,5 @@ pub mod gas;
 pub mod function_gas;
 
 pub mod estimate;
+
+pub mod traits;

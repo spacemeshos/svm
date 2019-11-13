@@ -2,6 +2,7 @@ use crate::error::Error;
 use crate::function::{FuncBody, FuncIndex};
 use crate::gas::Gas;
 use crate::program::Program;
+use crate::traits::VMCallsGasEstimator;
 
 use std::collections::{HashMap, HashSet};
 use std::iter::FromIterator;
@@ -33,6 +34,30 @@ impl OpsBlock {
     }
 }
 
+struct BlockCtx<'ctx> {
+    ops: &'ctx OpsBlock,
+    func_idx: FuncIndex,
+    depth: usize,
+}
+
+impl<'ctx> BlockCtx<'ctx> {
+    fn new(func_idx: FuncIndex, ops: &'ctx OpsBlock) -> Self {
+        Self {
+            ops,
+            func_idx,
+            depth: 0,
+        }
+    }
+
+    fn child_block(&self, ops: &'ctx OpsBlock) -> Self {
+        Self {
+            ops,
+            func_idx: self.func_idx,
+            depth: self.depth + 1,
+        }
+    }
+}
+
 struct FuncsBlocks {
     inner: HashMap<FuncIndex, OpsBlock>,
 }
@@ -47,9 +72,13 @@ impl FuncsBlocks {
     fn add_func_block(&mut self, func_idx: FuncIndex, block: OpsBlock) {
         self.inner.insert(func_idx, block);
     }
+
+    fn get_func_block(&self, func_idx: FuncIndex) -> &OpsBlock {
+        self.inner.get(&func_idx).unwrap()
+    }
 }
 
-struct FuncsGas {
+pub struct FuncsGas {
     inner: HashMap<FuncIndex, Gas>,
 }
 
@@ -64,7 +93,7 @@ impl FuncsGas {
         self.inner.insert(func_idx, gas);
     }
 
-    fn get_func_gas(&mut self, func_idx: FuncIndex) -> Option<Gas> {
+    fn get_func_gas(&self, func_idx: FuncIndex) -> Option<Gas> {
         match self.inner.get(&func_idx) {
             None => None,
             Some(gas) => Some(gas.clone()),
@@ -97,7 +126,7 @@ impl CallGraph {
         assert!(self.all_funcs.contains(&from));
         assert!(self.all_funcs.contains(&to));
 
-        self.root_funcs.remove(&to);
+        self.root_funcs.remove(&from);
 
         let entry = self.out_calls.entry(from).or_insert(HashSet::new());
         entry.insert(to);
@@ -108,25 +137,27 @@ impl CallGraph {
 
     fn topological_sort(&self) -> Result<Vec<FuncIndex>, Error> {
         let mut res = Vec::new();
-        let mut in_calls = self.in_calls.clone();
+        let mut out_calls = self.out_calls.clone();
 
-        let mut unsorted_roots = self
+        let mut roots_funcs = self
             .root_funcs
             .iter()
             .map(|v| *v)
             .collect::<Vec<FuncIndex>>();
 
-        while let Some(caller) = unsorted_roots.pop() {
-            res.push(caller);
+        while let Some(root) = roots_funcs.pop() {
+            res.push(root);
 
-            if let Some(callees) = self.out_calls.get(&caller) {
-                for callee in callees.iter() {
-                    let callee_callers = in_calls.get_mut(&callee).unwrap();
+            if let Some(callers) = self.in_calls.get(&root) {
+                for caller in callers.iter() {
+                    let caller_callees = out_calls.get_mut(&caller).unwrap();
 
-                    callee_callers.remove(&caller);
+                    assert!(caller_callees.contains(&root));
 
-                    if callee_callers.is_empty() {
-                        unsorted_roots.push(*callee);
+                    caller_callees.remove(&root);
+
+                    if caller_callees.is_empty() {
+                        roots_funcs.push(*caller);
                     }
                 }
             }
@@ -138,7 +169,10 @@ impl CallGraph {
     }
 }
 
-pub fn estimate_program(program: &Program) -> Result<Gas, Error> {
+pub fn estimate_program<VME>(program: &Program) -> Result<FuncsGas, Error>
+where
+    VME: VMCallsGasEstimator,
+{
     // we sort `func_ids`, this is important in order to maintain a determinsitic execution of unit-tests
     let mut funcs_ids: Vec<FuncIndex> = program.functions_ids().clone();
     funcs_ids.sort();
@@ -151,11 +185,12 @@ pub fn estimate_program(program: &Program) -> Result<Gas, Error> {
         construct_func_block(*func_idx, program, &mut funcs_blocks, &mut call_graph)?;
     }
 
-    // for func_idx in call_graph.topological_sort()?.iter() {
-    //     estimate_func_gas(*func_idx, &funcs_blocks, &mut funcs_gas);
-    // }
+    for func_idx in call_graph.topological_sort()?.iter() {
+        let gas = estimate_func_gas::<VME>(*func_idx, &funcs_blocks, &funcs_gas);
+        funcs_gas.set_func_gas(*func_idx, gas);
+    }
 
-    panic!()
+    Ok(funcs_gas)
 }
 
 fn construct_func_block(
@@ -166,27 +201,19 @@ fn construct_func_block(
 ) -> Result<(), Error> {
     let func_body = program.get_function_body(func_idx).to_vec();
 
-    do_func_estimation(func_idx, &func_body, funcs_blocks, call_graph)
+    let (_, block) = estimate_func_block(func_idx, program, &func_body, 0, call_graph)?;
+    funcs_blocks.add_func_block(func_idx, block);
+
+    Ok(())
 }
 
 fn append_vmcall(_func_idx: FuncIndex, _program: &Program) -> Result<(), Error> {
     Ok(())
 }
 
-fn do_func_estimation(
-    func_idx: FuncIndex,
-    func_body: &Vec<Instruction>,
-    funcs_blocks: &mut FuncsBlocks,
-    call_graph: &mut CallGraph,
-) -> Result<(), Error> {
-    let (_, block) = estimate_func_block(func_idx, func_body, 0, call_graph)?;
-    funcs_blocks.add_func_block(func_idx, block);
-
-    Ok(())
-}
-
 fn estimate_func_block(
     func_idx: FuncIndex,
+    program: &Program,
     block_ops: &Vec<Instruction>,
     block_offset: usize,
     call_graph: &mut CallGraph,
@@ -204,7 +231,7 @@ fn estimate_func_block(
             Instruction::Call(to) => {
                 let to = FuncIndex(to);
 
-                if is_imported_func(to) {
+                if program.is_imported(to) {
                     block.append(Op::VMCall(to));
                 } else {
                     call_graph.add_call(func_idx, to);
@@ -214,18 +241,23 @@ fn estimate_func_block(
             }
             Instruction::Block(..) => {
                 let (cont_cursor, inner) =
-                    estimate_func_block(func_idx, block_ops, cursor, call_graph)?;
+                    estimate_func_block(func_idx, program, block_ops, cursor, call_graph)?;
 
                 block.append(Op::Block(inner));
                 cursor = cont_cursor;
             }
             Instruction::If(..) => {
                 let (if_cont_cursor, if_block) =
-                    estimate_func_block(func_idx, block_ops, cursor, call_graph)?;
+                    estimate_func_block(func_idx, program, block_ops, cursor, call_graph)?;
 
                 if let Some(Instruction::Else) = block_ops.get(if_cont_cursor) {
-                    let (else_cont_cursor, else_block) =
-                        estimate_func_block(func_idx, block_ops, if_cont_cursor, call_graph)?;
+                    let (else_cont_cursor, else_block) = estimate_func_block(
+                        func_idx,
+                        program,
+                        block_ops,
+                        if_cont_cursor,
+                        call_graph,
+                    )?;
 
                     block.append(Op::IfElseBlock(if_block, else_block));
                     cursor = else_cont_cursor;
@@ -248,6 +280,50 @@ fn estimate_func_block(
     Ok((cursor, block))
 }
 
-fn is_imported_func(func_idx: FuncIndex) -> bool {
-    false
+fn estimate_func_gas<VME>(
+    func_idx: FuncIndex,
+    funcs_blocks: &FuncsBlocks,
+    funcs_gas: &FuncsGas,
+) -> Gas
+where
+    VME: VMCallsGasEstimator,
+{
+    if let Some(cached) = funcs_gas.get_func_gas(func_idx) {
+        return cached;
+    }
+
+    let func_block = funcs_blocks.get_func_block(func_idx);
+    let block_ctx = BlockCtx::new(func_idx, func_block);
+
+    estimate_block_gas::<VME>(&block_ctx, funcs_gas)
+}
+
+fn estimate_block_gas<VME>(ctx: &BlockCtx, funcs_gas: &FuncsGas) -> Gas
+where
+    VME: VMCallsGasEstimator,
+{
+    let mut gas = Gas::Fixed(0);
+
+    for op in ctx.ops.0.iter() {
+        let op_gas = match *op {
+            Op::Plain(Instruction::Nop) => Gas::Fixed(0),
+            Op::Plain(..) => Gas::Fixed(1),
+            Op::Block(ref inner) => estimate_block_gas::<VME>(&ctx.child_block(inner), funcs_gas),
+            Op::VMCall(fid) => VME::estimate_gas(fid),
+            Op::FuncCall(fid) => funcs_gas.get_func_gas(ctx.func_idx).unwrap(),
+            Op::IfBlock(ref true_block) => {
+                estimate_block_gas::<VME>(&ctx.child_block(true_block), funcs_gas)
+            }
+            Op::IfElseBlock(ref true_block, ref else_block) => {
+                let true_gas = estimate_block_gas::<VME>(&ctx.child_block(true_block), funcs_gas);
+                let else_gas = estimate_block_gas::<VME>(&ctx.child_block(else_block), funcs_gas);
+
+                true_gas + else_gas
+            }
+        };
+
+        gas *= op_gas;
+    }
+
+    gas
 }
