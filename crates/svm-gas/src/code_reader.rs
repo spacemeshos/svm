@@ -5,6 +5,7 @@ use std::collections::HashMap;
 
 use parity_wasm::elements::{ImportCountType, Module};
 
+/// Reads wasm input and contruct a `Program` struct
 pub fn read_program(wasm: &[u8]) -> Program {
     let mut functions = HashMap::new();
 

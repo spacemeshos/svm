@@ -1,5 +1,5 @@
 use crate::error::Error;
-use crate::function::{FuncBody, FuncIndex};
+use crate::function::FuncIndex;
 use crate::gas::Gas;
 use crate::program::Program;
 use crate::traits::VMCallsGasEstimator;
@@ -219,6 +219,9 @@ impl CallGraph {
     }
 }
 
+/// Recursives a parsed program as `Program`.
+/// On success, returns for each function-index its estimated gas.
+/// On failure, returns an error.
 pub fn estimate_program<VME>(program: &Program) -> Result<HashMap<FuncIndex, Gas>, Error>
 where
     VME: VMCallsGasEstimator,
