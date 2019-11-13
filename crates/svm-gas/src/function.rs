@@ -1,5 +1,6 @@
 use parity_wasm::elements::{Instruction, Instructions};
 
+/// Represents a function index
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
 pub struct FuncIndex(pub u32);
 
