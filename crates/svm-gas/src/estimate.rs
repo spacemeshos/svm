@@ -214,9 +214,7 @@ pub fn estimate_program<VME>(program: &Program) -> Result<HashMap<FuncIndex, Gas
 where
     VME: VMCallsGasEstimator,
 {
-    // we sort `func_ids`, this is important in order to maintain a determinsitic execution of unit-tests
-    let mut funcs_ids: Vec<FuncIndex> = program.functions_ids().clone();
-    funcs_ids.sort();
+    let funcs_ids = program.functions_ids();
 
     let mut funcs_blocks = FuncsBlocks::new();
     let mut funcs_gas = FuncsGas::new();
@@ -247,10 +245,6 @@ fn construct_func_block(
     let (_, block) = estimate_func_block(func_idx, program, &func_body, 0, call_graph)?;
     funcs_blocks.add_func_block(func_idx, block);
 
-    Ok(())
-}
-
-fn append_vmcall(_func_idx: FuncIndex, _program: &Program) -> Result<(), Error> {
     Ok(())
 }
 
@@ -302,7 +296,7 @@ fn estimate_func_block(
                         func_idx,
                         program,
                         block_ops,
-                        if_cont_cursor,
+                        if_cont_cursor + 1,
                         call_graph,
                     )?;
 
@@ -313,6 +307,7 @@ fn estimate_func_block(
                     cursor = if_cont_cursor;
                 }
             }
+            Instruction::Else => break,
             Instruction::End => {
                 cursor += 1;
                 break;
@@ -350,7 +345,7 @@ where
     VME: VMCallsGasEstimator,
 {
     if ctx.depth > FUNC_BLOCK_MAX_DEPTH {
-        panic!("block depth is too deep")
+        panic!("function `{}` block depth is too deep", ctx.func_idx.0);
     }
 
     let mut gas = Gas::Fixed(0);

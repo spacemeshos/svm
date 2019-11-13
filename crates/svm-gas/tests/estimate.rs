@@ -299,7 +299,7 @@ fn estimate_if_stmt_without_else_nested() {
 }
 
 #[test]
-fn estimate_if_stmt_with_else() {
+fn estimate_if_stmt_with_else_not_nested() {
     let code = r#"
           (module
             (func $func0
@@ -347,8 +347,6 @@ fn estimate_if_stmt_with_else() {
 
 #[test]
 fn estimate_if_stmt_with_else_nested() {
-    env_logger::init();
-
     let code = r#"
           (module
             (func $func0
