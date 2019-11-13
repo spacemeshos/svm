@@ -12,6 +12,12 @@ rust:
 # Enabling cargo cache.
 cache: cargo
 
+# Staging
+stages:
+  - name: test
+    # note for PRs this is the base branch name
+    if: branch IN (master,develop)
+
 # To enable artifacts add required env variable (S3 login) in a env.global list
 # following : https://docs.travis-ci.com/user/uploading-artifacts/
 # Upload will get the output of the script and upload needed file
