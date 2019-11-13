@@ -9,7 +9,7 @@ use std::iter::FromIterator;
 
 use parity_wasm::elements::Instruction;
 
-static FUNC_BLOCK_MAX_DEPTH: usize = 1024;
+static FUNC_BLOCK_MAX_DEPTH: usize = 256;
 
 #[derive(Debug, Clone, PartialEq)]
 enum Op {
@@ -45,7 +45,7 @@ impl<'ctx> BlockCtx<'ctx> {
         Self {
             ops,
             func_idx,
-            depth: 0,
+            depth: 1,
         }
     }
 
@@ -78,6 +78,7 @@ impl FuncsBlocks {
     }
 }
 
+#[derive(Debug)]
 pub struct FuncsGas {
     inner: HashMap<FuncIndex, Gas>,
 }
@@ -101,6 +102,7 @@ impl FuncsGas {
     }
 }
 
+#[derive(Debug)]
 struct CallGraph {
     all_funcs: HashSet<FuncIndex>,
     root_funcs: HashSet<FuncIndex>,
@@ -135,7 +137,18 @@ impl CallGraph {
         entry.insert(from);
     }
 
-    fn topological_sort(&self) -> Result<Vec<FuncIndex>, Error> {
+    fn ensure_no_recursive_calls(&self) -> Result<(), Error> {
+        let mut visited = HashSet::new();
+
+        for func_idx in self.all_funcs.iter() {
+            let mut path = Vec::new();
+            self.internal_graph_traverse(*func_idx, &mut visited, &mut path)?;
+        }
+
+        Ok(())
+    }
+
+    fn topological_sort(&self) -> Vec<FuncIndex> {
         let mut res = Vec::new();
         let mut out_calls = self.out_calls.clone();
 
@@ -165,11 +178,39 @@ impl CallGraph {
 
         assert_eq!(self.all_funcs.len(), res.len());
 
-        Ok(res)
+        res
+    }
+
+    fn internal_graph_traverse(
+        &self,
+        caller: FuncIndex,
+        visited: &mut HashSet<FuncIndex>,
+        path: &mut Vec<FuncIndex>,
+    ) -> Result<(), Error> {
+        if visited.contains(&caller) {
+            return Ok(());
+        }
+
+        if path.contains(&caller) {
+            path.push(caller);
+            return Err(Error::RecursiveCall(path.clone()));
+        }
+
+        path.push(caller);
+
+        if let Some(callees) = self.out_calls.get(&caller) {
+            for callee in callees.iter() {
+                self.internal_graph_traverse(*callee, visited, path)?;
+            }
+        }
+
+        visited.insert(caller);
+
+        Ok(())
     }
 }
 
-pub fn estimate_program<VME>(program: &Program) -> Result<FuncsGas, Error>
+pub fn estimate_program<VME>(program: &Program) -> Result<HashMap<FuncIndex, Gas>, Error>
 where
     VME: VMCallsGasEstimator,
 {
@@ -185,12 +226,14 @@ where
         construct_func_block(*func_idx, program, &mut funcs_blocks, &mut call_graph)?;
     }
 
-    for func_idx in call_graph.topological_sort()?.iter() {
+    call_graph.ensure_no_recursive_calls()?;
+
+    for func_idx in call_graph.topological_sort().iter() {
         let gas = estimate_func_gas::<VME>(*func_idx, &funcs_blocks, &funcs_gas);
         funcs_gas.set_func_gas(*func_idx, gas);
     }
 
-    Ok(funcs_gas)
+    Ok(funcs_gas.inner)
 }
 
 fn construct_func_block(
@@ -234,6 +277,10 @@ fn estimate_func_block(
                 if program.is_imported(to) {
                     block.append(Op::VMCall(to));
                 } else {
+                    if func_idx == to {
+                        return Err(Error::RecursiveCall(vec![func_idx, func_idx]));
+                    }
+
                     call_graph.add_call(func_idx, to);
                     block.append(Op::FuncCall(to));
                 }
@@ -241,14 +288,14 @@ fn estimate_func_block(
             }
             Instruction::Block(..) => {
                 let (cont_cursor, inner) =
-                    estimate_func_block(func_idx, program, block_ops, cursor, call_graph)?;
+                    estimate_func_block(func_idx, program, block_ops, cursor + 1, call_graph)?;
 
                 block.append(Op::Block(inner));
                 cursor = cont_cursor;
             }
             Instruction::If(..) => {
                 let (if_cont_cursor, if_block) =
-                    estimate_func_block(func_idx, program, block_ops, cursor, call_graph)?;
+                    estimate_func_block(func_idx, program, block_ops, cursor + 1, call_graph)?;
 
                 if let Some(Instruction::Else) = block_ops.get(if_cont_cursor) {
                     let (else_cont_cursor, else_block) = estimate_func_block(
@@ -302,6 +349,10 @@ fn estimate_block_gas<VME>(ctx: &BlockCtx, funcs_gas: &FuncsGas) -> Gas
 where
     VME: VMCallsGasEstimator,
 {
+    if ctx.depth > FUNC_BLOCK_MAX_DEPTH {
+        panic!("block depth is too deep")
+    }
+
     let mut gas = Gas::Fixed(0);
 
     for op in ctx.ops.0.iter() {
@@ -310,9 +361,11 @@ where
             Op::Plain(..) => Gas::Fixed(1),
             Op::Block(ref inner) => estimate_block_gas::<VME>(&ctx.child_block(inner), funcs_gas),
             Op::VMCall(fid) => VME::estimate_gas(fid),
-            Op::FuncCall(fid) => funcs_gas.get_func_gas(ctx.func_idx).unwrap(),
+            Op::FuncCall(fid) => funcs_gas.get_func_gas(fid).unwrap(),
             Op::IfBlock(ref true_block) => {
-                estimate_block_gas::<VME>(&ctx.child_block(true_block), funcs_gas)
+                let true_gas = estimate_block_gas::<VME>(&ctx.child_block(true_block), funcs_gas);
+                let else_gas = Gas::Fixed(0);
+                true_gas + else_gas
             }
             Op::IfElseBlock(ref true_block, ref else_block) => {
                 let true_gas = estimate_block_gas::<VME>(&ctx.child_block(true_block), funcs_gas);

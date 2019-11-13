@@ -5,8 +5,7 @@ use std::collections::HashMap;
 
 use parity_wasm::elements::{ImportCountType, Module};
 
-#[allow(unused)]
-pub(crate) fn read_program(wasm: &[u8]) -> Program {
+pub fn read_program(wasm: &[u8]) -> Program {
     let mut functions = HashMap::new();
 
     let module: Module = parity_wasm::deserialize_buffer(wasm).unwrap();

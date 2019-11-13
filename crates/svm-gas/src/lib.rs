@@ -5,20 +5,23 @@
 //! SVM contracts are essentially wasm programs importing the SVM vmcalls.
 
 pub(crate) mod block;
-pub(crate) mod code_reader;
 pub(crate) mod cursor;
-pub(crate) mod function;
+mod function;
 pub(crate) mod program;
+
+pub mod code_reader;
 
 /// Gas estimation error
 pub mod error;
 
 /// Gas required for executing SVM contracts.
-pub mod gas;
+mod gas;
 
 /// Implements the gas estimation logic
-pub mod function_gas;
+mod estimate;
 
-pub mod estimate;
+pub use estimate::estimate_program;
+pub use function::FuncIndex;
+pub use gas::Gas;
 
 pub mod traits;
