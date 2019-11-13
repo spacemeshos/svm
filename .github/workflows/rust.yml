@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches:
+    - master
+    - develop
+  pull_request:
+    branches:
+    - master
+    - develop
+
+jobs:
+  Lint:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: False
+    steps:
+    - name: Download commit
+      uses: actions/checkout@v1
+      with:
+        fetch-depth: 1
+    - name: Install latest nightly
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: nightly
+        override: true
+    - name: Lint
+      uses: actions-rs/cargo@v1
+      with:
+        toolchain: nightly
+        command: fmt
+        args: --all -- --check
+  Build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: False
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        # To enable windows build delete the line above and this one then uncoment the one under
+        #os: [ubuntu-latest, macos-latest, windows-latest]
+        # The "" is just debug
+        args: ["", "--release"]
+    steps:
+    - name: Download commit
+      uses: actions/checkout@v1
+      with:
+        fetch-depth: 1
+    - name: Install latest nightly
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: nightly
+        override: true
+    - name: Build
+      uses: actions-rs/cargo@v1
+      with:
+        toolchain: nightly
+        command: build
+        args: ${{ matrix.args }} --all
+    - name: Test
+      uses: actions-rs/cargo@v1
+      with:
+        toolchain: nightly
+        command: test
+        args: ${{ matrix.args }} --all
+      env:
+        RUST_TEST_THREADS: 1
+    - name: Prepare uploads
+      shell: bash
+      run: mkdir bins/ && for i in $(ls target/{debug,release}/{libsvm_runtime_c_api.{so,dylib,dll},svm_wasmer.h}); do mv $i bins/; done
+    - name: Upload bins
+      uses: actions/upload-artifact@master
+      with:
+        name: bins
+        path: bins/*
