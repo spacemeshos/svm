@@ -140,7 +140,16 @@ impl CallGraph {
     fn ensure_no_recursive_calls(&self) -> Result<(), Error> {
         let mut visited = HashSet::new();
 
-        for func_idx in self.all_funcs.iter() {
+        let mut all_funcs = self
+            .all_funcs
+            .iter()
+            .map(|v| *v)
+            .collect::<Vec<FuncIndex>>();
+
+        // we sort `all_funcs` in order to make the unit-tests execution determinstic
+        all_funcs.sort();
+
+        for func_idx in all_funcs.iter() {
             let mut path = Vec::new();
             self.internal_graph_traverse(*func_idx, &mut visited, &mut path)?;
         }
