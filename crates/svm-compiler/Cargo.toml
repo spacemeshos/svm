@@ -37,7 +37,7 @@ git = "https://github.com/spacemeshos/wasmer"
 branch = "develop"
 
 [dependencies]
-wasmparser = "0.31.1"
+wasmparser = "0.39.2"
 
 [dev-dependencies]
 wabt = "0.7.4"

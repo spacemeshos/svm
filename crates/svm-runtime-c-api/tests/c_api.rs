@@ -5,23 +5,16 @@ use std::ffi::c_void;
 
 use svm_common::{Address, State};
 use svm_storage::page::{PageIndex, PageSliceLayout, SliceIndex};
-use svm_storage::rocksdb::RocksMerklePageCache;
 use svm_storage::PageSliceCache;
 
 use svm_contract::wasm::WasmArgValue;
 
-use svm_runtime::*;
 use svm_runtime_c_api::*;
 
 use svm_runtime_c_api::c_utils::*;
 use svm_runtime_c_api::rocks_c_api::*;
 
-use wasmer_runtime::{Ctx, Func, Instance};
-use wasmer_runtime_c_api::{
-    import::wasmer_import_t,
-    instance::{wasmer_instance_context_t, wasmer_module_import_instantiate},
-    module::wasmer_module_t,
-};
+use wasmer_runtime_c_api::instance::wasmer_instance_context_t;
 use wasmer_runtime_core::types::Type;
 
 /// Represents a fake `FullNode`
@@ -138,7 +131,7 @@ fn runtime_tx_exec_changing_state() {
         let _ = svm_contract_store(*raw_contract, raw_addr);
 
         // 2) execute
-        let res = svm_import_object(
+        let _res = svm_import_object(
             raw_import_object,
             raw_addr,                     // `raw_addr:  *const c_void`
             State::from(0).as_ptr() as _, // `raw_state: *const c_void`
@@ -230,7 +223,7 @@ fn runtime_node_vmcalls() {
         let sb_import = build_wasmer_import_t("node", "vmcall_set_balance", sb_ptr);
         let mut imports = [gb_import, sb_import];
 
-        svm_import_object(
+        let _res = svm_import_object(
             raw_import_object,
             raw_addr,                     // `raw_addr: *const u8`
             State::from(0).as_ptr() as _, // `raw_state: *const u8`,

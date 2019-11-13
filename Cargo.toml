@@ -22,7 +22,7 @@ crate-type = ["cdylib", "staticlib", "rlib"]
 [dependencies.rocksdb]
 default-features = false
 optional = true
-version = "0.12.3"
+version = "0.12.4"
 features = ["lz4"]
 
 [dependencies.wasmer-runtime]
@@ -55,6 +55,7 @@ log = "0.4"
 serde = { version = "1.0.98", features = ["derive"] }
 svm-common = { path = "crates/svm-common" }
 svm-kv = { path = "crates/svm-kv" }
+svm-gas = { path = "crates/svm-gas" }
 svm-storage = { path = "crates/svm-storage" }
 svm-compiler = { path = "crates/svm-compiler" }
 svm-contract = { path = "crates/svm-contract" }

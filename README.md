@@ -1,6 +1,9 @@
 <img src="./docs/assets/logo.png" width=200 height=90/>
 
-[![Build Status](https://travis-ci.org/spacemeshos/svm.svg?branch=develop)](https://travis-ci.org/spacemeshos/svm)
+[![build](https://travis-ci.org/spacemeshos/svm.svg)](https://travis-ci.org/spacemeshos/svm)
+[![codecov](https://codecov.io/gh/spacemeshos/svm/branch/develop/graph/badge.svg)](https://codecov.io/gh/spacemeshos/svm)
+[![license](https://img.shields.io/badge/License-MIT-brightgreen.svg)](https://github.com/spacemeshos/svm/blob/master/LICENSE)
+[![gitter](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/spacemesh-os/svm)
 
 _Spacemesh_ Virtual Machine
 
@@ -68,5 +71,5 @@ docker run -it svm-build
 
 ### Got Questions?
 - If you'd like to contribute to _SVM_ or have questions please go to [SVM gitter channel](https://gitter.im/spacemesh-os/svm)
-- Introduce yourself and ask anything on the [spacemesh gitter channel](https://gitter.im/spacemesh-os/Lobby).
+- Introduce yourself and ask anything on the [spacemesh gitter channel](https://gitter.im/spacemesh-os/svm).
 - DM [@teamspacemesh](https://twitter.com/teamspacemesh)
