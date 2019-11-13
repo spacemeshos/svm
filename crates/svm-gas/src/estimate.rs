@@ -45,7 +45,7 @@ impl FuncsBlocks {
     }
 
     fn add_func_block(&mut self, func_idx: FuncIndex, block: OpsBlock) {
-        //
+        self.inner.insert(func_idx, block);
     }
 }
 
@@ -108,6 +108,31 @@ impl CallGraph {
 
     fn topological_sort(&self) -> Result<Vec<FuncIndex>, Error> {
         let mut res = Vec::new();
+        let mut in_calls = self.in_calls.clone();
+
+        let mut unsorted_roots = self
+            .root_funcs
+            .iter()
+            .map(|v| *v)
+            .collect::<Vec<FuncIndex>>();
+
+        while let Some(caller) = unsorted_roots.pop() {
+            res.push(caller);
+
+            if let Some(callees) = self.out_calls.get(&caller) {
+                for callee in callees.iter() {
+                    let callee_callers = in_calls.get_mut(&callee).unwrap();
+
+                    callee_callers.remove(&caller);
+
+                    if callee_callers.is_empty() {
+                        unsorted_roots.push(*callee);
+                    }
+                }
+            }
+        }
+
+        assert_eq!(self.all_funcs.len(), res.len());
 
         Ok(res)
     }
