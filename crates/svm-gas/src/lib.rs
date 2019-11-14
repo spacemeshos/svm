@@ -4,7 +4,6 @@
 //! This crate is responsible on doing gas estimations for SVM contracts.
 //! SVM contracts are essentially wasm programs importing the SVM vmcalls.
 
-pub(crate) mod block;
 pub(crate) mod program;
 
 mod function;
