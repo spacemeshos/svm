@@ -26,7 +26,6 @@ macro_rules! include_svm_runtime_c_api {
         use wasmer_runtime_c_api::{
             error::update_last_error,
             import::{wasmer_import_object_extend, wasmer_import_object_t, wasmer_import_t},
-            instance::wasmer_instance_context_t,
             value::wasmer_value_t,
             wasmer_result_t,
         };
@@ -51,12 +50,13 @@ macro_rules! include_svm_runtime_c_api {
         #[must_use]
         #[no_mangle]
         pub unsafe extern "C" fn svm_contract_build(
-            raw_contract: *mut *mut svm_contract_t,
+            raw_contract: *mut *mut c_void,
             raw_bytes: *const c_void,
             raw_bytes_len: u64,
         ) -> wasmer_result_t {
             debug!("`svm_contract_build start`");
 
+            let raw_contract: *mut *mut svm_contract_t = raw_contract as _;
             let bytes = std::slice::from_raw_parts(raw_bytes as *const u8, raw_bytes_len as usize);
             let result = runtime::contract_build(&bytes);
 
@@ -78,7 +78,7 @@ macro_rules! include_svm_runtime_c_api {
         #[must_use]
         #[no_mangle]
         pub unsafe extern "C" fn svm_contract_compute_address(
-            raw_contract: *const svm_contract_t,
+            raw_contract: *const c_void,
         ) -> *const c_void {
             debug!("`svm_contract_compute_address`");
 
@@ -101,7 +101,7 @@ macro_rules! include_svm_runtime_c_api {
         #[must_use]
         #[no_mangle]
         pub unsafe extern "C" fn svm_contract_store(
-            raw_contract: *const svm_contract_t,
+            raw_contract: *const c_void,
             raw_addr: *const c_void,
         ) -> wasmer_result_t {
             debug!("`svm_contract_store` start");
@@ -120,10 +120,12 @@ macro_rules! include_svm_runtime_c_api {
         #[must_use]
         #[no_mangle]
         pub unsafe extern "C" fn svm_transaction_build(
-            raw_tx: *mut *mut svm_transaction_t,
+            raw_tx: *mut *mut c_void,
             raw_bytes: *const c_void,
             raw_bytes_len: u64,
         ) -> wasmer_result_t {
+            let raw_tx: *mut *mut svm_transaction_t = raw_tx as _;
+
             let bytes: &[u8] =
                 std::slice::from_raw_parts(raw_bytes as *const u8, raw_bytes_len as usize);
             let result = runtime::transaction_build(bytes);
@@ -149,12 +151,13 @@ macro_rules! include_svm_runtime_c_api {
         #[must_use]
         #[no_mangle]
         pub unsafe extern "C" fn svm_transaction_exec(
-            raw_receipt: *mut *mut svm_receipt_t,
-            raw_tx: *const svm_transaction_t,
-            raw_import_object: *const wasmer_import_object_t,
+            raw_receipt: *mut *mut c_void,
+            raw_tx: *const c_void,
+            raw_import_object: *const c_void,
         ) -> wasmer_result_t {
             debug!("`svm_transaction_exec` start");
 
+            let raw_receipt: *mut *mut svm_receipt_t = raw_receipt as _;
             let tx = cast_to_rust_type!(raw_tx, Transaction);
             let import_object = cast_to_rust_type!(raw_import_object, ImportObject);
 
@@ -170,13 +173,13 @@ macro_rules! include_svm_runtime_c_api {
         #[must_use]
         #[no_mangle]
         pub unsafe extern "C" fn svm_register_get(
-            raw_ctx: *const wasmer_instance_context_t,
+            raw_ctx: *const c_void,
             reg_bits: i32,
             reg_idx: i32,
         ) -> *const c_void {
             debug!("`svm_register_get` register `{}:{}`", reg_bits, reg_idx);
 
-            let wasmer_ctx: &Ctx = cast_to_rust_type!(raw_ctx, Ctx);
+            let wasmer_ctx = cast_to_rust_type!(raw_ctx, Ctx);
             let reg: &mut SvmReg = svm_runtime::wasmer_ctx_reg!(wasmer_ctx, reg_bits, reg_idx, $PC);
 
             // having `c_void` instead of `u8` in the function's signature
@@ -187,7 +190,7 @@ macro_rules! include_svm_runtime_c_api {
         /// Copies `bytes_len` bytes from raw pointer `bytes` into `wasmer svm` register indexed `reg_idx`.
         #[no_mangle]
         pub unsafe extern "C" fn svm_register_set(
-            raw_ctx: *const wasmer_instance_context_t,
+            raw_ctx: *const c_void,
             reg_bits: i32,
             reg_idx: i32,
             bytes: *const c_void,
@@ -195,7 +198,7 @@ macro_rules! include_svm_runtime_c_api {
         ) {
             debug!("`svm_register_set` register `{}:{}`", reg_bits, reg_idx);
 
-            let wasmer_ctx: &Ctx = cast_to_rust_type!(raw_ctx, Ctx);
+            let wasmer_ctx = cast_to_rust_type!(raw_ctx, Ctx);
             let reg: &mut SvmReg = svm_runtime::wasmer_ctx_reg!(wasmer_ctx, reg_bits, reg_idx, $PC);
 
             // having `c_void` instead of `u8` in the function's signature
@@ -208,11 +211,10 @@ macro_rules! include_svm_runtime_c_api {
         #[must_use]
         #[no_mangle]
         pub unsafe extern "C" fn svm_instance_context_node_data_get(
-            raw_ctx: *const wasmer_instance_context_t,
+            raw_ctx: *const c_void,
         ) -> *const c_void {
             trace!("`svm_instance_context_node_data_get`");
-
-            let wasmer_ctx: &Ctx = cast_to_rust_type!(raw_ctx, Ctx);
+            let wasmer_ctx = cast_to_rust_type!(raw_ctx, Ctx);
             svm_runtime::wasmer_data_node_data!(wasmer_ctx.data, $PC)
         }
 
@@ -223,13 +225,13 @@ macro_rules! include_svm_runtime_c_api {
         #[must_use]
         #[no_mangle]
         pub unsafe extern "C" fn svm_import_object(
-            raw_import_object: *mut *mut wasmer_import_object_t,
+            raw_import_object: *mut *mut c_void,
             raw_addr: *const c_void,
             raw_state: *const c_void,
             raw_max_pages: libc::c_int,
             raw_max_page_slices: libc::c_int,
             node_data: *const c_void,
-            imports: *mut wasmer_import_t,
+            imports: *mut c_void,
             imports_len: libc::c_uint,
         ) -> wasmer_result_t {
             debug!("`svm_import_object` start");
@@ -242,10 +244,12 @@ macro_rules! include_svm_runtime_c_api {
                 max_pages_slices: raw_max_page_slices as usize,
             };
 
+            let raw_import_object: *mut *mut wasmer_import_object_t = raw_import_object as _;
             let import_object = runtime::import_object_create(addr, state, node_data, opts);
 
             *raw_import_object = into_raw!(import_object, wasmer_import_object_t);
 
+            let imports: *mut wasmer_import_t = imports as _;
             let _res = wasmer_import_object_extend(*raw_import_object, imports, imports_len);
             // TODO: assert result
             // if result != wasmer_result_t::WASMER_OK {
@@ -260,7 +264,7 @@ macro_rules! include_svm_runtime_c_api {
         /// Returns the receipt outcome (`true` for success and `false` otherwise)
         #[must_use]
         #[no_mangle]
-        pub unsafe extern "C" fn svm_receipt_status(raw_receipt: *const svm_receipt_t) -> bool {
+        pub unsafe extern "C" fn svm_receipt_status(raw_receipt: *const c_void) -> bool {
             let receipt = cast_to_rust_type!(raw_receipt, Receipt);
             debug!("`svm_receipt_status` status={}", receipt.success);
 
@@ -273,7 +277,7 @@ macro_rules! include_svm_runtime_c_api {
         #[must_use]
         #[no_mangle]
         pub unsafe extern "C" fn svm_receipt_results(
-            raw_receipt: *const svm_receipt_t,
+            raw_receipt: *const c_void,
             results: *mut *mut wasmer_value_t,
             results_len: *mut u32,
         ) {
@@ -304,7 +308,7 @@ macro_rules! include_svm_runtime_c_api {
         /// Returns the `receipt` error in transaction failed
         #[must_use]
         #[no_mangle]
-        pub unsafe extern "C" fn svm_receipt_error(raw_receipt: *const svm_receipt_t) {
+        pub unsafe extern "C" fn svm_receipt_error(raw_receipt: *const c_void) {
             let receipt = cast_to_rust_type!(raw_receipt, Receipt);
 
             if let Some(ref _e) = receipt.error {
@@ -316,9 +320,7 @@ macro_rules! include_svm_runtime_c_api {
         /// Returns a pointer to the new state of the contract account.
         #[must_use]
         #[no_mangle]
-        pub unsafe extern "C" fn svm_receipt_new_state(
-            raw_receipt: *const svm_receipt_t,
-        ) -> *const u8 {
+        pub unsafe extern "C" fn svm_receipt_new_state(raw_receipt: *const c_void) -> *const u8 {
             let receipt = cast_to_rust_type!(raw_receipt, Receipt);
 
             if receipt.success {
