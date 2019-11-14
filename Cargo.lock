@@ -142,7 +142,7 @@ version = "1.0.47"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "jobserver 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)",
- "num_cpus 1.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "num_cpus 1.11.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -519,7 +519,7 @@ dependencies = [
 
 [[package]]
 name = "num_cpus"
-version = "1.11.0"
+version = "1.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "hermit-abi 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -818,10 +818,10 @@ dependencies = [
  "svm-storage 0.0.0",
  "tiny-keccak 1.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "wabt 0.7.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "wasmer-runtime 0.8.0 (git+https://github.com/spacemeshos/wasmer?branch=develop)",
- "wasmer-runtime-c-api 0.8.0 (git+https://github.com/spacemeshos/wasmer?branch=develop)",
- "wasmer-runtime-core 0.8.0 (git+https://github.com/spacemeshos/wasmer?branch=develop)",
- "wasmer-singlepass-backend 0.8.0 (git+https://github.com/spacemeshos/wasmer?branch=develop)",
+ "wasmer-runtime 0.10.1 (git+https://github.com/spacemeshos/wasmer?branch=develop)",
+ "wasmer-runtime-c-api 0.10.1 (git+https://github.com/spacemeshos/wasmer?branch=develop)",
+ "wasmer-runtime-core 0.10.1 (git+https://github.com/spacemeshos/wasmer?branch=develop)",
+ "wasmer-singlepass-backend 0.10.1 (git+https://github.com/spacemeshos/wasmer?branch=develop)",
 ]
 
 [[package]]
@@ -841,9 +841,9 @@ dependencies = [
  "svm-common 0.0.0",
  "svm-storage 0.0.0",
  "wabt 0.7.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "wasmer-runtime 0.8.0 (git+https://github.com/spacemeshos/wasmer?branch=develop)",
- "wasmer-runtime-core 0.8.0 (git+https://github.com/spacemeshos/wasmer?branch=develop)",
- "wasmer-singlepass-backend 0.8.0 (git+https://github.com/spacemeshos/wasmer?branch=develop)",
+ "wasmer-runtime 0.10.1 (git+https://github.com/spacemeshos/wasmer?branch=develop)",
+ "wasmer-runtime-core 0.10.1 (git+https://github.com/spacemeshos/wasmer?branch=develop)",
+ "wasmer-singlepass-backend 0.10.1 (git+https://github.com/spacemeshos/wasmer?branch=develop)",
  "wasmparser 0.39.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -895,8 +895,8 @@ dependencies = [
  "svm-kv 0.0.0",
  "svm-storage 0.0.0",
  "wabt 0.7.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "wasmer-runtime 0.8.0 (git+https://github.com/spacemeshos/wasmer?branch=develop)",
- "wasmer-runtime-core 0.8.0 (git+https://github.com/spacemeshos/wasmer?branch=develop)",
+ "wasmer-runtime 0.10.1 (git+https://github.com/spacemeshos/wasmer?branch=develop)",
+ "wasmer-runtime-core 0.10.1 (git+https://github.com/spacemeshos/wasmer?branch=develop)",
 ]
 
 [[package]]
@@ -914,10 +914,10 @@ dependencies = [
  "svm-runtime 0.0.0",
  "svm-storage 0.0.0",
  "wabt 0.7.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "wasmer-runtime 0.8.0 (git+https://github.com/spacemeshos/wasmer?branch=develop)",
- "wasmer-runtime-c-api 0.8.0 (git+https://github.com/spacemeshos/wasmer?branch=develop)",
- "wasmer-runtime-core 0.8.0 (git+https://github.com/spacemeshos/wasmer?branch=develop)",
- "wasmer-singlepass-backend 0.8.0 (git+https://github.com/spacemeshos/wasmer?branch=develop)",
+ "wasmer-runtime 0.10.1 (git+https://github.com/spacemeshos/wasmer?branch=develop)",
+ "wasmer-runtime-c-api 0.10.1 (git+https://github.com/spacemeshos/wasmer?branch=develop)",
+ "wasmer-runtime-core 0.10.1 (git+https://github.com/spacemeshos/wasmer?branch=develop)",
+ "wasmer-singlepass-backend 0.10.1 (git+https://github.com/spacemeshos/wasmer?branch=develop)",
 ]
 
 [[package]]
@@ -1072,30 +1072,30 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "wasmer-runtime"
-version = "0.8.0"
-source = "git+https://github.com/spacemeshos/wasmer?branch=develop#c8e953080582108d530c690c3fa23f7e3e3f1262"
+version = "0.10.1"
+source = "git+https://github.com/spacemeshos/wasmer?branch=develop#fff16c08d099a1db88754630eae98b5792aa689a"
 dependencies = [
  "lazy_static 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "memmap 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "wasmer-runtime-core 0.8.0 (git+https://github.com/spacemeshos/wasmer?branch=develop)",
- "wasmer-singlepass-backend 0.8.0 (git+https://github.com/spacemeshos/wasmer?branch=develop)",
+ "wasmer-runtime-core 0.10.1 (git+https://github.com/spacemeshos/wasmer?branch=develop)",
+ "wasmer-singlepass-backend 0.10.1 (git+https://github.com/spacemeshos/wasmer?branch=develop)",
 ]
 
 [[package]]
 name = "wasmer-runtime-c-api"
-version = "0.8.0"
-source = "git+https://github.com/spacemeshos/wasmer?branch=develop#c8e953080582108d530c690c3fa23f7e3e3f1262"
+version = "0.10.1"
+source = "git+https://github.com/spacemeshos/wasmer?branch=develop#fff16c08d099a1db88754630eae98b5792aa689a"
 dependencies = [
  "cbindgen 0.9.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.65 (registry+https://github.com/rust-lang/crates.io-index)",
- "wasmer-runtime 0.8.0 (git+https://github.com/spacemeshos/wasmer?branch=develop)",
- "wasmer-runtime-core 0.8.0 (git+https://github.com/spacemeshos/wasmer?branch=develop)",
+ "wasmer-runtime 0.10.1 (git+https://github.com/spacemeshos/wasmer?branch=develop)",
+ "wasmer-runtime-core 0.10.1 (git+https://github.com/spacemeshos/wasmer?branch=develop)",
 ]
 
 [[package]]
 name = "wasmer-runtime-core"
-version = "0.8.0"
-source = "git+https://github.com/spacemeshos/wasmer?branch=develop#c8e953080582108d530c690c3fa23f7e3e3f1262"
+version = "0.10.1"
+source = "git+https://github.com/spacemeshos/wasmer?branch=develop#fff16c08d099a1db88754630eae98b5792aa689a"
 dependencies = [
  "bincode 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "blake2b_simd 0.5.9 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1121,8 +1121,8 @@ dependencies = [
 
 [[package]]
 name = "wasmer-singlepass-backend"
-version = "0.8.0"
-source = "git+https://github.com/spacemeshos/wasmer?branch=develop#c8e953080582108d530c690c3fa23f7e3e3f1262"
+version = "0.10.1"
+source = "git+https://github.com/spacemeshos/wasmer?branch=develop#fff16c08d099a1db88754630eae98b5792aa689a"
 dependencies = [
  "byteorder 1.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "dynasm 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1131,8 +1131,7 @@ dependencies = [
  "libc 0.2.65 (registry+https://github.com/rust-lang/crates.io-index)",
  "nix 0.15.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "smallvec 0.6.13 (registry+https://github.com/rust-lang/crates.io-index)",
- "wasmer-runtime-core 0.8.0 (git+https://github.com/spacemeshos/wasmer?branch=develop)",
- "wasmparser 0.39.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "wasmer-runtime-core 0.10.1 (git+https://github.com/spacemeshos/wasmer?branch=develop)",
 ]
 
 [[package]]
@@ -1258,7 +1257,7 @@ dependencies = [
 "checksum memmap 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "6585fd95e7bb50d6cc31e20d4cf9afb4e2ba16c5846fc76793f11218da9c475b"
 "checksum nix 0.15.0 (registry+https://github.com/rust-lang/crates.io-index)" = "3b2e0b4f3320ed72aaedb9a5ac838690a8047c7b275da22711fddff4f8a14229"
 "checksum nom 4.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "2ad2a91a8e869eeb30b9cb3119ae87773a8f4ae617f41b1eb9c154b2905f7bd6"
-"checksum num_cpus 1.11.0 (registry+https://github.com/rust-lang/crates.io-index)" = "155394f924cdddf08149da25bfb932d226b4a593ca7468b08191ff6335941af5"
+"checksum num_cpus 1.11.1 (registry+https://github.com/rust-lang/crates.io-index)" = "76dac5ed2a876980778b8b85f75a71b6cbf0db0b1232ee12f826bccb00d09d72"
 "checksum owning_ref 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)" = "cdf84f41639e037b484f93433aa3897863b561ed65c6e59c7073d7c561710f37"
 "checksum page_size 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)" = "f89ef58b3d32420dbd1a43d2f38ae92f6239ef12bb556ab09ca55445f5a67242"
 "checksum parity-wasm 0.40.3 (registry+https://github.com/rust-lang/crates.io-index)" = "1e39faaa292a687ea15120b1ac31899b13586446521df6c149e46f1584671e0f"
@@ -1314,10 +1313,10 @@ dependencies = [
 "checksum wabt 0.7.4 (registry+https://github.com/rust-lang/crates.io-index)" = "74e463a508e390cc7447e70f640fbf44ad52e1bd095314ace1fdf99516d32add"
 "checksum wabt-sys 0.5.4 (registry+https://github.com/rust-lang/crates.io-index)" = "a6265b25719e82598d104b3717375e37661d41753e2c84cde3f51050c7ed7e3c"
 "checksum wasi 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "b89c3ce4ce14bdc6fb6beaf9ec7928ca331de5df7e5ea278375642a2f478570d"
-"checksum wasmer-runtime 0.8.0 (git+https://github.com/spacemeshos/wasmer?branch=develop)" = "<none>"
-"checksum wasmer-runtime-c-api 0.8.0 (git+https://github.com/spacemeshos/wasmer?branch=develop)" = "<none>"
-"checksum wasmer-runtime-core 0.8.0 (git+https://github.com/spacemeshos/wasmer?branch=develop)" = "<none>"
-"checksum wasmer-singlepass-backend 0.8.0 (git+https://github.com/spacemeshos/wasmer?branch=develop)" = "<none>"
+"checksum wasmer-runtime 0.10.1 (git+https://github.com/spacemeshos/wasmer?branch=develop)" = "<none>"
+"checksum wasmer-runtime-c-api 0.10.1 (git+https://github.com/spacemeshos/wasmer?branch=develop)" = "<none>"
+"checksum wasmer-runtime-core 0.10.1 (git+https://github.com/spacemeshos/wasmer?branch=develop)" = "<none>"
+"checksum wasmer-singlepass-backend 0.10.1 (git+https://github.com/spacemeshos/wasmer?branch=develop)" = "<none>"
 "checksum wasmparser 0.39.2 (registry+https://github.com/rust-lang/crates.io-index)" = "e5083b449454f7de0b15f131eee17de54b5a71dcb9adcf11df2b2f78fad0cd82"
 "checksum which 2.0.1 (registry+https://github.com/rust-lang/crates.io-index)" = "b57acb10231b9493c8472b20cb57317d0679a49e0bdbee44b3b803a6473af164"
 "checksum winapi 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)" = "167dc9d6949a9b857f3451275e911c3f44255842c1f7a76f33c55103a909087a"
