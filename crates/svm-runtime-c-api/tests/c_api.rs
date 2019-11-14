@@ -52,38 +52,38 @@ fn full_node_as_ptr(node: &FullNode) -> *const c_void {
 /// Represents a fake node vmcall implemented in another programming-language using the FFI interface.
 /// See test: `call_node_get_set_balance`
 #[no_mangle]
-unsafe extern "C" fn vmcall_get_balance(
-    ctx: *mut wasmer_instance_context_t,
-    reg_bits: i32,
-    reg_idx: i32,
-) -> i64 {
-    assert_eq!(Address::len() * 8, reg_bits as usize);
+fn vmcall_get_balance(ctx: *mut wasmer_instance_context_t, reg_bits: i32, reg_idx: i32) -> i64 {
+    unsafe {
+        assert_eq!(Address::len() * 8, reg_bits as usize);
 
-    let ptr: *const u8 = svm_register_get(ctx, reg_bits, reg_idx) as _;
-    let addr = Address::from(ptr);
+        let ptr: *const u8 = svm_register_get(ctx as _, reg_bits, reg_idx) as _;
+        let addr = Address::from(ptr);
 
-    let node: *const c_void = svm_instance_context_node_data_get(ctx);
-    let node: &FullNode = &*(node as *const FullNode);
+        let node: *const c_void = svm_instance_context_node_data_get(ctx as _);
+        let node: &FullNode = &*(node as *const FullNode);
 
-    node.get_balance(&addr)
+        node.get_balance(&addr)
+    }
 }
 
 /// Represents a fake node vmcall implemented in another programming-language using the FFI interface.
 /// See test: `call_node_get_set_balance`
 #[no_mangle]
-unsafe extern "C" fn vmcall_set_balance(
+fn vmcall_set_balance(
     ctx: *mut wasmer_instance_context_t,
     balance: i64,
     reg_bits: i32,
     reg_idx: i32,
 ) {
-    let ptr: *const u8 = svm_register_get(ctx, reg_bits, reg_idx) as _;
-    let addr = Address::from(ptr);
+    unsafe {
+        let ptr: *const u8 = svm_register_get(ctx as _, reg_bits, reg_idx) as _;
+        let addr = Address::from(ptr);
 
-    let node: *mut c_void = svm_instance_context_node_data_get(ctx) as _;
-    let node: &mut FullNode = &mut *(node as *mut FullNode);
+        let node: *mut c_void = svm_instance_context_node_data_get(ctx as _) as _;
+        let node: &mut FullNode = &mut *(node as *mut FullNode);
 
-    node.set_balance(&addr, balance);
+        node.set_balance(&addr, balance);
+    }
 }
 
 macro_rules! build_raw_contract {
@@ -123,16 +123,16 @@ fn runtime_tx_exec_changing_state() {
         // 1) deploy
         let bytes = build_raw_contract!("wasm/store.wast", &author_addr);
         let _ = svm_contract_build(
-            raw_contract,
+            raw_contract as _,
             bytes.as_ptr() as *const c_void,
             bytes.len() as u64,
         );
-        let raw_addr = svm_contract_compute_address(*raw_contract);
-        let _ = svm_contract_store(*raw_contract, raw_addr);
+        let raw_addr = svm_contract_compute_address(*raw_contract as _);
+        let _ = svm_contract_store(*raw_contract as _, raw_addr);
 
         // 2) execute
         let _res = svm_import_object(
-            raw_import_object,
+            raw_import_object as _,
             raw_addr,                     // `raw_addr:  *const c_void`
             State::from(0).as_ptr() as _, // `raw_state: *const c_void`
             5,                            // `max_pages:  libc::c_int`
@@ -154,12 +154,16 @@ fn runtime_tx_exec_changing_state() {
 
         let raw_receipt = alloc_raw_receipt!();
         let raw_tx = alloc_raw_transaction!();
-        let _ = svm_transaction_build(raw_tx, bytes.as_ptr() as *const c_void, bytes.len() as u64);
-        let _ = svm_transaction_exec(raw_receipt, *raw_tx, *raw_import_object);
+        let _ = svm_transaction_build(
+            raw_tx as _,
+            bytes.as_ptr() as *const c_void,
+            bytes.len() as u64,
+        );
+        let _ = svm_transaction_exec(raw_receipt as _, *raw_tx as _, *raw_import_object as _);
 
-        assert_eq!(true, svm_receipt_status(*raw_receipt));
+        assert_eq!(true, svm_receipt_status(*raw_receipt as _));
 
-        let new_state = svm_receipt_new_state(*raw_receipt);
+        let new_state = svm_receipt_new_state(*raw_receipt as _);
         let new_state = State::from(new_state);
 
         // 3) asserting data has been persisted as expected
@@ -199,12 +203,12 @@ fn runtime_node_vmcalls() {
         // 1) deploy
         let bytes = build_raw_contract!("wasm/mul_balance.wast", &author_addr);
         let _ = svm_contract_build(
-            raw_contract,
+            raw_contract as _,
             bytes.as_ptr() as *const c_void,
             bytes.len() as u64,
         );
-        let raw_addr = svm_contract_compute_address(*raw_contract);
-        let _ = svm_contract_store(*raw_contract, raw_addr);
+        let raw_addr = svm_contract_compute_address(*raw_contract as _);
+        let _ = svm_contract_store(*raw_contract as _, raw_addr);
 
         // 2) execute
         let gb_ptr = cast_vmcall_to_import_func_t!(
@@ -224,13 +228,13 @@ fn runtime_node_vmcalls() {
         let mut imports = [gb_import, sb_import];
 
         let _res = svm_import_object(
-            raw_import_object,
+            raw_import_object as _,
             raw_addr,                     // `raw_addr: *const u8`
             State::from(0).as_ptr() as _, // `raw_state: *const u8`,
             5,                            // `max_pages: libc::c_int`
             100,                          // `max_pages_slices: libc::c_int`
             full_node_as_ptr(&node),      // `node_data_ptr:: *const c_void`
-            imports.as_mut_ptr(),         // `imports: *mut wasmer_import_t`
+            imports.as_mut_ptr() as _,    // `imports: *mut wasmer_import_t`
             imports.len() as _,           // `imports_len: libc::c_int`
         );
 
@@ -250,8 +254,12 @@ fn runtime_node_vmcalls() {
 
         let raw_receipt = alloc_raw_receipt!();
         let raw_tx = alloc_raw_transaction!();
-        let _ = svm_transaction_build(raw_tx, bytes.as_ptr() as *const c_void, bytes.len() as u64);
-        let _ = svm_transaction_exec(raw_receipt, *raw_tx, *raw_import_object);
+        let _ = svm_transaction_build(
+            raw_tx as _,
+            bytes.as_ptr() as *const c_void,
+            bytes.len() as u64,
+        );
+        let _ = svm_transaction_exec(raw_receipt as _, *raw_tx as _, *raw_import_object as _);
 
         // asserting account `0x00...10_20_30` new balance is `200 (= 100 x 2)`
         assert_eq!(200, node.get_balance(&balance_addr));
