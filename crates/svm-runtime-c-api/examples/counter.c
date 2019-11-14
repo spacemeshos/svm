@@ -182,7 +182,7 @@ uint32_t vmcall_get_counter(wasmer_instance_context_t *ctx) {
 }
 
 wasmer_result_t contract_deploy(uint8_t **addr, uint8_t* bytes, uint64_t bytes_len) {
-    svm_contract_t *contract;
+    void *contract;
 
     wasmer_result_t build_res = svm_contract_build(&contract, (void*)bytes, bytes_len);
     if (build_res != WASMER_OK) {
@@ -232,7 +232,7 @@ wasmer_result_t create_import_object(
     uint32_t max_pages = 5;
     uint32_t max_pages_slices = 100;
 
-    return svm_import_object(import_object, addr, state, max_pages, max_pages_slices, node, imports, imports_len);
+    return svm_import_object((void**)import_object, addr, state, max_pages, max_pages_slices, node, imports, imports_len);
 }
 
 wasmer_import_t* prepare_imports() {
@@ -305,16 +305,16 @@ int main() {
         NULL, // `args_buf = NULL`
         0);   // `args_buf_len = 0`
 
-    svm_transaction_t *tx1;
+    void *tx1;
     wasmer_result_t tx1_res = svm_transaction_build(&tx1, (void*)tx1_bytes, tx1_bytes_len);
     assert(tx1_res == WASMER_OK);
 
-    svm_receipt_t *receipt1;
+    void *receipt1;
     wasmer_result_t exec1_res = svm_transaction_exec(&receipt1, tx1, import_object);
     assert(exec1_res == WASMER_OK);
     assert(svm_receipt_status(receipt1) == true);
 
-    uint8_t *new_state = svm_receipt_new_state(receipt1);
+    const uint8_t *new_state = svm_receipt_new_state(receipt1);
 
     printf("New contract state:\n");
     for (int i = 0; i < 32; i++) {
@@ -343,11 +343,11 @@ int main() {
         arg_buf, // `args_buf = [1, 0, 0, 0, 7]`
         5);      // `args_buf_len = 5`
 
-    svm_transaction_t *tx2;
+    void *tx2;
     wasmer_result_t tx2_res = svm_transaction_build(&tx2, (void*)tx2_bytes, tx2_bytes_len);
     assert(tx2_res == WASMER_OK);
 
-    svm_receipt_t *receipt2;
+    void *receipt2;
     wasmer_result_t exec2_res = svm_transaction_exec(&receipt2, tx2, import_object);
     assert(exec2_res == WASMER_OK);
     assert(svm_receipt_status(receipt2) == true);
@@ -369,11 +369,11 @@ int main() {
         NULL, // `args_buf = NULL`
         0);   // `args_buf_len = 0`
 
-    svm_transaction_t *tx3;
+    void *tx3;
     wasmer_result_t tx3_res = svm_transaction_build(&tx3, (void*)tx3_bytes, tx3_bytes_len);
     assert(tx3_res == WASMER_OK);
 
-    svm_receipt_t *receipt3;
+    void *receipt3;
     wasmer_result_t exec3_res = svm_transaction_exec(&receipt3, tx3, import_object);
     assert(exec3_res == WASMER_OK);
     assert(svm_receipt_status(receipt3) == true);
