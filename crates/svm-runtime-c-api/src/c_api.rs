@@ -26,7 +26,6 @@ macro_rules! include_svm_runtime_c_api {
         use wasmer_runtime_c_api::{
             error::update_last_error,
             import::{wasmer_import_object_extend, wasmer_import_object_t, wasmer_import_t},
-            instance::wasmer_instance_context_t,
             value::wasmer_value_t,
             wasmer_result_t,
         };
@@ -83,7 +82,6 @@ macro_rules! include_svm_runtime_c_api {
         ) -> *const c_void {
             debug!("`svm_contract_compute_address`");
 
-            let raw_contract: *const svm_contract_t = raw_contract as _;
             let contract = cast_to_rust_type!(raw_contract, svm_contract::wasm::Contract);
 
             let addr = runtime::contract_compute_address(contract);
@@ -108,7 +106,6 @@ macro_rules! include_svm_runtime_c_api {
         ) -> wasmer_result_t {
             debug!("`svm_contract_store` start");
 
-            let raw_contract: *const svm_contract_t = raw_contract as _;
             let contract = cast_to_rust_type!(raw_contract, svm_contract::wasm::Contract);
             let addr = Address::from(raw_addr);
             runtime::contract_store(contract, &addr);
@@ -161,10 +158,6 @@ macro_rules! include_svm_runtime_c_api {
             debug!("`svm_transaction_exec` start");
 
             let raw_receipt: *mut *mut svm_receipt_t = raw_receipt as _;
-
-            let raw_tx: *const svm_transaction_t = raw_tx as _;
-            let raw_import_object: *const wasmer_import_object_t = raw_import_object as _;
-
             let tx = cast_to_rust_type!(raw_tx, Transaction);
             let import_object = cast_to_rust_type!(raw_import_object, ImportObject);
 
@@ -186,8 +179,7 @@ macro_rules! include_svm_runtime_c_api {
         ) -> *const c_void {
             debug!("`svm_register_get` register `{}:{}`", reg_bits, reg_idx);
 
-            let raw_ctx: *const wasmer_instance_context_t = raw_ctx as _;
-            let wasmer_ctx: &Ctx = cast_to_rust_type!(raw_ctx, Ctx);
+            let wasmer_ctx = cast_to_rust_type!(raw_ctx, Ctx);
             let reg: &mut SvmReg = svm_runtime::wasmer_ctx_reg!(wasmer_ctx, reg_bits, reg_idx, $PC);
 
             // having `c_void` instead of `u8` in the function's signature
@@ -206,8 +198,7 @@ macro_rules! include_svm_runtime_c_api {
         ) {
             debug!("`svm_register_set` register `{}:{}`", reg_bits, reg_idx);
 
-            let raw_ctx: *const wasmer_instance_context_t = raw_ctx as _;
-            let wasmer_ctx: &Ctx = cast_to_rust_type!(raw_ctx, Ctx);
+            let wasmer_ctx = cast_to_rust_type!(raw_ctx, Ctx);
             let reg: &mut SvmReg = svm_runtime::wasmer_ctx_reg!(wasmer_ctx, reg_bits, reg_idx, $PC);
 
             // having `c_void` instead of `u8` in the function's signature
@@ -223,8 +214,7 @@ macro_rules! include_svm_runtime_c_api {
             raw_ctx: *const c_void,
         ) -> *const c_void {
             trace!("`svm_instance_context_node_data_get`");
-            let raw_ctx: *const wasmer_instance_context_t = raw_ctx as _;
-            let wasmer_ctx: &Ctx = cast_to_rust_type!(raw_ctx, Ctx);
+            let wasmer_ctx = cast_to_rust_type!(raw_ctx, Ctx);
             svm_runtime::wasmer_data_node_data!(wasmer_ctx.data, $PC)
         }
 
@@ -275,7 +265,6 @@ macro_rules! include_svm_runtime_c_api {
         #[must_use]
         #[no_mangle]
         pub unsafe extern "C" fn svm_receipt_status(raw_receipt: *const c_void) -> bool {
-            let raw_receipt: *const svm_receipt_t = raw_receipt as _;
             let receipt = cast_to_rust_type!(raw_receipt, Receipt);
             debug!("`svm_receipt_status` status={}", receipt.success);
 
@@ -294,7 +283,6 @@ macro_rules! include_svm_runtime_c_api {
         ) {
             debug!("`svm_receipt_results`");
 
-            let raw_receipt: *const svm_receipt_t = raw_receipt as _;
             let receipt = cast_to_rust_type!(raw_receipt, Receipt);
 
             if receipt.success {
@@ -321,7 +309,6 @@ macro_rules! include_svm_runtime_c_api {
         #[must_use]
         #[no_mangle]
         pub unsafe extern "C" fn svm_receipt_error(raw_receipt: *const c_void) {
-            let raw_receipt: *const svm_receipt_t = raw_receipt as _;
             let receipt = cast_to_rust_type!(raw_receipt, Receipt);
 
             if let Some(ref _e) = receipt.error {
@@ -334,7 +321,6 @@ macro_rules! include_svm_runtime_c_api {
         #[must_use]
         #[no_mangle]
         pub unsafe extern "C" fn svm_receipt_new_state(raw_receipt: *const c_void) -> *const u8 {
-            let raw_receipt: *const svm_receipt_t = raw_receipt as _;
             let receipt = cast_to_rust_type!(raw_receipt, Receipt);
 
             if receipt.success {
