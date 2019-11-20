@@ -61,6 +61,7 @@ svm-compiler = { path = "crates/svm-compiler" }
 svm-contract = { path = "crates/svm-contract" }
 svm-runtime = { path = "crates/svm-runtime" }
 svm-runtime-c-api = { path = "crates/svm-runtime-c-api" }
+wabt = "0.7.4"
 
 [dev-dependencies]
 wabt = "0.7.4"
@@ -74,7 +75,12 @@ members = [
   "crates/svm-compiler",
   "crates/svm-runtime",
   "crates/svm-runtime-c-api",
+  "crates/svm-cli",
 ]
 exclude = [
   "crates/svm-extern",
 ]
+
+[[bin]]
+name = "svm-cli"
+path = "crates/svm-cli/src/main.rs"
