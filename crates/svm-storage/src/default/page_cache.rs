@@ -109,7 +109,7 @@ impl<PS: PagesStateStorage> PagesStorage for DefaultPageCache<PS> {
                 debug!("cache hit for page #{}", page_idx.0);
 
                 // page has already been loaded from `pages_storage`.
-                // since we it hascontent we clone `page` and return the clone
+                // since we it content we clone `page` and return the clone
                 Some(page.to_vec())
             }
             CachedPage::CachedEmpty => {
