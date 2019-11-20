@@ -356,7 +356,7 @@ mod tests {
 
         let layout = PageSliceLayout::new(PageIndex(1), PageOffset(100), 200);
 
-        assert_eq!(None, cache.read_page_slice(&layout));
+        assert_eq!(vec![0; 200], cache.read_page_slice(&layout).unwrap());
     }
 
     #[test]
@@ -365,7 +365,7 @@ mod tests {
 
         let layout = PageSliceLayout::new(PageIndex(1), PageOffset(100), 3);
 
-        assert_eq!(None, cache.read_page_slice(&layout));
+        assert_eq!(vec![0, 0, 0], cache.read_page_slice(&layout).unwrap());
 
         cache.write_page_slice(&layout, &vec![10, 20, 30]);
 
