@@ -47,7 +47,6 @@ mod tests {
             use std::rc::Rc;
 
             let max_pages: u32 = 5;
-            let max_pages_slices: u32 = 100;
 
             let pages_storage_gen = || {
                 let addr = Address::from(0x12_34_56_78);
@@ -62,7 +61,6 @@ mod tests {
 
             let opts = crate::opts::Opts {
                 max_pages: max_pages as usize,
-                max_pages_slices: max_pages_slices as usize,
             };
 
             create_svm_ctx!(
@@ -147,7 +145,7 @@ mod tests {
         let ctx = test_create_svm_ctx!();
         let (data, _dtor) = wasmer_fake_import_object_data(&ctx);
         let storage = wasmer_data_storage!(data, svm_storage::memory::MemMerklePageCache);
-        let layout = svm_page_slice_layout!(1, 0, 100, 3);
+        let layout = svm_page_slice_layout!(1, 0, 3);
 
         assert_eq!(None, storage.read_page_slice(&layout));
         storage.write_page_slice(&layout, &vec![10, 20, 30]);
@@ -159,14 +157,14 @@ mod tests {
         let ctx = test_create_svm_ctx!();
         let (data, _dtor) = wasmer_fake_import_object_data(&ctx);
 
-        let layout = svm_page_slice_layout!(1, 0, 100, 3);
+        let layout = svm_page_slice_layout!(1, 0, 3);
         let reg0 = wasmer_data_reg!(data, 64, 0, MemMerklePageCache);
         let storage = wasmer_data_storage!(data, MemMerklePageCache);
 
         storage.write_page_slice(&layout, &vec![10, 20, 30]);
 
         // reading from page `1`, slice `0`, 3 bytes starting from offset `100`
-        let slice = svm_read_page_slice!(storage, 1, 0, 100, 3);
+        let slice = svm_read_page_slice!(storage, 1, 0, 3);
 
         reg0.set(&slice);
         assert_eq!(vec![10, 20, 30, 0, 0, 0, 0, 0], reg0.view());
@@ -183,13 +181,13 @@ mod tests {
         let reg0 = wasmer_data_reg!(data, 64, 0, MemMerklePageCache);
         reg0.set(&vec![10, 20, 30]);
 
-        let slice = svm_read_page_slice!(storage, 1, 0, 100, 3);
+        let slice = svm_read_page_slice!(storage, 1, 0, 3);
         assert_eq!(Vec::<u8>::new(), slice);
 
         // writing at page `1`, slice `0`, starting from offset `100` the content of register `0`
-        svm_write_page_slice!(storage, 1, 0, 100, 3, &reg0.view());
+        svm_write_page_slice!(storage, 1, 0, 3, &reg0.view());
 
-        let slice = svm_read_page_slice!(storage, 1, 0, 100, 3);
+        let slice = svm_read_page_slice!(storage, 1, 0, 3);
         assert_eq!(vec![10, 20, 30], slice);
     }
 }

@@ -10,7 +10,7 @@ macro_rules! create_svm_ctx {
 
         let pages = $pages_storage_gen();
         let page_cache = $page_cache_ctor(pages, $opts.max_pages);
-        let storage = PageSliceCache::new(page_cache, $opts.max_pages_slices);
+        let storage = PageSliceCache::new(page_cache);
 
         let ctx = SvmCtx::<$PC>::new($node_data, storage);
         let boxed_ctx = Box::new(ctx);

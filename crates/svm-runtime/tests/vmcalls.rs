@@ -28,7 +28,6 @@ macro_rules! test_create_svm_state_gen {
         let node_data = SvmCtxDataWrapper::new(std::ptr::null());
 
         let max_pages = 5;
-        let max_pages_slices = 100;
 
         let pages_storage_gen = move || {
             use std::cell::RefCell;
@@ -52,7 +51,6 @@ macro_rules! test_create_svm_state_gen {
 
         let opts = svm_runtime::opts::Opts {
             max_pages: max_pages as usize,
-            max_pages_slices: max_pages_slices as usize,
         };
 
         svm_runtime::lazy_create_svm_state_gen!(
@@ -179,7 +177,7 @@ fn vmcalls_storage_read_non_empty_page_slice_to_reg() {
     let mut instance = module.instantiate(&import_object).unwrap();
     let storage =
         svm_runtime::wasmer_data_storage!(instance.context_mut().data, MemMerklePageCache);
-    let layout = svm_runtime::svm_page_slice_layout!(1, 10, 100, 3);
+    let layout = svm_runtime::svm_page_slice_layout!(1, 10, 3);
 
     // we write `[10, 20, 30]` into storage slice `10` (page `1`, cells: `100..103`)
     storage.write_page_slice(&layout, &vec![10, 20, 30]);
@@ -240,7 +238,7 @@ fn vmcalls_storage_read_non_empty_page_slice_to_mem() {
     let mut instance = module.instantiate(&import_object).unwrap();
     let storage =
         svm_runtime::wasmer_data_storage!(instance.context_mut().data, MemMerklePageCache);
-    let layout = svm_runtime::svm_page_slice_layout!(1, 10, 100, 3);
+    let layout = svm_runtime::svm_page_slice_layout!(1, 10, 3);
 
     // we write `[10, 20, 30]` into storage slice `10` (page `1`, cells `100..103`)
     storage.write_page_slice(&layout, &vec![10, 20, 30]);
@@ -272,7 +270,7 @@ fn vmcalls_storage_write_from_mem() {
 
     svm_runtime::wasmer_ctx_mem_cells_write!(instance.context(), 0, 200, &[10, 20, 30]);
 
-    let layout = svm_runtime::svm_page_slice_layout!(1, 10, 100, 3);
+    let layout = svm_runtime::svm_page_slice_layout!(1, 10, 3);
 
     assert_eq!(None, storage.read_page_slice(&layout));
 
@@ -304,7 +302,7 @@ fn vmcalls_storage_write_from_reg() {
     let reg = svm_runtime::wasmer_ctx_reg!(instance.context(), 64, 5, MemMerklePageCache);
     reg.set(&[10, 20, 30]);
 
-    let layout = svm_runtime::svm_page_slice_layout!(1, 10, 100, 3);
+    let layout = svm_runtime::svm_page_slice_layout!(1, 10, 3);
 
     assert_eq!(None, storage.read_page_slice(&layout));
 

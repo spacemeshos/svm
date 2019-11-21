@@ -52,16 +52,14 @@ macro_rules! include_svm_storage_vmcalls {
         /// Loads from the `svm` instance's storage a page-slice into the register indexed `dest_reg`
         ///
         /// * `ctx`          - `wasmer` context (holds a `data` field. we use `SvmCtx`)
-        /// * `src_page`     - Page index
-        /// * `src_slice`    - Page slice index
+        /// * `page`         - Page index
         /// * `offset`       - Slice starting offset (within the given page)
         /// * `len`          - The length of the slice in bytes
         /// * `dst_reg_bits` - The type of the register (determined by its #bits) we want to copy data to
         /// * `dst_reg_idx`  - The destination register index we want to load the page-slice into
         pub fn storage_read_to_reg(
             ctx: &mut wasmer_runtime::Ctx,
-            src_page: i32,
-            src_slice: i32,
+            page: i32,
             offset: i32,
             len: i32,
             dst_reg_bits: i32,
@@ -70,13 +68,8 @@ macro_rules! include_svm_storage_vmcalls {
             let reg = $crate::wasmer_data_reg!(ctx.data, dst_reg_bits, dst_reg_idx, $PC);
             let storage = $crate::wasmer_data_storage!(ctx.data, $PC);
 
-            let slice = $crate::svm_read_page_slice!(
-                storage,
-                src_page as u32,
-                src_slice as u32,
-                offset as u32,
-                len as u32
-            );
+            let slice =
+                $crate::svm_read_page_slice!(storage, page as u32, offset as u32, len as u32);
 
             reg.set(&slice);
         }
@@ -84,16 +77,14 @@ macro_rules! include_svm_storage_vmcalls {
         /// Loads from the `svm` instance's storage a page-slice into the memory address given
         ///
         /// * `ctx`         - `wasmer` context (holds a `data` field. we use `SvmCtx`)
-        /// * `src_page`    - Page index
-        /// * `src_slice`   - Page slice index
+        /// * `page`        - Page index
         /// * `offset`      - Slice starting offset (within the given page)
         /// * `len`         - The length of the slice in bytes
         /// * `dst_mem_idx` - The destination memory index we want to copy to
         /// * `dst_mem_ptr` - The destination memory address to start copying the page-slice into
         pub fn storage_read_to_mem(
             ctx: &mut wasmer_runtime::Ctx,
-            src_page: i32,
-            src_slice: i32,
+            page: i32,
             offset: i32,
             len: i32,
             dst_mem_idx: i32,
@@ -101,13 +92,8 @@ macro_rules! include_svm_storage_vmcalls {
         ) {
             let storage = $crate::wasmer_data_storage!(ctx.data, $PC);
 
-            let mut slice = $crate::svm_read_page_slice!(
-                storage,
-                src_page as u32,
-                src_slice as u32,
-                offset as u32,
-                len as u32
-            );
+            let mut slice =
+                $crate::svm_read_page_slice!(storage, page as u32, offset as u32, len as u32);
 
             if slice.len() == 0 {
                 // slice is empty, i.e it doesn't really exist
@@ -125,7 +111,6 @@ macro_rules! include_svm_storage_vmcalls {
         /// * `src_mem_ptr` - Memory address to start copying from
         /// * `len`         - #memory cells to copy
         /// * `dst_page`    - Destination page
-        /// * `dst_slice`   - Destination slice
         /// * `dst_offset`  - Destination slice offset
         pub fn storage_write_from_mem(
             ctx: &mut wasmer_runtime::Ctx,
@@ -133,7 +118,6 @@ macro_rules! include_svm_storage_vmcalls {
             src_mem_ptr: i32,
             len: i32,
             dst_page: i32,
-            dst_slice: i32,
             dst_offset: i32,
         ) {
             let cells = $crate::wasmer_ctx_mem_cells!(ctx, src_mem_idx, src_mem_ptr, len);
@@ -144,7 +128,6 @@ macro_rules! include_svm_storage_vmcalls {
                 storage,
                 dst_page as u32,
                 dst_slice as u32,
-                dst_offset as u32,
                 len as u32,
                 &data
             );
@@ -157,7 +140,6 @@ macro_rules! include_svm_storage_vmcalls {
         /// * `src_reg_idx`  - Source register to start copying from
         /// * `len`          - #register bytes to copy. Must be less than register capacity
         /// * `dst_page`     - Destination page
-        /// * `dst_slice`    - Destination slice
         /// * `dst_offset`   - Destination slice offset
         pub fn storage_write_from_reg(
             ctx: &mut wasmer_runtime::Ctx,
@@ -165,7 +147,6 @@ macro_rules! include_svm_storage_vmcalls {
             src_reg_idx: i32,
             len: i32,
             dst_page: i32,
-            dst_slice: i32,
             dst_offset: i32,
         ) {
             let reg = $crate::wasmer_data_reg!(ctx.data, src_reg_bits, src_reg_idx, $PC);
@@ -175,7 +156,6 @@ macro_rules! include_svm_storage_vmcalls {
             let slice = $crate::svm_write_page_slice!(
                 storage,
                 dst_page as u32,
-                dst_slice as u32,
                 dst_offset as u32,
                 len as u32,
                 &data

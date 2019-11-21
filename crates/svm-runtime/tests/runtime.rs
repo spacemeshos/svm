@@ -2,7 +2,7 @@ use svm_common::{Address, State};
 use svm_contract::build::{WireContractBuilder, WireTxBuilder};
 use svm_contract::wasm::WasmArgValue as Value;
 
-use svm_storage::page::{PageIndex, PageSliceLayout, SliceIndex};
+use svm_storage::page::{PageIndex, PageOffset, PageSliceLayout};
 use svm_storage::PageSliceCache;
 
 // Injects `svm` runtime backed by `rocksdb` into the current file.
@@ -35,10 +35,7 @@ macro_rules! build_raw_tx {
 
 macro_rules! exec_tx {
     ($tx: expr, $state: expr) => {{
-        let opts = svm_runtime::opts::Opts {
-            max_pages: 10,
-            max_pages_slices: 100,
-        };
+        let opts = svm_runtime::opts::Opts { max_pages: 10 };
 
         let import_object =
             runtime::import_object_create($tx.contract.clone(), $state, std::ptr::null(), opts);
@@ -119,12 +116,11 @@ fn contract_exec_valid_transaction() {
     let pages_storage =
         svm_runtime::gen_rocksdb_pages_storage!(addr, new_state, 10, "tests-contract-storage");
     let page_cache = svm_runtime::gen_rocksdb_page_cache!(pages_storage, 10);
-    let mut storage = PageSliceCache::new(page_cache, 100);
+    let mut storage = PageSliceCache::new(page_cache);
 
     let slice_pos = PageSliceLayout {
-        slice_idx: SliceIndex(0),
         page_idx: PageIndex(0),
-        offset: 0,
+        offset: PageOffset(0),
         len: 8,
     };
 
