@@ -8,4 +8,5 @@ edition = "2018"
 
 [dependencies]
 wabt = "0.7.4"
+clap = "2.33.0"
 

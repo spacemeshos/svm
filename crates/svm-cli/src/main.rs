@@ -1,3 +1,4 @@
+extern crate clap;
 extern crate wabt;
 
 use std::fs::File;
@@ -8,6 +9,8 @@ use svm_contract::wasm::Contract;
 use svm_runtime;
 use wabt::wat2wasm;
 use svm_contract::build::WireContractBuilder;
+
+use clap::{Arg, App, SubCommand};
 
 fn build_contract(version: u32, name: &str, author_address: u32, wasm: &[u8]) -> Vec<u8> {
     return WireContractBuilder::new()
@@ -44,10 +47,45 @@ fn deploy_contract(file_path: &str, name: &str, author_address: u32) ->  (Addres
 }
 
 fn main() {
-    let name = "Contract #1";
-    let author_address = 0x10_20_30_40;
-    let file_path = "crates/svm-runtime/tests/wasm/runtime-1.wast";
-    let (addr, _contract) = deploy_contract(file_path, name, author_address);
+    let matches = App::new("svm_cli")
+                          .version("0.1")
+                          .about("Deploy and call contracts to SVM")
+                          .subcommand(SubCommand::with_name("deploy")
+                                      .about("Deploy contract")
+                                      .arg(Arg::with_name("name")
+                                           .short("n")
+                                           .long("name")
+                                           .value_name("name")
+                                           .required(true)
+                                           .help("Nome of the contrat to deploy")
+                                           .takes_value(true))
+                                      .arg(Arg::with_name("address")
+                                           .short("a")
+                                           .long("address")
+                                           .required(true)
+                                           .value_name("address")
+                                           .help("owner address used to deploy contract")
+                                           .takes_value(true)
+                                        )
+                                      .arg(Arg::with_name("contract")
+                                           .short("c")
+                                           .long("contract")
+                                           .value_name("contract")
+                                           .required(true)
+                                           .help("wast file of the contract")
+                                           .takes_value(true)))
+                          .get_matches();
 
-    println!("Hello, world! {:?}", addr);
+    if let Some(matches) = matches.subcommand_matches("deploy") {
+        let name = matches.value_of("name").unwrap();
+        let author_address: u32 = u32::from_str_radix(matches.value_of("address").unwrap()
+                                                        .trim_start_matches("0x"), 16).unwrap();
+        let file_path = matches.value_of("contract").unwrap();
+        println!("Using ADDRESS: {:X}", author_address);
+        let (addr, _contract) = deploy_contract(file_path, name, author_address);
+    
+        println!("Contract deployed to address: {:?}", addr);
+    }
+    
+    
 }
