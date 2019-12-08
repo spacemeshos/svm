@@ -7,7 +7,7 @@
 /// Default implementations for crate traits (see `traits.rs`).
 pub mod default;
 
-mod merkle_pages_storage;
+mod contract_pages;
 
 mod page_slice_cache;
 

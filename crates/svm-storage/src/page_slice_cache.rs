@@ -297,10 +297,10 @@ mod tests {
         }
     }
 
-    macro_rules! page_slice_cache_gen {
+    macro_rules! page_cache_open {
         ($cache_slice_ident: ident, $kv_ident: ident, $addr: expr, $state: expr, $max_pages: expr) => {
             use crate::default::DefaultPageCache;
-            use crate::memory::MemMerklePages;
+            use crate::memory::MemContractPages;
             use svm_kv::memory::MemKVStore;
 
             use std::cell::RefCell;
@@ -309,34 +309,34 @@ mod tests {
             let $kv_ident = Rc::new(RefCell::new(MemKVStore::new()));
             let kv_gen = || Rc::clone(&$kv_ident);
 
-            let pages = mem_merkle_pages_gen!($addr, $state, kv_gen, $max_pages);
-            let cache = DefaultPageCache::<MemMerklePages>::new(pages, $max_pages);
+            let pages = contract_pages_open!($addr, $state, kv_gen, $max_pages);
+            let cache = DefaultPageCache::<MemContractPages>::new(pages, $max_pages);
 
             let mut $cache_slice_ident = PageSliceCache::new(cache);
         };
     }
 
-    macro_rules! mem_merkle_pages_gen {
+    macro_rules! contract_pages_open {
         ($addr: expr, $state: expr, $kv_gen: expr, $max_pages: expr) => {{
-            use crate::memory::MemMerklePages;
+            use crate::memory::MemContractPages;
             use svm_common::{Address, State};
 
             let addr = Address::from($addr as u32);
             let state = State::from($state as u32);
 
-            MemMerklePages::new(addr, $kv_gen(), state, $max_pages)
+            MemContractPages::new(addr, $kv_gen(), state, $max_pages)
         }};
     }
 
     macro_rules! reopen_pages_storage {
         ($kv_ident: ident, $addr: expr, $state: expr, $max_pages: expr) => {{
-            use crate::memory::MemMerklePages;
+            use crate::memory::MemContractPages;
             use svm_common::Address;
 
             use std::rc::Rc;
 
             let addr = Address::from($addr as u32);
-            MemMerklePages::new(addr, Rc::clone(&$kv_ident), $state, $max_pages)
+            MemContractPages::new(addr, Rc::clone(&$kv_ident), $state, $max_pages)
         }};
     }
 
@@ -344,7 +344,8 @@ mod tests {
         ($cache_slice_ident: ident, $kv_ident: ident, $addr: expr, $state: expr, $max_pages: expr) => {
             let pages = reopen_pages_storage!($kv_ident, $addr, $state, $max_pages);
 
-            let cache = crate::default::DefaultPageCache::<MemMerklePages>::new(pages, $max_pages);
+            let cache =
+                crate::default::DefaultPageCache::<MemContractPages>::new(pages, $max_pages);
 
             let mut $cache_slice_ident = PageSliceCache::new(cache);
         };
@@ -352,7 +353,7 @@ mod tests {
 
     #[test]
     fn loading_an_empty_slice_into_the_cache() {
-        page_slice_cache_gen!(cache, kv, 0x11_22_33_44, 0x00_00_00_00, 10);
+        page_cache_open!(cache, kv, 0x11_22_33_44, 0x00_00_00_00, 10);
 
         let layout = PageSliceLayout::new(PageIndex(1), PageOffset(100), 200);
 
@@ -361,7 +362,7 @@ mod tests {
 
     #[test]
     fn read_an_empty_slice_then_override_it_and_then_commit() {
-        page_slice_cache_gen!(cache, kv, 0x11_22_33_44, 0x00_00_00_00, 10);
+        page_cache_open!(cache, kv, 0x11_22_33_44, 0x00_00_00_00, 10);
 
         let layout = PageSliceLayout::new(PageIndex(1), PageOffset(100), 3);
 
@@ -379,7 +380,7 @@ mod tests {
     #[test]
     fn write_slice_without_loading_it_first_and_commit() {
         let addr = 0x11_22_33_44;
-        page_slice_cache_gen!(cache, kv, addr, 0x00_00_00_00, 2);
+        page_cache_open!(cache, kv, addr, 0x00_00_00_00, 2);
 
         let layout = PageSliceLayout::new(PageIndex(1), PageOffset(100), 3);
 
@@ -403,7 +404,7 @@ mod tests {
     #[test]
     fn read_an_existing_slice_then_overriding_it_and_commit() {
         let addr = 0x11_22_33_44;
-        page_slice_cache_gen!(cache, kv, addr, 0x00_00_00_00, 2);
+        page_cache_open!(cache, kv, addr, 0x00_00_00_00, 2);
 
         let layout = PageSliceLayout::new(PageIndex(1), PageOffset(100), 3);
 
@@ -438,7 +439,7 @@ mod tests {
     #[test]
     fn write_slice_and_commit_then_load_it_override_it_and_commit() {
         let addr = 0x11_22_33_44;
-        page_slice_cache_gen!(cache, kv, addr, 0x00_00_00_00, 2);
+        page_cache_open!(cache, kv, addr, 0x00_00_00_00, 2);
 
         let layout = PageSliceLayout::new(PageIndex(1), PageOffset(100), 3);
 
@@ -476,7 +477,7 @@ mod tests {
     #[test]
     fn write_two_slices_under_same_page_and_commit() {
         let addr = 0x11_22_33_44;
-        page_slice_cache_gen!(cache, kv, addr, 0x00_00_00_00, 2);
+        page_cache_open!(cache, kv, addr, 0x00_00_00_00, 2);
 
         let layout1 = PageSliceLayout::new(PageIndex(1), PageOffset(100), 3);
 

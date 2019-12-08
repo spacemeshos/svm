@@ -124,13 +124,7 @@ macro_rules! include_svm_storage_vmcalls {
             let data = cells.iter().map(|cell| cell.get()).collect::<Vec<u8>>();
             let storage = $crate::wasmer_data_storage!(ctx.data, $PC);
 
-            let slice = $crate::svm_write_page_slice!(
-                storage,
-                dst_page as u32,
-                dst_slice as u32,
-                len as u32,
-                &data
-            );
+            let slice = $crate::svm_write_page_slice!(storage, dst_page as u32, len as u32, &data);
         }
 
         /// Writes into `svm` storage, a page-slice copied from `svm wasmer` register
