@@ -1,3 +1,3 @@
 mod db;
 
-pub use db::RocksStore;
+pub use db::Rocksdb;

@@ -6,13 +6,13 @@ use std::marker::PhantomData;
 use std::path::Path;
 
 use svm_common::Address;
-use svm_kv::rocksdb::RocksStore;
+use svm_kv::rocksdb::Rocksdb;
 use svm_kv::traits::KVStore;
 
 use log::info;
 
 pub struct RocksContractStore<S, D> {
-    db: RocksStore,
+    db: Rocksdb,
     marker: PhantomData<(S, D)>,
 }
 
@@ -23,7 +23,7 @@ where
 {
     pub fn new(path: &Path) -> Self {
         Self {
-            db: RocksStore::new(path),
+            db: Rocksdb::new(path),
             marker: PhantomData,
         }
     }

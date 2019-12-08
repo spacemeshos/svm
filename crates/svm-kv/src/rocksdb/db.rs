@@ -4,12 +4,12 @@ use std::path::Path;
 use log::info;
 
 /// An implementation of `KVStore` trait against `rocksdb`.
-pub struct RocksStore {
+pub struct Rocksdb {
     pub(crate) db: rocksdb::DB,
 }
 
-impl RocksStore {
-    /// New `RocksStore` under the given `path`
+impl Rocksdb {
+    /// New `Rocksdb` under the given `path`
     pub fn new<P: AsRef<Path>>(path: P) -> Self {
         info!("opening rocksdb. (path = \"{}\")", path.as_ref().display());
 
@@ -19,7 +19,7 @@ impl RocksStore {
     }
 }
 
-impl KVStore for RocksStore {
+impl KVStore for Rocksdb {
     #[allow(clippy::match_wild_err_arm)]
     fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
         match self.db.get(key) {
@@ -50,9 +50,9 @@ impl KVStore for RocksStore {
     }
 }
 
-impl Drop for RocksStore {
+impl Drop for Rocksdb {
     fn drop(&mut self) {
-        info!("dropping `RocksStore`");
+        info!("dropping `Rocksdb`");
     }
 }
 
@@ -62,7 +62,7 @@ mod tests {
 
     #[test]
     fn rocksdb_sanity() {
-        let mut db = RocksStore::new("rocksdb-tests");
+        let mut db = Rocksdb::new("rocksdb-tests");
 
         db.store(&[(&[10, 20, 30], &[40, 50, 60])]);
 
@@ -71,7 +71,7 @@ mod tests {
 
         drop(db);
 
-        let db = RocksStore::new("rocksdb-tests");
+        let db = Rocksdb::new("rocksdb-tests");
         let v = db.get(&[10, 20, 30]).unwrap();
         assert_eq!(vec![40, 50, 60], v);
     }

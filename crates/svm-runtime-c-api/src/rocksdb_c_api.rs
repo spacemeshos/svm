@@ -2,22 +2,22 @@ crate::include_svm_runtime_c_api!(
     |addr, state, max_pages| {
         use std::cell::RefCell;
         use std::rc::Rc;
-        use svm_kv::rocksdb::RocksStore;
+        use svm_kv::rocksdb::Rocksdb;
 
-        use svm_storage::rocksdb::RocksdbPages;
+        use svm_storage::rocksdb::RocksdbContractPages;
 
-        let kv = Rc::new(RefCell::new(RocksStore::new(std::path::Path::new(
+        let kv = Rc::new(RefCell::new(Rocksdb::new(std::path::Path::new(
             "tests-contract-storage",
         ))));
 
-        RocksdbPages::new(addr, kv, state, max_pages as u32)
+        RocksdbContractPages::new(addr, kv, state, max_pages as u32)
     },
     |pages_storage, max_pages| {
-        use svm_storage::rocksdb::RocksdbPageCache;
+        use svm_storage::rocksdb::RocksdbContractPageCache;
 
-        RocksdbPageCache::new(pages_storage, max_pages as usize)
+        RocksdbContractPageCache::new(pages_storage, max_pages as usize)
     },
-    svm_storage::rocksdb::RocksdbPageCache,
+    svm_storage::rocksdb::RocksdbContractPageCache,
     svm_contract::rocksdb::RocksEnv,
     || {
         use svm_contract::{
