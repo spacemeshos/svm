@@ -11,7 +11,7 @@ mod contract_pages;
 
 mod page_slice_cache;
 
-/// Contains definitions of `Page` related structures. For example: `Page` / `PageIndex` / `SliceIndex`
+/// Contains definitions of `Page` related structures. For example: `Page, PageIndex` etc
 pub mod page;
 
 /// Contains definitions `State`-related.
