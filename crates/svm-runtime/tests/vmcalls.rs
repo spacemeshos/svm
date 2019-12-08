@@ -147,17 +147,16 @@ fn vmcalls_storage_read_an_empty_page_slice_to_reg() {
 
     let instance = module.instantiate(&import_object).unwrap();
 
-    // we first initialize register `2` with some garbage data which should be overriden
+    // we first initialize register `2` with some garbage data (0xFF...FF) which should be overriden
     // after calling the exported `do_copy_to_reg` function
     let reg = svm_runtime::wasmer_ctx_reg!(instance.context(), 64, 2, MemContractPageCache);
-    reg.set(&[255; 8]);
+    reg.set(&[0xFF; 8]);
+    assert_eq!(vec![0xFF; 8], reg.view());
 
-    assert_eq!(vec![255; 8], reg.view());
+    let do_copy: Func<(i32, i32, i32, i32)> = instance.func("do_copy_to_reg").unwrap();
+    assert!(do_copy.call(1, 100, 3, 2).is_ok());
 
-    let do_copy: Func<(i32, i32, i32, i32, i32)> = instance.func("do_copy_to_reg").unwrap();
-    assert!(do_copy.call(1, 10, 100, 3, 2).is_ok());
-
-    // register `2` (of type `64 bits) should contain zeros, since an empty page-slice is treated as a page-slice containing only zeros
+    // register `2:64` should contain zeros, since an empty page-slice is treated as a page-slice containing only zeros
     let reg = svm_runtime::wasmer_ctx_reg!(instance.context(), 64, 2, MemContractPageCache);
     assert_eq!(vec![0, 0, 0, 0, 0, 0, 0, 0], reg.view());
 }
@@ -177,20 +176,22 @@ fn vmcalls_storage_read_non_empty_page_slice_to_reg() {
     let mut instance = module.instantiate(&import_object).unwrap();
     let storage =
         svm_runtime::wasmer_data_storage!(instance.context_mut().data, MemContractPageCache);
-    let layout = svm_runtime::svm_page_slice_layout!(1, 10, 3);
 
-    // we write `[10, 20, 30]` into storage slice `10` (page `1`, cells: `100..103`)
+    let layout = svm_runtime::svm_page_slice_layout!(1, 100, 3);
+
+    // we write `[10, 20, 30]` into storage slice (page `1`, cells: `100..103`)
     storage.write_page_slice(&layout, &vec![10, 20, 30]);
 
-    // we first initialize register `2` (of type `64 bits`) with some garbage data which should be overriden
+    // we first initialize register `2:64` with some garbage (0xFF...FF) data which should be overriden
     // after calling the exported `do_copy_to_reg` function
     let reg = svm_runtime::wasmer_ctx_reg!(instance.context(), 64, 2, MemContractPageCache);
-    reg.set(&[255; 8]);
+    reg.set(&[0xFF; 8]);
+    assert_eq!(vec![0xFF; 8], reg.view());
 
-    let do_copy: Func<(i32, i32, i32, i32, i32)> = instance.func("do_copy_to_reg").unwrap();
+    let do_copy: Func<(i32, i32, i32, i32)> = instance.func("do_copy_to_reg").unwrap();
 
-    // we copy storage `slice 0` (page `1`, cells: `100..103`) into register `2`
-    assert!(do_copy.call(1, 10, 100, 3, 2).is_ok());
+    // we copy slice (page `1`, cells: `100..103`) into register `2:64`
+    assert!(do_copy.call(1, 100, 3, 2).is_ok());
 
     let reg = svm_runtime::wasmer_ctx_reg!(instance.context(), 64, 2, MemContractPageCache);
     assert_eq!(vec![10, 20, 30, 0, 0, 0, 0, 0], reg.view());
@@ -210,14 +211,14 @@ fn vmcalls_storage_read_an_empty_page_slice_to_mem() {
 
     let instance = module.instantiate(&import_object).unwrap();
 
-    // we fill memory #0, cells `200..203` with garbage data
-    svm_runtime::wasmer_ctx_mem_cells_write!(instance.context(), 0, 200, &[255, 255, 255]);
+    // we fill memory #0, cells `200..203` with garbage data (0xFF...FF)
+    svm_runtime::wasmer_ctx_mem_cells_write!(instance.context(), 0, 200, &[0xFF, 0xFF, 0xFF]);
     let cells = svm_runtime::wasmer_ctx_mem_cells!(instance.context(), 0, 200, 3);
-    assert_eq!(&[Cell::new(255), Cell::new(255), Cell::new(255)], cells);
+    assert_eq!(&[Cell::new(0xFF), Cell::new(0xFF), Cell::new(0xFF)], cells);
 
-    // we copy storage `slice 0` (page `1`, cells: `100..103`) into memory starting from address = 200
-    let do_copy: Func<(i32, i32, i32, i32, i32)> = instance.func("do_copy_to_mem").unwrap();
-    assert!(do_copy.call(1, 10, 100, 3, 200).is_ok());
+    // we copy storage slice (page `1`, cells: `100..103`) into memory starting from `address = 200`
+    let do_copy: Func<(i32, i32, i32, i32)> = instance.func("do_copy_to_mem").unwrap();
+    assert!(do_copy.call(1, 100, 3, 200).is_ok());
 
     let cells = svm_runtime::wasmer_ctx_mem_cells!(instance.context(), 0, 200, 3);
     assert_eq!(&[Cell::new(0), Cell::new(0), Cell::new(0)], cells);
@@ -238,15 +239,15 @@ fn vmcalls_storage_read_non_empty_page_slice_to_mem() {
     let mut instance = module.instantiate(&import_object).unwrap();
     let storage =
         svm_runtime::wasmer_data_storage!(instance.context_mut().data, MemContractPageCache);
-    let layout = svm_runtime::svm_page_slice_layout!(1, 10, 3);
+    let layout = svm_runtime::svm_page_slice_layout!(1, 100, 3);
 
-    // we write `[10, 20, 30]` into storage slice `10` (page `1`, cells `100..103`)
+    // we write `[10, 20, 30]` into storage slice (page `1`, cells `100..103`)
     storage.write_page_slice(&layout, &vec![10, 20, 30]);
 
-    let do_copy: Func<(i32, i32, i32, i32, i32)> = instance.func("do_copy_to_mem").unwrap();
+    let do_copy: Func<(i32, i32, i32, i32)> = instance.func("do_copy_to_mem").unwrap();
 
-    // we copy storage `slice 0` (page `1`, cells: `100..103`) into memory #0, starting from address `200`
-    assert!(do_copy.call(1, 10, 100, 3, 200).is_ok());
+    // we copy slice (page `1`, cells: `100..103`) into memory #0, starting from address `200`
+    assert!(do_copy.call(1, 100, 3, 200).is_ok());
 
     let cells = svm_runtime::wasmer_ctx_mem_cells!(instance.context(), 0, 200, 3);
     assert_eq!(&[Cell::new(10), Cell::new(20), Cell::new(30)], cells);
@@ -270,14 +271,14 @@ fn vmcalls_storage_write_from_mem() {
 
     svm_runtime::wasmer_ctx_mem_cells_write!(instance.context(), 0, 200, &[10, 20, 30]);
 
-    let layout = svm_runtime::svm_page_slice_layout!(1, 10, 3);
+    let layout = svm_runtime::svm_page_slice_layout!(1, 100, 3);
 
-    assert_eq!(None, storage.read_page_slice(&layout));
+    assert_eq!(vec![0, 0, 0], storage.read_page_slice(&layout).unwrap());
 
-    let do_write: Func<(i32, i32, i32, i32, i32)> = instance.func("do_write_from_mem").unwrap();
+    let do_write: Func<(i32, i32, i32, i32)> = instance.func("do_write_from_mem").unwrap();
 
-    // we copy memory cells `200..`203` into storage (`page 1`, `slice 10`, cells: `100..103`)
-    assert!(do_write.call(200, 3, 1, 10, 100).is_ok());
+    // we copy memory cells `200..`203` into storage (`page 1`, cells: `100..103`)
+    assert!(do_write.call(200, 3, 1, 100).is_ok());
 
     assert_eq!(Some(vec![10, 20, 30]), storage.read_page_slice(&layout));
 }
@@ -304,7 +305,7 @@ fn vmcalls_storage_write_from_reg() {
 
     let layout = svm_runtime::svm_page_slice_layout!(1, 10, 3);
 
-    assert_eq!(None, storage.read_page_slice(&layout));
+    assert_eq!(vec![0, 0, 0], storage.read_page_slice(&layout).unwrap());
 
     let do_write: Func<(i32, i32, i32, i32, i32)> = instance.func("do_write_from_reg").unwrap();
 

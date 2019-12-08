@@ -134,9 +134,9 @@ impl<PC: PageCache> PageSliceCache<PC> {
         trace!("    {:?}", data);
 
         assert!(layout.len() < page::PAGE_SIZE);
-        debug_assert_eq!(layout.len() as usize, data.len());
 
         let page_idx = layout.page_index();
+
         if self.get_page_slices(page_idx).is_none() {
             self.do_init_page_slices(page_idx);
         }
@@ -144,10 +144,11 @@ impl<PC: PageCache> PageSliceCache<PC> {
         let slice = PageSlice {
             layout: layout.clone(),
             dirty: true,
-            data: data.to_vec(),
+            data: data[0..layout.len() as usize].to_vec(),
         };
 
         let page_slices = self.get_page_slices_mut(page_idx).unwrap();
+
         page_slices.insert(layout.page_offset(), slice);
     }
 

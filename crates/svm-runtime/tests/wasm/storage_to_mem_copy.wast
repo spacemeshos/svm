@@ -5,7 +5,7 @@
   (memory 1)  ;; memory `0` (default) is initialized with one page
 
   ;; exported function to be called
-  (func (export "do_copy_to_mem") (param i32 i32 i32 i32 i32)
+  (func (export "do_copy_to_mem") (param i32 i32 i32 i32)
         get_local 0 ;; src_page
         get_local 1 ;; offset
         get_local 2 ;; len
