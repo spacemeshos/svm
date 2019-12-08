@@ -17,7 +17,7 @@ enum PageEntry {
     Modified(PageHash, Vec<u8>),
 }
 
-/// `MerklePageStorage` is an implemetation of the `PagesStorage` trait that is state aware.
+/// `ContractPages` is an implemetation of the `PagesStorage` trait that is state aware.
 /// `KV` - stands for `KVStore`
 /// `PH` - stands for `PageHasher`
 /// `SH` - stands for `StateHasher`
@@ -41,7 +41,7 @@ where
     PH: PageHasher,
     SH: StateHasher,
 {
-    /// Creates a new instance of `MerklePageStorage`
+    /// Creates a new instance of `ContractPages`
     /// * `addr`        - The running contract account address.
     /// * `kv`          - The underlying kv-store used for retrieving a page raw-data when queried by its page-hash serving as a key.
     /// * `state`       - The current contract-storage state prior execution of the current contract transaction.
@@ -309,7 +309,7 @@ mod tests {
         }};
     }
 
-    macro_rules! mem_merkle_pages_setup {
+    macro_rules! contract_pages_open {
         ($addr_expr: expr, $addr: ident, $storage: ident, $kv: ident, $pages_count: expr) => {
             let $addr = Address::from($addr_expr as u32);
             let $kv = Rc::new(RefCell::new(MemKVStore::new()));
@@ -375,7 +375,7 @@ mod tests {
 
     #[test]
     fn first_run_with_no_modifications_no_commit() {
-        mem_merkle_pages_setup!(0x11_22_33_44, addr, storage, kv, 3);
+        contract_pages_open!(0x11_22_33_44, addr, storage, kv, 3);
 
         assert_dirty_pages_count!(storage, 0);
         assert_state!(State::empty(), storage);
@@ -384,7 +384,7 @@ mod tests {
 
     #[test]
     fn first_run_with_no_modifications_with_commit() {
-        mem_merkle_pages_setup!(0x11_22_33_44, addr, storage, kv, 3);
+        contract_pages_open!(0x11_22_33_44, addr, storage, kv, 3);
         assert_dirty_pages_count!(storage, 0);
         storage.commit();
 
@@ -409,7 +409,7 @@ mod tests {
 
     #[test]
     fn first_run_with_one_modified_page() {
-        mem_merkle_pages_setup!(0x11_22_33_44, addr, storage, kv, 3);
+        contract_pages_open!(0x11_22_33_44, addr, storage, kv, 3);
 
         storage.write_page(PageIndex(0), &[10, 20, 30]);
         assert_dirty_pages_count!(storage, 1);
@@ -432,7 +432,7 @@ mod tests {
 
     #[test]
     fn first_run_with_two_modified_pages() {
-        mem_merkle_pages_setup!(0x11_22_33_44, addr, storage, kv, 2);
+        contract_pages_open!(0x11_22_33_44, addr, storage, kv, 2);
 
         storage.write_page(PageIndex(0), &[10, 20, 30]);
         storage.write_page(PageIndex(1), &[40, 50, 60]);
@@ -457,7 +457,7 @@ mod tests {
     #[test]
     fn second_run_after_first_run_with_no_modifications() {
         // 1st run
-        mem_merkle_pages_setup!(0x11_22_33_44, addr, storage, kv, 3);
+        contract_pages_open!(0x11_22_33_44, addr, storage, kv, 3);
         storage.commit();
         let old_state = storage.get_state();
 
@@ -488,7 +488,7 @@ mod tests {
     #[test]
     fn second_run_after_first_run_with_modifications() {
         // 1st run
-        mem_merkle_pages_setup!(0x11_22_33_44, addr, storage, kv, 3);
+        contract_pages_open!(0x11_22_33_44, addr, storage, kv, 3);
         storage.write_page(PageIndex(0), &[11, 22, 33]);
         storage.commit();
         let old_state = storage.get_state();
@@ -527,7 +527,7 @@ mod tests {
     #[test]
     fn third_run_rollbacks_to_after_first_run() {
         // 1st run
-        mem_merkle_pages_setup!(0x11_22_33_44, addr, storage, kv, 3);
+        contract_pages_open!(0x11_22_33_44, addr, storage, kv, 3);
         storage.write_page(PageIndex(0), &[11, 22, 33]);
         storage.commit();
         let state_1 = storage.get_state();

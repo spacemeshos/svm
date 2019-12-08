@@ -37,13 +37,6 @@ cfg_if! {
 }
 
 cfg_if! {
-    if #[cfg(feature = "svm_leveldb")]  {
-        /// `leveldb` backed implementation for storage
-        pub mod leveldb;
-    }
-}
-
-cfg_if! {
     if #[cfg(feature = "svm_rocksdb")]  {
         /// `rocksdb` backed implementation for storage
         pub mod rocksdb;

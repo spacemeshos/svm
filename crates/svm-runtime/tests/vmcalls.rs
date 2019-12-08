@@ -2,12 +2,12 @@ use std::cell::Cell;
 
 use svm_runtime::ctx_data_wrapper::SvmCtxDataWrapper;
 
-use svm_storage::memory::MemMerklePageCache;
+use svm_storage::memory::MemContractPageCache;
 
 use wasmer_runtime::{func, imports, Func};
 
 // injecting the `svm vmcalls` implemented with `MemPageCache<[u8; 32]>` as the `PageCache` type
-svm_runtime::include_svm_vmcalls!(svm_storage::memory::MemMerklePageCache);
+svm_runtime::include_svm_vmcalls!(svm_storage::memory::MemContractPageCache);
 
 macro_rules! compile {
     ($wasm:expr) => {{
@@ -34,19 +34,19 @@ macro_rules! test_create_svm_state_gen {
             use std::rc::Rc;
             use svm_common::{Address, State};
             use svm_kv::memory::MemKVStore;
-            use svm_storage::memory::MemMerklePages;
+            use svm_storage::memory::MemContractPages;
 
             let addr = Address::from(0x12_34_56_78);
             let state = State::from(0x00_00_00_00);
             let kv = Rc::new(RefCell::new(MemKVStore::new()));
 
-            MemMerklePages::new(addr, kv, state, max_pages)
+            MemContractPages::new(addr, kv, state, max_pages)
         };
 
         let page_cache_ctor = |pages, max_pages| {
-            use svm_storage::memory::MemMerklePageCache;
+            use svm_storage::memory::MemContractPageCache;
 
-            MemMerklePageCache::new(pages, max_pages)
+            MemContractPageCache::new(pages, max_pages)
         };
 
         let opts = svm_runtime::opts::Opts {
@@ -57,7 +57,7 @@ macro_rules! test_create_svm_state_gen {
             node_data,
             pages_storage_gen,
             page_cache_ctor,
-            svm_storage::memory::MemMerklePageCache,
+            svm_storage::memory::MemContractPageCache,
             opts
         )
     }};
@@ -91,14 +91,14 @@ fn vmcalls_mem_to_reg_copy() {
     svm_runtime::wasmer_ctx_mem_cells_write!(instance.context(), 0, 200, &[10, 20, 30]);
 
     // asserting register `2` (of type `64 bits`) content is empty prior copy
-    let reg = svm_runtime::wasmer_ctx_reg!(instance.context(), 64, 2, MemMerklePageCache);
+    let reg = svm_runtime::wasmer_ctx_reg!(instance.context(), 64, 2, MemContractPageCache);
     assert_eq!(vec![0, 0, 0, 0, 0, 0, 0, 0], reg.view());
 
     let do_copy: Func<(i32, i32, i32)> = instance.func("do_copy_to_reg").unwrap();
     assert!(do_copy.call(200, 3, 2).is_ok());
 
     // asserting register `2` (of type `64 bits`) content is `10, 20, 30, 0, ... 0`
-    let reg = svm_runtime::wasmer_ctx_reg!(instance.context(), 64, 2, MemMerklePageCache);
+    let reg = svm_runtime::wasmer_ctx_reg!(instance.context(), 64, 2, MemContractPageCache);
     assert_eq!(vec![10, 20, 30, 0, 0, 0, 0, 0], reg.view());
 }
 
@@ -117,7 +117,7 @@ fn vmcalls_reg_to_mem_copy() {
     let instance = module.instantiate(&import_object).unwrap();
 
     // initializing reg `2` (of type `64 bits`) with values `10, 20, 30` respectively
-    let reg = svm_runtime::wasmer_ctx_reg!(instance.context(), 64, 2, MemMerklePageCache);
+    let reg = svm_runtime::wasmer_ctx_reg!(instance.context(), 64, 2, MemContractPageCache);
     reg.set(&[10, 20, 30]);
 
     // asserting memory #0, cells `0..3` are zeros before copy
@@ -149,7 +149,7 @@ fn vmcalls_storage_read_an_empty_page_slice_to_reg() {
 
     // we first initialize register `2` with some garbage data which should be overriden
     // after calling the exported `do_copy_to_reg` function
-    let reg = svm_runtime::wasmer_ctx_reg!(instance.context(), 64, 2, MemMerklePageCache);
+    let reg = svm_runtime::wasmer_ctx_reg!(instance.context(), 64, 2, MemContractPageCache);
     reg.set(&[255; 8]);
 
     assert_eq!(vec![255; 8], reg.view());
@@ -158,7 +158,7 @@ fn vmcalls_storage_read_an_empty_page_slice_to_reg() {
     assert!(do_copy.call(1, 10, 100, 3, 2).is_ok());
 
     // register `2` (of type `64 bits) should contain zeros, since an empty page-slice is treated as a page-slice containing only zeros
-    let reg = svm_runtime::wasmer_ctx_reg!(instance.context(), 64, 2, MemMerklePageCache);
+    let reg = svm_runtime::wasmer_ctx_reg!(instance.context(), 64, 2, MemContractPageCache);
     assert_eq!(vec![0, 0, 0, 0, 0, 0, 0, 0], reg.view());
 }
 
@@ -176,7 +176,7 @@ fn vmcalls_storage_read_non_empty_page_slice_to_reg() {
 
     let mut instance = module.instantiate(&import_object).unwrap();
     let storage =
-        svm_runtime::wasmer_data_storage!(instance.context_mut().data, MemMerklePageCache);
+        svm_runtime::wasmer_data_storage!(instance.context_mut().data, MemContractPageCache);
     let layout = svm_runtime::svm_page_slice_layout!(1, 10, 3);
 
     // we write `[10, 20, 30]` into storage slice `10` (page `1`, cells: `100..103`)
@@ -184,7 +184,7 @@ fn vmcalls_storage_read_non_empty_page_slice_to_reg() {
 
     // we first initialize register `2` (of type `64 bits`) with some garbage data which should be overriden
     // after calling the exported `do_copy_to_reg` function
-    let reg = svm_runtime::wasmer_ctx_reg!(instance.context(), 64, 2, MemMerklePageCache);
+    let reg = svm_runtime::wasmer_ctx_reg!(instance.context(), 64, 2, MemContractPageCache);
     reg.set(&[255; 8]);
 
     let do_copy: Func<(i32, i32, i32, i32, i32)> = instance.func("do_copy_to_reg").unwrap();
@@ -192,7 +192,7 @@ fn vmcalls_storage_read_non_empty_page_slice_to_reg() {
     // we copy storage `slice 0` (page `1`, cells: `100..103`) into register `2`
     assert!(do_copy.call(1, 10, 100, 3, 2).is_ok());
 
-    let reg = svm_runtime::wasmer_ctx_reg!(instance.context(), 64, 2, MemMerklePageCache);
+    let reg = svm_runtime::wasmer_ctx_reg!(instance.context(), 64, 2, MemContractPageCache);
     assert_eq!(vec![10, 20, 30, 0, 0, 0, 0, 0], reg.view());
 }
 
@@ -237,7 +237,7 @@ fn vmcalls_storage_read_non_empty_page_slice_to_mem() {
 
     let mut instance = module.instantiate(&import_object).unwrap();
     let storage =
-        svm_runtime::wasmer_data_storage!(instance.context_mut().data, MemMerklePageCache);
+        svm_runtime::wasmer_data_storage!(instance.context_mut().data, MemContractPageCache);
     let layout = svm_runtime::svm_page_slice_layout!(1, 10, 3);
 
     // we write `[10, 20, 30]` into storage slice `10` (page `1`, cells `100..103`)
@@ -266,7 +266,7 @@ fn vmcalls_storage_write_from_mem() {
 
     let mut instance = module.instantiate(&import_object).unwrap();
     let storage =
-        svm_runtime::wasmer_data_storage!(instance.context_mut().data, MemMerklePageCache);
+        svm_runtime::wasmer_data_storage!(instance.context_mut().data, MemContractPageCache);
 
     svm_runtime::wasmer_ctx_mem_cells_write!(instance.context(), 0, 200, &[10, 20, 30]);
 
@@ -296,10 +296,10 @@ fn vmcalls_storage_write_from_reg() {
 
     let mut instance = module.instantiate(&import_object).unwrap();
     let storage =
-        svm_runtime::wasmer_data_storage!(instance.context_mut().data, MemMerklePageCache);
+        svm_runtime::wasmer_data_storage!(instance.context_mut().data, MemContractPageCache);
 
     // we first initialize register `5` (of type `64 bits`) with `[10, 20, 30, 0, 0, 0, 0, 0]`
-    let reg = svm_runtime::wasmer_ctx_reg!(instance.context(), 64, 5, MemMerklePageCache);
+    let reg = svm_runtime::wasmer_ctx_reg!(instance.context(), 64, 5, MemContractPageCache);
     reg.set(&[10, 20, 30]);
 
     let layout = svm_runtime::svm_page_slice_layout!(1, 10, 3);
@@ -333,7 +333,7 @@ fn vmcalls_reg_replace_byte_read_write_be_i64() {
     let instance = module.instantiate(&import_object).unwrap();
 
     // we first initialize register `64:5` with `[254, 255, 0, 0, 0, 0, 0, 0]`
-    let reg = svm_runtime::wasmer_ctx_reg!(instance.context(), 64, 5, MemMerklePageCache);
+    let reg = svm_runtime::wasmer_ctx_reg!(instance.context(), 64, 5, MemContractPageCache);
     reg.set(&[0, 0, 0, 0, 0, 0, 255, 254]);
 
     let inc: Func<i32> = instance.func("inc").unwrap();
