@@ -1,5 +1,5 @@
 use crate::page::{PageHash, PageIndex};
-use crate::traits::{PageHasher, PagesStateStorage, PagesStorage, StateHasher};
+use crate::traits::{PageHasher, PagesStorage, StateAwarePagesStorage, StateHasher};
 
 use svm_common::{Address, State};
 use svm_kv::traits::KVStore;
@@ -140,7 +140,7 @@ where
     }
 }
 
-impl<KV, PH, SH> PagesStateStorage for MerklePagesStorage<KV, PH, SH>
+impl<KV, PH, SH> StateAwarePagesStorage for MerklePagesStorage<KV, PH, SH>
 where
     KV: KVStore,
     PH: PageHasher,

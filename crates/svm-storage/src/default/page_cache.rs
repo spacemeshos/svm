@@ -1,5 +1,5 @@
 use crate::page::{PageHash, PageIndex};
-use crate::traits::{PageCache, PagesStateStorage, PagesStorage};
+use crate::traits::{PageCache, PagesStorage, StateAwarePagesStorage};
 use svm_common::State;
 
 use log::{debug, trace};
@@ -19,7 +19,7 @@ enum CachedPage {
 /// `DefaultPageCache` serves us a cache layer for reading contract storage page.
 /// In addition, it tracks dirty pages (pages that have been changed during the execution of a
 /// smart contract).
-pub struct DefaultPageCache<PS: PagesStateStorage> {
+pub struct DefaultPageCache<PS: StateAwarePagesStorage> {
     // The `ith item` will say whether the `ith page` is dirty
     dirty_pages: Vec<bool>,
 
@@ -30,9 +30,9 @@ pub struct DefaultPageCache<PS: PagesStateStorage> {
     pages_storage: PS,
 }
 
-impl<PS: PagesStateStorage> PageCache for DefaultPageCache<PS> {}
+impl<PS: StateAwarePagesStorage> PageCache for DefaultPageCache<PS> {}
 
-impl<PS: PagesStateStorage> PagesStateStorage for DefaultPageCache<PS> {
+impl<PS: StateAwarePagesStorage> StateAwarePagesStorage for DefaultPageCache<PS> {
     #[inline(always)]
     fn get_state(&self) -> State {
         self.pages_storage.get_state()
@@ -48,7 +48,7 @@ impl<PS: PagesStateStorage> PagesStateStorage for DefaultPageCache<PS> {
 /// A `DefaultPageCache` is caching layer on top of a storage pages.
 /// Each page change marks the page as dirty but the changes
 /// are persisted to storage pages only upon `commit`
-impl<PS: PagesStateStorage> DefaultPageCache<PS> {
+impl<PS: StateAwarePagesStorage> DefaultPageCache<PS> {
     /// Initializes a new `DefaultPageCache` instance.
     ///
     /// * `pages_storage` - the underlying page-oriented page interface wrapping an underlying database.
@@ -70,7 +70,7 @@ impl<PS: PagesStateStorage> DefaultPageCache<PS> {
     }
 }
 
-impl<PS: PagesStateStorage> PagesStorage for DefaultPageCache<PS> {
+impl<PS: StateAwarePagesStorage> PagesStorage for DefaultPageCache<PS> {
     fn read_page(&mut self, page_idx: PageIndex) -> Option<Vec<u8>> {
         // we can have an `assert` here since we are given the maximum storage-pages upon initialization
         assert!(self.cached_pages.len() > page_idx.0 as usize);
@@ -196,7 +196,7 @@ impl<PS: PagesStateStorage> PagesStorage for DefaultPageCache<PS> {
     }
 }
 
-impl<PS: PagesStateStorage> Drop for DefaultPageCache<PS> {
+impl<PS: StateAwarePagesStorage> Drop for DefaultPageCache<PS> {
     fn drop(&mut self) {
         debug!("dropping `PageCache`...");
     }

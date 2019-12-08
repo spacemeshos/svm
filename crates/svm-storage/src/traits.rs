@@ -58,7 +58,7 @@ pub trait StateHasher {
 /// This trait should be implemented by state-oriented pages storage.
 /// Since a Smart Contract must have a state (like a source control revision) we need to have this
 /// capability implemented for real-usage Smart Contract storage.
-pub trait PagesStateStorage: PagesStorage {
+pub trait StateAwarePagesStorage: PagesStorage {
     /// Returns the current storage state (i.e revision)
     #[must_use]
     fn get_state(&self) -> State;
@@ -68,6 +68,6 @@ pub trait PagesStateStorage: PagesStorage {
     fn get_page_hash(&self, page_idx: PageIndex) -> PageHash;
 }
 
-/// `PageCache` is a marker trait intended for subclassing the `PagesStateStorage` trait.
-/// It's intended to mark a `PagesStateStorage` as having a caching layer on top of the backed pages-storage.
-pub trait PageCache: PagesStateStorage {}
+/// `PageCache` is a marker trait intended for subclassing the  StateAwarePagesStorage` trait.
+/// It's intended to mark a  StateAwarePagesStorage` as having a caching layer on top of the backed pages-storage.
+pub trait PageCache: StateAwarePagesStorage {}
