@@ -1,10 +1,22 @@
 /// A page is `4096 bytes`
-pub const PAGE_SIZE: usize = 4096;
+pub const PAGE_SIZE: u32 = 4096;
 
-/// A `PageIndex` is a one-dimensional tuple of `(u32)` representing a page-index (non-negative integer)
+/// A `PageIndex` represents a page-index (non-negative integer)
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 #[repr(transparent)]
 pub struct PageIndex(pub u32);
+
+/// A `PageOffset` represents a page-offset (non-negative integer)
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+#[repr(transparent)]
+pub struct PageOffset(pub u32);
+
+#[derive(Debug, Clone)]
+enum PageState {
+    Uninitialized,
+    NotModified(PageHash),
+    Modified(PageHash, Vec<u8>),
+}
 
 /// `PageHash` length is 32 bytes
 pub const PAGE_HASH_LEN: usize = 32;
@@ -44,30 +56,51 @@ impl From<&[u8]> for PageHash {
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct Page(pub PageIndex, pub PageHash, pub Vec<u8>);
 
-/// A `SliceIndex` is a one-dimensional tuple of `(u32)`
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
-pub struct SliceIndex(pub u32);
-
-/// Defines a page-slice memory
+/// Defines a page-slice layout (immutable structure)
 #[derive(Debug, Clone, PartialEq, Hash)]
 pub struct PageSliceLayout {
-    /// The slice index
-    pub slice_idx: SliceIndex,
+    /// The page index the slice belongs to
+    page_idx: PageIndex,
 
-    /// The page index the slices belong to
-    pub page_idx: PageIndex,
+    /// The relative-page offset where the slice starts
+    offset: PageOffset,
 
-    /// The page offset where the slice starts
-    pub offset: u32,
-
-    /// The length of the slice in bytes
-    pub len: u32,
+    /// The slice length in bytes
+    len: u32,
 }
 
-/// Allocates a new page (`Vec<u8>`) consisting only of zeros
+impl PageSliceLayout {
+    pub fn new(page_idx: PageIndex, offset: PageOffset, len: u32) -> Self {
+        assert!(offset.0 < PAGE_SIZE);
+        assert!(len < PAGE_SIZE);
+
+        Self {
+            page_idx,
+            offset,
+            len,
+        }
+    }
+
+    #[inline(always)]
+    pub fn page_index(&self) -> PageIndex {
+        self.page_idx
+    }
+
+    #[inline(always)]
+    pub fn page_offset(&self) -> PageOffset {
+        self.offset
+    }
+
+    #[inline(always)]
+    pub fn len(&self) -> u32 {
+        self.len
+    }
+}
+
+/// Allocates a new page (`Vec<u8>`) consisting of only of zeros
 #[inline(always)]
 pub fn zero_page() -> Vec<u8> {
-    vec![0; PAGE_SIZE]
+    vec![0; PAGE_SIZE as usize]
 }
 
 #[cfg(test)]

@@ -1,4 +1,4 @@
-/// When called, injects the code of the `svm register vmcalls`.
+/// When called, injects the code of the `svm` register vmcalls.
 /// The `vmcalls` are functions imported into each running `svm` instance.
 #[macro_export]
 macro_rules! include_svm_register_vmcalls {

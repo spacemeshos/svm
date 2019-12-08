@@ -1,5 +1,5 @@
 use crate::page;
-use crate::page::{PageIndex, PageSliceLayout};
+use crate::page::{PageIndex, PageOffset, PageSliceLayout};
 use crate::traits::PageCache;
 use std::collections::HashMap;
 use svm_common::State;
@@ -13,21 +13,11 @@ struct PageSlice {
     layout: PageSliceLayout,
 }
 
-#[derive(Debug, Clone, PartialEq)]
-enum CachedPageSlice {
-    // We didn't load the page-slice yet from the underlying kv
-    NotCached,
-
-    // We've loaded the page-slice from the underlying kv and it had data
-    Cached(PageSlice),
-}
-
 /// `PageSliceCache` is a caching layer on top of the `PageCache`.
 /// While `PageCache` deals with data involving only page units, `PageSliceCache` has fine-grained
 /// control for various sized of data.
 pub struct PageSliceCache<PC: PageCache> {
-    // The `ith item` will say whether the `ith page slice` is dirty
-    cached_slices: Vec<CachedPageSlice>,
+    cached_slices: HashMap<PageIndex, HashMap<PageOffset, PageSlice>>,
 
     page_cache: PC,
 }
@@ -37,15 +27,17 @@ impl<PC: PageCache> std::fmt::Debug for PageSliceCache<PC> {
         writeln!(f, "[DEBUG] PageCacheSlice")?;
         writeln!(f, "#Allocated slices: {}", self.cached_slices.len())?;
 
-        for (i, slice) in self.cached_slices.iter().enumerate() {
-            match slice {
-                CachedPageSlice::NotCached => {
-                    // skip
-                }
-                CachedPageSlice::Cached(ps) => {
-                    writeln!(f, "Slice {}: has data", i)?;
-                    writeln!(f, "   dirty: {}", ps.dirty)?;
-                }
+        for page_slices in self.cached_slices.values() {
+            for slice in page_slices.values() {
+                writeln!(
+                    f,
+                    "#({}, {}, {})",
+                    slice.layout.page_index().0,
+                    slice.layout.page_offset().0,
+                    slice.layout.len(),
+                )?;
+                writeln!(f, "   dirty: {}", slice.dirty)?;
+                writeln!(f, "   data: {:?}", slice.data)?;
             }
         }
 
@@ -59,13 +51,10 @@ impl<PC: PageCache> PageSliceCache<PC> {
     /// * `page_cache` - implements the `PageCache` trait. In charge of supplying the pages
     ///  upon requests (`read_page`) and for propagating new pages versions (`write_page`).
     ///  However, persistence only takes place by triggerring `commit`
-    ///
-    /// * `max_pages_slices` - the maximum number of page-slices the `PageSliceCache` instance could
-    ///   use when doing read / write. A page slice index is within the range `0..(max_pages_slices - 1)` (inclusive)
-    pub fn new(page_cache: PC, max_pages_slices: usize) -> Self {
+    pub fn new(page_cache: PC) -> Self {
         Self {
             page_cache,
-            cached_slices: vec![CachedPageSlice::NotCached; max_pages_slices],
+            cached_slices: HashMap::new(),
         }
     }
 
@@ -79,83 +68,88 @@ impl<PC: PageCache> PageSliceCache<PC> {
     pub fn read_page_slice(&mut self, layout: &PageSliceLayout) -> Option<Vec<u8>> {
         debug!("reading page-slice: {:?}", layout);
 
-        let slice_index = layout.slice_idx.0 as usize;
+        let page_idx = layout.page_index();
 
-        assert!(slice_index < self.cached_slices.len());
+        match self.get_page_slices(page_idx) {
+            None => {
+                // there are no page-slices loaded yet
+                self.do_init_page_slices(page_idx);
+            }
+            Some(pslices) => {
+                let slice = self.do_read_page_slice(pslices, layout.page_offset(), layout.len());
 
-        let slice = &self.cached_slices[slice_index];
+                match slice {
+                    None => {
+                        // page-slice isn't in the cache
+                    }
+                    Some(slice) => {
+                        trace!("cache hit for page-slice {:?}", layout);
 
-        match slice {
-            CachedPageSlice::NotCached => {
-                // thes page-slice isn't cached, so we first need to load the underlying page from `page_cache`
-                trace!("cache miss for page-slice: {:?}", layout);
-
-                let page: Option<Vec<u8>> = self.page_cache.read_page(layout.page_idx);
-
-                if let Some(page) = page {
-                    let slice = PageSlice {
-                        layout: layout.clone(),
-                        dirty: false,
-                        data: page.clone(),
-                    };
-
-                    std::mem::replace(
-                        &mut self.cached_slices[slice_index],
-                        CachedPageSlice::Cached(slice),
-                    );
-
-                    let start = layout.offset as usize;
-                    let end = (layout.offset + layout.len) as usize;
-                    let slice_data = page[start..end].to_vec();
-
-                    Some(slice_data)
-                } else {
-                    // `page` is a `None`. That means there is no real data storaged for this page right now.
-                    // Therefore, there is no data stored any page-slice too.
-
-                    let slice = PageSlice {
-                        layout: layout.clone(),
-                        dirty: false,
-                        data: Vec::new(),
-                    };
-
-                    std::mem::replace(
-                        &mut self.cached_slices[slice_index],
-                        CachedPageSlice::Cached(slice),
-                    );
-
-                    None
+                        // page-slice is cached already, so we're left with returning a clone of its `data`
+                        let bytes = slice.data.clone();
+                        return Some(bytes);
+                    }
                 }
             }
-            CachedPageSlice::Cached(slice) => {
-                trace!("cache hit for page-slice {:?}", layout);
-                Some(slice.data.to_vec())
-            }
         }
+
+        // the page-slice isn't cached, so we first need to load the underlying page from `page_cache`
+        trace!("cache miss for page-slice: {:?}", layout);
+        let page = self.page_cache.read_page(layout.page_index());
+        let page: Option<&Vec<u8>> = page.as_ref();
+
+        let slice_data = match page {
+            Some(page) => {
+                let start = layout.page_offset().0 as usize;
+                let end = (layout.page_offset().0 + layout.len()) as usize;
+                page[start..end].to_vec()
+            }
+            None => {
+                // There is no real data stored for this page right now.
+                // Therefore, there is no data stored under any page-slice too.
+                // We represent that page-slice as a zeros-slice.
+                vec![0; layout.len() as usize]
+            }
+        };
+
+        let slice = PageSlice {
+            layout: layout.clone(),
+            dirty: false,
+            data: slice_data.clone(),
+        };
+
+        // cache the slice for the future
+        let page_slices = self.get_page_slices_mut(layout.page_index()).unwrap();
+        page_slices.insert(layout.page_offset(), slice);
+
+        Some(slice_data)
     }
 
-    /// * We insert the new page slice into `cached_slices` as `Cached(PageSlice)` and mark it as dirty
+    /// Insert the new page slice into `cached_slices` and mark it as dirty
     pub fn write_page_slice(&mut self, layout: &PageSliceLayout, data: &[u8]) {
         // We don't mind whether the underlying page is already in the cache or not.
         // We just save the new written page-slice and mark it as `dirty`.
-        debug!("writing page-slice (not persising yet) {:?}", layout);
+        debug!("writing page-slice (not persisting yet) {:?}", layout);
         trace!("    page-slice data:");
         trace!("    {:?}", data);
 
-        let slice_index = layout.slice_idx.0 as usize;
+        assert!(layout.len() < page::PAGE_SIZE);
 
-        assert!(slice_index < self.cached_slices.len());
+        let page_idx = layout.page_index();
+
+        if self.get_page_slices(page_idx).is_none() {
+            self.do_init_page_slices(page_idx);
+        }
 
         let slice = PageSlice {
             layout: layout.clone(),
             dirty: true,
-            data: data[0..(layout.len as usize)].to_vec(), // TODO: add a test checking for `layout.len`
+            data: data[0..layout.len() as usize].to_vec(),
         };
 
-        std::mem::replace(
-            &mut self.cached_slices[slice_index],
-            CachedPageSlice::Cached(slice),
-        );
+        let page_slices = self.get_page_slices_mut(page_idx).unwrap();
+
+        page_slices.insert(layout.page_offset(), slice);
     }
 
     /// * Clears the `cached_slices`
@@ -165,9 +159,7 @@ impl<PC: PageCache> PageSliceCache<PC> {
     pub fn clear(&mut self) {
         debug!("clearing page-slice cache...");
 
-        let max_pages_slices = self.cached_slices.len();
-
-        self.cached_slices = vec![CachedPageSlice::NotCached; max_pages_slices];
+        self.cached_slices.clear();
         self.page_cache.clear();
     }
 
@@ -189,23 +181,24 @@ impl<PC: PageCache> PageSliceCache<PC> {
     pub fn commit(&mut self) -> State {
         debug!("commiting page-slice cache to underlying pages-storage");
 
-        let mut page_slices = HashMap::<u32, Vec<PageSlice>>::new();
-        let mut pages_indexes = Vec::<PageIndex>::new();
+        let mut dirty_pages_slices = HashMap::<PageIndex, Vec<PageSlice>>::new();
+        let mut dirty_pages_indexes = Vec::<PageIndex>::new();
 
-        for cs in &self.cached_slices {
-            if let CachedPageSlice::Cached(ref slice) = cs {
+        for page_slices in self.cached_slices.values() {
+            for slice in page_slices.values() {
                 if slice.dirty {
-                    let page_idx = slice.layout.page_idx;
+                    let page_idx = slice.layout.page_index();
 
-                    let entry: &mut Vec<_> = page_slices.entry(page_idx.0).or_insert_with(Vec::new);
+                    let entry: &mut Vec<_> =
+                        dirty_pages_slices.entry(page_idx).or_insert_with(Vec::new);
                     entry.push(slice.clone());
 
-                    pages_indexes.push(page_idx);
+                    dirty_pages_indexes.push(page_idx);
                 }
             }
         }
 
-        let mut pages = pages_indexes
+        let mut dirty_pages = dirty_pages_indexes
             .iter()
             .map(|&page_idx| {
                 let page_bytes = if let Some(bytes) = self.page_cache.read_page(page_idx) {
@@ -218,16 +211,16 @@ impl<PC: PageCache> PageSliceCache<PC> {
             })
             .collect::<HashMap<PageIndex, Vec<u8>>>();
 
-        for (page_idx, slices) in page_slices {
-            let page = pages.get_mut(&PageIndex(page_idx)).unwrap();
+        for (page_idx, dirty_slices) in dirty_pages_slices {
+            let dirty_page = dirty_pages.get_mut(&page_idx).unwrap();
 
-            for slice in slices {
-                self.patch_page(page, slice);
+            for slice in dirty_slices {
+                self.patch_page(dirty_page, slice);
             }
         }
 
         // propagating the new versioned pages to `page_cache`
-        for (page_idx, page) in pages {
+        for (page_idx, page) in dirty_pages {
             self.page_cache.write_page(page_idx, &page);
         }
 
@@ -240,14 +233,47 @@ impl<PC: PageCache> PageSliceCache<PC> {
         state
     }
 
-    /// Applies `slice` on top of a `page`
+    /// Applies a slice edit on top of a `page`
     fn patch_page(&self, page: &mut Vec<u8>, slice: PageSlice) {
-        let start = slice.layout.offset as usize;
-        let end = (slice.layout.offset + slice.layout.len) as usize;
+        let start = slice.layout.page_offset().0 as usize;
+        let end = (slice.layout.page_offset().0 + slice.layout.len()) as usize;
 
-        let dst_slice = &mut page[start..end];
+        let data = &mut page[start..end];
+        data.copy_from_slice(&slice.data);
+    }
 
-        dst_slice.copy_from_slice(&slice.data);
+    #[inline(always)]
+    fn get_page_slices(&self, page_idx: PageIndex) -> Option<&HashMap<PageOffset, PageSlice>> {
+        self.cached_slices.get(&page_idx)
+    }
+
+    #[inline(always)]
+    fn get_page_slices_mut(
+        &mut self,
+        page_idx: PageIndex,
+    ) -> Option<&mut HashMap<PageOffset, PageSlice>> {
+        self.cached_slices.get_mut(&page_idx)
+    }
+
+    fn do_read_page_slice<'a>(
+        &self,
+        page_slices: &'a HashMap<PageOffset, PageSlice>,
+        offset: PageOffset,
+        len: u32,
+    ) -> Option<&'a PageSlice> {
+        let slice = page_slices.get(&offset);
+
+        if let Some(inner) = slice {
+            debug_assert_eq!(offset, inner.layout.page_offset());
+            assert_eq!(len, inner.layout.len());
+        }
+
+        slice
+    }
+
+    #[inline(always)]
+    fn do_init_page_slices(&mut self, page_idx: PageIndex) {
+        self.cached_slices.insert(page_idx, HashMap::new());
     }
 }
 
@@ -266,18 +292,16 @@ mod tests {
     use crate::default_page_hash;
     use svm_kv::traits::KVStore;
 
-    use super::page::SliceIndex;
-
     fn fill_page(page: &mut [u8], items: &[(usize, u8)]) {
         for (i, b) in items {
             page[*i] = *b;
         }
     }
 
-    macro_rules! page_slice_cache_gen {
-        ($cache_slice_ident: ident, $kv_ident: ident, $addr: expr, $state: expr, $max_pages: expr, $max_pages_slices: expr) => {
+    macro_rules! page_cache_open {
+        ($cache_slice_ident: ident, $kv_ident: ident, $addr: expr, $state: expr, $max_pages: expr) => {
             use crate::default::DefaultPageCache;
-            use crate::memory::MemMerklePages;
+            use crate::memory::MemContractPages;
             use svm_kv::memory::MemKVStore;
 
             use std::cell::RefCell;
@@ -286,73 +310,64 @@ mod tests {
             let $kv_ident = Rc::new(RefCell::new(MemKVStore::new()));
             let kv_gen = || Rc::clone(&$kv_ident);
 
-            let pages = mem_merkle_pages_gen!($addr, $state, kv_gen, $max_pages);
-            let cache = DefaultPageCache::<MemMerklePages>::new(pages, $max_pages);
+            let pages = contract_pages_open!($addr, $state, kv_gen, $max_pages);
+            let cache = DefaultPageCache::<MemContractPages>::new(pages, $max_pages);
 
-            let mut $cache_slice_ident = PageSliceCache::new(cache, $max_pages_slices);
+            let mut $cache_slice_ident = PageSliceCache::new(cache);
         };
     }
 
-    macro_rules! mem_merkle_pages_gen {
+    macro_rules! contract_pages_open {
         ($addr: expr, $state: expr, $kv_gen: expr, $max_pages: expr) => {{
-            use crate::memory::MemMerklePages;
+            use crate::memory::MemContractPages;
             use svm_common::{Address, State};
 
             let addr = Address::from($addr as u32);
             let state = State::from($state as u32);
 
-            MemMerklePages::new(addr, $kv_gen(), state, $max_pages)
+            MemContractPages::new(addr, $kv_gen(), state, $max_pages)
         }};
     }
 
     macro_rules! reopen_pages_storage {
         ($kv_ident: ident, $addr: expr, $state: expr, $max_pages: expr) => {{
-            use crate::memory::MemMerklePages;
+            use crate::memory::MemContractPages;
             use svm_common::Address;
 
             use std::rc::Rc;
 
             let addr = Address::from($addr as u32);
-            MemMerklePages::new(addr, Rc::clone(&$kv_ident), $state, $max_pages)
+            MemContractPages::new(addr, Rc::clone(&$kv_ident), $state, $max_pages)
         }};
     }
 
     macro_rules! reopen_page_slice_cache {
-        ($cache_slice_ident: ident, $kv_ident: ident, $addr: expr, $state: expr, $max_pages: expr, $max_pages_slices: expr) => {
+        ($cache_slice_ident: ident, $kv_ident: ident, $addr: expr, $state: expr, $max_pages: expr) => {
             let pages = reopen_pages_storage!($kv_ident, $addr, $state, $max_pages);
 
-            let cache = crate::default::DefaultPageCache::<MemMerklePages>::new(pages, $max_pages);
+            let cache =
+                crate::default::DefaultPageCache::<MemContractPages>::new(pages, $max_pages);
 
-            let mut $cache_slice_ident = PageSliceCache::new(cache, $max_pages_slices);
+            let mut $cache_slice_ident = PageSliceCache::new(cache);
         };
     }
 
     #[test]
     fn loading_an_empty_slice_into_the_cache() {
-        page_slice_cache_gen!(cache, kv, 0x11_22_33_44, 0x00_00_00_00, 10, 100);
+        page_cache_open!(cache, kv, 0x11_22_33_44, 0x00_00_00_00, 10);
 
-        let layout = PageSliceLayout {
-            slice_idx: SliceIndex(0),
-            page_idx: PageIndex(1),
-            offset: 100,
-            len: 200,
-        };
+        let layout = PageSliceLayout::new(PageIndex(1), PageOffset(100), 200);
 
-        assert_eq!(None, cache.read_page_slice(&layout));
+        assert_eq!(vec![0; 200], cache.read_page_slice(&layout).unwrap());
     }
 
     #[test]
     fn read_an_empty_slice_then_override_it_and_then_commit() {
-        page_slice_cache_gen!(cache, kv, 0x11_22_33_44, 0x00_00_00_00, 10, 100);
+        page_cache_open!(cache, kv, 0x11_22_33_44, 0x00_00_00_00, 10);
 
-        let layout = PageSliceLayout {
-            slice_idx: SliceIndex(0),
-            page_idx: PageIndex(1),
-            offset: 100,
-            len: 3,
-        };
+        let layout = PageSliceLayout::new(PageIndex(1), PageOffset(100), 3);
 
-        assert_eq!(None, cache.read_page_slice(&layout));
+        assert_eq!(vec![0, 0, 0], cache.read_page_slice(&layout).unwrap());
 
         cache.write_page_slice(&layout, &vec![10, 20, 30]);
 
@@ -366,20 +381,15 @@ mod tests {
     #[test]
     fn write_slice_without_loading_it_first_and_commit() {
         let addr = 0x11_22_33_44;
-        page_slice_cache_gen!(cache, kv, addr, 0x00_00_00_00, 2, 100);
+        page_cache_open!(cache, kv, addr, 0x00_00_00_00, 2);
 
-        let layout = PageSliceLayout {
-            slice_idx: SliceIndex(0),
-            page_idx: PageIndex(1),
-            offset: 100,
-            len: 3,
-        };
+        let layout = PageSliceLayout::new(PageIndex(1), PageOffset(100), 3);
 
         cache.write_page_slice(&layout, &[10, 20, 30]);
         let new_state = cache.commit();
 
         // asserting persisted data. when viewing in the context of `new_state`.
-        reopen_page_slice_cache!(cache, kv, addr, new_state, 2, 100);
+        reopen_page_slice_cache!(cache, kv, addr, new_state, 2);
 
         assert_eq!(Some(vec![10, 20, 30]), cache.read_page_slice(&layout));
 
@@ -395,14 +405,9 @@ mod tests {
     #[test]
     fn read_an_existing_slice_then_overriding_it_and_commit() {
         let addr = 0x11_22_33_44;
-        page_slice_cache_gen!(cache, kv, addr, 0x00_00_00_00, 2, 100);
+        page_cache_open!(cache, kv, addr, 0x00_00_00_00, 2);
 
-        let layout = PageSliceLayout {
-            slice_idx: SliceIndex(0),
-            page_idx: PageIndex(1),
-            offset: 100,
-            len: 3,
-        };
+        let layout = PageSliceLayout::new(PageIndex(1), PageOffset(100), 3);
 
         cache.write_page_slice(&layout, &vec![10, 20, 30]);
         let _ = cache.commit();
@@ -435,14 +440,9 @@ mod tests {
     #[test]
     fn write_slice_and_commit_then_load_it_override_it_and_commit() {
         let addr = 0x11_22_33_44;
-        page_slice_cache_gen!(cache, kv, addr, 0x00_00_00_00, 2, 100);
+        page_cache_open!(cache, kv, addr, 0x00_00_00_00, 2);
 
-        let layout = PageSliceLayout {
-            slice_idx: SliceIndex(0),
-            page_idx: PageIndex(1),
-            offset: 100,
-            len: 3,
-        };
+        let layout = PageSliceLayout::new(PageIndex(1), PageOffset(100), 3);
 
         let mut expected_page = page::zero_page();
         fill_page(&mut expected_page, &[(100, 10), (101, 20), (102, 30)]);
@@ -478,21 +478,11 @@ mod tests {
     #[test]
     fn write_two_slices_under_same_page_and_commit() {
         let addr = 0x11_22_33_44;
-        page_slice_cache_gen!(cache, kv, addr, 0x00_00_00_00, 2, 100);
+        page_cache_open!(cache, kv, addr, 0x00_00_00_00, 2);
 
-        let layout1 = PageSliceLayout {
-            slice_idx: SliceIndex(0),
-            page_idx: PageIndex(1),
-            offset: 100,
-            len: 3,
-        };
+        let layout1 = PageSliceLayout::new(PageIndex(1), PageOffset(100), 3);
 
-        let layout2 = PageSliceLayout {
-            slice_idx: SliceIndex(1),
-            page_idx: PageIndex(1),
-            offset: 200,
-            len: 2,
-        };
+        let layout2 = PageSliceLayout::new(PageIndex(1), PageOffset(200), 2);
 
         let mut expected_page = page::zero_page();
         fill_page(
@@ -514,7 +504,7 @@ mod tests {
         let new_state = cache.commit();
 
         // asserting persisted data. when viewing in the context of `new_state`.
-        reopen_page_slice_cache!(cache, kv, addr, new_state, 2, 100);
+        reopen_page_slice_cache!(cache, kv, addr, new_state, 2);
 
         assert_eq!(vec![10, 20, 30], cache.read_page_slice(&layout1).unwrap());
         assert_eq!(vec![40, 50], cache.read_page_slice(&layout2).unwrap());

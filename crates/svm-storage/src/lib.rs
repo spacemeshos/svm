@@ -1,5 +1,5 @@
-#![deny(missing_docs)]
-#![deny(unused)]
+#![allow(missing_docs)]
+#![allow(unused)]
 
 //! `svm-storage` crate is responsible on the contract storage part of the `svm`
 //! Each smart contract has its own storage
@@ -7,11 +7,11 @@
 /// Default implementations for crate traits (see `traits.rs`).
 pub mod default;
 
-mod merkle_pages_storage;
+mod contract_pages;
 
 mod page_slice_cache;
 
-/// Contains definitions of `Page` related structures. For example: `Page` / `PageIndex` / `SliceIndex`
+/// Contains definitions of `Page` related structures. For example: `Page, PageIndex` etc
 pub mod page;
 
 /// Contains definitions `State`-related.
@@ -33,13 +33,6 @@ cfg_if! {
     if #[cfg(feature = "svm_memory")] {
         /// in-memory backed implementation for storage
         pub mod memory;
-    }
-}
-
-cfg_if! {
-    if #[cfg(feature = "svm_leveldb")]  {
-        /// `leveldb` backed implementation for storage
-        pub mod leveldb;
     }
 }
 

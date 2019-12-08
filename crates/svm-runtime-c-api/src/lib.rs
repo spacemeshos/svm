@@ -7,7 +7,7 @@
 pub mod c_api;
 
 /// An rocksdb backed implemention of `svm runtime` C-API
-pub mod rocks_c_api;
+pub mod rocksdb_c_api;
 
 /// Types to be used for FFI integration.
 pub mod c_types;

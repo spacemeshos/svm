@@ -1,5 +1,5 @@
-mod merkle_page_cache;
-mod merkle_pages;
+mod contract_page_cache;
+mod contract_pages;
 
-pub use merkle_page_cache::MemMerklePageCache;
-pub use merkle_pages::MemMerklePages;
+pub use contract_page_cache::MemContractPageCache;
+pub use contract_pages::MemContractPages;

@@ -1,5 +1,5 @@
 use crate::page::{PageHash, PageIndex};
-use crate::traits::{PageCache, PagesStateStorage, PagesStorage};
+use crate::traits::{PageCache, PagesStorage, StateAwarePagesStorage};
 use svm_common::State;
 
 use log::{debug, trace};
@@ -19,7 +19,7 @@ enum CachedPage {
 /// `DefaultPageCache` serves us a cache layer for reading contract storage page.
 /// In addition, it tracks dirty pages (pages that have been changed during the execution of a
 /// smart contract).
-pub struct DefaultPageCache<PS: PagesStateStorage> {
+pub struct DefaultPageCache<PS: StateAwarePagesStorage> {
     // The `ith item` will say whether the `ith page` is dirty
     dirty_pages: Vec<bool>,
 
@@ -30,9 +30,9 @@ pub struct DefaultPageCache<PS: PagesStateStorage> {
     pages_storage: PS,
 }
 
-impl<PS: PagesStateStorage> PageCache for DefaultPageCache<PS> {}
+impl<PS: StateAwarePagesStorage> PageCache for DefaultPageCache<PS> {}
 
-impl<PS: PagesStateStorage> PagesStateStorage for DefaultPageCache<PS> {
+impl<PS: StateAwarePagesStorage> StateAwarePagesStorage for DefaultPageCache<PS> {
     #[inline(always)]
     fn get_state(&self) -> State {
         self.pages_storage.get_state()
@@ -48,7 +48,7 @@ impl<PS: PagesStateStorage> PagesStateStorage for DefaultPageCache<PS> {
 /// A `DefaultPageCache` is caching layer on top of a storage pages.
 /// Each page change marks the page as dirty but the changes
 /// are persisted to storage pages only upon `commit`
-impl<PS: PagesStateStorage> DefaultPageCache<PS> {
+impl<PS: StateAwarePagesStorage> DefaultPageCache<PS> {
     /// Initializes a new `DefaultPageCache` instance.
     ///
     /// * `pages_storage` - the underlying page-oriented page interface wrapping an underlying database.
@@ -70,7 +70,7 @@ impl<PS: PagesStateStorage> DefaultPageCache<PS> {
     }
 }
 
-impl<PS: PagesStateStorage> PagesStorage for DefaultPageCache<PS> {
+impl<PS: StateAwarePagesStorage> PagesStorage for DefaultPageCache<PS> {
     fn read_page(&mut self, page_idx: PageIndex) -> Option<Vec<u8>> {
         // we can have an `assert` here since we are given the maximum storage-pages upon initialization
         assert!(self.cached_pages.len() > page_idx.0 as usize);
@@ -109,7 +109,7 @@ impl<PS: PagesStateStorage> PagesStorage for DefaultPageCache<PS> {
                 debug!("cache hit for page #{}", page_idx.0);
 
                 // page has already been loaded from `pages_storage`.
-                // since we it hascontent we clone `page` and return the clone
+                // since we it content we clone `page` and return the clone
                 Some(page.to_vec())
             }
             CachedPage::CachedEmpty => {
@@ -196,7 +196,7 @@ impl<PS: PagesStateStorage> PagesStorage for DefaultPageCache<PS> {
     }
 }
 
-impl<PS: PagesStateStorage> Drop for DefaultPageCache<PS> {
+impl<PS: StateAwarePagesStorage> Drop for DefaultPageCache<PS> {
     fn drop(&mut self) {
         debug!("dropping `PageCache`...");
     }
@@ -209,10 +209,10 @@ mod tests {
 
     use crate::default_page_idx_hash;
 
-    macro_rules! merkle_page_cache_gen {
+    macro_rules! page_cache_open {
         ($cache_ident: ident, $kv_ident: ident, $addr: expr, $state: expr, $max_pages: expr) => {
             use crate::default::DefaultPageCache;
-            use crate::memory::MemMerklePages;
+            use crate::memory::MemContractPages;
             use svm_kv::memory::MemKVStore;
 
             use std::cell::RefCell;
@@ -221,33 +221,33 @@ mod tests {
             let $kv_ident = Rc::new(RefCell::new(MemKVStore::new()));
             let kv_gen = || Rc::clone(&$kv_ident);
 
-            let pages = mem_merkle_pages_gen!($addr, $state, kv_gen, $max_pages);
-            let mut $cache_ident = DefaultPageCache::<MemMerklePages>::new(pages, $max_pages);
+            let pages = create_contract_pages!($addr, $state, kv_gen, $max_pages);
+            let mut $cache_ident = DefaultPageCache::<MemContractPages>::new(pages, $max_pages);
         };
     }
 
-    macro_rules! mem_merkle_pages_gen {
+    macro_rules! create_contract_pages {
         ($addr: expr, $state: expr, $kv_gen: expr, $max_pages: expr) => {{
-            use crate::memory::MemMerklePages;
+            use crate::memory::MemContractPages;
             use svm_common::{Address, State};
 
             let addr = Address::from($addr as u32);
             let state = State::from($state as u32);
 
-            MemMerklePages::new(addr, $kv_gen(), state, $max_pages)
+            MemContractPages::new(addr, $kv_gen(), state, $max_pages)
         }};
     }
 
     #[test]
     fn loading_an_empty_page_into_the_cache() {
-        merkle_page_cache_gen!(cache, db, 0x11_22_33_44, 0x00_00_00_00, 10);
+        page_cache_open!(cache, db, 0x11_22_33_44, 0x00_00_00_00, 10);
 
         assert_eq!(None, cache.read_page(PageIndex(0)));
     }
 
     #[test]
     fn write_page_and_then_commit() {
-        merkle_page_cache_gen!(cache, kv, 0x11_22_33_44, 0x00_00_00_00, 10);
+        page_cache_open!(cache, kv, 0x11_22_33_44, 0x00_00_00_00, 10);
 
         let page = vec![10, 20, 30];
 
@@ -261,7 +261,7 @@ mod tests {
     #[test]
     #[ignore]
     fn writing_a_page_marks_it_as_dirty() {
-        merkle_page_cache_gen!(cache, kv, 0x11_22_33_44, 0x00_00_00_00, 10);
+        page_cache_open!(cache, kv, 0x11_22_33_44, 0x00_00_00_00, 10);
 
         assert_eq!(false, cache.is_dirty(0));
 
@@ -274,7 +274,7 @@ mod tests {
     #[test]
     #[ignore]
     fn commit_persists_each_dirty_page() {
-        merkle_page_cache_gen!(cache, kv, 0x11_22_33_44, 0x00_00_00_00, 10);
+        page_cache_open!(cache, kv, 0x11_22_33_44, 0x00_00_00_00, 10);
 
         let page = vec![10, 20, 30];
 

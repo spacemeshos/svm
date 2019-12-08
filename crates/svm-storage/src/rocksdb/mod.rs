@@ -1,5 +1,5 @@
-mod rocks_page_cache;
-mod rocks_pages;
+mod page_cache;
+mod pages;
 
-pub use rocks_page_cache::RocksMerklePageCache;
-pub use rocks_pages::RocksPages;
+pub use page_cache::RocksdbPageCache;
+pub use pages::RocksdbPages;

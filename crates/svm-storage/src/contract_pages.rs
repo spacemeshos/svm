@@ -1,5 +1,5 @@
 use crate::page::{PageHash, PageIndex};
-use crate::traits::{PageHasher, PagesStateStorage, PagesStorage, StateHasher};
+use crate::traits::{PageHasher, PagesStorage, StateAwarePagesStorage, StateHasher};
 
 use svm_common::{Address, State};
 use svm_kv::traits::KVStore;
@@ -11,17 +11,17 @@ use std::rc::Rc;
 use log::{debug, error, trace};
 
 #[derive(Debug, Clone)]
-enum MerklePage {
+enum PageEntry {
     Uninitialized,
     NotModified(PageHash),
     Modified(PageHash, Vec<u8>),
 }
 
-/// `MerklePageStorage` is an implemetation of the `PagesStorage` trait that is state aware.
+/// `ContractPages` is an implemetation of the `PagesStorage` trait that is state aware.
 /// `KV` - stands for `KVStore`
 /// `PH` - stands for `PageHasher`
 /// `SH` - stands for `StateHasher`
-pub struct MerklePagesStorage<KV, PH, SH>
+pub struct ContractPages<KV, PH, SH>
 where
     KV: KVStore,
     PH: PageHasher,
@@ -29,19 +29,19 @@ where
 {
     state: State,
     addr: Address,
-    pages: Vec<MerklePage>,
+    pages: Vec<PageEntry>,
     kv: Rc<RefCell<KV>>,
     pages_count: u32,
     marker: PhantomData<(PH, SH)>,
 }
 
-impl<KV, PH, SH> MerklePagesStorage<KV, PH, SH>
+impl<KV, PH, SH> ContractPages<KV, PH, SH>
 where
     KV: KVStore,
     PH: PageHasher,
     SH: StateHasher,
 {
-    /// Creates a new instance of `MerklePageStorage`
+    /// Creates a new instance of `ContractPages`
     /// * `addr`        - The running contract account address.
     /// * `kv`          - The underlying kv-store used for retrieving a page raw-data when queried by its page-hash serving as a key.
     /// * `state`       - The current contract-storage state prior execution of the current contract transaction.
@@ -52,7 +52,7 @@ where
             kv,
             pages_count,
             addr,
-            pages: vec![MerklePage::Uninitialized; pages_count as usize],
+            pages: vec![PageEntry::Uninitialized; pages_count as usize],
             marker: PhantomData,
         };
 
@@ -64,7 +64,7 @@ where
     /// Loads the entry:
     /// state ---> [page1_hash || page2_hash || .... || pageN_hash]
     ///
-    /// Then, populates `self.pages`. Each page is initialized with `MerklePage::NotModified(page_hash)`
+    /// Then, populates `self.pages`. Each page is initialized with `PageEntry::NotModified(page_hash)`
     fn init_pages_state(&mut self) {
         debug!("initializating pages-storage with state {:?}", self.state);
 
@@ -75,7 +75,7 @@ where
 
             for page_idx in 0..(self.pages_count as usize) {
                 let ph = self.compute_zero_page_hash(PageIndex(page_idx as u32));
-                self.pages[page_idx] = MerklePage::NotModified(ph);
+                self.pages[page_idx] = PageEntry::NotModified(ph);
             }
         } else if let Some(v) = self.kv.borrow().get(self.state.as_slice()) {
             // `v` should be a concatenation of pages-hash. Each page hash consumes exactly 32 bytes.
@@ -83,7 +83,7 @@ where
 
             for (page_idx, raw_ph) in v.chunks_exact(32).enumerate() {
                 let ph = PageHash::from(raw_ph);
-                self.pages[page_idx] = MerklePage::NotModified(ph);
+                self.pages[page_idx] = PageEntry::NotModified(ph);
 
                 trace!("page #{}, has page-hash {:?}", page_idx, ph);
             }
@@ -109,9 +109,9 @@ where
     #[cfg(test)]
     pub fn modified_pages_count(&self) -> usize {
         self.pages.iter().fold(0, |acc, page| match page {
-            MerklePage::NotModified(..) => acc,
-            MerklePage::Modified(..) => acc + 1,
-            MerklePage::Uninitialized => unreachable!(),
+            PageEntry::NotModified(..) => acc,
+            PageEntry::Modified(..) => acc + 1,
+            PageEntry::Uninitialized => unreachable!(),
         })
     }
 
@@ -122,14 +122,14 @@ where
 
         for page in self.pages.iter() {
             match page {
-                MerklePage::NotModified(ph) => pages_hash.push(*ph),
-                MerklePage::Modified(ph, data) => {
+                PageEntry::NotModified(ph) => pages_hash.push(*ph),
+                PageEntry::Modified(ph, data) => {
                     let change: (&[u8], &[u8]) = (&ph.0, data);
                     changes.push(change);
 
                     pages_hash.push(*ph);
                 }
-                MerklePage::Uninitialized => unreachable!(),
+                PageEntry::Uninitialized => unreachable!(),
             }
         }
 
@@ -140,7 +140,7 @@ where
     }
 }
 
-impl<KV, PH, SH> PagesStateStorage for MerklePagesStorage<KV, PH, SH>
+impl<KV, PH, SH> StateAwarePagesStorage for ContractPages<KV, PH, SH>
 where
     KV: KVStore,
     PH: PageHasher,
@@ -155,14 +155,14 @@ where
     #[must_use]
     fn get_page_hash(&self, page_idx: PageIndex) -> PageHash {
         match self.pages[page_idx.0 as usize] {
-            MerklePage::NotModified(ph) => ph,
-            MerklePage::Modified(ph, _) => ph,
-            MerklePage::Uninitialized => unreachable!(),
+            PageEntry::NotModified(ph) => ph,
+            PageEntry::Modified(ph, _) => ph,
+            PageEntry::Uninitialized => unreachable!(),
         }
     }
 }
 
-impl<KV, PH, SH> PagesStorage for MerklePagesStorage<KV, PH, SH>
+impl<KV, PH, SH> PagesStorage for ContractPages<KV, PH, SH>
 where
     KV: KVStore,
     PH: PageHasher,
@@ -171,16 +171,16 @@ where
     #[must_use]
     fn read_page(&mut self, page_idx: PageIndex) -> Option<Vec<u8>> {
         match self.pages[page_idx.0 as usize] {
-            MerklePage::NotModified(ph) => self.kv.borrow().get(&ph.0),
-            MerklePage::Modified(..) => panic!("Not allowed to read a dirty page"),
-            MerklePage::Uninitialized => unreachable!(),
+            PageEntry::NotModified(ph) => self.kv.borrow().get(&ph.0),
+            PageEntry::Modified(..) => panic!("Not allowed to read a dirty page"),
+            PageEntry::Uninitialized => unreachable!(),
         }
     }
 
     fn write_page(&mut self, page_idx: PageIndex, page_data: &[u8]) {
         let ph = self.compute_page_hash(page_idx, page_data);
 
-        self.pages[page_idx.0 as usize] = MerklePage::Modified(ph, page_data.to_vec());
+        self.pages[page_idx.0 as usize] = PageEntry::Modified(ph, page_data.to_vec());
     }
 
     fn clear(&mut self) {
@@ -188,16 +188,16 @@ where
 
         for page in &mut self.pages {
             match page {
-                MerklePage::Modified(ph, ..) => *page = MerklePage::NotModified(*ph),
-                MerklePage::NotModified(..) => (),
-                MerklePage::Uninitialized => unreachable!(),
+                PageEntry::Modified(ph, ..) => *page = PageEntry::NotModified(*ph),
+                PageEntry::NotModified(..) => (),
+                PageEntry::Uninitialized => unreachable!(),
             }
         }
     }
 
     fn commit(&mut self) {
         // We have each page-hash (dirty and non-dirty) under `self.pages`
-        // Now, we'll compute the new state (merkle proof) of the Smart Contract.
+        // Now, we'll compute the new state of the Smart Contract pages.
         //
         // ```
         // new_state = HASH(page1_hash || page2_hash || ... || pageN_hash)
@@ -233,14 +233,14 @@ where
     }
 }
 
-impl<KV, PH, SH> Drop for MerklePagesStorage<KV, PH, SH>
+impl<KV, PH, SH> Drop for ContractPages<KV, PH, SH>
 where
     KV: KVStore,
     PH: PageHasher,
     SH: StateHasher,
 {
     fn drop(&mut self) {
-        debug!("dropping `MerklePagesStorage`...");
+        debug!("dropping `ContractPages`...");
     }
 }
 
@@ -309,13 +309,13 @@ mod tests {
         }};
     }
 
-    macro_rules! mem_merkle_pages_setup {
+    macro_rules! contract_pages_open {
         ($addr_expr: expr, $addr: ident, $storage: ident, $kv: ident, $pages_count: expr) => {
             let $addr = Address::from($addr_expr as u32);
             let $kv = Rc::new(RefCell::new(MemKVStore::new()));
 
             #[allow(unused_mut)]
-            let mut $storage = $crate::memory::MemMerklePages::new(
+            let mut $storage = $crate::memory::MemContractPages::new(
                 $addr.clone(),
                 Rc::clone(&$kv),
                 State::empty(),
@@ -324,12 +324,12 @@ mod tests {
         };
     }
 
-    macro_rules! mem_merkle_pages_open {
+    macro_rules! init_pages_storage {
         ($addr_expr: expr, $addr: ident, $storage: ident, $kv: ident, $state: expr, $pages_count: expr) => {
             let $addr = Address::from($addr_expr as u32);
 
             #[allow(unused_mut)]
-            let mut $storage = $crate::memory::MemMerklePages::new(
+            let mut $storage = $crate::memory::MemContractPages::new(
                 $addr.clone(),
                 Rc::clone(&$kv),
                 $state.clone(),
@@ -375,7 +375,7 @@ mod tests {
 
     #[test]
     fn first_run_with_no_modifications_no_commit() {
-        mem_merkle_pages_setup!(0x11_22_33_44, addr, storage, kv, 3);
+        contract_pages_open!(0x11_22_33_44, addr, storage, kv, 3);
 
         assert_dirty_pages_count!(storage, 0);
         assert_state!(State::empty(), storage);
@@ -384,7 +384,7 @@ mod tests {
 
     #[test]
     fn first_run_with_no_modifications_with_commit() {
-        mem_merkle_pages_setup!(0x11_22_33_44, addr, storage, kv, 3);
+        contract_pages_open!(0x11_22_33_44, addr, storage, kv, 3);
         assert_dirty_pages_count!(storage, 0);
         storage.commit();
 
@@ -409,7 +409,7 @@ mod tests {
 
     #[test]
     fn first_run_with_one_modified_page() {
-        mem_merkle_pages_setup!(0x11_22_33_44, addr, storage, kv, 3);
+        contract_pages_open!(0x11_22_33_44, addr, storage, kv, 3);
 
         storage.write_page(PageIndex(0), &[10, 20, 30]);
         assert_dirty_pages_count!(storage, 1);
@@ -432,7 +432,7 @@ mod tests {
 
     #[test]
     fn first_run_with_two_modified_pages() {
-        mem_merkle_pages_setup!(0x11_22_33_44, addr, storage, kv, 2);
+        contract_pages_open!(0x11_22_33_44, addr, storage, kv, 2);
 
         storage.write_page(PageIndex(0), &[10, 20, 30]);
         storage.write_page(PageIndex(1), &[40, 50, 60]);
@@ -457,12 +457,12 @@ mod tests {
     #[test]
     fn second_run_after_first_run_with_no_modifications() {
         // 1st run
-        mem_merkle_pages_setup!(0x11_22_33_44, addr, storage, kv, 3);
+        contract_pages_open!(0x11_22_33_44, addr, storage, kv, 3);
         storage.commit();
         let old_state = storage.get_state();
 
         // 2nd run
-        mem_merkle_pages_open!(0x11_22_33_44, addr, storage, kv, old_state, 3);
+        init_pages_storage!(0x11_22_33_44, addr, storage, kv, old_state, 3);
         storage.write_page(PageIndex(0), &[10, 20, 30]);
         storage.write_page(PageIndex(1), &[40, 50, 60]);
         storage.commit();
@@ -488,13 +488,13 @@ mod tests {
     #[test]
     fn second_run_after_first_run_with_modifications() {
         // 1st run
-        mem_merkle_pages_setup!(0x11_22_33_44, addr, storage, kv, 3);
+        contract_pages_open!(0x11_22_33_44, addr, storage, kv, 3);
         storage.write_page(PageIndex(0), &[11, 22, 33]);
         storage.commit();
         let old_state = storage.get_state();
 
         // 2nd run
-        mem_merkle_pages_open!(0x11_22_33_44, addr, storage, kv, old_state, 3);
+        init_pages_storage!(0x11_22_33_44, addr, storage, kv, old_state, 3);
         storage.write_page(PageIndex(0), &[10, 20, 30]);
         storage.write_page(PageIndex(1), &[40, 50, 60]);
         storage.commit();
@@ -527,20 +527,20 @@ mod tests {
     #[test]
     fn third_run_rollbacks_to_after_first_run() {
         // 1st run
-        mem_merkle_pages_setup!(0x11_22_33_44, addr, storage, kv, 3);
+        contract_pages_open!(0x11_22_33_44, addr, storage, kv, 3);
         storage.write_page(PageIndex(0), &[11, 22, 33]);
         storage.commit();
         let state_1 = storage.get_state();
 
         // 2nd run
-        mem_merkle_pages_open!(0x11_22_33_44, addr, storage, kv, state_1, 3);
+        init_pages_storage!(0x11_22_33_44, addr, storage, kv, state_1, 3);
         storage.write_page(PageIndex(0), &[10, 20, 30]);
         storage.write_page(PageIndex(1), &[40, 50, 60]);
         storage.commit();
         let state_2 = storage.get_state();
 
         // 3rd run (rollbacks to `state_1` initial state)
-        mem_merkle_pages_open!(0x11_22_33_44, addr, storage, kv, state_1, 3);
+        init_pages_storage!(0x11_22_33_44, addr, storage, kv, state_1, 3);
 
         let ph0_1 = compute_page_hash!(addr, 0, &[11, 22, 33]);
         let ph1_1 = compute_page_hash!(addr, 1, &zero_page());
@@ -560,7 +560,7 @@ mod tests {
         assert_key_value!(kv, state_1.bytes(), jph);
 
         // 4th run (rollbacks to `state_2` initial state)
-        mem_merkle_pages_open!(0x11_22_33_44, addr, storage, kv, state_2, 3);
+        init_pages_storage!(0x11_22_33_44, addr, storage, kv, state_2, 3);
         let jph = join_pages_hash!(&[ph0_2, ph1_2, ph2_2]);
 
         assert_same_keys!(

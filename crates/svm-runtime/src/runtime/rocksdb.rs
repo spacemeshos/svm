@@ -1,4 +1,4 @@
-/// Generates pages-storage instance of `RocksPages`
+/// Generates pages-storage instance of `RocksdbPages`
 #[macro_export]
 macro_rules! gen_rocksdb_pages_storage {
     ($addr: expr, $state: expr, $max_pages: expr, $contract_storage_path: expr) => {{
@@ -7,23 +7,23 @@ macro_rules! gen_rocksdb_pages_storage {
         use std::rc::Rc;
 
         use svm_kv::rocksdb::RocksStore;
-        use svm_storage::rocksdb::RocksPages;
+        use svm_storage::rocksdb::RocksdbPages;
 
         let path = Path::new($contract_storage_path);
         let kv = RocksStore::new(path);
         let kv = Rc::new(RefCell::new(kv));
 
-        RocksPages::new($addr, kv, $state, $max_pages as u32)
+        RocksdbPages::new($addr, kv, $state, $max_pages as u32)
     }};
 }
 
-/// Wraps a `RocksPages` pages-storage by a page-cache instance of `RocksMerklePageCache`
+/// Wraps a `RocksdbPages` pages-storage by a page-cache instance of `RocksdbPageCache`
 #[macro_export]
 macro_rules! gen_rocksdb_page_cache {
     ($pages_storage: expr, $max_pages: expr) => {{
-        use svm_storage::rocksdb::RocksMerklePageCache;
+        use svm_storage::rocksdb::RocksdbPageCache;
 
-        RocksMerklePageCache::new($pages_storage, $max_pages)
+        RocksdbPageCache::new($pages_storage, $max_pages)
     }};
 }
 
@@ -57,7 +57,7 @@ macro_rules! include_svm_rocksdb_runtime {
                 $contract_storage_path
             ),
             |pages_storage, max_pages| $crate::gen_rocksdb_page_cache!(pages_storage, max_pages),
-            svm_storage::rocksdb::RocksMerklePageCache,
+            svm_storage::rocksdb::RocksdbPageCache,
             svm_contract::rocksdb::RocksEnv,
             || $crate::gen_rocksdb_env!($code_db_path)
         );
