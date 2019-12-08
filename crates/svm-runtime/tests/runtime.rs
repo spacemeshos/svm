@@ -118,11 +118,7 @@ fn contract_exec_valid_transaction() {
     let page_cache = svm_runtime::gen_rocksdb_page_cache!(pages_storage, 10);
     let mut storage = PageSliceCache::new(page_cache);
 
-    let slice_pos = PageSliceLayout {
-        page_idx: PageIndex(0),
-        offset: PageOffset(0),
-        len: 8,
-    };
+    let slice_pos = PageSliceLayout::new(PageIndex(0), PageOffset(0), 8);
 
     let slice = storage.read_page_slice(&slice_pos).unwrap();
     assert_eq!(
