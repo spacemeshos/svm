@@ -2,8 +2,8 @@ mod error;
 mod macros;
 mod receipt;
 mod rocksdb;
-// mod runtime;
+mod runtime;
 
 pub use error::ContractExecError;
 pub use receipt::Receipt;
-// pub use runtime::Runtime;
+pub use runtime::Runtime;
