@@ -13,16 +13,16 @@ struct PageSlice {
     layout: PageSliceLayout,
 }
 
-/// `PageSliceCache` is a caching layer on top of the `PageCache`.
-/// While `PageCache` deals with data involving only page units, `PageSliceCache` has fine-grained
+/// `ContractStorage` is a caching layer on top of the `PageCache`.
+/// While `PageCache` deals with data involving only page units, `ContractStorage` has fine-grained
 /// control for various sized of data.
-pub struct PageSliceCache<PC: PageCache> {
+pub struct ContractStorage<PC: PageCache> {
     cached_slices: HashMap<PageIndex, HashMap<PageOffset, PageSlice>>,
 
     page_cache: PC,
 }
 
-impl<PC: PageCache> std::fmt::Debug for PageSliceCache<PC> {
+impl<PC: PageCache> std::fmt::Debug for ContractStorage<PC> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         writeln!(f, "[DEBUG] PageCacheSlice")?;
         writeln!(f, "#Allocated slices: {}", self.cached_slices.len())?;
@@ -45,8 +45,8 @@ impl<PC: PageCache> std::fmt::Debug for PageSliceCache<PC> {
     }
 }
 
-impl<PC: PageCache> PageSliceCache<PC> {
-    /// Initializes a new `PageSliceCache` instance.
+impl<PC: PageCache> ContractStorage<PC> {
+    /// Initializes a new `ContractStorage` instance.
     ///
     /// * `page_cache` - implements the `PageCache` trait. In charge of supplying the pages
     ///  upon requests (`read_page`) and for propagating new pages versions (`write_page`).
@@ -277,12 +277,12 @@ impl<PC: PageCache> PageSliceCache<PC> {
     }
 }
 
-impl<PC> Drop for PageSliceCache<PC>
+impl<PC> Drop for ContractStorage<PC>
 where
     PC: PageCache,
 {
     fn drop(&mut self) {
-        debug!("dropping `PageSliceCache`...");
+        debug!("dropping `ContractStorage`...");
     }
 }
 
@@ -313,7 +313,7 @@ mod tests {
             let pages = contract_pages_open!($addr, $state, kv_gen, $max_pages);
             let cache = DefaultPageCache::<MemContractPages>::new(pages, $max_pages);
 
-            let mut $cache_slice_ident = PageSliceCache::new(cache);
+            let mut $cache_slice_ident = ContractStorage::new(cache);
         };
     }
 
@@ -348,7 +348,7 @@ mod tests {
             let cache =
                 crate::default::DefaultPageCache::<MemContractPages>::new(pages, $max_pages);
 
-            let mut $cache_slice_ident = PageSliceCache::new(cache);
+            let mut $cache_slice_ident = ContractStorage::new(cache);
         };
     }
 

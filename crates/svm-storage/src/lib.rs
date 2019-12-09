@@ -9,7 +9,7 @@ pub mod default;
 
 mod contract_pages;
 
-mod page_slice_cache;
+mod contract_storage;
 
 /// Contains definitions of `Page` related structures. For example: `Page, PageIndex` etc
 pub mod page;
@@ -19,7 +19,7 @@ pub mod state;
 
 pub use crate::contract_pages::ContractPages;
 
-pub use crate::page_slice_cache::PageSliceCache;
+pub use crate::contract_storage::ContractStorage;
 
 /// Storage related traits
 #[macro_use]

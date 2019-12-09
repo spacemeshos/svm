@@ -290,7 +290,7 @@ macro_rules! include_svm_runtime {
             #[inline(always)]
             fn get_instance_svm_storage_mut(
                 instance: &mut wasmer_runtime::Instance,
-            ) -> &mut svm_storage::PageSliceCache<$PC> {
+            ) -> &mut svm_storage::ContractStorage<$PC> {
                 let wasmer_ctx: &mut wasmer_runtime::Ctx = instance.context_mut();
 
                 $crate::wasmer_data_storage!(wasmer_ctx.data, $PC)

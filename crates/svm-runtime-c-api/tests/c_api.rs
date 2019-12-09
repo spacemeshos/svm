@@ -5,7 +5,7 @@ use std::ffi::c_void;
 
 use svm_common::{Address, State};
 use svm_storage::page::{PageIndex, PageOffset, PageSliceLayout};
-use svm_storage::PageSliceCache;
+use svm_storage::ContractStorage;
 
 use svm_contract::wasm::WasmArgValue;
 
@@ -169,7 +169,7 @@ fn runtime_tx_exec_changing_state() {
         let pages_storage =
             svm_runtime::gen_rocksdb_pages_storage!(addr, new_state, 5, "tests-contract-storage");
         let page_cache = svm_runtime::gen_rocksdb_page_cache!(pages_storage, 5);
-        let mut storage = PageSliceCache::new(page_cache);
+        let mut storage = ContractStorage::new(page_cache);
 
         let slice_pos = PageSliceLayout::new(PageIndex(0), PageOffset(0), 8);
 

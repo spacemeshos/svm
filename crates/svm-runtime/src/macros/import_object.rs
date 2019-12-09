@@ -4,13 +4,13 @@ use crate::opts::Opts;
 
 use svm_storage::traits::PageCache;
 use svm_storage::ContractPages;
-use svm_storage::PageSliceCache;
+use svm_storage::ContractStorage;
 
 use std::ffi::c_void;
 
 fn create_svm_ctx<PC: PageCache>(
     node_data: *const c_void,
-    storage_creator: impl Fn(Opts) -> PageSliceCache<PC>,
+    storage_creator: Box<dyn Fn(Opts) -> ContractStorage<PC>>,
     opts: Opts,
 ) -> *mut SvmCtx<PC> {
     log::trace!("create_svm_ctx...");
@@ -24,7 +24,7 @@ fn create_svm_ctx<PC: PageCache>(
 
 fn create_svm_state<PC: PageCache>(
     node_data: *const c_void,
-    storage_creator: impl Fn(Opts) -> PageSliceCache<PC>,
+    storage_creator: Box<dyn Fn(Opts) -> ContractStorage<PC>>,
     opts: Opts,
 ) -> (*mut c_void, fn(*mut c_void)) {
     use std::ffi::c_void;
@@ -47,9 +47,9 @@ fn create_svm_state<PC: PageCache>(
 
 fn lazy_create_svm_state_gen<PC: PageCache>(
     node_data: *const c_void,
-    storage_creator: impl Fn(Opts) -> PageSliceCache<PC> + Copy,
+    storage_creator: Box<dyn Fn(Opts) -> ContractStorage<PC>>,
     opts: Opts,
-) -> impl Fn() -> (*mut c_void, fn(*mut c_void)) {
+) -> dyn Fn() -> (*mut c_void, fn(*mut c_void)) {
     log::trace!("lazy_create_svm_state_gen...");
 
     move || create_svm_state(node_data, storage_creator, opts)
@@ -60,14 +60,14 @@ fn lazy_create_svm_state_gen<PC: PageCache>(
 #[macro_export]
 macro_rules! create_svm_ctx {
     ($node_data: expr, $pages_storage_gen: expr, $page_cache_ctor: expr, $PC: path, $opts: expr) => {{
-        use svm_storage::PageSliceCache;
+        use svm_storage::ContractStorage;
         use $crate::ctx::SvmCtx;
 
         log::trace!("create_svm_ctx...");
 
         let pages = $pages_storage_gen();
         let page_cache = $page_cache_ctor(pages, $opts.max_pages);
-        let storage = PageSliceCache::new(page_cache);
+        let storage = ContractStorage::new(page_cache);
 
         let ctx = SvmCtx::<$PC>::new($node_data, storage);
         let boxed_ctx = Box::new(ctx);

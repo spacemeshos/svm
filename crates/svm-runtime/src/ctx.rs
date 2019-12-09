@@ -4,7 +4,7 @@ use crate::register::{SvmReg, SvmReg160, SvmReg32, SvmReg512, SvmReg64};
 use std::ffi::c_void;
 
 use svm_storage::traits::PageCache;
-use svm_storage::PageSliceCache;
+use svm_storage::ContractStorage;
 
 use crate::ctx_data_wrapper::SvmCtxDataWrapper;
 
@@ -32,7 +32,7 @@ pub const REGS_512_COUNT: usize = 4;
 /// * `regs_160`  - A static array (`REGS_160_COUNT` elements) of `SvmReg160`
 /// * `regs_256`  - A static array (`REGS_256_COUNT` elements) of `SvmReg256`
 /// * `regs_512`  - A static array (`REGS_512_COUNT` elements) of `SvmReg512`
-/// * `storage`   - An instance of `PageSliceCache`
+/// * `storage`   - An instance of `ContractStorage`
 #[repr(C)]
 pub struct SvmCtx<PC: PageCache> {
     /// A pointer to the `node` data. For example the pointer will point a to struct having an access
@@ -54,8 +54,8 @@ pub struct SvmCtx<PC: PageCache> {
     /// An array that holds the `SvmReg512` registers
     pub regs_512: [SvmReg; REGS_512_COUNT],
 
-    /// An accessor to the contract's storage (of type `PageSliceCache`)
-    pub storage: PageSliceCache<PC>,
+    /// An accessor to the contract's storage (of type `ContractStorage`)
+    pub storage: ContractStorage<PC>,
 }
 
 unsafe impl<PC> Sync for SvmCtx<PC> where PC: PageCache {}
@@ -67,8 +67,8 @@ where
 {
     /// Initializes a new empty `SvmCtx`
     ///
-    /// * `storage` - a mutably borrowed `PageSliceCache`
-    pub fn new(data_wrapper: SvmCtxDataWrapper, storage: PageSliceCache<PC>) -> Self {
+    /// * `storage` - a mutably borrowed `ContractStorage`
+    pub fn new(data_wrapper: SvmCtxDataWrapper, storage: ContractStorage<PC>) -> Self {
         let regs_32 = alloc_regs!(32, REGS_32_COUNT);
         let regs_64 = alloc_regs!(64, REGS_64_COUNT);
         let regs_160 = alloc_regs!(160, REGS_160_COUNT);

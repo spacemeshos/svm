@@ -7,7 +7,7 @@ macro_rules! svm_page_slice_layout {
     }};
 }
 
-/// Calls `read_page_slice` on the given `PageSliceCache`
+/// Calls `read_page_slice` on the given `ContractStorage`
 #[macro_export]
 macro_rules! svm_read_page_slice {
     ($storage: expr, $page_idx: expr, $offset: expr, $len: expr) => {{
@@ -18,7 +18,7 @@ macro_rules! svm_read_page_slice {
     }};
 }
 
-/// Calls `write_page_slice` on the given `PageSliceCache`
+/// Calls `write_page_slice` on the given `ContractStorage`
 #[macro_export]
 macro_rules! svm_write_page_slice {
     ($storage: expr, $page_idx: expr, $offset: expr, $len: expr, $data: expr) => {{
@@ -29,7 +29,7 @@ macro_rules! svm_write_page_slice {
     }};
 }
 
-/// Casts the `wasmer` instance context data field (of type `*mut c_void`) into `&mut PageSliceCache<PC>`.
+/// Casts the `wasmer` instance context data field (of type `*mut c_void`) into `&mut ContractStorage<PC>`.
 #[macro_export]
 macro_rules! wasmer_data_storage {
     ($data: expr, $PC: path) => {{

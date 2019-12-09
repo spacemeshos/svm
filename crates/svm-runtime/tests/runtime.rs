@@ -3,7 +3,7 @@ use svm_contract::build::{WireContractBuilder, WireTxBuilder};
 use svm_contract::wasm::WasmArgValue as Value;
 
 use svm_storage::page::{PageIndex, PageOffset, PageSliceLayout};
-use svm_storage::PageSliceCache;
+use svm_storage::ContractStorage;
 
 // Injects `svm` runtime backed by `rocksdb` into the current file.
 svm_runtime::include_svm_rocksdb_runtime!("tests-contract-storage", "tests-contract-code");
@@ -116,7 +116,7 @@ fn contract_exec_valid_transaction() {
     let pages_storage =
         svm_runtime::gen_rocksdb_pages_storage!(addr, new_state, 10, "tests-contract-storage");
     let page_cache = svm_runtime::gen_rocksdb_page_cache!(pages_storage, 10);
-    let mut storage = PageSliceCache::new(page_cache);
+    let mut storage = ContractStorage::new(page_cache);
 
     let slice_pos = PageSliceLayout::new(PageIndex(0), PageOffset(0), 8);
 
