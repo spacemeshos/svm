@@ -120,7 +120,7 @@ fn contract_exec_valid_transaction() {
 
     let slice_pos = PageSliceLayout::new(PageIndex(0), PageOffset(0), 8);
 
-    let slice = storage.read_page_slice(&slice_pos).unwrap();
+    let slice = storage.read_page_slice(&slice_pos);
     assert_eq!(
         &[0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80],
         &slice[..]

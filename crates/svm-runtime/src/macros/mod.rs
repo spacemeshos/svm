@@ -147,9 +147,9 @@ mod tests {
         let storage = wasmer_data_storage!(data, svm_storage::memory::MemContractPageCache);
         let layout = svm_page_slice_layout!(1, 0, 3);
 
-        assert_eq!(vec![0, 0, 0], storage.read_page_slice(&layout).unwrap());
+        assert_eq!(vec![0, 0, 0], storage.read_page_slice(&layout));
         storage.write_page_slice(&layout, &vec![10, 20, 30]);
-        assert_eq!(vec![10, 20, 30], storage.read_page_slice(&layout).unwrap());
+        assert_eq!(vec![10, 20, 30], storage.read_page_slice(&layout));
     }
 
     #[test]

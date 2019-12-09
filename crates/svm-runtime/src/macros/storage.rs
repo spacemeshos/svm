@@ -14,13 +14,7 @@ macro_rules! svm_read_page_slice {
         use svm_storage::page::{PageIndex, PageOffset, PageSliceLayout};
 
         let layout = PageSliceLayout::new(PageIndex($page_idx), PageOffset($offset), $len);
-        let slice = $storage.read_page_slice(&layout)
-
-        if slice.is_some() {
-            slice.unwrap()
-        } else {
-            Vec::new()
-        }
+        $storage.read_page_slice(&layout)
     }};
 }
 

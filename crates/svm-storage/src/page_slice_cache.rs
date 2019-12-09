@@ -65,7 +65,7 @@ impl<PC: PageCache> PageSliceCache<PC> {
     ///
     /// * In case the page slice is empty we cache it as `CachedEmpty`.
     ///   Else, we cache it as `Cached(PageSlice)` and mark the page-slice as non-dirty
-    pub fn read_page_slice(&mut self, layout: &PageSliceLayout) -> Option<Vec<u8>> {
+    pub fn read_page_slice(&mut self, layout: &PageSliceLayout) -> Vec<u8> {
         debug!("reading page-slice: {:?}", layout);
 
         let page_idx = layout.page_index();
@@ -87,7 +87,7 @@ impl<PC: PageCache> PageSliceCache<PC> {
 
                         // page-slice is cached already, so we're left with returning a clone of its `data`
                         let bytes = slice.data.clone();
-                        return Some(bytes);
+                        return bytes;
                     }
                 }
             }
@@ -122,7 +122,7 @@ impl<PC: PageCache> PageSliceCache<PC> {
         let page_slices = self.get_page_slices_mut(layout.page_index()).unwrap();
         page_slices.insert(layout.page_offset(), slice);
 
-        Some(slice_data)
+        slice_data
     }
 
     /// Insert the new page slice into `cached_slices` and mark it as dirty
@@ -358,7 +358,7 @@ mod tests {
 
         let layout = PageSliceLayout::new(PageIndex(1), PageOffset(100), 200);
 
-        assert_eq!(vec![0; 200], cache.read_page_slice(&layout).unwrap());
+        assert_eq!(vec![0; 200], cache.read_page_slice(&layout));
     }
 
     #[test]
@@ -367,11 +367,11 @@ mod tests {
 
         let layout = PageSliceLayout::new(PageIndex(1), PageOffset(100), 3);
 
-        assert_eq!(vec![0, 0, 0], cache.read_page_slice(&layout).unwrap());
+        assert_eq!(vec![0, 0, 0], cache.read_page_slice(&layout));
 
         cache.write_page_slice(&layout, &vec![10, 20, 30]);
 
-        assert_eq!(Some(vec![10, 20, 30]), cache.read_page_slice(&layout));
+        assert_eq!(vec![10, 20, 30], cache.read_page_slice(&layout));
 
         // page is not persisted though since we didn't `commit`
         let ph = default_page_hash!(0x11_22_33_44, 0, &[10, 20, 30]);
@@ -391,7 +391,7 @@ mod tests {
         // asserting persisted data. when viewing in the context of `new_state`.
         reopen_page_slice_cache!(cache, kv, addr, new_state, 2);
 
-        assert_eq!(Some(vec![10, 20, 30]), cache.read_page_slice(&layout));
+        assert_eq!(vec![10, 20, 30], cache.read_page_slice(&layout));
 
         let mut expected_page = page::zero_page();
         fill_page(&mut expected_page, &[(100, 10), (101, 20), (102, 30)]);
@@ -423,7 +423,7 @@ mod tests {
         &cache.write_page_slice(&layout, &vec![40, 50, 60]);
 
         // new page is on the page-cache, but not persisted yet
-        assert_eq!(Some(vec![40, 50, 60]), cache.read_page_slice(&layout));
+        assert_eq!(vec![40, 50, 60], cache.read_page_slice(&layout));
 
         let page = kv.borrow().get(&ph1.0).unwrap();
         assert_eq!(vec![10, 20, 30], &page[100..103]);
@@ -459,11 +459,11 @@ mod tests {
         // 3) load persisted page (we do a `clear` first to make sure we load from the page cache)
         cache.clear();
 
-        assert_eq!(vec![10, 20, 30], cache.read_page_slice(&layout).unwrap());
+        assert_eq!(vec![10, 20, 30], cache.read_page_slice(&layout));
 
         // 4) page override
         cache.write_page_slice(&layout, &vec![40, 50, 60]);
-        assert_eq!(vec![40, 50, 60], cache.read_page_slice(&layout).unwrap());
+        assert_eq!(vec![40, 50, 60], cache.read_page_slice(&layout));
 
         // 5) commit again
         let page = kv.borrow().get(&ph1.0).unwrap();
@@ -495,8 +495,8 @@ mod tests {
         cache.write_page_slice(&layout1, &vec![10, 20, 30]);
         cache.write_page_slice(&layout2, &vec![40, 50]);
 
-        assert_eq!(vec![10, 20, 30], cache.read_page_slice(&layout1).unwrap());
-        assert_eq!(vec![40, 50], cache.read_page_slice(&layout2).unwrap());
+        assert_eq!(vec![10, 20, 30], cache.read_page_slice(&layout1));
+        assert_eq!(vec![40, 50], cache.read_page_slice(&layout2));
 
         // commiting two slices under the same page
         assert_eq!(None, kv.borrow().get(&ph.0));
@@ -506,8 +506,8 @@ mod tests {
         // asserting persisted data. when viewing in the context of `new_state`.
         reopen_page_slice_cache!(cache, kv, addr, new_state, 2);
 
-        assert_eq!(vec![10, 20, 30], cache.read_page_slice(&layout1).unwrap());
-        assert_eq!(vec![40, 50], cache.read_page_slice(&layout2).unwrap());
+        assert_eq!(vec![10, 20, 30], cache.read_page_slice(&layout1));
+        assert_eq!(vec![40, 50], cache.read_page_slice(&layout2));
 
         // queryind the key-value store directly
         let page = kv.borrow().get(&ph.0).unwrap();

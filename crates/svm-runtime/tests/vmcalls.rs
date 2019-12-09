@@ -275,14 +275,14 @@ fn vmcalls_storage_write_from_mem() {
 
     let layout = PageSliceLayout::new(PageIndex(1), PageOffset(100), 3);
 
-    assert_eq!(vec![0, 0, 0], storage.read_page_slice(&layout).unwrap());
+    assert_eq!(vec![0, 0, 0], storage.read_page_slice(&layout));
 
     let do_write: Func<(i32, i32, i32, i32)> = instance.func("do_write_from_mem").unwrap();
 
     // we copy memory cells `200..`203` into storage (`page 1`, cells: `100..103`)
     assert!(do_write.call(200, 3, 1, 100).is_ok());
 
-    assert_eq!(Some(vec![10, 20, 30]), storage.read_page_slice(&layout));
+    assert_eq!(vec![10, 20, 30], storage.read_page_slice(&layout));
 }
 
 #[test]
@@ -307,14 +307,14 @@ fn vmcalls_storage_write_from_reg() {
 
     let layout = PageSliceLayout::new(PageIndex(1), PageOffset(200), 3);
 
-    assert_eq!(vec![0, 0, 0], storage.read_page_slice(&layout).unwrap());
+    assert_eq!(vec![0, 0, 0], storage.read_page_slice(&layout));
 
     let do_write: Func<(i32, i32, i32, i32)> = instance.func("do_write_from_reg").unwrap();
 
     // we copy register `5:64` first into storage (`page 1`, cells: `200..203`)
     assert!(do_write.call(5, 3, 1, 200).is_ok());
 
-    assert_eq!(Some(vec![10, 20, 30]), storage.read_page_slice(&layout));
+    assert_eq!(vec![10, 20, 30], storage.read_page_slice(&layout));
 }
 
 #[test]
