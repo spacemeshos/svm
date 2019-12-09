@@ -18,7 +18,7 @@ macro_rules! include_svm_runtime {
 
             use $crate::runtime::{ContractExecError, Receipt};
 
-            /// Iinjects `vmcalls` module into the current file
+            /// Injects `vmcalls` module into the current file
             svm_runtime::include_svm_vmcalls!($PC);
 
             use svm_common::{Address, State};
