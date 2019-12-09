@@ -16,13 +16,13 @@ struct PageSlice {
 /// `ContractStorage` is a caching layer on top of the `PageCache`.
 /// While `PageCache` deals with data involving only page units, `ContractStorage` has fine-grained
 /// control for various sized of data.
-pub struct ContractStorage<PC: PageCache> {
+pub struct ContractStorage {
     cached_slices: HashMap<PageIndex, HashMap<PageOffset, PageSlice>>,
 
-    page_cache: PC,
+    page_cache: Box<dyn PageCache>,
 }
 
-impl<PC: PageCache> std::fmt::Debug for ContractStorage<PC> {
+impl std::fmt::Debug for ContractStorage {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         writeln!(f, "[DEBUG] PageCacheSlice")?;
         writeln!(f, "#Allocated slices: {}", self.cached_slices.len())?;
@@ -45,13 +45,13 @@ impl<PC: PageCache> std::fmt::Debug for ContractStorage<PC> {
     }
 }
 
-impl<PC: PageCache> ContractStorage<PC> {
+impl ContractStorage {
     /// Initializes a new `ContractStorage` instance.
     ///
     /// * `page_cache` - implements the `PageCache` trait. In charge of supplying the pages
     ///  upon requests (`read_page`) and for propagating new pages versions (`write_page`).
     ///  However, persistence only takes place by triggerring `commit`
-    pub fn new(page_cache: PC) -> Self {
+    pub fn new(page_cache: Box<dyn PageCache>) -> Self {
         Self {
             page_cache,
             cached_slices: HashMap::new(),
@@ -277,10 +277,7 @@ impl<PC: PageCache> ContractStorage<PC> {
     }
 }
 
-impl<PC> Drop for ContractStorage<PC>
-where
-    PC: PageCache,
-{
+impl Drop for ContractStorage {
     fn drop(&mut self) {
         debug!("dropping `ContractStorage`...");
     }
@@ -298,7 +295,7 @@ mod tests {
         }
     }
 
-    macro_rules! page_cache_open {
+    macro_rules! contract_storage_open {
         ($cache_slice_ident: ident, $kv_ident: ident, $addr: expr, $state: expr, $max_pages: expr) => {
             use crate::default::DefaultPageCache;
             use crate::memory::MemContractPages;
@@ -313,7 +310,7 @@ mod tests {
             let pages = contract_pages_open!($addr, $state, kv_gen, $max_pages);
             let cache = DefaultPageCache::<MemContractPages>::new(pages, $max_pages);
 
-            let mut $cache_slice_ident = ContractStorage::new(cache);
+            let mut $cache_slice_ident = ContractStorage::new(Box::new(cache));
         };
     }
 
@@ -341,20 +338,20 @@ mod tests {
         }};
     }
 
-    macro_rules! reopen_page_slice_cache {
+    macro_rules! contract_storage_reopen {
         ($cache_slice_ident: ident, $kv_ident: ident, $addr: expr, $state: expr, $max_pages: expr) => {
             let pages = reopen_pages_storage!($kv_ident, $addr, $state, $max_pages);
 
             let cache =
                 crate::default::DefaultPageCache::<MemContractPages>::new(pages, $max_pages);
 
-            let mut $cache_slice_ident = ContractStorage::new(cache);
+            let mut $cache_slice_ident = ContractStorage::new(Box::new(cache));
         };
     }
 
     #[test]
     fn loading_an_empty_slice_into_the_cache() {
-        page_cache_open!(cache, kv, 0x11_22_33_44, 0x00_00_00_00, 10);
+        contract_storage_open!(cache, kv, 0x11_22_33_44, 0x00_00_00_00, 10);
 
         let layout = PageSliceLayout::new(PageIndex(1), PageOffset(100), 200);
 
@@ -363,7 +360,7 @@ mod tests {
 
     #[test]
     fn read_an_empty_slice_then_override_it_and_then_commit() {
-        page_cache_open!(cache, kv, 0x11_22_33_44, 0x00_00_00_00, 10);
+        contract_storage_open!(cache, kv, 0x11_22_33_44, 0x00_00_00_00, 10);
 
         let layout = PageSliceLayout::new(PageIndex(1), PageOffset(100), 3);
 
@@ -381,7 +378,7 @@ mod tests {
     #[test]
     fn write_slice_without_loading_it_first_and_commit() {
         let addr = 0x11_22_33_44;
-        page_cache_open!(cache, kv, addr, 0x00_00_00_00, 2);
+        contract_storage_open!(cache, kv, addr, 0x00_00_00_00, 2);
 
         let layout = PageSliceLayout::new(PageIndex(1), PageOffset(100), 3);
 
@@ -389,7 +386,7 @@ mod tests {
         let new_state = cache.commit();
 
         // asserting persisted data. when viewing in the context of `new_state`.
-        reopen_page_slice_cache!(cache, kv, addr, new_state, 2);
+        contract_storage_reopen!(cache, kv, addr, new_state, 2);
 
         assert_eq!(vec![10, 20, 30], cache.read_page_slice(&layout));
 
@@ -405,7 +402,7 @@ mod tests {
     #[test]
     fn read_an_existing_slice_then_overriding_it_and_commit() {
         let addr = 0x11_22_33_44;
-        page_cache_open!(cache, kv, addr, 0x00_00_00_00, 2);
+        contract_storage_open!(cache, kv, addr, 0x00_00_00_00, 2);
 
         let layout = PageSliceLayout::new(PageIndex(1), PageOffset(100), 3);
 
@@ -440,7 +437,7 @@ mod tests {
     #[test]
     fn write_slice_and_commit_then_load_it_override_it_and_commit() {
         let addr = 0x11_22_33_44;
-        page_cache_open!(cache, kv, addr, 0x00_00_00_00, 2);
+        contract_storage_open!(cache, kv, addr, 0x00_00_00_00, 2);
 
         let layout = PageSliceLayout::new(PageIndex(1), PageOffset(100), 3);
 
@@ -478,7 +475,7 @@ mod tests {
     #[test]
     fn write_two_slices_under_same_page_and_commit() {
         let addr = 0x11_22_33_44;
-        page_cache_open!(cache, kv, addr, 0x00_00_00_00, 2);
+        contract_storage_open!(cache, kv, addr, 0x00_00_00_00, 2);
 
         let layout1 = PageSliceLayout::new(PageIndex(1), PageOffset(100), 3);
 
@@ -504,7 +501,7 @@ mod tests {
         let new_state = cache.commit();
 
         // asserting persisted data. when viewing in the context of `new_state`.
-        reopen_page_slice_cache!(cache, kv, addr, new_state, 2);
+        contract_storage_reopen!(cache, kv, addr, new_state, 2);
 
         assert_eq!(vec![10, 20, 30], cache.read_page_slice(&layout1));
         assert_eq!(vec![40, 50], cache.read_page_slice(&layout2));
