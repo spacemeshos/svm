@@ -17,6 +17,8 @@ pub mod page;
 /// Contains definitions `State`-related.
 pub mod state;
 
+pub use crate::contract_pages::ContractPages;
+
 pub use crate::page_slice_cache::PageSliceCache;
 
 /// Storage related traits
