@@ -1,7 +1,7 @@
 use svm_storage::traits::PageCache;
 use wasmer_runtime_core::vm::Ctx;
 
-pub fn svm_vmcall_reg_replace_byte<PC: PageCache>(
+pub fn svm_vmcall_reg_replace_byte(
     ctx: &mut Ctx,
     reg_bits: i32,
     reg_idx: i32,
@@ -19,7 +19,7 @@ pub fn svm_vmcall_reg_replace_byte<PC: PageCache>(
     let byte = byte as u32;
     assert!(byte <= 0xFF);
 
-    let reg = wasmer_data_reg!(ctx.data, reg_bits, reg_idx, PC);
+    let reg = wasmer_data_reg!(ctx.data, reg_bits, reg_idx);
     reg.replace_byte(byte as u8, offset);
 }
 
@@ -27,7 +27,7 @@ pub fn svm_vmcall_reg_replace_byte<PC: PageCache>(
 /// The `vmcalls` are functions imported into each running `svm` instance.
 #[macro_export]
 macro_rules! include_svm_register_vmcalls {
-    ($PC: path) => {
+    () => {
         pub fn reg_replace_byte(
             ctx: &mut wasmer_runtime::Ctx,
             reg_bits: i32,
@@ -35,7 +35,7 @@ macro_rules! include_svm_register_vmcalls {
             byte: i32,
             offset: i32,
         ) {
-            svm_vmcall_reg_replace_byte::<$PC>(ctx, reg_bits, reg_idx, byte, offset)
+            svm_vmcall_reg_replace_byte(ctx, reg_bits, reg_idx, byte, offset)
         }
 
         pub fn reg_read_be_i64(ctx: &mut wasmer_runtime::Ctx, reg_bits: i32, reg_idx: i32) -> i64 {
@@ -43,7 +43,7 @@ macro_rules! include_svm_register_vmcalls {
 
             log::debug!("`reg_read_be_i64` register=`{}:{}`", reg_bits, reg_idx);
 
-            let reg = $crate::wasmer_data_reg!(ctx.data, reg_bits, reg_idx, $PC);
+            let reg = $crate::wasmer_data_reg!(ctx.data, reg_bits, reg_idx);
             let buf = reg.getn(8);
 
             BigEndian::read_i64(&buf)
@@ -67,7 +67,7 @@ macro_rules! include_svm_register_vmcalls {
             let mut buf = [0; 8];
             BigEndian::write_i64(&mut buf, value);
 
-            let reg = $crate::wasmer_data_reg!(ctx.data, reg_bits, reg_idx, $PC);
+            let reg = $crate::wasmer_data_reg!(ctx.data, reg_bits, reg_idx);
             reg.set(&buf);
         }
     };

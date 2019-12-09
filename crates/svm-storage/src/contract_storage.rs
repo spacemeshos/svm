@@ -296,7 +296,7 @@ mod tests {
     }
 
     macro_rules! contract_storage_open {
-        ($cache_slice_ident: ident, $kv_ident: ident, $addr: expr, $state: expr, $max_pages: expr) => {
+        ($storage_ident: ident, $kv_ident: ident, $addr: expr, $state: expr, $max_pages: expr) => {
             use crate::default::DefaultPageCache;
             use crate::memory::MemContractPages;
             use svm_kv::memory::MemKVStore;
@@ -310,7 +310,7 @@ mod tests {
             let pages = contract_pages_open!($addr, $state, kv_gen, $max_pages);
             let cache = DefaultPageCache::<MemContractPages>::new(pages, $max_pages);
 
-            let mut $cache_slice_ident = ContractStorage::new(Box::new(cache));
+            let mut $storage_ident = ContractStorage::new(Box::new(cache));
         };
     }
 
@@ -339,13 +339,13 @@ mod tests {
     }
 
     macro_rules! contract_storage_reopen {
-        ($cache_slice_ident: ident, $kv_ident: ident, $addr: expr, $state: expr, $max_pages: expr) => {
+        ($storage_ident: ident, $kv_ident: ident, $addr: expr, $state: expr, $max_pages: expr) => {
             let pages = reopen_pages_storage!($kv_ident, $addr, $state, $max_pages);
 
             let cache =
                 crate::default::DefaultPageCache::<MemContractPages>::new(pages, $max_pages);
 
-            let mut $cache_slice_ident = ContractStorage::new(Box::new(cache));
+            let mut $storage_ident = ContractStorage::new(Box::new(cache));
         };
     }
 

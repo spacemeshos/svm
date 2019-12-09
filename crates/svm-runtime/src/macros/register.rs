@@ -51,11 +51,11 @@ macro_rules! svm_regs_reg {
 /// Extracts from `wasmer` instance context data field (of type `*mut c_void`), a mutable borrow for the register indexed `reg_idx`.
 #[macro_export]
 macro_rules! wasmer_data_reg {
-    ($data: expr, $bits_count: expr, $reg_idx: expr, $PC: path) => {{
+    ($data: expr, $bits_count: expr, $reg_idx: expr) => {{
         $crate::wasmer_data_ensure_reg_idx!($bits_count, $reg_idx);
 
         use $crate::ctx::SvmCtx;
-        let ctx: &mut SvmCtx<$PC> = $crate::cast_wasmer_data_to_svm_ctx!($data, $PC);
+        let ctx: &mut SvmCtx = $crate::cast_wasmer_data_to_svm_ctx!($data);
 
         match $bits_count {
             32 => $crate::svm_regs_reg!(ctx.regs_32, 32, $reg_idx),
@@ -72,7 +72,7 @@ macro_rules! wasmer_data_reg {
 /// Will be used by storage vmcalls.
 #[macro_export]
 macro_rules! wasmer_ctx_reg {
-    ($ctx: expr, $bits_count: expr, $reg_idx: expr, $PC: path) => {{
-        $crate::wasmer_data_reg!($ctx.data, $bits_count, $reg_idx, $PC)
+    ($ctx: expr, $bits_count: expr, $reg_idx: expr) => {{
+        $crate::wasmer_data_reg!($ctx.data, $bits_count, $reg_idx)
     }};
 }

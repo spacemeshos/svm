@@ -32,10 +32,10 @@ macro_rules! svm_write_page_slice {
 /// Casts the `wasmer` instance context data field (of type `*mut c_void`) into `&mut ContractStorage<PC>`.
 #[macro_export]
 macro_rules! wasmer_data_storage {
-    ($data: expr, $PC: path) => {{
+    ($data: expr) => {{
         use $crate::ctx::SvmCtx;
 
-        let ctx: &mut SvmCtx<$PC> = $crate::cast_wasmer_data_to_svm_ctx!($data, $PC);
+        let ctx: &mut SvmCtx = $crate::cast_wasmer_data_to_svm_ctx!($data);
         &mut ctx.storage
     }};
 }

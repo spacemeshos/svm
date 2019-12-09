@@ -25,9 +25,7 @@ mod tests {
 
     use svm_storage::{memory::MemContractPageCache, traits::PageCache};
 
-    pub fn wasmer_fake_import_object_data<PC: PageCache>(
-        ctx: &SvmCtx<PC>,
-    ) -> (*mut c_void, fn(*mut c_void)) {
+    pub fn wasmer_fake_import_object_data(ctx: &SvmCtx) -> (*mut c_void, fn(*mut c_void)) {
         let data: *mut c_void = ctx.clone() as *const _ as *mut c_void;
         let dtor: fn(*mut c_void) = |_| {};
 
@@ -67,7 +65,6 @@ mod tests {
                 SvmCtxDataWrapper::new($node_data),
                 pages_storage_gen,
                 page_cache_ctor,
-                svm_storage::memory::MemContractPageCache,
                 opts
             )
         }};
@@ -81,8 +78,7 @@ mod tests {
 
         let ctx = test_create_svm_ctx!(node_data);
         let (data, _dtor) = wasmer_fake_import_object_data(&ctx);
-        let raw_chars: *mut c_char =
-            wasmer_data_node_data!(data, svm_storage::memory::MemContractPageCache) as _;
+        let raw_chars: *mut c_char = wasmer_data_node_data!(data) as _;
         let raw_string = unsafe { CString::from_raw(raw_chars) };
         let actual = raw_string.into_string().unwrap();
 
@@ -94,8 +90,8 @@ mod tests {
         let ctx = test_create_svm_ctx!();
         let (data, _dtor) = wasmer_fake_import_object_data(&ctx);
 
-        let reg0 = wasmer_data_reg!(data, 64, 0, svm_storage::memory::MemContractPageCache);
-        let reg1 = wasmer_data_reg!(data, 64, 1, svm_storage::memory::MemContractPageCache);
+        let reg0 = wasmer_data_reg!(data, 64, 0);
+        let reg1 = wasmer_data_reg!(data, 64, 1);
 
         // registers `0` and `1` are initialized with zeros
         assert_eq!(vec![0; 8], reg0.view());
@@ -124,7 +120,7 @@ mod tests {
         let ctx = test_create_svm_ctx!();
         let (data, _dtor) = wasmer_fake_import_object_data(&ctx);
 
-        let reg0 = wasmer_data_reg!(data, 64, 0, svm_storage::memory::MemContractPageCache);
+        let reg0 = wasmer_data_reg!(data, 64, 0);
 
         reg0.set(&[10, 20, 30, 40, 50, 60, 70, 80]);
 
@@ -144,7 +140,7 @@ mod tests {
     fn wasmer_storage_read_write() {
         let ctx = test_create_svm_ctx!();
         let (data, _dtor) = wasmer_fake_import_object_data(&ctx);
-        let storage = wasmer_data_storage!(data, svm_storage::memory::MemContractPageCache);
+        let storage = wasmer_data_storage!(data);
         let layout = svm_page_slice_layout!(1, 0, 3);
 
         assert_eq!(vec![0, 0, 0], storage.read_page_slice(&layout));
@@ -158,8 +154,8 @@ mod tests {
         let (data, _dtor) = wasmer_fake_import_object_data(&ctx);
 
         let layout = svm_page_slice_layout!(1, 0, 3);
-        let reg0 = wasmer_data_reg!(data, 64, 0, MemContractPageCache);
-        let storage = wasmer_data_storage!(data, MemContractPageCache);
+        let reg0 = wasmer_data_reg!(data, 64, 0);
+        let storage = wasmer_data_storage!(data);
 
         storage.write_page_slice(&layout, &vec![10, 20, 30]);
 
@@ -175,10 +171,10 @@ mod tests {
         let ctx = test_create_svm_ctx!();
         let (data, _dtor) = wasmer_fake_import_object_data(ctx);
 
-        let storage = wasmer_data_storage!(data, MemContractPageCache);
+        let storage = wasmer_data_storage!(data);
 
         // writing `[10, 20, 30, 0, 0, 0, 0, 0]` to register `0`
-        let reg0 = wasmer_data_reg!(data, 64, 0, MemContractPageCache);
+        let reg0 = wasmer_data_reg!(data, 64, 0);
         reg0.set(&vec![10, 20, 30]);
 
         let slice = svm_read_page_slice!(storage, 1, 0, 3);

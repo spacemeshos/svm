@@ -116,7 +116,7 @@ fn contract_exec_valid_transaction() {
     let pages_storage =
         svm_runtime::gen_rocksdb_pages_storage!(addr, new_state, 10, "tests-contract-storage");
     let page_cache = svm_runtime::gen_rocksdb_page_cache!(pages_storage, 10);
-    let mut storage = ContractStorage::new(page_cache);
+    let mut storage = ContractStorage::new(Box::new(page_cache));
 
     let slice_pos = PageSliceLayout::new(PageIndex(0), PageOffset(0), 8);
 
