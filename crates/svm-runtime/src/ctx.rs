@@ -36,7 +36,7 @@ pub const REGS_512_COUNT: usize = 4;
 #[repr(C)]
 pub struct SvmCtx<PC: PageCache> {
     /// A pointer to the `node` data. For example the pointer will point a to struct having an access
-    /// to the `Global State` of each account, in order to query an account for its balance.
+    /// to the `Global State` of each account, in order to query an account for its own balance.
     pub node_data: *const c_void,
 
     /// An array that holds the `SvmReg32` registers

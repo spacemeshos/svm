@@ -1,4 +1,7 @@
-/// Returns a `wasmer` memory view of cells `mem_start, mem_start + 1, .. , mem_start + len` (exclusive)
+use std::cell::Cell;
+use wasmer_runtime_core::vm::Ctx;
+
+/// Returns a `wasmer` memory view of cells `mem_start, mem_start + 1, ... , mem_start + len` (exclusive)
 #[macro_export]
 macro_rules! wasmer_ctx_mem_cells {
     ($ctx: expr, $mem_idx: expr, $mem_start: expr, $len: expr) => {{
@@ -10,11 +13,14 @@ macro_rules! wasmer_ctx_mem_cells {
     }};
 }
 
-/// Copies input `data: &[u8]` into `wasmer` memory cells `mem_start, mem_start + 1, .. , mem_start + data.len()` (exclusive)
+/// Copies input `data: &[u8]` into `wasmer` memory cells `mem_start, mem_start + 1, ... , mem_start + data.len()` (exclusive)
 #[macro_export]
 macro_rules! wasmer_ctx_mem_cells_write {
     ($ctx: expr, $mem_idx: expr, $mem_start: expr, $data: expr) => {{
-        let cells = $crate::wasmer_ctx_mem_cells!($ctx, $mem_idx, $mem_start, $data.len());
+        let start = $mem_start as usize;
+        let end = start + $len as usize;
+
+        let cells = &$ctx.memory($mem_idx as u32).view::<u8>()[start..end];
 
         for (cell, byte) in cells.iter().zip($data.iter()) {
             cell.set(*byte);

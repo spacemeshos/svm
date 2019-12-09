@@ -1,3 +1,20 @@
+use crate::ctx::SvmCtx;
+use std::ffi::c_void;
+use svm_storage::traits::PageCache;
+
+#[inline(always)]
+fn cast_wasmer_data_to_svm_ctx<PC: PageCache>(data: *const c_void) -> *mut SvmCtx<PC> {
+    data as _
+}
+
+#[inline(always)]
+fn wasmer_data_node_data<PC: PageCache>(data: *const c_void) -> *const c_void {
+    let ctx = cast_wasmer_data_to_svm_ctx::<PC>(data);
+    let ctx: &mut SvmCtx<PC> = unsafe { &mut *ctx };
+
+    ctx.node_data
+}
+
 /// Casts a `wasmer` instance's `data` field (of type: `c_void`) into `SvmContext<PC>` (`PC` implements `PageCache`)
 #[macro_export]
 macro_rules! cast_wasmer_data_to_svm_ctx {

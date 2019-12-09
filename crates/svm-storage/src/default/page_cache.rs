@@ -182,8 +182,8 @@ impl<PS: StateAwarePagesStorage> PagesStorage for DefaultPageCache<PS> {
                     CachedPage::CachedEmpty | CachedPage::NotCached => {
                         // we should never reach this code!
                         //
-                        // if a page is dirty then it's must appear in the cache.
-                        // also we can't make a page dirty and `NotCached`
+                        // if a page is dirty then it's must appear in the cache (i.e it can't be `NotCache`)
+                        // also we can't make a page dirty and `CachedEmpty`
                         unreachable!()
                     }
                 }

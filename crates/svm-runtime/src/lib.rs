@@ -1,5 +1,5 @@
-#![deny(missing_docs)]
-#![deny(unused)]
+#![allow(missing_docs)]
+#![allow(unused)]
 
 //! `svm-runtime` crate is the glue between `svm` constract-storage to `wasmer` live instances.
 
