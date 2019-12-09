@@ -1,4 +1,3 @@
-/// Builds an instance of `PageSliceLayout`
 #[macro_export]
 macro_rules! svm_page_slice_layout {
     ($page_idx: expr, $offset: expr, $len: expr) => {{
@@ -12,8 +11,10 @@ macro_rules! svm_page_slice_layout {
 #[macro_export]
 macro_rules! svm_read_page_slice {
     ($storage: expr, $page_idx: expr, $offset: expr, $len: expr) => {{
-        let layout = $crate::svm_page_slice_layout!($page_idx, $offset, $len);
-        let slice = $storage.read_page_slice(&layout);
+        use svm_storage::page::{PageIndex, PageOffset, PageSliceLayout};
+
+        let layout = PageSliceLayout::new(PageIndex($page_idx), PageOffset($offset), $len);
+        let slice = $storage.read_page_slice(&layout)
 
         if slice.is_some() {
             slice.unwrap()
@@ -27,7 +28,8 @@ macro_rules! svm_read_page_slice {
 #[macro_export]
 macro_rules! svm_write_page_slice {
     ($storage: expr, $page_idx: expr, $offset: expr, $len: expr, $data: expr) => {{
-        let layout = $crate::svm_page_slice_layout!($page_idx, $offset, $len);
+        use svm_storage::page::{PageIndex, PageOffset, PageSliceLayout};
+        let layout = PageSliceLayout::new(PageIndex($page_idx), PageOffset($offset), $len);
 
         $storage.write_page_slice(&layout, $data);
     }};
