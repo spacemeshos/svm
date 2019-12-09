@@ -1,29 +1,29 @@
 #![allow(missing_docs)]
 #![allow(unused)]
 
-//! `svm-runtime` crate is the glue between `svm` constract-storage to `wasmer` live instances.
+//! `SVM-runtime` crate is the glue between `` cMVSonstract-storage to `wasmer` live instances.
 
-/// Implements the most high-level API of `svm`.
+/// Implements the most high-level API of `SVM`.
 #[macro_use]
 pub mod runtime;
 
 /// Wraps the `node data` (of type `*const std::ffi::c_void`) in a thread-safe way
 pub mod ctx_data_wrapper;
 
-/// Implements `SvmCtx`. Used for running `svm` instances.
+/// Implements `SvmCtx`. Used for running `SVM` instances.
 pub mod ctx;
 
 /// Implements register abstraction to ease interfacing
 /// with the contract-storage / `wasmer` instance memory.
 pub mod register;
 
-/// `macros` implements the high-level macros to be consumed by `svm` vmcalls.
+/// `macros` implements the high-level macros to be consumed by `SVM` vmcalls.
 #[macro_use]
 pub mod macros;
 
-/// Implements the `svm` vmcalls (a.k.a libcalls / hostcalls / syscalls)
-/// to be injected into `wasmer` instances running in the `svm`.
+/// Implements the `SVM` vmcalls (a.k.a libcalls / hostcalls / syscalls)
+/// to be injected into `wasmer` instances running in the `SVM`.
 pub mod vmcalls;
 
-/// Options when spawning a new `svm` runtime instance
+/// Options when spawning a new `SVM` runtime instance
 pub mod opts;

@@ -45,7 +45,7 @@ macro_rules! gen_rocksdb_env {
     }};
 }
 
-/// Injects `rocksdb` backed implementation of `svm` runtime.
+/// Injects `rocksdb` backed implementation of `SVM` runtime.
 #[macro_export]
 macro_rules! include_svm_rocksdb_runtime {
     ($contract_storage_path: expr, $code_db_path: expr) => {
@@ -57,7 +57,6 @@ macro_rules! include_svm_rocksdb_runtime {
                 $contract_storage_path
             ),
             |pages_storage, max_pages| $crate::gen_rocksdb_page_cache!(pages_storage, max_pages),
-            svm_storage::rocksdb::RocksdbContractPageCache,
             svm_contract::rocksdb::RocksEnv,
             || $crate::gen_rocksdb_env!($code_db_path)
         );

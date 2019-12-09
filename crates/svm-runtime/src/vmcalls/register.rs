@@ -1,30 +1,5 @@
-use svm_storage::traits::PageCache;
-use wasmer_runtime_core::vm::Ctx;
-
-pub fn svm_vmcall_reg_replace_byte(
-    ctx: &mut Ctx,
-    reg_bits: i32,
-    reg_idx: i32,
-    byte: i32,
-    offset: i32,
-) {
-    log::debug!(
-        "replace_byte register=`{}:{}`, byte={}, offset={}",
-        reg_bits,
-        reg_idx,
-        byte,
-        offset
-    );
-
-    let byte = byte as u32;
-    assert!(byte <= 0xFF);
-
-    let reg = wasmer_data_reg!(ctx.data, reg_bits, reg_idx);
-    reg.replace_byte(byte as u8, offset);
-}
-
-/// When called, injects the code of the `svm` register vmcalls.
-/// The `vmcalls` are functions imported into each running `svm` instance.
+/// When called, injects the code of the `SVM` register vmcalls.
+/// The `vmcalls` are functions imported into each running `SVM` instance.
 #[macro_export]
 macro_rules! include_svm_register_vmcalls {
     () => {
@@ -35,7 +10,19 @@ macro_rules! include_svm_register_vmcalls {
             byte: i32,
             offset: i32,
         ) {
-            svm_vmcall_reg_replace_byte(ctx, reg_bits, reg_idx, byte, offset)
+            log::debug!(
+                "replace_byte register=`{}:{}`, byte={}, offset={}",
+                reg_bits,
+                reg_idx,
+                byte,
+                offset
+            );
+
+            let byte = byte as u32;
+            assert!(byte <= 0xFF);
+
+            let reg = $crate::wasmer_data_reg!(ctx.data, reg_bits, reg_idx);
+            reg.replace_byte(byte as u8, offset);
         }
 
         pub fn reg_read_be_i64(ctx: &mut wasmer_runtime::Ctx, reg_bits: i32, reg_idx: i32) -> i64 {

@@ -1,8 +1,6 @@
 use std::cell::Cell;
 
 use svm_runtime::ctx_data_wrapper::SvmCtxDataWrapper;
-
-use svm_storage::memory::MemContractPageCache;
 use svm_storage::page::{PageIndex, PageOffset, PageSliceLayout};
 
 use wasmer_runtime::{func, imports, Func};

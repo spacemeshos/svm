@@ -12,20 +12,18 @@ use svm_contract::{
 use svm_storage::traits::PageCache;
 use svm_storage::ContractPages;
 
-pub struct Runtime<PAGES, PC, CT, ENV> {
+pub struct Runtime<CT, ENV> {
     contract_env_creator: Box<dyn Fn() -> ENV>,
 
     contract_pages_creator: Box<dyn Fn() -> ENV>,
 
-    marker: PhantomData<(PC, CT)>,
+    marker: PhantomData<CT>,
 }
 
-impl<PC, CT, ENV> Runtime<PC, CT, ENV>
+impl<CT, ENV> Runtime<CT, ENV>
 where
-    PAGES:
     CT: ContractEnvTypes,
     ENV: ContractEnv<Types = CT>,
-    PC: PageCache,
 {
     pub fn new(contract_env_creator: Box<dyn Fn() -> ENV>) -> Self {
         Self {
@@ -200,10 +198,10 @@ where
             #[inline(always)]
             fn get_instance_svm_storage_mut(
                 instance: &mut wasmer_runtime::Instance,
-            ) -> &mut svm_storage::ContractStorage<$PC> {
+            ) -> &mut svm_storage::ContractStorage {
                 let wasmer_ctx: &mut wasmer_runtime::Ctx = instance.context_mut();
 
-                $crate::wasmer_data_storage!(wasmer_ctx.data, $PC)
+                $crate::wasmer_data_storage!(wasmer_ctx.data)
             }
 
             pub fn import_object_create(
@@ -229,7 +227,6 @@ where
                     wrapped_data,
                     wrapped_pages_storage_gen,
                     $page_cache_ctor,
-                    $PC,
                     opts
                 );
 

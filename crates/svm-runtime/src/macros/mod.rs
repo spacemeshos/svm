@@ -121,7 +121,6 @@ mod tests {
         let (data, _dtor) = wasmer_fake_import_object_data(&ctx);
 
         let reg0 = wasmer_data_reg!(data, 64, 0);
-
         reg0.set(&[10, 20, 30, 40, 50, 60, 70, 80]);
 
         let cells: Vec<Cell<u8>> = (0..8).map(|_| Cell::<u8>::new(255)).collect();

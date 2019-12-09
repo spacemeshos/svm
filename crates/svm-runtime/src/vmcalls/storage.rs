@@ -1,5 +1,5 @@
-/// When called, injects the code of the `svm` storage vmcalls.
-/// The `vmcalls` are functions imported into each running `svm` instance.
+/// When called, injects the code of the `SVM` storage vmcalls.
+/// The `vmcalls` are functions imported into each running `SVM` instance.
 #[macro_export]
 macro_rules! include_svm_storage_vmcalls {
     () => {
@@ -49,7 +49,7 @@ macro_rules! include_svm_storage_vmcalls {
             reg.copy_to_wasmer_mem(cells);
         }
 
-        /// Loads from the `svm` instance's storage a page-slice into the register indexed `dest_reg`
+        /// Loads from the `SVM` instance's storage a page-slice into the register indexed `dest_reg`
         ///
         /// * `ctx`          - `wasmer` context (holds a `data` field. we use `SvmCtx`)
         /// * `page`         - Page index
@@ -74,7 +74,7 @@ macro_rules! include_svm_storage_vmcalls {
             reg.set(&slice);
         }
 
-        /// Loads from the `svm` instance's storage a page-slice into the memory address given
+        /// Loads from the `SVM` instance's storage a page-slice into the memory address given
         ///
         /// * `ctx`         - `wasmer` context (holds a `data` field. we use `SvmCtx`)
         /// * `page`        - Page index
@@ -104,7 +104,7 @@ macro_rules! include_svm_storage_vmcalls {
             $crate::wasmer_ctx_mem_cells_write!(ctx, dst_mem_idx, dst_mem_ptr, slice);
         }
 
-        /// Writes into `svm` storage, a page-slice copied from `wasmer` memory
+        /// Writes into `SVM` storage, a page-slice copied from `wasmer` memory
         ///
         /// * `ctx`         - `wasmer` context (holds a `data` field. we use `SvmCtx`)
         /// * `src_mem_idx` - The memory index we start to copy from
@@ -133,7 +133,7 @@ macro_rules! include_svm_storage_vmcalls {
             );
         }
 
-        /// Writes into `svm` storage, a page-slice copied from `svm wasmer` register
+        /// Writes into `SVM` storage, a page-slice copied from `SVM wasmer` register
         ///
         /// * `ctx`          - `wasmer` context (holds a `data` field. we use `SvmCtx`)
         /// * `src_reg_bits` - The type of the register (determined by its #bits) we want to copy data from

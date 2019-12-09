@@ -5,7 +5,6 @@ use svm_contract::wasm::WasmArgValue as Value;
 use svm_storage::page::{PageIndex, PageOffset, PageSliceLayout};
 use svm_storage::ContractStorage;
 
-// Injects `svm` runtime backed by `rocksdb` into the current file.
 svm_runtime::include_svm_rocksdb_runtime!("tests-contract-storage", "tests-contract-code");
 
 macro_rules! build_raw_contract {

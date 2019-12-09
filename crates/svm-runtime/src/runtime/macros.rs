@@ -1,4 +1,4 @@
-/// Injects a `svm` runtime into current file.
+/// Injects a `SVM` runtime into current file.
 ///
 /// * `pages_storage_gen` - a function generating a new `svm_storage::traits::PagesStorage`
 ///

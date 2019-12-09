@@ -1,5 +1,5 @@
 (module
-  ;; import `svm` vmcalls
+  ;; import `SVM` vmcalls
   (func $svm_reg_replace_byte (import "svm" "reg_replace_byte") (param i32 i32 i32 i32))
   (func $svm_reg_read_be_i64 (import "svm" "reg_read_be_i64") (param i32 i32) (result i64))
   (func $svm_reg_write_be_i64 (import "svm" "reg_write_be_i64") (param i64 i32 i32))

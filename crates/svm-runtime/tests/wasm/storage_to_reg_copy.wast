@@ -1,5 +1,5 @@
 (module
-  ;; import `svm` vmcalls
+  ;; import `SVM` vmcalls
   (func $storage_read_to_reg (import "svm" "storage_read_to_reg") (param i32 i32 i32 i32 i32))
 
   (memory 1)  ;; memory `0` (default) is initialized with one page

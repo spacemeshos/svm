@@ -29,7 +29,7 @@ macro_rules! svm_write_page_slice {
     }};
 }
 
-/// Casts the `wasmer` instance context data field (of type `*mut c_void`) into `&mut ContractStorage<PC>`.
+/// Casts the `wasmer` instance context data field (of type `*mut c_void`) into `&mut ContractStorage`.
 #[macro_export]
 macro_rules! wasmer_data_storage {
     ($data: expr) => {{
