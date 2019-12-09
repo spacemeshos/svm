@@ -3,6 +3,7 @@ use std::cell::Cell;
 use svm_runtime::ctx_data_wrapper::SvmCtxDataWrapper;
 
 use svm_storage::memory::MemContractPageCache;
+use svm_storage::page::{PageIndex, PageOffset, PageSliceLayout};
 
 use wasmer_runtime::{func, imports, Func};
 
@@ -177,7 +178,7 @@ fn vmcalls_storage_read_non_empty_page_slice_to_reg() {
     let storage =
         svm_runtime::wasmer_data_storage!(instance.context_mut().data, MemContractPageCache);
 
-    let layout = svm_runtime::svm_page_slice_layout!(1, 100, 3);
+    let layout = PageSliceLayout::new(PageIndex(1), PageOffset(100), 3);
 
     // we write `[10, 20, 30]` into storage slice (page `1`, cells: `100..103`)
     storage.write_page_slice(&layout, &vec![10, 20, 30]);
@@ -239,7 +240,8 @@ fn vmcalls_storage_read_non_empty_page_slice_to_mem() {
     let mut instance = module.instantiate(&import_object).unwrap();
     let storage =
         svm_runtime::wasmer_data_storage!(instance.context_mut().data, MemContractPageCache);
-    let layout = svm_runtime::svm_page_slice_layout!(1, 100, 3);
+
+    let layout = PageSliceLayout::new(PageIndex(1), PageOffset(100), 3);
 
     // we write `[10, 20, 30]` into storage slice (page `1`, cells `100..103`)
     storage.write_page_slice(&layout, &vec![10, 20, 30]);
@@ -271,7 +273,7 @@ fn vmcalls_storage_write_from_mem() {
 
     svm_runtime::wasmer_ctx_mem_cells_write!(instance.context(), 0, 200, &[10, 20, 30]);
 
-    let layout = svm_runtime::svm_page_slice_layout!(1, 100, 3);
+    let layout = PageSliceLayout::new(PageIndex(1), PageOffset(100), 3);
 
     assert_eq!(vec![0, 0, 0], storage.read_page_slice(&layout).unwrap());
 
@@ -299,18 +301,18 @@ fn vmcalls_storage_write_from_reg() {
     let storage =
         svm_runtime::wasmer_data_storage!(instance.context_mut().data, MemContractPageCache);
 
-    // we first initialize register `5` (of type `64 bits`) with `[10, 20, 30, 0, 0, 0, 0, 0]`
+    // we first initialize register `5:64` with `[10, 20, 30, 0, 0, 0, 0, 0]`
     let reg = svm_runtime::wasmer_ctx_reg!(instance.context(), 64, 5, MemContractPageCache);
     reg.set(&[10, 20, 30]);
 
-    let layout = svm_runtime::svm_page_slice_layout!(1, 10, 3);
+    let layout = PageSliceLayout::new(PageIndex(1), PageOffset(200), 3);
 
     assert_eq!(vec![0, 0, 0], storage.read_page_slice(&layout).unwrap());
 
-    let do_write: Func<(i32, i32, i32, i32, i32)> = instance.func("do_write_from_reg").unwrap();
+    let do_write: Func<(i32, i32, i32, i32)> = instance.func("do_write_from_reg").unwrap();
 
-    // we copy register `5` first 3  into storage (`page 1`, `slice 10`, cells: `200..203`)
-    assert!(do_write.call(5, 3, 1, 10, 200).is_ok());
+    // we copy register `5:64` first into storage (`page 1`, cells: `200..203`)
+    assert!(do_write.call(5, 3, 1, 200).is_ok());
 
     assert_eq!(Some(vec![10, 20, 30]), storage.read_page_slice(&layout));
 }
