@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::ffi::c_void;
 use std::path::Path;
 use std::rc::Rc;
 
@@ -12,14 +13,19 @@ use svm_storage::{ContractPages, ContractStorage};
 
 use crate::runtime::Runtime;
 
+use wasmer_runtime_core::Func;
+
 use svm_contract::wasm::{WasmContractJsonDeserializer as D, WasmContractJsonSerializer as S};
+use wasmer_runtime_core::import::IsExport;
 
-pub fn rocksdb_runtime_create() -> Runtime<RocksdbContractEnv> {
-    let env_builder = Box::new(rocksdb_contract_env_builder);
-    let storage_builder = Box::new(rocksdb_contract_storage_builder);
-
-    Runtime::new(env_builder, storage_builder)
-}
+// pub fn rocksdb_runtime_create(
+//     vmcalls: Vec<(&'static str, IsExport)>,
+// ) -> Runtime<RocksdbContractEnv> {
+//     let env_builder = Box::new(rocksdb_contract_env_builder);
+//     let storage_builder = Box::new(rocksdb_contract_storage_builder);
+//
+//     Runtime::new(vmcalls, env_builder, storage_builder)
+// }
 
 pub fn rocksdb_contract_env_builder(contracts_path: &str) -> RocksdbContractEnv {
     let path = Path::new(contracts_path);

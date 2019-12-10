@@ -1,4 +1,5 @@
 use log::{debug, error, info};
+use std::ffi::c_void;
 
 use svm_common::{Address, State};
 use svm_contract::env::{ContractEnv, ContractEnvTypes};
@@ -6,15 +7,24 @@ use svm_contract::env::{ContractEnv, ContractEnvTypes};
 use crate::opts::Opts;
 use crate::runtime::{ContractExecError, Receipt};
 
-use svm_contract::traits::ContractStore;
 use svm_contract::{
     error::{ContractBuildError, TransactionBuildError},
+    traits::ContractStore,
     transaction::Transaction,
     wasm::Contract,
 };
 use svm_storage::{ContractPages, ContractStorage};
 
+use wasmer_runtime_core::import::IsExport;
+use wasmer_runtime_core::{func, import::Namespace, imports, Func};
+
+fn test_fn(_ctx: &mut wasmer_runtime::Ctx, a: i32) {
+    //
+}
+
 pub struct Runtime<ENV> {
+    vmcalls: Vec<(&'static str, Box<dyn IsExport + Send>)>,
+
     env_builder: Box<dyn Fn(&str) -> ENV>,
 
     storage_builder: Box<dyn Fn(Address, State, &Opts) -> ContractStorage>,
@@ -26,10 +36,12 @@ where
     ENV: ContractEnv<Types = TY>,
 {
     pub fn new(
+        vmcalls: Vec<(&'static str, Box<dyn IsExport + Send>)>,
         env_builder: Box<dyn Fn(&str) -> ENV>,
         storage_builder: Box<dyn Fn(Address, State, &Opts) -> ContractStorage>,
     ) -> Self {
         Self {
+            vmcalls,
             env_builder,
             storage_builder,
         }
@@ -213,60 +225,74 @@ where
         crate::wasmer_data_storage!(wasmer_ctx.data)
     }
 
-    // pub fn import_object_create(
-    //     &self,
-    //     addr: Address,
-    //     state: State,
-    //     node_data: *const std::ffi::c_void,
-    //     opts: opts::Opts,
-    // ) -> wasmer_runtime::ImportObject {
-    //     use crate::ctx_data_wrapper::SvmCtxDataWrapper;
-    //     use wasmer_runtime::{func, ImportObject};
-    //
-    //     debug!(
-    //         "runtime `import_object_create` address={:?}, state={:?}, opts={:?}",
-    //         addr, state, opts
-    //     );
-    //
-    //     let wrapped_pages_storage_gen =
-    //         move || crate::pages_storage_gen!(addr.clone(), state.clone(), opts.max_pages);
-    //
-    //     let wrapped_data = SvmCtxDataWrapper::new(node_data);
-    //
-    //     let state_gen = crate::lazy_create_svm_state_gen!(
-    //         wrapped_data,
-    //         wrapped_pages_storage_gen,
-    //         $page_cache_ctor,
-    //         opts
-    //     );
-    //
-    //     let mut import_object = ImportObject::new_with_data(state_gen);
-    //
-    //     let mut ns = wasmer_runtime_core::import::Namespace::new();
-    //
-    //     // storage vmcalls
-    //     ns.insert("mem_to_reg_copy", func!(vmcalls::mem_to_reg_copy));
-    //     ns.insert("reg_to_mem_copy", func!(vmcalls::reg_to_mem_copy));
-    //     ns.insert("storage_read_to_reg", func!(vmcalls::storage_read_to_reg));
-    //     ns.insert("storage_read_to_mem", func!(vmcalls::storage_read_to_mem));
-    //     ns.insert(
-    //         "storage_write_from_mem",
-    //         func!(vmcalls::storage_write_from_mem),
-    //     );
-    //     ns.insert(
-    //         "storage_write_from_reg",
-    //         func!(vmcalls::storage_write_from_reg),
-    //     );
-    //
-    //     // register vmcalls
-    //     ns.insert("reg_replace_byte", func!(vmcalls::reg_replace_byte));
-    //     ns.insert("reg_read_be_i64", func!(vmcalls::reg_read_be_i64));
-    //     ns.insert("reg_write_be_i64", func!(vmcalls::reg_write_be_i64));
-    //
-    //     import_object.register("svm", ns);
-    //
-    //     import_object
-    // }
+    pub fn import_object_create(
+        &self,
+        addr: Address,
+        state: State,
+        node_data: *const std::ffi::c_void,
+        opts: Opts,
+    ) -> wasmer_runtime::ImportObject {
+        use crate::ctx_data_wrapper::SvmCtxDataWrapper;
+        use wasmer_runtime::{func, ImportObject};
+
+        debug!(
+            "runtime `import_object_create` address={:?}, state={:?}, opts={:?}",
+            addr, state, opts
+        );
+
+        // let wrapped_pages_storage_gen =
+        //     move || crate::pages_storage_gen!(addr.clone(), state.clone(), opts.max_pages);
+        //
+        // let wrapped_data = SvmCtxDataWrapper::new(node_data);
+        //
+        // let state_gen = crate::lazy_create_svm_state_gen!(
+        //     wrapped_data,
+        //     wrapped_pages_storage_gen,
+        //     $page_cache_ctor,
+        //     opts
+        // );
+
+        let storage_builder = &self.storage_builder;
+        let storage = storage_builder(addr, state, &opts);
+
+        // let mut import_object = ImportObject::new_with_data(state_gen);
+        let mut import_object = ImportObject::new();
+
+        let mut ns = Namespace::new();
+
+        // let _import_object = imports! {
+        //     "svm" => {
+        //         "test_fn" => func!(test_fn),
+        //     },
+        // };
+
+        for (name, func) in self.vmcalls.iter() {
+            ns.insert(*name, *func);
+        }
+
+        // storage vmcalls
+        // ns.insert("mem_to_reg_copy", func!(vmcalls::mem_to_reg_copy));
+        // ns.insert("reg_to_mem_copy", func!(vmcalls::reg_to_mem_copy));
+        // ns.insert("storage_read_to_reg", func!(vmcalls::storage_read_to_reg));
+        // ns.insert("storage_read_to_mem", func!(vmcalls::storage_read_to_mem));
+        // ns.insert(
+        //     "storage_write_from_mem",
+        //     func!(vmcalls::storage_write_from_mem),
+        // );
+        // ns.insert(
+        //     "storage_write_from_reg",
+        //     func!(vmcalls::storage_write_from_reg),
+        // );
+        //
+        // // register vmcalls
+        // ns.insert("reg_replace_byte", func!(vmcalls::reg_replace_byte));
+        // ns.insert("reg_read_be_i64", func!(vmcalls::reg_read_be_i64));
+        // ns.insert("reg_write_be_i64", func!(vmcalls::reg_write_be_i64));
+
+        import_object.register("svm", ns);
+
+        import_object
+    }
 
     fn contract_load(&self, tx: &Transaction) -> Result<Contract, ContractExecError> {
         info!("runtime `contract_load`");
