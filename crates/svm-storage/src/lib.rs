@@ -8,7 +8,6 @@
 pub mod default;
 
 mod contract_pages;
-
 mod contract_storage;
 
 /// Contains definitions of `Page` related structures. For example: `Page, PageIndex` etc
@@ -16,8 +15,6 @@ pub mod page;
 
 /// Contains definitions `State`-related.
 pub mod state;
-
-pub use crate::contract_pages::ContractPages;
 
 pub use crate::contract_storage::ContractStorage;
 

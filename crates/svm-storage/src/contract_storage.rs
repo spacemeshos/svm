@@ -22,29 +22,6 @@ pub struct ContractStorage {
     page_cache: Box<dyn PageCache>,
 }
 
-impl std::fmt::Debug for ContractStorage {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        writeln!(f, "[DEBUG] PageCacheSlice")?;
-        writeln!(f, "#Allocated slices: {}", self.cached_slices.len())?;
-
-        for page_slices in self.cached_slices.values() {
-            for slice in page_slices.values() {
-                writeln!(
-                    f,
-                    "#({}, {}, {})",
-                    slice.layout.page_index().0,
-                    slice.layout.page_offset().0,
-                    slice.layout.len(),
-                )?;
-                writeln!(f, "   dirty: {}", slice.dirty)?;
-                writeln!(f, "   data: {:?}", slice.data)?;
-            }
-        }
-
-        writeln!(f)
-    }
-}
-
 impl ContractStorage {
     /// Initializes a new `ContractStorage` instance.
     ///
@@ -280,6 +257,29 @@ impl ContractStorage {
 impl Drop for ContractStorage {
     fn drop(&mut self) {
         debug!("dropping `ContractStorage`...");
+    }
+}
+
+impl std::fmt::Debug for ContractStorage {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        writeln!(f, "[DEBUG] PageCacheSlice")?;
+        writeln!(f, "#Allocated slices: {}", self.cached_slices.len())?;
+
+        for page_slices in self.cached_slices.values() {
+            for slice in page_slices.values() {
+                writeln!(
+                    f,
+                    "#({}, {}, {})",
+                    slice.layout.page_index().0,
+                    slice.layout.page_offset().0,
+                    slice.layout.len(),
+                )?;
+                writeln!(f, "   dirty: {}", slice.dirty)?;
+                writeln!(f, "   data: {:?}", slice.data)?;
+            }
+        }
+
+        writeln!(f)
     }
 }
 

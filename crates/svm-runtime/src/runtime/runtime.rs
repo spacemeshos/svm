@@ -14,18 +14,18 @@ use svm_contract::{
 };
 use svm_storage::{ContractPages, ContractStorage};
 
-pub struct Runtime<CT, ENV> {
+pub struct Runtime<CONTY, ENV> {
     env_builder: Box<dyn Fn() -> ENV>,
 
     storage_builder: Box<dyn Fn(Address, State, Opts) -> ContractStorage>,
 
-    marker: PhantomData<CT>,
+    marker: PhantomData<CONTY>,
 }
 
-impl<CT, ENV> Runtime<CT, ENV>
+impl<CONTY, ENV> Runtime<CONTY, ENV>
 where
-    CT: ContractEnvTypes,
-    ENV: ContractEnv<Types = CT>,
+    CONTY: ContractEnvTypes,
+    ENV: ContractEnv<Types = CONTY>,
 {
     pub fn new(
         env_builder: Box<dyn Fn() -> ENV>,
@@ -38,7 +38,7 @@ where
         }
     }
 
-    pub fn contract_build(&self, sbytes: &[u8]) -> Result<Contract, ContractBuildError> {
+    pub fn contract_build(&self, bytes: &[u8]) -> Result<Contract, ContractBuildError> {
         unimplemented!()
     }
 
@@ -122,7 +122,6 @@ where
     //                     }
     //                 }
     //             }
-    //
     //
     //         fn instantiate(
     //             contract: &Contract,

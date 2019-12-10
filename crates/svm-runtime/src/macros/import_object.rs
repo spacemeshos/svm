@@ -2,56 +2,62 @@ use crate::ctx::SvmCtx;
 use crate::ctx_data_wrapper::SvmCtxDataWrapper;
 use crate::opts::Opts;
 
+use svm_common::{Address, State};
 use svm_storage::traits::PageCache;
 use svm_storage::{ContractPages, ContractStorage};
 
 use std::ffi::c_void;
 
-// fn create_svm_ctx(
-//     node_data: *const c_void,
-//     storage_creator: Box<dyn Fn(Opts) -> ContractStorage>,
-//     opts: Opts,
-// ) -> *mut SvmCtx {
-//     log::trace!("create_svm_ctx...");
-//
-//     let storage = storage_creator(opts);
-//     let ctx = SvmCtx::new(SvmCtxDataWrapper::new(node_data), storage);
-//     let boxed_ctx = Box::new(ctx);
-//
-//     Box::leak(boxed_ctx) as _
-// }
-//
-// fn create_svm_state(
-//     node_data: *const c_void,
-//     storage_creator: Box<dyn Fn(Opts) -> ContractStorage>,
-//     opts: Opts,
-// ) -> (*mut c_void, fn(*mut c_void)) {
-//     use std::ffi::c_void;
-//
-//     log::trace!("create_svm_state...");
-//
-//     let ctx = create_svm_ctx(node_data, storage_creator, opts);
-//
-//     let node_data = ctx as *mut _ as *mut c_void;
-//
-//     let dtor: fn(*mut c_void) = |ctx_data| {
-//         let ctx_ptr = ctx_data as *mut SvmCtx;
-//
-//         // triggers memory releasing
-//         unsafe { Box::from_raw(ctx_ptr) };
-//     };
-//
-//     (node_data, dtor)
-// }
-//
+fn create_svm_ctx(
+    addr: Address,
+    state: State,
+    node_data: *const c_void,
+    storage_builder: Box<dyn Fn(Address, State, Opts) -> ContractStorage>,
+    opts: Opts,
+) -> *mut SvmCtx {
+    log::trace!("create_svm_ctx...");
+
+    let storage = storage_builder(addr, state, opts);
+    let ctx = SvmCtx::new(SvmCtxDataWrapper::new(node_data), storage);
+    let boxed_ctx = Box::new(ctx);
+
+    Box::leak(boxed_ctx) as _
+}
+
+fn create_svm_state(
+    addr: Address,
+    state: State,
+    node_data: *const c_void,
+    storage_builder: Box<dyn Fn(Address, State, Opts) -> ContractStorage>,
+    opts: Opts,
+) -> (*mut c_void, fn(*mut c_void)) {
+    use std::ffi::c_void;
+
+    log::trace!("create_svm_state...");
+
+    let ctx = create_svm_ctx(addr, state, node_data, storage_builder, opts);
+
+    let node_data = ctx as *mut _ as *mut _;
+
+    let dtor: fn(*mut c_void) = |ctx_data| {
+        let ctx_ptr = ctx_data as *mut SvmCtx;
+
+        // triggers memory releasing
+        unsafe { Box::from_raw(ctx_ptr) };
+    };
+
+    (node_data, dtor)
+}
+
 // fn lazy_create_svm_state_gen(
 //     node_data: *const c_void,
-//     storage_creator: Box<dyn Fn(Opts) -> ContractStorage>,
+//     storage_builder: Box<dyn Fn(Opts) -> ContractStorage>,
 //     opts: Opts,
-// ) -> dyn Fn() -> (*mut c_void, fn(*mut c_void)) {
+// ) -> Box<Fn() -> (*mut c_void, fn(*mut c_void))> + 'static + Send + Sync {
 //     log::trace!("lazy_create_svm_state_gen...");
 //
-//     move || create_svm_state(node_data, storage_creator, opts)
+//     let lazy_fn = move || create_svm_state(node_data, storage_builder, opts);
+//     Box::new(lazy_fn)
 // }
 
 /// Creates an instance of `SvmCtx` to be injected into `wasmer` context `node_data` field.
