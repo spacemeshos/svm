@@ -1,16 +1,16 @@
 use crate::default::{DefaultCodeHasher, DefaultContractAddressCompute};
 use crate::env::{ContractEnv, ContractEnvTypes};
-use crate::rocksdb::RocksContractStore;
+use crate::rocksdb::RocksdbContractStore;
 use crate::wasm::{WasmContractJsonDeserializer, WasmContractJsonSerializer};
 
-pub struct RocksEnvTypes {}
+pub struct RocksdbContractEnvTypes {}
 
-impl ContractEnvTypes for RocksEnvTypes {
+impl ContractEnvTypes for RocksdbContractEnvTypes {
     type Serializer = WasmContractJsonSerializer;
 
     type Deserializer = WasmContractJsonDeserializer;
 
-    type Store = RocksContractStore<Self::Serializer, Self::Deserializer>;
+    type Store = RocksdbContractStore<Self::Serializer, Self::Deserializer>;
 
     type AddressCompute = DefaultContractAddressCompute;
 
@@ -18,19 +18,19 @@ impl ContractEnvTypes for RocksEnvTypes {
 }
 
 /// Contract environment backed by `rocksdb` for persistence.
-pub struct RocksEnv {
-    store: <RocksEnvTypes as ContractEnvTypes>::Store,
+pub struct RocksdbEnv {
+    store: <RocksdbContractEnvTypes as ContractEnvTypes>::Store,
 }
 
-impl RocksEnv {
-    /// Creates a new `RocksEnv`. Injects externally the `ContractStore`
-    pub fn new(store: <RocksEnvTypes as ContractEnvTypes>::Store) -> Self {
+impl RocksdbEnv {
+    /// Creates a new `RocksdbEnv`. Injects externally the `ContractStore`
+    pub fn new(store: <RocksdbContractEnvTypes as ContractEnvTypes>::Store) -> Self {
         Self { store }
     }
 }
 
-impl ContractEnv for RocksEnv {
-    type Types = RocksEnvTypes;
+impl ContractEnv for RocksdbEnv {
+    type Types = RocksdbContractEnvTypes;
 
     fn get_store(&self) -> &<Self::Types as ContractEnvTypes>::Store {
         &self.store

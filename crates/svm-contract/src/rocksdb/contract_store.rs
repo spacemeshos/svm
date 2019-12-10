@@ -11,12 +11,12 @@ use svm_kv::traits::KVStore;
 
 use log::info;
 
-pub struct RocksContractStore<S, D> {
+pub struct RocksdbContractStore<S, D> {
     db: Rocksdb,
     marker: PhantomData<(S, D)>,
 }
 
-impl<S, D> RocksContractStore<S, D>
+impl<S, D> RocksdbContractStore<S, D>
 where
     S: ContractSerializer,
     D: ContractDeserializer,
@@ -29,7 +29,7 @@ where
     }
 }
 
-impl<S, D> ContractStore<S, D> for RocksContractStore<S, D>
+impl<S, D> ContractStore<S, D> for RocksdbContractStore<S, D>
 where
     S: ContractSerializer,
     D: ContractDeserializer,

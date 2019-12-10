@@ -27,21 +27,21 @@ macro_rules! gen_rocksdb_page_cache {
     }};
 }
 
-/// Generates an environment instance of type `RocksEnv`
+/// Generates an environment instance of type `RocksdbEnv`
 #[macro_export]
 macro_rules! gen_rocksdb_env {
     ($code_db_path: expr) => {{
         use std::path::Path;
-        use svm_contract::rocksdb::{RocksContractStore, RocksEnv};
+        use svm_contract::rocksdb::{RocksdbContractStore, RocksdbEnv};
 
         use svm_contract::wasm::{
             WasmContractJsonDeserializer as D, WasmContractJsonSerializer as S,
         };
 
         let path = Path::new($code_db_path);
-        let store = RocksContractStore::<S, D>::new(path);
+        let store = RocksdbContractStore::<S, D>::new(path);
 
-        RocksEnv::new(store)
+        RocksdbEnv::new(store)
     }};
 }
 
@@ -57,7 +57,7 @@ macro_rules! include_svm_rocksdb_runtime {
                 $contract_storage_path
             ),
             |pages_storage, max_pages| $crate::gen_rocksdb_page_cache!(pages_storage, max_pages),
-            svm_contract::rocksdb::RocksEnv,
+            svm_contract::rocksdb::RocksdbEnv,
             || $crate::gen_rocksdb_env!($code_db_path)
         );
     };

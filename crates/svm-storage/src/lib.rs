@@ -16,6 +16,7 @@ pub mod page;
 /// Contains definitions `State`-related.
 pub mod state;
 
+pub use crate::contract_pages::ContractPages;
 pub use crate::contract_storage::ContractStorage;
 
 /// Storage related traits
