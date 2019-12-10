@@ -1,5 +1,4 @@
 use log::{debug, error};
-use std::marker::PhantomData;
 
 use svm_common::{Address, State};
 use svm_contract::env::{ContractEnv, ContractEnvTypes};
@@ -14,27 +13,24 @@ use svm_contract::{
 };
 use svm_storage::{ContractPages, ContractStorage};
 
-pub struct Runtime<CONTY, ENV> {
-    env_builder: Box<dyn Fn() -> ENV>,
+pub struct Runtime<ENV> {
+    env_builder: Box<dyn Fn(&str) -> ENV>,
 
-    storage_builder: Box<dyn Fn(Address, State, Opts) -> ContractStorage>,
-
-    marker: PhantomData<CONTY>,
+    storage_builder: Box<dyn Fn(Address, State, &Opts) -> ContractStorage>,
 }
 
-impl<CONTY, ENV> Runtime<CONTY, ENV>
+impl<TY, ENV> Runtime<ENV>
 where
-    CONTY: ContractEnvTypes,
-    ENV: ContractEnv<Types = CONTY>,
+    TY: ContractEnvTypes,
+    ENV: ContractEnv<Types = TY>,
 {
     pub fn new(
-        env_builder: Box<dyn Fn() -> ENV>,
-        storage_builder: Box<dyn Fn(Address, State, Opts) -> ContractStorage>,
+        env_builder: Box<dyn Fn(&str) -> ENV>,
+        storage_builder: Box<dyn Fn(Address, State, &Opts) -> ContractStorage>,
     ) -> Self {
         Self {
             env_builder,
             storage_builder,
-            marker: PhantomData,
         }
     }
 
@@ -63,7 +59,7 @@ where
         debug!("runtime `contract_store`");
 
         let env_builder = &self.env_builder;
-        let mut env = env_builder();
+        let mut env = env_builder("..");
         env.store_contract(contract, addr);
     }
 

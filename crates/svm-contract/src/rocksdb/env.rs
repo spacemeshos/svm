@@ -17,19 +17,19 @@ impl ContractEnvTypes for RocksdbContractEnvTypes {
     type CodeHasher = DefaultCodeHasher;
 }
 
-/// Contract environment backed by `rocksdb` for persistence.
-pub struct RocksdbEnv {
+/// Contract environment backed-by `rocksdb`
+pub struct RocksdbContractEnv {
     store: <RocksdbContractEnvTypes as ContractEnvTypes>::Store,
 }
 
-impl RocksdbEnv {
-    /// Creates a new `RocksdbEnv`. Injects externally the `ContractStore`
+impl RocksdbContractEnv {
+    /// Creates a new `RocksdbContractEnv`. Injects externally the `ContractStore`
     pub fn new(store: <RocksdbContractEnvTypes as ContractEnvTypes>::Store) -> Self {
         Self { store }
     }
 }
 
-impl ContractEnv for RocksdbEnv {
+impl ContractEnv for RocksdbContractEnv {
     type Types = RocksdbContractEnvTypes;
 
     fn get_store(&self) -> &<Self::Types as ContractEnvTypes>::Store {

@@ -2,4 +2,4 @@ mod contract_store;
 mod env;
 
 pub use contract_store::RocksdbContractStore;
-pub use env::RocksdbEnv;
+pub use env::RocksdbContractEnv;
