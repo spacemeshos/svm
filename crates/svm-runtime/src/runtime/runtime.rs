@@ -4,6 +4,8 @@ use std::ffi::c_void;
 use svm_common::{Address, State};
 use svm_contract::env::{ContractEnv, ContractEnvTypes};
 
+use crate::ctx::SvmCtx;
+use crate::ctx_data_wrapper::SvmCtxDataWrapper;
 use crate::opts::Opts;
 use crate::runtime::{ContractExecError, Receipt};
 use crate::vmcalls;
@@ -16,8 +18,7 @@ use svm_contract::{
 };
 use svm_storage::{ContractPages, ContractStorage};
 
-use wasmer_runtime_core::import::IsExport;
-use wasmer_runtime_core::{func, import::Namespace, imports, Func};
+use wasmer_runtime_core::{func, import::ImportObject, import::Namespace};
 
 fn test_fn(_ctx: &mut wasmer_runtime::Ctx, a: i32) {
     //
@@ -229,31 +230,34 @@ where
         node_data: *const std::ffi::c_void,
         opts: Opts,
     ) -> wasmer_runtime::ImportObject {
-        use crate::ctx_data_wrapper::SvmCtxDataWrapper;
-        use wasmer_runtime::{func, ImportObject};
-
         debug!(
             "runtime `import_object_create` address={:?}, state={:?}, opts={:?}",
             addr, state, opts
         );
 
-        // let wrapped_pages_storage_gen =
-        //     move || crate::pages_storage_gen!(addr.clone(), state.clone(), opts.max_pages);
-        //
-        // let wrapped_data = SvmCtxDataWrapper::new(node_data);
-        //
-        // let state_gen = crate::lazy_create_svm_state_gen!(
-        //     wrapped_data,
-        //     wrapped_pages_storage_gen,
-        //     $page_cache_ctor,
-        //     opts
-        // );
+        // let state_creator = crate::macros::create_svm_ctx(addr, state,, node_data,
 
         let storage_builder = &self.storage_builder;
         let storage = storage_builder(addr, state, &opts);
 
-        // let mut import_object = ImportObject::new_with_data(state_gen);
-        let mut import_object = ImportObject::new();
+        let ctx = SvmCtx::new(SvmCtxDataWrapper::new(node_data), storage);
+        let boxed_ctx = Box::new(ctx);
+        let ctx: &SvmCtx = Box::leak(boxed_ctx) as _;
+
+        let state_creator = move || {
+            let node_data: *mut c_void = ctx as *const SvmCtx as *mut SvmCtx as *mut c_void;
+            let dtor: fn(*mut c_void) = |ctx_data| {
+                let ctx_ptr = ctx_data as *mut SvmCtx;
+
+                // triggers memory releasing
+                unsafe { Box::from_raw(ctx_ptr) };
+            };
+
+            (node_data, dtor)
+        };
+
+        let mut import_object = ImportObject::new_with_data(state_creator);
+        // let mut import_object = ImportObject::new();
 
         let mut ns = Namespace::new();
 
