@@ -1,3 +1,6 @@
+use svm_storage::page::{PageIndex, PageOffset, PageSliceLayout};
+use svm_storage::ContractStorage;
+
 /// Copies the contents of `wasmer` memory cells under addresses:
 /// `src_mem_ptr, src_mem_ptr + 1, .. , src_mem_ptr + len (exclusive)`
 /// into `wasmer` register indexed `dst_reg`
@@ -16,7 +19,7 @@ pub fn mem_to_reg_copy(
     dst_reg_bits: i32,
     dst_reg_idx: i32,
 ) {
-    let cells = crate::wasmer_ctx_mem_cells!(ctx, src_mem_idx, src_mem_ptr, len);
+    let cells = crate::macros::wasmer_ctx_mem_cells_get(ctx, src_mem_idx, src_mem_ptr, len);
     let reg = crate::macros::wasmer_data_reg(ctx.data, dst_reg_bits, dst_reg_idx);
     reg.copy_from_wasmer_mem(cells);
 }
@@ -39,8 +42,8 @@ pub fn reg_to_mem_copy(
     dst_mem_idx: i32,
     dst_mem_ptr: i32,
 ) {
+    let cells = crate::macros::wasmer_ctx_mem_cells_get(ctx, dst_mem_idx, dst_mem_ptr, len);
     let reg = crate::macros::wasmer_data_reg(ctx.data, src_reg_bits, src_reg_idx);
-    let cells = crate::wasmer_ctx_mem_cells!(ctx, dst_mem_idx, dst_mem_ptr, len);
     reg.copy_to_wasmer_mem(cells);
 }
 
@@ -60,11 +63,10 @@ pub fn storage_read_to_reg(
     dst_reg_bits: i32,
     dst_reg_idx: i32,
 ) {
+    let mut storage = crate::macros::wasmer_data_storage(ctx.data);
+    let slice = storage_read_page_slice(&mut storage, page, offset, len);
+
     let reg = crate::macros::wasmer_data_reg(ctx.data, dst_reg_bits, dst_reg_idx);
-    let storage = crate::macros::wasmer_data_storage(ctx.data);
-
-    let slice = crate::svm_read_page_slice!(storage, page as u32, offset as u32, len as u32);
-
     reg.set(&slice);
 }
 
@@ -84,9 +86,8 @@ pub fn storage_read_to_mem(
     dst_mem_idx: i32,
     dst_mem_ptr: i32,
 ) {
-    let storage = crate::macros::wasmer_data_storage(ctx.data);
-
-    let mut slice = crate::svm_read_page_slice!(storage, page as u32, offset as u32, len as u32);
+    let mut storage = crate::macros::wasmer_data_storage(ctx.data);
+    let mut slice = storage_read_page_slice(&mut storage, page, offset, len);
 
     if slice.len() == 0 {
         // slice is empty, i.e it doesn't really exist
@@ -113,17 +114,11 @@ pub fn storage_write_from_mem(
     dst_page: i32,
     dst_offset: i32,
 ) {
-    let cells = crate::wasmer_ctx_mem_cells!(ctx, src_mem_idx, src_mem_ptr, len);
+    let cells = crate::macros::wasmer_ctx_mem_cells_get(ctx, src_mem_idx, src_mem_ptr, len);
     let data = cells.iter().map(|cell| cell.get()).collect::<Vec<u8>>();
     let storage = crate::macros::wasmer_data_storage(ctx.data);
 
-    let slice = crate::svm_write_page_slice!(
-        storage,
-        dst_page as u32,
-        dst_offset as u32,
-        len as u32,
-        &data
-    );
+    storage_write_page_slice(storage, dst_page, dst_offset, len, &data);
 }
 
 /// Writes into `svm` storage, a page-slice copied from `svm wasmer` register
@@ -146,11 +141,38 @@ pub fn storage_write_from_reg(
     let storage = crate::macros::wasmer_data_storage(ctx.data);
     let data = reg.getn(len as usize);
 
-    let slice = crate::svm_write_page_slice!(
-        storage,
-        dst_page as u32,
-        dst_offset as u32,
+    storage_write_page_slice(storage, dst_page, dst_offset, len, &data);
+}
+
+fn storage_read_page_slice(
+    storage: &mut ContractStorage,
+    page: i32,
+    offset: i32,
+    len: i32,
+) -> Vec<u8> {
+    let layout = page_slice_layout(page, offset, len);
+    storage.read_page_slice(&layout)
+}
+
+fn storage_write_page_slice(
+    storage: &mut ContractStorage,
+    page: i32,
+    offset: i32,
+    len: i32,
+    data: &[u8],
+) {
+    let layout = page_slice_layout(page, offset, len);
+    storage.write_page_slice(&layout, data);
+}
+
+fn page_slice_layout(page: i32, offset: i32, len: i32) -> PageSliceLayout {
+    assert!(page >= 0);
+    assert!(offset >= 0);
+    assert!(len > 0);
+
+    PageSliceLayout::new(
+        PageIndex(page as u32),
+        PageOffset(offset as u32),
         len as u32,
-        &data
-    );
+    )
 }

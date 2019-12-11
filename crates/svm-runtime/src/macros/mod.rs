@@ -14,6 +14,7 @@ mod ctx;
 mod import_object;
 
 pub use import_object::{cast_wasmer_data_to_svm_ctx, create_svm_ctx};
+pub use memory::wasmer_ctx_mem_cells_get;
 pub use register::{wasmer_ctx_reg, wasmer_data_reg};
 pub use storage::wasmer_data_storage;
 
