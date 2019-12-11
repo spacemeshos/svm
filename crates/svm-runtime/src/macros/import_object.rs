@@ -23,3 +23,8 @@ pub fn create_svm_ctx<'a>(
 
     Box::leak(boxed_ctx)
 }
+
+#[inline(always)]
+pub fn cast_wasmer_data_to_svm_ctx<'a>(data: *const c_void) -> &'a mut SvmCtx {
+    unsafe { &mut *(data as *mut SvmCtx) }
+}

@@ -212,7 +212,7 @@ where
         instance: &mut wasmer_runtime::Instance,
     ) -> &mut svm_storage::ContractStorage {
         let wasmer_ctx: &mut wasmer_runtime::Ctx = instance.context_mut();
-        crate::wasmer_data_storage!(wasmer_ctx.data)
+        crate::macros::wasmer_data_storage(wasmer_ctx.data)
     }
 
     pub fn import_object_create(

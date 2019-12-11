@@ -1,41 +1,13 @@
 use crate::ctx::SvmCtx;
 use std::ffi::c_void;
 
+/// Extracts from `wasmer` instance context `data` (type: `SvmCtx`) the `node_data` field (type: `*const c_void`)
 #[inline(always)]
-fn cast_wasmer_data_to_svm_ctx(data: *const c_void) -> *mut SvmCtx {
-    data as _
-}
-
-#[inline(always)]
-fn wasmer_data_node_data(data: *const c_void) -> *const c_void {
-    let ctx = cast_wasmer_data_to_svm_ctx(data);
+pub(crate) fn wasmer_data_node_data(data: *const c_void) -> *const c_void {
+    let ctx: *mut SvmCtx = data as _;
     let ctx: &mut SvmCtx = unsafe { &mut *ctx };
 
     ctx.node_data
-}
-
-/// Casts a `wasmer` instance's `data` field (of type: `c_void`) into `SvmContext`
-#[macro_export]
-macro_rules! cast_wasmer_data_to_svm_ctx {
-    ($data: expr) => {{
-        use $crate::ctx::SvmCtx;
-
-        let ctx_ptr = $data as *mut SvmCtx;
-        let ctx: &mut SvmCtx = unsafe { &mut *ctx_ptr };
-
-        ctx
-    }};
-}
-
-/// Extracts from `wasmer` instance context `data` (type: `SvmCtx`) the `node_data` field (type: `*const c_void`)
-#[macro_export]
-macro_rules! wasmer_data_node_data {
-    ($data: expr) => {{
-        use $crate::ctx::SvmCtx;
-        let ctx: &mut SvmCtx = $crate::cast_wasmer_data_to_svm_ctx!($data);
-
-        ctx.node_data
-    }};
 }
 
 /// Allocates registers. This macro is called at `SvmCtx` ctor.

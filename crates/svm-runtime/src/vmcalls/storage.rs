@@ -17,7 +17,7 @@ pub fn mem_to_reg_copy(
     dst_reg_idx: i32,
 ) {
     let cells = crate::wasmer_ctx_mem_cells!(ctx, src_mem_idx, src_mem_ptr, len);
-    let reg = crate::wasmer_data_reg!(ctx.data, dst_reg_bits, dst_reg_idx);
+    let reg = crate::macros::wasmer_data_reg(ctx.data, dst_reg_bits, dst_reg_idx);
     reg.copy_from_wasmer_mem(cells);
 }
 
@@ -39,7 +39,7 @@ pub fn reg_to_mem_copy(
     dst_mem_idx: i32,
     dst_mem_ptr: i32,
 ) {
-    let reg = crate::wasmer_data_reg!(ctx.data, src_reg_bits, src_reg_idx);
+    let reg = crate::macros::wasmer_data_reg(ctx.data, src_reg_bits, src_reg_idx);
     let cells = crate::wasmer_ctx_mem_cells!(ctx, dst_mem_idx, dst_mem_ptr, len);
     reg.copy_to_wasmer_mem(cells);
 }
@@ -60,8 +60,8 @@ pub fn storage_read_to_reg(
     dst_reg_bits: i32,
     dst_reg_idx: i32,
 ) {
-    let reg = crate::wasmer_data_reg!(ctx.data, dst_reg_bits, dst_reg_idx);
-    let storage = crate::wasmer_data_storage!(ctx.data);
+    let reg = crate::macros::wasmer_data_reg(ctx.data, dst_reg_bits, dst_reg_idx);
+    let storage = crate::macros::wasmer_data_storage(ctx.data);
 
     let slice = crate::svm_read_page_slice!(storage, page as u32, offset as u32, len as u32);
 
@@ -84,7 +84,7 @@ pub fn storage_read_to_mem(
     dst_mem_idx: i32,
     dst_mem_ptr: i32,
 ) {
-    let storage = crate::wasmer_data_storage!(ctx.data);
+    let storage = crate::macros::wasmer_data_storage(ctx.data);
 
     let mut slice = crate::svm_read_page_slice!(storage, page as u32, offset as u32, len as u32);
 
@@ -115,7 +115,7 @@ pub fn storage_write_from_mem(
 ) {
     let cells = crate::wasmer_ctx_mem_cells!(ctx, src_mem_idx, src_mem_ptr, len);
     let data = cells.iter().map(|cell| cell.get()).collect::<Vec<u8>>();
-    let storage = crate::wasmer_data_storage!(ctx.data);
+    let storage = crate::macros::wasmer_data_storage(ctx.data);
 
     let slice = crate::svm_write_page_slice!(
         storage,
@@ -142,8 +142,8 @@ pub fn storage_write_from_reg(
     dst_page: i32,
     dst_offset: i32,
 ) {
-    let reg = crate::wasmer_data_reg!(ctx.data, src_reg_bits, src_reg_idx);
-    let storage = crate::wasmer_data_storage!(ctx.data);
+    let reg = crate::macros::wasmer_data_reg(ctx.data, src_reg_bits, src_reg_idx);
+    let storage = crate::macros::wasmer_data_storage(ctx.data);
     let data = reg.getn(len as usize);
 
     let slice = crate::svm_write_page_slice!(

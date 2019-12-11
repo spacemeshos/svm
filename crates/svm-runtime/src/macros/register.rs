@@ -1,3 +1,10 @@
+use std::ffi::c_void;
+
+use crate::ctx::SvmCtx;
+use crate::register::SvmReg;
+
+use wasmer_runtime_core::vm::Ctx;
+
 /// Given regiser bits count, returns the number of allocated registers of that type
 /// (constants are defined at `ctx.rs`)
 #[macro_export]
@@ -50,29 +57,24 @@ macro_rules! svm_regs_reg {
 
 /// Extracts from `wasmer` instance context data field (of type `*mut c_void`), a mutable borrow for the register indexed `reg_idx`.
 #[macro_export]
-macro_rules! wasmer_data_reg {
-    ($data: expr, $bits_count: expr, $reg_idx: expr) => {{
-        $crate::wasmer_data_ensure_reg_idx!($bits_count, $reg_idx);
+pub fn wasmer_data_reg<'a>(data: *const c_void, bits_count: i32, reg_idx: i32) -> &'a mut SvmReg {
+    crate::wasmer_data_ensure_reg_idx!(bits_count, reg_idx);
 
-        use $crate::ctx::SvmCtx;
-        let ctx: &mut SvmCtx = $crate::cast_wasmer_data_to_svm_ctx!($data);
+    let ctx: &mut SvmCtx = crate::macros::cast_wasmer_data_to_svm_ctx(data);
 
-        match $bits_count {
-            32 => $crate::svm_regs_reg!(ctx.regs_32, 32, $reg_idx),
-            64 => $crate::svm_regs_reg!(ctx.regs_64, 64, $reg_idx),
-            160 => $crate::svm_regs_reg!(ctx.regs_160, 160, $reg_idx),
-            256 => $crate::svm_regs_reg!(ctx.regs_256, 256, $reg_idx),
-            512 => $crate::svm_regs_reg!(ctx.regs_512, 512, $reg_idx),
-            _ => unreachable!(),
-        }
-    }};
+    match bits_count {
+        32 => crate::svm_regs_reg!(ctx.regs_32, 32, reg_idx),
+        64 => crate::svm_regs_reg!(ctx.regs_64, 64, reg_idx),
+        160 => crate::svm_regs_reg!(ctx.regs_160, 160, reg_idx),
+        256 => crate::svm_regs_reg!(ctx.regs_256, 256, reg_idx),
+        512 => crate::svm_regs_reg!(ctx.regs_512, 512, reg_idx),
+        _ => unreachable!(),
+    }
 }
 
 /// Extracts from `wasmer` instance context (type: `Ctx`) a mutable borrow for the register indexed `reg_idx`.
 /// Will be used by storage vmcalls.
-#[macro_export]
-macro_rules! wasmer_ctx_reg {
-    ($ctx: expr, $bits_count: expr, $reg_idx: expr) => {{
-        $crate::wasmer_data_reg!($ctx.data, $bits_count, $reg_idx)
-    }};
+#[inline(always)]
+pub fn wasmer_ctx_reg(ctx: &mut Ctx, bits_count: i32, reg_idx: i32) -> &mut SvmReg {
+    wasmer_data_reg(ctx.data, bits_count, reg_idx)
 }
