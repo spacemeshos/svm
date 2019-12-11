@@ -20,10 +20,6 @@ use svm_storage::{ContractPages, ContractStorage};
 
 use wasmer_runtime_core::{func, import::ImportObject, import::Namespace};
 
-fn test_fn(_ctx: &mut wasmer_runtime::Ctx, a: i32) {
-    //
-}
-
 pub struct Runtime<ENV> {
     env_builder: Box<dyn Fn(&str) -> ENV>,
 

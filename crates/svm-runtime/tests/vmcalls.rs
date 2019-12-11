@@ -5,8 +5,6 @@ use svm_storage::page::{PageIndex, PageOffset, PageSliceLayout};
 
 use wasmer_runtime::{func, imports, Func};
 
-svm_runtime::include_svm_vmcalls!();
-
 macro_rules! compile {
     ($wasm:expr) => {{
         let wasm = wabt::wat2wasm(&$wasm).unwrap();
