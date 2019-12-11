@@ -6,6 +6,7 @@ use svm_contract::env::{ContractEnv, ContractEnvTypes};
 
 use crate::opts::Opts;
 use crate::runtime::{ContractExecError, Receipt};
+use crate::vmcalls;
 
 use svm_contract::{
     error::{ContractBuildError, TransactionBuildError},
@@ -23,8 +24,6 @@ fn test_fn(_ctx: &mut wasmer_runtime::Ctx, a: i32) {
 }
 
 pub struct Runtime<ENV> {
-    vmcalls: Vec<(&'static str, Box<dyn IsExport + Send>)>,
-
     env_builder: Box<dyn Fn(&str) -> ENV>,
 
     storage_builder: Box<dyn Fn(Address, State, &Opts) -> ContractStorage>,
@@ -36,12 +35,10 @@ where
     ENV: ContractEnv<Types = TY>,
 {
     pub fn new(
-        vmcalls: Vec<(&'static str, Box<dyn IsExport + Send>)>,
         env_builder: Box<dyn Fn(&str) -> ENV>,
         storage_builder: Box<dyn Fn(Address, State, &Opts) -> ContractStorage>,
     ) -> Self {
         Self {
-            vmcalls,
             env_builder,
             storage_builder,
         }
@@ -260,34 +257,24 @@ where
 
         let mut ns = Namespace::new();
 
-        // let _import_object = imports! {
-        //     "svm" => {
-        //         "test_fn" => func!(test_fn),
-        //     },
-        // };
-
-        for (name, func) in self.vmcalls.iter() {
-            ns.insert(*name, *func);
-        }
-
         // storage vmcalls
-        // ns.insert("mem_to_reg_copy", func!(vmcalls::mem_to_reg_copy));
-        // ns.insert("reg_to_mem_copy", func!(vmcalls::reg_to_mem_copy));
-        // ns.insert("storage_read_to_reg", func!(vmcalls::storage_read_to_reg));
-        // ns.insert("storage_read_to_mem", func!(vmcalls::storage_read_to_mem));
-        // ns.insert(
-        //     "storage_write_from_mem",
-        //     func!(vmcalls::storage_write_from_mem),
-        // );
-        // ns.insert(
-        //     "storage_write_from_reg",
-        //     func!(vmcalls::storage_write_from_reg),
-        // );
-        //
-        // // register vmcalls
-        // ns.insert("reg_replace_byte", func!(vmcalls::reg_replace_byte));
-        // ns.insert("reg_read_be_i64", func!(vmcalls::reg_read_be_i64));
-        // ns.insert("reg_write_be_i64", func!(vmcalls::reg_write_be_i64));
+        ns.insert("mem_to_reg_copy", func!(vmcalls::mem_to_reg_copy));
+        ns.insert("reg_to_mem_copy", func!(vmcalls::reg_to_mem_copy));
+        ns.insert("storage_read_to_reg", func!(vmcalls::storage_read_to_reg));
+        ns.insert("storage_read_to_mem", func!(vmcalls::storage_read_to_mem));
+        ns.insert(
+            "storage_write_from_mem",
+            func!(vmcalls::storage_write_from_mem),
+        );
+        ns.insert(
+            "storage_write_from_reg",
+            func!(vmcalls::storage_write_from_reg),
+        );
+
+        // register vmcalls
+        ns.insert("reg_replace_byte", func!(vmcalls::reg_replace_byte));
+        ns.insert("reg_read_be_i64", func!(vmcalls::reg_read_be_i64));
+        ns.insert("reg_write_be_i64", func!(vmcalls::reg_write_be_i64));
 
         import_object.register("svm", ns);
 

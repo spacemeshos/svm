@@ -1,7 +1,7 @@
 #![allow(missing_docs)]
 #![allow(unused)]
 
-//! `SVM-runtime` crate is the glue between `` cMVSonstract-storage to `wasmer` live instances.
+//! `SVM-runtime` crate is the glue between `SVM` to `wasmer`.
 
 /// Implements the most high-level API of `SVM`.
 #[macro_use]
@@ -22,7 +22,6 @@ pub mod register;
 pub mod macros;
 
 /// Implements the `SVM` vmcalls (a.k.a libcalls / hostcalls / syscalls)
-/// to be injected into `wasmer` instances running in the `SVM`.
 pub mod vmcalls;
 
 /// Options when spawning a new `SVM` runtime instance
