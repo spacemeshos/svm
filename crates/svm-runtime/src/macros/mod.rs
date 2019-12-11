@@ -13,6 +13,8 @@ mod ctx;
 #[macro_use]
 mod import_object;
 
+pub use import_object::create_svm_ctx;
+
 #[cfg(test)]
 mod tests {
     use crate::ctx::SvmCtx;

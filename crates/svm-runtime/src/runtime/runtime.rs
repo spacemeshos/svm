@@ -81,11 +81,7 @@ where
         <ENV as ContractEnv>::build_transaction(bytes)
     }
 
-    pub fn contract_exec(
-        &self,
-        tx: Transaction,
-        import_object: &wasmer_runtime::ImportObject,
-    ) -> Receipt {
+    pub fn contract_exec(&self, tx: Transaction, import_object: &ImportObject) -> Receipt {
         debug!("runtime `contract_exec`");
 
         let receipt = match self.do_contract_exec(&tx, import_object) {
@@ -114,7 +110,7 @@ where
     fn do_contract_exec(
         &self,
         tx: &Transaction,
-        import_object: &wasmer_runtime::ImportObject,
+        import_object: &ImportObject,
     ) -> Result<(State, Vec<wasmer_runtime::Value>), ContractExecError> {
         let contract = self.contract_load(tx)?;
         let module = self.contract_compile(&contract, &tx.contract)?;
@@ -137,7 +133,7 @@ where
         contract: &Contract,
         addr: &Address,
         module: &wasmer_runtime::Module,
-        import_object: &wasmer_runtime::ImportObject,
+        import_object: &ImportObject,
     ) -> Result<wasmer_runtime::Instance, ContractExecError> {
         info!("runtime `instantiate` (wasmer module instantiate)");
 
@@ -227,25 +223,20 @@ where
         &self,
         addr: Address,
         state: State,
-        node_data: *const std::ffi::c_void,
+        node_data: *const c_void,
         opts: Opts,
-    ) -> wasmer_runtime::ImportObject {
+    ) -> ImportObject {
         debug!(
             "runtime `import_object_create` address={:?}, state={:?}, opts={:?}",
             addr, state, opts
         );
 
-        // let state_creator = crate::macros::create_svm_ctx(addr, state,, node_data,
-
-        let storage_builder = &self.storage_builder;
-        let storage = storage_builder(addr, state, &opts);
-
-        let ctx = SvmCtx::new(SvmCtxDataWrapper::new(node_data), storage);
-        let boxed_ctx = Box::new(ctx);
-        let ctx: &SvmCtx = Box::leak(boxed_ctx) as _;
+        let ctx =
+            crate::macros::create_svm_ctx(addr, state, node_data, &self.storage_builder, &opts);
 
         let state_creator = move || {
-            let node_data: *mut c_void = ctx as *const SvmCtx as *mut SvmCtx as *mut c_void;
+            let node_data: *mut c_void = ctx as *const SvmCtx as *mut SvmCtx as _;
+
             let dtor: fn(*mut c_void) = |ctx_data| {
                 let ctx_ptr = ctx_data as *mut SvmCtx;
 
@@ -257,28 +248,9 @@ where
         };
 
         let mut import_object = ImportObject::new_with_data(state_creator);
-        // let mut import_object = ImportObject::new();
-
         let mut ns = Namespace::new();
 
-        // storage vmcalls
-        ns.insert("mem_to_reg_copy", func!(vmcalls::mem_to_reg_copy));
-        ns.insert("reg_to_mem_copy", func!(vmcalls::reg_to_mem_copy));
-        ns.insert("storage_read_to_reg", func!(vmcalls::storage_read_to_reg));
-        ns.insert("storage_read_to_mem", func!(vmcalls::storage_read_to_mem));
-        ns.insert(
-            "storage_write_from_mem",
-            func!(vmcalls::storage_write_from_mem),
-        );
-        ns.insert(
-            "storage_write_from_reg",
-            func!(vmcalls::storage_write_from_reg),
-        );
-
-        // register vmcalls
-        ns.insert("reg_replace_byte", func!(vmcalls::reg_replace_byte));
-        ns.insert("reg_read_be_i64", func!(vmcalls::reg_read_be_i64));
-        ns.insert("reg_write_be_i64", func!(vmcalls::reg_write_be_i64));
+        vmcalls::insert_vmcalls(&mut ns);
 
         import_object.register("svm", ns);
 
