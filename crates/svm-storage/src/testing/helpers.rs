@@ -4,10 +4,10 @@ use std::rc::Rc;
 use svm_common::{Address, DefaultKeyHasher, KeyHasher, State};
 use svm_kv::memory::MemKVStore;
 
-use crate::default::{DefaultPageHasher, DefaultPageIndexHasher};
+use crate::default::{DefaultPageCache, DefaultPageHasher, DefaultPageIndexHasher};
 use crate::memory::MemContractPages;
 use crate::page::{PageHash, PageIndex};
-use crate::traits::{PageHasher, PageIndexHasher};
+use crate::traits::{PageCache, PageHasher, PageIndexHasher};
 
 pub fn concat_pages_hash(pages_hash: &[PageHash]) -> Vec<u8> {
     let mut res = Vec::new();
@@ -51,6 +51,21 @@ pub fn contract_pages_open(
     pages_count: u32,
 ) -> MemContractPages {
     MemContractPages::new(addr.clone(), Rc::clone(&kv), state.clone(), pages_count)
+}
+
+pub fn contract_page_cache_init(
+    addr: u32,
+    pages_count: u32,
+) -> (
+    Address,
+    Rc<RefCell<MemKVStore>>,
+    DefaultPageCache<MemContractPages>,
+) {
+    let (addr, kv, pages) = contract_pages_init(addr, pages_count);
+
+    let cache = DefaultPageCache::new(pages, pages_count as usize);
+
+    (addr, kv, cache)
 }
 
 /// An helper for computing a page default hash using `DefaultPageIndexHasher`

@@ -1,11 +1,7 @@
 extern crate svm_storage;
 
-use std::cell::RefCell;
-use std::rc::Rc;
+use svm_common::State;
 
-use svm_common::{Address, State};
-
-use svm_kv::memory::MemKVStore;
 use svm_kv::traits::KVStore;
 
 use svm_storage::page::{zero_page, PageIndex};
@@ -57,7 +53,7 @@ macro_rules! assert_same_keys {
 }
 
 #[test]
-fn first_time_run_with_no_modifications_no_commit() {
+fn contract_pages_first_time_run_with_no_modifications_no_commit() {
     let pages_count = 3;
     let addr = 0x11_22_33_44;
 
@@ -69,7 +65,7 @@ fn first_time_run_with_no_modifications_no_commit() {
 }
 
 #[test]
-fn first_time_run_with_no_modifications_then_commit() {
+fn contract_pages_first_time_run_with_no_modifications_then_commit() {
     let pages_count = 3;
     let addr = 0x11_22_33_44;
 
@@ -101,7 +97,7 @@ fn first_time_run_with_no_modifications_then_commit() {
 }
 
 #[test]
-fn first_time_run_with_one_modified_page() {
+fn contract_pages_first_time_run_with_one_modified_page() {
     let pages_count = 3;
     let addr = 0x11_22_33_44;
 
@@ -135,7 +131,7 @@ fn first_time_run_with_one_modified_page() {
 }
 
 #[test]
-fn first_time_run_with_two_modified_pages() {
+fn contract_pages_first_time_run_with_two_modified_pages() {
     let pages_count = 2;
     let addr = 0x11_22_33_44;
 
@@ -163,7 +159,7 @@ fn first_time_run_with_two_modified_pages() {
 }
 
 #[test]
-fn second_run_after_first_run_with_no_modifications() {
+fn contract_pages_second_run_after_first_run_with_no_modifications() {
     // 1st run
     let pages_count = 3;
     let addr = 0x11_22_33_44;
@@ -200,7 +196,7 @@ fn second_run_after_first_run_with_no_modifications() {
 }
 
 #[test]
-fn second_run_after_first_run_with_modifications() {
+fn contract_pages_second_run_after_first_run_with_modifications() {
     // 1st run
     let pages_count = 3;
     let addr = 0x11_22_33_44;
@@ -245,7 +241,7 @@ fn second_run_after_first_run_with_modifications() {
 }
 
 #[test]
-fn third_run_rollbacks_to_after_first_run() {
+fn contract_pages_third_run_rollbacks_to_after_first_run() {
     // 1st run
     let pages_count = 3;
     let addr = 0x11_22_33_44;

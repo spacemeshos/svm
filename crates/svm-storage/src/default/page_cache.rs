@@ -64,8 +64,7 @@ impl<PS: StateAwarePagesStorage> DefaultPageCache<PS> {
         }
     }
 
-    #[cfg(test)]
-    fn is_dirty(&self, page_idx: usize) -> bool {
+    pub fn is_dirty(&self, page_idx: usize) -> bool {
         self.dirty_pages[page_idx]
     }
 }
