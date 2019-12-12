@@ -6,6 +6,7 @@ use svm_contract::env::{ContractEnv, ContractEnvTypes};
 
 use crate::ctx::SvmCtx;
 use crate::ctx_data_wrapper::SvmCtxDataWrapper;
+use crate::helpers;
 use crate::opts::Opts;
 use crate::runtime::{ContractExecError, Receipt};
 use crate::vmcalls;
@@ -212,7 +213,7 @@ where
         instance: &mut wasmer_runtime::Instance,
     ) -> &mut svm_storage::ContractStorage {
         let wasmer_ctx: &mut wasmer_runtime::Ctx = instance.context_mut();
-        crate::macros::wasmer_data_storage(wasmer_ctx.data)
+        helpers::wasmer_data_storage(wasmer_ctx.data)
     }
 
     pub fn import_object_create(
@@ -227,8 +228,7 @@ where
             addr, state, opts
         );
 
-        let ctx =
-            crate::macros::create_svm_ctx(addr, state, node_data, &self.storage_builder, &opts);
+        let ctx = helpers::create_svm_ctx(addr, state, node_data, &self.storage_builder, &opts);
 
         let state_creator = move || {
             let node_data: *mut c_void = ctx as *const SvmCtx as *mut SvmCtx as _;

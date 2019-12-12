@@ -1,56 +1,22 @@
 use std::cell::Cell;
 
+use wasmer_runtime::{func, imports, Func};
+use wasmer_runtime_core::Module;
+
 use svm_runtime::ctx_data_wrapper::SvmCtxDataWrapper;
 use svm_storage::page::{PageIndex, PageOffset, PageSliceLayout};
 
-use wasmer_runtime::{func, imports, Func};
+use crate::helpers;
+use svm_storage::helpers::wasmer_data_storage;
 
-macro_rules! compile {
-    ($wasm:expr) => {{
-        let wasm = wabt::wat2wasm(&$wasm).unwrap();
-        svm_compiler::compile_program(&wasm).unwrap()
-    }};
+fn wasmer_compile(wasm: &[u8]) -> Module {
+    let wasm = wabt::wat2wasm(&wasm).unwrap();
+    svm_compiler::compile_program(&wasm).unwrap()
 }
 
-macro_rules! wasmer_compile_module_file {
-    ($file:expr) => {{
-        let wasm = include_str!($file);
-        compile!(wasm)
-    }};
-}
-
-macro_rules! test_create_svm_state_gen {
-    () => {{
-        let node_data = SvmCtxDataWrapper::new(std::ptr::null());
-
-        let max_pages = 5;
-
-        let pages_storage_gen = move || {
-            use std::cell::RefCell;
-            use std::rc::Rc;
-            use svm_common::{Address, State};
-            use svm_kv::memory::MemKVStore;
-            use svm_storage::memory::MemContractPages;
-
-            let addr = Address::from(0x12_34_56_78);
-            let state = State::from(0x00_00_00_00);
-            let kv = Rc::new(RefCell::new(MemKVStore::new()));
-
-            MemContractPages::new(addr, kv, state, max_pages)
-        };
-
-        let page_cache_ctor = |pages, max_pages| {
-            use svm_storage::memory::MemContractPageCache;
-
-            MemContractPageCache::new(pages, max_pages)
-        };
-
-        let opts = svm_runtime::opts::Opts {
-            max_pages: max_pages as usize,
-        };
-
-        svm_runtime::lazy_create_svm_state_gen!(node_data, pages_storage_gen, page_cache_ctor, opts)
-    }};
+fn wasmer_compile_file(file: &str) -> Module {
+    let wasm = include_str!(file);
+    wasmer_compile(wasm)
 }
 
 #[test]
@@ -59,13 +25,13 @@ fn vmcalls_empty_wasm() {
         (module
           (func (export "do_nothing")))"#;
 
-    let module = compile!(&wasm);
+    let module = wasmer_compile(&wasm);
     let _instance = module.instantiate(&imports! {}).unwrap();
 }
 
 #[test]
 fn vmcalls_mem_to_reg_copy() {
-    let module = wasmer_compile_module_file!("wasm/mem_to_reg_copy.wast");
+    let module = wasmer_compile_file("wasm/mem_to_reg_copy.wast");
 
     let import_object = imports! {
         test_create_svm_state_gen!(),
@@ -94,7 +60,7 @@ fn vmcalls_mem_to_reg_copy() {
 
 #[test]
 fn vmcalls_reg_to_mem_copy() {
-    let module = wasmer_compile_module_file!("wasm/reg_to_mem_copy.wast");
+    let module = wasmer_compile_file("wasm/reg_to_mem_copy.wast");
 
     let import_object = imports! {
         test_create_svm_state_gen!(),
@@ -125,7 +91,7 @@ fn vmcalls_reg_to_mem_copy() {
 
 #[test]
 fn vmcalls_storage_read_an_empty_page_slice_to_reg() {
-    let module = wasmer_compile_module_file!("wasm/storage_to_reg_copy.wast");
+    let module = wasmer_compile_file("wasm/storage_to_reg_copy.wast");
 
     let import_object = imports! {
         test_create_svm_state_gen!(),
@@ -153,7 +119,7 @@ fn vmcalls_storage_read_an_empty_page_slice_to_reg() {
 
 #[test]
 fn vmcalls_storage_read_non_empty_page_slice_to_reg() {
-    let module = wasmer_compile_module_file!("wasm/storage_to_reg_copy.wast");
+    let module = wasmer_compile_file("wasm/storage_to_reg_copy.wast");
 
     let import_object = imports! {
         test_create_svm_state_gen!(),
@@ -164,7 +130,7 @@ fn vmcalls_storage_read_non_empty_page_slice_to_reg() {
     };
 
     let mut instance = module.instantiate(&import_object).unwrap();
-    let storage = svm_runtime::wasmer_data_storage!(instance.context_mut().data);
+    let storage = wasmer_data_storage(instance.context_mut().data);
 
     let layout = PageSliceLayout::new(PageIndex(1), PageOffset(100), 3);
 
@@ -188,7 +154,7 @@ fn vmcalls_storage_read_non_empty_page_slice_to_reg() {
 
 #[test]
 fn vmcalls_storage_read_an_empty_page_slice_to_mem() {
-    let module = wasmer_compile_module_file!("wasm/storage_to_mem_copy.wast");
+    let module = wasmer_compile_file!("wasm/storage_to_mem_copy.wast");
 
     let import_object = imports! {
         test_create_svm_state_gen!(),
@@ -215,7 +181,7 @@ fn vmcalls_storage_read_an_empty_page_slice_to_mem() {
 
 #[test]
 fn vmcalls_storage_read_non_empty_page_slice_to_mem() {
-    let module = wasmer_compile_module_file!("wasm/storage_to_mem_copy.wast");
+    let module = wasmer_compile_file!("wasm/storage_to_mem_copy.wast");
 
     let import_object = imports! {
         test_create_svm_state_gen!(),
@@ -244,7 +210,7 @@ fn vmcalls_storage_read_non_empty_page_slice_to_mem() {
 
 #[test]
 fn vmcalls_storage_write_from_mem() {
-    let module = wasmer_compile_module_file!("wasm/storage_write_from_mem.wast");
+    let module = wasmer_compile_file("wasm/storage_write_from_mem.wast");
 
     let import_object = imports! {
         test_create_svm_state_gen!(),
@@ -273,7 +239,7 @@ fn vmcalls_storage_write_from_mem() {
 
 #[test]
 fn vmcalls_storage_write_from_reg() {
-    let module = wasmer_compile_module_file!("wasm/storage_write_from_reg.wast");
+    let module = wasmer_compile_file("wasm/storage_write_from_reg.wast");
 
     let import_object = imports! {
         test_create_svm_state_gen!(),
@@ -304,7 +270,7 @@ fn vmcalls_storage_write_from_reg() {
 
 #[test]
 fn vmcalls_reg_replace_byte_read_write_be_i64() {
-    let module = wasmer_compile_module_file!("wasm/reg_replace_read_write_be_i64.wast");
+    let module = wasmer_compile_file("wasm/reg_replace_read_write_be_i64.wast");
 
     let import_object = imports! {
         test_create_svm_state_gen!(),
