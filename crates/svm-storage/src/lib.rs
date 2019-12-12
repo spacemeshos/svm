@@ -20,12 +20,11 @@ pub use crate::contract_pages::ContractPages;
 pub use crate::contract_storage::ContractStorage;
 
 /// Storage related traits
-#[macro_use]
 pub mod traits;
 
-/// Common storage macros
+/// Tests related helpers and asserts
 #[macro_use]
-pub mod macros;
+pub mod testing;
 
 use cfg_if::cfg_if;
 

@@ -1,11 +1,14 @@
-#![deny(missing_docs)]
-#![deny(unused)]
+#![allow(missing_docs)]
+#![allow(unused)]
 
 //! The `svm-kv` is responsible on providing different implementations for the `KVStore` trait.
 //! (defined in `traits.rs`).
 
 /// Defines the `KVStore` trait.
 pub mod traits;
+
+#[macro_use]
+pub mod asserts;
 
 /// An in-memory implementation for `KVStore`
 #[cfg(feature = "memory")]

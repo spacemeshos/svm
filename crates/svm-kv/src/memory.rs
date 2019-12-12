@@ -62,6 +62,8 @@ mod tests {
     use super::*;
     use svm_common::Address;
 
+    use crate::asserts::*;
+
     fn init() {
         let _ = env_logger::builder().is_test(true).try_init();
     }
@@ -73,7 +75,7 @@ mod tests {
         let kv = MemKVStore::new();
         let addr = Address::from(0x11_22_33_44 as u32);
 
-        assert_eq!(None, kv.get(addr.as_slice()));
+        assert_no_key!(kv, addr.as_slice());
     }
 
     #[test]
@@ -82,9 +84,9 @@ mod tests {
 
         let mut kv = MemKVStore::new();
         let addr = Address::from(0x11_22_33_44 as u32);
-
         kv.store(&[(addr.as_slice(), &[10, 20, 30])]);
-        assert_eq!(vec![10, 20, 30], kv.get(addr.as_slice()).unwrap());
+
+        assert_key_value!(kv, addr.as_slice(), vec![10, 20, 30]);
     }
 
     #[test]
@@ -95,10 +97,10 @@ mod tests {
         let addr = Address::from(0x11_22_33_44 as u32);
 
         kv.store(&[(addr.as_slice(), &[10, 20, 30])]);
-        assert_eq!(vec![10, 20, 30], kv.get(addr.as_slice()).unwrap());
+        assert_key_value!(kv, addr.as_slice(), vec![10, 20, 30]);
 
         kv.store(&[(addr.as_slice(), &[40, 50, 60])]);
-        assert_eq!(vec![40, 50, 60], kv.get(addr.as_slice()).unwrap());
+        assert_key_value!(kv, addr.as_slice(), vec![40, 50, 60]);
     }
 
     #[test]
@@ -114,12 +116,12 @@ mod tests {
             (addr2.as_slice(), &[40, 50, 60]),
         ]);
 
-        assert_eq!(vec![10, 20, 30], kv.get(addr1.as_slice()).unwrap());
-        assert_eq!(vec![40, 50, 60], kv.get(addr2.as_slice()).unwrap());
+        assert_key_value!(kv, addr1.as_slice(), vec![10, 20, 30]);
+        assert_key_value!(kv, addr2.as_slice(), vec![40, 50, 60]);
 
         kv.clear();
 
-        assert_eq!(None, kv.get(addr1.as_slice()));
-        assert_eq!(None, kv.get(addr2.as_slice()));
+        assert_no_key!(kv, addr1.as_slice());
+        assert_no_key!(kv, addr2.as_slice());
     }
 }
