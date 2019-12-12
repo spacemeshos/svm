@@ -17,9 +17,9 @@ pub mod ctx;
 /// with the contract-storage / `wasmer` instance memory.
 pub mod register;
 
-/// `macros` implements the high-level macros to be consumed by `SVM` vmcalls.
+/// `helpers` implements the helpers to be consumed by `SVM` vmcalls.
 #[macro_use]
-pub mod macros;
+pub mod helpers;
 
 /// Implements the `SVM` vmcalls (a.k.a libcalls / hostcalls / syscalls)
 pub mod vmcalls;

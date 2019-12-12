@@ -1,4 +1,4 @@
-/// `impl_bytes_primitive` macro implements a struct consisting of one
+/// `impl_bytes_primitive` macro implements a struct consisting of one array of bytes.
 #[macro_export]
 macro_rules! impl_bytes_primitive {
     ($primitive: ident, $bytes_count: expr) => {
