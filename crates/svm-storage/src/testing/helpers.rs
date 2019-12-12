@@ -9,14 +9,20 @@ use crate::memory::MemContractPages;
 use crate::page::{PageHash, PageIndex};
 use crate::traits::{PageHasher, PageIndexHasher};
 
-pub fn compute_pages_state(pages_hash: &[PageHash]) -> State {
-    let mut joined_ph = Vec::new();
+pub fn concat_pages_hash(pages_hash: &[PageHash]) -> Vec<u8> {
+    let mut res = Vec::new();
 
     for ph in pages_hash.iter() {
-        joined_ph.extend_from_slice(ph.as_ref());
+        res.extend_from_slice(ph.as_ref());
     }
 
-    let state = Some(joined_ph.as_slice())
+    res
+}
+
+pub fn compute_pages_state(pages_hash: &[PageHash]) -> State {
+    let mut concat_ph = concat_pages_hash(pages_hash);
+
+    let state = Some(concat_ph.as_slice())
         .map(|jph| {
             let h = DefaultKeyHasher::hash(jph);
             State::from(h.as_ref())
@@ -24,23 +30,6 @@ pub fn compute_pages_state(pages_hash: &[PageHash]) -> State {
         .unwrap();
 
     state
-}
-
-#[macro_export]
-macro_rules! compute_contract_state {
-    // `jph` stands for `joined-pages-hash`
-    ($jph: expr) => {{
-        use svm_common::{DefaultKeyHasher, KeyHasher, State};
-
-        let state = Some($jph.as_slice())
-            .map(|ref_jph| {
-                let h = DefaultKeyHasher::hash(ref_jph);
-                State::from(h.as_ref())
-            })
-            .unwrap();
-
-        state
-    }};
 }
 
 pub fn contract_pages_init(
@@ -53,6 +42,15 @@ pub fn contract_pages_init(
     let pages = MemContractPages::new(addr.clone(), Rc::clone(&kv), State::empty(), pages_count);
 
     (addr, kv, pages)
+}
+
+pub fn contract_pages_open(
+    addr: &Address,
+    state: &State,
+    kv: &Rc<RefCell<MemKVStore>>,
+    pages_count: u32,
+) -> MemContractPages {
+    MemContractPages::new(addr.clone(), Rc::clone(&kv), state.clone(), pages_count)
 }
 
 /// An helper for computing a page default hash using `DefaultPageIndexHasher`
