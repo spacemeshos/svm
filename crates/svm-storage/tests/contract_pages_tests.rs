@@ -2,8 +2,6 @@ extern crate svm_storage;
 
 use svm_common::State;
 
-use svm_kv::traits::KVStore;
-
 use svm_storage::page::{zero_page, PageIndex};
 use svm_storage::testing::{
     compute_pages_state, concat_pages_hash, contract_pages_init, contract_pages_open,
@@ -11,46 +9,8 @@ use svm_storage::testing::{
 };
 use svm_storage::traits::{PagesStorage, StateAwarePagesStorage};
 
-macro_rules! assert_no_key {
-    ($kv: expr, $key: expr) => {{
-        assert!($kv.borrow().get(&$key).is_none());
-    }};
-}
-
-macro_rules! assert_key_value {
-    ($kv: expr, $key: expr, $expected: expr) => {{
-        let actual = $kv.borrow().get(&$key).unwrap();
-        assert_eq!($expected, &actual[..]);
-    }};
-}
-
-macro_rules! assert_page_content {
-    ($pages: ident, $page_idx: expr, $expected: expr) => {{
-        assert_eq!($expected, $pages.read_page(PageIndex($page_idx)));
-    }};
-}
-
-macro_rules! kv_keys_vec {
-    ($kv: ident) => {{
-        let keys: Vec<Vec<u8>> = $kv.borrow().keys().map(|key| key.clone()).collect();
-        keys
-    }};
-}
-
-macro_rules! assert_same_keys {
-    ($expected: expr, $actual: expr) => {{
-        let mut expected = $expected
-            .iter()
-            .map(|k| k.to_vec())
-            .collect::<Vec<Vec<u8>>>();
-        let mut actual = $actual.to_vec();
-
-        expected.sort();
-        actual.sort();
-
-        assert_eq!(&expected[..], &actual[..]);
-    }};
-}
+#[macro_use]
+mod asserts;
 
 #[test]
 fn contract_pages_first_time_run_with_no_modifications_no_commit() {

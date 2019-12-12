@@ -7,7 +7,7 @@ use svm_kv::memory::MemKVStore;
 use crate::default::{DefaultPageCache, DefaultPageHasher, DefaultPageIndexHasher};
 use crate::memory::MemContractPages;
 use crate::page::{PageHash, PageIndex};
-use crate::traits::{PageCache, PageHasher, PageIndexHasher};
+use crate::traits::{PageHasher, PageIndexHasher};
 use crate::ContractStorage;
 
 pub fn concat_pages_hash(pages_hash: &[PageHash]) -> Vec<u8> {
@@ -21,7 +21,7 @@ pub fn concat_pages_hash(pages_hash: &[PageHash]) -> Vec<u8> {
 }
 
 pub fn compute_pages_state(pages_hash: &[PageHash]) -> State {
-    let mut concat_ph = concat_pages_hash(pages_hash);
+    let concat_ph = concat_pages_hash(pages_hash);
 
     let state = Some(concat_ph.as_slice())
         .map(|jph| {

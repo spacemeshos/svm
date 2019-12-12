@@ -5,18 +5,8 @@ use svm_storage::testing::{
     contract_storage_init, contract_storage_open, default_page_hash, fill_page,
 };
 
-macro_rules! assert_no_key {
-    ($kv: expr, $key: expr) => {{
-        assert!($kv.borrow().get(&$key).is_none());
-    }};
-}
-
-macro_rules! assert_key_value {
-    ($kv: expr, $key: expr, $expected: expr) => {{
-        let actual = $kv.borrow().get(&$key).unwrap();
-        assert_eq!($expected, &actual[..]);
-    }};
-}
+#[macro_use]
+mod asserts;
 
 #[test]
 fn contract_storage_loading_an_empty_slice_into_the_cache() {
@@ -57,7 +47,7 @@ fn contract_storage_write_slice_without_loading_it_first_and_commit() {
 
     let (addr, kv, mut storage) = contract_storage_init(addr, pages_count);
 
-    /// page #1, cells: `100, 1001, 1002`
+    // page #1, cells: `100, 1001, 1002`
     let layout = PageSliceLayout::new(PageIndex(1), PageOffset(100), 3);
 
     storage.write_page_slice(&layout, &[10, 20, 30]);

@@ -1,8 +1,9 @@
-use svm_kv::traits::KVStore;
-
 use svm_storage::page::PageIndex;
 use svm_storage::testing::{contract_page_cache_init, default_page_index_hash};
 use svm_storage::traits::PagesStorage;
+
+#[macro_use]
+mod asserts;
 
 #[test]
 fn page_cache_loading_an_empty_page_into_the_cache() {
@@ -12,19 +13,6 @@ fn page_cache_loading_an_empty_page_into_the_cache() {
     let (_addr, _kv, mut cache) = contract_page_cache_init(addr, pages_count);
 
     assert_eq!(None, cache.read_page(PageIndex(0)));
-}
-
-macro_rules! assert_no_key {
-    ($kv: expr, $key: expr) => {{
-        assert!($kv.borrow().get(&$key).is_none());
-    }};
-}
-
-macro_rules! assert_key_value {
-    ($kv: expr, $key: expr, $expected: expr) => {{
-        let actual = $kv.borrow().get(&$key).unwrap();
-        assert_eq!($expected, &actual[..]);
-    }};
 }
 
 #[test]

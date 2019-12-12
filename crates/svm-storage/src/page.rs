@@ -11,13 +11,6 @@ pub struct PageIndex(pub u32);
 #[repr(transparent)]
 pub struct PageOffset(pub u32);
 
-#[derive(Debug, Clone)]
-enum PageState {
-    Uninitialized,
-    NotModified(PageHash),
-    Modified(PageHash, Vec<u8>),
-}
-
 /// `PageHash` length is 32 bytes
 pub const PAGE_HASH_LEN: usize = 32;
 
