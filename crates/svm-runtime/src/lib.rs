@@ -4,8 +4,9 @@
 //! `SVM-runtime` crate is the glue between `SVM` to `wasmer`.
 
 /// Implements the most high-level API of `SVM`.
-#[macro_use]
-pub mod runtime;
+mod runtime;
+
+pub use runtime::Runtime;
 
 /// Wraps the `node data` (of type `*const std::ffi::c_void`) in a thread-safe way
 pub mod ctx_data_wrapper;

@@ -228,7 +228,10 @@ where
             addr, state, opts
         );
 
-        let ctx = helpers::create_svm_ctx(addr, state, node_data, &self.storage_builder, &opts);
+        let storage_builder = &self.storage_builder;
+        let storage = storage_builder(addr, state, &opts);
+        let ctx = SvmCtx::new(SvmCtxDataWrapper::new(node_data), storage);
+        let ctx = Box::leak(Box::new(ctx));
 
         let state_creator = move || {
             let node_data: *mut c_void = ctx as *const SvmCtx as *mut SvmCtx as _;
@@ -249,7 +252,6 @@ where
         vmcalls::insert_vmcalls(&mut ns);
 
         import_object.register("svm", ns);
-
         import_object
     }
 
