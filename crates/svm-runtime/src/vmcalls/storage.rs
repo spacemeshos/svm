@@ -7,12 +7,12 @@ use crate::helpers;
 /// `mem_offset, mem_offset + 1, .. , mem_offset + len (exclusive)`
 /// into `SVM` register
 ///
-/// * `ctx`         - `wasmer` context (holds a `data` field. we use `SvmCtx`)
-/// * `mem_idx`     - The source memory index we want to copy from
-/// * `mem_offset`  - A pointer for the first memory address we want to start copying from
-/// * `len`         - The length of the memory slice we want to copy (in bytes)
-/// * `reg_bits`    - The type of the register (determined by its #bits) we want to copy data to
-/// * `reg_idx`     - The destination register we want to load the memory slice into
+/// * `ctx`        - `wasmer` context (holds a `data` field. we use `SvmCtx`)
+/// * `mem_idx`    - The source memory index we want to copy from
+/// * `mem_offset` - A pointer for the first memory address we want to start copying from
+/// * `len`        - The length of the memory slice we want to copy (in bytes)
+/// * `reg_bits`   - The type of the register (determined by its #bits) we want to copy data to
+/// * `reg_idx`    - The destination register we want to load the memory slice into
 pub fn mem_to_reg_copy(
     ctx: &mut wasmer_runtime::Ctx,
     mem_idx: i32,

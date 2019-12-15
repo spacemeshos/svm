@@ -21,6 +21,8 @@ pub mod register;
 #[macro_use]
 pub mod helpers;
 
+pub mod testing;
+
 /// Implements the `SVM` vmcalls (a.k.a libcalls / hostcalls / syscalls)
 pub mod vmcalls;
 

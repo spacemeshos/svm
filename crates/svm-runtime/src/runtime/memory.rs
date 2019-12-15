@@ -32,7 +32,7 @@ fn runtime_contract_env_build(_path: &str) -> MemoryEnv {
 fn runtime_contract_storage_build(addr: Address, state: State, opts: &Opts) -> ContractStorage {
     let kv = Rc::new(RefCell::new(MemKVStore::new()));
     let pages = MemContractPages::new(addr, kv, state, opts.max_pages as u32);
-    let page_cache = MemContractPageCache::new(pages, opts.max_pages);
+    let cache = MemContractPageCache::new(pages, opts.max_pages);
 
-    ContractStorage::new(Box::new(page_cache))
+    ContractStorage::new(Box::new(cache))
 }

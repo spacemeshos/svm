@@ -1,52 +1,65 @@
+use std::cell::{Cell, RefCell};
 use std::ffi::c_void;
+use std::rc::Rc;
 
 use crate::ctx::SvmCtx;
-use svm_storage::helpers
+use crate::ctx_data_wrapper::SvmCtxDataWrapper;
 
-pub fn wasmer_dummy_import_object_data(ctx: &SvmCtx) -> (*mut c_void, fn(*mut c_void)) {
-    let data: *mut c_void = ctx.clone() as *const _ as *mut c_void;
+use svm_common::{Address, State};
+use svm_kv::memory::MemKVStore;
+use svm_storage::{default::DefaultPageCache, memory::MemContractPages, ContractStorage};
+
+use wasmer_runtime_core::{import::ImportObject, Instance, Module};
+
+pub fn wasmer_compile(wasm: &str) -> Module {
+    let wasm = wabt::wat2wasm(&wasm).unwrap();
+    svm_compiler::compile_program(&wasm).unwrap()
+}
+
+pub fn instantiate(import_object: &ImportObject, wasm: &str) -> Instance {
+    let module = wasmer_compile(wasm);
+    let instance = module.instantiate(import_object).unwrap();
+    instance
+}
+
+pub fn instance_memory_view(instance: &Instance, offset: usize, len: usize) -> Vec<u8> {
+    let view = instance.context().memory(0).view();
+
+    view[offset..offset + len]
+        .iter()
+        .map(|cell| cell.get())
+        .collect()
+}
+
+pub fn instance_memory_init(instance: &mut Instance, offset: usize, bytes: &[u8]) {
+    let view = instance.context().memory(0).view();
+    let cells = &view[offset..(offset as usize + bytes.len())];
+
+    for (cell, byte) in cells.iter().zip(bytes.iter()) {
+        cell.set(*byte);
+    }
+}
+
+pub fn contract_memory_state_creator(
+    addr: u32,
+    state: u32,
+    wrapped_node_data: SvmCtxDataWrapper,
+    pages_count: u32,
+) -> (*mut c_void, fn(*mut c_void)) {
+    let addr = Address::from(addr);
+    let state = State::from(state);
+
+    let kv = Rc::new(RefCell::new(MemKVStore::new()));
+    let pages = MemContractPages::new(addr, kv, state, pages_count);
+    let cache = DefaultPageCache::new(pages, pages_count as usize);
+    let storage = ContractStorage::new(Box::new(cache));
+
+    let ctx = SvmCtx::new(wrapped_node_data, storage);
+    let ctx = Box::new(ctx);
+    let ctx: *mut SvmCtx = Box::into_raw(ctx);
+
+    let data: *mut c_void = ctx as *const _ as _;
     let dtor: fn(*mut c_void) = |_| {};
 
     (data, dtor)
-}
-
-pub fn create_memory_svm_ctx(addr: u32, state: u32) -> SvmCtx {
-}
-
-macro_rules! test_create_svm_ctx {
-    () => {
-        test_create_svm_ctx!(std::ptr::null())
-    };
-    ($node_data: expr) => {{
-        use crate::ctx_data_wrapper::SvmCtxDataWrapper;
-        use svm_common::{Address, State};
-        use svm_storage::memory::{MemContractPageCache, MemContractPages};
-
-        use std::cell::RefCell;
-        use std::rc::Rc;
-
-        let max_pages: u32 = 5;
-
-        let pages_storage_gen = || {
-            let addr = Address::from(0x12_34_56_78);
-            let state = State::from(0x_00_00_00_00);
-            let kv = Rc::new(RefCell::new(MemKVStore::new()));
-
-            MemContractPages::new(addr, kv, state, max_pages)
-        };
-
-        let page_cache_ctor =
-            |arg_pages, arg_max_pages| MemContractPageCache::new(arg_pages, arg_max_pages);
-
-        let opts = crate::opts::Opts {
-            max_pages: max_pages as usize,
-        };
-
-        create_svm_ctx!(
-            SvmCtxDataWrapper::new($node_data),
-            pages_storage_gen,
-            page_cache_ctor,
-            opts
-        )
-    }};
 }

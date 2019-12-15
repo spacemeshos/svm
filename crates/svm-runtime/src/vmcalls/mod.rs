@@ -1,6 +1,9 @@
 mod register;
 mod storage;
 
+pub use register::*;
+pub use storage::*;
+
 pub use wasmer_runtime_core::{
     func,
     import::{IsExport, Namespace},

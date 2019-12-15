@@ -19,7 +19,7 @@ pub fn create_rocksdb_runtime(path: &str) -> Runtime<RocksdbContractEnv> {
     Runtime::new(env_builder, storage_builder)
 }
 
-pub fn runtime_contract_env_build(path: &str) -> RocksdbContractEnv {
+fn runtime_contract_env_build(path: &str) -> RocksdbContractEnv {
     let path = Path::new(path);
     let store = RocksdbContractStore::new(path);
     RocksdbContractEnv::new(store)
@@ -30,7 +30,7 @@ fn runtime_contract_storage_build(addr: Address, state: State, opts: &Opts) -> C
     let kv = Rc::new(RefCell::new(Rocksdb::new(path)));
 
     let pages = RocksdbContractPages::new(addr, kv, state, opts.max_pages as u32);
-    let page_cache = RocksdbContractPageCache::new(pages, opts.max_pages);
+    let cache = RocksdbContractPageCache::new(pages, opts.max_pages);
 
-    ContractStorage::new(Box::new(page_cache))
+    ContractStorage::new(Box::new(cache))
 }
