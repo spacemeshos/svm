@@ -43,7 +43,9 @@ where
     }
 
     pub fn contract_build(&self, bytes: &[u8]) -> Result<Contract, ContractBuildError> {
-        unimplemented!()
+        info!("runtime `contract_build`");
+
+        <ENV as ContractEnv>::build_contract(bytes)
     }
 
     #[inline(always)]
@@ -57,14 +59,14 @@ where
 
     #[inline(always)]
     pub fn contract_compute_address(&self, contract: &Contract) -> Address {
-        debug!("runtime `contract_compute_address`");
+        info!("runtime `contract_compute_address`");
 
         <ENV as ContractEnv>::compute_address(contract)
     }
 
     #[inline(always)]
     pub fn contract_store(&mut self, contract: &Contract, addr: &Address) {
-        debug!("runtime `contract_store`");
+        info!("runtime `contract_store`");
 
         let env_builder = &self.env_builder;
         let mut env = env_builder("..");
@@ -72,14 +74,14 @@ where
     }
 
     #[inline(always)]
-    pub fn transaction_build(bytes: &[u8]) -> Result<Transaction, TransactionBuildError> {
-        debug!("runtime `transaction_build`");
+    pub fn transaction_build(&self, bytes: &[u8]) -> Result<Transaction, TransactionBuildError> {
+        info!("runtime `transaction_build`");
 
         <ENV as ContractEnv>::build_transaction(bytes)
     }
 
     pub fn contract_exec(&self, tx: Transaction, import_object: &ImportObject) -> Receipt {
-        debug!("runtime `contract_exec`");
+        info!("runtime `contract_exec`");
 
         let receipt = match self.do_contract_exec(&tx, import_object) {
             Err(e) => Receipt {
@@ -98,7 +100,7 @@ where
             },
         };
 
-        debug!("receipt: {:?}", receipt);
+        info!("receipt: {:?}", receipt);
 
         receipt
     }
@@ -221,7 +223,7 @@ where
         addr: Address,
         state: State,
         node_data: *const c_void,
-        opts: Opts,
+        opts: &Opts,
     ) -> ImportObject {
         debug!(
             "runtime `import_object_create` address={:?}, state={:?}, opts={:?}",
@@ -229,7 +231,7 @@ where
         );
 
         let storage_builder = &self.storage_builder;
-        let storage = storage_builder(addr, state, &opts);
+        let storage = storage_builder(addr, state, opts);
         let ctx = SvmCtx::new(SvmCtxDataWrapper::new(node_data), storage);
         let ctx = Box::leak(Box::new(ctx));
 

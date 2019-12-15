@@ -5,6 +5,7 @@ use std::rc::Rc;
 use crate::ctx::SvmCtx;
 use crate::ctx_data_wrapper::SvmCtxDataWrapper;
 use crate::opts::Opts;
+use crate::runtime::Runtime;
 
 use svm_common::{Address, State};
 use svm_kv::memory::MemKVStore;
@@ -14,7 +15,7 @@ use wasmer_runtime_core::{import::ImportObject, Instance, Module};
 
 use svm_contract::build::{WireContractBuilder, WireTxBuilder};
 use svm_contract::memory::{MemContractStore, MemoryEnv};
-use svm_contract::wasm::WasmArgValue as Value;
+use svm_contract::wasm::WasmArgValue;
 
 pub fn wasmer_compile(wasm: &str) -> Module {
     let wasm = wabt::wat2wasm(&wasm).unwrap();
@@ -53,11 +54,12 @@ pub fn contract_memory_state_creator(
 ) -> (*mut c_void, fn(*mut c_void)) {
     let addr = Address::from(addr);
     let state = State::from(state);
-    let kv = Rc::new(RefCell::new(MemKVStore::new()));
+    let kv = memory_kv_store_init();
+
     let storage = svm_storage::testing::contract_storage_open(&addr, &state, &kv, pages_count);
 
     let ctx = SvmCtx::new(wrapped_node_data, storage);
-    let ctx = Box::into_raw(Box::new(ctx));
+    let ctx: *mut SvmCtx = Box::into_raw(Box::new(ctx));
 
     let data: *mut c_void = ctx as *const _ as _;
     let dtor: fn(*mut c_void) = |_| {};
@@ -92,6 +94,13 @@ pub fn runtime_memory_env_builder(kv: &Rc<RefCell<MemKVStore>>) -> Box<dyn Fn(&s
     Box::new(builder)
 }
 
+pub fn create_memory_runtime(kv: &Rc<RefCell<MemKVStore>>) -> Runtime<MemoryEnv> {
+    let storage_builder = runtime_memory_storage_builder(kv);
+    let env_builder = runtime_memory_env_builder(kv);
+
+    Runtime::new(Box::new(env_builder), Box::new(storage_builder))
+}
+
 pub fn build_raw_contract(version: u32, name: &str, author: u32, wasm: &str) -> Vec<u8> {
     let wasm = wabt::wat2wasm(wasm).unwrap();
 
@@ -103,25 +112,18 @@ pub fn build_raw_contract(version: u32, name: &str, author: u32, wasm: &str) -> 
         .build()
 }
 
-// macro_rules! build_raw_tx {
-//     ($version: expr, $contract_addr: expr, $sender_addr: expr, $func_name: expr, $func_args: expr) => {{
-//         WireTxBuilder::new()
-//             .with_version($version)
-//             .with_contract($contract_addr)
-//             .with_sender(Address::from($sender_addr))
-//             .with_func_name($func_name)
-//             .with_func_args($func_args)
-//             .build()
-//     }};
-// }
-
-// macro_rules! exec_tx {
-//     ($tx: expr, $state: expr) => {{
-//         let opts = svm_runtime::opts::Opts { max_pages: 10 };
-//
-//         let import_object =
-//             runtime::import_object_create($tx.contract.clone(), $state, std::ptr::null(), opts);
-//
-//         runtime::contract_exec($tx, &import_object)
-//     }};
-// }
+pub fn build_raw_transaction(
+    version: u32,
+    contract_addr: &Address,
+    sender_addr: u32,
+    func_name: &str,
+    func_args: &[WasmArgValue],
+) -> Vec<u8> {
+    WireTxBuilder::new()
+        .with_version(version)
+        .with_contract(contract_addr.clone())
+        .with_sender(Address::from(sender_addr))
+        .with_func_name(func_name)
+        .with_func_args(func_args)
+        .build()
+}
