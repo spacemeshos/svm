@@ -300,7 +300,7 @@ fn vmcalls_reg_replace_byte_read_write_be_i64() {
         include_str!("wasm/reg_replace_read_write_be_i64.wast"),
     );
 
-    // we first initialize register `64:5` with `[254, 255, 0, 0, 0, 0, 0, 0]`
+    // we first initialize register `5:64` with `[254, 255, 0, 0, 0, 0, 0, 0]`
     let reg = helpers::wasmer_ctx_reg(instance.context_mut(), 64, 5);
     reg.set(&[0, 0, 0, 0, 0, 0, 255, 254]);
 
@@ -316,7 +316,7 @@ fn vmcalls_reg_replace_byte_read_write_be_i64() {
     let reg = helpers::wasmer_ctx_reg(instance.context_mut(), 64, 5);
     assert_eq!(vec![0, 0, 0, 0, 0, 1, 0, 0], reg.view());
 
-    // now we'll change 2 bytes of register `64:5`
+    // now we'll change 2 bytes of register `5:64`
     let replace: Func<(i32, i32, i32)> = instance.func("replace").unwrap();
     assert!(replace.call(5, 10, 6).is_ok());
     assert!(replace.call(5, 20, 7).is_ok());
