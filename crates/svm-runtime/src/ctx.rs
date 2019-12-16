@@ -5,7 +5,7 @@ use std::ffi::c_void;
 
 use svm_storage::ContractStorage;
 
-use crate::ctx_data_wrapper::SvmCtxDataWrapper;
+use crate::helpers::PtrWrapper;
 
 use log::debug;
 
@@ -64,7 +64,7 @@ impl SvmCtx {
     /// Initializes a new empty `SvmCtx`
     ///
     /// * `storage` - a mutably borrowed `ContractStorage`
-    pub fn new(data_wrapper: SvmCtxDataWrapper, storage: ContractStorage) -> Self {
+    pub fn new(node_data: PtrWrapper, storage: ContractStorage) -> Self {
         let regs_32 = alloc_regs!(32, REGS_32_COUNT);
         let regs_64 = alloc_regs!(64, REGS_64_COUNT);
         let regs_160 = alloc_regs!(160, REGS_160_COUNT);
@@ -72,7 +72,7 @@ impl SvmCtx {
         let regs_512 = alloc_regs!(512, REGS_512_COUNT);
 
         Self {
-            node_data: data_wrapper.unwrap(),
+            node_data: node_data.unwrap(),
             regs_32,
             regs_64,
             regs_160,

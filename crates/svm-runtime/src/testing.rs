@@ -4,7 +4,7 @@ use std::rc::Rc;
 
 use crate::contract_settings::ContractSettings;
 use crate::ctx::SvmCtx;
-use crate::ctx_data_wrapper::SvmCtxDataWrapper;
+use crate::helpers::PtrWrapper;
 use crate::runtime::Runtime;
 
 use svm_common::{Address, State};
@@ -49,7 +49,7 @@ pub fn instance_memory_init(instance: &mut Instance, offset: usize, bytes: &[u8]
 pub fn contract_memory_state_creator(
     addr: u32,
     state: u32,
-    wrapped_node_data: SvmCtxDataWrapper,
+    node_data: PtrWrapper,
     pages_count: u32,
 ) -> (*mut c_void, fn(*mut c_void)) {
     let addr = Address::from(addr);
@@ -58,7 +58,7 @@ pub fn contract_memory_state_creator(
 
     let storage = svm_storage::testing::contract_storage_open(&addr, &state, &kv, pages_count);
 
-    let ctx = SvmCtx::new(wrapped_node_data, storage);
+    let ctx = SvmCtx::new(node_data, storage);
     let ctx: *mut SvmCtx = Box::into_raw(Box::new(ctx));
 
     let data: *mut c_void = ctx as *const _ as _;

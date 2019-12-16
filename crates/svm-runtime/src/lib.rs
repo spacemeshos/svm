@@ -5,11 +5,7 @@
 
 /// Implements the most high-level API of `SVM`.
 mod runtime;
-
 pub use runtime::Runtime;
-
-/// Wraps the `node data` (of type `*const std::ffi::c_void`) in a thread-safe way
-pub mod ctx_data_wrapper;
 
 /// Implements `SvmCtx`. Used for running `SVM` instances.
 pub mod ctx;

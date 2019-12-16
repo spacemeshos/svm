@@ -6,8 +6,8 @@ use svm_contract::env::{ContractEnv, ContractEnvTypes};
 
 use crate::contract_settings::ContractSettings;
 use crate::ctx::SvmCtx;
-use crate::ctx_data_wrapper::SvmCtxDataWrapper;
 use crate::helpers;
+use crate::helpers::PtrWrapper;
 use crate::runtime::{ContractExecError, Receipt};
 use crate::vmcalls;
 
@@ -242,7 +242,7 @@ where
 
         let storage = self.open_contract_storage(addr, state, settings);
 
-        let ctx = SvmCtx::new(SvmCtxDataWrapper::new(node_data), storage);
+        let ctx = SvmCtx::new(PtrWrapper::new(node_data), storage);
         let ctx = Box::leak(Box::new(ctx));
 
         let state_creator = move || {

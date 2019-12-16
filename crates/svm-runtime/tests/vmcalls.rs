@@ -1,14 +1,13 @@
 use wasmer_runtime::{func, imports, Func};
 
-use svm_runtime::ctx_data_wrapper::SvmCtxDataWrapper;
-use svm_runtime::{helpers, testing, vmcalls};
+use svm_runtime::{helpers, helpers::PtrWrapper, testing, vmcalls};
 
 use svm_storage::page::{PageIndex, PageOffset, PageSliceLayout};
 
-fn prepare_test_args() -> (u32, u32, SvmCtxDataWrapper, u32) {
+fn prepare_test_args() -> (u32, u32, PtrWrapper, u32) {
     let addr = 0x12_34_56_78;
     let state = 0x_00_00_00_00;
-    let node_data = SvmCtxDataWrapper::new(std::ptr::null());
+    let node_data = PtrWrapper::new(std::ptr::null());
     let pages_count = 5;
 
     (addr, state, node_data, pages_count)
