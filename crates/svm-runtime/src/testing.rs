@@ -45,7 +45,7 @@ pub fn instance_memory_view(instance: &Instance, offset: usize, len: usize) -> V
         .collect()
 }
 
-pub fn instance_memory_init(instance: &mut Instance, offset: usize, bytes: &[u8]) {
+pub fn instance_memory_init(instance: &Instance, offset: usize, bytes: &[u8]) {
     let view = instance.context().memory(0).view();
     let cells = &view[offset..(offset as usize + bytes.len())];
 

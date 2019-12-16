@@ -1,7 +1,7 @@
 use wasmer_runtime::{func, imports, Func};
 
 use crate::testing::{instance_register, instance_storage};
-use svm_runtime::{helpers, helpers::PtrWrapper, testing, vmcalls};
+use svm_runtime::{helpers::PtrWrapper, testing, vmcalls};
 use svm_storage::page::{PageIndex, PageOffset, PageSliceLayout};
 
 fn prepare_test_args() -> (u32, u32, PtrWrapper, u32) {
@@ -34,11 +34,10 @@ fn vmcalls_mem_to_reg_copy() {
         },
     };
 
-    let mut instance =
-        testing::instantiate(&import_object, include_str!("wasm/mem_to_reg_copy.wast"));
+    let instance = testing::instantiate(&import_object, include_str!("wasm/mem_to_reg_copy.wast"));
 
     // initializing memory #0 cells `200..203` with values `10, 20, 30` respectively
-    testing::instance_memory_init(&mut instance, 200, &[10, 20, 30]);
+    testing::instance_memory_init(&instance, 200, &[10, 20, 30]);
 
     // asserting register `64:2` content is initialized with zeros
     let reg = instance_register(&instance, 64, 2);
@@ -64,8 +63,7 @@ fn vmcalls_reg_to_mem_copy() {
         },
     };
 
-    let mut instance =
-        testing::instantiate(&import_object, include_str!("wasm/reg_to_mem_copy.wast"));
+    let instance = testing::instantiate(&import_object, include_str!("wasm/reg_to_mem_copy.wast"));
 
     // initializing reg `64:2` with values `10, 20, 30` respectively
     let reg = instance_register(&instance, 64, 2);
@@ -96,7 +94,7 @@ fn vmcalls_storage_read_an_empty_page_slice_to_reg() {
         },
     };
 
-    let mut instance = testing::instantiate(
+    let instance = testing::instantiate(
         &import_object,
         include_str!("wasm/storage_to_reg_copy.wast"),
     );
@@ -126,7 +124,7 @@ fn vmcalls_storage_read_non_empty_page_slice_to_reg() {
         },
     };
 
-    let mut instance = testing::instantiate(
+    let instance = testing::instantiate(
         &import_object,
         include_str!("wasm/storage_to_reg_copy.wast"),
     );
@@ -162,13 +160,13 @@ fn vmcalls_storage_read_an_empty_page_slice_to_mem() {
         },
     };
 
-    let mut instance = testing::instantiate(
+    let instance = testing::instantiate(
         &import_object,
         include_str!("wasm/storage_to_mem_copy.wast"),
     );
 
     // we fill memory #0, cells `200..203` with garbage data (0xFF...FF)
-    testing::instance_memory_init(&mut instance, 200, &[0xFF, 0xFF, 0xFF]);
+    testing::instance_memory_init(&instance, 200, &[0xFF, 0xFF, 0xFF]);
 
     let cells = testing::instance_memory_view(&instance, 200, 3);
     assert_eq!(vec![0xFF, 0xFF, 0xFF], cells);
@@ -193,7 +191,7 @@ fn vmcalls_storage_read_non_empty_page_slice_to_mem() {
         },
     };
 
-    let mut instance = testing::instantiate(
+    let instance = testing::instantiate(
         &import_object,
         include_str!("wasm/storage_to_mem_copy.wast"),
     );
@@ -225,13 +223,13 @@ fn vmcalls_storage_write_from_mem() {
         },
     };
 
-    let mut instance = testing::instantiate(
+    let instance = testing::instantiate(
         &import_object,
         include_str!("wasm/storage_write_from_mem.wast"),
     );
 
     // initializing memory `#0` cells `200...203` with `10, 20, 30` respectively
-    testing::instance_memory_init(&mut instance, 200, &[10, 20, 30]);
+    testing::instance_memory_init(&instance, 200, &[10, 20, 30]);
 
     let storage = instance_storage(&instance);
     let layout = PageSliceLayout::new(PageIndex(1), PageOffset(100), 3);
@@ -257,7 +255,7 @@ fn vmcalls_storage_write_from_reg() {
         },
     };
 
-    let mut instance = testing::instantiate(
+    let instance = testing::instantiate(
         &import_object,
         include_str!("wasm/storage_write_from_reg.wast"),
     );
@@ -294,7 +292,7 @@ fn vmcalls_reg_replace_byte_read_write_be_i64() {
         },
     };
 
-    let mut instance = testing::instantiate(
+    let instance = testing::instantiate(
         &import_object,
         include_str!("wasm/reg_replace_read_write_be_i64.wast"),
     );

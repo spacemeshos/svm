@@ -63,3 +63,78 @@ fn svm_regs_reg(regs: &mut [SvmReg], bits_count: i32, reg_idx: i32) -> &mut SvmR
 fn ensure_reg_index(bits_count: i32, reg_idx: i32) {
     assert!(reg_idx >= 0 && (reg_idx < regs_count_by_bits(bits_count)));
 }
+
+/// Allocates registers. This macro is called at `SvmCtx` ctor.
+/// The macro consists of essentially code duplication. in order to avoid using alternatives like
+/// having `SvmRegXXX` implement the `Copy` marker or by using Unsafe Rust.
+#[macro_export]
+macro_rules! alloc_regs {
+    (32, REGS_32_COUNT) => {{
+        [
+            SvmReg::Reg32(SvmReg32::new()),
+            SvmReg::Reg32(SvmReg32::new()),
+            SvmReg::Reg32(SvmReg32::new()),
+            SvmReg::Reg32(SvmReg32::new()),
+            SvmReg::Reg32(SvmReg32::new()),
+            SvmReg::Reg32(SvmReg32::new()),
+            SvmReg::Reg32(SvmReg32::new()),
+            SvmReg::Reg32(SvmReg32::new()),
+            SvmReg::Reg32(SvmReg32::new()),
+            SvmReg::Reg32(SvmReg32::new()),
+            SvmReg::Reg32(SvmReg32::new()),
+            SvmReg::Reg32(SvmReg32::new()),
+            SvmReg::Reg32(SvmReg32::new()),
+            SvmReg::Reg32(SvmReg32::new()),
+            SvmReg::Reg32(SvmReg32::new()),
+            SvmReg::Reg32(SvmReg32::new()),
+        ]
+    }};
+    (64, REGS_64_COUNT) => {{
+        [
+            SvmReg::Reg64(SvmReg64::new()),
+            SvmReg::Reg64(SvmReg64::new()),
+            SvmReg::Reg64(SvmReg64::new()),
+            SvmReg::Reg64(SvmReg64::new()),
+            SvmReg::Reg64(SvmReg64::new()),
+            SvmReg::Reg64(SvmReg64::new()),
+            SvmReg::Reg64(SvmReg64::new()),
+            SvmReg::Reg64(SvmReg64::new()),
+            SvmReg::Reg64(SvmReg64::new()),
+            SvmReg::Reg64(SvmReg64::new()),
+            SvmReg::Reg64(SvmReg64::new()),
+            SvmReg::Reg64(SvmReg64::new()),
+            SvmReg::Reg64(SvmReg64::new()),
+            SvmReg::Reg64(SvmReg64::new()),
+            SvmReg::Reg64(SvmReg64::new()),
+            SvmReg::Reg64(SvmReg64::new()),
+        ]
+    }};
+    (160, REGS_160_COUNT) => {{
+        [
+            SvmReg::Reg160(SvmReg160::new()),
+            SvmReg::Reg160(SvmReg160::new()),
+            SvmReg::Reg160(SvmReg160::new()),
+            SvmReg::Reg160(SvmReg160::new()),
+            SvmReg::Reg160(SvmReg160::new()),
+            SvmReg::Reg160(SvmReg160::new()),
+            SvmReg::Reg160(SvmReg160::new()),
+            SvmReg::Reg160(SvmReg160::new()),
+        ]
+    }};
+    (256, REGS_256_COUNT) => {{
+        [
+            SvmReg::Reg64(SvmReg64::new()),
+            SvmReg::Reg64(SvmReg64::new()),
+            SvmReg::Reg64(SvmReg64::new()),
+            SvmReg::Reg64(SvmReg64::new()),
+        ]
+    }};
+    (512, REGS_512_COUNT) => {{
+        [
+            SvmReg::Reg512(SvmReg512::new()),
+            SvmReg::Reg512(SvmReg512::new()),
+            SvmReg::Reg512(SvmReg512::new()),
+            SvmReg::Reg512(SvmReg512::new()),
+        ]
+    }};
+}
