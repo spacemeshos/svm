@@ -65,7 +65,7 @@ fn runtime_executing_a_valid_transaction() {
     let node_data: *const c_void = std::ptr::null() as _;
 
     let settings = ContractSettings {
-        max_pages: 5,
+        pages_count: 5,
         kv_path: String::new(),
     };
 

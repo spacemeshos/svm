@@ -228,7 +228,7 @@ macro_rules! include_svm_runtime_c_api {
             raw_import_object: *mut *mut c_void,
             raw_addr: *const c_void,
             raw_state: *const c_void,
-            raw_max_pages: libc::c_int,
+            raw_pages_count: libc::c_int,
             node_data: *const c_void,
             imports: *mut c_void,
             imports_len: libc::c_uint,
@@ -239,7 +239,7 @@ macro_rules! include_svm_runtime_c_api {
             let state = State::from(raw_state);
 
             let opts = svm_runtime::opts::Opts {
-                max_pages: raw_max_pages as usize,
+                pages_count: raw_pages_count as usize,
             };
 
             let raw_import_object: *mut *mut wasmer_import_object_t = raw_import_object as _;

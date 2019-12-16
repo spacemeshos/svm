@@ -229,9 +229,9 @@ wasmer_result_t create_import_object(
 ) {
     void* node = (void*)(full_node_new(init_counter));
 
-    uint32_t max_pages = 5;
+    uint32_t pages_count = 5;
 
-    return svm_import_object((void**)import_object, addr, state, max_pages, node, imports, imports_len);
+    return svm_import_object((void**)import_object, addr, state, pages_count, node, imports, imports_len);
 }
 
 wasmer_import_t* prepare_imports() {
