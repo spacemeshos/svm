@@ -1,10 +1,8 @@
 use std::ffi::c_void;
-use std::rc::Rc;
 
 use svm_common::State;
 use svm_contract::wasm::WasmArgValue as Value;
-use svm_kv::memory::MemKVStore;
-use svm_runtime::{opts::Opts, testing, Runtime};
+use svm_runtime::{contract_settings::ContractSettings, testing};
 use svm_storage::page::{PageIndex, PageOffset, PageSliceLayout};
 
 // #[test]
@@ -66,12 +64,12 @@ fn runtime_executing_a_valid_transaction() {
     let tx = runtime.transaction_build(&bytes).unwrap();
     let node_data: *const c_void = std::ptr::null() as _;
 
-    let opts = Opts {
+    let settings = ContractSettings {
         max_pages: 5,
         kv_path: String::new(),
     };
 
-    let import_object = runtime.import_object_create(&addr, &State::empty(), node_data, &opts);
+    let import_object = runtime.import_object_create(&addr, &State::empty(), node_data, &settings);
     let receipt = runtime.contract_exec(tx, &import_object);
 
     assert_eq!(true, receipt.success);
@@ -80,18 +78,15 @@ fn runtime_executing_a_valid_transaction() {
     let new_state = receipt.new_state.unwrap();
     assert_ne!(State::from(0), new_state);
 
-    // now we'll read directly from the contract storage and assert that the
+    // now we'll read directly from the contract's storage and assert that the
     // data has been persisted as expected.
 
-    let mut storage = runtime.open_contract_storage(&addr, &new_state, &opts);
+    let mut storage = runtime.open_contract_storage(&addr, &new_state, &settings);
 
     let layout = PageSliceLayout::new(PageIndex(0), PageOffset(0), 8);
     let slice = storage.read_page_slice(&layout);
 
-    assert_eq!(
-        &[0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80],
-        &slice[..]
-    );
+    assert_eq!(vec![0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80], slice);
 }
 
 // #[test]

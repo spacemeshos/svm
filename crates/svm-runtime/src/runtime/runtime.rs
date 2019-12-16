@@ -4,10 +4,10 @@ use std::ffi::c_void;
 use svm_common::{Address, State};
 use svm_contract::env::{ContractEnv, ContractEnvTypes};
 
+use crate::contract_settings::ContractSettings;
 use crate::ctx::SvmCtx;
 use crate::ctx_data_wrapper::SvmCtxDataWrapper;
 use crate::helpers;
-use crate::opts::Opts;
 use crate::runtime::{ContractExecError, Receipt};
 use crate::vmcalls;
 
@@ -26,7 +26,7 @@ use wasmer_runtime_core::{
 
 pub struct Runtime<ENV> {
     pub env: ENV,
-    pub storage_builder: Box<dyn Fn(&Address, &State, &Opts) -> ContractStorage>,
+    pub storage_builder: Box<dyn Fn(&Address, &State, &ContractSettings) -> ContractStorage>,
 }
 
 impl<TY, ENV> Runtime<ENV>
@@ -36,7 +36,7 @@ where
 {
     pub fn new(
         env: ENV,
-        storage_builder: Box<dyn Fn(&Address, &State, &Opts) -> ContractStorage>,
+        storage_builder: Box<dyn Fn(&Address, &State, &ContractSettings) -> ContractStorage>,
     ) -> Self {
         Self {
             env,
@@ -222,10 +222,10 @@ where
         &self,
         addr: &Address,
         state: &State,
-        opts: &Opts,
+        settings: &ContractSettings,
     ) -> ContractStorage {
         let storage_builder = &self.storage_builder;
-        storage_builder(addr, state, opts)
+        storage_builder(addr, state, settings)
     }
 
     pub fn import_object_create(
@@ -233,14 +233,14 @@ where
         addr: &Address,
         state: &State,
         node_data: *const c_void,
-        opts: &Opts,
+        settings: &ContractSettings,
     ) -> ImportObject {
         debug!(
-            "runtime `import_object_create` address={:?}, state={:?}, opts={:?}",
-            addr, state, opts
+            "runtime `import_object_create` address={:?}, state={:?}, settings={:?}",
+            addr, state, settings
         );
 
-        let storage = self.open_contract_storage(addr, state, opts);
+        let storage = self.open_contract_storage(addr, state, settings);
 
         let ctx = SvmCtx::new(SvmCtxDataWrapper::new(node_data), storage);
         let ctx = Box::leak(Box::new(ctx));

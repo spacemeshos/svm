@@ -2,7 +2,6 @@ mod error;
 mod receipt;
 mod runtime;
 
-mod memory;
 mod rocksdb;
 
 pub use rocksdb::create_rocksdb_runtime;

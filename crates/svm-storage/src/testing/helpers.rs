@@ -64,7 +64,7 @@ pub fn contract_page_cache_init(
 ) {
     let (addr, kv, pages) = contract_pages_init(addr, pages_count);
 
-    let cache = DefaultPageCache::new(pages, pages_count as usize);
+    let cache = DefaultPageCache::new(pages, pages_count);
 
     (addr, kv, cache)
 }
@@ -77,7 +77,7 @@ pub fn contract_page_cache_open(
 ) -> DefaultPageCache<MemContractPages> {
     let pages = contract_pages_open(addr, state, kv, pages_count);
 
-    DefaultPageCache::new(pages, pages_count as usize)
+    DefaultPageCache::new(pages, pages_count)
 }
 
 pub fn contract_storage_init(
