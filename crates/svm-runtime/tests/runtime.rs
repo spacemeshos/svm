@@ -71,8 +71,7 @@ fn runtime_executing_a_valid_transaction() {
         kv_path: String::new(),
     };
 
-    let import_object =
-        runtime.import_object_create(addr.clone(), State::empty(), node_data, &opts);
+    let import_object = runtime.import_object_create(&addr, &State::empty(), node_data, &opts);
     let receipt = runtime.contract_exec(tx, &import_object);
 
     assert_eq!(true, receipt.success);
@@ -84,8 +83,7 @@ fn runtime_executing_a_valid_transaction() {
     // now we'll read directly from the contract storage and assert that the
     // data has been persisted as expected.
 
-    let storage_builder = runtime.storage_builder;
-    let mut storage = storage_builder(addr, new_state, &opts);
+    let mut storage = runtime.open_contract_storage(&addr, &new_state, &opts);
 
     let layout = PageSliceLayout::new(PageIndex(0), PageOffset(0), 8);
     let slice = storage.read_page_slice(&layout);

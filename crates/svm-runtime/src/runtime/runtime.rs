@@ -26,7 +26,7 @@ use wasmer_runtime_core::{
 
 pub struct Runtime<ENV> {
     pub env: ENV,
-    pub storage_builder: Box<dyn Fn(Address, State, &Opts) -> ContractStorage>,
+    pub storage_builder: Box<dyn Fn(&Address, &State, &Opts) -> ContractStorage>,
 }
 
 impl<TY, ENV> Runtime<ENV>
@@ -36,7 +36,7 @@ where
 {
     pub fn new(
         env: ENV,
-        storage_builder: Box<dyn Fn(Address, State, &Opts) -> ContractStorage>,
+        storage_builder: Box<dyn Fn(&Address, &State, &Opts) -> ContractStorage>,
     ) -> Self {
         Self {
             env,
@@ -218,10 +218,20 @@ where
         helpers::wasmer_data_storage(wasmer_ctx.data)
     }
 
+    pub fn open_contract_storage(
+        &self,
+        addr: &Address,
+        state: &State,
+        opts: &Opts,
+    ) -> ContractStorage {
+        let storage_builder = &self.storage_builder;
+        storage_builder(addr, state, opts)
+    }
+
     pub fn import_object_create(
         &self,
-        addr: Address,
-        state: State,
+        addr: &Address,
+        state: &State,
         node_data: *const c_void,
         opts: &Opts,
     ) -> ImportObject {
@@ -230,8 +240,8 @@ where
             addr, state, opts
         );
 
-        let storage_builder = &self.storage_builder;
-        let storage = storage_builder(addr, state, opts);
+        let storage = self.open_contract_storage(addr, state, opts);
+
         let ctx = SvmCtx::new(SvmCtxDataWrapper::new(node_data), storage);
         let ctx = Box::leak(Box::new(ctx));
 

@@ -25,11 +25,11 @@ fn runtime_contract_env_build(path: &str) -> RocksdbContractEnv {
     RocksdbContractEnv::new(store)
 }
 
-fn runtime_contract_storage_build(addr: Address, state: State, opts: &Opts) -> ContractStorage {
+fn runtime_contract_storage_build(addr: &Address, state: &State, opts: &Opts) -> ContractStorage {
     let path = Path::new(&opts.kv_path);
     let kv = Rc::new(RefCell::new(Rocksdb::new(path)));
 
-    let pages = RocksdbContractPages::new(addr, kv, state, opts.max_pages as u32);
+    let pages = RocksdbContractPages::new(addr.clone(), kv, state.clone(), opts.max_pages as u32);
     let cache = RocksdbContractPageCache::new(pages, opts.max_pages);
 
     ContractStorage::new(Box::new(cache))

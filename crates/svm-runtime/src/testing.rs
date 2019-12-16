@@ -80,11 +80,11 @@ pub fn create_memory_runtime(kv: &Rc<RefCell<MemKVStore>>) -> Runtime<MemoryEnv>
 
 pub fn runtime_memory_storage_builder(
     kv: &Rc<RefCell<MemKVStore>>,
-) -> Box<dyn Fn(Address, State, &Opts) -> ContractStorage> {
+) -> Box<dyn Fn(&Address, &State, &Opts) -> ContractStorage> {
     let kv = Rc::clone(kv);
 
-    let builder = move |addr: Address, state: State, opts: &Opts| {
-        svm_storage::testing::contract_storage_open(&addr, &state, &kv, opts.max_pages as u32)
+    let builder = move |addr: &Address, state: &State, opts: &Opts| {
+        svm_storage::testing::contract_storage_open(addr, state, &kv, opts.max_pages as u32)
     };
 
     Box::new(builder)
