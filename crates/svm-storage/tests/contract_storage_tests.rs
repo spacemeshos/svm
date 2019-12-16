@@ -5,7 +5,6 @@ use svm_storage::testing::{
     contract_storage_init, contract_storage_open, default_page_hash, fill_page,
 };
 
-#[macro_use]
 mod asserts;
 
 #[test]

@@ -9,7 +9,6 @@ use svm_storage::testing::{
 };
 use svm_storage::traits::{PagesStorage, StateAwarePagesStorage};
 
-#[macro_use]
 mod asserts;
 
 #[test]

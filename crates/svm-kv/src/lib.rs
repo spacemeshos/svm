@@ -7,9 +7,6 @@
 /// Defines the `KVStore` trait.
 pub mod traits;
 
-#[macro_use]
-pub mod asserts;
-
 /// An in-memory implementation for `KVStore`
 #[cfg(feature = "memory")]
 pub mod memory;

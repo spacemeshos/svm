@@ -2,7 +2,6 @@ use svm_storage::page::PageIndex;
 use svm_storage::testing::{contract_page_cache_init, default_page_index_hash};
 use svm_storage::traits::PagesStorage;
 
-#[macro_use]
 mod asserts;
 
 #[test]
