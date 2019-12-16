@@ -42,6 +42,7 @@ fn runtime_executing_a_valid_transaction() {
     let mut runtime = testing::create_memory_runtime(&kv);
     let contract = runtime.contract_build(&bytes).unwrap();
     let addr = runtime.contract_compute_address(&contract);
+
     runtime.contract_store(&contract, &addr);
 
     // 2) executing a transaction `reg_set_and_persist`
@@ -59,40 +60,40 @@ fn runtime_executing_a_valid_transaction() {
             Value::I32(0),
             Value::I32(0),
             Value::I32(0),
-            Value::I32(0),
         ],
     );
 
     let tx = runtime.transaction_build(&bytes).unwrap();
-
     let node_data: *const c_void = std::ptr::null() as _;
+
     let opts = Opts {
         max_pages: 5,
         kv_path: String::new(),
     };
 
-    let import_object = runtime.import_object_create(addr, State::empty(), node_data, &opts);
+    let import_object =
+        runtime.import_object_create(addr.clone(), State::empty(), node_data, &opts);
     let receipt = runtime.contract_exec(tx, &import_object);
-    dbg!(receipt);
 
-    // assert_eq!(true, receipt.success);
-    // assert_eq!(None, receipt.error);
+    assert_eq!(true, receipt.success);
+    assert_eq!(None, receipt.error);
 
-    // let new_state = receipt.new_state.unwrap();
-    // assert_ne!(State::from(0), new_state);
-    //
-    // let pages_storage =
-    //     svm_runtime::gen_rocksdb_pages_storage!(addr, new_state, 10, "tests-contract-storage");
-    // let page_cache = svm_runtime::gen_rocksdb_page_cache!(pages_storage, 10);
-    // let mut storage = ContractStorage::new(Box::new(page_cache));
-    //
-    // let slice_pos = PageSliceLayout::new(PageIndex(0), PageOffset(0), 8);
-    //
-    // let slice = storage.read_page_slice(&slice_pos);
-    // assert_eq!(
-    //     &[0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80],
-    //     &slice[..]
-    // );
+    let new_state = receipt.new_state.unwrap();
+    assert_ne!(State::from(0), new_state);
+
+    // now we'll read directly from the contract storage and assert that the
+    // data has been persisted as expected.
+
+    let storage_builder = runtime.storage_builder;
+    let mut storage = storage_builder(addr, new_state, &opts);
+
+    let layout = PageSliceLayout::new(PageIndex(0), PageOffset(0), 8);
+    let slice = storage.read_page_slice(&layout);
+
+    assert_eq!(
+        &[0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80],
+        &slice[..]
+    );
 }
 
 // #[test]

@@ -71,6 +71,13 @@ pub fn memory_kv_store_init() -> Rc<RefCell<MemKVStore>> {
     Rc::new(RefCell::new(MemKVStore::new()))
 }
 
+pub fn create_memory_runtime(kv: &Rc<RefCell<MemKVStore>>) -> Runtime<MemoryEnv> {
+    let storage_builder = runtime_memory_storage_builder(kv);
+    let env = runtime_memory_env_builder();
+
+    Runtime::new(env, Box::new(storage_builder))
+}
+
 pub fn runtime_memory_storage_builder(
     kv: &Rc<RefCell<MemKVStore>>,
 ) -> Box<dyn Fn(Address, State, &Opts) -> ContractStorage> {
@@ -83,22 +90,9 @@ pub fn runtime_memory_storage_builder(
     Box::new(builder)
 }
 
-pub fn runtime_memory_env_builder(kv: &Rc<RefCell<MemKVStore>>) -> Box<dyn Fn(&str) -> MemoryEnv> {
-    let kv = Rc::clone(kv);
-
-    let builder = move |_path: &str| {
-        let store = MemContractStore::new();
-        MemoryEnv::new(store)
-    };
-
-    Box::new(builder)
-}
-
-pub fn create_memory_runtime(kv: &Rc<RefCell<MemKVStore>>) -> Runtime<MemoryEnv> {
-    let storage_builder = runtime_memory_storage_builder(kv);
-    let env_builder = runtime_memory_env_builder(kv);
-
-    Runtime::new(Box::new(env_builder), Box::new(storage_builder))
+pub fn runtime_memory_env_builder() -> MemoryEnv {
+    let store = MemContractStore::new();
+    MemoryEnv::new(store)
 }
 
 pub fn build_raw_contract(version: u32, name: &str, author: u32, wasm: &str) -> Vec<u8> {

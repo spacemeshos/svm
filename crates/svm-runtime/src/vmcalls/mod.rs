@@ -25,7 +25,7 @@ pub fn insert_vmcalls(ns: &mut Namespace) {
     );
 
     // `register` vmcalls
-    ("reg_replace_byte", func!(register::reg_replace_byte));
-    ("reg_read_be_i64", func!(register::reg_read_be_i64));
-    ("reg_write_be_i64", func!(register::reg_write_be_i64));
+    ns.insert("reg_replace_byte", func!(register::reg_replace_byte));
+    ns.insert("reg_read_be_i64", func!(register::reg_read_be_i64));
+    ns.insert("reg_write_be_i64", func!(register::reg_write_be_i64));
 }

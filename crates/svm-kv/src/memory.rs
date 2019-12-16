@@ -1,5 +1,5 @@
 use crate::traits::KVStore;
-use std::collections::HashMap;
+use std::collections::{hash_map, HashMap};
 
 use log::info;
 
@@ -27,12 +27,12 @@ impl MemKVStore {
     }
 
     /// Returns an iterator for the internal `HashMap`
-    pub fn iter(&self) -> std::collections::hash_map::Iter<Vec<u8>, Vec<u8>> {
+    pub fn iter(&self) -> hash_map::Iter<Vec<u8>, Vec<u8>> {
         (&self.map).iter()
     }
 
     /// Returns an iterator over the keys
-    pub fn keys(&self) -> std::collections::hash_map::Keys<Vec<u8>, Vec<u8>> {
+    pub fn keys(&self) -> hash_map::Keys<Vec<u8>, Vec<u8>> {
         self.map.keys()
     }
 }

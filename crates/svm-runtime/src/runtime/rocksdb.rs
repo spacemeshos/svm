@@ -13,10 +13,10 @@ use crate::opts::Opts;
 use crate::runtime::Runtime;
 
 pub fn create_rocksdb_runtime(path: &str) -> Runtime<RocksdbContractEnv> {
-    let env_builder = Box::new(runtime_contract_env_build);
+    let env = runtime_contract_env_build(path);
     let storage_builder = Box::new(runtime_contract_storage_build);
 
-    Runtime::new(env_builder, storage_builder)
+    Runtime::new(env, storage_builder)
 }
 
 fn runtime_contract_env_build(path: &str) -> RocksdbContractEnv {

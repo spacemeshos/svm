@@ -19,12 +19,14 @@ use svm_contract::{
 };
 use svm_storage::{ContractPages, ContractStorage};
 
-use wasmer_runtime_core::{func, import::ImportObject, import::Namespace};
+use wasmer_runtime_core::{
+    func,
+    import::{ImportObject, Namespace},
+};
 
 pub struct Runtime<ENV> {
-    env_builder: Box<dyn Fn(&str) -> ENV>,
-
-    storage_builder: Box<dyn Fn(Address, State, &Opts) -> ContractStorage>,
+    pub env: ENV,
+    pub storage_builder: Box<dyn Fn(Address, State, &Opts) -> ContractStorage>,
 }
 
 impl<TY, ENV> Runtime<ENV>
@@ -33,11 +35,11 @@ where
     ENV: ContractEnv<Types = TY>,
 {
     pub fn new(
-        env_builder: Box<dyn Fn(&str) -> ENV>,
+        env: ENV,
         storage_builder: Box<dyn Fn(Address, State, &Opts) -> ContractStorage>,
     ) -> Self {
         Self {
-            env_builder,
+            env,
             storage_builder,
         }
     }
@@ -68,9 +70,7 @@ where
     pub fn contract_store(&mut self, contract: &Contract, addr: &Address) {
         info!("runtime `contract_store`");
 
-        let env_builder = &self.env_builder;
-        let mut env = env_builder("..");
-        env.store_contract(contract, addr);
+        self.env.store_contract(contract, addr);
     }
 
     #[inline(always)]
@@ -260,9 +260,7 @@ where
     fn contract_load(&self, tx: &Transaction) -> Result<Contract, ContractExecError> {
         info!("runtime `contract_load`");
 
-        let env_builder = &self.env_builder;
-        let mut env = env_builder("..");
-        let store = env.get_store();
+        let store = self.env.get_store();
 
         match store.load(&tx.contract) {
             None => Err(ContractExecError::NotFound(tx.contract.clone())),
