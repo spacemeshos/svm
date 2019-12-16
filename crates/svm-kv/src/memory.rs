@@ -1,5 +1,5 @@
 use crate::traits::KVStore;
-use std::collections::HashMap;
+use std::collections::{hash_map, HashMap};
 
 use log::info;
 
@@ -27,12 +27,12 @@ impl MemKVStore {
     }
 
     /// Returns an iterator for the internal `HashMap`
-    pub fn iter(&self) -> std::collections::hash_map::Iter<Vec<u8>, Vec<u8>> {
+    pub fn iter(&self) -> hash_map::Iter<Vec<u8>, Vec<u8>> {
         (&self.map).iter()
     }
 
     /// Returns an iterator over the keys
-    pub fn keys(&self) -> std::collections::hash_map::Keys<Vec<u8>, Vec<u8>> {
+    pub fn keys(&self) -> hash_map::Keys<Vec<u8>, Vec<u8>> {
         self.map.keys()
     }
 }
@@ -54,72 +54,5 @@ impl KVStore for MemKVStore {
         for (k, v) in changes {
             self.map.insert(k.to_vec(), v.to_vec());
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use svm_common::Address;
-
-    fn init() {
-        let _ = env_logger::builder().is_test(true).try_init();
-    }
-
-    #[test]
-    fn a_key_does_not_exit_by_default() {
-        init();
-
-        let kv = MemKVStore::new();
-        let addr = Address::from(0x11_22_33_44 as u32);
-
-        assert_eq!(None, kv.get(addr.as_slice()));
-    }
-
-    #[test]
-    fn key_store_and_then_key_get() {
-        init();
-
-        let mut kv = MemKVStore::new();
-        let addr = Address::from(0x11_22_33_44 as u32);
-
-        kv.store(&[(addr.as_slice(), &[10, 20, 30])]);
-        assert_eq!(vec![10, 20, 30], kv.get(addr.as_slice()).unwrap());
-    }
-
-    #[test]
-    fn key_store_override_existing_entry() {
-        init();
-
-        let mut kv = MemKVStore::new();
-        let addr = Address::from(0x11_22_33_44 as u32);
-
-        kv.store(&[(addr.as_slice(), &[10, 20, 30])]);
-        assert_eq!(vec![10, 20, 30], kv.get(addr.as_slice()).unwrap());
-
-        kv.store(&[(addr.as_slice(), &[40, 50, 60])]);
-        assert_eq!(vec![40, 50, 60], kv.get(addr.as_slice()).unwrap());
-    }
-
-    #[test]
-    fn clear() {
-        init();
-
-        let mut kv = MemKVStore::new();
-        let addr1 = Address::from(0x11_22_33_44 as u32);
-        let addr2 = Address::from(0x55_66_77_88 as u32);
-
-        kv.store(&[
-            (addr1.as_slice(), &[10, 20, 30]),
-            (addr2.as_slice(), &[40, 50, 60]),
-        ]);
-
-        assert_eq!(vec![10, 20, 30], kv.get(addr1.as_slice()).unwrap());
-        assert_eq!(vec![40, 50, 60], kv.get(addr2.as_slice()).unwrap());
-
-        kv.clear();
-
-        assert_eq!(None, kv.get(addr1.as_slice()));
-        assert_eq!(None, kv.get(addr2.as_slice()));
     }
 }

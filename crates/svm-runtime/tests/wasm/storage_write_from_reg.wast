@@ -1,11 +1,11 @@
 (module
-  ;; import `svm` vmcalls
+  ;; import `SVM` vmcalls
   (func $storage_write_from_reg (import "svm" "storage_write_from_reg") (param i32 i32 i32 i32 i32))
 
   (memory 1)  ;; memory `0` (default) is initialized with one page
 
   ;; exported function to be called
-  (func (export "do_write_from_reg") (param i32 i32 i32 i32 i32)
+  (func (export "do_write_from_reg") (param i32 i32 i32 i32)
         i32.const 64 ;; src_reg_bits
         get_local 0  ;; src_reg_idx
         get_local 1  ;; len

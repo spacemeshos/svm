@@ -1,5 +1,5 @@
 (module
-  ;; import `svm` vmcalls
+  ;; import `SVM` vmcalls
   (func $svm_reg_to_mem_copy (import "svm" "reg_to_mem_copy") (param i32 i32 i32 i32 i32))
 
   (memory 1)  ;; memory `0` (default) is initialized with one page

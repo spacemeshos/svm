@@ -1,29 +1,27 @@
-#![deny(missing_docs)]
-#![deny(unused)]
+#![allow(missing_docs)]
+#![allow(unused)]
 
-//! `svm-runtime` crate is the glue between `svm` constract-storage to `wasmer` live instances.
+//! `SVM-runtime` crate is the glue between `SVM` to `wasmer`.
 
-/// Implements the most high-level API of `svm`.
-#[macro_use]
-pub mod runtime;
+/// Implements the most high-level API of `SVM`.
+mod runtime;
+pub use runtime::Runtime;
 
-/// Wraps the `node data` (of type `*const std::ffi::c_void`) in a thread-safe way
-pub mod ctx_data_wrapper;
-
-/// Implements `SvmCtx`. Used for running `svm` instances.
+/// Implements `SvmCtx`. Used for running `SVM` instances.
 pub mod ctx;
 
 /// Implements register abstraction to ease interfacing
 /// with the contract-storage / `wasmer` instance memory.
 pub mod register;
 
-/// `macros` implements the high-level macros to be consumed by `svm` vmcalls.
+/// `helpers` implements the helpers to be consumed by `SVM` vmcalls.
 #[macro_use]
-pub mod macros;
+pub mod helpers;
 
-/// Implements the `svm` vmcalls (a.k.a libcalls / hostcalls / syscalls)
-/// to be injected into `wasmer` instances running in the `svm`.
+pub mod testing;
+
+/// Implements the `SVM` vmcalls (a.k.a libcalls / hostcalls / syscalls)
 pub mod vmcalls;
 
-/// Options when spawning a new `svm` runtime instance
-pub mod opts;
+/// Options when spawning a new `SVM` runtime instance
+pub mod contract_settings;

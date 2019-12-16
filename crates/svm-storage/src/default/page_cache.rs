@@ -54,25 +54,24 @@ impl<PS: StateAwarePagesStorage> DefaultPageCache<PS> {
     /// * `pages_storage` - the underlying page-oriented page interface wrapping an underlying database.
     ///   doing a `pages_storage.commit()` should persist data to the underlying database.
     ///
-    /// * `max_pages` - the maximum pages the `DefaultPageCache` instance could use when doing read / write.
-    ///   A page index is within the range `0..(max_pages - 1)` (inclusive)
-    pub fn new(pages_storage: PS, max_pages: usize) -> Self {
+    /// * `pages_count` - the #pages the `DefaultPageCache` instance could use when doing read / write.
+    ///   A page index is within the range `0..(pages_count - 1)` (inclusive)
+    pub fn new(pages_storage: PS, pages_count: u32) -> Self {
         Self {
-            dirty_pages: vec![false; max_pages],
-            cached_pages: vec![CachedPage::NotCached; max_pages],
+            dirty_pages: vec![false; pages_count as usize],
+            cached_pages: vec![CachedPage::NotCached; pages_count as usize],
             pages_storage,
         }
     }
 
-    #[cfg(test)]
-    fn is_dirty(&self, page_idx: usize) -> bool {
+    pub fn is_dirty(&self, page_idx: usize) -> bool {
         self.dirty_pages[page_idx]
     }
 }
 
 impl<PS: StateAwarePagesStorage> PagesStorage for DefaultPageCache<PS> {
     fn read_page(&mut self, page_idx: PageIndex) -> Option<Vec<u8>> {
-        // we can have an `assert` here since we are given the maximum storage-pages upon initialization
+        // we can have an `assert` here since we are given the `pages_count` upon initialization
         assert!(self.cached_pages.len() > page_idx.0 as usize);
 
         debug!("reading page #{}", page_idx.0);
@@ -182,8 +181,8 @@ impl<PS: StateAwarePagesStorage> PagesStorage for DefaultPageCache<PS> {
                     CachedPage::CachedEmpty | CachedPage::NotCached => {
                         // we should never reach this code!
                         //
-                        // if a page is dirty then it's must appear in the cache.
-                        // also we can't make a page dirty and `NotCached`
+                        // if a page is dirty then it's must appear in the cache (i.e it can't be `NotCache`)
+                        // also we can't make a page dirty and `CachedEmpty`
                         unreachable!()
                     }
                 }
@@ -199,94 +198,5 @@ impl<PS: StateAwarePagesStorage> PagesStorage for DefaultPageCache<PS> {
 impl<PS: StateAwarePagesStorage> Drop for DefaultPageCache<PS> {
     fn drop(&mut self) {
         debug!("dropping `PageCache`...");
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use svm_kv::traits::KVStore;
-
-    use crate::default_page_idx_hash;
-
-    macro_rules! page_cache_open {
-        ($cache_ident: ident, $kv_ident: ident, $addr: expr, $state: expr, $max_pages: expr) => {
-            use crate::default::DefaultPageCache;
-            use crate::memory::MemContractPages;
-            use svm_kv::memory::MemKVStore;
-
-            use std::cell::RefCell;
-            use std::rc::Rc;
-
-            let $kv_ident = Rc::new(RefCell::new(MemKVStore::new()));
-            let kv_gen = || Rc::clone(&$kv_ident);
-
-            let pages = create_contract_pages!($addr, $state, kv_gen, $max_pages);
-            let mut $cache_ident = DefaultPageCache::<MemContractPages>::new(pages, $max_pages);
-        };
-    }
-
-    macro_rules! create_contract_pages {
-        ($addr: expr, $state: expr, $kv_gen: expr, $max_pages: expr) => {{
-            use crate::memory::MemContractPages;
-            use svm_common::{Address, State};
-
-            let addr = Address::from($addr as u32);
-            let state = State::from($state as u32);
-
-            MemContractPages::new(addr, $kv_gen(), state, $max_pages)
-        }};
-    }
-
-    #[test]
-    fn loading_an_empty_page_into_the_cache() {
-        page_cache_open!(cache, db, 0x11_22_33_44, 0x00_00_00_00, 10);
-
-        assert_eq!(None, cache.read_page(PageIndex(0)));
-    }
-
-    #[test]
-    fn write_page_and_then_commit() {
-        page_cache_open!(cache, kv, 0x11_22_33_44, 0x00_00_00_00, 10);
-
-        let page = vec![10, 20, 30];
-
-        cache.write_page(PageIndex(0), &page);
-        assert_eq!(vec![10, 20, 30], cache.read_page(PageIndex(0)).unwrap());
-
-        let ph = default_page_idx_hash!(0x11_22_33_44, 0);
-        assert_eq!(None, kv.borrow().get(&ph));
-    }
-
-    #[test]
-    #[ignore]
-    fn writing_a_page_marks_it_as_dirty() {
-        page_cache_open!(cache, kv, 0x11_22_33_44, 0x00_00_00_00, 10);
-
-        assert_eq!(false, cache.is_dirty(0));
-
-        let page = vec![10, 20, 30];
-        cache.write_page(PageIndex(0), &page);
-
-        assert_eq!(true, cache.is_dirty(0));
-    }
-
-    #[test]
-    #[ignore]
-    fn commit_persists_each_dirty_page() {
-        page_cache_open!(cache, kv, 0x11_22_33_44, 0x00_00_00_00, 10);
-
-        let page = vec![10, 20, 30];
-
-        cache.write_page(PageIndex(0), &page);
-
-        // `cache.write_page` doesn't persist the page yet
-        let ph = default_page_idx_hash!(0x11_22_33_44, 0);
-        assert_eq!(None, kv.borrow().get(&ph));
-
-        cache.commit();
-
-        // `cache.commit` persists the page
-        assert_eq!(Some(vec![10, 20, 30]), kv.borrow().get(&ph));
     }
 }

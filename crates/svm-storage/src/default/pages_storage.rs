@@ -29,7 +29,7 @@ use std::rc::Rc;
 ///   But it will await to a future `commit`. This is by design since a Smart Contract execution
 ///   may fail for multiple reasons, and on such occurrence we don't want to change any state.
 ///   Another benefit is that if the underlying key-value store supports a batch write (for example
-///   databases `leveldb` and `rocksdb` have this capability), the `commit` implementation can take advantage of it.
+///   database `rocksdb` has this capability), the `commit` implementation can take advantage of it.
 pub struct DefaultPagesStorage<PIH: PageIndexHasher, KV: KVStore> {
     addr: Address,
     kv: Rc<RefCell<KV>>,

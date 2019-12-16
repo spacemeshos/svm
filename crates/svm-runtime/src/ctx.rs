@@ -3,10 +3,9 @@ use crate::*;
 use crate::register::{SvmReg, SvmReg160, SvmReg32, SvmReg512, SvmReg64};
 use std::ffi::c_void;
 
-use svm_storage::traits::PageCache;
-use svm_storage::PageSliceCache;
+use svm_storage::ContractStorage;
 
-use crate::ctx_data_wrapper::SvmCtxDataWrapper;
+use crate::helpers::PtrWrapper;
 
 use log::debug;
 
@@ -32,11 +31,11 @@ pub const REGS_512_COUNT: usize = 4;
 /// * `regs_160`  - A static array (`REGS_160_COUNT` elements) of `SvmReg160`
 /// * `regs_256`  - A static array (`REGS_256_COUNT` elements) of `SvmReg256`
 /// * `regs_512`  - A static array (`REGS_512_COUNT` elements) of `SvmReg512`
-/// * `storage`   - An instance of `PageSliceCache`
+/// * `storage`   - An instance of `ContractStorage`
 #[repr(C)]
-pub struct SvmCtx<PC: PageCache> {
+pub struct SvmCtx {
     /// A pointer to the `node` data. For example the pointer will point a to struct having an access
-    /// to the `Global State` of each account, in order to query an account for its balance.
+    /// to the `Global State` of each account, in order to query an account for its own balance.
     pub node_data: *const c_void,
 
     /// An array that holds the `SvmReg32` registers
@@ -54,21 +53,18 @@ pub struct SvmCtx<PC: PageCache> {
     /// An array that holds the `SvmReg512` registers
     pub regs_512: [SvmReg; REGS_512_COUNT],
 
-    /// An accessor to the contract's storage (of type `PageSliceCache`)
-    pub storage: PageSliceCache<PC>,
+    /// An accessor to the contract's storage
+    pub storage: ContractStorage,
 }
 
-unsafe impl<PC> Sync for SvmCtx<PC> where PC: PageCache {}
-unsafe impl<PC> Send for SvmCtx<PC> where PC: PageCache {}
+unsafe impl Sync for SvmCtx {}
+unsafe impl Send for SvmCtx {}
 
-impl<PC> SvmCtx<PC>
-where
-    PC: PageCache,
-{
+impl SvmCtx {
     /// Initializes a new empty `SvmCtx`
     ///
-    /// * `storage` - a mutably borrowed `PageSliceCache`
-    pub fn new(data_wrapper: SvmCtxDataWrapper, storage: PageSliceCache<PC>) -> Self {
+    /// * `storage` - a mutably borrowed `ContractStorage`
+    pub fn new(node_data: PtrWrapper, storage: ContractStorage) -> Self {
         let regs_32 = alloc_regs!(32, REGS_32_COUNT);
         let regs_64 = alloc_regs!(64, REGS_64_COUNT);
         let regs_160 = alloc_regs!(160, REGS_160_COUNT);
@@ -76,7 +72,7 @@ where
         let regs_512 = alloc_regs!(512, REGS_512_COUNT);
 
         Self {
-            node_data: data_wrapper.unwrap(),
+            node_data: node_data.unwrap(),
             regs_32,
             regs_64,
             regs_160,
@@ -87,10 +83,7 @@ where
     }
 }
 
-impl<PC> Drop for SvmCtx<PC>
-where
-    PC: PageCache,
-{
+impl Drop for SvmCtx {
     fn drop(&mut self) {
         debug!("Dropping `SvmCtx`...");
     }

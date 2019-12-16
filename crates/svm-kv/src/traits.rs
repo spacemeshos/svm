@@ -1,4 +1,4 @@
-/// `KVStore` is a trait for defining an interface against key-value stores. for example `in-memory / leveldb / rocksdb`
+/// `KVStore` is a trait for defining an interface against key-value stores. for example `in-memory / rocksdb`
 pub trait KVStore {
     /// Retrieves the value pointed by `key` (Optional).
     #[must_use]

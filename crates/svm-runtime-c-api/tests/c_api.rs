@@ -5,7 +5,7 @@ use std::ffi::c_void;
 
 use svm_common::{Address, State};
 use svm_storage::page::{PageIndex, PageOffset, PageSliceLayout};
-use svm_storage::PageSliceCache;
+use svm_storage::ContractStorage;
 
 use svm_contract::wasm::WasmArgValue;
 
@@ -135,7 +135,7 @@ fn runtime_tx_exec_changing_state() {
             raw_import_object as _,
             raw_addr,                     // `raw_addr:  *const c_void`
             State::from(0).as_ptr() as _, // `raw_state: *const c_void`
-            5,                            // `max_pages:  libc::c_int`
+            5,                            // `pages_count: libc::c_int`
             full_node_as_ptr(&node),      // `node_data_ptr:: *const c_void`
             std::ptr::null_mut(),         // `imports: *mut wasmer_import_t`
             0,                            // `imports_len: libc::c_int`
@@ -169,7 +169,7 @@ fn runtime_tx_exec_changing_state() {
         let pages_storage =
             svm_runtime::gen_rocksdb_pages_storage!(addr, new_state, 5, "tests-contract-storage");
         let page_cache = svm_runtime::gen_rocksdb_page_cache!(pages_storage, 5);
-        let mut storage = PageSliceCache::new(page_cache);
+        let mut storage = ContractStorage::new(page_cache);
 
         let slice_pos = PageSliceLayout::new(PageIndex(0), PageOffset(0), 8);
 
@@ -225,7 +225,7 @@ fn runtime_node_vmcalls() {
             raw_import_object as _,
             raw_addr,                     // `raw_addr: *const u8`
             State::from(0).as_ptr() as _, // `raw_state: *const u8`,
-            5,                            // `max_pages: libc::c_int`
+            5,                            // `pages_count: libc::c_int`
             full_node_as_ptr(&node),      // `node_data_ptr:: *const c_void`
             imports.as_mut_ptr() as _,    // `imports: *mut wasmer_import_t`
             imports.len() as _,           // `imports_len: libc::c_int`

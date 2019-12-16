@@ -1,5 +1,5 @@
 #![allow(missing_docs)]
-#![allow(unused)]
+#![deny(unused)]
 
 //! `svm-storage` crate is responsible on the contract storage part of the `svm`
 //! Each smart contract has its own storage
@@ -8,8 +8,7 @@
 pub mod default;
 
 mod contract_pages;
-
-mod page_slice_cache;
+mod contract_storage;
 
 /// Contains definitions of `Page` related structures. For example: `Page, PageIndex` etc
 pub mod page;
@@ -17,15 +16,15 @@ pub mod page;
 /// Contains definitions `State`-related.
 pub mod state;
 
-pub use crate::page_slice_cache::PageSliceCache;
+pub use crate::contract_pages::ContractPages;
+pub use crate::contract_storage::ContractStorage;
 
 /// Storage related traits
-#[macro_use]
 pub mod traits;
 
-/// Common storage macros
+/// Tests related helpers and asserts
 #[macro_use]
-pub mod macros;
+pub mod testing;
 
 use cfg_if::cfg_if;
 

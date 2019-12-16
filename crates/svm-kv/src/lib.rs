@@ -1,5 +1,5 @@
-#![deny(missing_docs)]
-#![deny(unused)]
+#![allow(missing_docs)]
+#![allow(unused)]
 
 //! The `svm-kv` is responsible on providing different implementations for the `KVStore` trait.
 //! (defined in `traits.rs`).
@@ -11,10 +11,6 @@ pub mod traits;
 #[cfg(feature = "memory")]
 pub mod memory;
 
-/// An `leveldb` backed implementation for `KVStore`
-#[cfg(feature = "default-leveldb")]
-pub mod leveldb;
-
-/// An `rocksdb` backed implementation for `KVStore`
+/// `KVStore` backed by rocksdb
 #[cfg(feature = "default-rocksdb")]
 pub mod rocksdb;

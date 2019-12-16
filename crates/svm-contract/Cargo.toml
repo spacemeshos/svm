@@ -29,4 +29,3 @@ version = "0.4"
 default = ["memory", "default-rocksdb"]
 memory = ["svm-kv/memory"]
 default-rocksdb = ["svm-kv/default-rocksdb"]
-default-leveldb = ["svm-kv/default-leveldb"]
