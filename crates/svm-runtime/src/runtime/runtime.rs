@@ -7,7 +7,7 @@ use svm_contract::env::{ContractEnv, ContractEnvTypes};
 use crate::contract_settings::ContractSettings;
 use crate::ctx::SvmCtx;
 use crate::helpers;
-use crate::helpers::PtrWrapper;
+use crate::helpers::{PtrWrapper, StorageBuilderFn};
 use crate::runtime::{ContractExecError, Receipt};
 use crate::vmcalls;
 
@@ -26,7 +26,7 @@ use wasmer_runtime_core::{
 
 pub struct Runtime<ENV> {
     pub env: ENV,
-    pub storage_builder: Box<dyn Fn(&Address, &State, &ContractSettings) -> ContractStorage>,
+    pub storage_builder: Box<StorageBuilderFn>,
 }
 
 impl<TY, ENV> Runtime<ENV>
@@ -34,10 +34,7 @@ where
     TY: ContractEnvTypes,
     ENV: ContractEnv<Types = TY>,
 {
-    pub fn new(
-        env: ENV,
-        storage_builder: Box<dyn Fn(&Address, &State, &ContractSettings) -> ContractStorage>,
-    ) -> Self {
+    pub fn new(env: ENV, storage_builder: Box<StorageBuilderFn>) -> Self {
         Self {
             env,
             storage_builder,

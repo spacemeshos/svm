@@ -3,17 +3,23 @@ use std::ffi::c_void;
 use std::rc::Rc;
 
 use crate::{
-    contract_settings::ContractSettings, ctx::SvmCtx, helpers, helpers::PtrWrapper,
-    register::SvmReg, runtime::Runtime,
+    contract_settings::ContractSettings,
+    ctx::SvmCtx,
+    helpers,
+    helpers::{PtrWrapper, StorageBuilderFn},
+    register::SvmReg,
+    runtime::Runtime,
 };
 
 use svm_common::{Address, State};
 use svm_kv::memory::MemKVStore;
 use svm_storage::{default::DefaultPageCache, memory::MemContractPages, ContractStorage};
 
-use svm_contract::build::{WireContractBuilder, WireTxBuilder};
-use svm_contract::memory::{MemContractStore, MemoryEnv};
-use svm_contract::wasm::WasmArgValue;
+use svm_contract::{
+    build::{WireContractBuilder, WireTxBuilder},
+    memory::{MemContractStore, MemoryEnv},
+    wasm::WasmArgValue,
+};
 
 use wasmer_runtime_core::{import::ImportObject, Instance, Module};
 
@@ -86,9 +92,7 @@ pub fn create_memory_runtime(kv: &Rc<RefCell<MemKVStore>>) -> Runtime<MemoryEnv>
     Runtime::new(env, Box::new(storage_builder))
 }
 
-pub fn runtime_memory_storage_builder(
-    kv: &Rc<RefCell<MemKVStore>>,
-) -> Box<dyn Fn(&Address, &State, &ContractSettings) -> ContractStorage> {
+pub fn runtime_memory_storage_builder(kv: &Rc<RefCell<MemKVStore>>) -> Box<StorageBuilderFn> {
     let kv = Rc::clone(kv);
 
     let builder = move |addr: &Address, state: &State, settings: &ContractSettings| {
