@@ -215,7 +215,7 @@ where
         instance: &mut wasmer_runtime::Instance,
     ) -> &mut svm_storage::ContractStorage {
         let wasmer_ctx: &mut wasmer_runtime::Ctx = instance.context_mut();
-        helpers::wasmer_data_storage(wasmer_ctx.data)
+        helpers::wasmer_data_contract_storage(wasmer_ctx.data)
     }
 
     pub fn open_contract_storage(

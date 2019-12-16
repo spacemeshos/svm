@@ -1,7 +1,7 @@
 use wasmer_runtime::{func, imports, Func};
 
+use crate::testing::{instance_register, instance_storage};
 use svm_runtime::{helpers, helpers::PtrWrapper, testing, vmcalls};
-
 use svm_storage::page::{PageIndex, PageOffset, PageSliceLayout};
 
 fn prepare_test_args() -> (u32, u32, PtrWrapper, u32) {
@@ -40,15 +40,15 @@ fn vmcalls_mem_to_reg_copy() {
     // initializing memory #0 cells `200..203` with values `10, 20, 30` respectively
     testing::instance_memory_init(&mut instance, 200, &[10, 20, 30]);
 
-    // asserting register `2:64` content is initialized with zeros
-    let reg = helpers::wasmer_ctx_reg(instance.context_mut(), 64, 2);
+    // asserting register `64:2` content is initialized with zeros
+    let reg = instance_register(&instance, 64, 2);
     assert_eq!(vec![0, 0, 0, 0, 0, 0, 0, 0], reg.view());
 
     let do_copy: Func<(i32, i32, i32)> = instance.func("do_copy_to_reg").unwrap();
     assert!(do_copy.call(200, 3, 2).is_ok());
 
-    // asserting register `2:64` content is `10, 20, 30, 0, 0, ... 0`
-    let reg = helpers::wasmer_ctx_reg(instance.context_mut(), 64, 2);
+    // asserting register `64:2` content is `10, 20, 30, 0, 0, ... 0`
+    let reg = instance_register(&instance, 64, 2);
     assert_eq!(vec![10, 20, 30, 0, 0, 0, 0, 0], reg.view());
 }
 
@@ -67,15 +67,15 @@ fn vmcalls_reg_to_mem_copy() {
     let mut instance =
         testing::instantiate(&import_object, include_str!("wasm/reg_to_mem_copy.wast"));
 
-    // initializing reg `2:64` with values `10, 20, 30` respectively
-    let reg = helpers::wasmer_ctx_reg(instance.context_mut(), 64, 2);
+    // initializing reg `64:2` with values `10, 20, 30` respectively
+    let reg = instance_register(&instance, 64, 2);
     reg.set(&[10, 20, 30]);
 
     // asserting memory #0, cells `0..3` are zeros before copy
     let cells = testing::instance_memory_view(&instance, 0, 3);
     assert_eq!(vec![0, 0, 0], cells);
 
-    // copying reg `2:64` content into memory cells `0..3`
+    // copying reg `64:2` content into memory cells `0..3`
     let do_copy: Func<(i32, i32, i32)> = instance.func("do_copy_to_mem").unwrap();
     assert!(do_copy.call(2, 3, 0).is_ok());
 
@@ -103,14 +103,14 @@ fn vmcalls_storage_read_an_empty_page_slice_to_reg() {
 
     // we first initialize register `2:64` with some garbage data (0xFF...FF) which should be overriden
     // after calling the exported `do_copy_to_reg` function
-    let reg = helpers::wasmer_ctx_reg(instance.context_mut(), 64, 2);
+    let reg = instance_register(&instance, 64, 2);
     reg.set(&[0xFF; 8]);
 
     let do_copy: Func<(i32, i32, i32, i32)> = instance.func("do_copy_to_reg").unwrap();
     assert!(do_copy.call(1, 100, 3, 2).is_ok());
 
-    // register `2:64` should contain zeros, since an empty page-slice is treated as a page-slice containing only zeros
-    let reg = helpers::wasmer_ctx_reg(instance.context_mut(), 64, 2);
+    // register `64:2` should contain zeros, since an empty page-slice is treated as a page-slice containing only zeros
+    let reg = instance_register(&instance, 64, 2);
     assert_eq!(vec![0, 0, 0, 0, 0, 0, 0, 0], reg.view());
 }
 
@@ -131,22 +131,22 @@ fn vmcalls_storage_read_non_empty_page_slice_to_reg() {
         include_str!("wasm/storage_to_reg_copy.wast"),
     );
 
-    let storage = helpers::wasmer_data_storage(instance.context_mut().data);
+    let storage = instance_storage(&instance);
     let layout = PageSliceLayout::new(PageIndex(1), PageOffset(100), 3);
 
     // we write `[10, 20, 30]` into storage slice (page `1`, cells: `100..103`)
     storage.write_page_slice(&layout, &vec![10, 20, 30]);
 
-    // we first initialize register `2:64` with some garbage (0xFF...FF) data which should be overriden
+    // we first initialize register `64:2` with some garbage (0xFF...FF) data which should be overriden
     // after calling the exported `do_copy_to_reg` function
-    let reg = helpers::wasmer_ctx_reg(instance.context_mut(), 64, 2);
+    let reg = instance_register(&instance, 64, 2);
     reg.set(&[0xFF; 8]);
 
     // we copy slice (page `1`, cells: `100..103`) into register `2:64`
     let do_copy: Func<(i32, i32, i32, i32)> = instance.func("do_copy_to_reg").unwrap();
     assert!(do_copy.call(1, 100, 3, 2).is_ok());
 
-    let reg = helpers::wasmer_ctx_reg(instance.context_mut(), 64, 2);
+    let reg = instance_register(&instance, 64, 2);
     assert_eq!(vec![10, 20, 30, 0, 0, 0, 0, 0], reg.view());
 }
 
@@ -198,7 +198,7 @@ fn vmcalls_storage_read_non_empty_page_slice_to_mem() {
         include_str!("wasm/storage_to_mem_copy.wast"),
     );
 
-    let storage = helpers::wasmer_data_storage(instance.context_mut().data);
+    let storage = instance_storage(&instance);
     let layout = PageSliceLayout::new(PageIndex(1), PageOffset(100), 3);
 
     // we write `[10, 20, 30]` into storage slice (page `1`, cells `100..103`)
@@ -233,7 +233,7 @@ fn vmcalls_storage_write_from_mem() {
     // initializing memory `#0` cells `200...203` with `10, 20, 30` respectively
     testing::instance_memory_init(&mut instance, 200, &[10, 20, 30]);
 
-    let storage = helpers::wasmer_data_storage(instance.context_mut().data);
+    let storage = instance_storage(&instance);
     let layout = PageSliceLayout::new(PageIndex(1), PageOffset(100), 3);
 
     assert_eq!(vec![0, 0, 0], storage.read_page_slice(&layout));
@@ -262,16 +262,16 @@ fn vmcalls_storage_write_from_reg() {
         include_str!("wasm/storage_write_from_reg.wast"),
     );
 
-    let storage = helpers::wasmer_data_storage(instance.context_mut().data);
+    let storage = instance_storage(&instance);
 
-    // we first initialize register `5:64` with `[10, 20, 30, 0, 0, 0, 0, 0]`
-    let reg = helpers::wasmer_ctx_reg(instance.context_mut(), 64, 5);
+    // we first initialize register `64:5` with `[10, 20, 30, 0, 0, 0, 0, 0]`
+    let reg = instance_register(&instance, 64, 5);
     reg.set(&[10, 20, 30]);
 
     let layout = PageSliceLayout::new(PageIndex(1), PageOffset(200), 3);
     assert_eq!(vec![0, 0, 0], storage.read_page_slice(&layout));
 
-    // we copy register `5:64` first into storage (`page 1`, cells: `200..203`)
+    // we copy register `64:5` first into storage (`page 1`, cells: `200..203`)
     let do_write: Func<(i32, i32, i32, i32)> = instance.func("do_write_from_reg").unwrap();
     assert!(do_write.call(5, 3, 1, 200).is_ok());
 
@@ -299,27 +299,27 @@ fn vmcalls_reg_replace_byte_read_write_be_i64() {
         include_str!("wasm/reg_replace_read_write_be_i64.wast"),
     );
 
-    // we first initialize register `5:64` with `[254, 255, 0, 0, 0, 0, 0, 0]`
-    let reg = helpers::wasmer_ctx_reg(instance.context_mut(), 64, 5);
+    // we first initialize register `64:5` with `[254, 255, 0, 0, 0, 0, 0, 0]`
+    let reg = instance_register(&instance, 64, 5);
     reg.set(&[0, 0, 0, 0, 0, 0, 255, 254]);
 
     let inc: Func<i32> = instance.func("inc").unwrap();
     assert!(inc.call(5).is_ok());
 
-    let reg = helpers::wasmer_ctx_reg(instance.context_mut(), 64, 5);
+    let reg = instance_register(&instance, 64, 5);
     assert_eq!(vec![0, 0, 0, 0, 0, 0, 255, 255], reg.view());
 
     let inc: Func<i32> = instance.func("inc").unwrap();
     assert!(inc.call(5).is_ok());
 
-    let reg = helpers::wasmer_ctx_reg(instance.context_mut(), 64, 5);
+    let reg = instance_register(&instance, 64, 5);
     assert_eq!(vec![0, 0, 0, 0, 0, 1, 0, 0], reg.view());
 
-    // now we'll change 2 bytes of register `5:64`
+    // now we'll change 2 bytes of register `64:5`
     let replace: Func<(i32, i32, i32)> = instance.func("replace").unwrap();
     assert!(replace.call(5, 10, 6).is_ok());
     assert!(replace.call(5, 20, 7).is_ok());
 
-    let reg = helpers::wasmer_ctx_reg(instance.context_mut(), 64, 5);
+    let reg = instance_register(&instance, 64, 5);
     assert_eq!(vec![0, 0, 0, 0, 0, 1, 10, 20], reg.view());
 }

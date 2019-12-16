@@ -1,13 +1,9 @@
 use crate::ctx::SvmCtx;
 use std::ffi::c_void;
 
-/// Extracts from `wasmer` instance context `data` (type: `SvmCtx`) the `node_data` field (type: `*const c_void`)
 #[inline(always)]
-pub(crate) fn wasmer_data_node_data(data: *const c_void) -> *const c_void {
-    let ctx: *mut SvmCtx = data as _;
-    let ctx: &mut SvmCtx = unsafe { &mut *ctx };
-
-    ctx.node_data
+pub fn cast_ptr_to_svm_ctx<'a>(data: *const c_void) -> &'a mut SvmCtx {
+    unsafe { &mut *(data as *mut SvmCtx) }
 }
 
 /// Allocates registers. This macro is called at `SvmCtx` ctor.

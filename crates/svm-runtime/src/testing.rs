@@ -2,20 +2,20 @@ use std::cell::{Cell, RefCell};
 use std::ffi::c_void;
 use std::rc::Rc;
 
-use crate::contract_settings::ContractSettings;
-use crate::ctx::SvmCtx;
-use crate::helpers::PtrWrapper;
-use crate::runtime::Runtime;
+use crate::{
+    contract_settings::ContractSettings, ctx::SvmCtx, helpers, helpers::PtrWrapper,
+    register::SvmReg, runtime::Runtime,
+};
 
 use svm_common::{Address, State};
 use svm_kv::memory::MemKVStore;
 use svm_storage::{default::DefaultPageCache, memory::MemContractPages, ContractStorage};
 
-use wasmer_runtime_core::{import::ImportObject, Instance, Module};
-
 use svm_contract::build::{WireContractBuilder, WireTxBuilder};
 use svm_contract::memory::{MemContractStore, MemoryEnv};
 use svm_contract::wasm::WasmArgValue;
+
+use wasmer_runtime_core::{import::ImportObject, Instance, Module};
 
 pub fn wasmer_compile(wasm: &str) -> Module {
     let wasm = wabt::wat2wasm(&wasm).unwrap();
@@ -26,6 +26,14 @@ pub fn instantiate(import_object: &ImportObject, wasm: &str) -> Instance {
     let module = wasmer_compile(wasm);
     let instance = module.instantiate(import_object).unwrap();
     instance
+}
+
+pub fn instance_register(instance: &Instance, reg_bits: i32, reg_idx: i32) -> &mut SvmReg {
+    helpers::wasmer_data_reg(instance.context().data, reg_bits, reg_idx)
+}
+
+pub fn instance_storage(instance: &Instance) -> &mut ContractStorage {
+    helpers::wasmer_data_contract_storage(instance.context().data)
 }
 
 pub fn instance_memory_view(instance: &Instance, offset: usize, len: usize) -> Vec<u8> {

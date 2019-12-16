@@ -1,21 +1,44 @@
 use std::ffi::c_void;
 
 use crate::ctx::SvmCtx;
+use crate::helpers;
 use crate::register::SvmReg;
 
-use wasmer_runtime_core::vm::Ctx;
-
-/// Given register bits count, returns the number of allocated registers of that type
-/// (constants are defined at `ctx.rs`)
-/// Ensuring that `reg_idx` is within the `0..REGS_64_COUNT` range (exclusive).
+/// Extracts from `wasmer` instance context (type: `Ctx`) a mutable borrow for the register indexed `reg_idx`.
+/// Will be used by storage vmcalls.
 #[inline(always)]
-pub fn wasmer_data_ensure_reg_idx(bits_count: i32, reg_idx: i32) {
-    assert!(reg_idx >= 0 && ((reg_idx as i32) < (regs_count_ident(bits_count) as i32)));
+pub fn wasmer_data_reg<'a>(data: *const c_void, bits_count: i32, reg_idx: i32) -> &'a mut SvmReg {
+    ensure_reg_index(bits_count, reg_idx);
+
+    let ctx: &mut SvmCtx = helpers::cast_ptr_to_svm_ctx(data);
+
+    match bits_count {
+        32 => svm_regs_reg(&mut ctx.regs_32, 32, reg_idx),
+        64 => svm_regs_reg(&mut ctx.regs_64, 64, reg_idx),
+        160 => svm_regs_reg(&mut ctx.regs_160, 160, reg_idx),
+        256 => svm_regs_reg(&mut ctx.regs_256, 256, reg_idx),
+        512 => svm_regs_reg(&mut ctx.regs_512, 512, reg_idx),
+        _ => unreachable!(),
+    }
+}
+
+#[inline(always)]
+fn regs_count_by_bits(bits_count: i32) -> i32 {
+    let bits_count = match bits_count {
+        32 => crate::ctx::REGS_32_COUNT,
+        64 => crate::ctx::REGS_64_COUNT,
+        160 => crate::ctx::REGS_160_COUNT,
+        256 => crate::ctx::REGS_256_COUNT,
+        512 => crate::ctx::REGS_512_COUNT,
+        _ => unreachable!(),
+    };
+
+    bits_count as i32
 }
 
 /// Receives an slice of `SvmReg` and returns the `reg_idx` register.
-pub fn svm_regs_reg(regs: &mut [SvmReg], bits_count: i32, reg_idx: i32) -> &mut SvmReg {
-    wasmer_data_ensure_reg_idx(bits_count, reg_idx);
+fn svm_regs_reg(regs: &mut [SvmReg], bits_count: i32, reg_idx: i32) -> &mut SvmReg {
+    ensure_reg_index(bits_count, reg_idx);
 
     // We don't do:
     // ```rust
@@ -33,37 +56,10 @@ pub fn svm_regs_reg(regs: &mut [SvmReg], bits_count: i32, reg_idx: i32) -> &mut 
     reg
 }
 
-/// Extracts from `wasmer` instance context data field (of type `*mut c_void`), a mutable borrow for the register indexed `reg_idx`.
-pub fn wasmer_data_reg<'a>(data: *const c_void, bits_count: i32, reg_idx: i32) -> &'a mut SvmReg {
-    wasmer_data_ensure_reg_idx(bits_count, reg_idx);
-
-    let ctx: &mut SvmCtx = crate::helpers::cast_wasmer_data_to_svm_ctx(data);
-
-    match bits_count {
-        32 => svm_regs_reg(&mut ctx.regs_32, 32, reg_idx),
-        64 => svm_regs_reg(&mut ctx.regs_64, 64, reg_idx),
-        160 => svm_regs_reg(&mut ctx.regs_160, 160, reg_idx),
-        256 => svm_regs_reg(&mut ctx.regs_256, 256, reg_idx),
-        512 => svm_regs_reg(&mut ctx.regs_512, 512, reg_idx),
-        _ => unreachable!(),
-    }
-}
-
-/// Extracts from `wasmer` instance context (type: `Ctx`) a mutable borrow for the register indexed `reg_idx`.
-/// Will be used by storage vmcalls.
+/// Given register bits count, returns the number of allocated registers of that type
+/// (constants are defined at `ctx.rs`)
+/// Ensuring that `reg_idx` is within the `0..REGS_64_COUNT` range (exclusive).
 #[inline(always)]
-pub fn wasmer_ctx_reg(ctx: &mut Ctx, bits_count: i32, reg_idx: i32) -> &mut SvmReg {
-    wasmer_data_reg(ctx.data, bits_count, reg_idx)
-}
-
-#[inline(always)]
-fn regs_count_ident(bits_count: i32) -> usize {
-    match bits_count {
-        32 => crate::ctx::REGS_32_COUNT,
-        64 => crate::ctx::REGS_64_COUNT,
-        160 => crate::ctx::REGS_160_COUNT,
-        256 => crate::ctx::REGS_256_COUNT,
-        512 => crate::ctx::REGS_512_COUNT,
-        _ => unreachable!(),
-    }
+fn ensure_reg_index(bits_count: i32, reg_idx: i32) {
+    assert!(reg_idx >= 0 && (reg_idx < regs_count_by_bits(bits_count)));
 }
