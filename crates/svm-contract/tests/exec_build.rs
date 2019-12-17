@@ -2,7 +2,10 @@ use svm_common::Address;
 
 use svm_contract::wasm::WasmArgValue;
 use svm_contract::{
-    build::WireTxBuilder, env::ContractEnv, memory::MemoryEnv, transaction::Transaction,
+    build::WireTxBuilder,
+    env::ContractEnv,
+    memory::{MemContractStore, MemoryEnv},
+    transaction::Transaction,
 };
 
 #[test]
@@ -15,7 +18,10 @@ fn build_transaction() {
         .with_func_args(&vec![WasmArgValue::I32(10), WasmArgValue::I64(20)])
         .build();
 
-    let actual = <MemoryEnv as ContractEnv>::build_transaction(&bytes).unwrap();
+    let store = MemContractStore::new();
+    let env = MemoryEnv::new(store);
+
+    let actual = env.build_transaction(&bytes).unwrap();
 
     let expected = Transaction {
         contract: Address::from(0x10_20_30_40),

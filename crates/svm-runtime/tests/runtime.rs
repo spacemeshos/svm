@@ -2,7 +2,7 @@ use std::ffi::c_void;
 
 use svm_common::State;
 use svm_contract::wasm::WasmArgValue as Value;
-use svm_runtime::{contract_settings::ContractSettings, testing};
+use svm_runtime::{contract_settings::ContractSettings, testing, traits::Runtime};
 use svm_storage::page::{PageIndex, PageOffset, PageSliceLayout};
 
 // #[test]
@@ -16,7 +16,7 @@ use svm_storage::page::{PageIndex, PageOffset, PageSliceLayout};
 //         .build();
 //
 //     let contract = runtime::contract_build(&bytes).unwrap();
-//     let addr = runtime::contract_compute_address(&contract);
+//     let addr = runtime::contract_derive_address(&contract);
 //     runtime::contract_store(&contract, &addr);
 // }
 //
@@ -39,9 +39,9 @@ fn runtime_executing_a_valid_transaction() {
     let kv = testing::memory_kv_store_init();
     let mut runtime = testing::create_memory_runtime(&kv);
     let contract = runtime.contract_build(&bytes).unwrap();
-    let addr = runtime.contract_compute_address(&contract);
+    let addr = runtime.contract_derive_address(&contract);
 
-    runtime.contract_store(&contract, &addr);
+    runtime.contract_deploy(&contract, &addr);
 
     // 2) executing a transaction `reg_set_and_persist`
     // setting register `64:0` the value `1_000`.
@@ -70,7 +70,7 @@ fn runtime_executing_a_valid_transaction() {
     };
 
     let import_object = runtime.import_object_create(&addr, &State::empty(), node_data, &settings);
-    let receipt = runtime.contract_exec(tx, &import_object);
+    let receipt = runtime.transaction_exec(&tx, &import_object);
 
     assert_eq!(true, receipt.success);
     assert_eq!(None, receipt.error);

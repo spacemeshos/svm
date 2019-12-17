@@ -6,17 +6,19 @@ use svm_common::{Address, State};
 use svm_kv::rocksdb::Rocksdb;
 
 use svm_contract::rocksdb::{RocksdbContractEnv, RocksdbContractStore};
-use svm_storage::rocksdb::{RocksdbContractPageCache, RocksdbContractPages};
-use svm_storage::ContractStorage;
+use svm_storage::{
+    rocksdb::{RocksdbContractPageCache, RocksdbContractPages},
+    ContractStorage,
+};
 
 use crate::contract_settings::ContractSettings;
-use crate::runtime::Runtime;
+use crate::runtime::DefaultRuntime;
 
-pub fn create_rocksdb_runtime(path: &str) -> Runtime<RocksdbContractEnv> {
+pub fn create_rocksdb_runtime(path: &str) -> DefaultRuntime<RocksdbContractEnv> {
     let env = runtime_contract_env_build(path);
     let storage_builder = Box::new(runtime_contract_storage_build);
 
-    Runtime::new(env, storage_builder)
+    DefaultRuntime::new(env, storage_builder)
 }
 
 fn runtime_contract_env_build(path: &str) -> RocksdbContractEnv {

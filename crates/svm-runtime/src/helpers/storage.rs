@@ -12,5 +12,3 @@ pub fn wasmer_data_contract_storage<'a>(data: *const c_void) -> &'a mut Contract
     let svm_ctx = helpers::cast_ptr_to_svm_ctx(data);
     &mut svm_ctx.storage
 }
-
-pub type StorageBuilderFn = dyn Fn(&Address, &State, &ContractSettings) -> ContractStorage;

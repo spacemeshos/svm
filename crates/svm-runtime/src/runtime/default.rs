@@ -2,16 +2,17 @@ use log::{debug, error, info};
 use std::ffi::c_void;
 
 use svm_common::{Address, State};
-use svm_contract::env::{ContractEnv, ContractEnvTypes};
 
 use crate::contract_settings::ContractSettings;
 use crate::ctx::SvmCtx;
 use crate::helpers;
-use crate::helpers::{PtrWrapper, StorageBuilderFn};
+use crate::helpers::PtrWrapper;
 use crate::runtime::{ContractExecError, Receipt};
+use crate::traits::{Runtime, StorageBuilderFn};
 use crate::vmcalls;
 
 use svm_contract::{
+    env::{ContractEnv, ContractEnvTypes},
     error::{ContractBuildError, TransactionBuildError},
     traits::ContractStore,
     transaction::Transaction,
@@ -24,12 +25,74 @@ use wasmer_runtime_core::{
     import::{ImportObject, Namespace},
 };
 
-pub struct Runtime<ENV> {
+pub struct DefaultRuntime<ENV> {
     pub env: ENV,
     pub storage_builder: Box<StorageBuilderFn>,
 }
 
-impl<TY, ENV> Runtime<ENV>
+impl<TY, ENV> Runtime for DefaultRuntime<ENV>
+where
+    TY: ContractEnvTypes,
+    ENV: ContractEnv<Types = TY>,
+{
+    fn contract_build(&self, bytes: &[u8]) -> Result<Contract, ContractBuildError> {
+        info!("runtime `contract_build`");
+
+        // TODO:
+        // validate the `wasm`. should use the `deterministic` feature of `wasmparser`.
+        // (avoiding floats etc.)
+
+        self.env.build_contract(bytes)
+    }
+
+    #[inline(always)]
+    fn contract_derive_address(&self, contract: &Contract) -> Address {
+        info!("runtime `contract_compute_address`");
+
+        self.env.compute_address(contract)
+    }
+
+    #[inline(always)]
+    fn contract_deploy(&mut self, contract: &Contract, addr: &Address) {
+        info!("runtime `contract_store`");
+
+        self.env.store_contract(contract, addr);
+    }
+
+    #[inline(always)]
+    fn transaction_build(&self, bytes: &[u8]) -> Result<Transaction, TransactionBuildError> {
+        info!("runtime `transaction_build`");
+
+        self.env.build_transaction(bytes)
+    }
+
+    fn transaction_exec(&self, tx: &Transaction, import_object: &ImportObject) -> Receipt {
+        info!("runtime `contract_exec`");
+
+        let receipt = match self.do_contract_exec(tx, import_object) {
+            Err(e) => Receipt {
+                success: false,
+                error: Some(e),
+                tx: tx.clone(),
+                results: Vec::new(),
+                new_state: None,
+            },
+            Ok((state, results)) => Receipt {
+                success: true,
+                error: None,
+                tx: tx.clone(),
+                results,
+                new_state: Some(state),
+            },
+        };
+
+        info!("receipt: {:?}", receipt);
+
+        receipt
+    }
+}
+
+impl<TY, ENV> DefaultRuntime<ENV>
 where
     TY: ContractEnvTypes,
     ENV: ContractEnv<Types = TY>,
@@ -39,67 +102,6 @@ where
             env,
             storage_builder,
         }
-    }
-
-    pub fn contract_build(&self, bytes: &[u8]) -> Result<Contract, ContractBuildError> {
-        info!("runtime `contract_build`");
-
-        <ENV as ContractEnv>::build_contract(bytes)
-    }
-
-    #[inline(always)]
-    pub fn contract_deploy_validate(&self, contract: &Contract) -> Result<(), ContractBuildError> {
-        // TODO:
-        // validate the `wasm`. should use the `deterministic` feature of `wasmparser`.
-        // (avoiding floats etc.)
-
-        Ok(())
-    }
-
-    #[inline(always)]
-    pub fn contract_compute_address(&self, contract: &Contract) -> Address {
-        info!("runtime `contract_compute_address`");
-
-        <ENV as ContractEnv>::compute_address(contract)
-    }
-
-    #[inline(always)]
-    pub fn contract_store(&mut self, contract: &Contract, addr: &Address) {
-        info!("runtime `contract_store`");
-
-        self.env.store_contract(contract, addr);
-    }
-
-    #[inline(always)]
-    pub fn transaction_build(&self, bytes: &[u8]) -> Result<Transaction, TransactionBuildError> {
-        info!("runtime `transaction_build`");
-
-        <ENV as ContractEnv>::build_transaction(bytes)
-    }
-
-    pub fn contract_exec(&self, tx: Transaction, import_object: &ImportObject) -> Receipt {
-        info!("runtime `contract_exec`");
-
-        let receipt = match self.do_contract_exec(&tx, import_object) {
-            Err(e) => Receipt {
-                success: false,
-                error: Some(e),
-                tx,
-                results: Vec::new(),
-                new_state: None,
-            },
-            Ok((state, results)) => Receipt {
-                success: true,
-                error: None,
-                tx,
-                results,
-                new_state: Some(state),
-            },
-        };
-
-        info!("receipt: {:?}", receipt);
-
-        receipt
     }
 
     #[inline(always)]

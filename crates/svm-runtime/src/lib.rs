@@ -3,11 +3,13 @@
 
 //! `SVM-runtime` crate is the glue between `SVM` to `wasmer`.
 
+pub mod traits;
+
 /// Implements the most high-level API of `SVM`.
 mod runtime;
 
+pub use runtime::DefaultRuntime;
 pub use runtime::Receipt;
-pub use runtime::Runtime;
 
 /// Implements `SvmCtx`. Used for running `SVM` instances.
 pub mod ctx;

@@ -6,9 +6,10 @@ use crate::{
     contract_settings::ContractSettings,
     ctx::SvmCtx,
     helpers,
-    helpers::{PtrWrapper, StorageBuilderFn},
+    helpers::PtrWrapper,
     register::SvmReg,
-    runtime::Runtime,
+    traits::{Runtime, StorageBuilderFn},
+    DefaultRuntime,
 };
 
 use svm_common::{Address, State};
@@ -85,11 +86,11 @@ pub fn memory_kv_store_init() -> Rc<RefCell<MemKVStore>> {
     Rc::new(RefCell::new(MemKVStore::new()))
 }
 
-pub fn create_memory_runtime(kv: &Rc<RefCell<MemKVStore>>) -> Runtime<MemoryEnv> {
+pub fn create_memory_runtime(kv: &Rc<RefCell<MemKVStore>>) -> DefaultRuntime<MemoryEnv> {
     let storage_builder = runtime_memory_storage_builder(kv);
     let env = runtime_memory_env_builder();
 
-    Runtime::new(env, Box::new(storage_builder))
+    DefaultRuntime::new(env, Box::new(storage_builder))
 }
 
 pub fn runtime_memory_storage_builder(kv: &Rc<RefCell<MemKVStore>>) -> Box<StorageBuilderFn> {
