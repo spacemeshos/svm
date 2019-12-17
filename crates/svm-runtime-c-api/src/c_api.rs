@@ -99,10 +99,10 @@ pub unsafe extern "C" fn svm_contract_build(
     }
 }
 
-/// Computes the contract to-be-deployed acccunt address and retures a pointer to it
+/// Derives the contract to-be-deployed acccunt address and retures a pointer to it
 #[must_use]
 #[no_mangle]
-pub unsafe extern "C" fn svm_contract_compute_address(
+pub unsafe extern "C" fn svm_contract_derive_address(
     raw_runtime: *const c_void,
     raw_contract: *const c_void,
 ) -> *const c_void {
