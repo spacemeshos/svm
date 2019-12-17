@@ -312,3 +312,9 @@ where
         unimplemented!()
     }
 }
+
+impl<ENV> Drop for DefaultRuntime<ENV> {
+    fn drop(&mut self) {
+        info!("dropping Runtime...");
+    }
+}

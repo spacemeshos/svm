@@ -1,3 +1,5 @@
+use log::debug;
+
 use svm_runtime::{traits::Runtime, DefaultRuntime};
 
 use std::ffi::c_void;
@@ -17,7 +19,6 @@ impl RuntimePtr {
         let boxed = Box::new(self);
 
         let ptr: *mut RuntimePtr = Box::into_raw(boxed) as _;
-
         ptr as _
     }
 }
@@ -33,5 +34,13 @@ impl Deref for RuntimePtr {
 impl DerefMut for RuntimePtr {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.inner
+    }
+}
+
+impl Drop for RuntimePtr {
+    fn drop(&mut self) {
+        debug!("Dropping RuntimePtr...");
+
+        std::mem::drop(&mut self.inner);
     }
 }

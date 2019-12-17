@@ -86,31 +86,6 @@
 //     }
 // }
 //
-// macro_rules! build_raw_contract {
-//     ($file: expr, $author_addr: expr) => {{
-//         let wast = include_bytes!($file);
-//         let wasm = wabt::wat2wasm(wast.as_ref()).unwrap();
-//
-//         svm_contract::build::WireContractBuilder::new()
-//             .with_version(0)
-//             .with_author($author_addr.clone())
-//             .with_code(wasm.as_slice())
-//             .with_name($file)
-//             .build()
-//     }};
-// }
-//
-// macro_rules! build_raw_tx {
-//     ($contract_addr: expr, $sender_addr: expr, $func_name: expr, $func_args: expr) => {{
-//         svm_contract::build::WireTxBuilder::new()
-//             .with_version(0)
-//             .with_contract($contract_addr)
-//             .with_sender($sender_addr)
-//             .with_func_name($func_name)
-//             .with_func_args($func_args)
-//             .build()
-//     }};
-// }
 //
 // #[test]
 // fn runtime_tx_exec_changing_state() {

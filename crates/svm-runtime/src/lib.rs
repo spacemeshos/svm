@@ -8,6 +8,7 @@ pub mod traits;
 /// Implements the most high-level API of `SVM`.
 mod runtime;
 
+pub use runtime::create_rocksdb_runtime;
 pub use runtime::DefaultRuntime;
 pub use runtime::Receipt;
 
