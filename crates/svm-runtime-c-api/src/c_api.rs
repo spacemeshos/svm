@@ -1,8 +1,9 @@
 use svm_common::{Address, State};
 use svm_contract::transaction::Transaction;
-use svm_runtime::{register::SvmReg, Receipt, Runtime};
+use svm_runtime::{register::SvmReg, traits::Runtime, Receipt};
 
 use crate::c_types::{svm_contract_t, svm_receipt_t, svm_transaction_t};
+use crate::RuntimePtr;
 
 use log::{debug, error, trace};
 use std::ffi::c_void;
@@ -31,10 +32,16 @@ macro_rules! cast_to_rust_type {
     }};
 }
 
+#[inline(always)]
+unsafe fn runtime_from_raw<'a>(raw_runtime: *mut c_void) -> &'a mut Box<dyn Runtime> {
+    &mut *(raw_runtime as *mut RuntimePtr)
+}
+
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_runtime_create(raw_runtime: *mut *mut c_void) -> wasmer_result_t {
     debug!("`svm_runtime_create`");
+
     wasmer_result_t::WASMER_OK
 }
 
@@ -50,33 +57,31 @@ pub unsafe extern "C" fn svm_runtime_destroy(raw_runtime: *mut *mut c_void) -> w
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_contract_build(
-    raw_runtime: *const c_void,
+    raw_runtime: *mut c_void,
     raw_contract: *mut *mut c_void,
     raw_bytes: *const c_void,
     raw_bytes_len: u64,
 ) -> wasmer_result_t {
     debug!("`svm_contract_build start`");
 
-    let runtime: &Runtime = cast_to_rust_type!(raw_runtime, Runtime);
+    let runtime: &mut Box<dyn Runtime> = runtime_from_raw(raw_runtime);
 
-    // let raw_contract: *mut *mut svm_contract_t = raw_contract as _;
-    // let bytes = std::slice::from_raw_parts(raw_bytes as *const u8, raw_bytes_len as usize);
-    // let result = runtime::contract_build(&bytes);
-    //
-    // match result {
-    //     Ok(contract) => {
-    //         *raw_contract = into_raw!(contract, svm_contract_t);
-    //         debug!("`svm_contract_build returns `WASMER_OK`");
-    //         wasmer_result_t::WASMER_OK
-    //     }
-    //     Err(err) => {
-    //         update_last_error(err);
-    //         error!("`svm_contract_build returns `WASMER_ERROR`");
-    //         wasmer_result_t::WASMER_ERROR
-    //     }
-    // }
+    let raw_contract: *mut *mut svm_contract_t = raw_contract as _;
+    let bytes = std::slice::from_raw_parts(raw_bytes as *const u8, raw_bytes_len as usize);
+    let result = runtime.contract_build(&bytes);
 
-    wasmer_result_t::WASMER_OK
+    match result {
+        Ok(contract) => {
+            *raw_contract = into_raw!(contract, svm_contract_t);
+            debug!("`svm_contract_build returns `WASMER_OK`");
+            wasmer_result_t::WASMER_OK
+        }
+        Err(err) => {
+            update_last_error(err);
+            error!("`svm_contract_build returns `WASMER_ERROR`");
+            wasmer_result_t::WASMER_ERROR
+        }
+    }
 }
 
 // /// Computes the contract to-be-deployed acccunt address and retures a pointer to it

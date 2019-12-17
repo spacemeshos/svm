@@ -6,6 +6,9 @@
 /// C-API for the `svm runtime`
 pub mod c_api;
 
+mod runtime_ptr;
+use runtime_ptr::RuntimePtr;
+
 /// An rocksdb backed implemention of `svm runtime` C-API
 pub mod rocksdb_c_api;
 

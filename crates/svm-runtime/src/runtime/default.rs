@@ -1,5 +1,7 @@
-use log::{debug, error, info};
 use std::ffi::c_void;
+use std::ops::Deref;
+
+use log::{debug, error, info};
 
 use svm_common::{Address, State};
 
@@ -296,5 +298,17 @@ where
                 Ok(module)
             }
         }
+    }
+}
+
+impl<TY, ENV> Deref for DefaultRuntime<ENV>
+where
+    TY: ContractEnvTypes,
+    ENV: ContractEnv<Types = TY>,
+{
+    type Target = c_void;
+
+    fn deref(&self) -> &Self::Target {
+        unimplemented!()
     }
 }

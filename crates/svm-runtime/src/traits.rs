@@ -1,5 +1,7 @@
-use crate::contract_settings::ContractSettings;
-use crate::Receipt;
+use std::ffi::c_void;
+use std::ops::Deref;
+
+use crate::{contract_settings::ContractSettings, Receipt};
 
 use svm_common::{Address, State};
 use svm_contract::{
@@ -11,7 +13,7 @@ use svm_storage::ContractStorage;
 
 use wasmer_runtime_core::import::ImportObject;
 
-pub trait Runtime {
+pub trait Runtime: Deref<Target = c_void> {
     fn contract_build(&self, bytes: &[u8]) -> Result<Contract, ContractBuildError>;
 
     fn contract_derive_address(&self, contract: &Contract) -> Address;
