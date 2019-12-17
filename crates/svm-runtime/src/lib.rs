@@ -5,6 +5,8 @@
 
 /// Implements the most high-level API of `SVM`.
 mod runtime;
+
+pub use runtime::Receipt;
 pub use runtime::Runtime;
 
 /// Implements `SvmCtx`. Used for running `SVM` instances.
