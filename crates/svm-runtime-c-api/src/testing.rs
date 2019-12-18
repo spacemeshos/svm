@@ -23,19 +23,25 @@ pub unsafe fn svm_node_data_get<'a, T>(raw_ctx: *mut wasmer_instance_context_t) 
     &mut *(svm_ctx.node_data as *mut T)
 }
 
-// pub unsafe fn alloc_ptr() -> *mut *mut c_void {
-//     let ptr = std::ptr::null_mut();
-//     let ptr: Box<*mut c_void> = Box::new(ptr);
-//
-//     Box::into_raw(ptr)
-// }
+pub unsafe fn alloc_ptr() -> *mut c_void {
+    let ptr = std::ptr::null_mut();
+    let ptr: Box<*mut c_void> = Box::new(ptr);
 
-pub fn alloc_ptr() -> *mut *mut c_void {
-    let ptr_size: usize = std::mem::size_of::<*mut *mut c_void>();
-    let layout = std::alloc::Layout::from_size_align(ptr_size, std::mem::align_of::<u8>()).unwrap();
+    let ptr: *mut *mut c_void = Box::into_raw(ptr);
+    *ptr = std::ptr::null_mut();
 
-    unsafe { std::alloc::alloc(layout) as _ }
+    *ptr
 }
+
+// pub unsafe fn alloc_ptr() -> *mut *mut c_void {
+//     let ptr_size: usize = std::mem::size_of::<*mut *mut c_void>();
+//     let layout = std::alloc::Layout::from_size_align(ptr_size, std::mem::align_of::<u8>()).unwrap();
+//
+//     let ptr: *mut *mut c_void = std::alloc::alloc(layout) as _;
+//     *ptr = std::ptr::null_mut();
+//
+//     ptr
+// }
 
 unsafe fn cast_to_wasmer_ctx<'a>(ctx: *mut wasmer_instance_context_t) -> &'a mut Ctx {
     &mut *(ctx as *mut Ctx)

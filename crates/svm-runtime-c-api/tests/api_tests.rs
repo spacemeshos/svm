@@ -86,8 +86,8 @@ fn runtime_c_transaction_exec_changing_state() {
 
 unsafe fn transaction_exec_changing_state() {
     let host = Host::default();
-    let mut raw_runtime: *mut *mut c_void = testing::alloc_ptr();
-    let mut raw_contract: *mut *mut c_void = testing::alloc_ptr();
+    let mut raw_runtime: *mut c_void = testing::alloc_ptr();
+    // let mut raw_contract: *mut *mut c_void = testing::alloc_ptr();
     // let raw_import_object = testing::alloc_ptr();
 
     let author_addr = 0_10_20_30_40;
@@ -98,13 +98,15 @@ unsafe fn transaction_exec_changing_state() {
     let runtime = svm_runtime::testing::create_memory_runtime(&kv);
     let boxed_runtime: Box<dyn Runtime> = Box::new(runtime);
     let runtime_ptr: RuntimePtr = RuntimePtr::new(boxed_runtime);
-    // *raw_contract = helpers::into_raw_mut(runtime_ptr);
+    dbg!(raw_runtime);
+    raw_runtime = helpers::into_raw_mut(runtime_ptr);
+    dbg!(raw_runtime);
 
     //
-    let raw_contract: *mut c_void = helpers::into_raw_mut(runtime_ptr);
+    // let raw_runtime: *mut c_void = helpers::into_raw_mut(runtime_ptr);
     //
 
-    let runtime: &mut Box<dyn Runtime> = &mut *(raw_contract as *mut RuntimePtr);
+    let runtime: &mut Box<dyn Runtime> = &mut *(raw_runtime as *mut RuntimePtr);
     runtime.contract_build(&[]);
 
     //
