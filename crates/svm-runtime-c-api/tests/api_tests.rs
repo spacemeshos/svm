@@ -94,24 +94,14 @@ unsafe fn transaction_exec_changing_state() {
     let wasm = include_str!("wasm/store.wast");
 
     // 1) deploy
-    // dbg!(raw_runtime);
-    // let _ = c_api::svm_runtime_create(&mut raw_runtime);
-    // dbg!(raw_runtime);
+    dbg!(raw_runtime);
+    let _ = c_api::svm_runtime_create(&mut raw_runtime);
+    dbg!(raw_runtime);
     // TODO: assert runtime has been created successfully
 
-    let runtime = svm_runtime::create_rocksdb_runtime("tests-contract-code");
-    let runtime: Box<dyn Runtime> = Box::new(runtime);
-    let runtime_ptr = RuntimePtr::new(runtime);
-
-    dbg!(raw_runtime);
-    let tmp_ptr: *mut c_void = helpers::into_raw_mut(runtime_ptr);
-    std::ptr::write(&mut raw_runtime, tmp_ptr);
-    dbg!(raw_runtime);
-
     // let bytes = svm_runtime::testing::build_raw_contract(0, "Sample Contract", author_addr, wasm);
-    // let runtime: &Box<dyn Runtime> = helpers::cast_to_runtime_mut(raw_runtime);
-    let runtime_ptr: &RuntimePtr = &*(raw_runtime as *const RuntimePtr);
-    runtime_ptr.contract_build(&[]);
+    let runtime: &Box<dyn Runtime> = helpers::cast_to_runtime_mut(raw_runtime);
+    runtime.contract_build(&[]);
 
     // let _ = c_api::svm_contract_build(
     //     *raw_runtime,

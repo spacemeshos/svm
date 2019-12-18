@@ -25,7 +25,7 @@ pub unsafe extern "C" fn svm_runtime_create(raw_runtime: *mut *mut c_void) -> wa
     let runtime = svm_runtime::create_rocksdb_runtime("tests-contract-code");
     let runtime: Box<dyn Runtime> = Box::new(runtime);
 
-    let runtime_ptr: Box<RuntimePtr> = Box::new(RuntimePtr::new(runtime));
+    let runtime_ptr: RuntimePtr = RuntimePtr::new(runtime);
     *raw_runtime = helpers::into_raw_mut(runtime_ptr);
 
     wasmer_result_t::WASMER_OK
