@@ -1,8 +1,8 @@
 use svm_common::{Address, State};
-use svm_contract::transaction::Transaction;
+use svm_contract::{transaction::Transaction, wasm::Contract};
 use svm_runtime::{register::SvmReg, traits::Runtime, Receipt};
 
-use crate::c_types::{svm_contract_t, svm_receipt_t, svm_transaction_t};
+use crate::helpers;
 use crate::RuntimePtr;
 
 use log::{debug, error, trace};
@@ -12,35 +12,10 @@ use wasmer_runtime::{Ctx, ImportObject};
 
 use wasmer_runtime_c_api::{
     error::update_last_error,
-    import::{wasmer_import_object_extend, wasmer_import_object_t, wasmer_import_t},
+    import::{wasmer_import_object_t, wasmer_import_t},
     value::wasmer_value_t,
     wasmer_result_t,
 };
-
-macro_rules! into_raw {
-    ($obj: expr, $raw_type: ident) => {{
-        let boxed_obj = Box::new($obj);
-        let raw_obj_ptr: *mut _ = Box::into_raw(boxed_obj);
-
-        raw_obj_ptr as *mut $raw_type
-    }};
-}
-
-macro_rules! cast_to_rust_type {
-    ($raw_obj: expr, $ty: path) => {{
-        &*($raw_obj as *const $ty)
-    }};
-}
-
-#[inline(always)]
-unsafe fn cast_to_runtime<'a>(raw_runtime: *const c_void) -> &'a Box<dyn Runtime> {
-    &*(raw_runtime as *const RuntimePtr)
-}
-
-#[inline(always)]
-unsafe fn cast_to_runtime_mut<'a>(raw_runtime: *mut c_void) -> &'a mut Box<dyn Runtime> {
-    &mut *(raw_runtime as *mut RuntimePtr)
-}
 
 #[must_use]
 #[no_mangle]
@@ -51,7 +26,7 @@ pub unsafe extern "C" fn svm_runtime_create(raw_runtime: *mut *mut c_void) -> wa
     let runtime: Box<dyn Runtime> = Box::new(runtime);
 
     let runtime_ptr: Box<RuntimePtr> = Box::new(RuntimePtr::new(runtime));
-    *raw_runtime = Box::into_raw(runtime_ptr) as *mut c_void;
+    *raw_runtime = helpers::into_raw_mut(runtime_ptr);
 
     wasmer_result_t::WASMER_OK
 }
@@ -79,15 +54,18 @@ pub unsafe extern "C" fn svm_contract_build(
 ) -> wasmer_result_t {
     debug!("`svm_contract_build start`");
 
-    let raw_contract: *mut *mut svm_contract_t = raw_contract as _;
     let bytes = std::slice::from_raw_parts(raw_bytes as *const u8, raw_bytes_len as usize);
 
-    let runtime = cast_to_runtime(raw_runtime);
+    dbg!("11111111111111111");
+    let runtime = helpers::cast_to_runtime(raw_runtime);
+
+    dbg!("222222222222222222");
     let result = runtime.contract_build(&bytes);
+    dbg!("33333333333333333");
 
     match result {
         Ok(contract) => {
-            *raw_contract = into_raw!(contract, svm_contract_t);
+            *raw_contract = helpers::into_raw_mut(contract);
             debug!("`svm_contract_build returns `WASMER_OK`");
             wasmer_result_t::WASMER_OK
         }
@@ -108,13 +86,11 @@ pub unsafe extern "C" fn svm_contract_derive_address(
 ) -> *const c_void {
     debug!("`svm_contract_compute_address`");
 
-    let contract = cast_to_rust_type!(raw_contract, svm_contract::wasm::Contract);
+    let runtime = helpers::cast_to_runtime(raw_runtime);
+    let contract = helpers::from_raw::<Contract>(raw_contract);
 
-    let runtime = cast_to_runtime(raw_runtime);
     let addr = runtime.contract_derive_address(contract);
-    let addr = Box::leak(Box::new(addr));
-
-    addr.as_ptr() as *const c_void
+    helpers::into_raw(addr)
 }
 
 /// Stores the new deployed contract under a database.
@@ -134,10 +110,10 @@ pub unsafe extern "C" fn svm_contract_deploy(
 ) -> wasmer_result_t {
     debug!("`svm_contract_store` start");
 
-    let contract = cast_to_rust_type!(raw_contract, svm_contract::wasm::Contract);
+    let contract = helpers::from_raw::<Contract>(raw_contract);
     let addr = Address::from(raw_addr);
 
-    let runtime = cast_to_runtime_mut(raw_runtime);
+    let runtime = helpers::cast_to_runtime_mut(raw_runtime);
     runtime.contract_deploy(contract, &addr);
 
     debug!("`svm_contract_build returns `WASMER_OK`");
@@ -155,16 +131,14 @@ pub unsafe extern "C" fn svm_transaction_build(
     raw_bytes: *const c_void,
     raw_bytes_len: u64,
 ) -> wasmer_result_t {
-    let raw_tx: *mut *mut svm_transaction_t = raw_tx as _;
-
     let bytes: &[u8] = std::slice::from_raw_parts(raw_bytes as *const u8, raw_bytes_len as usize);
 
-    let runtime = cast_to_runtime(raw_runtime);
+    let runtime = helpers::cast_to_runtime(raw_runtime);
     let result = runtime.transaction_build(bytes);
 
     match result {
         Ok(tx) => {
-            *raw_tx = into_raw!(tx, svm_transaction_t);
+            *raw_tx = helpers::into_raw_mut(tx);
             debug!("`svm_contract_build returns `WASMER_OK`");
             wasmer_result_t::WASMER_OK
         }
@@ -190,14 +164,13 @@ pub unsafe extern "C" fn svm_transaction_exec(
 ) -> wasmer_result_t {
     debug!("`svm_transaction_exec` start");
 
-    let raw_receipt: *mut *mut svm_receipt_t = raw_receipt as _;
-    let tx = cast_to_rust_type!(raw_tx, Transaction);
-    let import_object = cast_to_rust_type!(raw_import_object, ImportObject);
+    let tx = helpers::from_raw::<Transaction>(raw_tx);
+    let import_object = helpers::from_raw::<ImportObject>(raw_import_object);
 
-    let runtime = cast_to_runtime_mut(raw_runtime);
+    let runtime = helpers::cast_to_runtime_mut(raw_runtime);
     let receipt = runtime.transaction_exec(&tx, import_object);
 
-    *raw_receipt = into_raw!(receipt, svm_receipt_t);
+    *raw_receipt = helpers::into_raw_mut(receipt);
 
     debug!("`svm_contract_build returns `WASMER_OK`");
 
@@ -216,7 +189,7 @@ pub unsafe extern "C" fn svm_receipt_results(
 ) {
     debug!("`svm_receipt_results`");
 
-    let receipt = cast_to_rust_type!(raw_receipt, Receipt);
+    let receipt = helpers::from_raw::<Receipt>(raw_receipt);
 
     if receipt.success {
         let mut c_results = Vec::with_capacity(*results_len as usize);
@@ -242,7 +215,7 @@ pub unsafe extern "C" fn svm_receipt_results(
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_receipt_error(raw_receipt: *const c_void) {
-    let receipt = cast_to_rust_type!(raw_receipt, Receipt);
+    let receipt = helpers::from_raw::<Receipt>(raw_receipt);
 
     if let Some(ref _e) = receipt.error {
         // TODO: implement `std::error::Error` for `svm_runtime::runtime::error::ContractExecError`
@@ -254,7 +227,7 @@ pub unsafe extern "C" fn svm_receipt_error(raw_receipt: *const c_void) {
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_receipt_new_state(raw_receipt: *const c_void) -> *const u8 {
-    let receipt = cast_to_rust_type!(raw_receipt, Receipt);
+    let receipt = helpers::from_raw::<Receipt>(raw_receipt);
 
     if receipt.success {
         let state = receipt.new_state.as_ref().unwrap();

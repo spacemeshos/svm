@@ -43,8 +43,17 @@ where
         // TODO:
         // validate the `wasm`. should use the `deterministic` feature of `wasmparser`.
         // (avoiding floats etc.)
+        dbg!("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+        dbg!("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+        dbg!("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+        dbg!("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+        dbg!("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+        dbg!("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+        dbg!("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+        dbg!("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
 
-        self.env.build_contract(bytes)
+        panic!("XXXXXXXXXXXXXX");
+        // self.env.build_contract(bytes)
     }
 
     #[inline(always)]
