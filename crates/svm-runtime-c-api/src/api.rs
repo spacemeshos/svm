@@ -22,7 +22,7 @@ use wasmer_runtime_c_api::{
 pub unsafe extern "C" fn svm_runtime_create(raw_runtime: *mut *mut c_void) -> wasmer_result_t {
     debug!("`svm_runtime_create`");
 
-    let runtime = svm_runtime::create_rocksdb_runtime("?????");
+    let runtime = svm_runtime::create_rocksdb_runtime("tests-contract-code");
     let runtime: Box<dyn Runtime> = Box::new(runtime);
 
     let runtime_ptr: Box<RuntimePtr> = Box::new(RuntimePtr::new(runtime));

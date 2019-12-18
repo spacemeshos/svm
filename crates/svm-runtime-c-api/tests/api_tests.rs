@@ -87,37 +87,31 @@ fn runtime_c_transaction_exec_changing_state() {
 unsafe fn transaction_exec_changing_state() {
     let host = Host::default();
     let mut raw_runtime: *mut c_void = testing::alloc_ptr();
-    // let mut raw_contract: *mut *mut c_void = testing::alloc_ptr();
-    // let raw_import_object = testing::alloc_ptr();
+    let mut raw_contract: *mut c_void = testing::alloc_ptr();
+    let raw_import_object: *mut c_void = testing::alloc_ptr();
 
     let author_addr = 0_10_20_30_40;
     let wasm = include_str!("wasm/store.wast");
 
     // 1) deploy
-    let kv = svm_runtime::testing::memory_kv_store_init();
-    let runtime = svm_runtime::testing::create_memory_runtime(&kv);
-    let boxed_runtime: Box<dyn Runtime> = Box::new(runtime);
-    let runtime_ptr: RuntimePtr = RuntimePtr::new(boxed_runtime);
-    dbg!(raw_runtime);
-    raw_runtime = helpers::into_raw_mut(runtime_ptr);
-    dbg!(raw_runtime);
-
-    //
-    // let raw_runtime: *mut c_void = helpers::into_raw_mut(runtime_ptr);
-    //
-
-    let runtime: &mut Box<dyn Runtime> = &mut *(raw_runtime as *mut RuntimePtr);
-    runtime.contract_build(&[]);
-
-    //
-    //
-    //
-    //
-    // let _ = c_api::svm_runtime_create(raw_runtime);
+    // dbg!(raw_runtime);
+    // let _ = c_api::svm_runtime_create(&mut raw_runtime);
+    // dbg!(raw_runtime);
     // TODO: assert runtime has been created successfully
 
+    let runtime = svm_runtime::create_rocksdb_runtime("tests-contract-code");
+    let runtime: Box<dyn Runtime> = Box::new(runtime);
+    let runtime_ptr = RuntimePtr::new(runtime);
+
+    dbg!(raw_runtime);
+    let tmp_ptr: *mut c_void = helpers::into_raw_mut(runtime_ptr);
+    std::ptr::write(&mut raw_runtime, tmp_ptr);
+    dbg!(raw_runtime);
+
     // let bytes = svm_runtime::testing::build_raw_contract(0, "Sample Contract", author_addr, wasm);
-    // let runtime = helpers::cast_to_runtime_mut(*raw_runtime);
+    // let runtime: &Box<dyn Runtime> = helpers::cast_to_runtime_mut(raw_runtime);
+    let runtime_ptr: &RuntimePtr = &*(raw_runtime as *const RuntimePtr);
+    runtime_ptr.contract_build(&[]);
 
     // let _ = c_api::svm_contract_build(
     //     *raw_runtime,
