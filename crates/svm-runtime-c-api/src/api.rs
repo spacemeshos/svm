@@ -23,15 +23,25 @@ use wasmer_runtime_c_api::{
 #[no_mangle]
 pub unsafe extern "C" fn svm_runtime_create(
     raw_runtime: *mut *mut c_void,
+    path_bytes: *const c_void,
+    path_len: libc::c_uint,
     host: *const c_void,
     host_funcs: *mut c_void,
     host_funcs_len: libc::c_uint,
 ) -> wasmer_result_t {
     debug!("`svm_runtime_create`");
 
+    let slice = std::slice::from_raw_parts(path_bytes as *const u8, path_len as usize);
+    let path = String::from_utf8(slice.to_vec());
+
+    if let Err(err) = path {
+        update_last_error(err);
+        return wasmer_result_t::WASMER_ERROR;
+    }
+
     // let imports: *mut wasmer_import_t = host_funcs as _;
     let exts = Vec::new();
-    let runtime = svm_runtime::create_rocksdb_runtime(host, "tests-contract-code", exts);
+    let runtime = svm_runtime::create_rocksdb_runtime(host, &path.unwrap(), exts);
 
     let runtime: Box<dyn Runtime> = Box::new(runtime);
 
