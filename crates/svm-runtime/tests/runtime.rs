@@ -62,15 +62,13 @@ fn runtime_executing_a_valid_transaction() {
     );
 
     let tx = runtime.transaction_build(&bytes).unwrap();
-    let node_data: *const c_void = std::ptr::null() as _;
 
     let settings = ContractSettings {
         pages_count: 5,
         kv_path: String::new(),
     };
 
-    let import_object = runtime.import_object_create(&addr, &State::empty(), node_data, &settings);
-    let receipt = runtime.transaction_exec(&tx, &import_object);
+    let receipt = runtime.transaction_exec(&tx, &State::empty(), &settings);
 
     assert_eq!(true, receipt.success);
     assert_eq!(None, receipt.error);

@@ -10,7 +10,7 @@ use crate::ctx::SvmCtx;
 use crate::helpers;
 use crate::helpers::PtrWrapper;
 use crate::runtime::{ContractExecError, Receipt};
-use crate::traits::{Runtime, StorageBuilderFn};
+use crate::traits::{ImportObjectExtenderFn, Runtime, StorageBuilderFn};
 use crate::vmcalls;
 
 use svm_contract::{
@@ -23,13 +23,16 @@ use svm_contract::{
 use svm_storage::{ContractPages, ContractStorage};
 
 use wasmer_runtime_core::{
+    export::Export,
     func,
     import::{ImportObject, Namespace},
 };
 
 pub struct DefaultRuntime<ENV> {
     pub env: ENV,
+    pub host: *const c_void,
     pub storage_builder: Box<StorageBuilderFn>,
+    pub import_object_extender: Box<ImportObjectExtenderFn>,
 }
 
 impl<TY, ENV> Runtime for DefaultRuntime<ENV>
@@ -43,17 +46,7 @@ where
         // TODO:
         // validate the `wasm`. should use the `deterministic` feature of `wasmparser`.
         // (avoiding floats etc.)
-        dbg!("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
-        dbg!("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
-        dbg!("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
-        dbg!("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
-        dbg!("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
-        dbg!("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
-        dbg!("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
-        dbg!("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
-
-        panic!("XXXXXXXXXXXXXX");
-        // self.env.build_contract(bytes)
+        self.env.build_contract(bytes)
     }
 
     #[inline(always)]
@@ -77,10 +70,20 @@ where
         self.env.build_transaction(bytes)
     }
 
-    fn transaction_exec(&self, tx: &Transaction, import_object: &ImportObject) -> Receipt {
+    fn transaction_exec(
+        &self,
+        tx: &Transaction,
+        state: &State,
+        settings: &ContractSettings,
+    ) -> Receipt {
         info!("runtime `contract_exec`");
 
-        let receipt = match self.do_contract_exec(tx, import_object) {
+        let mut import_object = self.import_object_create(&tx.contract, state, settings);
+
+        let extender = &self.import_object_extender;
+        extender(&mut import_object);
+
+        let receipt = match self.do_contract_exec(tx, &import_object) {
             Err(e) => Receipt {
                 success: false,
                 error: Some(e),
@@ -108,11 +111,28 @@ where
     TY: ContractEnvTypes,
     ENV: ContractEnv<Types = TY>,
 {
-    pub fn new(env: ENV, storage_builder: Box<StorageBuilderFn>) -> Self {
+    pub fn new(
+        host: *const c_void,
+        env: ENV,
+        storage_builder: Box<StorageBuilderFn>,
+        import_object_extender: Box<ImportObjectExtenderFn>,
+    ) -> Self {
         Self {
             env,
+            host,
             storage_builder,
+            import_object_extender,
         }
+    }
+
+    pub fn open_contract_storage(
+        &self,
+        addr: &Address,
+        state: &State,
+        settings: &ContractSettings,
+    ) -> ContractStorage {
+        let sb = &self.storage_builder;
+        sb(addr, state, settings)
     }
 
     #[inline(always)]
@@ -228,21 +248,10 @@ where
         helpers::wasmer_data_contract_storage(wasmer_ctx.data)
     }
 
-    pub fn open_contract_storage(
+    fn import_object_create(
         &self,
         addr: &Address,
         state: &State,
-        settings: &ContractSettings,
-    ) -> ContractStorage {
-        let storage_builder = &self.storage_builder;
-        storage_builder(addr, state, settings)
-    }
-
-    pub fn import_object_create(
-        &self,
-        addr: &Address,
-        state: &State,
-        node_data: *const c_void,
         settings: &ContractSettings,
     ) -> ImportObject {
         debug!(
@@ -251,12 +260,11 @@ where
         );
 
         let storage = self.open_contract_storage(addr, state, settings);
-
-        let ctx = SvmCtx::new(PtrWrapper::new(node_data), storage);
-        let ctx = Box::leak(Box::new(ctx));
+        let svm_ctx = SvmCtx::new(PtrWrapper::new(self.host), storage);
+        let svm_ctx = Box::leak(Box::new(svm_ctx));
 
         let state_creator = move || {
-            let node_data: *mut c_void = ctx as *const SvmCtx as *mut SvmCtx as _;
+            let data: *mut c_void = svm_ctx as *const SvmCtx as *mut SvmCtx as _;
 
             let dtor: fn(*mut c_void) = |ctx_data| {
                 let ctx_ptr = ctx_data as *mut SvmCtx;
@@ -265,16 +273,10 @@ where
                 unsafe { Box::from_raw(ctx_ptr) };
             };
 
-            (node_data, dtor)
+            (data, dtor)
         };
 
-        let mut import_object = ImportObject::new_with_data(state_creator);
-        let mut ns = Namespace::new();
-
-        vmcalls::insert_vmcalls(&mut ns);
-
-        import_object.register("svm", ns);
-        import_object
+        ImportObject::new_with_data(state_creator)
     }
 
     fn contract_load(&self, tx: &Transaction) -> Result<Contract, ContractExecError> {
@@ -307,18 +309,6 @@ where
                 Ok(module)
             }
         }
-    }
-}
-
-impl<TY, ENV> Deref for DefaultRuntime<ENV>
-where
-    TY: ContractEnvTypes,
-    ENV: ContractEnv<Types = TY>,
-{
-    type Target = c_void;
-
-    fn deref(&self) -> &Self::Target {
-        unimplemented!()
     }
 }
 

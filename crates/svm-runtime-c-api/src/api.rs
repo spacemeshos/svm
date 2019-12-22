@@ -12,7 +12,7 @@ use wasmer_runtime::{Ctx, ImportObject};
 
 use wasmer_runtime_c_api::{
     error::update_last_error,
-    import::{wasmer_import_object_t, wasmer_import_t},
+    import::{wasmer_import_object_extend, wasmer_import_object_t, wasmer_import_t},
     value::wasmer_value_t,
     wasmer_result_t,
 };
@@ -55,13 +55,8 @@ pub unsafe extern "C" fn svm_contract_build(
     debug!("`svm_contract_build start`");
 
     let bytes = std::slice::from_raw_parts(raw_bytes as *const u8, raw_bytes_len as usize);
-
-    dbg!("11111111111111111");
     let runtime = helpers::cast_to_runtime(raw_runtime);
-
-    dbg!("222222222222222222");
     let result = runtime.contract_build(&bytes);
-    dbg!("33333333333333333");
 
     match result {
         Ok(contract) => {
@@ -148,6 +143,49 @@ pub unsafe extern "C" fn svm_transaction_build(
             wasmer_result_t::WASMER_ERROR
         }
     }
+}
+
+/// Creates a new `wasmer` import object.
+/// The import object will include imports of two flavors:
+/// * external vmcalls (i.e: node vmcalls)
+/// * internal vmcalls (i.e: register/storage/etc vmcalls)
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_import_object_create(
+    raw_runtime: *const c_void,
+    raw_import_object: *mut *mut c_void,
+    raw_addr: *const c_void,
+    raw_state: *const c_void,
+    raw_pages_count: libc::c_int,
+    node_data: *const c_void,
+    imports: *mut c_void,
+    imports_len: libc::c_uint,
+) -> wasmer_result_t {
+    debug!("`svm_import_object_create` start");
+
+    let runtime = helpers::cast_to_runtime(raw_runtime);
+    let addr = Address::from(raw_addr);
+    let state = State::from(raw_state);
+
+    let settings = svm_runtime::contract_settings::ContractSettings {
+        pages_count: raw_pages_count as u32,
+        kv_path: String::new(),
+    };
+
+    let import_object = runtime.import_object_create(addr, state, node_data, settings);
+    *raw_import_object = helpers::into_raw(import_object)
+
+    let imports: *mut wasmer_import_t = imports as _;
+    let _res = wasmer_import_object_extend(*raw_import_object, imports, imports_len);
+
+    // TODO: assert result
+    // if result != wasmer_result_t::WASMER_OK {
+    //     return result;
+    // }
+
+    debug!("`svm_import_object_create` returns `WASMER_OK`");
+
+    wasmer_result_t::WASMER_OK
 }
 
 /// Triggers a transaction execution of an already deployed contract.

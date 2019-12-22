@@ -85,13 +85,15 @@ fn runtime_c_transaction_exec_changing_state() {
 }
 
 unsafe fn transaction_exec_changing_state() {
-    let host = Host::default();
-    let mut raw_runtime: *mut c_void = testing::alloc_ptr();
-    let mut raw_contract: *mut c_void = testing::alloc_ptr();
-    let raw_import_object: *mut c_void = testing::alloc_ptr();
+    let mut raw_runtime = testing::alloc_ptr();
+    let mut raw_contract = testing::alloc_ptr();
+    let mut raw_import_object = testing::alloc_ptr();
 
     let author_addr = 0_10_20_30_40;
     let wasm = include_str!("wasm/store.wast");
+
+    let host = Host::default();
+    let pages_count = 5;
 
     // 1) deploy
     dbg!(raw_runtime);
@@ -99,32 +101,33 @@ unsafe fn transaction_exec_changing_state() {
     dbg!(raw_runtime);
     // TODO: assert runtime has been created successfully
 
-    // let bytes = svm_runtime::testing::build_raw_contract(0, "Sample Contract", author_addr, wasm);
-    let runtime: &Box<dyn Runtime> = helpers::cast_to_runtime_mut(raw_runtime);
-    runtime.contract_build(&[]);
+    let bytes = svm_runtime::testing::build_raw_contract(0, "Sample Contract", author_addr, wasm);
+    // let runtime: &Box<dyn Runtime> = helpers::cast_to_runtime_mut(raw_runtime);
 
-    // let _ = c_api::svm_contract_build(
-    //     *raw_runtime,
-    //     raw_contract,
-    //     bytes.as_ptr() as *const c_void,
-    //     bytes.len() as u64,
-    // );
+    let _ = c_api::svm_contract_build(
+        raw_runtime,
+        &mut raw_contract,
+        bytes.as_ptr() as *const c_void,
+        bytes.len() as u64,
+    );
     // TODO: assert `Contract` instance has been build successfully
 
-    //     let raw_addr = svm_contract_compute_address(*raw_contract as _);
-    //     let _ = svm_contract_store(*raw_contract as _, raw_addr);
-    //
-    //     // 2) execute
-    //     let _res = svm_import_object(
-    //         raw_import_object as _,
-    //         raw_addr,                     // `raw_addr:  *const c_void`
-    //         State::from(0).as_ptr() as _, // `raw_state: *const c_void`
-    //         5,                            // `pages_count: libc::c_int`
-    //         host_as_ptr(&host),           // `node_data_ptr:: *const c_void`
-    //         std::ptr::null_mut(),         // `imports: *mut wasmer_import_t`
-    //         0,                            // `imports_len: libc::c_int`
-    //     );
-    //
+    let raw_addr = c_api::svm_contract_derive_address(raw_runtime, raw_contract);
+    let _ = c_api::svm_contract_deploy(raw_runtime, raw_contract, raw_addr);
+    // TODO: assert that contract has been deployed successfully
+
+    // 2) execute
+    let _ = c_api::svm_import_object_create(
+        &mut raw_import_object,
+        raw_addr,                // `raw_addr:  *const c_void`
+        State::from(0).as_ptr(), // `raw_state: *const c_void`
+        pages_count,             // `pages_count: libc::c_int`
+        &host,                   // `node_data_ptr:: *const c_void`
+        std::ptr::null_mut(),    // `imports: *mut wasmer_import_t`
+        0,                       // `imports_len: libc::c_int`
+    );
+    // TODO: assert `ImportObject` has been created successfully
+
     //     let addr = Address::from(raw_addr);
     //     let sender = Address::from([0xAB; 20].as_ref());
     //

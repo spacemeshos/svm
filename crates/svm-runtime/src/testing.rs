@@ -8,7 +8,7 @@ use crate::{
     helpers,
     helpers::PtrWrapper,
     register::SvmReg,
-    traits::{Runtime, StorageBuilderFn},
+    traits::{ImportObjectExtenderFn, Runtime, StorageBuilderFn},
     DefaultRuntime,
 };
 
@@ -22,7 +22,10 @@ use svm_contract::{
     wasm::WasmArgValue,
 };
 
-use wasmer_runtime_core::{import::ImportObject, Instance, Module};
+use wasmer_runtime_core::{
+    import::{ImportObject, Namespace},
+    Instance, Module,
+};
 
 pub fn wasmer_compile(wasm: &str) -> Module {
     let wasm = wabt::wat2wasm(&wasm).unwrap();
@@ -64,7 +67,7 @@ pub fn instance_memory_init(instance: &Instance, offset: usize, bytes: &[u8]) {
 pub fn contract_memory_state_creator(
     addr: u32,
     state: u32,
-    node_data: PtrWrapper,
+    host: PtrWrapper,
     pages_count: u32,
 ) -> (*mut c_void, fn(*mut c_void)) {
     let addr = Address::from(addr);
@@ -73,7 +76,7 @@ pub fn contract_memory_state_creator(
 
     let storage = svm_storage::testing::contract_storage_open(&addr, &state, &kv, pages_count);
 
-    let ctx = SvmCtx::new(node_data, storage);
+    let ctx = SvmCtx::new(host, storage);
     let ctx: *mut SvmCtx = Box::into_raw(Box::new(ctx));
 
     let data: *mut c_void = ctx as *const _ as _;
@@ -88,9 +91,16 @@ pub fn memory_kv_store_init() -> Rc<RefCell<MemKVStore>> {
 
 pub fn create_memory_runtime(kv: &Rc<RefCell<MemKVStore>>) -> DefaultRuntime<MemoryEnv> {
     let storage_builder = runtime_memory_storage_builder(kv);
-    let env = runtime_memory_env_builder();
 
-    DefaultRuntime::new(env, Box::new(storage_builder))
+    let env = runtime_memory_env_builder();
+    let host = std::ptr::null();
+
+    DefaultRuntime::new(
+        host,
+        env,
+        Box::new(storage_builder),
+        Box::new(runtime_memory_import_object_extender),
+    )
 }
 
 pub fn runtime_memory_storage_builder(kv: &Rc<RefCell<MemKVStore>>) -> Box<StorageBuilderFn> {
@@ -101,6 +111,13 @@ pub fn runtime_memory_storage_builder(kv: &Rc<RefCell<MemKVStore>>) -> Box<Stora
     };
 
     Box::new(builder)
+}
+
+pub fn runtime_memory_import_object_extender(import_object: &mut ImportObject) {
+    let mut ns = Namespace::new();
+    crate::vmcalls::insert_vmcalls(&mut ns);
+
+    import_object.register("svm", ns);
 }
 
 pub fn runtime_memory_env_builder() -> MemoryEnv {

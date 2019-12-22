@@ -14,20 +14,27 @@ use svm_storage::{
 use crate::contract_settings::ContractSettings;
 use crate::runtime::DefaultRuntime;
 
-pub fn create_rocksdb_runtime(path: &str) -> DefaultRuntime<RocksdbContractEnv> {
-    let env = runtime_contract_env_build(path);
-    let storage_builder = Box::new(runtime_contract_storage_build);
+use wasmer_runtime_core::import::{ImportObject, Namespace};
 
-    DefaultRuntime::new(env, storage_builder)
+pub fn create_rocksdb_runtime(path: &str) -> DefaultRuntime<RocksdbContractEnv> {
+    let env = runtime_rocksdb_contract_env_build(path);
+    let host = std::ptr::null();
+
+    DefaultRuntime::new(
+        host,
+        env,
+        Box::new(runtime_rocksdb_contract_storage_build),
+        Box::new(runtime_rocksdb_import_object_extender),
+    )
 }
 
-fn runtime_contract_env_build(path: &str) -> RocksdbContractEnv {
+fn runtime_rocksdb_contract_env_build(path: &str) -> RocksdbContractEnv {
     let path = Path::new(path);
     let store = RocksdbContractStore::new(path);
     RocksdbContractEnv::new(store)
 }
 
-fn runtime_contract_storage_build(
+fn runtime_rocksdb_contract_storage_build(
     addr: &Address,
     state: &State,
     settings: &ContractSettings,
@@ -39,4 +46,11 @@ fn runtime_contract_storage_build(
     let cache = RocksdbContractPageCache::new(pages, settings.pages_count);
 
     ContractStorage::new(Box::new(cache))
+}
+
+pub fn runtime_rocksdb_import_object_extender(import_object: &mut ImportObject) {
+    let mut ns = Namespace::new();
+    crate::vmcalls::insert_vmcalls(&mut ns);
+
+    import_object.register("svm", ns);
 }

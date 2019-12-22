@@ -7,10 +7,10 @@ use svm_storage::page::{PageIndex, PageOffset, PageSliceLayout};
 fn prepare_test_args() -> (u32, u32, PtrWrapper, u32) {
     let addr = 0x12_34_56_78;
     let state = 0x_00_00_00_00;
-    let node_data = PtrWrapper::new(std::ptr::null());
+    let host = PtrWrapper::new(std::ptr::null());
     let pages_count = 5;
 
-    (addr, state, node_data, pages_count)
+    (addr, state, host, pages_count)
 }
 
 #[test]
@@ -24,10 +24,10 @@ fn vmcalls_empty_wasm() {
 
 #[test]
 fn vmcalls_mem_to_reg_copy() {
-    let (addr, state, node_data, pages_count) = prepare_test_args();
+    let (addr, state, host, pages_count) = prepare_test_args();
 
     let import_object = imports! {
-        move || testing::contract_memory_state_creator(addr, state, node_data, pages_count),
+        move || testing::contract_memory_state_creator(addr, state, host, pages_count),
 
         "svm" => {
             "mem_to_reg_copy" => func!(vmcalls::mem_to_reg_copy),
@@ -53,10 +53,10 @@ fn vmcalls_mem_to_reg_copy() {
 
 #[test]
 fn vmcalls_reg_to_mem_copy() {
-    let (addr, state, node_data, pages_count) = prepare_test_args();
+    let (addr, state, host, pages_count) = prepare_test_args();
 
     let import_object = imports! {
-        move || testing::contract_memory_state_creator(addr, state, node_data, pages_count),
+        move || testing::contract_memory_state_creator(addr, state, host, pages_count),
 
         "svm" => {
             "reg_to_mem_copy" => func!(vmcalls::reg_to_mem_copy),
@@ -84,10 +84,10 @@ fn vmcalls_reg_to_mem_copy() {
 
 #[test]
 fn vmcalls_storage_read_an_empty_page_slice_to_reg() {
-    let (addr, state, node_data, pages_count) = prepare_test_args();
+    let (addr, state, host, pages_count) = prepare_test_args();
 
     let import_object = imports! {
-        move || testing::contract_memory_state_creator(addr, state, node_data, pages_count),
+        move || testing::contract_memory_state_creator(addr, state, host, pages_count),
 
         "svm" => {
             "storage_read_to_reg" => func!(vmcalls::storage_read_to_reg),
@@ -114,10 +114,10 @@ fn vmcalls_storage_read_an_empty_page_slice_to_reg() {
 
 #[test]
 fn vmcalls_storage_read_non_empty_page_slice_to_reg() {
-    let (addr, state, node_data, pages_count) = prepare_test_args();
+    let (addr, state, host, pages_count) = prepare_test_args();
 
     let import_object = imports! {
-        move || testing::contract_memory_state_creator(addr, state, node_data, pages_count),
+        move || testing::contract_memory_state_creator(addr, state, host, pages_count),
 
         "svm" => {
             "storage_read_to_reg" => func!(vmcalls::storage_read_to_reg),
@@ -150,10 +150,10 @@ fn vmcalls_storage_read_non_empty_page_slice_to_reg() {
 
 #[test]
 fn vmcalls_storage_read_an_empty_page_slice_to_mem() {
-    let (addr, state, node_data, pages_count) = prepare_test_args();
+    let (addr, state, host, pages_count) = prepare_test_args();
 
     let import_object = imports! {
-        move || testing::contract_memory_state_creator(addr, state, node_data, pages_count),
+        move || testing::contract_memory_state_creator(addr, state, host, pages_count),
 
         "svm" => {
             "storage_read_to_mem" => func!(vmcalls::storage_read_to_mem),
@@ -181,10 +181,10 @@ fn vmcalls_storage_read_an_empty_page_slice_to_mem() {
 
 #[test]
 fn vmcalls_storage_read_non_empty_page_slice_to_mem() {
-    let (addr, state, node_data, pages_count) = prepare_test_args();
+    let (addr, state, host, pages_count) = prepare_test_args();
 
     let import_object = imports! {
-        move || testing::contract_memory_state_creator(addr, state, node_data, pages_count),
+        move || testing::contract_memory_state_creator(addr, state, host, pages_count),
 
         "svm" => {
             "storage_read_to_mem" => func!(vmcalls::storage_read_to_mem),
@@ -213,10 +213,10 @@ fn vmcalls_storage_read_non_empty_page_slice_to_mem() {
 
 #[test]
 fn vmcalls_storage_write_from_mem() {
-    let (addr, state, node_data, pages_count) = prepare_test_args();
+    let (addr, state, host, pages_count) = prepare_test_args();
 
     let import_object = imports! {
-        move || testing::contract_memory_state_creator(addr, state, node_data, pages_count),
+        move || testing::contract_memory_state_creator(addr, state, host, pages_count),
 
         "svm" => {
             "storage_write_from_mem" => func!(vmcalls::storage_write_from_mem),
@@ -245,10 +245,10 @@ fn vmcalls_storage_write_from_mem() {
 
 #[test]
 fn vmcalls_storage_write_from_reg() {
-    let (addr, state, node_data, pages_count) = prepare_test_args();
+    let (addr, state, host, pages_count) = prepare_test_args();
 
     let import_object = imports! {
-        move || testing::contract_memory_state_creator(addr, state, node_data, pages_count),
+        move || testing::contract_memory_state_creator(addr, state, host, pages_count),
 
         "svm" => {
             "storage_write_from_reg" => func!(vmcalls::storage_write_from_reg),
@@ -278,10 +278,10 @@ fn vmcalls_storage_write_from_reg() {
 
 #[test]
 fn vmcalls_reg_replace_byte_read_write_be_i64() {
-    let (addr, state, node_data, pages_count) = prepare_test_args();
+    let (addr, state, host, pages_count) = prepare_test_args();
 
     let import_object = imports! {
-        move || testing::contract_memory_state_creator(addr, state, node_data, pages_count),
+        move || testing::contract_memory_state_creator(addr, state, host, pages_count),
 
         "svm" => {
             "storage_read_to_reg" => func!(vmcalls::storage_read_to_reg),

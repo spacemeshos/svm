@@ -25,7 +25,7 @@ pub const REGS_256_COUNT: usize = 4;
 pub const REGS_512_COUNT: usize = 4;
 
 /// `SvmCtx` is a container for the accessible data by `wasmer` instances
-/// * `node_data` - A pointer to the *node* data
+/// * `host`      - A pointer to the *Host*
 /// * `regs_32`   - A static array (`REGS_32_COUNT` elements)  of `SvmReg32`
 /// * `regs_64`   - A static array (`REGS_64_COUNT` elements)  of `SvmReg64`
 /// * `regs_160`  - A static array (`REGS_160_COUNT` elements) of `SvmReg160`
@@ -36,7 +36,7 @@ pub const REGS_512_COUNT: usize = 4;
 pub struct SvmCtx {
     /// A pointer to the `node` data. For example the pointer will point a to struct having an access
     /// to the `Global State` of each account, in order to query an account for its own balance.
-    pub node_data: *const c_void,
+    pub host: *const c_void,
 
     /// An array that holds the `SvmReg32` registers
     pub regs_32: [SvmReg; REGS_32_COUNT],
@@ -64,7 +64,7 @@ impl SvmCtx {
     /// Initializes a new empty `SvmCtx`
     ///
     /// * `storage` - a mutably borrowed `ContractStorage`
-    pub fn new(node_data: PtrWrapper, storage: ContractStorage) -> Self {
+    pub fn new(host: PtrWrapper, storage: ContractStorage) -> Self {
         let regs_32 = alloc_regs!(32, REGS_32_COUNT);
         let regs_64 = alloc_regs!(64, REGS_64_COUNT);
         let regs_160 = alloc_regs!(160, REGS_160_COUNT);
@@ -72,7 +72,7 @@ impl SvmCtx {
         let regs_512 = alloc_regs!(512, REGS_512_COUNT);
 
         Self {
-            node_data: node_data.unwrap(),
+            host: host.unwrap(),
             regs_32,
             regs_64,
             regs_160,

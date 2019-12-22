@@ -1,5 +1,4 @@
 use std::ffi::c_void;
-use std::ops::Deref;
 
 use crate::{contract_settings::ContractSettings, Receipt};
 
@@ -11,9 +10,9 @@ use svm_contract::{
 };
 use svm_storage::ContractStorage;
 
-use wasmer_runtime_core::import::ImportObject;
+use wasmer_runtime_core::{export::Export, import::ImportObject};
 
-pub trait Runtime: Deref<Target = c_void> {
+pub trait Runtime {
     fn contract_build(&self, bytes: &[u8]) -> Result<Contract, ContractBuildError>;
 
     fn contract_derive_address(&self, contract: &Contract) -> Address;
@@ -22,7 +21,14 @@ pub trait Runtime: Deref<Target = c_void> {
 
     fn transaction_build(&self, bytes: &[u8]) -> Result<Transaction, TransactionBuildError>;
 
-    fn transaction_exec(&self, tx: &Transaction, import_object: &ImportObject) -> Receipt;
+    fn transaction_exec(
+        &self,
+        tx: &Transaction,
+        state: &State,
+        settings: &ContractSettings,
+    ) -> Receipt;
 }
 
 pub type StorageBuilderFn = dyn Fn(&Address, &State, &ContractSettings) -> ContractStorage;
+
+pub type ImportObjectExtenderFn = dyn Fn(&mut ImportObject);
