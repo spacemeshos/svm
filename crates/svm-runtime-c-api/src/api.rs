@@ -19,10 +19,19 @@ use wasmer_runtime_c_api::{
 
 #[must_use]
 #[no_mangle]
-pub unsafe extern "C" fn svm_runtime_create(raw_runtime: *mut *mut c_void) -> wasmer_result_t {
+pub unsafe extern "C" fn svm_runtime_create(
+    raw_runtime: *mut *mut c_void,
+    host: *const c_void,
+    host_funcs: *mut c_void,
+    host_funcs_len: libc::c_uint,
+) -> wasmer_result_t {
     debug!("`svm_runtime_create`");
 
-    let runtime = svm_runtime::create_rocksdb_runtime("tests-contract-code");
+    let import_object_extender = |&mut _| {};
+
+    let runtime =
+        svm_runtime::create_rocksdb_runtime(host, "tests-contract-code", import_object_extender);
+
     let runtime: Box<dyn Runtime> = Box::new(runtime);
 
     let runtime_ptr: RuntimePtr = RuntimePtr::new(runtime);
@@ -145,48 +154,44 @@ pub unsafe extern "C" fn svm_transaction_build(
     }
 }
 
-/// Creates a new `wasmer` import object.
-/// The import object will include imports of two flavors:
-/// * external vmcalls (i.e: node vmcalls)
-/// * internal vmcalls (i.e: register/storage/etc vmcalls)
-#[must_use]
-#[no_mangle]
-pub unsafe extern "C" fn svm_import_object_create(
-    raw_runtime: *const c_void,
-    raw_import_object: *mut *mut c_void,
-    raw_addr: *const c_void,
-    raw_state: *const c_void,
-    raw_pages_count: libc::c_int,
-    host: *const c_void,
-    imports: *mut c_void,
-    imports_len: libc::c_uint,
-) -> wasmer_result_t {
-    debug!("`svm_import_object_create` start");
-
-    let runtime = helpers::cast_to_runtime(raw_runtime);
-    let addr = Address::from(raw_addr);
-    let state = State::from(raw_state);
-
-    let settings = svm_runtime::contract_settings::ContractSettings {
-        pages_count: raw_pages_count as u32,
-        kv_path: String::new(),
-    };
-
-    let import_object = runtime.import_object_create(addr, state, host, settings);
-    *raw_import_object = helpers::into_raw(import_object)
-
-    let imports: *mut wasmer_import_t = imports as _;
-    let _res = wasmer_import_object_extend(*raw_import_object, imports, imports_len);
-
-    // TODO: assert result
-    // if result != wasmer_result_t::WASMER_OK {
-    //     return result;
-    // }
-
-    debug!("`svm_import_object_create` returns `WASMER_OK`");
-
-    wasmer_result_t::WASMER_OK
-}
+// #[must_use]
+// #[no_mangle]
+// pub unsafe extern "C" fn svm_import_object_create(
+//     raw_runtime: *const c_void,
+//     raw_import_object: *mut *mut c_void,
+//     raw_addr: *const c_void,
+//     raw_state: *const c_void,
+//     raw_pages_count: libc::c_int,
+//     host: *const c_void,
+//     imports: *mut c_void,
+//     imports_len: libc::c_uint,
+// ) -> wasmer_result_t {
+//     debug!("`svm_import_object_create` start");
+//
+//     let runtime = helpers::cast_to_runtime(raw_runtime);
+//     let addr = Address::from(raw_addr);
+//     let state = State::from(raw_state);
+//
+//     let settings = svm_runtime::contract_settings::ContractSettings {
+//         pages_count: raw_pages_count as u32,
+//         kv_path: String::new(),
+//     };
+//
+//     let import_object = runtime.import_object_create(addr, state, host, settings);
+//     *raw_import_object = helpers::into_raw(import_object)
+//
+//     let imports: *mut wasmer_import_t = imports as _;
+//     let _res = wasmer_import_object_extend(*raw_import_object, imports, imports_len);
+//
+//     // TODO: assert result
+//     // if result != wasmer_result_t::WASMER_OK {
+//     //     return result;
+//     // }
+//
+//     debug!("`svm_import_object_create` returns `WASMER_OK`");
+//
+//     wasmer_result_t::WASMER_OK
+// }
 
 /// Triggers a transaction execution of an already deployed contract.
 ///
@@ -195,18 +200,24 @@ pub unsafe extern "C" fn svm_import_object_create(
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_transaction_exec(
-    raw_runtime: *mut c_void,
     raw_receipt: *mut *mut c_void,
+    raw_runtime: *mut c_void,
     raw_tx: *const c_void,
-    raw_import_object: *const c_void,
+    raw_state: *const c_void,
+    raw_pages_count: libc::c_int,
 ) -> wasmer_result_t {
     debug!("`svm_transaction_exec` start");
 
     let tx = helpers::from_raw::<Transaction>(raw_tx);
-    let import_object = helpers::from_raw::<ImportObject>(raw_import_object);
-
     let runtime = helpers::cast_to_runtime_mut(raw_runtime);
-    let receipt = runtime.transaction_exec(&tx, import_object);
+    let state = State::from(raw_state);
+
+    let settings = svm_runtime::contract_settings::ContractSettings {
+        pages_count: raw_pages_count as u32,
+        kv_path: String::new(),
+    };
+
+    let receipt = runtime.transaction_exec(&tx, &state, &settings);
 
     *raw_receipt = helpers::into_raw_mut(receipt);
 

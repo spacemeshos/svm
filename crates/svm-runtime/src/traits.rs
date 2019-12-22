@@ -30,5 +30,3 @@ pub trait Runtime {
 }
 
 pub type StorageBuilderFn = dyn Fn(&Address, &State, &ContractSettings) -> ContractStorage;
-
-pub type ImportObjectExtenderFn = dyn Fn(&mut ImportObject);

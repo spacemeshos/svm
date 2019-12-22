@@ -8,7 +8,7 @@ use crate::{
     helpers,
     helpers::PtrWrapper,
     register::SvmReg,
-    traits::{ImportObjectExtenderFn, Runtime, StorageBuilderFn},
+    traits::{Runtime, StorageBuilderFn},
     DefaultRuntime,
 };
 
@@ -23,6 +23,7 @@ use svm_contract::{
 };
 
 use wasmer_runtime_core::{
+    export::Export,
     import::{ImportObject, Namespace},
     Instance, Module,
 };
@@ -92,34 +93,23 @@ pub fn memory_kv_store_init() -> Rc<RefCell<MemKVStore>> {
 pub fn create_memory_runtime(
     host: *const c_void,
     kv: &Rc<RefCell<MemKVStore>>,
+    exts: Vec<(String, String, Export)>,
 ) -> DefaultRuntime<MemoryEnv> {
     let storage_builder = runtime_memory_storage_builder(kv);
 
     let env = runtime_memory_env_builder();
 
-    DefaultRuntime::new(
-        host,
-        env,
-        Box::new(storage_builder),
-        Box::new(runtime_memory_import_object_extender),
-    )
+    DefaultRuntime::new(host, env, exts, Box::new(storage_builder))
 }
 
 pub fn runtime_memory_storage_builder(kv: &Rc<RefCell<MemKVStore>>) -> Box<StorageBuilderFn> {
     let kv = Rc::clone(kv);
 
-    let builder = move |addr: &Address, state: &State, settings: &ContractSettings| {
+    let func = move |addr: &Address, state: &State, settings: &ContractSettings| {
         svm_storage::testing::contract_storage_open(addr, state, &kv, settings.pages_count)
     };
 
-    Box::new(builder)
-}
-
-pub fn runtime_memory_import_object_extender(import_object: &mut ImportObject) {
-    let mut ns = Namespace::new();
-    crate::vmcalls::insert_vmcalls(&mut ns);
-
-    import_object.register("svm", ns);
+    Box::new(func)
 }
 
 pub fn runtime_memory_env_builder() -> MemoryEnv {

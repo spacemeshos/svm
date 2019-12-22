@@ -10,7 +10,7 @@ use crate::ctx::SvmCtx;
 use crate::helpers;
 use crate::helpers::PtrWrapper;
 use crate::runtime::{ContractExecError, Receipt};
-use crate::traits::{ImportObjectExtenderFn, Runtime, StorageBuilderFn};
+use crate::traits::{Runtime, StorageBuilderFn};
 use crate::vmcalls;
 
 use svm_contract::{
@@ -31,8 +31,8 @@ use wasmer_runtime_core::{
 pub struct DefaultRuntime<ENV> {
     pub env: ENV,
     pub host: *const c_void,
+    pub exts: Vec<(String, String, Export)>,
     pub storage_builder: Box<StorageBuilderFn>,
-    pub import_object_extender: Box<ImportObjectExtenderFn>,
 }
 
 impl<TY, ENV> Runtime for DefaultRuntime<ENV>
@@ -79,9 +79,7 @@ where
         info!("runtime `contract_exec`");
 
         let mut import_object = self.import_object_create(&tx.contract, state, settings);
-
-        let extender = &self.import_object_extender;
-        extender(&mut import_object);
+        self.import_object_extend(&mut import_object);
 
         let receipt = match self.do_contract_exec(tx, &import_object) {
             Err(e) => Receipt {
@@ -114,14 +112,14 @@ where
     pub fn new(
         host: *const c_void,
         env: ENV,
+        exts: Vec<(String, String, Export)>,
         storage_builder: Box<StorageBuilderFn>,
-        import_object_extender: Box<ImportObjectExtenderFn>,
     ) -> Self {
         Self {
             env,
             host,
+            exts,
             storage_builder,
-            import_object_extender,
         }
     }
 
@@ -277,6 +275,17 @@ where
         };
 
         ImportObject::new_with_data(state_creator)
+    }
+
+    fn import_object_extend(&self, import_object: &mut ImportObject) {
+        // TODO: validate that `self.ext` don't use `svm` as for imports namespaces.
+
+        import_object.extend(self.exts.clone());
+
+        let mut ns = Namespace::new();
+        crate::vmcalls::insert_vmcalls(&mut ns);
+
+        import_object.register("svm", ns);
     }
 
     fn contract_load(&self, tx: &Transaction) -> Result<Contract, ContractExecError> {
