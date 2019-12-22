@@ -25,16 +25,16 @@ pub const REGS_256_COUNT: usize = 4;
 pub const REGS_512_COUNT: usize = 4;
 
 /// `SvmCtx` is a container for the accessible data by `wasmer` instances
-/// * `host`      - A pointer to the *Host*
-/// * `regs_32`   - A static array (`REGS_32_COUNT` elements)  of `SvmReg32`
-/// * `regs_64`   - A static array (`REGS_64_COUNT` elements)  of `SvmReg64`
-/// * `regs_160`  - A static array (`REGS_160_COUNT` elements) of `SvmReg160`
-/// * `regs_256`  - A static array (`REGS_256_COUNT` elements) of `SvmReg256`
-/// * `regs_512`  - A static array (`REGS_512_COUNT` elements) of `SvmReg512`
-/// * `storage`   - An instance of `ContractStorage`
+/// * `host`     - A pointer to the *Host*
+/// * `regs_32`  - A static array (`REGS_32_COUNT` elements)  of `SvmReg32`
+/// * `regs_64`  - A static array (`REGS_64_COUNT` elements)  of `SvmReg64`
+/// * `regs_160` - A static array (`REGS_160_COUNT` elements) of `SvmReg160`
+/// * `regs_256` - A static array (`REGS_256_COUNT` elements) of `SvmReg256`
+/// * `regs_512` - A static array (`REGS_512_COUNT` elements) of `SvmReg512`
+/// * `storage`  - An instance of `ContractStorage`
 #[repr(C)]
 pub struct SvmCtx {
-    /// A pointer to the `node` data. For example the pointer will point a to struct having an access
+    /// A pointer to the `host`. For example the pointer will point a to struct having an access
     /// to the `Global State` of each account, in order to query an account for its own balance.
     pub host: *const c_void,
 

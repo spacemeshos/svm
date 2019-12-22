@@ -89,11 +89,13 @@ pub fn memory_kv_store_init() -> Rc<RefCell<MemKVStore>> {
     Rc::new(RefCell::new(MemKVStore::new()))
 }
 
-pub fn create_memory_runtime(kv: &Rc<RefCell<MemKVStore>>) -> DefaultRuntime<MemoryEnv> {
+pub fn create_memory_runtime(
+    host: *const c_void,
+    kv: &Rc<RefCell<MemKVStore>>,
+) -> DefaultRuntime<MemoryEnv> {
     let storage_builder = runtime_memory_storage_builder(kv);
 
     let env = runtime_memory_env_builder();
-    let host = std::ptr::null();
 
     DefaultRuntime::new(
         host,

@@ -59,7 +59,7 @@ unsafe fn vmcall_get_balance(
     let reg = testing::svm_register_get(raw_ctx, reg_bits, reg_idx);
     let addr = Address::from(reg);
 
-    let host = testing::svm_node_data_get::<Host>(raw_ctx);
+    let host = testing::svm_host_get::<Host>(raw_ctx);
     host.get_balance(&addr)
 }
 
@@ -75,7 +75,7 @@ unsafe fn vmcall_set_balance(
     let reg = testing::svm_register_get(raw_ctx, reg_bits, reg_idx);
     let addr = Address::from(reg);
 
-    let host = testing::svm_node_data_get::<Host>(raw_ctx);
+    let host = testing::svm_host_get::<Host>(raw_ctx);
     host.set_balance(&addr, balance);
 }
 
@@ -122,7 +122,7 @@ unsafe fn transaction_exec_changing_state() {
         raw_addr,                // `raw_addr:  *const c_void`
         State::from(0).as_ptr(), // `raw_state: *const c_void`
         pages_count,             // `pages_count: libc::c_int`
-        &host,                   // `node_data_ptr:: *const c_void`
+        &host,                   // `host:: *const c_void`
         std::ptr::null_mut(),    // `imports: *mut wasmer_import_t`
         0,                       // `imports_len: libc::c_int`
     );
@@ -213,7 +213,7 @@ unsafe fn transaction_exec_changing_state() {
 //             raw_addr,                     // `raw_addr: *const u8`
 //             State::from(0).as_ptr() as _, // `raw_state: *const u8`,
 //             5,                            // `pages_count: libc::c_int`
-//             host_as_ptr(&host),      // `node_data_ptr:: *const c_void`
+//             host_as_ptr(&host),           // `host:: *const c_void`
 //             imports.as_mut_ptr() as _,    // `imports: *mut wasmer_import_t`
 //             imports.len() as _,           // `imports_len: libc::c_int`
 //         );

@@ -168,7 +168,7 @@ full_node_t* full_node_new(uint32_t counter) {
 }
 
 full_node_t* extract_ctx_nod(wasmer_instance_context_t *ctx) {
-    return (full_node_t*)(svm_instance_context_node_data_get(ctx));
+    return (full_node_t*)(svm_instance_context_host_get(ctx));
 }
 
 void vmcall_inc_counter(wasmer_instance_context_t *ctx, uint32_t value) {

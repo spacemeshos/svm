@@ -16,11 +16,11 @@ pub unsafe fn svm_register_get(
     reg.as_ptr()
 }
 
-pub unsafe fn svm_node_data_get<'a, T>(raw_ctx: *mut wasmer_instance_context_t) -> &'a mut T {
+pub unsafe fn svm_host_get<'a, T>(raw_ctx: *mut wasmer_instance_context_t) -> &'a mut T {
     let ctx = cast_to_wasmer_ctx(raw_ctx);
     let svm_ctx = cast_ptr_to_svm_ctx(ctx.data);
 
-    &mut *(svm_ctx.node_data as *mut T)
+    &mut *(svm_ctx.host as *mut T)
 }
 
 pub unsafe fn alloc_ptr() -> *mut c_void {

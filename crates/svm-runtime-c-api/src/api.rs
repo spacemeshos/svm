@@ -157,7 +157,7 @@ pub unsafe extern "C" fn svm_import_object_create(
     raw_addr: *const c_void,
     raw_state: *const c_void,
     raw_pages_count: libc::c_int,
-    node_data: *const c_void,
+    host: *const c_void,
     imports: *mut c_void,
     imports_len: libc::c_uint,
 ) -> wasmer_result_t {
@@ -172,7 +172,7 @@ pub unsafe extern "C" fn svm_import_object_create(
         kv_path: String::new(),
     };
 
-    let import_object = runtime.import_object_create(addr, state, node_data, settings);
+    let import_object = runtime.import_object_create(addr, state, host, settings);
     *raw_import_object = helpers::into_raw(import_object)
 
     let imports: *mut wasmer_import_t = imports as _;

@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::ffi::c_void;
 use std::path::Path;
 use std::rc::Rc;
 
@@ -16,9 +17,11 @@ use crate::runtime::DefaultRuntime;
 
 use wasmer_runtime_core::import::{ImportObject, Namespace};
 
-pub fn create_rocksdb_runtime(path: &str) -> DefaultRuntime<RocksdbContractEnv> {
+pub fn create_rocksdb_runtime(
+    host: *const c_void,
+    path: &str,
+) -> DefaultRuntime<RocksdbContractEnv> {
     let env = runtime_rocksdb_contract_env_build(path);
-    let host = std::ptr::null();
 
     DefaultRuntime::new(
         host,

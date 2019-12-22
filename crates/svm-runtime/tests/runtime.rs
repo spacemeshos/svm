@@ -1,5 +1,3 @@
-use std::ffi::c_void;
-
 use svm_common::State;
 use svm_contract::wasm::WasmArgValue as Value;
 use svm_runtime::{contract_settings::ContractSettings, testing, traits::Runtime};
@@ -37,7 +35,8 @@ fn runtime_executing_a_valid_transaction() {
     );
 
     let kv = testing::memory_kv_store_init();
-    let mut runtime = testing::create_memory_runtime(&kv);
+    let host = std::ptr::null();
+    let mut runtime = testing::create_memory_runtime(host, &kv);
     let contract = runtime.contract_build(&bytes).unwrap();
     let addr = runtime.contract_derive_address(&contract);
 
