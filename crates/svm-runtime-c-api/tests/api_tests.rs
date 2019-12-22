@@ -15,26 +15,31 @@ use svm_storage::{
     ContractStorage,
 };
 
-use wasmer_runtime_c_api::instance::wasmer_instance_context_t;
-use wasmer_runtime_core::types::Type;
+use wasmer_runtime_c_api::{
+    import::{wasmer_import_func_new, wasmer_import_func_t, wasmer_import_t},
+    instance::wasmer_instance_context_t,
+    value::wasmer_value_tag,
+    wasmer_byte_array,
+};
+
+use wasmer_runtime_core::{export::Export, func, types::Type};
 
 /// Represents a fake `Host`
-#[repr(C)]
 struct Host {
     balance: HashMap<Address, i64>,
 }
 
 impl Host {
-    pub fn set_balance(&mut self, addr: &Address, balance: i64) {
-        self.balance.insert(addr.clone(), balance);
-    }
-
     pub fn get_balance(&self, addr: &Address) -> i64 {
         if let Some(balance) = self.balance.get(addr) {
             *balance
         } else {
             0
         }
+    }
+
+    pub fn set_balance(&mut self, addr: &Address, balance: i64) {
+        self.balance.insert(addr.clone(), balance);
     }
 }
 
@@ -46,10 +51,51 @@ impl Default for Host {
     }
 }
 
+fn alloc_wasmer_values(values: Vec<wasmer_value_tag>) -> (*const wasmer_value_tag, libc::c_uint) {
+    let values: &Vec<wasmer_value_tag> = Box::leak(Box::new(values));
+    let values_len = values.len() as u32;
+
+    (values.as_ptr(), values_len)
+}
+
+unsafe fn host_get_balance_import() {
+    let (params, params_len) =
+        alloc_wasmer_values(vec![wasmer_value_tag::WASM_I32, wasmer_value_tag::WASM_I32]);
+
+    let (returns, returns_len) = alloc_wasmer_values(vec![wasmer_value_tag::WASM_I64]);
+
+    let func = wasmer_import_func_new(
+        host_get_balance as extern "C" fn(*mut c_void),
+        params,
+        params_len,
+        returns,
+        returns_len,
+    );
+}
+
+fn host_funcs() -> (*mut c_void, libc::c_uint) {
+    let funcs = vec![];
+
+    let funcs_len = funcs.len() as u32;
+    let funcs = Box::leak(Box::new(funcs));
+
+    (funcs.as_mut_ptr(), funcs_len)
+}
+
+extern "C" fn host_do_something(data: *mut c_void) {
+    //
+}
+
 /// Represents a fake host vmcall implemented in another programming-language using the FFI interface.
-/// See test: `call_node_get_set_balance`
-#[no_mangle]
-unsafe fn vmcall_get_balance(
+extern "C" fn host_get_balance(
+    raw_ctx: *mut wasmer_instance_context_t,
+    reg_bits: i32,
+    reg_idx: i32,
+) -> i64 {
+    unsafe { unsafe_get_balance(raw_ctx, reg_bits, reg_idx) }
+}
+
+unsafe fn unsafe_get_balance(
     raw_ctx: *mut wasmer_instance_context_t,
     reg_bits: i32,
     reg_idx: i32,
@@ -64,9 +110,18 @@ unsafe fn vmcall_get_balance(
 }
 
 /// Represents a fake host vmcall implemented in another programming-language using the FFI interface.
-/// See test: `call_node_get_set_balance`
-#[no_mangle]
-unsafe fn vmcall_set_balance(
+extern "C" fn host_set_balance(
+    raw_ctx: *mut wasmer_instance_context_t,
+    balance: i64,
+    reg_bits: i32,
+    reg_idx: i32,
+) {
+    unsafe {
+        unsafe_set_balance(raw_ctx, balance, reg_bits, reg_idx);
+    }
+}
+
+unsafe fn unsafe_set_balance(
     raw_ctx: *mut wasmer_instance_context_t,
     balance: i64,
     reg_bits: i32,
@@ -91,41 +146,42 @@ unsafe fn transaction_exec_changing_state() {
 
     let author_addr = 0_10_20_30_40;
     let wasm = include_str!("wasm/store.wast");
+    let pages_count = 5;
 
     let host = Host::default();
-    let pages_count = 5;
+    let (funcs, funcs_len) = host_funcs();
 
     // 1) deploy
     dbg!(raw_runtime);
-    let _ = c_api::svm_runtime_create(&mut raw_runtime);
+    let _ = c_api::svm_runtime_create(&mut raw_runtime, std::ptr::null(), funcs, funcs_len);
     dbg!(raw_runtime);
     // TODO: assert runtime has been created successfully
 
-    let bytes = svm_runtime::testing::build_raw_contract(0, "Sample Contract", author_addr, wasm);
+    // let bytes = svm_runtime::testing::build_raw_contract(0, "Sample Contract", author_addr, wasm);
     // let runtime: &Box<dyn Runtime> = helpers::cast_to_runtime_mut(raw_runtime);
 
-    let _ = c_api::svm_contract_build(
-        raw_runtime,
-        &mut raw_contract,
-        bytes.as_ptr() as *const c_void,
-        bytes.len() as u64,
-    );
+    // let _ = c_api::svm_contract_build(
+    //     raw_runtime,
+    //     &mut raw_contract,
+    //     bytes.as_ptr() as *const c_void,
+    //     bytes.len() as u64,
+    // );
     // TODO: assert `Contract` instance has been build successfully
 
-    let raw_addr = c_api::svm_contract_derive_address(raw_runtime, raw_contract);
-    let _ = c_api::svm_contract_deploy(raw_runtime, raw_contract, raw_addr);
+    // let raw_addr = c_api::svm_contract_derive_address(raw_runtime, raw_contract);
+    // let _ = c_api::svm_contract_deploy(raw_runtime, raw_contract, raw_addr);
     // TODO: assert that contract has been deployed successfully
 
     // 2) execute
-    let _ = c_api::svm_import_object_create(
-        &mut raw_import_object,
-        raw_addr,                // `raw_addr:  *const c_void`
-        State::from(0).as_ptr(), // `raw_state: *const c_void`
-        pages_count,             // `pages_count: libc::c_int`
-        &host,                   // `host:: *const c_void`
-        std::ptr::null_mut(),    // `imports: *mut wasmer_import_t`
-        0,                       // `imports_len: libc::c_int`
-    );
+    // let _ = c_api::svm_import_object_create(
+    //     &mut raw_import_object,
+    //     raw_addr,                // `raw_addr:  *const c_void`
+    //     State::from(0).as_ptr(), // `raw_state: *const c_void`
+    //     pages_count,             // `pages_count: libc::c_int`
+    //     &host,                   // `host:: *const c_void`
+    //     std::ptr::null_mut(),    // `imports: *mut wasmer_import_t`
+    //     0,                       // `imports_len: libc::c_int`
+    // );
     // TODO: assert `ImportObject` has been created successfully
 
     //     let addr = Address::from(raw_addr);
@@ -193,19 +249,19 @@ unsafe fn transaction_exec_changing_state() {
 //
 //         // 2) execute
 //         let gb_ptr = cast_vmcall_to_import_func_t!(
-//             vmcall_get_balance,
+//             host_get_balance,
 //             vec![Type::I32, Type::I32],
 //             vec![Type::I64]
 //         );
 //
 //         let sb_ptr = cast_vmcall_to_import_func_t!(
-//             vmcall_set_balance,
+//             host_set_balance,
 //             vec![Type::I64, Type::I32, Type::I32],
 //             vec![]
 //         );
 //
-//         let gb_import = build_wasmer_import_t("env", "vmcall_get_balance", gb_ptr);
-//         let sb_import = build_wasmer_import_t("env", "vmcall_set_balance", sb_ptr);
+//         let gb_import = build_wasmer_import_t("env", "host_get_balance", gb_ptr);
+//         let sb_import = build_wasmer_import_t("env", "host_set_balance", sb_ptr);
 //         let mut imports = [gb_import, sb_import];
 //
 //         let _res = svm_import_object(

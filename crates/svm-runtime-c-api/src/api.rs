@@ -1,6 +1,8 @@
 use svm_common::{Address, State};
 use svm_contract::{transaction::Transaction, wasm::Contract};
-use svm_runtime::{register::SvmReg, traits::Runtime, Receipt};
+use svm_runtime::{
+    contract_settings::ContractSettings, register::SvmReg, traits::Runtime, Receipt,
+};
 
 use crate::helpers;
 use crate::RuntimePtr;
@@ -27,10 +29,9 @@ pub unsafe extern "C" fn svm_runtime_create(
 ) -> wasmer_result_t {
     debug!("`svm_runtime_create`");
 
-    let import_object_extender = |&mut _| {};
-
-    let runtime =
-        svm_runtime::create_rocksdb_runtime(host, "tests-contract-code", import_object_extender);
+    // let imports: *mut wasmer_import_t = host_funcs as _;
+    let exts = Vec::new();
+    let runtime = svm_runtime::create_rocksdb_runtime(host, "tests-contract-code", exts);
 
     let runtime: Box<dyn Runtime> = Box::new(runtime);
 
@@ -154,45 +155,6 @@ pub unsafe extern "C" fn svm_transaction_build(
     }
 }
 
-// #[must_use]
-// #[no_mangle]
-// pub unsafe extern "C" fn svm_import_object_create(
-//     raw_runtime: *const c_void,
-//     raw_import_object: *mut *mut c_void,
-//     raw_addr: *const c_void,
-//     raw_state: *const c_void,
-//     raw_pages_count: libc::c_int,
-//     host: *const c_void,
-//     imports: *mut c_void,
-//     imports_len: libc::c_uint,
-// ) -> wasmer_result_t {
-//     debug!("`svm_import_object_create` start");
-//
-//     let runtime = helpers::cast_to_runtime(raw_runtime);
-//     let addr = Address::from(raw_addr);
-//     let state = State::from(raw_state);
-//
-//     let settings = svm_runtime::contract_settings::ContractSettings {
-//         pages_count: raw_pages_count as u32,
-//         kv_path: String::new(),
-//     };
-//
-//     let import_object = runtime.import_object_create(addr, state, host, settings);
-//     *raw_import_object = helpers::into_raw(import_object)
-//
-//     let imports: *mut wasmer_import_t = imports as _;
-//     let _res = wasmer_import_object_extend(*raw_import_object, imports, imports_len);
-//
-//     // TODO: assert result
-//     // if result != wasmer_result_t::WASMER_OK {
-//     //     return result;
-//     // }
-//
-//     debug!("`svm_import_object_create` returns `WASMER_OK`");
-//
-//     wasmer_result_t::WASMER_OK
-// }
-
 /// Triggers a transaction execution of an already deployed contract.
 ///
 /// `receipt` - The receipt of the contract execution.
@@ -212,7 +174,7 @@ pub unsafe extern "C" fn svm_transaction_exec(
     let runtime = helpers::cast_to_runtime_mut(raw_runtime);
     let state = State::from(raw_state);
 
-    let settings = svm_runtime::contract_settings::ContractSettings {
+    let settings = ContractSettings {
         pages_count: raw_pages_count as u32,
         kv_path: String::new(),
     };
