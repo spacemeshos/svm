@@ -39,8 +39,7 @@ pub unsafe extern "C" fn svm_runtime_create(
         return wasmer_result_t::WASMER_ERROR;
     }
 
-    // let imports: *mut wasmer_import_t = host_funcs as _;
-    let exts = Vec::new();
+    let exts = helpers::cast_host_imports(host_funcs, host_funcs_len);
     let runtime = svm_runtime::create_rocksdb_runtime(host, &path.unwrap(), exts);
 
     let runtime: Box<dyn Runtime> = Box::new(runtime);
