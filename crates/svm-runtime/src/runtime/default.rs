@@ -31,7 +31,7 @@ use wasmer_runtime_core::{
 pub struct DefaultRuntime<ENV> {
     pub env: ENV,
     pub host: *const c_void,
-    pub exts: Vec<(String, String, Export)>,
+    pub imports: Vec<(String, String, Export)>,
     pub storage_builder: Box<StorageBuilderFn>,
 }
 
@@ -112,13 +112,13 @@ where
     pub fn new(
         host: *const c_void,
         env: ENV,
-        exts: Vec<(String, String, Export)>,
+        imports: Vec<(String, String, Export)>,
         storage_builder: Box<StorageBuilderFn>,
     ) -> Self {
         Self {
             env,
             host,
-            exts,
+            imports,
             storage_builder,
         }
     }
@@ -278,9 +278,9 @@ where
     }
 
     fn import_object_extend(&self, import_object: &mut ImportObject) {
-        // TODO: validate that `self.ext` don't use `svm` as for imports namespaces.
+        // TODO: validate that `self.imports` don't use `svm` as for imports namespaces.
 
-        import_object.extend(self.exts.clone());
+        import_object.extend(self.imports.clone());
 
         let mut ns = Namespace::new();
         crate::vmcalls::insert_vmcalls(&mut ns);

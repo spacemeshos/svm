@@ -93,13 +93,13 @@ pub fn memory_kv_store_init() -> Rc<RefCell<MemKVStore>> {
 pub fn create_memory_runtime(
     host: *const c_void,
     kv: &Rc<RefCell<MemKVStore>>,
-    exts: Vec<(String, String, Export)>,
+    imports: Vec<(String, String, Export)>,
 ) -> DefaultRuntime<MemoryEnv> {
     let storage_builder = runtime_memory_storage_builder(kv);
 
     let env = runtime_memory_env_builder();
 
-    DefaultRuntime::new(host, env, exts, Box::new(storage_builder))
+    DefaultRuntime::new(host, env, imports, Box::new(storage_builder))
 }
 
 pub fn runtime_memory_storage_builder(kv: &Rc<RefCell<MemKVStore>>) -> Box<StorageBuilderFn> {

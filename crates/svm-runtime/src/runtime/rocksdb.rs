@@ -23,11 +23,11 @@ use wasmer_runtime_core::{
 pub fn create_rocksdb_runtime(
     host: *const c_void,
     path: &str,
-    exts: Vec<(String, String, Export)>,
+    imports: Vec<(String, String, Export)>,
 ) -> DefaultRuntime<RocksdbContractEnv> {
     let env = contract_env_build(path);
 
-    DefaultRuntime::new(host, env, exts, Box::new(contract_storage_build))
+    DefaultRuntime::new(host, env, imports, Box::new(contract_storage_build))
 }
 
 fn contract_env_build(path: &str) -> RocksdbContractEnv {

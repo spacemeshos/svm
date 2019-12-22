@@ -26,8 +26,8 @@ pub unsafe extern "C" fn svm_runtime_create(
     path_bytes: *const c_void,
     path_len: libc::c_uint,
     host: *const c_void,
-    host_funcs: *mut c_void,
-    host_funcs_len: libc::c_uint,
+    imports: *mut c_void,
+    imports_len: libc::c_uint,
 ) -> wasmer_result_t {
     debug!("`svm_runtime_create`");
 
@@ -39,8 +39,8 @@ pub unsafe extern "C" fn svm_runtime_create(
         return wasmer_result_t::WASMER_ERROR;
     }
 
-    let exts = helpers::cast_host_imports(host_funcs, host_funcs_len);
-    let runtime = svm_runtime::create_rocksdb_runtime(host, &path.unwrap(), exts);
+    let imports = helpers::cast_host_imports(imports, imports_len);
+    let runtime = svm_runtime::create_rocksdb_runtime(host, &path.unwrap(), imports);
 
     let runtime: Box<dyn Runtime> = Box::new(runtime);
 
