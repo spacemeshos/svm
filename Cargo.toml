@@ -75,6 +75,7 @@ members = [
   "crates/svm-runtime",
   "crates/svm-runtime-c-api",
 ]
+
 exclude = [
-  "crates/svm-extern",
+  "contracts/transfer"
 ]

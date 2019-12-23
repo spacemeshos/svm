@@ -1,97 +1,105 @@
-use log::{debug, error, info};
 use std::ffi::c_void;
 
+use log::{debug, error, info};
+
+use crate::{
+    ctx::SvmCtx,
+    helpers,
+    helpers::PtrWrapper,
+    runtime::{ContractExecError, Receipt},
+    settings::ContractSettings,
+    traits::{Runtime, StorageBuilderFn},
+};
+
 use svm_common::{Address, State};
-use svm_contract::env::{ContractEnv, ContractEnvTypes};
-
-use crate::contract_settings::ContractSettings;
-use crate::ctx::SvmCtx;
-use crate::helpers;
-use crate::helpers::{PtrWrapper, StorageBuilderFn};
-use crate::runtime::{ContractExecError, Receipt};
-use crate::vmcalls;
-
 use svm_contract::{
+    env::{ContractEnv, ContractEnvTypes},
     error::{ContractBuildError, TransactionBuildError},
     traits::ContractStore,
     transaction::Transaction,
     wasm::Contract,
 };
-use svm_storage::{ContractPages, ContractStorage};
+use svm_storage::ContractStorage;
 
 use wasmer_runtime_core::{
-    func,
+    export::Export,
     import::{ImportObject, Namespace},
 };
 
-pub struct Runtime<ENV> {
+/// Default `Runtime` implementation based on `wasmer`.
+pub struct DefaultRuntime<ENV> {
+    /// The runtime environment. Used mainly for managing contracts persistence/retrieval.
     pub env: ENV,
+
+    /// A raw pointer to host (a.k.a the `Full-Node` in the realm of Blockchain).
+    pub host: *const c_void,
+
+    /// External imports (living inside the host) to be consumed by the wasm contracts.
+    pub imports: Vec<(String, String, Export)>,
+
+    /// Determined by the contract `Address` and `State` (contract state) and contracte storage settings,
+    /// builds a `ContractStorage` instance.
     pub storage_builder: Box<StorageBuilderFn>,
 }
 
-impl<TY, ENV> Runtime<ENV>
+impl<TY, ENV> Runtime for DefaultRuntime<ENV>
 where
     TY: ContractEnvTypes,
     ENV: ContractEnv<Types = TY>,
 {
-    pub fn new(env: ENV, storage_builder: Box<StorageBuilderFn>) -> Self {
-        Self {
-            env,
-            storage_builder,
-        }
-    }
-
-    pub fn contract_build(&self, bytes: &[u8]) -> Result<Contract, ContractBuildError> {
+    fn contract_build(&self, bytes: &[u8]) -> Result<Contract, ContractBuildError> {
         info!("runtime `contract_build`");
 
-        <ENV as ContractEnv>::build_contract(bytes)
-    }
-
-    #[inline(always)]
-    pub fn contract_deploy_validate(&self, contract: &Contract) -> Result<(), ContractBuildError> {
         // TODO:
         // validate the `wasm`. should use the `deterministic` feature of `wasmparser`.
         // (avoiding floats etc.)
-
-        Ok(())
+        self.env.build_contract(bytes)
     }
 
     #[inline(always)]
-    pub fn contract_compute_address(&self, contract: &Contract) -> Address {
+    fn contract_derive_address(&self, contract: &Contract) -> Address {
         info!("runtime `contract_compute_address`");
 
-        <ENV as ContractEnv>::compute_address(contract)
+        self.env.compute_address(contract)
     }
 
     #[inline(always)]
-    pub fn contract_store(&mut self, contract: &Contract, addr: &Address) {
+    fn contract_deploy(&mut self, contract: &Contract, addr: &Address) {
         info!("runtime `contract_store`");
 
         self.env.store_contract(contract, addr);
     }
 
     #[inline(always)]
-    pub fn transaction_build(&self, bytes: &[u8]) -> Result<Transaction, TransactionBuildError> {
+    fn transaction_build(&self, bytes: &[u8]) -> Result<Transaction, TransactionBuildError> {
         info!("runtime `transaction_build`");
 
-        <ENV as ContractEnv>::build_transaction(bytes)
+        self.env.build_transaction(bytes)
     }
 
-    pub fn contract_exec(&self, tx: Transaction, import_object: &ImportObject) -> Receipt {
+    fn transaction_exec(
+        &self,
+        tx: &Transaction,
+        state: &State,
+        settings: &ContractSettings,
+    ) -> Receipt {
         info!("runtime `contract_exec`");
 
-        let receipt = match self.do_contract_exec(&tx, import_object) {
+        let mut import_object = self.import_object_create(&tx.contract, state, settings);
+        self.import_object_extend(&mut import_object);
+
+        let receipt = match self.do_contract_exec(tx, &import_object) {
             Err(e) => Receipt {
                 success: false,
                 error: Some(e),
-                tx,
+                tx: tx.clone(),
                 results: Vec::new(),
                 new_state: None,
             },
             Ok((state, results)) => Receipt {
                 success: true,
                 error: None,
-                tx,
+                tx: tx.clone(),
                 results,
                 new_state: Some(state),
             },
@@ -100,6 +108,40 @@ where
         info!("receipt: {:?}", receipt);
 
         receipt
+    }
+}
+
+impl<TY, ENV> DefaultRuntime<ENV>
+where
+    TY: ContractEnvTypes,
+    ENV: ContractEnv<Types = TY>,
+{
+    /// Initializes a new `DefaultRuntime` instance.
+    pub fn new(
+        host: *const c_void,
+        env: ENV,
+        imports: Vec<(String, String, Export)>,
+        storage_builder: Box<StorageBuilderFn>,
+    ) -> Self {
+        Self {
+            env,
+            host,
+            imports,
+            storage_builder,
+        }
+    }
+
+    /// Initialize a new `ContractStorage` and returns it.
+    /// This method is of `pub` visibility since it's also helpful for tests that want to
+    /// observe that contract storage data.
+    pub fn open_contract_storage(
+        &self,
+        addr: &Address,
+        state: &State,
+        settings: &ContractSettings,
+    ) -> ContractStorage {
+        let sb = &self.storage_builder;
+        sb(addr, state, settings)
     }
 
     #[inline(always)]
@@ -110,12 +152,12 @@ where
     ) -> Result<(State, Vec<wasmer_runtime::Value>), ContractExecError> {
         let contract = self.contract_load(tx)?;
         let module = self.contract_compile(&contract, &tx.contract)?;
-        let mut instance = self.instantiate(&contract, &tx.contract, &module, import_object)?;
+        let mut instance = self.instantiate(&tx.contract, &module, import_object)?;
         let args = self.prepare_args_and_memory(tx, &mut instance);
         let func = self.get_exported_func(&instance, &tx.func_name)?;
 
         match func.call(&args) {
-            Err(e) => Err(ContractExecError::ExecFailed),
+            Err(_e) => Err(ContractExecError::ExecFailed),
             Ok(results) => {
                 let storage = self.get_instance_svm_storage_mut(&mut instance);
                 let state = storage.commit();
@@ -126,7 +168,6 @@ where
 
     fn instantiate(
         &self,
-        contract: &Contract,
         addr: &Address,
         module: &wasmer_runtime::Module,
         import_object: &ImportObject,
@@ -136,7 +177,7 @@ where
         let instantiate = module.instantiate(import_object);
 
         match instantiate {
-            Err(e) => Err(ContractExecError::InstantiationFailed(addr.clone())),
+            Err(_e) => Err(ContractExecError::InstantiationFailed(addr.clone())),
             Ok(instance) => Ok(instance),
         }
     }
@@ -149,7 +190,7 @@ where
         let func = instance.dyn_func(func_name);
 
         match func {
-            Err(e) => {
+            Err(_e) => {
                 error!("exported function: `{}` not found", func_name);
 
                 Err(ContractExecError::FuncNotFound(func_name.to_string()))
@@ -215,21 +256,10 @@ where
         helpers::wasmer_data_contract_storage(wasmer_ctx.data)
     }
 
-    pub fn open_contract_storage(
+    fn import_object_create(
         &self,
         addr: &Address,
         state: &State,
-        settings: &ContractSettings,
-    ) -> ContractStorage {
-        let storage_builder = &self.storage_builder;
-        storage_builder(addr, state, settings)
-    }
-
-    pub fn import_object_create(
-        &self,
-        addr: &Address,
-        state: &State,
-        node_data: *const c_void,
         settings: &ContractSettings,
     ) -> ImportObject {
         debug!(
@@ -238,12 +268,11 @@ where
         );
 
         let storage = self.open_contract_storage(addr, state, settings);
-
-        let ctx = SvmCtx::new(PtrWrapper::new(node_data), storage);
-        let ctx = Box::leak(Box::new(ctx));
+        let svm_ctx = SvmCtx::new(PtrWrapper::new(self.host), storage);
+        let svm_ctx = Box::leak(Box::new(svm_ctx));
 
         let state_creator = move || {
-            let node_data: *mut c_void = ctx as *const SvmCtx as *mut SvmCtx as _;
+            let data: *mut c_void = svm_ctx as *const SvmCtx as *mut SvmCtx as _;
 
             let dtor: fn(*mut c_void) = |ctx_data| {
                 let ctx_ptr = ctx_data as *mut SvmCtx;
@@ -252,16 +281,21 @@ where
                 unsafe { Box::from_raw(ctx_ptr) };
             };
 
-            (node_data, dtor)
+            (data, dtor)
         };
 
-        let mut import_object = ImportObject::new_with_data(state_creator);
-        let mut ns = Namespace::new();
+        ImportObject::new_with_data(state_creator)
+    }
 
-        vmcalls::insert_vmcalls(&mut ns);
+    fn import_object_extend(&self, import_object: &mut ImportObject) {
+        // TODO: validate that `self.imports` don't use `svm` as for imports namespaces.
+
+        import_object.extend(self.imports.clone());
+
+        let mut ns = Namespace::new();
+        crate::vmcalls::insert_vmcalls(&mut ns);
 
         import_object.register("svm", ns);
-        import_object
     }
 
     fn contract_load(&self, tx: &Transaction) -> Result<Contract, ContractExecError> {
@@ -285,7 +319,7 @@ where
         let compile = svm_compiler::compile_program(&contract.wasm);
 
         match compile {
-            Err(e) => {
+            Err(_e) => {
                 error!("wasmer module compilation failed (addr={:?})", addr);
                 Err(ContractExecError::CompilationFailed(addr.clone()))
             }
@@ -294,5 +328,11 @@ where
                 Ok(module)
             }
         }
+    }
+}
+
+impl<ENV> Drop for DefaultRuntime<ENV> {
+    fn drop(&mut self) {
+        info!("dropping Runtime...");
     }
 }

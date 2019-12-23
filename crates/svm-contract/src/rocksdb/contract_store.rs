@@ -11,6 +11,7 @@ use svm_kv::traits::KVStore;
 
 use log::info;
 
+/// Contract store backed by `rocksdb`
 pub struct RocksdbContractStore<S, D> {
     db: Rocksdb,
     marker: PhantomData<(S, D)>,
@@ -21,6 +22,7 @@ where
     S: ContractSerializer,
     D: ContractDeserializer,
 {
+    /// Creates a new contract store at the given path
     pub fn new(path: &Path) -> Self {
         Self {
             db: Rocksdb::new(path),

@@ -93,12 +93,14 @@ where
         }
     }
 
+    /// Derives page hash, from its index `page_idx` and data `page_data`.
     #[must_use]
     #[inline(always)]
     pub fn compute_page_hash(&self, page_idx: PageIndex, page_data: &[u8]) -> PageHash {
         PH::hash(self.addr.clone(), page_idx, page_data)
     }
 
+    /// Derives page hash for page indexed `page_idx` containing only zeros.
     #[must_use]
     #[inline(always)]
     pub fn compute_zero_page_hash(&self, page_idx: PageIndex) -> PageHash {
@@ -106,6 +108,7 @@ where
         self.compute_page_hash(page_idx, zeros_page.as_ref())
     }
 
+    /// The number of dirty pages
     pub fn dirty_pages_count(&self) -> usize {
         self.pages.iter().fold(0, |acc, page| match page {
             PageEntry::NotModified(..) => acc,

@@ -16,11 +16,11 @@ fn store_contract() {
         .with_code(&[0xAA, 0xBB, 0xCC, 0xDD])
         .build();
 
-    let contract = <MemoryEnv as ContractEnv>::build_contract(&bytes).unwrap();
-    let addr = <MemoryEnv as ContractEnv>::compute_address(&contract);
-
     let store = MemContractStore::new();
     let mut env = MemoryEnv::new(store);
+
+    let contract = env.build_contract(&bytes).unwrap();
+    let addr = env.compute_address(&contract);
 
     env.store_contract(&contract, &addr);
 

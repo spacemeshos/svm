@@ -3,7 +3,7 @@ use crate::env::{ContractEnv, ContractEnvTypes};
 use crate::memory::MemContractStore;
 use crate::wasm::{WasmContractJsonDeserializer, WasmContractJsonSerializer};
 
-pub struct MemoryEnvTypes {}
+pub struct MemoryEnvTypes;
 
 impl ContractEnvTypes for MemoryEnvTypes {
     type Serializer = WasmContractJsonSerializer;

@@ -7,7 +7,7 @@ fn main() {
 }
 fn gen_for_c() {
     let crate_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
-    let header_name: &str = "svm_wasmer";
+    let header_name: &str = "svm";
 
     // set expand dir for macro expanding
     env::set_var("CARGO_EXPAND_TARGET_DIR", crate_dir.clone());

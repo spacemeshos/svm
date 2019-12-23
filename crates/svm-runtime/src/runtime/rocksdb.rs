@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::ffi::c_void;
 use std::path::Path;
 use std::rc::Rc;
 
@@ -6,26 +7,34 @@ use svm_common::{Address, State};
 use svm_kv::rocksdb::Rocksdb;
 
 use svm_contract::rocksdb::{RocksdbContractEnv, RocksdbContractStore};
-use svm_storage::rocksdb::{RocksdbContractPageCache, RocksdbContractPages};
-use svm_storage::ContractStorage;
+use svm_storage::{
+    rocksdb::{RocksdbContractPageCache, RocksdbContractPages},
+    ContractStorage,
+};
 
-use crate::contract_settings::ContractSettings;
-use crate::runtime::Runtime;
+use crate::runtime::DefaultRuntime;
+use crate::settings::ContractSettings;
 
-pub fn create_rocksdb_runtime(path: &str) -> Runtime<RocksdbContractEnv> {
-    let env = runtime_contract_env_build(path);
-    let storage_builder = Box::new(runtime_contract_storage_build);
+use wasmer_runtime_core::export::Export;
 
-    Runtime::new(env, storage_builder)
+/// Creates a new `Runtime` backed by `rocksdb` for persistence.
+pub fn create_rocksdb_runtime(
+    host: *const c_void,
+    path: &str,
+    imports: Vec<(String, String, Export)>,
+) -> DefaultRuntime<RocksdbContractEnv> {
+    let env = contract_env_build(path);
+
+    DefaultRuntime::new(host, env, imports, Box::new(contract_storage_build))
 }
 
-fn runtime_contract_env_build(path: &str) -> RocksdbContractEnv {
+fn contract_env_build(path: &str) -> RocksdbContractEnv {
     let path = Path::new(path);
     let store = RocksdbContractStore::new(path);
     RocksdbContractEnv::new(store)
 }
 
-fn runtime_contract_storage_build(
+fn contract_storage_build(
     addr: &Address,
     state: &State,
     settings: &ContractSettings,

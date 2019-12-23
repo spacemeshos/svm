@@ -16,12 +16,14 @@ pub fn default_page_index_hash(addr: u32, page_idx: u32) -> [u8; 32] {
     DefaultPageIndexHasher::hash(addr, PageIndex(page_idx))
 }
 
+/// Fills page with input `items` starting from page offset zero.
 pub fn fill_page(page: &mut [u8], items: &[(usize, u8)]) {
     for (i, b) in items {
         page[*i] = *b;
     }
 }
 
+/// Concatenates pages-hash into one vector of bytes.
 pub fn concat_pages_hash(pages_hash: &[PageHash]) -> Vec<u8> {
     let mut res = Vec::new();
 
@@ -32,6 +34,7 @@ pub fn concat_pages_hash(pages_hash: &[PageHash]) -> Vec<u8> {
     res
 }
 
+/// Derives the contract new `State` by its pages-hash.
 pub fn compute_pages_state(pages_hash: &[PageHash]) -> State {
     let concat_ph = concat_pages_hash(pages_hash);
 

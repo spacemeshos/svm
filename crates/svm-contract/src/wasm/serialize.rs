@@ -1,7 +1,10 @@
 use crate::traits::{ContractDeserializer, ContractSerializer};
 use crate::wasm::Contract;
 
+/// Contract json Serializer
 pub struct WasmContractJsonSerializer;
+
+/// Contract json Deserialize
 pub struct WasmContractJsonDeserializer;
 
 impl ContractSerializer for WasmContractJsonSerializer {

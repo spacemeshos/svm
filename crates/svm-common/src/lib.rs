@@ -1,7 +1,7 @@
 #![deny(missing_docs)]
 #![deny(unused)]
 
-//! `svm-common` crate groups common shared code between the other `svm` crates
+//! `svm-common` crate groups common shared code between the other `SVM` crates
 
 mod address;
 mod balance;

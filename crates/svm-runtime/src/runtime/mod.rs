@@ -1,11 +1,9 @@
+mod default;
 mod error;
 mod receipt;
-mod runtime;
-
 mod rocksdb;
 
-pub use rocksdb::create_rocksdb_runtime;
-
+pub use default::DefaultRuntime;
 pub use error::ContractExecError;
 pub use receipt::Receipt;
-pub use runtime::Runtime;
+pub use rocksdb::create_rocksdb_runtime;

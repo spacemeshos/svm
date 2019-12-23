@@ -63,6 +63,7 @@ pub struct PageSliceLayout {
 }
 
 impl PageSliceLayout {
+    /// New page-slice layout
     pub fn new(page_idx: PageIndex, offset: PageOffset, len: u32) -> Self {
         assert!(offset.0 < PAGE_SIZE);
         assert!(len < PAGE_SIZE);
@@ -74,16 +75,19 @@ impl PageSliceLayout {
         }
     }
 
+    /// Layout's page-index
     #[inline(always)]
     pub fn page_index(&self) -> PageIndex {
         self.page_idx
     }
 
+    /// Layout's page-offset
     #[inline(always)]
     pub fn page_offset(&self) -> PageOffset {
         self.offset
     }
 
+    /// Layout's page-length
     #[inline(always)]
     pub fn len(&self) -> u32 {
         self.len

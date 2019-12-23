@@ -1,4 +1,4 @@
-#![allow(missing_docs)]
+#![deny(missing_docs)]
 #![deny(unused)]
 
 //! The `svm-contract` crate is responsible on storing and retrieving contracts backed by a database.
@@ -6,11 +6,22 @@
 /// Default implementations for `ContractAddressCompute` and `ContractAddressCompute`
 pub mod default;
 
+/// Contract environment
 pub mod env;
+
+/// In-memory Contract environment and store
 pub mod memory;
+
+/// crate traits goes here
 pub mod traits;
+
+/// Transactions for executing a contract
 pub mod transaction;
+
+/// Common crate types
 pub mod types;
+
+/// Wasm contract and other related primitives
 pub mod wasm;
 
 /// `rocksdb` backed implementation for `ContractStore` and `ContractEnv`
@@ -19,6 +30,7 @@ pub mod rocksdb;
 
 mod wire;
 
+/// Exposed errors
 pub mod error {
     pub use crate::wire::deploy::ContractBuildError;
     pub use crate::wire::exec::TransactionBuildError;

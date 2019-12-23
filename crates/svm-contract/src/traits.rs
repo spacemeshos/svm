@@ -33,10 +33,12 @@ where
 /// Computes a contract account address.
 /// Algorithm must be deterministic.
 pub trait ContractAddressCompute {
+    /// Derives the contract address
     fn compute(contract: &Contract) -> Address;
 }
 
 /// Computes code-hash derived deterministically from raw contract.
 pub trait ContractCodeHasher {
+    /// Given code as bytes, derives an Hash
     fn hash(bytes: &[u8]) -> CodeHash;
 }
