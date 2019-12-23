@@ -1,8 +1,6 @@
 use svm_common::{Address, State};
 use svm_contract::{transaction::Transaction, wasm::Contract};
-use svm_runtime::{
-    contract_settings::ContractSettings, register::SvmReg, traits::Runtime, Receipt,
-};
+use svm_runtime::{register::SvmReg, settings::ContractSettings, traits::Runtime, Receipt};
 
 use crate::helpers;
 use crate::RuntimePtr;
