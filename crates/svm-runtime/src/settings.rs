@@ -1,4 +1,4 @@
-/// Holds settings for using the runtime.
+/// Holds settings for using the Runtime.
 #[derive(Debug, Clone)]
 pub struct ContractSettings {
     /// number of pages required by the contract storage
