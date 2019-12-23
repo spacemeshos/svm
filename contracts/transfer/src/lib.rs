@@ -42,15 +42,15 @@ pub extern "C" fn execute(
         // set new balance `new_dst_balance`, to the address under register `256:1`
         set_balance_from_reg(256, 1, new_dst_balance);
 
-        // Copying slice `0` (page `0`, cells: `0..8`) into register `64:0`
-        storage_read_to_reg(0, 0, 0, 8, 64, 0);
+        // Copying page `0`, cells: `0..8` into register `64:0`
+        storage_read_to_reg(0, 0, 8, 64, 0);
 
         // Increment the integer under register `64:0`
         let counter = reg_read_le_i64(64, 0);
         reg_write_le_i64(counter + 1, 64, 0);
 
-        // persisting register `64:0` back to contract storage (slice `0`, page `0`, cells: `0..8`)
-        storage_write_from_reg(64, 0, 8, 0, 0, 0);
+        // persisting register `64:0` back to contract storage (page `0`, cells: `0..8`)
+        storage_write_from_reg(64, 0, 8, 0, 0);
     }
 
     // success
