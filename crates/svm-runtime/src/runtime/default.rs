@@ -3,11 +3,11 @@ use std::ffi::c_void;
 use log::{debug, error, info};
 
 use crate::{
-    contract_settings::ContractSettings,
     ctx::SvmCtx,
     helpers,
     helpers::PtrWrapper,
     runtime::{ContractExecError, Receipt},
+    settings::ContractSettings,
     traits::{Runtime, StorageBuilderFn},
 };
 

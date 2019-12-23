@@ -12,8 +12,8 @@ use svm_storage::{
     ContractStorage,
 };
 
-use crate::contract_settings::ContractSettings;
 use crate::runtime::DefaultRuntime;
+use crate::settings::ContractSettings;
 
 use wasmer_runtime_core::export::Export;
 

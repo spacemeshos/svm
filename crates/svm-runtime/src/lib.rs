@@ -29,4 +29,4 @@ pub mod testing;
 pub mod vmcalls;
 
 /// Options when spawning a new `SVM` runtime instance
-pub mod contract_settings;
+pub mod settings;

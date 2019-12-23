@@ -3,8 +3,8 @@ use std::ffi::c_void;
 use std::rc::Rc;
 
 use crate::{
-    contract_settings::ContractSettings, ctx::SvmCtx, helpers, helpers::PtrWrapper,
-    register::SvmReg, traits::StorageBuilderFn, DefaultRuntime,
+    ctx::SvmCtx, helpers, helpers::PtrWrapper, register::SvmReg, settings::ContractSettings,
+    traits::StorageBuilderFn, DefaultRuntime,
 };
 
 use svm_common::{Address, State};

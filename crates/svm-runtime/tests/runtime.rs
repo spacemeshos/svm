@@ -1,6 +1,6 @@
 use svm_common::State;
 use svm_contract::wasm::WasmArgValue as Value;
-use svm_runtime::{contract_settings::ContractSettings, testing, traits::Runtime};
+use svm_runtime::{settings::ContractSettings, testing, traits::Runtime};
 use svm_storage::page::{PageIndex, PageOffset, PageSliceLayout};
 
 // #[test]

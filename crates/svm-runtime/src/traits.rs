@@ -1,4 +1,4 @@
-use crate::{contract_settings::ContractSettings, Receipt};
+use crate::{settings::ContractSettings, Receipt};
 
 use svm_common::{Address, State};
 use svm_contract::{

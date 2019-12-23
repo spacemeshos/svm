@@ -1,5 +1,4 @@
-use wasmer_runtime_core::error::CompileResult;
-use wasmer_runtime_core::Module;
+use wasmer_runtime_core::{error::CompileResult, Module};
 
 use crate::middleware::ValidationMiddleware;
 use wasmer_runtime_core::codegen::{MiddlewareChain, StreamingCompiler};

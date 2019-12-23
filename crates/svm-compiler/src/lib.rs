@@ -5,7 +5,6 @@
 //! under _Spacemesh_ Golang Full Node and the future Rust Full Node
 
 mod compiler;
-
 mod middleware;
 
 pub use compiler::compile_program;
