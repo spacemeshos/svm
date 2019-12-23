@@ -6,6 +6,7 @@ use crate::{testing, ContractStorage};
 use svm_common::{Address, State};
 use svm_kv::memory::MemKVStore;
 
+/// Initialises a new `ContractStorage` derived its address and #pages and empty state (`00...0`)
 pub fn contract_storage_init(
     addr: u32,
     pages_count: u32,
@@ -17,6 +18,8 @@ pub fn contract_storage_init(
     (addr, kv, storage)
 }
 
+/// Initialises a new `ContractStorage` derived its address, state and #pages.
+/// Storage is backed by an key-value store `kv`
 pub fn contract_storage_open(
     addr: &Address,
     state: &State,

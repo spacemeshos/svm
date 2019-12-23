@@ -6,6 +6,7 @@ use svm_kv::memory::MemKVStore;
 
 use crate::memory::MemContractPages;
 
+/// Initializes a new contract pages backed by a new in-memory key-value store.
 pub fn contract_pages_init(
     addr: u32,
     pages_count: u32,
@@ -18,6 +19,7 @@ pub fn contract_pages_init(
     (addr, kv, pages)
 }
 
+/// Initializes a new contract pages backed by an existing in-memory key-value store.
 pub fn contract_pages_open(
     addr: &Address,
     state: &State,

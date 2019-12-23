@@ -64,6 +64,7 @@ impl<PS: StateAwarePagesStorage> DefaultPageCache<PS> {
         }
     }
 
+    /// Returns whether page indexed `page_idx` is dirty.
     pub fn is_dirty(&self, page_idx: usize) -> bool {
         self.dirty_pages[page_idx]
     }

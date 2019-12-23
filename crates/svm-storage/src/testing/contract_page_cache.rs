@@ -9,6 +9,7 @@ use crate::memory::MemContractPages;
 use crate::default::DefaultPageCache;
 use crate::testing;
 
+/// Initialises a new page-cache backed by a new initialized in-memory pages-storage.
 pub fn contract_page_cache_init(
     addr: u32,
     pages_count: u32,
@@ -24,6 +25,7 @@ pub fn contract_page_cache_init(
     (addr, kv, cache)
 }
 
+/// Initialises a new page-cache backed by an existing in-memory pages-storage.
 pub fn contract_page_cache_open(
     addr: &Address,
     state: &State,
