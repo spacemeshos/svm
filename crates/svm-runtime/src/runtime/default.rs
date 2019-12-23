@@ -1,18 +1,17 @@
 use std::ffi::c_void;
-use std::ops::Deref;
 
 use log::{debug, error, info};
 
+use crate::{
+    contract_settings::ContractSettings,
+    ctx::SvmCtx,
+    helpers,
+    helpers::PtrWrapper,
+    runtime::{ContractExecError, Receipt},
+    traits::{Runtime, StorageBuilderFn},
+};
+
 use svm_common::{Address, State};
-
-use crate::contract_settings::ContractSettings;
-use crate::ctx::SvmCtx;
-use crate::helpers;
-use crate::helpers::PtrWrapper;
-use crate::runtime::{ContractExecError, Receipt};
-use crate::traits::{Runtime, StorageBuilderFn};
-use crate::vmcalls;
-
 use svm_contract::{
     env::{ContractEnv, ContractEnvTypes},
     error::{ContractBuildError, TransactionBuildError},
@@ -20,18 +19,26 @@ use svm_contract::{
     transaction::Transaction,
     wasm::Contract,
 };
-use svm_storage::{ContractPages, ContractStorage};
+use svm_storage::ContractStorage;
 
 use wasmer_runtime_core::{
     export::Export,
-    func,
     import::{ImportObject, Namespace},
 };
 
+/// Default `Runtime` implementation based on `wasmer`.
 pub struct DefaultRuntime<ENV> {
+    /// The runtime environment. Used mainly for managing contracts persistence/retrieval.
     pub env: ENV,
+
+    /// A raw pointer to host (a.k.a the `Full-Node` in the realm of Blockchain).
     pub host: *const c_void,
+
+    /// External imports (living inside the host) to be consumed by the wasm contracts.
     pub imports: Vec<(String, String, Export)>,
+
+    /// Determined by the contract `Address` and `State` (contract state) and contracte storage settings,
+    /// builds a `ContractStorage` instance.
     pub storage_builder: Box<StorageBuilderFn>,
 }
 
@@ -109,6 +116,7 @@ where
     TY: ContractEnvTypes,
     ENV: ContractEnv<Types = TY>,
 {
+    /// Initializes a new `DefaultRuntime` instance.
     pub fn new(
         host: *const c_void,
         env: ENV,
@@ -123,6 +131,9 @@ where
         }
     }
 
+    /// Initialize a new `ContractStorage` and returns it.
+    /// This method is of `pub` visibility since it's also helpful for tests that want to
+    /// observe that contract storage data.
     pub fn open_contract_storage(
         &self,
         addr: &Address,
@@ -141,12 +152,12 @@ where
     ) -> Result<(State, Vec<wasmer_runtime::Value>), ContractExecError> {
         let contract = self.contract_load(tx)?;
         let module = self.contract_compile(&contract, &tx.contract)?;
-        let mut instance = self.instantiate(&contract, &tx.contract, &module, import_object)?;
+        let mut instance = self.instantiate(&tx.contract, &module, import_object)?;
         let args = self.prepare_args_and_memory(tx, &mut instance);
         let func = self.get_exported_func(&instance, &tx.func_name)?;
 
         match func.call(&args) {
-            Err(e) => Err(ContractExecError::ExecFailed),
+            Err(_e) => Err(ContractExecError::ExecFailed),
             Ok(results) => {
                 let storage = self.get_instance_svm_storage_mut(&mut instance);
                 let state = storage.commit();
@@ -157,7 +168,6 @@ where
 
     fn instantiate(
         &self,
-        contract: &Contract,
         addr: &Address,
         module: &wasmer_runtime::Module,
         import_object: &ImportObject,
@@ -167,7 +177,7 @@ where
         let instantiate = module.instantiate(import_object);
 
         match instantiate {
-            Err(e) => Err(ContractExecError::InstantiationFailed(addr.clone())),
+            Err(_e) => Err(ContractExecError::InstantiationFailed(addr.clone())),
             Ok(instance) => Ok(instance),
         }
     }
@@ -180,7 +190,7 @@ where
         let func = instance.dyn_func(func_name);
 
         match func {
-            Err(e) => {
+            Err(_e) => {
                 error!("exported function: `{}` not found", func_name);
 
                 Err(ContractExecError::FuncNotFound(func_name.to_string()))
@@ -309,7 +319,7 @@ where
         let compile = svm_compiler::compile_program(&contract.wasm);
 
         match compile {
-            Err(e) => {
+            Err(_e) => {
                 error!("wasmer module compilation failed (addr={:?})", addr);
                 Err(ContractExecError::CompilationFailed(addr.clone()))
             }

@@ -21,6 +21,7 @@ where
     D: ContractDeserializer,
 {
     #[allow(clippy::new_without_default)]
+    /// Create a new store
     pub fn new() -> Self {
         Self {
             contract_bytes: HashMap::new(),

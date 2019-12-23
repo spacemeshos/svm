@@ -1,9 +1,7 @@
 use std::ffi::c_void;
 
-use crate::contract_settings::ContractSettings;
 use crate::helpers;
 
-use svm_common::{Address, State};
 use svm_storage::ContractStorage;
 
 /// Extracts the `wasmer` instance context `data` field (of type `*mut c_void`) into `&mut ContractStorage`.

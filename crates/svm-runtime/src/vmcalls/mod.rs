@@ -9,6 +9,7 @@ pub use wasmer_runtime_core::{
     import::{IsExport, Namespace},
 };
 
+/// Injects into namespace `ns` the SVM internal vmcalls.
 pub fn insert_vmcalls(ns: &mut Namespace) {
     // `storage` vmcalls
     ns.insert("mem_to_reg_copy", func!(storage::mem_to_reg_copy));

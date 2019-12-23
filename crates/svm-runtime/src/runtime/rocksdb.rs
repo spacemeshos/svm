@@ -15,11 +15,9 @@ use svm_storage::{
 use crate::contract_settings::ContractSettings;
 use crate::runtime::DefaultRuntime;
 
-use wasmer_runtime_core::{
-    export::Export,
-    import::{ImportObject, Namespace},
-};
+use wasmer_runtime_core::export::Export;
 
+/// Creates a new `Runtime` backed by `rocksdb` for persistence.
 pub fn create_rocksdb_runtime(
     host: *const c_void,
     path: &str,

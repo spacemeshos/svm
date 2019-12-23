@@ -78,7 +78,9 @@ impl Into<u8> for &WasmIntType {
     }
 }
 
+/// Wasm function arguments error
 pub enum WasmArgTypeError {
+    /// Unsupported type
     UnsupportedType(u8),
 }
 

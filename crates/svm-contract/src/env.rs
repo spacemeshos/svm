@@ -9,21 +9,28 @@ use crate::wire::{deploy::ContractBuildError, exec::TransactionBuildError};
 
 use svm_common::Address;
 
+/// Aggregates types that are required by `ContractEnv`
 pub trait ContractEnvTypes {
+    /// Serializing a contract
     type Serializer: ContractSerializer;
 
+    /// Deserializing a contract
     type Deserializer: ContractDeserializer;
 
+    /// Storing / Loaing a contract
     type Store: ContractStore<Self::Serializer, Self::Deserializer>;
 
+    /// Deriving the contract address
     type AddressCompute: ContractAddressCompute;
 
+    /// Deriving the Hash of the contract code
     type CodeHasher: ContractCodeHasher;
 }
 
 /// Trait for managing the contract environment.
 /// Relies on associated `ContractEnvTypes`.
 pub trait ContractEnv {
+    /// Contract environment is dictated by its `Types`
     type Types: ContractEnvTypes;
 
     /// Borrows environment's store
