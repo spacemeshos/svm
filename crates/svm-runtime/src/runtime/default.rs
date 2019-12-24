@@ -37,7 +37,7 @@ pub struct DefaultRuntime<ENV> {
     /// External imports (living inside the host) to be consumed by the wasm contracts.
     pub imports: Vec<(String, String, Export)>,
 
-    /// Determined by the contract `Address` and `State` (contract state) and contracte storage settings,
+    /// Determined by the contract `Address` and `State` (contract state) and contract storage settings,
     /// builds a `ContractStorage` instance.
     pub storage_builder: Box<StorageBuilderFn>,
 }

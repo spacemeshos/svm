@@ -137,8 +137,8 @@ pub unsafe extern "C" fn svm_contract_deploy(
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_transaction_build(
-    raw_runtime: *const c_void,
     raw_tx: *mut *mut c_void,
+    raw_runtime: *const c_void,
     raw_bytes: *const c_void,
     raw_bytes_len: u64,
 ) -> wasmer_result_t {
