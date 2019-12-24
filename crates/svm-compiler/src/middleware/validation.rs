@@ -57,11 +57,11 @@ fn parse_wasm_opcode(opcode: &Operator) -> Result<(), ParseError> {
         | Operator::CallIndirect { .. }
         | Operator::Drop
         | Operator::Select
-        | Operator::GetLocal { .. }
-        | Operator::SetLocal { .. }
-        | Operator::TeeLocal { .. }
-        | Operator::GetGlobal { .. }
-        | Operator::SetGlobal { .. }
+        | Operator::LocalGet { .. }
+        | Operator::LocalSet { .. }
+        | Operator::LocalTee { .. }
+        | Operator::GlobalGet { .. }
+        | Operator::GlobalSet { .. }
         | Operator::I32Load { .. }
         | Operator::I64Load { .. }
         | Operator::I32Load8S { .. }
@@ -144,8 +144,7 @@ fn parse_wasm_opcode(opcode: &Operator) -> Result<(), ParseError> {
         | Operator::I64Rotl
         | Operator::I64Rotr
         | Operator::I32WrapI64
-        | Operator::I64ExtendSI32
-        | Operator::I64ExtendUI32
+        | Operator::I64ExtendI32S
         | Operator::I32Extend8S
         | Operator::I32Extend16S
         | Operator::I64Extend8S
