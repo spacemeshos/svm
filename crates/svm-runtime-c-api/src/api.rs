@@ -21,7 +21,7 @@ use wasmer_runtime_c_api::{
 #[no_mangle]
 pub unsafe extern "C" fn svm_runtime_create(
     raw_runtime: *mut *mut c_void,
-    path_bytes: *const u8,
+    path_bytes: *const c_void,
     path_len: libc::c_uint,
     host: *const c_void,
     imports: *mut c_void,

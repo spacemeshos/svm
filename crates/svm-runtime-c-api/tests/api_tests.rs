@@ -5,8 +5,10 @@ extern crate svm_runtime_c_api;
 use svm_runtime_c_api as api;
 use svm_runtime_c_api::testing;
 
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ffi::c_void;
+use std::rc::Rc;
 
 use wasmer_runtime_c_api::{
     export::{wasmer_import_export_kind, wasmer_import_export_value},
@@ -67,7 +69,13 @@ extern "C" fn vmcall_set_balance(
 
 macro_rules! func {
     ($func:ident) => {{
-        &mut $func as *mut _ as _
+        $func as *mut _
+    }};
+}
+
+macro_rules! imports {
+    ($imports:ident) => {{
+        $imports.as_mut_ptr() as *mut _
     }};
 }
 
@@ -106,14 +114,13 @@ unsafe fn unsafe_sanity() {
     let mut runtime = std::ptr::null_mut();
     let (mut imports, imports_len) = create_imports();
 
-    let (path_bytes, path_len) = testing::str_to_bytes("tests");
+    let kv = svm_runtime::testing::memory_kv_store_init();
 
-    let res = api::svm_runtime_create(
+    let res = testing::svm_memory_runtime_create(
         &mut runtime,
-        path_bytes,
-        path_len,
+        &kv as *const Rc<RefCell<_>> as _,
         host.as_mut_ptr(),
-        imports.as_mut_ptr() as _,
+        imports!(imports),
         imports_len,
     );
     // TODO: assert that `res` is `wasmer_result_t::WASMER_OK`
