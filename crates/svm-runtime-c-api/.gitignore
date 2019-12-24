@@ -1,7 +1,7 @@
 tests-contract-code/
 tests-contract-storage/
+
 debug/
 .rustc_info.json
 
-svm.h
 svm.h
