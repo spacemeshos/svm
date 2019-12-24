@@ -42,6 +42,10 @@ impl Host {
     fn set_balance(&mut self, addr: &Address, balance: i64) {
         self.balance.insert(addr.clone(), balance);
     }
+
+    fn as_mut_ptr(&mut self) -> *mut c_void {
+        self as *mut Self as _
+    }
 }
 
 extern "C" fn vmcall_get_balance(
@@ -52,6 +56,21 @@ extern "C" fn vmcall_get_balance(
     0
 }
 
+extern "C" fn vmcall_set_balance(
+    ctx: *mut wasmer_instance_context_t,
+    reg_bits: i32,
+    reg_idx: i32,
+    balance: i64,
+) {
+    //
+}
+
+macro_rules! func {
+    ($func:ident) => {{
+        &mut $func as *mut _ as _
+    }};
+}
+
 #[test]
 fn sanity() {
     unsafe {
@@ -59,32 +78,43 @@ fn sanity() {
     }
 }
 
-unsafe fn unsafe_sanity() {
+unsafe fn create_imports() -> (Vec<wasmer_import_t>, u32) {
     let get_balance_import = testing::wasmer_import_func_create(
         "env",
         "get_balance",
-        &mut vmcall_get_balance as *mut _ as _,
+        func!(vmcall_get_balance),
         vec![Type::I32, Type::I32],
         vec![Type::I64],
     );
 
+    let set_balance_import = testing::wasmer_import_func_create(
+        "env",
+        "set_balance",
+        func!(vmcall_set_balance),
+        vec![Type::I32, Type::I32, Type::I64],
+        vec![],
+    );
+
+    let imports = vec![get_balance_import, set_balance_import];
+    let imports_len = imports.len() as u32;
+
+    (imports, imports_len)
+}
+
+unsafe fn unsafe_sanity() {
     let mut host = Host::new();
-    let host_ptr: *mut c_void = &mut host as *mut Host as _;
+    let mut runtime = std::ptr::null_mut();
+    let (mut imports, imports_len) = create_imports();
 
-    let mut runtime = testing::alloc_ptr();
     let (path_bytes, path_len) = testing::str_to_bytes("tests");
-
-    let imports = std::ptr::null_mut();
-    let imports_len = 0;
 
     let res = api::svm_runtime_create(
         &mut runtime,
         path_bytes,
         path_len,
-        host_ptr,
-        imports,
+        host.as_mut_ptr(),
+        imports.as_mut_ptr() as _,
         imports_len,
     );
-
     // TODO: assert that `res` is `wasmer_result_t::WASMER_OK`
 }
