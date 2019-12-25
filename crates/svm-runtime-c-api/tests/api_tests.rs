@@ -29,6 +29,7 @@ use svm_contract::{
     build::{WireContractBuilder, WireTxBuilder},
     wasm::WasmArgValue,
 };
+use svm_runtime::ctx::SvmCtx;
 
 struct Host {
     balance: HashMap<Address, i64>,
@@ -54,21 +55,44 @@ impl Host {
     }
 }
 
-extern "C" fn vmcall_get_balance(
+unsafe extern "C" fn get_balance(
     ctx: *mut wasmer_instance_context_t,
     reg_bits: i32,
     reg_idx: i32,
 ) -> i64 {
-    0
+    dbg!("11111111111111111111111111111");
+
+    let ctx = helpers::from_raw_mut::<Ctx>(ctx as _);
+
+    let reg = svm_runtime::helpers::wasmer_data_reg(ctx.data, reg_bits, reg_idx);
+    let addr = Address::from(reg.as_ptr());
+
+    let svm_ctx = helpers::from_raw::<SvmCtx>(ctx.data);
+    let host = helpers::from_raw::<Host>(svm_ctx.host);
+
+    host.get_balance(&addr).unwrap_or(0)
 }
 
-extern "C" fn vmcall_set_balance(
+unsafe extern "C" fn set_balance(
     ctx: *mut wasmer_instance_context_t,
+    value: i64,
     reg_bits: i32,
     reg_idx: i32,
-    balance: i64,
 ) {
-    //
+    dbg!("222222222222222222222222222");
+
+    let ctx = helpers::from_raw_mut::<Ctx>(ctx as *mut c_void);
+
+    let reg = svm_runtime::helpers::wasmer_data_reg(ctx.data, reg_bits, reg_idx);
+    let addr = Address::from(reg.as_ptr());
+
+    let svm_ctx = helpers::from_raw::<SvmCtx>(ctx.data);
+    let host = helpers::from_raw_mut::<Host>(svm_ctx.host);
+
+    dbg!(&addr);
+    dbg!(value);
+
+    host.set_balance(&addr, value);
 }
 
 macro_rules! raw_kv {
@@ -103,7 +127,7 @@ unsafe fn create_imports() -> (Vec<wasmer_import_t>, u32) {
     let get_balance_import = testing::wasmer_import_func_create(
         "env",
         "get_balance",
-        raw_func!(vmcall_get_balance),
+        raw_func!(get_balance),
         vec![Type::I32, Type::I32],
         vec![Type::I64],
     );
@@ -111,8 +135,8 @@ unsafe fn create_imports() -> (Vec<wasmer_import_t>, u32) {
     let set_balance_import = testing::wasmer_import_func_create(
         "env",
         "set_balance",
-        raw_func!(vmcall_set_balance),
-        vec![Type::I32, Type::I32, Type::I64],
+        raw_func!(set_balance),
+        vec![Type::I64, Type::I32, Type::I32],
         vec![],
     );
 
@@ -175,8 +199,8 @@ unsafe fn unsafe_sanity() {
     // TODO: assert that `res` is `wasmer_result_t::WASMER_OK`
 
     let author = 0x10_20_30_40;
-    let (bytes, bytes_len) =
-        deploy_contract_bytes("Contract #1", include_str!("wasm/mul_balance.wast"), author);
+    let code = include_str!("wasm/mul_balance.wast");
+    let (bytes, bytes_len) = deploy_contract_bytes("Contract #1", code, author);
     let mut contract = std::ptr::null_mut();
 
     let _res = api::svm_contract_build(&mut contract, runtime, bytes.as_ptr() as _, bytes_len);
@@ -188,9 +212,12 @@ unsafe fn unsafe_sanity() {
 
     let mut tx = std::ptr::null_mut();
     let sender = 0x50_60_70_80;
-    let args = [];
+    let args = [WasmArgValue::I64(2)];
     let state = State::empty();
     let pages_count = 10;
+
+    // initialize `address=0x10_20_30` with balance=100
+    host.set_balance(&Address::from(0x10_20_30), 100);
 
     let (bytes, bytes_len) = transaction_exec_bytes(addr, sender, "run", &args);
     let _res = api::svm_transaction_build(&mut tx, runtime, bytes.as_ptr() as _, bytes_len);
@@ -206,5 +233,7 @@ unsafe fn unsafe_sanity() {
     );
     // TODO: assert that `res` is `wasmer_result_t::WASMER_OK`
 
-    // dbg!(kv.borrow().keys());
+    let v = host.get_balance(&Address::from(0x10_20_30));
+
+    dbg!(v);
 }

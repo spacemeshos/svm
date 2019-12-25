@@ -35,7 +35,7 @@ fn runtime_executing_a_valid_transaction() {
     );
 
     let kv = testing::memory_kv_store_init();
-    let host = std::ptr::null();
+    let host = std::ptr::null_mut();
     let imports = Vec::new();
     let mut runtime = testing::create_memory_runtime(host, &kv, imports);
     let contract = runtime.contract_build(&bytes).unwrap();

@@ -31,7 +31,7 @@ use svm_runtime::{ctx::SvmCtx, helpers::cast_ptr_to_svm_ctx, traits::Runtime};
 pub unsafe extern "C" fn svm_memory_runtime_create(
     raw_runtime: *mut *mut c_void,
     kv: *const c_void,
-    host: *const c_void,
+    host: *mut c_void,
     imports: *mut c_void,
     imports_len: libc::c_uint,
 ) -> wasmer_result_t {

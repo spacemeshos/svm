@@ -23,7 +23,7 @@ pub unsafe extern "C" fn svm_runtime_create(
     raw_runtime: *mut *mut c_void,
     path_bytes: *const c_void,
     path_len: libc::c_uint,
-    host: *const c_void,
+    host: *mut c_void,
     imports: *mut c_void,
     imports_len: libc::c_uint,
 ) -> wasmer_result_t {

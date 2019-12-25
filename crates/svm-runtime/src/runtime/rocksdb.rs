@@ -19,7 +19,7 @@ use wasmer_runtime_core::export::Export;
 
 /// Creates a new `Runtime` backed by `rocksdb` for persistence.
 pub fn create_rocksdb_runtime(
-    host: *const c_void,
+    host: *mut c_void,
     path: &str,
     imports: Vec<(String, String, Export)>,
 ) -> DefaultRuntime<RocksdbContractEnv> {

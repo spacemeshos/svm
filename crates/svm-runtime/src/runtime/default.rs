@@ -32,7 +32,7 @@ pub struct DefaultRuntime<ENV> {
     pub env: ENV,
 
     /// A raw pointer to host (a.k.a the `Full-Node` in the realm of Blockchain).
-    pub host: *const c_void,
+    pub host: *mut c_void,
 
     /// External imports (living inside the host) to be consumed by the wasm contracts.
     pub imports: Vec<(String, String, Export)>,
@@ -118,7 +118,7 @@ where
 {
     /// Initializes a new `DefaultRuntime` instance.
     pub fn new(
-        host: *const c_void,
+        host: *mut c_void,
         env: ENV,
         imports: Vec<(String, String, Export)>,
         storage_builder: Box<StorageBuilderFn>,
@@ -177,7 +177,11 @@ where
         let instantiate = module.instantiate(import_object);
 
         match instantiate {
-            Err(_e) => Err(ContractExecError::InstantiationFailed(addr.clone())),
+            Err(e) => {
+                dbg!(e);
+
+                Err(ContractExecError::InstantiationFailed(addr.clone()))
+            }
             Ok(instance) => Ok(instance),
         }
     }

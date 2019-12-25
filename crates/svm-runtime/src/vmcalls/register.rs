@@ -5,22 +5,23 @@ pub fn reg_replace_byte(
     ctx: &mut wasmer_runtime::Ctx,
     reg_bits: i32,
     reg_idx: i32,
-    byte: i32,
+    value: i32,
     offset: i32,
 ) {
     log::debug!(
-        "replace_byte register=`{}:{}`, byte={}, offset={}",
+        "replace_byte register=`{}:{}`, value={}, offset={}",
         reg_bits,
         reg_idx,
-        byte,
+        value,
         offset
     );
 
-    let byte = byte as u32;
-    assert!(byte <= 0xFF);
+    // asserting that `value` is within the range of `0..256`
+    // (wasm has no `i8` primitive)
+    assert!(value >= 0 && value <= 0xFF);
 
     let reg = helpers::wasmer_data_reg(ctx.data, reg_bits, reg_idx);
-    reg.replace_byte(byte as u8, offset);
+    reg.replace_byte(value as u8, offset);
 }
 
 /// Give register `reg_bits:reg_idx`, reads its first 8 bytes and interpretes them as a 64 bit BigEndian number.
