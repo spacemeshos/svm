@@ -76,7 +76,7 @@ macro_rules! impl_bytes_primitive {
             fn from(n: u32) -> $primitive {
                 let mut buf = [0; $bytes_count];
 
-                let [n3, n2, n1, n0] = $crate::utils::u32_to_be_array(n);
+                let [n3, n2, n1, n0] = $crate::helpers::u32_to_be_array(n);
 
                 buf[$bytes_count - 4] = n3;
                 buf[$bytes_count - 3] = n2;
@@ -102,7 +102,7 @@ macro_rules! impl_bytes_primitive {
             fn from(n: u64) -> $primitive {
                 let mut buf = [0; $bytes_count];
 
-                let [n7, n6, n5, n4, n3, n2, n1, n0] = $crate::utils::u64_to_be_array(n);
+                let [n7, n6, n5, n4, n3, n2, n1, n0] = $crate::helpers::u64_to_be_array(n);
 
                 buf[$bytes_count - 8] = n7;
                 buf[$bytes_count - 7] = n6;

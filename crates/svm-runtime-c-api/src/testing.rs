@@ -44,7 +44,7 @@ pub unsafe extern "C" fn svm_memory_runtime_create(
     let runtime: Box<dyn Runtime> = Box::new(runtime);
 
     let runtime_ptr = RuntimePtr::new(runtime);
-    *raw_runtime = helpers::into_raw_mut(runtime_ptr);
+    *raw_runtime = svm_common::into_raw_mut(runtime_ptr);
 
     debug!("`svm_runtime_create` end");
 

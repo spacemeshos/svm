@@ -1,5 +1,5 @@
+use crate::helpers::{u32_to_le_array, u8_pair_add, u8_triple_add};
 use crate::impl_bytes_primitive;
-use crate::utils::{u32_to_le_array, u8_pair_add, u8_triple_add};
 use std::ops::Add;
 
 impl_bytes_primitive!(Address, 20);

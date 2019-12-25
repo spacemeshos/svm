@@ -60,13 +60,13 @@ unsafe extern "C" fn get_balance(
     reg_bits: i32,
     reg_idx: i32,
 ) -> i64 {
-    let ctx = helpers::from_raw_mut::<Ctx>(ctx as _);
+    let ctx = svm_common::from_raw_mut::<Ctx>(ctx as _);
 
     let reg = svm_runtime::helpers::wasmer_data_reg(ctx.data, reg_bits, reg_idx);
     let addr = Address::from(reg.as_ptr());
 
-    let svm_ctx = helpers::from_raw::<SvmCtx>(ctx.data);
-    let host = helpers::from_raw::<Host>(svm_ctx.host);
+    let svm_ctx = svm_common::from_raw::<SvmCtx>(ctx.data);
+    let host = svm_common::from_raw::<Host>(svm_ctx.host);
 
     host.get_balance(&addr).unwrap_or(0)
 }
@@ -77,13 +77,13 @@ unsafe extern "C" fn set_balance(
     reg_bits: i32,
     reg_idx: i32,
 ) {
-    let ctx = helpers::from_raw_mut::<Ctx>(ctx as *mut c_void);
+    let ctx = svm_common::from_raw_mut::<Ctx>(ctx as *mut c_void);
 
     let reg = svm_runtime::helpers::wasmer_data_reg(ctx.data, reg_bits, reg_idx);
     let addr = Address::from(reg.as_ptr());
 
-    let svm_ctx = helpers::from_raw::<SvmCtx>(ctx.data);
-    let host = helpers::from_raw_mut::<Host>(svm_ctx.host);
+    let svm_ctx = svm_common::from_raw::<SvmCtx>(ctx.data);
+    let host = svm_common::from_raw_mut::<Host>(svm_ctx.host);
 
     host.set_balance(&addr, value);
 }
@@ -148,7 +148,7 @@ fn transaction_exec_bytes(
     func_name: &str,
     func_args: &[WasmArgValue],
 ) -> (Vec<u8>, u64) {
-    let addr: &Address = unsafe { helpers::from_raw::<Address>(addr) };
+    let addr: &Address = unsafe { svm_common::from_raw::<Address>(addr) };
     let sender_addr = Address::from(sender_addr);
 
     let bytes = WireTxBuilder::new()
@@ -224,7 +224,7 @@ unsafe fn do_transaction_exec() {
         &mut receipt,
         runtime,
         tx,
-        helpers::into_raw(state),
+        svm_common::into_raw(state),
         pages_count,
     );
     // TODO: assert that `res` is `wasmer_result_t::WASMER_OK`

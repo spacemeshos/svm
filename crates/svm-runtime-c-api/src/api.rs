@@ -48,7 +48,7 @@ pub unsafe extern "C" fn svm_runtime_create(
     let runtime: Box<dyn Runtime> = Box::new(runtime);
 
     let runtime_ptr = RuntimePtr::new(runtime);
-    *raw_runtime = helpers::into_raw_mut(runtime_ptr);
+    *raw_runtime = svm_common::into_raw_mut(runtime_ptr);
 
     debug!("`svm_runtime_create` end");
 
@@ -82,7 +82,7 @@ pub unsafe extern "C" fn svm_contract_build(
 
     match runtime.contract_build(&bytes) {
         Ok(contract) => {
-            *raw_contract = helpers::into_raw_mut(contract);
+            *raw_contract = svm_common::into_raw_mut(contract);
             debug!("`svm_contract_build returns `SUCCESS`");
             svm_result_t::SUCCESS
         }
@@ -104,10 +104,10 @@ pub unsafe extern "C" fn svm_contract_derive_address(
     debug!("`svm_contract_compute_address`");
 
     let runtime = helpers::cast_to_runtime(raw_runtime);
-    let contract = helpers::from_raw::<Contract>(raw_contract);
+    let contract = svm_common::from_raw::<Contract>(raw_contract);
 
     let addr = runtime.contract_derive_address(contract);
-    helpers::into_raw(addr)
+    svm_common::into_raw(addr)
 }
 
 /// Stores the new deployed contract under a database.
@@ -127,7 +127,7 @@ pub unsafe extern "C" fn svm_contract_deploy(
 ) -> svm_result_t {
     debug!("`svm_contract_store` start");
 
-    let contract = helpers::from_raw::<Contract>(raw_contract);
+    let contract = svm_common::from_raw::<Contract>(raw_contract);
     let addr = Address::from(raw_addr);
 
     let runtime = helpers::cast_to_runtime_mut(raw_runtime);
@@ -154,7 +154,7 @@ pub unsafe extern "C" fn svm_transaction_build(
 
     match runtime.transaction_build(bytes) {
         Ok(tx) => {
-            *raw_tx = helpers::into_raw_mut(tx);
+            *raw_tx = svm_common::into_raw_mut(tx);
             debug!("`svm_transaction_build returns `SUCCESS`");
             svm_result_t::SUCCESS
         }
@@ -180,7 +180,7 @@ pub unsafe extern "C" fn svm_transaction_exec(
 ) -> svm_result_t {
     debug!("`svm_transaction_exec` start");
 
-    let tx = helpers::from_raw::<Transaction>(raw_tx);
+    let tx = svm_common::from_raw::<Transaction>(raw_tx);
     let runtime = helpers::cast_to_runtime_mut(raw_runtime);
     let state = State::from(raw_state);
 
@@ -191,7 +191,7 @@ pub unsafe extern "C" fn svm_transaction_exec(
 
     let receipt = runtime.transaction_exec(&tx, &state, &settings);
 
-    *raw_receipt = helpers::into_raw_mut(receipt);
+    *raw_receipt = svm_common::into_raw_mut(receipt);
 
     debug!("`svm_transaction_exec returns `SUCCESS`");
 
@@ -210,7 +210,7 @@ pub unsafe extern "C" fn svm_receipt_results(
 ) {
     debug!("`svm_receipt_results`");
 
-    let receipt = helpers::from_raw::<Receipt>(raw_receipt);
+    let receipt = svm_common::from_raw::<Receipt>(raw_receipt);
 
     if receipt.success {
         let mut c_results = Vec::with_capacity(*results_len as usize);
@@ -236,7 +236,7 @@ pub unsafe extern "C" fn svm_receipt_results(
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_receipt_error(raw_receipt: *const c_void) {
-    let receipt = helpers::from_raw::<Receipt>(raw_receipt);
+    let receipt = svm_common::from_raw::<Receipt>(raw_receipt);
 
     if let Some(ref _e) = receipt.error {
         // TODO: implement `std::error::Error` for `svm_runtime::runtime::error::ContractExecError`
@@ -248,7 +248,7 @@ pub unsafe extern "C" fn svm_receipt_error(raw_receipt: *const c_void) {
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_receipt_new_state(raw_receipt: *const c_void) -> *const u8 {
-    let receipt = helpers::from_raw::<Receipt>(raw_receipt);
+    let receipt = svm_common::from_raw::<Receipt>(raw_receipt);
 
     if receipt.success {
         let state = receipt.new_state.as_ref().unwrap();

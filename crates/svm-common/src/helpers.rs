@@ -20,6 +20,22 @@ pub fn u32_to_le_array(num: u32) -> [u8; 4] {
     [b3, b2, b1, b0]
 }
 
+/// Converts an unsigned 64-bit integer into a 8-byte array (ordered in Little-Endian)
+#[allow(unused)]
+#[inline(always)]
+pub fn u64_to_le_array(num: u64) -> [u8; 8] {
+    let b0 = ((num >> 56) & 0xFF) as u8;
+    let b1 = ((num >> 48) & 0xFF) as u8;
+    let b2 = ((num >> 40) & 0xFF) as u8;
+    let b3 = ((num >> 32) & 0xFF) as u8;
+    let b4 = ((num >> 24) & 0xFF) as u8;
+    let b5 = ((num >> 16) & 0xFF) as u8;
+    let b6 = ((num >> 8) & 0xFF) as u8;
+    let b7 = (num & 0xFF) as u8;
+
+    [b7, b6, b5, b4, b3, b2, b1, b0]
+}
+
 /// Converts an unsigned 64-bit integer into a 8-byte array (ordered in Big-Endian)
 #[inline(always)]
 pub fn u64_to_be_array(num: u64) -> [u8; 8] {
@@ -31,21 +47,6 @@ pub fn u64_to_be_array(num: u64) -> [u8; 8] {
     let b2 = ((num >> 16) & 0xFF) as u8;
     let b1 = ((num >> 8) & 0xFF) as u8;
     let b0 = (num & 0xFF) as u8;
-
-    [b7, b6, b5, b4, b3, b2, b1, b0]
-}
-
-/// Converts an unsigned 64-bit integer into a 8-byte array (ordered in Little-Endian)
-#[inline(always)]
-pub fn u64_to_le_array(num: u64) -> [u8; 8] {
-    let b0 = ((num >> 56) & 0xFF) as u8;
-    let b1 = ((num >> 48) & 0xFF) as u8;
-    let b2 = ((num >> 40) & 0xFF) as u8;
-    let b3 = ((num >> 32) & 0xFF) as u8;
-    let b4 = ((num >> 24) & 0xFF) as u8;
-    let b5 = ((num >> 16) & 0xFF) as u8;
-    let b6 = ((num >> 8) & 0xFF) as u8;
-    let b7 = (num & 0xFF) as u8;
 
     [b7, b6, b5, b4, b3, b2, b1, b0]
 }
