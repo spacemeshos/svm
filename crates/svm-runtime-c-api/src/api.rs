@@ -12,8 +12,13 @@ use wasmer_runtime_c_api::{
     error::update_last_error,
     import::{wasmer_import_object_extend, wasmer_import_object_t, wasmer_import_t},
     value::wasmer_value_t,
-    wasmer_result_t,
 };
+
+#[repr(C)]
+pub enum svm_result_t {
+    SUCCESS = 0,
+    FAILURE = 1,
+}
 
 /// Creates a new SVM Runtime instance.
 /// Returns it via the `raw_runtime` parameter.
@@ -26,7 +31,7 @@ pub unsafe extern "C" fn svm_runtime_create(
     host: *mut c_void,
     imports: *mut c_void,
     imports_len: libc::c_uint,
-) -> wasmer_result_t {
+) -> svm_result_t {
     debug!("`svm_runtime_create` start");
 
     let slice = std::slice::from_raw_parts(path_bytes as *const u8, path_len as usize);
@@ -34,7 +39,7 @@ pub unsafe extern "C" fn svm_runtime_create(
 
     if let Err(err) = path {
         update_last_error(err);
-        return wasmer_result_t::WASMER_ERROR;
+        return svm_result_t::FAILURE;
     }
 
     let imports = helpers::cast_host_imports(imports, imports_len);
@@ -47,18 +52,18 @@ pub unsafe extern "C" fn svm_runtime_create(
 
     debug!("`svm_runtime_create` end");
 
-    wasmer_result_t::WASMER_OK
+    svm_result_t::SUCCESS
 }
 
 /// Destroys the Runtime and it's associated resources.
 #[must_use]
 #[no_mangle]
-pub unsafe extern "C" fn svm_runtime_destroy(raw_runtime: *mut c_void) -> wasmer_result_t {
+pub unsafe extern "C" fn svm_runtime_destroy(raw_runtime: *mut c_void) -> svm_result_t {
     debug!("`svm_runtime_destroy`");
 
     let _runtime: Box<RuntimePtr> = Box::from_raw(raw_runtime as *mut RuntimePtr);
 
-    wasmer_result_t::WASMER_OK
+    svm_result_t::SUCCESS
 }
 
 /// Builds an in-memory contract instance.
@@ -69,7 +74,7 @@ pub unsafe extern "C" fn svm_contract_build(
     raw_runtime: *mut c_void,
     raw_bytes: *const c_void,
     raw_bytes_len: u64,
-) -> wasmer_result_t {
+) -> svm_result_t {
     debug!("`svm_contract_build start`");
 
     let bytes = std::slice::from_raw_parts(raw_bytes as *const u8, raw_bytes_len as usize);
@@ -78,13 +83,13 @@ pub unsafe extern "C" fn svm_contract_build(
     match runtime.contract_build(&bytes) {
         Ok(contract) => {
             *raw_contract = helpers::into_raw_mut(contract);
-            debug!("`svm_contract_build returns `WASMER_OK`");
-            wasmer_result_t::WASMER_OK
+            debug!("`svm_contract_build returns `SUCCESS`");
+            svm_result_t::SUCCESS
         }
         Err(err) => {
             update_last_error(err);
-            error!("`svm_contract_build returns `WASMER_ERROR`");
-            wasmer_result_t::WASMER_ERROR
+            error!("`svm_contract_build returns `FAILURE`");
+            svm_result_t::FAILURE
         }
     }
 }
@@ -119,7 +124,7 @@ pub unsafe extern "C" fn svm_contract_deploy(
     raw_runtime: *mut c_void,
     raw_contract: *const c_void,
     raw_addr: *const c_void,
-) -> wasmer_result_t {
+) -> svm_result_t {
     debug!("`svm_contract_store` start");
 
     let contract = helpers::from_raw::<Contract>(raw_contract);
@@ -128,9 +133,9 @@ pub unsafe extern "C" fn svm_contract_deploy(
     let runtime = helpers::cast_to_runtime_mut(raw_runtime);
     runtime.contract_deploy(contract, &addr);
 
-    debug!("`svm_contract_build returns `WASMER_OK`");
+    debug!("`svm_contract_build returns `SUCCESS`");
 
-    wasmer_result_t::WASMER_OK
+    svm_result_t::SUCCESS
 }
 
 /// Builds an in-memory Contract Transaction instance.
@@ -141,7 +146,7 @@ pub unsafe extern "C" fn svm_transaction_build(
     raw_runtime: *const c_void,
     raw_bytes: *const c_void,
     raw_bytes_len: u64,
-) -> wasmer_result_t {
+) -> svm_result_t {
     debug!("`svm_transaction_build` start");
 
     let bytes = std::slice::from_raw_parts(raw_bytes as *const u8, raw_bytes_len as usize);
@@ -150,13 +155,13 @@ pub unsafe extern "C" fn svm_transaction_build(
     match runtime.transaction_build(bytes) {
         Ok(tx) => {
             *raw_tx = helpers::into_raw_mut(tx);
-            debug!("`svm_transaction_build returns `WASMER_OK`");
-            wasmer_result_t::WASMER_OK
+            debug!("`svm_transaction_build returns `SUCCESS`");
+            svm_result_t::SUCCESS
         }
         Err(error) => {
             update_last_error(error);
-            error!("`svm_transaction_build returns `WASMER_ERROR`");
-            wasmer_result_t::WASMER_ERROR
+            error!("`svm_transaction_build returns `FAILURE`");
+            svm_result_t::FAILURE
         }
     }
 }
@@ -172,7 +177,7 @@ pub unsafe extern "C" fn svm_transaction_exec(
     raw_tx: *const c_void,
     raw_state: *const c_void,
     raw_pages_count: libc::c_int,
-) -> wasmer_result_t {
+) -> svm_result_t {
     debug!("`svm_transaction_exec` start");
 
     let tx = helpers::from_raw::<Transaction>(raw_tx);
@@ -188,9 +193,9 @@ pub unsafe extern "C" fn svm_transaction_exec(
 
     *raw_receipt = helpers::into_raw_mut(receipt);
 
-    debug!("`svm_transaction_exec returns `WASMER_OK`");
+    debug!("`svm_transaction_exec returns `SUCCESS`");
 
-    wasmer_result_t::WASMER_OK
+    svm_result_t::SUCCESS
 }
 
 /// Returns the transaction execution results (wasm array).
