@@ -5,10 +5,6 @@
 #include <string.h>
 #include <assert.h>
 
-// Credits:
-// wasmer related code has been copied and modified from:
-// https://sourcegraph.com/github.com/wasmerio/wasmer/-/blob/lib/runtime-c-api/tests/test-imports.c
-
 typedef struct {
     uint32_t counter;
 } host_t;
@@ -176,24 +172,24 @@ uint32_t host_get_counter(wasmer_instance_context_t *ctx) {
     return host->counter;
 }
 
-wasmer_result_t do_contract_deploy(uint8_t **addr, uint8_t* bytes, uint64_t bytes_len) {
+svm_result_t do_contract_deploy(uint8_t **addr, uint8_t* bytes, uint64_t bytes_len) {
     void *contract;
 
-    wasmer_result_t res = svm_contract_build(&contract, (void*)bytes, bytes_len);
-    if (res != WASMER_OK) {
+    svm_result_t res = svm_contract_build(&contract, (void*)bytes, bytes_len);
+    if (res != SVM_SUCCESS) {
         return res;
     }
 
-    uint8_t* buf = (uint8_t*)svm_contract_derive_address(contract);
+    uint8_t* addr_ptr = (uint8_t*)svm_contract_derive_address(contract);
 
-    wasmer_result_t res = svm_contract_deploy(contract, (void*)buf);
-    if (res != WASMER_OK) {
+    svm_result_t res = svm_contract_deploy(contract, (void*)addr_ptr);
+    if (res != SVM_SUCCESS) {
         return res;
     }
 
-    *addr = buf;
+    *addr = addr_ptr;
 
-    return WASMER_OK;
+    return SVM_SUCCESS;
 }
 
 wasmer_import_t create_import(const char *module_name, const char *import_name, wasmer_import_func_t *func) {
@@ -241,8 +237,8 @@ int main() {
     uint64_t bytes_len = deploy_contract_bytes(&deploy_bytes, author);
 
     uint8_t *addr;
-    wasmer_result_t res = do_contract_deploy(&addr, bytes, bytes_len);
-    assert(res == WASMER_OK);
+    svm_result_t res = do_contract_deploy(&addr, bytes, bytes_len);
+    assert(res == SVM_SUCCESS);
 
     printf("Deployed contract successfully...\n");
     printf("Contract account address:\n");
@@ -278,12 +274,12 @@ int main() {
         0);   // `args_buf_len = 0`
 
     void *tx1;
-    wasmer_result_t res = svm_transaction_build(&tx1, (void*)bytes, bytes_len);
-    assert(res == WASMER_OK);
+    svm_result_t res = svm_transaction_build(&tx1, (void*)bytes, bytes_len);
+    assert(res == SVM_SUCCESS);
 
     void *receipt1;
-    wasmer_result_t res = svm_transaction_exec(&receipt1, tx1);
-    assert(res == WASMER_OK);
+    svm_result_t res = svm_transaction_exec(&receipt1, tx1);
+    assert(res == SVM_SUCCESS);
     assert(svm_receipt_status(receipt1) == true);
 
     const uint8_t *new_state = svm_receipt_new_state(receipt1);
@@ -293,12 +289,12 @@ int main() {
         printf("%02X ", new_state[i]);
     }
 
-    wasmer_value_t *results1;
+    svm_wasm_value_t *results1;
     uint32_t results1_len;
     svm_receipt_results(receipt1, &results1, &results1_len);
 
     assert(results1_len == 1);
-    wasmer_value_t result = results1[0];
+    svm_wasm_value_t result = results1[0];
     assert(result.value.I32 == 9);
 
     uint8_t *arg_buf = create_wire_int32_arg(7);
@@ -316,15 +312,15 @@ int main() {
         5);      // `args_buf_len = 5`
 
     void *tx2;
-    wasmer_result_t res = svm_transaction_build(&tx2, (void*)bytes, bytes_len);
-    assert(res == WASMER_OK);
+    svm_result_t res = svm_transaction_build(&tx2, (void*)bytes, bytes_len);
+    assert(res == SVM_SUCCESS);
 
     void *receipt2;
-    wasmer_result_t res = svm_transaction_exec(&receipt2, tx2);
-    assert(res == WASMER_OK);
+    svm_result_t res = svm_transaction_exec(&receipt2, tx2);
+    assert(res == SVM_SUCCESS);
     assert(svm_receipt_status(receipt2) == true);
 
-    wasmer_value_t *results2;
+    svm_wasm_value_t *results2;
     uint32_t results2_len;
     svm_receipt_results(receipt2, &results2, &results2_len);
     assert(results2_len == 0);
@@ -342,20 +338,20 @@ int main() {
         0);   // `args_buf_len = 0`
 
     void *tx3;
-    wasmer_result_t res = svm_transaction_build(&tx3, (void*)bytes, bytes_len);
-    assert(res == WASMER_OK);
+    svm_result_t res = svm_transaction_build(&tx3, (void*)bytes, bytes_len);
+    assert(res == SVM_SUCCESS);
 
     void *receipt3;
-    wasmer_result_t res = svm_transaction_exec(&receipt3, tx3);
-    assert(res == WASMER_OK);
+    svm_result_t res = svm_transaction_exec(&receipt3, tx3);
+    assert(res == SVM_SUCCESS);
     assert(svm_receipt_status(receipt3) == true);
 
-    wasmer_value_t *results3;
+    svm_wasm_value_t *results3;
     uint32_t results3_len;
     svm_receipt_results(receipt3, &results3, &results3_len);
     assert(results3_len == 1);
 
-    wasmer_value_t result3 = results3[0];
+    svm_wasm_value_t result3 = results3[0];
     for (int i = 0; i < 10; i++) {
         printf("%d  ", result3.value.I32);
     }
@@ -363,8 +359,6 @@ int main() {
     assert(result3.value.I32 == 16);
 
     /* // TODO: clearing resources */
-    /* wasmer_module_destroy(module); */
-    /* wasmer_instance_destroy(instance); */
     /* free(wasm_file.bytes); */
     /* free(args_buf); */
 
