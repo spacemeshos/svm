@@ -154,7 +154,7 @@ where
         let module = self.contract_compile(&contract, &tx.contract)?;
         let mut instance = self.instantiate(&tx.contract, &module, import_object)?;
         let args = self.prepare_args_and_memory(tx, &mut instance);
-        let func = self.get_exported_func(&instance, "run")?;
+        let func = self.get_exported_func(&instance, &tx.func_name)?;
 
         match func.call(&args) {
             Err(_e) => Err(ContractExecError::ExecFailed),
