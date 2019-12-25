@@ -1,15 +1,13 @@
+use log::{debug, error, trace};
+use std::ffi::c_void;
+
 use svm_common::{Address, State};
 use svm_contract::{transaction::Transaction, wasm::Contract};
 use svm_runtime::{register::SvmReg, settings::ContractSettings, traits::Runtime, Receipt};
 
-use crate::helpers;
-use crate::RuntimePtr;
-
-use log::{debug, error, trace};
-use std::ffi::c_void;
+use crate::{helpers, RuntimePtr};
 
 use wasmer_runtime::{Ctx, ImportObject};
-
 use wasmer_runtime_c_api::{
     error::update_last_error,
     import::{wasmer_import_object_extend, wasmer_import_object_t, wasmer_import_t},
@@ -17,17 +15,19 @@ use wasmer_runtime_c_api::{
     wasmer_result_t,
 };
 
+/// Creates a new SVM Runtime instance.
+/// Returns it via the `raw_runtime` parameter.
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_runtime_create(
     raw_runtime: *mut *mut c_void,
     path_bytes: *const c_void,
     path_len: libc::c_uint,
-    host: *const c_void,
+    host: *mut c_void,
     imports: *mut c_void,
     imports_len: libc::c_uint,
 ) -> wasmer_result_t {
-    debug!("`svm_runtime_create`");
+    debug!("`svm_runtime_create` start");
 
     let slice = std::slice::from_raw_parts(path_bytes as *const u8, path_len as usize);
     let path = String::from_utf8(slice.to_vec());
@@ -42,30 +42,31 @@ pub unsafe extern "C" fn svm_runtime_create(
 
     let runtime: Box<dyn Runtime> = Box::new(runtime);
 
-    let runtime_ptr: RuntimePtr = RuntimePtr::new(runtime);
+    let runtime_ptr = RuntimePtr::new(runtime);
     *raw_runtime = helpers::into_raw_mut(runtime_ptr);
+
+    debug!("`svm_runtime_create` end");
 
     wasmer_result_t::WASMER_OK
 }
 
+/// Destroys the Runtime and it's associated resources.
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_runtime_destroy(raw_runtime: *mut c_void) -> wasmer_result_t {
-    debug!("`svm_runtime_create`");
+    debug!("`svm_runtime_destroy`");
 
-    let runtime: Box<RuntimePtr> = Box::from_raw(raw_runtime as *mut RuntimePtr);
-    std::mem::drop(runtime);
+    let _runtime: Box<RuntimePtr> = Box::from_raw(raw_runtime as *mut RuntimePtr);
 
     wasmer_result_t::WASMER_OK
 }
 
-/// Builds an instance of `svm_contract_t`.
-/// Should be called while the transaction is in the `mempool` of the full-node (prior mining it).
+/// Builds an in-memory contract instance.
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_contract_build(
-    raw_runtime: *mut c_void,
     raw_contract: *mut *mut c_void,
+    raw_runtime: *mut c_void,
     raw_bytes: *const c_void,
     raw_bytes_len: u64,
 ) -> wasmer_result_t {
@@ -73,9 +74,8 @@ pub unsafe extern "C" fn svm_contract_build(
 
     let bytes = std::slice::from_raw_parts(raw_bytes as *const u8, raw_bytes_len as usize);
     let runtime = helpers::cast_to_runtime(raw_runtime);
-    let result = runtime.contract_build(&bytes);
 
-    match result {
+    match runtime.contract_build(&bytes) {
         Ok(contract) => {
             *raw_contract = helpers::into_raw_mut(contract);
             debug!("`svm_contract_build returns `WASMER_OK`");
@@ -106,7 +106,7 @@ pub unsafe extern "C" fn svm_contract_derive_address(
 }
 
 /// Stores the new deployed contract under a database.
-/// Future transaction will reference the contract by it's account address.
+/// Future transaction will reference the contract by its account address.
 /// (see `svm_transaction_exec`)
 ///
 /// This function should be called after performing validation.
@@ -133,30 +133,29 @@ pub unsafe extern "C" fn svm_contract_deploy(
     wasmer_result_t::WASMER_OK
 }
 
-/// Builds an instance of `svm_transaction_t`.
-/// Should be called while the transaction is in the `mempool` of the full-node (prior mining it).
+/// Builds an in-memory Contract Transaction instance.
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_transaction_build(
-    raw_runtime: *const c_void,
     raw_tx: *mut *mut c_void,
+    raw_runtime: *const c_void,
     raw_bytes: *const c_void,
     raw_bytes_len: u64,
 ) -> wasmer_result_t {
-    let bytes: &[u8] = std::slice::from_raw_parts(raw_bytes as *const u8, raw_bytes_len as usize);
+    debug!("`svm_transaction_build` start");
 
+    let bytes = std::slice::from_raw_parts(raw_bytes as *const u8, raw_bytes_len as usize);
     let runtime = helpers::cast_to_runtime(raw_runtime);
-    let result = runtime.transaction_build(bytes);
 
-    match result {
+    match runtime.transaction_build(bytes) {
         Ok(tx) => {
             *raw_tx = helpers::into_raw_mut(tx);
-            debug!("`svm_contract_build returns `WASMER_OK`");
+            debug!("`svm_transaction_build returns `WASMER_OK`");
             wasmer_result_t::WASMER_OK
         }
         Err(error) => {
             update_last_error(error);
-            error!("`svm_contract_build returns `WASMER_ERROR`");
+            error!("`svm_transaction_build returns `WASMER_ERROR`");
             wasmer_result_t::WASMER_ERROR
         }
     }
@@ -164,8 +163,7 @@ pub unsafe extern "C" fn svm_transaction_build(
 
 /// Triggers a transaction execution of an already deployed contract.
 ///
-/// `receipt` - The receipt of the contract execution.
-/// `tx`      - The transaction to execute.
+/// Returns the receipt of the contract execution via the `raw_receipt` parameter.
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_transaction_exec(
@@ -190,7 +188,7 @@ pub unsafe extern "C" fn svm_transaction_exec(
 
     *raw_receipt = helpers::into_raw_mut(receipt);
 
-    debug!("`svm_contract_build returns `WASMER_OK`");
+    debug!("`svm_transaction_exec returns `WASMER_OK`");
 
     wasmer_result_t::WASMER_OK
 }
@@ -201,8 +199,8 @@ pub unsafe extern "C" fn svm_transaction_exec(
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_receipt_results(
-    raw_receipt: *const c_void,
     results: *mut *mut wasmer_value_t,
+    raw_receipt: *const c_void,
     results_len: *mut u32,
 ) {
     debug!("`svm_receipt_results`");

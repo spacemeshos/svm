@@ -1,13 +1,14 @@
-use crate::*;
+use crate::alloc_regs;
 
-use crate::register::{SvmReg, SvmReg160, SvmReg32, SvmReg512, SvmReg64};
+use log::debug;
 use std::ffi::c_void;
 
 use svm_storage::ContractStorage;
 
-use crate::helpers::PtrWrapper;
-
-use log::debug;
+use crate::{
+    helpers::PtrWrapper,
+    register::{SvmReg, SvmReg160, SvmReg32, SvmReg512, SvmReg64},
+};
 
 /// The number of allocated `SvmReg32` registers for each `SvmCtx`
 pub const REGS_32_COUNT: usize = 16;
@@ -34,9 +35,10 @@ pub const REGS_512_COUNT: usize = 4;
 /// * `storage`  - An instance of `ContractStorage`
 #[repr(C)]
 pub struct SvmCtx {
-    /// A pointer to the `host`. For example the pointer will point a to struct having an access
-    /// to the `Global State` of each account, in order to query an account for its own balance.
-    pub host: *const c_void,
+    /// A pointer to the `host`.
+    ///
+    /// For example, `host` will point a to struct having an access to the balance of each account.
+    pub host: *mut c_void,
 
     /// An array that holds the `SvmReg32` registers
     pub regs_32: [SvmReg; REGS_32_COUNT],

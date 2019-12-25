@@ -1,6 +1,7 @@
 tests-contract-code/
 tests-contract-storage/
+
 debug/
 .rustc_info.json
 
-examples/svm_wasmer.h
+svm.h

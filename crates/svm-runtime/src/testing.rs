@@ -91,7 +91,7 @@ pub fn memory_kv_store_init() -> Rc<RefCell<MemKVStore>> {
 
 /// Creates an in-memory `Runtime` backed by key-value, raw pointer to host and host vmcalls (`imports`)
 pub fn create_memory_runtime(
-    host: *const c_void,
+    host: *mut c_void,
     kv: &Rc<RefCell<MemKVStore>>,
     imports: Vec<(String, String, Export)>,
 ) -> DefaultRuntime<MemoryEnv> {

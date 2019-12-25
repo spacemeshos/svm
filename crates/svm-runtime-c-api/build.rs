@@ -29,14 +29,13 @@ fn gen_for_c() {
         .expect("Unable to generate C bindings")
         .write_to_file(out_header.as_path());
 
-    // set example dir for header to copy into
+    // `examples`
     let out_path = PathBuf::from("./examples");
-    let mut crate_header = PathBuf::from(&out_path);
-    crate_header.push(header_name);
+    let mut examples_header = PathBuf::from(&out_path);
+    examples_header.push(header_name);
+    examples_header.set_extension("h");
 
-    // copy the file from output to example
-    crate_header.set_extension("h");
-    out_header.set_extension("h");
-    fs::copy(out_header.as_path(), crate_header.as_path())
+    // copy the file from output to `examples`
+    fs::copy(out_header.as_path(), examples_header.as_path())
         .expect("Unable to copy the generated C bindings");
 }

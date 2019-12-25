@@ -7,7 +7,7 @@ use svm_storage::page::{PageIndex, PageOffset, PageSliceLayout};
 fn prepare_test_args() -> (u32, u32, PtrWrapper, u32) {
     let addr = 0x12_34_56_78;
     let state = 0x_00_00_00_00;
-    let host = PtrWrapper::new(std::ptr::null());
+    let host = PtrWrapper::new(std::ptr::null_mut());
     let pages_count = 5;
 
     (addr, state, host, pages_count)

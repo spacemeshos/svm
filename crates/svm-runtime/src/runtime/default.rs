@@ -32,12 +32,12 @@ pub struct DefaultRuntime<ENV> {
     pub env: ENV,
 
     /// A raw pointer to host (a.k.a the `Full-Node` in the realm of Blockchain).
-    pub host: *const c_void,
+    pub host: *mut c_void,
 
     /// External imports (living inside the host) to be consumed by the wasm contracts.
     pub imports: Vec<(String, String, Export)>,
 
-    /// Determined by the contract `Address` and `State` (contract state) and contracte storage settings,
+    /// Determined by the contract `Address` and `State` (contract state) and contract storage settings,
     /// builds a `ContractStorage` instance.
     pub storage_builder: Box<StorageBuilderFn>,
 }
@@ -118,7 +118,7 @@ where
 {
     /// Initializes a new `DefaultRuntime` instance.
     pub fn new(
-        host: *const c_void,
+        host: *mut c_void,
         env: ENV,
         imports: Vec<(String, String, Export)>,
         storage_builder: Box<StorageBuilderFn>,
@@ -154,7 +154,7 @@ where
         let module = self.contract_compile(&contract, &tx.contract)?;
         let mut instance = self.instantiate(&tx.contract, &module, import_object)?;
         let args = self.prepare_args_and_memory(tx, &mut instance);
-        let func = self.get_exported_func(&instance, &tx.func_name)?;
+        let func = self.get_exported_func(&instance, "run")?;
 
         match func.call(&args) {
             Err(_e) => Err(ContractExecError::ExecFailed),
