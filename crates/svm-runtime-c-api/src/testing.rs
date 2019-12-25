@@ -22,7 +22,7 @@ use wasmer_runtime_core::{
     vm::{Ctx, Func},
 };
 
-use svm_runtime::{ctx::SvmCtx, helpers::cast_ptr_to_svm_ctx, traits::Runtime};
+use svm_runtime::{ctx::SvmCtx, traits::Runtime};
 
 /// Creates a new SVM in-memory Runtime instance.
 /// Returns it via the `raw_runtime` parameter.
@@ -63,7 +63,7 @@ pub unsafe fn svm_register_get(
 
 pub unsafe fn svm_host_get<'a, T>(raw_ctx: *mut wasmer_instance_context_t) -> &'a mut T {
     let ctx = cast_to_wasmer_ctx(raw_ctx);
-    let svm_ctx = cast_ptr_to_svm_ctx(ctx.data);
+    let svm_ctx = svm_common::from_raw_mut::<SvmCtx>(ctx.data);
 
     &mut *(svm_ctx.host as *mut T)
 }
