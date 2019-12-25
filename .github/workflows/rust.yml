@@ -11,31 +11,31 @@ on:
     - develop
 
 jobs:
-  Lint:
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: False
-    steps:
-    - name: Download commit
-      uses: actions/checkout@v1
-      with:
-        fetch-depth: 1
-    - name: Cache cargo
-      id: cache-cargo
-      uses: actions/cache@v1
-      with:
-        path: ~/.cargo/
-        key: ${{ runner.os }}-lint-cargo
-    - name: Install latest nightly
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: nightly
-    - name: Lint
-      uses: actions-rs/cargo@v1
-      with:
-        toolchain: nightly
-        command: fmt
-        args: --all -- --check
+  # Lint:
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     fail-fast: False
+  #   steps:
+  #   - name: Download commit
+  #     uses: actions/checkout@v1
+  #     with:
+  #       fetch-depth: 1
+  #   - name: Cache cargo
+  #     id: cache-cargo
+  #     uses: actions/cache@v1
+  #     with:
+  #       path: ~/.cargo/
+  #       key: ${{ runner.os }}-lint-cargo
+  #   - name: Install latest nightly
+  #     uses: actions-rs/toolchain@v1
+  #     with:
+  #       toolchain: nightly
+  #   - name: Lint
+  #     uses: actions-rs/cargo@v1
+  #     with:
+  #       toolchain: nightly
+  #       command: fmt
+  #       args: --all -- --check
   Build:
     runs-on: ${{ matrix.os }}
     strategy:
