@@ -3,7 +3,7 @@
 extern crate svm_runtime_c_api;
 
 use svm_runtime_c_api as api;
-use svm_runtime_c_api::{helpers, testing};
+use svm_runtime_c_api::{helpers, svm_result_t, testing};
 
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -186,48 +186,47 @@ unsafe fn do_transaction_exec() {
     let (mut imports, imports_len) = create_imports();
 
     let kv = svm_runtime::testing::memory_kv_store_init();
-
-    let _res = testing::svm_memory_runtime_create(
+    let res = testing::svm_memory_runtime_create(
         &mut runtime,
         raw_kv!(kv),
         host.as_mut_ptr(),
         raw_imports!(imports),
         imports_len,
     );
-    // TODO: assert that `res` is `wasmer_result_t::WASMER_OK`
+    assert_eq!(true, res.as_bool());
 
     let author = 0x10_20_30_40;
     let code = include_str!("wasm/mul_balance.wast");
     let (bytes, bytes_len) = deploy_contract_bytes("Contract #1", code, author);
     let mut contract = std::ptr::null_mut();
 
-    let _res = api::svm_contract_build(&mut contract, runtime, bytes.as_ptr() as _, bytes_len);
-    // TODO: assert that `res` is `wasmer_result_t::WASMER_OK`
+    let res = api::svm_contract_build(&mut contract, runtime, bytes.as_ptr() as _, bytes_len);
+    assert_eq!(true, res.as_bool());
 
     let addr = api::svm_contract_derive_address(runtime, contract);
-    let _res = api::svm_contract_deploy(runtime, contract, addr);
-    // TODO: assert that `res` is `wasmer_result_t::WASMER_OK`
+    let res = api::svm_contract_deploy(runtime, contract, addr);
+    assert_eq!(true, res.as_bool());
 
     let (sender, mul_by, args, state, pages_count) = transaction_exec_args();
     let (bytes, bytes_len) = transaction_exec_bytes(addr, sender, "run", &args);
 
     let mut tx = std::ptr::null_mut();
-    let _res = api::svm_transaction_build(&mut tx, runtime, bytes.as_ptr() as _, bytes_len);
-    // TODO: assert that `res` is `wasmer_result_t::WASMER_OK`
+    let res = api::svm_transaction_build(&mut tx, runtime, bytes.as_ptr() as _, bytes_len);
+    assert_eq!(true, res.as_bool());
 
     // initialize `address=0x10_20_30` with balance=100
     host.set_balance(&Address::from(0x10_20_30), 100);
     assert_eq!(100, host.get_balance(&Address::from(0x10_20_30)).unwrap());
 
     let mut receipt = std::ptr::null_mut();
-    let _res = api::svm_transaction_exec(
+    let res = api::svm_transaction_exec(
         &mut receipt,
         runtime,
         tx,
         svm_common::into_raw(state),
         pages_count,
     );
-    // TODO: assert that `res` is `wasmer_result_t::WASMER_OK`
+    assert_eq!(true, res.as_bool());
 
     assert_eq!(
         100 * mul_by as i64,

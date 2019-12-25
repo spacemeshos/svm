@@ -3,7 +3,7 @@ use std::ffi::c_void;
 use std::rc::Rc;
 use std::sync::Arc;
 
-use crate::{api::svm_result_t, helpers, RuntimePtr};
+use crate::{helpers, svm_result_t, RuntimePtr};
 use log::debug;
 
 use svm_kv::memory::MemKVStore;

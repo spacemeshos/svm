@@ -5,7 +5,7 @@ use svm_common::{Address, State};
 use svm_contract::{transaction::Transaction, wasm::Contract};
 use svm_runtime::{register::SvmReg, settings::ContractSettings, traits::Runtime, Receipt};
 
-use crate::{helpers, RuntimePtr};
+use crate::{helpers, svm_result_t, RuntimePtr};
 
 use wasmer_runtime::{Ctx, ImportObject};
 use wasmer_runtime_c_api::{
@@ -13,12 +13,6 @@ use wasmer_runtime_c_api::{
     import::{wasmer_import_object_extend, wasmer_import_object_t, wasmer_import_t},
     value::wasmer_value_t,
 };
-
-#[repr(C)]
-pub enum svm_result_t {
-    SUCCESS = 0,
-    FAILURE = 1,
-}
 
 /// Creates a new SVM Runtime instance.
 /// Returns it via the `raw_runtime` parameter.
