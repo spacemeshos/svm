@@ -3,7 +3,7 @@ use cbindgen::{Builder, Language};
 use std::{env, fs, path::PathBuf};
 
 fn main() {
-    // gen_for_c();
+    gen_for_c();
 }
 fn gen_for_c() {
     let crate_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
@@ -35,17 +35,7 @@ fn gen_for_c() {
     examples_header.push(header_name);
     examples_header.set_extension("h");
 
-    // `tests`
-    let tests_path = PathBuf::from("tests");
-    let mut tests_header = PathBuf::from(&tests_path);
-    tests_header.push(header_name);
-    tests_header.set_extension("h");
-
     // copy the file from output to `examples`
     fs::copy(out_header.as_path(), examples_header.as_path())
-        .expect("Unable to copy the generated C bindings");
-
-    // copy the file from output to `tests`
-    fs::copy(out_header.as_path(), tests_header.as_path())
         .expect("Unable to copy the generated C bindings");
 }

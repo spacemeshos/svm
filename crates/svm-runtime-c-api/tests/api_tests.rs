@@ -60,8 +60,6 @@ unsafe extern "C" fn get_balance(
     reg_bits: i32,
     reg_idx: i32,
 ) -> i64 {
-    dbg!("11111111111111111111111111111");
-
     let ctx = helpers::from_raw_mut::<Ctx>(ctx as _);
 
     let reg = svm_runtime::helpers::wasmer_data_reg(ctx.data, reg_bits, reg_idx);
@@ -79,8 +77,6 @@ unsafe extern "C" fn set_balance(
     reg_bits: i32,
     reg_idx: i32,
 ) {
-    dbg!("222222222222222222222222222");
-
     let ctx = helpers::from_raw_mut::<Ctx>(ctx as *mut c_void);
 
     let reg = svm_runtime::helpers::wasmer_data_reg(ctx.data, reg_bits, reg_idx);
@@ -89,16 +85,7 @@ unsafe extern "C" fn set_balance(
     let svm_ctx = helpers::from_raw::<SvmCtx>(ctx.data);
     let host = helpers::from_raw_mut::<Host>(svm_ctx.host);
 
-    dbg!(&addr);
-    dbg!(value);
-
     host.set_balance(&addr, value);
-}
-
-#[no_mangle]
-unsafe extern "C" fn print_something(ctx: &mut Ctx) {
-    dbg!("print_something");
-    dbg!("print_something");
 }
 
 macro_rules! raw_kv {
@@ -110,61 +97,31 @@ macro_rules! raw_kv {
     }};
 }
 
-macro_rules! raw_func {
-    ($func:ident) => {{
-        $func as *mut _
-    }};
-}
-
 macro_rules! raw_imports {
     ($imports:ident) => {{
         $imports.as_mut_ptr() as *mut _
     }};
 }
 
-#[test]
-fn sanity() {
-    unsafe {
-        unsafe_sanity();
-    }
-}
-
 unsafe fn create_imports() -> (Vec<wasmer_import_t>, u32) {
-    // let func_inner = print_something;
-    // let func = Func(func_inner as _);
-    // let func = &func as *const Func;
-
-    let print_something_import = testing::wasmer_import_func_create(
+    let get_balance_import = testing::wasmer_import_func_create(
         "env",
-        "print_something",
-        FuncPointer::new(print_something as _),
-        vec![],
+        "get_balance",
+        FuncPointer::new(get_balance as _),
+        vec![Type::I32, Type::I32],
+        vec![Type::I64],
+    );
+
+    let set_balance_import = testing::wasmer_import_func_create(
+        "env",
+        "set_balance",
+        FuncPointer::new(set_balance as _),
+        vec![Type::I64, Type::I32, Type::I32],
         vec![],
     );
 
-    // let get_balance_import = testing::wasmer_import_func_create(
-    //     "env",
-    //     "get_balance",
-    //     raw_func!(get_balance),
-    //     vec![Type::I32, Type::I32],
-    //     vec![Type::I64],
-    // );
-    //
-    // let set_balance_import = testing::wasmer_import_func_create(
-    //     "env",
-    //     "set_balance",
-    //     raw_func!(set_balance),
-    //     vec![Type::I64, Type::I32, Type::I32],
-    //     vec![],
-    // );
-    //
-    // let imports = vec![
-    //     print_something_import,
-    //     get_balance_import,
-    //     set_balance_import,
-    // ];
+    let imports = vec![get_balance_import, set_balance_import];
 
-    let imports = vec![print_something_import];
     let imports_len = imports.len() as u32;
 
     (imports, imports_len)
@@ -206,7 +163,24 @@ fn transaction_exec_bytes(
     (bytes, bytes_len)
 }
 
-unsafe fn unsafe_sanity() {
+fn transaction_exec_args() -> (u32, i64, Vec<WasmArgValue>, State, i32) {
+    let sender = 0x50_60_70_80;
+    let mul_by = 3;
+    let args = vec![WasmArgValue::I64(mul_by)];
+    let state = State::empty();
+    let pages_count = 10;
+
+    (sender, mul_by as i64, args, state, pages_count)
+}
+
+#[test]
+fn runtime_c_transaction_exec() {
+    unsafe {
+        do_transaction_exec();
+    }
+}
+
+unsafe fn do_transaction_exec() {
     let mut host = Host::new();
     let mut runtime = std::ptr::null_mut();
     let (mut imports, imports_len) = create_imports();
@@ -234,18 +208,16 @@ unsafe fn unsafe_sanity() {
     let _res = api::svm_contract_deploy(runtime, contract, addr);
     // TODO: assert that `res` is `wasmer_result_t::WASMER_OK`
 
+    let (sender, mul_by, args, state, pages_count) = transaction_exec_args();
+    let (bytes, bytes_len) = transaction_exec_bytes(addr, sender, "run", &args);
+
     let mut tx = std::ptr::null_mut();
-    let sender = 0x50_60_70_80;
-    let args = [WasmArgValue::I64(2)];
-    let state = State::empty();
-    let pages_count = 10;
+    let _res = api::svm_transaction_build(&mut tx, runtime, bytes.as_ptr() as _, bytes_len);
+    // TODO: assert that `res` is `wasmer_result_t::WASMER_OK`
 
     // initialize `address=0x10_20_30` with balance=100
     host.set_balance(&Address::from(0x10_20_30), 100);
-
-    let (bytes, bytes_len) = transaction_exec_bytes(addr, sender, "run", &args);
-    let _res = api::svm_transaction_build(&mut tx, runtime, bytes.as_ptr() as _, bytes_len);
-    // TODO: assert that `res` is `wasmer_result_t::WASMER_OK`
+    assert_eq!(100, host.get_balance(&Address::from(0x10_20_30)).unwrap());
 
     let mut receipt = std::ptr::null_mut();
     let _res = api::svm_transaction_exec(
@@ -257,7 +229,8 @@ unsafe fn unsafe_sanity() {
     );
     // TODO: assert that `res` is `wasmer_result_t::WASMER_OK`
 
-    let v = host.get_balance(&Address::from(0x10_20_30));
-
-    dbg!(v);
+    assert_eq!(
+        100 * mul_by as i64,
+        host.get_balance(&Address::from(0x10_20_30)).unwrap()
+    );
 }
