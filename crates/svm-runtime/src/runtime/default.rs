@@ -154,10 +154,15 @@ where
         let module = self.contract_compile(&contract, &tx.contract)?;
         let mut instance = self.instantiate(&tx.contract, &module, import_object)?;
         let args = self.prepare_args_and_memory(tx, &mut instance);
-        let func = self.get_exported_func(&instance, &tx.func_name)?;
+        let func = self.get_exported_func(&instance, "run")?;
 
         match func.call(&args) {
-            Err(_e) => Err(ContractExecError::ExecFailed),
+            Err(e) => {
+                dbg!(&e);
+                dbg!(&e);
+                dbg!(&e);
+                Err(ContractExecError::ExecFailed)
+            }
             Ok(results) => {
                 let storage = self.get_instance_svm_storage_mut(&mut instance);
                 let state = storage.commit();

@@ -80,14 +80,12 @@ pub unsafe fn alloc_ptr() -> *mut c_void {
 }
 
 pub unsafe fn wasmer_import_func_build(
-    func: *mut c_void,
+    func: FuncPointer,
     params: Vec<Type>,
     returns: Vec<Type>,
 ) -> *mut wasmer_import_func_t {
-    let func: *const Func = &Func(func) as _;
-
     let export = Export::Function {
-        func: FuncPointer::new(func),
+        func: func,
         ctx: Context::Internal,
         signature: Arc::new(FuncSig::new(params, returns)),
     };
@@ -109,7 +107,7 @@ pub fn str_to_bytes(s: &str) -> (*const u8, u32) {
 pub unsafe fn wasmer_import_func_create(
     module_name: &str,
     import_name: &str,
-    func: *mut c_void,
+    func: FuncPointer,
     params: Vec<Type>,
     returns: Vec<Type>,
 ) -> wasmer_import_t {

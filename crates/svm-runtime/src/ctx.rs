@@ -35,8 +35,9 @@ pub const REGS_512_COUNT: usize = 4;
 /// * `storage`  - An instance of `ContractStorage`
 #[repr(C)]
 pub struct SvmCtx {
-    /// A pointer to the `host`. For example the pointer will point a to struct having an access
-    /// to the `Global State` of each account, in order to query an account for its own balance.
+    /// A pointer to the `host`.
+    ///
+    /// For example, `host` will point a to struct having an access to the balance of each account.
     pub host: *mut c_void,
 
     /// An array that holds the `SvmReg32` registers

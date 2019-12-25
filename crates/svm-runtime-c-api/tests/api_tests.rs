@@ -95,6 +95,12 @@ unsafe extern "C" fn set_balance(
     host.set_balance(&addr, value);
 }
 
+#[no_mangle]
+unsafe extern "C" fn print_something(ctx: &mut Ctx) {
+    dbg!("print_something");
+    dbg!("print_something");
+}
+
 macro_rules! raw_kv {
     ($kv:ident) => {{
         use std::cell::RefCell;
@@ -124,23 +130,41 @@ fn sanity() {
 }
 
 unsafe fn create_imports() -> (Vec<wasmer_import_t>, u32) {
-    let get_balance_import = testing::wasmer_import_func_create(
-        "env",
-        "get_balance",
-        raw_func!(get_balance),
-        vec![Type::I32, Type::I32],
-        vec![Type::I64],
-    );
+    // let func_inner = print_something;
+    // let func = Func(func_inner as _);
+    // let func = &func as *const Func;
 
-    let set_balance_import = testing::wasmer_import_func_create(
+    let print_something_import = testing::wasmer_import_func_create(
         "env",
-        "set_balance",
-        raw_func!(set_balance),
-        vec![Type::I64, Type::I32, Type::I32],
+        "print_something",
+        FuncPointer::new(print_something as _),
+        vec![],
         vec![],
     );
 
-    let imports = vec![get_balance_import, set_balance_import];
+    // let get_balance_import = testing::wasmer_import_func_create(
+    //     "env",
+    //     "get_balance",
+    //     raw_func!(get_balance),
+    //     vec![Type::I32, Type::I32],
+    //     vec![Type::I64],
+    // );
+    //
+    // let set_balance_import = testing::wasmer_import_func_create(
+    //     "env",
+    //     "set_balance",
+    //     raw_func!(set_balance),
+    //     vec![Type::I64, Type::I32, Type::I32],
+    //     vec![],
+    // );
+    //
+    // let imports = vec![
+    //     print_something_import,
+    //     get_balance_import,
+    //     set_balance_import,
+    // ];
+
+    let imports = vec![print_something_import];
     let imports_len = imports.len() as u32;
 
     (imports, imports_len)
