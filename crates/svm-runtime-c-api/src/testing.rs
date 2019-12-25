@@ -3,7 +3,7 @@ use std::ffi::c_void;
 use std::rc::Rc;
 use std::sync::Arc;
 
-use crate::{helpers, RuntimePtr};
+use crate::{api::svm_result_t, helpers, RuntimePtr};
 use log::debug;
 
 use svm_kv::memory::MemKVStore;
@@ -13,7 +13,7 @@ use wasmer_runtime_c_api::{
     import::{wasmer_import_func_new, wasmer_import_func_t, wasmer_import_t},
     instance::wasmer_instance_context_t,
     value::wasmer_value_tag,
-    wasmer_byte_array, wasmer_result_t,
+    wasmer_byte_array,
 };
 
 use wasmer_runtime_core::{
@@ -34,7 +34,7 @@ pub unsafe extern "C" fn svm_memory_runtime_create(
     host: *mut c_void,
     imports: *mut c_void,
     imports_len: libc::c_uint,
-) -> wasmer_result_t {
+) -> svm_result_t {
     debug!("`svm_runtime_create` start");
 
     let kv: &Rc<RefCell<MemKVStore>> = &*(kv as *const Rc<RefCell<MemKVStore>>);
@@ -48,7 +48,7 @@ pub unsafe extern "C" fn svm_memory_runtime_create(
 
     debug!("`svm_runtime_create` end");
 
-    wasmer_result_t::WASMER_OK
+    svm_result_t::SUCCESS
 }
 
 pub unsafe fn svm_register_get(
