@@ -1,15 +1,16 @@
+#[allow(non_camel_case_types)]
 #[derive(Debug)]
 #[repr(C)]
 pub enum svm_result_t {
-    SUCCESS = 0,
-    FAILURE = 1,
+    SVM_SUCCESS = 0,
+    SVM_FAILURE = 1,
 }
 
 impl Into<bool> for svm_result_t {
     fn into(self) -> bool {
         match self {
-            svm_result_t::SUCCESS => true,
-            svm_result_t::FAILURE => false,
+            svm_result_t::SVM_SUCCESS => true,
+            svm_result_t::SVM_FAILURE => false,
         }
     }
 }

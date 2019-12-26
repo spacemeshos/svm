@@ -33,7 +33,7 @@ pub unsafe extern "C" fn svm_runtime_create(
 
     if let Err(err) = path {
         update_last_error(err);
-        return svm_result_t::FAILURE;
+        return svm_result_t::SVM_FAILURE;
     }
 
     let imports = helpers::cast_host_imports(imports, imports_len);
@@ -46,7 +46,7 @@ pub unsafe extern "C" fn svm_runtime_create(
 
     debug!("`svm_runtime_create` end");
 
-    svm_result_t::SUCCESS
+    svm_result_t::SVM_SUCCESS
 }
 
 /// Destroys the Runtime and it's associated resources.
@@ -57,7 +57,7 @@ pub unsafe extern "C" fn svm_runtime_destroy(raw_runtime: *mut c_void) -> svm_re
 
     let _runtime: Box<RuntimePtr> = Box::from_raw(raw_runtime as *mut RuntimePtr);
 
-    svm_result_t::SUCCESS
+    svm_result_t::SVM_SUCCESS
 }
 
 /// Builds an in-memory contract instance.
@@ -77,13 +77,13 @@ pub unsafe extern "C" fn svm_contract_build(
     match runtime.contract_build(&bytes) {
         Ok(contract) => {
             *raw_contract = svm_common::into_raw_mut(contract);
-            debug!("`svm_contract_build returns `SUCCESS`");
-            svm_result_t::SUCCESS
+            debug!("`svm_contract_build returns `SVM_SUCCESS`");
+            svm_result_t::SVM_SUCCESS
         }
         Err(err) => {
             update_last_error(err);
-            error!("`svm_contract_build returns `FAILURE`");
-            svm_result_t::FAILURE
+            error!("`svm_contract_build returns `SVM_FAILURE`");
+            svm_result_t::SVM_FAILURE
         }
     }
 }
@@ -127,9 +127,9 @@ pub unsafe extern "C" fn svm_contract_deploy(
     let runtime = helpers::cast_to_runtime_mut(raw_runtime);
     runtime.contract_deploy(contract, &addr);
 
-    debug!("`svm_contract_build returns `SUCCESS`");
+    debug!("`svm_contract_build returns `SVM_SUCCESS`");
 
-    svm_result_t::SUCCESS
+    svm_result_t::SVM_SUCCESS
 }
 
 /// Builds an in-memory Contract Transaction instance.
@@ -149,13 +149,13 @@ pub unsafe extern "C" fn svm_transaction_build(
     match runtime.transaction_build(bytes) {
         Ok(tx) => {
             *raw_tx = svm_common::into_raw_mut(tx);
-            debug!("`svm_transaction_build returns `SUCCESS`");
-            svm_result_t::SUCCESS
+            debug!("`svm_transaction_build returns `SVM_SUCCESS`");
+            svm_result_t::SVM_SUCCESS
         }
         Err(error) => {
             update_last_error(error);
-            error!("`svm_transaction_build returns `FAILURE`");
-            svm_result_t::FAILURE
+            error!("`svm_transaction_build returns `SVM_FAILURE`");
+            svm_result_t::SVM_FAILURE
         }
     }
 }
@@ -187,9 +187,9 @@ pub unsafe extern "C" fn svm_transaction_exec(
 
     *raw_receipt = svm_common::into_raw_mut(receipt);
 
-    debug!("`svm_transaction_exec returns `SUCCESS`");
+    debug!("`svm_transaction_exec returns `SVM_SUCCESS`");
 
-    svm_result_t::SUCCESS
+    svm_result_t::SVM_SUCCESS
 }
 
 /// Returns the transaction execution results (wasm array).

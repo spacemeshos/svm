@@ -48,7 +48,7 @@ pub unsafe extern "C" fn svm_memory_runtime_create(
 
     debug!("`svm_runtime_create` end");
 
-    svm_result_t::SUCCESS
+    svm_result_t::SVM_SUCCESS
 }
 
 pub unsafe fn svm_register_get(
