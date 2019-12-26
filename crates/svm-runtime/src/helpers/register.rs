@@ -1,16 +1,14 @@
 use std::ffi::c_void;
 
-use crate::ctx::SvmCtx;
-use crate::helpers;
-use crate::register::SvmReg;
+use crate::{ctx::SvmCtx, register::SvmReg};
 
 /// Extracts from `wasmer` instance context (type: `Ctx`) a mutable borrow for the register indexed `reg_idx`.
 /// Will be used by storage vmcalls.
 #[inline(always)]
-pub fn wasmer_data_reg<'a>(data: *const c_void, bits_count: i32, reg_idx: i32) -> &'a mut SvmReg {
+pub fn wasmer_data_reg<'a>(data: *mut c_void, bits_count: i32, reg_idx: i32) -> &'a mut SvmReg {
     ensure_reg_index(bits_count, reg_idx);
 
-    let ctx: &mut SvmCtx = helpers::cast_ptr_to_svm_ctx(data);
+    let ctx: &mut SvmCtx = unsafe { svm_common::from_raw_mut::<SvmCtx>(data) };
 
     match bits_count {
         32 => svm_regs_reg(&mut ctx.regs_32, 32, reg_idx),

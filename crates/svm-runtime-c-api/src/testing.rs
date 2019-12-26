@@ -3,7 +3,7 @@ use std::ffi::c_void;
 use std::rc::Rc;
 use std::sync::Arc;
 
-use crate::{helpers, RuntimePtr};
+use crate::{helpers, svm_result_t, RuntimePtr};
 use log::debug;
 
 use svm_kv::memory::MemKVStore;
@@ -13,7 +13,7 @@ use wasmer_runtime_c_api::{
     import::{wasmer_import_func_new, wasmer_import_func_t, wasmer_import_t},
     instance::wasmer_instance_context_t,
     value::wasmer_value_tag,
-    wasmer_byte_array, wasmer_result_t,
+    wasmer_byte_array,
 };
 
 use wasmer_runtime_core::{
@@ -22,7 +22,14 @@ use wasmer_runtime_core::{
     vm::{Ctx, Func},
 };
 
-use svm_runtime::{ctx::SvmCtx, helpers::cast_ptr_to_svm_ctx, traits::Runtime};
+use svm_runtime::{ctx::SvmCtx, traits::Runtime};
+
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_memory_kv_create(raw_kv: *mut *mut c_void) {
+    let kv = svm_runtime::testing::memory_kv_store_init();
+    *raw_kv = svm_common::into_raw_mut(kv);
+}
 
 /// Creates a new SVM in-memory Runtime instance.
 /// Returns it via the `raw_runtime` parameter.
@@ -34,7 +41,7 @@ pub unsafe extern "C" fn svm_memory_runtime_create(
     host: *mut c_void,
     imports: *mut c_void,
     imports_len: libc::c_uint,
-) -> wasmer_result_t {
+) -> svm_result_t {
     debug!("`svm_runtime_create` start");
 
     let kv: &Rc<RefCell<MemKVStore>> = &*(kv as *const Rc<RefCell<MemKVStore>>);
@@ -44,11 +51,11 @@ pub unsafe extern "C" fn svm_memory_runtime_create(
     let runtime: Box<dyn Runtime> = Box::new(runtime);
 
     let runtime_ptr = RuntimePtr::new(runtime);
-    *raw_runtime = helpers::into_raw_mut(runtime_ptr);
+    *raw_runtime = svm_common::into_raw_mut(runtime_ptr);
 
     debug!("`svm_runtime_create` end");
 
-    wasmer_result_t::WASMER_OK
+    svm_result_t::SVM_SUCCESS
 }
 
 pub unsafe fn svm_register_get(
@@ -63,20 +70,13 @@ pub unsafe fn svm_register_get(
 
 pub unsafe fn svm_host_get<'a, T>(raw_ctx: *mut wasmer_instance_context_t) -> &'a mut T {
     let ctx = cast_to_wasmer_ctx(raw_ctx);
-    let svm_ctx = cast_ptr_to_svm_ctx(ctx.data);
+    let svm_ctx = svm_common::from_raw_mut::<SvmCtx>(ctx.data);
 
     &mut *(svm_ctx.host as *mut T)
 }
 
 pub unsafe fn cast_to_wasmer_ctx<'a>(ctx: *mut wasmer_instance_context_t) -> &'a mut Ctx {
     &mut *(ctx as *mut Ctx)
-}
-
-pub unsafe fn alloc_ptr() -> *mut c_void {
-    let ptr: *mut c_void = std::ptr::null_mut();
-    let ptr = Box::new(ptr);
-
-    *Box::into_raw(ptr)
 }
 
 pub unsafe fn wasmer_import_func_build(

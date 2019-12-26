@@ -154,7 +154,7 @@ where
         let module = self.contract_compile(&contract, &tx.contract)?;
         let mut instance = self.instantiate(&tx.contract, &module, import_object)?;
         let args = self.prepare_args_and_memory(tx, &mut instance);
-        let func = self.get_exported_func(&instance, "run")?;
+        let func = self.get_exported_func(&instance, &tx.func_name)?;
 
         match func.call(&args) {
             Err(_e) => Err(ContractExecError::ExecFailed),
@@ -316,10 +316,9 @@ where
     ) -> Result<wasmer_runtime::Module, ContractExecError> {
         info!("runtime `contract_compile` (addr={:?})", addr);
 
-        let compile = svm_compiler::compile_program(&contract.wasm);
-
-        match compile {
-            Err(_e) => {
+        match svm_compiler::compile_program(&contract.wasm) {
+            Err(e) => {
+                dbg!(e);
                 error!("wasmer module compilation failed (addr={:?})", addr);
                 Err(ContractExecError::CompilationFailed(addr.clone()))
             }

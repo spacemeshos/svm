@@ -22,7 +22,7 @@ fn gen_for_c() {
     Builder::new()
         .with_crate(crate_dir.clone())
         .with_language(Language::C)
-        .with_include_guard("WASMER_SVM_H")
+        .with_include_guard("SVM_H")
         .with_header("#include \"wasmer.h\"")
         .with_parse_expand(&["svm-runtime-c-api"])
         .generate()
