@@ -1,6 +1,6 @@
 use log::debug;
 
-use svm_runtime::{traits::Runtime, DefaultRuntime};
+use svm_runtime::traits::Runtime;
 
 use std::ffi::c_void;
 use std::ops::{Deref, DerefMut};

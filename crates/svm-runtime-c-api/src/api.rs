@@ -1,20 +1,14 @@
-use log::{debug, error, trace};
+use log::{debug, error};
 use std::ffi::c_void;
 
 use svm_common::{Address, State};
 use svm_contract::{transaction::Transaction, wasm::Contract};
-use svm_runtime::{
-    ctx::SvmCtx, register::SvmReg, settings::ContractSettings, traits::Runtime, Receipt,
-};
+use svm_runtime::{ctx::SvmCtx, settings::ContractSettings, traits::Runtime, Receipt};
 
 use crate::{helpers, svm_result_t, RuntimePtr};
 
-use wasmer_runtime_c_api::{
-    error::update_last_error,
-    import::{wasmer_import_object_extend, wasmer_import_object_t, wasmer_import_t},
-    value::wasmer_value_t,
-};
-use wasmer_runtime_core::{import::ImportObject, vm::Ctx};
+use wasmer_runtime_c_api::{error::update_last_error, value::wasmer_value_t};
+use wasmer_runtime_core::vm::Ctx;
 
 /// Creates a new SVM Runtime instance.
 /// Returns it via the `raw_runtime` parameter.

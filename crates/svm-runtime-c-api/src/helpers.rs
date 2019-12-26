@@ -4,10 +4,8 @@ use std::slice;
 use crate::RuntimePtr;
 use svm_runtime::traits::Runtime;
 
-use wasmer_runtime::{Global, Memory, Module, Table};
-use wasmer_runtime_c_api::{
-    export::wasmer_import_export_kind, import::wasmer_import_t, wasmer_result_t,
-};
+use wasmer_runtime::{Global, Memory, Table};
+use wasmer_runtime_c_api::{export::wasmer_import_export_kind, import::wasmer_import_t};
 use wasmer_runtime_core::export::Export;
 
 #[inline(always)]

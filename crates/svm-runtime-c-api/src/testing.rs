@@ -10,16 +10,15 @@ use svm_kv::memory::MemKVStore;
 
 use wasmer_runtime_c_api::{
     export::{wasmer_import_export_kind, wasmer_import_export_value},
-    import::{wasmer_import_func_new, wasmer_import_func_t, wasmer_import_t},
+    import::{wasmer_import_func_t, wasmer_import_t},
     instance::wasmer_instance_context_t,
-    value::wasmer_value_tag,
     wasmer_byte_array,
 };
 
 use wasmer_runtime_core::{
     export::{Context, Export, FuncPointer},
     types::{FuncSig, Type},
-    vm::{Ctx, Func},
+    vm::Ctx,
 };
 
 use svm_runtime::{ctx::SvmCtx, traits::Runtime};
