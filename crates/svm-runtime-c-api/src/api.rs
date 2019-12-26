@@ -7,8 +7,7 @@ use svm_runtime::{ctx::SvmCtx, settings::ContractSettings, traits::Runtime, Rece
 
 use crate::{helpers, svm_result_t, RuntimePtr};
 
-use wasmer_runtime_c_api::{error::update_last_error, value::wasmer_value_t};
-use wasmer_runtime_core::vm::Ctx;
+use wasmer_runtime_c_api::value::wasmer_value_t;
 
 /// Creates a new SVM Runtime instance.
 /// Returns it via the `raw_runtime` parameter.
@@ -27,8 +26,8 @@ pub unsafe extern "C" fn svm_runtime_create(
     let slice = std::slice::from_raw_parts(path_bytes as *const u8, path_len as usize);
     let path = String::from_utf8(slice.to_vec());
 
-    if let Err(err) = path {
-        update_last_error(err);
+    if let Err(_err) = path {
+        // update_last_error(err);
         return svm_result_t::SVM_FAILURE;
     }
 
@@ -76,8 +75,8 @@ pub unsafe extern "C" fn svm_contract_build(
             debug!("`svm_contract_build returns `SVM_SUCCESS`");
             svm_result_t::SVM_SUCCESS
         }
-        Err(err) => {
-            update_last_error(err);
+        Err(_err) => {
+            // update_last_error(err);
             error!("`svm_contract_build returns `SVM_FAILURE`");
             svm_result_t::SVM_FAILURE
         }
@@ -148,8 +147,8 @@ pub unsafe extern "C" fn svm_transaction_build(
             debug!("`svm_transaction_build returns `SVM_SUCCESS`");
             svm_result_t::SVM_SUCCESS
         }
-        Err(error) => {
-            update_last_error(error);
+        Err(_error) => {
+            // update_last_error(error);
             error!("`svm_transaction_build returns `SVM_FAILURE`");
             svm_result_t::SVM_FAILURE
         }
@@ -191,6 +190,8 @@ pub unsafe extern "C" fn svm_transaction_exec(
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_instance_context_host_get(ctx: *mut c_void) -> *mut c_void {
+    use wasmer_runtime_core::vm::Ctx;
+
     let wasmer_ctx = svm_common::from_raw::<Ctx>(ctx);
     let svm_ctx = svm_common::from_raw::<SvmCtx>(wasmer_ctx.data);
 

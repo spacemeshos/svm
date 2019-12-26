@@ -1,5 +1,5 @@
 #![allow(missing_docs)]
-#![deny(unused)]
+#![allow(unused)]
 
 //! This crate is responsible of providing a [FFI](https://doc.rust-lang.org/nomicon/ffi.html) interface for the `SVM`.
 
@@ -8,6 +8,7 @@ pub mod testing;
 
 mod api;
 mod result;
+mod value;
 
 /// `SVM` FFI Interface
 pub use api::{
@@ -17,6 +18,7 @@ pub use api::{
     svm_transaction_exec,
 };
 pub use result::svm_result_t;
+pub use value::{svm_value, svm_value_t, svm_value_type};
 
 mod runtime_ptr;
 pub use runtime_ptr::RuntimePtr;
