@@ -3,16 +3,18 @@ use std::ffi::c_void;
 
 use svm_common::{Address, State};
 use svm_contract::{transaction::Transaction, wasm::Contract};
-use svm_runtime::{register::SvmReg, settings::ContractSettings, traits::Runtime, Receipt};
+use svm_runtime::{
+    ctx::SvmCtx, register::SvmReg, settings::ContractSettings, traits::Runtime, Receipt,
+};
 
 use crate::{helpers, svm_result_t, RuntimePtr};
 
-use wasmer_runtime::{Ctx, ImportObject};
 use wasmer_runtime_c_api::{
     error::update_last_error,
     import::{wasmer_import_object_extend, wasmer_import_object_t, wasmer_import_t},
     value::wasmer_value_t,
 };
+use wasmer_runtime_core::{import::ImportObject, vm::Ctx};
 
 /// Creates a new SVM Runtime instance.
 /// Returns it via the `raw_runtime` parameter.
@@ -190,6 +192,26 @@ pub unsafe extern "C" fn svm_transaction_exec(
     debug!("`svm_transaction_exec returns `SVM_SUCCESS`");
 
     svm_result_t::SVM_SUCCESS
+}
+
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_instance_context_host_get(ctx: *mut c_void) -> *mut c_void {
+    let wasmer_ctx = svm_common::from_raw::<Ctx>(ctx);
+    let svm_ctx = svm_common::from_raw::<SvmCtx>(wasmer_ctx.data);
+
+    svm_ctx.host
+}
+
+/// Returns the receipt outcome (`true` for success and `false` otherwise)
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_receipt_status(raw_receipt: *const c_void) -> bool {
+    let receipt = svm_common::from_raw::<Receipt>(raw_receipt);
+
+    debug!("`svm_receipt_status` status={}", receipt.success);
+
+    receipt.success
 }
 
 /// Returns the transaction execution results (wasm array).

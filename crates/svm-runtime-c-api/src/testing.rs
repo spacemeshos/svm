@@ -24,6 +24,13 @@ use wasmer_runtime_core::{
 
 use svm_runtime::{ctx::SvmCtx, traits::Runtime};
 
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_memory_kv_create(raw_kv: *mut *mut c_void) {
+    let kv = svm_runtime::testing::memory_kv_store_init();
+    *raw_kv = svm_common::into_raw_mut(kv);
+}
+
 /// Creates a new SVM in-memory Runtime instance.
 /// Returns it via the `raw_runtime` parameter.
 #[must_use]
@@ -70,13 +77,6 @@ pub unsafe fn svm_host_get<'a, T>(raw_ctx: *mut wasmer_instance_context_t) -> &'
 
 pub unsafe fn cast_to_wasmer_ctx<'a>(ctx: *mut wasmer_instance_context_t) -> &'a mut Ctx {
     &mut *(ctx as *mut Ctx)
-}
-
-pub unsafe fn alloc_ptr() -> *mut c_void {
-    let ptr: *mut c_void = std::ptr::null_mut();
-    let ptr = Box::new(ptr);
-
-    *Box::into_raw(ptr)
 }
 
 pub unsafe fn wasmer_import_func_build(

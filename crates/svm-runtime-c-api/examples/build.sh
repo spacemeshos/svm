@@ -15,6 +15,7 @@ mv ../../../target/release/libsvm_runtime_c_api.${ext} ./svm.${ext}
 make counter
 
 pushd ./wasm
+rm counter.wasm
 wapm run wat2wasm counter.wast
 popd
 

@@ -1,4 +1,4 @@
-.dSYM
+*.dSYM/
 counter.out
 
 svm.dylib

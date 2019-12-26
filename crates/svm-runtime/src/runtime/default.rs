@@ -316,10 +316,9 @@ where
     ) -> Result<wasmer_runtime::Module, ContractExecError> {
         info!("runtime `contract_compile` (addr={:?})", addr);
 
-        let compile = svm_compiler::compile_program(&contract.wasm);
-
-        match compile {
-            Err(_e) => {
+        match svm_compiler::compile_program(&contract.wasm) {
+            Err(e) => {
+                dbg!(e);
                 error!("wasmer module compilation failed (addr={:?})", addr);
                 Err(ContractExecError::CompilationFailed(addr.clone()))
             }

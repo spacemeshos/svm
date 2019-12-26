@@ -13,7 +13,6 @@ use std::rc::Rc;
 use wasmer_runtime_c_api::{
     export::{wasmer_import_export_kind, wasmer_import_export_value},
     import::{wasmer_import_func_new, wasmer_import_func_t, wasmer_import_t},
-    instance::wasmer_instance_context_t,
     value::wasmer_value_tag,
     wasmer_byte_array, wasmer_result_t,
 };
@@ -55,47 +54,39 @@ impl Host {
     }
 }
 
-unsafe extern "C" fn get_balance(
-    ctx: *mut wasmer_instance_context_t,
-    reg_bits: i32,
-    reg_idx: i32,
-) -> i64 {
-    let ctx = svm_common::from_raw_mut::<Ctx>(ctx as _);
+unsafe fn extract_host<'a>(raw_ctx: *mut c_void) -> &'a mut Host {
+    let host = api::svm_instance_context_host_get(raw_ctx);
+    svm_common::from_raw_mut::<Host>(host)
+}
+
+unsafe extern "C" fn get_balance(raw_ctx: *mut c_void, reg_bits: i32, reg_idx: i32) -> i64 {
+    let host = extract_host(raw_ctx);
+    let ctx = svm_common::from_raw_mut::<Ctx>(raw_ctx);
 
     let reg = svm_runtime::helpers::wasmer_data_reg(ctx.data, reg_bits, reg_idx);
     let addr = Address::from(reg.as_ptr());
-
-    let svm_ctx = svm_common::from_raw::<SvmCtx>(ctx.data);
-    let host = svm_common::from_raw::<Host>(svm_ctx.host);
 
     host.get_balance(&addr).unwrap_or(0)
 }
 
-unsafe extern "C" fn set_balance(
-    ctx: *mut wasmer_instance_context_t,
-    value: i64,
-    reg_bits: i32,
-    reg_idx: i32,
-) {
-    let ctx = svm_common::from_raw_mut::<Ctx>(ctx as *mut c_void);
+unsafe extern "C" fn set_balance(raw_ctx: *mut c_void, value: i64, reg_bits: i32, reg_idx: i32) {
+    let host = extract_host(raw_ctx);
+    let ctx = svm_common::from_raw_mut::<Ctx>(raw_ctx);
 
     let reg = svm_runtime::helpers::wasmer_data_reg(ctx.data, reg_bits, reg_idx);
     let addr = Address::from(reg.as_ptr());
 
-    let svm_ctx = svm_common::from_raw::<SvmCtx>(ctx.data);
-    let host = svm_common::from_raw_mut::<Host>(svm_ctx.host);
-
     host.set_balance(&addr, value);
 }
 
-macro_rules! raw_kv {
-    ($kv:ident) => {{
-        use std::cell::RefCell;
-        use std::rc::Rc;
-
-        &$kv as *const Rc<RefCell<_>> as _
-    }};
-}
+// macro_rules! raw_kv {
+//     ($kv:ident) => {{
+//         use std::cell::RefCell;
+//         use std::rc::Rc;
+//
+//         &$kv as *const Rc<RefCell<_>> as _
+//     }};
+// }
 
 macro_rules! raw_imports {
     ($imports:ident) => {{
@@ -182,13 +173,15 @@ fn runtime_c_transaction_exec() {
 
 unsafe fn do_transaction_exec() {
     let mut host = Host::new();
+    let mut kv = std::ptr::null_mut();
     let mut runtime = std::ptr::null_mut();
     let (mut imports, imports_len) = create_imports();
 
-    let kv = svm_runtime::testing::memory_kv_store_init();
+    testing::svm_memory_kv_create(&mut kv);
+
     let res = testing::svm_memory_runtime_create(
         &mut runtime,
-        raw_kv!(kv),
+        kv,
         host.as_mut_ptr(),
         raw_imports!(imports),
         imports_len,
