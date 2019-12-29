@@ -1,26 +1,25 @@
 use std::ffi::c_void;
 use std::slice;
 
-use crate::{
-    svm_import_func_sig_t, svm_import_func_t, svm_import_kind, svm_import_t, svm_value_type,
-    RuntimePtr,
-};
+use crate::{svm_import_kind, svm_import_t, RuntimePtr};
 use svm_runtime::traits::Runtime;
 
 use wasmer_runtime_core::export::Export;
 
+/// Casts raw pointer to borrowed Runtime
 #[inline(always)]
 pub unsafe fn cast_to_runtime<'a>(raw_runtime: *const c_void) -> &'a Box<dyn Runtime> {
     &*(raw_runtime as *const RuntimePtr)
 }
 
+/// Casts raw pointer to mutably borrowed Runtime
 #[inline(always)]
 pub unsafe fn cast_to_runtime_mut<'a>(raw_runtime: *mut c_void) -> &'a mut Box<dyn Runtime> {
     &mut *(raw_runtime as *mut RuntimePtr)
 }
 
 pub unsafe fn cast_host_imports(
-    imports: *mut c_void,
+    imports: *mut svm_import_t,
     imports_len: libc::c_uint,
 ) -> Vec<(String, String, Export)> {
     // function code has been influenced heavily by `wasmer_import_object_extend` here:
@@ -56,7 +55,6 @@ pub unsafe fn cast_host_imports(
             svm_import_kind::SVM_FUNCTION => {
                 crate::wasmer::to_wasmer_import_func(import.value.func)
             }
-            _ => todo!(),
         };
 
         let import_tuple = (

@@ -1,9 +1,8 @@
-use std::convert::TryFrom;
 use svm_runtime::value::Value;
 
 #[allow(non_snake_case, non_camel_case_types)]
 #[derive(Debug, PartialEq)]
-#[repr(u32)]
+#[repr(C)]
 pub enum svm_value_type {
     I32 = 1,
     I64 = 2,

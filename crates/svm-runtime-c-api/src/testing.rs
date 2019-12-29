@@ -1,7 +1,6 @@
 use std::cell::RefCell;
 use std::ffi::c_void;
 use std::rc::Rc;
-use std::sync::Arc;
 
 use crate::{
     helpers, svm_byte_array, svm_import_func_sig_t, svm_import_func_t, svm_import_kind,
@@ -30,7 +29,7 @@ pub unsafe extern "C" fn svm_memory_runtime_create(
     raw_runtime: *mut *mut c_void,
     kv: *const c_void,
     host: *mut c_void,
-    imports: *mut c_void,
+    imports: *mut svm_import_t,
     imports_len: libc::c_uint,
 ) -> svm_result_t {
     debug!("`svm_runtime_create` start");
@@ -97,9 +96,7 @@ pub unsafe fn import_func_create(
         module_name,
         import_name,
         kind: svm_import_kind::SVM_FUNCTION,
-        value: svm_import_value {
-            func: func as *mut c_void,
-        },
+        value: svm_import_value { func },
     }
 }
 

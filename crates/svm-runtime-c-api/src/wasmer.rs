@@ -18,8 +18,8 @@ impl Into<Type> for &svm_value_type {
     }
 }
 
-pub(crate) unsafe fn to_wasmer_import_func(func: *mut c_void) -> Export {
-    let svm_func: svm_import_func_t = *Box::from_raw(func as *mut _);
+pub(crate) unsafe fn to_wasmer_import_func(func: *mut svm_import_func_t) -> Export {
+    let svm_func: svm_import_func_t = *Box::from_raw(func);
 
     let func_ptr = svm_func.func as *mut c_void;
     let wasmer_sig = to_wasmer_func_sig(&svm_func.sig);

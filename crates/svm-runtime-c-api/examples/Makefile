@@ -1,7 +1,7 @@
 CC = gcc
-OBJECTS = libwasmer_runtime_c_api.dylib svm.dylib
+OBJECTS = svm.dylib
 CFLAGS = -g -Wall -I
-DEPS = counter.c wasmer.h svm.h
+DEPS = counter.c svm.h
 
 default: counter
 

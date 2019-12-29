@@ -56,19 +56,17 @@ unsafe fn extract_reg<'a>(raw_ctx: *mut c_void, reg_bits: i32, reg_idx: i32) -> 
 
 unsafe extern "C" fn get_balance(ctx: *mut c_void, reg_bits: i32, reg_idx: i32) -> i64 {
     let host = extract_host(ctx);
-
     let reg = extract_reg(ctx, reg_bits, reg_idx);
-    let addr = Address::from(reg.as_ptr());
 
+    let addr = Address::from(reg.as_ptr());
     host.get_balance(&addr).unwrap_or(0)
 }
 
 unsafe extern "C" fn set_balance(ctx: *mut c_void, value: i64, reg_bits: i32, reg_idx: i32) {
     let host = extract_host(ctx);
-
     let reg = extract_reg(ctx, reg_bits, reg_idx);
-    let addr = Address::from(reg.as_ptr());
 
+    let addr = Address::from(reg.as_ptr());
     host.set_balance(&addr, value);
 }
 

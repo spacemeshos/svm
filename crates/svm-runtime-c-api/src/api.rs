@@ -5,7 +5,7 @@ use svm_common::{Address, State};
 use svm_contract::{transaction::Transaction, wasm::Contract};
 use svm_runtime::{ctx::SvmCtx, settings::ContractSettings, traits::Runtime, Receipt};
 
-use crate::{helpers, svm_result_t, svm_value_t, RuntimePtr};
+use crate::{helpers, svm_import_t, svm_result_t, svm_value_t, RuntimePtr};
 
 /// Creates a new SVM Runtime instance.
 /// Returns it via the `raw_runtime` parameter.
@@ -16,7 +16,7 @@ pub unsafe extern "C" fn svm_runtime_create(
     path_bytes: *const c_void,
     path_len: libc::c_uint,
     host: *mut c_void,
-    imports: *mut c_void,
+    imports: *mut svm_import_t,
     imports_len: libc::c_uint,
 ) -> svm_result_t {
     debug!("`svm_runtime_create` start");
