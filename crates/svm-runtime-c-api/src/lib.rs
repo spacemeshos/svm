@@ -10,6 +10,7 @@ mod api;
 mod import;
 mod result;
 mod value;
+mod wasmer;
 
 /// `SVM` FFI Interface
 pub use api::{

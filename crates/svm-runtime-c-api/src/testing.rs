@@ -91,14 +91,15 @@ pub unsafe fn import_func_create(
     let module_name = str_to_svm_byte_array(module_name);
     let import_name = str_to_svm_byte_array(import_name);
     let func = svm_import_func_build(func, params, returns);
-
-    let func: *const svm_import_func_t = Box::into_raw(Box::new(func));
+    let func: *mut svm_import_func_t = Box::into_raw(Box::new(func));
 
     svm_import_t {
         module_name,
         import_name,
         kind: svm_import_kind::SVM_FUNCTION,
-        value: svm_import_value { func },
+        value: svm_import_value {
+            func: func as *mut c_void,
+        },
     }
 }
 
@@ -125,11 +126,3 @@ fn svm_import_func_build(
 
     svm_import_func_t { func, sig }
 }
-
-// let export = Export::Function {
-//     func: func,
-//     ctx: Context::Internal,
-//     signature: Arc::new(FuncSig::new(params, returns)),
-// };
-//
-// Box::into_raw(Box::new(export)) as _

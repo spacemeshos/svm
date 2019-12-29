@@ -36,7 +36,7 @@ pub struct svm_import_func_t {
 #[allow(non_camel_case_types)]
 #[repr(C)]
 pub union svm_import_value {
-    pub func: *const svm_import_func_t,
+    pub func: *mut c_void,
 }
 
 #[allow(non_camel_case_types)]
