@@ -173,29 +173,28 @@ void host_inc_counter(void *ctx, uint32_t value) {
 uint32_t host_get_counter(void *ctx) {
   host_t *host = (host_t*)(svm_instance_context_host_get(ctx));
   return host->counter;
-  return 0;
 }
 
-/* svm_result_t do_contract_deploy(uint8_t **addr, void *runtime, uint8_t *bytes, uint64_t bytes_len) { */
-/*   void *contract; */
-/*   svm_result_t res; */
-/*  */
-/*   res = svm_contract_build(&contract, runtime, (void*)bytes, bytes_len); */
-/*   if (res != SVM_SUCCESS) { */
-/*     return res; */
-/*   } */
-/*  */
-/*   uint8_t* addr_ptr = (uint8_t*)svm_contract_derive_address(runtime, contract); */
-/*  */
-/*   res = svm_contract_deploy(runtime, contract, (void*)addr_ptr); */
-/*   if (res != SVM_SUCCESS) { */
-/*     return res; */
-/*   } */
-/*  */
-/*   *addr = addr_ptr; */
-/*  */
-/*   return SVM_SUCCESS; */
-/* } */
+svm_result_t do_contract_deploy(uint8_t **addr, void *runtime, uint8_t *bytes, uint64_t bytes_len) {
+  void *contract;
+  svm_result_t res;
+
+  res = svm_contract_build(&contract, runtime, (void*)bytes, bytes_len);
+  if (res != SVM_SUCCESS) {
+    return res;
+  }
+
+  uint8_t* addr_ptr = (uint8_t*)svm_contract_derive_address(runtime, contract);
+
+  res = svm_contract_deploy(runtime, contract, (void*)addr_ptr);
+  if (res != SVM_SUCCESS) {
+    return res;
+  }
+
+  *addr = addr_ptr;
+
+  return SVM_SUCCESS;
+}
 
 /* svm_import_t create_import(const char *module_name, const char *import_name, svm_import_func_t *func) { */
 /*   svm_byte_array module_name_bytes; */
