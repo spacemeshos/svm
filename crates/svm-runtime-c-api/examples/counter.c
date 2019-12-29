@@ -257,7 +257,7 @@ int main() {
   host_t* host = host_new(balance);
 
   void *imports = (void*)imports_build();
-  unsigned int imports_len = 2;
+  unsigned int imports_len = 0;
 
   res = svm_memory_runtime_create(&runtime, kv, host, imports, imports_len);
   assert(res == SVM_SUCCESS);
