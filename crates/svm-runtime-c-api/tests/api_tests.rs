@@ -3,25 +3,19 @@
 extern crate svm_runtime_c_api;
 
 use svm_runtime_c_api as api;
-use svm_runtime_c_api::{helpers, svm_result_t, testing};
+use svm_runtime_c_api::{helpers, svm_import_t, svm_result_t, svm_value_type, testing};
 
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ffi::c_void;
 use std::rc::Rc;
 
-use wasmer_runtime_core::{
-    export::{Context, Export, FuncPointer},
-    types::{FuncSig, Type},
-    vm::{Ctx, Func},
-};
-
 use svm_common::{Address, State};
 use svm_contract::{
     build::{WireContractBuilder, WireTxBuilder},
     wasm::WasmArgValue,
 };
-use svm_runtime::ctx::SvmCtx;
+use svm_runtime::{ctx::SvmCtx, register::SvmReg};
 
 struct Host {
     balance: HashMap<Address, i64>,
@@ -52,21 +46,27 @@ unsafe fn extract_host<'a>(raw_ctx: *mut c_void) -> &'a mut Host {
     svm_common::from_raw_mut::<Host>(host)
 }
 
-unsafe extern "C" fn get_balance(raw_ctx: *mut c_void, reg_bits: i32, reg_idx: i32) -> i64 {
-    let host = extract_host(raw_ctx);
-    let ctx = svm_common::from_raw_mut::<Ctx>(raw_ctx);
+unsafe fn extract_reg<'a>(raw_ctx: *mut c_void, reg_bits: i32, reg_idx: i32) -> &'a mut SvmReg {
+    use wasmer_runtime_core::vm::Ctx as WasmerCtx;
 
-    let reg = svm_runtime::helpers::wasmer_data_reg(ctx.data, reg_bits, reg_idx);
+    let ctx = svm_common::from_raw_mut::<WasmerCtx>(raw_ctx);
+
+    svm_runtime::helpers::wasmer_data_reg(ctx.data, reg_bits, reg_idx)
+}
+
+unsafe extern "C" fn get_balance(ctx: *mut c_void, reg_bits: i32, reg_idx: i32) -> i64 {
+    let host = extract_host(ctx);
+
+    let reg = extract_reg(ctx, reg_bits, reg_idx);
     let addr = Address::from(reg.as_ptr());
 
     host.get_balance(&addr).unwrap_or(0)
 }
 
-unsafe extern "C" fn set_balance(raw_ctx: *mut c_void, value: i64, reg_bits: i32, reg_idx: i32) {
-    let host = extract_host(raw_ctx);
-    let ctx = svm_common::from_raw_mut::<Ctx>(raw_ctx);
+unsafe extern "C" fn set_balance(ctx: *mut c_void, value: i64, reg_bits: i32, reg_idx: i32) {
+    let host = extract_host(ctx);
 
-    let reg = svm_runtime::helpers::wasmer_data_reg(ctx.data, reg_bits, reg_idx);
+    let reg = extract_reg(ctx, reg_bits, reg_idx);
     let addr = Address::from(reg.as_ptr());
 
     host.set_balance(&addr, value);
@@ -78,20 +78,24 @@ macro_rules! raw_imports {
     }};
 }
 
-unsafe fn create_imports() -> (Vec<wasmer_import_t>, u32) {
+unsafe fn create_imports() -> (Vec<svm_import_t>, u32) {
     let get_balance_import = testing::import_func_create(
         "env",
         "get_balance",
-        FuncPointer::new(get_balance as _),
-        vec![Type::I32, Type::I32],
-        vec![Type::I64],
+        get_balance as _,
+        vec![svm_value_type::I32, svm_value_type::I32],
+        vec![svm_value_type::I64],
     );
 
-    let set_balance_import = testing::wasmer_import_func_create(
+    let set_balance_import = testing::import_func_create(
         "env",
         "set_balance",
-        FuncPointer::new(set_balance as _),
-        vec![Type::I64, Type::I32, Type::I32],
+        set_balance as _,
+        vec![
+            svm_value_type::I64,
+            svm_value_type::I32,
+            svm_value_type::I32,
+        ],
         vec![],
     );
 

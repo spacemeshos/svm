@@ -1,6 +1,5 @@
 use std::ffi::c_void;
 use std::slice;
-use std::sync::Arc;
 
 use crate::{
     svm_import_func_sig_t, svm_import_func_t, svm_import_kind, svm_import_t, svm_value_type,
@@ -8,11 +7,7 @@ use crate::{
 };
 use svm_runtime::traits::Runtime;
 
-use wasmer_runtime_c_api::{export::wasmer_import_export_kind, import::wasmer_import_t};
-use wasmer_runtime_core::{
-    export::{Context, Export, FuncPointer},
-    types::{FuncSig, Type},
-};
+use wasmer_runtime_core::export::Export;
 
 #[inline(always)]
 pub unsafe fn cast_to_runtime<'a>(raw_runtime: *const c_void) -> &'a Box<dyn Runtime> {
@@ -58,7 +53,9 @@ pub unsafe fn cast_host_imports(
         };
 
         let wasmer_import = match import.kind {
-            svm_import_kind::SVM_FUNCTION => to_wasmer_import_func(import.value.func),
+            svm_import_kind::SVM_FUNCTION => {
+                crate::wasmer::to_wasmer_import_func(import.value.func)
+            }
             _ => todo!(),
         };
 
@@ -71,29 +68,4 @@ pub unsafe fn cast_host_imports(
     }
 
     res
-}
-
-unsafe fn to_wasmer_import_func(func: *mut c_void) -> Export {
-    let svm_func: svm_import_func_t = *Box::from_raw(func as *mut _);
-
-    let func_ptr = svm_func.func as *mut c_void;
-    let wasmer_sig = to_wasmer_func_sig(&svm_func.sig);
-
-    Export::Function {
-        func: FuncPointer::new(func_ptr as _),
-        ctx: Context::Internal,
-        signature: Arc::new(wasmer_sig),
-    }
-}
-
-unsafe fn to_wasmer_func_sig(sig: &svm_import_func_sig_t) -> FuncSig {
-    let params = to_wasmer_types_vec(sig.params, sig.params_len);
-    let returns = to_wasmer_types_vec(sig.returns, sig.returns_len);
-
-    FuncSig::new(params, returns)
-}
-
-unsafe fn to_wasmer_types_vec(types: *const svm_value_type, types_len: u32) -> Vec<Type> {
-    let slice = slice::from_raw_parts(types, types_len as usize);
-    slice.iter().map(|ty| ty.into()).collect()
 }
