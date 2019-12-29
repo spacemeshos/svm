@@ -57,34 +57,33 @@ pub unsafe fn cast_host_imports(
             panic!("error converting import_name to string".to_string());
         };
 
-        let export = match import.kind {
-            svm_import_kind::SVM_FUNCTION => {
-                let func_ptr = to_wasmer_func_pointer(import.value.func);
-
-                // let export = Export::Function {
-                //     func: FuncPointer::new(import.func as _),
-                //     ctx: Context::Internal,
-                //     signature: Arc::new(wasmer_sig),
-                // };
-                //
-                // Box::into_raw(Box::new(export)) as _
-            }
+        let wasmer_import = match import.kind {
+            svm_import_kind::SVM_FUNCTION => to_wasmer_import_func(import.value.func),
             _ => todo!(),
         };
 
-        // let export_tuple = (module_name.to_string(), import_name.to_string(), export);
-        // res.push(export_tuple);
+        let import_tuple = (
+            module_name.to_string(),
+            import_name.to_string(),
+            wasmer_import,
+        );
+        res.push(import_tuple);
     }
 
     res
 }
 
-unsafe fn to_wasmer_func_pointer(func: *mut c_void) -> FuncPointer {
-    let func: svm_import_func_t = *Box::from_raw(func as *mut _);
+unsafe fn to_wasmer_import_func(func: *mut c_void) -> Export {
+    let svm_func: svm_import_func_t = *Box::from_raw(func as *mut _);
 
-    let wasmer_sig = to_wasmer_func_sig(&func.sig);
+    let func_ptr = svm_func.func as *mut c_void;
+    let wasmer_sig = to_wasmer_func_sig(&svm_func.sig);
 
-    todo!()
+    Export::Function {
+        func: FuncPointer::new(func_ptr as _),
+        ctx: Context::Internal,
+        signature: Arc::new(wasmer_sig),
+    }
 }
 
 unsafe fn to_wasmer_func_sig(sig: &svm_import_func_sig_t) -> FuncSig {
