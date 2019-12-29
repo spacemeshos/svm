@@ -1,22 +1,22 @@
 use std::convert::TryFrom;
 use svm_runtime::value::Value;
 
-#[allow(non_snake_case)]
+#[allow(non_snake_case, non_camel_case_types)]
 #[derive(Debug, PartialEq)]
-#[repr(C)]
+#[repr(u32)]
 pub enum svm_value_type {
     I32 = 1,
     I64 = 2,
 }
 
-#[allow(non_snake_case)]
+#[allow(non_snake_case, non_camel_case_types)]
 #[repr(C)]
 pub union svm_value {
     pub I32: i32,
     pub I64: i64,
 }
 
-#[allow(non_snake_case)]
+#[allow(non_camel_case_types)]
 #[repr(C)]
 pub struct svm_value_t {
     pub ty: svm_value_type,

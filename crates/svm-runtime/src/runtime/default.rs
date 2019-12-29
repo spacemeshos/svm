@@ -158,7 +158,7 @@ where
         let func = self.get_exported_func(&instance, &tx.func_name)?;
 
         match func.call(&args) {
-            Err(_e) => Err(ContractExecError::ExecFailed),
+            Err(e) => Err(ContractExecError::ExecFailed),
             Ok(results) => {
                 let storage = self.get_instance_svm_storage_mut(&mut instance);
                 let state = storage.commit();
@@ -189,7 +189,10 @@ where
         let instantiate = module.instantiate(import_object);
 
         match instantiate {
-            Err(_e) => Err(ContractExecError::InstantiationFailed(addr.clone())),
+            Err(e) => {
+                dbg!(&e);
+                Err(ContractExecError::InstantiationFailed(addr.clone()))
+            }
             Ok(instance) => Ok(instance),
         }
     }

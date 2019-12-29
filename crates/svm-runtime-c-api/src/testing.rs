@@ -119,10 +119,13 @@ fn svm_import_func_build(
 
     let sig = svm_import_func_sig_t {
         params: params.as_ptr(),
-        params_len,
         returns: returns.as_ptr(),
+        params_len,
         returns_len,
     };
+
+    std::mem::forget(params);
+    std::mem::forget(returns);
 
     svm_import_func_t { func, sig }
 }
