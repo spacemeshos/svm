@@ -8,8 +8,6 @@ default: counter
 %.o: %.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
-# gcc -g -Wall svm.dylib counter.c -o counter.out; ./counter.out
-
 counter: $(DEPS)
 	$(CC) $(CFLAGS) $(OBJECTS) counter.c -o counter.out
 
