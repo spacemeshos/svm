@@ -1,9 +1,7 @@
-use crate::runtime::ContractExecError;
+use crate::{runtime::ContractExecError, value::Value};
 
 use svm_common::State;
 use svm_contract::transaction::Transaction;
-
-use wasmer_runtime::Value;
 
 /// Runtime transaction execution receipt
 #[derive(Debug)]

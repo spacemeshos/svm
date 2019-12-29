@@ -1,20 +1,11 @@
-use log::{debug, error, trace};
+use log::{debug, error};
 use std::ffi::c_void;
 
 use svm_common::{Address, State};
 use svm_contract::{transaction::Transaction, wasm::Contract};
-use svm_runtime::{
-    ctx::SvmCtx, register::SvmReg, settings::ContractSettings, traits::Runtime, Receipt,
-};
+use svm_runtime::{ctx::SvmCtx, settings::ContractSettings, traits::Runtime, Receipt};
 
-use crate::{helpers, svm_result_t, RuntimePtr};
-
-use wasmer_runtime_c_api::{
-    error::update_last_error,
-    import::{wasmer_import_object_extend, wasmer_import_object_t, wasmer_import_t},
-    value::wasmer_value_t,
-};
-use wasmer_runtime_core::{import::ImportObject, vm::Ctx};
+use crate::{helpers, svm_result_t, svm_value_t, RuntimePtr};
 
 /// Creates a new SVM Runtime instance.
 /// Returns it via the `raw_runtime` parameter.
@@ -33,8 +24,8 @@ pub unsafe extern "C" fn svm_runtime_create(
     let slice = std::slice::from_raw_parts(path_bytes as *const u8, path_len as usize);
     let path = String::from_utf8(slice.to_vec());
 
-    if let Err(err) = path {
-        update_last_error(err);
+    if let Err(_err) = path {
+        // update_last_error(err);
         return svm_result_t::SVM_FAILURE;
     }
 
@@ -82,8 +73,8 @@ pub unsafe extern "C" fn svm_contract_build(
             debug!("`svm_contract_build returns `SVM_SUCCESS`");
             svm_result_t::SVM_SUCCESS
         }
-        Err(err) => {
-            update_last_error(err);
+        Err(_err) => {
+            // update_last_error(err);
             error!("`svm_contract_build returns `SVM_FAILURE`");
             svm_result_t::SVM_FAILURE
         }
@@ -154,8 +145,8 @@ pub unsafe extern "C" fn svm_transaction_build(
             debug!("`svm_transaction_build returns `SVM_SUCCESS`");
             svm_result_t::SVM_SUCCESS
         }
-        Err(error) => {
-            update_last_error(error);
+        Err(_error) => {
+            // update_last_error(error);
             error!("`svm_transaction_build returns `SVM_FAILURE`");
             svm_result_t::SVM_FAILURE
         }
@@ -197,6 +188,8 @@ pub unsafe extern "C" fn svm_transaction_exec(
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_instance_context_host_get(ctx: *mut c_void) -> *mut c_void {
+    use wasmer_runtime_core::vm::Ctx;
+
     let wasmer_ctx = svm_common::from_raw::<Ctx>(ctx);
     let svm_ctx = svm_common::from_raw::<SvmCtx>(wasmer_ctx.data);
 
@@ -220,7 +213,7 @@ pub unsafe extern "C" fn svm_receipt_status(raw_receipt: *const c_void) -> bool 
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_receipt_results(
-    results: *mut *mut wasmer_value_t,
+    raw_results: *mut *mut svm_value_t,
     raw_receipt: *const c_void,
     results_len: *mut u32,
 ) {
@@ -229,18 +222,18 @@ pub unsafe extern "C" fn svm_receipt_results(
     let receipt = svm_common::from_raw::<Receipt>(raw_receipt);
 
     if receipt.success {
-        let mut c_results = Vec::with_capacity(*results_len as usize);
+        let mut results: Vec<svm_value_t> = Vec::with_capacity(*results_len as usize);
 
         for value in receipt.results.iter() {
-            let c_value = wasmer_value_t::from(value.clone());
-            c_results.push(c_value);
+            let raw_value = svm_value_t::from(value);
+            results.push(raw_value);
         }
 
-        // TODO: free `c_results` memory after usage
-        let c_results: &mut Vec<wasmer_value_t> = Box::leak(Box::new(c_results));
+        // TODO: free `results` memory after usage
+        let results: &mut Vec<svm_value_t> = Box::leak(Box::new(results));
 
-        *results = c_results.as_mut_ptr();
-        *results_len = receipt.results.len() as u32;
+        *results_len = results.len() as u32;
+        *raw_results = results.as_mut_ptr();
     } else {
         let msg = "method not allowed to be called when transaction execution failed";
         error!("{}", msg);

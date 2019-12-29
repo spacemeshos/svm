@@ -9,6 +9,7 @@ use crate::{
     runtime::{ContractExecError, Receipt},
     settings::ContractSettings,
     traits::{Runtime, StorageBuilderFn},
+    value::Value,
 };
 
 use svm_common::{Address, State};
@@ -149,7 +150,7 @@ where
         &self,
         tx: &Transaction,
         import_object: &ImportObject,
-    ) -> Result<(State, Vec<wasmer_runtime::Value>), ContractExecError> {
+    ) -> Result<(State, Vec<Value>), ContractExecError> {
         let contract = self.contract_load(tx)?;
         let module = self.contract_compile(&contract, &tx.contract)?;
         let mut instance = self.instantiate(&tx.contract, &module, import_object)?;
@@ -157,13 +158,24 @@ where
         let func = self.get_exported_func(&instance, &tx.func_name)?;
 
         match func.call(&args) {
-            Err(_e) => Err(ContractExecError::ExecFailed),
+            Err(e) => Err(ContractExecError::ExecFailed),
             Ok(results) => {
                 let storage = self.get_instance_svm_storage_mut(&mut instance);
                 let state = storage.commit();
+                let results = self.cast_wasmer_results(results)?;
+
                 Ok((state, results))
             }
         }
+    }
+
+    fn cast_wasmer_results(
+        &self,
+        results: Vec<wasmer_runtime::Value>,
+    ) -> Result<Vec<Value>, ContractExecError> {
+        let res = Vec::new();
+
+        Ok(res)
     }
 
     fn instantiate(
@@ -177,7 +189,10 @@ where
         let instantiate = module.instantiate(import_object);
 
         match instantiate {
-            Err(_e) => Err(ContractExecError::InstantiationFailed(addr.clone())),
+            Err(e) => {
+                dbg!(&e);
+                Err(ContractExecError::InstantiationFailed(addr.clone()))
+            }
             Ok(instance) => Ok(instance),
         }
     }

@@ -3,7 +3,7 @@ use cbindgen::{Builder, Language};
 use std::{env, fs, path::PathBuf};
 
 fn main() {
-    gen_for_c();
+    // gen_for_c();
 }
 fn gen_for_c() {
     let crate_dir = env::var("CARGO_MANIFEST_DIR").unwrap();

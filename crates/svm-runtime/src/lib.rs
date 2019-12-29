@@ -1,5 +1,5 @@
-#![deny(missing_docs)]
-#![deny(unused)]
+#![allow(missing_docs)]
+#![allow(unused)]
 
 //! `SVM-runtime` crate is the glue between `SVM` to `wasmer`.
 
@@ -30,3 +30,5 @@ pub mod vmcalls;
 
 /// Options when spawning a new `SVM` runtime instance
 pub mod settings;
+
+pub mod value;

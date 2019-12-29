@@ -1,13 +1,12 @@
 use std::ffi::c_void;
 use std::slice;
 
-use crate::RuntimePtr;
+use crate::{
+    svm_import_func_sig_t, svm_import_func_t, svm_import_kind, svm_import_t, svm_value_type,
+    RuntimePtr,
+};
 use svm_runtime::traits::Runtime;
 
-use wasmer_runtime::{Global, Memory, Module, Table};
-use wasmer_runtime_c_api::{
-    export::wasmer_import_export_kind, import::wasmer_import_t, wasmer_result_t,
-};
 use wasmer_runtime_core::export::Export;
 
 #[inline(always)]
@@ -24,12 +23,12 @@ pub unsafe fn cast_host_imports(
     imports: *mut c_void,
     imports_len: libc::c_uint,
 ) -> Vec<(String, String, Export)> {
-    // function code extracted from `wasmer_import_object_extend` here:
+    // function code has been influenced heavily by `wasmer_import_object_extend` here:
     // https://github.com/wasmerio/wasmer/blob/f9bb579c05abc795d597a03352683fc62a4121d5/lib/runtime-c-api/src/import/mod.rs#L373
 
     let mut res: Vec<(String, String, Export)> = Vec::new();
 
-    let imports: &[wasmer_import_t] = slice::from_raw_parts(imports as _, imports_len as usize);
+    let imports: &[svm_import_t] = slice::from_raw_parts(imports as _, imports_len as usize);
 
     for import in imports {
         let module_name = slice::from_raw_parts(
@@ -39,7 +38,7 @@ pub unsafe fn cast_host_imports(
         let module_name = if let Ok(s) = std::str::from_utf8(module_name) {
             s
         } else {
-            panic!("error converting module name to string".to_string());
+            panic!("error converting `module_name` to string".to_string());
         };
 
         let import_name = slice::from_raw_parts(
@@ -53,27 +52,19 @@ pub unsafe fn cast_host_imports(
             panic!("error converting import_name to string".to_string());
         };
 
-        let export = match import.tag {
-            wasmer_import_export_kind::WASM_MEMORY => {
-                let mem = import.value.memory as *mut Memory;
-                Export::Memory((&*mem).clone())
+        let wasmer_import = match import.kind {
+            svm_import_kind::SVM_FUNCTION => {
+                crate::wasmer::to_wasmer_import_func(import.value.func)
             }
-            wasmer_import_export_kind::WASM_FUNCTION => {
-                let func_export = import.value.func as *mut Export;
-                (&*func_export).clone()
-            }
-            wasmer_import_export_kind::WASM_GLOBAL => {
-                let global = import.value.global as *mut Global;
-                Export::Global((&*global).clone())
-            }
-            wasmer_import_export_kind::WASM_TABLE => {
-                let table = import.value.table as *mut Table;
-                Export::Table((&*table).clone())
-            }
+            _ => todo!(),
         };
 
-        let export_tuple = (module_name.to_string(), import_name.to_string(), export);
-        res.push(export_tuple);
+        let import_tuple = (
+            module_name.to_string(),
+            import_name.to_string(),
+            wasmer_import,
+        );
+        res.push(import_tuple);
     }
 
     res
