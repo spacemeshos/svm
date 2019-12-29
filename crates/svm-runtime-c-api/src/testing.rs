@@ -3,25 +3,17 @@ use std::ffi::c_void;
 use std::rc::Rc;
 use std::sync::Arc;
 
-use crate::{helpers, svm_result_t, RuntimePtr};
+use crate::{
+    helpers, svm_byte_array, svm_import_func_sig_t, svm_import_func_t, svm_import_kind,
+    svm_import_t, svm_import_value, svm_result_t, svm_value_type, RuntimePtr,
+};
 use log::debug;
 
 use svm_kv::memory::MemKVStore;
-
-use wasmer_runtime_c_api::{
-    export::{wasmer_import_export_kind, wasmer_import_export_value},
-    import::{wasmer_import_func_t, wasmer_import_t},
-    instance::wasmer_instance_context_t,
-    wasmer_byte_array,
-};
-
-use wasmer_runtime_core::{
-    export::{Context, Export, FuncPointer},
-    types::{FuncSig, Type},
-    vm::Ctx,
-};
-
 use svm_runtime::{ctx::SvmCtx, traits::Runtime};
+
+use wasmer_runtime_c_api::instance::wasmer_instance_context_t;
+use wasmer_runtime_core::vm::Ctx;
 
 #[must_use]
 #[no_mangle]
@@ -78,21 +70,7 @@ pub unsafe fn cast_to_wasmer_ctx<'a>(ctx: *mut wasmer_instance_context_t) -> &'a
     &mut *(ctx as *mut Ctx)
 }
 
-pub unsafe fn wasmer_import_func_build(
-    func: FuncPointer,
-    params: Vec<Type>,
-    returns: Vec<Type>,
-) -> *mut wasmer_import_func_t {
-    let export = Export::Function {
-        func: func,
-        ctx: Context::Internal,
-        signature: Arc::new(FuncSig::new(params, returns)),
-    };
-
-    Box::into_raw(Box::new(export)) as _
-}
-
-pub unsafe fn wasmer_import_func_destroy(func: *mut wasmer_import_func_t) {
+pub unsafe fn svm_import_func_destroy(func: *mut svm_import_func_t) {
     Box::from_raw(func);
 }
 
@@ -103,31 +81,55 @@ pub fn str_to_bytes(s: &str) -> (*const u8, u32) {
     (bytes, bytes_len)
 }
 
-pub unsafe fn wasmer_import_func_create(
+pub unsafe fn import_func_create(
     module_name: &str,
     import_name: &str,
-    func: FuncPointer,
-    params: Vec<Type>,
-    returns: Vec<Type>,
-) -> wasmer_import_t {
-    let module_name = str_to_wasmer_byte_array(module_name);
-    let import_name = str_to_wasmer_byte_array(import_name);
-    let func = wasmer_import_func_build(func, params, returns);
+    func: *const c_void,
+    params: Vec<svm_value_type>,
+    returns: Vec<svm_value_type>,
+) -> svm_import_t {
+    let module_name = str_to_svm_byte_array(module_name);
+    let import_name = str_to_svm_byte_array(import_name);
+    let func = svm_import_func_build(func, params, returns);
 
-    wasmer_import_t {
+    let func: *const svm_import_func_t = Box::into_raw(Box::new(func));
+
+    svm_import_t {
         module_name,
         import_name,
-        tag: wasmer_import_export_kind::WASM_FUNCTION,
-        value: wasmer_import_as_value(func),
+        kind: svm_import_kind::SVM_FUNCTION,
+        value: svm_import_value { func },
     }
 }
 
-fn str_to_wasmer_byte_array(s: &str) -> wasmer_byte_array {
+fn str_to_svm_byte_array(s: &str) -> svm_byte_array {
     let (bytes, bytes_len) = str_to_bytes(s);
 
-    wasmer_byte_array { bytes, bytes_len }
+    svm_byte_array { bytes, bytes_len }
 }
 
-fn wasmer_import_as_value(func: *const wasmer_import_func_t) -> wasmer_import_export_value {
-    wasmer_import_export_value { func }
+fn svm_import_func_build(
+    func: *const c_void,
+    params: Vec<svm_value_type>,
+    returns: Vec<svm_value_type>,
+) -> svm_import_func_t {
+    let params_len = params.len() as u32;
+    let returns_len = returns.len() as u32;
+
+    let sig = svm_import_func_sig_t {
+        params: params.as_ptr(),
+        params_len,
+        returns: returns.as_ptr(),
+        returns_len,
+    };
+
+    svm_import_func_t { func, sig }
 }
+
+// let export = Export::Function {
+//     func: func,
+//     ctx: Context::Internal,
+//     signature: Arc::new(FuncSig::new(params, returns)),
+// };
+//
+// Box::into_raw(Box::new(export)) as _

@@ -10,13 +10,6 @@ use std::collections::HashMap;
 use std::ffi::c_void;
 use std::rc::Rc;
 
-use wasmer_runtime_c_api::{
-    export::{wasmer_import_export_kind, wasmer_import_export_value},
-    import::{wasmer_import_func_new, wasmer_import_func_t, wasmer_import_t},
-    value::wasmer_value_tag,
-    wasmer_byte_array, wasmer_result_t,
-};
-
 use wasmer_runtime_core::{
     export::{Context, Export, FuncPointer},
     types::{FuncSig, Type},
@@ -79,15 +72,6 @@ unsafe extern "C" fn set_balance(raw_ctx: *mut c_void, value: i64, reg_bits: i32
     host.set_balance(&addr, value);
 }
 
-// macro_rules! raw_kv {
-//     ($kv:ident) => {{
-//         use std::cell::RefCell;
-//         use std::rc::Rc;
-//
-//         &$kv as *const Rc<RefCell<_>> as _
-//     }};
-// }
-
 macro_rules! raw_imports {
     ($imports:ident) => {{
         $imports.as_mut_ptr() as *mut _
@@ -95,7 +79,7 @@ macro_rules! raw_imports {
 }
 
 unsafe fn create_imports() -> (Vec<wasmer_import_t>, u32) {
-    let get_balance_import = testing::wasmer_import_func_create(
+    let get_balance_import = testing::import_func_create(
         "env",
         "get_balance",
         FuncPointer::new(get_balance as _),
