@@ -1,7 +1,8 @@
 use std::convert::TryFrom;
+use svm_runtime::value::Value;
 
-use wasmer_runtime_c_api::value::{wasmer_value, wasmer_value_t, wasmer_value_tag};
-
+#[allow(non_snake_case)]
+#[derive(Debug, PartialEq)]
 #[repr(C)]
 pub enum svm_value_type {
     I32 = 1,
@@ -15,49 +16,53 @@ pub union svm_value {
     pub I64: i64,
 }
 
+#[allow(non_snake_case)]
 #[repr(C)]
 pub struct svm_value_t {
     pub ty: svm_value_type,
     pub value: svm_value,
 }
 
-pub enum ConvertValueError {
-    NotSupportedType,
-}
-
-impl TryFrom<wasmer_value_tag> for svm_value_type {
-    type Error = ConvertValueError;
-
-    fn try_from(tag: wasmer_value_tag) -> Result<Self, Self::Error> {
-        match tag {
-            wasmer_value_tag::WASM_I32 => Ok(svm_value_type::I32),
-            wasmer_value_tag::WASM_I64 => Ok(svm_value_type::I64),
-            _ => Err(ConvertValueError::NotSupportedType),
+impl From<&Value> for svm_value_t {
+    fn from(other: &Value) -> Self {
+        match *other {
+            Value::I32(v) => svm_value_t {
+                ty: svm_value_type::I32,
+                value: svm_value { I32: v },
+            },
+            Value::I64(v) => svm_value_t {
+                ty: svm_value_type::I64,
+                value: svm_value { I64: v },
+            },
         }
     }
 }
 
-impl TryFrom<wasmer_value> for svm_value {
-    type Error = ConvertValueError;
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    fn try_from(value: wasmer_value) -> Result<Self, Self::Error> {
+    #[test]
+    fn svm_value_t_from_value_i32() {
+        let value = Value::I32(10);
+        let raw_value = svm_value_t::from(&value);
+        assert_eq!(svm_value_type::I32, raw_value.ty);
+
         unsafe {
-            match value {
-                wasmer_value { I32: v } => Ok(svm_value { I32: v }),
-                wasmer_value { I64: v } => Ok(svm_value { I64: v }),
-                _ => Err(ConvertValueError::NotSupportedType),
-            }
+            let svm_value { I32: v } = raw_value.value;
+            assert_eq!(10, v);
         }
     }
-}
 
-impl TryFrom<wasmer_value_t> for svm_value_t {
-    type Error = ConvertValueError;
+    #[test]
+    fn svm_value_t_from_value_i64() {
+        let value = Value::I64(10);
+        let raw_value = svm_value_t::from(&value);
+        assert_eq!(svm_value_type::I64, raw_value.ty);
 
-    fn try_from(value: wasmer_value_t) -> Result<Self, Self::Error> {
-        let ty = svm_value_type::try_from(value.tag)?;
-        let value = svm_value::try_from(value.value)?;
-
-        Ok(svm_value_t { ty, value })
+        unsafe {
+            let svm_value { I64: v } = raw_value.value;
+            assert_eq!(10, v);
+        }
     }
 }

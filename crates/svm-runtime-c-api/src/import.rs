@@ -6,24 +6,45 @@ pub struct svm_byte_array {
     pub bytes_len: u32,
 }
 
-#[repr(C)]
+#[repr(u32)]
 pub enum svm_import_kind {
-    FUNCTION = 0,
+    SVM_FUNCTION = 0,
 }
 
 #[repr(C)]
-pub struct svm_import_value {
-    //
+pub union svm_import_value {
+    pub func: *const svm_import_func_t,
 }
+
+struct svm_import_func_t;
 
 #[repr(C)]
 pub struct svm_import_t {
-    pub module_bytes: svm_byte_array,
+    pub module_name: svm_byte_array,
     pub import_name: svm_byte_array,
     pub kind: svm_import_kind,
     pub value: svm_import_value,
 }
 
 pub(crate) fn to_wasmer_import(import: *mut svm_import_t) -> (String, String, Export) {
-    todo!()
+    let module_name = slice::from_raw_parts(
+        import.module_name.bytes,
+        import.module_name.bytes_len as usize,
+    );
+    let module_name = if let Ok(s) = std::str::from_utf8(module_name) {
+        s
+    } else {
+        panic!("error converting module name to string".to_string());
+    };
+
+    let import_name = slice::from_raw_parts(
+        import.import_name.bytes,
+        import.import_name.bytes_len as usize,
+    );
+
+    let import_name = if let Ok(s) = std::str::from_utf8(import_name) {
+        s
+    } else {
+        panic!("error converting import_name to string".to_string());
+    };
 }

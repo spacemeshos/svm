@@ -5,9 +5,7 @@ use svm_common::{Address, State};
 use svm_contract::{transaction::Transaction, wasm::Contract};
 use svm_runtime::{ctx::SvmCtx, settings::ContractSettings, traits::Runtime, Receipt};
 
-use crate::{helpers, svm_result_t, RuntimePtr};
-
-use wasmer_runtime_c_api::value::wasmer_value_t;
+use crate::{helpers, svm_result_t, svm_value_t, RuntimePtr};
 
 /// Creates a new SVM Runtime instance.
 /// Returns it via the `raw_runtime` parameter.
@@ -215,7 +213,7 @@ pub unsafe extern "C" fn svm_receipt_status(raw_receipt: *const c_void) -> bool 
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_receipt_results(
-    results: *mut *mut wasmer_value_t,
+    raw_results: *mut *mut svm_value_t,
     raw_receipt: *const c_void,
     results_len: *mut u32,
 ) {
@@ -224,18 +222,18 @@ pub unsafe extern "C" fn svm_receipt_results(
     let receipt = svm_common::from_raw::<Receipt>(raw_receipt);
 
     if receipt.success {
-        let mut c_results = Vec::with_capacity(*results_len as usize);
+        let mut results: Vec<svm_value_t> = Vec::with_capacity(*results_len as usize);
 
         for value in receipt.results.iter() {
-            let c_value = wasmer_value_t::from(value.clone());
-            c_results.push(c_value);
+            let raw_value = svm_value_t::from(value);
+            results.push(raw_value);
         }
 
-        // TODO: free `c_results` memory after usage
-        let c_results: &mut Vec<wasmer_value_t> = Box::leak(Box::new(c_results));
+        // TODO: free `results` memory after usage
+        let results: &mut Vec<svm_value_t> = Box::leak(Box::new(results));
 
-        *results = c_results.as_mut_ptr();
-        *results_len = receipt.results.len() as u32;
+        *results_len = results.len() as u32;
+        *raw_results = results.as_mut_ptr();
     } else {
         let msg = "method not allowed to be called when transaction execution failed";
         error!("{}", msg);
