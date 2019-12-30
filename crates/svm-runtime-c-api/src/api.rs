@@ -8,8 +8,9 @@ use svm_contract::{transaction::Transaction, wasm::Contract};
 use svm_runtime::{ctx::SvmCtx, settings::ContractSettings, traits::Runtime, Receipt};
 
 use crate::{
-    helpers, svm_byte_array, svm_import_func_sig_t, svm_import_func_t, svm_import_t, svm_result_t,
-    svm_value_t, svm_value_type, svm_value_type_array, RuntimePtr,
+    helpers, svm_byte_array, svm_import_func_sig_t, svm_import_func_t, svm_import_kind,
+    svm_import_t, svm_import_value, svm_result_t, svm_value_t, svm_value_type,
+    svm_value_type_array, RuntimePtr,
 };
 
 /// Creates a new SVM Runtime instance.
@@ -21,7 +22,7 @@ pub unsafe extern "C" fn svm_runtime_create(
     path_bytes: *const c_void,
     path_len: libc::c_uint,
     host: *mut c_void,
-    imports: *mut svm_import_t,
+    imports: *const *const svm_import_t,
     imports_len: libc::c_uint,
 ) -> svm_result_t {
     debug!("`svm_runtime_create` start");
@@ -34,8 +35,8 @@ pub unsafe extern "C" fn svm_runtime_create(
         return svm_result_t::SVM_FAILURE;
     }
 
-    let imports = helpers::cast_host_imports(imports, imports_len);
-    let runtime = svm_runtime::create_rocksdb_runtime(host, &path.unwrap(), imports);
+    let wasmer_imports = helpers::cast_imports_to_wasmer_imports(imports, imports_len);
+    let runtime = svm_runtime::create_rocksdb_runtime(host, &path.unwrap(), wasmer_imports);
 
     let runtime: Box<dyn Runtime> = Box::new(runtime);
 
@@ -61,16 +62,13 @@ pub unsafe extern "C" fn svm_runtime_destroy(raw_runtime: *mut c_void) -> svm_re
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_import_func_build(
-    import: *mut *mut svm_import_func_t,
-    module_name: *const svm_byte_array,
-    import_name: *const svm_byte_array,
-    func: *mut c_void,
-    params: *const svm_value_type_array,
-    returns: *const svm_value_type_array,
+    raw_import: *mut *mut svm_import_t,
+    module_name: svm_byte_array,
+    import_name: svm_byte_array,
+    func: *const c_void,
+    params: svm_value_type_array,
+    returns: svm_value_type_array,
 ) -> svm_result_t {
-    let params = &*params;
-    let returns = &*returns;
-
     let sig = svm_import_func_sig_t {
         params: params.types,
         returns: returns.types,
@@ -79,7 +77,18 @@ pub unsafe extern "C" fn svm_import_func_build(
     };
 
     let func = svm_import_func_t { func, sig };
-    *import = Box::into_raw(Box::new(func));
+    let func = Box::into_raw(Box::new(func));
+
+    let import = svm_import_t {
+        module_name,
+        import_name,
+        kind: svm_import_kind::SVM_FUNCTION,
+        value: svm_import_value { func },
+    };
+
+    let import = Box::into_raw(Box::new(import));
+
+    *raw_import = import;
 
     svm_result_t::SVM_SUCCESS
 }

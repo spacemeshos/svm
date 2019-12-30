@@ -1,21 +1,17 @@
-#![allow(unused)]
-
 extern crate svm_runtime_c_api;
 
 use svm_runtime_c_api as api;
-use svm_runtime_c_api::{helpers, svm_import_t, svm_result_t, svm_value_type, testing};
+use svm_runtime_c_api::{svm_import_t, svm_value_type, testing};
 
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ffi::c_void;
-use std::rc::Rc;
 
 use svm_common::{Address, State};
 use svm_contract::{
     build::{WireContractBuilder, WireTxBuilder},
     wasm::WasmArgValue,
 };
-use svm_runtime::{ctx::SvmCtx, register::SvmReg};
+use svm_runtime::register::SvmReg;
 
 struct Host {
     balance: HashMap<Address, i64>,
@@ -70,13 +66,7 @@ unsafe extern "C" fn set_balance(ctx: *mut c_void, value: i64, reg_bits: i32, re
     host.set_balance(&addr, value);
 }
 
-macro_rules! raw_imports {
-    ($imports:ident) => {{
-        $imports.as_mut_ptr() as *mut _
-    }};
-}
-
-unsafe fn create_imports() -> (Vec<svm_import_t>, u32) {
+unsafe fn create_imports() -> (Vec<*const svm_import_t>, u32) {
     let get_balance_import = testing::import_func_create(
         "env",
         "get_balance",
@@ -161,7 +151,7 @@ unsafe fn do_transaction_exec() {
     let mut host = Host::new();
     let mut kv = std::ptr::null_mut();
     let mut runtime = std::ptr::null_mut();
-    let (mut imports, imports_len) = create_imports();
+    let (imports, imports_len) = create_imports();
 
     testing::svm_memory_kv_create(&mut kv);
 
@@ -169,7 +159,7 @@ unsafe fn do_transaction_exec() {
         &mut runtime,
         kv,
         host.as_mut_ptr(),
-        raw_imports!(imports),
+        imports.as_ptr(),
         imports_len,
     );
     assert_eq!(true, res.as_bool());

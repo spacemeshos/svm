@@ -18,8 +18,8 @@ pub unsafe fn cast_to_runtime_mut<'a>(raw_runtime: *mut c_void) -> &'a mut Box<d
     &mut *(raw_runtime as *mut RuntimePtr)
 }
 
-pub unsafe fn cast_host_imports(
-    imports: *mut svm_import_t,
+pub unsafe fn cast_imports_to_wasmer_imports(
+    imports: *const *const svm_import_t,
     imports_len: libc::c_uint,
 ) -> Vec<(String, String, Export)> {
     // function code has been influenced heavily by `wasmer_import_object_extend` here:
@@ -27,9 +27,11 @@ pub unsafe fn cast_host_imports(
 
     let mut res: Vec<(String, String, Export)> = Vec::new();
 
-    let imports: &[svm_import_t] = slice::from_raw_parts(imports as _, imports_len as usize);
+    let imports: &[*const svm_import_t] = slice::from_raw_parts(imports as _, imports_len as usize);
 
     for import in imports {
+        let import: &svm_import_t = &**import;
+
         let module_name = slice::from_raw_parts(
             import.module_name.bytes,
             import.module_name.bytes_len as usize,
