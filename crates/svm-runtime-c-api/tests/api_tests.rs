@@ -1,21 +1,17 @@
-#![allow(unused)]
-
 extern crate svm_runtime_c_api;
 
 use svm_runtime_c_api as api;
-use svm_runtime_c_api::{helpers, svm_import_t, svm_result_t, svm_value_type, testing};
+use svm_runtime_c_api::{svm_import_t, svm_value_type, testing};
 
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ffi::c_void;
-use std::rc::Rc;
 
 use svm_common::{Address, State};
 use svm_contract::{
     build::{WireContractBuilder, WireTxBuilder},
     wasm::WasmArgValue,
 };
-use svm_runtime::{ctx::SvmCtx, register::SvmReg};
+use svm_runtime::register::SvmReg;
 
 struct Host {
     balance: HashMap<Address, i64>,
@@ -56,35 +52,27 @@ unsafe fn extract_reg<'a>(raw_ctx: *mut c_void, reg_bits: i32, reg_idx: i32) -> 
 
 unsafe extern "C" fn get_balance(ctx: *mut c_void, reg_bits: i32, reg_idx: i32) -> i64 {
     let host = extract_host(ctx);
-
     let reg = extract_reg(ctx, reg_bits, reg_idx);
-    let addr = Address::from(reg.as_ptr());
 
+    let addr = Address::from(reg.as_ptr());
     host.get_balance(&addr).unwrap_or(0)
 }
 
 unsafe extern "C" fn set_balance(ctx: *mut c_void, value: i64, reg_bits: i32, reg_idx: i32) {
     let host = extract_host(ctx);
-
     let reg = extract_reg(ctx, reg_bits, reg_idx);
-    let addr = Address::from(reg.as_ptr());
 
+    let addr = Address::from(reg.as_ptr());
     host.set_balance(&addr, value);
 }
 
-macro_rules! raw_imports {
-    ($imports:ident) => {{
-        $imports.as_mut_ptr() as *mut _
-    }};
-}
-
-unsafe fn create_imports() -> (Vec<svm_import_t>, u32) {
+unsafe fn create_imports() -> (Vec<*const svm_import_t>, u32) {
     let get_balance_import = testing::import_func_create(
         "env",
         "get_balance",
         get_balance as _,
-        vec![svm_value_type::I32, svm_value_type::I32],
-        vec![svm_value_type::I64],
+        vec![svm_value_type::SVM_I32, svm_value_type::SVM_I32],
+        vec![svm_value_type::SVM_I64],
     );
 
     let set_balance_import = testing::import_func_create(
@@ -92,15 +80,14 @@ unsafe fn create_imports() -> (Vec<svm_import_t>, u32) {
         "set_balance",
         set_balance as _,
         vec![
-            svm_value_type::I64,
-            svm_value_type::I32,
-            svm_value_type::I32,
+            svm_value_type::SVM_I64,
+            svm_value_type::SVM_I32,
+            svm_value_type::SVM_I32,
         ],
         vec![],
     );
 
     let imports = vec![get_balance_import, set_balance_import];
-
     let imports_len = imports.len() as u32;
 
     (imports, imports_len)
@@ -163,7 +150,7 @@ unsafe fn do_transaction_exec() {
     let mut host = Host::new();
     let mut kv = std::ptr::null_mut();
     let mut runtime = std::ptr::null_mut();
-    let (mut imports, imports_len) = create_imports();
+    let (imports, imports_len) = create_imports();
 
     testing::svm_memory_kv_create(&mut kv);
 
@@ -171,7 +158,7 @@ unsafe fn do_transaction_exec() {
         &mut runtime,
         kv,
         host.as_mut_ptr(),
-        raw_imports!(imports),
+        imports.as_ptr(),
         imports_len,
     );
     assert_eq!(true, res.as_bool());

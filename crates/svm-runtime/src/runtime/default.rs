@@ -1,3 +1,4 @@
+use std::convert::TryFrom;
 use std::ffi::c_void;
 
 use log::{debug, error, info};
@@ -173,9 +174,21 @@ where
         &self,
         results: Vec<wasmer_runtime::Value>,
     ) -> Result<Vec<Value>, ContractExecError> {
-        let res = Vec::new();
+        let mut values = Vec::new();
 
-        Ok(res)
+        for wasmer_val in results.iter() {
+            match Value::try_from(wasmer_val) {
+                Err(_e) => {
+                    return Err(ContractExecError::InvalidResultValue(format!(
+                        "{:?}",
+                        wasmer_val
+                    )))
+                }
+                Ok(v) => values.push(v),
+            }
+        }
+
+        Ok(values)
     }
 
     fn instantiate(

@@ -1,11 +1,10 @@
 use std::cell::RefCell;
 use std::ffi::c_void;
 use std::rc::Rc;
-use std::sync::Arc;
 
 use crate::{
     helpers, svm_byte_array, svm_import_func_sig_t, svm_import_func_t, svm_import_kind,
-    svm_import_t, svm_import_value, svm_result_t, svm_value_type, RuntimePtr,
+    svm_import_t, svm_import_value, svm_result_t, svm_value_type, svm_value_type_array, RuntimePtr,
 };
 use log::debug;
 
@@ -15,7 +14,6 @@ use svm_runtime::{ctx::SvmCtx, traits::Runtime};
 use wasmer_runtime_c_api::instance::wasmer_instance_context_t;
 use wasmer_runtime_core::vm::Ctx;
 
-#[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_memory_kv_create(raw_kv: *mut *mut c_void) {
     let kv = svm_runtime::testing::memory_kv_store_init();
@@ -30,14 +28,14 @@ pub unsafe extern "C" fn svm_memory_runtime_create(
     raw_runtime: *mut *mut c_void,
     kv: *const c_void,
     host: *mut c_void,
-    imports: *mut c_void,
+    imports: *const *const svm_import_t,
     imports_len: libc::c_uint,
 ) -> svm_result_t {
     debug!("`svm_runtime_create` start");
 
     let kv: &Rc<RefCell<MemKVStore>> = &*(kv as *const Rc<RefCell<MemKVStore>>);
-    let imports = helpers::cast_host_imports(imports, imports_len);
-    let runtime = svm_runtime::testing::create_memory_runtime(host, kv, imports);
+    let wasmer_imports = helpers::cast_imports_to_wasmer_imports(imports, imports_len);
+    let runtime = svm_runtime::testing::create_memory_runtime(host, kv, wasmer_imports);
 
     let runtime: Box<dyn Runtime> = Box::new(runtime);
 
@@ -74,58 +72,44 @@ pub unsafe fn svm_import_func_destroy(func: *mut svm_import_func_t) {
     Box::from_raw(func);
 }
 
-pub fn str_to_bytes(s: &str) -> (*const u8, u32) {
+pub fn str_to_svm_byte_array(s: &str) -> svm_byte_array {
     let bytes = s.as_ptr();
     let bytes_len = s.len() as u32;
 
-    (bytes, bytes_len)
+    svm_byte_array { bytes, bytes_len }
+}
+
+pub fn svm_value_type_vec_to_array(vec: &Vec<svm_value_type>) -> svm_value_type_array {
+    let types_len = vec.len() as u32;
+    let types = vec.as_ptr();
+
+    svm_value_type_array { types, types_len }
 }
 
 pub unsafe fn import_func_create(
     module_name: &str,
     import_name: &str,
-    func: *const c_void,
+    func: *mut c_void,
     params: Vec<svm_value_type>,
     returns: Vec<svm_value_type>,
-) -> svm_import_t {
+) -> *const svm_import_t {
     let module_name = str_to_svm_byte_array(module_name);
     let import_name = str_to_svm_byte_array(import_name);
-    let func = svm_import_func_build(func, params, returns);
-    let func: *mut svm_import_func_t = Box::into_raw(Box::new(func));
 
-    svm_import_t {
+    let mut raw_import = std::ptr::null_mut();
+
+    let res = crate::svm_import_func_build(
+        &mut raw_import,
         module_name,
         import_name,
-        kind: svm_import_kind::SVM_FUNCTION,
-        value: svm_import_value {
-            func: func as *mut c_void,
-        },
-    }
-}
-
-fn str_to_svm_byte_array(s: &str) -> svm_byte_array {
-    let (bytes, bytes_len) = str_to_bytes(s);
-
-    svm_byte_array { bytes, bytes_len }
-}
-
-fn svm_import_func_build(
-    func: *const c_void,
-    params: Vec<svm_value_type>,
-    returns: Vec<svm_value_type>,
-) -> svm_import_func_t {
-    let params_len = params.len() as u32;
-    let returns_len = returns.len() as u32;
-
-    let sig = svm_import_func_sig_t {
-        params: params.as_ptr(),
-        returns: returns.as_ptr(),
-        params_len,
-        returns_len,
-    };
+        func,
+        svm_value_type_vec_to_array(&params),
+        svm_value_type_vec_to_array(&returns),
+    );
+    assert_eq!(true, res.as_bool());
 
     std::mem::forget(params);
     std::mem::forget(returns);
 
-    svm_import_func_t { func, sig }
+    raw_import
 }

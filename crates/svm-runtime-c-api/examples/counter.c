@@ -173,7 +173,6 @@ void host_inc_counter(void *ctx, uint32_t value) {
 uint32_t host_get_counter(void *ctx) {
   host_t *host = (host_t*)(svm_instance_context_host_get(ctx));
   return host->counter;
-  return 0;
 }
 
 svm_result_t do_contract_deploy(uint8_t **addr, void *runtime, uint8_t *bytes, uint64_t bytes_len) {
@@ -197,38 +196,65 @@ svm_result_t do_contract_deploy(uint8_t **addr, void *runtime, uint8_t *bytes, u
   return SVM_SUCCESS;
 }
 
-wasmer_import_t create_import(const char *module_name, const char *import_name, wasmer_import_func_t *func) {
-  wasmer_byte_array module_name_bytes;
-  module_name_bytes.bytes = (const uint8_t *) module_name;
-  module_name_bytes.bytes_len = strlen(module_name);
+const svm_import_t* inc_counter_import_build() {
+  svm_byte_array module_name;
+  module_name.bytes = (const uint8_t *)"env";
+  module_name.bytes_len = strlen("env");
 
-  wasmer_byte_array import_name_bytes;
-  import_name_bytes.bytes = (const uint8_t *) import_name;
-  import_name_bytes.bytes_len = strlen(import_name);
+  svm_byte_array inc_name;
+  inc_name.bytes = (const uint8_t *)"inc_counter";
+  inc_name.bytes_len = strlen("inc_counter");
 
-  wasmer_import_t import;
-  import.module_name = module_name_bytes;
-  import.import_name = import_name_bytes;
-  import.tag = WASM_FUNCTION;
-  import.value.func = func;
+  svm_value_type* types = (svm_value_type*)malloc(sizeof(svm_value_type));
+  types[0] = SVM_I32;
+
+  svm_value_type_array inc_params;
+  inc_params.types = types;
+  inc_params.types_len = 1;
+
+  svm_value_type_array inc_returns;
+  inc_returns.types = NULL;
+  inc_returns.types_len = 0;
+
+  svm_import_t *import = NULL;
+  svm_result_t res = svm_import_func_build(&import, module_name, inc_name, host_inc_counter, inc_params, inc_returns);
+  assert(res == SVM_SUCCESS);
 
   return import;
 }
 
-wasmer_import_t* imports_build() {
-  wasmer_import_t *imports = (wasmer_import_t*)(malloc(sizeof(wasmer_import_t) * 2));
+const svm_import_t* get_counter_import_build() {
+  svm_byte_array module_name;
+  module_name.bytes = (const uint8_t *)"env";
+  module_name.bytes_len = strlen("env");
 
-  // Prepare import for `host_inc_counter`
-  wasmer_value_tag inc_params[] = {WASM_I32};
-  wasmer_value_tag inc_returns[] = {};
-  wasmer_import_func_t *inc_func = wasmer_import_func_new((void (*)(void *)) host_inc_counter, inc_params, 1, inc_returns, 0);
-  imports[0] = create_import("env", "inc_counter", inc_func);
+  svm_byte_array get_name;
+  get_name.bytes = (const uint8_t *)"get_counter";
+  get_name.bytes_len = strlen("get_counter");
 
-  // Prepare import for `host_get_counter`
-  wasmer_value_tag get_params[] = {};
-  wasmer_value_tag get_returns[] = {WASM_I32};
-  wasmer_import_func_t *get_func = wasmer_import_func_new((void (*)(void *)) host_get_counter, get_params, 0, get_returns, 1);
-  imports[1] = create_import("env", "get_counter", get_func);
+  svm_value_type_array get_params;
+  get_params.types = NULL;
+  get_params.types_len = 0;
+
+  svm_value_type* types = (svm_value_type*)malloc(sizeof(svm_value_type));
+  types[0] = SVM_I32;
+
+  svm_value_type_array get_returns;
+  get_returns.types = types;
+  get_returns.types_len = 1;
+
+  svm_import_t *import = NULL;
+  svm_result_t res = svm_import_func_build(&import, module_name, get_name, host_get_counter, get_params, get_returns);
+  assert(res == SVM_SUCCESS);
+
+  return import;
+}
+
+const svm_import_t** imports_build() {
+  const svm_import_t** imports = (const svm_import_t**)(malloc(sizeof(const svm_import_t*) * 2));
+
+  imports[0] = inc_counter_import_build();
+  imports[1] = get_counter_import_build();
 
   return imports;
 }
@@ -257,7 +283,7 @@ int main() {
   uint32_t balance = 10;
   host_t* host = host_new(balance);
 
-  void *imports = (void*)imports_build();
+  const svm_import_t **imports = imports_build();
   unsigned int imports_len = 2;
 
   res = svm_memory_runtime_create(&runtime, kv, host, imports, imports_len);
@@ -285,7 +311,7 @@ int main() {
   uint8_t *state = alloc_empty_state();
   void *sender = alloc_byte_address(0xBB);
 
-  // 1) First we want to assert that the counter has been initialized with `9` as expected (see `create_import_object` above)
+  /* 1) First we want to assert that the counter has been initialized with `9` as expected (see `create_import_object` above) */
   bytes_len = transaction_exec_bytes(
       &bytes,
       addr,
@@ -313,7 +339,7 @@ int main() {
     printf("%02X ", new_state[i]);
   }
 
-  wasmer_value_t *results = NULL;
+  svm_value_t *results = NULL;
   uint32_t results_len;
   svm_receipt_results(&results, receipt, &results_len);
   assert(results_len == 1);

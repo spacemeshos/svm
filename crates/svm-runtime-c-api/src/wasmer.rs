@@ -12,14 +12,14 @@ use wasmer_runtime_core::{
 impl Into<Type> for &svm_value_type {
     fn into(self) -> Type {
         match self {
-            svm_value_type::I32 => Type::I32,
-            svm_value_type::I64 => Type::I64,
+            svm_value_type::SVM_I32 => Type::I32,
+            svm_value_type::SVM_I64 => Type::I64,
         }
     }
 }
 
-pub(crate) unsafe fn to_wasmer_import_func(func: *mut c_void) -> Export {
-    let svm_func: svm_import_func_t = *Box::from_raw(func as *mut _);
+pub(crate) unsafe fn to_wasmer_import_func(func: *const svm_import_func_t) -> Export {
+    let svm_func: svm_import_func_t = *Box::from_raw(func as _);
 
     let func_ptr = svm_func.func as *mut c_void;
     let wasmer_sig = to_wasmer_func_sig(&svm_func.sig);
@@ -49,7 +49,7 @@ mod test {
 
     #[test]
     fn svm_value_type_into_wasmer_type() {
-        assert_eq!(Type::I32, (&svm_value_type::I32).into());
-        assert_eq!(Type::I64, (&svm_value_type::I64).into());
+        assert_eq!(Type::I32, (&svm_value_type::SVM_I32).into());
+        assert_eq!(Type::I64, (&svm_value_type::SVM_I64).into());
     }
 }

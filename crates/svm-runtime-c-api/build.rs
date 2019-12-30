@@ -3,7 +3,7 @@ use cbindgen::{Builder, Language};
 use std::{env, fs, path::PathBuf};
 
 fn main() {
-    // gen_for_c();
+    gen_for_c();
 }
 fn gen_for_c() {
     let crate_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
@@ -23,7 +23,6 @@ fn gen_for_c() {
         .with_crate(crate_dir.clone())
         .with_language(Language::C)
         .with_include_guard("SVM_H")
-        .with_header("#include \"wasmer.h\"")
         .with_parse_expand(&["svm-runtime-c-api"])
         .generate()
         .expect("Unable to generate C bindings")
