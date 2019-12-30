@@ -1,11 +1,16 @@
-use log::{debug, error};
 use std::ffi::c_void;
+use std::slice;
+
+use log::{debug, error};
 
 use svm_common::{Address, State};
 use svm_contract::{transaction::Transaction, wasm::Contract};
 use svm_runtime::{ctx::SvmCtx, settings::ContractSettings, traits::Runtime, Receipt};
 
-use crate::{helpers, svm_import_t, svm_result_t, svm_value_t, RuntimePtr};
+use crate::{
+    helpers, svm_byte_array, svm_import_func_sig_t, svm_import_func_t, svm_import_t, svm_result_t,
+    svm_value_t, svm_value_type, svm_value_type_array, RuntimePtr,
+};
 
 /// Creates a new SVM Runtime instance.
 /// Returns it via the `raw_runtime` parameter.
@@ -49,6 +54,32 @@ pub unsafe extern "C" fn svm_runtime_destroy(raw_runtime: *mut c_void) -> svm_re
     debug!("`svm_runtime_destroy`");
 
     let _runtime: Box<RuntimePtr> = Box::from_raw(raw_runtime as *mut RuntimePtr);
+
+    svm_result_t::SVM_SUCCESS
+}
+
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_import_func_build(
+    import: *mut *mut svm_import_func_t,
+    module_name: *const svm_byte_array,
+    import_name: *const svm_byte_array,
+    func: *mut c_void,
+    params: *const svm_value_type_array,
+    returns: *const svm_value_type_array,
+) -> svm_result_t {
+    let params = &*params;
+    let returns = &*returns;
+
+    let sig = svm_import_func_sig_t {
+        params: params.types,
+        returns: returns.types,
+        params_len: params.types_len,
+        returns_len: returns.types_len,
+    };
+
+    let func = svm_import_func_t { func, sig };
+    *import = Box::into_raw(Box::new(func));
 
     svm_result_t::SVM_SUCCESS
 }

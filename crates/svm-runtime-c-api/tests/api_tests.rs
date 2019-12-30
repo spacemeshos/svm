@@ -81,8 +81,8 @@ unsafe fn create_imports() -> (Vec<svm_import_t>, u32) {
         "env",
         "get_balance",
         get_balance as _,
-        vec![svm_value_type::I32, svm_value_type::I32],
-        vec![svm_value_type::I64],
+        vec![svm_value_type::SVM_I32, svm_value_type::SVM_I32],
+        vec![svm_value_type::SVM_I64],
     );
 
     let set_balance_import = testing::import_func_create(
@@ -90,9 +90,9 @@ unsafe fn create_imports() -> (Vec<svm_import_t>, u32) {
         "set_balance",
         set_balance as _,
         vec![
-            svm_value_type::I64,
-            svm_value_type::I32,
-            svm_value_type::I32,
+            svm_value_type::SVM_I64,
+            svm_value_type::SVM_I32,
+            svm_value_type::SVM_I32,
         ],
         vec![],
     );

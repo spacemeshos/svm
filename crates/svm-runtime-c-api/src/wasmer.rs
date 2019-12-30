@@ -12,8 +12,8 @@ use wasmer_runtime_core::{
 impl Into<Type> for &svm_value_type {
     fn into(self) -> Type {
         match self {
-            svm_value_type::I32 => Type::I32,
-            svm_value_type::I64 => Type::I64,
+            svm_value_type::SVM_I32 => Type::I32,
+            svm_value_type::SVM_I64 => Type::I64,
         }
     }
 }
@@ -49,7 +49,7 @@ mod test {
 
     #[test]
     fn svm_value_type_into_wasmer_type() {
-        assert_eq!(Type::I32, (&svm_value_type::I32).into());
-        assert_eq!(Type::I64, (&svm_value_type::I64).into());
+        assert_eq!(Type::I32, (&svm_value_type::SVM_I32).into());
+        assert_eq!(Type::I64, (&svm_value_type::SVM_I64).into());
     }
 }

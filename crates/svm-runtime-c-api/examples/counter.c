@@ -196,31 +196,33 @@ svm_result_t do_contract_deploy(uint8_t **addr, void *runtime, uint8_t *bytes, u
   return SVM_SUCCESS;
 }
 
-/* svm_import_t create_import(const char *module_name, const char *import_name, svm_import_func_t *func) { */
-/*   svm_byte_array module_name_bytes; */
-/*   module_name_bytes.bytes = (const uint8_t *) module_name; */
-/*   module_name_bytes.bytes_len = strlen(module_name); */
-/*  */
-/*   svm_byte_array import_name_bytes; */
-/*   import_name_bytes.bytes = (const uint8_t *) import_name; */
-/*   import_name_bytes.bytes_len = strlen(import_name); */
-/*  */
-/*   wasmer_import_t import; */
-/*   import.module_name = module_name_bytes; */
-/*   import.import_name = import_name_bytes; */
-/*   import.tag = WASM_FUNCTION; */
-/*   import.value.func = func; */
-/*  */
-/*   return import; */
-/* } */
+svm_import_t create_import(const char *module_name, const char *import_name, svm_import_func_t *func) {
+  svm_byte_array module_name_bytes;
+  module_name_bytes.bytes = (const uint8_t *) module_name;
+  module_name_bytes.bytes_len = strlen(module_name);
+
+  svm_byte_array import_name_bytes;
+  import_name_bytes.bytes = (const uint8_t *) import_name;
+  import_name_bytes.bytes_len = strlen(import_name);
+
+  svm_import_t import;
+  import.module_name = module_name_bytes;
+  import.import_name = import_name_bytes;
+  import.kind = SVM_FUNCTION;
+  import.value.func = func;
+
+  return import;
+}
 
 svm_import_t* imports_build() {
   svm_import_t *imports = (svm_import_t*)(malloc(sizeof(svm_import_t) * 0));
 
-  // Prepare import for `host_inc_counter`
-  /* wasmer_value_tag inc_params[] = {WASM_I32}; */
-  /* wasmer_value_tag inc_returns[] = {}; */
-  /* wasmer_import_func_t *inc_func = wasmer_import_func_new((void (*)(void *)) host_inc_counter, inc_params, 1, inc_returns, 0); */
+  /* Prepare import for `host_inc_counter` */
+  svm_value_type inc_params[] = {I32};
+  svm_value_type inc_returns[] = {};
+  svm_import_func_t *inc_func = svm_import_func_new((void (*)(void *)) host_inc_counter, inc_params, 1, inc_returns, 0);
+
+  /* svm_import_func_t *inc_func = wasmer_import_func_new((void (*)(void *)) host_inc_counter, inc_params, 1, inc_returns, 0); */
   /* imports[0] = create_import("env", "inc_counter", inc_func); */
 
   // Prepare import for `host_get_counter`
