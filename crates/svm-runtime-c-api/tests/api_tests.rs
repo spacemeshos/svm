@@ -88,7 +88,6 @@ unsafe fn create_imports() -> (Vec<*const svm_import_t>, u32) {
     );
 
     let imports = vec![get_balance_import, set_balance_import];
-
     let imports_len = imports.len() as u32;
 
     (imports, imports_len)

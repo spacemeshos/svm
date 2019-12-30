@@ -95,8 +95,6 @@ pub unsafe fn import_func_create(
 ) -> *const svm_import_t {
     let module_name = str_to_svm_byte_array(module_name);
     let import_name = str_to_svm_byte_array(import_name);
-    let params = svm_value_type_vec_to_array(&params);
-    let returns = svm_value_type_vec_to_array(&returns);
 
     let mut raw_import = std::ptr::null_mut();
 
@@ -105,11 +103,13 @@ pub unsafe fn import_func_create(
         module_name,
         import_name,
         func,
-        params,
-        returns,
+        svm_value_type_vec_to_array(&params),
+        svm_value_type_vec_to_array(&returns),
     );
-
     assert_eq!(true, res.as_bool());
+
+    std::mem::forget(params);
+    std::mem::forget(returns);
 
     raw_import
 }
