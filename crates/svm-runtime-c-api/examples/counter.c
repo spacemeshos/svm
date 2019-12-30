@@ -196,40 +196,65 @@ svm_result_t do_contract_deploy(uint8_t **addr, void *runtime, uint8_t *bytes, u
   return SVM_SUCCESS;
 }
 
-svm_import_t create_import(const char *module_name, const char *import_name, svm_import_func_t *func) {
-  svm_byte_array module_name_bytes;
-  module_name_bytes.bytes = (const uint8_t *) module_name;
-  module_name_bytes.bytes_len = strlen(module_name);
+const svm_import_t* inc_counter_import_build() {
+  svm_byte_array module_name;
+  module_name.bytes = (const uint8_t *)"env";
+  module_name.bytes_len = strlen("env");
 
-  svm_byte_array import_name_bytes;
-  import_name_bytes.bytes = (const uint8_t *) import_name;
-  import_name_bytes.bytes_len = strlen(import_name);
+  svm_byte_array inc_name;
+  inc_name.bytes = (const uint8_t *)"inc_counter";
+  inc_name.bytes_len = strlen("inc_counter");
 
-  svm_import_t import;
-  import.module_name = module_name_bytes;
-  import.import_name = import_name_bytes;
-  import.kind = SVM_FUNCTION;
-  import.value.func = func;
+  svm_value_type* types = (svm_value_type*)malloc(sizeof(svm_value_type));
+  types[0] = SVM_I32;
+
+  svm_value_type_array inc_params;
+  inc_params.types = types;
+  inc_params.types_len = 1;
+
+  svm_value_type_array inc_returns;
+  inc_returns.types = NULL;
+  inc_returns.types_len = 0;
+
+  svm_import_t *import = NULL;
+  svm_result_t res = svm_import_func_build(&import, module_name, inc_name, host_inc_counter, inc_params, inc_returns);
+  assert(res == SVM_SUCCESS);
 
   return import;
 }
 
-svm_import_t* imports_build() {
-  svm_import_t *imports = (svm_import_t*)(malloc(sizeof(svm_import_t) * 0));
+const svm_import_t* get_counter_import_build() {
+  svm_byte_array module_name;
+  module_name.bytes = (const uint8_t *)"env";
+  module_name.bytes_len = strlen("env");
 
-  /* Prepare import for `host_inc_counter` */
-  svm_value_type inc_params[] = {I32};
-  svm_value_type inc_returns[] = {};
-  svm_import_func_t *inc_func = svm_import_func_new((void (*)(void *)) host_inc_counter, inc_params, 1, inc_returns, 0);
+  svm_byte_array get_name;
+  get_name.bytes = (const uint8_t *)"get_counter";
+  get_name.bytes_len = strlen("get_counter");
 
-  /* svm_import_func_t *inc_func = wasmer_import_func_new((void (*)(void *)) host_inc_counter, inc_params, 1, inc_returns, 0); */
-  /* imports[0] = create_import("env", "inc_counter", inc_func); */
+  svm_value_type_array get_params;
+  get_params.types = NULL;
+  get_params.types_len = 0;
 
-  // Prepare import for `host_get_counter`
-  /* wasmer_value_tag get_params[] = {}; */
-  /* wasmer_value_tag get_returns[] = {WASM_I32}; */
-  /* wasmer_import_func_t *get_func = wasmer_import_func_new((void (*)(void *)) host_get_counter, get_params, 0, get_returns, 1); */
-  /* imports[1] = create_import("env", "get_counter", get_func); */
+  svm_value_type* types = (svm_value_type*)malloc(sizeof(svm_value_type));
+  types[0] = SVM_I32;
+
+  svm_value_type_array get_returns;
+  get_returns.types = types;
+  get_returns.types_len = 1;
+
+  svm_import_t *import = NULL;
+  svm_result_t res = svm_import_func_build(&import, module_name, get_name, host_get_counter, get_params, get_returns);
+  assert(res == SVM_SUCCESS);
+
+  return import;
+}
+
+const svm_import_t** imports_build() {
+  const svm_import_t** imports = (const svm_import_t**)(malloc(sizeof(const svm_import_t*) * 2));
+
+  imports[0] = inc_counter_import_build();
+  imports[1] = get_counter_import_build();
 
   return imports;
 }
@@ -258,117 +283,116 @@ int main() {
   uint32_t balance = 10;
   host_t* host = host_new(balance);
 
-  void *imports = (void*)imports_build();
-  unsigned int imports_len = 0;
+  const svm_import_t **imports = imports_build();
+  unsigned int imports_len = 2;
 
   res = svm_memory_runtime_create(&runtime, kv, host, imports, imports_len);
   assert(res == SVM_SUCCESS);
 
-  /* #<{(| `author address = 0xAA...AA` |)}># */
-  /* void *author = alloc_byte_address(0xAA); */
-  /*  */
-  /* uint8_t *bytes = NULL; */
-  /* uint64_t bytes_len = deploy_contract_bytes(&bytes, author); */
-  /*  */
-  /* uint8_t *addr; */
-  /* res = do_contract_deploy(&addr, runtime, bytes, bytes_len); */
-  /* assert(res == SVM_SUCCESS); */
-  /*  */
-  /* printf("Deployed contract successfully...\n"); */
-  /* printf("Contract account address:\n"); */
-  /*  */
-  /* for (int i = 0; i < 20; i++) { */
-  /*   printf("%d ", addr[i]); */
-  /* } */
-  /*  */
-  /* printf("\n\n"); */
-  /*  */
-  /* uint8_t *state = alloc_empty_state(); */
-  /* void *sender = alloc_byte_address(0xBB); */
-  /*  */
-  /* // 1) First we want to assert that the counter has been initialized with `9` as expected (see `create_import_object` above) */
-  /* bytes_len = transaction_exec_bytes( */
-  /*     &bytes, */
-  /*     addr, */
-  /*     (void*)sender, */
-  /*     "get", */
-  /*     strlen("get"), */
-  /*     0,    // `args_count = 0` */
-  /*     NULL, // `args_buf = NULL` */
-  /*     0);   // `args_buf_len = 0` */
-  /*  */
-  /* void *tx; */
-  /* res = svm_transaction_build(&tx, runtime, (void*)bytes, bytes_len); */
-  /* assert(res == SVM_SUCCESS); */
-  /*  */
-  /* void *receipt = NULL; */
-  /* uint32_t pages_count = 10; */
-  /* res = svm_transaction_exec(&receipt, runtime, tx, state, pages_count); */
-  /* assert(res == SVM_SUCCESS); */
-  /* assert(svm_receipt_status(receipt) == true); */
-  /*  */
-  /* const uint8_t *new_state = svm_receipt_new_state(receipt); */
-  /*  */
-  /* printf("New contract state:\n"); */
-  /* for (int i = 0; i < 32; i++) { */
-  /*   printf("%02X ", new_state[i]); */
-  /* } */
-  /*  */
-  /* wasmer_value_t *results = NULL; */
-  /* uint32_t results_len; */
-  /* svm_receipt_results(&results, receipt, &results_len); */
-  /* assert(results_len == 1); */
-  /* assert(results[0].value.I32 == 10); */
-  /*  */
-  /* uint8_t *arg = int32_arg_new(7); */
-  /*  */
-  /* #<{(| 2) Now, let's increment the counter by `7` |)}># */
-  /* bytes_len = transaction_exec_bytes( */
-  /*     &bytes, */
-  /*     addr, */
-  /*     (void*)sender, */
-  /*     "inc", */
-  /*     strlen("inc"), */
-  /*     1,     // `args_count = 1` */
-  /*     arg,   // `args_buf = [1, 0, 0, 0, 7]` */
-  /*     5);    // `args_buf_len = 5` */
-  /*  */
-  /* res = svm_transaction_build(&tx, runtime, (void*)bytes, bytes_len); */
-  /* assert(res == SVM_SUCCESS); */
-  /*  */
-  /* res = svm_transaction_exec(&receipt, runtime, tx, new_state, pages_count); */
-  /* assert(res == SVM_SUCCESS); */
-  /* assert(svm_receipt_status(receipt) == true); */
-  /*  */
-  /* svm_receipt_results(&results, receipt, &results_len); */
-  /* assert(results_len == 0); */
-  /*  */
-  /* // 3) Now, we'll verify that the counter has been modified to `10 + 7 = 17` */
-  /* bytes_len = transaction_exec_bytes( */
-  /*     &bytes, */
-  /*     addr, */
-  /*     (void*)sender, */
-  /*     "get", */
-  /*     strlen("get"), */
-  /*     0,    // `args_count = 0` */
-  /*     NULL, // `args_buf = NULL` */
-  /*     0);   // `args_buf_len = 0` */
-  /*  */
-  /* res = svm_transaction_build(&tx, runtime, (void*)bytes, bytes_len); */
-  /* assert(res == SVM_SUCCESS); */
-  /*  */
-  /* res = svm_transaction_exec(&receipt, runtime, tx, new_state, pages_count); */
-  /* assert(res == SVM_SUCCESS); */
-  /* assert(svm_receipt_status(receipt) == true); */
-  /*  */
-  /* svm_receipt_results(&results, receipt, &results_len); */
-  /* assert(results_len == 1); */
-  /* assert(results[0].value.I32 == 10 + 7); */
-  /*  */
-  /* #<{(| // TODO: clearing resources |)}># */
-  /* #<{(| free(wasm_file.bytes); |)}># */
-  /* #<{(| free(args_buf); |)}># */
-  /*  */
+  /* `author address = 0xAA...AA` */
+  void *author = alloc_byte_address(0xAA);
+
+  uint8_t *bytes = NULL;
+  uint64_t bytes_len = deploy_contract_bytes(&bytes, author);
+
+  uint8_t *addr;
+  res = do_contract_deploy(&addr, runtime, bytes, bytes_len);
+  assert(res == SVM_SUCCESS);
+
+  printf("Deployed contract successfully...\n");
+  printf("Contract account address:\n");
+
+  for (int i = 0; i < 20; i++) {
+    printf("%d ", addr[i]);
+  }
+
+  printf("\n\n");
+
+  uint8_t *state = alloc_empty_state();
+  void *sender = alloc_byte_address(0xBB);
+
+  /* 1) First we want to assert that the counter has been initialized with `9` as expected (see `create_import_object` above) */
+  bytes_len = transaction_exec_bytes(
+      &bytes,
+      addr,
+      (void*)sender,
+      "get",
+      strlen("get"),
+      0,    // `args_count = 0`
+      NULL, // `args_buf = NULL`
+      0);   // `args_buf_len = 0`
+
+  void *tx;
+  res = svm_transaction_build(&tx, runtime, (void*)bytes, bytes_len);
+  assert(res == SVM_SUCCESS);
+
+  void *receipt = NULL;
+  uint32_t pages_count = 10;
+  res = svm_transaction_exec(&receipt, runtime, tx, state, pages_count);
+  assert(res == SVM_SUCCESS);
+  assert(svm_receipt_status(receipt) == true);
+
+  const uint8_t *new_state = svm_receipt_new_state(receipt);
+
+  printf("New contract state:\n");
+  for (int i = 0; i < 32; i++) {
+    printf("%02X ", new_state[i]);
+  }
+
+  svm_value_t *results = NULL;
+  uint32_t results_len;
+  svm_receipt_results(&results, receipt, &results_len);
+  assert(results_len == 1);
+  assert(results[0].value.I32 == 10);
+
+  uint8_t *arg = int32_arg_new(7);
+
+  /* 2) Now, let's increment the counter by `7` */
+  bytes_len = transaction_exec_bytes(
+      &bytes,
+      addr,
+      (void*)sender,
+      "inc",
+      strlen("inc"),
+      1,     // `args_count = 1`
+      arg,   // `args_buf = [1, 0, 0, 0, 7]`
+      5);    // `args_buf_len = 5`
+
+  res = svm_transaction_build(&tx, runtime, (void*)bytes, bytes_len);
+  assert(res == SVM_SUCCESS);
+
+  res = svm_transaction_exec(&receipt, runtime, tx, new_state, pages_count);
+  assert(res == SVM_SUCCESS);
+  assert(svm_receipt_status(receipt) == true);
+
+  svm_receipt_results(&results, receipt, &results_len);
+  assert(results_len == 0);
+
+  // 3) Now, we'll verify that the counter has been modified to `10 + 7 = 17`
+  bytes_len = transaction_exec_bytes(
+      &bytes,
+      addr,
+      (void*)sender,
+      "get",
+      strlen("get"),
+      0,    // `args_count = 0`
+      NULL, // `args_buf = NULL`
+      0);   // `args_buf_len = 0`
+
+  res = svm_transaction_build(&tx, runtime, (void*)bytes, bytes_len);
+  assert(res == SVM_SUCCESS);
+
+  res = svm_transaction_exec(&receipt, runtime, tx, new_state, pages_count);
+  assert(res == SVM_SUCCESS);
+  assert(svm_receipt_status(receipt) == true);
+
+  svm_receipt_results(&results, receipt, &results_len);
+  assert(results_len == 1);
+  assert(results[0].value.I32 == 10 + 7);
+
+  /* // TODO: clearing resources */
+  /* free(wasm_file.bytes); */
+  /* free(args_buf); */
 
   return 0;
 }

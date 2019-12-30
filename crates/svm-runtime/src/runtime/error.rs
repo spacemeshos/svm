@@ -9,6 +9,7 @@ pub enum ContractExecError {
     InstantiationFailed(Address),
     FuncNotFound(String),
     ExecFailed,
+    InvalidResultValue(String),
 }
 
 impl std::error::Error for ContractExecError {
@@ -19,6 +20,7 @@ impl std::error::Error for ContractExecError {
             ContractExecError::InstantiationFailed(_) => "Instance Instantiation failed",
             ContractExecError::FuncNotFound(_) => "Function not found",
             ContractExecError::ExecFailed => "Execution failed",
+            ContractExecError::InvalidResultValue(_) => "Invalid result value",
         }
     }
 }
@@ -35,6 +37,9 @@ impl std::fmt::Display for ContractExecError {
             }
             ContractExecError::FuncNotFound(func) => format!("Function `{}` not found", func),
             ContractExecError::ExecFailed => "Execution failed".to_string(),
+            ContractExecError::InvalidResultValue(val) => {
+                format!("Invalid result value: `{}`", val)
+            }
         };
 
         write!(f, "{}", msg)
