@@ -6,11 +6,11 @@ use svm_runtime_c_api::{svm_import_t, svm_value_type, testing};
 use std::collections::HashMap;
 use std::ffi::c_void;
 
-use svm_common::{Address, State};
-use svm_contract::{
-    build::{WireContractBuilder, WireTxBuilder},
-    wasm::WasmArgValue,
+use svm_app::{
+    testing::{AppBuilder, AppTemplateBuilder, AppTxBuilder},
+    types::WasmArgValue,
 };
+use svm_common::{Address, State};
 use svm_runtime::register::SvmReg;
 
 struct Host {
@@ -93,34 +93,49 @@ unsafe fn create_imports() -> (Vec<*const svm_import_t>, u32) {
     (imports, imports_len)
 }
 
-fn deploy_contract_bytes(name: &str, wasm: &str, author: u32) -> (Vec<u8>, u64) {
-    let wasm = wabt::wat2wasm(wasm).unwrap();
+fn deploy_template_bytes(name: &str, author: u32, pages_count: u16, wasm: &str) -> (Vec<u8>, u64) {
+    let code = wabt::wat2wasm(wasm).unwrap();
     let author = Address::from(author);
 
-    let bytes = WireContractBuilder::new()
+    let bytes = AppTemplateBuilder::new()
         .with_version(0)
-        .with_author(author)
-        .with_code(wasm.as_slice())
         .with_name(name)
+        .with_author(&author)
+        .with_pages_count(pages_count)
+        .with_code(code.as_slice())
         .build();
 
     let bytes_len = bytes.len() as u64;
     (bytes, bytes_len)
 }
 
-fn transaction_exec_bytes(
-    addr: *const c_void,
+fn spawn_app_bytes(creator: u32, template_addr: *const c_void) -> (Vec<u8>, u64) {
+    let creator = Address::from(creator);
+    let template_addr: &Address = unsafe { svm_common::from_raw::<Address>(template_addr) };
+
+    let bytes = AppBuilder::new()
+        .with_version(0)
+        .with_creator(&creator)
+        .with_template(template_addr)
+        .build();
+
+    let bytes_len = bytes.len() as u64;
+    (bytes, bytes_len)
+}
+
+fn exec_app_bytes(
     sender_addr: u32,
+    app_addr: *const c_void,
     func_name: &str,
     func_args: &[WasmArgValue],
 ) -> (Vec<u8>, u64) {
-    let addr: &Address = unsafe { svm_common::from_raw::<Address>(addr) };
+    let app_addr: &Address = unsafe { svm_common::from_raw::<Address>(app_addr) };
     let sender_addr = Address::from(sender_addr);
 
-    let bytes = WireTxBuilder::new()
+    let bytes = AppTxBuilder::new()
         .with_version(0)
-        .with_contract(addr.clone())
-        .with_sender(sender_addr)
+        .with_app(app_addr)
+        .with_sender(&sender_addr)
         .with_func_name(func_name)
         .with_func_args(func_args)
         .build();
@@ -129,14 +144,13 @@ fn transaction_exec_bytes(
     (bytes, bytes_len)
 }
 
-fn transaction_exec_args() -> (u32, i64, Vec<WasmArgValue>, State, i32) {
+fn exec_app_args() -> (u32, i64, Vec<WasmArgValue>, State) {
     let sender = 0x50_60_70_80;
     let mul_by = 3;
     let args = vec![WasmArgValue::I64(mul_by)];
     let state = State::empty();
-    let pages_count = 10;
 
-    (sender, mul_by as i64, args, state, pages_count)
+    (sender, mul_by as i64, args, state)
 }
 
 #[test]
@@ -165,21 +179,24 @@ unsafe fn do_transaction_exec() {
 
     let author = 0x10_20_30_40;
     let code = include_str!("wasm/mul_balance.wast");
-    let (bytes, bytes_len) = deploy_contract_bytes("Contract #1", code, author);
-    let mut contract = std::ptr::null_mut();
+    let pages_count = 10;
+    let (bytes, bytes_len) = deploy_template_bytes("MyTemplate #1", author, pages_count, code);
+    let mut template = std::ptr::null_mut();
 
-    let res = api::svm_contract_build(&mut contract, runtime, bytes.as_ptr() as _, bytes_len);
+    let res = api::svm_deploy_template(&mut template, runtime, bytes.as_ptr() as _, bytes_len);
     assert_eq!(true, res.as_bool());
 
-    let addr = api::svm_contract_derive_address(runtime, contract);
-    let res = api::svm_contract_deploy(runtime, contract, addr);
+    let mut app_addr = std::ptr::null_mut();
+    let creator = 0x20_30_40_50;
+    let (bytes, bytes_len) = spawn_app_bytes(creator, template as _);
+    let res = api::svm_spawn_app(&mut app_addr, runtime, bytes.as_ptr() as _, bytes_len);
     assert_eq!(true, res.as_bool());
 
-    let (sender, mul_by, args, state, pages_count) = transaction_exec_args();
-    let (bytes, bytes_len) = transaction_exec_bytes(addr, sender, "run", &args);
+    let (sender, mul_by, args, state) = exec_app_args();
+    let (bytes, bytes_len) = exec_app_bytes(sender, app_addr, "run", &args);
 
-    let mut tx = std::ptr::null_mut();
-    let res = api::svm_transaction_build(&mut tx, runtime, bytes.as_ptr() as _, bytes_len);
+    let mut app_tx = std::ptr::null_mut();
+    let res = api::svm_parse_exec_app(&mut app_tx, runtime, bytes.as_ptr() as _, bytes_len);
     assert_eq!(true, res.as_bool());
 
     // initialize `address=0x10_20_30` with balance=100
@@ -187,13 +204,7 @@ unsafe fn do_transaction_exec() {
     assert_eq!(100, host.get_balance(&Address::from(0x10_20_30)).unwrap());
 
     let mut receipt = std::ptr::null_mut();
-    let res = api::svm_transaction_exec(
-        &mut receipt,
-        runtime,
-        tx,
-        svm_common::into_raw(state),
-        pages_count,
-    );
+    let res = api::svm_exec_app(&mut receipt, runtime, app_tx, svm_common::into_raw(state));
     assert_eq!(true, res.as_bool());
 
     assert_eq!(

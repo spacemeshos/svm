@@ -1,5 +1,5 @@
-mod contract_page_cache;
-mod contract_pages;
+mod app_page_cache;
+mod app_pages;
 
-pub use contract_page_cache::MemContractPageCache;
-pub use contract_pages::MemContractPages;
+pub use app_page_cache::MemAppPageCache;
+pub use app_pages::MemAppPages;

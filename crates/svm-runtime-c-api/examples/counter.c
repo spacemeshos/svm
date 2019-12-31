@@ -29,9 +29,9 @@ wasm_file_t read_wasm_file(const char *file_name) {
   return wasm_file;
 }
 
-uint64_t deploy_contract_bytes(uint8_t **bytes, void *author) {
-  // deploy-contract wire format:
-  // https://github.com/spacemeshos/svm/blob/master/crates/svm-contract/src/wire/deploy/mod.rs
+uint64_t deploy_template_bytes(uint8_t **bytes, uint8_t *author) {
+  // deploy-template format:
+  // https://github.com/spacemeshos/svm/blob/develop/crates/svm-app/src/raw/template/mod.rs
 
   wasm_file_t file = read_wasm_file("wasm/counter.wasm");
 
@@ -40,8 +40,9 @@ uint64_t deploy_contract_bytes(uint8_t **bytes, void *author) {
     1  +  // name length
     7  +  // `len("Example") = 7`
     20 +  // `len(author-address)`
-    2  +  // `#admins` (we'll set it to `0`)
-    2  +  // `#deps`   (we'll set it to `0`)
+    2  +  // `#admins`      (we'll set it to `0`)
+    2  +  // `#deps`        (we'll set it to `0`)
+    2  +  // `pages_count`  (we'll set it to `0`)
     8  +  //  wasm code length (big-endian)
     (uint64_t)file.bytes_len;  // the wasm code
 
@@ -71,17 +72,47 @@ uint64_t deploy_contract_bytes(uint8_t **bytes, void *author) {
   buf[34] = 0;
   buf[35] = 0;
 
-  // set contract wasm length (big-endian)
-  uint8_t* wasm_length = (uint8_t*)&file.bytes_len;
+  // set `pages_count=0`
+  buf[36] = 0;
+  buf[37] = 0;
+
+  // set template code length (big-endian)
+  uint8_t* code_length = (uint8_t*)&file.bytes_len;
 
   for (int i = 0; i < 8; i++) {
-    // we assume `wasm_length` in little-endian order
+    // we assume `code_length` in little-endian order
     // so we reverse `wasm_length` since it should be in `big-endian` order
-    buf[36 + i] = wasm_length[7 - i];
+    buf[38 + i] = code_length[7 - i];
   }
 
-  // copy contract wasm
-  memcpy(&buf[44], file.bytes, file.bytes_len);
+  // copy template code
+  memcpy(&buf[46], file.bytes, file.bytes_len);
+
+  *bytes = buf;
+
+  return bytes_len;
+}
+
+
+uint64_t spawn_app_bytes(uint8_t **bytes, uint8_t *creator_addr, uint8_t* template_addr) {
+  uint64_t bytes_len =
+    4  +  //  proto version
+    20 +  // `len(creator-address)`
+    20;   // `len(template-address)`
+
+  uint8_t* buf = (uint8_t*)(malloc(bytes_len));
+
+  // set `proto=0`
+  buf[0] = 0;
+  buf[1] = 0;
+  buf[2] = 0;
+  buf[3] = 0;
+
+  // copy `template` address
+  memcpy(&buf[4], template_addr, 20);
+
+  // copy `creator` address
+  memcpy(&buf[4 + 20], creator_addr, 20);
 
   *bytes = buf;
 
@@ -106,7 +137,7 @@ uint8_t* int32_arg_new(uint32_t value) {
   return buf;
 }
 
-uint64_t transaction_exec_bytes(
+uint64_t exec_app_bytes(
     uint8_t **bytes,
     void *addr,
     void *sender,
@@ -175,27 +206,6 @@ uint32_t host_get_counter(void *ctx) {
   return host->counter;
 }
 
-svm_result_t do_contract_deploy(uint8_t **addr, void *runtime, uint8_t *bytes, uint64_t bytes_len) {
-  void *contract;
-  svm_result_t res;
-
-  res = svm_contract_build(&contract, runtime, (void*)bytes, bytes_len);
-  if (res != SVM_SUCCESS) {
-    return res;
-  }
-
-  uint8_t* addr_ptr = (uint8_t*)svm_contract_derive_address(runtime, contract);
-
-  res = svm_contract_deploy(runtime, contract, (void*)addr_ptr);
-  if (res != SVM_SUCCESS) {
-    return res;
-  }
-
-  *addr = addr_ptr;
-
-  return SVM_SUCCESS;
-}
-
 const svm_import_t* inc_counter_import_build() {
   svm_byte_array module_name;
   module_name.bytes = (const uint8_t *)"env";
@@ -259,14 +269,14 @@ const svm_import_t** imports_build() {
   return imports;
 }
 
-void* alloc_byte_address(uint8_t byte) {
-  void *addr = (void*)malloc(20);
+uint8_t* alloc_byte_address(uint8_t byte) {
+  uint8_t *addr = (uint8_t*)malloc(20);
   memset(addr, byte, 20);
   return addr;
 }
 
-void* alloc_empty_state() {
-  void *state = (void*)malloc(32);
+uint8_t* alloc_empty_state() {
+  uint8_t *state = (uint8_t*)malloc(32);
   memset(state, 0, 32);
   return state;
 }
@@ -290,109 +300,126 @@ int main() {
   assert(res == SVM_SUCCESS);
 
   /* `author address = 0xAA...AA` */
-  void *author = alloc_byte_address(0xAA);
-
+  uint8_t *author = alloc_byte_address(0xAA);
   uint8_t *bytes = NULL;
-  uint64_t bytes_len = deploy_contract_bytes(&bytes, author);
+  uint64_t bytes_len = deploy_template_bytes(&bytes, author);
 
-  uint8_t *addr;
-  res = do_contract_deploy(&addr, runtime, bytes, bytes_len);
+  uint8_t *template_addr = NULL;
+  res = svm_deploy_template((void**)&template_addr, runtime, (void*)bytes, bytes_len);
   assert(res == SVM_SUCCESS);
+  free(bytes);
 
-  printf("Deployed contract successfully...\n");
-  printf("Contract account address:\n");
+  printf("Deployed AppTemplate successfully...\n");
+  printf("AppTemplate Account Address:\n");
 
   for (int i = 0; i < 20; i++) {
-    printf("%d ", addr[i]);
+    printf("%d ", template_addr[i]);
   }
 
   printf("\n\n");
 
-  uint8_t *state = alloc_empty_state();
-  void *sender = alloc_byte_address(0xBB);
-
-  /* 1) First we want to assert that the counter has been initialized with `9` as expected (see `create_import_object` above) */
-  bytes_len = transaction_exec_bytes(
-      &bytes,
-      addr,
-      (void*)sender,
-      "get",
-      strlen("get"),
-      0,    // `args_count = 0`
-      NULL, // `args_buf = NULL`
-      0);   // `args_buf_len = 0`
-
-  void *tx;
-  res = svm_transaction_build(&tx, runtime, (void*)bytes, bytes_len);
+  uint8_t *app_addr = NULL;
+  uint8_t *creator = alloc_byte_address(0xBB);
+  bytes_len = spawn_app_bytes(&bytes, creator, template_addr);
+  res = svm_spawn_app((void**)&app_addr, runtime, (void*)bytes, bytes_len);
   assert(res == SVM_SUCCESS);
+  free(bytes);
 
-  void *receipt = NULL;
-  uint32_t pages_count = 10;
-  res = svm_transaction_exec(&receipt, runtime, tx, state, pages_count);
-  assert(res == SVM_SUCCESS);
-  assert(svm_receipt_status(receipt) == true);
+  printf("Spawned App successfully...\n");
+  printf("App Account Address:\n");
 
-  const uint8_t *new_state = svm_receipt_new_state(receipt);
-
-  printf("New contract state:\n");
-  for (int i = 0; i < 32; i++) {
-    printf("%02X ", new_state[i]);
+  for (int i = 0; i < 20; i++) {
+    printf("%d ", app_addr[i]);
   }
 
-  svm_value_t *results = NULL;
-  uint32_t results_len;
-  svm_receipt_results(&results, receipt, &results_len);
-  assert(results_len == 1);
-  assert(results[0].value.I32 == 10);
+  uint8_t *sender_addr = alloc_byte_address(0xCC);
 
-  uint8_t *arg = int32_arg_new(7);
-
-  /* 2) Now, let's increment the counter by `7` */
-  bytes_len = transaction_exec_bytes(
+  /* 1) First we want to assert that the counter has been initialized with `9` as expected (see `create_import_object` above) */
+  bytes_len = exec_app_bytes(
       &bytes,
-      addr,
-      (void*)sender,
-      "inc",
-      strlen("inc"),
-      1,     // `args_count = 1`
-      arg,   // `args_buf = [1, 0, 0, 0, 7]`
-      5);    // `args_buf_len = 5`
-
-  res = svm_transaction_build(&tx, runtime, (void*)bytes, bytes_len);
-  assert(res == SVM_SUCCESS);
-
-  res = svm_transaction_exec(&receipt, runtime, tx, new_state, pages_count);
-  assert(res == SVM_SUCCESS);
-  assert(svm_receipt_status(receipt) == true);
-
-  svm_receipt_results(&results, receipt, &results_len);
-  assert(results_len == 0);
-
-  // 3) Now, we'll verify that the counter has been modified to `10 + 7 = 17`
-  bytes_len = transaction_exec_bytes(
-      &bytes,
-      addr,
-      (void*)sender,
+      (void*)sender_addr,
+      (void*)app_addr,
       "get",
       strlen("get"),
       0,    // `args_count = 0`
       NULL, // `args_buf = NULL`
       0);   // `args_buf_len = 0`
 
-  res = svm_transaction_build(&tx, runtime, (void*)bytes, bytes_len);
+
+  void *app_tx = NULL;
+  res = svm_parse_exec_app(&app_tx, runtime, bytes, bytes_len);
   assert(res == SVM_SUCCESS);
+  free(bytes);
 
-  res = svm_transaction_exec(&receipt, runtime, tx, new_state, pages_count);
-  assert(res == SVM_SUCCESS);
-  assert(svm_receipt_status(receipt) == true);
+  void *receipt = NULL;
+  uint8_t *state = alloc_empty_state();
+  res = svm_exec_app(&receipt, runtime, app_tx, (void*)state);
+  /* assert(res == SVM_SUCCESS); */
+  /* free(bytes); */
 
-  svm_receipt_results(&results, receipt, &results_len);
-  assert(results_len == 1);
-  assert(results[0].value.I32 == 10 + 7);
+  /* assert(svm_receipt_status(receipt) == true); */
 
-  /* // TODO: clearing resources */
-  /* free(wasm_file.bytes); */
-  /* free(args_buf); */
+  /* const uint8_t *new_state = svm_receipt_new_state(receipt); */
+  /*  */
+  /* printf("New contract state:\n"); */
+  /* for (int i = 0; i < 32; i++) { */
+  /*   printf("%02X ", new_state[i]); */
+  /* } */
+  /*  */
+  /* svm_value_t *results = NULL; */
+  /* uint32_t results_len; */
+  /* svm_receipt_results(&results, receipt, &results_len); */
+  /* assert(results_len == 1); */
+  /* assert(results[0].value.I32 == 10); */
+  /*  */
+  /* uint8_t *arg = int32_arg_new(7); */
+  /*  */
+  /* #<{(| 2) Now, let's increment the counter by `7` |)}># */
+  /* bytes_len = exec_app_bytes( */
+  /*     &bytes, */
+  /*     addr, */
+  /*     (void*)sender, */
+  /*     "inc", */
+  /*     strlen("inc"), */
+  /*     1,     // `args_count = 1` */
+  /*     arg,   // `args_buf = [1, 0, 0, 0, 7]` */
+  /*     5);    // `args_buf_len = 5` */
+  /*  */
+  /* res = svm_transaction_build(&tx, runtime, (void*)bytes, bytes_len); */
+  /* assert(res == SVM_SUCCESS); */
+  /*  */
+  /* res = svm_transaction_exec(&receipt, runtime, tx, new_state, pages_count); */
+  /* assert(res == SVM_SUCCESS); */
+  /* assert(svm_receipt_status(receipt) == true); */
+  /*  */
+  /* svm_receipt_results(&results, receipt, &results_len); */
+  /* assert(results_len == 0); */
+  /*  */
+  /* // 3) Now, we'll verify that the counter has been modified to `10 + 7 = 17` */
+  /* bytes_len = exec_app_bytes( */
+  /*     &bytes, */
+  /*     addr, */
+  /*     (void*)sender, */
+  /*     "get", */
+  /*     strlen("get"), */
+  /*     0,    // `args_count = 0` */
+  /*     NULL, // `args_buf = NULL` */
+  /*     0);   // `args_buf_len = 0` */
+  /*  */
+  /* res = svm_transaction_build(&tx, runtime, (void*)bytes, bytes_len); */
+  /* assert(res == SVM_SUCCESS); */
+  /*  */
+  /* res = svm_transaction_exec(&receipt, runtime, tx, new_state, pages_count); */
+  /* assert(res == SVM_SUCCESS); */
+  /* assert(svm_receipt_status(receipt) == true); */
+  /*  */
+  /* svm_receipt_results(&results, receipt, &results_len); */
+  /* assert(results_len == 1); */
+  /* assert(results[0].value.I32 == 10 + 7); */
+  /*  */
+  /* #<{(| // TODO: clearing resources |)}># */
+  /* #<{(| free(wasm_file.bytes); |)}># */
+  /* #<{(| free(args_buf); |)}># */
 
   return 0;
 }

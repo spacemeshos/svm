@@ -3,18 +3,18 @@ use std::ffi::c_void;
 use std::rc::Rc;
 
 use crate::{
-    ctx::SvmCtx, helpers, helpers::PtrWrapper, register::SvmReg, settings::ContractSettings,
+    ctx::SvmCtx, helpers, helpers::PtrWrapper, register::SvmReg, settings::AppSettings,
     traits::StorageBuilderFn, DefaultRuntime,
 };
 
 use svm_common::{Address, State};
 use svm_kv::memory::MemKVStore;
-use svm_storage::ContractStorage;
+use svm_storage::AppStorage;
 
-use svm_contract::{
-    build::{WireContractBuilder, WireTxBuilder},
-    memory::{MemContractStore, MemoryEnv},
-    wasm::WasmArgValue,
+use svm_app::{
+    memory::{JsonMemAppStore, JsonMemAppTemplateStore, JsonMemoryEnv},
+    testing::{AppBuilder, AppTemplateBuilder, AppTxBuilder},
+    types::WasmArgValue,
 };
 
 use wasmer_runtime_core::{export::Export, import::ImportObject, Instance, Module};
@@ -37,9 +37,9 @@ pub fn instance_register(instance: &Instance, reg_bits: i32, reg_idx: i32) -> &m
     helpers::wasmer_data_reg(instance.context().data, reg_bits, reg_idx)
 }
 
-/// Mutably borrows a living Smart-Contract storage.
-pub fn instance_storage(instance: &Instance) -> &mut ContractStorage {
-    helpers::wasmer_data_contract_storage(instance.context().data)
+/// Mutably borrows a living Smart-App storage.
+pub fn instance_storage(instance: &Instance) -> &mut AppStorage {
+    helpers::wasmer_data_app_storage(instance.context().data)
 }
 
 /// Returns a view of `wasmer` instance memory at `offset`...`offest + len - 1`
@@ -63,17 +63,17 @@ pub fn instance_memory_init(instance: &Instance, offset: usize, bytes: &[u8]) {
 }
 
 /// Returns a `state creator` to be used by wasmer `ImportObject::new_with_data` initializer.
-pub fn contract_memory_state_creator(
+pub fn app_memory_state_creator(
     addr: u32,
     state: u32,
     host: PtrWrapper,
-    pages_count: u32,
+    pages_count: u16,
 ) -> (*mut c_void, fn(*mut c_void)) {
     let addr = Address::from(addr);
     let state = State::from(state);
     let kv = memory_kv_store_init();
 
-    let storage = svm_storage::testing::contract_storage_open(&addr, &state, &kv, pages_count);
+    let storage = svm_storage::testing::app_storage_open(&addr, &state, &kv, pages_count);
 
     let ctx = SvmCtx::new(host, storage);
     let ctx: *mut SvmCtx = Box::into_raw(Box::new(ctx));
@@ -94,7 +94,7 @@ pub fn create_memory_runtime(
     host: *mut c_void,
     kv: &Rc<RefCell<MemKVStore>>,
     imports: Vec<(String, String, Export)>,
-) -> DefaultRuntime<MemoryEnv> {
+) -> DefaultRuntime<JsonMemoryEnv> {
     let storage_builder = runtime_memory_storage_builder(kv);
 
     let env = runtime_memory_env_builder();
@@ -102,47 +102,64 @@ pub fn create_memory_runtime(
     DefaultRuntime::new(host, env, imports, Box::new(storage_builder))
 }
 
-/// Creates a contrct storage builder function backed by key-value store `kv`.
+/// Creates an app storage builder function backed by key-value store `kv`.
 pub fn runtime_memory_storage_builder(kv: &Rc<RefCell<MemKVStore>>) -> Box<StorageBuilderFn> {
     let kv = Rc::clone(kv);
 
-    let func = move |addr: &Address, state: &State, settings: &ContractSettings| {
-        svm_storage::testing::contract_storage_open(addr, state, &kv, settings.pages_count)
+    let func = move |addr: &Address, state: &State, settings: &AppSettings| {
+        svm_storage::testing::app_storage_open(addr, state, &kv, settings.pages_count)
     };
 
     Box::new(func)
 }
 
-/// Creates a new in-memory contract environment.
-pub fn runtime_memory_env_builder() -> MemoryEnv {
-    let store = MemContractStore::new();
-    MemoryEnv::new(store)
+/// Creates a new in-memory runtime environment.
+pub fn runtime_memory_env_builder() -> JsonMemoryEnv {
+    let template_store = JsonMemAppTemplateStore::new();
+    let app_store = JsonMemAppStore::new();
+
+    JsonMemoryEnv::new(app_store, template_store)
 }
 
-/// Synthesize a raw deploy-contract transaction.
-pub fn build_raw_contract(version: u32, name: &str, author: u32, wasm: &str) -> Vec<u8> {
-    let wasm = wabt::wat2wasm(wasm).unwrap();
+/// Synthesizes a raw deploy-template transaction.
+pub fn build_template(
+    version: u32,
+    name: &str,
+    author: u32,
+    pages_count: u16,
+    wasm: &str,
+) -> Vec<u8> {
+    let code = wabt::wat2wasm(wasm).unwrap();
 
-    WireContractBuilder::new()
+    AppTemplateBuilder::new()
         .with_version(version)
         .with_name(name)
-        .with_author(Address::from(author))
-        .with_code(wasm.as_slice())
+        .with_author(&Address::from(author))
+        .with_pages_count(pages_count)
+        .with_code(code.as_slice())
         .build()
 }
 
-/// Synthesize a raw Smart-Contract transaction.
-pub fn build_raw_transaction(
+pub fn build_app(version: u32, template: &Address, creator: u32) -> Vec<u8> {
+    AppBuilder::new()
+        .with_version(version)
+        .with_template(template)
+        .with_creator(&Address::from(creator))
+        .build()
+}
+
+/// Synthesizes a raw Smart-App transaction.
+pub fn build_app_tx(
     version: u32,
-    contract_addr: &Address,
+    app_addr: &Address,
     sender_addr: u32,
     func_name: &str,
     func_args: &[WasmArgValue],
 ) -> Vec<u8> {
-    WireTxBuilder::new()
+    AppTxBuilder::new()
         .with_version(version)
-        .with_contract(contract_addr.clone())
-        .with_sender(Address::from(sender_addr))
+        .with_app(app_addr)
+        .with_sender(&Address::from(sender_addr))
         .with_func_name(func_name)
         .with_func_args(func_args)
         .build()

@@ -1,13 +1,15 @@
-use crate::page::PageIndex;
-use crate::traits::{PageIndexHasher, PagesStorage};
-use svm_kv::traits::KVStore;
-
-use svm_common::Address;
-
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::rc::Rc;
+
+use crate::{
+    page::PageIndex,
+    traits::{PageIndexHasher, PagesStorage},
+};
+
+use svm_common::Address;
+use svm_kv::traits::KVStore;
 
 /// `DefaultPagesStorage` is the default implementation for the `PagesStorage` trait.
 /// It serves as a wrapper to a key-value store.
@@ -17,16 +19,13 @@ use std::rc::Rc;
 ///   Similarly, when we do `write_page`, we take the input page (`u32`), compute its hash (a.k.a `page-key`)
 ///   and insert the new `page-key -> data (of type &[u8])` into the `uncommitted` standard Rust `HashMap`.
 ///
-/// * For Smart Contracts we use a Trie based key-value store. However `DefaultPagesStorage` is ignorant
-///   of the actual key-value store being used.
-///
-/// * `DefaultPagesStorage` doesn't deal with caching at all. During execution of a Smart Contract
+/// * `DefaultPagesStorage` doesn't deal with caching at all. During execution of an app
 ///    we are supposed to use a `PageCache` the wraps the `DefaultPagesStorage` (or other `PagesStorage`).
-///    Given that, the `DefaultPagesStorage` is meant to read each page at most once per a Smart Contract running
+///    Given that, the `DefaultPagesStorage` is meant to read each page at most once per running-app.
 ///    (i.e when the wrapping `PageCache` is having a cache miss).
 ///
 /// * As described above, calling `write_page` data isn't being persisted to the key-value store.
-///   But it will await to a future `commit`. This is by design since a Smart Contract execution
+///   But it will await to a future `commit`. This is by design since an app execution
 ///   may fail for multiple reasons, and on such occurrence we don't want to change any state.
 ///   Another benefit is that if the underlying key-value store supports a batch write (for example
 ///   database `rocksdb` has this capability), the `commit` implementation can take advantage of it.

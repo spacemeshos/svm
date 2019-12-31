@@ -1,14 +1,14 @@
 #![deny(missing_docs)]
 #![deny(unused)]
 
-//! This crate is responsible on doing gas estimations for SVM contracts.
-//! SVM contracts are essentially wasm programs importing the SVM vmcalls.
+//! This crate is responsible on doing gas estimations for apps.
+//! SVM apps are essentially wasm programs importing the SVM vmcalls.
 
 pub(crate) mod program;
 
 mod function;
 
-/// Gas required for executing SVM contracts.
+/// Gas required for executing SVM apps.
 mod gas;
 
 /// Reading wasm code wasm code

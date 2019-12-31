@@ -15,7 +15,7 @@ pub use runtime::{create_rocksdb_runtime, DefaultRuntime, Receipt};
 pub mod ctx;
 
 /// Implements register abstraction to ease interfacing
-/// with the contract-storage / `wasmer` instance memory.
+/// with the app-storage / `wasmer` instance memory.
 pub mod register;
 
 /// Implements the helpers to be consumed by `SVM` vmcalls.
@@ -30,5 +30,7 @@ pub mod vmcalls;
 
 /// Options when spawning a new `SVM` runtime instance
 pub mod settings;
+
+pub mod error;
 
 pub mod value;

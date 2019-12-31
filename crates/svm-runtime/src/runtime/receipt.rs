@@ -1,7 +1,7 @@
-use crate::{runtime::ContractExecError, value::Value};
+use crate::{error::ExecAppError, value::Value};
 
+use svm_app::types::AppTransaction;
 use svm_common::State;
-use svm_contract::transaction::Transaction;
 
 /// Runtime transaction execution receipt
 #[derive(Debug)]
@@ -10,12 +10,12 @@ pub struct Receipt {
     pub success: bool,
 
     /// the execution error in case execution failed
-    pub error: Option<ContractExecError>,
+    pub error: Option<ExecAppError>,
 
-    /// executed transaction
-    pub tx: Transaction,
+    /// executed `AppTransaction
+    pub tx: AppTransaction,
 
-    /// the new contract `State` if execution succedded
+    /// the new app `State` if execution succedded
     pub new_state: Option<State>,
 
     /// returned values

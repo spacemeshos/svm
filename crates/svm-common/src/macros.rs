@@ -1,17 +1,17 @@
 /// `impl_bytes_primitive` macro implements a struct consisting of one array of bytes.
 #[macro_export]
 macro_rules! impl_bytes_primitive {
-    ($primitive: ident, $bytes_count: expr) => {
-        /// Spacemesh `$primitive` consists of `$bytes_count` bytes.
+    ($primitive: ident, $byte_count: expr) => {
+        /// Spacemesh `$primitive` consists of `$byte_count` bytes.
         #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Hash, PartialEq, Eq)]
         #[repr(transparent)]
-        pub struct $primitive(pub(self) [u8; $bytes_count]);
+        pub struct $primitive(pub(self) [u8; $byte_count]);
 
         impl From<&[u8]> for $primitive {
             fn from(slice: &[u8]) -> $primitive {
-                assert_eq!($bytes_count, slice.len());
+                assert_eq!($byte_count, slice.len());
 
-                let mut buf: [u8; $bytes_count] = [0; $bytes_count];
+                let mut buf: [u8; $byte_count] = [0; $byte_count];
                 buf.copy_from_slice(slice);
 
                 $primitive(buf)
@@ -21,7 +21,7 @@ macro_rules! impl_bytes_primitive {
         impl From<*const u8> for $primitive {
             #[warn(clippy::not_unsafe_ptr_arg_deref)]
             fn from(ptr: *const u8) -> $primitive {
-                let slice: &[u8] = unsafe { std::slice::from_raw_parts(ptr, $bytes_count) };
+                let slice: &[u8] = unsafe { std::slice::from_raw_parts(ptr, $byte_count) };
 
                 $primitive::from(slice)
             }
@@ -59,14 +59,48 @@ macro_rules! impl_bytes_primitive {
             }
 
             /// Returns a clone of the `$primitive` internal array
-            pub fn bytes(&self) -> [u8; $bytes_count] {
+            pub fn bytes(&self) -> [u8; $byte_count] {
                 self.0
+            }
+
+            /// Returns an `iter` over the underlying bytes
+            pub fn iter(&self) -> std::slice::Iter<u8> {
+                self.0.iter()
+            }
+
+            /// Returns the first `n` number of bytes of `$primitive`
+            pub fn first_n(&self, n: usize) -> Vec<u8> {
+                assert!(n <= $byte_count);
+
+                self.as_slice()[0..n].to_vec()
+            }
+
+            /// Returns the last `n` number of bytes of `$primitive`
+            pub fn last_n(&self, n: usize) -> Vec<u8> {
+                assert!(n <= $byte_count);
+
+                self.iter().skip($byte_count - n).cloned().collect()
             }
 
             /// Returns the number of bytes of `$primitive`
             #[inline(always)]
             pub fn len() -> usize {
-                $bytes_count
+                $byte_count
+            }
+
+            /// formats the primitive as a concatenation of:
+            /// * first `first` bytes in hex
+            /// * ...
+            /// * last `last` bytes in hex
+            pub fn fmt(&self, first: usize, last: usize, separator: &str) -> String {
+                let first = self.first_n(first);
+                let last = self.last_n(last);
+
+                format!(
+                    "{} ... {}",
+                    crate::fmt::fmt_hex(first.as_slice(), separator),
+                    crate::fmt::fmt_hex(last.as_slice(), separator)
+                )
             }
         }
 
@@ -74,14 +108,14 @@ macro_rules! impl_bytes_primitive {
         #[doc(hidden)]
         impl From<u32> for $primitive {
             fn from(n: u32) -> $primitive {
-                let mut buf = [0; $bytes_count];
+                let mut buf = [0; $byte_count];
 
                 let [n3, n2, n1, n0] = $crate::helpers::u32_to_be_array(n);
 
-                buf[$bytes_count - 4] = n3;
-                buf[$bytes_count - 3] = n2;
-                buf[$bytes_count - 2] = n1;
-                buf[$bytes_count - 1] = n0;
+                buf[$byte_count - 4] = n3;
+                buf[$byte_count - 3] = n2;
+                buf[$byte_count - 2] = n1;
+                buf[$byte_count - 1] = n0;
 
                 $primitive(buf)
             }
@@ -100,18 +134,18 @@ macro_rules! impl_bytes_primitive {
         #[doc(hidden)]
         impl From<u64> for $primitive {
             fn from(n: u64) -> $primitive {
-                let mut buf = [0; $bytes_count];
+                let mut buf = [0; $byte_count];
 
                 let [n7, n6, n5, n4, n3, n2, n1, n0] = $crate::helpers::u64_to_be_array(n);
 
-                buf[$bytes_count - 8] = n7;
-                buf[$bytes_count - 7] = n6;
-                buf[$bytes_count - 6] = n5;
-                buf[$bytes_count - 5] = n4;
-                buf[$bytes_count - 4] = n3;
-                buf[$bytes_count - 3] = n2;
-                buf[$bytes_count - 2] = n1;
-                buf[$bytes_count - 1] = n0;
+                buf[$byte_count - 8] = n7;
+                buf[$byte_count - 7] = n6;
+                buf[$byte_count - 6] = n5;
+                buf[$byte_count - 5] = n4;
+                buf[$byte_count - 4] = n3;
+                buf[$byte_count - 3] = n2;
+                buf[$byte_count - 2] = n1;
+                buf[$byte_count - 1] = n0;
 
                 $primitive(buf)
             }

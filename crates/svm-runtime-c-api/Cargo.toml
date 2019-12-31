@@ -41,8 +41,8 @@ path = "../svm-common"
 [dependencies.svm-kv]
 path = "../svm-kv"
 
-[dependencies.svm-contract]
-path = "../svm-contract"
+[dependencies.svm-app]
+path = "../svm-app"
 
 [dependencies.svm-storage]
 default-features = false

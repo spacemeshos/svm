@@ -1,6 +1,9 @@
-use crate::helpers::{u32_to_le_array, u8_pair_add, u8_triple_add};
-use crate::impl_bytes_primitive;
 use std::ops::Add;
+
+use crate::{
+    helpers::{u32_to_le_array, u8_pair_add, u8_triple_add},
+    impl_bytes_primitive,
+};
 
 impl_bytes_primitive!(Address, 20);
 
@@ -240,7 +243,7 @@ mod tests {
     }
 
     #[test]
-    fn serialize_addr() {
+    fn address_serialize() {
         let origin = Address([
             0x11, 0x22, 0x33, 0x44, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -250,5 +253,15 @@ mod tests {
         let deserialized = serde_json::from_str(&addr_str).unwrap();
 
         assert_eq!(origin, deserialized);
+    }
+
+    #[test]
+    fn address_fmt_hex() {
+        let addr = Address([
+            0x10, 0x20, 0x30, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0xAA, 0xBB, 0xCC, 0xDD,
+        ]);
+
+        assert_eq!("10 20 30 40 ... AA BB CC DD", addr.fmt(4, 4, " "));
     }
 }

@@ -3,9 +3,13 @@ use std::slice;
 
 use log::{debug, error};
 
+use svm_app::{
+    default::DefaultJsonSerializerTypes,
+    types::{App, AppTemplate, AppTransaction},
+};
+
 use svm_common::{Address, State};
-use svm_contract::{transaction::Transaction, wasm::Contract};
-use svm_runtime::{ctx::SvmCtx, settings::ContractSettings, traits::Runtime, Receipt};
+use svm_runtime::{ctx::SvmCtx, settings::AppSettings, traits::Runtime, Receipt};
 
 use crate::{
     helpers, svm_byte_array, svm_import_func_sig_t, svm_import_func_t, svm_import_kind,
@@ -14,11 +18,11 @@ use crate::{
 };
 
 /// Creates a new SVM Runtime instance.
-/// Returns it via the `raw_runtime` parameter.
+/// Returns it via the `runtime` parameter.
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_runtime_create(
-    raw_runtime: *mut *mut c_void,
+    runtime: *mut *mut c_void,
     path_bytes: *const c_void,
     path_len: libc::c_uint,
     host: *mut c_void,
@@ -36,12 +40,15 @@ pub unsafe extern "C" fn svm_runtime_create(
     }
 
     let wasmer_imports = helpers::cast_imports_to_wasmer_imports(imports, imports_len);
-    let runtime = svm_runtime::create_rocksdb_runtime(host, &path.unwrap(), wasmer_imports);
+    let rt = svm_runtime::create_rocksdb_runtime::<String, DefaultJsonSerializerTypes>(
+        host,
+        &path.unwrap(),
+        wasmer_imports,
+    );
+    let boxed_rt: Box<dyn Runtime> = Box::new(rt);
 
-    let runtime: Box<dyn Runtime> = Box::new(runtime);
-
-    let runtime_ptr = RuntimePtr::new(runtime);
-    *raw_runtime = svm_common::into_raw_mut(runtime_ptr);
+    let rt_ptr = RuntimePtr::new(boxed_rt);
+    *runtime = svm_common::into_raw_mut(rt_ptr);
 
     debug!("`svm_runtime_create` end");
 
@@ -51,10 +58,10 @@ pub unsafe extern "C" fn svm_runtime_create(
 /// Destroys the Runtime and it's associated resources.
 #[must_use]
 #[no_mangle]
-pub unsafe extern "C" fn svm_runtime_destroy(raw_runtime: *mut c_void) -> svm_result_t {
+pub unsafe extern "C" fn svm_runtime_destroy(runtime: *mut c_void) -> svm_result_t {
     debug!("`svm_runtime_destroy`");
 
-    let _runtime: Box<RuntimePtr> = Box::from_raw(raw_runtime as *mut RuntimePtr);
+    let _runtime: Box<RuntimePtr> = Box::from_raw(runtime as *mut RuntimePtr);
 
     svm_result_t::SVM_SUCCESS
 }
@@ -62,7 +69,7 @@ pub unsafe extern "C" fn svm_runtime_destroy(raw_runtime: *mut c_void) -> svm_re
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_import_func_build(
-    raw_import: *mut *mut svm_import_t,
+    import: *mut *mut svm_import_t,
     module_name: svm_byte_array,
     import_name: svm_byte_array,
     func: *const c_void,
@@ -79,150 +86,131 @@ pub unsafe extern "C" fn svm_import_func_build(
     let func = svm_import_func_t { func, sig };
     let func = Box::into_raw(Box::new(func));
 
-    let import = svm_import_t {
+    let svm_import = svm_import_t {
         module_name,
         import_name,
         kind: svm_import_kind::SVM_FUNCTION,
         value: svm_import_value { func },
     };
 
-    let import = Box::into_raw(Box::new(import));
-
-    *raw_import = import;
+    *import = Box::into_raw(Box::new(svm_import));
 
     svm_result_t::SVM_SUCCESS
 }
 
-/// Builds an in-memory contract instance.
+/// Deploys a new app-template
 #[must_use]
 #[no_mangle]
-pub unsafe extern "C" fn svm_contract_build(
-    raw_contract: *mut *mut c_void,
-    raw_runtime: *mut c_void,
-    raw_bytes: *const c_void,
-    raw_bytes_len: u64,
+pub unsafe extern "C" fn svm_deploy_template(
+    template_addr: *mut *mut c_void,
+    runtime: *mut c_void,
+    bytes: *const c_void,
+    bytes_len: u64,
 ) -> svm_result_t {
-    debug!("`svm_contract_build start`");
+    debug!("`svm_deploy_template` start`");
 
-    let bytes = std::slice::from_raw_parts(raw_bytes as *const u8, raw_bytes_len as usize);
-    let runtime = helpers::cast_to_runtime(raw_runtime);
+    let bytes = std::slice::from_raw_parts(bytes as *const u8, bytes_len as usize);
+    let runtime = helpers::cast_to_runtime_mut(runtime);
 
-    match runtime.contract_build(&bytes) {
-        Ok(contract) => {
-            *raw_contract = svm_common::into_raw_mut(contract);
-            debug!("`svm_contract_build returns `SVM_SUCCESS`");
+    match runtime.deploy_template(&bytes) {
+        Ok(addr) => {
+            *template_addr = svm_common::into_raw_mut(addr);
+            debug!("`svm_deploy_template`` returns `SVM_SUCCESS`");
             svm_result_t::SVM_SUCCESS
         }
         Err(_err) => {
             // update_last_error(err);
-            error!("`svm_contract_build returns `SVM_FAILURE`");
+            error!("`svm_deploy_template` returns `SVM_FAILURE`");
             svm_result_t::SVM_FAILURE
         }
     }
 }
 
-/// Derives the contract to-be-deployed acccunt address and retures a pointer to it
+/// Spawns a new App.
 #[must_use]
 #[no_mangle]
-pub unsafe extern "C" fn svm_contract_derive_address(
-    raw_runtime: *const c_void,
-    raw_contract: *const c_void,
-) -> *const c_void {
-    debug!("`svm_contract_compute_address`");
+pub unsafe extern "C" fn svm_spawn_app(
+    app_addr: *mut *mut c_void,
+    runtime: *mut c_void,
+    bytes: *const c_void,
+    bytes_len: u64,
+) -> svm_result_t {
+    debug!("`svm_spawn_app` start");
 
-    let runtime = helpers::cast_to_runtime(raw_runtime);
-    let contract = svm_common::from_raw::<Contract>(raw_contract);
+    let bytes = std::slice::from_raw_parts(bytes as *const u8, bytes_len as usize);
+    let runtime = helpers::cast_to_runtime_mut(runtime);
 
-    let addr = runtime.contract_derive_address(contract);
-    svm_common::into_raw(addr)
+    match runtime.spawn_app(bytes) {
+        Ok(addr) => {
+            *app_addr = svm_common::into_raw_mut(addr);
+            debug!("`svm_spawn_app` returns `SVM_SUCCESS`");
+            svm_result_t::SVM_SUCCESS
+        }
+        Err(_e) => {
+            // update_last_error(error);
+            error!("`svm_spawn_app` returns `SVM_FAILURE`");
+            svm_result_t::SVM_FAILURE
+        }
+    }
 }
 
-/// Stores the new deployed contract under a database.
-/// Future transaction will reference the contract by its account address.
-/// (see `svm_transaction_exec`)
-///
-/// This function should be called after performing validation.
-///
-/// * `raw_contract` - The wasm contract to be stored
-///
 #[must_use]
 #[no_mangle]
-pub unsafe extern "C" fn svm_contract_deploy(
-    raw_runtime: *mut c_void,
-    raw_contract: *const c_void,
-    raw_addr: *const c_void,
+pub unsafe extern "C" fn svm_parse_exec_app(
+    app_tx: *mut *mut c_void,
+    runtime: *const c_void,
+    bytes: *const c_void,
+    bytes_len: u64,
 ) -> svm_result_t {
-    debug!("`svm_contract_store` start");
+    debug!("`svm_parse_exec_app` start");
 
-    let contract = svm_common::from_raw::<Contract>(raw_contract);
-    let addr = Address::from(raw_addr);
+    let bytes = std::slice::from_raw_parts(bytes as *const u8, bytes_len as usize);
+    let runtime = helpers::cast_to_runtime(runtime);
 
-    let runtime = helpers::cast_to_runtime_mut(raw_runtime);
-    runtime.contract_deploy(contract, &addr);
-
-    debug!("`svm_contract_build returns `SVM_SUCCESS`");
-
-    svm_result_t::SVM_SUCCESS
-}
-
-/// Builds an in-memory Contract Transaction instance.
-#[must_use]
-#[no_mangle]
-pub unsafe extern "C" fn svm_transaction_build(
-    raw_tx: *mut *mut c_void,
-    raw_runtime: *const c_void,
-    raw_bytes: *const c_void,
-    raw_bytes_len: u64,
-) -> svm_result_t {
-    debug!("`svm_transaction_build` start");
-
-    let bytes = std::slice::from_raw_parts(raw_bytes as *const u8, raw_bytes_len as usize);
-    let runtime = helpers::cast_to_runtime(raw_runtime);
-
-    match runtime.transaction_build(bytes) {
+    match runtime.parse_exec_app(bytes) {
         Ok(tx) => {
-            *raw_tx = svm_common::into_raw_mut(tx);
-            debug!("`svm_transaction_build returns `SVM_SUCCESS`");
+            *app_tx = svm_common::into_raw_mut(tx);
+            debug!("`svm_parse_exec_app` returns `SVM_SUCCESS`");
             svm_result_t::SVM_SUCCESS
         }
         Err(_error) => {
             // update_last_error(error);
-            error!("`svm_transaction_build returns `SVM_FAILURE`");
+            error!("`svm_parse_exec_app` returns `SVM_FAILURE`");
             svm_result_t::SVM_FAILURE
         }
     }
 }
 
-/// Triggers a transaction execution of an already deployed contract.
+/// Triggers an app-transaction execution of an already deployed app.
 ///
-/// Returns the receipt of the contract execution via the `raw_receipt` parameter.
+/// Returns the receipt of the execution via the `receipt` parameter.
 #[must_use]
 #[no_mangle]
-pub unsafe extern "C" fn svm_transaction_exec(
-    raw_receipt: *mut *mut c_void,
-    raw_runtime: *mut c_void,
-    raw_tx: *const c_void,
-    raw_state: *const c_void,
-    raw_pages_count: libc::c_int,
+pub unsafe extern "C" fn svm_exec_app(
+    receipt: *mut *mut c_void,
+    runtime: *mut c_void,
+    app_tx: *const c_void,
+    state: *const c_void,
 ) -> svm_result_t {
-    debug!("`svm_transaction_exec` start");
+    debug!("`svm_exec_app` start");
 
-    let tx = svm_common::from_raw::<Transaction>(raw_tx);
-    let runtime = helpers::cast_to_runtime_mut(raw_runtime);
-    let state = State::from(raw_state);
+    let app_tx = *Box::from_raw(app_tx as *mut AppTransaction);
+    let runtime = helpers::cast_to_runtime_mut(runtime);
+    let state = State::from(state);
 
-    let settings = ContractSettings {
-        pages_count: raw_pages_count as u32,
-        kv_path: String::new(),
-    };
+    match runtime.exec_app(app_tx, state) {
+        Ok(r) => {
+            *receipt = svm_common::into_raw_mut(r);
 
-    let receipt = runtime.transaction_exec(&tx, &state, &settings);
-
-    *raw_receipt = svm_common::into_raw_mut(receipt);
-
-    debug!("`svm_transaction_exec returns `SVM_SUCCESS`");
-
-    svm_result_t::SVM_SUCCESS
+            debug!("`svm_exec_app` returns `SVM_SUCCESS`");
+            svm_result_t::SVM_SUCCESS
+        }
+        Err(_e) => {
+            // update_last_error(e);
+            error!("`svm_exec_app` returns `SVM_FAILURE`");
+            svm_result_t::SVM_FAILURE
+        }
+    }
 }
 
 #[must_use]
@@ -288,12 +276,11 @@ pub unsafe extern "C" fn svm_receipt_error(raw_receipt: *const c_void) {
     let receipt = svm_common::from_raw::<Receipt>(raw_receipt);
 
     if let Some(ref _e) = receipt.error {
-        // TODO: implement `std::error::Error` for `svm_runtime::runtime::error::ContractExecError`
         // update_last_error(e);
     }
 }
 
-/// Returns a pointer to the new state of the contract account.
+/// Returns a pointer to the new state of the app account.
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_receipt_new_state(raw_receipt: *const c_void) -> *const u8 {
