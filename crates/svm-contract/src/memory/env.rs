@@ -1,42 +1,44 @@
-use crate::default::{DefaultCodeHasher, DefaultContractAddressCompute};
-use crate::env::{ContractEnv, ContractEnvTypes};
-use crate::memory::MemContractStore;
-use crate::wasm::{WasmContractJsonDeserializer, WasmContractJsonSerializer};
+use crate::{
+    default::{DefaultAppTemplateAddressCompute, DefaultCodeHasher},
+    env::{AppTemplateEnv, AppTemplateEnvTypes},
+    memory::MemAppTemplateStore,
+    wasm::{AppTemplateJsonDeserializer, AppTemplateJsonSerializer},
+};
 
 pub struct MemoryEnvTypes;
 
-impl ContractEnvTypes for MemoryEnvTypes {
-    type Serializer = WasmContractJsonSerializer;
+impl AppTemplateEnvTypes for MemoryEnvTypes {
+    type Serializer = AppTemplateJsonSerializer;
 
-    type Deserializer = WasmContractJsonDeserializer;
+    type Deserializer = AppTemplateJsonDeserializer;
 
-    type Store = MemContractStore<Self::Serializer, Self::Deserializer>;
+    type Store = MemAppTemplateStore<Self::Serializer, Self::Deserializer>;
 
-    type AddressCompute = DefaultContractAddressCompute;
+    type AddressCompute = DefaultAppTemplateAddressCompute;
 
-    type CodeHasher = DefaultCodeHasher;
+    type Hasher = DefaultCodeHasher;
 }
 
-/// In-memory implementation for `ContractEnv`
+/// An in-memory implementation for `AppTemplateEnv`
 pub struct MemoryEnv {
-    store: <MemoryEnvTypes as ContractEnvTypes>::Store,
+    store: <MemoryEnvTypes as AppTemplateEnvTypes>::Store,
 }
 
 impl MemoryEnv {
     /// Creates a new in-memory environment.
-    pub fn new(store: <MemoryEnvTypes as ContractEnvTypes>::Store) -> Self {
+    pub fn new(store: <MemoryEnvTypes as AppTemplateEnvTypes>::Store) -> Self {
         Self { store }
     }
 }
 
-impl ContractEnv for MemoryEnv {
+impl AppTemplateEnv for MemoryEnv {
     type Types = MemoryEnvTypes;
 
-    fn get_store(&self) -> &<Self::Types as ContractEnvTypes>::Store {
+    fn get_store(&self) -> &<Self::Types as AppTemplateEnvTypes>::Store {
         &self.store
     }
 
-    fn get_store_mut(&mut self) -> &mut <Self::Types as ContractEnvTypes>::Store {
+    fn get_store_mut(&mut self) -> &mut <Self::Types as AppTemplateEnvTypes>::Store {
         &mut self.store
     }
 }

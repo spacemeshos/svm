@@ -1,14 +1,13 @@
-use crate::traits::ContractCodeHasher;
-use crate::types::CodeHash;
-use svm_common::KeyHasher;
+use crate::{traits::AppTemplateHasher, types::CodeHash};
+use svm_common::{DefaultKeyHasher, KeyHasher};
 
 /// Default implementation for `ContractCodeHasher`
 pub struct DefaultCodeHasher;
 
-impl ContractCodeHasher for DefaultCodeHasher {
+impl AppTemplateHasher for DefaultCodeHasher {
     #[inline(always)]
     fn hash(bytes: &[u8]) -> CodeHash {
-        let hash: [u8; 32] = svm_common::DefaultKeyHasher::hash(bytes);
+        let hash: [u8; 32] = DefaultKeyHasher::hash(bytes);
         CodeHash(hash)
     }
 }

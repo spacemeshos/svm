@@ -1,38 +1,39 @@
 use crate::wasm::WasmArgValue;
+
 use svm_common::Address;
 
-/// An in-memory representation of a smart-contract transaction.
+/// An in-memory representation of an `App` transaction.
 #[derive(Clone, PartialEq)]
 pub struct Transaction {
-    /// The contract account address
-    pub contract: Address,
+    /// The `App` account address
+    pub app: Address,
 
     /// Transaction sender account address
     pub sender: Address,
 
-    /// Contract function to execute
+    /// `App` function to execute
     pub func_name: String,
 
-    /// Contrant function args
+    /// `App` function args
     pub func_args: Vec<WasmArgValue>,
 }
 
 impl std::fmt::Debug for Transaction {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let contract = self.fmt_contract();
+        let app = self.fmt_app();
         let sender = self.fmt_sender();
         let func_name = self.fmt_func_name();
         let func_args = self.fmt_func_args();
 
-        let msg = [contract, sender, func_name, func_args];
+        let msg = [app, sender, func_name, func_args];
 
         write!(f, "{}", msg.join("\n"))
     }
 }
 
 impl Transaction {
-    fn fmt_contract(&self) -> String {
-        self.fmt_address("Contract", &self.contract)
+    fn fmt_app(&self) -> String {
+        self.fmt_address("App", &self.app)
     }
 
     fn fmt_sender(&self) -> String {

@@ -1,44 +1,42 @@
-use crate::types::CodeHash;
-use crate::wasm::Contract;
+use crate::{types::CodeHash, wasm::AppTemplate};
 
 use svm_common::Address;
 
-/// Serializing a contract into its raw representation trait.
-pub trait ContractSerializer {
+/// Serializing an `AppTemplate` into its raw representation trait.
+pub trait AppTemplateSerializer {
     #[allow(missing_docs)]
-    fn serialize(contract: &Contract) -> Vec<u8>;
+    fn serialize(template: &AppTemplate) -> Vec<u8>;
 }
 
-/// Deserializing raw contract into its in-memory representation trait.
-pub trait ContractDeserializer {
+/// Deserializing rawn `AppTemplate` into its in-memory representation trait.
+pub trait AppTemplateDeserializer {
     #[allow(missing_docs)]
-    fn deserialize(bytes: Vec<u8>) -> Contract;
+    fn deserialize(bytes: Vec<u8>) -> AppTemplate;
 }
 
-/// Stores serialized contracts (a.k.a raw contracts)
-/// and deserializes raw contract into `Contract` upon fetching.
-pub trait ContractStore<S, D>
+/// A persistent store for `AppTemplate`
+pub trait AppTemplateStore<S, D>
 where
-    S: ContractSerializer,
-    D: ContractDeserializer,
+    S: AppTemplateSerializer,
+    D: AppTemplateDeserializer,
 {
     /// Stores the `hash` -> `raw contract` association
-    fn store(&mut self, contract: &Contract, address: &Address, hash: CodeHash);
+    fn store(&mut self, template: &AppTemplate, address: &Address, hash: CodeHash);
 
-    /// Given a contract account address, fetches its raw contract dada
-    /// and deserializes it. Return `None` it contract doesn't exist
-    fn load(&self, address: &Address) -> Option<Contract>;
+    /// Given a `AppTemplate` account address, fetches its raw data
+    /// and deserializes it. Returns `None` if `AppTemplatee` doesn't exist.
+    fn load(&self, address: &Address) -> Option<AppTemplate>;
 }
 
-/// Computes a contract account address.
+/// Computes an `AppTemplate` account address.
 /// Algorithm must be deterministic.
-pub trait ContractAddressCompute {
-    /// Derives the contract address
-    fn compute(contract: &Contract) -> Address;
+pub trait AppTemplateAddressCompute {
+    /// Derives the `AppTemplate` address
+    fn compute(template: &AppTemplate) -> Address;
 }
 
-/// Computes code-hash derived deterministically from raw contract.
-pub trait ContractCodeHasher {
+/// Computes Hash derived deterministically from raw `AppTemplate`.
+pub trait AppTemplateHasher {
     /// Given code as bytes, derives an Hash
     fn hash(bytes: &[u8]) -> CodeHash;
 }

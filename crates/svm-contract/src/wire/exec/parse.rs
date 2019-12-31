@@ -1,14 +1,15 @@
-use super::error::TransactionBuildError;
-use super::field::Field;
+use std::convert::TryFrom;
+use std::io::{Cursor, Read};
 
-use crate::transaction::Transaction;
-use crate::wasm::{WasmArgType, WasmArgValue, WasmIntType};
+use super::{error::TransactionBuildError, field::Field};
+
+use crate::{
+    transaction::Transaction,
+    wasm::{WasmArgType, WasmArgValue, WasmIntType},
+};
 use svm_common::Address;
 
 use byteorder::{BigEndian, ReadBytesExt};
-
-use std::convert::TryFrom;
-use std::io::{Cursor, Read};
 
 macro_rules! ensure_enough_bytes {
     ($res: expr, $field: expr) => {{
@@ -18,21 +19,21 @@ macro_rules! ensure_enough_bytes {
     }};
 }
 
-/// Parsing a on-the-wire smart-contract transaction given as raw bytes.
-/// Returns the parsed contract as a `WasmContract` struct.
+/// Parsing a on-the-wire `AppTemplate` deploy transaction given as raw bytes.
+/// Returns the parsed template as a `WasmContract` struct.
 #[allow(dead_code)]
 pub fn parse_transaction(bytes: &[u8]) -> Result<Transaction, TransactionBuildError> {
     let mut cursor = Cursor::new(bytes);
 
     parse_version(&mut cursor)?;
 
-    let contract = parse_address(&mut cursor, Field::Contract)?;
+    let app = parse_address(&mut cursor, Field::App)?;
     let sender = parse_address(&mut cursor, Field::Sender)?;
     let func_name = parse_func_name(&mut cursor)?;
     let func_args = parse_func_args(&mut cursor)?;
 
     let tx = Transaction {
-        contract,
+        app,
         sender,
         func_name,
         func_args,

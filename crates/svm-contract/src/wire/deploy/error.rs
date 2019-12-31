@@ -1,7 +1,7 @@
 use super::field::Field;
 
 #[allow(missing_docs)]
-pub enum ContractBuildError {
+pub enum AppTemplateBuildError {
     EmptyName,
     NameNotValidUTF8String,
     DepsNotSupportedYet,
@@ -12,49 +12,49 @@ pub enum ContractBuildError {
     InvalidWasm,
 }
 
-impl std::error::Error for ContractBuildError {
+impl std::error::Error for AppTemplateBuildError {
     fn description(&self) -> &'static str {
         match self {
-            ContractBuildError::EmptyName => "Name must not be empty",
-            ContractBuildError::NameNotValidUTF8String => "Name must be a valid UTF-8 string",
-            ContractBuildError::DepsNotSupportedYet => "Dependencies are supported yet",
-            ContractBuildError::AdminsNotSupportedYet => "Admins are not supported yet",
-            ContractBuildError::NotEnoughBytes(_) => "Not enough bytes",
-            ContractBuildError::UnsupportedProtoVersion(_) => "Unsupported protocol version",
-            ContractBuildError::NoAuthors => "Must have authors",
-            ContractBuildError::InvalidWasm => "Invalid wasm format",
+            AppTemplateBuildError::EmptyName => "Name must not be empty",
+            AppTemplateBuildError::NameNotValidUTF8String => "Name must be a valid UTF-8 string",
+            AppTemplateBuildError::DepsNotSupportedYet => "Dependencies are supported yet",
+            AppTemplateBuildError::AdminsNotSupportedYet => "Admins are not supported yet",
+            AppTemplateBuildError::NotEnoughBytes(_) => "Not enough bytes",
+            AppTemplateBuildError::UnsupportedProtoVersion(_) => "Unsupported protocol version",
+            AppTemplateBuildError::NoAuthors => "Must have authors",
+            AppTemplateBuildError::InvalidWasm => "Invalid wasm format",
         }
     }
 }
 
-impl std::fmt::Display for ContractBuildError {
+impl std::fmt::Display for AppTemplateBuildError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let msg = match self {
-            ContractBuildError::EmptyName => String::from("Name must not be empty"),
-            ContractBuildError::NameNotValidUTF8String => {
+            AppTemplateBuildError::EmptyName => String::from("Name must not be empty"),
+            AppTemplateBuildError::NameNotValidUTF8String => {
                 String::from("Name must be a valid UTF-8 string")
             }
-            ContractBuildError::DepsNotSupportedYet => {
+            AppTemplateBuildError::DepsNotSupportedYet => {
                 String::from("Dependencies are supported yet")
             }
-            ContractBuildError::AdminsNotSupportedYet => {
+            AppTemplateBuildError::AdminsNotSupportedYet => {
                 String::from("Admins are not supported yet")
             }
-            ContractBuildError::NotEnoughBytes(field) => {
+            AppTemplateBuildError::NotEnoughBytes(field) => {
                 format!("Not enough bytes (field: {})", field)
             }
-            ContractBuildError::UnsupportedProtoVersion(ver) => {
+            AppTemplateBuildError::UnsupportedProtoVersion(ver) => {
                 format!("Unsupported protocol version: `{}`", ver)
             }
-            ContractBuildError::NoAuthors => String::from("Must have Authors"),
-            ContractBuildError::InvalidWasm => String::from("Invalid wasm format"),
+            AppTemplateBuildError::NoAuthors => String::from("Must have Authors"),
+            AppTemplateBuildError::InvalidWasm => String::from("Invalid wasm format"),
         };
 
         write!(f, "{}", msg)
     }
 }
 
-impl std::fmt::Debug for ContractBuildError {
+impl std::fmt::Debug for AppTemplateBuildError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         <Self as std::fmt::Display>::fmt(self, f)
     }

@@ -1,64 +1,66 @@
 use crate::traits::{
-    ContractAddressCompute, ContractCodeHasher, ContractDeserializer, ContractSerializer,
-    ContractStore,
+    AppTemplateAddressCompute, AppTemplateDeserializer, AppTemplateHasher, AppTemplateSerializer,
+    AppTemplateStore,
 };
-use crate::transaction::Transaction;
-use crate::types::CodeHash;
-use crate::wasm::Contract;
-use crate::wire::{deploy::ContractBuildError, exec::TransactionBuildError};
+use crate::{
+    transaction::Transaction,
+    types::CodeHash,
+    wasm::AppTemplate,
+    wire::{deploy::AppTemplateBuildError, exec::TransactionBuildError},
+};
 
 use svm_common::Address;
 
-/// Aggregates types that are required by `ContractEnv`
-pub trait ContractEnvTypes {
-    /// Serializing a contract
-    type Serializer: ContractSerializer;
+/// Aggregates types that are required by `AppTemplateEnv`
+pub trait AppTemplateEnvTypes {
+    /// Serializer for `AppTemplate`
+    type Serializer: AppTemplateSerializer;
 
-    /// Deserializing a contract
-    type Deserializer: ContractDeserializer;
+    /// Deserializer a `AppTemplate`
+    type Deserializer: AppTemplateDeserializer;
 
-    /// Storing / Loaing a contract
-    type Store: ContractStore<Self::Serializer, Self::Deserializer>;
+    /// Storing / Loading an `AppTemplate`
+    type Store: AppTemplateStore<Self::Serializer, Self::Deserializer>;
 
-    /// Deriving the contract address
-    type AddressCompute: ContractAddressCompute;
+    /// Deriving the `AppTemplate` address
+    type AddressCompute: AppTemplateAddressCompute;
 
-    /// Deriving the Hash of the contract code
-    type CodeHasher: ContractCodeHasher;
+    /// Deriving the Hash of the `AppTemplate` code
+    type Hasher: AppTemplateHasher;
 }
 
-/// Trait for managing the contract environment.
-/// Relies on associated `ContractEnvTypes`.
-pub trait ContractEnv {
-    /// Contract environment is dictated by its `Types`
-    type Types: ContractEnvTypes;
+/// A trait for managing an `AppTemplate` environment.
+/// Relies on associated `AppTemplateEnvTypes`.
+pub trait AppTemplateEnv {
+    /// AppTemplate environment is dictated by its `Types`
+    type Types: AppTemplateEnvTypes;
 
     /// Borrows environment's store
-    fn get_store(&self) -> &<Self::Types as ContractEnvTypes>::Store;
+    fn get_store(&self) -> &<Self::Types as AppTemplateEnvTypes>::Store;
 
     /// Borrows mutably environment's store
-    fn get_store_mut(&mut self) -> &mut <Self::Types as ContractEnvTypes>::Store;
+    fn get_store_mut(&mut self) -> &mut <Self::Types as AppTemplateEnvTypes>::Store;
 
-    /// Computes contract hash
+    /// Computes `AppTemplate` Hash
     #[inline(always)]
-    fn compute_code_hash(&self, contract: &Contract) -> CodeHash {
-        <Self::Types as ContractEnvTypes>::CodeHasher::hash(&contract.wasm)
+    fn compute_hash(&self, template: &AppTemplate) -> CodeHash {
+        <Self::Types as AppTemplateEnvTypes>::Hasher::hash(&template.code)
     }
 
-    /// Computes contract account address
+    /// Computes `AppTemplate` account address
     #[inline(always)]
-    fn compute_address(&self, contract: &Contract) -> Address {
-        <Self::Types as ContractEnvTypes>::AddressCompute::compute(contract)
+    fn compute_address(&self, template: &AppTemplate) -> Address {
+        <Self::Types as AppTemplateEnvTypes>::AddressCompute::compute(template)
     }
 
-    /// * Parses a raw contract into `Contract`
-    /// * Enriches the contract with its derived address
-    fn build_contract(&self, bytes: &[u8]) -> Result<Contract, ContractBuildError> {
-        let contract = crate::wire::deploy::parse_contract(bytes)?;
+    /// * Parses a raw template into `AppTemplate`
+    /// * Enriches the template with its derived address
+    fn parse_template(&self, bytes: &[u8]) -> Result<AppTemplate, AppTemplateBuildError> {
+        let template = crate::wire::deploy::parse_template(bytes)?;
 
-        crate::wire::deploy::validate_contract(&contract)?;
+        crate::wire::deploy::validate_contract(&template)?;
 
-        Ok(contract)
+        Ok(template)
     }
 
     /// Parses a raw transaction
@@ -68,12 +70,12 @@ pub trait ContractEnv {
         Ok(tx)
     }
 
-    /// Stores contract by its `CodeHash`
+    /// Stores template by its `CodeHash`
     #[inline(always)]
-    fn store_contract(&mut self, contract: &Contract, addr: &Address) {
-        let hash = self.compute_code_hash(contract);
+    fn store_template(&mut self, template: &AppTemplate, addr: &Address) {
+        let hash = self.compute_hash(template);
         let store = self.get_store_mut();
 
-        store.store(contract, addr, hash);
+        store.store(template, addr, hash);
     }
 }

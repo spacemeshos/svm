@@ -1,21 +1,23 @@
-use crate::traits::{ContractDeserializer, ContractSerializer};
-use crate::wasm::Contract;
+use crate::{
+    traits::{AppTemplateDeserializer, AppTemplateSerializer},
+    wasm::AppTemplate,
+};
 
-/// Contract json Serializer
-pub struct WasmContractJsonSerializer;
+/// `AppTemplate` json Serializer
+pub struct AppTemplateJsonSerializer;
 
-/// Contract json Deserialize
-pub struct WasmContractJsonDeserializer;
+/// `AppTemplate` json Deserialize
+pub struct AppTemplateJsonDeserializer;
 
-impl ContractSerializer for WasmContractJsonSerializer {
-    fn serialize(contract: &Contract) -> Vec<u8> {
-        let s = serde_json::to_string(&contract).unwrap();
+impl AppTemplateSerializer for AppTemplateJsonSerializer {
+    fn serialize(template: &AppTemplate) -> Vec<u8> {
+        let s = serde_json::to_string(&template).unwrap();
         s.into_bytes()
     }
 }
 
-impl ContractDeserializer for WasmContractJsonDeserializer {
-    fn deserialize(bytes: Vec<u8>) -> Contract {
+impl AppTemplateDeserializer for AppTemplateJsonDeserializer {
+    fn deserialize(bytes: Vec<u8>) -> AppTemplate {
         let s = unsafe { String::from_utf8_unchecked(bytes) };
 
         serde_json::from_str(s.as_str()).unwrap()

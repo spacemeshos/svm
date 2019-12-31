@@ -1,34 +1,34 @@
-use super::error::ContractBuildError;
-use super::field::Field;
+use super::{error::AppTemplateBuildError, field::Field};
 
-use crate::wasm::Contract;
+use crate::wasm::AppTemplate;
+
 use svm_common::Address;
 
-pub fn validate_contract(contract: &Contract) -> Result<(), ContractBuildError> {
-    validate_author(contract)?;
-    validate_admins(contract)?;
-    validate_deps(contract)?;
-    validate_wasm(contract)?;
+pub fn validate_contract(template: &AppTemplate) -> Result<(), AppTemplateBuildError> {
+    validate_author(template)?;
+    validate_admins(template)?;
+    validate_deps(template)?;
+    validate_wasm(template)?;
 
     Ok(())
 }
 
-fn validate_deps(_contract: &Contract) -> Result<(), ContractBuildError> {
+fn validate_deps(_template: &AppTemplate) -> Result<(), AppTemplateBuildError> {
     Ok(())
 }
 
-fn validate_author(contract: &Contract) -> Result<(), ContractBuildError> {
-    validate_account(&contract.author, Field::Author)
+fn validate_author(template: &AppTemplate) -> Result<(), AppTemplateBuildError> {
+    validate_account(&template.author, Field::Author)
 }
 
-fn validate_admins(_contract: &Contract) -> Result<(), ContractBuildError> {
+fn validate_admins(_template: &AppTemplate) -> Result<(), AppTemplateBuildError> {
     Ok(())
 }
 
-fn validate_account(_addr: &Address, _field: Field) -> Result<(), ContractBuildError> {
+fn validate_account(_addr: &Address, _field: Field) -> Result<(), AppTemplateBuildError> {
     Ok(())
 }
 
-fn validate_wasm(_contract: &Contract) -> Result<(), ContractBuildError> {
+fn validate_wasm(_template: &AppTemplate) -> Result<(), AppTemplateBuildError> {
     Ok(())
 }

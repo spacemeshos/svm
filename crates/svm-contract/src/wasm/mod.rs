@@ -1,8 +1,7 @@
 mod arg;
-mod contract;
 mod serialize;
+mod template;
 
 pub use arg::{WasmArgType, WasmArgTypeError, WasmArgValue, WasmIntType};
-pub use contract::Contract;
-pub use serialize::WasmContractJsonDeserializer;
-pub use serialize::WasmContractJsonSerializer;
+pub use serialize::{AppTemplateJsonDeserializer, AppTemplateJsonSerializer};
+pub use template::AppTemplate;

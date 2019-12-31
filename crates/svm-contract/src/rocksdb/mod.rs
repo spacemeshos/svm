@@ -1,5 +1,5 @@
-mod contract_store;
 mod env;
+mod template_store;
 
-pub use contract_store::RocksdbContractStore;
-pub use env::RocksdbContractEnv;
+pub use env::RocksdbAppTemplateEnv;
+pub use template_store::RocksdbAppTemplateStore;

@@ -1,42 +1,44 @@
-use crate::default::{DefaultCodeHasher, DefaultContractAddressCompute};
-use crate::env::{ContractEnv, ContractEnvTypes};
-use crate::rocksdb::RocksdbContractStore;
-use crate::wasm::{WasmContractJsonDeserializer, WasmContractJsonSerializer};
+use crate::{
+    default::{DefaultAppTemplateAddressCompute, DefaultCodeHasher},
+    env::{AppTemplateEnv, AppTemplateEnvTypes},
+    rocksdb::RocksdbAppTemplateStore,
+    wasm::{AppTemplateJsonDeserializer, AppTemplateJsonSerializer},
+};
 
-pub struct RocksdbContractEnvTypes {}
+pub struct RocksdbAppTemplateEnvTypes {}
 
-impl ContractEnvTypes for RocksdbContractEnvTypes {
-    type Serializer = WasmContractJsonSerializer;
+impl AppTemplateEnvTypes for RocksdbAppTemplateEnvTypes {
+    type Serializer = AppTemplateJsonSerializer;
 
-    type Deserializer = WasmContractJsonDeserializer;
+    type Deserializer = AppTemplateJsonDeserializer;
 
-    type Store = RocksdbContractStore<Self::Serializer, Self::Deserializer>;
+    type Store = RocksdbAppTemplateStore<Self::Serializer, Self::Deserializer>;
 
-    type AddressCompute = DefaultContractAddressCompute;
+    type AddressCompute = DefaultAppTemplateAddressCompute;
 
-    type CodeHasher = DefaultCodeHasher;
+    type Hasher = DefaultCodeHasher;
 }
 
-/// Contract environment backed-by `rocksdb`
-pub struct RocksdbContractEnv {
-    store: <RocksdbContractEnvTypes as ContractEnvTypes>::Store,
+/// AppTemplate environment backed-by `rocksdb`
+pub struct RocksdbAppTemplateEnv {
+    store: <RocksdbAppTemplateEnvTypes as AppTemplateEnvTypes>::Store,
 }
 
-impl RocksdbContractEnv {
-    /// Creates a new `RocksdbContractEnv`. Injects externally the `ContractStore`
-    pub fn new(store: <RocksdbContractEnvTypes as ContractEnvTypes>::Store) -> Self {
+impl RocksdbAppTemplateEnv {
+    /// Creates a new `RocksdbAppTemplateEnv`. Injects externally the `AppTemplateStore`
+    pub fn new(store: <RocksdbAppTemplateEnvTypes as AppTemplateEnvTypes>::Store) -> Self {
         Self { store }
     }
 }
 
-impl ContractEnv for RocksdbContractEnv {
-    type Types = RocksdbContractEnvTypes;
+impl AppTemplateEnv for RocksdbAppTemplateEnv {
+    type Types = RocksdbAppTemplateEnvTypes;
 
-    fn get_store(&self) -> &<Self::Types as ContractEnvTypes>::Store {
+    fn get_store(&self) -> &<Self::Types as AppTemplateEnvTypes>::Store {
         &self.store
     }
 
-    fn get_store_mut(&mut self) -> &mut <Self::Types as ContractEnvTypes>::Store {
+    fn get_store_mut(&mut self) -> &mut <Self::Types as AppTemplateEnvTypes>::Store {
         &mut self.store
     }
 }

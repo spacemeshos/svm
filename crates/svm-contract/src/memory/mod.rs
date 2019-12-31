@@ -1,5 +1,5 @@
-mod contract_store;
 mod env;
+mod template_store;
 
-pub use contract_store::MemContractStore;
 pub use env::MemoryEnv;
+pub use template_store::MemAppTemplateStore;

@@ -1,15 +1,15 @@
 #![deny(missing_docs)]
 #![deny(unused)]
 
-//! The `svm-contract` crate is responsible on storing and retrieving contracts backed by a database.
+//! The `svm-app` crate is responsible on `Spacemesh` `AppTemplate`(s) and `App`(s).
 
-/// Default implementations for `ContractAddressCompute` and `ContractAddressCompute`
+/// Default implementations for `AppTemplateAddressCompute` and `AppTemplateAddressCompute`
 pub mod default;
 
-/// Contract environment
+/// AppTemplate environment
 pub mod env;
 
-/// In-memory Contract environment and store
+/// In-memory environment and store
 pub mod memory;
 
 /// crate traits goes here
@@ -24,7 +24,7 @@ pub mod types;
 /// Wasm contract and other related primitives
 pub mod wasm;
 
-/// `rocksdb` backed implementation for `ContractStore` and `ContractEnv`
+/// `rocksdb` backed implementation for `AppTemplateStore` and `AppTemplateEnv`
 #[cfg(feature = "default-rocksdb")]
 pub mod rocksdb;
 
@@ -32,12 +32,12 @@ mod wire;
 
 /// Exposed errors
 pub mod error {
-    pub use crate::wire::deploy::ContractBuildError;
+    pub use crate::wire::deploy::AppTemplateBuildError;
     pub use crate::wire::exec::TransactionBuildError;
 }
 
-/// Building in-memory representations for a new contract / smart-contract transaction
+/// Building in-memory representations for a new `AppTemplate / App` transaction
 pub mod build {
-    pub use crate::wire::deploy::WireContractBuilder;
+    pub use crate::wire::deploy::WireAppTemplateBuilder;
     pub use crate::wire::exec::WireTxBuilder;
 }

@@ -1,5 +1,5 @@
+mod app_template_address_compute;
 mod code_hasher;
-mod contract_address_compute;
 
+pub use app_template_address_compute::DefaultAppTemplateAddressCompute;
 pub use code_hasher::DefaultCodeHasher;
-pub use contract_address_compute::DefaultContractAddressCompute;

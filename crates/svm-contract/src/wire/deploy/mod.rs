@@ -1,4 +1,4 @@
-//!      Deploy Contract Wire Protocol Version 0.0.0.0
+//!      Deploy AppTemplate Wire Protocol Version 0.0.0.0
 //!  -------------------------------------------------------
 //!  |   proto    |                |                       |
 //!  |  version   |  name length   |     name (UTF-8)      |
@@ -27,7 +27,7 @@ mod field;
 mod parse;
 mod validate;
 
-pub use build::WireContractBuilder;
-pub use error::ContractBuildError;
-pub use parse::parse_contract;
+pub use build::WireAppTemplateBuilder;
+pub use error::AppTemplateBuildError;
+pub use parse::parse_template;
 pub use validate::validate_contract;

@@ -1,8 +1,9 @@
 use byteorder::{BigEndian, WriteBytesExt};
+
 use svm_common::Address;
 
-/// A raw contract builder. Used for testing.
-pub struct WireContractBuilder {
+/// A raw `AppTemplate` builder. Used for testing.
+pub struct WireAppTemplateBuilder {
     version: Option<u32>,
     name: Option<String>,
     author: Option<Address>,
@@ -10,7 +11,7 @@ pub struct WireContractBuilder {
 }
 
 #[allow(missing_docs)]
-impl WireContractBuilder {
+impl WireAppTemplateBuilder {
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {
