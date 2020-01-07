@@ -2,7 +2,7 @@ use crate::page::{PageHash, PageIndex};
 use crate::state::StateHash;
 use svm_common::{Address, State};
 
-/// `PagesStorage` is the most low-level trait for dealing with a contract's storage.
+/// `PagesStorage` is the most low-level trait for dealing with a app's storage.
 /// For performance concerns, we work on pages units (a page is 4096 bytes)
 /// Each read / write operation will involve exactly one page
 /// That is flushed to the underlying database only when calling `commit`
@@ -22,14 +22,14 @@ pub trait PagesStorage {
     fn commit(&mut self);
 }
 
-/// `PageIndexHasher` is a trait defining that a contract storage-page hash must be determined by
-/// both the contract storage and the page index.
+/// `PageIndexHasher` is a trait defining that a app storage-page hash must be determined by
+/// both the app storage and the page index.
 ///
 /// We must have both parameters taken into account since:
-/// * Computing a page-hash for two different contracts and the same `page index` must result in a different page-hash.
-///   That's why we need the contract address.
+/// * Computing a page-hash for two different apps and the same `page index` must result in a different page-hash.
+///   That's why we need the app address.
 ///
-/// * Similarly, computing a page-hash two variables located at different storage-pages under the same contract
+/// * Similarly, computing a page-hash two variables located at different storage-pages under the same app
 /// must also result in a different page-hash.
 pub trait PageIndexHasher {
     /// Calculates a hash derived from an `address` + a `page-index`
@@ -38,9 +38,9 @@ pub trait PageIndexHasher {
 }
 
 /// Implementors are in-charge of calculating a page hash.
-/// The page hash is derived from 3 components: `contract address` + `page-index` + `page-data`
+/// The page hash is derived from 3 components: `app address` + `page-index` + `page-data`
 pub trait PageHasher {
-    /// `address`  - The Smart Contract account address
+    /// `address`  - The app account address
     /// `page_idx` - The page index we want to calculate its hash
     /// `page_data - The raw content of the page
     #[must_use]
@@ -48,7 +48,7 @@ pub trait PageHasher {
 }
 
 /// Implementors are in-charge of calculating a page hash.
-/// The page hash isderived from 3 components: `contract address` + `page-index` + `page-data`
+/// The page hash isderived from 3 components: `app address` + `page-index` + `page-data`
 pub trait StateHasher {
     /// `pages_hash` - a slice of `PageHash`
     #[must_use]
@@ -56,8 +56,8 @@ pub trait StateHasher {
 }
 
 /// This trait should be implemented by state-oriented pages storage.
-/// Since a Smart Contract must have a state (like a source control revision) we need to have this
-/// capability implemented for real-usage Smart Contract storage.
+/// Since an app must have a state (like a source control revision) we need to have this
+/// capability implemented for real-usage app storage.
 pub trait StateAwarePagesStorage: PagesStorage {
     /// Returns the current storage state (i.e revision)
     #[must_use]

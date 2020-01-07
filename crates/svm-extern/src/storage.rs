@@ -1,4 +1,4 @@
-/// The `include_extern_storage` will be imported by Smart Contracts.
+/// The `include_extern_storage` will be imported by SVM apps.
 #[macro_export]
 macro_rules! include_extern_storage_vmcalls {
     () => {

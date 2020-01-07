@@ -53,7 +53,7 @@ docker run -it svm-build
 ### Roadmap
 * [x] Infrastructure (see the [SVM article](https://medium.com/spacemesh/svm-446b106025bd))
 * [ ] Gas metering
-* [ ] Contract-to-Contract calls
+* [ ] App-to-App calls
 * [ ] Storage Data-Structures
   * [ ] Array
   * [ ] List
@@ -62,7 +62,7 @@ docker run -it svm-build
   * [ ] Sorted-Set
   * [ ] Strings
 * [ ] Events with expiration
-* [ ] Contract dependencies
+* [ ] App dependencies
 
 ### Supported Operating-Systems
 * [x] Mac

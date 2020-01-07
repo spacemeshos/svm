@@ -16,9 +16,8 @@ enum CachedPage {
     Cached(Vec<u8>),
 }
 
-/// `DefaultPageCache` serves us a cache layer for reading contract storage page.
-/// In addition, it tracks dirty pages (pages that have been changed during the execution of a
-/// smart contract).
+/// `DefaultPageCache` serves us a cache layer for reading app storage page.
+/// In addition, it tracks dirty pages (pages that have been changed during the execution of an app)
 pub struct DefaultPageCache<PS: StateAwarePagesStorage> {
     // The `ith item` will say whether the `ith page` is dirty
     dirty_pages: Vec<bool>,
@@ -56,7 +55,7 @@ impl<PS: StateAwarePagesStorage> DefaultPageCache<PS> {
     ///
     /// * `pages_count` - the #pages the `DefaultPageCache` instance could use when doing read / write.
     ///   A page index is within the range `0..(pages_count - 1)` (inclusive)
-    pub fn new(pages_storage: PS, pages_count: u32) -> Self {
+    pub fn new(pages_storage: PS, pages_count: u16) -> Self {
         Self {
             dirty_pages: vec![false; pages_count as usize],
             cached_pages: vec![CachedPage::NotCached; pages_count as usize],
@@ -166,7 +165,7 @@ impl<PS: StateAwarePagesStorage> PagesStorage for DefaultPageCache<PS> {
     ///
     /// * we call `pages_storage.commit` to flush the persist the changes
     ///
-    /// since a smart contract is a short-lived program, we don't clear after `commit`
+    /// since an app is a short-lived program, we don't clear after `commit`
     fn commit(&mut self) {
         debug!("page-cache is about to commit dirty pages to underlying pages-storage");
 
@@ -177,7 +176,7 @@ impl<PS: StateAwarePagesStorage> PagesStorage for DefaultPageCache<PS> {
                 match cached_page {
                     CachedPage::Cached(ref page) => {
                         self.pages_storage
-                            .write_page(PageIndex(page_idx as u32), page);
+                            .write_page(PageIndex(page_idx as u16), page);
                     }
                     CachedPage::CachedEmpty | CachedPage::NotCached => {
                         // we should never reach this code!

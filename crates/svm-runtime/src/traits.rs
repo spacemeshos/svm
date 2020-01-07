@@ -1,43 +1,32 @@
-use crate::{settings::ContractSettings, Receipt};
-
-use svm_common::{Address, State};
-use svm_contract::{
-    error::{ContractBuildError, TransactionBuildError},
-    transaction::Transaction,
-    wasm::Contract,
+use crate::{
+    error::{DeployTemplateError, ExecAppError, SpawnAppError},
+    settings::AppSettings,
+    Receipt,
 };
-use svm_storage::ContractStorage;
 
-/// Specifies the interface of a Smart-Contracts Runtime.
+use svm_app::types::{App, AppTemplate, AppTransaction};
+use svm_common::{Address, State};
+use svm_storage::AppStorage;
+
+/// Specifies the interface of a `SVM` Runtime.
 pub trait Runtime {
-    /// Given a deploy-contract raw network payload, builds a `Contract` struct.
-    fn contract_build(&self, bytes: &[u8]) -> Result<Contract, ContractBuildError>;
+    fn deploy_template(&mut self, bytes: &[u8]) -> Result<Address, DeployTemplateError>;
 
-    /// Derives the contract address.
-    fn contract_derive_address(&self, contract: &Contract) -> Address;
+    fn spawn_app(&mut self, bytes: &[u8]) -> Result<Address, SpawnAppError>;
 
-    /// Deploys the contract to a `ContractStore`.
-    fn contract_deploy(&mut self, contract: &Contract, addr: &Address);
+    fn parse_exec_app(&self, bytes: &[u8]) -> Result<AppTransaction, ExecAppError>;
 
-    /// Given a contract-transaction raw a network payload, builds a `Transaction` struct.
-    fn transaction_build(&self, bytes: &[u8]) -> Result<Transaction, TransactionBuildError>;
-
-    /// Executes a contract-transaction. Returns a `Receipt`.
+    /// Executes an app-transaction. Returns a `Receipt`.
     /// On success:
-    /// * Persists changes to the contract's own storage.
-    /// * Receipt returns the new contract storage state
-    /// * Receipt informs the amount of gas used
+    /// * Persists changes to the app's own storage.
+    /// * Receipt returns the app's new storage state.
+    /// * Receipt informs the amount of gas used.
     ///
     /// On failure:
     /// * Receipt returns the occurred error
     /// * Receipt informs the amount of gas used (transaction gas limit)
-    fn transaction_exec(
-        &self,
-        tx: &Transaction,
-        state: &State,
-        settings: &ContractSettings,
-    ) -> Receipt;
+    fn exec_app(&self, tx: AppTransaction, state: State) -> Result<Receipt, ExecAppError>;
 }
 
-/// Represents a function that builds a `ContractStorage` given its address, state and settings.
-pub type StorageBuilderFn = dyn Fn(&Address, &State, &ContractSettings) -> ContractStorage;
+/// Represents a function that builds a `AppStorage` given its address, state and settings.
+pub type StorageBuilderFn = dyn Fn(&Address, &State, &AppSettings) -> AppStorage;

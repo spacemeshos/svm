@@ -1,5 +1,5 @@
-mod contract_page_cache;
-mod contract_pages;
+mod app_page_cache;
+mod app_pages;
 
-pub use contract_page_cache::RocksdbContractPageCache;
-pub use contract_pages::RocksdbContractPages;
+pub use app_page_cache::RocksdbAppPageCache;
+pub use app_pages::RocksdbAppPages;

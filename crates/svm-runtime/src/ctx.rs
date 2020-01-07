@@ -3,7 +3,7 @@ use crate::alloc_regs;
 use log::debug;
 use std::ffi::c_void;
 
-use svm_storage::ContractStorage;
+use svm_storage::AppStorage;
 
 use crate::{
     helpers::PtrWrapper,
@@ -32,7 +32,7 @@ pub const REGS_512_COUNT: usize = 4;
 /// * `regs_160` - A static array (`REGS_160_COUNT` elements) of `SvmReg160`
 /// * `regs_256` - A static array (`REGS_256_COUNT` elements) of `SvmReg256`
 /// * `regs_512` - A static array (`REGS_512_COUNT` elements) of `SvmReg512`
-/// * `storage`  - An instance of `ContractStorage`
+/// * `storage`  - An instance of `AppStorage`
 #[repr(C)]
 pub struct SvmCtx {
     /// A pointer to the `host`.
@@ -55,8 +55,8 @@ pub struct SvmCtx {
     /// An array that holds the `SvmReg512` registers
     pub regs_512: [SvmReg; REGS_512_COUNT],
 
-    /// An accessor to the contract's storage
-    pub storage: ContractStorage,
+    /// An accessor to the app's storage
+    pub storage: AppStorage,
 }
 
 unsafe impl Sync for SvmCtx {}
@@ -65,8 +65,8 @@ unsafe impl Send for SvmCtx {}
 impl SvmCtx {
     /// Initializes a new empty `SvmCtx`
     ///
-    /// * `storage` - a mutably borrowed `ContractStorage`
-    pub fn new(host: PtrWrapper, storage: ContractStorage) -> Self {
+    /// * `storage` - a mutably borrowed `AppStorage`
+    pub fn new(host: PtrWrapper, storage: AppStorage) -> Self {
         let regs_32 = alloc_regs!(32, REGS_32_COUNT);
         let regs_64 = alloc_regs!(64, REGS_64_COUNT);
         let regs_160 = alloc_regs!(160, REGS_160_COUNT);

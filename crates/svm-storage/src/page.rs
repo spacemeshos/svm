@@ -1,10 +1,10 @@
 /// A page is `4096 bytes`
-pub const PAGE_SIZE: u32 = 4096;
+pub const PAGE_SIZE: u32 = 4_096;
 
 /// A `PageIndex` represents a page-index (non-negative integer)
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 #[repr(transparent)]
-pub struct PageIndex(pub u32);
+pub struct PageIndex(pub u16);
 
 /// A `PageOffset` represents a page-offset (non-negative integer)
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
@@ -42,7 +42,7 @@ impl From<&[u8]> for PageHash {
 
 /// A `Page` consists of a tuple of `(PageIndex, PageHash, Vec<u8>`)`
 ///
-/// `PageIndex` - The page indexes within the Smart Contract
+/// `PageIndex` - The page index within the app-storage.
 /// `PageHash`  - Hash of the page. Derived from `PageIndex` + `Page Data`.
 ///               See also: `PageHasher` under `traits`
 /// `Vec<u8>`   - The page data

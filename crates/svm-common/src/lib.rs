@@ -12,6 +12,9 @@ mod key_hasher;
 mod macros;
 mod state;
 
+/// Common Formatters
+pub mod fmt;
+
 pub use address::Address;
 pub use balance::Balance;
 pub use default_key_hasher::DefaultKeyHasher;

@@ -1,14 +1,14 @@
 #![deny(missing_docs)]
 #![deny(unused)]
 
-//! `svm-storage` crate is responsible on the contract storage part of the `svm`
-//! Each smart contract has its own storage
+//! `svm-storage` crate is responsible for the app-storage part of the `SVM`
+//! Each app has its own storage
 
 /// Default implementations for crate traits (see `traits.rs`).
 pub mod default;
 
-mod contract_pages;
-mod contract_storage;
+mod app_pages;
+mod app_storage;
 
 /// Contains definitions of `Page` related structures. For example: `Page, PageIndex` etc
 pub mod page;
@@ -16,8 +16,8 @@ pub mod page;
 /// Contains definitions `State`-related.
 pub mod state;
 
-pub use crate::contract_pages::ContractPages;
-pub use crate::contract_storage::ContractStorage;
+pub use crate::app_pages::AppPages;
+pub use crate::app_storage::AppStorage;
 
 /// Storage related traits
 pub mod traits;

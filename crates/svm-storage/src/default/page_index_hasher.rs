@@ -1,19 +1,19 @@
-use crate::page::PageIndex;
-use crate::traits::PageIndexHasher;
-
 use std::marker::PhantomData;
 use std::ops::Add;
+
+use crate::page::PageIndex;
+use crate::traits::PageIndexHasher;
 
 use svm_common::{Address, DefaultKeyHasher, KeyHasher};
 
 pub struct PageIndexHasherImpl<H> {
-    marker: PhantomData<H>,
+    _phantom: PhantomData<H>,
 }
 
 impl<H: KeyHasher<Hash = [u8; 32]>> PageIndexHasher for PageIndexHasherImpl<H> {
-    fn hash(contract_addr: Address, page: PageIndex) -> H::Hash {
+    fn hash(app_addr: Address, page: PageIndex) -> H::Hash {
         // `page_addr` is being allocated `21` bytes and not `20` bytes due to possible additional carry
-        let page_addr: [u8; 21] = contract_addr.add(page.0);
+        let page_addr: [u8; 21] = app_addr.add(page.0.into());
 
         H::hash(&page_addr)
     }

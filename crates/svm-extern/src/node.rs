@@ -1,4 +1,4 @@
-/// The node-related vmcalls will be imported by Smart Contracts that will want to integrate with the _Full-Node_ runtime.
+/// The node-related vmcalls will be imported by SVM apps that will want to integrate with the _Full-Node_ runtime.
 
 /// This macro includes all the node vmcalls `extern "C"` interfaces.
 #[macro_export]

@@ -17,8 +17,8 @@ default-features = false
 path = "../svm-storage"
 features = ["default"]
 
-[dependencies.svm-contract]
-path = "../svm-contract"
+[dependencies.svm-app]
+path = "../svm-app"
 
 [dependencies.svm-compiler]
 path = "../svm-compiler"

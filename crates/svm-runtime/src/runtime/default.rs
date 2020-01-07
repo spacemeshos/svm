@@ -5,23 +5,21 @@ use log::{debug, error, info};
 
 use crate::{
     ctx::SvmCtx,
+    error::{DeployTemplateError, ExecAppError, SpawnAppError},
     helpers,
     helpers::PtrWrapper,
-    runtime::{ContractExecError, Receipt},
-    settings::ContractSettings,
+    runtime::Receipt,
+    settings::AppSettings,
     traits::{Runtime, StorageBuilderFn},
     value::Value,
 };
 
-use svm_common::{Address, State};
-use svm_contract::{
-    env::{ContractEnv, ContractEnvTypes},
-    error::{ContractBuildError, TransactionBuildError},
-    traits::ContractStore,
-    transaction::Transaction,
-    wasm::Contract,
+use svm_app::{
+    traits::{Env, EnvTypes},
+    types::{App, AppTemplate, AppTransaction},
 };
-use svm_storage::ContractStorage;
+use svm_common::{Address, State};
+use svm_storage::AppStorage;
 
 use wasmer_runtime_core::{
     export::Export,
@@ -30,78 +28,80 @@ use wasmer_runtime_core::{
 
 /// Default `Runtime` implementation based on `wasmer`.
 pub struct DefaultRuntime<ENV> {
-    /// The runtime environment. Used mainly for managing contracts persistence/retrieval.
+    /// The runtime environment. Used mainly for managing app persistence.
     pub env: ENV,
 
     /// A raw pointer to host (a.k.a the `Full-Node` in the realm of Blockchain).
     pub host: *mut c_void,
 
-    /// External imports (living inside the host) to be consumed by the wasm contracts.
+    /// External `wasmer` imports (living inside the host) to be consumed by the app.
     pub imports: Vec<(String, String, Export)>,
 
-    /// Determined by the contract `Address` and `State` (contract state) and contract storage settings,
-    /// builds a `ContractStorage` instance.
+    /// Determined by the app `Address` and `State` (app state) and app storage settings,
+    /// builds a `AppStorage` instance.
     pub storage_builder: Box<StorageBuilderFn>,
 }
 
 impl<TY, ENV> Runtime for DefaultRuntime<ENV>
 where
-    TY: ContractEnvTypes,
-    ENV: ContractEnv<Types = TY>,
+    TY: EnvTypes,
+    ENV: Env<Types = TY>,
 {
-    fn contract_build(&self, bytes: &[u8]) -> Result<Contract, ContractBuildError> {
-        info!("runtime `contract_build`");
+    fn deploy_template(&mut self, bytes: &[u8]) -> Result<Address, DeployTemplateError> {
+        info!("runtime `deploy_template`");
 
-        // TODO:
-        // validate the `wasm`. should use the `deterministic` feature of `wasmparser`.
-        // (avoiding floats etc.)
-        self.env.build_contract(bytes)
+        match self.env.parse_template(bytes) {
+            Err(e) => Err(DeployTemplateError::ParseFailed(e)),
+            Ok(template) => match self.env.store_template(&template) {
+                Err(e) => Err(DeployTemplateError::StoreFailed(e)),
+                Ok(addr) => Ok(addr),
+            },
+        }
     }
 
-    #[inline(always)]
-    fn contract_derive_address(&self, contract: &Contract) -> Address {
-        info!("runtime `contract_compute_address`");
+    fn spawn_app(&mut self, bytes: &[u8]) -> Result<Address, SpawnAppError> {
+        info!("runtime `spawn_app`");
 
-        self.env.compute_address(contract)
+        match self.env.parse_app(bytes) {
+            Err(e) => return Err(SpawnAppError::ParseFailed(e)),
+            Ok(app) => match self.env.store_app(&app) {
+                Err(e) => Err(SpawnAppError::StoreFailed(e)),
+                Ok(addr) => Ok(addr),
+            },
+        }
     }
 
-    #[inline(always)]
-    fn contract_deploy(&mut self, contract: &Contract, addr: &Address) {
-        info!("runtime `contract_store`");
-
-        self.env.store_contract(contract, addr);
+    fn parse_exec_app(&self, bytes: &[u8]) -> Result<AppTransaction, ExecAppError> {
+        match self.env.parse_app_tx(bytes) {
+            Err(e) => Err(ExecAppError::ParseFailed(e)),
+            Ok(tx) => Ok(tx),
+        }
     }
 
-    #[inline(always)]
-    fn transaction_build(&self, bytes: &[u8]) -> Result<Transaction, TransactionBuildError> {
-        info!("runtime `transaction_build`");
+    fn exec_app(&self, tx: AppTransaction, state: State) -> Result<Receipt, ExecAppError> {
+        info!("runtime `exec_app`");
 
-        self.env.build_transaction(bytes)
-    }
+        let (template, template_addr) = self.load_template(&tx)?;
 
-    fn transaction_exec(
-        &self,
-        tx: &Transaction,
-        state: &State,
-        settings: &ContractSettings,
-    ) -> Receipt {
-        info!("runtime `contract_exec`");
+        let settings = AppSettings {
+            pages_count: template.pages_count,
+        };
 
-        let mut import_object = self.import_object_create(&tx.contract, state, settings);
+        let mut import_object = self.import_object_create(&tx.app, &state, &settings);
         self.import_object_extend(&mut import_object);
 
-        let receipt = match self.do_contract_exec(tx, &import_object) {
+        let receipt = match self.do_exec_app(&tx, &template, &template_addr, &import_object) {
             Err(e) => Receipt {
+                tx,
                 success: false,
                 error: Some(e),
-                tx: tx.clone(),
                 results: Vec::new(),
                 new_state: None,
             },
             Ok((state, results)) => Receipt {
+                tx,
                 success: true,
                 error: None,
-                tx: tx.clone(),
                 results,
                 new_state: Some(state),
             },
@@ -109,14 +109,14 @@ where
 
         info!("receipt: {:?}", receipt);
 
-        receipt
+        Ok(receipt)
     }
 }
 
 impl<TY, ENV> DefaultRuntime<ENV>
 where
-    TY: ContractEnvTypes,
-    ENV: ContractEnv<Types = TY>,
+    TY: EnvTypes,
+    ENV: Env<Types = TY>,
 {
     /// Initializes a new `DefaultRuntime` instance.
     pub fn new(
@@ -133,33 +133,33 @@ where
         }
     }
 
-    /// Initialize a new `ContractStorage` and returns it.
+    /// Initialize a new `AppStorage` and returns it.
     /// This method is of `pub` visibility since it's also helpful for tests that want to
-    /// observe that contract storage data.
-    pub fn open_contract_storage(
+    /// observe that app storage data.
+    pub fn open_app_storage(
         &self,
         addr: &Address,
         state: &State,
-        settings: &ContractSettings,
-    ) -> ContractStorage {
+        settings: &AppSettings,
+    ) -> AppStorage {
         let sb = &self.storage_builder;
         sb(addr, state, settings)
     }
 
-    #[inline(always)]
-    fn do_contract_exec(
+    fn do_exec_app(
         &self,
-        tx: &Transaction,
+        tx: &AppTransaction,
+        template: &AppTemplate,
+        template_addr: &Address,
         import_object: &ImportObject,
-    ) -> Result<(State, Vec<Value>), ContractExecError> {
-        let contract = self.contract_load(tx)?;
-        let module = self.contract_compile(&contract, &tx.contract)?;
-        let mut instance = self.instantiate(&tx.contract, &module, import_object)?;
+    ) -> Result<(State, Vec<Value>), ExecAppError> {
+        let module = self.compile_template(&template, &template_addr)?;
+        let mut instance = self.instantiate(&tx, &module, import_object)?;
         let args = self.prepare_args_and_memory(tx, &mut instance);
         let func = self.get_exported_func(&instance, &tx.func_name)?;
 
         match func.call(&args) {
-            Err(e) => Err(ContractExecError::ExecFailed),
+            Err(e) => Err(ExecAppError::ExecFailed),
             Ok(results) => {
                 let storage = self.get_instance_svm_storage_mut(&mut instance);
                 let state = storage.commit();
@@ -173,13 +173,13 @@ where
     fn cast_wasmer_results(
         &self,
         results: Vec<wasmer_runtime::Value>,
-    ) -> Result<Vec<Value>, ContractExecError> {
+    ) -> Result<Vec<Value>, ExecAppError> {
         let mut values = Vec::new();
 
         for wasmer_val in results.iter() {
             match Value::try_from(wasmer_val) {
                 Err(_e) => {
-                    return Err(ContractExecError::InvalidResultValue(format!(
+                    return Err(ExecAppError::InvalidResultValue(format!(
                         "{:?}",
                         wasmer_val
                     )))
@@ -193,19 +193,16 @@ where
 
     fn instantiate(
         &self,
-        addr: &Address,
+        tx: &AppTransaction,
         module: &wasmer_runtime::Module,
         import_object: &ImportObject,
-    ) -> Result<wasmer_runtime::Instance, ContractExecError> {
+    ) -> Result<wasmer_runtime::Instance, ExecAppError> {
         info!("runtime `instantiate` (wasmer module instantiate)");
 
         let instantiate = module.instantiate(import_object);
 
         match instantiate {
-            Err(e) => {
-                dbg!(&e);
-                Err(ContractExecError::InstantiationFailed(addr.clone()))
-            }
+            Err(e) => Err(ExecAppError::InstantiationFailed(tx.app.clone())),
             Ok(instance) => Ok(instance),
         }
     }
@@ -214,17 +211,17 @@ where
         &self,
         instance: &'a wasmer_runtime::Instance,
         func_name: &str,
-    ) -> Result<wasmer_runtime::DynFunc<'a>, ContractExecError> {
+    ) -> Result<wasmer_runtime::DynFunc<'a>, ExecAppError> {
         let func = instance.dyn_func(func_name);
 
         match func {
             Err(_e) => {
-                error!("exported function: `{}` not found", func_name);
+                error!("Exported function: `{}` not found", func_name);
 
-                Err(ContractExecError::FuncNotFound(func_name.to_string()))
+                Err(ExecAppError::FuncNotFound(func_name.to_string()))
             }
             Ok(func) => {
-                info!("found exported function `{}`", func_name);
+                info!("Found exported function `{}`", func_name);
                 Ok(func)
             }
         }
@@ -232,10 +229,10 @@ where
 
     fn prepare_args_and_memory(
         &self,
-        tx: &Transaction,
+        tx: &AppTransaction,
         instance: &mut wasmer_runtime::Instance,
     ) -> Vec<wasmer_runtime::Value> {
-        use svm_contract::wasm::{WasmArgValue, WasmIntType};
+        use svm_app::types::{WasmArgValue, WasmIntType};
         use wasmer_runtime::Value;
 
         debug!("runtime `prepare_args_and_memory`");
@@ -279,23 +276,23 @@ where
     fn get_instance_svm_storage_mut(
         &self,
         instance: &mut wasmer_runtime::Instance,
-    ) -> &mut svm_storage::ContractStorage {
+    ) -> &mut svm_storage::AppStorage {
         let wasmer_ctx: &mut wasmer_runtime::Ctx = instance.context_mut();
-        helpers::wasmer_data_contract_storage(wasmer_ctx.data)
+        helpers::wasmer_data_app_storage(wasmer_ctx.data)
     }
 
     fn import_object_create(
         &self,
         addr: &Address,
         state: &State,
-        settings: &ContractSettings,
+        settings: &AppSettings,
     ) -> ImportObject {
         debug!(
             "runtime `import_object_create` address={:?}, state={:?}, settings={:?}",
             addr, state, settings
         );
 
-        let storage = self.open_contract_storage(addr, state, settings);
+        let storage = self.open_app_storage(addr, state, settings);
         let svm_ctx = SvmCtx::new(PtrWrapper::new(self.host), storage);
         let svm_ctx = Box::leak(Box::new(svm_ctx));
 
@@ -326,32 +323,29 @@ where
         import_object.register("svm", ns);
     }
 
-    fn contract_load(&self, tx: &Transaction) -> Result<Contract, ContractExecError> {
-        info!("runtime `contract_load`");
+    fn load_template(&self, tx: &AppTransaction) -> Result<(AppTemplate, Address), ExecAppError> {
+        info!("runtime `load_template`");
 
-        let store = self.env.get_store();
-
-        match store.load(&tx.contract) {
-            None => Err(ContractExecError::NotFound(tx.contract.clone())),
-            Some(contract) => Ok(contract),
+        match self.env.load_template_by_app(&tx.app) {
+            None => Err(ExecAppError::AppNotFound(tx.app.clone())),
+            Some(res) => Ok(res),
         }
     }
 
-    fn contract_compile(
+    fn compile_template(
         &self,
-        contract: &Contract,
+        template: &AppTemplate,
         addr: &Address,
-    ) -> Result<wasmer_runtime::Module, ContractExecError> {
-        info!("runtime `contract_compile` (addr={:?})", addr);
+    ) -> Result<wasmer_runtime::Module, ExecAppError> {
+        info!("runtime `compile_template` (addr={:?})", addr);
 
-        match svm_compiler::compile_program(&contract.wasm) {
+        match svm_compiler::compile_program(&template.code) {
             Err(e) => {
-                dbg!(e);
                 error!("wasmer module compilation failed (addr={:?})", addr);
-                Err(ContractExecError::CompilationFailed(addr.clone()))
+                Err(ExecAppError::CompilationFailed(addr.clone()))
             }
             Ok(module) => {
-                info!("wasmer module compile succeeded");
+                debug!("wasmer module compile succeeded (addr={:?}", addr);
                 Ok(module)
             }
         }

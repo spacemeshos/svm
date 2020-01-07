@@ -1,5 +1,7 @@
-use svm_storage::page::{PageIndex, PageOffset, PageSliceLayout};
-use svm_storage::ContractStorage;
+use svm_storage::{
+    page::{PageIndex, PageOffset, PageSliceLayout},
+    AppStorage,
+};
 
 use crate::helpers;
 
@@ -69,7 +71,7 @@ pub fn storage_read_to_reg(
     reg_bits: i32,
     reg_idx: i32,
 ) {
-    let mut storage = helpers::wasmer_data_contract_storage(ctx.data);
+    let mut storage = helpers::wasmer_data_app_storage(ctx.data);
     let slice = storage_read_page_slice(&mut storage, page, offset, len);
 
     let reg = helpers::wasmer_data_reg(ctx.data, reg_bits, reg_idx);
@@ -92,7 +94,7 @@ pub fn storage_read_to_mem(
     mem_idx: i32,
     mem_offset: i32,
 ) {
-    let mut storage = helpers::wasmer_data_contract_storage(ctx.data);
+    let mut storage = helpers::wasmer_data_app_storage(ctx.data);
     let mut slice = storage_read_page_slice(&mut storage, page, offset, len);
 
     if slice.len() == 0 {
@@ -129,7 +131,7 @@ pub fn storage_write_from_mem(
     let cells = &ctx.memory(mem_idx).view()[start..end];
 
     let data = cells.iter().map(|cell| cell.get()).collect::<Vec<u8>>();
-    let storage = helpers::wasmer_data_contract_storage(ctx.data);
+    let storage = helpers::wasmer_data_app_storage(ctx.data);
 
     storage_write_page_slice(storage, page_idx, page_offset, len, &data);
 }
@@ -151,24 +153,19 @@ pub fn storage_write_from_reg(
     page_offset: i32,
 ) {
     let reg = helpers::wasmer_data_reg(ctx.data, reg_bits, reg_idx);
-    let storage = helpers::wasmer_data_contract_storage(ctx.data);
+    let storage = helpers::wasmer_data_app_storage(ctx.data);
     let data = reg.getn(len as usize);
 
     storage_write_page_slice(storage, page_idx, page_offset, len, &data);
 }
 
-fn storage_read_page_slice(
-    storage: &mut ContractStorage,
-    page: i32,
-    offset: i32,
-    len: i32,
-) -> Vec<u8> {
+fn storage_read_page_slice(storage: &mut AppStorage, page: i32, offset: i32, len: i32) -> Vec<u8> {
     let layout = page_slice_layout(page, offset, len);
     storage.read_page_slice(&layout)
 }
 
 fn storage_write_page_slice(
-    storage: &mut ContractStorage,
+    storage: &mut AppStorage,
     page: i32,
     offset: i32,
     len: i32,
@@ -179,12 +176,12 @@ fn storage_write_page_slice(
 }
 
 fn page_slice_layout(page: i32, offset: i32, len: i32) -> PageSliceLayout {
-    assert!(page >= 0);
+    assert!(page >= 0 && page <= u16::max_value() as i32);
     assert!(offset >= 0);
     assert!(len > 0);
 
     PageSliceLayout::new(
-        PageIndex(page as u32),
+        PageIndex(page as u16),
         PageOffset(offset as u32),
         len as u32,
     )

@@ -1,8 +1,8 @@
 #![deny(missing_docs)]
 #![deny(unused)]
 
-//! This `svm` crate is responsible on implementing the Spacemesh Virtual Machine for running Smart Contracts
-//! under _Spacemesh_ Golang Full Node and the future Rust Full Node
+//! This crate serves a wrapper around `wasmer` compiler. Additionally, it implements required
+//! `wasmer` compiler milddlewares for `SVM` usage.
 
 mod compiler;
 mod middleware;
