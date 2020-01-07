@@ -205,7 +205,7 @@ pub unsafe extern "C" fn svm_exec_app(
             debug!("`svm_exec_app` returns `SVM_SUCCESS`");
             svm_result_t::SVM_SUCCESS
         }
-        Err(_e) => {
+        Err(e) => {
             // update_last_error(e);
             error!("`svm_exec_app` returns `SVM_FAILURE`");
             svm_result_t::SVM_FAILURE

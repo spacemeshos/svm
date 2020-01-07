@@ -30,9 +30,6 @@ wasm_file_t read_wasm_file(const char *file_name) {
 }
 
 uint64_t deploy_template_bytes(uint8_t **bytes, uint8_t *author) {
-  // deploy-template format:
-  // https://github.com/spacemeshos/svm/blob/develop/crates/svm-app/src/raw/template/mod.rs
-
   wasm_file_t file = read_wasm_file("wasm/counter.wasm");
 
   uint64_t bytes_len =
@@ -139,20 +136,17 @@ uint8_t* int32_arg_new(uint32_t value) {
 
 uint64_t exec_app_bytes(
     uint8_t **bytes,
-    void *addr,
-    void *sender,
+    void *sender_addr,
+    void *app_addr,
     const char* func_name,
     uint8_t func_name_len,
     uint8_t args_count,
     uint8_t *args_buf,
     uint32_t args_buf_len
     ) {
-  // transaction-execution wire format:
-  // https://github.com/spacemeshos/svm/blob/master/crates/svm-contract/src/wire/exec/mod.rs
-
   uint64_t bytes_len =
     4  +   // proto version
-    20  +  // contract address
+    20  +  // app address
     20  +  // sender address
     1   +  // function name length
     (uint64_t)func_name_len +  // `len(func_name0)`
@@ -167,11 +161,11 @@ uint64_t exec_app_bytes(
   buf[2] = 0;
   buf[3] = 0;
 
-  // set contract address
-  memcpy(&buf[4], addr, 20);
+  // set `app` address
+  memcpy(&buf[4], app_addr, 20);
 
-  // set sender address
-  memcpy(&buf[24], sender, 20);
+  // set `sender` address
+  memcpy(&buf[24], sender_addr, 20);
 
   // set `func_name_len`
   buf[44] = func_name_len;
@@ -337,14 +331,13 @@ int main() {
   /* 1) First we want to assert that the counter has been initialized with `9` as expected (see `create_import_object` above) */
   bytes_len = exec_app_bytes(
       &bytes,
-      (void*)sender_addr,
-      (void*)app_addr,
+      sender_addr,
+      app_addr,
       "get",
       strlen("get"),
       0,    // `args_count = 0`
       NULL, // `args_buf = NULL`
       0);   // `args_buf_len = 0`
-
 
   void *app_tx = NULL;
   res = svm_parse_exec_app(&app_tx, runtime, bytes, bytes_len);
@@ -354,72 +347,73 @@ int main() {
   void *receipt = NULL;
   uint8_t *state = alloc_empty_state();
   res = svm_exec_app(&receipt, runtime, app_tx, (void*)state);
-  /* assert(res == SVM_SUCCESS); */
-  /* free(bytes); */
+  assert(res == SVM_SUCCESS);
 
-  /* assert(svm_receipt_status(receipt) == true); */
+  assert(svm_receipt_status(receipt) == true);
+  const uint8_t *new_state = svm_receipt_new_state(receipt);
 
-  /* const uint8_t *new_state = svm_receipt_new_state(receipt); */
-  /*  */
-  /* printf("New contract state:\n"); */
-  /* for (int i = 0; i < 32; i++) { */
-  /*   printf("%02X ", new_state[i]); */
-  /* } */
-  /*  */
-  /* svm_value_t *results = NULL; */
-  /* uint32_t results_len; */
-  /* svm_receipt_results(&results, receipt, &results_len); */
-  /* assert(results_len == 1); */
-  /* assert(results[0].value.I32 == 10); */
-  /*  */
-  /* uint8_t *arg = int32_arg_new(7); */
-  /*  */
-  /* #<{(| 2) Now, let's increment the counter by `7` |)}># */
-  /* bytes_len = exec_app_bytes( */
-  /*     &bytes, */
-  /*     addr, */
-  /*     (void*)sender, */
-  /*     "inc", */
-  /*     strlen("inc"), */
-  /*     1,     // `args_count = 1` */
-  /*     arg,   // `args_buf = [1, 0, 0, 0, 7]` */
-  /*     5);    // `args_buf_len = 5` */
-  /*  */
-  /* res = svm_transaction_build(&tx, runtime, (void*)bytes, bytes_len); */
-  /* assert(res == SVM_SUCCESS); */
-  /*  */
-  /* res = svm_transaction_exec(&receipt, runtime, tx, new_state, pages_count); */
-  /* assert(res == SVM_SUCCESS); */
-  /* assert(svm_receipt_status(receipt) == true); */
-  /*  */
-  /* svm_receipt_results(&results, receipt, &results_len); */
-  /* assert(results_len == 0); */
-  /*  */
-  /* // 3) Now, we'll verify that the counter has been modified to `10 + 7 = 17` */
-  /* bytes_len = exec_app_bytes( */
-  /*     &bytes, */
-  /*     addr, */
-  /*     (void*)sender, */
-  /*     "get", */
-  /*     strlen("get"), */
-  /*     0,    // `args_count = 0` */
-  /*     NULL, // `args_buf = NULL` */
-  /*     0);   // `args_buf_len = 0` */
-  /*  */
-  /* res = svm_transaction_build(&tx, runtime, (void*)bytes, bytes_len); */
-  /* assert(res == SVM_SUCCESS); */
-  /*  */
-  /* res = svm_transaction_exec(&receipt, runtime, tx, new_state, pages_count); */
-  /* assert(res == SVM_SUCCESS); */
-  /* assert(svm_receipt_status(receipt) == true); */
-  /*  */
-  /* svm_receipt_results(&results, receipt, &results_len); */
-  /* assert(results_len == 1); */
-  /* assert(results[0].value.I32 == 10 + 7); */
-  /*  */
-  /* #<{(| // TODO: clearing resources |)}># */
-  /* #<{(| free(wasm_file.bytes); |)}># */
-  /* #<{(| free(args_buf); |)}># */
+  printf("\n\nNew app state:\n");
+  for (int i = 0; i < 32; i++) {
+    printf("%02X ", new_state[i]);
+  }
+
+  svm_value_t *results = NULL;
+  uint32_t results_len;
+  svm_receipt_results(&results, receipt, &results_len);
+  assert(results_len == 1);
+  assert(results[0].value.I32 == 10);
+
+
+  /* 2) Now, let's increment the counter by `7` */
+
+  uint8_t *arg = int32_arg_new(7);
+  bytes_len = exec_app_bytes(
+      &bytes,
+      sender_addr,
+      app_addr,
+      "inc",
+      strlen("inc"),
+      1,     // `args_count = 1`
+      arg,   // `args_buf = [1, 0, 0, 0, 7]`
+      5);    // `args_buf_len = 5`
+
+  res = svm_parse_exec_app(&app_tx, runtime, bytes, bytes_len);
+  assert(res == SVM_SUCCESS);
+  free(bytes);
+
+  res = svm_exec_app(&receipt, runtime, app_tx, (void*)new_state);
+  assert(res == SVM_SUCCESS);
+  assert(svm_receipt_status(receipt) == true);
+
+  svm_receipt_results(&results, receipt, &results_len);
+  assert(results_len == 0);
+
+  // 3) Now, we'll verify that the counter has been modified to `10 + 7 = 17`
+  bytes_len = exec_app_bytes(
+      &bytes,
+      sender_addr,
+      app_addr,
+      "get",
+      strlen("get"),
+      0,    // `args_count = 0`
+      NULL, // `args_buf = NULL`
+      0);   // `args_buf_len = 0`
+
+  res = svm_parse_exec_app(&app_tx, runtime, bytes, bytes_len);
+  assert(res == SVM_SUCCESS);
+  free(bytes);
+
+  res = svm_exec_app(&receipt, runtime, app_tx, (void*)new_state);
+  assert(res == SVM_SUCCESS);
+  assert(svm_receipt_status(receipt) == true);
+
+  svm_receipt_results(&results, receipt, &results_len);
+  assert(results_len == 1);
+  assert(results[0].value.I32 == 10 + 7);
+
+  /* // TODO: clearing resources */
+  /* free(wasm_file.bytes); */
+  /* free(args_buf); */
 
   return 0;
 }
