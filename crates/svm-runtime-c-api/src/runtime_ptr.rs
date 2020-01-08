@@ -5,16 +5,19 @@ use svm_runtime::traits::Runtime;
 use std::ffi::c_void;
 use std::ops::{Deref, DerefMut};
 
+/// Smart-pointer for a `Runtime`
 #[repr(C)]
 pub struct RuntimePtr {
     inner: Box<dyn Runtime>,
 }
 
 impl RuntimePtr {
+    /// A new `RuntimePtr` smart-pointer
     pub fn new(inner: Box<dyn Runtime>) -> Self {
         Self { inner }
     }
 
+    /// Copies the `RuntimePtr` into the heap, and returns a raw pointer to it.
     pub fn into_raw(self) -> *mut c_void {
         let boxed = Box::new(self);
 

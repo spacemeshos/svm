@@ -3,8 +3,8 @@ use std::ffi::c_void;
 use std::rc::Rc;
 
 use crate::{
-    helpers, svm_byte_array, svm_import_func_sig_t, svm_import_func_t, svm_import_kind,
-    svm_import_t, svm_import_value, svm_result_t, svm_value_type, svm_value_type_array, RuntimePtr,
+    helpers, svm_byte_array, svm_import_t, svm_result_t, svm_value_type, svm_value_type_array,
+    RuntimePtr,
 };
 use log::debug;
 
@@ -14,6 +14,8 @@ use svm_runtime::{ctx::SvmCtx, traits::Runtime};
 use wasmer_runtime_c_api::instance::wasmer_instance_context_t;
 use wasmer_runtime_core::vm::Ctx;
 
+/// Creates a new in-memory `MemKVStore`.
+/// Returns a raw pointer to allocated kv-store via input parameter `raw_kv`
 #[no_mangle]
 pub unsafe extern "C" fn svm_memory_kv_create(raw_kv: *mut *mut c_void) {
     let kv = svm_runtime::testing::memory_kv_store_init();
@@ -47,6 +49,7 @@ pub unsafe extern "C" fn svm_memory_runtime_create(
     svm_result_t::SVM_SUCCESS
 }
 
+/// Returns a raw pointer to `SVM` live instance register of type `reg_bits:reg_idx`
 pub unsafe fn svm_register_get(
     raw_ctx: *mut wasmer_instance_context_t,
     reg_bits: i32,
@@ -57,6 +60,9 @@ pub unsafe fn svm_register_get(
     reg.as_ptr()
 }
 
+/// Given a raw pointer to `wasmer` instance context, mutably borrows inner `data`
+/// and extract from it a pointer to the so called `host`.
+/// (it's type is defined as `T` in thefunction declaration)
 pub unsafe fn svm_host_get<'a, T>(raw_ctx: *mut wasmer_instance_context_t) -> &'a mut T {
     let ctx = cast_to_wasmer_ctx(raw_ctx);
     let svm_ctx = svm_common::from_raw_mut::<SvmCtx>(ctx.data);
@@ -64,14 +70,13 @@ pub unsafe fn svm_host_get<'a, T>(raw_ctx: *mut wasmer_instance_context_t) -> &'
     &mut *(svm_ctx.host as *mut T)
 }
 
+/// Casts a raw pointer to wasmer instance context to it's Safe Rust version (`&mut Ctx`)
 pub unsafe fn cast_to_wasmer_ctx<'a>(ctx: *mut wasmer_instance_context_t) -> &'a mut Ctx {
     &mut *(ctx as *mut Ctx)
 }
 
-pub unsafe fn svm_import_func_destroy(func: *mut svm_import_func_t) {
-    Box::from_raw(func);
-}
-
+/// Given a borrowed string, returns a raw pointer to its underlying bytes
+/// wrapped within an `svm_byte_array` instance.
 pub fn str_to_svm_byte_array(s: &str) -> svm_byte_array {
     let bytes = s.as_ptr();
     let bytes_len = s.len() as u32;
@@ -79,6 +84,8 @@ pub fn str_to_svm_byte_array(s: &str) -> svm_byte_array {
     svm_byte_array { bytes, bytes_len }
 }
 
+/// Givena a borrowed vector of `svm_value_type`, returns a raw pointer to its underlying data
+/// wrapped within an `svm_value_type_array` instance.
 pub fn svm_value_type_vec_to_array(vec: &Vec<svm_value_type>) -> svm_value_type_array {
     let types_len = vec.len() as u32;
     let types = vec.as_ptr();
@@ -86,6 +93,11 @@ pub fn svm_value_type_vec_to_array(vec: &Vec<svm_value_type>) -> svm_value_type_
     svm_value_type_array { types, types_len }
 }
 
+/// Given an import function relevant data (module name, import name, function pointer, params and returns),
+/// Allocates on the heap an `svm_import_t` instance holding raw pointers and other `svm_... raw types.
+///
+/// This allocated `svm_import_t` should be destroyed after not being required anymore.
+/// see: `svm_import_func_destroy` under crate `api.rs`
 pub unsafe fn import_func_create(
     module_name: &str,
     import_name: &str,

@@ -18,6 +18,11 @@ pub unsafe fn cast_to_runtime_mut<'a>(raw_runtime: *mut c_void) -> &'a mut Box<d
     &mut *(raw_runtime as *mut RuntimePtr)
 }
 
+/// Casts a raw array of `svm_import_t` into `wasmer` a vector of `(String, String, Export)`.
+///
+/// * The first tuple `String` signifes the import module name.
+/// * The second tuple `String` signifes the import function name.
+/// * The last `Export` is `wasmer` inner representation for imports.
 pub unsafe fn cast_imports_to_wasmer_imports(
     imports: *const *const svm_import_t,
     imports_len: libc::c_uint,
