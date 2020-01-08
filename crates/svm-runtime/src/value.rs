@@ -1,15 +1,21 @@
-use wasmer_runtime_core::types::{Type as WasmerType, Value as WasmerValue};
+use wasmer_runtime_core::types::Value as WasmerValue;
 
 use std::convert::TryFrom;
 
+/// Wasm integer value
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum Value {
+    /// 32 bits
     I32(i32),
+
+    /// 64 bits
     I64(i64),
 }
 
+/// Casting to a wasm integer value has failed
 #[derive(Debug, PartialEq)]
 pub enum ValueCastError {
+    /// Not supported wasm primitive (i.e: floats, SIMD)
     NotSupportedType(&'static str),
 }
 

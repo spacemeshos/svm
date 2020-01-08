@@ -4,16 +4,19 @@ use crate::{
     Receipt,
 };
 
-use svm_app::types::{App, AppTemplate, AppTransaction};
+use svm_app::types::AppTransaction;
 use svm_common::{Address, State};
 use svm_storage::AppStorage;
 
 /// Specifies the interface of a `SVM` Runtime.
 pub trait Runtime {
+    /// Deploy an new app-template
     fn deploy_template(&mut self, bytes: &[u8]) -> Result<Address, DeployTemplateError>;
 
+    /// Spawn a new app out of an existing app-template.
     fn spawn_app(&mut self, bytes: &[u8]) -> Result<Address, SpawnAppError>;
 
+    /// Parse `bytes` into in-memory `AppTransaction`
     fn parse_exec_app(&self, bytes: &[u8]) -> Result<AppTransaction, ExecAppError>;
 
     /// Executes an app-transaction. Returns a `Receipt`.

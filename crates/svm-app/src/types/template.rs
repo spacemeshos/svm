@@ -4,8 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use svm_common::Address;
 
-/// We first parse the raw `app-template` bytes into an `AppTemplate` instance.
-/// At that stage we don't know the `app-template` future `Address` yet.
+/// An in-memory representation of an app-template.
 #[allow(missing_docs)]
 #[derive(Serialize, Deserialize, PartialEq)]
 pub struct AppTemplate {

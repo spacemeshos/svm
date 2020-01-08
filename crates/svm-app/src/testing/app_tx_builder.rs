@@ -4,7 +4,8 @@ use crate::types::{WasmArgType, WasmArgValue};
 
 use svm_common::Address;
 
-/// A `AppTransaction` builder. Used for testing
+/// Builds a raw representation for `exec-app`
+/// Should be used for testing only.
 pub struct AppTxBuilder {
     version: Option<u32>,
     app: Option<Address>,

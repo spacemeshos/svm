@@ -4,7 +4,7 @@ use crate::types::WasmArgValue;
 
 use svm_common::Address;
 
-/// An in-memory representation of an `App` transaction.
+/// An in-memory representation of an exec-app transaction.
 #[derive(Clone, PartialEq)]
 pub struct AppTransaction {
     /// The `App` account address

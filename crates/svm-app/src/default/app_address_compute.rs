@@ -2,6 +2,7 @@ use crate::{traits::AppAddressCompute, types::App};
 
 use svm_common::{Address, DefaultKeyHasher, KeyHasher};
 
+/// Default implementation for computing an `App` address deterministically.
 pub struct DefaultAppAddressCompute;
 
 impl AppAddressCompute for DefaultAppAddressCompute {

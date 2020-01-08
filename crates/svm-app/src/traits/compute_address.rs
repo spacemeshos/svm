@@ -9,7 +9,9 @@ pub trait AppTemplateAddressCompute {
     fn compute(template: &AppTemplate) -> Address;
 }
 
+/// Computes an `App` account address.
+/// Algorithm must be deterministic.
 pub trait AppAddressCompute {
-    /// Derives the `AppAddress` address
+    /// Derives the `App` address
     fn compute(app: &App) -> Address;
 }

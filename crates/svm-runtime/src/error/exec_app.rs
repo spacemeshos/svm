@@ -10,10 +10,10 @@ use svm_common::Address;
 pub enum ExecAppError {
     ParseFailed(ParseError),
     AppNotFound(Address),
-    CompilationFailed(Address),
-    InstantiationFailed(Address),
+    CompilationFailed(Address, String),
+    InstantiationFailed(Address, String),
     FuncNotFound(String),
-    ExecFailed,
+    ExecFailed(String),
     InvalidResultValue(String),
 }
 
@@ -25,7 +25,7 @@ impl error::Error for ExecAppError {
             ExecAppError::CompilationFailed(..) => "Compilation failed",
             ExecAppError::InstantiationFailed(..) => "Instance Instantiation failed",
             ExecAppError::FuncNotFound(..) => "Function not found",
-            ExecAppError::ExecFailed => "Execution failed",
+            ExecAppError::ExecFailed(..) => "Execution failed",
             ExecAppError::InvalidResultValue(..) => "Invalid result value",
         }
     }
@@ -36,15 +36,16 @@ impl fmt::Display for ExecAppError {
         let msg = match self {
             ExecAppError::ParseFailed(e) => format!("{:?}", e),
             ExecAppError::AppNotFound(addr) => format!("App `{:?}` not found", addr),
-            ExecAppError::CompilationFailed(addr) => {
-                format!("Compilation failed for template `{:?}`", addr)
+            ExecAppError::CompilationFailed(addr, e) => {
+                format!("Compilation failed for template `{:?}` ({})", addr, e)
             }
-            ExecAppError::InstantiationFailed(addr) => {
-                format!("Instance Instantiation failed for template `{:?}`", addr)
-            }
+            ExecAppError::InstantiationFailed(addr, e) => format!(
+                "Instance Instantiation failed for template `{:?}` ({})",
+                addr, e
+            ),
             ExecAppError::FuncNotFound(func) => format!("Function `{}` not found", func),
             ExecAppError::InvalidResultValue(val) => format!("Invalid result value: `{}`", val),
-            ExecAppError::ExecFailed => "Execution failed".to_string(),
+            ExecAppError::ExecFailed(e) => format!("Execution failed ({})", e),
         };
 
         write!(f, "{}", msg)

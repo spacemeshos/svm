@@ -3,9 +3,13 @@ use std::fmt;
 use serde::{Deserialize, Serialize};
 use svm_common::Address;
 
+/// An in-memory representation of an app.
 #[derive(Serialize, Deserialize, PartialEq)]
 pub struct App {
+    /// `Address` of the `AppTemplate` app is being spawned from.
     pub template: Address,
+
+    /// `Address` of app creator
     pub creator: Address,
 }
 

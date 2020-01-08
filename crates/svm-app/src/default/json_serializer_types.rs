@@ -6,6 +6,7 @@ use crate::{
     traits::EnvSerializerTypes,
 };
 
+/// Json serializers for `Env`
 pub struct DefaultJsonSerializerTypes;
 
 impl EnvSerializerTypes for DefaultJsonSerializerTypes {

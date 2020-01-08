@@ -9,6 +9,7 @@ use crate::{
 
 use svm_common::Address;
 
+/// `AppStore` implementation backed-by `rocksdb`
 pub struct RocksdbAppStore<S, D> {
     _phantom: PhantomData<(S, D)>,
 }
@@ -18,7 +19,8 @@ where
     S: AppSerializer,
     D: AppDeserializer,
 {
-    pub fn new<P>(path: &P) -> Self
+    /// New `RocksdbAppStore` instance
+    pub fn new<P>(_path: &P) -> Self
     where
         P: AsRef<Path>,
     {
@@ -33,11 +35,11 @@ where
     S: AppSerializer,
     D: AppDeserializer,
 {
-    fn store(&mut self, app: &App, app_addr: &Address) -> Result<(), StoreError> {
+    fn store(&mut self, _app: &App, _app_addr: &Address) -> Result<(), StoreError> {
         todo!()
     }
 
-    fn load(&self, app_addr: &Address) -> Option<App> {
+    fn load(&self, _app_addr: &Address) -> Option<App> {
         todo!()
     }
 }
