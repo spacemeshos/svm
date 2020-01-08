@@ -16,11 +16,12 @@ use crate::{
 
 use svm_app::{
     traits::{Env, EnvTypes},
-    types::{AppTemplate, AppTransaction},
+    types::{AppTemplate, AppTransaction, WasmArgValue, WasmIntType},
 };
 use svm_common::{Address, State};
 use svm_storage::AppStorage;
 
+use wasmer_runtime::Value as WasmerValue;
 use wasmer_runtime_core::{
     export::Export,
     import::{ImportObject, Namespace},
@@ -92,17 +93,15 @@ where
 
         let receipt = match self.do_exec_app(&tx, &template, &template_addr, &import_object) {
             Err(e) => Receipt {
-                tx,
                 success: false,
                 error: Some(e),
-                results: Vec::new(),
+                returns: None,
                 new_state: None,
             },
-            Ok((state, results)) => Receipt {
-                tx,
+            Ok((state, returns)) => Receipt {
                 success: true,
                 error: None,
-                results,
+                returns: Some(returns),
                 new_state: Some(state),
             },
         };
@@ -153,36 +152,48 @@ where
         template_addr: &Address,
         import_object: &ImportObject,
     ) -> Result<(State, Vec<Value>), ExecAppError> {
-        let module = self.compile_template(&template, &template_addr)?;
-        let mut instance = self.instantiate(&tx, &module, import_object)?;
+        let module = self.compile_template(tx, &template, &template_addr)?;
+        let mut instance = self.instantiate(tx, template_addr, &module, import_object)?;
         let args = self.prepare_args_and_memory(tx, &mut instance);
-        let func = self.get_exported_func(&instance, &tx.func_name)?;
+        let func = self.get_exported_func(tx, template_addr, &instance)?;
 
         match func.call(&args) {
-            Err(e) => Err(ExecAppError::ExecFailed(e.to_string())),
-            Ok(results) => {
+            Err(e) => Err(ExecAppError::ExecFailed {
+                app_addr: tx.app.clone(),
+                template_addr: template_addr.clone(),
+                func_name: tx.func_name.clone(),
+                func_args: self.vec_to_str(&tx.func_args),
+                reason: e.to_string(),
+            }),
+            Ok(returns) => {
                 let storage = self.get_instance_svm_storage_mut(&mut instance);
                 let state = storage.commit();
-                let results = self.cast_wasmer_results(results)?;
+                let returns = self.cast_wasmer_func_returns(tx, template_addr, returns)?;
 
-                Ok((state, results))
+                Ok((state, returns))
             }
         }
     }
 
-    fn cast_wasmer_results(
+    fn cast_wasmer_func_returns(
         &self,
-        results: Vec<wasmer_runtime::Value>,
+        tx: &AppTransaction,
+        template_addr: &Address,
+        returns: Vec<WasmerValue>,
     ) -> Result<Vec<Value>, ExecAppError> {
         let mut values = Vec::new();
 
-        for wasmer_val in results.iter() {
-            match Value::try_from(wasmer_val) {
-                Err(_e) => {
-                    return Err(ExecAppError::InvalidResultValue(format!(
-                        "{:?}",
-                        wasmer_val
-                    )))
+        for ret in returns.iter() {
+            match Value::try_from(ret) {
+                Err(e) => {
+                    return Err(ExecAppError::InvalidReturnValue {
+                        app_addr: tx.app.clone(),
+                        template_addr: template_addr.clone(),
+                        func_name: tx.func_name.clone(),
+                        func_args: self.vec_to_str(&tx.func_args),
+                        func_rets: self.vec_to_str(&returns),
+                        reason: e.to_string(),
+                    })
                 }
                 Ok(v) => values.push(v),
             }
@@ -194,6 +205,7 @@ where
     fn instantiate(
         &self,
         tx: &AppTransaction,
+        template_addr: &Address,
         module: &wasmer_runtime::Module,
         import_object: &ImportObject,
     ) -> Result<wasmer_runtime::Instance, ExecAppError> {
@@ -202,29 +214,37 @@ where
         let instantiate = module.instantiate(import_object);
 
         match instantiate {
-            Err(e) => Err(ExecAppError::InstantiationFailed(
-                tx.app.clone(),
-                e.to_string(),
-            )),
+            Err(e) => Err(ExecAppError::InstantiationFailed {
+                app_addr: tx.app.clone(),
+                template_addr: template_addr.clone(),
+                reason: e.to_string(),
+            }),
             Ok(instance) => Ok(instance),
         }
     }
 
     fn get_exported_func<'a>(
         &self,
+        tx: &AppTransaction,
+        template_addr: &Address,
         instance: &'a wasmer_runtime::Instance,
-        func_name: &str,
     ) -> Result<wasmer_runtime::DynFunc<'a>, ExecAppError> {
+        let func_name = &tx.func_name;
         let func = instance.dyn_func(func_name);
 
         match func {
             Err(_e) => {
                 error!("Exported function: `{}` not found", func_name);
 
-                Err(ExecAppError::FuncNotFound(func_name.to_string()))
+                Err(ExecAppError::FuncNotFound {
+                    app_addr: tx.app.clone(),
+                    template_addr: template_addr.clone(),
+                    func_name: func_name.to_string(),
+                })
             }
             Ok(func) => {
                 info!("Found exported function `{}`", func_name);
+
                 Ok(func)
             }
         }
@@ -235,9 +255,6 @@ where
         tx: &AppTransaction,
         instance: &mut wasmer_runtime::Instance,
     ) -> Vec<wasmer_runtime::Value> {
-        use svm_app::types::{WasmArgValue, WasmIntType};
-        use wasmer_runtime::Value;
-
         debug!("runtime `prepare_args_and_memory`");
 
         let memory = instance.context_mut().memory(0);
@@ -247,8 +264,8 @@ where
 
         for arg in tx.func_args.iter() {
             let wasmer_arg = match arg {
-                WasmArgValue::I32(v) => Value::I32(*v as i32),
-                WasmArgValue::I64(v) => Value::I64(*v as i64),
+                WasmArgValue::I32(v) => WasmerValue::I32(*v as i32),
+                WasmArgValue::I64(v) => WasmerValue::I64(*v as i64),
                 WasmArgValue::Fixed(ty, buf) => {
                     let buf_mem_start = mem_offset;
 
@@ -260,8 +277,8 @@ where
                     }
 
                     match ty {
-                        WasmIntType::I32 => Value::I32(buf_mem_start as i32),
-                        WasmIntType::I64 => Value::I64(buf_mem_start as i64),
+                        WasmIntType::I32 => WasmerValue::I32(buf_mem_start as i32),
+                        WasmIntType::I64 => WasmerValue::I64(buf_mem_start as i64),
                     }
                 }
                 WasmArgValue::Slice(..) => unimplemented!(),
@@ -330,28 +347,55 @@ where
         info!("runtime `load_template`");
 
         match self.env.load_template_by_app(&tx.app) {
-            None => Err(ExecAppError::AppNotFound(tx.app.clone())),
+            None => Err(ExecAppError::AppNotFound {
+                app_addr: tx.app.clone(),
+            }),
             Some(res) => Ok(res),
         }
     }
 
     fn compile_template(
         &self,
+        tx: &AppTransaction,
         template: &AppTemplate,
-        addr: &Address,
+        template_addr: &Address,
     ) -> Result<wasmer_runtime::Module, ExecAppError> {
-        info!("runtime `compile_template` (addr={:?})", addr);
+        info!("runtime `compile_template` (template={:?})", template_addr);
 
         match svm_compiler::compile_program(&template.code) {
             Err(e) => {
-                error!("wasmer module compilation failed (addr={:?})", addr);
-                Err(ExecAppError::CompilationFailed(addr.clone(), e.to_string()))
+                error!(
+                    "wasmer module compilation failed (template={:?})",
+                    template_addr
+                );
+
+                Err(ExecAppError::CompilationFailed {
+                    app_addr: tx.app.clone(),
+                    template_addr: template_addr.clone(),
+                    reason: e.to_string(),
+                })
             }
             Ok(module) => {
-                debug!("wasmer module compile succeeded (addr={:?}", addr);
+                debug!(
+                    "wasmer module compile succeeded (template={:?})",
+                    template_addr
+                );
                 Ok(module)
             }
         }
+    }
+
+    fn vec_to_str<T: std::fmt::Debug>(&self, items: &Vec<T>) -> String {
+        let nitems = items.len();
+
+        let mut buf = String::new();
+
+        for arg in items.iter().take(nitems - 1) {
+            buf.push_str(&format!("{:?}, ", arg));
+        }
+
+        buf.push_str(&format!("{:?}", items.last()));
+        buf
     }
 }
 

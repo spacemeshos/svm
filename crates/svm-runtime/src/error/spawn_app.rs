@@ -13,3 +13,9 @@ pub enum SpawnAppError {
     /// Template not found. Returns the template address.
     TemplateNotFound(Address),
 }
+
+impl ToString for SpawnAppError {
+    fn to_string(&self) -> String {
+        format!("{:?}", self)
+    }
+}
