@@ -16,7 +16,7 @@ use crate::{
 
 use svm_app::{
     traits::{Env, EnvTypes},
-    types::{App, AppTemplate, AppTransaction},
+    types::{AppTemplate, AppTransaction},
 };
 use svm_common::{Address, State};
 use svm_storage::AppStorage;
@@ -159,7 +159,7 @@ where
         let func = self.get_exported_func(&instance, &tx.func_name)?;
 
         match func.call(&args) {
-            Err(e) => Err(ExecAppError::ExecFailed),
+            Err(e) => Err(ExecAppError::ExecFailed(e.to_string())),
             Ok(results) => {
                 let storage = self.get_instance_svm_storage_mut(&mut instance);
                 let state = storage.commit();
@@ -202,7 +202,10 @@ where
         let instantiate = module.instantiate(import_object);
 
         match instantiate {
-            Err(e) => Err(ExecAppError::InstantiationFailed(tx.app.clone())),
+            Err(e) => Err(ExecAppError::InstantiationFailed(
+                tx.app.clone(),
+                e.to_string(),
+            )),
             Ok(instance) => Ok(instance),
         }
     }
@@ -342,7 +345,7 @@ where
         match svm_compiler::compile_program(&template.code) {
             Err(e) => {
                 error!("wasmer module compilation failed (addr={:?})", addr);
-                Err(ExecAppError::CompilationFailed(addr.clone()))
+                Err(ExecAppError::CompilationFailed(addr.clone(), e.to_string()))
             }
             Ok(module) => {
                 debug!("wasmer module compile succeeded (addr={:?}", addr);

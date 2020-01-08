@@ -1,5 +1,5 @@
-#![allow(missing_docs)]
-#![allow(unused)]
+#![deny(missing_docs)]
+#![deny(unused)]
 
 //! The `svm-app` crate is responsible on `Spacemesh` `AppTemplate`(s) and `App`(s).
 
@@ -15,13 +15,14 @@ pub mod traits;
 /// Common crate types such as `App`, `AppTemplate` and other related primitives
 pub mod types;
 
-// `rocksdb` backed implementation for `AppTemplateStore` and `AppTemplateEnv`
+/// `rocksdb` backed implementation for `AppTemplateStore` and `AppTemplateEnv`
 #[cfg(feature = "default-rocksdb")]
 pub mod rocksdb;
 
 /// Parsing raw representations of a `AppTemplate / App / AppTransaction`
 pub mod raw;
 
+/// Crate errors
 pub mod error;
 
 /// Testing helpers

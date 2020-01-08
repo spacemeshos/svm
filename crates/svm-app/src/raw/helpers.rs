@@ -1,6 +1,6 @@
 use std::io::{Cursor, Read};
 
-use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
+use byteorder::{BigEndian, ReadBytesExt};
 
 use super::Field;
 use crate::error::ParseError;
@@ -15,15 +15,6 @@ pub fn ensure_enough_bytes<T>(res: &std::io::Result<T>, field: Field) -> Result<
     }
 
     Ok(())
-}
-
-pub fn write_version(version: u32, buf: &mut Vec<u8>) {
-    buf.write_u32::<BigEndian>(version).unwrap();
-}
-
-pub fn write_address(address: &Address, buf: &mut Vec<u8>) {
-    let bytes = address.bytes();
-    buf.extend_from_slice(&bytes);
 }
 
 #[must_use]

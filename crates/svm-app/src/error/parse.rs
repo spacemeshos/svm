@@ -16,7 +16,7 @@ pub enum ParseError {
     InvalidProtocolVersion(u32),
 }
 
-impl std::fmt::Display for ParseError {
+impl fmt::Display for ParseError {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
             ParseError::EmptyField(f) => write!(fmt, "Field `{}` must not be empty", f),
@@ -25,7 +25,6 @@ impl std::fmt::Display for ParseError {
                 write!(fmt, "Unsupported protocol version: `{}`", v)
             }
             ParseError::NotSupported(f) => write!(fmt, "Feature `{}` is not supported yet", f),
-            ParseError::EmptyField(f) => write!(fmt, "Field `{}` cannot be empty", f),
             ParseError::EmptyList(f) => {
                 write!(fmt, "`{}`-(s) list must contain at least one item", f)
             }

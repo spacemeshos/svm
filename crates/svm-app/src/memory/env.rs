@@ -3,10 +3,7 @@ use std::marker::PhantomData;
 use crate::{
     default::{DefaultAppAddressCompute, DefaultAppTemplateAddressCompute, DefaultTemplateHasher},
     memory::{MemAppStore, MemAppTemplateStore},
-    traits::{
-        AppDeserializer, AppSerializer, AppTemplateDeserializer, AppTemplateSerializer, Env,
-        EnvSerializerTypes, EnvTypes,
-    },
+    traits::{Env, EnvSerializerTypes, EnvTypes},
 };
 
 pub struct MemoryEnvTypes<Ser>(PhantomData<Ser>);

@@ -2,6 +2,8 @@ use byteorder::{BigEndian, WriteBytesExt};
 
 use svm_common::Address;
 
+/// Builds a raw representation for `spawn-app`
+/// Should be used for testing only.
 pub struct AppBuilder {
     version: Option<u32>,
     template: Option<Address>,

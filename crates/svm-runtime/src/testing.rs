@@ -37,7 +37,7 @@ pub fn instance_register(instance: &Instance, reg_bits: i32, reg_idx: i32) -> &m
     helpers::wasmer_data_reg(instance.context().data, reg_bits, reg_idx)
 }
 
-/// Mutably borrows a living Smart-App storage.
+/// Mutably borrows the `AppStorage` of a living `App` instance.
 pub fn instance_storage(instance: &Instance) -> &mut AppStorage {
     helpers::wasmer_data_app_storage(instance.context().data)
 }
@@ -140,6 +140,7 @@ pub fn build_template(
         .build()
 }
 
+/// Synthesizes a raw spaw-app transaction.
 pub fn build_app(version: u32, template: &Address, creator: u32) -> Vec<u8> {
     AppBuilder::new()
         .with_version(version)
@@ -148,7 +149,7 @@ pub fn build_app(version: u32, template: &Address, creator: u32) -> Vec<u8> {
         .build()
 }
 
-/// Synthesizes a raw Smart-App transaction.
+/// Synthesizes a raw exec-app transaction.
 pub fn build_app_tx(
     version: u32,
     app_addr: &Address,

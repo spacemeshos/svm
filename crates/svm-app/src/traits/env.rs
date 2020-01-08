@@ -9,6 +9,7 @@ use crate::{
 
 use svm_common::Address;
 
+/// `Env` storage serialization types
 pub trait EnvSerializerTypes {
     /// `AppTemplate`'s Serializer
     type TemplateSerializer: AppTemplateSerializer;
@@ -25,14 +26,19 @@ pub trait EnvSerializerTypes {
 
 /// Aggregates types that are required by `Env`
 pub trait EnvTypes {
+    /// `AppTemplate` store type.
     type TemplateStore: AppTemplateStore;
 
+    /// `AppStore` store type.
     type AppStore: AppStore;
 
+    /// Compute `AppTemplate` address type.
     type AppTemplateAddressCompute: AppTemplateAddressCompute;
 
+    /// Compute `App` address type.
     type AppAddressCompute: AppAddressCompute;
 
+    /// `AppTemplate` content hasher type.
     type TemplateHasher: AppTemplateHasher;
 }
 
@@ -47,8 +53,10 @@ pub trait Env {
     /// Borrows mutably environment's `AppTemplate`(s) store
     fn get_template_store_mut(&mut self) -> &mut <Self::Types as EnvTypes>::TemplateStore;
 
+    /// Borrows environment's `App`(s) store
     fn get_app_store(&self) -> &<Self::Types as EnvTypes>::AppStore;
 
+    /// Borrows mutably environment's `App`(s) store
     fn get_app_store_mut(&mut self) -> &mut <Self::Types as EnvTypes>::AppStore;
 
     /// Computes `AppTemplate` Hash
@@ -66,33 +74,36 @@ pub trait Env {
         <Self::Types as EnvTypes>::AppAddressCompute::compute(app)
     }
 
-    /// * Parses a raw template into `AppTemplate`
-    /// * Enriches the template with its derived address
+    /// Parses a raw template transaction into `AppTemplate`
     fn parse_template(&self, bytes: &[u8]) -> Result<AppTemplate, ParseError> {
         crate::raw::parse_template(bytes)
     }
 
+    /// Parses a raw spawn-app transaction into `App`
     fn parse_app(&self, bytes: &[u8]) -> Result<App, ParseError> {
         crate::raw::parse_app(bytes)
     }
 
-    /// Parses a raw `App` transaction
+    /// Parses a raw exec-app transaction into `AppTransaction`
     fn parse_app_tx(&self, bytes: &[u8]) -> Result<AppTransaction, ParseError> {
         crate::raw::parse_app_tx(bytes)
     }
 
-    /// Stores `TemplateAddress` -> `TemplateHash` -> `AppTemplate`
+    /// Stores the following:
+    /// * `TemplateAddress` -> `TemplateHash`
+    /// * `TemplateHash` -> `AppTemplate` data
     #[must_use]
     fn store_template(&mut self, template: &AppTemplate) -> Result<Address, StoreError> {
         let hash = self.compute_template_hash(template);
         let addr = self.derive_template_address(template);
 
         let store = self.get_template_store_mut();
-        store.store(template, &addr, &hash);
+        store.store(template, &addr, &hash)?;
 
         Ok(addr)
     }
 
+    /// Stores `app address` -> `app-template address` relation.
     #[must_use]
     fn store_app(&mut self, app: &App) -> Result<Address, StoreError> {
         match self.template_exists(&app.template) {
@@ -118,6 +129,7 @@ pub trait Env {
         }
     }
 
+    /// Given an `App` address, loads the `AppTemplate` the app is associated with.
     fn load_template_by_app(&self, app_addr: &Address) -> Option<(AppTemplate, Address)> {
         if let Some(app) = self.load_app(app_addr) {
             if let Some(template) = self.load_template(&app.template) {
@@ -128,36 +140,29 @@ pub trait Env {
         None
     }
 
+    /// Loads an `AppTemplate` given its `Address`
     fn load_template(&self, template_addr: &Address) -> Option<AppTemplate> {
         let store = self.get_template_store();
         store.load(&template_addr)
     }
 
+    /// Loads an `App` given its `Address`
     fn load_app(&self, app_addr: &Address) -> Option<App> {
         let store = self.get_app_store();
         store.load(&app_addr)
     }
 
-    fn validate_template(&self, template: &AppTemplate) -> Result<(), String> {
+    /// Validates an `AppTemplate`
+    fn validate_template(&self, _template: &AppTemplate) -> Result<(), String> {
         todo!();
-
-        Ok(())
     }
 
-    fn validate_app(&self, app: &App) -> Result<(), String> {
+    /// Validates an `App`
+    fn validate_app(&self, _app: &App) -> Result<(), String> {
         todo!();
-
-        // let template = self.load_template(&app.template);
-        //
-        // match template {
-        //     Some(..) => Ok(()),
-        //     None => {
-        //         let err = format!("Template `{:?}` doens't exist", app.template);
-        //         Err(err)
-        //     }
-        // }
     }
 
+    /// Validates an `AppTransaction`
     fn validate_app_tx(&self, tx: &AppTransaction) -> Result<(), String> {
         let app = self.load_app(&tx.app);
 
@@ -170,11 +175,13 @@ pub trait Env {
         }
     }
 
+    /// Given an `Address`, returns whether it's associated with some `AppTemplate`
     #[inline(always)]
     fn template_exists(&self, template_addr: &Address) -> bool {
         self.load_template(template_addr).is_some()
     }
 
+    /// Given an `Address`, returns whether it's associated with some `App`
     #[inline(always)]
     fn app_exists(&self, app_addr: &Address) -> bool {
         self.load_app(app_addr).is_some()

@@ -9,6 +9,8 @@ use crate::{
 
 use svm_common::Address;
 
+/// In-memory `AppStore` implementation.
+/// Should be used for testing purposes only.
 pub struct MemAppStore<S, D> {
     app_bytes: HashMap<Address, Vec<u8>>,
     _phantom: PhantomData<(S, D)>,
@@ -19,6 +21,7 @@ where
     S: AppSerializer,
     D: AppDeserializer,
 {
+    /// Initializes a new `MemAppStore`
     pub fn new() -> Self {
         Self {
             app_bytes: HashMap::new(),

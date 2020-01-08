@@ -6,10 +6,7 @@ use svm_runtime_c_api::{svm_import_t, svm_value_type, testing};
 use std::collections::HashMap;
 use std::ffi::c_void;
 
-use svm_app::{
-    testing::{AppBuilder, AppTemplateBuilder, AppTxBuilder},
-    types::WasmArgValue,
-};
+use svm_app::types::WasmArgValue;
 use svm_common::{Address, State};
 use svm_runtime::register::SvmReg;
 
@@ -94,32 +91,18 @@ unsafe fn create_imports() -> (Vec<*const svm_import_t>, u32) {
 }
 
 fn deploy_template_bytes(name: &str, author: u32, pages_count: u16, wasm: &str) -> (Vec<u8>, u64) {
-    let code = wabt::wat2wasm(wasm).unwrap();
-    let author = Address::from(author);
-
-    let bytes = AppTemplateBuilder::new()
-        .with_version(0)
-        .with_name(name)
-        .with_author(&author)
-        .with_pages_count(pages_count)
-        .with_code(code.as_slice())
-        .build();
-
+    let bytes = svm_runtime::testing::build_template(0, name, author, pages_count, wasm);
     let bytes_len = bytes.len() as u64;
+
     (bytes, bytes_len)
 }
 
 fn spawn_app_bytes(creator: u32, template_addr: *const c_void) -> (Vec<u8>, u64) {
-    let creator = Address::from(creator);
     let template_addr: &Address = unsafe { svm_common::from_raw::<Address>(template_addr) };
 
-    let bytes = AppBuilder::new()
-        .with_version(0)
-        .with_creator(&creator)
-        .with_template(template_addr)
-        .build();
-
+    let bytes = svm_runtime::testing::build_app(0, template_addr, creator);
     let bytes_len = bytes.len() as u64;
+
     (bytes, bytes_len)
 }
 
@@ -130,17 +113,10 @@ fn exec_app_bytes(
     func_args: &[WasmArgValue],
 ) -> (Vec<u8>, u64) {
     let app_addr: &Address = unsafe { svm_common::from_raw::<Address>(app_addr) };
-    let sender_addr = Address::from(sender_addr);
 
-    let bytes = AppTxBuilder::new()
-        .with_version(0)
-        .with_app(app_addr)
-        .with_sender(&sender_addr)
-        .with_func_name(func_name)
-        .with_func_args(func_args)
-        .build();
-
+    let bytes = svm_runtime::testing::build_app_tx(0, app_addr, sender_addr, func_name, func_args);
     let bytes_len = bytes.len() as u64;
+
     (bytes, bytes_len)
 }
 
@@ -161,6 +137,7 @@ fn runtime_c_transaction_exec() {
 }
 
 unsafe fn do_transaction_exec() {
+    // 1) init runtime
     let mut host = Host::new();
     let mut kv = std::ptr::null_mut();
     let mut runtime = std::ptr::null_mut();
@@ -177,6 +154,7 @@ unsafe fn do_transaction_exec() {
     );
     assert_eq!(true, res.as_bool());
 
+    // 2) deploy template
     let author = 0x10_20_30_40;
     let code = include_str!("wasm/mul_balance.wast");
     let pages_count = 10;
@@ -186,19 +164,23 @@ unsafe fn do_transaction_exec() {
     let res = api::svm_deploy_template(&mut template, runtime, bytes.as_ptr() as _, bytes_len);
     assert_eq!(true, res.as_bool());
 
+    // 3) spawn app
     let mut app_addr = std::ptr::null_mut();
     let creator = 0x20_30_40_50;
     let (bytes, bytes_len) = spawn_app_bytes(creator, template as _);
     let res = api::svm_spawn_app(&mut app_addr, runtime, bytes.as_ptr() as _, bytes_len);
     assert_eq!(true, res.as_bool());
 
+    // 3) execute app
     let (sender, mul_by, args, state) = exec_app_args();
     let (bytes, bytes_len) = exec_app_bytes(sender, app_addr, "run", &args);
 
+    // 3.1) parse bytes into in-memory `AppTransaction`
     let mut app_tx = std::ptr::null_mut();
     let res = api::svm_parse_exec_app(&mut app_tx, runtime, bytes.as_ptr() as _, bytes_len);
     assert_eq!(true, res.as_bool());
 
+    // 3.2) execute the app-transaction
     // initialize `address=0x10_20_30` with balance=100
     host.set_balance(&Address::from(0x10_20_30), 100);
     assert_eq!(100, host.get_balance(&Address::from(0x10_20_30)).unwrap());

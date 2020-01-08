@@ -1,20 +1,15 @@
 use std::ffi::c_void;
-use std::slice;
 
 use log::{debug, error};
 
-use svm_app::{
-    default::DefaultJsonSerializerTypes,
-    types::{App, AppTemplate, AppTransaction},
-};
+use svm_app::{default::DefaultJsonSerializerTypes, types::AppTransaction};
 
-use svm_common::{Address, State};
-use svm_runtime::{ctx::SvmCtx, settings::AppSettings, traits::Runtime, Receipt};
+use svm_common::State;
+use svm_runtime::{ctx::SvmCtx, traits::Runtime, Receipt};
 
 use crate::{
     helpers, svm_byte_array, svm_import_func_sig_t, svm_import_func_t, svm_import_kind,
-    svm_import_t, svm_import_value, svm_result_t, svm_value_t, svm_value_type,
-    svm_value_type_array, RuntimePtr,
+    svm_import_t, svm_import_value, svm_result_t, svm_value_t, svm_value_type_array, RuntimePtr,
 };
 
 /// Creates a new SVM Runtime instance.
@@ -66,6 +61,8 @@ pub unsafe extern "C" fn svm_runtime_destroy(runtime: *mut c_void) -> svm_result
     svm_result_t::SVM_SUCCESS
 }
 
+/// Builds a new `svm_import` (returned via `import` function parameter).
+/// Import `svm_import_t` is allocated on the heap.
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_import_func_build(
@@ -96,6 +93,13 @@ pub unsafe extern "C" fn svm_import_func_build(
     *import = Box::into_raw(Box::new(svm_import));
 
     svm_result_t::SVM_SUCCESS
+}
+
+/// Destroys `svm_import_t` resources.
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_import_destroy(_func: *mut c_void) -> svm_result_t {
+    todo!()
 }
 
 /// Deploys a new app-template
@@ -154,6 +158,8 @@ pub unsafe extern "C" fn svm_spawn_app(
     }
 }
 
+/// Parses `exec-app` raw transaction into an `AppTransaction`.
+/// Returns a raw reference via `app_tx` function parameter.
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_parse_exec_app(
@@ -205,7 +211,7 @@ pub unsafe extern "C" fn svm_exec_app(
             debug!("`svm_exec_app` returns `SVM_SUCCESS`");
             svm_result_t::SVM_SUCCESS
         }
-        Err(e) => {
+        Err(_e) => {
             // update_last_error(e);
             error!("`svm_exec_app` returns `SVM_FAILURE`");
             svm_result_t::SVM_FAILURE
@@ -213,6 +219,7 @@ pub unsafe extern "C" fn svm_exec_app(
     }
 }
 
+/// Returns a raw pointer to `the host` extracted from a raw pointer to `wasmer` context.
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_instance_context_host_get(ctx: *mut c_void) -> *mut c_void {

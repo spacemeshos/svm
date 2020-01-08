@@ -1,7 +1,5 @@
 use std::fmt;
 
-use svm_common::Address;
-
 #[allow(missing_docs)]
 #[derive(Debug, PartialEq, Clone)]
 pub enum StoreError {

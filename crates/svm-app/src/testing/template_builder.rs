@@ -2,6 +2,8 @@ use byteorder::{BigEndian, WriteBytesExt};
 
 use svm_common::Address;
 
+/// Builds a raw representation for `deploy-template`
+/// Should be used for testing only.
 pub struct AppTemplateBuilder {
     version: Option<u32>,
     name: Option<String>,

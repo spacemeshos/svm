@@ -3,8 +3,11 @@ use crate::{
     types::App,
 };
 
-pub struct AppJsonDeserializer;
+/// Json serializer for `App`
 pub struct AppJsonSerializer;
+
+/// Json deserializer for `App`
+pub struct AppJsonDeserializer;
 
 impl AppSerializer for AppJsonSerializer {
     fn serialize(app: &App) -> Vec<u8> {

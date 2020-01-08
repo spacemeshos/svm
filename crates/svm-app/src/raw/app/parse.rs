@@ -6,8 +6,6 @@ use crate::{
     types::App,
 };
 
-use svm_common::Address;
-
 /// Parsing a on-the-wire `App` deploy transaction given as raw bytes.
 /// Returns the parsed transaction as a `App` struct.
 /// On failure, returns `ParseError`

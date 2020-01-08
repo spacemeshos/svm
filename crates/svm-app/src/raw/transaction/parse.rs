@@ -1,15 +1,13 @@
 use std::convert::TryFrom;
 use std::io::{Cursor, Read};
 
+use byteorder::ReadBytesExt;
+
 use crate::{
     error::ParseError,
     raw::{helpers, Field},
     types::{AppTransaction, WasmArgType, WasmArgValue, WasmIntType},
 };
-
-use svm_common::Address;
-
-use byteorder::{BigEndian, ReadBytesExt};
 
 /// Parsing a on-the-wire `AppTransaction` deploy transaction given as raw bytes.
 /// Returns the parsed transaction as a `AppTransaction` struct.
