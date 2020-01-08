@@ -12,15 +12,15 @@ on:
 
 jobs:
   Codecov:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     strategy:
-      fail-fast: False
+      fail-fast: True
     steps:
       - uses: actions/checkout@master
       - uses: codecov/codecov-action@v1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          fail_ci_if_error: true
+          fail_ci_if_error: False
   # Lint:
   #   runs-on: ubuntu-latest
   #   strategy:
