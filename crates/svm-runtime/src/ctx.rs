@@ -41,7 +41,7 @@ pub struct SvmCtx {
     /// For example, `host` will point a to struct having an access to the balance of each account.
     pub host: *mut c_void,
 
-    pub host_ctx: HashMap<&'static str, Vec<u8>>,
+    pub host_ctx: HashMap<i32, Vec<u8>>,
 
     /// An array that holds the `SvmReg32` registers
     pub regs_32: [SvmReg; REGS_32_COUNT],
@@ -69,11 +69,7 @@ impl SvmCtx {
     /// Initializes a new empty `SvmCtx`
     ///
     /// * `storage` - a mutably borrowed `AppStorage`
-    pub fn new(
-        host: PtrWrapper,
-        host_ctx: HashMap<&'static str, Vec<u8>>,
-        storage: AppStorage,
-    ) -> Self {
+    pub fn new(host: PtrWrapper, host_ctx: HashMap<i32, Vec<u8>>, storage: AppStorage) -> Self {
         let regs_32 = alloc_regs!(32, REGS_32_COUNT);
         let regs_64 = alloc_regs!(64, REGS_64_COUNT);
         let regs_160 = alloc_regs!(160, REGS_160_COUNT);

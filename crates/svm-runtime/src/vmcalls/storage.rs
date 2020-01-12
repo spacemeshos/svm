@@ -27,7 +27,7 @@ pub fn mem_to_reg_copy(
     let cells = &ctx.memory(mem_idx).view()[start..end];
 
     let reg = helpers::wasmer_data_reg(ctx.data, reg_bits, reg_idx);
-    reg.copy_from_wasmer_mem(cells);
+    reg.copy_from_cells(cells);
 }
 
 /// Copies the content of `wasmer` register indexed `src_reg` into `wasmer` memory cells under addresses:
@@ -52,7 +52,7 @@ pub fn reg_to_mem_copy(
     let cells = &ctx.memory(mem_idx).view()[start..end];
 
     let reg = helpers::wasmer_data_reg(ctx.data, reg_bits, reg_idx);
-    reg.copy_to_wasmer_mem(cells);
+    reg.copy_to_cells(cells);
 }
 
 /// Loads from the `SVM` instance's storage a page-slice into the register indexed `dest_reg`

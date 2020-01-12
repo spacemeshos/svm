@@ -1,7 +1,5 @@
-#[macro_use]
-mod register;
-
 mod ptr_wrapper;
+mod register;
 mod storage;
 
 pub use ptr_wrapper::PtrWrapper;

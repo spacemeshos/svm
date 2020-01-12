@@ -1,8 +1,13 @@
+mod host_ctx;
 mod register;
 mod storage;
 
-pub use register::*;
-pub use storage::*;
+pub use host_ctx::host_ctx_read_into_reg;
+pub use register::{reg_read_be_i64, reg_replace_byte, reg_write_be_i64};
+pub use storage::{
+    mem_to_reg_copy, reg_to_mem_copy, storage_read_to_mem, storage_read_to_reg,
+    storage_write_from_mem, storage_write_from_reg,
+};
 
 pub use wasmer_runtime_core::{
     func,
@@ -29,4 +34,10 @@ pub fn insert_vmcalls(ns: &mut Namespace) {
     ns.insert("reg_replace_byte", func!(register::reg_replace_byte));
     ns.insert("reg_read_be_i64", func!(register::reg_read_be_i64));
     ns.insert("reg_write_be_i64", func!(register::reg_write_be_i64));
+
+    // `host_ctx` vmcalls
+    ns.insert(
+        "host_ctx_read_into_reg",
+        func!(host_ctx::host_ctx_read_into_reg),
+    );
 }

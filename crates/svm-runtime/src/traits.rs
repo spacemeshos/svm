@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::{
     error::{DeployTemplateError, ExecAppError, SpawnAppError},
     settings::AppSettings,
@@ -16,7 +18,7 @@ pub trait Runtime {
     /// Spawn a new app out of an existing app-template.
     fn spawn_app(&mut self, bytes: &[u8]) -> Result<Address, SpawnAppError>;
 
-    /// Parse `bytes` into in-memory `AppTransaction`
+    /// Parses `bytes` into in-memory `AppTransaction`
     fn parse_exec_app(&self, bytes: &[u8]) -> Result<AppTransaction, ExecAppError>;
 
     /// Executes an app-transaction. Returns a `Receipt`.
@@ -28,7 +30,12 @@ pub trait Runtime {
     /// On failure:
     /// * Receipt returns the occurred error
     /// * Receipt informs the amount of gas used (transaction gas limit)
-    fn exec_app(&self, tx: AppTransaction, state: State) -> Result<Receipt, ExecAppError>;
+    fn exec_app(
+        &self,
+        tx: AppTransaction,
+        state: State,
+        host_ctx: HashMap<i32, Vec<u8>>,
+    ) -> Result<Receipt, ExecAppError>;
 }
 
 /// Represents a function that builds a `AppStorage` given its address, state and settings.
