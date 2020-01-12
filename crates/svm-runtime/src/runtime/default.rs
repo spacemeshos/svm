@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::ffi::c_void;
 
@@ -313,7 +314,9 @@ where
         );
 
         let storage = self.open_app_storage(addr, state, settings);
-        let svm_ctx = SvmCtx::new(PtrWrapper::new(self.host), storage);
+        let host_ctx = HashMap::new();
+
+        let svm_ctx = SvmCtx::new(PtrWrapper::new(self.host), host_ctx, storage);
         let svm_ctx = Box::leak(Box::new(svm_ctx));
 
         let state_creator = move || {

@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::ffi::c_void;
 use std::rc::Rc;
 
@@ -72,10 +73,11 @@ pub fn app_memory_state_creator(
     let addr = Address::from(addr);
     let state = State::from(state);
     let kv = memory_kv_store_init();
+    let host_ctx = HashMap::new();
 
     let storage = svm_storage::testing::app_storage_open(&addr, &state, &kv, pages_count);
 
-    let ctx = SvmCtx::new(host, storage);
+    let ctx = SvmCtx::new(host, host_ctx, storage);
     let ctx: *mut SvmCtx = Box::into_raw(Box::new(ctx));
 
     let data: *mut c_void = ctx as *const _ as _;
