@@ -1,6 +1,6 @@
-use wasmer_runtime_core::types::Value as WasmerValue;
-
 use std::convert::TryFrom;
+
+use wasmer_runtime_core::types::Value as WasmerValue;
 
 /// Wasm integer value
 #[derive(Debug, PartialEq, Copy, Clone)]
@@ -17,6 +17,12 @@ pub enum Value {
 pub enum ValueCastError {
     /// Not supported wasm primitive (i.e: floats, SIMD)
     NotSupportedType(&'static str),
+}
+
+impl ToString for ValueCastError {
+    fn to_string(&self) -> String {
+        format!("{:?}", self)
+    }
 }
 
 impl TryFrom<&WasmerValue> for Value {

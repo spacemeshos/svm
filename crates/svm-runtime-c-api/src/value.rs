@@ -1,3 +1,5 @@
+use std::convert::TryFrom;
+
 use svm_runtime::value::Value;
 
 /// FFI representation for `SVM` value type
@@ -10,6 +12,18 @@ pub enum svm_value_type {
 
     #[doc(hidden)]
     SVM_I64 = 2,
+}
+
+impl TryFrom<u8> for svm_value_type {
+    type Error = String;
+
+    fn try_from(byte: u8) -> Result<Self, Self::Error> {
+        match byte {
+            1 => Ok(svm_value_type::SVM_I32),
+            2 => Ok(svm_value_type::SVM_I64),
+            _ => Err(format!("Invalid raw SVM value type: `{}`", byte)),
+        }
+    }
 }
 
 /// FFI representation for an array of `svm_value_type`

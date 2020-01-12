@@ -1,3 +1,6 @@
+mod receipt;
+pub use receipt::{decode_receipt, ClientReceipt};
+
 use std::cell::RefCell;
 use std::ffi::c_void;
 use std::rc::Rc;

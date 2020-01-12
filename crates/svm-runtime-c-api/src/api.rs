@@ -194,6 +194,7 @@ pub unsafe extern "C" fn svm_parse_exec_app(
 #[no_mangle]
 pub unsafe extern "C" fn svm_exec_app(
     receipt: *mut *mut c_void,
+    receipt_length: *mut libc::c_uint,
     runtime: *mut c_void,
     app_tx: *const c_void,
     state: *const c_void,
@@ -205,8 +206,12 @@ pub unsafe extern "C" fn svm_exec_app(
     let state = State::from(state);
 
     match runtime.exec_app(app_tx, state) {
-        Ok(r) => {
-            *receipt = svm_common::into_raw_mut(r);
+        Ok(ref r) => {
+            let mut bytes = crate::receipt::encode_receipt(r);
+
+            *receipt_length = bytes.len() as u32;
+            *receipt = bytes.as_mut_ptr() as _;
+            std::mem::drop(bytes);
 
             debug!("`svm_exec_app` returns `SVM_SUCCESS`");
             svm_result_t::SVM_SUCCESS
@@ -219,6 +224,12 @@ pub unsafe extern "C" fn svm_exec_app(
     }
 }
 
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_receipt_destroy(receipt: *mut c_void) -> svm_result_t {
+    todo!()
+}
+
 /// Returns a raw pointer to `the host` extracted from a raw pointer to `wasmer` context.
 #[must_use]
 #[no_mangle]
@@ -229,74 +240,4 @@ pub unsafe extern "C" fn svm_instance_context_host_get(ctx: *mut c_void) -> *mut
     let svm_ctx = svm_common::from_raw::<SvmCtx>(wasmer_ctx.data);
 
     svm_ctx.host
-}
-
-/// Returns the receipt outcome (`true` for success and `false` otherwise)
-#[must_use]
-#[no_mangle]
-pub unsafe extern "C" fn svm_receipt_status(raw_receipt: *const c_void) -> bool {
-    let receipt = svm_common::from_raw::<Receipt>(raw_receipt);
-
-    debug!("`svm_receipt_status` status={}", receipt.success);
-
-    receipt.success
-}
-
-/// Returns the transaction execution results (wasm array).
-/// Should be called only after verifying that the transaction succeeded.
-/// Will panic when called for a failed transaction.
-#[must_use]
-#[no_mangle]
-pub unsafe extern "C" fn svm_receipt_results(
-    raw_results: *mut *mut svm_value_t,
-    raw_receipt: *const c_void,
-    results_len: *mut u32,
-) {
-    debug!("`svm_receipt_results`");
-
-    let receipt = svm_common::from_raw::<Receipt>(raw_receipt);
-
-    if receipt.success {
-        let mut results: Vec<svm_value_t> = Vec::with_capacity(*results_len as usize);
-
-        for value in receipt.results.iter() {
-            let raw_value = svm_value_t::from(value);
-            results.push(raw_value);
-        }
-
-        // TODO: free `results` memory after usage
-        let results: &mut Vec<svm_value_t> = Box::leak(Box::new(results));
-
-        *results_len = results.len() as u32;
-        *raw_results = results.as_mut_ptr();
-    } else {
-        let msg = "method not allowed to be called when transaction execution failed";
-        error!("{}", msg);
-        panic!("{}", msg);
-    }
-}
-
-/// Returns the `receipt` error in transaction failed
-#[must_use]
-#[no_mangle]
-pub unsafe extern "C" fn svm_receipt_error(raw_receipt: *const c_void) {
-    let receipt = svm_common::from_raw::<Receipt>(raw_receipt);
-
-    if let Some(ref _e) = receipt.error {
-        // update_last_error(e);
-    }
-}
-
-/// Returns a pointer to the new state of the app account.
-#[must_use]
-#[no_mangle]
-pub unsafe extern "C" fn svm_receipt_new_state(raw_receipt: *const c_void) -> *const u8 {
-    let receipt = svm_common::from_raw::<Receipt>(raw_receipt);
-
-    if receipt.success {
-        let state = receipt.new_state.as_ref().unwrap();
-        state.as_ptr()
-    } else {
-        panic!("method not allowed to be called when transaction execution failed");
-    }
 }

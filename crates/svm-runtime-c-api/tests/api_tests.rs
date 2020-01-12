@@ -1,7 +1,7 @@
 extern crate svm_runtime_c_api;
 
 use svm_runtime_c_api as api;
-use svm_runtime_c_api::{svm_import_t, svm_value_type, testing};
+use svm_runtime_c_api::{svm_import_t, svm_value_type, testing, testing::ClientReceipt};
 
 use std::collections::HashMap;
 use std::ffi::c_void;
@@ -186,7 +186,14 @@ unsafe fn do_transaction_exec() {
     assert_eq!(100, host.get_balance(&Address::from(0x10_20_30)).unwrap());
 
     let mut receipt = std::ptr::null_mut();
-    let res = api::svm_exec_app(&mut receipt, runtime, app_tx, svm_common::into_raw(state));
+    let mut receipt_length = 0;
+    let res = api::svm_exec_app(
+        &mut receipt,
+        &mut receipt_length,
+        runtime,
+        app_tx,
+        svm_common::into_raw(state),
+    );
     assert_eq!(true, res.as_bool());
 
     assert_eq!(
