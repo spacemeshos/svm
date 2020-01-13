@@ -8,7 +8,7 @@ use crate::{
     ctx::SvmCtx,
     error::{DeployTemplateError, ExecAppError, SpawnAppError},
     helpers,
-    helpers::PtrWrapper,
+    helpers::DataWrapper,
     runtime::Receipt,
     settings::AppSettings,
     traits::{Runtime, StorageBuilderFn},
@@ -320,7 +320,11 @@ where
         );
 
         let storage = self.open_app_storage(addr, state, settings);
-        let svm_ctx = SvmCtx::new(PtrWrapper::new(self.host), host_ctx, storage);
+        let svm_ctx = SvmCtx::new(
+            DataWrapper::new(self.host),
+            DataWrapper::new(Box::new(host_ctx)),
+            storage,
+        );
         let svm_ctx = Box::leak(Box::new(svm_ctx));
 
         let state_creator = move || {

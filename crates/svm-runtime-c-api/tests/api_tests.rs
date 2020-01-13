@@ -130,7 +130,7 @@ fn exec_app_args() -> (u32, i64, Vec<WasmArgValue>, State) {
 }
 
 #[test]
-fn runtime_ffi_transaction_exec() {
+fn runtime_ffi_exec_app() {
     unsafe {
         do_exec_app();
     }

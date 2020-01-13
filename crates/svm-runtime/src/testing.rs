@@ -1,11 +1,10 @@
 use std::cell::RefCell;
-use std::collections::HashMap;
 use std::ffi::c_void;
 use std::rc::Rc;
 
 use crate::{
-    ctx::SvmCtx, helpers, helpers::PtrWrapper, register::SvmReg, settings::AppSettings,
-    traits::StorageBuilderFn, DefaultRuntime,
+    ctx::SvmCtx, helpers, helpers::DataWrapper, host_ctx::HostCtx, register::SvmReg,
+    settings::AppSettings, traits::StorageBuilderFn, DefaultRuntime,
 };
 
 use svm_common::{Address, State};
@@ -67,13 +66,13 @@ pub fn instance_memory_init(instance: &Instance, offset: usize, bytes: &[u8]) {
 pub fn app_memory_state_creator(
     addr: u32,
     state: u32,
-    host: PtrWrapper,
+    host: DataWrapper<*mut c_void>,
+    host_ctx: DataWrapper<Box<HostCtx>>,
     pages_count: u16,
 ) -> (*mut c_void, fn(*mut c_void)) {
     let addr = Address::from(addr);
     let state = State::from(state);
     let kv = memory_kv_store_init();
-    let host_ctx = HashMap::new();
 
     let storage = svm_storage::testing::app_storage_open(&addr, &state, &kv, pages_count);
 
