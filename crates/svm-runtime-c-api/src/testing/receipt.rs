@@ -7,17 +7,27 @@ use crate::svm_value_type;
 use svm_common::State;
 use svm_runtime::value::Value;
 
+/// Used for testing the encoding of a `Receipt` back to the client.
 #[derive(Debug, PartialEq)]
 pub enum ClientReceipt {
+    /// Receipt succeeded
     Success {
+        /// The app new state
         new_state: State,
+
+        /// The values returns by the invoked app as a string
         func_returns: String,
     },
+
+    /// Receipt failed
     Failure {
+        /// The reason for failure
         error: String,
     },
 }
 
+/// Decodes an encoded receipt into `ClientReceipt`.
+/// Used for testing
 pub fn decode_receipt(bytes: &[u8]) -> ClientReceipt {
     let mut cursor = Cursor::new(bytes);
 
@@ -75,8 +85,6 @@ pub fn decode_receipt(bytes: &[u8]) -> ClientReceipt {
 }
 
 fn returns_as_str(returns: &[Value]) -> String {
-    let len = returns.len() as usize;
-
     let mut buf = String::new();
 
     for (i, ret) in returns.iter().enumerate() {

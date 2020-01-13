@@ -3,8 +3,8 @@ use std::ffi::c_void;
 use std::rc::Rc;
 
 use crate::{
-    ctx::SvmCtx, helpers, helpers::DataWrapper, host_ctx::HostCtx, register::SvmReg,
-    settings::AppSettings, traits::StorageBuilderFn, DefaultRuntime,
+    ctx::SvmCtx, helpers, helpers::DataWrapper, register::SvmReg, settings::AppSettings,
+    traits::StorageBuilderFn, DefaultRuntime,
 };
 
 use svm_common::{Address, State};

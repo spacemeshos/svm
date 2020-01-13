@@ -1,7 +1,6 @@
-use std::collections::HashMap;
-
 use crate::{
     error::{DeployTemplateError, ExecAppError, SpawnAppError},
+    host_ctx::HostCtx,
     settings::AppSettings,
     Receipt,
 };
@@ -34,7 +33,7 @@ pub trait Runtime {
         &self,
         app_tx: AppTransaction,
         state: State,
-        host_ctx: HashMap<i32, Vec<u8>>,
+        host_ctx: HostCtx,
     ) -> Result<Receipt, ExecAppError>;
 }
 

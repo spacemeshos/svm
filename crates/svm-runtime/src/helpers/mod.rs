@@ -1,5 +1,3 @@
-use std::ffi::c_void;
-
 mod data_wrapper;
 mod register;
 mod storage;

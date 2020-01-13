@@ -4,11 +4,11 @@ use log::{debug, error};
 
 use svm_app::{default::DefaultJsonSerializerTypes, types::AppTransaction};
 use svm_common::State;
-use svm_runtime::{ctx::SvmCtx, traits::Runtime, Receipt};
+use svm_runtime::{ctx::SvmCtx, traits::Runtime};
 
 use crate::{
     helpers, svm_byte_array, svm_import_func_sig_t, svm_import_func_t, svm_import_kind,
-    svm_import_t, svm_import_value, svm_result_t, svm_value_t, svm_value_type_array, RuntimePtr,
+    svm_import_t, svm_import_value, svm_result_t, svm_value_type_array, RuntimePtr,
 };
 
 /// Creates a new SVM Runtime instance.
@@ -236,7 +236,7 @@ pub unsafe extern "C" fn svm_exec_app(
 
 #[must_use]
 #[no_mangle]
-pub unsafe extern "C" fn svm_receipt_destroy(receipt: *mut c_void) -> svm_result_t {
+pub unsafe extern "C" fn svm_receipt_destroy(_receipt: *mut c_void) -> svm_result_t {
     todo!()
 }
 

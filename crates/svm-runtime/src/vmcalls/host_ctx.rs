@@ -1,5 +1,6 @@
-use crate::{ctx::SvmCtx, helpers, host_ctx::HostCtx};
+use crate::{ctx::SvmCtx, helpers};
 
+/// Reads host context field with index `field_idx` into register `{reg_bits}:{reg_idx}`
 pub fn host_ctx_read_into_reg(
     ctx: &mut wasmer_runtime::Ctx,
     field_idx: i32,

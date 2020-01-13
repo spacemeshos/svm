@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::ffi::c_void;
 
@@ -85,7 +84,7 @@ where
         &self,
         tx: AppTransaction,
         state: State,
-        host_ctx: HashMap<i32, Vec<u8>>,
+        host_ctx: HostCtx,
     ) -> Result<Receipt, ExecAppError> {
         info!("runtime `exec_app`");
 

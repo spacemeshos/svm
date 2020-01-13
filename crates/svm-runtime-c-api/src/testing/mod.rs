@@ -1,6 +1,7 @@
 mod receipt;
 pub use receipt::{decode_receipt, ClientReceipt};
 
+/// `HostCtx` encoding
 pub mod host_ctx;
 
 use std::cell::RefCell;

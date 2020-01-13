@@ -40,6 +40,7 @@ pub struct SvmCtx {
     /// For example, `host` will point a to struct having an access to the balance of each account.
     pub host: *mut c_void,
 
+    /// Raw pointer to host context fields.
     pub host_ctx: *const HostCtx,
 
     /// An array that holds the `SvmReg32` registers

@@ -5,21 +5,24 @@
 //!  |  (4 bytes) | (2 bytes) | (2 bytes) | (2 bytes)  |   bytes  |
 //!  |____________|___________|___________|____________|__________|
 //!  | field #2  |  field #2  |  field #2 |                       |
-//!  |   index   |   length   |           |          ...          |
+//!  |   index   |   length   |           |         ...           |
 //!  | (2 bytes) |  (2 bytes) |   bytes   |                       |
 //!  |___________|____________|___________|_______________________|
 //!
-
-use byteorder::{BigEndian, ReadBytesExt};
 
 use std::collections::HashMap;
 use std::ffi::c_void;
 use std::io::{Cursor, Read};
 
+use byteorder::{BigEndian, ReadBytesExt};
+
+use svm_runtime::host_ctx::HostCtx;
+
+/// Parses an encoded Host context into an `HostCtx` struct.
 pub unsafe fn parse_host_ctx(
     bytes: *const c_void,
     bytes_len: libc::c_uint,
-) -> Result<HashMap<i32, Vec<u8>>, String> {
+) -> Result<HostCtx, String> {
     let bytes = std::slice::from_raw_parts(bytes as _, bytes_len as usize);
     let mut cursor = Cursor::new(bytes);
 
