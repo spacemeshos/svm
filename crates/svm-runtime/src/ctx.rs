@@ -70,11 +70,11 @@ impl SvmCtx {
     /// * `storage` - a mutably borrowed `AppStorage`
     pub fn new(
         host: DataWrapper<*mut c_void>,
-        host_ctx: DataWrapper<Box<HostCtx>>,
+        host_ctx: DataWrapper<*const c_void>,
         storage: AppStorage,
     ) -> Self {
         let host = host.unwrap();
-        let host_ctx = Box::into_raw(host_ctx.unwrap()) as _;
+        let host_ctx = host_ctx.unwrap() as *const HostCtx;
 
         let regs_32 = alloc_regs!(32, REGS_32_COUNT);
         let regs_64 = alloc_regs!(64, REGS_64_COUNT);

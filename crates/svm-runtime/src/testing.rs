@@ -67,7 +67,7 @@ pub fn app_memory_state_creator(
     addr: u32,
     state: u32,
     host: DataWrapper<*mut c_void>,
-    host_ctx: DataWrapper<Box<HostCtx>>,
+    host_ctx: DataWrapper<*const c_void>,
     pages_count: u16,
 ) -> (*mut c_void, fn(*mut c_void)) {
     let addr = Address::from(addr);

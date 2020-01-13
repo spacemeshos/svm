@@ -9,6 +9,7 @@ use crate::{
     error::{DeployTemplateError, ExecAppError, SpawnAppError},
     helpers,
     helpers::DataWrapper,
+    host_ctx::HostCtx,
     runtime::Receipt,
     settings::AppSettings,
     traits::{Runtime, StorageBuilderFn},
@@ -311,7 +312,7 @@ where
         &self,
         addr: &Address,
         state: &State,
-        host_ctx: HashMap<i32, Vec<u8>>,
+        host_ctx: HostCtx,
         settings: &AppSettings,
     ) -> ImportObject {
         debug!(
@@ -320,9 +321,11 @@ where
         );
 
         let storage = self.open_app_storage(addr, state, settings);
+        let host_ctx = svm_common::into_raw(host_ctx);
+
         let svm_ctx = SvmCtx::new(
             DataWrapper::new(self.host),
-            DataWrapper::new(Box::new(host_ctx)),
+            DataWrapper::new(host_ctx),
             storage,
         );
         let svm_ctx = Box::leak(Box::new(svm_ctx));
