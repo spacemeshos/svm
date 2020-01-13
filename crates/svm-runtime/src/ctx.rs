@@ -1,4 +1,4 @@
-use crate::alloc_regs;
+use crate::{alloc_regs, host_ctx::HostCtx};
 
 use log::debug;
 use std::ffi::c_void;
@@ -6,7 +6,7 @@ use std::ffi::c_void;
 use svm_storage::AppStorage;
 
 use crate::{
-    helpers::PtrWrapper,
+    helpers::DataWrapper,
     register::{SvmReg, SvmReg160, SvmReg32, SvmReg512, SvmReg64},
 };
 
@@ -40,6 +40,8 @@ pub struct SvmCtx {
     /// For example, `host` will point a to struct having an access to the balance of each account.
     pub host: *mut c_void,
 
+    pub host_ctx: *const HostCtx,
+
     /// An array that holds the `SvmReg32` registers
     pub regs_32: [SvmReg; REGS_32_COUNT],
 
@@ -66,7 +68,14 @@ impl SvmCtx {
     /// Initializes a new empty `SvmCtx`
     ///
     /// * `storage` - a mutably borrowed `AppStorage`
-    pub fn new(host: PtrWrapper, storage: AppStorage) -> Self {
+    pub fn new(
+        host: DataWrapper<*mut c_void>,
+        host_ctx: DataWrapper<*const c_void>,
+        storage: AppStorage,
+    ) -> Self {
+        let host = host.unwrap();
+        let host_ctx = host_ctx.unwrap() as *const HostCtx;
+
         let regs_32 = alloc_regs!(32, REGS_32_COUNT);
         let regs_64 = alloc_regs!(64, REGS_64_COUNT);
         let regs_160 = alloc_regs!(160, REGS_160_COUNT);
@@ -74,7 +83,8 @@ impl SvmCtx {
         let regs_512 = alloc_regs!(512, REGS_512_COUNT);
 
         Self {
-            host: host.unwrap(),
+            host,
+            host_ctx,
             regs_32,
             regs_64,
             regs_160,
@@ -88,5 +98,9 @@ impl SvmCtx {
 impl Drop for SvmCtx {
     fn drop(&mut self) {
         debug!("Dropping `SvmCtx`...");
+
+        unsafe {
+            let _ = Box::from_raw(self.host_ctx as *const HostCtx as *mut HostCtx);
+        }
     }
 }

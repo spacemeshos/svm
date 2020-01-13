@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use svm_app::types::WasmArgValue as Value;
 use svm_common::State;
 use svm_runtime::{settings::AppSettings, testing, traits::Runtime};
@@ -43,7 +45,7 @@ fn runtime_valid_app_transaction() {
     let bytes = testing::build_app_tx(version, &app_addr, sender_addr, func_name, &func_args);
 
     let tx = runtime.parse_exec_app(&bytes).unwrap();
-    let res = runtime.exec_app(tx, State::empty());
+    let res = runtime.exec_app(tx, State::empty(), HashMap::new());
 
     let receipt = res.unwrap();
     assert_eq!(true, receipt.success);

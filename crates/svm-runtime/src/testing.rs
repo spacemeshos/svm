@@ -3,8 +3,8 @@ use std::ffi::c_void;
 use std::rc::Rc;
 
 use crate::{
-    ctx::SvmCtx, helpers, helpers::PtrWrapper, register::SvmReg, settings::AppSettings,
-    traits::StorageBuilderFn, DefaultRuntime,
+    ctx::SvmCtx, helpers, helpers::DataWrapper, host_ctx::HostCtx, register::SvmReg,
+    settings::AppSettings, traits::StorageBuilderFn, DefaultRuntime,
 };
 
 use svm_common::{Address, State};
@@ -66,7 +66,8 @@ pub fn instance_memory_init(instance: &Instance, offset: usize, bytes: &[u8]) {
 pub fn app_memory_state_creator(
     addr: u32,
     state: u32,
-    host: PtrWrapper,
+    host: DataWrapper<*mut c_void>,
+    host_ctx: DataWrapper<*const c_void>,
     pages_count: u16,
 ) -> (*mut c_void, fn(*mut c_void)) {
     let addr = Address::from(addr);
@@ -75,7 +76,7 @@ pub fn app_memory_state_creator(
 
     let storage = svm_storage::testing::app_storage_open(&addr, &state, &kv, pages_count);
 
-    let ctx = SvmCtx::new(host, storage);
+    let ctx = SvmCtx::new(host, host_ctx, storage);
     let ctx: *mut SvmCtx = Box::into_raw(Box::new(ctx));
 
     let data: *mut c_void = ctx as *const _ as _;

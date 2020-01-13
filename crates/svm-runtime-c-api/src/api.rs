@@ -3,7 +3,6 @@ use std::ffi::c_void;
 use log::{debug, error};
 
 use svm_app::{default::DefaultJsonSerializerTypes, types::AppTransaction};
-
 use svm_common::State;
 use svm_runtime::{ctx::SvmCtx, traits::Runtime, Receipt};
 
@@ -198,20 +197,31 @@ pub unsafe extern "C" fn svm_exec_app(
     runtime: *mut c_void,
     app_tx: *const c_void,
     state: *const c_void,
+    host_ctx_bytes: *const c_void,
+    host_ctx_length: libc::c_uint,
 ) -> svm_result_t {
     debug!("`svm_exec_app` start");
 
+    let host_ctx = crate::parse_host_ctx(host_ctx_bytes, host_ctx_length);
+
+    if host_ctx.is_err() {
+        // update_last_error(e);
+        error!("`svm_exec_app` returns `SVM_FAILURE`");
+        return svm_result_t::SVM_FAILURE;
+    }
+
+    let host_ctx = host_ctx.unwrap();
     let app_tx = *Box::from_raw(app_tx as *mut AppTransaction);
     let runtime = helpers::cast_to_runtime_mut(runtime);
     let state = State::from(state);
 
-    match runtime.exec_app(app_tx, state) {
+    match runtime.exec_app(app_tx, state, host_ctx) {
         Ok(ref r) => {
             let mut bytes = crate::receipt::encode_receipt(r);
 
             *receipt_length = bytes.len() as u32;
             *receipt = bytes.as_mut_ptr() as _;
-            std::mem::drop(bytes);
+            std::mem::forget(bytes);
 
             debug!("`svm_exec_app` returns `SVM_SUCCESS`");
             svm_result_t::SVM_SUCCESS

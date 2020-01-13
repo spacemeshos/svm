@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::ffi::c_void;
 
@@ -7,7 +8,8 @@ use crate::{
     ctx::SvmCtx,
     error::{DeployTemplateError, ExecAppError, SpawnAppError},
     helpers,
-    helpers::PtrWrapper,
+    helpers::DataWrapper,
+    host_ctx::HostCtx,
     runtime::Receipt,
     settings::AppSettings,
     traits::{Runtime, StorageBuilderFn},
@@ -79,7 +81,12 @@ where
         }
     }
 
-    fn exec_app(&self, tx: AppTransaction, state: State) -> Result<Receipt, ExecAppError> {
+    fn exec_app(
+        &self,
+        tx: AppTransaction,
+        state: State,
+        host_ctx: HashMap<i32, Vec<u8>>,
+    ) -> Result<Receipt, ExecAppError> {
         info!("runtime `exec_app`");
 
         let (template, template_addr) = self.load_template(&tx)?;
@@ -88,7 +95,7 @@ where
             pages_count: template.pages_count,
         };
 
-        let mut import_object = self.import_object_create(&tx.app, &state, &settings);
+        let mut import_object = self.import_object_create(&tx.app, &state, host_ctx, &settings);
         self.import_object_extend(&mut import_object);
 
         let receipt = match self.do_exec_app(&tx, &template, &template_addr, &import_object) {
@@ -305,6 +312,7 @@ where
         &self,
         addr: &Address,
         state: &State,
+        host_ctx: HostCtx,
         settings: &AppSettings,
     ) -> ImportObject {
         debug!(
@@ -313,7 +321,13 @@ where
         );
 
         let storage = self.open_app_storage(addr, state, settings);
-        let svm_ctx = SvmCtx::new(PtrWrapper::new(self.host), storage);
+        let host_ctx = svm_common::into_raw(host_ctx);
+
+        let svm_ctx = SvmCtx::new(
+            DataWrapper::new(self.host),
+            DataWrapper::new(host_ctx),
+            storage,
+        );
         let svm_ctx = Box::leak(Box::new(svm_ctx));
 
         let state_creator = move || {

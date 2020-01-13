@@ -17,7 +17,7 @@ use std::fmt::{self, Debug, Formatter};
 /// means: `SvmReg64` is a `SVM` register holding 8 bytes (64 bits)
 macro_rules! impl_register {
     ($bytes_count: expr, $reg_ident: ident) => {
-        /// Implements a `SVM` register of $bytes_count bytes
+        /// Implements `SVM` register having `$bytes_count` bytes
         #[repr(transparent)]
         #[derive(Clone)]
         pub struct $reg_ident(pub(crate) [u8; $bytes_count]);
@@ -33,7 +33,7 @@ macro_rules! impl_register {
             /// Copies the data given in `cells` into the register content
             /// Pads the remaining register bytes with zeros (in case `cells.len()` is smaller than the register capacity).
             #[inline(always)]
-            pub fn copy_from_wasmer_mem(&mut self, cells: &[Cell<u8>]) {
+            pub fn copy_from_cells(&mut self, cells: &[Cell<u8>]) {
                 let padding = $bytes_count as isize - cells.len() as isize;
 
                 if padding >= 0 {
@@ -73,7 +73,7 @@ macro_rules! impl_register {
             /// It works even though we receive `cells` as `&[Cell<u8>]` and not `&mut[Cell<u8>]`
             /// thanks to the interior mutability of `Cell<T>`
             #[inline(always)]
-            pub fn copy_to_wasmer_mem(&self, cells: &[Cell<u8>]) {
+            pub fn copy_to_cells(&self, cells: &[Cell<u8>]) {
                 for (byte, cell) in self.0.iter().zip(cells) {
                     cell.set(*byte);
                 }
@@ -174,15 +174,15 @@ pub enum SvmReg {
 }
 
 impl SvmReg {
-    /// Delegates `copy_from_wasmer_mem` to the inner wrapped `SvmRegXXX`
+    /// Delegates `copy_from_cells` to the inner wrapped `SvmRegXXX`
     #[inline(always)]
-    pub fn copy_from_wasmer_mem(&mut self, cells: &[Cell<u8>]) {
+    pub fn copy_from_cells(&mut self, cells: &[Cell<u8>]) {
         match self {
-            SvmReg::Reg32(reg) => reg.copy_from_wasmer_mem(cells),
-            SvmReg::Reg64(reg) => reg.copy_from_wasmer_mem(cells),
-            SvmReg::Reg160(reg) => reg.copy_from_wasmer_mem(cells),
-            SvmReg::Reg256(reg) => reg.copy_from_wasmer_mem(cells),
-            SvmReg::Reg512(reg) => reg.copy_from_wasmer_mem(cells),
+            SvmReg::Reg32(reg) => reg.copy_from_cells(cells),
+            SvmReg::Reg64(reg) => reg.copy_from_cells(cells),
+            SvmReg::Reg160(reg) => reg.copy_from_cells(cells),
+            SvmReg::Reg256(reg) => reg.copy_from_cells(cells),
+            SvmReg::Reg512(reg) => reg.copy_from_cells(cells),
         }
     }
 
@@ -234,15 +234,15 @@ impl SvmReg {
         }
     }
 
-    /// Delegates `copy_to_wasmer_mem` to the inner wrapped `SvmRegXXX`
+    /// Delegates `copy_to_cells` to the inner wrapped `SvmRegXXX`
     #[inline(always)]
-    pub fn copy_to_wasmer_mem(&self, cells: &[Cell<u8>]) {
+    pub fn copy_to_cells(&self, cells: &[Cell<u8>]) {
         match self {
-            SvmReg::Reg32(reg) => reg.copy_to_wasmer_mem(cells),
-            SvmReg::Reg64(reg) => reg.copy_to_wasmer_mem(cells),
-            SvmReg::Reg160(reg) => reg.copy_to_wasmer_mem(cells),
-            SvmReg::Reg256(reg) => reg.copy_to_wasmer_mem(cells),
-            SvmReg::Reg512(reg) => reg.copy_to_wasmer_mem(cells),
+            SvmReg::Reg32(reg) => reg.copy_to_cells(cells),
+            SvmReg::Reg64(reg) => reg.copy_to_cells(cells),
+            SvmReg::Reg160(reg) => reg.copy_to_cells(cells),
+            SvmReg::Reg256(reg) => reg.copy_to_cells(cells),
+            SvmReg::Reg512(reg) => reg.copy_to_cells(cells),
         }
     }
 
@@ -312,7 +312,7 @@ mod tests {
 
         assert_eq!(vec![0; 8], reg.view());
 
-        reg.copy_from_wasmer_mem(&cells);
+        reg.copy_from_cells(&cells);
 
         for i in 0..8 {
             let expected = (i + 1) * 10 as u8;
@@ -351,7 +351,7 @@ mod tests {
 
     #[test]
     #[ignore]
-    fn copy_from_bigger_than_register_capacity() {
+    fn copy_from_cells_slice_larger_than_register_capacity() {
         let mut reg = SvmReg64::new();
 
         let data = [10, 20, 30, 40, 50, 60, 70, 80, 90];
@@ -364,7 +364,7 @@ mod tests {
     }
 
     #[test]
-    fn copy_from_wasmer_mem_exact_register_capacity() {
+    fn copy_from_cells_slice_of_exact_same_lengthh_as_register_capacity() {
         let cells = [
             Cell::new(10),
             Cell::new(20),
@@ -379,26 +379,26 @@ mod tests {
         let mut reg = SvmReg64::new();
         assert_eq!(vec![0; 8], reg.view());
 
-        reg.copy_from_wasmer_mem(&cells);
+        reg.copy_from_cells(&cells);
         assert_eq!(vec![10, 20, 30, 40, 50, 60, 70, 80], reg.view());
     }
 
     #[test]
-    fn copy_from_wasmer_mem_less_than_register_capacity() {
+    fn copy_from_cells_slice_shorter_than_register_capacity() {
         let mut reg = SvmReg64::new();
         reg.set(&vec![10; 8]);
         assert_eq!(vec![10; 8], reg.view());
 
         let cells = [Cell::new(10), Cell::new(20), Cell::new(30)];
 
-        reg.copy_from_wasmer_mem(&cells);
+        reg.copy_from_cells(&cells);
 
         assert_eq!(vec![10, 20, 30], reg.getn(3));
         assert_eq!(vec![10, 20, 30, 0, 0, 0, 0, 0], reg.view());
     }
 
     #[test]
-    fn copy_from_wasmer_mem_bigger_than_register_capacity() {
+    fn copy_from_cells_slice_longer_than_register_capacity() {
         let mut reg = SvmReg64::new();
 
         let cells = [
@@ -414,7 +414,7 @@ mod tests {
         ];
 
         let res = std::panic::catch_unwind(move || {
-            reg.copy_from_wasmer_mem(&cells);
+            reg.copy_from_cells(&cells);
         });
 
         assert!(res.is_err());
