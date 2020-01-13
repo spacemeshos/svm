@@ -67,31 +67,17 @@ fn parse_field_bytes(cursor: &mut Cursor<&[u8]>, field_len: u16) -> Vec<u8> {
 
 #[cfg(test)]
 mod tests {
+    use crate::testing::host_ctx;
     use maplit::hashmap;
 
     use super::*;
-    use byteorder::{BigEndian, WriteBytesExt};
-
-    fn write_version(buf: &mut Vec<u8>, version: u32) {
-        buf.write_u32::<BigEndian>(version).unwrap();
-    }
-
-    fn write_field_count(buf: &mut Vec<u8>, field_count: u16) {
-        buf.write_u16::<BigEndian>(field_count).unwrap();
-    }
-
-    fn write_field(buf: &mut Vec<u8>, index: u16, value: Vec<u8>) {
-        buf.write_u16::<BigEndian>(index).unwrap();
-        buf.write_u16::<BigEndian>(value.len() as u16).unwrap();
-        buf.extend_from_slice(&value[..]);
-    }
 
     #[test]
     fn parse_host_ctx_no_fields() {
         let mut bytes = Vec::new();
 
-        write_version(&mut bytes, 0);
-        write_field_count(&mut bytes, 0);
+        host_ctx::write_version(&mut bytes, 0);
+        host_ctx::write_field_count(&mut bytes, 0);
 
         let actual = unsafe { parse_host_ctx(bytes.as_ptr() as _, bytes.len() as _) };
         let expected = Ok(hashmap! {});
@@ -103,9 +89,9 @@ mod tests {
     fn parse_host_ctx_one_field() {
         let mut bytes = Vec::new();
 
-        write_version(&mut bytes, 0);
-        write_field_count(&mut bytes, 1);
-        write_field(&mut bytes, 3, vec![10, 20, 30]);
+        host_ctx::write_version(&mut bytes, 0);
+        host_ctx::write_field_count(&mut bytes, 1);
+        host_ctx::write_field(&mut bytes, 3, vec![10, 20, 30]);
 
         let actual = unsafe { parse_host_ctx(bytes.as_ptr() as _, bytes.len() as _) };
         let expected = Ok(hashmap! { 3 => vec![10, 20, 30] });
@@ -117,10 +103,10 @@ mod tests {
     fn parse_host_ctx_two_fields() {
         let mut bytes = Vec::new();
 
-        write_version(&mut bytes, 0);
-        write_field_count(&mut bytes, 2);
-        write_field(&mut bytes, 3, vec![10, 20, 30]);
-        write_field(&mut bytes, 5, vec![40, 50, 60, 70]);
+        host_ctx::write_version(&mut bytes, 0);
+        host_ctx::write_field_count(&mut bytes, 2);
+        host_ctx::write_field(&mut bytes, 3, vec![10, 20, 30]);
+        host_ctx::write_field(&mut bytes, 5, vec![40, 50, 60, 70]);
 
         let actual = unsafe { parse_host_ctx(bytes.as_ptr() as _, bytes.len() as _) };
         let expected = Ok(hashmap! {

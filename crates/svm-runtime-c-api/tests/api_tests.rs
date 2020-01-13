@@ -1,7 +1,7 @@
 extern crate svm_runtime_c_api;
 
 use svm_runtime_c_api as api;
-use svm_runtime_c_api::{svm_import_t, svm_value_type, testing, testing::ClientReceipt};
+use svm_runtime_c_api::{svm_import_t, svm_value_type, testing, testing::host_ctx};
 
 use std::collections::HashMap;
 use std::ffi::c_void;
@@ -130,13 +130,13 @@ fn exec_app_args() -> (u32, i64, Vec<WasmArgValue>, State) {
 }
 
 #[test]
-fn runtime_c_transaction_exec() {
+fn runtime_ffi_transaction_exec() {
     unsafe {
-        do_transaction_exec();
+        do_exec_app();
     }
 }
 
-unsafe fn do_transaction_exec() {
+unsafe fn do_exec_app() {
     // 1) init runtime
     let mut host = Host::new();
     let mut kv = std::ptr::null_mut();
@@ -185,20 +185,25 @@ unsafe fn do_transaction_exec() {
     host.set_balance(&Address::from(0x10_20_30), 100);
     assert_eq!(100, host.get_balance(&Address::from(0x10_20_30)).unwrap());
 
-    todo!()
-    // let mut receipt = std::ptr::null_mut();
-    // let mut receipt_length = 0;
-    // let res = api::svm_exec_app(
-    //     &mut receipt,
-    //     &mut receipt_length,
-    //     runtime,
-    //     app_tx,
-    //     svm_common::into_raw(state),
-    // );
-    // assert_eq!(true, res.as_bool());
-    //
-    // assert_eq!(
-    //     100 * mul_by as i64,
-    //     host.get_balance(&Address::from(0x10_20_30)).unwrap()
-    // );
+    let mut host_ctx = Vec::new();
+    host_ctx::write_version(&mut host_ctx, 0);
+    host_ctx::write_field_count(&mut host_ctx, 0);
+
+    let mut receipt = std::ptr::null_mut();
+    let mut receipt_length = 0;
+    let res = api::svm_exec_app(
+        &mut receipt,
+        &mut receipt_length,
+        runtime,
+        app_tx,
+        svm_common::into_raw(state),
+        host_ctx.as_ptr() as _,
+        host_ctx.len() as _,
+    );
+    assert_eq!(true, res.as_bool());
+
+    assert_eq!(
+        200 * mul_by as i64,
+        host.get_balance(&Address::from(0x10_20_30)).unwrap()
+    );
 }

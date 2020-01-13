@@ -203,6 +203,7 @@ pub unsafe extern "C" fn svm_exec_app(
     debug!("`svm_exec_app` start");
 
     let host_ctx = crate::parse_host_ctx(host_ctx_bytes, host_ctx_length);
+
     if host_ctx.is_err() {
         // update_last_error(e);
         error!("`svm_exec_app` returns `SVM_FAILURE`");
