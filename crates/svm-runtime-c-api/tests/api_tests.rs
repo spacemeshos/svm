@@ -154,9 +154,9 @@ unsafe fn do_exec_app() {
     );
     assert_eq!(true, res.as_bool());
 
-    // 2) deploy template
+    // 2) deploy app-template
     let author = 0x10_20_30_40;
-    let code = include_str!("wasm/mul_balance.wast");
+    let code = include_str!("wasm/update-balance.wast");
     let pages_count = 10;
     let (bytes, bytes_len) = deploy_template_bytes("MyTemplate #1", author, pages_count, code);
     let mut template = std::ptr::null_mut();
@@ -185,9 +185,13 @@ unsafe fn do_exec_app() {
     host.set_balance(&Address::from(0x10_20_30), 100);
     assert_eq!(100, host.get_balance(&Address::from(0x10_20_30)).unwrap());
 
+    let delta = 50;
+    let delta_vec = vec![0, 0, 0, 0, 0, 0, 0, delta];
+    // we set field index `2` with a value called `delta` (one byte).
     let mut host_ctx = Vec::new();
     host_ctx::write_version(&mut host_ctx, 0);
-    host_ctx::write_field_count(&mut host_ctx, 0);
+    host_ctx::write_field_count(&mut host_ctx, 1);
+    host_ctx::write_field(&mut host_ctx, 2, delta_vec);
 
     let mut receipt = std::ptr::null_mut();
     let mut receipt_length = 0;
@@ -203,7 +207,7 @@ unsafe fn do_exec_app() {
     assert_eq!(true, res.as_bool());
 
     assert_eq!(
-        200 * mul_by as i64,
+        100 * mul_by + (delta as i64),
         host.get_balance(&Address::from(0x10_20_30)).unwrap()
     );
 }

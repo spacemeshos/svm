@@ -1,5 +1,5 @@
 (module
-  ;; import `svm` vmcalls
+  ;; import `SVM` vmcalls
   (func $reg_write_be_i64 (import "svm" "reg_write_be_i64") (param i64 i32 i32))
   (func $storage_write_from_reg (import "svm" "storage_write_from_reg") (param i32 i32 i32 i32 i32))
 
