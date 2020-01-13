@@ -185,19 +185,20 @@ unsafe fn do_transaction_exec() {
     host.set_balance(&Address::from(0x10_20_30), 100);
     assert_eq!(100, host.get_balance(&Address::from(0x10_20_30)).unwrap());
 
-    let mut receipt = std::ptr::null_mut();
-    let mut receipt_length = 0;
-    let res = api::svm_exec_app(
-        &mut receipt,
-        &mut receipt_length,
-        runtime,
-        app_tx,
-        svm_common::into_raw(state),
-    );
-    assert_eq!(true, res.as_bool());
-
-    assert_eq!(
-        100 * mul_by as i64,
-        host.get_balance(&Address::from(0x10_20_30)).unwrap()
-    );
+    todo!()
+    // let mut receipt = std::ptr::null_mut();
+    // let mut receipt_length = 0;
+    // let res = api::svm_exec_app(
+    //     &mut receipt,
+    //     &mut receipt_length,
+    //     runtime,
+    //     app_tx,
+    //     svm_common::into_raw(state),
+    // );
+    // assert_eq!(true, res.as_bool());
+    //
+    // assert_eq!(
+    //     100 * mul_by as i64,
+    //     host.get_balance(&Address::from(0x10_20_30)).unwrap()
+    // );
 }

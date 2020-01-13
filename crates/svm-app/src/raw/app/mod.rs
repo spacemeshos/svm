@@ -1,4 +1,4 @@
-//!         Spawn `App` Wire Protocol Version 0.0.0.0
+//!         `Spawn App` Raw Format Version 0.0.0.0
 //!  -------------------------------------------------------
 //!  |   proto    |                                        |
 //!  |  version   |       `AppTemplate` `Address`          |

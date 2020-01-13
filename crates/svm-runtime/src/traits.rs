@@ -32,7 +32,7 @@ pub trait Runtime {
     /// * Receipt informs the amount of gas used (transaction gas limit)
     fn exec_app(
         &self,
-        tx: AppTransaction,
+        app_tx: AppTransaction,
         state: State,
         host_ctx: HashMap<i32, Vec<u8>>,
     ) -> Result<Receipt, ExecAppError>;
