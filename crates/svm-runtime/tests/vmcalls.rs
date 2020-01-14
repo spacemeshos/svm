@@ -5,7 +5,7 @@ use wasmer_runtime::{func, imports, Func};
 use svm_runtime::{
     helpers::{self, DataWrapper},
     host_ctx::HostCtx,
-    testing::{self, instance_register, instance_storage},
+    testing::{self, instance_buffer, instance_register, instance_storage},
     vmcalls,
 };
 
@@ -384,6 +384,7 @@ fn vmcalls_buffer_copy_to_storage() {
 
         "svm" => {
             "buffer_create" => func!(vmcalls::buffer_create),
+            "buffer_kill" => func!(vmcalls::buffer_kill),
             "buffer_copy_to_storage" => func!(vmcalls::buffer_copy_to_storage),
         },
     };
@@ -398,8 +399,8 @@ fn vmcalls_buffer_copy_to_storage() {
     let func: Func<i32> = instance.func("create").unwrap();
     assert!(func.call(5).is_ok());
 
-    let buf2 = helpers::wasmer_data_buffer(instance.context().data, 2);
-    let buf5 = helpers::wasmer_data_buffer(instance.context().data, 5);
+    let buf2 = instance_buffer(&instance, 2).unwrap();
+    let buf5 = instance_buffer(&instance, 5).unwrap();
 
     buf2.write(&[10, 20, 30]); // write to buf #2 to locations: `0, 1, 2`
     buf2.write(&[100, 200]); // write to buf #2 to locations: `3, 4`
@@ -417,7 +418,18 @@ fn vmcalls_buffer_copy_to_storage() {
     let func: Func<(i32, i32, i32, i32, i32)> = instance.func("copy").unwrap();
     assert!(func.call(5, 0, 1, 0, 4).is_ok());
 
-    // asserting storage
+    // killing buffers #2 and #5
+    assert!(instance_buffer(&instance, 2).is_some());
+    assert!(instance_buffer(&instance, 5).is_some());
+
+    let func: Func<i32> = instance.func("kill").unwrap();
+    assert!(func.call(2).is_ok());
+    assert!(func.call(5).is_ok());
+
+    assert!(instance_buffer(&instance, 2).is_none());
+    assert!(instance_buffer(&instance, 5).is_none());
+
+    // asserting persisted storage
 
     let storage = instance_storage(&instance);
     assert_eq!(

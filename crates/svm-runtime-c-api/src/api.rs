@@ -3,7 +3,7 @@ use std::ffi::c_void;
 use log::{debug, error};
 
 use svm_app::{default::DefaultJsonSerializerTypes, types::AppTransaction};
-use svm_common::State;
+use svm_common::{Address, State};
 use svm_runtime::{ctx::SvmCtx, traits::Runtime};
 
 use crate::{
@@ -107,15 +107,17 @@ pub unsafe extern "C" fn svm_import_destroy(_func: *mut c_void) -> svm_result_t 
 pub unsafe extern "C" fn svm_deploy_template(
     template_addr: *mut *mut c_void,
     runtime: *mut c_void,
+    author_addr: *const c_void,
     bytes: *const c_void,
     bytes_len: u64,
 ) -> svm_result_t {
     debug!("`svm_deploy_template` start`");
 
-    let bytes = std::slice::from_raw_parts(bytes as *const u8, bytes_len as usize);
     let runtime = helpers::cast_to_runtime_mut(runtime);
+    let author = Address::from(author_addr);
+    let bytes = std::slice::from_raw_parts(bytes as *const u8, bytes_len as usize);
 
-    match runtime.deploy_template(&bytes) {
+    match runtime.deploy_template(&author, &bytes) {
         Ok(addr) => {
             *template_addr = svm_common::into_raw_mut(addr);
             debug!("`svm_deploy_template`` returns `SVM_SUCCESS`");
@@ -135,15 +137,17 @@ pub unsafe extern "C" fn svm_deploy_template(
 pub unsafe extern "C" fn svm_spawn_app(
     app_addr: *mut *mut c_void,
     runtime: *mut c_void,
+    creator_addr: *const c_void,
     bytes: *const c_void,
     bytes_len: u64,
 ) -> svm_result_t {
     debug!("`svm_spawn_app` start");
 
-    let bytes = std::slice::from_raw_parts(bytes as *const u8, bytes_len as usize);
     let runtime = helpers::cast_to_runtime_mut(runtime);
+    let creator = Address::from(creator_addr);
+    let bytes = std::slice::from_raw_parts(bytes as *const u8, bytes_len as usize);
 
-    match runtime.spawn_app(bytes) {
+    match runtime.spawn_app(&creator, bytes) {
         Ok(addr) => {
             *app_addr = svm_common::into_raw_mut(addr);
             debug!("`svm_spawn_app` returns `SVM_SUCCESS`");

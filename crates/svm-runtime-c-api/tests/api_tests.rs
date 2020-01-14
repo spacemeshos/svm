@@ -161,14 +161,26 @@ unsafe fn do_exec_app() {
     let (bytes, bytes_len) = deploy_template_bytes("MyTemplate #1", author, pages_count, code);
     let mut template = std::ptr::null_mut();
 
-    let res = api::svm_deploy_template(&mut template, runtime, bytes.as_ptr() as _, bytes_len);
+    let res = api::svm_deploy_template(
+        &mut template,
+        runtime,
+        Address::from(author).as_ptr() as _,
+        bytes.as_ptr() as _,
+        bytes_len,
+    );
     assert_eq!(true, res.as_bool());
 
     // 3) spawn app
     let mut app_addr = std::ptr::null_mut();
     let creator = 0x20_30_40_50;
     let (bytes, bytes_len) = spawn_app_bytes(creator, template as _);
-    let res = api::svm_spawn_app(&mut app_addr, runtime, bytes.as_ptr() as _, bytes_len);
+    let res = api::svm_spawn_app(
+        &mut app_addr,
+        runtime,
+        Address::from(creator).as_ptr() as _,
+        bytes.as_ptr() as _,
+        bytes_len,
+    );
     assert_eq!(true, res.as_bool());
 
     // 3) execute app

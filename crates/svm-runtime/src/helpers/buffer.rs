@@ -2,12 +2,10 @@ use std::ffi::c_void;
 
 use crate::{buffer::Buffer, ctx::SvmCtx, helpers};
 
-pub fn wasmer_data_buffer<'a>(data: *mut c_void, buf_id: i32) -> &'a mut Buffer {
+pub fn wasmer_data_buffer<'a>(data: *mut c_void, buf_id: i32) -> Option<&'a mut Buffer> {
     let ctx: &mut SvmCtx = unsafe { svm_common::from_raw_mut::<SvmCtx>(data) };
 
-    ctx.buffers
-        .get_mut(&buf_id)
-        .expect(&format!("Buffer `{}` doesn't exist!", buf_id))
+    ctx.buffers.get_mut(&buf_id)
 }
 
 pub fn buffer_create(data: *mut c_void, buf_id: i32, capacity: i32) {
@@ -44,7 +42,9 @@ pub fn buffer_copy_to_storage(
     page_offset: i32,
     len: i32,
 ) {
-    let buffer = wasmer_data_buffer(data, buf_id);
+    let buffer =
+        wasmer_data_buffer(data, buf_id).expect(&format!("Buffer `{}` doesn't exist!", buf_id));
+
     let storage = helpers::wasmer_data_app_storage(data);
     let layout = helpers::page_slice_layout(page_idx, page_offset, len);
 

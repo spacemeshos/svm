@@ -3,8 +3,8 @@ use std::ffi::c_void;
 use std::rc::Rc;
 
 use crate::{
-    ctx::SvmCtx, helpers, helpers::DataWrapper, register::SvmReg, settings::AppSettings,
-    traits::StorageBuilderFn, DefaultRuntime,
+    buffer::Buffer, ctx::SvmCtx, helpers, helpers::DataWrapper, register::SvmReg,
+    settings::AppSettings, traits::StorageBuilderFn, DefaultRuntime,
 };
 
 use svm_common::{Address, State};
@@ -40,6 +40,10 @@ pub fn instance_register(instance: &Instance, reg_bits: i32, reg_idx: i32) -> &m
 /// Mutably borrows the `AppStorage` of a living `App` instance.
 pub fn instance_storage(instance: &Instance) -> &mut AppStorage {
     helpers::wasmer_data_app_storage(instance.context().data)
+}
+
+pub fn instance_buffer(instance: &Instance, buf_id: i32) -> Option<&mut Buffer> {
+    helpers::wasmer_data_buffer(instance.context().data, buf_id)
 }
 
 /// Returns a view of `wasmer` instance memory at `offset`...`offest + len - 1`
