@@ -1,3 +1,4 @@
+#[derive(Debug, PartialEq, Clone)]
 pub struct Buffer {
     bytes: Vec<u8>,
 }
@@ -11,10 +12,6 @@ impl Buffer {
 
     pub fn len(&self) -> i32 {
         self.bytes.len() as i32
-    }
-
-    pub fn clear(&mut self) {
-        self.bytes.clear();
     }
 
     pub fn read(&self, offset: i32, len: i32) -> &[u8] {
@@ -71,7 +68,7 @@ mod tests {
         let mut buf = Buffer::new(cap);
 
         buf.write(&[10, 20, 30, 40, 50]);
-        assert_eq!(50, buf.len());
+        assert_eq!(5, buf.len());
 
         assert_eq!(&[10, 20, 30], buf.read(0, 3));
         assert_eq!(&[20, 30, 40, 50], buf.read(1, 4));

@@ -3,7 +3,7 @@ use std::ffi::c_void;
 use wasmer_runtime::{func, imports, Func};
 
 use svm_runtime::{
-    helpers::DataWrapper,
+    helpers::{self, DataWrapper},
     host_ctx::HostCtx,
     testing::{self, instance_register, instance_storage},
     vmcalls,
@@ -114,7 +114,7 @@ fn vmcalls_storage_read_an_empty_page_slice_to_reg() {
     );
 
     // we first initialize register `2:64` with some garbage data (0xFF...FF) which should be overriden
-    // after calling the exported `do_copy_to_reg` function
+    // after calling the exported `run` function
     let reg = instance_register(&instance, 64, 2);
     reg.set(&[0xFF; 8]);
 
@@ -150,7 +150,7 @@ fn vmcalls_storage_read_non_empty_page_slice_to_reg() {
     storage.write_page_slice(&layout, &vec![10, 20, 30]);
 
     // we first initialize register `64:2` with some garbage (0xFF...FF) data which should be overriden
-    // after calling the exported `do_copy_to_reg` function
+    // after calling the exported `run` function
     let reg = instance_register(&instance, 64, 2);
     reg.set(&[0xFF; 8]);
 
@@ -370,4 +370,68 @@ fn vmcalls_host_ctx_read_into_reg() {
 
     let reg = instance_register(&instance, 32, 5);
     assert_eq!(vec![30, 40, 50, 0], reg.view());
+}
+
+#[test]
+fn vmcalls_buffer_copy_to_storage() {
+    let (app_addr, state, host, host_ctx, pages_count) = default_test_args();
+
+    // app needs at least 2 pages for this test
+    assert!(pages_count >= 2);
+
+    let import_object = imports! {
+        move || testing::app_memory_state_creator(app_addr, state, host, host_ctx, pages_count),
+
+        "svm" => {
+            "buffer_create" => func!(vmcalls::buffer_create),
+            "buffer_copy_to_storage" => func!(vmcalls::buffer_copy_to_storage),
+        },
+    };
+
+    let instance = testing::instantiate(&import_object, include_str!("wasm/buffer.wast"));
+
+    // create buffer with `index=2`
+    let func: Func<i32> = instance.func("create").unwrap();
+    assert!(func.call(2).is_ok());
+
+    // create buffer with `index=5`
+    let func: Func<i32> = instance.func("create").unwrap();
+    assert!(func.call(5).is_ok());
+
+    let buf2 = helpers::wasmer_data_buffer(instance.context().data, 2);
+    let buf5 = helpers::wasmer_data_buffer(instance.context().data, 5);
+
+    buf2.write(&[10, 20, 30]); // write to buf #2 to locations: `0, 1, 2`
+    buf2.write(&[100, 200]); // write to buf #2 to locations: `3, 4`
+    buf5.write(&[40, 50, 60, 70]); // write to buf #5 to locations: `0, 1, 2, 3`
+
+    // copy buf_id=2, buf_offset=0 into page #0 bytes `4, 5, 6` (page_offset=4, len=3)
+    let func: Func<(i32, i32, i32, i32, i32)> = instance.func("copy").unwrap();
+    assert!(func.call(2, 0, 0, 4, 3).is_ok());
+
+    // copy buf_id=2, buf_offset=3 buf into page #0 bytes `7, 8` (page_offset=7, len=2)
+    let func: Func<(i32, i32, i32, i32, i32)> = instance.func("copy").unwrap();
+    assert!(func.call(2, 3, 0, 7, 2).is_ok());
+
+    // copy buf_id=5, buf_offset=0 into page #1 bytes `0, 1, 2, 3` (page_offset=0, len=4)
+    let func: Func<(i32, i32, i32, i32, i32)> = instance.func("copy").unwrap();
+    assert!(func.call(5, 0, 1, 0, 4).is_ok());
+
+    // asserting storage
+
+    let storage = instance_storage(&instance);
+    assert_eq!(
+        vec![10, 20, 30],
+        helpers::storage_read_page_slice(storage, 0, 4, 3)
+    );
+
+    assert_eq!(
+        vec![100, 200],
+        helpers::storage_read_page_slice(storage, 0, 7, 2)
+    );
+
+    assert_eq!(
+        vec![40, 50, 60, 70],
+        helpers::storage_read_page_slice(storage, 1, 0, 4)
+    );
 }

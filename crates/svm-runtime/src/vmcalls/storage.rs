@@ -1,9 +1,3 @@
-use svm_storage::{
-    page::{PageIndex, PageOffset, PageSliceLayout},
-    AppStorage,
-};
-
-use super::{page_slice_layout, storage_read_page_slice, storage_write_page_slice};
 use crate::helpers;
 
 /// Copies the contents of `wasmer` memory cells under addresses:
@@ -73,7 +67,7 @@ pub fn storage_read_to_reg(
     reg_idx: i32,
 ) {
     let mut storage = helpers::wasmer_data_app_storage(ctx.data);
-    let slice = storage_read_page_slice(&mut storage, page, offset, len);
+    let slice = helpers::storage_read_page_slice(&mut storage, page, offset, len);
 
     let reg = helpers::wasmer_data_reg(ctx.data, reg_bits, reg_idx);
     reg.set(&slice);
@@ -96,7 +90,7 @@ pub fn storage_read_to_mem(
     mem_offset: i32,
 ) {
     let mut storage = helpers::wasmer_data_app_storage(ctx.data);
-    let mut slice = storage_read_page_slice(&mut storage, page, offset, len);
+    let mut slice = helpers::storage_read_page_slice(&mut storage, page, offset, len);
 
     if slice.len() == 0 {
         // slice is empty, i.e it doesn't really exist
@@ -134,7 +128,7 @@ pub fn storage_write_from_mem(
     let data = cells.iter().map(|cell| cell.get()).collect::<Vec<u8>>();
     let storage = helpers::wasmer_data_app_storage(ctx.data);
 
-    storage_write_page_slice(storage, page_idx, page_offset, len, &data);
+    helpers::storage_write_page_slice(storage, page_idx, page_offset, len, &data);
 }
 
 /// Writes into `SVM` storage, a page-slice copied from `SVM wasmer` register
@@ -157,7 +151,7 @@ pub fn storage_write_from_reg(
     let storage = helpers::wasmer_data_app_storage(ctx.data);
     let data = reg.getn(len as usize);
 
-    storage_write_page_slice(storage, page_idx, page_offset, len, &data);
+    helpers::storage_write_page_slice(storage, page_idx, page_offset, len, &data);
 }
 
 #[inline(always)]

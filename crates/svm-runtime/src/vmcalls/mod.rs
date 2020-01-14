@@ -3,7 +3,7 @@ mod host_ctx;
 mod register;
 mod storage;
 
-pub use buffer::{buffer_copy_to_reg, buffer_create, buffer_kill};
+pub use buffer::{buffer_copy_to_storage, buffer_create, buffer_kill};
 pub use host_ctx::host_ctx_read_into_reg;
 pub use register::{reg_read_be_i64, reg_replace_byte, reg_write_be_i64};
 pub use storage::{
@@ -45,44 +45,14 @@ pub fn insert_vmcalls(ns: &mut Namespace) {
     // `buffer` vmcalls`
     ns.insert("buffer_create", func!(buffer::buffer_create));
     ns.insert("buffer_kill", func!(buffer::buffer_kill));
-    ns.insert("buffer_copy_to_reg", func!(buffer::buffer_copy_to_reg));
+    ns.insert(
+        "buffer_copy_to_storage",
+        func!(buffer::buffer_copy_to_storage),
+    );
 
     // `host_ctx` vmcalls
     ns.insert(
         "host_ctx_read_into_reg",
         func!(host_ctx::host_ctx_read_into_reg),
     );
-}
-
-pub(self) fn storage_read_page_slice(
-    storage: &mut AppStorage,
-    page: i32,
-    offset: i32,
-    len: i32,
-) -> Vec<u8> {
-    let layout = page_slice_layout(page, offset, len);
-    storage.read_page_slice(&layout)
-}
-
-pub(self) fn storage_write_page_slice(
-    storage: &mut AppStorage,
-    page: i32,
-    offset: i32,
-    len: i32,
-    data: &[u8],
-) {
-    let layout = page_slice_layout(page, offset, len);
-    storage.write_page_slice(&layout, data);
-}
-
-pub(self) fn page_slice_layout(page: i32, offset: i32, len: i32) -> PageSliceLayout {
-    assert!(page >= 0 && page <= u16::max_value() as i32);
-    assert!(offset >= 0);
-    assert!(len > 0);
-
-    PageSliceLayout::new(
-        PageIndex(page as u16),
-        PageOffset(offset as u32),
-        len as u32,
-    )
 }
