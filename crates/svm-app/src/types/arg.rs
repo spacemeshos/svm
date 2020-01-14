@@ -10,7 +10,7 @@ pub enum WasmArgType {
     I64,
 
     /// Represents a fixed-size array of bytes.
-    ///   For example: `Address` is a 32 bytes fixed-array.
+    ///   For example: `Address` is a 20 bytes fixed-array.
     Fixed,
 
     /// Represents a blob of data, not known ahead.

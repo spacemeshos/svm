@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use svm_app::types::WasmArgValue as Value;
-use svm_common::State;
+use svm_common::{Address, State};
 use svm_runtime::{settings::AppSettings, testing, traits::Runtime};
 use svm_storage::page::{PageIndex, PageOffset, PageSliceLayout};
 
@@ -14,23 +14,25 @@ fn runtime_valid_app_transaction() {
     let imports = Vec::new();
     let mut runtime = testing::create_memory_runtime(host, &kv, imports);
     let pages_count = 10;
-    let author_addr = 0x10_20_30_40;
+    let author = 0x10_20_30_40;
 
     // 2) deploying the template
     let bytes = testing::build_template(
         version,
         "Template #1",
-        author_addr,
+        author,
         pages_count,
         include_str!("wasm/runtime-1.wast"),
     );
 
-    let template_addr = runtime.deploy_template(&bytes).unwrap();
-    let creator_addr = 0x10_20_30_40;
+    let template_addr = runtime
+        .deploy_template(&Address::from(author), &bytes)
+        .unwrap();
+    let creator = 0x10_20_30_40;
 
     // 3) spawn app
-    let bytes = testing::build_app(version, &template_addr, creator_addr);
-    let app_addr = runtime.spawn_app(&bytes).unwrap();
+    let bytes = testing::build_app(version, &template_addr, creator);
+    let app_addr = runtime.spawn_app(&Address::from(creator), &bytes).unwrap();
 
     // 4) executing the app-transaction.
     let sender_addr = 0x50_60_70_80;

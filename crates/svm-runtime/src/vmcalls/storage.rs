@@ -3,6 +3,7 @@ use svm_storage::{
     AppStorage,
 };
 
+use super::{page_slice_layout, storage_read_page_slice, storage_write_page_slice};
 use crate::helpers;
 
 /// Copies the contents of `wasmer` memory cells under addresses:
@@ -157,34 +158,6 @@ pub fn storage_write_from_reg(
     let data = reg.getn(len as usize);
 
     storage_write_page_slice(storage, page_idx, page_offset, len, &data);
-}
-
-fn storage_read_page_slice(storage: &mut AppStorage, page: i32, offset: i32, len: i32) -> Vec<u8> {
-    let layout = page_slice_layout(page, offset, len);
-    storage.read_page_slice(&layout)
-}
-
-fn storage_write_page_slice(
-    storage: &mut AppStorage,
-    page: i32,
-    offset: i32,
-    len: i32,
-    data: &[u8],
-) {
-    let layout = page_slice_layout(page, offset, len);
-    storage.write_page_slice(&layout, data);
-}
-
-fn page_slice_layout(page: i32, offset: i32, len: i32) -> PageSliceLayout {
-    assert!(page >= 0 && page <= u16::max_value() as i32);
-    assert!(offset >= 0);
-    assert!(len > 0);
-
-    PageSliceLayout::new(
-        PageIndex(page as u16),
-        PageOffset(offset as u32),
-        len as u32,
-    )
 }
 
 #[inline(always)]

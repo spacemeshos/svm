@@ -49,7 +49,11 @@ where
     TY: EnvTypes,
     ENV: Env<Types = TY>,
 {
-    fn deploy_template(&mut self, bytes: &[u8]) -> Result<Address, DeployTemplateError> {
+    fn deploy_template(
+        &mut self,
+        author: &Address,
+        bytes: &[u8],
+    ) -> Result<Address, DeployTemplateError> {
         info!("runtime `deploy_template`");
 
         match self.env.parse_template(bytes) {
@@ -61,7 +65,7 @@ where
         }
     }
 
-    fn spawn_app(&mut self, bytes: &[u8]) -> Result<Address, SpawnAppError> {
+    fn spawn_app(&mut self, creator: &Address, bytes: &[u8]) -> Result<Address, SpawnAppError> {
         info!("runtime `spawn_app`");
 
         match self.env.parse_app(bytes) {

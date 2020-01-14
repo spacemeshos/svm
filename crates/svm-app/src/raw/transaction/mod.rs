@@ -1,13 +1,9 @@
-//!  Execute `AppTransaction` Wire Protocol Version 0.0.0.0
+//!    Execute `AppTransaction` Raw Format Version 0.0.0.0
 //!  -------------------------------------------------------
 //!  |   proto    |                                        |
-//!  |  version   |         `TemplateAddress`              |
-//!  |  (4 bytes) |            (20 bytes)                  |
+//!  |  version   |           `TemplateAddress`            |
+//!  |  (4 bytes) |             (20 bytes)                 |
 //!  |____________|________________________________________|
-//!  |                                                     |
-//!  |                  Sender `Address`                   |
-//!  |                    (20 bytes)                       |
-//!  |_____________________________________________________|
 //!  |             |                                       |
 //!  |  func name  |                                       |
 //!  |   length    |          func name (UTF-8)            |

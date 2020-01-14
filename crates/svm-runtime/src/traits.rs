@@ -12,10 +12,14 @@ use svm_storage::AppStorage;
 /// Specifies the interface of a `SVM` Runtime.
 pub trait Runtime {
     /// Deploy an new app-template
-    fn deploy_template(&mut self, bytes: &[u8]) -> Result<Address, DeployTemplateError>;
+    fn deploy_template(
+        &mut self,
+        author: &Address,
+        bytes: &[u8],
+    ) -> Result<Address, DeployTemplateError>;
 
     /// Spawn a new app out of an existing app-template.
-    fn spawn_app(&mut self, bytes: &[u8]) -> Result<Address, SpawnAppError>;
+    fn spawn_app(&mut self, creator: &Address, bytes: &[u8]) -> Result<Address, SpawnAppError>;
 
     /// Parses `bytes` into in-memory `AppTransaction`
     fn parse_exec_app(&self, bytes: &[u8]) -> Result<AppTransaction, ExecAppError>;
