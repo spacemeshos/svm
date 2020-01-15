@@ -104,20 +104,24 @@ where
         let mut import_object = self.import_object_create(&tx.app, &state, host_ctx, &settings);
         self.import_object_extend(&mut import_object);
 
-        let receipt = match self.do_exec_app(&tx, &template, &template_addr, &import_object) {
-            Err(e) => Receipt {
-                success: false,
-                error: Some(e),
-                returns: None,
-                new_state: None,
-            },
-            Ok((state, returns)) => Receipt {
-                success: true,
-                error: None,
-                returns: Some(returns),
-                new_state: Some(state),
-            },
-        };
+        // `ctor` is a reserved name for app contructor function.
+        let is_ctor = tx.func_name == "ctor";
+
+        let receipt =
+            match self.do_exec_app(&tx, &template, &template_addr, &import_object, is_ctor) {
+                Err(e) => Receipt {
+                    success: false,
+                    error: Some(e),
+                    returns: None,
+                    new_state: None,
+                },
+                Ok((state, returns)) => Receipt {
+                    success: true,
+                    error: None,
+                    returns: Some(returns),
+                    new_state: Some(state),
+                },
+            };
 
         info!("receipt: {:?}", receipt);
 
@@ -204,11 +208,21 @@ where
         template: &AppTemplate,
         template_addr: &Address,
         import_object: &ImportObject,
+        is_ctor: bool,
     ) -> Result<(State, Vec<Value>), ExecAppError> {
         let module = self.compile_template(tx, &template, &template_addr)?;
         let mut instance = self.instantiate(tx, template_addr, &module, import_object)?;
         let args = self.prepare_args_and_memory(tx, &mut instance);
-        let func = self.get_exported_func(tx, template_addr, &instance)?;
+
+        let func = match self.get_exported_func(tx, template_addr, &instance) {
+            Err(ExecAppError::FuncNotFound { .. }) if is_ctor == true => {
+                // Since an app `ctor` is optional, in case it has no explicit `ctor`
+                // we don't consider is as an error.
+                return Ok((State::empty(), Vec::new()));
+            }
+            Err(e) => return Err(e),
+            Ok(func) => func,
+        };
 
         match func.call(&args) {
             Err(e) => Err(ExecAppError::ExecFailed {
@@ -219,7 +233,7 @@ where
                 reason: e.to_string(),
             }),
             Ok(returns) => {
-                let storage = self.get_instance_svm_storage_mut(&mut instance);
+                let storage = self.instance_storage_mut(&mut instance);
                 let state = storage.commit();
                 let returns = self.cast_wasmer_func_returns(tx, template_addr, returns)?;
 
@@ -346,7 +360,7 @@ where
     }
 
     #[inline(always)]
-    fn get_instance_svm_storage_mut(
+    fn instance_storage_mut(
         &self,
         instance: &mut wasmer_runtime::Instance,
     ) -> &mut svm_storage::AppStorage {
