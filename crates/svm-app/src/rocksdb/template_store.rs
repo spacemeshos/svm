@@ -62,20 +62,12 @@ where
     fn load(&self, addr: &Address) -> Option<AppTemplate> {
         info!("loading `AppTemplate` account {:?}", addr);
 
-        match self.db.get(addr.as_slice()) {
-            None => None,
-            Some(hash) => match self.db.get(&hash) {
-                None => panic!(format!(
-                    "`AppTemplate` associated with `AppTemplate = {:?}` not found",
-                    hash
-                )),
-                Some(bytes) => {
-                    let template = D::deserialize(bytes.to_vec());
-                    info!("loaded template: \n{:?}", template);
+        let addr = addr.as_slice();
 
-                    template
-                }
-            },
-        }
+        self.db.get(addr).and_then(|hash| {
+            self.db
+                .get(&hash)
+                .and_then(|bytes| D::deserialize(bytes.to_vec()))
+        })
     }
 }

@@ -102,10 +102,5 @@ fn parse_func_arg(cursor: &mut Cursor<&[u8]>) -> Result<WasmArgValue, ParseError
 fn parse_func_arg_type(cursor: &mut Cursor<&[u8]>) -> Result<WasmArgType, ParseError> {
     let byte = helpers::read_u8(cursor, Field::ArgType)?;
 
-    let arg_type = WasmArgType::try_from(byte);
-
-    match arg_type {
-        Ok(arg_type) => Ok(arg_type),
-        Err(..) => Err(ParseError::InvalidArgType(byte)),
-    }
+    WasmArgType::try_from(byte).or_else(|_e| Err(ParseError::InvalidArgType(byte)))
 }

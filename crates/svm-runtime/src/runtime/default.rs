@@ -83,10 +83,9 @@ where
         sender: &Address,
         bytes: &[u8],
     ) -> Result<AppTransaction, ExecAppError> {
-        match self.env.parse_app_tx(bytes, sender) {
-            Ok(tx) => Ok(tx),
-            Err(e) => Err(ExecAppError::ParseFailed(e)),
-        }
+        self.env
+            .parse_app_tx(bytes, sender)
+            .or_else(|e| Err(ExecAppError::ParseFailed(e)))
     }
 
     fn exec_app(
@@ -161,17 +160,15 @@ where
         author: &Address,
         bytes: &[u8],
     ) -> Result<AppTemplate, DeployTemplateError> {
-        match self.env.parse_template(bytes, author) {
-            Ok(template) => Ok(template),
-            Err(e) => Err(DeployTemplateError::ParseFailed(e)),
-        }
+        self.env
+            .parse_template(bytes, author)
+            .or_else(|e| Err(DeployTemplateError::ParseFailed(e)))
     }
 
     fn install_template(&mut self, template: &AppTemplate) -> Result<Address, DeployTemplateError> {
-        match self.env.store_template(template) {
-            Ok(addr) => Ok(addr),
-            Err(e) => Err(DeployTemplateError::StoreFailed(e)),
-        }
+        self.env
+            .store_template(template)
+            .or_else(|e| Err(DeployTemplateError::StoreFailed(e)))
     }
 
     fn parse_app(
@@ -179,17 +176,15 @@ where
         creator: &Address,
         bytes: &[u8],
     ) -> Result<(App, Vec<BufferSlice>), SpawnAppError> {
-        match self.env.parse_app(bytes, creator) {
-            Ok((app, ctor_buf_args)) => Ok((app, ctor_buf_args)),
-            Err(e) => Err(SpawnAppError::ParseFailed(e)),
-        }
+        self.env
+            .parse_app(bytes, creator)
+            .or_else(|e| Err(SpawnAppError::ParseFailed(e)))
     }
 
     fn install_app(&mut self, app: &App) -> Result<Address, SpawnAppError> {
-        match self.env.store_app(app) {
-            Ok(app_addr) => Ok(app_addr),
-            Err(e) => Err(SpawnAppError::StoreFailed(e)),
-        }
+        self.env
+            .store_app(app)
+            .or_else({ |e| Err(SpawnAppError::StoreFailed(e)) })
     }
 
     fn build_ctor_call(
@@ -335,16 +330,13 @@ where
     ) -> Result<wasmer_runtime::Instance, ExecAppError> {
         info!("runtime `instantiate` (wasmer module instantiate)");
 
-        let instantiate = module.instantiate(import_object);
-
-        match instantiate {
-            Err(e) => Err(ExecAppError::InstantiationFailed {
+        module.instantiate(import_object).or_else(|e| {
+            Err(ExecAppError::InstantiationFailed {
                 app_addr: tx.app.clone(),
                 template_addr: template_addr.clone(),
                 reason: e.to_string(),
-            }),
-            Ok(instance) => Ok(instance),
-        }
+            })
+        })
     }
 
     fn get_exported_func<'a>(
@@ -354,24 +346,16 @@ where
         instance: &'a wasmer_runtime::Instance,
     ) -> Result<wasmer_runtime::DynFunc<'a>, ExecAppError> {
         let func_name = &tx.func_name;
-        let func = instance.dyn_func(func_name);
 
-        match func {
-            Err(_e) => {
-                error!("Exported function: `{}` not found", func_name);
+        instance.dyn_func(func_name).or_else(|_e| {
+            error!("Exported function: `{}` not found", func_name);
 
-                Err(ExecAppError::FuncNotFound {
-                    app_addr: tx.app.clone(),
-                    template_addr: template_addr.clone(),
-                    func_name: func_name.to_string(),
-                })
-            }
-            Ok(func) => {
-                info!("Found exported function `{}`", func_name);
-
-                Ok(func)
-            }
-        }
+            Err(ExecAppError::FuncNotFound {
+                app_addr: tx.app.clone(),
+                template_addr: template_addr.clone(),
+                func_name: func_name.to_string(),
+            })
+        })
     }
 
     fn prepare_args_and_memory(
@@ -461,12 +445,11 @@ where
     fn load_template(&self, tx: &AppTransaction) -> Result<(AppTemplate, Address), ExecAppError> {
         info!("runtime `load_template`");
 
-        match self.env.load_template_by_app(&tx.app) {
-            Some(res) => Ok(res),
-            None => Err(ExecAppError::AppNotFound {
+        self.env
+            .load_template_by_app(&tx.app)
+            .ok_or_else(|| ExecAppError::AppNotFound {
                 app_addr: tx.app.clone(),
-            }),
-        }
+            })
     }
 
     fn compile_template(
@@ -477,22 +460,15 @@ where
     ) -> Result<wasmer_runtime::Module, ExecAppError> {
         info!("runtime `compile_template` (template={:?})", template_addr);
 
-        match svm_compiler::compile_program(&template.code) {
-            Ok(module) => {
-                debug!("module compile succeeded (template={:?})", template_addr);
+        svm_compiler::compile_program(&template.code).or_else(|e| {
+            error!("module compilation failed (template={:?})", template_addr);
 
-                Ok(module)
-            }
-            Err(e) => {
-                error!("module compilation failed (template={:?})", template_addr);
-
-                Err(ExecAppError::CompilationFailed {
-                    app_addr: tx.app.clone(),
-                    template_addr: template_addr.clone(),
-                    reason: e.to_string(),
-                })
-            }
-        }
+            Err(ExecAppError::CompilationFailed {
+                app_addr: tx.app.clone(),
+                template_addr: template_addr.clone(),
+                reason: e.to_string(),
+            })
+        })
     }
 
     fn vec_to_str<T: fmt::Debug>(&self, items: &Vec<T>) -> String {

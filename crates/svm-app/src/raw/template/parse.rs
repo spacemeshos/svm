@@ -52,10 +52,7 @@ fn parse_name(cursor: &mut Cursor<&[u8]>) -> Result<String, ParseError> {
         return Err(ParseError::NotEnoughBytes(Field::Name));
     }
 
-    match String::from_utf8(buf) {
-        Ok(name) => Ok(name),
-        Err(..) => Err(ParseError::InvalidUTF8String(Field::Name)),
-    }
+    String::from_utf8(buf).or_else(|_e| Err(ParseError::InvalidUTF8String(Field::Name)))
 }
 
 #[must_use]
