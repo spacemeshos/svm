@@ -4,6 +4,9 @@
 
   (memory 1)  ;; memory `0` (default) is initialized with one page
 
+  (func (export "ctor")
+        (nop))
+
   (func (export "run") (param i64 i32 i32 i32 i32)
         ;; register set
         get_local 0  ;; value

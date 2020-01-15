@@ -68,17 +68,15 @@ pub fn instance_memory_init(instance: &Instance, offset: usize, bytes: &[u8]) {
 
 /// Returns a `state creator` to be used by wasmer `ImportObject::new_with_data` initializer.
 pub fn app_memory_state_creator(
-    addr: u32,
-    state: u32,
+    app_addr: &Address,
+    state: &State,
     host: DataWrapper<*mut c_void>,
     host_ctx: DataWrapper<*const c_void>,
     pages_count: u16,
 ) -> (*mut c_void, fn(*mut c_void)) {
-    let addr = Address::from(addr);
-    let state = State::from(state);
     let kv = memory_kv_store_init();
 
-    let storage = svm_storage::testing::app_storage_open(&addr, &state, &kv, pages_count);
+    let storage = svm_storage::testing::app_storage_open(app_addr, state, &kv, pages_count);
 
     let ctx = SvmCtx::new(host, host_ctx, storage);
     let ctx: *mut SvmCtx = Box::into_raw(Box::new(ctx));
@@ -130,7 +128,7 @@ pub fn runtime_memory_env_builder() -> JsonMemoryEnv {
 pub fn build_template(
     version: u32,
     name: &str,
-    author: u32,
+    author: &Address,
     pages_count: u16,
     wasm: &str,
 ) -> Vec<u8> {
@@ -139,18 +137,18 @@ pub fn build_template(
     AppTemplateBuilder::new()
         .with_version(version)
         .with_name(name)
-        .with_author(&Address::from(author))
+        .with_author(author)
         .with_pages_count(pages_count)
         .with_code(code.as_slice())
         .build()
 }
 
 /// Synthesizes a raw spaw-app transaction.
-pub fn build_app(version: u32, template: &Address, creator: u32) -> Vec<u8> {
+pub fn build_app(version: u32, template: &Address, creator: &Address) -> Vec<u8> {
     AppBuilder::new()
         .with_version(version)
         .with_template(template)
-        .with_creator(&Address::from(creator))
+        .with_creator(creator)
         .build()
 }
 
@@ -158,14 +156,14 @@ pub fn build_app(version: u32, template: &Address, creator: u32) -> Vec<u8> {
 pub fn build_app_tx(
     version: u32,
     app_addr: &Address,
-    sender_addr: u32,
+    sender: &Address,
     func_name: &str,
     func_args: &[WasmArgValue],
 ) -> Vec<u8> {
     AppTxBuilder::new()
         .with_version(version)
         .with_app(app_addr)
-        .with_sender(&Address::from(sender_addr))
+        .with_sender(sender)
         .with_func_name(func_name)
         .with_func_args(func_args)
         .build()

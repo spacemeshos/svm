@@ -407,10 +407,10 @@ where
         info!("runtime `load_template`");
 
         match self.env.load_template_by_app(&tx.app) {
+            Some(res) => Ok(res),
             None => Err(ExecAppError::AppNotFound {
                 app_addr: tx.app.clone(),
             }),
-            Some(res) => Ok(res),
         }
     }
 
@@ -423,24 +423,19 @@ where
         info!("runtime `compile_template` (template={:?})", template_addr);
 
         match svm_compiler::compile_program(&template.code) {
+            Ok(module) => {
+                debug!("module compile succeeded (template={:?})", template_addr);
+
+                Ok(module)
+            }
             Err(e) => {
-                error!(
-                    "wasmer module compilation failed (template={:?})",
-                    template_addr
-                );
+                error!("module compilation failed (template={:?})", template_addr);
 
                 Err(ExecAppError::CompilationFailed {
                     app_addr: tx.app.clone(),
                     template_addr: template_addr.clone(),
                     reason: e.to_string(),
                 })
-            }
-            Ok(module) => {
-                debug!(
-                    "wasmer module compile succeeded (template={:?})",
-                    template_addr
-                );
-                Ok(module)
             }
         }
     }
