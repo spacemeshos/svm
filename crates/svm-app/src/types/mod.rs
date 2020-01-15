@@ -6,6 +6,6 @@ mod template;
 
 pub use app::App;
 pub use app_tx::AppTransaction;
-pub use arg::{WasmArgType, WasmArgTypeError, WasmArgValue, WasmIntType};
+pub use arg::{WasmArgType, WasmArgTypeError, WasmArgValue};
 pub use hash::AppTemplateHash;
 pub use template::AppTemplate;

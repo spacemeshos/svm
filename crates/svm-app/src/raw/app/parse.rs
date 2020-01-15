@@ -6,8 +6,8 @@ use crate::{
     types::App,
 };
 
-/// Parsing a on-the-wire `App` deploy transaction given as raw bytes.
-/// Returns the parsed transaction as a `App` struct.
+/// Parsing a raw `spawn-app` transaction given as raw bytes.
+/// Returns the parsed transaction as a tuple consisting of an `App` struct and ctor buffer initials.
 /// On failure, returns `ParseError`
 #[must_use]
 #[allow(dead_code)]

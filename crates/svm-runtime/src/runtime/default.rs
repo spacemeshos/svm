@@ -17,7 +17,7 @@ use crate::{
 
 use svm_app::{
     traits::{Env, EnvTypes},
-    types::{AppTemplate, AppTransaction, WasmArgValue, WasmIntType},
+    types::{AppTemplate, AppTransaction, WasmArgValue},
 };
 use svm_common::{Address, State};
 use svm_storage::AppStorage;
@@ -276,22 +276,22 @@ where
             let wasmer_arg = match arg {
                 WasmArgValue::I32(v) => WasmerValue::I32(*v as i32),
                 WasmArgValue::I64(v) => WasmerValue::I64(*v as i64),
-                WasmArgValue::Fixed(ty, buf) => {
-                    let buf_mem_start = mem_offset;
-
-                    let view = memory.view();
-
-                    for byte in buf.into_iter() {
-                        view[mem_offset].set(*byte);
-                        mem_offset += 1;
-                    }
-
-                    match ty {
-                        WasmIntType::I32 => WasmerValue::I32(buf_mem_start as i32),
-                        WasmIntType::I64 => WasmerValue::I64(buf_mem_start as i64),
-                    }
-                }
-                WasmArgValue::Slice(..) => unimplemented!(),
+                // WasmArgValue::Fixed(ty, buf) => {
+                //     let buf_mem_start = mem_offset;
+                //
+                //     let view = memory.view();
+                //
+                //     for byte in buf.into_iter() {
+                //         view[mem_offset].set(*byte);
+                //         mem_offset += 1;
+                //     }
+                //
+                //     match ty {
+                //         WasmIntType::I32 => WasmerValue::I32(buf_mem_start as i32),
+                //         WasmIntType::I64 => WasmerValue::I64(buf_mem_start as i64),
+                //     }
+                // }
+                // WasmArgValue::Slice(..) => unimplemented!(),
             };
 
             wasmer_args.push(wasmer_arg);

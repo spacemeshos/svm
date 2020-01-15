@@ -1,8 +1,12 @@
 use std::ffi::c_void;
 
-use crate::{buffer::Buffer, ctx::SvmCtx, helpers};
+use crate::{
+    buffer::{Buffer, BufferMut, BufferRef},
+    ctx::SvmCtx,
+    helpers,
+};
 
-pub fn wasmer_data_buffer<'a>(data: *mut c_void, buf_id: i32) -> Option<&'a mut Buffer> {
+pub fn wasmer_data_buffer<'a>(data: *mut c_void, buf_id: i32) -> Option<&'a mut BufferRef> {
     let ctx: &mut SvmCtx = unsafe { svm_common::from_raw_mut::<SvmCtx>(data) };
 
     ctx.buffers.get_mut(&buf_id)
@@ -18,7 +22,10 @@ pub fn buffer_create(data: *mut c_void, buf_id: i32, capacity: i32) {
         );
     }
 
-    svm_ctx.buffers.insert(buf_id, Buffer::new(capacity));
+    let buf = BufferMut::new(capacity);
+    let buf_ref = BufferRef::Mutable(buf_id, buf);
+
+    svm_ctx.buffers.insert(buf_id, buf_ref);
 }
 
 pub fn buffer_kill(data: *mut c_void, buf_id: i32) {

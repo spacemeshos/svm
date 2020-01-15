@@ -8,14 +8,6 @@ pub enum WasmArgType {
 
     /// Represents a 8-byte integer argument.
     I64,
-
-    /// Represents a fixed-size array of bytes.
-    ///   For example: `Address` is a 20 bytes fixed-array.
-    Fixed,
-
-    /// Represents a blob of data, not known ahead.
-    /// For example: `String`
-    Slice,
 }
 
 /// The actual value of a `wasm` argument.
@@ -30,30 +22,6 @@ pub enum WasmArgValue {
 
     /// A 8-byte integer.
     I64(u64),
-
-    /// * Fixed - A tuple of `(WasmIntType, Vec<u8>)`
-    ///     * `WasmIntType` - Represents the integer type of start offset in wasm linear-memory the copied fixed-array starts.
-    ///
-    ///     * `Vec<u8>` - The bytes of the fixed-array.
-    Fixed(WasmIntType, Vec<u8>),
-
-    /// * Slice - A tuple of `(WasmInt, WasmInt, Vec<u8>)`
-    ///     * `WasmIntType` (the left one) - Represents the integer type of start offset of wasm linear-memory the slice starts.
-    ///
-    ///     * `WasmIntType` (the right one) - Represents the integer type of slice bytes-length.
-    ///
-    ///     * `Vec<u8>` - The bytes of the slice.
-    Slice(WasmIntType, WasmIntType, Vec<u8>),
-}
-
-/// Represents a `wasm` **Integer** type
-#[derive(Copy, Clone, PartialEq, Debug)]
-pub enum WasmIntType {
-    /// Represents a 4-byte integer argument.
-    I32,
-
-    /// Represents a 8-byte integer argument.
-    I64,
 }
 
 /// Converts `WasmArgType` to its numeric representation
@@ -62,18 +30,6 @@ impl Into<u8> for WasmArgType {
         match self {
             WasmArgType::I32 => 0,
             WasmArgType::I64 => 1,
-            WasmArgType::Fixed => 2,
-            WasmArgType::Slice => 3,
-        }
-    }
-}
-
-/// Converts `WasmIntType` to its numeric representation
-impl Into<u8> for &WasmIntType {
-    fn into(self) -> u8 {
-        match *self {
-            WasmIntType::I32 => 0,
-            WasmIntType::I64 => 1,
         }
     }
 }
@@ -92,8 +48,6 @@ impl TryFrom<u8> for WasmArgType {
         match value {
             0 => Ok(WasmArgType::I32),
             1 => Ok(WasmArgType::I64),
-            2 => Ok(WasmArgType::Fixed),
-            3 => Ok(WasmArgType::Slice),
             _ => Err(WasmArgTypeError::UnsupportedType(value)),
         }
     }

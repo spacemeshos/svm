@@ -3,7 +3,7 @@ use std::ffi::c_void;
 use std::rc::Rc;
 
 use crate::{
-    buffer::Buffer, ctx::SvmCtx, helpers, helpers::DataWrapper, register::SvmReg,
+    buffer::BufferRef, ctx::SvmCtx, helpers, helpers::DataWrapper, register::SvmReg,
     settings::AppSettings, traits::StorageBuilderFn, DefaultRuntime,
 };
 
@@ -42,7 +42,7 @@ pub fn instance_storage(instance: &Instance) -> &mut AppStorage {
     helpers::wasmer_data_app_storage(instance.context().data)
 }
 
-pub fn instance_buffer(instance: &Instance, buf_id: i32) -> Option<&mut Buffer> {
+pub fn instance_buffer(instance: &Instance, buf_id: i32) -> Option<&mut BufferRef> {
     helpers::wasmer_data_buffer(instance.context().data, buf_id)
 }
 

@@ -103,21 +103,14 @@ impl AppTxBuilder {
                     let arg_type = WasmArgType::I64.into();
                     buf.write_u8(arg_type).unwrap();
                     buf.write_u64::<BigEndian>(*v).unwrap();
-                }
-                WasmArgValue::Fixed(offset_type, bytes) => {
-                    let offset_type = offset_type.into();
-
-                    buf.write_u8(offset_type).unwrap();
-                    buf.extend_from_slice(bytes);
-                }
-                WasmArgValue::Slice(offset_type, length_type, bytes) => {
-                    let offset_type = offset_type.into();
-                    let length_type = length_type.into();
-
-                    buf.write_u8(offset_type).unwrap();
-                    buf.write_u8(length_type).unwrap();
-                    buf.extend_from_slice(bytes);
-                }
+                } // WasmArgValue::Slice(offset_type, length_type, bytes) => {
+                  //     let offset_type = offset_type.into();
+                  //     let length_type = length_type.into();
+                  //
+                  //     buf.write_u8(offset_type).unwrap();
+                  //     buf.write_u8(length_type).unwrap();
+                  //     buf.extend_from_slice(bytes);
+                  // }
             }
         }
     }

@@ -1,9 +1,11 @@
+use crate::buffer::Buffer;
+
 #[derive(Debug, PartialEq, Clone)]
-pub struct Buffer {
+pub struct BufferMut {
     bytes: Vec<u8>,
 }
 
-impl Buffer {
+impl BufferMut {
     pub fn new(cap: i32) -> Self {
         Self {
             bytes: Vec::with_capacity(cap as usize),
@@ -29,6 +31,10 @@ impl Buffer {
     pub fn write(&mut self, slice: &[u8]) {
         self.bytes.extend_from_slice(slice);
     }
+
+    pub fn freeze(self) -> Buffer {
+        Buffer::new(self)
+    }
 }
 
 #[cfg(test)]
@@ -39,7 +45,7 @@ mod tests {
     #[should_panic(expected = "`offset` must be a non-negative number")]
     fn buffer_start_negative_offset() {
         let cap = 10;
-        let mut buf = Buffer::new(cap);
+        let mut buf = BufferMut::new(cap);
 
         buf.read(-1, 5);
     }
@@ -48,7 +54,7 @@ mod tests {
     #[should_panic(expected = "`len` must be a positive number")]
     fn buffer_len_negative_offset() {
         let cap = 10;
-        let mut buf = Buffer::new(cap);
+        let mut buf = BufferMut::new(cap);
 
         buf.read(0, -1);
     }
@@ -57,7 +63,7 @@ mod tests {
     #[should_panic(expected = "out-of-bounds")]
     fn buffer_read_out_of_bounds() {
         let cap = 10;
-        let mut buf = Buffer::new(cap);
+        let mut buf = BufferMut::new(cap);
 
         buf.read(1, 5);
     }
@@ -65,7 +71,7 @@ mod tests {
     #[test]
     fn buffer_write_and_read() {
         let cap = 10;
-        let mut buf = Buffer::new(cap);
+        let mut buf = BufferMut::new(cap);
 
         buf.write(&[10, 20, 30, 40, 50]);
         assert_eq!(5, buf.len());

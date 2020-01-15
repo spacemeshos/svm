@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{alloc_regs, buffer::Buffer, host_ctx::HostCtx};
+use crate::{alloc_regs, buffer::BufferRef, host_ctx::HostCtx};
 
 use log::debug;
 use std::ffi::c_void;
@@ -46,7 +46,7 @@ pub struct SvmCtx {
     /// Raw pointer to host context fields.
     pub host_ctx: *const HostCtx,
 
-    pub buffers: HashMap<i32, Buffer>,
+    pub buffers: HashMap<i32, BufferRef>,
 
     /// An array that holds the `SvmReg32` registers
     pub regs_32: [SvmReg; REGS_32_COUNT],

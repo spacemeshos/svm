@@ -6,10 +6,10 @@ use byteorder::ReadBytesExt;
 use crate::{
     error::ParseError,
     raw::{helpers, Field},
-    types::{AppTransaction, WasmArgType, WasmArgValue, WasmIntType},
+    types::{AppTransaction, WasmArgType, WasmArgValue},
 };
 
-/// Parsing a on-the-wire `AppTransaction` deploy transaction given as raw bytes.
+/// Parsing a raw `AppTransaction` transaction given as raw bytes.
 /// Returns the parsed transaction as a `AppTransaction` struct.
 /// On failure, returns `ParseError`.
 #[must_use]
@@ -84,15 +84,6 @@ fn parse_func_arg(cursor: &mut Cursor<&[u8]>) -> Result<WasmArgValue, ParseError
             let arg_val = helpers::read_u64(cursor, Field::ArgValue)?;
             WasmArgValue::I64(arg_val)
         }
-        WasmArgType::Fixed => {
-            let fixed_byte_length = helpers::read_u32(cursor, Field::ArgLength)?;
-            let offset_int_type = parse_func_arg_int_type(cursor)?;
-
-            let buf = helpers::read_buffer(cursor, fixed_byte_length, Field::ArgValue)?;
-
-            WasmArgValue::Fixed(offset_int_type, buf)
-        }
-        WasmArgType::Slice => todo!(),
     };
 
     Ok(arg_val)
@@ -107,16 +98,5 @@ fn parse_func_arg_type(cursor: &mut Cursor<&[u8]>) -> Result<WasmArgType, ParseE
     match arg_type {
         Ok(arg_type) => Ok(arg_type),
         Err(..) => Err(ParseError::InvalidArgType(byte)),
-    }
-}
-
-#[must_use]
-fn parse_func_arg_int_type(cursor: &mut Cursor<&[u8]>) -> Result<WasmIntType, ParseError> {
-    let arg_type = parse_func_arg_type(cursor)?;
-
-    match arg_type {
-        WasmArgType::I32 => Ok(WasmIntType::I32),
-        WasmArgType::I64 => Ok(WasmIntType::I64),
-        _ => Err(ParseError::InvalidArgIntType),
     }
 }
