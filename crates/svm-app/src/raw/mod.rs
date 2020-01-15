@@ -5,7 +5,7 @@ mod template;
 mod transaction;
 
 pub use app::parse_app;
-pub use buffer::parse_buf;
+pub use buffer::parse_buffer_slices;
 pub use template::parse_template;
 pub use transaction::parse_app_tx;
 

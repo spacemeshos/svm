@@ -21,7 +21,7 @@ fn parse_app() {
         .with_template(&template_addr)
         .build();
 
-    let app = env.parse_app(&bytes, &creator_addr).unwrap();
+    let (app, buf_slices) = env.parse_app(&bytes, &creator_addr).unwrap();
 
     assert_eq!(template_addr, app.template);
     assert_eq!(creator_addr, app.creator);
@@ -49,7 +49,7 @@ fn valid_app_creation() {
         .with_template(&template_addr)
         .build();
 
-    let app = env.parse_app(&bytes, &creator_addr).unwrap();
+    let (app, buf_slices) = env.parse_app(&bytes, &creator_addr).unwrap();
     let expected_addr = env.derive_app_address(&app);
 
     let actual_addr = env.store_app(&app).unwrap();
@@ -78,7 +78,7 @@ fn app_template_does_not_exist() {
         .with_template(&template_addr)
         .build();
 
-    let app = env.parse_app(&bytes, &creator_addr).unwrap();
+    let (app, buf_slices) = env.parse_app(&bytes, &creator_addr).unwrap();
     let actual = env.store_app(&app);
 
     let msg = "`AppTemplate` not found (address = `Address([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16, 32, 48, 64])`)";

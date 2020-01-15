@@ -6,7 +6,7 @@ use byteorder::ReadBytesExt;
 use crate::{
     error::ParseError,
     raw::{helpers, Field},
-    types::{AppTransaction, WasmArgType, WasmArgValue},
+    types::{AppTransaction, BufferSlice, WasmArgType, WasmArgValue},
 };
 
 use svm_common::Address;
@@ -23,12 +23,14 @@ pub fn parse_app_tx(bytes: &[u8], sender: &Address) -> Result<AppTransaction, Pa
     let app = helpers::parse_address(&mut cursor, Field::App)?;
     let func_name = parse_func_name(&mut cursor)?;
     let func_args = parse_func_args(&mut cursor)?;
+    let func_args_buf = parse_func_args_buf(&mut cursor)?;
 
     let tx = AppTransaction {
         app,
         sender: sender.clone(),
         func_name,
         func_args,
+        func_args_buf,
     };
 
     Ok(tx)
@@ -70,6 +72,12 @@ fn parse_func_args(cursor: &mut Cursor<&[u8]>) -> Result<Vec<WasmArgValue>, Pars
     }
 
     Ok(args)
+}
+
+#[must_use]
+fn parse_func_args_buf(cursor: &mut Cursor<&[u8]>) -> Result<Vec<BufferSlice>, ParseError> {
+    // TODO: ...
+    Ok(Vec::new())
 }
 
 #[must_use]

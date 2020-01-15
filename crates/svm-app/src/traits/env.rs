@@ -4,7 +4,7 @@ use crate::{
         AppAddressCompute, AppDeserializer, AppSerializer, AppStore, AppTemplateAddressCompute,
         AppTemplateDeserializer, AppTemplateHasher, AppTemplateSerializer, AppTemplateStore,
     },
-    types::{App, AppTemplate, AppTemplateHash, AppTransaction},
+    types::{App, AppTemplate, AppTemplateHash, AppTransaction, BufferSlice},
 };
 
 use svm_common::Address;
@@ -80,7 +80,11 @@ pub trait Env {
     }
 
     /// Parses a raw spawn-app transaction into `App`
-    fn parse_app(&self, bytes: &[u8], creator: &Address) -> Result<App, ParseError> {
+    fn parse_app(
+        &self,
+        bytes: &[u8],
+        creator: &Address,
+    ) -> Result<(App, Vec<BufferSlice>), ParseError> {
         crate::raw::parse_app(bytes, creator)
     }
 

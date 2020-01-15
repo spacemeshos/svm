@@ -5,6 +5,7 @@ use std::fmt;
 use log::{debug, error, info};
 
 use crate::{
+    buffer::{Buffer, BufferMut},
     ctx::SvmCtx,
     error::{DeployTemplateError, ExecAppError, SpawnAppError},
     helpers,
@@ -18,7 +19,7 @@ use crate::{
 
 use svm_app::{
     traits::{Env, EnvTypes},
-    types::{App, AppTemplate, AppTransaction, WasmArgValue},
+    types::{App, AppTemplate, AppTransaction, BufferSlice, WasmArgValue},
 };
 use svm_common::{Address, State};
 use svm_storage::AppStorage;
@@ -75,8 +76,8 @@ where
     ) -> Result<(Address, State), SpawnAppError> {
         info!("runtime `spawn_app`");
 
-        let (app, app_addr) = self.install_app(creator, bytes)?;
-        let state = self.call_ctor(creator, &app, &app_addr, host_ctx)?;
+        let (app, ctor_buf_slices, app_addr) = self.install_app(creator, bytes)?;
+        let state = self.call_ctor(creator, &app, &app_addr, ctor_buf_slices, host_ctx)?;
 
         Ok((app_addr, state))
     }
@@ -141,9 +142,10 @@ where
         creator: &Address,
         app: &App,
         app_addr: &Address,
+        ctor_buf_slices: Vec<BufferSlice>,
         host_ctx: HostCtx,
     ) -> Result<State, SpawnAppError> {
-        let ctor = self.build_ctor_call(creator, &app, &app_addr);
+        let ctor = self.build_ctor_call(creator, &app, &app_addr, ctor_buf_slices);
         let is_ctor = true;
 
         match self.inner_exec_app(ctor, State::empty(), host_ctx, is_ctor) {
@@ -162,22 +164,29 @@ where
         &mut self,
         creator: &Address,
         bytes: &[u8],
-    ) -> Result<(App, Address), SpawnAppError> {
+    ) -> Result<(App, Vec<BufferSlice>, Address), SpawnAppError> {
         match self.env.parse_app(bytes, creator) {
-            Ok(app) => match self.env.store_app(&app) {
-                Ok(app_addr) => Ok((app, app_addr)),
+            Ok((app, ctor_buf_args)) => match self.env.store_app(&app) {
+                Ok(app_addr) => Ok((app, ctor_buf_args, app_addr)),
                 Err(e) => Err(SpawnAppError::StoreFailed(e)),
             },
             Err(e) => Err(SpawnAppError::ParseFailed(e)),
         }
     }
 
-    fn build_ctor_call(&self, creator: &Address, app: &App, app_addr: &Address) -> AppTransaction {
+    fn build_ctor_call(
+        &self,
+        creator: &Address,
+        app: &App,
+        app_addr: &Address,
+        ctor_buf_slices: Vec<BufferSlice>,
+    ) -> AppTransaction {
         AppTransaction {
             app: app_addr.clone(),
             sender: creator.clone(),
             func_name: "ctor".to_string(),
             func_args: vec![],
+            func_args_buf: ctor_buf_slices,
         }
     }
 
@@ -230,6 +239,8 @@ where
     ) -> Result<(State, Vec<Value>), ExecAppError> {
         let module = self.compile_template(tx, &template, &template_addr)?;
         let mut instance = self.instantiate(tx, template_addr, &module, import_object)?;
+
+        self.init_instance_buffers(&tx.func_args_buf, &mut instance);
         let args = self.prepare_args_and_memory(tx, &mut instance);
 
         let func = match self.get_exported_func(tx, template_addr, &instance) {
@@ -258,6 +269,16 @@ where
                 Ok((state, returns))
             }
         }
+    }
+
+    fn init_instance_buffers(
+        &self,
+        func_args_buf: &Vec<BufferSlice>,
+        instance: &mut wasmer_runtime::Instance,
+    ) {
+        // TODO:
+        // * create buffers out of `func_args_buf`
+        // * pass the buffer to `instance`
     }
 
     fn cast_wasmer_func_returns(
@@ -351,22 +372,6 @@ where
             let wasmer_arg = match arg {
                 WasmArgValue::I32(v) => WasmerValue::I32(*v as i32),
                 WasmArgValue::I64(v) => WasmerValue::I64(*v as i64),
-                // WasmArgValue::Fixed(ty, buf) => {
-                //     let buf_mem_start = mem_offset;
-                //
-                //     let view = memory.view();
-                //
-                //     for byte in buf.into_iter() {
-                //         view[mem_offset].set(*byte);
-                //         mem_offset += 1;
-                //     }
-                //
-                //     match ty {
-                //         WasmIntType::I32 => WasmerValue::I32(buf_mem_start as i32),
-                //         WasmIntType::I64 => WasmerValue::I64(buf_mem_start as i64),
-                //     }
-                // }
-                // WasmArgValue::Slice(..) => unimplemented!(),
             };
 
             wasmer_args.push(wasmer_arg);
