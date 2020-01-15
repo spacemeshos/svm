@@ -125,30 +125,22 @@ pub fn runtime_memory_env_builder() -> JsonMemoryEnv {
 }
 
 /// Synthesizes a raw deploy-template transaction.
-pub fn build_template(
-    version: u32,
-    name: &str,
-    author: &Address,
-    pages_count: u16,
-    wasm: &str,
-) -> Vec<u8> {
+pub fn build_template(version: u32, name: &str, pages_count: u16, wasm: &str) -> Vec<u8> {
     let code = wabt::wat2wasm(wasm).unwrap();
 
     AppTemplateBuilder::new()
         .with_version(version)
         .with_name(name)
-        .with_author(author)
         .with_pages_count(pages_count)
         .with_code(code.as_slice())
         .build()
 }
 
 /// Synthesizes a raw spaw-app transaction.
-pub fn build_app(version: u32, template: &Address, creator: &Address) -> Vec<u8> {
+pub fn build_app(version: u32, template: &Address) -> Vec<u8> {
     AppBuilder::new()
         .with_version(version)
         .with_template(template)
-        .with_creator(creator)
         .build()
 }
 
@@ -156,14 +148,12 @@ pub fn build_app(version: u32, template: &Address, creator: &Address) -> Vec<u8>
 pub fn build_app_tx(
     version: u32,
     app_addr: &Address,
-    sender: &Address,
     func_name: &str,
     func_args: &[WasmArgValue],
 ) -> Vec<u8> {
     AppTxBuilder::new()
         .with_version(version)
         .with_app(app_addr)
-        .with_sender(sender)
         .with_func_name(func_name)
         .with_func_args(func_args)
         .build()

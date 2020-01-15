@@ -9,23 +9,24 @@ use crate::{
     types::{AppTransaction, WasmArgType, WasmArgValue},
 };
 
+use svm_common::Address;
+
 /// Parsing a raw `AppTransaction` transaction given as raw bytes.
 /// Returns the parsed transaction as a `AppTransaction` struct.
 /// On failure, returns `ParseError`.
 #[must_use]
-pub fn parse_app_tx(bytes: &[u8]) -> Result<AppTransaction, ParseError> {
+pub fn parse_app_tx(bytes: &[u8], sender: &Address) -> Result<AppTransaction, ParseError> {
     let mut cursor = Cursor::new(bytes);
 
     helpers::parse_version(&mut cursor)?;
 
     let app = helpers::parse_address(&mut cursor, Field::App)?;
-    let sender = helpers::parse_address(&mut cursor, Field::Sender)?;
     let func_name = parse_func_name(&mut cursor)?;
     let func_args = parse_func_args(&mut cursor)?;
 
     let tx = AppTransaction {
         app,
-        sender,
+        sender: sender.clone(),
         func_name,
         func_args,
     };

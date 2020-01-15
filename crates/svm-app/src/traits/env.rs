@@ -75,18 +75,18 @@ pub trait Env {
     }
 
     /// Parses a raw template transaction into `AppTemplate`
-    fn parse_template(&self, bytes: &[u8]) -> Result<AppTemplate, ParseError> {
-        crate::raw::parse_template(bytes)
+    fn parse_template(&self, bytes: &[u8], author: &Address) -> Result<AppTemplate, ParseError> {
+        crate::raw::parse_template(bytes, author)
     }
 
     /// Parses a raw spawn-app transaction into `App`
-    fn parse_app(&self, bytes: &[u8]) -> Result<App, ParseError> {
-        crate::raw::parse_app(bytes)
+    fn parse_app(&self, bytes: &[u8], creator: &Address) -> Result<App, ParseError> {
+        crate::raw::parse_app(bytes, creator)
     }
 
     /// Parses a raw exec-app transaction into `AppTransaction`
-    fn parse_app_tx(&self, bytes: &[u8]) -> Result<AppTransaction, ParseError> {
-        crate::raw::parse_app_tx(bytes)
+    fn parse_app_tx(&self, bytes: &[u8], sender: &Address) -> Result<AppTransaction, ParseError> {
+        crate::raw::parse_app_tx(bytes, sender)
     }
 
     /// Stores the following:

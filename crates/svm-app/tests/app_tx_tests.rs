@@ -38,12 +38,11 @@ fn parse_app_tx() {
     let bytes = AppTxBuilder::new()
         .with_version(0)
         .with_app(&app_addr)
-        .with_sender(&sender_addr)
         .with_func_name("run")
         .with_func_args(&vec![WasmArgValue::I32(10), WasmArgValue::I64(20)])
         .build();
 
-    let actual = env.parse_app_tx(&bytes).unwrap();
+    let actual = env.parse_app_tx(&bytes, &sender_addr).unwrap();
 
     let expected = AppTransaction {
         app: app_addr,

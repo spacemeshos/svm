@@ -20,7 +20,6 @@ fn runtime_valid_app_transaction() {
     let bytes = testing::build_template(
         version,
         "Template #1",
-        &author,
         pages_count,
         include_str!("wasm/runtime.wast"),
     );
@@ -30,7 +29,7 @@ fn runtime_valid_app_transaction() {
         .unwrap();
 
     // 3) spawn app
-    let bytes = testing::build_app(version, &template_addr, &creator);
+    let bytes = testing::build_app(version, &template_addr);
 
     let (app_addr, init_state) = runtime.spawn_app(&creator, HostCtx::new(), &bytes).unwrap();
 
@@ -43,9 +42,9 @@ fn runtime_valid_app_transaction() {
         Value::I32(0),
         Value::I32(0),
     ];
-    let bytes = testing::build_app_tx(version, &app_addr, &sender, func_name, &func_args);
+    let bytes = testing::build_app_tx(version, &app_addr, func_name, &func_args);
 
-    let tx = runtime.parse_exec_app(&bytes).unwrap();
+    let tx = runtime.parse_exec_app(&sender, &bytes).unwrap();
     let res = runtime.exec_app(tx, init_state.clone(), HostCtx::new());
 
     let receipt = res.unwrap();

@@ -6,20 +6,24 @@ use crate::{
     types::App,
 };
 
+use svm_common::Address;
+
 /// Parsing a raw `spawn-app` transaction given as raw bytes.
 /// Returns the parsed transaction as a tuple consisting of an `App` struct and ctor buffer initials.
 /// On failure, returns `ParseError`
 #[must_use]
 #[allow(dead_code)]
-pub fn parse_app(bytes: &[u8]) -> Result<App, ParseError> {
+pub fn parse_app(bytes: &[u8], creator: &Address) -> Result<App, ParseError> {
     let mut cursor = Cursor::new(bytes);
 
     helpers::parse_version(&mut cursor)?;
 
     let template = helpers::parse_address(&mut cursor, Field::AppTemplate)?;
-    let creator = helpers::parse_address(&mut cursor, Field::Creator)?;
 
-    let app = App { template, creator };
+    let app = App {
+        template,
+        creator: creator.clone(),
+    };
 
     Ok(app)
 }

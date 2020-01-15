@@ -1,5 +1,6 @@
 use std::convert::TryFrom;
 use std::ffi::c_void;
+use std::fmt;
 
 use log::{debug, error, info};
 
@@ -57,7 +58,7 @@ where
     ) -> Result<Address, DeployTemplateError> {
         info!("runtime `deploy_template`");
 
-        match self.env.parse_template(bytes) {
+        match self.env.parse_template(bytes, author) {
             Ok(template) => match self.env.store_template(&template) {
                 Ok(addr) => Ok(addr),
                 Err(e) => Err(DeployTemplateError::StoreFailed(e)),
@@ -74,14 +75,18 @@ where
     ) -> Result<(Address, State), SpawnAppError> {
         info!("runtime `spawn_app`");
 
-        let (app, app_addr) = self.install_app(bytes)?;
+        let (app, app_addr) = self.install_app(creator, bytes)?;
         let state = self.call_ctor(creator, &app, &app_addr, host_ctx)?;
 
         Ok((app_addr, state))
     }
 
-    fn parse_exec_app(&self, bytes: &[u8]) -> Result<AppTransaction, ExecAppError> {
-        match self.env.parse_app_tx(bytes) {
+    fn parse_exec_app(
+        &self,
+        sender: &Address,
+        bytes: &[u8],
+    ) -> Result<AppTransaction, ExecAppError> {
+        match self.env.parse_app_tx(bytes, sender) {
             Ok(tx) => Ok(tx),
             Err(e) => Err(ExecAppError::ParseFailed(e)),
         }
@@ -153,8 +158,12 @@ where
         }
     }
 
-    fn install_app(&mut self, bytes: &[u8]) -> Result<(App, Address), SpawnAppError> {
-        match self.env.parse_app(bytes) {
+    fn install_app(
+        &mut self,
+        creator: &Address,
+        bytes: &[u8],
+    ) -> Result<(App, Address), SpawnAppError> {
+        match self.env.parse_app(bytes, creator) {
             Ok(app) => match self.env.store_app(&app) {
                 Ok(app_addr) => Ok((app, app_addr)),
                 Err(e) => Err(SpawnAppError::StoreFailed(e)),
@@ -226,7 +235,7 @@ where
         let func = match self.get_exported_func(tx, template_addr, &instance) {
             Err(ExecAppError::FuncNotFound { .. }) if is_ctor == true => {
                 // Since an app `ctor` is optional, in case it has no explicit `ctor`
-                // we don't consider is as an error.
+                // we **don't** consider is as an error.
                 return Ok((State::empty(), Vec::new()));
             }
             Err(e) => return Err(e),
@@ -416,7 +425,7 @@ where
     }
 
     fn import_object_extend(&self, import_object: &mut ImportObject) {
-        // TODO: validate that `self.imports` don't use `svm` as for imports namespaces.
+        // TODO: validate that `self.imports` don't use `svm` as import namespaces.
 
         import_object.extend(self.imports.clone());
 
@@ -463,16 +472,16 @@ where
         }
     }
 
-    fn vec_to_str<T: std::fmt::Debug>(&self, items: &Vec<T>) -> String {
-        let nitems = items.len();
-
+    fn vec_to_str<T: fmt::Debug>(&self, items: &Vec<T>) -> String {
         let mut buf = String::new();
 
-        for arg in items.iter().take(nitems - 1) {
+        for (i, arg) in items.iter().enumerate() {
+            if i != 0 {
+                buf.push_str(", ");
+            }
             buf.push_str(&format!("{:?}, ", arg));
         }
 
-        buf.push_str(&format!("{:?}", items.last()));
         buf
     }
 }

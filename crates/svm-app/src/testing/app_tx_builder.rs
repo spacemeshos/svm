@@ -9,7 +9,6 @@ use svm_common::Address;
 pub struct AppTxBuilder {
     version: Option<u32>,
     app: Option<Address>,
-    sender: Option<Address>,
     func_name: Option<String>,
     func_args: Option<Vec<WasmArgValue>>,
 }
@@ -21,7 +20,6 @@ impl AppTxBuilder {
         Self {
             version: None,
             app: None,
-            sender: None,
             func_name: None,
             func_args: None,
         }
@@ -34,11 +32,6 @@ impl AppTxBuilder {
 
     pub fn with_app(mut self, app: &Address) -> Self {
         self.app = Some(app.clone());
-        self
-    }
-
-    pub fn with_sender(mut self, sender: &Address) -> Self {
-        self.sender = Some(sender.clone());
         self
     }
 
@@ -57,7 +50,6 @@ impl AppTxBuilder {
 
         self.write_version(&mut buf);
         self.write_app(&mut buf);
-        self.write_sender(&mut buf);
         self.write_func_name(&mut buf);
         self.write_func_args(&mut buf);
 
@@ -71,10 +63,6 @@ impl AppTxBuilder {
 
     fn write_app(&self, buf: &mut Vec<u8>) {
         self.write_address(&self.app.as_ref().unwrap(), buf)
-    }
-
-    fn write_sender(&self, buf: &mut Vec<u8>) {
-        self.write_address(&self.sender.as_ref().unwrap(), buf)
     }
 
     fn write_func_name(&mut self, buf: &mut Vec<u8>) {
@@ -103,14 +91,7 @@ impl AppTxBuilder {
                     let arg_type = WasmArgType::I64.into();
                     buf.write_u8(arg_type).unwrap();
                     buf.write_u64::<BigEndian>(*v).unwrap();
-                } // WasmArgValue::Slice(offset_type, length_type, bytes) => {
-                  //     let offset_type = offset_type.into();
-                  //     let length_type = length_type.into();
-                  //
-                  //     buf.write_u8(offset_type).unwrap();
-                  //     buf.write_u8(length_type).unwrap();
-                  //     buf.extend_from_slice(bytes);
-                  // }
+                }
             }
         }
     }
