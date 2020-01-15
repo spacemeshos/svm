@@ -59,13 +59,8 @@ where
     ) -> Result<Address, DeployTemplateError> {
         info!("runtime `deploy_template`");
 
-        match self.env.parse_template(bytes, author) {
-            Ok(template) => match self.env.store_template(&template) {
-                Ok(addr) => Ok(addr),
-                Err(e) => Err(DeployTemplateError::StoreFailed(e)),
-            },
-            Err(e) => Err(DeployTemplateError::ParseFailed(e)),
-        }
+        let template = self.parse_template(author, bytes)?;
+        self.install_template(&template)
     }
 
     fn spawn_app(
@@ -76,7 +71,8 @@ where
     ) -> Result<(Address, State), SpawnAppError> {
         info!("runtime `spawn_app`");
 
-        let (app, ctor_buf_slices, app_addr) = self.install_app(creator, bytes)?;
+        let (app, ctor_buf_slices) = self.parse_app(creator, bytes)?;
+        let app_addr = self.install_app(&app)?;
         let state = self.call_ctor(creator, &app, &app_addr, ctor_buf_slices, host_ctx)?;
 
         Ok((app_addr, state))
@@ -160,17 +156,39 @@ where
         }
     }
 
-    fn install_app(
-        &mut self,
+    fn parse_template(
+        &self,
+        author: &Address,
+        bytes: &[u8],
+    ) -> Result<AppTemplate, DeployTemplateError> {
+        match self.env.parse_template(bytes, author) {
+            Ok(template) => Ok(template),
+            Err(e) => Err(DeployTemplateError::ParseFailed(e)),
+        }
+    }
+
+    fn install_template(&mut self, template: &AppTemplate) -> Result<Address, DeployTemplateError> {
+        match self.env.store_template(template) {
+            Ok(addr) => Ok(addr),
+            Err(e) => Err(DeployTemplateError::StoreFailed(e)),
+        }
+    }
+
+    fn parse_app(
+        &self,
         creator: &Address,
         bytes: &[u8],
-    ) -> Result<(App, Vec<BufferSlice>, Address), SpawnAppError> {
+    ) -> Result<(App, Vec<BufferSlice>), SpawnAppError> {
         match self.env.parse_app(bytes, creator) {
-            Ok((app, ctor_buf_args)) => match self.env.store_app(&app) {
-                Ok(app_addr) => Ok((app, ctor_buf_args, app_addr)),
-                Err(e) => Err(SpawnAppError::StoreFailed(e)),
-            },
+            Ok((app, ctor_buf_args)) => Ok((app, ctor_buf_args)),
             Err(e) => Err(SpawnAppError::ParseFailed(e)),
+        }
+    }
+
+    fn install_app(&mut self, app: &App) -> Result<Address, SpawnAppError> {
+        match self.env.store_app(app) {
+            Ok(app_addr) => Ok(app_addr),
+            Err(e) => Err(SpawnAppError::StoreFailed(e)),
         }
     }
 
