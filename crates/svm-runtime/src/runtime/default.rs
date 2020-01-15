@@ -93,39 +93,8 @@ where
         state: State,
         host_ctx: HostCtx,
     ) -> Result<Receipt, ExecAppError> {
-        info!("runtime `exec_app`");
-
-        let (template, template_addr) = self.load_template(&tx)?;
-
-        let settings = AppSettings {
-            pages_count: template.pages_count,
-        };
-
-        let mut import_object = self.import_object_create(&tx.app, &state, host_ctx, &settings);
-        self.import_object_extend(&mut import_object);
-
-        // `ctor` is a reserved name for app contructor function.
-        let is_ctor = tx.func_name == "ctor";
-
-        let receipt =
-            match self.do_exec_app(&tx, &template, &template_addr, &import_object, is_ctor) {
-                Err(e) => Receipt {
-                    success: false,
-                    error: Some(e),
-                    returns: None,
-                    new_state: None,
-                },
-                Ok((state, returns)) => Receipt {
-                    success: true,
-                    error: None,
-                    returns: Some(returns),
-                    new_state: Some(state),
-                },
-            };
-
-        info!("receipt: {:?}", receipt);
-
-        Ok(receipt)
+        let is_ctor = false;
+        self.inner_exec_app(tx, state, host_ctx, is_ctor)
     }
 }
 
@@ -170,8 +139,9 @@ where
         host_ctx: HostCtx,
     ) -> Result<State, SpawnAppError> {
         let ctor = self.build_ctor_call(creator, &app, &app_addr);
+        let is_ctor = true;
 
-        match self.exec_app(ctor, State::empty(), host_ctx) {
+        match self.inner_exec_app(ctor, State::empty(), host_ctx, is_ctor) {
             Ok(receipt) => {
                 let new_state = receipt.new_state.unwrap();
                 Ok(new_state)
@@ -200,6 +170,45 @@ where
             func_name: "ctor".to_string(),
             func_args: vec![],
         }
+    }
+
+    fn inner_exec_app(
+        &self,
+        tx: AppTransaction,
+        state: State,
+        host_ctx: HostCtx,
+        is_ctor: bool,
+    ) -> Result<Receipt, ExecAppError> {
+        info!("runtime `exec_app`");
+
+        let (template, template_addr) = self.load_template(&tx)?;
+
+        let settings = AppSettings {
+            pages_count: template.pages_count,
+        };
+
+        let mut import_object = self.import_object_create(&tx.app, &state, host_ctx, &settings);
+        self.import_object_extend(&mut import_object);
+
+        let receipt =
+            match self.do_exec_app(&tx, &template, &template_addr, &import_object, is_ctor) {
+                Err(e) => Receipt {
+                    success: false,
+                    error: Some(e),
+                    returns: None,
+                    new_state: None,
+                },
+                Ok((state, returns)) => Receipt {
+                    success: true,
+                    error: None,
+                    returns: Some(returns),
+                    new_state: Some(state),
+                },
+            };
+
+        info!("receipt: {:?}", receipt);
+
+        Ok(receipt)
     }
 
     fn do_exec_app(
