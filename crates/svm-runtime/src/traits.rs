@@ -15,11 +15,17 @@ pub trait Runtime {
     fn deploy_template(
         &mut self,
         author: &Address,
+        host_ctx: HostCtx,
         bytes: &[u8],
     ) -> Result<Address, DeployTemplateError>;
 
     /// Spawn a new app out of an existing app-template.
-    fn spawn_app(&mut self, creator: &Address, bytes: &[u8]) -> Result<Address, SpawnAppError>;
+    fn spawn_app(
+        &mut self,
+        creator: &Address,
+        host_ctx: HostCtx,
+        bytes: &[u8],
+    ) -> Result<(Address, State), SpawnAppError>;
 
     /// Parses `bytes` into in-memory `AppTransaction`
     fn parse_exec_app(&self, bytes: &[u8]) -> Result<AppTransaction, ExecAppError>;

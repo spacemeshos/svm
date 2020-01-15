@@ -337,7 +337,7 @@ fn vmcalls_reg_replace_byte_read_write_be_i64() {
 
 #[test]
 fn vmcalls_host_ctx_read_into_reg() {
-    let (app_addr, state, host, _, pages_count) = default_test_args();
+    let (app_addr, state, host, _host_ctx, pages_count) = default_test_args();
 
     let mut host_ctx = HostCtx::new();
     host_ctx.insert(2, vec![10, 20]);

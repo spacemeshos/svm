@@ -17,7 +17,7 @@ use crate::{
 
 use svm_app::{
     traits::{Env, EnvTypes},
-    types::{AppTemplate, AppTransaction, WasmArgValue},
+    types::{App, AppTemplate, AppTransaction, WasmArgValue},
 };
 use svm_common::{Address, State};
 use svm_storage::AppStorage;
@@ -52,35 +52,38 @@ where
     fn deploy_template(
         &mut self,
         author: &Address,
+        _host_ctx: HostCtx,
         bytes: &[u8],
     ) -> Result<Address, DeployTemplateError> {
         info!("runtime `deploy_template`");
 
         match self.env.parse_template(bytes) {
-            Err(e) => Err(DeployTemplateError::ParseFailed(e)),
             Ok(template) => match self.env.store_template(&template) {
-                Err(e) => Err(DeployTemplateError::StoreFailed(e)),
                 Ok(addr) => Ok(addr),
+                Err(e) => Err(DeployTemplateError::StoreFailed(e)),
             },
+            Err(e) => Err(DeployTemplateError::ParseFailed(e)),
         }
     }
 
-    fn spawn_app(&mut self, creator: &Address, bytes: &[u8]) -> Result<Address, SpawnAppError> {
+    fn spawn_app(
+        &mut self,
+        creator: &Address,
+        host_ctx: HostCtx,
+        bytes: &[u8],
+    ) -> Result<(Address, State), SpawnAppError> {
         info!("runtime `spawn_app`");
 
-        match self.env.parse_app(bytes) {
-            Err(e) => return Err(SpawnAppError::ParseFailed(e)),
-            Ok(app) => match self.env.store_app(&app) {
-                Err(e) => Err(SpawnAppError::StoreFailed(e)),
-                Ok(addr) => Ok(addr),
-            },
-        }
+        let (app, app_addr) = self.install_app(bytes)?;
+        let state = self.call_ctor(creator, &app, &app_addr, host_ctx)?;
+
+        Ok((app_addr, state))
     }
 
     fn parse_exec_app(&self, bytes: &[u8]) -> Result<AppTransaction, ExecAppError> {
         match self.env.parse_app_tx(bytes) {
-            Err(e) => Err(ExecAppError::ParseFailed(e)),
             Ok(tx) => Ok(tx),
+            Err(e) => Err(ExecAppError::ParseFailed(e)),
         }
     }
 
@@ -153,6 +156,46 @@ where
     ) -> AppStorage {
         let sb = &self.storage_builder;
         sb(addr, state, settings)
+    }
+
+    fn call_ctor(
+        &mut self,
+        creator: &Address,
+        app: &App,
+        app_addr: &Address,
+        host_ctx: HostCtx,
+    ) -> Result<State, SpawnAppError> {
+        let ctor = self.build_ctor_call(creator, &app, &app_addr);
+
+        match self.exec_app(ctor, State::empty(), host_ctx) {
+            Ok(receipt) => {
+                let new_state = receipt.new_state.unwrap();
+                Ok(new_state)
+            }
+            Err(..) => {
+                todo!()
+                // return `SpawnAppError` of `ctor failed`
+            }
+        }
+    }
+
+    fn install_app(&mut self, bytes: &[u8]) -> Result<(App, Address), SpawnAppError> {
+        match self.env.parse_app(bytes) {
+            Ok(app) => match self.env.store_app(&app) {
+                Ok(app_addr) => Ok((app, app_addr)),
+                Err(e) => Err(SpawnAppError::StoreFailed(e)),
+            },
+            Err(e) => Err(SpawnAppError::ParseFailed(e)),
+        }
+    }
+
+    fn build_ctor_call(&self, creator: &Address, app: &App, app_addr: &Address) -> AppTransaction {
+        AppTransaction {
+            app: app_addr.clone(),
+            sender: creator.clone(),
+            func_name: "ctor".to_string(),
+            func_args: vec![],
+        }
     }
 
     fn do_exec_app(

@@ -22,12 +22,13 @@ fn runtime_valid_app_transaction() {
         "Template #1",
         author,
         pages_count,
-        include_str!("wasm/runtime-1.wast"),
+        include_str!("wasm/runtime.wast"),
     );
 
     let template_addr = runtime
         .deploy_template(&Address::from(author), &bytes)
         .unwrap();
+
     let creator = 0x10_20_30_40;
 
     // 3) spawn app
@@ -36,7 +37,7 @@ fn runtime_valid_app_transaction() {
 
     // 4) executing the app-transaction.
     let sender_addr = 0x50_60_70_80;
-    let func_name = "reg_set_and_persist";
+    let func_name = "run";
     let func_args = vec![
         Value::I64(0x10_20_30_40_50_60_70_80),
         Value::I32(64),

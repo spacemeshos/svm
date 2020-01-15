@@ -4,7 +4,7 @@
 
   (memory 1)  ;; memory `0` (default) is initialized with one page
 
-  (func (export "reg_set_and_persist") (param i64 i32 i32 i32 i32)
+  (func (export "run") (param i64 i32 i32 i32 i32)
         ;; register set
         get_local 0  ;; value
         get_local 1  ;; reg_bits
