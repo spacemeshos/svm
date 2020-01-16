@@ -1,4 +1,4 @@
-use svm_app::types::WasmArgValue as Value;
+use svm_app::types::WasmValue;
 use svm_common::Address;
 use svm_runtime::{host_ctx::HostCtx, settings::AppSettings, testing, traits::Runtime};
 use svm_storage::page::{PageIndex, PageOffset, PageSliceLayout};
@@ -36,11 +36,11 @@ fn runtime_valid_app_transaction() {
     // 4) executing the app-transaction.
     let func_name = "run";
     let func_args = vec![
-        Value::I64(0x10_20_30_40_50_60_70_80),
-        Value::I32(64),
-        Value::I32(0),
-        Value::I32(0),
-        Value::I32(0),
+        WasmValue::I64(0x10_20_30_40_50_60_70_80),
+        WasmValue::I32(64),
+        WasmValue::I32(0),
+        WasmValue::I32(0),
+        WasmValue::I32(0),
     ];
     let bytes = testing::build_app_tx(version, &app_addr, func_name, &func_args);
 

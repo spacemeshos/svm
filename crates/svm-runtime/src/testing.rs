@@ -14,7 +14,7 @@ use svm_storage::AppStorage;
 use svm_app::{
     memory::{JsonMemAppStore, JsonMemAppTemplateStore, JsonMemoryEnv},
     testing::{AppBuilder, AppTemplateBuilder, AppTxBuilder},
-    types::WasmArgValue,
+    types::WasmValue,
 };
 
 use wasmer_runtime_core::{export::Export, import::ImportObject, Instance, Module};
@@ -149,7 +149,7 @@ pub fn build_app_tx(
     version: u32,
     app_addr: &Address,
     func_name: &str,
-    func_args: &[WasmArgValue],
+    func_args: &[WasmValue],
 ) -> Vec<u8> {
     AppTxBuilder::new()
         .with_version(version)

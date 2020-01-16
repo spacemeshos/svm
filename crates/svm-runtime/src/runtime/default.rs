@@ -19,7 +19,7 @@ use crate::{
 
 use svm_app::{
     traits::{Env, EnvTypes},
-    types::{App, AppTemplate, AppTransaction, BufferSlice, WasmArgValue},
+    types::{App, AppTemplate, AppTransaction, BufferSlice, SpawnApp, WasmValue},
 };
 use svm_common::{Address, State};
 use svm_storage::AppStorage;
@@ -71,9 +71,9 @@ where
     ) -> Result<(Address, State), SpawnAppError> {
         info!("runtime `spawn_app`");
 
-        let (app, ctor_buf_slices) = self.parse_app(creator, bytes)?;
-        let app_addr = self.install_app(&app)?;
-        let state = self.call_ctor(creator, &app, &app_addr, ctor_buf_slices, host_ctx)?;
+        let spawn_app = self.parse_app(creator, bytes)?;
+        let app_addr = self.install_app(&spawn_app)?;
+        let state = self.call_ctor(creator, spawn_app, &app_addr, host_ctx)?;
 
         Ok((app_addr, state))
     }
@@ -135,12 +135,11 @@ where
     fn call_ctor(
         &mut self,
         creator: &Address,
-        app: &App,
+        spawn_app: SpawnApp,
         app_addr: &Address,
-        ctor_buf_slices: Vec<BufferSlice>,
         host_ctx: HostCtx,
     ) -> Result<State, SpawnAppError> {
-        let ctor = self.build_ctor_call(creator, &app, &app_addr, ctor_buf_slices);
+        let ctor = self.build_ctor_call(creator, spawn_app, &app_addr);
         let is_ctor = true;
 
         match self.inner_exec_app(ctor, State::empty(), host_ctx, is_ctor) {
@@ -171,35 +170,30 @@ where
             .or_else(|e| Err(DeployTemplateError::StoreFailed(e)))
     }
 
-    fn parse_app(
-        &self,
-        creator: &Address,
-        bytes: &[u8],
-    ) -> Result<(App, Vec<BufferSlice>), SpawnAppError> {
+    fn parse_app(&self, creator: &Address, bytes: &[u8]) -> Result<SpawnApp, SpawnAppError> {
         self.env
             .parse_app(bytes, creator)
             .or_else(|e| Err(SpawnAppError::ParseFailed(e)))
     }
 
-    fn install_app(&mut self, app: &App) -> Result<Address, SpawnAppError> {
+    fn install_app(&mut self, spawn_app: &SpawnApp) -> Result<Address, SpawnAppError> {
         self.env
-            .store_app(app)
+            .store_app(&spawn_app.app)
             .or_else({ |e| Err(SpawnAppError::StoreFailed(e)) })
     }
 
     fn build_ctor_call(
         &self,
         creator: &Address,
-        app: &App,
+        spawn_app: SpawnApp,
         app_addr: &Address,
-        ctor_buf_slices: Vec<BufferSlice>,
     ) -> AppTransaction {
         AppTransaction {
             app: app_addr.clone(),
             sender: creator.clone(),
             func_name: "ctor".to_string(),
             func_args: vec![],
-            func_args_buf: ctor_buf_slices,
+            func_buf: spawn_app.ctor_buf,
         }
     }
 
@@ -253,7 +247,7 @@ where
         let module = self.compile_template(tx, &template, &template_addr)?;
         let mut instance = self.instantiate(tx, template_addr, &module, import_object)?;
 
-        self.init_instance_buffers(&tx.func_args_buf, &mut instance);
+        self.init_instance_buffers(&tx.func_buf, &mut instance);
         let args = self.prepare_args_and_memory(tx, &mut instance);
 
         let func = match self.get_exported_func(tx, template_addr, &instance) {
@@ -286,11 +280,11 @@ where
 
     fn init_instance_buffers(
         &self,
-        func_args_buf: &Vec<BufferSlice>,
+        func_buf: &Vec<BufferSlice>,
         instance: &mut wasmer_runtime::Instance,
     ) {
         // TODO:
-        // * create buffers out of `func_args_buf`
+        // * create buffers out of `func_buf`
         // * pass the buffer to `instance`
     }
 
@@ -372,8 +366,8 @@ where
 
         for arg in tx.func_args.iter() {
             let wasmer_arg = match arg {
-                WasmArgValue::I32(v) => WasmerValue::I32(*v as i32),
-                WasmArgValue::I64(v) => WasmerValue::I64(*v as i64),
+                WasmValue::I32(v) => WasmerValue::I32(*v as i32),
+                WasmValue::I64(v) => WasmerValue::I64(*v as i64),
             };
 
             wasmer_args.push(wasmer_arg);
