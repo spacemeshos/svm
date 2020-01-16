@@ -1,11 +1,11 @@
-//!          `Spaw-App` Raw Format Version 0.0.0.0
+//!          `Spawn-App` Raw Format Version 0.0.0.0
 //!  ----------------------------------------------------------
 //!  |     proto     |                                        |
 //!  |    version    |        `AppTemplate` `Address`         |
 //!  |    (4 bytes)  |            (20 bytes)                  |
 //!  |_______________|________________________________________|
 //!  |  ctor-buf  |  ctor-buf  |  ctor-buf  |                 |
-//!  |    #args   |  arg #1    |   arg #1   |                 |
+//!  |   #slices  |  slice #1  |  slice #1  |                 |
 //!  |            |   len      |            |     . . . .     |
 //!  | (1 byte)   | (2 bytes)  |   value    |                 |
 //!  |____________|____________|____________|_________________|

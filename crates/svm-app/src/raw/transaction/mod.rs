@@ -10,11 +10,11 @@
 //!  |  (1 byte)   |                                       |
 //!  |_____________|_______________________________________|
 //!  |  func-buf  |  func-buf  |  func-buf  |              |
-//!  |  #args     |   arg #1   |   arg #1   |              |
+//!  |   #slices  |   slice #1 |  slice #1  |              |
 //!  |            |    len     |            |   . . . .    |
 //!  | (1 byte)   | (2 bytes)  |   value    |              |
 //!  |____________|____________|____________|______________|
-//!  |   func    |    func   |    func   |                 |
+//!  | func-args |    func   |    func   |                 |
 //!  |   #args   |   arg #1  |   arg #1  |                 |
 //!  |           |    type   |   value   |     . . . .     |
 //!  | (1 byte)  | (1 byte)  | (i32/i64) |                 |

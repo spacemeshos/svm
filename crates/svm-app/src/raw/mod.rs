@@ -1,5 +1,4 @@
 mod app;
-mod args;
 mod template;
 mod transaction;
 
