@@ -1,6 +1,9 @@
 use byteorder::{BigEndian, WriteBytesExt};
 
-use crate::types::{WasmType, WasmValue};
+use crate::{
+    raw::helpers,
+    types::{WasmType, WasmValue},
+};
 
 use svm_common::Address;
 
@@ -10,6 +13,7 @@ pub struct AppTxBuilder {
     version: Option<u32>,
     app: Option<Address>,
     func_name: Option<String>,
+    func_buf: Option<Vec<Vec<u8>>>,
     func_args: Option<Vec<WasmValue>>,
 }
 
@@ -21,6 +25,7 @@ impl AppTxBuilder {
             version: None,
             app: None,
             func_name: None,
+            func_buf: None,
             func_args: None,
         }
     }
@@ -40,6 +45,11 @@ impl AppTxBuilder {
         self
     }
 
+    pub fn with_func_buf(mut self, func_buf: &Vec<Vec<u8>>) -> Self {
+        self.func_buf = Some(func_buf.to_vec());
+        self
+    }
+
     pub fn with_func_args(mut self, func_args: &[WasmValue]) -> Self {
         self.func_args = Some(func_args.to_vec());
         self
@@ -51,7 +61,9 @@ impl AppTxBuilder {
         self.write_version(&mut buf);
         self.write_app(&mut buf);
         self.write_func_name(&mut buf);
-        self.write_func_args(&mut buf);
+
+        helpers::write_func_buf(&self.func_buf, &mut buf);
+        helpers::write_func_args(&self.func_args, &mut buf);
 
         buf
     }
@@ -73,27 +85,6 @@ impl AppTxBuilder {
         buf.write_u8(bytes.len() as u8).unwrap();
 
         buf.extend_from_slice(bytes);
-    }
-
-    fn write_func_args(&self, buf: &mut Vec<u8>) {
-        let args = self.func_args.as_ref().unwrap();
-
-        buf.write_u8(args.len() as u8).unwrap();
-
-        for arg in args {
-            match arg {
-                WasmValue::I32(v) => {
-                    let arg_type = WasmType::I32.into();
-                    buf.write_u8(arg_type).unwrap();
-                    buf.write_i32::<BigEndian>(*v).unwrap();
-                }
-                WasmValue::I64(v) => {
-                    let arg_type = WasmType::I64.into();
-                    buf.write_u8(arg_type).unwrap();
-                    buf.write_i64::<BigEndian>(*v).unwrap();
-                }
-            }
-        }
     }
 
     fn write_address(&self, address: &Address, buf: &mut Vec<u8>) {

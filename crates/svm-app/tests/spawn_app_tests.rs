@@ -3,30 +3,42 @@ use svm_app::{
     memory::{JsonMemAppStore, JsonMemAppTemplateStore, JsonMemoryEnv},
     testing::AppBuilder,
     traits::Env,
-    types::{App, AppTemplate},
+    types::{App, AppTemplate, BufferSlice, SpawnApp, WasmValue},
 };
 use svm_common::Address;
 
 #[test]
-fn parse_app() {
+fn parse_spawn_app() {
     let app_store = JsonMemAppStore::new();
     let template_store = JsonMemAppTemplateStore::new();
     let env = JsonMemoryEnv::new(app_store, template_store);
 
-    let template_addr = Address::from(0x10_20_30_40);
-    let creator_addr = Address::from(0x50_60_70_80);
+    let template = Address::from(0x10_20_30_40);
+    let creator = Address::from(0x50_60_70_80);
 
     let bytes = AppBuilder::new()
         .with_version(0)
-        .with_template(&template_addr)
+        .with_template(&template)
+        .with_ctor_buf(&vec![vec![0xAA, 0xAA, 0xAA], vec![0xBB, 0xBB]])
+        .with_ctor_args(&vec![WasmValue::I32(10), WasmValue::I64(200)])
         .build();
 
-    let spawn_app = env.parse_app(&bytes, &creator_addr).unwrap();
+    let actual = env.parse_app(&bytes, &creator).unwrap();
 
-    let app = spawn_app.app;
+    let expected = SpawnApp {
+        app: App { template, creator },
+        ctor_buf: vec![
+            BufferSlice {
+                data: vec![0xAA, 0xAA, 0xAA],
+            },
+            BufferSlice {
+                data: vec![0xBB, 0xBB],
+            },
+        ],
+        ctor_args: vec![WasmValue::I32(10), WasmValue::I64(200)],
+    };
 
-    assert_eq!(template_addr, app.template);
-    assert_eq!(creator_addr, app.creator);
+    assert_eq!(expected, actual);
 }
 
 #[test]

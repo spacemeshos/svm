@@ -21,7 +21,7 @@ pub fn parse_app_tx(bytes: &[u8], sender: &Address) -> Result<AppTransaction, Pa
 
     let app = helpers::parse_address(&mut cursor, Field::App)?;
     let func_name = parse_func_name(&mut cursor)?;
-    let func_args_buf = helpers::parse_buffer_slices(&mut cursor)?;
+    let func_buf = helpers::parse_func_buf(&mut cursor)?;
     let func_args = helpers::parse_func_args(&mut cursor)?;
 
     let tx = AppTransaction {
@@ -29,7 +29,7 @@ pub fn parse_app_tx(bytes: &[u8], sender: &Address) -> Result<AppTransaction, Pa
         sender: sender.clone(),
         func_name,
         func_args,
-        func_args_buf,
+        func_buf,
     };
 
     Ok(tx)

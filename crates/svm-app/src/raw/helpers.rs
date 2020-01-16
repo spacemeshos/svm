@@ -1,7 +1,7 @@
 use std::convert::TryFrom;
 use std::io::{Cursor, Read};
 
-use byteorder::{BigEndian, ReadBytesExt};
+use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 
 use super::Field;
 use crate::{
@@ -51,7 +51,7 @@ pub fn parse_address(cursor: &mut Cursor<&[u8]>, field: Field) -> Result<Address
 }
 
 #[must_use]
-pub fn parse_buffer_slices(cursor: &mut Cursor<&[u8]>) -> Result<Vec<BufferSlice>, ParseError> {
+pub fn parse_func_buf(cursor: &mut Cursor<&[u8]>) -> Result<Vec<BufferSlice>, ParseError> {
     let res = cursor.read_u8();
 
     ensure_enough_bytes(&res, Field::FuncBufSlicesCount)?;
@@ -171,7 +171,52 @@ pub fn read_buffer(
     let mut buf = vec![0; buf_len];
 
     let res = cursor.read_exact(&mut buf);
+
     ensure_enough_bytes(&res, field)?;
 
     Ok(buf)
+}
+
+pub fn write_func_args(args: &Option<Vec<WasmValue>>, buf: &mut Vec<u8>) {
+    if args.is_none() {
+        buf.write_u8(0).unwrap();
+        return;
+    }
+
+    let args = args.as_ref().unwrap();
+
+    buf.write_u8(args.len() as u8).unwrap();
+
+    for arg in args {
+        match arg {
+            WasmValue::I32(v) => {
+                let arg_type = WasmType::I32.into();
+                buf.write_u8(arg_type).unwrap();
+                buf.write_i32::<BigEndian>(*v).unwrap();
+            }
+            WasmValue::I64(v) => {
+                let arg_type = WasmType::I64.into();
+                buf.write_u8(arg_type).unwrap();
+                buf.write_i64::<BigEndian>(*v).unwrap();
+            }
+        }
+    }
+}
+
+pub fn write_func_buf(buf_slices: &Option<Vec<Vec<u8>>>, buf: &mut Vec<u8>) {
+    if buf_slices.is_none() {
+        buf.write_u8(0).unwrap();
+        return;
+    }
+
+    let buf_slices = buf_slices.as_ref().unwrap();
+
+    buf.write_u8(buf_slices.len() as u8).unwrap();
+
+    for slice in buf_slices {
+        let len = slice.len() as u16;
+        buf.write_u16::<BigEndian>(len).unwrap();
+
+        buf.extend_from_slice(&slice);
+    }
 }

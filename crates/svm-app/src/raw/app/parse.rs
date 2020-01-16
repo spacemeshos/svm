@@ -18,7 +18,7 @@ pub fn parse_app(bytes: &[u8], creator: &Address) -> Result<SpawnApp, ParseError
     helpers::parse_version(&mut cursor)?;
 
     let template = helpers::parse_address(&mut cursor, Field::AppTemplate)?;
-    let ctor_buf_slices = helpers::parse_buffer_slices(&mut cursor)?;
+    let ctor_buf = helpers::parse_func_buf(&mut cursor)?;
     let ctor_args = helpers::parse_func_args(&mut cursor)?;
 
     let app = App {
@@ -28,7 +28,7 @@ pub fn parse_app(bytes: &[u8], creator: &Address) -> Result<SpawnApp, ParseError
 
     let spawn_app = SpawnApp {
         app,
-        ctor_buf_slices,
+        ctor_buf,
         ctor_args,
     };
 
