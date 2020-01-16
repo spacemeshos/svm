@@ -30,6 +30,7 @@ pub const REGS_512_COUNT: usize = 4;
 /// `SvmCtx` is a container for the accessible data by `wasmer` instances
 /// * `host`     - A pointer to the `Host`
 /// * `host_ctx` - A pointer to the `HostCtx` (i.e: `sender`, `block_id`, `nonce`, ...)
+/// * `buffers`  - A `HashMap` between `buffer_id` (i32) to mutable/read-only `Buffer`.
 /// * `regs_32`  - A static array (`REGS_32_COUNT` elements)  of `SvmReg32`
 /// * `regs_64`  - A static array (`REGS_64_COUNT` elements)  of `SvmReg64`
 /// * `regs_160` - A static array (`REGS_160_COUNT` elements) of `SvmReg160`
@@ -63,7 +64,7 @@ pub struct SvmCtx {
     /// An array that holds the `SvmReg512` registers
     pub regs_512: [SvmReg; REGS_512_COUNT],
 
-    /// An accessor to the app's storage
+    /// An accessor to the app's storage (`AppStorage`)
     pub storage: AppStorage,
 }
 

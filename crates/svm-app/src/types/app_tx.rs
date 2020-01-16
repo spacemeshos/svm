@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::types::{BufferSlice, WasmArgValue};
+use crate::types::{BufferSlice, WasmValue};
 
 use svm_common::Address;
 
@@ -20,7 +20,7 @@ pub struct AppTransaction {
     pub func_name: String,
 
     /// `App` function args
-    pub func_args: Vec<WasmArgValue>,
+    pub func_args: Vec<WasmValue>,
 }
 
 impl fmt::Debug for AppTransaction {
@@ -54,7 +54,7 @@ impl AppTransaction {
         format!("FuncName: {:?}", self.func_name)
     }
 
-    fn fmt_func_arg(&self, func_arg: &WasmArgValue) -> String {
+    fn fmt_func_arg(&self, func_arg: &WasmValue) -> String {
         format!("{:?}", func_arg)
     }
 

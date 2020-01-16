@@ -259,7 +259,7 @@ where
         let func = match self.get_exported_func(tx, template_addr, &instance) {
             Err(ExecAppError::FuncNotFound { .. }) if is_ctor == true => {
                 // Since an app `ctor` is optional, in case it has no explicit `ctor`
-                // we **don't** consider is as an error.
+                // we **don't** consider it as an error.
                 return Ok((State::empty(), Vec::new()));
             }
             Err(e) => return Err(e),
@@ -276,10 +276,10 @@ where
             }),
             Ok(returns) => {
                 let storage = self.instance_storage_mut(&mut instance);
-                let state = storage.commit();
+                let new_state = storage.commit();
                 let returns = self.cast_wasmer_func_returns(tx, template_addr, returns)?;
 
-                Ok((state, returns))
+                Ok((new_state, returns))
             }
         }
     }

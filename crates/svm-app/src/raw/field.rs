@@ -17,10 +17,12 @@ pub enum Field {
     App,
     FuncNameLength,
     FuncName,
-    ArgsCount,
-    ArgLength,
-    ArgType,
-    ArgValue,
+    FuncBufSlicesCount,
+    FuncBufSliceLength,
+    FuncBufSlice,
+    FuncArgsCount,
+    WasmType,
+    WasmValue,
 }
 
 impl fmt::Display for Field {

@@ -1,6 +1,6 @@
 use byteorder::{BigEndian, WriteBytesExt};
 
-use crate::types::{WasmArgType, WasmArgValue};
+use crate::types::{WasmType, WasmValue};
 
 use svm_common::Address;
 
@@ -10,7 +10,7 @@ pub struct AppTxBuilder {
     version: Option<u32>,
     app: Option<Address>,
     func_name: Option<String>,
-    func_args: Option<Vec<WasmArgValue>>,
+    func_args: Option<Vec<WasmValue>>,
 }
 
 #[allow(missing_docs)]
@@ -40,7 +40,7 @@ impl AppTxBuilder {
         self
     }
 
-    pub fn with_func_args(mut self, func_args: &[WasmArgValue]) -> Self {
+    pub fn with_func_args(mut self, func_args: &[WasmValue]) -> Self {
         self.func_args = Some(func_args.to_vec());
         self
     }
@@ -82,15 +82,15 @@ impl AppTxBuilder {
 
         for arg in args {
             match arg {
-                WasmArgValue::I32(v) => {
-                    let arg_type = WasmArgType::I32.into();
+                WasmValue::I32(v) => {
+                    let arg_type = WasmType::I32.into();
                     buf.write_u8(arg_type).unwrap();
-                    buf.write_u32::<BigEndian>(*v).unwrap();
+                    buf.write_i32::<BigEndian>(*v).unwrap();
                 }
-                WasmArgValue::I64(v) => {
-                    let arg_type = WasmArgType::I64.into();
+                WasmValue::I64(v) => {
+                    let arg_type = WasmType::I64.into();
                     buf.write_u8(arg_type).unwrap();
-                    buf.write_u64::<BigEndian>(*v).unwrap();
+                    buf.write_i64::<BigEndian>(*v).unwrap();
                 }
             }
         }
