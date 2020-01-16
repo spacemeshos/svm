@@ -203,17 +203,17 @@ pub fn write_func_args(args: &Option<Vec<WasmValue>>, buf: &mut Vec<u8>) {
     }
 }
 
-pub fn write_func_buf(buf_slices: &Option<Vec<Vec<u8>>>, buf: &mut Vec<u8>) {
-    if buf_slices.is_none() {
+pub fn write_func_buf(slices: &Option<Vec<Vec<u8>>>, buf: &mut Vec<u8>) {
+    if slices.is_none() {
         buf.write_u8(0).unwrap();
         return;
     }
 
-    let buf_slices = buf_slices.as_ref().unwrap();
+    let slices = slices.as_ref().unwrap();
 
-    buf.write_u8(buf_slices.len() as u8).unwrap();
+    buf.write_u8(slices.len() as u8).unwrap();
 
-    for slice in buf_slices {
+    for slice in slices {
         let len = slice.len() as u16;
         buf.write_u16::<BigEndian>(len).unwrap();
 

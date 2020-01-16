@@ -12,6 +12,10 @@ impl BufferMut {
         }
     }
 
+    pub fn with_bytes(bytes: Vec<u8>) -> Self {
+        Self { bytes }
+    }
+
     pub fn len(&self) -> i32 {
         self.bytes.len() as i32
     }

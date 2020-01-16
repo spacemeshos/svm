@@ -32,13 +32,37 @@ pub fn buffer_kill(data: *mut c_void, buf_id: i32) {
     let mut svm_ctx = unsafe { svm_common::from_raw_mut::<SvmCtx>(data) };
 
     if svm_ctx.buffers.contains_key(&buf_id) == false {
+        panic!("`buffer_kill` failed: Buffer `{}` doesn't exists!", buf_id);
+    }
+
+    svm_ctx.buffers.remove(&buf_id);
+}
+
+pub fn buffer_freeze(data: *mut c_void, buf_id: i32) {
+    let mut svm_ctx = unsafe { svm_common::from_raw_mut::<SvmCtx>(data) };
+
+    let entry = svm_ctx.buffers.remove_entry(&buf_id);
+
+    if entry.is_none() {
         panic!(
-            "`buffer_create` failed: Buffer `{}` doesn't exists!",
+            "`buffer_freeze` failed: Buffer `{}` doesn't exists!",
             buf_id
         );
     }
 
-    svm_ctx.buffers.remove(&buf_id);
+    let (.., buf) = entry.unwrap();
+
+    match buf {
+        BufferRef::Mutable(.., buf) => {
+            let buf = buf.freeze();
+            let buf_ref = BufferRef::ReadOnly(buf_id, buf);
+
+            svm_ctx.buffers.insert(buf_id, buf_ref);
+        }
+        BufferRef::ReadOnly(..) => {
+            // do nothing, buffer is already frozen
+        }
+    }
 }
 
 pub fn buffer_copy_to_storage(

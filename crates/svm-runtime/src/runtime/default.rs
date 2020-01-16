@@ -5,7 +5,7 @@ use std::fmt;
 use log::{debug, error, info};
 
 use crate::{
-    buffer::{Buffer, BufferMut},
+    buffer::BufferRef,
     ctx::SvmCtx,
     error::{DeployTemplateError, ExecAppError, SpawnAppError},
     helpers,
@@ -192,7 +192,7 @@ where
             app: app_addr.clone(),
             sender: creator.clone(),
             func_name: "ctor".to_string(),
-            func_args: vec![],
+            func_args: spawn_app.ctor_args,
             func_buf: spawn_app.ctor_buf,
         }
     }
@@ -247,7 +247,8 @@ where
         let module = self.compile_template(tx, &template, &template_addr)?;
         let mut instance = self.instantiate(tx, template_addr, &module, import_object)?;
 
-        self.init_instance_buffers(&tx.func_buf, &mut instance);
+        self.init_instance_buffer(&tx.func_buf, &mut instance);
+
         let args = self.prepare_args_and_memory(tx, &mut instance);
 
         let func = match self.get_exported_func(tx, template_addr, &instance) {
@@ -278,14 +279,28 @@ where
         }
     }
 
-    fn init_instance_buffers(
+    fn init_instance_buffer(
         &self,
         func_buf: &Vec<BufferSlice>,
         instance: &mut wasmer_runtime::Instance,
     ) {
-        // TODO:
-        // * create buffers out of `func_buf`
-        // * pass the buffer to `instance`
+        const ARGS_BUF_ID: i32 = 0;
+
+        let ctx = instance.context_mut();
+        let buf_cap = func_buf.iter().fold(0, |acc, slice| acc + slice.len());
+
+        helpers::buffer_create(ctx.data, ARGS_BUF_ID, buf_cap as i32);
+
+        match helpers::wasmer_data_buffer(ctx.data, ARGS_BUF_ID).unwrap() {
+            BufferRef::Mutable(.., buf) => {
+                for slice in func_buf.iter() {
+                    buf.write(&slice.data[..]);
+                }
+            }
+            _ => unreachable!(),
+        };
+
+        helpers::buffer_freeze(ctx.data, ARGS_BUF_ID);
     }
 
     fn cast_wasmer_func_returns(

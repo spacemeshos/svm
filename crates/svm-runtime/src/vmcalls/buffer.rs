@@ -8,6 +8,10 @@ pub fn buffer_kill(ctx: &mut wasmer_runtime::Ctx, buf_id: i32) {
     helpers::buffer_kill(ctx.data, buf_id);
 }
 
+pub fn buffer_freeze(ctx: &mut wasmer_runtime::Ctx, buf_id: i32) {
+    helpers::buffer_freeze(ctx.data, buf_id);
+}
+
 pub fn buffer_copy_to_storage(
     ctx: &mut wasmer_runtime::Ctx,
     buf_id: i32,

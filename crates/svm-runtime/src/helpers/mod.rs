@@ -3,7 +3,9 @@ mod data_wrapper;
 mod register;
 mod storage;
 
-pub use buffer::{buffer_copy_to_storage, buffer_create, buffer_kill, wasmer_data_buffer};
+pub use buffer::{
+    buffer_copy_to_storage, buffer_create, buffer_freeze, buffer_kill, wasmer_data_buffer,
+};
 pub use data_wrapper::DataWrapper;
 pub use register::wasmer_data_reg;
 pub use storage::wasmer_data_app_storage;
