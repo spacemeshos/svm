@@ -5,12 +5,12 @@ use crate::{ctx::SvmCtx, register::SvmReg};
 /// Extracts from `wasmer` instance context (type: `Ctx`) a mutable borrow for the register indexed `reg_idx`.
 /// Will be used by storage vmcalls.
 #[inline(always)]
-pub fn wasmer_data_reg<'a>(data: *mut c_void, bits_count: i32, reg_idx: i32) -> &'a mut SvmReg {
-    ensure_reg_index(bits_count, reg_idx);
+pub fn wasmer_data_reg<'a>(data: *mut c_void, reg_bits: i32, reg_idx: i32) -> &'a mut SvmReg {
+    ensure_reg_index(reg_bits, reg_idx);
 
     let ctx: &mut SvmCtx = unsafe { svm_common::from_raw_mut::<SvmCtx>(data) };
 
-    match bits_count {
+    match reg_bits {
         32 => svm_regs_reg(&mut ctx.regs_32, 32, reg_idx),
         64 => svm_regs_reg(&mut ctx.regs_64, 64, reg_idx),
         160 => svm_regs_reg(&mut ctx.regs_160, 160, reg_idx),
@@ -21,8 +21,8 @@ pub fn wasmer_data_reg<'a>(data: *mut c_void, bits_count: i32, reg_idx: i32) -> 
 }
 
 #[inline(always)]
-fn regs_count_by_bits(bits_count: i32) -> i32 {
-    let bits_count = match bits_count {
+fn regs_count_by_bits(reg_bits: i32) -> i32 {
+    let reg_bits = match reg_bits {
         32 => crate::ctx::REGS_32_COUNT,
         64 => crate::ctx::REGS_64_COUNT,
         160 => crate::ctx::REGS_160_COUNT,
@@ -31,12 +31,12 @@ fn regs_count_by_bits(bits_count: i32) -> i32 {
         _ => unreachable!(),
     };
 
-    bits_count as i32
+    reg_bits as i32
 }
 
 /// Receives an slice of `SvmReg` and returns the `reg_idx` register.
-fn svm_regs_reg(regs: &mut [SvmReg], bits_count: i32, reg_idx: i32) -> &mut SvmReg {
-    ensure_reg_index(bits_count, reg_idx);
+fn svm_regs_reg(regs: &mut [SvmReg], reg_bits: i32, reg_idx: i32) -> &mut SvmReg {
+    ensure_reg_index(reg_bits, reg_idx);
 
     // We don't do:
     // ```rust
@@ -58,8 +58,8 @@ fn svm_regs_reg(regs: &mut [SvmReg], bits_count: i32, reg_idx: i32) -> &mut SvmR
 /// (constants are defined at `ctx.rs`)
 /// Ensuring that `reg_idx` is within the `0..REGS_64_COUNT` range (exclusive).
 #[inline(always)]
-fn ensure_reg_index(bits_count: i32, reg_idx: i32) {
-    assert!(reg_idx >= 0 && (reg_idx < regs_count_by_bits(bits_count)));
+fn ensure_reg_index(reg_bits: i32, reg_idx: i32) {
+    assert!(reg_idx >= 0 && (reg_idx < regs_count_by_bits(reg_bits)));
 }
 
 /// Allocates registers. This macro is called at `SvmCtx` ctor.

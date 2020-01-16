@@ -82,3 +82,22 @@ pub fn buffer_copy_to_storage(
     let data = buffer.read(buf_offset, len);
     storage.write_page_slice(&layout, data);
 }
+
+pub fn buffer_copy_to_reg(
+    data: *mut c_void,
+    buf_id: i32,
+    buf_offset: i32,
+    reg_bits: i32,
+    reg_idx: i32,
+    len: i32,
+) {
+    assert!(len * 8 <= reg_bits);
+
+    let buffer =
+        wasmer_data_buffer(data, buf_id).expect(&format!("Buffer `{}` doesn't exist!", buf_id));
+
+    let slice = buffer.read(buf_offset, len);
+    let reg = helpers::wasmer_data_reg(data, reg_bits, reg_idx);
+
+    reg.set(slice);
+}

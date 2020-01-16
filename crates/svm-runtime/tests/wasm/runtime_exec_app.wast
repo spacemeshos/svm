@@ -1,20 +1,21 @@
 (module
-  (func $reg_write_be_i64 (import "svm" "reg_write_be_i64") (param i64 i32 i32))
+  (func $buffer_copy_to_reg (import "svm" "buffer_copy_to_reg") (param i32 i32 i32 i32 i32))
   (func $storage_write_from_reg (import "svm" "storage_write_from_reg") (param i32 i32 i32 i32 i32))
 
   (memory 1)  ;; memory `0` (default) is initialized with one page
 
-  (func (export "run") (param i64 i32 i32 i32 i32)
-        ;; register set
-        get_local 0  ;; value
+  (func (export "run") (param i32 i32 i32 i32)
+        i32.const 0  ;; buf_id
+        get_local 0  ;; buf_offset
         get_local 1  ;; reg_bits
         get_local 2  ;; reg_idx
-        call $reg_write_be_i64
+        get_local 3  ;; len
+        call $buffer_copy_to_reg
 
-        ;; persist to storage
+        ;; persist resgiter value to storage
         get_local 1  ;; reg_bits
         get_local 2  ;; reg_idx
-        i32.const 8  ;; len
-        get_local 3  ;; page_idx
-        get_local 4  ;; page_offset
+        get_local 3  ;; len
+        i32.const 0  ;; page_idx
+        i32.const 0  ;; page_offset
         call $storage_write_from_reg))

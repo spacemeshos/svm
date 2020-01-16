@@ -4,7 +4,8 @@ mod register;
 mod storage;
 
 pub use buffer::{
-    buffer_copy_to_storage, buffer_create, buffer_freeze, buffer_kill, wasmer_data_buffer,
+    buffer_copy_to_reg, buffer_copy_to_storage, buffer_create, buffer_freeze, buffer_kill,
+    wasmer_data_buffer,
 };
 pub use data_wrapper::DataWrapper;
 pub use register::wasmer_data_reg;

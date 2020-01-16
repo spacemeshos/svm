@@ -27,7 +27,7 @@ fn runtime_spawn_app_with_ctor() {
         .deploy_template(&author, HostCtx::new(), &bytes)
         .unwrap();
 
-    // 3) spawn app
+    // 3) spawn app (and invoking its `ctor`)
     let buf_size: u32 = 10;
     let ctor_buf = vec![
         vec![0xAA],
@@ -87,13 +87,12 @@ fn runtime_exec_app() {
 
     // 4) executing the app-transaction.
     let func_name = "run";
-    let func_buf = vec![];
+    let func_buf = vec![vec![0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80]];
     let func_args = vec![
-        WasmValue::I64(0x10_20_30_40_50_60_70_80),
-        WasmValue::I32(64),
-        WasmValue::I32(0),
-        WasmValue::I32(0),
-        WasmValue::I32(0),
+        WasmValue::I32(0),  // buf_offset
+        WasmValue::I32(64), // reg_bits
+        WasmValue::I32(0),  // reg_idx
+        WasmValue::I32(8),  // len
     ];
     let bytes = testing::build_app_tx(version, &app_addr, func_name, &func_buf, &func_args);
 
@@ -101,6 +100,7 @@ fn runtime_exec_app() {
     let res = runtime.exec_app(tx, init_state.clone(), HostCtx::new());
 
     let receipt = res.unwrap();
+
     assert_eq!(true, receipt.success);
     assert_eq!(None, receipt.error);
 
