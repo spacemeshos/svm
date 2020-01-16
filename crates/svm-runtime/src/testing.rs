@@ -137,10 +137,17 @@ pub fn build_template(version: u32, name: &str, pages_count: u16, wasm: &str) ->
 }
 
 /// Synthesizes a raw spaw-app transaction.
-pub fn build_app(version: u32, template: &Address) -> Vec<u8> {
+pub fn build_app(
+    version: u32,
+    template: &Address,
+    ctor_buf: &Vec<Vec<u8>>,
+    ctor_args: &Vec<WasmValue>,
+) -> Vec<u8> {
     AppBuilder::new()
         .with_version(version)
         .with_template(template)
+        .with_ctor_buf(ctor_buf)
+        .with_ctor_args(ctor_args)
         .build()
 }
 
@@ -149,12 +156,14 @@ pub fn build_app_tx(
     version: u32,
     app_addr: &Address,
     func_name: &str,
-    func_args: &[WasmValue],
+    func_buf: &Vec<Vec<u8>>,
+    func_args: &Vec<WasmValue>,
 ) -> Vec<u8> {
     AppTxBuilder::new()
         .with_version(version)
         .with_app(app_addr)
         .with_func_name(func_name)
+        .with_func_buf(func_buf)
         .with_func_args(func_args)
         .build()
 }
