@@ -1,12 +1,14 @@
 extern crate svm_runtime_c_api;
 
 use svm_runtime_c_api as api;
-use svm_runtime_c_api::{svm_import_t, svm_value_type, testing, testing::host_ctx};
+use svm_runtime_c_api::{svm_import_t, svm_value_type, testing};
+
+use maplit::hashmap;
 
 use std::collections::HashMap;
 use std::ffi::c_void;
 
-use svm_app::types::WasmArgValue;
+use svm_app::types::WasmValue;
 use svm_common::{Address, State};
 use svm_runtime::register::SvmReg;
 
@@ -90,53 +92,70 @@ unsafe fn create_imports() -> (Vec<*const svm_import_t>, u32) {
     (imports, imports_len)
 }
 
-fn deploy_template_bytes(name: &str, author: u32, pages_count: u16, wasm: &str) -> (Vec<u8>, u64) {
-    let bytes = svm_runtime::testing::build_template(0, name, author, pages_count, wasm);
-    let bytes_len = bytes.len() as u64;
+fn deploy_template_bytes(version: u32, name: &str, pages_count: u16, wasm: &str) -> (Vec<u8>, u32) {
+    let bytes = svm_runtime::testing::build_template(version, name, pages_count, wasm);
+    let bytes_len = bytes.len() as u32;
 
     (bytes, bytes_len)
 }
 
-fn spawn_app_bytes(creator: u32, template_addr: *const c_void) -> (Vec<u8>, u64) {
+fn spawn_app_bytes(
+    version: u32,
+    template_addr: *const c_void,
+    ctor_buf: &Vec<Vec<u8>>,
+    ctor_args: &Vec<WasmValue>,
+) -> (Vec<u8>, u32) {
     let template_addr: &Address = unsafe { svm_common::from_raw::<Address>(template_addr) };
 
-    let bytes = svm_runtime::testing::build_app(0, template_addr, creator);
-    let bytes_len = bytes.len() as u64;
+    let bytes = svm_runtime::testing::build_app(version, template_addr, ctor_buf, ctor_args);
+    let bytes_len = bytes.len() as u32;
 
     (bytes, bytes_len)
 }
 
 fn exec_app_bytes(
-    sender_addr: u32,
+    version: u32,
     app_addr: *const c_void,
     func_name: &str,
-    func_args: &[WasmArgValue],
-) -> (Vec<u8>, u64) {
+    func_buf: &Vec<Vec<u8>>,
+    func_args: &Vec<WasmValue>,
+) -> (Vec<u8>, u32) {
     let app_addr: &Address = unsafe { svm_common::from_raw::<Address>(app_addr) };
 
-    let bytes = svm_runtime::testing::build_app_tx(0, app_addr, sender_addr, func_name, func_args);
-    let bytes_len = bytes.len() as u64;
+    let bytes =
+        svm_runtime::testing::build_app_tx(version, app_addr, func_name, func_buf, func_args);
+    let bytes_len = bytes.len() as u32;
 
     (bytes, bytes_len)
 }
 
-fn exec_app_args() -> (u32, i64, Vec<WasmArgValue>, State) {
-    let sender = 0x50_60_70_80;
+fn host_ctx_bytes(version: u32, fields: HashMap<i32, Vec<u8>>) -> (Vec<u8>, u32) {
+    let bytes = svm_runtime::testing::build_host_ctx(version, fields);
+    let bytes_len = bytes.len() as u32;
+
+    (bytes, bytes_len)
+}
+
+fn exec_app_args() -> (Address, i64, Vec<Vec<u8>>, Vec<WasmValue>, State) {
+    let sender = Address::from(0x50_60_70_80);
     let mul_by = 3;
-    let args = vec![WasmArgValue::I64(mul_by)];
+    let func_buf = vec![];
+    let func_args = vec![WasmValue::I64(mul_by)];
     let state = State::empty();
 
-    (sender, mul_by as i64, args, state)
+    (sender, mul_by, func_buf, func_args, state)
 }
 
 #[test]
 fn runtime_ffi_exec_app() {
     unsafe {
-        do_exec_app();
+        do_ffi_exec_app();
     }
 }
 
-unsafe fn do_exec_app() {
+unsafe fn do_ffi_exec_app() {
+    let version: u32 = 0;
+
     // 1) init runtime
     let mut host = Host::new();
     let mut kv = std::ptr::null_mut();
@@ -155,16 +174,19 @@ unsafe fn do_exec_app() {
     assert_eq!(true, res.as_bool());
 
     // 2) deploy app-template
-    let author = 0x10_20_30_40;
+    let author = Address::from(0x10_20_30_40);
     let code = include_str!("wasm/update-balance.wast");
     let pages_count = 10;
-    let (bytes, bytes_len) = deploy_template_bytes("MyTemplate #1", author, pages_count, code);
+    let (hctx_bytes, hctx_len) = host_ctx_bytes(version, hashmap! {});
+    let (bytes, bytes_len) = deploy_template_bytes(version, "MyTemplate #1", pages_count, code);
     let mut template = std::ptr::null_mut();
 
     let res = api::svm_deploy_template(
         &mut template,
         runtime,
-        Address::from(author).as_ptr() as _,
+        author.as_ptr() as _,
+        hctx_bytes.as_ptr() as _,
+        hctx_len as _,
         bytes.as_ptr() as _,
         bytes_len,
     );
@@ -172,24 +194,35 @@ unsafe fn do_exec_app() {
 
     // 3) spawn app
     let mut app_addr = std::ptr::null_mut();
-    let creator = 0x20_30_40_50;
-    let (bytes, bytes_len) = spawn_app_bytes(creator, template as _);
+    let creator = Address::from(0x20_30_40_50);
+    let ctor_buf = vec![];
+    let ctor_args = vec![];
+    let (hctx_bytes, hctx_len) = host_ctx_bytes(version, hashmap! {});
+    let (bytes, bytes_len) = spawn_app_bytes(version, template as _, &ctor_buf, &ctor_args);
     let res = api::svm_spawn_app(
         &mut app_addr,
         runtime,
-        Address::from(creator).as_ptr() as _,
+        creator.as_ptr() as _,
+        hctx_bytes.as_ptr() as _,
+        hctx_len as _,
         bytes.as_ptr() as _,
         bytes_len,
     );
     assert_eq!(true, res.as_bool());
 
-    // 3) execute app
-    let (sender, mul_by, args, state) = exec_app_args();
-    let (bytes, bytes_len) = exec_app_bytes(sender, app_addr, "run", &args);
+    // // 3) execute app
+    let (sender, mul_by, func_buf, func_args, state) = exec_app_args();
+    let (bytes, bytes_len) = exec_app_bytes(version, app_addr, "run", &func_buf, &func_args);
 
     // 3.1) parse bytes into in-memory `AppTransaction`
     let mut app_tx = std::ptr::null_mut();
-    let res = api::svm_parse_exec_app(&mut app_tx, runtime, bytes.as_ptr() as _, bytes_len);
+    let res = api::svm_parse_exec_app(
+        &mut app_tx,
+        runtime,
+        sender.as_ptr() as _,
+        bytes.as_ptr() as _,
+        bytes_len,
+    );
     assert_eq!(true, res.as_bool());
 
     // 3.2) execute the app-transaction
@@ -199,11 +232,9 @@ unsafe fn do_exec_app() {
 
     let delta = 50;
     let delta_vec = vec![0, 0, 0, 0, 0, 0, 0, delta];
+
     // we set field index `2` with a value called `delta` (one byte).
-    let mut host_ctx = Vec::new();
-    host_ctx::write_version(&mut host_ctx, 0);
-    host_ctx::write_field_count(&mut host_ctx, 1);
-    host_ctx::write_field(&mut host_ctx, 2, delta_vec);
+    let (host_ctx_bytes, host_ctx_len) = host_ctx_bytes(version, hashmap! { 2 => delta_vec });
 
     let mut receipt = std::ptr::null_mut();
     let mut receipt_length = 0;
@@ -213,8 +244,8 @@ unsafe fn do_exec_app() {
         runtime,
         app_tx,
         svm_common::into_raw(state),
-        host_ctx.as_ptr() as _,
-        host_ctx.len() as _,
+        host_ctx_bytes.as_ptr() as _,
+        host_ctx_len as _,
     );
     assert_eq!(true, res.as_bool());
 

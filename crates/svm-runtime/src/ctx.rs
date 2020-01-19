@@ -1,16 +1,17 @@
 use std::collections::HashMap;
-
-use crate::{alloc_regs, buffer::BufferRef, host_ctx::HostCtx};
-
-use log::debug;
 use std::ffi::c_void;
 
-use svm_storage::AppStorage;
+use log::debug;
 
 use crate::{
+    alloc_regs,
+    buffer::BufferRef,
     helpers::DataWrapper,
     register::{SvmReg, SvmReg160, SvmReg32, SvmReg512, SvmReg64},
 };
+
+use svm_app::types::HostCtx;
+use svm_storage::AppStorage;
 
 /// The number of allocated `SvmReg32` registers for each `SvmCtx`
 pub const REGS_32_COUNT: usize = 16;

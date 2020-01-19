@@ -25,7 +25,7 @@ pub unsafe fn cast_to_runtime_mut<'a>(raw_runtime: *mut c_void) -> &'a mut Box<d
 /// * The last `Export` is `wasmer` inner representation for imports.
 pub unsafe fn cast_imports_to_wasmer_imports(
     imports: *const *const svm_import_t,
-    imports_len: libc::c_uint,
+    imports_len: u32,
 ) -> Vec<(String, String, Export)> {
     // function code has been influenced heavily by `wasmer_import_object_extend` here:
     // https://github.com/wasmerio/wasmer/blob/f9bb579c05abc795d597a03352683fc62a4121d5/lib/runtime-c-api/src/import/mod.rs#L373

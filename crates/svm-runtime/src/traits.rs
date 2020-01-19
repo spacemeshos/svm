@@ -1,11 +1,10 @@
 use crate::{
     error::{DeployTemplateError, ExecAppError, SpawnAppError},
-    host_ctx::HostCtx,
     settings::AppSettings,
     Receipt,
 };
 
-use svm_app::types::AppTransaction;
+use svm_app::types::{AppTransaction, HostCtx};
 use svm_common::{Address, State};
 use svm_storage::AppStorage;
 

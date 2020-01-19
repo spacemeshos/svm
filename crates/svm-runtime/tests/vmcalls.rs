@@ -1,15 +1,16 @@
 use std::ffi::c_void;
 
+use maplit::hashmap;
+
 use wasmer_runtime::{func, imports, Func};
 
+use svm_app::types::HostCtx;
 use svm_common::{Address, State};
 use svm_runtime::{
     helpers::{self, DataWrapper},
-    host_ctx::HostCtx,
     testing::{self, instance_buffer, instance_register, instance_storage},
     vmcalls,
 };
-
 use svm_storage::page::{PageIndex, PageOffset, PageSliceLayout};
 
 fn default_test_args() -> (
@@ -340,9 +341,11 @@ fn vmcalls_reg_replace_byte_read_write_be_i64() {
 fn vmcalls_host_ctx_read_into_reg() {
     let (app_addr, state, host, _host_ctx, pages_count) = default_test_args();
 
-    let mut host_ctx = HostCtx::new();
-    host_ctx.insert(2, vec![10, 20]);
-    host_ctx.insert(3, vec![30, 40, 50]);
+    let host_ctx = HostCtx::from(hashmap! {
+        2 => vec![10, 20],
+        3 => vec![30, 40, 50]
+    });
+
     let host_ctx = DataWrapper::new(svm_common::into_raw(host_ctx));
 
     let import_object = imports! {

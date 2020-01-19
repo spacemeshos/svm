@@ -14,9 +14,6 @@ pub use runtime::{create_rocksdb_runtime, DefaultRuntime, Receipt};
 /// Implements `SvmCtx`. Used for running `SVM` instances.
 pub mod ctx;
 
-/// Host context fields.
-pub mod host_ctx;
-
 /// Implements register abstraction to ease interfacing
 /// with the app-storage / `app` memory.
 pub mod register;

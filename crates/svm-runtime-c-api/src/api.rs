@@ -2,7 +2,10 @@ use std::ffi::c_void;
 
 use log::{debug, error};
 
-use svm_app::{default::DefaultJsonSerializerTypes, types::AppTransaction};
+use svm_app::{
+    default::DefaultJsonSerializerTypes,
+    types::{AppTransaction, HostCtx},
+};
 use svm_common::{Address, State};
 use svm_runtime::{ctx::SvmCtx, traits::Runtime};
 
@@ -18,10 +21,10 @@ use crate::{
 pub unsafe extern "C" fn svm_runtime_create(
     runtime: *mut *mut c_void,
     path_bytes: *const c_void,
-    path_len: libc::c_uint,
+    path_len: u32,
     host: *mut c_void,
     imports: *const *const svm_import_t,
-    imports_len: libc::c_uint,
+    imports_len: u32,
 ) -> svm_result_t {
     debug!("`svm_runtime_create` start");
 
@@ -108,16 +111,23 @@ pub unsafe extern "C" fn svm_deploy_template(
     template_addr: *mut *mut c_void,
     runtime: *mut c_void,
     author_addr: *const c_void,
+    host_ctx_bytes: *const c_void,
+    host_ctx_len: u32,
     bytes: *const c_void,
-    bytes_len: u64,
+    bytes_len: u32,
 ) -> svm_result_t {
     debug!("`svm_deploy_template` start`");
 
     let runtime = helpers::cast_to_runtime_mut(runtime);
     let author = Address::from(author_addr);
     let bytes = std::slice::from_raw_parts(bytes as *const u8, bytes_len as usize);
+    let host_ctx = HostCtx::from_raw_parts(host_ctx_bytes, host_ctx_len as usize);
 
-    match runtime.deploy_template(&author, &bytes) {
+    if host_ctx.is_err() {
+        todo!()
+    }
+
+    match runtime.deploy_template(&author, host_ctx.unwrap(), &bytes) {
         Ok(addr) => {
             *template_addr = svm_common::into_raw_mut(addr);
             debug!("`svm_deploy_template`` returns `SVM_SUCCESS`");
@@ -138,16 +148,19 @@ pub unsafe extern "C" fn svm_spawn_app(
     app_addr: *mut *mut c_void,
     runtime: *mut c_void,
     creator_addr: *const c_void,
+    host_ctx_bytes: *const c_void,
+    host_ctx_len: u32,
     bytes: *const c_void,
-    bytes_len: u64,
+    bytes_len: u32,
 ) -> svm_result_t {
     debug!("`svm_spawn_app` start");
 
     let runtime = helpers::cast_to_runtime_mut(runtime);
     let creator = Address::from(creator_addr);
+    let host_ctx = HostCtx::from_raw_parts(host_ctx_bytes, host_ctx_len as usize);
     let bytes = std::slice::from_raw_parts(bytes as *const u8, bytes_len as usize);
 
-    match runtime.spawn_app(&creator, bytes) {
+    match runtime.spawn_app(&creator, host_ctx.unwrap(), bytes) {
         Ok(addr) => {
             *app_addr = svm_common::into_raw_mut(addr);
             debug!("`svm_spawn_app` returns `SVM_SUCCESS`");
@@ -168,15 +181,17 @@ pub unsafe extern "C" fn svm_spawn_app(
 pub unsafe extern "C" fn svm_parse_exec_app(
     app_tx: *mut *mut c_void,
     runtime: *const c_void,
+    sender_addr: *const c_void,
     bytes: *const c_void,
-    bytes_len: u64,
+    bytes_len: u32,
 ) -> svm_result_t {
     debug!("`svm_parse_exec_app` start");
 
-    let bytes = std::slice::from_raw_parts(bytes as *const u8, bytes_len as usize);
     let runtime = helpers::cast_to_runtime(runtime);
+    let sender = Address::from(sender_addr);
+    let bytes = std::slice::from_raw_parts(bytes as *const u8, bytes_len as usize);
 
-    match runtime.parse_exec_app(bytes) {
+    match runtime.parse_exec_app(&sender, bytes) {
         Ok(tx) => {
             *app_tx = svm_common::into_raw_mut(tx);
             debug!("`svm_parse_exec_app` returns `SVM_SUCCESS`");
@@ -197,16 +212,16 @@ pub unsafe extern "C" fn svm_parse_exec_app(
 #[no_mangle]
 pub unsafe extern "C" fn svm_exec_app(
     receipt: *mut *mut c_void,
-    receipt_length: *mut libc::c_uint,
+    receipt_length: *mut u32,
     runtime: *mut c_void,
     app_tx: *const c_void,
     state: *const c_void,
     host_ctx_bytes: *const c_void,
-    host_ctx_length: libc::c_uint,
+    host_ctx_len: u32,
 ) -> svm_result_t {
     debug!("`svm_exec_app` start");
 
-    let host_ctx = crate::parse_host_ctx(host_ctx_bytes, host_ctx_length);
+    let host_ctx = HostCtx::from_raw_parts(host_ctx_bytes, host_ctx_len as usize);
 
     if host_ctx.is_err() {
         // update_last_error(e);

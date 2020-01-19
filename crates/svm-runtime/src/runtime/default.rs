@@ -10,7 +10,6 @@ use crate::{
     error::{DeployTemplateError, ExecAppError, SpawnAppError},
     helpers,
     helpers::DataWrapper,
-    host_ctx::HostCtx,
     runtime::Receipt,
     settings::AppSettings,
     traits::{Runtime, StorageBuilderFn},
@@ -19,7 +18,7 @@ use crate::{
 
 use svm_app::{
     traits::{Env, EnvTypes},
-    types::{App, AppTemplate, AppTransaction, BufferSlice, SpawnApp, WasmValue},
+    types::{App, AppTemplate, AppTransaction, BufferSlice, HostCtx, SpawnApp, WasmValue},
 };
 use svm_common::{Address, State};
 use svm_storage::AppStorage;

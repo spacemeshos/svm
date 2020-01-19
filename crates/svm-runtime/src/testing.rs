@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::ffi::c_void;
 use std::rc::Rc;
 
@@ -13,7 +14,7 @@ use svm_storage::AppStorage;
 
 use svm_app::{
     memory::{JsonMemAppStore, JsonMemAppTemplateStore, JsonMemoryEnv},
-    testing::{AppBuilder, AppTemplateBuilder, AppTxBuilder},
+    testing::{AppBuilder, AppTemplateBuilder, AppTxBuilder, HostCtxBuilder},
     types::WasmValue,
 };
 
@@ -166,4 +167,14 @@ pub fn build_app_tx(
         .with_func_buf(func_buf)
         .with_func_args(func_args)
         .build()
+}
+
+pub fn build_host_ctx(version: u32, fields: HashMap<i32, Vec<u8>>) -> Vec<u8> {
+    let mut builder = HostCtxBuilder::new().with_version(version);
+
+    for (idx, value) in fields.iter() {
+        builder = builder.with_raw_field(*idx, &value[..]);
+    }
+
+    builder.build()
 }

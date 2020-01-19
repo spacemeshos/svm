@@ -1,4 +1,5 @@
 mod app;
+mod host_ctx;
 mod template;
 mod transaction;
 

@@ -1,6 +1,6 @@
-use svm_app::types::WasmValue;
+use svm_app::types::{HostCtx, WasmValue};
 use svm_common::Address;
-use svm_runtime::{host_ctx::HostCtx, settings::AppSettings, testing, traits::Runtime};
+use svm_runtime::{settings::AppSettings, testing, traits::Runtime};
 use svm_storage::page::{PageIndex, PageOffset, PageSliceLayout};
 
 #[test]
