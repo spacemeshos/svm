@@ -210,7 +210,7 @@ unsafe fn do_ffi_exec_app() {
     );
     assert_eq!(true, res.as_bool());
 
-    // // 3) execute app
+    // 3) execute app
     let (sender, mul_by, func_buf, func_args, state) = exec_app_args();
     let (bytes, bytes_len) = exec_app_bytes(version, app_addr, "run", &func_buf, &func_args);
 
@@ -249,8 +249,8 @@ unsafe fn do_ffi_exec_app() {
     );
     assert_eq!(true, res.as_bool());
 
-    assert_eq!(
-        100 * mul_by + (delta as i64),
-        host.get_balance(&Address::from(0x10_20_30)).unwrap()
-    );
+    let expected = 100 * mul_by + (delta as i64);
+    let actual = host.get_balance(&Address::from(0x10_20_30)).unwrap();
+
+    assert_eq!(expected, actual);
 }
