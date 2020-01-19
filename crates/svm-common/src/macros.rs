@@ -105,6 +105,22 @@ macro_rules! impl_bytes_primitive {
         }
 
         /// Should be used **only** for tests
+        impl From<&str> for $primitive {
+            fn from(s: &str) -> $primitive {
+                let mut buf = [0; $byte_count];
+
+                let bytes = s.as_bytes();
+
+                assert!(bytes.len() <= $byte_count);
+
+                unsafe {
+                    std::ptr::copy(bytes.as_ptr(), buf.as_mut_ptr(), bytes.len());
+                }
+
+                $primitive(buf)
+            }
+        }
+        /// Should be used **only** for tests
         #[doc(hidden)]
         impl From<u32> for $primitive {
             fn from(n: u32) -> $primitive {
