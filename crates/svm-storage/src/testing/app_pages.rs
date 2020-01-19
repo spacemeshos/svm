@@ -8,10 +8,10 @@ use crate::memory::MemAppPages;
 
 /// Initializes a new app pages backed by a new in-memory key-value store.
 pub fn app_pages_init(
-    addr: u32,
+    addr: &str,
     pages_count: u16,
 ) -> (Address, Rc<RefCell<MemKVStore>>, MemAppPages) {
-    let addr = Address::from(addr as u32);
+    let addr = Address::of(addr);
     let kv = Rc::new(RefCell::new(MemKVStore::new()));
 
     let pages = MemAppPages::new(addr.clone(), Rc::clone(&kv), State::empty(), pages_count);

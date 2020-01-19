@@ -47,7 +47,7 @@ mod tests {
         let page1: Vec<u8> = vec![10, 20, 30];
         let page2: Vec<u8> = vec![40, 50, 60];
 
-        let addr = Address::from(0xAABBCC);
+        let addr = Address::of("something");
 
         let page1_hash = DefaultPageHasher::hash(addr.clone(), PageIndex(0), &page1);
         let page2_hash = DefaultPageHasher::hash(addr.clone(), PageIndex(1), &page2);

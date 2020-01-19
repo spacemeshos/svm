@@ -102,6 +102,21 @@ macro_rules! impl_bytes_primitive {
                     crate::fmt::fmt_hex(last.as_slice(), separator)
                 )
             }
+
+            /// Should be used **only** for tests
+            pub fn of(s: &str) -> $primitive {
+                let mut buf = [0; $byte_count];
+
+                let bytes = s.as_bytes();
+
+                assert!(bytes.len() <= $byte_count);
+
+                unsafe {
+                    std::ptr::copy(bytes.as_ptr(), buf.as_mut_ptr(), bytes.len());
+                }
+
+                $primitive(buf)
+            }
         }
 
         /// Should be used **only** for tests

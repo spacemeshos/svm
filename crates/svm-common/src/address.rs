@@ -158,6 +158,18 @@ mod tests {
     }
 
     #[test]
+    fn address_from_str() {
+        let bytes: [u8; 20] = [
+            b'a', b'd', b'd', b'r', b'e', b's', b's', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ];
+
+        let expected = Address::from(&bytes[..]);
+        let actual = Address::of("address");
+
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
     fn address_from_u32() {
         let expected = Address([
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,

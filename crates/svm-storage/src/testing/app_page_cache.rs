@@ -8,7 +8,7 @@ use crate::{default::DefaultPageCache, memory::MemAppPages, testing};
 
 /// Initialises a new page-cache backed by a new initialized in-memory pages-storage.
 pub fn app_page_cache_init(
-    addr: u32,
+    addr: &str,
     pages_count: u16,
 ) -> (
     Address,

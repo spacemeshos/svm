@@ -9,6 +9,21 @@ pub fn u32_to_be_array(num: u32) -> [u8; 4] {
     [b3, b2, b1, b0]
 }
 
+/// Converts an unsigned 64-bit integer into a 8-byte array (ordered in Big-Endian)
+#[inline(always)]
+pub fn u64_to_be_array(num: u64) -> [u8; 8] {
+    let b7 = ((num >> 56) & 0xFF) as u8;
+    let b6 = ((num >> 48) & 0xFF) as u8;
+    let b5 = ((num >> 40) & 0xFF) as u8;
+    let b4 = ((num >> 32) & 0xFF) as u8;
+    let b3 = ((num >> 24) & 0xFF) as u8;
+    let b2 = ((num >> 16) & 0xFF) as u8;
+    let b1 = ((num >> 8) & 0xFF) as u8;
+    let b0 = (num & 0xFF) as u8;
+
+    [b7, b6, b5, b4, b3, b2, b1, b0]
+}
+
 /// Converts an unsigned 32-bit integer into a 4-byte array (ordered in Little-Endian)
 #[inline(always)]
 pub fn u32_to_le_array(num: u32) -> [u8; 4] {
@@ -32,21 +47,6 @@ pub fn u64_to_le_array(num: u64) -> [u8; 8] {
     let b5 = ((num >> 16) & 0xFF) as u8;
     let b6 = ((num >> 8) & 0xFF) as u8;
     let b7 = (num & 0xFF) as u8;
-
-    [b7, b6, b5, b4, b3, b2, b1, b0]
-}
-
-/// Converts an unsigned 64-bit integer into a 8-byte array (ordered in Big-Endian)
-#[inline(always)]
-pub fn u64_to_be_array(num: u64) -> [u8; 8] {
-    let b7 = ((num >> 56) & 0xFF) as u8;
-    let b6 = ((num >> 48) & 0xFF) as u8;
-    let b5 = ((num >> 40) & 0xFF) as u8;
-    let b4 = ((num >> 32) & 0xFF) as u8;
-    let b3 = ((num >> 24) & 0xFF) as u8;
-    let b2 = ((num >> 16) & 0xFF) as u8;
-    let b1 = ((num >> 8) & 0xFF) as u8;
-    let b0 = (num & 0xFF) as u8;
 
     [b7, b6, b5, b4, b3, b2, b1, b0]
 }
@@ -87,25 +87,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_u32_to_be_array() {
-        let expected = [0x11, 0x22, 0x33, 0x44];
-        let actual = u32_to_be_array(0x11_22_33_44);
-
-        assert_eq!(expected, actual);
-    }
-
-    #[test]
     fn test_u32_to_le_array() {
         let expected = [0x44, 0x33, 0x22, 0x11];
         let actual = u32_to_le_array(0x11_22_33_44);
-
-        assert_eq!(expected, actual);
-    }
-
-    #[test]
-    fn test_u64_to_be_array() {
-        let expected = [0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88];
-        let actual = u64_to_be_array(0x11_22_33_44_55_66_77_88);
 
         assert_eq!(expected, actual);
     }

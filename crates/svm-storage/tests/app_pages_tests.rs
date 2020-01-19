@@ -13,7 +13,7 @@ mod asserts;
 #[test]
 fn app_pages_first_time_run_with_no_modifications_no_commit() {
     let pages_count = 3;
-    let addr = 0x11_22_33_44;
+    let addr = "my-app";
 
     let (_addr, _kv, mut pages) = app_pages_init(addr, pages_count);
 
@@ -25,7 +25,7 @@ fn app_pages_first_time_run_with_no_modifications_no_commit() {
 #[test]
 fn app_pages_first_time_run_with_no_modifications_then_commit() {
     let pages_count = 3;
-    let addr = 0x11_22_33_44;
+    let addr = "my-app";
 
     let (addr, kv, mut pages) = app_pages_init(addr, pages_count);
     assert_eq!(0, pages.dirty_pages_count());
@@ -57,7 +57,7 @@ fn app_pages_first_time_run_with_no_modifications_then_commit() {
 #[test]
 fn app_pages_first_time_run_with_one_modified_page() {
     let pages_count = 3;
-    let addr = 0x11_22_33_44;
+    let addr = "my-app";
 
     let (addr, kv, mut pages) = app_pages_init(addr, pages_count);
 
@@ -91,7 +91,7 @@ fn app_pages_first_time_run_with_one_modified_page() {
 #[test]
 fn app_pages_first_time_run_with_two_modified_pages() {
     let pages_count = 2;
-    let addr = 0x11_22_33_44;
+    let addr = "my-app";
 
     let (addr, kv, mut pages) = app_pages_init(addr, pages_count);
 
@@ -120,7 +120,7 @@ fn app_pages_first_time_run_with_two_modified_pages() {
 fn app_pages_second_run_after_first_run_with_no_modifications() {
     // 1st run
     let pages_count = 3;
-    let addr = 0x11_22_33_44;
+    let addr = "my-app";
 
     let (addr, kv, mut pages) = app_pages_init(addr, pages_count);
     pages.commit();
@@ -157,7 +157,7 @@ fn app_pages_second_run_after_first_run_with_no_modifications() {
 fn app_pages_second_run_after_first_run_with_modifications() {
     // 1st run
     let pages_count = 3;
-    let addr = 0x11_22_33_44;
+    let addr = "my-app";
 
     let (addr, kv, mut pages) = app_pages_init(addr, pages_count);
 
@@ -202,7 +202,7 @@ fn app_pages_second_run_after_first_run_with_modifications() {
 fn app_pages_third_run_rollbacks_to_after_first_run() {
     // 1st run
     let pages_count = 3;
-    let addr = 0x11_22_33_44;
+    let addr = "my-app";
 
     let (addr, kv, mut pages) = app_pages_init(addr, pages_count);
 

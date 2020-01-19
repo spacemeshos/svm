@@ -50,7 +50,7 @@ mod tests {
         data.extend_from_slice(&page_data_hash);
         let expected = PageHash(DefaultKeyHasher::hash(data.as_slice()));
 
-        let addr = Address::from(0x44_33_22_11 as u32);
+        let addr = Address::from(0x44_33_22_11);
         let page_idx = PageIndex(3);
         let page_data = vec![10, 20, 30];
 

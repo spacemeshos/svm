@@ -137,7 +137,7 @@ fn host_ctx_bytes(version: u32, fields: HashMap<i32, Vec<u8>>) -> (Vec<u8>, u32)
 }
 
 fn exec_app_args() -> (Address, i64, Vec<Vec<u8>>, Vec<WasmValue>, State) {
-    let sender = Address::from(0x50_60_70_80);
+    let sender = Address::of("sender");
     let mul_by = 3;
     let func_buf = vec![];
     let func_args = vec![WasmValue::I64(mul_by)];
@@ -174,7 +174,7 @@ unsafe fn do_ffi_exec_app() {
     assert_eq!(true, res.as_bool());
 
     // 2) deploy app-template
-    let author = Address::from(0x10_20_30_40);
+    let author = Address::of("author");
     let code = include_str!("wasm/update-balance.wast");
     let pages_count = 10;
     let (hctx_bytes, hctx_len) = host_ctx_bytes(version, hashmap! {});
@@ -194,7 +194,7 @@ unsafe fn do_ffi_exec_app() {
 
     // 3) spawn app
     let mut app_addr = std::ptr::null_mut();
-    let creator = Address::from(0x20_30_40_50);
+    let creator = Address::of("creator");
     let ctor_buf = vec![];
     let ctor_args = vec![];
     let (hctx_bytes, hctx_len) = host_ctx_bytes(version, hashmap! {});

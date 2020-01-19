@@ -10,8 +10,8 @@ pub fn default_page_hash(addr: &Address, page_idx: u16, data: &[u8]) -> PageHash
 }
 
 /// An helper for computing page-index hashes using `DefaultPageIndexHasher`
-pub fn default_page_index_hash(addr: u32, page_idx: u16) -> [u8; 32] {
-    let addr = Address::from(addr as u32);
+pub fn default_page_index_hash(addr: &str, page_idx: u16) -> [u8; 32] {
+    let addr = Address::of(addr);
 
     DefaultPageIndexHasher::hash(addr, PageIndex(page_idx))
 }
