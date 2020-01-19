@@ -1,22 +1,24 @@
-//!  Execute `AppTransaction` Wire Protocol Version 0.0.0.0
+//!    Execute `AppTransaction` Raw Format Version 0.0.0.0
 //!  -------------------------------------------------------
 //!  |   proto    |                                        |
-//!  |  version   |         `TemplateAddress`              |
-//!  |  (4 bytes) |            (20 bytes)                  |
+//!  |  version   |           `TemplateAddress`            |
+//!  |  (4 bytes) |             (20 bytes)                 |
 //!  |____________|________________________________________|
-//!  |                                                     |
-//!  |                  Sender `Address`                   |
-//!  |                    (20 bytes)                       |
-//!  |_____________________________________________________|
 //!  |             |                                       |
 //!  |  func name  |                                       |
 //!  |   length    |          func name (UTF-8)            |
 //!  |  (1 byte)   |                                       |
 //!  |_____________|_______________________________________|
-//!  |           |              |         |                |
-//!  |  #args    |  arg #1 type |  arg #1 |    . . . .     |
-//!  | (1 byte)  |  (1 byte)    |  value  |                |
-//!  |___________|______________|_________|________________|
+//!  |  func-buf  |  func-buf  |  func-buf  |              |
+//!  |   #slices  |   slice #1 |  slice #1  |              |
+//!  |            |    len     |            |   . . . .    |
+//!  | (1 byte)   | (2 bytes)  |   value    |              |
+//!  |____________|____________|____________|______________|
+//!  | func-args |    func   |    func   |                 |
+//!  |   #args   |   arg #1  |   arg #1  |                 |
+//!  |           |    type   |   value   |     . . . .     |
+//!  | (1 byte)  | (1 byte)  | (i32/i64) |                 |
+//!  |___________|___________|___________|_________________|
 //!
 
 mod parse;

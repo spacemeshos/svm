@@ -52,12 +52,12 @@ where
     }
 
     fn load(&self, addr: &Address) -> Option<AppTemplate> {
-        match self.template_hash.get(addr) {
-            None => None,
-            Some(hash) => match self.template_bytes.get(&hash) {
-                None => None,
-                Some(bytes) => D::deserialize(bytes.to_vec()),
-            },
-        }
+        let hash = self.template_hash.get(addr);
+
+        hash.and_then(|h| {
+            self.template_bytes
+                .get(&h)
+                .and_then(|bytes| D::deserialize(bytes.to_vec()))
+        })
     }
 }

@@ -20,16 +20,14 @@ fn store_template() {
     let bytes = AppTemplateBuilder::new()
         .with_version(0)
         .with_name(name)
-        .with_author(&author)
         .with_pages_count(pages_count)
         .with_code(&code)
         .build();
 
-    let template = env.parse_template(&bytes).unwrap();
+    let template = env.parse_template(&bytes, &author).unwrap();
     let expected_addr = env.derive_template_address(&template);
 
-    let res = env.store_template(&template);
-    let actual_addr = res.unwrap();
+    let actual_addr = env.store_template(&template).unwrap();
     assert_eq!(expected_addr, actual_addr);
 
     let expected = AppTemplate {

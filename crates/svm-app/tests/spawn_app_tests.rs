@@ -3,29 +3,42 @@ use svm_app::{
     memory::{JsonMemAppStore, JsonMemAppTemplateStore, JsonMemoryEnv},
     testing::AppBuilder,
     traits::Env,
-    types::{App, AppTemplate},
+    types::{App, AppTemplate, BufferSlice, SpawnApp, WasmValue},
 };
 use svm_common::Address;
 
 #[test]
-fn parse_app() {
+fn parse_spawn_app() {
     let app_store = JsonMemAppStore::new();
     let template_store = JsonMemAppTemplateStore::new();
     let env = JsonMemoryEnv::new(app_store, template_store);
 
-    let template_addr = Address::from(0x10_20_30_40);
-    let creator_addr = Address::from(0x50_60_70_80);
+    let template = Address::from(0x10_20_30_40);
+    let creator = Address::from(0x50_60_70_80);
 
     let bytes = AppBuilder::new()
         .with_version(0)
-        .with_template(&template_addr)
-        .with_creator(&creator_addr)
+        .with_template(&template)
+        .with_ctor_buf(&vec![vec![0xAA, 0xAA, 0xAA], vec![0xBB, 0xBB]])
+        .with_ctor_args(&vec![WasmValue::I32(10), WasmValue::I64(200)])
         .build();
 
-    let app = env.parse_app(&bytes).unwrap();
+    let actual = env.parse_app(&bytes, &creator).unwrap();
 
-    assert_eq!(template_addr, app.template);
-    assert_eq!(creator_addr, app.creator);
+    let expected = SpawnApp {
+        app: App { template, creator },
+        ctor_buf: vec![
+            BufferSlice {
+                data: vec![0xAA, 0xAA, 0xAA],
+            },
+            BufferSlice {
+                data: vec![0xBB, 0xBB],
+            },
+        ],
+        ctor_args: vec![WasmValue::I32(10), WasmValue::I64(200)],
+    };
+
+    assert_eq!(expected, actual);
 }
 
 #[test]
@@ -48,14 +61,14 @@ fn valid_app_creation() {
     let bytes = AppBuilder::new()
         .with_version(0)
         .with_template(&template_addr)
-        .with_creator(&creator_addr)
         .build();
 
-    let app = env.parse_app(&bytes).unwrap();
-    let expected_addr = env.derive_app_address(&app);
+    let spawn_app = env.parse_app(&bytes, &creator_addr).unwrap();
+    let app = &spawn_app.app;
 
-    let res = env.store_app(&app);
-    let actual_addr = res.unwrap();
+    let expected_addr = env.derive_app_address(app);
+
+    let actual_addr = env.store_app(app).unwrap();
     assert_eq!(expected_addr, actual_addr);
 
     let expected = App {
@@ -79,11 +92,10 @@ fn app_template_does_not_exist() {
     let bytes = AppBuilder::new()
         .with_version(0)
         .with_template(&template_addr)
-        .with_creator(&creator_addr)
         .build();
 
-    let app = env.parse_app(&bytes).unwrap();
-    let actual = env.store_app(&app);
+    let spawn_app = env.parse_app(&bytes, &creator_addr).unwrap();
+    let actual = env.store_app(&spawn_app.app);
 
     let msg = "`AppTemplate` not found (address = `Address([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16, 32, 48, 64])`)";
     let expected = Err(StoreError::DataCorruption(msg.to_string()));

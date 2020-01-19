@@ -1,9 +1,6 @@
 mod receipt;
 pub use receipt::{decode_receipt, ClientReceipt};
 
-/// `HostCtx` encoding
-pub mod host_ctx;
-
 use std::cell::RefCell;
 use std::ffi::c_void;
 use std::rc::Rc;
@@ -37,7 +34,7 @@ pub unsafe extern "C" fn svm_memory_runtime_create(
     kv: *const c_void,
     host: *mut c_void,
     imports: *const *const svm_import_t,
-    imports_len: libc::c_uint,
+    imports_len: u32,
 ) -> svm_result_t {
     debug!("`svm_runtime_create` start");
 

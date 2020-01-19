@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::types::WasmArgValue;
+use crate::types::{BufferSlice, WasmValue};
 
 use svm_common::Address;
 
@@ -10,14 +10,17 @@ pub struct AppTransaction {
     /// The `App` account address
     pub app: Address,
 
-    /// AppTransaction sender account address
+    /// Sender account address
     pub sender: Address,
+
+    /// Args buffer slices
+    pub func_buf: Vec<BufferSlice>,
 
     /// `App` function to execute
     pub func_name: String,
 
     /// `App` function args
-    pub func_args: Vec<WasmArgValue>,
+    pub func_args: Vec<WasmValue>,
 }
 
 impl fmt::Debug for AppTransaction {
@@ -26,8 +29,9 @@ impl fmt::Debug for AppTransaction {
         let sender = self.fmt_sender();
         let func_name = self.fmt_func_name();
         let func_args = self.fmt_func_args();
+        let func_buf = self.fmt_func_buf();
 
-        let msg = [app, sender, func_name, func_args];
+        let msg = [app, sender, func_name, func_args, func_buf];
 
         write!(f, "{}", msg.join("\n"))
     }
@@ -50,8 +54,13 @@ impl AppTransaction {
         format!("FuncName: {:?}", self.func_name)
     }
 
-    fn fmt_func_arg(&self, func_arg: &WasmArgValue) -> String {
+    fn fmt_func_arg(&self, func_arg: &WasmValue) -> String {
         format!("{:?}", func_arg)
+    }
+
+    fn fmt_func_buf(&self) -> String {
+        // TODO: ...
+        "...".to_string()
     }
 
     fn fmt_func_args(&self) -> String {

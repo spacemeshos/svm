@@ -7,7 +7,6 @@ use svm_common::Address;
 pub struct AppTemplateBuilder {
     version: Option<u32>,
     name: Option<String>,
-    author: Option<Address>,
     pages_count: Option<u16>,
     code: Option<Vec<u8>>,
 }
@@ -19,7 +18,6 @@ impl AppTemplateBuilder {
         Self {
             version: None,
             name: None,
-            author: None,
             pages_count: None,
             code: None,
         }
@@ -32,11 +30,6 @@ impl AppTemplateBuilder {
 
     pub fn with_name(mut self, name: &str) -> Self {
         self.name = Some(name.to_string());
-        self
-    }
-
-    pub fn with_author(mut self, address: &Address) -> Self {
-        self.author = Some(address.clone());
         self
     }
 
@@ -55,7 +48,6 @@ impl AppTemplateBuilder {
 
         self.write_version(&mut buf);
         self.write_name(&mut buf);
-        self.write_author(&mut buf);
         self.write_admins(&mut buf);
         self.write_deps(&mut buf);
         self.write_pages_count(&mut buf);
@@ -77,11 +69,6 @@ impl AppTemplateBuilder {
         buf.write_u8(bytes.len() as u8).unwrap();
 
         buf.extend_from_slice(bytes);
-    }
-
-    fn write_author(&self, buf: &mut Vec<u8>) {
-        let author = self.author.as_ref().unwrap();
-        buf.extend_from_slice(author.as_slice());
     }
 
     fn write_admins(&self, buf: &mut Vec<u8>) {

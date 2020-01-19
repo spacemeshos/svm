@@ -1,14 +1,17 @@
-use crate::{alloc_regs, host_ctx::HostCtx};
-
-use log::debug;
+use std::collections::HashMap;
 use std::ffi::c_void;
 
-use svm_storage::AppStorage;
+use log::debug;
 
 use crate::{
+    alloc_regs,
+    buffer::BufferRef,
     helpers::DataWrapper,
     register::{SvmReg, SvmReg160, SvmReg32, SvmReg512, SvmReg64},
 };
+
+use svm_app::types::HostCtx;
+use svm_storage::AppStorage;
 
 /// The number of allocated `SvmReg32` registers for each `SvmCtx`
 pub const REGS_32_COUNT: usize = 16;
@@ -26,7 +29,9 @@ pub const REGS_256_COUNT: usize = 4;
 pub const REGS_512_COUNT: usize = 4;
 
 /// `SvmCtx` is a container for the accessible data by `wasmer` instances
-/// * `host`     - A pointer to the *Host*
+/// * `host`     - A pointer to the `Host`
+/// * `host_ctx` - A pointer to the `HostCtx` (i.e: `sender`, `block_id`, `nonce`, ...)
+/// * `buffers`  - A `HashMap` between `buffer_id` (i32) to mutable/read-only `Buffer`.
 /// * `regs_32`  - A static array (`REGS_32_COUNT` elements)  of `SvmReg32`
 /// * `regs_64`  - A static array (`REGS_64_COUNT` elements)  of `SvmReg64`
 /// * `regs_160` - A static array (`REGS_160_COUNT` elements) of `SvmReg160`
@@ -43,6 +48,8 @@ pub struct SvmCtx {
     /// Raw pointer to host context fields.
     pub host_ctx: *const HostCtx,
 
+    pub buffers: HashMap<i32, BufferRef>,
+
     /// An array that holds the `SvmReg32` registers
     pub regs_32: [SvmReg; REGS_32_COUNT],
 
@@ -58,7 +65,7 @@ pub struct SvmCtx {
     /// An array that holds the `SvmReg512` registers
     pub regs_512: [SvmReg; REGS_512_COUNT],
 
-    /// An accessor to the app's storage
+    /// An accessor to the app's storage (`AppStorage`)
     pub storage: AppStorage,
 }
 
@@ -76,6 +83,7 @@ impl SvmCtx {
     ) -> Self {
         let host = host.unwrap();
         let host_ctx = host_ctx.unwrap() as *const HostCtx;
+        let buffers = HashMap::new();
 
         let regs_32 = alloc_regs!(32, REGS_32_COUNT);
         let regs_64 = alloc_regs!(64, REGS_64_COUNT);
@@ -86,6 +94,7 @@ impl SvmCtx {
         Self {
             host,
             host_ctx,
+            buffers,
             regs_32,
             regs_64,
             regs_160,

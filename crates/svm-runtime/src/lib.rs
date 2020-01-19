@@ -1,7 +1,7 @@
-#![deny(missing_docs)]
-#![deny(unused)]
+#![allow(missing_docs)]
+#![allow(unused)]
 
-//! `SVM-runtime` crate is the glue between `SVM` to `wasmer`.
+//! `SVM-runtime` crate is the glue between `SVM` to a Wasm Runtime
 
 /// crate traits goes here
 pub mod traits;
@@ -14,12 +14,11 @@ pub use runtime::{create_rocksdb_runtime, DefaultRuntime, Receipt};
 /// Implements `SvmCtx`. Used for running `SVM` instances.
 pub mod ctx;
 
-/// Host context fields.
-pub mod host_ctx;
-
 /// Implements register abstraction to ease interfacing
-/// with the app-storage / `wasmer` instance memory.
+/// with the app-storage / `app` memory.
 pub mod register;
+
+pub mod buffer;
 
 /// Implements the helpers to be consumed by `SVM` vmcalls.
 #[macro_use]

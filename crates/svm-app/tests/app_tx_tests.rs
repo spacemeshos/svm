@@ -2,7 +2,7 @@ use svm_app::{
     memory::{JsonMemAppStore, JsonMemAppTemplateStore, JsonMemoryEnv},
     testing::AppTxBuilder,
     traits::Env,
-    types::{App, AppTemplate, AppTransaction, WasmArgValue},
+    types::{App, AppTemplate, AppTransaction, BufferSlice, WasmValue},
 };
 use svm_common::Address;
 
@@ -38,18 +38,26 @@ fn parse_app_tx() {
     let bytes = AppTxBuilder::new()
         .with_version(0)
         .with_app(&app_addr)
-        .with_sender(&sender_addr)
         .with_func_name("run")
-        .with_func_args(&vec![WasmArgValue::I32(10), WasmArgValue::I64(20)])
+        .with_func_buf(&vec![vec![0xAA, 0xAA, 0xAA], vec![0xBB, 0xBB]])
+        .with_func_args(&vec![WasmValue::I32(10), WasmValue::I64(20)])
         .build();
 
-    let actual = env.parse_app_tx(&bytes).unwrap();
+    let actual = env.parse_app_tx(&bytes, &sender_addr).unwrap();
 
     let expected = AppTransaction {
         app: app_addr,
         sender: sender_addr,
         func_name: "run".to_string(),
-        func_args: vec![WasmArgValue::I32(10), WasmArgValue::I64(20)],
+        func_args: vec![WasmValue::I32(10), WasmValue::I64(20)],
+        func_buf: vec![
+            BufferSlice {
+                data: vec![0xAA, 0xAA, 0xAA],
+            },
+            BufferSlice {
+                data: vec![0xBB, 0xBB],
+            },
+        ],
     };
 
     assert_eq!(expected, actual);

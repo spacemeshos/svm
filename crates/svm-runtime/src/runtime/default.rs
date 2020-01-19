@@ -1,14 +1,15 @@
 use std::convert::TryFrom;
 use std::ffi::c_void;
+use std::fmt;
 
 use log::{debug, error, info};
 
 use crate::{
+    buffer::BufferRef,
     ctx::SvmCtx,
     error::{DeployTemplateError, ExecAppError, SpawnAppError},
     helpers,
     helpers::DataWrapper,
-    host_ctx::HostCtx,
     runtime::Receipt,
     settings::AppSettings,
     traits::{Runtime, StorageBuilderFn},
@@ -17,7 +18,7 @@ use crate::{
 
 use svm_app::{
     traits::{Env, EnvTypes},
-    types::{AppTemplate, AppTransaction, WasmArgValue, WasmIntType},
+    types::{App, AppTemplate, AppTransaction, BufferSlice, HostCtx, SpawnApp, WasmValue},
 };
 use svm_common::{Address, State};
 use svm_storage::AppStorage;
@@ -49,35 +50,41 @@ where
     TY: EnvTypes,
     ENV: Env<Types = TY>,
 {
-    fn deploy_template(&mut self, bytes: &[u8]) -> Result<Address, DeployTemplateError> {
+    fn deploy_template(
+        &mut self,
+        author: &Address,
+        _host_ctx: HostCtx,
+        bytes: &[u8],
+    ) -> Result<Address, DeployTemplateError> {
         info!("runtime `deploy_template`");
 
-        match self.env.parse_template(bytes) {
-            Err(e) => Err(DeployTemplateError::ParseFailed(e)),
-            Ok(template) => match self.env.store_template(&template) {
-                Err(e) => Err(DeployTemplateError::StoreFailed(e)),
-                Ok(addr) => Ok(addr),
-            },
-        }
+        let template = self.parse_template(author, bytes)?;
+        self.install_template(&template)
     }
 
-    fn spawn_app(&mut self, bytes: &[u8]) -> Result<Address, SpawnAppError> {
+    fn spawn_app(
+        &mut self,
+        creator: &Address,
+        host_ctx: HostCtx,
+        bytes: &[u8],
+    ) -> Result<(Address, State), SpawnAppError> {
         info!("runtime `spawn_app`");
 
-        match self.env.parse_app(bytes) {
-            Err(e) => return Err(SpawnAppError::ParseFailed(e)),
-            Ok(app) => match self.env.store_app(&app) {
-                Err(e) => Err(SpawnAppError::StoreFailed(e)),
-                Ok(addr) => Ok(addr),
-            },
-        }
+        let spawn_app = self.parse_app(creator, bytes)?;
+        let app_addr = self.install_app(&spawn_app)?;
+        let state = self.call_ctor(creator, spawn_app, &app_addr, host_ctx)?;
+
+        Ok((app_addr, state))
     }
 
-    fn parse_exec_app(&self, bytes: &[u8]) -> Result<AppTransaction, ExecAppError> {
-        match self.env.parse_app_tx(bytes) {
-            Err(e) => Err(ExecAppError::ParseFailed(e)),
-            Ok(tx) => Ok(tx),
-        }
+    fn parse_exec_app(
+        &self,
+        sender: &Address,
+        bytes: &[u8],
+    ) -> Result<AppTransaction, ExecAppError> {
+        self.env
+            .parse_app_tx(bytes, sender)
+            .or_else(|e| Err(ExecAppError::ParseFailed(e)))
     }
 
     fn exec_app(
@@ -86,35 +93,8 @@ where
         state: State,
         host_ctx: HostCtx,
     ) -> Result<Receipt, ExecAppError> {
-        info!("runtime `exec_app`");
-
-        let (template, template_addr) = self.load_template(&tx)?;
-
-        let settings = AppSettings {
-            pages_count: template.pages_count,
-        };
-
-        let mut import_object = self.import_object_create(&tx.app, &state, host_ctx, &settings);
-        self.import_object_extend(&mut import_object);
-
-        let receipt = match self.do_exec_app(&tx, &template, &template_addr, &import_object) {
-            Err(e) => Receipt {
-                success: false,
-                error: Some(e),
-                returns: None,
-                new_state: None,
-            },
-            Ok((state, returns)) => Receipt {
-                success: true,
-                error: None,
-                returns: Some(returns),
-                new_state: Some(state),
-            },
-        };
-
-        info!("receipt: {:?}", receipt);
-
-        Ok(receipt)
+        let is_ctor = false;
+        self.inner_exec_app(tx, state, host_ctx, is_ctor)
     }
 }
 
@@ -151,17 +131,134 @@ where
         sb(addr, state, settings)
     }
 
+    fn call_ctor(
+        &mut self,
+        creator: &Address,
+        spawn_app: SpawnApp,
+        app_addr: &Address,
+        host_ctx: HostCtx,
+    ) -> Result<State, SpawnAppError> {
+        let ctor = self.build_ctor_call(creator, spawn_app, &app_addr);
+        let is_ctor = true;
+
+        match self.inner_exec_app(ctor, State::empty(), host_ctx, is_ctor) {
+            Ok(receipt) => {
+                let new_state = receipt.new_state.unwrap();
+                Ok(new_state)
+            }
+            Err(..) => {
+                todo!()
+                // return `SpawnAppError` of `ctor failed`
+            }
+        }
+    }
+
+    fn parse_template(
+        &self,
+        author: &Address,
+        bytes: &[u8],
+    ) -> Result<AppTemplate, DeployTemplateError> {
+        self.env
+            .parse_template(bytes, author)
+            .or_else(|e| Err(DeployTemplateError::ParseFailed(e)))
+    }
+
+    fn install_template(&mut self, template: &AppTemplate) -> Result<Address, DeployTemplateError> {
+        self.env
+            .store_template(template)
+            .or_else(|e| Err(DeployTemplateError::StoreFailed(e)))
+    }
+
+    fn parse_app(&self, creator: &Address, bytes: &[u8]) -> Result<SpawnApp, SpawnAppError> {
+        self.env
+            .parse_app(bytes, creator)
+            .or_else(|e| Err(SpawnAppError::ParseFailed(e)))
+    }
+
+    fn install_app(&mut self, spawn_app: &SpawnApp) -> Result<Address, SpawnAppError> {
+        self.env
+            .store_app(&spawn_app.app)
+            .or_else({ |e| Err(SpawnAppError::StoreFailed(e)) })
+    }
+
+    fn build_ctor_call(
+        &self,
+        creator: &Address,
+        spawn_app: SpawnApp,
+        app_addr: &Address,
+    ) -> AppTransaction {
+        AppTransaction {
+            app: app_addr.clone(),
+            sender: creator.clone(),
+            func_name: "ctor".to_string(),
+            func_args: spawn_app.ctor_args,
+            func_buf: spawn_app.ctor_buf,
+        }
+    }
+
+    fn inner_exec_app(
+        &self,
+        tx: AppTransaction,
+        state: State,
+        host_ctx: HostCtx,
+        is_ctor: bool,
+    ) -> Result<Receipt, ExecAppError> {
+        info!("runtime `exec_app`");
+
+        let (template, template_addr) = self.load_template(&tx)?;
+
+        let settings = AppSettings {
+            pages_count: template.pages_count,
+        };
+
+        let mut import_object = self.import_object_create(&tx.app, &state, host_ctx, &settings);
+        self.import_object_extend(&mut import_object);
+
+        let receipt =
+            match self.do_exec_app(&tx, &template, &template_addr, &import_object, is_ctor) {
+                Err(e) => Receipt {
+                    success: false,
+                    error: Some(e),
+                    returns: None,
+                    new_state: None,
+                },
+                Ok((state, returns)) => Receipt {
+                    success: true,
+                    error: None,
+                    returns: Some(returns),
+                    new_state: Some(state),
+                },
+            };
+
+        info!("receipt: {:?}", receipt);
+
+        Ok(receipt)
+    }
+
     fn do_exec_app(
         &self,
         tx: &AppTransaction,
         template: &AppTemplate,
         template_addr: &Address,
         import_object: &ImportObject,
+        is_ctor: bool,
     ) -> Result<(State, Vec<Value>), ExecAppError> {
         let module = self.compile_template(tx, &template, &template_addr)?;
         let mut instance = self.instantiate(tx, template_addr, &module, import_object)?;
+
+        self.init_instance_buffer(&tx.func_buf, &mut instance);
+
         let args = self.prepare_args_and_memory(tx, &mut instance);
-        let func = self.get_exported_func(tx, template_addr, &instance)?;
+
+        let func = match self.get_exported_func(tx, template_addr, &instance) {
+            Err(ExecAppError::FuncNotFound { .. }) if is_ctor == true => {
+                // Since an app `ctor` is optional, in case it has no explicit `ctor`
+                // we **don't** consider it as an error.
+                return Ok((State::empty(), Vec::new()));
+            }
+            Err(e) => return Err(e),
+            Ok(func) => func,
+        };
 
         match func.call(&args) {
             Err(e) => Err(ExecAppError::ExecFailed {
@@ -172,13 +269,37 @@ where
                 reason: e.to_string(),
             }),
             Ok(returns) => {
-                let storage = self.get_instance_svm_storage_mut(&mut instance);
-                let state = storage.commit();
+                let storage = self.instance_storage_mut(&mut instance);
+                let new_state = storage.commit();
                 let returns = self.cast_wasmer_func_returns(tx, template_addr, returns)?;
 
-                Ok((state, returns))
+                Ok((new_state, returns))
             }
         }
+    }
+
+    fn init_instance_buffer(
+        &self,
+        func_buf: &Vec<BufferSlice>,
+        instance: &mut wasmer_runtime::Instance,
+    ) {
+        const ARGS_BUF_ID: i32 = 0;
+
+        let ctx = instance.context_mut();
+        let buf_cap = func_buf.iter().fold(0, |acc, slice| acc + slice.len());
+
+        helpers::buffer_create(ctx.data, ARGS_BUF_ID, buf_cap as i32);
+
+        match helpers::wasmer_data_buffer(ctx.data, ARGS_BUF_ID).unwrap() {
+            BufferRef::Mutable(.., buf) => {
+                for slice in func_buf.iter() {
+                    buf.write(&slice.data[..]);
+                }
+            }
+            _ => unreachable!(),
+        };
+
+        helpers::buffer_freeze(ctx.data, ARGS_BUF_ID);
     }
 
     fn cast_wasmer_func_returns(
@@ -217,16 +338,13 @@ where
     ) -> Result<wasmer_runtime::Instance, ExecAppError> {
         info!("runtime `instantiate` (wasmer module instantiate)");
 
-        let instantiate = module.instantiate(import_object);
-
-        match instantiate {
-            Err(e) => Err(ExecAppError::InstantiationFailed {
+        module.instantiate(import_object).or_else(|e| {
+            Err(ExecAppError::InstantiationFailed {
                 app_addr: tx.app.clone(),
                 template_addr: template_addr.clone(),
                 reason: e.to_string(),
-            }),
-            Ok(instance) => Ok(instance),
-        }
+            })
+        })
     }
 
     fn get_exported_func<'a>(
@@ -236,24 +354,16 @@ where
         instance: &'a wasmer_runtime::Instance,
     ) -> Result<wasmer_runtime::DynFunc<'a>, ExecAppError> {
         let func_name = &tx.func_name;
-        let func = instance.dyn_func(func_name);
 
-        match func {
-            Err(_e) => {
-                error!("Exported function: `{}` not found", func_name);
+        instance.dyn_func(func_name).or_else(|_e| {
+            error!("Exported function: `{}` not found", func_name);
 
-                Err(ExecAppError::FuncNotFound {
-                    app_addr: tx.app.clone(),
-                    template_addr: template_addr.clone(),
-                    func_name: func_name.to_string(),
-                })
-            }
-            Ok(func) => {
-                info!("Found exported function `{}`", func_name);
-
-                Ok(func)
-            }
-        }
+            Err(ExecAppError::FuncNotFound {
+                app_addr: tx.app.clone(),
+                template_addr: template_addr.clone(),
+                func_name: func_name.to_string(),
+            })
+        })
     }
 
     fn prepare_args_and_memory(
@@ -270,24 +380,8 @@ where
 
         for arg in tx.func_args.iter() {
             let wasmer_arg = match arg {
-                WasmArgValue::I32(v) => WasmerValue::I32(*v as i32),
-                WasmArgValue::I64(v) => WasmerValue::I64(*v as i64),
-                WasmArgValue::Fixed(ty, buf) => {
-                    let buf_mem_start = mem_offset;
-
-                    let view = memory.view();
-
-                    for byte in buf.into_iter() {
-                        view[mem_offset].set(*byte);
-                        mem_offset += 1;
-                    }
-
-                    match ty {
-                        WasmIntType::I32 => WasmerValue::I32(buf_mem_start as i32),
-                        WasmIntType::I64 => WasmerValue::I64(buf_mem_start as i64),
-                    }
-                }
-                WasmArgValue::Slice(..) => unimplemented!(),
+                WasmValue::I32(v) => WasmerValue::I32(*v as i32),
+                WasmValue::I64(v) => WasmerValue::I64(*v as i64),
             };
 
             wasmer_args.push(wasmer_arg);
@@ -299,7 +393,7 @@ where
     }
 
     #[inline(always)]
-    fn get_instance_svm_storage_mut(
+    fn instance_storage_mut(
         &self,
         instance: &mut wasmer_runtime::Instance,
     ) -> &mut svm_storage::AppStorage {
@@ -346,7 +440,7 @@ where
     }
 
     fn import_object_extend(&self, import_object: &mut ImportObject) {
-        // TODO: validate that `self.imports` don't use `svm` as for imports namespaces.
+        // TODO: validate that `self.imports` don't use `svm` as import namespaces.
 
         import_object.extend(self.imports.clone());
 
@@ -359,12 +453,11 @@ where
     fn load_template(&self, tx: &AppTransaction) -> Result<(AppTemplate, Address), ExecAppError> {
         info!("runtime `load_template`");
 
-        match self.env.load_template_by_app(&tx.app) {
-            None => Err(ExecAppError::AppNotFound {
+        self.env
+            .load_template_by_app(&tx.app)
+            .ok_or_else(|| ExecAppError::AppNotFound {
                 app_addr: tx.app.clone(),
-            }),
-            Some(res) => Ok(res),
-        }
+            })
     }
 
     fn compile_template(
@@ -375,39 +468,27 @@ where
     ) -> Result<wasmer_runtime::Module, ExecAppError> {
         info!("runtime `compile_template` (template={:?})", template_addr);
 
-        match svm_compiler::compile_program(&template.code) {
-            Err(e) => {
-                error!(
-                    "wasmer module compilation failed (template={:?})",
-                    template_addr
-                );
+        svm_compiler::compile_program(&template.code).or_else(|e| {
+            error!("module compilation failed (template={:?})", template_addr);
 
-                Err(ExecAppError::CompilationFailed {
-                    app_addr: tx.app.clone(),
-                    template_addr: template_addr.clone(),
-                    reason: e.to_string(),
-                })
-            }
-            Ok(module) => {
-                debug!(
-                    "wasmer module compile succeeded (template={:?})",
-                    template_addr
-                );
-                Ok(module)
-            }
-        }
+            Err(ExecAppError::CompilationFailed {
+                app_addr: tx.app.clone(),
+                template_addr: template_addr.clone(),
+                reason: e.to_string(),
+            })
+        })
     }
 
-    fn vec_to_str<T: std::fmt::Debug>(&self, items: &Vec<T>) -> String {
-        let nitems = items.len();
-
+    fn vec_to_str<T: fmt::Debug>(&self, items: &Vec<T>) -> String {
         let mut buf = String::new();
 
-        for arg in items.iter().take(nitems - 1) {
+        for (i, arg) in items.iter().enumerate() {
+            if i != 0 {
+                buf.push_str(", ");
+            }
             buf.push_str(&format!("{:?}, ", arg));
         }
 
-        buf.push_str(&format!("{:?}", items.last()));
         buf
     }
 }

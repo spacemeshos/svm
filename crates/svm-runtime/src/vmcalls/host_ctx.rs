@@ -11,7 +11,7 @@ pub fn host_ctx_read_into_reg(
     let host_ctx = unsafe { &*(svm_ctx.host_ctx) };
 
     let reg = helpers::wasmer_data_reg(ctx.data, reg_bits, reg_idx);
-    let slice = host_ctx.get(&field_idx).unwrap();
+    let slice = host_ctx.get(field_idx).unwrap();
 
     reg.set(slice);
 }

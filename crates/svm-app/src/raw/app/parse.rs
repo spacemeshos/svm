@@ -3,23 +3,34 @@ use std::io::Cursor;
 use crate::{
     error::ParseError,
     raw::{helpers, Field},
-    types::App,
+    types::{App, BufferSlice, SpawnApp},
 };
 
-/// Parsing a on-the-wire `App` deploy transaction given as raw bytes.
-/// Returns the parsed transaction as a `App` struct.
+use svm_common::Address;
+
+/// Parsing a raw `spawn-app` transaction given as raw bytes.
+/// Returns the parsed transaction as a tuple consisting of an `App` struct and `ctor` buffer args.
 /// On failure, returns `ParseError`
 #[must_use]
-#[allow(dead_code)]
-pub fn parse_app(bytes: &[u8]) -> Result<App, ParseError> {
+pub fn parse_app(bytes: &[u8], creator: &Address) -> Result<SpawnApp, ParseError> {
     let mut cursor = Cursor::new(bytes);
 
     helpers::parse_version(&mut cursor)?;
 
     let template = helpers::parse_address(&mut cursor, Field::AppTemplate)?;
-    let creator = helpers::parse_address(&mut cursor, Field::Creator)?;
+    let ctor_buf = helpers::parse_func_buf(&mut cursor)?;
+    let ctor_args = helpers::parse_func_args(&mut cursor)?;
 
-    let app = App { template, creator };
+    let app = App {
+        template,
+        creator: creator.clone(),
+    };
 
-    Ok(app)
+    let spawn_app = SpawnApp {
+        app,
+        ctor_buf,
+        ctor_args,
+    };
+
+    Ok(spawn_app)
 }

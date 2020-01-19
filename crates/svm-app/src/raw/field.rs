@@ -6,9 +6,6 @@ pub enum Field {
     Version,
     NameLength,
     Name,
-    Author,
-    Sender,
-    Creator,
     Admins,
     AdminsCount,
     CodeLength,
@@ -20,10 +17,12 @@ pub enum Field {
     App,
     FuncNameLength,
     FuncName,
-    ArgsCount,
-    ArgLength,
-    ArgType,
-    ArgValue,
+    FuncBufSlicesCount,
+    FuncBufSliceLength,
+    FuncBufSlice,
+    FuncArgsCount,
+    WasmType,
+    WasmValue,
 }
 
 impl fmt::Display for Field {

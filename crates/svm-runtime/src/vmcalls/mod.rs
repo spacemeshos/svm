@@ -1,7 +1,11 @@
+mod buffer;
 mod host_ctx;
 mod register;
 mod storage;
 
+pub use buffer::{
+    buffer_copy_to_reg, buffer_copy_to_storage, buffer_create, buffer_freeze, buffer_kill,
+};
 pub use host_ctx::host_ctx_read_into_reg;
 pub use register::{reg_read_be_i64, reg_replace_byte, reg_write_be_i64};
 pub use storage::{
@@ -14,7 +18,12 @@ pub use wasmer_runtime_core::{
     import::{IsExport, Namespace},
 };
 
-/// Injects into namespace `ns` the SVM internal vmcalls.
+use svm_storage::{
+    page::{PageIndex, PageOffset, PageSliceLayout},
+    AppStorage,
+};
+
+/// Injects into namespace `ns` the `SVM` internal vmcalls.
 pub fn insert_vmcalls(ns: &mut Namespace) {
     // `storage` vmcalls
     ns.insert("mem_to_reg_copy", func!(storage::mem_to_reg_copy));
@@ -34,6 +43,16 @@ pub fn insert_vmcalls(ns: &mut Namespace) {
     ns.insert("reg_replace_byte", func!(register::reg_replace_byte));
     ns.insert("reg_read_be_i64", func!(register::reg_read_be_i64));
     ns.insert("reg_write_be_i64", func!(register::reg_write_be_i64));
+
+    // `buffer` vmcalls`
+    ns.insert("buffer_create", func!(buffer::buffer_create));
+    ns.insert("buffer_kill", func!(buffer::buffer_kill));
+    ns.insert("buffer_freeze", func!(buffer::buffer_freeze));
+    ns.insert(
+        "buffer_copy_to_storage",
+        func!(buffer::buffer_copy_to_storage),
+    );
+    ns.insert("buffer_copy_to_reg", func!(buffer::buffer_copy_to_reg));
 
     // `host_ctx` vmcalls
     ns.insert(

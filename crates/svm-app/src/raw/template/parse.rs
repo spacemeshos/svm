@@ -10,16 +10,14 @@ use svm_common::Address;
 
 use byteorder::{BigEndian, ReadBytesExt};
 
-/// Parsing a on-the-wire `AppTemplate` given as raw bytes.
-/// Returns the parsed raw app-template as a `AppTemplate` struct.
+/// Returns the parsed raw app-template as `AppTemplate` struct.
 #[must_use]
-pub fn parse_template(bytes: &[u8]) -> Result<AppTemplate, ParseError> {
+pub fn parse_template(bytes: &[u8], author: &Address) -> Result<AppTemplate, ParseError> {
     let mut cursor = Cursor::new(bytes);
 
     helpers::parse_version(&mut cursor)?;
 
     let name = parse_name(&mut cursor)?;
-    let author = parse_author(&mut cursor)?;
     let _admins = parse_admins(&mut cursor)?;
     parse_deps(&mut cursor)?;
     let pages_count = parse_pages_count(&mut cursor)?;
@@ -27,7 +25,7 @@ pub fn parse_template(bytes: &[u8]) -> Result<AppTemplate, ParseError> {
 
     let template = AppTemplate {
         name,
-        author,
+        author: author.clone(),
         pages_count,
         code,
     };
@@ -47,23 +45,14 @@ fn parse_name(cursor: &mut Cursor<&[u8]>) -> Result<String, ParseError> {
         return Err(ParseError::EmptyField(Field::Name));
     }
 
-    let mut name_buf = vec![0; name_len];
-    let res = cursor.read_exact(&mut name_buf);
+    let mut buf = vec![0; name_len];
+    let res = cursor.read_exact(&mut buf);
 
     if res.is_err() {
         return Err(ParseError::NotEnoughBytes(Field::Name));
     }
 
-    // TODO: make `String::from_utf8` work without raising
-    let name = unsafe { String::from_utf8_unchecked(name_buf) };
-
-    Ok(name)
-}
-
-#[must_use]
-#[inline(always)]
-fn parse_author(cursor: &mut Cursor<&[u8]>) -> Result<Address, ParseError> {
-    helpers::parse_address(cursor, Field::Author)
+    String::from_utf8(buf).or_else(|_e| Err(ParseError::InvalidUTF8String(Field::Name)))
 }
 
 #[must_use]
