@@ -12,8 +12,8 @@ fn runtime_spawn_app_with_ctor() {
     let imports = Vec::new();
     let mut runtime = testing::create_memory_runtime(host, &kv, imports);
     let pages_count = 10;
-    let author = Address::from(0x10_20_30_40);
-    let creator = Address::from(0x20_30_40_50);
+    let author = Address::of("author");
+    let creator = Address::of("creator");
 
     // 2) deploying the template
     let bytes = testing::build_template(
@@ -62,9 +62,9 @@ fn runtime_exec_app() {
     let imports = Vec::new();
     let mut runtime = testing::create_memory_runtime(host, &kv, imports);
     let pages_count = 10;
-    let author = Address::from(0x10_20_30_40);
-    let creator = Address::from(0x20_30_40_40);
-    let sender = Address::from(0x50_60_70_80);
+    let author = Address::of("author");
+    let creator = Address::of("creator");
+    let sender = Address::of("sender");
 
     // 2) deploying the template
     let bytes = testing::build_template(

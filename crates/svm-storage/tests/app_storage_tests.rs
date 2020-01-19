@@ -7,7 +7,7 @@ mod asserts;
 
 #[test]
 fn app_storage_loading_an_empty_slice_into_the_cache() {
-    let addr = 0x11_22_33_44;
+    let addr = "my-app";
     let pages_count = 10;
 
     let (_addr, _kv, mut storage) = app_storage_init(addr, pages_count);
@@ -19,7 +19,7 @@ fn app_storage_loading_an_empty_slice_into_the_cache() {
 
 #[test]
 fn app_storage_read_an_empty_slice_then_override_it_and_then_commit() {
-    let addr = 0x11_22_33_44;
+    let addr = "my-app";
     let pages_count = 10;
 
     let (addr, kv, mut storage) = app_storage_init(addr, pages_count);
@@ -39,7 +39,7 @@ fn app_storage_read_an_empty_slice_then_override_it_and_then_commit() {
 
 #[test]
 fn app_storage_write_slice_without_loading_it_first_and_commit() {
-    let addr = 0x11_22_33_44;
+    let addr = "my-app";
     let pages_count = 2;
 
     let (addr, kv, mut storage) = app_storage_init(addr, pages_count);
@@ -65,7 +65,7 @@ fn app_storage_write_slice_without_loading_it_first_and_commit() {
 
 #[test]
 fn app_storage_read_an_existing_slice_then_overriding_it_and_commit() {
-    let addr = 0x11_22_33_44;
+    let addr = "my-app";
     let pages_count = 2;
 
     let (addr, kv, mut storage) = app_storage_init(addr, pages_count);
@@ -102,7 +102,7 @@ fn app_storage_read_an_existing_slice_then_overriding_it_and_commit() {
 
 #[test]
 fn app_storage_write_slice_and_commit_then_load_it_override_it_and_commit() {
-    let addr = 0x11_22_33_44;
+    let addr = "my-app";
     let pages_count = 2;
 
     let (addr, kv, mut storage) = app_storage_init(addr, pages_count);
@@ -141,7 +141,7 @@ fn app_storage_write_slice_and_commit_then_load_it_override_it_and_commit() {
 
 #[test]
 fn app_storage_write_two_slices_under_same_page_and_commit() {
-    let addr = 0x11_22_33_44;
+    let addr = "my-app";
     let pages_count = 2;
 
     let (addr, kv, mut storage) = app_storage_init(addr, pages_count);

@@ -150,7 +150,7 @@ mod tests {
     #[test]
     fn encode_receipt_error() {
         let error = ExecAppError::AppNotFound {
-            app_addr: Address::from(0x10_20_30_40),
+            app_addr: Address::of("my-app"),
         };
 
         let expected = ClientReceipt::Failure {

@@ -160,11 +160,11 @@ mod tests {
     #[test]
     fn address_from_str() {
         let bytes: [u8; 20] = [
-            b'@', b'a', b'd', b'd', b'r', b'e', b's', b's', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            b'a', b'd', b'd', b'r', b'e', b's', b's', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         ];
 
         let expected = Address::from(&bytes[..]);
-        let actual = Address::from("@address");
+        let actual = Address::of("address");
 
         assert_eq!(expected, actual);
     }

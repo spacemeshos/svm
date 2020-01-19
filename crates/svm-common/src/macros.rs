@@ -102,11 +102,9 @@ macro_rules! impl_bytes_primitive {
                     crate::fmt::fmt_hex(last.as_slice(), separator)
                 )
             }
-        }
 
-        /// Should be used **only** for tests
-        impl From<&str> for $primitive {
-            fn from(s: &str) -> $primitive {
+            /// Should be used **only** for tests
+            pub fn of(s: &str) -> $primitive {
                 let mut buf = [0; $byte_count];
 
                 let bytes = s.as_bytes();
@@ -120,6 +118,7 @@ macro_rules! impl_bytes_primitive {
                 $primitive(buf)
             }
         }
+
         /// Should be used **only** for tests
         #[doc(hidden)]
         impl From<u32> for $primitive {

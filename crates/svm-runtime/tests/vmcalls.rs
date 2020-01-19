@@ -20,7 +20,7 @@ fn default_test_args() -> (
     DataWrapper<*const c_void>,
     u16,
 ) {
-    let app_addr = Address::from(0x12_34_56_78);
+    let app_addr = Address::of("my-app");
     let state = State::from(0x_00_00_00_00);
     let host = DataWrapper::new(std::ptr::null_mut());
     let host_ctx = DataWrapper::new(svm_common::into_raw(HostCtx::new()));
