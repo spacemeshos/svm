@@ -292,52 +292,6 @@ fn vmcalls_storage_write_from_reg() {
 }
 
 #[test]
-fn vmcalls_reg_replace_byte_read_write_be_i64() {
-    let (app_addr, state, host, host_ctx, pages_count) = default_test_args();
-
-    let import_object = imports! {
-        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, pages_count),
-
-        "svm" => {
-            "storage_read_to_reg" => func!(vmcalls::storage_read_to_reg),
-            "storage_write_from_reg" => func!(vmcalls::storage_write_from_reg),
-            "reg_replace_byte" => func!(vmcalls::reg_replace_byte),
-            "reg_read_be_i64" => func!(vmcalls::reg_read_be_i64),
-            "reg_write_be_i64" => func!(vmcalls::reg_write_be_i64),
-        },
-    };
-
-    let instance = testing::instantiate(
-        &import_object,
-        include_str!("wasm/reg_replace_read_write_be_i64.wast"),
-    );
-
-    // we first initialize register `64:5` with `[254, 255, 0, 0, 0, 0, 0, 0]`
-    let reg = instance_register(&instance, 64, 5);
-    reg.set(&[0, 0, 0, 0, 0, 0, 255, 254]);
-
-    let inc: Func<i32> = instance.func("inc").unwrap();
-    assert!(inc.call(5).is_ok());
-
-    let reg = instance_register(&instance, 64, 5);
-    assert_eq!(vec![0, 0, 0, 0, 0, 0, 255, 255], reg.view());
-
-    let func: Func<i32> = instance.func("inc").unwrap();
-    assert!(func.call(5).is_ok());
-
-    let reg = instance_register(&instance, 64, 5);
-    assert_eq!(vec![0, 0, 0, 0, 0, 1, 0, 0], reg.view());
-
-    // now we'll change 2 bytes of register `64:5`
-    let func: Func<(i32, i32, i32)> = instance.func("replace").unwrap();
-    assert!(func.call(5, 10, 6).is_ok());
-    assert!(func.call(5, 20, 7).is_ok());
-
-    let reg = instance_register(&instance, 64, 5);
-    assert_eq!(vec![0, 0, 0, 0, 0, 1, 10, 20], reg.view());
-}
-
-#[test]
 fn vmcalls_host_ctx_read_into_reg() {
     let (app_addr, state, host, _host_ctx, pages_count) = default_test_args();
 

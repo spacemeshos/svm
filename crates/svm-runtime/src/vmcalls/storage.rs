@@ -20,9 +20,10 @@ pub fn mem_to_reg_copy(
 ) {
     let (mem_idx, start, end) = rustify_mem_params(mem_idx, mem_offset, len);
     let cells = &ctx.memory(mem_idx).view()[start..end];
+    let data: Vec<u8> = cells.iter().map(|cell| cell.get()).collect();
 
     let reg = helpers::wasmer_data_reg(ctx.data, reg_bits, reg_idx);
-    reg.copy_from_cells(cells);
+    reg.set(&data[..]);
 }
 
 /// Copies the content of `wasmer` register indexed `src_reg` into `wasmer` memory cells under addresses:
@@ -45,9 +46,10 @@ pub fn reg_to_mem_copy(
 ) {
     let (mem_idx, start, end) = rustify_mem_params(mem_idx, mem_offset, len);
     let cells = &ctx.memory(mem_idx).view()[start..end];
+    let data: Vec<u8> = cells.iter().map(|cell| cell.get()).collect();
 
     let reg = helpers::wasmer_data_reg(ctx.data, reg_bits, reg_idx);
-    reg.copy_to_cells(cells);
+    reg.set(&data[..]);
 }
 
 /// Loads from the `SVM` instance's storage a page-slice into the register indexed `dest_reg`
@@ -151,7 +153,7 @@ pub fn storage_write_from_reg(
     let storage = helpers::wasmer_data_app_storage(ctx.data);
     let data = reg.getn(len as usize);
 
-    helpers::storage_write_page_slice(storage, page_idx, page_offset, len, &data);
+    helpers::storage_write_page_slice(storage, page_idx, page_offset, len, data);
 }
 
 #[inline(always)]

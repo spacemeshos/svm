@@ -4,7 +4,7 @@ use std::ffi::c_void;
 use std::rc::Rc;
 
 use crate::{
-    buffer::BufferRef, ctx::SvmCtx, helpers, helpers::DataWrapper, register::SvmReg,
+    buffer::BufferRef, ctx::SvmCtx, helpers, helpers::DataWrapper, register::Register,
     settings::AppSettings, traits::StorageBuilderFn, DefaultRuntime,
 };
 
@@ -34,7 +34,7 @@ pub fn instantiate(import_object: &ImportObject, wasm: &str) -> Instance {
 }
 
 /// Mutably borrows `SVM` register `reg_bits:reg_idx`
-pub fn instance_register(instance: &Instance, reg_bits: i32, reg_idx: i32) -> &mut SvmReg {
+pub fn instance_register(instance: &Instance, reg_bits: i32, reg_idx: i32) -> &mut Register {
     helpers::wasmer_data_reg(instance.context().data, reg_bits, reg_idx)
 }
 

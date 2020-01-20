@@ -3,11 +3,7 @@ use std::ffi::c_void;
 
 use log::debug;
 
-use crate::{
-    buffer::BufferRef,
-    helpers::DataWrapper,
-    register::{SvmReg, SvmReg160, SvmReg32, SvmReg512, SvmReg64},
-};
+use crate::{buffer::BufferRef, helpers::DataWrapper, register::Registers};
 
 use svm_app::types::HostCtx;
 use svm_storage::AppStorage;
@@ -32,9 +28,9 @@ pub struct SvmCtx {
     /// Raw pointer to host context fields.
     pub host_ctx: *const HostCtx,
 
-    pub buffers: HashMap<i32, BufferRef>,
+    pub regs: Registers,
 
-    pub regs: Regsiters,
+    pub buffers: HashMap<i32, BufferRef>,
 
     /// An accessor to the app's storage (`AppStorage`)
     pub storage: AppStorage,
@@ -55,13 +51,13 @@ impl SvmCtx {
         let host = host.unwrap();
         let host_ctx = host_ctx.unwrap() as *const HostCtx;
         let buffers = HashMap::new();
-        let registers = Registers::new();
+        let regs = Registers::default();
 
         Self {
             host,
             host_ctx,
             buffers,
-            registers,
+            regs,
             storage,
         }
     }
