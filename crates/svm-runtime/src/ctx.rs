@@ -4,7 +4,6 @@ use std::ffi::c_void;
 use log::debug;
 
 use crate::{
-    alloc_regs,
     buffer::BufferRef,
     helpers::DataWrapper,
     register::{SvmReg, SvmReg160, SvmReg32, SvmReg512, SvmReg64},
@@ -12,21 +11,6 @@ use crate::{
 
 use svm_app::types::HostCtx;
 use svm_storage::AppStorage;
-
-/// The number of allocated `SvmReg32` registers for each `SvmCtx`
-pub const REGS_32_COUNT: usize = 16;
-
-/// The number of allocated `SvmReg64` registers for each `SvmCtx`
-pub const REGS_64_COUNT: usize = 16;
-
-/// The number of allocated `SvmReg160` registers for each `SvmCtx`
-pub const REGS_160_COUNT: usize = 8;
-
-/// The number of allocated `SvmReg256` registers for each `SvmCtx`
-pub const REGS_256_COUNT: usize = 4;
-
-/// The number of allocated `SvmReg512` registers for each `SvmCtx`
-pub const REGS_512_COUNT: usize = 4;
 
 /// `SvmCtx` is a container for the accessible data by `wasmer` instances
 /// * `host`     - A pointer to the `Host`
@@ -50,20 +34,7 @@ pub struct SvmCtx {
 
     pub buffers: HashMap<i32, BufferRef>,
 
-    /// An array that holds the `SvmReg32` registers
-    pub regs_32: [SvmReg; REGS_32_COUNT],
-
-    /// An array that holds the `SvmReg64` registers
-    pub regs_64: [SvmReg; REGS_64_COUNT],
-
-    /// An array that holds the `SvmReg160` registers
-    pub regs_160: [SvmReg; REGS_160_COUNT],
-
-    /// An array that holds the `SvmReg256` registers
-    pub regs_256: [SvmReg; REGS_256_COUNT],
-
-    /// An array that holds the `SvmReg512` registers
-    pub regs_512: [SvmReg; REGS_512_COUNT],
+    pub regs: Regsiters,
 
     /// An accessor to the app's storage (`AppStorage`)
     pub storage: AppStorage,
@@ -84,22 +55,13 @@ impl SvmCtx {
         let host = host.unwrap();
         let host_ctx = host_ctx.unwrap() as *const HostCtx;
         let buffers = HashMap::new();
-
-        let regs_32 = alloc_regs!(32, REGS_32_COUNT);
-        let regs_64 = alloc_regs!(64, REGS_64_COUNT);
-        let regs_160 = alloc_regs!(160, REGS_160_COUNT);
-        let regs_256 = alloc_regs!(256, REGS_256_COUNT);
-        let regs_512 = alloc_regs!(512, REGS_512_COUNT);
+        let registers = Registers::new();
 
         Self {
             host,
             host_ctx,
             buffers,
-            regs_32,
-            regs_64,
-            regs_160,
-            regs_256,
-            regs_512,
+            registers,
             storage,
         }
     }
