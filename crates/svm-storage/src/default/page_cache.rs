@@ -32,13 +32,13 @@ pub struct DefaultPageCache<PS: StateAwarePagesStorage> {
 impl<PS: StateAwarePagesStorage> PageCache for DefaultPageCache<PS> {}
 
 impl<PS: StateAwarePagesStorage> StateAwarePagesStorage for DefaultPageCache<PS> {
-    #[inline(always)]
+    #[inline]
     fn get_state(&self) -> State {
         self.pages_storage.get_state()
     }
 
     #[must_use]
-    #[inline(always)]
+    #[inline]
     fn get_page_hash(&self, page_idx: PageIndex) -> PageHash {
         self.pages_storage.get_page_hash(page_idx)
     }

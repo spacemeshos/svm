@@ -2,10 +2,8 @@ use std::collections::HashMap;
 
 use crate::register::Register;
 
-static REGS_32_COUNT: usize = 16;
-static REGS_64_COUNT: usize = 16;
-static REGS_128_COUNT: usize = 8;
-static REGS_160_COUNT: usize = 8;
+static REGS_128_COUNT: usize = 4;
+static REGS_160_COUNT: usize = 4;
 static REGS_256_COUNT: usize = 4;
 static REGS_512_COUNT: usize = 4;
 
@@ -20,14 +18,12 @@ static REGS_512_COUNT: usize = 4;
 
 pub struct Registers {
     regs: Vec<Register>,
-    reg_index: HashMap<(i32, i32), usize>,
+    reg_pos: HashMap<(i32, i32), usize>,
 }
 
 impl Default for Registers {
     fn default() -> Self {
         let config = vec![
-            (32, REGS_32_COUNT),
-            (64, REGS_64_COUNT),
             (128, REGS_128_COUNT),
             (160, REGS_160_COUNT),
             (256, REGS_256_COUNT),
@@ -47,16 +43,16 @@ impl Registers {
 
         let mut regs = Registers {
             regs: Vec::with_capacity(regs_count),
-            reg_index: HashMap::new(),
+            reg_pos: HashMap::new(),
         };
 
         for &(reg_bits, reg_count) in config.iter() {
             assert!(reg_bits % 8 == 0);
             let reg_size = reg_bits / 8;
-            let inital_cap = 2;
+            let inital_cap = 4;
 
             for reg_idx in 0..reg_count {
-                regs.reg_index
+                regs.reg_pos
                     .insert((reg_bits as i32, reg_idx as i32), index);
 
                 let reg = Register::new(reg_size, inital_cap);
@@ -69,24 +65,21 @@ impl Registers {
         regs
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn get_reg(&self, reg_bits: i32, reg_idx: i32) -> &Register {
-        todo!()
+        let pos = self.reg_position(reg_bits, reg_idx);
+        &self.regs[pos]
     }
 
-    #[inline(always)]
-    pub fn get_reg_mut(&self, reg_bits: i32, reg_idx: i32) -> &mut Register {
-        todo!()
+    #[inline]
+    pub fn get_reg_mut(&mut self, reg_bits: i32, reg_idx: i32) -> &mut Register {
+        let pos = self.reg_position(reg_bits, reg_idx);
+        &mut self.regs[pos]
     }
 
-    #[inline(always)]
-    pub fn set_reg(&self, reg_bits: i32, reg_idx: i32, data: &[u8]) {
-        todo!()
-    }
-
-    #[inline(always)]
-    fn reg_index(&self, reg_bits: i32, reg_idx: i32) -> usize {
-        *self.reg_index.get(&(reg_bits, reg_idx)).unwrap()
+    #[inline]
+    fn reg_position(&self, reg_bits: i32, reg_idx: i32) -> usize {
+        *self.reg_pos.get(&(reg_bits, reg_idx)).unwrap()
     }
 }
 

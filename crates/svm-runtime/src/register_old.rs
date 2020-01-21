@@ -1,6 +1,6 @@
 //             /// Copies the data given in `cells` into the register content
 //             /// Pads the remaining register bytes with zeros (in case `cells.len()` is smaller than the register capacity).
-//             #[inline(always)]
+//             #[inline]
 //             pub fn copy_from_cells(&mut self, cells: &[Cell<u8>]) {
 //                 let padding = $bytes_count as isize - cells.len() as isize;
 //
@@ -23,7 +23,7 @@
 //             /// Copies the data of the register into the input `cells`.
 //             /// It works even though we receive `cells` as `&[Cell<u8>]` and not `&mut[Cell<u8>]`
 //             /// thanks to the interior mutability of `Cell<T>`
-//             #[inline(always)]
+//             #[inline]
 //             pub fn copy_to_cells(&self, cells: &[Cell<u8>]) {
 //                 for (byte, cell) in self.0.iter().zip(cells) {
 //                     cell.set(*byte);

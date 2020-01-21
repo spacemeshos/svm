@@ -156,7 +156,6 @@ pub fn storage_write_from_reg(
     helpers::storage_write_page_slice(storage, page_idx, page_offset, len, data);
 }
 
-#[inline(always)]
 fn rustify_mem_params(mem_idx: i32, mem_offset: i32, len: i32) -> (u32, usize, usize) {
     assert!(mem_idx >= 0);
     assert!(mem_offset >= 0);

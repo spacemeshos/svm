@@ -176,13 +176,13 @@ pub trait Env {
     }
 
     /// Given an `Address`, returns whether it's associated with some `AppTemplate`
-    #[inline(always)]
+    #[inline]
     fn template_exists(&self, template_addr: &Address) -> bool {
         self.load_template(template_addr).is_some()
     }
 
     /// Given an `Address`, returns whether it's associated with some `App`
-    #[inline(always)]
+    #[inline]
     fn app_exists(&self, app_addr: &Address) -> bool {
         self.load_app(app_addr).is_some()
     }

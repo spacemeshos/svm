@@ -392,7 +392,7 @@ where
         wasmer_args
     }
 
-    #[inline(always)]
+    #[inline]
     fn instance_storage_mut(
         &self,
         instance: &mut wasmer_runtime::Instance,
