@@ -18,9 +18,9 @@ pub fn buffer_copy_to_storage(
     buf_offset: i32,
     page_idx: i32,
     page_offset: i32,
-    len: i32,
+    count: i32,
 ) {
-    helpers::buffer_copy_to_storage(ctx.data, buf_id, buf_offset, page_idx, page_offset, len);
+    helpers::buffer_copy_to_storage(ctx.data, buf_id, buf_offset, page_idx, page_offset, count);
 }
 
 pub fn buffer_copy_to_reg(
@@ -29,7 +29,7 @@ pub fn buffer_copy_to_reg(
     buf_offset: i32,
     reg_bits: i32,
     reg_idx: i32,
-    len: i32,
+    count: i32,
 ) {
-    helpers::buffer_copy_to_reg(ctx.data, buf_id, buf_offset, reg_bits, reg_idx, len);
+    helpers::buffer_copy_to_reg(ctx.data, buf_id, buf_offset, reg_bits, reg_idx, count);
 }

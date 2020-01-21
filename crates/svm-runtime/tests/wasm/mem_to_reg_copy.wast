@@ -6,9 +6,9 @@
 
   ;; exported function to be called
   (func (export "run") (param i32 i32 i32 i32)
-        i32.const 0  ;; src_mem_idx
-        get_local 0  ;; src_mem_ptr
-        get_local 3  ;; len
-        get_local 1  ;; dst_reg_bits
-        get_local 2  ;; dst_reg_idx
+        i32.const 0  ;; mem_idx
+        get_local 0  ;; mem_offset
+        get_local 1  ;; reg_bits
+        get_local 2  ;; reg_idx
+        get_local 3  ;; count
         call $mem_to_reg_copy))

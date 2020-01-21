@@ -44,8 +44,8 @@ fn vmcalls_mem_to_reg_copy() {
     let reg_idx = 2;
     let reg_size = reg_bits / 8;
     let mem_offset = 200;
-    let data = [10, 20, 30];
-    let len = data.len() as i32;
+    let data = vec![10, 20, 30];
+    let count = data.len() as i32;
 
     let (app_addr, state, host, host_ctx, page_count) = default_test_args();
 
@@ -67,11 +67,11 @@ fn vmcalls_mem_to_reg_copy() {
     assert_eq!(vec![0; reg_size as usize], reg.view());
 
     let func: Func<(i32, i32, i32, i32)> = instance.func("run").unwrap();
-    assert!(func.call(mem_offset, reg_bits, reg_idx, len).is_ok());
+    assert!(func.call(mem_offset, reg_bits, reg_idx, count).is_ok());
 
     // asserting register content is `10, 20, 30, 0, 0, ... 0`
     let reg = instance_register(&instance, reg_bits, reg_idx);
-    assert_eq!(&data, &reg.view()[0..3]);
+    assert_eq!(&data[..], &reg.view()[0..count as usize]);
 }
 
 #[test]
@@ -80,7 +80,7 @@ fn vmcalls_reg_to_mem_copy() {
     let reg_idx = 2;
     let mem_offset = 200;
     let data = vec![10, 20, 30];
-    let len = data.len() as i32;
+    let count = data.len() as i32;
 
     let (app_addr, state, host, host_ctx, page_count) = default_test_args();
 
@@ -97,14 +97,14 @@ fn vmcalls_reg_to_mem_copy() {
     let reg = instance_register(&instance, reg_bits, reg_idx);
     reg.set(&data[..]);
 
-    let before = testing::instance_memory_view(&instance, mem_offset, len);
-    assert_eq!(vec![0; len as usize], before);
+    let before = testing::instance_memory_view(&instance, mem_offset, count);
+    assert_eq!(vec![0; count as usize], before);
 
     // copying register into memory
     let func: Func<(i32, i32, i32, i32)> = instance.func("run").unwrap();
-    assert!(func.call(reg_bits, reg_idx, mem_offset, len).is_ok());
+    assert!(func.call(reg_bits, reg_idx, mem_offset, count).is_ok());
 
-    let after = testing::instance_memory_view(&instance, mem_offset, len);
+    let after = testing::instance_memory_view(&instance, mem_offset, count);
     assert_eq!(data, after);
 }
 
@@ -115,8 +115,8 @@ fn vmcalls_storage_read_an_empty_page_slice_to_reg() {
     let reg_size = reg_bits / 8;
     let page_idx = 1;
     let page_offset = 100;
-    let data = [10, 20, 30];
-    let len = data.len() as i32;
+    let data = vec![10, 20, 30];
+    let count = data.len() as i32;
 
     let (app_addr, state, host, host_ctx, page_count) = default_test_args();
 
@@ -140,7 +140,7 @@ fn vmcalls_storage_read_an_empty_page_slice_to_reg() {
 
     let func: Func<(i32, i32, i32, i32, i32)> = instance.func("run").unwrap();
     assert!(func
-        .call(page_idx, page_offset, reg_bits, reg_idx, len)
+        .call(page_idx, page_offset, reg_bits, reg_idx, count)
         .is_ok());
 
     // register should contain zeros, since an empty page-slice is treated as a page-slice containing only zeros
@@ -156,7 +156,7 @@ fn vmcalls_storage_read_non_empty_page_slice_to_reg() {
     let page_idx = 1;
     let page_offset = 100;
     let data = vec![10, 20, 30];
-    let len = data.len() as i32;
+    let count = data.len() as i32;
 
     let (app_addr, state, host, host_ctx, page_count) = default_test_args();
 
@@ -177,7 +177,7 @@ fn vmcalls_storage_read_non_empty_page_slice_to_reg() {
     let layout = PageSliceLayout::new(
         PageIndex(page_idx as u16),
         PageOffset(page_offset as u32),
-        len as u32,
+        count as u32,
     );
     storage.write_page_slice(&layout, &data);
 
@@ -190,11 +190,11 @@ fn vmcalls_storage_read_non_empty_page_slice_to_reg() {
     let func: Func<(i32, i32, i32, i32, i32)> = instance.func("run").unwrap();
 
     assert!(func
-        .call(page_idx, page_offset, reg_bits, reg_idx, len)
+        .call(page_idx, page_offset, reg_bits, reg_idx, count)
         .is_ok());
 
     let reg = instance_register(&instance, reg_bits, reg_idx);
-    assert_eq!(data, &reg.view()[0..len as usize]);
+    assert_eq!(data, &reg.view()[0..count as usize]);
 }
 
 #[test]
@@ -202,8 +202,8 @@ fn vmcalls_storage_read_an_empty_page_slice_to_mem() {
     let page_idx = 1;
     let page_offset = 200;
     let mem_offset = 100;
-    let data = [10, 20, 30];
-    let len = data.len() as i32;
+    let data = vec![10, 20, 30];
+    let count = data.len() as i32;
 
     let (app_addr, state, host, host_ctx, page_count) = default_test_args();
 
@@ -221,17 +221,17 @@ fn vmcalls_storage_read_an_empty_page_slice_to_mem() {
     );
 
     // we fill memory #0, cells  with garbage data (0xFF...FF)
-    testing::instance_memory_init(&instance, page_offset, &vec![0xFF; len as usize]);
+    testing::instance_memory_init(&instance, page_offset, &vec![0xFF; count as usize]);
 
-    let before = testing::instance_memory_view(&instance, page_offset, len);
-    assert_eq!(vec![0xFF; len as usize], before);
+    let before = testing::instance_memory_view(&instance, page_offset, count);
+    assert_eq!(vec![0xFF; count as usize], before);
 
     // we copy page-slice into memory `#0`
     let func: Func<(i32, i32, i32, i32)> = instance.func("run").unwrap();
-    assert!(func.call(page_idx, page_offset, mem_offset, len).is_ok());
+    assert!(func.call(page_idx, page_offset, mem_offset, count).is_ok());
 
-    let after = testing::instance_memory_view(&instance, mem_offset, len);
-    assert_eq!(vec![0; len as usize], after);
+    let after = testing::instance_memory_view(&instance, mem_offset, count);
+    assert_eq!(vec![0; count as usize], after);
 }
 
 #[test]
@@ -240,7 +240,7 @@ fn vmcalls_storage_read_non_empty_page_slice_to_mem() {
     let page_offset = 100;
     let mem_offset = 200;
     let data = vec![10, 20, 30];
-    let len = data.len() as i32;
+    let count = data.len() as i32;
 
     let (app_addr, state, host, host_ctx, page_count) = default_test_args();
 
@@ -261,15 +261,15 @@ fn vmcalls_storage_read_non_empty_page_slice_to_mem() {
     let layout = PageSliceLayout::new(
         PageIndex(page_idx as u16),
         PageOffset(page_offset as u32),
-        len as u32,
+        count as u32,
     );
     storage.write_page_slice(&layout, &data[..]);
 
     // we copy slice (page `1`, cells: `100..103`) into memory #0, starting from address `200`
     let func: Func<(i32, i32, i32, i32)> = instance.func("run").unwrap();
-    assert!(func.call(page_idx, page_offset, mem_offset, len).is_ok());
+    assert!(func.call(page_idx, page_offset, mem_offset, count).is_ok());
 
-    let after = testing::instance_memory_view(&instance, mem_offset, len);
+    let after = testing::instance_memory_view(&instance, mem_offset, count);
     assert_eq!(data, after);
 }
 
@@ -279,7 +279,7 @@ fn vmcalls_storage_write_from_mem() {
     let page_offset = 100;
     let mem_offset = 200;
     let data = vec![10, 20, 30];
-    let len = data.len() as i32;
+    let count = data.len() as i32;
 
     let (app_addr, state, host, host_ctx, page_count) = default_test_args();
 
@@ -303,15 +303,15 @@ fn vmcalls_storage_write_from_mem() {
     let layout = PageSliceLayout::new(
         PageIndex(page_idx as u16),
         PageOffset(page_offset as u32),
-        len as u32,
+        count as u32,
     );
 
     let before = storage.read_page_slice(&layout);
-    assert_eq!(vec![0; len as usize], before);
+    assert_eq!(vec![0; count as usize], before);
 
     // we copy memory cells `200..`203` into storage (`page 1`, cells: `100..103`)
     let func: Func<(i32, i32, i32, i32)> = instance.func("run").unwrap();
-    assert!(func.call(mem_offset, page_idx, page_offset, len).is_ok());
+    assert!(func.call(mem_offset, page_idx, page_offset, count).is_ok());
 
     let after = storage.read_page_slice(&layout);
     assert_eq!(data, after);
@@ -324,7 +324,7 @@ fn vmcalls_storage_write_from_reg() {
     let page_idx = 1;
     let page_offset = 100;
     let data = vec![10, 20, 30];
-    let len = data.len() as i32;
+    let count = data.len() as i32;
 
     let (app_addr, state, host, host_ctx, page_count) = default_test_args();
 
@@ -350,16 +350,16 @@ fn vmcalls_storage_write_from_reg() {
     let layout = PageSliceLayout::new(
         PageIndex(page_idx as u16),
         PageOffset(page_offset as u32),
-        len as u32,
+        count as u32,
     );
 
     let before = storage.read_page_slice(&layout);
-    assert_eq!(vec![0; len as usize], before);
+    assert_eq!(vec![0; count as usize], before);
 
     // we copy register first into storage
     let func: Func<(i32, i32, i32, i32, i32)> = instance.func("run").unwrap();
     assert!(func
-        .call(reg_bits, reg_idx, page_idx, page_offset, len)
+        .call(reg_bits, reg_idx, page_idx, page_offset, count)
         .is_ok());
 
     let after = storage.read_page_slice(&layout);
@@ -372,7 +372,7 @@ fn vmcalls_host_ctx_read_into_reg() {
     let reg_idx = 3;
     let field_idx = 3;
     let data = vec![10, 20, 30];
-    let len = data.len() as i32;
+    let count = data.len() as i32;
 
     let (app_addr, state, host, _host_ctx, page_count) = default_test_args();
 
@@ -402,7 +402,7 @@ fn vmcalls_host_ctx_read_into_reg() {
     assert!(func.call(field_idx, reg_bits, reg_idx).is_ok());
 
     let reg = instance_register(&instance, reg_bits, reg_idx);
-    assert_eq!(&data[..], &reg.view()[0..len as usize]);
+    assert_eq!(&data[..], &reg.view()[0..count as usize]);
 }
 
 #[test]
@@ -412,7 +412,7 @@ fn vmcalls_buffer_copy_to_storage() {
     let page_idx = 1;
     let page_offset = 5;
     let data = vec![10, 20, 30];
-    let len = data.len() as i32;
+    let count = data.len() as i32;
 
     let (app_addr, state, host, host_ctx, page_count) = default_test_args();
 
@@ -438,7 +438,7 @@ fn vmcalls_buffer_copy_to_storage() {
     // copy buf slice into page
     let func: Func<(i32, i32, i32, i32, i32)> = instance.func("copy").unwrap();
     assert!(func
-        .call(buf_id, buf_offset, page_idx, page_offset, len)
+        .call(buf_id, buf_offset, page_idx, page_offset, count)
         .is_ok());
 
     // killing buffer
@@ -453,6 +453,6 @@ fn vmcalls_buffer_copy_to_storage() {
     let storage = instance_storage(&instance);
     assert_eq!(
         data,
-        helpers::storage_read_page_slice(storage, page_idx, page_offset, len)
+        helpers::storage_read_page_slice(storage, page_idx, page_offset, count)
     );
 }

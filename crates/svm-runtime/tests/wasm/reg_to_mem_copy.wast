@@ -8,7 +8,7 @@
   (func (export "run") (param i32 i32 i32 i32)
         get_local 0  ;; reg_bits
         get_local 1  ;; reg_idx
-        get_local 3  ;; len
         i32.const 0  ;; mem_idx
-        get_local 2  ;; mem_ptr
+        get_local 2  ;; mem_offset
+        get_local 3  ;; count
         call $svm_reg_to_mem_copy))

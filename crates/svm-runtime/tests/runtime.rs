@@ -57,14 +57,15 @@ fn runtime_spawn_app_with_ctor() {
 fn runtime_exec_app() {
     // 1) init
     let version = 0;
+    let author = Address::of("author");
+    let creator = Address::of("creator");
+    let sender = Address::of("sender");
+    let page_count = 10;
+
     let kv = testing::memory_kv_store_init();
     let host = std::ptr::null_mut();
     let imports = Vec::new();
     let mut runtime = testing::create_memory_runtime(host, &kv, imports);
-    let page_count = 10;
-    let author = Address::of("author");
-    let creator = Address::of("creator");
-    let sender = Address::of("sender");
 
     // 2) deploying the template
     let bytes = testing::build_template(
@@ -86,13 +87,26 @@ fn runtime_exec_app() {
     let (app_addr, init_state) = runtime.spawn_app(&creator, HostCtx::new(), &bytes).unwrap();
 
     // 4) executing the app-transaction.
+    let buf_id = 0;
+    let buf_offset = 10;
+    let reg_bits = 128;
+    let reg_idx = 3;
+    let page_idx = 1;
+    let page_offset = 20;
+
     let func_name = "run";
-    let func_buf = vec![vec![0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80]];
+    let data = vec![0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80, 0x90, 0xA0];
+    let func_buf = vec![data.clone()];
+    let count = data.len() as i32;
+
     let func_args = vec![
-        WasmValue::I32(0),  // buf_offset
-        WasmValue::I32(64), // reg_bits
-        WasmValue::I32(0),  // reg_idx
-        WasmValue::I32(8),  // len
+        WasmValue::I32(buf_id),
+        WasmValue::I32(buf_offset),
+        WasmValue::I32(reg_bits),
+        WasmValue::I32(reg_idx),
+        WasmValue::I32(count),
+        WasmValue::I32(page_idx),
+        WasmValue::I32(page_offset),
     ];
     let bytes = testing::build_app_tx(version, &app_addr, func_name, &func_buf, &func_args);
 
@@ -106,14 +120,18 @@ fn runtime_exec_app() {
 
     let new_state = receipt.new_state.as_ref().unwrap();
 
-    // now we'll read directly from the app's storage and assert that the
-    // data has been persisted as expected.
+    // now we'll read directly from the app's storage
+    // and assert that the data has been persisted as expected.
 
     let settings = AppSettings { page_count };
     let mut storage = runtime.open_app_storage(&app_addr, new_state, &settings);
 
-    let layout = PageSliceLayout::new(PageIndex(0), PageOffset(0), 8);
+    let layout = PageSliceLayout::new(
+        PageIndex(page_idx as u16),
+        PageOffset(page_offset as u32),
+        count as u32,
+    );
     let slice = storage.read_page_slice(&layout);
 
-    assert_eq!(vec![0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80], slice);
+    assert_eq!(data, slice);
 }

@@ -4,18 +4,18 @@
 
   (memory 1)  ;; memory `0` (default) is initialized with one page
 
-  (func (export "run") (param i32 i32 i32 i32)
-        i32.const 0  ;; buf_id
-        get_local 0  ;; buf_offset
-        get_local 1  ;; reg_bits
-        get_local 2  ;; reg_idx
-        get_local 3  ;; len
+  (func (export "run") (param i32 i32 i32 i32 i32 i32 i32)
+        get_local 0  ;; buf_id
+        get_local 1  ;; buf_offset
+        get_local 2  ;; reg_bits
+        get_local 3  ;; reg_idx
+        get_local 4  ;; count
         call $buffer_copy_to_reg
 
-        ;; persist resgiter value to storage
-        get_local 1  ;; reg_bits
-        get_local 2  ;; reg_idx
-        get_local 3  ;; len
-        i32.const 0  ;; page_idx
-        i32.const 0  ;; page_offset
+        ;; persist register value into storage
+        get_local 2  ;; reg_bits
+        get_local 3  ;; reg_idx
+        get_local 5  ;; page_idx
+        get_local 6  ;; page_offset
+        get_local 4  ;; count
         call $storage_write_from_reg))
