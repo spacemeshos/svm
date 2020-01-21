@@ -1,5 +1,5 @@
 use svm_app::types::{HostCtx, WasmValue};
-use svm_common::Address;
+use svm_common::{Address, State};
 use svm_runtime::{settings::AppSettings, testing, traits::Runtime};
 use svm_storage::page::{PageIndex, PageOffset, PageSliceLayout};
 
@@ -70,7 +70,7 @@ fn runtime_exec_app() {
     // 2) deploying the template
     let bytes = testing::build_template(
         version,
-        "Template #1",
+        "My Template",
         page_count,
         include_str!("wasm/runtime_exec_app.wast"),
     );
@@ -85,12 +85,14 @@ fn runtime_exec_app() {
     let bytes = testing::build_app(version, &template_addr, &ctor_buf, &ctor_args);
 
     let (app_addr, init_state) = runtime.spawn_app(&creator, HostCtx::new(), &bytes).unwrap();
+    assert_eq!(State::empty(), init_state);
 
-    // 4) executing the app-transaction.
+    // // 4) executing the app-transaction
     let buf_id = 0;
-    let buf_offset = 10;
+    let buf_offset = 0;
     let reg_bits = 128;
     let reg_idx = 3;
+    let reg_size = reg_bits / 8;
     let page_idx = 1;
     let page_offset = 20;
 
@@ -98,6 +100,8 @@ fn runtime_exec_app() {
     let data = vec![0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80, 0x90, 0xA0];
     let func_buf = vec![data.clone()];
     let count = data.len() as i32;
+
+    assert!(count <= reg_size);
 
     let func_args = vec![
         WasmValue::I32(buf_id),
@@ -111,8 +115,8 @@ fn runtime_exec_app() {
     let bytes = testing::build_app_tx(version, &app_addr, func_name, &func_buf, &func_args);
 
     let tx = runtime.parse_exec_app(&sender, &bytes).unwrap();
-    let res = runtime.exec_app(tx, init_state.clone(), HostCtx::new());
 
+    let res = runtime.exec_app(tx, init_state.clone(), HostCtx::new());
     let receipt = res.unwrap();
 
     assert_eq!(true, receipt.success);
