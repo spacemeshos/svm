@@ -2,5 +2,5 @@
 #[derive(Debug, Clone)]
 pub struct AppSettings {
     /// number of pages required by the app storage
-    pub pages_count: u16,
+    pub page_count: u16,
 }

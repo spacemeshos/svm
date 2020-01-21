@@ -11,7 +11,7 @@ fn runtime_spawn_app_with_ctor() {
     let host = std::ptr::null_mut();
     let imports = Vec::new();
     let mut runtime = testing::create_memory_runtime(host, &kv, imports);
-    let pages_count = 10;
+    let page_count = 10;
     let author = Address::of("author");
     let creator = Address::of("creator");
 
@@ -19,7 +19,7 @@ fn runtime_spawn_app_with_ctor() {
     let bytes = testing::build_template(
         version,
         "Template #1",
-        pages_count,
+        page_count,
         include_str!("wasm/runtime_app_ctor.wast"),
     );
 
@@ -41,7 +41,7 @@ fn runtime_spawn_app_with_ctor() {
 
     let (app_addr, init_state) = runtime.spawn_app(&creator, HostCtx::new(), &bytes).unwrap();
 
-    let settings = AppSettings { pages_count };
+    let settings = AppSettings { page_count };
     let mut storage = runtime.open_app_storage(&app_addr, &init_state, &settings);
 
     let layout = PageSliceLayout::new(PageIndex(0), PageOffset(0), buf_size);
@@ -61,7 +61,7 @@ fn runtime_exec_app() {
     let host = std::ptr::null_mut();
     let imports = Vec::new();
     let mut runtime = testing::create_memory_runtime(host, &kv, imports);
-    let pages_count = 10;
+    let page_count = 10;
     let author = Address::of("author");
     let creator = Address::of("creator");
     let sender = Address::of("sender");
@@ -70,7 +70,7 @@ fn runtime_exec_app() {
     let bytes = testing::build_template(
         version,
         "Template #1",
-        pages_count,
+        page_count,
         include_str!("wasm/runtime_exec_app.wast"),
     );
 
@@ -109,7 +109,7 @@ fn runtime_exec_app() {
     // now we'll read directly from the app's storage and assert that the
     // data has been persisted as expected.
 
-    let settings = AppSettings { pages_count };
+    let settings = AppSettings { page_count };
     let mut storage = runtime.open_app_storage(&app_addr, new_state, &settings);
 
     let layout = PageSliceLayout::new(PageIndex(0), PageOffset(0), 8);

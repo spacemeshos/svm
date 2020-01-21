@@ -73,11 +73,11 @@ pub fn app_memory_state_creator(
     state: &State,
     host: DataWrapper<*mut c_void>,
     host_ctx: DataWrapper<*const c_void>,
-    pages_count: u16,
+    page_count: u16,
 ) -> (*mut c_void, fn(*mut c_void)) {
     let kv = memory_kv_store_init();
 
-    let storage = svm_storage::testing::app_storage_open(app_addr, state, &kv, pages_count);
+    let storage = svm_storage::testing::app_storage_open(app_addr, state, &kv, page_count);
 
     let ctx = SvmCtx::new(host, host_ctx, storage);
     let ctx: *mut SvmCtx = Box::into_raw(Box::new(ctx));
@@ -111,7 +111,7 @@ pub fn runtime_memory_storage_builder(kv: &Rc<RefCell<MemKVStore>>) -> Box<Stora
     let kv = Rc::clone(kv);
 
     let func = move |addr: &Address, state: &State, settings: &AppSettings| {
-        svm_storage::testing::app_storage_open(addr, state, &kv, settings.pages_count)
+        svm_storage::testing::app_storage_open(addr, state, &kv, settings.page_count)
     };
 
     Box::new(func)
@@ -126,13 +126,13 @@ pub fn runtime_memory_env_builder() -> JsonMemoryEnv {
 }
 
 /// Synthesizes a raw deploy-template transaction.
-pub fn build_template(version: u32, name: &str, pages_count: u16, wasm: &str) -> Vec<u8> {
+pub fn build_template(version: u32, name: &str, page_count: u16, wasm: &str) -> Vec<u8> {
     let code = wabt::wat2wasm(wasm).unwrap();
 
     AppTemplateBuilder::new()
         .with_version(version)
         .with_name(name)
-        .with_pages_count(pages_count)
+        .with_page_count(page_count)
         .with_code(code.as_slice())
         .build()
 }

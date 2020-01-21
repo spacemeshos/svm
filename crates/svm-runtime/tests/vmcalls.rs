@@ -21,12 +21,12 @@ fn default_test_args() -> (
     u16,
 ) {
     let app_addr = Address::of("my-app");
-    let state = State::from(0x_00_00_00_00);
+    let state = State::empty();
     let host = DataWrapper::new(std::ptr::null_mut());
     let host_ctx = DataWrapper::new(svm_common::into_raw(HostCtx::new()));
-    let pages_count = 5;
+    let page_count = 5;
 
-    (app_addr, state, host, host_ctx, pages_count)
+    (app_addr, state, host, host_ctx, page_count)
 }
 
 #[test]
@@ -40,10 +40,10 @@ fn vmcalls_empty_wasm() {
 
 #[test]
 fn vmcalls_mem_to_reg_copy() {
-    let (app_addr, state, host, host_ctx, pages_count) = default_test_args();
+    let (app_addr, state, host, host_ctx, page_count) = default_test_args();
 
     let import_object = imports! {
-        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, pages_count),
+        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, page_count),
 
         "svm" => {
             "mem_to_reg_copy" => func!(vmcalls::mem_to_reg_copy),
@@ -69,10 +69,10 @@ fn vmcalls_mem_to_reg_copy() {
 
 #[test]
 fn vmcalls_reg_to_mem_copy() {
-    let (app_addr, state, host, host_ctx, pages_count) = default_test_args();
+    let (app_addr, state, host, host_ctx, page_count) = default_test_args();
 
     let import_object = imports! {
-        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, pages_count),
+        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, page_count),
 
         "svm" => {
             "reg_to_mem_copy" => func!(vmcalls::reg_to_mem_copy),
@@ -100,10 +100,10 @@ fn vmcalls_reg_to_mem_copy() {
 
 #[test]
 fn vmcalls_storage_read_an_empty_page_slice_to_reg() {
-    let (app_addr, state, host, host_ctx, pages_count) = default_test_args();
+    let (app_addr, state, host, host_ctx, page_count) = default_test_args();
 
     let import_object = imports! {
-        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, pages_count),
+        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, page_count),
 
         "svm" => {
             "storage_read_to_reg" => func!(vmcalls::storage_read_to_reg),
@@ -130,10 +130,10 @@ fn vmcalls_storage_read_an_empty_page_slice_to_reg() {
 
 #[test]
 fn vmcalls_storage_read_non_empty_page_slice_to_reg() {
-    let (app_addr, state, host, host_ctx, pages_count) = default_test_args();
+    let (app_addr, state, host, host_ctx, page_count) = default_test_args();
 
     let import_object = imports! {
-        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, pages_count),
+        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, page_count),
 
         "svm" => {
             "storage_read_to_reg" => func!(vmcalls::storage_read_to_reg),
@@ -166,10 +166,10 @@ fn vmcalls_storage_read_non_empty_page_slice_to_reg() {
 
 #[test]
 fn vmcalls_storage_read_an_empty_page_slice_to_mem() {
-    let (app_addr, state, host, host_ctx, pages_count) = default_test_args();
+    let (app_addr, state, host, host_ctx, page_count) = default_test_args();
 
     let import_object = imports! {
-        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, pages_count),
+        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, page_count),
 
         "svm" => {
             "storage_read_to_mem" => func!(vmcalls::storage_read_to_mem),
@@ -197,10 +197,10 @@ fn vmcalls_storage_read_an_empty_page_slice_to_mem() {
 
 #[test]
 fn vmcalls_storage_read_non_empty_page_slice_to_mem() {
-    let (app_addr, state, host, host_ctx, pages_count) = default_test_args();
+    let (app_addr, state, host, host_ctx, page_count) = default_test_args();
 
     let import_object = imports! {
-        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, pages_count),
+        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, page_count),
 
         "svm" => {
             "storage_read_to_mem" => func!(vmcalls::storage_read_to_mem),
@@ -228,10 +228,10 @@ fn vmcalls_storage_read_non_empty_page_slice_to_mem() {
 
 #[test]
 fn vmcalls_storage_write_from_mem() {
-    let (app_addr, state, host, host_ctx, pages_count) = default_test_args();
+    let (app_addr, state, host, host_ctx, page_count) = default_test_args();
 
     let import_object = imports! {
-        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, pages_count),
+        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, page_count),
 
         "svm" => {
             "storage_write_from_mem" => func!(vmcalls::storage_write_from_mem),
@@ -260,10 +260,10 @@ fn vmcalls_storage_write_from_mem() {
 
 #[test]
 fn vmcalls_storage_write_from_reg() {
-    let (app_addr, state, host, host_ctx, pages_count) = default_test_args();
+    let (app_addr, state, host, host_ctx, page_count) = default_test_args();
 
     let import_object = imports! {
-        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, pages_count),
+        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, page_count),
 
         "svm" => {
             "storage_write_from_reg" => func!(vmcalls::storage_write_from_reg),
@@ -293,7 +293,7 @@ fn vmcalls_storage_write_from_reg() {
 
 #[test]
 fn vmcalls_host_ctx_read_into_reg() {
-    let (app_addr, state, host, _host_ctx, pages_count) = default_test_args();
+    let (app_addr, state, host, _host_ctx, page_count) = default_test_args();
 
     let host_ctx = HostCtx::from(hashmap! {
         2 => vec![10, 20],
@@ -303,7 +303,7 @@ fn vmcalls_host_ctx_read_into_reg() {
     let host_ctx = DataWrapper::new(svm_common::into_raw(host_ctx));
 
     let import_object = imports! {
-        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, pages_count),
+        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, page_count),
 
         "svm" => {
             "host_ctx_read_into_reg" => func!(vmcalls::host_ctx_read_into_reg),
@@ -332,13 +332,13 @@ fn vmcalls_host_ctx_read_into_reg() {
 
 #[test]
 fn vmcalls_buffer_copy_to_storage() {
-    let (app_addr, state, host, host_ctx, pages_count) = default_test_args();
+    let (app_addr, state, host, host_ctx, page_count) = default_test_args();
 
     // app needs at least 2 pages for this test
-    assert!(pages_count >= 2);
+    assert!(page_count >= 2);
 
     let import_object = imports! {
-        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, pages_count),
+        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, page_count),
 
         "svm" => {
             "buffer_create" => func!(vmcalls::buffer_create),

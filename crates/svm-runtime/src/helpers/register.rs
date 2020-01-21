@@ -6,5 +6,7 @@ use crate::{ctx::SvmCtx, register::Register};
 /// Will be used by storage vmcalls.
 #[inline]
 pub fn wasmer_data_reg<'a>(data: *mut c_void, reg_bits: i32, reg_idx: i32) -> &'a mut Register {
-    todo!()
+    let ctx: &mut SvmCtx = unsafe { svm_common::from_raw_mut::<SvmCtx>(data) };
+
+    ctx.regs.get_reg_mut(reg_bits, reg_idx)
 }

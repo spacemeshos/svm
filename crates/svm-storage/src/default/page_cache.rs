@@ -53,12 +53,12 @@ impl<PS: StateAwarePagesStorage> DefaultPageCache<PS> {
     /// * `pages_storage` - the underlying page-oriented page interface wrapping an underlying database.
     ///   doing a `pages_storage.commit()` should persist data to the underlying database.
     ///
-    /// * `pages_count` - the #pages the `DefaultPageCache` instance could use when doing read / write.
-    ///   A page index is within the range `0..(pages_count - 1)` (inclusive)
-    pub fn new(pages_storage: PS, pages_count: u16) -> Self {
+    /// * `page_count` - the #pages the `DefaultPageCache` instance could use when doing read / write.
+    ///   A page index is within the range `0..(page_count - 1)` (inclusive)
+    pub fn new(pages_storage: PS, page_count: u16) -> Self {
         Self {
-            dirty_pages: vec![false; pages_count as usize],
-            cached_pages: vec![CachedPage::NotCached; pages_count as usize],
+            dirty_pages: vec![false; page_count as usize],
+            cached_pages: vec![CachedPage::NotCached; page_count as usize],
             pages_storage,
         }
     }
@@ -71,7 +71,7 @@ impl<PS: StateAwarePagesStorage> DefaultPageCache<PS> {
 
 impl<PS: StateAwarePagesStorage> PagesStorage for DefaultPageCache<PS> {
     fn read_page(&mut self, page_idx: PageIndex) -> Option<Vec<u8>> {
-        // we can have an `assert` here since we are given the `pages_count` upon initialization
+        // we can have an `assert` here since we are given the `page_count` upon initialization
         assert!(self.cached_pages.len() > page_idx.0 as usize);
 
         debug!("reading page #{}", page_idx.0);

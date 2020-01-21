@@ -208,7 +208,7 @@ where
         let (template, template_addr) = self.load_template(&tx)?;
 
         let settings = AppSettings {
-            pages_count: template.pages_count,
+            page_count: template.page_count,
         };
 
         let mut import_object = self.import_object_create(&tx.app, &state, host_ctx, &settings);

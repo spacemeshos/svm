@@ -92,8 +92,8 @@ unsafe fn create_imports() -> (Vec<*const svm_import_t>, u32) {
     (imports, imports_len)
 }
 
-fn deploy_template_bytes(version: u32, name: &str, pages_count: u16, wasm: &str) -> (Vec<u8>, u32) {
-    let bytes = svm_runtime::testing::build_template(version, name, pages_count, wasm);
+fn deploy_template_bytes(version: u32, name: &str, page_count: u16, wasm: &str) -> (Vec<u8>, u32) {
+    let bytes = svm_runtime::testing::build_template(version, name, page_count, wasm);
     let bytes_len = bytes.len() as u32;
 
     (bytes, bytes_len)
@@ -176,9 +176,9 @@ unsafe fn do_ffi_exec_app() {
     // 2) deploy app-template
     let author = Address::of("author");
     let code = include_str!("wasm/update-balance.wast");
-    let pages_count = 10;
+    let page_count = 10;
     let (hctx_bytes, hctx_len) = host_ctx_bytes(version, hashmap! {});
-    let (bytes, bytes_len) = deploy_template_bytes(version, "MyTemplate #1", pages_count, code);
+    let (bytes, bytes_len) = deploy_template_bytes(version, "MyTemplate #1", page_count, code);
     let mut template = std::ptr::null_mut();
 
     let res = api::svm_deploy_template(

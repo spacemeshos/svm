@@ -39,15 +39,16 @@ impl Registers {
         let mut index = 0;
         let mut cap = 0;
 
-        let regs_count = config.iter().map(|(_, reg_count)| reg_count).sum();
+        let reg_count = config.iter().map(|(_, reg_count)| reg_count).sum();
 
         let mut regs = Registers {
-            regs: Vec::with_capacity(regs_count),
+            regs: Vec::with_capacity(reg_count),
             reg_pos: HashMap::new(),
         };
 
         for &(reg_bits, reg_count) in config.iter() {
             assert!(reg_bits % 8 == 0);
+
             let reg_size = reg_bits / 8;
             let inital_cap = 4;
 
@@ -67,18 +68,18 @@ impl Registers {
 
     #[inline]
     pub fn get_reg(&self, reg_bits: i32, reg_idx: i32) -> &Register {
-        let pos = self.reg_position(reg_bits, reg_idx);
+        let pos = self.reg_pos(reg_bits, reg_idx);
         &self.regs[pos]
     }
 
     #[inline]
     pub fn get_reg_mut(&mut self, reg_bits: i32, reg_idx: i32) -> &mut Register {
-        let pos = self.reg_position(reg_bits, reg_idx);
+        let pos = self.reg_pos(reg_bits, reg_idx);
         &mut self.regs[pos]
     }
 
     #[inline]
-    fn reg_position(&self, reg_bits: i32, reg_idx: i32) -> usize {
+    fn reg_pos(&self, reg_bits: i32, reg_idx: i32) -> usize {
         *self.reg_pos.get(&(reg_bits, reg_idx)).unwrap()
     }
 }

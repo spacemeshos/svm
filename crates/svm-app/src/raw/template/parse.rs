@@ -20,13 +20,13 @@ pub fn parse_template(bytes: &[u8], author: &Address) -> Result<AppTemplate, Par
     let name = parse_name(&mut cursor)?;
     let _admins = parse_admins(&mut cursor)?;
     parse_deps(&mut cursor)?;
-    let pages_count = parse_pages_count(&mut cursor)?;
+    let page_count = parse_page_count(&mut cursor)?;
     let code = parse_code(&mut cursor)?;
 
     let template = AppTemplate {
         name,
         author: author.clone(),
-        pages_count,
+        page_count,
         code,
     };
 
@@ -85,8 +85,8 @@ fn parse_deps(cursor: &mut Cursor<&[u8]>) -> Result<(), ParseError> {
 }
 
 #[must_use]
-fn parse_pages_count(cursor: &mut Cursor<&[u8]>) -> Result<u16, ParseError> {
-    helpers::read_u16(cursor, Field::PagesCount)
+fn parse_page_count(cursor: &mut Cursor<&[u8]>) -> Result<u16, ParseError> {
+    helpers::read_u16(cursor, Field::PageCount)
 }
 
 #[must_use]

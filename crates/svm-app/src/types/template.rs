@@ -10,7 +10,7 @@ use svm_common::Address;
 pub struct AppTemplate {
     pub name: String,
     pub author: Address,
-    pub pages_count: u16,
+    pub page_count: u16,
     pub code: Vec<u8>,
 }
 
@@ -18,7 +18,7 @@ impl fmt::Debug for AppTemplate {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let name = self.fmt_name(&self.name);
         let author = self.fmt_author(&self.author);
-        let pages = self.fmt_pages_count(self.pages_count);
+        let pages = self.fmt_page_count(self.page_count);
         let code = self.fmt_code(&self.code);
 
         let msg = [author, name, code, pages].join("\n");
@@ -35,8 +35,8 @@ impl AppTemplate {
         format!("Author: {:?}...", &author.as_slice()[0..8])
     }
 
-    fn fmt_pages_count(&self, pages_count: u16) -> String {
-        format!("#Pages: {:?}", pages_count)
+    fn fmt_page_count(&self, page_count: u16) -> String {
+        format!("#Pages: {:?}", page_count)
     }
 
     fn fmt_code(&self, code: &[u8]) -> String {

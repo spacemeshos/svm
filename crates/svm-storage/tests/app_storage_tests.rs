@@ -8,9 +8,9 @@ mod asserts;
 #[test]
 fn app_storage_loading_an_empty_slice_into_the_cache() {
     let addr = "my-app";
-    let pages_count = 10;
+    let page_count = 10;
 
-    let (_addr, _kv, mut storage) = app_storage_init(addr, pages_count);
+    let (_addr, _kv, mut storage) = app_storage_init(addr, page_count);
 
     let layout = PageSliceLayout::new(PageIndex(1), PageOffset(100), 200);
 
@@ -20,9 +20,9 @@ fn app_storage_loading_an_empty_slice_into_the_cache() {
 #[test]
 fn app_storage_read_an_empty_slice_then_override_it_and_then_commit() {
     let addr = "my-app";
-    let pages_count = 10;
+    let page_count = 10;
 
-    let (addr, kv, mut storage) = app_storage_init(addr, pages_count);
+    let (addr, kv, mut storage) = app_storage_init(addr, page_count);
 
     let layout = PageSliceLayout::new(PageIndex(1), PageOffset(100), 3);
 
@@ -40,9 +40,9 @@ fn app_storage_read_an_empty_slice_then_override_it_and_then_commit() {
 #[test]
 fn app_storage_write_slice_without_loading_it_first_and_commit() {
     let addr = "my-app";
-    let pages_count = 2;
+    let page_count = 2;
 
-    let (addr, kv, mut storage) = app_storage_init(addr, pages_count);
+    let (addr, kv, mut storage) = app_storage_init(addr, page_count);
 
     // page #1, cells: `100, 1001, 1002`
     let layout = PageSliceLayout::new(PageIndex(1), PageOffset(100), 3);
@@ -51,7 +51,7 @@ fn app_storage_write_slice_without_loading_it_first_and_commit() {
     let new_state = storage.commit();
 
     // asserting persisted data. when viewed in the context of `new_state`.
-    app_storage_open(&addr, &new_state, &kv, pages_count);
+    app_storage_open(&addr, &new_state, &kv, page_count);
 
     assert_eq!(vec![10, 20, 30], storage.read_page_slice(&layout));
 
@@ -66,9 +66,9 @@ fn app_storage_write_slice_without_loading_it_first_and_commit() {
 #[test]
 fn app_storage_read_an_existing_slice_then_overriding_it_and_commit() {
     let addr = "my-app";
-    let pages_count = 2;
+    let page_count = 2;
 
-    let (addr, kv, mut storage) = app_storage_init(addr, pages_count);
+    let (addr, kv, mut storage) = app_storage_init(addr, page_count);
 
     let layout = PageSliceLayout::new(PageIndex(1), PageOffset(100), 3);
 
@@ -103,9 +103,9 @@ fn app_storage_read_an_existing_slice_then_overriding_it_and_commit() {
 #[test]
 fn app_storage_write_slice_and_commit_then_load_it_override_it_and_commit() {
     let addr = "my-app";
-    let pages_count = 2;
+    let page_count = 2;
 
-    let (addr, kv, mut storage) = app_storage_init(addr, pages_count);
+    let (addr, kv, mut storage) = app_storage_init(addr, page_count);
 
     let layout = PageSliceLayout::new(PageIndex(1), PageOffset(100), 3);
 
@@ -122,7 +122,7 @@ fn app_storage_write_slice_and_commit_then_load_it_override_it_and_commit() {
     let state = storage.commit();
 
     // 3) re-load persisted page (we do a `clear` first to make sure we load from the pages-storage)
-    let mut storage = app_storage_open(&addr, &state, &kv, pages_count);
+    let mut storage = app_storage_open(&addr, &state, &kv, page_count);
     assert_eq!(vec![10, 20, 30], storage.read_page_slice(&layout));
 
     // 4) page override
@@ -142,9 +142,9 @@ fn app_storage_write_slice_and_commit_then_load_it_override_it_and_commit() {
 #[test]
 fn app_storage_write_two_slices_under_same_page_and_commit() {
     let addr = "my-app";
-    let pages_count = 2;
+    let page_count = 2;
 
-    let (addr, kv, mut storage) = app_storage_init(addr, pages_count);
+    let (addr, kv, mut storage) = app_storage_init(addr, page_count);
 
     let layout1 = PageSliceLayout::new(PageIndex(1), PageOffset(100), 3);
     let layout2 = PageSliceLayout::new(PageIndex(1), PageOffset(200), 2);
@@ -169,7 +169,7 @@ fn app_storage_write_two_slices_under_same_page_and_commit() {
     let state = storage.commit();
 
     // asserting persisted data. when viewing in the context of `new_state`.
-    let mut storage = app_storage_open(&addr, &state, &kv, pages_count);
+    let mut storage = app_storage_open(&addr, &state, &kv, page_count);
 
     assert_eq!(vec![10, 20, 30], storage.read_page_slice(&layout1));
     assert_eq!(vec![40, 50], storage.read_page_slice(&layout2));
