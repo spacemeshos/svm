@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 use crate::register::Register;
 
-static REGS_128_COUNT: usize = 4;
-static REGS_160_COUNT: usize = 4;
+static REGS_128_COUNT: usize = 8;
+static REGS_160_COUNT: usize = 8;
 static REGS_256_COUNT: usize = 4;
 static REGS_512_COUNT: usize = 4;
 
@@ -16,6 +16,7 @@ static REGS_512_COUNT: usize = 4;
 //     (512, REGS_512_COUNT),
 // ];
 
+#[derive(Debug)]
 pub struct Registers {
     regs: Vec<Register>,
     reg_pos: HashMap<(i32, i32), usize>,
@@ -39,10 +40,10 @@ impl Registers {
         let mut index = 0;
         let mut cap = 0;
 
-        let reg_count = config.iter().map(|(_, reg_count)| reg_count).sum();
+        let regs_capacity = config.iter().map(|(_reg_bits, reg_count)| reg_count).sum();
 
         let mut regs = Registers {
-            regs: Vec::with_capacity(reg_count),
+            regs: Vec::with_capacity(regs_capacity),
             reg_pos: HashMap::new(),
         };
 
@@ -69,12 +70,14 @@ impl Registers {
     #[inline]
     pub fn get_reg(&self, reg_bits: i32, reg_idx: i32) -> &Register {
         let pos = self.reg_pos(reg_bits, reg_idx);
+
         &self.regs[pos]
     }
 
     #[inline]
     pub fn get_reg_mut(&mut self, reg_bits: i32, reg_idx: i32) -> &mut Register {
         let pos = self.reg_pos(reg_bits, reg_idx);
+
         &mut self.regs[pos]
     }
 

@@ -48,19 +48,22 @@ pub fn instance_buffer(instance: &Instance, buf_id: i32) -> Option<&mut BufferRe
 }
 
 /// Returns a view of `wasmer` instance memory at `offset`...`offest + len - 1`
-pub fn instance_memory_view(instance: &Instance, offset: usize, len: usize) -> Vec<u8> {
+pub fn instance_memory_view(instance: &Instance, offset: i32, len: i32) -> Vec<u8> {
     let view = instance.context().memory(0).view();
 
-    view[offset..offset + len]
-        .iter()
-        .map(|cell| cell.get())
-        .collect()
+    let start = offset as usize;
+    let end = start + len as usize;
+
+    view[start..end].iter().map(|cell| cell.get()).collect()
 }
 
 /// Copies input slice `bytes` into `wasmer` instance memory starting at offset `offset`.
-pub fn instance_memory_init(instance: &Instance, offset: usize, bytes: &[u8]) {
+pub fn instance_memory_init(instance: &Instance, offset: i32, bytes: &[u8]) {
     let view = instance.context().memory(0).view();
-    let cells = &view[offset..(offset as usize + bytes.len())];
+
+    let start = offset as usize;
+    let end = start + bytes.len() as usize;
+    let cells = &view[start..end];
 
     for (cell, byte) in cells.iter().zip(bytes.iter()) {
         cell.set(*byte);
