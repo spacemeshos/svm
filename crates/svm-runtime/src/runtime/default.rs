@@ -214,25 +214,29 @@ where
         let mut import_object = self.import_object_create(&tx.app, &state, host_ctx, &settings);
         self.import_object_extend(&mut import_object);
 
-        let receipt =
-            match self.do_exec_app(&tx, &template, &template_addr, &import_object, is_ctor) {
-                Err(e) => Receipt {
-                    success: false,
-                    error: Some(e),
-                    returns: None,
-                    new_state: None,
-                },
-                Ok((state, returns)) => Receipt {
-                    success: true,
-                    error: None,
-                    returns: Some(returns),
-                    new_state: Some(state),
-                },
-            };
+        let result = self.do_exec_app(&tx, &template, &template_addr, &import_object, is_ctor);
+        let receipt = self.make_receipt(result);
 
         info!("receipt: {:?}", receipt);
 
         Ok(receipt)
+    }
+
+    fn make_receipt(&self, result: Result<(State, Vec<Value>), ExecAppError>) -> Receipt {
+        match result {
+            Err(e) => Receipt {
+                success: false,
+                error: Some(e),
+                returns: None,
+                new_state: None,
+            },
+            Ok((state, returns)) => Receipt {
+                success: true,
+                error: None,
+                returns: Some(returns),
+                new_state: Some(state),
+            },
+        }
     }
 
     fn do_exec_app(

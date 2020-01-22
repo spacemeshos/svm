@@ -255,11 +255,13 @@ unsafe fn do_ffi_exec_app() {
     let init_balance = 100;
     host.set_balance(&user, init_balance);
 
-    // let nonce = 3;
-    // let nonce_vec = vec![0, 0, 0, 0, 0, 0, 0, nonce];
+    let nonce = 3;
+    let nonce_idx = 2;
+    let nonce_vec = vec![0, 0, 0, 0, 0, 0, 0, nonce];
 
     // we set field index `2` with a value called `nonce` (one byte).
-    let (host_ctx_bytes, host_ctx_len) = host_ctx_bytes(version, hashmap! {});
+    let (host_ctx_bytes, host_ctx_len) =
+        host_ctx_bytes(version, hashmap! { nonce_idx => nonce_vec });
 
     let mut receipt = std::ptr::null_mut();
     let mut receipt_length = 0;

@@ -25,11 +25,23 @@
         i32.const 20   ;; count (`Address` consumes 20 bytes)
         call $buffer_copy_to_reg
 
+        ;; load `nonce` from `HostCtx` into `i64`
+
         ;; update the `Address` balance (under register `160:0`)
+        ;; if `nonce` is greater than 10, we'll call `inc_balance`,
+        ;; otherwise, we'll call `mul_balance`
+
+        ????
+
         i32.const 160 ;; reg_bits
         i32.const 0   ;; reg_idx
         get_local 0   ;; addition
         call $inc_balance
+
+        i32.const 160 ;; reg_bits
+        i32.const 0   ;; reg_idx
+        get_local 0   ;; mul-by
+        call $mul_balance
 
         ;; restore register `160:0`
         i32.const 160 ;; reg_bits
