@@ -224,12 +224,9 @@ mod tests {
         let reg = Register::new(reg_size, init_cap);
         let ptr = reg.as_ptr();
 
-        for i in 0..reg_size {
-            unsafe {
-                let addr = ptr.offset(i as isize);
-                let byte = std::ptr::read(addr);
-                assert_eq!(0, byte);
-            }
+        unsafe {
+            let slice = std::slice::from_raw_parts(ptr, reg_size);
+            assert_zeros!(slice);
         }
     }
 
@@ -241,17 +238,10 @@ mod tests {
         let mut reg = Register::new(reg_size, 0);
         reg.set(&data);
 
-        let ptr = reg.as_ptr();
-
-        for i in 0..reg_size {
-            let expected = ((i + 1) * 10) as u8;
-
-            unsafe {
-                let addr = ptr.offset(i as isize);
-                let actual = std::ptr::read(addr);
-
-                assert_eq!(expected, actual);
-            }
+        unsafe {
+            let ptr = reg.as_ptr();
+            let slice = std::slice::from_raw_parts(ptr, reg_size);
+            assert_eq!(&data[..], slice);
         }
     }
 
