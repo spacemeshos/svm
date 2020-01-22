@@ -29,7 +29,7 @@ macro_rules! impl_bytes_primitive {
 
         impl From<*const std::ffi::c_void> for $primitive {
             #[warn(clippy::not_unsafe_ptr_arg_deref)]
-            #[inline(always)]
+            #[inline]
             fn from(ptr: *const std::ffi::c_void) -> $primitive {
                 $primitive::from(ptr as *const u8)
             }
@@ -83,7 +83,7 @@ macro_rules! impl_bytes_primitive {
             }
 
             /// Returns the number of bytes of `$primitive`
-            #[inline(always)]
+            #[inline]
             pub fn len() -> usize {
                 $byte_count
             }
@@ -139,7 +139,7 @@ macro_rules! impl_bytes_primitive {
         /// Should be used **only** for tests
         #[doc(hidden)]
         impl From<i32> for $primitive {
-            #[inline(always)]
+            #[inline]
             fn from(n: i32) -> $primitive {
                 $primitive::from(n as u32)
             }

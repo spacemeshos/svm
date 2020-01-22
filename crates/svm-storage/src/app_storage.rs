@@ -221,12 +221,12 @@ impl AppStorage {
         data.copy_from_slice(&slice.data);
     }
 
-    #[inline(always)]
+    #[inline]
     fn get_page_slices(&self, page_idx: PageIndex) -> Option<&HashMap<PageOffset, PageSlice>> {
         self.cached_slices.get(&page_idx)
     }
 
-    #[inline(always)]
+    #[inline]
     fn get_page_slices_mut(
         &mut self,
         page_idx: PageIndex,
@@ -250,7 +250,7 @@ impl AppStorage {
         slice
     }
 
-    #[inline(always)]
+    #[inline]
     fn do_init_page_slices(&mut self, page_idx: PageIndex) {
         self.cached_slices.insert(page_idx, HashMap::new());
     }

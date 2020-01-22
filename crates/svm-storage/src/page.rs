@@ -19,7 +19,7 @@ pub const PAGE_HASH_LEN: usize = 32;
 pub struct PageHash(pub [u8; PAGE_HASH_LEN]);
 
 impl AsRef<[u8]> for PageHash {
-    #[inline(always)]
+    #[inline]
     fn as_ref(&self) -> &[u8] {
         self.0.as_ref()
     }
@@ -76,26 +76,26 @@ impl PageSliceLayout {
     }
 
     /// Layout's page-index
-    #[inline(always)]
+    #[inline]
     pub fn page_index(&self) -> PageIndex {
         self.page_idx
     }
 
     /// Layout's page-offset
-    #[inline(always)]
+    #[inline]
     pub fn page_offset(&self) -> PageOffset {
         self.offset
     }
 
     /// Layout's page-length
-    #[inline(always)]
+    #[inline]
     pub fn len(&self) -> u32 {
         self.len
     }
 }
 
 /// Allocates a new page (`Vec<u8>`) consisting of only of zeros
-#[inline(always)]
+#[inline]
 pub fn zero_page() -> Vec<u8> {
     vec![0; PAGE_SIZE as usize]
 }

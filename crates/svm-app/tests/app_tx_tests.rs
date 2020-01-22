@@ -15,7 +15,7 @@ fn parse_app_tx() {
     let template = AppTemplate {
         name: "Template #1".to_string(),
         author: Address::from(0x00_11_22_33),
-        pages_count: 5,
+        page_count: 5,
         code: vec![0x00, 0x00, 0x00],
     };
 

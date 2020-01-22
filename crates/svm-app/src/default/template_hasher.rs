@@ -5,7 +5,7 @@ use svm_common::{DefaultKeyHasher, KeyHasher};
 pub struct DefaultTemplateHasher;
 
 impl AppTemplateHasher for DefaultTemplateHasher {
-    #[inline(always)]
+    #[inline]
     fn hash(bytes: &[u8]) -> AppTemplateHash {
         let hash: [u8; 32] = DefaultKeyHasher::hash(bytes);
         AppTemplateHash(hash)

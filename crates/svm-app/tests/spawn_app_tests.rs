@@ -50,7 +50,7 @@ fn valid_app_creation() {
     let template = AppTemplate {
         name: "Template #1".to_string(),
         author: Address::from(0x00_11_22_33),
-        pages_count: 10,
+        page_count: 10,
         code: vec![0x00, 0x00, 0x00],
     };
     assert!(env.store_template(&template).is_ok());

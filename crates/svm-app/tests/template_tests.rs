@@ -14,13 +14,13 @@ fn store_template() {
 
     let code = vec![0xAA, 0xBB, 0xCC, 0xDD];
     let name = "Template #1";
-    let pages_count = 10;
+    let page_count = 10;
     let author = Address::from(0x10_20_30_40);
 
     let bytes = AppTemplateBuilder::new()
         .with_version(0)
         .with_name(name)
-        .with_pages_count(pages_count)
+        .with_page_count(page_count)
         .with_code(&code)
         .build();
 
@@ -33,7 +33,7 @@ fn store_template() {
     let expected = AppTemplate {
         name: name.to_string(),
         author,
-        pages_count,
+        page_count,
         code,
     };
 

@@ -9,4 +9,4 @@
         get_local 0  ;; field index
         get_local 1  ;; reg_bits
         get_local 2  ;; reg_idx
-        call $host_ctx_read_into_reg ))
+        call $host_ctx_read_into_reg))

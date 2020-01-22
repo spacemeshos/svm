@@ -13,7 +13,7 @@ use crate::{
 use svm_common::Address;
 
 #[must_use]
-#[inline(always)]
+#[inline]
 pub fn ensure_enough_bytes<T>(res: &std::io::Result<T>, field: Field) -> Result<(), ParseError> {
     if res.is_err() {
         return Err(ParseError::NotEnoughBytes(field));

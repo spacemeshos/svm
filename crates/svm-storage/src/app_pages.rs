@@ -31,7 +31,7 @@ where
     addr: Address,
     pages: Vec<PageEntry>,
     kv: Rc<RefCell<KV>>,
-    pages_count: u16,
+    page_count: u16,
     marker: PhantomData<(PH, SH)>,
 }
 
@@ -45,14 +45,14 @@ where
     /// * `addr`        - The running app account address.
     /// * `kv`          - The underlying kv-store used for retrieving a page raw-data when queried by its page-hash serving as a key.
     /// * `state`       - The current app-storage state prior execution of the current app-transaction.
-    /// * `pages_count` - The number of pages consumed by the app-storage (it's a fixed value per-app).
-    pub fn new(addr: Address, kv: Rc<RefCell<KV>>, state: State, pages_count: u16) -> Self {
+    /// * `page_count` - The number of pages consumed by the app-storage (it's a fixed value per-app).
+    pub fn new(addr: Address, kv: Rc<RefCell<KV>>, state: State, page_count: u16) -> Self {
         let mut storage = Self {
             state,
             kv,
-            pages_count,
+            page_count,
             addr,
-            pages: vec![PageEntry::Uninitialized; pages_count as usize],
+            pages: vec![PageEntry::Uninitialized; page_count as usize],
             marker: PhantomData,
         };
 
@@ -73,7 +73,7 @@ where
             // This happens when an app runs for the first time.
             // We initialize each page with its zero-page hash `HASH(addr || page_idx || 0...0)`
 
-            for page_idx in 0..(self.pages_count as usize) {
+            for page_idx in 0..(self.page_count as usize) {
                 let ph = self.compute_zero_page_hash(PageIndex(page_idx as u16));
                 self.pages[page_idx] = PageEntry::NotModified(ph);
             }
@@ -95,21 +95,21 @@ where
 
     /// Derives page hash, from its index `page_idx` and data `page_data`.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub fn compute_page_hash(&self, page_idx: PageIndex, page_data: &[u8]) -> PageHash {
         PH::hash(self.addr.clone(), page_idx, page_data)
     }
 
     /// Derives page hash for page indexed `page_idx` containing only zeros.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub fn compute_zero_page_hash(&self, page_idx: PageIndex) -> PageHash {
         let zeros_page = crate::page::zero_page();
         self.compute_page_hash(page_idx, zeros_page.as_ref())
     }
 
     /// The number of dirty pages
-    pub fn dirty_pages_count(&self) -> usize {
+    pub fn dirty_page_count(&self) -> usize {
         self.pages.iter().fold(0, |acc, page| match page {
             PageEntry::NotModified(..) => acc,
             PageEntry::Modified(..) => acc + 1,
@@ -149,7 +149,7 @@ where
     SH: StateHasher,
 {
     #[must_use]
-    #[inline(always)]
+    #[inline]
     fn get_state(&self) -> State {
         self.state.clone()
     }

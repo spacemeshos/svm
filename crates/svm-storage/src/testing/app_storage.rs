@@ -9,9 +9,9 @@ use svm_kv::memory::MemKVStore;
 /// Initialises a new `AppStorage` derived its address and #pages and empty state (`00...0`)
 pub fn app_storage_init(
     addr: &str,
-    pages_count: u16,
+    page_count: u16,
 ) -> (Address, Rc<RefCell<MemKVStore>>, AppStorage) {
-    let (addr, kv, cache) = testing::app_page_cache_init(addr, pages_count);
+    let (addr, kv, cache) = testing::app_page_cache_init(addr, page_count);
 
     let storage = AppStorage::new(Box::new(cache));
 
@@ -24,9 +24,9 @@ pub fn app_storage_open(
     addr: &Address,
     state: &State,
     kv: &Rc<RefCell<MemKVStore>>,
-    pages_count: u16,
+    page_count: u16,
 ) -> AppStorage {
-    let cache = testing::app_page_cache_open(addr, state, kv, pages_count);
+    let cache = testing::app_page_cache_open(addr, state, kv, page_count);
 
     AppStorage::new(Box::new(cache))
 }
