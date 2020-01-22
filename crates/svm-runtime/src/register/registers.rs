@@ -38,11 +38,10 @@ impl Default for Registers {
 impl Registers {
     pub fn new(config: &[(usize, usize)]) -> Self {
         let mut index = 0;
-        let mut cap = 0;
 
-        let regs_capacity = config.iter().map(|(_reg_bits, reg_count)| reg_count).sum();
+        let regs_cap = config.iter().map(|(_reg_bits, reg_count)| reg_count).sum();
 
-        let mut regs = Vec::with_capacity(regs_capacity);
+        let mut regs = Vec::with_capacity(regs_cap);
         let mut reg_pos = HashMap::new();
 
         for &(reg_bits, reg_count) in config.iter() {
@@ -81,5 +80,37 @@ impl Registers {
     #[inline]
     fn reg_pos(&self, reg_bits: i32, reg_idx: i32) -> usize {
         *self.reg_pos.get(&(reg_bits, reg_idx)).unwrap()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn registers_sanity() {
+        let config = [(128, 2), (256, 3)];
+        let mut regs = Registers::new(&config);
+
+        let data1 = vec![0xAA; 16];
+        let data2 = vec![0xBB; 16];
+        let data3 = vec![0xCC; 32];
+
+        let reg128_0 = regs.get_reg_mut(128, 0);
+        reg128_0.set(&data1[..]);
+
+        let reg128_1 = regs.get_reg_mut(128, 1);
+        reg128_1.set(&data2[..]);
+
+        let reg256_0 = regs.get_reg_mut(256, 0);
+        reg256_0.set(&data3[..]);
+
+        let reg128_0 = regs.get_reg(128, 0);
+        let reg128_1 = regs.get_reg(128, 1);
+        let reg256_0 = regs.get_reg(256, 0);
+
+        assert_eq!(data1, reg128_0.view());
+        assert_eq!(data2, reg128_1.view());
+        assert_eq!(data3, reg256_0.view());
     }
 }
