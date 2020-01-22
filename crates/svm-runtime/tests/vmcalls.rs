@@ -423,7 +423,7 @@ fn vmcalls_register_pop() {
     reg.set(&data[..]);
     reg.push();
 
-    // will call `reg_push` on input register
+    // will call `reg_pop` on input register
     let func: Func<(i32, i32)> = instance.func("run").unwrap();
     assert!(func.call(reg_bits, reg_idx).is_ok());
 
