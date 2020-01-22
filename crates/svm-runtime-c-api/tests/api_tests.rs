@@ -10,10 +10,10 @@ use std::ffi::c_void;
 
 use svm_app::types::WasmValue;
 use svm_common::{Address, State};
-use svm_runtime::register::SvmReg;
+use svm_runtime::register::Register;
 
 struct Host {
-    balance: HashMap<Address, i64>,
+    balance: HashMap<Address, u128>,
 }
 
 impl Host {
@@ -23,7 +23,7 @@ impl Host {
         }
     }
 
-    fn get_balance(&self, addr: &Address) -> Option<i64> {
+    fn get_balance(&self, addr: &Address) -> Option<u128> {
         self.balance.get(addr).copied()
     }
 
@@ -41,7 +41,7 @@ unsafe fn extract_host<'a>(raw_ctx: *mut c_void) -> &'a mut Host {
     svm_common::from_raw_mut::<Host>(host)
 }
 
-unsafe fn extract_reg<'a>(raw_ctx: *mut c_void, reg_bits: i32, reg_idx: i32) -> &'a mut SvmReg {
+unsafe fn extract_reg<'a>(raw_ctx: *mut c_void, reg_bits: i32, reg_idx: i32) -> &'a mut Register {
     use wasmer_runtime_core::vm::Ctx as WasmerCtx;
 
     let ctx = svm_common::from_raw_mut::<WasmerCtx>(raw_ctx);
@@ -49,7 +49,7 @@ unsafe fn extract_reg<'a>(raw_ctx: *mut c_void, reg_bits: i32, reg_idx: i32) -> 
     svm_runtime::helpers::wasmer_data_reg(ctx.data, reg_bits, reg_idx)
 }
 
-unsafe extern "C" fn get_balance(ctx: *mut c_void, reg_bits: i32, reg_idx: i32) -> i64 {
+unsafe extern "C" fn get_balance(ctx: *mut c_void, reg_bits: i32, reg_idx: i32, out_reg_bits: i32, out_reg_idx: i32) {
     let host = extract_host(ctx);
     let reg = extract_reg(ctx, reg_bits, reg_idx);
 
@@ -227,8 +227,9 @@ unsafe fn do_ffi_exec_app() {
 
     // 3.2) execute the app-transaction
     // initialize `address=0x10_20_30` with balance=100
-    host.set_balance(&Address::from(0x10_20_30), 100);
-    assert_eq!(100, host.get_balance(&Address::from(0x10_20_30)).unwrap());
+    let user = Address::of("user");
+    let initial_balance = 100;
+    host.set_balance(&user), initial_balance);
 
     let delta = 50;
     let delta_vec = vec![0, 0, 0, 0, 0, 0, 0, delta];
@@ -249,8 +250,8 @@ unsafe fn do_ffi_exec_app() {
     );
     assert_eq!(true, res.as_bool());
 
-    let expected = 100 * mul_by + (delta as i64);
-    let actual = host.get_balance(&Address::from(0x10_20_30)).unwrap();
+    let expected = initial_balance * mul_by + (delta as i64);
+    let actual = host.get_balance(&user).unwrap();
 
     assert_eq!(expected, actual);
 }
