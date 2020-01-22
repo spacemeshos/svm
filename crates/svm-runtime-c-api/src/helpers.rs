@@ -7,13 +7,13 @@ use svm_runtime::traits::Runtime;
 use wasmer_runtime_core::export::Export;
 
 /// Casts raw pointer to borrowed Runtime
-#[inline(always)]
+#[inline]
 pub unsafe fn cast_to_runtime<'a>(raw_runtime: *const c_void) -> &'a Box<dyn Runtime> {
     &*(raw_runtime as *const RuntimePtr)
 }
 
 /// Casts raw pointer to mutably borrowed Runtime
-#[inline(always)]
+#[inline]
 pub unsafe fn cast_to_runtime_mut<'a>(raw_runtime: *mut c_void) -> &'a mut Box<dyn Runtime> {
     &mut *(raw_runtime as *mut RuntimePtr)
 }

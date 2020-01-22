@@ -7,7 +7,7 @@ use svm_common::Address;
 pub struct AppTemplateBuilder {
     version: Option<u32>,
     name: Option<String>,
-    pages_count: Option<u16>,
+    page_count: Option<u16>,
     code: Option<Vec<u8>>,
 }
 
@@ -18,7 +18,7 @@ impl AppTemplateBuilder {
         Self {
             version: None,
             name: None,
-            pages_count: None,
+            page_count: None,
             code: None,
         }
     }
@@ -33,8 +33,8 @@ impl AppTemplateBuilder {
         self
     }
 
-    pub fn with_pages_count(mut self, pages_count: u16) -> Self {
-        self.pages_count = Some(pages_count);
+    pub fn with_page_count(mut self, page_count: u16) -> Self {
+        self.page_count = Some(page_count);
         self
     }
 
@@ -50,7 +50,7 @@ impl AppTemplateBuilder {
         self.write_name(&mut buf);
         self.write_admins(&mut buf);
         self.write_deps(&mut buf);
-        self.write_pages_count(&mut buf);
+        self.write_page_count(&mut buf);
         self.write_code(&mut buf);
 
         buf
@@ -79,8 +79,8 @@ impl AppTemplateBuilder {
         buf.write_u16::<BigEndian>(0).unwrap();
     }
 
-    fn write_pages_count(&self, buf: &mut Vec<u8>) {
-        let pages = self.pages_count.unwrap();
+    fn write_page_count(&self, buf: &mut Vec<u8>) {
+        let pages = self.page_count.unwrap();
         buf.write_u16::<BigEndian>(pages).unwrap();
     }
 

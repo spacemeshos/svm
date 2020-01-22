@@ -39,7 +39,7 @@ uint64_t deploy_template_bytes(uint8_t **bytes, uint8_t *author) {
     20 +  // `len(author-address)`
     2  +  // `#admins`      (we'll set it to `0`)
     2  +  // `#deps`        (we'll set it to `0`)
-    2  +  // `pages_count`  (we'll set it to `0`)
+    2  +  // `page_count`   (we'll set it to `0`)
     8  +  //  wasm code length (big-endian)
     (uint64_t)file.bytes_len;  // the wasm code
 
@@ -69,7 +69,7 @@ uint64_t deploy_template_bytes(uint8_t **bytes, uint8_t *author) {
   buf[34] = 0;
   buf[35] = 0;
 
-  // set `pages_count=0`
+  // set `page_count=0`
   buf[36] = 0;
   buf[37] = 0;
 

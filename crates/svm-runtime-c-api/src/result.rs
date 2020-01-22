@@ -21,7 +21,7 @@ impl Into<bool> for svm_result_t {
 
 impl svm_result_t {
     /// Convert to boolean
-    #[inline(always)]
+    #[inline]
     pub fn as_bool(self) -> bool {
         self.into()
     }

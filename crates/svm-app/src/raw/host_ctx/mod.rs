@@ -25,7 +25,7 @@ impl HostCtx {
         }
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn get(&self, field: i32) -> Option<&Vec<u8>> {
         self.inner.get(&field)
     }

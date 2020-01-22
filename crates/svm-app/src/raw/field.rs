@@ -11,7 +11,7 @@ pub enum Field {
     CodeLength,
     Dependencies,
     DependenciesCount,
-    PagesCount,
+    PageCount,
     Code,
     AppTemplate,
     App,

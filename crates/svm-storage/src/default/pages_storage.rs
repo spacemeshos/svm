@@ -53,7 +53,7 @@ where
     }
 
     #[must_use]
-    #[inline(always)]
+    #[inline]
     fn compute_page_hash(&self, page_idx: PageIndex) -> [u8; 32] {
         PIH::hash(self.addr.clone(), page_idx)
     }

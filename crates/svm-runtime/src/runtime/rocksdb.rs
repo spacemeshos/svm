@@ -60,8 +60,8 @@ fn app_storage_build(addr: &Address, state: &State, settings: &AppSettings) -> A
 
     let kv = Rc::new(RefCell::new(Rocksdb::new(path)));
 
-    let pages = RocksdbAppPages::new(addr.clone(), kv, state.clone(), settings.pages_count);
-    let cache = RocksdbAppPageCache::new(pages, settings.pages_count);
+    let pages = RocksdbAppPages::new(addr.clone(), kv, state.clone(), settings.page_count);
+    let cache = RocksdbAppPageCache::new(pages, settings.page_count);
 
     AppStorage::new(Box::new(cache))
 }
