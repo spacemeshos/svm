@@ -36,7 +36,7 @@ impl Register {
     pub fn pop(&mut self) {
         assert!(self.current >= self.byte_size);
 
-        self.zero();
+        self.zero(0, self.byte_size);
 
         self.current -= self.byte_size;
     }
@@ -76,10 +76,7 @@ impl Register {
         // zeroing the remaining register bytes
         let diff = self.byte_size - count;
         if diff > 0 {
-            unsafe {
-                let dst = dst.offset(count as isize);
-                ptr::write_bytes(dst, 0, diff);
-            }
+            self.zero(count, diff);
         }
     }
 
@@ -101,9 +98,7 @@ impl Register {
         // zeroing the remaining register data
         let diff = self.byte_size - count;
         if diff > 0 {
-            let dst = dst.offset(count as isize);
-
-            ptr::write_bytes(dst, 0, diff);
+            self.zero(count, diff);
         }
     }
 
@@ -118,11 +113,14 @@ impl Register {
         );
     }
 
-    fn zero(&mut self) {
-        let dst = self.as_mut_ptr();
+    fn zero(&mut self, offset: usize, count: usize) {
+        assert!(offset + count == self.byte_size);
 
         unsafe {
-            ptr::write_bytes(dst, 0, self.byte_size);
+            let ptr = self.as_mut_ptr();
+            let dst = ptr.offset(offset as isize);
+
+            ptr::write_bytes(dst, 0, count);
         }
     }
 }
