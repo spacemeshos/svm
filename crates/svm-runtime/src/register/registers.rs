@@ -2,19 +2,21 @@ use std::collections::HashMap;
 
 use crate::register::Register;
 
-static REGS_128_COUNT: usize = 8;
-static REGS_160_COUNT: usize = 8;
-static REGS_256_COUNT: usize = 4;
-static REGS_512_COUNT: usize = 4;
+const REGS_128_COUNT: usize = 8;
+const REGS_160_COUNT: usize = 8;
+const REGS_256_COUNT: usize = 4;
+const REGS_512_COUNT: usize = 4;
 
-// static REGS_DEFAULT_CONFIG: Vec<(usize, usize)> = vec![
-//     (32, REGS_32_COUNT),
-//     (64, REGS_64_COUNT),
-//     (128, REGS_128_COUNT),
-//     (160, REGS_160_COUNT),
-//     (256, REGS_256_COUNT),
-//     (512, REGS_512_COUNT),
-// ];
+use lazy_static::lazy_static;
+
+lazy_static! {
+    static ref REGS_DEFAULT_CONFIG: Vec<(usize, usize)> = vec![
+        (128, REGS_128_COUNT),
+        (160, REGS_160_COUNT),
+        (256, REGS_256_COUNT),
+        (512, REGS_512_COUNT),
+    ];
+}
 
 #[derive(Debug)]
 pub struct Registers {
@@ -24,14 +26,7 @@ pub struct Registers {
 
 impl Default for Registers {
     fn default() -> Self {
-        let config = vec![
-            (128, REGS_128_COUNT),
-            (160, REGS_160_COUNT),
-            (256, REGS_256_COUNT),
-            (512, REGS_512_COUNT),
-        ];
-
-        Self::new(&config[..])
+        Self::new(&REGS_DEFAULT_CONFIG[..])
     }
 }
 
