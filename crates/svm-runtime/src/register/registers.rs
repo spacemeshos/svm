@@ -88,7 +88,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn registers_sanity() {
+    fn registers_get_valid_reg() {
         let config = [(128, 2), (256, 3)];
         let mut regs = Registers::new(&config);
 
@@ -112,5 +112,23 @@ mod tests {
         assert_eq!(data1, reg128_0.view());
         assert_eq!(data2, reg128_1.view());
         assert_eq!(data3, reg256_0.view());
+    }
+
+    fn registers_get_out_of_bounds_reg_panics() {
+        let reg_bits = 128;
+        let reg_count = 10;
+
+        let config = [(reg_bits, reg_count)];
+        let mut regs = Registers::new(&config);
+
+        for reg_idx in 0..reg_count {
+            let _reg = regs.get_reg(reg_bits as i32, reg_idx as i32);
+        }
+
+        let res = std::panic::catch_unwind(move || {
+            let _reg = regs.get_reg(reg_bits as i32, reg_count as i32);
+        });
+
+        assert!(res.is_err());
     }
 }
