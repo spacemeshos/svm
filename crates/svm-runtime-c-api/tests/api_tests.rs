@@ -12,6 +12,7 @@ use svm_app::types::WasmValue;
 use svm_common::{Address, State};
 use svm_runtime::register::Register;
 
+#[derive(Debug)]
 struct Host {
     balance: HashMap<Address, i128>,
 }
@@ -23,6 +24,10 @@ impl Host {
         }
     }
 
+    fn set_balance(&mut self, addr: &Address, init: i128) {
+        self.balance.insert(addr.clone(), init);
+    }
+
     fn get_balance(&self, addr: &Address) -> Option<i128> {
         self.balance.get(addr).copied()
     }
@@ -31,6 +36,14 @@ impl Host {
         let balance = self.get_balance(addr).unwrap_or(0);
 
         let new_balance = balance + addition as i128;
+
+        self.balance.insert(addr.clone(), new_balance);
+    }
+
+    fn mul_balance(&mut self, addr: &Address, mul_by: i64) {
+        let balance = self.get_balance(addr).unwrap_or(0);
+
+        let new_balance = balance * mul_by as i128;
 
         self.balance.insert(addr.clone(), new_balance);
     }
@@ -61,8 +74,16 @@ unsafe extern "C" fn inc_balance(ctx: *mut c_void, reg_bits: i32, reg_idx: i32, 
     host.inc_balance(&addr, addition);
 }
 
+unsafe extern "C" fn mul_balance(ctx: *mut c_void, reg_bits: i32, reg_idx: i32, mul_by: i64) {
+    let host = extract_host(ctx);
+    let reg = extract_reg(ctx, reg_bits, reg_idx);
+
+    let addr = Address::from(reg.as_ptr());
+    host.mul_balance(&addr, mul_by);
+}
+
 unsafe fn create_imports() -> (Vec<*const svm_import_t>, u32) {
-    let set_balance_import = testing::import_func_create(
+    let inc_balance_import = testing::import_func_create(
         "env",
         "inc_balance",
         inc_balance as _,
@@ -74,7 +95,19 @@ unsafe fn create_imports() -> (Vec<*const svm_import_t>, u32) {
         vec![],
     );
 
-    let imports = vec![inc_balance_import];
+    let mul_balance_import = testing::import_func_create(
+        "env",
+        "mul_balance",
+        mul_balance as _,
+        vec![
+            svm_value_type::SVM_I32,
+            svm_value_type::SVM_I32,
+            svm_value_type::SVM_I64,
+        ],
+        vec![],
+    );
+
+    let imports = vec![inc_balance_import, mul_balance_import];
     let imports_len = imports.len() as u32;
 
     (imports, imports_len)
@@ -124,122 +157,125 @@ fn host_ctx_bytes(version: u32, fields: HashMap<i32, Vec<u8>>) -> (Vec<u8>, u32)
     (bytes, bytes_len)
 }
 
-fn exec_app_args() -> (Address, i64, Vec<Vec<u8>>, Vec<WasmValue>, State) {
+fn exec_app_args() -> (Address, Address, i64, Vec<Vec<u8>>, Vec<WasmValue>, State) {
     let sender = Address::of("sender");
-    let mul_by = 3;
-    let func_buf = vec![];
-    let func_args = vec![WasmValue::I64(mul_by)];
+
+    let user = Address::of("user");
+    let user_bytes = user.bytes().to_vec();
+    let func_buf = vec![user_bytes];
+
+    let arg_val = 2;
+    let func_args = vec![WasmValue::I64(arg_val)];
+
     let state = State::empty();
 
-    (sender, mul_by, func_buf, func_args, state)
+    (sender, user, arg_val, func_buf, func_args, state)
 }
 
-// #[test]
-// fn runtime_ffi_exec_app() {
-//     unsafe {
-//         do_ffi_exec_app();
-//     }
-// }
-//
-// unsafe fn do_ffi_exec_app() {
-//     let version: u32 = 0;
-//
-//     // 1) init runtime
-//     let mut host = Host::new();
-//     let mut kv = std::ptr::null_mut();
-//     let mut runtime = std::ptr::null_mut();
-//     let (imports, imports_len) = create_imports();
-//
-//     testing::svm_memory_kv_create(&mut kv);
-//
-//     let res = testing::svm_memory_runtime_create(
-//         &mut runtime,
-//         kv,
-//         host.as_mut_ptr(),
-//         imports.as_ptr(),
-//         imports_len,
-//     );
-//     assert_eq!(true, res.as_bool());
-//
-//     // 2) deploy app-template
-//     let author = Address::of("author");
-//     let code = include_str!("wasm/update-balance.wast");
-//     let page_count = 10;
-//     let (hctx_bytes, hctx_len) = host_ctx_bytes(version, hashmap! {});
-//     let (bytes, bytes_len) = deploy_template_bytes(version, "MyTemplate #1", page_count, code);
-//     let mut template = std::ptr::null_mut();
-//
-//     let res = api::svm_deploy_template(
-//         &mut template,
-//         runtime,
-//         author.as_ptr() as _,
-//         hctx_bytes.as_ptr() as _,
-//         hctx_len as _,
-//         bytes.as_ptr() as _,
-//         bytes_len,
-//     );
-//     assert_eq!(true, res.as_bool());
-//
-//     // 3) spawn app
-//     let mut app_addr = std::ptr::null_mut();
-//     let creator = Address::of("creator");
-//     let ctor_buf = vec![];
-//     let ctor_args = vec![];
-//     let (hctx_bytes, hctx_len) = host_ctx_bytes(version, hashmap! {});
-//     let (bytes, bytes_len) = spawn_app_bytes(version, template as _, &ctor_buf, &ctor_args);
-//     let res = api::svm_spawn_app(
-//         &mut app_addr,
-//         runtime,
-//         creator.as_ptr() as _,
-//         hctx_bytes.as_ptr() as _,
-//         hctx_len as _,
-//         bytes.as_ptr() as _,
-//         bytes_len,
-//     );
-//     assert_eq!(true, res.as_bool());
-//
-//     // 3) execute app
-//     let (sender, mul_by, func_buf, func_args, state) = exec_app_args();
-//     let (bytes, bytes_len) = exec_app_bytes(version, app_addr, "run", &func_buf, &func_args);
-//
-//     // 3.1) parse bytes into in-memory `AppTransaction`
-//     let mut app_tx = std::ptr::null_mut();
-//     let res = api::svm_parse_exec_app(
-//         &mut app_tx,
-//         runtime,
-//         sender.as_ptr() as _,
-//         bytes.as_ptr() as _,
-//         bytes_len,
-//     );
-//     assert_eq!(true, res.as_bool());
-//
-//     // 3.2) execute the app-transaction
-//     // initialize `address=0x10_20_30` with balance=100
-//     let user = Address::of("user");
-//     let initial_balance = 100;
-//     host.set_balance(&user), initial_balance);
-//
-//     let delta = 50;
-//     let delta_vec = vec![0, 0, 0, 0, 0, 0, 0, delta];
-//
-//     // we set field index `2` with a value called `delta` (one byte).
-//     let (host_ctx_bytes, host_ctx_len) = host_ctx_bytes(version, hashmap! { 2 => delta_vec });
-//
-//     let mut receipt = std::ptr::null_mut();
-//     let mut receipt_length = 0;
-//     let res = api::svm_exec_app(
-//         &mut receipt,
-//         &mut receipt_length,
-//         runtime,
-//         app_tx,
-//         svm_common::into_raw(state),
-//         host_ctx_bytes.as_ptr() as _,
-//         host_ctx_len as _,
-//     );
-//     assert_eq!(true, res.as_bool());
-//
-//     let expected = initial_balance * mul_by + (delta as i64);
-//     let actual = host.get_balance(&user).unwrap();
-//
-//     assert_eq!(expected, actual);
-// }
+#[test]
+fn runtime_ffi_exec_app() {
+    unsafe {
+        do_ffi_exec_app();
+    }
+}
+
+unsafe fn do_ffi_exec_app() {
+    let version: u32 = 0;
+
+    // 1) init runtime
+    let mut host = Host::new();
+    let mut kv = std::ptr::null_mut();
+    let mut runtime = std::ptr::null_mut();
+    let (imports, imports_len) = create_imports();
+
+    testing::svm_memory_kv_create(&mut kv);
+
+    let res = testing::svm_memory_runtime_create(
+        &mut runtime,
+        kv,
+        host.as_mut_ptr(),
+        imports.as_ptr(),
+        imports_len,
+    );
+    assert_eq!(true, res.as_bool());
+
+    // 2) deploy app-template
+    let author = Address::of("author");
+    let code = include_str!("wasm/update-balance.wast");
+    let page_count = 10;
+    let (hctx_bytes, hctx_len) = host_ctx_bytes(version, hashmap! {});
+    let (bytes, bytes_len) = deploy_template_bytes(version, "MyTemplate #1", page_count, code);
+    let mut template = std::ptr::null_mut();
+
+    let res = api::svm_deploy_template(
+        &mut template,
+        runtime,
+        author.as_ptr() as _,
+        hctx_bytes.as_ptr() as _,
+        hctx_len as _,
+        bytes.as_ptr() as _,
+        bytes_len,
+    );
+    assert_eq!(true, res.as_bool());
+
+    // 3) spawn app
+    let mut app_addr = std::ptr::null_mut();
+    let creator = Address::of("creator");
+    let ctor_buf = vec![];
+    let ctor_args = vec![];
+    let (hctx_bytes, hctx_len) = host_ctx_bytes(version, hashmap! {});
+    let (bytes, bytes_len) = spawn_app_bytes(version, template as _, &ctor_buf, &ctor_args);
+    let res = api::svm_spawn_app(
+        &mut app_addr,
+        runtime,
+        creator.as_ptr() as _,
+        hctx_bytes.as_ptr() as _,
+        hctx_len as _,
+        bytes.as_ptr() as _,
+        bytes_len,
+    );
+    assert_eq!(true, res.as_bool());
+
+    // 4) execute app
+    let (sender, user, arg_val, func_buf, func_args, state) = exec_app_args();
+    let (bytes, bytes_len) = exec_app_bytes(version, app_addr, "run", &func_buf, &func_args);
+
+    // 4.1) parse bytes into in-memory `AppTransaction`
+    let mut app_tx = std::ptr::null_mut();
+    let res = api::svm_parse_exec_app(
+        &mut app_tx,
+        runtime,
+        sender.as_ptr() as _,
+        bytes.as_ptr() as _,
+        bytes_len,
+    );
+    assert_eq!(true, res.as_bool());
+
+    // 4.2) execute the app-transaction
+    let init_balance = 100;
+    host.set_balance(&user, init_balance);
+
+    // let nonce = 3;
+    // let nonce_vec = vec![0, 0, 0, 0, 0, 0, 0, nonce];
+
+    // we set field index `2` with a value called `nonce` (one byte).
+    let (host_ctx_bytes, host_ctx_len) = host_ctx_bytes(version, hashmap! {});
+
+    let mut receipt = std::ptr::null_mut();
+    let mut receipt_length = 0;
+    let res = api::svm_exec_app(
+        &mut receipt,
+        &mut receipt_length,
+        runtime,
+        app_tx,
+        svm_common::into_raw(state),
+        host_ctx_bytes.as_ptr() as _,
+        host_ctx_len as _,
+    );
+    assert_eq!(true, res.as_bool());
+
+    let expected = init_balance + arg_val as i128;
+    let actual = host.get_balance(&user).unwrap();
+
+    assert_eq!(expected, actual);
+}
