@@ -367,6 +367,72 @@ fn vmcalls_storage_write_from_reg() {
 }
 
 #[test]
+fn vmcalls_register_push() {
+    let reg_bits = 128;
+    let reg_idx = 3;
+    let data = vec![10, 20, 30];
+    let count = data.len() as i32;
+
+    let (app_addr, state, host, host_ctx, page_count) = default_test_args();
+
+    let import_object = imports! {
+        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, page_count),
+
+        "svm" => {
+            "reg_push" => func!(vmcalls::reg_push),
+        },
+    };
+
+    let instance = testing::instantiate(&import_object, include_str!("wasm/reg_push.wast"));
+
+    let reg = instance_register(&instance, reg_bits, reg_idx);
+    reg.set(&data[..]);
+
+    // will call `reg_push` on input register
+    let func: Func<(i32, i32)> = instance.func("run").unwrap();
+    assert!(func.call(reg_bits, reg_idx).is_ok());
+
+    let reg = instance_register(&instance, reg_bits, reg_idx);
+
+    // we want to get back to where we were before doing `func.call(..)`
+    reg.pop();
+
+    assert_eq!(&data[..], &reg.view()[0..count as usize]);
+}
+
+#[test]
+fn vmcalls_register_pop() {
+    let reg_bits = 128;
+    let reg_idx = 3;
+    let data = vec![10, 20, 30];
+    let count = data.len() as i32;
+
+    let (app_addr, state, host, host_ctx, page_count) = default_test_args();
+
+    let import_object = imports! {
+        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, page_count),
+
+        "svm" => {
+            "reg_pop" => func!(vmcalls::reg_pop),
+        },
+    };
+
+    let instance = testing::instantiate(&import_object, include_str!("wasm/reg_pop.wast"));
+
+    let reg = instance_register(&instance, reg_bits, reg_idx);
+    reg.set(&data[..]);
+    reg.push();
+
+    // will call `reg_push` on input register
+    let func: Func<(i32, i32)> = instance.func("run").unwrap();
+    assert!(func.call(reg_bits, reg_idx).is_ok());
+
+    // if `instance` triggered `reg_pop` we need to be back to where we were before calling `push`
+    let reg = instance_register(&instance, reg_bits, reg_idx);
+    assert_eq!(&data[..], &reg.view()[0..count as usize]);
+}
+
+#[test]
 fn vmcalls_host_ctx_read_into_reg() {
     let reg_bits = 128;
     let reg_idx = 3;

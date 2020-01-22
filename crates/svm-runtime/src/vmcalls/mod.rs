@@ -1,11 +1,13 @@
 mod buffer;
 mod host_ctx;
+mod register;
 mod storage;
 
 pub use buffer::{
     buffer_copy_to_reg, buffer_copy_to_storage, buffer_create, buffer_freeze, buffer_kill,
 };
 pub use host_ctx::host_ctx_read_into_reg;
+pub use register::{reg_pop, reg_push};
 pub use storage::{
     mem_to_reg_copy, reg_to_mem_copy, storage_read_to_mem, storage_read_to_reg,
     storage_write_from_mem, storage_write_from_reg,
@@ -37,7 +39,11 @@ pub fn insert_vmcalls(ns: &mut Namespace) {
         func!(storage::storage_write_from_reg),
     );
 
-    // `buffer` vmcalls`
+    // `register` vmcalls
+    ns.insert("reg_push", func!(reg_push));
+    ns.insert("reg_pop", func!(reg_pop));
+
+    // `buffer` vmcalls
     ns.insert("buffer_create", func!(buffer::buffer_create));
     ns.insert("buffer_kill", func!(buffer::buffer_kill));
     ns.insert("buffer_freeze", func!(buffer::buffer_freeze));

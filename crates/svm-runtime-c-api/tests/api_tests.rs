@@ -12,146 +12,128 @@ use svm_app::types::WasmValue;
 use svm_common::{Address, State};
 use svm_runtime::register::Register;
 
-// struct Host {
-//     balance: HashMap<Address, u128>,
-// }
-//
-// impl Host {
-//     fn new() -> Self {
-//         Self {
-//             balance: HashMap::new(),
-//         }
-//     }
-//
-//     fn get_balance(&self, addr: &Address) -> Option<u128> {
-//         self.balance.get(addr).copied()
-//     }
-//
-//     fn set_balance(&mut self, addr: &Address, balance: i64) {
-//         self.balance.insert(addr.clone(), balance);
-//     }
-//
-//     fn as_mut_ptr(&mut self) -> *mut c_void {
-//         self as *mut Self as _
-//     }
-// }
-//
-// unsafe fn extract_host<'a>(raw_ctx: *mut c_void) -> &'a mut Host {
-//     let host = api::svm_instance_context_host_get(raw_ctx);
-//     svm_common::from_raw_mut::<Host>(host)
-// }
-//
-// unsafe fn extract_reg<'a>(raw_ctx: *mut c_void, reg_bits: i32, reg_idx: i32) -> &'a mut Register {
-//     use wasmer_runtime_core::vm::Ctx as WasmerCtx;
-//
-//     let ctx = svm_common::from_raw_mut::<WasmerCtx>(raw_ctx);
-//
-//     svm_runtime::helpers::wasmer_data_reg(ctx.data, reg_bits, reg_idx)
-// }
-//
-// unsafe extern "C" fn get_balance(
-//     ctx: *mut c_void,
-//     reg_bits: i32,
-//     reg_idx: i32,
-//     out_reg_bits: i32,
-//     out_reg_idx: i32,
-// ) {
-//     let host = extract_host(ctx);
-//     let reg = extract_reg(ctx, reg_bits, reg_idx);
-//
-//     let addr = Address::from(reg.as_ptr());
-//     host.get_balance(&addr).unwrap_or(0)
-// }
-//
-// unsafe extern "C" fn set_balance(ctx: *mut c_void, value: i64, reg_bits: i32, reg_idx: i32) {
-//     let host = extract_host(ctx);
-//     let reg = extract_reg(ctx, reg_bits, reg_idx);
-//
-//     let addr = Address::from(reg.as_ptr());
-//     host.set_balance(&addr, value);
-// }
-//
-// unsafe fn create_imports() -> (Vec<*const svm_import_t>, u32) {
-//     let get_balance_import = testing::import_func_create(
-//         "env",
-//         "get_balance",
-//         get_balance as _,
-//         vec![svm_value_type::SVM_I32, svm_value_type::SVM_I32],
-//         vec![svm_value_type::SVM_I64],
-//     );
-//
-//     let set_balance_import = testing::import_func_create(
-//         "env",
-//         "set_balance",
-//         set_balance as _,
-//         vec![
-//             svm_value_type::SVM_I64,
-//             svm_value_type::SVM_I32,
-//             svm_value_type::SVM_I32,
-//         ],
-//         vec![],
-//     );
-//
-//     let imports = vec![get_balance_import, set_balance_import];
-//     let imports_len = imports.len() as u32;
-//
-//     (imports, imports_len)
-// }
-//
-// fn deploy_template_bytes(version: u32, name: &str, page_count: u16, wasm: &str) -> (Vec<u8>, u32) {
-//     let bytes = svm_runtime::testing::build_template(version, name, page_count, wasm);
-//     let bytes_len = bytes.len() as u32;
-//
-//     (bytes, bytes_len)
-// }
-//
-// fn spawn_app_bytes(
-//     version: u32,
-//     template_addr: *const c_void,
-//     ctor_buf: &Vec<Vec<u8>>,
-//     ctor_args: &Vec<WasmValue>,
-// ) -> (Vec<u8>, u32) {
-//     let template_addr: &Address = unsafe { svm_common::from_raw::<Address>(template_addr) };
-//
-//     let bytes = svm_runtime::testing::build_app(version, template_addr, ctor_buf, ctor_args);
-//     let bytes_len = bytes.len() as u32;
-//
-//     (bytes, bytes_len)
-// }
-//
-// fn exec_app_bytes(
-//     version: u32,
-//     app_addr: *const c_void,
-//     func_name: &str,
-//     func_buf: &Vec<Vec<u8>>,
-//     func_args: &Vec<WasmValue>,
-// ) -> (Vec<u8>, u32) {
-//     let app_addr: &Address = unsafe { svm_common::from_raw::<Address>(app_addr) };
-//
-//     let bytes =
-//         svm_runtime::testing::build_app_tx(version, app_addr, func_name, func_buf, func_args);
-//     let bytes_len = bytes.len() as u32;
-//
-//     (bytes, bytes_len)
-// }
-//
-// fn host_ctx_bytes(version: u32, fields: HashMap<i32, Vec<u8>>) -> (Vec<u8>, u32) {
-//     let bytes = svm_runtime::testing::build_host_ctx(version, fields);
-//     let bytes_len = bytes.len() as u32;
-//
-//     (bytes, bytes_len)
-// }
-//
-// fn exec_app_args() -> (Address, i64, Vec<Vec<u8>>, Vec<WasmValue>, State) {
-//     let sender = Address::of("sender");
-//     let mul_by = 3;
-//     let func_buf = vec![];
-//     let func_args = vec![WasmValue::I64(mul_by)];
-//     let state = State::empty();
-//
-//     (sender, mul_by, func_buf, func_args, state)
-// }
-//
+struct Host {
+    balance: HashMap<Address, i128>,
+}
+
+impl Host {
+    fn new() -> Self {
+        Self {
+            balance: HashMap::new(),
+        }
+    }
+
+    fn get_balance(&self, addr: &Address) -> Option<i128> {
+        self.balance.get(addr).copied()
+    }
+
+    fn inc_balance(&mut self, addr: &Address, addition: i64) {
+        let balance = self.get_balance(addr).unwrap_or(0);
+
+        let new_balance = balance + addition as i128;
+
+        self.balance.insert(addr.clone(), new_balance);
+    }
+
+    fn as_mut_ptr(&mut self) -> *mut c_void {
+        self as *mut Self as _
+    }
+}
+
+unsafe fn extract_host<'a>(raw_ctx: *mut c_void) -> &'a mut Host {
+    let host = api::svm_instance_context_host_get(raw_ctx);
+    svm_common::from_raw_mut::<Host>(host)
+}
+
+unsafe fn extract_reg<'a>(raw_ctx: *mut c_void, reg_bits: i32, reg_idx: i32) -> &'a mut Register {
+    use wasmer_runtime_core::vm::Ctx as WasmerCtx;
+
+    let ctx = svm_common::from_raw_mut::<WasmerCtx>(raw_ctx);
+
+    svm_runtime::helpers::wasmer_data_reg(ctx.data, reg_bits, reg_idx)
+}
+
+unsafe extern "C" fn inc_balance(ctx: *mut c_void, reg_bits: i32, reg_idx: i32, addition: i64) {
+    let host = extract_host(ctx);
+    let reg = extract_reg(ctx, reg_bits, reg_idx);
+
+    let addr = Address::from(reg.as_ptr());
+    host.inc_balance(&addr, addition);
+}
+
+unsafe fn create_imports() -> (Vec<*const svm_import_t>, u32) {
+    let set_balance_import = testing::import_func_create(
+        "env",
+        "inc_balance",
+        inc_balance as _,
+        vec![
+            svm_value_type::SVM_I32,
+            svm_value_type::SVM_I32,
+            svm_value_type::SVM_I64,
+        ],
+        vec![],
+    );
+
+    let imports = vec![inc_balance_import];
+    let imports_len = imports.len() as u32;
+
+    (imports, imports_len)
+}
+
+fn deploy_template_bytes(version: u32, name: &str, page_count: u16, wasm: &str) -> (Vec<u8>, u32) {
+    let bytes = svm_runtime::testing::build_template(version, name, page_count, wasm);
+    let bytes_len = bytes.len() as u32;
+
+    (bytes, bytes_len)
+}
+
+fn spawn_app_bytes(
+    version: u32,
+    template_addr: *const c_void,
+    ctor_buf: &Vec<Vec<u8>>,
+    ctor_args: &Vec<WasmValue>,
+) -> (Vec<u8>, u32) {
+    let template_addr: &Address = unsafe { svm_common::from_raw::<Address>(template_addr) };
+
+    let bytes = svm_runtime::testing::build_app(version, template_addr, ctor_buf, ctor_args);
+    let bytes_len = bytes.len() as u32;
+
+    (bytes, bytes_len)
+}
+
+fn exec_app_bytes(
+    version: u32,
+    app_addr: *const c_void,
+    func_name: &str,
+    func_buf: &Vec<Vec<u8>>,
+    func_args: &Vec<WasmValue>,
+) -> (Vec<u8>, u32) {
+    let app_addr: &Address = unsafe { svm_common::from_raw::<Address>(app_addr) };
+
+    let bytes =
+        svm_runtime::testing::build_app_tx(version, app_addr, func_name, func_buf, func_args);
+    let bytes_len = bytes.len() as u32;
+
+    (bytes, bytes_len)
+}
+
+fn host_ctx_bytes(version: u32, fields: HashMap<i32, Vec<u8>>) -> (Vec<u8>, u32) {
+    let bytes = svm_runtime::testing::build_host_ctx(version, fields);
+    let bytes_len = bytes.len() as u32;
+
+    (bytes, bytes_len)
+}
+
+fn exec_app_args() -> (Address, i64, Vec<Vec<u8>>, Vec<WasmValue>, State) {
+    let sender = Address::of("sender");
+    let mul_by = 3;
+    let func_buf = vec![];
+    let func_args = vec![WasmValue::I64(mul_by)];
+    let state = State::empty();
+
+    (sender, mul_by, func_buf, func_args, state)
+}
+
 // #[test]
 // fn runtime_ffi_exec_app() {
 //     unsafe {
