@@ -28,14 +28,6 @@ impl Register {
             self.data.extend(zeros);
 
             self.limit = new_current;
-        } else {
-            // no need to allocate more data for the register.
-            // zero-ing the register data.
-            let dst = self.as_mut_ptr();
-
-            unsafe {
-                ptr::write_bytes(dst, 0, self.byte_size);
-            }
         }
 
         self.current = new_current;
@@ -43,6 +35,8 @@ impl Register {
 
     pub fn pop(&mut self) {
         assert!(self.current >= self.byte_size);
+
+        self.zero();
 
         self.current -= self.byte_size;
     }
@@ -123,11 +117,36 @@ impl Register {
             )
         );
     }
+
+    fn zero(&mut self) {
+        let dst = self.as_mut_ptr();
+
+        unsafe {
+            ptr::write_bytes(dst, 0, self.byte_size);
+        }
+    }
 }
 
+#[allow(unused_comparisons)]
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    macro_rules! assert_zeros {
+        ($data:expr) => {{
+            assert_zeros!($data, 0, $data.len());
+        }};
+        ($data:expr, $start:expr, $end:expr) => {{
+            assert!($end >= $start);
+
+            let len = $end - $start;
+
+            let zeros = vec![0; len as usize];
+            let slice = &$data[$start..$end];
+
+            assert_eq!(zeros.as_slice(), slice);
+        }};
+    }
 
     #[test]
     fn register_new_defaults_to_zeros() {
@@ -135,8 +154,7 @@ mod tests {
         let init_cap = 1;
 
         let reg = Register::new(reg_size, init_cap);
-
-        assert_eq!(vec![0; reg_size], reg.view());
+        assert_zeros!(reg.view());
     }
 
     #[test]
@@ -169,9 +187,7 @@ mod tests {
         reg.set(&data[..]);
 
         assert_eq!(data, reg.getn(len));
-
-        // the remaining 0xFF bytes have been overidden with zeros
-        assert_eq!(&[0, 0, 0, 0, 0], &reg.view()[len..reg_size]);
+        assert_zeros!(reg.view(), len, reg_size);
     }
 
     #[test]
@@ -185,8 +201,8 @@ mod tests {
 
         reg.set(&vec![]);
 
-        assert_eq!(Vec::<u8>::new(), reg.getn(0));
-        assert_eq!(vec![0; reg_size], reg.view());
+        assert_zeros!(reg.getn(0));
+        assert_zeros!(reg.view());
     }
 
     #[test]
@@ -229,7 +245,7 @@ mod tests {
 
         let ptr = reg.as_ptr();
 
-        for i in 0..reg_size as isize {
+        for i in 0..reg_size {
             let expected = ((i + 1) * 10) as u8;
 
             unsafe {
@@ -264,13 +280,13 @@ mod tests {
         reg.set(&vec![0xFF; reg_size]);
         assert_eq!(vec![0xFF; reg_size], reg.view());
 
-        let data: Vec<u8> = vec![10, 20, 30];
-        unsafe { reg.copy(data.as_ptr(), 3) };
+        let data = vec![10, 20, 30];
+        let len = data.len();
 
-        assert_eq!(vec![10, 20, 30], reg.getn(3));
+        unsafe { reg.copy(data.as_ptr(), len) };
 
-        // the remaining bytes are overridden to zeros
-        assert_eq!(&[0, 0, 0, 0, 0], &reg.view()[3..reg_size]);
+        assert_eq!(data, reg.getn(len));
+        assert_zeros!(reg.view(), len, reg_size);
     }
 
     #[test]
@@ -286,5 +302,79 @@ mod tests {
         });
 
         assert!(res.is_err());
+    }
+
+    #[test]
+    fn register_push_within_initial_capacity_limits() {
+        let data1 = vec![10, 20, 30, 40, 50, 60, 70, 80];
+        let data2 = vec![11, 22, 33, 44, 55, 66, 77, 88];
+
+        let reg_size = data1.len();
+        let init_cap = 2;
+
+        let mut reg = Register::new(reg_size, init_cap);
+        reg.set(&data1[..]);
+        reg.push();
+
+        assert_zeros!(reg.view());
+
+        reg.set(&data2[..]);
+        assert_eq!(data2, reg.view());
+
+        reg.pop();
+        assert_eq!(data1, reg.view());
+    }
+
+    #[test]
+    fn register_push_exceeds_initial_capacity_limits() {
+        let data1 = vec![10, 20, 30, 40, 50, 60, 70, 80];
+        let data2 = vec![11, 22, 33, 44, 55, 66, 77, 88];
+
+        let reg_size = data1.len();
+        let init_cap = 1;
+
+        let mut reg = Register::new(reg_size, init_cap);
+        reg.set(&data1[..]);
+        reg.push();
+
+        assert_zeros!(reg.view());
+
+        reg.set(&data2[..]);
+        assert_eq!(data2, reg.view());
+
+        reg.pop();
+        assert_eq!(data1, reg.view());
+    }
+
+    #[test]
+    fn register_push_zeros_register() {
+        let data1 = vec![10, 20, 30, 40, 50, 60, 70, 80];
+        let data2 = vec![11, 22, 33, 44, 55, 66, 77, 88];
+
+        let reg_size = data1.len();
+        let init_cap = 1;
+
+        let mut reg = Register::new(reg_size, init_cap);
+        reg.set(&data1[..]);
+
+        reg.push();
+        reg.set(&data2[..]);
+        assert_eq!(data2, reg.view());
+
+        reg.pop();
+        reg.push();
+        assert_zeros!(reg.view());
+    }
+
+    #[test]
+    #[should_panic]
+    fn register_pop_more_times_than_push_should_panic() {
+        let reg_size = 8;
+        let init_cap = 2;
+
+        let mut reg = Register::new(reg_size, init_cap);
+        reg.push();
+        reg.pop();
+        reg.pop();
     }
 }
