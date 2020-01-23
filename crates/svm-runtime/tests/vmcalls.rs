@@ -708,3 +708,37 @@ fn vmcalls_storage_read_int() {
         little_endian
     );
 }
+
+#[test]
+fn vmcalls_host_ctx_read_int() {
+    let (app_addr, state, host, _host_ctx, page_count) = default_test_args();
+
+    let host_ctx = HostCtx::from(hashmap! {
+        0 => vec![0x10],
+        1 => vec![0x10, 0x20],
+        2 => vec![0x10, 0x20, 0x30],
+        3 => vec![0x10, 0x20, 0x30, 0x40],
+        4 => vec![0x10, 0x20, 0x30, 0x40, 0x50],
+        5 => vec![0x10, 0x20, 0x30, 0x40, 0x50, 0x60],
+        6 => vec![0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70],
+        7 => vec![0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80]
+    });
+
+    let host_ctx = DataWrapper::new(svm_common::into_raw(host_ctx));
+
+    let import_object = imports! {
+        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, page_count),
+
+        "svm" => {
+            "host_ctx_i32_be" => func!(vmcalls::host_ctx_read_i32_be),
+            "host_ctx_i32_le" => func!(vmcalls::host_ctx_read_i32_le),
+            "host_ctx_i64_be" => func!(vmcalls::host_ctx_read_i64_be),
+            "host_ctx_i64_le" => func!(vmcalls::host_ctx_read_i64_le),
+        },
+    };
+
+    let instance =
+        testing::instantiate(&import_object, include_str!("wasm/host_ctx_read_int.wast"));
+
+    panic!()
+}
