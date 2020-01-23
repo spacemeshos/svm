@@ -1,5 +1,9 @@
 use crate::helpers;
 
+use wasmer_runtime::Ctx as WasmerCtx;
+
+use byteorder::{BigEndian, ByteOrder, LittleEndian};
+
 /// Copies the contents of `wasmer` memory cells under addresses:
 /// `mem_offset, mem_offset + 1, .. , mem_offset + count (exclusive)`
 /// into `SVM` register
@@ -11,7 +15,7 @@ use crate::helpers;
 /// * `reg_idx`    - The destination register we want to load the memory slice into
 /// * `count`      - Number of bytes to copy
 pub fn mem_to_reg_copy(
-    ctx: &mut wasmer_runtime::Ctx,
+    ctx: &mut WasmerCtx,
     mem_idx: i32,
     mem_offset: i32,
     reg_bits: i32,
@@ -36,7 +40,7 @@ pub fn mem_to_reg_copy(
 /// * `mem_offset` - A pointer to the first memory address we want to start copying content to
 /// * `count`      - Number of bytes to copy
 pub fn reg_to_mem_copy(
-    ctx: &mut wasmer_runtime::Ctx,
+    ctx: &mut WasmerCtx,
     reg_bits: i32,
     reg_idx: i32,
     mem_idx: i32,
@@ -63,15 +67,15 @@ pub fn reg_to_mem_copy(
 /// * `reg_idx`  - The destination register index we want to load the page-slice into
 /// * `count`    - Number of bytes to read
 pub fn storage_read_to_reg(
-    ctx: &mut wasmer_runtime::Ctx,
-    page: i32,
-    offset: i32,
+    ctx: &mut WasmerCtx,
+    page_idx: i32,
+    page_offset: i32,
     reg_bits: i32,
     reg_idx: i32,
     count: i32,
 ) {
     let mut storage = helpers::wasmer_data_app_storage(ctx.data);
-    let slice = helpers::storage_read_page_slice(&mut storage, page, offset, count);
+    let slice = helpers::storage_read_page_slice(&mut storage, page_idx, page_offset, count);
 
     let reg = helpers::wasmer_data_reg(ctx.data, reg_bits, reg_idx);
     reg.set(&slice);
@@ -86,15 +90,15 @@ pub fn storage_read_to_reg(
 /// * `mem_offset` - The destination memory address to start copying the page-slice into
 /// * `count`      - Number of bytes to read
 pub fn storage_read_to_mem(
-    ctx: &mut wasmer_runtime::Ctx,
-    page: i32,
-    offset: i32,
+    ctx: &mut WasmerCtx,
+    page_idx: i32,
+    page_offset: i32,
     mem_idx: i32,
     mem_offset: i32,
     count: i32,
 ) {
     let mut storage = helpers::wasmer_data_app_storage(ctx.data);
-    let mut slice = helpers::storage_read_page_slice(&mut storage, page, offset, count);
+    let mut slice = helpers::storage_read_page_slice(&mut storage, page_idx, page_offset, count);
 
     if slice.len() == 0 {
         // slice is empty, i.e it doesn't really exist
@@ -119,7 +123,7 @@ pub fn storage_read_to_mem(
 /// * `page_offset` - Destination slice offset
 /// * `count`       - Number of bytes to write
 pub fn storage_write_from_mem(
-    ctx: &mut wasmer_runtime::Ctx,
+    ctx: &mut WasmerCtx,
     mem_idx: i32,
     mem_offset: i32,
     page_idx: i32,
@@ -144,7 +148,7 @@ pub fn storage_write_from_mem(
 /// * `page_offset` - Destination slice offset
 /// * `count`       - Number of bytes to write
 pub fn storage_write_from_reg(
-    ctx: &mut wasmer_runtime::Ctx,
+    ctx: &mut WasmerCtx,
     reg_bits: i32,
     reg_idx: i32,
     page_idx: i32,
@@ -156,6 +160,62 @@ pub fn storage_write_from_reg(
     let data = reg.getn(count as usize);
 
     helpers::storage_write_page_slice(storage, page_idx, page_offset, count, data);
+}
+
+pub fn storage_read_i32_be(
+    ctx: &mut WasmerCtx,
+    page_idx: i32,
+    page_offset: i32,
+    count: i32,
+) -> u32 {
+    assert!(count >= 0 && count <= 4);
+
+    storage_read_int::<BigEndian>(ctx, page_idx, page_offset, count) as u32
+}
+
+pub fn storage_read_i32_le(
+    ctx: &mut WasmerCtx,
+    page_idx: i32,
+    page_offset: i32,
+    count: i32,
+) -> u32 {
+    assert!(count >= 0 && count <= 4);
+
+    storage_read_int::<LittleEndian>(ctx, page_idx, page_offset, count) as u32
+}
+
+pub fn storage_read_i64_be(
+    ctx: &mut WasmerCtx,
+    page_idx: i32,
+    page_offset: i32,
+    count: i32,
+) -> u64 {
+    assert!(count >= 0 && count <= 8);
+
+    storage_read_int::<BigEndian>(ctx, page_idx, page_offset, count)
+}
+
+pub fn storage_read_i64_le(
+    ctx: &mut WasmerCtx,
+    page_idx: i32,
+    page_offset: i32,
+    count: i32,
+) -> u64 {
+    assert!(count >= 0 && count <= 8);
+
+    storage_read_int::<LittleEndian>(ctx, page_idx, page_offset, count)
+}
+
+fn storage_read_int<T: ByteOrder>(
+    ctx: &mut WasmerCtx,
+    page_idx: i32,
+    page_offset: i32,
+    count: i32,
+) -> u64 {
+    let mut storage = helpers::wasmer_data_app_storage(ctx.data);
+    let buf = helpers::storage_read_page_slice(&mut storage, page_idx, page_offset, count);
+
+    T::read_uint(&buf[..], count as usize)
 }
 
 fn rustify_mem_params(mem_idx: i32, mem_offset: i32, count: i32) -> (u32, usize, usize) {
