@@ -222,23 +222,6 @@ where
         Ok(receipt)
     }
 
-    fn make_receipt(&self, result: Result<(State, Vec<Value>), ExecAppError>) -> Receipt {
-        match result {
-            Err(e) => Receipt {
-                success: false,
-                error: Some(e),
-                returns: None,
-                new_state: None,
-            },
-            Ok((state, returns)) => Receipt {
-                success: true,
-                error: None,
-                returns: Some(returns),
-                new_state: Some(state),
-            },
-        }
-    }
-
     fn do_exec_app(
         &self,
         tx: &AppTransaction,
@@ -279,6 +262,23 @@ where
 
                 Ok((new_state, returns))
             }
+        }
+    }
+
+    fn make_receipt(&self, result: Result<(State, Vec<Value>), ExecAppError>) -> Receipt {
+        match result {
+            Err(e) => Receipt {
+                success: false,
+                error: Some(e),
+                returns: None,
+                new_state: None,
+            },
+            Ok((state, returns)) => Receipt {
+                success: true,
+                error: None,
+                returns: Some(returns),
+                new_state: Some(state),
+            },
         }
     }
 
