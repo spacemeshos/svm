@@ -367,6 +367,72 @@ fn vmcalls_storage_write_from_reg() {
 }
 
 #[test]
+fn vmcalls_register_push() {
+    let reg_bits = 128;
+    let reg_idx = 3;
+    let data = vec![10, 20, 30];
+    let count = data.len() as i32;
+
+    let (app_addr, state, host, host_ctx, page_count) = default_test_args();
+
+    let import_object = imports! {
+        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, page_count),
+
+        "svm" => {
+            "reg_push" => func!(vmcalls::reg_push),
+        },
+    };
+
+    let instance = testing::instantiate(&import_object, include_str!("wasm/reg_push.wast"));
+
+    let reg = instance_register(&instance, reg_bits, reg_idx);
+    reg.set(&data[..]);
+
+    // will call `reg_push` on input register
+    let func: Func<(i32, i32)> = instance.func("run").unwrap();
+    assert!(func.call(reg_bits, reg_idx).is_ok());
+
+    let reg = instance_register(&instance, reg_bits, reg_idx);
+
+    // we want to get back to where we were before doing `func.call(..)`
+    reg.pop();
+
+    assert_eq!(&data[..], &reg.view()[0..count as usize]);
+}
+
+#[test]
+fn vmcalls_register_pop() {
+    let reg_bits = 128;
+    let reg_idx = 3;
+    let data = vec![10, 20, 30];
+    let count = data.len() as i32;
+
+    let (app_addr, state, host, host_ctx, page_count) = default_test_args();
+
+    let import_object = imports! {
+        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, page_count),
+
+        "svm" => {
+            "reg_pop" => func!(vmcalls::reg_pop),
+        },
+    };
+
+    let instance = testing::instantiate(&import_object, include_str!("wasm/reg_pop.wast"));
+
+    let reg = instance_register(&instance, reg_bits, reg_idx);
+    reg.set(&data[..]);
+    reg.push();
+
+    // will call `reg_pop` on input register
+    let func: Func<(i32, i32)> = instance.func("run").unwrap();
+    assert!(func.call(reg_bits, reg_idx).is_ok());
+
+    // if `instance` triggered `reg_pop` we need to be back to where we were before calling `push`
+    let reg = instance_register(&instance, reg_bits, reg_idx);
+    assert_eq!(&data[..], &reg.view()[0..count as usize]);
+}
+
+#[test]
 fn vmcalls_host_ctx_read_into_reg() {
     let reg_bits = 128;
     let reg_idx = 3;
@@ -454,5 +520,191 @@ fn vmcalls_buffer_copy_to_storage() {
     assert_eq!(
         data,
         helpers::storage_read_page_slice(storage, page_idx, page_offset, count)
+    );
+}
+
+macro_rules! assert_int {
+    ($expected:expr, $func:expr, $page_idx:expr, $page_offset:expr, $count:expr, $endianness:expr) => {{
+        let actual = $func
+            .call($page_idx, $page_offset, $count, $endianness)
+            .unwrap();
+
+        assert_eq!($expected, actual);
+    }};
+}
+
+#[test]
+fn vmcalls_storage_read_int() {
+    let big_endian = 1;
+    let little_endian = 0;
+
+    let slices = vec![
+        (0, 0, vec![0x10]),
+        (0, 1, vec![0x10, 0x20]),
+        (0, 3, vec![0x10, 0x20, 0x30]),
+        (0, 6, vec![0x10, 0x20, 0x30, 0x40]),
+        (1, 0, vec![0x10, 0x20, 0x30, 0x40, 0x50]),
+        (1, 5, vec![0x10, 0x20, 0x30, 0x40, 0x50, 0x60]),
+        (2, 0, vec![0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70]),
+        (2, 7, vec![0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80]),
+    ];
+
+    let (app_addr, state, host, host_ctx, page_count) = default_test_args();
+
+    let import_object = imports! {
+        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, page_count),
+
+        "svm" => {
+            "storage_read_i32_be" => func!(vmcalls::storage_read_i32_be),
+            "storage_read_i32_le" => func!(vmcalls::storage_read_i32_le),
+            "storage_read_i64_be" => func!(vmcalls::storage_read_i64_be),
+            "storage_read_i64_le" => func!(vmcalls::storage_read_i64_le),
+        },
+    };
+
+    let instance = testing::instantiate(&import_object, include_str!("wasm/storage_read_int.wast"));
+
+    let storage = instance_storage(&instance);
+
+    for (page_idx, page_offset, data) in slices.iter() {
+        let layout = PageSliceLayout::new(
+            PageIndex(*page_idx as u16),
+            PageOffset(*page_offset as u32),
+            data.len() as u32,
+        );
+        storage.write_page_slice(&layout, &data[..]);
+    }
+
+    let func: Func<(i32, i32, i32, i32), i32> = instance.func("read_i32").unwrap();
+
+    // slice #0: `(0, 0, vec![0])`
+    let (page_idx, page_offset, count) = (slices[0].0, slices[0].1, slices[0].2.len() as i32);
+
+    assert_int!(0x10, func, page_idx, page_offset, count, big_endian);
+    assert_int!(0x10, func, page_idx, page_offset, count, little_endian);
+
+    // slice #1: `(0, 1, vec![0x10, 0x20])`
+    let (page_idx, page_offset, count) = (slices[1].0, slices[1].1, slices[1].2.len() as i32);
+    assert_int!(0x10_20, func, page_idx, page_offset, count, big_endian);
+    assert_int!(0x20_10, func, page_idx, page_offset, count, little_endian);
+
+    // slice #2: `(0, 3, vec![0x10, 0x20, 0x30])`
+    let (page_idx, page_offset, count) = (slices[2].0, slices[2].1, slices[2].2.len() as i32);
+
+    assert_int!(0x10_20_30, func, page_idx, page_offset, count, big_endian);
+    assert_int!(
+        0x30_20_10,
+        func,
+        page_idx,
+        page_offset,
+        count,
+        little_endian
+    );
+
+    // slice #3: `(0, 6, vec![0x10, 0x20, 0x30, 0x40])`
+    let (page_idx, page_offset, count) = (slices[3].0, slices[3].1, slices[3].2.len() as i32);
+
+    assert_int!(
+        0x10_20_30_40,
+        func,
+        page_idx,
+        page_offset,
+        count,
+        big_endian
+    );
+
+    assert_int!(
+        0x40_30_20_10,
+        func,
+        page_idx,
+        page_offset,
+        count,
+        little_endian
+    );
+
+    let func: Func<(i32, i32, i32, i32), u64> = instance.func("read_i64").unwrap();
+
+    // slice #4: `(1, 0, vec![0x10, 0x20, 0x30, 0x40, 0x50])`
+    let (page_idx, page_offset, count) = (slices[4].0, slices[4].1, slices[4].2.len() as i32);
+
+    assert_int!(
+        0x10_20_30_40_50,
+        func,
+        page_idx,
+        page_offset,
+        count,
+        big_endian
+    );
+
+    assert_int!(
+        0x50_40_30_20_10,
+        func,
+        page_idx,
+        page_offset,
+        count,
+        little_endian
+    );
+
+    // slice #5: `(1, 5, vec![0x10, 0x20, 0x30, 0x40, 0x50, 0x60])`
+    let (page_idx, page_offset, count) = (slices[5].0, slices[5].1, slices[5].2.len() as i32);
+
+    assert_int!(
+        0x10_20_30_40_50_60,
+        func,
+        page_idx,
+        page_offset,
+        count,
+        big_endian
+    );
+
+    assert_int!(
+        0x60_50_40_30_20_10,
+        func,
+        page_idx,
+        page_offset,
+        count,
+        little_endian
+    );
+
+    // slice #6: `(2, 0, vec![0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70])`
+    let (page_idx, page_offset, count) = (slices[6].0, slices[6].1, slices[6].2.len() as i32);
+
+    assert_int!(
+        0x10_20_30_40_50_60_70,
+        func,
+        page_idx,
+        page_offset,
+        count,
+        big_endian
+    );
+
+    assert_int!(
+        0x70_60_50_40_30_20_10,
+        func,
+        page_idx,
+        page_offset,
+        count,
+        little_endian
+    );
+
+    // slice #7: `(2, 7, vec![0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80])`
+    let (page_idx, page_offset, count) = (slices[7].0, slices[7].1, slices[7].2.len() as i32);
+
+    assert_int!(
+        0x10_20_30_40_50_60_70_80,
+        func,
+        page_idx,
+        page_offset,
+        count,
+        big_endian
+    );
+
+    assert_int!(
+        0x80_70_60_50_40_30_20_10,
+        func,
+        page_idx,
+        page_offset,
+        count,
+        little_endian
     );
 }
