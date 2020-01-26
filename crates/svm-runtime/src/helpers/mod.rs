@@ -20,9 +20,9 @@ use svm_storage::{
 
 pub fn storage_read_page_slice(
     storage: &mut AppStorage,
-    page: i32,
-    offset: i32,
-    len: i32,
+    page: u32,
+    offset: u32,
+    len: u32,
 ) -> Vec<u8> {
     let layout = page_slice_layout(page, offset, len);
     storage.read_page_slice(&layout)
@@ -30,23 +30,22 @@ pub fn storage_read_page_slice(
 
 pub fn storage_write_page_slice(
     storage: &mut AppStorage,
-    page: i32,
-    offset: i32,
-    len: i32,
+    page: u32,
+    offset: u32,
+    len: u32,
     data: &[u8],
 ) {
     let layout = page_slice_layout(page, offset, len);
     storage.write_page_slice(&layout, data);
 }
 
-pub fn page_slice_layout(page: i32, offset: i32, len: i32) -> PageSliceLayout {
-    assert!(page >= 0 && page <= u16::max_value() as i32);
-    assert!(offset >= 0);
+pub fn page_slice_layout(page_idx: u32, page_offset: u32, len: u32) -> PageSliceLayout {
+    assert!(page_idx <= u16::max_value() as u32);
     assert!(len > 0);
 
     PageSliceLayout::new(
-        PageIndex(page as u16),
-        PageOffset(offset as u32),
+        PageIndex(page_idx as u16),
+        PageOffset(page_offset),
         len as u32,
     )
 }

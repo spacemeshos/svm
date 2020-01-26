@@ -91,11 +91,11 @@ fn parse_func_arg(cursor: &mut Cursor<&[u8]>) -> Result<WasmValue, ParseError> {
 
     let arg = match arg_type {
         WasmType::I32 => {
-            let val = helpers::read_i32(cursor, Field::WasmValue)?;
+            let val = helpers::read_u32(cursor, Field::WasmValue)?;
             WasmValue::I32(val)
         }
         WasmType::I64 => {
-            let val = helpers::read_i64(cursor, Field::WasmValue)?;
+            let val = helpers::read_u64(cursor, Field::WasmValue)?;
             WasmValue::I64(val)
         }
     };
@@ -138,24 +138,8 @@ pub fn read_u32(cursor: &mut Cursor<&[u8]>, field: Field) -> Result<u32, ParseEr
 }
 
 #[must_use]
-pub fn read_i32(cursor: &mut Cursor<&[u8]>, field: Field) -> Result<i32, ParseError> {
-    let res = cursor.read_i32::<BigEndian>();
-    ensure_enough_bytes(&res, field)?;
-    Ok(res.unwrap())
-}
-
-#[must_use]
 pub fn read_u64(cursor: &mut Cursor<&[u8]>, field: Field) -> Result<u64, ParseError> {
     let res = cursor.read_u64::<BigEndian>();
-
-    ensure_enough_bytes(&res, field)?;
-
-    Ok(res.unwrap())
-}
-
-#[must_use]
-pub fn read_i64(cursor: &mut Cursor<&[u8]>, field: Field) -> Result<i64, ParseError> {
-    let res = cursor.read_i64::<BigEndian>();
 
     ensure_enough_bytes(&res, field)?;
 
@@ -192,12 +176,12 @@ pub fn write_func_args(args: &Option<Vec<WasmValue>>, buf: &mut Vec<u8>) {
             WasmValue::I32(v) => {
                 let arg_type = WasmType::I32.into();
                 buf.write_u8(arg_type).unwrap();
-                buf.write_i32::<BigEndian>(*v).unwrap();
+                buf.write_u32::<BigEndian>(*v).unwrap();
             }
             WasmValue::I64(v) => {
                 let arg_type = WasmType::I64.into();
                 buf.write_u8(arg_type).unwrap();
-                buf.write_i64::<BigEndian>(*v).unwrap();
+                buf.write_u64::<BigEndian>(*v).unwrap();
             }
         }
     }

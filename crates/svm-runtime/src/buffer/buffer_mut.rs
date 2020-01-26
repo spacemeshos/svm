@@ -6,7 +6,7 @@ pub struct BufferMut {
 }
 
 impl BufferMut {
-    pub fn new(cap: i32) -> Self {
+    pub fn new(cap: u32) -> Self {
         Self {
             bytes: Vec::with_capacity(cap as usize),
         }
@@ -16,14 +16,11 @@ impl BufferMut {
         Self { bytes }
     }
 
-    pub fn len(&self) -> i32 {
-        self.bytes.len() as i32
+    pub fn len(&self) -> u32 {
+        self.bytes.len() as u32
     }
 
-    pub fn read(&self, offset: i32, len: i32) -> &[u8] {
-        assert!(offset >= 0, "`offset` must be a non-negative number");
-        assert!(len > 0, "`len` must be a positive number");
-
+    pub fn read(&self, offset: u32, len: u32) -> &[u8] {
         let start = offset as usize;
         let end = start + (len - 1) as usize;
 
@@ -44,24 +41,6 @@ impl BufferMut {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    #[should_panic(expected = "`offset` must be a non-negative number")]
-    fn buffer_start_negative_offset() {
-        let cap = 10;
-        let mut buf = BufferMut::new(cap);
-
-        buf.read(-1, 5);
-    }
-
-    #[test]
-    #[should_panic(expected = "`len` must be a positive number")]
-    fn buffer_len_negative_offset() {
-        let cap = 10;
-        let mut buf = BufferMut::new(cap);
-
-        buf.read(0, -1);
-    }
 
     #[test]
     #[should_panic(expected = "out-of-bounds")]
