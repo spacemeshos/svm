@@ -38,5 +38,3 @@
             (get_local 1) ;; page_idx
             (get_local 2) ;; count
             (call $storage_read_i64_le)))))
-
-
