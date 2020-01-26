@@ -708,3 +708,87 @@ fn vmcalls_storage_read_int() {
         little_endian
     );
 }
+
+#[test]
+fn vmcalls_host_ctx_read_int() {
+    let big_endian = 1;
+    let little_endian = 0;
+
+    let (app_addr, state, host, _host_ctx, page_count) = default_test_args();
+
+    let host_ctx = HostCtx::from(hashmap! {
+        0 => vec![0x10],
+        1 => vec![0x10, 0x20],
+        2 => vec![0x10, 0x20, 0x30],
+        3 => vec![0x10, 0x20, 0x30, 0x40],
+        4 => vec![0x10, 0x20, 0x30, 0x40, 0x50],
+        5 => vec![0x10, 0x20, 0x30, 0x40, 0x50, 0x60],
+        6 => vec![0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70],
+        7 => vec![0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80]
+    });
+
+    let host_ctx = DataWrapper::new(svm_common::into_raw(host_ctx));
+
+    let import_object = imports! {
+        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, page_count),
+
+        "svm" => {
+            "host_ctx_read_i32_be" => func!(vmcalls::host_ctx_read_i32_be),
+            "host_ctx_read_i32_le" => func!(vmcalls::host_ctx_read_i32_le),
+            "host_ctx_read_i64_be" => func!(vmcalls::host_ctx_read_i64_be),
+            "host_ctx_read_i64_le" => func!(vmcalls::host_ctx_read_i64_le),
+        },
+    };
+
+    let instance =
+        testing::instantiate(&import_object, include_str!("wasm/host_ctx_read_int.wast"));
+
+    let func: Func<(i32, i32), i32> = instance.func("read_i32").unwrap();
+
+    assert_eq!(0x10, func.call(0, big_endian).unwrap());
+    assert_eq!(0x10, func.call(0, little_endian).unwrap());
+
+    assert_eq!(0x10_20, func.call(1, big_endian).unwrap());
+    assert_eq!(0x20_10, func.call(1, little_endian).unwrap());
+
+    assert_eq!(0x10_20_30, func.call(2, big_endian).unwrap());
+    assert_eq!(0x30_20_10, func.call(2, little_endian).unwrap());
+
+    assert_eq!(0x10_20_30_40, func.call(3, big_endian).unwrap());
+    assert_eq!(0x40_30_20_10, func.call(3, little_endian).unwrap());
+
+    let func: Func<(i32, i32), i64> = instance.func("read_i64").unwrap();
+
+    assert_eq!(0x10_20_30_40_50, func.call(4, big_endian).unwrap() as u64);
+    assert_eq!(
+        0x50_40_30_20_10,
+        func.call(4, little_endian).unwrap() as u64
+    );
+
+    assert_eq!(
+        0x10_20_30_40_50_60,
+        func.call(5, big_endian).unwrap() as u64
+    );
+    assert_eq!(
+        0x60_50_40_30_20_10,
+        func.call(5, little_endian).unwrap() as u64
+    );
+
+    assert_eq!(
+        0x10_20_30_40_50_60_70,
+        func.call(6, big_endian).unwrap() as u64
+    );
+    assert_eq!(
+        0x70_60_50_40_30_20_10,
+        func.call(6, little_endian).unwrap() as u64
+    );
+
+    assert_eq!(
+        0x10_20_30_40_50_60_70_80,
+        func.call(7, big_endian).unwrap() as u64
+    );
+    assert_eq!(
+        0x80_70_60_50_40_30_20_10,
+        func.call(7, little_endian).unwrap() as u64
+    );
+}

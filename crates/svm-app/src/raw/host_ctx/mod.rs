@@ -26,7 +26,7 @@ impl HostCtx {
     }
 
     #[inline]
-    pub fn get(&self, field: i32) -> Option<&Vec<u8>> {
+    pub fn get(&self, field: u32) -> Option<&Vec<u8>> {
         self.inner.get(&field)
     }
 
@@ -49,7 +49,7 @@ impl HostCtx {
             let field_len = Self::parse_field_len(&mut cursor);
             let field_bytes = Self::parse_field_bytes(&mut cursor, field_len);
 
-            fields.insert(field_idx as i32, field_bytes);
+            fields.insert(field_idx as u32, field_bytes);
         }
 
         Ok(fields.into())
