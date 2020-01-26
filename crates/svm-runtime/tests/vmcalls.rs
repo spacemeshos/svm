@@ -523,7 +523,7 @@ fn vmcalls_buffer_copy_to_storage() {
     );
 }
 
-macro_rules! assert_int {
+macro_rules! assert_int_slice {
     ($expected:expr, $func:expr, $page_idx:expr, $page_offset:expr, $count:expr, $endianness:expr) => {{
         let actual = $func
             .call($page_idx, $page_offset, $count, $endianness)
@@ -533,244 +533,191 @@ macro_rules! assert_int {
     }};
 }
 
-#[test]
-fn vmcalls_storage_read_int() {
-    let big_endian = 1;
-    let little_endian = 0;
+macro_rules! test_storage_read_int {
+    ($slice_idx:expr, $endianness:expr, $expected:expr) => {{
+	let big_endian = 1;
+	let little_endian = 0;
 
-    let slices = vec![
-        (0, 0, vec![0x10]),
-        (0, 1, vec![0x10, 0x20]),
-        (0, 3, vec![0x10, 0x20, 0x30]),
-        (0, 6, vec![0x10, 0x20, 0x30, 0x40]),
-        (1, 0, vec![0x10, 0x20, 0x30, 0x40, 0x50]),
-        (1, 5, vec![0x10, 0x20, 0x30, 0x40, 0x50, 0x60]),
-        (2, 0, vec![0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70]),
-        (2, 7, vec![0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80]),
-    ];
+	let slices = vec![
+	    (0, 0, vec![0x10]),
+	    (0, 1, vec![0x10, 0x20]),
+	    (0, 3, vec![0x10, 0x20, 0x30]),
+	    (0, 6, vec![0x10, 0x20, 0x30, 0x40]),
+	    (1, 0, vec![0x10, 0x20, 0x30, 0x40, 0x50]),
+	    (1, 5, vec![0x10, 0x20, 0x30, 0x40, 0x50, 0x60]),
+	    (2, 0, vec![0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70]),
+	    (2, 7, vec![0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80]),
+	];
 
-    let (app_addr, state, host, host_ctx, page_count) = default_test_args();
+	let (app_addr, state, host, host_ctx, page_count) = default_test_args();
 
-    let import_object = imports! {
-        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, page_count),
+	let import_object = imports! {
+	    move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, page_count),
 
-        "svm" => {
-            "storage_read_i32_be" => func!(vmcalls::storage_read_i32_be),
-            "storage_read_i32_le" => func!(vmcalls::storage_read_i32_le),
-            "storage_read_i64_be" => func!(vmcalls::storage_read_i64_be),
-            "storage_read_i64_le" => func!(vmcalls::storage_read_i64_le),
-        },
-    };
+	    "svm" => {
+		"storage_read_i32_be" => func!(vmcalls::storage_read_i32_be),
+		"storage_read_i32_le" => func!(vmcalls::storage_read_i32_le),
+		"storage_read_i64_be" => func!(vmcalls::storage_read_i64_be),
+		"storage_read_i64_le" => func!(vmcalls::storage_read_i64_le),
+	    },
+	};
 
-    let instance = testing::instantiate(&import_object, include_str!("wasm/storage_read_int.wast"));
+	let instance = testing::instantiate(&import_object, include_str!("wasm/storage_read_int.wast"));
+	let storage = instance_storage(&instance);
 
-    let storage = instance_storage(&instance);
+	// initialzing the app storage with the above `slices`
+	for (page_idx, page_offset, data) in slices.iter() {
+	    let layout = PageSliceLayout::new(
+		PageIndex(*page_idx as u16),
+		PageOffset(*page_offset as u32),
+		data.len() as u32,
+	    );
+	    storage.write_page_slice(&layout, &data[..]);
+	}
 
-    for (page_idx, page_offset, data) in slices.iter() {
-        let layout = PageSliceLayout::new(
-            PageIndex(*page_idx as u16),
-            PageOffset(*page_offset as u32),
-            data.len() as u32,
-        );
-        storage.write_page_slice(&layout, &data[..]);
-    }
+	let slice = &slices[$slice_idx];
+	let (page_idx, page_offset, count) = (slice.0, slice.1, slice.2.len() as u32);
 
-    let func: Func<(u32, u32, u32, u32), u32> = instance.func("read_i32").unwrap();
+	if count <= 4 {
+	    // we exepect a 32-bits integer
+	    let func: Func<(u32, u32, u32, u32), u32> = instance.func("read_i32").unwrap();
 
-    // slice #0: `(0, 0, vec![0])`
-    let (page_idx, page_offset, count) = (slices[0].0, slices[0].1, slices[0].2.len() as u32);
+	    let actual = func
+		.call(page_idx, page_offset, count, $endianness)
+		.unwrap();
 
-    assert_int!(0x10, func, page_idx, page_offset, count, big_endian);
-    assert_int!(0x10, func, page_idx, page_offset, count, little_endian);
+	    assert_eq!($expected, actual);
+	}
+	else {
+	    // we exepect a 64-bits integer
+	    let func: Func<(u32, u32, u32, u32), u64> = instance.func("read_i64").unwrap();
 
-    // slice #1: `(0, 1, vec![0x10, 0x20])`
-    let (page_idx, page_offset, count) = (slices[1].0, slices[1].1, slices[1].2.len() as u32);
-    assert_int!(0x10_20, func, page_idx, page_offset, count, big_endian);
-    assert_int!(0x20_10, func, page_idx, page_offset, count, little_endian);
+	    let actual = func
+		.call(page_idx, page_offset, count, $endianness)
+		.unwrap();
 
-    // slice #2: `(0, 3, vec![0x10, 0x20, 0x30])`
-    let (page_idx, page_offset, count) = (slices[2].0, slices[2].1, slices[2].2.len() as u32);
-
-    assert_int!(0x10_20_30, func, page_idx, page_offset, count, big_endian);
-    assert_int!(
-        0x30_20_10,
-        func,
-        page_idx,
-        page_offset,
-        count,
-        little_endian
-    );
-
-    // slice #3: `(0, 6, vec![0x10, 0x20, 0x30, 0x40])`
-    let (page_idx, page_offset, count) = (slices[3].0, slices[3].1, slices[3].2.len() as u32);
-
-    assert_int!(
-        0x10_20_30_40,
-        func,
-        page_idx,
-        page_offset,
-        count,
-        big_endian
-    );
-
-    assert_int!(
-        0x40_30_20_10,
-        func,
-        page_idx,
-        page_offset,
-        count,
-        little_endian
-    );
-
-    let func: Func<(u32, u32, u32, u32), u64> = instance.func("read_i64").unwrap();
-
-    // slice #4: `(1, 0, vec![0x10, 0x20, 0x30, 0x40, 0x50])`
-    let (page_idx, page_offset, count) = (slices[4].0, slices[4].1, slices[4].2.len() as u32);
-
-    assert_int!(
-        0x10_20_30_40_50,
-        func,
-        page_idx,
-        page_offset,
-        count,
-        big_endian
-    );
-
-    assert_int!(
-        0x50_40_30_20_10,
-        func,
-        page_idx,
-        page_offset,
-        count,
-        little_endian
-    );
-
-    // slice #5: `(1, 5, vec![0x10, 0x20, 0x30, 0x40, 0x50, 0x60])`
-    let (page_idx, page_offset, count) = (slices[5].0, slices[5].1, slices[5].2.len() as u32);
-
-    assert_int!(
-        0x10_20_30_40_50_60,
-        func,
-        page_idx,
-        page_offset,
-        count,
-        big_endian
-    );
-
-    assert_int!(
-        0x60_50_40_30_20_10,
-        func,
-        page_idx,
-        page_offset,
-        count,
-        little_endian
-    );
-
-    // slice #6: `(2, 0, vec![0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70])`
-    let (page_idx, page_offset, count) = (slices[6].0, slices[6].1, slices[6].2.len() as u32);
-
-    assert_int!(
-        0x10_20_30_40_50_60_70,
-        func,
-        page_idx,
-        page_offset,
-        count,
-        big_endian
-    );
-
-    assert_int!(
-        0x70_60_50_40_30_20_10,
-        func,
-        page_idx,
-        page_offset,
-        count,
-        little_endian
-    );
-
-    // slice #7: `(2, 7, vec![0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80])`
-    let (page_idx, page_offset, count) = (slices[7].0, slices[7].1, slices[7].2.len() as u32);
-
-    assert_int!(
-        0x10_20_30_40_50_60_70_80,
-        func,
-        page_idx,
-        page_offset,
-        count,
-        big_endian
-    );
-
-    assert_int!(
-        0x80_70_60_50_40_30_20_10,
-        func,
-        page_idx,
-        page_offset,
-        count,
-        little_endian
-    );
+	    assert_eq!($expected, actual);
+	}
+    }};
 }
 
 #[test]
-fn vmcalls_host_ctx_read_int() {
-    let big_endian = 1;
-    let little_endian = 0;
+fn vmcalls_storage_read_int_32() {
+    let be = 1; // Big-Endian
+    let le = 0; // Little-Endian
 
-    let (app_addr, state, host, _host_ctx, page_count) = default_test_args();
+    test_storage_read_int!(0, be, 0x10);
+    test_storage_read_int!(0, le, 0x10);
 
-    let host_ctx = HostCtx::from(hashmap! {
-        0 => vec![0x10],
-        1 => vec![0x10, 0x20],
-        2 => vec![0x10, 0x20, 0x30],
-        3 => vec![0x10, 0x20, 0x30, 0x40],
-        4 => vec![0x10, 0x20, 0x30, 0x40, 0x50],
-        5 => vec![0x10, 0x20, 0x30, 0x40, 0x50, 0x60],
-        6 => vec![0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70],
-        7 => vec![0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80]
-    });
+    test_storage_read_int!(1, be, 0x10_20);
+    test_storage_read_int!(1, le, 0x20_10);
 
-    let host_ctx = DataWrapper::new(svm_common::into_raw(host_ctx));
+    test_storage_read_int!(2, be, 0x10_20_30);
+    test_storage_read_int!(2, le, 0x30_20_10);
 
-    let import_object = imports! {
-        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, page_count),
+    test_storage_read_int!(3, be, 0x10_20_30_40);
+    test_storage_read_int!(3, le, 0x40_30_20_10);
+}
 
-        "svm" => {
-            "host_ctx_read_i32_be" => func!(vmcalls::host_ctx_read_i32_be),
-            "host_ctx_read_i32_le" => func!(vmcalls::host_ctx_read_i32_le),
-            "host_ctx_read_i64_be" => func!(vmcalls::host_ctx_read_i64_be),
-            "host_ctx_read_i64_le" => func!(vmcalls::host_ctx_read_i64_le),
-        },
-    };
+#[test]
+fn vmcalls_storage_read_int_64() {
+    let be = 1; // Big-Endian
+    let le = 0; // Little-Endian
 
-    let instance =
-        testing::instantiate(&import_object, include_str!("wasm/host_ctx_read_int.wast"));
+    test_storage_read_int!(4, be, 0x10_20_30_40_50);
+    test_storage_read_int!(4, le, 0x50_40_30_20_10);
 
-    let func: Func<(u32, u32), u32> = instance.func("read_i32").unwrap();
+    test_storage_read_int!(5, be, 0x10_20_30_40_50_60);
+    test_storage_read_int!(5, le, 0x60_50_40_30_20_10);
 
-    assert_eq!(0x10, func.call(0, big_endian).unwrap());
-    assert_eq!(0x10, func.call(0, little_endian).unwrap());
+    test_storage_read_int!(6, be, 0x10_20_30_40_50_60_70);
+    test_storage_read_int!(6, le, 0x70_60_50_40_30_20_10);
 
-    assert_eq!(0x10_20, func.call(1, big_endian).unwrap());
-    assert_eq!(0x20_10, func.call(1, little_endian).unwrap());
+    test_storage_read_int!(7, be, 0x10_20_30_40_50_60_70_80);
+    test_storage_read_int!(7, le, 0x80_70_60_50_40_30_20_10);
+}
 
-    assert_eq!(0x10_20_30, func.call(2, big_endian).unwrap());
-    assert_eq!(0x30_20_10, func.call(2, little_endian).unwrap());
+macro_rules! test_host_ctx_read_int {
+    ($field_idx:expr, $endianness:expr, $expected:expr) => {{
+	let big_endian = 1;
+	let little_endian = 0;
 
-    assert_eq!(0x10_20_30_40, func.call(3, big_endian).unwrap());
-    assert_eq!(0x40_30_20_10, func.call(3, little_endian).unwrap());
+	let (app_addr, state, host, _host_ctx, page_count) = default_test_args();
 
-    let func: Func<(u32, u32), u64> = instance.func("read_i64").unwrap();
+	let fields = hashmap! {
+	    0 => vec![0x10],
+	    1 => vec![0x10, 0x20],
+	    2 => vec![0x10, 0x20, 0x30],
+	    3 => vec![0x10, 0x20, 0x30, 0x40],
+	    4 => vec![0x10, 0x20, 0x30, 0x40, 0x50],
+	    5 => vec![0x10, 0x20, 0x30, 0x40, 0x50, 0x60],
+	    6 => vec![0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70],
+	    7 => vec![0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80]
+	};
 
-    assert_eq!(0x10_20_30_40_50, func.call(4, big_endian).unwrap());
-    assert_eq!(0x50_40_30_20_10, func.call(4, little_endian).unwrap());
+	let host_ctx = HostCtx::from(fields.clone());
+	let host_ctx = DataWrapper::new(svm_common::into_raw(host_ctx));
 
-    assert_eq!(0x10_20_30_40_50_60, func.call(5, big_endian).unwrap());
-    assert_eq!(0x60_50_40_30_20_10, func.call(5, little_endian).unwrap());
+	let import_object = imports! {
+	    move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, page_count),
 
-    assert_eq!(0x10_20_30_40_50_60_70, func.call(6, big_endian).unwrap());
-    assert_eq!(0x70_60_50_40_30_20_10, func.call(6, little_endian).unwrap());
+	    "svm" => {
+		"host_ctx_read_i32_be" => func!(vmcalls::host_ctx_read_i32_be),
+		"host_ctx_read_i32_le" => func!(vmcalls::host_ctx_read_i32_le),
+		"host_ctx_read_i64_be" => func!(vmcalls::host_ctx_read_i64_be),
+		"host_ctx_read_i64_le" => func!(vmcalls::host_ctx_read_i64_le),
+	    },
+	};
 
-    assert_eq!(0x10_20_30_40_50_60_70_80, func.call(7, big_endian).unwrap());
-    assert_eq!(
-        0x80_70_60_50_40_30_20_10,
-        func.call(7, little_endian).unwrap()
-    );
+	let instance =
+	    testing::instantiate(&import_object, include_str!("wasm/host_ctx_read_int.wast"));
+
+	let field = fields.get(&$field_idx).unwrap().to_vec();
+	let count = field.len();
+
+	if count <= 4 {
+	    let func: Func<(u32, u32), u32> = instance.func("read_i32").unwrap();
+	    assert_eq!($expected, func.call($field_idx, $endianness).unwrap());
+	}
+	else {
+	    let func: Func<(u32, u32), u64> = instance.func("read_i64").unwrap();
+	    assert_eq!($expected, func.call($field_idx, $endianness).unwrap());
+	}
+    }};
+}
+
+#[test]
+fn vmcalls_host_ctx_read_int_32() {
+    let be = 1; // Big-Endian
+    let le = 0; // Little-Endian
+
+    test_host_ctx_read_int!(0, 0x10, be);
+    test_host_ctx_read_int!(0, 0x10, le);
+
+    test_host_ctx_read_int!(1, 0x10_20, be);
+    test_host_ctx_read_int!(1, 0x20_10, le);
+
+    test_host_ctx_read_int!(2, 0x10_20_30, be);
+    test_host_ctx_read_int!(2, 0x30_20_10, le);
+
+    test_host_ctx_read_int!(3, 0x10_20_30_40, be);
+    test_host_ctx_read_int!(3, 0x40_30_20_10, le);
+}
+
+#[test]
+fn vmcalls_host_ctx_read_int_64() {
+    let be = 1; // Big-Endian
+    let le = 0; // Little-Endian
+
+    test_host_ctx_read_int!(4, 0x10_20_30_40_50, be);
+    test_host_ctx_read_int!(4, 0x50_40_30_20_10, le);
+
+    test_host_ctx_read_int!(5, 0x10_20_30_40_50_60, be);
+    test_host_ctx_read_int!(5, 0x60_50_40_30_20_10, le);
+
+    test_host_ctx_read_int!(6, 0x10_20_30_40_50_60_70, be);
+    test_host_ctx_read_int!(6, 0x70_60_50_40_30_20_10, le);
+
+    test_host_ctx_read_int!(7, 0x10_20_30_40_50_60_70_80, be);
+    test_host_ctx_read_int!(7, 0x80_70_60_50_40_30_20_10, le);
 }

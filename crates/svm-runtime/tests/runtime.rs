@@ -36,7 +36,7 @@ fn runtime_spawn_app_with_ctor() {
         vec![0xDD, 0xDD, 0xDD, 0xDD],
     ];
 
-    let ctor_args = vec![WasmValue::I32(buf_size as i32)];
+    let ctor_args = vec![WasmValue::I32(buf_size)];
     let bytes = testing::build_app(version, &template_addr, &ctor_buf, &ctor_args);
 
     let (app_addr, init_state) = runtime.spawn_app(&creator, HostCtx::new(), &bytes).unwrap();
@@ -99,7 +99,7 @@ fn runtime_exec_app() {
     let func_name = "run";
     let data = vec![0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80, 0x90, 0xA0];
     let func_buf = vec![data.clone()];
-    let count = data.len() as i32;
+    let count = data.len() as u32;
 
     assert!(count <= reg_size);
 
