@@ -1,42 +1,41 @@
 use crate::{ctx::SvmCtx, helpers};
 
+use svm_app::types::HostCtx;
+
+use byteorder::{BigEndian, ByteOrder, LittleEndian};
+
 use wasmer_runtime::Ctx as WasmerCtx;
 
 /// Reads host context field with index `field_idx` into register `{reg_bits}:{reg_idx}`
 pub fn host_ctx_read_into_reg(ctx: &mut WasmerCtx, field_idx: i32, reg_bits: i32, reg_idx: i32) {
-    let svm_ctx = unsafe { svm_common::from_raw_mut::<SvmCtx>(ctx.data) };
-    let host_ctx = unsafe { &*(svm_ctx.host_ctx) };
+    let host_ctx = helpers::wasmer_data_host_ctx(ctx.data);
+    let buf = host_ctx.get(field_idx as u32).unwrap();
 
     let reg = helpers::wasmer_data_reg(ctx.data, reg_bits, reg_idx);
-    let slice = host_ctx.get(field_idx).unwrap();
-
-    reg.set(slice);
-}
-
-pub fn host_ctx_read_i8(ctx: &mut WasmerCtx, field_idx: i32) -> i32 {
-    todo!()
-}
-
-pub fn host_ctx_read_i16_le(ctx: &mut WasmerCtx, field_idx: i32) -> i32 {
-    todo!()
-}
-
-pub fn host_ctx_read_i16_be(ctx: &mut WasmerCtx, field_idx: i32) -> i32 {
-    todo!()
+    reg.set(buf);
 }
 
 pub fn host_ctx_read_i32_le(ctx: &mut WasmerCtx, field_idx: i32) -> i32 {
-    todo!()
+    host_ctx_read_int::<LittleEndian>(ctx, field_idx) as i32
 }
 
 pub fn host_ctx_read_i32_be(ctx: &mut WasmerCtx, field_idx: i32) -> i32 {
-    todo!()
+    host_ctx_read_int::<BigEndian>(ctx, field_idx) as i32
 }
 
 pub fn host_ctx_read_i64_le(ctx: &mut WasmerCtx, field_idx: i32) -> i64 {
-    todo!()
+    host_ctx_read_int::<LittleEndian>(ctx, field_idx)
 }
 
 pub fn host_ctx_read_i64_be(ctx: &mut WasmerCtx, field_idx: i32) -> i64 {
-    todo!()
+    host_ctx_read_int::<BigEndian>(ctx, field_idx)
+}
+
+fn host_ctx_read_int<T: ByteOrder>(ctx: &mut WasmerCtx, field_idx: i32) -> i64 {
+    let host_ctx = helpers::wasmer_data_host_ctx(ctx.data);
+    let buf = host_ctx.get(field_idx as u32).unwrap();
+    let len = buf.len();
+
+    let num: u64 = T::read_uint(buf, len);
+    num as i64
 }
