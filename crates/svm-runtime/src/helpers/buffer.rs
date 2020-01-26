@@ -6,13 +6,13 @@ use crate::{
     helpers,
 };
 
-pub fn wasmer_data_buffer<'a>(data: *mut c_void, buf_id: i32) -> Option<&'a mut BufferRef> {
+pub fn wasmer_data_buffer<'a>(data: *mut c_void, buf_id: u32) -> Option<&'a mut BufferRef> {
     let ctx: &mut SvmCtx = unsafe { svm_common::from_raw_mut::<SvmCtx>(data) };
 
     ctx.buffers.get_mut(&buf_id)
 }
 
-pub fn buffer_create(data: *mut c_void, buf_id: i32, capacity: i32) {
+pub fn buffer_create(data: *mut c_void, buf_id: u32, capacity: u32) {
     let mut svm_ctx = unsafe { svm_common::from_raw_mut::<SvmCtx>(data) };
 
     if svm_ctx.buffers.contains_key(&buf_id) {
@@ -28,7 +28,7 @@ pub fn buffer_create(data: *mut c_void, buf_id: i32, capacity: i32) {
     svm_ctx.buffers.insert(buf_id, buf_ref);
 }
 
-pub fn buffer_kill(data: *mut c_void, buf_id: i32) {
+pub fn buffer_kill(data: *mut c_void, buf_id: u32) {
     let mut svm_ctx = unsafe { svm_common::from_raw_mut::<SvmCtx>(data) };
 
     if svm_ctx.buffers.contains_key(&buf_id) == false {
@@ -38,7 +38,7 @@ pub fn buffer_kill(data: *mut c_void, buf_id: i32) {
     svm_ctx.buffers.remove(&buf_id);
 }
 
-pub fn buffer_freeze(data: *mut c_void, buf_id: i32) {
+pub fn buffer_freeze(data: *mut c_void, buf_id: u32) {
     let mut svm_ctx = unsafe { svm_common::from_raw_mut::<SvmCtx>(data) };
 
     let entry = svm_ctx.buffers.remove_entry(&buf_id);
@@ -67,11 +67,11 @@ pub fn buffer_freeze(data: *mut c_void, buf_id: i32) {
 
 pub fn buffer_copy_to_storage(
     data: *mut c_void,
-    buf_id: i32,
-    buf_offset: i32,
-    page_idx: i32,
-    page_offset: i32,
-    len: i32,
+    buf_id: u32,
+    buf_offset: u32,
+    page_idx: u32,
+    page_offset: u32,
+    len: u32,
 ) {
     let buffer =
         wasmer_data_buffer(data, buf_id).expect(&format!("Buffer `{}` doesn't exist!", buf_id));
@@ -85,11 +85,11 @@ pub fn buffer_copy_to_storage(
 
 pub fn buffer_copy_to_reg(
     data: *mut c_void,
-    buf_id: i32,
-    buf_offset: i32,
-    reg_bits: i32,
-    reg_idx: i32,
-    len: i32,
+    buf_id: u32,
+    buf_offset: u32,
+    reg_bits: u32,
+    reg_idx: u32,
+    len: u32,
 ) {
     assert!(len * 8 <= reg_bits);
 

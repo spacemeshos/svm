@@ -4,7 +4,7 @@ use byteorder::{BigEndian, WriteBytesExt};
 
 pub struct HostCtxBuilder {
     version: Option<u32>,
-    fields: HashMap<i32, Vec<u8>>,
+    fields: HashMap<u32, Vec<u8>>,
 }
 
 #[allow(missing_docs)]
@@ -22,26 +22,26 @@ impl HostCtxBuilder {
         self
     }
 
-    pub fn with_raw_field(mut self, idx: i32, value: &[u8]) -> Self {
+    pub fn with_raw_field(mut self, idx: u32, value: &[u8]) -> Self {
         self.fields.insert(idx, value.to_owned());
         self
     }
 
-    pub fn with_byte_field(mut self, idx: i32, value: u8) -> Self {
+    pub fn with_byte_field(mut self, idx: u32, value: u8) -> Self {
         let mut buf = Vec::with_capacity(1);
         buf.write_u8(value).unwrap();
 
         self.with_raw_field(idx, &buf[..])
     }
 
-    pub fn with_u16_field(mut self, idx: i32, value: u16) -> Self {
+    pub fn with_u16_field(mut self, idx: u32, value: u16) -> Self {
         let mut buf = Vec::with_capacity(2);
         buf.write_u16::<BigEndian>(value).unwrap();
 
         self.with_raw_field(idx, &buf[..])
     }
 
-    pub fn with_u32_field(mut self, idx: i32, value: u32) -> Self {
+    pub fn with_u32_field(mut self, idx: u32, value: u32) -> Self {
         let mut buf = Vec::with_capacity(4);
         buf.write_u32::<BigEndian>(value).unwrap();
 
@@ -72,7 +72,7 @@ impl HostCtxBuilder {
         buf.write_u16::<BigEndian>(fields_count).unwrap();
     }
 
-    fn write_field(&self, idx: i32, data: &[u8], buf: &mut Vec<u8>) {
+    fn write_field(&self, idx: u32, data: &[u8], buf: &mut Vec<u8>) {
         // field `index`
         buf.write_u16::<BigEndian>(idx as u16).unwrap();
 

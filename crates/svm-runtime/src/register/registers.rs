@@ -21,7 +21,7 @@ lazy_static! {
 #[derive(Debug)]
 pub struct Registers {
     regs: Vec<Register>,
-    reg_pos: HashMap<(i32, i32), usize>,
+    reg_pos: HashMap<(u32, u32), usize>,
 }
 
 impl Default for Registers {
@@ -46,7 +46,7 @@ impl Registers {
             let inital_cap = 4;
 
             for reg_idx in 0..reg_count {
-                reg_pos.insert((reg_bits as i32, reg_idx as i32), index);
+                reg_pos.insert((reg_bits as u32, reg_idx as u32), index);
 
                 let reg = Register::new(reg_size, inital_cap);
                 regs.push(reg);
@@ -59,21 +59,21 @@ impl Registers {
     }
 
     #[inline]
-    pub fn get_reg(&self, reg_bits: i32, reg_idx: i32) -> &Register {
+    pub fn get_reg(&self, reg_bits: u32, reg_idx: u32) -> &Register {
         let pos = self.reg_pos(reg_bits, reg_idx);
 
         &self.regs[pos]
     }
 
     #[inline]
-    pub fn get_reg_mut(&mut self, reg_bits: i32, reg_idx: i32) -> &mut Register {
+    pub fn get_reg_mut(&mut self, reg_bits: u32, reg_idx: u32) -> &mut Register {
         let pos = self.reg_pos(reg_bits, reg_idx);
 
         &mut self.regs[pos]
     }
 
     #[inline]
-    fn reg_pos(&self, reg_bits: i32, reg_idx: i32) -> usize {
+    fn reg_pos(&self, reg_bits: u32, reg_idx: u32) -> usize {
         *self.reg_pos.get(&(reg_bits, reg_idx)).unwrap()
     }
 }
@@ -117,11 +117,11 @@ mod tests {
         let mut regs = Registers::new(&config);
 
         for reg_idx in 0..reg_count {
-            let _reg = regs.get_reg(reg_bits as i32, reg_idx as i32);
+            let _reg = regs.get_reg(reg_bits as u32, reg_idx as u32);
         }
 
         let res = std::panic::catch_unwind(move || {
-            let _reg = regs.get_reg(reg_bits as i32, reg_count as i32);
+            let _reg = regs.get_reg(reg_bits as u32, reg_count as u32);
         });
 
         assert!(res.is_err());

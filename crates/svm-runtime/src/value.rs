@@ -5,11 +5,11 @@ use wasmer_runtime_core::types::Value as WasmerValue;
 /// Wasm integer value
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum Value {
-    /// 32 bits
-    I32(i32),
+    /// 32-bits
+    I32(u32),
 
-    /// 64 bits
-    I64(i64),
+    /// 64-bits
+    I64(u64),
 }
 
 /// Casting to a wasm integer value has failed
@@ -30,8 +30,8 @@ impl TryFrom<&WasmerValue> for Value {
 
     fn try_from(value: &WasmerValue) -> Result<Self, Self::Error> {
         match value {
-            WasmerValue::I32(v) => Ok(Value::I32(*v)),
-            WasmerValue::I64(v) => Ok(Value::I64(*v)),
+            WasmerValue::I32(v) => Ok(Value::I32(*v as u32)),
+            WasmerValue::I64(v) => Ok(Value::I64(*v as u64)),
             WasmerValue::F32(_) => Err(ValueCastError::NotSupportedType("F32")),
             WasmerValue::F64(_) => Err(ValueCastError::NotSupportedType("F64")),
             WasmerValue::V128(_) => Err(ValueCastError::NotSupportedType("V128")),
