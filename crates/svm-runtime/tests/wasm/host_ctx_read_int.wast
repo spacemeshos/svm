@@ -20,7 +20,7 @@
             (call $host_ctx_read_i32_le))))
 
 
-  (func (export "read_i64") (param i32 i32 i32 i32) (result i64)
+  (func (export "read_i64") (param i32 i32) (result i64)
         (if (result i64) (get_local 1)
           (then
             ;; Big-Endian
@@ -30,5 +30,3 @@
             ;; Little-Endian
             (get_local 0) ;; field_idx
             (call $host_ctx_read_i64_le)))))
-
-
