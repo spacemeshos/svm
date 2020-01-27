@@ -1,20 +1,20 @@
 pub use crate::buffer::{Buffer, BufferMut};
 
 pub enum BufferRef {
-    ReadOnly(i32, Buffer),
+    ReadOnly(u32, Buffer),
 
-    Mutable(i32, BufferMut),
+    Mutable(u32, BufferMut),
 }
 
 impl BufferRef {
-    pub fn len(&self) -> i32 {
+    pub fn len(&self) -> u32 {
         match self {
             BufferRef::ReadOnly(.., buf) => buf.len(),
             BufferRef::Mutable(.., buf) => buf.len(),
         }
     }
 
-    pub fn read(&self, offset: i32, len: i32) -> &[u8] {
+    pub fn read(&self, offset: u32, len: u32) -> &[u8] {
         match self {
             BufferRef::ReadOnly(.., buf) => buf.read(offset, len),
             BufferRef::Mutable(.., buf) => buf.read(offset, len),
