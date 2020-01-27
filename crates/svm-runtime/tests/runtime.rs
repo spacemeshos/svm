@@ -106,8 +106,8 @@ fn runtime_exec_app() {
     let func_args = vec![
         WasmValue::I32(buf_id),
         WasmValue::I32(buf_offset),
-        WasmValue::I32(reg_bits),
-        WasmValue::I32(reg_idx),
+        WasmValue::I32(reg_bits as u32),
+        WasmValue::I32(reg_idx as u32),
         WasmValue::I32(count),
         WasmValue::I32(page_idx),
         WasmValue::I32(page_offset),
@@ -133,7 +133,7 @@ fn runtime_exec_app() {
     let layout = PageSliceLayout::new(
         PageIndex(page_idx as u16),
         PageOffset(page_offset as u32),
-        count as u32,
+        count,
     );
     let slice = storage.read_page_slice(&layout);
 

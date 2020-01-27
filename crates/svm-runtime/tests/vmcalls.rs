@@ -533,10 +533,25 @@ macro_rules! assert_int_slice {
     }};
 }
 
+macro_rules! assert_i32_field {
+    ($expected:expr, $instance:expr, $field_idx:expr, $endianness:expr) => {{
+        let func: Func<(u32, u32), u32> = $instance.func("read_i32").unwrap();
+
+        assert_eq!($expected, func.call($field_idx, $endianness).unwrap());
+    }};
+}
+
+macro_rules! assert_i64_field {
+    ($expected:expr, $instance:expr, $field_idx:expr, $endianness:expr) => {{
+        let func: Func<(u32, u32), u64> = $instance.func("read_i64").unwrap();
+
+        assert_eq!($expected, func.call($field_idx, $endianness).unwrap());
+    }};
+}
+
 macro_rules! test_storage_read_int {
     ($slice_idx:expr, $endianness:expr, $expected:expr) => {{
-	let big_endian = 1;
-	let little_endian = 0;
+	let expected: u64 = $expected;
 
 	let slices = vec![
 	    (0, 0, vec![0x10]),
@@ -579,24 +594,14 @@ macro_rules! test_storage_read_int {
 	let (page_idx, page_offset, count) = (slice.0, slice.1, slice.2.len() as u32);
 
 	if count <= 4 {
-	    // we exepect a 32-bits integer
 	    let func: Func<(u32, u32, u32, u32), u32> = instance.func("read_i32").unwrap();
 
-	    let actual = func
-		.call(page_idx, page_offset, count, $endianness)
-		.unwrap();
-
-	    assert_eq!($expected, actual);
+	    assert_int_slice!(expected as u32, func, page_idx, page_offset, count, $endianness);
 	}
 	else {
-	    // we exepect a 64-bits integer
 	    let func: Func<(u32, u32, u32, u32), u64> = instance.func("read_i64").unwrap();
 
-	    let actual = func
-		.call(page_idx, page_offset, count, $endianness)
-		.unwrap();
-
-	    assert_eq!($expected, actual);
+	    assert_int_slice!(expected, func, page_idx, page_offset, count, $endianness);
 	}
     }};
 }
@@ -639,8 +644,7 @@ fn vmcalls_storage_read_int_64() {
 
 macro_rules! test_host_ctx_read_int {
     ($field_idx:expr, $endianness:expr, $expected:expr) => {{
-	let big_endian = 1;
-	let little_endian = 0;
+	let expected: u64 = $expected;
 
 	let (app_addr, state, host, _host_ctx, page_count) = default_test_args();
 
@@ -676,12 +680,10 @@ macro_rules! test_host_ctx_read_int {
 	let count = field.len();
 
 	if count <= 4 {
-	    let func: Func<(u32, u32), u32> = instance.func("read_i32").unwrap();
-	    assert_eq!($expected, func.call($field_idx, $endianness).unwrap());
+	    assert_i32_field!(expected as u32, instance, $field_idx, $endianness);
 	}
 	else {
-	    let func: Func<(u32, u32), u64> = instance.func("read_i64").unwrap();
-	    assert_eq!($expected, func.call($field_idx, $endianness).unwrap());
+	    assert_i64_field!(expected, instance, $field_idx, $endianness);
 	}
     }};
 }
@@ -691,17 +693,17 @@ fn vmcalls_host_ctx_read_int_32() {
     let be = 1; // Big-Endian
     let le = 0; // Little-Endian
 
-    test_host_ctx_read_int!(0, 0x10, be);
-    test_host_ctx_read_int!(0, 0x10, le);
+    test_host_ctx_read_int!(0, be, 0x10);
+    test_host_ctx_read_int!(0, le, 0x10);
 
-    test_host_ctx_read_int!(1, 0x10_20, be);
-    test_host_ctx_read_int!(1, 0x20_10, le);
+    test_host_ctx_read_int!(1, be, 0x10_20);
+    test_host_ctx_read_int!(1, le, 0x20_10);
 
-    test_host_ctx_read_int!(2, 0x10_20_30, be);
-    test_host_ctx_read_int!(2, 0x30_20_10, le);
+    test_host_ctx_read_int!(2, be, 0x10_20_30);
+    test_host_ctx_read_int!(2, le, 0x30_20_10);
 
-    test_host_ctx_read_int!(3, 0x10_20_30_40, be);
-    test_host_ctx_read_int!(3, 0x40_30_20_10, le);
+    test_host_ctx_read_int!(3, be, 0x10_20_30_40);
+    test_host_ctx_read_int!(3, le, 0x40_30_20_10);
 }
 
 #[test]
@@ -709,15 +711,15 @@ fn vmcalls_host_ctx_read_int_64() {
     let be = 1; // Big-Endian
     let le = 0; // Little-Endian
 
-    test_host_ctx_read_int!(4, 0x10_20_30_40_50, be);
-    test_host_ctx_read_int!(4, 0x50_40_30_20_10, le);
+    test_host_ctx_read_int!(4, be, 0x10_20_30_40_50);
+    test_host_ctx_read_int!(4, le, 0x50_40_30_20_10);
 
-    test_host_ctx_read_int!(5, 0x10_20_30_40_50_60, be);
-    test_host_ctx_read_int!(5, 0x60_50_40_30_20_10, le);
+    test_host_ctx_read_int!(5, be, 0x10_20_30_40_50_60);
+    test_host_ctx_read_int!(5, le, 0x60_50_40_30_20_10);
 
-    test_host_ctx_read_int!(6, 0x10_20_30_40_50_60_70, be);
-    test_host_ctx_read_int!(6, 0x70_60_50_40_30_20_10, le);
+    test_host_ctx_read_int!(6, be, 0x10_20_30_40_50_60_70);
+    test_host_ctx_read_int!(6, le, 0x70_60_50_40_30_20_10);
 
-    test_host_ctx_read_int!(7, 0x10_20_30_40_50_60_70_80, be);
-    test_host_ctx_read_int!(7, 0x80_70_60_50_40_30_20_10, le);
+    test_host_ctx_read_int!(7, be, 0x10_20_30_40_50_60_70_80);
+    test_host_ctx_read_int!(7, le, 0x80_70_60_50_40_30_20_10);
 }
