@@ -42,10 +42,10 @@ pub struct svm_value_type_array {
 #[repr(C)]
 pub union svm_value {
     #[doc(hidden)]
-    pub I32: i32,
+    pub I32: u32,
 
     #[doc(hidden)]
-    pub I64: i64,
+    pub I64: u64,
 }
 
 /// FFI representation for `SVM` value + type.

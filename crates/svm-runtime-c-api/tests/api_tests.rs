@@ -58,7 +58,7 @@ unsafe fn extract_host<'a>(raw_ctx: *mut c_void) -> &'a mut Host {
     svm_common::from_raw_mut::<Host>(host)
 }
 
-unsafe fn extract_reg<'a>(raw_ctx: *mut c_void, reg_bits: i32, reg_idx: i32) -> &'a mut Register {
+unsafe fn extract_reg<'a>(raw_ctx: *mut c_void, reg_bits: u32, reg_idx: u32) -> &'a mut Register {
     use wasmer_runtime_core::vm::Ctx as WasmerCtx;
 
     let ctx = svm_common::from_raw_mut::<WasmerCtx>(raw_ctx);
@@ -66,7 +66,7 @@ unsafe fn extract_reg<'a>(raw_ctx: *mut c_void, reg_bits: i32, reg_idx: i32) -> 
     svm_runtime::helpers::wasmer_data_reg(ctx.data, reg_bits, reg_idx)
 }
 
-unsafe extern "C" fn inc_balance(ctx: *mut c_void, reg_bits: i32, reg_idx: i32, addition: i64) {
+unsafe extern "C" fn inc_balance(ctx: *mut c_void, addition: i64, reg_bits: u32, reg_idx: u32) {
     let host = extract_host(ctx);
     let reg = extract_reg(ctx, reg_bits, reg_idx);
 
@@ -74,7 +74,7 @@ unsafe extern "C" fn inc_balance(ctx: *mut c_void, reg_bits: i32, reg_idx: i32, 
     host.inc_balance(&addr, addition);
 }
 
-unsafe extern "C" fn mul_balance(ctx: *mut c_void, reg_bits: i32, reg_idx: i32, mul_by: i64) {
+unsafe extern "C" fn mul_balance(ctx: *mut c_void, mul_by: i64, reg_bits: u32, reg_idx: u32) {
     let host = extract_host(ctx);
     let reg = extract_reg(ctx, reg_bits, reg_idx);
 
@@ -88,9 +88,9 @@ unsafe fn create_imports() -> (Vec<*const svm_import_t>, u32) {
         "inc_balance",
         inc_balance as _,
         vec![
-            svm_value_type::SVM_I32,
-            svm_value_type::SVM_I32,
             svm_value_type::SVM_I64,
+            svm_value_type::SVM_I32,
+            svm_value_type::SVM_I32,
         ],
         vec![],
     );
@@ -100,9 +100,9 @@ unsafe fn create_imports() -> (Vec<*const svm_import_t>, u32) {
         "mul_balance",
         mul_balance as _,
         vec![
-            svm_value_type::SVM_I32,
-            svm_value_type::SVM_I32,
             svm_value_type::SVM_I64,
+            svm_value_type::SVM_I32,
+            svm_value_type::SVM_I32,
         ],
         vec![],
     );
@@ -150,26 +150,26 @@ fn exec_app_bytes(
     (bytes, bytes_len)
 }
 
-fn host_ctx_bytes(version: u32, fields: HashMap<i32, Vec<u8>>) -> (Vec<u8>, u32) {
+fn host_ctx_bytes(version: u32, fields: HashMap<u32, Vec<u8>>) -> (Vec<u8>, u32) {
     let bytes = svm_runtime::testing::build_host_ctx(version, fields);
     let bytes_len = bytes.len() as u32;
 
     (bytes, bytes_len)
 }
 
-fn exec_app_args() -> (Address, Address, i64, Vec<Vec<u8>>, Vec<WasmValue>, State) {
+fn exec_app_args() -> (Address, Address, u64, Vec<Vec<u8>>, Vec<WasmValue>, State) {
     let sender = Address::of("sender");
 
     let user = Address::of("user");
     let user_bytes = user.bytes().to_vec();
     let func_buf = vec![user_bytes];
 
-    let arg_val = 2;
-    let func_args = vec![WasmValue::I64(arg_val)];
+    let addition = 2;
+    let func_args = vec![WasmValue::I64(addition)];
 
     let state = State::empty();
 
-    (sender, user, arg_val, func_buf, func_args, state)
+    (sender, user, addition, func_buf, func_args, state)
 }
 
 #[test]
@@ -237,7 +237,7 @@ unsafe fn do_ffi_exec_app() {
     assert_eq!(true, res.as_bool());
 
     // 4) execute app
-    let (sender, user, arg_val, func_buf, func_args, state) = exec_app_args();
+    let (sender, user, addition, func_buf, func_args, state) = exec_app_args();
     let (bytes, bytes_len) = exec_app_bytes(version, app_addr, "run", &func_buf, &func_args);
 
     // 4.1) parse bytes into in-memory `AppTransaction`
@@ -256,12 +256,11 @@ unsafe fn do_ffi_exec_app() {
     host.set_balance(&user, init_balance);
 
     let nonce = 3;
-    let nonce_idx = 2;
-    let nonce_vec = vec![0, 0, 0, 0, 0, 0, 0, nonce];
+    const NONCE_INDEX: u32 = 0;
 
     // we set field index `2` with a value called `nonce` (one byte).
     let (host_ctx_bytes, host_ctx_len) =
-        host_ctx_bytes(version, hashmap! { nonce_idx => nonce_vec });
+        host_ctx_bytes(version, hashmap! { NONCE_INDEX => vec![nonce] });
 
     let mut receipt = std::ptr::null_mut();
     let mut receipt_length = 0;
@@ -276,7 +275,7 @@ unsafe fn do_ffi_exec_app() {
     );
     assert_eq!(true, res.as_bool());
 
-    let expected = init_balance + arg_val as i128;
+    let expected = (init_balance + addition as i128) * (nonce as i128);
     let actual = host.get_balance(&user).unwrap();
 
     assert_eq!(expected, actual);
