@@ -220,6 +220,7 @@ unsafe fn do_ffi_exec_app() {
 
     // 3) spawn app
     let mut app_addr = std::ptr::null_mut();
+    let mut init_state = std::ptr::null_mut();
     let creator = Address::of("creator");
     let ctor_buf = vec![];
     let ctor_args = vec![];
@@ -227,6 +228,7 @@ unsafe fn do_ffi_exec_app() {
     let (bytes, bytes_len) = spawn_app_bytes(version, template as _, &ctor_buf, &ctor_args);
     let res = api::svm_spawn_app(
         &mut app_addr,
+        &mut init_state,
         runtime,
         creator.as_ptr() as _,
         hctx_bytes.as_ptr() as _,

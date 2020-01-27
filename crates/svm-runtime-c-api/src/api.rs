@@ -65,6 +65,42 @@ pub unsafe extern "C" fn svm_runtime_destroy(runtime: *mut c_void) -> svm_result
     svm_result_t::SVM_SUCCESS
 }
 
+/// Destroys `svm_import_t` resources.
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_import_destroy(import: *mut c_void) -> svm_result_t {
+    let _ = Box::from_raw(import as *mut svm_import_t);
+
+    svm_result_t::SVM_SUCCESS
+}
+
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_address_destroy(address: *mut c_void) -> svm_result_t {
+    let _ = Box::from_raw(address as *mut Address);
+
+    svm_result_t::SVM_SUCCESS
+}
+
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_state_destroy(state: *mut c_void) -> svm_result_t {
+    let _ = Box::from_raw(state as *mut State);
+
+    svm_result_t::SVM_SUCCESS
+}
+
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_encoded_receipt_destroy(
+    bytes: *mut c_void,
+    length: u32,
+) -> svm_result_t {
+    todo!();
+
+    svm_result_t::SVM_SUCCESS
+}
+
 /// Builds a new `svm_import` (returned via `import` function parameter).
 /// Import `svm_import_t` is allocated on the heap.
 #[must_use]
@@ -95,15 +131,6 @@ pub unsafe extern "C" fn svm_import_func_build(
     };
 
     *import = Box::into_raw(Box::new(svm_import));
-
-    svm_result_t::SVM_SUCCESS
-}
-
-/// Destroys `svm_import_t` resources.
-#[must_use]
-#[no_mangle]
-pub unsafe extern "C" fn svm_import_destroy(import: *mut c_void) -> svm_result_t {
-    let _ = Box::from_raw(import as *mut svm_import_t);
 
     svm_result_t::SVM_SUCCESS
 }
@@ -150,6 +177,7 @@ pub unsafe extern "C" fn svm_deploy_template(
 #[no_mangle]
 pub unsafe extern "C" fn svm_spawn_app(
     app_addr: *mut *mut c_void,
+    init_state: *mut *mut c_void,
     runtime: *mut c_void,
     creator_addr: *const c_void,
     host_ctx_bytes: *const c_void,
@@ -165,8 +193,9 @@ pub unsafe extern "C" fn svm_spawn_app(
     let bytes = std::slice::from_raw_parts(bytes as *const u8, bytes_len as usize);
 
     match runtime.spawn_app(&creator, host_ctx.unwrap(), bytes) {
-        Ok(addr) => {
+        Ok((addr, state)) => {
             *app_addr = svm_common::into_raw_mut(addr);
+            *init_state = svm_common::into_raw_mut(state);
             debug!("`svm_spawn_app` returns `SVM_SUCCESS`");
             svm_result_t::SVM_SUCCESS
         }
@@ -255,12 +284,6 @@ pub unsafe extern "C" fn svm_exec_app(
             svm_result_t::SVM_FAILURE
         }
     }
-}
-
-#[must_use]
-#[no_mangle]
-pub unsafe extern "C" fn svm_receipt_destroy(_receipt: *mut c_void) -> svm_result_t {
-    todo!()
 }
 
 /// Returns a raw pointer to `the host` extracted from a raw pointer to `wasmer` context.
