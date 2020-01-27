@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct HostCtx {
     pub(crate) inner: HashMap<u32, Vec<u8>>,
 }
