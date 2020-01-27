@@ -68,7 +68,7 @@ impl Drop for SvmCtx {
         debug!("Dropping `SvmCtx`...");
 
         unsafe {
-            let _ = Box::from_raw(self.host_ctx as *const HostCtx as *mut HostCtx);
+            let _ = Box::from_raw(self.host_ctx as *mut HostCtx);
         }
     }
 }

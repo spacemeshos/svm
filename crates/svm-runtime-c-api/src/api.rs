@@ -42,9 +42,11 @@ pub unsafe extern "C" fn svm_runtime_create(
         &path.unwrap(),
         wasmer_imports,
     );
-    let boxed_rt: Box<dyn Runtime> = Box::new(rt);
 
+    let boxed_rt: Box<dyn Runtime> = Box::new(rt);
     let rt_ptr = RuntimePtr::new(boxed_rt);
+
+    //  `svm_runtime_destroy` should be called later for freeing memory.
     *runtime = svm_common::into_raw_mut(rt_ptr);
 
     debug!("`svm_runtime_create` end");
@@ -58,7 +60,7 @@ pub unsafe extern "C" fn svm_runtime_create(
 pub unsafe extern "C" fn svm_runtime_destroy(runtime: *mut c_void) -> svm_result_t {
     debug!("`svm_runtime_destroy`");
 
-    let _runtime: Box<RuntimePtr> = Box::from_raw(runtime as *mut RuntimePtr);
+    let _ = Box::from_raw(runtime as *mut RuntimePtr);
 
     svm_result_t::SVM_SUCCESS
 }
@@ -100,8 +102,10 @@ pub unsafe extern "C" fn svm_import_func_build(
 /// Destroys `svm_import_t` resources.
 #[must_use]
 #[no_mangle]
-pub unsafe extern "C" fn svm_import_destroy(_func: *mut c_void) -> svm_result_t {
-    todo!()
+pub unsafe extern "C" fn svm_import_destroy(import: *mut c_void) -> svm_result_t {
+    let _ = Box::from_raw(import as *mut svm_import_t);
+
+    svm_result_t::SVM_SUCCESS
 }
 
 /// Deploys a new app-template

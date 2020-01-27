@@ -434,7 +434,9 @@ where
                 let ctx_ptr = ctx_data as *mut SvmCtx;
 
                 // triggers memory releasing
-                unsafe { Box::from_raw(ctx_ptr) };
+                unsafe {
+                    let _ = Box::from_raw(ctx_ptr);
+                }
             };
 
             (data, dtor)

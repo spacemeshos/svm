@@ -43,7 +43,5 @@ impl DerefMut for RuntimePtr {
 impl Drop for RuntimePtr {
     fn drop(&mut self) {
         debug!("Dropping RuntimePtr...");
-
-        std::mem::drop(&mut self.inner);
     }
 }
