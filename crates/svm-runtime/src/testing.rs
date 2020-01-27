@@ -34,7 +34,7 @@ pub fn instantiate(import_object: &ImportObject, wasm: &str) -> Instance {
 }
 
 /// Mutably borrows `SVM` register `reg_bits:reg_idx`
-pub fn instance_register(instance: &Instance, reg_bits: i32, reg_idx: i32) -> &mut Register {
+pub fn instance_register(instance: &Instance, reg_bits: u32, reg_idx: u32) -> &mut Register {
     helpers::wasmer_data_reg(instance.context().data, reg_bits, reg_idx)
 }
 
@@ -43,12 +43,12 @@ pub fn instance_storage(instance: &Instance) -> &mut AppStorage {
     helpers::wasmer_data_app_storage(instance.context().data)
 }
 
-pub fn instance_buffer(instance: &Instance, buf_id: i32) -> Option<&mut BufferRef> {
+pub fn instance_buffer(instance: &Instance, buf_id: u32) -> Option<&mut BufferRef> {
     helpers::wasmer_data_buffer(instance.context().data, buf_id)
 }
 
 /// Returns a view of `wasmer` instance memory at `offset`...`offest + len - 1`
-pub fn instance_memory_view(instance: &Instance, offset: i32, len: i32) -> Vec<u8> {
+pub fn instance_memory_view(instance: &Instance, offset: u32, len: u32) -> Vec<u8> {
     let view = instance.context().memory(0).view();
 
     let start = offset as usize;
@@ -58,7 +58,7 @@ pub fn instance_memory_view(instance: &Instance, offset: i32, len: i32) -> Vec<u
 }
 
 /// Copies input slice `bytes` into `wasmer` instance memory starting at offset `offset`.
-pub fn instance_memory_init(instance: &Instance, offset: i32, bytes: &[u8]) {
+pub fn instance_memory_init(instance: &Instance, offset: u32, bytes: &[u8]) {
     let view = instance.context().memory(0).view();
 
     let start = offset as usize;
@@ -172,7 +172,7 @@ pub fn build_app_tx(
         .build()
 }
 
-pub fn build_host_ctx(version: u32, fields: HashMap<i32, Vec<u8>>) -> Vec<u8> {
+pub fn build_host_ctx(version: u32, fields: HashMap<u32, Vec<u8>>) -> Vec<u8> {
     let mut builder = HostCtxBuilder::new().with_version(version);
 
     for (idx, value) in fields.iter() {

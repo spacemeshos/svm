@@ -287,12 +287,12 @@ where
         func_buf: &Vec<BufferSlice>,
         instance: &mut wasmer_runtime::Instance,
     ) {
-        const ARGS_BUF_ID: i32 = 0;
+        const ARGS_BUF_ID: u32 = 0;
 
         let ctx = instance.context_mut();
         let buf_cap = func_buf.iter().fold(0, |acc, slice| acc + slice.len());
 
-        helpers::buffer_create(ctx.data, ARGS_BUF_ID, buf_cap as i32);
+        helpers::buffer_create(ctx.data, ARGS_BUF_ID, buf_cap as u32);
 
         match helpers::wasmer_data_buffer(ctx.data, ARGS_BUF_ID).unwrap() {
             BufferRef::Mutable(.., buf) => {
