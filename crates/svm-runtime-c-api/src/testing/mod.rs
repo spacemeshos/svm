@@ -55,8 +55,8 @@ pub unsafe extern "C" fn svm_memory_runtime_create(
 /// Returns a raw pointer to `SVM` live instance register of type `reg_bits:reg_idx`
 pub unsafe fn svm_register_get(
     raw_ctx: *mut wasmer_instance_context_t,
-    reg_bits: i32,
-    reg_idx: i32,
+    reg_bits: u32,
+    reg_idx: u32,
 ) -> *const u8 {
     let ctx = cast_to_wasmer_ctx(raw_ctx);
     let reg = svm_runtime::helpers::wasmer_data_reg(ctx.data, reg_bits, reg_idx);

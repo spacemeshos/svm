@@ -62,11 +62,11 @@ pub fn decode_receipt(bytes: &[u8]) -> ClientReceipt {
 
                 let ret = match svm_value_type::try_from(raw_ty) {
                     Ok(svm_value_type::SVM_I32) => {
-                        let value = cursor.read_i32::<BigEndian>().unwrap();
+                        let value = cursor.read_u32::<BigEndian>().unwrap();
                         Value::I32(value)
                     }
                     Ok(svm_value_type::SVM_I64) => {
-                        let value = cursor.read_i64::<BigEndian>().unwrap();
+                        let value = cursor.read_u64::<BigEndian>().unwrap();
                         Value::I64(value)
                     }
                     Err(..) => unreachable!(),

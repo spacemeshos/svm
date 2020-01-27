@@ -104,7 +104,7 @@ fn write_returns(buf: &mut Vec<u8>, receipt: &Receipt) {
     let returns_count = receipt_returns_count(receipt);
 
     // asserting that `returns_count` fits into a single byte
-    assert!(returns_count <= 255);
+    assert!(returns_count <= 0xFF);
     buf.write_u8(returns_count as u8).unwrap();
 
     let returns = receipt.returns.as_ref().unwrap();
@@ -113,11 +113,11 @@ fn write_returns(buf: &mut Vec<u8>, receipt: &Receipt) {
         match value {
             Value::I32(v) => {
                 buf.write_u8(svm_value_type::SVM_I32 as u8).unwrap();
-                buf.write_i32::<BigEndian>(*v).unwrap();
+                buf.write_u32::<BigEndian>(*v).unwrap();
             }
             Value::I64(v) => {
                 buf.write_u8(svm_value_type::SVM_I64 as u8).unwrap();
-                buf.write_i64::<BigEndian>(*v).unwrap();
+                buf.write_u64::<BigEndian>(*v).unwrap();
             }
         }
     }
