@@ -1,5 +1,4 @@
-use std::ffi::c_void;
-use std::string::FromUtf8Error;
+use std::{ffi::c_void, ptr::NonNull, string::FromUtf8Error};
 
 use crate::svm_value_type;
 
@@ -41,7 +40,7 @@ pub struct svm_import_func_sig_t {
 #[allow(non_camel_case_types)]
 pub struct svm_import_func_t {
     /// Raw pointer to function
-    pub func: *const c_void,
+    pub func: NonNull<c_void>,
 
     /// Function signature
     pub sig: svm_import_func_sig_t,

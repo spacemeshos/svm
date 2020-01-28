@@ -1,5 +1,4 @@
-use std::ffi::c_void;
-use std::string::FromUtf8Error;
+use std::{ffi::c_void, ptr::NonNull, string::FromUtf8Error};
 
 use log::{debug, error};
 
@@ -48,16 +47,23 @@ pub unsafe extern "C" fn svm_import_func_build(
     params: svm_value_type_array,
     returns: svm_value_type_array,
 ) -> svm_result_t {
-    let imports: &mut Vec<svm_import_t> = &mut *(imports as *mut Vec<svm_import_t>);
+    let imports = &mut *(imports as *mut Vec<svm_import_t>);
 
     assert!(imports.len() < imports.capacity());
 
-    let sig = svm_import_func_sig_t {
-        params: params.into(),
-        returns: returns.into(),
-    };
+    let func = NonNull::new(func as *mut c_void);
+    if func.is_none() {
+        todo!();
+        return svm_result_t::SVM_FAILURE;
+    }
 
-    let func = svm_import_func_t { func, sig };
+    let func = svm_import_func_t {
+        func: func.unwrap(),
+        sig: svm_import_func_sig_t {
+            params: params.into(),
+            returns: returns.into(),
+        },
+    };
 
     let module_name: Result<String, FromUtf8Error> = module_name.into();
     let import_name: Result<String, FromUtf8Error> = import_name.into();

@@ -28,9 +28,10 @@ pub(crate) unsafe fn to_wasmer_import_func(import: &svm_import_t) -> Export {
     match import.value {
         svm_import_value::Func(ref func) => {
             let wasmer_sig = to_wasmer_func_sig(&func.sig);
+            let ptr = func.func.as_ptr();
 
             Export::Function {
-                func: FuncPointer::new(func.func as _),
+                func: FuncPointer::new(ptr as _),
                 ctx: Context::Internal,
                 signature: Arc::new(wasmer_sig),
             }
