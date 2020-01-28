@@ -1,4 +1,4 @@
-use std::{ffi::c_void, mem::ManuallyDrop, ptr::NonNull, string::FromUtf8Error};
+use std::{ffi::c_void, ptr::NonNull, string::FromUtf8Error};
 
 use log::{debug, error};
 
@@ -13,6 +13,37 @@ use crate::{
     helpers, svm_byte_array, svm_import_func_sig_t, svm_import_func_t, svm_import_kind,
     svm_import_t, svm_import_value, svm_result_t, svm_value_type_array, RuntimePtr,
 };
+
+macro_rules! addr_to_svm_byte_array {
+    ($raw_byte_array:expr, $addr:expr) => {{
+        to_svm_byte_array!($raw_byte_array, $addr.bytes(), Address::len());
+    }};
+}
+
+macro_rules! state_to_svm_byte_array {
+    ($raw_byte_array:expr, $state:expr) => {{
+        to_svm_byte_array!($raw_byte_array, $state.bytes(), State::len());
+    }};
+}
+
+macro_rules! vec_to_svm_byte_array {
+    ($raw_byte_array:expr, $vec:expr) => {{
+        to_svm_byte_array!($raw_byte_array, $vec, $vec.len());
+    }};
+}
+
+macro_rules! to_svm_byte_array {
+    ($raw_byte_array:expr, $src:expr, $length:expr) => {{
+        use crate::svm_byte_array;
+        use std::mem::ManuallyDrop;
+
+        let byte_array: &mut svm_byte_array = &mut *$raw_byte_array;
+        byte_array.bytes = $src.as_ptr();
+        byte_array.length = $length as u32;
+
+        ManuallyDrop::new($src);
+    }};
+}
 
 #[must_use]
 #[no_mangle]
@@ -144,13 +175,9 @@ pub unsafe extern "C" fn svm_deploy_template(
 
     match runtime.deploy_template(&author, host_ctx.unwrap(), bytes) {
         Ok(addr) => {
-            let addr_bytes = addr.bytes();
-
             // returning deployed `AppTemplate` as `svm_byte_array`
             // client should call later `svm_address_destroy`
-            let template_addr = &mut *template_addr;
-            template_addr.bytes = svm_common::into_raw_mut(addr_bytes) as *const u8;
-            template_addr.length = Address::len() as u32;
+            addr_to_svm_byte_array!(template_addr, addr);
 
             debug!("`svm_deploy_template`` returns `SVM_SUCCESS`");
 
@@ -192,15 +219,11 @@ pub unsafe extern "C" fn svm_spawn_app(
         Ok((addr, state)) => {
             // returning spawned app `Address` as `svm_byte_array`
             // client should call later `svm_address_destroy`
-            let app_addr = &mut *app_addr;
-            app_addr.bytes = svm_common::into_raw_mut(addr.bytes()) as *const u8;
-            app_addr.length = Address::len() as u32;
+            addr_to_svm_byte_array!(app_addr, addr);
 
             // returning spawned app initial `State` as `svm_byte_array`
             // client should call later `svm_state_destroy`
-            let init_state = &mut *init_state;
-            init_state.bytes = svm_common::into_raw(state.bytes()) as *const u8;
-            init_state.length = State::len() as u32;
+            state_to_svm_byte_array!(init_state, state);
 
             debug!("`svm_spawn_app` returns `SVM_SUCCESS`");
             svm_result_t::SVM_SUCCESS
@@ -274,15 +297,11 @@ pub unsafe extern "C" fn svm_exec_app(
 
     match runtime.exec_app(app_tx, state, host_ctx) {
         Ok(ref r) => {
-            let bytes = crate::receipt::encode_receipt(r);
+            let vec = crate::receipt::encode_receipt(r);
 
             // returning encoded `Receipt` as `svm_byte_array`
             // should call later `svm_receipt_destroy`
-            let receipt = &mut *receipt;
-            receipt.length = bytes.len() as u32;
-            receipt.bytes = bytes.as_ptr();
-
-            ManuallyDrop::new(bytes);
+            vec_to_svm_byte_array!(receipt, vec);
 
             debug!("`svm_exec_app` returns `SVM_SUCCESS`");
             svm_result_t::SVM_SUCCESS
