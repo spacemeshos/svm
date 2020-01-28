@@ -236,8 +236,7 @@ pub unsafe extern "C" fn svm_parse_exec_app(
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_exec_app(
-    receipt: *mut *mut c_void,
-    receipt_length: *mut u32,
+    receipt: *mut svm_byte_array,
     runtime: *mut c_void,
     app_tx: *const c_void,
     state: *const c_void,
@@ -260,10 +259,13 @@ pub unsafe extern "C" fn svm_exec_app(
 
     match runtime.exec_app(app_tx, state, host_ctx) {
         Ok(ref r) => {
-            let mut bytes = crate::receipt::encode_receipt(r);
+            let bytes = crate::receipt::encode_receipt(r);
 
-            *receipt_length = bytes.len() as u32;
-            *receipt = bytes.as_mut_ptr() as _;
+            // should call later `svm_receipt_destroy`
+            let receipt = &mut *receipt;
+            receipt.bytes = bytes.as_ptr();
+            receipt.length = bytes.len() as u32;
+
             std::mem::forget(bytes);
 
             debug!("`svm_exec_app` returns `SVM_SUCCESS`");
@@ -326,7 +328,7 @@ pub unsafe extern "C" fn svm_state_destroy(state: *mut c_void) -> svm_result_t {
 
 #[must_use]
 #[no_mangle]
-pub unsafe extern "C" fn svm_receipt_destroy(bytes: *mut c_void, length: u32) -> svm_result_t {
+pub unsafe extern "C" fn svm_receipt_destroy(bytes: svm_byte_array) -> svm_result_t {
     todo!();
 
     svm_result_t::SVM_SUCCESS
