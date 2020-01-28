@@ -45,43 +45,6 @@ impl From<svm_value_type_array> for Vec<svm_value_type> {
     }
 }
 
-/// FFI representation for `SVM` value.
-#[allow(non_snake_case, non_camel_case_types)]
-#[repr(C)]
-pub union svm_value {
-    #[doc(hidden)]
-    pub I32: u32,
-
-    #[doc(hidden)]
-    pub I64: u64,
-}
-
-/// FFI representation for `SVM` value + type.
-#[allow(non_camel_case_types)]
-#[repr(C)]
-pub struct svm_value_t {
-    #[doc(hidden)]
-    pub ty: svm_value_type,
-
-    #[doc(hidden)]
-    pub value: svm_value,
-}
-
-impl From<&Value> for svm_value_t {
-    fn from(other: &Value) -> Self {
-        match *other {
-            Value::I32(v) => svm_value_t {
-                ty: svm_value_type::SVM_I32,
-                value: svm_value { I32: v },
-            },
-            Value::I64(v) => svm_value_t {
-                ty: svm_value_type::SVM_I64,
-                value: svm_value { I64: v },
-            },
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

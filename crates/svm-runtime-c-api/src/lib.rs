@@ -27,7 +27,7 @@ pub use import::{
     svm_import_value,
 };
 pub use result::svm_result_t;
-pub use value::{svm_value, svm_value_t, svm_value_type, svm_value_type_array};
+pub use value::{svm_value_type, svm_value_type_array};
 
 mod runtime_ptr;
 pub use runtime_ptr::RuntimePtr;
