@@ -33,13 +33,12 @@ pub unsafe extern "C" fn svm_memory_runtime_create(
     raw_runtime: *mut *mut c_void,
     kv: *const c_void,
     host: *mut c_void,
-    imports: *const *const svm_import_t,
-    imports_len: u32,
+    imports: *const c_void,
 ) -> svm_result_t {
     debug!("`svm_runtime_create` start");
 
     let kv: &Rc<RefCell<MemKVStore>> = &*(kv as *const Rc<RefCell<MemKVStore>>);
-    let wasmer_imports = helpers::cast_imports_to_wasmer_imports(imports, imports_len);
+    let wasmer_imports = helpers::cast_imports_to_wasmer_imports(imports);
     let runtime = svm_runtime::testing::create_memory_runtime(host, kv, wasmer_imports);
 
     let runtime: Box<dyn Runtime> = Box::new(runtime);
@@ -82,18 +81,18 @@ pub unsafe fn cast_to_wasmer_ctx<'a>(ctx: *mut wasmer_instance_context_t) -> &'a
 /// wrapped within an `svm_byte_array` instance.
 pub fn str_to_svm_byte_array(s: &str) -> svm_byte_array {
     let bytes = s.as_ptr();
-    let bytes_len = s.len() as u32;
+    let length = s.len() as u32;
 
-    svm_byte_array { bytes, bytes_len }
+    svm_byte_array { bytes, length }
 }
 
 /// Givena a borrowed vector of `svm_value_type`, returns a raw pointer to its underlying data
 /// wrapped within an `svm_value_type_array` instance.
 pub fn svm_value_type_vec_to_array(vec: &Vec<svm_value_type>) -> svm_value_type_array {
-    let types_len = vec.len() as u32;
+    let length = vec.len() as u32;
     let types = vec.as_ptr();
 
-    svm_value_type_array { types, types_len }
+    svm_value_type_array { types, length }
 }
 
 /// Given an import function relevant data (module name, import name, function pointer, params and returns),
@@ -102,19 +101,18 @@ pub fn svm_value_type_vec_to_array(vec: &Vec<svm_value_type>) -> svm_value_type_
 /// This allocated `svm_import_t` should be destroyed after not being required anymore.
 /// see: `svm_import_func_destroy` under crate `api.rs`
 pub unsafe fn import_func_create(
+    imports: *mut c_void,
     module_name: &str,
     import_name: &str,
     func: *mut c_void,
     params: Vec<svm_value_type>,
     returns: Vec<svm_value_type>,
-) -> *const svm_import_t {
+) {
     let module_name = str_to_svm_byte_array(module_name);
     let import_name = str_to_svm_byte_array(import_name);
 
-    let mut raw_import = std::ptr::null_mut();
-
     let res = crate::svm_import_func_build(
-        &mut raw_import,
+        imports,
         module_name,
         import_name,
         func,
@@ -122,9 +120,4 @@ pub unsafe fn import_func_create(
         svm_value_type_vec_to_array(&returns),
     );
     assert_eq!(true, res.as_bool());
-
-    std::mem::forget(params);
-    std::mem::forget(returns);
-
-    raw_import
 }

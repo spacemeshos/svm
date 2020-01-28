@@ -1,4 +1,5 @@
 use std::ffi::c_void;
+use std::string::FromUtf8Error;
 
 use log::{debug, error};
 
@@ -14,6 +15,75 @@ use crate::{
     svm_import_t, svm_import_value, svm_result_t, svm_value_type_array, RuntimePtr,
 };
 
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_imports_alloc(
+    imports: *mut *mut Vec<svm_import_t>,
+    length: u32,
+) -> svm_result_t {
+    let vec = Vec::<svm_import_t>::with_capacity(length as usize);
+
+    *imports = Box::into_raw(Box::new(vec));
+
+    svm_result_t::SVM_SUCCESS
+}
+
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_imports_destroy(imports: *mut c_void) -> svm_result_t {
+    let _ = Box::from_raw(imports as *mut Vec<svm_import_t>);
+
+    svm_result_t::SVM_SUCCESS
+}
+
+/// Builds a new `svm_import` (returned via `import` function parameter).
+/// Import `svm_import_t` is allocated on the heap.
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_import_func_build(
+    imports: *mut c_void,
+    module_name: svm_byte_array,
+    import_name: svm_byte_array,
+    func: *const c_void,
+    params: svm_value_type_array,
+    returns: svm_value_type_array,
+) -> svm_result_t {
+    let imports: &mut Vec<svm_import_t> = &mut *(imports as *mut Vec<svm_import_t>);
+
+    assert!(imports.len() < imports.capacity());
+
+    let sig = svm_import_func_sig_t {
+        params: params.into(),
+        returns: returns.into(),
+    };
+
+    let func = svm_import_func_t { func, sig };
+
+    let module_name: Result<String, FromUtf8Error> = module_name.into();
+    let import_name: Result<String, FromUtf8Error> = import_name.into();
+
+    if module_name.is_err() {
+        todo!();
+        return svm_result_t::SVM_FAILURE;
+    }
+
+    if import_name.is_err() {
+        todo!();
+        return svm_result_t::SVM_FAILURE;
+    }
+
+    let svm_import = svm_import_t {
+        module_name: module_name.unwrap(),
+        import_name: import_name.unwrap(),
+        kind: svm_import_kind::SVM_FUNCTION,
+        value: svm_import_value::Func(func),
+    };
+
+    imports.push(svm_import);
+
+    svm_result_t::SVM_SUCCESS
+}
+
 /// Creates a new SVM Runtime instance.
 /// Returns it via the `runtime` parameter.
 #[must_use]
@@ -23,8 +93,7 @@ pub unsafe extern "C" fn svm_runtime_create(
     path_bytes: *const c_void,
     path_len: u32,
     host: *mut c_void,
-    imports: *const *const svm_import_t,
-    imports_len: u32,
+    imports: *const c_void,
 ) -> svm_result_t {
     debug!("`svm_runtime_create` start");
 
@@ -36,7 +105,8 @@ pub unsafe extern "C" fn svm_runtime_create(
         return svm_result_t::SVM_FAILURE;
     }
 
-    let wasmer_imports = helpers::cast_imports_to_wasmer_imports(imports, imports_len);
+    let wasmer_imports = helpers::cast_imports_to_wasmer_imports(imports);
+
     let rt = svm_runtime::create_rocksdb_runtime::<String, DefaultJsonSerializerTypes>(
         host,
         &path.unwrap(),
@@ -65,15 +135,6 @@ pub unsafe extern "C" fn svm_runtime_destroy(runtime: *mut c_void) -> svm_result
     svm_result_t::SVM_SUCCESS
 }
 
-/// Destroys `svm_import_t` resources.
-#[must_use]
-#[no_mangle]
-pub unsafe extern "C" fn svm_import_destroy(import: *mut c_void) -> svm_result_t {
-    let _ = Box::from_raw(import as *mut svm_import_t);
-
-    svm_result_t::SVM_SUCCESS
-}
-
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_address_destroy(address: *mut c_void) -> svm_result_t {
@@ -92,45 +153,8 @@ pub unsafe extern "C" fn svm_state_destroy(state: *mut c_void) -> svm_result_t {
 
 #[must_use]
 #[no_mangle]
-pub unsafe extern "C" fn svm_encoded_receipt_destroy(
-    bytes: *mut c_void,
-    length: u32,
-) -> svm_result_t {
+pub unsafe extern "C" fn svm_receipt_destroy(bytes: *mut c_void, length: u32) -> svm_result_t {
     todo!();
-
-    svm_result_t::SVM_SUCCESS
-}
-
-/// Builds a new `svm_import` (returned via `import` function parameter).
-/// Import `svm_import_t` is allocated on the heap.
-#[must_use]
-#[no_mangle]
-pub unsafe extern "C" fn svm_import_func_build(
-    import: *mut *mut svm_import_t,
-    module_name: svm_byte_array,
-    import_name: svm_byte_array,
-    func: *const c_void,
-    params: svm_value_type_array,
-    returns: svm_value_type_array,
-) -> svm_result_t {
-    let sig = svm_import_func_sig_t {
-        params: params.types,
-        returns: returns.types,
-        params_len: params.types_len,
-        returns_len: returns.types_len,
-    };
-
-    let func = svm_import_func_t { func, sig };
-    let func = Box::into_raw(Box::new(func));
-
-    let svm_import = svm_import_t {
-        module_name,
-        import_name,
-        kind: svm_import_kind::SVM_FUNCTION,
-        value: svm_import_value { func },
-    };
-
-    *import = Box::into_raw(Box::new(svm_import));
 
     svm_result_t::SVM_SUCCESS
 }

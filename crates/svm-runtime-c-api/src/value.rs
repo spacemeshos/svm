@@ -4,7 +4,7 @@ use svm_runtime::value::Value;
 
 /// FFI representation for `SVM` value type
 #[allow(non_snake_case, non_camel_case_types)]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 #[repr(C)]
 pub enum svm_value_type {
     #[doc(hidden)]
@@ -34,7 +34,15 @@ pub struct svm_value_type_array {
     pub types: *const svm_value_type,
 
     /// Array number of items
-    pub types_len: u32,
+    pub length: u32,
+}
+
+impl From<svm_value_type_array> for Vec<svm_value_type> {
+    fn from(value: svm_value_type_array) -> Vec<svm_value_type> {
+        let slice = unsafe { std::slice::from_raw_parts(value.types, value.length as usize) };
+
+        slice.to_vec()
+    }
 }
 
 /// FFI representation for `SVM` value.
