@@ -1,4 +1,4 @@
-use std::{ffi::c_void, ptr::NonNull, string::FromUtf8Error};
+use std::{ffi::c_void, mem::ManuallyDrop, ptr::NonNull, string::FromUtf8Error};
 
 use log::{debug, error};
 
@@ -125,16 +125,16 @@ pub unsafe extern "C" fn svm_runtime_create(
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_deploy_template(
-    template_addr: *mut *mut c_void,
+    template_addr: *mut svm_byte_array,
     runtime: *mut c_void,
-    author_addr: *const c_void,
+    author: *const c_void,
     host_ctx: svm_byte_array,
     template: svm_byte_array,
 ) -> svm_result_t {
     debug!("`svm_deploy_template` start`");
 
     let runtime = helpers::cast_to_runtime_mut(runtime);
-    let author = Address::from(author_addr);
+    let author = Address::from(author);
     let host_ctx = HostCtx::from_raw_parts(host_ctx.bytes, host_ctx.length);
     let bytes = std::slice::from_raw_parts(template.bytes, template.length as usize);
 
@@ -144,9 +144,16 @@ pub unsafe extern "C" fn svm_deploy_template(
 
     match runtime.deploy_template(&author, host_ctx.unwrap(), bytes) {
         Ok(addr) => {
+            let addr_bytes = addr.bytes();
+
+            // returning deployed `AppTemplate` as `svm_byte_array`
             // client should call later `svm_address_destroy`
-            *template_addr = svm_common::into_raw_mut(addr);
+            let template_addr = &mut *template_addr;
+            template_addr.bytes = svm_common::into_raw_mut(addr_bytes) as *const u8;
+            template_addr.length = Address::len() as u32;
+
             debug!("`svm_deploy_template`` returns `SVM_SUCCESS`");
+
             svm_result_t::SVM_SUCCESS
         }
         Err(_err) => {
@@ -161,8 +168,8 @@ pub unsafe extern "C" fn svm_deploy_template(
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_spawn_app(
-    app_addr: *mut *mut c_void,
-    init_state: *mut *mut c_void,
+    app_addr: *mut svm_byte_array,
+    init_state: *mut svm_byte_array,
     runtime: *mut c_void,
     creator: *const c_void,
     host_ctx: svm_byte_array,
@@ -183,11 +190,18 @@ pub unsafe extern "C" fn svm_spawn_app(
 
     match runtime.spawn_app(&creator, host_ctx.unwrap(), bytes) {
         Ok((addr, state)) => {
+            // returning spawned app `Address` as `svm_byte_array`
             // client should call later `svm_address_destroy`
-            *app_addr = svm_common::into_raw_mut(addr);
+            let app_addr = &mut *app_addr;
+            app_addr.bytes = svm_common::into_raw_mut(addr.bytes()) as *const u8;
+            app_addr.length = Address::len() as u32;
 
+            // returning spawned app initial `State` as `svm_byte_array`
             // client should call later `svm_state_destroy`
-            *init_state = svm_common::into_raw_mut(state);
+            let init_state = &mut *init_state;
+            init_state.bytes = svm_common::into_raw(state.bytes()) as *const u8;
+            init_state.length = State::len() as u32;
+
             debug!("`svm_spawn_app` returns `SVM_SUCCESS`");
             svm_result_t::SVM_SUCCESS
         }
@@ -219,6 +233,7 @@ pub unsafe extern "C" fn svm_parse_exec_app(
         Ok(tx) => {
             // `AppTransaction` will be freed later as part `svm_exec_app`
             *app_tx = svm_common::into_raw_mut(tx);
+
             debug!("`svm_parse_exec_app` returns `SVM_SUCCESS`");
             svm_result_t::SVM_SUCCESS
         }
@@ -261,12 +276,13 @@ pub unsafe extern "C" fn svm_exec_app(
         Ok(ref r) => {
             let bytes = crate::receipt::encode_receipt(r);
 
+            // returning encoded `Receipt` as `svm_byte_array`
             // should call later `svm_receipt_destroy`
             let receipt = &mut *receipt;
-            receipt.bytes = bytes.as_ptr();
             receipt.length = bytes.len() as u32;
+            receipt.bytes = bytes.as_ptr();
 
-            std::mem::forget(bytes);
+            ManuallyDrop::new(bytes);
 
             debug!("`svm_exec_app` returns `SVM_SUCCESS`");
             svm_result_t::SVM_SUCCESS
