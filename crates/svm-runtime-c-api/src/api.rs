@@ -139,17 +139,17 @@ pub unsafe extern "C" fn svm_runtime_create(
 
     let wasmer_imports = helpers::cast_imports_to_wasmer_imports(imports);
 
-    let rt = svm_runtime::create_rocksdb_runtime::<String, DefaultJsonSerializerTypes>(
+    let rocksdb_runtime = svm_runtime::create_rocksdb_runtime::<String, DefaultJsonSerializerTypes>(
         host,
         &path.unwrap(),
         wasmer_imports,
     );
 
-    let boxed_rt: Box<dyn Runtime> = Box::new(rt);
-    let rt_ptr = RuntimePtr::new(boxed_rt);
+    let boxed_runtime = Box::new(rocksdb_runtime);
+    let runtime_ptr = RuntimePtr::new(boxed_runtime);
 
     //  `svm_runtime_destroy` should be called later for freeing memory.
-    *runtime = svm_common::into_raw_mut(rt_ptr);
+    *runtime = svm_common::into_raw_mut(runtime_ptr);
 
     debug!("`svm_runtime_create` end");
 
@@ -282,7 +282,7 @@ pub unsafe extern "C" fn svm_parse_exec_app(
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_exec_app(
-    receipt: *mut svm_byte_array,
+    encoded_receipt: *mut svm_byte_array,
     runtime: *mut c_void,
     tx_id: svm_byte_array,
     app_tx: *const c_void,
@@ -306,12 +306,12 @@ pub unsafe extern "C" fn svm_exec_app(
     let state = State::from(state);
 
     match runtime.exec_app(app_tx, state, host_ctx) {
-        Ok(ref r) => {
-            let vec = crate::receipt::encode_receipt(r);
+        Ok(ref receipt) => {
+            let bytes = crate::receipt::encode_receipt(receipt);
 
             // returning encoded `Receipt` as `svm_byte_array`
             // should call later `svm_receipt_destroy`
-            vec_to_svm_byte_array!(receipt, vec);
+            vec_to_svm_byte_array!(encoded_receipt, bytes);
 
             debug!("`svm_exec_app` returns `SVM_SUCCESS`");
             svm_result_t::SVM_SUCCESS
