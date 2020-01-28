@@ -31,11 +31,8 @@ impl HostCtx {
     }
 
     /// Parses a raw `host-context` into `HostCtx` struct.
-    pub unsafe fn from_raw_parts(
-        bytes: *const c_void,
-        bytes_len: usize,
-    ) -> Result<HostCtx, String> {
-        let bytes = std::slice::from_raw_parts(bytes as _, bytes_len);
+    pub unsafe fn from_raw_parts(bytes: *const u8, length: u32) -> Result<HostCtx, String> {
+        let bytes = std::slice::from_raw_parts(bytes as _, length as usize);
         let mut cursor = Cursor::new(bytes);
 
         Self::parse_version(&mut cursor);

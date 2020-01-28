@@ -12,12 +12,8 @@ use svm_storage::AppStorage;
 /// * `host`     - A pointer to the `Host`
 /// * `host_ctx` - A pointer to the `HostCtx` (i.e: `sender`, `block_id`, `nonce`, ...)
 /// * `buffers`  - A `HashMap` between `buffer_id` to mutable/read-only `Buffer`.
-/// * `regs_32`  - A static array (`REGS_32_COUNT` elements)  of `SvmReg32`
-/// * `regs_64`  - A static array (`REGS_64_COUNT` elements)  of `SvmReg64`
-/// * `regs_160` - A static array (`REGS_160_COUNT` elements) of `SvmReg160`
-/// * `regs_256` - A static array (`REGS_256_COUNT` elements) of `SvmReg256`
-/// * `regs_512` - A static array (`REGS_512_COUNT` elements) of `SvmReg512`
-/// * `storage`  - An instance of `AppStorage`
+/// * `regs`     - Instance's `Registers`
+/// * `storage`  - Instance's `AppStorage`
 #[repr(C)]
 pub struct SvmCtx {
     /// A pointer to the `host`.
@@ -32,7 +28,7 @@ pub struct SvmCtx {
 
     pub buffers: HashMap<u32, BufferRef>,
 
-    /// An accessor to the app's storage (`AppStorage`)
+    /// An accessor to the app's storage
     pub storage: AppStorage,
 }
 
