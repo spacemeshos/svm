@@ -33,7 +33,7 @@ pub struct svm_value_type_array {
     /// A raw pointer to beginning of array
     pub types: *const svm_value_type,
 
-    /// Array number of items
+    /// Number of `types`
     pub length: u32,
 }
 

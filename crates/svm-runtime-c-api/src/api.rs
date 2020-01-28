@@ -16,44 +16,47 @@ use crate::{
 
 macro_rules! addr_to_svm_byte_array {
     ($raw_byte_array:expr, $addr:expr) => {{
-        to_svm_byte_array!($raw_byte_array, $addr.bytes(), Address::len());
+        type_to_svm_byte_array!($raw_byte_array, $addr, Address::len());
     }};
 }
 
 macro_rules! state_to_svm_byte_array {
     ($raw_byte_array:expr, $state:expr) => {{
-        to_svm_byte_array!($raw_byte_array, $state.bytes(), State::len());
+        type_to_svm_byte_array!($raw_byte_array, $state, State::len());
+    }};
+}
+
+macro_rules! type_to_svm_byte_array {
+    ($raw_byte_array:expr, $ty:expr, $length:expr) => {{
+        let bytes = $ty.into_inner();
+        let ptr = unsafe { svm_common::into_raw(bytes) };
+
+        to_svm_byte_array!($raw_byte_array, ptr as *const u8, $length);
     }};
 }
 
 macro_rules! vec_to_svm_byte_array {
     ($raw_byte_array:expr, $vec:expr) => {{
-        to_svm_byte_array!($raw_byte_array, $vec, $vec.len());
+        to_svm_byte_array!($raw_byte_array, $vec.as_ptr(), $vec.len());
     }};
 }
 
 macro_rules! to_svm_byte_array {
-    ($raw_byte_array:expr, $src:expr, $length:expr) => {{
+    ($raw_byte_array:expr, $ptr:expr, $length:expr) => {{
         use crate::svm_byte_array;
-        use std::mem::ManuallyDrop;
 
         let byte_array: &mut svm_byte_array = &mut *$raw_byte_array;
-        byte_array.bytes = $src.as_ptr();
+        byte_array.bytes = $ptr;
         byte_array.length = $length as u32;
-
-        ManuallyDrop::new($src);
     }};
 }
 
 #[must_use]
 #[no_mangle]
-pub unsafe extern "C" fn svm_imports_alloc(
-    imports: *mut *mut Vec<svm_import_t>,
-    length: u32,
-) -> svm_result_t {
+pub unsafe extern "C" fn svm_imports_alloc(imports: *mut *mut c_void, length: u32) -> svm_result_t {
     let vec: Vec<svm_import_t> = Vec::with_capacity(length as usize);
 
-    *imports = Box::into_raw(Box::new(vec));
+    *imports = svm_common::into_raw_mut(vec);
 
     svm_result_t::SVM_SUCCESS
 }
@@ -75,6 +78,7 @@ pub unsafe extern "C" fn svm_import_func_build(
     assert!(imports.len() < imports.capacity());
 
     let func = NonNull::new(func as *mut c_void);
+
     if func.is_none() {
         todo!();
         return svm_result_t::SVM_FAILURE;
@@ -101,14 +105,14 @@ pub unsafe extern "C" fn svm_import_func_build(
         return svm_result_t::SVM_FAILURE;
     }
 
-    let svm_import = svm_import_t {
+    let import = svm_import_t {
         module_name: module_name.unwrap(),
         import_name: import_name.unwrap(),
         kind: svm_import_kind::SVM_FUNCTION,
         value: svm_import_value::Func(func),
     };
 
-    imports.push(svm_import);
+    imports.push(import);
 
     svm_result_t::SVM_SUCCESS
 }
@@ -158,6 +162,7 @@ pub unsafe extern "C" fn svm_runtime_create(
 pub unsafe extern "C" fn svm_deploy_template(
     template_addr: *mut svm_byte_array,
     runtime: *mut c_void,
+    tx_id: svm_byte_array,
     author: *const c_void,
     host_ctx: svm_byte_array,
     template: svm_byte_array,
@@ -170,7 +175,8 @@ pub unsafe extern "C" fn svm_deploy_template(
     let bytes = std::slice::from_raw_parts(template.bytes, template.length as usize);
 
     if host_ctx.is_err() {
-        todo!()
+        todo!();
+        return svm_result_t::SVM_FAILURE;
     }
 
     match runtime.deploy_template(&author, host_ctx.unwrap(), bytes) {
@@ -198,6 +204,7 @@ pub unsafe extern "C" fn svm_spawn_app(
     app_addr: *mut svm_byte_array,
     init_state: *mut svm_byte_array,
     runtime: *mut c_void,
+    tx_id: svm_byte_array,
     creator: *const c_void,
     host_ctx: svm_byte_array,
     app: svm_byte_array,
@@ -243,6 +250,7 @@ pub unsafe extern "C" fn svm_spawn_app(
 pub unsafe extern "C" fn svm_parse_exec_app(
     app_tx: *mut *mut c_void,
     runtime: *const c_void,
+    tx_id: svm_byte_array,
     sender: *const c_void,
     tx: svm_byte_array,
 ) -> svm_result_t {
@@ -276,6 +284,7 @@ pub unsafe extern "C" fn svm_parse_exec_app(
 pub unsafe extern "C" fn svm_exec_app(
     receipt: *mut svm_byte_array,
     runtime: *mut c_void,
+    tx_id: svm_byte_array,
     app_tx: *const c_void,
     state: *const c_void,
     host_ctx: svm_byte_array,
@@ -285,6 +294,7 @@ pub unsafe extern "C" fn svm_exec_app(
     let host_ctx = HostCtx::from_raw_parts(host_ctx.bytes, host_ctx.length);
 
     if host_ctx.is_err() {
+        todo!();
         // update_last_error(e);
         error!("`svm_exec_app` returns `SVM_FAILURE`");
         return svm_result_t::SVM_FAILURE;
@@ -363,7 +373,7 @@ pub unsafe extern "C" fn svm_state_destroy(state: *mut c_void) -> svm_result_t {
 
 #[must_use]
 #[no_mangle]
-pub unsafe extern "C" fn svm_receipt_destroy(bytes: svm_byte_array) -> svm_result_t {
+pub unsafe extern "C" fn svm_receipt_destroy(byte: svm_byte_array) -> svm_result_t {
     todo!();
 
     svm_result_t::SVM_SUCCESS

@@ -60,6 +60,11 @@ macro_rules! impl_bytes_primitive {
 
             /// Returns a clone of the `$primitive` internal array
             pub fn bytes(&self) -> [u8; $byte_count] {
+                self.0.clone()
+            }
+
+            /// Returns the inner `$primitive` array
+            pub fn into_inner(self) -> [u8; $byte_count] {
                 self.0
             }
 
