@@ -1,7 +1,7 @@
 use std::ffi::c_void;
 
 use crate::{
-    buffer::{Buffer, BufferMut, BufferRef},
+    buffer::{BufferMut, BufferRef},
     ctx::SvmCtx,
     helpers,
 };
@@ -13,7 +13,7 @@ pub fn wasmer_data_buffer<'a>(data: *mut c_void, buf_id: u32) -> Option<&'a mut 
 }
 
 pub fn buffer_create(data: *mut c_void, buf_id: u32, capacity: u32) {
-    let mut svm_ctx = unsafe { svm_common::from_raw_mut::<SvmCtx>(data) };
+    let svm_ctx = unsafe { svm_common::from_raw_mut::<SvmCtx>(data) };
 
     if svm_ctx.buffers.contains_key(&buf_id) {
         panic!(
@@ -29,7 +29,7 @@ pub fn buffer_create(data: *mut c_void, buf_id: u32, capacity: u32) {
 }
 
 pub fn buffer_kill(data: *mut c_void, buf_id: u32) {
-    let mut svm_ctx = unsafe { svm_common::from_raw_mut::<SvmCtx>(data) };
+    let svm_ctx = unsafe { svm_common::from_raw_mut::<SvmCtx>(data) };
 
     if svm_ctx.buffers.contains_key(&buf_id) == false {
         panic!("`buffer_kill` failed: Buffer `{}` doesn't exists!", buf_id);
@@ -39,7 +39,7 @@ pub fn buffer_kill(data: *mut c_void, buf_id: u32) {
 }
 
 pub fn buffer_freeze(data: *mut c_void, buf_id: u32) {
-    let mut svm_ctx = unsafe { svm_common::from_raw_mut::<SvmCtx>(data) };
+    let svm_ctx = unsafe { svm_common::from_raw_mut::<SvmCtx>(data) };
 
     let entry = svm_ctx.buffers.remove_entry(&buf_id);
 

@@ -46,7 +46,7 @@ mod tests {
     #[should_panic(expected = "out-of-bounds")]
     fn buffer_read_out_of_bounds() {
         let cap = 10;
-        let mut buf = BufferMut::new(cap);
+        let buf = BufferMut::new(cap);
 
         buf.read(1, 5);
     }

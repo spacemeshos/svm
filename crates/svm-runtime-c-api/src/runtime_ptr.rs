@@ -21,7 +21,8 @@ impl RuntimePtr {
     pub fn into_raw(self) -> *mut c_void {
         let boxed = Box::new(self);
 
-        let ptr: *mut RuntimePtr = Box::into_raw(boxed) as _;
+        let ptr: *mut RuntimePtr = Box::into_raw(boxed);
+
         ptr as _
     }
 }
@@ -43,7 +44,5 @@ impl DerefMut for RuntimePtr {
 impl Drop for RuntimePtr {
     fn drop(&mut self) {
         debug!("Dropping RuntimePtr...");
-
-        std::mem::drop(&mut self.inner);
     }
 }

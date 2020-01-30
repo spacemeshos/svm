@@ -1,5 +1,5 @@
 #![allow(missing_docs)]
-#![allow(unused)]
+#![deny(unused)]
 
 //! `SVM-runtime` crate is the glue between `SVM` to a Wasm Runtime
 

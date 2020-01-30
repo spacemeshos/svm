@@ -1,4 +1,4 @@
-use crate::{buffer::Buffer, ctx::SvmCtx, helpers};
+use crate::helpers;
 
 use wasmer_runtime::Ctx as WasmerCtx;
 
@@ -34,26 +34,4 @@ pub fn buffer_copy_to_reg(
     count: u32,
 ) {
     helpers::buffer_copy_to_reg(ctx.data, buf_id, buf_offset, reg_bits, reg_idx, count);
-}
-
-pub fn buffer_copy_to_i32_le(
-    ctx: &mut wasmer_runtime::Ctx,
-    buf_id: i32,
-    buf_offset: i32,
-    count: i32,
-) {
-    //
-}
-
-pub fn buffer_copy_to_i32_be(
-    ctx: &mut wasmer_runtime::Ctx,
-    buf_id: i32,
-    buf_offset: i32,
-    count: i32,
-) {
-    //
-}
-
-pub fn buffer_copy_to_i64(ctx: &mut wasmer_runtime::Ctx, buf_id: i32, buf_offset: i32, count: i32) {
-    //
 }
