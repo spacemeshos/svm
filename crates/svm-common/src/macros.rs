@@ -27,6 +27,14 @@ macro_rules! impl_bytes_primitive {
             }
         }
 
+        impl From<*mut u8> for $primitive {
+            #[warn(clippy::not_unsafe_ptr_arg_deref)]
+            #[inline]
+            fn from(ptr: *mut u8) -> $primitive {
+                $primitive::from(ptr as *const u8)
+            }
+        }
+
         impl From<*const std::ffi::c_void> for $primitive {
             #[warn(clippy::not_unsafe_ptr_arg_deref)]
             #[inline]
@@ -41,18 +49,6 @@ macro_rules! impl_bytes_primitive {
                 self.0.as_ptr()
             }
 
-            /// Consumes the `$primitive` object and transfers ownership to a C caller
-            pub fn into_raw(self) -> *mut $primitive {
-                let boxed = Box::new(self);
-                Box::into_raw(boxed)
-            }
-
-            /// Retakes ownership of a `$primitive` that was transferred to C via `into_raw`
-            pub unsafe fn from_raw(ptr: *mut $primitive) -> $primitive {
-                let boxed: Box<$primitive> = Box::from_raw(ptr);
-                *boxed
-            }
-
             /// Returns a slice into the `$primitive` internal array
             pub fn as_slice(&self) -> &[u8] {
                 &self.0[..]
@@ -63,9 +59,12 @@ macro_rules! impl_bytes_primitive {
                 self.0.clone()
             }
 
-            /// Returns the inner `$primitive` array
-            pub fn into_inner(self) -> [u8; $byte_count] {
-                self.0
+            /// Decomposes a `$primitive` into its raw components
+            pub unsafe fn into_raw_parts(self) -> (*mut u8, usize, usize) {
+                let mut vec = self.0.to_vec();
+                vec.truncate(Self::len());
+
+                vec.into_raw_parts()
             }
 
             /// Returns an `iter` over the underlying bytes

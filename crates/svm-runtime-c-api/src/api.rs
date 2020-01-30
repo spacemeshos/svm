@@ -16,22 +16,15 @@ use crate::{
 
 macro_rules! addr_to_svm_byte_array {
     ($raw_byte_array:expr, $addr:expr) => {{
-        type_to_svm_byte_array!($raw_byte_array, $addr, Address::len());
+        let (ptr, _len, _cap) = $addr.into_raw_parts();
+        to_svm_byte_array!($raw_byte_array, ptr, Address::len());
     }};
 }
 
 macro_rules! state_to_svm_byte_array {
     ($raw_byte_array:expr, $state:expr) => {{
-        type_to_svm_byte_array!($raw_byte_array, $state, State::len());
-    }};
-}
-
-macro_rules! type_to_svm_byte_array {
-    ($raw_byte_array:expr, $ty:expr, $length:expr) => {{
-        let bytes = $ty.into_inner();
-        let ptr = svm_common::into_raw(bytes);
-
-        to_svm_byte_array!($raw_byte_array, ptr as *const u8, $length);
+        let (ptr, _len, _cap) = $state.into_raw_parts();
+        to_svm_byte_array!($raw_byte_array, ptr, State::len());
     }};
 }
 
