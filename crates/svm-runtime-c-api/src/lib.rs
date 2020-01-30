@@ -1,5 +1,6 @@
 #![deny(missing_docs)]
 #![deny(unused)]
+#![feature(vec_into_raw_parts)]
 
 //! This crate is responsible of providing [FFI](https://doc.rust-lang.org/nomicon/ffi.html) interface for the `SVM`.
 

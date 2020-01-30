@@ -37,9 +37,10 @@ macro_rules! type_to_svm_byte_array {
 
 macro_rules! vec_to_svm_byte_array {
     ($raw_byte_array:expr, $vec:expr) => {{
-        let ptr = $vec.as_ptr();
         let len = $vec.len();
-        std::mem::forget($vec);
+        $vec.truncate(len);
+
+        let (ptr, _len, _cap) = $vec.into_raw_parts();
 
         to_svm_byte_array!($raw_byte_array, ptr, len);
     }};
@@ -308,7 +309,7 @@ pub unsafe extern "C" fn svm_exec_app(
 
     match runtime.exec_app(app_tx, state, host_ctx) {
         Ok(ref receipt) => {
-            let bytes = crate::receipt::encode_receipt(receipt);
+            let mut bytes = crate::receipt::encode_receipt(receipt);
 
             // returning encoded `Receipt` as `svm_byte_array`
             // should call later `svm_receipt_destroy`
