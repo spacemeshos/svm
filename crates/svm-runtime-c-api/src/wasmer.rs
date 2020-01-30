@@ -1,8 +1,6 @@
-use std::{ffi::c_void, slice, sync::Arc};
+use std::sync::Arc;
 
-use crate::{
-    svm_import_func_sig_t, svm_import_func_t, svm_import_t, svm_import_value, svm_value_type,
-};
+use crate::{svm_import_func_sig_t, svm_import_t, svm_import_value, svm_value_type};
 
 use wasmer_runtime_core::{
     export::{Context, Export, FuncPointer},
@@ -36,7 +34,6 @@ pub(crate) unsafe fn to_wasmer_import_func(import: &svm_import_t) -> Export {
                 signature: Arc::new(wasmer_sig),
             }
         }
-        _ => unreachable!(),
     }
 }
 

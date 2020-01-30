@@ -1,5 +1,4 @@
 use std::ffi::c_void;
-use std::slice;
 
 use crate::{svm_import_kind, svm_import_t, RuntimePtr};
 use svm_runtime::traits::Runtime;

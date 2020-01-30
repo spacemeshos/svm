@@ -297,10 +297,10 @@ unsafe fn do_ffi_exec_app() {
 
     assert_eq!(expected, actual);
 
-    api::svm_byte_array_destroy(template_addr);
-    api::svm_byte_array_destroy(app_addr);
-    api::svm_byte_array_destroy(init_state);
-    api::svm_byte_array_destroy(receipt);
-    api::svm_imports_destroy(imports);
-    api::svm_runtime_destroy(runtime);
+    let _ = api::svm_byte_array_destroy(template_addr);
+    let _ = api::svm_byte_array_destroy(app_addr);
+    let _ = api::svm_byte_array_destroy(init_state);
+    let _ = api::svm_byte_array_destroy(receipt);
+    let _ = api::svm_imports_destroy(imports);
+    let _ = api::svm_runtime_destroy(runtime);
 }

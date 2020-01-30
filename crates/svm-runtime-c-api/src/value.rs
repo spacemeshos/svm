@@ -1,7 +1,5 @@
 use std::convert::TryFrom;
 
-use svm_runtime::value::Value;
-
 /// FFI representation for `SVM` value type
 #[allow(non_snake_case, non_camel_case_types)]
 #[derive(Debug, Copy, Clone, PartialEq)]

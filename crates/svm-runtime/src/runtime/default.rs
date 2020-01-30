@@ -18,7 +18,7 @@ use crate::{
 
 use svm_app::{
     traits::{Env, EnvTypes},
-    types::{App, AppTemplate, AppTransaction, BufferSlice, HostCtx, SpawnApp, WasmValue},
+    types::{AppTemplate, AppTransaction, BufferSlice, HostCtx, SpawnApp, WasmValue},
 };
 use svm_common::{Address, State};
 use svm_storage::AppStorage;
@@ -235,7 +235,7 @@ where
 
         self.init_instance_buffer(&tx.func_buf, &mut instance);
 
-        let args = self.prepare_args_and_memory(tx, &mut instance);
+        let args = self.prepare_args_and_memory(tx);
 
         let func = match self.get_exported_func(tx, template_addr, &instance) {
             Err(ExecAppError::FuncNotFound { .. }) if is_ctor == true => {
@@ -370,15 +370,8 @@ where
         })
     }
 
-    fn prepare_args_and_memory(
-        &self,
-        tx: &AppTransaction,
-        instance: &mut wasmer_runtime::Instance,
-    ) -> Vec<wasmer_runtime::Value> {
+    fn prepare_args_and_memory(&self, tx: &AppTransaction) -> Vec<wasmer_runtime::Value> {
         debug!("runtime `prepare_args_and_memory`");
-
-        let memory = instance.context_mut().memory(0);
-        let mut mem_offset = 0;
 
         let mut wasmer_args = Vec::with_capacity(tx.func_args.len());
 

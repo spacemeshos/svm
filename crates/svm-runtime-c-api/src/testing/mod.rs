@@ -6,8 +6,7 @@ use std::ffi::c_void;
 use std::rc::Rc;
 
 use crate::{
-    helpers, svm_byte_array, svm_import_t, svm_result_t, svm_value_type, svm_value_type_array,
-    RuntimePtr,
+    helpers, svm_byte_array, svm_result_t, svm_value_type, svm_value_type_array, RuntimePtr,
 };
 use log::debug;
 
