@@ -109,12 +109,13 @@ mod tests {
         assert_eq!(data3, reg256_0.view());
     }
 
+    #[test]
     fn registers_get_out_of_bounds_reg_panics() {
         let reg_bits = 128;
         let reg_count = 10;
 
         let config = [(reg_bits, reg_count)];
-        let mut regs = Registers::new(&config);
+        let regs = Registers::new(&config);
 
         for reg_idx in 0..reg_count {
             let _reg = regs.get_reg(reg_bits as u32, reg_idx as u32);

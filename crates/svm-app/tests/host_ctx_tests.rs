@@ -7,7 +7,7 @@ mod tests {
     use maplit::hashmap;
 
     fn from_raw_parts(bytes: &Vec<u8>) -> HostCtx {
-        unsafe { HostCtx::from_raw_parts(bytes.as_ptr() as _, bytes.len() as _) }.unwrap()
+        unsafe { HostCtx::from_raw_parts(bytes.as_ptr() as *const u8, bytes.len() as u32) }.unwrap()
     }
 
     #[test]

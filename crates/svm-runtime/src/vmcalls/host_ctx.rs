@@ -1,6 +1,4 @@
-use crate::{ctx::SvmCtx, helpers};
-
-use svm_app::types::HostCtx;
+use crate::helpers;
 
 use byteorder::{BigEndian, ByteOrder, LittleEndian};
 

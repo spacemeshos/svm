@@ -22,11 +22,6 @@ pub use wasmer_runtime_core::{
     import::{IsExport, Namespace},
 };
 
-use svm_storage::{
-    page::{PageIndex, PageOffset, PageSliceLayout},
-    AppStorage,
-};
-
 /// Injects into namespace `ns` the `SVM` internal vmcalls.
 pub fn insert_vmcalls(ns: &mut Namespace) {
     // `storage` vmcalls
