@@ -44,32 +44,3 @@ impl From<svm_value_type_array> for Vec<svm_value_type> {
         slice.to_vec()
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn svm_value_t_from_value_i32() {
-        let value = Value::I32(10);
-        let raw_value = svm_value_t::from(&value);
-        assert_eq!(svm_value_type::SVM_I32, raw_value.ty);
-
-        unsafe {
-            let svm_value { I32: v } = raw_value.value;
-            assert_eq!(10, v);
-        }
-    }
-
-    #[test]
-    fn svm_value_t_from_value_i64() {
-        let value = Value::I64(10);
-        let raw_value = svm_value_t::from(&value);
-        assert_eq!(svm_value_type::SVM_I64, raw_value.ty);
-
-        unsafe {
-            let svm_value { I64: v } = raw_value.value;
-            assert_eq!(10, v);
-        }
-    }
-}

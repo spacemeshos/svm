@@ -37,7 +37,11 @@ macro_rules! type_to_svm_byte_array {
 
 macro_rules! vec_to_svm_byte_array {
     ($raw_byte_array:expr, $vec:expr) => {{
-        to_svm_byte_array!($raw_byte_array, $vec.as_ptr(), $vec.len());
+        let ptr = $vec.as_ptr();
+        let len = $vec.len();
+        std::mem::forget($vec);
+
+        to_svm_byte_array!($raw_byte_array, ptr, len);
     }};
 }
 
@@ -162,7 +166,6 @@ pub unsafe extern "C" fn svm_runtime_create(
 pub unsafe extern "C" fn svm_deploy_template(
     template_addr: *mut svm_byte_array,
     runtime: *mut c_void,
-    tx_id: svm_byte_array,
     author: *const c_void,
     host_ctx: svm_byte_array,
     template: svm_byte_array,
@@ -204,7 +207,6 @@ pub unsafe extern "C" fn svm_spawn_app(
     app_addr: *mut svm_byte_array,
     init_state: *mut svm_byte_array,
     runtime: *mut c_void,
-    tx_id: svm_byte_array,
     creator: *const c_void,
     host_ctx: svm_byte_array,
     app: svm_byte_array,
@@ -250,7 +252,6 @@ pub unsafe extern "C" fn svm_spawn_app(
 pub unsafe extern "C" fn svm_parse_exec_app(
     app_tx: *mut *mut c_void,
     runtime: *const c_void,
-    tx_id: svm_byte_array,
     sender: *const c_void,
     tx: svm_byte_array,
 ) -> svm_result_t {
@@ -284,7 +285,6 @@ pub unsafe extern "C" fn svm_parse_exec_app(
 pub unsafe extern "C" fn svm_exec_app(
     encoded_receipt: *mut svm_byte_array,
     runtime: *mut c_void,
-    tx_id: svm_byte_array,
     app_tx: *const c_void,
     state: *const c_void,
     host_ctx: svm_byte_array,
@@ -336,45 +336,26 @@ pub unsafe extern "C" fn svm_instance_context_host_get(ctx: *mut c_void) -> *mut
     svm_ctx.host
 }
 
-#[must_use]
-#[no_mangle]
-pub unsafe extern "C" fn svm_imports_destroy(imports: *mut c_void) -> svm_result_t {
-    let _ = Box::from_raw(imports as *mut Vec<svm_import_t>);
-
-    svm_result_t::SVM_SUCCESS
-}
-
 /// Destroys the Runtime and it's associated resources.
 #[must_use]
 #[no_mangle]
-pub unsafe extern "C" fn svm_runtime_destroy(runtime: *mut c_void) -> svm_result_t {
+pub unsafe extern "C" fn svm_runtime_destroy(runtime: *mut c_void) {
     debug!("`svm_runtime_destroy`");
 
     let _ = Box::from_raw(runtime as *mut RuntimePtr);
-
-    svm_result_t::SVM_SUCCESS
 }
 
 #[must_use]
 #[no_mangle]
-pub unsafe extern "C" fn svm_address_destroy(address: *mut c_void) -> svm_result_t {
-    let _ = Box::from_raw(address as *mut Address);
-
-    svm_result_t::SVM_SUCCESS
+pub unsafe extern "C" fn svm_imports_destroy(imports: *const c_void) {
+    let _ = Box::from_raw(imports as *mut c_void as *mut Vec<svm_import_t>);
 }
 
 #[must_use]
 #[no_mangle]
-pub unsafe extern "C" fn svm_state_destroy(state: *mut c_void) -> svm_result_t {
-    let _ = Box::from_raw(state as *mut State);
+pub unsafe extern "C" fn svm_byte_array_destroy(bytes: svm_byte_array) {
+    let ptr = bytes.bytes as *mut u8;
+    let length = bytes.length as usize;
 
-    svm_result_t::SVM_SUCCESS
-}
-
-#[must_use]
-#[no_mangle]
-pub unsafe extern "C" fn svm_receipt_destroy(byte: svm_byte_array) -> svm_result_t {
-    todo!();
-
-    svm_result_t::SVM_SUCCESS
+    let _ = Vec::from_raw_parts(ptr, length, length);
 }

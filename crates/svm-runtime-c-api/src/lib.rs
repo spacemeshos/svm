@@ -18,9 +18,9 @@ mod wasmer;
 
 /// `SVM` FFI Interface
 pub use api::{
-    svm_address_destroy, svm_deploy_template, svm_exec_app, svm_import_func_build,
+    svm_byte_array_destroy, svm_deploy_template, svm_exec_app, svm_import_func_build,
     svm_imports_alloc, svm_imports_destroy, svm_instance_context_host_get, svm_parse_exec_app,
-    svm_runtime_create, svm_runtime_destroy, svm_spawn_app, svm_state_destroy,
+    svm_runtime_create, svm_runtime_destroy, svm_spawn_app,
 };
 pub use import::{
     svm_byte_array, svm_import_func_sig_t, svm_import_func_t, svm_import_kind, svm_import_t,

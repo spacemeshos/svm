@@ -1,4 +1,9 @@
-use std::{ffi::c_void, ptr::NonNull, string::FromUtf8Error};
+use std::{
+    default::Default,
+    ffi::c_void,
+    ptr::{self, NonNull},
+    string::FromUtf8Error,
+};
 
 use crate::svm_value_type;
 
@@ -11,6 +16,15 @@ pub struct svm_byte_array {
 
     /// Number of bytes,
     pub length: u32,
+}
+
+impl Default for svm_byte_array {
+    fn default() -> Self {
+        Self {
+            bytes: ptr::null(),
+            length: 0,
+        }
+    }
 }
 
 impl From<svm_byte_array> for Result<String, FromUtf8Error> {
