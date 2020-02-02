@@ -14,6 +14,11 @@ typedef struct {
   long length;
 } wasm_file_t;
 
+typedef struct {
+  svm_byte_array app_addr;
+  svm_byte_array init_state;
+} spawned_app_t;
+
 wasm_file_t read_wasm_file(const char *file_name) {
   wasm_file_t wasm_file;
 
@@ -89,11 +94,10 @@ svm_byte_array deploy_template_bytes() {
 }
 
 
-uint64_t spawn_app_bytes(uint8_t **bytes, uint8_t *creator_addr, uint8_t* template_addr) {
+svm_byte_array spawn_app_bytes(svm_byte_array template_addr) {
   uint64_t length =
-    4  +  //  proto version
-    20 +  // `len(creator-address)`
-    20;   // `len(template-address)`
+    4  +  // proto version
+    template_addr.length;   // length(`template_addr)
 
   uint8_t* buf = (uint8_t*)(malloc(length));
 
@@ -104,14 +108,13 @@ uint64_t spawn_app_bytes(uint8_t **bytes, uint8_t *creator_addr, uint8_t* templa
   buf[3] = 0;
 
   // copy `template` address
-  memcpy(&buf[4], template_addr, 20);
+  memcpy(&buf[4], template_addr.bytes, template_addr.length);
 
-  // copy `creator` address
-  memcpy(&buf[4 + 20], creator_addr, 20);
+  svm_byte_array app;
+  app.bytes = buf;
+  app.length = length;
 
-  *bytes = buf;
-
-  return length;
+  return app;
 }
 
 uint8_t* int32_arg_new(uint32_t value) {
@@ -277,33 +280,23 @@ void* runtime_create(void* imports) {
   return runtime;
 }
 
-svm_byte_array deploy_template(void* runtime, void* author) {
-  svm_byte_array template = deploy_template_bytes(); 
-
-  svm_byte_array host_ctx; 
-  host_ctx.bytes = NULL;
-  host_ctx.length = 0;
-
-  svm_byte_array template_addr; 
-  svm_result_t res = svm_deploy_template(&template_addr, runtime, author, host_ctx, template); 
-  assert(res == SVM_SUCCESS); 
-
-  printf("Deployed AppTemplate successfully...\n");
-  printf("AppTemplate Account Address:\n");
-
-  for (int i = 0; i < template_addr.length; i++) {
-    printf("%d ", template_addr.bytes[i]);
-  }
-  printf("\n\n");
-
-  return template_addr;
-}
-
 void* alloc_byte_address(uint8_t byte) {
   uint8_t *addr = (uint8_t*)malloc(20);
   memset(addr, byte, 20);
   return (void*)addr;
 }
+
+void* alloc_author_addr() {
+  return alloc_byte_address(0xAA);
+}  
+
+void* alloc_creator_addr() {
+  return alloc_byte_address(0xBB);
+}  
+
+void* alloc_sender_addr() {
+  return alloc_byte_address(0xCC);
+}  
 
 void* alloc_empty_state() {
   uint8_t *state = (uint8_t*)malloc(32);
@@ -311,27 +304,79 @@ void* alloc_empty_state() {
   return (void*)state;
 }
 
-int main() {
+svm_byte_array simulate_deploy_template(svm_byte_array bytes, void* author) {
   void* imports = imports_build();
-  uint8_t *author = alloc_byte_address(0xAA); 
   void* runtime = runtime_create(imports);
-  svm_byte_array template_addr = deploy_template(runtime, author);
 
-  /* uint8_t *app_addr = NULL; */
-  /* uint8_t *creator = alloc_byte_address(0xBB); */
-  /* length = spawn_app_bytes(&bytes, creator, template_addr); */
-  /* res = svm_spawn_app((void**)&app_addr, runtime, (void*)bytes, length); */
-  /* assert(res == SVM_SUCCESS); */
-  /* free(bytes); */
+  svm_byte_array host_ctx; 
+  host_ctx.bytes = NULL;
+  host_ctx.length = 0;
 
-  /* printf("Spawned App successfully...\n"); */
-  /* printf("App Account Address:\n"); */
+  svm_byte_array template_addr; 
+  svm_result_t res = svm_deploy_template(&template_addr, runtime, author, host_ctx, bytes); 
 
-  /* for (int i = 0; i < 20; i++) { */
-  /*   printf("%d ", app_addr[i]); */
-  /* } */
+  svm_runtime_destroy(runtime);
 
-  /* uint8_t *sender_addr = alloc_byte_address(0xCC); */
+  assert(res == SVM_SUCCESS); 
+
+  printf("Deployed AppTemplate successfully...\n");
+  for(int i = 0; i < template_addr.length; i++) {
+    printf("%d ", template_addr.bytes[i]);
+  }
+  printf("\n\n");
+
+  return template_addr;
+}
+
+spawned_app_t simulate_spawn_app(svm_byte_array bytes, void* creator) {
+  void* imports = imports_build();
+  void* runtime = runtime_create(imports);
+
+  svm_byte_array host_ctx; 
+  host_ctx.bytes = NULL;
+  host_ctx.length = 0;
+
+  svm_byte_array app_addr; 
+  svm_byte_array init_state; 
+  svm_result_t res = svm_spawn_app(&app_addr, &init_state, runtime, creator, host_ctx, bytes);
+
+  svm_runtime_destroy(runtime);
+
+  assert(res == SVM_SUCCESS); 
+
+  printf("Spawned App successfully...\n");
+  printf("App Account Address:\n");
+
+  for (int i = 0; i < app_addr.length; i++) {
+    printf("%d ", app_addr.bytes[i]);
+  }
+
+  printf("\n\n");
+  printf("App initial state:\n");
+  for (int i = 0; i < init_state.length; i++) {
+    printf("%d ", init_state.bytes[i]);
+  }
+  printf("\n\n");
+
+  spawned_app_t spawned;
+  spawned.app_addr = app_addr;
+  spawned.init_state = init_state;
+  return spawned;
+}
+
+  
+int main() {
+  svm_byte_array bytes;
+
+  // 1) Deploy Template
+  void* author = alloc_author_addr();
+  bytes = deploy_template_bytes(); 
+  svm_byte_array template_addr = simulate_deploy_template(bytes, author);
+
+  // 2) Spawn App
+  void* creator = alloc_creator_addr();
+  bytes = spawn_app_bytes(template_addr); 
+  spawned_app_t spawned = simulate_spawn_app(bytes, creator);
 
   /* /\* 1) First we want to assert that the counter has been initialized with `9` as expected (see `create_import_object` above) *\/ */
   /* length = exec_app_bytes( */
@@ -408,9 +453,8 @@ int main() {
   /* assert(res == SVM_SUCCESS); */
   /* free(bytes); */
 
-  /* res = svm_exec_app(&receipt, runtime, app_tx, (void*)new_state); */
+  /* void*res = svm_exec_app(&receipt, runtime, app_tx, (void*)new_state); *\/ */
   /* assert(res == SVM_SUCCESS); */
-  /* assert(svm_receipt_status(receipt) == true); */
 
   /* svm_receipt_results(&results, receipt, &results_len); */
   /* assert(results_len == 1); */
