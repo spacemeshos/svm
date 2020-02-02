@@ -19,6 +19,59 @@ typedef struct {
   svm_byte_array init_state;
 } spawned_app_t;
 
+typedef struct {
+  uint8_t slice_count;
+  svm_byte_array* slices;
+} svm_func_buf_t;
+
+typedef struct {
+  svm_value_type type;
+  uint8_t* bytes; 
+} svm_func_arg_t;
+
+typedef struct {
+  uint8_t arg_count;
+  svm_func_arg_t* args;
+} svm_func_args_t;
+
+uint32_t func_buf_length(svm_func_buf_t func_buf) {
+  uint32_t acc = 0;
+
+  acc += 1; // `#func-buf #slices` consumes 1 byte
+
+  for (uint8_t i = 0; i < func_buf.slice_count; i++) {
+    svm_byte_array slice = func_buf.slices[i];
+    acc += slice.length;
+  }
+
+  return acc;
+}
+
+uint32_t func_args_length(svm_func_args_t func_args) {
+  uint32_t acc = 0;
+
+  acc += 1; // `#func args` consumes 1 byte
+
+  for (uint8_t i = 0; i < func_args.arg_count; i++) {
+    svm_func_arg_t arg = func_args.args[i];
+    acc += 1; // `arg type` consumes 1 byte
+
+    svm_value_type arg_type = arg.type;
+    if (arg_type == SVM_I32) {
+      acc += 4; // arg takes 4 bytes
+    }
+    else if (arg_type == SVM_I64) {
+      acc += 8; // arg takes 8 bytes
+    }
+    else {
+      // ilegal argument type
+      exit(1);
+    }
+  }
+
+  return acc;
+}
+
 wasm_file_t read_wasm_file(const char *file_name) {
   wasm_file_t wasm_file;
 
@@ -166,56 +219,35 @@ svm_byte_array host_ctx_empty_bytes() {
   return host_ctx;
 }
 
+svm_byte_array exec_app_bytes(
+    void* app_addr,
+    svm_byte_array func_name,
+    svm_func_buf_t func_buf,
+    svm_func_args_t func_args
+) {
+  svm_byte_array tx;
 
-/* uint64_t exec_app_bytes( */
-/*     uint8_t **bytes, */
-/*     void *sender_addr, */
-/*     void *app_addr, */
-/*     const char* func_name, */
-/*     uint8_t func_name_len, */
-/*     uint8_t args_count, */
-/*     uint8_t *args_buf, */
-/*     uint32_t args_buf_len */
-/* ) { */
-/*   uint64_t length = */
-/*     4  +   // proto version */
-/*     20  +  // app address */
-/*     20  +  // sender address */
-/*     1   +  // function name length */
-/*     (uint64_t)func_name_len +  // `len(func_name0)` */
-/*     1   +  // #args */
-/*     args_buf_len; // `len(arg_buf)` */
+  uint32_t length =
+    4   +   // proto version
+    20  +  // app address
+    1   +  // function name length
+    func_name.length +  
+    func_buf_length(func_buf) + 
+    func_args_length(func_args);
 
-/*   uint8_t* buf = (uint8_t*)(malloc(length)); */
+  uint8_t* buf = (uint8_t*)(malloc(length));  
 
-/*   // set `proto=0` */
-/*   buf[0] = 0; */
-/*   buf[1] = 0; */
-/*   buf[2] = 0; */
-/*   buf[3] = 0; */
+  // set `proto=0`
+  /* buf[0] = 0; */
+  /* buf[1] = 0; */
+  /* buf[2] = 0; */
+  /* buf[3] = 0; */
 
-/*   // set `app` address */
-/*   memcpy(&buf[4], app_addr, 20); */
+  // set `app` address
+  /* memcpy(&buf[4], app_addr, 20); */
 
-/*   // set `sender` address */
-/*   memcpy(&buf[24], sender_addr, 20); */
-
-/*   // set `func_name_len` */
-/*   buf[44] = func_name_len; */
-
-/*   // set `func_name` */
-/*   memcpy(&buf[45], func_name, func_name_len); */
-
-/*   // set `#args_count` */
-/*   buf[45 + func_name_len] = args_count; */
-
-/*   // `args_buf` */
-/*   memcpy(&buf[45 + func_name_len + args_count], args_buf, args_buf_len); */
-
-/*   *bytes = buf; */
-
-/*   return length; */
-/* } */
+  return tx;
+}
 
 host_t* host_new(uint32_t counter_initial) {
   host_t* host = (host_t*)malloc(sizeof(host_t));
@@ -380,7 +412,6 @@ spawned_app_t simulate_spawn_app(void* runtime, svm_byte_array bytes, void* crea
   spawned.init_state = init_state;
   return spawned;
 }
-
   
 int main() {
   svm_byte_array bytes;
@@ -397,24 +428,27 @@ int main() {
   void* creator = alloc_creator_addr();
   bytes = spawn_app_bytes(template_addr);
   spawned_app_t spawned = simulate_spawn_app(runtime, bytes, creator);
+  svm_byte_array app_addr = spawned.app_addr;
+  svm_byte_array init_state = spawned.init_state;
 
   // 3) Exec App
-  /* 1) First we want to assert that the counter has been initialized with `9` as expected (see `create_import_object` above) */
-  /* length = exec_app_bytes( */
-  /*     &bytes, */
-  /*     sender_addr, */
-  /*     app_addr, */
-  /*     "get", */
-  /*     strlen("get"), */
-  
-  /*     0,    // `args_count = 0` */
-  /*     NULL, // `args_buf = NULL` */
-  /*     0);   // `args_buf_len = 0` */
+  /* a) First we want to assert that the counter has been initialized with `9` as expected (see `create_import_object` above)  */
+  void* sender = alloc_sender_addr();
+  svm_byte_array get_func_name = { .bytes = (const uint8_t*)"get", .length = strlen("get") };
+  svm_func_buf_t get_func_buf = { .slice_count = 0, .slices = NULL };
+  svm_func_args_t get_func_args = { .arg_count = 0, .bytes = NULL };
+  /* svm_func_arg_t get_func_arg = { .type = SVM_I32, .bytes = int32_arg_new(init_counter) }; */
 
-  /* void *app_tx = NULL; */
-  /* res = svm_parse_exec_app(&app_tx, runtime, bytes, length); */
-  /* assert(res == SVM_SUCCESS); */
-  /* free(bytes); */
+  bytes = exec_app_bytes(
+      (void*)app_addr.bytes,
+      get_func_name,
+      get_func_buf,
+      get_func_args);
+
+  void *app_tx = NULL; 
+  svm_result_t res = svm_parse_exec_app(&app_tx, runtime, sender, bytes);
+  assert(res == SVM_SUCCESS); 
+
   /* void *receipt = NULL; */
   /* uint8_t *state = alloc_empty_state(); */
   /* res = svm_exec_app(&receipt, runtime, app_tx, (void*)state); */
