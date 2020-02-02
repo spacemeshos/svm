@@ -93,7 +93,7 @@ svm_byte_array deploy_template_bytes() {
   uint64_t length =
     4  +  // proto version
     1  +  // name length 
-    7  +  // name (the string "Example" takes 7 bytes)
+    strlen("Example")  +  // length("Example")
     2  +  // `#admins`    (we'll set it to `0`)
     2  +  // `#deps`      (we'll set it to `0`)
     2  +  // `page_count` (we'll set it to `0`)
@@ -134,7 +134,7 @@ svm_byte_array deploy_template_bytes() {
   bytes[cursor + 1] = 0;
   cursor += 2;
 
-  // set template code length (big-endian)
+  // set code-length (Big-Endian)
   uint8_t* code_length = (uint8_t*)&file.length;
 
   for (int i = 0; i < 8; i++) {
@@ -196,23 +196,28 @@ svm_byte_array spawn_app_bytes(svm_byte_array template_addr) {
 svm_byte_array host_ctx_empty_bytes() {
   uint32_t length =
     4  +  // proto version
-    2;   // #fields;
+    2;   // #fields
 
-  uint8_t* buf = (uint8_t*)(malloc(length));
+  uint8_t* bytes = (uint8_t*)(malloc(length));
+  
+  uint32_t cursor = 0;
 
   // set `proto=0`
-  buf[0] = 0;
-  buf[1] = 0;
-  buf[2] = 0;
-  buf[3] = 0;
+  bytes[0] = 0;
+  bytes[1] = 0;
+  bytes[2] = 0;
+  bytes[3] = 0;
+  cursor += 4;
 
   // set `#fields=0`
-  buf[4] = 0;
-  buf[5] = 0;
+  bytes[cursor + 0] = 0;
+  bytes[cursor + 1] = 0;
+  cursor += 2;
 
-  svm_byte_array host_ctx; 
-  host_ctx.bytes = buf;
-  host_ctx.length = length;
+  svm_byte_array host_ctx = {
+    .bytes = bytes,
+    .length = length
+  };
 
   return host_ctx;
 }
@@ -231,32 +236,32 @@ svm_byte_array exec_app_bytes(
     func_buf_length(func_buf) + 
     func_args_length(func_args);
 
-  uint8_t* buf = (uint8_t*)(malloc(length));  
+  uint8_t* bytes = (uint8_t*)(malloc(length));  
   uint32_t cursor = 0;
 
   // set `proto=0`
-  buf[0] = 0;
-  buf[1] = 0;
-  buf[2] = 0;
-  buf[3] = 0;
+  bytes[0] = 0;
+  bytes[1] = 0;
+  bytes[2] = 0;
+  bytes[3] = 0;
   cursor += 4;
 
   // set `app` address
-  memcpy(&buf[cursor], app_addr, 20);
+  memcpy(&bytes[cursor], app_addr, 20);
   cursor += 20;
   
   // `name length` consumes 1 byte
-  buf[cursor] = 1; 
+  bytes[cursor] = 1; 
   cursor += 1;
 
   // set `name length`
-  memcpy(&buf[cursor], func_name.bytes, func_name.length);
+  memcpy(&bytes[cursor], func_name.bytes, func_name.length);
   cursor += func_name.length;
 
   // function buf
 
   //// `func buf #slices` conumes 1 byte
-  buf[cursor] = 1; 
+  bytes[cursor] = 1; 
   cursor += 1;
 
   for (uint8_t i = 0; i < func_buf.slice_count; i++) {
@@ -268,19 +273,19 @@ svm_byte_array exec_app_bytes(
     uint16_t slice_len = (uint16_t)slice.length; 
 
     //// slice length consumes 2 bytes (Big-Endian)
-    buf[cursor + 0] = (uint8_t)((slice_len >> 8) & 0xFF);
-    buf[cursor + 1] = (uint8_t)((slice_len >> 0) & 0xFF); 
+    bytes[cursor + 0] = (uint8_t)((slice_len >> 8) & 0xFF);
+    bytes[cursor + 1] = (uint8_t)((slice_len >> 0) & 0xFF); 
     cursor += 2;
 
     //// copy slice to `buf`
-    memcpy(&buf[cursor], slice.bytes, slice.length);
+    memcpy(&bytes[cursor], slice.bytes, slice.length);
     cursor += slice.length;
   }
 
   // function args
 
   //// `func #args` consumes 1 byte
-  buf[cursor] = 1; 
+  bytes[cursor] = 1; 
   cursor += 1;
 
   //// copy `func args` to `buf`
@@ -290,19 +295,19 @@ svm_byte_array exec_app_bytes(
     svm_value_type arg_type = arg.type;
 
     //// arg type consumes 1 byte
-    buf[cursor] = (uint8_t)arg_type;
+    bytes[cursor] = (uint8_t)arg_type;
     cursor += 1;
 
     if (arg_type == SVM_I32) {
       for (uint8_t off = 0; off < 4; off++) {
-	buf[cursor + off] = *(arg.bytes + 3 - off); 
+	bytes[cursor + off] = *(arg.bytes + 3 - off); 
       }
 
       cursor += 4; //// arg value takes 4 bytes
     }
     else if (arg_type == SVM_I64) {
       for (uint8_t off = 0; off < 8; off++) {
-	buf[cursor + off] = *(arg.bytes + 7 - off); 
+	bytes[cursor + off] = *(arg.bytes + 7 - off); 
       }
       
       cursor += 8; //// arg value takes 8 bytes
@@ -317,7 +322,7 @@ svm_byte_array exec_app_bytes(
 
   svm_byte_array tx = {
     .length = length,
-    .bytes = buf
+    .bytes = bytes
   };
 
   return tx;
@@ -340,24 +345,28 @@ uint32_t host_get_counter(void *ctx) {
 }
 
 void inc_counter_import_build(void* imports) { 
-  svm_byte_array module_name;
-  module_name.bytes = (const uint8_t *)"env";
-  module_name.length = strlen("env");
+  svm_byte_array module_name = {
+    .bytes = (const uint8_t *)"env",
+    .length = strlen("env")
+  };
 
-  svm_byte_array import_name;
-  import_name.bytes = (const uint8_t *)"inc_counter";
-  import_name.length = strlen("inc_counter");
+  svm_byte_array import_name = {
+    .bytes = (const uint8_t *)"inc_counter",
+    .length = strlen("inc_counter")
+  };
 
   svm_value_type* types = (svm_value_type*)malloc(sizeof(svm_value_type) * 1);
   types[0] = SVM_I32;
 
-  svm_value_type_array params;
-  params.types = types;
-  params.length = 1;
+  svm_value_type_array params = {
+    .types = types,
+    .length = 1
+  };
 
-  svm_value_type_array returns;
-  returns.types = NULL;
-  returns.length = 0;
+  svm_value_type_array returns = {
+    .types = NULL,
+    .length = 0
+  };
 
   void* func = (void*)host_inc_counter;
 
@@ -366,24 +375,28 @@ void inc_counter_import_build(void* imports) {
 }
 
 void get_counter_import_build(void* imports) {
-  svm_byte_array module_name;
-  module_name.bytes = (const uint8_t *)"env";
-  module_name.length = strlen("env");
+  svm_byte_array module_name = {
+    .bytes = (const uint8_t *)"env",
+    .length = strlen("env")
+  };
 
-  svm_byte_array import_name;
-  import_name.bytes = (const uint8_t *)"get_counter";
-  import_name.length = strlen("get_counter");
+  svm_byte_array import_name = {
+    .bytes = (const uint8_t *)"get_counter",
+    .length = strlen("get_counter")
+  };
 
-  svm_value_type_array params;
-  params.types = NULL;
-  params.length = 0;
+  svm_value_type_array params = {
+    .types = NULL,
+    .length = 0
+  };
 
   svm_value_type* types = (svm_value_type*)malloc(sizeof(svm_value_type) * 1);
   types[0] = SVM_I32;
 
-  svm_value_type_array returns;
-  returns.types = types;
-  returns.length = 1;
+  svm_value_type_array returns = {
+    .types = types,
+    .length = 1
+  };
 
   void* func = (void*)host_get_counter;
 
