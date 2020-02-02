@@ -100,32 +100,39 @@ svm_byte_array deploy_template_bytes() {
     8  +  //  code length (Big-Endian)
     (uint64_t)file.length; // code
 
-  uint8_t* buf = (uint8_t*)(malloc(length));
+  uint8_t* bytes = (uint8_t*)(malloc(length));
+
+  uint32_t cursor = 0;
 
   // set `proto=0`
-  buf[0] = 0;
-  buf[1] = 0;
-  buf[2] = 0;
-  buf[3] = 0;
+  bytes[0] = 0;
+  bytes[1] = 0;
+  bytes[2] = 0;
+  bytes[3] = 0;
+  cursor += 4;
 
-  // set `name_length=7`
-  buf[4] = 7;
+  // name length takes 1 bytes
+  bytes[cursor] = strlen("Example");
+  cursor += 1;
 
-  // set `name="Example"` (without the terminating `NULL`)
   const char* name = "Example";
-  memcpy(&buf[5], name, 7);
+  memcpy(&bytes[cursor], name, strlen("Example"));
+  cursor += strlen("Example");
 
-  // set `#admins=0`
-  buf[12] = 0;
-  buf[13] = 0;
+  // `#admins` takes 2 bytes
+  bytes[cursor + 0] = 0;
+  bytes[cursor + 1] = 0;
+  cursor += 2;
 
-  // set `#deps=0`
-  buf[14] = 0;
-  buf[15] = 0;
+  // `#deps` takes 2 bytes
+  bytes[cursor + 0] = 0;
+  bytes[cursor + 1] = 0;
+  cursor += 2;
 
-  // set `page_count=0`
-  buf[16] = 0;
-  buf[17] = 0;
+  // `#page_count` takes 2 bytes
+  bytes[cursor + 0] = 0;
+  bytes[cursor + 1] = 0;
+  cursor += 2;
 
   // set template code length (big-endian)
   uint8_t* code_length = (uint8_t*)&file.length;
@@ -133,15 +140,17 @@ svm_byte_array deploy_template_bytes() {
   for (int i = 0; i < 8; i++) {
     // we assume `code_length` is in Little-Endian order,
     // so we reverse it since a raw template format expects it in Big-Endian order.
-    buf[18 + i] = code_length[7 - i];
+    bytes[cursor + i] = code_length[7 - i];
   }
+  cursor += 8;
 
   // copy template code
-  memcpy(&buf[26], file.bytes, file.length);
+  memcpy(&bytes[cursor], file.bytes, file.length);
 
-  svm_byte_array template;
-  template.bytes = buf;
-  template.length = length;
+  svm_byte_array template = {
+    .bytes = bytes,
+    .length = length
+  };
 
   return template;
 }
@@ -153,26 +162,33 @@ svm_byte_array spawn_app_bytes(svm_byte_array template_addr) {
     1 +  // ctor #slices
     1;   // ctor func #args
 
-  uint8_t* buf = (uint8_t*)(malloc(length));
+  uint8_t* bytes = (uint8_t*)(malloc(length));
+
+  uint32_t cursor = 0;
 
   // set `proto=0`
-  buf[0] = 0;
-  buf[1] = 0;
-  buf[2] = 0;
-  buf[3] = 0;
+  bytes[0] = 0;
+  bytes[1] = 0;
+  bytes[2] = 0;
+  bytes[3] = 0;
+  cursor += 4;
 
   // copy `template` address
-  memcpy(&buf[4], template_addr.bytes, template_addr.length);
+  memcpy(&bytes[cursor], template_addr.bytes, template_addr.length);
+  cursor += template_addr.length;
 
-  // set `ctor #slices = 0`
-  buf[4 + template_addr.length] = 0;
+  // `ctor buf #slices` take 1 byte 
+  bytes[cursor] = 0; // no `ctor func buf`
+  cursor += 1;
 
-  // set `ctor func #args = 0`
-  buf[5 + template_addr.length] = 0;
+  // `ctor #args` take 1 byte 
+  bytes[cursor] = 0; // no `ctor func args`
+  cursor += 1;
 
-  svm_byte_array app;
-  app.bytes = buf;
-  app.length = length;
+  svm_byte_array app = {
+    .bytes =bytes,
+    .length = length
+  };
 
   return app;
 }
@@ -491,21 +507,21 @@ int main() {
 
   // 3) Exec App
   /* a) First we want to assert that the counter has been initialized with `9` as expected (see `create_import_object` above)  */
-  void* sender = alloc_sender_addr();
-  svm_byte_array get_func_name = { .bytes = (const uint8_t*)"get", .length = strlen("get") };
-  svm_func_buf_t get_func_buf = { .slice_count = 0, .slices = NULL };
-  svm_func_args_t get_func_args = { .arg_count = 0, .bytes = NULL };
-  /* svm_func_arg_t get_func_arg = { .type = SVM_I32, .bytes = int32_arg_new(init_counter) }; */
+  /* void* sender = alloc_sender_addr(); */
+  /* svm_byte_array get_func_name = { .bytes = (const uint8_t*)"get", .length = strlen("get") }; */
+  /* svm_func_buf_t get_func_buf = { .slice_count = 0, .slices = NULL }; */
+  /* svm_func_args_t get_func_args = { .arg_count = 0, .bytes = NULL }; */
+  /* /\* svm_func_arg_t get_func_arg = { .type = SVM_I32, .bytes = int32_arg_new(init_counter) }; *\/ */
 
-  bytes = exec_app_bytes(
-      (void*)app_addr.bytes,
-      get_func_name,
-      get_func_buf,
-      get_func_args);
+  /* bytes = exec_app_bytes( */
+  /*     (void*)app_addr.bytes, */
+  /*     get_func_name, */
+  /*     get_func_buf, */
+  /*     get_func_args); */
 
-  void *app_tx = NULL; 
-  svm_result_t res = svm_parse_exec_app(&app_tx, runtime, sender, bytes);
-  assert(res == SVM_SUCCESS); 
+  /* void *app_tx = NULL;  */
+  /* svm_result_t res = svm_parse_exec_app(&app_tx, runtime, sender, bytes); */
+  /* assert(res == SVM_SUCCESS);  */
 
   /* void *receipt = NULL; */
   /* uint8_t *state = alloc_empty_state(); */
