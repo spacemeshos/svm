@@ -186,7 +186,7 @@ svm_byte_array spawn_app_bytes(svm_byte_array template_addr) {
   cursor += 1;
 
   svm_byte_array app = {
-    .bytes =bytes,
+    .bytes = bytes,
     .length = length
   };
 
@@ -223,7 +223,7 @@ svm_byte_array host_ctx_empty_bytes() {
 }
 
 svm_byte_array exec_app_bytes(
-    void* app_addr,
+    svm_byte_array app_addr,
     svm_byte_array func_name,
     svm_func_buf_t func_buf,
     svm_func_args_t func_args
@@ -247,11 +247,12 @@ svm_byte_array exec_app_bytes(
   cursor += 4;
 
   // set `app` address
-  memcpy(&bytes[cursor], app_addr, 20);
-  cursor += 20;
+  memcpy(&bytes[cursor], app_addr.bytes, app_addr.length);
+  cursor += app_addr.length;
   
   // `name length` consumes 1 byte
-  bytes[cursor] = 1; 
+  assert(func_name.length <= 0xFF);
+  bytes[cursor] = (uint8_t)func_name.length; 
   cursor += 1;
 
   // set `name length`
@@ -261,7 +262,7 @@ svm_byte_array exec_app_bytes(
   // function buf
 
   //// `func buf #slices` conumes 1 byte
-  bytes[cursor] = 1; 
+  bytes[cursor] = func_buf.slice_count; 
   cursor += 1;
 
   for (uint8_t i = 0; i < func_buf.slice_count; i++) {
@@ -285,7 +286,7 @@ svm_byte_array exec_app_bytes(
   // function args
 
   //// `func #args` consumes 1 byte
-  bytes[cursor] = 1; 
+  bytes[cursor] = func_args.arg_count; 
   cursor += 1;
 
   //// copy `func args` to `buf`
@@ -331,6 +332,7 @@ svm_byte_array exec_app_bytes(
 host_t* host_new(uint32_t counter_initial) {
   host_t* host = (host_t*)malloc(sizeof(host_t));
   host->counter = counter_initial;
+
   return host;
 }
 
@@ -494,9 +496,10 @@ spawned_app_t simulate_spawn_app(void* runtime, svm_byte_array bytes, void* crea
   }
   printf("\n\n");
 
-  spawned_app_t spawned;
-  spawned.app_addr = app_addr;
-  spawned.init_state = init_state;
+  spawned_app_t spawned = {
+    .app_addr = app_addr,
+    .init_state = init_state
+  };
   return spawned;
 }
   
@@ -516,32 +519,26 @@ int main() {
   bytes = spawn_app_bytes(template_addr);
   spawned_app_t spawned = simulate_spawn_app(runtime, bytes, creator);
   svm_byte_array app_addr = spawned.app_addr;
-  svm_byte_array init_state = spawned.init_state;
+  void* init_state = (void*)spawned.init_state.bytes;
 
   // 3) Exec App
   /* a) First we want to assert that the counter has been initialized with `9` as expected (see `create_import_object` above)  */
-  /* void* sender = alloc_sender_addr(); */
-  /* svm_byte_array get_func_name = { .bytes = (const uint8_t*)"get", .length = strlen("get") }; */
-  /* svm_func_buf_t get_func_buf = { .slice_count = 0, .slices = NULL }; */
-  /* svm_func_args_t get_func_args = { .arg_count = 0, .bytes = NULL }; */
-  /* /\* svm_func_arg_t get_func_arg = { .type = SVM_I32, .bytes = int32_arg_new(init_counter) }; *\/ */
+  void* sender = alloc_sender_addr();
+  svm_byte_array get_func_name = { .bytes = (const uint8_t*)"get", .length = strlen("get") };
+  svm_func_buf_t get_func_buf = { .slice_count = 0, .slices = NULL };
+  svm_func_args_t get_func_args = { .arg_count = 0, .args = NULL };
 
-  /* bytes = exec_app_bytes( */
-  /*     (void*)app_addr.bytes, */
-  /*     get_func_name, */
-  /*     get_func_buf, */
-  /*     get_func_args); */
+  bytes = exec_app_bytes(app_addr, get_func_name, get_func_buf, get_func_args);
 
-  /* void *app_tx = NULL;  */
-  /* svm_result_t res = svm_parse_exec_app(&app_tx, runtime, sender, bytes); */
-  /* assert(res == SVM_SUCCESS);  */
+  void *app_tx = NULL;
+  svm_result_t res = svm_parse_exec_app(&app_tx, runtime, sender, bytes);
+  assert(res == SVM_SUCCESS);
 
-  /* void *receipt = NULL; */
-  /* uint8_t *state = alloc_empty_state(); */
-  /* res = svm_exec_app(&receipt, runtime, app_tx, (void*)state); */
-  /* assert(res == SVM_SUCCESS); */
+  svm_byte_array receipt;
+  svm_byte_array host_ctx = host_ctx_empty_bytes();
+  res = svm_exec_app(&receipt, runtime, app_tx, init_state, host_ctx);
+  assert(res == SVM_SUCCESS);
 
-  /* assert(svm_receipt_status(receipt) == true); */
   /* const uint8_t *new_state = svm_receipt_new_state(receipt); */
 
   /* printf("\n\nNew app state:\n"); */
