@@ -433,8 +433,8 @@ void* runtime_create(void* imports) {
   void *kv = NULL;
   svm_memory_kv_create(&kv);
 
-  uint32_t balance = 12;
-  host_t* host = host_new(balance);
+  uint32_t counter_init = 12;
+  host_t* host = host_new(counter_init);
 
   void *runtime = NULL;
   svm_result_t res = svm_memory_runtime_create(&runtime, kv, host, imports); 
@@ -654,7 +654,7 @@ void print_receipt(svm_receipt_t receipt) {
   }
 }
 
-svm_byte_array simulate_get_balance(void* runtime, svm_byte_array app_addr, void* state, void* sender) {
+svm_byte_array simulate_get_counter(void* runtime, svm_byte_array app_addr, void* state, void* sender) {
   svm_byte_array func_name = { .bytes = (const uint8_t*)"get", .length = strlen("get") };
   svm_func_buf_t func_buf = { .slice_count = 0, .slices = NULL };
   svm_func_args_t func_args = { .arg_count = 0, .args = NULL };
@@ -677,7 +677,7 @@ svm_byte_array simulate_get_balance(void* runtime, svm_byte_array app_addr, void
   return encoded_receipt;
 }
 
-svm_byte_array simulate_inc_balance(void* runtime, svm_byte_array app_addr, void* state, void* sender, uint32_t inc_by) {
+svm_byte_array simulate_inc_counter(void* runtime, svm_byte_array app_addr, void* state, void* sender, uint32_t inc_by) {
   svm_byte_array func_name = { .bytes = (const uint8_t*)"inc", .length = strlen("inc") };
   svm_func_buf_t func_buf = { .slice_count = 0, .slices = NULL };
 
@@ -744,9 +744,9 @@ int main() {
   svm_byte_array_destroy(bytes);
 
   // 3) Exec App
-  //// a) First we want to assert that the counter has been initialized as expected (see `create_import_object` above)  
+  //// a) Query for the initialized counter value
   void* sender = alloc_sender_addr();
-  enc_receipt = simulate_get_balance(runtime, app_addr, init_state, sender);
+  enc_receipt = simulate_get_counter(runtime, app_addr, init_state, sender);
   receipt = decode_receipt(enc_receipt);
   print_receipt(receipt);
   receipts[0] = &receipt;
@@ -757,14 +757,14 @@ int main() {
 
   void* new_state = (void*)receipt.new_state.bytes;
   uint32_t inc_by = 7;
-  enc_receipt = simulate_inc_balance(runtime, app_addr, new_state, sender, inc_by); 
+  enc_receipt = simulate_inc_counter(runtime, app_addr, new_state, sender, inc_by); 
   receipt = decode_receipt(enc_receipt);
   print_receipt(receipt);
   receipts[1] = &receipt;
   svm_byte_array_destroy(enc_receipt);
 
-  //// c) Query the new balance
-  enc_receipt = simulate_get_balance(runtime, app_addr, init_state, sender);
+  //// c) Query for the new counter value
+  enc_receipt = simulate_get_counter(runtime, app_addr, init_state, sender);
   receipt = decode_receipt(enc_receipt);
   print_receipt(receipt);
   receipts[2] = &receipt;
