@@ -16,30 +16,24 @@ use crate::{
 
 macro_rules! addr_to_svm_byte_array {
     ($raw_byte_array:expr, $addr:expr) => {{
-        type_to_svm_byte_array!($raw_byte_array, $addr, Address::len());
+        let (ptr, _len, _cap) = $addr.into_raw_parts();
+        to_svm_byte_array!($raw_byte_array, ptr, Address::len());
     }};
 }
 
 macro_rules! state_to_svm_byte_array {
     ($raw_byte_array:expr, $state:expr) => {{
-        type_to_svm_byte_array!($raw_byte_array, $state, State::len());
-    }};
-}
-
-macro_rules! type_to_svm_byte_array {
-    ($raw_byte_array:expr, $ty:expr, $length:expr) => {{
-        let bytes = $ty.into_inner();
-        let ptr = svm_common::into_raw(bytes);
-
-        to_svm_byte_array!($raw_byte_array, ptr as *const u8, $length);
+        let (ptr, _len, _cap) = $state.into_raw_parts();
+        to_svm_byte_array!($raw_byte_array, ptr, State::len());
     }};
 }
 
 macro_rules! vec_to_svm_byte_array {
     ($raw_byte_array:expr, $vec:expr) => {{
-        let ptr = $vec.as_ptr();
         let len = $vec.len();
-        std::mem::forget($vec);
+        $vec.truncate(len);
+
+        let (ptr, _len, _cap) = $vec.into_raw_parts();
 
         to_svm_byte_array!($raw_byte_array, ptr, len);
     }};
@@ -270,7 +264,7 @@ pub unsafe extern "C" fn svm_parse_exec_app(
             debug!("`svm_parse_exec_app` returns `SVM_SUCCESS`");
             svm_result_t::SVM_SUCCESS
         }
-        Err(_error) => {
+        Err(_e) => {
             // update_last_error(error);
             error!("`svm_parse_exec_app` returns `SVM_FAILURE`");
             svm_result_t::SVM_FAILURE
@@ -308,7 +302,7 @@ pub unsafe extern "C" fn svm_exec_app(
 
     match runtime.exec_app(app_tx, state, host_ctx) {
         Ok(ref receipt) => {
-            let bytes = crate::receipt::encode_receipt(receipt);
+            let mut bytes = crate::receipt::encode_receipt(receipt);
 
             // returning encoded `Receipt` as `svm_byte_array`
             // should call later `svm_receipt_destroy`
