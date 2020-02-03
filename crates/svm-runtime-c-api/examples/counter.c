@@ -44,6 +44,7 @@ typedef struct {
   bool success;
   uint8_t count;
   svm_func_ret_t *returns;
+  
   svm_byte_array new_state;
   char* error;
 } svm_receipt_t;
@@ -574,6 +575,8 @@ svm_byte_array simulate_deploy_template(void* runtime, svm_byte_array bytes, voi
   }
   printf("\n\n");
 
+  svm_byte_array_destroy(host_ctx);
+
   return template_addr;
 }
 
@@ -599,10 +602,13 @@ spawned_app_t simulate_spawn_app(void* runtime, svm_byte_array bytes, void* crea
   }
   printf("\n\n");
 
+  svm_byte_array_destroy(host_ctx);
+
   spawned_app_t spawned = {
     .app_addr = app_addr,
     .init_state = init_state
   };
+
   return spawned;
 }
 
@@ -665,6 +671,9 @@ svm_byte_array simulate_get_balance(void* runtime, svm_byte_array app_addr, void
   res = svm_exec_app(&encoded_receipt, runtime, app_tx, state, host_ctx);
   assert(res == SVM_SUCCESS);
 
+  svm_byte_array_destroy(bytes);
+  svm_byte_array_destroy(host_ctx);
+
   return encoded_receipt;
 }
 
@@ -696,12 +705,26 @@ svm_byte_array simulate_inc_balance(void* runtime, svm_byte_array app_addr, void
   res = svm_exec_app(&encoded_receipt, runtime, app_tx, state, host_ctx);
   assert(res == SVM_SUCCESS);
 
+  svm_byte_array_destroy(bytes);
+  svm_byte_array_destroy(host_ctx);
+
   return encoded_receipt;
+}
+
+void receipt_destroy(svm_receipt_t* receipt) {
+  if (receipt->error) {
+    free(receipt->error);
+  }
+  else {
+    /* free(receipt->returns); */
+    /* svm_byte_array_destroy(receipt->new_state);  */
+  }
 }
   
 int main() {
   svm_byte_array bytes, enc_receipt;
   svm_receipt_t receipt;
+  svm_receipt_t* receipts[3];
 
   void* imports = imports_build();
   void* runtime = runtime_create(imports);
@@ -710,6 +733,7 @@ int main() {
   void* author = alloc_author_addr();
   bytes = deploy_template_bytes(); 
   svm_byte_array template_addr = simulate_deploy_template(runtime, bytes, author);
+  svm_byte_array_destroy(bytes);
 
   // 2) Spawn App 
   void* creator = alloc_creator_addr();
@@ -717,6 +741,7 @@ int main() {
   spawned_app_t spawned = simulate_spawn_app(runtime, bytes, creator);
   svm_byte_array app_addr = spawned.app_addr;
   void* init_state = (void*)spawned.init_state.bytes;
+  svm_byte_array_destroy(bytes);
 
   // 3) Exec App
   //// a) First we want to assert that the counter has been initialized as expected (see `create_import_object` above)  
@@ -724,6 +749,8 @@ int main() {
   enc_receipt = simulate_get_balance(runtime, app_addr, init_state, sender);
   receipt = decode_receipt(enc_receipt);
   print_receipt(receipt);
+  receipts[0] = &receipt;
+  svm_byte_array_destroy(enc_receipt);
 
   //// b) Increment the counter 
   printf("\n");
@@ -733,13 +760,30 @@ int main() {
   enc_receipt = simulate_inc_balance(runtime, app_addr, new_state, sender, inc_by); 
   receipt = decode_receipt(enc_receipt);
   print_receipt(receipt);
+  receipts[1] = &receipt;
+  svm_byte_array_destroy(enc_receipt);
 
   //// c) Query the new balance
   enc_receipt = simulate_get_balance(runtime, app_addr, init_state, sender);
   receipt = decode_receipt(enc_receipt);
   print_receipt(receipt);
+  receipts[2] = &receipt;
+  svm_byte_array_destroy(enc_receipt);
 
-  // destroy...
+  // Reclaiming resources
+  free(author);
+  free(creator);
+  free(sender);
+
+  for (uint8_t i = 0; i < 3; i++) {
+    receipt_destroy(receipts[i]);
+    receipts[i] = NULL;
+  }
+
+  svm_byte_array_destroy(template_addr);
+  svm_byte_array_destroy(app_addr);
+  free(init_state);
+
   svm_runtime_destroy(runtime);
   svm_imports_destroy(imports);
 }
