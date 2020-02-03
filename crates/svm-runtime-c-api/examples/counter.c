@@ -314,17 +314,11 @@ svm_byte_array exec_app_bytes(
     cursor += 1;
 
     if (arg_type == SVM_I32) {
-      for (uint8_t off = 0; off < 4; off++) {
-	bytes[cursor + off] = *(arg.bytes + 3 - off); 
-      }
-
+      memcpy(&bytes[cursor], arg.bytes, 4);
       cursor += 4; //// arg value takes 4 bytes
     }
     else if (arg_type == SVM_I64) {
-      for (uint8_t off = 0; off < 8; off++) {
-	bytes[cursor + off] = *(arg.bytes + 7 - off); 
-      }
-      
+      memcpy(&bytes[cursor], arg.bytes, 8);
       cursor += 8; //// arg value takes 8 bytes
     }
     else {
@@ -680,12 +674,14 @@ svm_byte_array simulate_inc_balance(void* runtime, svm_byte_array app_addr, void
 
   uint8_t arg_bytes[4];
   for (uint8_t i = 0; i < 4; i++) {
-    arg_bytes[i] = (inc_by >> (3 - i) & 0xFF);
+    uint8_t off = 24 - i * 8;
+    arg_bytes[i] = ((inc_by >> off) & 0xFF);
   }
 
-  svm_func_arg_t arg;
-  arg.type = (svm_value_type)SVM_I32;
-  arg.bytes = (uint8_t*)&arg_bytes[0];
+  svm_func_arg_t arg = {
+    .type = (svm_value_type)SVM_I32,
+    .bytes = (uint8_t*)&arg_bytes[0]
+  };
 
   svm_func_args_t func_args = { .arg_count = 1, .args = &arg };
   svm_byte_array bytes = exec_app_bytes(app_addr, func_name, func_buf, func_args);
@@ -704,7 +700,8 @@ svm_byte_array simulate_inc_balance(void* runtime, svm_byte_array app_addr, void
 }
   
 int main() {
-  svm_byte_array bytes;
+  svm_byte_array bytes, enc_receipt;
+  svm_receipt_t receipt;
 
   void* imports = imports_build();
   void* runtime = runtime_create(imports);
@@ -724,50 +721,23 @@ int main() {
   // 3) Exec App
   //// a) First we want to assert that the counter has been initialized as expected (see `create_import_object` above)  
   void* sender = alloc_sender_addr();
-  svm_byte_array enc_receipt = simulate_get_balance(runtime, app_addr, init_state, sender);
-  svm_receipt_t receipt = decode_receipt(enc_receipt);
+  enc_receipt = simulate_get_balance(runtime, app_addr, init_state, sender);
+  receipt = decode_receipt(enc_receipt);
   print_receipt(receipt);
 
   //// b) Increment the counter 
+  printf("\n");
+
   void* new_state = (void*)receipt.new_state.bytes;
   uint32_t inc_by = 7;
-  simulate_inc_balance(runtime, app_addr, new_state, sender, inc_by); 
+  enc_receipt = simulate_inc_balance(runtime, app_addr, new_state, sender, inc_by); 
+  receipt = decode_receipt(enc_receipt);
+  print_receipt(receipt);
 
-  /* uint8_t *arg = int32_arg_new(7); */
-
-  /*new_state_bytes,  length = exec_app_byte
-  /*     sender_addr, */
-  /*     app_addr, */
-  /*     "inc", */
-  /*     strlen("inc"), */
-  /*     1,     // `args_count = 1` */
-  /*     arg,   // `args_buf = [1, 0, 0, 0, 7]` */
-  /* assert(res == SVM_SUCCESS); */
-  /* free(bytes); */
-
-  /* res = svm_exec_app(&receipt, runtime, app_tx, (void*)new_state); */
-  /* assert(res == SVM_SUCCESS); */
-  /* assert(svm_receipt_status(receipt) == true); */
-
-  /* svm_receipt_results(&results, receipt, &results_len); */
-  /* assert(results_len == 0); */
-
-  /* length = exec_app_bytes( */
-  /*     &bytes, */
-  /*     app_addr, */
-  /*     "get", */
-  /*     strlen("get"), */
-  /*     0,    // `args_count = 0` */
-  /*     NULL, // `args_buf = NULL` */
-  /*     0);   // `args_buf_len = 0` */
-
-  /* res = svm_parse_exec_app(&app_tx, runtime, bytes, length); */
-  /* assert(res == SVM_SUCCESS); */
-  /* free(bytes); */
-  /* assert(res == SVM_SUCCESS); */
-
-  /* svm_receipt_results(&results, receipt, &results_len); */
-  /* assert(results_len == 1); */
+  //// c) Query the new balance
+  enc_receipt = simulate_get_balance(runtime, app_addr, init_state, sender);
+  receipt = decode_receipt(enc_receipt);
+  print_receipt(receipt);
 
   // destroy...
   svm_runtime_destroy(runtime);
