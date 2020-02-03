@@ -56,10 +56,10 @@ pub fn parse_func_buf(cursor: &mut Cursor<&[u8]>) -> Result<Vec<BufferSlice>, Pa
 
     ensure_enough_bytes(&res, Field::FuncBufSlicesCount)?;
 
-    let args_count = res.unwrap();
+    let arg_count = res.unwrap();
     let mut slices = Vec::new();
 
-    for _ in 0..args_count {
+    for _ in 0..arg_count {
         let slice_len = read_u16(cursor, Field::FuncBufSliceLength)?;
 
         let data = read_buffer(cursor, slice_len as usize, Field::FuncBufSlice)?;
@@ -73,11 +73,11 @@ pub fn parse_func_buf(cursor: &mut Cursor<&[u8]>) -> Result<Vec<BufferSlice>, Pa
 
 #[must_use]
 pub fn parse_func_args(cursor: &mut Cursor<&[u8]>) -> Result<Vec<WasmValue>, ParseError> {
-    let args_count = helpers::read_u8(cursor, Field::FuncArgsCount)?;
+    let arg_count = helpers::read_u8(cursor, Field::FuncArgsCount)?;
 
-    let mut args = Vec::with_capacity(args_count as usize);
+    let mut args = Vec::with_capacity(arg_count as usize);
 
-    for _ in 0..args_count {
+    for _ in 0..arg_count {
         let arg = parse_func_arg(cursor)?;
         args.push(arg);
     }

@@ -1,8 +1,8 @@
 //!    Execute `AppTransaction` Raw Format Version 0.0.0.0
 //!  -------------------------------------------------------
 //!  |   proto    |                                        |
-//!  |  version   |           `TemplateAddress`            |
-//!  |  (4 bytes) |             (20 bytes)                 |
+//!  |  version   |             `AppAddress`               |
+//!  |  (4 bytes) |              (20 bytes)                |
 //!  |____________|________________________________________|
 //!  |             |                                       |
 //!  |  func name  |                                       |

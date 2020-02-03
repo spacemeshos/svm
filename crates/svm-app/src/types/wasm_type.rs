@@ -14,8 +14,8 @@ pub enum WasmType {
 impl Into<u8> for WasmType {
     fn into(self) -> u8 {
         match self {
-            WasmType::I32 => 0,
-            WasmType::I64 => 1,
+            WasmType::I32 => 1,
+            WasmType::I64 => 2,
         }
     }
 }
@@ -32,8 +32,8 @@ impl TryFrom<u8> for WasmType {
 
     fn try_from(value: u8) -> Result<WasmType, WasmConvertTypeError> {
         match value {
-            0 => Ok(WasmType::I32),
-            1 => Ok(WasmType::I64),
+            1 => Ok(WasmType::I32),
+            2 => Ok(WasmType::I64),
             _ => Err(WasmConvertTypeError::UnsupportedType(value)),
         }
     }
