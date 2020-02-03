@@ -655,11 +655,11 @@ void print_receipt(svm_receipt_t receipt) {
 }
 
 svm_byte_array simulate_get_balance(void* runtime, svm_byte_array app_addr, void* state, void* sender) {
-  svm_byte_array get_func_name = { .bytes = (const uint8_t*)"get", .length = strlen("get") };
-  svm_func_buf_t get_func_buf = { .slice_count = 0, .slices = NULL };
-  svm_func_args_t get_func_args = { .arg_count = 0, .args = NULL };
+  svm_byte_array func_name = { .bytes = (const uint8_t*)"get", .length = strlen("get") };
+  svm_func_buf_t func_buf = { .slice_count = 0, .slices = NULL };
+  svm_func_args_t func_args = { .arg_count = 0, .args = NULL };
 
-  svm_byte_array bytes = exec_app_bytes(app_addr, get_func_name, get_func_buf, get_func_args);
+  svm_byte_array bytes = exec_app_bytes(app_addr, func_name, func_buf, func_args);
 
   void *app_tx = NULL;
   svm_result_t res = svm_parse_exec_app(&app_tx, runtime, sender, bytes);
@@ -667,6 +667,36 @@ svm_byte_array simulate_get_balance(void* runtime, svm_byte_array app_addr, void
 
   svm_byte_array encoded_receipt;
   svm_byte_array host_ctx = host_ctx_empty_bytes();
+
+  res = svm_exec_app(&encoded_receipt, runtime, app_tx, state, host_ctx);
+  assert(res == SVM_SUCCESS);
+
+  return encoded_receipt;
+}
+
+svm_byte_array simulate_inc_balance(void* runtime, svm_byte_array app_addr, void* state, void* sender, uint32_t inc_by) {
+  svm_byte_array func_name = { .bytes = (const uint8_t*)"inc", .length = strlen("inc") };
+  svm_func_buf_t func_buf = { .slice_count = 0, .slices = NULL };
+
+  uint8_t arg_bytes[4];
+  for (uint8_t i = 0; i < 4; i++) {
+    arg_bytes[i] = (inc_by >> (3 - i) & 0xFF);
+  }
+
+  svm_func_arg_t arg;
+  arg.type = (svm_value_type)SVM_I32;
+  arg.bytes = (uint8_t*)&arg_bytes[0];
+
+  svm_func_args_t func_args = { .arg_count = 1, .args = &arg };
+  svm_byte_array bytes = exec_app_bytes(app_addr, func_name, func_buf, func_args);
+
+  void *app_tx = NULL;
+  svm_result_t res = svm_parse_exec_app(&app_tx, runtime, sender, bytes);
+  assert(res == SVM_SUCCESS);
+
+  svm_byte_array encoded_receipt;
+  svm_byte_array host_ctx = host_ctx_empty_bytes();
+
   res = svm_exec_app(&encoded_receipt, runtime, app_tx, state, host_ctx);
   assert(res == SVM_SUCCESS);
 
@@ -698,8 +728,10 @@ int main() {
   svm_receipt_t receipt = decode_receipt(enc_receipt);
   print_receipt(receipt);
 
-  //// b) Now, let's increment the counter by `7` 
-  /* simulate_inc_balance(runtime, app_addr, init_state, sender); */
+  //// b) Increment the counter 
+  void* new_state = (void*)receipt.new_state.bytes;
+  uint32_t inc_by = 7;
+  simulate_inc_balance(runtime, app_addr, new_state, sender, inc_by); 
 
   /* uint8_t *arg = int32_arg_new(7); */
 
