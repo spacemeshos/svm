@@ -612,9 +612,7 @@ spawned_app_t simulate_spawn_app(void* runtime, svm_byte_array bytes, void* crea
   return spawned;
 }
 
-void print_receipt(svm_byte_array bytes) {
-  svm_receipt_t receipt = decode_receipt(bytes);
-
+void print_receipt(svm_receipt_t receipt) {
   if (receipt.success == true) {
     svm_byte_array new_state = receipt.new_state;
 
@@ -655,6 +653,25 @@ void print_receipt(svm_byte_array bytes) {
     // ...
   }
 }
+
+svm_byte_array simulate_get_balance(void* runtime, svm_byte_array app_addr, void* state, void* sender) {
+  svm_byte_array get_func_name = { .bytes = (const uint8_t*)"get", .length = strlen("get") };
+  svm_func_buf_t get_func_buf = { .slice_count = 0, .slices = NULL };
+  svm_func_args_t get_func_args = { .arg_count = 0, .args = NULL };
+
+  svm_byte_array bytes = exec_app_bytes(app_addr, get_func_name, get_func_buf, get_func_args);
+
+  void *app_tx = NULL;
+  svm_result_t res = svm_parse_exec_app(&app_tx, runtime, sender, bytes);
+  assert(res == SVM_SUCCESS);
+
+  svm_byte_array encoded_receipt;
+  svm_byte_array host_ctx = host_ctx_empty_bytes();
+  res = svm_exec_app(&encoded_receipt, runtime, app_tx, state, host_ctx);
+  assert(res == SVM_SUCCESS);
+
+  return encoded_receipt;
+}
   
 int main() {
   svm_byte_array bytes;
@@ -675,26 +692,15 @@ int main() {
   void* init_state = (void*)spawned.init_state.bytes;
 
   // 3) Exec App
-  /* a) First we want to assert that the counter has been initialized as expected (see `create_import_object` above)  */
+  //// a) First we want to assert that the counter has been initialized as expected (see `create_import_object` above)  
   void* sender = alloc_sender_addr();
-  svm_byte_array get_func_name = { .bytes = (const uint8_t*)"get", .length = strlen("get") };
-  svm_func_buf_t get_func_buf = { .slice_count = 0, .slices = NULL };
-  svm_func_args_t get_func_args = { .arg_count = 0, .args = NULL };
+  svm_byte_array enc_receipt = simulate_get_balance(runtime, app_addr, init_state, sender);
+  svm_receipt_t receipt = decode_receipt(enc_receipt);
+  print_receipt(receipt);
 
-  bytes = exec_app_bytes(app_addr, get_func_name, get_func_buf, get_func_args);
+  //// b) Now, let's increment the counter by `7` 
+  /* simulate_inc_balance(runtime, app_addr, init_state, sender); */
 
-  void *app_tx = NULL;
-  svm_result_t res = svm_parse_exec_app(&app_tx, runtime, sender, bytes);
-  assert(res == SVM_SUCCESS);
-
-  svm_byte_array encoded_receipt;
-  svm_byte_array host_ctx = host_ctx_empty_bytes();
-  res = svm_exec_app(&encoded_receipt, runtime, app_tx, init_state, host_ctx);
-  assert(res == SVM_SUCCESS);
-
-  print_receipt(encoded_receipt);
-
-  /* /\* 2) Now, let's increment the counter by `7` *\/ */
   /* uint8_t *arg = int32_arg_new(7); */
 
   /*new_state_bytes,  length = exec_app_byte
