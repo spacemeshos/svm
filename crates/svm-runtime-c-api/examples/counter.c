@@ -500,9 +500,13 @@ svm_receipt_t decode_receipt(svm_byte_array encoded_receipt) {
     uint8_t count = bytes[cursor];
     cursor += 1;
 
-    svm_func_ret_t* returns = (svm_func_ret_t*)(malloc(sizeof(svm_func_ret_t) * count));
-    if (returns == NULL) {
-      exit(-1);
+    svm_func_ret_t* returns = NULL;
+
+    if (count > 0) {
+      returns = (svm_func_ret_t*)(malloc(sizeof(svm_func_ret_t) * count));
+      if (returns == NULL) {
+	exit(-1);
+      }
     }
 
     for(uint8_t i = 0; i < count; i++) {
@@ -711,20 +715,21 @@ svm_byte_array simulate_inc_counter(void* runtime, svm_byte_array app_addr, void
   return encoded_receipt;
 }
 
-void receipt_destroy(svm_receipt_t* receipt) {
-  if (receipt->error) {
-    free(receipt->error);
+void receipt_destroy(svm_receipt_t receipt) {
+  if (receipt.success) {
+    free(receipt.returns);
+    svm_byte_array_destroy(receipt.new_state); 
   }
   else {
-    /* free(receipt->returns); */
-    /* svm_byte_array_destroy(receipt->new_state);  */
+    free(receipt.error);
   }
 }
   
 int main() {
   svm_byte_array bytes, enc_receipt;
   svm_receipt_t receipt;
-  svm_receipt_t* receipts[3];
+  svm_receipt_t receipts[3];
+  svm_byte_array raw_receipts[3];
 
   void* imports = imports_build();
   void* runtime = runtime_create(imports);
@@ -749,8 +754,8 @@ int main() {
   enc_receipt = simulate_get_counter(runtime, app_addr, init_state, sender);
   receipt = decode_receipt(enc_receipt);
   print_receipt(receipt);
-  receipts[0] = &receipt;
-  svm_byte_array_destroy(enc_receipt);
+  receipts[0] = receipt;
+  raw_receipts[0] = enc_receipt;
 
   //// b) Increment the counter 
   printf("\n");
@@ -760,15 +765,15 @@ int main() {
   enc_receipt = simulate_inc_counter(runtime, app_addr, new_state, sender, inc_by); 
   receipt = decode_receipt(enc_receipt);
   print_receipt(receipt);
-  receipts[1] = &receipt;
-  svm_byte_array_destroy(enc_receipt);
+  receipts[1] = receipt;
+  raw_receipts[1] = enc_receipt;
 
   //// c) Query for the new counter value
   enc_receipt = simulate_get_counter(runtime, app_addr, init_state, sender);
   receipt = decode_receipt(enc_receipt);
   print_receipt(receipt);
-  receipts[2] = &receipt;
-  svm_byte_array_destroy(enc_receipt);
+  receipts[2] = receipt;
+  raw_receipts[2] = enc_receipt;
 
   // Reclaiming resources
   free(author);
@@ -777,12 +782,12 @@ int main() {
 
   for (uint8_t i = 0; i < 3; i++) {
     receipt_destroy(receipts[i]);
-    receipts[i] = NULL;
+    svm_byte_array_destroy(raw_receipts[i]); 
   }
 
   svm_byte_array_destroy(template_addr);
-  svm_byte_array_destroy(app_addr);
-  free(init_state);
+  svm_byte_array_destroy(spawned.app_addr);
+  svm_byte_array_destroy(spawned.init_state);
 
   svm_runtime_destroy(runtime);
   svm_imports_destroy(imports);
