@@ -35,27 +35,17 @@ typedef struct {
 } svm_func_args_t;
 
 typedef struct {
-  svm_value_type type;
-
-  union {
-    uint32_t i32_value;
-  };
-  union {
-    uint64_t i64_value;
-  };
+  uint8_t type;
+  uint32_t i32_value;
+  uint64_t i64_value;
 } svm_func_ret_t;
 
 typedef struct {
   bool success;
-
-  union {
-    uint8_t count;
-    svm_func_ret_t *returns;
-    svm_byte_array new_state;
-  };
-  union {
-    char* error;
-  };
+  uint8_t count;
+  svm_func_ret_t *returns;
+  svm_byte_array new_state;
+  char* error;
 } svm_receipt_t;
 
 uint32_t func_buf_length(svm_func_buf_t func_buf) {
@@ -483,7 +473,6 @@ void* alloc_empty_state() {
 
 svm_receipt_t decode_receipt(svm_byte_array encoded_receipt) {
   uint32_t cursor = 0;
-  svm_receipt_t receipt;
 
   const uint8_t* bytes = encoded_receipt.bytes;
 
@@ -496,7 +485,7 @@ svm_receipt_t decode_receipt(svm_byte_array encoded_receipt) {
   cursor += 1;
 
   if (success) {
-    receipt.success = true; 
+    assert(cursor == 5);
 
     // `new state`
     uint8_t* new_state_bytes = (uint8_t*)malloc(sizeof(uint8_t) * 32);
@@ -512,25 +501,19 @@ svm_receipt_t decode_receipt(svm_byte_array encoded_receipt) {
     new_state.bytes = new_state_bytes;
     new_state.length = 32;
 
-    receipt.new_state = new_state;
-
     // `#returns`
     uint8_t count = bytes[cursor];
     cursor += 1;
 
-    svm_func_ret_t* rets = (svm_func_ret_t*)(malloc(sizeof(svm_func_ret_t) * count)); 
-    if (rets == NULL) {
+    svm_func_ret_t* returns = (svm_func_ret_t*)(malloc(sizeof(svm_func_ret_t) * count));
+    if (returns == NULL) {
       exit(-1);
     }
 
-    receipt.count = count;
-    receipt.returns = rets;
-
     for(uint8_t i = 0; i < count; i++) {
-      svm_func_ret_t *ret = rets + i;
+      svm_func_ret_t *ret = returns + i;
 
       uint8_t ret_type = bytes[cursor];
-
       cursor += 1;
 
       ret->type = ret_type;
@@ -538,39 +521,49 @@ svm_receipt_t decode_receipt(svm_byte_array encoded_receipt) {
       if (ret_type == SVM_I32) {
         uint32_t i32_value = 0;
 
-	for(uint8_t off = 0; off < 4; off++) {
-	  uint8_t byte = bytes[cursor];
-	  cursor += 1;
+    	for(uint8_t off = 0; off < 4; off++) {
+    	  uint8_t byte = bytes[cursor];
+    	  cursor += 1;
 
-	  i32_value += (byte << (3 - off));
-	}
+    	  i32_value += (byte << (3 - off));
+    	}
 
-	ret->i32_value = i32_value;
+    	ret->i32_value = i32_value;
       }
       else if (ret_type == SVM_I64) {
         uint64_t i64_value = 0;
 
-	for(uint8_t off = 0; off <8; off++) {
-	  uint8_t byte = bytes[cursor];
-	  cursor += 1;
+    	for(uint8_t off = 0; off <8; off++) {
+    	  uint8_t byte = bytes[cursor];
+    	  cursor += 1;
 
-	  i64_value += (byte << (7 - off));
-	}
+    	  i64_value += (byte << (7 - off));
+    	}
 
-	ret->i64_value = i64_value;
+    	ret->i64_value = i64_value;
       }
       else {
-	exit(-1);
+    	exit(-1);
       }
     }
+
+    svm_receipt_t receipt = {
+      .success = true,
+      .count = count,
+      .returns = returns, 
+      .new_state = new_state,
+      .error = NULL
+    };
+
+    return receipt;
   }
   else {
-    receipt.success = false;
+    svm_receipt_t receipt = {
+      .success = false
+    };
+
+    return receipt;
   }
-
-  assert(cursor == encoded_receipt.length);
-
-  return receipt;
 }
 
 svm_byte_array simulate_deploy_template(void* runtime, svm_byte_array bytes, void* author) {
@@ -618,6 +611,50 @@ spawned_app_t simulate_spawn_app(void* runtime, svm_byte_array bytes, void* crea
   };
   return spawned;
 }
+
+void print_receipt(svm_byte_array bytes) {
+  svm_receipt_t receipt = decode_receipt(bytes);
+
+  if (receipt.success == true) {
+    svm_byte_array new_state = receipt.new_state;
+
+    printf("New app state:\n"); 
+
+    for (uint8_t i = 0; i < new_state.length; i++) {
+	printf("%02X ", new_state.bytes[i]);
+    }
+
+    if (receipt.count > 0) {
+	printf("\n\nReceipt returns:\n");
+
+	for (uint8_t i = 0; i < receipt.count; i++) {
+	    svm_func_ret_t* ret = &receipt.returns[i];
+
+	    if (i > 0) {
+		printf(", ");
+	    }
+
+	    if (ret->type == SVM_I32) {
+		printf("I32(%d)", ret->i32_value);
+	    }
+	    else if (ret->type == SVM_I64) {
+		printf("I64(%llu)", ret->i64_value);
+	    }
+	    else {
+		exit(-1);
+	    }
+        }
+
+	printf("\n");
+    }
+    else {
+	printf("\n\nReceipt has no returns:\n");
+    }
+  }
+  else {
+    // ...
+  }
+}
   
 int main() {
   svm_byte_array bytes;
@@ -655,26 +692,7 @@ int main() {
   res = svm_exec_app(&encoded_receipt, runtime, app_tx, init_state, host_ctx);
   assert(res == SVM_SUCCESS);
 
-  svm_receipt_t receipt = decode_receipt(encoded_receipt);
-
-  if (receipt.success) {
-    svm_byte_array new_state = receipt.new_state;
-
-    printf("New app state:\n");
-
-    for (uint32_t i = 0; i < new_state.length; i++) {
-    	printf("%02X ", new_state.bytes[i]);
-    }
-  }
-  else {
-  }
-
-
-  /* svm_value_t *results = NULL; */
-  /* uint32_t results_len; */
-  /* svm_receipt_results(&results, receipt, &results_len); */
-  /* assert(results_len == 1); */
-
+  print_receipt(encoded_receipt);
 
   /* /\* 2) Now, let's increment the counter by `7` *\/ */
   /* uint8_t *arg = int32_arg_new(7); */
