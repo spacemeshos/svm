@@ -302,6 +302,8 @@ pub unsafe extern "C" fn svm_exec_app(
 
     match runtime.exec_app(app_tx, state, host_ctx) {
         Ok(ref receipt) => {
+            dbg!(&receipt);
+
             let mut bytes = crate::receipt::encode_receipt(receipt);
 
             // returning encoded `Receipt` as `svm_byte_array`

@@ -34,6 +34,30 @@ typedef struct {
   svm_func_arg_t* args;
 } svm_func_args_t;
 
+typedef struct {
+  svm_value_type type;
+
+  union {
+    uint32_t i32_value;
+  };
+  union {
+    uint64_t i64_value;
+  };
+} svm_func_ret_t;
+
+typedef struct {
+  bool success;
+
+  union {
+    uint8_t count;
+    svm_func_ret_t *returns;
+    svm_byte_array new_state;
+  };
+  union {
+    char* error;
+  };
+} svm_receipt_t;
+
 uint32_t func_buf_length(svm_func_buf_t func_buf) {
   uint32_t acc = 0;
 
@@ -58,14 +82,14 @@ uint32_t func_args_length(svm_func_args_t func_args) {
 
     svm_value_type arg_type = arg.type;
     if (arg_type == SVM_I32) {
-      acc += 4; // arg takes 4 bytes
+      acc += 4; // `arg` takes 4 bytes
     }
     else if (arg_type == SVM_I64) {
-      acc += 8; // arg takes 8 bytes
+      acc += 8; // `arg` takes 8 bytes
     }
     else {
       // ilegal argument type
-      exit(1);
+      exit(-1);
     }
   }
 
@@ -315,7 +339,7 @@ svm_byte_array exec_app_bytes(
     }
     else {
       //// ilegal argument type
-      exit(1);
+      exit(-1);
     }
   }
 
@@ -424,7 +448,7 @@ void* runtime_create(void* imports) {
   void *kv = NULL;
   svm_memory_kv_create(&kv);
 
-  uint32_t balance = 10;
+  uint32_t balance = 12;
   host_t* host = host_new(balance);
 
   void *runtime = NULL;
@@ -455,6 +479,98 @@ void* alloc_empty_state() {
   uint8_t *state = (uint8_t*)malloc(32);
   memset(state, 0, 32);
   return (void*)state;
+}
+
+svm_receipt_t decode_receipt(svm_byte_array encoded_receipt) {
+  uint32_t cursor = 0;
+  svm_receipt_t receipt;
+
+  const uint8_t* bytes = encoded_receipt.bytes;
+
+  for (; cursor < 4; cursor++) {
+    assert(bytes[cursor] == 0);
+    cursor += 1;
+  }
+
+  uint8_t success = bytes[cursor];
+  cursor += 1;
+
+  if (success) {
+    receipt.success = true; 
+
+    // `new state`
+    uint8_t* new_state_bytes = (uint8_t*)malloc(sizeof(uint8_t) * 32);
+
+    if (new_state_bytes == NULL) {
+      exit(-1);
+    }
+
+    memcpy(new_state_bytes, bytes + cursor, 32);
+    cursor += 32;
+
+    svm_byte_array new_state;
+    new_state.bytes = new_state_bytes;
+    new_state.length = 32;
+
+    receipt.new_state = new_state;
+
+    // `#returns`
+    uint8_t count = bytes[cursor];
+    cursor += 1;
+
+    svm_func_ret_t* rets = (svm_func_ret_t*)(malloc(sizeof(svm_func_ret_t) * count)); 
+    if (rets == NULL) {
+      exit(-1);
+    }
+
+    receipt.count = count;
+    receipt.returns = rets;
+
+    for(uint8_t i = 0; i < count; i++) {
+      svm_func_ret_t *ret = rets + i;
+
+      uint8_t ret_type = bytes[cursor];
+
+      cursor += 1;
+
+      ret->type = ret_type;
+
+      if (ret_type == SVM_I32) {
+        uint32_t i32_value = 0;
+
+	for(uint8_t off = 0; off < 4; off++) {
+	  uint8_t byte = bytes[cursor];
+	  cursor += 1;
+
+	  i32_value += (byte << (3 - off));
+	}
+
+	ret->i32_value = i32_value;
+      }
+      else if (ret_type == SVM_I64) {
+        uint64_t i64_value = 0;
+
+	for(uint8_t off = 0; off <8; off++) {
+	  uint8_t byte = bytes[cursor];
+	  cursor += 1;
+
+	  i64_value += (byte << (7 - off));
+	}
+
+	ret->i64_value = i64_value;
+      }
+      else {
+	exit(-1);
+      }
+    }
+  }
+  else {
+    receipt.success = false;
+  }
+
+  assert(cursor == encoded_receipt.length);
+
+  return receipt;
 }
 
 svm_byte_array simulate_deploy_template(void* runtime, svm_byte_array bytes, void* author) {
@@ -522,7 +638,7 @@ int main() {
   void* init_state = (void*)spawned.init_state.bytes;
 
   // 3) Exec App
-  /* a) First we want to assert that the counter has been initialized with `9` as expected (see `create_import_object` above)  */
+  /* a) First we want to assert that the counter has been initialized as expected (see `create_import_object` above)  */
   void* sender = alloc_sender_addr();
   svm_byte_array get_func_name = { .bytes = (const uint8_t*)"get", .length = strlen("get") };
   svm_func_buf_t get_func_buf = { .slice_count = 0, .slices = NULL };
@@ -534,38 +650,42 @@ int main() {
   svm_result_t res = svm_parse_exec_app(&app_tx, runtime, sender, bytes);
   assert(res == SVM_SUCCESS);
 
-  svm_byte_array receipt;
+  svm_byte_array encoded_receipt;
   svm_byte_array host_ctx = host_ctx_empty_bytes();
-  res = svm_exec_app(&receipt, runtime, app_tx, init_state, host_ctx);
+  res = svm_exec_app(&encoded_receipt, runtime, app_tx, init_state, host_ctx);
   assert(res == SVM_SUCCESS);
 
-  /* const uint8_t *new_state = svm_receipt_new_state(receipt); */
+  svm_receipt_t receipt = decode_receipt(encoded_receipt);
 
-  /* printf("\n\nNew app state:\n"); */
-  /* for (int i = 0; i < 32; i++) { */
-  /*   printf("%02X ", new_state[i]); */
-  /* } */
+  if (receipt.success) {
+    svm_byte_array new_state = receipt.new_state;
+
+    printf("New app state:\n");
+
+    for (uint32_t i = 0; i < new_state.length; i++) {
+    	printf("%02X ", new_state.bytes[i]);
+    }
+  }
+  else {
+  }
+
 
   /* svm_value_t *results = NULL; */
   /* uint32_t results_len; */
   /* svm_receipt_results(&results, receipt, &results_len); */
   /* assert(results_len == 1); */
-  /* assert(results[0].value.I32 == 10); */
 
 
   /* /\* 2) Now, let's increment the counter by `7` *\/ */
   /* uint8_t *arg = int32_arg_new(7); */
 
-  /* length = exec_app_bytes( */
-  /*     &bytes, */
+  /*new_state_bytes,  length = exec_app_byte
   /*     sender_addr, */
   /*     app_addr, */
   /*     "inc", */
   /*     strlen("inc"), */
   /*     1,     // `args_count = 1` */
   /*     arg,   // `args_buf = [1, 0, 0, 0, 7]` */
-
-  /* res = svm_parse_exec_app(&app_tx, runtime, bytes, length); */
   /* assert(res == SVM_SUCCESS); */
   /* free(bytes); */
 
@@ -576,10 +696,8 @@ int main() {
   /* svm_receipt_results(&results, receipt, &results_len); */
   /* assert(results_len == 0); */
 
-  /* // 3) Now, we'll verify that the counter has been modified to `10 + 7 = 17` */
   /* length = exec_app_bytes( */
   /*     &bytes, */
-  /*     sender_addr, */
   /*     app_addr, */
   /*     "get", */
   /*     strlen("get"), */
@@ -590,18 +708,12 @@ int main() {
   /* res = svm_parse_exec_app(&app_tx, runtime, bytes, length); */
   /* assert(res == SVM_SUCCESS); */
   /* free(bytes); */
-
-  /* void*res = svm_exec_app(&receipt, runtime, app_tx, (void*)new_state); *\/ */
   /* assert(res == SVM_SUCCESS); */
 
   /* svm_receipt_results(&results, receipt, &results_len); */
   /* assert(results_len == 1); */
-  /* assert(results[0].value.I32 == 10 + 7); */
 
   // destroy...
   svm_runtime_destroy(runtime);
   svm_imports_destroy(imports);
-
-
-  return 0;
 }
