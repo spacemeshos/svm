@@ -1,7 +1,9 @@
 # abort on error
 set -e
 
+pushd ../../crates/svm-runtime-c-api
 cargo +nightly build --release
+popd
 
 unameOut="$(uname -s)"
 case "${unameOut}" in
@@ -10,7 +12,7 @@ case "${unameOut}" in
   *) ext=invalid;;
 esac
 
-mv ../../../target/release/libsvm_runtime_c_api.${ext} ./svm.${ext}
+mv ../../crates/svm-runtime-c-api/target/release/libsvm_runtime_c_api.${ext} ./svm.${ext}
 
 make counter
 

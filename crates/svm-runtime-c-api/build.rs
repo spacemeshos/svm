@@ -7,14 +7,14 @@ fn main() {
 }
 fn gen_for_c() {
     let crate_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
-    let header_name: &str = "svm";
+    let header_name = "svm";
 
     // set expand dir for macro expanding
     env::set_var("CARGO_EXPAND_TARGET_DIR", crate_dir.clone());
 
     // set target ouput dir for header
     let out_dir = env::var("OUT_DIR").unwrap();
-    let mut out_header = PathBuf::from(&out_dir).join("../../../");
+    let mut out_header = PathBuf::from(&out_dir);
     out_header.push(header_name);
     out_header.set_extension("h");
 
@@ -28,8 +28,8 @@ fn gen_for_c() {
         .expect("Unable to generate C bindings")
         .write_to_file(out_header.as_path());
 
-    // `examples`
-    let out_path = PathBuf::from("./examples");
+    // `root project examples/c`
+    let out_path = PathBuf::from("../../examples/c");
     let mut examples_header = PathBuf::from(&out_path);
     examples_header.push(header_name);
     examples_header.set_extension("h");
