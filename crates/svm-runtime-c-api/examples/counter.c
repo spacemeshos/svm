@@ -5,338 +5,25 @@
 #include <string.h>
 #include <assert.h>
 
+#include "wasm_file.h"
+#include "deploy_bytes.h"
+#include "spawn_app_bytes.h"
+#include "exec_app_bytes.h"
+
+#include "func_buf.h"
+#include "func_args.h"
+#include "func_rets.h"
+#include "receipt.h"
+#include "host_ctx.h"
+
 typedef struct {
   uint32_t counter;
 } host_t;
 
 typedef struct {
-  uint8_t* bytes;
-  long length;
-} wasm_file_t;
-
-typedef struct {
   svm_byte_array app_addr;
   svm_byte_array init_state;
 } spawned_app_t;
-
-typedef struct {
-  uint8_t slice_count;
-  svm_byte_array* slices;
-} svm_func_buf_t;
-
-typedef struct {
-  svm_value_type type;
-  uint8_t* bytes; 
-} svm_func_arg_t;
-
-typedef struct {
-  uint8_t arg_count;
-  svm_func_arg_t* args;
-} svm_func_args_t;
-
-typedef struct {
-  uint8_t type;
-  uint32_t i32_value;
-  uint64_t i64_value;
-} svm_func_ret_t;
-
-typedef struct {
-  bool success;
-  uint8_t count;
-  svm_func_ret_t *returns;
-  
-  svm_byte_array new_state;
-  char* error;
-} svm_receipt_t;
-
-uint32_t func_buf_length(svm_func_buf_t func_buf) {
-  uint32_t acc = 0;
-
-  acc += 1; // `#func-buf #slices` consumes 1 byte
-
-  for (uint8_t i = 0; i < func_buf.slice_count; i++) {
-    svm_byte_array slice = func_buf.slices[i];
-    acc += slice.length;
-  }
-
-  return acc;
-}
-
-uint32_t func_args_length(svm_func_args_t func_args) {
-  uint32_t acc = 0;
-
-  acc += 1; // `#func args` consumes 1 byte
-
-  for (uint8_t i = 0; i < func_args.arg_count; i++) {
-    svm_func_arg_t arg = func_args.args[i];
-    acc += 1; // `arg type` consumes 1 byte
-
-    svm_value_type arg_type = arg.type;
-    if (arg_type == SVM_I32) {
-      acc += 4; // `arg` takes 4 bytes
-    }
-    else if (arg_type == SVM_I64) {
-      acc += 8; // `arg` takes 8 bytes
-    }
-    else {
-      // ilegal argument type
-      exit(-1);
-    }
-  }
-
-  return acc;
-}
-
-wasm_file_t read_wasm_file(const char *file_name) {
-  wasm_file_t wasm_file;
-
-  FILE *file = fopen(file_name, "r");
-  fseek(file, 0, SEEK_END);
-  wasm_file.length = ftell(file);
-
-  wasm_file.bytes = malloc(wasm_file.length);
-  fseek(file, 0, SEEK_SET);
-  fread(wasm_file.bytes, 1, wasm_file.length, file);
-  fclose(file);
-
-  return wasm_file;
-}
-
-svm_byte_array deploy_template_bytes() {
-  wasm_file_t file = read_wasm_file("wasm/counter.wasm");
-
-  uint64_t length =
-    4  +  // proto version
-    1  +  // name length 
-    strlen("Example")  +  // length("Example")
-    2  +  // `#admins`    (we'll set it to `0`)
-    2  +  // `#deps`      (we'll set it to `0`)
-    2  +  // `page_count` (we'll set it to `0`)
-    8  +  //  code length (Big-Endian)
-    (uint64_t)file.length; // code
-
-  uint8_t* bytes = (uint8_t*)(malloc(length));
-
-  uint32_t cursor = 0;
-
-  // set `proto=0`
-  bytes[0] = 0;
-  bytes[1] = 0;
-  bytes[2] = 0;
-  bytes[3] = 0;
-  cursor += 4;
-
-  // name length takes 1 bytes
-  bytes[cursor] = strlen("Example");
-  cursor += 1;
-
-  const char* name = "Example";
-  memcpy(&bytes[cursor], name, strlen("Example"));
-  cursor += strlen("Example");
-
-  // `#admins` takes 2 bytes
-  bytes[cursor + 0] = 0;
-  bytes[cursor + 1] = 0;
-  cursor += 2;
-
-  // `#deps` takes 2 bytes
-  bytes[cursor + 0] = 0;
-  bytes[cursor + 1] = 0;
-  cursor += 2;
-
-  // `#page_count` takes 2 bytes
-  bytes[cursor + 0] = 0;
-  bytes[cursor + 1] = 0;
-  cursor += 2;
-
-  // set code-length (Big-Endian)
-  uint8_t* code_length = (uint8_t*)&file.length;
-
-  for (int i = 0; i < 8; i++) {
-    // we assume `code_length` is in Little-Endian order,
-    // so we reverse it since a raw template format expects it in Big-Endian order.
-    bytes[cursor + i] = code_length[7 - i];
-  }
-  cursor += 8;
-
-  // copy template code
-  memcpy(&bytes[cursor], file.bytes, file.length);
-
-  svm_byte_array template = {
-    .bytes = bytes,
-    .length = length
-  };
-
-  return template;
-}
-
-svm_byte_array spawn_app_bytes(svm_byte_array template_addr) {
-  uint64_t length =
-    4  +  // proto version
-    template_addr.length +  // length(`template_addr)
-    1 +  // ctor #slices
-    1;   // ctor func #args
-
-  uint8_t* bytes = (uint8_t*)(malloc(length));
-
-  uint32_t cursor = 0;
-
-  // set `proto=0`
-  bytes[0] = 0;
-  bytes[1] = 0;
-  bytes[2] = 0;
-  bytes[3] = 0;
-  cursor += 4;
-
-  // copy `template` address
-  memcpy(&bytes[cursor], template_addr.bytes, template_addr.length);
-  cursor += template_addr.length;
-
-  // `ctor buf #slices` take 1 byte 
-  bytes[cursor] = 0; // no `ctor func buf`
-  cursor += 1;
-
-  // `ctor #args` take 1 byte 
-  bytes[cursor] = 0; // no `ctor func args`
-  cursor += 1;
-
-  svm_byte_array app = {
-    .bytes = bytes,
-    .length = length
-  };
-
-  return app;
-}
-
-svm_byte_array host_ctx_empty_bytes() {
-  uint32_t length =
-    4  +  // proto version
-    2;   // #fields
-
-  uint8_t* bytes = (uint8_t*)(malloc(length));
-  
-  uint32_t cursor = 0;
-
-  // set `proto=0`
-  bytes[0] = 0;
-  bytes[1] = 0;
-  bytes[2] = 0;
-  bytes[3] = 0;
-  cursor += 4;
-
-  // set `#fields=0`
-  bytes[cursor + 0] = 0;
-  bytes[cursor + 1] = 0;
-  cursor += 2;
-
-  svm_byte_array host_ctx = {
-    .bytes = bytes,
-    .length = length
-  };
-
-  return host_ctx;
-}
-
-svm_byte_array exec_app_bytes(
-    svm_byte_array app_addr,
-    svm_byte_array func_name,
-    svm_func_buf_t func_buf,
-    svm_func_args_t func_args
-) {
-  uint32_t length =
-    4   +  // proto version
-    20  +  // app address
-    1   +  // function name length
-    func_name.length +  
-    func_buf_length(func_buf) + 
-    func_args_length(func_args);
-
-  uint8_t* bytes = (uint8_t*)(malloc(length));  
-  uint32_t cursor = 0;
-
-  // set `proto=0`
-  bytes[0] = 0;
-  bytes[1] = 0;
-  bytes[2] = 0;
-  bytes[3] = 0;
-  cursor += 4;
-
-  // set `app` address
-  memcpy(&bytes[cursor], app_addr.bytes, app_addr.length);
-  cursor += app_addr.length;
-  
-  // `name length` consumes 1 byte
-  assert(func_name.length <= 0xFF);
-  bytes[cursor] = (uint8_t)func_name.length; 
-  cursor += 1;
-
-  // set `name length`
-  memcpy(&bytes[cursor], func_name.bytes, func_name.length);
-  cursor += func_name.length;
-
-  // function buf
-
-  //// `func buf #slices` conumes 1 byte
-  bytes[cursor] = func_buf.slice_count; 
-  cursor += 1;
-
-  for (uint8_t i = 0; i < func_buf.slice_count; i++) {
-    svm_byte_array slice = func_buf.slices[i];
-
-    assert(slice.length <= 0xFFFF);
-
-    //// we assume `slice_len` is laid out in Little-Endian in memory.
-    uint16_t slice_len = (uint16_t)slice.length; 
-
-    //// slice length consumes 2 bytes (Big-Endian)
-    bytes[cursor + 0] = (uint8_t)((slice_len >> 8) & 0xFF);
-    bytes[cursor + 1] = (uint8_t)((slice_len >> 0) & 0xFF); 
-    cursor += 2;
-
-    //// copy slice to `buf`
-    memcpy(&bytes[cursor], slice.bytes, slice.length);
-    cursor += slice.length;
-  }
-
-  // function args
-
-  //// `func #args` consumes 1 byte
-  bytes[cursor] = func_args.arg_count; 
-  cursor += 1;
-
-  //// copy `func args` to `buf`
-  for (uint8_t i = 0; i < func_args.arg_count; i++) {
-    svm_func_arg_t arg = func_args.args[i];
-
-    svm_value_type arg_type = arg.type;
-
-    //// arg type consumes 1 byte
-    bytes[cursor] = (uint8_t)arg_type;
-    cursor += 1;
-
-    if (arg_type == SVM_I32) {
-      memcpy(&bytes[cursor], arg.bytes, 4);
-      cursor += 4; //// arg value takes 4 bytes
-    }
-    else if (arg_type == SVM_I64) {
-      memcpy(&bytes[cursor], arg.bytes, 8);
-      cursor += 8; //// arg value takes 8 bytes
-    }
-    else {
-      //// ilegal argument type
-      exit(-1);
-    }
-  }
-
-  assert(cursor == length);
-
-  svm_byte_array tx = {
-    .length = length,
-    .bytes = bytes
-  };
-
-  return tx;
-}
 
 host_t* host_new(uint32_t counter_initial) {
   host_t* host = (host_t*)malloc(sizeof(host_t));
@@ -428,13 +115,10 @@ void* imports_build() {
   return imports;
 }
 
-void* runtime_create(void* imports) {
+void* runtime_create(host_t* host, void* imports) {
   // create a new kv-store
   void *kv = NULL;
   svm_memory_kv_create(&kv);
-
-  uint32_t counter_init = 12;
-  host_t* host = host_new(counter_init);
 
   void *runtime = NULL;
   svm_result_t res = svm_memory_runtime_create(&runtime, kv, host, imports); 
@@ -464,105 +148,6 @@ void* alloc_empty_state() {
   uint8_t *state = (uint8_t*)malloc(32);
   memset(state, 0, 32);
   return (void*)state;
-}
-
-svm_receipt_t decode_receipt(svm_byte_array encoded_receipt) {
-  uint32_t cursor = 0;
-
-  const uint8_t* bytes = encoded_receipt.bytes;
-
-  for (; cursor < 4; cursor++) {
-    assert(bytes[cursor] == 0);
-    cursor += 1;
-  }
-
-  uint8_t success = bytes[cursor];
-  cursor += 1;
-
-  if (success) {
-    assert(cursor == 5);
-
-    // `new state`
-    uint8_t* new_state_bytes = (uint8_t*)malloc(sizeof(uint8_t) * 32);
-
-    if (new_state_bytes == NULL) {
-      exit(-1);
-    }
-
-    memcpy(new_state_bytes, bytes + cursor, 32);
-    cursor += 32;
-
-    svm_byte_array new_state;
-    new_state.bytes = new_state_bytes;
-    new_state.length = 32;
-
-    // `#returns`
-    uint8_t count = bytes[cursor];
-    cursor += 1;
-
-    svm_func_ret_t* returns = NULL;
-
-    if (count > 0) {
-      returns = (svm_func_ret_t*)(malloc(sizeof(svm_func_ret_t) * count));
-      if (returns == NULL) {
-	exit(-1);
-      }
-    }
-
-    for(uint8_t i = 0; i < count; i++) {
-      svm_func_ret_t *ret = returns + i;
-
-      uint8_t ret_type = bytes[cursor];
-      cursor += 1;
-
-      ret->type = ret_type;
-
-      if (ret_type == SVM_I32) {
-        uint32_t i32_value = 0;
-
-    	for(uint8_t off = 0; off < 4; off++) {
-    	  uint8_t byte = bytes[cursor];
-    	  cursor += 1;
-
-    	  i32_value += (byte << (3 - off));
-    	}
-
-    	ret->i32_value = i32_value;
-      }
-      else if (ret_type == SVM_I64) {
-        uint64_t i64_value = 0;
-
-    	for(uint8_t off = 0; off <8; off++) {
-    	  uint8_t byte = bytes[cursor];
-    	  cursor += 1;
-
-    	  i64_value += (byte << (7 - off));
-    	}
-
-    	ret->i64_value = i64_value;
-      }
-      else {
-    	exit(-1);
-      }
-    }
-
-    svm_receipt_t receipt = {
-      .success = true,
-      .count = count,
-      .returns = returns, 
-      .new_state = new_state,
-      .error = NULL
-    };
-
-    return receipt;
-  }
-  else {
-    svm_receipt_t receipt = {
-      .success = false
-    };
-
-    return receipt;
-  }
 }
 
 svm_byte_array simulate_deploy_template(void* runtime, svm_byte_array bytes, void* author) {
@@ -616,47 +201,6 @@ spawned_app_t simulate_spawn_app(void* runtime, svm_byte_array bytes, void* crea
   return spawned;
 }
 
-void print_receipt(svm_receipt_t receipt) {
-  if (receipt.success == true) {
-    svm_byte_array new_state = receipt.new_state;
-
-    printf("New app state:\n"); 
-
-    for (uint8_t i = 0; i < new_state.length; i++) {
-	printf("%02X ", new_state.bytes[i]);
-    }
-
-    if (receipt.count > 0) {
-	printf("\n\nReceipt returns:\n");
-
-	for (uint8_t i = 0; i < receipt.count; i++) {
-	    svm_func_ret_t* ret = &receipt.returns[i];
-
-	    if (i > 0) {
-		printf(", ");
-	    }
-
-	    if (ret->type == SVM_I32) {
-		printf("I32(%d)", ret->i32_value);
-	    }
-	    else if (ret->type == SVM_I64) {
-		printf("I64(%llu)", ret->i64_value);
-	    }
-	    else {
-		exit(-1);
-	    }
-        }
-
-	printf("\n");
-    }
-    else {
-	printf("\n\nReceipt has no returns:\n");
-    }
-  }
-  else {
-    // ...
-  }
-}
 
 svm_byte_array simulate_get_counter(void* runtime, svm_byte_array app_addr, void* state, void* sender) {
   svm_byte_array func_name = { .bytes = (const uint8_t*)"get", .length = strlen("get") };
@@ -726,21 +270,24 @@ void receipt_destroy(svm_receipt_t receipt) {
 }
   
 int main() {
-  svm_byte_array bytes, enc_receipt;
-  svm_receipt_t receipt;
-  svm_receipt_t receipts[3];
+  svm_byte_array bytes;
   svm_byte_array raw_receipts[3];
+  svm_receipt_t receipts[3];
+
+  /// 1) Init Runtime
+  uint32_t counter_init = 12;
+  host_t* host = host_new(counter_init);
 
   void* imports = imports_build();
-  void* runtime = runtime_create(imports);
+  void* runtime = runtime_create(host, imports);
 
-  // 1) Deploy Template
+  // 2) Deploy Template
   void* author = alloc_author_addr();
   bytes = deploy_template_bytes(); 
   svm_byte_array template_addr = simulate_deploy_template(runtime, bytes, author);
   svm_byte_array_destroy(bytes);
 
-  // 2) Spawn App 
+  // 3) Spawn App 
   void* creator = alloc_creator_addr();
   bytes = spawn_app_bytes(template_addr);
   spawned_app_t spawned = simulate_spawn_app(runtime, bytes, creator);
@@ -748,34 +295,28 @@ int main() {
   void* init_state = (void*)spawned.init_state.bytes;
   svm_byte_array_destroy(bytes);
 
-  // 3) Exec App
+  // 4) Exec App
   //// a) Query for the initialized counter value
   void* sender = alloc_sender_addr();
-  enc_receipt = simulate_get_counter(runtime, app_addr, init_state, sender);
-  receipt = decode_receipt(enc_receipt);
-  print_receipt(receipt);
-  receipts[0] = receipt;
-  raw_receipts[0] = enc_receipt;
+  raw_receipts[0] = simulate_get_counter(runtime, app_addr, init_state, sender);
+  receipts[0] = decode_receipt(raw_receipts[0]);
+  print_receipt(receipts[0]);
 
   //// b) Increment the counter 
   printf("\n");
 
-  void* new_state = (void*)receipt.new_state.bytes;
+  void* new_state = (void*)receipts[0].new_state.bytes;
   uint32_t inc_by = 7;
-  enc_receipt = simulate_inc_counter(runtime, app_addr, new_state, sender, inc_by); 
-  receipt = decode_receipt(enc_receipt);
-  print_receipt(receipt);
-  receipts[1] = receipt;
-  raw_receipts[1] = enc_receipt;
+  raw_receipts[1] = simulate_inc_counter(runtime, app_addr, new_state, sender, inc_by); 
+  receipts[1] = decode_receipt(raw_receipts[1]);
+  print_receipt(receipts[1]);
 
   //// c) Query for the new counter value
-  enc_receipt = simulate_get_counter(runtime, app_addr, init_state, sender);
-  receipt = decode_receipt(enc_receipt);
-  print_receipt(receipt);
-  receipts[2] = receipt;
-  raw_receipts[2] = enc_receipt;
+  raw_receipts[2] = simulate_get_counter(runtime, app_addr, init_state, sender);
+  receipts[2] = decode_receipt(raw_receipts[2]);
+  print_receipt(receipts[2]);
 
-  // Reclaiming resources
+  // 5) Reclaiming resources
   free(author);
   free(creator);
   free(sender);
