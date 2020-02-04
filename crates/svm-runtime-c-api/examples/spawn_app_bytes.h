@@ -1,9 +1,14 @@
-#ifndef SVM_SPAWN_APP_BYTES
-#define SVM_SPAWN_APP_BYTES
+#ifndef SVM_SPAWN_APP_BYTES_H
+#define SVM_SPAWN_APP_BYTES_H
 
 #include <stdint.h>
+#include <assert.h>
+
+#include "constants.h"
 
 svm_byte_array spawn_app_bytes(svm_byte_array template_addr) {
+  assert(template_addr.length == SVM_ADDR_LEN); 
+
   uint64_t length =
     4  +  // proto version
     template_addr.length +  // length(`template_addr)
@@ -15,10 +20,7 @@ svm_byte_array spawn_app_bytes(svm_byte_array template_addr) {
   uint32_t cursor = 0;
 
   // set `proto=0`
-  bytes[0] = 0;
-  bytes[1] = 0;
-  bytes[2] = 0;
-  bytes[3] = 0;
+  memset(&bytes[cursor], 0, 4);
   cursor += 4;
 
   // copy `template` address

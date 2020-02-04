@@ -1,5 +1,5 @@
-#ifndef HOST_CTX
-#define HOST_CTX
+#ifndef HOST_CTX_H
+#define HOST_CTX_H
 
 #include <stdint.h>
 
@@ -15,15 +15,11 @@ svm_byte_array host_ctx_empty_bytes() {
   uint32_t cursor = 0;
 
   // set `proto=0`
-  bytes[0] = 0;
-  bytes[1] = 0;
-  bytes[2] = 0;
-  bytes[3] = 0;
+  memset(&bytes[cursor], 0, 4);
   cursor += 4;
 
   // set `#fields=0`
-  bytes[cursor + 0] = 0;
-  bytes[cursor + 1] = 0;
+  memset(&bytes[cursor], 0, 2);
   cursor += 2;
 
   svm_byte_array host_ctx = {

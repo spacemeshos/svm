@@ -1,5 +1,5 @@
-#ifndef SVM_FUNC_ARGS
-#define SVM_FUNC_ARGS
+#ifndef SVM_FUNC_ARGS_H
+#define SVM_FUNC_ARGS_H
 
 #include "svm.h"
 

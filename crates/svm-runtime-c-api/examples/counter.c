@@ -1,9 +1,10 @@
-#include "svm.h"
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
+
+#include "svm.h"
+#include "constants.h"
 
 #include "wasm_file.h"
 #include "deploy_bytes.h"
@@ -127,8 +128,8 @@ void* runtime_create(host_t* host, void* imports) {
 }
 
 void* alloc_byte_address(uint8_t byte) {
-  uint8_t *addr = (uint8_t*)malloc(20);
-  memset(addr, byte, 20);
+  uint8_t *addr = (uint8_t*)malloc(SVM_ADDR_LEN);
+  memset(addr, byte, SVM_ADDR_LEN);
   return (void*)addr;
 }
 
@@ -145,8 +146,8 @@ void* alloc_sender_addr() {
 }  
 
 void* alloc_empty_state() {
-  uint8_t *state = (uint8_t*)malloc(32);
-  memset(state, 0, 32);
+  uint8_t *state = (uint8_t*)malloc(SVM_STATE_LEN);
+  memset(state, 0, SVM_STATE_LEN);
   return (void*)state;
 }
 

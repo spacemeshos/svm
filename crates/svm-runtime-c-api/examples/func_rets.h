@@ -1,5 +1,5 @@
-#ifndef SVM_FUNC_RETS
-#define SVM_FUNC_RETS
+#ifndef SVM_FUNC_RETS_H
+#define SVM_FUNC_RETS_H
 
 #include <stdint.h>
 
@@ -8,6 +8,5 @@ typedef struct {
   uint32_t i32_value;
   uint64_t i64_value;
 } svm_func_ret_t;
-
 
 #endif

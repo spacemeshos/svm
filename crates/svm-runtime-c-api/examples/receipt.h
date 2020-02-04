@@ -1,9 +1,10 @@
-#ifndef SVM_RECEIPT
-#define SVM_RECEIPT
+#ifndef SVM_RECEIPT_H
+#define SVM_RECEIPT_H
 
 #include <stdint.h>
 
 #include "svm.h"
+#include "constants.h"
 #include "func_rets.h"
 
 typedef struct {
@@ -29,21 +30,19 @@ svm_receipt_t decode_receipt(svm_byte_array encoded_receipt) {
   cursor += 1;
 
   if (success) {
-    assert(cursor == 5);
-
     // `new state`
-    uint8_t* new_state_bytes = (uint8_t*)malloc(sizeof(uint8_t) * 32);
+    uint8_t* new_state_bytes = (uint8_t*)malloc(sizeof(uint8_t) * SVM_STATE_LEN);
 
     if (new_state_bytes == NULL) {
       exit(-1);
     }
 
-    memcpy(new_state_bytes, bytes + cursor, 32);
-    cursor += 32;
+    memcpy(new_state_bytes, bytes + cursor, SVM_STATE_LEN);
+    cursor += SVM_STATE_LEN;
 
     svm_byte_array new_state;
     new_state.bytes = new_state_bytes;
-    new_state.length = 32;
+    new_state.length = SVM_STATE_LEN;
 
     // `#returns`
     uint8_t count = bytes[cursor];

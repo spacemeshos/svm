@@ -1,5 +1,5 @@
-#ifndef SVM_DEPLOY_TEMPLATE_BYTES
-#define SVM_DEPLOY_TEMPLATE_BYTES
+#ifndef SVM_DEPLOY_TEMPLATE_BYTES_H
+#define SVM_DEPLOY_TEMPLATE_BYTES_H
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -27,10 +27,7 @@ svm_byte_array deploy_template_bytes() {
   uint32_t cursor = 0;
 
   // set `proto=0`
-  bytes[0] = 0;
-  bytes[1] = 0;
-  bytes[2] = 0;
-  bytes[3] = 0;
+  memset(&bytes[cursor], 0, 4);
   cursor += 4;
 
   // name length takes 1 bytes
@@ -42,18 +39,15 @@ svm_byte_array deploy_template_bytes() {
   cursor += strlen("Example");
 
   // `#admins` takes 2 bytes
-  bytes[cursor + 0] = 0;
-  bytes[cursor + 1] = 0;
+  memset(&bytes[cursor], 0, 2);
   cursor += 2;
 
   // `#deps` takes 2 bytes
-  bytes[cursor + 0] = 0;
-  bytes[cursor + 1] = 0;
+  memset(&bytes[cursor], 0, 2);
   cursor += 2;
 
   // `#page_count` takes 2 bytes
-  bytes[cursor + 0] = 0;
-  bytes[cursor + 1] = 0;
+  memset(&bytes[cursor], 0, 2);
   cursor += 2;
 
   // set code-length (Big-Endian)

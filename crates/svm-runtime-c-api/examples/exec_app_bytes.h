@@ -1,7 +1,11 @@
-#ifndef SVM_EXE_APP_BYTES
-#define SVM_EXE_APP_BYTES
+#ifndef SVM_EXE_APP_BYTES_H
+#define SVM_EXE_APP_BYTES_H
+
+#include <assert.h>
+#include <stdlib.h>
 
 #include "svm.h"
+#include "constants.h"
 #include "func_buf.h"
 #include "func_args.h"
 
@@ -13,7 +17,7 @@ svm_byte_array exec_app_bytes(
 ) {
   uint32_t length =
     4   +  // proto version
-    20  +  // app address
+    SVM_ADDR_LEN  +  // app address
     1   +  // function name length
     func_name.length +  
     func_buf_length(func_buf) + 
@@ -23,10 +27,7 @@ svm_byte_array exec_app_bytes(
   uint32_t cursor = 0;
 
   // set `proto=0`
-  bytes[0] = 0;
-  bytes[1] = 0;
-  bytes[2] = 0;
-  bytes[3] = 0;
+  memset(&bytes[cursor], 0, 4);
   cursor += 4;
 
   // set `app` address

@@ -1,5 +1,5 @@
-#ifndef SVM_FUNC_BUF
-#define SVM_FUNC_BUF
+#ifndef SVM_FUNC_BUF_H
+#define SVM_FUNC_BUF_H
 
 #include <stdint.h>
 #include "svm.h"
@@ -22,6 +22,5 @@ uint32_t func_buf_length(svm_func_buf_t func_buf) {
 
   return acc;
 }
-
 
 #endif
