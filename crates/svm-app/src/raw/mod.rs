@@ -1,5 +1,6 @@
 mod app;
 mod host_ctx;
+mod nibble_iter;
 mod template;
 mod transaction;
 
@@ -14,3 +15,5 @@ mod field;
 pub(crate) use field::Field;
 
 pub(crate) mod helpers;
+
+pub(crate) use nibble_iter::{Nibble, NibbleIter};

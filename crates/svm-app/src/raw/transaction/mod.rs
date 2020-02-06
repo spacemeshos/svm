@@ -1,20 +1,24 @@
-//!    Execute `AppTransaction` Raw Format Version 0.0
-//!  -------------------------------------------------------
-//!  |   proto    |                                        |
-//!  |  version   |             `AppAddress`               |
-//!  |  (2 bytes) |              (20 bytes)                |
-//!  |____________|________________________________________|
+//!     Execute `AppTransaction` Raw Format Version 0.0
+//!  ------------------------------------------------------
+//!  |   proto     |                                       |
+//!  |  version    |          `AppAddress`                 |
+//!  |  encoding   |           (20 bytes)                  |
+//!  |_____________|_______________________________________|
 //!  |                                                     |
-//!  |        func index (2 bytes, Big-Endian)             |
+//!  |             function index encoding                 |
 //!  |_____________________________________________________|
 //!  |  func-buf  |                                        |
 //!  |  #length   |           func-buf blob                |
-//!  | (2 bytes)  |                                        |
+//!  |  encoding  |                                        |
 //!  |____________|________________________________________|
 //!  |   func    |   func    |   func    |                 |
 //!  |  arg #1   |  arg #2   |  arg #3   |                 |
-//!  |   value   |   value   |   value   |     . . . .     |
-//!  | (i32/i64) | (i32/i64) | (i32/i64) |                 |
+//!  |  layout   |  layout   |  layout   |     . . . .     |
+//!  | enccoding | encoding  | encoding  |                 |
+//!  |___________|___________|___________|_________________|
+//!  |   func    |   func    |   func    |                 |
+//!  |  arg #1   |  arg #2   |  arg #3   |     . . . .     |                 
+//!  |  value    |   value   |   value   |                 |
 //!  |___________|___________|___________|_________________|
 //!
 
