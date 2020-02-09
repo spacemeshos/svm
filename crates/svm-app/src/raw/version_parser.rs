@@ -1,12 +1,11 @@
-use std::io::{Cursor, Read};
+use std::io::Read;
 
 use super::{Field, Nibble, NibbleIter};
 use crate::error::ParseError;
 
 use bit_vec::BitVec;
 
-pub fn parse_version(cursor: &mut Cursor<&[u8]>) -> Result<u32, ParseError> {
-    let mut iter = NibbleIter::new(cursor);
+pub fn parse_version(iter: &mut NibbleIter) -> Result<u32, ParseError> {
     let mut bits = BitVec::new();
 
     for mut nibble in iter {
@@ -25,10 +24,13 @@ pub fn parse_version(cursor: &mut Cursor<&[u8]>) -> Result<u32, ParseError> {
         return Err(ParseError::EmptyField(Field::Version));
     }
 
-    let n = bits.len() % 8;
+    if bits.len() > 32 {
+        return Err(ParseError::TooManyBytes(Field::Version));
+    }
 
-    if n > 0 {
-        let padding = 8 - n;
+    let padding = 32 - bits.len();
+
+    if padding > 0 {
         let mut new_bits = BitVec::from_elem(padding, false);
 
         new_bits.append(&mut bits);
@@ -36,21 +38,15 @@ pub fn parse_version(cursor: &mut Cursor<&[u8]>) -> Result<u32, ParseError> {
     };
 
     let bytes = bits.to_bytes();
-
-    if bytes.len() > 4 {
-        return Err(ParseError::TooManyBytes(Field::Version));
-    }
+    assert_eq!(4, bytes.len());
 
     let mut be_bytes: [u8; 4] = [0; 4];
 
-    let off = 4 - bytes.len();
-
     for (i, byte) in bytes.iter().enumerate() {
-        be_bytes[off + i] = *byte;
+        be_bytes[i] = *byte;
     }
 
     let ver = u32::from_be_bytes(be_bytes);
-
     Ok(ver)
 }
 
@@ -61,37 +57,37 @@ mod tests {
     #[test]
     fn parse_version_no_nibbles() {
         let vec = vec![];
-        let mut cursor = Cursor::new(&vec[..]);
+        let mut iter = NibbleIter::new(&vec[..]);
 
         let expected = Err(ParseError::EmptyField(Field::Version));
 
-        assert_eq!(expected, parse_version(&mut cursor));
+        assert_eq!(expected, parse_version(&mut iter));
     }
 
     #[test]
     fn parse_version_one_nibble() {
         let vec = vec![0b0101_1111];
-        let mut cursor = Cursor::new(&vec[..]);
+        let mut iter = NibbleIter::new(&vec[..]);
 
-        let ver = parse_version(&mut cursor).unwrap();
+        let ver = parse_version(&mut iter).unwrap();
         assert_eq!(0b101, ver);
     }
 
     #[test]
     fn parse_version_two_nibbles() {
         let vec = vec![0b1101_0011];
-        let mut cursor = Cursor::new(&vec[..]);
+        let mut iter = NibbleIter::new(&vec[..]);
 
-        let ver = parse_version(&mut cursor).unwrap();
+        let ver = parse_version(&mut iter).unwrap();
         assert_eq!(0b101_011, ver);
     }
 
     #[test]
     fn parse_version_three_nibbles() {
         let vec = vec![0b1101_1011, 0b0010_0000];
-        let mut cursor = Cursor::new(&vec[..]);
+        let mut iter = NibbleIter::new(&vec[..]);
 
-        let ver = parse_version(&mut cursor).unwrap();
+        let ver = parse_version(&mut iter).unwrap();
         assert_eq!(0b101_011_010, ver);
     }
 
@@ -105,10 +101,10 @@ mod tests {
             0b1000_1000,
             0b0000_0000,
         ];
-        let mut cursor = Cursor::new(&vec[..]);
+        let mut iter = NibbleIter::new(&vec[..]);
 
         let expected = Err(ParseError::TooManyBytes(Field::Version));
 
-        assert_eq!(expected, parse_version(&mut cursor));
+        assert_eq!(expected, parse_version(&mut iter));
     }
 }

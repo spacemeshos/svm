@@ -17,7 +17,9 @@
 //!
 //! (a) Proto Version Encoding
 //! ===========================
-//!     MSB     non-MSB           Meaning
+//!
+//!   ___________________________________________________
+//!  |  MSB  |  non-MSB  |         Meaning              |
 //!  ---------------------------------------------------
 //!  |   1   |  x  x  x  |  Next nibble is relevant too |
 //!  |   0   |  x  x  x  |  Next nibble isn't relevant  |

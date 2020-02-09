@@ -29,7 +29,8 @@
 //!
 //! (a) Proto Version Encoding
 //! ===========================
-//!     MSB     non-MSB           Meaning
+//!  ____________________________________________________
+//!  |  MSB  |  non-MSB  |         Meaning              |
 //!  ---------------------------------------------------
 //!  |   1   |  x  x  x  |  Next nibble is relevant too |
 //!  |   0   |  x  x  x  |  Next nibble isn't relevant  |
@@ -45,7 +46,8 @@
 //!
 //!  Number is represented in Big-Endian layout (an unsigned-integer).
 //!
-//!     MSBs    Rest                   Meaning      
+//!  -----------------------------------------------------------
+//!  |  MSBs  |  Rest  |                 Meaning               |
 //!  -----------------------------------------------------------
 //!  |  0 0   |  .  .  |  Index takes 1 nibble  (2 used bits)  |  
 //!  |  0 1   |  .  .  |  Index takes 2 nibbles (6 used bits)  |  
@@ -97,7 +99,6 @@
 //! Note:
 //! `0 0 0 0` - represents an `i32` number holding zero.
 //! `0 1 0 1` - represents an `i64` number holding zero.
-//!  
 
 mod parse;
 

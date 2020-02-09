@@ -17,6 +17,7 @@ pub enum Field {
     App,
     FuncNameLength,
     FuncName,
+    FuncIndex,
     FuncBufSlicesCount,
     FuncBufSliceLength,
     FuncBufSlice,

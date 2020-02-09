@@ -1,4 +1,5 @@
 mod app;
+mod func_index_parser;
 mod host_ctx;
 mod nibble_iter;
 mod template;
@@ -17,5 +18,6 @@ pub(crate) use field::Field;
 
 pub(crate) mod helpers;
 
+pub(crate) use func_index_parser::parse_func_index;
 pub(crate) use nibble_iter::{Nibble, NibbleIter};
 pub(crate) use version_parser::parse_version;

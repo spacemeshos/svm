@@ -29,16 +29,17 @@ impl Nibble {
     }
 }
 
-pub struct NibbleIter<'a, 'b: 'a> {
+pub struct NibbleIter<'a> {
     buf: [u8; 1],
     length: u64,
     no_more_bytes: bool,
     last_byte: Option<u8>,
-    cursor: &'a mut Cursor<&'b [u8]>,
+    cursor: Cursor<&'a [u8]>,
 }
 
-impl<'a, 'b> NibbleIter<'a, 'b> {
-    pub fn new(cursor: &'a mut Cursor<&'b [u8]>) -> Self {
+impl<'a> NibbleIter<'a> {
+    pub fn new(data: &'a [u8]) -> Self {
+        let cursor = Cursor::new(data);
         let length = cursor.get_ref().len() as u64;
 
         Self {
@@ -51,7 +52,7 @@ impl<'a, 'b> NibbleIter<'a, 'b> {
     }
 }
 
-impl<'a, 'b> Iterator for NibbleIter<'a, 'b> {
+impl<'a> Iterator for NibbleIter<'a> {
     type Item = Nibble;
 
     fn next(&mut self) -> Option<Nibble> {
@@ -102,8 +103,7 @@ mod tests {
     #[test]
     fn nibble_iter_reads_empty_seq() {
         let vec = vec![];
-        let mut cursor = Cursor::new(&vec[..]);
-        let mut iter = NibbleIter::new(&mut cursor);
+        let mut iter = NibbleIter::new(&vec[..]);
 
         assert_eq!(None, maybe_read_nibble(&mut iter));
     }
@@ -111,8 +111,7 @@ mod tests {
     #[test]
     fn nibble_iter_reads_nibbles() {
         let vec = vec![0b_1001_1111, 0b_0011_0000];
-        let mut cursor = Cursor::new(&vec[..]);
-        let mut iter = NibbleIter::new(&mut cursor);
+        let mut iter = NibbleIter::new(&vec[..]);
 
         assert_eq!(0b_0000_1001, read_nibble(&mut iter));
         assert_eq!(0b_0000_1111, read_nibble(&mut iter));
