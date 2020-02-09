@@ -1,13 +1,14 @@
 //!     Execute `AppTransaction` Raw Format Version 0.0
-//!  ------------------------------------------------------
+//!  -------------------------------------------------------
 //!  |   proto     |                                       |
-//!  |  version    |          `AppAddress`                 |
-//!  |  encoding   |           (20 bytes)                  |
+//!  |  version    |            `AppAddress`               |
+//!  |  encoding   |             (20 bytes)                |
 //!  |    (a)      |                                       |
 //!  |_____________|_______________________________________|
 //!  |                                                     |
 //!  |           Function Index Encoding (b)               |
 //!  |_____________________________________________________|
+//!  |            |                                        |
 //!  |  func-buf  |                                        |
 //!  |  #length   |           func-buf blob                |
 //!  |  encoding  |                                        |
@@ -21,8 +22,9 @@
 //!  |___________|___________|___________|_________________|
 //!  |   func    |   func    |   func    |                 |
 //!  |  arg #1   |  arg #2   |  arg #3   |     . . . .     |                 
-//!  |  value    |   value   |   value   |                 |
+//!  |   value   |   value   |   value   |                 |
 //!  |___________|___________|___________|_________________|
+//!
 //!
 //!
 //! (a) Proto Version Encoding
@@ -49,23 +51,25 @@
 //!  |  0 1   |  .  .  |  Index takes 2 nibbles (6 used bits)  |  
 //!  |  1 0   |  .  .  |  Index takes 3 nibbles (10 used bits) |   
 //!  |  1 1   |  .  .  |  Index takes 4 nibbles (14 uses bits) |
-//!  |---------------------------------------------------------|
+//!  |--------|--------|---------------------------------------|
 //!
 //!  The `#bits` used numbers are `2 / 6 / 10 / 14` since the two MSB bits
 //!  of the 1st nibble tell us how many nibbles are part of the encoding.
 //!  
-//!  So if we need 4 nibbles for representing the function index then,
-//!  The first nibble will add donate 2 bits and the other 3 nibbles will donate 4 each.
+//!  So if we need 4 nibbles for representing the function index,
+//!  The first nibble will donate 2 bits and the other 3 nibbles will donate 4 bits each.
 //!  So we get: 2 + 3 * 4 = 14
 //!  
+//!
 //!  
 //! (c) Function Buf Length Encoding
 //! ================================
 //! The same encoding as `Function Index Encoding` (b)
 //!
 //!
+//!
 //! (d) Func Args Layout Encoding
-//! ==============================
+//! =============================
 //!
 //!  Each function arg is represented by one nibble.
 //!
