@@ -3,7 +3,7 @@ use crate::error::ParseError;
 
 use bit_vec::BitVec;
 
-pub fn parse_func_index(iter: &mut NibbleIter) -> Result<u16, ParseError> {
+pub fn parse_varuint16(iter: &mut NibbleIter) -> Result<u16, ParseError> {
     let preamble = iter.next();
 
     if preamble.is_none() {
@@ -26,8 +26,9 @@ pub fn parse_func_index(iter: &mut NibbleIter) -> Result<u16, ParseError> {
     // the 1st nibble always contains 2 bits of `func index`
     bits.push(msb_0);
     bits.push(msb_1);
+    let nibble_count = nibble_count - 1;
 
-    for _ in 0..nibble_count - 1 {
+    for _ in 0..nibble_count {
         match iter.next() {
             None => return Err(ParseError::NotEnoughBytes(Field::FuncIndex)),
             Some(nibble) => {
@@ -55,58 +56,58 @@ mod tests {
     use super::*;
 
     #[test]
-    fn parse_func_index_empty() {
+    fn parse_varuint6_empty() {
         let vec = vec![];
         let mut iter = NibbleIter::new(&vec[..]);
 
         let expected = Err(ParseError::NotEnoughBytes(Field::FuncIndex));
 
-        assert_eq!(expected, parse_func_index(&mut iter));
+        assert_eq!(expected, parse_varuint16(&mut iter));
     }
 
     #[test]
-    fn parse_func_index_one_nibble() {
+    fn parse_varuint6_one_nibble() {
         let vec = vec![0b00_11_0000];
         let mut iter = NibbleIter::new(&vec[..]);
 
-        let func_idx = parse_func_index(&mut iter).unwrap();
+        let func_idx = parse_varuint16(&mut iter).unwrap();
         assert_eq!(0b11, func_idx);
     }
 
     #[test]
-    fn parse_func_index_2_nibbles() {
+    fn parse_varuint6_2_nibbles() {
         let vec = vec![0b01_11_0111];
         let mut iter = NibbleIter::new(&vec[..]);
 
-        let func_idx = parse_func_index(&mut iter).unwrap();
+        let func_idx = parse_varuint16(&mut iter).unwrap();
         assert_eq!(0b11_0111, func_idx);
     }
 
     #[test]
-    fn parse_func_index_3_nibbles() {
+    fn parse_varuint6_3_nibbles() {
         let vec = vec![0b10_11_0111, 0b0101_0000];
         let mut iter = NibbleIter::new(&vec[..]);
 
-        let func_idx = parse_func_index(&mut iter).unwrap();
+        let func_idx = parse_varuint16(&mut iter).unwrap();
         assert_eq!(0b11_0111_0101, func_idx);
     }
 
     #[test]
-    fn parse_func_index_4_nibbles() {
+    fn parse_varuint6_4_nibbles() {
         let vec = vec![0b11_11_0111, 0b0101_0011];
         let mut iter = NibbleIter::new(&vec[..]);
 
-        let func_idx = parse_func_index(&mut iter).unwrap();
+        let func_idx = parse_varuint16(&mut iter).unwrap();
         assert_eq!(0b11_0111_0101_0011, func_idx);
     }
 
     #[test]
-    fn parse_func_index_not_enough_bytes() {
+    fn parse_varuint6_not_enough_bytes() {
         let vec = vec![0b10_11_0111];
         let mut iter = NibbleIter::new(&vec[..]);
 
         let expected = Err(ParseError::NotEnoughBytes(Field::FuncIndex));
 
-        assert_eq!(expected, parse_func_index(&mut iter));
+        assert_eq!(expected, parse_varuint16(&mut iter));
     }
 }
