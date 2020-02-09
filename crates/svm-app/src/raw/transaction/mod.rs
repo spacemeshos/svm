@@ -36,14 +36,14 @@
 //!  |--------------------------------------------------|
 //!
 //!  The protocol `#bits` will be a multiplication of 3,
-//!  and is encoded in Little-endian as an unsigned-integer.
+//!  and is encoded in Big-Endian as an unsigned-integer.
 //!
 //!  
 //!  
 //! (b) Function Index Encoding  
 //! ============================
 //!
-//!  Number is represented in Little-Endian layout (an unsigned-integer).
+//!  Number is represented in Big-Endian layout (an unsigned-integer).
 //!
 //!     MSBs    Rest                   Meaning      
 //!  -----------------------------------------------------------
@@ -65,7 +65,6 @@
 //! (c) Function Buf Length Encoding
 //! ================================
 //! The same encoding as `Function Index Encoding` (b)
-//!
 //!
 //!
 //! (d) Func Args Layout Encoding

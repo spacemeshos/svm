@@ -10,36 +10,47 @@ pub fn parse_version(cursor: &mut Cursor<&[u8]>) -> Result<u32, ParseError> {
     let mut bits = BitVec::new();
 
     for mut nibble in iter {
-        let [_msb_0, msb_1, msb_2, msb_3] = nibble.bits();
+        let [msb_0, msb_1, msb_2, msb_3] = nibble.bits();
 
         bits.push(msb_1);
         bits.push(msb_2);
         bits.push(msb_3);
+
+        if nibble.is_msb_off() {
+            break;
+        }
     }
 
     if bits.len() == 0 {
-        return Err(ParseError::InvalidProtocolVersion(0));
+        return Err(ParseError::EmptyField(Field::Version));
     }
 
     let n = bits.len() % 8;
 
     if n > 0 {
-        let mut new_bits = BitVec::from_elem(8 - n, false);
-        new_bits.append(&mut bits);
+        let padding = 8 - n;
+        let mut new_bits = BitVec::from_elem(padding, false);
 
+        new_bits.append(&mut bits);
         bits = new_bits;
     };
 
     let bytes = bits.to_bytes();
-    assert!(bytes.len() <= 4);
 
-    let mut le_bytes: [u8; 4] = [0; 4];
-
-    for (i, byte) in bytes.iter().enumerate() {
-        le_bytes[i] = *byte;
+    if bytes.len() > 4 {
+        return Err(ParseError::TooManyBytes(Field::Version));
     }
 
-    let ver = u32::from_le_bytes(le_bytes);
+    let mut be_bytes: [u8; 4] = [0; 4];
+
+    let off = 4 - bytes.len();
+
+    for (i, byte) in bytes.iter().enumerate() {
+        be_bytes[off + i] = *byte;
+    }
+
+    let ver = u32::from_be_bytes(be_bytes);
+
     Ok(ver)
 }
 
@@ -52,8 +63,9 @@ mod tests {
         let vec = vec![];
         let mut cursor = Cursor::new(&vec[..]);
 
-        let ver = parse_version(&mut cursor);
-        assert_eq!(Err(ParseError::InvalidProtocolVersion(0)), ver);
+        let expected = Err(ParseError::EmptyField(Field::Version));
+
+        assert_eq!(expected, parse_version(&mut cursor));
     }
 
     #[test]
@@ -81,5 +93,22 @@ mod tests {
 
         let ver = parse_version(&mut cursor).unwrap();
         assert_eq!(0b101_011_010, ver);
+    }
+
+    #[test]
+    fn parse_version_too_many_bytes() {
+        let vec = vec![
+            0b1000_1000,
+            0b1000_1000,
+            0b1000_1000,
+            0b1000_1000,
+            0b1000_1000,
+            0b0000_0000,
+        ];
+        let mut cursor = Cursor::new(&vec[..]);
+
+        let expected = Err(ParseError::TooManyBytes(Field::Version));
+
+        assert_eq!(expected, parse_version(&mut cursor));
     }
 }

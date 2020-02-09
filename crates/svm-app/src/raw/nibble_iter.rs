@@ -8,6 +8,7 @@ use std::{
 pub struct Nibble(pub u8);
 
 impl Nibble {
+    #[inline]
     pub fn is_msb_on(&self) -> bool {
         let msb = self.0 & 0b_0000_1000;
         msb != 0

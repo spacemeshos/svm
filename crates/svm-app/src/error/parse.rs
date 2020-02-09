@@ -10,6 +10,7 @@ pub enum ParseError {
     EmptyField(Field),
     EmptyList(Field),
     NotEnoughBytes(Field),
+    TooManyBytes(Field),
     NotSupported(Field),
     InvalidUTF8String(Field),
     InvalidProtocolVersion(u32),
@@ -20,9 +21,8 @@ impl fmt::Display for ParseError {
         match self {
             ParseError::EmptyField(f) => write!(fmt, "Field `{}` must not be empty", f),
             ParseError::NotEnoughBytes(f) => write!(fmt, "Not enough bytes for field `{}`", f),
-            ParseError::InvalidProtocolVersion(v) => {
-                write!(fmt, "Unsupported protocol version: `{}`", v)
-            }
+            ParseError::TooManyBytes(f) => write!(fmt, "Too many bytes for field `{}`", f),
+            ParseError::InvalidProtocolVersion(msg) => write!(fmt, "{}", msg),
             ParseError::NotSupported(f) => write!(fmt, "Feature `{}` is not supported yet", f),
             ParseError::EmptyList(f) => {
                 write!(fmt, "`{}`-(s) list must contain at least one item", f)
