@@ -3,31 +3,7 @@ use std::{
     iter::Iterator,
 };
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-#[repr(transparent)]
-pub struct Nibble(pub u8);
-
-impl Nibble {
-    #[inline]
-    pub fn is_msb_on(&self) -> bool {
-        let msb = self.0 & 0b_0000_1000;
-        msb != 0
-    }
-
-    #[inline]
-    pub fn is_msb_off(&self) -> bool {
-        !self.is_msb_on()
-    }
-
-    pub fn bits(&self) -> [bool; 4] {
-        let msb_0 = self.0 & 0b_0000_1000 != 0;
-        let msb_1 = self.0 & 0b_0000_0100 != 0;
-        let msb_2 = self.0 & 0b_0000_0010 != 0;
-        let msb_3 = self.0 & 0b_0000_0001 != 0;
-
-        [msb_0, msb_1, msb_2, msb_3]
-    }
-}
+use super::nibble::Nibble;
 
 pub struct NibbleIter<'a> {
     buf: [u8; 1],
@@ -88,6 +64,33 @@ impl<'a> Iterator for NibbleIter<'a> {
     }
 }
 
+impl<'a> NibbleIter<'a> {
+    pub fn read_bytes(&mut self, byte_count: usize) -> Vec<u8> {
+        let mut bytes = Vec::with_capacity(byte_count);
+
+        for _ in 0..byte_count {
+            let lnib = self.next();
+            let rnib = self.next();
+
+            match (lnib, rnib) {
+                (Some(lnib), Some(rnib)) => {
+                    let byte = (lnib.0 << 4) | rnib.0;
+                    bytes.push(byte);
+                }
+                (Some(lnib), None) => {
+                    bytes.push(lnib.0);
+                }
+                (None, None) => {
+                    //
+                }
+                _ => unreachable!(),
+            }
+        }
+
+        bytes
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -118,5 +121,25 @@ mod tests {
         assert_eq!(0b_0000_0011, read_nibble(&mut iter));
         assert_eq!(0b_0000_0000, read_nibble(&mut iter));
         assert_eq!(None, maybe_read_nibble(&mut iter));
+    }
+
+    #[test]
+    fn nibble_iter_read_byte_a_time() {
+        let vec = vec![0b_1001_1111, 0b_0011_0111];
+        let mut iter = NibbleIter::new(&vec[..]);
+
+        assert_eq!(vec![0b_1001_1111], iter.read_bytes(1));
+        assert_eq!(vec![0b_0011_0111], iter.read_bytes(1));
+        assert!(iter.read_bytes(1).is_empty());
+    }
+
+    #[test]
+    fn nibble_iter_read_two_bytes_a_time() {
+        let vec = vec![0b_1001_1111, 0b_0011_0111, 0b_1100_0110];
+        let mut iter = NibbleIter::new(&vec[..]);
+
+        assert_eq!(vec![0b_1001_1111, 0b_0011_0111], iter.read_bytes(2));
+        assert_eq!(vec![0b_1100_0110], iter.read_bytes(2));
+        assert!(iter.read_bytes(2).is_empty());
     }
 }

@@ -26,6 +26,7 @@ pub fn parse_varuint16(iter: &mut NibbleIter) -> Result<u16, ParseError> {
     // the 1st nibble always contains 2 bits of `func index`
     bits.push(msb_0);
     bits.push(msb_1);
+
     let nibble_count = nibble_count - 1;
 
     for _ in 0..nibble_count {
@@ -48,6 +49,7 @@ pub fn parse_varuint16(iter: &mut NibbleIter) -> Result<u16, ParseError> {
     be_bytes[1] = bytes[1];
 
     let func_idx = u16::from_be_bytes(be_bytes);
+
     Ok(func_idx)
 }
 

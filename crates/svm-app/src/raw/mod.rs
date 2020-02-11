@@ -1,5 +1,6 @@
 mod app;
 mod host_ctx;
+mod nibble;
 mod nibble_iter;
 mod template;
 mod transaction;
@@ -18,6 +19,7 @@ pub(crate) use field::Field;
 
 pub(crate) mod helpers;
 
-pub(crate) use nibble_iter::{Nibble, NibbleIter};
+pub(crate) use nibble::Nibble;
+pub(crate) use nibble_iter::NibbleIter;
 pub(crate) use varuint16_parser::parse_varuint16;
 pub(crate) use version_parser::parse_version;
