@@ -9,7 +9,7 @@ use super::{Field, Nibble, NibbleIter};
 struct WasmValueLayout {
     ty: WasmType,
 
-    length: usize,
+    len: usize,
 }
 
 impl From<Nibble> for WasmValueLayout {
@@ -18,63 +18,63 @@ impl From<Nibble> for WasmValueLayout {
             // 32-bit args layouts:
             0b_0000_0000 => Self {
                 ty: WasmType::I32,
-                length: 0,
+                len: 0,
             },
             0b_0000_0001 => Self {
                 ty: WasmType::I32,
-                length: 1,
+                len: 1,
             },
             0b_0000_0010 => Self {
                 ty: WasmType::I32,
-                length: 2,
+                len: 2,
             },
             0b_0000_0011 => Self {
                 ty: WasmType::I32,
-                length: 3,
+                len: 3,
             },
             0b_0000_0100 => Self {
                 ty: WasmType::I32,
-                length: 4,
+                len: 4,
             },
             //
             // 64-bit args layouts:
             0b_0000_1000 => Self {
                 ty: WasmType::I64,
-                length: 1,
+                len: 1,
             },
             0b_0000_1001 => Self {
                 ty: WasmType::I64,
-                length: 2,
+                len: 2,
             },
             0b_0000_1010 => Self {
                 ty: WasmType::I64,
-                length: 3,
+                len: 3,
             },
             0b_0000_1011 => Self {
                 ty: WasmType::I64,
-                length: 4,
+                len: 4,
             },
             0b_0000_1100 => Self {
                 ty: WasmType::I64,
-                length: 5,
+                len: 5,
             },
             0b_0000_1101 => Self {
                 ty: WasmType::I64,
-                length: 6,
+                len: 6,
             },
             0b_0000_1110 => Self {
                 ty: WasmType::I64,
-                length: 7,
+                len: 7,
             },
             0b_0000_1111 => Self {
                 ty: WasmType::I64,
-                length: 8,
+                len: 8,
             },
             //
             // special-cases
             0b_0000_0101 => Self {
                 ty: WasmType::I64,
-                length: 0,
+                len: 0,
             },
             _ => unreachable!(),
         }
@@ -95,7 +95,7 @@ pub fn parse_func_args(iter: &mut NibbleIter) -> Result<Vec<WasmValue>, ParseErr
 }
 
 fn read_func_arg(layout: &WasmValueLayout, iter: &mut NibbleIter) -> Result<WasmValue, ParseError> {
-    let n = layout.length;
+    let n = layout.len;
     let bytes = iter.read_bytes(n);
 
     if bytes.len() != n {
@@ -144,6 +144,7 @@ fn read_func_arg(layout: &WasmValueLayout, iter: &mut NibbleIter) -> Result<Wasm
 
     Ok(val)
 }
+
 fn parse_func_args_layout(iter: &mut NibbleIter) -> Result<Vec<WasmValueLayout>, ParseError> {
     let mut args_layout = Vec::new();
     let mut last_layout = false;
@@ -188,4 +189,41 @@ fn parse_func_args_layout(iter: &mut NibbleIter) -> Result<Vec<WasmValueLayout>,
     }
 
     Ok(args_layout)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    static NO_MORE: u8 = 0b_0000_0110;
+    static INVALID: u8 = 0b_0000_0111;
+    static I32_0B: u8 = 0b_0000_0000;
+    static I32_1B: u8 = 0b_0000_0001;
+    static I32_2B: u8 = 0b_0000_0010;
+    static I32_3B: u8 = 0b_0000_0011;
+    static I32_4B: u8 = 0b_0000_0100;
+
+    #[test]
+    fn parse_func_args_i32_no_args() {
+        todo!()
+        // let data = vec![NO_ARGS];
+        // let mut iter = NibbleIter::new(&data);
+
+        // let actual = parse_func_args(&mut iter).unwrap();
+        // let expected = vec![WasmValue::I32(0)];
+
+        // assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn parse_func_args_i32_arg_0_bytes() {
+        todo!()
+        // let data = vec![arg!(I32_0B];
+        // let mut iter = NibbleIter::new(&data);
+
+        // let actual = parse_func_args(&mut iter).unwrap();
+        // let expected = vec![WasmValue::I32(0)];
+
+        // assert_eq!(expected, actual);
+    }
 }

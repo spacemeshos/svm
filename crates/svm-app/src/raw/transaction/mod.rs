@@ -84,8 +84,8 @@
 //!  |   0   |  1 0 0  | i32 type, value consumes 4 bytes  |
 //!  |-----------------------------------------------------|
 //!  |   0   |  1 0 1  | i64 type, value consumes 0 bytes  |
-//!  |   0   |  1 1 0  | next func arg is the last one     |
-//!  |   0   |  1 1 1  | func has no args		   |
+//!  |   0   |  1 1 0  | no more func args                 |
+//!  |   0   |  1 1 1  | INVALID		           |
 //!  |-----------------------------------------------------|
 //!  |   1   |  0 0 0  | i64 type, value consumes 1 bytes  |
 //!  |   1   |  0 0 1  | i64 type, value consumes 2 bytes  |
