@@ -214,6 +214,18 @@ mod tests {
         assert_eq!(expected, actual);
     }
 
+    fn assert_func_args_err(nibbles: Vec<Nibble>, expected: ParseError) {
+        let (data, rem) = concat_nibbles(&nibbles[..]);
+        assert!(rem.is_none());
+
+        let mut iter = NibbleIter::new(&data);
+
+        let expected = Err(expected);
+        let actual = parse_func_args(&mut iter);
+
+        assert_eq!(expected, actual);
+    }
+
     #[test]
     fn parse_func_args_zero_args() {
         let data = vec![(NO_MORE.0 << 4)];
@@ -225,39 +237,23 @@ mod tests {
 
     #[test]
     fn parse_func_args_zero_args_missing_no_more_mark() {
-        let data = vec![];
-        let mut iter = NibbleIter::new(&data);
-
-        let expected = Err(ParseError::EmptyField(Field::FuncArgsNoMoreMark));
-        let actual = parse_func_args(&mut iter);
-
-        assert_eq!(expected, actual);
+        assert_func_args_err(vec![], ParseError::EmptyField(Field::FuncArgsNoMoreMark));
     }
 
     #[test]
     fn parse_func_args_invalid_arg() {
-        let (data, rem) = concat_nibbles(&[INVALID, NO_MORE]);
-        assert!(rem.is_none());
+        let nibbles = vec![INVALID, NO_MORE];
+        let expected = ParseError::InvalidFuncArgLayout(0b_0000_0111);
 
-        let mut iter = NibbleIter::new(&data);
-
-        let expected = Err(ParseError::InvalidFuncArgLayout(0b_0000_0111));
-        let actual = parse_func_args(&mut iter);
-
-        assert_eq!(expected, actual);
+        assert_func_args_err(nibbles, expected);
     }
 
     #[test]
     fn parse_func_args_i32_arg_0_bytes() {
-        let (data, rem) = concat_nibbles(&[I32_0B, NO_MORE]);
-        assert!(rem.is_none());
-
-        let mut iter = NibbleIter::new(&data);
-
-        let actual = parse_func_args(&mut iter).unwrap();
+        let nibbles = vec![I32_0B, NO_MORE];
         let expected = vec![WasmValue::I32(0)];
 
-        assert_eq!(expected, actual);
+        assert_func_args(nibbles, expected);
     }
 
     #[test]
