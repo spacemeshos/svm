@@ -1,8 +1,27 @@
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[repr(transparent)]
-pub struct Nibble(pub u8);
+pub struct Nibble(u8);
+
+#[macro_export]
+macro_rules! nib {
+    ($val:expr) => {{
+        Nibble::new($val)
+    }};
+}
 
 impl Nibble {
+    #[inline]
+    pub fn new(byte: u8) -> Self {
+        assert!(byte <= 0x0F);
+
+        Self(byte)
+    }
+
+    #[inline]
+    pub fn inner(&self) -> u8 {
+        self.0
+    }
+
     #[inline]
     pub fn is_msb_on(&self) -> bool {
         let msb = self.0 & 0b_0000_1000;

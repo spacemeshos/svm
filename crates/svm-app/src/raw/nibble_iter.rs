@@ -51,11 +51,15 @@ impl<'a> Iterator for NibbleIter<'a> {
                     let byte = self.buf[0];
                     self.last_byte = Some(byte);
 
-                    Nibble((byte & 0xF0) >> 4)
+                    // given `byte` is `lnibble | rnibble`
+                    // we return the left nibble encoded as a byte in the form:
+                    // `0b_0000_{lnibble}`
+
+                    Nibble::new((byte & 0xF0) >> 4)
                 }
                 Some(byte) => {
                     self.last_byte = None;
-                    Nibble(byte & 0x0F)
+                    Nibble::new(byte & 0x0F)
                 }
             }
         };
@@ -69,11 +73,11 @@ mod tests {
     use super::*;
 
     fn read_nibble(iter: &mut NibbleIter) -> u8 {
-        iter.next().unwrap().0
+        iter.next().unwrap().inner()
     }
 
     fn maybe_read_nibble(iter: &mut NibbleIter) -> Option<u8> {
-        iter.next().map(|nibble| nibble.0)
+        iter.next().map(|nibble| nibble.inner())
     }
 
     #[test]
