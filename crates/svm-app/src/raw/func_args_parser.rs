@@ -38,6 +38,10 @@ impl From<Nibble> for WasmValueLayout {
             },
             //
             // 64-bit args layouts:
+            0b_0000_0101 => Self {
+                ty: WasmType::I64,
+                len: 0,
+            },
             0b_0000_1000 => Self {
                 ty: WasmType::I64,
                 len: 1,
@@ -69,12 +73,6 @@ impl From<Nibble> for WasmValueLayout {
             0b_0000_1111 => Self {
                 ty: WasmType::I64,
                 len: 8,
-            },
-            //
-            // special-cases
-            0b_0000_0101 => Self {
-                ty: WasmType::I64,
-                len: 0,
             },
             _ => unreachable!(),
         }
@@ -181,8 +179,8 @@ fn parse_func_args_layout(iter: &mut NibbleIter) -> Result<Vec<WasmValueLayout>,
                     has_more = false;
                 }
                 0b_0000_0111 => {
-                    // ignore this marker.
-                    // do nothing and skip to the next nibble
+                    // marker denoting: "ignore, skip to next nibble".
+                    //
                     // should be used to align the func args layouts offset,
                     // so that each arg layout will start at an even position.
                 }

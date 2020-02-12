@@ -10,6 +10,7 @@ pub struct NibbleIter<'a> {
     length: u64,
     no_more_bytes: bool,
     last_byte: Option<u8>,
+    nibbles_read: usize,
     cursor: Cursor<&'a [u8]>,
 }
 
@@ -22,9 +23,15 @@ impl<'a> NibbleIter<'a> {
             cursor,
             length,
             buf: [0; 1],
+            nibbles_read: 0,
             last_byte: None,
             no_more_bytes: false,
         }
+    }
+
+    #[inline]
+    pub fn is_byte_aligned(&self) -> bool {
+        self.nibbles_read % 2 == 0
     }
 }
 
@@ -64,6 +71,8 @@ impl<'a> Iterator for NibbleIter<'a> {
             }
         };
 
+        self.nibbles_read += 1;
+
         Some(nibble)
     }
 }
@@ -98,5 +107,30 @@ mod tests {
         assert_eq!(0b_0000_0011, read_nibble(&mut iter));
         assert_eq!(0b_0000_0000, read_nibble(&mut iter));
         assert_eq!(None, maybe_read_nibble(&mut iter));
+    }
+
+    #[test]
+    fn nibble_iter_info() {
+        let vec = vec![0b_1001_1111, 0b_0011_0000];
+        let mut iter = NibbleIter::new(&vec[..]);
+
+        assert_eq!(0, iter.nibbles_read);
+        assert!(iter.is_byte_aligned());
+
+        read_nibble(&mut iter);
+        assert_eq!(1, iter.nibbles_read);
+        assert!(iter.is_byte_aligned() == false);
+
+        read_nibble(&mut iter);
+        assert_eq!(2, iter.nibbles_read);
+        assert!(iter.is_byte_aligned());
+
+        read_nibble(&mut iter);
+        assert_eq!(3, iter.nibbles_read);
+        assert!(iter.is_byte_aligned() == false);
+
+        read_nibble(&mut iter);
+        assert_eq!(4, iter.nibbles_read);
+        assert!(iter.is_byte_aligned());
     }
 }
