@@ -549,33 +549,45 @@ mod tests {
     #[test]
     fn parse_func_args_multiple_i64_args() {
         let nibbles = vec![
-            nib!(I64_1B), // 1st arg consumes 1 byte
-            nib!(I64_4B), // 2nd arg consumes 2 bytes
-            nib!(I64_3B), // 3rd arg consumes 3 bytes
-            nib!(NO_MORE),
+            nib!(I64_0B),  // 1st arg consumes 0 bytes
+            nib!(I64_1B),  // 2st arg consumes 1 byte
+            nib!(I64_2B),  // 3nd arg consumes 2 bytes
+            nib!(I64_3B),  // 4th arg consumes 3 bytes
+            nib!(NO_MORE), // end-of func args layouts marker
+            //
             // 1st arg
+            // (has no bytes)
+            //
+            // 2nd arg
             nib!(0x0A),
             nib!(0x0B),
             //
-            // 2nd arg
+            // 3rd arg
             nib!(0x0C),
             nib!(0x0D),
             nib!(0x0E),
             nib!(0x0F),
             //
-            // 3rd arg
+            // 4th arg
             nib!(0x01),
             nib!(0x02),
             nib!(0x03),
             nib!(0x04),
             nib!(0x05),
             nib!(0x06),
+            //
+            // subsequent nibbles (not relevant to the func args).
+            // (we use an even-length `nibbles` to simplify the test).
+            nib!(0x0F),
+            nib!(0x0F),
+            nib!(0x0F),
         ];
 
         let expected = vec![
-            WasmValue::I32(0xAB),
-            WasmValue::I32(0xCDEF),
-            WasmValue::I32(0x123456),
+            WasmValue::I64(0),
+            WasmValue::I64(0xAB),
+            WasmValue::I64(0xCDEF),
+            WasmValue::I64(0x123456),
         ];
 
         assert_func_args(nibbles, expected);
