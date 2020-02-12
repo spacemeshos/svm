@@ -97,12 +97,13 @@ pub fn parse_func_args(iter: &mut NibbleIter) -> Result<Vec<WasmValue>, ParseErr
 fn read_func_arg(layout: &WasmValueLayout, iter: &mut NibbleIter) -> Result<WasmValue, ParseError> {
     let n = layout.len;
 
+    // `n` bytes <=> `2 * n` nibbles
     let nibbles = iter.take(2 * n).collect::<Vec<Nibble>>();
 
     let (bytes, rem) = concat_nibbles(&nibbles[..]);
 
     // `rem` is expected to be `None` since we've asked
-    // for an even number of nibbles `2 * n`
+    // for an even number of nibbles (= `2 * n`)
     assert!(rem.is_none());
 
     if bytes.len() != n {
@@ -545,38 +546,38 @@ mod tests {
         assert_func_args(nibbles, expected);
     }
 
-    // #[test]
-    // fn parse_func_args_multiple_i64_args() {
-    //     let nibbles = vec![
-    //         I64_1B, // 1st arg consumes 1 byte
-    //         I64_4B, // 2nd arg consumes 2 bytes
-    //         I64_3B, // 3rd arg consumes 3 bytes
-    //         NO_MORE,
-    //         // 1st arg
-    //         Nibble(0x0A),
-    //         Nibble(0x0B),
-    //         //
-    //         // 2nd arg
-    //         Nibble(0x0C),
-    //         Nibble(0x0D),
-    //         Nibble(0x0E),
-    //         Nibble(0x0F),
-    //         //
-    //         // 3rd arg
-    //         Nibble(0x01),
-    //         Nibble(0x02),
-    //         Nibble(0x03),
-    //         Nibble(0x04),
-    //         Nibble(0x05),
-    //         Nibble(0x06),
-    //     ];
+    #[test]
+    fn parse_func_args_multiple_i64_args() {
+        let nibbles = vec![
+            nib!(I64_1B), // 1st arg consumes 1 byte
+            nib!(I64_4B), // 2nd arg consumes 2 bytes
+            nib!(I64_3B), // 3rd arg consumes 3 bytes
+            nib!(NO_MORE),
+            // 1st arg
+            nib!(0x0A),
+            nib!(0x0B),
+            //
+            // 2nd arg
+            nib!(0x0C),
+            nib!(0x0D),
+            nib!(0x0E),
+            nib!(0x0F),
+            //
+            // 3rd arg
+            nib!(0x01),
+            nib!(0x02),
+            nib!(0x03),
+            nib!(0x04),
+            nib!(0x05),
+            nib!(0x06),
+        ];
 
-    //     let expected = vec![
-    //         WasmValue::I32(0xAB),
-    //         WasmValue::I32(0xCDEF),
-    //         WasmValue::I32(0x123456),
-    //     ];
+        let expected = vec![
+            WasmValue::I32(0xAB),
+            WasmValue::I32(0xCDEF),
+            WasmValue::I32(0x123456),
+        ];
 
-    //     assert_func_args(nibbles, expected);
-    // }
+        assert_func_args(nibbles, expected);
+    }
 }
