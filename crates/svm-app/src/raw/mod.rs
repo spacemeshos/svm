@@ -22,7 +22,7 @@ pub(crate) use field::Field;
 pub(crate) mod helpers;
 
 pub(crate) use func_args_parser::parse_func_args;
-pub(crate) use nibble::Nibble;
+pub(crate) use nibble::{concat_nibbles, Nibble};
 pub(crate) use nibble_iter::NibbleIter;
 pub(crate) use varuint16_parser::parse_varuint16;
 pub(crate) use version_parser::parse_version;
