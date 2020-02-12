@@ -85,8 +85,8 @@ pub fn parse_func_args(iter: &mut NibbleIter) -> Result<Vec<WasmValue>, ParseErr
     let mut func_args = Vec::new();
     let layouts = parse_func_args_layout(iter)?;
 
-    for layout in layouts.iter() {
-        let arg = read_func_arg(layout, iter)?;
+    for (i, layout) in layouts.iter().enumerate() {
+        let arg = read_func_arg(layout, i, iter)?;
 
         func_args.push(arg);
     }
@@ -94,7 +94,11 @@ pub fn parse_func_args(iter: &mut NibbleIter) -> Result<Vec<WasmValue>, ParseErr
     Ok(func_args)
 }
 
-fn read_func_arg(layout: &WasmValueLayout, iter: &mut NibbleIter) -> Result<WasmValue, ParseError> {
+fn read_func_arg(
+    layout: &WasmValueLayout,
+    arg_idx: usize,
+    iter: &mut NibbleIter,
+) -> Result<WasmValue, ParseError> {
     let n = layout.len;
 
     // `n` bytes <=> `2 * n` nibbles
@@ -102,13 +106,23 @@ fn read_func_arg(layout: &WasmValueLayout, iter: &mut NibbleIter) -> Result<Wasm
 
     let (bytes, rem) = concat_nibbles(&nibbles[..]);
 
+    if bytes.len() != n {
+        let mut actual_read = bytes.len() * 2;
+
+        if rem.is_some() {
+            actual_read += 1;
+        }
+
+        return Err(ParseError::FuncArgValueIncomplete {
+            arg_idx,
+            actual_read,
+            expected_nibbles: 2 * n,
+        });
+    };
+
     // `rem` is expected to be `None` since we've asked
     // for an even number of nibbles (= `2 * n`)
     assert!(rem.is_none());
-
-    if bytes.len() != n {
-        todo!()
-    };
 
     let val = {
         match n {
@@ -162,13 +176,15 @@ fn parse_func_args_layout(iter: &mut NibbleIter) -> Result<Vec<WasmValueLayout>,
 
         if let Some(nibble) = nibble {
             match nibble.inner() {
-                0b_0000_0111 => {
-                    // invalid input
-                    return Err(ParseError::InvalidFuncArgLayout(0b_0000_0111));
-                }
                 0b_0000_0110 => {
-                    // there are no more func args
+                    // marker denoting: "there are no more func args"
                     has_more = false;
+                }
+                0b_0000_0111 => {
+                    // ignore this marker.
+                    // do nothing and skip to the next nibble
+                    // should be used to align the func args layouts offset,
+                    // so that each arg layout will start at an even position.
                 }
                 _ => {
                     let layout = nibble.into();
@@ -191,7 +207,7 @@ mod tests {
 
     // special-cases
     static NO_MORE: u8 = 0b_0000_0110;
-    static INVALID: u8 = 0b_0000_0111;
+    static DO_SKIP: u8 = 0b_0000_0111;
 
     // i32-layout
     static I32_0B: u8 = 0b_0000_0000;
@@ -246,16 +262,8 @@ mod tests {
     }
 
     #[test]
-    fn parse_func_args_zero_args_missing_no_more_mark() {
+    fn parse_func_args_zero_args_missing_no_more_marker() {
         assert_func_args_err(vec![], ParseError::EmptyField(Field::FuncArgsNoMoreMark));
-    }
-
-    #[test]
-    fn parse_func_args_invalid_arg() {
-        let nibbles = vec![nib!(INVALID), nib!(NO_MORE)];
-        let expected = ParseError::InvalidFuncArgLayout(0b_0000_0111);
-
-        assert_func_args_err(nibbles, expected);
     }
 
     #[test]
@@ -589,6 +597,47 @@ mod tests {
             WasmValue::I64(0xCDEF),
             WasmValue::I64(0x123456),
         ];
+
+        assert_func_args(nibbles, expected);
+    }
+
+    #[test]
+    fn parse_func_args_missing_some_arg_values_bytes() {
+        let nibbles = vec![
+            nib!(I32_2B),
+            nib!(NO_MORE),
+            //
+            // arg contains only 2 nibbles
+            // instead of 4 (since layout states `2 bytes`)
+            nib!(0x0A),
+            nib!(0x0B),
+        ];
+
+        let expected = ParseError::FuncArgValueIncomplete {
+            arg_idx: 0,
+            expected_nibbles: 4,
+            actual_read: 2,
+        };
+
+        assert_func_args_err(nibbles, expected);
+    }
+
+    #[test]
+    fn parse_func_args_skip_marker() {
+        let nibbles = vec![
+            nib!(I32_1B),
+            nib!(DO_SKIP),
+            nib!(NO_MORE),
+            // arg func (one byte)
+            nib!(0x0A),
+            nib!(0x0B),
+            // after arg data
+            nib!(0x0F),
+            nib!(0x0F),
+            nib!(0x0F),
+        ];
+
+        let expected = vec![WasmValue::I32(0xAB)];
 
         assert_func_args(nibbles, expected);
     }

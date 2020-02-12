@@ -85,7 +85,7 @@
 //!  |-----------------------------------------------------|
 //!  |   0   |  1 0 1  | i64 type, value consumes 0 bytes  |
 //!  |   0   |  1 1 0  | no more func args                 |
-//!  |   0   |  1 1 1  | INVALID		           |
+//!  |   0   |  1 1 1  | ignore (skip to next nibble)      |
 //!  |-----------------------------------------------------|
 //!  |   1   |  0 0 0  | i64 type, value consumes 1 bytes  |
 //!  |   1   |  0 0 1  | i64 type, value consumes 2 bytes  |

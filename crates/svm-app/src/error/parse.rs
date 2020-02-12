@@ -6,7 +6,6 @@ use crate::raw::Field;
 #[derive(PartialEq, Clone)]
 pub enum ParseError {
     InvalidWasm,
-    InvalidFuncArgLayout(u8),
     EmptyField(Field),
     EmptyList(Field),
     NotEnoughBytes(Field),
@@ -14,6 +13,11 @@ pub enum ParseError {
     NotSupported(Field),
     InvalidUTF8String(Field),
     InvalidProtocolVersion(u32),
+    FuncArgValueIncomplete {
+        arg_idx: usize,
+        expected_nibbles: usize,
+        actual_read: usize,
+    },
 }
 
 impl fmt::Display for ParseError {
@@ -31,7 +35,9 @@ impl fmt::Display for ParseError {
                 write!(fmt, "Field `{}` must be a valid UTF-8 string", f)
             }
             ParseError::InvalidWasm => write!(fmt, "Invalid wasm format"),
-            ParseError::InvalidFuncArgLayout(..) => write!(fmt, "Invalid arg type"),
+            ParseError::FuncArgValueIncomplete { .. } => {
+                write!(fmt, "Function argument is incomplete (missing data)")
+            }
         }
     }
 }
