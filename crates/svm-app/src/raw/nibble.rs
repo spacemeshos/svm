@@ -5,6 +5,8 @@ pub struct Nibble(u8);
 #[macro_export]
 macro_rules! nib {
     ($val:expr) => {{
+        use crate::raw::Nibble;
+
         Nibble::new($val)
     }};
 }
