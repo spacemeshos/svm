@@ -22,6 +22,7 @@ pub enum Field {
     FuncBufSliceLength,
     FuncBufSlice,
     FuncArgsCount,
+    FuncArgsNoMoreMark,
     WasmType,
     WasmValue,
 }

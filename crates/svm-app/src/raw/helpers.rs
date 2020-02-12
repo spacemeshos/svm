@@ -73,41 +73,7 @@ pub fn parse_func_buf(cursor: &mut Cursor<&[u8]>) -> Result<Vec<BufferSlice>, Pa
 
 #[must_use]
 pub fn parse_func_args(cursor: &mut Cursor<&[u8]>) -> Result<Vec<WasmValue>, ParseError> {
-    let arg_count = helpers::read_u8(cursor, Field::FuncArgsCount)?;
-
-    let mut args = Vec::with_capacity(arg_count as usize);
-
-    for _ in 0..arg_count {
-        let arg = parse_func_arg(cursor)?;
-        args.push(arg);
-    }
-
-    Ok(args)
-}
-
-#[must_use]
-fn parse_func_arg(cursor: &mut Cursor<&[u8]>) -> Result<WasmValue, ParseError> {
-    let arg_type = parse_func_arg_type(cursor)?;
-
-    let arg = match arg_type {
-        WasmType::I32 => {
-            let val = helpers::read_u32(cursor, Field::WasmValue)?;
-            WasmValue::I32(val)
-        }
-        WasmType::I64 => {
-            let val = helpers::read_u64(cursor, Field::WasmValue)?;
-            WasmValue::I64(val)
-        }
-    };
-
-    Ok(arg)
-}
-
-#[must_use]
-fn parse_func_arg_type(cursor: &mut Cursor<&[u8]>) -> Result<WasmType, ParseError> {
-    let byte = helpers::read_u8(cursor, Field::WasmType)?;
-
-    WasmType::try_from(byte).or_else(|_e| Err(ParseError::InvalidArgType(byte)))
+    todo!()
 }
 
 #[must_use]

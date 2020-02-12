@@ -157,7 +157,7 @@ fn parse_func_args_layout(iter: &mut NibbleIter) -> Result<Vec<WasmValueLayout>,
             match nibble.0 {
                 0b_0000_0111 => {
                     // invalid input
-                    todo!()
+                    return Err(ParseError::InvalidFuncArgLayout(0b_0000_0111));
                 }
                 0b_0000_0110 => {
                     // next func arg will be the last one
@@ -169,7 +169,7 @@ fn parse_func_args_layout(iter: &mut NibbleIter) -> Result<Vec<WasmValueLayout>,
                 }
             }
         } else {
-            panic!()
+            return Err(ParseError::EmptyField(Field::FuncArgsNoMoreMark));
         }
     }
 
@@ -181,15 +181,18 @@ mod tests {
     use super::*;
     use crate::raw::concat_nibbles;
 
+    // special cases
     static NO_MORE: Nibble = Nibble(0b_0000_0110);
     static INVALID: Nibble = Nibble(0b_0000_0111);
 
+    // i32-layout
     static I32_0B: Nibble = Nibble(0b_0000_0000);
     static I32_1B: Nibble = Nibble(0b_0000_0001);
     static I32_2B: Nibble = Nibble(0b_0000_0010);
     static I32_3B: Nibble = Nibble(0b_0000_0011);
     static I32_4B: Nibble = Nibble(0b_0000_0100);
 
+    // i64-layout
     static I64_0B: Nibble = Nibble(0b_0000_0101);
     static I64_1B: Nibble = Nibble(0b_0000_1000);
     static I64_2B: Nibble = Nibble(0b_0000_1001);
@@ -200,13 +203,35 @@ mod tests {
     static I64_7B: Nibble = Nibble(0b_0000_1110);
     static I64_8B: Nibble = Nibble(0b_0000_1111);
 
+    fn assert_func_args(nibbles: Vec<Nibble>, expected: Vec<WasmValue>) {
+        let (data, rem) = concat_nibbles(&nibbles[..]);
+        assert!(rem.is_none());
+
+        let mut iter = NibbleIter::new(&data[..]);
+
+        let actual = parse_func_args(&mut iter).unwrap();
+
+        assert_eq!(expected, actual);
+    }
+
     #[test]
-    fn parse_func_args_no_args() {
-        let data = vec![NO_MORE.0];
+    fn parse_func_args_zero_args() {
+        let data = vec![(NO_MORE.0 << 4)];
         let mut iter = NibbleIter::new(&data);
 
         let args = parse_func_args(&mut iter).unwrap();
         assert!(args.is_empty());
+    }
+
+    #[test]
+    fn parse_func_args_zero_args_missing_no_more_mark() {
+        let data = vec![];
+        let mut iter = NibbleIter::new(&data);
+
+        let expected = Err(ParseError::EmptyField(Field::FuncArgsNoMoreMark));
+        let actual = parse_func_args(&mut iter);
+
+        assert_eq!(expected, actual);
     }
 
     #[test]
@@ -216,8 +241,10 @@ mod tests {
 
         let mut iter = NibbleIter::new(&data);
 
-        let res = parse_func_args(&mut iter);
-        assert!(res.is_err());
+        let expected = Err(ParseError::InvalidFuncArgLayout(0b_0000_0111));
+        let actual = parse_func_args(&mut iter);
+
+        assert_eq!(expected, actual);
     }
 
     #[test]
@@ -235,40 +262,31 @@ mod tests {
 
     #[test]
     fn parse_func_args_i32_arg_1_byte() {
-        let (data, rem) = concat_nibbles(&[I32_1B, NO_MORE, Nibble(0x0A), Nibble(0x0B)]);
-        assert!(rem.is_none());
-
-        let mut iter = NibbleIter::new(&data[..]);
-
-        let actual = parse_func_args(&mut iter).unwrap();
+        let nibbles = vec![I32_1B, NO_MORE, Nibble(0x0A), Nibble(0x0B)];
         let expected = vec![WasmValue::I32(0xAB)];
 
-        assert_eq!(expected, actual);
+        assert_func_args(nibbles, expected);
     }
 
     #[test]
     fn parse_func_args_i32_arg_2_bytes() {
-        let (data, rem) = concat_nibbles(&[
+        let nibbles = vec![
             I32_2B,
             NO_MORE,
             Nibble(0x0A),
             Nibble(0x0B),
             Nibble(0x0C),
             Nibble(0x0D),
-        ]);
-        assert!(rem.is_none());
+        ];
 
-        let mut iter = NibbleIter::new(&data[..]);
-
-        let actual = parse_func_args(&mut iter).unwrap();
         let expected = vec![WasmValue::I32(0xABCD)];
 
-        assert_eq!(expected, actual);
+        assert_func_args(nibbles, expected);
     }
 
     #[test]
     fn parse_func_args_i32_arg_3_bytes() {
-        let (data, rem) = concat_nibbles(&[
+        let nibbles = vec![
             I32_3B,
             NO_MORE,
             Nibble(0x0A),
@@ -277,20 +295,16 @@ mod tests {
             Nibble(0x0D),
             Nibble(0x0E),
             Nibble(0x0F),
-        ]);
-        assert!(rem.is_none());
+        ];
 
-        let mut iter = NibbleIter::new(&data[..]);
-
-        let actual = parse_func_args(&mut iter).unwrap();
         let expected = vec![WasmValue::I32(0xABCDEF)];
 
-        assert_eq!(expected, actual);
+        assert_func_args(nibbles, expected);
     }
 
     #[test]
     fn parse_func_args_i32_arg_4_bytes() {
-        let (data, rem) = concat_nibbles(&[
+        let nibbles = vec![
             I32_4B,
             NO_MORE,
             Nibble(0x0A),
@@ -301,66 +315,49 @@ mod tests {
             Nibble(0x0F),
             Nibble(0x01),
             Nibble(0x02),
-        ]);
-        assert!(rem.is_none());
+        ];
 
-        let mut iter = NibbleIter::new(&data[..]);
-
-        let actual = parse_func_args(&mut iter).unwrap();
         let expected = vec![WasmValue::I32(0xABCDEF12)];
 
-        assert_eq!(expected, actual);
+        assert_func_args(nibbles, expected);
     }
 
     #[test]
     fn parse_func_args_i64_arg_0_bytes() {
-        let (data, rem) = concat_nibbles(&[I64_0B, NO_MORE]);
-        assert!(rem.is_none());
-
-        let mut iter = NibbleIter::new(&data);
-
-        let actual = parse_func_args(&mut iter).unwrap();
+        let nibbles = vec![I64_0B, NO_MORE];
         let expected = vec![WasmValue::I64(0)];
 
-        assert_eq!(expected, actual);
+        assert_func_args(nibbles, expected);
     }
 
     #[test]
     fn parse_func_args_i64_arg_1_byte() {
-        let (data, rem) = concat_nibbles(&[I64_1B, NO_MORE, Nibble(0x0A), Nibble(0x0B)]);
-        assert!(rem.is_none());
+        let nibbles = vec![I64_1B, NO_MORE, Nibble(0x0A), Nibble(0x0B)];
 
-        let mut iter = NibbleIter::new(&data);
-
-        let actual = parse_func_args(&mut iter).unwrap();
         let expected = vec![WasmValue::I64(0x0AB)];
 
-        assert_eq!(expected, actual);
+        assert_func_args(nibbles, expected);
     }
 
     #[test]
     fn parse_func_args_i64_arg_2_bytes() {
-        let (data, rem) = concat_nibbles(&[
+        let nibbles = vec![
             I64_2B,
             NO_MORE,
             Nibble(0x0A),
             Nibble(0x0B),
             Nibble(0x0C),
             Nibble(0x0D),
-        ]);
-        assert!(rem.is_none());
+        ];
 
-        let mut iter = NibbleIter::new(&data);
-
-        let actual = parse_func_args(&mut iter).unwrap();
         let expected = vec![WasmValue::I64(0x0ABCD)];
 
-        assert_eq!(expected, actual);
+        assert_func_args(nibbles, expected);
     }
 
     #[test]
     fn parse_func_args_i64_arg_3_bytes() {
-        let (data, rem) = concat_nibbles(&[
+        let nibbles = vec![
             I64_3B,
             NO_MORE,
             Nibble(0x0A),
@@ -369,20 +366,16 @@ mod tests {
             Nibble(0x0D),
             Nibble(0x0E),
             Nibble(0x0F),
-        ]);
-        assert!(rem.is_none());
+        ];
 
-        let mut iter = NibbleIter::new(&data);
-
-        let actual = parse_func_args(&mut iter).unwrap();
         let expected = vec![WasmValue::I64(0x0ABCDEF)];
 
-        assert_eq!(expected, actual);
+        assert_func_args(nibbles, expected);
     }
 
     #[test]
     fn parse_func_args_i64_arg_4_bytes() {
-        let (data, rem) = concat_nibbles(&[
+        let nibbles = vec![
             I64_4B,
             NO_MORE,
             Nibble(0x0A),
@@ -393,20 +386,16 @@ mod tests {
             Nibble(0x0F),
             Nibble(0x01),
             Nibble(0x02),
-        ]);
-        assert!(rem.is_none());
+        ];
 
-        let mut iter = NibbleIter::new(&data);
-
-        let actual = parse_func_args(&mut iter).unwrap();
         let expected = vec![WasmValue::I64(0x0ABCDEF12)];
 
-        assert_eq!(expected, actual);
+        assert_func_args(nibbles, expected);
     }
 
     #[test]
     fn parse_func_args_i64_arg_5_bytes() {
-        let (data, rem) = concat_nibbles(&[
+        let nibbles = vec![
             I64_5B,
             NO_MORE,
             Nibble(0x0A),
@@ -419,20 +408,16 @@ mod tests {
             Nibble(0x02),
             Nibble(0x03),
             Nibble(0x04),
-        ]);
-        assert!(rem.is_none());
+        ];
 
-        let mut iter = NibbleIter::new(&data);
-
-        let actual = parse_func_args(&mut iter).unwrap();
         let expected = vec![WasmValue::I64(0x0ABCDEF1234)];
 
-        assert_eq!(expected, actual);
+        assert_func_args(nibbles, expected);
     }
 
     #[test]
     fn parse_func_args_i64_arg_6_bytes() {
-        let (data, rem) = concat_nibbles(&[
+        let nibbles = vec![
             I64_6B,
             NO_MORE,
             Nibble(0x0A),
@@ -447,20 +432,16 @@ mod tests {
             Nibble(0x04),
             Nibble(0x05),
             Nibble(0x06),
-        ]);
-        assert!(rem.is_none());
+        ];
 
-        let mut iter = NibbleIter::new(&data);
-
-        let actual = parse_func_args(&mut iter).unwrap();
         let expected = vec![WasmValue::I64(0x0ABCDEF123456)];
 
-        assert_eq!(expected, actual);
+        assert_func_args(nibbles, expected);
     }
 
     #[test]
     fn parse_func_args_i64_arg_7_bytes() {
-        let (data, rem) = concat_nibbles(&[
+        let nibbles = vec![
             I64_7B,
             NO_MORE,
             Nibble(0x0A),
@@ -477,20 +458,16 @@ mod tests {
             Nibble(0x06),
             Nibble(0x07),
             Nibble(0x08),
-        ]);
-        assert!(rem.is_none());
+        ];
 
-        let mut iter = NibbleIter::new(&data);
-
-        let actual = parse_func_args(&mut iter).unwrap();
         let expected = vec![WasmValue::I64(0x0ABCDEF12345678)];
 
-        assert_eq!(expected, actual);
+        assert_func_args(nibbles, expected);
     }
 
     #[test]
     fn parse_func_args_i64_arg_8_bytes() {
-        let (data, rem) = concat_nibbles(&[
+        let nibbles = vec![
             I64_8B,
             NO_MORE,
             Nibble(0x0A),
@@ -509,14 +486,10 @@ mod tests {
             Nibble(0x08),
             Nibble(0x09),
             Nibble(0x0A),
-        ]);
-        assert!(rem.is_none());
+        ];
 
-        let mut iter = NibbleIter::new(&data);
-
-        let actual = parse_func_args(&mut iter).unwrap();
         let expected = vec![WasmValue::I64(0x0ABCDEF123456789A)];
 
-        assert_eq!(expected, actual);
+        assert_func_args(nibbles, expected);
     }
 }
