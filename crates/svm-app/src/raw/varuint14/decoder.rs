@@ -1,9 +1,10 @@
-use super::{Field, Nibble, NibbleIter};
+use super::super::{Field, Nibble, NibbleIter};
+
 use crate::error::ParseError;
 
 use bit_vec::BitVec;
 
-pub fn parse_varuint16(iter: &mut NibbleIter) -> Result<u16, ParseError> {
+pub fn decode_varuint14(iter: &mut NibbleIter) -> Result<u16, ParseError> {
     let preamble = iter.next();
 
     if preamble.is_none() {
@@ -58,58 +59,58 @@ mod tests {
     use super::*;
 
     #[test]
-    fn parse_varuint6_empty() {
+    fn decode_varuint14_empty() {
         let vec = vec![];
         let mut iter = NibbleIter::new(&vec[..]);
 
         let expected = Err(ParseError::NotEnoughBytes(Field::FuncIndex));
 
-        assert_eq!(expected, parse_varuint16(&mut iter));
+        assert_eq!(expected, decode_varuint14(&mut iter));
     }
 
     #[test]
-    fn parse_varuint6_one_nibble() {
+    fn decode_varuint14_one_nibble() {
         let vec = vec![0b00_11_0000];
         let mut iter = NibbleIter::new(&vec[..]);
 
-        let func_idx = parse_varuint16(&mut iter).unwrap();
+        let func_idx = decode_varuint14(&mut iter).unwrap();
         assert_eq!(0b11, func_idx);
     }
 
     #[test]
-    fn parse_varuint6_2_nibbles() {
+    fn decode_varuint14_2_nibbles() {
         let vec = vec![0b01_11_0111];
         let mut iter = NibbleIter::new(&vec[..]);
 
-        let func_idx = parse_varuint16(&mut iter).unwrap();
+        let func_idx = decode_varuint14(&mut iter).unwrap();
         assert_eq!(0b11_0111, func_idx);
     }
 
     #[test]
-    fn parse_varuint6_3_nibbles() {
+    fn decode_varuint14_3_nibbles() {
         let vec = vec![0b10_11_0111, 0b0101_0000];
         let mut iter = NibbleIter::new(&vec[..]);
 
-        let func_idx = parse_varuint16(&mut iter).unwrap();
+        let func_idx = decode_varuint14(&mut iter).unwrap();
         assert_eq!(0b11_0111_0101, func_idx);
     }
 
     #[test]
-    fn parse_varuint6_4_nibbles() {
+    fn decode_varuint14_4_nibbles() {
         let vec = vec![0b11_11_0111, 0b0101_0011];
         let mut iter = NibbleIter::new(&vec[..]);
 
-        let func_idx = parse_varuint16(&mut iter).unwrap();
+        let func_idx = decode_varuint14(&mut iter).unwrap();
         assert_eq!(0b11_0111_0101_0011, func_idx);
     }
 
     #[test]
-    fn parse_varuint6_not_enough_bytes() {
+    fn decode_varuint14_not_enough_bytes() {
         let vec = vec![0b10_11_0111];
         let mut iter = NibbleIter::new(&vec[..]);
 
         let expected = Err(ParseError::NotEnoughBytes(Field::FuncIndex));
 
-        assert_eq!(expected, parse_varuint16(&mut iter));
+        assert_eq!(expected, decode_varuint14(&mut iter));
     }
 }

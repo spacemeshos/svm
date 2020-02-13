@@ -1,6 +1,6 @@
 use crate::nib;
 
-use super::{Nibble, NibbleWriter};
+use super::super::{Nibble, NibbleWriter};
 
 pub fn encode_varuint14(num: u16, writer: &mut NibbleWriter) {
     match num {

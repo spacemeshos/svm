@@ -3,7 +3,7 @@ use std::{
     iter::Iterator,
 };
 
-use super::nibble::{concat_nibbles, Nibble};
+use super::{concat_nibbles, Nibble};
 
 pub struct NibbleIter<'a> {
     buf: [u8; 1],

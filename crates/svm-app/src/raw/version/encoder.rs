@@ -1,6 +1,6 @@
 use crate::nib;
 
-use super::{Nibble, NibbleWriter};
+use super::super::{Nibble, NibbleWriter};
 
 pub fn encode_version(mut version: u32, writer: &mut NibbleWriter) {
     let mut has_more = true;
@@ -113,10 +113,19 @@ mod tests {
     }
 
     #[test]
-    fn encode_version_17() {
+    fn encode_version_010_001() {
         let version = 0b_00_010_001;
         let expected = vec![0b_1010_0001];
 
         assert_encoding(version, expected);
+    }
+
+    #[test]
+    fn encode_version_100_001_010() {
+        let version = 0b_100_001_010;
+        let padding = nib!(0b_1111);
+        let expected = vec![0b_1100_1001, 0b_0010_1111];
+
+        assert_encoding_with_padding(version, padding, expected);
     }
 }
