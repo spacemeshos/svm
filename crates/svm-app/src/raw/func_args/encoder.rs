@@ -75,12 +75,15 @@ fn encode_func_arg(arg: &WasmValue, layout: &WasmValueLayout, writer: &mut Nibbl
     };
 
     for _ in 0..layout.len {
-        let byte = (val & 0x0F) as u8;
-        let nib = nib!(byte);
+        let byte = (val & 0xFF) as u8;
+        let lnib = nib!((byte & 0xF0) >> 4);
+        let rnib = nib!(byte & 0x0F);
 
-        nibbles.push(nib);
+        nibbles.push(rnib);
+        nibbles.push(lnib);
 
-        val >>= 4;
+        // rotate byte
+        val >>= 8;
     }
 
     // since we've scanned `val` from `lsb` to `msb` order,

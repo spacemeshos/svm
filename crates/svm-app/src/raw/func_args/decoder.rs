@@ -4,7 +4,7 @@ use crate::{
 };
 
 use super::super::{concat_nibbles, Field, Nibble, NibbleIter, NibbleWriter};
-use super::{encode_func_args, WasmValueLayout, DO_SKIP};
+use super::{encode_func_args, WasmValueLayout, DO_SKIP, NO_MORE};
 
 pub fn decode_func_args(iter: &mut NibbleIter) -> Result<Vec<WasmValue>, ParseError> {
     let mut func_args = Vec::new();
@@ -101,11 +101,11 @@ fn decode_func_args_layout(iter: &mut NibbleIter) -> Result<Vec<WasmValueLayout>
 
         if let Some(nibble) = nibble {
             match nibble.inner() {
-                0b_0000_0110 => {
+                NO_MORE => {
                     // marker denoting: "there are no more func args"
                     has_more = false;
                 }
-                0b_0000_0111 => {
+                DO_SKIP => {
                     // marker denoting: "ignore, skip to next nibble".
                     //
                     // should be used to align the func args layouts offset,

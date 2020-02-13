@@ -22,9 +22,11 @@ mod tests {
     fn assert_encode_decode(args: Vec<WasmValue>) {
         let mut writer = NibbleWriter::new();
 
-        let layout_nibble_count = args.len();
+        // each func arg layout takes exactly one nibble
+        // plus there is one nibble for `no more func args marker`
+        let layouts_nibble_count = args.len() + 1;
 
-        if layout_nibble_count % 2 == 1 {
+        if layouts_nibble_count % 2 == 1 {
             let skip_nib = nib!(DO_SKIP);
             writer.write(&[skip_nib]);
         }
@@ -32,7 +34,7 @@ mod tests {
         encode_func_args(&args[..], &mut writer);
 
         let data = writer.bytes();
-        dbg!(&data);
+
         let mut iter = NibbleIter::new(&data);
         let decoded = decode_func_args(&mut iter).unwrap();
 
@@ -47,7 +49,7 @@ mod tests {
 
     #[test]
     fn encode_decode_func_i32_arg_1_byte() {
-        let arg = WasmValue::I32(1);
+        let arg = WasmValue::I32(0b0011);
 
         assert_encode_decode(vec![arg]);
     }
