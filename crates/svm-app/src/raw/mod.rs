@@ -1,5 +1,5 @@
 mod app;
-mod func_args_parser;
+mod func_args;
 mod host_ctx;
 mod template;
 mod transaction;
@@ -20,8 +20,7 @@ pub(crate) use field::Field;
 
 pub(crate) mod helpers;
 
-pub(crate) use func_args_parser::parse_func_args;
-
+pub(crate) use func_args::decode_func_args;
 pub(crate) use nibble::{concat_nibbles, Nibble, NibbleIter, NibbleWriter};
 pub(crate) use varuint14::{decode_varuint14, encode_varuint14};
 pub(crate) use version::{decode_version, encode_version};

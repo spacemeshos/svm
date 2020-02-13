@@ -3,88 +3,15 @@ use crate::{
     types::{WasmType, WasmValue},
 };
 
-use super::{concat_nibbles, Field, Nibble, NibbleIter};
+use super::super::{concat_nibbles, Field, Nibble, NibbleIter};
+use super::WasmValueLayout;
 
-#[derive(Debug, Clone, PartialEq)]
-struct WasmValueLayout {
-    ty: WasmType,
-
-    len: usize,
-}
-
-impl From<Nibble> for WasmValueLayout {
-    fn from(nibble: Nibble) -> Self {
-        match nibble.inner() {
-            // 32-bit args layouts:
-            0b_0000_0000 => Self {
-                ty: WasmType::I32,
-                len: 0,
-            },
-            0b_0000_0001 => Self {
-                ty: WasmType::I32,
-                len: 1,
-            },
-            0b_0000_0010 => Self {
-                ty: WasmType::I32,
-                len: 2,
-            },
-            0b_0000_0011 => Self {
-                ty: WasmType::I32,
-                len: 3,
-            },
-            0b_0000_0100 => Self {
-                ty: WasmType::I32,
-                len: 4,
-            },
-            //
-            // 64-bit args layouts:
-            0b_0000_0101 => Self {
-                ty: WasmType::I64,
-                len: 0,
-            },
-            0b_0000_1000 => Self {
-                ty: WasmType::I64,
-                len: 1,
-            },
-            0b_0000_1001 => Self {
-                ty: WasmType::I64,
-                len: 2,
-            },
-            0b_0000_1010 => Self {
-                ty: WasmType::I64,
-                len: 3,
-            },
-            0b_0000_1011 => Self {
-                ty: WasmType::I64,
-                len: 4,
-            },
-            0b_0000_1100 => Self {
-                ty: WasmType::I64,
-                len: 5,
-            },
-            0b_0000_1101 => Self {
-                ty: WasmType::I64,
-                len: 6,
-            },
-            0b_0000_1110 => Self {
-                ty: WasmType::I64,
-                len: 7,
-            },
-            0b_0000_1111 => Self {
-                ty: WasmType::I64,
-                len: 8,
-            },
-            _ => unreachable!(),
-        }
-    }
-}
-
-pub fn parse_func_args(iter: &mut NibbleIter) -> Result<Vec<WasmValue>, ParseError> {
+pub fn decode_func_args(iter: &mut NibbleIter) -> Result<Vec<WasmValue>, ParseError> {
     let mut func_args = Vec::new();
-    let layouts = parse_func_args_layout(iter)?;
+    let layouts = decode_func_args_layout(iter)?;
 
     for (i, layout) in layouts.iter().enumerate() {
-        let arg = read_func_arg(layout, i, iter)?;
+        let arg = decode_func_arg(layout, i, iter)?;
 
         func_args.push(arg);
     }
@@ -92,7 +19,7 @@ pub fn parse_func_args(iter: &mut NibbleIter) -> Result<Vec<WasmValue>, ParseErr
     Ok(func_args)
 }
 
-fn read_func_arg(
+fn decode_func_arg(
     layout: &WasmValueLayout,
     arg_idx: usize,
     iter: &mut NibbleIter,
@@ -165,7 +92,7 @@ fn read_func_arg(
     Ok(val)
 }
 
-fn parse_func_args_layout(iter: &mut NibbleIter) -> Result<Vec<WasmValueLayout>, ParseError> {
+fn decode_func_args_layout(iter: &mut NibbleIter) -> Result<Vec<WasmValueLayout>, ParseError> {
     let mut args_layout = Vec::new();
     let mut has_more = true;
 
@@ -233,7 +160,7 @@ mod tests {
 
         let mut iter = NibbleIter::new(&data[..]);
 
-        let actual = parse_func_args(&mut iter).unwrap();
+        let actual = decode_func_args(&mut iter).unwrap();
 
         assert_eq!(expected, actual);
     }
@@ -245,27 +172,27 @@ mod tests {
         let mut iter = NibbleIter::new(&data);
 
         let expected = Err(expected);
-        let actual = parse_func_args(&mut iter);
+        let actual = decode_func_args(&mut iter);
 
         assert_eq!(expected, actual);
     }
 
     #[test]
-    fn parse_func_args_zero_args() {
+    fn decode_func_args_zero_args() {
         let data = vec![NO_MORE << 4];
         let mut iter = NibbleIter::new(&data);
 
-        let args = parse_func_args(&mut iter).unwrap();
+        let args = decode_func_args(&mut iter).unwrap();
         assert!(args.is_empty());
     }
 
     #[test]
-    fn parse_func_args_zero_args_missing_no_more_marker() {
+    fn decode_func_args_zero_args_missing_no_more_marker() {
         assert_func_args_err(vec![], ParseError::EmptyField(Field::FuncArgsNoMoreMark));
     }
 
     #[test]
-    fn parse_func_args_i32_arg_0_bytes() {
+    fn decode_func_args_i32_arg_0_bytes() {
         let nibbles = vec![nib!(I32_0B), nib!(NO_MORE)];
         let expected = vec![WasmValue::I32(0)];
 
@@ -273,7 +200,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_func_args_i32_arg_1_byte() {
+    fn decode_func_args_i32_arg_1_byte() {
         let nibbles = vec![nib!(I32_1B), nib!(NO_MORE), nib!(0x0A), nib!(0x0B)];
         let expected = vec![WasmValue::I32(0xAB)];
 
@@ -281,7 +208,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_func_args_i32_arg_2_bytes() {
+    fn decode_func_args_i32_arg_2_bytes() {
         let nibbles = vec![
             nib!(I32_2B),
             nib!(NO_MORE),
@@ -297,7 +224,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_func_args_i32_arg_3_bytes() {
+    fn decode_func_args_i32_arg_3_bytes() {
         let nibbles = vec![
             nib!(I32_3B),
             nib!(NO_MORE),
@@ -315,7 +242,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_func_args_i32_arg_4_bytes() {
+    fn decode_func_args_i32_arg_4_bytes() {
         let nibbles = vec![
             nib!(I32_4B),
             nib!(NO_MORE),
@@ -335,7 +262,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_func_args_i64_arg_0_bytes() {
+    fn decode_func_args_i64_arg_0_bytes() {
         let nibbles = vec![nib!(I64_0B), nib!(NO_MORE)];
         let expected = vec![WasmValue::I64(0)];
 
@@ -343,7 +270,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_func_args_i64_arg_1_byte() {
+    fn decode_func_args_i64_arg_1_byte() {
         let nibbles = vec![nib!(I64_1B), nib!(NO_MORE), nib!(0x0A), nib!(0x0B)];
 
         let expected = vec![WasmValue::I64(0x0AB)];
@@ -352,7 +279,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_func_args_i64_arg_2_bytes() {
+    fn decode_func_args_i64_arg_2_bytes() {
         let nibbles = vec![
             nib!(I64_2B),
             nib!(NO_MORE),
@@ -368,7 +295,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_func_args_i64_arg_3_bytes() {
+    fn decode_func_args_i64_arg_3_bytes() {
         let nibbles = vec![
             nib!(I64_3B),
             nib!(NO_MORE),
@@ -386,7 +313,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_func_args_i64_arg_4_bytes() {
+    fn decode_func_args_i64_arg_4_bytes() {
         let nibbles = vec![
             nib!(I64_4B),
             nib!(NO_MORE),
@@ -406,7 +333,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_func_args_i64_arg_5_bytes() {
+    fn decode_func_args_i64_arg_5_bytes() {
         let nibbles = vec![
             nib!(I64_5B),
             nib!(NO_MORE),
@@ -428,7 +355,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_func_args_i64_arg_6_bytes() {
+    fn decode_func_args_i64_arg_6_bytes() {
         let nibbles = vec![
             nib!(I64_6B),
             nib!(NO_MORE),
@@ -452,7 +379,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_func_args_i64_arg_7_bytes() {
+    fn decode_func_args_i64_arg_7_bytes() {
         let nibbles = vec![
             nib!(I64_7B),
             nib!(NO_MORE),
@@ -478,7 +405,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_func_args_i64_arg_8_bytes() {
+    fn decode_func_args_i64_arg_8_bytes() {
         let nibbles = vec![
             nib!(I64_8B),
             nib!(NO_MORE),
@@ -506,7 +433,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_func_args_multiple_i32_args() {
+    fn decode_func_args_multiple_i32_args() {
         let nibbles = vec![
             nib!(I32_0B),  // 1st arg consumes 0 bytes
             nib!(I32_1B),  // 2st arg consumes 1 byte
@@ -553,7 +480,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_func_args_multiple_i64_args() {
+    fn decode_func_args_multiple_i64_args() {
         let nibbles = vec![
             nib!(I64_0B),  // 1st arg consumes 0 bytes
             nib!(I64_1B),  // 2st arg consumes 1 byte
@@ -600,7 +527,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_func_args_missing_some_arg_values_bytes() {
+    fn decode_func_args_missing_some_arg_values_bytes() {
         let nibbles = vec![
             nib!(I32_2B),
             nib!(NO_MORE),
@@ -621,7 +548,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_func_args_skip_marker() {
+    fn decode_func_args_skip_marker() {
         let nibbles = vec![
             nib!(I32_1B),
             nib!(DO_SKIP),
