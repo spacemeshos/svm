@@ -9,6 +9,7 @@ mod transaction;
 mod func_args_parser;
 mod varuint14_encoder;
 mod varuint16_parser;
+mod version_encoder;
 mod version_parser;
 
 pub use app::parse_app;
@@ -29,4 +30,5 @@ pub(crate) use nibble_iter::NibbleIter;
 pub(crate) use nibble_writer::NibbleWriter;
 pub(crate) use varuint14_encoder::encode_varuint14;
 pub(crate) use varuint16_parser::parse_varuint16;
+pub(crate) use version_encoder::encode_version;
 pub(crate) use version_parser::parse_version;
