@@ -17,10 +17,22 @@ impl NibbleWriter {
         }
     }
 
-    pub fn as_bytes(&self) -> Vec<u8> {
+    pub fn bytes(&self) -> Vec<u8> {
+        assert!(self.is_byte_aligned());
+
         let (bytes, rem) = concat_nibbles(&self.nibbles[..]);
-        assert!(rem.is_none());
+        debug_assert!(rem.is_none());
 
         bytes
+    }
+
+    #[inline]
+    pub fn len(&self) -> usize {
+        self.nibbles.len()
+    }
+
+    #[inline]
+    pub fn is_byte_aligned(&self) -> bool {
+        self.len() % 2 == 0
     }
 }

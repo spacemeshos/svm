@@ -7,7 +7,7 @@ mod template;
 mod transaction;
 
 mod func_args_parser;
-mod varuint16_encoder;
+mod varuint14_encoder;
 mod varuint16_parser;
 mod version_parser;
 
@@ -27,6 +27,6 @@ pub(crate) use func_args_parser::parse_func_args;
 pub(crate) use nibble::{concat_nibbles, Nibble};
 pub(crate) use nibble_iter::NibbleIter;
 pub(crate) use nibble_writer::NibbleWriter;
-pub(crate) use varuint16_encoder::encode_varuint16;
+pub(crate) use varuint14_encoder::encode_varuint14;
 pub(crate) use varuint16_parser::parse_varuint16;
 pub(crate) use version_parser::parse_version;
