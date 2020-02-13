@@ -8,14 +8,14 @@ pub fn encode_varuint14(num: u16, writer: &mut NibbleWriter) {
             // `num` cosumes between 0 to 2 bits inclusive.
             // encoding hint: `00`
 
-            let nib = nib!((num & 0b_0011) as u8);
+            let nib = nib!(num as u8);
             writer.write(&[nib]);
         }
         0b_0000_0100..=0b_0011_1111 => {
             // `num` consumes between 3 to 6 bits inclusive.
             // encoding hint: `01`
 
-            let nib1 = nib!((0b_01_00 | ((num >> 4) & 0b_0011)) as u8);
+            let nib1 = nib!((0b_01_00 | (num >> 4)) as u8);
             let nib2 = nib!((num & 0x0F) as u8);
 
             writer.write(&[nib1, nib2]);
@@ -23,7 +23,7 @@ pub fn encode_varuint14(num: u16, writer: &mut NibbleWriter) {
         0b_0100_0000..=0b_0011_1111_1111 => {
             // `num` consumes between 7 to 10 bits inclusive.
             // encoding hint: `10`
-            let nib1 = nib!((0b_10_00 | ((num >> 8) & 0b_0011)) as u8);
+            let nib1 = nib!((0b_10_00 | (num >> 8)) as u8);
             let nib2 = nib!(((num >> 4) & 0x0F) as u8);
             let nib3 = nib!(((num >> 0) & 0x0F) as u8);
 
@@ -33,7 +33,7 @@ pub fn encode_varuint14(num: u16, writer: &mut NibbleWriter) {
             // `num` consumes between 11 to 14 bits inclusive.
             // encoding hint: `11`
 
-            let nib1 = nib!((0b_11_00 | ((num >> 12) & 0b_0011)) as u8);
+            let nib1 = nib!((0b_11_00 | (num >> 12)) as u8);
             let nib2 = nib!(((num >> 8) & 0x0F) as u8);
             let nib3 = nib!(((num >> 4) & 0x0F) as u8);
             let nib4 = nib!(((num >> 0) & 0x0F) as u8);

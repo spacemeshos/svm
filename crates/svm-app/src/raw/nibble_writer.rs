@@ -17,6 +17,7 @@ impl NibbleWriter {
         }
     }
 
+    #[must_use]
     pub fn bytes(&self) -> Vec<u8> {
         assert!(self.is_byte_aligned());
 
@@ -26,11 +27,13 @@ impl NibbleWriter {
         bytes
     }
 
+    #[must_use]
     #[inline]
     pub fn len(&self) -> usize {
         self.nibbles.len()
     }
 
+    #[must_use]
     #[inline]
     pub fn is_byte_aligned(&self) -> bool {
         self.len() % 2 == 0
