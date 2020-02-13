@@ -21,7 +21,7 @@ pub fn encode_version(mut version: u32, writer: &mut NibbleWriter) {
     }
 
     // since we've scanned `version` from `lsb` to `msb` order,
-    // we need to reverse `nibbles` prior `writer` with them.
+    // we need to reverse `nibbles` prior calling `writer` with them.
     let nibbles: Vec<Nibble> = nibbles.drain(..).rev().collect();
 
     writer.write(&nibbles[..]);

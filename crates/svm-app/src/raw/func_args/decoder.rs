@@ -130,27 +130,10 @@ mod tests {
     use super::*;
     use crate::{nib, raw::concat_nibbles};
 
-    // special-cases
-    static NO_MORE: u8 = 0b_0000_0110;
-    static DO_SKIP: u8 = 0b_0000_0111;
-
-    // i32-layout
-    static I32_0B: u8 = 0b_0000_0000;
-    static I32_1B: u8 = 0b_0000_0001;
-    static I32_2B: u8 = 0b_0000_0010;
-    static I32_3B: u8 = 0b_0000_0011;
-    static I32_4B: u8 = 0b_0000_0100;
-
-    // i64-layout
-    static I64_0B: u8 = 0b_0000_0101;
-    static I64_1B: u8 = 0b_0000_1000;
-    static I64_2B: u8 = 0b_0000_1001;
-    static I64_3B: u8 = 0b_0000_1010;
-    static I64_4B: u8 = 0b_0000_1011;
-    static I64_5B: u8 = 0b_0000_1100;
-    static I64_6B: u8 = 0b_0000_1101;
-    static I64_7B: u8 = 0b_0000_1110;
-    static I64_8B: u8 = 0b_0000_1111;
+    use super::super::{
+        DO_SKIP, I32_0B, I32_1B, I32_2B, I32_3B, I32_4B, I64_0B, I64_1B, I64_2B, I64_3B, I64_4B,
+        I64_5B, I64_6B, I64_7B, I64_8B, NO_MORE,
+    };
 
     fn assert_func_args(nibbles: Vec<Nibble>, expected: Vec<WasmValue>) {
         assert!(nibbles.len() % 2 == 0);

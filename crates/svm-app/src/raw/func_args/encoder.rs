@@ -69,5 +69,33 @@ fn func_arg_byte_length(value: u64) -> usize {
 }
 
 fn encode_func_arg(arg: &WasmValue, layout: &WasmValueLayout, writer: &mut NibbleWriter) {
-    todo!()
+    let mut nibbles = Vec::with_capacity(layout.len);
+
+    let mut val = match arg {
+        WasmValue::I32(v) => *v as u64,
+        WasmValue::I64(v) => *v,
+    };
+
+    for _ in 0..layout.len {
+        let byte = (val & 0x0F) as u8;
+        let nib = nib!(byte);
+
+        nibbles.push(nib);
+
+        val >>= 4;
+    }
+
+    // since we've scanned `val` from `lsb` to `msb` order,
+    // we need to reverse `nibbles` prior calling `writer` with them.
+    let nibbles: Vec<_> = nibbles.drain(..).rev().collect();
+
+    writer.write(&nibbles[..])
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn encode_func_args_zero_args() {
+        todo!()
+    }
 }
