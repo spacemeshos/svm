@@ -3,8 +3,8 @@ use crate::{
     types::{WasmType, WasmValue},
 };
 
-use super::super::{concat_nibbles, Field, Nibble, NibbleIter};
-use super::WasmValueLayout;
+use super::super::{concat_nibbles, Field, Nibble, NibbleIter, NibbleWriter};
+use super::{encode_func_args, WasmValueLayout, DO_SKIP};
 
 pub fn decode_func_args(iter: &mut NibbleIter) -> Result<Vec<WasmValue>, ParseError> {
     let mut func_args = Vec::new();
@@ -158,15 +158,6 @@ mod tests {
         let actual = decode_func_args(&mut iter);
 
         assert_eq!(expected, actual);
-    }
-
-    #[test]
-    fn decode_func_args_zero_args() {
-        let data = vec![NO_MORE << 4];
-        let mut iter = NibbleIter::new(&data);
-
-        let args = decode_func_args(&mut iter).unwrap();
-        assert!(args.is_empty());
     }
 
     #[test]

@@ -3,9 +3,7 @@ use crate::nib;
 use crate::types::{WasmType, WasmValue};
 
 use super::super::{Field, Nibble, NibbleWriter};
-use super::WasmValueLayout;
-
-const NO_MORE: u8 = 0b_0110;
+use super::{WasmValueLayout, NO_MORE};
 
 pub fn encode_func_args(args: &[WasmValue], writer: &mut NibbleWriter) {
     let mut layouts = Vec::with_capacity(args.len());
@@ -90,12 +88,4 @@ fn encode_func_arg(arg: &WasmValue, layout: &WasmValueLayout, writer: &mut Nibbl
     let nibbles: Vec<_> = nibbles.drain(..).rev().collect();
 
     writer.write(&nibbles[..])
-}
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn encode_func_args_zero_args() {
-        todo!()
-    }
 }
