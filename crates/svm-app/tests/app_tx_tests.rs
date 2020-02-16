@@ -2,7 +2,7 @@ use svm_app::{
     memory::{JsonMemAppStore, JsonMemAppTemplateStore, JsonMemoryEnv},
     testing::AppTxBuilder,
     traits::Env,
-    types::{App, AppTemplate, AppTransaction, BufferSlice, WasmValue},
+    types::{App, AppTemplate, AppTransaction, WasmValue},
 };
 use svm_common::Address;
 
@@ -38,8 +38,8 @@ fn parse_app_tx() {
     let bytes = AppTxBuilder::new()
         .with_version(0)
         .with_app(&app_addr)
-        .with_func_name("run")
-        .with_func_buf(&vec![vec![0xAA, 0xAA, 0xAA], vec![0xBB, 0xBB]])
+        .with_func_index(10)
+        .with_func_buf(&vec![0xAA, 0xAA, 0xAA, 0xBB, 0xBB])
         .with_func_args(&vec![WasmValue::I32(10), WasmValue::I64(20)])
         .build();
 
@@ -50,14 +50,7 @@ fn parse_app_tx() {
         sender: sender_addr,
         func_name: "run".to_string(),
         func_args: vec![WasmValue::I32(10), WasmValue::I64(20)],
-        func_buf: vec![
-            BufferSlice {
-                data: vec![0xAA, 0xAA, 0xAA],
-            },
-            BufferSlice {
-                data: vec![0xBB, 0xBB],
-            },
-        ],
+        func_buf: vec![0xAA, 0xAA, 0xAA, 0xBB, 0xBB],
     };
 
     assert_eq!(expected, actual);

@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::types::{BufferSlice, WasmValue};
+use crate::types::WasmValue;
 
 use svm_common::Address;
 
@@ -13,8 +13,8 @@ pub struct AppTransaction {
     /// Sender account address
     pub sender: Address,
 
-    /// Args buffer slices
-    pub func_buf: Vec<BufferSlice>,
+    /// Function buffer
+    pub func_buf: Vec<u8>,
 
     /// `App` function to execute
     pub func_name: String,

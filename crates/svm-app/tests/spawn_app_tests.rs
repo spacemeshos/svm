@@ -3,7 +3,7 @@ use svm_app::{
     memory::{JsonMemAppStore, JsonMemAppTemplateStore, JsonMemoryEnv},
     testing::AppBuilder,
     traits::Env,
-    types::{App, AppTemplate, BufferSlice, SpawnApp, WasmValue},
+    types::{App, AppTemplate, SpawnApp, WasmValue},
 };
 use svm_common::Address;
 
@@ -19,7 +19,7 @@ fn parse_spawn_app() {
     let bytes = AppBuilder::new()
         .with_version(0)
         .with_template(&template)
-        .with_ctor_buf(&vec![vec![0xAA, 0xAA, 0xAA], vec![0xBB, 0xBB]])
+        .with_ctor_buf(&vec![0xAA, 0xAA, 0xAA, 0xBB, 0xBB])
         .with_ctor_args(&vec![WasmValue::I32(10), WasmValue::I64(200)])
         .build();
 
@@ -27,14 +27,7 @@ fn parse_spawn_app() {
 
     let expected = SpawnApp {
         app: App { template, creator },
-        ctor_buf: vec![
-            BufferSlice {
-                data: vec![0xAA, 0xAA, 0xAA],
-            },
-            BufferSlice {
-                data: vec![0xBB, 0xBB],
-            },
-        ],
+        ctor_buf: vec![0xAA, 0xAA, 0xAA, 0xBB, 0xBB],
         ctor_args: vec![WasmValue::I32(10), WasmValue::I64(200)],
     };
 

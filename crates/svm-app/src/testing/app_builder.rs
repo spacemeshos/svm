@@ -1,9 +1,8 @@
-use byteorder::{BigEndian, WriteBytesExt};
-
 use crate::{
-    raw::helpers,
-    types::{BufferSlice, WasmValue},
+    raw::{helpers, NibbleWriter},
+    types::WasmValue,
 };
+
 use svm_common::Address;
 
 /// Builds a raw representation for `spawn-app`
@@ -11,7 +10,7 @@ use svm_common::Address;
 pub struct AppBuilder {
     version: Option<u32>,
     template: Option<Address>,
-    ctor_buf: Option<Vec<Vec<u8>>>,
+    ctor_buf: Option<Vec<u8>>,
     ctor_args: Option<Vec<WasmValue>>,
 }
 
@@ -37,7 +36,7 @@ impl AppBuilder {
         self
     }
 
-    pub fn with_ctor_buf(mut self, ctor_buf: &Vec<Vec<u8>>) -> Self {
+    pub fn with_ctor_buf(mut self, ctor_buf: &Vec<u8>) -> Self {
         self.ctor_buf = Some(ctor_buf.clone());
         self
     }
@@ -48,35 +47,45 @@ impl AppBuilder {
     }
 
     pub fn build(&mut self) -> Vec<u8> {
-        let mut buf = Vec::new();
+        let mut writer = NibbleWriter::new();
 
-        self.write_version(&mut buf);
-        self.write_template(&mut buf);
-        self.write_ctor_buf(&mut buf);
-        self.write_ctor_args(&mut buf);
+        self.write_version(&mut writer);
+        self.write_template(&mut writer);
+        self.write_ctor_buf(&mut writer);
+        self.write_ctor_args(&mut writer);
 
-        buf
+        writer.bytes()
     }
 
-    fn write_version(&self, buf: &mut Vec<u8>) {
+    fn write_version(&self, writer: &mut NibbleWriter) {
         let version = self.version.unwrap();
-        buf.write_u32::<BigEndian>(version).unwrap();
+
+        helpers::encode_version(version, writer);
     }
 
-    fn write_template(&self, buf: &mut Vec<u8>) {
-        self.write_address(&self.template.as_ref().unwrap(), buf)
+    fn write_template(&self, writer: &mut NibbleWriter) {
+        let addr = self.template.as_ref().unwrap();
+
+        helpers::encode_address(addr, writer);
     }
 
-    fn write_address(&self, address: &Address, buf: &mut Vec<u8>) {
-        let bytes = address.bytes();
-        buf.extend_from_slice(&bytes);
+    fn write_ctor_buf(&self, writer: &mut NibbleWriter) {
+        let buf = if let Some(buf) = &self.ctor_buf {
+            buf.to_vec()
+        } else {
+            vec![]
+        };
+
+        helpers::encode_func_buf(&buf[..], writer);
     }
 
-    fn write_ctor_buf(&self, buf: &mut Vec<u8>) {
-        helpers::write_func_buf(&self.ctor_buf, buf);
-    }
+    fn write_ctor_args(&self, writer: &mut NibbleWriter) {
+        let args = if let Some(args) = &self.ctor_args {
+            args.to_vec()
+        } else {
+            vec![]
+        };
 
-    fn write_ctor_args(&self, buf: &mut Vec<u8>) {
-        helpers::write_func_args(&self.ctor_args, buf);
+        helpers::encode_func_args(&args[..], writer);
     }
 }
