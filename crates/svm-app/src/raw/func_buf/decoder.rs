@@ -8,10 +8,7 @@ pub fn decode_func_buf(iter: &mut NibbleIter) -> Result<Vec<u8>, ParseError> {
     let bytes = iter.read_bytes(buf_len);
 
     if bytes.len() != buf_len {
-        return Err(ParseError::FuncBufIncomplete {
-            expected_bytes: buf_len,
-            actual_read: bytes.len(),
-        });
+        return Err(ParseError::NotEnoughBytes(Field::FuncBuf));
     }
 
     debug_assert_eq!(buf_len, bytes.len());

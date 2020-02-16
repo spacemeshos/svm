@@ -12,6 +12,7 @@ pub enum Field {
     App,
     FuncIndex,
     FuncBufLength,
+    FuncBuf,
     FuncArgsNoMoreMark,
 }
 

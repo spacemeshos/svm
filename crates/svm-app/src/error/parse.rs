@@ -5,17 +5,12 @@ use crate::raw::Field;
 #[allow(missing_docs)]
 #[derive(PartialEq, Clone)]
 pub enum ParseError {
-    InvalidWasm,
     EmptyField(Field),
     NotEnoughBytes(Field),
     TooManyBytes(Field),
     NotSupported(Field),
     InvalidUTF8String(Field),
     InvalidProtocolVersion(u32),
-    FuncBufIncomplete {
-        expected_bytes: usize,
-        actual_read: usize,
-    },
     FuncArgValueIncomplete {
         arg_idx: usize,
         expected_nibbles: usize,
@@ -34,12 +29,8 @@ impl fmt::Display for ParseError {
             ParseError::InvalidUTF8String(f) => {
                 write!(fmt, "Field `{}` must be a valid UTF-8 string", f)
             }
-            ParseError::InvalidWasm => write!(fmt, "Invalid wasm format"),
             ParseError::FuncArgValueIncomplete { .. } => {
                 write!(fmt, "Function argument is incomplete (missing data)")
-            }
-            ParseError::FuncBufIncomplete { .. } => {
-                write!(fmt, "Function buffer is incomplete (missing data)")
             }
         }
     }
