@@ -8,7 +8,7 @@ use svm_app::{
 use svm_common::Address;
 
 #[test]
-fn parse_spawn_app() {
+fn spawn_app_parse() {
     let app_store = JsonMemAppStore::new();
     let template_store = JsonMemAppTemplateStore::new();
     let env = JsonMemoryEnv::new(app_store, template_store);
@@ -35,7 +35,7 @@ fn parse_spawn_app() {
 }
 
 #[test]
-fn valid_app_creation() {
+fn spawn_app_valid_app() {
     let app_store = JsonMemAppStore::new();
     let template_store = JsonMemAppTemplateStore::new();
     let mut env = JsonMemoryEnv::new(app_store, template_store);
@@ -60,7 +60,6 @@ fn valid_app_creation() {
     let app = &spawn_app.app;
 
     let expected_addr = env.derive_app_address(app);
-
     let actual_addr = env.store_app(app).unwrap();
     assert_eq!(expected_addr, actual_addr);
 
@@ -74,7 +73,7 @@ fn valid_app_creation() {
 }
 
 #[test]
-fn app_template_does_not_exist() {
+fn spawn_app_template_does_not_exist() {
     let app_store = JsonMemAppStore::new();
     let template_store = JsonMemAppTemplateStore::new();
     let mut env = JsonMemoryEnv::new(app_store, template_store);

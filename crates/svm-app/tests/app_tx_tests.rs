@@ -38,7 +38,7 @@ fn parse_app_tx() {
     let bytes = AppTxBuilder::new()
         .with_version(0)
         .with_app(&app_addr)
-        .with_func_index(10)
+        .with_func_index(5)
         .with_func_buf(&vec![0xAA, 0xAA, 0xAA, 0xBB, 0xBB])
         .with_func_args(&vec![WasmValue::I32(10), WasmValue::I64(20)])
         .build();
@@ -48,7 +48,7 @@ fn parse_app_tx() {
     let expected = AppTransaction {
         app: app_addr,
         sender: sender_addr,
-        func_name: "run".to_string(),
+        func_idx: 5,
         func_args: vec![WasmValue::I32(10), WasmValue::I64(20)],
         func_buf: vec![0xAA, 0xAA, 0xAA, 0xBB, 0xBB],
     };

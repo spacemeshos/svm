@@ -62,31 +62,24 @@ impl AppTxBuilder {
         self.write_func_buf(&mut writer);
         self.write_func_args(&mut writer);
 
-        self.fix_nibbles_parity(&mut writer);
-
-        writer.bytes()
+        helpers::bytes(&mut writer)
     }
 
     fn write_version(&self, writer: &mut NibbleWriter) {
         let version = self.version.unwrap();
 
-        todo!();
+        helpers::encode_version(version, writer);
     }
 
     fn write_app(&self, writer: &mut NibbleWriter) {
-        self.write_address(&self.app.as_ref().unwrap(), writer)
+        let addr = self.app.as_ref().unwrap();
+        helpers::encode_address(addr, writer);
     }
 
     fn write_func_index(&mut self, writer: &mut NibbleWriter) {
         let func_idx = self.func_idx.unwrap();
 
         helpers::encode_varuint14(func_idx, writer);
-    }
-
-    fn write_address(&self, address: &Address, writer: &mut NibbleWriter) {
-        let bytes = address.bytes();
-
-        writer.write_bytes(&bytes[..]);
     }
 
     fn write_func_buf(&self, writer: &mut NibbleWriter) {
@@ -107,9 +100,5 @@ impl AppTxBuilder {
         };
 
         helpers::encode_func_args(&args[..], writer);
-    }
-
-    fn fix_nibbles_parity(&self, writer: &mut NibbleWriter) {
-        todo!()
     }
 }

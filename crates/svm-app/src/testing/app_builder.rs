@@ -54,7 +54,7 @@ impl AppBuilder {
         self.write_ctor_buf(&mut writer);
         self.write_ctor_args(&mut writer);
 
-        writer.bytes()
+        helpers::bytes(&mut writer)
     }
 
     fn write_version(&self, writer: &mut NibbleWriter) {

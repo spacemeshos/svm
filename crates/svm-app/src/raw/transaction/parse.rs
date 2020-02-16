@@ -16,14 +16,14 @@ pub fn parse_app_tx(bytes: &[u8], sender: &Address) -> Result<AppTransaction, Pa
     helpers::decode_version(&mut iter)?;
 
     let app = helpers::decode_address(&mut iter, Field::App)?;
-    let func_name = decode_func_name(&mut iter)?;
+    let func_idx = decode_func_index(&mut iter)?;
     let func_buf = helpers::decode_func_buf(&mut iter)?;
     let func_args = helpers::decode_func_args(&mut iter)?;
 
     let tx = AppTransaction {
         app,
         sender: sender.clone(),
-        func_name,
+        func_idx,
         func_args,
         func_buf,
     };
@@ -32,7 +32,7 @@ pub fn parse_app_tx(bytes: &[u8], sender: &Address) -> Result<AppTransaction, Pa
 }
 
 #[must_use]
-fn decode_func_name(iter: &mut NibbleIter) -> Result<String, ParseError> {
+fn decode_func_index(iter: &mut NibbleIter) -> Result<u16, ParseError> {
     todo!()
     // let res = cursor.read_u8();
 
