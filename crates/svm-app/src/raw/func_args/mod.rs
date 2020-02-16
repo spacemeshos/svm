@@ -34,10 +34,9 @@ mod tests {
         encode_func_args(&args[..], &mut writer);
 
         let data = writer.bytes();
-
         let mut iter = NibbleIter::new(&data);
-        let decoded = decode_func_args(&mut iter).unwrap();
 
+        let decoded = decode_func_args(&mut iter).unwrap();
         assert_eq!(args, decoded);
     }
 
@@ -48,9 +47,37 @@ mod tests {
     }
 
     #[test]
-    fn encode_decode_func_i32_arg_1_byte() {
-        let arg = WasmValue::I32(0b0011);
+    fn encode_decode_func_multiple_i32_args() {
+        let arg1 = WasmValue::I32(0);
+        let arg2 = WasmValue::I32(std::u32::MAX.into());
+        let arg3 = WasmValue::I32(std::u16::MAX.into());
+        let arg4 = WasmValue::I32(std::u8::MAX.into());
 
-        assert_encode_decode(vec![arg]);
+        let args = vec![arg1, arg2, arg3, arg4];
+        assert_encode_decode(args);
+    }
+
+    #[test]
+    fn encode_decode_func_multiple_i64_args() {
+        let arg1 = WasmValue::I64(0);
+        let arg2 = WasmValue::I64(std::u64::MAX.into());
+        let arg3 = WasmValue::I64(std::u32::MAX.into());
+        let arg4 = WasmValue::I64(std::u16::MAX.into());
+
+        let args = vec![arg1, arg2, arg3, arg4];
+        assert_encode_decode(args);
+    }
+
+    #[test]
+    fn encode_decode_func_multiple_i32_and_i64_args() {
+        let arg1 = WasmValue::I32(std::u32::MAX.into());
+        let arg2 = WasmValue::I64(0);
+        let arg3 = WasmValue::I32(std::u16::MAX.into());
+        let arg4 = WasmValue::I64(std::u64::MAX.into());
+        let arg5 = WasmValue::I32(std::u8::MAX.into());
+        let arg6 = WasmValue::I64(std::u32::MAX.into());
+
+        let args = vec![arg1, arg2, arg3, arg4, arg5, arg6];
+        assert_encode_decode(args);
     }
 }
