@@ -13,6 +13,10 @@ pub enum ParseError {
     NotSupported(Field),
     InvalidUTF8String(Field),
     InvalidProtocolVersion(u32),
+    FuncBufIncomplete {
+        expected_bytes: usize,
+        actual_read: usize,
+    },
     FuncArgValueIncomplete {
         arg_idx: usize,
         expected_nibbles: usize,
@@ -37,6 +41,9 @@ impl fmt::Display for ParseError {
             ParseError::InvalidWasm => write!(fmt, "Invalid wasm format"),
             ParseError::FuncArgValueIncomplete { .. } => {
                 write!(fmt, "Function argument is incomplete (missing data)")
+            }
+            ParseError::FuncBufIncomplete { .. } => {
+                write!(fmt, "Function buffer is incomplete (missing data)")
             }
         }
     }

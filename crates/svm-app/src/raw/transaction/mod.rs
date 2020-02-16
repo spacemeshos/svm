@@ -6,7 +6,7 @@
 //!  |    (a)      |                                       |
 //!  |_____________|_______________________________________|
 //!  |                                                     |
-//!  |           Function Index Encoding (b)               |
+//!  |             Function Index Encoding (b)             |
 //!  |_____________________________________________________|
 //!  |            |                                        |
 //!  |  func-buf  |                                        |
@@ -28,7 +28,7 @@
 //!
 //!
 //! (a) Proto Version Encoding
-//! ===========================
+//! ==========================
 //!  +__________________________________________________+
 //!  |       |           |                              |
 //!  |  MSB  |  non-MSB  |         Meaning              |
@@ -40,7 +40,6 @@
 //!  The protocol `#bits` will be a multiplication of 3,
 //!  and is encoded in Big-Endian as an unsigned-integer.
 //!
-//!  
 //!  
 //! (b) Function Index Encoding  
 //! ============================

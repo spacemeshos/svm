@@ -33,6 +33,17 @@ impl<'a> NibbleIter<'a> {
     pub fn is_byte_aligned(&self) -> bool {
         self.nibbles_read % 2 == 0
     }
+
+    pub fn read_bytes(&mut self, count: usize) -> Vec<u8> {
+        // `count` bytes <=> `2 * count` nibbles
+        let nibbles = self.take(2 * count).collect::<Vec<Nibble>>();
+
+        let (bytes, rem) = concat_nibbles(&nibbles[..]);
+
+        debug_assert!(rem.is_none());
+
+        bytes
+    }
 }
 
 impl<'a> Iterator for NibbleIter<'a> {

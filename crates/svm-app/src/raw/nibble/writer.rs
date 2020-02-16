@@ -1,3 +1,5 @@
+use crate::nib;
+
 use super::{concat_nibbles, Nibble};
 
 pub struct NibbleWriter {
@@ -14,6 +16,15 @@ impl NibbleWriter {
     pub fn write(&mut self, nibbles: &[Nibble]) {
         for nib in nibbles.iter() {
             self.nibbles.push(*nib);
+        }
+    }
+
+    pub fn write_bytes(&mut self, bytes: &[u8]) {
+        for byte in bytes.iter() {
+            let lnib = nib!((byte & 0xF0) >> 4);
+            let rnib = nib!(byte & 0x0F);
+
+            self.write(&[lnib, rnib]);
         }
     }
 
