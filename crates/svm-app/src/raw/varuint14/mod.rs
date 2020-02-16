@@ -8,7 +8,7 @@ pub use encoder::encode_varuint14;
 mod tests {
     use crate::nib;
 
-    use super::super::{NibbleIter, NibbleWriter};
+    use super::super::{Field, NibbleIter, NibbleWriter};
     use super::*;
 
     fn assert_encode_decode(num: u16) {
@@ -24,7 +24,10 @@ mod tests {
         let data = writer.bytes();
         let mut iter = NibbleIter::new(&data[..]);
 
-        let decoded = decode_varuint14(&mut iter).unwrap();
+        // choosing an arbitrary `varuint14` field.
+        let field = Field::NameLength;
+
+        let decoded = decode_varuint14(&mut iter, field).unwrap();
         assert_eq!(num, decoded);
     }
 

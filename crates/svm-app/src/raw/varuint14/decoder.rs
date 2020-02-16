@@ -4,11 +4,11 @@ use crate::error::ParseError;
 
 use bit_vec::BitVec;
 
-pub fn decode_varuint14(iter: &mut NibbleIter) -> Result<u16, ParseError> {
+pub fn decode_varuint14(iter: &mut NibbleIter, field: Field) -> Result<u16, ParseError> {
     let preamble = iter.next();
 
     if preamble.is_none() {
-        return Err(ParseError::NotEnoughBytes(Field::FuncIndex));
+        return Err(ParseError::NotEnoughBytes(field));
     }
 
     let [hint_0, hint_1, msb_0, msb_1] = preamble.unwrap().bits();
@@ -32,7 +32,7 @@ pub fn decode_varuint14(iter: &mut NibbleIter) -> Result<u16, ParseError> {
 
     for _ in 0..nibble_count {
         match iter.next() {
-            None => return Err(ParseError::NotEnoughBytes(Field::FuncIndex)),
+            None => return Err(ParseError::NotEnoughBytes(field)),
             Some(nibble) => {
                 for bit in nibble.bits().iter() {
                     bits.push(*bit);
@@ -65,7 +65,7 @@ mod tests {
 
         let expected = Err(ParseError::NotEnoughBytes(Field::FuncIndex));
 
-        assert_eq!(expected, decode_varuint14(&mut iter));
+        assert_eq!(expected, decode_varuint14(&mut iter, Field::FuncIndex));
     }
 
     #[test]
@@ -73,7 +73,7 @@ mod tests {
         let vec = vec![0b00_11_0000];
         let mut iter = NibbleIter::new(&vec[..]);
 
-        let func_idx = decode_varuint14(&mut iter).unwrap();
+        let func_idx = decode_varuint14(&mut iter, Field::FuncIndex).unwrap();
         assert_eq!(0b11, func_idx);
     }
 
@@ -82,7 +82,7 @@ mod tests {
         let vec = vec![0b01_11_0111];
         let mut iter = NibbleIter::new(&vec[..]);
 
-        let func_idx = decode_varuint14(&mut iter).unwrap();
+        let func_idx = decode_varuint14(&mut iter, Field::FuncIndex).unwrap();
         assert_eq!(0b11_0111, func_idx);
     }
 
@@ -91,7 +91,7 @@ mod tests {
         let vec = vec![0b10_11_0111, 0b0101_0000];
         let mut iter = NibbleIter::new(&vec[..]);
 
-        let func_idx = decode_varuint14(&mut iter).unwrap();
+        let func_idx = decode_varuint14(&mut iter, Field::FuncIndex).unwrap();
         assert_eq!(0b11_0111_0101, func_idx);
     }
 
@@ -100,7 +100,7 @@ mod tests {
         let vec = vec![0b11_11_0111, 0b0101_0011];
         let mut iter = NibbleIter::new(&vec[..]);
 
-        let func_idx = decode_varuint14(&mut iter).unwrap();
+        let func_idx = decode_varuint14(&mut iter, Field::FuncIndex).unwrap();
         assert_eq!(0b11_0111_0101_0011, func_idx);
     }
 
@@ -111,6 +111,6 @@ mod tests {
 
         let expected = Err(ParseError::NotEnoughBytes(Field::FuncIndex));
 
-        assert_eq!(expected, decode_varuint14(&mut iter));
+        assert_eq!(expected, decode_varuint14(&mut iter, Field::FuncIndex));
     }
 }

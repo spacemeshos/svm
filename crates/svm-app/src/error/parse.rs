@@ -7,7 +7,6 @@ use crate::raw::Field;
 pub enum ParseError {
     InvalidWasm,
     EmptyField(Field),
-    EmptyList(Field),
     NotEnoughBytes(Field),
     TooManyBytes(Field),
     NotSupported(Field),
@@ -32,9 +31,6 @@ impl fmt::Display for ParseError {
             ParseError::TooManyBytes(f) => write!(fmt, "Too many bytes for field `{}`", f),
             ParseError::InvalidProtocolVersion(msg) => write!(fmt, "{}", msg),
             ParseError::NotSupported(f) => write!(fmt, "Feature `{}` is not supported yet", f),
-            ParseError::EmptyList(f) => {
-                write!(fmt, "`{}`-(s) list must contain at least one item", f)
-            }
             ParseError::InvalidUTF8String(f) => {
                 write!(fmt, "Field `{}` must be a valid UTF-8 string", f)
             }

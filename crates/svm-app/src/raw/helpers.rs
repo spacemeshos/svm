@@ -39,11 +39,14 @@ pub fn encode_address(addr: &Address, writer: &mut NibbleWriter) {
 }
 
 pub fn encode_string(s: &str, writer: &mut NibbleWriter) {
-    let length = s.len();
+    let bytes = s.as_bytes();
+    let length = bytes.len();
 
     assert!(length <= std::u16::MAX as usize);
 
     encode_varuint14(length as u16, writer);
+
+    writer.write_bytes(&bytes[..]);
 }
 
 /// Decoders
@@ -63,26 +66,40 @@ pub fn decode_version(iter: &mut NibbleIter) -> Result<u32, ParseError> {
     raw::decode_version(iter)
 }
 
-pub fn decode_varuint14(iter: &mut NibbleIter) -> Result<u16, ParseError> {
-    raw::decode_varuint14(iter)
+#[must_use]
+pub fn decode_varuint14(iter: &mut NibbleIter, field: Field) -> Result<u16, ParseError> {
+    raw::decode_varuint14(iter, field)
 }
 
 #[must_use]
 pub fn decode_address(iter: &mut NibbleIter, field: Field) -> Result<Address, ParseError> {
     let bytes = iter.read_bytes(Address::len());
 
-    assert_eq!(Address::len(), bytes.len());
+    if bytes.len() != Address::len() {
+        return Err(ParseError::NotEnoughBytes(field));
+    }
 
     let addr = Address::from(&bytes[..]);
     Ok(addr)
 }
 
 #[must_use]
-pub fn decode_string(iter: &mut NibbleIter, field: Field) -> Result<String, ParseError> {
-    let length = decode_varuint14(iter)? as usize;
+pub fn decode_string(
+    iter: &mut NibbleIter,
+    len_field: Field,
+    field: Field,
+) -> Result<String, ParseError> {
+    let length = decode_varuint14(iter, len_field)? as usize;
+
+    if length == 0 {
+        return Err(ParseError::EmptyField(len_field));
+    }
 
     let bytes = iter.read_bytes(length);
-    assert_eq!(length, bytes.len());
+
+    if bytes.len() != length {
+        return Err(ParseError::NotEnoughBytes(field));
+    }
 
     String::from_utf8(bytes).or_else(|_e| Err(ParseError::InvalidUTF8String(field)))
 }

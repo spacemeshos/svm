@@ -1,30 +1,18 @@
 use std::fmt;
 
 #[allow(missing_docs)]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum Field {
     Version,
     NameLength,
     Name,
-    Admins,
-    AdminsCount,
-    CodeLength,
-    Dependencies,
-    DependenciesCount,
     PageCount,
     Code,
     AppTemplate,
     App,
-    FuncNameLength,
-    FuncName,
     FuncIndex,
-    FuncBufSlicesCount,
-    FuncBufSliceLength,
-    FuncBufSlice,
-    FuncArgsCount,
+    FuncBufLength,
     FuncArgsNoMoreMark,
-    WasmType,
-    WasmValue,
 }
 
 impl fmt::Display for Field {
