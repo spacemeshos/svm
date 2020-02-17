@@ -14,6 +14,35 @@ pub struct AppBuilder {
     ctor_args: Option<Vec<WasmValue>>,
 }
 
+///
+/// # Example
+///
+/// ```rust
+/// use svm_app::{testing::AppBuilder, types::{App, SpawnApp, WasmValue}, raw::parse_app};
+/// use svm_common::Address;
+////
+/// let template = Address::of("@template");
+/// let creator = Address::of("@creator");
+/// let ctor_buf = vec![0x10, 0x20, 0x30];
+/// let ctor_args = vec![WasmValue::I32(0x40), WasmValue::I64(0x50)];
+///
+/// let bytes = AppBuilder::new()
+///  .with_version(0)
+///  .with_template(&template)
+///  .with_ctor_buf(&ctor_buf)
+///  .with_ctor_args(&ctor_args)
+///  .build();
+///
+/// let actual = parse_app(&bytes[..], &creator).unwrap();
+/// let expected = SpawnApp {
+///   app: App { template, creator },
+///   ctor_buf,
+///   ctor_args
+/// };
+///
+/// ```
+///
+
 #[allow(missing_docs)]
 impl AppBuilder {
     #[allow(clippy::new_without_default)]
