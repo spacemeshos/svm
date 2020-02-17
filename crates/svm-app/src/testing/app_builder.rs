@@ -40,6 +40,7 @@ pub struct AppBuilder {
 ///   ctor_args
 /// };
 ///
+//// assert_eq!(expected, actual);
 /// ```
 ///
 

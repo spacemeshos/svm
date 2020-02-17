@@ -15,6 +15,41 @@ pub struct AppTxBuilder {
     func_args: Option<Vec<WasmValue>>,
 }
 
+///
+/// # Example
+///
+/// ```rust
+/// use svm_app::{testing::AppTxBuilder, types::{AppTransaction, WasmValue}, raw::parse_app_tx};
+/// use svm_common::Address;
+///
+/// let app = Address::of("@my-app");
+/// let sender = Address::of("@sender");
+////
+/// let func_idx = 10;
+/// let func_buf = vec![0x10, 0x20, 0x30];
+/// let func_args = vec![WasmValue::I32(40), WasmValue::I64(50)];
+///
+/// let bytes = AppTxBuilder::new()
+///   .with_version(0)
+///   .with_app(&app)
+///   .with_func_index(func_idx)
+///   .with_func_buf(&func_buf)
+///   .with_func_args(&func_args[..])
+///   .build();
+///
+/// let actual = parse_app_tx(&bytes[..], &sender).unwrap();
+/// let expected = AppTransaction {
+///                  app,
+///                  sender,
+///                  func_idx,
+///                  func_buf,
+///                  func_args,
+///                };
+///
+/// assert_eq!(expected, actual);
+/// ```
+///
+
 #[allow(missing_docs)]
 impl AppTxBuilder {
     #[allow(clippy::new_without_default)]

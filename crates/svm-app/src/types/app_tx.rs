@@ -13,11 +13,11 @@ pub struct AppTransaction {
     /// Sender account address
     pub sender: Address,
 
-    /// Function buffer
-    pub func_buf: Vec<u8>,
-
     /// Function Export Index to execute
     pub func_idx: u16,
+
+    /// Function buffer
+    pub func_buf: Vec<u8>,
 
     /// `App` function args
     pub func_args: Vec<WasmValue>,
