@@ -5,7 +5,7 @@ use svm_common::Address;
 
 pub fn bytes(writer: &mut NibbleWriter) -> Vec<u8> {
     // before calling `writer.bytes()` we must make sure
-    // that its number of nibbles is even. If it's not we pad it with one extra nibble.
+    // that its number of nibbles is even. If it's not, we pad it with one extra nibble.
 
     if writer.is_byte_aligned() == false {
         let padding = nib!(0);

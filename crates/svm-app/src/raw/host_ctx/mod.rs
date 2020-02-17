@@ -2,17 +2,25 @@
 //!  --------------------------------------------------------------
 //!  |   proto    |           | field #1  |  field #1  | field #1 |
 //!  |  version   |  #fields  |   index   |   length   |          |
-//!  |  (4 bytes) | (2 bytes) | (2 bytes) | (2 bytes)  |   bytes  |
+//!  | (4 bytes)  | (2 bytes) | (2 bytes) | (2 bytes)  |   bytes  |
 //!  |____________|___________|___________|____________|__________|
 //!  | field #2  |  field #2  |  field #2 |                       |
 //!  |   index   |   length   |           |         ...           |
 //!  | (2 bytes) |  (2 bytes) |   bytes   |                       |
 //!  |___________|____________|___________|_______________________|
 //!
+//!
+//! `Host Ctx` is for sharing data between the host and live apps.
+//! It's an in-memory data that abstracts key-value pairs and thus its data-layout
+//! isn't packed in order to simplify the job of `SVM` clients implementations.
+//!
+//!
 
-use std::collections::HashMap;
-use std::ffi::c_void;
-use std::io::{Cursor, Read};
+use std::{
+    collections::HashMap,
+    ffi::c_void,
+    io::{Cursor, Read},
+};
 
 use crate::types::HostCtx;
 
@@ -30,9 +38,9 @@ impl HostCtx {
         self.inner.get(&field)
     }
 
-    /// Parses a raw `host-context` into `HostCtx` struct.
     pub unsafe fn from_raw_parts(bytes: *const u8, length: u32) -> Result<HostCtx, String> {
         let bytes = std::slice::from_raw_parts(bytes as _, length as usize);
+
         let mut cursor = Cursor::new(bytes);
 
         Self::parse_version(&mut cursor);
@@ -42,11 +50,11 @@ impl HostCtx {
         let field_count = Self::parse_field_count(&mut cursor);
 
         for _ in 0..field_count {
-            let field_idx = Self::parse_field_index(&mut cursor);
-            let field_len = Self::parse_field_len(&mut cursor);
-            let field_bytes = Self::parse_field_bytes(&mut cursor, field_len);
+            let index = Self::parse_field_index(&mut cursor);
+            let length = Self::parse_field_len(&mut cursor);
+            let bytes = Self::parse_field_bytes(&mut cursor, length);
 
-            fields.insert(field_idx as u32, field_bytes);
+            fields.insert(index as u32, bytes);
         }
 
         Ok(fields.into())
