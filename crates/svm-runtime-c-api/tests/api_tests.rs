@@ -128,7 +128,7 @@ fn deploy_template_bytes(version: u32, name: &str, page_count: u16, wasm: &str) 
 fn spawn_app_bytes(
     version: u32,
     template_addr: &svm_byte_array,
-    ctor_buf: &Vec<Vec<u8>>,
+    ctor_buf: &Vec<u8>,
     ctor_args: &Vec<WasmValue>,
 ) -> (Vec<u8>, u32) {
     let template_addr = Address::from(*&template_addr.bytes as *const c_void);
@@ -142,14 +142,14 @@ fn spawn_app_bytes(
 fn exec_app_bytes(
     version: u32,
     app_addr: &svm_byte_array,
-    func_name: &str,
-    func_buf: &Vec<Vec<u8>>,
+    func_idx: u16,
+    func_buf: &Vec<u8>,
     func_args: &Vec<WasmValue>,
 ) -> (Vec<u8>, u32) {
     let app_addr = Address::from(*&app_addr.bytes as *const c_void);
 
     let bytes =
-        svm_runtime::testing::build_app_tx(version, &app_addr, func_name, func_buf, func_args);
+        svm_runtime::testing::build_app_tx(version, &app_addr, func_idx, func_buf, func_args);
 
     let length = bytes.len() as u32;
 
@@ -163,17 +163,18 @@ fn host_ctx_bytes(version: u32, fields: HashMap<u32, Vec<u8>>) -> (Vec<u8>, u32)
     (bytes, length)
 }
 
-fn exec_app_args() -> (Address, Address, u64, Vec<Vec<u8>>, Vec<WasmValue>) {
+fn exec_app_args() -> (Address, Address, u64, u16, Vec<u8>, Vec<WasmValue>) {
     let sender = Address::of("sender");
 
+    let func_idx = 0;
+
     let user = Address::of("user");
-    let user_bytes = user.bytes().to_vec();
-    let func_buf = vec![user_bytes];
+    let func_buf = user.bytes().to_vec();
 
     let addition = 2;
     let func_args = vec![WasmValue::I64(addition)];
 
-    (sender, user, addition, func_buf, func_args)
+    (sender, user, addition, func_idx, func_buf, func_args)
 }
 
 #[test]
@@ -260,8 +261,8 @@ unsafe fn do_ffi_exec_app() {
     assert_eq!(true, res.as_bool());
 
     // 4) execute app
-    let (sender, user, addition, func_buf, func_args) = exec_app_args();
-    let (bytes, length) = exec_app_bytes(version, &app_addr, "run", &func_buf, &func_args);
+    let (sender, user, addition, func_idx, func_buf, func_args) = exec_app_args();
+    let (bytes, length) = exec_app_bytes(version, &app_addr, func_idx, &func_buf, &func_args);
     let tx = svm_byte_array {
         bytes: bytes.as_ptr(),
         length: length,
