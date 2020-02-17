@@ -144,7 +144,7 @@ pub fn build_template(version: u32, name: &str, page_count: u16, wasm: &str) -> 
 pub fn build_app(
     version: u32,
     template: &Address,
-    ctor_buf: &Vec<Vec<u8>>,
+    ctor_buf: &Vec<u8>,
     ctor_args: &Vec<WasmValue>,
 ) -> Vec<u8> {
     AppBuilder::new()
@@ -159,14 +159,14 @@ pub fn build_app(
 pub fn build_app_tx(
     version: u32,
     app_addr: &Address,
-    func_name: &str,
-    func_buf: &Vec<Vec<u8>>,
+    func_idx: u16,
+    func_buf: &Vec<u8>,
     func_args: &Vec<WasmValue>,
 ) -> Vec<u8> {
     AppTxBuilder::new()
         .with_version(version)
         .with_app(app_addr)
-        .with_func_name(func_name)
+        .with_func_index(func_idx)
         .with_func_buf(func_buf)
         .with_func_args(func_args)
         .build()

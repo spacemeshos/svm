@@ -25,12 +25,12 @@ pub enum ExecAppError {
     FuncNotFound {
         app_addr: Address,
         template_addr: Address,
-        func_name: String,
+        func_idx: u16,
     },
     InvalidReturnValue {
         app_addr: Address,
         template_addr: Address,
-        func_name: String,
+        func_idx: u16,
         func_args: String,
         func_rets: String,
         reason: String,
@@ -38,7 +38,7 @@ pub enum ExecAppError {
     ExecFailed {
         app_addr: Address,
         template_addr: Address,
-        func_name: String,
+        func_idx: u16,
         func_args: String,
         reason: String,
     },
@@ -82,26 +82,26 @@ impl fmt::Display for ExecAppError {
             ExecAppError::FuncNotFound {
                 app_addr,
                 template_addr,
-                func_name,
-            } => self.fmt_func_not_found(app_addr, template_addr, func_name),
+                func_idx,
+            } => self.fmt_func_not_found(app_addr, template_addr, *func_idx),
             ExecAppError::ExecFailed {
                 app_addr,
                 template_addr,
-                func_name,
+                func_idx,
                 func_args,
                 reason,
-            } => self.fmt_exec_failed(app_addr, template_addr, func_name, func_args, reason),
+            } => self.fmt_exec_failed(app_addr, template_addr, *func_idx, func_args, reason),
             ExecAppError::InvalidReturnValue {
                 app_addr,
                 template_addr,
-                func_name,
+                func_idx,
                 func_args,
                 func_rets,
                 reason,
             } => self.fmt_invalid_ret_value(
                 app_addr,
                 template_addr,
-                func_name,
+                *func_idx,
                 func_args,
                 func_rets,
                 reason,
@@ -149,11 +149,11 @@ impl ExecAppError {
         &self,
         app_addr: &Address,
         template_addr: &Address,
-        func_name: &str,
+        func_idx: u16,
     ) -> String {
         format!(
             "Function `{}` not found (app = `{:?}`, template=`{:?}`)",
-            func_name, app_addr, template_addr
+            func_idx, app_addr, template_addr
         )
     }
 
@@ -161,13 +161,13 @@ impl ExecAppError {
         &self,
         app_addr: &Address,
         template_addr: &Address,
-        func_name: &str,
+        func_idx: u16,
         func_args: &str,
         reason: &str,
     ) -> String {
         format!(
             "Execution failed for function `{}` with input `{}` (app=`{:?}`, template=`{:?}`)\nReason: {}",
-            func_name, func_args, app_addr, template_addr, reason
+            func_idx, func_args, app_addr, template_addr, reason
         )
     }
 
@@ -175,13 +175,13 @@ impl ExecAppError {
         &self,
         app_addr: &Address,
         template_addr: &Address,
-        func_name: &str,
+        func_idx: u16,
         func_args: &str,
         func_rets: &str,
         reason: &str,
     ) -> String {
         format!(
             "Function `{}` returned invalid values `{}` for input `{}` (app=`{:?}`, template=`{:?}`)\nReason: {}",
-            func_name, func_rets, func_args, app_addr, template_addr, reason)
+            func_idx, func_rets, func_args, app_addr, template_addr, reason)
     }
 }

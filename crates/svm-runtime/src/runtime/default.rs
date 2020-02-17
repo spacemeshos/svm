@@ -1,6 +1,4 @@
-use std::convert::TryFrom;
-use std::ffi::c_void;
-use std::fmt;
+use std::{convert::TryFrom, ffi::c_void, fmt};
 
 use log::{debug, error, info};
 
@@ -18,7 +16,7 @@ use crate::{
 
 use svm_app::{
     traits::{Env, EnvTypes},
-    types::{AppTemplate, AppTransaction, BufferSlice, HostCtx, SpawnApp, WasmValue},
+    types::{AppTemplate, AppTransaction, HostCtx, SpawnApp, WasmValue},
 };
 use svm_common::{Address, State};
 use svm_storage::AppStorage;
@@ -190,10 +188,14 @@ where
         AppTransaction {
             app: app_addr.clone(),
             sender: creator.clone(),
-            func_name: "ctor".to_string(),
+            func_idx: self.export_func_index("ctor"),
             func_args: spawn_app.ctor_args,
             func_buf: spawn_app.ctor_buf,
         }
+    }
+
+    fn export_func_index(&self, _func_name: &str) -> u16 {
+        todo!()
     }
 
     fn inner_exec_app(
@@ -251,7 +253,7 @@ where
             Err(e) => Err(ExecAppError::ExecFailed {
                 app_addr: tx.app.clone(),
                 template_addr: template_addr.clone(),
-                func_name: tx.func_name.clone(),
+                func_idx: tx.func_idx,
                 func_args: self.vec_to_str(&tx.func_args),
                 reason: e.to_string(),
             }),
@@ -282,23 +284,16 @@ where
         }
     }
 
-    fn init_instance_buffer(
-        &self,
-        func_buf: &Vec<BufferSlice>,
-        instance: &mut wasmer_runtime::Instance,
-    ) {
+    fn init_instance_buffer(&self, func_buf: &Vec<u8>, instance: &mut wasmer_runtime::Instance) {
         const ARGS_BUF_ID: u32 = 0;
 
         let ctx = instance.context_mut();
-        let buf_cap = func_buf.iter().fold(0, |acc, slice| acc + slice.len());
 
-        helpers::buffer_create(ctx.data, ARGS_BUF_ID, buf_cap as u32);
+        helpers::buffer_create(ctx.data, ARGS_BUF_ID, func_buf.len() as u32);
 
         match helpers::wasmer_data_buffer(ctx.data, ARGS_BUF_ID).unwrap() {
             BufferRef::Mutable(.., buf) => {
-                for slice in func_buf.iter() {
-                    buf.write(&slice.data[..]);
-                }
+                buf.write(&func_buf[..]);
             }
             _ => unreachable!(),
         };
@@ -320,7 +315,7 @@ where
                     return Err(ExecAppError::InvalidReturnValue {
                         app_addr: tx.app.clone(),
                         template_addr: template_addr.clone(),
-                        func_name: tx.func_name.clone(),
+                        func_idx: tx.func_idx,
                         func_args: self.vec_to_str(&tx.func_args),
                         func_rets: self.vec_to_str(&returns),
                         reason: e.to_string(),
@@ -357,17 +352,16 @@ where
         template_addr: &Address,
         instance: &'a wasmer_runtime::Instance,
     ) -> Result<wasmer_runtime::DynFunc<'a>, ExecAppError> {
-        let func_name = &tx.func_name;
+        todo!();
+        // instance.dyn_func(func_name).or_else(|_e| {
+        //     error!("Exported function: `{}` not found", func_name);
 
-        instance.dyn_func(func_name).or_else(|_e| {
-            error!("Exported function: `{}` not found", func_name);
-
-            Err(ExecAppError::FuncNotFound {
-                app_addr: tx.app.clone(),
-                template_addr: template_addr.clone(),
-                func_name: func_name.to_string(),
-            })
-        })
+        //     Err(ExecAppError::FuncNotFound {
+        //         app_addr: tx.app.clone(),
+        //         template_addr: template_addr.clone(),
+        //         func_name: func_name.to_string(),
+        //     })
+        // })
     }
 
     fn prepare_args_and_memory(&self, tx: &AppTransaction) -> Vec<wasmer_runtime::Value> {
