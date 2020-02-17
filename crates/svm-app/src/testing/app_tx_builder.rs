@@ -30,12 +30,12 @@ pub struct AppTxBuilder {
 /// let func_args = vec![WasmValue::I32(40), WasmValue::I64(50)];
 ///
 /// let bytes = AppTxBuilder::new()
-///   .with_version(0)
-///   .with_app(&app)
-///   .with_func_index(func_idx)
-///   .with_func_buf(&func_buf)
-///   .with_func_args(&func_args[..])
-///   .build();
+///            .with_version(0)
+///            .with_app(&app)
+///            .with_func_index(func_idx)
+///            .with_func_buf(&func_buf)
+///            .with_func_args(&func_args[..])
+///            .build();
 ///
 /// let actual = parse_app_tx(&bytes[..], &sender).unwrap();
 /// let expected = AppTransaction {

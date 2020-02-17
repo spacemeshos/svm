@@ -19,11 +19,11 @@ pub struct AppTemplateBuilder {
 /// use svm_common::Address;
 ///
 /// let bytes = AppTemplateBuilder::new()
-///               .with_version(0)
-///               .with_name("My Template")
-///               .with_page_count(10)
-///               .with_code(&[0xC, 0x0, 0xD, 0xE])
-///               .build();
+///            .with_version(0)
+///            .with_name("My Template")
+///            .with_page_count(10)
+///            .with_code(&[0xC, 0x0, 0xD, 0xE])
+///            .build();
 ///
 /// let author = Address::of("@author");
 /// let actual = parse_template(&bytes[..], &author).unwrap();
