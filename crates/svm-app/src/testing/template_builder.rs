@@ -11,6 +11,34 @@ pub struct AppTemplateBuilder {
     code: Option<Vec<u8>>,
 }
 
+///
+/// # Example
+///  
+/// ```rust
+/// use svm_app::{types::AppTemplate, testing::AppTemplateBuilder, raw::parse_template};
+/// use svm_common::Address;
+///
+/// let bytes = AppTemplateBuilder::new()
+///               .with_version(0)
+///               .with_name("My Template")
+///               .with_page_count(10)
+///               .with_code(&[0xC, 0x0, 0xD, 0xE])
+///               .build();
+///
+/// let author = Address::of("@author");
+/// let actual = parse_template(&bytes[..], &author).unwrap();
+///
+/// let expected = AppTemplate {
+///                  name: "My Template".to_string(),
+///                  author: Address::of("@author"),
+///                  page_count: 10,
+///                  code: vec![0xC, 0x0, 0xD, 0xE]
+///                };
+///
+/// assert_eq!(expected, actual);
+/// ```
+///
+
 #[allow(missing_docs)]
 impl AppTemplateBuilder {
     #[allow(clippy::new_without_default)]
@@ -51,7 +79,7 @@ impl AppTemplateBuilder {
         self.write_page_count(&mut writer);
         self.write_code(&mut writer);
 
-        writer.bytes()
+        helpers::bytes(&mut writer)
     }
 
     fn write_version(&self, writer: &mut NibbleWriter) {
