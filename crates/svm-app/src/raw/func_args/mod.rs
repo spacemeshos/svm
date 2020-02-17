@@ -16,28 +16,21 @@ mod tests {
         types::{WasmType, WasmValue},
     };
 
-    use super::super::{NibbleIter, NibbleWriter};
+    use super::super::{helpers, NibbleIter, NibbleWriter};
     use super::{decode_func_args, encode_func_args, WasmValueLayout, DO_SKIP};
 
     fn assert_encode_decode(args: Vec<WasmValue>) {
         let mut writer = NibbleWriter::new();
 
-        // each func arg layout takes exactly one nibble
-        // plus there is one nibble for `no more func args marker`
-        let layouts_nibble_count = args.len() + 1;
-
-        if layouts_nibble_count % 2 == 1 {
-            let skip_nib = nib!(DO_SKIP);
-            writer.write(&[skip_nib]);
-        }
-
         encode_func_args(&args[..], &mut writer);
 
-        let data = writer.bytes();
+        let data = helpers::bytes(&mut writer);
         let mut iter = NibbleIter::new(&data);
 
         let decoded = decode_func_args(&mut iter).unwrap();
         assert_eq!(args, decoded);
+
+        helpers::ensure_eof(&mut iter);
     }
 
     #[test]

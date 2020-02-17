@@ -20,6 +20,8 @@ pub fn parse_app_tx(bytes: &[u8], sender: &Address) -> Result<AppTransaction, Pa
     let func_buf = helpers::decode_func_buf(&mut iter)?;
     let func_args = helpers::decode_func_args(&mut iter)?;
 
+    helpers::ensure_eof(&mut iter);
+
     let tx = AppTransaction {
         app,
         sender: sender.clone(),

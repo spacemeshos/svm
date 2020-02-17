@@ -17,6 +17,8 @@ pub fn parse_template(bytes: &[u8], author: &Address) -> Result<AppTemplate, Par
     let page_count = decode_page_count(&mut iter)?;
     let code = decode_code(&mut iter)?;
 
+    helpers::ensure_eof(&mut iter);
+
     let template = AppTemplate {
         name,
         author: author.clone(),
@@ -45,7 +47,7 @@ fn decode_code(iter: &mut NibbleIter) -> Result<Vec<u8>, ParseError> {
         nibs.push(nib);
     }
 
-    // if `_rem` isn't `None` it means it a padding nibble.
+    // if `_rem` isn't `None` it means it's a padding nibble.
     let (code, _rem) = concat_nibbles(&nibs[..]);
 
     Ok(code)

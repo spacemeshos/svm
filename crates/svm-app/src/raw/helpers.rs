@@ -15,6 +15,20 @@ pub fn bytes(writer: &mut NibbleWriter) -> Vec<u8> {
     writer.bytes()
 }
 
+/// Making sure there are no nibbles left to read,
+/// except for an optional padding nibble, used to even the number of nibbles.
+pub fn ensure_eof(iter: &mut NibbleIter) -> Result<(), ParseError> {
+    if iter.is_byte_aligned() == false {
+        let nib = iter.next();
+        debug_assert!(nib.is_some());
+    };
+
+    match iter.next() {
+        None => Ok(()),
+        Some(..) => Err(ParseError::ExpectedEOF),
+    }
+}
+
 /// Encoders
 
 pub fn encode_func_buf(buf: &[u8], writer: &mut NibbleWriter) {

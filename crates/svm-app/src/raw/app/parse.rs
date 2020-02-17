@@ -19,6 +19,8 @@ pub fn parse_app(bytes: &[u8], creator: &Address) -> Result<SpawnApp, ParseError
     let ctor_buf = helpers::decode_func_buf(&mut iter)?;
     let ctor_args = helpers::decode_func_args(&mut iter)?;
 
+    helpers::ensure_eof(&mut iter);
+
     let app = App {
         template,
         creator: creator.clone(),

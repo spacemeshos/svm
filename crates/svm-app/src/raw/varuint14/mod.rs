@@ -8,20 +8,16 @@ pub use encoder::encode_varuint14;
 mod tests {
     use crate::nib;
 
-    use super::super::{Field, NibbleIter, NibbleWriter};
-    use super::*;
+    use super::super::{helpers, Field, NibbleIter, NibbleWriter};
+    use super::{decode_varuint14, encode_varuint14};
 
     fn assert_encode_decode(num: u16) {
         let mut writer = NibbleWriter::new();
 
         encode_varuint14(num, &mut writer);
 
-        if writer.is_byte_aligned() == false {
-            let padding = nib!(0);
-            writer.write(&[padding]);
-        }
+        let data = helpers::bytes(&mut writer);
 
-        let data = writer.bytes();
         let mut iter = NibbleIter::new(&data[..]);
 
         // choosing an arbitrary `varuint14` field.
@@ -29,6 +25,8 @@ mod tests {
 
         let decoded = decode_varuint14(&mut iter, field).unwrap();
         assert_eq!(num, decoded);
+
+        helpers::ensure_eof(&mut iter);
     }
 
     #[test]

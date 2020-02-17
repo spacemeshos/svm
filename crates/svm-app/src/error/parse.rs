@@ -5,6 +5,7 @@ use crate::raw::Field;
 #[allow(missing_docs)]
 #[derive(PartialEq, Clone)]
 pub enum ParseError {
+    ExpectedEOF,
     EmptyField(Field),
     NotEnoughBytes(Field),
     TooManyBytes(Field),
@@ -21,6 +22,7 @@ pub enum ParseError {
 impl fmt::Display for ParseError {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            ParseError::ExpectedEOF => write!(fmt, "Expected EOF but there are more left bytes"),
             ParseError::EmptyField(f) => write!(fmt, "Field `{}` must not be empty", f),
             ParseError::NotEnoughBytes(f) => write!(fmt, "Not enough bytes for field `{}`", f),
             ParseError::TooManyBytes(f) => write!(fmt, "Too many bytes for field `{}`", f),

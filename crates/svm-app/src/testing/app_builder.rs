@@ -35,10 +35,10 @@ pub struct AppBuilder {
 ///
 /// let actual = parse_app(&bytes[..], &creator).unwrap();
 /// let expected = SpawnApp {
-///   app: App { template, creator },
-///   ctor_buf,
-///   ctor_args
-/// };
+///                  app: App { template, creator },
+///                  ctor_buf,
+///                  ctor_args
+///                };
 ///
 //// assert_eq!(expected, actual);
 /// ```
