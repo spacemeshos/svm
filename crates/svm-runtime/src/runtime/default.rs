@@ -195,7 +195,7 @@ where
     }
 
     fn export_func_index(&self, _func_name: &str) -> u16 {
-        todo!()
+        0
     }
 
     fn inner_exec_app(
@@ -352,16 +352,17 @@ where
         template_addr: &Address,
         instance: &'a wasmer_runtime::Instance,
     ) -> Result<wasmer_runtime::DynFunc<'a>, ExecAppError> {
-        todo!();
-        // instance.dyn_func(func_name).or_else(|_e| {
-        //     error!("Exported function: `{}` not found", func_name);
+        let func_idx = *&tx.func_idx as usize;
 
-        //     Err(ExecAppError::FuncNotFound {
-        //         app_addr: tx.app.clone(),
-        //         template_addr: template_addr.clone(),
-        //         func_name: func_name.to_string(),
-        //     })
-        // })
+        instance.dyn_func_with_index(func_idx).or_else(|_e| {
+            error!("Exported function: `{}` not found", func_idx);
+
+            Err(ExecAppError::FuncNotFound {
+                app_addr: tx.app.clone(),
+                template_addr: template_addr.clone(),
+                func_idx: *&tx.func_idx,
+            })
+        })
     }
 
     fn prepare_args_and_memory(&self, tx: &AppTransaction) -> Vec<wasmer_runtime::Value> {

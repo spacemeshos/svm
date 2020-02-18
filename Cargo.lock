@@ -1151,7 +1151,7 @@ checksum = "cccddf32554fecc6acb585f82a32a72e28b48f8c4c1883ddfeeeaa96f7d8e519"
 [[package]]
 name = "wasmer-runtime"
 version = "0.13.1"
-source = "git+https://github.com/spacemeshos/wasmer?branch=develop#3d4d6eb366c344772095a78e5c0f5367092a18fb"
+source = "git+https://github.com/spacemeshos/wasmer?branch=develop#fd816d273a391bf5d47b083b414daa7c98968ebe"
 dependencies = [
  "lazy_static",
  "memmap",
@@ -1164,7 +1164,7 @@ dependencies = [
 [[package]]
 name = "wasmer-runtime-c-api"
 version = "0.13.1"
-source = "git+https://github.com/spacemeshos/wasmer?branch=develop#3d4d6eb366c344772095a78e5c0f5367092a18fb"
+source = "git+https://github.com/spacemeshos/wasmer?branch=develop#fd816d273a391bf5d47b083b414daa7c98968ebe"
 dependencies = [
  "cbindgen",
  "libc",
@@ -1175,7 +1175,7 @@ dependencies = [
 [[package]]
 name = "wasmer-runtime-core"
 version = "0.13.1"
-source = "git+https://github.com/spacemeshos/wasmer?branch=develop#3d4d6eb366c344772095a78e5c0f5367092a18fb"
+source = "git+https://github.com/spacemeshos/wasmer?branch=develop#fd816d273a391bf5d47b083b414daa7c98968ebe"
 dependencies = [
  "bincode",
  "blake3",
@@ -1202,7 +1202,7 @@ dependencies = [
 [[package]]
 name = "wasmer-singlepass-backend"
 version = "0.13.1"
-source = "git+https://github.com/spacemeshos/wasmer?branch=develop#3d4d6eb366c344772095a78e5c0f5367092a18fb"
+source = "git+https://github.com/spacemeshos/wasmer?branch=develop#fd816d273a391bf5d47b083b414daa7c98968ebe"
 dependencies = [
  "bincode",
  "byteorder",
