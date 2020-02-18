@@ -1,6 +1,5 @@
 mod app;
 mod app_tx;
-mod buffer_slice;
 mod hash;
 mod host_ctx;
 mod spawn_app;
@@ -10,7 +9,6 @@ mod wasm_value;
 
 pub use app::App;
 pub use app_tx::AppTransaction;
-pub use buffer_slice::BufferSlice;
 pub use hash::AppTemplateHash;
 pub use host_ctx::HostCtx;
 pub use spawn_app::SpawnApp;

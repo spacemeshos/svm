@@ -7,7 +7,7 @@ use svm_app::{
 use svm_common::Address;
 
 #[test]
-fn store_template() {
+fn env_store_template() {
     let app_store = JsonMemAppStore::new();
     let template_store = JsonMemAppTemplateStore::new();
     let mut env = JsonMemoryEnv::new(app_store, template_store);
@@ -15,7 +15,7 @@ fn store_template() {
     let code = vec![0xAA, 0xBB, 0xCC, 0xDD];
     let name = "Template #1";
     let page_count = 10;
-    let author = Address::from(0x10_20_30_40);
+    let author = Address::of("@author");
 
     let bytes = AppTemplateBuilder::new()
         .with_version(0)

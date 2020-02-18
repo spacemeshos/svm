@@ -33,7 +33,6 @@ features = ["default-backend-singlepass"]
 default-features = false
 git = "https://github.com/spacemeshos/wasmer"
 branch = "develop"
-features = ["backend-singlepass"]
 
 [dependencies]
 log = "0.4"

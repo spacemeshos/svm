@@ -1,9 +1,7 @@
-use std::io::Cursor;
-
 use crate::{
     error::ParseError,
-    raw::{helpers, Field},
-    types::{App, BufferSlice, SpawnApp},
+    raw::{helpers, Field, NibbleIter},
+    types::{App, SpawnApp},
 };
 
 use svm_common::Address;
@@ -13,13 +11,16 @@ use svm_common::Address;
 /// On failure, returns `ParseError`
 #[must_use]
 pub fn parse_app(bytes: &[u8], creator: &Address) -> Result<SpawnApp, ParseError> {
-    let mut cursor = Cursor::new(bytes);
+    let mut iter = NibbleIter::new(bytes);
 
-    helpers::parse_version(&mut cursor)?;
+    helpers::decode_version(&mut iter)?;
 
-    let template = helpers::parse_address(&mut cursor, Field::AppTemplate)?;
-    let ctor_buf = helpers::parse_func_buf(&mut cursor)?;
-    let ctor_args = helpers::parse_func_args(&mut cursor)?;
+    let template = helpers::decode_address(&mut iter, Field::AppTemplate)?;
+    let ctor_idx = decode_ctor_index(&mut iter)?;
+    let ctor_buf = helpers::decode_func_buf(&mut iter)?;
+    let ctor_args = helpers::decode_func_args(&mut iter)?;
+
+    helpers::ensure_eof(&mut iter);
 
     let app = App {
         template,
@@ -28,9 +29,15 @@ pub fn parse_app(bytes: &[u8], creator: &Address) -> Result<SpawnApp, ParseError
 
     let spawn_app = SpawnApp {
         app,
+        ctor_idx,
         ctor_buf,
         ctor_args,
     };
 
     Ok(spawn_app)
+}
+
+#[must_use]
+fn decode_ctor_index(iter: &mut NibbleIter) -> Result<u16, ParseError> {
+    helpers::decode_varuint14(iter, Field::FuncIndex)
 }
