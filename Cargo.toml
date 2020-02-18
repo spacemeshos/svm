@@ -29,13 +29,12 @@ features = ["lz4"]
 default-features = false
 git = "https://github.com/spacemeshos/wasmer"
 branch = "develop"
-features = ["default-backend-singlepass"]
+features = ["singlepass"]
 
 [dependencies.wasmer-runtime-core]
 default-features = false
 git = "https://github.com/spacemeshos/wasmer"
 branch = "develop"
-features = ["backend-singlepass"]
 
 [dependencies.wasmer-runtime-c-api]
 default-features = false
@@ -71,8 +70,8 @@ members = [
   "crates/svm-common",
   "crates/svm-kv",
   "crates/svm-storage",
-  "crates/svm-compiler",
   "crates/svm-runtime",
+  "crates/svm-compiler",
   "crates/svm-runtime-c-api",
 ]
 

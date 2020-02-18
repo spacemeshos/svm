@@ -2,7 +2,7 @@ use svm_app::{
     memory::{JsonMemAppStore, JsonMemAppTemplateStore, JsonMemoryEnv},
     testing::AppTxBuilder,
     traits::Env,
-    types::{App, AppTemplate, AppTransaction, BufferSlice, WasmValue},
+    types::{App, AppTemplate, AppTransaction, WasmValue},
 };
 use svm_common::Address;
 
@@ -13,8 +13,8 @@ fn parse_app_tx() {
     let mut env = JsonMemoryEnv::new(app_store, template_store);
 
     let template = AppTemplate {
-        name: "Template #1".to_string(),
-        author: Address::from(0x00_11_22_33),
+        name: "My Template".to_string(),
+        author: Address::of("@author"),
         page_count: 5,
         code: vec![0x00, 0x00, 0x00],
     };
@@ -23,7 +23,7 @@ fn parse_app_tx() {
     assert!(res.is_ok());
 
     let template_addr = env.derive_template_address(&template);
-    let creator_addr = Address::from(0x50_60_70_80);
+    let creator_addr = Address::of("@creator");
 
     let app = App {
         template: template_addr,
@@ -32,32 +32,28 @@ fn parse_app_tx() {
 
     assert!(env.store_app(&app).is_ok());
 
-    let sender_addr = Address::from(0x00_AA_BB_CC);
-    let app_addr = env.derive_app_address(&app);
+    let sender = Address::of("@sender");
+    let app = env.derive_app_address(&app);
+    let func_buf = vec![0xAA, 0xAA, 0xAA, 0xBB, 0xBB];
+    let func_args = vec![WasmValue::I32(10), WasmValue::I64(20)];
+    let func_idx = 5;
 
     let bytes = AppTxBuilder::new()
         .with_version(0)
-        .with_app(&app_addr)
-        .with_func_name("run")
-        .with_func_buf(&vec![vec![0xAA, 0xAA, 0xAA], vec![0xBB, 0xBB]])
-        .with_func_args(&vec![WasmValue::I32(10), WasmValue::I64(20)])
+        .with_app(&app)
+        .with_func_index(func_idx)
+        .with_func_buf(&func_buf)
+        .with_func_args(&func_args)
         .build();
 
-    let actual = env.parse_app_tx(&bytes, &sender_addr).unwrap();
+    let actual = env.parse_app_tx(&bytes, &sender).unwrap();
 
     let expected = AppTransaction {
-        app: app_addr,
-        sender: sender_addr,
-        func_name: "run".to_string(),
-        func_args: vec![WasmValue::I32(10), WasmValue::I64(20)],
-        func_buf: vec![
-            BufferSlice {
-                data: vec![0xAA, 0xAA, 0xAA],
-            },
-            BufferSlice {
-                data: vec![0xBB, 0xBB],
-            },
-        ],
+        app,
+        sender,
+        func_idx,
+        func_args,
+        func_buf,
     };
 
     assert_eq!(expected, actual);

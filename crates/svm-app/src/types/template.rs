@@ -22,6 +22,7 @@ impl fmt::Debug for AppTemplate {
         let code = self.fmt_code(&self.code);
 
         let msg = [author, name, code, pages].join("\n");
+
         write!(f, "{}", msg)
     }
 }

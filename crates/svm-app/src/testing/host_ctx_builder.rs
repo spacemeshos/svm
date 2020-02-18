@@ -7,6 +7,33 @@ pub struct HostCtxBuilder {
     fields: HashMap<u32, Vec<u8>>,
 }
 
+///
+/// # Example
+///
+/// ```rust
+/// use svm_app::{types::HostCtx, testing::HostCtxBuilder};
+///
+/// let bytes = HostCtxBuilder::new()
+///            .with_version(0)
+///            .with_raw_field(1, &[10, 20, 30])
+///            .with_byte_field(2, 0x10)
+///            .with_u16_field(3, 0x40_50)
+///            .with_u32_field(4, 0x60_70_80_90)
+///            .build();
+///
+/// let ptr = bytes.as_ptr();
+/// let length = bytes.len() as u32;
+/// let host_ctx = unsafe { HostCtx::from_raw_parts(ptr, length) };
+///
+/// let fields = host_ctx.unwrap().into_inner();
+///
+/// assert_eq!(vec![10, 20, 30], fields[&1]);
+/// assert_eq!(vec![0x10], fields[&2]);
+/// assert_eq!(vec![0x40, 0x50], fields[&3]);
+/// assert_eq!(vec![0x60, 0x70, 0x80, 0x90], fields[&4]);
+/// ```
+///
+
 #[allow(missing_docs)]
 impl HostCtxBuilder {
     #[allow(clippy::new_without_default)]
