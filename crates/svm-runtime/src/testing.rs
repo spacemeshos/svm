@@ -144,12 +144,14 @@ pub fn build_template(version: u32, name: &str, page_count: u16, wasm: &str) -> 
 pub fn build_app(
     version: u32,
     template: &Address,
+    ctor_idx: u16,
     ctor_buf: &Vec<u8>,
     ctor_args: &Vec<WasmValue>,
 ) -> Vec<u8> {
     AppBuilder::new()
         .with_version(version)
         .with_template(template)
+        .with_ctor_index(ctor_idx)
         .with_ctor_buf(ctor_buf)
         .with_ctor_args(ctor_args)
         .build()

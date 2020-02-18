@@ -141,6 +141,9 @@ where
 
         match self.inner_exec_app(ctor, State::empty(), host_ctx, is_ctor) {
             Ok(receipt) => {
+                // TODO:
+                // handle `receipt.success = false`
+
                 let new_state = receipt.new_state.unwrap();
                 Ok(new_state)
             }
@@ -188,14 +191,10 @@ where
         AppTransaction {
             app: app_addr.clone(),
             sender: creator.clone(),
-            func_idx: self.export_func_index("ctor"),
+            func_idx: spawn_app.ctor_idx,
             func_args: spawn_app.ctor_args,
             func_buf: spawn_app.ctor_buf,
         }
-    }
-
-    fn export_func_index(&self, _func_name: &str) -> u16 {
-        0
     }
 
     fn inner_exec_app(
@@ -250,13 +249,17 @@ where
         };
 
         match func.call(&args) {
-            Err(e) => Err(ExecAppError::ExecFailed {
-                app_addr: tx.app.clone(),
-                template_addr: template_addr.clone(),
-                func_idx: tx.func_idx,
-                func_args: self.vec_to_str(&tx.func_args),
-                reason: e.to_string(),
-            }),
+            Err(e) => {
+                dbg!(&e);
+
+                Err(ExecAppError::ExecFailed {
+                    app_addr: tx.app.clone(),
+                    template_addr: template_addr.clone(),
+                    func_idx: tx.func_idx,
+                    func_args: self.vec_to_str(&tx.func_args),
+                    reason: e.to_string(),
+                })
+            }
             Ok(returns) => {
                 let storage = self.instance_storage_mut(&mut instance);
                 let new_state = storage.commit();
