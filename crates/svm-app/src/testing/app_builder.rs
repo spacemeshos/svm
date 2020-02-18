@@ -10,6 +10,7 @@ use svm_common::Address;
 pub struct AppBuilder {
     version: Option<u32>,
     template: Option<Address>,
+    ctor_idx: Option<u16>,
     ctor_buf: Option<Vec<u8>>,
     ctor_args: Option<Vec<WasmValue>>,
 }
@@ -23,12 +24,14 @@ pub struct AppBuilder {
 ////
 /// let template = Address::of("@template");
 /// let creator = Address::of("@creator");
+/// let ctor_idx = 2;
 /// let ctor_buf = vec![0x10, 0x20, 0x30];
 /// let ctor_args = vec![WasmValue::I32(0x40), WasmValue::I64(0x50)];
 ///
 /// let bytes = AppBuilder::new()
 ///  .with_version(0)
 ///  .with_template(&template)
+///  .with_ctor_index(ctor_idx)
 ///  .with_ctor_buf(&ctor_buf)
 ///  .with_ctor_args(&ctor_args)
 ///  .build();
@@ -36,6 +39,7 @@ pub struct AppBuilder {
 /// let actual = parse_app(&bytes[..], &creator).unwrap();
 /// let expected = SpawnApp {
 ///                  app: App { template, creator },
+///                  ctor_idx,
 ///                  ctor_buf,
 ///                  ctor_args
 ///                };
@@ -51,6 +55,7 @@ impl AppBuilder {
         Self {
             version: None,
             template: None,
+            ctor_idx: None,
             ctor_buf: None,
             ctor_args: None,
         }
@@ -63,6 +68,11 @@ impl AppBuilder {
 
     pub fn with_template(mut self, template: &Address) -> Self {
         self.template = Some(template.clone());
+        self
+    }
+
+    pub fn with_ctor_index(mut self, ctor_idx: u16) -> Self {
+        self.ctor_idx = Some(ctor_idx);
         self
     }
 
@@ -81,6 +91,7 @@ impl AppBuilder {
 
         self.write_version(&mut writer);
         self.write_template(&mut writer);
+        self.write_ctor_index(&mut writer);
         self.write_ctor_buf(&mut writer);
         self.write_ctor_args(&mut writer);
 
@@ -97,6 +108,12 @@ impl AppBuilder {
         let addr = self.template.as_ref().unwrap();
 
         helpers::encode_address(addr, writer);
+    }
+
+    fn write_ctor_index(&self, writer: &mut NibbleWriter) {
+        let ctor_idx = self.ctor_idx.unwrap();
+
+        helpers::encode_varuint14(ctor_idx, writer);
     }
 
     fn write_ctor_buf(&self, writer: &mut NibbleWriter) {

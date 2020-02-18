@@ -15,12 +15,14 @@ fn spawn_app_parse() {
 
     let template = Address::of("@my-template");
     let creator = Address::of("@creator");
+    let ctor_idx = 2;
     let ctor_buf = vec![0xAA, 0xAA, 0xAA, 0xBB, 0xBB];
     let ctor_args = vec![WasmValue::I32(10), WasmValue::I64(200)];
 
     let bytes = AppBuilder::new()
         .with_version(0)
         .with_template(&template)
+        .with_ctor_index(ctor_idx)
         .with_ctor_buf(&ctor_buf)
         .with_ctor_args(&ctor_args)
         .build();
@@ -29,6 +31,7 @@ fn spawn_app_parse() {
 
     let expected = SpawnApp {
         app: App { template, creator },
+        ctor_idx,
         ctor_buf,
         ctor_args,
     };
@@ -50,25 +53,24 @@ fn spawn_app_valid_app() {
     };
     assert!(env.store_template(&template).is_ok());
 
-    let template_addr = env.derive_template_address(&template);
-    let creator_addr = Address::from(0x50_60_70_80);
+    let template = env.derive_template_address(&template);
+    let creator = Address::from(0x50_60_70_80);
+    let ctor_idx = 2;
 
     let bytes = AppBuilder::new()
         .with_version(0)
-        .with_template(&template_addr)
+        .with_ctor_index(ctor_idx)
+        .with_template(&template)
         .build();
 
-    let spawn_app = env.parse_app(&bytes, &creator_addr).unwrap();
+    let spawn_app = env.parse_app(&bytes, &creator).unwrap();
     let app = &spawn_app.app;
 
     let expected_addr = env.derive_app_address(app);
     let actual_addr = env.store_app(app).unwrap();
     assert_eq!(expected_addr, actual_addr);
 
-    let expected = App {
-        template: template_addr,
-        creator: creator_addr,
-    };
+    let expected = App { template, creator };
 
     let actual = env.load_app(&actual_addr).unwrap();
     assert_eq!(expected, actual);
@@ -82,9 +84,11 @@ fn spawn_app_template_does_not_exist() {
 
     let template = Address::of("@my-template");
     let creator = Address::of("@creator");
+    let ctor_idx = 2;
 
     let bytes = AppBuilder::new()
         .with_version(0)
+        .with_ctor_index(ctor_idx)
         .with_template(&template)
         .build();
 

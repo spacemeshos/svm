@@ -16,6 +16,7 @@ pub fn parse_app(bytes: &[u8], creator: &Address) -> Result<SpawnApp, ParseError
     helpers::decode_version(&mut iter)?;
 
     let template = helpers::decode_address(&mut iter, Field::AppTemplate)?;
+    let ctor_idx = decode_ctor_index(&mut iter)?;
     let ctor_buf = helpers::decode_func_buf(&mut iter)?;
     let ctor_args = helpers::decode_func_args(&mut iter)?;
 
@@ -28,9 +29,15 @@ pub fn parse_app(bytes: &[u8], creator: &Address) -> Result<SpawnApp, ParseError
 
     let spawn_app = SpawnApp {
         app,
+        ctor_idx,
         ctor_buf,
         ctor_args,
     };
 
     Ok(spawn_app)
+}
+
+#[must_use]
+fn decode_ctor_index(iter: &mut NibbleIter) -> Result<u16, ParseError> {
+    helpers::decode_varuint14(iter, Field::FuncIndex)
 }
