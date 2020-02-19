@@ -87,7 +87,7 @@ unsafe fn create_imports() -> *const c_void {
     let length = 2;
 
     let res = api::svm_imports_alloc(&mut imports, length);
-    assert_eq!(true, res.as_bool());
+    assert!(res.is_ok());
 
     testing::import_func_create(
         imports,
@@ -168,7 +168,7 @@ fn host_ctx_bytes(version: u32, fields: HashMap<u32, Vec<u8>>) -> (Vec<u8>, u32)
 fn exec_app_args() -> (Address, Address, u64, u16, Vec<u8>, Vec<WasmValue>) {
     let sender = Address::of("sender");
 
-    let func_idx = 7;
+    let func_idx = 1;
 
     let user = Address::of("user");
     let func_buf = user.bytes().to_vec();
@@ -195,10 +195,11 @@ unsafe fn do_ffi_exec_app() {
     let mut runtime = std::ptr::null_mut();
     let imports = create_imports();
 
-    testing::svm_memory_kv_create(&mut kv);
+    let res = testing::svm_memory_kv_create(&mut kv);
+    assert!(res.is_ok());
 
     let res = testing::svm_memory_runtime_create(&mut runtime, kv, host.as_mut_ptr(), imports);
-    assert_eq!(true, res.as_bool());
+    assert!(res.is_ok());
 
     // 2) deploy app-template
     let author = Address::of("author");
@@ -228,11 +229,11 @@ unsafe fn do_ffi_exec_app() {
         host_ctx,
         template,
     );
-    assert_eq!(true, res.as_bool());
+    assert!(res.is_ok());
 
     // 3) spawn app
     let creator = Address::of("creator");
-    let ctor_idx = 6;
+    let ctor_idx = 0;
     let ctor_buf = vec![];
     let ctor_args = vec![];
 
@@ -261,7 +262,7 @@ unsafe fn do_ffi_exec_app() {
         host_ctx,
         app,
     );
-    assert_eq!(true, res.as_bool());
+    assert!(res.is_ok());
 
     // 4) execute app
     let (sender, user, addition, func_idx, func_buf, func_args) = exec_app_args();
@@ -274,7 +275,7 @@ unsafe fn do_ffi_exec_app() {
     // 4.1) parse bytes into in-memory `AppTransaction`
     let mut app_tx = std::ptr::null_mut();
     let res = api::svm_parse_exec_app(&mut app_tx, runtime, sender.as_ptr() as _, tx);
-    assert_eq!(true, res.as_bool());
+    assert!(res.is_ok());
 
     // 4.2) execute the app-transaction
     let init_balance = 100;
@@ -294,7 +295,7 @@ unsafe fn do_ffi_exec_app() {
     let state = init_state.bytes as *const c_void;
 
     let res = api::svm_exec_app(&mut receipt, runtime, app_tx, state, host_ctx);
-    assert_eq!(true, res.as_bool());
+    assert!(res.is_ok());
 
     let expected = (init_balance + addition as i128) * (nonce as i128);
     let actual = host.get_balance(&user).unwrap();
