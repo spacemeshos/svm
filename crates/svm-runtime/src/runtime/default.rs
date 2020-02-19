@@ -355,7 +355,7 @@ where
         template_addr: &Address,
         instance: &'a wasmer_runtime::Instance,
     ) -> Result<wasmer_runtime::DynFunc<'a>, ExecAppError> {
-        let func_idx = *&tx.func_idx as usize;
+        let func_idx = self.derive_func_index(instance, tx);
 
         instance.dyn_func_with_index(func_idx).or_else(|_e| {
             error!("Exported function: `{}` not found", func_idx);
@@ -366,6 +366,14 @@ where
                 func_idx: *&tx.func_idx,
             })
         })
+    }
+
+    fn derive_func_index(&self, instance: &wasmer_runtime::Instance, tx: &AppTransaction) -> usize {
+        let rel_func_index = *&tx.func_idx as usize;
+        let imported_funcs = instance.module.info.imported_functions.len();
+        let func_index = rel_func_index + imported_funcs;
+
+        func_index
     }
 
     fn prepare_args_and_memory(&self, tx: &AppTransaction) -> Vec<wasmer_runtime::Value> {
