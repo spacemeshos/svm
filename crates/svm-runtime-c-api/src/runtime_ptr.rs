@@ -2,8 +2,10 @@ use log::debug;
 
 use svm_runtime::traits::Runtime;
 
-use std::ffi::c_void;
-use std::ops::{Deref, DerefMut};
+use std::{
+    ffi::c_void,
+    ops::{Deref, DerefMut},
+};
 
 /// Smart-pointer for a `Runtime`
 #[repr(C)]
