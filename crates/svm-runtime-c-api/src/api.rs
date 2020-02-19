@@ -357,20 +357,26 @@ pub unsafe extern "C" fn svm_spawn_app(
 ///
 /// # Example
 ///
-/// use svm_runtime_c_api::{svm_parse_exec_app, svm_byte_array, testing};
+/// ```rust, no_run
+/// use svm_runtime_c_api::{svm_imports_alloc, svm_parse_exec_app, svm_byte_array, testing};
+/// use svm_common::Address;
 ///
+/// // allocate imports
+/// let count = 0;
+/// let mut imports = std::ptr::null_mut();
+/// let _res = unsafe { svm_imports_alloc(&mut imports, count) };
+///
+/// // create runtime
 /// let mut kv = std::ptr::null_mut();
 /// let _res = unsafe { testing::svm_memory_kv_create(&mut kv) };
-///
 /// let mut runtime = std::ptr::null_mut();
 /// let mut host = std::ptr::null_mut();
-/// let mut imports = std::ptr::null();
 /// let _res = unsafe { testing::svm_memory_runtime_create(&mut runtime, kv, host, imports) };
 ///
 /// let mut app_tx = std::ptr::null_mut();
-/// let sender = std::ptr::null();
-/// let tx: svm_byte_array::default();
-/// let _res = unsafe { svm_parse_exec_app(&mut app_tx, runtime, sender, tx) };
+/// let sender = Address::of("@sender");
+/// let tx = svm_byte_array::default();
+/// let _res = unsafe { svm_parse_exec_app(&mut app_tx, runtime, sender.as_ptr() as _, tx) };
 /// ```
 ///
 #[must_use]
