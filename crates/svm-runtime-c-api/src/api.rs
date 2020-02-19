@@ -497,7 +497,30 @@ pub unsafe extern "C" fn svm_instance_context_host_get(ctx: *mut c_void) -> *mut
     svm_ctx.host
 }
 
-/// Destroys the Runtime and it's associated resources.
+/// Destroys the Runtime and its associated resources.
+///
+/// # Example
+///
+/// ```rust
+/// use svm_runtime_c_api::{svm_imports_alloc, svm_runtime_destroy, svm_byte_array, testing};
+/// use svm_common::Address;
+///
+/// // allocate imports
+/// let count = 0;
+/// let mut imports = std::ptr::null_mut();
+/// let _res = unsafe { svm_imports_alloc(&mut imports, count) };
+///
+/// // create runtime
+/// let mut kv = std::ptr::null_mut();
+/// let _res = unsafe { testing::svm_memory_kv_create(&mut kv) };
+/// let mut runtime = std::ptr::null_mut();
+/// let mut host = std::ptr::null_mut();
+/// let _res = unsafe { testing::svm_memory_runtime_create(&mut runtime, kv, host, imports) };
+///
+/// // destroy runtime
+/// unsafe { svm_runtime_destroy(runtime); }
+/// ```
+///
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_runtime_destroy(runtime: *mut c_void) {
