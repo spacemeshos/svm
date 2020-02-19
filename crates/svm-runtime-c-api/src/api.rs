@@ -514,6 +514,16 @@ pub unsafe extern "C" fn svm_imports_destroy(imports: *const c_void) {
 }
 
 /// Frees `svm_byte_array`
+///
+/// # Example
+///
+/// ```rust
+/// use svm_runtime_c_api::{svm_byte_array_destroy, svm_byte_array};
+///
+/// let bytes = svm_byte_array::default();
+/// unsafe { svm_byte_array_destroy(bytes); }
+/// ```
+///
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_byte_array_destroy(bytes: svm_byte_array) {
