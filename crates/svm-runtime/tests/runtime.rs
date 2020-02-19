@@ -29,7 +29,7 @@ fn runtime_spawn_app_with_ctor() {
 
     // 3) spawn app (and invoking its `ctor`)
     let buf_size: u32 = 10;
-    let ctor_idx = 1;
+    let ctor_idx = 0;
     let ctor_buf = vec![0xAA, 0xBB, 0xBB, 0xCC, 0xCC, 0xCC, 0xDD, 0xDD, 0xDD, 0xDD];
     let ctor_args = vec![WasmValue::I32(buf_size)];
 
@@ -76,7 +76,7 @@ fn runtime_exec_app() {
         .unwrap();
 
     // 3) spawn app
-    let ctor_idx = 2;
+    let ctor_idx = 0;
     let ctor_buf = vec![];
     let ctor_args = vec![];
 
@@ -94,7 +94,7 @@ fn runtime_exec_app() {
     let page_idx = 1;
     let page_offset = 20;
 
-    let func_idx = 3;
+    let func_idx = 1;
     let func_buf = vec![0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80, 0x90, 0xA0];
     let count = func_buf.len() as u32;
 
