@@ -502,7 +502,7 @@ pub unsafe extern "C" fn svm_instance_context_host_get(ctx: *mut c_void) -> *mut
 /// # Example
 ///
 /// ```rust
-/// use svm_runtime_c_api::{svm_imports_alloc, svm_runtime_destroy, svm_byte_array, testing};
+/// use svm_runtime_c_api::{svm_imports_alloc, svm_runtime_destroy, testing};
 /// use svm_common::Address;
 ///
 /// // allocate imports
@@ -529,7 +529,22 @@ pub unsafe extern "C" fn svm_runtime_destroy(runtime: *mut c_void) {
     let _ = Box::from_raw(runtime as *mut RuntimePtr);
 }
 
-/// Frees allocated imports resources
+/// Frees allocated imports resources.
+///
+/// # Example
+///
+/// ```rust
+/// use svm_runtime_c_api::{svm_imports_alloc, svm_imports_destroy, testing};
+///
+/// // allocate imports
+/// let count = 0;
+/// let mut imports = std::ptr::null_mut();
+/// let _res = unsafe { svm_imports_alloc(&mut imports, count) };
+///
+/// // destroy imports
+/// unsafe { svm_imports_destroy(imports); }
+/// ```
+///
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_imports_destroy(imports: *const c_void) {
