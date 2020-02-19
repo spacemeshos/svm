@@ -1,4 +1,4 @@
-use byteorder::{BigEndian, WriteBytesExt};
+use crate::raw::{helpers, NibbleWriter};
 
 use svm_common::Address;
 
@@ -11,6 +11,34 @@ pub struct AppTemplateBuilder {
     code: Option<Vec<u8>>,
 }
 
+///
+/// # Example
+///  
+/// ```rust
+/// use svm_app::{types::AppTemplate, testing::AppTemplateBuilder, raw::parse_template};
+/// use svm_common::Address;
+///
+/// let bytes = AppTemplateBuilder::new()
+///            .with_version(0)
+///            .with_name("My Template")
+///            .with_page_count(10)
+///            .with_code(&[0xC, 0x0, 0xD, 0xE])
+///            .build();
+///
+/// let author = Address::of("@author");
+/// let actual = parse_template(&bytes[..], &author).unwrap();
+///
+/// let expected = AppTemplate {
+///                  name: "My Template".to_string(),
+///                  author: Address::of("@author"),
+///                  page_count: 10,
+///                  code: vec![0xC, 0x0, 0xD, 0xE]
+///                };
+///
+/// assert_eq!(expected, actual);
+/// ```
+///
+
 #[allow(missing_docs)]
 impl AppTemplateBuilder {
     #[allow(clippy::new_without_default)]
@@ -18,8 +46,8 @@ impl AppTemplateBuilder {
         Self {
             version: None,
             name: None,
-            page_count: None,
             code: None,
+            page_count: None,
         }
     }
 
@@ -44,50 +72,35 @@ impl AppTemplateBuilder {
     }
 
     pub fn build(&mut self) -> Vec<u8> {
-        let mut buf = Vec::new();
+        let mut writer = NibbleWriter::new();
 
-        self.write_version(&mut buf);
-        self.write_name(&mut buf);
-        self.write_admins(&mut buf);
-        self.write_deps(&mut buf);
-        self.write_page_count(&mut buf);
-        self.write_code(&mut buf);
+        self.write_version(&mut writer);
+        self.write_name(&mut writer);
+        self.write_page_count(&mut writer);
+        self.write_code(&mut writer);
 
-        buf
+        helpers::bytes(&mut writer)
     }
 
-    fn write_version(&self, buf: &mut Vec<u8>) {
+    fn write_version(&self, writer: &mut NibbleWriter) {
         let version = self.version.unwrap();
-        buf.write_u32::<BigEndian>(version).unwrap();
+        helpers::encode_version(version, writer);
     }
 
-    fn write_name(&mut self, buf: &mut Vec<u8>) {
-        let name = self.name.take().unwrap();
-        let bytes = name.as_bytes();
-
-        assert!(bytes.len() <= 255);
-        buf.write_u8(bytes.len() as u8).unwrap();
-
-        buf.extend_from_slice(bytes);
+    fn write_name(&mut self, writer: &mut NibbleWriter) {
+        let name = self.name.as_ref().unwrap();
+        helpers::encode_string(name, writer);
     }
 
-    fn write_admins(&self, buf: &mut Vec<u8>) {
-        buf.write_u16::<BigEndian>(0).unwrap();
+    fn write_page_count(&self, writer: &mut NibbleWriter) {
+        let page_count = self.page_count.unwrap();
+
+        helpers::encode_varuint14(page_count, writer);
     }
 
-    fn write_deps(&self, buf: &mut Vec<u8>) {
-        buf.write_u16::<BigEndian>(0).unwrap();
-    }
-
-    fn write_page_count(&self, buf: &mut Vec<u8>) {
-        let pages = self.page_count.unwrap();
-        buf.write_u16::<BigEndian>(pages).unwrap();
-    }
-
-    fn write_code(&self, buf: &mut Vec<u8>) {
+    fn write_code(&self, writer: &mut NibbleWriter) {
         let code = self.code.as_ref().unwrap();
 
-        buf.write_u64::<BigEndian>(code.len() as u64).unwrap();
-        buf.extend_from_slice(code.as_slice());
+        writer.write_bytes(&code[..])
     }
 }

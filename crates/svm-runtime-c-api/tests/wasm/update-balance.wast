@@ -11,6 +11,9 @@
 
   (memory 1)  ;; memory `0` (default) is initialized with one page
 
+  (func (export "ctor")
+    	nop)
+
   (func (export "run") (param i64)
         ;; save register `160:0`
         i32.const 160 ;; reg_bits
