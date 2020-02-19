@@ -414,19 +414,25 @@ pub unsafe extern "C" fn svm_parse_exec_app(
 ///
 /// # Example
 ///
-///
-/// use svm_runtime_c_api::{svm_exec_app, svm_byte_array, testing};
+/// ```rust, no_run
+/// use std::ffi::c_void;
+/// use svm_runtime_c_api::{svm_imports_alloc, svm_exec_app, svm_byte_array, testing};
 /// use svm_app::types::AppTransaction;
 /// use svm_common::{State, Address};
 ///
+/// // allocate imports
+/// let count = 0;
+/// let mut imports = std::ptr::null_mut();
+/// let _res = unsafe { svm_imports_alloc(&mut imports, count) };
+///
+/// // create runtime
 /// let mut kv = std::ptr::null_mut();
 /// let _res = unsafe { testing::svm_memory_kv_create(&mut kv) };
-///
 /// let mut runtime = std::ptr::null_mut();
 /// let mut host = std::ptr::null_mut();
-/// let mut imports = std::ptr::null();
 /// let _res = unsafe { testing::svm_memory_runtime_create(&mut runtime, kv, host, imports) };
 ///
+/// // `app_tx` should be parsed from bytes using `svm_parse_exec_app`
 /// let app_tx = AppTransaction {
 ///     app: Address::of("@app"),
 ///     sender: Address::of("@sender"),
@@ -435,10 +441,11 @@ pub unsafe extern "C" fn svm_parse_exec_app(
 ///     func_args: Vec::new()
 /// };
 ///
+/// let app_tx_ptr = &app_tx as *const AppTransaction as *const c_void;
 /// let state = State::empty();
-/// let mut receipt: svm_byte_array::default();
+/// let mut receipt = svm_byte_array::default();
 /// let host_ctx = svm_byte_array::default();
-/// let _res = unsafe { svm_exec_app(&mut receipt, runtime, &app_tx as _, state.as_ptr() as _, host_ctx) };
+/// let _res = unsafe { svm_exec_app(&mut receipt, runtime, app_tx_ptr, state.as_ptr() as _, host_ctx) };
 /// ```
 ///
 #[must_use]
