@@ -4,6 +4,9 @@
 
   (memory 1)  ;; memory `0` (default) is initialized with one page
 
+  (func (export "ctor")
+  	nop)
+
   (func (export "run") (param i32 i32 i32 i32 i32 i32 i32)
         get_local 0  ;; buf_id
         get_local 1  ;; buf_offset

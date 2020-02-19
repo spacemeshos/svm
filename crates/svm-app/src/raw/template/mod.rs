@@ -1,24 +1,28 @@
-//!       `AppTemplate` Raw Format Version 0.0.0.0
+//!                  `AppTemplate` Raw Format
 //!  -------------------------------------------------------
-//!  |   format   |                |                       |
-//!  |  version   |  name length   |     name (UTF-8)      |
-//!  |  (4 bytes) |   (1 byte)     |                       |
+//!  |            |                |                       |
+//!  |  version   |  name length   |         name          |
+//!  |    (a)     |   (varuint14)  |        (UTF-8)        |
 //!  |____________|________________|_______________________|
-//!  |             |                                       |
-//!  |   #admins   |         admins `Address`-(es)         |
-//!  |  (2 bytes)  |          (20 bytes each)              |
-//!  |_____________|_______________________________________|
-//!  |             |                                       |
-//!  |   #deps     |           dependencies                |
-//!  |  (2 bytes)  |              (TBD)                    |
-//!  |_____________|_______________________________________|
-//!  |             |                                       |
-//!  |  #app-pages |            code length                |
-//!  |  (2 bytes)  |             (8 bytes)                 |
-//!  |_____________|_______________________________________|
-//!  |                                                     |
-//!  |           `AppTemplate` code (wasm)                 |
-//!  |_____________________________________________________|
+//!  |               |                                     |
+//!  |  #app-pages   |        `AppTemplate` (wasm)         |
+//!  | (`varuint14`) |           (8 bytest)                |
+//!  |_______________|_____________________________________|
+//!
+//!
+//!
+//! (a) Proto Version Encoding
+//! ===========================
+//!
+//!   ___________________________________________________
+//!  |  MSB  |  non-MSB  |         Meaning              |
+//!  ---------------------------------------------------
+//!  |   1   |  x  x  x  |  Next nibble is relevant too |
+//!  |   0   |  x  x  x  |  Next nibble isn't relevant  |
+//!  |--------------------------------------------------|
+//!
+//!  The protocol `#bits` will be a multiplication of 3,
+//!  and is encoded in Little-endian as an unsigned-integer.
 //!
 
 mod parse;

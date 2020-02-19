@@ -4,7 +4,7 @@ use crate::{
         AppAddressCompute, AppDeserializer, AppSerializer, AppStore, AppTemplateAddressCompute,
         AppTemplateDeserializer, AppTemplateHasher, AppTemplateSerializer, AppTemplateStore,
     },
-    types::{App, AppTemplate, AppTemplateHash, AppTransaction, BufferSlice, SpawnApp},
+    types::{App, AppTemplate, AppTemplateHash, AppTransaction, SpawnApp},
 };
 
 use svm_common::Address;

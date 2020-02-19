@@ -1,206 +1,119 @@
-use std::convert::TryFrom;
-use std::io::{Cursor, Read};
-
-use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
-
-use super::Field;
-use crate::{
-    error::ParseError,
-    raw::helpers,
-    types::{BufferSlice, WasmType, WasmValue},
-};
+use super::{Field, NibbleIter, NibbleWriter};
+use crate::{error::ParseError, nib, raw, types::WasmValue};
 
 use svm_common::Address;
 
+pub fn bytes(writer: &mut NibbleWriter) -> Vec<u8> {
+    // before calling `writer.bytes()` we must make sure
+    // that its number of nibbles is even. If it's not, we pad it with one extra nibble.
+
+    if writer.is_byte_aligned() == false {
+        let padding = nib!(0);
+        writer.write(&[padding]);
+    }
+
+    writer.bytes()
+}
+
+/// Making sure there are no nibbles left to read,
+/// except for an optional padding nibble, used to even the number of nibbles.
+pub fn ensure_eof(iter: &mut NibbleIter) -> Result<(), ParseError> {
+    if iter.is_byte_aligned() == false {
+        let nib = iter.next();
+        debug_assert!(nib.is_some());
+    };
+
+    match iter.next() {
+        None => Ok(()),
+        Some(..) => Err(ParseError::ExpectedEOF),
+    }
+}
+
+/// Encoders
+
+pub fn encode_func_buf(buf: &[u8], writer: &mut NibbleWriter) {
+    raw::encode_func_buf(buf, writer);
+}
+
+pub fn encode_func_args(args: &[WasmValue], writer: &mut NibbleWriter) {
+    raw::encode_func_args(args, writer);
+}
+
+pub fn encode_version(version: u32, writer: &mut NibbleWriter) {
+    raw::encode_version(version, writer);
+}
+
+pub fn encode_varuint14(num: u16, writer: &mut NibbleWriter) {
+    raw::encode_varuint14(num, writer);
+}
+
+pub fn encode_address(addr: &Address, writer: &mut NibbleWriter) {
+    let bytes = addr.bytes();
+    writer.write_bytes(&bytes[..]);
+}
+
+pub fn encode_string(s: &str, writer: &mut NibbleWriter) {
+    let bytes = s.as_bytes();
+    let length = bytes.len();
+
+    assert!(length <= std::u16::MAX as usize);
+
+    encode_varuint14(length as u16, writer);
+
+    writer.write_bytes(&bytes[..]);
+}
+
+/// Decoders
+
 #[must_use]
-#[inline]
-pub fn ensure_enough_bytes<T>(res: &std::io::Result<T>, field: Field) -> Result<(), ParseError> {
-    if res.is_err() {
+pub fn decode_func_buf(iter: &mut NibbleIter) -> Result<Vec<u8>, ParseError> {
+    raw::decode_func_buf(iter)
+}
+
+#[must_use]
+pub fn decode_func_args(iter: &mut NibbleIter) -> Result<Vec<WasmValue>, ParseError> {
+    raw::decode_func_args(iter)
+}
+
+#[must_use]
+pub fn decode_version(iter: &mut NibbleIter) -> Result<u32, ParseError> {
+    raw::decode_version(iter)
+}
+
+#[must_use]
+pub fn decode_varuint14(iter: &mut NibbleIter, field: Field) -> Result<u16, ParseError> {
+    raw::decode_varuint14(iter, field)
+}
+
+#[must_use]
+pub fn decode_address(iter: &mut NibbleIter, field: Field) -> Result<Address, ParseError> {
+    let bytes = iter.read_bytes(Address::len());
+
+    if bytes.len() != Address::len() {
         return Err(ParseError::NotEnoughBytes(field));
     }
 
-    Ok(())
-}
-
-#[must_use]
-pub fn parse_version(cursor: &mut Cursor<&[u8]>) -> Result<u32, ParseError> {
-    let res = cursor.read_u32::<BigEndian>();
-
-    ensure_enough_bytes(&res, Field::Version)?;
-
-    let version = res.unwrap();
-
-    if version != 0 {
-        return Err(ParseError::InvalidProtocolVersion(version as u32));
-    }
-
-    Ok(version)
-}
-
-#[must_use]
-pub fn parse_address(cursor: &mut Cursor<&[u8]>, field: Field) -> Result<Address, ParseError> {
-    let mut bytes = vec![0; Address::len()];
-
-    let res = cursor.read_exact(&mut bytes);
-
-    ensure_enough_bytes(&res, field)?;
-
     let addr = Address::from(&bytes[..]);
-
     Ok(addr)
 }
 
 #[must_use]
-pub fn parse_func_buf(cursor: &mut Cursor<&[u8]>) -> Result<Vec<BufferSlice>, ParseError> {
-    let res = cursor.read_u8();
-
-    ensure_enough_bytes(&res, Field::FuncBufSlicesCount)?;
-
-    let arg_count = res.unwrap();
-    let mut slices = Vec::new();
-
-    for _ in 0..arg_count {
-        let slice_len = read_u16(cursor, Field::FuncBufSliceLength)?;
-
-        let data = read_buffer(cursor, slice_len as usize, Field::FuncBufSlice)?;
-
-        let slice = BufferSlice { data };
-        slices.push(slice);
-    }
-
-    Ok(slices)
-}
-
-#[must_use]
-pub fn parse_func_args(cursor: &mut Cursor<&[u8]>) -> Result<Vec<WasmValue>, ParseError> {
-    let arg_count = helpers::read_u8(cursor, Field::FuncArgsCount)?;
-
-    let mut args = Vec::with_capacity(arg_count as usize);
-
-    for _ in 0..arg_count {
-        let arg = parse_func_arg(cursor)?;
-        args.push(arg);
-    }
-
-    Ok(args)
-}
-
-#[must_use]
-fn parse_func_arg(cursor: &mut Cursor<&[u8]>) -> Result<WasmValue, ParseError> {
-    let arg_type = parse_func_arg_type(cursor)?;
-
-    let arg = match arg_type {
-        WasmType::I32 => {
-            let val = helpers::read_u32(cursor, Field::WasmValue)?;
-            WasmValue::I32(val)
-        }
-        WasmType::I64 => {
-            let val = helpers::read_u64(cursor, Field::WasmValue)?;
-            WasmValue::I64(val)
-        }
-    };
-
-    Ok(arg)
-}
-
-#[must_use]
-fn parse_func_arg_type(cursor: &mut Cursor<&[u8]>) -> Result<WasmType, ParseError> {
-    let byte = helpers::read_u8(cursor, Field::WasmType)?;
-
-    WasmType::try_from(byte).or_else(|_e| Err(ParseError::InvalidArgType(byte)))
-}
-
-#[must_use]
-pub fn read_u8(cursor: &mut Cursor<&[u8]>, field: Field) -> Result<u8, ParseError> {
-    let res = cursor.read_u8();
-
-    ensure_enough_bytes(&res, field)?;
-
-    Ok(res.unwrap())
-}
-
-#[must_use]
-pub fn read_u16(cursor: &mut Cursor<&[u8]>, field: Field) -> Result<u16, ParseError> {
-    let res = cursor.read_u16::<BigEndian>();
-
-    ensure_enough_bytes(&res, field)?;
-
-    Ok(res.unwrap())
-}
-
-#[must_use]
-pub fn read_u32(cursor: &mut Cursor<&[u8]>, field: Field) -> Result<u32, ParseError> {
-    let res = cursor.read_u32::<BigEndian>();
-
-    ensure_enough_bytes(&res, field)?;
-
-    Ok(res.unwrap())
-}
-
-#[must_use]
-pub fn read_u64(cursor: &mut Cursor<&[u8]>, field: Field) -> Result<u64, ParseError> {
-    let res = cursor.read_u64::<BigEndian>();
-
-    ensure_enough_bytes(&res, field)?;
-
-    Ok(res.unwrap())
-}
-
-#[must_use]
-pub fn read_buffer(
-    cursor: &mut Cursor<&[u8]>,
-    buf_len: usize,
+pub fn decode_string(
+    iter: &mut NibbleIter,
+    len_field: Field,
     field: Field,
-) -> Result<Vec<u8>, ParseError> {
-    let mut buf = vec![0; buf_len];
+) -> Result<String, ParseError> {
+    let length = decode_varuint14(iter, len_field)? as usize;
 
-    let res = cursor.read_exact(&mut buf);
-
-    ensure_enough_bytes(&res, field)?;
-
-    Ok(buf)
-}
-
-pub fn write_func_args(args: &Option<Vec<WasmValue>>, buf: &mut Vec<u8>) {
-    if args.is_none() {
-        buf.write_u8(0).unwrap();
-        return;
+    if length == 0 {
+        return Err(ParseError::EmptyField(len_field));
     }
 
-    let args = args.as_ref().unwrap();
+    let bytes = iter.read_bytes(length);
 
-    buf.write_u8(args.len() as u8).unwrap();
-
-    for arg in args {
-        match arg {
-            WasmValue::I32(v) => {
-                let arg_type = WasmType::I32.into();
-                buf.write_u8(arg_type).unwrap();
-                buf.write_u32::<BigEndian>(*v).unwrap();
-            }
-            WasmValue::I64(v) => {
-                let arg_type = WasmType::I64.into();
-                buf.write_u8(arg_type).unwrap();
-                buf.write_u64::<BigEndian>(*v).unwrap();
-            }
-        }
-    }
-}
-
-pub fn write_func_buf(slices: &Option<Vec<Vec<u8>>>, buf: &mut Vec<u8>) {
-    if slices.is_none() {
-        buf.write_u8(0).unwrap();
-        return;
+    if bytes.len() != length {
+        return Err(ParseError::NotEnoughBytes(field));
     }
 
-    let slices = slices.as_ref().unwrap();
-
-    buf.write_u8(slices.len() as u8).unwrap();
-
-    for slice in slices {
-        let len = slice.len() as u16;
-        buf.write_u16::<BigEndian>(len).unwrap();
-
-        buf.extend_from_slice(&slice);
-    }
+    String::from_utf8(bytes).or_else(|_e| Err(ParseError::InvalidUTF8String(field)))
 }

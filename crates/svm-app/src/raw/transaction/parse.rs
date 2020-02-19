@@ -1,11 +1,7 @@
-use std::io::{Cursor, Read};
-
-use byteorder::ReadBytesExt;
-
 use crate::{
     error::ParseError,
-    raw::{helpers, Field},
-    types::{AppTransaction, BufferSlice, WasmType, WasmValue},
+    raw::{helpers, Field, NibbleIter},
+    types::{AppTransaction, WasmValue},
 };
 
 use svm_common::Address;
@@ -15,19 +11,21 @@ use svm_common::Address;
 /// On failure, returns `ParseError`.
 #[must_use]
 pub fn parse_app_tx(bytes: &[u8], sender: &Address) -> Result<AppTransaction, ParseError> {
-    let mut cursor = Cursor::new(bytes);
+    let mut iter = NibbleIter::new(bytes);
 
-    helpers::parse_version(&mut cursor)?;
+    helpers::decode_version(&mut iter)?;
 
-    let app = helpers::parse_address(&mut cursor, Field::App)?;
-    let func_name = parse_func_name(&mut cursor)?;
-    let func_buf = helpers::parse_func_buf(&mut cursor)?;
-    let func_args = helpers::parse_func_args(&mut cursor)?;
+    let app = helpers::decode_address(&mut iter, Field::App)?;
+    let func_idx = decode_func_index(&mut iter)?;
+    let func_buf = helpers::decode_func_buf(&mut iter)?;
+    let func_args = helpers::decode_func_args(&mut iter)?;
+
+    helpers::ensure_eof(&mut iter);
 
     let tx = AppTransaction {
         app,
         sender: sender.clone(),
-        func_name,
+        func_idx,
         func_args,
         func_buf,
     };
@@ -36,22 +34,6 @@ pub fn parse_app_tx(bytes: &[u8], sender: &Address) -> Result<AppTransaction, Pa
 }
 
 #[must_use]
-fn parse_func_name(cursor: &mut Cursor<&[u8]>) -> Result<String, ParseError> {
-    let res = cursor.read_u8();
-
-    helpers::ensure_enough_bytes(&res, Field::FuncNameLength)?;
-
-    let name_len = res.unwrap() as usize;
-    if name_len == 0 {
-        return Err(ParseError::EmptyField(Field::FuncName));
-    }
-
-    let mut buf = vec![0; name_len];
-    let res = cursor.read_exact(&mut buf);
-
-    if res.is_err() {
-        return Err(ParseError::NotEnoughBytes(Field::FuncName));
-    }
-
-    String::from_utf8(buf).or_else(|_e| Err(ParseError::InvalidUTF8String(Field::Name)))
+fn decode_func_index(iter: &mut NibbleIter) -> Result<u16, ParseError> {
+    helpers::decode_varuint14(iter, Field::FuncIndex)
 }
