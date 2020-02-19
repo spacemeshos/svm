@@ -282,16 +282,30 @@ pub unsafe extern "C" fn svm_deploy_template(
 ///
 /// # Example
 ///
-/// use svm_runtime_c_api::{svm_spawn_app, svm_byte_array};
+/// ```rust, no_run
+/// use svm_runtime_c_api::{svm_imports_alloc, svm_spawn_app, svm_byte_array, testing};
+/// use svm_common::Address;
 ///
-/// let mut app_addr: svm_byte_array::default();
-/// let mut init_state: svm_byte_array::default();
-/// let runtime = std::ptr::null_mut();
-/// let creator = std::ptr::null();
-/// let host_ctx: svm_byte_array::default();
-/// let app: svm_byte_array::default();
+/// // allocate imports
+/// let count = 0;
+/// let mut imports = std::ptr::null_mut();
+/// let _res = unsafe { svm_imports_alloc(&mut imports, count) };
 ///
-/// let res = unsafe { svm_spawn_app(&mut app_addr, &mut init_state, runtime, creator, host_ctx, app) };
+/// // create runtime
+/// let mut kv = std::ptr::null_mut();
+/// let _res = unsafe { testing::svm_memory_kv_create(&mut kv) };
+/// let mut runtime = std::ptr::null_mut();
+/// let mut host = std::ptr::null_mut();
+/// let _res = unsafe { testing::svm_memory_runtime_create(&mut runtime, kv, host, imports) };
+///
+/// let mut app_addr = svm_byte_array::default();
+/// let mut init_state = svm_byte_array::default();
+/// let creator = Address::of("@creator");
+/// let mut init_state = svm_byte_array::default();
+/// let host_ctx = svm_byte_array::default();
+/// let app = svm_byte_array::default();
+///
+/// let _res = unsafe { svm_spawn_app(&mut app_addr, &mut init_state, runtime, creator.as_ptr() as _, host_ctx, app) };
 /// ```
 ///
 #[must_use]
