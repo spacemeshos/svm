@@ -18,10 +18,13 @@ use wasmer_runtime_core::vm::Ctx;
 
 /// Creates a new in-memory `MemKVStore`.
 /// Returns a raw pointer to allocated kv-store via input parameter `raw_kv`
+#[must_use]
 #[no_mangle]
-pub unsafe extern "C" fn svm_memory_kv_create(raw_kv: *mut *mut c_void) {
+pub unsafe extern "C" fn svm_memory_kv_create(raw_kv: *mut *mut c_void) -> svm_result_t {
     let kv = svm_runtime::testing::memory_kv_store_init();
     *raw_kv = svm_common::into_raw_mut(kv);
+
+    svm_result_t::SVM_SUCCESS
 }
 
 /// Creates a new SVM in-memory Runtime instance.
