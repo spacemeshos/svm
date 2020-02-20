@@ -34,10 +34,10 @@ pub struct svm_byte_array {
 /// ```rust
 /// use svm_runtime_c_api::svm_byte_array;
 ///
-/// let bytes = svm_byte_array::default();
+/// let array = svm_byte_array::default();
 
-/// assert_eq!(0, bytes.length);
-/// assert_eq!(std::ptr::null(), bytes.bytes);
+/// assert_eq!(0, array.length);
+/// assert_eq!(std::ptr::null(), array.bytes);
 /// ```
 ///
 impl Default for svm_byte_array {
@@ -94,6 +94,7 @@ impl From<svm_byte_array> for Result<String, FromUtf8Error> {
 ///
 /// let array: svm_byte_array = data.into();
 /// assert_eq!(ptr, array.bytes);
+/// assert_eq!(3, array.length);
 /// ```
 ///
 impl From<&[u8]> for svm_byte_array {
