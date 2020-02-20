@@ -1,9 +1,7 @@
 mod receipt;
 pub use receipt::{decode_receipt, ClientReceipt};
 
-use std::cell::RefCell;
-use std::ffi::c_void;
-use std::rc::Rc;
+use std::{cell::RefCell, ffi::c_void, rc::Rc};
 
 use crate::{
     helpers, svm_byte_array, svm_result_t, svm_value_type, svm_value_type_array, RuntimePtr,
@@ -20,9 +18,9 @@ use wasmer_runtime_core::vm::Ctx;
 /// Returns a raw pointer to allocated kv-store via input parameter `raw_kv`
 #[must_use]
 #[no_mangle]
-pub unsafe extern "C" fn svm_memory_kv_create(raw_kv: *mut *mut c_void) -> svm_result_t {
-    let kv = svm_runtime::testing::memory_kv_store_init();
-    *raw_kv = svm_common::into_raw_mut(kv);
+pub unsafe extern "C" fn svm_memory_kv_create(kv: *mut *mut c_void) -> svm_result_t {
+    let native_kv = svm_runtime::testing::memory_kv_store_init();
+    *kv = svm_common::into_raw_mut(native_kv);
 
     svm_result_t::SVM_SUCCESS
 }
@@ -37,7 +35,7 @@ pub unsafe extern "C" fn svm_memory_runtime_create(
     host: *mut c_void,
     imports: *const c_void,
 ) -> svm_result_t {
-    debug!("`svm_runtime_create` start");
+    debug!("`svm_memory_runtime_create` start");
 
     let kv: &Rc<RefCell<MemKVStore>> = &*(kv as *const Rc<RefCell<MemKVStore>>);
     let wasmer_imports = helpers::cast_imports_to_wasmer_imports(imports);
@@ -48,7 +46,7 @@ pub unsafe extern "C" fn svm_memory_runtime_create(
     let runtime_ptr = RuntimePtr::new(runtime);
     *raw_runtime = svm_common::into_raw_mut(runtime_ptr);
 
-    debug!("`svm_runtime_create` end");
+    debug!("`svm_memory_runtime_create` end");
 
     svm_result_t::SVM_SUCCESS
 }
@@ -61,6 +59,7 @@ pub unsafe fn svm_register_get(
 ) -> *const u8 {
     let ctx = cast_to_wasmer_ctx(raw_ctx);
     let reg = svm_runtime::helpers::wasmer_data_reg(ctx.data, reg_bits, reg_idx);
+
     reg.as_ptr()
 }
 
@@ -79,22 +78,13 @@ pub unsafe fn cast_to_wasmer_ctx<'a>(ctx: *mut wasmer_instance_context_t) -> &'a
     &mut *(ctx as *mut Ctx)
 }
 
-/// Given a borrowed string, returns a raw pointer to its underlying bytes
-/// wrapped within an `svm_byte_array` instance.
-pub fn str_to_svm_byte_array(s: &str) -> svm_byte_array {
-    let bytes = s.as_ptr();
-    let length = s.len() as u32;
+pub fn imports_alloc(count: u32) -> *mut c_void {
+    let mut imports = std::ptr::null_mut();
 
-    svm_byte_array { bytes, length }
-}
+    let res = unsafe { crate::svm_imports_alloc(&mut imports, count) };
+    assert!(res.is_ok());
 
-/// Givena a borrowed vector of `svm_value_type`, returns a raw pointer to its underlying data
-/// wrapped within an `svm_value_type_array` instance.
-pub fn svm_value_type_vec_to_array(vec: &Vec<svm_value_type>) -> svm_value_type_array {
-    let length = vec.len() as u32;
-    let types = vec.as_ptr();
-
-    svm_value_type_array { types, length }
+    imports
 }
 
 /// Given an import function relevant data (module name, import name, function pointer, params and returns),
@@ -110,16 +100,13 @@ pub unsafe fn import_func_create(
     params: Vec<svm_value_type>,
     returns: Vec<svm_value_type>,
 ) {
-    let module_name = str_to_svm_byte_array(module_name);
-    let import_name = str_to_svm_byte_array(import_name);
-
     let res = crate::svm_import_func_build(
         imports,
-        module_name,
-        import_name,
+        module_name.into(),
+        import_name.into(),
         func,
-        svm_value_type_vec_to_array(&params),
-        svm_value_type_vec_to_array(&returns),
+        params.into(),
+        returns.into(),
     );
-    assert_eq!(true, res.as_bool());
+    assert!(res.is_ok());
 }

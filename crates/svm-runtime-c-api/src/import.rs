@@ -1,40 +1,6 @@
-use std::{
-    default::Default,
-    ffi::c_void,
-    ptr::{self, NonNull},
-    string::FromUtf8Error,
-};
+use std::{ffi::c_void, ptr::NonNull};
 
 use crate::svm_value_type;
-
-/// FFI representation for a byte-array
-#[allow(non_camel_case_types)]
-#[repr(C)]
-pub struct svm_byte_array {
-    /// Raw pointer to the beginning of array.
-    pub bytes: *const u8,
-
-    /// Number of bytes,
-    pub length: u32,
-}
-
-impl Default for svm_byte_array {
-    fn default() -> Self {
-        Self {
-            bytes: ptr::null(),
-            length: 0,
-        }
-    }
-}
-
-impl From<svm_byte_array> for Result<String, FromUtf8Error> {
-    fn from(value: svm_byte_array) -> Self {
-        let bytes =
-            unsafe { std::slice::from_raw_parts(value.bytes as *mut u8, value.length as usize) };
-
-        String::from_utf8(bytes.to_vec())
-    }
-}
 
 /// Represents an `Import`` kind
 #[allow(non_camel_case_types)]
