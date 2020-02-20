@@ -27,7 +27,7 @@ macro_rules! impl_into_svm_byte_array {
         impl From<$struct> for $crate::svm_byte_array {
             fn from(value: $struct) -> Self {
                 // `bytes` is a copy of the underlying bytes.
-                let bytes = value.bytes);
+                let bytes = value.bytes();
 
                 debug_assert_eq!($struct::len(), bytes.len());
 
