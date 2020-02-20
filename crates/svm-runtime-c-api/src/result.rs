@@ -10,10 +10,23 @@ pub enum svm_result_t {
     SVM_FAILURE = 1,
 }
 
-impl Into<bool> for svm_result_t {
+///
+/// # Example
+///
+/// ```rust
+/// use svm_runtime_c_api::svm_result_t;
+///
+/// let truthy = svm_result_t::SVM_SUCCESS;
+/// let falsey = svm_result_t::SVM_FAILURE;
+///
+/// assert_eq!(true, bool::from(truthy));
+/// assert_eq!(false, bool::from(falsey));
+/// ```
+///
+impl From<svm_result_t> for bool {
     #[inline]
-    fn into(self) -> bool {
-        match self {
+    fn from(value: svm_result_t) -> bool {
+        match value {
             svm_result_t::SVM_SUCCESS => true,
             svm_result_t::SVM_FAILURE => false,
         }
@@ -22,20 +35,45 @@ impl Into<bool> for svm_result_t {
 
 impl svm_result_t {
     /// Returns whether equals to `svm_result::SVM_SUCCESS`
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use svm_runtime_c_api::svm_result_t;
+    ///
+    /// let truthy = svm_result_t::SVM_SUCCESS;
+    /// let falsey = svm_result_t::SVM_FAILURE;
+    ///
+    /// assert!(truthy.is_ok());
+    /// assert!(!falsey.is_ok());
+    /// ```
+    ///
     #[inline]
     pub fn is_ok(self) -> bool {
         self.as_bool() == true
     }
 
     /// Returns whether equals to `svm_result::SVM_FAILURE`
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use svm_runtime_c_api::svm_result_t;
+    ///
+    /// let truthy = svm_result_t::SVM_SUCCESS;
+    /// let falsey = svm_result_t::SVM_FAILURE;
+    ///
+    /// assert!(!truthy.is_err());
+    /// assert!(falsey.is_err());
+    /// ```
     #[inline]
     pub fn is_err(self) -> bool {
         self.as_bool() == false
     }
 
-    /// Convert to boolean
+    /// Convert to a boolean
     #[inline]
-    pub fn as_bool(self) -> bool {
+    fn as_bool(self) -> bool {
         self.into()
     }
 }

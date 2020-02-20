@@ -2,7 +2,7 @@ use std::{ffi::c_void, ptr::NonNull};
 
 use crate::svm_value_type;
 
-/// Represents an `Import`` kind
+/// Represents an `Import` kind
 #[allow(non_camel_case_types)]
 pub enum svm_import_kind {
     #[doc(hidden)]
