@@ -43,9 +43,9 @@ macro_rules! to_svm_byte_array {
     ($raw_byte_array:expr, $ptr:expr, $length:expr) => {{
         use crate::svm_byte_array;
 
-        let byte_array: &mut svm_byte_array = &mut *$raw_byte_array;
-        byte_array.bytes = $ptr;
-        byte_array.length = $length as u32;
+        let bytes: &mut svm_byte_array = &mut *$raw_byte_array;
+        bytes.bytes = $ptr;
+        bytes.length = $length as u32;
     }};
 }
 
@@ -86,9 +86,8 @@ pub unsafe extern "C" fn svm_imports_alloc(imports: *mut *mut c_void, count: u32
 ///   // ...
 /// }
 ///
-/// let count = 1;
-/// let mut imports = std::ptr::null_mut();
-/// let _res = unsafe { svm_imports_alloc(&mut imports, count) };
+/// // allocate one imports
+/// let mut imports = testing::imports_alloc(1);
 ///
 /// let module_name = testing::str_to_svm_byte_array("env");
 /// let import_name = testing::str_to_svm_byte_array("foo");
@@ -115,7 +114,6 @@ pub unsafe extern "C" fn svm_import_func_build(
     assert!(imports.len() < imports.capacity());
 
     let func = NonNull::new(func as *mut c_void);
-
     if func.is_none() {
         todo!();
         // return svm_result_t::SVM_FAILURE;
@@ -162,13 +160,11 @@ pub unsafe extern "C" fn svm_import_func_build(
 /// ```rust, no_run
 /// use svm_runtime_c_api::{svm_runtime_create, svm_imports_alloc, testing};
 ///
-/// let count = 0;
-/// let mut imports = std::ptr::null_mut();
-/// let _res = unsafe { svm_imports_alloc(&mut imports, count) };
-///
 /// let mut runtime = std::ptr::null_mut();
 /// let path = testing::str_to_svm_byte_array("path goes here");
 /// let host = std::ptr::null_mut();
+/// let mut imports = testing::imports_alloc(0);
+///
 /// let res = unsafe { svm_runtime_create(&mut runtime, path, host, imports) };
 /// assert!(res.is_ok());
 /// ```
@@ -219,9 +215,7 @@ pub unsafe extern "C" fn svm_runtime_create(
 /// use svm_common::Address;
 ///
 /// // allocate imports
-/// let count = 0;
-/// let mut imports = std::ptr::null_mut();
-/// let _res = unsafe { svm_imports_alloc(&mut imports, count) };
+/// let mut imports = testing::imports_alloc(0);
 ///
 /// // create runtime
 /// let mut kv = std::ptr::null_mut();
@@ -252,17 +246,21 @@ pub unsafe extern "C" fn svm_deploy_template(
 
     let runtime = helpers::cast_to_runtime_mut(runtime);
     let author: Result<Address, String> = author.into();
-    let author = author.unwrap();
+
+    if let Err(msg) = author {
+        todo!()
+        // return svm_result_t::SVM_FAILURE;
+    }
 
     let host_ctx = HostCtx::from_raw_parts(host_ctx.bytes, host_ctx.length);
-    let bytes = std::slice::from_raw_parts(template.bytes, template.length as usize);
-
     if host_ctx.is_err() {
         todo!();
         // return svm_result_t::SVM_FAILURE;
     }
 
-    match runtime.deploy_template(&author, host_ctx.unwrap(), bytes) {
+    let bytes = std::slice::from_raw_parts(template.bytes, template.length as usize);
+
+    match runtime.deploy_template(&author.unwrap(), host_ctx.unwrap(), bytes) {
         Ok(addr) => {
             // returning deployed `AppTemplate` as `svm_byte_array`
             // client should call later `svm_address_destroy`
@@ -289,9 +287,7 @@ pub unsafe extern "C" fn svm_deploy_template(
 /// use svm_common::Address;
 ///
 /// // allocate imports
-/// let count = 0;
-/// let mut imports = std::ptr::null_mut();
-/// let _res = unsafe { svm_imports_alloc(&mut imports, count) };
+/// let mut imports = testing::imports_alloc(0);
 ///
 /// // create runtime
 /// let mut kv = std::ptr::null_mut();
@@ -324,10 +320,13 @@ pub unsafe extern "C" fn svm_spawn_app(
 
     let runtime = helpers::cast_to_runtime_mut(runtime);
     let creator: Result<Address, String> = creator.into();
-    let creator = creator.unwrap();
+
+    if let Err(msg) = creator {
+        todo!();
+        // return svm_result_t::SVM_FAILURE;
+    }
 
     let host_ctx = HostCtx::from_raw_parts(host_ctx.bytes, host_ctx.length);
-
     if host_ctx.is_err() {
         todo!();
         // return svm_result_t::SVM_FAILURE;
@@ -335,7 +334,7 @@ pub unsafe extern "C" fn svm_spawn_app(
 
     let bytes = std::slice::from_raw_parts(app.bytes, app.length as usize);
 
-    match runtime.spawn_app(&creator, host_ctx.unwrap(), bytes) {
+    match runtime.spawn_app(&creator.unwrap(), host_ctx.unwrap(), bytes) {
         Ok((addr, state)) => {
             // returning spawned app `Address` as `svm_byte_array`
             // client should call later `svm_address_destroy`
@@ -366,9 +365,7 @@ pub unsafe extern "C" fn svm_spawn_app(
 /// use svm_common::Address;
 ///
 /// // allocate imports
-/// let count = 0;
-/// let mut imports = std::ptr::null_mut();
-/// let _res = unsafe { svm_imports_alloc(&mut imports, count) };
+/// let mut imports = testing::imports_alloc(0);
 ///
 /// // create runtime
 /// let mut kv = std::ptr::null_mut();
@@ -395,11 +392,14 @@ pub unsafe extern "C" fn svm_parse_exec_app(
 
     let runtime = helpers::cast_to_runtime(runtime);
     let sender: Result<Address, String> = sender.into();
-    let sender = sender.unwrap();
+
+    if let Err(msg) = sender {
+        todo!();
+    }
 
     let bytes = std::slice::from_raw_parts(tx.bytes, tx.length as usize);
 
-    match runtime.parse_exec_app(&sender, bytes) {
+    match runtime.parse_exec_app(&sender.unwrap(), bytes) {
         Ok(tx) => {
             // `AppTransaction` will be freed later as part `svm_exec_app`
             *app_tx = svm_common::into_raw_mut(tx);
@@ -427,9 +427,7 @@ pub unsafe extern "C" fn svm_parse_exec_app(
 /// use svm_common::{State, Address};
 ///
 /// // allocate imports
-/// let count = 0;
-/// let mut imports = std::ptr::null_mut();
-/// let _res = unsafe { svm_imports_alloc(&mut imports, count) };
+/// let mut imports = testing::imports_alloc(0);
 ///
 /// // create runtime
 /// let mut kv = std::ptr::null_mut();
@@ -478,9 +476,12 @@ pub unsafe extern "C" fn svm_exec_app(
     let app_tx = *Box::from_raw(app_tx as *mut AppTransaction);
     let runtime = helpers::cast_to_runtime_mut(runtime);
     let state: Result<State, String> = state.into();
-    let state = state.unwrap();
 
-    match runtime.exec_app(app_tx, state, host_ctx) {
+    if let Err(msg) = state {
+        todo!();
+    }
+
+    match runtime.exec_app(app_tx, state.unwrap(), host_ctx) {
         Ok(ref native_receipt) => {
             let mut bytes = crate::receipt::encode_receipt(native_receipt);
 
@@ -520,9 +521,7 @@ pub unsafe extern "C" fn svm_instance_context_host_get(ctx: *mut c_void) -> *mut
 /// use svm_common::Address;
 ///
 /// // allocate imports
-/// let count = 0;
-/// let mut imports = std::ptr::null_mut();
-/// let _res = unsafe { svm_imports_alloc(&mut imports, count) };
+/// let mut imports = testing::imports_alloc(0);
 ///
 /// // create runtime
 /// let mut kv = std::ptr::null_mut();
