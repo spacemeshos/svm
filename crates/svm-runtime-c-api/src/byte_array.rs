@@ -18,6 +18,7 @@ use std::string::FromUtf8Error;
 /// ```
 ///
 #[allow(non_camel_case_types)]
+#[derive(Copy, Clone)]
 #[repr(C)]
 pub struct svm_byte_array {
     /// Raw pointer to the beginning of array.

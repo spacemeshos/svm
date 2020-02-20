@@ -165,8 +165,8 @@ fn host_ctx_bytes(version: u32, fields: HashMap<u32, Vec<u8>>) -> (Vec<u8>, u32)
     (bytes, length)
 }
 
-fn exec_app_args() -> (Address, Address, u64, u16, Vec<u8>, Vec<WasmValue>) {
-    let sender = Address::of("sender");
+fn exec_app_args() -> (svm_byte_array, Address, u64, u16, Vec<u8>, Vec<WasmValue>) {
+    let sender: svm_byte_array = Address::of("sender").into();
 
     let func_idx = 1;
 
@@ -202,7 +202,7 @@ unsafe fn do_ffi_exec_app() {
     assert!(res.is_ok());
 
     // 2) deploy app-template
-    let author = Address::of("author");
+    let author: svm_byte_array = Address::of("author").into();
     let code = include_str!("wasm/update-balance.wast");
     let page_count = 10;
 
@@ -222,17 +222,11 @@ unsafe fn do_ffi_exec_app() {
 
     let mut template_addr = svm_byte_array::default();
 
-    let res = api::svm_deploy_template(
-        &mut template_addr,
-        runtime,
-        author.as_ptr() as _,
-        host_ctx,
-        template,
-    );
+    let res = api::svm_deploy_template(&mut template_addr, runtime, author, host_ctx, template);
     assert!(res.is_ok());
 
     // 3) spawn app
-    let creator = Address::of("creator");
+    let creator: svm_byte_array = Address::of("creator").into();
     let ctor_idx = 0;
     let ctor_buf = vec![];
     let ctor_args = vec![];
@@ -258,7 +252,7 @@ unsafe fn do_ffi_exec_app() {
         &mut app_addr,
         &mut init_state,
         runtime,
-        creator.as_ptr() as _,
+        creator,
         host_ctx,
         app,
     );
@@ -274,7 +268,7 @@ unsafe fn do_ffi_exec_app() {
 
     // 4.1) parse bytes into in-memory `AppTransaction`
     let mut app_tx = std::ptr::null_mut();
-    let res = api::svm_parse_exec_app(&mut app_tx, runtime, sender.as_ptr() as _, tx);
+    let res = api::svm_parse_exec_app(&mut app_tx, runtime, sender, tx);
     assert!(res.is_ok());
 
     // 4.2) execute the app-transaction
@@ -292,9 +286,8 @@ unsafe fn do_ffi_exec_app() {
     };
 
     let mut receipt = svm_byte_array::default();
-    let state = init_state.bytes as *const c_void;
 
-    let res = api::svm_exec_app(&mut receipt, runtime, app_tx, state, host_ctx);
+    let res = api::svm_exec_app(&mut receipt, runtime, app_tx, init_state, host_ctx);
     assert!(res.is_ok());
 
     let expected = (init_balance + addition as i128) * (nonce as i128);

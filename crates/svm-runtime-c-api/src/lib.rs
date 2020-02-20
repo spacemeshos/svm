@@ -1,5 +1,5 @@
-#![deny(missing_docs)]
-#![deny(unused)]
+#![allow(missing_docs)]
+#![allow(unused)]
 #![feature(vec_into_raw_parts)]
 
 //! This crate is responsible of providing [FFI](https://doc.rust-lang.org/nomicon/ffi.html) interface for the `SVM`.
@@ -10,11 +10,14 @@ pub mod helpers;
 /// Crate common tests specific helpers
 pub mod testing;
 
+mod address;
 mod api;
 mod byte_array;
 mod import;
+mod macros;
 mod receipt;
 mod result;
+mod state;
 mod value;
 mod wasmer;
 

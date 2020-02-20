@@ -232,10 +232,10 @@ pub unsafe extern "C" fn svm_runtime_create(
 ///
 /// // deploy template
 /// let mut template_addr = svm_byte_array::default();
-/// let author = Address::of("@author");
+/// let author: svm_byte_array = Address::of("@author").into();
 /// let host_ctx = svm_byte_array::default();
 /// let template = svm_byte_array::default();
-/// let res = unsafe { svm_deploy_template(&mut template_addr, runtime, author.as_ptr() as _, host_ctx, template) };
+/// let res = unsafe { svm_deploy_template(&mut template_addr, runtime, author, host_ctx, template) };
 /// assert!(res.is_ok());
 /// ```
 ///
@@ -244,14 +244,16 @@ pub unsafe extern "C" fn svm_runtime_create(
 pub unsafe extern "C" fn svm_deploy_template(
     template_addr: *mut svm_byte_array,
     runtime: *mut c_void,
-    author: *const c_void,
+    author: svm_byte_array,
     host_ctx: svm_byte_array,
     template: svm_byte_array,
 ) -> svm_result_t {
     debug!("`svm_deploy_template` start`");
 
     let runtime = helpers::cast_to_runtime_mut(runtime);
-    let author = Address::from(author);
+    let author: Result<Address, String> = author.into();
+    let author = author.unwrap();
+
     let host_ctx = HostCtx::from_raw_parts(host_ctx.bytes, host_ctx.length);
     let bytes = std::slice::from_raw_parts(template.bytes, template.length as usize);
 
@@ -300,12 +302,12 @@ pub unsafe extern "C" fn svm_deploy_template(
 ///
 /// let mut app_addr = svm_byte_array::default();
 /// let mut init_state = svm_byte_array::default();
-/// let creator = Address::of("@creator");
+/// let creator: svm_byte_array = Address::of("@creator").into();
 /// let mut init_state = svm_byte_array::default();
 /// let host_ctx = svm_byte_array::default();
 /// let app = svm_byte_array::default();
 ///
-/// let _res = unsafe { svm_spawn_app(&mut app_addr, &mut init_state, runtime, creator.as_ptr() as _, host_ctx, app) };
+/// let _res = unsafe { svm_spawn_app(&mut app_addr, &mut init_state, runtime, creator, host_ctx, app) };
 /// ```
 ///
 #[must_use]
@@ -314,14 +316,16 @@ pub unsafe extern "C" fn svm_spawn_app(
     app_addr: *mut svm_byte_array,
     init_state: *mut svm_byte_array,
     runtime: *mut c_void,
-    creator: *const c_void,
+    creator: svm_byte_array,
     host_ctx: svm_byte_array,
     app: svm_byte_array,
 ) -> svm_result_t {
     debug!("`svm_spawn_app` start");
 
     let runtime = helpers::cast_to_runtime_mut(runtime);
-    let creator = Address::from(creator);
+    let creator: Result<Address, String> = creator.into();
+    let creator = creator.unwrap();
+
     let host_ctx = HostCtx::from_raw_parts(host_ctx.bytes, host_ctx.length);
 
     if host_ctx.is_err() {
@@ -374,9 +378,9 @@ pub unsafe extern "C" fn svm_spawn_app(
 /// let _res = unsafe { testing::svm_memory_runtime_create(&mut runtime, kv, host, imports) };
 ///
 /// let mut app_tx = std::ptr::null_mut();
-/// let sender = Address::of("@sender");
+/// let sender: svm_byte_array = Address::of("@sender").into();
 /// let tx = svm_byte_array::default();
-/// let _res = unsafe { svm_parse_exec_app(&mut app_tx, runtime, sender.as_ptr() as _, tx) };
+/// let _res = unsafe { svm_parse_exec_app(&mut app_tx, runtime, sender, tx) };
 /// ```
 ///
 #[must_use]
@@ -384,13 +388,15 @@ pub unsafe extern "C" fn svm_spawn_app(
 pub unsafe extern "C" fn svm_parse_exec_app(
     app_tx: *mut *mut c_void,
     runtime: *const c_void,
-    sender: *const c_void,
+    sender: svm_byte_array,
     tx: svm_byte_array,
 ) -> svm_result_t {
     debug!("`svm_parse_exec_app` start");
 
     let runtime = helpers::cast_to_runtime(runtime);
-    let sender = Address::from(sender);
+    let sender: Result<Address, String> = sender.into();
+    let sender = sender.unwrap();
+
     let bytes = std::slice::from_raw_parts(tx.bytes, tx.length as usize);
 
     match runtime.parse_exec_app(&sender, bytes) {
@@ -442,19 +448,19 @@ pub unsafe extern "C" fn svm_parse_exec_app(
 /// };
 ///
 /// let app_tx_ptr = &app_tx as *const AppTransaction as *const c_void;
-/// let state = State::empty();
+/// let state: svm_byte_array = State::empty().into();
 /// let mut receipt = svm_byte_array::default();
 /// let host_ctx = svm_byte_array::default();
-/// let _res = unsafe { svm_exec_app(&mut receipt, runtime, app_tx_ptr, state.as_ptr() as _, host_ctx) };
+/// let _res = unsafe { svm_exec_app(&mut receipt, runtime, app_tx_ptr, state, host_ctx) };
 /// ```
 ///
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_exec_app(
-    encoded_receipt: *mut svm_byte_array,
+    receipt: *mut svm_byte_array,
     runtime: *mut c_void,
     app_tx: *const c_void,
-    state: *const c_void,
+    state: svm_byte_array,
     host_ctx: svm_byte_array,
 ) -> svm_result_t {
     debug!("`svm_exec_app` start");
@@ -471,15 +477,16 @@ pub unsafe extern "C" fn svm_exec_app(
     let host_ctx = host_ctx.unwrap();
     let app_tx = *Box::from_raw(app_tx as *mut AppTransaction);
     let runtime = helpers::cast_to_runtime_mut(runtime);
-    let state = State::from(state);
+    let state: Result<State, String> = state.into();
+    let state = state.unwrap();
 
     match runtime.exec_app(app_tx, state, host_ctx) {
-        Ok(ref receipt) => {
-            let mut bytes = crate::receipt::encode_receipt(receipt);
+        Ok(ref native_receipt) => {
+            let mut bytes = crate::receipt::encode_receipt(native_receipt);
 
             // returning encoded `Receipt` as `svm_byte_array`
             // should call later `svm_receipt_destroy`
-            vec_to_svm_byte_array!(encoded_receipt, bytes);
+            vec_to_svm_byte_array!(receipt, bytes);
 
             debug!("`svm_exec_app` returns `SVM_SUCCESS`");
             svm_result_t::SVM_SUCCESS
