@@ -36,9 +36,24 @@ pub struct svm_value_type_array {
 }
 
 impl From<svm_value_type_array> for Vec<svm_value_type> {
-    fn from(value: svm_value_type_array) -> Vec<svm_value_type> {
-        let slice = unsafe { std::slice::from_raw_parts(value.types, value.length as usize) };
+    fn from(array: svm_value_type_array) -> Self {
+        let slice = unsafe { std::slice::from_raw_parts(array.types, array.length as usize) };
 
         slice.to_vec()
+    }
+}
+
+impl From<&Vec<svm_value_type>> for svm_value_type_array {
+    fn from(vec: &Vec<svm_value_type>) -> Self {
+        let length = vec.len() as u32;
+        let types = vec.as_ptr();
+
+        svm_value_type_array { types, length }
+    }
+}
+
+impl From<Vec<svm_value_type>> for svm_value_type_array {
+    fn from(vec: Vec<svm_value_type>) -> Self {
+        (&vec).into()
     }
 }

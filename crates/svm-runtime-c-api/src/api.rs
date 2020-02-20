@@ -89,10 +89,10 @@ pub unsafe extern "C" fn svm_imports_alloc(imports: *mut *mut c_void, count: u32
 /// // allocate one imports
 /// let mut imports = testing::imports_alloc(1);
 ///
-/// let module_name = testing::str_to_svm_byte_array("env");
-/// let import_name = testing::str_to_svm_byte_array("foo");
-/// let params = testing::svm_value_type_vec_to_array(&vec![]);
-/// let returns = testing::svm_value_type_vec_to_array(&vec![]);
+/// let module_name = "env".into();
+/// let import_name = "foo".into();
+/// let params = vec![].into();
+/// let returns = vec![].into();
 /// let func = foo as *const c_void;
 ///
 /// let res = unsafe { svm_import_func_build(imports, module_name, import_name, func, params, returns) };
@@ -161,7 +161,7 @@ pub unsafe extern "C" fn svm_import_func_build(
 /// use svm_runtime_c_api::{svm_runtime_create, svm_imports_alloc, testing};
 ///
 /// let mut runtime = std::ptr::null_mut();
-/// let path = testing::str_to_svm_byte_array("path goes here");
+/// let path = "path goes here".into();
 /// let host = std::ptr::null_mut();
 /// let mut imports = testing::imports_alloc(0);
 ///
@@ -228,7 +228,7 @@ pub unsafe extern "C" fn svm_runtime_create(
 /// let mut template_addr = svm_byte_array::default();
 /// let author: svm_byte_array = Address::of("@author").into();
 /// let host_ctx = svm_byte_array::default();
-/// let template = svm_byte_array::default();
+/// let template = vec![0x0C, 0x00, 0x0D, 0x0E].into();
 /// let res = unsafe { svm_deploy_template(&mut template_addr, runtime, author, host_ctx, template) };
 /// assert!(res.is_ok());
 /// ```
@@ -298,7 +298,7 @@ pub unsafe extern "C" fn svm_deploy_template(
 ///
 /// let mut app_addr = svm_byte_array::default();
 /// let mut init_state = svm_byte_array::default();
-/// let creator: svm_byte_array = Address::of("@creator").into();
+/// let creator = Address::of("@creator").into();
 /// let mut init_state = svm_byte_array::default();
 /// let host_ctx = svm_byte_array::default();
 /// let app = svm_byte_array::default();
@@ -375,8 +375,8 @@ pub unsafe extern "C" fn svm_spawn_app(
 /// let _res = unsafe { testing::svm_memory_runtime_create(&mut runtime, kv, host, imports) };
 ///
 /// let mut app_tx = std::ptr::null_mut();
-/// let sender: svm_byte_array = Address::of("@sender").into();
-/// let tx = svm_byte_array::default();
+/// let sender = Address::of("@sender").into();
+/// let tx = vec![0x00, 0x01, 0x2, 0x3].into();
 /// let _res = unsafe { svm_parse_exec_app(&mut app_tx, runtime, sender, tx) };
 /// ```
 ///
@@ -446,7 +446,7 @@ pub unsafe extern "C" fn svm_parse_exec_app(
 /// };
 ///
 /// let app_tx_ptr = &app_tx as *const AppTransaction as *const c_void;
-/// let state: svm_byte_array = State::empty().into();
+/// let state = State::empty().into();
 /// let mut receipt = svm_byte_array::default();
 /// let host_ctx = svm_byte_array::default();
 /// let _res = unsafe { svm_exec_app(&mut receipt, runtime, app_tx_ptr, state, host_ctx) };

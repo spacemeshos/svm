@@ -87,24 +87,6 @@ pub fn imports_alloc(count: u32) -> *mut c_void {
     imports
 }
 
-/// Given a borrowed String, returns a raw pointer to its underlying bytes
-/// wrapped within an `svm_byte_array` instance.
-pub fn str_to_svm_byte_array(s: &str) -> svm_byte_array {
-    let bytes = s.as_ptr();
-    let length = s.len() as u32;
-
-    svm_byte_array { bytes, length }
-}
-
-/// Givena a borrowed vector of `svm_value_type`, returns a raw pointer to its underlying data
-/// wrapped within an `svm_value_type_array` instance.
-pub fn svm_value_type_vec_to_array(vec: &Vec<svm_value_type>) -> svm_value_type_array {
-    let length = vec.len() as u32;
-    let types = vec.as_ptr();
-
-    svm_value_type_array { types, length }
-}
-
 /// Given an import function relevant data (module name, import name, function pointer, params and returns),
 /// Allocates on the heap an `svm_import_t` instance holding raw pointers and other `svm_... raw types.
 ///
@@ -118,16 +100,13 @@ pub unsafe fn import_func_create(
     params: Vec<svm_value_type>,
     returns: Vec<svm_value_type>,
 ) {
-    let module_name = str_to_svm_byte_array(module_name);
-    let import_name = str_to_svm_byte_array(import_name);
-
     let res = crate::svm_import_func_build(
         imports,
-        module_name,
-        import_name,
+        module_name.into(),
+        import_name.into(),
         func,
-        svm_value_type_vec_to_array(&params),
-        svm_value_type_vec_to_array(&returns),
+        params.into(),
+        returns.into(),
     );
     assert!(res.is_ok());
 }

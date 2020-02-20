@@ -49,11 +49,64 @@ impl Default for svm_byte_array {
     }
 }
 
+///
+/// # Example
+///
+/// ```rust
+/// use std::string::FromUtf8Error;
+/// use svm_runtime_c_api::svm_byte_array;
+///
+/// let s = "Hello World!";
+/// let ptr = s.as_ptr();
+/// let array: svm_byte_array = s.into();
+/// assert_eq!(ptr, array.bytes);
+///
+/// let s: Result<String, FromUtf8Error> = array.into();
+/// assert_eq!("Hello World!".to_string(), s.unwrap());
+/// ```
+///
+impl From<&str> for svm_byte_array {
+    fn from(s: &str) -> Self {
+        let bytes = s.as_ptr();
+        let length = s.len() as u32;
+
+        svm_byte_array { bytes, length }
+    }
+}
+
 impl From<svm_byte_array> for Result<String, FromUtf8Error> {
-    fn from(value: svm_byte_array) -> Self {
+    fn from(array: svm_byte_array) -> Self {
         let bytes =
-            unsafe { std::slice::from_raw_parts(value.bytes as *mut u8, value.length as usize) };
+            unsafe { std::slice::from_raw_parts(array.bytes as *mut u8, array.length as usize) };
 
         String::from_utf8(bytes.to_vec())
+    }
+}
+
+///
+/// # Example
+///
+/// ```rust
+/// use svm_runtime_c_api::svm_byte_array;
+///
+/// let data = vec![0x10u8, 0x20u8, 0x30u8];
+/// let ptr = data.as_ptr();
+///
+/// let array: svm_byte_array = data.into();
+/// assert_eq!(ptr, array.bytes);
+/// ```
+///
+impl From<&[u8]> for svm_byte_array {
+    fn from(slice: &[u8]) -> Self {
+        let bytes = slice.as_ptr();
+        let length = slice.len() as u32;
+
+        svm_byte_array { bytes, length }
+    }
+}
+
+impl From<Vec<u8>> for svm_byte_array {
+    fn from(vec: Vec<u8>) -> Self {
+        (&vec[..]).into()
     }
 }

@@ -165,9 +165,7 @@ fn host_ctx_bytes(version: u32, fields: HashMap<u32, Vec<u8>>) -> (Vec<u8>, u32)
     (bytes, length)
 }
 
-fn exec_app_args() -> (svm_byte_array, Address, u64, u16, Vec<u8>, Vec<WasmValue>) {
-    let sender: svm_byte_array = Address::of("sender").into();
-
+fn exec_app_args() -> (Address, u64, u16, Vec<u8>, Vec<WasmValue>) {
     let func_idx = 1;
 
     let user = Address::of("user");
@@ -176,7 +174,7 @@ fn exec_app_args() -> (svm_byte_array, Address, u64, u16, Vec<u8>, Vec<WasmValue
     let addition = 2;
     let func_args = vec![WasmValue::I64(addition)];
 
-    (sender, user, addition, func_idx, func_buf, func_args)
+    (user, addition, func_idx, func_buf, func_args)
 }
 
 #[test]
@@ -202,7 +200,7 @@ unsafe fn do_ffi_exec_app() {
     assert!(res.is_ok());
 
     // 2) deploy app-template
-    let author: svm_byte_array = Address::of("author").into();
+    let author = Address::of("author").into();
     let code = include_str!("wasm/update-balance.wast");
     let page_count = 10;
 
@@ -226,7 +224,7 @@ unsafe fn do_ffi_exec_app() {
     assert!(res.is_ok());
 
     // 3) spawn app
-    let creator: svm_byte_array = Address::of("creator").into();
+    let creator = Address::of("creator").into();
     let ctor_idx = 0;
     let ctor_buf = vec![];
     let ctor_args = vec![];
@@ -259,7 +257,8 @@ unsafe fn do_ffi_exec_app() {
     assert!(res.is_ok());
 
     // 4) execute app
-    let (sender, user, addition, func_idx, func_buf, func_args) = exec_app_args();
+    let sender = Address::of("sender").into();
+    let (user, addition, func_idx, func_buf, func_args) = exec_app_args();
     let (bytes, length) = exec_app_bytes(version, &app_addr, func_idx, &func_buf, &func_args);
     let tx = svm_byte_array {
         bytes: bytes.as_ptr(),
