@@ -21,7 +21,7 @@
 //!  |-----------------------------+
 //!  |  daily_limit     (2 bytes)  |
 //!  +-----------------------------+
-//!  |  start_vesting   (8 bytes)  |
+//!  |  vesting_start   (8 bytes)  |
 //!  +-----------------------------+
 //!  |  vesting_months  (2 bytes)  |
 //!  +-----------------------------+
@@ -31,22 +31,33 @@
 //!  +-----------------------------+
 //!  |  vested          (4 bytes)  |
 //!  +-----------------------------+
-//!
-//!  Offsets:
-//!  * pub_key1        - offset=0,   length=32
-//!  * pub_key2        - offset=32,  length=32
-//!  * pub_key3        - offset=64,  length=32
-//!  * daily_limit     - offset=96,  length=2
-//!  * start_vesting   - offset=98,  length=8
-//!  * vesting_months  - offset=106, length=2
-//!  * last_sync_layer - offset=108, length=8
-//!  * balance         - offset=116, length=4
-//!  * vested          - offset=120, length=4
-//!
 //! Total storage: 124 bytes.
 //!
 
-// inject `extern vmcalls`
+const PAGE_IDX: u32 = 0;
+
+/// Offsets:
+const PUB_KEY1_OFFSET: u32 = 0;
+const PUB_KEY2_OFFSET: u32 = 32;
+const PUB_KEY3_OFFSET: u32 = 64;
+const DAILY_LIMIT_OFFSET: u32 = 96;
+const VESTING_START_OFFSET: u32 = 98;
+const VESTING_MONTHS_OFFSET: u32 = 106;
+const LAST_SYNC_LAYER_OFFSET: u32 = 108;
+const BALANCE_OFFSET: u32 = 116;
+const VESTED_OFFSET: u32 = 120;
+const PUBLIC_KEY_FIELD_IDX: u32 = 0;
+
+/// Sizes
+const PUB_KEY_SIZE: u32 = 32;
+const DAILY_LIMIT_SIZE: u32 = 2;
+const VESTING_START_SIZE: u32 = 8;
+const VESTING_MONTHS_SIZE: u32 = 2;
+const LAYER_ID_SIZE: u32 = 8;
+const BALANCE_SIZE: u32 = 4;
+const VESTED_SIZE: u32 = 4;
+
+// imports
 svm_extern::include_storage_vmcalls!();
 svm_extern::include_node_vmcalls!();
 svm_extern::include_buffer_vmcalls!();
@@ -60,7 +71,7 @@ svm_extern::include_register_vmcalls!();
 /// +-----------------------------------------------------------------+
 ///
 #[no_mangle]
-pub extern "C" fn init(daily_limit: i64, start_vesting: i64, vesting_months: i32) {
+pub extern "C" fn init(daily_limit: i64, vesting_start: i64, vesting_months: i32) {
     // 1) read `func-buf` into app-storage
     // 2) store `init` params into app-storage
 
@@ -68,7 +79,7 @@ pub extern "C" fn init(daily_limit: i64, start_vesting: i64, vesting_months: i32
 }
 
 #[no_mangle]
-pub extern "C" fn get_vested() -> i32 {
+pub extern "C" fn get_vested() -> u32 {
     auth();
 
     update_vesting();
@@ -76,7 +87,7 @@ pub extern "C" fn get_vested() -> i32 {
 }
 
 #[no_mangle]
-pub extern "C" fn get_unvested() -> i32 {
+pub extern "C" fn get_unvested() -> u32 {
     auth();
 
     // 1  update_vesting();
@@ -93,7 +104,7 @@ pub extern "C" fn get_unvested() -> i32 {
 //
 //  See `transfer` method.
 #[no_mangle]
-pub extern "C" fn get_current_balance() -> i64 {
+pub extern "C" fn get_app_balance() -> u64 {
     auth();
 
     // 1) update_vesting();
@@ -108,7 +119,7 @@ pub extern "C" fn get_current_balance() -> i64 {
 /// +--------------------------------+
 ///
 #[no_mangle]
-pub extern "C" fn transfer(amount: i64) {
+pub extern "C" fn transfer(amount: u32) {
     auth();
 
     // 1) update_vesting();
@@ -134,23 +145,35 @@ pub extern "C" fn replace_pub_key(key_idx: i32) {
 /// Private
 
 #[no_mangle]
-extern "C" fn auth() {
-    // 1) fetch `public_key` field from `HostCtx` and load it into a new buffer.
-    // 2) compare `pub_key1` with `HostCtx pub_key`
-    // if are equal return, else 3)
-    // 3) compare `pub_key2` with `HostCtx pub_key`
-    // if are equal return, else 4)
-    // 4) compare `pub_key3` with `HostCtx pub_key`
-    // if are equal return, else `panic`
+fn auth() {
+    // store regs
+    unsafe {
+        reg_push(256, 0);
+        reg_push(256, 1);
+    }
 
-    // const BUF_ID: i32 = 0;
-    // if buf_eq(BUF_ID, 0, 0, 32, 32) {
-    //     return
-    // }
-    // else {
-    //}
+    // load `HostCtx.public_key` into register `256:0`
+    unsafe {
+        host_ctx_read_into_reg(PUBLIC_KEY_FIELD_IDX, 256, 0);
+    }
 
-    todo!()
+    for idx in 0..3 {
+        // load `pub_key#{idx}` into register `256:1`
+        read_pub_key(idx, 256, 1);
+
+        if pub_key_cmp(0, 1) == 0 {
+            // restore regs
+            unsafe {
+                reg_pop(256, 1);
+                reg_pop(256, 0);
+            };
+
+            // success
+            return;
+        }
+    }
+
+    panic!("auth failed")
 }
 
 #[no_mangle]
@@ -171,11 +194,45 @@ extern "C" fn update_vesting() -> i32 {
 }
 
 #[no_mangle]
-extern "C" fn read_balance() -> i32 {
-    todo!()
+extern "C" fn read_pub_key(key_idx: u32, reg_bits: u32, reg_idx: u32) {
+    assert!(key_idx <= 2);
+
+    let offset = 32 * key_idx;
+
+    unsafe { storage_read_to_reg(PAGE_IDX, offset, reg_bits, reg_idx, PUB_KEY_SIZE) }
 }
 
 #[no_mangle]
-extern "C" fn read_vested() -> i32 {
-    todo!()
+extern "C" fn read_daily_limit() -> u32 {
+    unsafe { storage_read_i32_be(PAGE_IDX, DAILY_LIMIT_OFFSET, DAILY_LIMIT_SIZE) }
+}
+
+#[no_mangle]
+extern "C" fn read_vesting_start() -> u64 {
+    unsafe { storage_read_i64_be(PAGE_IDX, VESTING_START_OFFSET, VESTING_START_SIZE) }
+}
+
+#[no_mangle]
+extern "C" fn read_vesting_months() -> u32 {
+    unsafe { storage_read_i32_be(PAGE_IDX, VESTING_MONTHS_OFFSET, VESTING_MONTHS_SIZE) }
+}
+
+#[no_mangle]
+extern "C" fn read_last_sync_layer() -> u64 {
+    unsafe { storage_read_i64_be(PAGE_IDX, LAST_SYNC_LAYER_OFFSET, LAYER_ID_SIZE) }
+}
+
+#[no_mangle]
+extern "C" fn read_balance() -> u32 {
+    unsafe { storage_read_i32_be(PAGE_IDX, BALANCE_OFFSET, BALANCE_SIZE) }
+}
+
+#[no_mangle]
+extern "C" fn read_vested() -> u32 {
+    unsafe { storage_read_i32_be(PAGE_IDX, VESTED_OFFSET, VESTED_SIZE) }
+}
+
+#[no_mangle]
+fn pub_key_cmp(reg_idx1: u32, reg_idx2: u32) -> u32 {
+    unsafe { reg_eql(256, reg_idx1, reg_idx2) }
 }

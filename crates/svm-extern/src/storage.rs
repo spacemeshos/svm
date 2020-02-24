@@ -19,7 +19,13 @@ macro_rules! include_storage_vmcalls {
                 count: u32,
             );
 
-            fn storage_read_to_reg(page_offset: u32, reg_bits: u32, reg_idx: u32, count: u32);
+            fn storage_read_to_reg(
+                page_idx: u32,
+                page_offset: u32,
+                reg_bits: u32,
+                reg_idx: u32,
+                count: u32,
+            );
 
             fn storage_read_to_mem(
                 page_idx: u32,
