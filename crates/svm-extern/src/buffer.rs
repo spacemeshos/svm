@@ -7,7 +7,7 @@ macro_rules! include_buffer_vmcalls {
 
             fn buffer_kill(buf_id: u32);
 
-            fn buffer_freeze(ctx: &mut WasmerCtx, buf_id: u32);
+            fn buffer_freeze(buf_id: u32);
 
             fn buffer_copy_to_storage(
                 buf_id: u32,

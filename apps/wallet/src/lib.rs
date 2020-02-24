@@ -47,9 +47,11 @@
 //!
 
 // inject `extern vmcalls`
-svm_extern::include_extern_storage_vmcalls!();
-svm_extern::include_extern_node_vmcalls!();
-svm_extern::include_extern_register_vmcalls!();
+svm_extern::include_storage_vmcalls!();
+svm_extern::include_node_vmcalls!();
+svm_extern::include_buffer_vmcalls!();
+svm_extern::include_host_ctx_vmcalls!();
+svm_extern::include_register_vmcalls!();
 
 ///  
 /// The `init` function assumes the following `func_buf`
@@ -91,7 +93,7 @@ pub extern "C" fn get_unvested() -> i32 {
 //
 //  See `transfer` method.
 #[no_mangle]
-pub extern "C" fn get_balance() -> i64 {
+pub extern "C" fn get_current_balance() -> i64 {
     auth();
 
     // 1) update_vesting();
