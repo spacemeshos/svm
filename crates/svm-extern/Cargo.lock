@@ -3,10 +3,3 @@
 [[package]]
 name = "svm-extern"
 version = "0.0.0"
-
-[[package]]
-name = "wallet"
-version = "0.1.0"
-dependencies = [
- "svm-extern",
-]
