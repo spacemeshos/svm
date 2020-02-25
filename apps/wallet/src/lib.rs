@@ -19,43 +19,62 @@
 //!  |-----------------------------+
 //!  |  pub_key3        (32 bytes) |
 //!  |-----------------------------+
-//!  |  daily_limit     (2 bytes)  |
-//!  +-----------------------------+
+//!  |  last_pub_key    (32 bytes) |
+//!  |-----------------------------+
 //!  |  vesting_start   (8 bytes)  |
-//!  +-----------------------------+
-//!  |  vesting_months  (2 bytes)  |
-//!  +-----------------------------+
+//!  |-----------------------------+
 //!  |  last_sync_layer (8 bytes)  |
 //!  +-----------------------------+
 //!  |  balance         (4 bytes)  |
 //!  +-----------------------------+
 //!  |  vested          (4 bytes)  |
 //!  +-----------------------------+
-//! Total storage: 124 bytes.
+//!  |  daily_limit     (2 bytes)  |
+//!  +-----------------------------+
+//!  |  vesting_months  (2 bytes)  |
+//!  +-----------------------------+
+//!
+//! Total storage: 156 bytes.
 //!
 
 const PAGE_IDX: u32 = 0;
 
 /// Offsets:
+/// 32 bytes
 const PUB_KEY1_OFFSET: u32 = 0;
-const PUB_KEY2_OFFSET: u32 = 32;
-const PUB_KEY3_OFFSET: u32 = 64;
-const DAILY_LIMIT_OFFSET: u32 = 96;
-const VESTING_START_OFFSET: u32 = 98;
-const VESTING_MONTHS_OFFSET: u32 = 106;
-const LAST_SYNC_LAYER_OFFSET: u32 = 108;
-const BALANCE_OFFSET: u32 = 116;
-const VESTED_OFFSET: u32 = 120;
+const PUB_KEY2_OFFSET: u32 = PUB_KEY1_OFFSET + PUB_KEY_SIZE;
+const PUB_KEY3_OFFSET: u32 = PUB_KEY2_OFFSET + PUB_KEY_SIZE;
+const LAST_PUB_KEY_OFFSET: u32 = PUB_KEY3_OFFSET + PUB_KEY_SIZE;
+
+/// 8 bytes
+const VESTING_START_OFFSET: u32 = LAST_PUB_KEY_OFFSET + PUB_KEY_SIZE;
+const LAST_SYNC_LAYER_OFFSET: u32 = VESTING_START_OFFSET + VESTING_START_SIZE;
+
+/// 4 bytes
+const BALANCE_OFFSET: u32 = LAST_SYNC_LAYER_OFFSET + LAYER_ID_SIZE;
+const VESTED_OFFSET: u32 = BALANCE_OFFSET + BALANCE_SIZE;
+
+/// 2 bytes
+const DAILY_LIMIT_OFFSET: u32 = VESTED_OFFSET + VESTED_SIZE;
+const VESTING_MONTHS_OFFSET: u32 = DAILY_LIMIT_OFFSET + DAILY_LIMIT_SIZE;
+
+/// HostCtx
 const PUBLIC_KEY_FIELD_IDX: u32 = 0;
 
 /// Sizes
+/// 32 bytes
 const PUB_KEY_SIZE: u32 = 32;
-const DAILY_LIMIT_SIZE: u32 = 2;
+/// 8 bytes
 const VESTING_START_SIZE: u32 = 8;
-const VESTING_MONTHS_SIZE: u32 = 2;
 const LAYER_ID_SIZE: u32 = 8;
+
+/// 4 bytes
 const BALANCE_SIZE: u32 = 4;
 const VESTED_SIZE: u32 = 4;
+
+/// 2 bytes
+const DAILY_LIMIT_SIZE: u32 = 2;
+const VESTING_MONTHS_SIZE: u32 = 2;
 
 // imports
 svm_extern::include_storage_vmcalls!();
@@ -82,7 +101,7 @@ pub extern "C" fn init(daily_limit: i64, vesting_start: i64, vesting_months: i32
 pub extern "C" fn get_vested() -> u32 {
     auth();
 
-    update_vesting();
+    refresh_vesting();
     read_vested()
 }
 
@@ -90,7 +109,7 @@ pub extern "C" fn get_vested() -> u32 {
 pub extern "C" fn get_unvested() -> u32 {
     auth();
 
-    // 1  update_vesting();
+    // 1  refresh_vesting();
     // 2) calculate maximum vesting
     // 3) vested <- read_vested()
     // 3) calculate `unvested = maximum_vesting - vested`
@@ -107,7 +126,7 @@ pub extern "C" fn get_unvested() -> u32 {
 pub extern "C" fn get_app_balance() -> u64 {
     auth();
 
-    // 1) update_vesting();
+    // 1) refresh_vesting();
     // 2) read_balance();
 
     todo!()
@@ -120,9 +139,13 @@ pub extern "C" fn get_app_balance() -> u64 {
 ///
 #[no_mangle]
 pub extern "C" fn transfer(amount: u32) {
-    auth();
+    let completed = multisig_auth();
 
-    // 1) update_vesting();
+    if completed != 0 {
+        return;
+    }
+
+    // 1) refresh_vesting();
     // 2) let balance = get_balance();
     // 3) if balance >= amount {
     //   3.1) load destination address from `func-buf` to `register` having 160 bits (20 bytes).
@@ -177,7 +200,25 @@ fn auth() {
 }
 
 #[no_mangle]
-extern "C" fn update_vesting() -> i32 {
+fn multisig_auth() -> i32 {
+    auth();
+
+    // 1) load `last_pub_key` into register `256:0`
+    // 2) if its all zeros:
+    //   2.1) `write_last_pub_key();`
+    //   2.2)  return `1` signifying `multisig process isn't complete`
+    //         else, goto 3)
+    // 3) load HostCtx `pub-key` into register `256:1`
+    // 4) if registers-equals(256, 0, 1)
+    //   4.1) zero `last_pub_key`
+    //   4.2) return `0` (meaning: multisig completed)
+    // 5) else: `write_last_pub_key()`;
+
+    todo!()
+}
+
+#[no_mangle]
+extern "C" fn refresh_vesting() -> i32 {
     auth();
 
     // 1) load `last_sync_layer` from storage.
@@ -194,7 +235,12 @@ extern "C" fn update_vesting() -> i32 {
 }
 
 #[no_mangle]
-extern "C" fn read_pub_key(key_idx: u32, reg_bits: u32, reg_idx: u32) {
+fn write_last_pub_key() {
+    todo!()
+}
+
+#[no_mangle]
+fn read_pub_key(key_idx: u32, reg_bits: u32, reg_idx: u32) {
     assert!(key_idx <= 2);
 
     let offset = 32 * key_idx;
@@ -203,32 +249,32 @@ extern "C" fn read_pub_key(key_idx: u32, reg_bits: u32, reg_idx: u32) {
 }
 
 #[no_mangle]
-extern "C" fn read_daily_limit() -> u32 {
+fn read_daily_limit() -> u32 {
     unsafe { storage_read_i32_be(PAGE_IDX, DAILY_LIMIT_OFFSET, DAILY_LIMIT_SIZE) }
 }
 
 #[no_mangle]
-extern "C" fn read_vesting_start() -> u64 {
+fn read_vesting_start() -> u64 {
     unsafe { storage_read_i64_be(PAGE_IDX, VESTING_START_OFFSET, VESTING_START_SIZE) }
 }
 
 #[no_mangle]
-extern "C" fn read_vesting_months() -> u32 {
+fn read_vesting_months() -> u32 {
     unsafe { storage_read_i32_be(PAGE_IDX, VESTING_MONTHS_OFFSET, VESTING_MONTHS_SIZE) }
 }
 
 #[no_mangle]
-extern "C" fn read_last_sync_layer() -> u64 {
+fn read_last_sync_layer() -> u64 {
     unsafe { storage_read_i64_be(PAGE_IDX, LAST_SYNC_LAYER_OFFSET, LAYER_ID_SIZE) }
 }
 
 #[no_mangle]
-extern "C" fn read_balance() -> u32 {
+fn read_balance() -> u32 {
     unsafe { storage_read_i32_be(PAGE_IDX, BALANCE_OFFSET, BALANCE_SIZE) }
 }
 
 #[no_mangle]
-extern "C" fn read_vested() -> u32 {
+fn read_vested() -> u32 {
     unsafe { storage_read_i32_be(PAGE_IDX, VESTED_OFFSET, VESTED_SIZE) }
 }
 
