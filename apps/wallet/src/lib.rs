@@ -134,13 +134,14 @@ pub extern "C" fn get_app_balance() -> u32 {
     auth();
 
     refresh_vesting();
+
     read_balance()
 }
 
 /// The function expects the following func buf:
-/// +--------------------------------+
-/// | destination address (20 bytes) |
-/// +--------------------------------+
+/// +----------------------+
+/// | destination address  |
+/// +----------------------+
 ///
 #[no_mangle]
 pub extern "C" fn transfer(amount: u32) {
@@ -164,7 +165,9 @@ pub extern "C" fn transfer(amount: u32) {
             buffer_copy_to_reg(IN_FUNC_BUF_ID, 0, 160, 0, ADDRESS_SIZE);
 
             add_balance_i32(amount, 160, 0);
+
             reg_pop(160, 0);
+            return;
         }
     }
 
@@ -236,10 +239,21 @@ fn multisig_auth() -> i32 {
         host_ctx_read_into_reg(PUBLIC_KEY_FIELD_IDX, 256, 1);
     }
 
-    // 4) if registers-equals(256, 0, 1)
-    if unsafe { reg_cmp(256, 0, 1) } == 0 {
-        //   4.1) zero `last_pub_key`
-        //   4.2) return `0` (meaning: multisig completed)
+    let status = pub_key_cmp(0, 1);
+
+    if status == 0 {
+        unsafe {
+            // registers are equals
+            reg_push(256, 0);
+
+            // this will zero register `256:0`
+            reg_set_i32_be(256, 0, 4);
+
+            // zeroing the `last_pub_key` since we copy the contents of register `256:0`
+            storage_write_from_reg(256, 0, PAGE_IDX, LAST_PUB_KEY_OFFSET, PUB_KEY_SIZE);
+
+            reg_pop(256, 0);
+        }
     } else {
         // overriding the `last_pub_key`
         write_last_pub_key();
@@ -251,7 +265,7 @@ fn multisig_auth() -> i32 {
         reg_pop(256, 1);
     }
 
-    -1
+    status
 }
 
 #[no_mangle]
@@ -332,6 +346,6 @@ fn read_max_vesting() -> u32 {
 }
 
 #[no_mangle]
-fn pub_key_cmp(reg_idx1: u32, reg_idx2: u32) -> u32 {
+fn pub_key_cmp(reg_idx1: u32, reg_idx2: u32) -> i32 {
     unsafe { reg_cmp(256, reg_idx1, reg_idx2) }
 }
