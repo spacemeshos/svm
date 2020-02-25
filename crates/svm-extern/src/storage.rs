@@ -58,6 +58,14 @@ macro_rules! include_storage_vmcalls {
             fn storage_read_i64_be(page_idx: u32, page_offset: u32, count: u32) -> u64;
 
             fn storage_read_i64_le(page_idx: u32, page_offset: u32, count: u32) -> u64;
+
+            fn storage_write_i32_be(page_idx: u32, page_offset: u32, n: u32, nbytes: u32);
+
+            fn storage_write_i32_le(page_idx: u32, page_offset: u32, n: u32, nbytes: u32);
+
+            fn storage_write_i64_be(page_idx: u32, page_offset: u32, n: u64, nbytes: u32);
+
+            fn storage_write_i64_le(page_idx: u32, page_offset: u32, n: u64, nbytes: u32);
         }
     };
 }

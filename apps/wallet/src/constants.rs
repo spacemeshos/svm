@@ -29,6 +29,7 @@ const IN_FUNC_BUF_ID: u32 = 0;
 /// Sizes
 /// 32 bytes
 const PUB_KEY_SIZE: u32 = 32;
+
 /// 8 bytes
 const VESTING_START_SIZE: u32 = 8;
 const LAYER_ID_SIZE: u32 = 8;

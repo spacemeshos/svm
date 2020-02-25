@@ -75,17 +75,31 @@ pub extern "C" fn init(
 
     // store `vesting_start`
     unsafe {
-        // storage_write_i32_be
-        // storage_write_i64_be
+        storage_write_i64_be(
+            PAGE_IDX,
+            VESTING_START_OFFSET,
+            vesting_start,
+            VESTING_START_SIZE,
+        )
     }
 
     // store `max_vesting`
+    unsafe {
+        storage_write_i32_be(PAGE_IDX, MAX_VESTING_OFFSET, max_vesting, BALANCE_SIZE);
+    }
 
     // store `daily_limit`
+    unsafe { storage_write_i64_be(PAGE_IDX, DAILY_LIMIT_OFFSET, daily_limit, DAILY_LIMIT_SIZE) }
 
     // store `vesting_months`
-
-    todo!()
+    unsafe {
+        storage_write_i32_be(
+            PAGE_IDX,
+            VESTING_MONTHS_OFFSET,
+            vesting_months,
+            VESTING_MONTHS_SIZE,
+        );
+    }
 }
 
 #[no_mangle]
