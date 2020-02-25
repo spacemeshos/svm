@@ -1,7 +1,7 @@
 #![no_std]
 #![allow(unused)]
 
-//! The `SVM` wallet app is intended to serve as a MultiSig Wallet
+//! The `SVM` wallet app is intended to serve as a 2-3 MultiSig Wallet
 //! For managing Spacemesh investors coins.
 //!
 //! Link to the product specification:
@@ -66,11 +66,11 @@ pub extern "C" fn init(
     daily_limit: u64,
     vesting_months: u32,
 ) {
-    // storing `pub_key, pub_key2, pub_key3`
+    // storing `pub_key1, pub_key2, pub_key3`
     unsafe {
-        buffer_copy_to_storage(IN_FUNC_BUF_ID, 0, PAGE_IDX, PUB_KEY1_OFFSET, PUB_KEY_SIZE);
-        buffer_copy_to_storage(IN_FUNC_BUF_ID, 0, PAGE_IDX, PUB_KEY2_OFFSET, PUB_KEY_SIZE);
-        buffer_copy_to_storage(IN_FUNC_BUF_ID, 0, PAGE_IDX, PUB_KEY3_OFFSET, PUB_KEY_SIZE);
+        // we copy the keys at one operation
+        // since they are laid in contiguous at both input buffer and storage
+        buffer_copy_to_storage(IN_FUNC_BUF_ID, 0, PAGE_IDX, 0, PUB_KEY_SIZE * 3);
     }
 
     // store `vesting_start`
@@ -130,13 +130,11 @@ pub extern "C" fn get_unvested() -> u32 {
 //
 //  See `transfer` method.
 #[no_mangle]
-pub extern "C" fn get_app_balance() -> u64 {
+pub extern "C" fn get_app_balance() -> u32 {
     auth();
 
-    // 1) refresh_vesting();
-    // 2) read_balance();
-
-    todo!()
+    refresh_vesting();
+    read_balance()
 }
 
 /// The function expects the following func buf:
@@ -149,6 +147,8 @@ pub extern "C" fn transfer(amount: u32) {
     let status = multisig_auth();
 
     if status != 0 {
+        // we've got only one pub-key for the transfer.
+        // TODO: should we ignore `amount` here?
         return;
     }
 
@@ -160,7 +160,8 @@ pub extern "C" fn transfer(amount: u32) {
         unsafe {
             reg_push(160, 0);
 
-            // 3.1) load destination address from `func-buf` to register `160:0`
+            // loading `dest-address` given in func-buf into register `160:0`
+            buffer_copy_to_reg(IN_FUNC_BUF_ID, 0, 160, 0, ADDRESS_SIZE);
 
             add_balance_i32(amount, 160, 0);
             reg_pop(160, 0);
