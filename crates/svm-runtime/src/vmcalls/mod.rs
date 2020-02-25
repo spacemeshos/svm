@@ -16,7 +16,8 @@ pub use register::{
 pub use storage::{
     mem_to_reg_copy, reg_to_mem_copy, storage_read_i32_be, storage_read_i32_le,
     storage_read_i64_be, storage_read_i64_le, storage_read_to_mem, storage_read_to_reg,
-    storage_write_from_mem, storage_write_from_reg,
+    storage_write_from_mem, storage_write_from_reg, storage_write_i32_be, storage_write_i32_le,
+    storage_write_i64_be, storage_write_i64_le,
 };
 
 pub use wasmer_runtime_core::{
@@ -34,10 +35,15 @@ pub fn insert_vmcalls(ns: &mut Namespace) {
     ns.insert("storage_write_from_mem", func!(storage_write_from_mem));
     ns.insert("storage_write_from_reg", func!(storage_write_from_reg));
 
-    ns.insert("storage_read_i32_le", func!(storage_read_i32_le));
     ns.insert("storage_read_i32_be", func!(storage_read_i32_be));
-    ns.insert("storage_read_i64_le", func!(storage_read_i64_le));
+    ns.insert("storage_read_i32_le", func!(storage_read_i32_le));
     ns.insert("storage_read_i64_be", func!(storage_read_i64_be));
+    ns.insert("storage_read_i64_le", func!(storage_read_i64_le));
+
+    ns.insert("storage_write_i32_be", func!(storage_write_i32_be));
+    ns.insert("storage_write_i32_le", func!(storage_write_i32_le));
+    ns.insert("storage_write_i64_be", func!(storage_write_i64_be));
+    ns.insert("storage_write_i64_le", func!(storage_write_i64_le));
 
     // `register` vmcalls
     ns.insert("reg_push", func!(reg_push));

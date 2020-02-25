@@ -664,8 +664,97 @@ macro_rules! test_storage_read_int {
     }};
 }
 
+macro_rules! test_storage_write_int {
+    ($slice_idx:expr, $endianness:expr, $expected:expr) => {{
+	// `slices` tuples are arranged by: `(page_idx, page_offset, nbytes, n)`
+        let slices: Vec<(u32, u32, u32, u64)> = vec![
+            (0, 0, 1, 0x10),
+            (0, 1, 2, 0x10_20),
+            (0, 3, 3, 0x10_20_30),
+            (0, 6, 4, 0x10_20_30_40),
+            (1, 0, 5, 0x10_20_30_40_50),
+            (1, 5, 6, 0x10_20_30_40_50_60),
+            (2, 0, 7, 0x10_20_30_40_50_60_70),
+            (2, 7, 8, 0x10_20_30_40_50_60_70_80),
+        ];
+
+        let (app_addr, state, host, host_ctx, page_count) = default_test_args();
+
+	let import_object = imports! {
+	    move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, page_count),
+
+	    "svm" => {
+		"storage_write_i32_be" => func!(vmcalls::storage_write_i32_be),
+		"storage_write_i32_le" => func!(vmcalls::storage_write_i32_le),
+		"storage_write_i64_be" => func!(vmcalls::storage_write_i64_be),
+		"storage_write_i64_le" => func!(vmcalls::storage_write_i64_le),
+	    },
+	};
+
+	let instance = testing::instantiate(&import_object, include_str!("wasm/storage_write_int.wast"));
+
+	let (page_idx, page_offset, nbytes, n) = slices[$slice_idx];
+
+	if nbytes <= 4 {
+	    let func: Func<(u32, u32, u32, u32, u32)> = instance.func("write_i32").unwrap();
+	    assert!(func.call(page_idx, page_offset, n as u32, nbytes, $endianness).is_ok());
+	}
+	else {
+	    let func: Func<(u32, u32, u64, u32, u32)> = instance.func("write_i64").unwrap();
+	    assert!(func.call(page_idx, page_offset, n, nbytes, $endianness).is_ok());
+	}
+
+	let layout = PageSliceLayout::new(
+	    PageIndex(page_idx as u16),
+	    PageOffset(page_offset as u32),
+	    nbytes
+	);
+
+	let storage = instance_storage(&instance);
+	let actual = storage.read_page_slice(&layout);
+
+	assert_eq!($expected, actual);
+    }};
+}
+
 #[test]
-fn vmcalls_storage_read_int_32() {
+fn vmcalls_storage_write_i32() {
+    let be = 1; // Big-Endian
+    let le = 0; // Little-Endian
+
+    test_storage_write_int!(0, be, vec![0x10]);
+    test_storage_write_int!(0, le, vec![0x10]);
+
+    test_storage_write_int!(1, be, vec![0x10, 0x20]);
+    test_storage_write_int!(1, le, vec![0x20, 0x10]);
+
+    test_storage_write_int!(2, be, vec![0x10, 0x20, 0x30]);
+    test_storage_write_int!(2, le, vec![0x30, 0x20, 0x10]);
+
+    test_storage_write_int!(3, be, vec![0x10, 0x20, 0x30, 0x40]);
+    test_storage_write_int!(3, le, vec![0x40, 0x30, 0x20, 0x10]);
+}
+
+#[test]
+fn vmcalls_storage_write_i64() {
+    let be = 1; // Big-Endian
+    let le = 0; // Little-Endian
+
+    test_storage_write_int!(4, be, vec![0x10, 0x20, 0x30, 0x40, 0x50]);
+    test_storage_write_int!(4, le, vec![0x50, 0x40, 0x30, 0x20, 0x10]);
+
+    test_storage_write_int!(5, be, vec![0x10, 0x20, 0x30, 0x40, 0x50, 0x60]);
+    test_storage_write_int!(5, le, vec![0x60, 0x50, 0x40, 0x30, 0x20, 0x10]);
+
+    test_storage_write_int!(6, be, vec![0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70]);
+    test_storage_write_int!(6, le, vec![0x70, 0x60, 0x50, 0x40, 0x30, 0x20, 0x10]);
+
+    test_storage_write_int!(7, be, vec![0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80]);
+    test_storage_write_int!(7, le, vec![0x80, 0x70, 0x60, 0x50, 0x40, 0x30, 0x20, 0x10]);
+}
+
+#[test]
+fn vmcalls_storage_read_i32() {
     let be = 1; // Big-Endian
     let le = 0; // Little-Endian
 
@@ -683,7 +772,7 @@ fn vmcalls_storage_read_int_32() {
 }
 
 #[test]
-fn vmcalls_storage_read_int_64() {
+fn vmcalls_storage_read_i64() {
     let be = 1; // Big-Endian
     let le = 0; // Little-Endian
 
@@ -747,7 +836,7 @@ macro_rules! test_host_ctx_read_int {
 }
 
 #[test]
-fn vmcalls_host_ctx_read_int_32() {
+fn vmcalls_host_ctx_read_i32() {
     let be = 1; // Big-Endian
     let le = 0; // Little-Endian
 
@@ -765,7 +854,7 @@ fn vmcalls_host_ctx_read_int_32() {
 }
 
 #[test]
-fn vmcalls_host_ctx_read_int_64() {
+fn vmcalls_host_ctx_read_i64() {
     let be = 1; // Big-Endian
     let le = 0; // Little-Endian
 

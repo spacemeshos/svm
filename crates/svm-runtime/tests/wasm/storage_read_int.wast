@@ -12,29 +12,28 @@
         (if (result i32) (get_local 3)
           (then
             ;; Big-Endian
-           (get_local 0) ;; page_offset
-           (get_local 1) ;; page_idx
+           (get_local 0) ;; page_idx
+           (get_local 1) ;; page_offset
            (get_local 2) ;; count
            (call $storage_read_i32_be))
           (else
             ;; Little-Endian
-            (get_local 0) ;; page_offset
-            (get_local 1) ;; page_idx
+            (get_local 0) ;; page_idx
+            (get_local 1) ;; page_offset
             (get_local 2) ;; count
             (call $storage_read_i32_le))))
-
 
   (func (export "read_i64") (param i32 i32 i32 i32) (result i64)
         (if (result i64) (get_local 3)
           (then
             ;; Big-Endian
-           (get_local 0) ;; page_offset
-           (get_local 1) ;; page_idx
+           (get_local 0) ;; page_idx
+           (get_local 1) ;; page_offset
            (get_local 2) ;; count
            (call $storage_read_i64_be))
           (else
             ;; Little-Endian
-            (get_local 0) ;; page_offset
-            (get_local 1) ;; page_idx
+            (get_local 0) ;; page_idx
+            (get_local 1) ;; page_offset
             (get_local 2) ;; count
             (call $storage_read_i64_le)))))
