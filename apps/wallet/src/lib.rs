@@ -29,22 +29,29 @@
 //!  +-----------------------------+
 //!  |  vested          (4 bytes)  |
 //!  +-----------------------------+
+//!  |  max_vesting     (4 bytes)  |
+//!  +-----------------------------+
 //!  |  daily_limit     (2 bytes)  |
 //!  +-----------------------------+
 //!  |  vesting_months  (2 bytes)  |
 //!  +-----------------------------+
 //!
-//! Total storage: 156 bytes.
+//! Total storage: 160 bytes.
 //!
 
 include!("constants.rs");
 
-// imports
+// SVM Internal Imports
 svm_extern::include_storage_vmcalls!();
 svm_extern::include_node_vmcalls!();
 svm_extern::include_buffer_vmcalls!();
 svm_extern::include_host_ctx_vmcalls!();
 svm_extern::include_register_vmcalls!();
+
+// Host Imports
+extern "C" {
+    fn add_balance_i32(amount: u32, reg_bits: u32, reg_idx: u32);
+}
 
 ///  
 /// The `init` function assumes the following `func_buf`
@@ -53,9 +60,30 @@ svm_extern::include_register_vmcalls!();
 /// +-----------------------------------------------------------------+
 ///
 #[no_mangle]
-pub extern "C" fn init(daily_limit: i64, vesting_start: i64, vesting_months: i32) {
-    // 1) read `func-buf` into app-storage
-    // 2) store `init` params into app-storage
+pub extern "C" fn init(
+    vesting_start: u64,
+    max_vesting: u32,
+    daily_limit: u64,
+    vesting_months: u32,
+) {
+    // storing `pub_key, pub_key2, pub_key3`
+    unsafe {
+        buffer_copy_to_storage(IN_FUNC_BUF_ID, 0, PAGE_IDX, PUB_KEY1_OFFSET, PUB_KEY_SIZE);
+        buffer_copy_to_storage(IN_FUNC_BUF_ID, 0, PAGE_IDX, PUB_KEY2_OFFSET, PUB_KEY_SIZE);
+        buffer_copy_to_storage(IN_FUNC_BUF_ID, 0, PAGE_IDX, PUB_KEY3_OFFSET, PUB_KEY_SIZE);
+    }
+
+    // store `vesting_start`
+    unsafe {
+        // storage_write_i32_be
+        // storage_write_i64_be
+    }
+
+    // store `max_vesting`
+
+    // store `daily_limit`
+
+    // store `vesting_months`
 
     todo!()
 }
@@ -72,12 +100,14 @@ pub extern "C" fn get_vested() -> u32 {
 pub extern "C" fn get_unvested() -> u32 {
     auth();
 
-    // 1  refresh_vesting();
-    // 2) calculate maximum vesting
-    // 3) vested <- read_vested()
-    // 3) calculate `unvested = maximum_vesting - vested`
+    refresh_vesting();
 
-    todo!()
+    let vested = read_vested();
+    let max_vesting = read_max_vesting();
+
+    assert!(max_vesting >= vested);
+
+    max_vesting - vested
 }
 
 /// Returns the Wallet's balance.
@@ -102,23 +132,28 @@ pub extern "C" fn get_app_balance() -> u64 {
 ///
 #[no_mangle]
 pub extern "C" fn transfer(amount: u32) {
-    let completed = multisig_auth();
+    let status = multisig_auth();
 
-    if completed != 0 {
+    if status != 0 {
         return;
     }
 
-    // 1) refresh_vesting();
-    // 2) let balance = get_balance();
-    // 3) if balance >= amount {
-    //   3.1) load destination address from `func-buf` to `register` having 160 bits (20 bytes).
-    //   3.2) call host vmcall: `add_balance(amount, reg_bits, reg_idx)`
-    //}
-    // 4) else {
-    //   4.1) panic("not enough balance")
-    //}
+    refresh_vesting();
 
-    todo!()
+    let balance = read_balance();
+
+    if balance >= amount {
+        unsafe {
+            reg_push(160, 0);
+
+            // 3.1) load destination address from `func-buf` to register `160:0`
+
+            add_balance_i32(amount, 160, 0);
+            reg_pop(160, 0);
+        }
+    }
+
+    panic!("not enough balance")
 }
 
 #[no_mangle]
@@ -148,13 +183,14 @@ fn auth() {
         read_pub_key(idx, 256, 1);
 
         if pub_key_cmp(0, 1) == 0 {
+            // we've found a match
+
             // restore regs
             unsafe {
                 reg_pop(256, 1);
                 reg_pop(256, 0);
             };
 
-            // success
             return;
         }
     }
@@ -166,22 +202,45 @@ fn auth() {
 fn multisig_auth() -> i32 {
     auth();
 
-    // 1) load `last_pub_key` into register `256:0`
+    // store regs
+    unsafe {
+        reg_push(256, 0);
+        reg_push(256, 1);
+    }
+
+    //  load `last_pub_key` into register `256:0`
+    read_last_pub_key(256, 0);
+
     // 2) if its all zeros:
     //   2.1) `write_last_pub_key();`
     //   2.2)  return `1` signifying `multisig process isn't complete`
     //         else, goto 3)
-    // 3) load HostCtx `pub-key` into register `256:1`
-    // 4) if registers-equals(256, 0, 1)
-    //   4.1) zero `last_pub_key`
-    //   4.2) return `0` (meaning: multisig completed)
-    // 5) else: `write_last_pub_key()`;
 
-    todo!()
+    // load HostCtx `pub-key` into register `256:1`
+    unsafe {
+        host_ctx_read_into_reg(PUBLIC_KEY_FIELD_IDX, 256, 1);
+    }
+
+    // 4) if registers-equals(256, 0, 1)
+    if unsafe { reg_cmp(256, 0, 1) } == 0 {
+        //   4.1) zero `last_pub_key`
+        //   4.2) return `0` (meaning: multisig completed)
+    } else {
+        // overriding the `last_pub_key`
+        write_last_pub_key();
+    }
+
+    // store regs
+    unsafe {
+        reg_pop(256, 0);
+        reg_pop(256, 1);
+    }
+
+    -1
 }
 
 #[no_mangle]
-extern "C" fn refresh_vesting() -> i32 {
+extern "C" fn refresh_vesting() {
     auth();
 
     // 1) load `last_sync_layer` from storage.
@@ -197,14 +256,25 @@ extern "C" fn refresh_vesting() -> i32 {
     todo!()
 }
 
+// persist `HostCtx pub_key` into app-storage `last_pub_key`
 #[no_mangle]
 fn write_last_pub_key() {
-    todo!()
+    unsafe {
+        reg_push(256, 0);
+        host_ctx_read_into_reg(PUBLIC_KEY_FIELD_IDX, 256, 0);
+        storage_write_from_reg(256, 0, PAGE_IDX, LAST_PUB_KEY_OFFSET, PUB_KEY_SIZE);
+        reg_pop(256, 0);
+    }
+}
+
+#[no_mangle]
+fn read_last_pub_key(reg_bits: u32, reg_idx: u32) {
+    read_pub_key(3, reg_bits, reg_idx);
 }
 
 #[no_mangle]
 fn read_pub_key(key_idx: u32, reg_bits: u32, reg_idx: u32) {
-    assert!(key_idx <= 2);
+    assert!(key_idx <= 3);
 
     let offset = 32 * key_idx;
 
@@ -238,10 +308,15 @@ fn read_balance() -> u32 {
 
 #[no_mangle]
 fn read_vested() -> u32 {
-    unsafe { storage_read_i32_be(PAGE_IDX, VESTED_OFFSET, VESTED_SIZE) }
+    unsafe { storage_read_i32_be(PAGE_IDX, VESTED_OFFSET, BALANCE_SIZE) }
+}
+
+#[no_mangle]
+fn read_max_vesting() -> u32 {
+    unsafe { storage_read_i32_be(PAGE_IDX, MAX_VESTING_OFFSET, BALANCE_SIZE) }
 }
 
 #[no_mangle]
 fn pub_key_cmp(reg_idx1: u32, reg_idx2: u32) -> u32 {
-    unsafe { reg_eql(256, reg_idx1, reg_idx2) }
+    unsafe { reg_cmp(256, reg_idx1, reg_idx2) }
 }

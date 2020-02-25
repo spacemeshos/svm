@@ -367,7 +367,7 @@ fn vmcalls_storage_write_from_reg() {
 }
 
 #[test]
-fn vmcalls_register_push() {
+fn vmcalls_reg_push() {
     let reg_bits = 128;
     let reg_idx = 3;
     let data = vec![10, 20, 30];
@@ -401,7 +401,7 @@ fn vmcalls_register_push() {
 }
 
 #[test]
-fn vmcalls_register_pop() {
+fn vmcalls_reg_pop() {
     let reg_bits = 128;
     let reg_idx = 3;
     let data = vec![10, 20, 30];
@@ -430,6 +430,64 @@ fn vmcalls_register_pop() {
     // if `instance` triggered `reg_pop` we need to be back to where we were before calling `push`
     let reg = instance_register(&instance, reg_bits, reg_idx);
     assert_eq!(&data[..], &reg.view()[0..count as usize]);
+}
+
+#[test]
+fn vmcalls_reg_set_number() {
+    let n: u32 = 0x10_20_30_40;
+    let m: u64 = 0x10_20_30_40_50_60_70_80;
+
+    let reg_bits = 128;
+    let reg_idx = 3;
+
+    let (app_addr, state, host, host_ctx, page_count) = default_test_args();
+
+    let import_object = imports! {
+        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, page_count),
+
+        "svm" => {
+            "reg_set_i32_be" => func!(vmcalls::reg_set_i32_be),
+            "reg_set_i32_le" => func!(vmcalls::reg_set_i32_le),
+            "reg_set_i64_be" => func!(vmcalls::reg_set_i64_be),
+            "reg_set_i64_le" => func!(vmcalls::reg_set_i64_le),
+        },
+    };
+
+    let instance = testing::instantiate(&import_object, include_str!("wasm/reg_set_num.wast"));
+
+    // run i32 Big-Endian
+    let func: Func<(u32, u32, u32)> = instance.func("run_i32_be").unwrap();
+    assert!(func.call(reg_bits, reg_idx, n).is_ok());
+
+    let reg = instance_register(&instance, reg_bits, reg_idx);
+    assert_eq!(&[0x10, 0x20, 0x30, 0x40], &reg.view()[0..4]);
+
+    // run i32 Little-Endian
+    let func: Func<(u32, u32, u32)> = instance.func("run_i32_le").unwrap();
+    assert!(func.call(reg_bits, reg_idx, n).is_ok());
+
+    let reg = instance_register(&instance, reg_bits, reg_idx);
+    assert_eq!(&[0x40, 0x30, 0x20, 0x10], &reg.view()[0..4]);
+
+    // run i64 Big-Endian
+    let func: Func<(u32, u32, u64)> = instance.func("run_i64_be").unwrap();
+    assert!(func.call(reg_bits, reg_idx, m).is_ok());
+
+    let reg = instance_register(&instance, reg_bits, reg_idx);
+    assert_eq!(
+        &[0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80],
+        &reg.view()[0..8]
+    );
+
+    // run i64 Little-Endian
+    let func: Func<(u32, u32, u64)> = instance.func("run_i64_le").unwrap();
+    assert!(func.call(reg_bits, reg_idx, m).is_ok());
+
+    let reg = instance_register(&instance, reg_bits, reg_idx);
+    assert_eq!(
+        &[0x80, 0x70, 0x60, 0x50, 0x40, 0x30, 0x20, 0x10],
+        &reg.view()[0..8]
+    );
 }
 
 #[test]
