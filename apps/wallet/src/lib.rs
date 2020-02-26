@@ -51,7 +51,7 @@
 //! layer_liquidation: The amount of liquidated coins per-layer.
 //!
 
-mod vesting;
+mod computations;
 
 include!("constants.rs");
 
@@ -69,17 +69,31 @@ extern "C" {
 
 ///  
 /// The `init` function assumes the following `func_buf`
+///
+/// When `is_multi_sig = 0`
+/// +---------------------+
+/// | pub_key1 (32 bytes) |
+/// +---------------------+
+///
+/// When `is_multi_sig != 0`
 /// +-----------------------------------------------------------------+
 /// | pub_key1 (32 bytes) | pub_key2 (32 bytes) | pub_key3 (32 bytes) |
 /// +-----------------------------------------------------------------+
 ///
 #[no_mangle]
 pub extern "C" fn init(
-    vesting_start: u64,
-    max_vesting: u32,
-    daily_limit: u64,
-    vesting_months: u32,
+    is_multi_sig: u32,
+    liquidated: u32,
+    unliquidated: u32,
+    daily_pull_limit: u32,
+    period_sec: u32,
 ) {
+    // 1) grab layer_id from the `HostCtx`
+    // 2) store `liquidated`
+    // 3) store `unliquidated`
+    // 4) store `daily_pull_limit`
+    // 5)liquidation_per_layer(unliquidated, layer)
+
     // storing `pub_key1, pub_key2, pub_key3`
     unsafe {
         // we copy the keys at one operation
@@ -118,16 +132,12 @@ pub extern "C" fn init(
 
 #[no_mangle]
 pub extern "C" fn get_vested() -> u32 {
-    auth();
-
     refresh_vesting();
     read_vested()
 }
 
 #[no_mangle]
 pub extern "C" fn get_unvested() -> u32 {
-    auth();
-
     refresh_vesting();
 
     let vested = read_vested();
@@ -145,8 +155,6 @@ pub extern "C" fn get_unvested() -> u32 {
 //  See `transfer` method.
 #[no_mangle]
 pub extern "C" fn get_app_balance() -> u32 {
-    auth();
-
     refresh_vesting();
 
     read_balance()
