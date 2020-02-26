@@ -39,6 +39,8 @@
 //! Total storage: 160 bytes.
 //!
 
+mod vesting;
+
 include!("constants.rs");
 
 // SVM Internal Imports
