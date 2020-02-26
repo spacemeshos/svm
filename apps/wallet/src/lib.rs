@@ -21,6 +21,8 @@
 //!  |-----------------------------+
 //!  |  last_pub_key    (32 bytes) |
 //!  |-----------------------------+
+//!  |  is_multisig     (1 byte)   |
+//!  |-----------------------------+
 //!  |  vesting_start   (8 bytes)  |
 //!  |-----------------------------+
 //!  |  last_sync_layer (8 bytes)  |
@@ -36,7 +38,7 @@
 //!  |  vesting_months  (2 bytes)  |
 //!  +-----------------------------+
 //!
-//! Total storage: 160 bytes.
+//! Total storage: 161 bytes.
 //!
 
 mod vesting;

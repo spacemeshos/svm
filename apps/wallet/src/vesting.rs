@@ -1,26 +1,30 @@
 ///
-/// 𝘛𝘴 - Vesting start time (Unix time).
-/// 𝘛𝘧 - Vesting final time (Unix time).
-///
-/// TBL - Time Between subsequent Layers (in seconds).
+/// 𝘛𝘉𝘓 - Time Between subsequent Layers (in seconds).
 /// This value is guaranteed to stay constant.
 ///
-/// L: #Layers during the Grant period
-/// L = (𝘛𝘧 - 𝘛𝘴) / TBL
+/// 𝘛: Grant vesting time (in seconds).
 ///
-/// 𝗖 - Grant #coins.
-/// V - Vested #coins.
+/// 𝘓: #Layers during the Grant period.
+/// 𝘓 = 𝘛 / 𝘛𝘉𝘓
+
+/// 𝘓𝘴: The layer the Grant starts (input from the running Host).
+///
+/// 𝗖: Grant #coins.
 ///
 /// Vʟ: vesting-per-layer
-/// Vʟ = 𝗖 / L
+/// Vʟ = 𝗖 / 𝘓
 ///
 /// 𝝙L: Layers delta.
-/// 𝝙L = `current_layer - last_sync_layer`
+/// 𝝙L = 𝙇𝘤𝘶𝘳- 𝙇𝘱𝘳𝘦𝘷
+///
+/// 𝙇𝘱𝘳𝘦𝘷 is initialized with 𝘓𝘴
+/// After each vesting refresh:
+/// 𝙇𝘱𝘳𝘦𝘷 <- 𝙇𝘤𝘶𝘳
 ///
 /// 𝝙V: Vesting delta (#coins).
 /// 𝝙V = Vʟ * 𝝙L
 ///
 
-pub fn compute_vested_delta() {
+pub fn compute_vesting_delta() {
     todo!()
 }
