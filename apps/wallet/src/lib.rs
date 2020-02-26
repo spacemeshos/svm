@@ -38,17 +38,17 @@
 //!
 //! App Storage variables explanation:
 //!
-//! pub_key1:         Wallet public-key. Used also when `is_multisig = 0`
-//! pub_key2:         The 2nd public-key for 2-3 MultiSig. Relevant only when `is_multisig = 1`
-//! pub_key3:         The 3rd public-key for 2-3 MultiSig. Relevant only when `is_multisig = 1`
-//! last_pub_key:     Relevant only when `is_multisig = 1`
-//! is_multisig:      Whether the wallet is a 2-3 MultiSig or not.
-//! first_layer:      The layer when the app first ran.
-//! last_run_layer:   The layer when the app ran last time.
-//! liquidated:       The amount of liquidated coins of the wallet.
-//! unliquidated:     The amount of not liquidated yet coins of the wallet.
-//! daily_pull_limit: The maximum liquidated coins that can be pulled from the wallet.
-//! layer_liquidation: The amount of liquidated coins per-layer.
+//! pub_key1:          Wallet public-key. Used also when `is_multisig = 0`
+//! pub_key2:          The 2nd public-key for 2-3 MultiSig. Relevant only when `is_multisig = 1`
+//! pub_key3:          The 3rd public-key for 2-3 MultiSig. Relevant only when `is_multisig = 1`
+//! last_pub_key:      Relevant only when `is_multisig = 1`
+//! is_multisig:       Whether the wallet is a 2-3 MultiSig or not.
+//! first_layer:       The layer when the app ran for the first-time.
+//! last_run_layer:    The layer when the app ran last time.
+//! liquidated:        The amount of liquidated coins of the wallet.
+//! unliquidated:      The amount of not-liquidated (yet) coins of the wallet.
+//! daily_pull_limit:  The maximum liquidated coins that can be pulled from the wallet on a single-day.
+//! layer_liquidation: The amount of newly liquidated coins per-layer.
 //!
 
 mod computations;
