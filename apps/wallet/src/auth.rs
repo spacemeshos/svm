@@ -4,6 +4,11 @@ include!("constants.rs");
 use super::{read::*, write::*};
 
 #[no_mangle]
+pub fn is_multisig() -> bool {
+    false
+}
+
+#[no_mangle]
 pub fn pub_key_auth() {
     unsafe {
         reg_push(256, 0);

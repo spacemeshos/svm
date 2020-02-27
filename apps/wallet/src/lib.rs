@@ -33,6 +33,10 @@
 //!  +--------------------------------+
 //!  |  layer_liquidation  (2 bytes)  |
 //!  +--------------------------------+
+//!  |   period_time_sec   (8 bytes)  |
+//!  +--------------------------------+
+//!  |   lock_time_sec     (8 bytes)  |
+//!  +--------------------------------+
 //!  |  daily_pull_limit   (2 bytes)  |
 //!  +--------------------------------+
 //!
@@ -47,8 +51,10 @@
 //! last_run_layer:    The layer when the app ran last time.
 //! liquidated:        The amount of liquidated coins of the wallet.
 //! unliquidated:      The amount of not-liquidated (yet) coins of the wallet.
-//! daily_pull_limit:  The maximum liquidated coins that can be pulled from the wallet on a single-day.
 //! layer_liquidation: The amount of newly liquidated coins per-layer.
+//! period_time_sec:   The period of time (in seconds) for full-liquidation.
+//! lock_time_sec:     The period of time (in seconds) on which no transfers can be made.
+//! daily_pull_limit:  The maximum liquidated coins that can be pulled from the wallet on a single-day.
 //!
 
 mod auth;
@@ -75,8 +81,9 @@ pub extern "C" fn init(
     is_multisig: u32,
     liquidated: u32,
     unliquidated: u32,
-    daily_pull_limit: u32,
     period_sec: u32,
+    lock_time_sec: u32,
+    daily_pull_limit: u32,
 ) {
     write_pub_keys(is_multisig);
     write_first_layer();
@@ -85,7 +92,10 @@ pub extern "C" fn init(
     write_unliquidated(unliquidated);
     write_layer_liquidation(unliquidated, period_sec);
 
-    // TODO: write `daily_pull_limit`
+    // TODO:
+    // 1) write `period_sec`
+    // 2) write `lock_time_sec`
+    // 3) write `daily_pull_limit`
 }
 
 #[no_mangle]
@@ -107,17 +117,34 @@ pub extern "C" fn get_unliquidated() -> u32 {
 ///
 #[no_mangle]
 pub extern "C" fn transfer(amount: u32) {
-    let status = auth();
-
-    if status != 0 {
-        // we've got only one pub-key for the transfer.
-        // TODO: should we ignore `amount` here?
-        return;
-    }
-
-    refresh_liquidation();
+    assert!(is_multisig() == false);
 
     do_transfer(amount);
+}
+
+/// The function expects the following func buf:
+/// +---------------------------------+
+/// | destination address (20 bytes)  |
+/// +---------------------------------+
+///
+#[no_mangle]
+pub extern "C" fn prepare(amount: u32) {
+    assert!(is_multisig());
+
+    // TODO: queue request
+}
+
+/// The function expects the following func buf:
+/// +---------------------------------+
+/// | destination address (20 bytes)  |
+/// +---------------------------------+
+///
+#[no_mangle]
+pub extern "C" fn apporove(amount: u32) {
+    assert!(is_multisig());
+
+    // TODO: queue request
+    // do_tranfer(amount);
 }
 
 /// Private
@@ -125,6 +152,8 @@ pub extern "C" fn transfer(amount: u32) {
 #[no_mangle]
 fn do_transfer(amount: u32) {
     unsafe {
+        refresh_liquidation();
+
         let liquidated = read_liquidated();
 
         assert!(liquidated >= amount);
