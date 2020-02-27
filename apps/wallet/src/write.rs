@@ -15,7 +15,7 @@ use super::{computations, read};
 /// +-----------------------------------------------------------------+
 ///
 #[no_mangle]
-pub fn write_pub_keys(is_multisig: u32) {
+pub(crate) fn write_pub_keys(is_multisig: u32) {
     unsafe {
         if is_multisig == 0 {
             // store `pub_key1`
@@ -36,7 +36,7 @@ pub fn write_pub_keys(is_multisig: u32) {
 }
 
 #[no_mangle]
-pub fn write_first_layer() {
+pub(crate) fn write_first_layer() {
     unsafe {
         let layer = read::read_current_layer();
 
@@ -48,7 +48,7 @@ pub fn write_first_layer() {
 }
 
 #[no_mangle]
-pub fn write_layer_liquidation(unliquidated: u32, period_sec: u32) {
+pub(crate) fn write_layer_liquidation(unliquidated: u32, period_sec: u32) {
     unsafe {
         let layer = host_ctx_read_i64_be(LAYER_ID_FIELD);
         let layer_time_sec = host_ctx_read_i32_be(LAYER_TIME_FIELD);
@@ -64,7 +64,7 @@ pub fn write_layer_liquidation(unliquidated: u32, period_sec: u32) {
 
 // persist `HostCtx pub_key` into app-storage `last_pub_key`
 #[no_mangle]
-pub fn write_pending_pub_key() {
+pub(crate) fn write_pending_pub_key() {
     unsafe {
         reg_push(256, 0);
         host_ctx_read_into_reg(PUBLIC_KEY_FIELD, 256, 0);
@@ -74,21 +74,21 @@ pub fn write_pending_pub_key() {
 }
 
 #[no_mangle]
-pub fn write_liquidated(liquidated: u32) {
+pub(crate) fn write_liquidated(liquidated: u32) {
     unsafe {
         storage_write_i32_be(PAGE_IDX, LIQUIDATED_OFFSET, liquidated, 4);
     }
 }
 
 #[no_mangle]
-pub fn write_unliquidated(unliquidated: u32) {
+pub(crate) fn write_unliquidated(unliquidated: u32) {
     unsafe {
         storage_write_i32_be(PAGE_IDX, UNLIQUIDATED_OFFSET, unliquidated, 4);
     }
 }
 
 #[no_mangle]
-pub fn write_last_run_layer(layer: u64) {
+pub(crate) fn write_last_run_layer(layer: u64) {
     unsafe {
         storage_write_i64_be(PAGE_IDX, LAST_RUN_LAYER_OFFSET, layer, 8);
     }

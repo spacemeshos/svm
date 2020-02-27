@@ -21,9 +21,9 @@
 //!  |--------------------------------+
 //!  |  pending_pub_key    (32 bytes) |
 //!  |--------------------------------+
-//!  |  is_multisig         (1 byte)  |
+//!  |  is_multisig        (1 byte)   |
 //!  |--------------------------------+
-//!  |  first_layer         (8 bytes) |
+//!  |  first_layer        (8 bytes)  |
 //!  +--------------------------------+
 //!  |  last_run_layer     (8 bytes)  |
 //!  +--------------------------------+
@@ -31,11 +31,15 @@
 //!  +--------------------------------+
 //!  |  unliquidated       (4 bytes)  |
 //!  +--------------------------------+
+//!  |  balance            (4 bytes)  |
+//!  +--------------------------------+
 //!  |  layer_liquidation  (2 bytes)  |
 //!  +--------------------------------+
-//!  |   period_time_sec   (8 bytes)  |
+//!  |  period_time_sec    (8 bytes)  |
 //!  +--------------------------------+
-//!  |   lock_time_sec     (8 bytes)  |
+//!  |  lockup_time_sec    (8 bytes)  |
+//!  +--------------------------------+
+//!  |  last_transfer_time (8 bytes)  |
 //!  +--------------------------------+
 //!  |  daily_pull_limit   (2 bytes)  |
 //!  +--------------------------------+
@@ -51,11 +55,15 @@
 //! last_run_layer:    The layer when the app ran last time.
 //! liquidated:        The amount of liquidated coins of the wallet.
 //! unliquidated:      The amount of not-liquidated (yet) coins of the wallet.
-//! layer_liquidation: The amount of newly liquidated coins per-layer.
+//! balance:           The wallet's balance (i.e: `liquidated` minus the amount of pulled).
+//! layer_liquidation: The amount of newly liquidated coins per-layer. (calculated in the app's `init`).
 //! period_time_sec:   The period of time (in seconds) for full-liquidation.
-//! lock_time_sec:     The period of time (in seconds) on which no transfers can be made.
+//! lockup_time_sec:   The wallet's lockup time (in seconds).
 //! daily_pull_limit:  The maximum liquidated coins that can be pulled from the wallet on a single-day.
 //!
+
+include!("constants.rs");
+include!("imports.rs");
 
 mod auth;
 mod computations;
@@ -65,9 +73,6 @@ mod write;
 use auth::*;
 use read::*;
 use write::*;
-
-include!("constants.rs");
-include!("imports.rs");
 
 // Host Imports
 extern "C" {
@@ -79,22 +84,21 @@ extern "C" {
 #[no_mangle]
 pub extern "C" fn init(
     is_multisig: u32,
-    liquidated: u32,
     unliquidated: u32,
     period_sec: u32,
-    lock_time_sec: u32,
+    lockup_time_sec: u32,
     daily_pull_limit: u32,
 ) {
     write_pub_keys(is_multisig);
     write_first_layer();
 
-    write_liquidated(liquidated);
+    write_liquidated(0);
     write_unliquidated(unliquidated);
     write_layer_liquidation(unliquidated, period_sec);
 
     // TODO:
     // 1) write `period_sec`
-    // 2) write `lock_time_sec`
+    // 2) write `lockup_time_sec`
     // 3) write `daily_pull_limit`
 }
 
