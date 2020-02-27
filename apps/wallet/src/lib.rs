@@ -19,7 +19,7 @@
 //!  |--------------------------------+
 //!  |  pub_key3           (32 bytes) |
 //!  |--------------------------------+
-//!  |  last_pub_key       (32 bytes) |
+//!  |  pending_pub_key    (32 bytes) |
 //!  |--------------------------------+
 //!  |  is_multisig         (1 byte)  |
 //!  |--------------------------------+
@@ -41,7 +41,7 @@
 //! pub_key1:          Wallet public-key. Used also when `is_multisig = 0`
 //! pub_key2:          The 2nd public-key for 2-3 MultiSig. Relevant only when `is_multisig = 1`
 //! pub_key3:          The 3rd public-key for 2-3 MultiSig. Relevant only when `is_multisig = 1`
-//! last_pub_key:      Relevant only when `is_multisig = 1`
+//! pending_pub_key:   Relevant only when `is_multisig = 1`
 //! is_multisig:       Whether the wallet is a 2-3 MultiSig or not.
 //! first_layer:       The layer when the app ran for the first-time.
 //! last_run_layer:    The layer when the app ran last time.
@@ -67,103 +67,43 @@ extern "C" {
     fn add_balance_i32(amount: u32, reg_bits: u32, reg_idx: u32);
 }
 
-///  
-/// The `init` function assumes the following `func_buf`
-///
-/// When `is_multi_sig = 0`
-/// +---------------------+
-/// | pub_key1 (32 bytes) |
-/// +---------------------+
-///
-/// When `is_multi_sig != 0`
-/// +-----------------------------------------------------------------+
-/// | pub_key1 (32 bytes) | pub_key2 (32 bytes) | pub_key3 (32 bytes) |
-/// +-----------------------------------------------------------------+
-///
+/// Public API
+
 #[no_mangle]
 pub extern "C" fn init(
-    is_multi_sig: u32,
+    is_multisig: u32,
     liquidated: u32,
     unliquidated: u32,
     daily_pull_limit: u32,
     period_sec: u32,
 ) {
-    // 1) grab layer_id from the `HostCtx`
-    // 2) store `liquidated`
-    // 3) store `unliquidated`
-    // 4) store `daily_pull_limit`
-    // 5)liquidation_per_layer(unliquidated, layer)
+    init_pub_keys(is_multisig);
+    init_first_layer();
 
-    // storing `pub_key1, pub_key2, pub_key3`
-    unsafe {
-        // we copy the keys at one operation
-        // since they are laid in contiguous at both input buffer and storage
-        buffer_copy_to_storage(IN_FUNC_BUF_ID, 0, PAGE_IDX, 0, PUB_KEY_SIZE * 3);
-    }
+    store_liquidated(liquidated);
+    store_unliquidated(unliquidated);
+    init_layer_liquidation(unliquidated, period_sec);
 
-    // store `vesting_start`
-    unsafe {
-        storage_write_i64_be(
-            PAGE_IDX,
-            VESTING_START_OFFSET,
-            vesting_start,
-            VESTING_START_SIZE,
-        )
-    }
-
-    // store `max_vesting`
-    unsafe {
-        storage_write_i32_be(PAGE_IDX, MAX_VESTING_OFFSET, max_vesting, BALANCE_SIZE);
-    }
-
-    // store `daily_limit`
-    unsafe { storage_write_i64_be(PAGE_IDX, DAILY_LIMIT_OFFSET, daily_limit, DAILY_LIMIT_SIZE) }
-
-    // store `vesting_months`
-    unsafe {
-        storage_write_i32_be(
-            PAGE_IDX,
-            VESTING_MONTHS_OFFSET,
-            vesting_months,
-            VESTING_MONTHS_SIZE,
-        );
-    }
+    // TODO: store `daily_pull_limit`
 }
 
 #[no_mangle]
-pub extern "C" fn get_vested() -> u32 {
-    refresh_vesting();
-    read_vested()
+pub extern "C" fn get_liquidated() -> u32 {
+    refresh_liquidation();
+    read_liquidated()
 }
 
 #[no_mangle]
-pub extern "C" fn get_unvested() -> u32 {
-    refresh_vesting();
+pub extern "C" fn get_unliquidated() -> u32 {
+    refresh_liquidation();
 
-    let vested = read_vested();
-    let max_vesting = read_max_vesting();
-
-    assert!(max_vesting >= vested);
-
-    max_vesting - vested
-}
-
-/// Returns the Wallet's balance.
-/// The Wallet's balance might be less than the vested amount
-/// since vested coins can be transfered to other account.
-//
-//  See `transfer` method.
-#[no_mangle]
-pub extern "C" fn get_app_balance() -> u32 {
-    refresh_vesting();
-
-    read_balance()
+    read_unliquidated()
 }
 
 /// The function expects the following func buf:
-/// +----------------------+
-/// | destination address  |
-/// +----------------------+
+/// +---------------------------------+
+/// | destination address (20 bytes)  |
+/// +---------------------------------+
 ///
 #[no_mangle]
 pub extern "C" fn transfer(amount: u32) {
@@ -175,32 +115,9 @@ pub extern "C" fn transfer(amount: u32) {
         return;
     }
 
-    refresh_vesting();
+    refresh_liquidation();
 
-    let balance = read_balance();
-
-    if balance >= amount {
-        unsafe {
-            reg_push(160, 0);
-
-            // loading `dest-address` given in func-buf into register `160:0`
-            buffer_copy_to_reg(IN_FUNC_BUF_ID, 0, 160, 0, ADDRESS_SIZE);
-
-            add_balance_i32(amount, 160, 0);
-
-            reg_pop(160, 0);
-            return;
-        }
-    }
-
-    panic!("not enough balance")
-}
-
-#[no_mangle]
-pub extern "C" fn replace_pub_key(key_idx: i32) {
-    auth();
-
-    todo!()
+    do_transfer(amount);
 }
 
 /// Private
@@ -248,11 +165,11 @@ fn multisig_auth() -> i32 {
         reg_push(256, 1);
     }
 
-    //  load `last_pub_key` into register `256:0`
-    read_last_pub_key(256, 0);
+    //  load `pending_pub_key` into register `256:0`
+    read_pending_pub_key(256, 0);
 
     // 2) if its all zeros:
-    //   2.1) `write_last_pub_key();`
+    //   2.1) `store_pending_pub_key();`
     //   2.2)  return `1` signifying `multisig process isn't complete`
     //         else, goto 3)
 
@@ -277,8 +194,7 @@ fn multisig_auth() -> i32 {
             reg_pop(256, 0);
         }
     } else {
-        // overriding the `last_pub_key`
-        write_last_pub_key();
+        store_pending_pub_key();
     }
 
     // store regs
@@ -291,36 +207,56 @@ fn multisig_auth() -> i32 {
 }
 
 #[no_mangle]
-extern "C" fn refresh_vesting() {
-    auth();
-
-    // 1) load `last_sync_layer` from storage.
-    // 2) fetch `layer_id` from `HostCtx`.
-    // 3) fetch `layer_epoch` from `HostCtx`.
-    // 4) fetch `layer_epoch_secs` from `HostCtx`.
-    // 5) calculate layer `layer_diff = layer_id - last_sync_layer`
-    // 6) translate `layer_diff` to `diff_time`
-    //    `diff_time_secs = layer_diff * layer_epoch_secs`
-    // 7) `last_sync_layer <- layer_id`
-    // 8)
-
-    todo!()
-}
-
-// persist `HostCtx pub_key` into app-storage `last_pub_key`
-#[no_mangle]
-fn write_last_pub_key() {
+fn do_transfer(amount: u32) {
     unsafe {
-        reg_push(256, 0);
-        host_ctx_read_into_reg(PUBLIC_KEY_FIELD_IDX, 256, 0);
-        storage_write_from_reg(256, 0, PAGE_IDX, LAST_PUB_KEY_OFFSET, PUB_KEY_SIZE);
-        reg_pop(256, 0);
+        let liquidated = read_liquidated();
+        assert!(liquidated >= amount);
+
+        reg_push(160, 0);
+
+        // loading `dest-address` given in func-buf into register `160:0`
+        buffer_copy_to_reg(IN_FUNC_BUF_ID, 0, 160, 0, ADDRESS_SIZE);
+
+        add_balance_i32(amount, 160, 0);
+
+        reg_pop(160, 0);
     }
 }
 
 #[no_mangle]
-fn read_last_pub_key(reg_bits: u32, reg_idx: u32) {
+fn refresh_liquidation() {
+    auth();
+
+    let layer_liq = read_layer_liquidation();
+    let last_run_layer = read_last_run_layer();
+    let current_layer = read_current_layer();
+
+    let delta = computations::liquidation_delta(layer_liq, last_run_layer, current_layer);
+
+    let liquidated = read_liquidated();
+    let unliquidated = read_unliquidated();
+
+    assert!(unliquidated >= delta);
+
+    store_liquidated(liquidated + delta);
+    store_unliquidated(unliquidated - delta);
+}
+
+#[no_mangle]
+fn pub_key_cmp(reg_idx1: u32, reg_idx2: u32) -> i32 {
+    unsafe { reg_cmp(256, reg_idx1, reg_idx2) }
+}
+
+/// Reading from storage
+//===========================================================================================
+#[no_mangle]
+fn read_pending_pub_key(reg_bits: u32, reg_idx: u32) {
     read_pub_key(3, reg_bits, reg_idx);
+}
+
+#[no_mangle]
+fn read_current_layer() -> u64 {
+    host_ctx_read_i64_be(LAYER_INDEX)
 }
 
 #[no_mangle]
@@ -333,41 +269,111 @@ fn read_pub_key(key_idx: u32, reg_bits: u32, reg_idx: u32) {
 }
 
 #[no_mangle]
-fn read_daily_limit() -> u32 {
-    unsafe { storage_read_i32_be(PAGE_IDX, DAILY_LIMIT_OFFSET, DAILY_LIMIT_SIZE) }
+fn read_first_layer() -> u64 {
+    unsafe { storage_read_i64_be(PAGE_IDX, FIRST_LAYER_OFFSET, 8) }
 }
 
 #[no_mangle]
-fn read_vesting_start() -> u64 {
-    unsafe { storage_read_i64_be(PAGE_IDX, VESTING_START_OFFSET, VESTING_START_SIZE) }
+fn read_last_run_layer() -> u64 {
+    unsafe { storage_read_i64_be(PAGE_IDX, LAST_RUN_LAYER, 8) }
 }
 
 #[no_mangle]
-fn read_vesting_months() -> u32 {
-    unsafe { storage_read_i32_be(PAGE_IDX, VESTING_MONTHS_OFFSET, VESTING_MONTHS_SIZE) }
+fn read_liquidated() -> u32 {
+    unsafe { storage_read_i32_be(PAGE_IDX, LIQUIDATED_OFFSET, 4) }
 }
 
 #[no_mangle]
-fn read_last_sync_layer() -> u64 {
-    unsafe { storage_read_i64_be(PAGE_IDX, LAST_SYNC_LAYER_OFFSET, LAYER_ID_SIZE) }
+fn read_unliquidated() -> u32 {
+    unsafe { storage_read_i32_be(PAGE_IDX, UNLIQUIDATED_OFFSET, 4) }
 }
 
 #[no_mangle]
-fn read_balance() -> u32 {
-    unsafe { storage_read_i32_be(PAGE_IDX, BALANCE_OFFSET, BALANCE_SIZE) }
+fn read_layer_liquidation() -> u32 {
+    unsafe { storage_read_i32_be(PAGE_IDX, LAYER_LIQ_OFFSET, 2) }
+}
+
+/// Storing data into app-storage
+//===========================================================================================
+///
+///
+/// When `is_multi_sig = 0`
+/// +---------------------+
+/// | pub_key1 (32 bytes) |
+/// +---------------------+
+///
+/// When `is_multi_sig != 0`
+/// +-----------------------------------------------------------------+
+/// | pub_key1 (32 bytes) | pub_key2 (32 bytes) | pub_key3 (32 bytes) |
+/// +-----------------------------------------------------------------+
+///
+#[no_mangle]
+fn init_pub_keys(is_multisig: u32) {
+    unsafe {
+        if is_multisig == 0 {
+            // store `pub_key1`
+            buffer_copy_to_storage(IN_FUNC_BUF_ID, 0, PAGE_IDX, 0, PUB_KEY_SIZE);
+
+            // store: `is_multisig=0`
+            storage_write_i32_be(PAGE_IDX, IS_MULTISIG_OFFSET, 0, 1);
+        } else {
+            // storing `pub_key1, pub_key2, pub_key3`
+            // we copy the keys at one shot,
+            // since they are laid contagiously at both input func-buffer and app-storage
+            buffer_copy_to_storage(IN_FUNC_BUF_ID, 0, PAGE_IDX, 0, PUB_KEY_SIZE * 3);
+
+            // store: `is_multisig=1`
+            storage_write_i32_be(PAGE_IDX, IS_MULTISIG_OFFSET, 1, 1);
+        }
+    }
 }
 
 #[no_mangle]
-fn read_vested() -> u32 {
-    unsafe { storage_read_i32_be(PAGE_IDX, VESTED_OFFSET, BALANCE_SIZE) }
+fn init_first_layer() {
+    unsafe {
+        let layer = read_current_layer();
+
+        storage_write_i64_be(PAGE_IDX, FIRST_LAYER_OFFSET, layer, 8);
+        storage_write_i64_be(PAGE_IDX, LAST_RUN_LAYER_OFFSET, layer, 8);
+    }
 }
 
 #[no_mangle]
-fn read_max_vesting() -> u32 {
-    unsafe { storage_read_i32_be(PAGE_IDX, MAX_VESTING_OFFSET, BALANCE_SIZE) }
+fn init_layer_liquidation(unliquidated: u32, period_sec: u32) {
+    unsafe {
+        let layer = host_ctx_read_i64_be(LAYER_INDEX);
+        let layer_time_sec = host_ctx_read_i32_be(LAYER_TIME_INDEX);
+
+        let layer_count = computations::layer_count(period_sec, layer_time_sec);
+        let layer_liq = computations::layer_liquidation(unliquidated, layer_count);
+
+        assert!(layer_liq <= 0xFFFF);
+
+        storage_write_i32_be(PAGE_IDX, LAYER_LIQ_OFFSET, layer_liq, 2);
+    }
+}
+
+// persist `HostCtx pub_key` into app-storage `last_pub_key`
+#[no_mangle]
+fn store_pending_pub_key() {
+    unsafe {
+        reg_push(256, 0);
+        host_ctx_read_into_reg(PUBLIC_KEY_FIELD_IDX, 256, 0);
+        storage_write_from_reg(256, 0, PAGE_IDX, LAST_PUB_KEY_OFFSET, PUB_KEY_SIZE);
+        reg_pop(256, 0);
+    }
 }
 
 #[no_mangle]
-fn pub_key_cmp(reg_idx1: u32, reg_idx2: u32) -> i32 {
-    unsafe { reg_cmp(256, reg_idx1, reg_idx2) }
+fn store_liquidated(liquidated: u32) {
+    unsafe {
+        storage_write_i32_be(PAGE_IDX, LIQUIDATED_OFFSET, liquidated, 4);
+    }
+}
+
+#[no_mangle]
+fn store_unliquidated(unliquidated: u32) {
+    unsafe {
+        storage_write_i32_be(PAGE_IDX, UNLIQUIDATED_OFFSET, unliquidated, 4);
+    }
 }

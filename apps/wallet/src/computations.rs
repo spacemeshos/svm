@@ -32,7 +32,7 @@
 pub fn layer_count(time_interval: u32, layer_time: u32) -> u32 {
     assert!(time_interval % layer_time == 0);
 
-    time_interval / layer_time;
+    time_interval / layer_time
 }
 
 /// Computes the `liquidation per layer`.
@@ -52,8 +52,12 @@ pub fn layer_liquidation(amount: u32, layer_count: u32) -> u32 {
 /// `last_layer`    - The last layer where the liquidation has been calculated.
 /// `current_layer` - The current layer.
 ///
-pub fn liquidation_delta(layer_liq: u32, last_layer: u32, current_layer: u32) -> u32 {
+pub fn liquidation_delta(layer_liq: u32, last_layer: u64, current_layer: u64) -> u32 {
     assert!(current_layer >= last_layer);
 
-    (layer_liq) * (current_layer - last_layer)
+    let delta: u64 = (layer_liq as u64) * (current_layer - last_layer);
+
+    assert!(delta <= std::u32::MAX);
+
+    delta as u32
 }
