@@ -41,7 +41,9 @@ pub fn write_first_layer() {
         let layer = read::read_current_layer();
 
         storage_write_i64_be(PAGE_IDX, FIRST_LAYER_OFFSET, layer, 8);
-        storage_write_i64_be(PAGE_IDX, LAST_RUN_LAYER_OFFSET, layer, 8);
+
+        // set init `last_run_layer` with `first_layer`
+        write_last_run_layer(layer);
     }
 }
 
@@ -82,5 +84,12 @@ pub fn write_liquidated(liquidated: u32) {
 pub fn write_unliquidated(unliquidated: u32) {
     unsafe {
         storage_write_i32_be(PAGE_IDX, UNLIQUIDATED_OFFSET, unliquidated, 4);
+    }
+}
+
+#[no_mangle]
+pub fn write_last_run_layer(layer: u64) {
+    unsafe {
+        storage_write_i64_be(PAGE_IDX, LAST_RUN_LAYER_OFFSET, layer, 8);
     }
 }

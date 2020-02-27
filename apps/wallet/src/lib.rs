@@ -142,8 +142,6 @@ fn do_transfer(amount: u32) {
 
 #[no_mangle]
 fn refresh_liquidation() {
-    auth();
-
     let layer_liq = read_layer_liquidation();
     let last_run_layer = read_last_run_layer();
     let current_layer = read_current_layer();
@@ -155,6 +153,7 @@ fn refresh_liquidation() {
 
     assert!(unliquidated >= delta);
 
+    write_last_run_layer(current_layer);
     write_liquidated(liquidated + delta);
     write_unliquidated(unliquidated - delta);
 }
