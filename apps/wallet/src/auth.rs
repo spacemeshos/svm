@@ -1,5 +1,4 @@
 include!("imports.rs");
-include!("constants.rs");
 
 use super::{read::*, write::*};
 
@@ -44,6 +43,6 @@ fn pub_key_cmp(reg_idx1: u32, reg_idx2: u32) -> i32 {
 #[no_mangle]
 pub(crate) fn copy_host_pub_key_to_reg(reg_bits: u32, reg_idx: u32) {
     unsafe {
-        host_ctx_read_into_reg(PUBLIC_KEY_FIELD, reg_bits, reg_idx);
+        host_ctx_read_into_reg(0, reg_bits, reg_idx);
     }
 }

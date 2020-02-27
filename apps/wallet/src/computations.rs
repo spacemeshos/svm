@@ -21,7 +21,7 @@
 /// 𝝙L: Layers delta.
 /// 𝝙L = 𝙇𝘤𝘶𝘳 - 𝙇𝘱𝘳𝘦𝘷
 ///
-/// 𝝙𝘓𝙞𝑞: Liquidation delta (#coins).
+/// 𝝙𝘓𝙞𝑞: Liquidation delta (𝝙coins that becomes liquidated).
 /// 𝝙𝘓𝙞𝑞 = 𝘓𝙞𝑞ʟ * 𝝙L
 ///
 

@@ -1,30 +1,57 @@
-/// Offsets:
-/// 32 bytes
-const PUB_KEY2_OFFSET: u32 = PUB_KEY_SIZE;
-const PUB_KEY3_OFFSET: u32 = PUB_KEY2_OFFSET + PUB_KEY_SIZE;
-const IS_MULTISIG_OFFSET: u32 = PUB_KEY3_OFFSET + PUB_KEY_SIZE;
-const PENDING_PUB_KEY_OFFSET: u32 = PUB_KEY3_OFFSET + PUB_KEY_SIZE;
+//!
+//!  App Storage Layout
+//!  ==================
+//!
+//!             Page #1
+//!  +--------------------------------+
+//!  |  pub_key1           (32 bytes) |
+//!  |--------------------------------+
+//!  |  pub_key2           (32 bytes) |
+//!  |--------------------------------+
+//!  |  pub_key3           (32 bytes) |
+//!  |--------------------------------+
+//!  |  pending_pub_key    (32 bytes) |
+//!  |--------------------------------+
+//!  |  first_layer        (8 bytes)  |
+//!  +--------------------------------+
+//!  |  last_run_layer     (8 bytes)  |
+//!  +--------------------------------+
+//!  |  period_time_sec    (8 bytes)  |
+//!  +--------------------------------+
+//!  |  lockup_time_sec    (8 bytes)  |
+//!  +--------------------------------+
+//!  |  liquidated         (4 bytes)  |
+//!  +--------------------------------+
+//!  |  unliquidated       (4 bytes)  |
+//!  +--------------------------------+
+//!  |  balance            (4 bytes)  |
+//!  +--------------------------------+
+//!  |  layer_liquidation  (2 bytes)  |
+//!  +--------------------------------+
+//!  |  is_multisig        (1 byte)   |
+//!  |--------------------------------+
+//!
 
-/// 8 bytes
-const FIRST_LAYER_OFFSET: u32 = 0;
-const LAST_RUN_LAYER_OFFSET: u32 = 0;
+#[macro_export]
+macro_rules! offset {
+    ($field:expr) => {{
+        let field = stringify!($field);
 
-/// 4 bytes
-const LIQUIDATED_OFFSET: u32 = 0;
-const UNLIQUIDATED_OFFSET: u32 = 0;
-
-/// 2 bytes
-const LAYER_LIQ_OFFSET: u32 = 0;
-const DAILY_PULL_LIMIT_OFFSET: u32 = 0;
-
-/// Other
-const ADDRESS_SIZE: u32 = 20;
-const PUB_KEY_SIZE: u32 = 32;
-
-const FUNC_BUF_ID: u32 = 0;
-const PAGE_IDX: u32 = 0;
-
-/// HostCtx fields
-const LAYER_ID_FIELD: u32 = 0;
-const LAYER_TIME_FIELD: u32 = 0;
-const PUBLIC_KEY_FIELD: u32 = 0;
+        match field {
+            "pub_key1" => 0,
+            "pub_key2" => 32,
+            "pub_key3" => 64,
+            "pending_pub_key" => 96,
+            "first_layer" => 128,
+            "last_run_layer" => 136,
+            "period_time_sec" => 144,
+            "lockup_time_sec" => 152,
+            "liquidated" => 160,
+            "unliquidated" => 164,
+            "balance" => 168,
+            "layer_liquidation" => 172,
+            "is_multisig" => 174,
+            _ => unreachable!(),
+        }
+    }};
+}
