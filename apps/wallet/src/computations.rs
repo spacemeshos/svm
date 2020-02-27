@@ -57,7 +57,7 @@ pub fn liquidation_delta(layer_liq: u32, last_layer: u64, current_layer: u64) ->
 
     let delta: u64 = (layer_liq as u64) * (current_layer - last_layer);
 
-    assert!(delta <= std::u32::MAX);
+    assert!(delta <= 0xFF_FF_FF_FF);
 
     delta as u32
 }

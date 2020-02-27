@@ -1,4 +1,7 @@
 include!("imports.rs");
+include!("constants.rs");
+
+use super::{computations, read};
 
 ///
 /// When `is_multi_sig = 0`
@@ -16,7 +19,7 @@ pub fn write_pub_keys(is_multisig: u32) {
     unsafe {
         if is_multisig == 0 {
             // store `pub_key1`
-            buffer_copy_to_storage(IN_FUNC_BUF_ID, 0, PAGE_IDX, 0, PUB_KEY_SIZE);
+            buffer_copy_to_storage(FUNC_BUF_ID, 0, PAGE_IDX, 0, PUB_KEY_SIZE);
 
             // store: `is_multisig=0`
             storage_write_i32_be(PAGE_IDX, IS_MULTISIG_OFFSET, 0, 1);
@@ -24,7 +27,7 @@ pub fn write_pub_keys(is_multisig: u32) {
             // storing `pub_key1, pub_key2, pub_key3`
             // we copy the keys at one shot,
             // since they are laid contagiously at both input func-buffer and app-storage
-            buffer_copy_to_storage(IN_FUNC_BUF_ID, 0, PAGE_IDX, 0, PUB_KEY_SIZE * 3);
+            buffer_copy_to_storage(FUNC_BUF_ID, 0, PAGE_IDX, 0, PUB_KEY_SIZE * 3);
 
             // store: `is_multisig=1`
             storage_write_i32_be(PAGE_IDX, IS_MULTISIG_OFFSET, 1, 1);
@@ -35,7 +38,7 @@ pub fn write_pub_keys(is_multisig: u32) {
 #[no_mangle]
 pub fn write_first_layer() {
     unsafe {
-        let layer = read_current_layer();
+        let layer = read::read_current_layer();
 
         storage_write_i64_be(PAGE_IDX, FIRST_LAYER_OFFSET, layer, 8);
         storage_write_i64_be(PAGE_IDX, LAST_RUN_LAYER_OFFSET, layer, 8);
@@ -45,8 +48,8 @@ pub fn write_first_layer() {
 #[no_mangle]
 pub fn write_layer_liquidation(unliquidated: u32, period_sec: u32) {
     unsafe {
-        let layer = host_ctx_read_i64_be(LAYER_INDEX);
-        let layer_time_sec = host_ctx_read_i32_be(LAYER_TIME_INDEX);
+        let layer = host_ctx_read_i64_be(LAYER_ID_FIELD);
+        let layer_time_sec = host_ctx_read_i32_be(LAYER_TIME_FIELD);
 
         let layer_count = computations::layer_count(period_sec, layer_time_sec);
         let layer_liq = computations::layer_liquidation(unliquidated, layer_count);
@@ -62,8 +65,8 @@ pub fn write_layer_liquidation(unliquidated: u32, period_sec: u32) {
 pub fn write_pending_pub_key() {
     unsafe {
         reg_push(256, 0);
-        host_ctx_read_into_reg(PUBLIC_KEY_FIELD_IDX, 256, 0);
-        storage_write_from_reg(256, 0, PAGE_IDX, LAST_PUB_KEY_OFFSET, PUB_KEY_SIZE);
+        host_ctx_read_into_reg(PUBLIC_KEY_FIELD, 256, 0);
+        storage_write_from_reg(256, 0, PAGE_IDX, PENDING_PUB_KEY_OFFSET, PUB_KEY_SIZE);
         reg_pop(256, 0);
     }
 }
