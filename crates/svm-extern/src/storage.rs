@@ -1,43 +1,71 @@
-/// The `include_extern_storage` will be imported by SVM apps.
+/// This macro includes all the storage vmcalls.
 #[macro_export]
-macro_rules! include_extern_storage_vmcalls {
+macro_rules! include_storage_vmcalls {
     () => {
         extern "C" {
             fn mem_to_reg_copy(
-                mem_idx: i32,
-                mem_offset: i32,
-                len: i32,
-                reg_bits: i32,
-                reg_idx: i32,
+                mem_idx: u32,
+                mem_offset: u32,
+                reg_bits: u32,
+                reg_idx: u32,
+                count: u32,
             );
 
             fn reg_to_mem_copy(
-                reg_bits: i32,
-                reg_idx: i32,
-                len: i32,
-                mem_idx: i32,
-                mem_offset: i32,
+                reg_bits: u32,
+                reg_idx: u32,
+                mem_idx: u32,
+                mem_offset: u32,
+                count: u32,
             );
 
-            fn storage_read_to_reg(page: i32, offset: i32, len: i32, reg_bits: i32, reg_idx: i32);
+            fn storage_read_to_reg(
+                page_idx: u32,
+                page_offset: u32,
+                reg_bits: u32,
+                reg_idx: u32,
+                count: u32,
+            );
 
-            fn storage_read_to_mem(page: i32, offset: i32, len: i32, mem_idx: i32, mem_offset: i32);
+            fn storage_read_to_mem(
+                page_idx: u32,
+                page_offset: u32,
+                mem_idx: u32,
+                mem_offset: u32,
+                count: u32,
+            );
 
             fn storage_write_from_mem(
-                mem_idx: i32,
-                mem_offset: i32,
-                len: i32,
-                page_idx: i32,
-                page_offset: i32,
+                mem_idx: u32,
+                mem_offset: u32,
+                page_idx: u32,
+                page_offset: u32,
+                count: u32,
             );
 
             fn storage_write_from_reg(
-                reg_bits: i32,
-                reg_idx: i32,
-                len: i32,
-                page_idx: i32,
-                page_offset: i32,
+                reg_bits: u32,
+                reg_idx: u32,
+                page_idx: u32,
+                page_offset: u32,
+                count: u32,
             );
+
+            fn storage_read_i32_be(page_idx: u32, page_offset: u32, count: u32) -> u32;
+
+            fn storage_read_i32_le(page_idx: u32, page_offset: u32, count: u32) -> u32;
+
+            fn storage_read_i64_be(page_idx: u32, page_offset: u32, count: u32) -> u64;
+
+            fn storage_read_i64_le(page_idx: u32, page_offset: u32, count: u32) -> u64;
+
+            fn storage_write_i32_be(page_idx: u32, page_offset: u32, n: u32, nbytes: u32);
+
+            fn storage_write_i32_le(page_idx: u32, page_offset: u32, n: u32, nbytes: u32);
+
+            fn storage_write_i64_be(page_idx: u32, page_offset: u32, n: u64, nbytes: u32);
+
+            fn storage_write_i64_le(page_idx: u32, page_offset: u32, n: u64, nbytes: u32);
         }
     };
 }

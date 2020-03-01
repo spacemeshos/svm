@@ -3,11 +3,3 @@
 [[package]]
 name = "svm-extern"
 version = "0.0.0"
-
-[[package]]
-name = "transfer"
-version = "0.0.0"
-dependencies = [
- "svm-extern 0.0.0",
-]
-
