@@ -77,6 +77,5 @@ members = [
 
 exclude = [
   "crates/svm-extern",
-  "apps/transfer",
-  "apps/wallet",
+  "apps/src/wallet",
 ]

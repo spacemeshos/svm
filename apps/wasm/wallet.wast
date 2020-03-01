@@ -14,40 +14,40 @@
   (type (;12;) (func (result i32)))
   (type (;13;) (func (param i64)))
   (type (;14;) (func (param i32 i32) (result i32)))
-  (import "env" "storage_write_i32_be" (func (;0;) (type 0)))
-  (import "env" "storage_read_i32_be" (func (;1;) (type 1)))
-  (import "env" "host_current_balance" (func (;2;) (type 2)))
-  (import "env" "reg_push" (func (;3;) (type 3)))
-  (import "env" "storage_read_i64_be" (func (;4;) (type 4)))
-  (import "env" "host_ctx_read_i64_be" (func (;5;) (type 5)))
-  (import "env" "buffer_copy_to_storage" (func (;6;) (type 6)))
-  (import "env" "storage_write_i64_be" (func (;7;) (type 7)))
-  (import "env" "host_ctx_read_i32_be" (func (;8;) (type 8)))
-  (import "env" "host_ctx_read_into_reg" (func (;9;) (type 9)))
-  (import "env" "storage_write_from_reg" (func (;10;) (type 6)))
-  (import "env" "reg_pop" (func (;11;) (type 3)))
-  (import "env" "reg_set_i32_be" (func (;12;) (type 9)))
-  (import "env" "reg_cmp" (func (;13;) (type 1)))
-  (import "env" "storage_read_to_reg" (func (;14;) (type 6)))
-  (func (;15;) (type 0) (param i32 i32 i32 i32)
+  (import "env" "storage_write_i32_be" (func $storage_write_i32_be (type 0)))
+  (import "env" "storage_read_i32_be" (func $storage_read_i32_be (type 1)))
+  (import "env" "host_current_balance" (func $host_current_balance (type 2)))
+  (import "env" "reg_push" (func $reg_push (type 3)))
+  (import "env" "storage_read_i64_be" (func $storage_read_i64_be (type 4)))
+  (import "env" "host_ctx_read_i64_be" (func $host_ctx_read_i64_be (type 5)))
+  (import "env" "buffer_copy_to_storage" (func $buffer_copy_to_storage (type 6)))
+  (import "env" "storage_write_i64_be" (func $storage_write_i64_be (type 7)))
+  (import "env" "host_ctx_read_i32_be" (func $host_ctx_read_i32_be (type 8)))
+  (import "env" "host_ctx_read_into_reg" (func $host_ctx_read_into_reg (type 9)))
+  (import "env" "storage_write_from_reg" (func $storage_write_from_reg (type 6)))
+  (import "env" "reg_pop" (func $reg_pop (type 3)))
+  (import "env" "reg_set_i32_be" (func $reg_set_i32_be (type 9)))
+  (import "env" "reg_cmp" (func $reg_cmp (type 1)))
+  (import "env" "storage_read_to_reg" (func $storage_read_to_reg (type 6)))
+  (func $init (type 0) (param i32 i32 i32 i32)
     local.get 1
-    call 16
-    call 17
+    call $write_pub_keys
+    call $write_first_layer
     local.get 2
-    call 18
+    call $write_period_sec
     i32.const 0
-    call 19
+    call $write_liquidated
     i32.const 0
     i32.const 156
     local.get 1
     i32.const 4
-    call 0
+    call $storage_write_i32_be
     local.get 1
     local.get 2
-    call 20
+    call $write_layer_liquidation
     local.get 3
-    call 21)
-  (func (;16;) (type 10) (param i32)
+    call $write_lockup_time)
+  (func $write_pub_keys (type 10) (param i32)
     (local i32 i32 i32)
     i32.const 1
     local.set 1
@@ -57,15 +57,15 @@
     i32.const 1049460
     i32.const 1049471
     i32.const 11
-    call 59
+    call $bcmp
     select
     i32.const 1
-    call 1
+    call $storage_read_i32_be
     local.set 2
     i32.const 1049552
     i32.const 1049559
     i32.const 7
-    call 59
+    call $bcmp
     local.set 3
     block  ;; label = @1
       block  ;; label = @2
@@ -80,18 +80,18 @@
         i32.const 60
         local.get 3
         select
-        call 6
+        call $buffer_copy_to_storage
         i32.const 0
         i32.const 162
         i32.const 128
         i32.const 1049460
         i32.const 1049471
         i32.const 11
-        call 59
+        call $bcmp
         select
         i32.const 1
         i32.const 1
-        call 0
+        call $storage_write_i32_be
         br 1 (;@1;)
       end
       i32.const 0
@@ -102,7 +102,7 @@
       i32.const 20
       local.get 3
       select
-      call 6
+      call $buffer_copy_to_storage
       i32.const 0
       local.set 1
     end
@@ -112,37 +112,37 @@
     i32.const 1049460
     i32.const 1049471
     i32.const 11
-    call 59
+    call $bcmp
     select
     local.get 1
     i32.const 1
-    call 0)
-  (func (;17;) (type 11)
+    call $storage_write_i32_be)
+  (func $write_first_layer (type 11)
     i32.const 0
     i32.const 128
     i32.const 2
-    call 5
+    call $host_ctx_read_i64_be
     i32.const 8
-    call 7
+    call $storage_write_i64_be
     i32.const 1049512
     i32.const 40
     i32.const 1049184
-    call 30
+    call $_ZN4core9panicking5panic17hf5b00f7a6b23c252E
     unreachable)
-  (func (;18;) (type 10) (param i32)
+  (func $write_period_sec (type 10) (param i32)
     i32.const 0
     i32.const 144
     local.get 0
     i32.const 4
-    call 0)
-  (func (;19;) (type 10) (param i32)
+    call $storage_write_i32_be)
+  (func $write_liquidated (type 10) (param i32)
     (local i32)
     block  ;; label = @1
       block  ;; label = @2
         i32.const 1049502
         i32.const 1049482
         i32.const 10
-        call 59
+        call $bcmp
         br_if 0 (;@2;)
         i32.const 144
         local.set 1
@@ -153,7 +153,7 @@
       i32.const 1049502
       i32.const 1049492
       i32.const 10
-      call 59
+      call $bcmp
       select
       local.set 1
     end
@@ -161,16 +161,16 @@
     local.get 1
     local.get 0
     i32.const 4
-    call 0)
-  (func (;20;) (type 3) (param i32 i32)
+    call $storage_write_i32_be)
+  (func $write_layer_liquidation (type 3) (param i32 i32)
     (local i32 i32)
     i32.const 2
-    call 5
+    call $host_ctx_read_i64_be
     drop
     block  ;; label = @1
       block  ;; label = @2
         i32.const 3
-        call 8
+        call $host_ctx_read_i32_be
         local.tee 2
         i32.eqz
         br_if 0 (;@2;)
@@ -186,13 +186,13 @@
         i32.const 1048811
         i32.const 49
         i32.const 1048860
-        call 30
+        call $_ZN4core9panicking5panic17hf5b00f7a6b23c252E
         unreachable
       end
       i32.const 1048880
       i32.const 57
       i32.const 1048940
-      call 30
+      call $_ZN4core9panicking5panic17hf5b00f7a6b23c252E
       unreachable
     end
     block  ;; label = @1
@@ -213,13 +213,13 @@
         i32.const 1048975
         i32.const 43
         i32.const 1049020
-        call 30
+        call $_ZN4core9panicking5panic17hf5b00f7a6b23c252E
         unreachable
       end
       i32.const 1048880
       i32.const 57
       i32.const 1049036
-      call 30
+      call $_ZN4core9panicking5panic17hf5b00f7a6b23c252E
       unreachable
     end
     block  ;; label = @1
@@ -230,46 +230,46 @@
       i32.const 1049200
       i32.const 37
       i32.const 1049240
-      call 30
+      call $_ZN4core9panicking5panic17hf5b00f7a6b23c252E
       unreachable
     end
     i32.const 0
     i32.const 160
     local.get 1
     i32.const 2
-    call 0)
-  (func (;21;) (type 10) (param i32)
+    call $storage_write_i32_be)
+  (func $write_lockup_time (type 10) (param i32)
     i32.const 0
     i32.const 148
     i32.const 144
     i32.const 1049492
     i32.const 1049482
     i32.const 10
-    call 59
+    call $bcmp
     select
     local.get 0
     i32.const 4
-    call 0)
-  (func (;22;) (type 12) (result i32)
-    call 23
-    call 24)
-  (func (;23;) (type 11)
+    call $storage_write_i32_be)
+  (func $get_liquidated (type 12) (result i32)
+    call $refresh_liquidation
+    call $read_liquidated)
+  (func $refresh_liquidation (type 11)
     (local i32 i64 i64)
     i32.const 0
     i32.const 160
     i32.const 2
-    call 1
+    call $storage_read_i32_be
     local.set 0
     i32.const 0
     i32.const 136
     i32.const 8
-    call 4
+    call $storage_read_i64_be
     local.set 1
     block  ;; label = @1
       block  ;; label = @2
         block  ;; label = @3
           i32.const 2
-          call 5
+          call $host_ctx_read_i64_be
           local.tee 2
           local.get 1
           i64.lt_u
@@ -284,12 +284,12 @@
           i64.const 4294967295
           i64.gt_u
           br_if 1 (;@2;)
-          call 24
+          call $read_liquidated
           drop
           i32.const 0
           i32.const 156
           i32.const 4
-          call 1
+          call $storage_read_i32_be
           local.get 1
           i32.wrap_i64
           i32.ge_u
@@ -297,34 +297,34 @@
           i32.const 1048656
           i32.const 39
           i32.const 1048696
-          call 30
+          call $_ZN4core9panicking5panic17hf5b00f7a6b23c252E
           unreachable
         end
         i32.const 1049052
         i32.const 45
         i32.const 1049100
-        call 30
+        call $_ZN4core9panicking5panic17hf5b00f7a6b23c252E
         unreachable
       end
       i32.const 1049116
       i32.const 40
       i32.const 1049156
-      call 30
+      call $_ZN4core9panicking5panic17hf5b00f7a6b23c252E
       unreachable
     end
     i32.const 1049512
     i32.const 40
     i32.const 1049184
-    call 30
+    call $_ZN4core9panicking5panic17hf5b00f7a6b23c252E
     unreachable)
-  (func (;24;) (type 12) (result i32)
+  (func $read_liquidated (type 12) (result i32)
     (local i32)
     block  ;; label = @1
       block  ;; label = @2
         i32.const 1049502
         i32.const 1049482
         i32.const 10
-        call 59
+        call $bcmp
         br_if 0 (;@2;)
         i32.const 144
         local.set 0
@@ -335,25 +335,25 @@
       i32.const 1049502
       i32.const 1049492
       i32.const 10
-      call 59
+      call $bcmp
       select
       local.set 0
     end
     i32.const 0
     local.get 0
     i32.const 4
-    call 1)
-  (func (;25;) (type 12) (result i32)
-    call 23
+    call $storage_read_i32_be)
+  (func $get_unliquidated (type 12) (result i32)
+    call $refresh_liquidation
     i32.const 0
     i32.const 156
     i32.const 4
-    call 1)
-  (func (;26;) (type 13) (param i64)
-    call 27
+    call $storage_read_i32_be)
+  (func $transfer (type 13) (param i64)
+    call $pub_key_auth
     local.get 0
-    call 28)
-  (func (;27;) (type 11)
+    call $do_transfer)
+  (func $pub_key_auth (type 11)
     (local i32)
     block  ;; label = @1
       i32.const 0
@@ -362,61 +362,61 @@
       i32.const 1049460
       i32.const 1049471
       i32.const 11
-      call 59
+      call $bcmp
       select
       i32.const 1
-      call 1
+      call $storage_read_i32_be
       br_if 0 (;@1;)
       i32.const 256
       i32.const 160
       i32.const 1049552
       i32.const 1049559
       i32.const 7
-      call 59
+      call $bcmp
       select
       local.tee 0
       i32.const 0
-      call 3
+      call $reg_push
       local.get 0
       i32.const 1
-      call 3
+      call $reg_push
       i32.const 1
       local.get 0
       i32.const 0
-      call 9
+      call $host_ctx_read_into_reg
       i32.const 1049512
       i32.const 40
       i32.const 1049312
-      call 30
+      call $_ZN4core9panicking5panic17hf5b00f7a6b23c252E
       unreachable
     end
     i32.const 1049256
     i32.const 40
     i32.const 1049296
-    call 30
+    call $_ZN4core9panicking5panic17hf5b00f7a6b23c252E
     unreachable)
-  (func (;28;) (type 13) (param i64)
-    call 23
+  (func $do_transfer (type 13) (param i64)
+    call $refresh_liquidation
     block  ;; label = @1
-      call 2
+      call $host_current_balance
       local.get 0
       i64.ge_u
       br_if 0 (;@1;)
       i32.const 1048576
       i32.const 35
       i32.const 1048624
-      call 30
+      call $_ZN4core9panicking5panic17hf5b00f7a6b23c252E
       unreachable
     end
     i32.const 160
     i32.const 0
-    call 3
+    call $reg_push
     i32.const 1049512
     i32.const 40
     i32.const 1048640
-    call 30
+    call $_ZN4core9panicking5panic17hf5b00f7a6b23c252E
     unreachable)
-  (func (;29;) (type 11)
+  (func $transfer_prepare (type 11)
     block  ;; label = @1
       i32.const 0
       i32.const 162
@@ -424,20 +424,20 @@
       i32.const 1049460
       i32.const 1049471
       i32.const 11
-      call 59
+      call $bcmp
       select
       i32.const 1
-      call 1
+      call $storage_read_i32_be
       br_if 0 (;@1;)
       i32.const 1049351
       i32.const 31
       i32.const 1049384
-      call 30
+      call $_ZN4core9panicking5panic17hf5b00f7a6b23c252E
       unreachable
     end
-    call 31
-    call 32)
-  (func (;30;) (type 9) (param i32 i32 i32)
+    call $multisig_any_key_auth
+    call $write_pending_pub_key)
+  (func $_ZN4core9panicking5panic17hf5b00f7a6b23c252E (type 9) (param i32 i32 i32)
     (local i32)
     global.get 0
     i32.const 32
@@ -468,27 +468,27 @@
     i32.store
     local.get 3
     local.get 2
-    call 35
+    call $_ZN4core9panicking9panic_fmt17hdc4684f569df1bbeE
     unreachable)
-  (func (;31;) (type 11)
+  (func $multisig_any_key_auth (type 11)
     (local i32 i32 i32)
     i32.const 256
     i32.const 160
     i32.const 1049552
     i32.const 1049559
     i32.const 7
-    call 59
+    call $bcmp
     select
     local.tee 0
     i32.const 0
-    call 3
+    call $reg_push
     local.get 0
     i32.const 1
-    call 3
+    call $reg_push
     i32.const 1
     local.get 0
     i32.const 0
-    call 9
+    call $host_ctx_read_into_reg
     i32.const 0
     local.set 1
     block  ;; label = @1
@@ -509,9 +509,9 @@
         i32.const 1049552
         i32.const 1049559
         i32.const 7
-        call 59
+        call $bcmp
         select
-        call 14
+        call $storage_read_to_reg
         local.get 2
         local.set 1
         i32.const 256
@@ -519,42 +519,42 @@
         i32.const 1049552
         i32.const 1049559
         i32.const 7
-        call 59
+        call $bcmp
         select
         i32.const 0
         i32.const 1
-        call 13
+        call $reg_cmp
         br_if 0 (;@2;)
       end
       local.get 0
       i32.const 1
-      call 11
+      call $reg_pop
       local.get 0
       i32.const 0
-      call 11
+      call $reg_pop
       return
     end
     i32.const 1049400
     i32.const 11
     i32.const 1049412
-    call 30
+    call $_ZN4core9panicking5panic17hf5b00f7a6b23c252E
     unreachable)
-  (func (;32;) (type 11)
+  (func $write_pending_pub_key (type 11)
     (local i32)
     i32.const 256
     i32.const 160
     i32.const 1049552
     i32.const 1049559
     i32.const 7
-    call 59
+    call $bcmp
     select
     local.tee 0
     i32.const 0
-    call 3
+    call $reg_push
     i32.const 1
     local.get 0
     i32.const 0
-    call 9
+    call $host_ctx_read_into_reg
     local.get 0
     i32.const 0
     i32.const 0
@@ -564,17 +564,17 @@
     i32.const 1049552
     i32.const 1049559
     i32.const 7
-    call 59
+    call $bcmp
     select
-    call 10
+    call $storage_write_from_reg
     local.get 0
     i32.const 0
-    call 11)
-  (func (;33;) (type 13) (param i64)
-    call 34
+    call $reg_pop)
+  (func $transfer_apporove (type 13) (param i64)
+    call $multisig_complete
     local.get 0
-    call 28)
-  (func (;34;) (type 11)
+    call $do_transfer)
+  (func $multisig_complete (type 11)
     (local i32)
     block  ;; label = @1
       block  ;; label = @2
@@ -584,30 +584,30 @@
         i32.const 1049460
         i32.const 1049471
         i32.const 11
-        call 59
+        call $bcmp
         select
         i32.const 1
-        call 1
+        call $storage_read_i32_be
         i32.eqz
         br_if 0 (;@2;)
-        call 31
+        call $multisig_any_key_auth
         i32.const 256
         i32.const 160
         i32.const 1049552
         i32.const 1049559
         i32.const 7
-        call 59
+        call $bcmp
         select
         local.tee 0
         i32.const 0
-        call 3
+        call $reg_push
         local.get 0
         i32.const 1
-        call 3
+        call $reg_push
         i32.const 1
         local.get 0
         i32.const 0
-        call 9
+        call $host_ctx_read_into_reg
         i32.const 0
         i32.const 96
         local.get 0
@@ -617,40 +617,40 @@
         i32.const 1049552
         i32.const 1049559
         i32.const 7
-        call 59
+        call $bcmp
         select
-        call 14
+        call $storage_read_to_reg
         i32.const 256
         i32.const 160
         i32.const 1049552
         i32.const 1049559
         i32.const 7
-        call 59
+        call $bcmp
         select
         i32.const 0
         i32.const 1
-        call 13
+        call $reg_cmp
         br_if 1 (;@1;)
         i32.const 1049328
         i32.const 12
         i32.const 1049444
-        call 30
+        call $_ZN4core9panicking5panic17hf5b00f7a6b23c252E
         unreachable
       end
       i32.const 1049351
       i32.const 31
       i32.const 1049428
-      call 30
+      call $_ZN4core9panicking5panic17hf5b00f7a6b23c252E
       unreachable
     end
-    call 43
+    call $reset_pending_pub_key
     local.get 0
     i32.const 1
-    call 11
+    call $reg_pop
     local.get 0
     i32.const 0
-    call 11)
-  (func (;35;) (type 3) (param i32 i32)
+    call $reg_pop)
+  (func $_ZN4core9panicking9panic_fmt17hdc4684f569df1bbeE (type 3) (param i32 i32)
     (local i32)
     global.get 0
     i32.const 16
@@ -670,19 +670,19 @@
     i32.const 1048772
     i32.store
     local.get 2
-    call 36
+    call $rust_begin_unwind
     unreachable)
-  (func (;36;) (type 10) (param i32)
+  (func $rust_begin_unwind (type 10) (param i32)
     local.get 0
     i32.load offset=8
-    call 41
+    call $_ZN4core6option15Option$LT$T$GT$6unwrap17h981c39a2ec950d30E
     drop
-    call 39
+    call $_ZN3std9panicking20rust_panic_with_hook17h46f5759f06fb4468E
     unreachable)
-  (func (;37;) (type 10) (param i32))
-  (func (;38;) (type 5) (param i32) (result i64)
+  (func $_ZN4core3ptr13drop_in_place17h048b692ed670d872E (type 10) (param i32))
+  (func $_ZN36_$LT$T$u20$as$u20$core..any..Any$GT$7type_id17hc507c5612d4a7c4aE (type 5) (param i32) (result i64)
     i64.const -2101423557763808909)
-  (func (;39;) (type 11)
+  (func $_ZN3std9panicking20rust_panic_with_hook17h46f5759f06fb4468E (type 11)
     (local i32 i32)
     i32.const 1
     local.set 0
@@ -724,47 +724,47 @@
       i32.const 1
       i32.gt_u
       br_if 0 (;@1;)
-      call 40
+      call $rust_panic
       unreachable
     end
     unreachable
     unreachable)
-  (func (;40;) (type 11)
+  (func $rust_panic (type 11)
     unreachable
     unreachable)
-  (func (;41;) (type 8) (param i32) (result i32)
+  (func $_ZN4core6option15Option$LT$T$GT$6unwrap17h981c39a2ec950d30E (type 8) (param i32) (result i32)
     block  ;; label = @1
       local.get 0
       br_if 0 (;@1;)
       i32.const 1048728
       i32.const 43
       i32.const 1048772
-      call 30
+      call $_ZN4core9panicking5panic17hf5b00f7a6b23c252E
       unreachable
     end
     local.get 0)
-  (func (;42;) (type 13) (param i64)
+  (func $write_last_run_layer (type 13) (param i64)
     i32.const 1049512
     i32.const 40
     i32.const 1049184
-    call 30
+    call $_ZN4core9panicking5panic17hf5b00f7a6b23c252E
     unreachable)
-  (func (;43;) (type 11)
+  (func $reset_pending_pub_key (type 11)
     (local i32)
     i32.const 256
     i32.const 160
     i32.const 1049552
     i32.const 1049559
     i32.const 7
-    call 59
+    call $bcmp
     select
     local.tee 0
     i32.const 0
-    call 3
+    call $reg_push
     local.get 0
     i32.const 0
     i32.const 0
-    call 12
+    call $reg_set_i32_be
     local.get 0
     i32.const 0
     i32.const 0
@@ -774,43 +774,43 @@
     i32.const 1049552
     i32.const 1049559
     i32.const 7
-    call 59
+    call $bcmp
     select
-    call 10
+    call $storage_write_from_reg
     local.get 0
     i32.const 0
-    call 11)
-  (func (;44;) (type 10) (param i32)
+    call $reg_pop)
+  (func $write_unliquidated (type 10) (param i32)
     i32.const 0
     i32.const 156
     local.get 0
     i32.const 4
-    call 0)
-  (func (;45;) (type 12) (result i32)
+    call $storage_write_i32_be)
+  (func $is_multisig (type 12) (result i32)
     i32.const 0
     i32.const 162
     i32.const 128
     i32.const 1049460
     i32.const 1049471
     i32.const 11
-    call 59
+    call $bcmp
     select
     i32.const 1
-    call 1
+    call $storage_read_i32_be
     i32.const 0
     i32.ne)
-  (func (;46;) (type 14) (param i32 i32) (result i32)
+  (func $pub_key_cmp (type 14) (param i32 i32) (result i32)
     i32.const 256
     i32.const 160
     i32.const 1049552
     i32.const 1049559
     i32.const 7
-    call 59
+    call $bcmp
     select
     local.get 0
     local.get 1
-    call 13)
-  (func (;47;) (type 11)
+    call $reg_cmp)
+  (func $multisig_start (type 11)
     block  ;; label = @1
       i32.const 0
       i32.const 162
@@ -818,38 +818,38 @@
       i32.const 1049460
       i32.const 1049471
       i32.const 11
-      call 59
+      call $bcmp
       select
       i32.const 1
-      call 1
+      call $storage_read_i32_be
       i32.eqz
       br_if 0 (;@1;)
-      call 31
-      call 32
+      call $multisig_any_key_auth
+      call $write_pending_pub_key
       return
     end
     i32.const 1049351
     i32.const 31
     i32.const 1049384
-    call 30
+    call $_ZN4core9panicking5panic17hf5b00f7a6b23c252E
     unreachable)
-  (func (;48;) (type 3) (param i32 i32)
+  (func $copy_host_pub_key_to_reg (type 3) (param i32 i32)
     i32.const 1
     local.get 0
     local.get 1
-    call 9)
-  (func (;49;) (type 12) (result i32)
+    call $host_ctx_read_into_reg)
+  (func $read_is_multisig (type 12) (result i32)
     i32.const 0
     i32.const 162
     i32.const 128
     i32.const 1049460
     i32.const 1049471
     i32.const 11
-    call 59
+    call $bcmp
     select
     i32.const 1
-    call 1)
-  (func (;50;) (type 3) (param i32 i32)
+    call $storage_read_i32_be)
+  (func $read_pending_pub_key (type 3) (param i32 i32)
     i32.const 0
     i32.const 96
     local.get 0
@@ -859,10 +859,10 @@
     i32.const 1049552
     i32.const 1049559
     i32.const 7
-    call 59
+    call $bcmp
     select
-    call 14)
-  (func (;51;) (type 9) (param i32 i32 i32)
+    call $storage_read_to_reg)
+  (func $read_pub_key (type 9) (param i32 i32 i32)
     i32.const 0
     local.get 0
     local.get 1
@@ -872,49 +872,49 @@
     i32.const 1049552
     i32.const 1049559
     i32.const 7
-    call 59
+    call $bcmp
     select
-    call 14)
-  (func (;52;) (type 2) (result i64)
+    call $storage_read_to_reg)
+  (func $read_current_layer (type 2) (result i64)
     i32.const 2
-    call 5)
-  (func (;53;) (type 2) (result i64)
+    call $host_ctx_read_i64_be)
+  (func $read_first_layer (type 2) (result i64)
     i32.const 0
     i32.const 128
     i32.const 8
-    call 4)
-  (func (;54;) (type 2) (result i64)
+    call $storage_read_i64_be)
+  (func $read_last_run_layer (type 2) (result i64)
     i32.const 0
     i32.const 136
     i32.const 8
-    call 4)
-  (func (;55;) (type 12) (result i32)
+    call $storage_read_i64_be)
+  (func $read_unliquidated (type 12) (result i32)
     i32.const 0
     i32.const 156
     i32.const 4
-    call 1)
-  (func (;56;) (type 12) (result i32)
+    call $storage_read_i32_be)
+  (func $read_layer_liquidation (type 12) (result i32)
     i32.const 0
     i32.const 160
     i32.const 2
-    call 1)
-  (func (;57;) (type 12) (result i32)
+    call $storage_read_i32_be)
+  (func $read_period_sec (type 12) (result i32)
     i32.const 0
     i32.const 144
     i32.const 4
-    call 1)
-  (func (;58;) (type 12) (result i32)
+    call $storage_read_i32_be)
+  (func $read_lockup_time_sec (type 12) (result i32)
     i32.const 0
     i32.const 148
     i32.const 144
     i32.const 1049492
     i32.const 1049482
     i32.const 10
-    call 59
+    call $bcmp
     select
     i32.const 4
-    call 1)
-  (func (;59;) (type 1) (param i32 i32 i32) (result i32)
+    call $storage_read_i32_be)
+  (func $bcmp (type 1) (param i32 i32 i32) (result i32)
     (local i32 i32 i32)
     i32.const 0
     local.set 3
@@ -961,44 +961,44 @@
   (global (;1;) i32 (i32.const 1049580))
   (global (;2;) i32 (i32.const 1049580))
   (export "memory" (memory 0))
-  (export "init" (func 15))
-  (export "write_pub_keys" (func 16))
-  (export "write_first_layer" (func 17))
-  (export "write_period_sec" (func 18))
-  (export "write_liquidated" (func 19))
-  (export "write_layer_liquidation" (func 20))
-  (export "write_lockup_time" (func 21))
-  (export "get_liquidated" (func 22))
-  (export "refresh_liquidation" (func 23))
-  (export "read_liquidated" (func 24))
-  (export "get_unliquidated" (func 25))
-  (export "transfer" (func 26))
-  (export "pub_key_auth" (func 27))
-  (export "do_transfer" (func 28))
-  (export "transfer_prepare" (func 29))
-  (export "multisig_any_key_auth" (func 31))
-  (export "write_pending_pub_key" (func 32))
-  (export "transfer_apporove" (func 33))
-  (export "multisig_complete" (func 34))
-  (export "write_last_run_layer" (func 42))
-  (export "reset_pending_pub_key" (func 43))
-  (export "write_unliquidated" (func 44))
-  (export "is_multisig" (func 45))
-  (export "pub_key_cmp" (func 46))
-  (export "multisig_start" (func 47))
-  (export "copy_host_pub_key_to_reg" (func 48))
-  (export "read_is_multisig" (func 49))
-  (export "read_pending_pub_key" (func 50))
-  (export "read_pub_key" (func 51))
-  (export "read_current_layer" (func 52))
-  (export "read_first_layer" (func 53))
-  (export "read_last_run_layer" (func 54))
-  (export "read_unliquidated" (func 55))
-  (export "read_layer_liquidation" (func 56))
-  (export "read_period_sec" (func 57))
-  (export "read_lockup_time_sec" (func 58))
+  (export "init" (func $init))
+  (export "write_pub_keys" (func $write_pub_keys))
+  (export "write_first_layer" (func $write_first_layer))
+  (export "write_period_sec" (func $write_period_sec))
+  (export "write_liquidated" (func $write_liquidated))
+  (export "write_layer_liquidation" (func $write_layer_liquidation))
+  (export "write_lockup_time" (func $write_lockup_time))
+  (export "get_liquidated" (func $get_liquidated))
+  (export "refresh_liquidation" (func $refresh_liquidation))
+  (export "read_liquidated" (func $read_liquidated))
+  (export "get_unliquidated" (func $get_unliquidated))
+  (export "transfer" (func $transfer))
+  (export "pub_key_auth" (func $pub_key_auth))
+  (export "do_transfer" (func $do_transfer))
+  (export "transfer_prepare" (func $transfer_prepare))
+  (export "multisig_any_key_auth" (func $multisig_any_key_auth))
+  (export "write_pending_pub_key" (func $write_pending_pub_key))
+  (export "transfer_apporove" (func $transfer_apporove))
+  (export "multisig_complete" (func $multisig_complete))
+  (export "write_last_run_layer" (func $write_last_run_layer))
+  (export "reset_pending_pub_key" (func $reset_pending_pub_key))
+  (export "write_unliquidated" (func $write_unliquidated))
+  (export "is_multisig" (func $is_multisig))
+  (export "pub_key_cmp" (func $pub_key_cmp))
+  (export "multisig_start" (func $multisig_start))
+  (export "copy_host_pub_key_to_reg" (func $copy_host_pub_key_to_reg))
+  (export "read_is_multisig" (func $read_is_multisig))
+  (export "read_pending_pub_key" (func $read_pending_pub_key))
+  (export "read_pub_key" (func $read_pub_key))
+  (export "read_current_layer" (func $read_current_layer))
+  (export "read_first_layer" (func $read_first_layer))
+  (export "read_last_run_layer" (func $read_last_run_layer))
+  (export "read_unliquidated" (func $read_unliquidated))
+  (export "read_layer_liquidation" (func $read_layer_liquidation))
+  (export "read_period_sec" (func $read_period_sec))
+  (export "read_lockup_time_sec" (func $read_lockup_time_sec))
   (export "__data_end" (global 1))
   (export "__heap_base" (global 2))
-  (elem (;0;) (i32.const 1) 37 38)
+  (elem (;0;) (i32.const 1) $_ZN4core3ptr13drop_in_place17h048b692ed670d872E $_ZN36_$LT$T$u20$as$u20$core..any..Any$GT$7type_id17hc507c5612d4a7c4aE)
   (data (;0;) (i32.const 1048576) "assertion failed: balance >= amountsrc/lib.rs\00\00\00#\00\10\00\0a\00\00\00m\00\00\00\09\00\00\00#\00\10\00\0a\00\00\00r\00\00\000\00\00\00assertion failed: unliquidated >= delta\00#\00\10\00\0a\00\00\00\85\00\00\00\05\00\00\00\01\00\00\00\00\00\00\00\01\00\00\00\02\00\00\00called `Option::unwrap()` on a `None` value\00\d4\00\10\00\17\00\00\00y\01\00\00\0f\00\00\00src/libstd/panicking.rsassertion failed: time_interval % layer_time == 0|\01\10\00\13\00\00\00!\00\00\00\05\00\00\00\00\00\00\00attempt to calculate the remainder with a divisor of zero\00\00\00|\01\10\00\13\00\00\00!\00\00\00\0d\00\00\00src/computations.rsassertion failed: amount % layer_count == 0\00\00|\01\10\00\13\00\00\00,\00\00\00\05\00\00\00|\01\10\00\13\00\00\00,\00\00\00\0d\00\00\00assertion failed: current_layer >= last_layer\00\00\00|\01\10\00\13\00\00\008\00\00\00\05\00\00\00assertion failed: delta <= 0xFF_FF_FF_FF|\01\10\00\13\00\00\00<\00\00\00\05\00\00\00src/write.rsT\02\10\00\0c\00\00\00\a2\00\00\00(\00\00\00assertion failed: layer_liq <= 0xFFFF\00\00\00T\02\10\00\0c\00\00\00N\00\00\00\09\00\00\00assertion failed: is_multisig() == false\fc\02\10\00\0b\00\00\00\11\00\00\00\05\00\00\00\fc\02\10\00\0b\00\00\00\1a\00\00\00\16\00\00\00auth failed!src/auth.rsassertion failed: is_multisig()\00\00\fc\02\10\00\0b\00\00\00'\00\00\00\05\00\00\00auth failed\00\fc\02\10\00\0b\00\00\00h\00\00\00\05\00\00\00\fc\02\10\00\0b\00\00\00/\00\00\00\05\00\00\00\fc\02\10\00\0b\00\00\00A\00\00\00\0d\00\00\00is_multisigfirst_layerperiod_seclockup_secliquidatedinternal error: entered unreachable codepub_keyaddress")
   (data (;1;) (i32.const 1049568) "\00\00\00\00\00\00\00\00\00\00\00\00"))
