@@ -4,25 +4,62 @@ use super::{read::*, write::*};
 
 #[no_mangle]
 pub(crate) fn is_multisig() -> bool {
-    if read_is_multisig() == 0 {
-        return false;
+    match read_is_multisig() {
+        0 => false,
+        _ => true,
     }
-    true
+}
+
+#[no_mangle]
+pub(crate) fn pub_key_auth() {
+    assert!(is_multisig() == false);
+
+    unsafe {
+        reg_push(256, 0);
+        reg_push(256, 1);
+
+        copy_host_pub_key_to_reg(256, 0);
+        read_pub_key(0, 256, 1);
+
+        if pub_key_cmp(0, 1) == 0 {
+            panic!("auth failed!")
+        }
+
+        reg_pop(256, 1);
+        reg_pop(256, 0);
+    }
 }
 
 #[no_mangle]
 pub(crate) fn multisig_start() {
+    assert!(is_multisig());
+
     multisig_any_key_auth();
     write_pending_pub_key();
 }
 
 #[no_mangle]
 pub(crate) fn multisig_complete() {
+    assert!(is_multisig());
+
     multisig_any_key_auth();
 
+    /// we need to assert that the current `pub_key` is different
+    /// from the presisted `pending_pub_key`.
+    /// If they keys differ - we conclude the multisig auth as a success
+    /// and we zero the `pending_pub_key.`
     unsafe {
         reg_push(256, 0);
         reg_push(256, 1);
+
+        copy_host_pub_key_to_reg(256, 0);
+        read_pending_pub_key(256, 1);
+
+        if pub_key_cmp(0, 1) == 0 {
+            panic!("auth failed!")
+        }
+
+        reset_pending_pub_key();
 
         reg_pop(256, 1);
         reg_pop(256, 0);

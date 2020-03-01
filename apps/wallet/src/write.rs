@@ -1,6 +1,6 @@
 include!("imports.rs");
 
-use super::{computations, read};
+use super::{auth, computations, read};
 
 ///
 /// When `is_multi_sig = 0`
@@ -16,13 +16,7 @@ use super::{computations, read};
 #[no_mangle]
 pub(crate) fn write_pub_keys(is_multisig: u32) {
     unsafe {
-        if is_multisig == 0 {
-            // store `pub_key1`
-            buffer_copy_to_storage(0, 0, 0, 0, 32);
-
-            // store: `is_multisig=0`
-            storage_write_i32_be(0, 0, 0, 1);
-        } else {
+        if auth::is_multisig() {
             // storing `pub_key1, pub_key2, pub_key3`
             // we copy the keys at one shot,
             // since they are laid contagiously at both input func-buffer and app-storage
@@ -30,6 +24,12 @@ pub(crate) fn write_pub_keys(is_multisig: u32) {
 
             // store: `is_multisig=1`
             storage_write_i32_be(0, 0, 1, 1);
+        } else {
+            // store `pub_key1`
+            buffer_copy_to_storage(0, 0, 0, 0, 32);
+
+            // store: `is_multisig=0`
+            storage_write_i32_be(0, 0, 0, 1);
         }
     }
 }
@@ -68,6 +68,21 @@ pub(crate) fn write_pending_pub_key() {
         reg_push(256, 0);
         host_ctx_read_into_reg(0, 256, 0);
         storage_write_from_reg(256, 0, 0, 0, 32);
+        reg_pop(256, 0);
+    }
+}
+
+#[no_mangle]
+pub(crate) fn reset_pending_pub_key() {
+    unsafe {
+        reg_push(256, 0);
+
+        // the side-effect of the folllowing is zero-ing
+        // the `256:0` register.
+        reg_set_i32_be(256, 0, 4);
+
+        storage_write_from_reg(256, 0, 0, 0, 32);
+
         reg_pop(256, 0);
     }
 }

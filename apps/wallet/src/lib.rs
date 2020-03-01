@@ -32,79 +32,66 @@ mod constants;
 mod read;
 mod write;
 
-use auth::*;
-use read::*;
-use write::*;
-
 pub use constants::*;
 
 /// Public API
 
 #[no_mangle]
 pub extern "C" fn init(is_multisig: u32, coins: u32, period_sec: u32, lockup_time_sec: u32) {
-    write_pub_keys(is_multisig);
-    write_first_layer();
-    write_period_sec(period_sec);
+    write::write_pub_keys(is_multisig);
+    write::write_first_layer();
+    write::write_period_sec(period_sec);
 
-    write_liquidated(0);
-    write_unliquidated(coins);
+    write::write_liquidated(0);
+    write::write_unliquidated(coins);
 
-    write_layer_liquidation(coins, period_sec);
-    write_lockup_time(lockup_time_sec);
+    write::write_layer_liquidation(coins, period_sec);
+    write::write_lockup_time(lockup_time_sec);
 }
 
 #[no_mangle]
 pub extern "C" fn get_liquidated() -> u32 {
     refresh_liquidation();
-    read_liquidated()
+    read::read_liquidated()
 }
 
 #[no_mangle]
 pub extern "C" fn get_unliquidated() -> u32 {
     refresh_liquidation();
-    read_unliquidated()
+    read::read_unliquidated()
 }
 
 /// The function expects the following func buf:
-/// +---------------------------------+
-/// | destination address (20 bytes)  |
-/// +---------------------------------+
+/// +------------------------------------------------------+
+/// | pub-key (32 bytes) | destination address (20 bytes)  |
+/// +------------------------------------------------------+
 ///
 #[no_mangle]
 pub extern "C" fn transfer(amount: u64) {
-    assert!(is_multisig() == false);
-
-    // 1) TODO: single pub-key auth
-
+    auth::pub_key_auth();
     do_transfer(amount);
 }
 
 /// The function expects the following func buf:
-/// +---------------------------------+
-/// | destination address (20 bytes)  |
-/// +---------------------------------+
+/// +---------------------+
+/// | pub-key (32 bytes)  |
+/// +---------------------+
 ///
 #[no_mangle]
-pub extern "C" fn prepare(amount: u32) {
-    assert!(is_multisig());
-
-    // TODO:
-    // 1) queue request
-    // 2) multisig 1st part
+pub extern "C" fn transfer_prepare() {
+    auth::multisig_start()
 }
 
+///
 /// The function expects the following func buf:
-/// +---------------------------------+
-/// | destination address (20 bytes)  |
-/// +---------------------------------+
+/// +------------------------------------------------------+
+/// | pub-key (32 bytes) | destination address (20 bytes)  |
+/// +------------------------------------------------------+
 ///
 #[no_mangle]
-pub extern "C" fn apporove(amount: u32) {
-    assert!(is_multisig());
-
-    // TODO:
-    // 1) multisig 2nd part
-    // 2) do_tranfer(amount);
+pub extern "C" fn transfer_apporove(amount: u64) {
+    auth::multisig_complete();
+    do_transfer(amount);
 }
 
 /// Private
@@ -124,7 +111,6 @@ fn do_transfer(amount: u64) {
         buffer_copy_to_reg(0, 0, 160, 0, 20);
 
         host_transfer(amount, 160, 0);
-        // TODO: subtract `amount` from wallet's balance
 
         reg_pop(160, 0);
     }
@@ -132,20 +118,18 @@ fn do_transfer(amount: u64) {
 
 #[no_mangle]
 fn refresh_liquidation() {
-    let layer_liq = read_layer_liquidation();
-    let last_run_layer = read_last_run_layer();
-    let current_layer = read_current_layer();
+    let layer_liq = read::read_layer_liquidation();
+    let last_run_layer = read::read_last_run_layer();
+    let current_layer = read::read_current_layer();
 
     let delta = computations::liquidation_delta(layer_liq, last_run_layer, current_layer);
 
-    let liquidated = read_liquidated();
-    let unliquidated = read_unliquidated();
+    let liquidated = read::read_liquidated();
+    let unliquidated = read::read_unliquidated();
 
     assert!(unliquidated >= delta);
 
-    write_last_run_layer(current_layer);
-    write_liquidated(liquidated + delta);
-    write_unliquidated(unliquidated - delta);
-
-    // TODO: balance <- balance + delta
+    write::write_last_run_layer(current_layer);
+    write::write_liquidated(liquidated + delta);
+    write::write_unliquidated(unliquidated - delta);
 }
