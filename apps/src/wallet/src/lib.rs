@@ -39,8 +39,13 @@ static buf_idx: u32 = 0;
 
 /// Public API
 
+/// called as part of app's spawning.
 #[no_mangle]
 pub extern "C" fn init(is_multisig: u32, coins: u32, period_sec: u32, lockup_sec: u32) {
+    /// We need to make sure that `coins` have been locked into tha app.
+    /// Otherwise, spawning the wallet should fail.
+    assert_eq!(coins as u64, unsafe { host_get_my_balance() });
+
     write_pub_keys(is_multisig);
     write_first_layer();
     write_period_sec(period_sec);
@@ -62,6 +67,24 @@ pub extern "C" fn get_liquidated() -> u32 {
 pub extern "C" fn get_unliquidated() -> u32 {
     refresh_liquidation();
     read_unliquidated()
+}
+
+#[no_mangle]
+pub extern "C" fn get_transfered() -> u32 {
+    read_transferred()
+}
+
+#[no_mangle]
+pub extern "C" fn get_available() -> u32 {
+    refresh_liquidation();
+
+    let liquidated = read_liquidated();
+    let transferred = read_transferred();
+    assert!(liquidated >= transferred);
+
+    let available = liquidated - transferred;
+
+    available
 }
 
 /// The function expects the following func buf:
