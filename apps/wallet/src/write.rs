@@ -1,6 +1,14 @@
 include!("imports.rs");
 
-use super::{auth, computations, read};
+use super::{auth, computations, constants, read};
+
+use crate::{hostctx, offset, sizeof};
+
+#[allow(non_upper_case_globals)]
+static page_idx: u32 = 0;
+
+#[allow(non_upper_case_globals)]
+static buf_idx: u32 = 0;
 
 ///
 /// When `is_multi_sig = 0`
@@ -16,21 +24,33 @@ use super::{auth, computations, read};
 #[no_mangle]
 pub(crate) fn write_pub_keys(is_multisig: u32) {
     unsafe {
-        if auth::is_multisig() {
+        let is_multisig = if auth::is_multisig() {
             // storing `pub_key1, pub_key2, pub_key3`
             // we copy the keys at one shot,
             // since they are laid contagiously at both input func-buffer and app-storage
-            buffer_copy_to_storage(0, 0, 0, 0, 32 * 3);
+            buffer_copy_to_storage(
+                buf_idx,
+                0, // func-buf `pub_key` offset
+                page_idx,
+                offset!(pub_key, 0),
+                sizeof!(pub_key) * 3,
+            );
 
             // store: `is_multisig=1`
-            storage_write_i32_be(0, 0, 1, 1);
+            storage_write_i32_be(page_idx, offset!(is_multisig), 1, sizeof!(is_multisig));
+            1
         } else {
             // store `pub_key1`
-            buffer_copy_to_storage(0, 0, 0, 0, 32);
+            buffer_copy_to_storage(buf_idx, 0, page_idx, offset!(pub_key, 0), sizeof!(pub_key));
+            0
+        };
 
-            // store: `is_multisig=0`
-            storage_write_i32_be(0, 0, 0, 1);
-        }
+        storage_write_i32_be(
+            page_idx,
+            offset!(is_multisig),
+            is_multisig,
+            sizeof!(is_multisig),
+        );
     }
 }
 
@@ -39,7 +59,7 @@ pub(crate) fn write_first_layer() {
     unsafe {
         let layer = read::read_current_layer();
 
-        storage_write_i64_be(0, 0, layer, 8);
+        storage_write_i64_be(page_idx, offset!(first_layer), layer, sizeof!(layer));
 
         // set init `last_run_layer` with `first_layer`
         write_last_run_layer(layer);
@@ -49,75 +69,120 @@ pub(crate) fn write_first_layer() {
 #[no_mangle]
 pub(crate) fn write_layer_liquidation(unliquidated: u32, period_sec: u32) {
     unsafe {
-        let layer = host_ctx_read_i64_be(0);
-        let layer_time_sec = host_ctx_read_i32_be(0);
+        let layer = host_ctx_read_i64_be(hostctx!(layer));
+        let layer_time_sec = host_ctx_read_i32_be(hostctx!(layer_time_sec));
 
         let layer_count = computations::layer_count(period_sec, layer_time_sec);
         let layer_liq = computations::layer_liquidation(unliquidated, layer_count);
 
         assert!(layer_liq <= 0xFFFF);
 
-        storage_write_i32_be(0, 0, layer_liq, 2);
+        storage_write_i32_be(
+            page_idx,
+            offset!(layer_liquidation),
+            layer_liq,
+            sizeof!(layer_liquidation),
+        );
     }
 }
 
-// persist `HostCtx pub_key` into app-storage `last_pub_key`
 #[no_mangle]
 pub(crate) fn write_pending_pub_key() {
+    let reg_bits = sizeof!(pub_key) * 8;
+    let reg_idx = 0;
+
     unsafe {
-        reg_push(256, 0);
-        host_ctx_read_into_reg(0, 256, 0);
-        storage_write_from_reg(256, 0, 0, 0, 32);
-        reg_pop(256, 0);
+        reg_push(reg_bits, reg_idx);
+
+        host_ctx_read_into_reg(hostctx!(pub_key), reg_bits, reg_idx);
+        storage_write_from_reg(
+            reg_bits,
+            reg_idx,
+            page_idx,
+            offset!(pending_pub_key),
+            sizeof!(pub_key),
+        );
+
+        reg_pop(reg_bits, reg_idx);
     }
 }
 
 #[no_mangle]
 pub(crate) fn reset_pending_pub_key() {
+    let reg_bits = sizeof!(pub_key) * 8;
+    let reg_idx = 0;
+
     unsafe {
-        reg_push(256, 0);
+        reg_push(reg_bits, reg_idx);
 
         // the side-effect of the folllowing is zero-ing
-        // the `256:0` register.
-        reg_set_i32_be(256, 0, 4);
+        // the `{reg_bits}:{reg_idx}` register.
+        let value = 0;
+        reg_set_i32_be(reg_bits, reg_idx, value);
 
-        storage_write_from_reg(256, 0, 0, 0, 32);
+        storage_write_from_reg(
+            reg_bits,
+            reg_idx,
+            page_idx,
+            offset!(pending_pub_key),
+            sizeof!(pub_key),
+        );
 
-        reg_pop(256, 0);
+        reg_pop(reg_bits, reg_idx);
     }
 }
 
 #[no_mangle]
 pub(crate) fn write_liquidated(liquidated: u32) {
     unsafe {
-        storage_write_i32_be(0, 0, liquidated, 4);
+        storage_write_i32_be(
+            page_idx,
+            offset!(liquidated),
+            liquidated,
+            sizeof!(liquidated),
+        );
     }
 }
 
 #[no_mangle]
 pub(crate) fn write_unliquidated(unliquidated: u32) {
     unsafe {
-        storage_write_i32_be(0, 0, unliquidated, 4);
+        storage_write_i32_be(
+            page_idx,
+            offset!(unliquidated),
+            unliquidated,
+            sizeof!(unliquidated),
+        );
     }
 }
 
 #[no_mangle]
 pub(crate) fn write_last_run_layer(layer: u64) {
     unsafe {
-        storage_write_i64_be(0, 0, layer, 8);
+        storage_write_i64_be(page_idx, offset!(layer), layer, sizeof!(layer));
     }
 }
 
 #[no_mangle]
 pub(crate) fn write_period_sec(period_sec: u32) {
     unsafe {
-        storage_write_i32_be(0, 0, period_sec, 4);
+        storage_write_i32_be(
+            page_idx,
+            offset!(period_sec),
+            period_sec,
+            sizeof!(period_sec),
+        );
     }
 }
 
 #[no_mangle]
-pub(crate) fn write_lockup_time(lockup_time_sec: u32) {
+pub(crate) fn write_lockup_time(lockup_sec: u32) {
     unsafe {
-        storage_write_i32_be(0, 0, lockup_time_sec, 4);
+        storage_write_i32_be(
+            page_idx,
+            offset!(lockup_sec),
+            lockup_sec,
+            sizeof!(lockup_sec),
+        );
     }
 }

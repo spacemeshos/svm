@@ -6,7 +6,7 @@ edition = "2018"
 
 [lib]
 path = "src/lib.rs"
-# crate-type = ["cdylib"]
+crate-type = ["cdylib"]
 
 [profile.release]
 panic = "abort"
