@@ -38,32 +38,19 @@ use write::*;
 
 pub use constants::*;
 
-// Host Imports
-extern "C" {
-    fn add_balance_i32(amount: u32, reg_bits: u32, reg_idx: u32);
-}
-
 /// Public API
 
 #[no_mangle]
-pub extern "C" fn init(
-    is_multisig: u32,
-    coins: u32,
-    period_sec: u32,
-    lockup_time_sec: u32,
-    daily_pull_limit: u32,
-) {
+pub extern "C" fn init(is_multisig: u32, coins: u32, period_sec: u32, lockup_time_sec: u32) {
     write_pub_keys(is_multisig);
     write_first_layer();
+    write_period_sec(period_sec);
 
     write_liquidated(0);
     write_unliquidated(coins);
-    write_layer_liquidation(coins, period_sec);
 
-    // TODO:
-    // 1) write `period_sec`
-    // 2) write `lockup_time_sec`
-    // 3) write `daily_pull_limit`
+    write_layer_liquidation(coins, period_sec);
+    write_lockup_time(lockup_time_sec);
 }
 
 #[no_mangle]
@@ -84,7 +71,7 @@ pub extern "C" fn get_unliquidated() -> u32 {
 /// +---------------------------------+
 ///
 #[no_mangle]
-pub extern "C" fn transfer(amount: u32) {
+pub extern "C" fn transfer(amount: u64) {
     assert!(is_multisig() == false);
 
     // 1) TODO: single pub-key auth
@@ -116,27 +103,28 @@ pub extern "C" fn apporove(amount: u32) {
     assert!(is_multisig());
 
     // TODO:
-    // 1) multisig 2st part
+    // 1) multisig 2nd part
     // 2) do_tranfer(amount);
 }
 
 /// Private
 
 #[no_mangle]
-fn do_transfer(amount: u32) {
+fn do_transfer(amount: u64) {
     unsafe {
         refresh_liquidation();
 
-        let liquidated = read_liquidated();
+        let balance = host_current_balance();
 
-        assert!(liquidated >= amount);
+        assert!(balance >= amount);
 
         reg_push(160, 0);
 
         // loading `dest-address` given in func-buf into register `160:0`
         buffer_copy_to_reg(0, 0, 160, 0, 20);
 
-        add_balance_i32(amount, 160, 0);
+        host_transfer(amount, 160, 0);
+        // TODO: subtract `amount` from wallet's balance
 
         reg_pop(160, 0);
     }
@@ -158,4 +146,6 @@ fn refresh_liquidation() {
     write_last_run_layer(current_layer);
     write_liquidated(liquidated + delta);
     write_unliquidated(unliquidated - delta);
+
+    // TODO: balance <- balance + delta
 }

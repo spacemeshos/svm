@@ -92,3 +92,17 @@ pub(crate) fn write_last_run_layer(layer: u64) {
         storage_write_i64_be(0, 0, layer, 8);
     }
 }
+
+#[no_mangle]
+pub(crate) fn write_period_sec(period_sec: u32) {
+    unsafe {
+        storage_write_i32_be(0, 0, period_sec, 4);
+    }
+}
+
+#[no_mangle]
+pub(crate) fn write_lockup_time(lockup_time_sec: u32) {
+    unsafe {
+        storage_write_i32_be(0, 0, lockup_time_sec, 4);
+    }
+}

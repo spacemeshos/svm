@@ -1,6 +1,11 @@
 include!("imports.rs");
 
 #[no_mangle]
+pub(crate) fn read_is_multisig() -> u8 {
+    todo!()
+}
+
+#[no_mangle]
 pub(crate) fn read_pending_pub_key(reg_bits: u32, reg_idx: u32) {
     read_pub_key(3, reg_bits, reg_idx);
 }
@@ -43,4 +48,14 @@ pub(crate) fn read_unliquidated() -> u32 {
 #[no_mangle]
 pub(crate) fn read_layer_liquidation() -> u32 {
     unsafe { storage_read_i32_be(0, 0, 2) }
+}
+
+#[no_mangle]
+pub(crate) fn read_period_sec() -> u64 {
+    unsafe { storage_read_i64_be(0, 0, 8) }
+}
+
+#[no_mangle]
+pub(crate) fn read_lockup_time_sec() -> u64 {
+    unsafe { storage_read_i64_be(0, 0, 8) }
 }

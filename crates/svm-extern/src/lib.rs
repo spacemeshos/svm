@@ -4,9 +4,6 @@
 //! `svm-extern` crate contains the `extern "C"` interface that will be consumed by `SVM` apps
 //! written in Rust
 
-/// Interface for interacting with the Node.
-pub mod node;
-
 /// Interface for interacting with the app-storage.
 pub mod storage;
 

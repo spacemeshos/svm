@@ -3,12 +3,36 @@ include!("imports.rs");
 use super::{read::*, write::*};
 
 #[no_mangle]
-pub fn is_multisig() -> bool {
-    false
+pub(crate) fn is_multisig() -> bool {
+    if read_is_multisig() == 0 {
+        return false;
+    }
+    true
 }
 
 #[no_mangle]
-pub fn multisig_prepare() {
+pub(crate) fn multisig_start() {
+    multisig_any_key_auth();
+    write_pending_pub_key();
+}
+
+#[no_mangle]
+pub(crate) fn multisig_complete() {
+    multisig_any_key_auth();
+
+    unsafe {
+        reg_push(256, 0);
+        reg_push(256, 1);
+
+        reg_pop(256, 1);
+        reg_pop(256, 0);
+    };
+}
+
+/// Private
+
+#[no_mangle]
+fn multisig_any_key_auth() {
     unsafe {
         reg_push(256, 0);
         reg_push(256, 1);
@@ -41,7 +65,7 @@ fn pub_key_cmp(reg_idx1: u32, reg_idx2: u32) -> i32 {
 }
 
 #[no_mangle]
-pub(crate) fn copy_host_pub_key_to_reg(reg_bits: u32, reg_idx: u32) {
+fn copy_host_pub_key_to_reg(reg_bits: u32, reg_idx: u32) {
     unsafe {
         host_ctx_read_into_reg(0, reg_bits, reg_idx);
     }
