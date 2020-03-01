@@ -36,12 +36,18 @@ pub(crate) fn write_pub_keys(is_multisig: u32) {
                 sizeof!(pub_key) * 3,
             );
 
-            // store: `is_multisig=1`
-            storage_write_i32_be(page_idx, offset!(is_multisig), 1, sizeof!(is_multisig));
             1
         } else {
-            // store `pub_key1`
-            buffer_copy_to_storage(buf_idx, 0, page_idx, offset!(pub_key, 0), sizeof!(pub_key));
+            // store a single `pub_key`
+
+            buffer_copy_to_storage(
+                buf_idx,
+                0, // func-buf `pub_key` offset
+                page_idx,
+                offset!(pub_key, 0),
+                sizeof!(pub_key),
+            );
+
             0
         };
 
@@ -57,12 +63,12 @@ pub(crate) fn write_pub_keys(is_multisig: u32) {
 #[no_mangle]
 pub(crate) fn write_first_layer() {
     unsafe {
-        let layer = read::read_current_layer();
+        let first_layer = read::read_current_layer();
 
-        storage_write_i64_be(page_idx, offset!(first_layer), layer, sizeof!(layer));
+        storage_write_i64_be(page_idx, offset!(first_layer), first_layer, sizeof!(layer));
 
-        // set init `last_run_layer` with `first_layer`
-        write_last_run_layer(layer);
+        // init `last_run_layer` with `first_layer`
+        write_last_run_layer(first_layer);
     }
 }
 
@@ -75,6 +81,7 @@ pub(crate) fn write_layer_liquidation(unliquidated: u32, period_sec: u32) {
         let layer_count = computations::layer_count(period_sec, layer_time_sec);
         let layer_liq = computations::layer_liquidation(unliquidated, layer_count);
 
+        // `layer_liq` should fit into 2 bytes
         assert!(layer_liq <= 0xFFFF);
 
         storage_write_i32_be(
@@ -95,6 +102,7 @@ pub(crate) fn write_pending_pub_key() {
         reg_push(reg_bits, reg_idx);
 
         host_ctx_read_into_reg(hostctx!(pub_key), reg_bits, reg_idx);
+
         storage_write_from_reg(
             reg_bits,
             reg_idx,
@@ -157,9 +165,14 @@ pub(crate) fn write_unliquidated(unliquidated: u32) {
 }
 
 #[no_mangle]
-pub(crate) fn write_last_run_layer(layer: u64) {
+pub(crate) fn write_last_run_layer(last_run_layer: u64) {
     unsafe {
-        storage_write_i64_be(page_idx, offset!(layer), layer, sizeof!(layer));
+        storage_write_i64_be(
+            page_idx,
+            offset!(last_run_layer),
+            last_run_layer,
+            sizeof!(layer),
+        );
     }
 }
 
