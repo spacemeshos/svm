@@ -8,3 +8,6 @@ publish = false
 [workspace]
 
 [dependencies]
+svm-app = { path = "../../../crates/svm-app" }
+svm-common = { path = "../../../crates/svm-common" }
+svm-runtime = { path = "../../../crates/svm-runtime" }
