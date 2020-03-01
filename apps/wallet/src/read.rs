@@ -47,6 +47,11 @@ pub(crate) fn read_unliquidated() -> u32 {
 }
 
 #[no_mangle]
+pub(crate) fn read_transferred() -> u32 {
+    unsafe { storage_read_i32_be(page_idx, offset!(transferred), sizeof!(transferred)) }
+}
+
+#[no_mangle]
 pub(crate) fn read_layer_liquidation() -> u32 {
     unsafe {
         storage_read_i32_be(

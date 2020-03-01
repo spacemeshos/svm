@@ -17,10 +17,11 @@ fn test_offsets() {
     assert_eq!(148, offset!(lockup_sec));
     assert_eq!(152, offset!(liquidated));
     assert_eq!(156, offset!(unliquidated));
+    assert_eq!(160, offset!(transferred));
 
     // 2 bytes
-    assert_eq!(160, offset!(layer_liquidation));
+    assert_eq!(164, offset!(layer_liquidation));
 
     // 1 bytes
-    assert_eq!(162, offset!(is_multisig));
+    assert_eq!(166, offset!(is_multisig));
 }

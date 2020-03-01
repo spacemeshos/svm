@@ -23,9 +23,11 @@
 ///  +--------------------------------+
 ///  |  unliquidated       (4 bytes)  |    bytes: 156...159
 ///  +--------------------------------+
-///  |  layer_liquidation  (2 bytes)  |    bytes: 160...161
+///  |  transferred        (4 bytes)  |    bytes: 160...163
 ///  +--------------------------------+
-///  |  is_multisig        (1 byte)   |    bytes: 162...162
+///  |  layer_liquidation  (2 bytes)  |    bytes: 164...165
+///  +--------------------------------+
+///  |  is_multisig        (1 byte)   |    bytes: 166...166
 ///  |--------------------------------+
 ///
 
@@ -53,8 +55,9 @@ macro_rules! offset {
             "lockup_sec" => 148,
             "liquidated" => 152,
             "unliquidated" => 156,
-            "layer_liquidation" => 160,
-            "is_multisig" => 162,
+            "transferred" => 160,
+            "layer_liquidation" => 164,
+            "is_multisig" => 166,
             _ => unreachable!(),
         }
     }};
@@ -73,6 +76,7 @@ macro_rules! sizeof {
             "lockup_sec" => 4,
             "liquidated" => 4,
             "unliquidated" => 4,
+            "transferred" => 4,
             "layer_liquidation" => 2,
             "is_multisig" => 1,
             _ => unreachable!(),

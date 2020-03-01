@@ -165,6 +165,18 @@ pub(crate) fn write_unliquidated(unliquidated: u32) {
 }
 
 #[no_mangle]
+pub(crate) fn write_transferred(transferred: u32) {
+    unsafe {
+        storage_write_i32_be(
+            page_idx,
+            offset!(transferred),
+            transferred,
+            sizeof!(transferred),
+        );
+    }
+}
+
+#[no_mangle]
 pub(crate) fn write_last_run_layer(last_run_layer: u64) {
     unsafe {
         storage_write_i64_be(

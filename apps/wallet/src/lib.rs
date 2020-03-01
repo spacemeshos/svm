@@ -70,7 +70,7 @@ pub extern "C" fn get_unliquidated() -> u32 {
 /// +------------------------------------------------------+
 ///
 #[no_mangle]
-pub extern "C" fn transfer(amount: u64) {
+pub extern "C" fn transfer(amount: u32) {
     auth::pub_key_auth();
     do_transfer(amount);
 }
@@ -92,7 +92,7 @@ pub extern "C" fn transfer_prepare() {
 /// +------------------------------------------------------+
 ///
 #[no_mangle]
-pub extern "C" fn transfer_apporove(amount: u64) {
+pub extern "C" fn transfer_apporove(amount: u32) {
     auth::multisig_complete();
     do_transfer(amount);
 }
@@ -100,22 +100,26 @@ pub extern "C" fn transfer_apporove(amount: u64) {
 /// Private
 
 #[no_mangle]
-fn do_transfer(amount: u64) {
+fn do_transfer(amount: u32) {
     unsafe {
         refresh_liquidation();
 
-        let balance = host_current_balance();
+        let liquidated = read_liquidated();
+        let transferred = read_transferred();
+        assert!(liquidated >= transferred);
 
-        assert!(balance >= amount);
+        let available = liquidated - transferred;
+        assert!(available >= amount);
 
         reg_push(160, 0);
 
         // loading `dest-address` given in func-buf into register `160:0`
         buffer_copy_to_reg(buf_idx, 0, 160, 0, sizeof!(addr));
 
-        host_transfer(amount, 160, 0);
-
+        host_transfer(amount as u64, 160, 0);
         reg_pop(160, 0);
+
+        write_transferred(transferred + amount);
     }
 }
 
