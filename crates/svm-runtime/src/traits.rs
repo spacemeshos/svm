@@ -47,6 +47,7 @@ pub trait Runtime {
         app_tx: AppTransaction,
         state: State,
         host_ctx: HostCtx,
+        dry_run: bool,
     ) -> Result<Receipt, ExecAppError>;
 }
 

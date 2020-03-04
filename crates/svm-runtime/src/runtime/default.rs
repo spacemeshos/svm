@@ -90,9 +90,11 @@ where
         tx: AppTransaction,
         state: State,
         host_ctx: HostCtx,
+        dry_run: bool,
     ) -> Result<Receipt, ExecAppError> {
         let is_ctor = false;
-        self.inner_exec_app(tx, state, host_ctx, is_ctor)
+
+        self.inner_exec_app(tx, state, host_ctx, is_ctor, dry_run)
     }
 }
 
@@ -138,8 +140,9 @@ where
     ) -> Result<State, SpawnAppError> {
         let ctor = self.build_ctor_call(creator, spawn_app, &app_addr);
         let is_ctor = true;
+        let dry_run = false;
 
-        match self.inner_exec_app(ctor, State::empty(), host_ctx, is_ctor) {
+        match self.inner_exec_app(ctor, State::empty(), host_ctx, is_ctor, dry_run) {
             Ok(receipt) => {
                 // TODO:
                 // handle `receipt.success = false`
@@ -203,6 +206,7 @@ where
         state: State,
         host_ctx: HostCtx,
         is_ctor: bool,
+        dry_run: bool,
     ) -> Result<Receipt, ExecAppError> {
         info!("runtime `exec_app`");
 
@@ -215,7 +219,14 @@ where
         let mut import_object = self.import_object_create(&tx.app, &state, host_ctx, &settings);
         self.import_object_extend(&mut import_object);
 
-        let result = self.do_exec_app(&tx, &template, &template_addr, &import_object, is_ctor);
+        let result = self.do_exec_app(
+            &tx,
+            &template,
+            &template_addr,
+            &import_object,
+            is_ctor,
+            dry_run,
+        );
         let receipt = self.make_receipt(result);
 
         info!("receipt: {:?}", receipt);
@@ -230,7 +241,8 @@ where
         template_addr: &Address,
         import_object: &ImportObject,
         is_ctor: bool,
-    ) -> Result<(State, Vec<Value>), ExecAppError> {
+        dry_run: bool,
+    ) -> Result<(Option<State>, Vec<Value>), ExecAppError> {
         let module = self.compile_template(tx, &template, &template_addr)?;
         let mut instance = self.instantiate(tx, template_addr, &module, import_object)?;
 
@@ -242,27 +254,32 @@ where
             Err(ExecAppError::FuncNotFound { .. }) if is_ctor == true => {
                 // Since an app `ctor` is optional, in case it has no explicit `ctor`
                 // we **don't** consider it as an error.
-                return Ok((State::empty(), Vec::new()));
+                let empty_state = State::empty();
+
+                return Ok((Some(empty_state), Vec::new()));
             }
             Err(e) => return Err(e),
             Ok(func) => func,
         };
 
         match func.call(&args) {
-            Err(e) => {
-                dbg!(&e);
-
-                Err(ExecAppError::ExecFailed {
-                    app_addr: tx.app.clone(),
-                    template_addr: template_addr.clone(),
-                    func_idx: tx.func_idx,
-                    func_args: self.vec_to_str(&tx.func_args),
-                    reason: e.to_string(),
-                })
-            }
+            Err(e) => Err(ExecAppError::ExecFailed {
+                app_addr: tx.app.clone(),
+                template_addr: template_addr.clone(),
+                func_idx: tx.func_idx,
+                func_args: self.vec_to_str(&tx.func_args),
+                reason: e.to_string(),
+            }),
             Ok(returns) => {
-                let storage = self.instance_storage_mut(&mut instance);
-                let new_state = storage.commit();
+                let new_state = if dry_run {
+                    None
+                } else {
+                    let storage = self.instance_storage_mut(&mut instance);
+                    let new_state = storage.commit();
+
+                    Some(new_state)
+                };
+
                 let returns = self.cast_wasmer_func_returns(tx, template_addr, returns)?;
 
                 Ok((new_state, returns))
@@ -270,7 +287,7 @@ where
         }
     }
 
-    fn make_receipt(&self, result: Result<(State, Vec<Value>), ExecAppError>) -> Receipt {
+    fn make_receipt(&self, result: Result<(Option<State>, Vec<Value>), ExecAppError>) -> Receipt {
         match result {
             Err(e) => Receipt {
                 success: false,
@@ -278,11 +295,11 @@ where
                 returns: None,
                 new_state: None,
             },
-            Ok((state, returns)) => Receipt {
+            Ok((new_state, returns)) => Receipt {
                 success: true,
                 error: None,
                 returns: Some(returns),
-                new_state: Some(state),
+                new_state,
             },
         }
     }

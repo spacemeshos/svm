@@ -112,8 +112,9 @@ fn runtime_exec_app() {
     let bytes = testing::build_app_tx(version, &app_addr, func_idx, &func_buf, &func_args);
 
     let tx = runtime.parse_exec_app(&sender, &bytes).unwrap();
+    let dry_run = false;
 
-    let res = runtime.exec_app(tx, init_state.clone(), HostCtx::new());
+    let res = runtime.exec_app(tx, init_state.clone(), HostCtx::new(), dry_run);
     let receipt = res.unwrap();
 
     assert_eq!(true, receipt.success);
