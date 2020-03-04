@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+
 use std::marker::PhantomData;
 
 use crate::{
@@ -11,8 +12,10 @@ use svm_common::Address;
 
 /// An in-memory implementation of `AppTemplateStore`
 pub struct MemAppTemplateStore<S, D> {
-    template_bytes: HashMap<AppTemplateHash, Vec<u8>>,
-    template_hash: HashMap<Address, AppTemplateHash>,
+    bytes: HashMap<AppTemplateHash, Vec<u8>>,
+
+    hash: HashMap<Address, AppTemplateHash>,
+
     _phantom: PhantomData<(S, D)>,
 }
 
@@ -25,8 +28,8 @@ where
     /// Create a new store
     pub fn new() -> Self {
         Self {
-            template_bytes: HashMap::new(),
-            template_hash: HashMap::new(),
+            bytes: HashMap::new(),
+            hash: HashMap::new(),
             _phantom: PhantomData,
         }
     }
@@ -45,19 +48,19 @@ where
     ) -> Result<(), StoreError> {
         let bytes: Vec<u8> = S::serialize(template);
 
-        self.template_bytes.insert(hash.clone(), bytes);
-        self.template_hash.insert(addr.clone(), hash.clone());
+        self.bytes.insert(hash.clone(), bytes);
+        self.hash.insert(addr.clone(), hash.clone());
 
         Ok(())
     }
 
     fn load(&self, addr: &Address) -> Option<AppTemplate> {
-        let hash = self.template_hash.get(addr);
+        let hash = self.hash.get(addr);
 
         hash.and_then(|h| {
-            self.template_bytes
+            self.bytes
                 .get(&h)
-                .and_then(|bytes| D::deserialize(bytes.to_vec()))
+                .and_then(|bytes| D::deserialize(&bytes[..]))
         })
     }
 }

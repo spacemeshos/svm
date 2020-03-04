@@ -1,4 +1,4 @@
-use crate::types::{App, AppTemplate};
+use crate::types::{App, AppTemplate, HostCtx};
 
 use svm_common::Address;
 
@@ -6,12 +6,12 @@ use svm_common::Address;
 /// Algorithm must be deterministic.
 pub trait AppTemplateAddressCompute {
     /// Derives the `AppTemplate` address
-    fn compute(template: &AppTemplate) -> Address;
+    fn compute(template: &AppTemplate, host_ctx: &HostCtx) -> Address;
 }
 
 /// Computes an `App` account address.
 /// Algorithm must be deterministic.
 pub trait AppAddressCompute {
     /// Derives the `App` address
-    fn compute(app: &App) -> Address;
+    fn compute(app: &App, host_ctx: &HostCtx) -> Address;
 }

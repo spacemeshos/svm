@@ -1,5 +1,4 @@
-use std::marker::PhantomData;
-use std::path::Path;
+use std::{marker::PhantomData, path::Path};
 
 use crate::{
     error::StoreError,
@@ -15,6 +14,7 @@ use log::info;
 /// `AppTemplate` store backed by `rocksdb`
 pub struct RocksdbAppTemplateStore<S, D> {
     db: Rocksdb,
+
     _phantom: PhantomData<(S, D)>,
 }
 
@@ -67,7 +67,7 @@ where
         self.db.get(addr).and_then(|hash| {
             self.db
                 .get(&hash)
-                .and_then(|bytes| D::deserialize(bytes.to_vec()))
+                .and_then(|bytes| D::deserialize(&bytes[..]))
         })
     }
 }

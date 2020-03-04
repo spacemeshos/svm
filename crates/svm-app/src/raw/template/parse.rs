@@ -8,7 +8,7 @@ use svm_common::Address;
 
 /// Returns the parsed raw app-template as `AppTemplate` struct.
 #[must_use]
-pub fn parse_template(bytes: &[u8], author: &Address) -> Result<AppTemplate, ParseError> {
+pub fn parse_template(bytes: &[u8]) -> Result<AppTemplate, ParseError> {
     let mut iter = NibbleIter::new(bytes);
 
     helpers::decode_version(&mut iter)?;
@@ -21,7 +21,6 @@ pub fn parse_template(bytes: &[u8], author: &Address) -> Result<AppTemplate, Par
 
     let template = AppTemplate {
         name,
-        author: author.clone(),
         page_count,
         code,
     };

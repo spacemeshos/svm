@@ -4,7 +4,7 @@ use crate::{
         AppAddressCompute, AppDeserializer, AppSerializer, AppStore, AppTemplateAddressCompute,
         AppTemplateDeserializer, AppTemplateHasher, AppTemplateSerializer, AppTemplateStore,
     },
-    types::{App, AppTemplate, AppTemplateHash, AppTransaction, SpawnApp},
+    types::{App, AppTemplate, AppTemplateHash, AppTransaction, HostCtx, SpawnApp},
 };
 
 use svm_common::Address;
@@ -65,18 +65,18 @@ pub trait Env {
     }
 
     /// Computes `AppTemplate` account address
-    fn derive_template_address(&self, template: &AppTemplate) -> Address {
-        <Self::Types as EnvTypes>::AppTemplateAddressCompute::compute(template)
+    fn derive_template_address(&self, template: &AppTemplate, host_ctx: &HostCtx) -> Address {
+        <Self::Types as EnvTypes>::AppTemplateAddressCompute::compute(template, host_ctx)
     }
 
     /// Computes `App` account address
-    fn derive_app_address(&self, app: &App) -> Address {
-        <Self::Types as EnvTypes>::AppAddressCompute::compute(app)
+    fn derive_app_address(&self, app: &App, host_ctx: &HostCtx) -> Address {
+        <Self::Types as EnvTypes>::AppAddressCompute::compute(app, host_ctx)
     }
 
     /// Parses a raw template transaction into `AppTemplate`
     fn parse_template(&self, bytes: &[u8], author: &Address) -> Result<AppTemplate, ParseError> {
-        crate::raw::parse_template(bytes, author)
+        crate::raw::parse_template(bytes)
     }
 
     /// Parses a raw spawn-app transaction into `App`
@@ -93,9 +93,13 @@ pub trait Env {
     /// * `TemplateAddress` -> `TemplateHash`
     /// * `TemplateHash` -> `AppTemplate` data
     #[must_use]
-    fn store_template(&mut self, template: &AppTemplate) -> Result<Address, StoreError> {
+    fn store_template(
+        &mut self,
+        template: &AppTemplate,
+        host_ctx: &HostCtx,
+    ) -> Result<Address, StoreError> {
         let hash = self.compute_template_hash(template);
-        let addr = self.derive_template_address(template);
+        let addr = self.derive_template_address(template, host_ctx);
 
         let store = self.get_template_store_mut();
         store.store(template, &addr, &hash)?;
@@ -105,7 +109,7 @@ pub trait Env {
 
     /// Stores `app address` -> `app-template address` relation.
     #[must_use]
-    fn store_app(&mut self, app: &App) -> Result<Address, StoreError> {
+    fn store_app(&mut self, app: &App, host_ctx: &HostCtx) -> Result<Address, StoreError> {
         match self.template_exists(&app.template) {
             false => {
                 // important:
@@ -120,7 +124,7 @@ pub trait Env {
                 Err(err)
             }
             true => {
-                let addr = self.derive_app_address(&app);
+                let addr = self.derive_app_address(app, host_ctx);
                 let store = self.get_app_store_mut();
                 store.store(app, &addr)?;
 

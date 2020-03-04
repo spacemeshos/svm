@@ -1,4 +1,7 @@
-use crate::{traits::AppTemplateAddressCompute, types::AppTemplate};
+use crate::{
+    traits::AppTemplateAddressCompute,
+    types::{AppTemplate, HostCtx},
+};
 
 use svm_common::{Address, DefaultKeyHasher, KeyHasher};
 
@@ -9,13 +12,15 @@ use svm_common::{Address, DefaultKeyHasher, KeyHasher};
 pub struct DefaultAppTemplateAddressCompute;
 
 impl AppTemplateAddressCompute for DefaultAppTemplateAddressCompute {
-    fn compute(template: &AppTemplate) -> Address {
-        let mut buf = Vec::with_capacity(Address::len() + template.code.len());
-        buf.extend_from_slice(template.author.as_slice());
-        buf.extend_from_slice(template.code.as_slice());
+    fn compute(template: &AppTemplate, host_ctx: &HostCtx) -> Address {
+        todo!()
+        // let mut buf = Vec::with_capacity(Address::len() + template.code.len());
 
-        let hash = DefaultKeyHasher::hash(&buf);
+        // buf.extend_from_slice(template.author.as_slice());
+        // buf.extend_from_slice(template.code.as_slice());
 
-        Address::from(&hash[0..Address::len()])
+        // let hash = DefaultKeyHasher::hash(&buf);
+
+        // Address::from(&hash[0..Address::len()])
     }
 }

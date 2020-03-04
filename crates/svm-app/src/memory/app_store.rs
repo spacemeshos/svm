@@ -46,6 +46,6 @@ where
     fn load(&self, app_addr: &Address) -> Option<App> {
         let bytes = self.app_bytes.get(app_addr);
 
-        bytes.and_then(|bytes| D::deserialize(bytes.to_vec()))
+        bytes.and_then(|bytes| D::deserialize(&bytes[..]))
     }
 }
