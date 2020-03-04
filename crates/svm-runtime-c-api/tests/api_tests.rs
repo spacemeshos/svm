@@ -193,10 +193,10 @@ unsafe fn do_ffi_exec_app() {
     let mut runtime = std::ptr::null_mut();
     let imports = create_imports();
 
-    let res = testing::svm_memory_kv_create(&mut kv);
+    let res = api::svm_memory_kv_create(&mut kv);
     assert!(res.is_ok());
 
-    let res = testing::svm_memory_runtime_create(&mut runtime, kv, host.as_mut_ptr(), imports);
+    let res = api::svm_memory_runtime_create(&mut runtime, kv, host.as_mut_ptr(), imports);
     assert!(res.is_ok());
 
     // 2) deploy app-template
@@ -285,8 +285,9 @@ unsafe fn do_ffi_exec_app() {
     };
 
     let mut receipt = svm_byte_array::default();
+    let dry_run = false;
 
-    let res = api::svm_exec_app(&mut receipt, runtime, app_tx, init_state, host_ctx);
+    let res = api::svm_exec_app(&mut receipt, runtime, app_tx, init_state, host_ctx, dry_run);
     assert!(res.is_ok());
 
     let expected = (init_balance + addition as i128) * (nonce as i128);

@@ -1,7 +1,7 @@
 use crate::traits::KVStore;
 use std::collections::{hash_map, HashMap};
 
-use log::info;
+use log::{debug, info};
 
 /// An implementation for a key-value store (implements `KVStore`) store backed by an underlying `HashMap`
 pub struct MemKVStore {
@@ -54,5 +54,11 @@ impl KVStore for MemKVStore {
         for (k, v) in changes {
             self.map.insert(k.to_vec(), v.to_vec());
         }
+    }
+}
+
+impl Drop for MemKVStore {
+    fn drop(&mut self) {
+        debug!("dropping `MemKVStore`...")
     }
 }
