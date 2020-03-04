@@ -1,11 +1,14 @@
-use std::string::FromUtf8Error;
+use std::{
+    convert::{TryFrom, TryInto},
+    string::FromUtf8Error,
+};
 
 /// FFI representation for a byte-array
 ///
 /// # Example
 ///
 /// ```rust
-/// use std::string::FromUtf8Error;
+/// use std::{convert::TryFrom, string::FromUtf8Error};
 /// use svm_runtime_c_api::svm_byte_array;
 ///
 /// let s1 = "Hello World!".to_string();
@@ -13,7 +16,7 @@ use std::string::FromUtf8Error;
 /// let length = s1.len() as u32;
 /// let bytes = svm_byte_array { bytes: ptr, length };
 ///
-/// let s2: Result<String, FromUtf8Error> = bytes.into();
+/// let s2 = String::try_from(bytes);
 /// assert_eq!(s1, s2.unwrap());
 /// ```
 ///
@@ -53,7 +56,7 @@ impl Default for svm_byte_array {
 /// # Example
 ///
 /// ```rust
-/// use std::string::FromUtf8Error;
+/// use std::{convert::TryFrom, string::FromUtf8Error};
 /// use svm_runtime_c_api::svm_byte_array;
 ///
 /// let s = "Hello World!";
@@ -61,7 +64,7 @@ impl Default for svm_byte_array {
 /// let array: svm_byte_array = s.into();
 /// assert_eq!(ptr, array.bytes);
 ///
-/// let s: Result<String, FromUtf8Error> = array.into();
+/// let s = String::try_from(array);
 /// assert_eq!("Hello World!".to_string(), s.unwrap());
 /// ```
 ///
@@ -74,12 +77,22 @@ impl From<&str> for svm_byte_array {
     }
 }
 
-impl From<svm_byte_array> for Result<String, FromUtf8Error> {
-    fn from(array: svm_byte_array) -> Self {
+impl TryFrom<&svm_byte_array> for String {
+    type Error = FromUtf8Error;
+
+    fn try_from(value: &svm_byte_array) -> Result<Self, Self::Error> {
         let bytes =
-            unsafe { std::slice::from_raw_parts(array.bytes as *mut u8, array.length as usize) };
+            unsafe { std::slice::from_raw_parts(value.bytes as *mut u8, value.length as usize) };
 
         String::from_utf8(bytes.to_vec())
+    }
+}
+
+impl TryFrom<svm_byte_array> for String {
+    type Error = FromUtf8Error;
+
+    fn try_from(value: svm_byte_array) -> Result<Self, Self::Error> {
+        String::try_from(&value)
     }
 }
 

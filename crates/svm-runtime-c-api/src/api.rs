@@ -1,4 +1,4 @@
-use std::{ffi::c_void, ptr::NonNull, string::FromUtf8Error};
+use std::{convert::TryFrom, ffi::c_void, ptr::NonNull, string::FromUtf8Error};
 
 use log::{debug, error};
 
@@ -126,8 +126,8 @@ pub unsafe extern "C" fn svm_import_func_build(
         },
     };
 
-    let module_name: Result<String, FromUtf8Error> = module_name.into();
-    let import_name: Result<String, FromUtf8Error> = import_name.into();
+    let module_name = String::try_from(module_name);
+    let import_name = String::try_from(import_name);
 
     if module_name.is_err() {
         todo!();
@@ -242,7 +242,7 @@ pub unsafe extern "C" fn svm_runtime_create(
 ) -> svm_result_t {
     debug!("`svm_runtime_create` start");
 
-    let path: Result<String, FromUtf8Error> = path.into();
+    let path = String::try_from(path);
 
     if let Err(_err) = path {
         todo!();
