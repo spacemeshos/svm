@@ -4,7 +4,7 @@ use svm_common::Address;
 
 /// Builds a raw representation for `deploy-template`
 /// Should be used for testing only.
-pub struct AppTemplateBuilder {
+pub struct DeployAppTemplateBuilder {
     version: Option<u32>,
     name: Option<String>,
     page_count: Option<u16>,
@@ -18,7 +18,7 @@ pub struct AppTemplateBuilder {
 /// use svm_app::{types::AppTemplate, testing::AppTemplateBuilder, raw::parse_template};
 /// use svm_common::Address;
 ///
-/// let bytes = AppTemplateBuilder::new()
+/// let bytes = DeployAppTemplateBuilder::new()
 ///            .with_version(0)
 ///            .with_name("My Template")
 ///            .with_page_count(10)
@@ -29,6 +29,7 @@ pub struct AppTemplateBuilder {
 /// let actual = parse_template(&bytes[..], &author).unwrap();
 ///
 /// let expected = AppTemplate {
+///                  version: 0,
 ///                  name: "My Template".to_string(),
 ///                  author: Address::of("@author"),
 ///                  page_count: 10,
@@ -40,7 +41,7 @@ pub struct AppTemplateBuilder {
 ///
 
 #[allow(missing_docs)]
-impl AppTemplateBuilder {
+impl DeployAppTemplateBuilder {
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {
@@ -72,35 +73,6 @@ impl AppTemplateBuilder {
     }
 
     pub fn build(&mut self) -> Vec<u8> {
-        let mut writer = NibbleWriter::new();
-
-        self.write_version(&mut writer);
-        self.write_name(&mut writer);
-        self.write_page_count(&mut writer);
-        self.write_code(&mut writer);
-
-        helpers::bytes(&mut writer)
-    }
-
-    fn write_version(&self, writer: &mut NibbleWriter) {
-        let version = self.version.unwrap();
-        helpers::encode_version(version, writer);
-    }
-
-    fn write_name(&mut self, writer: &mut NibbleWriter) {
-        let name = self.name.as_ref().unwrap();
-        helpers::encode_string(name, writer);
-    }
-
-    fn write_page_count(&self, writer: &mut NibbleWriter) {
-        let page_count = self.page_count.unwrap();
-
-        helpers::encode_varuint14(page_count, writer);
-    }
-
-    fn write_code(&self, writer: &mut NibbleWriter) {
-        let code = self.code.as_ref().unwrap();
-
-        writer.write_bytes(&code[..])
+        todo!()
     }
 }

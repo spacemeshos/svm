@@ -126,6 +126,7 @@ pub trait Env {
             true => {
                 let addr = self.derive_app_address(app, host_ctx);
                 let store = self.get_app_store_mut();
+
                 store.store(app, &addr)?;
 
                 Ok(addr)

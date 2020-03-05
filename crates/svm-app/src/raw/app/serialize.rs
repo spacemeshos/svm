@@ -1,21 +1,37 @@
 use crate::{
+    raw::{helpers, NibbleWriter},
     traits::{AppDeserializer, AppSerializer},
     types::App,
 };
 
-/// Json serializer for `App`
-pub struct AppJsonSerializer;
+/// Default serializer for `App`
+pub struct DefaultAppSerializer;
 
-/// Json deserializer for `App`
-pub struct AppJsonDeserializer;
+/// Default deserializer for `App`
+pub struct DefaultAppDeserializer;
 
-impl AppSerializer for AppJsonSerializer {
+impl AppSerializer for DefaultAppSerializer {
     fn serialize(app: &App) -> Vec<u8> {
-        todo!()
+        let mut w = NibbleWriter::new();
+
+        Self::write_template(app, &mut w);
+        Self::write_creator(app, &mut w);
+
+        helpers::bytes(&mut w)
     }
 }
 
-impl AppDeserializer for AppJsonDeserializer {
+impl DefaultAppSerializer {
+    fn write_template(app: &App, w: &mut NibbleWriter) {
+        helpers::encode_address(&app.template, w);
+    }
+
+    fn write_creator(app: &App, w: &mut NibbleWriter) {
+        helpers::encode_address(&app.creator, w);
+    }
+}
+
+impl AppDeserializer for DefaultAppDeserializer {
     fn deserialize(bytes: &[u8]) -> Option<App> {
         todo!()
     }

@@ -16,4 +16,4 @@ mod parse;
 mod serialize;
 
 pub use parse::parse_app;
-pub use serialize::{AppJsonDeserializer, AppJsonSerializer};
+pub use serialize::{DefaultAppDeserializer, DefaultAppSerializer};

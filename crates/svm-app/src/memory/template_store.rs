@@ -1,6 +1,4 @@
-use std::collections::HashMap;
-
-use std::marker::PhantomData;
+use std::{collections::HashMap, marker::PhantomData};
 
 use crate::{
     error::StoreError,

@@ -30,5 +30,5 @@ mod serialize;
 mod validate;
 
 pub use parse::parse_template;
-pub use serialize::{AppTemplateJsonDeserializer, AppTemplateJsonSerializer};
+pub use serialize::{DefaultAppTemplateDeserializer, DefaultAppTemplateSerializer};
 pub use validate::validate_template;

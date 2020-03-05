@@ -11,8 +11,7 @@ use svm_common::Address;
 pub fn parse_template(bytes: &[u8]) -> Result<AppTemplate, ParseError> {
     let mut iter = NibbleIter::new(bytes);
 
-    helpers::decode_version(&mut iter)?;
-
+    let version = helpers::decode_version(&mut iter)?;
     let name = decode_name(&mut iter)?;
     let page_count = decode_page_count(&mut iter)?;
     let code = decode_code(&mut iter)?;
@@ -20,6 +19,7 @@ pub fn parse_template(bytes: &[u8]) -> Result<AppTemplate, ParseError> {
     helpers::ensure_eof(&mut iter);
 
     let template = AppTemplate {
+        version,
         name,
         page_count,
         code,

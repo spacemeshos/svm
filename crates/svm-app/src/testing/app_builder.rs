@@ -7,7 +7,7 @@ use svm_common::Address;
 
 /// Builds a raw representation for `spawn-app`
 /// Should be used for testing only.
-pub struct AppBuilder {
+pub struct SpawnAppBuilder {
     version: Option<u32>,
     template: Option<Address>,
     ctor_idx: Option<u16>,
@@ -19,7 +19,7 @@ pub struct AppBuilder {
 /// # Example
 ///
 /// ```rust
-/// use svm_app::{testing::AppBuilder, types::{App, SpawnApp, WasmValue}, raw::parse_app};
+/// use svm_app::{testing::SpawnAppBuilder, types::{App, SpawnApp, WasmValue}, raw::parse_app};
 /// use svm_common::Address;
 ////
 /// let template = Address::of("@template");
@@ -28,7 +28,7 @@ pub struct AppBuilder {
 /// let ctor_buf = vec![0x10, 0x20, 0x30];
 /// let ctor_args = vec![WasmValue::I32(0x40), WasmValue::I64(0x50)];
 ///
-/// let bytes = AppBuilder::new()
+/// let bytes = SpawnAppBuilder::new()
 ///  .with_version(0)
 ///  .with_template(&template)
 ///  .with_ctor_index(ctor_idx)
@@ -49,7 +49,7 @@ pub struct AppBuilder {
 ///
 
 #[allow(missing_docs)]
-impl AppBuilder {
+impl SpawnAppBuilder {
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {

@@ -13,8 +13,8 @@ pub use app::parse_app;
 pub use template::parse_template;
 pub use transaction::parse_app_tx;
 
-pub use app::{AppJsonDeserializer, AppJsonSerializer};
-pub use template::{AppTemplateJsonDeserializer, AppTemplateJsonSerializer};
+pub use app::{DefaultAppDeserializer, DefaultAppSerializer};
+pub use template::{DefaultAppTemplateDeserializer, DefaultAppTemplateSerializer};
 
 mod field;
 pub(crate) use field::Field;
