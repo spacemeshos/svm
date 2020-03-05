@@ -72,7 +72,12 @@ impl DeployAppTemplateBuilder {
         self
     }
 
-    pub fn build(&mut self) -> Vec<u8> {
-        todo!()
+    pub fn build(mut self) -> Vec<u8> {
+        let version = self.version.unwrap();
+        let name = &self.name.unwrap();
+        let page_count = self.page_count.unwrap();
+        let code = self.code.unwrap();
+
+        crate::raw::encode_deploy_template(version, name, page_count, &code[..])
     }
 }

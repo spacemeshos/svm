@@ -28,7 +28,9 @@
 mod parse;
 mod serialize;
 mod validate;
+mod wire;
 
 pub use parse::parse_template;
 pub use serialize::{DefaultAppTemplateDeserializer, DefaultAppTemplateSerializer};
 pub use validate::validate_template;
+pub use wire::encode_deploy_template;
