@@ -83,7 +83,7 @@ pub trait Env {
 
     /// Parses a raw spawn-app transaction into `App`
     fn parse_app(&self, bytes: &[u8], creator: &Address) -> Result<SpawnApp, ParseError> {
-        crate::raw::parse_app(bytes, creator)
+        crate::raw::decode_spawn_app(bytes, creator)
     }
 
     /// Parses a raw exec-app transaction into `AppTransaction`
