@@ -11,7 +11,7 @@ mod version;
 
 pub use app::{decode_spawn_app, encode_spawn_app};
 pub use template::{decode_deploy_template, encode_deploy_template};
-pub use transaction::parse_app_tx;
+pub use transaction::{decode_exec_app, encode_exec_app};
 
 pub use app::{DefaultAppDeserializer, DefaultAppSerializer};
 pub use template::{DefaultAppTemplateDeserializer, DefaultAppTemplateSerializer};

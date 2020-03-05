@@ -1,5 +1,5 @@
 use crate::{
-    raw::{helpers, NibbleWriter},
+    raw::{encode_exec_app, helpers, NibbleWriter},
     types::WasmValue,
 };
 
@@ -88,52 +88,13 @@ impl AppTxBuilder {
         self
     }
 
-    pub fn build(&mut self) -> Vec<u8> {
-        let mut writer = NibbleWriter::new();
-
-        self.write_version(&mut writer);
-        self.write_app(&mut writer);
-        self.write_func_index(&mut writer);
-        self.write_func_buf(&mut writer);
-        self.write_func_args(&mut writer);
-
-        helpers::bytes(&mut writer)
-    }
-
-    fn write_version(&self, writer: &mut NibbleWriter) {
+    pub fn build(mut self) -> Vec<u8> {
         let version = self.version.unwrap();
-
-        helpers::encode_version(version, writer);
-    }
-
-    fn write_app(&self, writer: &mut NibbleWriter) {
-        let addr = self.app.as_ref().unwrap();
-        helpers::encode_address(addr, writer);
-    }
-
-    fn write_func_index(&mut self, writer: &mut NibbleWriter) {
+        let app = self.app.unwrap();
         let func_idx = self.func_idx.unwrap();
+        let func_buf = self.func_buf.unwrap();
+        let func_args = self.func_args.unwrap();
 
-        helpers::encode_varuint14(func_idx, writer);
-    }
-
-    fn write_func_buf(&self, writer: &mut NibbleWriter) {
-        let buf = if let Some(buf) = &self.func_buf {
-            buf.to_vec()
-        } else {
-            vec![]
-        };
-
-        helpers::encode_func_buf(&buf[..], writer)
-    }
-
-    fn write_func_args(&self, writer: &mut NibbleWriter) {
-        let args = if let Some(args) = &self.func_args {
-            args.to_vec()
-        } else {
-            vec![]
-        };
-
-        helpers::encode_func_args(&args[..], writer);
+        encode_exec_app(version, &app, func_idx, &func_buf[..], &func_args[..])
     }
 }

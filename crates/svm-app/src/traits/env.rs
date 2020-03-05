@@ -88,7 +88,7 @@ pub trait Env {
 
     /// Parses a raw exec-app transaction into `AppTransaction`
     fn parse_app_tx(&self, bytes: &[u8], sender: &Address) -> Result<AppTransaction, ParseError> {
-        crate::raw::parse_app_tx(bytes, sender)
+        crate::raw::decode_exec_app(bytes, sender)
     }
 
     /// Stores the following:
