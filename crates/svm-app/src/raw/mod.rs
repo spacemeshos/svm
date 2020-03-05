@@ -9,7 +9,7 @@ mod nibble;
 mod varuint14;
 mod version;
 
-pub use app::parse_app;
+pub use app::{encode_spawn_app, parse_app};
 pub use template::{encode_deploy_template, parse_template};
 pub use transaction::parse_app_tx;
 

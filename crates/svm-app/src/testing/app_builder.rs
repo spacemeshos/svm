@@ -1,5 +1,5 @@
 use crate::{
-    raw::{helpers, NibbleWriter},
+    raw::{encode_spawn_app, helpers, NibbleWriter},
     types::WasmValue,
 };
 
@@ -86,53 +86,13 @@ impl SpawnAppBuilder {
         self
     }
 
-    pub fn build(&mut self) -> Vec<u8> {
-        let mut writer = NibbleWriter::new();
-
-        self.write_version(&mut writer);
-        self.write_template(&mut writer);
-        self.write_ctor_index(&mut writer);
-        self.write_ctor_buf(&mut writer);
-        self.write_ctor_args(&mut writer);
-
-        helpers::bytes(&mut writer)
-    }
-
-    fn write_version(&self, writer: &mut NibbleWriter) {
+    pub fn build(mut self) -> Vec<u8> {
         let version = self.version.unwrap();
-
-        helpers::encode_version(version, writer);
-    }
-
-    fn write_template(&self, writer: &mut NibbleWriter) {
-        let addr = self.template.as_ref().unwrap();
-
-        helpers::encode_address(addr, writer);
-    }
-
-    fn write_ctor_index(&self, writer: &mut NibbleWriter) {
+        let template = self.template.unwrap();
         let ctor_idx = self.ctor_idx.unwrap();
+        let ctor_buf = self.ctor_buf.unwrap();
+        let ctor_args = self.ctor_args.unwrap();
 
-        helpers::encode_varuint14(ctor_idx, writer);
-    }
-
-    fn write_ctor_buf(&self, writer: &mut NibbleWriter) {
-        let buf = if let Some(buf) = &self.ctor_buf {
-            buf.to_vec()
-        } else {
-            vec![]
-        };
-
-        helpers::encode_func_buf(&buf[..], writer);
-    }
-
-    fn write_ctor_args(&self, writer: &mut NibbleWriter) {
-        let args = if let Some(args) = &self.ctor_args {
-            args.to_vec()
-        } else {
-            vec![]
-        };
-
-        helpers::encode_func_args(&args[..], writer);
+        encode_spawn_app(version, &template, ctor_idx, &ctor_buf[..], &ctor_args[..])
     }
 }

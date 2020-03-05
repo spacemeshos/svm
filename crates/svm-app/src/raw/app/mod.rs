@@ -14,6 +14,8 @@
 
 mod parse;
 mod serialize;
+mod wire;
 
 pub use parse::parse_app;
 pub use serialize::{DefaultAppDeserializer, DefaultAppSerializer};
+pub use wire::encode_spawn_app;

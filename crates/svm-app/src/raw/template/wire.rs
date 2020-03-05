@@ -1,7 +1,4 @@
-use crate::{
-    raw::{helpers, NibbleWriter},
-    types::{AppTemplate, DeployAppTemplate},
-};
+use crate::raw::{helpers, NibbleWriter};
 
 pub fn encode_deploy_template(version: u32, name: &str, page_count: u16, code: &[u8]) -> Vec<u8> {
     let mut w = NibbleWriter::new();
