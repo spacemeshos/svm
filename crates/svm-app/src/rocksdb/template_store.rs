@@ -3,7 +3,7 @@ use std::{marker::PhantomData, path::Path};
 use crate::{
     error::StoreError,
     traits::{AppTemplateDeserializer, AppTemplateSerializer, AppTemplateStore},
-    types::{AppTemplate, AppTemplateHash},
+    types::{AppTemplate, AppTemplateHash, DeployAppTemplate},
 };
 
 use svm_common::Address;
@@ -42,7 +42,7 @@ where
 {
     fn store(
         &mut self,
-        template: &AppTemplate,
+        template: &DeployAppTemplate,
         addr: &Address,
         hash: &AppTemplateHash,
     ) -> Result<(), StoreError> {

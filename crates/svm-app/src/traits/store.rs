@@ -1,6 +1,6 @@
 use crate::{
     error::StoreError,
-    types::{App, AppTemplate, AppTemplateHash},
+    types::{App, AppTemplate, AppTemplateHash, DeployAppTemplate, SpawnApp},
 };
 
 use svm_common::Address;
@@ -13,7 +13,7 @@ pub trait AppTemplateStore {
     #[must_use]
     fn store(
         &mut self,
-        template: &AppTemplate,
+        template: &DeployAppTemplate,
         address: &Address,
         hash: &AppTemplateHash,
     ) -> Result<(), StoreError>;
@@ -24,11 +24,11 @@ pub trait AppTemplateStore {
     fn load(&self, template_addr: &Address) -> Option<AppTemplate>;
 }
 
-/// A persistent store for `App`(s)
+/// A persistent store for `A}pp`(s)
 pub trait AppStore {
     /// Stores `Address` -> `App`
     #[must_use]
-    fn store(&mut self, app: &App, app_addr: &Address) -> Result<(), StoreError>;
+    fn store(&mut self, app: &SpawnApp, app_addr: &Address) -> Result<(), StoreError>;
 
     /// Given a `App` account address, fetches its raw data
     /// and deserializes it into `App`. Returns `None` if `AppTemplatee` doesn't exist.

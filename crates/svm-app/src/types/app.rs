@@ -10,17 +10,17 @@ pub struct App {
     /// `Address` of the `AppTemplate` app is being spawned from.
     pub template: Address,
 
-    /// `Address` of app creator
     pub creator: Address,
 }
 
 impl fmt::Debug for App {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        // let version = self.fmt_version(*&self.version);
+        let version = self.fmt_version(*&self.version);
         let template = self.fmt_template(&self.template);
         let creator = self.fmt_creator(&self.creator);
 
-        let msg = [template, creator].join("\n");
+        let msg = [version, template, creator].join("\n");
+
         write!(f, "{}", msg)
     }
 }

@@ -4,7 +4,9 @@ use crate::{
         AppAddressCompute, AppDeserializer, AppSerializer, AppStore, AppTemplateAddressCompute,
         AppTemplateDeserializer, AppTemplateHasher, AppTemplateSerializer, AppTemplateStore,
     },
-    types::{App, AppTemplate, AppTemplateHash, AppTransaction, HostCtx, SpawnApp},
+    types::{
+        App, AppTemplate, AppTemplateHash, AppTransaction, DeployAppTemplate, HostCtx, SpawnApp,
+    },
 };
 
 use svm_common::Address;
@@ -60,17 +62,17 @@ pub trait Env {
     fn get_app_store_mut(&mut self) -> &mut <Self::Types as EnvTypes>::AppStore;
 
     /// Computes `AppTemplate` Hash
-    fn compute_template_hash(&self, template: &AppTemplate) -> AppTemplateHash {
-        <Self::Types as EnvTypes>::TemplateHasher::hash(&template.code)
+    fn compute_template_hash(&self, template: &DeployAppTemplate) -> AppTemplateHash {
+        <Self::Types as EnvTypes>::TemplateHasher::hash(&template)
     }
 
     /// Computes `AppTemplate` account address
-    fn derive_template_address(&self, template: &AppTemplate, host_ctx: &HostCtx) -> Address {
+    fn derive_template_address(&self, template: &DeployAppTemplate, host_ctx: &HostCtx) -> Address {
         <Self::Types as EnvTypes>::AppTemplateAddressCompute::compute(template, host_ctx)
     }
 
     /// Computes `App` account address
-    fn derive_app_address(&self, app: &App, host_ctx: &HostCtx) -> Address {
+    fn derive_app_address(&self, app: &SpawnApp, host_ctx: &HostCtx) -> Address {
         <Self::Types as EnvTypes>::AppAddressCompute::compute(app, host_ctx)
     }
 
@@ -95,7 +97,7 @@ pub trait Env {
     #[must_use]
     fn store_template(
         &mut self,
-        template: &AppTemplate,
+        template: &DeployAppTemplate,
         host_ctx: &HostCtx,
     ) -> Result<Address, StoreError> {
         let hash = self.compute_template_hash(template);
@@ -109,16 +111,16 @@ pub trait Env {
 
     /// Stores `app address` -> `app-template address` relation.
     #[must_use]
-    fn store_app(&mut self, app: &App, host_ctx: &HostCtx) -> Result<Address, StoreError> {
-        match self.template_exists(&app.template) {
+    fn store_app(&mut self, app: &SpawnApp, host_ctx: &HostCtx) -> Result<Address, StoreError> {
+        match self.template_exists(&app) {
             false => {
                 // important:
-                // Normally code shuld never execute these piece.
+                // Normally code shuld never execute this piece.
                 // The Runtime (defined at the `svm-runtime` crate) was supposed to pre-validate the existence
                 // of the `AppTemplate` prior to calling the `Env` for storing the new `App`.
                 let msg = format!(
                     "`AppTemplate` not found (address = `{:?}`)",
-                    app.template.clone()
+                    app.get_template().clone()
                 );
                 let err = StoreError::DataCorruption(msg);
                 Err(err)
@@ -180,10 +182,11 @@ pub trait Env {
         }
     }
 
-    /// Given an `Address`, returns whether it's associated with some `AppTemplate`
     #[inline]
-    fn template_exists(&self, template_addr: &Address) -> bool {
-        self.load_template(template_addr).is_some()
+    fn template_exists(&self, spawn_app: &SpawnApp) -> bool {
+        let addr = &spawn_app.app.template;
+
+        self.load_template(addr).is_some()
     }
 
     /// Given an `Address`, returns whether it's associated with some `App`

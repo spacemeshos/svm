@@ -1,5 +1,7 @@
 use crate::types::{App, WasmValue};
 
+use svm_common::Address;
+
 #[derive(Debug, PartialEq)]
 pub struct SpawnApp {
     pub app: App,
@@ -9,4 +11,14 @@ pub struct SpawnApp {
     pub ctor_buf: Vec<u8>,
 
     pub ctor_args: Vec<WasmValue>,
+}
+
+impl SpawnApp {
+    pub fn get_template(&self) -> &Address {
+        &self.app.template
+    }
+
+    pub fn get_creator(&self) -> &Address {
+        &self.app.creator
+    }
 }

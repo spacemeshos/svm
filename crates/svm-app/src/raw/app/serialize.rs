@@ -1,7 +1,7 @@
 use crate::{
     raw::{helpers, Field, NibbleIter, NibbleWriter},
     traits::{AppDeserializer, AppSerializer},
-    types::App,
+    types::{App, SpawnApp},
 };
 
 /// Default serializer for `App`
@@ -11,8 +11,10 @@ pub struct DefaultAppSerializer;
 pub struct DefaultAppDeserializer;
 
 impl AppSerializer for DefaultAppSerializer {
-    fn serialize(app: &App) -> Vec<u8> {
+    fn serialize(spawn_app: &SpawnApp) -> Vec<u8> {
         let mut w = NibbleWriter::new();
+
+        let app = &spawn_app.app;
 
         Self::write_version(app, &mut w);
         Self::write_template(app, &mut w);

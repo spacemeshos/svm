@@ -2,7 +2,7 @@ use crate::{
     raw::{helpers, NibbleWriter},
     testing::DeployAppTemplateBuilder,
     traits::{AppTemplateDeserializer, AppTemplateSerializer},
-    types::AppTemplate,
+    types::{AppTemplate, DeployAppTemplate},
 };
 
 /// `AppTemplate` default Serializer
@@ -12,13 +12,16 @@ pub struct DefaultAppTemplateSerializer;
 pub struct DefaultAppTemplateDeserializer;
 
 impl AppTemplateSerializer for DefaultAppTemplateSerializer {
-    fn serialize(template: &AppTemplate) -> Vec<u8> {
+    fn serialize(deploy_template: &DeployAppTemplate) -> Vec<u8> {
         let mut w = NibbleWriter::new();
+
+        let template = &deploy_template.template;
 
         Self::write_version(template, &mut w);
         Self::write_name(template, &mut w);
         Self::write_page_count(template, &mut w);
         Self::write_code(template, &mut w);
+        Self::write_author(deploy_template, &mut w);
 
         helpers::bytes(&mut w)
     }
@@ -40,10 +43,14 @@ impl DefaultAppTemplateSerializer {
     fn write_code(template: &AppTemplate, w: &mut NibbleWriter) {
         w.write_bytes(&template.code[..])
     }
+
+    fn write_author(template: &DeployAppTemplate, w: &mut NibbleWriter) {
+        helpers::encode_address(&template.author, w);
+    }
 }
 
 impl AppTemplateDeserializer for DefaultAppTemplateDeserializer {
     fn deserialize(bytes: &[u8]) -> Option<AppTemplate> {
-        crate::raw::parse_template(bytes).ok()
+        todo!()
     }
 }

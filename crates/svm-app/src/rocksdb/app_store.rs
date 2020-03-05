@@ -4,7 +4,7 @@ use std::path::Path;
 use crate::{
     error::StoreError,
     traits::{AppDeserializer, AppSerializer, AppStore},
-    types::App,
+    types::{App, SpawnApp},
 };
 
 use svm_common::Address;
@@ -35,7 +35,7 @@ where
     S: AppSerializer,
     D: AppDeserializer,
 {
-    fn store(&mut self, _app: &App, _app_addr: &Address) -> Result<(), StoreError> {
+    fn store(&mut self, _app: &SpawnApp, _app_addr: &Address) -> Result<(), StoreError> {
         todo!()
     }
 
