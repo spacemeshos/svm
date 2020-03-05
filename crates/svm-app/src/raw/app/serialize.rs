@@ -1,5 +1,5 @@
 use crate::{
-    raw::{helpers, NibbleWriter},
+    raw::{helpers, Field, NibbleIter, NibbleWriter},
     traits::{AppDeserializer, AppSerializer},
     types::App,
 };
@@ -14,6 +14,7 @@ impl AppSerializer for DefaultAppSerializer {
     fn serialize(app: &App) -> Vec<u8> {
         let mut w = NibbleWriter::new();
 
+        Self::write_version(app, &mut w);
         Self::write_template(app, &mut w);
         Self::write_creator(app, &mut w);
 
@@ -22,6 +23,10 @@ impl AppSerializer for DefaultAppSerializer {
 }
 
 impl DefaultAppSerializer {
+    fn write_version(app: &App, w: &mut NibbleWriter) {
+        helpers::encode_version(*&app.version, w);
+    }
+
     fn write_template(app: &App, w: &mut NibbleWriter) {
         helpers::encode_address(&app.template, w);
     }
@@ -33,6 +38,29 @@ impl DefaultAppSerializer {
 
 impl AppDeserializer for DefaultAppDeserializer {
     fn deserialize(bytes: &[u8]) -> Option<App> {
-        todo!()
+        let mut iter = NibbleIter::new(bytes);
+
+        let version = match helpers::decode_version(&mut iter) {
+            Ok(ver) => ver,
+            _ => return None,
+        };
+
+        let template = match helpers::decode_address(&mut iter, Field::AppTemplate) {
+            Ok(addr) => addr,
+            _ => return None,
+        };
+
+        let creator = match helpers::decode_address(&mut iter, Field::Creator) {
+            Ok(addr) => addr,
+            _ => return None,
+        };
+
+        let app = App {
+            version,
+            template,
+            creator,
+        };
+
+        Some(app)
     }
 }

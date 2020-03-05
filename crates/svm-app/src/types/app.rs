@@ -5,6 +5,8 @@ use svm_common::Address;
 /// An in-memory representation of an app.
 #[derive(PartialEq)]
 pub struct App {
+    pub version: u32,
+
     /// `Address` of the `AppTemplate` app is being spawned from.
     pub template: Address,
 

@@ -13,8 +13,7 @@ use svm_common::Address;
 pub fn parse_app(bytes: &[u8], creator: &Address) -> Result<SpawnApp, ParseError> {
     let mut iter = NibbleIter::new(bytes);
 
-    helpers::decode_version(&mut iter)?;
-
+    let version = helpers::decode_version(&mut iter)?;
     let template = helpers::decode_address(&mut iter, Field::AppTemplate)?;
     let ctor_idx = decode_ctor_index(&mut iter)?;
     let ctor_buf = helpers::decode_func_buf(&mut iter)?;
@@ -23,6 +22,7 @@ pub fn parse_app(bytes: &[u8], creator: &Address) -> Result<SpawnApp, ParseError
     helpers::ensure_eof(&mut iter);
 
     let app = App {
+        version,
         template,
         creator: creator.clone(),
     };
