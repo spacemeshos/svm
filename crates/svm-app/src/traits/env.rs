@@ -78,7 +78,7 @@ pub trait Env {
 
     /// Parses a raw template transaction into `AppTemplate`
     fn parse_template(&self, bytes: &[u8], author: &Address) -> Result<AppTemplate, ParseError> {
-        crate::raw::parse_template(bytes)
+        crate::raw::decode_deploy_template(bytes)
     }
 
     /// Parses a raw spawn-app transaction into `App`

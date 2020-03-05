@@ -25,12 +25,10 @@
 //!  and is encoded in Little-endian as an unsigned-integer.
 //!
 
-mod parse;
 mod serialize;
 mod validate;
 mod wire;
 
-pub use parse::parse_template;
 pub use serialize::{DefaultAppTemplateDeserializer, DefaultAppTemplateSerializer};
 pub use validate::validate_template;
-pub use wire::encode_deploy_template;
+pub use wire::{decode_deploy_template, encode_deploy_template};
