@@ -2,7 +2,7 @@ use crate::{
     raw::{helpers, NibbleWriter},
     testing::DeployAppTemplateBuilder,
     traits::{AppTemplateDeserializer, AppTemplateSerializer},
-    types::{AppTemplate, DeployAppTemplate},
+    types::AppTemplate,
 };
 
 use super::wire;
@@ -14,7 +14,7 @@ pub struct DefaultAppTemplateSerializer;
 pub struct DefaultAppTemplateDeserializer;
 
 impl AppTemplateSerializer for DefaultAppTemplateSerializer {
-    fn serialize(deploy_template: &DeployAppTemplate) -> Vec<u8> {
+    fn serialize(deploy_template: &AppTemplate) -> Vec<u8> {
         todo!()
     }
 }

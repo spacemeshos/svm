@@ -4,9 +4,7 @@ use crate::{
         AppAddressCompute, AppDeserializer, AppSerializer, AppStore, AppTemplateAddressCompute,
         AppTemplateDeserializer, AppTemplateHasher, AppTemplateSerializer, AppTemplateStore,
     },
-    types::{
-        App, AppTemplate, AppTemplateHash, AppTransaction, DeployAppTemplate, HostCtx, SpawnApp,
-    },
+    types::{App, AppTemplate, AppTemplateHash, AppTransaction, HostCtx, SpawnApp},
 };
 
 use svm_common::Address;
@@ -62,33 +60,33 @@ pub trait Env {
     fn get_app_store_mut(&mut self) -> &mut <Self::Types as EnvTypes>::AppStore;
 
     /// Computes `AppTemplate` Hash
-    fn compute_template_hash(&self, template: &DeployAppTemplate) -> AppTemplateHash {
-        <Self::Types as EnvTypes>::TemplateHasher::hash(&template)
+    fn compute_template_hash(&self, template: &AppTemplate) -> AppTemplateHash {
+        <Self::Types as EnvTypes>::TemplateHasher::hash(template)
     }
 
     /// Computes `AppTemplate` account address
-    fn derive_template_address(&self, template: &DeployAppTemplate, host_ctx: &HostCtx) -> Address {
+    fn derive_template_address(&self, template: &AppTemplate, host_ctx: &HostCtx) -> Address {
         <Self::Types as EnvTypes>::AppTemplateAddressCompute::compute(template, host_ctx)
     }
 
     /// Computes `App` account address
-    fn derive_app_address(&self, app: &SpawnApp, host_ctx: &HostCtx) -> Address {
-        <Self::Types as EnvTypes>::AppAddressCompute::compute(app, host_ctx)
+    fn derive_app_address(&self, spawn: &SpawnApp, host_ctx: &HostCtx) -> Address {
+        <Self::Types as EnvTypes>::AppAddressCompute::compute(spawn, host_ctx)
     }
 
     /// Parses a raw template transaction into `AppTemplate`
-    fn parse_template(&self, bytes: &[u8], author: &Address) -> Result<AppTemplate, ParseError> {
+    fn parse_template(&self, bytes: &[u8]) -> Result<AppTemplate, ParseError> {
         crate::raw::decode_deploy_template(bytes)
     }
 
     /// Parses a raw spawn-app transaction into `App`
-    fn parse_app(&self, bytes: &[u8], creator: &Address) -> Result<SpawnApp, ParseError> {
-        crate::raw::decode_spawn_app(bytes, creator)
+    fn parse_app(&self, bytes: &[u8]) -> Result<SpawnApp, ParseError> {
+        crate::raw::decode_spawn_app(bytes)
     }
 
     /// Parses a raw exec-app transaction into `AppTransaction`
-    fn parse_app_tx(&self, bytes: &[u8], sender: &Address) -> Result<AppTransaction, ParseError> {
-        crate::raw::decode_exec_app(bytes, sender)
+    fn parse_app_tx(&self, bytes: &[u8]) -> Result<AppTransaction, ParseError> {
+        crate::raw::decode_exec_app(bytes)
     }
 
     /// Stores the following:
@@ -97,14 +95,14 @@ pub trait Env {
     #[must_use]
     fn store_template(
         &mut self,
-        template: &DeployAppTemplate,
+        template: &AppTemplate,
         host_ctx: &HostCtx,
     ) -> Result<Address, StoreError> {
         let hash = self.compute_template_hash(template);
         let addr = self.derive_template_address(template, host_ctx);
 
         let store = self.get_template_store_mut();
-        store.store(template, &addr, &hash)?;
+        store.store(template, host_ctx, &addr, &hash)?;
 
         Ok(addr)
     }
@@ -112,27 +110,24 @@ pub trait Env {
     /// Stores `app address` -> `app-template address` relation.
     #[must_use]
     fn store_app(&mut self, app: &SpawnApp, host_ctx: &HostCtx) -> Result<Address, StoreError> {
-        match self.template_exists(&app) {
-            false => {
-                // important:
-                // Normally code shuld never execute this piece.
-                // The Runtime (defined at the `svm-runtime` crate) was supposed to pre-validate the existence
-                // of the `AppTemplate` prior to calling the `Env` for storing the new `App`.
-                let msg = format!(
-                    "`AppTemplate` not found (address = `{:?}`)",
-                    app.get_template().clone()
-                );
-                let err = StoreError::DataCorruption(msg);
-                Err(err)
-            }
-            true => {
-                let addr = self.derive_app_address(app, host_ctx);
-                let store = self.get_app_store_mut();
+        if self.template_exists(&app) {
+            let addr = self.derive_app_address(app, host_ctx);
+            let store = self.get_app_store_mut();
 
-                store.store(app, &addr)?;
+            store.store(app, host_ctx, &addr)?;
 
-                Ok(addr)
-            }
+            Ok(addr)
+        } else {
+            // important:
+            // Normally code shuld never execute this piece.
+            // The Runtime (defined at the `svm-runtime` crate) was supposed to pre-validate the existence
+            // of the `AppTemplate` prior to calling the `Env` for storing the new `App`.
+            let msg = format!(
+                "`AppTemplate` not found (address = `{:?}`)",
+                app.get_template().clone()
+            );
+            let err = StoreError::DataCorruption(msg);
+            Err(err)
         }
     }
 
@@ -173,12 +168,11 @@ pub trait Env {
     fn validate_app_tx(&self, tx: &AppTransaction) -> Result<(), String> {
         let app = self.load_app(&tx.app);
 
-        match app {
-            Some(..) => Ok(()),
-            None => {
-                let err = format!("App `{:?}` doesn't exist", tx.app);
-                Err(err)
-            }
+        if app.is_some() {
+            Ok(())
+        } else {
+            let err = format!("App `{:?}` doesn't exist", tx.app);
+            Err(err)
         }
     }
 

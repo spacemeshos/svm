@@ -1,9 +1,9 @@
-use crate::types::{App, AppTemplate, DeployAppTemplate, SpawnApp};
+use crate::types::{App, AppTemplate, SpawnApp};
 
 /// Serializing an `AppTemplate` into its raw representation.
 pub trait AppTemplateSerializer {
     #[allow(missing_docs)]
-    fn serialize(template: &DeployAppTemplate) -> Vec<u8>;
+    fn serialize(template: &AppTemplate) -> Vec<u8>;
 }
 
 /// Deserializing stored `AppTemplate` into its in-memory representation.

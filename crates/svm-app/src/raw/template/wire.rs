@@ -5,13 +5,13 @@ use crate::{
 };
 
 #[must_use]
-pub fn encode_deploy_template(version: u32, name: &str, page_count: u16, code: &[u8]) -> Vec<u8> {
+pub fn encode_deploy_template(app: &AppTemplate) -> Vec<u8> {
     let mut w = NibbleWriter::new();
 
-    encode_version(version, &mut w);
-    encode_name(name, &mut w);
-    encode_page_count(page_count, &mut w);
-    encode_code(code, &mut w);
+    encode_version(app, &mut w);
+    encode_name(app, &mut w);
+    encode_page_count(app, &mut w);
+    encode_code(app, &mut w);
 
     helpers::bytes(&mut w)
 }
@@ -39,19 +39,23 @@ pub fn decode_deploy_template(bytes: &[u8]) -> Result<AppTemplate, ParseError> {
 
 /// Encoders
 
-fn encode_version(version: u32, w: &mut NibbleWriter) {
+fn encode_version(app: &AppTemplate, w: &mut NibbleWriter) {
+    let version = *&app.version;
     helpers::encode_version(version, w);
 }
 
-fn encode_name(name: &str, w: &mut NibbleWriter) {
-    helpers::encode_string(name, w);
+fn encode_name(app: &AppTemplate, w: &mut NibbleWriter) {
+    helpers::encode_string(&app.name, w);
 }
 
-fn encode_page_count(page_count: u16, w: &mut NibbleWriter) {
+fn encode_page_count(app: &AppTemplate, w: &mut NibbleWriter) {
+    let page_count = *&app.page_count;
     helpers::encode_varuint14(page_count, w);
 }
 
-fn encode_code(code: &[u8], w: &mut NibbleWriter) {
+fn encode_code(app: &AppTemplate, w: &mut NibbleWriter) {
+    let code = &app.code;
+
     w.write_bytes(code)
 }
 

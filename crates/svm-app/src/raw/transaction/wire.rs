@@ -28,7 +28,7 @@ pub fn encode_exec_app(
 /// Returns the parsed transaction as a `AppTransaction` struct.
 /// On failure, returns `ParseError`.
 #[must_use]
-pub fn decode_exec_app(bytes: &[u8], sender: &Address) -> Result<AppTransaction, ParseError> {
+pub fn decode_exec_app(bytes: &[u8]) -> Result<AppTransaction, ParseError> {
     let mut iter = NibbleIter::new(bytes);
 
     let version = decode_version(&mut iter)?;
@@ -41,7 +41,6 @@ pub fn decode_exec_app(bytes: &[u8], sender: &Address) -> Result<AppTransaction,
 
     let tx = AppTransaction {
         app,
-        sender: sender.clone(),
         func_idx,
         func_args,
         func_buf,

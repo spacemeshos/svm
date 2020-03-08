@@ -1,4 +1,7 @@
-use crate::raw::{helpers, NibbleWriter};
+use crate::{
+    raw::{encode_deploy_template, helpers, NibbleWriter},
+    types::AppTemplate,
+};
 
 use svm_common::Address;
 
@@ -74,10 +77,17 @@ impl DeployAppTemplateBuilder {
 
     pub fn build(mut self) -> Vec<u8> {
         let version = self.version.unwrap();
-        let name = &self.name.unwrap();
+        let name = self.name.unwrap();
         let page_count = self.page_count.unwrap();
         let code = self.code.unwrap();
 
-        crate::raw::encode_deploy_template(version, name, page_count, &code[..])
+        let app = AppTemplate {
+            version,
+            name,
+            page_count,
+            code,
+        };
+
+        encode_deploy_template(&app)
     }
 }

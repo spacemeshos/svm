@@ -17,8 +17,4 @@ impl SpawnApp {
     pub fn get_template(&self) -> &Address {
         &self.app.template
     }
-
-    pub fn get_creator(&self) -> &Address {
-        &self.app.creator
-    }
 }

@@ -6,29 +6,23 @@ use crate::{
 
 use svm_common::Address;
 
-pub fn encode_spawn_app(
-    version: u32,
-    template: &Address,
-    ctor_idx: u16,
-    ctor_buf: &[u8],
-    ctor_args: &[WasmValue],
-) -> Vec<u8> {
+pub fn encode_spawn_app(spawn: &SpawnApp) -> Vec<u8> {
     let mut w = NibbleWriter::new();
 
-    encode_version(version, &mut w);
-    encode_template(template, &mut w);
-    encode_ctor_index(ctor_idx, &mut w);
-    encode_ctor_buf(ctor_buf, &mut w);
-    encode_ctor_args(ctor_args, &mut w);
+    encode_version(spawn, &mut w);
+    encode_template(spawn, &mut w);
+    encode_ctor_index(spawn, &mut w);
+    encode_ctor_buf(spawn, &mut w);
+    encode_ctor_args(spawn, &mut w);
 
     helpers::bytes(&mut w)
 }
 
 /// Parsing a raw `spawn-app` transaction given as raw bytes.
 /// Returns the parsed transaction as a tuple consisting of an `App` struct and `ctor` buffer args.
-/// On failure, returns `ParseError`
+/// On failure, returns `ParseError`.
 #[must_use]
-pub fn decode_spawn_app(bytes: &[u8], creator: &Address) -> Result<SpawnApp, ParseError> {
+pub fn decode_spawn_app(bytes: &[u8]) -> Result<SpawnApp, ParseError> {
     let mut iter = NibbleIter::new(bytes);
 
     let version = decode_version(&mut iter)?;
@@ -39,42 +33,43 @@ pub fn decode_spawn_app(bytes: &[u8], creator: &Address) -> Result<SpawnApp, Par
 
     helpers::ensure_eof(&mut iter);
 
-    let app = App {
-        version,
-        template,
-        creator: creator.clone(),
-    };
+    let app = App { version, template };
 
-    let spawn_app = SpawnApp {
+    let spawn = SpawnApp {
         app,
         ctor_idx,
         ctor_buf,
         ctor_args,
     };
 
-    Ok(spawn_app)
+    Ok(spawn)
 }
 
 /// Encoders
 
-fn encode_version(version: u32, w: &mut NibbleWriter) {
+fn encode_version(spawn: &SpawnApp, w: &mut NibbleWriter) {
+    let version = *&spawn.app.version;
     helpers::encode_version(version, w);
 }
 
-fn encode_template(template: &Address, w: &mut NibbleWriter) {
+fn encode_template(spawn: &SpawnApp, w: &mut NibbleWriter) {
+    let template = &spawn.app.template;
     helpers::encode_address(template, w);
 }
 
-fn encode_ctor_index(ctor_idx: u16, writer: &mut NibbleWriter) {
-    helpers::encode_varuint14(ctor_idx, writer);
+fn encode_ctor_index(spawn: &SpawnApp, w: &mut NibbleWriter) {
+    let ctor_idx = *&spawn.ctor_idx;
+    helpers::encode_varuint14(ctor_idx, w);
 }
 
-fn encode_ctor_buf(ctor_buf: &[u8], writer: &mut NibbleWriter) {
-    helpers::encode_func_buf(ctor_buf, writer);
+fn encode_ctor_buf(spawn: &SpawnApp, w: &mut NibbleWriter) {
+    let ctor_buf = &*spawn.ctor_buf;
+    helpers::encode_func_buf(ctor_buf, w);
 }
 
-fn encode_ctor_args(args: &[WasmValue], writer: &mut NibbleWriter) {
-    helpers::encode_func_args(args, writer);
+fn encode_ctor_args(spawn: &SpawnApp, w: &mut NibbleWriter) {
+    let args = &spawn.ctor_args;
+    helpers::encode_func_args(args, w);
 }
 
 /// Decoders

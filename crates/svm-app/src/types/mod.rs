@@ -1,6 +1,5 @@
 mod app;
 mod app_tx;
-mod deploy_template;
 mod hash;
 mod host_ctx;
 mod spawn_app;
@@ -8,7 +7,6 @@ mod template;
 mod wasm_type;
 mod wasm_value;
 
-pub use deploy_template::DeployAppTemplate;
 pub use template::AppTemplate;
 
 pub use app::App;

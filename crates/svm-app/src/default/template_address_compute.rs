@@ -1,6 +1,6 @@
 use crate::{
     traits::AppTemplateAddressCompute,
-    types::{DeployAppTemplate, HostCtx},
+    types::{AppTemplate, HostCtx},
 };
 
 use svm_common::{Address, DefaultKeyHasher, KeyHasher};
@@ -12,12 +12,10 @@ use svm_common::{Address, DefaultKeyHasher, KeyHasher};
 pub struct DefaultAppTemplateAddressCompute;
 
 impl AppTemplateAddressCompute for DefaultAppTemplateAddressCompute {
-    fn compute(deploy_template: &DeployAppTemplate, host_ctx: &HostCtx) -> Address {
-        let template = &deploy_template.template;
-
+    fn compute(template: &AppTemplate, host_ctx: &HostCtx) -> Address {
         let mut buf = Vec::with_capacity(Address::len() + template.code.len());
 
-        buf.extend_from_slice(deploy_template.author.as_slice());
+        // TODO: extract `author` from `host_ctx`
         buf.extend_from_slice(template.code.as_slice());
 
         let hash = DefaultKeyHasher::hash(&buf);

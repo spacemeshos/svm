@@ -1,6 +1,6 @@
 use crate::{
     traits::AppTemplateHasher,
-    types::{AppTemplateHash, DeployAppTemplate},
+    types::{AppTemplate, AppTemplateHash},
 };
 
 use svm_common::{DefaultKeyHasher, KeyHasher};
@@ -10,8 +10,8 @@ pub struct DefaultTemplateHasher;
 
 impl AppTemplateHasher for DefaultTemplateHasher {
     #[inline]
-    fn hash(template: &DeployAppTemplate) -> AppTemplateHash {
-        let bytes = &template.template.code[..];
+    fn hash(template: &AppTemplate) -> AppTemplateHash {
+        let bytes = &template.code[..];
 
         let hash = DefaultKeyHasher::hash(bytes);
 
