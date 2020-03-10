@@ -1,6 +1,5 @@
 use std::error::Error;
 use std::fs::File;
-use std::io;
 use std::io::prelude::*;
 
 use svm_app::{raw::parse_template, testing::AppTemplateBuilder, types::AppTemplate};
@@ -12,10 +11,21 @@ pub fn encode(
     page_count: u16,
     code_path: &str,
     output_path: &str,
-) -> Result<usize, io::Error> {
-    let mut file = File::open(code_path)?;
+) -> Result<usize, Box<dyn Error>> {
+    let file = File::open(code_path);
+    let mut file = match file {
+        Ok(v) => v,
+        Err(e) => {
+            let e = format!("failed to open file at {}: {}", code_path, e.to_string());
+            return Err(e.into());
+        }
+    };
+
     let mut buffer = Vec::new();
-    file.read_to_end(&mut buffer)?;
+    if let Err(e) = file.read_to_end(&mut buffer) {
+        let e = format!("failed to read file at {}: {}", code_path, e.to_string());
+        return Err(e.into());
+    }
 
     let bytes = AppTemplateBuilder::new()
         .with_version(version)
@@ -24,16 +34,38 @@ pub fn encode(
         .with_code(&buffer)
         .build();
 
-    let mut file = File::create(output_path)?;
+    let file = File::create(output_path);
+    let mut file = match file {
+        Ok(v) => v,
+        Err(e) => {
+            let e = format!(
+                "failed to create file at {}: {}",
+                output_path,
+                e.to_string()
+            );
+            return Err(e.into());
+        }
+    };
     file.write_all(&bytes)?;
 
     Ok(bytes.len())
 }
 
 pub fn decode(data_path: &str) -> Result<AppTemplate, Box<dyn Error>> {
-    let mut file = File::open(data_path)?;
+    let file = File::open(data_path);
+    let mut file = match file {
+        Ok(v) => v,
+        Err(e) => {
+            let e = format!("failed to open file at {}: {}", data_path, e.to_string());
+            return Err(e.into());
+        }
+    };
+
     let mut buffer = Vec::new();
-    file.read_to_end(&mut buffer)?;
+    if let Err(e) = file.read_to_end(&mut buffer) {
+        let e = format!("failed to read file at {}: {}", data_path, e.to_string());
+        return Err(e.into());
+    }
 
     parse_template(&buffer, &Address::of("")).map_err(|e| e.to_string().into())
 }

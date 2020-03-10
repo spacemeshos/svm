@@ -917,8 +917,10 @@ name = "svm-cli"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "regex",
  "svm-app",
  "svm-common",
+ "tempfile",
 ]
 
 [[package]]
