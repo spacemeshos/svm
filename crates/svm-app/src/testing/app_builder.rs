@@ -90,8 +90,16 @@ impl SpawnAppBuilder {
         let version = self.version.unwrap();
         let template = self.template.unwrap();
         let ctor_idx = self.ctor_idx.unwrap();
-        let ctor_buf = self.ctor_buf.unwrap();
-        let ctor_args = self.ctor_args.unwrap();
+
+        let ctor_buf = match self.ctor_buf {
+            None => vec![],
+            Some(buf) => buf.to_vec(),
+        };
+
+        let ctor_args = match self.ctor_args {
+            None => vec![],
+            Some(args) => args.to_vec(),
+        };
 
         let spawn = SpawnApp {
             app: App { version, template },

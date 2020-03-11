@@ -9,9 +9,9 @@ mod nibble;
 mod varuint14;
 mod version;
 
-pub use app::{decode_spawn_app, encode_spawn_app};
-pub use template::{decode_deploy_template, encode_deploy_template};
-pub use transaction::{decode_exec_app, encode_exec_app};
+pub use app::{decode_spawn_app, decode_spawn_app_iter, encode_spawn_app};
+pub use template::{decode_deploy_template, decode_deploy_template_iter, encode_deploy_template};
+pub use transaction::{decode_exec_app, decode_exec_app_iter, encode_exec_app};
 
 pub use app::{DefaultAppDeserializer, DefaultAppSerializer};
 pub use template::{DefaultAppTemplateDeserializer, DefaultAppTemplateSerializer};

@@ -13,7 +13,7 @@ impl AppAddressCompute for DefaultAppAddressCompute {
         let app = &spawn.app;
 
         // TODO:
-        // take into account the `ctore_idx`, `ctor_buf`
+        // take into account the `ctore_idx`, `ctor_buf`, `ctor_args`
 
         let mut buf = Vec::with_capacity(Address::len() * 2);
 

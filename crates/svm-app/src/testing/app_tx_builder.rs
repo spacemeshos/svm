@@ -92,8 +92,16 @@ impl AppTxBuilder {
         let version = self.version.unwrap();
         let app = self.app.unwrap();
         let func_idx = self.func_idx.unwrap();
-        let func_buf = self.func_buf.unwrap();
-        let func_args = self.func_args.unwrap();
+
+        let func_buf = match self.func_buf {
+            None => vec![],
+            Some(buf) => buf.to_vec(),
+        };
+
+        let func_args = match self.func_args {
+            None => vec![],
+            Some(args) => args.to_vec(),
+        };
 
         encode_exec_app(version, &app, func_idx, &func_buf[..], &func_args[..])
     }

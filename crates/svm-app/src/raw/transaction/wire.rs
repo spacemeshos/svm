@@ -31,13 +31,16 @@ pub fn encode_exec_app(
 pub fn decode_exec_app(bytes: &[u8]) -> Result<AppTransaction, ParseError> {
     let mut iter = NibbleIter::new(bytes);
 
-    let version = decode_version(&mut iter)?;
-    let app = decode_app(&mut iter)?;
-    let func_idx = decode_func_index(&mut iter)?;
-    let func_buf = decode_func_buf(&mut iter)?;
-    let func_args = decode_func_args(&mut iter)?;
+    decode_exec_app_iter(&mut iter)
+}
 
-    helpers::ensure_eof(&mut iter);
+#[must_use]
+pub fn decode_exec_app_iter(iter: &mut NibbleIter) -> Result<AppTransaction, ParseError> {
+    let version = decode_version(iter)?;
+    let app = decode_app(iter)?;
+    let func_idx = decode_func_index(iter)?;
+    let func_buf = decode_func_buf(iter)?;
+    let func_args = decode_func_args(iter)?;
 
     let tx = AppTransaction {
         app,

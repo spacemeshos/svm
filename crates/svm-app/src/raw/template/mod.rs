@@ -31,4 +31,4 @@ mod wire;
 
 pub use serialize::{DefaultAppTemplateDeserializer, DefaultAppTemplateSerializer};
 pub use validate::validate_template;
-pub use wire::{decode_deploy_template, encode_deploy_template};
+pub use wire::{decode_deploy_template, decode_deploy_template_iter, encode_deploy_template};

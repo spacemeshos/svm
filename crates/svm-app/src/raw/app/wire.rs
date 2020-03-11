@@ -25,13 +25,16 @@ pub fn encode_spawn_app(spawn: &SpawnApp) -> Vec<u8> {
 pub fn decode_spawn_app(bytes: &[u8]) -> Result<SpawnApp, ParseError> {
     let mut iter = NibbleIter::new(bytes);
 
-    let version = decode_version(&mut iter)?;
-    let template = decode_template(&mut iter)?;
-    let ctor_idx = decode_ctor_index(&mut iter)?;
-    let ctor_buf = decode_ctor_buf(&mut iter)?;
-    let ctor_args = decode_ctor_args(&mut iter)?;
+    decode_spawn_app_iter(&mut iter)
+}
 
-    helpers::ensure_eof(&mut iter);
+#[must_use]
+pub fn decode_spawn_app_iter(iter: &mut NibbleIter) -> Result<SpawnApp, ParseError> {
+    let version = decode_version(iter)?;
+    let template = decode_template(iter)?;
+    let ctor_idx = decode_ctor_index(iter)?;
+    let ctor_buf = decode_ctor_buf(iter)?;
+    let ctor_args = decode_ctor_args(iter)?;
 
     let app = App { version, template };
 

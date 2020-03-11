@@ -22,12 +22,15 @@ pub fn encode_deploy_template(template: &AppTemplate) -> Vec<u8> {
 pub fn decode_deploy_template(bytes: &[u8]) -> Result<AppTemplate, ParseError> {
     let mut iter = NibbleIter::new(bytes);
 
-    let version = decode_version(&mut iter)?;
-    let name = decode_name(&mut iter)?;
-    let page_count = decode_page_count(&mut iter)?;
-    let code = decode_code(&mut iter)?;
+    decode_deploy_template_iter(&mut iter)
+}
 
-    helpers::ensure_eof(&mut iter);
+#[must_use]
+pub fn decode_deploy_template_iter(iter: &mut NibbleIter) -> Result<AppTemplate, ParseError> {
+    let version = decode_version(iter)?;
+    let name = decode_name(iter)?;
+    let page_count = decode_page_count(iter)?;
+    let code = decode_code(iter)?;
 
     let template = AppTemplate {
         version,
