@@ -3,7 +3,7 @@ use std::{marker::PhantomData, path::Path};
 use crate::{
     error::StoreError,
     traits::{AppDeserializer, AppSerializer, AppStore},
-    types::{App, HostCtx, SpawnApp},
+    types::App,
 };
 
 use svm_common::Address;
@@ -34,16 +34,11 @@ where
     S: AppSerializer,
     D: AppDeserializer,
 {
-    fn store(
-        &mut self,
-        _app: &SpawnApp,
-        _host_ctx: &HostCtx,
-        _addr: &Address,
-    ) -> Result<(), StoreError> {
+    fn store(&mut self, _app: &App, _creator: &Address, _addr: &Address) -> Result<(), StoreError> {
         todo!()
     }
 
-    fn load(&self, _app_addr: &Address) -> Option<App> {
+    fn load(&self, _app_addr: &Address) -> Option<(App, Address)> {
         todo!()
     }
 }

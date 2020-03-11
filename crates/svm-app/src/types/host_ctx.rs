@@ -15,4 +15,9 @@ impl HostCtx {
     pub fn into_inner(self) -> HashMap<u32, Vec<u8>> {
         self.inner
     }
+
+    #[inline]
+    pub fn get(&self, field: u32) -> Option<&Vec<u8>> {
+        self.inner.get(&field)
+    }
 }

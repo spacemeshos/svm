@@ -3,7 +3,7 @@ use std::{marker::PhantomData, path::Path};
 use crate::{
     error::StoreError,
     traits::{AppTemplateDeserializer, AppTemplateSerializer, AppTemplateStore},
-    types::{AppTemplate, AppTemplateHash, HostCtx},
+    types::{AppTemplate, AppTemplateHash},
 };
 
 use svm_common::Address;
@@ -14,7 +14,6 @@ use log::info;
 /// `AppTemplate` store backed by `rocksdb`
 pub struct RocksdbAppTemplateStore<S, D> {
     db: Rocksdb,
-
     _phantom: PhantomData<(S, D)>,
 }
 
@@ -43,15 +42,15 @@ where
     fn store(
         &mut self,
         template: &AppTemplate,
-        host_ctx: &HostCtx,
+        author: &Address,
         addr: &Address,
         hash: &AppTemplateHash,
     ) -> Result<(), StoreError> {
         info!("Storing `AppTemplate`: \n{:?}", template);
-        info!("     `AppTemplate` Account Address: {:?}", addr);
-        info!("     `AppTemplate` Hash: {:?}", hash);
+        info!("     Account Address: {:?}", addr);
+        info!("     Hash: {:?}", hash);
 
-        let bytes: Vec<u8> = S::serialize(template);
+        let bytes = S::serialize(template, author);
 
         let addr_hash = (addr.as_slice(), &hash.0[..]);
         let hash_wasm = (&hash.0[..], &bytes[..]);
@@ -60,7 +59,7 @@ where
         Ok(())
     }
 
-    fn load(&self, addr: &Address) -> Option<AppTemplate> {
+    fn load(&self, addr: &Address) -> Option<(AppTemplate, Address)> {
         info!("loading `AppTemplate` account {:?}", addr);
 
         let addr = addr.as_slice();

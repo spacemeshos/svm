@@ -1,9 +1,10 @@
 use crate::{
     raw::{helpers, NibbleWriter},
-    testing::DeployAppTemplateBuilder,
     traits::{AppTemplateDeserializer, AppTemplateSerializer},
     types::AppTemplate,
 };
+
+use svm_common::Address;
 
 use super::wire;
 
@@ -14,15 +15,13 @@ pub struct DefaultAppTemplateSerializer;
 pub struct DefaultAppTemplateDeserializer;
 
 impl AppTemplateSerializer for DefaultAppTemplateSerializer {
-    fn serialize(deploy_template: &AppTemplate) -> Vec<u8> {
+    fn serialize(template: &AppTemplate, author: &Address) -> Vec<u8> {
         todo!()
     }
 }
 
-impl DefaultAppTemplateSerializer {}
-
 impl AppTemplateDeserializer for DefaultAppTemplateDeserializer {
-    fn deserialize(bytes: &[u8]) -> Option<AppTemplate> {
+    fn deserialize(bytes: &[u8]) -> Option<(AppTemplate, Address)> {
         todo!()
     }
 }

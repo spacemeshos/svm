@@ -3,7 +3,7 @@ use std::{collections::HashMap, marker::PhantomData};
 use crate::{
     error::StoreError,
     traits::{AppTemplateDeserializer, AppTemplateSerializer, AppTemplateStore},
-    types::{AppTemplate, AppTemplateHash, HostCtx},
+    types::{AppTemplate, AppTemplateHash},
 };
 
 use svm_common::Address;
@@ -41,11 +41,11 @@ where
     fn store(
         &mut self,
         template: &AppTemplate,
-        host_ctx: &HostCtx,
+        author: &Address,
         addr: &Address,
         hash: &AppTemplateHash,
     ) -> Result<(), StoreError> {
-        let bytes: Vec<u8> = S::serialize(template);
+        let mut bytes = S::serialize(template, author);
 
         self.bytes.insert(hash.clone(), bytes);
         self.hash.insert(addr.clone(), hash.clone());
@@ -53,7 +53,7 @@ where
         Ok(())
     }
 
-    fn load(&self, addr: &Address) -> Option<AppTemplate> {
+    fn load(&self, addr: &Address) -> Option<(AppTemplate, Address)> {
         let hash = self.hash.get(addr);
 
         hash.and_then(|h| {

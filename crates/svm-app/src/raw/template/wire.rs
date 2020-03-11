@@ -4,14 +4,16 @@ use crate::{
     types::AppTemplate,
 };
 
+use svm_common::Address;
+
 #[must_use]
-pub fn encode_deploy_template(app: &AppTemplate) -> Vec<u8> {
+pub fn encode_deploy_template(template: &AppTemplate) -> Vec<u8> {
     let mut w = NibbleWriter::new();
 
-    encode_version(app, &mut w);
-    encode_name(app, &mut w);
-    encode_page_count(app, &mut w);
-    encode_code(app, &mut w);
+    encode_version(template, &mut w);
+    encode_name(template, &mut w);
+    encode_page_count(template, &mut w);
+    encode_code(template, &mut w);
 
     helpers::bytes(&mut w)
 }
@@ -39,22 +41,22 @@ pub fn decode_deploy_template(bytes: &[u8]) -> Result<AppTemplate, ParseError> {
 
 /// Encoders
 
-fn encode_version(app: &AppTemplate, w: &mut NibbleWriter) {
-    let version = *&app.version;
+fn encode_version(template: &AppTemplate, w: &mut NibbleWriter) {
+    let version = *&template.version;
     helpers::encode_version(version, w);
 }
 
-fn encode_name(app: &AppTemplate, w: &mut NibbleWriter) {
-    helpers::encode_string(&app.name, w);
+fn encode_name(template: &AppTemplate, w: &mut NibbleWriter) {
+    helpers::encode_string(&template.name, w);
 }
 
-fn encode_page_count(app: &AppTemplate, w: &mut NibbleWriter) {
-    let page_count = *&app.page_count;
+fn encode_page_count(template: &AppTemplate, w: &mut NibbleWriter) {
+    let page_count = *&template.page_count;
     helpers::encode_varuint14(page_count, w);
 }
 
-fn encode_code(app: &AppTemplate, w: &mut NibbleWriter) {
-    let code = &app.code;
+fn encode_code(template: &AppTemplate, w: &mut NibbleWriter) {
+    let code = &template.code;
 
     w.write_bytes(code)
 }
