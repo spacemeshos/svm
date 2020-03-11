@@ -1,6 +1,6 @@
 use crate::{
     traits::AppAddressCompute,
-    types::{HostCtx, SpawnApp},
+    types::{AppAddr, HostCtx, SpawnApp},
 };
 
 use svm_common::{Address, DefaultKeyHasher, KeyHasher};
@@ -9,7 +9,7 @@ use svm_common::{Address, DefaultKeyHasher, KeyHasher};
 pub struct DefaultAppAddressCompute;
 
 impl AppAddressCompute for DefaultAppAddressCompute {
-    fn compute(spawn: &SpawnApp, host_ctx: &HostCtx) -> Address {
+    fn compute(spawn: &SpawnApp, host_ctx: &HostCtx) -> AppAddr {
         let app = &spawn.app;
 
         // TODO:
@@ -17,10 +17,12 @@ impl AppAddressCompute for DefaultAppAddressCompute {
 
         let mut buf = Vec::with_capacity(Address::len() * 2);
 
-        buf.extend_from_slice(app.template.as_slice());
+        let template = app.template.inner();
+        buf.extend_from_slice(template.as_slice());
 
         let hash = DefaultKeyHasher::hash(&buf);
+        let addr = Address::from(&hash[0..Address::len()]);
 
-        Address::from(&hash[0..Address::len()])
+        AppAddr::new(addr)
     }
 }

@@ -1,7 +1,7 @@
 use crate::{
     error::ParseError,
     raw::{helpers, Field, NibbleIter, NibbleWriter},
-    types::{App, SpawnApp, WasmValue},
+    types::{App, SpawnApp, TemplateAddr, WasmValue},
 };
 
 use svm_common::Address;
@@ -57,7 +57,7 @@ fn encode_version(spawn: &SpawnApp, w: &mut NibbleWriter) {
 
 fn encode_template(spawn: &SpawnApp, w: &mut NibbleWriter) {
     let template = &spawn.app.template;
-    helpers::encode_address(template, w);
+    helpers::encode_address(template.inner(), w);
 }
 
 fn encode_ctor_index(spawn: &SpawnApp, w: &mut NibbleWriter) {
@@ -81,8 +81,10 @@ fn decode_version(iter: &mut NibbleIter) -> Result<u32, ParseError> {
     helpers::decode_version(iter)
 }
 
-fn decode_template(iter: &mut NibbleIter) -> Result<Address, ParseError> {
-    helpers::decode_address(iter, Field::AppTemplate)
+fn decode_template(iter: &mut NibbleIter) -> Result<TemplateAddr, ParseError> {
+    let addr = helpers::decode_address(iter, Field::AppTemplate)?;
+
+    Ok(TemplateAddr::new(addr))
 }
 
 fn decode_ctor_index(iter: &mut NibbleIter) -> Result<u16, ParseError> {

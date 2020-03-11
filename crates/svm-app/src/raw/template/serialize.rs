@@ -4,7 +4,7 @@ use crate::{
         NibbleWriter,
     },
     traits::{AppTemplateDeserializer, AppTemplateSerializer},
-    types::AppTemplate,
+    types::{AppTemplate, AuthorAddr},
 };
 
 use svm_common::Address;
@@ -18,20 +18,20 @@ pub struct DefaultAppTemplateSerializer;
 pub struct DefaultAppTemplateDeserializer;
 
 impl AppTemplateSerializer for DefaultAppTemplateSerializer {
-    fn serialize(template: &AppTemplate, author: &Address) -> Vec<u8> {
+    fn serialize(template: &AppTemplate, author: &AuthorAddr) -> Vec<u8> {
         let bytes = encode_deploy_template(template);
 
         let mut w = NibbleWriter::new();
         w.write_bytes(&bytes[..]);
 
-        helpers::encode_address(author, &mut w);
+        helpers::encode_address(author.inner(), &mut w);
 
         helpers::bytes(&mut w)
     }
 }
 
 impl AppTemplateDeserializer for DefaultAppTemplateDeserializer {
-    fn deserialize(bytes: &[u8]) -> Option<(AppTemplate, Address)> {
+    fn deserialize(bytes: &[u8]) -> Option<(AppTemplate, AuthorAddr)> {
         let mut iter = NibbleIter::new(bytes);
 
         let template = match decode_deploy_template_iter(&mut iter) {
@@ -40,11 +40,9 @@ impl AppTemplateDeserializer for DefaultAppTemplateDeserializer {
         };
 
         let author = match helpers::decode_address(&mut iter, Field::Author) {
-            Ok(addr) => addr,
+            Ok(addr) => AuthorAddr::new(addr),
             _ => return None,
         };
-
-        dbg!(&author);
 
         Some((template, author))
     }

@@ -3,7 +3,7 @@ use std::{collections::HashMap, marker::PhantomData};
 use crate::{
     error::StoreError,
     traits::{AppDeserializer, AppSerializer, AppStore},
-    types::App,
+    types::{App, AppAddr, CreatorAddr},
 };
 
 use svm_common::Address;
@@ -36,16 +36,21 @@ where
     S: AppSerializer,
     D: AppDeserializer,
 {
-    fn store(&mut self, app: &App, creator: &Address, addr: &Address) -> Result<(), StoreError> {
+    fn store(
+        &mut self,
+        app: &App,
+        creator: &CreatorAddr,
+        addr: &AppAddr,
+    ) -> Result<(), StoreError> {
         let bytes = S::serialize(app, creator);
 
-        self.app_bytes.insert(addr.clone(), bytes);
+        self.app_bytes.insert(addr.inner().clone(), bytes);
 
         Ok(())
     }
 
-    fn load(&self, addr: &Address) -> Option<(App, Address)> {
-        let bytes = self.app_bytes.get(addr);
+    fn load(&self, addr: &AppAddr) -> Option<(App, CreatorAddr)> {
+        let bytes = self.app_bytes.get(addr.inner());
 
         bytes.and_then(|bytes| D::deserialize(&bytes[..]))
     }

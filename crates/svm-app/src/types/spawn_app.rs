@@ -12,9 +12,3 @@ pub struct SpawnApp {
 
     pub ctor_args: Vec<WasmValue>,
 }
-
-impl SpawnApp {
-    pub fn get_template(&self) -> &Address {
-        &self.app.template
-    }
-}

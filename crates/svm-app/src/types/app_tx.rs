@@ -1,14 +1,14 @@
 use std::fmt;
 
-use crate::types::WasmValue;
+use crate::types::{AppAddr, WasmValue};
 
 use svm_common::Address;
 
 /// An in-memory representation of an exec-app transaction.
-#[derive(Clone, PartialEq)]
+#[derive(PartialEq)]
 pub struct AppTransaction {
     /// The `App` account address
-    pub app: Address,
+    pub app: AppAddr,
 
     /// Function Export Index to execute
     pub func_idx: u16,
@@ -35,7 +35,7 @@ impl fmt::Debug for AppTransaction {
 
 impl AppTransaction {
     fn fmt_app(&self) -> String {
-        self.fmt_address("App", &self.app)
+        self.fmt_address("App", &self.app.inner())
     }
 
     fn fmt_address(&self, field: &str, addr: &Address) -> String {

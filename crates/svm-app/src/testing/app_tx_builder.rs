@@ -1,6 +1,6 @@
 use crate::{
     raw::{encode_exec_app, helpers, NibbleWriter},
-    types::WasmValue,
+    types::{AppAddr, WasmValue},
 };
 
 use svm_common::Address;
@@ -102,6 +102,8 @@ impl AppTxBuilder {
             None => vec![],
             Some(args) => args.to_vec(),
         };
+
+        let app = AppAddr::new(app);
 
         encode_exec_app(version, &app, func_idx, &func_buf[..], &func_args[..])
     }

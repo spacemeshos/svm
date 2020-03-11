@@ -1,14 +1,14 @@
 use crate::{
     error::ParseError,
     raw::{helpers, Field, NibbleIter, NibbleWriter},
-    types::{AppTransaction, WasmValue},
+    types::{AppAddr, AppTransaction, WasmValue},
 };
 
 use svm_common::Address;
 
 pub fn encode_exec_app(
     version: u32,
-    app: &Address,
+    app: &AppAddr,
     func_idx: u16,
     func_buf: &[u8],
     func_args: &[WasmValue],
@@ -58,8 +58,8 @@ fn encode_version(version: u32, w: &mut NibbleWriter) {
     helpers::encode_version(version, w);
 }
 
-fn encode_app(app: &Address, w: &mut NibbleWriter) {
-    helpers::encode_address(app, w);
+fn encode_app(app: &AppAddr, w: &mut NibbleWriter) {
+    helpers::encode_address(app.inner(), w);
 }
 
 fn encode_func_index(func_idx: u16, w: &mut NibbleWriter) {
@@ -80,8 +80,10 @@ fn decode_version(iter: &mut NibbleIter) -> Result<u32, ParseError> {
     helpers::decode_version(iter)
 }
 
-fn decode_app(iter: &mut NibbleIter) -> Result<Address, ParseError> {
-    helpers::decode_address(iter, Field::App)
+fn decode_app(iter: &mut NibbleIter) -> Result<AppAddr, ParseError> {
+    let addr = helpers::decode_address(iter, Field::App)?;
+
+    Ok(AppAddr::new(addr))
 }
 
 fn decode_func_index(iter: &mut NibbleIter) -> Result<u16, ParseError> {

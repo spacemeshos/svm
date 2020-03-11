@@ -1,3 +1,4 @@
+mod address;
 mod app;
 mod app_tx;
 mod hash;
@@ -7,6 +8,7 @@ mod template;
 mod wasm_type;
 mod wasm_value;
 
+pub use address::{AppAddr, AuthorAddr, CreatorAddr, TemplateAddr};
 pub use template::AppTemplate;
 
 pub use app::App;

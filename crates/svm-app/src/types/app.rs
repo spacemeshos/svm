@@ -2,13 +2,15 @@ use std::fmt;
 
 use svm_common::Address;
 
+use crate::types::TemplateAddr;
+
 /// An in-memory representation of an app.
 #[derive(PartialEq)]
 pub struct App {
     pub version: u32,
 
     /// `Address` of the `AppTemplate` app is being spawned from.
-    pub template: Address,
+    pub template: TemplateAddr,
 }
 
 impl fmt::Debug for App {
@@ -27,8 +29,8 @@ impl App {
         format!("Version: {}", ver)
     }
 
-    fn fmt_template(&self, addr: &Address) -> String {
-        format!("Template: {}", self.fmt_address(addr))
+    fn fmt_template(&self, addr: &TemplateAddr) -> String {
+        format!("Template: {}", self.fmt_address(addr.inner()))
     }
 
     fn fmt_address(&self, addr: &Address) -> String {

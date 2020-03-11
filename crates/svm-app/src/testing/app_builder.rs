@@ -1,6 +1,6 @@
 use crate::{
     raw::{encode_spawn_app, helpers, NibbleWriter},
-    types::{App, SpawnApp, WasmValue},
+    types::{App, SpawnApp, TemplateAddr, WasmValue},
 };
 
 use svm_common::Address;
@@ -102,7 +102,10 @@ impl SpawnAppBuilder {
         };
 
         let spawn = SpawnApp {
-            app: App { version, template },
+            app: App {
+                version,
+                template: TemplateAddr::new(template),
+            },
             ctor_idx,
             ctor_buf,
             ctor_args,

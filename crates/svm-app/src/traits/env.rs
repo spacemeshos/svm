@@ -4,7 +4,10 @@ use crate::{
         AppAddressCompute, AppDeserializer, AppSerializer, AppStore, AppTemplateAddressCompute,
         AppTemplateDeserializer, AppTemplateHasher, AppTemplateSerializer, AppTemplateStore,
     },
-    types::{App, AppTemplate, AppTemplateHash, AppTransaction, HostCtx, SpawnApp},
+    types::{
+        App, AppAddr, AppTemplate, AppTemplateHash, AppTransaction, AuthorAddr, CreatorAddr,
+        HostCtx, SpawnApp, TemplateAddr,
+    },
 };
 
 use svm_common::Address;
@@ -65,12 +68,12 @@ pub trait Env {
     }
 
     /// Computes `AppTemplate` account address
-    fn derive_template_address(&self, template: &AppTemplate, host_ctx: &HostCtx) -> Address {
+    fn derive_template_address(&self, template: &AppTemplate, host_ctx: &HostCtx) -> TemplateAddr {
         <Self::Types as EnvTypes>::AppTemplateAddressCompute::compute(template, host_ctx)
     }
 
     /// Computes `App` account address
-    fn derive_app_address(&self, spawn: &SpawnApp, host_ctx: &HostCtx) -> Address {
+    fn derive_app_address(&self, spawn: &SpawnApp, host_ctx: &HostCtx) -> AppAddr {
         <Self::Types as EnvTypes>::AppAddressCompute::compute(spawn, host_ctx)
     }
 
@@ -95,9 +98,9 @@ pub trait Env {
     fn store_template(
         &mut self,
         template: &AppTemplate,
-        author: &Address,
+        author: &AuthorAddr,
         host_ctx: &HostCtx,
-    ) -> Result<Address, StoreError> {
+    ) -> Result<TemplateAddr, StoreError> {
         let addr = self.derive_template_address(template, host_ctx);
         let hash = self.compute_template_hash(template);
 
@@ -112,9 +115,9 @@ pub trait Env {
     fn store_app(
         &mut self,
         spawn: &SpawnApp,
-        creator: &Address,
+        creator: &CreatorAddr,
         host_ctx: &HostCtx,
-    ) -> Result<Address, StoreError> {
+    ) -> Result<AppAddr, StoreError> {
         let app = &spawn.app;
         let template = &app.template;
 
@@ -130,9 +133,10 @@ pub trait Env {
             // Normally code shuld never execute this piece.
             // The Runtime (defined at the `svm-runtime` crate) was supposed to pre-validate the existence
             // of the `AppTemplate` prior to calling the `Env` for storing the new `App`.
+
             let msg = format!(
                 "`AppTemplate` not found (address = `{:?}`)",
-                app.template.clone()
+                app.template.inner()
             );
 
             let err = StoreError::DataCorruption(msg);
@@ -141,10 +145,13 @@ pub trait Env {
     }
 
     /// Given an `App` address, loads the `AppTemplate` the app is associated with.
-    fn load_template_by_app(&self, addr: &Address) -> Option<(AppTemplate, Address, Address)> {
-        if let Some((app, _creator)) = self.load_app(addr) {
+    fn load_template_by_app(
+        &self,
+        addr: &AppAddr,
+    ) -> Option<(AppTemplate, TemplateAddr, AuthorAddr, CreatorAddr)> {
+        if let Some((app, creator)) = self.load_app(addr) {
             if let Some((template, author)) = self.load_template(&app.template) {
-                return Some((template, app.template, author));
+                return Some((template, app.template, author, creator));
             }
         }
 
@@ -153,14 +160,14 @@ pub trait Env {
 
     /// Loads an `AppTemplate` given its `Address`
     #[must_use]
-    fn load_template(&self, addr: &Address) -> Option<(AppTemplate, Address)> {
+    fn load_template(&self, addr: &TemplateAddr) -> Option<(AppTemplate, AuthorAddr)> {
         let store = self.get_template_store();
         store.load(&addr)
     }
 
     /// Loads an `App` given its `Address`
     #[must_use]
-    fn load_app(&self, addr: &Address) -> Option<(App, Address)> {
+    fn load_app(&self, addr: &AppAddr) -> Option<(App, CreatorAddr)> {
         let store = self.get_app_store();
         store.load(&addr)
     }
@@ -182,19 +189,19 @@ pub trait Env {
         if app.is_some() {
             Ok(())
         } else {
-            let err = format!("App `{:?}` doesn't exist", tx.app);
+            let err = format!("App `{:?}` doesn't exist", tx.app.inner());
             Err(err)
         }
     }
 
     #[inline]
-    fn template_exists(&self, addr: &Address) -> bool {
+    fn template_exists(&self, addr: &TemplateAddr) -> bool {
         self.load_template(addr).is_some()
     }
 
     /// Given an `Address`, returns whether it's associated with some `App`
     #[inline]
-    fn app_exists(&self, addr: &Address) -> bool {
+    fn app_exists(&self, addr: &AppAddr) -> bool {
         self.load_app(addr).is_some()
     }
 }
