@@ -55,7 +55,6 @@ fn runtime_exec_app() {
     let version = 0;
     let author = Address::of("author");
     let creator = Address::of("creator");
-    let sender = Address::of("sender");
     let page_count = 10;
 
     let kv = testing::memory_kv_store_init();
@@ -111,7 +110,7 @@ fn runtime_exec_app() {
     ];
     let bytes = testing::build_app_tx(version, &app_addr, func_idx, &func_buf, &func_args);
 
-    let tx = runtime.parse_exec_app(&sender, &bytes).unwrap();
+    let tx = runtime.parse_exec_app(&bytes).unwrap();
     let dry_run = false;
 
     let res = runtime.exec_app(tx, init_state.clone(), HostCtx::new(), dry_run);

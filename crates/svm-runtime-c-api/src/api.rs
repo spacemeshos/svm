@@ -3,7 +3,7 @@ use std::{convert::TryFrom, ffi::c_void, ptr::NonNull, string::FromUtf8Error};
 use log::{debug, error};
 
 use svm_app::{
-    default::DefaultJsonSerializerTypes,
+    default::DefaultSerializerTypes,
     types::{AppTransaction, HostCtx},
 };
 use svm_common::{Address, State};
@@ -252,7 +252,7 @@ pub unsafe extern "C" fn svm_runtime_create(
 
     let imports = helpers::cast_imports_to_wasmer_imports(imports);
 
-    let rocksdb_runtime = svm_runtime::create_rocksdb_runtime::<String, DefaultJsonSerializerTypes>(
+    let rocksdb_runtime = svm_runtime::create_rocksdb_runtime::<String, DefaultSerializerTypes>(
         host,
         &path.unwrap(),
         imports,
@@ -456,21 +456,15 @@ pub unsafe extern "C" fn svm_spawn_app(
 pub unsafe extern "C" fn svm_parse_exec_app(
     app_tx: *mut *mut c_void,
     runtime: *const c_void,
-    sender: svm_byte_array,
     tx: svm_byte_array,
 ) -> svm_result_t {
     debug!("`svm_parse_exec_app` start");
 
     let runtime = helpers::cast_to_runtime(runtime);
-    let sender: Result<Address, String> = sender.into();
-
-    if let Err(msg) = sender {
-        todo!();
-    }
 
     let bytes = std::slice::from_raw_parts(tx.bytes, tx.length as usize);
 
-    match runtime.parse_exec_app(&sender.unwrap(), bytes) {
+    match runtime.parse_exec_app(bytes) {
         Ok(tx) => {
             // `AppTransaction` will be freed later as part `svm_exec_app`
             *app_tx = svm_common::into_raw_mut(tx);

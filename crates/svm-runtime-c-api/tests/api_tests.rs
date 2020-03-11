@@ -257,7 +257,6 @@ unsafe fn do_ffi_exec_app() {
     assert!(res.is_ok());
 
     // 4) execute app
-    let sender = Address::of("sender").into();
     let (user, addition, func_idx, func_buf, func_args) = exec_app_args();
     let (bytes, length) = exec_app_bytes(version, &app_addr, func_idx, &func_buf, &func_args);
     let tx = svm_byte_array {
@@ -267,7 +266,7 @@ unsafe fn do_ffi_exec_app() {
 
     // 4.1) parse bytes into in-memory `AppTransaction`
     let mut app_tx = std::ptr::null_mut();
-    let res = api::svm_parse_exec_app(&mut app_tx, runtime, sender, tx);
+    let res = api::svm_parse_exec_app(&mut app_tx, runtime, tx);
     assert!(res.is_ok());
 
     // 4.2) execute the app-transaction

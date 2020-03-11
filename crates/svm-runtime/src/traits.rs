@@ -27,11 +27,7 @@ pub trait Runtime {
     ) -> Result<(Address, State), SpawnAppError>;
 
     /// Parses `bytes` into in-memory `AppTransaction`
-    fn parse_exec_app(
-        &self,
-        sender: &Address,
-        bytes: &[u8],
-    ) -> Result<AppTransaction, ExecAppError>;
+    fn parse_exec_app(&self, bytes: &[u8]) -> Result<AppTransaction, ExecAppError>;
 
     /// Executes an app-transaction. Returns a `Receipt`.
     /// On success:

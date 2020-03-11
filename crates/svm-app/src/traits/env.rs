@@ -98,8 +98,8 @@ pub trait Env {
         author: &Address,
         host_ctx: &HostCtx,
     ) -> Result<Address, StoreError> {
-        let hash = self.compute_template_hash(template);
         let addr = self.derive_template_address(template, host_ctx);
+        let hash = self.compute_template_hash(template);
 
         let store = self.get_template_store_mut();
         store.store(template, author, &addr, &hash)?;

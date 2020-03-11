@@ -1,7 +1,4 @@
-use std::cell::RefCell;
-use std::collections::HashMap;
-use std::ffi::c_void;
-use std::rc::Rc;
+use std::{cell::RefCell, collections::HashMap, ffi::c_void, rc::Rc};
 
 use crate::{
     buffer::BufferRef, ctx::SvmCtx, helpers, helpers::DataWrapper, register::Register,
@@ -13,8 +10,8 @@ use svm_kv::memory::MemKVStore;
 use svm_storage::AppStorage;
 
 use svm_app::{
-    memory::{JsonMemAppStore, JsonMemAppTemplateStore, JsonMemoryEnv},
-    testing::{AppBuilder, AppTemplateBuilder, AppTxBuilder, HostCtxBuilder},
+    memory::{DefaultMemAppStore, DefaultMemAppTemplateStore, DefaultMemoryEnv},
+    testing::{AppTxBuilder, DeployAppTemplateBuilder, HostCtxBuilder, SpawnAppBuilder},
     types::WasmValue,
 };
 
@@ -101,7 +98,7 @@ pub fn create_memory_runtime(
     host: *mut c_void,
     kv: &Rc<RefCell<MemKVStore>>,
     imports: Vec<(String, String, Export)>,
-) -> DefaultRuntime<JsonMemoryEnv> {
+) -> DefaultRuntime<DefaultMemoryEnv> {
     let storage_builder = runtime_memory_storage_builder(kv);
 
     let env = runtime_memory_env_builder();
@@ -121,18 +118,18 @@ pub fn runtime_memory_storage_builder(kv: &Rc<RefCell<MemKVStore>>) -> Box<Stora
 }
 
 /// Creates a new in-memory runtime environment.
-pub fn runtime_memory_env_builder() -> JsonMemoryEnv {
-    let template_store = JsonMemAppTemplateStore::new();
-    let app_store = JsonMemAppStore::new();
+pub fn runtime_memory_env_builder() -> DefaultMemoryEnv {
+    let template_store = DefaultMemAppTemplateStore::new();
+    let app_store = DefaultMemAppStore::new();
 
-    JsonMemoryEnv::new(app_store, template_store)
+    DefaultMemoryEnv::new(app_store, template_store)
 }
 
 /// Synthesizes a raw deploy-template transaction.
 pub fn build_template(version: u32, name: &str, page_count: u16, wasm: &str) -> Vec<u8> {
     let code = wabt::wat2wasm(wasm).unwrap();
 
-    AppTemplateBuilder::new()
+    DeployAppTemplateBuilder::new()
         .with_version(version)
         .with_name(name)
         .with_page_count(page_count)
@@ -148,7 +145,7 @@ pub fn build_app(
     ctor_buf: &Vec<u8>,
     ctor_args: &Vec<WasmValue>,
 ) -> Vec<u8> {
-    AppBuilder::new()
+    SpawnAppBuilder::new()
         .with_version(version)
         .with_template(template)
         .with_ctor_index(ctor_idx)

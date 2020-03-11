@@ -51,13 +51,13 @@ where
     fn deploy_template(
         &mut self,
         author: &Address,
-        _host_ctx: HostCtx,
+        host_ctx: HostCtx,
         bytes: &[u8],
     ) -> Result<Address, DeployTemplateError> {
         info!("runtime `deploy_template`");
 
-        let template = self.parse_template(author, bytes)?;
-        self.install_template(&template)
+        let template = self.parse_deploy_template(bytes)?;
+        self.install_template(&template, author, &host_ctx)
     }
 
     fn spawn_app(
@@ -68,20 +68,16 @@ where
     ) -> Result<(Address, State), SpawnAppError> {
         info!("runtime `spawn_app`");
 
-        let spawn_app = self.parse_app(creator, bytes)?;
-        let app_addr = self.install_app(&spawn_app)?;
-        let state = self.call_ctor(creator, spawn_app, &app_addr, host_ctx)?;
+        let spawn = self.parse_spawn_app(bytes)?;
+        let app_addr = self.install_app(&spawn, creator, &host_ctx)?;
+        let state = self.call_ctor(creator, spawn, &app_addr, host_ctx)?;
 
         Ok((app_addr, state))
     }
 
-    fn parse_exec_app(
-        &self,
-        sender: &Address,
-        bytes: &[u8],
-    ) -> Result<AppTransaction, ExecAppError> {
+    fn parse_exec_app(&self, bytes: &[u8]) -> Result<AppTransaction, ExecAppError> {
         self.env
-            .parse_app_tx(bytes, sender)
+            .parse_exec_app(bytes)
             .or_else(|e| Err(ExecAppError::ParseFailed(e)))
     }
 
@@ -157,46 +153,51 @@ where
         }
     }
 
-    fn parse_template(
-        &self,
-        author: &Address,
-        bytes: &[u8],
-    ) -> Result<AppTemplate, DeployTemplateError> {
+    fn parse_deploy_template(&self, bytes: &[u8]) -> Result<AppTemplate, DeployTemplateError> {
         self.env
-            .parse_template(bytes, author)
+            .parse_deploy_template(bytes)
             .or_else(|e| Err(DeployTemplateError::ParseFailed(e)))
     }
 
-    fn install_template(&mut self, template: &AppTemplate) -> Result<Address, DeployTemplateError> {
+    fn install_template(
+        &mut self,
+        template: &AppTemplate,
+        author: &Address,
+        host_ctx: &HostCtx,
+    ) -> Result<Address, DeployTemplateError> {
         self.env
-            .store_template(template)
+            .store_template(template, author, host_ctx)
             .or_else(|e| Err(DeployTemplateError::StoreFailed(e)))
     }
 
-    fn parse_app(&self, creator: &Address, bytes: &[u8]) -> Result<SpawnApp, SpawnAppError> {
+    fn parse_spawn_app(&self, bytes: &[u8]) -> Result<SpawnApp, SpawnAppError> {
         self.env
-            .parse_app(bytes, creator)
+            .parse_spawn_app(bytes)
             .or_else(|e| Err(SpawnAppError::ParseFailed(e)))
     }
 
-    fn install_app(&mut self, spawn_app: &SpawnApp) -> Result<Address, SpawnAppError> {
+    fn install_app(
+        &mut self,
+        spawn: &SpawnApp,
+        creator: &Address,
+        host_ctx: &HostCtx,
+    ) -> Result<Address, SpawnAppError> {
         self.env
-            .store_app(&spawn_app.app)
+            .store_app(spawn, creator, host_ctx)
             .or_else({ |e| Err(SpawnAppError::StoreFailed(e)) })
     }
 
     fn build_ctor_call(
         &self,
         creator: &Address,
-        spawn_app: SpawnApp,
+        spawn: SpawnApp,
         app_addr: &Address,
     ) -> AppTransaction {
         AppTransaction {
             app: app_addr.clone(),
-            sender: creator.clone(),
-            func_idx: spawn_app.ctor_idx,
-            func_args: spawn_app.ctor_args,
-            func_buf: spawn_app.ctor_buf,
+            func_idx: spawn.ctor_idx,
+            func_args: spawn.ctor_args,
+            func_buf: spawn.ctor_buf,
         }
     }
 
@@ -210,7 +211,7 @@ where
     ) -> Result<Receipt, ExecAppError> {
         info!("runtime `exec_app`");
 
-        let (template, template_addr) = self.load_template(&tx)?;
+        let (template, template_addr, _author) = self.load_template(&tx)?;
 
         let settings = AppSettings {
             page_count: template.page_count,
@@ -472,7 +473,10 @@ where
         import_object.register("svm", ns);
     }
 
-    fn load_template(&self, tx: &AppTransaction) -> Result<(AppTemplate, Address), ExecAppError> {
+    fn load_template(
+        &self,
+        tx: &AppTransaction,
+    ) -> Result<(AppTemplate, Address, Address), ExecAppError> {
         info!("runtime `load_template`");
 
         self.env
