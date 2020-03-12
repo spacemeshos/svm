@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 use crate::Address;
 
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct AddressOf<T>(PhantomData<T>, Address);
 
 impl<T> AddressOf<T> {
