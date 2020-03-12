@@ -1,7 +1,10 @@
 use std::{
+    fmt,
     io::{Cursor, Read},
     iter::Iterator,
 };
+
+use crate::error::ParseError;
 
 use super::{concat_nibbles, Nibble};
 
@@ -12,6 +15,16 @@ pub struct NibbleIter<'a> {
     last_byte: Option<u8>,
     nibbles_read: usize,
     cursor: Cursor<&'a [u8]>,
+}
+
+impl<'a> fmt::Debug for NibbleIter<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "nibbles_read = {}, length={} (in bytes)",
+            self.nibbles_read, self.length
+        )
+    }
 }
 
 impl<'a> NibbleIter<'a> {
@@ -43,6 +56,20 @@ impl<'a> NibbleIter<'a> {
         debug_assert!(rem.is_none());
 
         bytes
+    }
+
+    /// Making sure there are no nibbles left to read,
+    /// except for an optional padding nibble, used to even the number of nibbles.
+    pub fn ensure_eof(&mut self) -> Result<(), ParseError> {
+        if self.is_byte_aligned() == false {
+            let nib = self.next();
+            debug_assert!(nib.is_some());
+        };
+
+        match self.next() {
+            None => Ok(()),
+            Some(..) => Err(ParseError::ExpectedEOF),
+        }
     }
 }
 

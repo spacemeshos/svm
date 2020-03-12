@@ -1,6 +1,6 @@
 use crate::{
     raw::{encode_exec_app, helpers, NibbleWriter},
-    types::{AppAddr, WasmValue},
+    types::{AppAddr, AppTransaction, WasmValue},
 };
 
 /// Builds a raw representation for `exec-app`
@@ -101,6 +101,18 @@ impl AppTxBuilder {
             Some(args) => args.to_vec(),
         };
 
-        encode_exec_app(version, &app, func_idx, &func_buf[..], &func_args[..])
+        let tx = AppTransaction {
+            version,
+            app,
+            func_idx,
+            func_buf,
+            func_args,
+        };
+
+        let mut w = NibbleWriter::new();
+
+        encode_exec_app(&tx, &mut w);
+
+        w.into_bytes()
     }
 }

@@ -7,26 +7,15 @@ use crate::{
 use svm_common::Address;
 
 #[must_use]
-pub fn encode_deploy_template(template: &AppTemplate) -> Vec<u8> {
-    let mut w = NibbleWriter::new();
-
-    encode_version(template, &mut w);
-    encode_name(template, &mut w);
-    encode_page_count(template, &mut w);
-    encode_code(template, &mut w);
-
-    helpers::bytes(&mut w)
+pub fn encode_deploy_template(template: &AppTemplate, w: &mut NibbleWriter) {
+    encode_version(template, w);
+    encode_name(template, w);
+    encode_page_count(template, w);
+    encode_code(template, w);
 }
 
 #[must_use]
-pub fn decode_deploy_template(bytes: &[u8]) -> Result<AppTemplate, ParseError> {
-    let mut iter = NibbleIter::new(bytes);
-
-    decode_deploy_template_iter(&mut iter)
-}
-
-#[must_use]
-pub fn decode_deploy_template_iter(iter: &mut NibbleIter) -> Result<AppTemplate, ParseError> {
+pub fn decode_deploy_template(iter: &mut NibbleIter) -> Result<AppTemplate, ParseError> {
     let version = decode_version(iter)?;
     let name = decode_name(iter)?;
     let page_count = decode_page_count(iter)?;
@@ -61,6 +50,13 @@ fn encode_page_count(template: &AppTemplate, w: &mut NibbleWriter) {
 fn encode_code(template: &AppTemplate, w: &mut NibbleWriter) {
     let code = &template.code;
 
+    // code length
+    let length = code.len();
+    assert!(length < std::u32::MAX as usize);
+
+    helpers::encode_u32_be(length as u32, w);
+
+    // code
     w.write_bytes(code)
 }
 
@@ -79,14 +75,33 @@ fn decode_page_count(iter: &mut NibbleIter) -> Result<u16, ParseError> {
 }
 
 fn decode_code(iter: &mut NibbleIter) -> Result<Vec<u8>, ParseError> {
-    let mut nibs = Vec::new();
-
-    while let Some(nib) = iter.next() {
-        nibs.push(nib);
-    }
-
-    // if `_rem` isn't `None` it means it's a padding nibble.
-    let (code, _rem) = concat_nibbles(&nibs[..]);
+    let length = helpers::decode_u32_be(iter, Field::CodeLength)?;
+    let code = iter.read_bytes(length as usize);
 
     Ok(code)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn encode_decode_deploy_template() {
+        let template = AppTemplate {
+            version: 0,
+            name: "My Template".to_string(),
+            page_count: 5,
+            code: vec![0x0C, 0x00, 0x0D, 0x0E],
+        };
+
+        let mut w = NibbleWriter::new();
+        encode_deploy_template(&template, &mut w);
+
+        let bytes = w.into_bytes();
+        let mut iter = NibbleIter::new(&bytes[..]);
+
+        let decoded = decode_deploy_template(&mut iter).unwrap();
+
+        assert_eq!(template, decoded);
+    }
 }

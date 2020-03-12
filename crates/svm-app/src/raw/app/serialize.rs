@@ -20,7 +20,7 @@ impl AppSerializer for DefaultAppSerializer {
         Self::encode_template(app, &mut w);
         Self::encode_creator(creator, &mut w);
 
-        helpers::bytes(&mut w)
+        w.into_bytes()
     }
 }
 

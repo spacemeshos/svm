@@ -102,4 +102,4 @@
 
 mod wire;
 
-pub use wire::{decode_exec_app, decode_exec_app_iter, encode_exec_app};
+pub use wire::{decode_exec_app, encode_exec_app};

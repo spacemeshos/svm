@@ -6,30 +6,19 @@ use crate::{
 
 use svm_common::Address;
 
-pub fn encode_spawn_app(spawn: &SpawnApp) -> Vec<u8> {
-    let mut w = NibbleWriter::new();
-
-    encode_version(spawn, &mut w);
-    encode_template(spawn, &mut w);
-    encode_ctor_index(spawn, &mut w);
-    encode_ctor_buf(spawn, &mut w);
-    encode_ctor_args(spawn, &mut w);
-
-    helpers::bytes(&mut w)
+pub fn encode_spawn_app(spawn: &SpawnApp, w: &mut NibbleWriter) {
+    encode_version(spawn, w);
+    encode_template(spawn, w);
+    encode_ctor_index(spawn, w);
+    encode_ctor_buf(spawn, w);
+    encode_ctor_args(spawn, w);
 }
 
 /// Parsing a raw `spawn-app` transaction given as raw bytes.
 /// Returns the parsed transaction as a tuple consisting of an `App` struct and `ctor` buffer args.
 /// On failure, returns `ParseError`.
 #[must_use]
-pub fn decode_spawn_app(bytes: &[u8]) -> Result<SpawnApp, ParseError> {
-    let mut iter = NibbleIter::new(bytes);
-
-    decode_spawn_app_iter(&mut iter)
-}
-
-#[must_use]
-pub fn decode_spawn_app_iter(iter: &mut NibbleIter) -> Result<SpawnApp, ParseError> {
+pub fn decode_spawn_app(iter: &mut NibbleIter) -> Result<SpawnApp, ParseError> {
     let version = decode_version(iter)?;
     let template = decode_template(iter)?;
     let ctor_idx = decode_ctor_index(iter)?;

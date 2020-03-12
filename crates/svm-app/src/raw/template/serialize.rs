@@ -1,15 +1,10 @@
 use crate::{
     raw::{
-        decode_deploy_template_iter, encode_deploy_template, helpers, Field, NibbleIter,
-        NibbleWriter,
+        decode_deploy_template, encode_deploy_template, helpers, Field, NibbleIter, NibbleWriter,
     },
     traits::{AppTemplateDeserializer, AppTemplateSerializer},
     types::{AppTemplate, AuthorAddr},
 };
-
-use svm_common::Address;
-
-use super::wire;
 
 /// `AppTemplate` default Serializer
 pub struct DefaultAppTemplateSerializer;
@@ -19,14 +14,12 @@ pub struct DefaultAppTemplateDeserializer;
 
 impl AppTemplateSerializer for DefaultAppTemplateSerializer {
     fn serialize(template: &AppTemplate, author: &AuthorAddr) -> Vec<u8> {
-        let bytes = encode_deploy_template(template);
-
         let mut w = NibbleWriter::new();
-        w.write_bytes(&bytes[..]);
 
+        encode_deploy_template(template, &mut w);
         helpers::encode_address(author.inner(), &mut w);
 
-        helpers::bytes(&mut w)
+        w.into_bytes()
     }
 }
 
@@ -34,7 +27,7 @@ impl AppTemplateDeserializer for DefaultAppTemplateDeserializer {
     fn deserialize(bytes: &[u8]) -> Option<(AppTemplate, AuthorAddr)> {
         let mut iter = NibbleIter::new(bytes);
 
-        let template = match decode_deploy_template_iter(&mut iter) {
+        let template = match decode_deploy_template(&mut iter) {
             Ok(template) => template,
             _ => return None,
         };
@@ -45,5 +38,30 @@ impl AppTemplateDeserializer for DefaultAppTemplateDeserializer {
         };
 
         Some((template, author))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use svm_common::Address;
+
+    use DefaultAppTemplateDeserializer as D;
+    use DefaultAppTemplateSerializer as S;
+
+    #[test]
+    fn serialize_deploy_template() {
+        let template = AppTemplate {
+            version: 0,
+            name: "My Template".to_string(),
+            page_count: 5,
+            code: vec![0x0C, 0x00, 0x0D, 0x0E],
+        };
+        let author = Address::of("@author").into();
+        let bytes = S::serialize(&template, &author);
+
+        let decoded = D::deserialize(&bytes[..]).unwrap();
+        assert_eq!((template, author), decoded);
     }
 }

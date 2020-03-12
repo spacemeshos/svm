@@ -6,36 +6,19 @@ use crate::{
 
 use svm_common::Address;
 
-pub fn encode_exec_app(
-    version: u32,
-    app: &AppAddr,
-    func_idx: u16,
-    func_buf: &[u8],
-    func_args: &[WasmValue],
-) -> Vec<u8> {
-    let mut w = NibbleWriter::new();
-
-    encode_version(version, &mut w);
-    encode_app(app, &mut w);
-    encode_func_index(func_idx, &mut w);
-    encode_func_buf(func_buf, &mut w);
-    encode_func_args(func_args, &mut w);
-
-    helpers::bytes(&mut w)
+pub fn encode_exec_app(tx: &AppTransaction, w: &mut NibbleWriter) {
+    encode_version(tx, w);
+    encode_app(tx, w);
+    encode_func_index(tx, w);
+    encode_func_buf(tx, w);
+    encode_func_args(tx, w);
 }
 
 /// Parsing a raw `AppTransaction` transaction given as raw bytes.
 /// Returns the parsed transaction as a `AppTransaction` struct.
 /// On failure, returns `ParseError`.
 #[must_use]
-pub fn decode_exec_app(bytes: &[u8]) -> Result<AppTransaction, ParseError> {
-    let mut iter = NibbleIter::new(bytes);
-
-    decode_exec_app_iter(&mut iter)
-}
-
-#[must_use]
-pub fn decode_exec_app_iter(iter: &mut NibbleIter) -> Result<AppTransaction, ParseError> {
+pub fn decode_exec_app(iter: &mut NibbleIter) -> Result<AppTransaction, ParseError> {
     let version = decode_version(iter)?;
     let app = decode_app(iter)?;
     let func_idx = decode_func_index(iter)?;
@@ -43,6 +26,7 @@ pub fn decode_exec_app_iter(iter: &mut NibbleIter) -> Result<AppTransaction, Par
     let func_args = decode_func_args(iter)?;
 
     let tx = AppTransaction {
+        version,
         app,
         func_idx,
         func_args,
@@ -54,24 +38,30 @@ pub fn decode_exec_app_iter(iter: &mut NibbleIter) -> Result<AppTransaction, Par
 
 /// Encoders
 
-fn encode_version(version: u32, w: &mut NibbleWriter) {
-    helpers::encode_version(version, w);
+fn encode_version(tx: &AppTransaction, w: &mut NibbleWriter) {
+    let ver = *&tx.version;
+
+    helpers::encode_version(ver, w);
 }
 
-fn encode_app(app: &AppAddr, w: &mut NibbleWriter) {
-    helpers::encode_address(app.inner(), w);
+fn encode_app(tx: &AppTransaction, w: &mut NibbleWriter) {
+    let addr = tx.app.inner();
+    helpers::encode_address(addr, w);
 }
 
-fn encode_func_index(func_idx: u16, w: &mut NibbleWriter) {
-    helpers::encode_varuint14(func_idx, w);
+fn encode_func_index(tx: &AppTransaction, w: &mut NibbleWriter) {
+    let idx = *&tx.func_idx;
+    helpers::encode_varuint14(idx, w);
 }
 
-fn encode_func_buf(buf: &[u8], w: &mut NibbleWriter) {
+fn encode_func_buf(tx: &AppTransaction, w: &mut NibbleWriter) {
+    let buf = &tx.func_buf[..];
     helpers::encode_func_buf(buf, w)
 }
 
-fn encode_func_args(buf: &[WasmValue], w: &mut NibbleWriter) {
-    helpers::encode_func_args(&buf[..], w);
+fn encode_func_args(tx: &AppTransaction, w: &mut NibbleWriter) {
+    let args = &tx.func_args[..];
+    helpers::encode_func_args(args, w);
 }
 
 /// Decoders
@@ -83,7 +73,7 @@ fn decode_version(iter: &mut NibbleIter) -> Result<u32, ParseError> {
 fn decode_app(iter: &mut NibbleIter) -> Result<AppAddr, ParseError> {
     let addr = helpers::decode_address(iter, Field::App)?;
 
-    Ok(AppAddr::new(addr))
+    Ok(addr.into())
 }
 
 fn decode_func_index(iter: &mut NibbleIter) -> Result<u16, ParseError> {

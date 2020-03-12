@@ -9,6 +9,7 @@ pub enum Field {
     NameLength,
     Name,
     PageCount,
+    CodeLength,
     Code,
     AppTemplate,
     App,

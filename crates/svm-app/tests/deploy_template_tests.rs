@@ -8,7 +8,7 @@ use svm_app::{
 use svm_common::Address;
 
 #[test]
-fn env_store_template() {
+fn deploy_template_store() {
     let app_store = DefaultMemAppStore::new();
     let template_store = DefaultMemAppTemplateStore::new();
     let mut env = DefaultMemoryEnv::new(app_store, template_store);

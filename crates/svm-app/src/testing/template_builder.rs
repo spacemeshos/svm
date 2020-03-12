@@ -85,6 +85,10 @@ impl DeployAppTemplateBuilder {
             code,
         };
 
-        encode_deploy_template(&app)
+        let mut w = NibbleWriter::new();
+
+        encode_deploy_template(&app, &mut w);
+
+        w.into_bytes()
     }
 }

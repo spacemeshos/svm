@@ -16,4 +16,4 @@ mod serialize;
 mod wire;
 
 pub use serialize::{DefaultAppDeserializer, DefaultAppSerializer};
-pub use wire::{decode_spawn_app, decode_spawn_app_iter, encode_spawn_app};
+pub use wire::{decode_spawn_app, encode_spawn_app};

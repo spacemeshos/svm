@@ -12,17 +12,17 @@ mod tests {
     use super::{decode_version, encode_version};
 
     fn assert_encode_decode(version: u32) {
-        let mut writer = NibbleWriter::new();
+        let mut w = NibbleWriter::new();
 
-        encode_version(version, &mut writer);
+        encode_version(version, &mut w);
 
-        let data = helpers::bytes(&mut writer);
+        let data = w.into_bytes();
         let mut iter = NibbleIter::new(&data[..]);
 
         let decoded = decode_version(&mut iter).unwrap();
         assert_eq!(version, decoded);
 
-        helpers::ensure_eof(&mut iter);
+        iter.ensure_eof();
     }
 
     #[test]

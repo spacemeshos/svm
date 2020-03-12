@@ -1,5 +1,6 @@
 use crate::{
     error::{ParseError, StoreError},
+    raw::NibbleIter,
     traits::{
         AppAddressCompute, AppDeserializer, AppSerializer, AppStore, AppTemplateAddressCompute,
         AppTemplateDeserializer, AppTemplateHasher, AppTemplateSerializer, AppTemplateStore,
@@ -80,15 +81,21 @@ pub trait Env {
     /// Wire
 
     fn parse_deploy_template(&self, bytes: &[u8]) -> Result<AppTemplate, ParseError> {
-        crate::raw::decode_deploy_template(bytes)
+        let mut iter = NibbleIter::new(bytes);
+
+        crate::raw::decode_deploy_template(&mut iter)
     }
 
     fn parse_spawn_app(&self, bytes: &[u8]) -> Result<SpawnApp, ParseError> {
-        crate::raw::decode_spawn_app(bytes)
+        let mut iter = NibbleIter::new(bytes);
+
+        crate::raw::decode_spawn_app(&mut iter)
     }
 
     fn parse_exec_app(&self, bytes: &[u8]) -> Result<AppTransaction, ParseError> {
-        crate::raw::decode_exec_app(bytes)
+        let mut iter = NibbleIter::new(bytes);
+
+        crate::raw::decode_exec_app(&mut iter)
     }
 
     /// Stores the following:

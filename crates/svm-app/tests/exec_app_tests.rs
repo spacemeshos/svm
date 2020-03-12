@@ -59,6 +59,7 @@ fn parse_exec_app() {
     let actual = env.parse_exec_app(&bytes).unwrap();
 
     let expected = AppTransaction {
+        version: 0,
         app,
         func_idx,
         func_args,

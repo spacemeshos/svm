@@ -1,16 +1,16 @@
 use svm_common::AddressOf;
 
-#[derive(Debug, Clone, PartialEq)]
-pub enum Author {}
+macro_rules! impl_addr_type {
+    ($id:ident) => {
+        #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+        pub enum $id {}
+    };
+}
 
-#[derive(Debug, Clone, PartialEq)]
-pub enum Creator {}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum Template {}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum App {}
+impl_addr_type!(Author);
+impl_addr_type!(Creator);
+impl_addr_type!(Template);
+impl_addr_type!(App);
 
 pub type TemplateAddr = AddressOf<Template>;
 pub type AuthorAddr = AddressOf<Author>;

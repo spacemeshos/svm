@@ -11,10 +11,8 @@ use svm_common::Address;
 /// An in-memory implementation of `AppTemplateStore`
 pub struct MemAppTemplateStore<S, D> {
     bytes: HashMap<AppTemplateHash, Vec<u8>>,
-
-    hash: HashMap<Address, AppTemplateHash>,
-
-    _phantom: PhantomData<(S, D)>,
+    hash: HashMap<TemplateAddr, AppTemplateHash>,
+    phantom: PhantomData<(S, D)>,
 }
 
 impl<S, D> MemAppTemplateStore<S, D>
@@ -28,7 +26,7 @@ where
         Self {
             bytes: HashMap::new(),
             hash: HashMap::new(),
-            _phantom: PhantomData,
+            phantom: PhantomData,
         }
     }
 }
@@ -45,18 +43,16 @@ where
         addr: &TemplateAddr,
         hash: &AppTemplateHash,
     ) -> Result<(), StoreError> {
+        self.hash.insert(addr.clone(), hash.clone());
+
         let mut bytes = S::serialize(template, author);
-
         self.bytes.insert(hash.clone(), bytes);
-
-        let addr = addr.inner().clone();
-        self.hash.insert(addr, hash.clone());
 
         Ok(())
     }
 
     fn load(&self, addr: &TemplateAddr) -> Option<(AppTemplate, AuthorAddr)> {
-        let hash = self.hash.get(addr.inner());
+        let hash = self.hash.get(addr);
 
         hash.and_then(|h| {
             self.bytes

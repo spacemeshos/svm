@@ -7,6 +7,8 @@ use svm_common::Address;
 /// An in-memory representation of an exec-app transaction.
 #[derive(PartialEq)]
 pub struct AppTransaction {
+    pub version: u32,
+
     /// The `App` account address
     pub app: AppAddr,
 

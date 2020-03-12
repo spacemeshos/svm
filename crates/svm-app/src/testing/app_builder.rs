@@ -107,6 +107,10 @@ impl SpawnAppBuilder {
             ctor_args,
         };
 
-        encode_spawn_app(&spawn)
+        let mut w = NibbleWriter::new();
+
+        encode_spawn_app(&spawn, &mut w);
+
+        w.into_bytes()
     }
 }
