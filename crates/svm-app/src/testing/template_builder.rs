@@ -19,7 +19,6 @@ pub struct DeployAppTemplateBuilder {
 ///  
 /// ```rust
 /// use svm_app::{types::AppTemplate, testing::AppTemplateBuilder, raw::parse_template};
-/// use svm_common::Address;
 ///
 /// let bytes = DeployAppTemplateBuilder::new()
 ///            .with_version(0)
@@ -28,13 +27,11 @@ pub struct DeployAppTemplateBuilder {
 ///            .with_code(&[0xC, 0x0, 0xD, 0xE])
 ///            .build();
 ///
-/// let author = Address::of("@author");
-/// let actual = parse_template(&bytes[..], &author).unwrap();
+/// let actual = parse_deploy_template(&bytes[..]).unwrap();
 ///
 /// let expected = AppTemplate {
 ///                  version: 0,
 ///                  name: "My Template".to_string(),
-///                  author: Address::of("@author"),
 ///                  page_count: 10,
 ///                  code: vec![0xC, 0x0, 0xD, 0xE]
 ///                };

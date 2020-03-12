@@ -3,13 +3,11 @@ use crate::{
     types::{AppAddr, WasmValue},
 };
 
-use svm_common::Address;
-
 /// Builds a raw representation for `exec-app`
 /// Should be used for testing only.
 pub struct AppTxBuilder {
     version: Option<u32>,
-    app: Option<Address>,
+    app: Option<AppAddr>,
     func_idx: Option<u16>,
     func_buf: Option<Vec<u8>>,
     func_args: Option<Vec<WasmValue>>,
@@ -68,7 +66,7 @@ impl AppTxBuilder {
         self
     }
 
-    pub fn with_app(mut self, app: &Address) -> Self {
+    pub fn with_app(mut self, app: &AppAddr) -> Self {
         self.app = Some(app.clone());
         self
     }
@@ -102,8 +100,6 @@ impl AppTxBuilder {
             None => vec![],
             Some(args) => args.to_vec(),
         };
-
-        let app = AppAddr::new(app);
 
         encode_exec_app(version, &app, func_idx, &func_buf[..], &func_args[..])
     }

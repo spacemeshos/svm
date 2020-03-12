@@ -12,7 +12,8 @@ fn parse_exec_app() {
     let template_store = DefaultMemAppTemplateStore::new();
     let mut env = DefaultMemoryEnv::new(app_store, template_store);
 
-    let author = Address::of("@author");
+    let author = Address::of("@author").into();
+    let creator = Address::of("@creator").into();
 
     let template = AppTemplate {
         version: 0,
@@ -39,7 +40,7 @@ fn parse_exec_app() {
 
     let host_ctx = HostCtx::new();
 
-    assert!(env.store_app(&spawn, &author, &host_ctx).is_ok());
+    assert!(env.store_app(&spawn, &creator, &host_ctx).is_ok());
 
     let app = env.derive_app_address(&spawn, &host_ctx);
 

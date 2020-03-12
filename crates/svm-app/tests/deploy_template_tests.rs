@@ -16,7 +16,7 @@ fn env_store_template() {
     let code = vec![0x0C, 0x00, 0x0D, 0x0E];
     let name = "Template #1";
     let page_count = 10;
-    let author = Address::of("@author");
+    let author = Address::of("@author").into();
 
     let bytes = DeployAppTemplateBuilder::new()
         .with_version(0)

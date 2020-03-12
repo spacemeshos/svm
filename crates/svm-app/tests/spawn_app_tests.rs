@@ -14,7 +14,7 @@ fn spawn_app_parse() {
     let template_store = DefaultMemAppTemplateStore::new();
     let env = DefaultMemoryEnv::new(app_store, template_store);
 
-    let template = Address::of("@my-template");
+    let template = Address::of("@my-template").into();
     let ctor_idx = 2;
     let ctor_buf = vec![0xAA, 0xAA, 0xAA, 0xBB, 0xBB];
     let ctor_args = vec![WasmValue::I32(10), WasmValue::I64(200)];
@@ -48,8 +48,8 @@ fn spawn_app_valid_app() {
     let template_store = DefaultMemAppTemplateStore::new();
     let mut env = DefaultMemoryEnv::new(app_store, template_store);
 
-    let author = Address::of("@author");
-    let creator = Address::of("@creator");
+    let author = Address::of("@author").into();
+    let creator = Address::of("@creator").into();
     let host_ctx = HostCtx::new();
 
     let template = AppTemplate {
@@ -80,7 +80,7 @@ fn spawn_app_valid_app() {
         template,
     };
 
-    let expected = (expected_app, creator);
+    let expected = (expected_app, creator.into());
 
     let actual = env.load_app(&actual_addr).unwrap();
     assert_eq!(expected, actual);
@@ -92,8 +92,8 @@ fn spawn_app_template_does_not_exist() {
     let template_store = DefaultMemAppTemplateStore::new();
     let mut env = DefaultMemoryEnv::new(app_store, template_store);
 
-    let template = Address::of("@my-template");
-    let creator = Address::of("@creator");
+    let template = Address::of("@my-template").into();
+    let creator = Address::of("@creator").into();
     let ctor_idx = 2;
 
     let bytes = SpawnAppBuilder::new()
@@ -109,7 +109,7 @@ fn spawn_app_template_does_not_exist() {
 
     let msg = format!(
         "`AppTemplate` not found (address = `Address({:?})`)",
-        template.bytes()
+        template.inner().bytes()
     );
 
     let expected = Err(StoreError::DataCorruption(msg.to_string()));

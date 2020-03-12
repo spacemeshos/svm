@@ -1,6 +1,6 @@
 use crate::{
     raw::{encode_spawn_app, helpers, NibbleWriter},
-    types::{App, SpawnApp, TemplateAddr, WasmValue},
+    types::{App, AppAddr, SpawnApp, TemplateAddr, WasmValue},
 };
 
 use svm_common::Address;
@@ -9,7 +9,7 @@ use svm_common::Address;
 /// Should be used for testing only.
 pub struct SpawnAppBuilder {
     version: Option<u32>,
-    template: Option<Address>,
+    template: Option<TemplateAddr>,
     ctor_idx: Option<u16>,
     ctor_buf: Option<Vec<u8>>,
     ctor_args: Option<Vec<WasmValue>>,
@@ -19,11 +19,10 @@ pub struct SpawnAppBuilder {
 /// # Example
 ///
 /// ```rust
-/// use svm_app::{testing::SpawnAppBuilder, types::{App, SpawnApp, WasmValue}, raw::parse_app};
+/// use svm_app::{testing::SpawnAppBuilder, types::{App, SpawnApp, WasmValue}, raw::parse_spawn_app};
 /// use svm_common::Address;
 ////
 /// let template = Address::of("@template");
-/// let creator = Address::of("@creator");
 /// let ctor_idx = 2;
 /// let ctor_buf = vec![0x10, 0x20, 0x30];
 /// let ctor_args = vec![WasmValue::I32(0x40), WasmValue::I64(0x50)];
@@ -36,7 +35,7 @@ pub struct SpawnAppBuilder {
 ///  .with_ctor_args(&ctor_args)
 ///  .build();
 ///
-/// let actual = parse_app(&bytes[..], &creator).unwrap();
+/// let actual = parse_spawn_app(&bytes[..]).unwrap();
 /// let expected = SpawnApp {
 ///                  app: App { template, creator },
 ///                  ctor_idx,
@@ -66,7 +65,7 @@ impl SpawnAppBuilder {
         self
     }
 
-    pub fn with_template(mut self, template: &Address) -> Self {
+    pub fn with_template(mut self, template: &TemplateAddr) -> Self {
         self.template = Some(template.clone());
         self
     }
@@ -102,10 +101,7 @@ impl SpawnAppBuilder {
         };
 
         let spawn = SpawnApp {
-            app: App {
-                version,
-                template: TemplateAddr::new(template),
-            },
+            app: App { version, template },
             ctor_idx,
             ctor_buf,
             ctor_args,
