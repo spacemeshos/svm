@@ -16,7 +16,10 @@ use crate::{
 
 use svm_app::{
     traits::{Env, EnvTypes},
-    types::{AppTemplate, AppTransaction, HostCtx, SpawnApp, WasmValue},
+    types::{
+        AppAddr, AppTemplate, AppTransaction, AuthorAddr, CreatorAddr, HostCtx, SpawnApp,
+        TemplateAddr, WasmValue,
+    },
 };
 use svm_common::{Address, State};
 use svm_storage::AppStorage;
@@ -50,10 +53,10 @@ where
 {
     fn deploy_template(
         &mut self,
-        author: &Address,
+        author: &AuthorAddr,
         host_ctx: HostCtx,
         bytes: &[u8],
-    ) -> Result<Address, DeployTemplateError> {
+    ) -> Result<TemplateAddr, DeployTemplateError> {
         info!("runtime `deploy_template`");
 
         let template = self.parse_deploy_template(bytes)?;
@@ -62,10 +65,10 @@ where
 
     fn spawn_app(
         &mut self,
-        creator: &Address,
+        creator: &CreatorAddr,
         host_ctx: HostCtx,
         bytes: &[u8],
-    ) -> Result<(Address, State), SpawnAppError> {
+    ) -> Result<(AppAddr, State), SpawnAppError> {
         info!("runtime `spawn_app`");
 
         let spawn = self.parse_spawn_app(bytes)?;
@@ -119,7 +122,7 @@ where
     /// observe that app storage data.
     pub fn open_app_storage(
         &self,
-        addr: &Address,
+        addr: &AppAddr,
         state: &State,
         settings: &AppSettings,
     ) -> AppStorage {
@@ -129,9 +132,9 @@ where
 
     fn call_ctor(
         &mut self,
-        creator: &Address,
+        creator: &CreatorAddr,
         spawn_app: SpawnApp,
-        app_addr: &Address,
+        app_addr: &AppAddr,
         host_ctx: HostCtx,
     ) -> Result<State, SpawnAppError> {
         let ctor = self.build_ctor_call(creator, spawn_app, &app_addr);
@@ -162,9 +165,9 @@ where
     fn install_template(
         &mut self,
         template: &AppTemplate,
-        author: &Address,
+        author: &AuthorAddr,
         host_ctx: &HostCtx,
-    ) -> Result<Address, DeployTemplateError> {
+    ) -> Result<TemplateAddr, DeployTemplateError> {
         self.env
             .store_template(template, author, host_ctx)
             .or_else(|e| Err(DeployTemplateError::StoreFailed(e)))
@@ -179,9 +182,9 @@ where
     fn install_app(
         &mut self,
         spawn: &SpawnApp,
-        creator: &Address,
+        creator: &CreatorAddr,
         host_ctx: &HostCtx,
-    ) -> Result<Address, SpawnAppError> {
+    ) -> Result<AppAddr, SpawnAppError> {
         self.env
             .store_app(spawn, creator, host_ctx)
             .or_else({ |e| Err(SpawnAppError::StoreFailed(e)) })
@@ -189,9 +192,9 @@ where
 
     fn build_ctor_call(
         &self,
-        creator: &Address,
+        creator: &CreatorAddr,
         spawn: SpawnApp,
-        app_addr: &Address,
+        app_addr: &AppAddr,
     ) -> AppTransaction {
         AppTransaction {
             app: app_addr.clone(),
@@ -211,7 +214,7 @@ where
     ) -> Result<Receipt, ExecAppError> {
         info!("runtime `exec_app`");
 
-        let (template, template_addr, _author) = self.load_template(&tx)?;
+        let (template, template_addr, _author, _creator) = self.load_template(&tx)?;
 
         let settings = AppSettings {
             page_count: template.page_count,
@@ -239,7 +242,7 @@ where
         &self,
         tx: &AppTransaction,
         template: &AppTemplate,
-        template_addr: &Address,
+        template_addr: &TemplateAddr,
         import_object: &ImportObject,
         is_ctor: bool,
         dry_run: bool,
@@ -325,7 +328,7 @@ where
     fn cast_wasmer_func_returns(
         &self,
         tx: &AppTransaction,
-        template_addr: &Address,
+        template_addr: &TemplateAddr,
         returns: Vec<WasmerValue>,
     ) -> Result<Vec<Value>, ExecAppError> {
         let mut values = Vec::new();
@@ -352,7 +355,7 @@ where
     fn instantiate(
         &self,
         tx: &AppTransaction,
-        template_addr: &Address,
+        template_addr: &TemplateAddr,
         module: &wasmer_runtime::Module,
         import_object: &ImportObject,
     ) -> Result<wasmer_runtime::Instance, ExecAppError> {
@@ -370,7 +373,7 @@ where
     fn get_exported_func<'a>(
         &self,
         tx: &AppTransaction,
-        template_addr: &Address,
+        template_addr: &TemplateAddr,
         instance: &'a wasmer_runtime::Instance,
     ) -> Result<wasmer_runtime::DynFunc<'a>, ExecAppError> {
         let func_idx = self.derive_func_index(instance, tx);
@@ -424,7 +427,7 @@ where
 
     fn import_object_create(
         &self,
-        addr: &Address,
+        addr: &AppAddr,
         state: &State,
         host_ctx: HostCtx,
         settings: &AppSettings,
@@ -476,7 +479,7 @@ where
     fn load_template(
         &self,
         tx: &AppTransaction,
-    ) -> Result<(AppTemplate, Address, Address), ExecAppError> {
+    ) -> Result<(AppTemplate, TemplateAddr, AuthorAddr, CreatorAddr), ExecAppError> {
         info!("runtime `load_template`");
 
         self.env
@@ -490,7 +493,7 @@ where
         &self,
         tx: &AppTransaction,
         template: &AppTemplate,
-        template_addr: &Address,
+        template_addr: &TemplateAddr,
     ) -> Result<wasmer_runtime::Module, ExecAppError> {
         info!("runtime `compile_template` (template={:?})", template_addr);
 

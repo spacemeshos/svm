@@ -323,11 +323,11 @@ pub unsafe extern "C" fn svm_deploy_template(
 
     let bytes = std::slice::from_raw_parts(template.bytes, template.length as usize);
 
-    match runtime.deploy_template(&author.unwrap(), host_ctx.unwrap(), bytes) {
+    match runtime.deploy_template(&author.unwrap().into(), host_ctx.unwrap(), bytes) {
         Ok(addr) => {
             // returning deployed `AppTemplate` as `svm_byte_array`
             // client should call later `svm_address_destroy`
-            addr_to_svm_byte_array!(template_addr, addr);
+            addr_to_svm_byte_array!(template_addr, addr.unwrap());
 
             debug!("`svm_deploy_template`` returns `SVM_SUCCESS`");
 
@@ -401,11 +401,11 @@ pub unsafe extern "C" fn svm_spawn_app(
 
     let bytes = std::slice::from_raw_parts(app.bytes, app.length as usize);
 
-    match runtime.spawn_app(&creator.unwrap(), host_ctx.unwrap(), bytes) {
+    match runtime.spawn_app(&creator.unwrap().into(), host_ctx.unwrap(), bytes) {
         Ok((addr, state)) => {
             // returning spawned app `Address` as `svm_byte_array`
             // client should call later `svm_address_destroy`
-            addr_to_svm_byte_array!(app_addr, addr);
+            addr_to_svm_byte_array!(app_addr, addr.unwrap());
 
             // returning spawned app initial `State` as `svm_byte_array`
             // client should call later `svm_state_destroy`

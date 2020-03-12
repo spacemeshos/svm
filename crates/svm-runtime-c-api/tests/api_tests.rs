@@ -132,7 +132,7 @@ fn spawn_app_bytes(
     ctor_buf: &Vec<u8>,
     ctor_args: &Vec<WasmValue>,
 ) -> (Vec<u8>, u32) {
-    let template_addr = Address::from(*&template_addr.bytes as *const c_void);
+    let template_addr = Address::from(*&template_addr.bytes as *const c_void).into();
 
     let bytes =
         svm_runtime::testing::build_app(version, &template_addr, ctor_idx, ctor_buf, ctor_args);
@@ -148,7 +148,7 @@ fn exec_app_bytes(
     func_buf: &Vec<u8>,
     func_args: &Vec<WasmValue>,
 ) -> (Vec<u8>, u32) {
-    let app_addr = Address::from(*&app_addr.bytes as *const c_void);
+    let app_addr = Address::from(*&app_addr.bytes as *const c_void).into();
 
     let bytes =
         svm_runtime::testing::build_app_tx(version, &app_addr, func_idx, func_buf, func_args);

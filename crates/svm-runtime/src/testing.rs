@@ -12,7 +12,7 @@ use svm_storage::AppStorage;
 use svm_app::{
     memory::{DefaultMemAppStore, DefaultMemAppTemplateStore, DefaultMemoryEnv},
     testing::{AppTxBuilder, DeployAppTemplateBuilder, HostCtxBuilder, SpawnAppBuilder},
-    types::WasmValue,
+    types::{AppAddr, AuthorAddr, CreatorAddr, TemplateAddr, WasmValue},
 };
 
 use wasmer_runtime_core::{export::Export, import::ImportObject, Instance, Module};
@@ -110,8 +110,8 @@ pub fn create_memory_runtime(
 pub fn runtime_memory_storage_builder(kv: &Rc<RefCell<MemKVStore>>) -> Box<StorageBuilderFn> {
     let kv = Rc::clone(kv);
 
-    let func = move |addr: &Address, state: &State, settings: &AppSettings| {
-        svm_storage::testing::app_storage_open(addr, state, &kv, settings.page_count)
+    let func = move |addr: &AppAddr, state: &State, settings: &AppSettings| {
+        svm_storage::testing::app_storage_open(addr.inner(), state, &kv, settings.page_count)
     };
 
     Box::new(func)
@@ -140,7 +140,7 @@ pub fn build_template(version: u32, name: &str, page_count: u16, wasm: &str) -> 
 /// Synthesizes a raw spaw-app transaction.
 pub fn build_app(
     version: u32,
-    template: &Address,
+    template: &TemplateAddr,
     ctor_idx: u16,
     ctor_buf: &Vec<u8>,
     ctor_args: &Vec<WasmValue>,
@@ -157,7 +157,7 @@ pub fn build_app(
 /// Synthesizes a raw exec-app transaction.
 pub fn build_app_tx(
     version: u32,
-    app_addr: &Address,
+    app_addr: &AppAddr,
     func_idx: u16,
     func_buf: &Vec<u8>,
     func_args: &Vec<WasmValue>,
