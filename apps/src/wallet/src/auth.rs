@@ -51,7 +51,7 @@ pub(crate) fn multisig_complete() {
     let reg_bits = sizeof!(pub_key) * 8;
 
     /// we need to assert that the current `pub_key` is different
-    /// from the presisted `pending_pub_key`.
+    /// from the persisted `pending_pub_key`.
     /// If they keys differ - we conclude the multisig auth as a success
     /// and we zero the `pending_pub_key.`
     unsafe {
