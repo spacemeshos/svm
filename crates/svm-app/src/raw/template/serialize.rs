@@ -1,25 +1,67 @@
 use crate::{
+    raw::{
+        decode_deploy_template, encode_deploy_template, helpers, Field, NibbleIter, NibbleWriter,
+    },
     traits::{AppTemplateDeserializer, AppTemplateSerializer},
-    types::AppTemplate,
+    types::{AppTemplate, AuthorAddr},
 };
 
-/// `AppTemplate` json Serializer
-pub struct AppTemplateJsonSerializer;
+/// `AppTemplate` default Serializer
+pub struct DefaultAppTemplateSerializer;
 
-/// `AppTemplate` json Deserialize
-pub struct AppTemplateJsonDeserializer;
+/// `AppTemplate` default Deserializer
+pub struct DefaultAppTemplateDeserializer;
 
-impl AppTemplateSerializer for AppTemplateJsonSerializer {
-    fn serialize(template: &AppTemplate) -> Vec<u8> {
-        let s = serde_json::to_string(template).unwrap();
-        s.into_bytes()
+impl AppTemplateSerializer for DefaultAppTemplateSerializer {
+    fn serialize(template: &AppTemplate, author: &AuthorAddr) -> Vec<u8> {
+        let mut w = NibbleWriter::new();
+
+        encode_deploy_template(template, &mut w);
+        helpers::encode_address(author.inner(), &mut w);
+
+        w.into_bytes()
     }
 }
 
-impl AppTemplateDeserializer for AppTemplateJsonDeserializer {
-    fn deserialize(bytes: Vec<u8>) -> Option<AppTemplate> {
-        let s = unsafe { String::from_utf8_unchecked(bytes) };
+impl AppTemplateDeserializer for DefaultAppTemplateDeserializer {
+    fn deserialize(bytes: &[u8]) -> Option<(AppTemplate, AuthorAddr)> {
+        let mut iter = NibbleIter::new(bytes);
 
-        serde_json::from_str(s.as_str()).ok()
+        let template = match decode_deploy_template(&mut iter) {
+            Ok(template) => template,
+            _ => return None,
+        };
+
+        let author = match helpers::decode_address(&mut iter, Field::Author) {
+            Ok(addr) => AuthorAddr::new(addr),
+            _ => return None,
+        };
+
+        Some((template, author))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use svm_common::Address;
+
+    use DefaultAppTemplateDeserializer as D;
+    use DefaultAppTemplateSerializer as S;
+
+    #[test]
+    fn serialize_deploy_template() {
+        let template = AppTemplate {
+            version: 0,
+            name: "My Template".to_string(),
+            page_count: 5,
+            code: vec![0x0C, 0x00, 0x0D, 0x0E],
+        };
+        let author = Address::of("@author").into();
+        let bytes = S::serialize(&template, &author);
+
+        let decoded = D::deserialize(&bytes[..]).unwrap();
+        assert_eq!((template, author), decoded);
     }
 }

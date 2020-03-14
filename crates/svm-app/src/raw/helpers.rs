@@ -1,66 +1,49 @@
 use super::{Field, NibbleIter, NibbleWriter};
 use crate::{error::ParseError, nib, raw, types::WasmValue};
 
+use byteorder::{BigEndian, ByteOrder, WriteBytesExt};
+
 use svm_common::Address;
-
-pub fn bytes(writer: &mut NibbleWriter) -> Vec<u8> {
-    // before calling `writer.bytes()` we must make sure
-    // that its number of nibbles is even. If it's not, we pad it with one extra nibble.
-
-    if writer.is_byte_aligned() == false {
-        let padding = nib!(0);
-        writer.write(&[padding]);
-    }
-
-    writer.bytes()
-}
-
-/// Making sure there are no nibbles left to read,
-/// except for an optional padding nibble, used to even the number of nibbles.
-pub fn ensure_eof(iter: &mut NibbleIter) -> Result<(), ParseError> {
-    if iter.is_byte_aligned() == false {
-        let nib = iter.next();
-        debug_assert!(nib.is_some());
-    };
-
-    match iter.next() {
-        None => Ok(()),
-        Some(..) => Err(ParseError::ExpectedEOF),
-    }
-}
 
 /// Encoders
 
-pub fn encode_func_buf(buf: &[u8], writer: &mut NibbleWriter) {
-    raw::encode_func_buf(buf, writer);
+pub fn encode_func_buf(buf: &[u8], w: &mut NibbleWriter) {
+    raw::encode_func_buf(buf, w);
 }
 
-pub fn encode_func_args(args: &[WasmValue], writer: &mut NibbleWriter) {
-    raw::encode_func_args(args, writer);
+pub fn encode_func_args(args: &[WasmValue], w: &mut NibbleWriter) {
+    raw::encode_func_args(args, w);
 }
 
-pub fn encode_version(version: u32, writer: &mut NibbleWriter) {
-    raw::encode_version(version, writer);
+pub fn encode_version(version: u32, w: &mut NibbleWriter) {
+    raw::encode_version(version, w);
 }
 
-pub fn encode_varuint14(num: u16, writer: &mut NibbleWriter) {
-    raw::encode_varuint14(num, writer);
+pub fn encode_varuint14(num: u16, w: &mut NibbleWriter) {
+    raw::encode_varuint14(num, w);
 }
 
-pub fn encode_address(addr: &Address, writer: &mut NibbleWriter) {
+pub fn encode_address(addr: &Address, w: &mut NibbleWriter) {
     let bytes = addr.bytes();
-    writer.write_bytes(&bytes[..]);
+    w.write_bytes(&bytes[..]);
 }
 
-pub fn encode_string(s: &str, writer: &mut NibbleWriter) {
+pub fn encode_string(s: &str, w: &mut NibbleWriter) {
     let bytes = s.as_bytes();
     let length = bytes.len();
 
     assert!(length <= std::u16::MAX as usize);
 
-    encode_varuint14(length as u16, writer);
+    encode_varuint14(length as u16, w);
 
-    writer.write_bytes(&bytes[..]);
+    w.write_bytes(&bytes[..]);
+}
+
+pub fn encode_u32_be(n: u32, w: &mut NibbleWriter) {
+    let mut buf = vec![0; 4];
+    BigEndian::write_u32(&mut buf, n);
+
+    w.write_bytes(&buf[..]);
 }
 
 /// Decoders
@@ -116,4 +99,17 @@ pub fn decode_string(
     }
 
     String::from_utf8(bytes).or_else(|_e| Err(ParseError::InvalidUTF8String(field)))
+}
+
+#[must_use]
+pub fn decode_u32_be(iter: &mut NibbleIter, field: Field) -> Result<u32, ParseError> {
+    let bytes = iter.read_bytes(4);
+
+    if bytes.len() != 4 {
+        return Err(ParseError::NotEnoughBytes(field));
+    }
+
+    let n = BigEndian::read_u32(&bytes[..]);
+
+    Ok(n)
 }

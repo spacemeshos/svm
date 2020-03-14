@@ -3,10 +3,13 @@ use std::fmt;
 #[allow(missing_docs)]
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum Field {
+    Author,
+    Creator,
     Version,
     NameLength,
     Name,
     PageCount,
+    CodeLength,
     Code,
     AppTemplate,
     App,

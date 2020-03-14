@@ -20,17 +20,17 @@ mod tests {
     use super::{decode_func_args, encode_func_args, WasmValueLayout, DO_SKIP};
 
     fn assert_encode_decode(args: Vec<WasmValue>) {
-        let mut writer = NibbleWriter::new();
+        let mut w = NibbleWriter::new();
 
-        encode_func_args(&args[..], &mut writer);
+        encode_func_args(&args[..], &mut w);
 
-        let data = helpers::bytes(&mut writer);
-        let mut iter = NibbleIter::new(&data);
+        let data = w.into_bytes();
+        let mut iter = NibbleIter::new(&data[..]);
 
         let decoded = decode_func_args(&mut iter).unwrap();
         assert_eq!(args, decoded);
 
-        helpers::ensure_eof(&mut iter);
+        iter.ensure_eof();
     }
 
     #[test]

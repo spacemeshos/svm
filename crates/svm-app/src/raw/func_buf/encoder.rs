@@ -1,13 +1,13 @@
 use super::super::{encode_varuint14, Field, Nibble, NibbleWriter};
 
-pub fn encode_func_buf(buf: &[u8], writer: &mut NibbleWriter) {
+pub fn encode_func_buf(buf: &[u8], w: &mut NibbleWriter) {
     let len = buf.len();
 
     assert!(len <= std::u16::MAX as usize);
 
-    encode_varuint14(len as u16, writer);
+    encode_varuint14(len as u16, w);
 
-    writer.write_bytes(buf)
+    w.write_bytes(buf)
 }
 
 #[cfg(test)]
@@ -19,30 +19,31 @@ mod tests {
     #[test]
     fn encode_func_buf_empty_buf() {
         let buf = vec![];
-        let mut writer = NibbleWriter::new();
+        let mut w = NibbleWriter::new();
 
-        encode_func_buf(&buf[..], &mut writer);
+        encode_func_buf(&buf[..], &mut w);
 
-        assert!(!writer.is_byte_aligned());
+        assert!(!w.is_byte_aligned());
 
         let padding = nib!(0b_0000_1111);
-        writer.write(&[padding]);
+        w.write(&[padding]);
 
-        let bytes = writer.bytes();
-        assert_eq!(vec![0b_0000_1111], bytes);
+        assert_eq!(vec![0b_0000_1111], w.into_bytes());
     }
 
     #[test]
     fn encode_func_buf_non_empty_buf() {
         let buf = vec![0x10, 0x20, 0x30, 0x40];
-        let mut writer = NibbleWriter::new();
+        let mut w = NibbleWriter::new();
 
-        encode_func_buf(&buf[..], &mut writer);
+        encode_func_buf(&buf[..], &mut w);
 
         // `varuint14` encoding of `buf.len()`:
         let buf_len_encoding = 0b_01_00_0100;
 
-        let bytes = writer.bytes();
-        assert_eq!(vec![buf_len_encoding, 0x10, 0x20, 0x30, 0x40], bytes);
+        assert_eq!(
+            vec![buf_len_encoding, 0x10, 0x20, 0x30, 0x40],
+            w.into_bytes()
+        );
     }
 }

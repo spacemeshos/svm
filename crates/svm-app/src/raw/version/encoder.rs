@@ -2,7 +2,7 @@ use crate::nib;
 
 use super::super::{Nibble, NibbleWriter};
 
-pub fn encode_version(mut version: u32, writer: &mut NibbleWriter) {
+pub fn encode_version(mut version: u32, w: &mut NibbleWriter) {
     let mut has_more = true;
     let mut more_bit = 0;
 
@@ -21,10 +21,10 @@ pub fn encode_version(mut version: u32, writer: &mut NibbleWriter) {
     }
 
     // since we've scanned `version` from `lsb` to `msb` order,
-    // we need to reverse `nibbles` prior calling `writer` with them.
+    // we need to reverse `nibbles` prior calling `w` with them.
     let nibbles: Vec<Nibble> = nibbles.drain(..).rev().collect();
 
-    writer.write(&nibbles[..]);
+    w.write(&nibbles[..]);
 }
 
 fn next_triple_bits(version: u32) -> (u32, u8, u8, u8) {
@@ -47,25 +47,23 @@ mod tests {
     use super::*;
 
     fn assert_encoding(version: u32, expected: Vec<u8>) {
-        let mut writer = NibbleWriter::new();
+        let mut w = NibbleWriter::new();
 
-        encode_version(version, &mut writer);
+        encode_version(version, &mut w);
 
-        let bytes = writer.bytes();
-        assert_eq!(expected, bytes);
+        assert_eq!(expected, w.into_bytes());
     }
 
     fn assert_encoding_with_padding(version: u32, padding: Nibble, expected: Vec<u8>) {
-        let mut writer = NibbleWriter::new();
+        let mut w = NibbleWriter::new();
 
-        encode_version(version, &mut writer);
+        encode_version(version, &mut w);
 
-        // we pad a nibble so thaht `writer` will
-        // hold an even number of nibbles, otherwise `writer.bytes()` will fail.
-        writer.write(&[padding]);
+        // we pad a nibble so thaht `w` will
+        // hold an even number of nibbles, otherwise `w.bytes()` will fail.
+        w.write(&[padding]);
 
-        let bytes = writer.bytes();
-        assert_eq!(expected, bytes);
+        assert_eq!(expected, w.into_bytes());
     }
 
     #[test]

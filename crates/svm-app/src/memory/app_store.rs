@@ -1,10 +1,9 @@
-use std::collections::HashMap;
-use std::marker::PhantomData;
+use std::{collections::HashMap, marker::PhantomData};
 
 use crate::{
     error::StoreError,
     traits::{AppDeserializer, AppSerializer, AppStore},
-    types::App,
+    types::{App, AppAddr, CreatorAddr},
 };
 
 use svm_common::Address;
@@ -13,6 +12,7 @@ use svm_common::Address;
 /// Should be used for testing purposes only.
 pub struct MemAppStore<S, D> {
     app_bytes: HashMap<Address, Vec<u8>>,
+
     _phantom: PhantomData<(S, D)>,
 }
 
@@ -25,6 +25,7 @@ where
     pub fn new() -> Self {
         Self {
             app_bytes: HashMap::new(),
+
             _phantom: PhantomData,
         }
     }
@@ -35,17 +36,22 @@ where
     S: AppSerializer,
     D: AppDeserializer,
 {
-    fn store(&mut self, app: &App, app_addr: &Address) -> Result<(), StoreError> {
-        let bytes: Vec<u8> = S::serialize(app);
+    fn store(
+        &mut self,
+        app: &App,
+        creator: &CreatorAddr,
+        addr: &AppAddr,
+    ) -> Result<(), StoreError> {
+        let bytes = S::serialize(app, creator);
 
-        self.app_bytes.insert(app_addr.clone(), bytes);
+        self.app_bytes.insert(addr.inner().clone(), bytes);
 
         Ok(())
     }
 
-    fn load(&self, app_addr: &Address) -> Option<App> {
-        let bytes = self.app_bytes.get(app_addr);
+    fn load(&self, addr: &AppAddr) -> Option<(App, CreatorAddr)> {
+        let bytes = self.app_bytes.get(addr.inner());
 
-        bytes.and_then(|bytes| D::deserialize(bytes.to_vec()))
+        bytes.and_then(|bytes| D::deserialize(&bytes[..]))
     }
 }

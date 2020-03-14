@@ -12,8 +12,8 @@
 //!
 //!
 
-mod parse;
 mod serialize;
+mod wire;
 
-pub use parse::parse_app;
-pub use serialize::{AppJsonDeserializer, AppJsonSerializer};
+pub use serialize::{DefaultAppDeserializer, DefaultAppSerializer};
+pub use wire::{decode_spawn_app, encode_spawn_app};

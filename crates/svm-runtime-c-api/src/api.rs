@@ -3,7 +3,7 @@ use std::{convert::TryFrom, ffi::c_void, ptr::NonNull, string::FromUtf8Error};
 use log::{debug, error};
 
 use svm_app::{
-    default::DefaultJsonSerializerTypes,
+    default::DefaultSerializerTypes,
     types::{AppTransaction, HostCtx},
 };
 use svm_common::{Address, State};
@@ -252,7 +252,7 @@ pub unsafe extern "C" fn svm_runtime_create(
 
     let imports = helpers::cast_imports_to_wasmer_imports(imports);
 
-    let rocksdb_runtime = svm_runtime::create_rocksdb_runtime::<String, DefaultJsonSerializerTypes>(
+    let rocksdb_runtime = svm_runtime::create_rocksdb_runtime::<String, DefaultSerializerTypes>(
         host,
         &path.unwrap(),
         imports,
@@ -323,11 +323,11 @@ pub unsafe extern "C" fn svm_deploy_template(
 
     let bytes = std::slice::from_raw_parts(template.bytes, template.length as usize);
 
-    match runtime.deploy_template(&author.unwrap(), host_ctx.unwrap(), bytes) {
+    match runtime.deploy_template(&author.unwrap().into(), host_ctx.unwrap(), bytes) {
         Ok(addr) => {
             // returning deployed `AppTemplate` as `svm_byte_array`
             // client should call later `svm_address_destroy`
-            addr_to_svm_byte_array!(template_addr, addr);
+            addr_to_svm_byte_array!(template_addr, addr.unwrap());
 
             debug!("`svm_deploy_template`` returns `SVM_SUCCESS`");
 
@@ -401,11 +401,11 @@ pub unsafe extern "C" fn svm_spawn_app(
 
     let bytes = std::slice::from_raw_parts(app.bytes, app.length as usize);
 
-    match runtime.spawn_app(&creator.unwrap(), host_ctx.unwrap(), bytes) {
+    match runtime.spawn_app(&creator.unwrap().into(), host_ctx.unwrap(), bytes) {
         Ok((addr, state)) => {
             // returning spawned app `Address` as `svm_byte_array`
             // client should call later `svm_address_destroy`
-            addr_to_svm_byte_array!(app_addr, addr);
+            addr_to_svm_byte_array!(app_addr, addr.unwrap());
 
             // returning spawned app initial `State` as `svm_byte_array`
             // client should call later `svm_state_destroy`
@@ -446,9 +446,8 @@ pub unsafe extern "C" fn svm_spawn_app(
 /// assert!(res.is_ok());
 ///
 /// let mut app_tx = std::ptr::null_mut();
-/// let sender = Address::of("@sender").into();
 /// let tx = vec![0x00, 0x01, 0x2, 0x3].into();
-/// let _res = unsafe { svm_parse_exec_app(&mut app_tx, runtime, sender, tx) };
+/// let _res = unsafe { svm_parse_exec_app(&mut app_tx, runtime, tx) };
 /// ```
 ///
 #[must_use]
@@ -456,21 +455,15 @@ pub unsafe extern "C" fn svm_spawn_app(
 pub unsafe extern "C" fn svm_parse_exec_app(
     app_tx: *mut *mut c_void,
     runtime: *const c_void,
-    sender: svm_byte_array,
     tx: svm_byte_array,
 ) -> svm_result_t {
     debug!("`svm_parse_exec_app` start");
 
     let runtime = helpers::cast_to_runtime(runtime);
-    let sender: Result<Address, String> = sender.into();
-
-    if let Err(msg) = sender {
-        todo!();
-    }
 
     let bytes = std::slice::from_raw_parts(tx.bytes, tx.length as usize);
 
-    match runtime.parse_exec_app(&sender.unwrap(), bytes) {
+    match runtime.parse_exec_app(bytes) {
         Ok(tx) => {
             // `AppTransaction` will be freed later as part `svm_exec_app`
             *app_tx = svm_common::into_raw_mut(tx);
@@ -513,9 +506,10 @@ pub unsafe extern "C" fn svm_parse_exec_app(
 /// assert!(res.is_ok());
 ///
 /// // `app_tx` should be parsed from bytes using `svm_parse_exec_app`
+/// let app = Address::of("@app").into();
 /// let app_tx = AppTransaction {
-///     app: Address::of("@app"),
-///     sender: Address::of("@sender"),
+///     version: 0,
+///     app,
 ///     func_idx: 0,
 ///     func_buf: Vec::new(),
 ///     func_args: Vec::new()

@@ -1,7 +1,4 @@
-use std::cell::RefCell;
-use std::ffi::c_void;
-use std::path::Path;
-use std::rc::Rc;
+use std::{cell::RefCell, ffi::c_void, path::Path, rc::Rc};
 
 use svm_common::{Address, State};
 use svm_kv::rocksdb::Rocksdb;
@@ -9,6 +6,7 @@ use svm_kv::rocksdb::Rocksdb;
 use svm_app::{
     rocksdb::{RocksdbAppStore, RocksdbAppTemplateStore, RocksdbEnv},
     traits::EnvSerializerTypes,
+    types::AppAddr,
 };
 
 use svm_storage::{
@@ -54,13 +52,13 @@ where
     RocksdbEnv::new(app_store, template_store)
 }
 
-fn app_storage_build(addr: &Address, state: &State, settings: &AppSettings) -> AppStorage {
+fn app_storage_build(addr: &AppAddr, state: &State, settings: &AppSettings) -> AppStorage {
     // TODO: inject path
     let path = Path::new("apps");
 
     let kv = Rc::new(RefCell::new(Rocksdb::new(path)));
 
-    let pages = RocksdbAppPages::new(addr.clone(), kv, state.clone(), settings.page_count);
+    let pages = RocksdbAppPages::new(addr.inner().clone(), kv, state.clone(), settings.page_count);
     let cache = RocksdbAppPageCache::new(pages, settings.page_count);
 
     AppStorage::new(Box::new(cache))

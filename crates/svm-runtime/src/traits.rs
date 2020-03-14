@@ -4,7 +4,7 @@ use crate::{
     Receipt,
 };
 
-use svm_app::types::{AppTransaction, HostCtx};
+use svm_app::types::{AppAddr, AppTransaction, AuthorAddr, CreatorAddr, HostCtx, TemplateAddr};
 use svm_common::{Address, State};
 use svm_storage::AppStorage;
 
@@ -13,25 +13,21 @@ pub trait Runtime {
     /// Deploy an new app-template
     fn deploy_template(
         &mut self,
-        author: &Address,
+        author: &AuthorAddr,
         host_ctx: HostCtx,
         bytes: &[u8],
-    ) -> Result<Address, DeployTemplateError>;
+    ) -> Result<TemplateAddr, DeployTemplateError>;
 
     /// Spawn a new app out of an existing app-template.
     fn spawn_app(
         &mut self,
-        creator: &Address,
+        creator: &CreatorAddr,
         host_ctx: HostCtx,
         bytes: &[u8],
-    ) -> Result<(Address, State), SpawnAppError>;
+    ) -> Result<(AppAddr, State), SpawnAppError>;
 
     /// Parses `bytes` into in-memory `AppTransaction`
-    fn parse_exec_app(
-        &self,
-        sender: &Address,
-        bytes: &[u8],
-    ) -> Result<AppTransaction, ExecAppError>;
+    fn parse_exec_app(&self, bytes: &[u8]) -> Result<AppTransaction, ExecAppError>;
 
     /// Executes an app-transaction. Returns a `Receipt`.
     /// On success:
@@ -52,4 +48,4 @@ pub trait Runtime {
 }
 
 /// Represents a function that builds a `AppStorage` given its address, state and settings.
-pub type StorageBuilderFn = dyn Fn(&Address, &State, &AppSettings) -> AppStorage;
+pub type StorageBuilderFn = dyn Fn(&AppAddr, &State, &AppSettings) -> AppStorage;

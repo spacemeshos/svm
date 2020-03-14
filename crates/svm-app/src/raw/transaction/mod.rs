@@ -100,6 +100,6 @@
 //! `0 0 0 0` - represents an `i32` number holding zero.
 //! `0 1 0 1` - represents an `i64` number holding zero.
 
-mod parse;
+mod wire;
 
-pub use parse::parse_app_tx;
+pub use wire::{decode_exec_app, encode_exec_app};

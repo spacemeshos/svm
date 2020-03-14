@@ -33,11 +33,6 @@ impl HostCtx {
         }
     }
 
-    #[inline]
-    pub fn get(&self, field: u32) -> Option<&Vec<u8>> {
-        self.inner.get(&field)
-    }
-
     pub unsafe fn from_raw_parts(bytes: *const u8, length: u32) -> Result<HostCtx, String> {
         let bytes = std::slice::from_raw_parts(bytes as _, length as usize);
 

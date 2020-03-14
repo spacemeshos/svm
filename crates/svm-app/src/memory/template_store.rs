@@ -1,19 +1,18 @@
-use std::collections::HashMap;
-use std::marker::PhantomData;
+use std::{collections::HashMap, marker::PhantomData};
 
 use crate::{
     error::StoreError,
     traits::{AppTemplateDeserializer, AppTemplateSerializer, AppTemplateStore},
-    types::{AppTemplate, AppTemplateHash},
+    types::{AppTemplate, AppTemplateHash, AuthorAddr, TemplateAddr},
 };
 
 use svm_common::Address;
 
 /// An in-memory implementation of `AppTemplateStore`
 pub struct MemAppTemplateStore<S, D> {
-    template_bytes: HashMap<AppTemplateHash, Vec<u8>>,
-    template_hash: HashMap<Address, AppTemplateHash>,
-    _phantom: PhantomData<(S, D)>,
+    bytes: HashMap<AppTemplateHash, Vec<u8>>,
+    hash: HashMap<TemplateAddr, AppTemplateHash>,
+    phantom: PhantomData<(S, D)>,
 }
 
 impl<S, D> MemAppTemplateStore<S, D>
@@ -25,9 +24,9 @@ where
     /// Create a new store
     pub fn new() -> Self {
         Self {
-            template_bytes: HashMap::new(),
-            template_hash: HashMap::new(),
-            _phantom: PhantomData,
+            bytes: HashMap::new(),
+            hash: HashMap::new(),
+            phantom: PhantomData,
         }
     }
 }
@@ -40,24 +39,25 @@ where
     fn store(
         &mut self,
         template: &AppTemplate,
-        addr: &Address,
+        author: &AuthorAddr,
+        addr: &TemplateAddr,
         hash: &AppTemplateHash,
     ) -> Result<(), StoreError> {
-        let bytes: Vec<u8> = S::serialize(template);
+        self.hash.insert(addr.clone(), hash.clone());
 
-        self.template_bytes.insert(hash.clone(), bytes);
-        self.template_hash.insert(addr.clone(), hash.clone());
+        let mut bytes = S::serialize(template, author);
+        self.bytes.insert(hash.clone(), bytes);
 
         Ok(())
     }
 
-    fn load(&self, addr: &Address) -> Option<AppTemplate> {
-        let hash = self.template_hash.get(addr);
+    fn load(&self, addr: &TemplateAddr) -> Option<(AppTemplate, AuthorAddr)> {
+        let hash = self.hash.get(addr);
 
         hash.and_then(|h| {
-            self.template_bytes
+            self.bytes
                 .get(&h)
-                .and_then(|bytes| D::deserialize(bytes.to_vec()))
+                .and_then(|bytes| D::deserialize(&bytes[..]))
         })
     }
 }

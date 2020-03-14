@@ -4,6 +4,7 @@ use byteorder::{BigEndian, WriteBytesExt};
 
 pub struct HostCtxBuilder {
     version: Option<u32>,
+
     fields: HashMap<u32, Vec<u8>>,
 }
 
