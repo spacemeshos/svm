@@ -21,8 +21,8 @@ pub(crate) use field::Field;
 
 pub(crate) mod helpers;
 
-pub(crate) use func_args::{decode_func_args, encode_func_args};
-pub(crate) use func_buf::{decode_func_buf, encode_func_buf};
-pub(crate) use nibble::{concat_nibbles, Nibble, NibbleIter, NibbleWriter};
-pub(crate) use varuint14::{decode_varuint14, encode_varuint14};
-pub(crate) use version::{decode_version, encode_version};
+pub use func_args::{decode_func_args, encode_func_args};
+pub use func_buf::{decode_func_buf, encode_func_buf};
+pub use nibble::{concat_nibbles, Nibble, NibbleIter, NibbleWriter};
+pub use varuint14::{decode_varuint14, encode_varuint14};
+pub use version::{decode_version, encode_version};

@@ -18,7 +18,7 @@ pub struct DeployAppTemplateBuilder {
 /// # Example
 ///  
 /// ```rust
-/// use svm_app::{types::AppTemplate, testing::AppTemplateBuilder, raw::parse_template};
+/// use svm_app::{types::AppTemplate, testing::DeployAppTemplateBuilder, raw::{decode_deploy_template, NibbleIter}};
 ///
 /// let bytes = DeployAppTemplateBuilder::new()
 ///            .with_version(0)
@@ -27,7 +27,8 @@ pub struct DeployAppTemplateBuilder {
 ///            .with_code(&[0xC, 0x0, 0xD, 0xE])
 ///            .build();
 ///
-/// let actual = parse_deploy_template(&bytes[..]).unwrap();
+/// let mut iter = NibbleIter::new(&bytes[..]);
+/// let actual = decode_deploy_template(&mut iter).unwrap();
 ///
 /// let expected = AppTemplate {
 ///                  version: 0,

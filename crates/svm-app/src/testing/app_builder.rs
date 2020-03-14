@@ -19,25 +19,26 @@ pub struct SpawnAppBuilder {
 /// # Example
 ///
 /// ```rust
-/// use svm_app::{testing::SpawnAppBuilder, types::{App, SpawnApp, WasmValue}, raw::parse_spawn_app};
+/// use svm_app::{testing::SpawnAppBuilder, types::{App, SpawnApp, WasmValue}, raw::{decode_spawn_app, NibbleIter}};
 /// use svm_common::Address;
-////
-/// let template = Address::of("@template");
+///
+/// let template = Address::of("@template").into();
 /// let ctor_idx = 2;
 /// let ctor_buf = vec![0x10, 0x20, 0x30];
 /// let ctor_args = vec![WasmValue::I32(0x40), WasmValue::I64(0x50)];
 ///
 /// let bytes = SpawnAppBuilder::new()
-///  .with_version(0)
-///  .with_template(&template)
-///  .with_ctor_index(ctor_idx)
-///  .with_ctor_buf(&ctor_buf)
-///  .with_ctor_args(&ctor_args)
-///  .build();
+///             .with_version(0)
+///             .with_template(&template)
+///             .with_ctor_index(ctor_idx)
+///             .with_ctor_buf(&ctor_buf)
+///             .with_ctor_args(&ctor_args)
+///             .build();
 ///
-/// let actual = parse_spawn_app(&bytes[..]).unwrap();
+/// let mut iter = NibbleIter::new(&bytes[..]);
+/// let actual = decode_spawn_app(&mut iter).unwrap();
 /// let expected = SpawnApp {
-///                  app: App { template, creator },
+///                  app: App { version: 0, template },
 ///                  ctor_idx,
 ///                  ctor_buf,
 ///                  ctor_args

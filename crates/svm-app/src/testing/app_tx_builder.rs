@@ -17,12 +17,11 @@ pub struct AppTxBuilder {
 /// # Example
 ///
 /// ```rust
-/// use svm_app::{testing::AppTxBuilder, types::{AppTransaction, WasmValue}, raw::parse_app_tx};
+/// use svm_app::{testing::AppTxBuilder, types::{AppTransaction, WasmValue}, raw::{decode_exec_app, NibbleIter}};
 /// use svm_common::Address;
 ///
-/// let app = Address::of("@my-app");
-/// let sender = Address::of("@sender");
-////
+/// let app = Address::of("@my-app").into();
+///
 /// let func_idx = 10;
 /// let func_buf = vec![0x10, 0x20, 0x30];
 /// let func_args = vec![WasmValue::I32(40), WasmValue::I64(50)];
@@ -35,10 +34,11 @@ pub struct AppTxBuilder {
 ///            .with_func_args(&func_args[..])
 ///            .build();
 ///
-/// let actual = parse_app_tx(&bytes[..], &sender).unwrap();
+/// let mut iter = NibbleIter::new(&bytes[..]);
+/// let actual = decode_exec_app(&mut iter).unwrap();
 /// let expected = AppTransaction {
+///                  version: 0,
 ///                  app,
-///                  sender,
 ///                  func_idx,
 ///                  func_buf,
 ///                  func_args,
