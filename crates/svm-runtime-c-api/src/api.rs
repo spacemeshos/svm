@@ -446,9 +446,8 @@ pub unsafe extern "C" fn svm_spawn_app(
 /// assert!(res.is_ok());
 ///
 /// let mut app_tx = std::ptr::null_mut();
-/// let sender = Address::of("@sender").into();
 /// let tx = vec![0x00, 0x01, 0x2, 0x3].into();
-/// let _res = unsafe { svm_parse_exec_app(&mut app_tx, runtime, sender, tx) };
+/// let _res = unsafe { svm_parse_exec_app(&mut app_tx, runtime, tx) };
 /// ```
 ///
 #[must_use]
@@ -507,9 +506,10 @@ pub unsafe extern "C" fn svm_parse_exec_app(
 /// assert!(res.is_ok());
 ///
 /// // `app_tx` should be parsed from bytes using `svm_parse_exec_app`
+/// let app = Address::of("@app").into();
 /// let app_tx = AppTransaction {
-///     app: Address::of("@app"),
-///     sender: Address::of("@sender"),
+///     version: 0,
+///     app,
 ///     func_idx: 0,
 ///     func_buf: Vec::new(),
 ///     func_args: Vec::new()

@@ -197,6 +197,7 @@ where
         app_addr: &AppAddr,
     ) -> AppTransaction {
         AppTransaction {
+            version: 0,
             app: app_addr.clone(),
             func_idx: spawn.ctor_idx,
             func_args: spawn.ctor_args,
