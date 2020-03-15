@@ -1,0 +1,22 @@
+[package]
+name = "svm-cli"
+version = "0.1.0"
+authors = ["Moshe Shababo"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies.svm-common]
+path = "../svm-common"
+version = "0.0.0"
+
+[dependencies.svm-app]
+path = "../svm-app"
+version = "0.0.0"
+
+[dependencies]
+clap = "2.33.0"
+
+[dev-dependencies]
+tempfile = "3"
+regex = "1"
