@@ -1,7 +1,7 @@
 #ifndef SVM_FUNC_ARGS_H
 #define SVM_FUNC_ARGS_H
 
-#include "svm.h"
+#include "../svm.h"
 
 typedef struct {
   svm_value_type type;
