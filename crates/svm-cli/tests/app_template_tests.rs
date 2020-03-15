@@ -152,6 +152,7 @@ fn test_encode_decode(case: AppTemplateTestCase) {
 
     let re = Regex::new(r"Version: (.*)\nName: (.*)\nCode: (.*)\n#Pages: (\d+)").unwrap();
     let cap = re.captures(&output).unwrap();
+    assert_eq!(&cap[1], case.version);
     assert_eq!(&cap[2], case.name);
     assert_eq!(&cap[3], format!("{:?}", &wasm_example_code[0..4]));
     assert_eq!(&cap[4], case.page_count);
