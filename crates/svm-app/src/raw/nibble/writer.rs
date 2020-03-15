@@ -1,4 +1,4 @@
-use crate::nib;
+use crate::{nib, raw::helpers};
 
 use super::{concat_nibbles, Nibble};
 
@@ -29,8 +29,15 @@ impl NibbleWriter {
     }
 
     #[must_use]
-    pub fn bytes(&self) -> Vec<u8> {
-        assert!(self.is_byte_aligned());
+    #[inline]
+    pub fn into_bytes(mut self) -> Vec<u8> {
+        // before calling `self.bytes()` we must make sure
+        // that its number of nibbles is even. If it's not, we pad it with one extra nibble.
+
+        if self.is_byte_aligned() == false {
+            let padding = nib!(0);
+            self.write(&[padding]);
+        }
 
         let (bytes, rem) = concat_nibbles(&self.nibbles[..]);
         debug_assert!(rem.is_none());

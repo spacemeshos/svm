@@ -1,5 +1,7 @@
 use crate::types::{App, WasmValue};
 
+use svm_common::Address;
+
 #[derive(Debug, PartialEq)]
 pub struct SpawnApp {
     pub app: App,

@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#include "svm.h"
+#include "../svm.h"
 #include "constants.h"
 #include "func_rets.h"
 

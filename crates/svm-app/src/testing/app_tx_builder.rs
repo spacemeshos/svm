@@ -1,15 +1,13 @@
 use crate::{
-    raw::{helpers, NibbleWriter},
-    types::WasmValue,
+    raw::{encode_exec_app, helpers, NibbleWriter},
+    types::{AppAddr, AppTransaction, WasmValue},
 };
-
-use svm_common::Address;
 
 /// Builds a raw representation for `exec-app`
 /// Should be used for testing only.
 pub struct AppTxBuilder {
     version: Option<u32>,
-    app: Option<Address>,
+    app: Option<AppAddr>,
     func_idx: Option<u16>,
     func_buf: Option<Vec<u8>>,
     func_args: Option<Vec<WasmValue>>,
@@ -19,12 +17,11 @@ pub struct AppTxBuilder {
 /// # Example
 ///
 /// ```rust
-/// use svm_app::{testing::AppTxBuilder, types::{AppTransaction, WasmValue}, raw::parse_app_tx};
+/// use svm_app::{testing::AppTxBuilder, types::{AppTransaction, WasmValue}, raw::{decode_exec_app, NibbleIter}};
 /// use svm_common::Address;
 ///
-/// let app = Address::of("@my-app");
-/// let sender = Address::of("@sender");
-////
+/// let app = Address::of("@my-app").into();
+///
 /// let func_idx = 10;
 /// let func_buf = vec![0x10, 0x20, 0x30];
 /// let func_args = vec![WasmValue::I32(40), WasmValue::I64(50)];
@@ -37,10 +34,11 @@ pub struct AppTxBuilder {
 ///            .with_func_args(&func_args[..])
 ///            .build();
 ///
-/// let actual = parse_app_tx(&bytes[..], &sender).unwrap();
+/// let mut iter = NibbleIter::new(&bytes[..]);
+/// let actual = decode_exec_app(&mut iter).unwrap();
 /// let expected = AppTransaction {
+///                  version: 0,
 ///                  app,
-///                  sender,
 ///                  func_idx,
 ///                  func_buf,
 ///                  func_args,
@@ -68,7 +66,7 @@ impl AppTxBuilder {
         self
     }
 
-    pub fn with_app(mut self, app: &Address) -> Self {
+    pub fn with_app(mut self, app: &AppAddr) -> Self {
         self.app = Some(app.clone());
         self
     }
@@ -88,52 +86,33 @@ impl AppTxBuilder {
         self
     }
 
-    pub fn build(&mut self) -> Vec<u8> {
-        let mut writer = NibbleWriter::new();
-
-        self.write_version(&mut writer);
-        self.write_app(&mut writer);
-        self.write_func_index(&mut writer);
-        self.write_func_buf(&mut writer);
-        self.write_func_args(&mut writer);
-
-        helpers::bytes(&mut writer)
-    }
-
-    fn write_version(&self, writer: &mut NibbleWriter) {
+    pub fn build(mut self) -> Vec<u8> {
         let version = self.version.unwrap();
-
-        helpers::encode_version(version, writer);
-    }
-
-    fn write_app(&self, writer: &mut NibbleWriter) {
-        let addr = self.app.as_ref().unwrap();
-        helpers::encode_address(addr, writer);
-    }
-
-    fn write_func_index(&mut self, writer: &mut NibbleWriter) {
+        let app = self.app.unwrap();
         let func_idx = self.func_idx.unwrap();
 
-        helpers::encode_varuint14(func_idx, writer);
-    }
-
-    fn write_func_buf(&self, writer: &mut NibbleWriter) {
-        let buf = if let Some(buf) = &self.func_buf {
-            buf.to_vec()
-        } else {
-            vec![]
+        let func_buf = match self.func_buf {
+            None => vec![],
+            Some(buf) => buf.to_vec(),
         };
 
-        helpers::encode_func_buf(&buf[..], writer)
-    }
-
-    fn write_func_args(&self, writer: &mut NibbleWriter) {
-        let args = if let Some(args) = &self.func_args {
-            args.to_vec()
-        } else {
-            vec![]
+        let func_args = match self.func_args {
+            None => vec![],
+            Some(args) => args.to_vec(),
         };
 
-        helpers::encode_func_args(&args[..], writer);
+        let tx = AppTransaction {
+            version,
+            app,
+            func_idx,
+            func_buf,
+            func_args,
+        };
+
+        let mut w = NibbleWriter::new();
+
+        encode_exec_app(&tx, &mut w);
+
+        w.into_bytes()
     }
 }

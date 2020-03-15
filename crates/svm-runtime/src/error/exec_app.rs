@@ -1,8 +1,8 @@
-use std::error;
-use std::fmt;
+use std::{error, fmt};
 
 use svm_app::error::ParseError;
-use svm_common::Address;
+
+use svm_app::types::{AppAddr, TemplateAddr};
 
 /// `exec-app` error
 #[allow(missing_docs)]
@@ -10,34 +10,34 @@ use svm_common::Address;
 pub enum ExecAppError {
     ParseFailed(ParseError),
     AppNotFound {
-        app_addr: Address,
+        app_addr: AppAddr,
     },
     CompilationFailed {
-        app_addr: Address,
-        template_addr: Address,
+        app_addr: AppAddr,
+        template_addr: TemplateAddr,
         reason: String,
     },
     InstantiationFailed {
-        app_addr: Address,
-        template_addr: Address,
+        app_addr: AppAddr,
+        template_addr: TemplateAddr,
         reason: String,
     },
     FuncNotFound {
-        app_addr: Address,
-        template_addr: Address,
+        app_addr: AppAddr,
+        template_addr: TemplateAddr,
         func_idx: u16,
     },
     InvalidReturnValue {
-        app_addr: Address,
-        template_addr: Address,
+        app_addr: AppAddr,
+        template_addr: TemplateAddr,
         func_idx: u16,
         func_args: String,
         func_rets: String,
         reason: String,
     },
     ExecFailed {
-        app_addr: Address,
-        template_addr: Address,
+        app_addr: AppAddr,
+        template_addr: TemplateAddr,
         func_idx: u16,
         func_args: String,
         reason: String,
@@ -59,7 +59,7 @@ impl error::Error for ExecAppError {
 }
 
 impl fmt::Debug for ExecAppError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         <Self as fmt::Display>::fmt(self, f)
     }
 }
@@ -117,64 +117,70 @@ impl ExecAppError {
         e.to_string()
     }
 
-    fn fmt_app_not_found(&self, app_addr: &Address) -> String {
-        format!("App `{:?}` not found", app_addr)
+    fn fmt_app_not_found(&self, app_addr: &AppAddr) -> String {
+        format!("App `{:?}` not found", app_addr.inner())
     }
 
     fn fmt_compilation_failed(
         &self,
-        app_addr: &Address,
-        template_addr: &Address,
+        app_addr: &AppAddr,
+        template_addr: &TemplateAddr,
         reason: &str,
     ) -> String {
         format!(
             "Compilation failed for app `{:?}` template `{:?}` ({})",
-            app_addr, template_addr, reason
+            app_addr.inner(),
+            template_addr.inner(),
+            reason
         )
     }
 
     fn fmt_instantiation_failed(
         &self,
-        app_addr: &Address,
-        template_addr: &Address,
+        app_addr: &AppAddr,
+        template_addr: &TemplateAddr,
         reason: &str,
     ) -> String {
         format!(
             "Instance Instantiation failed for app `{:?}` template `{:?}`\rReason: {}",
-            app_addr, template_addr, reason
+            app_addr.inner(),
+            template_addr.inner(),
+            reason
         )
     }
 
     fn fmt_func_not_found(
         &self,
-        app_addr: &Address,
-        template_addr: &Address,
+        app_addr: &AppAddr,
+        template_addr: &TemplateAddr,
         func_idx: u16,
     ) -> String {
         format!(
             "Function `{}` not found (app = `{:?}`, template=`{:?}`)",
-            func_idx, app_addr, template_addr
+            func_idx,
+            app_addr.inner(),
+            template_addr.inner()
         )
     }
 
     fn fmt_exec_failed(
         &self,
-        app_addr: &Address,
-        template_addr: &Address,
+        app_addr: &AppAddr,
+        template_addr: &TemplateAddr,
         func_idx: u16,
         func_args: &str,
         reason: &str,
     ) -> String {
         format!(
             "Execution failed for function `{}` with input `{}` (app=`{:?}`, template=`{:?}`)\nReason: {}",
-            func_idx, func_args, app_addr, template_addr, reason
+            func_idx, func_args, app_addr.inner(), template_addr.inner(), reason
         )
     }
 
     fn fmt_invalid_ret_value(
         &self,
-        app_addr: &Address,
-        template_addr: &Address,
+        app_addr: &AppAddr,
+        template_addr: &TemplateAddr,
         func_idx: u16,
         func_args: &str,
         func_rets: &str,
@@ -182,6 +188,6 @@ impl ExecAppError {
     ) -> String {
         format!(
             "Function `{}` returned invalid values `{}` for input `{}` (app=`{:?}`, template=`{:?}`)\nReason: {}",
-            func_idx, func_rets, func_args, app_addr, template_addr, reason)
+            func_idx, func_rets, func_args, app_addr.inner(), template_addr.inner(), reason)
     }
 }

@@ -14,43 +14,6 @@ use svm_runtime::{ctx::SvmCtx, traits::Runtime};
 use wasmer_runtime_c_api::instance::wasmer_instance_context_t;
 use wasmer_runtime_core::vm::Ctx;
 
-/// Creates a new in-memory `MemKVStore`.
-/// Returns a raw pointer to allocated kv-store via input parameter `raw_kv`
-#[must_use]
-#[no_mangle]
-pub unsafe extern "C" fn svm_memory_kv_create(kv: *mut *mut c_void) -> svm_result_t {
-    let native_kv = svm_runtime::testing::memory_kv_store_init();
-    *kv = svm_common::into_raw_mut(native_kv);
-
-    svm_result_t::SVM_SUCCESS
-}
-
-/// Creates a new SVM in-memory Runtime instance.
-/// Returns it via the `raw_runtime` parameter.
-#[must_use]
-#[no_mangle]
-pub unsafe extern "C" fn svm_memory_runtime_create(
-    raw_runtime: *mut *mut c_void,
-    kv: *const c_void,
-    host: *mut c_void,
-    imports: *const c_void,
-) -> svm_result_t {
-    debug!("`svm_memory_runtime_create` start");
-
-    let kv: &Rc<RefCell<MemKVStore>> = &*(kv as *const Rc<RefCell<MemKVStore>>);
-    let wasmer_imports = helpers::cast_imports_to_wasmer_imports(imports);
-    let runtime = svm_runtime::testing::create_memory_runtime(host, kv, wasmer_imports);
-
-    let runtime: Box<dyn Runtime> = Box::new(runtime);
-
-    let runtime_ptr = RuntimePtr::new(runtime);
-    *raw_runtime = svm_common::into_raw_mut(runtime_ptr);
-
-    debug!("`svm_memory_runtime_create` end");
-
-    svm_result_t::SVM_SUCCESS
-}
-
 /// Returns a raw pointer to `SVM` live instance register of type `reg_bits:reg_idx`
 pub unsafe fn svm_register_get(
     raw_ctx: *mut wasmer_instance_context_t,

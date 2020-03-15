@@ -3,20 +3,16 @@ use cbindgen::{Builder, Language};
 use std::{env, fs, path::PathBuf};
 
 fn main() {
-    gen_for_c();
+    generate_svm_header();
 }
-fn gen_for_c() {
+
+fn generate_svm_header() {
     let crate_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
-    let header_name = "svm";
 
-    // set expand dir for macro expanding
-    env::set_var("CARGO_EXPAND_TARGET_DIR", crate_dir.clone());
-
-    // set target ouput dir for header
     let out_dir = env::var("OUT_DIR").unwrap();
-    let mut out_header = PathBuf::from(&out_dir);
-    out_header.push(header_name);
-    out_header.set_extension("h");
+    let mut src_header = PathBuf::from(&out_dir);
+    src_header.push("svm");
+    src_header.set_extension("h");
 
     // build using cbindgen
     Builder::new()
@@ -26,15 +22,13 @@ fn gen_for_c() {
         .with_parse_expand(&["svm-runtime-c-api"])
         .generate()
         .expect("Unable to generate C bindings")
-        .write_to_file(out_header.as_path());
+        .write_to_file(src_header.as_path());
 
-    // `root project examples/c`
-    let out_path = PathBuf::from("../../examples/c");
-    let mut examples_header = PathBuf::from(&out_path);
-    examples_header.push(header_name);
-    examples_header.set_extension("h");
+    let mut dst_header = PathBuf::from("../../examples");
+    dst_header.push("svm");
+    dst_header.set_extension("h");
 
-    // copy the file from output to `examples`
-    fs::copy(out_header.as_path(), examples_header.as_path())
+    // copies `svm.h` under `examples`
+    fs::copy(src_header.as_path(), dst_header.as_path())
         .expect("Unable to copy the generated C bindings");
 }

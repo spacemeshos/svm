@@ -1,10 +1,14 @@
 use crate::{
     error::{ParseError, StoreError},
+    raw::NibbleIter,
     traits::{
         AppAddressCompute, AppDeserializer, AppSerializer, AppStore, AppTemplateAddressCompute,
         AppTemplateDeserializer, AppTemplateHasher, AppTemplateSerializer, AppTemplateStore,
     },
-    types::{App, AppTemplate, AppTemplateHash, AppTransaction, SpawnApp},
+    types::{
+        App, AppAddr, AppTemplate, AppTemplateHash, AppTransaction, AuthorAddr, CreatorAddr,
+        HostCtx, SpawnApp, TemplateAddr,
+    },
 };
 
 use svm_common::Address;
@@ -61,79 +65,100 @@ pub trait Env {
 
     /// Computes `AppTemplate` Hash
     fn compute_template_hash(&self, template: &AppTemplate) -> AppTemplateHash {
-        <Self::Types as EnvTypes>::TemplateHasher::hash(&template.code)
+        <Self::Types as EnvTypes>::TemplateHasher::hash(template)
     }
 
     /// Computes `AppTemplate` account address
-    fn derive_template_address(&self, template: &AppTemplate) -> Address {
-        <Self::Types as EnvTypes>::AppTemplateAddressCompute::compute(template)
+    fn derive_template_address(&self, template: &AppTemplate, host_ctx: &HostCtx) -> TemplateAddr {
+        <Self::Types as EnvTypes>::AppTemplateAddressCompute::compute(template, host_ctx)
     }
 
     /// Computes `App` account address
-    fn derive_app_address(&self, app: &App) -> Address {
-        <Self::Types as EnvTypes>::AppAddressCompute::compute(app)
+    fn derive_app_address(&self, spawn: &SpawnApp, host_ctx: &HostCtx) -> AppAddr {
+        <Self::Types as EnvTypes>::AppAddressCompute::compute(spawn, host_ctx)
     }
 
-    /// Parses a raw template transaction into `AppTemplate`
-    fn parse_template(&self, bytes: &[u8], author: &Address) -> Result<AppTemplate, ParseError> {
-        crate::raw::parse_template(bytes, author)
+    /// Wire
+
+    fn parse_deploy_template(&self, bytes: &[u8]) -> Result<AppTemplate, ParseError> {
+        let mut iter = NibbleIter::new(bytes);
+
+        crate::raw::decode_deploy_template(&mut iter)
     }
 
-    /// Parses a raw spawn-app transaction into `App`
-    fn parse_app(&self, bytes: &[u8], creator: &Address) -> Result<SpawnApp, ParseError> {
-        crate::raw::parse_app(bytes, creator)
+    fn parse_spawn_app(&self, bytes: &[u8]) -> Result<SpawnApp, ParseError> {
+        let mut iter = NibbleIter::new(bytes);
+
+        crate::raw::decode_spawn_app(&mut iter)
     }
 
-    /// Parses a raw exec-app transaction into `AppTransaction`
-    fn parse_app_tx(&self, bytes: &[u8], sender: &Address) -> Result<AppTransaction, ParseError> {
-        crate::raw::parse_app_tx(bytes, sender)
+    fn parse_exec_app(&self, bytes: &[u8]) -> Result<AppTransaction, ParseError> {
+        let mut iter = NibbleIter::new(bytes);
+
+        crate::raw::decode_exec_app(&mut iter)
     }
 
     /// Stores the following:
     /// * `TemplateAddress` -> `TemplateHash`
     /// * `TemplateHash` -> `AppTemplate` data
     #[must_use]
-    fn store_template(&mut self, template: &AppTemplate) -> Result<Address, StoreError> {
+    fn store_template(
+        &mut self,
+        template: &AppTemplate,
+        author: &AuthorAddr,
+        host_ctx: &HostCtx,
+    ) -> Result<TemplateAddr, StoreError> {
+        let addr = self.derive_template_address(template, host_ctx);
         let hash = self.compute_template_hash(template);
-        let addr = self.derive_template_address(template);
 
         let store = self.get_template_store_mut();
-        store.store(template, &addr, &hash)?;
+        store.store(template, author, &addr, &hash)?;
 
         Ok(addr)
     }
 
     /// Stores `app address` -> `app-template address` relation.
     #[must_use]
-    fn store_app(&mut self, app: &App) -> Result<Address, StoreError> {
-        match self.template_exists(&app.template) {
-            false => {
-                // important:
-                // Normally code shuld never execute these piece.
-                // The Runtime (defined at the `svm-runtime` crate) was supposed to pre-validate the existence
-                // of the `AppTemplate` prior to calling the `Env` for storing the new `App`.
-                let msg = format!(
-                    "`AppTemplate` not found (address = `{:?}`)",
-                    app.template.clone()
-                );
-                let err = StoreError::DataCorruption(msg);
-                Err(err)
-            }
-            true => {
-                let addr = self.derive_app_address(&app);
-                let store = self.get_app_store_mut();
-                store.store(app, &addr)?;
+    fn store_app(
+        &mut self,
+        spawn: &SpawnApp,
+        creator: &CreatorAddr,
+        host_ctx: &HostCtx,
+    ) -> Result<AppAddr, StoreError> {
+        let app = &spawn.app;
+        let template = &app.template;
 
-                Ok(addr)
-            }
+        if self.template_exists(template) {
+            let addr = self.derive_app_address(spawn, host_ctx);
+            let store = self.get_app_store_mut();
+
+            store.store(app, creator, &addr)?;
+
+            Ok(addr)
+        } else {
+            // important:
+            // Normally code shuld never execute this piece.
+            // The Runtime (defined at the `svm-runtime` crate) was supposed to pre-validate the existence
+            // of the `AppTemplate` prior to calling the `Env` for storing the new `App`.
+
+            let msg = format!(
+                "`AppTemplate` not found (address = `{:?}`)",
+                app.template.inner()
+            );
+
+            let err = StoreError::DataCorruption(msg);
+            Err(err)
         }
     }
 
     /// Given an `App` address, loads the `AppTemplate` the app is associated with.
-    fn load_template_by_app(&self, app_addr: &Address) -> Option<(AppTemplate, Address)> {
-        if let Some(app) = self.load_app(app_addr) {
-            if let Some(template) = self.load_template(&app.template) {
-                return Some((template, app.template));
+    fn load_template_by_app(
+        &self,
+        addr: &AppAddr,
+    ) -> Option<(AppTemplate, TemplateAddr, AuthorAddr, CreatorAddr)> {
+        if let Some((app, creator)) = self.load_app(addr) {
+            if let Some((template, author)) = self.load_template(&app.template) {
+                return Some((template, app.template, author, creator));
             }
         }
 
@@ -141,15 +166,17 @@ pub trait Env {
     }
 
     /// Loads an `AppTemplate` given its `Address`
-    fn load_template(&self, template_addr: &Address) -> Option<AppTemplate> {
+    #[must_use]
+    fn load_template(&self, addr: &TemplateAddr) -> Option<(AppTemplate, AuthorAddr)> {
         let store = self.get_template_store();
-        store.load(&template_addr)
+        store.load(&addr)
     }
 
     /// Loads an `App` given its `Address`
-    fn load_app(&self, app_addr: &Address) -> Option<App> {
+    #[must_use]
+    fn load_app(&self, addr: &AppAddr) -> Option<(App, CreatorAddr)> {
         let store = self.get_app_store();
-        store.load(&app_addr)
+        store.load(&addr)
     }
 
     /// Validates an `AppTemplate`
@@ -166,24 +193,22 @@ pub trait Env {
     fn validate_app_tx(&self, tx: &AppTransaction) -> Result<(), String> {
         let app = self.load_app(&tx.app);
 
-        match app {
-            Some(..) => Ok(()),
-            None => {
-                let err = format!("App `{:?}` doesn't exist", tx.app);
-                Err(err)
-            }
+        if app.is_some() {
+            Ok(())
+        } else {
+            let err = format!("App `{:?}` doesn't exist", tx.app.inner());
+            Err(err)
         }
     }
 
-    /// Given an `Address`, returns whether it's associated with some `AppTemplate`
     #[inline]
-    fn template_exists(&self, template_addr: &Address) -> bool {
-        self.load_template(template_addr).is_some()
+    fn template_exists(&self, addr: &TemplateAddr) -> bool {
+        self.load_template(addr).is_some()
     }
 
     /// Given an `Address`, returns whether it's associated with some `App`
     #[inline]
-    fn app_exists(&self, app_addr: &Address) -> bool {
-        self.load_app(app_addr).is_some()
+    fn app_exists(&self, addr: &AppAddr) -> bool {
+        self.load_app(addr).is_some()
     }
 }

@@ -16,7 +16,10 @@ use crate::{
 
 use svm_app::{
     traits::{Env, EnvTypes},
-    types::{AppTemplate, AppTransaction, HostCtx, SpawnApp, WasmValue},
+    types::{
+        AppAddr, AppTemplate, AppTransaction, AuthorAddr, CreatorAddr, HostCtx, SpawnApp,
+        TemplateAddr, WasmValue,
+    },
 };
 use svm_common::{Address, State};
 use svm_storage::AppStorage;
@@ -50,38 +53,34 @@ where
 {
     fn deploy_template(
         &mut self,
-        author: &Address,
-        _host_ctx: HostCtx,
+        author: &AuthorAddr,
+        host_ctx: HostCtx,
         bytes: &[u8],
-    ) -> Result<Address, DeployTemplateError> {
+    ) -> Result<TemplateAddr, DeployTemplateError> {
         info!("runtime `deploy_template`");
 
-        let template = self.parse_template(author, bytes)?;
-        self.install_template(&template)
+        let template = self.parse_deploy_template(bytes)?;
+        self.install_template(&template, author, &host_ctx)
     }
 
     fn spawn_app(
         &mut self,
-        creator: &Address,
+        creator: &CreatorAddr,
         host_ctx: HostCtx,
         bytes: &[u8],
-    ) -> Result<(Address, State), SpawnAppError> {
+    ) -> Result<(AppAddr, State), SpawnAppError> {
         info!("runtime `spawn_app`");
 
-        let spawn_app = self.parse_app(creator, bytes)?;
-        let app_addr = self.install_app(&spawn_app)?;
-        let state = self.call_ctor(creator, spawn_app, &app_addr, host_ctx)?;
+        let spawn = self.parse_spawn_app(bytes)?;
+        let app_addr = self.install_app(&spawn, creator, &host_ctx)?;
+        let state = self.call_ctor(creator, spawn, &app_addr, host_ctx)?;
 
         Ok((app_addr, state))
     }
 
-    fn parse_exec_app(
-        &self,
-        sender: &Address,
-        bytes: &[u8],
-    ) -> Result<AppTransaction, ExecAppError> {
+    fn parse_exec_app(&self, bytes: &[u8]) -> Result<AppTransaction, ExecAppError> {
         self.env
-            .parse_app_tx(bytes, sender)
+            .parse_exec_app(bytes)
             .or_else(|e| Err(ExecAppError::ParseFailed(e)))
     }
 
@@ -90,9 +89,11 @@ where
         tx: AppTransaction,
         state: State,
         host_ctx: HostCtx,
+        dry_run: bool,
     ) -> Result<Receipt, ExecAppError> {
         let is_ctor = false;
-        self.inner_exec_app(tx, state, host_ctx, is_ctor)
+
+        self.inner_exec_app(tx, state, host_ctx, is_ctor, dry_run)
     }
 }
 
@@ -121,7 +122,7 @@ where
     /// observe that app storage data.
     pub fn open_app_storage(
         &self,
-        addr: &Address,
+        addr: &AppAddr,
         state: &State,
         settings: &AppSettings,
     ) -> AppStorage {
@@ -131,15 +132,16 @@ where
 
     fn call_ctor(
         &mut self,
-        creator: &Address,
+        creator: &CreatorAddr,
         spawn_app: SpawnApp,
-        app_addr: &Address,
+        app_addr: &AppAddr,
         host_ctx: HostCtx,
     ) -> Result<State, SpawnAppError> {
         let ctor = self.build_ctor_call(creator, spawn_app, &app_addr);
         let is_ctor = true;
+        let dry_run = false;
 
-        match self.inner_exec_app(ctor, State::empty(), host_ctx, is_ctor) {
+        match self.inner_exec_app(ctor, State::empty(), host_ctx, is_ctor, dry_run) {
             Ok(receipt) => {
                 // TODO:
                 // handle `receipt.success = false`
@@ -154,46 +156,52 @@ where
         }
     }
 
-    fn parse_template(
-        &self,
-        author: &Address,
-        bytes: &[u8],
-    ) -> Result<AppTemplate, DeployTemplateError> {
+    fn parse_deploy_template(&self, bytes: &[u8]) -> Result<AppTemplate, DeployTemplateError> {
         self.env
-            .parse_template(bytes, author)
+            .parse_deploy_template(bytes)
             .or_else(|e| Err(DeployTemplateError::ParseFailed(e)))
     }
 
-    fn install_template(&mut self, template: &AppTemplate) -> Result<Address, DeployTemplateError> {
+    fn install_template(
+        &mut self,
+        template: &AppTemplate,
+        author: &AuthorAddr,
+        host_ctx: &HostCtx,
+    ) -> Result<TemplateAddr, DeployTemplateError> {
         self.env
-            .store_template(template)
+            .store_template(template, author, host_ctx)
             .or_else(|e| Err(DeployTemplateError::StoreFailed(e)))
     }
 
-    fn parse_app(&self, creator: &Address, bytes: &[u8]) -> Result<SpawnApp, SpawnAppError> {
+    fn parse_spawn_app(&self, bytes: &[u8]) -> Result<SpawnApp, SpawnAppError> {
         self.env
-            .parse_app(bytes, creator)
+            .parse_spawn_app(bytes)
             .or_else(|e| Err(SpawnAppError::ParseFailed(e)))
     }
 
-    fn install_app(&mut self, spawn_app: &SpawnApp) -> Result<Address, SpawnAppError> {
+    fn install_app(
+        &mut self,
+        spawn: &SpawnApp,
+        creator: &CreatorAddr,
+        host_ctx: &HostCtx,
+    ) -> Result<AppAddr, SpawnAppError> {
         self.env
-            .store_app(&spawn_app.app)
+            .store_app(spawn, creator, host_ctx)
             .or_else({ |e| Err(SpawnAppError::StoreFailed(e)) })
     }
 
     fn build_ctor_call(
         &self,
-        creator: &Address,
-        spawn_app: SpawnApp,
-        app_addr: &Address,
+        creator: &CreatorAddr,
+        spawn: SpawnApp,
+        app_addr: &AppAddr,
     ) -> AppTransaction {
         AppTransaction {
+            version: 0,
             app: app_addr.clone(),
-            sender: creator.clone(),
-            func_idx: spawn_app.ctor_idx,
-            func_args: spawn_app.ctor_args,
-            func_buf: spawn_app.ctor_buf,
+            func_idx: spawn.ctor_idx,
+            func_args: spawn.ctor_args,
+            func_buf: spawn.ctor_buf,
         }
     }
 
@@ -203,10 +211,11 @@ where
         state: State,
         host_ctx: HostCtx,
         is_ctor: bool,
+        dry_run: bool,
     ) -> Result<Receipt, ExecAppError> {
         info!("runtime `exec_app`");
 
-        let (template, template_addr) = self.load_template(&tx)?;
+        let (template, template_addr, _author, _creator) = self.load_template(&tx)?;
 
         let settings = AppSettings {
             page_count: template.page_count,
@@ -215,7 +224,14 @@ where
         let mut import_object = self.import_object_create(&tx.app, &state, host_ctx, &settings);
         self.import_object_extend(&mut import_object);
 
-        let result = self.do_exec_app(&tx, &template, &template_addr, &import_object, is_ctor);
+        let result = self.do_exec_app(
+            &tx,
+            &template,
+            &template_addr,
+            &import_object,
+            is_ctor,
+            dry_run,
+        );
         let receipt = self.make_receipt(result);
 
         info!("receipt: {:?}", receipt);
@@ -227,10 +243,11 @@ where
         &self,
         tx: &AppTransaction,
         template: &AppTemplate,
-        template_addr: &Address,
+        template_addr: &TemplateAddr,
         import_object: &ImportObject,
         is_ctor: bool,
-    ) -> Result<(State, Vec<Value>), ExecAppError> {
+        dry_run: bool,
+    ) -> Result<(Option<State>, Vec<Value>), ExecAppError> {
         let module = self.compile_template(tx, &template, &template_addr)?;
         let mut instance = self.instantiate(tx, template_addr, &module, import_object)?;
 
@@ -242,27 +259,32 @@ where
             Err(ExecAppError::FuncNotFound { .. }) if is_ctor == true => {
                 // Since an app `ctor` is optional, in case it has no explicit `ctor`
                 // we **don't** consider it as an error.
-                return Ok((State::empty(), Vec::new()));
+                let empty_state = State::empty();
+
+                return Ok((Some(empty_state), Vec::new()));
             }
             Err(e) => return Err(e),
             Ok(func) => func,
         };
 
         match func.call(&args) {
-            Err(e) => {
-                dbg!(&e);
-
-                Err(ExecAppError::ExecFailed {
-                    app_addr: tx.app.clone(),
-                    template_addr: template_addr.clone(),
-                    func_idx: tx.func_idx,
-                    func_args: self.vec_to_str(&tx.func_args),
-                    reason: e.to_string(),
-                })
-            }
+            Err(e) => Err(ExecAppError::ExecFailed {
+                app_addr: tx.app.clone(),
+                template_addr: template_addr.clone(),
+                func_idx: tx.func_idx,
+                func_args: self.vec_to_str(&tx.func_args),
+                reason: e.to_string(),
+            }),
             Ok(returns) => {
-                let storage = self.instance_storage_mut(&mut instance);
-                let new_state = storage.commit();
+                let new_state = if dry_run {
+                    None
+                } else {
+                    let storage = self.instance_storage_mut(&mut instance);
+                    let new_state = storage.commit();
+
+                    Some(new_state)
+                };
+
                 let returns = self.cast_wasmer_func_returns(tx, template_addr, returns)?;
 
                 Ok((new_state, returns))
@@ -270,7 +292,7 @@ where
         }
     }
 
-    fn make_receipt(&self, result: Result<(State, Vec<Value>), ExecAppError>) -> Receipt {
+    fn make_receipt(&self, result: Result<(Option<State>, Vec<Value>), ExecAppError>) -> Receipt {
         match result {
             Err(e) => Receipt {
                 success: false,
@@ -278,11 +300,11 @@ where
                 returns: None,
                 new_state: None,
             },
-            Ok((state, returns)) => Receipt {
+            Ok((new_state, returns)) => Receipt {
                 success: true,
                 error: None,
                 returns: Some(returns),
-                new_state: Some(state),
+                new_state,
             },
         }
     }
@@ -307,7 +329,7 @@ where
     fn cast_wasmer_func_returns(
         &self,
         tx: &AppTransaction,
-        template_addr: &Address,
+        template_addr: &TemplateAddr,
         returns: Vec<WasmerValue>,
     ) -> Result<Vec<Value>, ExecAppError> {
         let mut values = Vec::new();
@@ -334,7 +356,7 @@ where
     fn instantiate(
         &self,
         tx: &AppTransaction,
-        template_addr: &Address,
+        template_addr: &TemplateAddr,
         module: &wasmer_runtime::Module,
         import_object: &ImportObject,
     ) -> Result<wasmer_runtime::Instance, ExecAppError> {
@@ -352,7 +374,7 @@ where
     fn get_exported_func<'a>(
         &self,
         tx: &AppTransaction,
-        template_addr: &Address,
+        template_addr: &TemplateAddr,
         instance: &'a wasmer_runtime::Instance,
     ) -> Result<wasmer_runtime::DynFunc<'a>, ExecAppError> {
         let func_idx = self.derive_func_index(instance, tx);
@@ -406,7 +428,7 @@ where
 
     fn import_object_create(
         &self,
-        addr: &Address,
+        addr: &AppAddr,
         state: &State,
         host_ctx: HostCtx,
         settings: &AppSettings,
@@ -455,7 +477,10 @@ where
         import_object.register("svm", ns);
     }
 
-    fn load_template(&self, tx: &AppTransaction) -> Result<(AppTemplate, Address), ExecAppError> {
+    fn load_template(
+        &self,
+        tx: &AppTransaction,
+    ) -> Result<(AppTemplate, TemplateAddr, AuthorAddr, CreatorAddr), ExecAppError> {
         info!("runtime `load_template`");
 
         self.env
@@ -469,7 +494,7 @@ where
         &self,
         tx: &AppTransaction,
         template: &AppTemplate,
-        template_addr: &Address,
+        template_addr: &TemplateAddr,
     ) -> Result<wasmer_runtime::Module, ExecAppError> {
         info!("runtime `compile_template` (template={:?})", template_addr);
 

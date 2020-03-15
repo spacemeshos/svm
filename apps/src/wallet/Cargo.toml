@@ -1,13 +1,15 @@
 [package]
-name = "transfer"
-version = "0.0.0"
+name = "wallet"
+version = "0.1.0"
 authors = ["Yaron Wittenstein <yaron.wittenstein@gmail.com>"]
 edition = "2018"
 publish = false
 
+[workspace]
+
 [lib]
 path = "src/lib.rs"
-crate-type = ["cdylib"]
+# crate-type = ["cdylib"]
 
 [profile.release]
 panic = "abort"
@@ -16,4 +18,4 @@ debug = false
 lto=true
 
 [dependencies]
-svm-extern = { path = "../../crates/svm-extern" }
+svm-extern = { path = "../../../crates/svm-extern" }

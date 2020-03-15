@@ -162,6 +162,46 @@ pub fn storage_write_from_reg(
     helpers::storage_write_page_slice(storage, page_idx, page_offset, count, data);
 }
 
+pub fn storage_write_i32_be(
+    ctx: &mut WasmerCtx,
+    page_idx: u32,
+    page_offset: u32,
+    n: u32,
+    nbytes: u32,
+) {
+    storage_write::<BigEndian>(ctx, page_idx, page_offset, n as u64, nbytes);
+}
+
+pub fn storage_write_i32_le(
+    ctx: &mut WasmerCtx,
+    page_idx: u32,
+    page_offset: u32,
+    n: u32,
+    nbytes: u32,
+) {
+    storage_write::<LittleEndian>(ctx, page_idx, page_offset, n as u64, nbytes);
+}
+
+pub fn storage_write_i64_be(
+    ctx: &mut WasmerCtx,
+    page_idx: u32,
+    page_offset: u32,
+    n: u64,
+    nbytes: u32,
+) {
+    storage_write::<BigEndian>(ctx, page_idx, page_offset, n, nbytes);
+}
+
+pub fn storage_write_i64_le(
+    ctx: &mut WasmerCtx,
+    page_idx: u32,
+    page_offset: u32,
+    n: u64,
+    nbytes: u32,
+) {
+    storage_write::<LittleEndian>(ctx, page_idx, page_offset, n, nbytes);
+}
+
 pub fn storage_read_i32_be(
     ctx: &mut WasmerCtx,
     page_idx: u32,
@@ -202,12 +242,27 @@ fn storage_read_int<T: ByteOrder>(
     ctx: &mut WasmerCtx,
     page_idx: u32,
     page_offset: u32,
-    count: u32,
+    nbytes: u32,
 ) -> u64 {
     let mut storage = helpers::wasmer_data_app_storage(ctx.data);
-    let buf = helpers::storage_read_page_slice(&mut storage, page_idx, page_offset, count);
+    let buf = helpers::storage_read_page_slice(&mut storage, page_idx, page_offset, nbytes);
 
-    T::read_uint(&buf[..], count as usize)
+    T::read_uint(&buf[..], nbytes as usize)
+}
+
+fn storage_write<T: ByteOrder>(
+    ctx: &mut WasmerCtx,
+    page_idx: u32,
+    page_offset: u32,
+    n: u64,
+    nbytes: u32,
+) {
+    let mut storage = helpers::wasmer_data_app_storage(ctx.data);
+
+    let mut buf = [0; 8];
+    T::write_uint(&mut buf[..], n, nbytes as usize);
+
+    helpers::storage_write_page_slice(&mut storage, page_idx, page_offset, nbytes, &buf[..]);
 }
 
 fn rustify_mem_params(mem_idx: u32, mem_offset: u32, count: u32) -> (u32, usize, usize) {

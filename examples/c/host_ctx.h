@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#include "svm.h"
+#include "../svm.h"
 
 svm_byte_array host_ctx_empty_bytes() {
   uint32_t length =

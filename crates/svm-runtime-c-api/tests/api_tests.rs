@@ -132,7 +132,7 @@ fn spawn_app_bytes(
     ctor_buf: &Vec<u8>,
     ctor_args: &Vec<WasmValue>,
 ) -> (Vec<u8>, u32) {
-    let template_addr = Address::from(*&template_addr.bytes as *const c_void);
+    let template_addr = Address::from(*&template_addr.bytes as *const c_void).into();
 
     let bytes =
         svm_runtime::testing::build_app(version, &template_addr, ctor_idx, ctor_buf, ctor_args);
@@ -148,7 +148,7 @@ fn exec_app_bytes(
     func_buf: &Vec<u8>,
     func_args: &Vec<WasmValue>,
 ) -> (Vec<u8>, u32) {
-    let app_addr = Address::from(*&app_addr.bytes as *const c_void);
+    let app_addr = Address::from(*&app_addr.bytes as *const c_void).into();
 
     let bytes =
         svm_runtime::testing::build_app_tx(version, &app_addr, func_idx, func_buf, func_args);
@@ -193,10 +193,10 @@ unsafe fn do_ffi_exec_app() {
     let mut runtime = std::ptr::null_mut();
     let imports = create_imports();
 
-    let res = testing::svm_memory_kv_create(&mut kv);
+    let res = api::svm_memory_kv_create(&mut kv);
     assert!(res.is_ok());
 
-    let res = testing::svm_memory_runtime_create(&mut runtime, kv, host.as_mut_ptr(), imports);
+    let res = api::svm_memory_runtime_create(&mut runtime, kv, host.as_mut_ptr(), imports);
     assert!(res.is_ok());
 
     // 2) deploy app-template
@@ -257,7 +257,6 @@ unsafe fn do_ffi_exec_app() {
     assert!(res.is_ok());
 
     // 4) execute app
-    let sender = Address::of("sender").into();
     let (user, addition, func_idx, func_buf, func_args) = exec_app_args();
     let (bytes, length) = exec_app_bytes(version, &app_addr, func_idx, &func_buf, &func_args);
     let tx = svm_byte_array {
@@ -267,7 +266,7 @@ unsafe fn do_ffi_exec_app() {
 
     // 4.1) parse bytes into in-memory `AppTransaction`
     let mut app_tx = std::ptr::null_mut();
-    let res = api::svm_parse_exec_app(&mut app_tx, runtime, sender, tx);
+    let res = api::svm_parse_exec_app(&mut app_tx, runtime, tx);
     assert!(res.is_ok());
 
     // 4.2) execute the app-transaction
@@ -285,8 +284,9 @@ unsafe fn do_ffi_exec_app() {
     };
 
     let mut receipt = svm_byte_array::default();
+    let dry_run = false;
 
-    let res = api::svm_exec_app(&mut receipt, runtime, app_tx, init_state, host_ctx);
+    let res = api::svm_exec_app(&mut receipt, runtime, app_tx, init_state, host_ctx, dry_run);
     assert!(res.is_ok());
 
     let expected = (init_balance + addition as i128) * (nonce as i128);

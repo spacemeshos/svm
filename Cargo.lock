@@ -906,8 +906,6 @@ dependencies = [
  "byteorder",
  "log",
  "maplit",
- "serde",
- "serde_json",
  "svm-common",
  "svm-kv",
 ]

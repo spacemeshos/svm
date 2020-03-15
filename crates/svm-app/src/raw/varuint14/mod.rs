@@ -12,12 +12,11 @@ mod tests {
     use super::{decode_varuint14, encode_varuint14};
 
     fn assert_encode_decode(num: u16) {
-        let mut writer = NibbleWriter::new();
+        let mut w = NibbleWriter::new();
 
-        encode_varuint14(num, &mut writer);
+        encode_varuint14(num, &mut w);
 
-        let data = helpers::bytes(&mut writer);
-
+        let data = w.into_bytes();
         let mut iter = NibbleIter::new(&data[..]);
 
         // choosing an arbitrary `varuint14` field.
@@ -26,7 +25,7 @@ mod tests {
         let decoded = decode_varuint14(&mut iter, field).unwrap();
         assert_eq!(num, decoded);
 
-        helpers::ensure_eof(&mut iter);
+        iter.ensure_eof();
     }
 
     #[test]

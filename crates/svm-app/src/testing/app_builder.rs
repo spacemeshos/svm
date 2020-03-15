@@ -1,15 +1,15 @@
 use crate::{
-    raw::{helpers, NibbleWriter},
-    types::WasmValue,
+    raw::{encode_spawn_app, helpers, NibbleWriter},
+    types::{App, AppAddr, SpawnApp, TemplateAddr, WasmValue},
 };
 
 use svm_common::Address;
 
 /// Builds a raw representation for `spawn-app`
 /// Should be used for testing only.
-pub struct AppBuilder {
+pub struct SpawnAppBuilder {
     version: Option<u32>,
-    template: Option<Address>,
+    template: Option<TemplateAddr>,
     ctor_idx: Option<u16>,
     ctor_buf: Option<Vec<u8>>,
     ctor_args: Option<Vec<WasmValue>>,
@@ -19,26 +19,26 @@ pub struct AppBuilder {
 /// # Example
 ///
 /// ```rust
-/// use svm_app::{testing::AppBuilder, types::{App, SpawnApp, WasmValue}, raw::parse_app};
+/// use svm_app::{testing::SpawnAppBuilder, types::{App, SpawnApp, WasmValue}, raw::{decode_spawn_app, NibbleIter}};
 /// use svm_common::Address;
-////
-/// let template = Address::of("@template");
-/// let creator = Address::of("@creator");
+///
+/// let template = Address::of("@template").into();
 /// let ctor_idx = 2;
 /// let ctor_buf = vec![0x10, 0x20, 0x30];
 /// let ctor_args = vec![WasmValue::I32(0x40), WasmValue::I64(0x50)];
 ///
-/// let bytes = AppBuilder::new()
-///  .with_version(0)
-///  .with_template(&template)
-///  .with_ctor_index(ctor_idx)
-///  .with_ctor_buf(&ctor_buf)
-///  .with_ctor_args(&ctor_args)
-///  .build();
+/// let bytes = SpawnAppBuilder::new()
+///             .with_version(0)
+///             .with_template(&template)
+///             .with_ctor_index(ctor_idx)
+///             .with_ctor_buf(&ctor_buf)
+///             .with_ctor_args(&ctor_args)
+///             .build();
 ///
-/// let actual = parse_app(&bytes[..], &creator).unwrap();
+/// let mut iter = NibbleIter::new(&bytes[..]);
+/// let actual = decode_spawn_app(&mut iter).unwrap();
 /// let expected = SpawnApp {
-///                  app: App { template, creator },
+///                  app: App { version: 0, template },
 ///                  ctor_idx,
 ///                  ctor_buf,
 ///                  ctor_args
@@ -49,7 +49,7 @@ pub struct AppBuilder {
 ///
 
 #[allow(missing_docs)]
-impl AppBuilder {
+impl SpawnAppBuilder {
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {
@@ -66,7 +66,7 @@ impl AppBuilder {
         self
     }
 
-    pub fn with_template(mut self, template: &Address) -> Self {
+    pub fn with_template(mut self, template: &TemplateAddr) -> Self {
         self.template = Some(template.clone());
         self
     }
@@ -86,53 +86,32 @@ impl AppBuilder {
         self
     }
 
-    pub fn build(&mut self) -> Vec<u8> {
-        let mut writer = NibbleWriter::new();
-
-        self.write_version(&mut writer);
-        self.write_template(&mut writer);
-        self.write_ctor_index(&mut writer);
-        self.write_ctor_buf(&mut writer);
-        self.write_ctor_args(&mut writer);
-
-        helpers::bytes(&mut writer)
-    }
-
-    fn write_version(&self, writer: &mut NibbleWriter) {
+    pub fn build(mut self) -> Vec<u8> {
         let version = self.version.unwrap();
-
-        helpers::encode_version(version, writer);
-    }
-
-    fn write_template(&self, writer: &mut NibbleWriter) {
-        let addr = self.template.as_ref().unwrap();
-
-        helpers::encode_address(addr, writer);
-    }
-
-    fn write_ctor_index(&self, writer: &mut NibbleWriter) {
+        let template = self.template.unwrap();
         let ctor_idx = self.ctor_idx.unwrap();
 
-        helpers::encode_varuint14(ctor_idx, writer);
-    }
-
-    fn write_ctor_buf(&self, writer: &mut NibbleWriter) {
-        let buf = if let Some(buf) = &self.ctor_buf {
-            buf.to_vec()
-        } else {
-            vec![]
+        let ctor_buf = match self.ctor_buf {
+            None => vec![],
+            Some(buf) => buf.to_vec(),
         };
 
-        helpers::encode_func_buf(&buf[..], writer);
-    }
-
-    fn write_ctor_args(&self, writer: &mut NibbleWriter) {
-        let args = if let Some(args) = &self.ctor_args {
-            args.to_vec()
-        } else {
-            vec![]
+        let ctor_args = match self.ctor_args {
+            None => vec![],
+            Some(args) => args.to_vec(),
         };
 
-        helpers::encode_func_args(&args[..], writer);
+        let spawn = SpawnApp {
+            app: App { version, template },
+            ctor_idx,
+            ctor_buf,
+            ctor_args,
+        };
+
+        let mut w = NibbleWriter::new();
+
+        encode_spawn_app(&spawn, &mut w);
+
+        w.into_bytes()
     }
 }

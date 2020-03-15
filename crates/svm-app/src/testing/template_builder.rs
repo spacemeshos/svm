@@ -1,10 +1,13 @@
-use crate::raw::{helpers, NibbleWriter};
+use crate::{
+    raw::{encode_deploy_template, helpers, NibbleWriter},
+    types::AppTemplate,
+};
 
 use svm_common::Address;
 
 /// Builds a raw representation for `deploy-template`
 /// Should be used for testing only.
-pub struct AppTemplateBuilder {
+pub struct DeployAppTemplateBuilder {
     version: Option<u32>,
     name: Option<String>,
     page_count: Option<u16>,
@@ -15,22 +18,21 @@ pub struct AppTemplateBuilder {
 /// # Example
 ///  
 /// ```rust
-/// use svm_app::{types::AppTemplate, testing::AppTemplateBuilder, raw::parse_template};
-/// use svm_common::Address;
+/// use svm_app::{types::AppTemplate, testing::DeployAppTemplateBuilder, raw::{decode_deploy_template, NibbleIter}};
 ///
-/// let bytes = AppTemplateBuilder::new()
+/// let bytes = DeployAppTemplateBuilder::new()
 ///            .with_version(0)
 ///            .with_name("My Template")
 ///            .with_page_count(10)
 ///            .with_code(&[0xC, 0x0, 0xD, 0xE])
 ///            .build();
 ///
-/// let author = Address::of("@author");
-/// let actual = parse_template(&bytes[..], &author).unwrap();
+/// let mut iter = NibbleIter::new(&bytes[..]);
+/// let actual = decode_deploy_template(&mut iter).unwrap();
 ///
 /// let expected = AppTemplate {
+///                  version: 0,
 ///                  name: "My Template".to_string(),
-///                  author: Address::of("@author"),
 ///                  page_count: 10,
 ///                  code: vec![0xC, 0x0, 0xD, 0xE]
 ///                };
@@ -40,7 +42,7 @@ pub struct AppTemplateBuilder {
 ///
 
 #[allow(missing_docs)]
-impl AppTemplateBuilder {
+impl DeployAppTemplateBuilder {
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {
@@ -71,36 +73,23 @@ impl AppTemplateBuilder {
         self
     }
 
-    pub fn build(&mut self) -> Vec<u8> {
-        let mut writer = NibbleWriter::new();
-
-        self.write_version(&mut writer);
-        self.write_name(&mut writer);
-        self.write_page_count(&mut writer);
-        self.write_code(&mut writer);
-
-        helpers::bytes(&mut writer)
-    }
-
-    fn write_version(&self, writer: &mut NibbleWriter) {
+    pub fn build(mut self) -> Vec<u8> {
         let version = self.version.unwrap();
-        helpers::encode_version(version, writer);
-    }
-
-    fn write_name(&mut self, writer: &mut NibbleWriter) {
-        let name = self.name.as_ref().unwrap();
-        helpers::encode_string(name, writer);
-    }
-
-    fn write_page_count(&self, writer: &mut NibbleWriter) {
+        let name = self.name.unwrap();
         let page_count = self.page_count.unwrap();
+        let code = self.code.unwrap();
 
-        helpers::encode_varuint14(page_count, writer);
-    }
+        let app = AppTemplate {
+            version,
+            name,
+            page_count,
+            code,
+        };
 
-    fn write_code(&self, writer: &mut NibbleWriter) {
-        let code = self.code.as_ref().unwrap();
+        let mut w = NibbleWriter::new();
 
-        writer.write_bytes(&code[..])
+        encode_deploy_template(&app, &mut w);
+
+        w.into_bytes()
     }
 }

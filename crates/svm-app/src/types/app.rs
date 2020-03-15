@@ -1,40 +1,38 @@
 use std::fmt;
 
-use serde::{Deserialize, Serialize};
 use svm_common::Address;
 
-/// An in-memory representation of an app.
-#[derive(Serialize, Deserialize, PartialEq)]
-pub struct App {
-    /// `Address` of the `AppTemplate` app is being spawned from.
-    pub template: Address,
+use crate::types::TemplateAddr;
 
-    /// `Address` of app creator
-    pub creator: Address,
+/// An in-memory representation of an app.
+#[derive(PartialEq)]
+pub struct App {
+    pub version: u32,
+
+    /// `Address` of the `AppTemplate` app is being spawned from.
+    pub template: TemplateAddr,
 }
 
 impl fmt::Debug for App {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let version = self.fmt_version(*&self.version);
         let template = self.fmt_template(&self.template);
-        let creator = self.fmt_creator(&self.creator);
 
-        let msg = [template, creator].join("\n");
+        let msg = [version, template].join("\n");
+
         write!(f, "{}", msg)
     }
 }
 
 impl App {
-    #[inline]
-    fn fmt_template(&self, addr: &Address) -> String {
-        format!("Template: {}", self.fmt_address(addr))
+    fn fmt_version(&self, ver: u32) -> String {
+        format!("Version: {}", ver)
     }
 
-    #[inline]
-    fn fmt_creator(&self, addr: &Address) -> String {
-        format!("Creator: {}", self.fmt_address(addr))
+    fn fmt_template(&self, addr: &TemplateAddr) -> String {
+        format!("Template: {}", self.fmt_address(addr.inner()))
     }
 
-    #[inline]
     fn fmt_address(&self, addr: &Address) -> String {
         addr.fmt(4, 4, " ")
     }

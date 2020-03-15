@@ -12,8 +12,8 @@ fn runtime_spawn_app_with_ctor() {
     let imports = Vec::new();
     let mut runtime = testing::create_memory_runtime(host, &kv, imports);
     let page_count = 10;
-    let author = Address::of("author");
-    let creator = Address::of("creator");
+    let author = Address::of("author").into();
+    let creator = Address::of("creator").into();
 
     // 2) deploying the template
     let bytes = testing::build_template(
@@ -53,9 +53,8 @@ fn runtime_spawn_app_with_ctor() {
 fn runtime_exec_app() {
     // 1) init
     let version = 0;
-    let author = Address::of("author");
-    let creator = Address::of("creator");
-    let sender = Address::of("sender");
+    let author = Address::of("author").into();
+    let creator = Address::of("creator").into();
     let page_count = 10;
 
     let kv = testing::memory_kv_store_init();
@@ -111,9 +110,10 @@ fn runtime_exec_app() {
     ];
     let bytes = testing::build_app_tx(version, &app_addr, func_idx, &func_buf, &func_args);
 
-    let tx = runtime.parse_exec_app(&sender, &bytes).unwrap();
+    let tx = runtime.parse_exec_app(&bytes).unwrap();
+    let dry_run = false;
 
-    let res = runtime.exec_app(tx, init_state.clone(), HostCtx::new());
+    let res = runtime.exec_app(tx, init_state.clone(), HostCtx::new(), dry_run);
     let receipt = res.unwrap();
 
     assert_eq!(true, receipt.success);

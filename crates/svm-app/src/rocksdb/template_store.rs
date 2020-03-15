@@ -1,10 +1,9 @@
-use std::marker::PhantomData;
-use std::path::Path;
+use std::{marker::PhantomData, path::Path};
 
 use crate::{
     error::StoreError,
     traits::{AppTemplateDeserializer, AppTemplateSerializer, AppTemplateStore},
-    types::{AppTemplate, AppTemplateHash},
+    types::{AppAddr, AppTemplate, AppTemplateHash, AuthorAddr, CreatorAddr, TemplateAddr},
 };
 
 use svm_common::Address;
@@ -43,31 +42,32 @@ where
     fn store(
         &mut self,
         template: &AppTemplate,
-        addr: &Address,
+        author: &AuthorAddr,
+        addr: &TemplateAddr,
         hash: &AppTemplateHash,
     ) -> Result<(), StoreError> {
         info!("Storing `AppTemplate`: \n{:?}", template);
-        info!("     `AppTemplate` Account Address: {:?}", addr);
-        info!("     `AppTemplate` Hash: {:?}", hash);
+        info!("     Account Address: {:?}", addr.inner());
+        info!("     Hash: {:?}", hash);
 
-        let bytes: Vec<u8> = S::serialize(template);
+        let bytes = S::serialize(template, author);
 
-        let addr_hash = (addr.as_slice(), &hash.0[..]);
+        let addr_hash = (addr.inner().as_slice(), &hash.0[..]);
         let hash_wasm = (&hash.0[..], &bytes[..]);
         self.db.store(&[addr_hash, hash_wasm]);
 
         Ok(())
     }
 
-    fn load(&self, addr: &Address) -> Option<AppTemplate> {
-        info!("loading `AppTemplate` account {:?}", addr);
+    fn load(&self, addr: &TemplateAddr) -> Option<(AppTemplate, AuthorAddr)> {
+        let addr = addr.inner().as_slice();
 
-        let addr = addr.as_slice();
+        info!("loading `AppTemplate` account {:?}", addr);
 
         self.db.get(addr).and_then(|hash| {
             self.db
                 .get(&hash)
-                .and_then(|bytes| D::deserialize(bytes.to_vec()))
+                .and_then(|bytes| D::deserialize(&bytes[..]))
         })
     }
 }
