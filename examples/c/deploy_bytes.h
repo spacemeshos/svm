@@ -6,7 +6,7 @@
 #include <string.h>
 #include <assert.h>
 
-#include "svm.h"
+#include "../svm.h"
 #include "wasm_file.h"
 
 svm_byte_array deploy_template_bytes() {

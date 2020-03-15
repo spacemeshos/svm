@@ -1,7 +1,7 @@
 CC = gcc
-OBJECTS = svm.dylib
+OBJECTS = ../svm.dylib
 CFLAGS = -g -Wall
-DEPS = counter.c svm.h
+DEPS = counter.c ../svm.h
 
 default: counter
 

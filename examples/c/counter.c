@@ -3,7 +3,7 @@
 #include <string.h>
 #include <assert.h>
 
-#include "svm.h"
+#include "../svm.h"
 #include "constants.h"
 
 #include "wasm_file.h"

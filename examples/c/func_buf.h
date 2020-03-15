@@ -2,7 +2,7 @@
 #define SVM_FUNC_BUF_H
 
 #include <stdint.h>
-#include "svm.h"
+#include "../svm.h"
 
 typedef struct {
   uint8_t slice_count;

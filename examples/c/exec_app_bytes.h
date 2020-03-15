@@ -4,7 +4,7 @@
 #include <assert.h>
 #include <stdlib.h>
 
-#include "svm.h"
+#include "../svm.h"
 #include "constants.h"
 #include "func_buf.h"
 #include "func_args.h"
