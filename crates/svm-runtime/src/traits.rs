@@ -1,6 +1,6 @@
 use crate::{
     error::{DeployTemplateError, ExecAppError, SpawnAppError},
-    receipt::{Receipt, SpawnAppReceipt},
+    receipt::{Receipt, SpawnAppReceipt, TemplateReceipt},
     settings::AppSettings,
 };
 
@@ -16,7 +16,7 @@ pub trait Runtime {
         author: &AuthorAddr,
         host_ctx: HostCtx,
         bytes: &[u8],
-    ) -> Result<TemplateAddr, DeployTemplateError>;
+    ) -> TemplateReceipt;
 
     /// Spawn a new app out of an existing app-template.
     fn spawn_app(
@@ -24,7 +24,7 @@ pub trait Runtime {
         creator: &CreatorAddr,
         host_ctx: HostCtx,
         bytes: &[u8],
-    ) -> Result<SpawnAppReceipt, SpawnAppError>;
+    ) -> SpawnAppReceipt;
 
     /// Parses `bytes` into in-memory `AppTransaction`
     fn parse_exec_app(&self, bytes: &[u8]) -> Result<AppTransaction, ExecAppError>;
@@ -44,7 +44,7 @@ pub trait Runtime {
         state: State,
         host_ctx: HostCtx,
         dry_run: bool,
-    ) -> Result<Receipt, ExecAppError>;
+    ) -> Receipt;
 }
 
 /// Represents a function that builds a `AppStorage` given its address, state and settings.

@@ -8,7 +8,7 @@ use crate::{
     error::{DeployTemplateError, ExecAppError, SpawnAppError},
     helpers,
     helpers::DataWrapper,
-    receipt::{Receipt, SpawnAppReceipt},
+    receipt::{make_spawn_app_receipt, Receipt, SpawnAppReceipt, TemplateReceipt},
     settings::AppSettings,
     traits::{Runtime, StorageBuilderFn},
     value::Value,
@@ -56,11 +56,13 @@ where
         author: &AuthorAddr,
         host_ctx: HostCtx,
         bytes: &[u8],
-    ) -> Result<TemplateAddr, DeployTemplateError> {
+    ) -> TemplateReceipt {
         info!("runtime `deploy_template`");
 
-        let template = self.parse_deploy_template(bytes)?;
-        self.install_template(&template, author, &host_ctx)
+        match self.parse_deploy_template(bytes) {
+            Ok(template) => self.install_template(&template, author, &host_ctx),
+            Err(e) => e.into(),
+        }
     }
 
     fn spawn_app(
@@ -68,13 +70,16 @@ where
         creator: &CreatorAddr,
         host_ctx: HostCtx,
         bytes: &[u8],
-    ) -> Result<SpawnAppReceipt, SpawnAppError> {
+    ) -> SpawnAppReceipt {
         info!("runtime `spawn_app`");
 
-        let spawn = self.parse_spawn_app(bytes)?;
-        let addr = self.install_app(&spawn, creator, &host_ctx)?;
-
-        self.call_ctor(creator, spawn, &addr, host_ctx)
+        match self.parse_spawn_app(bytes) {
+            Ok(spawn) => match self.install_app(&spawn, creator, &host_ctx) {
+                Ok(addr) => self.call_ctor(creator, spawn, &addr, host_ctx),
+                Err(e) => e.into(),
+            },
+            Err(e) => e.into(),
+        }
     }
 
     fn parse_exec_app(&self, bytes: &[u8]) -> Result<AppTransaction, ExecAppError> {
@@ -89,10 +94,10 @@ where
         state: State,
         host_ctx: HostCtx,
         dry_run: bool,
-    ) -> Result<Receipt, ExecAppError> {
+    ) -> Receipt {
         let is_ctor = false;
 
-        self.inner_exec_app(tx, state, host_ctx, is_ctor, dry_run)
+        self._exec_app(tx, state, host_ctx, is_ctor, dry_run)
     }
 }
 
@@ -135,14 +140,14 @@ where
         spawn_app: SpawnApp,
         app_addr: &AppAddr,
         host_ctx: HostCtx,
-    ) -> Result<SpawnAppReceipt, SpawnAppError> {
+    ) -> SpawnAppReceipt {
         let ctor = self.build_ctor_call(creator, spawn_app, &app_addr);
         let is_ctor = true;
         let dry_run = false;
 
-        todo!()
-        // self.inner_exec_app(ctor, State::empty(), host_ctx, is_ctor, dry_run)
-        //     .map_err(|e| SpawnAppError::CtorFailed(e))
+        let ctor_receipt = self._exec_app(ctor, State::empty(), host_ctx, is_ctor, dry_run);
+
+        make_spawn_app_receipt(ctor_receipt, app_addr)
     }
 
     fn parse_deploy_template(&self, bytes: &[u8]) -> Result<AppTemplate, DeployTemplateError> {
@@ -156,10 +161,11 @@ where
         template: &AppTemplate,
         author: &AuthorAddr,
         host_ctx: &HostCtx,
-    ) -> Result<TemplateAddr, DeployTemplateError> {
-        self.env
-            .store_template(template, author, host_ctx)
-            .or_else(|e| Err(DeployTemplateError::StoreFailed(e)))
+    ) -> TemplateReceipt {
+        match self.env.store_template(template, author, host_ctx) {
+            Ok(addr) => addr.into(),
+            Err(e) => DeployTemplateError::StoreFailed(e).into(),
+        }
     }
 
     fn parse_spawn_app(&self, bytes: &[u8]) -> Result<SpawnApp, SpawnAppError> {
@@ -194,38 +200,43 @@ where
         }
     }
 
-    fn inner_exec_app(
+    fn _exec_app(
         &self,
         tx: AppTransaction,
         state: State,
         host_ctx: HostCtx,
         is_ctor: bool,
         dry_run: bool,
-    ) -> Result<Receipt, ExecAppError> {
+    ) -> Receipt {
         info!("runtime `exec_app`");
 
-        let (template, template_addr, _author, _creator) = self.load_template(&tx)?;
+        match self.load_template(&tx) {
+            Err(e) => e.into(),
+            Ok((template, template_addr, _author, _creator)) => {
+                let settings = AppSettings {
+                    page_count: template.page_count,
+                };
 
-        let settings = AppSettings {
-            page_count: template.page_count,
-        };
+                let mut import_object =
+                    self.import_object_create(&tx.app, &state, host_ctx, &settings);
+                self.import_object_extend(&mut import_object);
 
-        let mut import_object = self.import_object_create(&tx.app, &state, host_ctx, &settings);
-        self.import_object_extend(&mut import_object);
+                let result = self.do_exec_app(
+                    &tx,
+                    &template,
+                    &template_addr,
+                    &import_object,
+                    is_ctor,
+                    dry_run,
+                );
 
-        let result = self.do_exec_app(
-            &tx,
-            &template,
-            &template_addr,
-            &import_object,
-            is_ctor,
-            dry_run,
-        );
-        let receipt = self.make_receipt(result);
+                let receipt = self.make_receipt(result);
 
-        info!("receipt: {:?}", receipt);
+                info!("receipt: {:?}", receipt);
 
-        Ok(receipt)
+                receipt
+            }
+        }
     }
 
     fn do_exec_app(

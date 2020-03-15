@@ -17,3 +17,20 @@ pub struct Receipt {
     /// returned values
     pub returns: Option<Vec<Value>>,
 }
+
+impl Receipt {
+    pub fn get_new_state(&self) -> &State {
+        self.new_state.as_ref().unwrap()
+    }
+}
+
+impl From<ExecAppError> for Receipt {
+    fn from(error: ExecAppError) -> Self {
+        Self {
+            success: false,
+            error: Some(error),
+            new_state: None,
+            returns: None,
+        }
+    }
+}
