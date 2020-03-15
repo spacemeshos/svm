@@ -1,7 +1,7 @@
 use crate::{
     error::{DeployTemplateError, ExecAppError, SpawnAppError},
+    receipt::{Receipt, SpawnAppReceipt},
     settings::AppSettings,
-    Receipt,
 };
 
 use svm_app::types::{AppAddr, AppTransaction, AuthorAddr, CreatorAddr, HostCtx, TemplateAddr};
@@ -24,7 +24,7 @@ pub trait Runtime {
         creator: &CreatorAddr,
         host_ctx: HostCtx,
         bytes: &[u8],
-    ) -> Result<(AppAddr, State), SpawnAppError>;
+    ) -> Result<SpawnAppReceipt, SpawnAppError>;
 
     /// Parses `bytes` into in-memory `AppTransaction`
     fn parse_exec_app(&self, bytes: &[u8]) -> Result<AppTransaction, ExecAppError>;

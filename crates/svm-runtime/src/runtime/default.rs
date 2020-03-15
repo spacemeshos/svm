@@ -8,7 +8,7 @@ use crate::{
     error::{DeployTemplateError, ExecAppError, SpawnAppError},
     helpers,
     helpers::DataWrapper,
-    runtime::Receipt,
+    receipt::{Receipt, SpawnAppReceipt},
     settings::AppSettings,
     traits::{Runtime, StorageBuilderFn},
     value::Value,
@@ -68,14 +68,13 @@ where
         creator: &CreatorAddr,
         host_ctx: HostCtx,
         bytes: &[u8],
-    ) -> Result<(AppAddr, State), SpawnAppError> {
+    ) -> Result<SpawnAppReceipt, SpawnAppError> {
         info!("runtime `spawn_app`");
 
         let spawn = self.parse_spawn_app(bytes)?;
-        let app_addr = self.install_app(&spawn, creator, &host_ctx)?;
-        let state = self.call_ctor(creator, spawn, &app_addr, host_ctx)?;
+        let addr = self.install_app(&spawn, creator, &host_ctx)?;
 
-        Ok((app_addr, state))
+        self.call_ctor(creator, spawn, &addr, host_ctx)
     }
 
     fn parse_exec_app(&self, bytes: &[u8]) -> Result<AppTransaction, ExecAppError> {
@@ -136,24 +135,14 @@ where
         spawn_app: SpawnApp,
         app_addr: &AppAddr,
         host_ctx: HostCtx,
-    ) -> Result<State, SpawnAppError> {
+    ) -> Result<SpawnAppReceipt, SpawnAppError> {
         let ctor = self.build_ctor_call(creator, spawn_app, &app_addr);
         let is_ctor = true;
         let dry_run = false;
 
-        match self.inner_exec_app(ctor, State::empty(), host_ctx, is_ctor, dry_run) {
-            Ok(receipt) => {
-                // TODO:
-                // handle `receipt.success = false`
-
-                let new_state = receipt.new_state.unwrap();
-                Ok(new_state)
-            }
-            Err(..) => {
-                todo!()
-                // return `SpawnAppError` of `ctor failed`
-            }
-        }
+        todo!()
+        // self.inner_exec_app(ctor, State::empty(), host_ctx, is_ctor, dry_run)
+        //     .map_err(|e| SpawnAppError::CtorFailed(e))
     }
 
     fn parse_deploy_template(&self, bytes: &[u8]) -> Result<AppTemplate, DeployTemplateError> {
