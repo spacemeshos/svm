@@ -7,6 +7,7 @@ use std::io::Read;
 use svm_cli::cli;
 
 struct AppTemplateTestCase {
+    version: String,
     name: String,
     page_count: String,
 }
@@ -15,15 +16,17 @@ struct AppTemplateTestCase {
 fn encode_decode() {
     let cases = vec![
         AppTemplateTestCase {
+            version: String::from("0"),
             name: String::from("my name"),
             page_count: String::from("0"),
         },
         AppTemplateTestCase {
+            version: String::from("1"),
             name: String::from("שלום"),
             page_count: String::from("1000"),
         },
-        // FAILING:
         AppTemplateTestCase {
+            version: String::from("1"),
             name: String::from("नमस्ते"),
             page_count: String::from("1000"),
         },
@@ -117,14 +120,13 @@ fn test_encode_decode(case: AppTemplateTestCase) {
     let tempfile_path = tempfile::NamedTempFile::new().unwrap();
     let tempfile_path = tempfile_path.path().to_str().unwrap();
 
-    let version = "0";
     let code_path = wasm_example_path;
     let output_path = tempfile_path;
     let input = vec![
         "myprog",
         "encode",
         "app-template",
-        version,
+        &case.version,
         &case.name,
         &case.page_count,
         code_path,
@@ -148,7 +150,7 @@ fn test_encode_decode(case: AppTemplateTestCase) {
     let output = cli::process(matches).unwrap();
     println!("output: {}", output);
 
-    let re = Regex::new(r##"Author:(.*)...\nName: "(.*)"\nCode: (.*)\n#Pages: (\d+)"##).unwrap();
+    let re = Regex::new(r"Version: (.*)\nName: (.*)\nCode: (.*)\n#Pages: (\d+)").unwrap();
     let cap = re.captures(&output).unwrap();
     assert_eq!(&cap[2], case.name);
     assert_eq!(&cap[3], format!("{:?}", &wasm_example_code[0..4]));

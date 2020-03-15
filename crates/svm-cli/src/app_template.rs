@@ -2,8 +2,10 @@ use std::error::Error;
 use std::fs::File;
 use std::io::prelude::*;
 
-use svm_app::{raw::parse_template, testing::AppTemplateBuilder, types::AppTemplate};
-use svm_common::Address;
+use svm_app::{
+    raw::decode_deploy_template, raw::NibbleIter, testing::DeployAppTemplateBuilder,
+    types::AppTemplate,
+};
 
 pub fn encode(
     version: u32,
@@ -27,7 +29,7 @@ pub fn encode(
         return Err(e.into());
     }
 
-    let bytes = AppTemplateBuilder::new()
+    let bytes = DeployAppTemplateBuilder::new()
         .with_version(version)
         .with_name(name)
         .with_page_count(page_count)
@@ -67,5 +69,6 @@ pub fn decode(data_path: &str) -> Result<AppTemplate, Box<dyn Error>> {
         return Err(e.into());
     }
 
-    parse_template(&buffer, &Address::of("")).map_err(|e| e.to_string().into())
+    let mut iter = NibbleIter::new(&buffer);
+    decode_deploy_template(&mut iter).map_err(|e| e.to_string().into())
 }

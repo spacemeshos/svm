@@ -1,8 +1,8 @@
 extern crate clap;
 
-use std::error::Error;
+use crate::app_template;
 use clap::{value_t, App, AppSettings, Arg, ArgMatches};
-use crate::{app_template};
+use std::error::Error;
 
 pub fn new_app<'a, 'b>() -> App<'a, 'b> {
     let app = App::new("SVM CLI")
@@ -37,8 +37,8 @@ pub fn new_app<'a, 'b>() -> App<'a, 'b> {
                         )
                         .arg(
                             Arg::with_name("output_path")
-                                .help("path to the file to save the tx encoded raw data")
-                        )
+                                .help("path to the file to save the tx encoded raw data"),
+                        ),
                 ),
         )
         .subcommand(
@@ -70,7 +70,7 @@ pub fn process(matches: ArgMatches) -> Result<String, Box<dyn Error>> {
                 let output_path = matches.value_of("output_path").unwrap();
 
                 let num = app_template::encode(version, name, page_count, code_path, output_path)?;
-                return Ok(format!("Wrote {} bytes to {}", num, output_path))
+                return Ok(format!("Wrote {} bytes to {}", num, output_path));
             }
             _ => unreachable!(),
         },
