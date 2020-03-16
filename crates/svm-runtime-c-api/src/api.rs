@@ -56,9 +56,8 @@ pub unsafe extern "C" fn svm_validate_template(
     bytes: svm_byte_array,
 ) -> svm_result_t {
     let runtime = helpers::cast_to_runtime(runtime);
-    let bytes = std::slice::from_raw_parts(bytes.bytes, bytes.length as usize);
 
-    match runtime.validate_template(bytes) {
+    match runtime.validate_template(bytes.into()) {
         Ok(()) => svm_result_t::SVM_SUCCESS,
         Err(e) => svm_result_t::SVM_FAILURE,
     }
@@ -71,9 +70,8 @@ pub unsafe extern "C" fn svm_validate_app(
     bytes: svm_byte_array,
 ) -> svm_result_t {
     let runtime = helpers::cast_to_runtime(runtime);
-    let bytes = std::slice::from_raw_parts(bytes.bytes, bytes.length as usize);
 
-    match runtime.validate_app(bytes) {
+    match runtime.validate_app(bytes.into()) {
         Ok(()) => svm_result_t::SVM_SUCCESS,
         Err(e) => svm_result_t::SVM_FAILURE,
     }
@@ -117,11 +115,9 @@ pub unsafe extern "C" fn svm_validate_tx(
     debug!("`svm_validate_tx` start");
 
     let runtime = helpers::cast_to_runtime(runtime);
-    let bytes = std::slice::from_raw_parts(bytes.bytes, bytes.length as usize);
-
     todo!()
 
-    // match runtime.validate_tx(bytes) {
+    // match runtime.validate_tx(bytes.into()) {
     //     Ok(tx) => {
     //         // `AppTransaction` will be freed later as part `svm_exec_app`
     //         *app_tx = svm_common::into_raw_mut(tx);
@@ -256,6 +252,7 @@ macro_rules! box_runtime {
 #[no_mangle]
 pub unsafe extern "C" fn svm_memory_kv_create(kv: *mut *mut c_void) -> svm_result_t {
     let native_kv = svm_runtime::testing::memory_kv_store_init();
+
     *kv = svm_common::into_raw_mut(native_kv);
 
     svm_result_t::SVM_SUCCESS
@@ -294,9 +291,9 @@ pub unsafe extern "C" fn svm_memory_runtime_create(
     let imports = helpers::cast_imports_to_wasmer_imports(imports);
 
     let kv = svm_common::from_raw_mut(kv);
-    let memory_runtime = svm_runtime::testing::create_memory_runtime(host, kv, imports);
+    let mem_runtime = svm_runtime::testing::create_memory_runtime(host, kv, imports);
 
-    let res = box_runtime!(runtime, memory_runtime);
+    let res = box_runtime!(runtime, mem_runtime);
 
     debug!("`svm_memory_runtime_create` end");
 
@@ -396,7 +393,8 @@ pub unsafe extern "C" fn svm_deploy_template(
     debug!("`svm_deploy_template` start`");
 
     let runtime = helpers::cast_to_runtime_mut(runtime);
-    let author: Result<Address, String> = author.into();
+
+    let author: Result<Address, String> = Address::try_from(author);
 
     if let Err(msg) = author {
         todo!()
@@ -476,7 +474,7 @@ pub unsafe extern "C" fn svm_spawn_app(
     debug!("`svm_spawn_app` start");
 
     let runtime = helpers::cast_to_runtime_mut(runtime);
-    let creator: Result<Address, String> = creator.into();
+    let creator: Result<Address, String> = Address::try_from(creator);
 
     if let Err(msg) = creator {
         todo!();
@@ -570,8 +568,6 @@ pub unsafe extern "C" fn svm_exec_app(
 ) -> svm_result_t {
     debug!("`svm_exec_app` start");
 
-    let bytes = std::slice::from_raw_parts(bytes.bytes, bytes.length as usize);
-
     let host_ctx = HostCtx::from_raw_parts(host_ctx.bytes, host_ctx.length);
 
     if host_ctx.is_err() {
@@ -583,13 +579,13 @@ pub unsafe extern "C" fn svm_exec_app(
 
     let host_ctx = host_ctx.unwrap();
     let runtime = helpers::cast_to_runtime_mut(runtime);
-    let state: Result<State, String> = state.into();
+    let state: Result<State, String> = State::try_from(state);
 
     if let Err(msg) = state {
         todo!();
     }
 
-    let receipt = runtime.exec_app(bytes, &state.unwrap(), host_ctx, dry_run);
+    let receipt = runtime.exec_app(bytes.into(), &state.unwrap(), host_ctx, dry_run);
     todo!();
 
     //         let mut bytes = crate::receipt::encode_receipt(native_receipt);
