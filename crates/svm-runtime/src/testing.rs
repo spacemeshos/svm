@@ -1,8 +1,14 @@
 use std::{cell::RefCell, collections::HashMap, ffi::c_void, rc::Rc};
 
 use crate::{
-    buffer::BufferRef, ctx::SvmCtx, gas::DefaultGasEstimator, helpers, helpers::DataWrapper,
-    register::Register, settings::AppSettings, traits::StorageBuilderFn, DefaultRuntime,
+    buffer::BufferRef,
+    ctx::SvmCtx,
+    gas::DefaultGasEstimator,
+    helpers::{self, DataWrapper},
+    register::Register,
+    settings::AppSettings,
+    storage::StorageBuilderFn,
+    DefaultRuntime,
 };
 
 use svm_common::{Address, State};

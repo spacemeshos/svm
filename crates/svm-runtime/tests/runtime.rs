@@ -1,6 +1,6 @@
 use svm_app::types::{HostCtx, WasmValue};
 use svm_common::Address;
-use svm_runtime::{settings::AppSettings, testing, traits::Runtime};
+use svm_runtime::{runtime::Runtime, settings::AppSettings, testing};
 use svm_storage::page::{PageIndex, PageOffset, PageSliceLayout};
 
 #[test]
@@ -23,9 +23,10 @@ fn runtime_spawn_app_with_ctor() {
         include_str!("wasm/runtime_app_ctor.wast"),
     );
 
-    let template_addr = runtime
-        .deploy_template(&author, HostCtx::new(), &bytes)
-        .unwrap();
+    let receipt = runtime.deploy_template(&bytes, &author, HostCtx::new(), false);
+    assert!(receipt.success);
+
+    let template_addr = receipt.addr.unwrap();
 
     // 3) spawn app (and invoking its `ctor`)
     let buf_size: u32 = 10;
@@ -35,7 +36,7 @@ fn runtime_spawn_app_with_ctor() {
 
     let bytes = testing::build_app(version, &template_addr, ctor_idx, &ctor_buf, &ctor_args);
 
-    let receipt = runtime.spawn_app(&creator, HostCtx::new(), &bytes).unwrap();
+    let receipt = runtime.spawn_app(&bytes, &creator, HostCtx::new(), false);
 
     let settings = AppSettings { page_count };
 
@@ -72,9 +73,10 @@ fn runtime_exec_app() {
         include_str!("wasm/runtime_exec_app.wast"),
     );
 
-    let template_addr = runtime
-        .deploy_template(&author, HostCtx::new(), &bytes)
-        .unwrap();
+    let receipt = runtime.deploy_template(&bytes, &author, HostCtx::new(), false);
+    assert!(receipt.success);
+
+    let template_addr = receipt.addr.unwrap();
 
     // 3) spawn app
     let ctor_idx = 0;
@@ -82,7 +84,7 @@ fn runtime_exec_app() {
     let ctor_args = vec![];
 
     let bytes = testing::build_app(version, &template_addr, ctor_idx, &ctor_buf, &ctor_args);
-    let receipt = runtime.spawn_app(&creator, HostCtx::new(), &bytes).unwrap();
+    let receipt = runtime.spawn_app(&bytes, &creator, HostCtx::new(), false);
 
     let app_addr = receipt.get_app_addr();
     let init_state = receipt.get_init_state();
@@ -113,12 +115,8 @@ fn runtime_exec_app() {
     ];
     let bytes = testing::build_app_tx(version, &app_addr, func_idx, &func_buf, &func_args);
 
-    let tx = runtime.parse_exec_app(&bytes).unwrap();
     let dry_run = false;
-
-    let receipt = runtime
-        .exec_app(tx, init_state.clone(), HostCtx::new(), dry_run)
-        .unwrap();
+    let receipt = runtime.exec_app(&bytes, &init_state, HostCtx::new(), dry_run);
 
     assert_eq!(true, receipt.success);
     assert_eq!(None, receipt.error);

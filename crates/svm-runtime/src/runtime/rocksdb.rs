@@ -14,7 +14,7 @@ use svm_storage::{
     AppStorage,
 };
 
-use crate::{runtime::DefaultRuntime, settings::AppSettings, traits::GasEstimator};
+use crate::{gas::GasEstimator, runtime::DefaultRuntime, settings::AppSettings};
 
 use wasmer_runtime_core::export::Export;
 

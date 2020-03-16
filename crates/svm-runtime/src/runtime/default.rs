@@ -6,11 +6,12 @@ use crate::{
     buffer::BufferRef,
     ctx::SvmCtx,
     error::{DeployTemplateError, ExecAppError, SpawnAppError},
-    helpers,
-    helpers::DataWrapper,
+    gas::GasEstimator,
+    helpers::{self, DataWrapper},
     receipt::{make_spawn_app_receipt, ExecReceipt, SpawnAppReceipt, TemplateReceipt},
+    runtime::Runtime,
     settings::AppSettings,
-    traits::{GasEstimator, Runtime, StorageBuilderFn},
+    storage::StorageBuilderFn,
     value::Value,
 };
 
@@ -79,7 +80,7 @@ where
         let template = self.parse_deploy_template(bytes).unwrap();
         let gas = self.compute_install_template_gas(bytes, &template);
 
-        self.install_template(&template, author, &host_ctx, gas, dry_run)
+        self.install_template(&template, author, host_ctx, gas, dry_run)
     }
 
     fn spawn_app(
@@ -102,14 +103,15 @@ where
 
     fn exec_app(
         &self,
-        tx: AppTransaction,
-        state: State,
+        bytes: &[u8],
+        state: &State,
         host_ctx: HostCtx,
         dry_run: bool,
     ) -> ExecReceipt {
         let is_ctor = false;
+        let tx = self.parse_exec_app(bytes).unwrap();
 
-        self._exec_app(tx, state, host_ctx, is_ctor, dry_run)
+        self._exec_app(&tx, state, host_ctx, is_ctor, dry_run)
     }
 }
 
@@ -156,39 +158,31 @@ where
         host_ctx: HostCtx,
         dry_run: bool,
     ) -> SpawnAppReceipt {
-        let ctor = self.build_ctor_call(creator, spawn, app_addr);
         let is_ctor = true;
+        let ctor = self.build_ctor_call(creator, spawn, app_addr);
 
-        let ctor_receipt = self._exec_app(ctor, State::empty(), host_ctx, is_ctor, dry_run);
+        let ctor_receipt = self._exec_app(&ctor, &State::empty(), host_ctx, is_ctor, dry_run);
 
         make_spawn_app_receipt(ctor_receipt, app_addr)
-    }
-
-    fn parse_deploy_template(&self, bytes: &[u8]) -> Result<AppTemplate, ParseError> {
-        self.env.parse_deploy_template(bytes)
     }
 
     fn install_template(
         &mut self,
         template: &AppTemplate,
         author: &AuthorAddr,
-        host_ctx: &HostCtx,
+        host_ctx: HostCtx,
         gas: u64,
         dry_run: bool,
     ) -> TemplateReceipt {
         if dry_run == false {
-            match self.env.store_template(template, author, host_ctx) {
+            match self.env.store_template(template, author, &host_ctx) {
                 Ok(addr) => TemplateReceipt::new(addr, gas),
                 Err(e) => DeployTemplateError::StoreFailed(e).into(),
             }
         } else {
-            let addr = self.env.derive_template_address(template, host_ctx);
+            let addr = self.env.derive_template_address(template, &host_ctx);
             TemplateReceipt::new(addr, gas)
         }
-    }
-
-    fn parse_spawn_app(&self, bytes: &[u8]) -> Result<SpawnApp, ParseError> {
-        self.env.parse_spawn_app(bytes)
     }
 
     fn install_app(
@@ -226,8 +220,8 @@ where
 
     fn _exec_app(
         &self,
-        tx: AppTransaction,
-        state: State,
+        tx: &AppTransaction,
+        state: &State,
         host_ctx: HostCtx,
         is_ctor: bool,
         dry_run: bool,
@@ -243,6 +237,7 @@ where
 
                 let mut import_object =
                     self.import_object_create(&tx.app, &state, host_ctx, &settings);
+
                 self.import_object_extend(&mut import_object);
 
                 let result = self.do_exec_app(
@@ -541,13 +536,29 @@ where
         })
     }
 
+    /// Parse
+
+    fn parse_deploy_template(&self, bytes: &[u8]) -> Result<AppTemplate, ParseError> {
+        self.env.parse_deploy_template(bytes)
+    }
+
+    fn parse_spawn_app(&self, bytes: &[u8]) -> Result<SpawnApp, ParseError> {
+        self.env.parse_spawn_app(bytes)
+    }
+
+    fn parse_exec_app(&self, bytes: &[u8]) -> Result<AppTransaction, ParseError> {
+        self.env.parse_exec_app(bytes)
+    }
+
     /// Gas
     fn compute_install_template_gas(&self, bytes: &[u8], template: &AppTemplate) -> u64 {
         todo!()
+        // GE::est_deploy_template(bytes, template)
     }
 
     fn compute_install_app_gas(&self, bytes: &[u8], spawn: &SpawnApp) -> u64 {
         todo!()
+        // GE::est_spawn_app(bytes, spawn)
     }
 
     /// Helpers

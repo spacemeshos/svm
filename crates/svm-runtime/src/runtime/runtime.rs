@@ -55,20 +55,9 @@ pub trait Runtime {
     /// * Receipt informs the amount of gas used (transaction gas limit)
     fn exec_app(
         &self,
-        app_tx: AppTransaction,
-        state: State,
+        bytes: &[u8],
+        state: &State,
         host_ctx: HostCtx,
         dry_run: bool,
     ) -> ExecReceipt;
 }
-
-pub trait GasEstimator {
-    fn estimate_template(bytes: &[u8]) -> u64;
-
-    fn estimate_app(bytes: &[u8]) -> u64;
-
-    fn estimate_tx(bytes: &[u8]) -> u64;
-}
-
-/// Represents a function that builds a `AppStorage` given its address, state and settings.
-pub type StorageBuilderFn = dyn Fn(&AppAddr, &State, &AppSettings) -> AppStorage;
