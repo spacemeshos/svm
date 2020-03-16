@@ -1,6 +1,6 @@
 extern crate cbindgen;
 use cbindgen::{Builder, Language};
-use std::{env, fs, path::PathBuf};
+use std::{env, path::PathBuf};
 
 fn main() {
     generate_svm_header();
@@ -8,9 +8,13 @@ fn main() {
 
 fn generate_svm_header() {
     let crate_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
-
     let out_dir = env::var("OUT_DIR").unwrap();
+
+    // targeting the workspace 'target/(debug|release) dir
     let mut src_header = PathBuf::from(&out_dir);
+    src_header.pop();
+    src_header.pop();
+    src_header.pop();
     src_header.push("svm");
     src_header.set_extension("h");
 
@@ -23,12 +27,4 @@ fn generate_svm_header() {
         .generate()
         .expect("Unable to generate C bindings")
         .write_to_file(src_header.as_path());
-
-    let mut dst_header = PathBuf::from("../../examples");
-    dst_header.push("svm");
-    dst_header.set_extension("h");
-
-    // copies `svm.h` under `examples`
-    fs::copy(src_header.as_path(), dst_header.as_path())
-        .expect("Unable to copy the generated C bindings");
 }
