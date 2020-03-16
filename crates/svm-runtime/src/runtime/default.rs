@@ -61,37 +61,38 @@ where
     }
 
     fn validate_tx(&self, bytes: &[u8]) -> Result<AppAddr, ParseError> {
-        todo!()
-        // match self.env.parse_exec_app(bytes) {
-        //     Ok(tx) => tx.app,
-        //     Err(e) => Err(ExecAppError::ParseFailed(e)),
-        // }
+        self.env.parse_exec_app(bytes).map(|tx| tx.app)
     }
 
     fn deploy_template(
         &mut self,
+        bytes: &[u8],
         author: &AuthorAddr,
         host_ctx: HostCtx,
-        bytes: &[u8],
+        dry_run: bool,
     ) -> TemplateReceipt {
         info!("runtime `deploy_template`");
 
         let template = self.parse_deploy_template(bytes).unwrap();
-        self.install_template(&template, author, &host_ctx)
+        let gas = self.compute_install_template_gas(bytes, &template);
+
+        self.install_template(&template, author, &host_ctx, gas, dry_run)
     }
 
     fn spawn_app(
         &mut self,
+        bytes: &[u8],
         creator: &CreatorAddr,
         host_ctx: HostCtx,
-        bytes: &[u8],
+        dry_run: bool,
     ) -> SpawnAppReceipt {
         info!("runtime `spawn_app`");
 
         let spawn = self.parse_spawn_app(bytes).unwrap();
+        let gas = self.compute_install_app_gas(bytes, &spawn);
 
-        match self.install_app(&spawn, creator, &host_ctx) {
-            Ok(addr) => self.call_ctor(creator, spawn, &addr, host_ctx),
+        match self.install_app(&spawn, creator, &host_ctx, gas, dry_run) {
+            Ok(addr) => self.call_ctor(creator, spawn, &addr, host_ctx, dry_run),
             Err(e) => e.into(),
         }
     }
@@ -148,10 +149,10 @@ where
         spawn_app: SpawnApp,
         app_addr: &AppAddr,
         host_ctx: HostCtx,
+        dry_run: bool,
     ) -> SpawnAppReceipt {
         let ctor = self.build_ctor_call(creator, spawn_app, &app_addr);
         let is_ctor = true;
-        let dry_run = false;
 
         let ctor_receipt = self._exec_app(ctor, State::empty(), host_ctx, is_ctor, dry_run);
 
@@ -167,13 +168,17 @@ where
         template: &AppTemplate,
         author: &AuthorAddr,
         host_ctx: &HostCtx,
+        gas: u64,
+        dry_run: bool,
     ) -> TemplateReceipt {
-        // TODO: use the real `gas_used`
-        let gas_used = 0;
-
-        match self.env.store_template(template, author, host_ctx) {
-            Ok(addr) => TemplateReceipt::new(addr, gas_used),
-            Err(e) => DeployTemplateError::StoreFailed(e).into(),
+        if dry_run == false {
+            match self.env.store_template(template, author, host_ctx) {
+                Ok(addr) => TemplateReceipt::new(addr, gas),
+                Err(e) => DeployTemplateError::StoreFailed(e).into(),
+            }
+        } else {
+            let addr = self.env.derive_template_address(template, host_ctx);
+            TemplateReceipt::new(addr, gas)
         }
     }
 
@@ -186,10 +191,17 @@ where
         spawn: &SpawnApp,
         creator: &CreatorAddr,
         host_ctx: &HostCtx,
+        spawn_gas: u64,
+        dry_run: bool,
     ) -> Result<AppAddr, SpawnAppError> {
-        self.env
-            .store_app(spawn, creator, host_ctx)
-            .or_else({ |e| Err(SpawnAppError::StoreFailed(e)) })
+        if dry_run == false {
+            self.env
+                .store_app(spawn, creator, host_ctx)
+                .or_else(|e| Err(SpawnAppError::StoreFailed(e)))
+        } else {
+            let addr = self.env.derive_app_address(spawn, host_ctx);
+            Ok(addr)
+        }
     }
 
     fn build_ctor_call(
@@ -524,6 +536,16 @@ where
         })
     }
 
+    /// Gas
+    fn compute_install_template_gas(&self, bytes: &[u8], template: &AppTemplate) -> u64 {
+        todo!()
+    }
+
+    fn compute_install_app_gas(&self, bytes: &[u8], spawn: &SpawnApp) -> u64 {
+        todo!()
+    }
+
+    /// Helpers
     fn vec_to_str<T: fmt::Debug>(&self, items: &Vec<T>) -> String {
         let mut buf = String::new();
 
@@ -540,6 +562,6 @@ where
 
 impl<ENV> Drop for DefaultRuntime<ENV> {
     fn drop(&mut self) {
-        info!("dropping Runtime...");
+        info!("dropping DefaultRuntime...");
     }
 }

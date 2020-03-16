@@ -29,17 +29,19 @@ pub trait Runtime {
     /// Deploy an new app-template
     fn deploy_template(
         &mut self,
+        bytes: &[u8],
         author: &AuthorAddr,
         host_ctx: HostCtx,
-        bytes: &[u8],
+        dry_run: bool,
     ) -> TemplateReceipt;
 
     /// Spawn a new app out of an existing app-template.
     fn spawn_app(
         &mut self,
+        bytes: &[u8],
         creator: &CreatorAddr,
         host_ctx: HostCtx,
-        bytes: &[u8],
+        dry_run: bool,
     ) -> SpawnAppReceipt;
 
     /// Executes an app-transaction. Returns `ExecReceipt`.
