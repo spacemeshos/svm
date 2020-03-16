@@ -26,7 +26,7 @@
 use byteorder::{BigEndian, WriteBytesExt};
 
 use svm_common::State;
-use svm_runtime::{error::ExecAppError, value::Value, Receipt};
+use svm_runtime::{error::ExecAppError, receipt::ExecReceipt, value::Value};
 
 use crate::svm_value_type;
 
@@ -35,7 +35,7 @@ const ERROR_LENGTH: usize = 2;
 const IS_SUCCESS: usize = 1;
 const HEADER: usize = PROTO_VER + IS_SUCCESS;
 
-pub(crate) fn encode_receipt(receipt: &Receipt) -> Vec<u8> {
+pub(crate) fn encode_receipt(receipt: &ExecReceipt) -> Vec<u8> {
     let size_hint = receipt_size_hint(receipt);
     let mut buf: Vec<u8> = Vec::with_capacity(size_hint);
 
@@ -51,7 +51,7 @@ pub(crate) fn encode_receipt(receipt: &Receipt) -> Vec<u8> {
     buf
 }
 
-fn receipt_size_hint(receipt: &Receipt) -> usize {
+fn receipt_size_hint(receipt: &ExecReceipt) -> usize {
     if receipt.success {
         HEADER + State::len() + returns_size_hint(receipt)
     } else {
@@ -59,14 +59,14 @@ fn receipt_size_hint(receipt: &Receipt) -> usize {
     }
 }
 
-fn error_size_hint(_receipt: &Receipt) -> usize {
+fn error_size_hint(_receipt: &ExecReceipt) -> usize {
     // we have no quick way to give a good estimation for the error blob size
     // without actually rendering it first.
     // so we arbitrarily return `1024` as the estimated size required.
     1024
 }
 
-fn returns_size_hint(receipt: &Receipt) -> usize {
+fn returns_size_hint(receipt: &ExecReceipt) -> usize {
     let returns_count = receipt_returns_count(receipt);
 
     // * field `#returns` takes 2 bytes
@@ -77,7 +77,7 @@ fn returns_size_hint(receipt: &Receipt) -> usize {
     2 + returns_count * 9
 }
 
-fn write_header(buf: &mut Vec<u8>, receipt: &Receipt) {
+fn write_header(buf: &mut Vec<u8>, receipt: &ExecReceipt) {
     // TODO: handle each `unwrap()`
     // `version` field. we only have `verson=0` for now.
     buf.write_u32::<BigEndian>(0).unwrap();
@@ -90,7 +90,7 @@ fn write_header(buf: &mut Vec<u8>, receipt: &Receipt) {
     }
 }
 
-fn write_new_state(buf: &mut Vec<u8>, receipt: &Receipt) {
+fn write_new_state(buf: &mut Vec<u8>, receipt: &ExecReceipt) {
     assert!(receipt.success);
 
     let new_state = receipt.new_state.as_ref().unwrap();
@@ -98,7 +98,7 @@ fn write_new_state(buf: &mut Vec<u8>, receipt: &Receipt) {
     buf.extend_from_slice(new_state.as_slice());
 }
 
-fn write_returns(buf: &mut Vec<u8>, receipt: &Receipt) {
+fn write_returns(buf: &mut Vec<u8>, receipt: &ExecReceipt) {
     assert!(receipt.success);
 
     let returns_count = receipt_returns_count(receipt);
@@ -123,7 +123,7 @@ fn write_returns(buf: &mut Vec<u8>, receipt: &Receipt) {
     }
 }
 
-fn write_error(buf: &mut Vec<u8>, receipt: &Receipt) {
+fn write_error(buf: &mut Vec<u8>, receipt: &ExecReceipt) {
     let error: &ExecAppError = receipt.error.as_ref().unwrap();
 
     let error_data = format!("{:?}", error);
@@ -134,7 +134,7 @@ fn write_error(buf: &mut Vec<u8>, receipt: &Receipt) {
 }
 
 #[inline]
-fn receipt_returns_count(receipt: &Receipt) -> usize {
+fn receipt_returns_count(receipt: &ExecReceipt) -> usize {
     receipt.returns.as_ref().unwrap().len()
 }
 

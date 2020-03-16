@@ -1,7 +1,8 @@
 use std::ffi::c_void;
 
 use crate::{svm_import_kind, svm_import_t, RuntimePtr};
-use svm_runtime::traits::Runtime;
+
+use svm_runtime::Runtime;
 
 use wasmer_runtime_core::export::Export;
 

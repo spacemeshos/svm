@@ -18,10 +18,10 @@ use svm_storage::AppStorage;
 /// Specifies the interface of a `SVM` Runtime.
 pub trait Runtime {
     /// Validates raw `deploy-template` transaction prior to executing it.
-    fn vaildate_template(&self, bytes: &[u8]) -> Result<(), ParseError>;
+    fn validate_template(&self, bytes: &[u8]) -> Result<(), ParseError>;
 
     /// Validates a raw `spawn-app` transaction prior to executing it.
-    fn vaildate_app(&self, bytes: &[u8]) -> Result<(), ParseError>;
+    fn validate_app(&self, bytes: &[u8]) -> Result<(), ParseError>;
 
     /// Validates a raw `exec-app` transaction prior to executing it.
     fn validate_tx(&self, bytes: &[u8]) -> Result<AppAddr, ParseError>;

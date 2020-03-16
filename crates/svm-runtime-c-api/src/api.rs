@@ -7,7 +7,7 @@ use svm_app::{
     types::{AppTransaction, HostCtx},
 };
 use svm_common::{Address, State};
-use svm_runtime::{ctx::SvmCtx, traits::Runtime};
+use svm_runtime::{ctx::SvmCtx, gas::DefaultGasEstimator, Runtime};
 
 use crate::{
     helpers, svm_byte_array, svm_import_func_sig_t, svm_import_func_t, svm_import_kind,
@@ -47,6 +47,94 @@ macro_rules! to_svm_byte_array {
         bytes.bytes = $ptr;
         bytes.length = $length as u32;
     }};
+}
+
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_validate_template(
+    runtime: *const c_void,
+    bytes: svm_byte_array,
+) -> svm_result_t {
+    let runtime = helpers::cast_to_runtime(runtime);
+    let bytes = std::slice::from_raw_parts(bytes.bytes, bytes.length as usize);
+
+    match runtime.validate_template(bytes) {
+        Ok(()) => svm_result_t::SVM_SUCCESS,
+        Err(e) => svm_result_t::SVM_FAILURE,
+    }
+}
+
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_validate_app(
+    runtime: *const c_void,
+    bytes: svm_byte_array,
+) -> svm_result_t {
+    let runtime = helpers::cast_to_runtime(runtime);
+    let bytes = std::slice::from_raw_parts(bytes.bytes, bytes.length as usize);
+
+    match runtime.validate_app(bytes) {
+        Ok(()) => svm_result_t::SVM_SUCCESS,
+        Err(e) => svm_result_t::SVM_FAILURE,
+    }
+}
+
+/// Parses `exec-app` raw transaction.
+/// Returns the `App` address that appears in the transaction.
+///
+/// # Example
+///
+/// ```rust, no_run
+/// use svm_runtime_c_api::*;
+/// use svm_common::Address;
+///
+/// let mut host = std::ptr::null_mut();
+///
+/// // allocate imports
+/// let mut imports = testing::imports_alloc(0);
+///
+/// // create runtime
+/// let mut kv = std::ptr::null_mut();
+/// let res = unsafe { svm_memory_kv_create(&mut kv) };
+/// assert!(res.is_ok());
+///
+/// let mut runtime = std::ptr::null_mut();
+/// let res = unsafe { svm_memory_runtime_create(&mut runtime, kv, host, imports) };
+/// assert!(res.is_ok());
+///
+/// let mut app_tx = std::ptr::null_mut();
+/// let tx = vec![0x00, 0x01, 0x2, 0x3].into();
+/// let _res = unsafe { svm_parse_exec_app(&mut app_tx, runtime, tx) };
+/// ```
+///
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_validate_tx(
+    app_tx: *mut svm_byte_array,
+    runtime: *const c_void,
+    bytes: svm_byte_array,
+) -> svm_result_t {
+    debug!("`svm_validate_tx` start");
+
+    let runtime = helpers::cast_to_runtime(runtime);
+    let bytes = std::slice::from_raw_parts(bytes.bytes, bytes.length as usize);
+
+    todo!()
+
+    // match runtime.validate_tx(bytes) {
+    //     Ok(tx) => {
+    //         // `AppTransaction` will be freed later as part `svm_exec_app`
+    //         *app_tx = svm_common::into_raw_mut(tx);
+
+    //         debug!("`svm_validate_tx` returns `SVM_SUCCESS`");
+    //         svm_result_t::SVM_SUCCESS
+    //     }
+    //     Err(_e) => {
+    //         // update_last_error(error);
+    //         error!("`svm_validate_tx` returns `SVM_FAILURE`");
+    //         svm_result_t::SVM_FAILURE
+    //     }
+    // }
 }
 
 /// Allocates space for the host imports.
@@ -252,11 +340,11 @@ pub unsafe extern "C" fn svm_runtime_create(
 
     let imports = helpers::cast_imports_to_wasmer_imports(imports);
 
-    let rocksdb_runtime = svm_runtime::create_rocksdb_runtime::<String, DefaultSerializerTypes>(
-        host,
-        &path.unwrap(),
-        imports,
-    );
+    let rocksdb_runtime = svm_runtime::create_rocksdb_runtime::<
+        String,
+        DefaultSerializerTypes,
+        DefaultGasEstimator,
+    >(host, &path.unwrap(), imports);
 
     let res = box_runtime!(runtime, rocksdb_runtime);
 
@@ -323,22 +411,24 @@ pub unsafe extern "C" fn svm_deploy_template(
 
     let bytes = std::slice::from_raw_parts(template.bytes, template.length as usize);
 
-    match runtime.deploy_template(&author.unwrap().into(), host_ctx.unwrap(), bytes) {
-        Ok(addr) => {
-            // returning deployed `AppTemplate` as `svm_byte_array`
-            // client should call later `svm_address_destroy`
-            addr_to_svm_byte_array!(template_addr, addr.unwrap());
+    let receipt = runtime.deploy_template(bytes, &author.unwrap().into(), host_ctx.unwrap(), false);
+    todo!()
 
-            debug!("`svm_deploy_template`` returns `SVM_SUCCESS`");
+    //     Ok(addr) => {
+    //         // returning deployed `AppTemplate` as `svm_byte_array`
+    //         // client should call later `svm_address_destroy`
+    //         addr_to_svm_byte_array!(template_addr, addr.unwrap());
 
-            svm_result_t::SVM_SUCCESS
-        }
-        Err(_err) => {
-            // update_last_error(err);
-            error!("`svm_deploy_template` returns `SVM_FAILURE`");
-            svm_result_t::SVM_FAILURE
-        }
-    }
+    //         debug!("`svm_deploy_template`` returns `SVM_SUCCESS`");
+
+    //         svm_result_t::SVM_SUCCESS
+    //     }
+    //     Err(_err) => {
+    //         // update_last_error(err);
+    //         error!("`svm_deploy_template` returns `SVM_FAILURE`");
+    //         svm_result_t::SVM_FAILURE
+    //     }
+    // }
 }
 
 /// Spawns a new App.
@@ -379,9 +469,9 @@ pub unsafe extern "C" fn svm_spawn_app(
     app_addr: *mut svm_byte_array,
     init_state: *mut svm_byte_array,
     runtime: *mut c_void,
+    bytes: svm_byte_array,
     creator: svm_byte_array,
     host_ctx: svm_byte_array,
-    app: svm_byte_array,
 ) -> svm_result_t {
     debug!("`svm_spawn_app` start");
 
@@ -399,84 +489,29 @@ pub unsafe extern "C" fn svm_spawn_app(
         // return svm_result_t::SVM_FAILURE;
     }
 
-    let bytes = std::slice::from_raw_parts(app.bytes, app.length as usize);
+    let bytes = std::slice::from_raw_parts(bytes.bytes, bytes.length as usize);
 
-    match runtime.spawn_app(&creator.unwrap().into(), host_ctx.unwrap(), bytes) {
-        Ok((addr, state)) => {
-            // returning spawned app `Address` as `svm_byte_array`
-            // client should call later `svm_address_destroy`
-            addr_to_svm_byte_array!(app_addr, addr.unwrap());
+    let receipt = runtime.spawn_app(bytes, &creator.unwrap().into(), host_ctx.unwrap(), false);
+    todo!()
 
-            // returning spawned app initial `State` as `svm_byte_array`
-            // client should call later `svm_state_destroy`
-            state_to_svm_byte_array!(init_state, state);
+    //     Ok((addr, state)) => {
+    //         // returning spawned app `Address` as `svm_byte_array`
+    //         // client should call later `svm_address_destroy`
+    //         addr_to_svm_byte_array!(app_addr, addr.unwrap());
 
-            debug!("`svm_spawn_app` returns `SVM_SUCCESS`");
-            svm_result_t::SVM_SUCCESS
-        }
-        Err(_e) => {
-            // update_last_error(error);
-            error!("`svm_spawn_app` returns `SVM_FAILURE`");
-            svm_result_t::SVM_FAILURE
-        }
-    }
-}
+    //         // returning spawned app initial `State` as `svm_byte_array`
+    //         // client should call later `svm_state_destroy`
+    //         state_to_svm_byte_array!(init_state, state);
 
-/// Parses `exec-app` raw transaction into an `AppTransaction`.
-/// Returns a raw reference via `app_tx` function parameter.
-///
-/// # Example
-///
-/// ```rust, no_run
-/// use svm_runtime_c_api::*;
-/// use svm_common::Address;
-///
-/// let mut host = std::ptr::null_mut();
-///
-/// // allocate imports
-/// let mut imports = testing::imports_alloc(0);
-///
-/// // create runtime
-/// let mut kv = std::ptr::null_mut();
-/// let res = unsafe { svm_memory_kv_create(&mut kv) };
-/// assert!(res.is_ok());
-///
-/// let mut runtime = std::ptr::null_mut();
-/// let res = unsafe { svm_memory_runtime_create(&mut runtime, kv, host, imports) };
-/// assert!(res.is_ok());
-///
-/// let mut app_tx = std::ptr::null_mut();
-/// let tx = vec![0x00, 0x01, 0x2, 0x3].into();
-/// let _res = unsafe { svm_parse_exec_app(&mut app_tx, runtime, tx) };
-/// ```
-///
-#[must_use]
-#[no_mangle]
-pub unsafe extern "C" fn svm_parse_exec_app(
-    app_tx: *mut *mut c_void,
-    runtime: *const c_void,
-    tx: svm_byte_array,
-) -> svm_result_t {
-    debug!("`svm_parse_exec_app` start");
-
-    let runtime = helpers::cast_to_runtime(runtime);
-
-    let bytes = std::slice::from_raw_parts(tx.bytes, tx.length as usize);
-
-    match runtime.parse_exec_app(bytes) {
-        Ok(tx) => {
-            // `AppTransaction` will be freed later as part `svm_exec_app`
-            *app_tx = svm_common::into_raw_mut(tx);
-
-            debug!("`svm_parse_exec_app` returns `SVM_SUCCESS`");
-            svm_result_t::SVM_SUCCESS
-        }
-        Err(_e) => {
-            // update_last_error(error);
-            error!("`svm_parse_exec_app` returns `SVM_FAILURE`");
-            svm_result_t::SVM_FAILURE
-        }
-    }
+    //         debug!("`svm_spawn_app` returns `SVM_SUCCESS`");
+    //         svm_result_t::SVM_SUCCESS
+    //     }
+    //     Err(_e) => {
+    //         // update_last_error(error);
+    //         error!("`svm_spawn_app` returns `SVM_FAILURE`");
+    //         svm_result_t::SVM_FAILURE
+    //     }
+    // }
 }
 
 /// Triggers an app-transaction execution of an already deployed app.
@@ -528,12 +563,14 @@ pub unsafe extern "C" fn svm_parse_exec_app(
 pub unsafe extern "C" fn svm_exec_app(
     receipt: *mut svm_byte_array,
     runtime: *mut c_void,
-    app_tx: *const c_void,
+    bytes: svm_byte_array,
     state: svm_byte_array,
     host_ctx: svm_byte_array,
     dry_run: bool,
 ) -> svm_result_t {
     debug!("`svm_exec_app` start");
+
+    let bytes = std::slice::from_raw_parts(bytes.bytes, bytes.length as usize);
 
     let host_ctx = HostCtx::from_raw_parts(host_ctx.bytes, host_ctx.length);
 
@@ -545,7 +582,6 @@ pub unsafe extern "C" fn svm_exec_app(
     }
 
     let host_ctx = host_ctx.unwrap();
-    let app_tx = *Box::from_raw(app_tx as *mut AppTransaction);
     let runtime = helpers::cast_to_runtime_mut(runtime);
     let state: Result<State, String> = state.into();
 
@@ -553,23 +589,23 @@ pub unsafe extern "C" fn svm_exec_app(
         todo!();
     }
 
-    match runtime.exec_app(app_tx, state.unwrap(), host_ctx, dry_run) {
-        Ok(ref native_receipt) => {
-            let mut bytes = crate::receipt::encode_receipt(native_receipt);
+    let receipt = runtime.exec_app(bytes, &state.unwrap(), host_ctx, dry_run);
+    todo!();
 
-            // returning encoded `Receipt` as `svm_byte_array`
-            // should call later `svm_receipt_destroy`
-            vec_to_svm_byte_array!(receipt, bytes);
+    //         let mut bytes = crate::receipt::encode_receipt(native_receipt);
+    //         // returning encoded `Receipt` as `svm_byte_array`
+    //         // should call later `svm_receipt_destroy`
+    //         vec_to_svm_byte_array!(receipt, bytes);
 
-            debug!("`svm_exec_app` returns `SVM_SUCCESS`");
-            svm_result_t::SVM_SUCCESS
-        }
-        Err(_e) => {
-            // update_last_error(e);
-            error!("`svm_exec_app` returns `SVM_FAILURE`");
-            svm_result_t::SVM_FAILURE
-        }
-    }
+    //         debug!("`svm_exec_app` returns `SVM_SUCCESS`");
+    //         svm_result_t::SVM_SUCCESS
+    //     }
+    //     Err(_e) => {
+    //         // update_last_error(e);
+    //         error!("`svm_exec_app` returns `SVM_FAILURE`");
+    //         svm_result_t::SVM_FAILURE
+    //     }
+    // }
 }
 
 /// Returns a raw pointer to `the host` extracted from a raw pointer to `wasmer` context.

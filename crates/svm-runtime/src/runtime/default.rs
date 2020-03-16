@@ -56,11 +56,11 @@ where
     ENV: Env<Types = TY>,
     GE: GasEstimator,
 {
-    fn vaildate_template(&self, bytes: &[u8]) -> Result<(), ParseError> {
+    fn validate_template(&self, bytes: &[u8]) -> Result<(), ParseError> {
         self.parse_deploy_template(bytes).map(|_| ())
     }
 
-    fn vaildate_app(&self, bytes: &[u8]) -> Result<(), ParseError> {
+    fn validate_app(&self, bytes: &[u8]) -> Result<(), ParseError> {
         self.parse_spawn_app(bytes).map(|_| ())
     }
 
@@ -552,12 +552,14 @@ where
 
     /// Gas
     fn compute_install_template_gas(&self, bytes: &[u8], template: &AppTemplate) -> u64 {
-        todo!()
+        0
+        // todo!()
         // GE::est_deploy_template(bytes, template)
     }
 
     fn compute_install_app_gas(&self, bytes: &[u8], spawn: &SpawnApp) -> u64 {
-        todo!()
+        0
+        // todo!()
         // GE::est_spawn_app(bytes, spawn)
     }
 

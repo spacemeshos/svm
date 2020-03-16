@@ -9,7 +9,7 @@ use crate::{
 use log::debug;
 
 use svm_kv::memory::MemKVStore;
-use svm_runtime::{ctx::SvmCtx, traits::Runtime};
+use svm_runtime::{ctx::SvmCtx, Runtime};
 
 use wasmer_runtime_c_api::instance::wasmer_instance_context_t;
 use wasmer_runtime_core::vm::Ctx;
