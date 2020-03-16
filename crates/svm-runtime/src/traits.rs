@@ -62,5 +62,13 @@ pub trait Runtime {
     ) -> ExecReceipt;
 }
 
+pub trait GasEstimator {
+    fn estimate_template(bytes: &[u8]) -> u64;
+
+    fn estimate_app(bytes: &[u8]) -> u64;
+
+    fn estimate_tx(bytes: &[u8]) -> u64;
+}
+
 /// Represents a function that builds a `AppStorage` given its address, state and settings.
 pub type StorageBuilderFn = dyn Fn(&AppAddr, &State, &AppSettings) -> AppStorage;

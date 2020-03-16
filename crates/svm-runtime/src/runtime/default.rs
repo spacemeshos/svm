@@ -146,12 +146,12 @@ where
     fn call_ctor(
         &mut self,
         creator: &CreatorAddr,
-        spawn_app: SpawnApp,
+        spawn: SpawnApp,
         app_addr: &AppAddr,
         host_ctx: HostCtx,
         dry_run: bool,
     ) -> SpawnAppReceipt {
-        let ctor = self.build_ctor_call(creator, spawn_app, &app_addr);
+        let ctor = self.build_ctor_call(creator, spawn, app_addr);
         let is_ctor = true;
 
         let ctor_receipt = self._exec_app(ctor, State::empty(), host_ctx, is_ctor, dry_run);
