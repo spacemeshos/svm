@@ -14,20 +14,20 @@ use svm_storage::{
     AppStorage,
 };
 
-use crate::runtime::DefaultRuntime;
-use crate::settings::AppSettings;
+use crate::{runtime::DefaultRuntime, settings::AppSettings, traits::GasEstimator};
 
 use wasmer_runtime_core::export::Export;
 
 /// Creates a new `Runtime` backed by `rocksdb` for persistence.
-pub fn create_rocksdb_runtime<P, Ser>(
+pub fn create_rocksdb_runtime<P, Ser, GE>(
     host: *mut c_void,
     path: &P,
     imports: Vec<(String, String, Export)>,
-) -> DefaultRuntime<RocksdbEnv<Ser>>
+) -> DefaultRuntime<RocksdbEnv<Ser>, GE>
 where
     P: AsRef<Path>,
     Ser: EnvSerializerTypes,
+    GE: GasEstimator,
 {
     let env = app_env_build(path);
 

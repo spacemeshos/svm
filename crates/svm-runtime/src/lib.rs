@@ -11,6 +11,8 @@ pub mod receipt;
 /// Implements the most high-level API of `SVM`.
 mod runtime;
 
+mod gas;
+
 pub use runtime::{create_rocksdb_runtime, DefaultRuntime};
 
 /// Implements `SvmCtx`. Used for running `SVM` instances.

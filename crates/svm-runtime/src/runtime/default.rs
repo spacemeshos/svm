@@ -1,4 +1,4 @@
-use std::{convert::TryFrom, ffi::c_void, fmt};
+use std::{convert::TryFrom, ffi::c_void, fmt, marker::PhantomData};
 
 use log::{debug, error, info};
 
@@ -10,7 +10,7 @@ use crate::{
     helpers::DataWrapper,
     receipt::{make_spawn_app_receipt, ExecReceipt, SpawnAppReceipt, TemplateReceipt},
     settings::AppSettings,
-    traits::{Runtime, StorageBuilderFn},
+    traits::{GasEstimator, Runtime, StorageBuilderFn},
     value::Value,
 };
 
@@ -32,7 +32,7 @@ use wasmer_runtime_core::{
 };
 
 /// Default `Runtime` implementation based on `wasmer`.
-pub struct DefaultRuntime<ENV> {
+pub struct DefaultRuntime<ENV, GE> {
     /// The runtime environment. Used mainly for managing app persistence.
     pub env: ENV,
 
@@ -45,12 +45,15 @@ pub struct DefaultRuntime<ENV> {
     /// Determined by the app `Address` and `State` (app state) and app storage settings,
     /// builds a `AppStorage` instance.
     pub storage_builder: Box<StorageBuilderFn>,
+
+    phantom: PhantomData<GE>,
 }
 
-impl<TY, ENV> Runtime for DefaultRuntime<ENV>
+impl<TY, ENV, GE> Runtime for DefaultRuntime<ENV, GE>
 where
     TY: EnvTypes,
     ENV: Env<Types = TY>,
+    GE: GasEstimator,
 {
     fn vaildate_template(&self, bytes: &[u8]) -> Result<(), ParseError> {
         self.parse_deploy_template(bytes).map(|_| ())
@@ -110,10 +113,11 @@ where
     }
 }
 
-impl<TY, ENV> DefaultRuntime<ENV>
+impl<TY, ENV, GE> DefaultRuntime<ENV, GE>
 where
     TY: EnvTypes,
     ENV: Env<Types = TY>,
+    GE: GasEstimator,
 {
     /// Initializes a new `DefaultRuntime` instance.
     pub fn new(
@@ -127,6 +131,7 @@ where
             host,
             imports,
             storage_builder,
+            phantom: PhantomData::<GE>,
         }
     }
 
@@ -560,7 +565,7 @@ where
     }
 }
 
-impl<ENV> Drop for DefaultRuntime<ENV> {
+impl<ENV, GE> Drop for DefaultRuntime<ENV, GE> {
     fn drop(&mut self) {
         info!("dropping DefaultRuntime...");
     }
