@@ -8,13 +8,14 @@ use crate::{
     error::{DeployTemplateError, ExecAppError, SpawnAppError},
     helpers,
     helpers::DataWrapper,
-    receipt::{make_spawn_app_receipt, Receipt, SpawnAppReceipt, TemplateReceipt},
+    receipt::{make_spawn_app_receipt, ExecReceipt, SpawnAppReceipt, TemplateReceipt},
     settings::AppSettings,
     traits::{Runtime, StorageBuilderFn},
     value::Value,
 };
 
 use svm_app::{
+    error::ParseError,
     traits::{Env, EnvTypes},
     types::{
         AppAddr, AppTemplate, AppTransaction, AuthorAddr, CreatorAddr, HostCtx, SpawnApp,
@@ -51,6 +52,22 @@ where
     TY: EnvTypes,
     ENV: Env<Types = TY>,
 {
+    fn vaildate_template(&self, bytes: &[u8]) -> Result<(), ParseError> {
+        self.parse_deploy_template(bytes).map(|_| ())
+    }
+
+    fn vaildate_app(&self, bytes: &[u8]) -> Result<(), ParseError> {
+        self.parse_spawn_app(bytes).map(|_| ())
+    }
+
+    fn validate_tx(&self, bytes: &[u8]) -> Result<AppAddr, ParseError> {
+        todo!()
+        // match self.env.parse_exec_app(bytes) {
+        //     Ok(tx) => tx.app,
+        //     Err(e) => Err(ExecAppError::ParseFailed(e)),
+        // }
+    }
+
     fn deploy_template(
         &mut self,
         author: &AuthorAddr,
@@ -59,10 +76,8 @@ where
     ) -> TemplateReceipt {
         info!("runtime `deploy_template`");
 
-        match self.parse_deploy_template(bytes) {
-            Ok(template) => self.install_template(&template, author, &host_ctx),
-            Err(e) => e.into(),
-        }
+        let template = self.parse_deploy_template(bytes).unwrap();
+        self.install_template(&template, author, &host_ctx)
     }
 
     fn spawn_app(
@@ -73,19 +88,12 @@ where
     ) -> SpawnAppReceipt {
         info!("runtime `spawn_app`");
 
-        match self.parse_spawn_app(bytes) {
-            Ok(spawn) => match self.install_app(&spawn, creator, &host_ctx) {
-                Ok(addr) => self.call_ctor(creator, spawn, &addr, host_ctx),
-                Err(e) => e.into(),
-            },
+        let spawn = self.parse_spawn_app(bytes).unwrap();
+
+        match self.install_app(&spawn, creator, &host_ctx) {
+            Ok(addr) => self.call_ctor(creator, spawn, &addr, host_ctx),
             Err(e) => e.into(),
         }
-    }
-
-    fn parse_exec_app(&self, bytes: &[u8]) -> Result<AppTransaction, ExecAppError> {
-        self.env
-            .parse_exec_app(bytes)
-            .or_else(|e| Err(ExecAppError::ParseFailed(e)))
     }
 
     fn exec_app(
@@ -94,7 +102,7 @@ where
         state: State,
         host_ctx: HostCtx,
         dry_run: bool,
-    ) -> Receipt {
+    ) -> ExecReceipt {
         let is_ctor = false;
 
         self._exec_app(tx, state, host_ctx, is_ctor, dry_run)
@@ -150,10 +158,8 @@ where
         make_spawn_app_receipt(ctor_receipt, app_addr)
     }
 
-    fn parse_deploy_template(&self, bytes: &[u8]) -> Result<AppTemplate, DeployTemplateError> {
-        self.env
-            .parse_deploy_template(bytes)
-            .or_else(|e| Err(DeployTemplateError::ParseFailed(e)))
+    fn parse_deploy_template(&self, bytes: &[u8]) -> Result<AppTemplate, ParseError> {
+        self.env.parse_deploy_template(bytes)
     }
 
     fn install_template(
@@ -162,16 +168,17 @@ where
         author: &AuthorAddr,
         host_ctx: &HostCtx,
     ) -> TemplateReceipt {
+        // TODO: use the real `gas_used`
+        let gas_used = 0;
+
         match self.env.store_template(template, author, host_ctx) {
-            Ok(addr) => addr.into(),
+            Ok(addr) => TemplateReceipt::new(addr, gas_used),
             Err(e) => DeployTemplateError::StoreFailed(e).into(),
         }
     }
 
-    fn parse_spawn_app(&self, bytes: &[u8]) -> Result<SpawnApp, SpawnAppError> {
-        self.env
-            .parse_spawn_app(bytes)
-            .or_else(|e| Err(SpawnAppError::ParseFailed(e)))
+    fn parse_spawn_app(&self, bytes: &[u8]) -> Result<SpawnApp, ParseError> {
+        self.env.parse_spawn_app(bytes)
     }
 
     fn install_app(
@@ -207,7 +214,7 @@ where
         host_ctx: HostCtx,
         is_ctor: bool,
         dry_run: bool,
-    ) -> Receipt {
+    ) -> ExecReceipt {
         info!("runtime `exec_app`");
 
         match self.load_template(&tx) {
@@ -247,7 +254,7 @@ where
         import_object: &ImportObject,
         is_ctor: bool,
         dry_run: bool,
-    ) -> Result<(Option<State>, Vec<Value>), ExecAppError> {
+    ) -> Result<(Option<State>, Option<u64>, Vec<Value>), ExecAppError> {
         let module = self.compile_template(tx, &template, &template_addr)?;
         let mut instance = self.instantiate(tx, template_addr, &module, import_object)?;
 
@@ -261,7 +268,7 @@ where
                 // we **don't** consider it as an error.
                 let empty_state = State::empty();
 
-                return Ok((Some(empty_state), Vec::new()));
+                return Ok((Some(empty_state), Some(0), Vec::new()));
             }
             Err(e) => return Err(e),
             Ok(func) => func,
@@ -287,24 +294,32 @@ where
 
                 let returns = self.cast_wasmer_func_returns(tx, template_addr, returns)?;
 
-                Ok((new_state, returns))
+                // TODO: use the real `gas_used`
+                let gas_used = Some(0);
+
+                Ok((new_state, gas_used, returns))
             }
         }
     }
 
-    fn make_receipt(&self, result: Result<(Option<State>, Vec<Value>), ExecAppError>) -> Receipt {
+    fn make_receipt(
+        &self,
+        result: Result<(Option<State>, Option<u64>, Vec<Value>), ExecAppError>,
+    ) -> ExecReceipt {
         match result {
-            Err(e) => Receipt {
+            Err(e) => ExecReceipt {
                 success: false,
                 error: Some(e),
                 returns: None,
                 new_state: None,
+                gas_used: None,
             },
-            Ok((new_state, returns)) => Receipt {
+            Ok((new_state, gas_used, returns)) => ExecReceipt {
                 success: true,
                 error: None,
                 returns: Some(returns),
                 new_state,
+                gas_used,
             },
         }
     }

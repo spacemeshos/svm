@@ -1,15 +1,31 @@
 use crate::{
     error::{DeployTemplateError, ExecAppError, SpawnAppError},
-    receipt::{Receipt, SpawnAppReceipt, TemplateReceipt},
+    receipt::{ExecReceipt, SpawnAppReceipt, TemplateReceipt},
     settings::AppSettings,
 };
 
-use svm_app::types::{AppAddr, AppTransaction, AuthorAddr, CreatorAddr, HostCtx, TemplateAddr};
+use svm_app::{
+    error::ParseError,
+    types::{
+        AppAddr, AppTemplate, AppTransaction, AuthorAddr, CreatorAddr, HostCtx, SpawnApp,
+        TemplateAddr,
+    },
+};
+
 use svm_common::{Address, State};
 use svm_storage::AppStorage;
 
 /// Specifies the interface of a `SVM` Runtime.
 pub trait Runtime {
+    /// Validates raw `deploy-template` transaction prior to executing it.
+    fn vaildate_template(&self, bytes: &[u8]) -> Result<(), ParseError>;
+
+    /// Validates a raw `spawn-app` transaction prior to executing it.
+    fn vaildate_app(&self, bytes: &[u8]) -> Result<(), ParseError>;
+
+    /// Validates a raw `exec-app` transaction prior to executing it.
+    fn validate_tx(&self, bytes: &[u8]) -> Result<AppAddr, ParseError>;
+
     /// Deploy an new app-template
     fn deploy_template(
         &mut self,
@@ -26,10 +42,7 @@ pub trait Runtime {
         bytes: &[u8],
     ) -> SpawnAppReceipt;
 
-    /// Parses `bytes` into in-memory `AppTransaction`
-    fn parse_exec_app(&self, bytes: &[u8]) -> Result<AppTransaction, ExecAppError>;
-
-    /// Executes an app-transaction. Returns a `Receipt`.
+    /// Executes an app-transaction. Returns `ExecReceipt`.
     /// On success:
     /// * Persists changes to the app's own storage.
     /// * Receipt returns the app's new storage state.
@@ -44,7 +57,7 @@ pub trait Runtime {
         state: State,
         host_ctx: HostCtx,
         dry_run: bool,
-    ) -> Receipt;
+    ) -> ExecReceipt;
 }
 
 /// Represents a function that builds a `AppStorage` given its address, state and settings.

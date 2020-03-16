@@ -8,7 +8,6 @@ use svm_app::types::{AppAddr, TemplateAddr};
 #[allow(missing_docs)]
 #[derive(PartialEq, Clone)]
 pub enum ExecAppError {
-    ParseFailed(ParseError),
     AppNotFound {
         app_addr: AppAddr,
     },
@@ -47,7 +46,6 @@ pub enum ExecAppError {
 impl error::Error for ExecAppError {
     fn description(&self) -> &'static str {
         match self {
-            ExecAppError::ParseFailed(..) => "Parse failed",
             ExecAppError::AppNotFound { .. } => "App not found",
             ExecAppError::CompilationFailed { .. } => "Compilation failed",
             ExecAppError::InstantiationFailed { .. } => "Instance Instantiation failed",
@@ -67,7 +65,6 @@ impl fmt::Debug for ExecAppError {
 impl fmt::Display for ExecAppError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let msg = match self {
-            ExecAppError::ParseFailed(e) => self.fmt_parse_failed(e),
             ExecAppError::AppNotFound { app_addr } => self.fmt_app_not_found(app_addr),
             ExecAppError::CompilationFailed {
                 app_addr,

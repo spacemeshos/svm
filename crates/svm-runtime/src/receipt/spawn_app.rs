@@ -1,9 +1,8 @@
-use svm_app::types::AppAddr;
-
-use super::Receipt;
+use super::ExecReceipt;
 
 use crate::{error::SpawnAppError, value::Value};
 
+use svm_app::types::AppAddr;
 use svm_common::State;
 
 #[derive(Debug)]
@@ -22,6 +21,9 @@ pub struct SpawnAppReceipt {
 
     /// returned ctor values
     pub returns: Option<Vec<Value>>,
+
+    /// The amount of gas used
+    pub gas_used: Option<u64>,
 }
 
 impl SpawnAppReceipt {
@@ -42,11 +44,12 @@ impl From<SpawnAppError> for SpawnAppReceipt {
             app_addr: None,
             init_state: None,
             returns: None,
+            gas_used: None,
         }
     }
 }
 
-pub fn make_spawn_app_receipt(ctor_receipt: Receipt, app_addr: &AppAddr) -> SpawnAppReceipt {
+pub fn make_spawn_app_receipt(ctor_receipt: ExecReceipt, app_addr: &AppAddr) -> SpawnAppReceipt {
     let app_addr = Some(app_addr.clone());
 
     if ctor_receipt.success {
@@ -56,6 +59,7 @@ pub fn make_spawn_app_receipt(ctor_receipt: Receipt, app_addr: &AppAddr) -> Spaw
             app_addr,
             init_state: ctor_receipt.new_state,
             returns: ctor_receipt.returns,
+            gas_used: ctor_receipt.gas_used,
         }
     } else {
         let error = ctor_receipt.error.unwrap();
@@ -66,6 +70,7 @@ pub fn make_spawn_app_receipt(ctor_receipt: Receipt, app_addr: &AppAddr) -> Spaw
             app_addr,
             init_state: None,
             returns: None,
+            gas_used: None,
         }
     }
 }

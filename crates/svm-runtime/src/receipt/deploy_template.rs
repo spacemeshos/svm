@@ -14,14 +14,18 @@ pub struct TemplateReceipt {
 
     /// The deployed template `Address`
     pub addr: Option<TemplateAddr>,
+
+    /// The amount of gas used for template deployment
+    pub gas_used: Option<u64>,
 }
 
-impl From<TemplateAddr> for TemplateReceipt {
-    fn from(addr: TemplateAddr) -> Self {
+impl TemplateReceipt {
+    pub fn new(addr: TemplateAddr, gas_used: u64) -> Self {
         Self {
             success: true,
             error: None,
             addr: Some(addr),
+            gas_used: Some(gas_used),
         }
     }
 }
@@ -32,6 +36,7 @@ impl From<DeployTemplateError> for TemplateReceipt {
             success: false,
             error: Some(error),
             addr: None,
+            gas_used: None,
         }
     }
 }
