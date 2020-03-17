@@ -10,8 +10,10 @@ use svm_common::{Address, State};
 use svm_runtime::{ctx::SvmCtx, gas::DefaultGasEstimator, Runtime};
 
 use crate::{
-    helpers, svm_byte_array, svm_import_func_sig_t, svm_import_func_t, svm_import_kind,
-    svm_import_t, svm_import_value, svm_result_t, svm_value_type_array, RuntimePtr,
+    helpers,
+    receipt::{encode_app_receipt, encode_exec_receipt, encode_template_receipt},
+    svm_byte_array, svm_import_func_sig_t, svm_import_func_t, svm_import_kind, svm_import_t,
+    svm_import_value, svm_result_t, svm_value_type_array, RuntimePtr,
 };
 
 macro_rules! addr_to_svm_byte_array {
@@ -115,22 +117,20 @@ pub unsafe extern "C" fn svm_validate_tx(
     debug!("`svm_validate_tx` start");
 
     let runtime = helpers::cast_to_runtime(runtime);
-    todo!()
 
-    // match runtime.validate_tx(bytes.into()) {
-    //     Ok(tx) => {
-    //         // `AppTransaction` will be freed later as part `svm_exec_app`
-    //         *app_tx = svm_common::into_raw_mut(tx);
+    match runtime.validate_tx(bytes.into()) {
+        Ok(addr) => {
+            *app_addr = addr.unwrap().into();
 
-    //         debug!("`svm_validate_tx` returns `SVM_SUCCESS`");
-    //         svm_result_t::SVM_SUCCESS
-    //     }
-    //     Err(_e) => {
-    //         // update_last_error(error);
-    //         error!("`svm_validate_tx` returns `SVM_FAILURE`");
-    //         svm_result_t::SVM_FAILURE
-    //     }
-    // }
+            debug!("`svm_validate_tx` returns `SVM_SUCCESS`");
+            svm_result_t::SVM_SUCCESS
+        }
+        Err(_e) => {
+            // update_last_error(error);
+            error!("`svm_validate_tx` returns `SVM_FAILURE`");
+            svm_result_t::SVM_FAILURE
+        }
+    }
 }
 
 /// Allocates space for the host imports.
@@ -384,7 +384,7 @@ pub unsafe extern "C" fn svm_runtime_create(
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_deploy_template(
-    template_addr: *mut svm_byte_array,
+    receipt: *mut svm_byte_array,
     runtime: *mut c_void,
     author: svm_byte_array,
     host_ctx: svm_byte_array,
@@ -409,24 +409,18 @@ pub unsafe extern "C" fn svm_deploy_template(
 
     let bytes = std::slice::from_raw_parts(template.bytes, template.length as usize);
 
-    let receipt = runtime.deploy_template(bytes, &author.unwrap().into(), host_ctx.unwrap(), false);
-    todo!()
+    let rust_receipt =
+        runtime.deploy_template(bytes, &author.unwrap().into(), host_ctx.unwrap(), false);
 
-    //     Ok(addr) => {
-    //         // returning deployed `AppTemplate` as `svm_byte_array`
-    //         // client should call later `svm_address_destroy`
-    //         addr_to_svm_byte_array!(template_addr, addr.unwrap());
+    let mut bytes = encode_template_receipt(&rust_receipt);
 
-    //         debug!("`svm_deploy_template`` returns `SVM_SUCCESS`");
+    // returning encoded `TemplateReceipt` as `svm_byte_array`.
+    // should call later `svm_receipt_destroy`
+    vec_to_svm_byte_array!(receipt, bytes);
 
-    //         svm_result_t::SVM_SUCCESS
-    //     }
-    //     Err(_err) => {
-    //         // update_last_error(err);
-    //         error!("`svm_deploy_template` returns `SVM_FAILURE`");
-    //         svm_result_t::SVM_FAILURE
-    //     }
-    // }
+    debug!("`svm_exec_app` returns `SVM_SUCCESS`");
+
+    svm_result_t::SVM_SUCCESS
 }
 
 /// Spawns a new App.
@@ -464,7 +458,7 @@ pub unsafe extern "C" fn svm_deploy_template(
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_spawn_app(
-    app_addr: *mut svm_byte_array,
+    receipt: *mut svm_byte_array,
     init_state: *mut svm_byte_array,
     runtime: *mut c_void,
     bytes: svm_byte_array,
@@ -487,29 +481,22 @@ pub unsafe extern "C" fn svm_spawn_app(
         // return svm_result_t::SVM_FAILURE;
     }
 
-    let bytes = std::slice::from_raw_parts(bytes.bytes, bytes.length as usize);
+    let rust_receipt = runtime.spawn_app(
+        bytes.into(),
+        &creator.unwrap().into(),
+        host_ctx.unwrap(),
+        false,
+    );
 
-    let receipt = runtime.spawn_app(bytes, &creator.unwrap().into(), host_ctx.unwrap(), false);
-    todo!()
+    let mut bytes = encode_app_receipt(&rust_receipt);
 
-    //     Ok((addr, state)) => {
-    //         // returning spawned app `Address` as `svm_byte_array`
-    //         // client should call later `svm_address_destroy`
-    //         addr_to_svm_byte_array!(app_addr, addr.unwrap());
+    // returning encoded `AppReceipt` as `svm_byte_array`.
+    // should call later `svm_receipt_destroy`
+    vec_to_svm_byte_array!(receipt, bytes);
 
-    //         // returning spawned app initial `State` as `svm_byte_array`
-    //         // client should call later `svm_state_destroy`
-    //         state_to_svm_byte_array!(init_state, state);
+    debug!("`svm_spawn_app` returns `SVM_SUCCESS`");
 
-    //         debug!("`svm_spawn_app` returns `SVM_SUCCESS`");
-    //         svm_result_t::SVM_SUCCESS
-    //     }
-    //     Err(_e) => {
-    //         // update_last_error(error);
-    //         error!("`svm_spawn_app` returns `SVM_FAILURE`");
-    //         svm_result_t::SVM_FAILURE
-    //     }
-    // }
+    svm_result_t::SVM_SUCCESS
 }
 
 /// Triggers an app-transaction execution of an already deployed app.
@@ -585,23 +572,16 @@ pub unsafe extern "C" fn svm_exec_app(
         todo!();
     }
 
-    let receipt = runtime.exec_app(bytes.into(), &state.unwrap(), host_ctx, dry_run);
-    todo!();
+    let rust_receipt = runtime.exec_app(bytes.into(), &state.unwrap(), host_ctx, dry_run);
+    let mut bytes = encode_exec_receipt(&rust_receipt);
 
-    //         let mut bytes = crate::receipt::encode_receipt(native_receipt);
-    //         // returning encoded `Receipt` as `svm_byte_array`
-    //         // should call later `svm_receipt_destroy`
-    //         vec_to_svm_byte_array!(receipt, bytes);
+    // returning encoded `ExecReceipt` as `svm_byte_array`.
+    // should call later `svm_receipt_destroy`
+    vec_to_svm_byte_array!(receipt, bytes);
 
-    //         debug!("`svm_exec_app` returns `SVM_SUCCESS`");
-    //         svm_result_t::SVM_SUCCESS
-    //     }
-    //     Err(_e) => {
-    //         // update_last_error(e);
-    //         error!("`svm_exec_app` returns `SVM_FAILURE`");
-    //         svm_result_t::SVM_FAILURE
-    //     }
-    // }
+    debug!("`svm_exec_app` returns `SVM_SUCCESS`");
+
+    svm_result_t::SVM_SUCCESS
 }
 
 /// Returns a raw pointer to `the host` extracted from a raw pointer to `wasmer` context.

@@ -11,8 +11,8 @@ use svm_common::Address;
 ///
 /// let bytes: svm_byte_array = Address:of("@someone").into();
 ///
-/// let addr: Result<Address, String> = bytes.into();
-/// assert_eq!(Address::of("@someone"), addr.unwrap());
+/// let res: Result<Address, String> = Address::try_from(bytes);
+/// assert_eq!(Address::of("@someone"), res.unwrap());
 /// ```
 ///
 impl_from_svm_byte_array!(Address);
