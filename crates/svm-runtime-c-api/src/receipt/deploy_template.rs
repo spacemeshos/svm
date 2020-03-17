@@ -44,3 +44,33 @@ fn encode_template_addr(buf: &mut Vec<u8>, receipt: &TemplateReceipt) {
 
     buf.extend_from_slice(addr.inner().as_slice());
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use svm_app::types::TemplateAddr;
+    use svm_common::Address;
+    use svm_runtime::receipt::TemplateReceipt;
+
+    use crate::testing::{self, ClientTemplateReceipt};
+
+    #[test]
+    fn encode_deploy_deploy_receipt() {
+        let addr: TemplateAddr = Address::of("my-template").into();
+
+        let expected = ClientTemplateReceipt::Success { addr: addr.clone() };
+
+        let receipt = TemplateReceipt {
+            success: true,
+            error: None,
+            addr: Some(addr),
+            gas_used: Some(100),
+        };
+
+        let bytes = encode_template_receipt(&receipt);
+        let actual = testing::decode_template_receipt(&bytes[..]);
+
+        assert_eq!(expected, actual);
+    }
+}

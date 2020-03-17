@@ -55,13 +55,13 @@ fn encode_new_state(buf: &mut Vec<u8>, receipt: &ExecReceipt) {
 mod tests {
     use super::*;
 
-    use crate::{testing, testing::ClientExecReceipt};
+    use crate::testing::{self, ClientExecReceipt};
 
     use svm_common::{Address, State};
     use svm_runtime::{error::ExecAppError, value::Value};
 
     #[test]
-    fn encode_exec_receipt_error() {
+    fn encode_decode_exec_receipt_error() {
         let error = ExecAppError::AppNotFound {
             app_addr: Address::of("my-app").into(),
         };
@@ -85,7 +85,7 @@ mod tests {
     }
 
     #[test]
-    fn encode_exec_receipt_success_without_returns() {
+    fn encode_decode_exec_receipt_success_without_returns() {
         let new_state = State::from(0x10_20_30_40);
 
         let expected = ClientExecReceipt::Success {
@@ -108,7 +108,7 @@ mod tests {
     }
 
     #[test]
-    fn encode_exec_receipt_success_with_returns() {
+    fn encode_decode_exec_receipt_success_with_returns() {
         let new_state = State::from(0x10_20_30_40);
         let returns = vec![Value::I32(10), Value::I64(20), Value::I32(30)];
 
