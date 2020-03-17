@@ -2,7 +2,7 @@
 set -e
 
 pushd ../../crates/svm-runtime-c-api
-# a build side-effect will to generate `svm.h` under `examples`.
+# a build side-effect will to generate `svm.h` under `target/release`.
 cargo +nightly build --release
 popd
 
@@ -14,8 +14,9 @@ case "${unameOut}" in
   *) ext=invalid;;
 esac
 
-# copying the `svm` objectfile under `examples`.
-mv ../../target/release/libsvm_runtime_c_api.${ext} ../svm.${ext}
+# copying the `svm` object/header files under `examples`.
+cp ../../target/release/libsvm_runtime_c_api.${ext} ../svm.${ext}
+cp ../../target/release/svm.h ../svm.h
 
 make counter
 

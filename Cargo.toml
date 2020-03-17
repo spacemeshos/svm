@@ -73,6 +73,7 @@ members = [
   "crates/svm-runtime",
   "crates/svm-compiler",
   "crates/svm-runtime-c-api",
+  "crates/svm-cli",
 ]
 
 exclude = [
