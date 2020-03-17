@@ -3,13 +3,15 @@
 
 //! `SVM-runtime` crate is the glue between `SVM` to a Wasm Runtime
 
-/// crate traits goes here
-pub mod traits;
+pub mod receipt;
 
 /// Implements the most high-level API of `SVM`.
-mod runtime;
+pub mod runtime;
+pub use runtime::{create_rocksdb_runtime, DefaultRuntime, Runtime};
 
-pub use runtime::{create_rocksdb_runtime, DefaultRuntime, Receipt};
+pub mod gas;
+
+mod storage;
 
 /// Implements `SvmCtx`. Used for running `SVM` instances.
 pub mod ctx;

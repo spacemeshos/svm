@@ -1,15 +1,20 @@
 mod receipt;
-pub use receipt::{decode_receipt, ClientReceipt};
+
+pub use receipt::{
+    decode_app_receipt, decode_exec_receipt, decode_template_receipt, ClientAppReceipt,
+    ClientExecReceipt, ClientTemplateReceipt,
+};
 
 use std::{cell::RefCell, ffi::c_void, rc::Rc};
 
 use crate::{
     helpers, svm_byte_array, svm_result_t, svm_value_type, svm_value_type_array, RuntimePtr,
 };
+
 use log::debug;
 
 use svm_kv::memory::MemKVStore;
-use svm_runtime::{ctx::SvmCtx, traits::Runtime};
+use svm_runtime::{ctx::SvmCtx, Runtime};
 
 use wasmer_runtime_c_api::instance::wasmer_instance_context_t;
 use wasmer_runtime_core::vm::Ctx;

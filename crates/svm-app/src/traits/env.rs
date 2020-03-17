@@ -179,28 +179,6 @@ pub trait Env {
         store.load(&addr)
     }
 
-    /// Validates an `AppTemplate`
-    fn validate_template(&self, _template: &AppTemplate) -> Result<(), String> {
-        todo!();
-    }
-
-    /// Validates an `App`
-    fn validate_app(&self, _app: &App) -> Result<(), String> {
-        todo!();
-    }
-
-    /// Validates an `AppTransaction`
-    fn validate_app_tx(&self, tx: &AppTransaction) -> Result<(), String> {
-        let app = self.load_app(&tx.app);
-
-        if app.is_some() {
-            Ok(())
-        } else {
-            let err = format!("App `{:?}` doesn't exist", tx.app.inner());
-            Err(err)
-        }
-    }
-
     #[inline]
     fn template_exists(&self, addr: &TemplateAddr) -> bool {
         self.load_template(addr).is_some()

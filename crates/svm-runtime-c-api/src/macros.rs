@@ -1,8 +1,10 @@
 #[macro_export]
 macro_rules! impl_from_svm_byte_array {
     ($struct:ident) => {
-	impl From<$crate::svm_byte_array> for Result<$struct, String> {
-	    fn from(value: $crate::svm_byte_array) -> Self {
+	impl std::convert::TryFrom<$crate::svm_byte_array> for $struct {
+	    type Error = String;
+
+	    fn try_from(value: $crate::svm_byte_array) -> Result<Self, Self::Error> {
 		if value.length != $struct::len() as u32 {
 		    return Err(format!(
 			"Wrong `length` value for `svm_byte_array` representing `{}` (expected: {}, got: {})",

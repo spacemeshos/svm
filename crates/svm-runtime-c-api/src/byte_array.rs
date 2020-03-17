@@ -80,9 +80,8 @@ impl From<&str> for svm_byte_array {
 impl TryFrom<&svm_byte_array> for String {
     type Error = FromUtf8Error;
 
-    fn try_from(value: &svm_byte_array) -> Result<Self, Self::Error> {
-        let bytes =
-            unsafe { std::slice::from_raw_parts(value.bytes as *mut u8, value.length as usize) };
+    fn try_from(bytes: &svm_byte_array) -> Result<Self, Self::Error> {
+        let bytes: &[u8] = bytes.into();
 
         String::from_utf8(bytes.to_vec())
     }
@@ -119,8 +118,14 @@ impl From<&[u8]> for svm_byte_array {
     }
 }
 
-impl From<Vec<u8>> for svm_byte_array {
-    fn from(vec: Vec<u8>) -> Self {
-        (&vec[..]).into()
+impl From<&svm_byte_array> for &[u8] {
+    fn from(bytes: &svm_byte_array) -> Self {
+        unsafe { std::slice::from_raw_parts(bytes.bytes, bytes.length as usize) }
+    }
+}
+
+impl From<svm_byte_array> for &[u8] {
+    fn from(bytes: svm_byte_array) -> Self {
+        (&bytes).into()
     }
 }

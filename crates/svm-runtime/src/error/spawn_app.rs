@@ -1,17 +1,21 @@
-use svm_app::error::{ParseError, StoreError};
-use svm_common::Address;
+use svm_app::{
+    error::{ParseError, StoreError},
+    types::TemplateAddr,
+};
+
+use crate::error::ExecAppError;
 
 /// Spawning a new app has failed
 #[derive(Debug, PartialEq, Clone)]
 pub enum SpawnAppError {
-    /// Parsing raw data has failed (invalid format).
-    ParseFailed(ParseError),
+    /// Template not found. Returns the template address.
+    TemplateNotFound(TemplateAddr),
+
+    /// Spawned app ctor has failed.
+    CtorFailed(ExecAppError),
 
     /// Storing the template has failed (operating-system returned a failure).
     StoreFailed(StoreError),
-
-    /// Template not found. Returns the template address.
-    TemplateNotFound(Address),
 }
 
 impl ToString for SpawnAppError {

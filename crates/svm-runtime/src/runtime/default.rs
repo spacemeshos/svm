@@ -1,4 +1,4 @@
-use std::{convert::TryFrom, ffi::c_void, fmt};
+use std::{convert::TryFrom, ffi::c_void, fmt, marker::PhantomData};
 
 use log::{debug, error, info};
 
@@ -6,15 +6,17 @@ use crate::{
     buffer::BufferRef,
     ctx::SvmCtx,
     error::{DeployTemplateError, ExecAppError, SpawnAppError},
-    helpers,
-    helpers::DataWrapper,
-    runtime::Receipt,
+    gas::GasEstimator,
+    helpers::{self, DataWrapper},
+    receipt::{make_spawn_app_receipt, ExecReceipt, SpawnAppReceipt, TemplateReceipt},
+    runtime::Runtime,
     settings::AppSettings,
-    traits::{Runtime, StorageBuilderFn},
+    storage::StorageBuilderFn,
     value::Value,
 };
 
 use svm_app::{
+    error::ParseError,
     traits::{Env, EnvTypes},
     types::{
         AppAddr, AppTemplate, AppTransaction, AuthorAddr, CreatorAddr, HostCtx, SpawnApp,
@@ -31,7 +33,7 @@ use wasmer_runtime_core::{
 };
 
 /// Default `Runtime` implementation based on `wasmer`.
-pub struct DefaultRuntime<ENV> {
+pub struct DefaultRuntime<ENV, GE> {
     /// The runtime environment. Used mainly for managing app persistence.
     pub env: ENV,
 
@@ -41,66 +43,81 @@ pub struct DefaultRuntime<ENV> {
     /// External `wasmer` imports (living inside the host) to be consumed by the app.
     pub imports: Vec<(String, String, Export)>,
 
-    /// Determined by the app `Address` and `State` (app state) and app storage settings,
     /// builds a `AppStorage` instance.
     pub storage_builder: Box<StorageBuilderFn>,
+
+    phantom: PhantomData<GE>,
 }
 
-impl<TY, ENV> Runtime for DefaultRuntime<ENV>
+impl<TY, ENV, GE> Runtime for DefaultRuntime<ENV, GE>
 where
     TY: EnvTypes,
     ENV: Env<Types = TY>,
+    GE: GasEstimator,
 {
+    fn validate_template(&self, bytes: &[u8]) -> Result<(), ParseError> {
+        self.parse_deploy_template(bytes).map(|_| ())
+    }
+
+    fn validate_app(&self, bytes: &[u8]) -> Result<(), ParseError> {
+        self.parse_spawn_app(bytes).map(|_| ())
+    }
+
+    fn validate_tx(&self, bytes: &[u8]) -> Result<AppAddr, ParseError> {
+        self.env.parse_exec_app(bytes).map(|tx| tx.app)
+    }
+
     fn deploy_template(
         &mut self,
+        bytes: &[u8],
         author: &AuthorAddr,
         host_ctx: HostCtx,
-        bytes: &[u8],
-    ) -> Result<TemplateAddr, DeployTemplateError> {
+        dry_run: bool,
+    ) -> TemplateReceipt {
         info!("runtime `deploy_template`");
 
-        let template = self.parse_deploy_template(bytes)?;
-        self.install_template(&template, author, &host_ctx)
+        let template = self.parse_deploy_template(bytes).unwrap();
+        let gas = self.compute_install_template_gas(bytes, &template);
+
+        self.install_template(&template, author, host_ctx, gas, dry_run)
     }
 
     fn spawn_app(
         &mut self,
+        bytes: &[u8],
         creator: &CreatorAddr,
         host_ctx: HostCtx,
-        bytes: &[u8],
-    ) -> Result<(AppAddr, State), SpawnAppError> {
+        dry_run: bool,
+    ) -> SpawnAppReceipt {
         info!("runtime `spawn_app`");
 
-        let spawn = self.parse_spawn_app(bytes)?;
-        let app_addr = self.install_app(&spawn, creator, &host_ctx)?;
-        let state = self.call_ctor(creator, spawn, &app_addr, host_ctx)?;
+        let spawn = self.parse_spawn_app(bytes).unwrap();
+        let gas = self.compute_install_app_gas(bytes, &spawn);
 
-        Ok((app_addr, state))
-    }
-
-    fn parse_exec_app(&self, bytes: &[u8]) -> Result<AppTransaction, ExecAppError> {
-        self.env
-            .parse_exec_app(bytes)
-            .or_else(|e| Err(ExecAppError::ParseFailed(e)))
+        match self.install_app(&spawn, creator, &host_ctx, gas, dry_run) {
+            Ok(addr) => self.call_ctor(creator, spawn, &addr, host_ctx, dry_run),
+            Err(e) => e.into(),
+        }
     }
 
     fn exec_app(
         &self,
-        tx: AppTransaction,
-        state: State,
+        bytes: &[u8],
+        state: &State,
         host_ctx: HostCtx,
         dry_run: bool,
-    ) -> Result<Receipt, ExecAppError> {
-        let is_ctor = false;
+    ) -> ExecReceipt {
+        let tx = self.parse_exec_app(bytes).unwrap();
 
-        self.inner_exec_app(tx, state, host_ctx, is_ctor, dry_run)
+        self._exec_app(&tx, state, host_ctx, dry_run)
     }
 }
 
-impl<TY, ENV> DefaultRuntime<ENV>
+impl<TY, ENV, GE> DefaultRuntime<ENV, GE>
 where
     TY: EnvTypes,
     ENV: Env<Types = TY>,
+    GE: GasEstimator,
 {
     /// Initializes a new `DefaultRuntime` instance.
     pub fn new(
@@ -109,11 +126,14 @@ where
         imports: Vec<(String, String, Export)>,
         storage_builder: Box<StorageBuilderFn>,
     ) -> Self {
+        Self::ensure_not_svm_ns(&imports);
+
         Self {
             env,
             host,
             imports,
             storage_builder,
+            phantom: PhantomData::<GE>,
         }
     }
 
@@ -133,50 +153,35 @@ where
     fn call_ctor(
         &mut self,
         creator: &CreatorAddr,
-        spawn_app: SpawnApp,
+        spawn: SpawnApp,
         app_addr: &AppAddr,
         host_ctx: HostCtx,
-    ) -> Result<State, SpawnAppError> {
-        let ctor = self.build_ctor_call(creator, spawn_app, &app_addr);
-        let is_ctor = true;
-        let dry_run = false;
+        dry_run: bool,
+    ) -> SpawnAppReceipt {
+        let ctor = self.build_ctor_call(creator, spawn, app_addr);
 
-        match self.inner_exec_app(ctor, State::empty(), host_ctx, is_ctor, dry_run) {
-            Ok(receipt) => {
-                // TODO:
-                // handle `receipt.success = false`
+        let ctor_receipt = self._exec_app(&ctor, &State::empty(), host_ctx, dry_run);
 
-                let new_state = receipt.new_state.unwrap();
-                Ok(new_state)
-            }
-            Err(..) => {
-                todo!()
-                // return `SpawnAppError` of `ctor failed`
-            }
-        }
-    }
-
-    fn parse_deploy_template(&self, bytes: &[u8]) -> Result<AppTemplate, DeployTemplateError> {
-        self.env
-            .parse_deploy_template(bytes)
-            .or_else(|e| Err(DeployTemplateError::ParseFailed(e)))
+        make_spawn_app_receipt(ctor_receipt, app_addr)
     }
 
     fn install_template(
         &mut self,
         template: &AppTemplate,
         author: &AuthorAddr,
-        host_ctx: &HostCtx,
-    ) -> Result<TemplateAddr, DeployTemplateError> {
-        self.env
-            .store_template(template, author, host_ctx)
-            .or_else(|e| Err(DeployTemplateError::StoreFailed(e)))
-    }
-
-    fn parse_spawn_app(&self, bytes: &[u8]) -> Result<SpawnApp, SpawnAppError> {
-        self.env
-            .parse_spawn_app(bytes)
-            .or_else(|e| Err(SpawnAppError::ParseFailed(e)))
+        host_ctx: HostCtx,
+        gas: u64,
+        dry_run: bool,
+    ) -> TemplateReceipt {
+        if dry_run == false {
+            match self.env.store_template(template, author, &host_ctx) {
+                Ok(addr) => TemplateReceipt::new(addr, gas),
+                Err(e) => DeployTemplateError::StoreFailed(e).into(),
+            }
+        } else {
+            let addr = self.env.derive_template_address(template, &host_ctx);
+            TemplateReceipt::new(addr, gas)
+        }
     }
 
     fn install_app(
@@ -184,10 +189,17 @@ where
         spawn: &SpawnApp,
         creator: &CreatorAddr,
         host_ctx: &HostCtx,
+        spawn_gas: u64,
+        dry_run: bool,
     ) -> Result<AppAddr, SpawnAppError> {
-        self.env
-            .store_app(spawn, creator, host_ctx)
-            .or_else({ |e| Err(SpawnAppError::StoreFailed(e)) })
+        if dry_run == false {
+            self.env
+                .store_app(spawn, creator, host_ctx)
+                .or_else(|e| Err(SpawnAppError::StoreFailed(e)))
+        } else {
+            let addr = self.env.derive_app_address(spawn, host_ctx);
+            Ok(addr)
+        }
     }
 
     fn build_ctor_call(
@@ -205,38 +217,37 @@ where
         }
     }
 
-    fn inner_exec_app(
+    fn _exec_app(
         &self,
-        tx: AppTransaction,
-        state: State,
+        tx: &AppTransaction,
+        state: &State,
         host_ctx: HostCtx,
-        is_ctor: bool,
         dry_run: bool,
-    ) -> Result<Receipt, ExecAppError> {
+    ) -> ExecReceipt {
         info!("runtime `exec_app`");
 
-        let (template, template_addr, _author, _creator) = self.load_template(&tx)?;
+        match self.load_template(&tx) {
+            Err(e) => e.into(),
+            Ok((template, template_addr, _author, _creator)) => {
+                let settings = AppSettings {
+                    page_count: template.page_count,
+                };
 
-        let settings = AppSettings {
-            page_count: template.page_count,
-        };
+                let mut import_object =
+                    self.import_object_create(&tx.app, &state, host_ctx, &settings);
 
-        let mut import_object = self.import_object_create(&tx.app, &state, host_ctx, &settings);
-        self.import_object_extend(&mut import_object);
+                self.import_object_extend(&mut import_object);
 
-        let result = self.do_exec_app(
-            &tx,
-            &template,
-            &template_addr,
-            &import_object,
-            is_ctor,
-            dry_run,
-        );
-        let receipt = self.make_receipt(result);
+                let result =
+                    self.do_exec_app(&tx, &template, &template_addr, &import_object, dry_run);
 
-        info!("receipt: {:?}", receipt);
+                let receipt = self.make_receipt(result);
 
-        Ok(receipt)
+                info!("receipt: {:?}", receipt);
+
+                receipt
+            }
+        }
     }
 
     fn do_exec_app(
@@ -245,9 +256,8 @@ where
         template: &AppTemplate,
         template_addr: &TemplateAddr,
         import_object: &ImportObject,
-        is_ctor: bool,
         dry_run: bool,
-    ) -> Result<(Option<State>, Vec<Value>), ExecAppError> {
+    ) -> Result<(Option<State>, Option<u64>, Vec<Value>), ExecAppError> {
         let module = self.compile_template(tx, &template, &template_addr)?;
         let mut instance = self.instantiate(tx, template_addr, &module, import_object)?;
 
@@ -256,13 +266,6 @@ where
         let args = self.prepare_args_and_memory(tx);
 
         let func = match self.get_exported_func(tx, template_addr, &instance) {
-            Err(ExecAppError::FuncNotFound { .. }) if is_ctor == true => {
-                // Since an app `ctor` is optional, in case it has no explicit `ctor`
-                // we **don't** consider it as an error.
-                let empty_state = State::empty();
-
-                return Ok((Some(empty_state), Vec::new()));
-            }
             Err(e) => return Err(e),
             Ok(func) => func,
         };
@@ -287,24 +290,32 @@ where
 
                 let returns = self.cast_wasmer_func_returns(tx, template_addr, returns)?;
 
-                Ok((new_state, returns))
+                // TODO: use the real `gas_used`
+                let gas_used = Some(0);
+
+                Ok((new_state, gas_used, returns))
             }
         }
     }
 
-    fn make_receipt(&self, result: Result<(Option<State>, Vec<Value>), ExecAppError>) -> Receipt {
+    fn make_receipt(
+        &self,
+        result: Result<(Option<State>, Option<u64>, Vec<Value>), ExecAppError>,
+    ) -> ExecReceipt {
         match result {
-            Err(e) => Receipt {
+            Err(e) => ExecReceipt {
                 success: false,
                 error: Some(e),
                 returns: None,
                 new_state: None,
+                gas_used: None,
             },
-            Ok((new_state, returns)) => Receipt {
+            Ok((new_state, gas_used, returns)) => ExecReceipt {
                 success: true,
                 error: None,
                 returns: Some(returns),
                 new_state,
+                gas_used,
             },
         }
     }
@@ -509,6 +520,34 @@ where
         })
     }
 
+    /// Parse
+
+    fn parse_deploy_template(&self, bytes: &[u8]) -> Result<AppTemplate, ParseError> {
+        self.env.parse_deploy_template(bytes)
+    }
+
+    fn parse_spawn_app(&self, bytes: &[u8]) -> Result<SpawnApp, ParseError> {
+        self.env.parse_spawn_app(bytes)
+    }
+
+    fn parse_exec_app(&self, bytes: &[u8]) -> Result<AppTransaction, ParseError> {
+        self.env.parse_exec_app(bytes)
+    }
+
+    /// Gas
+    fn compute_install_template_gas(&self, bytes: &[u8], template: &AppTemplate) -> u64 {
+        0
+        // todo!()
+        // GE::est_deploy_template(bytes, template)
+    }
+
+    fn compute_install_app_gas(&self, bytes: &[u8], spawn: &SpawnApp) -> u64 {
+        0
+        // todo!()
+        // GE::est_spawn_app(bytes, spawn)
+    }
+
+    /// Helpers
     fn vec_to_str<T: fmt::Debug>(&self, items: &Vec<T>) -> String {
         let mut buf = String::new();
 
@@ -521,10 +560,16 @@ where
 
         buf
     }
+
+    fn ensure_not_svm_ns(imports: &Vec<(String, String, Export)>) {
+        if imports.iter().any(|(ns, _, _)| ns == "svm") {
+            panic!("Imports namespace can't be `svm` since it's a reserved name.")
+        }
+    }
 }
 
-impl<ENV> Drop for DefaultRuntime<ENV> {
+impl<ENV, GE> Drop for DefaultRuntime<ENV, GE> {
     fn drop(&mut self) {
-        info!("dropping Runtime...");
+        info!("dropping DefaultRuntime...");
     }
 }
