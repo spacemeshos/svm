@@ -1,5 +1,4 @@
 //!         `ExecReceipt` Raw Format Version 0
-//!  | None,
 //!
 //!  On success (`is_success = 1`)
 //!  ----------------------------------------------------
