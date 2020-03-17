@@ -27,12 +27,16 @@ pub struct SpawnAppReceipt {
 }
 
 impl SpawnAppReceipt {
+    pub fn get_app_addr(&self) -> &AppAddr {
+        self.app_addr.as_ref().unwrap()
+    }
+
     pub fn get_init_state(&self) -> &State {
         self.init_state.as_ref().unwrap()
     }
 
-    pub fn get_app_addr(&self) -> &AppAddr {
-        self.app_addr.as_ref().unwrap()
+    pub fn get_returns(&self) -> &Vec<Value> {
+        self.returns.as_ref().unwrap()
     }
 }
 

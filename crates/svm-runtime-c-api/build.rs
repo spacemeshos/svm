@@ -3,7 +3,7 @@ use cbindgen::{Builder, Language};
 use std::{env, path::PathBuf};
 
 fn main() {
-    generate_svm_header();
+    // generate_svm_header();
 }
 
 fn generate_svm_header() {

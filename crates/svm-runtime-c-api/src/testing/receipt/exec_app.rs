@@ -1,15 +1,18 @@
-use std::convert::TryFrom;
-use std::io::{Cursor, Read};
+use std::{
+    convert::TryFrom,
+    io::{Cursor, Read},
+};
 
 use byteorder::{BigEndian, ReadBytesExt};
 
 use crate::svm_value_type;
+
 use svm_common::State;
 use svm_runtime::value::Value;
 
 /// Used for testing the encoding of a `Receipt` back to the client.
 #[derive(Debug, PartialEq)]
-pub enum ClientReceipt {
+pub enum ClientExecReceipt {
     /// Receipt succeeded
     Success {
         /// The app new state
@@ -26,9 +29,9 @@ pub enum ClientReceipt {
     },
 }
 
-/// Decodes an encoded receipt into `ClientReceipt`.
+/// Decodes an encoded receipt into `ClientExecReceipt`.
 /// Used for testing
-pub fn decode_receipt(bytes: &[u8]) -> ClientReceipt {
+pub fn decode_receipt(bytes: &[u8]) -> ClientExecReceipt {
     let mut cursor = Cursor::new(bytes);
 
     let version = cursor.read_u32::<BigEndian>().unwrap();
@@ -45,7 +48,7 @@ pub fn decode_receipt(bytes: &[u8]) -> ClientReceipt {
             cursor.read_exact(&mut buf[..]).unwrap();
 
             let error = String::from_utf8(buf).unwrap();
-            ClientReceipt::Failure { error }
+            ClientExecReceipt::Failure { error }
         }
         1 => {
             // success
@@ -75,7 +78,7 @@ pub fn decode_receipt(bytes: &[u8]) -> ClientReceipt {
                 returns.push(ret);
             }
 
-            ClientReceipt::Success {
+            ClientExecReceipt::Success {
                 new_state,
                 func_returns: returns_as_str(&returns[..]),
             }

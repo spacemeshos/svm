@@ -1,11 +1,12 @@
 mod receipt;
-pub use receipt::{decode_receipt, ClientReceipt};
+pub use receipt::ClientExecReceipt;
 
 use std::{cell::RefCell, ffi::c_void, rc::Rc};
 
 use crate::{
     helpers, svm_byte_array, svm_result_t, svm_value_type, svm_value_type_array, RuntimePtr,
 };
+
 use log::debug;
 
 use svm_kv::memory::MemKVStore;

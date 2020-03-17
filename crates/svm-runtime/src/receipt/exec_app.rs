@@ -25,6 +25,10 @@ impl ExecReceipt {
     pub fn get_new_state(&self) -> &State {
         self.new_state.as_ref().unwrap()
     }
+
+    pub fn get_returns(&self) -> &Vec<Value> {
+        self.returns.as_ref().unwrap()
+    }
 }
 
 impl From<ExecAppError> for ExecReceipt {

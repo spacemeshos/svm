@@ -28,6 +28,10 @@ impl TemplateReceipt {
             gas_used: Some(gas_used),
         }
     }
+
+    pub fn get_template_addr(&self) -> &TemplateAddr {
+        self.addr.as_ref().unwrap()
+    }
 }
 
 impl From<DeployTemplateError> for TemplateReceipt {

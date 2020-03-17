@@ -1,141 +1,38 @@
-//!          `Receipt` Raw Format Version 0.0.0.0
-//!
-//!  On success (`is_success = 1`)
-//!  ----------------------------------------------------
-//!  |   format   |              |                       |
-//!  |  version   |  is_success  |     app new state     |
-//!  |  (4 bytes) |   (1 byte)   |      (32 bytes)       |
-//!  |____________|______________|_______________________|
-//!  |          |              |         |               |
-//!  | #returns | ret #1 type  | ret #1  |    . . . .    |
-//!  | (1 byte) |  (1 byte)    |  value  |               |
-//!  |__________|______________|_________|_______________|
-//!
-//!
-//!  On failure (`is_success = 0`)
-//!  -----------------------------------------------------
-//!  |   format   |                |                     |
-//!  |  version   |  is_success    |     error size      |
-//!  |  (4 bytes) |   (1 byte)     |      (2 bytes)      |
-//!  |____________|________________|_____________________|
-//!  |                                                   |
-//!  |            error data (UTF-8 string)              |
-//!  |___________________________________________________|
-//!
-
 use byteorder::{BigEndian, WriteBytesExt};
 
 use svm_common::State;
-use svm_runtime::{error::ExecAppError, receipt::ExecReceipt, value::Value};
+use svm_runtime::{
+    error::ExecAppError,
+    receipt::{ExecReceipt, Receipt},
+    value::Value,
+};
 
+use super::helpers;
 use crate::svm_value_type;
 
-const PROTO_VER: usize = 4;
-const ERROR_LENGTH: usize = 2;
-const IS_SUCCESS: usize = 1;
-const HEADER: usize = PROTO_VER + IS_SUCCESS;
-
 pub(crate) fn encode_exec_receipt(receipt: &ExecReceipt) -> Vec<u8> {
-    let size_hint = receipt_size_hint(receipt);
-    let mut buf: Vec<u8> = Vec::with_capacity(size_hint);
+    let mut buf = Vec::new();
 
-    write_header(&mut buf, receipt);
+    let wrapped_receipt = Receipt::ExecApp(receipt);
+
+    helpers::encode_is_success(&mut buf, &wrapped_receipt);
 
     if receipt.success {
-        write_new_state(&mut buf, receipt);
-        write_returns(&mut buf, receipt);
+        encode_new_state(&mut buf, receipt);
+        helpers::encode_returns(&mut buf, &wrapped_receipt);
     } else {
-        write_error(&mut buf, receipt);
+        helpers::encode_error(&mut buf, &wrapped_receipt);
     };
 
     buf
 }
 
-fn receipt_size_hint(receipt: &ExecReceipt) -> usize {
-    if receipt.success {
-        HEADER + State::len() + returns_size_hint(receipt)
-    } else {
-        HEADER + ERROR_LENGTH + error_size_hint(receipt)
-    }
-}
+fn encode_new_state(buf: &mut Vec<u8>, receipt: &ExecReceipt) {
+    debug_assert!(receipt.success);
 
-fn error_size_hint(_receipt: &ExecReceipt) -> usize {
-    // we have no quick way to give a good estimation for the error blob size
-    // without actually rendering it first.
-    // so we arbitrarily return `1024` as the estimated size required.
-    1024
-}
-
-fn returns_size_hint(receipt: &ExecReceipt) -> usize {
-    let returns_count = receipt_returns_count(receipt);
-
-    // * field `#returns` takes 2 bytes
-    // * each return vale is preceded by one byte indicating the value type
-    // * worst case every return value occupies 8 bytes (64-bit integer).
-    //   so each return value + its type can take at most 9 bytes
-
-    2 + returns_count * 9
-}
-
-fn write_header(buf: &mut Vec<u8>, receipt: &ExecReceipt) {
-    // TODO: handle each `unwrap()`
-    // `version` field. we only have `verson=0` for now.
-    buf.write_u32::<BigEndian>(0).unwrap();
-
-    // `is_success` field
-    if receipt.success {
-        buf.write_u8(1).unwrap();
-    } else {
-        buf.write_u8(0).unwrap();
-    }
-}
-
-fn write_new_state(buf: &mut Vec<u8>, receipt: &ExecReceipt) {
-    assert!(receipt.success);
-
-    let new_state = receipt.new_state.as_ref().unwrap();
+    let new_state = receipt.get_new_state();
 
     buf.extend_from_slice(new_state.as_slice());
-}
-
-fn write_returns(buf: &mut Vec<u8>, receipt: &ExecReceipt) {
-    assert!(receipt.success);
-
-    let returns_count = receipt_returns_count(receipt);
-
-    // asserting that `returns_count` fits into a single byte
-    assert!(returns_count <= 0xFF);
-    buf.write_u8(returns_count as u8).unwrap();
-
-    let returns = receipt.returns.as_ref().unwrap();
-
-    for value in returns.iter() {
-        match value {
-            Value::I32(v) => {
-                buf.write_u8(svm_value_type::SVM_I32 as u8).unwrap();
-                buf.write_u32::<BigEndian>(*v).unwrap();
-            }
-            Value::I64(v) => {
-                buf.write_u8(svm_value_type::SVM_I64 as u8).unwrap();
-                buf.write_u64::<BigEndian>(*v).unwrap();
-            }
-        }
-    }
-}
-
-fn write_error(buf: &mut Vec<u8>, receipt: &ExecReceipt) {
-    let error: &ExecAppError = receipt.error.as_ref().unwrap();
-
-    let error_data = format!("{:?}", error);
-    let error_size = error_data.as_bytes().len();
-
-    buf.write_u16::<BigEndian>(error_size as u16).unwrap();
-    buf.extend_from_slice(error_data.as_bytes());
-}
-
-#[inline]
-fn receipt_returns_count(receipt: &ExecReceipt) -> usize {
-    receipt.returns.as_ref().unwrap().len()
 }
 
 #[cfg(test)]
