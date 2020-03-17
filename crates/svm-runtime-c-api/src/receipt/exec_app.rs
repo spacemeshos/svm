@@ -35,7 +35,7 @@ const ERROR_LENGTH: usize = 2;
 const IS_SUCCESS: usize = 1;
 const HEADER: usize = PROTO_VER + IS_SUCCESS;
 
-pub(crate) fn encode_receipt(receipt: &ExecReceipt) -> Vec<u8> {
+pub(crate) fn encode_exec_receipt(receipt: &ExecReceipt) -> Vec<u8> {
     let size_hint = receipt_size_hint(receipt);
     let mut buf: Vec<u8> = Vec::with_capacity(size_hint);
 
@@ -164,7 +164,7 @@ mod tests {
             returns: None,
         };
 
-        let bytes = encode_receipt(&receipt);
+        let bytes = encode_exec_receipt(&receipt);
         let actual = testing::decode_receipt(&bytes[..]);
 
         assert_eq!(expected, actual);
@@ -186,7 +186,7 @@ mod tests {
             returns: Some(Vec::new()),
         };
 
-        let bytes = encode_receipt(&receipt);
+        let bytes = encode_exec_receipt(&receipt);
         let actual = testing::decode_receipt(&bytes[..]);
         assert_eq!(expected, actual);
     }
@@ -208,7 +208,7 @@ mod tests {
             returns: Some(returns),
         };
 
-        let bytes = encode_receipt(&receipt);
+        let bytes = encode_exec_receipt(&receipt);
         let actual = testing::decode_receipt(&bytes[..]);
 
         assert_eq!(expected, actual);
