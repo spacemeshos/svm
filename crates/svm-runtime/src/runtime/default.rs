@@ -108,10 +108,9 @@ where
         host_ctx: HostCtx,
         dry_run: bool,
     ) -> ExecReceipt {
-        let is_ctor = false;
         let tx = self.parse_exec_app(bytes).unwrap();
 
-        self._exec_app(&tx, state, host_ctx, is_ctor, dry_run)
+        self._exec_app(&tx, state, host_ctx, dry_run)
     }
 }
 
@@ -158,10 +157,9 @@ where
         host_ctx: HostCtx,
         dry_run: bool,
     ) -> SpawnAppReceipt {
-        let is_ctor = true;
         let ctor = self.build_ctor_call(creator, spawn, app_addr);
 
-        let ctor_receipt = self._exec_app(&ctor, &State::empty(), host_ctx, is_ctor, dry_run);
+        let ctor_receipt = self._exec_app(&ctor, &State::empty(), host_ctx, dry_run);
 
         make_spawn_app_receipt(ctor_receipt, app_addr)
     }
@@ -223,7 +221,6 @@ where
         tx: &AppTransaction,
         state: &State,
         host_ctx: HostCtx,
-        is_ctor: bool,
         dry_run: bool,
     ) -> ExecReceipt {
         info!("runtime `exec_app`");
@@ -240,14 +237,8 @@ where
 
                 self.import_object_extend(&mut import_object);
 
-                let result = self.do_exec_app(
-                    &tx,
-                    &template,
-                    &template_addr,
-                    &import_object,
-                    is_ctor,
-                    dry_run,
-                );
+                let result =
+                    self.do_exec_app(&tx, &template, &template_addr, &import_object, dry_run);
 
                 let receipt = self.make_receipt(result);
 
@@ -264,7 +255,6 @@ where
         template: &AppTemplate,
         template_addr: &TemplateAddr,
         import_object: &ImportObject,
-        is_ctor: bool,
         dry_run: bool,
     ) -> Result<(Option<State>, Option<u64>, Vec<Value>), ExecAppError> {
         let module = self.compile_template(tx, &template, &template_addr)?;
@@ -275,13 +265,6 @@ where
         let args = self.prepare_args_and_memory(tx);
 
         let func = match self.get_exported_func(tx, template_addr, &instance) {
-            Err(ExecAppError::FuncNotFound { .. }) if is_ctor == true => {
-                // Since an app `ctor` is optional, in case it has no explicit `ctor`
-                // we **don't** consider it as an error.
-                let empty_state = State::empty();
-
-                return Ok((Some(empty_state), Some(0), Vec::new()));
-            }
             Err(e) => return Err(e),
             Ok(func) => func,
         };
