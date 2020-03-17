@@ -43,7 +43,6 @@ pub struct DefaultRuntime<ENV, GE> {
     /// External `wasmer` imports (living inside the host) to be consumed by the app.
     pub imports: Vec<(String, String, Export)>,
 
-    /// Determined by the app `Address` and `State` (app state) and app storage settings,
     /// builds a `AppStorage` instance.
     pub storage_builder: Box<StorageBuilderFn>,
 
@@ -127,6 +126,8 @@ where
         imports: Vec<(String, String, Export)>,
         storage_builder: Box<StorageBuilderFn>,
     ) -> Self {
+        Self::ensure_not_svm_ns(&imports);
+
         Self {
             env,
             host,
@@ -558,6 +559,12 @@ where
         }
 
         buf
+    }
+
+    fn ensure_not_svm_ns(imports: &Vec<(String, String, Export)>) {
+        if imports.iter().any(|(ns, _, _)| ns == "svm") {
+            panic!("Imports namespace can't be `svm` since it's a reserved name.")
+        }
     }
 }
 
