@@ -100,15 +100,15 @@ pub unsafe extern "C" fn svm_validate_app(
 /// let res = unsafe { svm_memory_runtime_create(&mut runtime, kv, host, imports) };
 /// assert!(res.is_ok());
 ///
-/// let mut app_tx = std::ptr::null_mut();
+/// let mut app_addr = std::ptr::null_mut();
 /// let tx = vec![0x00, 0x01, 0x2, 0x3].into();
-/// let _res = unsafe { svm_parse_exec_app(&mut app_tx, runtime, tx) };
+/// let _res = unsafe { svm_validate_tx(&mut app_addr, runtime, tx) };
 /// ```
 ///
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_validate_tx(
-    app_tx: *mut svm_byte_array,
+    app_addr: *mut svm_byte_array,
     runtime: *const c_void,
     bytes: svm_byte_array,
 ) -> svm_result_t {

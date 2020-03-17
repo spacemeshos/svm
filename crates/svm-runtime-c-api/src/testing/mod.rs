@@ -1,5 +1,9 @@
 mod receipt;
-pub use receipt::ClientExecReceipt;
+
+pub use receipt::{
+    decode_app_receipt, decode_exec_receipt, decode_template_receipt, ClientAppReceipt,
+    ClientExecReceipt, ClientTemplateReceipt,
+};
 
 use std::{cell::RefCell, ffi::c_void, rc::Rc};
 

@@ -4,6 +4,7 @@ use std::fmt;
 #[derive(Debug, PartialEq, Clone)]
 pub enum StoreError {
     OsFailure(String),
+
     DataCorruption(String),
 }
 

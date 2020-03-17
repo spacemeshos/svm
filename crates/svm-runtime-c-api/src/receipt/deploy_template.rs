@@ -18,6 +18,9 @@
 //!  |            error data (UTF-8 string)              |
 //!  |___________________________________________________|
 //!
+//!
+//!  On success (`is_success = 0`)
+//!  See [error.rs][./error.rs]
 
 use byteorder::{BigEndian, WriteBytesExt};
 
@@ -27,7 +30,7 @@ use svm_runtime::{
     receipt::{Receipt, TemplateReceipt},
 };
 
-use super::helpers;
+use super::{encode_error, helpers};
 
 pub(crate) fn encode_template_receipt(receipt: &TemplateReceipt) -> Vec<u8> {
     let mut buf = Vec::new();
@@ -39,7 +42,7 @@ pub(crate) fn encode_template_receipt(receipt: &TemplateReceipt) -> Vec<u8> {
     if receipt.success {
         encode_template_addr(&mut buf, receipt);
     } else {
-        helpers::encode_error(&mut buf, &wrapped_receipt);
+        encode_error(&mut buf, &wrapped_receipt);
     };
 
     buf

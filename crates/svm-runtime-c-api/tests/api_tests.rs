@@ -259,14 +259,14 @@ unsafe fn do_ffi_exec_app() {
     // 4) execute app
     let (user, addition, func_idx, func_buf, func_args) = exec_app_args();
     let (bytes, length) = exec_app_bytes(version, &app_addr, func_idx, &func_buf, &func_args);
-    let tx = svm_byte_array {
+    let tx_bytes = svm_byte_array {
         bytes: bytes.as_ptr(),
         length: length,
     };
 
     // 4.1) parse bytes into in-memory `AppTransaction`
-    let mut app_tx = std::ptr::null_mut();
-    let res = api::svm_parse_exec_app(&mut app_tx, runtime, tx);
+    let mut app_addr = svm_byte_array::default();
+    let res = api::svm_validate_tx(&mut app_addr, runtime, tx_bytes);
     assert!(res.is_ok());
 
     // 4.2) execute the app-transaction
@@ -286,7 +286,14 @@ unsafe fn do_ffi_exec_app() {
     let mut receipt = svm_byte_array::default();
     let dry_run = false;
 
-    let res = api::svm_exec_app(&mut receipt, runtime, app_tx, init_state, host_ctx, dry_run);
+    let res = api::svm_exec_app(
+        &mut receipt,
+        runtime,
+        tx_bytes,
+        init_state,
+        host_ctx,
+        dry_run,
+    );
     assert!(res.is_ok());
 
     let expected = (init_balance + addition as i128) * (nonce as i128);

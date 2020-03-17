@@ -5,12 +5,13 @@ use std::{
 
 use byteorder::{BigEndian, ReadBytesExt};
 
-use crate::svm_value_type;
-
 use svm_common::State;
 use svm_runtime::value::Value;
 
-/// Used for testing the encoding of a `Receipt` back to the client.
+use super::helpers;
+use crate::svm_value_type;
+
+/// Used for testing the encoding of `ExecReceipt` back to the client.
 #[derive(Debug, PartialEq)]
 pub enum ClientExecReceipt {
     /// Receipt succeeded
@@ -31,7 +32,7 @@ pub enum ClientExecReceipt {
 
 /// Decodes an encoded receipt into `ClientExecReceipt`.
 /// Used for testing
-pub fn decode_receipt(bytes: &[u8]) -> ClientExecReceipt {
+pub fn decode_exec_receipt(bytes: &[u8]) -> ClientExecReceipt {
     let mut cursor = Cursor::new(bytes);
 
     let version = cursor.read_u32::<BigEndian>().unwrap();
@@ -42,60 +43,19 @@ pub fn decode_receipt(bytes: &[u8]) -> ClientExecReceipt {
     match is_success {
         0 => {
             // error
-            let len = cursor.read_u16::<BigEndian>().unwrap() as usize;
-
-            let mut buf = vec![0; len];
-            cursor.read_exact(&mut buf[..]).unwrap();
-
-            let error = String::from_utf8(buf).unwrap();
+            let error = helpers::decode_receipt_error(&mut cursor);
             ClientExecReceipt::Failure { error }
         }
         1 => {
             // success
-            let mut buf = vec![0; State::len()];
-            cursor.read_exact(&mut buf[..]).unwrap();
-            let new_state = State::from(&buf[..]);
-
-            let nrets = cursor.read_u8().unwrap() as usize;
-
-            let mut returns = Vec::new();
-
-            for _ in 0..nrets {
-                let raw_ty = cursor.read_u8().unwrap();
-
-                let ret = match svm_value_type::try_from(raw_ty) {
-                    Ok(svm_value_type::SVM_I32) => {
-                        let value = cursor.read_u32::<BigEndian>().unwrap();
-                        Value::I32(value)
-                    }
-                    Ok(svm_value_type::SVM_I64) => {
-                        let value = cursor.read_u64::<BigEndian>().unwrap();
-                        Value::I64(value)
-                    }
-                    Err(..) => unreachable!(),
-                };
-
-                returns.push(ret);
-            }
+            let new_state = helpers::decode_state(&mut cursor);
+            let returns = helpers::decode_returns(&mut cursor);
 
             ClientExecReceipt::Success {
                 new_state,
-                func_returns: returns_as_str(&returns[..]),
+                func_returns: helpers::returns_as_str(&returns[..]),
             }
         }
         _ => unreachable!(),
     }
-}
-
-fn returns_as_str(returns: &[Value]) -> String {
-    let mut buf = String::new();
-
-    for (i, ret) in returns.iter().enumerate() {
-        if i != 0 {
-            buf.push_str(", ");
-        }
-        buf.push_str(&format!("{:?}", ret));
-    }
-
-    buf
 }

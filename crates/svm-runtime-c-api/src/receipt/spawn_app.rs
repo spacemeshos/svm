@@ -1,18 +1,21 @@
 //!
-//!     `Spawn App` Receipt Raw Format Version 0
+//!           `Spawn App` Receipt Raw Format Version 0
 //!
 //!  On success (`is_success = 1`)
-//!  +---------------------------------------------------+
-//!  |   format   |              |                       |
-//!  |  version   |  is_success  |     App Address       |
-//!  |  (4 bytes) |   (1 byte)   |      (20 bytes)       |
-//!  +____________|______________|_______________________+
-//!  |              |                                    |
-//!  |  init state  |                                    |
-//!  |  (32 bytes)  |                                    |
-//!  +______________|____________________________________+
+//!  +-------------------------------------------------------+
+//!  |   format   |              |                           |
+//!  |  version   |  is_success  |     App Address           |
+//!  |  (4 bytes) |   (1 byte)   |      (20 bytes)           |
+//!  +____________|______________|___________________________+
+//!  |              |           |          |        |        |
+//!  |  init state  | #returns  | ret #1   | ret #1 |        |
+//!  |  (32 bytes)  | (2 bytes) |   type   |  value |  ...   |
+//!  |              |           | (1 byte) |        |        |
+//!  +______________|___________|__________|________|________+
 //!
 //!
+//!  On success (`is_success = 0`)
+//!  See [error.rs][./error.rs]
 
 use byteorder::{BigEndian, WriteBytesExt};
 
@@ -22,7 +25,7 @@ use svm_runtime::{
     receipt::{Receipt, SpawnAppReceipt},
 };
 
-use super::helpers;
+use super::{encode_error, helpers};
 
 pub(crate) fn encode_app_receipt(receipt: &SpawnAppReceipt) -> Vec<u8> {
     let mut buf = Vec::new();
@@ -34,8 +37,9 @@ pub(crate) fn encode_app_receipt(receipt: &SpawnAppReceipt) -> Vec<u8> {
     if receipt.success {
         encode_app_addr(&mut buf, receipt);
         encode_init_state(&mut buf, receipt);
+        helpers::encode_returns(&mut buf, &wrapped_receipt);
     } else {
-        helpers::encode_error(&mut buf, &wrapped_receipt);
+        encode_error(&mut buf, &wrapped_receipt);
     };
 
     buf
