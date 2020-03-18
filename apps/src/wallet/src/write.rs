@@ -123,7 +123,7 @@ pub(crate) fn reset_pending_pub_key() {
     unsafe {
         reg_push(reg_bits, reg_idx);
 
-        // the side-effect of the folllowing is zero-ing
+        // the side-effect of the following is zero-ing
         // the `{reg_bits}:{reg_idx}` register.
         let value = 0;
         reg_set_i32_be(reg_bits, reg_idx, value);

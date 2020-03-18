@@ -9,7 +9,7 @@ extern "C" {
     /// Returns the current app's balance.
     fn host_get_my_balance() -> u64;
 
-    /// Transfering `amount` coins from app's account
+    /// Transferring `amount` coins from app's account
     /// into address given via register `{reg_bits}:{reg_idx}`
     fn host_transfer(amount: u64, reg_bits: u32, reg_idx: u32);
 }
