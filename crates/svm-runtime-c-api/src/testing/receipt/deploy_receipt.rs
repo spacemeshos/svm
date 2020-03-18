@@ -1,8 +1,7 @@
-use std::io::Cursor;
-
-use byteorder::{BigEndian, ReadBytesExt};
-
-use svm_app::types::TemplateAddr;
+use svm_app::{
+    raw::{decode_version, Nibble, NibbleIter},
+    types::TemplateAddr,
+};
 
 use super::helpers;
 
@@ -24,23 +23,23 @@ pub enum ClientTemplateReceipt {
 
 /// Decodes an encoded receipt into `ClientExecReceipt`. Used for testing
 pub fn decode_template_receipt(bytes: &[u8]) -> ClientTemplateReceipt {
-    let mut cursor = Cursor::new(bytes);
+    let mut iter = NibbleIter::new(bytes);
 
-    let version = cursor.read_u32::<BigEndian>().unwrap();
-    assert_eq!(0, version);
+    let version = decode_version(&mut iter).unwrap();
+    debug_assert_eq!(0, version);
 
-    let is_success = cursor.read_u8().unwrap();
+    let is_success: Nibble = iter.next().unwrap();
 
-    match is_success {
+    match is_success.inner() {
         0 => {
             // error
-            let error = helpers::decode_receipt_error(&mut cursor);
+            let error = helpers::decode_receipt_error(&mut iter);
 
             ClientTemplateReceipt::Failure { error }
         }
         1 => {
             // success
-            let addr = helpers::decode_address(&mut cursor);
+            let addr = helpers::decode_address(&mut iter);
 
             ClientTemplateReceipt::Success { addr: addr.into() }
         }

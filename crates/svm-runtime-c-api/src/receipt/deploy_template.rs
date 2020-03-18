@@ -13,6 +13,7 @@
 
 use byteorder::{BigEndian, WriteBytesExt};
 
+use svm_app::raw::NibbleWriter;
 use svm_common::Address;
 use svm_runtime::{
     error::DeployTemplateError,
@@ -22,27 +23,26 @@ use svm_runtime::{
 use super::{encode_error, helpers};
 
 pub(crate) fn encode_template_receipt(receipt: &TemplateReceipt) -> Vec<u8> {
-    let mut buf = Vec::new();
+    let mut w = NibbleWriter::new();
 
     let wrapped_receipt = Receipt::DeployTemplate(receipt);
 
-    helpers::encode_is_success(&mut buf, &wrapped_receipt);
+    helpers::encode_is_success(&wrapped_receipt, &mut w);
 
     if receipt.success {
-        encode_template_addr(&mut buf, receipt);
+        encode_template_addr(receipt, &mut w);
     } else {
-        encode_error(&mut buf, &wrapped_receipt);
+        encode_error(&wrapped_receipt, &mut w);
     };
 
-    buf
+    w.into_bytes()
 }
 
-fn encode_template_addr(buf: &mut Vec<u8>, receipt: &TemplateReceipt) {
+fn encode_template_addr(receipt: &TemplateReceipt, w: &mut NibbleWriter) {
     debug_assert!(receipt.success);
 
     let addr = receipt.get_template_addr();
-
-    buf.extend_from_slice(addr.inner().as_slice());
+    helpers::encode_addr(addr.inner(), w);
 }
 
 #[cfg(test)]

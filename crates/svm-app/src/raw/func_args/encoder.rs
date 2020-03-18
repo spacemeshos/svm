@@ -5,7 +5,7 @@ use crate::types::{WasmType, WasmValue};
 use super::super::{Field, Nibble, NibbleWriter};
 use super::{WasmValueLayout, NO_MORE};
 
-pub fn encode_func_args(args: &[WasmValue], writer: &mut NibbleWriter) {
+pub fn encode_func_args(args: &[WasmValue], w: &mut NibbleWriter) {
     let mut layouts = Vec::with_capacity(args.len());
 
     for arg in args.iter() {
@@ -13,18 +13,18 @@ pub fn encode_func_args(args: &[WasmValue], writer: &mut NibbleWriter) {
         let nib = (&layout).into();
 
         layouts.push(layout);
-        writer.write(&[nib]);
+        w.write(&[nib]);
     }
 
     // output `no more func args layouts` marker.
     let no_more_nib = nib!(NO_MORE);
-    writer.write(&[no_more_nib]);
+    w.write(&[no_more_nib]);
 
     // write the args values
     for (i, arg) in args.iter().enumerate() {
         let layout = &layouts[i];
 
-        encode_func_arg(arg, layout, writer);
+        encode_func_arg(arg, layout, w);
     }
 }
 
@@ -66,7 +66,7 @@ fn func_arg_byte_length(value: u64) -> usize {
     }
 }
 
-fn encode_func_arg(arg: &WasmValue, layout: &WasmValueLayout, writer: &mut NibbleWriter) {
+fn encode_func_arg(arg: &WasmValue, layout: &WasmValueLayout, w: &mut NibbleWriter) {
     let mut nibbles = Vec::with_capacity(layout.len);
 
     let mut val = match arg {
@@ -87,8 +87,8 @@ fn encode_func_arg(arg: &WasmValue, layout: &WasmValueLayout, writer: &mut Nibbl
     }
 
     // since we've scanned `val` from `lsb` to `msb` order,
-    // we need to reverse `nibbles` prior calling `writer` with them.
+    // we need to reverse `nibbles` prior calling `w` with them.
     let nibbles: Vec<_> = nibbles.drain(..).rev().collect();
 
-    writer.write(&nibbles[..])
+    w.write(&nibbles[..])
 }

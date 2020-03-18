@@ -1,11 +1,6 @@
-use std::{
-    convert::TryFrom,
-    io::{Cursor, Read},
-};
-
-use byteorder::{BigEndian, ReadBytesExt};
-
 use svm_common::State;
+
+use svm_app::raw::{decode_func_args, decode_version, Nibble, NibbleIter};
 
 use super::helpers;
 use crate::svm_value_type;
@@ -32,27 +27,27 @@ pub enum ClientExecReceipt {
 /// Decodes an encoded receipt into `ClientExecReceipt`.
 /// Used for testing
 pub fn decode_exec_receipt(bytes: &[u8]) -> ClientExecReceipt {
-    let mut cursor = Cursor::new(bytes);
+    let mut iter = NibbleIter::new(bytes);
 
-    let version = cursor.read_u32::<BigEndian>().unwrap();
-    assert_eq!(0, version);
+    let version = decode_version(&mut iter).unwrap();
+    debug_assert_eq!(0, version);
 
-    let is_success = cursor.read_u8().unwrap();
+    let is_success: Nibble = iter.next().unwrap();
 
-    match is_success {
+    match is_success.inner() {
         0 => {
             // error
-            let error = helpers::decode_receipt_error(&mut cursor);
+            let error = helpers::decode_receipt_error(&mut iter);
             ClientExecReceipt::Failure { error }
         }
         1 => {
             // success
-            let new_state = helpers::decode_state(&mut cursor);
-            let returns = helpers::decode_returns(&mut cursor);
+            let new_state = helpers::decode_state(&mut iter);
+            let returns = decode_func_args(&mut iter).unwrap();
 
             ClientExecReceipt::Success {
                 new_state,
-                func_returns: helpers::returns_as_str(&returns[..]),
+                func_returns: helpers::wasm_values_str(&returns[..]),
             }
         }
         _ => unreachable!(),
