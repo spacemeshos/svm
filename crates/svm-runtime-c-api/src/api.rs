@@ -13,7 +13,9 @@ use crate::{
     helpers,
     receipt::{encode_app_receipt, encode_exec_receipt, encode_template_receipt},
     svm_byte_array, svm_import_func_sig_t, svm_import_func_t, svm_import_kind, svm_import_t,
-    svm_import_value, svm_result_t, svm_value_type_array, RuntimePtr,
+    svm_import_value, svm_result_t, svm_value_type_array,
+    testing::{self, ClientAppReceipt, ClientExecReceipt, ClientTemplateReceipt},
+    RuntimePtr,
 };
 
 macro_rules! addr_to_svm_byte_array {
@@ -120,7 +122,9 @@ pub unsafe extern "C" fn svm_validate_tx(
 
     match runtime.validate_tx(bytes.into()) {
         Ok(addr) => {
-            *app_addr = addr.unwrap().into();
+            // returning encoded `AppReceipt` as `svm_byte_array`.
+            // should call later `svm_receipt_destroy`
+            addr_to_svm_byte_array!(app_addr, addr.unwrap());
 
             debug!("`svm_validate_tx` returns `SVM_SUCCESS`");
             svm_result_t::SVM_SUCCESS
@@ -388,7 +392,8 @@ pub unsafe extern "C" fn svm_deploy_template(
     runtime: *mut c_void,
     author: svm_byte_array,
     host_ctx: svm_byte_array,
-    template: svm_byte_array,
+    bytes: svm_byte_array,
+    dry_run: bool,
 ) -> svm_result_t {
     debug!("`svm_deploy_template` start`");
 
@@ -407,16 +412,18 @@ pub unsafe extern "C" fn svm_deploy_template(
         // return svm_result_t::SVM_FAILURE;
     }
 
-    let bytes = std::slice::from_raw_parts(template.bytes, template.length as usize);
+    let rust_receipt = runtime.deploy_template(
+        bytes.into(),
+        &author.unwrap().into(),
+        host_ctx.unwrap(),
+        dry_run,
+    );
 
-    let rust_receipt =
-        runtime.deploy_template(bytes, &author.unwrap().into(), host_ctx.unwrap(), false);
-
-    let mut bytes = encode_template_receipt(&rust_receipt);
+    let mut receipt_bytes = encode_template_receipt(&rust_receipt);
 
     // returning encoded `TemplateReceipt` as `svm_byte_array`.
     // should call later `svm_receipt_destroy`
-    vec_to_svm_byte_array!(receipt, bytes);
+    vec_to_svm_byte_array!(receipt, receipt_bytes);
 
     debug!("`svm_exec_app` returns `SVM_SUCCESS`");
 
@@ -459,11 +466,11 @@ pub unsafe extern "C" fn svm_deploy_template(
 #[no_mangle]
 pub unsafe extern "C" fn svm_spawn_app(
     receipt: *mut svm_byte_array,
-    init_state: *mut svm_byte_array,
     runtime: *mut c_void,
     bytes: svm_byte_array,
     creator: svm_byte_array,
     host_ctx: svm_byte_array,
+    dry_run: bool,
 ) -> svm_result_t {
     debug!("`svm_spawn_app` start");
 
@@ -485,14 +492,14 @@ pub unsafe extern "C" fn svm_spawn_app(
         bytes.into(),
         &creator.unwrap().into(),
         host_ctx.unwrap(),
-        false,
+        dry_run,
     );
 
-    let mut bytes = encode_app_receipt(&rust_receipt);
+    let mut receipt_bytes = encode_app_receipt(&rust_receipt);
 
     // returning encoded `AppReceipt` as `svm_byte_array`.
     // should call later `svm_receipt_destroy`
-    vec_to_svm_byte_array!(receipt, bytes);
+    vec_to_svm_byte_array!(receipt, receipt_bytes);
 
     debug!("`svm_spawn_app` returns `SVM_SUCCESS`");
 
@@ -573,11 +580,11 @@ pub unsafe extern "C" fn svm_exec_app(
     }
 
     let rust_receipt = runtime.exec_app(bytes.into(), &state.unwrap(), host_ctx, dry_run);
-    let mut bytes = encode_exec_receipt(&rust_receipt);
+    let mut receipt_bytes = encode_exec_receipt(&rust_receipt);
 
     // returning encoded `ExecReceipt` as `svm_byte_array`.
     // should call later `svm_receipt_destroy`
-    vec_to_svm_byte_array!(receipt, bytes);
+    vec_to_svm_byte_array!(receipt, receipt_bytes);
 
     debug!("`svm_exec_app` returns `SVM_SUCCESS`");
 
@@ -670,4 +677,66 @@ pub unsafe extern "C" fn svm_byte_array_destroy(bytes: svm_byte_array) {
     let length = bytes.length as usize;
 
     let _ = Vec::from_raw_parts(ptr, length, length);
+}
+
+/// Receipts helpers
+
+#[no_mangle]
+pub unsafe extern "C" fn svm_template_receipt_addr(
+    template_addr: *mut svm_byte_array,
+    receipt: svm_byte_array,
+) {
+    let client_receipt = testing::decode_template_receipt(receipt.into());
+
+    match client_receipt {
+        ClientTemplateReceipt::Success { addr, .. } => {
+            addr_to_svm_byte_array!(template_addr, addr.unwrap());
+        }
+        ClientTemplateReceipt::Failure { .. } => panic!(),
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn svm_app_receipt_addr(
+    app_addr: *mut svm_byte_array,
+    receipt: svm_byte_array,
+) {
+    let client_receipt = testing::decode_app_receipt(receipt.into());
+
+    match client_receipt {
+        ClientAppReceipt::Success { addr, .. } => {
+            addr_to_svm_byte_array!(app_addr, addr.unwrap());
+        }
+        ClientAppReceipt::Failure { .. } => panic!(),
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn svm_app_receipt_state(
+    state: *mut svm_byte_array,
+    receipt: svm_byte_array,
+) {
+    let client_receipt = testing::decode_app_receipt(receipt.into());
+
+    match client_receipt {
+        ClientAppReceipt::Success { init_state, .. } => {
+            state_to_svm_byte_array!(state, init_state);
+        }
+        ClientAppReceipt::Failure { .. } => panic!(),
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn svm_exec_receipt_state(
+    state: *mut svm_byte_array,
+    receipt: svm_byte_array,
+) {
+    let client_receipt = testing::decode_exec_receipt(receipt.into());
+
+    match client_receipt {
+        ClientExecReceipt::Success { new_state, .. } => {
+            state_to_svm_byte_array!(state, new_state);
+        }
+        ClientExecReceipt::Failure { .. } => panic!(),
+    }
 }

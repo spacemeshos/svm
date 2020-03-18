@@ -5,8 +5,7 @@ use svm_runtime_c_api::{svm_byte_array, svm_value_type, testing};
 
 use maplit::hashmap;
 
-use std::collections::HashMap;
-use std::ffi::c_void;
+use std::{collections::HashMap, ffi::c_void};
 
 use svm_app::types::WasmValue;
 use svm_common::Address;
@@ -178,13 +177,13 @@ fn exec_app_args() -> (Address, u64, u16, Vec<u8>, Vec<WasmValue>) {
 }
 
 #[test]
-fn runtime_ffi_exec_app() {
+fn svm_runtime_exec_app() {
     unsafe {
-        do_ffi_exec_app();
+        test_svm_runtime();
     }
 }
 
-unsafe fn do_ffi_exec_app() {
+unsafe fn test_svm_runtime() {
     let version: u32 = 0;
 
     // 1) init runtime
@@ -192,6 +191,7 @@ unsafe fn do_ffi_exec_app() {
     let mut kv = std::ptr::null_mut();
     let mut runtime = std::ptr::null_mut();
     let imports = create_imports();
+    let dry_run = false;
 
     let res = api::svm_memory_kv_create(&mut kv);
     assert!(res.is_ok());
@@ -213,15 +213,25 @@ unsafe fn do_ffi_exec_app() {
 
     // raw template
     let (bytes, length) = deploy_template_bytes(version, "My Template", page_count, code);
-    let template = svm_byte_array {
+    let template_bytes = svm_byte_array {
         bytes: bytes.as_ptr(),
         length: length,
     };
 
-    let mut template_addr = svm_byte_array::default();
-
-    let res = api::svm_deploy_template(&mut template_addr, runtime, author, host_ctx, template);
+    let mut template_receipt = svm_byte_array::default();
+    let res = api::svm_deploy_template(
+        &mut template_receipt,
+        runtime,
+        author,
+        host_ctx,
+        template_bytes,
+        dry_run,
+    );
     assert!(res.is_ok());
+
+    // extract the `template-address` out of theh receipt
+    let mut template_addr = svm_byte_array::default();
+    api::svm_template_receipt_addr(&mut template_addr, template_receipt);
 
     // 3) spawn app
     let creator = Address::of("creator").into();
@@ -238,23 +248,29 @@ unsafe fn do_ffi_exec_app() {
 
     // raw `spawn-app`
     let (bytes, length) = spawn_app_bytes(version, &template_addr, ctor_idx, &ctor_buf, &ctor_args);
-    let app = svm_byte_array {
+    let app_bytes = svm_byte_array {
         bytes: bytes.as_ptr(),
         length: length,
     };
 
+    let mut app_receipt = svm_byte_array::default();
+
+    let res = api::svm_spawn_app(
+        &mut app_receipt,
+        runtime,
+        app_bytes,
+        creator,
+        host_ctx,
+        dry_run,
+    );
+    assert!(res.is_ok());
+
+    // extracts the spawned-app `Address` and initial `State`.
     let mut app_addr = svm_byte_array::default();
     let mut init_state = svm_byte_array::default();
 
-    let res = api::svm_spawn_app(
-        &mut app_addr,
-        &mut init_state,
-        runtime,
-        creator,
-        host_ctx,
-        app,
-    );
-    assert!(res.is_ok());
+    api::svm_app_receipt_addr(&mut app_addr, app_receipt);
+    api::svm_app_receipt_state(&mut init_state, app_receipt);
 
     // 4) execute app
     let (user, addition, func_idx, func_buf, func_args) = exec_app_args();
@@ -264,12 +280,12 @@ unsafe fn do_ffi_exec_app() {
         length: length,
     };
 
-    // 4.1) parse bytes into in-memory `AppTransaction`
+    // 4.1) validates tx and extract its `app-address`.
     let mut app_addr = svm_byte_array::default();
     let res = api::svm_validate_tx(&mut app_addr, runtime, tx_bytes);
     assert!(res.is_ok());
 
-    // 4.2) execute the app-transaction
+    // // 4.2) execute the app-transaction
     let init_balance = 100;
     host.set_balance(&user, init_balance);
 
@@ -283,11 +299,11 @@ unsafe fn do_ffi_exec_app() {
         length: length,
     };
 
-    let mut receipt = svm_byte_array::default();
+    let mut exec_receipt = svm_byte_array::default();
     let dry_run = false;
 
     let res = api::svm_exec_app(
-        &mut receipt,
+        &mut exec_receipt,
         runtime,
         tx_bytes,
         init_state,
@@ -304,7 +320,9 @@ unsafe fn do_ffi_exec_app() {
     let _ = api::svm_byte_array_destroy(template_addr);
     let _ = api::svm_byte_array_destroy(app_addr);
     let _ = api::svm_byte_array_destroy(init_state);
-    let _ = api::svm_byte_array_destroy(receipt);
+    let _ = api::svm_byte_array_destroy(template_receipt);
+    let _ = api::svm_byte_array_destroy(app_receipt);
+    let _ = api::svm_byte_array_destroy(exec_receipt);
     let _ = api::svm_imports_destroy(imports);
     let _ = api::svm_runtime_destroy(runtime);
 }
