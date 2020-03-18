@@ -11,9 +11,9 @@ pub enum WasmType {
 }
 
 /// Converts `WasmType` to its numeric representation
-impl Into<u8> for WasmType {
-    fn into(self) -> u8 {
-        match self {
+impl From<WasmType> for u8 {
+    fn from(ty: WasmType) -> u8 {
+        match ty {
             WasmType::I32 => 1,
             WasmType::I64 => 2,
         }
@@ -21,20 +21,20 @@ impl Into<u8> for WasmType {
 }
 
 /// Wasm function arguments error
-pub enum WasmConvertTypeError {
+pub enum WasmTypeError {
     /// Unsupported type
     UnsupportedType(u8),
 }
 
 /// Converts `WasmType` to its numeric representation
 impl TryFrom<u8> for WasmType {
-    type Error = WasmConvertTypeError;
+    type Error = WasmTypeError;
 
-    fn try_from(value: u8) -> Result<WasmType, WasmConvertTypeError> {
+    fn try_from(value: u8) -> Result<WasmType, WasmTypeError> {
         match value {
             1 => Ok(WasmType::I32),
             2 => Ok(WasmType::I64),
-            _ => Err(WasmConvertTypeError::UnsupportedType(value)),
+            _ => Err(WasmTypeError::UnsupportedType(value)),
         }
     }
 }

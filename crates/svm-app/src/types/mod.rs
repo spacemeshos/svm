@@ -18,5 +18,5 @@ pub use app_tx::AppTransaction;
 pub use host_ctx::HostCtx;
 
 pub use hash::AppTemplateHash;
-pub use wasm_type::{WasmConvertTypeError, WasmType};
+pub use wasm_type::{WasmType, WasmTypeError};
 pub use wasm_value::WasmValue;

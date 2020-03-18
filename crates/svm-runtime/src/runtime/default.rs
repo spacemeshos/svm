@@ -12,7 +12,6 @@ use crate::{
     runtime::Runtime,
     settings::AppSettings,
     storage::StorageBuilderFn,
-    value::Value,
 };
 
 use svm_app::{
@@ -257,7 +256,7 @@ where
         template_addr: &TemplateAddr,
         import_object: &ImportObject,
         dry_run: bool,
-    ) -> Result<(Option<State>, Option<u64>, Vec<Value>), ExecAppError> {
+    ) -> Result<(Option<State>, Option<u64>, Vec<WasmValue>), ExecAppError> {
         let module = self.compile_template(tx, &template, &template_addr)?;
         let mut instance = self.instantiate(tx, template_addr, &module, import_object)?;
 
@@ -300,7 +299,7 @@ where
 
     fn make_receipt(
         &self,
-        result: Result<(Option<State>, Option<u64>, Vec<Value>), ExecAppError>,
+        result: Result<(Option<State>, Option<u64>, Vec<WasmValue>), ExecAppError>,
     ) -> ExecReceipt {
         match result {
             Err(e) => ExecReceipt {
@@ -342,22 +341,14 @@ where
         tx: &AppTransaction,
         template_addr: &TemplateAddr,
         returns: Vec<WasmerValue>,
-    ) -> Result<Vec<Value>, ExecAppError> {
+    ) -> Result<Vec<WasmValue>, ExecAppError> {
         let mut values = Vec::new();
 
         for ret in returns.iter() {
-            match Value::try_from(ret) {
-                Err(e) => {
-                    return Err(ExecAppError::InvalidReturnValue {
-                        app_addr: tx.app.clone(),
-                        template_addr: template_addr.clone(),
-                        func_idx: tx.func_idx,
-                        func_args: self.vec_to_str(&tx.func_args),
-                        func_rets: self.vec_to_str(&returns),
-                        reason: e.to_string(),
-                    })
-                }
-                Ok(v) => values.push(v),
+            match ret {
+                WasmerValue::I32(v) => values.push(WasmValue::I32(*v as u32)),
+                WasmerValue::I64(v) => values.push(WasmValue::I64(*v as u64)),
+                _ => unreachable!(),
             }
         }
 

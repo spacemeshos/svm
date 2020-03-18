@@ -2,7 +2,7 @@ mod deploy_template;
 mod exec_app;
 mod spawn_app;
 
-use crate::value::Value;
+use svm_app::types::WasmValue;
 
 pub use deploy_template::TemplateReceipt;
 pub use exec_app::ExecReceipt;
@@ -31,7 +31,7 @@ impl<'a> Receipt<'a> {
         }
     }
 
-    pub fn get_returns(&self) -> &Vec<Value> {
+    pub fn get_returns(&self) -> &Vec<WasmValue> {
         match self {
             Self::DeployTemplate(..) => unreachable!(),
             Self::SpawnApp(r) => r.get_returns(),
