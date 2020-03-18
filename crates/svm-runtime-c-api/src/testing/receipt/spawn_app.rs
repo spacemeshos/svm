@@ -36,9 +36,9 @@ pub fn decode_app_receipt(bytes: &[u8]) -> ClientAppReceipt {
     let version = decode_version(&mut iter).unwrap();
     debug_assert_eq!(0, version);
 
-    let is_success: Nibble = iter.next().unwrap();
+    let is_success = helpers::decode_is_success(&mut iter);
 
-    match is_success.inner() {
+    match is_success {
         0 => {
             // error
             let error = helpers::decode_receipt_error(&mut iter);

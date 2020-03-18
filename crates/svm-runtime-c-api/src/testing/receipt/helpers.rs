@@ -1,13 +1,18 @@
 use svm_app::{
-    raw::{decode_varuint14, NibbleIter},
+    raw::{decode_varuint14, Field, Nibble, NibbleIter},
     types::WasmValue,
 };
 use svm_common::{Address, State};
 
 use crate::svm_value_type;
 
+pub(crate) fn decode_is_success(iter: &mut NibbleIter) -> u8 {
+    let is_success: Nibble = iter.next().unwrap();
+    is_success.inner()
+}
+
 pub(crate) fn decode_receipt_error(iter: &mut NibbleIter) -> String {
-    let len = decode_varuint14(iter).unwrap();
+    let len = decode_varuint14(iter, Field::ErrorLength).unwrap();
     let bytes = iter.read_bytes(len as usize);
 
     String::from_utf8(bytes).unwrap()

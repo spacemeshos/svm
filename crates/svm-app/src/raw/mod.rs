@@ -17,11 +17,11 @@ pub use app::{DefaultAppDeserializer, DefaultAppSerializer};
 pub use template::{DefaultAppTemplateDeserializer, DefaultAppTemplateSerializer};
 
 mod field;
-pub(crate) use field::Field;
+pub use field::Field;
 
 pub(crate) mod helpers;
 
-pub use func_args::{decode_func_args, encode_func_args};
+pub use func_args::{decode_func_args, decode_func_rets, encode_func_args, encode_func_rets};
 pub use func_buf::{decode_func_buf, encode_func_buf};
 pub use nibble::{concat_nibbles, Nibble, NibbleIter, NibbleWriter};
 pub use varuint14::{decode_varuint14, encode_varuint14};

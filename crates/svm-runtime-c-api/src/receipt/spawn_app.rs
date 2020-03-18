@@ -33,6 +33,7 @@ pub(crate) fn encode_app_receipt(receipt: &SpawnAppReceipt) -> Vec<u8> {
 
     let wrapped_receipt = Receipt::SpawnApp(receipt);
 
+    helpers::encode_version(0, &mut w);
     helpers::encode_is_success(&wrapped_receipt, &mut w);
 
     if receipt.success {

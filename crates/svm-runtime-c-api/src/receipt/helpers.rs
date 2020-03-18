@@ -11,6 +11,10 @@ use svm_runtime::receipt::Receipt;
 
 use crate::svm_value_type;
 
+pub(crate) fn encode_version(version: u32, w: &mut NibbleWriter) {
+    raw::encode_version(version, w);
+}
+
 pub(crate) fn encode_is_success(receipt: &Receipt, w: &mut NibbleWriter) {
     let nib = if receipt.is_success() {
         Nibble::new(1)

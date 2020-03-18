@@ -31,6 +31,7 @@ pub(crate) fn encode_exec_receipt(receipt: &ExecReceipt) -> Vec<u8> {
 
     let wrapped_receipt = Receipt::ExecApp(receipt);
 
+    helpers::encode_version(0, &mut w);
     helpers::encode_is_success(&wrapped_receipt, &mut w);
 
     if receipt.success {
