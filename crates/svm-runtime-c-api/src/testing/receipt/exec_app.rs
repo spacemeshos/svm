@@ -6,7 +6,6 @@ use std::{
 use byteorder::{BigEndian, ReadBytesExt};
 
 use svm_common::State;
-use svm_runtime::value::Value;
 
 use super::helpers;
 use crate::svm_value_type;

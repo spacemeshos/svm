@@ -3,8 +3,8 @@ use std::{
     io::{Cursor, Read},
 };
 
+use svm_app::types::WasmValue;
 use svm_common::{Address, State};
-use svm_runtime::value::Value;
 
 use byteorder::{BigEndian, ReadBytesExt};
 
@@ -19,7 +19,7 @@ pub(crate) fn decode_receipt_error(cursor: &mut Cursor<&[u8]>) -> String {
     String::from_utf8(buf).unwrap()
 }
 
-pub(crate) fn decode_returns(cursor: &mut Cursor<&[u8]>) -> Vec<Value> {
+pub(crate) fn decode_returns(cursor: &mut Cursor<&[u8]>) -> Vec<WasmValue> {
     let nrets = cursor.read_u8().unwrap() as usize;
 
     let mut returns = Vec::new();
@@ -30,11 +30,11 @@ pub(crate) fn decode_returns(cursor: &mut Cursor<&[u8]>) -> Vec<Value> {
         let ret = match svm_value_type::try_from(raw_ty) {
             Ok(svm_value_type::SVM_I32) => {
                 let value = cursor.read_u32::<BigEndian>().unwrap();
-                Value::I32(value)
+                WasmValue::I32(value)
             }
             Ok(svm_value_type::SVM_I64) => {
                 let value = cursor.read_u64::<BigEndian>().unwrap();
-                Value::I64(value)
+                WasmValue::I64(value)
             }
             Err(..) => unreachable!(),
         };
@@ -59,7 +59,7 @@ pub(crate) fn decode_address(cursor: &mut Cursor<&[u8]>) -> Address {
     Address::from(&buf[..])
 }
 
-pub(crate) fn returns_as_str(returns: &[Value]) -> String {
+pub(crate) fn returns_as_str(returns: &[WasmValue]) -> String {
     let mut buf = String::new();
 
     for (i, ret) in returns.iter().enumerate() {

@@ -20,7 +20,6 @@ use svm_common::State;
 use svm_runtime::{
     error::ExecAppError,
     receipt::{ExecReceipt, Receipt},
-    value::Value,
 };
 
 use super::{encode_error, helpers};
@@ -57,8 +56,9 @@ mod tests {
 
     use crate::testing::{self, ClientExecReceipt};
 
+    use svm_app::types::WasmValue;
     use svm_common::{Address, State};
-    use svm_runtime::{error::ExecAppError, value::Value};
+    use svm_runtime::error::ExecAppError;
 
     #[test]
     fn encode_decode_exec_receipt_error() {
@@ -110,7 +110,7 @@ mod tests {
     #[test]
     fn encode_decode_exec_receipt_success_with_returns() {
         let new_state = State::from(0x10_20_30_40);
-        let returns = vec![Value::I32(10), Value::I64(20), Value::I32(30)];
+        let returns = vec![WasmValue::I32(10), WasmValue::I64(20), WasmValue::I32(30)];
 
         let expected = ClientExecReceipt::Success {
             new_state: new_state.clone(),

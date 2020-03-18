@@ -68,8 +68,9 @@ mod tests {
     use crate::testing::{self, ClientAppReceipt};
 
     use svm_app::types::AppAddr;
+    use svm_app::types::WasmValue;
     use svm_common::{Address, State};
-    use svm_runtime::{error::SpawnAppError, value::Value};
+    use svm_runtime::error::SpawnAppError;
 
     #[test]
     fn encode_decode_app_receipt_error() {
@@ -126,7 +127,7 @@ mod tests {
     fn encode_decode_app_receipt_success_with_returns() {
         let addr: AppAddr = Address::of("my-app").into();
         let init_state = State::from(0x10_20_30_40);
-        let returns = vec![Value::I32(10), Value::I64(20), Value::I32(30)];
+        let returns = vec![WasmValue::I32(10), WasmValue::I64(20), WasmValue::I32(30)];
 
         let expected = ClientAppReceipt::Success {
             addr: addr.clone(),
