@@ -2,7 +2,7 @@
 #![allow(unused)]
 
 //! The `SVM` wallet app is intended to serve as a 2-3 MultiSig Wallet
-//! For managing Spacemesh investors coins.
+//! For managing vesting Spacemesh Coins (SMH).
 //!
 //! Link to the product specification:
 //! https://github.com/spacemeshos/product/blob/master/svm-wallet.md
