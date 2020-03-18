@@ -35,6 +35,3 @@ pub mod settings;
 
 /// Crates errors
 pub mod error;
-
-/// Wasm integer values (I32 / I64)
-pub mod value;

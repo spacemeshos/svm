@@ -4,22 +4,30 @@ use crate::{
 };
 
 use super::super::{concat_nibbles, Field, Nibble, NibbleIter, NibbleWriter};
-use super::{encode_func_args, WasmValueLayout, DO_SKIP, NO_MORE};
+use super::{WasmValueLayout, DO_SKIP, NO_MORE};
 
 pub fn decode_func_args(iter: &mut NibbleIter) -> Result<Vec<WasmValue>, ParseError> {
-    let mut func_args = Vec::new();
-    let layouts = decode_func_args_layout(iter)?;
-
-    for (i, layout) in layouts.iter().enumerate() {
-        let arg = decode_func_arg(layout, i, iter)?;
-
-        func_args.push(arg);
-    }
-
-    Ok(func_args)
+    decode_func_values(iter)
 }
 
-fn decode_func_arg(
+pub fn decode_func_rets(iter: &mut NibbleIter) -> Result<Vec<WasmValue>, ParseError> {
+    decode_func_values(iter)
+}
+
+fn decode_func_values(iter: &mut NibbleIter) -> Result<Vec<WasmValue>, ParseError> {
+    let mut func_values = Vec::new();
+    let layouts = decode_values_layouts(iter)?;
+
+    for (i, layout) in layouts.iter().enumerate() {
+        let val = decode_func_value(layout, i, iter)?;
+
+        func_values.push(val);
+    }
+
+    Ok(func_values)
+}
+
+fn decode_func_value(
     layout: &WasmValueLayout,
     arg_idx: usize,
     iter: &mut NibbleIter,
@@ -92,7 +100,7 @@ fn decode_func_arg(
     Ok(val)
 }
 
-fn decode_func_args_layout(iter: &mut NibbleIter) -> Result<Vec<WasmValueLayout>, ParseError> {
+fn decode_values_layouts(iter: &mut NibbleIter) -> Result<Vec<WasmValueLayout>, ParseError> {
     let mut args_layout = Vec::new();
     let mut has_more = true;
 

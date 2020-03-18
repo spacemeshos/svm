@@ -1,8 +1,8 @@
 use super::ExecReceipt;
 
-use crate::{error::SpawnAppError, value::Value};
+use crate::error::SpawnAppError;
 
-use svm_app::types::AppAddr;
+use svm_app::types::{AppAddr, WasmValue};
 use svm_common::State;
 
 #[derive(Debug)]
@@ -20,7 +20,7 @@ pub struct SpawnAppReceipt {
     pub init_state: Option<State>,
 
     /// returned ctor values
-    pub returns: Option<Vec<Value>>,
+    pub returns: Option<Vec<WasmValue>>,
 
     /// The amount of gas used
     pub gas_used: Option<u64>,
@@ -35,7 +35,7 @@ impl SpawnAppReceipt {
         self.init_state.as_ref().unwrap()
     }
 
-    pub fn get_returns(&self) -> &Vec<Value> {
+    pub fn get_returns(&self) -> &Vec<WasmValue> {
         self.returns.as_ref().unwrap()
     }
 }

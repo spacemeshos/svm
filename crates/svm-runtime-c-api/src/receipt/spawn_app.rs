@@ -19,6 +19,7 @@
 
 use byteorder::{BigEndian, WriteBytesExt};
 
+use svm_app::raw::NibbleWriter;
 use svm_common::Address;
 use svm_runtime::{
     error::DeployTemplateError,
@@ -28,37 +29,36 @@ use svm_runtime::{
 use super::{encode_error, helpers};
 
 pub(crate) fn encode_app_receipt(receipt: &SpawnAppReceipt) -> Vec<u8> {
-    let mut buf = Vec::new();
+    let mut w = NibbleWriter::new();
 
     let wrapped_receipt = Receipt::SpawnApp(receipt);
 
-    helpers::encode_is_success(&mut buf, &wrapped_receipt);
+    helpers::encode_version(0, &mut w);
+    helpers::encode_is_success(&wrapped_receipt, &mut w);
 
     if receipt.success {
-        encode_app_addr(&mut buf, receipt);
-        encode_init_state(&mut buf, receipt);
-        helpers::encode_returns(&mut buf, &wrapped_receipt);
+        encode_app_addr(receipt, &mut w);
+        encode_init_state(receipt, &mut w);
+        helpers::encode_returns(&wrapped_receipt, &mut w);
     } else {
-        encode_error(&mut buf, &wrapped_receipt);
+        encode_error(&wrapped_receipt, &mut w);
     };
 
-    buf
+    w.into_bytes()
 }
 
-fn encode_app_addr(buf: &mut Vec<u8>, receipt: &SpawnAppReceipt) {
+fn encode_app_addr(receipt: &SpawnAppReceipt, w: &mut NibbleWriter) {
     debug_assert!(receipt.success);
 
     let addr = receipt.get_app_addr();
-
-    buf.extend_from_slice(addr.inner().as_slice());
+    helpers::encode_addr(addr.inner(), w)
 }
 
-fn encode_init_state(buf: &mut Vec<u8>, receipt: &SpawnAppReceipt) {
+fn encode_init_state(receipt: &SpawnAppReceipt, w: &mut NibbleWriter) {
     debug_assert!(receipt.success);
 
     let state = receipt.get_init_state();
-
-    buf.extend_from_slice(state.as_slice());
+    helpers::encode_state(&state, w);
 }
 
 #[cfg(test)]
@@ -68,8 +68,9 @@ mod tests {
     use crate::testing::{self, ClientAppReceipt};
 
     use svm_app::types::AppAddr;
+    use svm_app::types::WasmValue;
     use svm_common::{Address, State};
-    use svm_runtime::{error::SpawnAppError, value::Value};
+    use svm_runtime::error::SpawnAppError;
 
     #[test]
     fn encode_decode_app_receipt_error() {
@@ -126,7 +127,7 @@ mod tests {
     fn encode_decode_app_receipt_success_with_returns() {
         let addr: AppAddr = Address::of("my-app").into();
         let init_state = State::from(0x10_20_30_40);
-        let returns = vec![Value::I32(10), Value::I64(20), Value::I32(30)];
+        let returns = vec![WasmValue::I32(10), WasmValue::I64(20), WasmValue::I32(30)];
 
         let expected = ClientAppReceipt::Success {
             addr: addr.clone(),

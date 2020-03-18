@@ -5,33 +5,41 @@ use crate::types::{WasmType, WasmValue};
 use super::super::{Field, Nibble, NibbleWriter};
 use super::{WasmValueLayout, NO_MORE};
 
-pub fn encode_func_args(args: &[WasmValue], writer: &mut NibbleWriter) {
-    let mut layouts = Vec::with_capacity(args.len());
+pub fn encode_func_args(args: &[WasmValue], w: &mut NibbleWriter) {
+    encode_func_values(args, w)
+}
 
-    for arg in args.iter() {
-        let layout = func_arg_layout(arg);
+pub fn encode_func_rets(rets: &[WasmValue], w: &mut NibbleWriter) {
+    encode_func_values(rets, w)
+}
+
+fn encode_func_values(values: &[WasmValue], w: &mut NibbleWriter) {
+    let mut layouts = Vec::with_capacity(values.len());
+
+    for val in values.iter() {
+        let layout = wasm_value_layout(val);
         let nib = (&layout).into();
 
         layouts.push(layout);
-        writer.write(&[nib]);
+        w.write(&[nib]);
     }
 
-    // output `no more func args layouts` marker.
+    // output `no more func values layouts` marker.
     let no_more_nib = nib!(NO_MORE);
-    writer.write(&[no_more_nib]);
+    w.write(&[no_more_nib]);
 
-    // write the args values
-    for (i, arg) in args.iter().enumerate() {
+    // write the func values
+    for (i, val) in values.iter().enumerate() {
         let layout = &layouts[i];
 
-        encode_func_arg(arg, layout, writer);
+        encode_func_wasm_val(val, layout, w);
     }
 }
 
-fn func_arg_layout(arg: &WasmValue) -> WasmValueLayout {
-    match arg {
+fn wasm_value_layout(value: &WasmValue) -> WasmValueLayout {
+    match value {
         WasmValue::I32(v) => {
-            let len = func_arg_byte_length(*v as u64);
+            let len = wasm_value_byte_length(*v as u64);
             debug_assert!(len <= 4);
 
             WasmValueLayout {
@@ -40,7 +48,7 @@ fn func_arg_layout(arg: &WasmValue) -> WasmValueLayout {
             }
         }
         WasmValue::I64(v) => {
-            let len = func_arg_byte_length(*v);
+            let len = wasm_value_byte_length(*v);
             debug_assert!(len <= 8);
 
             WasmValueLayout {
@@ -51,7 +59,7 @@ fn func_arg_layout(arg: &WasmValue) -> WasmValueLayout {
     }
 }
 
-fn func_arg_byte_length(value: u64) -> usize {
+fn wasm_value_byte_length(value: u64) -> usize {
     match value {
         0 => 0,
         0x01..=0xFF => 1,
@@ -66,7 +74,7 @@ fn func_arg_byte_length(value: u64) -> usize {
     }
 }
 
-fn encode_func_arg(arg: &WasmValue, layout: &WasmValueLayout, writer: &mut NibbleWriter) {
+fn encode_func_wasm_val(arg: &WasmValue, layout: &WasmValueLayout, w: &mut NibbleWriter) {
     let mut nibbles = Vec::with_capacity(layout.len);
 
     let mut val = match arg {
@@ -87,8 +95,8 @@ fn encode_func_arg(arg: &WasmValue, layout: &WasmValueLayout, writer: &mut Nibbl
     }
 
     // since we've scanned `val` from `lsb` to `msb` order,
-    // we need to reverse `nibbles` prior calling `writer` with them.
+    // we need to reverse `nibbles` prior calling `w` with them.
     let nibbles: Vec<_> = nibbles.drain(..).rev().collect();
 
-    writer.write(&nibbles[..])
+    w.write(&nibbles[..])
 }

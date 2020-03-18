@@ -17,6 +17,7 @@ pub enum Field {
     FuncBufLength,
     FuncBuf,
     FuncArgsNoMoreMark,
+    ErrorLength,
 }
 
 impl fmt::Display for Field {

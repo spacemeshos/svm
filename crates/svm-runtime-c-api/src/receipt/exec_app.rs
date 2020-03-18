@@ -2,9 +2,9 @@
 //!
 //!  On success (`is_success = 1`)
 //!  ----------------------------------------------------
-//!  |   format   |              |                       |
+//!  |            |              |                       |
 //!  |  version   |  is_success  |     app new state     |
-//!  |  (4 bytes) |   (1 byte)   |      (32 bytes)       |
+//!  |            |  (1 nibble)  |      (32 bytes)       |
 //!  |____________|______________|_______________________|
 //!  |          |              |         |               |
 //!  | #returns | ret #1 type  | ret #1  |    . . . .    |
@@ -16,39 +16,40 @@
 
 use byteorder::{BigEndian, WriteBytesExt};
 
+use svm_app::raw::NibbleWriter;
 use svm_common::State;
 use svm_runtime::{
     error::ExecAppError,
     receipt::{ExecReceipt, Receipt},
-    value::Value,
 };
 
 use super::{encode_error, helpers};
 use crate::svm_value_type;
 
 pub(crate) fn encode_exec_receipt(receipt: &ExecReceipt) -> Vec<u8> {
-    let mut buf = Vec::new();
+    let mut w = NibbleWriter::new();
 
     let wrapped_receipt = Receipt::ExecApp(receipt);
 
-    helpers::encode_is_success(&mut buf, &wrapped_receipt);
+    helpers::encode_version(0, &mut w);
+    helpers::encode_is_success(&wrapped_receipt, &mut w);
 
     if receipt.success {
-        encode_new_state(&mut buf, receipt);
-        helpers::encode_returns(&mut buf, &wrapped_receipt);
+        encode_new_state(receipt, &mut w);
+        helpers::encode_returns(&wrapped_receipt, &mut w);
     } else {
-        encode_error(&mut buf, &wrapped_receipt);
+        encode_error(&wrapped_receipt, &mut w);
     };
 
-    buf
+    w.into_bytes()
 }
 
-fn encode_new_state(buf: &mut Vec<u8>, receipt: &ExecReceipt) {
+fn encode_new_state(receipt: &ExecReceipt, w: &mut NibbleWriter) {
     debug_assert!(receipt.success);
 
     let new_state = receipt.get_new_state();
 
-    buf.extend_from_slice(new_state.as_slice());
+    helpers::encode_state(&new_state, w);
 }
 
 #[cfg(test)]
@@ -57,8 +58,9 @@ mod tests {
 
     use crate::testing::{self, ClientExecReceipt};
 
+    use svm_app::types::WasmValue;
     use svm_common::{Address, State};
-    use svm_runtime::{error::ExecAppError, value::Value};
+    use svm_runtime::error::ExecAppError;
 
     #[test]
     fn encode_decode_exec_receipt_error() {
@@ -110,7 +112,7 @@ mod tests {
     #[test]
     fn encode_decode_exec_receipt_success_with_returns() {
         let new_state = State::from(0x10_20_30_40);
-        let returns = vec![Value::I32(10), Value::I64(20), Value::I32(30)];
+        let returns = vec![WasmValue::I32(10), WasmValue::I64(20), WasmValue::I32(30)];
 
         let expected = ClientExecReceipt::Success {
             new_state: new_state.clone(),
