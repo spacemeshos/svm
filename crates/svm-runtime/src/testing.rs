@@ -46,6 +46,7 @@ pub fn instance_storage(instance: &Instance) -> &mut AppStorage {
     helpers::wasmer_data_app_storage(instance.context().data)
 }
 
+/// Mutably borrows the Buffer with id `buf_id` of a living `App` instance.
 pub fn instance_buffer(instance: &Instance, buf_id: u32) -> Option<&mut BufferRef> {
     helpers::wasmer_data_buffer(instance.context().data, buf_id)
 }
@@ -177,6 +178,7 @@ pub fn build_app_tx(
         .build()
 }
 
+/// Encodes a raw `HostCtx` and returns it as `Vec<u8>`.
 pub fn build_host_ctx(version: u32, fields: HashMap<u32, Vec<u8>>) -> Vec<u8> {
     let mut builder = HostCtxBuilder::new().with_version(version);
 

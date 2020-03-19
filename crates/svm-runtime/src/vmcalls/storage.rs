@@ -4,7 +4,7 @@ use wasmer_runtime::Ctx as WasmerCtx;
 
 use byteorder::{BigEndian, ByteOrder, LittleEndian};
 
-/// Copies the contents of `wasmer` memory cells under addresses:
+/// Copies the contents of memory cells under addresses:
 /// `mem_offset, mem_offset + 1, .. , mem_offset + count (exclusive)`
 /// into `SVM` register
 ///
@@ -30,7 +30,7 @@ pub fn mem_to_reg_copy(
     reg.set(&data[..]);
 }
 
-/// Copies the content of `wasmer` register indexed `src_reg` into `wasmer` memory cells under addresses:
+/// Copies the content of Register indexed `src_reg` into memory cells under addresses:
 /// `mem_offset, mem_offset + 1, .. , mem_offset + count (exclusive)`
 ///
 /// * `ctx`        - `wasmer` context (holds a `data` field. we use `SvmCtx`)
@@ -58,7 +58,7 @@ pub fn reg_to_mem_copy(
     }
 }
 
-/// Loads from the `SVM` instance's storage a page-slice into the register indexed `dest_reg`
+/// Loads from the App's storage a page-slice into the Register `{reg_bits}:{reg_idx}`.
 ///
 /// * `ctx`      - `wasmer` context (holds a `data` field. we use `SvmCtx`)
 /// * `page`     - Page index
@@ -81,7 +81,7 @@ pub fn storage_read_to_reg(
     reg.set(&slice);
 }
 
-/// Loads from the `SVM` instance's storage a page-slice into the memory address given
+/// Loads from the App's storage a page-slice into the memory address given.
 ///
 /// * `ctx`        - `wasmer` context (holds a `data` field. we use `SvmCtx`)
 /// * `page`       - Page index
@@ -114,7 +114,7 @@ pub fn storage_read_to_mem(
     }
 }
 
-/// Writes into `SVM` storage, a page-slice copied from `wasmer` memory
+/// Writes into App's storage, a page-slice copied from running App's memory.
 ///
 /// * `ctx`         - `wasmer` context (holds a `data` field. we use `SvmCtx`)
 /// * `mem_idx`     - The memory index we start to copy from
@@ -139,7 +139,7 @@ pub fn storage_write_from_mem(
     helpers::storage_write_page_slice(storage, page_idx, page_offset, count, &data);
 }
 
-/// Writes into `SVM` storage, a page-slice copied from `SVM wasmer` register
+/// Writes into `App` storage, a page-slice copied from Register `{reg_bits}:{reg_idx}`.
 ///
 /// * `ctx`         - `wasmer` context (holds a `data` field. we use `SvmCtx`)
 /// * `reg_bits`    - The type of the register (determined by its #bits) we want to copy data from
@@ -162,6 +162,13 @@ pub fn storage_write_from_reg(
     helpers::storage_write_page_slice(storage, page_idx, page_offset, count, data);
 }
 
+/// Stores into `App`'s storage the integer `n` in Big-Endian order.
+///
+/// * `ctx`         - `wasmer` context (holds a `data` field. we use `SvmCtx`)
+/// * `page_idx`    - Page index
+/// * `page_offset` - Offset for first byte to store.
+/// * `n`           - The integer to store.
+/// * `nbytes`      - The number of bytes required for storing `n` (`nbytes` <= 4).
 pub fn storage_write_i32_be(
     ctx: &mut WasmerCtx,
     page_idx: u32,
@@ -172,6 +179,13 @@ pub fn storage_write_i32_be(
     storage_write::<BigEndian>(ctx, page_idx, page_offset, n as u64, nbytes);
 }
 
+/// Stores into `App`'s storage the integer `n` in Little-Endian order.
+///
+/// * `ctx`         - `wasmer` context (holds a `data` field. we use `SvmCtx`)
+/// * `page_idx`    - Page index
+/// * `page_offset` - Offset for first byte to store.
+/// * `n`           - The integer to store.
+/// * `nbytes`      - The number of bytes required for storing `n` (`nbytes` <= 4)
 pub fn storage_write_i32_le(
     ctx: &mut WasmerCtx,
     page_idx: u32,
@@ -182,6 +196,13 @@ pub fn storage_write_i32_le(
     storage_write::<LittleEndian>(ctx, page_idx, page_offset, n as u64, nbytes);
 }
 
+/// Stores into `App`'s storage the integer `n` in Big-Endian order.
+///
+/// * `ctx`         - `wasmer` context (holds a `data` field. we use `SvmCtx`)
+/// * `page_idx`    - Page index
+/// * `page_offset` - Offset for first byte to store.
+/// * `n`           - The integer to store.
+/// * `nbytes`      - The number of bytes required for storing `n` (`nbytes` <= 8).
 pub fn storage_write_i64_be(
     ctx: &mut WasmerCtx,
     page_idx: u32,
@@ -192,6 +213,13 @@ pub fn storage_write_i64_be(
     storage_write::<BigEndian>(ctx, page_idx, page_offset, n, nbytes);
 }
 
+/// Stores into `App`'s storage the integer `n` in Little-Endian order.
+///
+/// * `ctx`         - `wasmer` context (holds a `data` field. we use `SvmCtx`)
+/// * `page_idx`    - Page index
+/// * `page_offset` - Offset for first byte to store.
+/// * `n`           - The integer to store.
+/// * `nbytes`      - The number of bytes required for storing `n` (`nbytes` <= 8).
 pub fn storage_write_i64_le(
     ctx: &mut WasmerCtx,
     page_idx: u32,
@@ -202,6 +230,12 @@ pub fn storage_write_i64_le(
     storage_write::<LittleEndian>(ctx, page_idx, page_offset, n, nbytes);
 }
 
+/// Reads `App`'s storage into a 32-bit integer. Integer is interpreted as Big-Endian integer.
+///
+/// * `ctx`         - `wasmer` context (holds a `data` field. we use `SvmCtx`).
+/// * `page_idx`    - Page index.
+/// * `page_offset` - Offset for first byte to store.
+/// * `count`       - The number of bytes required for reading the integer. (`count` <= 4).
 pub fn storage_read_i32_be(
     ctx: &mut WasmerCtx,
     page_idx: u32,
@@ -211,6 +245,12 @@ pub fn storage_read_i32_be(
     storage_read_int::<BigEndian>(ctx, page_idx, page_offset, count) as u32
 }
 
+/// Reads `App`'s storage into a 32-bit integer. Integer is interpreted as Little-Endian integer.
+///
+/// * `ctx`         - `wasmer` context (holds a `data` field. we use `SvmCtx`).
+/// * `page_idx`    - Page index.
+/// * `page_offset` - Offset for first byte to store.
+/// * `count`       - The number of bytes required for reading the integer. (`count` <= 4).
 pub fn storage_read_i32_le(
     ctx: &mut WasmerCtx,
     page_idx: u32,
@@ -220,6 +260,12 @@ pub fn storage_read_i32_le(
     storage_read_int::<LittleEndian>(ctx, page_idx, page_offset, count) as u32
 }
 
+/// Reads `App`'s storage into a 64-bit integer. Integer is interpreted as Big-Endian integer.
+///
+/// * `ctx`         - `wasmer` context (holds a `data` field. we use `SvmCtx`).
+/// * `page_idx`    - Page index.
+/// * `page_offset` - Offset for first byte to store.
+/// * `count`       - The number of bytes required for reading the integer. (`count` <= 4).
 pub fn storage_read_i64_be(
     ctx: &mut WasmerCtx,
     page_idx: u32,
@@ -229,6 +275,12 @@ pub fn storage_read_i64_be(
     storage_read_int::<BigEndian>(ctx, page_idx, page_offset, count)
 }
 
+/// Reads `App`'s storage into a 64-bit integer. Integer is interpreted as Little-Endian integer.
+///
+/// * `ctx`         - `wasmer` context (holds a `data` field. we use `SvmCtx`).
+/// * `page_idx`    - Page index.
+/// * `page_offset` - Offset for first byte to store.
+/// * `count`       - The number of bytes required for reading the integer. (`count` <= 4).
 pub fn storage_read_i64_le(
     ctx: &mut WasmerCtx,
     page_idx: u32,
