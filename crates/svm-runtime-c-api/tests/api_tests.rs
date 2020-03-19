@@ -222,9 +222,9 @@ unsafe fn test_svm_runtime() {
     let res = api::svm_deploy_template(
         &mut template_receipt,
         runtime,
+        template_bytes,
         author,
         host_ctx,
-        template_bytes,
         dry_run,
     );
     assert!(res.is_ok());

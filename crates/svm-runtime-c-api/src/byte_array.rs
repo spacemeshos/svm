@@ -104,7 +104,7 @@ impl TryFrom<svm_byte_array> for String {
 /// let data = vec![0x10u8, 0x20u8, 0x30u8];
 /// let ptr = data.as_ptr();
 ///
-/// let array: svm_byte_array = data.into();
+/// let array: svm_byte_array = (&data[..]).into();
 /// assert_eq!(ptr, array.bytes);
 /// assert_eq!(3, array.length);
 /// ```
