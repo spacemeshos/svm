@@ -6,14 +6,17 @@ use crate::{
 use super::super::{concat_nibbles, Field, Nibble, NibbleIter};
 use super::{WasmValueLayout, DO_SKIP, NO_MORE};
 
+/// Decodes raw func args field.
 pub fn decode_func_args(iter: &mut NibbleIter) -> Result<Vec<WasmValue>, ParseError> {
     decode_func_values(iter)
 }
 
+/// Decodes raw func returns.
 pub fn decode_func_rets(iter: &mut NibbleIter) -> Result<Vec<WasmValue>, ParseError> {
     decode_func_values(iter)
 }
 
+/// Decodes raw func values (args or returns)
 fn decode_func_values(iter: &mut NibbleIter) -> Result<Vec<WasmValue>, ParseError> {
     let mut func_values = Vec::new();
     let layouts = decode_values_layouts(iter)?;

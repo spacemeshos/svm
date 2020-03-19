@@ -7,9 +7,10 @@ use crate::types::TemplateAddr;
 /// An in-memory representation of an app.
 #[derive(PartialEq)]
 pub struct App {
+    /// `App` version.
     pub version: u32,
 
-    /// `Address` of the `AppTemplate` app is being spawned from.
+    /// `Address` of the `AppTemplate`, the App is being spawned from.
     pub template: TemplateAddr,
 }
 

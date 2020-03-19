@@ -4,6 +4,7 @@ use crate::{
     types::AppTemplate,
 };
 
+/// Encodes a raw Deploy-Template.
 #[must_use]
 pub fn encode_deploy_template(template: &AppTemplate, w: &mut NibbleWriter) {
     encode_version(template, w);
@@ -12,6 +13,7 @@ pub fn encode_deploy_template(template: &AppTemplate, w: &mut NibbleWriter) {
     encode_code(template, w);
 }
 
+/// Decodes a raw Deploy-Template.
 #[must_use]
 pub fn decode_deploy_template(iter: &mut NibbleIter) -> Result<AppTemplate, ParseError> {
     let version = decode_version(iter)?;

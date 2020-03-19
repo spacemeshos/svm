@@ -4,6 +4,7 @@ use crate::{
     types::{App, SpawnApp, TemplateAddr, WasmValue},
 };
 
+/// Encodes a raw Spawn-App transaction.
 pub fn encode_spawn_app(spawn: &SpawnApp, w: &mut NibbleWriter) {
     encode_version(spawn, w);
     encode_template(spawn, w);

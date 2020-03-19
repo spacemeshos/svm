@@ -4,6 +4,7 @@ use crate::{
     types::{AppAddr, AppTransaction, WasmValue},
 };
 
+/// Encodes a raw App transaction.
 pub fn encode_exec_app(tx: &AppTransaction, w: &mut NibbleWriter) {
     encode_version(tx, w);
     encode_app(tx, w);

@@ -1,3 +1,4 @@
+/// Wasm Integer.
 #[derive(Clone, PartialEq, Debug)]
 pub enum WasmValue {
     /// A 32-bit integer.
