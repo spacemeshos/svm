@@ -18,6 +18,7 @@ use svm_storage::{
     AppStorage,
 };
 
+/// Reads App's storage page `page` bytes: `offset, offset + 1, ... offset + len - 1` and returns them as a `Vec<u8>`
 pub fn storage_read_page_slice(
     storage: &mut AppStorage,
     page: u32,
@@ -28,6 +29,7 @@ pub fn storage_read_page_slice(
     storage.read_page_slice(&layout)
 }
 
+/// Writes slice `data` into App's storage at page `page` under bytes: `offset, offest + 1, ..., offset + len - 1`
 pub fn storage_write_page_slice(
     storage: &mut AppStorage,
     page: u32,
@@ -39,6 +41,7 @@ pub fn storage_write_page_slice(
     storage.write_page_slice(&layout, data);
 }
 
+/// Helpers method for creating a `PageSliceLayout`.
 pub fn page_slice_layout(page_idx: u32, page_offset: u32, len: u32) -> PageSliceLayout {
     assert!(page_idx <= u16::max_value() as u32);
     assert!(len > 0);
