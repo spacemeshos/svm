@@ -4,8 +4,6 @@ use crate::{
     types::{AppAddr, AppTransaction, WasmValue},
 };
 
-use svm_common::Address;
-
 pub fn encode_exec_app(tx: &AppTransaction, w: &mut NibbleWriter) {
     encode_version(tx, w);
     encode_app(tx, w);

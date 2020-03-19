@@ -4,8 +4,6 @@ use crate::{
     types::{App, CreatorAddr, TemplateAddr},
 };
 
-use svm_common::Address;
-
 /// Default serializer for `App`
 pub struct DefaultAppSerializer;
 

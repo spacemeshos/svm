@@ -12,7 +12,7 @@ use svm_common::{Address, DefaultKeyHasher, KeyHasher};
 pub struct DefaultAppTemplateAddressCompute;
 
 impl AppTemplateAddressCompute for DefaultAppTemplateAddressCompute {
-    fn compute(template: &AppTemplate, host_ctx: &HostCtx) -> TemplateAddr {
+    fn compute(template: &AppTemplate, _host_ctx: &HostCtx) -> TemplateAddr {
         let mut buf = Vec::with_capacity(Address::len() + template.code.len());
 
         // TODO: extract `author` from `host_ctx`

@@ -1,4 +1,4 @@
-use super::super::{Field, Nibble, NibbleIter};
+use super::super::{Field, NibbleIter};
 
 use crate::error::ParseError;
 

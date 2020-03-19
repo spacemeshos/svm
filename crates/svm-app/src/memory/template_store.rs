@@ -6,8 +6,6 @@ use crate::{
     types::{AppTemplate, AppTemplateHash, AuthorAddr, TemplateAddr},
 };
 
-use svm_common::Address;
-
 /// An in-memory implementation of `AppTemplateStore`
 pub struct MemAppTemplateStore<S, D> {
     bytes: HashMap<AppTemplateHash, Vec<u8>>,
@@ -45,7 +43,7 @@ where
     ) -> Result<(), StoreError> {
         self.hash.insert(addr.clone(), hash.clone());
 
-        let mut bytes = S::serialize(template, author);
+        let bytes = S::serialize(template, author);
         self.bytes.insert(hash.clone(), bytes);
 
         Ok(())

@@ -3,8 +3,6 @@ use crate::{
     types::{App, AppAddr, AppTemplate, AppTemplateHash, AuthorAddr, CreatorAddr, TemplateAddr},
 };
 
-use svm_common::Address;
-
 /// A persistent store for `AppTemplate`(s)
 pub trait AppTemplateStore {
     #[must_use]

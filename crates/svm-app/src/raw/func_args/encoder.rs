@@ -2,7 +2,7 @@ use crate::nib;
 
 use crate::types::{WasmType, WasmValue};
 
-use super::super::{Field, Nibble, NibbleWriter};
+use super::super::NibbleWriter;
 use super::{WasmValueLayout, NO_MORE};
 
 pub fn encode_func_args(args: &[WasmValue], w: &mut NibbleWriter) {
@@ -70,7 +70,6 @@ fn wasm_value_byte_length(value: u64) -> usize {
         0x_01_00_00_00_00_00..=0xFF_FF_FF_FF_FF_FF => 6,
         0x_01_00_00_00_00_00_00..=0xFF_FF_FF_FF_FF_FF_FF => 7,
         0x_01_00_00_00_00_00_00_00..=0xFF_FF_FF_FF_FF_FF_FF_FF => 8,
-        _ => unreachable!(),
     }
 }
 

@@ -18,7 +18,6 @@
 
 use std::{
     collections::HashMap,
-    ffi::c_void,
     io::{Cursor, Read},
 };
 

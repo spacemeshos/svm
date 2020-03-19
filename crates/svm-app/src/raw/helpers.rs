@@ -1,7 +1,7 @@
 use super::{Field, NibbleIter, NibbleWriter};
-use crate::{error::ParseError, nib, raw, types::WasmValue};
+use crate::{error::ParseError, raw, types::WasmValue};
 
-use byteorder::{BigEndian, ByteOrder, WriteBytesExt};
+use byteorder::{BigEndian, ByteOrder};
 
 use svm_common::Address;
 

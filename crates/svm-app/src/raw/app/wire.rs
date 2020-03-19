@@ -4,8 +4,6 @@ use crate::{
     types::{App, SpawnApp, TemplateAddr, WasmValue},
 };
 
-use svm_common::Address;
-
 pub fn encode_spawn_app(spawn: &SpawnApp, w: &mut NibbleWriter) {
     encode_version(spawn, w);
     encode_template(spawn, w);

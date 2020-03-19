@@ -1,4 +1,4 @@
-use super::super::{encode_varuint14, Field, Nibble, NibbleWriter};
+use super::super::{encode_varuint14, NibbleWriter};
 
 pub fn encode_func_buf(buf: &[u8], w: &mut NibbleWriter) {
     let len = buf.len();

@@ -1,7 +1,5 @@
 use std::fmt;
 
-use svm_common::Address;
-
 /// An in-memory representation of an app-template.
 #[allow(missing_docs)]
 #[derive(PartialEq)]

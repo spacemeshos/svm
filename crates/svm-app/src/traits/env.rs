@@ -11,8 +11,6 @@ use crate::{
     },
 };
 
-use svm_common::Address;
-
 /// `Env` storage serialization types
 pub trait EnvSerializerTypes {
     /// `AppTemplate`'s Serializer

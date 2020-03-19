@@ -55,21 +55,21 @@ impl HostCtxBuilder {
         self
     }
 
-    pub fn with_byte_field(mut self, idx: u32, value: u8) -> Self {
+    pub fn with_byte_field(self, idx: u32, value: u8) -> Self {
         let mut buf = Vec::with_capacity(1);
         buf.write_u8(value).unwrap();
 
         self.with_raw_field(idx, &buf[..])
     }
 
-    pub fn with_u16_field(mut self, idx: u32, value: u16) -> Self {
+    pub fn with_u16_field(self, idx: u32, value: u16) -> Self {
         let mut buf = Vec::with_capacity(2);
         buf.write_u16::<BigEndian>(value).unwrap();
 
         self.with_raw_field(idx, &buf[..])
     }
 
-    pub fn with_u32_field(mut self, idx: u32, value: u32) -> Self {
+    pub fn with_u32_field(self, idx: u32, value: u32) -> Self {
         let mut buf = Vec::with_capacity(4);
         buf.write_u32::<BigEndian>(value).unwrap();
 

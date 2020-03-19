@@ -1,10 +1,8 @@
 use crate::{
     error::ParseError,
-    raw::{concat_nibbles, helpers, Field, NibbleIter, NibbleWriter},
+    raw::{helpers, Field, NibbleIter, NibbleWriter},
     types::AppTemplate,
 };
-
-use svm_common::Address;
 
 #[must_use]
 pub fn encode_deploy_template(template: &AppTemplate, w: &mut NibbleWriter) {

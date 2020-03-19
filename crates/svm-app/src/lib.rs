@@ -1,5 +1,5 @@
-#![allow(missing_docs)]
-#![allow(unused)]
+#![deny(missing_docs)]
+#![deny(unused)]
 
 //! The `svm-app` crate is responsible on `Spacemesh` `AppTemplate`(s) and `App`(s).
 

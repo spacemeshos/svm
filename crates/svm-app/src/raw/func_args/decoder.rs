@@ -3,7 +3,7 @@ use crate::{
     types::{WasmType, WasmValue},
 };
 
-use super::super::{concat_nibbles, Field, Nibble, NibbleIter, NibbleWriter};
+use super::super::{concat_nibbles, Field, Nibble, NibbleIter};
 use super::{WasmValueLayout, DO_SKIP, NO_MORE};
 
 pub fn decode_func_args(iter: &mut NibbleIter) -> Result<Vec<WasmValue>, ParseError> {

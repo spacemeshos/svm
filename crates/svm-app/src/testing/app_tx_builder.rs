@@ -1,5 +1,5 @@
 use crate::{
-    raw::{encode_exec_app, helpers, NibbleWriter},
+    raw::{encode_exec_app, NibbleWriter},
     types::{AppAddr, AppTransaction, WasmValue},
 };
 
@@ -86,7 +86,7 @@ impl AppTxBuilder {
         self
     }
 
-    pub fn build(mut self) -> Vec<u8> {
+    pub fn build(self) -> Vec<u8> {
         let version = self.version.unwrap();
         let app = self.app.unwrap();
         let func_idx = self.func_idx.unwrap();
