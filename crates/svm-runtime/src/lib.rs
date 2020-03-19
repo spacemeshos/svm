@@ -18,8 +18,10 @@ mod storage;
 /// Implements `SvmCtx`. Used for running `SVM` instances.
 pub mod ctx;
 
+/// `Register` used for for running `App`s.
 pub mod register;
 
+/// `Buffer` used for for running `App`s.
 pub mod buffer;
 
 /// Implements the helpers to be consumed by `SVM` vmcalls.
