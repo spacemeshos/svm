@@ -1,4 +1,4 @@
-use std::{convert::TryFrom, ffi::c_void, fmt, marker::PhantomData};
+use std::{ffi::c_void, fmt, marker::PhantomData};
 
 use log::{debug, error, info};
 
@@ -22,7 +22,7 @@ use svm_app::{
         TemplateAddr, WasmValue,
     },
 };
-use svm_common::{Address, State};
+use svm_common::State;
 use svm_storage::AppStorage;
 
 use wasmer_runtime::Value as WasmerValue;
@@ -188,7 +188,7 @@ where
         spawn: &SpawnApp,
         creator: &CreatorAddr,
         host_ctx: &HostCtx,
-        spawn_gas: u64,
+        _spawn_gas: u64,
         dry_run: bool,
     ) -> Result<AppAddr, SpawnAppError> {
         if dry_run == false {
@@ -203,7 +203,7 @@ where
 
     fn build_ctor_call(
         &self,
-        creator: &CreatorAddr,
+        _creator: &CreatorAddr,
         spawn: SpawnApp,
         app_addr: &AppAddr,
     ) -> AppTransaction {
@@ -287,7 +287,7 @@ where
                     Some(new_state)
                 };
 
-                let returns = self.cast_wasmer_func_returns(tx, template_addr, returns)?;
+                let returns = self.cast_wasmer_func_returns(returns)?;
 
                 // TODO: use the real `gas_used`
                 let gas_used = Some(0);
@@ -338,8 +338,6 @@ where
 
     fn cast_wasmer_func_returns(
         &self,
-        tx: &AppTransaction,
-        template_addr: &TemplateAddr,
         returns: Vec<WasmerValue>,
     ) -> Result<Vec<WasmValue>, ExecAppError> {
         let mut values = Vec::new();
@@ -526,13 +524,13 @@ where
     }
 
     /// Gas
-    fn compute_install_template_gas(&self, bytes: &[u8], template: &AppTemplate) -> u64 {
+    fn compute_install_template_gas(&self, _bytes: &[u8], _template: &AppTemplate) -> u64 {
         0
         // todo!()
         // GE::est_deploy_template(bytes, template)
     }
 
-    fn compute_install_app_gas(&self, bytes: &[u8], spawn: &SpawnApp) -> u64 {
+    fn compute_install_app_gas(&self, _bytes: &[u8], _spawn: &SpawnApp) -> u64 {
         0
         // todo!()
         // GE::est_spawn_app(bytes, spawn)

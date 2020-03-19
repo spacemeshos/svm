@@ -23,10 +23,12 @@ pub struct ExecReceipt {
 }
 
 impl ExecReceipt {
+    /// Returns App's new `State``. Panics if transaction has failed.
     pub fn get_new_state(&self) -> &State {
         self.new_state.as_ref().unwrap()
     }
 
+    /// Returns executed transaction results. Panics if transaction has failed.
     pub fn get_returns(&self) -> &Vec<WasmValue> {
         self.returns.as_ref().unwrap()
     }

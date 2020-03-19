@@ -1,7 +1,5 @@
 use std::{error, fmt};
 
-use svm_app::error::ParseError;
-
 use svm_app::types::{AppAddr, TemplateAddr};
 
 /// `exec-app` error
@@ -110,10 +108,6 @@ impl fmt::Display for ExecAppError {
 }
 
 impl ExecAppError {
-    fn fmt_parse_failed(&self, e: &ParseError) -> String {
-        e.to_string()
-    }
-
     fn fmt_app_not_found(&self, app_addr: &AppAddr) -> String {
         format!("App `{:?}` not found", app_addr.inner())
     }

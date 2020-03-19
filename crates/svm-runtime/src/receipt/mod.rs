@@ -8,13 +8,20 @@ pub use deploy_template::TemplateReceipt;
 pub use exec_app::ExecReceipt;
 pub use spawn_app::{make_spawn_app_receipt, SpawnAppReceipt};
 
+/// Borrowed Receipt
 pub enum Receipt<'a> {
+    /// Borrow for a `TemplateReceipt`.
     DeployTemplate(&'a TemplateReceipt),
+
+    /// Borrow for a `SpawnAppReceipt`.
     SpawnApp(&'a SpawnAppReceipt),
+
+    /// Borrow for a `ExecReceipt`.
     ExecApp(&'a ExecReceipt),
 }
 
 impl<'a> Receipt<'a> {
+    /// Returns whether the transaction succeeded.
     pub fn is_success(&self) -> bool {
         match self {
             Self::DeployTemplate(r) => r.success,
@@ -23,6 +30,7 @@ impl<'a> Receipt<'a> {
         }
     }
 
+    /// Returns the gas used for the transaction.
     pub fn gas_used(&self) -> u64 {
         match self {
             Self::DeployTemplate(r) => r.gas_used.unwrap(),
@@ -31,6 +39,7 @@ impl<'a> Receipt<'a> {
         }
     }
 
+    /// Returns the executed transaction results.
     pub fn get_returns(&self) -> &Vec<WasmValue> {
         match self {
             Self::DeployTemplate(..) => unreachable!(),
@@ -39,6 +48,7 @@ impl<'a> Receipt<'a> {
         }
     }
 
+    /// Returns a failed transaction error as a `String`.
     pub fn error_string(&self) -> String {
         match self {
             Self::DeployTemplate(r) => r.error.as_ref().unwrap().to_string(),

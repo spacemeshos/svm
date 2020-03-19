@@ -18,7 +18,7 @@ use svm_storage::AppStorage;
 use svm_app::{
     memory::{DefaultMemAppStore, DefaultMemAppTemplateStore, DefaultMemoryEnv},
     testing::{AppTxBuilder, DeployAppTemplateBuilder, HostCtxBuilder, SpawnAppBuilder},
-    types::{AppAddr, AuthorAddr, CreatorAddr, TemplateAddr, WasmValue},
+    types::{AppAddr, TemplateAddr, WasmValue},
 };
 
 use wasmer_runtime_core::{export::Export, import::ImportObject, Instance, Module};

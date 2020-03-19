@@ -24,8 +24,10 @@ pub struct SvmCtx {
     /// Raw pointer to host context fields.
     pub host_ctx: *const HostCtx,
 
+    /// Holds the context registers.
     pub regs: Registers,
 
+    /// Holds the context buffers.
     pub buffers: HashMap<u32, BufferRef>,
 
     /// An accessor to the app's storage

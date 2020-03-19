@@ -1,6 +1,6 @@
 use std::{cell::RefCell, ffi::c_void, path::Path, rc::Rc};
 
-use svm_common::{Address, State};
+use svm_common::State;
 use svm_kv::rocksdb::Rocksdb;
 
 use svm_app::{
