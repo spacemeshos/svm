@@ -14,17 +14,10 @@
 //!  On success (`is_success = 0`)
 //!  See [error.rs][./error.rs]
 
-use byteorder::{BigEndian, WriteBytesExt};
-
 use svm_app::raw::NibbleWriter;
-use svm_common::State;
-use svm_runtime::{
-    error::ExecAppError,
-    receipt::{ExecReceipt, Receipt},
-};
+use svm_runtime::receipt::{ExecReceipt, Receipt};
 
 use super::{encode_error, helpers};
-use crate::svm_value_type;
 
 pub(crate) fn encode_exec_receipt(receipt: &ExecReceipt) -> Vec<u8> {
     let mut w = NibbleWriter::new();

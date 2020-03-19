@@ -11,14 +11,8 @@
 //!  On success (`is_success = 0`)
 //!  See [error.rs][./error.rs]
 
-use byteorder::{BigEndian, WriteBytesExt};
-
 use svm_app::raw::NibbleWriter;
-use svm_common::Address;
-use svm_runtime::{
-    error::DeployTemplateError,
-    receipt::{Receipt, TemplateReceipt},
-};
+use svm_runtime::receipt::{Receipt, TemplateReceipt};
 
 use super::{encode_error, helpers};
 

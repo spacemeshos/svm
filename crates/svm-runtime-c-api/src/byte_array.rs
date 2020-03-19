@@ -1,7 +1,4 @@
-use std::{
-    convert::{TryFrom, TryInto},
-    string::FromUtf8Error,
-};
+use std::{convert::TryFrom, string::FromUtf8Error};
 
 /// FFI representation for a byte-array
 ///

@@ -4,8 +4,6 @@ use svm_app::{
 };
 use svm_common::{Address, State};
 
-use crate::svm_value_type;
-
 pub(crate) fn decode_is_success(iter: &mut NibbleIter) -> u8 {
     let is_success: Nibble = iter.next().unwrap();
     is_success.inner()

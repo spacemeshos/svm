@@ -1,3 +1,20 @@
+///
+/// # Example
+///
+/// ```rust
+/// use std::convert::TryFrom;
+///
+/// use svm_common::Address;
+/// use svm_runtime_c_api::svm_byte_array;
+///
+/// let bytes: svm_byte_array = Address::of("@someone").into();
+/// assert_eq!(Address::len(), bytes.length as usize);
+///
+/// let res: Result<Address, String> = Address::try_from(bytes);
+/// dbg!(res);
+/// // assert_eq!(Address::of("@someone"), res.unwrap());
+/// ```
+///
 #[macro_export]
 macro_rules! impl_from_svm_byte_array {
     ($struct:ident) => {
@@ -23,6 +40,23 @@ macro_rules! impl_from_svm_byte_array {
     }
 }
 
+///
+/// # Example
+///
+/// ```rust
+/// use std::convert::TryFrom;
+///
+/// use svm_common::Address;
+/// use svm_runtime_c_api::svm_byte_array;
+///
+/// let bytes: svm_byte_array = Address::of("@someone").into();
+/// assert_eq!(Address::len(), bytes.length as usize);
+///
+/// let res: Result<Address, String> = Address::try_from(bytes);
+/// panic!(res);
+/// // assert_eq!(Address::of("@someone"), res.unwrap());
+/// ```
+///
 #[macro_export]
 macro_rules! impl_into_svm_byte_array {
     ($struct:ident) => {

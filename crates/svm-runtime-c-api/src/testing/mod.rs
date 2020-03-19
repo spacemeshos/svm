@@ -1,20 +1,14 @@
-mod receipt;
+use std::ffi::c_void;
 
+mod receipt;
 pub use receipt::{
     decode_app_receipt, decode_exec_receipt, decode_template_receipt, ClientAppReceipt,
     ClientExecReceipt, ClientTemplateReceipt,
 };
 
-use std::{cell::RefCell, ffi::c_void, rc::Rc};
+use crate::svm_value_type;
 
-use crate::{
-    helpers, svm_byte_array, svm_result_t, svm_value_type, svm_value_type_array, RuntimePtr,
-};
-
-use log::debug;
-
-use svm_kv::memory::MemKVStore;
-use svm_runtime::{ctx::SvmCtx, Runtime};
+use svm_runtime::ctx::SvmCtx;
 
 use wasmer_runtime_c_api::instance::wasmer_instance_context_t;
 use wasmer_runtime_core::vm::Ctx;
@@ -46,6 +40,7 @@ pub unsafe fn cast_to_wasmer_ctx<'a>(ctx: *mut wasmer_instance_context_t) -> &'a
     &mut *(ctx as *mut Ctx)
 }
 
+/// Allocates `count` imports array, returns a pointer to the first import.
 pub fn imports_alloc(count: u32) -> *mut c_void {
     let mut imports = std::ptr::null_mut();
 
