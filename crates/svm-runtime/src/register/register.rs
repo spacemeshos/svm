@@ -1,5 +1,7 @@
 use std::ptr;
 
+/// `Register` is a fixed-sized buffer used for simplifing memory-allocations in many cases.
+/// Similarly to hardware, each buffer can be saved (see `push`) and later restored (see `pop`).
 #[derive(Debug, Clone)]
 pub struct Register {
     byte_size: usize,
@@ -9,6 +11,7 @@ pub struct Register {
 }
 
 impl Register {
+    /// Creates a new `Register` struct.
     pub fn new(byte_size: usize, init_cap: usize) -> Self {
         let init_cap = std::cmp::max(1, init_cap);
 
@@ -20,6 +23,7 @@ impl Register {
         }
     }
 
+    /// Saves current register data. See `pop` for restore.
     pub fn push(&mut self) {
         let new_current = self.current + self.byte_size;
 
@@ -33,6 +37,7 @@ impl Register {
         self.current = new_current;
     }
 
+    /// Restoring the Register's data to its previous data.
     pub fn pop(&mut self) {
         assert!(self.current >= self.byte_size);
 
@@ -41,26 +46,33 @@ impl Register {
         self.current -= self.byte_size;
     }
 
+    /// Returns a copy of the buffer underlying data.
     pub fn view(&self) -> Vec<u8> {
         self.get().to_owned()
     }
 
+    /// Returns a borrow to Register's underlying data.
     pub fn get(&self) -> &[u8] {
         &self.data[self.current..self.current + self.byte_size]
     }
 
+    /// Returns a mutable borrow to Register's underlying data.
     pub fn get_mut(&mut self) -> &mut [u8] {
         &mut self.data[self.current..self.current + self.byte_size]
     }
 
+    /// Returns a raw pointer Register's underlying data.
     pub fn as_ptr(&self) -> *const u8 {
         self.get().as_ptr()
     }
 
+    /// Returns a mutable raw pointer Register's underlying data.
     pub fn as_mut_ptr(&mut self) -> *mut u8 {
         self.get_mut().as_mut_ptr()
     }
 
+    /// Overrides Register's data with `data`.
+    /// If `data` is smaller than Register's size, it pads the remaining register bytes with zeros.
     pub fn set(&mut self, data: &[u8]) {
         let count = data.len();
 
@@ -80,6 +92,7 @@ impl Register {
         }
     }
 
+    /// Returns a slice to Register firt `count` bytes.
     pub fn getn(&self, count: usize) -> &[u8] {
         self.ensure_fits(count);
 
@@ -88,6 +101,8 @@ impl Register {
         &data[0..count]
     }
 
+    /// Copies the content of `src, src + 1, ... src + count - 1` into register.
+    /// If `count` is smaller than Register's size, it pads the remaining register bytes with zeros.
     pub unsafe fn copy(&mut self, src: *const u8, count: usize) {
         self.ensure_fits(count);
 
@@ -102,6 +117,7 @@ impl Register {
         }
     }
 
+    /// Panics if `count` is smaller than Regiser's byte size.
     #[inline]
     fn ensure_fits(&self, count: usize) {
         assert!(
@@ -113,6 +129,7 @@ impl Register {
         );
     }
 
+    /// Zeros Register's bytes `offset, offset + 1, ..., offset + count - 1`
     fn zero(&mut self, offset: usize, count: usize) {
         assert!(offset + count == self.byte_size);
 
