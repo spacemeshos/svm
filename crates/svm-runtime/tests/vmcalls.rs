@@ -358,6 +358,7 @@ fn vmcalls_storage_write_from_reg() {
 
     // we copy register first into storage
     let func: Func<(u32, u32, u32, u32, u32)> = instance.func("run").unwrap();
+
     assert!(func
         .call(reg_bits, reg_idx, page_idx, page_offset, count)
         .is_ok());
@@ -488,6 +489,50 @@ fn vmcalls_reg_set_number() {
         &[0x80, 0x70, 0x60, 0x50, 0x40, 0x30, 0x20, 0x10],
         &reg.view()[0..8]
     );
+}
+
+#[test]
+fn vmcalls_reg_cmp() {
+    let reg_idx1 = 1;
+    let reg_idx2 = 2;
+
+    let (app_addr, state, host, host_ctx, page_count) = default_test_args();
+
+    let import_object = imports! {
+        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, page_count),
+
+        "svm" => {
+            "reg_cmp" => func!(vmcalls::reg_cmp),
+        },
+    };
+
+    let instance = testing::instantiate(&import_object, include_str!("wasm/reg_cmp.wast"));
+    let reg1 = instance_register(&instance, 128, reg_idx1);
+    let reg2 = instance_register(&instance, 128, reg_idx2);
+
+    // equal
+    reg1.set(&[0x10, 0x20, 0x30]);
+    reg2.set(&[0x10, 0x20, 0x30]);
+
+    let func: Func<(u32, u32), i32> = instance.func("reg_128_cmp").unwrap();
+    let rets = func.call(reg_idx1, reg_idx2);
+    assert_eq!(Ok(0), rets);
+
+    // greater-than
+    reg1.set(&[0x10, 0x20, 0x40]);
+    reg2.set(&[0x10, 0x20, 0x30]);
+
+    let func: Func<(u32, u32), i32> = instance.func("reg_128_cmp").unwrap();
+    let rets = func.call(reg_idx1, reg_idx2);
+    assert_eq!(Ok(-1), rets);
+
+    // less-than
+    reg1.set(&[0x10, 0x20, 0x30]);
+    reg2.set(&[0x10, 0x20, 0x40]);
+
+    let func: Func<(u32, u32), i32> = instance.func("reg_128_cmp").unwrap();
+    let rets = func.call(reg_idx1, reg_idx2);
+    assert_eq!(Ok(1), rets);
 }
 
 #[test]
