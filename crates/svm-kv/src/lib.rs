@@ -1,5 +1,7 @@
 #![deny(missing_docs)]
 #![deny(unused)]
+#![deny(dead_code)]
+#![deny(unreachable_code)]
 
 //! The `svm-kv` is responsible on providing different implementations for the `KVStore` trait.
 //! (defined in `traits.rs`).

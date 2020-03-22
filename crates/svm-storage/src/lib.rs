@@ -1,5 +1,7 @@
 #![deny(missing_docs)]
 #![deny(unused)]
+#![deny(dead_code)]
+#![deny(unreachable_code)]
 
 //! `svm-storage` crate is responsible for the app-storage part of the `SVM`
 //! Each app has its own storage

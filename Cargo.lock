@@ -926,8 +926,6 @@ name = "svm-common"
 version = "0.0.0"
 dependencies = [
  "byteorder",
- "serde",
- "serde_json",
  "tiny-keccak",
 ]
 
