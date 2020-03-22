@@ -2,7 +2,7 @@
 #[macro_export]
 macro_rules! impl_bytes_primitive {
     ($primitive: ident, $byte_count: expr) => {
-        /// Spacemesh `$primitive` consists of `$byte_count` bytes.
+        /// `$primitive` consists of `$byte_count` bytes.
         #[derive(Debug, Clone, Hash, PartialEq, Eq)]
         #[repr(transparent)]
         pub struct $primitive(pub(self) [u8; $byte_count]);
