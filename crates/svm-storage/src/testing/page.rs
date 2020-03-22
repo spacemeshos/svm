@@ -38,12 +38,10 @@ pub fn concat_pages_hash(pages_hash: &[PageHash]) -> Vec<u8> {
 pub fn compute_pages_state(pages_hash: &[PageHash]) -> State {
     let concat_ph = concat_pages_hash(pages_hash);
 
-    let state = Some(concat_ph.as_slice())
+    Some(concat_ph.as_slice())
         .map(|jph| {
             let h = DefaultKeyHasher::hash(jph);
             State::from(h.as_ref())
         })
-        .unwrap();
-
-    state
+        .unwrap()
 }

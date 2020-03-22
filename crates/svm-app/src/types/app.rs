@@ -7,15 +7,16 @@ use crate::types::TemplateAddr;
 /// An in-memory representation of an app.
 #[derive(PartialEq)]
 pub struct App {
+    /// `App` version.
     pub version: u32,
 
-    /// `Address` of the `AppTemplate` app is being spawned from.
+    /// `Address` of the `AppTemplate`, the App is being spawned from.
     pub template: TemplateAddr,
 }
 
 impl fmt::Debug for App {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let version = self.fmt_version(*&self.version);
+        let version = self.fmt_version(self.version);
         let template = self.fmt_template(&self.template);
 
         let msg = [version, template].join("\n");

@@ -8,6 +8,7 @@ use crate::error::ParseError;
 
 use super::{concat_nibbles, Nibble};
 
+/// Nibbles Iterator
 pub struct NibbleIter<'a> {
     buf: [u8; 1],
     length: u64,
@@ -28,6 +29,7 @@ impl<'a> fmt::Debug for NibbleIter<'a> {
 }
 
 impl<'a> NibbleIter<'a> {
+    /// Creates a new Iterator over input `data`.
     pub fn new(data: &'a [u8]) -> Self {
         let cursor = Cursor::new(data);
         let length = cursor.get_ref().len() as u64;
@@ -42,11 +44,14 @@ impl<'a> NibbleIter<'a> {
         }
     }
 
+    /// Returns whether the number of nibbles read so far is even.
+    /// (If it's even we say that we're byte aligned).
     #[inline]
     pub fn is_byte_aligned(&self) -> bool {
         self.nibbles_read % 2 == 0
     }
 
+    /// Reads `count` bytes (i.e `2 * count` nibbles).
     pub fn read_bytes(&mut self, count: usize) -> Vec<u8> {
         // `count` bytes <=> `2 * count` nibbles
         let nibbles = self.take(2 * count).collect::<Vec<Nibble>>();

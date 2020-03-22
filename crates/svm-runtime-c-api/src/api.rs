@@ -1,13 +1,10 @@
-use std::{convert::TryFrom, ffi::c_void, ptr::NonNull, string::FromUtf8Error};
+use std::{convert::TryFrom, ffi::c_void, ptr::NonNull};
 
 use log::{debug, error};
 
-use svm_app::{
-    default::DefaultSerializerTypes,
-    types::{AppTransaction, HostCtx},
-};
+use svm_app::{default::DefaultSerializerTypes, types::HostCtx};
 use svm_common::{Address, State};
-use svm_runtime::{ctx::SvmCtx, gas::DefaultGasEstimator, Runtime};
+use svm_runtime::{ctx::SvmCtx, gas::DefaultGasEstimator};
 
 use crate::{
     helpers,
@@ -63,7 +60,7 @@ pub unsafe extern "C" fn svm_validate_template(
 
     match runtime.validate_template(bytes.into()) {
         Ok(()) => svm_result_t::SVM_SUCCESS,
-        Err(e) => svm_result_t::SVM_FAILURE,
+        Err(..) => svm_result_t::SVM_FAILURE,
     }
 }
 
@@ -77,7 +74,7 @@ pub unsafe extern "C" fn svm_validate_app(
 
     match runtime.validate_app(bytes.into()) {
         Ok(()) => svm_result_t::SVM_SUCCESS,
-        Err(e) => svm_result_t::SVM_FAILURE,
+        Err(..) => svm_result_t::SVM_FAILURE,
     }
 }
 
@@ -104,9 +101,9 @@ pub unsafe extern "C" fn svm_validate_app(
 /// let res = unsafe { svm_memory_runtime_create(&mut runtime, kv, host, imports) };
 /// assert!(res.is_ok());
 ///
-/// let mut app_addr = std::ptr::null_mut();
-/// let tx = vec![0x00, 0x01, 0x2, 0x3].into();
-/// let _res = unsafe { svm_validate_tx(&mut app_addr, runtime, tx) };
+/// let mut app_addr = svm_byte_array::default();
+/// let tx_bytes = svm_byte_array::default();
+/// let _res = unsafe { svm_validate_tx(&mut app_addr, runtime, tx_bytes) };
 /// ```
 ///
 #[must_use]
@@ -377,11 +374,12 @@ pub unsafe extern "C" fn svm_runtime_create(
 /// assert!(res.is_ok());
 ///
 /// // deploy template
-/// let mut template_addr = svm_byte_array::default();
+/// let mut receipt = svm_byte_array::default();
 /// let author: svm_byte_array = Address::of("@author").into();
 /// let host_ctx = svm_byte_array::default();
-/// let template = vec![0x0C, 0x00, 0x0D, 0x0E].into();
-/// let res = unsafe { svm_deploy_template(&mut template_addr, runtime, author, host_ctx, template) };
+/// let template_bytes = svm_byte_array::default();
+/// let dry_run = false;
+/// let res = unsafe { svm_deploy_template(&mut receipt, runtime, template_bytes, author, host_ctx, dry_run) };
 /// assert!(res.is_ok());
 /// ```
 ///
@@ -390,9 +388,9 @@ pub unsafe extern "C" fn svm_runtime_create(
 pub unsafe extern "C" fn svm_deploy_template(
     receipt: *mut svm_byte_array,
     runtime: *mut c_void,
+    bytes: svm_byte_array,
     author: svm_byte_array,
     host_ctx: svm_byte_array,
-    bytes: svm_byte_array,
     dry_run: bool,
 ) -> svm_result_t {
     debug!("`svm_deploy_template` start`");
@@ -401,7 +399,7 @@ pub unsafe extern "C" fn svm_deploy_template(
 
     let author: Result<Address, String> = Address::try_from(author);
 
-    if let Err(msg) = author {
+    if let Err(_msg) = author {
         todo!()
         // return svm_result_t::SVM_FAILURE;
     }
@@ -452,14 +450,14 @@ pub unsafe extern "C" fn svm_deploy_template(
 /// let res = unsafe { svm_memory_runtime_create(&mut runtime, kv, host, imports) };
 /// assert!(res.is_ok());
 ///
-/// let mut app_addr = svm_byte_array::default();
+/// let mut app_receipt = svm_byte_array::default();
 /// let mut init_state = svm_byte_array::default();
 /// let creator = Address::of("@creator").into();
-/// let mut init_state = svm_byte_array::default();
 /// let host_ctx = svm_byte_array::default();
-/// let app = svm_byte_array::default();
+/// let app_bytes = svm_byte_array::default();
+/// let dry_run = false;
 ///
-/// let _res = unsafe { svm_spawn_app(&mut app_addr, &mut init_state, runtime, creator, host_ctx, app) };
+/// let _res = unsafe { svm_spawn_app(&mut app_receipt, runtime, app_bytes, creator, host_ctx, dry_run) };
 /// ```
 ///
 #[must_use]
@@ -477,7 +475,7 @@ pub unsafe extern "C" fn svm_spawn_app(
     let runtime = helpers::cast_to_runtime_mut(runtime);
     let creator: Result<Address, String> = Address::try_from(creator);
 
-    if let Err(msg) = creator {
+    if let Err(_msg) = creator {
         todo!();
         // return svm_result_t::SVM_FAILURE;
     }
@@ -515,7 +513,6 @@ pub unsafe extern "C" fn svm_spawn_app(
 /// use std::ffi::c_void;
 ///
 /// use svm_runtime_c_api::*;
-/// use svm_app::types::AppTransaction;
 /// use svm_common::{State, Address};
 ///
 /// let mut host = std::ptr::null_mut();
@@ -532,22 +529,12 @@ pub unsafe extern "C" fn svm_spawn_app(
 /// let res = unsafe { svm_memory_runtime_create(&mut runtime, kv, host, imports) };
 /// assert!(res.is_ok());
 ///
-/// // `app_tx` should be parsed from bytes using `svm_parse_exec_app`
-/// let app = Address::of("@app").into();
-/// let app_tx = AppTransaction {
-///     version: 0,
-///     app,
-///     func_idx: 0,
-///     func_buf: Vec::new(),
-///     func_args: Vec::new()
-/// };
-///
-/// let app_tx_ptr = &app_tx as *const AppTransaction as *const c_void;
+/// let mut exec_receipt = svm_byte_array::default();
+/// let tx_bytes = svm_byte_array::default();
 /// let state = State::empty().into();
-/// let mut receipt = svm_byte_array::default();
 /// let host_ctx = svm_byte_array::default();
 /// let dry_run = false;
-/// let _res = unsafe { svm_exec_app(&mut receipt, runtime, app_tx_ptr, state, host_ctx, dry_run) };
+/// let _res = unsafe { svm_exec_app(&mut exec_receipt, runtime, tx_bytes, state, host_ctx, dry_run) };
 /// ```
 ///
 #[must_use]
@@ -575,7 +562,7 @@ pub unsafe extern "C" fn svm_exec_app(
     let runtime = helpers::cast_to_runtime_mut(runtime);
     let state: Result<State, String> = State::try_from(state);
 
-    if let Err(msg) = state {
+    if let Err(_msg) = state {
         todo!();
     }
 
@@ -681,6 +668,7 @@ pub unsafe extern "C" fn svm_byte_array_destroy(bytes: svm_byte_array) {
 
 /// Receipts helpers
 
+/// Extracts the deploy-template `Address` into the `template_addr` parameter. (useful for tests).
 #[no_mangle]
 pub unsafe extern "C" fn svm_template_receipt_addr(
     template_addr: *mut svm_byte_array,
@@ -696,6 +684,7 @@ pub unsafe extern "C" fn svm_template_receipt_addr(
     }
 }
 
+/// Extracts the spawned-app `Address` into the `app_addr` paramueter. (useful for tests).
 #[no_mangle]
 pub unsafe extern "C" fn svm_app_receipt_addr(
     app_addr: *mut svm_byte_array,
@@ -707,10 +696,11 @@ pub unsafe extern "C" fn svm_app_receipt_addr(
         ClientAppReceipt::Success { addr, .. } => {
             addr_to_svm_byte_array!(app_addr, addr.unwrap());
         }
-        ClientAppReceipt::Failure { .. } => panic!(),
+        ClientAppReceipt::Failure { error } => panic!(error),
     }
 }
 
+/// Extracts the spawned-app initial `State` into the `state` parameter. (useful for tests).
 #[no_mangle]
 pub unsafe extern "C" fn svm_app_receipt_state(
     state: *mut svm_byte_array,
@@ -726,6 +716,7 @@ pub unsafe extern "C" fn svm_app_receipt_state(
     }
 }
 
+/// Extracts the executed app-transaction `State` into the `state` parameter. (useful for tests).
 #[no_mangle]
 pub unsafe extern "C" fn svm_exec_receipt_state(
     state: *mut svm_byte_array,

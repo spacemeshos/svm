@@ -1,5 +1,5 @@
 use svm_app::{
-    raw::{decode_version, Nibble, NibbleIter},
+    raw::{decode_version, NibbleIter},
     types::TemplateAddr,
 };
 

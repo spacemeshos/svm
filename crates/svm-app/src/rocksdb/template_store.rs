@@ -3,10 +3,9 @@ use std::{marker::PhantomData, path::Path};
 use crate::{
     error::StoreError,
     traits::{AppTemplateDeserializer, AppTemplateSerializer, AppTemplateStore},
-    types::{AppAddr, AppTemplate, AppTemplateHash, AuthorAddr, CreatorAddr, TemplateAddr},
+    types::{AppTemplate, AppTemplateHash, AuthorAddr, TemplateAddr},
 };
 
-use svm_common::Address;
 use svm_kv::{rocksdb::Rocksdb, traits::KVStore};
 
 use log::info;

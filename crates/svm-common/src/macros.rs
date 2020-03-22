@@ -2,8 +2,8 @@
 #[macro_export]
 macro_rules! impl_bytes_primitive {
     ($primitive: ident, $byte_count: expr) => {
-        /// Spacemesh `$primitive` consists of `$byte_count` bytes.
-        #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Hash, PartialEq, Eq)]
+        /// `$primitive` consists of `$byte_count` bytes.
+        #[derive(Debug, Clone, Hash, PartialEq, Eq)]
         #[repr(transparent)]
         pub struct $primitive(pub(self) [u8; $byte_count]);
 
@@ -19,7 +19,7 @@ macro_rules! impl_bytes_primitive {
         }
 
         impl From<*const u8> for $primitive {
-            #[warn(clippy::not_unsafe_ptr_arg_deref)]
+            #[allow(clippy::not_unsafe_ptr_arg_deref)]
             fn from(ptr: *const u8) -> $primitive {
                 let slice: &[u8] = unsafe { std::slice::from_raw_parts(ptr, $byte_count) };
 
@@ -28,7 +28,7 @@ macro_rules! impl_bytes_primitive {
         }
 
         impl From<*mut u8> for $primitive {
-            #[warn(clippy::not_unsafe_ptr_arg_deref)]
+            #[allow(clippy::not_unsafe_ptr_arg_deref)]
             #[inline]
             fn from(ptr: *mut u8) -> $primitive {
                 $primitive::from(ptr as *const u8)
@@ -36,7 +36,7 @@ macro_rules! impl_bytes_primitive {
         }
 
         impl From<*const std::ffi::c_void> for $primitive {
-            #[warn(clippy::not_unsafe_ptr_arg_deref)]
+            #[allow(clippy::not_unsafe_ptr_arg_deref)]
             #[inline]
             fn from(ptr: *const std::ffi::c_void) -> $primitive {
                 $primitive::from(ptr as *const u8)
@@ -59,7 +59,9 @@ macro_rules! impl_bytes_primitive {
                 self.0.clone()
             }
 
-            /// Decomposes a `$primitive` into its raw components
+            /// # Safety
+            ///
+            /// Decomposes a `$primitive` into its raw components.
             pub unsafe fn into_raw_parts(self) -> (*mut u8, usize, usize) {
                 let mut vec = self.0.to_vec();
                 vec.truncate(Self::len());

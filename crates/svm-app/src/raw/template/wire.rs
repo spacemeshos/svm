@@ -1,12 +1,10 @@
 use crate::{
     error::ParseError,
-    raw::{concat_nibbles, helpers, Field, NibbleIter, NibbleWriter},
+    raw::{helpers, Field, NibbleIter, NibbleWriter},
     types::AppTemplate,
 };
 
-use svm_common::Address;
-
-#[must_use]
+/// Encodes a raw Deploy-Template.
 pub fn encode_deploy_template(template: &AppTemplate, w: &mut NibbleWriter) {
     encode_version(template, w);
     encode_name(template, w);
@@ -14,7 +12,7 @@ pub fn encode_deploy_template(template: &AppTemplate, w: &mut NibbleWriter) {
     encode_code(template, w);
 }
 
-#[must_use]
+/// Decodes a raw Deploy-Template.
 pub fn decode_deploy_template(iter: &mut NibbleIter) -> Result<AppTemplate, ParseError> {
     let version = decode_version(iter)?;
     let name = decode_name(iter)?;
@@ -34,7 +32,7 @@ pub fn decode_deploy_template(iter: &mut NibbleIter) -> Result<AppTemplate, Pars
 /// Encoders
 
 fn encode_version(template: &AppTemplate, w: &mut NibbleWriter) {
-    let version = *&template.version;
+    let version = template.version;
     helpers::encode_version(version, w);
 }
 
@@ -43,7 +41,7 @@ fn encode_name(template: &AppTemplate, w: &mut NibbleWriter) {
 }
 
 fn encode_page_count(template: &AppTemplate, w: &mut NibbleWriter) {
-    let page_count = *&template.page_count;
+    let page_count = template.page_count;
     helpers::encode_varuint14(page_count, w);
 }
 

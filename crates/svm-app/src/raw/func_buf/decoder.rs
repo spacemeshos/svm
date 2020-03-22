@@ -1,7 +1,8 @@
 use crate::error::ParseError;
 
-use super::super::{decode_varuint14, Field, Nibble, NibbleIter, NibbleWriter};
+use super::super::{decode_varuint14, Field, NibbleIter};
 
+/// Decodes func buffer
 pub fn decode_func_buf(iter: &mut NibbleIter) -> Result<Vec<u8>, ParseError> {
     let buf_len = decode_varuint14(iter, Field::FuncBufLength)? as usize;
 

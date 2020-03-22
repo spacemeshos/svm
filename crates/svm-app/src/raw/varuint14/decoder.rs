@@ -1,9 +1,10 @@
-use super::super::{Field, Nibble, NibbleIter};
+use super::super::{Field, NibbleIter};
 
 use crate::error::ParseError;
 
 use bit_vec::BitVec;
 
+/// Decodes a `varuint14` field into a `u16`.
 pub fn decode_varuint14(iter: &mut NibbleIter, field: Field) -> Result<u16, ParseError> {
     let preamble = iter.next();
 

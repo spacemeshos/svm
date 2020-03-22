@@ -18,7 +18,6 @@
 
 use std::{
     collections::HashMap,
-    ffi::c_void,
     io::{Cursor, Read},
 };
 
@@ -27,12 +26,16 @@ use crate::types::HostCtx;
 use byteorder::{BigEndian, ReadBytesExt};
 
 impl HostCtx {
+    /// Creates a new `HostCtx` struct.
     pub fn new() -> Self {
         Self {
             inner: HashMap::new(),
         }
     }
 
+    /// # Safety
+    ///
+    /// Builds a new `HostCtx` from raw input. (similar to the `std::slice::from_raw_parts` API).
     pub unsafe fn from_raw_parts(bytes: *const u8, length: u32) -> Result<HostCtx, String> {
         let bytes = std::slice::from_raw_parts(bytes as _, length as usize);
 

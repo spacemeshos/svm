@@ -1,5 +1,8 @@
 use super::Nibble;
 
+/// Concatenates a slice of `Nibble`(s) into a `Vec<u8>`.
+/// Two consecutive nibbles become a single byte.
+/// In case the `nibs.len()` is odd, returns the remainder `Nibble` too.
 pub fn concat_nibbles(nibs: &[Nibble]) -> (Vec<u8>, Option<Nibble>) {
     let cap = nibs.len() / 2 + 1;
     let mut bytes = Vec::with_capacity(cap);
@@ -14,7 +17,7 @@ pub fn concat_nibbles(nibs: &[Nibble]) -> (Vec<u8>, Option<Nibble>) {
 
     let rem = iter.remainder();
 
-    if rem.len() > 0 {
+    if !rem.is_empty() {
         assert_eq!(1, rem.len());
 
         let rem_nib = rem[0];

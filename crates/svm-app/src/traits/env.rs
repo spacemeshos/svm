@@ -11,8 +11,6 @@ use crate::{
     },
 };
 
-use svm_common::Address;
-
 /// `Env` storage serialization types
 pub trait EnvSerializerTypes {
     /// `AppTemplate`'s Serializer
@@ -80,18 +78,27 @@ pub trait Env {
 
     /// Wire
 
+    /// Parses raw a deploy-template.
+    /// On success returns `AppTemplate`,
+    /// On failure returns `ParseError`.
     fn parse_deploy_template(&self, bytes: &[u8]) -> Result<AppTemplate, ParseError> {
         let mut iter = NibbleIter::new(bytes);
 
         crate::raw::decode_deploy_template(&mut iter)
     }
 
+    /// Parses raw a spawned-app.
+    /// On success returns `SpawnApp`,
+    /// On failure returns `ParseError`.
     fn parse_spawn_app(&self, bytes: &[u8]) -> Result<SpawnApp, ParseError> {
         let mut iter = NibbleIter::new(bytes);
 
         crate::raw::decode_spawn_app(&mut iter)
     }
 
+    /// Parses raw a app-transation to execute.
+    /// On success returns `AppTransaction`,
+    /// On failure returns `ParseError`.
     fn parse_exec_app(&self, bytes: &[u8]) -> Result<AppTransaction, ParseError> {
         let mut iter = NibbleIter::new(bytes);
 
@@ -101,7 +108,6 @@ pub trait Env {
     /// Stores the following:
     /// * `TemplateAddress` -> `TemplateHash`
     /// * `TemplateHash` -> `AppTemplate` data
-    #[must_use]
     fn store_template(
         &mut self,
         template: &AppTemplate,
@@ -118,7 +124,6 @@ pub trait Env {
     }
 
     /// Stores `app address` -> `app-template address` relation.
-    #[must_use]
     fn store_app(
         &mut self,
         spawn: &SpawnApp,
@@ -179,12 +184,13 @@ pub trait Env {
         store.load(&addr)
     }
 
+    /// Returns whether a `Template` with given the `Address` exists.
     #[inline]
     fn template_exists(&self, addr: &TemplateAddr) -> bool {
         self.load_template(addr).is_some()
     }
 
-    /// Given an `Address`, returns whether it's associated with some `App`
+    /// Returns whether an `App` with given the `Address` exists.
     #[inline]
     fn app_exists(&self, addr: &AppAddr) -> bool {
         self.load_app(addr).is_some()

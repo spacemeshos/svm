@@ -1,7 +1,4 @@
-use svm_app::{
-    error::{ParseError, StoreError},
-    types::TemplateAddr,
-};
+use svm_app::{error::StoreError, types::TemplateAddr};
 
 use crate::error::ExecAppError;
 

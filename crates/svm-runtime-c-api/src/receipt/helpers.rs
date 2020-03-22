@@ -1,15 +1,6 @@
-use std::io::Read;
-
-use byteorder::{BigEndian, WriteBytesExt};
-
-use svm_app::{
-    raw::{self, Nibble, NibbleWriter},
-    types::WasmValue,
-};
+use svm_app::raw::{self, Nibble, NibbleWriter};
 use svm_common::{Address, State};
 use svm_runtime::receipt::Receipt;
-
-use crate::svm_value_type;
 
 pub(crate) fn encode_version(version: u32, w: &mut NibbleWriter) {
     raw::encode_version(version, w);

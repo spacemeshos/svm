@@ -1,19 +1,10 @@
-use crate::{
-    error::{DeployTemplateError, ExecAppError, SpawnAppError},
-    receipt::{ExecReceipt, SpawnAppReceipt, TemplateReceipt},
-    settings::AppSettings,
-};
+use crate::receipt::{ExecReceipt, SpawnAppReceipt, TemplateReceipt};
 
 use svm_app::{
     error::ParseError,
-    types::{
-        AppAddr, AppTemplate, AppTransaction, AuthorAddr, CreatorAddr, HostCtx, SpawnApp,
-        TemplateAddr,
-    },
+    types::{AppAddr, AuthorAddr, CreatorAddr, HostCtx},
 };
-
-use svm_common::{Address, State};
-use svm_storage::AppStorage;
+use svm_common::State;
 
 /// Specifies the interface of a `SVM` Runtime.
 pub trait Runtime {

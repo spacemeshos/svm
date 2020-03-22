@@ -1,4 +1,3 @@
-//!
 //!           `Spawn App` Receipt Raw Format Version 0
 //!
 //!  On success (`is_success = 1`)
@@ -17,14 +16,8 @@
 //!  On success (`is_success = 0`)
 //!  See [error.rs][./error.rs]
 
-use byteorder::{BigEndian, WriteBytesExt};
-
 use svm_app::raw::NibbleWriter;
-use svm_common::Address;
-use svm_runtime::{
-    error::DeployTemplateError,
-    receipt::{Receipt, SpawnAppReceipt},
-};
+use svm_runtime::receipt::{Receipt, SpawnAppReceipt};
 
 use super::{encode_error, helpers};
 

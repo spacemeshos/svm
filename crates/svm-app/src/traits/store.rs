@@ -3,11 +3,14 @@ use crate::{
     types::{App, AppAddr, AppTemplate, AppTemplateHash, AuthorAddr, CreatorAddr, TemplateAddr},
 };
 
-use svm_common::Address;
-
-/// A persistent store for `AppTemplate`(s)
+/// A persistent store for `AppTemplate`(s).
 pub trait AppTemplateStore {
-    #[must_use]
+    /// Stores template.
+    ///
+    /// template - Struct holding the data of the Template. (struct representing the parsed raw data).
+    /// author   - The `Address` of the Template Author.
+    /// addr     - The `Address` of the Template.
+    /// hash     - Template's code Hash.
     fn store(
         &mut self,
         template: &AppTemplate,
@@ -25,7 +28,6 @@ pub trait AppTemplateStore {
 /// A persistent store for `A}pp`(s)
 pub trait AppStore {
     /// Stores `Address` -> `App`
-    #[must_use]
     fn store(&mut self, app: &App, creator: &CreatorAddr, addr: &AppAddr)
         -> Result<(), StoreError>;
 

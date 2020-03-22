@@ -1,7 +1,5 @@
 use crate::types::{App, AppTemplate, AuthorAddr, CreatorAddr};
 
-use svm_common::Address;
-
 /// Serializing an `AppTemplate` into its raw representation.
 pub trait AppTemplateSerializer {
     #[allow(missing_docs)]

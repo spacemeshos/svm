@@ -1,5 +1,7 @@
 #![deny(missing_docs)]
 #![deny(unused)]
+#![deny(dead_code)]
+#![deny(unreachable_code)]
 
 //! `svm-extern` crate contains the `extern "C"` interface that will be consumed by `SVM` apps
 //! written in Rust

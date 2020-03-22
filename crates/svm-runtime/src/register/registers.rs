@@ -18,6 +18,7 @@ lazy_static! {
     ];
 }
 
+/// Holds a running `App` Registers.
 #[derive(Debug)]
 pub struct Registers {
     regs: Vec<Register>,
@@ -31,6 +32,10 @@ impl Default for Registers {
 }
 
 impl Registers {
+    /// Creates a new `Registers` struct from `config`.
+    /// `config` is a slice of `(usize, usize)` tuples.
+    /// The left denotes the `register #bits` and the right how many registers.
+    /// so `(128, 5)` means 5 registers of 128 bits each.
     pub fn new(config: &[(usize, usize)]) -> Self {
         let mut index = 0;
 
@@ -58,6 +63,7 @@ impl Registers {
         Registers { regs, reg_pos }
     }
 
+    /// Borrows a Register of type `reg_bits` and index `reg_idx`.
     #[inline]
     pub fn get_reg(&self, reg_bits: u32, reg_idx: u32) -> &Register {
         let pos = self.reg_pos(reg_bits, reg_idx);
@@ -65,6 +71,7 @@ impl Registers {
         &self.regs[pos]
     }
 
+    /// Mutably borrows a Register of type `reg_bits` and index `reg_idx`.
     #[inline]
     pub fn get_reg_mut(&mut self, reg_bits: u32, reg_idx: u32) -> &mut Register {
         let pos = self.reg_pos(reg_bits, reg_idx);

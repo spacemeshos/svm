@@ -1,7 +1,7 @@
 use super::{Field, NibbleIter, NibbleWriter};
-use crate::{error::ParseError, nib, raw, types::WasmValue};
+use crate::{error::ParseError, raw, types::WasmValue};
 
-use byteorder::{BigEndian, ByteOrder, WriteBytesExt};
+use byteorder::{BigEndian, ByteOrder};
 
 use svm_common::Address;
 
@@ -101,7 +101,6 @@ pub fn decode_string(
     String::from_utf8(bytes).or_else(|_e| Err(ParseError::InvalidUTF8String(field)))
 }
 
-#[must_use]
 pub fn decode_u32_be(iter: &mut NibbleIter, field: Field) -> Result<u32, ParseError> {
     let bytes = iter.read_bytes(4);
 

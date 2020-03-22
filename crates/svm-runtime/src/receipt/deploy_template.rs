@@ -2,8 +2,7 @@ use crate::error::DeployTemplateError;
 
 use svm_app::types::TemplateAddr;
 
-// use crate::error::SpawnAppError;
-
+/// Returned Receipt after deploying a Template.
 #[derive(Debug)]
 pub struct TemplateReceipt {
     /// whether spawn succedded or not
@@ -20,6 +19,7 @@ pub struct TemplateReceipt {
 }
 
 impl TemplateReceipt {
+    /// Creates a new `TemplateReceipt` struct.
     pub fn new(addr: TemplateAddr, gas_used: u64) -> Self {
         Self {
             success: true,
@@ -29,6 +29,7 @@ impl TemplateReceipt {
         }
     }
 
+    /// Returns the deployed template address. Panics if deploy has failed.
     pub fn get_template_addr(&self) -> &TemplateAddr {
         self.addr.as_ref().unwrap()
     }

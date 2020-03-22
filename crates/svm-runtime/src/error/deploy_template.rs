@@ -1,4 +1,4 @@
-use svm_app::error::{ParseError, StoreError};
+use svm_app::error::StoreError;
 
 /// Signifies deploy-template failure
 #[derive(Debug, PartialEq, Clone)]

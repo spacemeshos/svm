@@ -9,7 +9,7 @@ use svm_common::{Address, DefaultKeyHasher, KeyHasher};
 pub struct DefaultAppAddressCompute;
 
 impl AppAddressCompute for DefaultAppAddressCompute {
-    fn compute(spawn: &SpawnApp, host_ctx: &HostCtx) -> AppAddr {
+    fn compute(spawn: &SpawnApp, _host_ctx: &HostCtx) -> AppAddr {
         let app = &spawn.app;
 
         // TODO:

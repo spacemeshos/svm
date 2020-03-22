@@ -1,9 +1,8 @@
 use svm_common::State;
 
-use svm_app::raw::{decode_func_args, decode_version, Nibble, NibbleIter};
+use svm_app::raw::{decode_func_args, decode_version, NibbleIter};
 
 use super::helpers;
-use crate::svm_value_type;
 
 /// Used for testing the encoding of `ExecReceipt` back to the client.
 #[derive(Debug, PartialEq)]

@@ -18,7 +18,7 @@ use svm_storage::AppStorage;
 use svm_app::{
     memory::{DefaultMemAppStore, DefaultMemAppTemplateStore, DefaultMemoryEnv},
     testing::{AppTxBuilder, DeployAppTemplateBuilder, HostCtxBuilder, SpawnAppBuilder},
-    types::{AppAddr, AuthorAddr, CreatorAddr, TemplateAddr, WasmValue},
+    types::{AppAddr, TemplateAddr, WasmValue},
 };
 
 use wasmer_runtime_core::{export::Export, import::ImportObject, Instance, Module};
@@ -32,8 +32,7 @@ pub fn wasmer_compile(wasm: &str) -> Module {
 /// Instantiate a `wasmer` instance
 pub fn instantiate(import_object: &ImportObject, wasm: &str) -> Instance {
     let module = wasmer_compile(wasm);
-    let instance = module.instantiate(import_object).unwrap();
-    instance
+    module.instantiate(import_object).unwrap()
 }
 
 /// Mutably borrows `SVM` register `reg_bits:reg_idx`
@@ -46,6 +45,7 @@ pub fn instance_storage(instance: &Instance) -> &mut AppStorage {
     helpers::wasmer_data_app_storage(instance.context().data)
 }
 
+/// Mutably borrows the Buffer with id `buf_id` of a living `App` instance.
 pub fn instance_buffer(instance: &Instance, buf_id: u32) -> Option<&mut BufferRef> {
     helpers::wasmer_data_buffer(instance.context().data, buf_id)
 }
@@ -177,6 +177,7 @@ pub fn build_app_tx(
         .build()
 }
 
+/// Encodes a raw `HostCtx` and returns it as `Vec<u8>`.
 pub fn build_host_ctx(version: u32, fields: HashMap<u32, Vec<u8>>) -> Vec<u8> {
     let mut builder = HostCtxBuilder::new().with_version(version);
 

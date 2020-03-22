@@ -1,15 +1,14 @@
-use std::io::Read;
-
-use super::super::{Field, Nibble, NibbleIter};
+use super::super::{Field, NibbleIter};
 use crate::error::ParseError;
 
 use bit_vec::BitVec;
 
+/// Decodes the version into `u32` bytes.
 pub fn decode_version(iter: &mut NibbleIter) -> Result<u32, ParseError> {
     let mut bits = BitVec::new();
 
-    for mut nibble in iter {
-        let [msb_0, msb_1, msb_2, msb_3] = nibble.bits();
+    for nibble in iter {
+        let [_msb_0, msb_1, msb_2, msb_3] = nibble.bits();
 
         bits.push(msb_1);
         bits.push(msb_2);
@@ -20,7 +19,7 @@ pub fn decode_version(iter: &mut NibbleIter) -> Result<u32, ParseError> {
         }
     }
 
-    if bits.len() == 0 {
+    if bits.is_empty() {
         return Err(ParseError::EmptyField(Field::Version));
     }
 

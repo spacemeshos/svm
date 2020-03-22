@@ -62,6 +62,7 @@ pub struct PageSliceLayout {
     len: u32,
 }
 
+#[allow(clippy::len_without_is_empty)]
 impl PageSliceLayout {
     /// New page-slice layout
     pub fn new(page_idx: PageIndex, offset: PageOffset, len: u32) -> Self {

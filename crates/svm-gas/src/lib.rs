@@ -1,5 +1,7 @@
 #![deny(missing_docs)]
 #![deny(unused)]
+#![deny(dead_code)]
+#![deny(unreachable_code)]
 
 //! This crate is responsible on doing gas estimations for apps.
 //! SVM apps are essentially wasm programs importing the SVM vmcalls.

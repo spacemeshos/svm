@@ -6,8 +6,6 @@ use crate::{
     types::{App, AppAddr, CreatorAddr},
 };
 
-use svm_common::Address;
-
 /// `AppStore` implementation backed-by `rocksdb`
 pub struct RocksdbAppStore<S, D> {
     _phantom: PhantomData<(S, D)>,

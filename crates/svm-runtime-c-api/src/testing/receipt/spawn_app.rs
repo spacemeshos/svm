@@ -1,5 +1,5 @@
 use svm_app::{
-    raw::{decode_func_args, decode_version, Nibble, NibbleIter},
+    raw::{decode_func_args, decode_version, NibbleIter},
     types::AppAddr,
 };
 

@@ -1,9 +1,7 @@
 use crate::{
-    raw::{encode_spawn_app, helpers, NibbleWriter},
-    types::{App, AppAddr, SpawnApp, TemplateAddr, WasmValue},
+    raw::{encode_spawn_app, NibbleWriter},
+    types::{App, SpawnApp, TemplateAddr, WasmValue},
 };
-
-use svm_common::Address;
 
 /// Builds a raw representation for `spawn-app`
 /// Should be used for testing only.
@@ -86,7 +84,7 @@ impl SpawnAppBuilder {
         self
     }
 
-    pub fn build(mut self) -> Vec<u8> {
+    pub fn build(self) -> Vec<u8> {
         let version = self.version.unwrap();
         let template = self.template.unwrap();
         let ctor_idx = self.ctor_idx.unwrap();

@@ -2,18 +2,23 @@ use std::marker::PhantomData;
 
 use crate::Address;
 
+/// Holds an `Address` accompanied by a marker type
+/// denoting the entity type owning the address.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct AddressOf<T>(PhantomData<T>, Address);
 
 impl<T> AddressOf<T> {
+    /// Creates a new struct.
     pub fn new(addr: Address) -> Self {
         Self(PhantomData, addr)
     }
 
+    /// Returns a Borrow to the inner `Address`.
     pub fn inner(&self) -> &Address {
         &self.1
     }
 
+    /// Returns the wrapped `Address`.
     pub fn unwrap(self) -> Address {
         self.1
     }

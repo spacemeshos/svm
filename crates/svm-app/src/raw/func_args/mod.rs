@@ -11,13 +11,10 @@ pub use layout::{
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        nib,
-        types::{WasmType, WasmValue},
-    };
+    use crate::types::WasmValue;
 
-    use super::super::{helpers, NibbleIter, NibbleWriter};
-    use super::{decode_func_args, encode_func_args, WasmValueLayout, DO_SKIP};
+    use super::super::{NibbleIter, NibbleWriter};
+    use super::{decode_func_args, encode_func_args};
 
     fn assert_encode_decode(args: Vec<WasmValue>) {
         let mut w = NibbleWriter::new();
@@ -30,7 +27,7 @@ mod tests {
         let decoded = decode_func_args(&mut iter).unwrap();
         assert_eq!(args, decoded);
 
-        iter.ensure_eof();
+        assert!(iter.ensure_eof().is_ok());
     }
 
     #[test]
