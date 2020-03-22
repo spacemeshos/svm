@@ -7,14 +7,6 @@
 pub struct Nibble(u8);
 
 /// Creates a new `Nibble`.
-///
-/// # Example
-///
-/// ```rust
-/// use svm_app::{nib, raw::Nibble};
-///
-/// assert_eq!(Nibble::new(10), nib!(10));
-/// ```
 #[macro_export]
 macro_rules! nib {
     ($val:expr) => {{
@@ -79,7 +71,7 @@ impl Nibble {
     /// use svm_app::raw::Nibble;
     ///
     /// let nib = Nibble::new(0b_0000_1001);
-    /// assert_eq!([true, false, false, true], nib.inner());
+    /// assert_eq!([true, false, false, true], nib.bits());
     /// ```
     pub fn bits(&self) -> [bool; 4] {
         let msb_0 = self.0 & 0b_0000_1000 != 0;

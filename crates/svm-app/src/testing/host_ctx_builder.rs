@@ -2,12 +2,6 @@ use std::collections::HashMap;
 
 use byteorder::{BigEndian, WriteBytesExt};
 
-pub struct HostCtxBuilder {
-    version: Option<u32>,
-
-    fields: HashMap<u32, Vec<u8>>,
-}
-
 ///
 /// # Example
 ///
@@ -34,6 +28,11 @@ pub struct HostCtxBuilder {
 /// assert_eq!(vec![0x60, 0x70, 0x80, 0x90], fields[&4]);
 /// ```
 ///
+pub struct HostCtxBuilder {
+    version: Option<u32>,
+
+    fields: HashMap<u32, Vec<u8>>,
+}
 
 #[allow(missing_docs)]
 impl HostCtxBuilder {

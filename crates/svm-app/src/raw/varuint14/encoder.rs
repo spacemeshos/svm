@@ -2,6 +2,7 @@ use crate::nib;
 
 use super::super::NibbleWriter;
 
+/// Encodes `u16` into `varuint14`. The value of `num` should fit within 14 bits.
 pub fn encode_varuint14(num: u16, w: &mut NibbleWriter) {
     match num {
         0..=0b_0000_0011 => {

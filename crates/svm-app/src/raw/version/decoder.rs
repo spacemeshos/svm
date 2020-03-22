@@ -3,6 +3,7 @@ use crate::error::ParseError;
 
 use bit_vec::BitVec;
 
+/// Decodes the version into `u32` bytes.
 pub fn decode_version(iter: &mut NibbleIter) -> Result<u32, ParseError> {
     let mut bits = BitVec::new();
 

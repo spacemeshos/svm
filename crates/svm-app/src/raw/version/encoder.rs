@@ -2,6 +2,7 @@ use crate::nib;
 
 use super::super::{Nibble, NibbleWriter};
 
+/// Encodes version.
 pub fn encode_version(mut version: u32, w: &mut NibbleWriter) {
     let mut has_more = true;
     let mut more_bit = 0;

@@ -6,9 +6,7 @@ pub use encoder::encode_func_buf;
 
 #[cfg(test)]
 mod tests {
-    use crate::nib;
-
-    use super::super::{helpers, NibbleIter, NibbleWriter};
+    use super::super::{NibbleIter, NibbleWriter};
     use super::{decode_func_buf, encode_func_buf};
 
     fn assert_encode_decode(buf: Vec<u8>) {
@@ -22,7 +20,7 @@ mod tests {
         let decoded = decode_func_buf(&mut iter).unwrap();
         assert_eq!(buf, decoded);
 
-        iter.ensure_eof();
+        assert!(iter.ensure_eof().is_ok());
     }
 
     #[test]

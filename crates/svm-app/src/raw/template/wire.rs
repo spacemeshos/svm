@@ -5,7 +5,6 @@ use crate::{
 };
 
 /// Encodes a raw Deploy-Template.
-#[must_use]
 pub fn encode_deploy_template(template: &AppTemplate, w: &mut NibbleWriter) {
     encode_version(template, w);
     encode_name(template, w);

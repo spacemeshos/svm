@@ -2,23 +2,28 @@ use crate::nib;
 
 use super::{concat_nibbles, Nibble};
 
+/// Nibbles Writer.
 pub struct NibbleWriter {
     nibbles: Vec<Nibble>,
 }
 
 impl NibbleWriter {
+    /// Creates a new writer.
     pub fn new() -> Self {
         Self {
             nibbles: Vec::new(),
         }
     }
 
+    /// Appends `nibbles` to the underlying stream.
     pub fn write(&mut self, nibbles: &[Nibble]) {
         for nib in nibbles.iter() {
             self.nibbles.push(*nib);
         }
     }
 
+    /// Appends `bytes` to the underlying stream.
+    /// (each byte consists of 2 nibbles).
     pub fn write_bytes(&mut self, bytes: &[u8]) {
         for byte in bytes.iter() {
             let lnib = nib!((byte & 0xF0) >> 4);
@@ -28,6 +33,8 @@ impl NibbleWriter {
         }
     }
 
+    /// Closes the `NibbleWriter` and returns the underlying streams as `Vec<u8>`.
+    /// In case the number of nibbles is odd, pads a zero-nibble. (see also: `is_byte_aligned`).
     #[must_use]
     #[inline]
     pub fn into_bytes(mut self) -> Vec<u8> {
@@ -45,12 +52,14 @@ impl NibbleWriter {
         bytes
     }
 
+    /// The returns the number of nibbles written so far.
     #[must_use]
     #[inline]
     pub fn len(&self) -> usize {
         self.nibbles.len()
     }
 
+    /// Returns whether the number of written nibbles so far is even.
     #[must_use]
     #[inline]
     pub fn is_byte_aligned(&self) -> bool {

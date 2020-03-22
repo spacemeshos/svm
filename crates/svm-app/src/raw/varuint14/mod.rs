@@ -6,9 +6,7 @@ pub use encoder::encode_varuint14;
 
 #[cfg(test)]
 mod tests {
-    use crate::nib;
-
-    use super::super::{helpers, Field, NibbleIter, NibbleWriter};
+    use super::super::{Field, NibbleIter, NibbleWriter};
     use super::{decode_varuint14, encode_varuint14};
 
     fn assert_encode_decode(num: u16) {
@@ -25,7 +23,7 @@ mod tests {
         let decoded = decode_varuint14(&mut iter, field).unwrap();
         assert_eq!(num, decoded);
 
-        iter.ensure_eof();
+        assert!(iter.ensure_eof().is_ok());
     }
 
     #[test]

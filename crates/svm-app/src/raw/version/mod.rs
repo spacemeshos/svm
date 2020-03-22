@@ -6,9 +6,7 @@ pub use encoder::encode_version;
 
 #[cfg(test)]
 mod tests {
-    use crate::nib;
-
-    use super::super::{helpers, NibbleIter, NibbleWriter};
+    use super::super::{NibbleIter, NibbleWriter};
     use super::{decode_version, encode_version};
 
     fn assert_encode_decode(version: u32) {
@@ -22,7 +20,7 @@ mod tests {
         let decoded = decode_version(&mut iter).unwrap();
         assert_eq!(version, decoded);
 
-        iter.ensure_eof();
+        assert!(iter.ensure_eof().is_ok());
     }
 
     #[test]
