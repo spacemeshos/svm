@@ -52,20 +52,21 @@ impl Host {
     }
 }
 
-unsafe fn extract_host<'a>(raw_ctx: *mut c_void) -> &'a mut Host {
-    let host = api::svm_instance_context_host_get(raw_ctx);
-    svm_common::from_raw_mut::<Host>(host)
+fn extract_host<'a>(raw_ctx: *mut c_void) -> &'a mut Host {
+    let host = unsafe { api::svm_instance_context_host_get(raw_ctx) };
+
+    unsafe { svm_common::from_raw_mut::<Host>(host) }
 }
 
-unsafe fn extract_reg<'a>(raw_ctx: *mut c_void, reg_bits: i32, reg_idx: i32) -> &'a mut Register {
+fn extract_reg<'a>(raw_ctx: *mut c_void, reg_bits: i32, reg_idx: i32) -> &'a mut Register {
     use wasmer_runtime_core::vm::Ctx as WasmerCtx;
 
-    let ctx = svm_common::from_raw_mut::<WasmerCtx>(raw_ctx);
+    let ctx = unsafe { svm_common::from_raw_mut::<WasmerCtx>(raw_ctx) };
 
     svm_runtime::helpers::wasmer_data_reg(ctx.data, reg_bits as u32, reg_idx as u32)
 }
 
-unsafe extern "C" fn inc_balance(ctx: *mut c_void, addition: i64, reg_bits: i32, reg_idx: i32) {
+fn inc_balance(ctx: *mut c_void, addition: i64, reg_bits: i32, reg_idx: i32) {
     let host = extract_host(ctx);
     let reg = extract_reg(ctx, reg_bits, reg_idx);
 
@@ -73,7 +74,7 @@ unsafe extern "C" fn inc_balance(ctx: *mut c_void, addition: i64, reg_bits: i32,
     host.inc_balance(&addr, addition);
 }
 
-unsafe extern "C" fn mul_balance(ctx: *mut c_void, mul_by: i64, reg_bits: i32, reg_idx: i32) {
+fn mul_balance(ctx: *mut c_void, mul_by: i64, reg_bits: i32, reg_idx: i32) {
     let host = extract_host(ctx);
     let reg = extract_reg(ctx, reg_bits, reg_idx);
 
