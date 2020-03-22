@@ -84,3 +84,31 @@ fn decode_func_buf(iter: &mut NibbleIter) -> Result<Vec<u8>, ParseError> {
 fn decode_func_args(iter: &mut NibbleIter) -> Result<Vec<WasmValue>, ParseError> {
     helpers::decode_func_args(iter)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use svm_common::Address;
+
+    #[test]
+    fn encode_decode_exec_app() {
+        let tx = AppTransaction {
+            version: 0,
+            app: Address::of("my-app").into(),
+            func_idx: 0,
+            func_buf: vec![0x10, 0x0, 0x30],
+            func_args: vec![WasmValue::I32(20), WasmValue::I64(30)],
+        };
+
+        let mut w = NibbleWriter::new();
+        encode_exec_app(&tx, &mut w);
+
+        let bytes = w.into_bytes();
+        let mut iter = NibbleIter::new(&bytes[..]);
+
+        let decoded = decode_exec_app(&mut iter).unwrap();
+
+        assert_eq!(tx, decoded);
+    }
+}
