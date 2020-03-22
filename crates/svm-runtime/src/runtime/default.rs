@@ -379,7 +379,23 @@ where
     ) -> Result<wasmer_runtime::DynFunc<'a>, ExecAppError> {
         let func_idx = self.derive_func_index(instance, tx);
 
-        instance.dyn_func_with_index(func_idx).or_else(|_e| {
+        let func_name = instance
+            .exports()
+            .filter(|(_name, export)| matches!(export, Export::Function { .. }))
+            .find_map(|(name, _)| {
+                if func_idx == instance.resolve_func(&name).unwrap() {
+                    Some(name)
+                } else {
+                    None
+                }
+            });
+
+        if func_name.is_none() {
+            // TOOD: ...
+            panic!()
+        }
+
+        instance.dyn_func(&func_name.unwrap()).or_else(|_e| {
             error!("Exported function: `{}` not found", func_idx);
 
             Err(ExecAppError::FuncNotFound {
