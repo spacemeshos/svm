@@ -16,7 +16,6 @@ pub fn encode_exec_app(tx: &AppTransaction, w: &mut NibbleWriter) {
 /// Parsing a raw `AppTransaction` transaction given as raw bytes.
 /// Returns the parsed transaction as a `AppTransaction` struct.
 /// On failure, returns `ParseError`.
-#[must_use]
 pub fn decode_exec_app(iter: &mut NibbleIter) -> Result<AppTransaction, ParseError> {
     let version = decode_version(iter)?;
     let app = decode_app(iter)?;
@@ -38,8 +37,7 @@ pub fn decode_exec_app(iter: &mut NibbleIter) -> Result<AppTransaction, ParseErr
 /// Encoders
 
 fn encode_version(tx: &AppTransaction, w: &mut NibbleWriter) {
-    let ver = *&tx.version;
-
+    let ver = tx.version;
     helpers::encode_version(ver, w);
 }
 
@@ -49,7 +47,7 @@ fn encode_app(tx: &AppTransaction, w: &mut NibbleWriter) {
 }
 
 fn encode_func_index(tx: &AppTransaction, w: &mut NibbleWriter) {
-    let idx = *&tx.func_idx;
+    let idx = tx.func_idx;
     helpers::encode_varuint14(idx, w);
 }
 

@@ -19,7 +19,7 @@ pub fn decode_version(iter: &mut NibbleIter) -> Result<u32, ParseError> {
         }
     }
 
-    if bits.len() == 0 {
+    if bits.is_empty() {
         return Err(ParseError::EmptyField(Field::Version));
     }
 

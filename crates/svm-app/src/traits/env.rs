@@ -108,7 +108,6 @@ pub trait Env {
     /// Stores the following:
     /// * `TemplateAddress` -> `TemplateHash`
     /// * `TemplateHash` -> `AppTemplate` data
-    #[must_use]
     fn store_template(
         &mut self,
         template: &AppTemplate,
@@ -125,7 +124,6 @@ pub trait Env {
     }
 
     /// Stores `app address` -> `app-template address` relation.
-    #[must_use]
     fn store_app(
         &mut self,
         spawn: &SpawnApp,

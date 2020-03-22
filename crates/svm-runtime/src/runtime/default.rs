@@ -391,7 +391,7 @@ where
     }
 
     fn derive_func_index(&self, instance: &wasmer_runtime::Instance, tx: &AppTransaction) -> usize {
-        let rel_func_index = *&tx.func_idx as usize;
+        let rel_func_index = tx.func_idx as usize;
         let imported_funcs = instance.module.info.imported_functions.len();
         let func_index = rel_func_index + imported_funcs;
 

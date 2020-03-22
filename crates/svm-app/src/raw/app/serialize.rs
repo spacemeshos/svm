@@ -24,7 +24,7 @@ impl AppSerializer for DefaultAppSerializer {
 
 impl DefaultAppSerializer {
     fn encode_version(app: &App, w: &mut NibbleWriter) {
-        helpers::encode_version(*&app.version, w);
+        helpers::encode_version(app.version, w);
     }
 
     fn encode_template(app: &App, w: &mut NibbleWriter) {

@@ -11,7 +11,6 @@ pub trait AppTemplateStore {
     /// author   - The `Address` of the Template Author.
     /// addr     - The `Address` of the Template.
     /// hash     - Template's code Hash.
-    #[must_use]
     fn store(
         &mut self,
         template: &AppTemplate,
@@ -29,7 +28,6 @@ pub trait AppTemplateStore {
 /// A persistent store for `A}pp`(s)
 pub trait AppStore {
     /// Stores `Address` -> `App`
-    #[must_use]
     fn store(&mut self, app: &App, creator: &CreatorAddr, addr: &AppAddr)
         -> Result<(), StoreError>;
 

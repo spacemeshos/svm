@@ -79,7 +79,7 @@ pub fn reg_cmp(ctx: &mut WasmerCtx, reg_bits: u32, src_idx: u32, dst_idx: u32) -
         }
     }
 
-    return 0;
+    0
 }
 
 #[inline]

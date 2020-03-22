@@ -16,7 +16,6 @@ pub fn encode_spawn_app(spawn: &SpawnApp, w: &mut NibbleWriter) {
 /// Parsing a raw `spawn-app` transaction given as raw bytes.
 /// Returns the parsed transaction as a tuple consisting of an `App` struct and `ctor` buffer args.
 /// On failure, returns `ParseError`.
-#[must_use]
 pub fn decode_spawn_app(iter: &mut NibbleIter) -> Result<SpawnApp, ParseError> {
     let version = decode_version(iter)?;
     let template = decode_template(iter)?;
@@ -39,7 +38,7 @@ pub fn decode_spawn_app(iter: &mut NibbleIter) -> Result<SpawnApp, ParseError> {
 /// Encoders
 
 fn encode_version(spawn: &SpawnApp, w: &mut NibbleWriter) {
-    let version = *&spawn.app.version;
+    let version = spawn.app.version;
     helpers::encode_version(version, w);
 }
 
@@ -49,7 +48,7 @@ fn encode_template(spawn: &SpawnApp, w: &mut NibbleWriter) {
 }
 
 fn encode_ctor_index(spawn: &SpawnApp, w: &mut NibbleWriter) {
-    let ctor_idx = *&spawn.ctor_idx;
+    let ctor_idx = spawn.ctor_idx;
     helpers::encode_varuint14(ctor_idx, w);
 }
 

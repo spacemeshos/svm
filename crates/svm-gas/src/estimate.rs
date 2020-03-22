@@ -97,7 +97,7 @@ impl FuncsGas {
     fn get_func_gas(&self, func_idx: FuncIndex) -> Option<Gas> {
         match self.inner.get(&func_idx) {
             None => None,
-            Some(gas) => Some(gas.clone()),
+            Some(gas) => Some(*gas),
         }
     }
 }
@@ -130,21 +130,17 @@ impl CallGraph {
 
         self.root_funcs.remove(&from);
 
-        let entry = self.out_calls.entry(from).or_insert(HashSet::new());
+        let entry = self.out_calls.entry(from).or_insert_with(HashSet::new);
         entry.insert(to);
 
-        let entry = self.in_calls.entry(to).or_insert(HashSet::new());
+        let entry = self.in_calls.entry(to).or_insert_with(HashSet::new);
         entry.insert(from);
     }
 
     fn ensure_no_recursive_calls(&self) -> Result<(), Error> {
         let mut visited = HashSet::new();
 
-        let mut all_funcs = self
-            .all_funcs
-            .iter()
-            .map(|v| *v)
-            .collect::<Vec<FuncIndex>>();
+        let mut all_funcs = self.all_funcs.iter().copied().collect::<Vec<FuncIndex>>();
 
         // we sort `all_funcs` in order to make the unit-tests execution determinstic
         all_funcs.sort();
@@ -161,11 +157,7 @@ impl CallGraph {
         let mut res = Vec::new();
         let mut out_calls = self.out_calls.clone();
 
-        let mut roots_funcs = self
-            .root_funcs
-            .iter()
-            .map(|v| *v)
-            .collect::<Vec<FuncIndex>>();
+        let mut roots_funcs = self.root_funcs.iter().copied().collect::<Vec<FuncIndex>>();
 
         while let Some(root) = roots_funcs.pop() {
             res.push(root);
@@ -263,7 +255,7 @@ fn construct_func_block(
 fn estimate_func_block(
     func_idx: FuncIndex,
     program: &Program,
-    block_ops: &Vec<Instruction>,
+    block_ops: &[Instruction],
     block_offset: usize,
     call_graph: &mut CallGraph,
 ) -> Result<(usize, OpsBlock), Error> {

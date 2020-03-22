@@ -100,7 +100,7 @@ pub fn storage_read_to_mem(
     let mut storage = helpers::wasmer_data_app_storage(ctx.data);
     let mut slice = helpers::storage_read_page_slice(&mut storage, page_idx, page_offset, count);
 
-    if slice.len() == 0 {
+    if slice.is_empty() {
         // slice is empty, i.e it doesn't really exist
         // so we fallback to zeros page-slice
         slice.resize(count as usize, 0);

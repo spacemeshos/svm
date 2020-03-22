@@ -17,7 +17,7 @@ pub fn concat_nibbles(nibs: &[Nibble]) -> (Vec<u8>, Option<Nibble>) {
 
     let rem = iter.remainder();
 
-    if rem.len() > 0 {
+    if !rem.is_empty() {
         assert_eq!(1, rem.len());
 
         let rem_nib = rem[0];

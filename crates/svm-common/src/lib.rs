@@ -9,7 +9,6 @@
 mod address;
 mod address_of;
 
-mod balance;
 mod default_key_hasher;
 mod ffi;
 mod helpers;
@@ -22,7 +21,6 @@ pub mod fmt;
 
 pub use address::Address;
 pub use address_of::AddressOf;
-pub use balance::Balance;
 pub use default_key_hasher::DefaultKeyHasher;
 pub use ffi::{from_raw, from_raw_mut, into_raw, into_raw_mut};
 pub use key_hasher::KeyHasher;

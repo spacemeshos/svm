@@ -65,7 +65,6 @@ impl<'a> NibbleIter<'a> {
 
     /// Making sure there are no nibbles left to read,
     /// except for an optional padding nibble, used to even the number of nibbles.
-    #[must_use]
     pub fn ensure_eof(&mut self) -> Result<(), ParseError> {
         if self.is_byte_aligned() == false {
             let nib = self.next();

@@ -32,8 +32,7 @@ pub fn wasmer_compile(wasm: &str) -> Module {
 /// Instantiate a `wasmer` instance
 pub fn instantiate(import_object: &ImportObject, wasm: &str) -> Instance {
     let module = wasmer_compile(wasm);
-    let instance = module.instantiate(import_object).unwrap();
-    instance
+    module.instantiate(import_object).unwrap()
 }
 
 /// Mutably borrows `SVM` register `reg_bits:reg_idx`

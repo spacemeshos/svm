@@ -17,6 +17,6 @@ impl Program {
     }
 
     pub fn functions_ids(&self) -> Vec<FuncIndex> {
-        self.functions.keys().map(|k| *k).collect()
+        self.functions.keys().copied().collect()
     }
 }

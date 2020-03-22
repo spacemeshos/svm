@@ -61,6 +61,7 @@ impl Add for Gas {
 impl Mul for Gas {
     type Output = Gas;
 
+    #[allow(clippy::suspicious_arithmetic_impl)]
     fn mul(self, rhs: Gas) -> Self::Output {
         match (self, rhs) {
             (Gas::Fixed(x), Gas::Fixed(y)) => Gas::Fixed(x + y),

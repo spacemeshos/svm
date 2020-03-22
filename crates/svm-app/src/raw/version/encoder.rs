@@ -29,9 +29,9 @@ pub fn encode_version(mut version: u32, w: &mut NibbleWriter) {
 }
 
 fn next_triple_bits(version: u32) -> (u32, u8, u8, u8) {
-    let lsb_0 = ((version & 0b_000_0001) >> 0) as u8;
-    let lsb_1 = ((version & 0b_000_0010) >> 1) as u8;
-    let lsb_2 = ((version & 0b_000_0100) >> 2) as u8;
+    let lsb_0 = ((version & 0b000_0001) >> 0) as u8;
+    let lsb_1 = ((version & 0b000_0010) >> 1) as u8;
+    let lsb_2 = ((version & 0b000_0100) >> 2) as u8;
     let new_ver = version >> 3;
 
     (new_ver, lsb_2, lsb_1, lsb_0)

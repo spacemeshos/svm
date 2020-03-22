@@ -16,7 +16,7 @@ pub struct App {
 
 impl fmt::Debug for App {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let version = self.fmt_version(*&self.version);
+        let version = self.fmt_version(self.version);
         let template = self.fmt_template(&self.template);
 
         let msg = [version, template].join("\n");

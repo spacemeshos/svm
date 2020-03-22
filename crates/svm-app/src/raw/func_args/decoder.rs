@@ -66,7 +66,7 @@ fn decode_func_value(
                 let mut be_bytes: [u8; 4] = [0; 4];
 
                 let src = bytes.as_ptr();
-                let dst = unsafe { be_bytes.as_mut_ptr().offset((4 - n) as isize) };
+                let dst = unsafe { be_bytes.as_mut_ptr().add(4 - n) };
 
                 unsafe {
                     std::ptr::copy(src, dst, n);
@@ -83,7 +83,7 @@ fn decode_func_value(
                 let mut be_bytes: [u8; 8] = [0; 8];
 
                 let src = bytes.as_ptr();
-                let dst = unsafe { be_bytes.as_mut_ptr().offset((8 - n) as isize) };
+                let dst = unsafe { be_bytes.as_mut_ptr().add(8 - n) };
 
                 unsafe {
                     std::ptr::copy(src, dst, n);

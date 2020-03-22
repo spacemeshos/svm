@@ -12,7 +12,7 @@ pub struct AppTemplate {
 
 impl fmt::Debug for AppTemplate {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let ver = self.fmt_version(*&self.version);
+        let ver = self.fmt_version(self.version);
         let name = self.fmt_name(&self.name);
         let pages = self.fmt_page_count(self.page_count);
         let code = self.fmt_code(&self.code);

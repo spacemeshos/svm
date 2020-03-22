@@ -80,8 +80,8 @@ pub fn buffer_copy_to_storage(
     page_offset: u32,
     len: u32,
 ) {
-    let buffer =
-        wasmer_data_buffer(data, buf_id).expect(&format!("Buffer `{}` doesn't exist!", buf_id));
+    let buffer = wasmer_data_buffer(data, buf_id)
+        .unwrap_or_else(|| panic!("Buffer `{}` doesn't exist!", buf_id));
 
     let storage = helpers::wasmer_data_app_storage(data);
     let layout = helpers::page_slice_layout(page_idx, page_offset, len);
@@ -102,8 +102,8 @@ pub fn buffer_copy_to_reg(
 ) {
     assert!(len * 8 <= reg_bits);
 
-    let buffer =
-        wasmer_data_buffer(data, buf_id).expect(&format!("Buffer `{}` doesn't exist!", buf_id));
+    let buffer = wasmer_data_buffer(data, buf_id)
+        .unwrap_or_else(|| panic!("Buffer `{}` doesn't exist!", buf_id));
 
     let slice = buffer.read(buf_offset, len);
     let reg = helpers::wasmer_data_reg(data, reg_bits, reg_idx);
