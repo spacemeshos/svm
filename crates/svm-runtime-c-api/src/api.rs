@@ -1,4 +1,4 @@
-use std::{convert::TryFrom, ffi::c_void, ptr::NonNull};
+use std::{convert::TryFrom, ffi::c_void, path::Path, ptr::NonNull};
 
 use log::{debug, error};
 
@@ -322,27 +322,29 @@ pub unsafe extern "C" fn svm_memory_runtime_create(
 #[no_mangle]
 pub unsafe extern "C" fn svm_runtime_create(
     runtime: *mut *mut c_void,
-    path: svm_byte_array,
+    kv_path: svm_byte_array,
     host: *mut c_void,
     imports: *const c_void,
 ) -> svm_result_t {
     debug!("`svm_runtime_create` start");
 
-    let path = String::try_from(path);
+    let kv_path = String::try_from(kv_path);
 
-    if let Err(_err) = path {
-        todo!();
-        // update_last_error(err);
-        // return svm_result_t::SVM_FAILURE;
-    }
+    let kv_path = match kv_path {
+        Ok(ref s) => Path::new(s),
+        Err(..) => {
+            todo!();
+            // update_last_error(err);
+            // return svm_result_t::SVM_FAILURE;
+        }
+    };
 
     let imports = helpers::cast_imports_to_wasmer_imports(imports);
 
-    let rocksdb_runtime = svm_runtime::create_rocksdb_runtime::<
-        String,
-        DefaultSerializerTypes,
-        DefaultGasEstimator,
-    >(host, &path.unwrap(), imports);
+    let rocksdb_runtime =
+        svm_runtime::create_rocksdb_runtime::<&Path, DefaultSerializerTypes, DefaultGasEstimator>(
+            host, kv_path, imports,
+        );
 
     let res = box_runtime!(runtime, rocksdb_runtime);
 

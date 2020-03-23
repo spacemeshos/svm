@@ -1,4 +1,4 @@
-use std::{cell::RefCell, collections::HashMap, ffi::c_void, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, ffi::c_void, path::Path, rc::Rc};
 
 use crate::{
     buffer::BufferRef,
@@ -108,8 +108,9 @@ pub fn create_memory_runtime(
     let storage_builder = runtime_memory_storage_builder(kv);
 
     let env = runtime_memory_env_builder();
+    let kv_path = Path::new("mem");
 
-    DefaultRuntime::new(host, env, imports, Box::new(storage_builder))
+    DefaultRuntime::new(host, env, &kv_path, imports, Box::new(storage_builder))
 }
 
 /// Creates an app storage builder function backed by key-value store `kv`.

@@ -11,7 +11,7 @@ pub struct Rocksdb {
 impl Rocksdb {
     /// New `Rocksdb` under the given `path`
     pub fn new<P: AsRef<Path>>(path: P) -> Self {
-        info!("opening rocksdb. (path = \"{}\")", path.as_ref().display());
+        info!("Opening rocksdb. (path = \"{}\")", path.as_ref().display());
 
         Self {
             db: rocksdb::DB::open_default(path).unwrap(),
@@ -45,7 +45,7 @@ impl KVStore for Rocksdb {
         let res = self.db.write(batch);
 
         if res.is_err() {
-            panic!("failed `write`-ing bach");
+            panic!("failed storing changes.");
         }
     }
 }

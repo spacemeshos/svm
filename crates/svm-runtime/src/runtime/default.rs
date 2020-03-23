@@ -1,4 +1,9 @@
-use std::{ffi::c_void, fmt, marker::PhantomData};
+use std::{
+    ffi::c_void,
+    fmt,
+    marker::PhantomData,
+    path::{Path, PathBuf},
+};
 
 use log::{debug, error, info};
 
@@ -38,6 +43,9 @@ pub struct DefaultRuntime<ENV, GE> {
 
     /// A raw pointer to host (a.k.a the `Full-Node` in the realm of Blockchain).
     pub host: *mut c_void,
+
+    /// kv-store (rocksdb/leveldb/similar) path where it stores SVM data (templates, app, app-storage).
+    pub kv_path: PathBuf,
 
     /// External `wasmer` imports (living inside the host) to be consumed by the app.
     pub imports: Vec<(String, String, Export)>,
@@ -119,17 +127,19 @@ where
     GE: GasEstimator,
 {
     /// Initializes a new `DefaultRuntime` instance.
-    pub fn new(
+    pub fn new<P: AsRef<Path>>(
         host: *mut c_void,
         env: ENV,
+        kv_path: P,
         imports: Vec<(String, String, Export)>,
         storage_builder: Box<StorageBuilderFn>,
     ) -> Self {
-        Self::ensure_not_svm_ns(&imports);
+        Self::ensure_not_svm_ns(&imports[..]);
 
         Self {
             env,
             host,
+            kv_path: kv_path.as_ref().to_path_buf(),
             imports,
             storage_builder,
             phantom: PhantomData::<GE>,
@@ -145,8 +155,7 @@ where
         state: &State,
         settings: &AppSettings,
     ) -> AppStorage {
-        let sb = &self.storage_builder;
-        sb(addr, state, settings)
+        (self.storage_builder)(addr, state, settings)
     }
 
     fn call_ctor(
@@ -230,6 +239,7 @@ where
             Ok((template, template_addr, _author, _creator)) => {
                 let settings = AppSettings {
                     page_count: template.page_count,
+                    kv_path: self.kv_path.clone(),
                 };
 
                 let mut import_object =
@@ -483,8 +493,6 @@ where
     }
 
     fn import_object_extend(&self, import_object: &mut ImportObject) {
-        // TODO: validate that `self.imports` don't use `svm` as import namespaces.
-
         import_object.extend(self.imports.clone());
 
         let mut ns = Namespace::new();
@@ -566,7 +574,7 @@ where
         buf
     }
 
-    fn ensure_not_svm_ns(imports: &Vec<(String, String, Export)>) {
+    fn ensure_not_svm_ns(imports: &[(String, String, Export)]) {
         if imports.iter().any(|(ns, _, _)| ns == "svm") {
             panic!("Imports namespace can't be `svm` since it's a reserved name.")
         }
