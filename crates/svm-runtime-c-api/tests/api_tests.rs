@@ -192,11 +192,14 @@ unsafe fn test_svm_runtime() {
     let mut runtime = std::ptr::null_mut();
     let imports = create_imports();
     let dry_run = false;
+    let mut error = svm_byte_array::default();
 
     let res = api::svm_memory_kv_create(&mut kv);
     assert!(res.is_ok());
 
-    let res = api::svm_memory_runtime_create(&mut runtime, kv, host.as_mut_ptr(), imports);
+    let res =
+        api::svm_memory_runtime_create(&mut runtime, kv, host.as_mut_ptr(), imports, &mut error);
+
     assert!(res.is_ok());
 
     // 2) deploy app-template
@@ -226,6 +229,7 @@ unsafe fn test_svm_runtime() {
         author,
         host_ctx,
         dry_run,
+        &mut error,
     );
     assert!(res.is_ok());
 
@@ -262,6 +266,7 @@ unsafe fn test_svm_runtime() {
         creator,
         host_ctx,
         dry_run,
+        &mut error,
     );
     assert!(res.is_ok());
 
@@ -309,6 +314,7 @@ unsafe fn test_svm_runtime() {
         init_state,
         host_ctx,
         dry_run,
+        &mut error,
     );
     assert!(res.is_ok());
 

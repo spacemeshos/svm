@@ -7,7 +7,7 @@ use svm_common::{Address, State};
 use svm_runtime::{ctx::SvmCtx, gas::DefaultGasEstimator};
 
 use crate::{
-    helpers,
+    helpers, raw_error, raw_utf8_error,
     receipt::{encode_app_receipt, encode_exec_receipt, encode_template_receipt},
     svm_byte_array, svm_import_func_sig_t, svm_import_func_t, svm_import_kind, svm_import_t,
     svm_import_value, svm_result_t, svm_value_type_array,
@@ -98,7 +98,9 @@ pub unsafe extern "C" fn svm_validate_app(
 /// assert!(res.is_ok());
 ///
 /// let mut runtime = std::ptr::null_mut();
-/// let res = unsafe { svm_memory_runtime_create(&mut runtime, kv, host, imports) };
+/// let mut error = svm_byte_array::default();
+///
+/// let res = unsafe { svm_memory_runtime_create(&mut runtime, kv, host, imports, &mut error) };
 /// assert!(res.is_ok());
 ///
 /// let mut app_addr = svm_byte_array::default();
@@ -127,7 +129,6 @@ pub unsafe extern "C" fn svm_validate_tx(
             svm_result_t::SVM_SUCCESS
         }
         Err(_e) => {
-            // update_last_error(error);
             error!("`svm_validate_tx` returns `SVM_FAILURE`");
             svm_result_t::SVM_FAILURE
         }
@@ -178,8 +179,18 @@ pub unsafe extern "C" fn svm_imports_alloc(imports: *mut *mut c_void, count: u32
 /// let params = vec![].into();
 /// let returns = vec![].into();
 /// let func = foo as *const std::ffi::c_void;
+/// let mut error = svm_byte_array::default();
 ///
-/// let res = unsafe { svm_import_func_build(imports, module_name, import_name, func, params, returns) };
+/// let res = unsafe {
+///   svm_import_func_build(
+///     imports,
+///     module_name,
+///     import_name,
+///     func,
+///     params,
+///     returns,
+///     &mut error)
+/// };
 /// assert!(res.is_ok());
 /// ```
 ///
@@ -192,6 +203,7 @@ pub unsafe extern "C" fn svm_import_func_build(
     func: *const c_void,
     params: svm_value_type_array,
     returns: svm_value_type_array,
+    error: *mut svm_byte_array,
 ) -> svm_result_t {
     let imports = &mut *(imports as *mut Vec<svm_import_t>);
 
@@ -199,8 +211,10 @@ pub unsafe extern "C" fn svm_import_func_build(
 
     let func = NonNull::new(func as *mut c_void);
     if func.is_none() {
-        todo!();
-        // return svm_result_t::SVM_FAILURE;
+        let s = String::from("`func` parameter must not be NULL");
+        raw_error(s, error);
+
+        return svm_result_t::SVM_FAILURE;
     }
 
     let func = svm_import_func_t {
@@ -212,16 +226,15 @@ pub unsafe extern "C" fn svm_import_func_build(
     };
 
     let module_name = String::try_from(module_name);
-    let import_name = String::try_from(import_name);
-
     if module_name.is_err() {
-        todo!();
-        // return svm_result_t::SVM_FAILURE;
+        raw_utf8_error(module_name, error);
+        return svm_result_t::SVM_FAILURE;
     }
 
+    let import_name = String::try_from(import_name);
     if import_name.is_err() {
-        todo!();
-        // return svm_result_t::SVM_FAILURE;
+        raw_utf8_error(import_name, error);
+        return svm_result_t::SVM_FAILURE;
     }
 
     let import = svm_import_t {
@@ -275,7 +288,8 @@ pub unsafe extern "C" fn svm_memory_kv_create(kv: *mut *mut c_void) -> svm_resul
 /// let res = unsafe { svm_memory_kv_create(&mut kv) };
 /// assert!(res.is_ok());
 ///
-/// let res = unsafe { svm_memory_runtime_create(&mut runtime, kv, host, imports) };
+/// let mut error = svm_byte_array::default();
+/// let res = unsafe { svm_memory_runtime_create(&mut runtime, kv, host, imports, &mut error) };
 /// assert!(res.is_ok());
 /// ```
 ///
@@ -286,6 +300,7 @@ pub unsafe extern "C" fn svm_memory_runtime_create(
     kv: *mut c_void,
     host: *mut c_void,
     imports: *const c_void,
+    _error: *mut svm_byte_array,
 ) -> svm_result_t {
     debug!("`svm_memory_runtime_create` start");
 
@@ -313,8 +328,9 @@ pub unsafe extern "C" fn svm_memory_runtime_create(
 /// let path = "path goes here".into();
 /// let host = std::ptr::null_mut();
 /// let mut imports = testing::imports_alloc(0);
+/// let mut error = svm_byte_array::default();
 ///
-/// let res = unsafe { svm_runtime_create(&mut runtime, path, host, imports) };
+/// let res = unsafe { svm_runtime_create(&mut runtime, path, host, imports, &mut error) };
 /// assert!(res.is_ok());
 /// ```
 ///
@@ -325,26 +341,25 @@ pub unsafe extern "C" fn svm_runtime_create(
     kv_path: svm_byte_array,
     host: *mut c_void,
     imports: *const c_void,
+    error: *mut svm_byte_array,
 ) -> svm_result_t {
     debug!("`svm_runtime_create` start");
 
-    let kv_path = String::try_from(kv_path);
+    let kv_path: Result<String, std::string::FromUtf8Error> = String::try_from(kv_path);
 
-    let kv_path = match kv_path {
-        Ok(ref s) => Path::new(s),
-        Err(..) => {
-            todo!();
-            // update_last_error(err);
-            // return svm_result_t::SVM_FAILURE;
-        }
-    };
+    if kv_path.is_err() {
+        raw_utf8_error(kv_path, error);
+        return svm_result_t::SVM_FAILURE;
+    }
 
+    let kv_path = kv_path.unwrap();
     let imports = helpers::cast_imports_to_wasmer_imports(imports);
 
-    let rocksdb_runtime =
-        svm_runtime::create_rocksdb_runtime::<&Path, DefaultSerializerTypes, DefaultGasEstimator>(
-            host, kv_path, imports,
-        );
+    let rocksdb_runtime = svm_runtime::create_rocksdb_runtime::<
+        &Path,
+        DefaultSerializerTypes,
+        DefaultGasEstimator,
+    >(host, Path::new(&kv_path), imports);
 
     let res = box_runtime!(runtime, rocksdb_runtime);
 
@@ -372,7 +387,8 @@ pub unsafe extern "C" fn svm_runtime_create(
 /// assert!(res.is_ok());
 ///
 /// let mut runtime = std::ptr::null_mut();
-/// let res = unsafe { svm_memory_runtime_create(&mut runtime, kv, host, imports) };
+/// let mut error = svm_byte_array::default();
+/// let res = unsafe { svm_memory_runtime_create(&mut runtime, kv, host, imports, &mut error) };
 /// assert!(res.is_ok());
 ///
 /// // deploy template
@@ -381,7 +397,18 @@ pub unsafe extern "C" fn svm_runtime_create(
 /// let host_ctx = svm_byte_array::default();
 /// let template_bytes = svm_byte_array::default();
 /// let dry_run = false;
-/// let res = unsafe { svm_deploy_template(&mut receipt, runtime, template_bytes, author, host_ctx, dry_run) };
+///
+/// let res = unsafe {
+///   svm_deploy_template(
+///     &mut receipt,
+///     runtime,
+///     template_bytes,
+///     author,
+///     host_ctx,
+///     dry_run,
+///     &mut error)
+/// };
+///
 /// assert!(res.is_ok());
 /// ```
 ///
@@ -394,6 +421,7 @@ pub unsafe extern "C" fn svm_deploy_template(
     author: svm_byte_array,
     host_ctx: svm_byte_array,
     dry_run: bool,
+    error: *mut svm_byte_array,
 ) -> svm_result_t {
     debug!("`svm_deploy_template` start`");
 
@@ -401,15 +429,16 @@ pub unsafe extern "C" fn svm_deploy_template(
 
     let author: Result<Address, String> = Address::try_from(author);
 
-    if let Err(_msg) = author {
-        todo!()
-        // return svm_result_t::SVM_FAILURE;
+    if let Err(s) = author {
+        raw_error(s, error);
+        return svm_result_t::SVM_FAILURE;
     }
 
     let host_ctx = HostCtx::from_raw_parts(host_ctx.bytes, host_ctx.length);
     if host_ctx.is_err() {
-        todo!();
-        // return svm_result_t::SVM_FAILURE;
+        let s = host_ctx.err().unwrap();
+        raw_error(s, error);
+        return svm_result_t::SVM_FAILURE;
     }
 
     let rust_receipt = runtime.deploy_template(
@@ -449,7 +478,9 @@ pub unsafe extern "C" fn svm_deploy_template(
 /// assert!(res.is_ok());
 ///
 /// let mut runtime = std::ptr::null_mut();
-/// let res = unsafe { svm_memory_runtime_create(&mut runtime, kv, host, imports) };
+/// let mut error = svm_byte_array::default();
+///
+/// let res = unsafe { svm_memory_runtime_create(&mut runtime, kv, host, imports, &mut error) };
 /// assert!(res.is_ok());
 ///
 /// let mut app_receipt = svm_byte_array::default();
@@ -459,7 +490,16 @@ pub unsafe extern "C" fn svm_deploy_template(
 /// let app_bytes = svm_byte_array::default();
 /// let dry_run = false;
 ///
-/// let _res = unsafe { svm_spawn_app(&mut app_receipt, runtime, app_bytes, creator, host_ctx, dry_run) };
+/// let _res = unsafe {
+///   svm_spawn_app(
+///     &mut app_receipt,
+///     runtime,
+///     app_bytes,
+///     creator,
+///     host_ctx,
+///     dry_run,
+///     &mut error)
+/// };
 /// ```
 ///
 #[must_use]
@@ -471,21 +511,23 @@ pub unsafe extern "C" fn svm_spawn_app(
     creator: svm_byte_array,
     host_ctx: svm_byte_array,
     dry_run: bool,
+    error: *mut svm_byte_array,
 ) -> svm_result_t {
     debug!("`svm_spawn_app` start");
 
     let runtime = helpers::cast_to_runtime_mut(runtime);
     let creator: Result<Address, String> = Address::try_from(creator);
 
-    if let Err(_msg) = creator {
-        todo!();
-        // return svm_result_t::SVM_FAILURE;
+    if let Err(s) = creator {
+        raw_error(s, error);
+        return svm_result_t::SVM_FAILURE;
     }
 
     let host_ctx = HostCtx::from_raw_parts(host_ctx.bytes, host_ctx.length);
     if host_ctx.is_err() {
-        todo!();
-        // return svm_result_t::SVM_FAILURE;
+        let s = host_ctx.err().unwrap();
+        raw_error(s, error);
+        return svm_result_t::SVM_FAILURE;
     }
 
     let rust_receipt = runtime.spawn_app(
@@ -528,7 +570,9 @@ pub unsafe extern "C" fn svm_spawn_app(
 /// assert!(res.is_ok());
 ///
 /// let mut runtime = std::ptr::null_mut();
-/// let res = unsafe { svm_memory_runtime_create(&mut runtime, kv, host, imports) };
+/// let mut error = svm_byte_array::default();
+///
+/// let res = unsafe { svm_memory_runtime_create(&mut runtime, kv, host, imports, &mut error) };
 /// assert!(res.is_ok());
 ///
 /// let mut exec_receipt = svm_byte_array::default();
@@ -536,7 +580,17 @@ pub unsafe extern "C" fn svm_spawn_app(
 /// let state = State::empty().into();
 /// let host_ctx = svm_byte_array::default();
 /// let dry_run = false;
-/// let _res = unsafe { svm_exec_app(&mut exec_receipt, runtime, tx_bytes, state, host_ctx, dry_run) };
+///
+/// let _res = unsafe {
+///   svm_exec_app(
+///     &mut exec_receipt,
+///     runtime,
+///     tx_bytes,
+///     state,
+///     host_ctx,
+///     dry_run,
+///     &mut error)
+/// };
 /// ```
 ///
 #[must_use]
@@ -548,24 +602,24 @@ pub unsafe extern "C" fn svm_exec_app(
     state: svm_byte_array,
     host_ctx: svm_byte_array,
     dry_run: bool,
+    error: *mut svm_byte_array,
 ) -> svm_result_t {
     debug!("`svm_exec_app` start");
 
     let host_ctx = HostCtx::from_raw_parts(host_ctx.bytes, host_ctx.length);
-
     if host_ctx.is_err() {
-        todo!();
-        // update_last_error(e);
-        // error!("`svm_exec_app` returns `SVM_FAILURE`");
-        // return svm_result_t::SVM_FAILURE;
+        let s = host_ctx.err().unwrap();
+        raw_error(s, error);
+        return svm_result_t::SVM_FAILURE;
     }
 
     let host_ctx = host_ctx.unwrap();
     let runtime = helpers::cast_to_runtime_mut(runtime);
     let state: Result<State, String> = State::try_from(state);
 
-    if let Err(_msg) = state {
-        todo!();
+    if let Err(msg) = state {
+        raw_error(msg, error);
+        return svm_result_t::SVM_FAILURE;
     }
 
     let rust_receipt = runtime.exec_app(bytes.into(), &state.unwrap(), host_ctx, dry_run);
@@ -611,7 +665,8 @@ pub unsafe extern "C" fn svm_instance_context_host_get(ctx: *mut c_void) -> *mut
 /// assert!(res.is_ok());
 ///
 /// let mut runtime = std::ptr::null_mut();
-/// let res = unsafe { svm_memory_runtime_create(&mut runtime, kv, host, imports) };
+/// let mut error = svm_byte_array::default();
+/// let res = unsafe { svm_memory_runtime_create(&mut runtime, kv, host, imports, &mut error) };
 /// assert!(res.is_ok());
 ///
 /// // destroy runtime
