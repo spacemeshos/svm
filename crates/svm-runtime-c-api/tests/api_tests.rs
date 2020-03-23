@@ -287,7 +287,7 @@ unsafe fn test_svm_runtime() {
 
     // 4.1) validates tx and extract its `app-address`.
     let mut app_addr = svm_byte_array::default();
-    let res = api::svm_validate_tx(&mut app_addr, runtime, tx_bytes);
+    let res = api::svm_validate_tx(&mut app_addr, runtime, tx_bytes, &mut error);
     assert!(res.is_ok());
 
     // // 4.2) execute the app-transaction

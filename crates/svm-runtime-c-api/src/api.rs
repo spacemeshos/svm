@@ -7,7 +7,7 @@ use svm_common::{Address, State};
 use svm_runtime::{ctx::SvmCtx, gas::DefaultGasEstimator};
 
 use crate::{
-    helpers, raw_error, raw_utf8_error,
+    helpers, raw_error, raw_parse_error, raw_utf8_error,
     receipt::{encode_app_receipt, encode_exec_receipt, encode_template_receipt},
     svm_byte_array, svm_import_func_sig_t, svm_import_func_t, svm_import_kind, svm_import_t,
     svm_import_value, svm_result_t, svm_value_type_array,
@@ -55,12 +55,17 @@ macro_rules! to_svm_byte_array {
 pub unsafe extern "C" fn svm_validate_template(
     runtime: *const c_void,
     bytes: svm_byte_array,
+    error: *mut svm_byte_array,
 ) -> svm_result_t {
     let runtime = helpers::cast_to_runtime(runtime);
 
     match runtime.validate_template(bytes.into()) {
         Ok(()) => svm_result_t::SVM_SUCCESS,
-        Err(..) => svm_result_t::SVM_FAILURE,
+        Err(e) => {
+            error!("`svm_validate_template` returns `SVM_FAILURE`");
+            raw_parse_error(&e, error);
+            svm_result_t::SVM_FAILURE
+        }
     }
 }
 
@@ -69,12 +74,17 @@ pub unsafe extern "C" fn svm_validate_template(
 pub unsafe extern "C" fn svm_validate_app(
     runtime: *const c_void,
     bytes: svm_byte_array,
+    error: *mut svm_byte_array,
 ) -> svm_result_t {
     let runtime = helpers::cast_to_runtime(runtime);
 
     match runtime.validate_app(bytes.into()) {
         Ok(()) => svm_result_t::SVM_SUCCESS,
-        Err(..) => svm_result_t::SVM_FAILURE,
+        Err(e) => {
+            error!("`svm_validate_app` returns `SVM_FAILURE`");
+            raw_parse_error(&e, error);
+            svm_result_t::SVM_FAILURE
+        }
     }
 }
 
@@ -105,7 +115,7 @@ pub unsafe extern "C" fn svm_validate_app(
 ///
 /// let mut app_addr = svm_byte_array::default();
 /// let tx_bytes = svm_byte_array::default();
-/// let _res = unsafe { svm_validate_tx(&mut app_addr, runtime, tx_bytes) };
+/// let _res = unsafe { svm_validate_tx(&mut app_addr, runtime, tx_bytes, &mut error) };
 /// ```
 ///
 #[must_use]
@@ -114,6 +124,7 @@ pub unsafe extern "C" fn svm_validate_tx(
     app_addr: *mut svm_byte_array,
     runtime: *const c_void,
     bytes: svm_byte_array,
+    error: *mut svm_byte_array,
 ) -> svm_result_t {
     debug!("`svm_validate_tx` start");
 
@@ -128,8 +139,9 @@ pub unsafe extern "C" fn svm_validate_tx(
             debug!("`svm_validate_tx` returns `SVM_SUCCESS`");
             svm_result_t::SVM_SUCCESS
         }
-        Err(_e) => {
+        Err(e) => {
             error!("`svm_validate_tx` returns `SVM_FAILURE`");
+            raw_parse_error(&e, error);
             svm_result_t::SVM_FAILURE
         }
     }
