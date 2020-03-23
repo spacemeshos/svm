@@ -16,6 +16,7 @@ version = "0.0.0"
 
 [dependencies]
 clap = "2.33.0"
+hex = "0.4"
 
 [dev-dependencies]
 tempfile = "3"

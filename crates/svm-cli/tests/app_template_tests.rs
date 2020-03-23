@@ -46,7 +46,7 @@ fn encode_invalid_codepath() {
     let input = vec![
         "myprog",
         "encode",
-        "app-template",
+        "app_template",
         version,
         name,
         page_count,
@@ -73,7 +73,7 @@ fn encode_invalid_outputpath() {
     let input = vec![
         "myprog",
         "encode",
-        "app-template",
+        "app_template",
         version,
         name,
         page_count,
@@ -93,7 +93,7 @@ fn encode_invalid_outputpath() {
 #[test]
 fn decode_invalid_datapath() {
     let data_path = "non_existing_path";
-    let input = vec!["myprog", "decode", "app-template", data_path];
+    let input = vec!["myprog", "decode", "app_template", data_path];
 
     let matches = cli::new_app().get_matches_from(input);
     let res = cli::process(matches);
@@ -120,7 +120,7 @@ fn test_encode_decode(case: AppTemplateTestCase) {
     let input = vec![
         "myprog",
         "encode",
-        "app-template",
+        "app_template",
         &case.version,
         &case.name,
         &case.page_count,
@@ -135,7 +135,7 @@ fn test_encode_decode(case: AppTemplateTestCase) {
     assert_eq!(&cap[2], output_path);
 
     let data_path = output_path;
-    let input = vec!["myprog", "decode", "app-template", data_path];
+    let input = vec!["myprog", "decode", "app_template", data_path];
     let matches = cli::new_app().get_matches_from(input);
     let output = cli::process(matches).unwrap();
 
