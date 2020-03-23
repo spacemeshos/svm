@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use svm_app::types::{HostCtx, WasmValue};
 use svm_common::Address;
 use svm_runtime::{runtime::Runtime, settings::AppSettings, testing};
@@ -38,7 +40,10 @@ fn runtime_spawn_app_with_ctor() {
 
     let receipt = runtime.spawn_app(&bytes, &creator, HostCtx::new(), false);
 
-    let settings = AppSettings { page_count };
+    let settings = AppSettings {
+        page_count,
+        kv_path: Path::new("mem").to_path_buf(),
+    };
 
     let mut storage =
         runtime.open_app_storage(receipt.get_app_addr(), receipt.get_init_state(), &settings);
@@ -124,7 +129,10 @@ fn runtime_exec_app() {
     // now we'll read directly from the app's storage
     // and assert that the data has been persisted as expected.
 
-    let settings = AppSettings { page_count };
+    let settings = AppSettings {
+        page_count,
+        kv_path: Path::new("mem").to_path_buf(),
+    };
     let mut storage = runtime.open_app_storage(app_addr, receipt.get_new_state(), &settings);
 
     let layout = PageSliceLayout::new(

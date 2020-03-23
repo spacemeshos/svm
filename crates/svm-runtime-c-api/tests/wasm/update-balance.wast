@@ -5,7 +5,7 @@
   (func $host_ctx_read_i64_le (import "svm" "host_ctx_read_i64_le") (param i32) (result i64))
   (func $buffer_copy_to_reg (import "svm" "buffer_copy_to_reg") (param i32 i32 i32 i32 i32))
 
-  ;; host vmcalls
+  ;; Host vmcalls
   (func $inc_balance (import "env" "inc_balance") (param i64 i32 i32))
   (func $mul_balance (import "env" "mul_balance") (param i64 i32 i32))
 

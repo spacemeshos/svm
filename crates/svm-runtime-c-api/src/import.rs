@@ -11,6 +11,7 @@ pub enum svm_import_kind {
 
 /// FFI representation for import function signature
 #[allow(non_camel_case_types)]
+#[derive(Debug)]
 pub struct svm_import_func_sig_t {
     /// Function params types
     pub params: Vec<svm_value_type>,

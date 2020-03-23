@@ -6,7 +6,7 @@ pub use receipt::{
     ClientExecReceipt, ClientTemplateReceipt,
 };
 
-use crate::svm_value_type;
+use crate::{svm_byte_array, svm_value_type};
 
 use svm_runtime::ctx::SvmCtx;
 
@@ -63,6 +63,8 @@ pub unsafe fn import_func_create(
     params: Vec<svm_value_type>,
     returns: Vec<svm_value_type>,
 ) {
+    let mut error = svm_byte_array::default();
+
     let res = crate::svm_import_func_build(
         imports,
         module_name.into(),
@@ -70,6 +72,8 @@ pub unsafe fn import_func_create(
         func,
         params.into(),
         returns.into(),
+        &mut error,
     );
+
     assert!(res.is_ok());
 }
