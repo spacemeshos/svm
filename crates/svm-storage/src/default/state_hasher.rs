@@ -1,5 +1,5 @@
 use crate::{
-    page::{PageHash, PAGE_HASH_LEN},
+    page::{JoinedPagesHash, PageHash, PAGE_HASH_LEN},
     traits::StateHasher,
 };
 
@@ -12,15 +12,8 @@ impl StateHasher for DefaultStateHasher {
     ///
     /// HASH(page1_hash || page2_hash || ... || pageN_hash)
     ///
-    fn hash(pages_hash: &[PageHash]) -> State {
-        let mut joined_pages_hash: Vec<u8> =
-            Vec::with_capacity(pages_hash.len() as usize * PAGE_HASH_LEN);
-
-        for ph in pages_hash {
-            joined_pages_hash.extend_from_slice(&ph.0);
-        }
-
-        let hash = DefaultKeyHasher::hash(&joined_pages_hash);
+    fn hash(jph: &JoinedPagesHash) -> State {
+        let hash = DefaultKeyHasher::hash(jph.as_slice());
 
         State::from(&hash[..])
     }

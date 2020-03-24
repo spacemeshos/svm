@@ -1,5 +1,5 @@
 use crate::{
-    page::{PageHash, PageIndex},
+    page::{JoinedPagesHash, PageHash, PageIndex},
     traits::{PageHasher, PagesStorage, StateAwarePagesStorage, StateHasher},
 };
 
@@ -25,8 +25,9 @@ struct PageChange {
 }
 
 struct Changeset {
-    state_entry: (State, Vec<PageHash>),
+    state: State,
     changes: Vec<PageChange>,
+    jph: JoinedPagesHash,
 }
 
 /// `AppPages` is an implemetation of the `PagesStorage` trait that is `State`-aware.
@@ -159,12 +160,13 @@ where
             };
         }
 
-        let new_state = SH::hash(pages_hash.as_slice());
-        let state_entry = (new_state, pages_hash);
+        let jph = JoinedPagesHash::new(pages_hash);
+        let state = SH::hash(&jph);
 
         Changeset {
-            state_entry,
+            state,
             changes,
+            jph,
         }
     }
 }
@@ -238,21 +240,25 @@ where
         // new_state = HASH(page1_hash || page2_hash || ... || pageN_hash)
         // ```
 
-        debug!("About to commit dirty pages to underlying key-value store");
+        debug!("About to commit dirty pages to underlying key-value store.");
 
         let changeset = self.prepare_changeset();
 
-        let (state, pages_hash) = changeset.state_entry;
+        let mut entries: Vec<(&[u8], &[u8])> = Vec::with_capacity(1 + changeset.changes.len());
 
-        // let mut entries: Vec<(&[u8], &[u8])> = Vec::with_capacity(1 + changeset.changes.len());
-        // let joined_pages_hash: &[u8] = pages_hash.iter().flat_map(|ph| ph.0.as_slice()).collect();
-        // entries.push((new_state.as_slice(), state_entry_val.as_ref()));
+        let state_entry = (changeset.state.as_slice(), changeset.jph.as_slice());
+        entries.push(state_entry);
 
-        // for change in changeset {
-        //     entries.push(change)
-        // }
+        for change in changeset.changes.iter() {
+            let k = change.new_hash.as_ref();
+            let v = &change.new_data[..];
+
+            let entry = (k, v);
+            entries.push(entry);
+        }
 
         // At last, we store under the flat key-value store (`self.kv`) the following new entries:
+        //
         // ```
         // new_state  ---> [page1_hash, page2_hash, ..., pageN_hash]
         // page1_hash ---> page1_content
@@ -262,8 +268,8 @@ where
         // pageN_hash ---> pageN_content
         // ```
 
-        // self.kv.borrow_mut().store(entries.as_slice());
-        // self.state = changeset.new_state;
+        self.kv.borrow_mut().store(&entries);
+        self.state = changeset.state;
 
         self.clear();
     }

@@ -1,4 +1,4 @@
-use crate::page::{PageHash, PageIndex};
+use crate::page::{JoinedPagesHash, PageHash, PageIndex};
 
 use svm_common::{Address, State};
 
@@ -31,9 +31,9 @@ pub trait PageHasher {
 
 /// Determines the app's `State` given its pages-hashes (see also `PageHasher`).
 pub trait StateHasher {
-    /// `pages_hash` - a slice of `PageHash`
+    /// Computes the new `State`.
     #[must_use]
-    fn hash(pages_hash: &[PageHash]) -> State;
+    fn hash(jph: &JoinedPagesHash) -> State;
 }
 
 /// This trait should be implemented by state-oriented pages storage.
