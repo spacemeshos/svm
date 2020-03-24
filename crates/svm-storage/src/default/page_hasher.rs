@@ -2,6 +2,7 @@ use crate::{page::PageHash, traits::PageHasher};
 
 use svm_common::{DefaultKeyHasher, KeyHasher};
 
+/// Default `PageHasher` implementation.
 pub struct DefaultPageHasher;
 
 impl PageHasher for DefaultPageHasher {

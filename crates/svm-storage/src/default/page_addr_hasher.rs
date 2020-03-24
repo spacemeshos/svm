@@ -5,6 +5,7 @@ use crate::{
 
 use svm_common::{Address, DefaultKeyHasher, KeyHasher};
 
+/// Default `PageAddrHasher` implementation.
 pub struct DefaultPageAddrHasher;
 
 impl PageAddrHasher for DefaultPageAddrHasher {

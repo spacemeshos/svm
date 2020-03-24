@@ -1,6 +1,6 @@
 use crate::{
-    page::{PageHash, PageIndex},
-    traits::{PageHasher, PagesStorage, StateAwarePagesStorage, StateHasher},
+    page::{PageAddr, PageHash, PageIndex},
+    traits::{PageAddrHasher, PageHasher, PagesStorage, StateAwarePagesStorage, StateHasher},
 };
 
 use svm_common::{Address, State};
@@ -17,88 +17,101 @@ enum PageEntry {
     Modified(PageHash, Vec<u8>),
 }
 
-/// `AppPages` is an implemetation of the `PagesStorage` trait that is state aware.
-/// `KV` - stands for `KVStore`
-/// `PH` - stands for `PageHasher`
-/// `SH` - stands for `StateHasher`
-pub struct AppPages<KV, PH, SH>
+/// `AppPages` is an implemetation of the `PagesStorage` trait that is `State`-aware.
+///
+/// `KV`  - stands for `KVStore`
+/// `PAH` - stands for `PageAddrHasher`
+/// `PH`  - stands for `PageHasher`
+/// `SH`  - stands for `StateHasher`
+pub struct AppPages<KV, PAH, PH, SH>
 where
     KV: KVStore,
+    PAH: PageAddrHasher,
     PH: PageHasher,
     SH: StateHasher,
 {
     state: State,
-    addr: Address,
+    app_addr: Address,
     pages: Vec<PageEntry>,
     kv: Rc<RefCell<KV>>,
-    page_count: u16,
-    phantom: PhantomData<(PH, SH)>,
+    page_count: usize,
+    phantom: PhantomData<(PAH, PH, SH)>,
 }
 
-impl<KV, PH, SH> AppPages<KV, PH, SH>
+impl<KV, PAH, PH, SH> AppPages<KV, PAH, PH, SH>
 where
     KV: KVStore,
+    PAH: PageAddrHasher,
     PH: PageHasher,
     SH: StateHasher,
 {
     /// Creates a new instance of `AppPages`
-    /// * `addr`        - The running app account address.
+    /// * `app_addr`    - The running app account address.
     /// * `kv`          - The underlying kv-store used for retrieving a page raw-data when queried by its page-hash serving as a key.
     /// * `state`       - The current app-storage state prior execution of the current app-transaction.
     /// * `page_count` - The number of pages consumed by the app-storage (it's a fixed value per-app).
-    pub fn new(addr: Address, kv: Rc<RefCell<KV>>, state: State, page_count: u16) -> Self {
+    pub fn new(app_addr: Address, kv: Rc<RefCell<KV>>, state: State, page_count: u16) -> Self {
         let mut storage = Self {
             state,
             kv,
-            page_count,
-            addr,
+            page_count: page_count as usize,
+            app_addr,
             pages: vec![PageEntry::Uninitialized; page_count as usize],
             phantom: PhantomData,
         };
 
-        storage.init_pages_state();
+        if state == State::empty() {
+            storage.init_state();
+        } else {
+            storage.load_pages_hash();
+        }
 
         storage
     }
 
-    /// Loads the entry:
-    /// state ---> [page1_hash || page2_hash || .... || pageN_hash]
-    ///
-    /// Then, populates `self.pages`. Each page is initialized with `PageEntry::NotModified(page_hash)`
-    fn init_pages_state(&mut self) {
-        debug!("initializating pages-storage with state {:?}", self.state);
+    fn init_state(&mut self) {
+        // `self.state` is `000...0`. It means that state doesn't exist under the key-value store.
+        // This happens when an app runs for the first time.
+        // We initialize each page with its zero-page hash `HASH(addr || page_idx || 0...0)`
 
-        if self.state == State::empty() {
-            // `self.state` is `000...0`. It means that state doesn't exist under the key-value store.
-            // This happens when an app runs for the first time.
-            // We initialize each page with its zero-page hash `HASH(addr || page_idx || 0...0)`
+        let zph = self.compute_zero_page_hash();
 
-            let zero_page_hash = self.compute_zero_page_hash();
-
-            for page_idx in 0..(self.page_count as usize) {
-                self.pages[page_idx] = PageEntry::NotModified(zero_page_hash.clone());
-            }
-        } else if let Some(v) = self.kv.borrow().get(self.state.as_slice()) {
-            // `v` should be a concatenation of pages-hash. Each page hash consumes exactly 32 bytes.
-            assert!(v.len() % 32 == 0);
-
-            for (page_idx, raw_ph) in v.chunks_exact(32).enumerate() {
-                let ph = PageHash::from(raw_ph);
-                self.pages[page_idx] = PageEntry::NotModified(ph);
-
-                trace!("page #{}, has page-hash {:?}", page_idx, ph);
-            }
-        } else {
-            error!("Didn't find state: {:?}", self.state.as_slice());
-            panic!("Didn't find state: {:?}", self.state.as_slice());
+        for page_idx in 0..self.page_count {
+            self.pages[page_idx] = PageEntry::NotModified((zph.clone(), None));
         }
     }
 
-    /// Derives page hash, from its index `page_idx` and data `page_data`.
+    fn load_pages_hash(&mut self) {
+        /// Loads the entry:
+        /// state ---> [page1_hash || page2_hash || .... || pageN_hash]
+        ///
+        /// Then, populates `self.pages`. Each page is initialized with `PageEntry::NotModified(page_hash, None)`
+        let state = self.state.as_slice();
+        let v = self.kv.borrow().get(state);
+
+        assert!(v.is_some(), "Didn't find state: {:?}", state);
+
+        assert!(v.len() % State::len() == 0);
+
+        for (i, ph) in v.chunks_exact(State::len()).enumerate() {
+            let ph = PageHash::from(ph);
+            trace!("page #{}, has page-hash {:?}", i, ph);
+
+            self.pages[i] = PageEntry::NotModified((ph, None));
+        }
+    }
+
+    /// Derives page hash, from its raw `data`.
     #[must_use]
     #[inline]
     pub fn compute_page_hash(&self, page_data: &[u8]) -> PageHash {
         PH::hash(page_data)
+    }
+
+    #[must_use]
+    #[inline]
+    pub fn compute_page_addr(&self, page_idx: PageIndex) -> PageAddr {
+        PAH::hash(self.app_addr, page_idx);
     }
 
     /// Derives page hash for page indexed `page_idx` containing only zeros.
@@ -137,15 +150,16 @@ where
         }
 
         let new_state_hash = SH::hash(pages_hash.as_slice());
-        let new_state = State::from(new_state_hash.as_ref());
+        let new_state = State::from(new_state_hash.as_slice());
 
         (new_state, pages_hash, changes)
     }
 }
 
-impl<KV, PH, SH> StateAwarePagesStorage for AppPages<KV, PH, SH>
+impl<KV, PAH, PH, SH> StateAwarePagesStorage for AppPages<KV, PAH, PH, SH>
 where
     KV: KVStore,
+    PAH: PageAddrHasher,
     PH: PageHasher,
     SH: StateHasher,
 {
@@ -165,29 +179,37 @@ where
     }
 }
 
-impl<KV, PH, SH> PagesStorage for AppPages<KV, PH, SH>
+impl<KV, PAH, PH, SH> PagesStorage for AppPages<KV, PAH, PH, SH>
 where
     KV: KVStore,
+    PAH: PageAddrHasher,
     PH: PageHasher,
     SH: StateHasher,
 {
     #[must_use]
     fn read_page(&mut self, page_idx: PageIndex) -> Option<Vec<u8>> {
-        match self.pages[page_idx.0 as usize] {
-            PageEntry::NotModified(ph) => self.kv.borrow().get(&ph.0),
+        let idx = page_idx.0 as usize;
+
+        match self.pages[idx] {
+            PageEntry::NotModified(ph) => {
+                let key = &ph.0;
+                self.kv.borrow().get(key)
+            }
             PageEntry::Modified(..) => panic!("Not allowed to read a dirty page"),
             PageEntry::Uninitialized => unreachable!(),
         }
     }
 
     fn write_page(&mut self, page_idx: PageIndex, page_data: &[u8]) {
+        let idx = page_idx.0 as usize;
+
         let ph = self.compute_page_hash(page_data);
 
-        self.pages[page_idx.0 as usize] = PageEntry::Modified(ph, page_data.to_vec());
+        self.pages[idx] = PageEntry::Modified(ph, page_data.to_vec());
     }
 
     fn clear(&mut self) {
-        debug!("clearing pages-storage...");
+        debug!("Clearing pages-storage...");
 
         for page in &mut self.pages {
             match page {
@@ -236,12 +258,7 @@ where
     }
 }
 
-impl<KV, PH, SH> Drop for AppPages<KV, PH, SH>
-where
-    KV: KVStore,
-    PH: PageHasher,
-    SH: StateHasher,
-{
+impl<KV, PAH, PH, SH> Drop for AppPages<KV, PAH, PH, SH> {
     fn drop(&mut self) {
         debug!("dropping `AppPages`...");
     }
