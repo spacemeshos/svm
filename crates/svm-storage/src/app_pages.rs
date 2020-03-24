@@ -1,6 +1,5 @@
 use crate::{
-    page::{PageAddr, PageHash, PageIndex},
-    state::StateHash,
+    page::{PageHash, PageIndex},
     traits::{PageHasher, PagesStorage, StateAwarePagesStorage, StateHasher},
 };
 
@@ -21,20 +20,20 @@ enum PageEntry {
 #[derive(Debug, PartialEq, Eq)]
 struct PageChange {
     idx: PageIndex,
+    new_hash: PageHash,
     new_data: Vec<u8>,
 }
 
 struct Changeset {
-    new_state: State,
-    new_state_hash: StateHash,
+    state_entry: (State, Vec<PageHash>),
     changes: Vec<PageChange>,
 }
 
 /// `AppPages` is an implemetation of the `PagesStorage` trait that is `State`-aware.
 ///
-/// `KV`  - stands for `KVStore`
-/// `PH`  - stands for `PageHasher`
-/// `SH`  - stands for `StateHasher`
+/// `KV` - stands for `KVStore`
+/// `PH` - stands for `PageHasher`
+/// `SH` - stands for `StateHasher`
 pub struct AppPages<KV, PH, SH>
 where
     KV: KVStore,
@@ -144,25 +143,27 @@ where
         for (i, page) in self.pages.drain(..).enumerate() {
             let change = match page {
                 PageEntry::NotModified(ph) => pages_hash.push(ph),
-                PageEntry::Modified(new_ph, new_data) => {
+                PageEntry::Modified(new_hash, new_data) => {
                     let idx = PageIndex(i as u16);
 
-                    let change = PageChange { idx, new_data };
-
+                    let change = PageChange {
+                        idx,
+                        new_hash: new_hash.clone(),
+                        new_data,
+                    };
                     changes.push(change);
 
-                    pages_hash.push(new_ph);
+                    pages_hash.push(new_hash);
                 }
                 PageEntry::Uninitialized => unreachable!(),
             };
         }
 
-        let new_state_hash = SH::hash(pages_hash.as_slice());
-        let new_state = State::from(new_state_hash.as_ref());
+        let new_state = SH::hash(pages_hash.as_slice());
+        let state_entry = (new_state, pages_hash);
 
         Changeset {
-            new_state,
-            new_state_hash,
+            state_entry,
             changes,
         }
     }
@@ -241,9 +242,10 @@ where
 
         let changeset = self.prepare_changeset();
 
-        // let mut entries: Vec<(&[u8], &[u8])> = Vec::with_capacity(1 + changeset.len());
+        let (state, pages_hash) = changeset.state_entry;
 
-        // let state_entry_val: Vec<u8> = pages_hash.iter().flat_map(|ph| ph.0.to_vec()).collect();
+        // let mut entries: Vec<(&[u8], &[u8])> = Vec::with_capacity(1 + changeset.changes.len());
+        // let joined_pages_hash: &[u8] = pages_hash.iter().flat_map(|ph| ph.0.as_slice()).collect();
         // entries.push((new_state.as_slice(), state_entry_val.as_ref()));
 
         // for change in changeset {
@@ -261,9 +263,9 @@ where
         // ```
 
         // self.kv.borrow_mut().store(entries.as_slice());
-        // self.state = new_state;
+        // self.state = changeset.new_state;
 
-        // self.clear();
+        self.clear();
     }
 }
 

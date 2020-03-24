@@ -1,7 +1,4 @@
-use crate::{
-    page::{PageAddr, PageHash, PageIndex},
-    state::StateHash,
-};
+use crate::page::{PageHash, PageIndex};
 
 use svm_common::{Address, State};
 
@@ -25,13 +22,6 @@ pub trait PagesStorage {
     fn commit(&mut self);
 }
 
-/// Computes page-address given its app-address and index.
-pub trait PageAddrHasher {
-    /// Calculates the page address.
-    #[must_use]
-    fn hash(app_addr: &Address, page_idx: PageIndex) -> PageAddr;
-}
-
 /// Implementors are in-charge of calculating a page hash.
 pub trait PageHasher {
     /// Hashes the contents of a page. (regardless of its address).
@@ -43,7 +33,7 @@ pub trait PageHasher {
 pub trait StateHasher {
     /// `pages_hash` - a slice of `PageHash`
     #[must_use]
-    fn hash(pages_hash: &[PageHash]) -> StateHash;
+    fn hash(pages_hash: &[PageHash]) -> State;
 }
 
 /// This trait should be implemented by state-oriented pages storage.

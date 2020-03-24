@@ -1,23 +1,18 @@
-use crate::page::{PageHash, PAGE_HASH_LEN};
-use crate::state::StateHash;
-use crate::traits::StateHasher;
-use svm_common::{DefaultKeyHasher, KeyHasher};
+use crate::{
+    page::{PageHash, PAGE_HASH_LEN},
+    traits::StateHasher,
+};
 
-use std::marker::PhantomData;
+use svm_common::{DefaultKeyHasher, KeyHasher, State};
 
-pub struct StateHasherImpl<SH> {
-    marker: PhantomData<SH>,
-}
+pub struct DefaultStateHasher;
 
-impl<KH> StateHasher for StateHasherImpl<KH>
-where
-    KH: KeyHasher<Hash = [u8; 32]>,
-{
+impl StateHasher for DefaultStateHasher {
     /// Given a slice of `PageHash`. `StateHash` is derived by:
     ///
     /// HASH(page1_hash || page2_hash || ... || pageN_hash)
     ///
-    fn hash(pages_hash: &[PageHash]) -> StateHash {
+    fn hash(pages_hash: &[PageHash]) -> State {
         let mut joined_pages_hash: Vec<u8> =
             Vec::with_capacity(pages_hash.len() as usize * PAGE_HASH_LEN);
 
@@ -25,21 +20,18 @@ where
             joined_pages_hash.extend_from_slice(&ph.0);
         }
 
-        let hash = KH::hash(&joined_pages_hash);
+        let hash = DefaultKeyHasher::hash(&joined_pages_hash);
 
-        StateHash(hash)
+        State::from(&hash[..])
     }
 }
-
-/// A default implementation for `StateHasher` trait.
-pub type DefaultStateHasher = StateHasherImpl<DefaultKeyHasher>;
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::default::DefaultPageHasher;
-    use crate::page::PageIndex;
-    use crate::traits::PageHasher;
+
+    use crate::{default::DefaultPageHasher, page::PageIndex, traits::PageHasher};
+
     use svm_common::{Address, DefaultKeyHasher, KeyHasher};
 
     #[test]

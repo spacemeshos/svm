@@ -18,8 +18,7 @@ pub mod page;
 /// Contains definitions `State`-related.
 pub mod state;
 
-pub use crate::app_pages::AppPages;
-pub use crate::app_storage::AppStorage;
+pub use crate::{app_pages::AppPages, app_storage::AppStorage};
 
 /// Storage related traits
 pub mod traits;
