@@ -22,7 +22,7 @@ where
     D: AppTemplateDeserializer,
 {
     /// Creates a new template store at the given path
-    pub fn new<P>(path: &P) -> Self
+    pub fn new<P>(path: P) -> Self
     where
         P: AsRef<Path>,
     {

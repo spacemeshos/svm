@@ -58,7 +58,7 @@ pub fn reg_pop(ctx: &mut WasmerCtx, reg_bits: u32, reg_idx: u32) {
     reg.pop();
 }
 
-/// Compares two Registers of the same type (`reg_bits` bits each) indexed as `src_idx` and `dst_idx`.
+/// Compares two `Register`s of the same type (`reg_bits` bits each) indexed as `src_idx` and `dst_idx`.
 ///
 /// If both are equals returns `0`,
 /// when `src` is smaller returns 1,

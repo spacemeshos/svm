@@ -8,7 +8,7 @@ use crate::{
 
 /// `AppStore` implementation backed-by `rocksdb`
 pub struct RocksdbAppStore<S, D> {
-    _phantom: PhantomData<(S, D)>,
+    phantom: PhantomData<(S, D)>,
 }
 
 impl<S, D> RocksdbAppStore<S, D>
@@ -17,12 +17,12 @@ where
     D: AppDeserializer,
 {
     /// New `RocksdbAppStore` instance
-    pub fn new<P>(_path: &P) -> Self
+    pub fn new<P>(_path: P) -> Self
     where
         P: AsRef<Path>,
     {
         Self {
-            _phantom: PhantomData,
+            phantom: PhantomData,
         }
     }
 }

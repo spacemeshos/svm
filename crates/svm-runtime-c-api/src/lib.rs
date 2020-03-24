@@ -15,6 +15,7 @@ pub mod testing;
 mod address;
 mod api;
 mod byte_array;
+mod error;
 mod import;
 mod macros;
 mod receipt;
@@ -22,6 +23,8 @@ mod result;
 mod state;
 mod value;
 mod wasmer;
+
+pub(crate) use error::{raw_error, raw_parse_error, raw_utf8_error};
 
 /// `SVM` FFI Interface
 pub use api::{

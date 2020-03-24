@@ -85,3 +85,33 @@ fn decode_ctor_buf(iter: &mut NibbleIter) -> Result<Vec<u8>, ParseError> {
 fn decode_ctor_args(iter: &mut NibbleIter) -> Result<Vec<WasmValue>, ParseError> {
     helpers::decode_func_args(iter)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use svm_common::Address;
+
+    #[test]
+    fn encode_decode_spawn_app() {
+        let spawn = SpawnApp {
+            app: App {
+                version: 0,
+                template: Address::of("my-template").into(),
+            },
+            ctor_idx: 10,
+            ctor_buf: vec![0x10, 0x20, 0x30],
+            ctor_args: vec![WasmValue::I32(20), WasmValue::I64(30)],
+        };
+
+        let mut w = NibbleWriter::new();
+        encode_spawn_app(&spawn, &mut w);
+
+        let bytes = w.into_bytes();
+        let mut iter = NibbleIter::new(&bytes[..]);
+
+        let decoded = decode_spawn_app(&mut iter).unwrap();
+
+        assert_eq!(spawn, decoded);
+    }
+}
