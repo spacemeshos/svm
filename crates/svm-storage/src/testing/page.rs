@@ -1,19 +1,21 @@
 use svm_common::{Address, DefaultKeyHasher, KeyHasher, State};
 
-use crate::default::{DefaultPageHasher, DefaultPageIndexHasher};
-use crate::page::{PageHash, PageIndex};
-use crate::traits::{PageHasher, PageIndexHasher};
+use crate::{
+    default::{DefaultPageAddrHasher, DefaultPageHasher},
+    page::{PageAddr, PageHash, PageIndex},
+    traits::{PageAddrHasher, PageHasher},
+};
 
-/// An helper for computing a page default hash using `DefaultPageIndexHasher`
-pub fn default_page_hash(addr: &Address, page_idx: u16, data: &[u8]) -> PageHash {
-    DefaultPageHasher::hash(addr.clone(), PageIndex(page_idx), data)
+/// Default page hash helper
+pub fn default_page_hash(data: &[u8]) -> PageHash {
+    DefaultPageHasher::hash(data)
 }
 
-/// An helper for computing page-index hashes using `DefaultPageIndexHasher`
-pub fn default_page_index_hash(addr: &str, page_idx: u16) -> [u8; 32] {
-    let addr = Address::of(addr);
+/// Default page-address helper
+pub fn default_page_addr(app_addr: &str, page_idx: u16) -> PageAddr {
+    let app_addr = Address::of(app_addr);
 
-    DefaultPageIndexHasher::hash(addr, PageIndex(page_idx))
+    DefaultPageAddrHasher::hash(&app_addr, PageIndex(page_idx))
 }
 
 /// Fills page with input `items` starting from page offset zero.

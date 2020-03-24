@@ -1,3 +1,6 @@
+mod addr;
+pub use addr::PageAddr;
+
 /// A page is `4096 bytes`
 pub const PAGE_SIZE: u32 = 4_096;
 

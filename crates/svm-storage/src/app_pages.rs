@@ -1,12 +1,12 @@
-use crate::page::{PageHash, PageIndex};
-use crate::traits::{PageHasher, PagesStorage, StateAwarePagesStorage, StateHasher};
+use crate::{
+    page::{PageHash, PageIndex},
+    traits::{PageHasher, PagesStorage, StateAwarePagesStorage, StateHasher},
+};
 
 use svm_common::{Address, State};
 use svm_kv::traits::KVStore;
 
-use std::cell::RefCell;
-use std::marker::PhantomData;
-use std::rc::Rc;
+use std::{cell::RefCell, marker::PhantomData, rc::Rc};
 
 use log::{debug, error, trace};
 
@@ -32,7 +32,7 @@ where
     pages: Vec<PageEntry>,
     kv: Rc<RefCell<KV>>,
     page_count: u16,
-    marker: PhantomData<(PH, SH)>,
+    phantom: PhantomData<(PH, SH)>,
 }
 
 impl<KV, PH, SH> AppPages<KV, PH, SH>
@@ -53,7 +53,7 @@ where
             page_count,
             addr,
             pages: vec![PageEntry::Uninitialized; page_count as usize],
-            marker: PhantomData,
+            phantom: PhantomData,
         };
 
         storage.init_pages_state();
@@ -73,9 +73,10 @@ where
             // This happens when an app runs for the first time.
             // We initialize each page with its zero-page hash `HASH(addr || page_idx || 0...0)`
 
+            let zero_page_hash = self.compute_zero_page_hash();
+
             for page_idx in 0..(self.page_count as usize) {
-                let ph = self.compute_zero_page_hash(PageIndex(page_idx as u16));
-                self.pages[page_idx] = PageEntry::NotModified(ph);
+                self.pages[page_idx] = PageEntry::NotModified(zero_page_hash.clone());
             }
         } else if let Some(v) = self.kv.borrow().get(self.state.as_slice()) {
             // `v` should be a concatenation of pages-hash. Each page hash consumes exactly 32 bytes.
@@ -96,16 +97,16 @@ where
     /// Derives page hash, from its index `page_idx` and data `page_data`.
     #[must_use]
     #[inline]
-    pub fn compute_page_hash(&self, page_idx: PageIndex, page_data: &[u8]) -> PageHash {
-        PH::hash(self.addr.clone(), page_idx, page_data)
+    pub fn compute_page_hash(&self, page_data: &[u8]) -> PageHash {
+        PH::hash(page_data)
     }
 
     /// Derives page hash for page indexed `page_idx` containing only zeros.
     #[must_use]
     #[inline]
-    pub fn compute_zero_page_hash(&self, page_idx: PageIndex) -> PageHash {
+    pub fn compute_zero_page_hash(&self) -> PageHash {
         let zeros_page = crate::page::zero_page();
-        self.compute_page_hash(page_idx, zeros_page.as_ref())
+        self.compute_page_hash(zeros_page.as_ref())
     }
 
     /// The number of dirty pages
@@ -180,7 +181,7 @@ where
     }
 
     fn write_page(&mut self, page_idx: PageIndex, page_data: &[u8]) {
-        let ph = self.compute_page_hash(page_idx, page_data);
+        let ph = self.compute_page_hash(page_data);
 
         self.pages[page_idx.0 as usize] = PageEntry::Modified(ph, page_data.to_vec());
     }

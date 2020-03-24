@@ -1,37 +1,17 @@
-use crate::page::{PageHash, PageIndex};
-use crate::traits::PageHasher;
-use svm_common::{Address, DefaultKeyHasher, KeyHasher};
+use crate::{page::PageHash, traits::PageHasher};
 
-use std::marker::PhantomData;
-use std::ops::Add;
+use svm_common::{DefaultKeyHasher, KeyHasher};
 
-pub struct PageHasherImpl<KH> {
-    marker: PhantomData<KH>,
-}
+pub struct DefaultPageHasher;
 
-impl<KH> PageHasher for PageHasherImpl<KH>
-where
-    KH: KeyHasher<Hash = [u8; 32]>,
-{
-    /// page_addr = addr + page_idx
-    /// ph = HASH(page_addr || HASH(page_data))
-    fn hash(addr: Address, page_idx: PageIndex, page_data: &[u8]) -> PageHash {
-        let page_data_hash = KH::hash(&page_data);
-        let page_addr = addr.add(page_idx.0.into());
+impl PageHasher for DefaultPageHasher {
+    /// Hashes the page content.
+    fn hash(data: &[u8]) -> PageHash {
+        let hash = DefaultKeyHasher::hash(data);
 
-        let mut data = Vec::with_capacity(page_data_hash.len() + page_addr.len());
-
-        data.extend_from_slice(&page_addr);
-        data.extend_from_slice(&page_data_hash);
-
-        let ph = KH::hash(&data);
-
-        PageHash(ph)
+        PageHash(hash)
     }
 }
-
-/// A default implementation for `PageHasher` trait.
-pub type DefaultPageHasher = PageHasherImpl<DefaultKeyHasher>;
 
 #[cfg(test)]
 mod tests {

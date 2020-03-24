@@ -1,11 +1,8 @@
-use std::cell::RefCell;
-use std::collections::HashMap;
-use std::marker::PhantomData;
-use std::rc::Rc;
+use std::{cell::RefCell, collections::HashMap, marker::PhantomData, rc::Rc};
 
 use crate::{
-    page::PageIndex,
-    traits::{PageIndexHasher, PagesStorage},
+    page::{PageAddr, PageIndex},
+    traits::{PageAddrHasher, PagesStorage},
 };
 
 use svm_common::Address;
@@ -29,53 +26,54 @@ use svm_kv::traits::KVStore;
 ///   may fail for multiple reasons, and on such occurrence we don't want to change any state.
 ///   Another benefit is that if the underlying key-value store supports a batch write (for example
 ///   database `rocksdb` has this capability), the `commit` implementation can take advantage of it.
-pub struct DefaultPagesStorage<PIH: PageIndexHasher, KV: KVStore> {
-    addr: Address,
+pub struct DefaultPagesStorage<PAH: PageAddrHasher, KV: KVStore> {
+    app_addr: Address,
     kv: Rc<RefCell<KV>>,
-    uncommitted: HashMap<Vec<u8>, Vec<u8>>,
-    marker: PhantomData<PIH>,
+    phantom: PhantomData<PAH>,
+    uncommitted: HashMap<PageAddr, Vec<u8>>,
 }
 
-impl<PIH, KV> DefaultPagesStorage<PIH, KV>
+impl<PAH, KV> DefaultPagesStorage<PAH, KV>
 where
-    PIH: PageIndexHasher,
+    PAH: PageAddrHasher,
     KV: KVStore,
 {
     /// Creates a new `DefaultPagesStorage`
     #[allow(unused)]
-    pub fn new(addr: Address, kv: Rc<RefCell<KV>>) -> Self {
+    pub fn new(app_addr: Address, kv: Rc<RefCell<KV>>) -> Self {
         Self {
-            addr,
+            app_addr,
             kv,
             uncommitted: HashMap::new(),
-            marker: PhantomData,
+            phantom: PhantomData,
         }
     }
 
     #[must_use]
     #[inline]
-    fn compute_page_hash(&self, page_idx: PageIndex) -> [u8; 32] {
-        PIH::hash(self.addr.clone(), page_idx)
+    fn compute_page_addr(&self, page_idx: PageIndex) -> PageAddr {
+        PAH::hash(&self.app_addr, page_idx)
     }
 }
 
-impl<PIH, KV> PagesStorage for DefaultPagesStorage<PIH, KV>
+impl<PAH, KV> PagesStorage for DefaultPagesStorage<PAH, KV>
 where
-    PIH: PageIndexHasher,
+    PAH: PageAddrHasher,
     KV: KVStore,
 {
     /// We assume that the `page` has no pending changes (see more detailed explanation above).
     fn read_page(&mut self, page_idx: PageIndex) -> Option<Vec<u8>> {
-        let ph = self.compute_page_hash(page_idx);
+        let page_addr = self.compute_page_addr(page_idx);
+        let key = page_addr.inner().as_slice();
 
-        self.kv.borrow().get(&ph)
+        self.kv.borrow().get(&key)
     }
 
     /// Pushes a new pending change (persistence *only* upon `commit`)
     fn write_page(&mut self, page_idx: PageIndex, data: &[u8]) {
-        let ph = self.compute_page_hash(page_idx);
+        let page_addr = self.compute_page_addr(page_idx);
 
-        self.uncommitted.insert(ph.to_vec(), data.to_vec());
+        self.uncommitted.insert(page_addr, data.to_vec());
     }
 
     /// Clears the pending channges
@@ -85,13 +83,16 @@ where
 
     /// Commits pending changes to the underlying key-value store
     fn commit(&mut self) {
-        let changes: Vec<(&[u8], &[u8])> = self
+        let changes: Vec<_> = self
             .uncommitted
             .iter()
-            .map(|(key, page)| (key.as_ref(), page.as_ref()))
+            .map(|(page_addr, data)| {
+                let page_addr = page_addr.inner().as_slice();
+                (page_addr, &data[..])
+            })
             .collect();
 
-        self.kv.borrow_mut().store(changes.as_slice());
+        self.kv.borrow_mut().store(&changes[..]);
 
         self.clear();
     }
