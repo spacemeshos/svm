@@ -1,6 +1,7 @@
 use crate::{
     page::{PageAddr, PageHash, PageIndex},
-    traits::{PageAddrHasher, PageHasher, PagesStorage, StateAwarePagesStorage, StateHasher},
+    state::StateHash,
+    traits::{PageHasher, PagesStorage, StateAwarePagesStorage, StateHasher},
 };
 
 use svm_common::{Address, State};
@@ -17,16 +18,26 @@ enum PageEntry {
     Modified(PageHash, Vec<u8>),
 }
 
+#[derive(Debug, PartialEq, Eq)]
+struct PageChange {
+    idx: PageIndex,
+    new_data: Vec<u8>,
+}
+
+struct Changeset {
+    new_state: State,
+    new_state_hash: StateHash,
+    changes: Vec<PageChange>,
+}
+
 /// `AppPages` is an implemetation of the `PagesStorage` trait that is `State`-aware.
 ///
 /// `KV`  - stands for `KVStore`
-/// `PAH` - stands for `PageAddrHasher`
 /// `PH`  - stands for `PageHasher`
 /// `SH`  - stands for `StateHasher`
-pub struct AppPages<KV, PAH, PH, SH>
+pub struct AppPages<KV, PH, SH>
 where
     KV: KVStore,
-    PAH: PageAddrHasher,
     PH: PageHasher,
     SH: StateHasher,
 {
@@ -35,13 +46,12 @@ where
     pages: Vec<PageEntry>,
     kv: Rc<RefCell<KV>>,
     page_count: usize,
-    phantom: PhantomData<(PAH, PH, SH)>,
+    phantom: PhantomData<(PH, SH)>,
 }
 
-impl<KV, PAH, PH, SH> AppPages<KV, PAH, PH, SH>
+impl<KV, PH, SH> AppPages<KV, PH, SH>
 where
     KV: KVStore,
-    PAH: PageAddrHasher,
     PH: PageHasher,
     SH: StateHasher,
 {
@@ -60,7 +70,7 @@ where
             phantom: PhantomData,
         };
 
-        if state == State::empty() {
+        if storage.state == State::empty() {
             storage.init_state();
         } else {
             storage.load_pages_hash();
@@ -77,7 +87,7 @@ where
         let zph = self.compute_zero_page_hash();
 
         for page_idx in 0..self.page_count {
-            self.pages[page_idx] = PageEntry::NotModified((zph.clone(), None));
+            self.pages[page_idx] = PageEntry::NotModified(zph.clone());
         }
     }
 
@@ -91,13 +101,15 @@ where
 
         assert!(v.is_some(), "Didn't find state: {:?}", state);
 
+        let v = v.unwrap();
+
         assert!(v.len() % State::len() == 0);
 
         for (i, ph) in v.chunks_exact(State::len()).enumerate() {
             let ph = PageHash::from(ph);
             trace!("page #{}, has page-hash {:?}", i, ph);
 
-            self.pages[i] = PageEntry::NotModified((ph, None));
+            self.pages[i] = PageEntry::NotModified(ph);
         }
     }
 
@@ -106,12 +118,6 @@ where
     #[inline]
     pub fn compute_page_hash(&self, page_data: &[u8]) -> PageHash {
         PH::hash(page_data)
-    }
-
-    #[must_use]
-    #[inline]
-    pub fn compute_page_addr(&self, page_idx: PageIndex) -> PageAddr {
-        PAH::hash(self.app_addr, page_idx);
     }
 
     /// Derives page hash for page indexed `page_idx` containing only zeros.
@@ -131,35 +137,40 @@ where
         })
     }
 
-    fn prepare_changeset(&self) -> (State, Vec<PageHash>, Vec<(&[u8], &[u8])>) {
+    fn prepare_changeset(&mut self) -> Changeset {
         let mut changes = Vec::new();
+        let mut pages_hash = Vec::new();
 
-        let mut pages_hash: Vec<PageHash> = Vec::new();
+        for (i, page) in self.pages.drain(..).enumerate() {
+            let change = match page {
+                PageEntry::NotModified(ph) => pages_hash.push(ph),
+                PageEntry::Modified(new_ph, new_data) => {
+                    let idx = PageIndex(i as u16);
 
-        for page in self.pages.iter() {
-            match page {
-                PageEntry::NotModified(ph) => pages_hash.push(*ph),
-                PageEntry::Modified(ph, data) => {
-                    let change: (&[u8], &[u8]) = (&ph.0, data);
+                    let change = PageChange { idx, new_data };
+
                     changes.push(change);
 
-                    pages_hash.push(*ph);
+                    pages_hash.push(new_ph);
                 }
                 PageEntry::Uninitialized => unreachable!(),
-            }
+            };
         }
 
         let new_state_hash = SH::hash(pages_hash.as_slice());
-        let new_state = State::from(new_state_hash.as_slice());
+        let new_state = State::from(new_state_hash.as_ref());
 
-        (new_state, pages_hash, changes)
+        Changeset {
+            new_state,
+            new_state_hash,
+            changes,
+        }
     }
 }
 
-impl<KV, PAH, PH, SH> StateAwarePagesStorage for AppPages<KV, PAH, PH, SH>
+impl<KV, PH, SH> StateAwarePagesStorage for AppPages<KV, PH, SH>
 where
     KV: KVStore,
-    PAH: PageAddrHasher,
     PH: PageHasher,
     SH: StateHasher,
 {
@@ -179,10 +190,9 @@ where
     }
 }
 
-impl<KV, PAH, PH, SH> PagesStorage for AppPages<KV, PAH, PH, SH>
+impl<KV, PH, SH> PagesStorage for AppPages<KV, PH, SH>
 where
     KV: KVStore,
-    PAH: PageAddrHasher,
     PH: PageHasher,
     SH: StateHasher,
 {
@@ -202,7 +212,6 @@ where
 
     fn write_page(&mut self, page_idx: PageIndex, page_data: &[u8]) {
         let idx = page_idx.0 as usize;
-
         let ph = self.compute_page_hash(page_data);
 
         self.pages[idx] = PageEntry::Modified(ph, page_data.to_vec());
@@ -228,18 +237,18 @@ where
         // new_state = HASH(page1_hash || page2_hash || ... || pageN_hash)
         // ```
 
-        debug!("about to commit dirty pages to underlying key-value store");
+        debug!("About to commit dirty pages to underlying key-value store");
 
-        let (new_state, pages_hash, changeset) = self.prepare_changeset();
+        let changeset = self.prepare_changeset();
 
-        let mut entries: Vec<(&[u8], &[u8])> = Vec::with_capacity(1 + changeset.len());
+        // let mut entries: Vec<(&[u8], &[u8])> = Vec::with_capacity(1 + changeset.len());
 
-        let state_entry_val: Vec<u8> = pages_hash.iter().flat_map(|ph| ph.0.to_vec()).collect();
-        entries.push((new_state.as_slice(), state_entry_val.as_ref()));
+        // let state_entry_val: Vec<u8> = pages_hash.iter().flat_map(|ph| ph.0.to_vec()).collect();
+        // entries.push((new_state.as_slice(), state_entry_val.as_ref()));
 
-        for change in changeset {
-            entries.push(change)
-        }
+        // for change in changeset {
+        //     entries.push(change)
+        // }
 
         // At last, we store under the flat key-value store (`self.kv`) the following new entries:
         // ```
@@ -251,14 +260,19 @@ where
         // pageN_hash ---> pageN_content
         // ```
 
-        self.kv.borrow_mut().store(entries.as_slice());
-        self.state = new_state;
+        // self.kv.borrow_mut().store(entries.as_slice());
+        // self.state = new_state;
 
-        self.clear();
+        // self.clear();
     }
 }
 
-impl<KV, PAH, PH, SH> Drop for AppPages<KV, PAH, PH, SH> {
+impl<KV, PH, SH> Drop for AppPages<KV, PH, SH>
+where
+    KV: KVStore,
+    PH: PageHasher,
+    SH: StateHasher,
+{
     fn drop(&mut self) {
         debug!("dropping `AppPages`...");
     }
