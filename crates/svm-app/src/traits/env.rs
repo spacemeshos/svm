@@ -1,6 +1,6 @@
 use crate::{
     error::{ParseError, StoreError},
-    raw::NibbleIter,
+    raw::{self, NibbleIter},
     traits::{
         AppAddressCompute, AppDeserializer, AppSerializer, AppStore, AppTemplateAddressCompute,
         AppTemplateDeserializer, AppTemplateHasher, AppTemplateSerializer, AppTemplateStore,
@@ -84,7 +84,10 @@ pub trait Env {
     fn parse_deploy_template(&self, bytes: &[u8]) -> Result<AppTemplate, ParseError> {
         let mut iter = NibbleIter::new(bytes);
 
-        crate::raw::decode_deploy_template(&mut iter)
+        let template = raw::decode_deploy_template(&mut iter)?;
+        iter.ensure_eof()?;
+
+        Ok(template)
     }
 
     /// Parses raw a spawned-app.
@@ -93,7 +96,10 @@ pub trait Env {
     fn parse_spawn_app(&self, bytes: &[u8]) -> Result<SpawnApp, ParseError> {
         let mut iter = NibbleIter::new(bytes);
 
-        crate::raw::decode_spawn_app(&mut iter)
+        let spawn = raw::decode_spawn_app(&mut iter)?;
+        iter.ensure_eof()?;
+
+        Ok(spawn)
     }
 
     /// Parses raw a app-transation to execute.
@@ -102,7 +108,10 @@ pub trait Env {
     fn parse_exec_app(&self, bytes: &[u8]) -> Result<AppTransaction, ParseError> {
         let mut iter = NibbleIter::new(bytes);
 
-        crate::raw::decode_exec_app(&mut iter)
+        let tx = raw::decode_exec_app(&mut iter)?;
+        iter.ensure_eof()?;
+
+        Ok(tx)
     }
 
     /// Stores the following:
