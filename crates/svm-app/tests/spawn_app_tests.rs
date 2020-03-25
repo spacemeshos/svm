@@ -1,5 +1,5 @@
 use svm_app::{
-    error::StoreError,
+    error::{ParseError, StoreError},
     memory::{DefaultMemAppStore, DefaultMemAppTemplateStore, DefaultMemoryEnv},
     testing::SpawnAppBuilder,
     traits::Env,
@@ -7,6 +7,35 @@ use svm_app::{
 };
 
 use svm_common::Address;
+
+fn inject_extra(bytes: &mut Vec<u8>) {
+    bytes.extend_from_slice(&[0xFF]);
+}
+
+#[test]
+fn spawn_app_fails_when_excessive_palyoad() {
+    let app_store = DefaultMemAppStore::new();
+    let template_store = DefaultMemAppTemplateStore::new();
+    let env = DefaultMemoryEnv::new(app_store, template_store);
+
+    let template = Address::of("@my-template").into();
+    let ctor_idx = 2;
+    let ctor_buf = vec![0xAA, 0xAA, 0xAA, 0xBB, 0xBB];
+    let ctor_args = vec![WasmValue::I32(10), WasmValue::I64(200)];
+
+    let mut bytes = SpawnAppBuilder::new()
+        .with_version(0)
+        .with_template(&template)
+        .with_ctor_index(ctor_idx)
+        .with_ctor_buf(&ctor_buf)
+        .with_ctor_args(&ctor_args)
+        .build();
+
+    inject_extra(&mut bytes);
+
+    let res = env.parse_spawn_app(&bytes);
+    assert_eq!(Err(ParseError::ExpectedEOF), res);
+}
 
 #[test]
 fn spawn_app_parse() {

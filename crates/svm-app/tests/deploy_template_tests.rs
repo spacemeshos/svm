@@ -1,4 +1,5 @@
 use svm_app::{
+    error::ParseError,
     memory::{DefaultMemAppStore, DefaultMemAppTemplateStore, DefaultMemoryEnv},
     testing::DeployAppTemplateBuilder,
     traits::Env,
@@ -6,6 +7,33 @@ use svm_app::{
 };
 
 use svm_common::Address;
+
+fn inject_extra(bytes: &mut Vec<u8>) {
+    bytes.extend_from_slice(&[0xFF]);
+}
+
+#[test]
+fn deploy_template_fails_when_excessive_palyoad() {
+    let app_store = DefaultMemAppStore::new();
+    let template_store = DefaultMemAppTemplateStore::new();
+    let env = DefaultMemoryEnv::new(app_store, template_store);
+
+    let code = vec![0x0C, 0x00, 0x0D, 0x0E];
+    let name = "Template #1";
+    let page_count = 10;
+
+    let mut bytes = DeployAppTemplateBuilder::new()
+        .with_version(0)
+        .with_name(name)
+        .with_page_count(page_count)
+        .with_code(&code)
+        .build();
+
+    inject_extra(&mut bytes);
+
+    let res = env.parse_deploy_template(&bytes);
+    assert_eq!(Err(ParseError::ExpectedEOF), res);
+}
 
 #[test]
 fn deploy_template_store() {
