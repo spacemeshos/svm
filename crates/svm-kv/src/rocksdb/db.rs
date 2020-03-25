@@ -1,5 +1,6 @@
-use crate::traits::KVStore;
 use std::path::Path;
+
+use crate::{key::concat_ns_to_key, traits::KVStore};
 
 use log::info;
 
@@ -21,8 +22,10 @@ impl Rocksdb {
 
 impl KVStore for Rocksdb {
     #[allow(clippy::match_wild_err_arm)]
-    fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
-        match self.db.get(key) {
+    fn get(&self, ns: &[u8], key: &[u8]) -> Option<Vec<u8>> {
+        let key = concat_ns_to_key(ns, key);
+
+        match self.db.get(&key) {
             Ok(dbvec) => match dbvec {
                 None => None,
                 Some(dbvec) => Some(dbvec.to_vec()),
@@ -31,10 +34,12 @@ impl KVStore for Rocksdb {
         }
     }
 
-    fn store(&mut self, changes: &[(&[u8], &[u8])]) {
+    fn store(&mut self, ns: &[u8], changes: &[(&[u8], &[u8])]) {
         let mut batch = rocksdb::WriteBatch::default();
 
         for (k, v) in changes {
+            let k = concat_ns_to_key(ns, k);
+
             let res = batch.put(k, v);
 
             if res.is_err() {
@@ -64,15 +69,17 @@ mod tests {
     fn rocksdb_sanity() {
         let mut db = Rocksdb::new("rocksdb-tests");
 
-        db.store(&[(&[10, 20, 30], &[40, 50, 60])]);
+        let ns = vec![0xFF, 0xFF];
 
-        let v = db.get(&[10, 20, 30]).unwrap();
+        db.store(&ns, &[(&[10, 20, 30], &[40, 50, 60])]);
+
+        let v = db.get(&ns, &[10, 20, 30]).unwrap();
         assert_eq!(vec![40, 50, 60], v);
 
         drop(db);
 
         let db = Rocksdb::new("rocksdb-tests");
-        let v = db.get(&[10, 20, 30]).unwrap();
+        let v = db.get(&ns, &[10, 20, 30]).unwrap();
         assert_eq!(vec![40, 50, 60], v);
     }
 }

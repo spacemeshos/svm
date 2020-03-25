@@ -10,6 +10,10 @@ use std::{cell::RefCell, marker::PhantomData, rc::Rc};
 
 use log::{debug, error, trace};
 
+// lazy_static! {
+//     //
+// }
+
 #[derive(Debug, Clone)]
 enum PageEntry {
     Uninitialized,
@@ -100,8 +104,9 @@ where
         /// state ---> [page1_hash || page2_hash || .... || pageN_hash]
         ///
         /// Then, populates `self.pages`. Each page is initialized with `PageEntry::NotModified(page_hash, None)`
+        let ns = vec![b'p'];
         let state = self.state.as_slice();
-        let v = self.kv.borrow().get(state);
+        let v = self.kv.borrow().get(&ns, state);
 
         assert!(v.is_some(), "Didn't find state: {:?}", state);
 
@@ -111,7 +116,7 @@ where
 
         for (i, ph) in v.chunks_exact(State::len()).enumerate() {
             let ph = PageHash::from(ph);
-            trace!("page #{}, has page-hash {:?}", i, ph);
+            trace!("Page #{}, has page-hash {:?}", i, ph);
 
             self.pages[i] = PageEntry::NotModified(ph);
         }
@@ -206,11 +211,12 @@ where
     #[must_use]
     fn read_page(&mut self, page_idx: PageIndex) -> Option<Vec<u8>> {
         let idx = page_idx.0 as usize;
+        let ns = vec![b'p'];
 
         match self.pages[idx] {
             PageEntry::NotModified(ph) => {
                 let key = &ph.0;
-                self.kv.borrow().get(key)
+                self.kv.borrow().get(&ns[..], key)
             }
             PageEntry::Modified(..) => panic!("Not allowed to read a dirty page"),
             PageEntry::Uninitialized => unreachable!(),
@@ -268,7 +274,8 @@ where
         // pageN_hash ---> pageN_content
         // ```
 
-        self.kv.borrow_mut().store(&entries);
+        let ns = vec![b'p'];
+        self.kv.borrow_mut().store(&ns[..], &entries);
         self.state = changeset.state;
 
         self.clear();
@@ -282,6 +289,6 @@ where
     SH: StateHasher,
 {
     fn drop(&mut self) {
-        debug!("dropping `AppPages`...");
+        debug!("Dropping `AppPages`...");
     }
 }

@@ -8,13 +8,14 @@ fn init() {
 }
 
 #[test]
-fn a_key_does_not_exit_by_default() {
+fn key_store_keys_do_not_exit_by_default() {
     init();
 
     let kv = MemKVStore::new();
     let addr = Address::of("@someone");
+    let ns = vec![0xFF, 0xFF];
 
-    assert_no_key!(kv, addr.as_slice());
+    assert_no_key!(kv, ns, addr.as_slice());
 }
 
 #[test]
@@ -23,9 +24,11 @@ fn key_store_and_then_key_get() {
 
     let mut kv = MemKVStore::new();
     let addr = Address::of("someone");
-    kv.store(&[(addr.as_slice(), &[10, 20, 30])]);
+    let ns = vec![0xFF, 0xFF];
 
-    assert_key_value!(kv, addr.as_slice(), vec![10, 20, 30]);
+    kv.store(&ns, &[(addr.as_slice(), &[10, 20, 30])]);
+
+    assert_key_value!(kv, ns, addr.as_slice(), vec![10, 20, 30]);
 }
 
 #[test]
@@ -34,12 +37,13 @@ fn key_store_override_existing_entry() {
 
     let mut kv = MemKVStore::new();
     let addr = Address::of("someone");
+    let ns = vec![0xFF, 0xFF];
 
-    kv.store(&[(addr.as_slice(), &[10, 20, 30])]);
-    assert_key_value!(kv, addr.as_slice(), vec![10, 20, 30]);
+    kv.store(&ns, &[(addr.as_slice(), &[10, 20, 30])]);
+    assert_key_value!(kv, ns, addr.as_slice(), vec![10, 20, 30]);
 
-    kv.store(&[(addr.as_slice(), &[40, 50, 60])]);
-    assert_key_value!(kv, addr.as_slice(), vec![40, 50, 60]);
+    kv.store(&ns, &[(addr.as_slice(), &[40, 50, 60])]);
+    assert_key_value!(kv, ns, addr.as_slice(), vec![40, 50, 60]);
 }
 
 #[test]
@@ -49,17 +53,21 @@ fn clear() {
     let mut kv = MemKVStore::new();
     let addr1 = Address::of("Alice");
     let addr2 = Address::of("Bob");
+    let ns = vec![0xFF, 0xFF];
 
-    kv.store(&[
-        (addr1.as_slice(), &[10, 20, 30]),
-        (addr2.as_slice(), &[40, 50, 60]),
-    ]);
+    kv.store(
+        &ns,
+        &[
+            (addr1.as_slice(), &[10, 20, 30]),
+            (addr2.as_slice(), &[40, 50, 60]),
+        ],
+    );
 
-    assert_key_value!(kv, addr1.as_slice(), vec![10, 20, 30]);
-    assert_key_value!(kv, addr2.as_slice(), vec![40, 50, 60]);
+    assert_key_value!(kv, ns, addr1.as_slice(), vec![10, 20, 30]);
+    assert_key_value!(kv, ns, addr2.as_slice(), vec![40, 50, 60]);
 
     kv.clear();
 
-    assert_no_key!(kv, addr1.as_slice());
-    assert_no_key!(kv, addr2.as_slice());
+    assert_no_key!(kv, ns, addr1.as_slice());
+    assert_no_key!(kv, ns, addr2.as_slice());
 }
