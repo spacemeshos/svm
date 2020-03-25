@@ -70,13 +70,17 @@ where
             phantom: PhantomData,
         };
 
-        if storage.state == State::empty() {
-            storage.init_state();
-        } else {
-            storage.load_pages_hash();
-        }
+        storage.init_pages();
 
         storage
+    }
+
+    fn init_pages(&mut self) {
+        if self.state == State::empty() {
+            self.init_state();
+        } else {
+            self.load_pages_hash();
+        }
     }
 
     fn init_state(&mut self) {
@@ -223,13 +227,9 @@ where
     fn clear(&mut self) {
         debug!("Clearing pages-storage...");
 
-        for page in &mut self.pages {
-            match page {
-                PageEntry::Modified(ph, ..) => *page = PageEntry::NotModified(*ph),
-                PageEntry::NotModified(..) => (),
-                PageEntry::Uninitialized => unreachable!(),
-            }
-        }
+        self.pages = vec![PageEntry::Uninitialized; self.page_count as usize];
+
+        self.init_pages();
     }
 
     fn commit(&mut self) {

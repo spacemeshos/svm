@@ -1,21 +1,20 @@
 extern crate svm_storage;
 
 use svm_common::State;
-
-use svm_storage::page::{zero_page, PageIndex};
-use svm_storage::testing::{
-    app_pages_init, app_pages_open, compute_pages_state, concat_pages_hash, default_page_hash,
+use svm_storage::{
+    page::{zero_page, PageIndex},
+    testing::{
+        app_pages_init, app_pages_open, compute_pages_state, concat_pages_hash, default_page_hash,
+    },
+    traits::{PagesStorage, StateAwarePagesStorage},
 };
-use svm_storage::traits::{PagesStorage, StateAwarePagesStorage};
 
 mod asserts;
 
 #[test]
 fn app_pages_first_time_run_with_no_modifications_no_commit() {
     let page_count = 3;
-    let addr = "my-app";
-
-    let (_addr, _kv, mut pages) = app_pages_init(addr, page_count);
+    let (_addr, _kv, mut pages) = app_pages_init("my-app", page_count);
 
     assert_eq!(0, pages.dirty_page_count());
     assert_eq!(None, pages.read_page(PageIndex(0)));
@@ -25,9 +24,7 @@ fn app_pages_first_time_run_with_no_modifications_no_commit() {
 #[test]
 fn app_pages_first_time_run_with_no_modifications_then_commit() {
     let page_count = 3;
-    let addr = "my-app";
-
-    let (_addr, kv, mut pages) = app_pages_init(addr, page_count);
+    let (_addr, kv, mut pages) = app_pages_init("my-app", page_count);
     assert_eq!(0, pages.dirty_page_count());
 
     pages.commit();
@@ -52,10 +49,8 @@ fn app_pages_first_time_run_with_no_modifications_then_commit() {
 
 #[test]
 fn app_pages_first_time_run_with_one_modified_page() {
-    let page_count = 3;
-    let addr = "my-app";
-
-    let (_addr, kv, mut pages) = app_pages_init(addr, page_count);
+    let page_count = 2;
+    let (_addr, kv, mut pages) = app_pages_init("my-app", page_count);
 
     pages.write_page(PageIndex(0), &[10, 20, 30]);
     assert_eq!(1, pages.dirty_page_count());
@@ -68,8 +63,7 @@ fn app_pages_first_time_run_with_one_modified_page() {
     let actual_state = pages.get_state();
     assert_eq!(expected_state, actual_state);
 
-    assert_same_keys!(vec![actual_state.bytes(), ph1.0], kv_keys_vec!(kv));
-
+    assert_same_keys!(vec![actual_state.bytes(), ph0.0], kv_keys_vec!(kv));
     assert_key_value!(kv, actual_state.bytes(), concat_pages_hash(&[ph0, ph1]));
     assert_key_value!(kv, ph0.0, [10, 20, 30]);
 
@@ -82,9 +76,7 @@ fn app_pages_first_time_run_with_one_modified_page() {
 #[test]
 fn app_pages_first_time_run_with_two_modified_pages() {
     let page_count = 2;
-    let addr = "my-app";
-
-    let (_addr, kv, mut pages) = app_pages_init(addr, page_count);
+    let (_addr, kv, mut pages) = app_pages_init("my-app", page_count);
 
     pages.write_page(PageIndex(0), &[10, 20, 30]);
     pages.write_page(PageIndex(1), &[40, 50, 60]);
@@ -102,8 +94,10 @@ fn app_pages_first_time_run_with_two_modified_pages() {
     assert_key_value!(kv, actual_state.bytes(), concat_pages_hash(&[ph0, ph1]));
     assert_key_value!(kv, ph0.0, [10, 20, 30]);
     assert_key_value!(kv, ph1.0, [40, 50, 60]);
+
     assert_page_content!(pages, 0, Some(vec![10, 20, 30]));
     assert_page_content!(pages, 1, Some(vec![40, 50, 60]));
+
     assert_eq!(0, pages.dirty_page_count());
 }
 
@@ -111,9 +105,8 @@ fn app_pages_first_time_run_with_two_modified_pages() {
 fn app_pages_second_run_after_first_run_with_no_modifications() {
     // 1st run
     let page_count = 3;
-    let addr = "my-app";
 
-    let (addr, kv, mut pages) = app_pages_init(addr, page_count);
+    let (addr, kv, mut pages) = app_pages_init("my-app", page_count);
     pages.commit();
     let old_state = pages.get_state();
 
@@ -148,9 +141,7 @@ fn app_pages_second_run_after_first_run_with_no_modifications() {
 fn app_pages_second_run_after_first_run_with_modifications() {
     // 1st run
     let page_count = 3;
-    let addr = "my-app";
-
-    let (addr, kv, mut pages) = app_pages_init(addr, page_count);
+    let (addr, kv, mut pages) = app_pages_init("my-app", page_count);
 
     pages.write_page(PageIndex(0), &[11, 22, 33]);
     pages.commit();
@@ -193,9 +184,7 @@ fn app_pages_second_run_after_first_run_with_modifications() {
 fn app_pages_third_run_rollbacks_to_after_first_run() {
     // 1st run
     let page_count = 3;
-    let addr = "my-app";
-
-    let (addr, kv, mut pages) = app_pages_init(addr, page_count);
+    let (addr, kv, mut pages) = app_pages_init("my-app", page_count);
 
     pages.write_page(PageIndex(0), &[11, 22, 33]);
     pages.commit();
