@@ -11,7 +11,6 @@ mod address_of;
 
 mod default_key_hasher;
 mod ffi;
-mod helpers;
 mod key_hasher;
 mod macros;
 mod state;

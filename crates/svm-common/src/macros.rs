@@ -124,52 +124,5 @@ macro_rules! impl_bytes_primitive {
                 $primitive(buf)
             }
         }
-
-        /// Should be used **only** for tests
-        #[doc(hidden)]
-        impl From<u32> for $primitive {
-            fn from(n: u32) -> $primitive {
-                let mut buf = [0; $byte_count];
-
-                let [n3, n2, n1, n0] = $crate::helpers::u32_to_be_array(n);
-
-                buf[$byte_count - 4] = n3;
-                buf[$byte_count - 3] = n2;
-                buf[$byte_count - 2] = n1;
-                buf[$byte_count - 1] = n0;
-
-                $primitive(buf)
-            }
-        }
-
-        /// Should be used **only** for tests
-        #[doc(hidden)]
-        impl From<i32> for $primitive {
-            #[inline]
-            fn from(n: i32) -> $primitive {
-                $primitive::from(n as u32)
-            }
-        }
-
-        /// Should be used **only** for tests
-        #[doc(hidden)]
-        impl From<u64> for $primitive {
-            fn from(n: u64) -> $primitive {
-                let mut buf = [0; $byte_count];
-
-                let [n7, n6, n5, n4, n3, n2, n1, n0] = $crate::helpers::u64_to_be_array(n);
-
-                buf[$byte_count - 8] = n7;
-                buf[$byte_count - 7] = n6;
-                buf[$byte_count - 6] = n5;
-                buf[$byte_count - 5] = n4;
-                buf[$byte_count - 4] = n3;
-                buf[$byte_count - 3] = n2;
-                buf[$byte_count - 2] = n1;
-                buf[$byte_count - 1] = n0;
-
-                $primitive(buf)
-            }
-        }
     };
 }
