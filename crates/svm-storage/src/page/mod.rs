@@ -1,5 +1,16 @@
+mod hash;
+mod joined_pages_hash;
+mod slice_layout;
+
+pub use hash::PageHash;
+pub use joined_pages_hash::JoinedPagesHash;
+pub use slice_layout::PageSliceLayout;
+
 /// A page is `4096 bytes`
 pub const PAGE_SIZE: u32 = 4_096;
+
+/// `PageHash` length is 32 bytes
+pub const PAGE_HASH_LEN: usize = 32;
 
 /// A `PageIndex` represents a page-index (non-negative integer)
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
@@ -11,35 +22,6 @@ pub struct PageIndex(pub u16);
 #[repr(transparent)]
 pub struct PageOffset(pub u32);
 
-/// `PageHash` length is 32 bytes
-pub const PAGE_HASH_LEN: usize = 32;
-
-/// A `PageHash` is a one-dimensional tuple of `([u8; PAGE_HASH_LEN])` representing hash of the page-content.
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
-pub struct PageHash(pub [u8; PAGE_HASH_LEN]);
-
-impl AsRef<[u8]> for PageHash {
-    #[inline]
-    fn as_ref(&self) -> &[u8] {
-        self.0.as_ref()
-    }
-}
-
-impl From<&[u8]> for PageHash {
-    fn from(slice: &[u8]) -> PageHash {
-        assert_eq!(
-            PAGE_HASH_LEN,
-            slice.len(),
-            "`PageHash::from` expects exactly 32 bytes input",
-        );
-
-        let mut bytes = [0; PAGE_HASH_LEN];
-        bytes.copy_from_slice(slice);
-
-        PageHash(bytes)
-    }
-}
-
 /// A `Page` consists of a tuple of `(PageIndex, PageHash, Vec<u8>`)`
 ///
 /// `PageIndex` - The page index within the app-storage.
@@ -48,52 +30,6 @@ impl From<&[u8]> for PageHash {
 /// `Vec<u8>`   - The page data
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct Page(pub PageIndex, pub PageHash, pub Vec<u8>);
-
-/// Defines a page-slice layout (immutable structure)
-#[derive(Debug, Clone, PartialEq, Hash)]
-pub struct PageSliceLayout {
-    /// The page index the slice belongs to
-    page_idx: PageIndex,
-
-    /// The relative-page offset where the slice starts
-    offset: PageOffset,
-
-    /// The slice length in bytes
-    len: u32,
-}
-
-#[allow(clippy::len_without_is_empty)]
-impl PageSliceLayout {
-    /// New page-slice layout
-    pub fn new(page_idx: PageIndex, offset: PageOffset, len: u32) -> Self {
-        assert!(offset.0 < PAGE_SIZE);
-        assert!(len < PAGE_SIZE);
-
-        Self {
-            page_idx,
-            offset,
-            len,
-        }
-    }
-
-    /// Layout's page-index
-    #[inline]
-    pub fn page_index(&self) -> PageIndex {
-        self.page_idx
-    }
-
-    /// Layout's page-offset
-    #[inline]
-    pub fn page_offset(&self) -> PageOffset {
-        self.offset
-    }
-
-    /// Layout's page-length
-    #[inline]
-    pub fn len(&self) -> u32 {
-        self.len
-    }
-}
 
 /// Allocates a new page (`Vec<u8>`) consisting of only of zeros
 #[inline]
