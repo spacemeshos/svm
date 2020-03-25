@@ -1,6 +1,8 @@
-use svm_storage::page::PageIndex;
-use svm_storage::testing::{app_page_cache_init, default_page_index_hash};
-use svm_storage::traits::PagesStorage;
+use svm_storage::{
+    page::PageIndex,
+    testing::{app_page_cache_init, default_page_hash},
+    traits::PagesStorage,
+};
 
 mod asserts;
 
@@ -24,8 +26,8 @@ fn page_cache_write_page_and_then_commit() {
     cache.write_page(PageIndex(0), &[10, 20, 30]);
     assert_eq!(vec![10, 20, 30], cache.read_page(PageIndex(0)).unwrap());
 
-    let ph = default_page_index_hash("my-app", 0);
-    assert_no_key!(kv, ph);
+    let ph = default_page_hash(&[10, 20, 30]);
+    assert_no_key!(kv, ph.0);
 }
 
 #[test]
@@ -51,11 +53,11 @@ fn page_cache_commit_persists_each_dirty_page() {
     cache.write_page(PageIndex(0), &[10, 20, 30]);
 
     // `cache.write_page` doesn't persist the page yet
-    let ph = default_page_index_hash("my-app", 0);
-    assert_no_key!(kv, ph);
+    let ph = default_page_hash(&[10, 20, 30]);
+    assert_no_key!(kv, ph.0);
 
     cache.commit();
 
     // `cache.commit` persists the page
-    assert_key_value!(kv, ph, [10, 20, 30]);
+    assert_key_value!(kv, ph.0, [10, 20, 30]);
 }

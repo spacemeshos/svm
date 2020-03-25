@@ -18,24 +18,15 @@ impl PageHasher for DefaultPageHasher {
 mod tests {
     use super::*;
 
+    use crate::page::PageIndex;
+
     #[test]
     fn default_page_hasher_sanity() {
-        let page_addr = [
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x44, 0x33, 0x22, 0x14,
-        ];
-
-        let page_data_hash = DefaultKeyHasher::hash(&[10, 20, 30]);
-        let mut data = Vec::with_capacity(page_addr.len() + page_data_hash.len());
-        data.extend_from_slice(&page_addr);
-        data.extend_from_slice(&page_data_hash);
-        let expected = PageHash(DefaultKeyHasher::hash(data.as_slice()));
-
-        let addr = Address::from(0x44_33_22_11);
-        let page_idx = PageIndex(3);
         let page_data = vec![10, 20, 30];
+        let hash = DefaultKeyHasher::hash(&page_data);
+        let expected = PageHash(hash);
 
-        let actual = DefaultPageHasher::hash(addr, page_idx, page_data.as_slice());
+        let actual = DefaultPageHasher::hash(&page_data);
 
         assert_eq!(expected, actual);
     }

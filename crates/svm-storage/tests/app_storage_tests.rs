@@ -22,7 +22,7 @@ fn app_storage_read_an_empty_slice_then_override_it_and_then_commit() {
     let addr = "my-app";
     let page_count = 10;
 
-    let (addr, kv, mut storage) = app_storage_init(addr, page_count);
+    let (_addr, kv, mut storage) = app_storage_init(addr, page_count);
 
     let layout = PageSliceLayout::new(PageIndex(1), PageOffset(100), 3);
 
@@ -33,7 +33,7 @@ fn app_storage_read_an_empty_slice_then_override_it_and_then_commit() {
     assert_eq!(vec![10, 20, 30], storage.read_page_slice(&layout));
 
     // page is not persisted though since we didn't `commit`
-    let ph = default_page_hash(&addr, 0, &[10, 20, 30]);
+    let ph = default_page_hash(&[10, 20, 30]);
     assert_no_key!(&kv, ph.0);
 }
 
@@ -58,7 +58,7 @@ fn app_storage_write_slice_without_loading_it_first_and_commit() {
     let mut expected_page = zero_page();
     fill_page(&mut expected_page, &[(100, 10), (101, 20), (102, 30)]);
 
-    let ph = default_page_hash(&addr, 1, &expected_page);
+    let ph = default_page_hash(&expected_page);
 
     assert_key_value!(kv, ph.0, expected_page);
 }
@@ -68,7 +68,7 @@ fn app_storage_read_an_existing_slice_then_overriding_it_and_commit() {
     let addr = "my-app";
     let page_count = 2;
 
-    let (addr, kv, mut storage) = app_storage_init(addr, page_count);
+    let (_addr, kv, mut storage) = app_storage_init(addr, page_count);
 
     let layout = PageSliceLayout::new(PageIndex(1), PageOffset(100), 3);
 
@@ -77,9 +77,9 @@ fn app_storage_read_an_existing_slice_then_overriding_it_and_commit() {
 
     let mut expected_page = zero_page();
     fill_page(&mut expected_page, &[(100, 10), (101, 20), (102, 30)]);
-    let ph1 = default_page_hash(&addr, 1, &expected_page);
+    let ph1 = default_page_hash(&expected_page);
     fill_page(&mut expected_page, &[(100, 40), (101, 50), (102, 60)]);
-    let ph2 = default_page_hash(&addr, 1, &expected_page);
+    let ph2 = default_page_hash(&expected_page);
 
     let page = kv.borrow().get(&ph1.0).unwrap();
     assert_eq!(vec![10, 20, 30], &page[100..103]);
@@ -111,9 +111,9 @@ fn app_storage_write_slice_and_commit_then_load_it_override_it_and_commit() {
 
     let mut expected_page = zero_page();
     fill_page(&mut expected_page, &[(100, 10), (101, 20), (102, 30)]);
-    let ph1 = default_page_hash(&addr, 1, &expected_page);
+    let ph1 = default_page_hash(&expected_page);
     fill_page(&mut expected_page, &[(100, 40), (101, 50), (102, 60)]);
-    let ph2 = default_page_hash(&addr, 1, &expected_page);
+    let ph2 = default_page_hash(&expected_page);
 
     // 1) first page write
     storage.write_page_slice(&layout, &vec![10, 20, 30]);
@@ -155,7 +155,7 @@ fn app_storage_write_two_slices_under_same_page_and_commit() {
         &[(100, 10), (101, 20), (102, 30), (200, 40), (201, 50)],
     );
 
-    let ph = default_page_hash(&addr, 1, &expected_page);
+    let ph = default_page_hash(&expected_page);
 
     storage.write_page_slice(&layout1, &vec![10, 20, 30]);
     storage.write_page_slice(&layout2, &vec![40, 50]);
