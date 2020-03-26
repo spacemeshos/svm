@@ -43,12 +43,7 @@ impl KVStore for MemKVStore {
         let key = concat_ns_to_key(ns, key);
 
         let entry = self.map.get(&key);
-
-        if let Some(entry) = entry {
-            Some(entry.clone())
-        } else {
-            None
-        }
+        entry.cloned()
     }
 
     fn store(&mut self, changes: &[(&[u8], &[u8], &[u8])]) {

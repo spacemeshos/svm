@@ -12,8 +12,11 @@ use lazy_static::lazy_static;
 use log::{debug, trace};
 
 lazy_static! {
-    static ref PAGE_NS: Vec<u8> = vec![b'p'];
-    static ref STATE_NS: Vec<u8> = vec![b's'];
+    /// `Page` namespace for kv-store.
+    pub static ref PAGE_NS: Vec<u8> = vec![b'p'];
+
+    /// `State` namespace for kv-store.
+    pub static ref STATE_NS: Vec<u8> = vec![b's'];
 }
 
 #[derive(Debug, Clone)]
@@ -247,10 +250,10 @@ where
 
         let changeset = self.prepare_changeset();
 
-        let mut entries: Vec<(&[u8], &[u8])> = Vec::with_capacity(1 + changeset.changes.len());
+        let mut entries = Vec::with_capacity(1 + changeset.changes.len());
 
         let state_entry = (
-            &STATE_NS,
+            &STATE_NS[..],
             changeset.state.as_slice(),
             changeset.jph.as_slice(),
         );
@@ -260,7 +263,7 @@ where
             let k = change.new_hash.as_ref();
             let v = &change.new_data[..];
 
-            let entry = (&PAGE_NS, k, v);
+            let entry = (&PAGE_NS[..], k, v);
             entries.push(entry);
         }
 

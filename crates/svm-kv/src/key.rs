@@ -1,5 +1,6 @@
+/// Concatenates a namespace and a key into a fully-qualified key.
 #[allow(unused)]
-pub(crate) fn concat_ns_to_key<NS, K>(ns: NS, key: K) -> Vec<u8>
+pub fn concat_ns_to_key<NS, K>(ns: NS, key: K) -> Vec<u8>
 where
     NS: AsRef<[u8]>,
     K: AsRef<[u8]>,
