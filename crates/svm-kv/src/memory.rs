@@ -51,13 +51,14 @@ impl KVStore for MemKVStore {
         }
     }
 
-    fn store(&mut self, ns: &[u8], changes: &[(&[u8], &[u8])]) {
+    fn store(&mut self, changes: &[(&[u8], &[u8], &[u8])]) {
         info!("Storing in-memory kv changeset");
 
-        for (k, v) in changes {
+        for (ns, k, v) in changes {
             let k = concat_ns_to_key(ns, k);
+            let v = v.as_ref().to_vec();
 
-            self.map.insert(k, v.to_vec());
+            self.map.insert(k, v);
         }
     }
 }

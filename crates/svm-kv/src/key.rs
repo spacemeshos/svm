@@ -1,5 +1,12 @@
 #[allow(unused)]
-pub(crate) fn concat_ns_to_key(ns: &[u8], key: &[u8]) -> Vec<u8> {
+pub(crate) fn concat_ns_to_key<NS, K>(ns: NS, key: K) -> Vec<u8>
+where
+    NS: AsRef<[u8]>,
+    K: AsRef<[u8]>,
+{
+    let ns = ns.as_ref();
+    let key = key.as_ref();
+
     let cap = if ns.len() > 0 {
         ns.len() + 1 + key.len()
     } else {

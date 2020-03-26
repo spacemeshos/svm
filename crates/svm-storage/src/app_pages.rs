@@ -8,11 +8,13 @@ use svm_kv::traits::KVStore;
 
 use std::{cell::RefCell, marker::PhantomData, rc::Rc};
 
+use lazy_static::lazy_static;
 use log::{debug, trace};
 
-// lazy_static! {
-//     //
-// }
+lazy_static! {
+    static ref PAGE_NS: Vec<u8> = vec![b'p'];
+    static ref STATE_NS: Vec<u8> = vec![b's'];
+}
 
 #[derive(Debug, Clone)]
 enum PageEntry {
@@ -101,9 +103,8 @@ where
         // state ---> [page1_hash || page2_hash || .... || pageN_hash]
         //
         // Then, populates `self.pages`. Each page is initialized with `PageEntry::NotModified(page_hash, None)`
-        let ns = vec![b'p'];
         let state = self.state.as_slice();
-        let v = self.kv.borrow().get(&ns, state);
+        let v = self.kv.borrow().get(&STATE_NS, state);
 
         assert!(v.is_some(), "Didn't find state: {:?}", state);
 
@@ -208,12 +209,11 @@ where
     #[must_use]
     fn read_page(&mut self, page_idx: PageIndex) -> Option<Vec<u8>> {
         let idx = page_idx.0 as usize;
-        let ns = vec![b'p'];
 
         match self.pages[idx] {
             PageEntry::NotModified(ph) => {
                 let key = &ph.0;
-                self.kv.borrow().get(&ns[..], key)
+                self.kv.borrow().get(&PAGE_NS, key)
             }
             PageEntry::Modified(..) => panic!("Not allowed to read a dirty page"),
             PageEntry::Uninitialized => unreachable!(),
@@ -249,14 +249,18 @@ where
 
         let mut entries: Vec<(&[u8], &[u8])> = Vec::with_capacity(1 + changeset.changes.len());
 
-        let state_entry = (changeset.state.as_slice(), changeset.jph.as_slice());
+        let state_entry = (
+            &STATE_NS,
+            changeset.state.as_slice(),
+            changeset.jph.as_slice(),
+        );
         entries.push(state_entry);
 
         for change in changeset.changes.iter() {
             let k = change.new_hash.as_ref();
             let v = &change.new_data[..];
 
-            let entry = (k, v);
+            let entry = (&PAGE_NS, k, v);
             entries.push(entry);
         }
 
@@ -271,8 +275,7 @@ where
         // pageN_hash ---> pageN_content
         // ```
 
-        let ns = vec![b'p'];
-        self.kv.borrow_mut().store(&ns[..], &entries);
+        self.kv.borrow_mut().store(&entries);
         self.state = changeset.state;
 
         self.clear();
