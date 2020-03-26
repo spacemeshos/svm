@@ -3,9 +3,9 @@ pub const STATE_HASH_LEN: usize = 32;
 
 /// A `StateHash` is a one-dimensional tuple of `([u8; STATE_HASH_LEN])` representing hash of the App state.
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
-pub struct StateHash(pub [u8; STATE_HASH_LEN]);
+pub struct StatePagesHash(pub [u8; STATE_HASH_LEN]);
 
-impl AsRef<[u8]> for StateHash {
+impl AsRef<[u8]> for StatePagesHash {
     fn as_ref(&self) -> &[u8] {
         self.0.as_ref()
     }
