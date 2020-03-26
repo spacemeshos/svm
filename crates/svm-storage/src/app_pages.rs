@@ -3,12 +3,21 @@ use crate::{
     traits::{PageHasher, PagesStorage, StateAwarePagesStorage, StateHasher},
 };
 
-use svm_common::{Address, State};
+use svm_common::State;
 use svm_kv::traits::KVStore;
 
 use std::{cell::RefCell, marker::PhantomData, rc::Rc};
 
-use log::{debug, error, trace};
+use lazy_static::lazy_static;
+use log::{debug, trace};
+
+lazy_static! {
+    /// `Page` namespace for kv-store.
+    pub static ref PAGE_NS: Vec<u8> = vec![b'p'];
+
+    /// `State` namespace for kv-store.
+    pub static ref STATE_NS: Vec<u8> = vec![b's'];
+}
 
 #[derive(Debug, Clone)]
 enum PageEntry {
@@ -42,7 +51,6 @@ where
     SH: StateHasher,
 {
     state: State,
-    app_addr: Address,
     pages: Vec<PageEntry>,
     kv: Rc<RefCell<KV>>,
     page_count: usize,
@@ -56,16 +64,14 @@ where
     SH: StateHasher,
 {
     /// Creates a new instance of `AppPages`
-    /// * `app_addr`    - The running app account address.
     /// * `kv`          - The underlying kv-store used for retrieving a page raw-data when queried by its page-hash serving as a key.
     /// * `state`       - The current app-storage state prior execution of the current app-transaction.
     /// * `page_count` - The number of pages consumed by the app-storage (it's a fixed value per-app).
-    pub fn new(app_addr: Address, kv: Rc<RefCell<KV>>, state: State, page_count: u16) -> Self {
+    pub fn new(kv: Rc<RefCell<KV>>, state: State, page_count: u16) -> Self {
         let mut storage = Self {
             state,
             kv,
             page_count: page_count as usize,
-            app_addr,
             pages: vec![PageEntry::Uninitialized; page_count as usize],
             phantom: PhantomData,
         };
@@ -96,12 +102,12 @@ where
     }
 
     fn load_pages_hash(&mut self) {
-        /// Loads the entry:
-        /// state ---> [page1_hash || page2_hash || .... || pageN_hash]
-        ///
-        /// Then, populates `self.pages`. Each page is initialized with `PageEntry::NotModified(page_hash, None)`
+        // Loads the entry:
+        // state ---> [page1_hash || page2_hash || .... || pageN_hash]
+        //
+        // Then, populates `self.pages`. Each page is initialized with `PageEntry::NotModified(page_hash, None)`
         let state = self.state.as_slice();
-        let v = self.kv.borrow().get(state);
+        let v = self.kv.borrow().get(&STATE_NS, state);
 
         assert!(v.is_some(), "Didn't find state: {:?}", state);
 
@@ -111,7 +117,7 @@ where
 
         for (i, ph) in v.chunks_exact(State::len()).enumerate() {
             let ph = PageHash::from(ph);
-            trace!("page #{}, has page-hash {:?}", i, ph);
+            trace!("Page #{}, has page-hash {:?}", i, ph);
 
             self.pages[i] = PageEntry::NotModified(ph);
         }
@@ -146,7 +152,7 @@ where
         let mut pages_hash = Vec::new();
 
         for (i, page) in self.pages.drain(..).enumerate() {
-            let change = match page {
+            match page {
                 PageEntry::NotModified(ph) => pages_hash.push(ph),
                 PageEntry::Modified(new_hash, new_data) => {
                     let idx = PageIndex(i as u16);
@@ -210,7 +216,7 @@ where
         match self.pages[idx] {
             PageEntry::NotModified(ph) => {
                 let key = &ph.0;
-                self.kv.borrow().get(key)
+                self.kv.borrow().get(&PAGE_NS, key)
             }
             PageEntry::Modified(..) => panic!("Not allowed to read a dirty page"),
             PageEntry::Uninitialized => unreachable!(),
@@ -244,16 +250,20 @@ where
 
         let changeset = self.prepare_changeset();
 
-        let mut entries: Vec<(&[u8], &[u8])> = Vec::with_capacity(1 + changeset.changes.len());
+        let mut entries = Vec::with_capacity(1 + changeset.changes.len());
 
-        let state_entry = (changeset.state.as_slice(), changeset.jph.as_slice());
+        let state_entry = (
+            &STATE_NS[..],
+            changeset.state.as_slice(),
+            changeset.jph.as_slice(),
+        );
         entries.push(state_entry);
 
         for change in changeset.changes.iter() {
             let k = change.new_hash.as_ref();
             let v = &change.new_data[..];
 
-            let entry = (k, v);
+            let entry = (&PAGE_NS[..], k, v);
             entries.push(entry);
         }
 
@@ -282,6 +292,6 @@ where
     SH: StateHasher,
 {
     fn drop(&mut self) {
-        debug!("dropping `AppPages`...");
+        debug!("Dropping `AppPages`...");
     }
 }

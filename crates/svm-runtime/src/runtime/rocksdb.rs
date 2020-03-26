@@ -50,12 +50,12 @@ where
     RocksdbEnv::new(app_store, template_store)
 }
 
-fn app_storage_build(addr: &AppAddr, state: &State, settings: &AppSettings) -> AppStorage {
+fn app_storage_build(_addr: &AppAddr, state: &State, settings: &AppSettings) -> AppStorage {
     let path = Path::new(&settings.kv_path);
 
     let kv = Rc::new(RefCell::new(Rocksdb::new(path)));
 
-    let pages = RocksdbAppPages::new(addr.inner().clone(), kv, state.clone(), settings.page_count);
+    let pages = RocksdbAppPages::new(kv, state.clone(), settings.page_count);
     let cache = RocksdbAppPageCache::new(pages, settings.page_count);
 
     AppStorage::new(Box::new(cache))

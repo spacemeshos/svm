@@ -8,12 +8,18 @@ use crate::{
 
 use svm_kv::{rocksdb::Rocksdb, traits::KVStore};
 
+use lazy_static::lazy_static;
 use log::info;
+
+lazy_static! {
+    static ref TEMPLATE_NS: Vec<u8> = vec![b't', b'e', b'm', b'p'];
+    static ref CODE_NS: Vec<u8> = vec![b'c', b'o', b'd', b'e'];
+}
 
 /// `AppTemplate` store backed by `rocksdb`
 pub struct RocksdbAppTemplateStore<S, D> {
     db: Rocksdb,
-    _phantom: PhantomData<(S, D)>,
+    phantom: PhantomData<(S, D)>,
 }
 
 impl<S, D> RocksdbAppTemplateStore<S, D>
@@ -28,7 +34,7 @@ where
     {
         Self {
             db: Rocksdb::new(path),
-            _phantom: PhantomData,
+            phantom: PhantomData,
         }
     }
 }
@@ -51,9 +57,13 @@ where
 
         let bytes = S::serialize(template, author);
 
-        let addr_hash = (addr.inner().as_slice(), &hash.0[..]);
-        let hash_wasm = (&hash.0[..], &bytes[..]);
-        self.db.store(&[addr_hash, hash_wasm]);
+        // template addr -> code-hash
+        let entry1 = (&TEMPLATE_NS[..], addr.inner().as_slice(), &hash.0[..]);
+
+        // code-hash -> code
+        let entry2 = (&CODE_NS[..], &hash.0[..], &bytes[..]);
+
+        self.db.store(&[entry1, entry2]);
 
         Ok(())
     }
@@ -61,11 +71,11 @@ where
     fn load(&self, addr: &TemplateAddr) -> Option<(AppTemplate, AuthorAddr)> {
         let addr = addr.inner().as_slice();
 
-        info!("loading `AppTemplate` account {:?}", addr);
+        info!("Loading `AppTemplate` account {:?}", addr);
 
-        self.db.get(addr).and_then(|hash| {
+        self.db.get(&TEMPLATE_NS, addr).and_then(|hash| {
             self.db
-                .get(&hash)
+                .get(&CODE_NS[..], &hash)
                 .and_then(|bytes| D::deserialize(&bytes[..]))
         })
     }

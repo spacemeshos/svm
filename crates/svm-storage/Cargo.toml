@@ -13,6 +13,7 @@ publish = false
 [dependencies]
 cfg-if = "0.1.9"
 log = "0.4"
+lazy_static = "1.4.0"
 
 [dependencies.svm-common]
 path = "../svm-common"

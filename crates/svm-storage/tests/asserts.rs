@@ -1,32 +1,32 @@
 #[macro_export]
 macro_rules! assert_no_key {
-    ($kv: expr, $key: expr) => {{
+    ($kv:expr, $ns:expr, $key: expr) => {{
         use svm_kv::traits::KVStore;
 
-        assert!($kv.borrow().get(&$key).is_none());
+        assert!($kv.borrow().get(&$ns, &$key).is_none());
     }};
 }
 
 #[macro_export]
 macro_rules! assert_key_value {
-    ($kv: expr, $key: expr, $expected: expr) => {{
+    ($kv:expr, $ns:expr, $key:expr, $expected:expr) => {{
         use svm_kv::traits::KVStore;
 
-        let actual = $kv.borrow().get(&$key).unwrap();
+        let actual = $kv.borrow().get(&$ns, &$key).unwrap();
         assert_eq!($expected, &actual[..]);
     }};
 }
 
 #[macro_export]
 macro_rules! assert_page_content {
-    ($pages: ident, $page_idx: expr, $expected: expr) => {{
+    ($pages:ident, $page_idx:expr, $expected:expr) => {{
         assert_eq!($expected, $pages.read_page(PageIndex($page_idx)));
     }};
 }
 
 #[macro_export]
 macro_rules! kv_keys_vec {
-    ($kv: ident) => {{
+    ($kv:ident) => {{
         let keys: Vec<Vec<u8>> = $kv.borrow().keys().map(|key| key.clone()).collect();
         keys
     }};

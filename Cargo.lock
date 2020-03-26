@@ -634,9 +634,9 @@ checksum = "2439c63f3f6139d1b57529d16bc3b8bb855230c8efcc5d3a896c8bea7c3b1e84"
 
 [[package]]
 name = "regex"
-version = "1.3.5"
+version = "1.3.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8900ebc1363efa7ea1c399ccc32daed870b4002651e0bed86e72d501ebbe0048"
+checksum = "7f6946991529684867e47d86474e3a6d0c0ab9b82d5821e314b1ede31fa3a4b3"
 dependencies = [
  "aho-corasick",
  "memchr",
@@ -805,10 +805,10 @@ name = "svm"
 version = "0.0.0"
 dependencies = [
  "byteorder",
+ "lazy_static",
  "libc",
  "log",
  "rocksdb",
- "serde",
  "svm-app",
  "svm-common",
  "svm-compiler",
@@ -831,6 +831,7 @@ version = "0.0.0"
 dependencies = [
  "bit-vec",
  "byteorder",
+ "lazy_static",
  "log",
  "maplit",
  "svm-common",
@@ -936,6 +937,7 @@ version = "0.0.0"
 dependencies = [
  "cfg-if",
  "hash256-std-hasher",
+ "lazy_static",
  "log",
  "svm-common",
  "svm-kv",

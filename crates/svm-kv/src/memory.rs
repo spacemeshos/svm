@@ -1,4 +1,5 @@
-use crate::traits::KVStore;
+use crate::{key::concat_ns_to_key, traits::KVStore};
+
 use std::collections::{hash_map, HashMap};
 
 use log::{debug, info};
@@ -38,27 +39,27 @@ impl MemKVStore {
 }
 
 impl KVStore for MemKVStore {
-    fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
-        let entry = self.map.get(key);
+    fn get(&self, ns: &[u8], key: &[u8]) -> Option<Vec<u8>> {
+        let key = concat_ns_to_key(ns, key);
 
-        if let Some(entry) = entry {
-            Some(entry.clone())
-        } else {
-            None
-        }
+        let entry = self.map.get(&key);
+        entry.cloned()
     }
 
-    fn store(&mut self, changes: &[(&[u8], &[u8])]) {
-        info!("storing in-memory kv changeset");
+    fn store(&mut self, changes: &[(&[u8], &[u8], &[u8])]) {
+        info!("Storing in-memory kv changeset");
 
-        for (k, v) in changes {
-            self.map.insert(k.to_vec(), v.to_vec());
+        for (ns, k, v) in changes {
+            let k = concat_ns_to_key(ns, k);
+            let v = v.as_ref().to_vec();
+
+            self.map.insert(k, v);
         }
     }
 }
 
 impl Drop for MemKVStore {
     fn drop(&mut self) {
-        debug!("dropping `MemKVStore`...")
+        debug!("Dropping `MemKVStore`...")
     }
 }

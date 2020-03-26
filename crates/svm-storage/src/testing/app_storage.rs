@@ -1,32 +1,27 @@
-use std::cell::RefCell;
-use std::rc::Rc;
+use std::{cell::RefCell, rc::Rc};
 
 use crate::{testing, AppStorage};
 
-use svm_common::{Address, State};
+use svm_common::State;
 use svm_kv::memory::MemKVStore;
 
 /// Initialises a new `AppStorage` derived its address and #pages and empty state (`00...0`)
-pub fn app_storage_init(
-    addr: &str,
-    page_count: u16,
-) -> (Address, Rc<RefCell<MemKVStore>>, AppStorage) {
-    let (addr, kv, cache) = testing::app_page_cache_init(addr, page_count);
+pub fn app_storage_init(page_count: u16) -> (Rc<RefCell<MemKVStore>>, AppStorage) {
+    let (kv, cache) = testing::app_page_cache_init(page_count);
 
     let storage = AppStorage::new(Box::new(cache));
 
-    (addr, kv, storage)
+    (kv, storage)
 }
 
 /// Initialises a new `AppStorage` derived its address, state and #pages.
 /// Storage is backed by an key-value store `kv`
 pub fn app_storage_open(
-    addr: &Address,
     state: &State,
     kv: &Rc<RefCell<MemKVStore>>,
     page_count: u16,
 ) -> AppStorage {
-    let cache = testing::app_page_cache_open(addr, state, kv, page_count);
+    let cache = testing::app_page_cache_open(state, kv, page_count);
 
     AppStorage::new(Box::new(cache))
 }

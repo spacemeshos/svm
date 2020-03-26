@@ -75,7 +75,7 @@ pub fn instance_memory_init(instance: &Instance, offset: u32, bytes: &[u8]) {
 
 /// Returns a `state creator` to be used by wasmer `ImportObject::new_with_data` initializer.
 pub fn app_memory_state_creator(
-    app_addr: &Address,
+    _app_addr: &Address,
     state: &State,
     host: DataWrapper<*mut c_void>,
     host_ctx: DataWrapper<*const c_void>,
@@ -83,7 +83,7 @@ pub fn app_memory_state_creator(
 ) -> (*mut c_void, fn(*mut c_void)) {
     let kv = memory_kv_store_init();
 
-    let storage = svm_storage::testing::app_storage_open(app_addr, state, &kv, page_count);
+    let storage = svm_storage::testing::app_storage_open(state, &kv, page_count);
 
     let ctx = SvmCtx::new(host, host_ctx, storage);
     let ctx: *mut SvmCtx = Box::into_raw(Box::new(ctx));
@@ -117,8 +117,8 @@ pub fn create_memory_runtime(
 pub fn runtime_memory_storage_builder(kv: &Rc<RefCell<MemKVStore>>) -> Box<StorageBuilderFn> {
     let kv = Rc::clone(kv);
 
-    let func = move |addr: &AppAddr, state: &State, settings: &AppSettings| {
-        svm_storage::testing::app_storage_open(addr.inner(), state, &kv, settings.page_count)
+    let func = move |_addr: &AppAddr, state: &State, settings: &AppSettings| {
+        svm_storage::testing::app_storage_open(state, &kv, settings.page_count)
     };
 
     Box::new(func)

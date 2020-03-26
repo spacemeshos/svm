@@ -1,21 +1,21 @@
 #[macro_export]
 macro_rules! assert_key_value {
-    ($kv: expr, $key: expr, $expected: expr) => {{
-        let actual = $kv.get(&$key).unwrap();
+    ($kv:expr, $ns:expr, $key:expr, $expected:expr) => {{
+        let actual = $kv.get(&$ns, &$key).unwrap();
         assert_eq!($expected, &actual[..]);
     }};
 }
 
 #[macro_export]
 macro_rules! assert_no_key {
-    ($kv: expr, $key: expr) => {{
-        assert!($kv.get(&$key).is_none());
+    ($kv:expr, $ns:expr, $key:expr) => {{
+        assert!($kv.get(&$ns, &$key).is_none());
     }};
 }
 
 #[macro_export]
 macro_rules! kv_keys_vec {
-    ($kv: ident) => {{
+    ($kv:ident) => {{
         let keys: Vec<Vec<u8>> = $kv.borrow().keys().map(|key| key.clone()).collect();
         keys
     }};
@@ -23,7 +23,7 @@ macro_rules! kv_keys_vec {
 
 #[macro_export]
 macro_rules! assert_same_keys {
-    ($expected: expr, $actual: expr) => {{
+    ($expected:expr, $actual:expr) => {{
         let mut expected = $expected
             .iter()
             .map(|k| k.to_vec())

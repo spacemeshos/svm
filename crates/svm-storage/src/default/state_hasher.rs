@@ -1,10 +1,8 @@
-use crate::{
-    page::{JoinedPagesHash, PageHash, PAGE_HASH_LEN},
-    traits::StateHasher,
-};
+use crate::{page::JoinedPagesHash, traits::StateHasher};
 
 use svm_common::{DefaultKeyHasher, KeyHasher, State};
 
+/// Default `StateHasher` implementation.
 pub struct DefaultStateHasher;
 
 impl StateHasher for DefaultStateHasher {
@@ -23,11 +21,7 @@ impl StateHasher for DefaultStateHasher {
 mod tests {
     use super::*;
 
-    use crate::{
-        default::DefaultPageHasher,
-        page::{JoinedPagesHash, PageIndex},
-        traits::PageHasher,
-    };
+    use crate::{default::DefaultPageHasher, page::JoinedPagesHash, traits::PageHasher};
 
     use svm_common::{DefaultKeyHasher, KeyHasher};
 
@@ -39,7 +33,7 @@ mod tests {
         let hash1 = DefaultPageHasher::hash(&page1);
         let hash2 = DefaultPageHasher::hash(&page2);
 
-        let mut jph = JoinedPagesHash::new(vec![hash1.clone(), hash2.clone()]);
+        let jph = JoinedPagesHash::new(vec![hash1.clone(), hash2.clone()]);
         let bytes = DefaultKeyHasher::hash(jph.as_slice());
         let expected = State::from(&bytes[..]);
 

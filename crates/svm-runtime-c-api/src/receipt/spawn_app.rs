@@ -93,7 +93,7 @@ mod tests {
     #[test]
     fn encode_decode_app_receipt_success_without_returns() {
         let addr: AppAddr = Address::of("my-app").into();
-        let init_state = State::from(0x10_20_30_40);
+        let init_state = State::of("some-state");
 
         let expected = ClientAppReceipt::Success {
             addr: addr.clone(),
@@ -119,7 +119,7 @@ mod tests {
     #[test]
     fn encode_decode_app_receipt_success_with_returns() {
         let addr: AppAddr = Address::of("my-app").into();
-        let init_state = State::from(0x10_20_30_40);
+        let init_state = State::of("some-state");
         let returns = vec![WasmValue::I32(10), WasmValue::I64(20), WasmValue::I32(30)];
 
         let expected = ClientAppReceipt::Success {
