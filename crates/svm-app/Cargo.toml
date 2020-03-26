@@ -21,6 +21,9 @@ version = "0.4"
 [dependencies.bit-vec]
 version = "0.6.1"
 
+[dependencies.lazy_static]
+version = "1.4.0"
+
 [features]
 default = ["memory", "default-rocksdb"]
 memory = ["svm-kv/memory"]

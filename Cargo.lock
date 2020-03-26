@@ -831,6 +831,7 @@ version = "0.0.0"
 dependencies = [
  "bit-vec",
  "byteorder",
+ "lazy_static",
  "log",
  "maplit",
  "svm-common",
