@@ -1,6 +1,6 @@
 use crate::page::{JoinedPagesHash, PageHash, PageIndex};
 
-use svm_common::{Address, State};
+use svm_common::State;
 
 /// `PagesStorage` is the most low-level trait for dealing with a app's storage.
 /// For performance concerns, we work on pages units (a page is 4096 bytes)

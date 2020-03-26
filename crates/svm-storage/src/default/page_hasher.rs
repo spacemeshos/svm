@@ -18,8 +18,6 @@ impl PageHasher for DefaultPageHasher {
 mod tests {
     use super::*;
 
-    use crate::page::PageIndex;
-
     #[test]
     fn default_page_hasher_sanity() {
         let page_data = vec![10, 20, 30];

@@ -936,6 +936,7 @@ version = "0.0.0"
 dependencies = [
  "cfg-if",
  "hash256-std-hasher",
+ "lazy_static",
  "log",
  "svm-common",
  "svm-kv",

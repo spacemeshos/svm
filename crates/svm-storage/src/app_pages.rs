@@ -3,12 +3,12 @@ use crate::{
     traits::{PageHasher, PagesStorage, StateAwarePagesStorage, StateHasher},
 };
 
-use svm_common::{Address, State};
+use svm_common::State;
 use svm_kv::traits::KVStore;
 
 use std::{cell::RefCell, marker::PhantomData, rc::Rc};
 
-use log::{debug, error, trace};
+use log::{debug, trace};
 
 // lazy_static! {
 //     //
@@ -46,7 +46,6 @@ where
     SH: StateHasher,
 {
     state: State,
-    app_addr: Address,
     pages: Vec<PageEntry>,
     kv: Rc<RefCell<KV>>,
     page_count: usize,
@@ -60,16 +59,14 @@ where
     SH: StateHasher,
 {
     /// Creates a new instance of `AppPages`
-    /// * `app_addr`    - The running app account address.
     /// * `kv`          - The underlying kv-store used for retrieving a page raw-data when queried by its page-hash serving as a key.
     /// * `state`       - The current app-storage state prior execution of the current app-transaction.
     /// * `page_count` - The number of pages consumed by the app-storage (it's a fixed value per-app).
-    pub fn new(app_addr: Address, kv: Rc<RefCell<KV>>, state: State, page_count: u16) -> Self {
+    pub fn new(kv: Rc<RefCell<KV>>, state: State, page_count: u16) -> Self {
         let mut storage = Self {
             state,
             kv,
             page_count: page_count as usize,
-            app_addr,
             pages: vec![PageEntry::Uninitialized; page_count as usize],
             phantom: PhantomData,
         };
@@ -100,10 +97,10 @@ where
     }
 
     fn load_pages_hash(&mut self) {
-        /// Loads the entry:
-        /// state ---> [page1_hash || page2_hash || .... || pageN_hash]
-        ///
-        /// Then, populates `self.pages`. Each page is initialized with `PageEntry::NotModified(page_hash, None)`
+        // Loads the entry:
+        // state ---> [page1_hash || page2_hash || .... || pageN_hash]
+        //
+        // Then, populates `self.pages`. Each page is initialized with `PageEntry::NotModified(page_hash, None)`
         let ns = vec![b'p'];
         let state = self.state.as_slice();
         let v = self.kv.borrow().get(&ns, state);
@@ -151,7 +148,7 @@ where
         let mut pages_hash = Vec::new();
 
         for (i, page) in self.pages.drain(..).enumerate() {
-            let change = match page {
+            match page {
                 PageEntry::NotModified(ph) => pages_hash.push(ph),
                 PageEntry::Modified(new_hash, new_data) => {
                     let idx = PageIndex(i as u16);

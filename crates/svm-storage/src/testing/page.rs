@@ -1,8 +1,8 @@
-use svm_common::{Address, DefaultKeyHasher, KeyHasher, State};
+use svm_common::{DefaultKeyHasher, KeyHasher, State};
 
 use crate::{
     default::DefaultPageHasher,
-    page::{JoinedPagesHash, PageHash, PageIndex},
+    page::{JoinedPagesHash, PageHash},
     traits::PageHasher,
 };
 
