@@ -81,7 +81,7 @@ mod tests {
 
     #[test]
     fn encode_decode_exec_receipt_success_without_returns() {
-        let new_state = State::from(0x10_20_30_40);
+        let new_state = State::of("some-state");
 
         let expected = ClientExecReceipt::Success {
             new_state: new_state.clone(),
@@ -104,7 +104,7 @@ mod tests {
 
     #[test]
     fn encode_decode_exec_receipt_success_with_returns() {
-        let new_state = State::from(0x10_20_30_40);
+        let new_state = State::of("some-state");
         let returns = vec![WasmValue::I32(10), WasmValue::I64(20), WasmValue::I32(30)];
 
         let expected = ClientExecReceipt::Success {
