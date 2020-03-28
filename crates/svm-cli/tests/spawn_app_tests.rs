@@ -11,11 +11,6 @@ struct SpawnAppTestCase {
     ctor_args: Vec<String>,
 }
 
-/// TODO:
-/// write negative tests
-/// write test for parse_str
-///
-
 #[test]
 fn encode_decode() {
     let cases = vec![
