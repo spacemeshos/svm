@@ -1,8 +1,8 @@
-use std::convert::TryFrom;
 use std::error::Error;
 use std::fs::File;
 use std::io::prelude::*;
 
+use crate::wasm_value;
 use svm_app::{
     raw::{decode_spawn_app, NibbleIter},
     testing::SpawnAppBuilder,
@@ -14,7 +14,7 @@ pub fn encode(
     version: u32,
     template_addr_hex: &str,
     ctor_idx: u16,
-    ctor_buf_hex: &str,
+    ctor_buf_hex: Option<&str>,
     ctor_args: Option<Vec<&str>>,
     output_path: &str,
 ) -> Result<usize, Box<dyn Error>> {
@@ -32,7 +32,7 @@ pub fn encode(
     let template_addr = {
         if Address::len() != template_addr.len() {
             return Err(format!(
-                "invalid template address length, found {}, expected: {}",
+                "invalid template address length: found {}, expected: {}",
                 template_addr.len(),
                 Address::len()
             )
@@ -41,27 +41,30 @@ pub fn encode(
         Address::from(template_addr.as_slice())
     };
 
-    let ctor_buf = match hex::decode(ctor_buf_hex) {
-        Ok(v) => v,
-        Err(e) => {
-            let e = format!(
-                "failed to decode hex string '{}': {}",
-                ctor_buf_hex,
-                e.to_string()
-            );
-            return Err(e.into());
-        }
-    };
+    let mut ctor_buf = None;
+    if let Some(ctor_buf_hex) = ctor_buf_hex {
+        ctor_buf = match hex::decode(ctor_buf_hex) {
+            Ok(v) => Some(v),
+            Err(e) => {
+                let e = format!(
+                    "failed to decode hex string '{}': {}",
+                    ctor_buf_hex,
+                    e.to_string()
+                );
+                return Err(e.into());
+            }
+        };
+    }
 
     let mut ctor_args_vals: Option<Vec<WasmValue>> = None;
-    if let Some(args) = ctor_args {
-        let mut vals: Vec<WasmValue> = Vec::new();
-        let mut errs: Vec<String> = Vec::new();
-        let results = args.iter().map(|&v| WasmValue::try_from(v));
+    if let Some(ctor_args) = ctor_args {
+        let mut vals = Vec::new();
+        let mut errs = Vec::new();
+        let results = ctor_args.iter().map(|&v| wasm_value::parse_str(v));
         for (i, result) in results.enumerate() {
             match result {
                 Ok(v) => vals.push(v),
-                Err(e) => errs.push(format!("{}: {:?}", args[i], e)),
+                Err(e) => errs.push(format!("{}: {:?}", ctor_args[i], e)),
             }
         }
         if errs.len() > 0 {
@@ -71,16 +74,17 @@ pub fn encode(
         ctor_args_vals = Some(vals);
     }
 
-    let mut builder = SpawnAppBuilder::new()
+    let mut b = SpawnAppBuilder::new()
         .with_version(version)
         .with_template(&template_addr.into())
-        .with_ctor_index(ctor_idx)
-        .with_ctor_buf(&ctor_buf);
-    if let Some(vals) = ctor_args_vals {
-        builder = builder.with_ctor_args(&vals);
+        .with_ctor_index(ctor_idx);
+    if let Some(ctor_buf) = ctor_buf {
+        b = b.with_ctor_buf(&ctor_buf)
     }
-
-    let bytes = builder.build();
+    if let Some(vals) = ctor_args_vals {
+        b = b.with_ctor_args(&vals);
+    }
+    let bytes = b.build();
 
     let file = File::create(output_path);
     let mut file = match file {

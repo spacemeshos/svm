@@ -36,75 +36,6 @@ fn encode_decode() {
     }
 }
 
-#[test]
-fn encode_invalid_codepath() {
-    let version = "0";
-    let name = "";
-    let page_count = "1";
-    let code_path = "invalid_codepath";
-    let output_path = "";
-    let input = vec![
-        "myprog",
-        "encode",
-        "app_template",
-        version,
-        name,
-        page_count,
-        code_path,
-        output_path,
-    ];
-
-    let matches = cli::new_app().get_matches_from(input);
-    match cli::process(matches) {
-        Ok(_) => panic!(),
-        Err(e) => assert!(e
-            .to_string()
-            .starts_with(&format!("failed to open file at {}", code_path))),
-    }
-}
-
-#[test]
-fn encode_invalid_outputpath() {
-    let version = "0";
-    let name = "";
-    let page_count = "1";
-    let code_path = WASM_EXAMPLE_PATH;
-    let output_path = "";
-    let input = vec![
-        "myprog",
-        "encode",
-        "app_template",
-        version,
-        name,
-        page_count,
-        code_path,
-        output_path,
-    ];
-
-    let matches = cli::new_app().get_matches_from(input);
-    match cli::process(matches) {
-        Ok(_) => panic!(),
-        Err(e) => assert!(e
-            .to_string()
-            .starts_with(&format!("failed to create file at {}", output_path))),
-    }
-}
-
-#[test]
-fn decode_invalid_datapath() {
-    let data_path = "non_existing_path";
-    let input = vec!["myprog", "decode", "app_template", data_path];
-
-    let matches = cli::new_app().get_matches_from(input);
-    let res = cli::process(matches);
-    assert!(res.is_err());
-    assert!(res
-        .err()
-        .unwrap()
-        .to_string()
-        .starts_with(&format!("failed to open file at {}", data_path)));
-}
-
 fn test_encode_decode(case: AppTemplateTestCase) {
     let mut wasm_example_code = Vec::new();
     File::open(WASM_EXAMPLE_PATH)
@@ -145,4 +76,75 @@ fn test_encode_decode(case: AppTemplateTestCase) {
     assert_eq!(&caps[2], case.name);
     assert_eq!(&caps[3], format!("{:?}", &wasm_example_code[0..4]));
     assert_eq!(&caps[4], case.page_count);
+}
+
+#[test]
+fn encode_invalid_codepath() {
+    let version = "0";
+    let name = "";
+    let page_count = "1";
+    let code_path = "invalid_codepath";
+    let output_path = "";
+    let input = vec![
+        "myprog",
+        "encode",
+        "app_template",
+        version,
+        name,
+        page_count,
+        code_path,
+        output_path,
+    ];
+
+    let matches = cli::new_app().get_matches_from(input);
+    let res = cli::process(matches);
+    assert!(res.is_err());
+    assert!(res
+        .err()
+        .unwrap()
+        .to_string()
+        .starts_with(&format!("failed to open file at {}", code_path)));
+}
+
+#[test]
+fn encode_invalid_outputpath() {
+    let version = "0";
+    let name = "";
+    let page_count = "1";
+    let code_path = WASM_EXAMPLE_PATH;
+    let output_path = "";
+    let input = vec![
+        "myprog",
+        "encode",
+        "app_template",
+        version,
+        name,
+        page_count,
+        code_path,
+        output_path,
+    ];
+
+    let matches = cli::new_app().get_matches_from(input);
+    let res = cli::process(matches);
+    assert!(res.is_err());
+    assert!(res
+        .err()
+        .unwrap()
+        .to_string()
+        .starts_with(&format!("failed to create file at {}", output_path)));
+}
+
+#[test]
+fn decode_invalid_datapath() {
+    let data_path = "non_existing_path";
+    let input = vec!["myprog", "decode", "app_template", data_path];
+
+    let matches = cli::new_app().get_matches_from(input);
+    let res = cli::process(matches);
+    assert!(res.is_err());
+    assert!(res
+        .err()
+        .unwrap()
+        .to_string()
+        .starts_with(&format!("failed to open file at {}", data_path)));
 }

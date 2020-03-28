@@ -65,7 +65,7 @@ pub fn new_app<'a, 'b>() -> App<'a, 'b> {
                         .arg(
                             Arg::with_name("ctor_buf")
                                 .help("the app constructor buffer data (blob), in hex")
-                                .required(true),
+                                .required(false),
                         )
                         .arg(
                             Arg::with_name("ctor_args")
@@ -119,7 +119,7 @@ pub fn process(matches: ArgMatches) -> Result<String, Box<dyn Error>> {
                 let version = value_t!(matches, "version", u32).unwrap_or_else(|e| e.exit());
                 let template_addr_hex = matches.value_of("template_addr").unwrap();
                 let ctor_index = value_t!(matches, "ctor_index", u16).unwrap_or_else(|e| e.exit());
-                let ctor_buf_hex = matches.value_of("ctor_buf").unwrap();
+                let ctor_buf_hex = matches.value_of("ctor_buf");
                 let ctor_args: Option<Vec<_>> = matches.values_of("ctor_args").map(|v| v.collect());
                 let output_path = matches.value_of("output_path").unwrap();
 

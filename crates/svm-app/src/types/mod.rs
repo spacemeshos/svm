@@ -19,4 +19,4 @@ pub use host_ctx::HostCtx;
 
 pub use hash::AppTemplateHash;
 pub use wasm_type::{WasmType, WasmTypeError};
-pub use wasm_value::{WasmValue, WasmValueError};
+pub use wasm_value::WasmValue;
