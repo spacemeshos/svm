@@ -81,8 +81,8 @@ pub fn encode(
     if let Some(ctor_buf) = ctor_buf {
         b = b.with_ctor_buf(&ctor_buf)
     }
-    if let Some(vals) = ctor_args_vals {
-        b = b.with_ctor_args(&vals);
+    if let Some(ctor_args_vals) = ctor_args_vals {
+        b = b.with_ctor_args(&ctor_args_vals);
     }
     let bytes = b.build();
 
