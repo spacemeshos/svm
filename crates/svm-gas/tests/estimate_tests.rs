@@ -1,20 +1,16 @@
 use maplit::hashmap;
 
-use svm_gas::{
-    estimate_code,
-    traits::VMCallsGasEstimator,
-    {error::ProgramError, FuncIndex, Gas},
-};
+use svm_gas::{estimate_code, traits::VMCallsGasEstimator, FuncIndex, Gas};
 
 struct PanicVMMCallstimator;
 
 impl VMCallsGasEstimator for PanicVMMCallstimator {
-    fn estimate_gas(_func_idx: FuncIndex) -> Gas {
+    fn estimate_code(_func_idx: FuncIndex) -> Gas {
         panic!()
     }
 }
 
-macro_rules! estimate_gas {
+macro_rules! estimate_code {
     ($code:expr) => {{
         let wasm = wabt::wat2wasm($code).unwrap();
 
@@ -39,7 +35,7 @@ fn estimate_nop_functions() {
                 (block (block (block (nop))))))
         "#;
 
-    let res = estimate_gas!(code);
+    let res = estimate_code!(code);
     assert_eq!(
         hashmap! {
             FuncIndex(0) => Gas::Fixed(0),
@@ -75,7 +71,7 @@ fn estimate_program_with_functions_imports() {
                 (call $func3)))
         "#;
 
-    let res = estimate_gas!(code);
+    let res = estimate_code!(code);
 
     assert_eq!(
         hashmap! {
@@ -96,112 +92,8 @@ fn estimate_constant_function() {
                 i32.const 20))
         "#;
 
-    let res = estimate_gas!(code);
+    let res = estimate_code!(code);
     assert_eq!(hashmap! {FuncIndex(0) => Gas::Fixed(3)}, res.unwrap());
-}
-
-#[test]
-fn estimate_loop_not_allowed() {
-    let code = r#"
-          (module
-            (func $func0
-                (loop (nop))))
-        "#;
-
-    let res = estimate_gas!(code);
-    assert_eq!(Err(ProgramError::LoopNotAllowed), res);
-}
-
-#[test]
-fn estimate_direct_recursive_call_not_allowed() {
-    let code = r#"
-          (module
-            (func $func0
-                (call $func0)))
-        "#;
-
-    let res = estimate_gas!(code);
-    assert_eq!(
-        Err(ProgramError::RecursiveCall(vec![
-            FuncIndex(0),
-            FuncIndex(0)
-        ])),
-        res
-    );
-}
-
-#[test]
-fn estimate_indirect_recursive_call_not_allowed() {
-    let code = r#"
-          (module
-            (func $func0
-                (call $func1))
-
-            (func $func1
-                (call $func2))
-
-            (func $func2
-                (call $func0)))
-        "#;
-
-    let res = estimate_gas!(code);
-    assert_eq!(
-        Err(ProgramError::RecursiveCall(vec![
-            FuncIndex(0),
-            FuncIndex(1),
-            FuncIndex(2),
-            FuncIndex(0),
-        ])),
-        res
-    );
-}
-
-#[test]
-fn estimate_call_indirect_not_allowed() {
-    let code = r#"
-          (module
-            (type $proc (func))
-
-            (table funcref
-                (elem
-                    $func0))
-
-            (func $func0 (type $proc)
-                (nop))
-
-            (func $func1
-                (call_indirect (type $proc) (i32.const 0))))
-        "#;
-
-    let res = estimate_gas!(code);
-    assert_eq!(Err(ProgramError::CallIndirectNotAllowed), res);
-}
-
-#[test]
-fn estimate_br_not_allowed() {
-    let code = r#"
-          (module
-            (func $func0
-                (br 0))
-
-            (func $func1
-                (block (br 0))))
-        "#;
-
-    let res = estimate_gas!(code);
-    assert_eq!(Err(ProgramError::BrNotAllowed), res);
-}
-
-#[test]
-fn estimate_br_if_not_allowed() {
-    let code = r#"
-          (module
-            (func $func0 (result i32)
-                (block (result i32) (br_if 0 (i32.const 0) (i32.const 0)))))
-        "#;
-
-    let res = estimate_gas!(code);
-    assert_eq!(Err(ProgramError::BrIfNotAllowed), res);
 }
 
 #[test]
@@ -234,7 +126,7 @@ fn estimate_if_stmt_without_else() {
                 ;; fixed(2) * fixed(1) * range(0, 4) = fixed(3) * range(0, 4) = range(3, 7)
         "#;
 
-    let res = estimate_gas!(code);
+    let res = estimate_code!(code);
     assert_eq!(
         hashmap! {
             FuncIndex(0) => Gas::Range { min: 3, max: 7 }
@@ -290,7 +182,7 @@ fn estimate_if_stmt_without_else_nested() {
                 ;; fixed(2) * range(1, 12) = range(3, 14)
         "#;
 
-    let res = estimate_gas!(code);
+    let res = estimate_code!(code);
     assert_eq!(
         hashmap! {
             FuncIndex(0) => Gas::Range { min: 3, max: 14 }
@@ -337,7 +229,7 @@ fn estimate_if_stmt_with_else_not_nested() {
                 ;; fixed(2) * fixed(1) * range(2, 4) = fixed(3) * range(2, 4) = range(5, 7)
         "#;
 
-    let res = estimate_gas!(code);
+    let res = estimate_code!(code);
     assert_eq!(
         hashmap! {
             FuncIndex(0) => Gas::Range { min: 5, max: 7 }
@@ -406,7 +298,7 @@ fn estimate_if_stmt_with_else_nested() {
                 ;; fixed(2) * range(5, 10) = range(7, 12)
         "#;
 
-    let res = estimate_gas!(code);
+    let res = estimate_code!(code);
     assert_eq!(
         hashmap! {
             FuncIndex(0) => Gas::Range { min: 7, max: 12 }

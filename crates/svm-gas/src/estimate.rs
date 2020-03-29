@@ -9,8 +9,7 @@ use crate::{
     traits::VMCallsGasEstimator,
 };
 
-use std::collections::{HashMap, HashSet};
-use std::iter::FromIterator;
+use std::collections::HashMap;
 
 use parity_wasm::elements::Instruction;
 
@@ -30,8 +29,8 @@ where
     let mut funcs_gas = FuncsGas::new();
     let mut call_graph = CallGraph::new(funcs_ids.clone());
 
-    for func_idx in funcs_ids.iter() {
-        estimate_function(*func_idx, &program, &mut funcs_blocks, &mut call_graph)?;
+    for &func_idx in funcs_ids.iter() {
+        estimate_func(func_idx, &program, &mut funcs_blocks, &mut call_graph)?;
     }
 
     call_graph.ensure_no_recursive_calls()?;
@@ -44,7 +43,7 @@ where
     Ok(funcs_gas.inner)
 }
 
-fn estimate_function(
+fn estimate_func(
     func_idx: FuncIndex,
     program: &Program,
     funcs_blocks: &mut FuncsBlocks,
@@ -165,7 +164,7 @@ where
             Op::Plain(Instruction::Nop) => Gas::Fixed(0),
             Op::Plain(..) => Gas::Fixed(1),
             Op::Block(ref inner) => estimate_block_gas::<VME>(&ctx.child_block(inner), funcs_gas),
-            Op::VMCall(fid) => VME::estimate_gas(fid),
+            Op::VMCall(fid) => VME::estimate_code(fid),
             Op::FuncCall(fid) => funcs_gas.get_func_gas(fid).unwrap(),
             Op::IfBlock(ref true_block) => {
                 let true_gas = estimate_block_gas::<VME>(&ctx.child_block(true_block), funcs_gas);

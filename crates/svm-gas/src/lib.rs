@@ -1,7 +1,7 @@
-#![allow(missing_docs)]
-#![allow(unused)]
-#![allow(dead_code)]
-#![allow(unreachable_code)]
+#![deny(missing_docs)]
+#![deny(unused)]
+#![deny(dead_code)]
+#![deny(unreachable_code)]
 
 //! This crate is responsible for doing gas estimation for apps.
 //! SVM apps are essentially wasm programs importing SVM vmcalls.
@@ -25,4 +25,4 @@ pub mod traits;
 pub use estimate::estimate_code;
 pub use function::FuncIndex;
 pub use gas::Gas;
-pub use validation::validate_wasm;
+pub use validation::validate_code;

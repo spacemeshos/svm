@@ -4,13 +4,13 @@ use crate::function::{FuncBody, FuncIndex};
 
 #[derive(Debug)]
 pub(crate) struct Program {
-    pub imported_count: u16,
+    pub import_count: u16,
     pub functions: HashMap<FuncIndex, FuncBody>,
 }
 
 impl Program {
     pub fn is_imported(&self, func_idx: FuncIndex) -> bool {
-        func_idx.0 < self.imported_count
+        func_idx.0 < self.import_count
     }
 
     pub fn get_function_body(&self, func_idx: FuncIndex) -> &FuncBody {

@@ -6,6 +6,15 @@ pub enum ProgramError {
     /// Invalid wasm
     InvalidWasm,
 
+    /// Floats not allowed
+    FloatsNotAllowed,
+
+    /// Too many function imports
+    TooManyFunctionImports,
+
+    /// Function index is too large
+    FunctionIndexTooLarge,
+
     /// `call_indirect` isn't allowed
     CallIndirectNotAllowed,
 

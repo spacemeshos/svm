@@ -1,7 +1,9 @@
-use crate::{block::FuncsBlocks, error::ProgramError, function::FuncIndex};
+use crate::{error::ProgramError, function::FuncIndex};
 
-use std::collections::{HashMap, HashSet};
-use std::iter::FromIterator;
+use std::{
+    collections::{HashMap, HashSet},
+    iter::FromIterator,
+};
 
 #[derive(Debug)]
 pub(crate) struct CallGraph {
@@ -38,6 +40,7 @@ impl CallGraph {
         entry.insert(from);
     }
 
+    #[must_use]
     pub(crate) fn ensure_no_recursive_calls(&self) -> Result<(), ProgramError> {
         let mut visited = HashSet::new();
 
