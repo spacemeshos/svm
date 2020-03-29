@@ -2,7 +2,7 @@ use crate::function::FuncIndex;
 
 /// Represents error that may occur while doing gas estimation
 #[derive(Debug, PartialEq)]
-pub enum Error {
+pub enum ProgramError {
     /// `call_indirect` isn't allowed
     CallIndirectNotAllowed,
 

@@ -1,9 +1,10 @@
-extern crate svm_gas;
-
 use maplit::hashmap;
-use svm_gas::{error::Error, FuncIndex, Gas};
 
-use svm_gas::traits::VMCallsGasEstimator;
+use svm_gas::{
+    estimate_code,
+    traits::VMCallsGasEstimator,
+    {error::ProgramError, FuncIndex, Gas},
+};
 
 struct PanicVMMCallstimator;
 
@@ -15,12 +16,9 @@ impl VMCallsGasEstimator for PanicVMMCallstimator {
 
 macro_rules! estimate_gas {
     ($code:expr) => {{
-        use svm_gas::code_reader::read_program;
-
         let wasm = wabt::wat2wasm($code).unwrap();
-        let program = read_program(&wasm);
 
-        svm_gas::estimate_program::<PanicVMMCallstimator>(&program)
+        estimate_code::<PanicVMMCallstimator>(&wasm[..])
     }};
 }
 
@@ -111,7 +109,7 @@ fn estimate_loop_not_allowed() {
         "#;
 
     let res = estimate_gas!(code);
-    assert_eq!(Err(Error::LoopNotAllowed), res);
+    assert_eq!(Err(ProgramError::LoopNotAllowed), res);
 }
 
 #[test]
@@ -124,7 +122,10 @@ fn estimate_direct_recursive_call_not_allowed() {
 
     let res = estimate_gas!(code);
     assert_eq!(
-        Err(Error::RecursiveCall(vec![FuncIndex(0), FuncIndex(0)])),
+        Err(ProgramError::RecursiveCall(vec![
+            FuncIndex(0),
+            FuncIndex(0)
+        ])),
         res
     );
 }
@@ -145,7 +146,7 @@ fn estimate_indirect_recursive_call_not_allowed() {
 
     let res = estimate_gas!(code);
     assert_eq!(
-        Err(Error::RecursiveCall(vec![
+        Err(ProgramError::RecursiveCall(vec![
             FuncIndex(0),
             FuncIndex(1),
             FuncIndex(2),
@@ -173,7 +174,7 @@ fn estimate_call_indirect_not_allowed() {
         "#;
 
     let res = estimate_gas!(code);
-    assert_eq!(Err(Error::CallIndirectNotAllowed), res);
+    assert_eq!(Err(ProgramError::CallIndirectNotAllowed), res);
 }
 
 #[test]
@@ -188,7 +189,7 @@ fn estimate_br_not_allowed() {
         "#;
 
     let res = estimate_gas!(code);
-    assert_eq!(Err(Error::BrNotAllowed), res);
+    assert_eq!(Err(ProgramError::BrNotAllowed), res);
 }
 
 #[test]
@@ -200,7 +201,7 @@ fn estimate_br_if_not_allowed() {
         "#;
 
     let res = estimate_gas!(code);
-    assert_eq!(Err(Error::BrIfNotAllowed), res);
+    assert_eq!(Err(ProgramError::BrIfNotAllowed), res);
 }
 
 #[test]

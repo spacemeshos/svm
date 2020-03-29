@@ -903,6 +903,7 @@ dependencies = [
  "svm-app",
  "svm-common",
  "svm-compiler",
+ "svm-gas",
  "svm-kv",
  "svm-storage",
  "wabt",
