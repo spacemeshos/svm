@@ -23,7 +23,7 @@ pub fn estimate_code<VME>(wasm: &[u8]) -> Result<HashMap<FuncIndex, Gas>, Progra
 where
     VME: VMCallsGasEstimator,
 {
-    let program = crate::code_reader::read_program(wasm);
+    let program = crate::code_reader::read_program(wasm)?;
     let funcs_ids = program.functions_ids();
 
     let mut funcs_blocks = FuncsBlocks::new();

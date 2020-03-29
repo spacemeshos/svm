@@ -1,4 +1,5 @@
 use crate::{
+    error::ProgramError,
     function::{FuncBody, FuncIndex},
     program::Program,
 };
@@ -8,11 +9,10 @@ use std::collections::HashMap;
 use parity_wasm::elements::{ImportCountType, Module};
 
 /// Reads wasm input and contruct a `Program` struct
-pub(crate) fn read_program(wasm: &[u8]) -> Program {
+pub(crate) fn read_program(wasm: &[u8]) -> Result<Program, ProgramError> {
     let mut functions = HashMap::new();
 
-    let module: Module = parity_wasm::deserialize_buffer(wasm).unwrap();
-
+    let module = read_wasm(wasm)?;
     let code_section = module.code_section().expect("no code section");
     let imported_count = module.import_count(ImportCountType::Function);
 
@@ -27,8 +27,15 @@ pub(crate) fn read_program(wasm: &[u8]) -> Program {
         functions.insert(fn_idx, fn_body);
     }
 
-    Program {
+    let program = Program {
         functions,
         imported_count,
-    }
+    };
+
+    Ok(program)
+}
+
+#[inline]
+fn read_wasm(wasm: &[u8]) -> Result<Module, ProgramError> {
+    parity_wasm::deserialize_buffer(wasm).map_err(|_| ProgramError::InvalidWasm)
 }

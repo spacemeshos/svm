@@ -3,6 +3,9 @@ use crate::function::FuncIndex;
 /// Represents error that may occur while doing gas estimation
 #[derive(Debug, PartialEq)]
 pub enum ProgramError {
+    /// Invalid wasm
+    InvalidWasm,
+
     /// `call_indirect` isn't allowed
     CallIndirectNotAllowed,
 
