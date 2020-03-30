@@ -6,19 +6,19 @@ use crate::error::ExecAppError;
 /// Runtime transaction execution receipt
 #[derive(Debug)]
 pub struct ExecReceipt {
-    /// whether transaction succedded or not
+    /// Whether transaction succedded or not.
     pub success: bool,
 
-    /// the execution error in case execution failed
+    /// The execution error in case execution failed.
     pub error: Option<ExecAppError>,
 
-    /// the new app `State` if execution succedded
+    /// The new app `State` if execution succedded.
     pub new_state: Option<State>,
 
-    /// returned values
+    /// Returned values.
     pub returns: Option<Vec<WasmValue>>,
 
-    /// The amount of gas used
+    /// The amount of gas used.
     pub gas_used: Option<u64>,
 }
 

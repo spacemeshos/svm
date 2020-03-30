@@ -128,7 +128,7 @@ fn runtime_spawn_app_with_ctor_reaches_oog() {
 
     let bytes = testing::build_app(version, &template_addr, ctor_idx, &ctor_buf, &ctor_args);
 
-    let receipt = runtime.spawn_app(
+    let _receipt = runtime.spawn_app(
         &bytes,
         &creator,
         HostCtx::new(),

@@ -512,12 +512,14 @@ where
         );
 
         let storage = self.open_app_storage(addr, state, settings);
+        let gas_limit = self.host_ctx_gas_limit(&host_ctx);
         let host_ctx = svm_common::into_raw(host_ctx);
 
         let svm_ctx = SvmCtx::new(
             DataWrapper::new(self.host),
             DataWrapper::new(host_ctx),
             settings.gas_metering_enabled,
+            gas_limit,
             storage,
         );
         let svm_ctx = Box::leak(Box::new(svm_ctx));
@@ -538,6 +540,10 @@ where
         };
 
         ImportObject::new_with_data(state_creator)
+    }
+
+    fn host_ctx_gas_limit(&self, _host_ctx: &HostCtx) -> u64 {
+        todo!()
     }
 
     fn import_object_extend(&self, import_object: &mut ImportObject) {

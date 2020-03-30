@@ -86,7 +86,9 @@ pub fn app_memory_state_creator(
 
     let storage = svm_storage::testing::app_storage_open(state, &kv, page_count);
 
-    let ctx = SvmCtx::new(host, host_ctx, gas_metering_enabled, storage);
+    // TODO: extract `gas_limit` from `host_ctx`
+    let gas_limit = 10;
+    let ctx = SvmCtx::new(host, host_ctx, gas_metering_enabled, gas_limit, storage);
     let ctx: *mut SvmCtx = Box::into_raw(Box::new(ctx));
 
     let data: *mut c_void = ctx as *const _ as _;

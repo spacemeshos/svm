@@ -27,6 +27,9 @@ pub struct SvmCtx {
     /// Gas metering
     pub gas_metering_enabled: bool,
 
+    /// Gas limit
+    pub gas_limit: u64,
+
     /// Did we reach `Out-of-Gas`
     pub reached_oog: bool,
 
@@ -51,6 +54,7 @@ impl SvmCtx {
         host: DataWrapper<*mut c_void>,
         host_ctx: DataWrapper<*const c_void>,
         gas_metering_enabled: bool,
+        gas_limit: u64,
         storage: AppStorage,
     ) -> Self {
         let host = host.unwrap();
@@ -66,6 +70,7 @@ impl SvmCtx {
             regs,
             storage,
             gas_metering_enabled,
+            gas_limit,
             reached_oog,
         }
     }
