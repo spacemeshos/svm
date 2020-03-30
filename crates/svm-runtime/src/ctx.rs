@@ -27,6 +27,9 @@ pub struct SvmCtx {
     /// Gas metering
     pub gas_metering_enabled: bool,
 
+    /// Did we reach `Out-of-Gas`
+    pub reached_oog: bool,
+
     /// Holds the context registers.
     pub regs: Registers,
 
@@ -54,6 +57,7 @@ impl SvmCtx {
         let host_ctx = host_ctx.unwrap() as *const HostCtx;
         let buffers = HashMap::new();
         let regs = Registers::default();
+        let reached_oog = false;
 
         Self {
             host,
@@ -62,6 +66,7 @@ impl SvmCtx {
             regs,
             storage,
             gas_metering_enabled,
+            reached_oog,
         }
     }
 }
