@@ -1,3 +1,5 @@
+use std::fmt;
+
 use crate::function::FuncIndex;
 
 /// Represents error that may occur while doing gas estimation
@@ -32,4 +34,10 @@ pub enum ProgramError {
 
     /// Recursive calls aren't allowed
     RecursiveCall(Vec<FuncIndex>),
+}
+
+impl fmt::Display for ProgramError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        <Self as fmt::Debug>::fmt(self, f)
+    }
 }

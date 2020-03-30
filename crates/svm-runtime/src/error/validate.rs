@@ -1,3 +1,5 @@
+use std::fmt;
+
 use svm_app::error::ParseError;
 use svm_gas::error::ProgramError;
 
@@ -17,5 +19,14 @@ impl From<ParseError> for ValidateError {
 impl From<ProgramError> for ValidateError {
     fn from(err: ProgramError) -> Self {
         Self::Program(err)
+    }
+}
+
+impl fmt::Display for ValidateError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            ValidateError::Program(err) => err.fmt(f),
+            ValidateError::Parse(err) => err.fmt(f),
+        }
     }
 }

@@ -24,7 +24,7 @@ mod state;
 mod value;
 mod wasmer;
 
-pub(crate) use error::{raw_error, raw_parse_error, raw_utf8_error};
+pub(crate) use error::{raw_error, raw_utf8_error, raw_validate_error};
 
 /// `SVM` FFI Interface
 pub use api::{

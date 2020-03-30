@@ -12,6 +12,8 @@ use svm_storage::page::{PageIndex, PageOffset, PageSliceLayout};
 
 macro_rules! default_runtime {
     () => {{
+        use svm_runtime::testing;
+
         let kv = testing::memory_kv_store_init();
         let host = std::ptr::null_mut();
         let imports = Vec::new();

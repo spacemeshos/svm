@@ -7,7 +7,7 @@ use svm_common::{Address, State};
 use svm_runtime::{ctx::SvmCtx, gas::DefaultGasEstimator};
 
 use crate::{
-    helpers, raw_error, raw_parse_error, raw_utf8_error,
+    helpers, raw_error, raw_utf8_error, raw_validate_error,
     receipt::{encode_app_receipt, encode_exec_receipt, encode_template_receipt},
     svm_byte_array, svm_import_func_sig_t, svm_import_func_t, svm_import_kind, svm_import_t,
     svm_import_value, svm_result_t, svm_value_type_array,
@@ -63,7 +63,7 @@ pub unsafe extern "C" fn svm_validate_template(
         Ok(()) => svm_result_t::SVM_SUCCESS,
         Err(e) => {
             error!("`svm_validate_template` returns `SVM_FAILURE`");
-            raw_parse_error(&e, error);
+            raw_validate_error(&e, error);
             svm_result_t::SVM_FAILURE
         }
     }
@@ -82,7 +82,7 @@ pub unsafe extern "C" fn svm_validate_app(
         Ok(()) => svm_result_t::SVM_SUCCESS,
         Err(e) => {
             error!("`svm_validate_app` returns `SVM_FAILURE`");
-            raw_parse_error(&e, error);
+            raw_validate_error(&e, error);
             svm_result_t::SVM_FAILURE
         }
     }
@@ -141,7 +141,7 @@ pub unsafe extern "C" fn svm_validate_tx(
         }
         Err(e) => {
             error!("`svm_validate_tx` returns `SVM_FAILURE`");
-            raw_parse_error(&e, error);
+            raw_validate_error(&e, error);
             svm_result_t::SVM_FAILURE
         }
     }

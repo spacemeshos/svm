@@ -118,7 +118,8 @@ unsafe fn create_imports() -> *const c_void {
 }
 
 fn deploy_template_bytes(version: u32, name: &str, page_count: u16, wasm: &str) -> (Vec<u8>, u32) {
-    let bytes = svm_runtime::testing::build_template(version, name, page_count, wasm);
+    let is_wast = true;
+    let bytes = svm_runtime::testing::build_template(version, name, page_count, wasm, is_wast);
     let length = bytes.len() as u32;
 
     (bytes, length)
