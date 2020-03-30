@@ -99,6 +99,7 @@ where
         bytes: &[u8],
         author: &AuthorAddr,
         host_ctx: HostCtx,
+        gas_metering_enabled: bool,
         dry_run: bool,
     ) -> TemplateReceipt {
         info!("runtime `deploy_template`");
@@ -106,7 +107,14 @@ where
         let template = self.parse_deploy_template(bytes).unwrap();
         let gas = self.compute_install_template_gas(bytes, &template);
 
-        self.install_template(&template, author, host_ctx, gas, dry_run)
+        self.install_template(
+            &template,
+            author,
+            host_ctx,
+            gas,
+            gas_metering_enabled,
+            dry_run,
+        )
     }
 
     fn spawn_app(
@@ -114,6 +122,7 @@ where
         bytes: &[u8],
         creator: &CreatorAddr,
         host_ctx: HostCtx,
+        gas_metering_enabled: bool,
         dry_run: bool,
     ) -> SpawnAppReceipt {
         info!("runtime `spawn_app`");
@@ -122,7 +131,14 @@ where
         let gas = self.compute_install_app_gas(bytes, &spawn);
 
         match self.install_app(&spawn, creator, &host_ctx, gas, dry_run) {
-            Ok(addr) => self.call_ctor(creator, spawn, &addr, host_ctx, dry_run),
+            Ok(addr) => self.call_ctor(
+                creator,
+                spawn,
+                &addr,
+                host_ctx,
+                gas_metering_enabled,
+                dry_run,
+            ),
             Err(e) => e.into(),
         }
     }
@@ -132,11 +148,12 @@ where
         bytes: &[u8],
         state: &State,
         host_ctx: HostCtx,
+        gas_metering_enabled: bool,
         dry_run: bool,
     ) -> ExecReceipt {
         let tx = self.parse_exec_app(bytes).unwrap();
 
-        self._exec_app(&tx, state, host_ctx, dry_run)
+        self._exec_app(&tx, state, host_ctx, gas_metering_enabled, dry_run)
     }
 }
 
@@ -184,11 +201,18 @@ where
         spawn: SpawnApp,
         app_addr: &AppAddr,
         host_ctx: HostCtx,
+        gas_metering_enabled: bool,
         dry_run: bool,
     ) -> SpawnAppReceipt {
         let ctor = self.build_ctor_call(creator, spawn, app_addr);
 
-        let ctor_receipt = self._exec_app(&ctor, &State::empty(), host_ctx, dry_run);
+        let ctor_receipt = self._exec_app(
+            &ctor,
+            &State::empty(),
+            host_ctx,
+            gas_metering_enabled,
+            dry_run,
+        );
 
         make_spawn_app_receipt(ctor_receipt, app_addr)
     }
@@ -199,6 +223,7 @@ where
         author: &AuthorAddr,
         host_ctx: HostCtx,
         gas: u64,
+        _gas_metering_enabled: bool,
         dry_run: bool,
     ) -> TemplateReceipt {
         if dry_run == false {
@@ -250,6 +275,7 @@ where
         tx: &AppTransaction,
         state: &State,
         host_ctx: HostCtx,
+        gas_metering_enabled: bool,
         dry_run: bool,
     ) -> ExecReceipt {
         info!("runtime `exec_app`");
@@ -260,6 +286,7 @@ where
                 let settings = AppSettings {
                     page_count: template.page_count,
                     kv_path: self.kv_path.clone(),
+                    gas_metering_enabled,
                 };
 
                 let mut import_object =
@@ -490,6 +517,7 @@ where
         let svm_ctx = SvmCtx::new(
             DataWrapper::new(self.host),
             DataWrapper::new(host_ctx),
+            settings.gas_metering_enabled,
             storage,
         );
         let svm_ctx = Box::leak(Box::new(svm_ctx));

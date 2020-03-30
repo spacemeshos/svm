@@ -33,6 +33,7 @@ pub trait Runtime {
         bytes: &[u8],
         author: &AuthorAddr,
         host_ctx: HostCtx,
+        gas_metering_enabled: bool,
         dry_run: bool,
     ) -> TemplateReceipt;
 
@@ -42,6 +43,7 @@ pub trait Runtime {
         bytes: &[u8],
         creator: &CreatorAddr,
         host_ctx: HostCtx,
+        gas_metering_enabled: bool,
         dry_run: bool,
     ) -> SpawnAppReceipt;
 
@@ -59,6 +61,7 @@ pub trait Runtime {
         bytes: &[u8],
         state: &State,
         host_ctx: HostCtx,
+        gas_metering_enabled: bool,
         dry_run: bool,
     ) -> ExecReceipt;
 }
