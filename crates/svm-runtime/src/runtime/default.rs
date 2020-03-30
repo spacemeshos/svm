@@ -18,7 +18,6 @@ use crate::{
     settings::AppSettings,
     storage::StorageBuilderFn,
 };
-
 use svm_app::{
     error::ParseError,
     traits::{Env, EnvTypes},
@@ -28,6 +27,7 @@ use svm_app::{
     },
 };
 use svm_common::State;
+use svm_gas::Gas;
 use svm_storage::AppStorage;
 
 use wasmer_runtime::Value as WasmerValue;
@@ -80,6 +80,18 @@ where
             .parse_exec_app(bytes)
             .map(|tx| tx.app)
             .map_err(|e| e.into())
+    }
+
+    fn estimate_deploy_template(&self, _bytes: &[u8], _host_ctx: HostCtx) -> Gas {
+        todo!()
+    }
+
+    fn estimate_spawn_app(&self, _bytes: &[u8], _host_ctx: HostCtx) -> Gas {
+        todo!()
+    }
+
+    fn estimate_exec_app(&self, _bytes: &[u8], _state: &State, _host_ctx: HostCtx) -> Gas {
+        todo!()
     }
 
     fn deploy_template(

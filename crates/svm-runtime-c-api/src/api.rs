@@ -800,3 +800,35 @@ pub unsafe extern "C" fn svm_exec_receipt_state(
         ClientExecReceipt::Failure { .. } => panic!(),
     }
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn svm_estimate_deploy_template(
+    estimate: *mut u64,
+    runtime: *mut c_void,
+    bytes: svm_byte_array,
+    error: *mut svm_byte_array,
+) -> svm_result_t {
+    let runtime = helpers::cast_to_runtime_mut(runtime);
+
+    todo!()
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn svm_estimate_spawn_app(
+    estimate: *mut u64,
+    runtime: *mut c_void,
+    bytes: svm_byte_array,
+    error: *mut svm_byte_array,
+) -> svm_result_t {
+    todo!()
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn svm_estimate_exec_app(
+    estimate: *mut u64,
+    runtime: *mut c_void,
+    bytes: svm_byte_array,
+    error: *mut svm_byte_array,
+) -> svm_result_t {
+    todo!()
+}
