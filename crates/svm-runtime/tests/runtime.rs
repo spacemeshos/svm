@@ -10,12 +10,19 @@ use svm_gas::error::ProgramError;
 use svm_runtime::{error::ValidateError, runtime::Runtime, settings::AppSettings, testing};
 use svm_storage::page::{PageIndex, PageOffset, PageSliceLayout};
 
+macro_rules! default_runtime {
+    () => {{
+        let kv = testing::memory_kv_store_init();
+        let host = std::ptr::null_mut();
+        let imports = Vec::new();
+
+        testing::create_memory_runtime(host, &kv, imports)
+    }};
+}
+
 #[test]
 fn runtime_validate_template_invalid_raw_format() {
-    let kv = testing::memory_kv_store_init();
-    let host = std::ptr::null_mut();
-    let imports = Vec::new();
-    let runtime = testing::create_memory_runtime(host, &kv, imports);
+    let runtime = default_runtime!();
     let bytes = vec![0xFF, 0xFF];
 
     let parse_err = ParseError::NotEnoughBytes(Field::NameLength);
@@ -27,11 +34,9 @@ fn runtime_validate_template_invalid_raw_format() {
 
 #[test]
 fn runtime_validate_template_invalid_wasm() {
+    let runtime = default_runtime!();
+
     let version = 0;
-    let kv = testing::memory_kv_store_init();
-    let host = std::ptr::null_mut();
-    let imports = Vec::new();
-    let runtime = testing::create_memory_runtime(host, &kv, imports);
     let page_count = 10;
     let is_wast = true;
 
@@ -53,10 +58,7 @@ fn runtime_validate_template_invalid_wasm() {
 
 #[test]
 fn runtime_validate_app_invalid_raw_format() {
-    let kv = testing::memory_kv_store_init();
-    let host = std::ptr::null_mut();
-    let imports = Vec::new();
-    let runtime = testing::create_memory_runtime(host, &kv, imports);
+    let runtime = default_runtime!();
     let bytes = vec![0xFF, 0xFF];
 
     let parse_err = ParseError::NotEnoughBytes(Field::AppTemplate);
@@ -68,10 +70,8 @@ fn runtime_validate_app_invalid_raw_format() {
 
 #[test]
 fn runtime_validate_tx_invalid_raw_format() {
-    let kv = testing::memory_kv_store_init();
-    let host = std::ptr::null_mut();
-    let imports = Vec::new();
-    let runtime = testing::create_memory_runtime(host, &kv, imports);
+    let runtime = default_runtime!();
+
     let bytes = vec![0xFF, 0xFF];
 
     let parse_err = ParseError::NotEnoughBytes(Field::App);
@@ -83,18 +83,15 @@ fn runtime_validate_tx_invalid_raw_format() {
 
 #[test]
 fn runtime_spawn_app_with_ctor() {
-    // 1) init
+    let mut runtime = default_runtime!();
+
+    // 1) deploying the template
     let version = 0;
-    let kv = testing::memory_kv_store_init();
-    let host = std::ptr::null_mut();
-    let imports = Vec::new();
-    let mut runtime = testing::create_memory_runtime(host, &kv, imports);
     let page_count = 10;
     let author = Address::of("author").into();
     let creator = Address::of("creator").into();
     let is_wast = true;
 
-    // 2) deploying the template
     let bytes = testing::build_template(
         version,
         "My Template",
@@ -108,7 +105,7 @@ fn runtime_spawn_app_with_ctor() {
 
     let template_addr = receipt.addr.unwrap();
 
-    // 3) spawn app (and invoking its `ctor`)
+    // 2) spawn app (and invoking its `ctor`)
     let buf_size: u32 = 10;
     let ctor_idx = 0;
     let ctor_buf = vec![0xAA, 0xBB, 0xBB, 0xCC, 0xCC, 0xCC, 0xDD, 0xDD, 0xDD, 0xDD];
@@ -137,19 +134,15 @@ fn runtime_spawn_app_with_ctor() {
 
 #[test]
 fn runtime_exec_app() {
-    // 1) init
+    let mut runtime = default_runtime!();
+
+    // 1) deploying the template
     let version = 0;
     let author = Address::of("author").into();
     let creator = Address::of("creator").into();
     let page_count = 10;
     let is_wast = true;
 
-    let kv = testing::memory_kv_store_init();
-    let host = std::ptr::null_mut();
-    let imports = Vec::new();
-    let mut runtime = testing::create_memory_runtime(host, &kv, imports);
-
-    // 2) deploying the template
     let bytes = testing::build_template(
         version,
         "My Template",
@@ -163,7 +156,7 @@ fn runtime_exec_app() {
 
     let template_addr = receipt.addr.unwrap();
 
-    // 3) spawn app
+    // 2) spawn app
     let ctor_idx = 0;
     let ctor_buf = vec![];
     let ctor_args = vec![];
@@ -174,7 +167,7 @@ fn runtime_exec_app() {
     let app_addr = receipt.get_app_addr();
     let init_state = receipt.get_init_state();
 
-    // // 4) executing the app-transaction
+    // 3) executing the app-transaction
     let buf_id = 0;
     let buf_offset = 0;
     let reg_bits = 128;
