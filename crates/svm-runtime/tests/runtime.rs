@@ -84,6 +84,64 @@ fn runtime_validate_tx_invalid_raw_format() {
 }
 
 #[test]
+fn runtime_deploy_template_reaches_oog() {
+    todo!()
+}
+
+#[test]
+fn runtime_spawn_app_with_ctor_reaches_oog() {
+    let mut runtime = default_runtime!();
+
+    // 1) deploying the template
+    let version = 0;
+    let page_count = 10;
+    let author = Address::of("author").into();
+    let creator = Address::of("creator").into();
+    let is_wast = true;
+    let dry_run = false;
+    let gas_metering_enabled = false;
+
+    let bytes = testing::build_template(
+        version,
+        "My Template",
+        page_count,
+        include_str!("wasm/runtime_app_ctor.wast"),
+        is_wast,
+    );
+
+    let receipt = runtime.deploy_template(
+        &bytes,
+        &author,
+        HostCtx::new(),
+        gas_metering_enabled,
+        dry_run,
+    );
+    assert!(receipt.success);
+
+    let template_addr = receipt.addr.unwrap();
+
+    // 2) spawn app (and invoking its `ctor`)
+    let buf_size: u32 = 10;
+    let ctor_idx = 0;
+    let ctor_buf = vec![0xAA, 0xBB, 0xBB, 0xCC, 0xCC, 0xCC, 0xDD, 0xDD, 0xDD, 0xDD];
+    let ctor_args = vec![WasmValue::I32(buf_size)];
+
+    let bytes = testing::build_app(version, &template_addr, ctor_idx, &ctor_buf, &ctor_args);
+
+    let receipt = runtime.spawn_app(
+        &bytes,
+        &creator,
+        HostCtx::new(),
+        gas_metering_enabled,
+        dry_run,
+    );
+
+    // asserting out-of-gas
+    // dbg!(&receipt);
+    todo!()
+}
+
+#[test]
 fn runtime_spawn_app_with_ctor() {
     let mut runtime = default_runtime!();
 
@@ -147,6 +205,11 @@ fn runtime_spawn_app_with_ctor() {
         vec![0xAA, 0xBB, 0xBB, 0xCC, 0xCC, 0xCC, 0xDD, 0xDD, 0xDD, 0xDD],
         slice
     );
+}
+
+#[test]
+fn runtime_exec_app_reaches_oog() {
+    todo!()
 }
 
 #[test]
