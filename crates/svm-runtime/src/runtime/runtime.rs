@@ -1,21 +1,21 @@
-use crate::receipt::{ExecReceipt, SpawnAppReceipt, TemplateReceipt};
-
-use svm_app::{
-    error::ParseError,
-    types::{AppAddr, AuthorAddr, CreatorAddr, HostCtx},
+use crate::{
+    error::ValidateError,
+    receipt::{ExecReceipt, SpawnAppReceipt, TemplateReceipt},
 };
+
+use svm_app::types::{AppAddr, AuthorAddr, CreatorAddr, HostCtx};
 use svm_common::State;
 
 /// Specifies the interface of a `SVM` Runtime.
 pub trait Runtime {
     /// Validates raw `deploy-template` transaction prior to executing it.
-    fn validate_template(&self, bytes: &[u8]) -> Result<(), ParseError>;
+    fn validate_template(&self, bytes: &[u8]) -> Result<(), ValidateError>;
 
     /// Validates a raw `spawn-app` transaction prior to executing it.
-    fn validate_app(&self, bytes: &[u8]) -> Result<(), ParseError>;
+    fn validate_app(&self, bytes: &[u8]) -> Result<(), ValidateError>;
 
     /// Validates a raw `exec-app` transaction prior to executing it.
-    fn validate_tx(&self, bytes: &[u8]) -> Result<AppAddr, ParseError>;
+    fn validate_tx(&self, bytes: &[u8]) -> Result<AppAddr, ValidateError>;
 
     /// Deploy an new app-template
     fn deploy_template(

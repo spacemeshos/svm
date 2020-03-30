@@ -1,9 +1,85 @@
 use std::path::Path;
 
-use svm_app::types::{HostCtx, WasmValue};
+use svm_app::{
+    error::ParseError,
+    raw::Field,
+    types::{HostCtx, WasmValue},
+};
 use svm_common::Address;
-use svm_runtime::{runtime::Runtime, settings::AppSettings, testing};
+use svm_gas::error::ProgramError;
+use svm_runtime::{error::ValidateError, runtime::Runtime, settings::AppSettings, testing};
 use svm_storage::page::{PageIndex, PageOffset, PageSliceLayout};
+
+#[test]
+fn runtime_validate_template_invalid_raw_format() {
+    let kv = testing::memory_kv_store_init();
+    let host = std::ptr::null_mut();
+    let imports = Vec::new();
+    let runtime = testing::create_memory_runtime(host, &kv, imports);
+    let bytes = vec![0xFF, 0xFF];
+
+    let parse_err = ParseError::NotEnoughBytes(Field::NameLength);
+    let expected = Err(ValidateError::Parse(parse_err));
+
+    let actual = runtime.validate_template(&bytes[..]);
+    assert_eq!(expected, actual);
+}
+
+#[test]
+fn runtime_validate_template_invalid_wasm() {
+    let version = 0;
+    let kv = testing::memory_kv_store_init();
+    let host = std::ptr::null_mut();
+    let imports = Vec::new();
+    let runtime = testing::create_memory_runtime(host, &kv, imports);
+    let page_count = 10;
+    let is_wast = true;
+
+    // invalid wasm (has floats)
+    let bytes = testing::build_template(
+        version,
+        "My Template",
+        page_count,
+        include_str!("wasm/wasm_with_floats.wast"),
+        is_wast,
+    );
+
+    let prog_err = ProgramError::FloatsNotAllowed;
+    let expected = Err(ValidateError::Program(prog_err));
+
+    let actual = runtime.validate_template(&bytes[..]);
+    assert_eq!(expected, actual);
+}
+
+#[test]
+fn runtime_validate_app_invalid_raw_format() {
+    let kv = testing::memory_kv_store_init();
+    let host = std::ptr::null_mut();
+    let imports = Vec::new();
+    let runtime = testing::create_memory_runtime(host, &kv, imports);
+    let bytes = vec![0xFF, 0xFF];
+
+    let parse_err = ParseError::NotEnoughBytes(Field::AppTemplate);
+    let expected = Err(ValidateError::Parse(parse_err));
+
+    let actual = runtime.validate_app(&bytes);
+    assert_eq!(expected, actual);
+}
+
+#[test]
+fn runtime_validate_tx_invalid_raw_format() {
+    let kv = testing::memory_kv_store_init();
+    let host = std::ptr::null_mut();
+    let imports = Vec::new();
+    let runtime = testing::create_memory_runtime(host, &kv, imports);
+    let bytes = vec![0xFF, 0xFF];
+
+    let parse_err = ParseError::NotEnoughBytes(Field::App);
+    let expected = Err(ValidateError::Parse(parse_err));
+
+    let actual = runtime.validate_tx(&bytes);
+    assert_eq!(expected, actual);
+}
 
 #[test]
 fn runtime_spawn_app_with_ctor() {
@@ -16,6 +92,7 @@ fn runtime_spawn_app_with_ctor() {
     let page_count = 10;
     let author = Address::of("author").into();
     let creator = Address::of("creator").into();
+    let is_wast = true;
 
     // 2) deploying the template
     let bytes = testing::build_template(
@@ -23,6 +100,7 @@ fn runtime_spawn_app_with_ctor() {
         "My Template",
         page_count,
         include_str!("wasm/runtime_app_ctor.wast"),
+        is_wast,
     );
 
     let receipt = runtime.deploy_template(&bytes, &author, HostCtx::new(), false);
@@ -64,6 +142,7 @@ fn runtime_exec_app() {
     let author = Address::of("author").into();
     let creator = Address::of("creator").into();
     let page_count = 10;
+    let is_wast = true;
 
     let kv = testing::memory_kv_store_init();
     let host = std::ptr::null_mut();
@@ -76,6 +155,7 @@ fn runtime_exec_app() {
         "My Template",
         page_count,
         include_str!("wasm/runtime_exec_app.wast"),
+        is_wast,
     );
 
     let receipt = runtime.deploy_template(&bytes, &author, HostCtx::new(), false);

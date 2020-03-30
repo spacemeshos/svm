@@ -10,7 +10,7 @@ use log::{debug, error, info};
 use crate::{
     buffer::BufferRef,
     ctx::SvmCtx,
-    error::{DeployTemplateError, ExecAppError, SpawnAppError},
+    error::{DeployTemplateError, ExecAppError, SpawnAppError, ValidateError},
     gas::GasEstimator,
     helpers::{self, DataWrapper},
     receipt::{make_spawn_app_receipt, ExecReceipt, SpawnAppReceipt, TemplateReceipt},
@@ -62,16 +62,24 @@ where
     ENV: Env<Types = TY>,
     GE: GasEstimator,
 {
-    fn validate_template(&self, bytes: &[u8]) -> Result<(), ParseError> {
-        self.parse_deploy_template(bytes).map(|_| ())
+    fn validate_template(&self, bytes: &[u8]) -> Result<(), ValidateError> {
+        let template = self.parse_deploy_template(bytes)?;
+        let wasm = &template.code[..];
+
+        svm_gas::validate_code(wasm).map_err(|e| e.into())
     }
 
-    fn validate_app(&self, bytes: &[u8]) -> Result<(), ParseError> {
-        self.parse_spawn_app(bytes).map(|_| ())
+    fn validate_app(&self, bytes: &[u8]) -> Result<(), ValidateError> {
+        self.parse_spawn_app(bytes)
+            .map(|_| ())
+            .map_err(|e| e.into())
     }
 
-    fn validate_tx(&self, bytes: &[u8]) -> Result<AppAddr, ParseError> {
-        self.env.parse_exec_app(bytes).map(|tx| tx.app)
+    fn validate_tx(&self, bytes: &[u8]) -> Result<AppAddr, ValidateError> {
+        self.env
+            .parse_exec_app(bytes)
+            .map(|tx| tx.app)
+            .map_err(|e| e.into())
     }
 
     fn deploy_template(

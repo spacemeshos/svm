@@ -1,7 +1,7 @@
 use crate::function::FuncIndex;
 
 /// Represents error that may occur while doing gas estimation
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum ProgramError {
     /// Invalid wasm
     InvalidWasm,

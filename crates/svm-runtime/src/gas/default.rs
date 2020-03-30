@@ -1,5 +1,5 @@
 use svm_app::types::{AppTemplate, AppTransaction, SpawnApp};
-use svm_gas::Gas;
+// use svm_gas::Gas;
 
 use super::estimator::{DeployTemplateEst, ExecAppEst, GasEstimator, SpawnAppEst};
 
@@ -20,10 +20,10 @@ impl GasEstimator for DefaultGasEstimator {
     }
 }
 
-impl DefaultGasEstimator {
-    #[inline]
-    pub fn payload_gas(bytes: &[u8]) -> Gas {
-        let payload_size = bytes.len() as u64;
-        Gas::Fixed(payload_size * 10_000)
-    }
-}
+// impl DefaultGasEstimator {
+//     #[inline]
+//     pub fn payload_gas(bytes: &[u8]) -> Gas {
+//         let payload_size = bytes.len() as u64;
+//         Gas::Fixed(payload_size * 10_000)
+//     }
+// }

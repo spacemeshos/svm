@@ -11,7 +11,7 @@ use parity_wasm::elements::Instruction;
 /// * It contains chain of recursive calls.
 ///   For example: function `F` calls function `G` which calls function `H` which calls again function `F`.
 ///   The recursive chain call is: `F -> G -> H -> F`.
-/// * It contains instruction using floats.
+/// * It contains instructions using floats.
 ///
 pub fn validate_code(wasm: &[u8]) -> Result<(), ProgramError> {
     let program = crate::code_reader::read_program(wasm)?;

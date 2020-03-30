@@ -133,8 +133,18 @@ pub fn runtime_memory_env_builder() -> DefaultMemoryEnv {
 }
 
 /// Synthesizes a raw deploy-template transaction.
-pub fn build_template(version: u32, name: &str, page_count: u16, wasm: &str) -> Vec<u8> {
-    let code = wabt::wat2wasm(wasm).unwrap();
+pub fn build_template(
+    version: u32,
+    name: &str,
+    page_count: u16,
+    wasm: &str,
+    is_wast: bool,
+) -> Vec<u8> {
+    let code = if is_wast {
+        wabt::wat2wasm(wasm).unwrap()
+    } else {
+        wasm.as_bytes().to_vec()
+    };
 
     DeployAppTemplateBuilder::new()
         .with_version(version)
