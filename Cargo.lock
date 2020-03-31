@@ -865,6 +865,7 @@ dependencies = [
  "svm-common",
  "svm-storage",
  "wabt",
+ "wasmer-middleware-common",
  "wasmer-runtime",
  "wasmer-runtime-core",
  "wasmer-singlepass-backend",

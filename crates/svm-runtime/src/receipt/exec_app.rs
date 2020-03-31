@@ -1,7 +1,7 @@
 use svm_app::types::WasmValue;
 use svm_common::State;
 
-use crate::error::ExecAppError;
+use crate::{error::ExecAppError, gas::MaybeGas};
 
 /// Runtime transaction execution receipt
 #[derive(Debug)]
@@ -19,7 +19,7 @@ pub struct ExecReceipt {
     pub returns: Option<Vec<WasmValue>>,
 
     /// The amount of gas used.
-    pub gas_used: Option<u64>,
+    pub gas_used: MaybeGas,
 }
 
 impl ExecReceipt {
@@ -41,7 +41,7 @@ impl From<ExecAppError> for ExecReceipt {
             error: Some(error),
             new_state: None,
             returns: None,
-            gas_used: None,
+            gas_used: MaybeGas::new(),
         }
     }
 }

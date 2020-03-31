@@ -218,7 +218,7 @@ where
         if dry_run == false {
             match self.env.store_template(template, author, &host_ctx) {
                 Ok(addr) => TemplateReceipt::new(addr, install_gas),
-                Err(_e) => todo!(),
+                Err(e) => panic!("Store failed"),
             }
         } else {
             let addr = self.env.derive_template_address(template, &host_ctx);
@@ -308,7 +308,7 @@ where
         import_object: &ImportObject,
         gas_left: MaybeGas,
         dry_run: bool,
-    ) -> Result<(Option<State>, Option<u64>, Vec<WasmValue>), ExecAppError> {
+    ) -> Result<(Option<State>, Vec<WasmValue>, MaybeGas), ExecAppError> {
         let module = self.compile_template(tx, &template, &template_addr, gas_left)?;
 
         let mut instance = self.instantiate(tx, template_addr, &module, import_object)?;
@@ -341,18 +341,16 @@ where
                 };
 
                 let returns = self.cast_wasmer_func_returns(returns)?;
+                let gas_used = self.wasmer_instance_gas_used(&instance);
 
-                // TODO: use the real `gas_used`
-                let gas_used = Some(0);
-
-                Ok((new_state, gas_used, returns))
+                Ok((new_state, returns, gas_used))
             }
         }
     }
 
     fn make_receipt(
         &self,
-        result: Result<(Option<State>, Option<u64>, Vec<WasmValue>), ExecAppError>,
+        result: Result<(Option<State>, Vec<WasmValue>, MaybeGas), ExecAppError>,
     ) -> ExecReceipt {
         match result {
             Err(e) => ExecReceipt {
@@ -360,9 +358,9 @@ where
                 error: Some(e),
                 returns: None,
                 new_state: None,
-                gas_used: None,
+                gas_used: MaybeGas::new(),
             },
-            Ok((new_state, gas_used, returns)) => ExecReceipt {
+            Ok((new_state, returns, gas_used)) => ExecReceipt {
                 success: true,
                 error: None,
                 returns: Some(returns),
@@ -387,6 +385,10 @@ where
         };
 
         helpers::buffer_freeze(ctx.data, ARGS_BUF_ID);
+    }
+
+    fn wasmer_instance_gas_used(&self, instance: &wasmer_runtime::Instance) -> MaybeGas {
+        todo!()
     }
 
     fn cast_wasmer_func_returns(

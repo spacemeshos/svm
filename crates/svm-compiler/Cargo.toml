@@ -35,6 +35,11 @@ branch = "develop"
 git = "https://github.com/spacemeshos/wasmer"
 branch = "develop"
 
+[dependencies.wasmer-middleware-common]
+default-features = false
+git = "https://github.com/spacemeshos/wasmer"
+branch = "develop"
+
 [dependencies.wasmparser]
 version = "0.45.0"
 
