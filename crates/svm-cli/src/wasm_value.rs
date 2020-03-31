@@ -40,32 +40,34 @@ mod test {
 
     #[test]
     fn test_parse_str() {
-        assert_eq!(parse_str("0i32").unwrap(), WasmValue::I32(0));
-        assert_eq!(parse_str("0i64").unwrap(), WasmValue::I64(0));
-        assert_eq!(
-            parse_str("1073741824i32").unwrap(),
-            WasmValue::I32(1073741824)
-        );
-        assert_eq!(
-            parse_str("1073741824i64").unwrap(),
-            WasmValue::I64(1073741824)
-        );
+        fn parse_str_ok(s: &str) -> WasmValue {
+            parse_str(s).unwrap()
+        }
 
-        assert_eq!(parse_str("").err().unwrap(), ParseError::InvalidFormat);
-        assert_eq!(parse_str("0").err().unwrap(), ParseError::InvalidFormat);
-        assert_eq!(parse_str("i32").err().unwrap(), ParseError::InvalidFormat);
-        assert_eq!(parse_str("i64").err().unwrap(), ParseError::InvalidFormat);
+        fn parse_str_err(s: &str) -> ParseError {
+            parse_str(s).err().unwrap()
+        }
+
+        assert_eq!(parse_str_ok("0i32"), WasmValue::I32(0));
+        assert_eq!(parse_str_ok("0i64"), WasmValue::I64(0));
+        assert_eq!(parse_str_ok("1073741824i32"), WasmValue::I32(1073741824));
+        assert_eq!(parse_str_ok("1073741824i64"), WasmValue::I64(1073741824));
+
+        assert_eq!(parse_str_err(""), ParseError::InvalidFormat);
+        assert_eq!(parse_str_err("0"), ParseError::InvalidFormat);
+        assert_eq!(parse_str_err("i32"), ParseError::InvalidFormat);
+        assert_eq!(parse_str_err("i64"), ParseError::InvalidFormat);
 
         assert_eq!(
-            parse_str("10i6").err().unwrap(),
+            parse_str_err("10i6"),
             ParseError::UnsupportedType(String::from("0i6"))
         );
         assert_eq!(
-            parse_str("10i63").err().unwrap(),
+            parse_str_err("10i63"),
             ParseError::UnsupportedType(String::from("i63"))
         );
         assert_eq!(
-            parse_str("10i633").err().unwrap(),
+            parse_str_err("10i633"),
             ParseError::UnsupportedType(String::from("633"))
         );
     }
