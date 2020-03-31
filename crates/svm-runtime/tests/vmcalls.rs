@@ -26,16 +26,9 @@ fn default_test_args() -> (
     let host = DataWrapper::new(std::ptr::null_mut());
     let host_ctx = DataWrapper::new(svm_common::into_raw(HostCtx::new()));
     let page_count = 5;
-    let gas_metering_enabled = false;
+    let gas_metering = false;
 
-    (
-        app_addr,
-        state,
-        host,
-        host_ctx,
-        gas_metering_enabled,
-        page_count,
-    )
+    (app_addr, state, host, host_ctx, gas_metering, page_count)
 }
 
 #[test]
@@ -44,7 +37,7 @@ fn vmcalls_empty_wasm() {
         (module
           (func (export "run")))"#;
 
-    testing::instantiate(&imports! {}, wasm);
+    testing::instantiate(&imports! {}, wasm, gas_limit, gas_metering_on);
 }
 
 #[test]
@@ -56,10 +49,10 @@ fn vmcalls_mem_to_reg_copy() {
     let data = vec![10, 20, 30];
     let count = data.len() as u32;
 
-    let (app_addr, state, host, host_ctx, gas_metering_enabled, page_count) = default_test_args();
+    let (app_addr, state, host, host_ctx, gas_metering, page_count) = default_test_args();
 
     let import_object = imports! {
-        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, gas_metering_enabled, page_count),
+        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, gas_metering, page_count),
 
         "svm" => {
             "mem_to_reg_copy" => func!(vmcalls::mem_to_reg_copy),
@@ -91,10 +84,10 @@ fn vmcalls_reg_to_mem_copy() {
     let data = vec![10, 20, 30];
     let count = data.len() as u32;
 
-    let (app_addr, state, host, host_ctx, gas_metering_enabled, page_count) = default_test_args();
+    let (app_addr, state, host, host_ctx, gas_metering, page_count) = default_test_args();
 
     let import_object = imports! {
-        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, gas_metering_enabled, page_count),
+        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, gas_metering, page_count),
 
         "svm" => {
             "reg_to_mem_copy" => func!(vmcalls::reg_to_mem_copy),
@@ -127,10 +120,10 @@ fn vmcalls_storage_read_an_empty_page_slice_to_reg() {
     let data = vec![10, 20, 30];
     let count = data.len() as u32;
 
-    let (app_addr, state, host, host_ctx, gas_metering_enabled, page_count) = default_test_args();
+    let (app_addr, state, host, host_ctx, gas_metering, page_count) = default_test_args();
 
     let import_object = imports! {
-        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, gas_metering_enabled, page_count),
+        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, gas_metering, page_count),
 
         "svm" => {
             "storage_read_to_reg" => func!(vmcalls::storage_read_to_reg),
@@ -167,10 +160,10 @@ fn vmcalls_storage_read_non_empty_page_slice_to_reg() {
     let data = vec![10, 20, 30];
     let count = data.len() as u32;
 
-    let (app_addr, state, host, host_ctx, gas_metering_enabled, page_count) = default_test_args();
+    let (app_addr, state, host, host_ctx, gas_metering, page_count) = default_test_args();
 
     let import_object = imports! {
-        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, gas_metering_enabled, page_count),
+        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, gas_metering, page_count),
 
         "svm" => {
             "storage_read_to_reg" => func!(vmcalls::storage_read_to_reg),
@@ -214,10 +207,10 @@ fn vmcalls_storage_read_an_empty_page_slice_to_mem() {
     let data = vec![10, 20, 30];
     let count = data.len() as u32;
 
-    let (app_addr, state, host, host_ctx, gas_metering_enabled, page_count) = default_test_args();
+    let (app_addr, state, host, host_ctx, gas_metering, page_count) = default_test_args();
 
     let import_object = imports! {
-        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, gas_metering_enabled, page_count),
+        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, gas_metering, page_count),
 
         "svm" => {
             "storage_read_to_mem" => func!(vmcalls::storage_read_to_mem),
@@ -251,10 +244,10 @@ fn vmcalls_storage_read_non_empty_page_slice_to_mem() {
     let data = vec![10, 20, 30];
     let count = data.len() as u32;
 
-    let (app_addr, state, host, host_ctx, gas_metering_enabled, page_count) = default_test_args();
+    let (app_addr, state, host, host_ctx, gas_metering, page_count) = default_test_args();
 
     let import_object = imports! {
-        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, gas_metering_enabled, page_count),
+        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, gas_metering, page_count),
 
         "svm" => {
             "storage_read_to_mem" => func!(vmcalls::storage_read_to_mem),
@@ -290,10 +283,10 @@ fn vmcalls_storage_write_from_mem() {
     let data = vec![10, 20, 30];
     let count = data.len() as u32;
 
-    let (app_addr, state, host, host_ctx, gas_metering_enabled, page_count) = default_test_args();
+    let (app_addr, state, host, host_ctx, gas_metering, page_count) = default_test_args();
 
     let import_object = imports! {
-        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, gas_metering_enabled, page_count),
+        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, gas_metering, page_count),
 
         "svm" => {
             "storage_write_from_mem" => func!(vmcalls::storage_write_from_mem),
@@ -335,10 +328,10 @@ fn vmcalls_storage_write_from_reg() {
     let data = vec![10, 20, 30];
     let count = data.len() as u32;
 
-    let (app_addr, state, host, host_ctx, gas_metering_enabled, page_count) = default_test_args();
+    let (app_addr, state, host, host_ctx, gas_metering, page_count) = default_test_args();
 
     let import_object = imports! {
-        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, gas_metering_enabled, page_count),
+        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, gas_metering, page_count),
 
         "svm" => {
             "storage_write_from_reg" => func!(vmcalls::storage_write_from_reg),
@@ -383,10 +376,10 @@ fn vmcalls_reg_push() {
     let data = vec![10, 20, 30];
     let count = data.len() as u32;
 
-    let (app_addr, state, host, host_ctx, gas_metering_enabled, page_count) = default_test_args();
+    let (app_addr, state, host, host_ctx, gas_metering, page_count) = default_test_args();
 
     let import_object = imports! {
-        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, gas_metering_enabled, page_count),
+        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, gas_metering, page_count),
 
         "svm" => {
             "reg_push" => func!(vmcalls::reg_push),
@@ -417,10 +410,10 @@ fn vmcalls_reg_pop() {
     let data = vec![10, 20, 30];
     let count = data.len() as u32;
 
-    let (app_addr, state, host, host_ctx, gas_metering_enabled, page_count) = default_test_args();
+    let (app_addr, state, host, host_ctx, gas_metering, page_count) = default_test_args();
 
     let import_object = imports! {
-        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, gas_metering_enabled, page_count),
+        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, gas_metering, page_count),
 
         "svm" => {
             "reg_pop" => func!(vmcalls::reg_pop),
@@ -450,10 +443,10 @@ fn vmcalls_reg_set_number() {
     let reg_bits = 128;
     let reg_idx = 3;
 
-    let (app_addr, state, host, host_ctx, gas_metering_enabled, page_count) = default_test_args();
+    let (app_addr, state, host, host_ctx, gas_metering, page_count) = default_test_args();
 
     let import_object = imports! {
-        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, gas_metering_enabled, page_count),
+        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, gas_metering, page_count),
 
         "svm" => {
             "reg_set_i32_be" => func!(vmcalls::reg_set_i32_be),
@@ -505,10 +498,10 @@ fn vmcalls_reg_cmp() {
     let reg_idx1 = 1;
     let reg_idx2 = 2;
 
-    let (app_addr, state, host, host_ctx, gas_metering_enabled, page_count) = default_test_args();
+    let (app_addr, state, host, host_ctx, gas_metering, page_count) = default_test_args();
 
     let import_object = imports! {
-        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, gas_metering_enabled, page_count),
+        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, gas_metering, page_count),
 
         "svm" => {
             "reg_cmp" => func!(vmcalls::reg_cmp),
@@ -552,7 +545,7 @@ fn vmcalls_host_ctx_read_into_reg() {
     let data = vec![10, 20, 30];
     let count = data.len() as u32;
 
-    let (app_addr, state, host, _host_ctx, gas_metering_enabled, page_count) = default_test_args();
+    let (app_addr, state, host, _host_ctx, gas_metering, page_count) = default_test_args();
 
     let host_ctx = HostCtx::from(hashmap! {
         2 => vec![10, 20],
@@ -562,7 +555,7 @@ fn vmcalls_host_ctx_read_into_reg() {
     let host_ctx = DataWrapper::new(svm_common::into_raw(host_ctx));
 
     let import_object = imports! {
-        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, gas_metering_enabled, page_count),
+        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, gas_metering, page_count),
 
         "svm" => {
             "host_ctx_read_into_reg" => func!(vmcalls::host_ctx_read_into_reg),
@@ -592,10 +585,10 @@ fn vmcalls_buffer_copy_to_storage() {
     let data = vec![10, 20, 30];
     let count = data.len() as u32;
 
-    let (app_addr, state, host, host_ctx, gas_metering_enabled, page_count) = default_test_args();
+    let (app_addr, state, host, host_ctx, gas_metering, page_count) = default_test_args();
 
     let import_object = imports! {
-        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, gas_metering_enabled, page_count),
+        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, gas_metering, page_count),
 
         "svm" => {
             "buffer_create" => func!(vmcalls::buffer_create),
@@ -676,10 +669,10 @@ macro_rules! test_storage_read_int {
 	    (2, 7, vec![0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80]),
 	];
 
-	let (app_addr, state, host, host_ctx, gas_metering_enabled, page_count) = default_test_args();
+	let (app_addr, state, host, host_ctx, gas_metering, page_count) = default_test_args();
 
 	let import_object = imports! {
-	    move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, gas_metering_enabled, page_count),
+	    move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, gas_metering, page_count),
 
 	    "svm" => {
 		"storage_read_i32_be" => func!(vmcalls::storage_read_i32_be),
@@ -732,10 +725,10 @@ macro_rules! test_storage_write_int {
             (2, 7, 8, 0x10_20_30_40_50_60_70_80),
         ];
 
-        let (app_addr, state, host, host_ctx, gas_metering_enabled, page_count) = default_test_args();
+        let (app_addr, state, host, host_ctx, gas_metering, page_count) = default_test_args();
 
 	let import_object = imports! {
-	    move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, gas_metering_enabled, page_count),
+	    move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, gas_metering, page_count),
 
 	    "svm" => {
 		"storage_write_i32_be" => func!(vmcalls::storage_write_i32_be),
@@ -847,7 +840,7 @@ macro_rules! test_host_ctx_read_int {
     ($field_idx:expr, $endianness:expr, $expected:expr) => {{
 	let expected: u64 = $expected;
 
-	let (app_addr, state, host, _host_ctx, gas_metering_enabled, page_count) = default_test_args();
+	let (app_addr, state, host, _host_ctx, gas_metering, page_count) = default_test_args();
 
 	let fields = hashmap! {
 	    0 => vec![0x10],
@@ -864,7 +857,7 @@ macro_rules! test_host_ctx_read_int {
 	let host_ctx = DataWrapper::new(svm_common::into_raw(host_ctx));
 
 	let import_object = imports! {
-	    move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, gas_metering_enabled, page_count),
+	    move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, gas_metering, page_count),
 
 	    "svm" => {
 		"host_ctx_read_i32_be" => func!(vmcalls::host_ctx_read_i32_be),

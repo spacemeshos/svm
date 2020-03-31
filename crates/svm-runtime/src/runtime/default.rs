@@ -10,8 +10,8 @@ use log::{debug, error, info};
 use crate::{
     buffer::BufferRef,
     ctx::SvmCtx,
-    error::{DeployTemplateError, ExecAppError, SpawnAppError, ValidateError},
-    gas::GasEstimator,
+    error::{ExecAppError, SpawnAppError, ValidateError},
+    gas::{GasEstimator, MaybeGas},
     helpers::{self, DataWrapper},
     receipt::{make_spawn_app_receipt, ExecReceipt, SpawnAppReceipt, TemplateReceipt},
     runtime::Runtime,
@@ -99,22 +99,20 @@ where
         bytes: &[u8],
         author: &AuthorAddr,
         host_ctx: HostCtx,
-        gas_metering_enabled: bool,
+        gas_limit: MaybeGas,
         dry_run: bool,
     ) -> TemplateReceipt {
         info!("runtime `deploy_template`");
 
         let template = self.parse_deploy_template(bytes).unwrap();
-        let gas = self.compute_install_template_gas(bytes, &template);
+        let install_gas = self.compute_install_template_gas(bytes, &template);
 
-        self.install_template(
-            &template,
-            author,
-            host_ctx,
-            gas,
-            gas_metering_enabled,
-            dry_run,
-        )
+        let left_gas = gas_limit - install_gas;
+
+        match left_gas {
+            Err(..) => todo!(),
+            Ok(left_gas) => self.install_template(&template, author, host_ctx, left_gas, dry_run),
+        }
     }
 
     fn spawn_app(
@@ -122,24 +120,22 @@ where
         bytes: &[u8],
         creator: &CreatorAddr,
         host_ctx: HostCtx,
-        gas_metering_enabled: bool,
+        gas_limit: MaybeGas,
         dry_run: bool,
     ) -> SpawnAppReceipt {
         info!("runtime `spawn_app`");
 
         let spawn = self.parse_spawn_app(bytes).unwrap();
-        let gas = self.compute_install_app_gas(bytes, &spawn);
+        let install_gas = self.compute_install_app_gas(bytes, &spawn);
 
-        match self.install_app(&spawn, creator, &host_ctx, gas, dry_run) {
-            Ok(addr) => self.call_ctor(
-                creator,
-                spawn,
-                &addr,
-                host_ctx,
-                gas_metering_enabled,
-                dry_run,
-            ),
-            Err(e) => e.into(),
+        let ctor_gas = gas_limit - install_gas;
+
+        match ctor_gas {
+            Err(..) => todo!(),
+            Ok(ctor_gas) => match self.install_app(&spawn, creator, &host_ctx, dry_run) {
+                Ok(addr) => self.call_ctor(creator, spawn, &addr, host_ctx, ctor_gas, dry_run),
+                Err(e) => e.into(),
+            },
         }
     }
 
@@ -148,12 +144,12 @@ where
         bytes: &[u8],
         state: &State,
         host_ctx: HostCtx,
-        gas_metering_enabled: bool,
+        gas_limit: MaybeGas,
         dry_run: bool,
     ) -> ExecReceipt {
         let tx = self.parse_exec_app(bytes).unwrap();
 
-        self._exec_app(&tx, state, host_ctx, gas_metering_enabled, dry_run)
+        self._exec_app(&tx, state, host_ctx, gas_limit, dry_run)
     }
 }
 
@@ -201,18 +197,12 @@ where
         spawn: SpawnApp,
         app_addr: &AppAddr,
         host_ctx: HostCtx,
-        gas_metering_enabled: bool,
+        ctor_gas: MaybeGas,
         dry_run: bool,
     ) -> SpawnAppReceipt {
         let ctor = self.build_ctor_call(creator, spawn, app_addr);
 
-        let ctor_receipt = self._exec_app(
-            &ctor,
-            &State::empty(),
-            host_ctx,
-            gas_metering_enabled,
-            dry_run,
-        );
+        let ctor_receipt = self._exec_app(&ctor, &State::empty(), host_ctx, ctor_gas, dry_run);
 
         make_spawn_app_receipt(ctor_receipt, app_addr)
     }
@@ -222,18 +212,17 @@ where
         template: &AppTemplate,
         author: &AuthorAddr,
         host_ctx: HostCtx,
-        gas: u64,
-        _gas_metering_enabled: bool,
+        install_gas: MaybeGas,
         dry_run: bool,
     ) -> TemplateReceipt {
         if dry_run == false {
             match self.env.store_template(template, author, &host_ctx) {
-                Ok(addr) => TemplateReceipt::new(addr, gas),
-                Err(e) => DeployTemplateError::StoreFailed(e).into(),
+                Ok(addr) => TemplateReceipt::new(addr, install_gas),
+                Err(_e) => todo!(),
             }
         } else {
             let addr = self.env.derive_template_address(template, &host_ctx);
-            TemplateReceipt::new(addr, gas)
+            TemplateReceipt::new(addr, install_gas)
         }
     }
 
@@ -242,7 +231,6 @@ where
         spawn: &SpawnApp,
         creator: &CreatorAddr,
         host_ctx: &HostCtx,
-        _spawn_gas: u64,
         dry_run: bool,
     ) -> Result<AppAddr, SpawnAppError> {
         if dry_run == false {
@@ -275,7 +263,7 @@ where
         tx: &AppTransaction,
         state: &State,
         host_ctx: HostCtx,
-        gas_metering_enabled: bool,
+        gas_left: MaybeGas,
         dry_run: bool,
     ) -> ExecReceipt {
         info!("runtime `exec_app`");
@@ -286,7 +274,7 @@ where
                 let settings = AppSettings {
                     page_count: template.page_count,
                     kv_path: self.kv_path.clone(),
-                    gas_metering_enabled,
+                    gas_metering: gas_left.is_some(),
                 };
 
                 let mut import_object =
@@ -294,8 +282,14 @@ where
 
                 self.import_object_extend(&mut import_object);
 
-                let result =
-                    self.do_exec_app(&tx, &template, &template_addr, &import_object, dry_run);
+                let result = self.do_exec_app(
+                    &tx,
+                    &template,
+                    &template_addr,
+                    &import_object,
+                    gas_left,
+                    dry_run,
+                );
 
                 let receipt = self.make_receipt(result);
 
@@ -312,9 +306,11 @@ where
         template: &AppTemplate,
         template_addr: &TemplateAddr,
         import_object: &ImportObject,
+        gas_left: MaybeGas,
         dry_run: bool,
     ) -> Result<(Option<State>, Option<u64>, Vec<WasmValue>), ExecAppError> {
-        let module = self.compile_template(tx, &template, &template_addr)?;
+        let module = self.compile_template(tx, &template, &template_addr, gas_left)?;
+
         let mut instance = self.instantiate(tx, template_addr, &module, import_object)?;
 
         self.init_instance_buffer(&tx.func_buf, &mut instance);
@@ -518,7 +514,7 @@ where
         let svm_ctx = SvmCtx::new(
             DataWrapper::new(self.host),
             DataWrapper::new(host_ctx),
-            settings.gas_metering_enabled,
+            settings.gas_metering,
             gas_limit,
             storage,
         );
@@ -573,10 +569,14 @@ where
         tx: &AppTransaction,
         template: &AppTemplate,
         template_addr: &TemplateAddr,
+        gas_left: MaybeGas,
     ) -> Result<wasmer_runtime::Module, ExecAppError> {
         info!("runtime `compile_template` (template={:?})", template_addr);
 
-        svm_compiler::compile_program(&template.code).or_else(|e| {
+        let gas_metering = gas_left.is_some();
+        let gas_left = gas_left.unwrap_or(0);
+
+        svm_compiler::compile_program(&template.code, gas_left, gas_metering).or_else(|e| {
             error!("module compilation failed (template={:?})", template_addr);
 
             Err(ExecAppError::CompilationFailed {

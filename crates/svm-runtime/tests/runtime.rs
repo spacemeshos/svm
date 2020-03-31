@@ -99,7 +99,7 @@ fn runtime_spawn_app_with_ctor_reaches_oog() {
     let creator = Address::of("creator").into();
     let is_wast = true;
     let dry_run = false;
-    let gas_metering_enabled = false;
+    let gas_metering = false;
 
     let bytes = testing::build_template(
         version,
@@ -109,13 +109,7 @@ fn runtime_spawn_app_with_ctor_reaches_oog() {
         is_wast,
     );
 
-    let receipt = runtime.deploy_template(
-        &bytes,
-        &author,
-        HostCtx::new(),
-        gas_metering_enabled,
-        dry_run,
-    );
+    let receipt = runtime.deploy_template(&bytes, &author, HostCtx::new(), gas_metering, dry_run);
     assert!(receipt.success);
 
     let template_addr = receipt.addr.unwrap();
@@ -128,13 +122,7 @@ fn runtime_spawn_app_with_ctor_reaches_oog() {
 
     let bytes = testing::build_app(version, &template_addr, ctor_idx, &ctor_buf, &ctor_args);
 
-    let _receipt = runtime.spawn_app(
-        &bytes,
-        &creator,
-        HostCtx::new(),
-        gas_metering_enabled,
-        dry_run,
-    );
+    let _receipt = runtime.spawn_app(&bytes, &creator, HostCtx::new(), gas_metering, dry_run);
 
     // asserting out-of-gas
     // dbg!(&receipt);
@@ -152,7 +140,7 @@ fn runtime_spawn_app_with_ctor() {
     let creator = Address::of("creator").into();
     let is_wast = true;
     let dry_run = false;
-    let gas_metering_enabled = false;
+    let gas_metering = false;
 
     let bytes = testing::build_template(
         version,
@@ -162,13 +150,7 @@ fn runtime_spawn_app_with_ctor() {
         is_wast,
     );
 
-    let receipt = runtime.deploy_template(
-        &bytes,
-        &author,
-        HostCtx::new(),
-        gas_metering_enabled,
-        dry_run,
-    );
+    let receipt = runtime.deploy_template(&bytes, &author, HostCtx::new(), gas_metering, dry_run);
     assert!(receipt.success);
 
     let template_addr = receipt.addr.unwrap();
@@ -181,18 +163,12 @@ fn runtime_spawn_app_with_ctor() {
 
     let bytes = testing::build_app(version, &template_addr, ctor_idx, &ctor_buf, &ctor_args);
 
-    let receipt = runtime.spawn_app(
-        &bytes,
-        &creator,
-        HostCtx::new(),
-        gas_metering_enabled,
-        dry_run,
-    );
+    let receipt = runtime.spawn_app(&bytes, &creator, HostCtx::new(), gas_metering, dry_run);
 
     let settings = AppSettings {
         page_count,
         kv_path: Path::new("mem").to_path_buf(),
-        gas_metering_enabled,
+        gas_metering,
     };
 
     let mut storage =
@@ -223,7 +199,7 @@ fn runtime_exec_app() {
     let page_count = 10;
     let is_wast = true;
     let dry_run = false;
-    let gas_metering_enabled = false;
+    let gas_metering = false;
 
     let bytes = testing::build_template(
         version,
@@ -233,13 +209,7 @@ fn runtime_exec_app() {
         is_wast,
     );
 
-    let receipt = runtime.deploy_template(
-        &bytes,
-        &author,
-        HostCtx::new(),
-        gas_metering_enabled,
-        dry_run,
-    );
+    let receipt = runtime.deploy_template(&bytes, &author, HostCtx::new(), gas_metering, dry_run);
     assert!(receipt.success);
 
     let template_addr = receipt.addr.unwrap();
@@ -250,13 +220,7 @@ fn runtime_exec_app() {
     let ctor_args = vec![];
 
     let bytes = testing::build_app(version, &template_addr, ctor_idx, &ctor_buf, &ctor_args);
-    let receipt = runtime.spawn_app(
-        &bytes,
-        &creator,
-        HostCtx::new(),
-        gas_metering_enabled,
-        dry_run,
-    );
+    let receipt = runtime.spawn_app(&bytes, &creator, HostCtx::new(), gas_metering, dry_run);
 
     let app_addr = receipt.get_app_addr();
     let init_state = receipt.get_init_state();
@@ -287,13 +251,7 @@ fn runtime_exec_app() {
     ];
     let bytes = testing::build_app_tx(version, &app_addr, func_idx, &func_buf, &func_args);
 
-    let receipt = runtime.exec_app(
-        &bytes,
-        &init_state,
-        HostCtx::new(),
-        gas_metering_enabled,
-        dry_run,
-    );
+    let receipt = runtime.exec_app(&bytes, &init_state, HostCtx::new(), gas_metering, dry_run);
 
     assert_eq!(true, receipt.success);
     assert_eq!(None, receipt.error);
@@ -304,7 +262,7 @@ fn runtime_exec_app() {
     let settings = AppSettings {
         page_count,
         kv_path: Path::new("mem").to_path_buf(),
-        gas_metering_enabled,
+        gas_metering,
     };
     let mut storage = runtime.open_app_storage(app_addr, receipt.get_new_state(), &settings);
 

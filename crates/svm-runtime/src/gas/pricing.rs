@@ -6,10 +6,11 @@ macro_rules! use_gas {
 
         let ctx: &mut SvmCtx = unsafe { svm_common::from_raw_mut::<SvmCtx>($wasmer_ctx.data) };
 
-        if ctx.gas_metering_enabled {
+        if ctx.gas_metering {
+            // TODO: hardcode the `gas` pricing for each vmcall.
             let gas = 10;
 
-            helpers::use_gas($wasmer_ctx, gas);
+            helpers::use_gas($wasmer_ctx, gas, ctx.gas_limit);
         }
     }};
 }

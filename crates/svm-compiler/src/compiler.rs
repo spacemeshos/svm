@@ -7,7 +7,7 @@ use wasmer_singlepass_backend::ModuleCodeGenerator as SinglePassMCG;
 /// This function is responsible on compiling a wasm program using the `wasmer singlepass` compiler along
 /// with the the middlewares required by `SVM`.
 #[must_use]
-pub fn compile_program(wasm: &[u8]) -> CompileResult<Module> {
+pub fn compile_program(wasm: &[u8], _gas_limit: u64, _gas_metering: bool) -> CompileResult<Module> {
     let compiler: StreamingCompiler<SinglePassMCG, _, _, _, _> =
         StreamingCompiler::new(move || {
             let mut chain = MiddlewareChain::new();

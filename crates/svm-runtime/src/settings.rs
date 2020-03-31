@@ -9,6 +9,6 @@ pub struct AppSettings {
     /// The path for the kv store
     pub kv_path: PathBuf,
 
-    /// Whether gas metering is enabled
-    pub gas_metering_enabled: bool,
+    /// Whether gas metering is enabled / disabled.
+    pub gas_metering: bool,
 }

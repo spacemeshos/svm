@@ -8,12 +8,12 @@ use svm_app::types::HostCtx;
 use svm_storage::AppStorage;
 
 /// `SvmCtx` is a container for the accessible data by `wasmer` instances.
-/// * `host`     - A pointer to the `Host`.
-/// * `host_ctx` - A pointer to the `HostCtx` (i.e: `sender`, `block_id`, `nonce`, ...).
-/// * `buffers`  - A `HashMap` between `buffer_id` to mutable/read-only `Buffer`.
-/// * `regs`     - Instance's `Registers`.
-/// * `storage`  - Instance's `AppStorage`.
-/// * `gas_metering_enabled` - Whether gas metering is enabled.
+/// * `host`         - A pointer to the `Host`.
+/// * `host_ctx`     - A pointer to the `HostCtx` (i.e: `sender`, `block_id`, `nonce`, ...).
+/// * `buffers`      - A `HashMap` between `buffer_id` to mutable/read-only `Buffer`.
+/// * `regs`         - Instance's `Registers`.
+/// * `storage`      - Instance's `AppStorage`.
+/// * `gas_metering` - Whether gas metering is enabled.
 #[repr(C)]
 pub struct SvmCtx {
     /// A pointer to the `host`.
@@ -24,14 +24,11 @@ pub struct SvmCtx {
     /// Raw pointer to host context fields.
     pub host_ctx: *const HostCtx,
 
-    /// Gas metering
-    pub gas_metering_enabled: bool,
+    /// Gas metering enabled / disabled.
+    pub gas_metering: bool,
 
     /// Gas limit
     pub gas_limit: u64,
-
-    /// Did we reach `Out-of-Gas`
-    pub reached_oog: bool,
 
     /// Holds the context registers.
     pub regs: Registers,
@@ -53,7 +50,7 @@ impl SvmCtx {
     pub fn new(
         host: DataWrapper<*mut c_void>,
         host_ctx: DataWrapper<*const c_void>,
-        gas_metering_enabled: bool,
+        gas_metering: bool,
         gas_limit: u64,
         storage: AppStorage,
     ) -> Self {
@@ -61,7 +58,6 @@ impl SvmCtx {
         let host_ctx = host_ctx.unwrap() as *const HostCtx;
         let buffers = HashMap::new();
         let regs = Registers::default();
-        let reached_oog = false;
 
         Self {
             host,
@@ -69,9 +65,8 @@ impl SvmCtx {
             buffers,
             regs,
             storage,
-            gas_metering_enabled,
+            gas_metering,
             gas_limit,
-            reached_oog,
         }
     }
 }
