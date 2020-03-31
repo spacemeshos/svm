@@ -1,6 +1,6 @@
 use std::ops::Sub;
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 #[repr(transparent)]
 pub struct MaybeGas(Option<u64>);
 
@@ -33,7 +33,7 @@ impl MaybeGas {
 }
 
 impl Sub<u64> for MaybeGas {
-    type Output = Result<Self, OOGError>;
+    type Output = Result<MaybeGas, OOGError>;
 
     fn sub(self, rhs: u64) -> Self::Output {
         match (self.0, rhs) {
@@ -48,6 +48,12 @@ impl Sub<u64> for MaybeGas {
                 }
             }
         }
+    }
+}
+
+impl From<u64> for MaybeGas {
+    fn from(v: u64) -> Self {
+        MaybeGas::with(v)
     }
 }
 

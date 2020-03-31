@@ -11,7 +11,7 @@ use crate::{
     buffer::BufferRef,
     ctx::SvmCtx,
     error::{ExecAppError, SpawnAppError, ValidateError},
-    gas::{GasEstimator, MaybeGas},
+    gas::{GasEstimator, MaybeGas, OOGError},
     helpers::{self, DataWrapper},
     receipt::{make_spawn_app_receipt, ExecReceipt, SpawnAppReceipt, TemplateReceipt},
     runtime::Runtime,
@@ -107,11 +107,16 @@ where
         let template = self.parse_deploy_template(bytes).unwrap();
         let install_gas = self.compute_install_template_gas(bytes, &template);
 
-        let left_gas = gas_limit - install_gas;
+        let diff = gas_limit - install_gas;
 
-        match left_gas {
-            Err(..) => todo!(),
-            Ok(left_gas) => self.install_template(&template, author, host_ctx, left_gas, dry_run),
+        match diff {
+            Err(..) => TemplateReceipt::new_oog(),
+            Ok(_gas_left) => {
+                let gas_used = MaybeGas::with(0);
+                let gas_left = gas_limit;
+
+                self.install_template(&template, author, host_ctx, gas_used, gas_left, dry_run)
+            }
         }
     }
 
@@ -128,12 +133,16 @@ where
         let spawn = self.parse_spawn_app(bytes).unwrap();
         let install_gas = self.compute_install_app_gas(bytes, &spawn);
 
-        let ctor_gas = gas_limit - install_gas;
+        let gas_left = gas_limit - install_gas;
 
-        match ctor_gas {
-            Err(..) => todo!(),
-            Ok(ctor_gas) => match self.install_app(&spawn, creator, &host_ctx, dry_run) {
-                Ok(addr) => self.call_ctor(creator, spawn, &addr, host_ctx, ctor_gas, dry_run),
+        match gas_left {
+            Err(..) => SpawnAppReceipt::new_oog(),
+            Ok(gas_left) => match self.install_app(&spawn, creator, &host_ctx, dry_run) {
+                Ok(addr) => {
+                    let gas_used = install_gas.into();
+
+                    self.call_ctor(creator, spawn, &addr, host_ctx, gas_used, gas_left, dry_run)
+                }
                 Err(e) => e.into(),
             },
         }
@@ -148,8 +157,9 @@ where
         dry_run: bool,
     ) -> ExecReceipt {
         let tx = self.parse_exec_app(bytes).unwrap();
+        let gas_used = MaybeGas::with(0);
 
-        self._exec_app(&tx, state, host_ctx, gas_limit, dry_run)
+        self._exec_app(&tx, state, host_ctx, gas_used, gas_limit, dry_run)
     }
 }
 
@@ -197,12 +207,20 @@ where
         spawn: SpawnApp,
         app_addr: &AppAddr,
         host_ctx: HostCtx,
-        ctor_gas: MaybeGas,
+        gas_used: MaybeGas,
+        gas_left: MaybeGas,
         dry_run: bool,
     ) -> SpawnAppReceipt {
         let ctor = self.build_ctor_call(creator, spawn, app_addr);
 
-        let ctor_receipt = self._exec_app(&ctor, &State::empty(), host_ctx, ctor_gas, dry_run);
+        let ctor_receipt = self._exec_app(
+            &ctor,
+            &State::empty(),
+            host_ctx,
+            gas_used,
+            gas_left,
+            dry_run,
+        );
 
         make_spawn_app_receipt(ctor_receipt, app_addr)
     }
@@ -212,17 +230,18 @@ where
         template: &AppTemplate,
         author: &AuthorAddr,
         host_ctx: HostCtx,
-        install_gas: MaybeGas,
+        gas_used: MaybeGas,
+        gas_left: MaybeGas,
         dry_run: bool,
     ) -> TemplateReceipt {
         if dry_run == false {
             match self.env.store_template(template, author, &host_ctx) {
-                Ok(addr) => TemplateReceipt::new(addr, install_gas),
+                Ok(addr) => TemplateReceipt::new(addr, gas_used),
                 Err(e) => panic!("Store failed"),
             }
         } else {
             let addr = self.env.derive_template_address(template, &host_ctx);
-            TemplateReceipt::new(addr, install_gas)
+            TemplateReceipt::new(addr, gas_used)
         }
     }
 
@@ -263,6 +282,7 @@ where
         tx: &AppTransaction,
         state: &State,
         host_ctx: HostCtx,
+        gas_used: MaybeGas,
         gas_left: MaybeGas,
         dry_run: bool,
     ) -> ExecReceipt {
@@ -274,11 +294,10 @@ where
                 let settings = AppSettings {
                     page_count: template.page_count,
                     kv_path: self.kv_path.clone(),
-                    gas_metering: gas_left.is_some(),
                 };
 
                 let mut import_object =
-                    self.import_object_create(&tx.app, &state, host_ctx, &settings);
+                    self.import_object_create(&tx.app, &state, gas_left, host_ctx, &settings);
 
                 self.import_object_extend(&mut import_object);
 
@@ -331,6 +350,15 @@ where
                 reason: e.to_string(),
             }),
             Ok(returns) => {
+                let gas_used = self.wasmer_instance_gas_used(&instance);
+
+                if let Err(_oog_err) = gas_used {
+                    // We've reached OOG but wasmer didn't panic!
+                    // It might happen as an edge-case since wasmer's metering logic doesn't check
+                    // if the gas limit has been exceeded after each wasm instruction.
+                    return Err(ExecAppError::OOG);
+                }
+
                 let new_state = if dry_run {
                     None
                 } else {
@@ -341,7 +369,7 @@ where
                 };
 
                 let returns = self.cast_wasmer_func_returns(returns)?;
-                let gas_used = self.wasmer_instance_gas_used(&instance);
+                let gas_used = gas_used.unwrap();
 
                 Ok((new_state, returns, gas_used))
             }
@@ -387,8 +415,12 @@ where
         helpers::buffer_freeze(ctx.data, ARGS_BUF_ID);
     }
 
-    fn wasmer_instance_gas_used(&self, instance: &wasmer_runtime::Instance) -> MaybeGas {
-        todo!()
+    #[inline]
+    fn wasmer_instance_gas_used(
+        &self,
+        instance: &wasmer_runtime::Instance,
+    ) -> Result<MaybeGas, OOGError> {
+        helpers::wasmer_gas_used(instance)
     }
 
     fn cast_wasmer_func_returns(
@@ -501,6 +533,7 @@ where
         &self,
         addr: &AppAddr,
         state: &State,
+        gas_limit: MaybeGas,
         host_ctx: HostCtx,
         settings: &AppSettings,
     ) -> ImportObject {
@@ -510,13 +543,11 @@ where
         );
 
         let storage = self.open_app_storage(addr, state, settings);
-        let gas_limit = self.host_ctx_gas_limit(&host_ctx);
         let host_ctx = svm_common::into_raw(host_ctx);
 
         let svm_ctx = SvmCtx::new(
             DataWrapper::new(self.host),
             DataWrapper::new(host_ctx),
-            settings.gas_metering,
             gas_limit,
             storage,
         );
@@ -538,10 +569,6 @@ where
         };
 
         ImportObject::new_with_data(state_creator)
-    }
-
-    fn host_ctx_gas_limit(&self, _host_ctx: &HostCtx) -> u64 {
-        todo!()
     }
 
     fn import_object_extend(&self, import_object: &mut ImportObject) {

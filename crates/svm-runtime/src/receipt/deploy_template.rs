@@ -29,6 +29,15 @@ impl TemplateReceipt {
         }
     }
 
+    pub fn new_oog() -> Self {
+        Self {
+            success: false,
+            error: Some(DeployTemplateError::OOG),
+            addr: None,
+            gas_used: MaybeGas::new(),
+        }
+    }
+
     /// Returns the deployed template address. Panics if deploy has failed.
     pub fn get_template_addr(&self) -> &TemplateAddr {
         self.addr.as_ref().unwrap()

@@ -2,7 +2,7 @@ use std::{collections::HashMap, ffi::c_void};
 
 use log::debug;
 
-use crate::{buffer::BufferRef, helpers::DataWrapper, register::Registers};
+use crate::{buffer::BufferRef, gas::MaybeGas, helpers::DataWrapper, register::Registers};
 
 use svm_app::types::HostCtx;
 use svm_storage::AppStorage;
@@ -24,11 +24,11 @@ pub struct SvmCtx {
     /// Raw pointer to host context fields.
     pub host_ctx: *const HostCtx,
 
-    /// Gas metering enabled / disabled.
-    pub gas_metering: bool,
-
-    /// Gas limit
+    /// Gas limit (relevant only when `gas_metering = true`)
     pub gas_limit: u64,
+
+    /// Whether gas metering is enabled or not
+    pub gas_metering: bool,
 
     /// Holds the context registers.
     pub regs: Registers,
@@ -50,14 +50,16 @@ impl SvmCtx {
     pub fn new(
         host: DataWrapper<*mut c_void>,
         host_ctx: DataWrapper<*const c_void>,
-        gas_metering: bool,
-        gas_limit: u64,
+        gas_limit: MaybeGas,
         storage: AppStorage,
     ) -> Self {
         let host = host.unwrap();
         let host_ctx = host_ctx.unwrap() as *const HostCtx;
         let buffers = HashMap::new();
         let regs = Registers::default();
+
+        let gas_metering = gas_limit.is_some();
+        let gas_limit = gas_limit.unwrap_or(0);
 
         Self {
             host,

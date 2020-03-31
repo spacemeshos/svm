@@ -10,7 +10,7 @@ macro_rules! use_gas {
             // TODO: hardcode the `gas` pricing for each vmcall.
             let gas = 10;
 
-            helpers::use_gas($wasmer_ctx, gas, ctx.gas_limit);
+            helpers::wasmer_use_gas($wasmer_ctx, gas, ctx.gas_limit);
         }
     }};
 }

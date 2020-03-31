@@ -23,6 +23,16 @@ pub struct ExecReceipt {
 }
 
 impl ExecReceipt {
+    pub fn new_oog(&self) -> Self {
+        Self {
+            success: false,
+            error: Some(ExecAppError::OOG),
+            new_state: None,
+            returns: None,
+            gas_used: MaybeGas::new(),
+        }
+    }
+
     /// Returns App's new `State``. Panics if transaction has failed.
     pub fn get_new_state(&self) -> &State {
         self.new_state.as_ref().unwrap()

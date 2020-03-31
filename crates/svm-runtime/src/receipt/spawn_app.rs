@@ -28,6 +28,17 @@ pub struct SpawnAppReceipt {
 }
 
 impl SpawnAppReceipt {
+    pub fn new_oog() -> Self {
+        Self {
+            success: false,
+            error: Some(SpawnAppError::OOG),
+            app_addr: None,
+            init_state: None,
+            returns: None,
+            gas_used: MaybeGas::new(),
+        }
+    }
+
     /// Returns spawned-app `Address`. Panics if spawning has failed.
     pub fn get_app_addr(&self) -> &AppAddr {
         self.app_addr.as_ref().unwrap()
