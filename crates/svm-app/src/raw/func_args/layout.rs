@@ -1,13 +1,6 @@
-use super::super::Nibble;
+use super::super::{wasm::WasmValueLayout, Nibble};
 
 use crate::{nib, types::WasmType};
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct WasmValueLayout {
-    pub ty: WasmType,
-
-    pub len: usize,
-}
 
 // special-cases
 pub const NO_MORE: u8 = 0b_0000_0110;

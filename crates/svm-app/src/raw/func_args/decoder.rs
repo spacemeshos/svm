@@ -3,8 +3,12 @@ use crate::{
     types::{WasmType, WasmValue},
 };
 
-use super::super::{concat_nibbles, Field, Nibble, NibbleIter};
-use super::{WasmValueLayout, DO_SKIP, NO_MORE};
+use super::super::{
+    concat_nibbles,
+    wasm::{decode_wasm_value, WasmValueLayout},
+    Field, Nibble, NibbleIter,
+};
+use super::{DO_SKIP, NO_MORE};
 
 /// Decodes raw func args field.
 pub fn decode_func_args(iter: &mut NibbleIter) -> Result<Vec<WasmValue>, ParseError> {
@@ -21,86 +25,13 @@ fn decode_func_values(iter: &mut NibbleIter) -> Result<Vec<WasmValue>, ParseErro
     let mut func_values = Vec::new();
     let layouts = decode_values_layouts(iter)?;
 
-    for (i, layout) in layouts.iter().enumerate() {
-        let val = decode_func_value(layout, i, iter)?;
+    for layout in layouts.iter() {
+        let val = decode_wasm_value(layout, iter)?;
 
         func_values.push(val);
     }
 
     Ok(func_values)
-}
-
-fn decode_func_value(
-    layout: &WasmValueLayout,
-    arg_idx: usize,
-    iter: &mut NibbleIter,
-) -> Result<WasmValue, ParseError> {
-    let n = layout.len;
-
-    // `n` bytes <=> `2 * n` nibbles
-    let nibbles = iter.take(2 * n).collect::<Vec<Nibble>>();
-
-    let (bytes, rem) = concat_nibbles(&nibbles[..]);
-
-    if bytes.len() != n {
-        let mut actual_read = bytes.len() * 2;
-
-        if rem.is_some() {
-            actual_read += 1;
-        }
-
-        return Err(ParseError::FuncArgValueIncomplete {
-            arg_idx,
-            actual_read,
-            expected_nibbles: 2 * n,
-        });
-    };
-
-    // `rem` is expected to be `None` since we've asked
-    // for an even number of nibbles (= `2 * n`)
-    assert!(rem.is_none());
-
-    let val = {
-        match n {
-            0..=4 => {
-                let mut be_bytes: [u8; 4] = [0; 4];
-
-                let src = bytes.as_ptr();
-                let dst = unsafe { be_bytes.as_mut_ptr().add(4 - n) };
-
-                unsafe {
-                    std::ptr::copy(src, dst, n);
-                }
-
-                let val = u32::from_be_bytes(be_bytes);
-
-                match layout.ty {
-                    WasmType::I32 => WasmValue::I32(val),
-                    WasmType::I64 => WasmValue::I64(val as u64),
-                }
-            }
-            5..=8 => {
-                let mut be_bytes: [u8; 8] = [0; 8];
-
-                let src = bytes.as_ptr();
-                let dst = unsafe { be_bytes.as_mut_ptr().add(8 - n) };
-
-                unsafe {
-                    std::ptr::copy(src, dst, n);
-                }
-
-                let val = u64::from_be_bytes(be_bytes);
-
-                match layout.ty {
-                    WasmType::I32 => unreachable!(),
-                    WasmType::I64 => WasmValue::I64(val),
-                }
-            }
-            _ => unreachable!(),
-        }
-    };
-
-    Ok(val)
 }
 
 fn decode_values_layouts(iter: &mut NibbleIter) -> Result<Vec<WasmValueLayout>, ParseError> {
@@ -523,8 +454,7 @@ mod tests {
             nib!(0x0B),
         ];
 
-        let expected = ParseError::FuncArgValueIncomplete {
-            arg_idx: 0,
+        let expected = ParseError::IncompleteWasmValue {
             expected_nibbles: 4,
             actual_read: 2,
         };

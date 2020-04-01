@@ -7,6 +7,10 @@ use svm_common::Address;
 
 /// Encoders
 
+pub fn encode_wasm_value(wasm_value: &WasmValue, w: &mut NibbleWriter) {
+    raw::encode_wasm_value(wasm_value, w);
+}
+
 pub fn encode_func_buf(buf: &[u8], w: &mut NibbleWriter) {
     raw::encode_func_buf(buf, w);
 }
@@ -47,6 +51,10 @@ pub fn encode_u32_be(n: u32, w: &mut NibbleWriter) {
 }
 
 /// Decoders
+
+pub fn decode_wasm_value(iter: &mut NibbleIter) -> Result<WasmValue, ParseError> {
+    todo!()
+}
 
 #[must_use]
 pub fn decode_func_buf(iter: &mut NibbleIter) -> Result<Vec<u8>, ParseError> {

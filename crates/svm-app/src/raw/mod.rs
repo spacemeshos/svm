@@ -1,17 +1,19 @@
 mod app;
 mod func_args;
 mod func_buf;
+mod gas;
 mod host_ctx;
+mod nibble;
 mod template;
 mod transaction;
-
-mod nibble;
 mod varuint14;
 mod version;
+mod wasm;
 
 pub use app::{decode_spawn_app, encode_spawn_app};
 pub use template::{decode_deploy_template, encode_deploy_template};
 pub use transaction::{decode_exec_app, encode_exec_app};
+pub use wasm::{decode_wasm_value, encode_wasm_value};
 
 pub use app::{DefaultAppDeserializer, DefaultAppSerializer};
 pub use template::{DefaultAppTemplateDeserializer, DefaultAppTemplateSerializer};

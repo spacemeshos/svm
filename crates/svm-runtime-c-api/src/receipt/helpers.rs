@@ -32,3 +32,9 @@ pub(crate) fn encode_state(state: &State, w: &mut NibbleWriter) {
     let bytes = state.as_slice();
     w.write_bytes(bytes)
 }
+
+pub(crate) fn encode_gas_used(gas_used: u64, w: &mut NibbleWriter) {
+    todo!()
+    // let bytes = state.as_slice();
+    // w.write_bytes(bytes)
+}
