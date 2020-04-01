@@ -23,6 +23,7 @@ pub struct ExecReceipt {
 }
 
 impl ExecReceipt {
+    /// Creates a `ExecReceipt` for reaching reaching `Out-of-Gas`.
     pub fn new_oog(&self) -> Self {
         Self {
             success: false,

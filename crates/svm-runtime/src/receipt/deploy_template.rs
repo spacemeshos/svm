@@ -29,6 +29,7 @@ impl TemplateReceipt {
         }
     }
 
+    /// Creates a `TemplateReceipt` for reaching reaching `Out-of-Gas`.
     pub fn new_oog() -> Self {
         Self {
             success: false,

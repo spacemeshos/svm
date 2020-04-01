@@ -26,6 +26,8 @@ pub fn wasmer_use_gas(ctx: &mut WasmerCtx, gas: u64, gas_limit: u64) {
     }
 }
 
+/// On success returns the amount of gas used during App's execution.
+/// Of failure returs `OOGError` (Out-of-Gas).
 pub fn wasmer_gas_used(instance: &Instance) -> Result<MaybeGas, OOGError> {
     let wasmer_ctx = instance.context();
 

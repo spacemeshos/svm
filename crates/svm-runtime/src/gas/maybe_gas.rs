@@ -1,42 +1,65 @@
 use std::cmp::{Ordering, PartialEq, PartialOrd};
+use std::fmt;
 use std::ops::{Add, AddAssign, Sub};
 
+/// `MaybeGas` is essentially an `Option<u64>` with extensions
+/// to faciliate arithmetic additions and subtractions.
 #[derive(Debug, PartialEq, Clone, Copy)]
 #[repr(transparent)]
 pub struct MaybeGas(Option<u64>);
 
+/// Out-of-Gas marker
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct OOGError {}
 
+impl fmt::Display for OOGError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Reached Out of Gas")
+    }
+}
+
+impl std::error::Error for OOGError {}
+
 impl MaybeGas {
+    /// New `MaybeGas` backed by a `None`
     pub fn new() -> Self {
         Self(None)
     }
 
+    /// New `MaybeGas` backed by a `Some(gas)`
     pub fn with(gas: u64) -> Self {
         Self(Some(gas))
     }
 
+    /// Returns `true` if the gas holds a `Some(u64)`
     #[inline]
     pub fn is_some(&self) -> bool {
         self.0.is_some()
     }
 
+    /// Returns `true` if the gas holds a `None`.
     #[inline]
     pub fn is_none(&self) -> bool {
         self.0.is_none()
     }
 
+    /// Returns the wrapped `u64`
+    ///
+    /// # Panics
+    ///
+    /// Panics if there is no wrapped `u64`.
     #[inline]
     pub fn unwrap(&self) -> u64 {
         self.0.unwrap()
     }
 
+    /// Returns the wrapped `u64` or `default` when there' no underlying `u64`.
     #[inline]
     pub fn unwrap_or(&self, default: u64) -> u64 {
         self.0.unwrap_or(default)
     }
 
+    /// Maps the underling `u64` in case exists. Otherwise does nothing.
     #[inline]
     pub fn map<F>(self, f: F) -> Self
     where
@@ -127,12 +150,6 @@ impl From<u64> for MaybeGas {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    macro_rules! assert_none {
-        ($expr:expr) => {{
-            assert!($expr.is_none());
-        }};
-    }
 
     macro_rules! assert_gas {
         ($maybe_gas:expr, $int:expr) => {{

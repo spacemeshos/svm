@@ -28,6 +28,7 @@ pub struct SpawnAppReceipt {
 }
 
 impl SpawnAppReceipt {
+    /// Creates a `SpawnAppReceipt` for reaching reaching `Out-of-Gas`.
     pub fn new_oog() -> Self {
         Self {
             success: false,

@@ -228,13 +228,13 @@ where
         author: &AuthorAddr,
         host_ctx: HostCtx,
         gas_used: MaybeGas,
-        gas_left: MaybeGas,
+        _gas_left: MaybeGas,
         dry_run: bool,
     ) -> TemplateReceipt {
         if dry_run == false {
             match self.env.store_template(template, author, &host_ctx) {
                 Ok(addr) => TemplateReceipt::new(addr, gas_used),
-                Err(e) => panic!("Store failed"),
+                Err(..) => panic!("Store failed"),
             }
         } else {
             let addr = self.env.derive_template_address(template, &host_ctx);
@@ -279,7 +279,7 @@ where
         tx: &AppTransaction,
         state: &State,
         host_ctx: HostCtx,
-        gas_used: MaybeGas,
+        _gas_used: MaybeGas,
         gas_left: MaybeGas,
         dry_run: bool,
     ) -> ExecReceipt {
