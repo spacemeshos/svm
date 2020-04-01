@@ -6,7 +6,7 @@ use svm_app::types::{AppAddr, WasmValue};
 use svm_common::State;
 
 /// Returned Receipt after spawning an App.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct SpawnAppReceipt {
     /// whether spawn succedded or not
     pub success: bool,

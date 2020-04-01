@@ -3,7 +3,7 @@ use crate::{error::DeployTemplateError, gas::MaybeGas};
 use svm_app::types::TemplateAddr;
 
 /// Returned Receipt after deploying a Template.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct TemplateReceipt {
     /// whether spawn succedded or not
     pub success: bool,

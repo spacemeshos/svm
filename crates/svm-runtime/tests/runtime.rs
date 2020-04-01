@@ -8,7 +8,12 @@ use svm_app::{
 use svm_common::Address;
 use svm_gas::error::ProgramError;
 use svm_runtime::{
-    error::ValidateError, gas::MaybeGas, runtime::Runtime, settings::AppSettings, testing,
+    error::ValidateError,
+    gas::MaybeGas,
+    receipt::{ExecReceipt, SpawnAppReceipt, TemplateReceipt},
+    runtime::Runtime,
+    settings::AppSettings,
+    testing,
 };
 use svm_storage::page::{PageIndex, PageOffset, PageSliceLayout};
 
@@ -87,7 +92,26 @@ fn runtime_validate_tx_invalid_raw_format() {
 
 #[test]
 fn runtime_deploy_template_reaches_oog() {
-    todo!()
+    let mut runtime = default_runtime!();
+
+    let version = 0;
+    let page_count = 10;
+    let author = Address::of("author").into();
+    let maybe_gas = MaybeGas::with(0);
+    let dry_run = false;
+    let is_wast = true;
+
+    let bytes = testing::build_template(
+        version,
+        "My Template",
+        page_count,
+        include_str!("wasm/runtime_app_ctor.wast"),
+        is_wast,
+    );
+
+    let expected = TemplateReceipt::new_oog();
+    let actual = runtime.deploy_template(&bytes, &author, HostCtx::new(), maybe_gas, dry_run);
+    assert_eq!(expected, actual);
 }
 
 #[test]
@@ -112,24 +136,22 @@ fn runtime_spawn_app_with_ctor_reaches_oog() {
     );
 
     let receipt = runtime.deploy_template(&bytes, &author, HostCtx::new(), maybe_gas, dry_run);
-
     assert!(receipt.success);
 
     let template_addr = receipt.addr.unwrap();
 
     // 2) spawn app (and invoking its `ctor`)
-    let buf_size: u32 = 10;
     let ctor_idx = 0;
-    let ctor_buf = vec![0xAA, 0xBB, 0xBB, 0xCC, 0xCC, 0xCC, 0xDD, 0xDD, 0xDD, 0xDD];
-    let ctor_args = vec![WasmValue::I32(buf_size)];
+    let ctor_buf = vec![];
+    let ctor_args = vec![];
 
     let bytes = testing::build_app(version, &template_addr, ctor_idx, &ctor_buf, &ctor_args);
 
-    let _receipt = runtime.spawn_app(&bytes, &creator, HostCtx::new(), maybe_gas, dry_run);
+    let maybe_gas = MaybeGas::with(0);
 
-    // asserting out-of-gas
-    // dbg!(&receipt);
-    todo!()
+    let expected = SpawnAppReceipt::new_oog();
+    let actual = runtime.spawn_app(&bytes, &creator, HostCtx::new(), maybe_gas, dry_run);
+    assert_eq!(expected, actual);
 }
 
 #[test]
@@ -183,11 +205,6 @@ fn runtime_spawn_app_with_ctor() {
         vec![0xAA, 0xBB, 0xBB, 0xCC, 0xCC, 0xCC, 0xDD, 0xDD, 0xDD, 0xDD],
         slice
     );
-}
-
-#[test]
-fn runtime_exec_app_reaches_oog() {
-    todo!()
 }
 
 #[test]
@@ -255,8 +272,8 @@ fn runtime_exec_app() {
 
     let receipt = runtime.exec_app(&bytes, &init_state, HostCtx::new(), maybe_gas, dry_run);
 
-    assert_eq!(true, receipt.success);
-    assert_eq!(None, receipt.error);
+    assert!(receipt.success);
+    assert!(receipt.error.is_none());
 
     // now we'll read directly from the app's storage
     // and assert that the data has been persisted as expected.
@@ -276,4 +293,75 @@ fn runtime_exec_app() {
     let slice = storage.read_page_slice(&layout);
 
     assert_eq!(func_buf, slice);
+}
+
+#[test]
+fn runtime_exec_app_reaches_oog() {
+    let mut runtime = default_runtime!();
+
+    // 1) deploying the template
+    let version = 0;
+    let author = Address::of("author").into();
+    let creator = Address::of("creator").into();
+    let page_count = 10;
+    let is_wast = true;
+    let dry_run = false;
+    let maybe_gas = MaybeGas::new();
+
+    let bytes = testing::build_template(
+        version,
+        "My Template",
+        page_count,
+        include_str!("wasm/runtime_exec_app.wast"),
+        is_wast,
+    );
+
+    let receipt = runtime.deploy_template(&bytes, &author, HostCtx::new(), maybe_gas, dry_run);
+    assert!(receipt.success);
+
+    let template_addr = receipt.addr.unwrap();
+
+    // 2) spawn app
+    let ctor_idx = 0;
+    let ctor_buf = vec![];
+    let ctor_args = vec![];
+
+    let bytes = testing::build_app(version, &template_addr, ctor_idx, &ctor_buf, &ctor_args);
+    let receipt = runtime.spawn_app(&bytes, &creator, HostCtx::new(), maybe_gas, dry_run);
+
+    let app_addr = receipt.get_app_addr();
+    let init_state = receipt.get_init_state();
+
+    // 3) executing the app-transaction
+    let buf_id = 0;
+    let buf_offset = 0;
+    let reg_bits = 128;
+    let reg_idx = 3;
+    let reg_size = reg_bits / 8;
+    let page_idx = 1;
+    let page_offset = 20;
+
+    let func_idx = 1;
+    let func_buf = vec![0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80, 0x90, 0xA0];
+    let count = func_buf.len() as u32;
+
+    assert!(count <= reg_size);
+
+    let func_args = vec![
+        WasmValue::I32(buf_id),
+        WasmValue::I32(buf_offset),
+        WasmValue::I32(reg_bits as u32),
+        WasmValue::I32(reg_idx as u32),
+        WasmValue::I32(count),
+        WasmValue::I32(page_idx),
+        WasmValue::I32(page_offset),
+    ];
+    let bytes = testing::build_app_tx(version, &app_addr, func_idx, &func_buf, &func_args);
+
+    let maybe_gas = MaybeGas::with(0);
+
+    let expected = ExecReceipt::new_oog();
+    let actual = runtime.exec_app(&bytes, &init_state, HostCtx::new(), maybe_gas, dry_run);
+
+    assert_eq!(expected, actual)
 }

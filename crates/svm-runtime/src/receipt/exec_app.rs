@@ -4,7 +4,7 @@ use svm_common::State;
 use crate::{error::ExecAppError, gas::MaybeGas};
 
 /// Runtime transaction execution receipt
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct ExecReceipt {
     /// Whether transaction succedded or not.
     pub success: bool,
@@ -24,7 +24,7 @@ pub struct ExecReceipt {
 
 impl ExecReceipt {
     /// Creates a `ExecReceipt` for reaching reaching `Out-of-Gas`.
-    pub fn new_oog(&self) -> Self {
+    pub fn new_oog() -> Self {
         Self {
             success: false,
             error: Some(ExecAppError::OOG),

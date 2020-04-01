@@ -1,5 +1,5 @@
 #![deny(missing_docs)]
-#![deny(unused)]
+#![allow(unused)]
 #![deny(dead_code)]
 #![deny(unreachable_code)]
 

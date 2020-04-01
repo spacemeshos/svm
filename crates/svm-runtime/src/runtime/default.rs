@@ -338,7 +338,15 @@ where
             Ok(func) => func,
         };
 
-        match func.call(&args) {
+        let result = func.call(&args);
+
+        let gas_used = self.wasmer_instance_gas_used(&instance);
+
+        if gas_used.is_err() {
+            return Err(ExecAppError::OOG);
+        }
+
+        match result {
             Err(e) => Err(ExecAppError::ExecFailed {
                 app_addr: tx.app.clone(),
                 template_addr: template_addr.clone(),
@@ -347,15 +355,6 @@ where
                 reason: e.to_string(),
             }),
             Ok(returns) => {
-                let gas_used = self.wasmer_instance_gas_used(&instance);
-
-                if let Err(_oog_err) = gas_used {
-                    // We've reached OOG but wasmer didn't panic!
-                    // It might happen as an edge-case since wasmer's metering logic doesn't check
-                    // if the gas limit has been exceeded after each wasm instruction.
-                    return Err(ExecAppError::OOG);
-                }
-
                 let new_state = if dry_run {
                     None
                 } else {
@@ -623,13 +622,13 @@ where
 
     /// Gas
     fn compute_install_template_gas(&self, _bytes: &[u8], _template: &AppTemplate) -> u64 {
-        0
+        100
         // todo!()
         // GE::est_deploy_template(bytes, template)
     }
 
     fn compute_install_app_gas(&self, _bytes: &[u8], _spawn: &SpawnApp) -> u64 {
-        0
+        100
         // todo!()
         // GE::est_spawn_app(bytes, spawn)
     }
