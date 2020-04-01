@@ -7,12 +7,14 @@
 //!  |  (4 bytes) |   (1 byte)   |      (20 bytes)       |
 //!  |____________|______________|_______________________|
 //!
-//!
 //!  On success (`is_success = 0`)
 //!  See [error.rs][./error.rs]
 
 use svm_app::raw::NibbleWriter;
-use svm_runtime::receipt::{Receipt, TemplateReceipt};
+use svm_runtime::{
+    gas::MaybeGas,
+    receipt::{Receipt, TemplateReceipt},
+};
 
 use super::{encode_error, helpers};
 
@@ -60,7 +62,7 @@ mod tests {
             success: true,
             error: None,
             addr: Some(addr),
-            gas_used: Some(100),
+            gas_used: MaybeGas::with(100),
         };
 
         let bytes = encode_template_receipt(&receipt);

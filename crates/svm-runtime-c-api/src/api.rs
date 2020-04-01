@@ -15,6 +15,18 @@ use crate::{
     RuntimePtr,
 };
 
+macro_rules! maybe_gas {
+    ($gas_metering:expr, $gas_limit:expr) => {{
+        use svm_runtime::gas::MaybeGas;
+
+        if $gas_metering {
+            MaybeGas::with($gas_limit)
+        } else {
+            MaybeGas::new()
+        }
+    }};
+}
+
 macro_rules! addr_to_svm_byte_array {
     ($raw_byte_array:expr, $addr:expr) => {{
         let (ptr, _len, _cap) = $addr.into_raw_parts();
@@ -408,6 +420,8 @@ pub unsafe extern "C" fn svm_runtime_create(
 /// let author: svm_byte_array = Address::of("@author").into();
 /// let host_ctx = svm_byte_array::default();
 /// let template_bytes = svm_byte_array::default();
+/// let gas_metering = false;
+/// let gas_limit = 0;
 /// let dry_run = false;
 ///
 /// let res = unsafe {
@@ -417,6 +431,8 @@ pub unsafe extern "C" fn svm_runtime_create(
 ///     template_bytes,
 ///     author,
 ///     host_ctx,
+///     gas_metering,
+///     gas_limit,
 ///     dry_run,
 ///     &mut error)
 /// };
@@ -432,6 +448,8 @@ pub unsafe extern "C" fn svm_deploy_template(
     bytes: svm_byte_array,
     author: svm_byte_array,
     host_ctx: svm_byte_array,
+    gas_metering: bool,
+    gas_limit: u64,
     dry_run: bool,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
@@ -453,10 +471,13 @@ pub unsafe extern "C" fn svm_deploy_template(
         return svm_result_t::SVM_FAILURE;
     }
 
+    let gas_limit = maybe_gas!(gas_metering, gas_limit);
+
     let rust_receipt = runtime.deploy_template(
         bytes.into(),
         &author.unwrap().into(),
         host_ctx.unwrap(),
+        gas_limit,
         dry_run,
     );
 
@@ -500,6 +521,8 @@ pub unsafe extern "C" fn svm_deploy_template(
 /// let creator = Address::of("@creator").into();
 /// let host_ctx = svm_byte_array::default();
 /// let app_bytes = svm_byte_array::default();
+/// let gas_metering = false;
+/// let gas_limit = 0;
 /// let dry_run = false;
 ///
 /// let _res = unsafe {
@@ -509,6 +532,8 @@ pub unsafe extern "C" fn svm_deploy_template(
 ///     app_bytes,
 ///     creator,
 ///     host_ctx,
+///     gas_metering,
+///     gas_limit,
 ///     dry_run,
 ///     &mut error)
 /// };
@@ -522,6 +547,8 @@ pub unsafe extern "C" fn svm_spawn_app(
     bytes: svm_byte_array,
     creator: svm_byte_array,
     host_ctx: svm_byte_array,
+    gas_metering: bool,
+    gas_limit: u64,
     dry_run: bool,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
@@ -542,10 +569,13 @@ pub unsafe extern "C" fn svm_spawn_app(
         return svm_result_t::SVM_FAILURE;
     }
 
+    let gas_limit = maybe_gas!(gas_metering, gas_limit);
+
     let rust_receipt = runtime.spawn_app(
         bytes.into(),
         &creator.unwrap().into(),
         host_ctx.unwrap(),
+        gas_limit,
         dry_run,
     );
 
@@ -591,7 +621,9 @@ pub unsafe extern "C" fn svm_spawn_app(
 /// let tx_bytes = svm_byte_array::default();
 /// let state = State::empty().into();
 /// let host_ctx = svm_byte_array::default();
+/// let gas_metering = false;
 /// let dry_run = false;
+/// let gas_limit = 0;
 ///
 /// let _res = unsafe {
 ///   svm_exec_app(
@@ -600,6 +632,8 @@ pub unsafe extern "C" fn svm_spawn_app(
 ///     tx_bytes,
 ///     state,
 ///     host_ctx,
+///     gas_metering,
+///     gas_limit,
 ///     dry_run,
 ///     &mut error)
 /// };
@@ -613,6 +647,8 @@ pub unsafe extern "C" fn svm_exec_app(
     bytes: svm_byte_array,
     state: svm_byte_array,
     host_ctx: svm_byte_array,
+    gas_metering: bool,
+    gas_limit: u64,
     dry_run: bool,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
@@ -634,7 +670,10 @@ pub unsafe extern "C" fn svm_exec_app(
         return svm_result_t::SVM_FAILURE;
     }
 
-    let rust_receipt = runtime.exec_app(bytes.into(), &state.unwrap(), host_ctx, dry_run);
+    let gas_limit = maybe_gas!(gas_metering, gas_limit);
+
+    let rust_receipt =
+        runtime.exec_app(bytes.into(), &state.unwrap(), host_ctx, gas_limit, dry_run);
     let mut receipt_bytes = encode_exec_receipt(&rust_receipt);
 
     // returning encoded `ExecReceipt` as `svm_byte_array`.
@@ -803,32 +842,32 @@ pub unsafe extern "C" fn svm_exec_receipt_state(
 
 #[no_mangle]
 pub unsafe extern "C" fn svm_estimate_deploy_template(
-    estimate: *mut u64,
+    _estimate: *mut u64,
     runtime: *mut c_void,
-    bytes: svm_byte_array,
-    error: *mut svm_byte_array,
+    _bytes: svm_byte_array,
+    _error: *mut svm_byte_array,
 ) -> svm_result_t {
-    let runtime = helpers::cast_to_runtime_mut(runtime);
+    let _runtime = helpers::cast_to_runtime_mut(runtime);
 
     todo!()
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn svm_estimate_spawn_app(
-    estimate: *mut u64,
-    runtime: *mut c_void,
-    bytes: svm_byte_array,
-    error: *mut svm_byte_array,
+    _estimate: *mut u64,
+    _runtime: *mut c_void,
+    _bytes: svm_byte_array,
+    _error: *mut svm_byte_array,
 ) -> svm_result_t {
     todo!()
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn svm_estimate_exec_app(
-    estimate: *mut u64,
-    runtime: *mut c_void,
-    bytes: svm_byte_array,
-    error: *mut svm_byte_array,
+    _estimate: *mut u64,
+    _runtime: *mut c_void,
+    _bytes: svm_byte_array,
+    _error: *mut svm_byte_array,
 ) -> svm_result_t {
     todo!()
 }

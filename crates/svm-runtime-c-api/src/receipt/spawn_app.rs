@@ -60,10 +60,9 @@ mod tests {
 
     use crate::testing::{self, ClientAppReceipt};
 
-    use svm_app::types::AppAddr;
-    use svm_app::types::WasmValue;
+    use svm_app::{types::AppAddr, types::WasmValue};
     use svm_common::{Address, State};
-    use svm_runtime::error::SpawnAppError;
+    use svm_runtime::{error::SpawnAppError, gas::MaybeGas};
 
     #[test]
     fn encode_decode_app_receipt_error() {
@@ -81,7 +80,7 @@ mod tests {
             app_addr: None,
             init_state: None,
             returns: None,
-            gas_used: None,
+            gas_used: MaybeGas::new(),
         };
 
         let bytes = encode_app_receipt(&receipt);
@@ -107,7 +106,7 @@ mod tests {
             app_addr: Some(addr),
             init_state: Some(init_state),
             returns: Some(Vec::new()),
-            gas_used: Some(100),
+            gas_used: MaybeGas::with(100),
         };
 
         let bytes = encode_app_receipt(&receipt);
@@ -134,7 +133,7 @@ mod tests {
             app_addr: Some(addr),
             init_state: Some(init_state),
             returns: Some(returns),
-            gas_used: Some(100),
+            gas_used: MaybeGas::with(100),
         };
 
         let bytes = encode_app_receipt(&receipt);

@@ -53,7 +53,7 @@ mod tests {
 
     use svm_app::types::WasmValue;
     use svm_common::{Address, State};
-    use svm_runtime::error::ExecAppError;
+    use svm_runtime::{error::ExecAppError, gas::MaybeGas};
 
     #[test]
     fn encode_decode_exec_receipt_error() {
@@ -70,7 +70,7 @@ mod tests {
             error: Some(error),
             new_state: None,
             returns: None,
-            gas_used: None,
+            gas_used: MaybeGas::new(),
         };
 
         let bytes = encode_exec_receipt(&receipt);
@@ -93,7 +93,7 @@ mod tests {
             error: None,
             new_state: Some(new_state),
             returns: Some(Vec::new()),
-            gas_used: Some(100),
+            gas_used: MaybeGas::with(100),
         };
 
         let bytes = encode_exec_receipt(&receipt);
@@ -117,7 +117,7 @@ mod tests {
             error: None,
             new_state: Some(new_state),
             returns: Some(returns),
-            gas_used: Some(100),
+            gas_used: MaybeGas::with(100),
         };
 
         let bytes = encode_exec_receipt(&receipt);

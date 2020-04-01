@@ -186,6 +186,8 @@ fn svm_runtime_exec_app() {
 
 unsafe fn test_svm_runtime() {
     let version: u32 = 0;
+    let gas_metering = false;
+    let gas_limit = 0;
 
     // 1) init runtime
     let mut host = Host::new();
@@ -229,6 +231,8 @@ unsafe fn test_svm_runtime() {
         template_bytes,
         author,
         host_ctx,
+        gas_metering,
+        gas_limit,
         dry_run,
         &mut error,
     );
@@ -266,6 +270,8 @@ unsafe fn test_svm_runtime() {
         app_bytes,
         creator,
         host_ctx,
+        gas_metering,
+        gas_limit,
         dry_run,
         &mut error,
     );
@@ -314,6 +320,8 @@ unsafe fn test_svm_runtime() {
         tx_bytes,
         init_state,
         host_ctx,
+        gas_metering,
+        gas_limit,
         dry_run,
         &mut error,
     );
