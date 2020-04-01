@@ -46,12 +46,14 @@ impl MaybeGas {
 impl Add<u64> for MaybeGas {
     type Output = MaybeGas;
 
+    #[inline]
     fn add(self, rhs: u64) -> Self::Output {
         self.map(|lhs| lhs + rhs)
     }
 }
 
 impl AddAssign<u64> for MaybeGas {
+    #[inline]
     fn add_assign(&mut self, rhs: u64) {
         *self = self.add(rhs)
     }
