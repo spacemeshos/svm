@@ -107,7 +107,7 @@ where
         let template = self.parse_deploy_template(bytes).unwrap();
         let install_gas = self.compute_install_template_gas(bytes, &template);
 
-        if install_gas > gas_limit {
+        if gas_limit >= install_gas {
             let gas_used = MaybeGas::with(0);
             let gas_left = gas_limit;
 

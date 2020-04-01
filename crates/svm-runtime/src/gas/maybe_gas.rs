@@ -110,16 +110,9 @@ impl PartialOrd<u64> for MaybeGas {
     #[inline]
     fn partial_cmp(&self, rhs: &u64) -> Option<Ordering> {
         match self.0 {
-            None => None,
+            None => Some(Ordering::Greater),
             Some(lhs) => lhs.partial_cmp(rhs),
         }
-    }
-}
-
-impl PartialOrd<MaybeGas> for u64 {
-    #[inline]
-    fn partial_cmp(&self, rhs: &MaybeGas) -> Option<Ordering> {
-        rhs.partial_cmp(self).map(|ord| ord.reverse())
     }
 }
 
@@ -182,16 +175,25 @@ mod tests {
     }
 
     #[test]
-    fn maybe_gas_partial_ord() {
+    fn maybe_gas_partial_ord_none() {
+        let gas = MaybeGas::new();
+        assert!(gas.is_none());
+        assert!(!gas.is_some());
+
+        assert!(gas > 1);
+        assert!(gas >= 1);
+        assert!(!(gas < 1));
+    }
+
+    #[test]
+    fn maybe_gas_partial_ord_some() {
         let gas = MaybeGas::from(10);
+        assert!(gas.is_some());
+        assert!(!gas.is_none());
 
         assert!(gas > 9);
         assert!(gas >= 10);
         assert!(!(gas > 10));
-
-        assert!(9 < gas);
-        assert!(10 <= gas);
-        assert!(!(10 < gas));
     }
 
     #[test]
