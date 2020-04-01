@@ -107,16 +107,13 @@ where
         let template = self.parse_deploy_template(bytes).unwrap();
         let install_gas = self.compute_install_template_gas(bytes, &template);
 
-        let diff = gas_limit - install_gas;
+        if install_gas > gas_limit {
+            let gas_used = MaybeGas::with(0);
+            let gas_left = gas_limit;
 
-        match diff {
-            Err(..) => TemplateReceipt::new_oog(),
-            Ok(_gas_left) => {
-                let gas_used = MaybeGas::with(0);
-                let gas_left = gas_limit;
-
-                self.install_template(&template, author, host_ctx, gas_used, gas_left, dry_run)
-            }
+            self.install_template(&template, author, host_ctx, gas_used, gas_left, dry_run)
+        } else {
+            TemplateReceipt::new_oog()
         }
     }
 
@@ -381,13 +378,7 @@ where
         result: Result<(Option<State>, Vec<WasmValue>, MaybeGas), ExecAppError>,
     ) -> ExecReceipt {
         match result {
-            Err(e) => ExecReceipt {
-                success: false,
-                error: Some(e),
-                returns: None,
-                new_state: None,
-                gas_used: MaybeGas::new(),
-            },
+            Err(e) => e.into(),
             Ok((new_state, returns, gas_used)) => ExecReceipt {
                 success: true,
                 error: None,

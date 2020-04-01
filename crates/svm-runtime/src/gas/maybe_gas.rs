@@ -1,4 +1,5 @@
-use std::ops::Sub;
+use std::cmp::{Ordering, PartialEq, PartialOrd};
+use std::ops::{Add, AddAssign, Sub};
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 #[repr(transparent)]
@@ -30,6 +31,30 @@ impl MaybeGas {
     pub fn unwrap_or(&self, default: u64) -> u64 {
         self.0.unwrap_or(default)
     }
+
+    #[inline]
+    pub fn map<F>(self, f: F) -> Self
+    where
+        F: FnOnce(u64) -> u64,
+    {
+        let maybe_gas = self.0.map(|x| f(x));
+
+        MaybeGas(maybe_gas)
+    }
+}
+
+impl Add<u64> for MaybeGas {
+    type Output = MaybeGas;
+
+    fn add(self, rhs: u64) -> Self::Output {
+        self.map(|lhs| lhs + rhs)
+    }
+}
+
+impl AddAssign<u64> for MaybeGas {
+    fn add_assign(&mut self, rhs: u64) {
+        *self = self.add(rhs)
+    }
 }
 
 impl Sub<u64> for MaybeGas {
@@ -51,7 +76,42 @@ impl Sub<u64> for MaybeGas {
     }
 }
 
+impl PartialOrd<u64> for MaybeGas {
+    #[inline]
+    fn partial_cmp(&self, rhs: &u64) -> Option<Ordering> {
+        match self.0 {
+            None => None,
+            Some(lhs) => lhs.partial_cmp(rhs),
+        }
+    }
+}
+
+impl PartialOrd<MaybeGas> for u64 {
+    #[inline]
+    fn partial_cmp(&self, rhs: &MaybeGas) -> Option<Ordering> {
+        rhs.partial_cmp(self)
+    }
+}
+
+impl PartialEq<u64> for MaybeGas {
+    #[inline]
+    fn eq(&self, rhs: &u64) -> bool {
+        match self.0 {
+            None => false,
+            Some(lhs) => lhs.eq(rhs),
+        }
+    }
+}
+
+impl PartialEq<MaybeGas> for u64 {
+    #[inline]
+    fn eq(&self, rhs: &MaybeGas) -> bool {
+        rhs.eq(self)
+    }
+}
+
 impl From<u64> for MaybeGas {
+    #[inline]
     fn from(v: u64) -> Self {
         MaybeGas::with(v)
     }
@@ -59,8 +119,11 @@ impl From<u64> for MaybeGas {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
     #[test]
-    fn maybe_gas_sub() {
+    fn maybe_gas_add() {
+        let gas = MaybeGas::with(0);
         todo!()
     }
 }
