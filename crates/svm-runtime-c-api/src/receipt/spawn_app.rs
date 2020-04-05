@@ -1,16 +1,18 @@
 //!           `Spawn App` Receipt Raw Format Version 0
 //!
 //!  On success (`is_success = 1`)
-//!  +-------------------------------------------------------+
-//!  |   format   |              |                           |
-//!  |  version   |  is_success  |     App Address           |
-//!  |  (4 bytes) |   (1 byte)   |      (20 bytes)           |
-//!  +____________|______________|___________________________+
-//!  |              |           |          |        |        |
-//!  |  init state  | #returns  | ret #1   | ret #1 |        |
-//!  |  (32 bytes)  | (2 bytes) |   type   |  value |  ...   |
-//!  |              |           | (1 byte) |        |        |
-//!  +______________|___________|__________|________|________+
+//!  +----------------------------------------------------+
+//!  |   format   |              |                        |
+//!  |  version   |  is_success  |     App Address        |
+//!  |  (4 bytes) |   (1 byte)   |      (20 bytes)        |
+//!  +____________|______________|________________________+
+//!  |              |           |             |           |
+//!  |  init state  | #returns  | ret #1 type | ret  #1   |
+//!  |  (32 bytes)  |           |             |           |     
+//!  +______________|___________|_____________|___________+
+//!  |          |            |                            |
+//!  |  ret #2  |   .  .  .  |         gas_used           |
+//!  +__________|____________|____________________________+
 //!
 //!
 //!  On success (`is_success = 0`)
@@ -33,6 +35,7 @@ pub(crate) fn encode_app_receipt(receipt: &SpawnAppReceipt) -> Vec<u8> {
         encode_app_addr(receipt, &mut w);
         encode_init_state(receipt, &mut w);
         helpers::encode_returns(&wrapped_receipt, &mut w);
+        helpers::encode_gas_used(&wrapped_receipt, &mut w);
     } else {
         encode_error(&wrapped_receipt, &mut w);
     };
@@ -98,6 +101,7 @@ mod tests {
             addr: addr.clone(),
             init_state: init_state.clone(),
             ctor_returns: "".to_string(),
+            gas_used: 100,
         };
 
         let receipt = SpawnAppReceipt {
@@ -125,6 +129,7 @@ mod tests {
             addr: addr.clone(),
             init_state: init_state.clone(),
             ctor_returns: "I32(10), I64(20), I32(30)".to_string(),
+            gas_used: 100,
         };
 
         let receipt = SpawnAppReceipt {

@@ -20,6 +20,9 @@ pub enum ClientAppReceipt {
 
         /// The values returned by the App's ctor, concatenated as a string
         ctor_returns: String,
+
+        /// The gas used during the transaction
+        gas_used: u64,
     },
 
     /// Receipt failed
@@ -50,10 +53,12 @@ pub fn decode_app_receipt(bytes: &[u8]) -> ClientAppReceipt {
             let addr = helpers::decode_address(&mut iter);
             let init_state = helpers::decode_state(&mut iter);
             let ctor_returns = decode_func_args(&mut iter).unwrap();
+            let gas_used = helpers::decode_gas_used(&mut iter);
 
             ClientAppReceipt::Success {
                 addr: addr.into(),
                 init_state,
+                gas_used,
                 ctor_returns: helpers::wasm_values_str(&ctor_returns[..]),
             }
         }

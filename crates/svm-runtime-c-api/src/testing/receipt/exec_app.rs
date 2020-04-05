@@ -14,6 +14,9 @@ pub enum ClientExecReceipt {
 
         /// The values returns by the invoked app as a string
         func_returns: String,
+
+        /// The gas used during the transaction
+        gas_used: u64,
     },
 
     /// Receipt failed
@@ -43,9 +46,11 @@ pub fn decode_exec_receipt(bytes: &[u8]) -> ClientExecReceipt {
             // success
             let new_state = helpers::decode_state(&mut iter);
             let returns = decode_func_args(&mut iter).unwrap();
+            let gas_used = helpers::decode_gas_used(&mut iter);
 
             ClientExecReceipt::Success {
                 new_state,
+                gas_used,
                 func_returns: helpers::wasm_values_str(&returns[..]),
             }
         }

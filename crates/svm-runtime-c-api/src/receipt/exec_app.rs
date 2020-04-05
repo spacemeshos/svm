@@ -1,14 +1,17 @@
 //!         `ExecReceipt` Raw Format Version 0
 //!
 //!  On success (`is_success = 1`)
-//!  ----------------------------------------------------
+//!  +---------------------------------------------------+
 //!  |            |              |                       |
 //!  |  version   |  is_success  |     app new state     |
 //!  |            |  (1 nibble)  |      (32 bytes)       |
-//!  |____________|______________|_______________________|
+//!  +____________|______________|_______________________+
 //!  |          |              |         |               |
-//!  | #returns | ret #1 type  | ret #1  |    . . . .    |
-//!  |__________|______________|_________|_______________|
+//!  | #returns | ret #1 type  | ret #1  |  ret #2  type |
+//!  +__________|______________|_________|_______________+
+//!  |          |            |                           |
+//!  |  ret #2  |   .  .  .  |         gas_used          |
+//!  +__________|____________|___________________________+
 //!
 //!
 //!  On success (`is_success = 0`)
@@ -30,6 +33,7 @@ pub(crate) fn encode_exec_receipt(receipt: &ExecReceipt) -> Vec<u8> {
     if receipt.success {
         encode_new_state(receipt, &mut w);
         helpers::encode_returns(&wrapped_receipt, &mut w);
+        helpers::encode_gas_used(&wrapped_receipt, &mut w);
     } else {
         encode_error(&wrapped_receipt, &mut w);
     };
@@ -86,6 +90,7 @@ mod tests {
         let expected = ClientExecReceipt::Success {
             new_state: new_state.clone(),
             func_returns: "".to_string(),
+            gas_used: 100,
         };
 
         let receipt = ExecReceipt {
@@ -110,6 +115,7 @@ mod tests {
         let expected = ClientExecReceipt::Success {
             new_state: new_state.clone(),
             func_returns: "I32(10), I64(20), I32(30)".to_string(),
+            gas_used: 100,
         };
 
         let receipt = ExecReceipt {

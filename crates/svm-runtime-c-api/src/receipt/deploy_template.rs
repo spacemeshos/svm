@@ -32,6 +32,7 @@ pub(crate) fn encode_template_receipt(receipt: &TemplateReceipt) -> Vec<u8> {
 
     if receipt.success {
         encode_template_addr(receipt, &mut w);
+        helpers::encode_gas_used(&wrapped_receipt, &mut w);
     } else {
         encode_error(&wrapped_receipt, &mut w);
     };
@@ -60,7 +61,10 @@ mod tests {
     fn encode_deploy_deploy_receipt() {
         let addr: TemplateAddr = Address::of("my-template").into();
 
-        let expected = ClientTemplateReceipt::Success { addr: addr.clone() };
+        let expected = ClientTemplateReceipt::Success {
+            addr: addr.clone(),
+            gas_used: 100,
+        };
 
         let receipt = TemplateReceipt {
             success: true,
