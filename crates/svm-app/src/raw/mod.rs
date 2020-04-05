@@ -8,8 +8,8 @@ mod template;
 mod transaction;
 mod varuint14;
 mod version;
-mod wasm;
 
+pub(crate) mod wasm;
 pub use app::{decode_spawn_app, encode_spawn_app};
 pub use template::{decode_deploy_template, encode_deploy_template};
 pub use transaction::{decode_exec_app, encode_exec_app};

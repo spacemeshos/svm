@@ -1,10 +1,9 @@
 use crate::{error::ParseError, types::WasmValue};
 
 use super::super::{
-    wasm::{decode_wasm_value, WasmValueLayout},
+    wasm::{decode_wasm_value, WasmValueLayout, DO_SKIP, NO_MORE},
     Field, NibbleIter,
 };
-use super::{DO_SKIP, NO_MORE};
 
 /// Decodes raw func args field.
 pub fn decode_func_args(iter: &mut NibbleIter) -> Result<Vec<WasmValue>, ParseError> {
@@ -66,11 +65,9 @@ fn decode_values_layout(iter: &mut NibbleIter) -> Result<Vec<WasmValueLayout>, P
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{nib, raw::concat_nibbles, raw::Nibble};
-
-    use super::super::{
-        DO_SKIP, I32_0B, I32_1B, I32_2B, I32_3B, I32_4B, I64_0B, I64_1B, I64_2B, I64_3B, I64_4B,
-        I64_5B, I64_6B, I64_7B, I64_8B, NO_MORE,
+    use crate::{
+        nib,
+        raw::{concat_nibbles, wasm::*, Nibble},
     };
 
     fn assert_func_args(nibbles: Vec<Nibble>, expected: Vec<WasmValue>) {

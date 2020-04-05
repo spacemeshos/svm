@@ -2,10 +2,9 @@ use crate::nib;
 use crate::types::WasmValue;
 
 use super::super::{
-    wasm::{encode_wasm_value, wasm_value_layout},
+    wasm::{encode_wasm_value, wasm_value_layout, NO_MORE},
     NibbleWriter,
 };
-use super::NO_MORE;
 
 /// Encodes func args
 pub fn encode_func_args(args: &[WasmValue], w: &mut NibbleWriter) {
