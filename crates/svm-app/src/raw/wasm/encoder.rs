@@ -1,8 +1,20 @@
 use crate::nib;
 use crate::types::WasmValue;
 
-use super::{super::NibbleWriter, wasm_value_layout, WasmValueLayout};
+use super::{super::NibbleWriter, wasm_value_layout};
 
+/// Encodes the wasm value.
+/// Important: The wasm value layout isn't encoded under this method.
+///
+/// The reason for not encoding here the layout is to allow decoupling.
+/// There are encoders that encode a vector of `WasmValueLayout` consecutively before encoding the values.
+/// See: [`encode_func_args`][encode_func_args].
+///
+/// On other cases, encoders will encode one or more `WasmValue`s as `(WasmValueLayout, WasmValue)` pairs.
+/// See: [`encode_gas_used`][encode_gas_used].
+///
+/// [encode_func_args]: ../func_args/encoder.rs
+/// [encode_gas_used]: ../gas/encoder.rs
 pub fn encode_wasm_value(wasm_value: &WasmValue, w: &mut NibbleWriter) {
     let layout = wasm_value_layout(wasm_value);
 

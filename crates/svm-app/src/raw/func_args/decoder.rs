@@ -1,12 +1,8 @@
-use crate::{
-    error::ParseError,
-    types::{WasmType, WasmValue},
-};
+use crate::{error::ParseError, types::WasmValue};
 
 use super::super::{
-    concat_nibbles,
     wasm::{decode_wasm_value, WasmValueLayout},
-    Field, Nibble, NibbleIter,
+    Field, NibbleIter,
 };
 use super::{DO_SKIP, NO_MORE};
 
@@ -23,7 +19,7 @@ pub fn decode_func_rets(iter: &mut NibbleIter) -> Result<Vec<WasmValue>, ParseEr
 /// Decodes raw func values (args or returns)
 fn decode_func_values(iter: &mut NibbleIter) -> Result<Vec<WasmValue>, ParseError> {
     let mut func_values = Vec::new();
-    let layouts = decode_values_layouts(iter)?;
+    let layouts = decode_values_layout(iter)?;
 
     for layout in layouts.iter() {
         let val = decode_wasm_value(layout, iter)?;
@@ -34,7 +30,7 @@ fn decode_func_values(iter: &mut NibbleIter) -> Result<Vec<WasmValue>, ParseErro
     Ok(func_values)
 }
 
-fn decode_values_layouts(iter: &mut NibbleIter) -> Result<Vec<WasmValueLayout>, ParseError> {
+fn decode_values_layout(iter: &mut NibbleIter) -> Result<Vec<WasmValueLayout>, ParseError> {
     let mut args_layout = Vec::new();
     let mut has_more = true;
 
@@ -70,7 +66,7 @@ fn decode_values_layouts(iter: &mut NibbleIter) -> Result<Vec<WasmValueLayout>, 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{nib, raw::concat_nibbles};
+    use crate::{nib, raw::concat_nibbles, raw::Nibble};
 
     use super::super::{
         DO_SKIP, I32_0B, I32_1B, I32_2B, I32_3B, I32_4B, I64_0B, I64_1B, I64_2B, I64_3B, I64_4B,

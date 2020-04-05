@@ -8,6 +8,7 @@ use super::{
     WasmValueLayout,
 };
 
+/// Decodes a wasm value given its expected `layout`.
 pub fn decode_wasm_value(
     layout: &WasmValueLayout,
     iter: &mut NibbleIter,

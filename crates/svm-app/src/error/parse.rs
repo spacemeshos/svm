@@ -12,6 +12,7 @@ pub enum ParseError {
     NotSupported(Field),
     InvalidUTF8String(Field),
     InvalidProtocolVersion(u32),
+    UnexpectedLayout(Field),
     IncompleteWasmValue {
         expected_nibbles: usize,
         actual_read: usize,
@@ -32,6 +33,9 @@ impl fmt::Display for ParseError {
             }
             ParseError::IncompleteWasmValue { .. } => {
                 write!(fmt, "Wasm value incomplete (missing data)")
+            }
+            ParseError::UnexpectedLayout(f) => {
+                write!(fmt, "Unexpected Wasm value layout for field `{}`", f)
             }
         }
     }

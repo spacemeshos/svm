@@ -1,8 +1,8 @@
 use crate::nib;
-use crate::types::{WasmType, WasmValue};
+use crate::types::WasmValue;
 
 use super::super::{
-    wasm::{encode_wasm_value, wasm_value_layout, WasmValueLayout},
+    wasm::{encode_wasm_value, wasm_value_layout},
     NibbleWriter,
 };
 use super::NO_MORE;
