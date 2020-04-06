@@ -737,66 +737,172 @@ pub unsafe extern "C" fn svm_byte_array_destroy(bytes: svm_byte_array) {
 
 /// Receipts helpers
 
+/// In order to spare the SVM client the implementation of the `Receipt`(s) raw decoding the receipts helpers
+/// can fetch one field each. This functionality should be useful for writing tests when using client code that interfaces with
+/// SVM FFI interface.
+///
+/// Each helper methods returns `svm_result_t`.
+/// When `svm_result_t` equals `SVM_SUCCESS` is means that the field extraction succeeded.
+/// Otherwise, it signals that the field can't be extracted out of the receipt.
+///
+/// For example, if the `svm_deploy_template` failed to deploy the template (it may happen for many reason, one is having invalid wasm code),
+/// then calling `svm_template_receipt_addr` should return `SVM_FAILURE` since there is no template `Address` to extract.
+/// The error will be returned via the `error` parameter.
+
 /// Extracts the deploy-template `Address` into the `template_addr` parameter. (useful for tests).
+///
+/// # Panics
+///
+/// Panics the `receipt` input is invalid.
+///
 #[no_mangle]
 pub unsafe extern "C" fn svm_template_receipt_addr(
     template_addr: *mut svm_byte_array,
     receipt: svm_byte_array,
-) {
+    error: *mut svm_byte_array,
+) -> svm_result_t {
     let client_receipt = testing::decode_template_receipt(receipt.into());
 
     match client_receipt {
         ClientTemplateReceipt::Success { addr, .. } => {
             addr_to_svm_byte_array!(template_addr, addr.unwrap());
+            svm_result_t::SVM_SUCCESS
         }
-        ClientTemplateReceipt::Failure { .. } => panic!(),
+        ClientTemplateReceipt::Failure { error: err_str } => {
+            raw_error(err_str, error);
+            svm_result_t::SVM_FAILURE
+        }
     }
 }
 
-/// Extracts the spawned-app `Address` into the `app_addr` paramueter. (useful for tests).
+/// Extracts whether the `spawn-app` transaction succeeded.
+/// If it succeeded, returns `SVM_SUCCESS`,
+/// Otherwise returns `SVM_FAILURE` and the error message via `error` parameter.
+///
+/// # Panics
+///
+/// Panics the `receipt` input is invalid.
+///
+#[no_mangle]
+pub unsafe extern "C" fn svm_app_receipt_status(
+    receipt: svm_byte_array,
+    error: *mut svm_byte_array,
+) -> svm_result_t {
+    let client_receipt = testing::decode_app_receipt(receipt.into());
+
+    match client_receipt {
+        ClientAppReceipt::Success { .. } => svm_result_t::SVM_SUCCESS,
+        ClientAppReceipt::Failure { error: err_str } => {
+            raw_error(err_str, error);
+            svm_result_t::SVM_FAILURE
+        }
+    }
+}
+
+/// Extracts the spawned-app `Address`.
+/// When spawning succeeds returns `SVM_SUCCESS` and the `Address` via `app_addr` parameter.
+/// Otherise, returns `SVM_FAILURE` and the error message via the `error` parameter.
+///
+/// # Panics
+///
+/// Panics the `receipt` input is invalid.
+///
 #[no_mangle]
 pub unsafe extern "C" fn svm_app_receipt_addr(
     app_addr: *mut svm_byte_array,
     receipt: svm_byte_array,
-) {
+    error: *mut svm_byte_array,
+) -> svm_result_t {
     let client_receipt = testing::decode_app_receipt(receipt.into());
 
     match client_receipt {
         ClientAppReceipt::Success { addr, .. } => {
             addr_to_svm_byte_array!(app_addr, addr.unwrap());
+            svm_result_t::SVM_SUCCESS
         }
-        ClientAppReceipt::Failure { error } => panic!(error),
+        ClientAppReceipt::Failure { error: err_str } => {
+            raw_error(err_str, error);
+            svm_result_t::SVM_FAILURE
+        }
     }
 }
 
-/// Extracts the spawned-app initial `State` into the `state` parameter. (useful for tests).
+/// Extracts the spawned-app initial `State`.
+/// When spawning succeeds returns `SVM_SUCCESS` and the initial `State` via `state` parameter.
+/// Otherise, returns `SVM_FAILURE` and the error message via the `error` parameter.
+///
+/// # Panics
+///
+/// Panics the `receipt` input is invalid.
+///
 #[no_mangle]
 pub unsafe extern "C" fn svm_app_receipt_state(
     state: *mut svm_byte_array,
     receipt: svm_byte_array,
-) {
+    error: *mut svm_byte_array,
+) -> svm_result_t {
     let client_receipt = testing::decode_app_receipt(receipt.into());
 
     match client_receipt {
         ClientAppReceipt::Success { init_state, .. } => {
             state_to_svm_byte_array!(state, init_state);
+            svm_result_t::SVM_SUCCESS
         }
-        ClientAppReceipt::Failure { .. } => panic!(),
+        ClientAppReceipt::Failure { error: err_str } => {
+            raw_error(err_str, error);
+            svm_result_t::SVM_FAILURE
+        }
     }
 }
 
-/// Extracts the executed app-transaction `State` into the `state` parameter. (useful for tests).
+/// Extracts whether the `exec-app` transaction succeeded.
+/// If it succeeded, returns `SVM_SUCCESS`,
+/// Otherwise returns `SVM_FAILURE` and the error message via `error` parameter.
+///
+/// # Panics
+///
+/// Panics the `receipt` input is invalid.
+///
+#[no_mangle]
+pub unsafe extern "C" fn svm_exec_receipt_status(
+    receipt: svm_byte_array,
+    error: *mut svm_byte_array,
+) -> svm_result_t {
+    let client_receipt = testing::decode_exec_receipt(receipt.into());
+
+    match client_receipt {
+        ClientExecReceipt::Success { .. } => svm_result_t::SVM_SUCCESS,
+        ClientExecReceipt::Failure { error: err_str } => {
+            raw_error(err_str, error);
+            svm_result_t::SVM_FAILURE
+        }
+    }
+}
+
+/// Extracts the executed transaction new `State`.
+/// When transaction succeeds returns `SVM_SUCCESS` and the new `State` via `state` parameter.
+/// Othewrise, returns `SVM_FAILURE` and the error message via the `error` parameter.
+///
+/// # Panics
+///
+/// Panics the `receipt` input is invalid.
+///
 #[no_mangle]
 pub unsafe extern "C" fn svm_exec_receipt_state(
     state: *mut svm_byte_array,
     receipt: svm_byte_array,
-) {
+    error: *mut svm_byte_array,
+) -> svm_result_t {
     let client_receipt = testing::decode_exec_receipt(receipt.into());
 
     match client_receipt {
         ClientExecReceipt::Success { new_state, .. } => {
             state_to_svm_byte_array!(state, new_state);
+            svm_result_t::SVM_SUCCESS
         }
-        ClientExecReceipt::Failure { .. } => panic!(),
+        ClientExecReceipt::Failure { error: err_str } => {
+            raw_error(err_str, error);
+            svm_result_t::SVM_FAILURE
+        }
     }
 }

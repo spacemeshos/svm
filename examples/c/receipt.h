@@ -113,46 +113,46 @@ svm_receipt_t decode_receipt(svm_byte_array encoded_receipt) {
   }
 }
 
-void print_receipt(svm_receipt_t receipt) {
-  if (receipt.success == true) {
-    svm_byte_array new_state = receipt.new_state;
+/* void print_receipt(svm_receipt_t receipt) { */
+/*   if (receipt.success == true) { */
+/*     svm_byte_array new_state = receipt.new_state; */
 
-    printf("New app state:\n"); 
+/*     printf("New app state:\n");  */
 
-    for (uint8_t i = 0; i < new_state.length; i++) {
-	printf("%02X ", new_state.bytes[i]);
-    }
+/*     for (uint8_t i = 0; i < new_state.length; i++) { */
+/* 	printf("%02X ", new_state.bytes[i]); */
+/*     } */
 
-    if (receipt.count > 0) {
-	printf("\n\nReceipt returns:\n");
+/*     if (receipt.count > 0) { */
+/* 	printf("\n\nReceipt returns:\n"); */
 
-	for (uint8_t i = 0; i < receipt.count; i++) {
-	    svm_func_ret_t* ret = &receipt.returns[i];
+/* 	for (uint8_t i = 0; i < receipt.count; i++) { */
+/* 	    svm_func_ret_t* ret = &receipt.returns[i]; */
 
-	    if (i > 0) {
-		printf(", ");
-	    }
+/* 	    if (i > 0) { */
+/* 		printf(", "); */
+/* 	    } */
 
-	    if (ret->type == SVM_I32) {
-		printf("I32(%d)", ret->i32_value);
-	    }
-	    else if (ret->type == SVM_I64) {
-		printf("I64(%llu)", ret->i64_value);
-	    }
-	    else {
-		exit(-1);
-	    }
-        }
+/* 	    if (ret->type == SVM_I32) { */
+/* 		printf("I32(%d)", ret->i32_value); */
+/* 	    } */
+/* 	    else if (ret->type == SVM_I64) { */
+/* 		printf("I64(%llu)", ret->i64_value); */
+/* 	    } */
+/* 	    else { */
+/* 		exit(-1); */
+/* 	    } */
+/*         } */
 
-	printf("\n");
-    }
-    else {
-	printf("\n\nReceipt has no returns.\n");
-    }
-  }
-  else {
-    // ...
-  }
-}
+/* 	printf("\n"); */
+/*     } */
+/*     else { */
+/* 	printf("\n\nReceipt has no returns.\n"); */
+/*     } */
+/*   } */
+/*   else { */
+/*     // ... */
+/*   } */
+/* } */
 
 #endif

@@ -157,33 +157,49 @@ void* alloc_empty_state() {
   return (void*)state;
 }
 
+void print_err(svm_byte_array err) {
+  for (int i = 0; i < err.length; i++) {
+    printf("%c", err.bytes[i]);
+  }
+  printf("\n\n");
+}
+
+void print_addr(svm_byte_array addr) {
+  printf("Address:\n");
+  for (int i = 0; i < addr.length; i++) {
+    printf("%x", addr.bytes[i]);
+  }
+  printf("\n");
+}
+  
+void print_state(svm_byte_array state) {
+  printf("Address:\n");
+  for (int i = 0; i < state.length; i++) {
+    printf("%x", state.bytes[i]);
+  }
+  printf("\n");
+}
+
 deploy_template_t simulate_deploy_template(void* runtime, svm_byte_array bytes, svm_byte_array author, bool dry_run) {
     svm_byte_array host_ctx = host_ctx_empty_bytes();
     svm_byte_array receipt;
     svm_byte_array err;
 
     svm_result_t res = svm_deploy_template(&receipt, runtime, bytes, author, host_ctx, dry_run, &err);
+
     if (res == SVM_FAILURE) {
-      printf("`svm_deploy_template` failure: %s\n", err);
+      printf("`svm_deploy_template` failure:\n");
+      print_err(err);
       exit(1);
     }
 
     svm_byte_array template_addr;
     svm_template_receipt_addr(&template_addr, receipt);
 
-    printf("Deployed AppTemplate successfully\n");
-    printf("Receipt: ");
-    for (int i = 0; i < receipt.length; i++) {
-          printf("%x", receipt.bytes[i]);
-    }
-    printf("\n");
-    printf("Address: ");
-    for (int i = 0; i < template_addr.length; i++) {
-          printf("%x", template_addr.bytes[i]);
-    }
-    printf("\n\n");
+    printf("Deployed AppTemplate successfully:\n");
+    print_addr(template_addr);
 
-    free(host_ctx.bytes);
+    free((void*)host_ctx.bytes);
     svm_byte_array_destroy(receipt);
     svm_byte_array_destroy(err);
 
@@ -196,15 +212,19 @@ spawned_app_t simulate_spawn_app(void* runtime, svm_byte_array bytes, svm_byte_a
 
   res = svm_validate_app(runtime, bytes, &err);
   if (res == SVM_FAILURE) {
-    printf("`svm_validate_app` failure: %s\n", err);
+    printf("`svm_validate_app` failure:\n");
+    print_err(err);
     exit(1);
   }
 
   svm_byte_array host_ctx = host_ctx_empty_bytes();
   svm_byte_array receipt; 
+
   res = svm_spawn_app(&receipt, runtime, bytes, creator, host_ctx, 1, &err);
+
   if (res == SVM_FAILURE) {
-     printf("`svm_spawn_app` failure: %s\n", err);
+     printf("`svm_spawn_app` failure:\n");
+     print_err(err);
      exit(1);
   }
 
@@ -213,17 +233,8 @@ spawned_app_t simulate_spawn_app(void* runtime, svm_byte_array bytes, svm_byte_a
   svm_app_receipt_addr(&app_addr, receipt);
 
   printf("Spawned App successfully\n");
-  printf("App Account Address:\n");
-  for (int i = 0; i < app_addr.length; i++) {
-    printf("%d ", app_addr.bytes[i]);
-  }
-  printf("\n\n");
-
-  printf("App initial state:\n", init_state.length);
-  for (int i = 0; i < init_state.length; i++) {
-    printf("%d ", init_state.bytes[i]);
-  }
-  printf("\n\n");
+  print_addr(app_addr);
+  print_state(init_state);
 
   svm_byte_array_destroy(host_ctx);
 
@@ -282,15 +293,15 @@ svm_byte_array simulate_inc_counter(void* runtime, svm_byte_array app_addr, svm_
   svm_result_t res = svm_validate_tx(&app_tx, runtime, bytes, &err);
   assert(res == SVM_SUCCESS);
 
-  svm_byte_array encoded_receipt;
+  svm_byte_array receipt;
   svm_byte_array host_ctx = host_ctx_empty_bytes();
-  res = svm_exec_app(&encoded_receipt, runtime, app_tx, state, host_ctx, 1, &err);
+  res = svm_exec_app(&receipt, runtime, app_tx, state, host_ctx, 1, &err);
   assert(res == SVM_SUCCESS);
 
   svm_byte_array_destroy(bytes);
   svm_byte_array_destroy(host_ctx);
 
-  return encoded_receipt;
+  return receipt;
 }
 
 void receipt_destroy(svm_receipt_t receipt) {
@@ -317,9 +328,10 @@ svm_byte_array alloc_str_address(char* str) {
 }
   
 int main() {
-  svm_byte_array raw_receipts[3];
-  svm_receipt_t receipts[3];
-  bool dry_run = true;
+  /* svm_byte_array raw_receipts[3]; */
+  /* svm_receipt_t receipts[3]; */
+
+  bool dry_run = false;
   svm_byte_array data;
 
   // 1) Init Runtime
@@ -332,18 +344,19 @@ int main() {
   // 2) Deploy Template
   svm_byte_array author = alloc_str_address("author");
   data = read_file("raw/app_template.bin");
+
   deploy_template_t deploy_template_res = simulate_deploy_template(runtime, data, author, dry_run);
-  free(data.bytes);
+
+  free((void*)data.bytes);
 
    // 3) Spawn App
   svm_byte_array creator = alloc_str_address("creator");
   data = read_file("raw/spawn_app.bin");
 
-  spawned_app_t spawned = simulate_spawn_app(runtime, data, creator);
-  free(data.bytes);
+  spawned_app_t _spawned = simulate_spawn_app(runtime, data, creator);
+  free((void*)data.bytes);
 
 
-//
 //  // 4) Exec App
 //  //// a) Query for the initialized counter value
 //  void* sender = alloc_sender_addr();
