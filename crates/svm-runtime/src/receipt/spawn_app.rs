@@ -54,6 +54,11 @@ impl SpawnAppReceipt {
     pub fn get_returns(&self) -> &Vec<WasmValue> {
         self.returns.as_ref().unwrap()
     }
+
+    /// Returns spawned-app gas-used
+    pub fn get_gas_used(&self) -> MaybeGas {
+        self.gas_used
+    }
 }
 
 impl From<SpawnAppError> for SpawnAppReceipt {

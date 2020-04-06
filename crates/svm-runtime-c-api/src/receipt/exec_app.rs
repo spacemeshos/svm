@@ -32,7 +32,7 @@ pub(crate) fn encode_exec_receipt(receipt: &ExecReceipt) -> Vec<u8> {
 
     if receipt.success {
         encode_new_state(receipt, &mut w);
-        helpers::encode_returns(&wrapped_receipt, &mut w);
+        encode_returns(receipt, &mut w);
         helpers::encode_gas_used(&wrapped_receipt, &mut w);
     } else {
         encode_error(&wrapped_receipt, &mut w);
@@ -47,6 +47,13 @@ fn encode_new_state(receipt: &ExecReceipt, w: &mut NibbleWriter) {
     let new_state = receipt.get_new_state();
 
     helpers::encode_state(&new_state, w);
+}
+
+fn encode_returns(receipt: &ExecReceipt, w: &mut NibbleWriter) {
+    debug_assert!(receipt.success);
+
+    let returns = receipt.get_returns();
+    helpers::encode_returns(&returns, w);
 }
 
 #[cfg(test)]

@@ -34,7 +34,7 @@ pub(crate) fn encode_app_receipt(receipt: &SpawnAppReceipt) -> Vec<u8> {
     if receipt.success {
         encode_app_addr(receipt, &mut w);
         encode_init_state(receipt, &mut w);
-        helpers::encode_returns(&wrapped_receipt, &mut w);
+        encode_returns(&receipt, &mut w);
         helpers::encode_gas_used(&wrapped_receipt, &mut w);
     } else {
         encode_error(&wrapped_receipt, &mut w);
@@ -55,6 +55,13 @@ fn encode_init_state(receipt: &SpawnAppReceipt, w: &mut NibbleWriter) {
 
     let state = receipt.get_init_state();
     helpers::encode_state(&state, w);
+}
+
+fn encode_returns(receipt: &SpawnAppReceipt, w: &mut NibbleWriter) {
+    debug_assert!(receipt.success);
+
+    let returns = receipt.get_returns();
+    helpers::encode_returns(&returns, w);
 }
 
 #[cfg(test)]
