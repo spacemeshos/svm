@@ -795,7 +795,7 @@ pub unsafe extern "C" fn svm_byte_array_destroy(bytes: svm_byte_array) {
 ///
 /// # Panics
 ///
-/// Panics the `receipt` input is invalid.
+/// Panics when `receipt` input is invalid.
 ///
 #[no_mangle]
 pub unsafe extern "C" fn svm_template_receipt_addr(
@@ -826,7 +826,7 @@ pub unsafe extern "C" fn svm_template_receipt_addr(
 ///
 /// # Panics
 ///
-/// Panics the `receipt` input is invalid.
+/// Panics when `receipt` input is invalid.
 ///
 #[no_mangle]
 pub unsafe extern "C" fn svm_template_receipt_gas(
@@ -857,7 +857,7 @@ pub unsafe extern "C" fn svm_template_receipt_gas(
 ///
 /// # Panics
 ///
-/// Panics the `receipt` input is invalid.
+/// Panics when `receipt` input is invalid.
 ///
 #[no_mangle]
 pub unsafe extern "C" fn svm_app_receipt_status(
@@ -881,7 +881,7 @@ pub unsafe extern "C" fn svm_app_receipt_status(
 ///
 /// # Panics
 ///
-/// Panics the `receipt` input is invalid.
+/// Panics when `receipt` input is invalid.
 ///
 #[no_mangle]
 pub unsafe extern "C" fn svm_app_receipt_addr(
@@ -912,7 +912,7 @@ pub unsafe extern "C" fn svm_app_receipt_addr(
 ///
 /// # Panics
 ///
-/// Panics the `receipt` input is invalid.
+/// Panics when `receipt` input is invalid.
 ///
 #[no_mangle]
 pub unsafe extern "C" fn svm_app_receipt_gas(
@@ -943,7 +943,7 @@ pub unsafe extern "C" fn svm_app_receipt_gas(
 ///
 /// # Panics
 ///
-/// Panics the `receipt` input is invalid.
+/// Panics when `receipt` input is invalid.
 ///
 #[no_mangle]
 pub unsafe extern "C" fn svm_app_receipt_state(
@@ -971,7 +971,7 @@ pub unsafe extern "C" fn svm_app_receipt_state(
 ///
 /// # Panics
 ///
-/// Panics the `receipt` input is invalid.
+/// Panics when `receipt` input is invalid.
 ///
 #[no_mangle]
 pub unsafe extern "C" fn svm_exec_receipt_status(
@@ -995,7 +995,7 @@ pub unsafe extern "C" fn svm_exec_receipt_status(
 ///
 /// # Panics
 ///
-/// Panics the `receipt` input is invalid.
+/// Panics when `receipt` input is invalid.
 ///
 #[no_mangle]
 pub unsafe extern "C" fn svm_exec_receipt_state(
@@ -1026,7 +1026,7 @@ pub unsafe extern "C" fn svm_exec_receipt_state(
 ///
 /// # Panics
 ///
-/// Panics the `receipt` input is invalid.
+/// Panics when `receipt` input is invalid.
 ///
 #[no_mangle]
 pub unsafe extern "C" fn svm_exec_receipt_gas(
@@ -1048,6 +1048,15 @@ pub unsafe extern "C" fn svm_exec_receipt_gas(
     }
 }
 
+/// Given a raw `deploy-template` transaction (the `bytes` parameter),
+/// if it's valid (i.e: passes the `svm_validate_template`), returns `SVM_SUCCESS` and the estimated gas that will be required
+/// in order to execute the transaction (via the `estimate` parameter).
+///
+/// # Panics
+///
+/// Panics when `bytes` input is not a valid `deploy-template` raw transaction.
+/// Having `bytes` a valid raw input doesn't necessarily imply that `svm_validate_template` passes.
+///
 #[no_mangle]
 pub unsafe extern "C" fn svm_estimate_deploy_template(
     _estimate: *mut u64,
@@ -1060,6 +1069,15 @@ pub unsafe extern "C" fn svm_estimate_deploy_template(
     todo!()
 }
 
+/// Given a raw `spawn-app` transaction (the `bytes` parameter),
+/// if it's valid (i.e: passes the `svm_validate_app`), returns `SVM_SUCCESS` and the estimated gas that will be required
+/// in order to execute the transaction (via the `estimate` parameter).
+///
+/// # Panics
+///
+/// Panics when `bytes` input is not a valid `spawn-app` raw transaction.
+/// Having `bytes` a valid raw input doesn't necessarily imply that `svm_validate_app` passes.
+///
 #[no_mangle]
 pub unsafe extern "C" fn svm_estimate_spawn_app(
     _estimate: *mut u64,
@@ -1070,6 +1088,15 @@ pub unsafe extern "C" fn svm_estimate_spawn_app(
     todo!()
 }
 
+/// Given a raw `exec-app` transaction (the `bytes` parameter),
+/// if it's valid (i.e: passes the `svm_validate_tx`), returns `SVM_SUCCESS` and the estimated gas that will be required
+/// in order to execute the transaction (via the `estimate` parameter).
+///
+/// # Panics
+///
+/// Panics when `bytes` input is not a valid `exec-app` raw transaction.
+/// Having `bytes` a valid raw input doesn't necessarily imply that `svm_validate_tx` passes.
+///
 #[no_mangle]
 pub unsafe extern "C" fn svm_estimate_exec_app(
     _estimate: *mut u64,

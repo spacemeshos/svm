@@ -15,10 +15,7 @@
 //!  See [error.rs][./error.rs]
 
 use svm_app::raw::NibbleWriter;
-use svm_runtime::{
-    gas::MaybeGas,
-    receipt::{Receipt, TemplateReceipt},
-};
+use svm_runtime::receipt::{Receipt, TemplateReceipt};
 
 use super::{encode_error, helpers};
 
@@ -53,7 +50,7 @@ mod tests {
 
     use svm_app::types::TemplateAddr;
     use svm_common::Address;
-    use svm_runtime::receipt::TemplateReceipt;
+    use svm_runtime::{gas::MaybeGas, receipt::TemplateReceipt};
 
     use crate::testing::{self, ClientTemplateReceipt};
 

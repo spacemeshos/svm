@@ -3,7 +3,7 @@ use svm_app::{
     types::WasmValue,
 };
 use svm_common::{Address, State};
-use svm_runtime::{gas::MaybeGas, receipt::Receipt};
+use svm_runtime::receipt::Receipt;
 
 pub(crate) fn encode_is_success(receipt: &Receipt, w: &mut NibbleWriter) {
     let nib = if receipt.is_success() {

@@ -1,5 +1,5 @@
-#![allow(missing_docs)]
-#![allow(unused)]
+#![deny(missing_docs)]
+#![deny(unused)]
 #![deny(dead_code)]
 #![deny(unreachable_code)]
 #![feature(vec_into_raw_parts)]
