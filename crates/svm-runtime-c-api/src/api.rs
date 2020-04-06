@@ -15,6 +15,17 @@ use crate::{
     RuntimePtr,
 };
 
+macro_rules! max_gas {
+    ($estimation:expr) => {{
+        use svm_gas::Gas;
+
+        match $estimation {
+            Gas::Fixed(gas) => gas,
+            Gas::Range { max: gas, .. } => gas,
+        }
+    }};
+}
+
 macro_rules! maybe_gas {
     ($gas_metering:expr, $gas_limit:expr) => {{
         use svm_runtime::gas::MaybeGas;
@@ -1051,7 +1062,7 @@ pub unsafe extern "C" fn svm_exec_receipt_gas(
 /// Given a raw `deploy-template` transaction (the `bytes` parameter),
 /// if it's valid (i.e: passes the `svm_validate_template`), returns `SVM_SUCCESS` and the estimated gas that will be required
 /// in order to execute the transaction (via the `estimate` parameter).
-///
+
 /// # Panics
 ///
 /// Panics when `bytes` input is not a valid `deploy-template` raw transaction.
@@ -1059,14 +1070,23 @@ pub unsafe extern "C" fn svm_exec_receipt_gas(
 ///
 #[no_mangle]
 pub unsafe extern "C" fn svm_estimate_deploy_template(
-    _estimate: *mut u64,
+    estimation: *mut u64,
     runtime: *mut c_void,
-    _bytes: svm_byte_array,
-    _error: *mut svm_byte_array,
+    bytes: svm_byte_array,
+    error: *mut svm_byte_array,
 ) -> svm_result_t {
-    let _runtime = helpers::cast_to_runtime_mut(runtime);
+    let runtime = helpers::cast_to_runtime_mut(runtime);
 
-    todo!()
+    match runtime.estimate_deploy_template(bytes.into()) {
+        Ok(est) => {
+            *estimation = max_gas!(est);
+            svm_result_t::SVM_SUCCESS
+        }
+        Err(e) => {
+            raw_validate_error(&e, error);
+            svm_result_t::SVM_FAILURE
+        }
+    }
 }
 
 /// Given a raw `spawn-app` transaction (the `bytes` parameter),
@@ -1080,12 +1100,23 @@ pub unsafe extern "C" fn svm_estimate_deploy_template(
 ///
 #[no_mangle]
 pub unsafe extern "C" fn svm_estimate_spawn_app(
-    _estimate: *mut u64,
-    _runtime: *mut c_void,
-    _bytes: svm_byte_array,
-    _error: *mut svm_byte_array,
+    estimation: *mut u64,
+    runtime: *mut c_void,
+    bytes: svm_byte_array,
+    error: *mut svm_byte_array,
 ) -> svm_result_t {
-    todo!()
+    let runtime = helpers::cast_to_runtime_mut(runtime);
+
+    match runtime.estimate_spawn_app(bytes.into()) {
+        Ok(est) => {
+            *estimation = max_gas!(est);
+            svm_result_t::SVM_SUCCESS
+        }
+        Err(e) => {
+            raw_validate_error(&e, error);
+            svm_result_t::SVM_FAILURE
+        }
+    }
 }
 
 /// Given a raw `exec-app` transaction (the `bytes` parameter),
@@ -1099,10 +1130,21 @@ pub unsafe extern "C" fn svm_estimate_spawn_app(
 ///
 #[no_mangle]
 pub unsafe extern "C" fn svm_estimate_exec_app(
-    _estimate: *mut u64,
-    _runtime: *mut c_void,
-    _bytes: svm_byte_array,
-    _error: *mut svm_byte_array,
+    estimation: *mut u64,
+    runtime: *mut c_void,
+    bytes: svm_byte_array,
+    error: *mut svm_byte_array,
 ) -> svm_result_t {
-    todo!()
+    let runtime = helpers::cast_to_runtime_mut(runtime);
+
+    match runtime.estimate_exec_app(bytes.into()) {
+        Ok(est) => {
+            *estimation = max_gas!(est);
+            svm_result_t::SVM_SUCCESS
+        }
+        Err(e) => {
+            raw_validate_error(&e, error);
+            svm_result_t::SVM_FAILURE
+        }
+    }
 }

@@ -20,13 +20,13 @@ pub trait Runtime {
     fn validate_tx(&self, bytes: &[u8]) -> Result<AppAddr, ValidateError>;
 
     /// Estimates the `Gas` required for deploying template givee as raw `bytes`.
-    fn estimate_deploy_template(&self, _bytes: &[u8], _host_ctx: HostCtx) -> Gas;
+    fn estimate_deploy_template(&self, bytes: &[u8]) -> Result<Gas, ValidateError>;
 
     /// Estimates the `Gas` required for spawning app given as raw `bytes`.
-    fn estimate_spawn_app(&self, _bytes: &[u8], _host_ctx: HostCtx) -> Gas;
+    fn estimate_spawn_app(&self, bytes: &[u8]) -> Result<Gas, ValidateError>;
 
     /// Estimates the `Gas` required for executing app-transaction given as raw `bytes`.
-    fn estimate_exec_app(&self, _bytes: &[u8], _state: &State, _host_ctx: HostCtx) -> Gas;
+    fn estimate_exec_app(&self, bytes: &[u8]) -> Result<Gas, ValidateError>;
 
     /// Deploy an new app-template
     fn deploy_template(

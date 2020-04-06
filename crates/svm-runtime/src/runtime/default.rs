@@ -82,15 +82,21 @@ where
             .map_err(|e| e.into())
     }
 
-    fn estimate_deploy_template(&self, _bytes: &[u8], _host_ctx: HostCtx) -> Gas {
+    fn estimate_deploy_template(&self, bytes: &[u8]) -> Result<Gas, ValidateError> {
+        self.validate_template(bytes)?;
+
         todo!()
     }
 
-    fn estimate_spawn_app(&self, _bytes: &[u8], _host_ctx: HostCtx) -> Gas {
+    fn estimate_spawn_app(&self, bytes: &[u8]) -> Result<Gas, ValidateError> {
+        self.validate_app(bytes)?;
+
         todo!()
     }
 
-    fn estimate_exec_app(&self, _bytes: &[u8], _state: &State, _host_ctx: HostCtx) -> Gas {
+    fn estimate_exec_app(&self, bytes: &[u8]) -> Result<Gas, ValidateError> {
+        self.validate_tx(bytes)?;
+
         todo!()
     }
 
