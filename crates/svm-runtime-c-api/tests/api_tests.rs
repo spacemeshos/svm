@@ -240,7 +240,8 @@ unsafe fn test_svm_runtime() {
 
     // extract the `template-address` out of theh receipt
     let mut template_addr = svm_byte_array::default();
-    api::svm_template_receipt_addr(&mut template_addr, template_receipt);
+    let res = api::svm_template_receipt_addr(&mut template_addr, template_receipt, &mut error);
+    assert!(res.is_ok());
 
     // 3) spawn app
     let creator = Address::of("creator").into();
@@ -281,8 +282,11 @@ unsafe fn test_svm_runtime() {
     let mut app_addr = svm_byte_array::default();
     let mut init_state = svm_byte_array::default();
 
-    api::svm_app_receipt_addr(&mut app_addr, app_receipt);
-    api::svm_app_receipt_state(&mut init_state, app_receipt);
+    let res = api::svm_app_receipt_addr(&mut app_addr, app_receipt, &mut error);
+    assert!(res.is_ok());
+
+    let res = api::svm_app_receipt_state(&mut init_state, app_receipt, &mut error);
+    assert!(res.is_ok());
 
     // 4) execute app
     let (user, addition, func_idx, func_buf, func_args) = exec_app_args();

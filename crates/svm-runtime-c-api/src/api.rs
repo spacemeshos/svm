@@ -788,6 +788,9 @@ pub unsafe extern "C" fn svm_byte_array_destroy(bytes: svm_byte_array) {
 /// then calling `svm_template_receipt_addr` should return `SVM_FAILURE` since there is no template `Address` to extract.
 /// The error will be returned via the `error` parameter.
 
+/// `Deploy-Template` Receipt helpers
+///  -------------------------------------------------------
+
 /// Extracts the deploy-template `Address` into the `template_addr` parameter. (useful for tests).
 ///
 /// # Panics
@@ -813,6 +816,40 @@ pub unsafe extern "C" fn svm_template_receipt_addr(
         }
     }
 }
+
+/// Extracts the `gas_used` for the deploy-template.
+/// When deploying succeeded returns `SVM_SUCCESS`, returns the amount of gas used via `gas_used` parameter.
+/// Othewrise, returns `SVM_FAILURE` and the error message via the `error` parameter.
+///
+/// It's up for the Host to decide the gas fee to for a failed deploy.
+/// (usually the strategy will be to fine with the `gas_limit` of the failed transaction).
+///
+/// # Panics
+///
+/// Panics the `receipt` input is invalid.
+///
+#[no_mangle]
+pub unsafe extern "C" fn svm_template_receipt_gas(
+    gas_used: *mut u64,
+    receipt: svm_byte_array,
+    error: *mut svm_byte_array,
+) -> svm_result_t {
+    let client_receipt = testing::decode_template_receipt(receipt.into());
+
+    match client_receipt {
+        ClientTemplateReceipt::Success { gas_used: gas, .. } => {
+            *gas_used = gas;
+            svm_result_t::SVM_SUCCESS
+        }
+        ClientTemplateReceipt::Failure { error: err_str } => {
+            raw_error(err_str, error);
+            svm_result_t::SVM_FAILURE
+        }
+    }
+}
+
+/// `Spawn-App` Receipt helpers
+///  -------------------------------------------------------
 
 /// Extracts whether the `spawn-app` transaction succeeded.
 /// If it succeeded, returns `SVM_SUCCESS`,
@@ -865,6 +902,40 @@ pub unsafe extern "C" fn svm_app_receipt_addr(
         }
     }
 }
+
+/// Extracts the `gas_used` for spawned-app (including running its constructor).
+/// When spawn succeeded returns `SVM_SUCCESS`, returns the amount of gas used via `gas_used` parameter.
+/// Othewrise, returns `SVM_FAILURE` and the error message via the `error` parameter.
+///
+/// It's up for the Host to decide the gas fee to for failed spawning.
+/// (usually the strategy will be to fine with the `gas_limit` of the failed transaction).
+///
+/// # Panics
+///
+/// Panics the `receipt` input is invalid.
+///
+#[no_mangle]
+pub unsafe extern "C" fn svm_app_receipt_gas(
+    gas_used: *mut u64,
+    receipt: svm_byte_array,
+    error: *mut svm_byte_array,
+) -> svm_result_t {
+    let client_receipt = testing::decode_app_receipt(receipt.into());
+
+    match client_receipt {
+        ClientAppReceipt::Success { gas_used: gas, .. } => {
+            *gas_used = gas;
+            svm_result_t::SVM_SUCCESS
+        }
+        ClientAppReceipt::Failure { error: err_str } => {
+            raw_error(err_str, error);
+            svm_result_t::SVM_FAILURE
+        }
+    }
+}
+
+/// `Exec-App` Receipt helpers
+///  -------------------------------------------------------
 
 /// Extracts the spawned-app initial `State`.
 /// When spawning succeeds returns `SVM_SUCCESS` and the initial `State` via `state` parameter.
@@ -919,7 +990,7 @@ pub unsafe extern "C" fn svm_exec_receipt_status(
 }
 
 /// Extracts the executed transaction new `State`.
-/// When transaction succeeds returns `SVM_SUCCESS` and the new `State` via `state` parameter.
+/// When transaction succeeded returns `SVM_SUCCESS` and the new `State` via `state` parameter.
 /// Othewrise, returns `SVM_FAILURE` and the error message via the `error` parameter.
 ///
 /// # Panics
@@ -937,6 +1008,37 @@ pub unsafe extern "C" fn svm_exec_receipt_state(
     match client_receipt {
         ClientExecReceipt::Success { new_state, .. } => {
             state_to_svm_byte_array!(state, new_state);
+            svm_result_t::SVM_SUCCESS
+        }
+        ClientExecReceipt::Failure { error: err_str } => {
+            raw_error(err_str, error);
+            svm_result_t::SVM_FAILURE
+        }
+    }
+}
+
+/// Extracts the executed transaction `gas_used`.
+/// When transaction succeeded returns `SVM_SUCCESS`, returns the amount of gas used via `gas_used` parameter.
+/// Othewrise, returns `SVM_FAILURE` and the error message via the `error` parameter.
+///
+/// It's up for the Host to decide the gas fee to for failed transactions.
+/// (usually the strategy will be to fine with the `gas_limit` of the failed transaction).
+///
+/// # Panics
+///
+/// Panics the `receipt` input is invalid.
+///
+#[no_mangle]
+pub unsafe extern "C" fn svm_exec_receipt_gas(
+    gas_used: *mut u64,
+    receipt: svm_byte_array,
+    error: *mut svm_byte_array,
+) -> svm_result_t {
+    let client_receipt = testing::decode_exec_receipt(receipt.into());
+
+    match client_receipt {
+        ClientExecReceipt::Success { gas_used: gas, .. } => {
+            *gas_used = gas;
             svm_result_t::SVM_SUCCESS
         }
         ClientExecReceipt::Failure { error: err_str } => {
