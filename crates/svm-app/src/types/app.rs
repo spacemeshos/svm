@@ -21,7 +21,7 @@ impl fmt::Debug for App {
 
         let msg = [version, template].join("\n");
 
-        write!(f, "{}", msg)
+        writeln!(f, "{}", msg)
     }
 }
 
