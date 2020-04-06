@@ -5,7 +5,7 @@ use svm_common::Address;
 
 struct SpawnAppTestCase {
     version: String,
-    template_addr: String,
+    template_addr_hex: String,
     ctor_index: String,
     ctor_buf: String,
     ctor_args: Vec<String>,
@@ -16,14 +16,14 @@ fn encode_decode() {
     let cases = vec![
         SpawnAppTestCase {
             version: String::from("0"),
-            template_addr: String::from("00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa"),
+            template_addr_hex: String::from("00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa"),
             ctor_index: String::from("0"),
             ctor_buf: String::from("11bb11bb12345678"),
             ctor_args: vec![String::from("10i32"), String::from("20i64")],
         },
         SpawnAppTestCase {
             version: String::from("0"),
-            template_addr: String::from("00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa"),
+            template_addr_hex: String::from("00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa"),
             ctor_index: String::from("12"),
             ctor_buf: String::from(""),
             ctor_args: vec![String::from("1073741824i64"), String::from("0i32")],
@@ -46,13 +46,18 @@ fn test_encode_decode(case: SpawnAppTestCase) {
         "spawn_app",
         output_path,
         &case.version,
-        &case.template_addr,
+        &case.template_addr_hex,
         &case.ctor_index,
         &case.ctor_buf,
     ];
-    for i in 0..case.ctor_args.len() {
-        input.push(&case.ctor_args[i]);
-    }
+    input.extend_from_slice(
+        &case
+            .ctor_args
+            .iter()
+            .map(|s| s.as_str())
+            .collect::<Vec<_>>(),
+    );
+
     let matches = cli::new_app().get_matches_from(input);
     let output = cli::process(matches).unwrap();
 
@@ -72,32 +77,32 @@ fn test_encode_decode(case: SpawnAppTestCase) {
     let caps = re.captures(&output).unwrap();
 
     assert_eq!(&caps[1], case.version);
-    assert_eq!(&caps[2], {
-        let template_addr = hex::decode(case.template_addr).unwrap();
-        let template_addr = Address::from(template_addr.as_slice());
-        template_addr.fmt(4, 4, " ")
-    });
+    assert_eq!(&caps[2], fmt_addr(&case.template_addr_hex));
     assert_eq!(&caps[3], case.ctor_index);
-    assert_eq!(
-        &caps[4],
-        format!(
-            "{:?}",
-            hex::decode(case.ctor_buf)
-                .unwrap()
-                .iter()
-                .take(4)
-                .collect::<Vec<_>>()
-        )
-    );
-    assert_eq!(
-        &caps[5],
-        format!("{:?}", {
-            case.ctor_args
-                .iter()
-                .map(|v| wasm_value::parse_str(v).unwrap())
-                .collect::<Vec<_>>()
-        })
-    );
+    assert_eq!(&caps[4], fmt_buf(&case.ctor_buf));
+    assert_eq!(&caps[5], fmt_args(case.ctor_args));
+}
+
+fn fmt_addr(addr_hex: &str) -> String {
+    let addr = hex::decode(addr_hex).unwrap();
+    let addr = Address::from(addr.as_slice());
+    addr.fmt(4, 4, " ")
+}
+
+fn fmt_buf(hex: &str) -> String {
+    format!(
+        "{:?}",
+        hex::decode(hex).unwrap().iter().take(4).collect::<Vec<_>>()
+    )
+}
+
+fn fmt_args(args: Vec<String>) -> String {
+    format!(
+        "{:?}",
+        args.iter()
+            .map(|v| wasm_value::parse_str(v).unwrap())
+            .collect::<Vec<_>>()
+    )
 }
 
 #[test]
