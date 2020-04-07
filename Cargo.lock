@@ -809,6 +809,7 @@ dependencies = [
  "libc",
  "log",
  "rocksdb",
+ "svm-abi",
  "svm-app",
  "svm-common",
  "svm-compiler",
@@ -825,6 +826,10 @@ dependencies = [
  "wasmer-runtime-core",
  "wasmer-singlepass-backend",
 ]
+
+[[package]]
+name = "svm-abi"
+version = "0.1.0"
 
 [[package]]
 name = "svm-app"
