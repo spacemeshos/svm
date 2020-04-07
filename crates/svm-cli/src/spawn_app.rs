@@ -27,17 +27,13 @@ pub fn encode(
         ctor_args_vals = Some(common::decode_args(ctor_args)?);
     }
 
-    let mut builder = SpawnAppBuilder::new()
+    let bytes = SpawnAppBuilder::new()
         .with_version(version)
         .with_template(&template_addr.into())
-        .with_ctor_index(ctor_idx);
-    if let Some(ctor_buf) = ctor_buf {
-        builder = builder.with_ctor_buf(&ctor_buf)
-    }
-    if let Some(ctor_args_vals) = ctor_args_vals {
-        builder = builder.with_ctor_args(&ctor_args_vals);
-    }
-    let bytes = builder.build();
+        .with_ctor_index(ctor_idx)
+        .with_ctor_buf(&ctor_buf.unwrap_or(vec![]))
+        .with_ctor_args(&ctor_args_vals.unwrap_or(vec![]))
+        .build();
 
     common::write_to_file(output_path, &bytes)?;
 

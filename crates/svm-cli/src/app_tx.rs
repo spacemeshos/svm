@@ -27,17 +27,13 @@ pub fn encode(
         func_args_vals = Some(common::decode_args(func_args)?);
     }
 
-    let mut builder = AppTxBuilder::new()
+    let bytes = AppTxBuilder::new()
         .with_version(version)
         .with_app(&app_addr.into())
-        .with_func_index(func_idx);
-    if let Some(func_buf) = func_buf {
-        builder = builder.with_func_buf(&func_buf)
-    }
-    if let Some(func_args_vals) = func_args_vals {
-        builder = builder.with_func_args(&func_args_vals);
-    }
-    let bytes = builder.build();
+        .with_func_index(func_idx)
+        .with_func_buf(&func_buf.unwrap_or(vec![]))
+        .with_func_args(&func_args_vals.unwrap_or(vec![]))
+        .build();
 
     common::write_to_file(output_path, &bytes)?;
 
