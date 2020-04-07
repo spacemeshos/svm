@@ -115,6 +115,30 @@ fn runtime_deploy_template_reaches_oog() {
 }
 
 #[test]
+fn runtime_deploy_template_has_enough_gas() {
+    let mut runtime = default_runtime!();
+
+    let version = 0;
+    let page_count = 10;
+    let author = Address::of("author").into();
+    let gas_limit = MaybeGas::with(1_0000_000);
+    let dry_run = false;
+    let is_wast = true;
+
+    let bytes = testing::build_template(
+        version,
+        "My Template",
+        page_count,
+        include_str!("wasm/runtime_app_ctor.wast"),
+        is_wast,
+    );
+
+    let receipt = runtime.deploy_template(&bytes, &author, HostCtx::new(), gas_limit, dry_run);
+    assert!(receipt.success);
+    assert!(receipt.gas_used.is_some());
+}
+
+#[test]
 fn runtime_spawn_app_with_ctor_reaches_oog() {
     let mut runtime = default_runtime!();
 
@@ -155,7 +179,7 @@ fn runtime_spawn_app_with_ctor_reaches_oog() {
 }
 
 #[test]
-fn runtime_spawn_app_with_ctor() {
+fn runtime_spawn_app_with_ctor_with_enough_gas() {
     let mut runtime = default_runtime!();
 
     // 1) deploying the template
@@ -177,6 +201,7 @@ fn runtime_spawn_app_with_ctor() {
 
     let receipt = runtime.deploy_template(&bytes, &author, HostCtx::new(), maybe_gas, dry_run);
     assert!(receipt.success);
+    assert!(receipt.gas_used.is_some());
 
     let template_addr = receipt.addr.unwrap();
 
@@ -185,10 +210,12 @@ fn runtime_spawn_app_with_ctor() {
     let ctor_idx = 0;
     let ctor_buf = vec![0xAA, 0xBB, 0xBB, 0xCC, 0xCC, 0xCC, 0xDD, 0xDD, 0xDD, 0xDD];
     let ctor_args = vec![WasmValue::I32(buf_size)];
-
     let bytes = testing::build_app(version, &template_addr, ctor_idx, &ctor_buf, &ctor_args);
+    let gas_limit = MaybeGas::with(1_000_000);
 
-    let receipt = runtime.spawn_app(&bytes, &creator, HostCtx::new(), maybe_gas, dry_run);
+    let receipt = runtime.spawn_app(&bytes, &creator, HostCtx::new(), gas_limit, dry_run);
+    assert!(receipt.success);
+    assert!(receipt.gas_used.is_some());
 
     let settings = AppSettings {
         page_count,

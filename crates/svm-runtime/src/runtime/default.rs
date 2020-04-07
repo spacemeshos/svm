@@ -114,7 +114,7 @@ where
         let install_gas = self.compute_install_template_gas(bytes, &template);
 
         if gas_limit >= install_gas {
-            let gas_used = MaybeGas::with(0);
+            let gas_used = MaybeGas::with(install_gas);
             let gas_left = gas_limit;
 
             self.install_template(&template, author, host_ctx, gas_used, gas_left, dry_run)
@@ -627,16 +627,14 @@ where
     }
 
     /// Gas
-    fn compute_install_template_gas(&self, _bytes: &[u8], _template: &AppTemplate) -> u64 {
-        100
+    fn compute_install_template_gas(&self, bytes: &[u8], _template: &AppTemplate) -> u64 {
         // todo!()
-        // GE::est_deploy_template(bytes, template)
+        1000 * (bytes.len() as u64)
     }
 
-    fn compute_install_app_gas(&self, _bytes: &[u8], _spawn: &SpawnApp) -> u64 {
-        100
+    fn compute_install_app_gas(&self, bytes: &[u8], _spawn: &SpawnApp) -> u64 {
         // todo!()
-        // GE::est_spawn_app(bytes, spawn)
+        1000 * (bytes.len() as u64)
     }
 
     /// Helpers
