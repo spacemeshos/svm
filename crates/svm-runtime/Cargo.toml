@@ -23,6 +23,9 @@ path = "../svm-app"
 [dependencies.svm-compiler]
 path = "../svm-compiler"
 
+[dependencies.svm-gas]
+path = "../svm-gas"
+
 [dependencies.wasmer-runtime]
 default-features = false
 git = "https://github.com/spacemeshos/wasmer"
@@ -30,6 +33,11 @@ branch = "develop"
 features = ["default-backend-singlepass"]
 
 [dependencies.wasmer-runtime-core]
+default-features = false
+git = "https://github.com/spacemeshos/wasmer"
+branch = "develop"
+
+[dependencies.wasmer-middleware-common]
 default-features = false
 git = "https://github.com/spacemeshos/wasmer"
 branch = "develop"

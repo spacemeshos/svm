@@ -1,16 +1,18 @@
 //!           `Spawn App` Receipt Raw Format Version 0
 //!
 //!  On success (`is_success = 1`)
-//!  +-------------------------------------------------------+
-//!  |   format   |              |                           |
-//!  |  version   |  is_success  |     App Address           |
-//!  |  (4 bytes) |   (1 byte)   |      (20 bytes)           |
-//!  +____________|______________|___________________________+
-//!  |              |           |          |        |        |
-//!  |  init state  | #returns  | ret #1   | ret #1 |        |
-//!  |  (32 bytes)  | (2 bytes) |   type   |  value |  ...   |
-//!  |              |           | (1 byte) |        |        |
-//!  +______________|___________|__________|________|________+
+//!  +----------------------------------------------------+
+//!  |   format   |              |                        |
+//!  |  version   |  is_success  |     App Address        |
+//!  |  (4 bytes) |   (1 byte)   |      (20 bytes)        |
+//!  +____________|______________|________________________+
+//!  |              |           |             |           |
+//!  |  init state  | #returns  | ret #1 type | ret  #1   |
+//!  |  (32 bytes)  |           |             |           |     
+//!  +______________|___________|_____________|___________+
+//!  |          |            |                            |
+//!  |  ret #2  |   .  .  .  |         gas_used           |
+//!  +__________|____________|____________________________+
 //!
 //!
 //!  On success (`is_success = 0`)
@@ -32,7 +34,8 @@ pub(crate) fn encode_app_receipt(receipt: &SpawnAppReceipt) -> Vec<u8> {
     if receipt.success {
         encode_app_addr(receipt, &mut w);
         encode_init_state(receipt, &mut w);
-        helpers::encode_returns(&wrapped_receipt, &mut w);
+        encode_returns(&receipt, &mut w);
+        helpers::encode_gas_used(&wrapped_receipt, &mut w);
     } else {
         encode_error(&wrapped_receipt, &mut w);
     };
@@ -54,16 +57,22 @@ fn encode_init_state(receipt: &SpawnAppReceipt, w: &mut NibbleWriter) {
     helpers::encode_state(&state, w);
 }
 
+fn encode_returns(receipt: &SpawnAppReceipt, w: &mut NibbleWriter) {
+    debug_assert!(receipt.success);
+
+    let returns = receipt.get_returns();
+    helpers::encode_returns(&returns, w);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     use crate::testing::{self, ClientAppReceipt};
 
-    use svm_app::types::AppAddr;
-    use svm_app::types::WasmValue;
+    use svm_app::{types::AppAddr, types::WasmValue};
     use svm_common::{Address, State};
-    use svm_runtime::error::SpawnAppError;
+    use svm_runtime::{error::SpawnAppError, gas::MaybeGas};
 
     #[test]
     fn encode_decode_app_receipt_error() {
@@ -81,7 +90,7 @@ mod tests {
             app_addr: None,
             init_state: None,
             returns: None,
-            gas_used: None,
+            gas_used: MaybeGas::new(),
         };
 
         let bytes = encode_app_receipt(&receipt);
@@ -99,6 +108,7 @@ mod tests {
             addr: addr.clone(),
             init_state: init_state.clone(),
             ctor_returns: "".to_string(),
+            gas_used: 100,
         };
 
         let receipt = SpawnAppReceipt {
@@ -107,7 +117,7 @@ mod tests {
             app_addr: Some(addr),
             init_state: Some(init_state),
             returns: Some(Vec::new()),
-            gas_used: Some(100),
+            gas_used: MaybeGas::with(100),
         };
 
         let bytes = encode_app_receipt(&receipt);
@@ -126,6 +136,7 @@ mod tests {
             addr: addr.clone(),
             init_state: init_state.clone(),
             ctor_returns: "I32(10), I64(20), I32(30)".to_string(),
+            gas_used: 100,
         };
 
         let receipt = SpawnAppReceipt {
@@ -134,7 +145,7 @@ mod tests {
             app_addr: Some(addr),
             init_state: Some(init_state),
             returns: Some(returns),
-            gas_used: Some(100),
+            gas_used: MaybeGas::with(100),
         };
 
         let bytes = encode_app_receipt(&receipt);

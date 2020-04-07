@@ -6,6 +6,7 @@ use svm_app::types::{AppAddr, TemplateAddr};
 #[allow(missing_docs)]
 #[derive(PartialEq, Clone)]
 pub enum ExecAppError {
+    OOG,
     AppNotFound {
         app_addr: AppAddr,
     },
@@ -44,6 +45,7 @@ pub enum ExecAppError {
 impl error::Error for ExecAppError {
     fn description(&self) -> &'static str {
         match self {
+            ExecAppError::OOG => "Out of Gas",
             ExecAppError::AppNotFound { .. } => "App not found",
             ExecAppError::CompilationFailed { .. } => "Compilation failed",
             ExecAppError::InstantiationFailed { .. } => "Instance Instantiation failed",
@@ -63,6 +65,7 @@ impl fmt::Debug for ExecAppError {
 impl fmt::Display for ExecAppError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let msg = match self {
+            ExecAppError::OOG => self.fmt_oog(),
             ExecAppError::AppNotFound { app_addr } => self.fmt_app_not_found(app_addr),
             ExecAppError::CompilationFailed {
                 app_addr,
@@ -108,10 +111,17 @@ impl fmt::Display for ExecAppError {
 }
 
 impl ExecAppError {
+    #[inline]
+    fn fmt_oog(&self) -> String {
+        "Out of Gas".to_string()
+    }
+
+    #[inline]
     fn fmt_app_not_found(&self, app_addr: &AppAddr) -> String {
         format!("App `{:?}` not found", app_addr.inner())
     }
 
+    #[inline]
     fn fmt_compilation_failed(
         &self,
         app_addr: &AppAddr,
@@ -126,6 +136,7 @@ impl ExecAppError {
         )
     }
 
+    #[inline]
     fn fmt_instantiation_failed(
         &self,
         app_addr: &AppAddr,
@@ -140,6 +151,7 @@ impl ExecAppError {
         )
     }
 
+    #[inline]
     fn fmt_func_not_found(
         &self,
         app_addr: &AppAddr,
@@ -154,6 +166,7 @@ impl ExecAppError {
         )
     }
 
+    #[inline]
     fn fmt_exec_failed(
         &self,
         app_addr: &AppAddr,
@@ -168,6 +181,7 @@ impl ExecAppError {
         )
     }
 
+    #[inline]
     fn fmt_invalid_ret_value(
         &self,
         app_addr: &AppAddr,

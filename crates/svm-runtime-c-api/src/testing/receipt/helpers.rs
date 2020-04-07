@@ -1,5 +1,5 @@
 use svm_app::{
-    raw::{decode_varuint14, Field, Nibble, NibbleIter},
+    raw::{self, Field, Nibble, NibbleIter},
     types::WasmValue,
 };
 use svm_common::{Address, State};
@@ -10,7 +10,7 @@ pub(crate) fn decode_is_success(iter: &mut NibbleIter) -> u8 {
 }
 
 pub(crate) fn decode_receipt_error(iter: &mut NibbleIter) -> String {
-    let len = decode_varuint14(iter, Field::ErrorLength).unwrap();
+    let len = raw::decode_varuint14(iter, Field::ErrorLength).unwrap();
     let bytes = iter.read_bytes(len as usize);
 
     String::from_utf8(bytes).unwrap()
@@ -26,6 +26,10 @@ pub(crate) fn decode_address(iter: &mut NibbleIter) -> Address {
     let bytes = iter.read_bytes(Address::len());
 
     Address::from(&bytes[..])
+}
+
+pub(crate) fn decode_gas_used(iter: &mut NibbleIter) -> u64 {
+    raw::decode_gas_used(iter).unwrap()
 }
 
 pub(crate) fn wasm_values_str(values: &[WasmValue]) -> String {

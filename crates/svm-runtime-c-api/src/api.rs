@@ -7,13 +7,36 @@ use svm_common::{Address, State};
 use svm_runtime::{ctx::SvmCtx, gas::DefaultGasEstimator};
 
 use crate::{
-    helpers, raw_error, raw_parse_error, raw_utf8_error,
+    helpers, raw_error, raw_utf8_error, raw_validate_error,
     receipt::{encode_app_receipt, encode_exec_receipt, encode_template_receipt},
     svm_byte_array, svm_import_func_sig_t, svm_import_func_t, svm_import_kind, svm_import_t,
     svm_import_value, svm_result_t, svm_value_type_array,
     testing::{self, ClientAppReceipt, ClientExecReceipt, ClientTemplateReceipt},
     RuntimePtr,
 };
+
+macro_rules! max_gas {
+    ($estimation:expr) => {{
+        use svm_gas::Gas;
+
+        match $estimation {
+            Gas::Fixed(gas) => gas,
+            Gas::Range { max: gas, .. } => gas,
+        }
+    }};
+}
+
+macro_rules! maybe_gas {
+    ($gas_metering:expr, $gas_limit:expr) => {{
+        use svm_runtime::gas::MaybeGas;
+
+        if $gas_metering {
+            MaybeGas::with($gas_limit)
+        } else {
+            MaybeGas::new()
+        }
+    }};
+}
 
 macro_rules! addr_to_svm_byte_array {
     ($raw_byte_array:expr, $addr:expr) => {{
@@ -63,7 +86,7 @@ pub unsafe extern "C" fn svm_validate_template(
         Ok(()) => svm_result_t::SVM_SUCCESS,
         Err(e) => {
             error!("`svm_validate_template` returns `SVM_FAILURE`");
-            raw_parse_error(&e, error);
+            raw_validate_error(&e, error);
             svm_result_t::SVM_FAILURE
         }
     }
@@ -82,7 +105,7 @@ pub unsafe extern "C" fn svm_validate_app(
         Ok(()) => svm_result_t::SVM_SUCCESS,
         Err(e) => {
             error!("`svm_validate_app` returns `SVM_FAILURE`");
-            raw_parse_error(&e, error);
+            raw_validate_error(&e, error);
             svm_result_t::SVM_FAILURE
         }
     }
@@ -141,7 +164,7 @@ pub unsafe extern "C" fn svm_validate_tx(
         }
         Err(e) => {
             error!("`svm_validate_tx` returns `SVM_FAILURE`");
-            raw_parse_error(&e, error);
+            raw_validate_error(&e, error);
             svm_result_t::SVM_FAILURE
         }
     }
@@ -408,6 +431,8 @@ pub unsafe extern "C" fn svm_runtime_create(
 /// let author: svm_byte_array = Address::of("@author").into();
 /// let host_ctx = svm_byte_array::default();
 /// let template_bytes = svm_byte_array::default();
+/// let gas_metering = false;
+/// let gas_limit = 0;
 /// let dry_run = false;
 ///
 /// let res = unsafe {
@@ -417,6 +442,8 @@ pub unsafe extern "C" fn svm_runtime_create(
 ///     template_bytes,
 ///     author,
 ///     host_ctx,
+///     gas_metering,
+///     gas_limit,
 ///     dry_run,
 ///     &mut error)
 /// };
@@ -432,6 +459,8 @@ pub unsafe extern "C" fn svm_deploy_template(
     bytes: svm_byte_array,
     author: svm_byte_array,
     host_ctx: svm_byte_array,
+    gas_metering: bool,
+    gas_limit: u64,
     dry_run: bool,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
@@ -453,10 +482,13 @@ pub unsafe extern "C" fn svm_deploy_template(
         return svm_result_t::SVM_FAILURE;
     }
 
+    let gas_limit = maybe_gas!(gas_metering, gas_limit);
+
     let rust_receipt = runtime.deploy_template(
         bytes.into(),
         &author.unwrap().into(),
         host_ctx.unwrap(),
+        gas_limit,
         dry_run,
     );
 
@@ -500,6 +532,8 @@ pub unsafe extern "C" fn svm_deploy_template(
 /// let creator = Address::of("@creator").into();
 /// let host_ctx = svm_byte_array::default();
 /// let app_bytes = svm_byte_array::default();
+/// let gas_metering = false;
+/// let gas_limit = 0;
 /// let dry_run = false;
 ///
 /// let _res = unsafe {
@@ -509,6 +543,8 @@ pub unsafe extern "C" fn svm_deploy_template(
 ///     app_bytes,
 ///     creator,
 ///     host_ctx,
+///     gas_metering,
+///     gas_limit,
 ///     dry_run,
 ///     &mut error)
 /// };
@@ -522,6 +558,8 @@ pub unsafe extern "C" fn svm_spawn_app(
     bytes: svm_byte_array,
     creator: svm_byte_array,
     host_ctx: svm_byte_array,
+    gas_metering: bool,
+    gas_limit: u64,
     dry_run: bool,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
@@ -542,10 +580,13 @@ pub unsafe extern "C" fn svm_spawn_app(
         return svm_result_t::SVM_FAILURE;
     }
 
+    let gas_limit = maybe_gas!(gas_metering, gas_limit);
+
     let rust_receipt = runtime.spawn_app(
         bytes.into(),
         &creator.unwrap().into(),
         host_ctx.unwrap(),
+        gas_limit,
         dry_run,
     );
 
@@ -591,7 +632,9 @@ pub unsafe extern "C" fn svm_spawn_app(
 /// let tx_bytes = svm_byte_array::default();
 /// let state = State::empty().into();
 /// let host_ctx = svm_byte_array::default();
+/// let gas_metering = false;
 /// let dry_run = false;
+/// let gas_limit = 0;
 ///
 /// let _res = unsafe {
 ///   svm_exec_app(
@@ -600,6 +643,8 @@ pub unsafe extern "C" fn svm_spawn_app(
 ///     tx_bytes,
 ///     state,
 ///     host_ctx,
+///     gas_metering,
+///     gas_limit,
 ///     dry_run,
 ///     &mut error)
 /// };
@@ -613,6 +658,8 @@ pub unsafe extern "C" fn svm_exec_app(
     bytes: svm_byte_array,
     state: svm_byte_array,
     host_ctx: svm_byte_array,
+    gas_metering: bool,
+    gas_limit: u64,
     dry_run: bool,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
@@ -634,7 +681,10 @@ pub unsafe extern "C" fn svm_exec_app(
         return svm_result_t::SVM_FAILURE;
     }
 
-    let rust_receipt = runtime.exec_app(bytes.into(), &state.unwrap(), host_ctx, dry_run);
+    let gas_limit = maybe_gas!(gas_metering, gas_limit);
+
+    let rust_receipt =
+        runtime.exec_app(bytes.into(), &state.unwrap(), host_ctx, gas_limit, dry_run);
     let mut receipt_bytes = encode_exec_receipt(&rust_receipt);
 
     // returning encoded `ExecReceipt` as `svm_byte_array`.
@@ -737,66 +787,364 @@ pub unsafe extern "C" fn svm_byte_array_destroy(bytes: svm_byte_array) {
 
 /// Receipts helpers
 
+/// In order to spare the SVM client the implementation of the `Receipt`(s) raw decoding the receipts helpers
+/// can fetch one field each. This functionality should be useful for writing tests when using client code that interfaces with
+/// SVM FFI interface.
+///
+/// Each helper methods returns `svm_result_t`.
+/// When `svm_result_t` equals `SVM_SUCCESS` is means that the field extraction succeeded.
+/// Otherwise, it signals that the field can't be extracted out of the receipt.
+///
+/// For example, if the `svm_deploy_template` failed to deploy the template (it may happen for many reason, one is having invalid wasm code),
+/// then calling `svm_template_receipt_addr` should return `SVM_FAILURE` since there is no template `Address` to extract.
+/// The error will be returned via the `error` parameter.
+
+/// `Deploy-Template` Receipt helpers
+///  -------------------------------------------------------
+
 /// Extracts the deploy-template `Address` into the `template_addr` parameter. (useful for tests).
+///
+/// # Panics
+///
+/// Panics when `receipt` input is invalid.
+///
 #[no_mangle]
 pub unsafe extern "C" fn svm_template_receipt_addr(
     template_addr: *mut svm_byte_array,
     receipt: svm_byte_array,
-) {
+    error: *mut svm_byte_array,
+) -> svm_result_t {
     let client_receipt = testing::decode_template_receipt(receipt.into());
 
     match client_receipt {
         ClientTemplateReceipt::Success { addr, .. } => {
             addr_to_svm_byte_array!(template_addr, addr.unwrap());
+            svm_result_t::SVM_SUCCESS
         }
-        ClientTemplateReceipt::Failure { .. } => panic!(),
+        ClientTemplateReceipt::Failure { error: err_str } => {
+            raw_error(err_str, error);
+            svm_result_t::SVM_FAILURE
+        }
     }
 }
 
-/// Extracts the spawned-app `Address` into the `app_addr` paramueter. (useful for tests).
+/// Extracts the `gas_used` for the deploy-template.
+/// When deploying succeeded returns `SVM_SUCCESS`, returns the amount of gas used via `gas_used` parameter.
+/// Othewrise, returns `SVM_FAILURE` and the error message via the `error` parameter.
+///
+/// It's up for the Host to decide the gas fee to for a failed deploy.
+/// (usually the strategy will be to fine with the `gas_limit` of the failed transaction).
+///
+/// # Panics
+///
+/// Panics when `receipt` input is invalid.
+///
+#[no_mangle]
+pub unsafe extern "C" fn svm_template_receipt_gas(
+    gas_used: *mut u64,
+    receipt: svm_byte_array,
+    error: *mut svm_byte_array,
+) -> svm_result_t {
+    let client_receipt = testing::decode_template_receipt(receipt.into());
+
+    match client_receipt {
+        ClientTemplateReceipt::Success { gas_used: gas, .. } => {
+            *gas_used = gas;
+            svm_result_t::SVM_SUCCESS
+        }
+        ClientTemplateReceipt::Failure { error: err_str } => {
+            raw_error(err_str, error);
+            svm_result_t::SVM_FAILURE
+        }
+    }
+}
+
+/// `Spawn-App` Receipt helpers
+///  -------------------------------------------------------
+
+/// Extracts whether the `spawn-app` transaction succeeded.
+/// If it succeeded, returns `SVM_SUCCESS`,
+/// Otherwise returns `SVM_FAILURE` and the error message via `error` parameter.
+///
+/// # Panics
+///
+/// Panics when `receipt` input is invalid.
+///
+#[no_mangle]
+pub unsafe extern "C" fn svm_app_receipt_status(
+    receipt: svm_byte_array,
+    error: *mut svm_byte_array,
+) -> svm_result_t {
+    let client_receipt = testing::decode_app_receipt(receipt.into());
+
+    match client_receipt {
+        ClientAppReceipt::Success { .. } => svm_result_t::SVM_SUCCESS,
+        ClientAppReceipt::Failure { error: err_str } => {
+            raw_error(err_str, error);
+            svm_result_t::SVM_FAILURE
+        }
+    }
+}
+
+/// Extracts the spawned-app `Address`.
+/// When spawning succeeds returns `SVM_SUCCESS` and the `Address` via `app_addr` parameter.
+/// Otherise, returns `SVM_FAILURE` and the error message via the `error` parameter.
+///
+/// # Panics
+///
+/// Panics when `receipt` input is invalid.
+///
 #[no_mangle]
 pub unsafe extern "C" fn svm_app_receipt_addr(
     app_addr: *mut svm_byte_array,
     receipt: svm_byte_array,
-) {
+    error: *mut svm_byte_array,
+) -> svm_result_t {
     let client_receipt = testing::decode_app_receipt(receipt.into());
 
     match client_receipt {
         ClientAppReceipt::Success { addr, .. } => {
             addr_to_svm_byte_array!(app_addr, addr.unwrap());
+            svm_result_t::SVM_SUCCESS
         }
-        ClientAppReceipt::Failure { error } => panic!(error),
+        ClientAppReceipt::Failure { error: err_str } => {
+            raw_error(err_str, error);
+            svm_result_t::SVM_FAILURE
+        }
     }
 }
 
-/// Extracts the spawned-app initial `State` into the `state` parameter. (useful for tests).
+/// Extracts the `gas_used` for spawned-app (including running its constructor).
+/// When spawn succeeded returns `SVM_SUCCESS`, returns the amount of gas used via `gas_used` parameter.
+/// Othewrise, returns `SVM_FAILURE` and the error message via the `error` parameter.
+///
+/// It's up for the Host to decide the gas fee to for failed spawning.
+/// (usually the strategy will be to fine with the `gas_limit` of the failed transaction).
+///
+/// # Panics
+///
+/// Panics when `receipt` input is invalid.
+///
+#[no_mangle]
+pub unsafe extern "C" fn svm_app_receipt_gas(
+    gas_used: *mut u64,
+    receipt: svm_byte_array,
+    error: *mut svm_byte_array,
+) -> svm_result_t {
+    let client_receipt = testing::decode_app_receipt(receipt.into());
+
+    match client_receipt {
+        ClientAppReceipt::Success { gas_used: gas, .. } => {
+            *gas_used = gas;
+            svm_result_t::SVM_SUCCESS
+        }
+        ClientAppReceipt::Failure { error: err_str } => {
+            raw_error(err_str, error);
+            svm_result_t::SVM_FAILURE
+        }
+    }
+}
+
+/// `Exec-App` Receipt helpers
+///  -------------------------------------------------------
+
+/// Extracts the spawned-app initial `State`.
+/// When spawning succeeds returns `SVM_SUCCESS` and the initial `State` via `state` parameter.
+/// Otherise, returns `SVM_FAILURE` and the error message via the `error` parameter.
+///
+/// # Panics
+///
+/// Panics when `receipt` input is invalid.
+///
 #[no_mangle]
 pub unsafe extern "C" fn svm_app_receipt_state(
     state: *mut svm_byte_array,
     receipt: svm_byte_array,
-) {
+    error: *mut svm_byte_array,
+) -> svm_result_t {
     let client_receipt = testing::decode_app_receipt(receipt.into());
 
     match client_receipt {
         ClientAppReceipt::Success { init_state, .. } => {
             state_to_svm_byte_array!(state, init_state);
+            svm_result_t::SVM_SUCCESS
         }
-        ClientAppReceipt::Failure { .. } => panic!(),
+        ClientAppReceipt::Failure { error: err_str } => {
+            raw_error(err_str, error);
+            svm_result_t::SVM_FAILURE
+        }
     }
 }
 
-/// Extracts the executed app-transaction `State` into the `state` parameter. (useful for tests).
+/// Extracts whether the `exec-app` transaction succeeded.
+/// If it succeeded, returns `SVM_SUCCESS`,
+/// Otherwise returns `SVM_FAILURE` and the error message via `error` parameter.
+///
+/// # Panics
+///
+/// Panics when `receipt` input is invalid.
+///
+#[no_mangle]
+pub unsafe extern "C" fn svm_exec_receipt_status(
+    receipt: svm_byte_array,
+    error: *mut svm_byte_array,
+) -> svm_result_t {
+    let client_receipt = testing::decode_exec_receipt(receipt.into());
+
+    match client_receipt {
+        ClientExecReceipt::Success { .. } => svm_result_t::SVM_SUCCESS,
+        ClientExecReceipt::Failure { error: err_str } => {
+            raw_error(err_str, error);
+            svm_result_t::SVM_FAILURE
+        }
+    }
+}
+
+/// Extracts the executed transaction new `State`.
+/// When transaction succeeded returns `SVM_SUCCESS` and the new `State` via `state` parameter.
+/// Othewrise, returns `SVM_FAILURE` and the error message via the `error` parameter.
+///
+/// # Panics
+///
+/// Panics when `receipt` input is invalid.
+///
 #[no_mangle]
 pub unsafe extern "C" fn svm_exec_receipt_state(
     state: *mut svm_byte_array,
     receipt: svm_byte_array,
-) {
+    error: *mut svm_byte_array,
+) -> svm_result_t {
     let client_receipt = testing::decode_exec_receipt(receipt.into());
 
     match client_receipt {
         ClientExecReceipt::Success { new_state, .. } => {
             state_to_svm_byte_array!(state, new_state);
+            svm_result_t::SVM_SUCCESS
         }
-        ClientExecReceipt::Failure { .. } => panic!(),
+        ClientExecReceipt::Failure { error: err_str } => {
+            raw_error(err_str, error);
+            svm_result_t::SVM_FAILURE
+        }
+    }
+}
+
+/// Extracts the executed transaction `gas_used`.
+/// When transaction succeeded returns `SVM_SUCCESS`, returns the amount of gas used via `gas_used` parameter.
+/// Othewrise, returns `SVM_FAILURE` and the error message via the `error` parameter.
+///
+/// It's up for the Host to decide the gas fee to for failed transactions.
+/// (usually the strategy will be to fine with the `gas_limit` of the failed transaction).
+///
+/// # Panics
+///
+/// Panics when `receipt` input is invalid.
+///
+#[no_mangle]
+pub unsafe extern "C" fn svm_exec_receipt_gas(
+    gas_used: *mut u64,
+    receipt: svm_byte_array,
+    error: *mut svm_byte_array,
+) -> svm_result_t {
+    let client_receipt = testing::decode_exec_receipt(receipt.into());
+
+    match client_receipt {
+        ClientExecReceipt::Success { gas_used: gas, .. } => {
+            *gas_used = gas;
+            svm_result_t::SVM_SUCCESS
+        }
+        ClientExecReceipt::Failure { error: err_str } => {
+            raw_error(err_str, error);
+            svm_result_t::SVM_FAILURE
+        }
+    }
+}
+
+/// Given a raw `deploy-template` transaction (the `bytes` parameter),
+/// if it's valid (i.e: passes the `svm_validate_template`), returns `SVM_SUCCESS` and the estimated gas that will be required
+/// in order to execute the transaction (via the `estimate` parameter).
+
+/// # Panics
+///
+/// Panics when `bytes` input is not a valid `deploy-template` raw transaction.
+/// Having `bytes` a valid raw input doesn't necessarily imply that `svm_validate_template` passes.
+///
+#[no_mangle]
+pub unsafe extern "C" fn svm_estimate_deploy_template(
+    estimation: *mut u64,
+    runtime: *mut c_void,
+    bytes: svm_byte_array,
+    error: *mut svm_byte_array,
+) -> svm_result_t {
+    let runtime = helpers::cast_to_runtime_mut(runtime);
+
+    match runtime.estimate_deploy_template(bytes.into()) {
+        Ok(est) => {
+            *estimation = max_gas!(est);
+            svm_result_t::SVM_SUCCESS
+        }
+        Err(e) => {
+            raw_validate_error(&e, error);
+            svm_result_t::SVM_FAILURE
+        }
+    }
+}
+
+/// Given a raw `spawn-app` transaction (the `bytes` parameter),
+/// if it's valid (i.e: passes the `svm_validate_app`), returns `SVM_SUCCESS` and the estimated gas that will be required
+/// in order to execute the transaction (via the `estimate` parameter).
+///
+/// # Panics
+///
+/// Panics when `bytes` input is not a valid `spawn-app` raw transaction.
+/// Having `bytes` a valid raw input doesn't necessarily imply that `svm_validate_app` passes.
+///
+#[no_mangle]
+pub unsafe extern "C" fn svm_estimate_spawn_app(
+    estimation: *mut u64,
+    runtime: *mut c_void,
+    bytes: svm_byte_array,
+    error: *mut svm_byte_array,
+) -> svm_result_t {
+    let runtime = helpers::cast_to_runtime_mut(runtime);
+
+    match runtime.estimate_spawn_app(bytes.into()) {
+        Ok(est) => {
+            *estimation = max_gas!(est);
+            svm_result_t::SVM_SUCCESS
+        }
+        Err(e) => {
+            raw_validate_error(&e, error);
+            svm_result_t::SVM_FAILURE
+        }
+    }
+}
+
+/// Given a raw `exec-app` transaction (the `bytes` parameter),
+/// if it's valid (i.e: passes the `svm_validate_tx`), returns `SVM_SUCCESS` and the estimated gas that will be required
+/// in order to execute the transaction (via the `estimate` parameter).
+///
+/// # Panics
+///
+/// Panics when `bytes` input is not a valid `exec-app` raw transaction.
+/// Having `bytes` a valid raw input doesn't necessarily imply that `svm_validate_tx` passes.
+///
+#[no_mangle]
+pub unsafe extern "C" fn svm_estimate_exec_app(
+    estimation: *mut u64,
+    runtime: *mut c_void,
+    bytes: svm_byte_array,
+    error: *mut svm_byte_array,
+) -> svm_result_t {
+    let runtime = helpers::cast_to_runtime_mut(runtime);
+
+    match runtime.estimate_exec_app(bytes.into()) {
+        Ok(est) => {
+            *estimation = max_gas!(est);
+            svm_result_t::SVM_SUCCESS
+        }
+        Err(e) => {
+            raw_validate_error(&e, error);
+            svm_result_t::SVM_FAILURE
+        }
     }
 }

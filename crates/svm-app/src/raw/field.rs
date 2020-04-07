@@ -3,6 +3,7 @@ use std::fmt;
 #[allow(missing_docs)]
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum Field {
+    GasUsed,
     Author,
     Creator,
     Version,

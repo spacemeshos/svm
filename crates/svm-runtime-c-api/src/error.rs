@@ -1,11 +1,11 @@
 use std::string::FromUtf8Error;
 
 use crate::svm_byte_array;
-use svm_app::error::ParseError;
+use svm_runtime::error::ValidateError;
 
-pub(crate) unsafe fn raw_parse_error(parse_err: &ParseError, error: *mut svm_byte_array) {
-    let s = format!("{}", parse_err);
-    raw_error(s, error);
+pub(crate) unsafe fn raw_validate_error(err: &ValidateError, raw_err: *mut svm_byte_array) {
+    let s = format!("{}", err);
+    raw_error(s, raw_err);
 }
 
 pub(crate) unsafe fn raw_utf8_error<T>(
@@ -17,11 +17,11 @@ pub(crate) unsafe fn raw_utf8_error<T>(
     raw_error(utf8_err.to_string(), error);
 }
 
-pub(crate) unsafe fn raw_error(s: String, error: *mut svm_byte_array) {
+pub(crate) unsafe fn raw_error(s: String, raw_err: *mut svm_byte_array) {
     let s = Box::leak(Box::new(s));
 
-    let error = &mut *error;
+    let raw_err = &mut *raw_err;
 
-    error.bytes = s.as_ptr();
-    error.length = s.as_bytes().len() as u32;
+    raw_err.bytes = s.as_ptr();
+    raw_err.length = s.as_bytes().len() as u32;
 }

@@ -1,12 +1,12 @@
 use super::ExecReceipt;
 
-use crate::error::SpawnAppError;
+use crate::{error::SpawnAppError, gas::MaybeGas};
 
 use svm_app::types::{AppAddr, WasmValue};
 use svm_common::State;
 
 /// Returned Receipt after spawning an App.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct SpawnAppReceipt {
     /// whether spawn succedded or not
     pub success: bool,
@@ -24,10 +24,22 @@ pub struct SpawnAppReceipt {
     pub returns: Option<Vec<WasmValue>>,
 
     /// The amount of gas used
-    pub gas_used: Option<u64>,
+    pub gas_used: MaybeGas,
 }
 
 impl SpawnAppReceipt {
+    /// Creates a `SpawnAppReceipt` for reaching reaching `Out-of-Gas`.
+    pub fn new_oog() -> Self {
+        Self {
+            success: false,
+            error: Some(SpawnAppError::OOG),
+            app_addr: None,
+            init_state: None,
+            returns: None,
+            gas_used: MaybeGas::new(),
+        }
+    }
+
     /// Returns spawned-app `Address`. Panics if spawning has failed.
     pub fn get_app_addr(&self) -> &AppAddr {
         self.app_addr.as_ref().unwrap()
@@ -42,6 +54,11 @@ impl SpawnAppReceipt {
     pub fn get_returns(&self) -> &Vec<WasmValue> {
         self.returns.as_ref().unwrap()
     }
+
+    /// Returns spawned-app gas-used
+    pub fn get_gas_used(&self) -> MaybeGas {
+        self.gas_used
+    }
 }
 
 impl From<SpawnAppError> for SpawnAppReceipt {
@@ -52,7 +69,7 @@ impl From<SpawnAppError> for SpawnAppReceipt {
             app_addr: None,
             init_state: None,
             returns: None,
-            gas_used: None,
+            gas_used: MaybeGas::new(),
         }
     }
 }
@@ -79,7 +96,7 @@ pub fn make_spawn_app_receipt(ctor_receipt: ExecReceipt, app_addr: &AppAddr) -> 
             app_addr,
             init_state: None,
             returns: None,
-            gas_used: None,
+            gas_used: MaybeGas::new(),
         }
     }
 }

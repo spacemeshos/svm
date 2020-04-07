@@ -1,21 +1,32 @@
-use crate::receipt::{ExecReceipt, SpawnAppReceipt, TemplateReceipt};
-
-use svm_app::{
-    error::ParseError,
-    types::{AppAddr, AuthorAddr, CreatorAddr, HostCtx},
+use crate::{
+    error::ValidateError,
+    gas::MaybeGas,
+    receipt::{ExecReceipt, SpawnAppReceipt, TemplateReceipt},
 };
+
+use svm_app::types::{AppAddr, AuthorAddr, CreatorAddr, HostCtx};
 use svm_common::State;
+use svm_gas::Gas;
 
 /// Specifies the interface of a `SVM` Runtime.
 pub trait Runtime {
     /// Validates raw `deploy-template` transaction prior to executing it.
-    fn validate_template(&self, bytes: &[u8]) -> Result<(), ParseError>;
+    fn validate_template(&self, bytes: &[u8]) -> Result<(), ValidateError>;
 
     /// Validates a raw `spawn-app` transaction prior to executing it.
-    fn validate_app(&self, bytes: &[u8]) -> Result<(), ParseError>;
+    fn validate_app(&self, bytes: &[u8]) -> Result<(), ValidateError>;
 
     /// Validates a raw `exec-app` transaction prior to executing it.
-    fn validate_tx(&self, bytes: &[u8]) -> Result<AppAddr, ParseError>;
+    fn validate_tx(&self, bytes: &[u8]) -> Result<AppAddr, ValidateError>;
+
+    /// Estimates the `Gas` required for deploying template givee as raw `bytes`.
+    fn estimate_deploy_template(&self, bytes: &[u8]) -> Result<Gas, ValidateError>;
+
+    /// Estimates the `Gas` required for spawning app given as raw `bytes`.
+    fn estimate_spawn_app(&self, bytes: &[u8]) -> Result<Gas, ValidateError>;
+
+    /// Estimates the `Gas` required for executing app-transaction given as raw `bytes`.
+    fn estimate_exec_app(&self, bytes: &[u8]) -> Result<Gas, ValidateError>;
 
     /// Deploy an new app-template
     fn deploy_template(
@@ -23,6 +34,7 @@ pub trait Runtime {
         bytes: &[u8],
         author: &AuthorAddr,
         host_ctx: HostCtx,
+        gas_limit: MaybeGas,
         dry_run: bool,
     ) -> TemplateReceipt;
 
@@ -32,6 +44,7 @@ pub trait Runtime {
         bytes: &[u8],
         creator: &CreatorAddr,
         host_ctx: HostCtx,
+        gas_limit: MaybeGas,
         dry_run: bool,
     ) -> SpawnAppReceipt;
 
@@ -49,6 +62,7 @@ pub trait Runtime {
         bytes: &[u8],
         state: &State,
         host_ctx: HostCtx,
+        gas_limit: MaybeGas,
         dry_run: bool,
     ) -> ExecReceipt;
 }

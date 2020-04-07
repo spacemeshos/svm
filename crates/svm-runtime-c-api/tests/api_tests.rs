@@ -118,7 +118,8 @@ unsafe fn create_imports() -> *const c_void {
 }
 
 fn deploy_template_bytes(version: u32, name: &str, page_count: u16, wasm: &str) -> (Vec<u8>, u32) {
-    let bytes = svm_runtime::testing::build_template(version, name, page_count, wasm);
+    let is_wast = true;
+    let bytes = svm_runtime::testing::build_template(version, name, page_count, wasm, is_wast);
     let length = bytes.len() as u32;
 
     (bytes, length)
@@ -185,6 +186,8 @@ fn svm_runtime_exec_app() {
 
 unsafe fn test_svm_runtime() {
     let version: u32 = 0;
+    let gas_metering = false;
+    let gas_limit = 0;
 
     // 1) init runtime
     let mut host = Host::new();
@@ -228,6 +231,8 @@ unsafe fn test_svm_runtime() {
         template_bytes,
         author,
         host_ctx,
+        gas_metering,
+        gas_limit,
         dry_run,
         &mut error,
     );
@@ -235,7 +240,8 @@ unsafe fn test_svm_runtime() {
 
     // extract the `template-address` out of theh receipt
     let mut template_addr = svm_byte_array::default();
-    api::svm_template_receipt_addr(&mut template_addr, template_receipt);
+    let res = api::svm_template_receipt_addr(&mut template_addr, template_receipt, &mut error);
+    assert!(res.is_ok());
 
     // 3) spawn app
     let creator = Address::of("creator").into();
@@ -265,6 +271,8 @@ unsafe fn test_svm_runtime() {
         app_bytes,
         creator,
         host_ctx,
+        gas_metering,
+        gas_limit,
         dry_run,
         &mut error,
     );
@@ -274,8 +282,11 @@ unsafe fn test_svm_runtime() {
     let mut app_addr = svm_byte_array::default();
     let mut init_state = svm_byte_array::default();
 
-    api::svm_app_receipt_addr(&mut app_addr, app_receipt);
-    api::svm_app_receipt_state(&mut init_state, app_receipt);
+    let res = api::svm_app_receipt_addr(&mut app_addr, app_receipt, &mut error);
+    assert!(res.is_ok());
+
+    let res = api::svm_app_receipt_state(&mut init_state, app_receipt, &mut error);
+    assert!(res.is_ok());
 
     // 4) execute app
     let (user, addition, func_idx, func_buf, func_args) = exec_app_args();
@@ -313,6 +324,8 @@ unsafe fn test_svm_runtime() {
         tx_bytes,
         init_state,
         host_ctx,
+        gas_metering,
+        gas_limit,
         dry_run,
         &mut error,
     );

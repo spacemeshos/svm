@@ -1,11 +1,14 @@
 //!     `Deploy Template` Receipt Raw Format Version 0
 //!
 //!  On success (`is_success = 1`)
-//!  ----------------------------------------------------
+//!  +---------------------------------------------------+
 //!  |   format   |              |                       |
 //!  |  version   |  is_success  |    Template Address   |
 //!  |  (4 bytes) |   (1 byte)   |      (20 bytes)       |
-//!  |____________|______________|_______________________|
+//!  +____________|______________|_______________________+
+//!  |                                                   |
+//!  |                   gas_used                        |
+//!  +___________________________________________________+
 //!
 //!
 //!  On success (`is_success = 0`)
@@ -26,6 +29,7 @@ pub(crate) fn encode_template_receipt(receipt: &TemplateReceipt) -> Vec<u8> {
 
     if receipt.success {
         encode_template_addr(receipt, &mut w);
+        helpers::encode_gas_used(&wrapped_receipt, &mut w);
     } else {
         encode_error(&wrapped_receipt, &mut w);
     };
@@ -46,7 +50,7 @@ mod tests {
 
     use svm_app::types::TemplateAddr;
     use svm_common::Address;
-    use svm_runtime::receipt::TemplateReceipt;
+    use svm_runtime::{gas::MaybeGas, receipt::TemplateReceipt};
 
     use crate::testing::{self, ClientTemplateReceipt};
 
@@ -54,13 +58,16 @@ mod tests {
     fn encode_deploy_deploy_receipt() {
         let addr: TemplateAddr = Address::of("my-template").into();
 
-        let expected = ClientTemplateReceipt::Success { addr: addr.clone() };
+        let expected = ClientTemplateReceipt::Success {
+            addr: addr.clone(),
+            gas_used: 100,
+        };
 
         let receipt = TemplateReceipt {
             success: true,
             error: None,
             addr: Some(addr),
-            gas_used: Some(100),
+            gas_used: MaybeGas::with(100),
         };
 
         let bytes = encode_template_receipt(&receipt);

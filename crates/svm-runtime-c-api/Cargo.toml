@@ -43,6 +43,9 @@ path = "../svm-kv"
 [dependencies.svm-app]
 path = "../svm-app"
 
+[dependencies.svm-gas]
+path = "../svm-gas"
+
 [dependencies.svm-storage]
 default-features = false
 path = "../svm-storage"

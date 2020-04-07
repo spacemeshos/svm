@@ -46,6 +46,11 @@ features = ["singlepass-backend"]
 git = "https://github.com/spacemeshos/wasmer"
 branch = "develop"
 
+[dependencies.wasmer-middleware-common]
+default-features = false
+git = "https://github.com/spacemeshos/wasmer"
+branch = "develop"
+
 [dependencies]
 libc = "0.2"
 byteorder = "1.3.2"

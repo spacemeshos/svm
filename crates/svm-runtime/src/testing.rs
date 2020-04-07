@@ -3,7 +3,7 @@ use std::{cell::RefCell, collections::HashMap, ffi::c_void, path::Path, rc::Rc};
 use crate::{
     buffer::BufferRef,
     ctx::SvmCtx,
-    gas::DefaultGasEstimator,
+    gas::{DefaultGasEstimator, MaybeGas},
     helpers::{self, DataWrapper},
     register::Register,
     settings::AppSettings,
@@ -24,14 +24,18 @@ use svm_app::{
 use wasmer_runtime_core::{export::Export, import::ImportObject, Instance, Module};
 
 /// Compiles a wasm program in text format (a.k.a WAST) into a `Module` (`wasmer`)
-pub fn wasmer_compile(wasm: &str) -> Module {
+pub fn wasmer_compile(wasm: &str, gas_limit: MaybeGas) -> Module {
     let wasm = wabt::wat2wasm(&wasm).unwrap();
-    svm_compiler::compile_program(&wasm).unwrap()
+
+    let gas_metering = gas_limit.is_some();
+    let gas_limit = gas_limit.unwrap_or(0);
+
+    svm_compiler::compile_program(&wasm[..], gas_limit, gas_metering).unwrap()
 }
 
 /// Instantiate a `wasmer` instance
-pub fn instantiate(import_object: &ImportObject, wasm: &str) -> Instance {
-    let module = wasmer_compile(wasm);
+pub fn instantiate(import_object: &ImportObject, wasm: &str, gas_limit: MaybeGas) -> Instance {
+    let module = wasmer_compile(wasm, gas_limit);
     module.instantiate(import_object).unwrap()
 }
 
@@ -79,13 +83,14 @@ pub fn app_memory_state_creator(
     state: &State,
     host: DataWrapper<*mut c_void>,
     host_ctx: DataWrapper<*const c_void>,
+    gas_limit: MaybeGas,
     page_count: u16,
 ) -> (*mut c_void, fn(*mut c_void)) {
     let kv = memory_kv_store_init();
 
     let storage = svm_storage::testing::app_storage_open(state, &kv, page_count);
 
-    let ctx = SvmCtx::new(host, host_ctx, storage);
+    let ctx = SvmCtx::new(host, host_ctx, gas_limit, storage);
     let ctx: *mut SvmCtx = Box::into_raw(Box::new(ctx));
 
     let data: *mut c_void = ctx as *const _ as _;
@@ -133,8 +138,18 @@ pub fn runtime_memory_env_builder() -> DefaultMemoryEnv {
 }
 
 /// Synthesizes a raw deploy-template transaction.
-pub fn build_template(version: u32, name: &str, page_count: u16, wasm: &str) -> Vec<u8> {
-    let code = wabt::wat2wasm(wasm).unwrap();
+pub fn build_template(
+    version: u32,
+    name: &str,
+    page_count: u16,
+    wasm: &str,
+    is_wast: bool,
+) -> Vec<u8> {
+    let code = if is_wast {
+        wabt::wat2wasm(wasm).unwrap()
+    } else {
+        wasm.as_bytes().to_vec()
+    };
 
     DeployAppTemplateBuilder::new()
         .with_version(version)
