@@ -25,47 +25,43 @@ pub struct AppTransaction {
 
 impl fmt::Debug for AppTransaction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let version = self.fmt_version();
         let app = self.fmt_app();
-        let func_idx = self.fmt_func_index();
-        let func_args = self.fmt_func_args();
+        let func_idx = self.fmt_func_idx();
         let func_buf = self.fmt_func_buf();
+        let func_args = self.fmt_func_args();
 
-        let msg = [app, func_idx, func_args, func_buf];
+        let msg = [version, app, func_idx, func_buf, func_args];
 
         write!(f, "{}", msg.join("\n"))
     }
 }
 
 impl AppTransaction {
+    fn fmt_version(&self) -> String {
+        format!("Version: {}", self.version)
+    }
+
     fn fmt_app(&self) -> String {
-        self.fmt_address("App", &self.app.inner())
+        format!("App: {}", AppTransaction::fmt_address(&self.app.inner()))
     }
 
-    fn fmt_address(&self, field: &str, addr: &Address) -> String {
-        format!("{:?}: {:?}", field, addr)
-    }
-
-    fn fmt_func_index(&self) -> String {
-        format!("Func index: {:?}", self.func_idx)
-    }
-
-    fn fmt_func_arg(&self, func_arg: &WasmValue) -> String {
-        format!("{:?}", func_arg)
+    fn fmt_func_idx(&self) -> String {
+        format!("func_idx: {}", self.func_idx)
     }
 
     fn fmt_func_buf(&self) -> String {
-        // todo!()
-        "...".to_string()
+        format!(
+            "func_buf: {:?}",
+            self.func_buf.iter().take(4).collect::<Vec<_>>()
+        )
     }
 
     fn fmt_func_args(&self) -> String {
-        let mut args_str = Vec::with_capacity(self.func_args.len());
+        format!("func_args: {:?}", self.func_args)
+    }
 
-        for arg in self.func_args.iter() {
-            let arg_str = self.fmt_func_arg(arg);
-            args_str.push(arg_str);
-        }
-
-        format!("Func args: {}", args_str.join(", "))
+    fn fmt_address(addr: &Address) -> String {
+        addr.fmt(4, 4, " ")
     }
 }
