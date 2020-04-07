@@ -171,8 +171,11 @@ mod tests {
                     i32.add
                 ))
             "#;
+
+        let gas_metering = false;
+        let gas_limit = 0;
         let wasm = wabt::wat2wasm(input).unwrap();
-        let module = compile_program(&wasm).unwrap();
+        let module = compile_program(&wasm, gas_limit, gas_metering).unwrap();
         let instance = module.instantiate(&imports! {}).unwrap();
 
         let func: Func<(i32, i32), i32> = instance.func("sum").unwrap();
@@ -182,7 +185,7 @@ mod tests {
     }
 
     #[test]
-    fn parser_floats_are_not_supported() {
+    fn floats_are_not_supported() {
         let input = r#"
             (module
                 (func $to_float (param i32) (result f32)
@@ -191,8 +194,10 @@ mod tests {
                 ))
             "#;
 
+        let gas_metering = false;
+        let gas_limit = 0;
         let wasm = wabt::wat2wasm(input).unwrap();
-        let res = compile_program(&wasm);
+        let res = compile_program(&wasm, gas_limit, gas_metering);
 
         assert!(res.is_err());
 
