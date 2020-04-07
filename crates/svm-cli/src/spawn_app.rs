@@ -4,7 +4,7 @@ use crate::common;
 use svm_app::{
     raw::{decode_spawn_app, NibbleIter},
     testing::SpawnAppBuilder,
-    types::{SpawnApp, WasmValue},
+    types::SpawnApp,
 };
 
 pub fn encode(
@@ -17,22 +17,22 @@ pub fn encode(
 ) -> Result<usize, Box<dyn Error>> {
     let template_addr = common::decode_addr(template_addr_hex)?;
 
-    let mut ctor_buf = None;
-    if let Some(ctor_buf_hex) = ctor_buf_hex {
-        ctor_buf = Some(common::decode_hex(ctor_buf_hex)?);
-    }
+    let ctor_buf = match ctor_buf_hex {
+        Some(v) => Some(common::decode_hex(v)?),
+        None => None,
+    };
 
-    let mut ctor_args_vals: Option<Vec<WasmValue>> = None;
-    if let Some(ctor_args) = ctor_args {
-        ctor_args_vals = Some(common::decode_args(ctor_args)?);
-    }
+    let ctor_args = match ctor_args {
+        Some(v) => Some(common::decode_args(v)?),
+        None => None,
+    };
 
     let bytes = SpawnAppBuilder::new()
         .with_version(version)
         .with_template(&template_addr.into())
         .with_ctor_index(ctor_idx)
         .with_ctor_buf(&ctor_buf.unwrap_or(vec![]))
-        .with_ctor_args(&ctor_args_vals.unwrap_or(vec![]))
+        .with_ctor_args(&ctor_args.unwrap_or(vec![]))
         .build();
 
     common::write_to_file(output_path, &bytes)?;

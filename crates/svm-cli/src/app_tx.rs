@@ -4,7 +4,7 @@ use crate::common;
 use svm_app::{
     raw::{decode_exec_app, NibbleIter},
     testing::AppTxBuilder,
-    types::{AppTransaction, WasmValue},
+    types::AppTransaction,
 };
 
 pub fn encode(
@@ -17,22 +17,22 @@ pub fn encode(
 ) -> Result<usize, Box<dyn Error>> {
     let app_addr = common::decode_addr(app_addr_hex)?;
 
-    let mut func_buf = None;
-    if let Some(func_buf_hex) = func_buf_hex {
-        func_buf = Some(common::decode_hex(func_buf_hex)?);
-    }
+    let func_buf = match func_buf_hex {
+        Some(v) => Some(common::decode_hex(v)?),
+        None => None,
+    };
 
-    let mut func_args_vals: Option<Vec<WasmValue>> = None;
-    if let Some(func_args) = func_args {
-        func_args_vals = Some(common::decode_args(func_args)?);
-    }
+    let func_args = match func_args {
+        Some(v) => Some(common::decode_args(v)?),
+        None => None,
+    };
 
     let bytes = AppTxBuilder::new()
         .with_version(version)
         .with_app(&app_addr.into())
         .with_func_index(func_idx)
         .with_func_buf(&func_buf.unwrap_or(vec![]))
-        .with_func_args(&func_args_vals.unwrap_or(vec![]))
+        .with_func_args(&func_args.unwrap_or(vec![]))
         .build();
 
     common::write_to_file(output_path, &bytes)?;
