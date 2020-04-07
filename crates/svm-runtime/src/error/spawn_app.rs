@@ -5,6 +5,9 @@ use crate::error::ExecAppError;
 /// Spawning a new app has failed
 #[derive(Debug, PartialEq, Clone)]
 pub enum SpawnAppError {
+    /// Reached Out-of-Gas
+    OOG,
+
     /// Template not found. Returns the template address.
     TemplateNotFound(TemplateAddr),
 

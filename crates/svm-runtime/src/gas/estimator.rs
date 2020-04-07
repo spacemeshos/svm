@@ -1,26 +1,27 @@
 use svm_app::types::{AppTemplate, AppTransaction, SpawnApp};
+use svm_gas::Gas;
 
 /// Holds estimated gas for deploying a new `AppTemplate`.
 pub struct DeployTemplateEst {
-    pub payload: u64,
+    pub payload: Gas,
 
-    pub install: u64,
+    pub install: Gas,
 }
 
 /// Holds estimated gas for spawning an new `App`.
 pub struct SpawnAppEst {
-    pub payload: u64,
+    pub payload: Gas,
 
-    pub install: u64,
+    pub install: Gas,
 
-    pub ctor: u64,
+    pub ctor: Gas,
 }
 
 /// Holds estimated gas for executing an `AppTransaction`.
 pub struct ExecAppEst {
-    pub payload: u64,
+    pub payload: Gas,
 
-    pub exec: u64,
+    pub exec: Gas,
 }
 
 /// Trait in charge on doing gas estimation.

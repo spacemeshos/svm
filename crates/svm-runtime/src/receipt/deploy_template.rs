@@ -1,9 +1,9 @@
-use crate::error::DeployTemplateError;
+use crate::{error::DeployTemplateError, gas::MaybeGas};
 
 use svm_app::types::TemplateAddr;
 
 /// Returned Receipt after deploying a Template.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct TemplateReceipt {
     /// whether spawn succedded or not
     pub success: bool,
@@ -15,17 +15,27 @@ pub struct TemplateReceipt {
     pub addr: Option<TemplateAddr>,
 
     /// The amount of gas used for template deployment
-    pub gas_used: Option<u64>,
+    pub gas_used: MaybeGas,
 }
 
 impl TemplateReceipt {
     /// Creates a new `TemplateReceipt` struct.
-    pub fn new(addr: TemplateAddr, gas_used: u64) -> Self {
+    pub fn new(addr: TemplateAddr, gas_used: MaybeGas) -> Self {
         Self {
             success: true,
             error: None,
             addr: Some(addr),
-            gas_used: Some(gas_used),
+            gas_used,
+        }
+    }
+
+    /// Creates a `TemplateReceipt` for reaching reaching `Out-of-Gas`.
+    pub fn new_oog() -> Self {
+        Self {
+            success: false,
+            error: Some(DeployTemplateError::OOG),
+            addr: None,
+            gas_used: MaybeGas::new(),
         }
     }
 
@@ -41,7 +51,7 @@ impl From<DeployTemplateError> for TemplateReceipt {
             success: false,
             error: Some(error),
             addr: None,
-            gas_used: None,
+            gas_used: MaybeGas::new(),
         }
     }
 }

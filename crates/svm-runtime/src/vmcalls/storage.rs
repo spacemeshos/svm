@@ -1,4 +1,4 @@
-use crate::helpers;
+use crate::{helpers, use_gas};
 
 use wasmer_runtime::Ctx as WasmerCtx;
 
@@ -22,6 +22,8 @@ pub fn mem_to_reg_copy(
     reg_idx: u32,
     count: u32,
 ) {
+    use_gas!("mem_to_reg_copy", ctx);
+
     let (mem_idx, start, end) = rustify_mem_params(mem_idx, mem_offset, count);
     let cells = &ctx.memory(mem_idx).view()[start..end];
     let data: Vec<u8> = cells.iter().map(|cell| cell.get()).collect();
@@ -47,6 +49,8 @@ pub fn reg_to_mem_copy(
     mem_offset: u32,
     count: u32,
 ) {
+    use_gas!("reg_to_mem_copy", ctx);
+
     let reg = helpers::wasmer_data_reg(ctx.data, reg_bits, reg_idx);
     let bytes = reg.getn(count as usize);
 
@@ -74,6 +78,8 @@ pub fn storage_read_to_reg(
     reg_idx: u32,
     count: u32,
 ) {
+    use_gas!("storage_read_to_reg", ctx);
+
     let mut storage = helpers::wasmer_data_app_storage(ctx.data);
     let slice = helpers::storage_read_page_slice(&mut storage, page_idx, page_offset, count);
 
@@ -97,6 +103,8 @@ pub fn storage_read_to_mem(
     mem_offset: u32,
     count: u32,
 ) {
+    use_gas!("storage_read_to_mem", ctx);
+
     let mut storage = helpers::wasmer_data_app_storage(ctx.data);
     let mut slice = helpers::storage_read_page_slice(&mut storage, page_idx, page_offset, count);
 
@@ -130,6 +138,8 @@ pub fn storage_write_from_mem(
     page_offset: u32,
     count: u32,
 ) {
+    use_gas!("storage_write_from_mem", ctx);
+
     let (mem_idx, start, end) = rustify_mem_params(mem_idx, mem_offset, count);
     let cells = &ctx.memory(mem_idx).view()[start..end];
 
@@ -155,6 +165,8 @@ pub fn storage_write_from_reg(
     page_offset: u32,
     count: u32,
 ) {
+    use_gas!("storage_write_from_reg", ctx);
+
     let reg = helpers::wasmer_data_reg(ctx.data, reg_bits, reg_idx);
     let storage = helpers::wasmer_data_app_storage(ctx.data);
     let data = reg.getn(count as usize);
@@ -176,6 +188,8 @@ pub fn storage_write_i32_be(
     n: u32,
     nbytes: u32,
 ) {
+    use_gas!("storage_write_i32_be", ctx);
+
     storage_write::<BigEndian>(ctx, page_idx, page_offset, n as u64, nbytes);
 }
 
@@ -193,6 +207,8 @@ pub fn storage_write_i32_le(
     n: u32,
     nbytes: u32,
 ) {
+    use_gas!("storage_write_i32_le", ctx);
+
     storage_write::<LittleEndian>(ctx, page_idx, page_offset, n as u64, nbytes);
 }
 
@@ -210,6 +226,8 @@ pub fn storage_write_i64_be(
     n: u64,
     nbytes: u32,
 ) {
+    use_gas!("storage_write_i64_be", ctx);
+
     storage_write::<BigEndian>(ctx, page_idx, page_offset, n, nbytes);
 }
 
@@ -227,6 +245,8 @@ pub fn storage_write_i64_le(
     n: u64,
     nbytes: u32,
 ) {
+    use_gas!("storage_write_i64_le", ctx);
+
     storage_write::<LittleEndian>(ctx, page_idx, page_offset, n, nbytes);
 }
 
@@ -242,6 +262,8 @@ pub fn storage_read_i32_be(
     page_offset: u32,
     count: u32,
 ) -> u32 {
+    use_gas!("storage_read_i32_be", ctx);
+
     storage_read_int::<BigEndian>(ctx, page_idx, page_offset, count) as u32
 }
 
@@ -257,6 +279,8 @@ pub fn storage_read_i32_le(
     page_offset: u32,
     count: u32,
 ) -> u32 {
+    use_gas!("storage_read_i32_be", ctx);
+
     storage_read_int::<LittleEndian>(ctx, page_idx, page_offset, count) as u32
 }
 
@@ -272,6 +296,8 @@ pub fn storage_read_i64_be(
     page_offset: u32,
     count: u32,
 ) -> u64 {
+    use_gas!("storage_read_i64_be", ctx);
+
     storage_read_int::<BigEndian>(ctx, page_idx, page_offset, count)
 }
 
@@ -287,6 +313,8 @@ pub fn storage_read_i64_le(
     page_offset: u32,
     count: u32,
 ) -> u64 {
+    use_gas!("storage_read_i64_le", ctx);
+
     storage_read_int::<LittleEndian>(ctx, page_idx, page_offset, count)
 }
 

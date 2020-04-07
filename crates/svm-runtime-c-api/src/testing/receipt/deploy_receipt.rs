@@ -12,6 +12,9 @@ pub enum ClientTemplateReceipt {
     Success {
         /// The template address
         addr: TemplateAddr,
+
+        /// gas used
+        gas_used: u64,
     },
 
     /// Receipt failed
@@ -40,8 +43,12 @@ pub fn decode_template_receipt(bytes: &[u8]) -> ClientTemplateReceipt {
         1 => {
             // success
             let addr = helpers::decode_address(&mut iter);
+            let gas_used = helpers::decode_gas_used(&mut iter);
 
-            ClientTemplateReceipt::Success { addr: addr.into() }
+            ClientTemplateReceipt::Success {
+                addr: addr.into(),
+                gas_used,
+            }
         }
         _ => unreachable!(),
     }

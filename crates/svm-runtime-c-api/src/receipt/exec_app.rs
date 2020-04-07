@@ -1,14 +1,17 @@
 //!         `ExecReceipt` Raw Format Version 0
 //!
 //!  On success (`is_success = 1`)
-//!  ----------------------------------------------------
+//!  +---------------------------------------------------+
 //!  |            |              |                       |
 //!  |  version   |  is_success  |     app new state     |
 //!  |            |  (1 nibble)  |      (32 bytes)       |
-//!  |____________|______________|_______________________|
+//!  +____________|______________|_______________________+
 //!  |          |              |         |               |
-//!  | #returns | ret #1 type  | ret #1  |    . . . .    |
-//!  |__________|______________|_________|_______________|
+//!  | #returns | ret #1 type  | ret #1  |  ret #2  type |
+//!  +__________|______________|_________|_______________+
+//!  |          |            |                           |
+//!  |  ret #2  |   .  .  .  |         gas_used          |
+//!  +__________|____________|___________________________+
 //!
 //!
 //!  On success (`is_success = 0`)
@@ -29,7 +32,8 @@ pub(crate) fn encode_exec_receipt(receipt: &ExecReceipt) -> Vec<u8> {
 
     if receipt.success {
         encode_new_state(receipt, &mut w);
-        helpers::encode_returns(&wrapped_receipt, &mut w);
+        encode_returns(receipt, &mut w);
+        helpers::encode_gas_used(&wrapped_receipt, &mut w);
     } else {
         encode_error(&wrapped_receipt, &mut w);
     };
@@ -45,6 +49,13 @@ fn encode_new_state(receipt: &ExecReceipt, w: &mut NibbleWriter) {
     helpers::encode_state(&new_state, w);
 }
 
+fn encode_returns(receipt: &ExecReceipt, w: &mut NibbleWriter) {
+    debug_assert!(receipt.success);
+
+    let returns = receipt.get_returns();
+    helpers::encode_returns(&returns, w);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -53,7 +64,7 @@ mod tests {
 
     use svm_app::types::WasmValue;
     use svm_common::{Address, State};
-    use svm_runtime::error::ExecAppError;
+    use svm_runtime::{error::ExecAppError, gas::MaybeGas};
 
     #[test]
     fn encode_decode_exec_receipt_error() {
@@ -70,7 +81,7 @@ mod tests {
             error: Some(error),
             new_state: None,
             returns: None,
-            gas_used: None,
+            gas_used: MaybeGas::new(),
         };
 
         let bytes = encode_exec_receipt(&receipt);
@@ -86,6 +97,7 @@ mod tests {
         let expected = ClientExecReceipt::Success {
             new_state: new_state.clone(),
             func_returns: "".to_string(),
+            gas_used: 100,
         };
 
         let receipt = ExecReceipt {
@@ -93,7 +105,7 @@ mod tests {
             error: None,
             new_state: Some(new_state),
             returns: Some(Vec::new()),
-            gas_used: Some(100),
+            gas_used: MaybeGas::with(100),
         };
 
         let bytes = encode_exec_receipt(&receipt);
@@ -110,6 +122,7 @@ mod tests {
         let expected = ClientExecReceipt::Success {
             new_state: new_state.clone(),
             func_returns: "I32(10), I64(20), I32(30)".to_string(),
+            gas_used: 100,
         };
 
         let receipt = ExecReceipt {
@@ -117,7 +130,7 @@ mod tests {
             error: None,
             new_state: Some(new_state),
             returns: Some(returns),
-            gas_used: Some(100),
+            gas_used: MaybeGas::with(100),
         };
 
         let bytes = encode_exec_receipt(&receipt);

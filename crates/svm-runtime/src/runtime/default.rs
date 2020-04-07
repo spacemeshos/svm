@@ -10,15 +10,14 @@ use log::{debug, error, info};
 use crate::{
     buffer::BufferRef,
     ctx::SvmCtx,
-    error::{DeployTemplateError, ExecAppError, SpawnAppError},
-    gas::GasEstimator,
+    error::{ExecAppError, SpawnAppError, ValidateError},
+    gas::{GasEstimator, MaybeGas, OOGError},
     helpers::{self, DataWrapper},
     receipt::{make_spawn_app_receipt, ExecReceipt, SpawnAppReceipt, TemplateReceipt},
     runtime::Runtime,
     settings::AppSettings,
     storage::StorageBuilderFn,
 };
-
 use svm_app::{
     error::ParseError,
     traits::{Env, EnvTypes},
@@ -28,6 +27,7 @@ use svm_app::{
     },
 };
 use svm_common::State;
+use svm_gas::Gas;
 use svm_storage::AppStorage;
 
 use wasmer_runtime::Value as WasmerValue;
@@ -62,16 +62,42 @@ where
     ENV: Env<Types = TY>,
     GE: GasEstimator,
 {
-    fn validate_template(&self, bytes: &[u8]) -> Result<(), ParseError> {
-        self.parse_deploy_template(bytes).map(|_| ())
+    fn validate_template(&self, bytes: &[u8]) -> Result<(), ValidateError> {
+        let template = self.parse_deploy_template(bytes)?;
+        let wasm = &template.code[..];
+
+        svm_gas::validate_code(wasm).map_err(|e| e.into())
     }
 
-    fn validate_app(&self, bytes: &[u8]) -> Result<(), ParseError> {
-        self.parse_spawn_app(bytes).map(|_| ())
+    fn validate_app(&self, bytes: &[u8]) -> Result<(), ValidateError> {
+        self.parse_spawn_app(bytes)
+            .map(|_| ())
+            .map_err(|e| e.into())
     }
 
-    fn validate_tx(&self, bytes: &[u8]) -> Result<AppAddr, ParseError> {
-        self.env.parse_exec_app(bytes).map(|tx| tx.app)
+    fn validate_tx(&self, bytes: &[u8]) -> Result<AppAddr, ValidateError> {
+        self.env
+            .parse_exec_app(bytes)
+            .map(|tx| tx.app)
+            .map_err(|e| e.into())
+    }
+
+    fn estimate_deploy_template(&self, bytes: &[u8]) -> Result<Gas, ValidateError> {
+        self.validate_template(bytes)?;
+
+        todo!()
+    }
+
+    fn estimate_spawn_app(&self, bytes: &[u8]) -> Result<Gas, ValidateError> {
+        self.validate_app(bytes)?;
+
+        todo!()
+    }
+
+    fn estimate_exec_app(&self, bytes: &[u8]) -> Result<Gas, ValidateError> {
+        self.validate_tx(bytes)?;
+
+        todo!()
     }
 
     fn deploy_template(
@@ -79,14 +105,22 @@ where
         bytes: &[u8],
         author: &AuthorAddr,
         host_ctx: HostCtx,
+        gas_limit: MaybeGas,
         dry_run: bool,
     ) -> TemplateReceipt {
         info!("runtime `deploy_template`");
 
         let template = self.parse_deploy_template(bytes).unwrap();
-        let gas = self.compute_install_template_gas(bytes, &template);
+        let install_gas = self.compute_install_template_gas(bytes, &template);
 
-        self.install_template(&template, author, host_ctx, gas, dry_run)
+        if gas_limit >= install_gas {
+            let gas_used = MaybeGas::with(install_gas);
+            let gas_left = gas_limit;
+
+            self.install_template(&template, author, host_ctx, gas_used, gas_left, dry_run)
+        } else {
+            TemplateReceipt::new_oog()
+        }
     }
 
     fn spawn_app(
@@ -94,16 +128,26 @@ where
         bytes: &[u8],
         creator: &CreatorAddr,
         host_ctx: HostCtx,
+        gas_limit: MaybeGas,
         dry_run: bool,
     ) -> SpawnAppReceipt {
         info!("runtime `spawn_app`");
 
         let spawn = self.parse_spawn_app(bytes).unwrap();
-        let gas = self.compute_install_app_gas(bytes, &spawn);
+        let install_gas = self.compute_install_app_gas(bytes, &spawn);
 
-        match self.install_app(&spawn, creator, &host_ctx, gas, dry_run) {
-            Ok(addr) => self.call_ctor(creator, spawn, &addr, host_ctx, dry_run),
-            Err(e) => e.into(),
+        let gas_left = gas_limit - install_gas;
+
+        match gas_left {
+            Err(..) => SpawnAppReceipt::new_oog(),
+            Ok(gas_left) => match self.install_app(&spawn, creator, &host_ctx, dry_run) {
+                Ok(addr) => {
+                    let gas_used = install_gas.into();
+
+                    self.call_ctor(creator, spawn, &addr, host_ctx, gas_used, gas_left, dry_run)
+                }
+                Err(e) => e.into(),
+            },
         }
     }
 
@@ -112,11 +156,13 @@ where
         bytes: &[u8],
         state: &State,
         host_ctx: HostCtx,
+        gas_limit: MaybeGas,
         dry_run: bool,
     ) -> ExecReceipt {
         let tx = self.parse_exec_app(bytes).unwrap();
+        let gas_used = MaybeGas::with(0);
 
-        self._exec_app(&tx, state, host_ctx, dry_run)
+        self._exec_app(&tx, state, host_ctx, gas_used, gas_limit, dry_run)
     }
 }
 
@@ -164,11 +210,20 @@ where
         spawn: SpawnApp,
         app_addr: &AppAddr,
         host_ctx: HostCtx,
+        gas_used: MaybeGas,
+        gas_left: MaybeGas,
         dry_run: bool,
     ) -> SpawnAppReceipt {
         let ctor = self.build_ctor_call(creator, spawn, app_addr);
 
-        let ctor_receipt = self._exec_app(&ctor, &State::empty(), host_ctx, dry_run);
+        let ctor_receipt = self._exec_app(
+            &ctor,
+            &State::empty(),
+            host_ctx,
+            gas_used,
+            gas_left,
+            dry_run,
+        );
 
         make_spawn_app_receipt(ctor_receipt, app_addr)
     }
@@ -178,17 +233,18 @@ where
         template: &AppTemplate,
         author: &AuthorAddr,
         host_ctx: HostCtx,
-        gas: u64,
+        gas_used: MaybeGas,
+        _gas_left: MaybeGas,
         dry_run: bool,
     ) -> TemplateReceipt {
         if dry_run == false {
             match self.env.store_template(template, author, &host_ctx) {
-                Ok(addr) => TemplateReceipt::new(addr, gas),
-                Err(e) => DeployTemplateError::StoreFailed(e).into(),
+                Ok(addr) => TemplateReceipt::new(addr, gas_used),
+                Err(..) => panic!("Store failed"),
             }
         } else {
             let addr = self.env.derive_template_address(template, &host_ctx);
-            TemplateReceipt::new(addr, gas)
+            TemplateReceipt::new(addr, gas_used)
         }
     }
 
@@ -197,7 +253,6 @@ where
         spawn: &SpawnApp,
         creator: &CreatorAddr,
         host_ctx: &HostCtx,
-        _spawn_gas: u64,
         dry_run: bool,
     ) -> Result<AppAddr, SpawnAppError> {
         if dry_run == false {
@@ -230,6 +285,8 @@ where
         tx: &AppTransaction,
         state: &State,
         host_ctx: HostCtx,
+        _gas_used: MaybeGas,
+        gas_left: MaybeGas,
         dry_run: bool,
     ) -> ExecReceipt {
         info!("runtime `exec_app`");
@@ -243,12 +300,18 @@ where
                 };
 
                 let mut import_object =
-                    self.import_object_create(&tx.app, &state, host_ctx, &settings);
+                    self.import_object_create(&tx.app, &state, gas_left, host_ctx, &settings);
 
                 self.import_object_extend(&mut import_object);
 
-                let result =
-                    self.do_exec_app(&tx, &template, &template_addr, &import_object, dry_run);
+                let result = self.do_exec_app(
+                    &tx,
+                    &template,
+                    &template_addr,
+                    &import_object,
+                    gas_left,
+                    dry_run,
+                );
 
                 let receipt = self.make_receipt(result);
 
@@ -265,9 +328,11 @@ where
         template: &AppTemplate,
         template_addr: &TemplateAddr,
         import_object: &ImportObject,
+        gas_left: MaybeGas,
         dry_run: bool,
-    ) -> Result<(Option<State>, Option<u64>, Vec<WasmValue>), ExecAppError> {
-        let module = self.compile_template(tx, &template, &template_addr)?;
+    ) -> Result<(Option<State>, Vec<WasmValue>, MaybeGas), ExecAppError> {
+        let module = self.compile_template(tx, &template, &template_addr, gas_left)?;
+
         let mut instance = self.instantiate(tx, template_addr, &module, import_object)?;
 
         self.init_instance_buffer(&tx.func_buf, &mut instance);
@@ -279,7 +344,15 @@ where
             Ok(func) => func,
         };
 
-        match func.call(&args) {
+        let result = func.call(&args);
+
+        let gas_used = self.wasmer_instance_gas_used(&instance);
+
+        if gas_used.is_err() {
+            return Err(ExecAppError::OOG);
+        }
+
+        match result {
             Err(e) => Err(ExecAppError::ExecFailed {
                 app_addr: tx.app.clone(),
                 template_addr: template_addr.clone(),
@@ -298,28 +371,20 @@ where
                 };
 
                 let returns = self.cast_wasmer_func_returns(returns)?;
+                let gas_used = gas_used.unwrap();
 
-                // TODO: use the real `gas_used`
-                let gas_used = Some(0);
-
-                Ok((new_state, gas_used, returns))
+                Ok((new_state, returns, gas_used))
             }
         }
     }
 
     fn make_receipt(
         &self,
-        result: Result<(Option<State>, Option<u64>, Vec<WasmValue>), ExecAppError>,
+        result: Result<(Option<State>, Vec<WasmValue>, MaybeGas), ExecAppError>,
     ) -> ExecReceipt {
         match result {
-            Err(e) => ExecReceipt {
-                success: false,
-                error: Some(e),
-                returns: None,
-                new_state: None,
-                gas_used: None,
-            },
-            Ok((new_state, gas_used, returns)) => ExecReceipt {
+            Err(e) => e.into(),
+            Ok((new_state, returns, gas_used)) => ExecReceipt {
                 success: true,
                 error: None,
                 returns: Some(returns),
@@ -344,6 +409,14 @@ where
         };
 
         helpers::buffer_freeze(ctx.data, ARGS_BUF_ID);
+    }
+
+    #[inline]
+    fn wasmer_instance_gas_used(
+        &self,
+        instance: &wasmer_runtime::Instance,
+    ) -> Result<MaybeGas, OOGError> {
+        helpers::wasmer_gas_used(instance)
     }
 
     fn cast_wasmer_func_returns(
@@ -456,6 +529,7 @@ where
         &self,
         addr: &AppAddr,
         state: &State,
+        gas_limit: MaybeGas,
         host_ctx: HostCtx,
         settings: &AppSettings,
     ) -> ImportObject {
@@ -470,6 +544,7 @@ where
         let svm_ctx = SvmCtx::new(
             DataWrapper::new(self.host),
             DataWrapper::new(host_ctx),
+            gas_limit,
             storage,
         );
         let svm_ctx = Box::leak(Box::new(svm_ctx));
@@ -519,10 +594,14 @@ where
         tx: &AppTransaction,
         template: &AppTemplate,
         template_addr: &TemplateAddr,
+        gas_left: MaybeGas,
     ) -> Result<wasmer_runtime::Module, ExecAppError> {
         info!("runtime `compile_template` (template={:?})", template_addr);
 
-        svm_compiler::compile_program(&template.code).or_else(|e| {
+        let gas_metering = gas_left.is_some();
+        let gas_left = gas_left.unwrap_or(0);
+
+        svm_compiler::compile_program(&template.code, gas_left, gas_metering).or_else(|e| {
             error!("module compilation failed (template={:?})", template_addr);
 
             Err(ExecAppError::CompilationFailed {
@@ -548,16 +627,14 @@ where
     }
 
     /// Gas
-    fn compute_install_template_gas(&self, _bytes: &[u8], _template: &AppTemplate) -> u64 {
-        0
+    fn compute_install_template_gas(&self, bytes: &[u8], _template: &AppTemplate) -> u64 {
         // todo!()
-        // GE::est_deploy_template(bytes, template)
+        1000 * (bytes.len() as u64)
     }
 
-    fn compute_install_app_gas(&self, _bytes: &[u8], _spawn: &SpawnApp) -> u64 {
-        0
+    fn compute_install_app_gas(&self, bytes: &[u8], _spawn: &SpawnApp) -> u64 {
         // todo!()
-        // GE::est_spawn_app(bytes, spawn)
+        1000 * (bytes.len() as u64)
     }
 
     /// Helpers

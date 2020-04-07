@@ -24,15 +24,16 @@ mod state;
 mod value;
 mod wasmer;
 
-pub(crate) use error::{raw_error, raw_parse_error, raw_utf8_error};
+pub(crate) use error::{raw_error, raw_utf8_error, raw_validate_error};
 
 /// `SVM` FFI Interface
 pub use api::{
     svm_app_receipt_addr, svm_app_receipt_state, svm_byte_array_destroy, svm_deploy_template,
-    svm_exec_app, svm_exec_receipt_state, svm_import_func_build, svm_imports_alloc,
-    svm_imports_destroy, svm_instance_context_host_get, svm_memory_kv_create,
-    svm_memory_runtime_create, svm_runtime_create, svm_runtime_destroy, svm_spawn_app,
-    svm_template_receipt_addr, svm_validate_tx,
+    svm_estimate_deploy_template, svm_estimate_exec_app, svm_estimate_spawn_app, svm_exec_app,
+    svm_exec_receipt_state, svm_import_func_build, svm_imports_alloc, svm_imports_destroy,
+    svm_instance_context_host_get, svm_memory_kv_create, svm_memory_runtime_create,
+    svm_runtime_create, svm_runtime_destroy, svm_spawn_app, svm_template_receipt_addr,
+    svm_validate_tx,
 };
 pub use byte_array::svm_byte_array;
 pub use import::{

@@ -1,4 +1,4 @@
-use crate::helpers;
+use crate::{helpers, use_gas};
 
 use byteorder::{BigEndian, ByteOrder, LittleEndian};
 
@@ -8,6 +8,8 @@ use wasmer_runtime::Ctx as WasmerCtx;
 /// The data is laid out in Big-Endian order.
 #[inline]
 pub fn reg_set_i32_be(ctx: &mut WasmerCtx, reg_bits: u32, reg_idx: u32, n: u32) {
+    use_gas!("reg_set_i32_be", ctx);
+
     let mut buf = [0; 4];
     BigEndian::write_u32(&mut buf, n);
 
@@ -18,6 +20,8 @@ pub fn reg_set_i32_be(ctx: &mut WasmerCtx, reg_bits: u32, reg_idx: u32, n: u32) 
 /// The data is laid out in Little-Endian order.
 #[inline]
 pub fn reg_set_i32_le(ctx: &mut WasmerCtx, reg_bits: u32, reg_idx: u32, n: u32) {
+    use_gas!("reg_set_i32_le", ctx);
+
     let mut buf = [0; 4];
     LittleEndian::write_u32(&mut buf, n);
 
@@ -28,6 +32,8 @@ pub fn reg_set_i32_le(ctx: &mut WasmerCtx, reg_bits: u32, reg_idx: u32, n: u32) 
 /// The data is laid out in Big-Endian order.
 #[inline]
 pub fn reg_set_i64_be(ctx: &mut WasmerCtx, reg_bits: u32, reg_idx: u32, n: u64) {
+    use_gas!("reg_set_i64_be", ctx);
+
     let mut buf = [0; 8];
     BigEndian::write_u64(&mut buf, n);
 
@@ -38,6 +44,8 @@ pub fn reg_set_i64_be(ctx: &mut WasmerCtx, reg_bits: u32, reg_idx: u32, n: u64) 
 /// The data is laid out in Little-Endian order.
 #[inline]
 pub fn reg_set_i64_le(ctx: &mut WasmerCtx, reg_bits: u32, reg_idx: u32, n: u64) {
+    use_gas!("reg_set_i64_le", ctx);
+
     let mut buf = [0; 8];
     LittleEndian::write_u64(&mut buf, n);
 
@@ -47,6 +55,8 @@ pub fn reg_set_i64_le(ctx: &mut WasmerCtx, reg_bits: u32, reg_idx: u32, n: u64) 
 /// Stores Register `{reg_bits}:{reg_idx}`. see `reg_pop` for restoring.
 #[inline]
 pub fn reg_push(ctx: &mut WasmerCtx, reg_bits: u32, reg_idx: u32) {
+    use_gas!("reg_push", ctx);
+
     let reg = helpers::wasmer_data_reg(ctx.data, reg_bits, reg_idx);
     reg.push();
 }
@@ -54,6 +64,8 @@ pub fn reg_push(ctx: &mut WasmerCtx, reg_bits: u32, reg_idx: u32) {
 /// Restores Register `{reg_bits}:{reg_idx}` into its previous content.
 #[inline]
 pub fn reg_pop(ctx: &mut WasmerCtx, reg_bits: u32, reg_idx: u32) {
+    use_gas!("reg_pop", ctx);
+
     let reg = helpers::wasmer_data_reg(ctx.data, reg_bits, reg_idx);
     reg.pop();
 }
@@ -65,6 +77,8 @@ pub fn reg_pop(ctx: &mut WasmerCtx, reg_bits: u32, reg_idx: u32) {
 /// else (i.e `dst` is smaller) returns -1,
 #[inline]
 pub fn reg_cmp(ctx: &mut WasmerCtx, reg_bits: u32, src_idx: u32, dst_idx: u32) -> i32 {
+    use_gas!("reg_cmp", ctx);
+
     let src = helpers::wasmer_data_reg(ctx.data, reg_bits, src_idx);
     let dst = helpers::wasmer_data_reg(ctx.data, reg_bits, dst_idx);
 
@@ -84,6 +98,8 @@ pub fn reg_cmp(ctx: &mut WasmerCtx, reg_bits: u32, src_idx: u32, dst_idx: u32) -
 
 #[inline]
 fn reg_set(ctx: &mut WasmerCtx, reg_bits: u32, reg_idx: u32, buf: &[u8]) {
+    use_gas!("reg_set", ctx);
+
     let reg = helpers::wasmer_data_reg(ctx.data, reg_bits, reg_idx);
     reg.set(buf)
 }

@@ -3,28 +3,26 @@
 #![deny(dead_code)]
 #![deny(unreachable_code)]
 
-//! This crate is responsible on doing gas estimations for apps.
-//! SVM apps are essentially wasm programs importing the SVM vmcalls.
+//! This crate is responsible for doing gas estimation for apps.
+//! SVM apps are essentially wasm programs importing SVM vmcalls.
 
-pub(crate) mod program;
-
+mod block;
+mod call_graph;
+mod code_reader;
+mod estimate;
 mod function;
-
-/// Gas required for executing SVM apps.
 mod gas;
+mod op;
+mod program;
+mod validation;
 
-/// Reading wasm code wasm code
-pub mod code_reader;
+/// Crate errors
+pub mod error;
 
 /// This is the place for the crate traits
 pub mod traits;
 
-/// Gas estimation error
-pub mod error;
-
-/// Implements the gas estimation logic
-mod estimate;
-
-pub use estimate::estimate_program;
+pub use estimate::estimate_code;
 pub use function::FuncIndex;
 pub use gas::Gas;
+pub use validation::validate_code;

@@ -1,28 +1,39 @@
 use svm_app::types::WasmValue;
 use svm_common::State;
 
-use crate::error::ExecAppError;
+use crate::{error::ExecAppError, gas::MaybeGas};
 
 /// Runtime transaction execution receipt
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct ExecReceipt {
-    /// whether transaction succedded or not
+    /// Whether transaction succedded or not.
     pub success: bool,
 
-    /// the execution error in case execution failed
+    /// The execution error in case execution failed.
     pub error: Option<ExecAppError>,
 
-    /// the new app `State` if execution succedded
+    /// The new app `State` if execution succedded.
     pub new_state: Option<State>,
 
-    /// returned values
+    /// Returned values.
     pub returns: Option<Vec<WasmValue>>,
 
-    /// The amount of gas used
-    pub gas_used: Option<u64>,
+    /// The amount of gas used.
+    pub gas_used: MaybeGas,
 }
 
 impl ExecReceipt {
+    /// Creates a `ExecReceipt` for reaching reaching `Out-of-Gas`.
+    pub fn new_oog() -> Self {
+        Self {
+            success: false,
+            error: Some(ExecAppError::OOG),
+            new_state: None,
+            returns: None,
+            gas_used: MaybeGas::new(),
+        }
+    }
+
     /// Returns App's new `State``. Panics if transaction has failed.
     pub fn get_new_state(&self) -> &State {
         self.new_state.as_ref().unwrap()
@@ -41,7 +52,7 @@ impl From<ExecAppError> for ExecReceipt {
             error: Some(error),
             new_state: None,
             returns: None,
-            gas_used: None,
+            gas_used: MaybeGas::new(),
         }
     }
 }
