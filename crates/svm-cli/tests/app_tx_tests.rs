@@ -5,30 +5,30 @@ use crate::common::{fmt_addr, fmt_args, fmt_buf};
 use svm_cli::cli;
 use svm_common::Address;
 
-struct SpawnAppTestCase {
+struct AppTxTestCase {
     version: String,
-    template_addr_hex: String,
-    ctor_idx: String,
-    ctor_buf: String,
-    ctor_args: Vec<String>,
+    app_addr_hex: String,
+    func_idx: String,
+    func_buf: String,
+    func_args: Vec<String>,
 }
 
 #[test]
 fn encode_decode() {
     let cases = vec![
-        SpawnAppTestCase {
+        AppTxTestCase {
             version: String::from("0"),
-            template_addr_hex: String::from("00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa"),
-            ctor_idx: String::from("0"),
-            ctor_buf: String::from("11bb11bb12345678"),
-            ctor_args: vec![String::from("10i32"), String::from("20i64")],
+            app_addr_hex: String::from("00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa"),
+            func_idx: String::from("0"),
+            func_buf: String::from("11bb11bb12345678"),
+            func_args: vec![String::from("10i32"), String::from("20i64")],
         },
-        SpawnAppTestCase {
+        AppTxTestCase {
             version: String::from("0"),
-            template_addr_hex: String::from("00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa"),
-            ctor_idx: String::from("12"),
-            ctor_buf: String::from(""),
-            ctor_args: vec![String::from("1073741824i64"), String::from("0i32")],
+            app_addr_hex: String::from("00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa"),
+            func_idx: String::from("12"),
+            func_buf: String::from(""),
+            func_args: vec![String::from("1073741824i64"), String::from("0i32")],
         },
     ];
 
@@ -37,7 +37,7 @@ fn encode_decode() {
     }
 }
 
-fn test_encode_decode(case: SpawnAppTestCase) {
+fn test_encode_decode(case: AppTxTestCase) {
     let tempfile_path = tempfile::NamedTempFile::new().unwrap();
     let tempfile_path = tempfile_path.path().to_str().unwrap();
 
@@ -45,16 +45,16 @@ fn test_encode_decode(case: SpawnAppTestCase) {
     let mut input = vec![
         "myprog",
         "encode",
-        "spawn_app",
+        "app_tx",
         output_path,
         &case.version,
-        &case.template_addr_hex,
-        &case.ctor_idx,
-        &case.ctor_buf,
+        &case.app_addr_hex,
+        &case.func_idx,
+        &case.func_buf,
     ];
     input.extend_from_slice(
         &case
-            .ctor_args
+            .func_args
             .iter()
             .map(|s| s.as_str())
             .collect::<Vec<_>>(),
@@ -68,38 +68,37 @@ fn test_encode_decode(case: SpawnAppTestCase) {
     assert_eq!(&cap[2], output_path);
 
     let data_path = output_path;
-    let input = vec!["myprog", "decode", "spawn_app", data_path];
+    let input = vec!["myprog", "decode", "app_tx", data_path];
     let matches = cli::new_app().get_matches_from(input);
     let output = cli::process(matches).unwrap();
 
-    let re = Regex::new(
-        r"Version: (.*)\nTemplate: (.*)\nctor_idx: (\d+)\nctor_buf: (.*)\nctor_args: (.*)",
-    )
-    .unwrap();
+    let re =
+        Regex::new(r"Version: (.*)\nApp: (.*)\nfunc_idx: (\d+)\nfunc_buf: (.*)\nfunc_args: (.*)")
+            .unwrap();
     let caps = re.captures(&output).unwrap();
 
     assert_eq!(&caps[1], case.version);
-    assert_eq!(&caps[2], fmt_addr(&case.template_addr_hex));
-    assert_eq!(&caps[3], case.ctor_idx);
-    assert_eq!(&caps[4], fmt_buf(&case.ctor_buf));
-    assert_eq!(&caps[5], fmt_args(case.ctor_args));
+    assert_eq!(&caps[2], fmt_addr(&case.app_addr_hex));
+    assert_eq!(&caps[3], case.func_idx);
+    assert_eq!(&caps[4], fmt_buf(&case.func_buf));
+    assert_eq!(&caps[5], fmt_args(case.func_args));
 }
 
 #[test]
 fn encode_invalid_outputpath() {
     let output_path = "";
     let version = "0";
-    let template_addr = "00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa";
-    let ctor_idx = "0";
+    let app_addr_hex = "00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa";
+    let func_idx = "0";
 
     let input = vec![
         "myprog",
         "encode",
-        "spawn_app",
+        "app_tx",
         output_path,
         version,
-        template_addr,
-        ctor_idx,
+        app_addr_hex,
+        func_idx,
     ];
 
     let matches = cli::new_app().get_matches_from(input);
@@ -113,20 +112,20 @@ fn encode_invalid_outputpath() {
 }
 
 #[test]
-fn encode_invalid_template_addr() {
+fn encode_invalid_app_addr() {
     let output_path = "";
     let version = "0";
-    let template_addr = "00aa00aa00aa00aa00aa";
-    let ctor_idx = "0";
+    let app_addr_hex = "00aa00aa00aa00aa00aa";
+    let func_idx = "0";
 
     let input = vec![
         "myprog",
         "encode",
-        "spawn_app",
+        "app_tx",
         output_path,
         version,
-        template_addr,
-        ctor_idx,
+        app_addr_hex,
+        func_idx,
     ];
 
     let matches = cli::new_app().get_matches_from(input);
@@ -136,7 +135,7 @@ fn encode_invalid_template_addr() {
         res.err().unwrap().to_string(),
         format!(
             "invalid address length: found {}, expected: {}",
-            hex::decode(template_addr).unwrap().len(),
+            hex::decode(app_addr_hex).unwrap().len(),
             Address::len()
         )
     );
@@ -147,20 +146,20 @@ fn encode_invalid_hex() {
     let invalid_hex_str = "00a";
     assert!(hex::decode(invalid_hex_str).is_err());
 
-    // Invalid `template_addr`.
+    // Invalid `app_addr_hex`.
     let output_path = "";
     let version = "0";
-    let template_addr = invalid_hex_str;
-    let ctor_idx = "0";
+    let app_addr_hex = invalid_hex_str;
+    let func_idx = "0";
 
     let input = vec![
         "myprog",
         "encode",
-        "spawn_app",
+        "app_tx",
         output_path,
         version,
-        template_addr,
-        ctor_idx,
+        app_addr_hex,
+        func_idx,
     ];
 
     let matches = cli::new_app().get_matches_from(input);
@@ -172,22 +171,22 @@ fn encode_invalid_hex() {
         .to_string()
         .starts_with("failed to decode hex string"));
 
-    // Invalid `ctor_buf`.
+    // Invalid `func_buf`.
     let output_path = "";
     let version = "0";
-    let template_addr = "00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa";
-    let ctor_idx = "0";
-    let ctor_buf = invalid_hex_str;
+    let app_addr_hex = "00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa";
+    let func_idx = "0";
+    let func_buf = invalid_hex_str;
 
     let input = vec![
         "myprog",
         "encode",
-        "spawn_app",
+        "app_tx",
         output_path,
         version,
-        template_addr,
-        ctor_idx,
-        ctor_buf,
+        app_addr_hex,
+        func_idx,
+        func_buf,
     ];
 
     let matches = cli::new_app().get_matches_from(input);

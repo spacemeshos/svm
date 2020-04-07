@@ -4,40 +4,40 @@ use std::io::prelude::{Read, Write};
 
 use crate::common;
 use svm_app::{
-    raw::{decode_spawn_app, NibbleIter},
-    testing::SpawnAppBuilder,
-    types::{SpawnApp, WasmValue},
+    raw::{decode_exec_app, NibbleIter},
+    testing::AppTxBuilder,
+    types::{AppTransaction, WasmValue},
 };
 
 pub fn encode(
     version: u32,
-    template_addr_hex: &str,
-    ctor_idx: u16,
-    ctor_buf_hex: Option<&str>,
-    ctor_args: Option<Vec<&str>>,
+    app_addr_hex: &str,
+    func_idx: u16,
+    func_buf_hex: Option<&str>,
+    func_args: Option<Vec<&str>>,
     output_path: &str,
 ) -> Result<usize, Box<dyn Error>> {
-    let template_addr = common::decode_addr(template_addr_hex)?;
+    let app_addr = common::decode_addr(app_addr_hex)?;
 
-    let mut ctor_buf = None;
-    if let Some(ctor_buf_hex) = ctor_buf_hex {
-        ctor_buf = Some(common::decode_hex(ctor_buf_hex)?);
+    let mut func_buf = None;
+    if let Some(func_buf_hex) = func_buf_hex {
+        func_buf = Some(common::decode_hex(func_buf_hex)?);
     }
 
-    let mut ctor_args_vals: Option<Vec<WasmValue>> = None;
-    if let Some(ctor_args) = ctor_args {
-        ctor_args_vals = Some(common::decode_args(ctor_args)?);
+    let mut func_args_vals: Option<Vec<WasmValue>> = None;
+    if let Some(func_args) = func_args {
+        func_args_vals = Some(common::decode_args(func_args)?);
     }
 
-    let mut builder = SpawnAppBuilder::new()
+    let mut builder = AppTxBuilder::new()
         .with_version(version)
-        .with_template(&template_addr.into())
-        .with_ctor_index(ctor_idx);
-    if let Some(ctor_buf) = ctor_buf {
-        builder = builder.with_ctor_buf(&ctor_buf)
+        .with_app(&app_addr.into())
+        .with_func_index(func_idx);
+    if let Some(func_buf) = func_buf {
+        builder = builder.with_func_buf(&func_buf)
     }
-    if let Some(ctor_args_vals) = ctor_args_vals {
-        builder = builder.with_ctor_args(&ctor_args_vals);
+    if let Some(func_args_vals) = func_args_vals {
+        builder = builder.with_func_args(&func_args_vals);
     }
     let bytes = builder.build();
 
@@ -58,7 +58,7 @@ pub fn encode(
     Ok(bytes.len())
 }
 
-pub fn decode(data_path: &str) -> Result<SpawnApp, Box<dyn Error>> {
+pub fn decode(data_path: &str) -> Result<AppTransaction, Box<dyn Error>> {
     let file = File::open(data_path);
     let mut file = match file {
         Ok(v) => v,
@@ -75,5 +75,5 @@ pub fn decode(data_path: &str) -> Result<SpawnApp, Box<dyn Error>> {
     }
 
     let mut iter = NibbleIter::new(&buf);
-    decode_spawn_app(&mut iter).map_err(|e| e.to_string().into())
+    decode_exec_app(&mut iter).map_err(|e| e.to_string().into())
 }
