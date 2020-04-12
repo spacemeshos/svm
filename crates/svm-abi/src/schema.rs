@@ -1,21 +1,29 @@
+use std::collections::HashMap;
+
 ///  Schema's variable representation
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Var {
-    /// Variable's layout
+    /// Var's unique id
+    id: usize,
+
+    /// Variable's layout.
     layout: VarLayout,
 
-    /// Variable's type
+    /// Variable's type.
     ty: VarType,
 
-    /// Variable's symbolic name
+    /// Variable's symbolic name.
     name: String,
 
     /// Variable's description (a free-text documentation).
     desc: String,
+
+    /// Variable's value.
+    value: Vec<u8>,
 }
 
 /// Variables storage layout
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct VarLayout {
     /// Page index that holds the variable.
     page_idx: usize,
@@ -28,9 +36,9 @@ pub struct VarLayout {
 }
 
 /// Variable type.
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum VarType {
-    /// `Integer` with Endianness (BigEndian / LitteEndian).
+    /// `Integer` with Endianness (Big-Endian / Litte-Endian).
     Int(Endianness),
 
     /// Blob of data
@@ -45,7 +53,7 @@ pub enum VarType {
     /// A boolean (True / False)
     Boolean,
 
-    /// `Public-Key`.
+    /// `Public-Key`
     PubKey,
 
     /// Account's Address
@@ -57,7 +65,7 @@ pub enum VarType {
 }
 
 /// Integer Endianness
-#[derive(Debug, Copy, Clone, Hash)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Endianness {
     /// Big-Endian
     Big,
@@ -67,12 +75,17 @@ pub enum Endianness {
 }
 
 /// Holds a representation of `AppStorage`'s schema.
-#[derive(Debug, Clone, Hash)]
-pub struct AppSchema(Vec<Var>);
+#[derive(Debug, Clone, PartialEq)]
+pub struct AppSchema(HashMap<usize, Var>);
 
 impl AppSchema {
     /// Creates a new instance.
     pub fn new() -> Self {
-        Self(Vec::new())
+        Self(HashMap::new())
+    }
+
+    /// Returns the variable's schema data
+    pub fn get_var(&self, id: usize) -> Option<Var> {
+        self.0.get(&id).cloned()
     }
 }
