@@ -10,7 +10,7 @@ use crate::{
     helpers, raw_error, raw_utf8_error, raw_validate_error,
     receipt::{encode_app_receipt, encode_exec_receipt, encode_template_receipt},
     svm_byte_array, svm_import_func_sig_t, svm_import_func_t, svm_import_kind, svm_import_t,
-    svm_import_value, svm_result_t, svm_value_array, svm_value_type_array,
+    svm_import_value, svm_result_t, svm_value, svm_value_array, svm_value_type_array,
     testing::{self, ClientAppReceipt, ClientExecReceipt, ClientTemplateReceipt},
     RuntimePtr,
 };
@@ -769,6 +769,26 @@ pub unsafe extern "C" fn svm_imports_destroy(imports: *const c_void) {
 pub unsafe extern "C" fn svm_byte_array_destroy(bytes: svm_byte_array) {
     let ptr = bytes.bytes as *mut u8;
     let length = bytes.length as usize;
+
+    let _ = Vec::from_raw_parts(ptr, length, length);
+}
+
+/// Frees `svm_value_array`
+///
+/// # Example
+///
+/// ```rust
+/// use svm_runtime_c_api::*;
+///
+/// let array = svm_value_array { values: std::ptr::null(), length: 0 };
+/// unsafe { svm_value_array_destroy(array); }
+/// ```
+///
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_value_array_destroy(array: svm_value_array) {
+    let ptr = array.values as *mut svm_value;
+    let length = array.length as usize;
 
     let _ = Vec::from_raw_parts(ptr, length, length);
 }
