@@ -2,8 +2,8 @@
 This document is intended to serve as high-level plan for integration of SVM with [`go-spacemesh`][go-spacemesh].
 
 There are two main purposes for this doc:
-* Make sure all the spacemesh team members are aligned with the high-level plan and terminology.
-* Form a base from which GitHub issues will be created.
+* Make sure that spacemesh team members are aligned with the high-level plan and terminology.
+* Form a basis from which GitHub issues will be created.
 
 Note: since SVM is a standalone project this document may be a good reference for any other future Blockchain project willing to integrate SVM.
 
@@ -11,58 +11,86 @@ Note: since SVM is a standalone project this document may be a good reference fo
 
 * `Transaction Envelope`
 <br/>
-This term refer to any transaction data besides the SVM related data.
-It will be mentioned usually in the context of transaction fields: `sender`, `value`, `gas_limit`, `nonce`
+This term refers to any transaction data besides SVM specific data.
+It will be mentioned usually in the context of transaction fields such as: `sender`, `value`, `gas_limit`, `gas_price` and `nonce`.
 
 * `Host Context`
 <br/>
-This term refers to the context of the host. Meaning, the data sent on the `Transaction Envelope` plus extra data.
-It will contain fields such as: `block_id`, `layer_id`.
+This term refers to the context of the host. Meaning, the data of `Transaction Envelope` plus extra data.
+It will contain fields such as: `block_id`, `layer_id`..
+
+Executed SVM transactions will have access to the Host Context.
+The data-structure used for the Host Context will be a map between an i32 integer index to raw byte array.
+
+``` 
+{
+	# `0` denotes `nonce` in this example.
+	0 => [0x10, 0x20],
+	
+	# `1' denotes `layer_id` in this example. 
+	1 => [0x1A, 0x5C, 0x2D]
+}
+```
 
 * `App Template`
 <br/>
-We name a `Smart Contract`'s code + metadata as `App Template`.
+We name a `Smart Contract`'s code + metadata as a `App Template`.
 <br/>
-We can think of a `Template` as the matching of an Object-Oriented `class`. 
+We can think of a `Template` as the equivalent of a `class` in an Object-Oriented programing paradigm.
+<br/>
+Each `Template` will have an account under the `Global State` and its own `Addres`. (see more under the `Global State` section).
 
 * `App`
 <br/>
 Given an `App Template` we can spawn `App`s out of it.
-All spawned `App`s out-of the same `Template` share the same code but have an isloated inner state.
+All spawned `App`s out-of the same origin `Template` share the same code but have an isloated inner state.
 <br/>
-We can think of an `App` as the matching of an Object-Oriented `class instance`. 
+We can think of an `App` as the equivalent of a `class instance` (a.k.a `object`) in an Object-Oriented programing paradigm.
 <br/>
-The motivation for having both `App Template` and `App` are to encourage code reuse and saving on-chain storage.
+The motivation for having both `App Template` and `App` are to encourage code reuse and saving of on-chain storage.
+<br/>
+Each `App` will have an account under the `Global State` and its own `Addres`. (see more under the `Global State` section).
 
 * `App-Transaction` 
 <br/>
-Given a spawned `App` we'd like to execute `App Transaction` on it.
+Given a spawned `App` we'd like to execute `App Transaction`s on it.
+<br/>
+We can think of executing an `App Transaction` as the equivalent of a invoking an `object method` in an Object-Oriented programing paradigm.
+<br/>
+Executing `App Transaction` are the way to apply changes and transaction the state of an `App`. 
 
 
 ### High-level flows
-* `Deploy App Template`
+<br/>
+#### `Deploy App Template`
 
-Since `go-spacemesh` v0.2 will come with a single built-in template, named `MultiSig Wallet`.
+The `go-spacemesh` v0.2 will contain only a single built-in template, named `MultiSig Wallet`.
 Therefore, the `deploy-template` functionality using the `p2p` should be disabled.
 
-See `Genesis flow` for how to deploy the `MultiSig Wallet`.
-
-* `Spawn App`
-TBD
+See `Genesis flow` for how to deploy the pre-built `MultiSig Wallet`.
 
 
+#### `Spawn App`
+<br/>
+The `go-spacemesh` v0.2 will support only apps of the `MultiSig Wallet` template.
+Part of the apps will be spawned as part of the `Genesis flow` and the rest apps will be spawned via the `Wallet UX` client. 
+<br/>
 
-Wallet API:
-===========
+The steps:
+1. Wallet UX picks the required template. For `go-spacemesh` v0.2 the template will always be the `MultiSig Wallet`.
+1. The `spawn app` interface is displayed with constructor input fields derived from the `App Template ABI`.
 
-The `Spawn-App` gRPC payload will be built using the `App-Template ABI`.
-TBD
+   Special attention should be given to the `value` field, which is part of the `Transaction Envelope`.
+   The balance of the `spawned-app` will be set to that `value`. (it will be transfered from the app's creator balance).
+   
+   TOD: how to derive the `gas_price` ?
+   
+   Both `value` and `gas_price` are part of any app spawning.
 
-```
-Wallet UX -- gRPC --> go-spacemesh ----> go-svm ----> SVM
-                      go-spacemesh <---- go-svm <---- SVM
-						  --> dispatch (p2p)
-```
+1. User fills-in the constructor fields.
+1. The estimated required `gas_limit` is shown to the user.
+1. If user (app creator) has enough balance also for the `gas_limit` he may click the `Spawn App` button.
+1. Clicking the `Spawn App` button will dispatch the `Spawn App` transaction to the network.
 
 
 * `Execute App Transaction`
