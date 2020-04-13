@@ -10,7 +10,7 @@ use crate::{
     helpers, raw_error, raw_utf8_error, raw_validate_error,
     receipt::{encode_app_receipt, encode_exec_receipt, encode_template_receipt},
     svm_byte_array, svm_import_func_sig_t, svm_import_func_t, svm_import_kind, svm_import_t,
-    svm_import_value, svm_result_t, svm_value_type_array,
+    svm_import_value, svm_result_t, svm_value_array, svm_value_type_array,
     testing::{self, ClientAppReceipt, ClientExecReceipt, ClientTemplateReceipt},
     RuntimePtr,
 };
@@ -1027,6 +1027,27 @@ pub unsafe extern "C" fn svm_exec_receipt_state(
         }
     }
 }
+
+// #[no_mangle]
+// pub unsafe extern "C" fn svm_exec_receipt_returns(
+//     returns: *mut svm_value_array,
+//     receipt: svm_byte_array,
+//     error: *mut svm_byte_array,
+// ) -> svm_result_t {
+//     let client_receipt = testing::decode_exec_receipt(receipt.into());
+//
+//     match client_receipt {
+//         ClientExecReceipt::Success { func_returns, .. } => {
+//             let func_returns: svm_value_array = func_returns.into();
+//             // *returns = ;
+//             svm_result_t::SVM_SUCCESS
+//         }
+//         ClientExecReceipt::Failure { error: err_str } => {
+//             raw_error(err_str, error);
+//             svm_result_t::SVM_FAILURE
+//         }
+//     }
+// }
 
 /// Extracts the executed transaction `gas_used`.
 /// When transaction succeeded returns `SVM_SUCCESS`, returns the amount of gas used via `gas_used` parameter.

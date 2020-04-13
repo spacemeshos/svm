@@ -1,5 +1,115 @@
 use std::convert::TryFrom;
 
+use svm_app::types::WasmValue;
+
+/// FFI representation for `SVM` value array
+#[allow(non_snake_case, non_camel_case_types)]
+#[derive(Debug, Copy, Clone, PartialEq)]
+#[repr(C)]
+pub struct svm_value_array {
+    /// Pointer to the first `svm_value`
+    pub values: *const svm_value,
+
+    /// Number or values
+    pub length: u64,
+}
+
+/// Converting a `&[WasmValue]` into `svm_value_array`.
+/// The `svm_value_array` should be released by manually.
+///
+/// ```rust
+/// use std::convert::TryFrom;
+///
+/// use svm_app::types::WasmValue;
+/// use svm_runtime_c_api::{svm_value, svm_value_array, svm_value_type};
+///
+/// let values = vec![WasmValue::I32(10), WasmValue::I64(20)];
+/// let values: svm_value_array = values.into();
+/// assert_eq!(values.length, 2);
+///
+/// let slice: &[svm_value] = unsafe { std::slice::from_raw_parts(values.values, 2) };
+/// assert_eq!(slice[0], svm_value { ty: svm_value_type::SVM_I32, i32_val: 10, i64_val: 0 });
+/// assert_eq!(slice[1], svm_value { ty: svm_value_type::SVM_I64, i32_val: 0,  i64_val: 20 });
+/// ```
+///
+impl From<&[WasmValue]> for svm_value_array {
+    fn from(values: &[WasmValue]) -> Self {
+        let values: Vec<svm_value> = values.iter().map(|v| v.into()).collect();
+
+        let (ptr, len, _cap) = values.into_raw_parts();
+
+        Self {
+            values: ptr,
+            length: len as u64,
+        }
+    }
+}
+
+/// Converting a `Vec<WasmValue>` into `svm_value_array`.
+/// The `svm_value_array` should be released by manually.
+///
+impl From<Vec<WasmValue>> for svm_value_array {
+    #[inline]
+    fn from(values: Vec<WasmValue>) -> Self {
+        (&values[..]).into()
+    }
+}
+
+/// FFI representation for `SVM` value
+#[allow(non_snake_case, non_camel_case_types)]
+#[derive(Debug, Copy, Clone, PartialEq)]
+#[repr(C)]
+pub struct svm_value {
+    /// Wasm integer type
+    pub ty: svm_value_type,
+
+    /// I32 value
+    pub i32_val: u32,
+
+    /// I64 value
+    pub i64_val: u64,
+}
+
+/// Builds `svm_value` out of a `&WasmValue`.
+///
+/// # Example
+///
+/// ```rust
+/// use svm_app::types::WasmValue;
+/// use svm_runtime_c_api::{svm_value, svm_value_type};
+///
+/// let wasm_val: svm_value = WasmValue::I32(10).into();
+/// assert_eq!(wasm_val, svm_value { ty: svm_value_type::SVM_I32, i32_val: 10, i64_val: 0 });
+///
+/// let wasm_val: svm_value = WasmValue::I64(20).into();
+/// assert_eq!(wasm_val, svm_value { ty: svm_value_type::SVM_I64, i32_val: 0, i64_val: 20 });
+/// ```
+///
+impl From<&WasmValue> for svm_value {
+    fn from(val: &WasmValue) -> Self {
+        match *val {
+            WasmValue::I32(v) => Self {
+                ty: svm_value_type::SVM_I32,
+                i32_val: v,
+                i64_val: 0,
+            },
+            WasmValue::I64(v) => Self {
+                ty: svm_value_type::SVM_I64,
+                i64_val: v,
+                i32_val: 0,
+            },
+        }
+    }
+}
+
+/// Builds `svm_value` out of a `WasmValue`.
+impl From<WasmValue> for svm_value {
+    #[inline]
+    fn from(val: WasmValue) -> Self {
+        (&val).into()
+    }
+}
+
 /// FFI representation for `SVM` value type
 #[allow(non_snake_case, non_camel_case_types)]
 #[derive(Debug, Copy, Clone, PartialEq)]
