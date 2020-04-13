@@ -914,6 +914,34 @@ pub unsafe extern "C" fn svm_app_receipt_addr(
     }
 }
 
+/// Extracts the spawned-app constructor returns.
+/// If it succeeded, returns `SVM_SUCCESS`,
+/// Otherwise returns `SVM_FAILURE` and the error message via `error` parameter.
+///
+/// # Panics
+///
+/// Panics when `receipt` input is invalid.
+///
+#[no_mangle]
+pub unsafe extern "C" fn svm_app_receipt_returns(
+    returns: *mut svm_value_array,
+    receipt: svm_byte_array,
+    error: *mut svm_byte_array,
+) -> svm_result_t {
+    let client_receipt = testing::decode_app_receipt(receipt.into());
+
+    match client_receipt {
+        ClientAppReceipt::Success { ctor_returns, .. } => {
+            *returns = ctor_returns.into();
+            svm_result_t::SVM_SUCCESS
+        }
+        ClientAppReceipt::Failure { error: err_str } => {
+            raw_error(err_str, error);
+            svm_result_t::SVM_FAILURE
+        }
+    }
+}
+
 /// Extracts the `gas_used` for spawned-app (including running its constructor).
 /// When spawn succeeded returns `SVM_SUCCESS`, returns the amount of gas used via `gas_used` parameter.
 /// Othewrise, returns `SVM_FAILURE` and the error message via the `error` parameter.
