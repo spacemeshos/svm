@@ -1028,26 +1028,33 @@ pub unsafe extern "C" fn svm_exec_receipt_state(
     }
 }
 
-// #[no_mangle]
-// pub unsafe extern "C" fn svm_exec_receipt_returns(
-//     returns: *mut svm_value_array,
-//     receipt: svm_byte_array,
-//     error: *mut svm_byte_array,
-// ) -> svm_result_t {
-//     let client_receipt = testing::decode_exec_receipt(receipt.into());
-//
-//     match client_receipt {
-//         ClientExecReceipt::Success { func_returns, .. } => {
-//             let func_returns: svm_value_array = func_returns.into();
-//             // *returns = ;
-//             svm_result_t::SVM_SUCCESS
-//         }
-//         ClientExecReceipt::Failure { error: err_str } => {
-//             raw_error(err_str, error);
-//             svm_result_t::SVM_FAILURE
-//         }
-//     }
-// }
+/// Extracts the `Exec App` returns.
+/// If it succeeded, returns `SVM_SUCCESS`,
+/// Otherwise returns `SVM_FAILURE` and the error message via `error` parameter.
+///
+/// # Panics
+///
+/// Panics when `receipt` input is invalid.
+///
+#[no_mangle]
+pub unsafe extern "C" fn svm_exec_receipt_returns(
+    returns: *mut svm_value_array,
+    receipt: svm_byte_array,
+    error: *mut svm_byte_array,
+) -> svm_result_t {
+    let client_receipt = testing::decode_exec_receipt(receipt.into());
+
+    match client_receipt {
+        ClientExecReceipt::Success { func_returns, .. } => {
+            *returns = func_returns.into();
+            svm_result_t::SVM_SUCCESS
+        }
+        ClientExecReceipt::Failure { error: err_str } => {
+            raw_error(err_str, error);
+            svm_result_t::SVM_FAILURE
+        }
+    }
+}
 
 /// Extracts the executed transaction `gas_used`.
 /// When transaction succeeded returns `SVM_SUCCESS`, returns the amount of gas used via `gas_used` parameter.
