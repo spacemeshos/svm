@@ -194,7 +194,6 @@ unsafe fn test_svm_runtime() {
     let mut kv = std::ptr::null_mut();
     let mut runtime = std::ptr::null_mut();
     let imports = create_imports();
-    let dry_run = false;
     let mut error = svm_byte_array::default();
 
     let res = api::svm_memory_kv_create(&mut kv);
@@ -233,7 +232,6 @@ unsafe fn test_svm_runtime() {
         host_ctx,
         gas_metering,
         gas_limit,
-        dry_run,
         &mut error,
     );
     assert!(res.is_ok());
@@ -273,7 +271,6 @@ unsafe fn test_svm_runtime() {
         host_ctx,
         gas_metering,
         gas_limit,
-        dry_run,
         &mut error,
     );
     assert!(res.is_ok());
@@ -316,7 +313,6 @@ unsafe fn test_svm_runtime() {
     };
 
     let mut exec_receipt = svm_byte_array::default();
-    let dry_run = false;
 
     let res = api::svm_exec_app(
         &mut exec_receipt,
@@ -326,7 +322,6 @@ unsafe fn test_svm_runtime() {
         host_ctx,
         gas_metering,
         gas_limit,
-        dry_run,
         &mut error,
     );
     assert!(res.is_ok());

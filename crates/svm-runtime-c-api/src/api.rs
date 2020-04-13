@@ -433,7 +433,6 @@ pub unsafe extern "C" fn svm_runtime_create(
 /// let template_bytes = svm_byte_array::default();
 /// let gas_metering = false;
 /// let gas_limit = 0;
-/// let dry_run = false;
 ///
 /// let res = unsafe {
 ///   svm_deploy_template(
@@ -444,7 +443,6 @@ pub unsafe extern "C" fn svm_runtime_create(
 ///     host_ctx,
 ///     gas_metering,
 ///     gas_limit,
-///     dry_run,
 ///     &mut error)
 /// };
 ///
@@ -461,7 +459,6 @@ pub unsafe extern "C" fn svm_deploy_template(
     host_ctx: svm_byte_array,
     gas_metering: bool,
     gas_limit: u64,
-    dry_run: bool,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
     debug!("`svm_deploy_template` start`");
@@ -489,7 +486,6 @@ pub unsafe extern "C" fn svm_deploy_template(
         &author.unwrap().into(),
         host_ctx.unwrap(),
         gas_limit,
-        dry_run,
     );
 
     let mut receipt_bytes = encode_template_receipt(&rust_receipt);
@@ -534,7 +530,6 @@ pub unsafe extern "C" fn svm_deploy_template(
 /// let app_bytes = svm_byte_array::default();
 /// let gas_metering = false;
 /// let gas_limit = 0;
-/// let dry_run = false;
 ///
 /// let _res = unsafe {
 ///   svm_spawn_app(
@@ -545,7 +540,6 @@ pub unsafe extern "C" fn svm_deploy_template(
 ///     host_ctx,
 ///     gas_metering,
 ///     gas_limit,
-///     dry_run,
 ///     &mut error)
 /// };
 /// ```
@@ -560,7 +554,6 @@ pub unsafe extern "C" fn svm_spawn_app(
     host_ctx: svm_byte_array,
     gas_metering: bool,
     gas_limit: u64,
-    dry_run: bool,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
     debug!("`svm_spawn_app` start");
@@ -587,7 +580,6 @@ pub unsafe extern "C" fn svm_spawn_app(
         &creator.unwrap().into(),
         host_ctx.unwrap(),
         gas_limit,
-        dry_run,
     );
 
     let mut receipt_bytes = encode_app_receipt(&rust_receipt);
@@ -633,7 +625,6 @@ pub unsafe extern "C" fn svm_spawn_app(
 /// let state = State::empty().into();
 /// let host_ctx = svm_byte_array::default();
 /// let gas_metering = false;
-/// let dry_run = false;
 /// let gas_limit = 0;
 ///
 /// let _res = unsafe {
@@ -645,7 +636,6 @@ pub unsafe extern "C" fn svm_spawn_app(
 ///     host_ctx,
 ///     gas_metering,
 ///     gas_limit,
-///     dry_run,
 ///     &mut error)
 /// };
 /// ```
@@ -660,7 +650,6 @@ pub unsafe extern "C" fn svm_exec_app(
     host_ctx: svm_byte_array,
     gas_metering: bool,
     gas_limit: u64,
-    dry_run: bool,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
     debug!("`svm_exec_app` start");
@@ -683,8 +672,7 @@ pub unsafe extern "C" fn svm_exec_app(
 
     let gas_limit = maybe_gas!(gas_metering, gas_limit);
 
-    let rust_receipt =
-        runtime.exec_app(bytes.into(), &state.unwrap(), host_ctx, gas_limit, dry_run);
+    let rust_receipt = runtime.exec_app(bytes.into(), &state.unwrap(), host_ctx, gas_limit);
     let mut receipt_bytes = encode_exec_receipt(&rust_receipt);
 
     // returning encoded `ExecReceipt` as `svm_byte_array`.
