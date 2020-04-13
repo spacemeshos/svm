@@ -10,7 +10,7 @@ use crate::{
     helpers, raw_error, raw_utf8_error, raw_validate_error,
     receipt::{encode_app_receipt, encode_exec_receipt, encode_template_receipt},
     svm_byte_array, svm_import_func_sig_t, svm_import_func_t, svm_import_kind, svm_import_t,
-    svm_import_value, svm_result_t, svm_value_type_array,
+    svm_import_value, svm_result_t, svm_value_array, svm_value_type_array,
     testing::{self, ClientAppReceipt, ClientExecReceipt, ClientTemplateReceipt},
     RuntimePtr,
 };
@@ -914,6 +914,34 @@ pub unsafe extern "C" fn svm_app_receipt_addr(
     }
 }
 
+/// Extracts the spawned-app constructor returns.
+/// If it succeeded, returns `SVM_SUCCESS`,
+/// Otherwise returns `SVM_FAILURE` and the error message via `error` parameter.
+///
+/// # Panics
+///
+/// Panics when `receipt` input is invalid.
+///
+#[no_mangle]
+pub unsafe extern "C" fn svm_app_receipt_returns(
+    returns: *mut svm_value_array,
+    receipt: svm_byte_array,
+    error: *mut svm_byte_array,
+) -> svm_result_t {
+    let client_receipt = testing::decode_app_receipt(receipt.into());
+
+    match client_receipt {
+        ClientAppReceipt::Success { ctor_returns, .. } => {
+            *returns = ctor_returns.into();
+            svm_result_t::SVM_SUCCESS
+        }
+        ClientAppReceipt::Failure { error: err_str } => {
+            raw_error(err_str, error);
+            svm_result_t::SVM_FAILURE
+        }
+    }
+}
+
 /// Extracts the `gas_used` for spawned-app (including running its constructor).
 /// When spawn succeeded returns `SVM_SUCCESS`, returns the amount of gas used via `gas_used` parameter.
 /// Othewrise, returns `SVM_FAILURE` and the error message via the `error` parameter.
@@ -1019,6 +1047,34 @@ pub unsafe extern "C" fn svm_exec_receipt_state(
     match client_receipt {
         ClientExecReceipt::Success { new_state, .. } => {
             state_to_svm_byte_array!(state, new_state);
+            svm_result_t::SVM_SUCCESS
+        }
+        ClientExecReceipt::Failure { error: err_str } => {
+            raw_error(err_str, error);
+            svm_result_t::SVM_FAILURE
+        }
+    }
+}
+
+/// Extracts the `Exec App` returns.
+/// If it succeeded, returns `SVM_SUCCESS`,
+/// Otherwise returns `SVM_FAILURE` and the error message via `error` parameter.
+///
+/// # Panics
+///
+/// Panics when `receipt` input is invalid.
+///
+#[no_mangle]
+pub unsafe extern "C" fn svm_exec_receipt_returns(
+    returns: *mut svm_value_array,
+    receipt: svm_byte_array,
+    error: *mut svm_byte_array,
+) -> svm_result_t {
+    let client_receipt = testing::decode_exec_receipt(receipt.into());
+
+    match client_receipt {
+        ClientExecReceipt::Success { func_returns, .. } => {
+            *returns = func_returns.into();
             svm_result_t::SVM_SUCCESS
         }
         ClientExecReceipt::Failure { error: err_str } => {

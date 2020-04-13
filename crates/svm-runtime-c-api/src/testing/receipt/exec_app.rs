@@ -1,6 +1,9 @@
 use svm_common::State;
 
-use svm_app::raw::{decode_func_args, decode_version, NibbleIter};
+use svm_app::{
+    raw::{decode_func_args, decode_version, NibbleIter},
+    types::WasmValue,
+};
 
 use super::helpers;
 
@@ -13,7 +16,7 @@ pub enum ClientExecReceipt {
         new_state: State,
 
         /// The values returns by the invoked app as a string
-        func_returns: String,
+        func_returns: Vec<WasmValue>,
 
         /// The gas used during the transaction
         gas_used: u64,
@@ -45,13 +48,13 @@ pub fn decode_exec_receipt(bytes: &[u8]) -> ClientExecReceipt {
         1 => {
             // success
             let new_state = helpers::decode_state(&mut iter);
-            let returns = decode_func_args(&mut iter).unwrap();
+            let func_returns = decode_func_args(&mut iter).unwrap();
             let gas_used = helpers::decode_gas_used(&mut iter);
 
             ClientExecReceipt::Success {
                 new_state,
                 gas_used,
-                func_returns: helpers::wasm_values_str(&returns[..]),
+                func_returns,
             }
         }
         _ => unreachable!(),

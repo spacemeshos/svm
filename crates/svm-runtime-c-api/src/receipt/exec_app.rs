@@ -96,7 +96,7 @@ mod tests {
 
         let expected = ClientExecReceipt::Success {
             new_state: new_state.clone(),
-            func_returns: "".to_string(),
+            func_returns: Vec::new(),
             gas_used: 100,
         };
 
@@ -121,7 +121,7 @@ mod tests {
 
         let expected = ClientExecReceipt::Success {
             new_state: new_state.clone(),
-            func_returns: "I32(10), I64(20), I32(30)".to_string(),
+            func_returns: vec![WasmValue::I32(10), WasmValue::I64(20), WasmValue::I32(30)],
             gas_used: 100,
         };
 
