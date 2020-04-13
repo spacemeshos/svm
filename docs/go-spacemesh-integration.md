@@ -34,7 +34,7 @@ The data-structure used for the Host Context will be a map between an i32 intege
 
 * `App Template`
 <br/>
-We name a `Smart Contract`'s code + metadata as a `App Template`.
+We name a `Smart Contract`'s code + metadata (including storage spec) as a `App Template`.
 <br/>
 We can think of a `Template` as the equivalent of a `class` in an Object-Oriented programing paradigm.
 <br/>
@@ -77,16 +77,14 @@ Part of the apps will be spawned as part of the `Genesis flow` and the rest apps
 <br/>
 
 The steps:
-1. Wallet UX picks the required template. For `go-spacemesh` v0.2 the template will always be the `MultiSig Wallet`.
+1. Wallet UX user picks the required template. For `go-spacemesh` v0.2 the template will always be the `MultiSig Wallet`.
 1. The `spawn app` interface is displayed with constructor input fields derived from the `App Template ABI`.
 
    Special attention should be given to the `value` field, which is part of the `Transaction Envelope`.
-   The balance of the `spawned-app` will be set to that `value`. (it will be transfered from the app's creator balance).
+   The balance of the `spawned-app` will be initialized with `value`. (it will be transfered from the app's creator balance).
    
    TOD: how to derive the `gas_price` ?
    
-   Both `value` and `gas_price` are part of any app spawning.
-
 1. User fills-in the constructor fields.
 1. The estimated required `gas_limit` is shown to the user.
 1. If user (app creator) has enough balance also for the `gas_limit` he may click the `Spawn App` button.
@@ -94,12 +92,28 @@ The steps:
 
 
 * `Execute App Transaction`
-TBD
+The steps:
+1. Wallet UX user picks the desired app. This user need to have its `Address`.
+1. The `execute app` interface is displayed by showing the public API methods of the `App`.
+1. User selects the desired API method.
+1. Usere fill-in the method fields.
+
+   Special attention should be given to the `value` field, which is part of the `Transaction Envelope`.
+   Amount of `value` will be tranfered to the `App`. (it will be transfered from the `sender`'s balance).
+   
+   TOD: how to derive the `gas_price` ?
+1. The estimated required `gas_limit` is shown to the user.
+1. If user (a.k.a `sender`) has enough balance also for the `gas_limit` he may click the `Execute App` button.
+1. Clicking the `Execute App` button will dispatch the `Execute App` transaction to the network.
 
 
-* `Read App State`
-TBD
+* `Reading App's Storage`
+The steps:
+1. Wallet UX user picks the desired app. This user need to have its `Address`.
+1. The `App State ABI` is dowloaded and rendered to the user. (off-chain data).
+1. Wallet UX invokes a batch call asking for each `App Storage` field. 
 
+TODO: talk about future non-static fields.
 
 ### Validation (Mempool)
 * `Template validation`
@@ -112,20 +126,59 @@ TBD
 TBD
 
 
-### Mining
-* Which transactions pick?
-TBD
+### Mining - Which transactions to pick?
 
- 
-### Raw Transaction format
-TBD
+The miner will have to decide which transactions are most appealing to him.
+Also, we want to have a minimum overlap between miners selections.
+
+The issue with Smart-Contracts is that we only have gas estimation which derives the `gas_limit`.
+However, since we only allow a restricted-set of WebAssembly having no loops we can achieve a better estimation.
+
+The total gas estimation will consist of 2 parts:
+* Execution estimation 
+* Payloyad size - This is a number we can know exactly ahead. 
+* Storage size  - We can know-ahead the root hierarchy size (it's specified in the `Template` spec). 
+
+TODO: talk about the algorithm
 
 
-### p2p
-TBD
+### Raw p2p Transactions format
+We'll need to introduce a transaction type flag to the `Transaction Envelope`
+
+For example:
+* type=0  simple transaction. (not SVM related)
+* type=1  deploy template. The SVM 0.2 should disable that
+* type=2  spawn app
+
+```
++-----------------------------+
+|   Transaction Envelope      |
++-----------------------------+
+| type=2 |  spawn-app blob    |
++-----------------------------+
+```
+
+The `spawn-app` blob layout can be read here:
+https://github.com/spacemeshos/svm/blob/master/crates/svm-app/src/raw/app/mod.rs#L1
+
+
+* type=3  execute app
+
+```
++-----------------------------+
+|   Transaction Envelope      |
++-----------------------------+
+| type=3 |  exec-app blob     |
++-----------------------------+
+```
+
+The `exec-app` blob layout can be read here:
+https://github.com/spacemeshos/svm/blob/master/crates/svm-app/src/raw/transaction/mod.rs#L1
 
 
 ### Global State
+
+SVM requires two new account types to be added:
 
 #### `App Template` Account
 After deploying a template sucessfully, a new account of type `Template` should be added to the `Global State`.
@@ -139,6 +192,11 @@ Sending coins to the `Template` account in any future transaction will lock thes
 After spawning an App sucessfully, a new account of type `App` should be added to the `Global State`.
 The `App`'s initial `state` is returned by the `Spawn Receipt` (see more data under `Receipts` section).
 The `balance` of this account should be set with the `value` given by the `Spawn App` transaction sender.
+
+The data for an `App` account will be:
+* Address
+* Balance 
+* App-State 
 
 
 ### Receipts
@@ -169,6 +227,7 @@ When the spawned-app succeeds (`is_success = true`) the returned receipt contain
 * `init_state`  - The initial `state` of the `App` (after executing the constructor).
 * `returns`     - The executed function returned values. Array of `wasm value`. Each value can be `i32` or `i64`.
 * `gas_used`    - The amount of gas used.
+
 
 #### `Execute App-Transaction` 
 When the executed app-transaction succeeds (`is_success = true`) the returned receipt contains the following:
