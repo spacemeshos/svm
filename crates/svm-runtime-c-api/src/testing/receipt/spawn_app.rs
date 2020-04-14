@@ -1,8 +1,7 @@
 use svm_app::{
     raw::{decode_func_args, decode_version, NibbleIter},
-    types::AppAddr,
+    types::{AppAddr, WasmValue},
 };
-
 use svm_common::State;
 
 use super::helpers;
@@ -19,7 +18,7 @@ pub enum ClientAppReceipt {
         init_state: State,
 
         /// The values returned by the App's ctor, concatenated as a string
-        ctor_returns: String,
+        ctor_returns: Vec<WasmValue>,
 
         /// The gas used during the transaction
         gas_used: u64,
@@ -59,7 +58,7 @@ pub fn decode_app_receipt(bytes: &[u8]) -> ClientAppReceipt {
                 addr: addr.into(),
                 init_state,
                 gas_used,
-                ctor_returns: helpers::wasm_values_str(&ctor_returns[..]),
+                ctor_returns,
             }
         }
         _ => unreachable!(),

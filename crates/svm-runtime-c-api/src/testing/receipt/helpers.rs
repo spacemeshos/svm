@@ -1,7 +1,4 @@
-use svm_app::{
-    raw::{self, Field, Nibble, NibbleIter},
-    types::WasmValue,
-};
+use svm_app::raw::{self, Field, Nibble, NibbleIter};
 use svm_common::{Address, State};
 
 pub(crate) fn decode_is_success(iter: &mut NibbleIter) -> u8 {
@@ -30,17 +27,4 @@ pub(crate) fn decode_address(iter: &mut NibbleIter) -> Address {
 
 pub(crate) fn decode_gas_used(iter: &mut NibbleIter) -> u64 {
     raw::decode_gas_used(iter).unwrap()
-}
-
-pub(crate) fn wasm_values_str(values: &[WasmValue]) -> String {
-    let mut buf = String::new();
-
-    for (i, v) in values.iter().enumerate() {
-        if i != 0 {
-            buf.push_str(", ");
-        }
-        buf.push_str(&format!("{:?}", v));
-    }
-
-    buf
 }

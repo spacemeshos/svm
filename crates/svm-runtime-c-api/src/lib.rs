@@ -33,14 +33,14 @@ pub use api::{
     svm_exec_receipt_state, svm_import_func_build, svm_imports_alloc, svm_imports_destroy,
     svm_instance_context_host_get, svm_memory_kv_create, svm_memory_runtime_create,
     svm_runtime_create, svm_runtime_destroy, svm_spawn_app, svm_template_receipt_addr,
-    svm_validate_tx,
+    svm_validate_tx, svm_value_array_destroy,
 };
 pub use byte_array::svm_byte_array;
 pub use import::{
     svm_import_func_sig_t, svm_import_func_t, svm_import_kind, svm_import_t, svm_import_value,
 };
 pub use result::svm_result_t;
-pub use value::{svm_value_type, svm_value_type_array};
+pub use value::{svm_value, svm_value_array, svm_value_type, svm_value_type_array};
 
 mod runtime_ptr;
 pub use runtime_ptr::RuntimePtr;
