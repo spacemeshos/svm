@@ -8,13 +8,15 @@ There are two main purposes for this doc:
 
 <br/>
 Note: since SVM is a standalone project this document may be a good reference for any other future Blockchain project willing to integrate SVM.
-<br/>
+
 ### Terminology
 
-* `Transaction Envelope` - This term refers to any transaction data besides SVM specific data.
+#### `Transaction Envelope`
+This term refers to any transaction data besides SVM specific data.
 It will be mentioned usually in the context of transaction fields such as: `sender`, `value`, `gas_limit`, `gas_price` and `nonce`.
 
-* `Host Context` - This term refers to the context of the host. Meaning, the data of `Transaction Envelope` plus extra data. It will contain fields such as: `block_id`, `layer_id`..
+#### `Host Context`
+This term refers to the context of the host. Meaning, the data of `Transaction Envelope` plus extra data. It will contain fields such as: `block_id`, `layer_id`..
 
 Executed SVM transactions will have access to the `Host Context`.
 
@@ -30,19 +32,19 @@ The data-structure used for the `Host Context` will be a Map between an i32 inte
 }
 ```
 
-* `App Template` - 
+#### `App Template` 
 We name a `Smart Contract`'s code + metadata (including storage spec) as a `App Template`.
 We can think of a `Template` as the equivalent of a `class` in an Object-Oriented programing paradigm.
 <br/>
 Each `Template` will have an account under the `Global State` and its own `Addres`. (see more under the `Global State` section).
 
-* `App` - 
+#### `App` 
 Given an `App Template` we can spawn `App`s out of it.
 All spawned `App`s out-of the same origin `Template` share the same code but have an isloated inner state. We can think of an `App` as the equivalent of a `class instance` (a.k.a `object`) in an Object-Oriented programing paradigm.
 <br/>
 The motivation for having both `App Template` and `App` are encouraging code reuse and saving of on-chain storage. Each `App` will have an account under the `Global State` and its own `Addres`. (see more under the `Global State` section).
 
-* `App-Transaction` - 
+#### `App-Transaction`
 Given a spawned `App` we'd like to execute `App Transaction`s on it.
 <br/>
 We can think of executing an `App Transaction` as the equivalent of a invoking an `object method` in an Object-Oriented programing paradigm.
@@ -179,6 +181,7 @@ The `App`'s initial `state` is returned by the `Spawn Receipt` (see more data un
 The `balance` of this account should be set with the `value` given by the `Spawn App` transaction sender.
 
 The data for an `App` account will be:
+
 * Address
 * Balance 
 * App-State 
@@ -190,6 +193,7 @@ Upon a successful transaction, SVM will persist the `App storage` changes and re
 Then, the `Receipt` will include that new `State`. 
 
 Now, the `Global State` should:
+
 * Update the `App` leaf-node with the new App's `State`.
 * Apply the dirty coins transfers
 * Recalculate the new Merkle-Tree Hashes.
@@ -206,6 +210,7 @@ If the `is_success` field if `true` it means that the `deploy-transaction` has s
 Then, the `template_address` should be extracted for the new `App Template` account creation. (see `Global State` section).
 
 Fields:
+
 * `is_success = true`
 * `template_address` 
 * `gas_used`
@@ -216,6 +221,7 @@ Both `sender` and `gas_limit` fields are sent as part of the transaction envelop
 <br/><br/>
 #### `Spawn App`
 When the spawned-app succeeds (`is_success = true`) the returned receipt contains the following:
+
 * `app_address` - The `address` of the spawned-app.
 * `init_state`  - The initial `state` of the `App` (after executing the constructor).
 * `returns`     - The executed function returned values. Array of `wasm value`. Each value can be `i32` or `i64`.
@@ -223,6 +229,7 @@ When the spawned-app succeeds (`is_success = true`) the returned receipt contain
 <br/><br/>
 #### `Execute App-Transaction` 
 When the executed app-transaction succeeds (`is_success = true`) the returned receipt contains the following:
+
 * `new_state` - The new `state` of the `App`
 * `returns`   - The executed function returned values. Array of `wasm value`. Each value can be `i32` or `i64`.
 * `gas_used`  - The amount of gas used.
