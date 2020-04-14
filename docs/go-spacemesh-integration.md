@@ -115,19 +115,12 @@ The steps:
 
 TODO: talk about future non-static fields.
 
+
 ### Validation (Mempool)
-* `Template validation`
-TBD
-
-* `Template App`
-TBD
-
-* `App Transaction`
-TBD
-
+Each network peer should perform syntactic validation to SVM transactions. 
+In case the validation fails, the transaction should be discarded.
 
 ### Mining - Which transactions to pick?
-
 The miner will have to decide which transactions are most appealing to him.
 Also, we want to have a minimum overlap between miners selections.
 
@@ -187,7 +180,6 @@ The `balance` of this account should be set to zero.
 
 Sending coins to the `Template` account in any future transaction will lock these for good. 
 
-
 #### `App` Account
 After spawning an App sucessfully, a new account of type `App` should be added to the `Global State`.
 The `App`'s initial `state` is returned by the `Spawn Receipt` (see more data under `Receipts` section).
@@ -199,12 +191,24 @@ The data for an `App` account will be:
 * App-State 
 
 
+### Commiting changes
+While executing an `App Transaction`, the app will makes changes to the App's storage and to the balances of accounts.
+Upon a successful transaction, SVM will persist the `App storage` changes and re-calculate a new `State`. 
+Then, the `Receipt` will include that new `State`. 
+
+Now, the `Global State` should:
+* Update the `App` leaf-node with the new App's `State`.
+* Apply the dirty coins transfers
+* Recalculate the new Merkle-Tree Hashes.
+
+
 ### Receipts
 
 There are 3 types of `Recepit`s (for `deploy-template`, `spawn-app` and `exec-app`).
 Each `Receipt` should be persisted on-chain in its raw packed form.
 
 Additionally, `SVM` exposes `Receipt helper methods` for extracting each field in isolation.
+
 
 #### `Deploy App-Template` 
 
