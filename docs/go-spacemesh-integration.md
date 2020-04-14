@@ -53,6 +53,7 @@ Executing `App Transaction` are the way to apply changes and transaction the sta
 
 <br/>
 ### High-level flows
+
 #### `Deploy App Template`
 The `go-spacemesh` v0.2 will contain only a single built-in template, named `MultiSig Wallet`.
 Therefore, the `deploy-template` functionality using the `p2p` should be disabled.
