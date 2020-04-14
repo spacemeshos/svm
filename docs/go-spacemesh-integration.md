@@ -51,7 +51,6 @@ We can think of executing an `App Transaction` as the equivalent of a invoking a
 <br/>
 Executing `App Transaction` are the way to apply changes and transaction the state of an `App`. 
 
-<br/>
 ### High-level flows
 
 #### `Deploy App Template`
