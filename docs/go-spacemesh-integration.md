@@ -9,6 +9,7 @@ There are two main purposes for this doc:
 <br/>
 Note: since SVM is a standalone project this document may be a good reference for any other future Blockchain project willing to integrate SVM.
 
+
 ### Terminology
 
 #### `Transaction Envelope`
@@ -16,7 +17,8 @@ This term refers to any transaction data besides SVM specific data.
 It will be mentioned usually in the context of transaction fields such as: `sender`, `value`, `gas_limit`, `gas_price` and `nonce`.
 
 #### `Host Context`
-This term refers to the context of the host. Meaning, the data of `Transaction Envelope` plus extra data. It will contain fields such as: `block_id`, `layer_id`..
+This term refers to the context of the host. Meaning, the data of `Transaction Envelope` plus extra data.
+It will contain fields such as: `block_id`, `layer_id`..
 
 Executed SVM transactions will have access to the `Host Context`.
 
@@ -40,9 +42,11 @@ Each `Template` will have an account under the `Global State` and its own `Addre
 
 #### `App` 
 Given an `App Template` we can spawn `App`s out of it.
-All spawned `App`s out-of the same origin `Template` share the same code but have an isloated inner state. We can think of an `App` as the equivalent of a `class instance` (a.k.a `object`) in an Object-Oriented programing paradigm.
+All spawned `App`s out-of the same origin `Template` share the same code but have an isloated inner state. 
+We can think of an `App` as the equivalent of a `class instance` (a.k.a `object`) in an Object-Oriented programing paradigm.
 <br/>
-The motivation for having both `App Template` and `App` are encouraging code reuse and saving of on-chain storage. Each `App` will have an account under the `Global State` and its own `Addres`. (see more under the `Global State` section).
+The motivation for having both `App Template` and `App` are encouraging code reuse and saving of on-chain storage.
+Each `App` will have an account under the `Global State` and its own `Address`. (see more under the `Global State` section).
 
 #### `App-Transaction`
 Given a spawned `App` we'd like to execute `App Transaction`s on it.
@@ -51,7 +55,17 @@ We can think of executing an `App Transaction` as the equivalent of a invoking a
 <br/>
 Executing `App Transaction` are the way to apply changes and transaction the state of an `App`. 
 
+
+#### `App-State` 
+Hash referencing the current `State` of an `App`. The internal data of each `App` is managed internally by SVM. 
+The Receipt of a successful `Exec App (call method)` transaction will include the new `App State`.
+See also: `App Account` under `Global State`.
+
+
 ### High-level flows
+
+SVM orchestrates 3 kinds of transactions. Each transaction returns a Receipt that will be persisted on-chain.
+(see also `Raw Transactions format` and `Receipts` sections).
 
 #### `Deploy App Template`
 The `go-spacemesh` v0.2 will contain only a single built-in template, named `MultiSig Wallet`.
@@ -80,7 +94,7 @@ The steps:
 1. Clicking the `Spawn App` button will dispatch the `Spawn App` transaction to the network.
 
 
-#### `Execute App Transaction`
+#### `Execute App Transaction (a.k.a Call Method Transaction)`
 The steps:
 
 1. Wallet UX user picks the desired app. This user need to have its `Address`.
@@ -126,20 +140,34 @@ The total gas estimation will consist of 2 parts:
 TODO: talk about the algorithm
 
 
-### Raw p2p Transactions format
+### Raw Transactions format
 We'll need to introduce a transaction type flag to the `Transaction Envelope`
 
 For example:
 
-* type=0  simple transaction. (not SVM related)
-* type=1  deploy template. The SVM 0.2 should disable that
-* type=2  spawn app
+* type=0  simple transaction with `SVM-ed25519`
+* type=1  simple transaction without standard signatures (supported by Hardware Wallets).
+* type=2  deploy template. SVM 0.2 should disable that type.
 
 ```
 +-----------------------------+
 |   Transaction Envelope      |
 +-----------------------------+
-| type=2 |  spawn-app blob    |
+| type=2 |   deploy-blob      |
++-----------------------------+
+```
+
+The `deploy-template` blob layout can be read here:
+https://github.com/spacemeshos/svm/blob/master/crates/svm-app/src/raw/template/mod.rs#L1
+
+
+* type=3  spawn app
+
+```
++-----------------------------+
+|   Transaction Envelope      |
++-----------------------------+
+| type=3 |  spawn-app blob    |
 +-----------------------------+
 ```
 
@@ -149,13 +177,13 @@ https://github.com/spacemeshos/svm/blob/master/crates/svm-app/src/raw/app/mod.rs
 
 
 
-* type=3  execute app
+* type=4  execute-app (call method)
 
 ```
 +-----------------------------+
 |   Transaction Envelope      |
 +-----------------------------+
-| type=3 |  exec-app blob     |
+| type=4 |  exec-app blob     |
 +-----------------------------+
 ```
 
@@ -236,15 +264,51 @@ When the executed app-transaction succeeds (`is_success = true`) the returned re
 
 
 ### On-Chain data
-Each transaction should be part of the `Transactions Tree.`
+
+* Each transaction should be part of the `Transactions Tree.`
+* `App Template` and `App` account will be part of the `Global State`
+* `Receipt` should be on-chain too.
+* SVM manages the data of each `App` and provides the `App State` to the `Global State`.
+
+### Genesis flow ABI
+TBD
+
+### App Storage Read ABI
+TBD
 
 
-### Wallet UX / Wallet CLI API
+#### Other Open Questions
 
-* App State ABI
+* Signatures Scheme.
+* `Receipt` should be part of the `Transactions Mesh` or in other data-structure? 
+* `Balance` representation. Can we use a single `i64` or a pair of `i64`? 
+* Exact formula for deriving the `Template` and `App` accounts addresses.
+* Does the `returns` field of the `Spawn App` and `Exec App` Receipts should be discarded?
+  The volume of the this field won't affect the final `gas_used`... 
+* We need to figure out what indexes will be created in `go-spacemesh` that will asist the _Transactions Explorer_.
 
+Examples for such indexes.
 ```
-Wallet UX -- gRPC --> go-spacemesh ----> go-svm ----> SVM 
+tx_id -> Receipt
+layer_id -> [Receipt]
 ```
+
+* Do we want to have the encoding of each Receipt kind to be the same?
+```
+(version, receipt_type, is_success, gas_used)
+```
+
+### Not be included in SVM 0.2
+Here is the list of things that won't be included in SVM 0.2 but must be in the subsequent 0.3 version.
+
+#### Generic Call Method ABI 
+Requires more research.
+
+#### Transient Events
+We'd like SVM to emit events that will be persisted for an ephemeral amount of time.
+By having transient events, we can avoid the feature abuse done on other chains.
+This capablity should become very useful for debugging and the transaction Explorer.
+The events won't be part of a Receipt. 
+
 
 [go-spacemesh]: https://github.com/spacemeshos/go-spacemesh
