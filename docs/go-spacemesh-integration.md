@@ -1,5 +1,5 @@
 ## Integration with `go-spacemesh` plan
-This document is intended to serve as high-level plan for integration of SVM with [`go-spacemesh`][go-spacemesh].
+This document is intended to serve as a high-level plan for integration of SVM with [`go-spacemesh`][go-spacemesh].
 
 There are two main purposes for this doc:
 
@@ -17,15 +17,15 @@ Note: since SVM is a standalone project this document may be a good reference fo
 Golang client for SVM.
 The client will interface with the `svm.h` and `svm` object file using `cgo`. (SVM has FFI interface).
 <br/>
-It will expose Golang idiomatic interface and be used as a dependency within the `go-spacemesh` project.
+It will expose a Golang idiomatic interface and be used as a dependency within the `go-spacemesh` project.
 
 #### `Host`
-WebAssembly (wasm) programs are running within a restriced environment (sandbox) for security reasons.
+WebAssembly (wasm) programs are running within a restricted environment (sandbox) for security reasons.
 <br/>
 The entity running the VM is called the `Host`. In our case the `Host` will is `go-spacemesh`.
 
 ### `Host Imports`
-Web-Assembly programs without any interface to the exernal-world (i.e the `Host`) aren't capable to achieve much. (rendering them stateless too).
+Web-Assembly programs without any interface to the external-world (i.e the `Host`) aren't capable to achieve much. (rendering them stateless too).
 That's why any wasm program can import functions (and other things - not relevant for this document) and invoke them.
 </br></br>
 The classic use-case is a wasm program calling the `Host`'s `get_balance`. 
@@ -37,7 +37,7 @@ This term refers to any transaction data besides SVM specific data.
 It will be mentioned usually in the context of transaction fields such as: `sender`, `value`, `gas_limit`, `gas_price` and `nonce`.
 
 #### `Host Context`
-This term refers to the context of the `Host`. Meaning, the data of `Transaction Envelope` plus extra data.
+This term refers to the context of the `Host`. Meaning, the data of `Transaction Envelope` + additional data.
 It will contain fields such as: `block_id`, `layer_id` (and fields of `Transaction Envelope`).
 <br/>
 Executed SVM transactions will have access to the `Host Context`.
@@ -60,7 +60,7 @@ Here is an example:
 
 #### `App Template` 
 We name a `Smart Contract`'s code + metadata (including storage spec) as a `App Template`.
-We can think of a `Template` as the equivalent of a `class` in an Object-Oriented programing paradigm.
+We can think of a `Template` as the equivalent of a `class` in an Object-Oriented programming paradigm.
 <br/>
 Each `Template` will have an account under the `Global State` and its own `Addres`. (see more under the `Global State` section).
 
@@ -68,7 +68,7 @@ Each `Template` will have an account under the `Global State` and its own `Addre
 #### `App` 
 Given an `App Template` - we can spawn `App`s out of it.
 <br/>
-All spawned `App`s out-of the same origin `Template` share the same code but have an isloated inner state. 
+All spawned `App`s out-of the same origin `Template` share the same code but have an isolated inner state. 
 We can think of an `App` as the equivalent of a `class instance` (a.k.a `object`) under the Object-Oriented programing paradigm.
 <br/>
 The motivation for having both `App Template` and `App` are encouraging code reuse and saving of on-chain storage.
@@ -78,7 +78,7 @@ Each `App` will have an account under the `Global State` and its own `Address`. 
 #### `App Transaction`
 Given a spawned `App` - we'd like to execute `App Transaction`s on it.
 <br/>
-We can think of executing an `App Transaction` as the equivalent of a invoking an `object method` in an Object-Oriented programing paradigm.
+We can think of executing an `App Transaction` as the equivalent of invoking an `object method` in an Object-Oriented programming paradigm.
 <br/>
 Executing `App Transaction` are the way to apply changes and consequently transition the state of an `App`. 
 
@@ -103,6 +103,7 @@ The motivation is having a low entry barrier for coding templates using `SMESH`.
 
 The integration of SVM within `go-spacemesh` is a prerequisite for starting the work on `SMESH`.
 
+<br/>
 
 ### High-level flows
 
@@ -131,26 +132,25 @@ The steps:
 1. The `spawn app` interface is displayed with constructor input fields derived from the `App Template ABI`.
 
    Special attention should be given to the `value` field, which is part of the `Transaction Envelope`.
-   The balance of the `spawned-app` will be initialized with `value`. (it will be transfered from the app's creator balance).
+   The balance of the `spawned-app` will be initialized with `value`. (it will be transferred from the app's creator balance).
    
 1. User fills-in the constructor fields.
 1. The estimated required `gas_limit` is shown to the user.
-1. If user (app creator) has enough balance also for the `gas_limit` he may click the `Spawn App` button.
+1. If the end-user (app creator) has enough balance also for the `gas_limit` he may click the `Spawn App` button.
 1. Clicking the `Spawn App` button will dispatch the `Spawn App` transaction to the network.
 
 
 #### `Execute App Transaction (a.k.a Call Method Transaction)`
 The steps:
 
-1. Wallet UX user picks the desired app. This user need to have its `Address`.
+1. Wallet UX user picks the desired app. The user needs to have its `Address`.
 1. The `execute app` interface is displayed by showing the public API methods of the `App`.
 1. User selects the desired API method.
 1. User fills-in the method fields.
 
    Special attention should be given to the `value` field, which is part of the `Transaction Envelope`.
-   Amount of `value` will be tranfered to the `App`. (it will be transfered from the `sender`'s balance).
+   Amount of `value` will be transferred to the `App`. (transferred from the `sender`'s balance).
    
-   TOD: how to derive the `gas_price` ?
 1. The estimated required `gas_limit` is shown to the user.
 1. If user (a.k.a `sender`) has enough balance also for the `gas_limit` he may click the `Execute App` button.
 1. Clicking the `Execute App` button will dispatch the `Execute App` transaction to the network.
@@ -162,8 +162,9 @@ The steps:
 1. Wallet UX user picks the desired app. This user need to have its `Address`.
 1. The `App State ABI` is dowloaded and rendered to the user. (off-chain data).
 1. Wallet UX invokes a batch call asking for each `App Storage` field. 
-
-The ABI will be further developed with data-structures will be added to `SVM` storage
+<br/>
+The ABI will be further developed with data-structures will be added to `SVM` storage.
+<br/>
 For now, only fixed-size fields will be supported: (uint32, bool, `Address`, etc).
 
 ### Validation (Mempool)
@@ -305,7 +306,7 @@ Fields:
 * `template_address` 
 * `gas_used`
 
-When `is_success` if `false` it means, it means that the `deploy-transaction` has failed.
+When `is_success` is _falss_ - it means that the `deploy-transaction` has failed.
 Now, `go-spacemesh` needs to fee the `sender` with the `gas_limit`.
 Both `sender` and `gas_limit` fields are sent as part of the transaction envelope.
 <br/><br/>
@@ -418,12 +419,11 @@ TBD
   ```
 
 * Do we want to have the encoding prefix of each Receipt kind to be the same?
+  ```
+  (version, receipt_type, is_success, gas_used)
+  ```
 
-```
-(version, receipt_type, is_success, gas_used)
-```
-
-<br/><br/>
+<br/>
 
 ### Out-of-scope for SVM 0.2
 Here is the list of things that won't be included in SVM 0.2 but must be in the subsequent 0.3 version.
