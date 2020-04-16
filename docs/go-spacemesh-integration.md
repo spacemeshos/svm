@@ -8,15 +8,13 @@ There are two main purposes for this doc:
 
 <br/>
 
-### Some notes:
-
 #### Betting on `wasmer`
 SVM is using [`wasmer`][wasmer] as its underlying WebAssemby Runtime. 
 <br/>
 Other wasm runtimes could (theoretically) be used instead.
 <br/>
-However, at this point in time `wasmer` seems the best fit for us.
-In the future we could add support for other WebAssembly Runtimes.
+However, at this point in time - `wasmer` seems the best fit for us.
+In the future, we could add support for other WebAssembly Runtimes.
 (see also: [`wasmtime`][wasmtime] by _Mozilla_).
 <br/><br/>
 If we'll do that - then we'll have to make sure that we reach consensus while part of the nodes run `wasmer` and other `wasmtime`.
@@ -25,7 +23,7 @@ If we'll do that - then we'll have to make sure that we reach consensus while pa
 
 #### Portability
 Since SVM is a standalone project this document may be a good reference for any other future Blockchain projects willing to integrate SVM.
-(theoretically any programming-language supporting FFI interface).
+(theoretically, any programming-language supporting _FFI_ interface).
 
 <br/>
 
@@ -474,7 +472,7 @@ For more info, see the `Genesis flow` section.
 #### Avoiding Template Duplication 
 Currently, raw deployed templates will be duplicated. 
 <br/>
-Once the data will be saved on-mesh as its for any transaction. and the second time, as internal of SVM.
+Once the data will be saved on-mesh as it's for any transaction. and the second time, as internal of SVM.
 <br/>
 We need to decide before Mainnet whether we want to go the extra mile and save the template raw data only once.
 <br/>
