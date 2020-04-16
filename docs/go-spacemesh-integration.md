@@ -298,7 +298,9 @@ Additionally, `SVM` exposes `Receipt helper methods` for extracting each field i
 #### `Deploy App-Template` 
 If the `is_success` field if `true` it means that the `deploy-transaction` has succeeded.
 <br/>
-Then, the `template_address` should be extracted (from the receipt) for the new `App Template` account creation. (see `Global State` section).
+Then, the `template_address` should be extracted (from the receipt) for the new `App Template` account creation. 
+<br/>
+(see `Global State` section).
 
 Fields:
 
@@ -308,21 +310,21 @@ Fields:
 
 When `is_success` is _false_ - it means that the `deploy-transaction` has failed.
 Now, `go-spacemesh` needs to fee the `sender` with the `gas_limit`.
-Both `sender` and `gas_limit` fields are sent as part of the transaction envelope.
+Both `sender` and `gas_limit` fields are sent as part of the `Transaction Envelope`.
 <br/><br/>
 #### `Spawn App`
 When the spawned-app succeeds (`is_success = true`) the returned receipt contains the following:
 
 * `app_address` - The `address` of the spawned-app.
 * `init_state`  - The initial `state` of the `App` (after executing the constructor).
-* `returns`     - The executed function returned values. Array of `wasm value`. Each value can be `i32` or `i64`.
+* `returns`     - The executed function returned values. Array of `wasm value`. Each value is `i32` or `i64`.
 * `gas_used`    - The amount of gas used.
 <br/><br/>
 #### `Execute App-Transaction` 
 When the executed app-transaction succeeds (`is_success = true`) the returned receipt contains the following:
 
 * `new_state` - The new `state` of the `App`
-* `returns`   - The executed function returned values. Array of `wasm value`. Each value can be `i32` or `i64`.
+* `returns`   - The executed function returned values. Array of `wasm value`. Each value is `i32` or `i64`.
 * `gas_used`  - The amount of gas used.
 
 
@@ -340,6 +342,7 @@ As mentioned above, `go-spacemesh` v0.2 will come with a single built-in templat
 Let's mark the folder as `src/apps/smart-wallet` and the `App Template` raw data as `src/apps/smart-wallet/deploy.bin`.
 <br/><br/>
 The Genesis flow will invoke SVM Runtime `Deploy Template` (using the `go-svm` client) method.
+<br/>
 The `Host Context` fields that are sent over-the-wire will have to be filled in, since there will be no real
 p2p `deploy template` transaction of the `Smart Wallet` template.
 <br/><br/>
@@ -352,7 +355,7 @@ Let's denote this account address as `MINT`.
 Next, we need to iterate over a configuration file containing all the so-called "investors". 
 <br/>
 For each "investor" we'll spawn a `Smart Wallet App`. The app-spawner (transaction `sender`) will be `MINT`.
-<br/>
+<br/><br/>
 The `value` field of the spawn transaction will be the `coins` field (see the configuration file).
 It means that `value` coins will be transferred from `MINT` account to the new `App` account.
 <br/>
