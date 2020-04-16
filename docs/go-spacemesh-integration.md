@@ -1,4 +1,4 @@
-## Integration with `go-spacemesh` plan
+# Integration with `go-spacemesh` plan
 This document is intended to serve as a high-level plan for integration of SVM with [`go-spacemesh`][go-spacemesh].
 
 There are two main purposes for this doc:
@@ -11,7 +11,7 @@ Note: since SVM is a standalone project this document may be a good reference fo
 
 <br/>
 
-### Terminology
+## Terminology
 
 #### `go-svm`
 Golang client for SVM.
@@ -24,7 +24,7 @@ WebAssembly (wasm) programs are running within a restricted environment (sandbox
 <br/>
 The entity running the VM is called the `Host`. In our case the `Host` will is `go-spacemesh`.
 
-### `Host Imports`
+#### `Host Imports`
 Web-Assembly programs without any interface to the external-world (i.e the `Host`) aren't capable to achieve much. (rendering them stateless too).
 That's why any wasm program can import functions (and other things - not relevant for this document) and invoke them.
 </br></br>
@@ -105,7 +105,7 @@ The integration of SVM within `go-spacemesh` is a prerequisite for starting the 
 
 <br/>
 
-### High-level flows
+## High-level flows
 
 SVM orchestrates 3 kinds of transactions. Each transaction returns a Receipt that will be persisted on-chain.
 <br/>
@@ -167,12 +167,12 @@ The ABI will be further developed with data-structures added to `SVM` storage.
 <br/>
 For now, only fixed-size fields will be supported: (uint32, bool, `Address`, etc).
 
-### Validation (Mempool)
+## Validation (Mempool)
 Each network-peer should perform syntactic validation to SVM transactions. 
 <br/>
 In case the validation fails, the transaction should be discarded.
 
-### Mining - Which transactions to pick?
+## Mining - Which transactions to pick?
 The miner will have to decide which transactions are most appealing to him.
 <br/>
 Also, we want to have a minimum overlap between miners selections.
@@ -189,7 +189,7 @@ The total gas estimation will consist of 2 parts:
 <br/>
 Talk about the algorithm: see under the `Open Questions` section.
 
-### Raw Transactions format
+## Raw Transactions format
 We'll need to introduce a transaction type flag to the `Transaction Envelope`
 <br/>
 For example:
@@ -242,7 +242,7 @@ The `exec-app` blob layout can be read here:
 https://github.com/spacemeshos/svm/blob/master/crates/svm-app/src/raw/transaction/mod.rs#L1
 
 
-### Global State
+## Global State
 
 SVM requires two new account types to be added:
 
@@ -288,7 +288,7 @@ Now, the `Global State` should:
 * Recalculate the new Merkle-Tree Hashes.
 
 
-### Receipts
+## Receipts
 There are 3 types of `Receipt`s: `deploy-template`, `spawn-app` and `exec-app`.
 <br/>
 Each `Receipt` should be persisted on-chain in its raw packed form.
@@ -326,7 +326,7 @@ When the executed app-transaction succeeds (`is_success = true`) the returned re
 * `gas_used`  - The amount of gas used.
 
 
-### On-Chain data
+## On-Chain data
 
 * Each transaction should be part of `Transactions Tree.`
 * `App Template` and `App` accounts will be part of the `Global State`.
@@ -334,7 +334,7 @@ When the executed app-transaction succeeds (`is_success = true`) the returned re
 * SVM manages the data of each `App` and provides the `App State` to the `Global State`.
 
 
-### Genesis flow
+## Genesis flow
 As mentioned above, `go-spacemesh` v0.2 will come with a single built-in template, named `Smart-Wallet`.
 <br/>
 Let's mark the folder as `src/apps/smart-wallet` and the `App Template` raw data as `src/apps/smart-wallet/deploy.bin`.
@@ -396,11 +396,11 @@ Regarding the `nickname` field - see more under the `Name-Service` section.
 
 
 
-### App Storage Read ABI
+## App Storage Read ABI
 TBD
 
 
-the ### Open Questions
+## Open Questions
 
 * What Hash algorithm to use for SVM - should it be _BLAKE3_ ?
 * Algorithm for deciding which transactions a miner should pick.
@@ -426,7 +426,7 @@ the ### Open Questions
 
 <br/>
 
-### Out-of-scope for SVM 0.2
+## Out-of-scope for SVM 0.2
 Here is the list of things that won't be included in SVM 0.2 but must be in the subsequent 0.3 version.
 
 #### Generic Call Method ABI 
