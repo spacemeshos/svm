@@ -42,7 +42,7 @@ It will contain fields such as: `block_id`, `layer_id` (and fields of `Transacti
 <br/>
 Executed SVM transactions will have access to the `Host Context`.
 <br/>
-The data-structure used for the `Host Context` will be a Map between an u32 integer index to a raw-byte array.
+The data-structure used for `Host Context` will be a Map between an u32 integer index to a raw-byte array.
 
 Here is an example:
 <br/>
@@ -60,19 +60,19 @@ Here is an example:
 
 #### `App Template` 
 We name a `Smart Contract`'s code + metadata (including storage spec) as a `App Template`.
-We can think of a `Template` as the equivalent of a `class` in an Object-Oriented programming paradigm.
+We can think of `App Template` as the equivalent of `class` in an Object-Oriented programming paradigm.
 <br/>
-Each `Template` will have an account under the `Global State` and its own `Addres`. (see more under the `Global State` section).
+Each `Template` will have an account under the `Global State` and its own `Addres`. (see more under `Global State` section).
 
 
 #### `App` 
 Given an `App Template` - we can spawn `App`s out of it.
 <br/>
-All spawned `App`s out-of the same origin `Template` share the same code but have an isolated inner state. 
-We can think of an `App` as the equivalent of a `class instance` (a.k.a `object`) under the Object-Oriented programing paradigm.
+All spawned `App`s out of the same source `Template` share the same code but have an isolated inner state. 
+We can think of an `App` as the equivalent of a `class instance` (a.k.a `object`) under the Object-Oriented programming paradigm.
 <br/>
 The motivation for having both `App Template` and `App` are encouraging code reuse and saving of on-chain storage.
-Each `App` will have an account under the `Global State` and its own `Address`. (see more under the `Global State` section).
+Each `App` will have an account under the `Global State` and its own `Address`. (see more under `Global State` section).
 
 
 #### `App Transaction`
@@ -187,7 +187,7 @@ The total gas estimation will consist of 2 parts:
 * Payload size - This is a number we can know exactly ahead. 
 * Storage size  - We can know-ahead the root-hierarchy size (it's specified in the `App Template` spec). 
 <br/>
-Talk about the algorithm: see under `Open-Questions` section.
+Talk about the algorithm: see under `Open Questions` section.
 
 ### Raw Transactions format
 We'll need to introduce a transaction type flag to the `Transaction Envelope`
@@ -256,7 +256,7 @@ The `balance` of this account should be set to zero.
 Sending coins to the `Template` account in any future transaction will lock these for good. 
 
 #### `App Account`
-After spawning an `App` successfully, a new account of type `App` should be added to the `Global State`.
+After spawning `App` successfully, a new account of type `App` should be added to the `Global State`.
 <br/>
 The `App`'s initial `state` is returned by the `Spawn Receipt` (see more data under `Receipts` section).
 <br/>
@@ -298,7 +298,7 @@ Additionally, `SVM` exposes `Receipt helper methods` for extracting each field i
 #### `Deploy App-Template` 
 If the `is_success` field if `true` it means that the `deploy-transaction` has succeeded.
 <br/>
-Then, the `template_address` should be extracted for the new `App Template` account creation. (see `Global State` section).
+Then, the `template_address` should be extracted (from the receipt) for the new `App Template` account creation. (see `Global State` section).
 
 Fields:
 
@@ -340,7 +340,7 @@ As mentioned above, `go-spacemesh` v0.2 will come with a single built-in templat
 Let's mark the folder as `src/apps/smart-wallet` and the `App Template` raw data as `src/apps/smart-wallet/deploy.bin`.
 <br/><br/>
 The Genesis flow will invoke SVM Runtime `Deploy Template` (using the `go-svm` client) method.
-The `Host Context` fields that are sent over-the-wire will have to be filled-in, since there will be no real
+The `Host Context` fields that are sent over-the-wire will have to be filled in, since there will be no real
 p2p `deploy template` transaction of the `Smart Wallet` template.
 <br/><br/>
 If the deployment of the `Smart Wallet` fails (theoretically) - the whole `Genesis flow` should halt.
@@ -349,14 +349,14 @@ Now, given a successful deployment, we need to manually create a single account 
 <br/>
 Let's denote this account address as `MINT`.
 <br/><br/>
-Next, we need to iterate over a configuration file containing all the so called "investors". 
+Next, we need to iterate over a configuration file containing all the so-called "investors". 
 <br/>
 For each "investor" we'll spawn a `Smart Wallet App`. The app-spawner (transaction `sender`) will be `MINT`.
 <br/>
 The `value` field of the spawn transaction will be the `coins` field (see the configuration file).
 It means that `value` coins will be transferred from `MINT` account to the new `App` account.
 <br/>
-If the spawning of a `Smart Wallet` fails (theoretically) - the whole `Genesis flow` should halt.
+If the spawning a `Smart Wallet` fails (theoretically) - the whole `Genesis flow` should halt.
 <br/>
 
 Gas concerns: during the `Genesis flow` the `gas_metering` flag will be turned-off. (SVM supports that).
@@ -400,7 +400,7 @@ Regarding the `nickname` field - see more under the `Name-Service` section.
 TBD
 
 
-### Open-Questions
+### Open Questions
 
 * What Hash algorithm to use for SVM - should it be_BLAKE3_ ?
 * Algorithm for deciding which transactions a miner should pick.
@@ -411,7 +411,7 @@ TBD
 * Does the `returns` field of the `Spawn App` and `Exec App` Receipts should be discarded?
   The size-volume of the field won't affect the final `gas_used`... 
 * What will be the `gas_price` value injected into a transaction? 
-* We need to figure out what indexes will be created in `go-spacemesh` that will asist the _Transactions Explorer_.
+* We need to figure out what indexes will be created in `go-spacemesh` that will assist the _Transactions Explorer_.
   
   Examples for such indexes.
   ```
