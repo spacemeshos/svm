@@ -153,9 +153,7 @@ The steps:
 1. The estimated required `gas_limit` is shown to the user.
 1. If the end-user (app creator) has enough balance also for the `gas_limit` he may click the `Spawn App` button.
 1. Clicking the `Spawn App` button will dispatch the `Spawn App` transaction to the network.
-
 <br/><br/>
-
 #### `Execute App Transaction (a.k.a Call Method Transaction)`
 The steps:
 
@@ -170,9 +168,7 @@ The steps:
 1. The estimated required `gas_limit` is shown to the user.
 1. If user (a.k.a `sender`) has enough balance also for the `gas_limit` he may click the `Execute App` button.
 1. Clicking on the `Execute App` button will dispatch the `Execute App` transaction to the network.
-
 <br/><br/>
-
 #### `Reading App's Storage`
 The steps:
 
@@ -183,16 +179,12 @@ The steps:
 The ABI will be further developed with data-structures added to `SVM` storage.
 <br/>
 For now, only fixed-size fields will be supported: (uint32, bool, `Address`, etc).
-
 <br/><br/>
-
 ## Validation (Mempool)
 Each network-peer should perform syntactic validation to SVM transactions. 
 <br/>
 In case the validation fails, the transaction should be discarded.
-
 <br/><br/>
-
 ## Mining - Which transactions to pick?
 The miner will have to decide which transactions are most appealing to him.
 <br/>
@@ -209,9 +201,7 @@ The total gas estimation will consist of 2 parts:
 * Storage size  - We can know-ahead the root-hierarchy size (it's specified in the `App Template` spec). 
 <br/>
 Talk about the algorithm: see under the `Open Questions` section.
-
 <br/><br/>
-
 ## Raw Transactions format
 We'll need to introduce a transaction type flag to the `Transaction Envelope`
 <br/>
@@ -263,9 +253,7 @@ https://github.com/spacemeshos/svm/blob/master/crates/svm-app/src/raw/app/mod.rs
 The `exec-app` blob layout can be read here:
 
 https://github.com/spacemeshos/svm/blob/master/crates/svm-app/src/raw/transaction/mod.rs#L1
-
 <br/><br/>
-
 ## Global State
 
 SVM requires two new account types to be added:
@@ -310,9 +298,7 @@ Now, the `Global State` should:
 * Update the `App` leaf-node with the new App's `State`.
 * Play the dirty coins transfers.
 * Recalculate the new Merkle-Tree Hashes.
-
 <br/><br/>
-
 ## Receipts
 There are 3 types of `Receipt`s: `deploy-template`, `spawn-app` and `exec-app`.
 <br/>
@@ -351,18 +337,13 @@ When the executed app-transaction succeeds (`is_success = true`) the returned re
 * `new_state` - The new `state` of the `App`
 * `returns`   - The executed function returned values. Array of `wasm value`. Each value is `i32` or `i64`.
 * `gas_used`  - The amount of gas used.
-
 <br/><br/>
-
 ## On-Chain data
-
 * Each transaction should be part of `Transactions Tree.`
 * `App Template` and `App` accounts will be part of the `Global State`.
 * `Receipt` should be on-chain too.
 * SVM manages the data of each `App` and provides the `App State` to the `Global State`.
-
 <br/><br/>
-
 ## Genesis flow
 As mentioned above, `go-spacemesh` v0.2 will come with a single built-in template, named `Smart-Wallet`.
 <br/>
@@ -423,14 +404,10 @@ Regarding the `nickname` field - see more under the `Name-Service` section.
   ]
 }
 ```
-
 <br/><br/>
-
 ## App Storage Read ABI
 TBD
-
 <br/><br/>
-
 ## Open Questions
 
 * What Hash algorithm to use for SVM - should it be _BLAKE3_ ?
@@ -454,9 +431,7 @@ TBD
   ```
   (version, receipt_type, is_success, gas_used)
   ```
-
 <br/><br/>
-
 ## Out-of-scope for SVM 0.2
 Here is the list of things that won't be included in SVM 0.2 but must be in the subsequent 0.3 version.
 
