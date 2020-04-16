@@ -133,8 +133,7 @@ The `go-spacemesh` v0.2 will contain only a single built-in template, named `Sma
 Therefore, the `deploy-template` functionality using the `p2p` should be disabled.
 <br/>
 See `Genesis flow` for how to deploy the pre-built `Smart Wallet`.
-<br/>
-
+<br/><br/>
 
 #### `Spawn App`
 The `go-spacemesh` v0.2 will support only apps of the `Smart Wallet` template.
@@ -155,6 +154,7 @@ The steps:
 1. If the end-user (app creator) has enough balance also for the `gas_limit` he may click the `Spawn App` button.
 1. Clicking the `Spawn App` button will dispatch the `Spawn App` transaction to the network.
 
+<br/><br/>
 
 #### `Execute App Transaction (a.k.a Call Method Transaction)`
 The steps:
@@ -303,6 +303,7 @@ Now, the `Global State` should:
 * Play the dirty coins transfers.
 * Recalculate the new Merkle-Tree Hashes.
 
+<br/><br/>
 
 ## Receipts
 There are 3 types of `Receipt`s: `deploy-template`, `spawn-app` and `exec-app`.
@@ -343,6 +344,7 @@ When the executed app-transaction succeeds (`is_success = true`) the returned re
 * `returns`   - The executed function returned values. Array of `wasm value`. Each value is `i32` or `i64`.
 * `gas_used`  - The amount of gas used.
 
+<br/><br/>
 
 ## On-Chain data
 
@@ -351,6 +353,7 @@ When the executed app-transaction succeeds (`is_success = true`) the returned re
 * `Receipt` should be on-chain too.
 * SVM manages the data of each `App` and provides the `App State` to the `Global State`.
 
+<br/><br/>
 
 ## Genesis flow
 As mentioned above, `go-spacemesh` v0.2 will come with a single built-in template, named `Smart-Wallet`.
@@ -413,11 +416,12 @@ Regarding the `nickname` field - see more under the `Name-Service` section.
 }
 ```
 
-
+<br/><br/>
 
 ## App Storage Read ABI
 TBD
 
+<br/><br/>
 
 ## Open Questions
 
@@ -443,7 +447,7 @@ TBD
   (version, receipt_type, is_success, gas_used)
   ```
 
-<br/>
+<br/><br/>
 
 ## Out-of-scope for SVM 0.2
 Here is the list of things that won't be included in SVM 0.2 but must be in the subsequent 0.3 version.
