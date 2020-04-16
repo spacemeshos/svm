@@ -15,7 +15,7 @@ Note: since SVM is a standalone project this document may be a good reference fo
 
 #### `go-svm`
 Golang client for SVM.
-The client will interface with the `svm.h` and `svm` object file using `cgo`. (SVM has FFI interface).
+The client will interface with the `svm.h` and `svm` object file using `cgo`. (SVM has an _FFI_ interface).
 <br/>
 It will expose a Golang idiomatic interface and be used as a dependency within the `go-spacemesh` project.
 
@@ -153,17 +153,17 @@ The steps:
    
 1. The estimated required `gas_limit` is shown to the user.
 1. If user (a.k.a `sender`) has enough balance also for the `gas_limit` he may click the `Execute App` button.
-1. Clicking the `Execute App` button will dispatch the `Execute App` transaction to the network.
+1. Clicking on the `Execute App` button will dispatch the `Execute App` transaction to the network.
 
 
 #### `Reading App's Storage`
 The steps:
 
-1. Wallet UX user picks the desired app. This user need to have its `Address`.
-1. The `App State ABI` is dowloaded and rendered to the user. (off-chain data).
-1. Wallet UX invokes a batch call asking for each `App Storage` field. 
+1. Wallet UX user picks the desired app. This user needs to have its `Address`.
+1. The `App State ABI` is downloaded and rendered to the user. (off-chain data).
+1. Wallet UX invokes a batch call asking for each `App Storage`'s field. 
 <br/>
-The ABI will be further developed with data-structures will be added to `SVM` storage.
+The ABI will be further developed with data-structures added to `SVM` storage.
 <br/>
 For now, only fixed-size fields will be supported: (uint32, bool, `Address`, etc).
 
@@ -184,8 +184,8 @@ However, since we only allow a restricted-set of WebAssembly having no loops we 
 The total gas estimation will consist of 2 parts:
 
 * Execution estimation 
-* Payloyad size - This is a number we can know exactly ahead. 
-* Storage size  - We can know-ahead the root hierarchy size (it's specified in the `Template` spec). 
+* Payload size - This is a number we can know exactly ahead. 
+* Storage size  - We can know-ahead the root-hierarchy size (it's specified in the `App Template` spec). 
 <br/>
 Talk about the algorithm: see under `Open-Questions` section.
 
@@ -247,7 +247,7 @@ https://github.com/spacemeshos/svm/blob/master/crates/svm-app/src/raw/transactio
 SVM requires two new account types to be added:
 
 #### `App Template Account`
-After deploying a template sucessfully, a new account of type `Template` should be added to the `Global State`.
+After deploying a template successfully, a new account of type `Template` should be added to the `Global State`.
 <br/>
 The `state` of this account should be set to zeros (it's meaningless).
 <br/>
@@ -256,7 +256,7 @@ The `balance` of this account should be set to zero.
 Sending coins to the `Template` account in any future transaction will lock these for good. 
 
 #### `App Account`
-After spawning an App sucessfully, a new account of type `App` should be added to the `Global State`.
+After spawning an `App` successfully, a new account of type `App` should be added to the `Global State`.
 <br/>
 The `App`'s initial `state` is returned by the `Spawn Receipt` (see more data under `Receipts` section).
 <br/>
@@ -274,8 +274,8 @@ Optional (requires discussion):
 * `Creator` - The address of the `App` spawner.
 * `Author`  - The address of the `App Template` author.
 
-#### Commiting changes
-While executing an `App Transaction`, the app will makes changes to the App's storage and to the balances of accounts.
+#### Committing changes
+While executing an `App Transaction`, the app will commit changes to the App's storage and to the balances of accounts.
 <br/>
 Upon a successful transaction, SVM will persist the `App storage` changes and re-calculate a new `State`. 
 <br/>
@@ -296,7 +296,7 @@ Each `Receipt` should be persisted on-chain in its raw packed form.
 Additionally, `SVM` exposes `Receipt helper methods` for extracting each field in isolation.
 <br/><br/>
 #### `Deploy App-Template` 
-If the `is_success` field if `true` it means that the `deploy-transaction` has succedded.
+If the `is_success` field if `true` it means that the `deploy-transaction` has succeeded.
 <br/>
 Then, the `template_address` should be extracted for the new `App Template` account creation. (see `Global State` section).
 
@@ -306,7 +306,7 @@ Fields:
 * `template_address` 
 * `gas_used`
 
-When `is_success` is _falss_ - it means that the `deploy-transaction` has failed.
+When `is_success` is _false_ - it means that the `deploy-transaction` has failed.
 Now, `go-spacemesh` needs to fee the `sender` with the `gas_limit`.
 Both `sender` and `gas_limit` fields are sent as part of the transaction envelope.
 <br/><br/>
@@ -329,7 +329,7 @@ When the executed app-transaction succeeds (`is_success = true`) the returned re
 ### On-Chain data
 
 * Each transaction should be part of the `Transactions Tree.`
-* `App Template` and `App` account will be part of the `Global State`
+* `App Template` and `App` accounts will be part of the `Global State`.
 * `Receipt` should be on-chain too.
 * SVM manages the data of each `App` and provides the `App State` to the `Global State`.
 
@@ -340,12 +340,12 @@ As mentioned above, `go-spacemesh` v0.2 will come with a single built-in templat
 Let's mark the folder as `src/apps/smart-wallet` and the `App Template` raw data as `src/apps/smart-wallet/deploy.bin`.
 <br/><br/>
 The Genesis flow will invoke SVM Runtime `Deploy Template` (using the `go-svm` client) method.
-The `Host Context` fields that are sent over-the-wire will have tobe manually filled-in, since there will be no real
+The `Host Context` fields that are sent over-the-wire will have to be filled-in, since there will be no real
 p2p `deploy template` transaction of the `Smart Wallet` template.
 <br/><br/>
 If the deployment of the `Smart Wallet` fails (theoretically) - the whole `Genesis flow` should halt.
 <br/>
-Now, given a successful deployment, we need to manually create a single account containing the all minted coins of _Spacemesh_. 
+Now, given a successful deployment, we need to manually create a single account containing the minted coins of _Spacemesh_. 
 <br/>
 Let's denote this account address as `MINT`.
 <br/><br/>
@@ -362,7 +362,7 @@ If the spawning of a `Smart Wallet` fails (theoretically) - the whole `Genesis f
 Gas concerns: during the `Genesis flow` the `gas_metering` flag will be turned-off. (SVM supports that).
 <br/>
 
-Here is an sample of how the configuratin file may look like.
+Here is an example of how the configuration file may look like.
 <br/>
 Regarding the `nickname` field - see more under the `Name-Service` section.
 
@@ -402,13 +402,14 @@ TBD
 
 ### Open-Questions
 
-* Algorithm for decidinng which transactions a miner should pick.
+* What Hash algorithm to use for SVM - should it be_BLAKE3_ ?
+* Algorithm for deciding which transactions a miner should pick.
 * Signatures Scheme.
 * `Receipt` should be part of the `Transactions Mesh` or in other data-structure? 
 * `Balance` representation. Can we use a single `i64` or a pair of `i64`? 
-* Exact formula for deriving the `Template` and `App` accounts addresses.
+* Decide on the exact formula for deriving the `Template` and `App` accounts addresses.
 * Does the `returns` field of the `Spawn App` and `Exec App` Receipts should be discarded?
-  The volume of the this field won't affect the final `gas_used`... 
+  The size-volume of the field won't affect the final `gas_used`... 
 * What will be the `gas_price` value injected into a transaction? 
 * We need to figure out what indexes will be created in `go-spacemesh` that will asist the _Transactions Explorer_.
   
@@ -429,14 +430,14 @@ TBD
 Here is the list of things that won't be included in SVM 0.2 but must be in the subsequent 0.3 version.
 
 #### Generic Call Method ABI 
-Requires more research.
+Needs more research.
 
 #### Transient Events
 We'd like SVM to emit events that will be persisted for an ephemeral amount of time.
 <br/>
 By having transient events, we can avoid the feature abuse done on other chains.
 <br/>
-This capablity should become very useful for debugging and the transaction Explorer.
+This capability should become very useful for debugging and the transaction Explorer.
 <br/>
 The events won't be part of a Receipt. 
 
