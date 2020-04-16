@@ -10,11 +10,11 @@ There are two main purposes for this doc:
 
 ### Some notes:
 
-### Betting on wasmer
+#### Betting on `wasmer`
 SVM is using [`wasmer`][wasmer] as its underlying WebAssemby Runtime. 
 <br/>
 Other wasm runtimes could (theoretically) be used instead.
-<br/><br/>
+<br/>
 However, at this point in time `wasmer` seems the best fit for us.
 In the future we could add support for other WebAssembly Runtimes.
 (see also: [`wasmtime`][wasmtime] by _Mozilla_).
@@ -25,7 +25,6 @@ If we'll do that - then we'll have to make sure that we reach consensus while pa
 
 #### Portability
 Since SVM is a standalone project this document may be a good reference for any other future Blockchain projects willing to integrate SVM.
-<br/>
 (theoretically any programming-language supporting FFI interface).
 
 <br/>
