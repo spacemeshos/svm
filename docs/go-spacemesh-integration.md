@@ -180,11 +180,13 @@ The ABI will be further developed with data-structures added to `SVM` storage.
 <br/>
 For now, only fixed-size fields will be supported: (uint32, bool, `Address`, etc).
 <br/><br/>
+
 ## Validation (Mempool)
 Each network-peer should perform syntactic validation to SVM transactions. 
 <br/>
 In case the validation fails, the transaction should be discarded.
 <br/><br/>
+
 ## Mining - Which transactions to pick?
 The miner will have to decide which transactions are most appealing to him.
 <br/>
@@ -202,6 +204,7 @@ The total gas estimation will consist of 2 parts:
 <br/>
 Talk about the algorithm: see under the `Open Questions` section.
 <br/><br/>
+
 ## Raw Transactions format
 We'll need to introduce a transaction type flag to the `Transaction Envelope`
 <br/>
