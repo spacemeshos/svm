@@ -187,7 +187,7 @@ The total gas estimation will consist of 2 parts:
 * Payload size - This is a number we can know exactly ahead. 
 * Storage size  - We can know-ahead the root-hierarchy size (it's specified in the `App Template` spec). 
 <br/>
-Talk about the algorithm: see under `Open Questions` section.
+Talk about the algorithm: see under the `Open Questions` section.
 
 ### Raw Transactions format
 We'll need to introduce a transaction type flag to the `Transaction Envelope`
@@ -196,7 +196,7 @@ For example:
 
 * type=0  simple transaction with `SVM-ed25519`
 * type=1  simple transaction without standard signatures (supported by Hardware Wallets).
-* type=2  deploy template. SVM 0.2 should disable that type.
+* type=2  deploy a template. SVM 0.2 should disable that type.
 
 ```
 +-----------------------------+
@@ -284,7 +284,7 @@ Then, the `Receipt` will include that new `State`.
 Now, the `Global State` should:
 
 * Update the `App` leaf-node with the new App's `State`.
-* Apply the dirty coins transfers
+* Play the dirty coins transfers.
 * Recalculate the new Merkle-Tree Hashes.
 
 
@@ -328,7 +328,7 @@ When the executed app-transaction succeeds (`is_success = true`) the returned re
 
 ### On-Chain data
 
-* Each transaction should be part of the `Transactions Tree.`
+* Each transaction should be part of `Transactions Tree.`
 * `App Template` and `App` accounts will be part of the `Global State`.
 * `Receipt` should be on-chain too.
 * SVM manages the data of each `App` and provides the `App State` to the `Global State`.
@@ -400,9 +400,9 @@ Regarding the `nickname` field - see more under the `Name-Service` section.
 TBD
 
 
-### Open Questions
+the ### Open Questions
 
-* What Hash algorithm to use for SVM - should it be_BLAKE3_ ?
+* What Hash algorithm to use for SVM - should it be _BLAKE3_ ?
 * Algorithm for deciding which transactions a miner should pick.
 * Signatures Scheme.
 * `Receipt` should be part of the `Transactions Mesh` or in other data-structure? 
@@ -410,8 +410,8 @@ TBD
 * Decide on the exact formula for deriving the `Template` and `App` accounts addresses.
 * Does the `returns` field of the `Spawn App` and `Exec App` Receipts should be discarded?
   The size-volume of the field won't affect the final `gas_used`... 
-* What will be the `gas_price` value injected into a transaction? 
-* We need to figure out what indexes will be created in `go-spacemesh` that will assist the _Transactions Explorer_.
+* What will be the `gas_price` injected into a transaction? 
+* We need to figure out what indexes should be created in `go-spacemesh` for assisting the _Transactions Explorer_.
   
   Examples for such indexes.
   ```
