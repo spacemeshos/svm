@@ -87,7 +87,7 @@ Given an `App Template` - we can spawn `App`s out of it.
 All spawned `App`s out of the same source `Template` share the same code but have an isolated inner state. 
 We can think of an `App` as the equivalent of a `class instance` (a.k.a `object`) under the Object-Oriented programming paradigm.
 <br/>
-The motivation for having both `App Template` and `App` are encouraging code reuse and saving of on-chain storage.
+The motivation for having both `App Template` and `App` are encouraging code reuse and saving of storage.
 Each `App` will have an account under the `Global State` and its own `Address`. (see more under `Global State` section).
 
 
@@ -123,7 +123,7 @@ The integration of SVM within `go-spacemesh` is a prerequisite for starting the 
 
 ## High-level flows
 
-SVM orchestrates 3 kinds of transactions. Each transaction returns a Receipt that will be persisted on-chain.
+SVM orchestrates 3 kinds of transactions. Each transaction returns a Receipt that will be persisted on-mesh.
 <br/>
 (see also `Raw Transactions format` and `Receipts` sections).
 
@@ -305,7 +305,7 @@ Now, the `Global State` should:
 ## Receipts
 There are 3 types of `Receipt`s: `deploy-template`, `spawn-app` and `exec-app`.
 <br/>
-Each `Receipt` should be persisted on-chain in its raw packed form.
+Each `Receipt` should be persisted on-mesh in its raw packed form.
 <br/>
 Additionally, `SVM` exposes `Receipt helper methods` for extracting each field in isolation.
 <br/><br/>
@@ -341,10 +341,10 @@ When the executed app-transaction succeeds (`is_success = true`) the returned re
 * `returns`   - The executed function returned values. Array of `wasm value`. Each value is `i32` or `i64`.
 * `gas_used`  - The amount of gas used.
 <br/><br/>
-## On-Chain data
-* Each transaction should be part of `Transactions Tree.`
+## On-Mesh data
+* Each transaction should be part of on-mesh `Transactions`
 * `App Template` and `App` accounts will be part of the `Global State`.
-* `Receipt` should be on-chain too.
+* `Receipt` should be on-mesh too.
 * SVM manages the data of each `App` and provides the `App State` to the `Global State`.
 <br/><br/>
 ## Genesis flow
