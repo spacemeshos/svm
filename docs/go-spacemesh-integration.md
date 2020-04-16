@@ -10,6 +10,7 @@ There are two main purposes for this doc:
 Note: since SVM is a standalone project this document may be a good reference for any other future Blockchain projects willing to integrate SVM.
 
 <br/>
+
 ### Terminology
 
 #### `go-svm`
@@ -273,7 +274,6 @@ Optional (requires discussion):
 * `Author`  - The address of the `App Template` author.
 
 #### Commiting changes
-<br/>
 While executing an `App Transaction`, the app will makes changes to the App's storage and to the balances of accounts.
 <br/>
 Upon a successful transaction, SVM will persist the `App storage` changes and re-calculate a new `State`. 
@@ -310,7 +310,6 @@ Now, `go-spacemesh` needs to fee the `sender` with the `gas_limit`.
 Both `sender` and `gas_limit` fields are sent as part of the transaction envelope.
 <br/><br/>
 #### `Spawn App`
-<br/>
 When the spawned-app succeeds (`is_success = true`) the returned receipt contains the following:
 
 * `app_address` - The `address` of the spawned-app.
@@ -338,17 +337,17 @@ When the executed app-transaction succeeds (`is_success = true`) the returned re
 As mentioned above, `go-spacemesh` v0.2 will come with a single built-in template, named `Smart-Wallet`.
 <br/>
 Let's mark the folder as `src/apps/smart-wallet` and the `App Template` raw data as `src/apps/smart-wallet/deploy.bin`.
-<br/>
+<br/><br/>
 The Genesis flow will invoke SVM Runtime `Deploy Template` (using the `go-svm` client) method.
 The `Host Context` fields that are sent over-the-wire will have tobe manually filled-in, since there will be no real
 p2p `deploy template` transaction of the `Smart Wallet` template.
-<br/>
+<br/><br/>
 If the deployment of the `Smart Wallet` fails (theoretically) - the whole `Genesis flow` should halt.
 <br/>
 Now, given a successful deployment, we need to manually create a single account containing the all minted coins of _Spacemesh_. 
 <br/>
 Let's denote this account address as `MINT`.
-<br/>
+<br/><br/>
 Next, we need to iterate over a configuration file containing all the so called "investors". 
 <br/>
 For each "investor" we'll spawn a `Smart Wallet App`. The app-spawner (transaction `sender`) will be `MINT`.
@@ -365,8 +364,6 @@ Gas concerns: during the `Genesis flow` the `gas_metering` flag will be turned-o
 Here is an sample of how the configuratin file may look like.
 <br/>
 Regarding the `nickname` field - see more under the `Name-Service` section.
-
-<br/>
 
 ```
 {
@@ -411,15 +408,14 @@ TBD
 * Exact formula for deriving the `Template` and `App` accounts addresses.
 * Does the `returns` field of the `Spawn App` and `Exec App` Receipts should be discarded?
   The volume of the this field won't affect the final `gas_used`... 
-* We need to figure out what indexes will be created in `go-spacemesh` that will asist the _Transactions Explorer_.
 * What will be the `gas_price` value injected into a transaction? 
-
-Examples for such indexes.
-
-```
-tx_id    -> Receipt
-layer_id -> [Receipt]
-```
+* We need to figure out what indexes will be created in `go-spacemesh` that will asist the _Transactions Explorer_.
+  
+  Examples for such indexes.
+  ```
+  tx_id    -> Receipt
+  layer_id -> [Receipt]
+  ```
 
 * Do we want to have the encoding prefix of each Receipt kind to be the same?
 
@@ -427,6 +423,7 @@ layer_id -> [Receipt]
 (version, receipt_type, is_success, gas_used)
 ```
 
+<br/><br/>
 
 ### Out-of-scope for SVM 0.2
 Here is the list of things that won't be included in SVM 0.2 but must be in the subsequent 0.3 version.
