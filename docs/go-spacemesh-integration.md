@@ -171,6 +171,7 @@ The steps:
 1. If user (a.k.a `sender`) has enough balance also for the `gas_limit` he may click the `Execute App` button.
 1. Clicking on the `Execute App` button will dispatch the `Execute App` transaction to the network.
 
+<br/><br/>
 
 #### `Reading App's Storage`
 The steps:
@@ -183,10 +184,14 @@ The ABI will be further developed with data-structures added to `SVM` storage.
 <br/>
 For now, only fixed-size fields will be supported: (uint32, bool, `Address`, etc).
 
+<br/><br/>
+
 ## Validation (Mempool)
 Each network-peer should perform syntactic validation to SVM transactions. 
 <br/>
 In case the validation fails, the transaction should be discarded.
+
+<br/><br/>
 
 ## Mining - Which transactions to pick?
 The miner will have to decide which transactions are most appealing to him.
@@ -204,6 +209,8 @@ The total gas estimation will consist of 2 parts:
 * Storage size  - We can know-ahead the root-hierarchy size (it's specified in the `App Template` spec). 
 <br/>
 Talk about the algorithm: see under the `Open Questions` section.
+
+<br/><br/>
 
 ## Raw Transactions format
 We'll need to introduce a transaction type flag to the `Transaction Envelope`
@@ -257,6 +264,7 @@ The `exec-app` blob layout can be read here:
 
 https://github.com/spacemeshos/svm/blob/master/crates/svm-app/src/raw/transaction/mod.rs#L1
 
+<br/><br/>
 
 ## Global State
 
