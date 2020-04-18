@@ -35,7 +35,6 @@ pub trait Runtime {
         author: &AuthorAddr,
         host_ctx: HostCtx,
         gas_limit: MaybeGas,
-        dry_run: bool,
     ) -> TemplateReceipt;
 
     /// Spawn a new app out of an existing app-template.
@@ -45,7 +44,6 @@ pub trait Runtime {
         creator: &CreatorAddr,
         host_ctx: HostCtx,
         gas_limit: MaybeGas,
-        dry_run: bool,
     ) -> SpawnAppReceipt;
 
     /// Executes an app-transaction. Returns `ExecReceipt`.
@@ -63,6 +61,5 @@ pub trait Runtime {
         state: &State,
         host_ctx: HostCtx,
         gas_limit: MaybeGas,
-        dry_run: bool,
     ) -> ExecReceipt;
 }
