@@ -1,4 +1,7 @@
-use crate::{render::VarRenderer, schema::Var};
+use crate::{
+    render::VarRenderer,
+    schema::{Schema, Var, VarLayout},
+};
 
 pub enum StorageReqKind {
     Get,
@@ -17,7 +20,14 @@ pub struct StorageQuery {
 }
 
 pub trait StorageReader {
-    fn read(&mut self, req: &StorageReq) -> Vec<Var>;
+    fn read_var(&mut self, schema: &Schema, req: &StorageReq) -> Option<String> {
+        schema.get_var(req.var_id).and_then(|var| {
+            self.read_raw_var(&var.layout)
+                .and_then(|bytes| VarRenderer::render(&var, &bytes[..]))
+        })
+    }
+
+    fn read_raw_var(&mut self, layout: &VarLayout) -> Option<Vec<u8>>;
 }
 
 impl StorageQuery {
@@ -29,7 +39,10 @@ impl StorageQuery {
         self.reqs.push(req);
     }
 
-    pub fn run<R: StorageReader>(&self, storage: &mut R) -> Vec<Vec<Var>> {
-        self.reqs.iter().map(|req| storage.read(req)).collect()
+    pub fn run<R: StorageReader>(&self, schema: &Schema, storage: &mut R) -> Vec<Option<String>> {
+        self.reqs
+            .iter()
+            .map(|req| storage.read_var(schema, req))
+            .collect()
     }
 }

@@ -4,22 +4,19 @@ use std::collections::HashMap;
 #[derive(Debug, Clone, PartialEq)]
 pub struct Var {
     /// Var's unique id
-    id: usize,
+    pub id: usize,
 
     /// Variable's layout.
-    layout: VarLayout,
+    pub layout: VarLayout,
 
     /// Variable's type.
-    ty: VarType,
+    pub ty: VarType,
 
     /// Variable's symbolic name.
-    name: String,
+    pub name: String,
 
     /// Variable's description (a free-text documentation).
-    desc: String,
-
-    /// Variable's value.
-    value: Vec<u8>,
+    pub desc: String,
 }
 
 /// Variables storage layout
@@ -51,16 +48,13 @@ pub enum VarType {
     Balance,
 
     /// A boolean (True / False)
-    Boolean,
+    Bool,
 
     /// `Public-Key`
     PubKey,
 
     /// Account's Address
     Address,
-
-    /// Represents `Hash` blob of data
-    Hash,
 }
 
 /// Integer Endianness
@@ -75,9 +69,9 @@ pub enum Endianness {
 
 /// Holds a representation of `AppStorage`'s schema.
 #[derive(Debug, Clone, PartialEq)]
-pub struct AppSchema(HashMap<usize, Var>);
+pub struct Schema(HashMap<usize, Var>);
 
-impl AppSchema {
+impl Schema {
     /// Creates a new instance.
     pub fn new() -> Self {
         Self(HashMap::new())
