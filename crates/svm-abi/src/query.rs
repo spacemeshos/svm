@@ -1,13 +1,13 @@
 use crate::{render::VarRenderer, schema::Var};
 
-pub enum ReqKind {
+pub enum StorageReqKind {
     Get,
 }
 
 pub struct StorageReq {
     var_id: usize,
 
-    kind: ReqKind,
+    kind: StorageReqKind,
 
     params: Vec<String>,
 }

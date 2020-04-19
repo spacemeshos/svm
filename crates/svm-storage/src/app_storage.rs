@@ -4,6 +4,11 @@ use crate::{
 };
 
 use std::collections::HashMap;
+
+use svm_abi::{
+    query::{StorageReader, StorageReq},
+    schema::Var,
+};
 use svm_common::State;
 
 use log::{debug, trace};
@@ -253,6 +258,12 @@ impl AppStorage {
     #[inline]
     fn do_init_page_slices(&mut self, page_idx: PageIndex) {
         self.cached_slices.insert(page_idx, HashMap::new());
+    }
+}
+
+impl StorageReader for AppStorage {
+    fn read(&mut self, req: &StorageReq) -> Vec<Var> {
+        todo!()
     }
 }
 
