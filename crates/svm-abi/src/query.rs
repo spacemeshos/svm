@@ -21,9 +21,12 @@ pub struct StorageQuery {
 
 pub trait StorageReader {
     fn read_var(&mut self, schema: &Schema, req: &StorageReq) -> Option<String> {
-        schema.get_var(req.var_id).and_then(|var| {
-            self.read_raw_var(&var.layout)
-                .and_then(|bytes| VarRenderer::render(&var, &bytes[..]))
+        let var = schema.get_var(req.var_id);
+
+        var.and_then(|v| {
+            let bytes = self.read_raw_var(&v.layout);
+
+            bytes.and_then(|b| VarRenderer::render(&v, &b[..]))
         })
     }
 

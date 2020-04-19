@@ -1,5 +1,7 @@
 use super::{PageIndex, PageOffset, PAGE_SIZE};
 
+use svm_abi::schema::VarLayout;
+
 /// Defines a page-slice layout (immutable structure)
 #[derive(Debug, Clone, PartialEq, Hash)]
 pub struct PageSliceLayout {
@@ -43,5 +45,21 @@ impl PageSliceLayout {
     #[inline]
     pub fn len(&self) -> u32 {
         self.len
+    }
+}
+
+impl From<&VarLayout> for PageSliceLayout {
+    fn from(layout: &VarLayout) -> Self {
+        let page_idx = PageIndex(layout.page_idx as u16);
+        let offset = PageOffset(layout.offset as u32);
+        let len = layout.length as u32;
+
+        PageSliceLayout::new(page_idx, offset, len)
+    }
+}
+
+impl From<VarLayout> for PageSliceLayout {
+    fn from(layout: VarLayout) -> Self {
+        (&layout).into()
     }
 }
