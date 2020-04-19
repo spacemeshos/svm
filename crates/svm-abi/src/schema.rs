@@ -61,7 +61,6 @@ pub enum VarType {
 
     /// Represents `Hash` blob of data
     Hash,
-    // Struct(Box<Vec<Var>>),
 }
 
 /// Integer Endianness

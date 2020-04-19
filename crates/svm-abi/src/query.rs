@@ -1,32 +1,35 @@
-use crate::render::VarRenderer;
-use crate::schema::Var;
+use crate::{render::VarRenderer, schema::Var};
 
-pub struct AppStorageCmd {
+pub enum ReqKind {
+    Get,
+}
+
+pub struct StorageReq {
     var_id: usize,
 
-    keyword: String,
+    kind: ReqKind,
 
     params: Vec<String>,
 }
 
-pub struct AppStorageQuery {
-    cmds: Vec<AppStorageCmd>,
+pub struct StorageQuery {
+    reqs: Vec<StorageReq>,
 }
 
-pub trait AppStorageReader {
-    fn read(cmd: &AppStorageCmd) -> Vec<Var>;
+pub trait StorageReader {
+    fn read(&mut self, req: &StorageReq) -> Vec<Var>;
 }
 
-impl AppStorageQuery {
+impl StorageQuery {
     pub fn new() -> Self {
-        Self { cmds: Vec::new() }
+        Self { reqs: Vec::new() }
     }
 
-    pub fn add_cmd(&mut self, cmd: AppStorageCmd) {
-        self.cmds.push(cmd);
+    pub fn add_req(&mut self, req: StorageReq) {
+        self.reqs.push(req);
     }
 
-    // pub fn run(&self, storage: &impl AppStorageReader) -> Vec<Var> {
-    //     self.cmds.iter().map(|cmd| )
-    // }
+    pub fn run<R: StorageReader>(&self, storage: &mut R) -> Vec<Vec<Var>> {
+        self.reqs.iter().map(|req| storage.read(req)).collect()
+    }
 }
