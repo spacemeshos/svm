@@ -8,11 +8,11 @@ pub enum StorageReqKind {
 }
 
 pub struct StorageReq {
-    var_id: usize,
+    pub var_id: usize,
 
-    kind: StorageReqKind,
+    pub kind: StorageReqKind,
 
-    params: Vec<String>,
+    pub params: Vec<String>,
 }
 
 pub struct StorageQuery {

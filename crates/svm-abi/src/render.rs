@@ -24,7 +24,13 @@ impl VarRenderer {
     }
 
     fn render_bool(var: &Var, bytes: &[u8]) -> Option<String> {
-        todo!()
+        assert_eq!(bytes.len(), 1);
+
+        match bytes[0] {
+            0 => Some("False".to_string()),
+            1 => Some("True".to_string()),
+            _ => None,
+        }
     }
 
     fn render_balance(var: &Var, bytes: &[u8]) -> Option<String> {

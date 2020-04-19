@@ -35,6 +35,9 @@ pub struct VarLayout {
 /// Variable type.
 #[derive(Debug, Clone, PartialEq)]
 pub enum VarType {
+    /// A boolean (True / False)
+    Bool,
+
     /// `Integer` with Endianness (Big-Endian / Litte-Endian).
     Int(Endianness),
 
@@ -46,9 +49,6 @@ pub enum VarType {
 
     /// Represents an Account's balance. (non-negative Big-Endian Integer)
     Balance,
-
-    /// A boolean (True / False)
-    Bool,
 
     /// `Public-Key`
     PubKey,
@@ -75,6 +75,10 @@ impl Schema {
     /// Creates a new instance.
     pub fn new() -> Self {
         Self(HashMap::new())
+    }
+
+    pub fn add_var(&mut self, var: Var) {
+        self.0.insert(var.id, var);
     }
 
     /// Returns the variable's schema data
