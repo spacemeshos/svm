@@ -46,6 +46,7 @@ impl VarRenderer {
     }
 
     fn render_blob(var: &Var, bytes: &[u8]) -> Option<String> {
-        todo!()
+        let s = hex::encode_upper(bytes);
+        Some(s)
     }
 }

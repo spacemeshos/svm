@@ -13,10 +13,11 @@ impl StorageMock {
 }
 
 impl StorageReader for StorageMock {
-    fn read_raw_var(&mut self, _layout: &VarLayout) -> Option<Vec<u8>> {
-        let bool_byte = self.bytes[0];
+    fn read_raw_var(&mut self, layout: &VarLayout) -> Option<Vec<u8>> {
+        let start = layout.offset;
+        let end = start + layout.length;
 
-        Some(vec![bool_byte])
+        Some(self.bytes[start..end].to_vec())
     }
 }
 
@@ -32,8 +33,8 @@ macro_rules! test_var {
 
         let req = StorageReq {
             var_id: var.id,
-            kind: StorageReqKind::Get,
             params: Vec::new(),
+            kind: StorageReqKind::Get,
         };
 
         let mut schema = Schema::new();
@@ -61,4 +62,15 @@ fn query_bool_var() {
 
     test_var!(vec![0], layout, VarType::Bool, "False");
     test_var!(vec![1], layout, VarType::Bool, "True");
+}
+
+#[test]
+fn query_blob_var() {
+    let layout = VarLayout {
+        page_idx: 0,
+        offset: 0,
+        length: 3,
+    };
+
+    test_var!(vec![10, 20, 30], layout, VarType::Blob, "0A141E");
 }

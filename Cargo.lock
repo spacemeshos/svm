@@ -805,6 +805,7 @@ name = "svm"
 version = "0.0.0"
 dependencies = [
  "byteorder",
+ "hex",
  "lazy_static",
  "libc",
  "log",
@@ -830,6 +831,9 @@ dependencies = [
 [[package]]
 name = "svm-abi"
 version = "0.1.0"
+dependencies = [
+ "hex",
+]
 
 [[package]]
 name = "svm-app"
