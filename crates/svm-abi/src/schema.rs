@@ -38,8 +38,8 @@ pub enum VarType {
     /// A boolean (True / False)
     Bool,
 
-    /// `Integer` with Endianness (Big-Endian / Litte-Endian).
-    Int(Endianness),
+    /// `Integer` (Big-Endian)
+    Int,
 
     /// Blob of data
     Blob,
@@ -52,16 +52,6 @@ pub enum VarType {
 
     /// Account's Address
     Address,
-}
-
-/// Integer Endianness
-#[derive(Debug, Clone, PartialEq)]
-pub enum Endianness {
-    /// Big-Endian
-    Big,
-
-    /// Little-Endian
-    Little,
 }
 
 /// Holds a representation of `AppStorage`'s schema.

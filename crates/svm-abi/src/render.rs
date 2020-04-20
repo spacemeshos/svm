@@ -6,7 +6,7 @@ impl VarRenderer {
     /// Renders the variable's raw `bytes` using its metadata (using `var`).
     pub fn render(var: &Var, bytes: &[u8]) -> Option<String> {
         match var.ty {
-            VarType::Int(..) => Self::render_int(var, bytes),
+            VarType::Int => Self::render_int(var, bytes),
             VarType::Bool => Self::render_bool(var, bytes),
             VarType::Blob => Self::render_blob(var, bytes),
             VarType::Balance => Self::render_balance(var, bytes),
@@ -15,8 +15,23 @@ impl VarRenderer {
         }
     }
 
-    fn render_int(_var: &Var, _bytes: &[u8]) -> Option<String> {
-        todo!()
+    fn render_int(var: &Var, bytes: &[u8]) -> Option<String> {
+        let length = var.layout.length;
+
+        if length > 8 {
+            /// Currently, an integer can be at most 8 bytes
+            return None;
+        }
+
+        let mut buf = [0; 8];
+
+        unsafe {
+            std::ptr::copy(bytes.as_ptr(), buf.as_mut_ptr(), length);
+        }
+
+        let num = u64::from_be_bytes(buf);
+
+        Some(num.to_string())
     }
 
     fn render_balance(_var: &Var, _bytes: &[u8]) -> Option<String> {

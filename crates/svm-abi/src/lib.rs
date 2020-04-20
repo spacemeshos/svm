@@ -1,7 +1,7 @@
-#![deny(missing_docs)]
-#![deny(unused)]
-#![deny(dead_code)]
-#![deny(unreachable_code)]
+#![allow(missing_docs)]
+#![allow(unused)]
+#![allow(dead_code)]
+#![allow(unreachable_code)]
 
 //! The purpose of this `svm-abi` is to represent a schema for an `AppStorage`.
 //! Consumers of the crate will be SVM clients that want to give a better user-experience to its end-users.
