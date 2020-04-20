@@ -1,10 +1,16 @@
 use crate::schema::{Var, VarType};
 
-pub struct VarRenderer;
+use serde_json::{Number, Value};
 
-impl VarRenderer {
+pub trait VarRenderer<V> {
+    fn render(var: &Var, bytes: &[u8]) -> Option<V>;
+}
+
+pub struct JsonVarRenderer;
+
+impl VarRenderer<Value> for JsonVarRenderer {
     /// Renders the variable's raw `bytes` using its metadata (using `var`).
-    pub fn render(var: &Var, bytes: &[u8]) -> Option<String> {
+    fn render(var: &Var, bytes: &[u8]) -> Option<Value> {
         match var.ty {
             VarType::Int => Self::render_int(var, bytes),
             VarType::Bool => Self::render_bool(var, bytes),
@@ -14,8 +20,10 @@ impl VarRenderer {
             VarType::PubKey => Self::render_pubkey(var, bytes),
         }
     }
+}
 
-    fn render_int(var: &Var, bytes: &[u8]) -> Option<String> {
+impl JsonVarRenderer {
+    fn render_int(var: &Var, bytes: &[u8]) -> Option<Value> {
         let length = var.layout.length;
 
         if length > 8 {
@@ -31,37 +39,41 @@ impl VarRenderer {
 
         let num = u64::from_be_bytes(buf);
 
-        Some(num.to_string())
+        Some(Value::Number(num.into()))
     }
 
-    fn render_balance(_var: &Var, _bytes: &[u8]) -> Option<String> {
+    fn render_balance(_var: &Var, _bytes: &[u8]) -> Option<Value> {
         todo!()
     }
 
-    fn render_bool(_var: &Var, bytes: &[u8]) -> Option<String> {
+    fn render_bool(_var: &Var, bytes: &[u8]) -> Option<Value> {
         assert_eq!(bytes.len(), 1);
 
-        match bytes[0] {
-            0 => Some("False".to_string()),
-            1 => Some("True".to_string()),
-            _ => None,
-        }
+        let value = match bytes[0] {
+            0 => false,
+            1 => true,
+            _ => return None,
+        };
+
+        Some(Value::Bool(value))
     }
 
-    fn render_addr(_var: &Var, bytes: &[u8]) -> Option<String> {
+    fn render_addr(_var: &Var, bytes: &[u8]) -> Option<Value> {
         Self::render_hex(bytes, "0x")
     }
 
-    fn render_pubkey(_var: &Var, bytes: &[u8]) -> Option<String> {
+    fn render_pubkey(_var: &Var, bytes: &[u8]) -> Option<Value> {
         Self::render_hex(bytes, "0x")
     }
 
-    fn render_blob(_var: &Var, bytes: &[u8]) -> Option<String> {
+    fn render_blob(_var: &Var, bytes: &[u8]) -> Option<Value> {
         Self::render_hex(bytes, "")
     }
 
-    fn render_hex(bytes: &[u8], prefix: &'static str) -> Option<String> {
+    fn render_hex(bytes: &[u8], prefix: &'static str) -> Option<Value> {
         let s = hex::encode_upper(bytes);
-        Some(format!("{}{}", prefix, s))
+        let s = format!("{}{}", prefix, s);
+
+        Some(Value::String(s))
     }
 }

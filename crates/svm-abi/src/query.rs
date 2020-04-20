@@ -35,18 +35,18 @@ pub struct StorageQuery {
 /// This trait should be implemented by App's storage interfaces.
 ///
 /// See `AppStorage` under the `svm-abi` crate.
-pub trait StorageReader {
+pub trait StorageReader<V, VR: VarRenderer<V>> {
     /// Executes a read request.
     ///
     /// First, reads its raw data by calling `read_raw`.
     /// Then, renders the raw data into a `String`.
-    fn read_str(&mut self, schema: &Schema, req: &StorageReq) -> Option<String> {
+    fn read_var(&mut self, schema: &Schema, req: &StorageReq) -> Option<V> {
         let var = schema.get_var(req.var_id);
 
         var.and_then(|v| {
             let bytes = self.read_var_raw(req, &v);
 
-            bytes.and_then(|b| VarRenderer::render(&v, &b[..]))
+            bytes.and_then(|b| VR::render(&v, &b[..]))
         })
     }
 
@@ -73,10 +73,17 @@ impl StorageQuery {
     /// Each request is returned as `Option<String>`.
     /// If a request returned `None` is means that something is was wrong with the request.
     /// It may be due to not in-sync Storage ABI.
-    pub fn run<R: StorageReader>(&self, schema: &Schema, storage: &mut R) -> Vec<Option<String>> {
+    pub fn run<V, VR, R: StorageReader<V, VR>>(
+        &self,
+        schema: &Schema,
+        storage: &mut R,
+    ) -> Vec<Option<V>>
+    where
+        VR: VarRenderer<V>,
+    {
         self.reqs
             .iter()
-            .map(|req| storage.read_str(schema, req))
+            .map(|req| storage.read_var(schema, req))
             .collect()
     }
 }

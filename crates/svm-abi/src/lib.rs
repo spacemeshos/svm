@@ -8,7 +8,8 @@
 //!
 //! The obvious usage use-case is a UX Wallet that needs to render the App's current state in a friendly way.
 
-mod render;
+/// Rendering related stuff.
+pub mod render;
 
 /// Contains Schema related stuff (a.k.a `ABI`).
 pub mod schema;
