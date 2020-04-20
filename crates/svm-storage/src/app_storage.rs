@@ -5,7 +5,10 @@ use crate::{
 
 use std::collections::HashMap;
 
-use svm_abi::{query::StorageReader, schema::VarLayout};
+use svm_abi::{
+    query::{StorageReader, StorageReq, StorageReqKind},
+    schema::Var,
+};
 use svm_common::State;
 
 use log::{debug, trace};
@@ -259,8 +262,10 @@ impl AppStorage {
 }
 
 impl StorageReader for AppStorage {
-    fn read_raw_var(&mut self, layout: &VarLayout) -> Option<Vec<u8>> {
-        let layout: PageSliceLayout = layout.into();
+    fn read_var_raw(&mut self, req: &StorageReq, var: &Var) -> Option<Vec<u8>> {
+        assert_eq!(req.kind, StorageReqKind::Get);
+
+        let layout: PageSliceLayout = (&var.layout).into();
         let bytes = self.read_page_slice(&layout);
 
         Some(bytes)

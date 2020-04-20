@@ -44,9 +44,6 @@ pub enum VarType {
     /// Blob of data
     Blob,
 
-    /// UTF-8 String
-    String,
-
     /// Represents an Account's balance. (non-negative Big-Endian Integer)
     Balance,
 
@@ -77,11 +74,12 @@ impl Schema {
         Self(HashMap::new())
     }
 
+    /// Adding a variable description to the Schema
     pub fn add_var(&mut self, var: Var) {
         self.0.insert(var.id, var);
     }
 
-    /// Returns the variable's schema data
+    /// Returns the variable's Schema data
     pub fn get_var(&self, id: usize) -> Option<Var> {
         self.0.get(&id).cloned()
     }

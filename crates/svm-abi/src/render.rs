@@ -3,27 +3,27 @@ use crate::schema::{Var, VarType};
 pub struct VarRenderer;
 
 impl VarRenderer {
+    /// Renders the variable's raw `bytes` using its metadata (using `var`).
     pub fn render(var: &Var, bytes: &[u8]) -> Option<String> {
         match var.ty {
             VarType::Int(..) => Self::render_int(var, bytes),
             VarType::Bool => Self::render_bool(var, bytes),
             VarType::Blob => Self::render_blob(var, bytes),
-            VarType::String => Self::render_str(var, bytes),
             VarType::Balance => Self::render_balance(var, bytes),
             VarType::Address => Self::render_addr(var, bytes),
             VarType::PubKey => Self::render_pubkey(var, bytes),
         }
     }
 
-    fn render_int(var: &Var, bytes: &[u8]) -> Option<String> {
+    fn render_int(_var: &Var, _bytes: &[u8]) -> Option<String> {
         todo!()
     }
 
-    fn render_str(var: &Var, bytes: &[u8]) -> Option<String> {
+    fn render_balance(_var: &Var, _bytes: &[u8]) -> Option<String> {
         todo!()
     }
 
-    fn render_bool(var: &Var, bytes: &[u8]) -> Option<String> {
+    fn render_bool(_var: &Var, bytes: &[u8]) -> Option<String> {
         assert_eq!(bytes.len(), 1);
 
         match bytes[0] {
@@ -33,20 +33,20 @@ impl VarRenderer {
         }
     }
 
-    fn render_balance(var: &Var, bytes: &[u8]) -> Option<String> {
-        todo!()
+    fn render_addr(_var: &Var, bytes: &[u8]) -> Option<String> {
+        Self::render_hex(bytes, "0x")
     }
 
-    fn render_addr(var: &Var, bytes: &[u8]) -> Option<String> {
-        todo!()
+    fn render_pubkey(_var: &Var, bytes: &[u8]) -> Option<String> {
+        Self::render_hex(bytes, "0x")
     }
 
-    fn render_pubkey(var: &Var, bytes: &[u8]) -> Option<String> {
-        todo!()
+    fn render_blob(_var: &Var, bytes: &[u8]) -> Option<String> {
+        Self::render_hex(bytes, "")
     }
 
-    fn render_blob(var: &Var, bytes: &[u8]) -> Option<String> {
+    fn render_hex(bytes: &[u8], prefix: &'static str) -> Option<String> {
         let s = hex::encode_upper(bytes);
-        Some(s)
+        Some(format!("{}{}", prefix, s))
     }
 }

@@ -13,7 +13,9 @@ impl StorageMock {
 }
 
 impl StorageReader for StorageMock {
-    fn read_raw_var(&mut self, layout: &VarLayout) -> Option<Vec<u8>> {
+    fn read_var_raw(&mut self, _req: &StorageReq, var: &Var) -> Option<Vec<u8>> {
+        let layout = &var.layout;
+
         let start = layout.offset;
         let end = start + layout.length;
 
@@ -73,4 +75,36 @@ fn query_blob_var() {
     };
 
     test_var!(vec![10, 20, 30], layout, VarType::Blob, "0A141E");
+}
+
+#[test]
+fn query_pubkey_var() {
+    let layout = VarLayout {
+        page_idx: 0,
+        offset: 2,
+        length: 5,
+    };
+
+    test_var!(
+        vec![08, 09, 10, 11, 12, 13, 14],
+        layout,
+        VarType::PubKey,
+        "0x0A0B0C0D0E"
+    );
+}
+
+#[test]
+fn query_addr_var() {
+    let layout = VarLayout {
+        page_idx: 0,
+        offset: 2,
+        length: 5,
+    };
+
+    test_var!(
+        vec![08, 09, 10, 11, 12, 13, 14],
+        layout,
+        VarType::Address,
+        "0x0A0B0C0D0E"
+    );
 }
