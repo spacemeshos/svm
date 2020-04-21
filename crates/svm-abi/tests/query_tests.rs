@@ -24,7 +24,7 @@ impl StorageReader<Value, JsonVarRenderer> for StorageMock {
 }
 
 macro_rules! test_var {
-    ($bytes:expr, $layout:expr, $ty:path, $expected:expr) => {{
+    ($bytes:expr, $layout:expr, $ty:expr, $expected:expr) => {{
         let var = Var {
             id: 0,
             layout: $layout.clone(),
@@ -65,6 +65,31 @@ fn query_bool_var() {
     test_var!(vec![0], layout, VarType::Bool, Value::Bool(false));
     test_var!(vec![1], layout, VarType::Bool, Value::Bool(true));
 }
+
+#[test]
+fn query_int_u8_var() {
+    let layout = VarLayout {
+        page_idx: 0,
+        offset: 0,
+        length: 1,
+    };
+
+    test_var!(
+        vec![255],
+        layout,
+        VarType::Int(false),
+        Value::Number(255.into())
+    );
+}
+
+// #[test]
+// fn query_int_i8_var() {
+//     let layout = VarLayout {
+//         page_idx: 0,
+//         offset: 0,
+//         length: 1,
+//     };
+// }
 
 #[test]
 fn query_blob_var() {

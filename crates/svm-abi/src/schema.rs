@@ -38,8 +38,8 @@ pub enum VarType {
     /// A boolean (True / False)
     Bool,
 
-    /// `Integer` (Big-Endian)
-    Int,
+    /// `Integer` (signed/unsigned)
+    Int(bool),
 
     /// Blob of data
     Blob,

@@ -1,5 +1,6 @@
 use crate::schema::{Var, VarType};
 
+use byteorder::{BigEndian, ByteOrder};
 use serde_json::{Number, Value};
 
 pub trait VarRenderer<V> {
@@ -12,7 +13,7 @@ impl VarRenderer<Value> for JsonVarRenderer {
     /// Renders the variable's raw `bytes` using its metadata (using `var`).
     fn render(var: &Var, bytes: &[u8]) -> Option<Value> {
         match var.ty {
-            VarType::Int => Self::render_int(var, bytes),
+            VarType::Int(is_signed) => Self::render_int(var, bytes, is_signed),
             VarType::Bool => Self::render_bool(var, bytes),
             VarType::Blob => Self::render_blob(var, bytes),
             VarType::Balance => Self::render_balance(var, bytes),
@@ -23,7 +24,7 @@ impl VarRenderer<Value> for JsonVarRenderer {
 }
 
 impl JsonVarRenderer {
-    fn render_int(var: &Var, bytes: &[u8]) -> Option<Value> {
+    fn render_int(var: &Var, bytes: &[u8], is_signed: bool) -> Option<Value> {
         let length = var.layout.length;
 
         if length > 8 {
@@ -31,15 +32,22 @@ impl JsonVarRenderer {
             return None;
         }
 
-        let mut buf = [0; 8];
+        let nbytes = bytes.len();
+        let mut buf = vec![0; nbytes];
 
         unsafe {
             std::ptr::copy(bytes.as_ptr(), buf.as_mut_ptr(), length);
         }
 
-        let num = u64::from_be_bytes(buf);
+        let num = if is_signed {
+            let num: i64 = BigEndian::read_int(&buf[..], nbytes);
+            num.into()
+        } else {
+            let num: u64 = BigEndian::read_uint(&buf[..], nbytes);
+            num.into()
+        };
 
-        Some(Value::Number(num.into()))
+        Some(Value::Number(num))
     }
 
     fn render_balance(_var: &Var, _bytes: &[u8]) -> Option<Value> {

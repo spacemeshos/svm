@@ -832,6 +832,7 @@ dependencies = [
 name = "svm-abi"
 version = "0.1.0"
 dependencies = [
+ "byteorder",
  "hex",
  "serde_json",
 ]
