@@ -1,5 +1,5 @@
-#ifndef PAINTERS_H
-#define PAINTERS_H
+#ifndef HOST_CTX_H
+#define HOST_CTX_H
 
 #include <stdint.h>
 
@@ -30,4 +30,5 @@ svm_byte_array host_ctx_empty_bytes() {
   return host_ctx;
 }
 
-#endif
+#endif /* HOST_CTX_H */
+

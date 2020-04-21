@@ -1,5 +1,5 @@
-#ifndef HOST_CTX_H
-#define HOST_CTX_H
+#ifndef PRINTERS_H
+#define PRINTERS_H
 
 #include <stdio.h>
 
@@ -112,4 +112,4 @@ void print_exec_app_result(exec_app_result_t res, char *func_name) {
   printf("\n");
 }
 
-#endif /* HOST_CTX_H */
+#endif /* PRINTERS_H */

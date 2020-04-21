@@ -75,9 +75,9 @@ impl From<Vec<WasmValue>> for svm_value_array {
 /// assert_eq!(vec[1], WasmValue::I64(20));
 /// ```
 ///
-impl Into<Vec<WasmValue>> for svm_value_array {
-    fn into(self) -> Vec<WasmValue> {
-        let slice = unsafe { std::slice::from_raw_parts(self.values, self.length as usize) };
+impl From<svm_value_array> for Vec<WasmValue> {
+    fn from(arr: svm_value_array) -> Vec<WasmValue> {
+        let slice = unsafe { std::slice::from_raw_parts(arr.values, arr.length as usize) };
         slice.iter().map(|&v| v.into()).collect()
     }
 }
@@ -152,11 +152,11 @@ impl From<WasmValue> for svm_value {
 /// assert_eq!(wasm_val, WasmValue::I64(20));
 ///
 /// ```
-impl Into<WasmValue> for svm_value {
-    fn into(self) -> WasmValue {
-        match self.ty {
-            svm_value_type::SVM_I32 => WasmValue::I32(self.i32_val),
-            svm_value_type::SVM_I64 => WasmValue::I64(self.i64_val),
+impl From<svm_value> for WasmValue {
+    fn from(val: svm_value) -> WasmValue {
+        match val.ty {
+            svm_value_type::SVM_I32 => WasmValue::I32(val.i32_val),
+            svm_value_type::SVM_I64 => WasmValue::I64(val.i64_val),
         }
     }
 }

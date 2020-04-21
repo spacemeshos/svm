@@ -203,9 +203,6 @@ exec_app_result_t simulate_exec_app(void* runtime, svm_byte_array app_addr, svm_
   svm_byte_array new_state;
   res = svm_exec_receipt_state(&new_state, receipt, &err);
   assert_svm_result(res, err, "svm_exec_receipt_state");
-    for (int i = 0; i < new_state.length; i++) {
-    printf("%02x", new_state.bytes[i]);
-  }
 
   // Extract: returns.
   svm_value_array returns;
@@ -220,7 +217,7 @@ exec_app_result_t simulate_exec_app(void* runtime, svm_byte_array app_addr, svm_
   // Reclaim resources.
   free(host_ctx.bytes);
 
-  return (exec_app_result_t) {
+  return exec_app_result_t {
     .status = SVM_SUCCESS,
     .receipt = receipt,
     .new_state = new_state,
@@ -290,27 +287,27 @@ int main() {
   print_spawn_app_result(spawn_app_res);
   printf("\n");
 
-  // 4) Exec App
+  // 4)  Exec App
   exec_app_result_t exec_app_res[4];
 
-  //   a) Call: increment via storage.
+  //    a) Call: increment via storage.
   uint32_t inc_by = 10;
   exec_app_res[0] = simulate_storage_inc(runtime, spawn_app_res.app_addr, spawn_app_res.init_state, inc_by);
   print_exec_app_result(exec_app_res[0], "storage_inc");
   printf("\n");
 
-  //   b) Call: get via storage.
+  //    b) Call: get via storage.
   exec_app_res[1] = simulate_storage_get(runtime, spawn_app_res.app_addr, exec_app_res[0].new_state);
   print_exec_app_result(exec_app_res[1], "storage_get");
   printf("\n");
 
-  //   c) Call: increment via host.
+  //    c) Call: increment via host.
   inc_by = 25;
   exec_app_res[2] = simulate_host_inc(runtime, spawn_app_res.app_addr, exec_app_res[1].new_state, inc_by);
   print_exec_app_result(exec_app_res[2], "host_inc");
   printf("\n");
 
-  //   d) Call: get via host.
+  //    d) Call: get via host.
   exec_app_res[3] = simulate_host_get(runtime, spawn_app_res.app_addr, exec_app_res[2].new_state);
   print_exec_app_result(exec_app_res[3], "host_get");
   printf("\n");
