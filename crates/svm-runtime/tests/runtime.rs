@@ -98,7 +98,6 @@ fn runtime_deploy_template_reaches_oog() {
     let page_count = 10;
     let author = Address::of("author").into();
     let maybe_gas = MaybeGas::with(0);
-    let dry_run = false;
     let is_wast = true;
 
     let bytes = testing::build_template(
@@ -110,7 +109,7 @@ fn runtime_deploy_template_reaches_oog() {
     );
 
     let expected = TemplateReceipt::new_oog();
-    let actual = runtime.deploy_template(&bytes, &author, HostCtx::new(), maybe_gas, dry_run);
+    let actual = runtime.deploy_template(&bytes, &author, HostCtx::new(), maybe_gas);
     assert_eq!(expected, actual);
 }
 
@@ -122,7 +121,6 @@ fn runtime_deploy_template_has_enough_gas() {
     let page_count = 10;
     let author = Address::of("author").into();
     let gas_limit = MaybeGas::with(1_0000_000);
-    let dry_run = false;
     let is_wast = true;
 
     let bytes = testing::build_template(
@@ -133,7 +131,7 @@ fn runtime_deploy_template_has_enough_gas() {
         is_wast,
     );
 
-    let receipt = runtime.deploy_template(&bytes, &author, HostCtx::new(), gas_limit, dry_run);
+    let receipt = runtime.deploy_template(&bytes, &author, HostCtx::new(), gas_limit);
     assert!(receipt.success);
     assert!(receipt.gas_used.is_some());
 }
@@ -148,7 +146,6 @@ fn runtime_spawn_app_with_ctor_reaches_oog() {
     let author = Address::of("author").into();
     let creator = Address::of("creator").into();
     let is_wast = true;
-    let dry_run = false;
     let maybe_gas = MaybeGas::new();
 
     let bytes = testing::build_template(
@@ -159,7 +156,7 @@ fn runtime_spawn_app_with_ctor_reaches_oog() {
         is_wast,
     );
 
-    let receipt = runtime.deploy_template(&bytes, &author, HostCtx::new(), maybe_gas, dry_run);
+    let receipt = runtime.deploy_template(&bytes, &author, HostCtx::new(), maybe_gas);
     assert!(receipt.success);
 
     let template_addr = receipt.addr.unwrap();
@@ -174,7 +171,7 @@ fn runtime_spawn_app_with_ctor_reaches_oog() {
     let maybe_gas = MaybeGas::with(0);
 
     let expected = SpawnAppReceipt::new_oog();
-    let actual = runtime.spawn_app(&bytes, &creator, HostCtx::new(), maybe_gas, dry_run);
+    let actual = runtime.spawn_app(&bytes, &creator, HostCtx::new(), maybe_gas);
     assert_eq!(expected, actual);
 }
 
@@ -188,7 +185,6 @@ fn runtime_spawn_app_with_ctor_with_enough_gas() {
     let author = Address::of("author").into();
     let creator = Address::of("creator").into();
     let is_wast = true;
-    let dry_run = false;
     let maybe_gas = MaybeGas::new();
 
     let bytes = testing::build_template(
@@ -199,7 +195,7 @@ fn runtime_spawn_app_with_ctor_with_enough_gas() {
         is_wast,
     );
 
-    let receipt = runtime.deploy_template(&bytes, &author, HostCtx::new(), maybe_gas, dry_run);
+    let receipt = runtime.deploy_template(&bytes, &author, HostCtx::new(), maybe_gas);
     assert!(receipt.success);
     assert!(receipt.gas_used.is_some());
 
@@ -213,7 +209,7 @@ fn runtime_spawn_app_with_ctor_with_enough_gas() {
     let bytes = testing::build_app(version, &template_addr, ctor_idx, &ctor_buf, &ctor_args);
     let gas_limit = MaybeGas::with(1_000_000);
 
-    let receipt = runtime.spawn_app(&bytes, &creator, HostCtx::new(), gas_limit, dry_run);
+    let receipt = runtime.spawn_app(&bytes, &creator, HostCtx::new(), gas_limit);
     assert!(receipt.success);
     assert!(receipt.gas_used.is_some());
 
@@ -244,7 +240,6 @@ fn runtime_exec_app() {
     let creator = Address::of("creator").into();
     let page_count = 10;
     let is_wast = true;
-    let dry_run = false;
     let maybe_gas = MaybeGas::new();
 
     let bytes = testing::build_template(
@@ -255,7 +250,7 @@ fn runtime_exec_app() {
         is_wast,
     );
 
-    let receipt = runtime.deploy_template(&bytes, &author, HostCtx::new(), maybe_gas, dry_run);
+    let receipt = runtime.deploy_template(&bytes, &author, HostCtx::new(), maybe_gas);
     assert!(receipt.success);
 
     let template_addr = receipt.addr.unwrap();
@@ -266,7 +261,7 @@ fn runtime_exec_app() {
     let ctor_args = vec![];
 
     let bytes = testing::build_app(version, &template_addr, ctor_idx, &ctor_buf, &ctor_args);
-    let receipt = runtime.spawn_app(&bytes, &creator, HostCtx::new(), maybe_gas, dry_run);
+    let receipt = runtime.spawn_app(&bytes, &creator, HostCtx::new(), maybe_gas);
 
     let app_addr = receipt.get_app_addr();
     let init_state = receipt.get_init_state();
@@ -297,7 +292,7 @@ fn runtime_exec_app() {
     ];
     let bytes = testing::build_app_tx(version, &app_addr, func_idx, &func_buf, &func_args);
 
-    let receipt = runtime.exec_app(&bytes, &init_state, HostCtx::new(), maybe_gas, dry_run);
+    let receipt = runtime.exec_app(&bytes, &init_state, HostCtx::new(), maybe_gas);
 
     assert!(receipt.success);
     assert!(receipt.error.is_none());
@@ -332,7 +327,6 @@ fn runtime_exec_app_reaches_oog() {
     let creator = Address::of("creator").into();
     let page_count = 10;
     let is_wast = true;
-    let dry_run = false;
     let maybe_gas = MaybeGas::new();
 
     let bytes = testing::build_template(
@@ -343,7 +337,7 @@ fn runtime_exec_app_reaches_oog() {
         is_wast,
     );
 
-    let receipt = runtime.deploy_template(&bytes, &author, HostCtx::new(), maybe_gas, dry_run);
+    let receipt = runtime.deploy_template(&bytes, &author, HostCtx::new(), maybe_gas);
     assert!(receipt.success);
 
     let template_addr = receipt.addr.unwrap();
@@ -354,7 +348,7 @@ fn runtime_exec_app_reaches_oog() {
     let ctor_args = vec![];
 
     let bytes = testing::build_app(version, &template_addr, ctor_idx, &ctor_buf, &ctor_args);
-    let receipt = runtime.spawn_app(&bytes, &creator, HostCtx::new(), maybe_gas, dry_run);
+    let receipt = runtime.spawn_app(&bytes, &creator, HostCtx::new(), maybe_gas);
 
     let app_addr = receipt.get_app_addr();
     let init_state = receipt.get_init_state();
@@ -388,7 +382,7 @@ fn runtime_exec_app_reaches_oog() {
     let maybe_gas = MaybeGas::with(0);
 
     let expected = ExecReceipt::new_oog();
-    let actual = runtime.exec_app(&bytes, &init_state, HostCtx::new(), maybe_gas, dry_run);
+    let actual = runtime.exec_app(&bytes, &init_state, HostCtx::new(), maybe_gas);
 
     assert_eq!(expected, actual)
 }
