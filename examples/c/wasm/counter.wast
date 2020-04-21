@@ -9,12 +9,16 @@
   (func (export "storage_inc") (param $val i32)
         i32.const 0     ;; page_idx
         i32.const 0     ;; page_offset
-        get_local $val  ;; n
+
+        call $storage_get
+        get_local $val
+        i32.add         ;; n
+
         i32.const 4     ;; nbytes
         call $storage_write_i32_le
   )
 
-  (func (export "storage_get") (result i32)
+  (func $storage_get (export "storage_get") (result i32)
         i32.const 0  ;; page_idx
         i32.const 0  ;; page_offset
         i32.const 4  ;; count
