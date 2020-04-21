@@ -8,6 +8,11 @@ There are two main purposes for this doc:
 
 <br/>
 
+### Where do we want to get?
+
+
+<br/>
+
 #### Betting on `wasmer`
 SVM is using [`wasmer`][wasmer] as its underlying WebAssemby Runtime. 
 <br/>
@@ -38,7 +43,7 @@ It will expose a Golang idiomatic interface and be used as a dependency within t
 #### `Host`
 WebAssembly (wasm) programs are running within a restricted environment (sandbox) for security reasons.
 <br/>
-The entity running the VM is called the `Host`. In our case the `Host` will is `go-spacemesh`.
+The entity running the VM is called the `Host`. In our case the `Host` is `go-spacemesh`.
 
 #### `Host Imports`
 Web-Assembly programs without any interface to the external-world (i.e the `Host`) aren't capable to achieve much. (rendering them stateless too).
@@ -78,7 +83,7 @@ Here is an example:
 We name a `Smart Contract`'s code + metadata (including storage spec) as a `App Template`.
 We can think of `App Template` as the equivalent of `class` in an Object-Oriented programming paradigm.
 <br/>
-Each `Template` will have an account under the `Global State` and its own `Addres`. (see more under `Global State` section).
+Each `Template` will have an account under the `Global State` and its own `Address`. (see more under `Global State` section).
 
 
 #### `App` 
