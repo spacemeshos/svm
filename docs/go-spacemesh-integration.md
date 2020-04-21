@@ -408,9 +408,6 @@ Regarding the `nickname` field - see more under the `Name-Service` section.
 }
 ```
 <br/><br/>
-## App Storage Read ABI
-TBD
-<br/><br/>
 ## Open Questions
 
 * What Hash algorithm to use for SVM - should it be _BLAKE3_ ?
