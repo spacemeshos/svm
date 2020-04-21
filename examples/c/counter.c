@@ -217,7 +217,7 @@ exec_app_result_t simulate_exec_app(void* runtime, svm_byte_array app_addr, svm_
   // Reclaim resources.
   free(host_ctx.bytes);
 
-  return exec_app_result_t {
+  return (exec_app_result_t) {
     .status = SVM_SUCCESS,
     .receipt = receipt,
     .new_state = new_state,
