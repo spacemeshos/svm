@@ -7,12 +7,6 @@ There are two main purposes for this doc:
 * Form a basis from which GitHub issues will be created.
 
 <br/>
-
-### Where do we want to get?
-
-
-<br/>
-
 #### Betting on `wasmer`
 SVM is using [`wasmer`][wasmer] as its underlying WebAssemby Runtime. 
 <br/>
