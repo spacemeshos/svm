@@ -1,5 +1,5 @@
-#ifndef HOST_CTX_H
-#define HOST_CTX_H
+#ifndef PAINTERS_H
+#define PAINTERS_H
 
 #include <stdint.h>
 

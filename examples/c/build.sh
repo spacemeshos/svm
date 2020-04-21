@@ -20,9 +20,9 @@ cp ../../target/release/svm.h ../svm.h
 
 make counter
 
-#pushd ./wasm
-#rm -f counter.wasm
-#wapm run wat2wasm counter.wast
-#popd
+pushd ./wasm
+rm -f counter.wasm
+wat2wasm counter.wast
+popd
 
 ./counter.out
