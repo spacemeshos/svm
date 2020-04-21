@@ -5,106 +5,52 @@
 
 #include "../svm.h"
 #include "constants.h"
-
+#include "types.h"
+#include "helpers.h"
+#include "printers.h"
 #include "read_file.h"
-#include "spawn_app_bytes.h"
-#include "exec_app_bytes.h"
-
-#include "func_buf.h"
-#include "func_args.h"
-#include "func_rets.h"
-#include "receipt.h"
+#include "host.h"
 #include "host_ctx.h"
 
-typedef struct {
-  uint32_t counter;
-} host_t;
-
-typedef struct {
-  svm_byte_array template_addr;
-} deploy_template_t;
-
-typedef struct {
-  svm_byte_array app_addr;
-  svm_byte_array init_state;
-} spawned_app_t;
-
-host_t* host_new(uint32_t counter_initial) {
-  host_t* host = (host_t*)malloc(sizeof(host_t));
-  host->counter = counter_initial;
-
-  return host;
+void assert_svm_result(svm_result_t res, svm_byte_array err, char *func_name ) {
+    if (res == SVM_FAILURE) {
+      printf("`%s` failure: %s\n", func_name, err);
+      exit(1);
+    }
 }
 
-void host_inc_counter(void *ctx, uint32_t value) {
-  host_t *host = (host_t*)(svm_instance_context_host_get(ctx));
-  host->counter = host->counter + value;
-}
-
-uint32_t host_get_counter(void *ctx) {
-  host_t *host = (host_t*)(svm_instance_context_host_get(ctx));
-  return host->counter;
-}
-
-void inc_counter_import_build(void* imports) { 
-  svm_byte_array module_name = {
-    .bytes = (const uint8_t *)"env",
-    .length = strlen("env")
-  };
-
-  svm_byte_array import_name = {
-    .bytes = (const uint8_t *)"inc_counter",
-    .length = strlen("inc_counter")
-  };
+void inc_func_import_build(void* imports) { 
+  svm_byte_array module_name = from_str("env");
+  svm_byte_array import_name = from_str("inc");
+  void* func = (void*)host_inc_func;
+  svm_value_type_array returns = { .types = NULL, .length = 0 };
+  svm_byte_array err;
 
   svm_value_type* types = (svm_value_type*)malloc(sizeof(svm_value_type) * 1);
   types[0] = SVM_I32;
+  svm_value_type_array params = { .types = types, .length = 1 };
 
-  svm_value_type_array params = {
-    .types = types,
-    .length = 1
-  };
-
-  svm_value_type_array returns = {
-    .types = NULL,
-    .length = 0
-  };
-
-  void* func = (void*)host_inc_counter;
-
-  svm_byte_array err;
   svm_result_t res = svm_import_func_build(imports, module_name, import_name, func, params, returns, &err);
-  assert(res == SVM_SUCCESS);
+  assert_svm_result(res, err, "svm_import_func_build");
+
+  free(params.types);
 }
 
-void get_counter_import_build(void* imports) {
-  svm_byte_array module_name = {
-    .bytes = (const uint8_t *)"env",
-    .length = strlen("env")
-  };
-
-  svm_byte_array import_name = {
-    .bytes = (const uint8_t *)"get_counter",
-    .length = strlen("get_counter")
-  };
-
-  svm_value_type_array params = {
-    .types = NULL,
-    .length = 0
-  };
+void get_func_import_build(void* imports) {
+  svm_byte_array module_name = from_str("env");
+  svm_byte_array import_name = from_str("get");
+  svm_value_type_array params = { .types = NULL, .length = 0 };
+  void* func = (void*)host_get_func;
+  svm_byte_array err;
 
   svm_value_type* types = (svm_value_type*)malloc(sizeof(svm_value_type) * 1);
   types[0] = SVM_I32;
+  svm_value_type_array returns = { .types = types, .length = 1 };
 
-  svm_value_type_array returns = {
-    .types = types,
-    .length = 1
-  };
-
-  void* func = (void*)host_get_counter;
-  svm_byte_array err;
   svm_result_t res = svm_import_func_build(imports, module_name, import_name, func, params, returns, &err);
-  assert(res == SVM_SUCCESS);
+  assert_svm_result(res, err, "svm_import_func_build");
+
+  free(returns.types);
 }
 
 void* imports_build() {
@@ -114,284 +60,274 @@ void* imports_build() {
   svm_result_t res = svm_imports_alloc(&imports, length);
   assert(res == SVM_SUCCESS);
 
-  inc_counter_import_build(imports);
-  get_counter_import_build(imports);
+  inc_func_import_build(imports);
+  get_func_import_build(imports);
 
   return imports;
 }
 
 void* runtime_create(host_t* host, void* imports) {
-  // create a new kv-store
+  // Create a key-value store.
   void *kv = NULL;
   svm_memory_kv_create(&kv);
 
   void *runtime = NULL;
-
   svm_byte_array err;
   svm_result_t res = svm_memory_runtime_create(&runtime, kv, host, imports, &err); 
-  assert(res == SVM_SUCCESS); 
+  assert_svm_result(res, err, "svm_memory_runtime_create");
+
   return runtime;
 }
 
-void* alloc_byte_address(uint8_t byte) {
-  uint8_t *addr = (uint8_t*)malloc(SVM_ADDR_LEN);
-  memset(addr, byte, SVM_ADDR_LEN);
-  return (void*)addr;
-}
-
-void* alloc_author_addr() {
-  return alloc_byte_address(0xAA);
-}  
-
-void* alloc_creator_addr() {
-  return alloc_byte_address(0xBB);
-}  
-
-void* alloc_sender_addr() {
-  return alloc_byte_address(0xCC);
-}  
-
-void* alloc_empty_state() {
-  uint8_t *state = (uint8_t*)malloc(SVM_STATE_LEN);
-  memset(state, 0, SVM_STATE_LEN);
-  return (void*)state;
-}
-
-void print_err(svm_byte_array err) {
-  for (int i = 0; i < err.length; i++) {
-    printf("%c", err.bytes[i]);
-  }
-  printf("\n\n");
-}
-
-void print_addr(svm_byte_array addr) {
-  printf("Address:\n");
-  for (int i = 0; i < addr.length; i++) {
-    printf("%x", addr.bytes[i]);
-  }
-  printf("\n");
-}
-  
-void print_state(svm_byte_array state) {
-  printf("Address:\n");
-  for (int i = 0; i < state.length; i++) {
-    printf("%x", state.bytes[i]);
-  }
-  printf("\n");
-}
-
-deploy_template_t simulate_deploy_template(void* runtime, svm_byte_array bytes, svm_byte_array author, bool dry_run) {
+deploy_template_result_t simulate_deploy_template(void* runtime, svm_byte_array code) {
     svm_byte_array host_ctx = host_ctx_empty_bytes();
-    svm_byte_array receipt;
-    svm_byte_array err;
+    svm_byte_array receipt = empty_byte_array();
+    svm_byte_array err = empty_byte_array();
+    svm_result_t res;
 
-    svm_result_t res = svm_deploy_template(&receipt, runtime, bytes, author, host_ctx, dry_run, &err);
+    // Encode.
+    svm_byte_array app_template;
+    uint32_t version = 0;
+    svm_byte_array name = from_str("name");
+    uint16_t page_count = 1;
+    res = svm_encode_app_template(&app_template, 0, name, page_count, code, &err);
+    assert_svm_result(res, err, "svm_encode_app_template");
 
-    if (res == SVM_FAILURE) {
-      printf("`svm_deploy_template` failure:\n");
-      print_err(err);
-      exit(1);
-    }
+    // Execute.
+    svm_byte_array author = alloc_str_address("author");
+    res = svm_deploy_template(&receipt, runtime, app_template, author, host_ctx, GAS_METERING, GAS_LIMIT, &err);
+    assert_svm_result(res, err, "svm_deploy_template");
 
+    // Extract template address.
     svm_byte_array template_addr;
-    svm_template_receipt_addr(&template_addr, receipt);
+    res = svm_template_receipt_addr(&template_addr, receipt, &err);
+    assert_svm_result(res, err, "svm_template_receipt_addr");
 
-    printf("Deployed AppTemplate successfully:\n");
-    print_addr(template_addr);
+    // Extract gas used.
+    uint64_t gas_used;
+    res = svm_template_receipt_gas(&gas_used, receipt, &err);
+    assert_svm_result(res, err, "svm_template_receipt_gas");
 
-    free((void*)host_ctx.bytes);
-    svm_byte_array_destroy(receipt);
-    svm_byte_array_destroy(err);
+    // Reclaim resources.
+    free(host_ctx.bytes);
+    free(author.bytes);
 
-    return (deploy_template_t) { .template_addr = template_addr };
+    return (deploy_template_result_t) { 
+      .status = SVM_SUCCESS,
+      .receipt = receipt,
+      .template_addr = template_addr, 
+      .gas_used = gas_used
+    };
 }
 
-spawned_app_t simulate_spawn_app(void* runtime, svm_byte_array bytes, svm_byte_array creator) {
+spawn_app_result_t simulate_spawn_app(void* runtime, svm_byte_array template_addr) {
   svm_result_t res;
   svm_byte_array err; 
 
-  res = svm_validate_app(runtime, bytes, &err);
-  if (res == SVM_FAILURE) {
-    printf("`svm_validate_app` failure:\n");
-    print_err(err);
-    exit(1);
-  }
+  // Encode.
+  svm_byte_array spawn_app;
+  uint32_t version = 0;
+  uint16_t ctor_idx = 0;
+  svm_byte_array ctor_buf;
 
+  svm_value* values  = (svm_value*)malloc(sizeof(svm_value) * 1);
+  values[0] = (svm_value) { .ty = SVM_I32, .i32_val = 100 };  
+  svm_value_array ctor_args = { .values = values, .length = 1 };
+
+  res = svm_encode_spawn_app(&spawn_app, version, template_addr, ctor_idx, ctor_buf, ctor_args, &err);
+  assert_svm_result(res, err, "svm_encode_spawn_app");
+
+  // Validate.
+  res = svm_validate_app(runtime, spawn_app, &err);
+  assert_svm_result(res, err, "svm_validate_app");
+
+  // Execute.
   svm_byte_array host_ctx = host_ctx_empty_bytes();
+  svm_byte_array creator = alloc_str_address("creator");
   svm_byte_array receipt; 
+  res = svm_spawn_app(&receipt, runtime, spawn_app, creator, host_ctx, GAS_METERING, GAS_LIMIT, &err);
+  assert_svm_result(res, err, "svm_spawn_app");
+  assert(res == svm_app_receipt_status(receipt, &err));
 
-  res = svm_spawn_app(&receipt, runtime, bytes, creator, host_ctx, 1, &err);
+  // Extract: initial state.
+  svm_byte_array init_state;
+  res = svm_app_receipt_state(&init_state, receipt, &err);
+  assert_svm_result(res, err, "svm_app_receipt_state");
 
-  if (res == SVM_FAILURE) {
-     printf("`svm_spawn_app` failure:\n");
-     print_err(err);
-     exit(1);
-  }
+  // Extract: app address.
+  svm_byte_array app_addr;
+  res = svm_app_receipt_addr(&app_addr, receipt, &err);
+  assert_svm_result(res, err, "svm_app_receipt_addr");
 
-  svm_byte_array app_addr, init_state;
-  svm_app_receipt_state(&init_state, receipt);
-  svm_app_receipt_addr(&app_addr, receipt);
+  // Extract: gas used.
+  uint64_t gas_used;
+  res = svm_app_receipt_gas(&gas_used, receipt, &err);
+  assert_svm_result(res, err, "svm_app_receipt_gas");
 
-  printf("Spawned App successfully\n");
-  print_addr(app_addr);
-  print_state(init_state);
+  // Reclaim resources.
+  free(host_ctx.bytes);
+  free(creator.bytes);
+  free(ctor_args.values);
 
-  svm_byte_array_destroy(host_ctx);
-
-  spawned_app_t spawned = {
+  return (spawn_app_result_t) {
+    .receipt = receipt,
     .app_addr = app_addr,
-    .init_state = init_state
+    .init_state = init_state,
+    .gas_used = gas_used
   };
-
-  return spawned;
 }
 
-
-svm_byte_array simulate_get_counter(void* runtime, svm_byte_array app_addr, svm_byte_array state, void* sender) {
-  svm_byte_array func_name = { .bytes = (const uint8_t*)"get", .length = strlen("get") };
-  svm_func_buf_t func_buf = { .slice_count = 0, .slices = NULL };
-  svm_func_args_t func_args = { .arg_count = 0, .args = NULL };
-
-  svm_byte_array bytes = exec_app_bytes(app_addr, func_name, func_buf, func_args);
-
+exec_app_result_t simulate_exec_app(void* runtime, svm_byte_array app_addr, svm_byte_array app_state, uint32_t func_idx, svm_value_array func_args) {
+  svm_result_t res;
   svm_byte_array err;
-  svm_result_t res = svm_validate_tx(&app_addr, runtime, bytes, &err);
-  assert(res == SVM_SUCCESS);
 
-  svm_byte_array encoded_receipt;
-  svm_byte_array host_ctx = host_ctx_empty_bytes();
-
-  res = svm_exec_app(&encoded_receipt, runtime, bytes, state, host_ctx, 1, &err);
-  assert(res == SVM_SUCCESS);
-
-  svm_byte_array_destroy(bytes);
-  svm_byte_array_destroy(host_ctx);
-
-  return encoded_receipt;
-}
-
-svm_byte_array simulate_inc_counter(void* runtime, svm_byte_array app_addr, svm_byte_array state, void* sender, uint32_t inc_by) {
-  svm_byte_array func_name = { .bytes = (const uint8_t*)"inc", .length = strlen("inc") };
-  svm_func_buf_t func_buf = { .slice_count = 0, .slices = NULL };
-
-  uint8_t arg_bytes[4];
-  for (uint8_t i = 0; i < 4; i++) {
-    uint8_t off = 24 - i * 8;
-    arg_bytes[i] = ((inc_by >> off) & 0xFF);
-  }
-
-  svm_func_arg_t arg = {
-    .type = (svm_value_type)SVM_I32,
-    .bytes = (uint8_t*)&arg_bytes[0]
-  };
-
-  svm_func_args_t func_args = { .arg_count = 1, .args = &arg };
-  svm_byte_array bytes = exec_app_bytes(app_addr, func_name, func_buf, func_args);
-
+  // Encode.
   svm_byte_array app_tx;
-  svm_byte_array err;
-  svm_result_t res = svm_validate_tx(&app_tx, runtime, bytes, &err);
-  assert(res == SVM_SUCCESS);
+  uint32_t version = 0;
+  svm_byte_array func_buf = empty_byte_array();
+  res = svm_encode_app_tx(&app_tx, version, app_addr, func_idx, func_buf, func_args, &err);
+  assert_svm_result(res, err, "svm_encode_app_tx");
 
-  svm_byte_array receipt;
+  // Validate.
+  res = svm_validate_tx(&app_addr, runtime, app_tx, &err);
+  assert_svm_result(res, err, "svm_validate_tx");
+
+  // Execute.
   svm_byte_array host_ctx = host_ctx_empty_bytes();
-  res = svm_exec_app(&receipt, runtime, app_tx, state, host_ctx, 1, &err);
-  assert(res == SVM_SUCCESS);
+  svm_byte_array receipt;
+  res = svm_exec_app(&receipt, runtime, app_tx, app_state, host_ctx, GAS_METERING, GAS_LIMIT, &err);
+  assert_svm_result(res, err, "svm_exec_app");
+  assert(res == svm_exec_receipt_status(receipt, &err));
 
-  svm_byte_array_destroy(bytes);
-  svm_byte_array_destroy(host_ctx);
+  // Extract: new state.
+  svm_byte_array new_state;
+  res = svm_exec_receipt_state(&new_state, receipt, &err);
+  assert_svm_result(res, err, "svm_exec_receipt_state");
 
-  return receipt;
-}
+  // Extract: returns.
+  svm_value_array returns;
+  res = svm_exec_receipt_returns(&returns, receipt, &err);
+  assert_svm_result(res, err, "svm_exec_receipt_returns");
 
-void receipt_destroy(svm_receipt_t receipt) {
-  if (receipt.success) {
-    free(receipt.returns);
-    svm_byte_array_destroy(receipt.new_state); 
-  }
-  else {
-    free(receipt.error);
-  }
-}
+  // Extract: gas used.
+  uint64_t gas_used;
+  res = svm_exec_receipt_gas(&gas_used, receipt, &err);
+  assert_svm_result(res, err, "svm_app_receipt_gas");
 
-svm_byte_array alloc_str_address(char* str) {
-  uint8_t* buf = (uint8_t*)malloc(SVM_ADDR_LEN);
-  memset(buf, 0, SVM_ADDR_LEN);
+  // Reclaim resources.
+  free(host_ctx.bytes);
 
-  int n = SVM_ADDR_LEN < strlen(str) ? SVM_ADDR_LEN : strlen(str);
-  memcpy(buf, str, n);
-
-  return (svm_byte_array) {
-    .bytes = buf, 
-    .length = SVM_ADDR_LEN,
+  return (exec_app_result_t) {
+    .status = SVM_SUCCESS,
+    .receipt = receipt,
+    .new_state = new_state,
+    .returns = returns,
+    .gas_used = gas_used,
   };
 }
-  
+
+exec_app_result_t simulate_storage_inc(void* runtime, svm_byte_array app_addr, svm_byte_array app_state, uint32_t inc_by) {
+  uint32_t func_idx = 0;
+
+  svm_value* values  = (svm_value*)malloc(sizeof(svm_value) * 1);
+  values[0] = (svm_value) { .ty = SVM_I32, .i32_val = inc_by };  
+  svm_value_array func_args = { .values = values, .length = 1 };
+
+  exec_app_result_t res = simulate_exec_app(runtime, app_addr, app_state, func_idx, func_args);
+
+  free(func_args.values);
+
+  return res;
+}
+
+exec_app_result_t simulate_storage_get(void* runtime, svm_byte_array app_addr, svm_byte_array state) {
+  uint32_t func_idx = 1;
+  svm_value_array func_args = { .values = NULL, .length = 0 };
+
+  return simulate_exec_app(runtime, app_addr, state, func_idx, func_args);
+}
+
+exec_app_result_t simulate_host_inc(void* runtime, svm_byte_array app_addr, svm_byte_array state, uint32_t inc_by) {
+  uint32_t func_idx = 2;
+
+  svm_value* values  = (svm_value*)malloc(sizeof(svm_value) * 1);
+  values[0] = (svm_value) { .ty = SVM_I32, .i32_val = inc_by };  
+  svm_value_array func_args = { .values = values, .length = 1 };
+
+  exec_app_result_t res = simulate_exec_app(runtime, app_addr, state, func_idx, func_args);
+
+  free(func_args.values);
+
+  return res;
+}
+
+exec_app_result_t simulate_host_get(void* runtime, svm_byte_array app_addr, svm_byte_array state) {
+  uint32_t func_idx = 3;
+  svm_value_array func_args = { .values = NULL, .length = 0 };
+
+  return simulate_exec_app(runtime, app_addr, state, func_idx, func_args);
+}
+
 int main() {
-  /* svm_byte_array raw_receipts[3]; */
-  /* svm_receipt_t receipts[3]; */
-
-  bool dry_run = false;
-  svm_byte_array data;
-
-  // 1) Init Runtime
-  uint32_t counter_init = 12;
+  // 1) Initialize runtime.
+  uint32_t counter_init = 0;
   host_t* host = host_new(counter_init);
-
   void* imports = imports_build();
   void* runtime = runtime_create(host, imports);
 
-  // 2) Deploy Template
-  svm_byte_array author = alloc_str_address("author");
-  data = read_file("raw/app_template.bin");
+  // 2) Deploy Template.
+  svm_byte_array code = read_file("wasm/counter.wasm");
+  deploy_template_result_t deploy_template_res = simulate_deploy_template(runtime, code);
+  printf("\n");
+  print_deploy_template_result(deploy_template_res);
+  printf("\n");
 
-  deploy_template_t deploy_template_res = simulate_deploy_template(runtime, data, author, dry_run);
+  // 3) Spawn App.
+  spawn_app_result_t spawn_app_res = simulate_spawn_app(runtime, deploy_template_res.template_addr);
+  print_spawn_app_result(spawn_app_res);
+  printf("\n");
 
-  free((void*)data.bytes);
+  // 4)  Exec App
+  exec_app_result_t exec_app_res[4];
 
-   // 3) Spawn App
-  svm_byte_array creator = alloc_str_address("creator");
-  data = read_file("raw/spawn_app.bin");
+  //    a) Call: increment via storage.
+  uint32_t inc_by = 10;
+  exec_app_res[0] = simulate_storage_inc(runtime, spawn_app_res.app_addr, spawn_app_res.init_state, inc_by);
+  print_exec_app_result(exec_app_res[0], "storage_inc");
+  printf("\n");
 
-  spawned_app_t _spawned = simulate_spawn_app(runtime, data, creator);
-  free((void*)data.bytes);
+  //    b) Call: get via storage.
+  exec_app_res[1] = simulate_storage_get(runtime, spawn_app_res.app_addr, exec_app_res[0].new_state);
+  print_exec_app_result(exec_app_res[1], "storage_get");
+  printf("\n");
 
+  //    c) Call: increment via host.
+  inc_by = 25;
+  exec_app_res[2] = simulate_host_inc(runtime, spawn_app_res.app_addr, exec_app_res[1].new_state, inc_by);
+  print_exec_app_result(exec_app_res[2], "host_inc");
+  printf("\n");
 
-//  // 4) Exec App
-//  //// a) Query for the initialized counter value
-//  void* sender = alloc_sender_addr();
-//  raw_receipts[0] = simulate_get_counter(runtime, app_addr, init_state, sender);
-//  receipts[0] = decode_receipt(raw_receipts[0]);
-//  print_receipt(receipts[0]);
-//
-//  //// b) Increment the counter
-//  printf("\n");
-//
-//  svm_byte_array new_state = receipts[0].new_state;
-//  uint32_t inc_by = 7;
-//  raw_receipts[1] = simulate_inc_counter(runtime, app_addr, new_state, sender, inc_by);
-//  receipts[1] = decode_receipt(raw_receipts[1]);
-//  print_receipt(receipts[1]);
-//
-//  //// c) Query for the new counter value
-//  raw_receipts[2] = simulate_get_counter(runtime, app_addr, init_state, sender);
-//  receipts[2] = decode_receipt(raw_receipts[2]);
-//  print_receipt(receipts[2]);
-//
-//  // 5) Reclaiming resources
-//  for (uint8_t i = 0; i < 3; i++) {
-//    receipt_destroy(receipts[i]);
-//    svm_byte_array_destroy(raw_receipts[i]);
-//  }
-//
-//  svm_byte_array_destroy(author);
-//  svm_byte_array_destroy(creator);
-//  svm_byte_array_destroy(template_addr);
-//  svm_byte_array_destroy(spawned.app_addr);
-//  svm_byte_array_destroy(spawned.init_state);
-//
-//  svm_runtime_destroy(runtime);
-//  svm_imports_destroy(imports);
-//
-//  free(sender);
+  //    d) Call: get via host.
+  exec_app_res[3] = simulate_host_get(runtime, spawn_app_res.app_addr, exec_app_res[2].new_state);
+  print_exec_app_result(exec_app_res[3], "host_get");
+  printf("\n");
+
+  // 5) Reclaim resources.
+  svm_runtime_destroy(runtime);
+  svm_imports_destroy(imports);
+
+  free(code.bytes);
+
+  svm_byte_array_destroy(deploy_template_res.receipt);
+  svm_byte_array_destroy(deploy_template_res.template_addr);
+
+  svm_byte_array_destroy(spawn_app_res.receipt);
+  svm_byte_array_destroy(spawn_app_res.app_addr);
+  svm_byte_array_destroy(spawn_app_res.init_state);
+
+  for (uint8_t i = 0; i < 4; i++) {
+    svm_byte_array_destroy(exec_app_res[i].receipt); 
+    svm_byte_array_destroy(exec_app_res[i].new_state); 
+    svm_value_array_destroy(exec_app_res[i].returns); 
+  }
 }

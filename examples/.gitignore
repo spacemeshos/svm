@@ -1,4 +1,4 @@
 *.dSYM/
 counter.out
-
 svm.*
+c/wasm/counter.wasm
