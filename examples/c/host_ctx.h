@@ -30,4 +30,5 @@ svm_byte_array host_ctx_empty_bytes() {
   return host_ctx;
 }
 
-#endif
+#endif /* HOST_CTX_H */
+
