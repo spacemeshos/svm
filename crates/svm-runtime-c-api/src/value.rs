@@ -55,6 +55,33 @@ impl From<Vec<WasmValue>> for svm_value_array {
     }
 }
 
+/// Converting a `svm_value_array` into `Vec<WasmValue>`.
+///
+/// ```rust
+/// #![feature(vec_into_raw_parts)]
+/// use svm_app::types::WasmValue;
+/// use svm_runtime_c_api::{svm_value, svm_value_array, svm_value_type};
+///
+/// let values  = vec![
+///     svm_value { ty: svm_value_type::SVM_I32, i32_val: 10, i64_val: 0 },
+///     svm_value { ty: svm_value_type::SVM_I64, i32_val: 0,  i64_val: 20 }
+/// ];
+/// let (ptr, len, _cap) = values.into_raw_parts();
+/// let arr = svm_value_array { values: ptr, length: len as u64 };
+///
+/// let vec: Vec<WasmValue> = arr.into();
+/// assert_eq!(vec.len(), 2);
+/// assert_eq!(vec[0], WasmValue::I32(10));
+/// assert_eq!(vec[1], WasmValue::I64(20));
+/// ```
+///
+impl From<svm_value_array> for Vec<WasmValue> {
+    fn from(arr: svm_value_array) -> Vec<WasmValue> {
+        let slice = unsafe { std::slice::from_raw_parts(arr.values, arr.length as usize) };
+        slice.iter().map(|&v| v.into()).collect()
+    }
+}
+
 /// FFI representation for `SVM` value
 #[allow(non_snake_case, non_camel_case_types)]
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -107,6 +134,30 @@ impl From<WasmValue> for svm_value {
     #[inline]
     fn from(val: WasmValue) -> Self {
         (&val).into()
+    }
+}
+
+/// Builds `WasmValue` out of a `svm_value`.
+///
+/// # Example
+///
+/// ```rust
+/// use svm_app::types::WasmValue;
+/// use svm_runtime_c_api::{svm_value, svm_value_type};
+///
+/// let wasm_val: WasmValue = svm_value { ty: svm_value_type::SVM_I32, i32_val: 10, i64_val: 0 }.into();
+/// assert_eq!(wasm_val, WasmValue::I32(10));
+///
+/// let wasm_val: WasmValue = svm_value { ty: svm_value_type::SVM_I64, i32_val: 0, i64_val: 20 }.into();
+/// assert_eq!(wasm_val, WasmValue::I64(20));
+///
+/// ```
+impl From<svm_value> for WasmValue {
+    fn from(val: svm_value) -> WasmValue {
+        match val.ty {
+            svm_value_type::SVM_I32 => WasmValue::I32(val.i32_val),
+            svm_value_type::SVM_I64 => WasmValue::I64(val.i64_val),
+        }
     }
 }
 
