@@ -18,6 +18,9 @@ lazy_static = "1.4.0"
 [dependencies.svm-common]
 path = "../svm-common"
 
+[dependencies.svm-abi]
+path = "../svm-abi"
+
 [dependencies.svm-kv]
 path = "../svm-kv"
 default-features = false
