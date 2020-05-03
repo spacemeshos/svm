@@ -1,7 +1,6 @@
 use regex::Regex;
-use std::fs::File;
-use std::io::Read;
 use svm_cli::cli;
+use svm_cli::common::{decode_hex, write_to_file};
 
 struct AppTemplateTestCase {
     version: String,
@@ -9,7 +8,7 @@ struct AppTemplateTestCase {
     page_count: String,
 }
 
-const WASM_EXAMPLE_PATH: &'static str = "../../examples/c/wasm/counter.wasm";
+const WASM_CODE: &'static str = "0061736d0100000001170460047f7f7f7f0060037f7f7f017f60017f006000017f024a040373766d1473746f726167655f77726974655f6933325f6c6500000373766d1373746f726167655f726561645f6933325f6c65000103656e7603696e63000203656e760367657400030305040203020305030100010733040b73746f726167655f696e6300040b73746f726167655f676574000508686f73745f696e63000608686f73745f67657400070a28040f0041004100100520006a410410000b0a0041004100410410010b0600200010020b040010030b";
 
 #[test]
 fn encode_decode() {
@@ -37,17 +36,14 @@ fn encode_decode() {
 }
 
 fn test_encode_decode(case: AppTemplateTestCase) {
-    let mut wasm_example_code = Vec::new();
-    File::open(WASM_EXAMPLE_PATH)
-        .unwrap()
-        .read_to_end(&mut wasm_example_code)
-        .unwrap();
+    let wasm_code = decode_hex(WASM_CODE).unwrap();
+    let code_path = tempfile::NamedTempFile::new().unwrap();
+    let code_path = code_path.path().to_str().unwrap();
+    write_to_file(code_path, &wasm_code).unwrap();
 
-    let tempfile_path = tempfile::NamedTempFile::new().unwrap();
-    let tempfile_path = tempfile_path.path().to_str().unwrap();
+    let output_path = tempfile::NamedTempFile::new().unwrap();
+    let output_path = output_path.path().to_str().unwrap();
 
-    let code_path = WASM_EXAMPLE_PATH;
-    let output_path = tempfile_path;
     let input = vec![
         "myprog",
         "encode",
@@ -74,7 +70,7 @@ fn test_encode_decode(case: AppTemplateTestCase) {
     let caps = re.captures(&output).unwrap();
     assert_eq!(&caps[1], case.version);
     assert_eq!(&caps[2], case.name);
-    assert_eq!(&caps[3], format!("{:?}", &wasm_example_code[0..4]));
+    assert_eq!(&caps[3], format!("{:?}", &wasm_code[0..4]));
     assert_eq!(&caps[4], case.page_count);
 }
 
@@ -108,10 +104,14 @@ fn encode_invalid_codepath() {
 
 #[test]
 fn encode_invalid_outputpath() {
+    let wasm_code = decode_hex(WASM_CODE).unwrap();
+    let code_path = tempfile::NamedTempFile::new().unwrap();
+    let code_path = code_path.path().to_str().unwrap();
+    write_to_file(code_path, &wasm_code).unwrap();
+
     let version = "0";
     let name = "";
     let page_count = "1";
-    let code_path = WASM_EXAMPLE_PATH;
     let output_path = "";
     let input = vec![
         "myprog",
