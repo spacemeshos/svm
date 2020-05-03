@@ -1,10 +1,13 @@
-use std::collections::HashMap;
-use std::rc::Rc;
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use crate::{layout::DataLayout, raw::RawStorage};
+use crate::{
+    kv::KV,
+    layout::DataLayout,
+    raw::{RawChange, RawStorage},
+};
 
 pub struct AppStorage {
-    raw_storage: Rc<RawStorage>,
+    raw_storage: RawStorage,
 
     layout: DataLayout,
 
@@ -12,10 +15,10 @@ pub struct AppStorage {
 }
 
 impl AppStorage {
-    pub fn new(layout: DataLayout, raw_storage: Rc<RawStorage>) -> Self {
+    pub fn new(layout: DataLayout, kv: Rc<RefCell<dyn KV>>) -> Self {
         Self {
             layout,
-            raw_storage,
+            raw_storage: RawStorage::new(kv),
             uncommitted: HashMap::new(),
         }
     }
@@ -35,9 +38,27 @@ impl AppStorage {
     }
 
     pub fn commit(&mut self) {
-        // ....
+        let offsets: HashMap<u32, u32> = self
+            .uncommitted
+            .keys()
+            .map(|var_id| {
+                let (off, _len) = self.var_layout(*var_id);
 
-        self.uncommitted.clear();
+                (*var_id, off)
+            })
+            .collect();
+
+        let changes = self
+            .uncommitted
+            .drain()
+            .map(|(var_id, data)| {
+                let offset = *offsets.get(&var_id).unwrap();
+
+                RawChange { offset, data }
+            })
+            .collect::<Vec<_>>();
+
+        self.raw_storage.store(&changes);
     }
 
     #[inline]
