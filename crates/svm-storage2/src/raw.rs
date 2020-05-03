@@ -6,10 +6,17 @@ pub struct RawStorage {
     kv: Rc<RefCell<dyn KV>>,
 }
 
+#[derive(Clone)]
 pub struct RawChange {
     pub offset: u32,
 
     pub data: Vec<u8>,
+}
+
+impl RawChange {
+    pub fn len(&self) -> u32 {
+        self.data.len() as u32
+    }
 }
 
 impl RawStorage {
@@ -29,15 +36,87 @@ impl RawStorage {
         }
     }
 
-    pub fn store(&mut self, changes: &[RawChange]) {
-        //
+    pub fn write(&mut self, changes: &[RawChange]) {
+        let changes = changes
+            .iter()
+            .map(|c| {
+                let off = c.offset;
+                let len = c.len();
+
+                let k = self.to_key(off, len);
+                let v = c.data.to_vec();
+
+                (k, v)
+            })
+            .collect::<Vec<_>>();
+
+        self.kv.borrow_mut().set(&changes);
     }
 
     #[inline]
     fn do_read(&self, offset: u32, length: u32) -> Option<Vec<u8>> {
-        // TODO: build key
-        let key = vec![0; 10];
+        let key = self.to_key(offset, length);
 
         self.kv.borrow().get(&key)
+    }
+
+    #[inline]
+    fn to_key(&self, offset: u32, _length: u32) -> Vec<u8> {
+        offset.to_be_bytes().to_vec()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use crate::kv::MemStatelessKV;
+
+    macro_rules! kv {
+        () => {{
+            use std::{cell::RefCell, rc::Rc};
+
+            let kv = Rc::new(RefCell::new(MemStatelessKV::new()));
+            kv
+        }};
+    }
+
+    #[test]
+    fn raw_storage_var_defaults_to_zeros() {
+        let kv = kv!();
+
+        let off = 10;
+        let len = 20;
+
+        let storage = RawStorage::new(kv);
+        let bytes = storage.read(off, len);
+
+        assert_eq!(bytes, vec![0; len as usize]);
+    }
+
+    #[test]
+    fn raw_storage_store() {
+        let kv = kv!();
+
+        let var1 = RawChange {
+            offset: 0,
+            data: vec![0x10, 0x20, 0x30],
+        };
+
+        let var2 = RawChange {
+            offset: 3,
+            data: vec![0x40, 0x50],
+        };
+
+        let changes = vec![var1.clone(), var2.clone()];
+
+        let mut storage = RawStorage::new(kv);
+        storage.write(&changes);
+
+        let data1 = storage.read(var1.offset, var1.len());
+        assert_eq!(data1, vec![0x10, 0x20, 0x30]);
+
+        let data2 = storage.read(var2.offset, var2.len());
+        assert_eq!(data2, vec![0x40, 0x50]);
     }
 }

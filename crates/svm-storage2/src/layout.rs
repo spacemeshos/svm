@@ -19,3 +19,19 @@ impl DataLayout {
         self.vars.get(&var_id).copied().unwrap()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn data_layout_sanity() {
+        let mut layout = DataLayout::new();
+
+        layout.add_var(0, 10, 20);
+        layout.add_var(1, 30, 40);
+
+        assert_eq!(layout.get_var(0), (10, 20));
+        assert_eq!(layout.get_var(1), (30, 40));
+    }
+}

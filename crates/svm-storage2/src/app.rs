@@ -38,7 +38,7 @@ impl AppStorage {
     }
 
     pub fn commit(&mut self) {
-        let offsets: HashMap<u32, u32> = self
+        let var_offset: HashMap<u32, u32> = self
             .uncommitted
             .keys()
             .map(|var_id| {
@@ -52,13 +52,15 @@ impl AppStorage {
             .uncommitted
             .drain()
             .map(|(var_id, data)| {
-                let offset = *offsets.get(&var_id).unwrap();
+                let offset = *var_offset.get(&var_id).unwrap();
 
                 RawChange { offset, data }
             })
             .collect::<Vec<_>>();
 
-        self.raw_storage.store(&changes);
+        self.raw_storage.write(&changes);
+
+        debug_assert!(self.uncommitted.is_empty());
     }
 
     #[inline]
