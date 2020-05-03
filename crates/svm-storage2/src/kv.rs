@@ -20,7 +20,7 @@ impl MemStatelessKV {
 
 impl KV for MemStatelessKV {
     fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
-        self.entries.get(key).map(|v| v.to_owned())
+        self.entries.get(key).cloned()
     }
 
     fn set(&mut self, changes: &[(Vec<u8>, Vec<u8>)]) {

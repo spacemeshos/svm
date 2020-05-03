@@ -24,7 +24,7 @@ impl AppStorage {
     }
 
     pub fn read_var(&self, var_id: u32) -> Vec<u8> {
-        let var = self.uncommitted.get(&var_id).map(|v| v.to_owned());
+        let var = self.uncommitted.get(&var_id).cloned();
 
         var.unwrap_or_else(|| {
             let (off, len) = self.var_layout(var_id);

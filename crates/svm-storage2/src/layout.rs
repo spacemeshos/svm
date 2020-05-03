@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, convert::TryFrom};
 
 pub struct DataLayout {
     vars: HashMap<u32, (u32, u32)>,
@@ -17,6 +17,22 @@ impl DataLayout {
 
     pub fn get_var(&self, var_id: u32) -> (u32, u32) {
         self.vars.get(&var_id).copied().unwrap()
+    }
+}
+
+impl From<&DataLayout> for Vec<u8> {
+    fn from(layout: &DataLayout) -> Vec<u8> {
+        Vec::new()
+    }
+}
+
+impl TryFrom<&[u8]> for DataLayout {
+    type Error = String;
+
+    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
+        let layout = Self::new();
+
+        Ok(layout)
     }
 }
 
