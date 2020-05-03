@@ -817,6 +817,7 @@ dependencies = [
  "svm-runtime",
  "svm-runtime-c-api",
  "svm-storage",
+ "svm-storage2",
  "tiny-keccak",
  "wabt",
  "wasmer-middleware-common",
@@ -948,6 +949,10 @@ dependencies = [
  "svm-common",
  "svm-kv",
 ]
+
+[[package]]
+name = "svm-storage2"
+version = "0.1.0"
 
 [[package]]
 name = "syn"

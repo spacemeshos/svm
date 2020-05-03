@@ -62,6 +62,7 @@ svm-kv = { path = "crates/svm-kv" }
 svm-gas = { path = "crates/svm-gas" }
 svm-app = { path = "crates/svm-app" }
 svm-storage = { path = "crates/svm-storage" }
+svm-storage2 = { path = "crates/svm-storage2" }
 svm-compiler = { path = "crates/svm-compiler" }
 svm-runtime = { path = "crates/svm-runtime" }
 svm-runtime-c-api = { path = "crates/svm-runtime-c-api" }

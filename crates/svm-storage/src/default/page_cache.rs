@@ -87,19 +87,13 @@ impl<PS: StateAwarePagesStorage> PagesStorage for DefaultPageCache<PS> {
 
                 if let Some(page) = page {
                     // we cache the loaded page
-                    std::mem::replace(
-                        &mut self.cached_pages[page_idx.0 as usize],
-                        CachedPage::Cached(page.clone()),
-                    );
+                    self.cached_pages[page_idx.0 as usize] = CachedPage::Cached(page.clone());
 
                     Some(page)
                 } else {
                     // page has no content under `pages_storage`
                     // we mark for the future it as `CachedEmpty`
-                    std::mem::replace(
-                        &mut self.cached_pages[page_idx.0 as usize],
-                        CachedPage::CachedEmpty,
-                    );
+                    self.cached_pages[page_idx.0 as usize] = CachedPage::CachedEmpty;
 
                     None
                 }
@@ -132,12 +126,9 @@ impl<PS: StateAwarePagesStorage> PagesStorage for DefaultPageCache<PS> {
         debug!("writing page #{} (not persisting)", page_idx.0);
         trace!("page #{} content: {:?}", page_idx.0, page);
 
-        std::mem::replace(
-            &mut self.cached_pages[page_idx.0 as usize],
-            CachedPage::Cached(page.to_vec()),
-        );
+        self.cached_pages[page_idx.0 as usize] = CachedPage::Cached(page.to_vec());
 
-        std::mem::replace(&mut self.dirty_pages[page_idx.0 as usize], true);
+        self.dirty_pages[page_idx.0 as usize] = true;
     }
 
     /// * we clear both `dirty_pages` and `cached_pages`
