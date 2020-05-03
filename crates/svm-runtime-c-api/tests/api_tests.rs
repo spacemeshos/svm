@@ -286,7 +286,7 @@ unsafe fn test_svm_runtime() {
 
         let msg = String::try_from(&error);
 
-        dbg!(msg);
+        panic!(msg);
     }
 
     // assert!(res.is_ok());
