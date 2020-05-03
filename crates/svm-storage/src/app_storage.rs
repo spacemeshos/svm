@@ -7,6 +7,7 @@ use std::collections::HashMap;
 
 use svm_abi::{
     query::{StorageReader, StorageReq, StorageReqKind},
+    render::VarRenderer,
     schema::Var,
 };
 use svm_common::State;
@@ -261,7 +262,10 @@ impl AppStorage {
     }
 }
 
-impl StorageReader for AppStorage {
+impl<V, VR> StorageReader<V, VR> for AppStorage
+where
+    VR: VarRenderer<V>,
+{
     fn read_var_raw(&mut self, req: &StorageReq, var: &Var) -> Option<Vec<u8>> {
         assert_eq!(req.kind, StorageReqKind::Get);
 
