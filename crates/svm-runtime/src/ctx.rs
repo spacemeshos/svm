@@ -6,6 +6,7 @@ use crate::{buffer::BufferRef, gas::MaybeGas, helpers::DataWrapper, register::Re
 
 use svm_app::types::HostCtx;
 use svm_storage::AppStorage;
+use svm_storage2::app::AppStorage as AppStorage2;
 
 /// `SvmCtx` is a container for the accessible data by `wasmer` instances.
 /// * `host`         - A pointer to the `Host`.
@@ -38,6 +39,9 @@ pub struct SvmCtx {
 
     /// An accessor to the app's storage
     pub storage: AppStorage,
+
+    /// An accessor to the app's new storage
+    pub storage2: AppStorage2,
 }
 
 unsafe impl Sync for SvmCtx {}
@@ -52,6 +56,7 @@ impl SvmCtx {
         host_ctx: DataWrapper<*const c_void>,
         gas_limit: MaybeGas,
         storage: AppStorage,
+        storage2: AppStorage2,
     ) -> Self {
         let host = host.unwrap();
         let host_ctx = host_ctx.unwrap() as *const HostCtx;
@@ -67,6 +72,7 @@ impl SvmCtx {
             buffers,
             regs,
             storage,
+            storage2,
             gas_metering,
             gas_limit,
         }

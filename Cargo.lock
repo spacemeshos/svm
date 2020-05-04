@@ -922,6 +922,7 @@ dependencies = [
  "svm-gas",
  "svm-kv",
  "svm-storage",
+ "svm-storage2",
  "wabt",
  "wasmer-middleware-common",
  "wasmer-runtime",

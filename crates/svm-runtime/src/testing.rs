@@ -89,6 +89,7 @@ pub fn app_memory_state_creator(
     let kv = memory_kv_store_init();
 
     let storage = svm_storage::testing::app_storage_open(state, &kv, page_count);
+    // let storage2 = svm_storage2::testing::app_storage_open2(state, &kv);
 
     let ctx = SvmCtx::new(host, host_ctx, gas_limit, storage);
     let ctx: *mut SvmCtx = Box::into_raw(Box::new(ctx));

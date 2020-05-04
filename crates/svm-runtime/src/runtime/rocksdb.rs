@@ -1,4 +1,9 @@
-use std::{cell::RefCell, ffi::c_void, path::Path, rc::Rc};
+use std::{
+    cell::RefCell,
+    ffi::c_void,
+    path::{Path, PathBuf},
+    rc::Rc,
+};
 
 use svm_app::{
     rocksdb::{RocksdbAppStore, RocksdbAppTemplateStore, RocksdbEnv},
@@ -11,6 +16,7 @@ use svm_storage::{
     rocksdb::{RocksdbAppPageCache, RocksdbAppPages},
     AppStorage,
 };
+use svm_storage2::app::AppStorage as AppStorage2;
 
 use crate::{gas::GasEstimator, runtime::DefaultRuntime, settings::AppSettings};
 
@@ -29,7 +35,14 @@ where
 {
     let env = app_env_build(&kv_path);
 
-    DefaultRuntime::new(host, env, kv_path, imports, Box::new(app_storage_build))
+    DefaultRuntime::new(
+        host,
+        env,
+        kv_path,
+        imports,
+        Box::new(app_storage_build),
+        Box::new(app_storage_build2),
+    )
 }
 
 fn app_env_build<P, S>(kv_path: &P) -> RocksdbEnv<S>
@@ -59,4 +72,8 @@ fn app_storage_build(_addr: &AppAddr, state: &State, settings: &AppSettings) -> 
     let cache = RocksdbAppPageCache::new(pages, settings.page_count);
 
     AppStorage::new(Box::new(cache))
+}
+
+fn app_storage_build2(_addr: &AppAddr, state: &State, path: &PathBuf) -> AppStorage2 {
+    todo!()
 }

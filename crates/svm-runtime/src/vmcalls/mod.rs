@@ -2,6 +2,7 @@ mod buffer;
 mod host_ctx;
 mod register;
 mod storage;
+mod storage2;
 
 pub use buffer::{
     buffer_copy_to_reg, buffer_copy_to_storage, buffer_create, buffer_freeze, buffer_kill,
@@ -19,6 +20,7 @@ pub use storage::{
     storage_write_from_mem, storage_write_from_reg, storage_write_i32_be, storage_write_i32_le,
     storage_write_i64_be, storage_write_i64_le,
 };
+pub use storage2::{get64, set64};
 
 pub use wasmer_runtime_core::{
     func,
