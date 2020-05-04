@@ -25,3 +25,24 @@ pub(crate) unsafe fn raw_error(s: String, raw_err: *mut svm_byte_array) {
     raw_err.bytes = s.as_ptr();
     raw_err.length = s.as_bytes().len() as u32;
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::convert::TryFrom;
+
+    #[test]
+    fn test_raw_error() {
+        let err_msg = "unexpected error.";
+
+        let mut raw_err = svm_byte_array::default();
+
+        unsafe {
+            raw_error(err_msg.to_string(), &mut raw_err);
+        }
+
+        let err = String::try_from(raw_err).unwrap();
+
+        assert_eq!(err, err_msg.to_string());
+    }
+}

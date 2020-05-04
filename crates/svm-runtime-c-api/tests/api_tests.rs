@@ -284,7 +284,7 @@ unsafe fn test_svm_runtime() {
     if res.is_err() {
         use std::convert::TryFrom;
 
-        let msg = String::try_from(&error);
+        let msg: String = String::try_from(&error).unwrap();
 
         panic!(msg);
     }
