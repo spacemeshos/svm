@@ -1,5 +1,6 @@
 use std::{collections::HashMap, convert::TryFrom};
 
+#[derive(Clone, PartialEq)]
 pub struct DataLayout {
     vars: HashMap<u32, (u32, u32)>,
 }

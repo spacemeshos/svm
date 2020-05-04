@@ -849,6 +849,7 @@ dependencies = [
  "maplit",
  "svm-common",
  "svm-kv",
+ "svm-storage2",
 ]
 
 [[package]]

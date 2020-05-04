@@ -6,6 +6,8 @@ use crate::{
     types::{AppTemplate, AuthorAddr},
 };
 
+use svm_storage2::layout::DataLayout;
+
 /// `AppTemplate` default Serializer
 pub struct DefaultAppTemplateSerializer;
 
@@ -57,7 +59,9 @@ mod tests {
             name: "My Template".to_string(),
             page_count: 5,
             code: vec![0x0C, 0x00, 0x0D, 0x0E],
+            data: DataLayout::new(),
         };
+
         let author = Address::of("@author").into();
         let bytes = S::serialize(&template, &author);
 

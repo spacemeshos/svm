@@ -3,6 +3,8 @@ use crate::{
     types::AppTemplate,
 };
 
+use svm_storage2::layout::DataLayout;
+
 /// Builds a raw representation for `deploy-template`
 /// Should be used for testing only.
 pub struct DeployAppTemplateBuilder {
@@ -10,6 +12,7 @@ pub struct DeployAppTemplateBuilder {
     name: Option<String>,
     page_count: Option<u16>,
     code: Option<Vec<u8>>,
+    data: Option<DataLayout>,
 }
 
 ///
@@ -48,6 +51,7 @@ impl DeployAppTemplateBuilder {
             name: None,
             code: None,
             page_count: None,
+            data: None,
         }
     }
 
@@ -71,17 +75,24 @@ impl DeployAppTemplateBuilder {
         self
     }
 
+    pub fn with_data(mut self, data: &DataLayout) -> Self {
+        self.data = Some(data.clone());
+        self
+    }
+
     pub fn build(self) -> Vec<u8> {
         let version = self.version.unwrap();
         let name = self.name.unwrap();
         let page_count = self.page_count.unwrap();
         let code = self.code.unwrap();
+        let data = self.data.unwrap();
 
         let app = AppTemplate {
             version,
             name,
             page_count,
             code,
+            data,
         };
 
         let mut w = NibbleWriter::new();

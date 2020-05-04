@@ -6,6 +6,7 @@ use svm_app::{
     types::{App, AppTemplate, AppTransaction, HostCtx, SpawnApp, WasmValue},
 };
 use svm_common::Address;
+use svm_storage2::layout::DataLayout;
 
 fn inject_extra(bytes: &mut Vec<u8>) {
     bytes.extend_from_slice(&[0xFF]);
@@ -50,6 +51,7 @@ fn exec_app_parse() {
         name: "My Template".to_string(),
         page_count: 5,
         code: vec![0x0C, 0x00, 0x0D, 0x0E],
+        data: DataLayout::new(),
     };
 
     let host_ctx = HostCtx::new();
