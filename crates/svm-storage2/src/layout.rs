@@ -1,39 +1,33 @@
-use std::{collections::HashMap, convert::TryFrom};
+use std::collections::HashMap;
 
-#[derive(Clone, PartialEq)]
+/// Repersents a variable. an unsigned integer.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[repr(transparent)]
+pub struct VarId(pub u32);
+
+/// Specifies the fixed-sized variablef of an application.
+#[derive(PartialEq, Clone)]
 pub struct DataLayout {
-    vars: HashMap<u32, (u32, u32)>,
+    vars: HashMap<VarId, (u32, u32)>,
 }
 
+/// `DataLayout` represents the fixed-sized variables (storage) of an application.
 impl DataLayout {
+    /// New instance
     pub fn new() -> Self {
         Self {
             vars: HashMap::new(),
         }
     }
 
-    pub fn add_var(&mut self, var_id: u32, offset: u32, len: u32) {
+    /// Adds a new variable's layout
+    pub fn add_var(&mut self, var_id: VarId, offset: u32, len: u32) {
         self.vars.insert(var_id, (offset, len));
     }
 
-    pub fn get_var(&self, var_id: u32) -> (u32, u32) {
+    /// Returns varialbe's layout. i.e: `(offset, length)`
+    pub fn get_var(&self, var_id: VarId) -> (u32, u32) {
         self.vars.get(&var_id).copied().unwrap()
-    }
-}
-
-impl From<&DataLayout> for Vec<u8> {
-    fn from(layout: &DataLayout) -> Vec<u8> {
-        Vec::new()
-    }
-}
-
-impl TryFrom<&[u8]> for DataLayout {
-    type Error = String;
-
-    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        let layout = Self::new();
-
-        Ok(layout)
     }
 }
 
@@ -45,10 +39,10 @@ mod tests {
     fn data_layout_sanity() {
         let mut layout = DataLayout::new();
 
-        layout.add_var(0, 10, 20);
-        layout.add_var(1, 30, 40);
+        layout.add_var(VarId(0), 10, 20);
+        layout.add_var(VarId(1), 30, 40);
 
-        assert_eq!(layout.get_var(0), (10, 20));
-        assert_eq!(layout.get_var(1), (30, 40));
+        assert_eq!(layout.get_var(VarId(0)), (10, 20));
+        assert_eq!(layout.get_var(VarId(1)), (30, 40));
     }
 }

@@ -1,29 +1,37 @@
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
+use std::{cell::RefCell, rc::Rc};
 
-use crate::{kv::KV, layout::DataLayout};
+use crate::kv::KV;
 
+/// Interface against the key-value store.
+/// Data is manipulated using `offset` and `length`.
 pub struct RawStorage {
     kv: Rc<RefCell<dyn KV>>,
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct RawChange {
+    /// Raw change's start offset
     pub offset: u32,
 
+    /// Raw change's data
     pub data: Vec<u8>,
 }
 
 impl RawChange {
+    /// The length of change's `data`
     pub fn len(&self) -> u32 {
         self.data.len() as u32
     }
 }
 
 impl RawStorage {
+    /// New instance backed by key-value `kv`.
     pub fn new(kv: Rc<RefCell<dyn KV>>) -> Self {
         Self { kv }
     }
 
+    /// Reads the raw data under `offset, offset + 1, ..., offset + length - 1`
+    /// In case there is no stored blob, returns a zeros vector of length `length`.
     pub fn read(&self, offset: u32, length: u32) -> Vec<u8> {
         let data = self.do_read(offset, length);
 
@@ -36,6 +44,7 @@ impl RawStorage {
         }
     }
 
+    /// Write a batch of changes into underlying key-value store.
     pub fn write(&mut self, changes: &[RawChange]) {
         let changes = changes
             .iter()
