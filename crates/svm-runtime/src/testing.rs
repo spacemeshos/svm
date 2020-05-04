@@ -7,19 +7,19 @@ use crate::{
     helpers::{self, DataWrapper},
     register::Register,
     settings::AppSettings,
-    storage::StorageBuilderFn,
+    storage::{Storage2BuilderFn, StorageBuilderFn},
     DefaultRuntime,
 };
-
-use svm_common::{Address, State};
-use svm_kv::memory::MemKVStore;
-use svm_storage::AppStorage;
 
 use svm_app::{
     memory::{DefaultMemAppStore, DefaultMemAppTemplateStore, DefaultMemoryEnv},
     testing::{AppTxBuilder, DeployAppTemplateBuilder, HostCtxBuilder, SpawnAppBuilder},
     types::{AppAddr, TemplateAddr, WasmValue},
 };
+use svm_common::{Address, State};
+use svm_kv::memory::MemKVStore;
+use svm_storage::AppStorage;
+use svm_storage2::{app::AppStorage as AppStorage2, layout::DataLayout};
 
 use wasmer_runtime_core::{export::Export, import::ImportObject, Instance, Module};
 
@@ -89,9 +89,14 @@ pub fn app_memory_state_creator(
     let kv = memory_kv_store_init();
 
     let storage = svm_storage::testing::app_storage_open(state, &kv, page_count);
-    // let storage2 = svm_storage2::testing::app_storage_open2(state, &kv);
 
-    let ctx = SvmCtx::new(host, host_ctx, gas_limit, storage);
+    // TODO:
+    // * initialize data-layout
+    // * initialize `kv` with `state`
+    let layout = DataLayout::new();
+    let storage2 = AppStorage2::new(layout, kv);
+
+    let ctx = SvmCtx::new(host, host_ctx, gas_limit, storage, storage2);
     let ctx: *mut SvmCtx = Box::into_raw(Box::new(ctx));
 
     let data: *mut c_void = ctx as *const _ as _;
@@ -112,11 +117,19 @@ pub fn create_memory_runtime(
     imports: Vec<(String, String, Export)>,
 ) -> DefaultRuntime<DefaultMemoryEnv, DefaultGasEstimator> {
     let storage_builder = runtime_memory_storage_builder(kv);
+    let storage2_builder = runtime_memory_storage2_builder(kv);
 
     let env = runtime_memory_env_builder();
     let kv_path = Path::new("mem");
 
-    DefaultRuntime::new(host, env, &kv_path, imports, Box::new(storage_builder))
+    DefaultRuntime::new(
+        host,
+        env,
+        &kv_path,
+        imports,
+        Box::new(storage_builder),
+        Box::new(storage2_builder),
+    )
 }
 
 /// Creates an app storage builder function backed by key-value store `kv`.
@@ -128,6 +141,12 @@ pub fn runtime_memory_storage_builder(kv: &Rc<RefCell<MemKVStore>>) -> Box<Stora
     };
 
     Box::new(func)
+}
+
+pub fn runtime_memory_storage2_builder(
+    kv: &Rc<RefCell<dyn svm_storage2::kv::KV>>,
+) -> Box<Storage2BuilderFn> {
+    todo!()
 }
 
 /// Creates a new in-memory runtime environment.
