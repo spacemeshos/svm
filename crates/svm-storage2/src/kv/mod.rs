@@ -1,7 +1,7 @@
 mod ffi;
-mod memory;
+mod mock;
 mod traits;
 
 pub use ffi::*;
-pub use memory::MemKV;
+pub use mock::{StatefulKV, StatelessKV};
 pub use traits::KV;

@@ -1,14 +1,14 @@
-use super::traits::KV;
+use super::super::traits::KV;
 
 use std::collections::HashMap;
 
 #[doc(hidden)]
-pub struct MemKV {
+pub struct StatelessKV {
     entries: HashMap<Vec<u8>, Vec<u8>>,
 }
 
 #[doc(hidden)]
-impl MemKV {
+impl StatelessKV {
     pub fn new() -> Self {
         Self {
             entries: HashMap::new(),
@@ -17,7 +17,7 @@ impl MemKV {
 }
 
 #[doc(hidden)]
-impl KV for MemKV {
+impl KV for StatelessKV {
     fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
         self.entries.get(key).cloned()
     }
