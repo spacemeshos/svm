@@ -3,7 +3,7 @@ use crate::{
     raw::{helpers, Field, NibbleIter, NibbleWriter},
     types::AppTemplate,
 };
-use svm_storage2::layout::DataLayout;
+use svm_storage2::layout::{DataLayout, VarId};
 
 /// Encodes a raw Deploy-Template.
 pub fn encode_deploy_template(template: &AppTemplate, w: &mut NibbleWriter) {
@@ -50,7 +50,13 @@ fn encode_page_count(template: &AppTemplate, w: &mut NibbleWriter) {
 }
 
 fn encode_data_layout(template: &AppTemplate, w: &mut NibbleWriter) {
-    todo!()
+    let nvars = template.data.len();
+    helpers::encode_u32_be(nvars, w);
+
+    for (_vid, off, len) in template.data.iter() {
+        helpers::encode_u32_be(off, w);
+        helpers::encode_u32_be(len, w);
+    }
 }
 
 fn encode_code(template: &AppTemplate, w: &mut NibbleWriter) {
@@ -81,7 +87,19 @@ fn decode_page_count(iter: &mut NibbleIter) -> Result<u16, ParseError> {
 }
 
 fn decode_data_layout(iter: &mut NibbleIter) -> Result<DataLayout, ParseError> {
-    todo!()
+    let nvars = helpers::decode_u32_be(iter, Field::DataLayoutVarsCount)?;
+
+    let mut layout = DataLayout::new(nvars);
+
+    for vid in 0..nvars as usize {
+        let offset = helpers::decode_u32_be(iter, Field::DataLayoutVarOffset)?;
+        let len = helpers::decode_u32_be(iter, Field::DataLayoutVarLength)?;
+        let var_id = VarId(vid as u32);
+
+        layout.add_var(var_id, offset, len);
+    }
+
+    Ok(layout)
 }
 
 fn decode_code(iter: &mut NibbleIter) -> Result<Vec<u8>, ParseError> {

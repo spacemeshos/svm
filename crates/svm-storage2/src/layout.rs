@@ -12,9 +12,9 @@ pub struct DataLayout {
 /// `DataLayout` represents the fixed-sized variables (storage) of an application.
 impl DataLayout {
     /// New instance, initialized with the total number of variables.
-    pub fn new(len: usize) -> Self {
+    pub fn new(nvars: u32) -> Self {
         Self {
-            vars: vec![None; len],
+            vars: vec![None; nvars as usize],
         }
     }
 
@@ -48,6 +48,10 @@ impl DataLayout {
         }
     }
 
+    ///
+    /// # Panics
+    ///
+    /// Panics when `var_id` is out-of-range.
     #[inline]
     fn var_index(&self, var_id: VarId) -> usize {
         let vid = var_id.0 as usize;

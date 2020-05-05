@@ -17,6 +17,9 @@ pub enum Field {
     FuncIndex,
     FuncBufLength,
     FuncBuf,
+    DataLayoutVarsCount,
+    DataLayoutVarOffset,
+    DataLayoutVarLength,
     FuncArgsNoMoreMark,
     ErrorLength,
 }
