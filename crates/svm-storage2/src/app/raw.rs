@@ -79,13 +79,13 @@ impl RawStorage {
 mod tests {
     use super::*;
 
-    use crate::kv::MemStatelessKV;
+    use crate::kv::StatelessKV;
 
     macro_rules! kv {
         () => {{
             use std::{cell::RefCell, rc::Rc};
 
-            let kv = Rc::new(RefCell::new(MemStatelessKV::new()));
+            let kv = Rc::new(RefCell::new(StatelessKV::new()));
             kv
         }};
     }
