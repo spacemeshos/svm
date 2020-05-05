@@ -18,6 +18,17 @@ impl DataLayout {
         }
     }
 
+    pub fn from_tuples(tuples: &[(VarId, u32, u32)]) -> Self {
+        let nvars = tuples.len() as u32;
+        let mut layout = Self::new(nvars);
+
+        for &(var_id, offset, len) in tuples.iter() {
+            layout.add_var(var_id, offset, len);
+        }
+
+        layout
+    }
+
     /// Adds a new variable's layout
     pub fn add_var(&mut self, var_id: VarId, offset: u32, len: u32) {
         let vid = self.var_index(var_id);
@@ -90,7 +101,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn data_layout_sanity() {
+    fn data_layout_new() {
         let mut layout = DataLayout::new(2);
 
         layout.add_var(VarId(0), 10, 20);
@@ -98,8 +109,23 @@ mod tests {
 
         assert_eq!(layout.get_var(VarId(0)), (10, 20));
         assert_eq!(layout.get_var(VarId(1)), (30, 40));
+    }
 
+    #[test]
+    fn data_layout_from_tuples() {
+        let tuples = vec![(VarId(0), 10, 20), (VarId(1), 30, 40)];
+        let mut layout = DataLayout::from_tuples(&tuples);
+
+        assert_eq!(layout.get_var(VarId(0)), (10, 20));
+        assert_eq!(layout.get_var(VarId(1)), (30, 40));
+    }
+
+    #[test]
+    fn data_layout_iter() {
         let mut iter = layout.iter();
+
+        layout.add_var(VarId(0), 10, 20);
+        layout.add_var(VarId(1), 30, 40);
 
         let first = iter.next();
         let second = iter.next();

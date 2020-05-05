@@ -6,7 +6,7 @@ use svm_app::{
     types::{AppTemplate, HostCtx},
 };
 use svm_common::Address;
-use svm_storage2::layout::DataLayout;
+use svm_storage2::layout::{DataLayout, VarId};
 
 fn inject_extra(bytes: &mut Vec<u8>) {
     bytes.extend_from_slice(&[0xFF]);
@@ -42,10 +42,13 @@ fn deploy_template_store() {
     let mut env = DefaultMemoryEnv::new(app_store, template_store);
 
     let code = vec![0x0C, 0x00, 0x0D, 0x0E];
-    let data = DataLayout::new();
     let name = "Template #1";
     let page_count = 10;
     let author = Address::of("@author").into();
+
+    let mut data = DataLayout::new(2);
+    data.add_var(VarId(0), 0, 4);
+    data.add_var(VarId(1), 4, 5);
 
     let bytes = DeployAppTemplateBuilder::new()
         .with_version(0)

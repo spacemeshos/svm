@@ -6,7 +6,7 @@ use svm_app::{
     types::{App, AppTemplate, HostCtx, SpawnApp, WasmValue},
 };
 use svm_common::Address;
-use svm_storage2::layout::DataLayout;
+use svm_storage2::layout::{DataLayout, VarId};
 
 fn inject_extra(bytes: &mut Vec<u8>) {
     bytes.extend_from_slice(&[0xFF]);
@@ -86,7 +86,7 @@ fn spawn_app_valid_app() {
         name: "My Template".to_string(),
         page_count: 10,
         code: vec![0x0C, 0x00, 0x0D, 0x0E],
-        data: DataLayout::new(),
+        data: DataLayout::from_tuples(&[(VarId(0), 0, 5)]),
     };
     assert!(env.store_template(&template, &author, &host_ctx).is_ok());
 
