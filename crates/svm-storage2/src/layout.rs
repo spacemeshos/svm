@@ -12,9 +12,9 @@ pub struct DataLayout {
 /// `DataLayout` represents the fixed-sized variables (storage) of an application.
 impl DataLayout {
     /// New instance, initialized with the total number of variables.
-    pub fn new(capacity: usize) -> Self {
+    pub fn new(len: usize) -> Self {
         Self {
-            vars: vec![None; capacity],
+            vars: vec![None; len],
         }
     }
 
@@ -37,12 +37,47 @@ impl DataLayout {
     }
 
     #[inline]
+    pub fn len(&self) -> u32 {
+        self.vars.len() as u32
+    }
+
+    pub fn iter(&self) -> DataLayoutIter {
+        DataLayoutIter {
+            cur: 0,
+            layout: self,
+        }
+    }
+
+    #[inline]
     fn var_index(&self, var_id: VarId) -> usize {
         let vid = var_id.0 as usize;
 
         assert!(vid < self.vars.capacity());
 
         vid
+    }
+}
+
+pub struct DataLayoutIter<'iter> {
+    cur: u32,
+
+    layout: &'iter DataLayout,
+}
+
+impl<'iter> std::iter::Iterator for DataLayoutIter<'iter> {
+    type Item = (VarId, u32, u32);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.cur >= self.layout.len() {
+            return None;
+        }
+
+        let var_id = VarId(self.cur);
+        let (off, len) = self.layout.get_var(var_id);
+
+        self.cur += 1;
+
+        Some((var_id, off, len))
     }
 }
 
@@ -59,5 +94,18 @@ mod tests {
 
         assert_eq!(layout.get_var(VarId(0)), (10, 20));
         assert_eq!(layout.get_var(VarId(1)), (30, 40));
+
+        let mut iter = layout.iter();
+
+        let first = iter.next();
+        let second = iter.next();
+        let third = iter.next();
+        let fourth = iter.next();
+
+        assert_eq!(first, Some((VarId(0), 10, 20)));
+        assert_eq!(second, Some((VarId(1), 30, 40)));
+
+        assert_eq!(third, None);
+        assert_eq!(fourth, None);
     }
 }
