@@ -26,6 +26,10 @@ impl DataLayout {
     }
 
     /// Returns varialbe's layout. i.e: `(offset, length)`
+    ///
+    /// # Panics
+    ///
+    /// Panics when there is no layout to variable `var_id`
     pub fn get_var(&self, var_id: VarId) -> (u32, u32) {
         self.vars.get(&var_id).copied().unwrap()
     }

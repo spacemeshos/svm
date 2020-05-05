@@ -8,8 +8,6 @@
 //! That includes the specification of the app's data-layout,
 //! and execution of operations against the app's storage (reads and writes).
 
-mod raw;
-
 /// High-level `AppStorage`
 pub mod app;
 

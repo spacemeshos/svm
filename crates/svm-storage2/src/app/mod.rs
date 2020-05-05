@@ -1,9 +1,11 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
+mod raw;
+use raw::{RawChange, RawStorage};
+
 use crate::{
     kv::KV,
     layout::{DataLayout, VarId},
-    raw::{RawChange, RawStorage},
 };
 
 ///
