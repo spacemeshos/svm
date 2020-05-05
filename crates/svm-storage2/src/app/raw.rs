@@ -70,8 +70,16 @@ impl RawStorage {
     }
 
     #[inline]
-    fn to_key(&self, offset: u32, _length: u32) -> Vec<u8> {
-        offset.to_be_bytes().to_vec()
+    fn to_key(&self, offset: u32, length: u32) -> Vec<u8> {
+        // built key is a concatenation of `offset` and `length`.
+        // each takes exactly 4 bytes (and 8 in total).
+
+        let mut buf = Vec::with_capacity(8);
+
+        buf.extend_from_slice(&offset.to_be_bytes());
+        buf.extend_from_slice(&length.to_be_bytes());
+
+        buf
     }
 }
 

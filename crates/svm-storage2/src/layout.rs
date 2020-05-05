@@ -1,28 +1,28 @@
-use std::collections::HashMap;
-
 /// Repersents a variable. an unsigned integer.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct VarId(pub u32);
 
-/// Specifies the fixed-sized variablef of an application.
+/// Specifies the fixed-sized variables of an application.
 #[derive(PartialEq, Clone)]
 pub struct DataLayout {
-    vars: HashMap<VarId, (u32, u32)>,
+    vars: Vec<Option<(u32, u32)>>,
 }
 
 /// `DataLayout` represents the fixed-sized variables (storage) of an application.
 impl DataLayout {
-    /// New instance
-    pub fn new() -> Self {
+    /// New instance, initialized with the total number of variables.
+    pub fn new(capacity: usize) -> Self {
         Self {
-            vars: HashMap::new(),
+            vars: vec![None; capacity],
         }
     }
 
     /// Adds a new variable's layout
     pub fn add_var(&mut self, var_id: VarId, offset: u32, len: u32) {
-        self.vars.insert(var_id, (offset, len));
+        let vid = self.var_index(var_id);
+
+        self.vars[vid] = Some((offset, len));
     }
 
     /// Returns varialbe's layout. i.e: `(offset, length)`
@@ -31,7 +31,18 @@ impl DataLayout {
     ///
     /// Panics when there is no layout to variable `var_id`
     pub fn get_var(&self, var_id: VarId) -> (u32, u32) {
-        self.vars.get(&var_id).copied().unwrap()
+        let vid = self.var_index(var_id);
+
+        self.vars[vid].unwrap()
+    }
+
+    #[inline]
+    fn var_index(&self, var_id: VarId) -> usize {
+        let vid = var_id.0 as usize;
+
+        assert!(vid < self.vars.capacity());
+
+        vid
     }
 }
 
@@ -41,7 +52,7 @@ mod tests {
 
     #[test]
     fn data_layout_sanity() {
-        let mut layout = DataLayout::new();
+        let mut layout = DataLayout::new(2);
 
         layout.add_var(VarId(0), 10, 20);
         layout.add_var(VarId(1), 30, 40);

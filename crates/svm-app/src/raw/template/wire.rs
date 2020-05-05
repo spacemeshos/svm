@@ -11,6 +11,7 @@ pub fn encode_deploy_template(template: &AppTemplate, w: &mut NibbleWriter) {
     encode_name(template, w);
     encode_page_count(template, w);
     encode_code(template, w);
+    encode_data_layout(template, w);
 }
 
 /// Decodes a raw Deploy-Template.
