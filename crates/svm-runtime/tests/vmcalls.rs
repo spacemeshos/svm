@@ -33,17 +33,6 @@ fn default_test_args() -> (
 }
 
 #[test]
-fn vmcalls_empty_wasm() {
-    let wasm = r#"
-        (module
-          (func (export "run")))"#;
-
-    let maybe_gas = MaybeGas::new();
-
-    testing::instantiate(&imports! {}, wasm, maybe_gas);
-}
-
-#[test]
 fn vmcalls_mem_to_reg_copy() {
     let reg_bits = 128;
     let reg_idx = 2;

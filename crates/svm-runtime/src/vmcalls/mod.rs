@@ -69,4 +69,8 @@ pub fn insert_vmcalls(ns: &mut Namespace) {
     ns.insert("host_ctx_read_i32_le", func!(host_ctx_read_i32_le));
     ns.insert("host_ctx_read_i64_be", func!(host_ctx_read_i64_be));
     ns.insert("host_ctx_read_i64_le", func!(host_ctx_read_i64_le));
+
+    // for v0.2
+    ns.insert("get64", func!(get64));
+    ns.insert("set64", func!(set64));
 }
