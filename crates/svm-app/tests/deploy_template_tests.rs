@@ -27,6 +27,7 @@ fn deploy_template_fails_when_excessive_palyoad() {
         .with_name(name)
         .with_page_count(page_count)
         .with_code(&code)
+        .with_data(&DataLayout::new(0))
         .build();
 
     inject_extra(&mut bytes);
