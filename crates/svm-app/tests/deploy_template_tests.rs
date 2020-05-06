@@ -6,7 +6,6 @@ use svm_app::{
     types::{AppTemplate, HostCtx},
 };
 use svm_common::Address;
-use svm_storage2::layout::{DataLayout, VarId};
 
 fn inject_extra(bytes: &mut Vec<u8>) {
     bytes.extend_from_slice(&[0xFF]);
@@ -19,6 +18,7 @@ fn deploy_template_fails_when_excessive_palyoad() {
     let env = DefaultMemoryEnv::new(app_store, template_store);
 
     let code = vec![0x0C, 0x00, 0x0D, 0x0E];
+    let data = vec![].into();
     let name = "Template #1";
     let page_count = 10;
 
@@ -27,7 +27,7 @@ fn deploy_template_fails_when_excessive_palyoad() {
         .with_name(name)
         .with_page_count(page_count)
         .with_code(&code)
-        .with_data(&DataLayout::new(0))
+        .with_data(&data)
         .build();
 
     inject_extra(&mut bytes);
@@ -47,9 +47,7 @@ fn deploy_template_store() {
     let page_count = 10;
     let author = Address::of("@author").into();
 
-    let mut data = DataLayout::new(2);
-    data.add_var(VarId(0), 0, 4);
-    data.add_var(VarId(1), 4, 5);
+    let data = (*vec![4, 5]).into();
 
     let bytes = DeployAppTemplateBuilder::new()
         .with_version(0)

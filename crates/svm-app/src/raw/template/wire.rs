@@ -54,7 +54,8 @@ fn encode_data_layout(template: &AppTemplate, w: &mut NibbleWriter) {
     helpers::encode_u32_be(nvars, w);
 
     for (_vid, _off, len) in template.data.iter() {
-        helpers::encode_u32_be(len, w);
+        // todo: assert `len` fits 14-bits
+        helpers::encode_varuint14(len as u16, w);
     }
 }
 
@@ -90,10 +91,10 @@ fn decode_data_layout(iter: &mut NibbleIter) -> Result<DataLayout, ParseError> {
 
     let mut builder = DataLayoutBuilder::with_capacity(nvars as usize);
 
-    for vid in 0..nvars as usize {
-        let len = helpers::decode_u32_be(iter, Field::DataLayoutVarLength)?;
+    for _vid in 0..nvars as usize {
+        let len = helpers::decode_varuint14(iter, Field::DataLayoutVarLength)?;
 
-        builder.add_var(len);
+        builder.add_var(len as u32);
     }
 
     let layout = builder.build();
@@ -119,7 +120,7 @@ mod tests {
             name: "My Template".to_string(),
             page_count: 5,
             code: vec![0x0C, 0x00, 0x0D, 0x0E],
-            data: DataLayout::from_tuples(&[(VarId(0), 0, 4)]),
+            data: vec![5, 10].into(),
         };
 
         let mut w = NibbleWriter::new();

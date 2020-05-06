@@ -58,6 +58,13 @@ impl From<&[u32]> for DataLayout {
     }
 }
 
+impl From<Vec<u32>> for DataLayout {
+    #[inline]
+    fn from(vec: Vec<u32>) -> Self {
+        (*vec).into()
+    }
+}
+
 pub struct DataLayoutIter<'iter> {
     cur: usize,
 

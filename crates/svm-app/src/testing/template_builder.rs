@@ -25,16 +25,14 @@ pub struct DeployAppTemplateBuilder {
 ///    raw::{decode_deploy_template, NibbleIter}
 /// };
 ///
-/// use svm_storage2::layout::{VarId, DataLayout};
-///
-/// let layout = vec![(VarId(0), 0, 5), (VarId(1), 5, 10)];
+/// let layout = vec![5, 10].into();
 ///
 /// let bytes = DeployAppTemplateBuilder::new()
 ///            .with_version(0)
 ///            .with_name("My Template")
 ///            .with_page_count(10)
 ///            .with_code(&[0xC, 0x0, 0xD, 0xE])
-///            .with_data(&DataLayout::from_tuples(&layout))
+///            .with_data(&layout)
 ///            .build();
 ///
 /// let mut iter = NibbleIter::new(&bytes[..]);
@@ -45,7 +43,7 @@ pub struct DeployAppTemplateBuilder {
 ///                  name: "My Template".to_string(),
 ///                  page_count: 10,
 ///                  code: vec![0xC, 0x0, 0xD, 0xE],
-///                  data: DataLayout::from_tuples(&layout),
+///                  data: layout
 ///                };
 ///
 /// assert_eq!(expected, actual);
