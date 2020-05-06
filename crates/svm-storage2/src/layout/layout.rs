@@ -86,30 +86,33 @@ mod tests {
 
     #[test]
     fn data_layout_new() {
-        let mut layout = DataLayoutBuilder::new(2);
+        let mut builder = DataLayoutBuilder::with_capacity(2);
+        builder.add_var(10);
+        builder.add_var(20);
 
-        layout.add_var(10);
-        layout.add_var(20);
+        let layout = builder.build();
 
         assert_eq!(layout.get_var(VarId(0)), (0, 10));
         assert_eq!(layout.get_var(VarId(1)), (10, 20));
     }
 
     #[test]
-    fn data_layout_from_tuples() {
-        let tuples = vec![(10, 20), (30, 40)];
-        let mut layout = DataLayoutBuilder::from_tuples(&tuples);
+    fn data_layout_from_slice() {
+        let slice = vec![20, 40];
 
-        assert_eq!(layout.get_var(VarId(0)), (10, 20));
-        assert_eq!(layout.get_var(VarId(1)), (30, 40));
+        let mut layout: DataLayout = (&slice[..]).into();
+
+        assert_eq!(layout.get_var(VarId(0)), (0, 20));
+        assert_eq!(layout.get_var(VarId(1)), (20, 40));
     }
 
     #[test]
     fn data_layout_iter() {
-        let mut layout = DataLayoutBuilder::new(2);
+        let mut builder = DataLayoutBuilder::with_capacity(2);
+        builder.add_var(10);
+        builder.add_var(20);
 
-        layout.add_var(10, 20);
-        layout.add_var(30, 40);
+        let layout = builder.build();
 
         let mut iter = layout.iter();
 
@@ -118,8 +121,8 @@ mod tests {
         let third = iter.next();
         let fourth = iter.next();
 
-        assert_eq!(first, Some((VarId(0), 10, 20)));
-        assert_eq!(second, Some((VarId(1), 30, 40)));
+        assert_eq!(first, Some((VarId(0), 0, 10)));
+        assert_eq!(second, Some((VarId(1), 10, 20)));
 
         assert_eq!(third, None);
         assert_eq!(fourth, None);
