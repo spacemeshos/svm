@@ -1,41 +1,15 @@
+use super::DataLayoutBuilder;
+
 /// Repersents a variable. an unsigned integer.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct VarId(pub u32);
 
-/// Specifies the fixed-sized variables of an application.
-#[derive(PartialEq, Clone)]
 pub struct DataLayout {
-    vars: Vec<Option<(u32, u32)>>,
+    pub(crate) vars: Vec<(u32, u32)>,
 }
 
-/// `DataLayout` represents the fixed-sized variables (storage) of an application.
 impl DataLayout {
-    /// New instance, initialized with the total number of variables.
-    pub fn new(nvars: u32) -> Self {
-        Self {
-            vars: vec![None; nvars as usize],
-        }
-    }
-
-    pub fn from_tuples(tuples: &[(VarId, u32, u32)]) -> Self {
-        let nvars = tuples.len() as u32;
-        let mut layout = Self::new(nvars);
-
-        for &(var_id, offset, len) in tuples.iter() {
-            layout.add_var(var_id, offset, len);
-        }
-
-        layout
-    }
-
-    /// Adds a new variable's layout
-    pub fn add_var(&mut self, var_id: VarId, offset: u32, len: u32) {
-        let vid = self.var_index(var_id);
-
-        self.vars[vid] = Some((offset, len));
-    }
-
     /// Returns varialbe's layout. i.e: `(offset, length)`
     ///
     /// # Panics
@@ -44,12 +18,7 @@ impl DataLayout {
     pub fn get_var(&self, var_id: VarId) -> (u32, u32) {
         let vid = self.var_index(var_id);
 
-        self.vars[vid].unwrap()
-    }
-
-    #[inline]
-    pub fn len(&self) -> u32 {
-        self.vars.len() as u32
+        self.vars[vid]
     }
 
     pub fn iter(&self) -> DataLayoutIter {
@@ -59,7 +28,11 @@ impl DataLayout {
         }
     }
 
-    ///
+    #[inline]
+    pub fn len(&self) -> usize {
+        self.vars.len()
+    }
+
     /// # Panics
     ///
     /// Panics when `var_id` is out-of-range.
@@ -73,8 +46,19 @@ impl DataLayout {
     }
 }
 
+impl From<&[u32]> for DataLayout {
+    fn from(slice: &[u32]) -> Self {
+        let nvars = slice.len();
+
+        let mut builder = DataLayoutBuilder::with_capacity(nvars);
+        builder.extend_from_slice(slice);
+
+        builder.build()
+    }
+}
+
 pub struct DataLayoutIter<'iter> {
-    cur: u32,
+    cur: usize,
 
     layout: &'iter DataLayout,
 }
@@ -87,7 +71,7 @@ impl<'iter> std::iter::Iterator for DataLayoutIter<'iter> {
             return None;
         }
 
-        let var_id = VarId(self.cur);
+        let var_id = VarId(self.cur as u32);
         let (off, len) = self.layout.get_var(var_id);
 
         self.cur += 1;
@@ -102,19 +86,19 @@ mod tests {
 
     #[test]
     fn data_layout_new() {
-        let mut layout = DataLayout::new(2);
+        let mut layout = DataLayoutBuilder::new(2);
 
-        layout.add_var(VarId(0), 10, 20);
-        layout.add_var(VarId(1), 30, 40);
+        layout.add_var(10);
+        layout.add_var(20);
 
-        assert_eq!(layout.get_var(VarId(0)), (10, 20));
-        assert_eq!(layout.get_var(VarId(1)), (30, 40));
+        assert_eq!(layout.get_var(VarId(0)), (0, 10));
+        assert_eq!(layout.get_var(VarId(1)), (10, 20));
     }
 
     #[test]
     fn data_layout_from_tuples() {
-        let tuples = vec![(VarId(0), 10, 20), (VarId(1), 30, 40)];
-        let mut layout = DataLayout::from_tuples(&tuples);
+        let tuples = vec![(10, 20), (30, 40)];
+        let mut layout = DataLayoutBuilder::from_tuples(&tuples);
 
         assert_eq!(layout.get_var(VarId(0)), (10, 20));
         assert_eq!(layout.get_var(VarId(1)), (30, 40));
@@ -122,10 +106,12 @@ mod tests {
 
     #[test]
     fn data_layout_iter() {
-        let mut iter = layout.iter();
+        let mut layout = DataLayoutBuilder::new(2);
 
-        layout.add_var(VarId(0), 10, 20);
-        layout.add_var(VarId(1), 30, 40);
+        layout.add_var(10, 20);
+        layout.add_var(30, 40);
+
+        let mut iter = layout.iter();
 
         let first = iter.next();
         let second = iter.next();
