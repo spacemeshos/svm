@@ -15,12 +15,25 @@ impl KVStore for StatefulKV {
     fn get(&self, rel_key: &[u8]) -> Option<Vec<u8>> {
         let abs_key = self.build_key(rel_key);
 
-        // self.raw_kv.borrow().get(&abs_key)
-        todo!()
+        self.raw_kv.borrow().get(&abs_key)
     }
 
     fn store(&mut self, changes: &[(&[u8], &[u8])]) {
-        todo!()
+        let changes = changes
+            .iter()
+            .map(|(k, v)| {
+                let k = self.build_key(k);
+
+                (k, *v)
+            })
+            .collect::<Vec<_>>();
+
+        let changes = changes
+            .iter()
+            .map(|(k, v)| (&k[..], *v))
+            .collect::<Vec<_>>();
+
+        self.raw_kv.borrow_mut().store(&changes)
     }
 }
 

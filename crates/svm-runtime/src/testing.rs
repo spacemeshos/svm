@@ -142,9 +142,7 @@ pub fn runtime_memory_storage_builder(kv: &Rc<RefCell<MemKVStore>>) -> Box<Stora
     Box::new(func)
 }
 
-pub fn runtime_memory_storage2_builder(
-    kv: &Rc<RefCell<dyn svm_storage2::kv::KV>>,
-) -> Box<Storage2BuilderFn> {
+pub fn runtime_memory_storage2_builder(kv: &Rc<RefCell<MemKVStore>>) -> Box<Storage2BuilderFn> {
     todo!()
 }
 
