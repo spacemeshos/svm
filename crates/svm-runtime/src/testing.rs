@@ -85,15 +85,14 @@ pub fn app_memory_state_creator(
     host_ctx: DataWrapper<*const c_void>,
     gas_limit: MaybeGas,
     page_count: u16,
+    layout: DataLayout,
 ) -> (*mut c_void, fn(*mut c_void)) {
     let kv = memory_kv_store_init();
 
     let storage = svm_storage::testing::app_storage_open(state, &kv, page_count);
 
     // TODO:
-    // * initialize data-layout
     // * initialize `kv` with `state`
-    let layout = DataLayout::new();
     let storage2 = AppStorage2::new(layout, kv);
 
     let ctx = SvmCtx::new(host, host_ctx, gas_limit, storage, storage2);

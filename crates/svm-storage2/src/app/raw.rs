@@ -1,11 +1,11 @@
 use std::{cell::RefCell, rc::Rc};
 
-use crate::kv::KV;
+use svm_kv::traits::KVStore;
 
 /// Interface against the key-value store.
 /// Data is manipulated using `offset` and `length`.
 pub struct RawStorage {
-    kv: Rc<RefCell<dyn KV>>,
+    kv: Rc<RefCell<dyn KVStore>>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -26,7 +26,7 @@ impl RawChange {
 
 impl RawStorage {
     /// New instance backed by key-value `kv`.
-    pub fn new(kv: Rc<RefCell<dyn KV>>) -> Self {
+    pub fn new(kv: Rc<RefCell<dyn KVStore>>) -> Self {
         Self { kv }
     }
 
@@ -59,14 +59,16 @@ impl RawStorage {
             })
             .collect::<Vec<_>>();
 
-        self.kv.borrow_mut().set(&changes);
+        todo!()
+        // self.kv.borrow_mut().store(&changes);
     }
 
     #[inline]
     fn do_read(&self, offset: u32, length: u32) -> Option<Vec<u8>> {
         let key = self.to_key(offset, length);
 
-        self.kv.borrow().get(&key)
+        // self.kv.borrow().get(&key)
+        todo!()
     }
 
     #[inline]

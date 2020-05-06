@@ -1,6 +1,6 @@
-use super::super::traits::KV;
-
 use std::collections::HashMap;
+
+use svm_kv::traits::KVStore;
 
 #[doc(hidden)]
 pub struct StatelessKV {
@@ -17,17 +17,20 @@ impl StatelessKV {
 }
 
 #[doc(hidden)]
-impl KV for StatelessKV {
-    fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
-        self.entries.get(key).cloned()
+impl KVStore for StatelessKV {
+    #[must_use]
+    fn get(&self, ns: &[u8], key: &[u8]) -> Option<Vec<u8>> {
+        todo!()
+        // self.entries.get(key).cloned()
     }
 
-    fn set(&mut self, changes: &[(Vec<u8>, Vec<u8>)]) {
-        for (k, v) in changes.iter() {
-            let k = k.to_vec();
-            let v = v.to_vec();
+    fn store(&mut self, changes: &[(&[u8], &[u8], &[u8])]) {
+        todo!()
+        // for (k, v) in changes.iter() {
+        //     let k = k.to_vec();
+        //     let v = v.to_vec();
 
-            self.entries.insert(k, v);
-        }
+        //     self.entries.insert(k, v);
+        // }
     }
 }
