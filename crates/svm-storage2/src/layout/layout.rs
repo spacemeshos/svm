@@ -5,6 +5,7 @@ use super::DataLayoutBuilder;
 #[repr(transparent)]
 pub struct VarId(pub u32);
 
+#[derive(PartialEq, Clone)]
 pub struct DataLayout {
     pub(crate) vars: Vec<(u32, u32)>,
 }
@@ -98,12 +99,28 @@ mod tests {
 
     #[test]
     fn data_layout_from_slice() {
-        let slice = vec![20, 40];
+        let vec = vec![20, 40];
 
-        let mut layout: DataLayout = (&slice[..]).into();
+        let mut layout: DataLayout = (*vec).into();
 
         assert_eq!(layout.get_var(VarId(0)), (0, 20));
         assert_eq!(layout.get_var(VarId(1)), (20, 40));
+    }
+
+    #[test]
+    fn data_layout_extend_from_slice() {
+        let mut builder = DataLayoutBuilder::with_capacity(2);
+        builder.add_var(10);
+        builder.add_var(20);
+
+        builder.extend_from_slice(&[30, 40]);
+
+        let layout = builder.build();
+
+        assert_eq!(layout.get_var(VarId(0)), (0, 10));
+        assert_eq!(layout.get_var(VarId(1)), (10, 20));
+        assert_eq!(layout.get_var(VarId(2)), (30, 30));
+        assert_eq!(layout.get_var(VarId(3)), (60, 40));
     }
 
     #[test]

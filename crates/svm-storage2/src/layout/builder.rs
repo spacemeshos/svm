@@ -1,7 +1,6 @@
 use super::DataLayout;
 
 /// Specifies the fixed-sized variables of an application.
-#[derive(PartialEq, Clone)]
 pub struct DataLayoutBuilder {
     vars: Vec<(u32, u32)>,
 
