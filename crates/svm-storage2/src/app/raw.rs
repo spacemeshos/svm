@@ -59,16 +59,16 @@ impl RawStorage {
             })
             .collect::<Vec<_>>();
 
-        todo!()
-        // self.kv.borrow_mut().store(&changes);
+        let changes: Vec<_> = changes.iter().map(|(k, v)| (&k[..], &v[..])).collect();
+
+        self.kv.borrow_mut().store(&changes);
     }
 
     #[inline]
     fn do_read(&self, offset: u32, length: u32) -> Option<Vec<u8>> {
         let key = self.to_key(offset, length);
 
-        // self.kv.borrow().get(&key)
-        todo!()
+        self.kv.borrow().get(&key)
     }
 
     #[inline]
