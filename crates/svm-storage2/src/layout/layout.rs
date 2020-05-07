@@ -12,7 +12,6 @@ pub struct DataLayout {
 
 impl DataLayout {
     /// For tests that don't care about the `DataLayout`
-    /// (old code that will be removed)
     pub fn empty() -> Self {
         Self { vars: Vec::new() }
     }

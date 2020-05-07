@@ -9,7 +9,7 @@ pub use buffer::{
 };
 pub use host_ctx::{
     host_ctx_read_i32_be, host_ctx_read_i32_le, host_ctx_read_i64_be, host_ctx_read_i64_le,
-    host_ctx_read_into_reg,
+    host_ctx_read_into_reg, host_get64,
 };
 pub use register::{
     reg_cmp, reg_pop, reg_push, reg_set_i32_be, reg_set_i32_le, reg_set_i64_be, reg_set_i64_le,
@@ -73,4 +73,5 @@ pub fn insert_vmcalls(ns: &mut Namespace) {
     // for v0.2
     ns.insert("get64", func!(get64));
     ns.insert("set64", func!(set64));
+    ns.insert("host_get64", func!(host_get64));
 }
