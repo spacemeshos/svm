@@ -49,6 +49,11 @@ pub fn instance_storage(instance: &Instance) -> &mut AppStorage {
     helpers::wasmer_data_app_storage(instance.context().data)
 }
 
+/// Mutably borrows the `AppStorage` of a living `App` instance.
+pub fn instance_storage2(instance: &Instance) -> &mut AppStorage2 {
+    helpers::wasmer_data_app_storage2(instance.context().data)
+}
+
 /// Mutably borrows the Buffer with id `buf_id` of a living `App` instance.
 pub fn instance_buffer(instance: &Instance, buf_id: u32) -> Option<&mut BufferRef> {
     helpers::wasmer_data_buffer(instance.context().data, buf_id)
