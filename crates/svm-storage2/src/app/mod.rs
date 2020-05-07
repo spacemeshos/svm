@@ -57,6 +57,13 @@ impl AppStorage {
         self.uncommitted.insert(var_id, value);
     }
 
+    /// Returns the layout of variable `var_id`.
+    /// The layout is a tuple of `(offset, length)`.
+    #[inline]
+    pub fn var_layout(&self, var_id: VarId) -> (u32, u32) {
+        self.layout.get_var(var_id)
+    }
+
     /// Commits modified (a.k.a) variables into the raw storage.
     pub fn commit(&mut self) {
         let var_offset: HashMap<VarId, u32> = self
@@ -82,12 +89,5 @@ impl AppStorage {
         self.raw_storage.write(&changes);
 
         debug_assert!(self.uncommitted.is_empty());
-    }
-
-    /// Returns the layout of variable `var_id`.
-    /// The layout is a tuple of `(offset, length)`.
-    #[inline]
-    fn var_layout(&self, var_id: VarId) -> (u32, u32) {
-        self.layout.get_var(var_id)
     }
 }

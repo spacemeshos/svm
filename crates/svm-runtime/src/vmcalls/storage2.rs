@@ -22,8 +22,10 @@ pub fn set64(ctx: &mut WasmerCtx, var_id: u32, value: u64) {
     use_gas!("set64", ctx);
 
     let mut storage2 = helpers::wasmer_data_app_storage2(ctx.data);
+    let (_off, nbytes) = storage2.var_layout(VarId(var_id));
 
-    let bytes: [u8; 8] = value.to_be_bytes();
+    let mut buf = vec![0; nbytes as usize];
+    BigEndian::write_uint(&mut buf, value, nbytes as usize);
 
-    let bytes = storage2.write_var(VarId(var_id), bytes.to_vec());
+    storage2.write_var(VarId(var_id), buf);
 }

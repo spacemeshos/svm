@@ -90,7 +90,7 @@ pub fn app_memory_state_creator(
     host_ctx: DataWrapper<*const c_void>,
     gas_limit: MaybeGas,
     page_count: u16,
-    layout: DataLayout,
+    layout: &DataLayout,
 ) -> (*mut c_void, fn(*mut c_void)) {
     let kv = memory_kv_store_init();
 
@@ -98,7 +98,7 @@ pub fn app_memory_state_creator(
 
     // TODO:
     // * initialize `kv` with `state`
-    let storage2 = AppStorage2::new(layout, kv);
+    let storage2 = AppStorage2::new(layout.clone(), kv);
 
     let ctx = SvmCtx::new(host, host_ctx, gas_limit, storage, storage2);
     let ctx: *mut SvmCtx = Box::into_raw(Box::new(ctx));
