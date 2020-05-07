@@ -19,7 +19,7 @@ macro_rules! assert_vars {
 }
 
 macro_rules! assert_storage {
-    ($instance:expr, $ ($var_id:expr => $expected:expr), *) => {{
+    ($instance:expr, $($var_id:expr => $expected:expr), *) => {{
         use svm_storage2::layout::VarId;
 
         let storage = instance_storage2(&$instance);

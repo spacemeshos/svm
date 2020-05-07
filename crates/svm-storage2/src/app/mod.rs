@@ -48,12 +48,20 @@ impl AppStorage {
         var.unwrap_or_else(|| {
             let (off, len) = self.var_layout(var_id);
 
-            self.raw_storage.read(off, len)
+            let bytes = self.raw_storage.read(off, len);
+
+            debug_assert_eq!(bytes.len(), len as usize);
+
+            bytes
         })
     }
 
     /// Marks variable as `dirty`. Upon `commit` will persist the variable.
     pub fn write_var(&mut self, var_id: VarId, value: Vec<u8>) {
+        let (_off, len) = self.var_layout(var_id);
+
+        debug_assert_eq!(value.len(), len as usize);
+
         self.uncommitted.insert(var_id, value);
     }
 
@@ -89,5 +97,83 @@ impl AppStorage {
         self.raw_storage.write(&changes);
 
         debug_assert!(self.uncommitted.is_empty());
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    macro_rules! kv {
+        () => {{
+            use crate::kv::StatelessKV;
+            use std::{cell::RefCell, rc::Rc};
+
+            let kv = Rc::new(RefCell::new(StatelessKV::new()));
+            kv
+        }};
+    }
+
+    macro_rules! assert_vars {
+        ($app:expr, $($var_id:expr => $expected:expr), *) => {{
+            $(
+                let actual = $app.read_var(VarId($var_id));
+                assert_eq!(actual, $expected);
+             )*
+        }};
+    }
+
+    macro_rules! write_vars {
+        ($app:expr, $($var_id:expr => $value:expr), *) => {{
+            $(
+                $app.write_var(VarId($var_id), $value.to_vec());
+             )*
+        }};
+    }
+
+    #[test]
+    fn app_vars_are_persisted_on_commit() {
+        // `var #0` consumes 4 bytes
+        // `var #1` consumes 2 bytes
+        let layout: DataLayout = vec![4, 2].into();
+        let kv = kv!();
+
+        // we create clones for later
+        let layout_clone2 = layout.clone();
+        let layout_clone3 = layout.clone();
+        let kv_clone2 = Rc::clone(&kv);
+        let kv_clone3 = Rc::clone(&kv);
+
+        let mut app = AppStorage::new(layout, kv);
+
+        // vars are initialized with zeros
+        assert_vars!(app, 0 => [0, 0, 0, 0], 1 => [0, 0]);
+
+        write_vars!(app, 0 => [10, 20, 30, 40], 1 => [50, 60]);
+
+        // vars latest version are in memory
+        assert_vars!(app, 0 => [10, 20, 30, 40], 1 => [50, 60]);
+
+        // spin a new app with no in-memory dirty data
+        let mut app2 = AppStorage::new(layout_clone2, kv_clone2);
+        assert_vars!(app2, 0 => [0, 0, 0, 0], 1 => [0, 0]);
+
+        // now, we'll persist `app` dirty changes
+        app.commit();
+
+        // we'll spin a new app with no caching
+        let mut app3 = AppStorage::new(layout_clone3, kv_clone3);
+        write_vars!(app3, 0 => [10, 20, 30, 40], 1 => [50, 60]);
+    }
+
+    #[test]
+    #[should_panic]
+    fn write_var_value_should_match_layout_length() {
+        // `var #0` consumes 4 bytes
+        let layout: DataLayout = vec![4].into();
+        let kv = kv!();
+
+        let mut app = AppStorage::new(layout, kv);
+        app.write_var(VarId(0), vec![0, 0]);
     }
 }
