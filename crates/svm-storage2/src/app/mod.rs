@@ -5,6 +5,9 @@ use svm_kv::traits::KVStore;
 mod raw;
 use raw::{RawChange, RawStorage};
 
+mod kv;
+use kv::AppKVStore;
+
 use crate::layout::{DataLayout, VarId};
 
 ///
@@ -33,10 +36,10 @@ pub struct AppStorage {
 impl AppStorage {
     /// New instance for managing app's variabled specified by `layout`.
     /// App's storage is backed by key-value store `kv`.
-    pub fn new(layout: DataLayout, kv: Rc<RefCell<dyn KVStore>>) -> Self {
+    pub fn new(layout: DataLayout, app_kv: AppKVStore) -> Self {
         Self {
             layout,
-            raw_storage: RawStorage::new(kv),
+            raw_storage: RawStorage::new(app_kv, 32),
             uncommitted: HashMap::new(),
         }
     }

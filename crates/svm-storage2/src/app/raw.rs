@@ -1,11 +1,21 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{
+    cell::RefCell,
+    collections::{HashMap, HashSet},
+    rc::Rc,
+};
 
 use svm_kv::traits::KVStore;
+
+use super::AppKVStore;
 
 /// Interface against the key-value store.
 /// Data is manipulated using `offset` and `length`.
 pub struct RawStorage {
-    kv: Rc<RefCell<dyn KVStore>>,
+    app_kv: AppKVStore,
+
+    kv_value_size: u32,
+
+    cached_keys: HashMap<[u8; 32], Vec<u8>>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -26,62 +36,109 @@ impl RawChange {
 
 impl RawStorage {
     /// New instance backed by key-value `kv`.
-    pub fn new(kv: Rc<RefCell<dyn KVStore>>) -> Self {
-        Self { kv }
+    pub fn new(app_kv: AppKVStore, kv_value_size: u32) -> Self {
+        Self {
+            app_kv,
+            kv_value_size,
+            cached_keys: HashMap::new(),
+        }
     }
 
     /// Reads the raw data under `offset, offset + 1, ..., offset + length - 1`
     /// In case there is no stored blob, returns a zeros vector of length `length`.
     pub fn read(&self, offset: u32, length: u32) -> Vec<u8> {
-        let data = self.do_read(offset, length);
+        assert!(length <= self.kv_value_size);
 
-        if let Some(data) = data {
-            debug_assert_eq!(data.len() as u32, length);
+        let key = self.read_offset_key(offset);
+        debug_assert_eq!(key.len(), self.kv_value_size as usize);
 
-            data
-        } else {
-            vec![0; length as usize]
-        }
+        let slice = self.key_slice(&key[..], offset, length);
+        slice.to_vec()
     }
 
     /// Write a batch of changes into underlying key-value store.
     pub fn write(&mut self, changes: &[RawChange]) {
-        let changes = changes
+        let change_key_idx: Vec<u32> = changes
             .iter()
-            .map(|c| {
-                let off = c.offset;
-                let len = c.len();
+            .map(|c| self.offset_key_index(c.offset))
+            .collect();
 
-                let k = self.to_key(off, len);
-                let v = c.data.to_vec();
+        let nchanges = changes.len();
 
-                (k, v)
+        let keys: HashMap<u32, Vec<u8>> = (0..nchanges).fold(HashMap::new(), |mut acc, idx| {
+            let key_idx = change_key_idx[idx];
+
+            if acc.contains_key(&key_idx) {
+                acc
+            } else {
+                // todo: take into account the App's `Address`.
+                let key = key_idx.to_be_bytes();
+                acc.insert(key_idx, key.to_vec());
+
+                acc
+            }
+        });
+
+        let mut key_index_value: HashMap<u32, Vec<u8>> = keys
+            .iter()
+            .map(|(key_idx, key)| {
+                let value = self.do_read_key(&key[..]);
+                debug_assert_eq!(value.len(), self.kv_value_size as usize);
+
+                (*key_idx, value)
             })
-            .collect::<Vec<_>>();
+            .collect();
 
-        let changes: Vec<_> = changes.iter().map(|(k, v)| (&k[..], &v[..])).collect();
+        for (i, c) in changes.iter().enumerate() {
+            let key_index = change_key_idx[i];
+            let value = key_index_value.get_mut(&key_index).unwrap();
 
-        self.kv.borrow_mut().store(&changes);
+            self.patch_value(value, c);
+        }
+
+        todo!()
     }
 
     #[inline]
-    fn do_read(&self, offset: u32, length: u32) -> Option<Vec<u8>> {
-        let key = self.to_key(offset, length);
+    fn read_offset_key(&self, offset: u32) -> Vec<u8> {
+        todo!()
 
-        self.kv.borrow().get(&key)
+        // let key = self.offset_key(offset);
+        // self.do_read_key(&key[..])
     }
 
     #[inline]
-    fn to_key(&self, offset: u32, length: u32) -> Vec<u8> {
-        // built key is a concatenation of `offset` and `length`.
-        // each takes exactly 4 bytes (and 8 in total).
+    fn offset_key_index(&self, offset: u32) -> u32 {
+        offset % self.kv_value_size
+    }
 
-        let mut buf = Vec::with_capacity(8);
+    #[inline]
+    fn do_read_key(&self, key: &[u8]) -> Vec<u8> {
+        self.app_kv
+            .get(key)
+            .unwrap_or(vec![0; self.kv_value_size as usize])
+    }
 
-        buf.extend_from_slice(&offset.to_be_bytes());
-        buf.extend_from_slice(&length.to_be_bytes());
+    #[inline]
+    fn key_slice<'k>(&self, key: &'k [u8], offset: u32, length: u32) -> &'k [u8] {
+        let offset = offset as usize;
+        let length = length as usize;
 
-        buf
+        let value = &key[offset..offset + length];
+        debug_assert_eq!(value.len(), length);
+
+        value
+    }
+
+    #[inline]
+    fn patch_value(&self, value: &mut [u8], change: &RawChange) {
+        unsafe {
+            let src = change.data.as_ptr();
+            let dst = value.as_mut_ptr().offset(change.offset as isize);
+            let count = change.data.len() as usize;
+
+            std::ptr::copy(src, dst, count)
+        }
     }
 }
 

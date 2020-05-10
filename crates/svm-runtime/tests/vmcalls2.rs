@@ -75,11 +75,10 @@ fn vmcalls_get64_set64() {
     let app_addr = Address::of("my-app");
     let state = State::empty();
     let host = DataWrapper::new(std::ptr::null_mut());
-    let host_ctx = DataWrapper::new(svm_common::into_raw(HostCtx::new()));
+    let host_ctx = host_ctx! {};
     let maybe_gas = MaybeGas::new();
-    let page_count = 0;
-
     let layout: DataLayout = vec![4, 2].into();
+    let page_count = 0;
 
     let import_object = imports! {
         move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, maybe_gas, page_count, &layout),
