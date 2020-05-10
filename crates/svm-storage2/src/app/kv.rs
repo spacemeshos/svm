@@ -5,9 +5,9 @@ use svm_common::Address;
 use svm_kv::traits::KVStore;
 
 pub struct AppKVStore {
-    app_addr: Address,
+    pub(crate) app_addr: Address,
 
-    raw_kv: Rc<RefCell<dyn KVStore>>,
+    pub(crate) raw_kv: Rc<RefCell<dyn KVStore>>,
 }
 
 impl KVStore for AppKVStore {

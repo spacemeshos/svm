@@ -145,25 +145,30 @@ impl RawStorage {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use svm_common::Address;
 
-    macro_rules! kv {
-        () => {{
-            use crate::kv::StatelessKV;
+    macro_rules! app_kv {
+        ($app_addr:expr) => {{
+            use crate::app::AppKVStore;
+            use crate::kv::StatefulKV;
+
             use std::{cell::RefCell, rc::Rc};
 
-            let kv = Rc::new(RefCell::new(StatelessKV::new()));
-            kv
+            let raw_kv = Rc::new(RefCell::new(StatefulKV::new()));
+            AppKVStore::new($app_addr, raw_kv)
         }};
     }
 
     #[test]
     fn raw_storage_var_defaults_to_zeros() {
-        let kv = kv!();
+        let addr = Address::of("my-app");
+        let kv = app_kv!(addr);
 
         let off = 10;
         let len = 20;
+        let kv_value_size = 32;
 
-        let storage = RawStorage::new(kv);
+        let storage = RawStorage::new(kv, kv_value_size);
         let bytes = storage.read(off, len);
 
         assert_eq!(bytes, vec![0; len as usize]);
@@ -171,7 +176,9 @@ mod tests {
 
     #[test]
     fn raw_storage_store() {
-        let kv = kv!();
+        let addr = Address::of("my-app");
+        let kv = app_kv!(addr);
+        let kv_value_size = 32;
 
         let var1 = RawChange {
             offset: 0,
@@ -185,7 +192,7 @@ mod tests {
 
         let changes = vec![var1.clone(), var2.clone()];
 
-        let mut storage = RawStorage::new(kv);
+        let mut storage = RawStorage::new(kv, kv_value_size);
         storage.write(&changes);
 
         let data1 = storage.read(var1.offset, var1.len());

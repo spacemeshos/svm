@@ -56,7 +56,7 @@ impl KVStore for StatefulKV {
         let mut head = Node::empty();
 
         head.data = data;
-        head.state = new_state.clone();
+        head.state = state.clone();
         head.prev = old_head.map(|head| Box::new(head));
 
         self.state = state;
@@ -70,5 +70,16 @@ impl StatefulKV {
             state: State::empty(),
             head: None,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn mock_kv_empty() {
+        let kv = StatefulKV::new();
+        assert_eq!(kv.state, State::empty());
     }
 }

@@ -6,7 +6,7 @@ mod raw;
 use raw::{RawChange, RawStorage};
 
 mod kv;
-use kv::AppKVStore;
+pub use kv::AppKVStore;
 
 use crate::layout::{DataLayout, VarId};
 
@@ -106,14 +106,17 @@ impl AppStorage {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use svm_common::Address;
 
-    macro_rules! kv {
-        () => {{
-            use crate::kv::StatelessKV;
+    macro_rules! app_kv {
+        ($app_addr:expr) => {{
+            use crate::app::AppKVStore;
+            use crate::kv::StatefulKV;
+
             use std::{cell::RefCell, rc::Rc};
 
-            let kv = Rc::new(RefCell::new(StatelessKV::new()));
-            kv
+            let raw_kv = Rc::new(RefCell::new(StatefulKV::new()));
+            AppKVStore::new($app_addr, raw_kv)
         }};
     }
 
@@ -139,13 +142,14 @@ mod tests {
         // `var #0` consumes 4 bytes
         // `var #1` consumes 2 bytes
         let layout: DataLayout = vec![4, 2].into();
-        let kv = kv!();
+        let addr = Address::of("my-app");
+        let kv = app_kv!(addr);
 
         // we create clones for later
         let layout_clone2 = layout.clone();
         let layout_clone3 = layout.clone();
-        let kv_clone2 = Rc::clone(&kv);
-        let kv_clone3 = Rc::clone(&kv);
+        let kv_clone2 = Rc::clone(&kv.raw_kv);
+        let kv_clone3 = Rc::clone(&kv.raw_kv);
 
         let mut app = AppStorage::new(layout, kv);
 
@@ -158,14 +162,18 @@ mod tests {
         assert_vars!(app, 0 => [10, 20, 30, 40], 1 => [50, 60]);
 
         // spin a new app with no in-memory dirty data
-        let mut app2 = AppStorage::new(layout_clone2, kv_clone2);
+        let addr = Address::of("my-app");
+        let kv2 = AppKVStore::new(addr, kv_clone2);
+        let mut app2 = AppStorage::new(layout_clone2, kv2);
         assert_vars!(app2, 0 => [0, 0, 0, 0], 1 => [0, 0]);
 
         // now, we'll persist `app` dirty changes
         app.commit();
 
         // we'll spin a new app with no caching
-        let mut app3 = AppStorage::new(layout_clone3, kv_clone3);
+        let addr = Address::of("my-app");
+        let kv3 = AppKVStore::new(addr, kv_clone3);
+        let mut app3 = AppStorage::new(layout_clone3, kv3);
         write_vars!(app3, 0 => [10, 20, 30, 40], 1 => [50, 60]);
     }
 
@@ -174,7 +182,8 @@ mod tests {
     fn write_var_value_should_match_layout_length() {
         // `var #0` consumes 4 bytes
         let layout: DataLayout = vec![4].into();
-        let kv = kv!();
+        let addr = Address::of("my-app");
+        let kv = app_kv!(addr);
 
         let mut app = AppStorage::new(layout, kv);
         app.write_var(VarId(0), vec![0, 0]);
