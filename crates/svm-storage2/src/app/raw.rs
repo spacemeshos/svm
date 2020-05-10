@@ -58,10 +58,7 @@ impl RawStorage {
 
     /// Write a batch of changes into underlying key-value store.
     pub fn write(&mut self, changes: &[RawChange]) {
-        let change_key_idx: Vec<u32> = changes
-            .iter()
-            .map(|c| self.offset_key_index(c.offset))
-            .collect();
+        let change_key_idx: Vec<u32> = changes.iter().map(|c| self.change_key_index(c)).collect();
 
         let nchanges = changes.len();
 
@@ -71,7 +68,6 @@ impl RawStorage {
             if acc.contains_key(&key_idx) {
                 acc
             } else {
-                // todo: take into account the App's `Address`.
                 let key = key_idx.to_be_bytes();
                 acc.insert(key_idx, key.to_vec());
 
@@ -95,8 +91,6 @@ impl RawStorage {
 
             self.patch_value(value, c);
         }
-
-        todo!()
     }
 
     #[inline]
@@ -108,8 +102,14 @@ impl RawStorage {
     }
 
     #[inline]
-    fn offset_key_index(&self, offset: u32) -> u32 {
-        offset % self.kv_value_size
+    fn change_key_index(&self, change: &RawChange) -> u32 {
+        let length = change.data.len() as u32;
+
+        debug_assert!(length <= self.kv_value_size);
+
+        let end_off = change.offset + length - 1;
+
+        end_off % self.kv_value_size
     }
 
     #[inline]

@@ -20,7 +20,18 @@ impl KVStore for AppKVStore {
     }
 
     fn store(&mut self, changes: &[(&[u8], &[u8])]) {
-        todo!()
+        let changes: Vec<_> = changes
+            .iter()
+            .map(|(k, v)| {
+                let k = self.build_key(k);
+
+                (k, *v)
+            })
+            .collect();
+
+        let changes: Vec<_> = changes.iter().map(|(k, v)| (&k[..], *v)).collect();
+
+        self.raw_kv.borrow_mut().store(&changes);
     }
 }
 
@@ -29,7 +40,18 @@ impl AppKVStore {
         Self { app_addr, raw_kv }
     }
 
+    #[inline]
     fn build_key(&self, key: &[u8]) -> Vec<u8> {
+        let mut buf = Vec::with_capacity(Address::len() + key.len());
+
+        buf.extend_from_slice(self.app_addr.as_slice());
+        buf.extend_from_slice(key);
+
+        self.hash(&buf)
+    }
+
+    #[inline]
+    fn hash(&self, bytes: &[u8]) -> Vec<u8> {
         todo!()
     }
 }
