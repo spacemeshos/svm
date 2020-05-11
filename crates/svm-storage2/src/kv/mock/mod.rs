@@ -1,3 +1,3 @@
-mod stateful;
+mod fake;
 
-pub use stateful::StatefulKV;
+pub use fake::FakeKV;

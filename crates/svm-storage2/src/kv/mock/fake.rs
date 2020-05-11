@@ -1,11 +1,13 @@
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
+use std::collections::HashMap;
+
+use super::super::StatefulKVStore;
 
 use svm_common::{DefaultKeyHasher, KeyHasher, State};
 use svm_kv::traits::KVStore;
 
 #[derive(Debug)]
 struct Node {
-    prev: State,
+    parent: State,
 
     data: HashMap<Vec<u8>, Vec<u8>>,
 }
@@ -14,7 +16,7 @@ impl Node {
     fn empty() -> Self {
         Self {
             data: HashMap::new(),
-            prev: State::empty(),
+            parent: State::empty(),
         }
     }
 
@@ -23,13 +25,13 @@ impl Node {
     }
 }
 
-pub struct StatefulKV {
+pub struct FakeKV {
     head: State,
 
     refs: HashMap<State, Node>,
 }
 
-impl KVStore for StatefulKV {
+impl KVStore for FakeKV {
     #[must_use]
     fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
         let zeros = State::empty();
@@ -44,7 +46,7 @@ impl KVStore for StatefulKV {
             let node = self.refs.get(&state).unwrap();
 
             match node.get(key) {
-                None => state = &node.prev,
+                None => state = &node.parent,
                 Some(v) => return Some(v),
             }
         }
@@ -63,23 +65,30 @@ impl KVStore for StatefulKV {
 
         let mut node = Node::empty();
         node.data = changes;
-        node.prev = old_state.clone();
+        node.parent = old_state.clone();
 
         self.head = new_state.clone();
         self.refs.insert(new_state, node);
     }
 }
 
-impl StatefulKV {
+impl StatefulKVStore for FakeKV {
+    fn rewind(&mut self, state: &State) {
+        self.head = state.clone();
+    }
+
+    #[must_use]
+    fn head(&self) -> State {
+        self.head.clone()
+    }
+}
+
+impl FakeKV {
     pub fn new() -> Self {
         Self {
             head: State::empty(),
             refs: HashMap::new(),
         }
-    }
-
-    pub fn rewind(&mut self, state: &State) {
-        self.head = state.clone();
     }
 
     fn compute_state(&self, changes: &HashMap<Vec<u8>, Vec<u8>>, old_state: &State) -> State {
@@ -113,7 +122,7 @@ mod tests {
 
             $kv.store(&changes[..]);
 
-            $kv.head.clone()
+            $kv.head()
         }};
     }
 
@@ -139,19 +148,19 @@ mod tests {
         ($kv:ident, $s1:expr => $s2:expr) => {{
             let node2 = $kv.refs.get(&$s2).unwrap();
 
-            assert_eq!(node2.prev.as_slice(), $s1.as_slice());
+            assert_eq!(node2.parent.as_slice(), $s1.as_slice());
         }};
     }
 
     #[test]
-    fn mock_kv_empty() {
-        let kv = StatefulKV::new();
+    fn fake_kv_empty() {
+        let kv = FakeKV::new();
         assert_eq!(kv.head, State::empty());
     }
 
     #[test]
-    fn mock_kv_single_state() {
-        let mut kv = StatefulKV::new();
+    fn fake_kv_single_state() {
+        let mut kv = FakeKV::new();
 
         let (k1, v1) = (b"aaa", vec![0x10, 0x20]);
         let (k2, v2) = (b"bbb", vec![0x30, 0x40, 0x50]);
@@ -168,8 +177,8 @@ mod tests {
     }
 
     #[test]
-    fn mock_kv_two_states() {
-        let mut kv = StatefulKV::new();
+    fn fake_kv_two_states() {
+        let mut kv = FakeKV::new();
 
         let (k1, v1) = (b"aaa", vec![0x10, 0x20]);
         let (k2, v2) = (b"bbb", vec![0x30, 0x40, 0x50]);
@@ -197,8 +206,8 @@ mod tests {
     }
 
     #[test]
-    fn mock_kv_three_states() {
-        let mut kv = StatefulKV::new();
+    fn fake_kv_three_states() {
+        let mut kv = FakeKV::new();
 
         let (k1, v1) = (b"aaa", vec![0x10, 0x20]);
         let (k2, v2) = (b"bbb", vec![0x30, 0x40, 0x50]);
@@ -227,8 +236,8 @@ mod tests {
     }
 
     #[test]
-    fn mock_kv_update_a_key_value() {
-        let mut kv = StatefulKV::new();
+    fn fake_kv_update_a_key_value() {
+        let mut kv = FakeKV::new();
 
         let (k, v1) = (b"aaa", vec![0x10, 0x20]);
         let (k, v2) = (b"aaa", vec![0x30, 0x40]);
@@ -253,8 +262,8 @@ mod tests {
     }
 
     #[test]
-    fn mock_kv_rewind() {
-        let mut kv = StatefulKV::new();
+    fn fake_kv_rewind() {
+        let mut kv = FakeKV::new();
 
         let (k1, v1) = (b"aaa", vec![0x10, 0x20]);
         let (k2, v2) = (b"bbb", vec![0x30, 0x40, 0x50]);
