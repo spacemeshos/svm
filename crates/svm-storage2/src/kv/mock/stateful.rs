@@ -5,17 +5,14 @@ use svm_kv::traits::KVStore;
 
 #[derive(Debug)]
 struct Node {
-    state: State,
+    prev: State,
 
     data: HashMap<Vec<u8>, Vec<u8>>,
-
-    prev: State,
 }
 
 impl Node {
     fn empty() -> Self {
         Self {
-            state: State::empty(),
             data: HashMap::new(),
             prev: State::empty(),
         }
@@ -29,7 +26,7 @@ impl Node {
 pub struct StatefulKV {
     head: State,
 
-    refs: HashMap<State, Box<Node>>,
+    refs: HashMap<State, Node>,
 }
 
 impl KVStore for StatefulKV {
@@ -65,12 +62,11 @@ impl KVStore for StatefulKV {
         let new_state = self.compute_state(&changes, old_state);
 
         let mut node = Node::empty();
-        node.state = new_state.clone();
         node.data = changes;
         node.prev = old_state.clone();
 
         self.head = new_state.clone();
-        self.refs.insert(new_state, Box::new(node));
+        self.refs.insert(new_state, node);
     }
 }
 
@@ -105,15 +101,47 @@ impl StatefulKV {
 
         State::from(&bytes[..])
     }
-
-    fn head_node(&self) -> Option<&Box<Node>> {
-        todo!()
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    macro_rules! apply_changes {
+        ($kv:ident, $( ($k:expr => $v:expr), )* ) => {{
+            let changes = vec![$( (&$k[..], &$v[..]), )*];
+
+            $kv.store(&changes[..]);
+
+            $kv.head.clone()
+        }};
+    }
+
+    macro_rules! assert_no_keys {
+        ($kv:ident, $($k:expr), *) => {{
+            $(
+                let v = $kv.get(&$k[..]);
+                assert!(v.is_none());
+             )*
+        }};
+    }
+
+    macro_rules! assert_keys {
+        ($kv:ident, $( ($k:expr => $v:expr), )* ) => {{
+            $(
+                let v = $kv.get(&$k[..]);
+                assert_eq!(v.unwrap(), $v);
+             )*
+        }};
+    }
+
+    macro_rules! assert_transition {
+        ($kv:ident, $s1:expr => $s2:expr) => {{
+            let node2 = $kv.refs.get(&$s2).unwrap();
+
+            assert_eq!(node2.prev.as_slice(), $s1.as_slice());
+        }};
+    }
 
     #[test]
     fn mock_kv_empty() {
@@ -128,13 +156,15 @@ mod tests {
         let (k1, v1) = (b"aaa", vec![0x10, 0x20]);
         let (k2, v2) = (b"bbb", vec![0x30, 0x40, 0x50]);
 
-        let changes = vec![(&k1[..], &v1[..]), (&k2[..], &v2[..])];
-        kv.store(&changes[..]);
+        apply_changes!(kv,
+          (k1 => v1),
+          (k2 => v2),
+        );
 
-        assert_ne!(kv.head, State::empty());
-
-        assert_eq!(kv.get(&k1[..]).unwrap(), v1);
-        assert_eq!(kv.get(&k2[..]).unwrap(), v2);
+        assert_keys!(kv,
+          (k1 => v1),
+          (k2 => v2),
+        );
     }
 
     #[test]
@@ -143,20 +173,27 @@ mod tests {
 
         let (k1, v1) = (b"aaa", vec![0x10, 0x20]);
         let (k2, v2) = (b"bbb", vec![0x30, 0x40, 0x50]);
-
-        let changes = vec![(&k1[..], &v1[..]), (&k2[..], &v2[..])];
-        kv.store(&changes[..]);
-
         let (k3, v3) = (b"ccc", vec![0x60, 0x70]);
         let (k4, v4) = (b"ddd", vec![0x80, 0x90]);
 
-        let changes = vec![(&k3[..], &v3[..]), (&k4[..], &v4[..])];
-        kv.store(&changes[..]);
+        let s1 = apply_changes!(kv,
+          (k1 => v1),
+          (k2 => v2),
+        );
 
-        assert_eq!(kv.get(&k1[..]).unwrap(), v1);
-        assert_eq!(kv.get(&k2[..]).unwrap(), v2);
-        assert_eq!(kv.get(&k3[..]).unwrap(), v3);
-        assert_eq!(kv.get(&k4[..]).unwrap(), v4);
+        let s2 = apply_changes!(kv,
+          (k3 => v3),
+          (k4 => v4),
+        );
+
+        assert_keys!(kv,
+          (k1 => v1),
+          (k2 => v2),
+          (k3 => v3),
+          (k4 => v4),
+        );
+
+        assert_transition!(kv, s1 => s2);
     }
 
     #[test]
@@ -164,20 +201,29 @@ mod tests {
         let mut kv = StatefulKV::new();
 
         let (k1, v1) = (b"aaa", vec![0x10, 0x20]);
-        let changes = vec![(&k1[..], &v1[..])];
-        kv.store(&changes[..]);
-
         let (k2, v2) = (b"bbb", vec![0x30, 0x40, 0x50]);
-        let changes = vec![(&k2[..], &v2[..])];
-        kv.store(&changes[..]);
-
         let (k3, v3) = (b"ccc", vec![0x60, 0x70]);
-        let changes = vec![(&k3[..], &v3[..])];
-        kv.store(&changes[..]);
 
-        assert_eq!(kv.get(&k1[..]).unwrap(), v1);
-        assert_eq!(kv.get(&k2[..]).unwrap(), v2);
-        assert_eq!(kv.get(&k3[..]).unwrap(), v3);
+        let s1 = apply_changes!(kv,
+          (k1 => v1),
+        );
+
+        let s2 = apply_changes!(kv,
+          (k2 => v2),
+        );
+
+        let s3 = apply_changes!(kv,
+          (k3 => v3),
+        );
+
+        assert_keys!(kv,
+          (k1 => v1),
+          (k2 => v2),
+          (k3 => v3),
+        );
+
+        assert_transition!(kv, s1 => s2);
+        assert_transition!(kv, s2 => s3);
     }
 
     #[test]
@@ -185,16 +231,62 @@ mod tests {
         let mut kv = StatefulKV::new();
 
         let (k, v1) = (b"aaa", vec![0x10, 0x20]);
-
-        let changes = vec![(&k[..], &v1[..])];
-        kv.store(&changes[..]);
-
-        assert_eq!(kv.get(&k[..]).unwrap(), v1);
-
         let (k, v2) = (b"aaa", vec![0x30, 0x40]);
-        let changes = vec![(&k[..], &v2[..])];
-        kv.store(&changes[..]);
 
-        assert_eq!(kv.get(&k[..]).unwrap(), v2);
+        let s1 = apply_changes!(kv,
+          (k => v1),
+        );
+
+        let s2 = apply_changes!(kv,
+          (k => v2),
+        );
+
+        kv.rewind(&s1);
+        assert_keys!(kv,
+          (k => v1),
+        );
+
+        kv.rewind(&s2);
+        assert_keys!(kv,
+          (k => v2),
+        );
+    }
+
+    #[test]
+    fn mock_kv_rewind() {
+        let mut kv = StatefulKV::new();
+
+        let (k1, v1) = (b"aaa", vec![0x10, 0x20]);
+        let (k2, v2) = (b"bbb", vec![0x30, 0x40, 0x50]);
+        let (k3, v3) = (b"ccc", vec![0x60, 0x70]);
+        let (k1, v4) = (b"aaa", vec![0x60, 0x70]);
+
+        let s1 = apply_changes!(kv,
+          (k1 => v1),
+        );
+
+        let s2 = apply_changes!(kv,
+          (k2 => v2),
+        );
+
+        let s3 = apply_changes!(kv,
+          (k3 => v3),
+          (k1 => v4),
+        );
+
+        kv.rewind(&s1);
+        assert_keys!(kv, (k1 => v1),);
+        assert_no_keys!(kv, k2, k3);
+
+        kv.rewind(&s2);
+        assert_keys!(kv, (k1 => v1), (k2 => v2),);
+        assert_no_keys!(kv, k3);
+
+        kv.rewind(&s3);
+        assert_keys!(kv,
+          (k1 => v4),
+          (k2 => v2),
+          (k3 => v3),
+        );
     }
 }
