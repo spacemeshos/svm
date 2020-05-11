@@ -9,7 +9,7 @@ struct Node {
 
     data: HashMap<Vec<u8>, Vec<u8>>,
 
-    prev: Option<Box<Node>>,
+    prev: State,
 }
 
 impl Node {
@@ -17,33 +17,42 @@ impl Node {
         Self {
             state: State::empty(),
             data: HashMap::new(),
-            prev: None,
+            prev: State::empty(),
         }
     }
 
     fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
-        let key_vec = key.to_vec();
-
-        match self.data.get(&key_vec) {
-            Some(value) => Some(value.to_vec()),
-            None => match &self.prev {
-                None => None,
-                Some(prev) => prev.get(key),
-            },
-        }
+        self.data.get(key).map(|v| v.to_vec())
     }
 }
 
 pub struct StatefulKV {
-    state: State,
+    head: State,
 
-    head: Option<Node>,
+    refs: HashMap<State, Box<Node>>,
 }
 
 impl KVStore for StatefulKV {
     #[must_use]
     fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
-        self.head.as_ref().and_then(|h| h.get(key))
+        let zeros = State::empty();
+
+        let mut state = &self.head;
+
+        loop {
+            if state.as_slice() == zeros.as_slice() {
+                return None;
+            }
+
+            let node = self.refs.get(&state).unwrap();
+
+            match node.get(key) {
+                None => state = &node.prev,
+                Some(v) => return Some(v),
+            }
+        }
+
+        unreachable!()
     }
 
     fn store(&mut self, changes: &[(&[u8], &[u8])]) {
@@ -52,24 +61,29 @@ impl KVStore for StatefulKV {
             .map(|(k, v)| (k.to_vec(), v.to_vec()))
             .collect();
 
-        let old_head = self.head.take();
-        let mut head = Node::empty();
+        let old_state = &self.head;
+        let new_state = self.compute_state(&changes, old_state);
 
-        head.state = self.compute_state(&changes, &self.state);
-        head.data = changes;
-        head.prev = old_head.map(|head| Box::new(head));
+        let mut node = Node::empty();
+        node.state = new_state.clone();
+        node.data = changes;
+        node.prev = old_state.clone();
 
-        self.state = head.state.clone();
-        self.head = Some(head);
+        self.head = new_state.clone();
+        self.refs.insert(new_state, Box::new(node));
     }
 }
 
 impl StatefulKV {
     pub fn new() -> Self {
         Self {
-            state: State::empty(),
-            head: None,
+            head: State::empty(),
+            refs: HashMap::new(),
         }
+    }
+
+    pub fn rewind(&mut self, state: &State) {
+        self.head = state.clone();
     }
 
     fn compute_state(&self, changes: &HashMap<Vec<u8>, Vec<u8>>, old_state: &State) -> State {
@@ -77,7 +91,7 @@ impl StatefulKV {
             .iter()
             .fold(State::len(), |acc, (k, v)| acc + k.len() + v.len());
 
-        let mut buf: Vec<u8> = Vec::with_capacity(capacity);
+        let mut buf = Vec::with_capacity(capacity);
 
         buf.extend_from_slice(old_state.as_slice());
 
@@ -92,31 +106,8 @@ impl StatefulKV {
         State::from(&bytes[..])
     }
 
-    fn find_node<'a>(&'a self, state: &State) -> Option<&'a Box<Node>> {
-        fn _find_node<'a>(node: Option<&'a Node>, state: &State) -> Option<&'a Box<Node>> {
-            if node.is_none() {
-                return None;
-            }
-
-            let node: &Node = node.unwrap();
-            let boxed_prev = node.prev.as_ref();
-
-            if node.state.as_slice() == state.as_slice() {
-                return boxed_prev;
-            }
-
-            let prev: Option<&Node> = boxed_prev.map(|p| &**p);
-
-            _find_node(prev, state)
-        }
-
-        let head = self.head.as_ref();
-
-        if self.head.is_none() {
-            return None;
-        }
-
-        _find_node(head, state)
+    fn head_node(&self) -> Option<&Box<Node>> {
+        todo!()
     }
 }
 
@@ -127,7 +118,7 @@ mod tests {
     #[test]
     fn mock_kv_empty() {
         let kv = StatefulKV::new();
-        assert_eq!(kv.state, State::empty());
+        assert_eq!(kv.head, State::empty());
     }
 
     #[test]
@@ -140,7 +131,7 @@ mod tests {
         let changes = vec![(&k1[..], &v1[..]), (&k2[..], &v2[..])];
         kv.store(&changes[..]);
 
-        assert_ne!(kv.state, State::empty());
+        assert_ne!(kv.head, State::empty());
 
         assert_eq!(kv.get(&k1[..]).unwrap(), v1);
         assert_eq!(kv.get(&k2[..]).unwrap(), v2);
