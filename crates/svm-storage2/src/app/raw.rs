@@ -14,8 +14,6 @@ pub struct RawStorage {
     app_kv: AppKVStore,
 
     kv_value_size: u32,
-
-    cached_keys: HashMap<[u8; 32], Vec<u8>>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -40,7 +38,6 @@ impl RawStorage {
         Self {
             app_kv,
             kv_value_size,
-            cached_keys: HashMap::new(),
         }
     }
 
@@ -49,96 +46,91 @@ impl RawStorage {
     pub fn read(&self, offset: u32, length: u32) -> Vec<u8> {
         assert!(length <= self.kv_value_size);
 
-        let key = self.read_offset_key(offset);
-        debug_assert_eq!(key.len(), self.kv_value_size as usize);
+        let key = self.offset_length_key(offset, offset);
+        let value = self.do_read_key(key);
 
-        let slice = self.key_slice(&key[..], offset, length);
+        let slice = self.value_slice(&value[..], offset, length);
         slice.to_vec()
     }
 
     /// Write a batch of changes into underlying key-value store.
     pub fn write(&mut self, changes: &[RawChange]) {
-        let change_key_idx: Vec<u32> = changes.iter().map(|c| self.change_key_index(c)).collect();
+        let changes = self.group_changes_by_key(changes);
 
-        let nchanges = changes.len();
+        for (key, key_changes) in changes.iter() {
+            let mut value = self.do_read_key(*key);
+            debug_assert_eq!(value.len(), self.kv_value_size as usize);
 
-        let keys: HashMap<u32, Vec<u8>> = (0..nchanges).fold(HashMap::new(), |mut acc, idx| {
-            let key_idx = change_key_idx[idx];
-
-            if acc.contains_key(&key_idx) {
-                acc
-            } else {
-                let key = key_idx.to_be_bytes();
-                acc.insert(key_idx, key.to_vec());
-
-                acc
-            }
-        });
-
-        let mut key_index_value: HashMap<u32, Vec<u8>> = keys
-            .iter()
-            .map(|(key_idx, key)| {
-                let value = self.do_read_key(&key[..]);
-                debug_assert_eq!(value.len(), self.kv_value_size as usize);
-
-                (*key_idx, value)
-            })
-            .collect();
-
-        for (i, c) in changes.iter().enumerate() {
-            let key_index = change_key_idx[i];
-            let value = key_index_value.get_mut(&key_index).unwrap();
-
-            self.patch_value(value, c);
+            self.patch_key_value(&mut value, &key_changes[..]);
         }
     }
 
     #[inline]
-    fn read_offset_key(&self, offset: u32) -> Vec<u8> {
-        todo!()
+    fn do_read_key(&self, key: u32) -> Vec<u8> {
+        let key = key.to_be_bytes();
 
-        // let key = self.offset_key(offset);
-        // self.do_read_key(&key[..])
-    }
-
-    #[inline]
-    fn change_key_index(&self, change: &RawChange) -> u32 {
-        let length = change.data.len() as u32;
-
-        debug_assert!(length <= self.kv_value_size);
-
-        let end_off = change.offset + length - 1;
-
-        end_off % self.kv_value_size
-    }
-
-    #[inline]
-    fn do_read_key(&self, key: &[u8]) -> Vec<u8> {
         self.app_kv
-            .get(key)
+            .get(&key[..])
             .unwrap_or(vec![0; self.kv_value_size as usize])
     }
 
     #[inline]
-    fn key_slice<'k>(&self, key: &'k [u8], offset: u32, length: u32) -> &'k [u8] {
+    fn value_slice<'k>(&self, value: &'k [u8], offset: u32, length: u32) -> &'k [u8] {
         let offset = offset as usize;
         let length = length as usize;
 
-        let value = &key[offset..offset + length];
+        let value = &value[offset..offset + length];
         debug_assert_eq!(value.len(), length);
 
         value
     }
 
     #[inline]
-    fn patch_value(&self, value: &mut [u8], change: &RawChange) {
-        unsafe {
-            let src = change.data.as_ptr();
-            let dst = value.as_mut_ptr().offset(change.offset as isize);
-            let count = change.data.len() as usize;
+    fn patch_key_value(&self, value: &mut [u8], changes: &[&RawChange]) {
+        debug_assert_eq!(value.len(), self.kv_value_size as usize);
 
-            std::ptr::copy(src, dst, count)
+        for change in changes.iter() {
+            unsafe {
+                let src = change.data.as_ptr();
+                let dst = value.as_mut_ptr().offset(change.offset as isize);
+                let count = change.data.len() as usize;
+
+                std::ptr::copy(src, dst, count)
+            }
         }
+    }
+
+    #[inline]
+    pub fn offset_length_key(&self, offset: u32, length: u32) -> u32 {
+        let end_off = offset + length - 1;
+
+        end_off % self.kv_value_size
+    }
+
+    #[inline]
+    fn change_key(&self, change: &RawChange) -> u32 {
+        let length = change.data.len() as u32;
+        debug_assert!(length <= self.kv_value_size);
+
+        self.offset_length_key(change.offset, length)
+    }
+
+    #[inline]
+    fn group_changes_by_key<'a>(
+        &self,
+        changes: &'a [RawChange],
+    ) -> HashMap<u32, Vec<&'a RawChange>> {
+        let tuples: Vec<_> = changes.iter().map(|c| (self.change_key(c), c)).collect();
+
+        let mut key_changes = HashMap::new();
+
+        for &(key, change) in tuples.iter() {
+            let entry = key_changes.entry(key).or_insert(Vec::new());
+
+            entry.push(change);
+        }
+
+        key_changes
     }
 }
 
@@ -150,11 +142,11 @@ mod tests {
     macro_rules! app_kv {
         ($app_addr:expr) => {{
             use crate::app::AppKVStore;
-            use crate::kv::StatefulKV;
+            use crate::kv::FakeKV;
 
             use std::{cell::RefCell, rc::Rc};
 
-            let raw_kv = Rc::new(RefCell::new(StatefulKV::new()));
+            let raw_kv = Rc::new(RefCell::new(FakeKV::new()));
             AppKVStore::new($app_addr, raw_kv)
         }};
     }

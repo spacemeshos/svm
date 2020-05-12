@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use svm_common::Address;
+use svm_common::{Address, DefaultKeyHasher, KeyHasher};
 use svm_kv::traits::KVStore;
 
 pub struct AppKVStore {
@@ -14,6 +14,8 @@ impl KVStore for AppKVStore {
     #[must_use]
     #[inline]
     fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
+        debug_assert_eq!(key.len(), 4);
+
         let key = self.build_key(key);
 
         self.get(&key)
@@ -52,6 +54,6 @@ impl AppKVStore {
 
     #[inline]
     fn hash(&self, bytes: &[u8]) -> Vec<u8> {
-        todo!()
+        DefaultKeyHasher::hash(bytes).to_vec()
     }
 }
