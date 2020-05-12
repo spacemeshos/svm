@@ -6,7 +6,7 @@ use svm_kv::traits::KVStore;
 type GetFn = unsafe extern "C" fn(*const u8, u32, *mut u32) -> *const u8;
 type HeadFn = unsafe extern "C" fn(*mut u32) -> *const u8;
 type RewindFn = unsafe extern "C" fn(*const u8, u32);
-type SetFn = unsafe extern "C" fn(*const u8, u32);
+type SetFn = unsafe extern "C" fn(*const u8, u32, *const u8, u32);
 type CommitFn = unsafe extern "C" fn();
 
 pub struct ExternKV {
@@ -38,10 +38,13 @@ impl KVStore for ExternKV {
     fn store(&mut self, changes: &[(&[u8], &[u8])]) {
         for (k, v) in changes.iter() {
             let key_ptr = k.as_ptr();
+            let val_ptr = v.as_ptr();
+
             let key_len = k.len() as u32;
+            let val_len = v.len() as u32;
 
             unsafe {
-                (self.set_fn)(key_ptr, key_len);
+                (self.set_fn)(key_ptr, key_len, val_ptr, val_len);
             }
         }
 

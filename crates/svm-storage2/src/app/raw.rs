@@ -1,8 +1,4 @@
-use std::{
-    cell::RefCell,
-    collections::{HashMap, HashSet},
-    rc::Rc,
-};
+use std::collections::HashMap;
 
 use svm_kv::traits::KVStore;
 
@@ -27,6 +23,7 @@ pub struct RawChange {
 
 impl RawChange {
     /// The length of change's `data`
+    #[allow(unused)]
     pub fn len(&self) -> u32 {
         self.data.len() as u32
     }

@@ -50,8 +50,6 @@ impl KVStore for FakeKV {
                 Some(v) => return Some(v),
             }
         }
-
-        unreachable!()
     }
 
     fn store(&mut self, changes: &[(&[u8], &[u8])]) {
@@ -239,25 +237,27 @@ mod tests {
     fn fake_kv_update_a_key_value() {
         let mut kv = FakeKV::new();
 
-        let (k, v1) = (b"aaa", vec![0x10, 0x20]);
-        let (k, v2) = (b"aaa", vec![0x30, 0x40]);
+        let (k1, v1) = (b"aaa", vec![0x10, 0x20]);
+        let (k2, v2) = (b"aaa", vec![0x30, 0x40]);
+
+        assert_eq!(k1, k2);
 
         let s1 = apply_changes!(kv,
-          (k => v1),
+          (k1 => v1),
         );
 
         let s2 = apply_changes!(kv,
-          (k => v2),
+          (k2 => v2),
         );
 
         kv.rewind(&s1);
         assert_keys!(kv,
-          (k => v1),
+          (k1 => v1),
         );
 
         kv.rewind(&s2);
         assert_keys!(kv,
-          (k => v2),
+          (k2 => v2),
         );
     }
 
@@ -268,7 +268,9 @@ mod tests {
         let (k1, v1) = (b"aaa", vec![0x10, 0x20]);
         let (k2, v2) = (b"bbb", vec![0x30, 0x40, 0x50]);
         let (k3, v3) = (b"ccc", vec![0x60, 0x70]);
-        let (k1, v4) = (b"aaa", vec![0x60, 0x70]);
+        let (k4, v4) = (b"aaa", vec![0x60, 0x70]);
+
+        assert_eq!(k1, k4);
 
         let s1 = apply_changes!(kv,
           (k1 => v1),

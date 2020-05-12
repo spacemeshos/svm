@@ -1,6 +1,4 @@
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
-
-use svm_kv::traits::KVStore;
+use std::collections::HashMap;
 
 mod raw;
 use raw::{RawChange, RawStorage};
@@ -106,6 +104,7 @@ impl AppStorage {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::rc::Rc;
     use svm_common::Address;
 
     macro_rules! app_kv {
@@ -164,7 +163,7 @@ mod tests {
         // spin a new app with no in-memory dirty data
         let addr = Address::of("my-app");
         let kv2 = AppKVStore::new(addr, kv_clone2);
-        let mut app2 = AppStorage::new(layout_clone2, kv2);
+        let app2 = AppStorage::new(layout_clone2, kv2);
         assert_vars!(app2, 0 => [0, 0, 0, 0], 1 => [0, 0]);
 
         // now, we'll persist `app` dirty changes

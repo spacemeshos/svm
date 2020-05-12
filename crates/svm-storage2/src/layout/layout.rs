@@ -113,7 +113,7 @@ mod tests {
     fn data_layout_from_slice() {
         let vec = vec![20, 40];
 
-        let mut layout: DataLayout = (*vec).into();
+        let layout: DataLayout = (*vec).into();
 
         assert_eq!(layout.get_var(VarId(0)), (0, 20));
         assert_eq!(layout.get_var(VarId(1)), (20, 40));
