@@ -46,7 +46,7 @@ impl RawStorage {
     pub fn read(&self, offset: u32, length: u32) -> Vec<u8> {
         assert!(length <= self.kv_value_size);
 
-        let key = self.offset_length_key(offset, offset);
+        let key = self.offset_length_key(offset, length);
         let value = self.do_read_key(key);
 
         let slice = self.value_slice(&value[..], offset, length);
@@ -57,12 +57,22 @@ impl RawStorage {
     pub fn write(&mut self, changes: &[RawChange]) {
         let changes = self.group_changes_by_key(changes);
 
-        for (key, key_changes) in changes.iter() {
-            let mut value = self.do_read_key(*key);
-            debug_assert_eq!(value.len(), self.kv_value_size as usize);
+        let mut raw_changes = Vec::with_capacity(changes.len());
 
-            self.patch_key_value(&mut value, &key_changes[..]);
+        for (key, value_changes) in changes.iter() {
+            let raw_key = key.to_be_bytes();
+
+            let mut raw_value = self.do_read_key(*key);
+            debug_assert_eq!(raw_value.len(), self.kv_value_size as usize);
+
+            self.patch_value(&mut raw_value, &value_changes[..]);
+
+            raw_changes.push((raw_key, raw_value));
         }
+
+        let raw_changes: Vec<_> = raw_changes.iter().map(|(k, v)| (&k[..], &v[..])).collect();
+
+        self.app_kv.store(&raw_changes);
     }
 
     #[inline]
@@ -86,7 +96,7 @@ impl RawStorage {
     }
 
     #[inline]
-    fn patch_key_value(&self, value: &mut [u8], changes: &[&RawChange]) {
+    fn patch_value(&self, value: &mut [u8], changes: &[&RawChange]) {
         debug_assert_eq!(value.len(), self.kv_value_size as usize);
 
         for change in changes.iter() {

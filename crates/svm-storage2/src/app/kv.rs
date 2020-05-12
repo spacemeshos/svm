@@ -18,7 +18,7 @@ impl KVStore for AppKVStore {
 
         let key = self.build_key(key);
 
-        self.get(&key)
+        self.raw_kv.borrow().get(&key)
     }
 
     fn store(&mut self, changes: &[(&[u8], &[u8])]) {
