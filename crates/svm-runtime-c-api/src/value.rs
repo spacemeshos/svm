@@ -7,6 +7,31 @@ use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 
 use crate::svm_byte_array;
 
+///
+/// This file contains the implementation of encoding & decoding of a `Vec<WasmValue>` into `svm_byte_array`.
+/// (and vice-versa).
+///
+/// This encoding (and decoding) functionality should be also implemented by any SVM clients (e.g: C, Golang).
+/// The design motivation is sticking with `svm_byte_array` as the mechanism for passing data between SVM client
+/// to SVM (via the `SVM C-API``)
+///
+////
+/// ### Encoding format:
+///
+/// * First byte is for the number of WASM values.
+///
+/// * Then each WASM value is encoded as:
+///   - A WASM value type. It can be `I32` or `I64` (SVM doesn't support Floats).
+///     The encoding is implemented in `WasmType` under the `svm-app` crate.
+///   - A Big-Endian encoding of the WASM value. `I32` consumes 4 bytes and `I64` 8 bytes.
+///
+/// +----------------------------------------------------------------------+
+/// | #values  | value #1  |  value #1 |        |  value #N   |  value #N  |
+/// | (1 byte) |  type     |  (4 or 8  | . . .  |    type     |   (4 or 8  |
+/// |          | (1 byte)  |   bytes)  |        |   (1 byte)  |   bytes)   |
+/// +----------+--------------------------------+-------------+------------+
+///
+
 /// Converts `svm_byte_array` into `Vec<WasmerValue>`
 ///
 /// ```
