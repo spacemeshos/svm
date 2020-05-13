@@ -6,7 +6,7 @@ pub use receipt::{
     ClientExecReceipt, ClientTemplateReceipt,
 };
 
-use crate::{svm_byte_array, svm_value_type};
+use crate::svm_byte_array;
 
 use svm_runtime::ctx::SvmCtx;
 
@@ -60,8 +60,8 @@ pub unsafe fn import_func_create(
     module_name: &str,
     import_name: &str,
     func: *mut c_void,
-    params: Vec<svm_value_type>,
-    returns: Vec<svm_value_type>,
+    params: svm_byte_array,
+    returns: svm_byte_array,
 ) {
     let mut error = svm_byte_array::default();
 

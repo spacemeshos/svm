@@ -14,7 +14,7 @@ use crate::{
     helpers, raw_error, raw_utf8_error, raw_validate_error,
     receipt::{encode_app_receipt, encode_exec_receipt, encode_template_receipt},
     svm_byte_array, svm_import_func_sig_t, svm_import_func_t, svm_import_kind, svm_import_t,
-    svm_import_value, svm_result_t, svm_value, svm_value_array, svm_value_type_array,
+    svm_import_value, svm_result_t,
     testing::{self, ClientAppReceipt, ClientExecReceipt, ClientTemplateReceipt},
     RuntimePtr,
 };
@@ -240,8 +240,8 @@ pub unsafe extern "C" fn svm_import_func_build(
     module_name: svm_byte_array,
     import_name: svm_byte_array,
     func: *const c_void,
-    params: svm_value_type_array,
-    returns: svm_value_type_array,
+    params: svm_byte_array,
+    returns: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
     let imports = &mut *(imports as *mut Vec<svm_import_t>);
@@ -259,8 +259,8 @@ pub unsafe extern "C" fn svm_import_func_build(
     let func = svm_import_func_t {
         func: func.unwrap(),
         sig: svm_import_func_sig_t {
-            params: params.into(),
-            returns: returns.into(),
+            params: params,
+            returns: returns,
         },
     };
 
@@ -777,26 +777,6 @@ pub unsafe extern "C" fn svm_byte_array_destroy(bytes: svm_byte_array) {
     let _ = Vec::from_raw_parts(ptr, length, length);
 }
 
-/// Frees `svm_value_array`
-///
-/// # Example
-///
-/// ```rust
-/// use svm_runtime_c_api::*;
-///
-/// let array = svm_value_array { values: std::ptr::null(), length: 0 };
-/// unsafe { svm_value_array_destroy(array); }
-/// ```
-///
-#[must_use]
-#[no_mangle]
-pub unsafe extern "C" fn svm_value_array_destroy(array: svm_value_array) {
-    let ptr = array.values as *mut svm_value;
-    let length = array.length as usize;
-
-    let _ = Vec::from_raw_parts(ptr, length, length);
-}
-
 /// Receipts helpers
 
 /// In order to spare the SVM client the implementation of the `Receipt`(s) raw decoding the receipts helpers
@@ -936,7 +916,7 @@ pub unsafe extern "C" fn svm_app_receipt_addr(
 ///
 #[no_mangle]
 pub unsafe extern "C" fn svm_app_receipt_returns(
-    returns: *mut svm_value_array,
+    returns: *mut svm_byte_array,
     receipt: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
@@ -944,7 +924,8 @@ pub unsafe extern "C" fn svm_app_receipt_returns(
 
     match client_receipt {
         ClientAppReceipt::Success { ctor_returns, .. } => {
-            *returns = ctor_returns.into();
+            todo!();
+            // *returns = ctor_returns.into();
             svm_result_t::SVM_SUCCESS
         }
         ClientAppReceipt::Failure { error: err_str } => {
@@ -1078,7 +1059,7 @@ pub unsafe extern "C" fn svm_exec_receipt_state(
 ///
 #[no_mangle]
 pub unsafe extern "C" fn svm_exec_receipt_returns(
-    returns: *mut svm_value_array,
+    returns: *mut svm_byte_array,
     receipt: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
@@ -1086,7 +1067,8 @@ pub unsafe extern "C" fn svm_exec_receipt_returns(
 
     match client_receipt {
         ClientExecReceipt::Success { func_returns, .. } => {
-            *returns = func_returns.into();
+            todo!();
+            // *returns = func_returns.into();
             svm_result_t::SVM_SUCCESS
         }
         ClientExecReceipt::Failure { error: err_str } => {
@@ -1255,7 +1237,7 @@ pub unsafe extern "C" fn svm_encode_spawn_app(
     template_addr: svm_byte_array,
     ctor_idx: u16,
     ctor_buf: svm_byte_array,
-    ctor_args: svm_value_array,
+    ctor_args: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
     let template_addr: Result<Address, String> = Address::try_from(template_addr);
@@ -1291,7 +1273,7 @@ pub unsafe extern "C" fn svm_encode_app_tx(
     app_addr: svm_byte_array,
     func_idx: u16,
     func_buf: svm_byte_array,
-    func_args: svm_value_array,
+    func_args: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
     let app_addr: Result<Address, String> = Address::try_from(app_addr);
