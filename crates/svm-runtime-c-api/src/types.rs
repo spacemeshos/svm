@@ -112,9 +112,11 @@ mod tests {
 
     #[test]
     fn svm_byte_array_to_vec_types_with_zero_items() {
+        let raw = vec![0];
+
         let bytes = svm_byte_array {
-            bytes: vec![0].as_ptr(),
-            length: 1,
+            bytes: raw.as_ptr(),
+            length: raw.len() as u32,
         };
 
         let res: Result<Vec<WasmType>, io::Error> = Vec::try_from(bytes);
@@ -123,9 +125,11 @@ mod tests {
 
     #[test]
     fn svm_byte_array_to_vec_types_with_missing_type_bytes() {
+        let raw = vec![1];
+
         let bytes = svm_byte_array {
-            bytes: vec![1].as_ptr(),
-            length: 1,
+            bytes: raw.as_ptr(),
+            length: raw.len() as u32,
         };
 
         let res: Result<Vec<WasmType>, io::Error> = Vec::try_from(bytes);

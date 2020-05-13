@@ -78,8 +78,8 @@ impl TryFrom<svm_byte_array> for Vec<WasmValue> {
         }
 
         let nvalues = slice[0];
-        let mut values = Vec::with_capacity(nvalues as usize);
 
+        let mut values = Vec::with_capacity(nvalues as usize);
         let mut cursor = Cursor::new(&slice[1..]);
 
         for _ in 0..nvalues {
@@ -102,5 +102,72 @@ impl TryFrom<svm_byte_array> for Vec<WasmValue> {
         }
 
         Ok(values)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn empty_vec_values_to_svm_byte_array() {
+        let vec = Vec::<WasmValue>::new();
+
+        let bytes: svm_byte_array = vec.into();
+        let slice: &[u8] = bytes.into();
+
+        let nvalues = slice[0];
+        assert_eq!(nvalues, 0);
+    }
+
+    #[test]
+    fn empty_svm_byte_array_to_vec_values_errors() {
+        let bytes = svm_byte_array {
+            bytes: std::ptr::null(),
+            length: 0,
+        };
+
+        let res: Result<Vec<WasmValue>, io::Error> = Vec::try_from(bytes);
+
+        assert!(res.is_err());
+    }
+
+    #[test]
+    fn svm_byte_array_to_vec_values_with_zero_items() {
+        let raw = vec![0];
+
+        let bytes = svm_byte_array {
+            bytes: raw.as_ptr(),
+            length: raw.len() as u32,
+        };
+
+        let res: Result<Vec<WasmValue>, io::Error> = Vec::try_from(bytes);
+        assert_eq!(res.unwrap(), vec![]);
+    }
+
+    #[test]
+    fn svm_byte_array_to_vec_values_with_missing_type_byte_error() {
+        let raw = vec![1];
+
+        let bytes = svm_byte_array {
+            bytes: raw.as_ptr(),
+            length: raw.len() as u32,
+        };
+
+        let res: Result<Vec<WasmValue>, io::Error> = Vec::try_from(bytes);
+        assert!(res.is_err());
+    }
+
+    #[test]
+    fn svm_byte_array_to_vec_values_with_missing_value_bytes_error() {
+        let raw = vec![1, WasmType::I32.into(), 0x10, 0x20];
+
+        let bytes = svm_byte_array {
+            bytes: raw.as_ptr(),
+            length: raw.len() as u32,
+        };
+
+        let res: Result<Vec<WasmValue>, io::Error> = Vec::try_from(bytes);
+        assert!(res.is_err());
     }
 }
