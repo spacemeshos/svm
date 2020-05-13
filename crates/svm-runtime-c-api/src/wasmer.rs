@@ -1,6 +1,9 @@
+use std::convert::TryFrom;
+use std::io;
 use std::sync::Arc;
 
-use crate::{svm_import_func_sig_t, svm_import_t, svm_import_value};
+use crate::{svm_byte_array, svm_import_func_sig_t, svm_import_t, svm_import_value};
+
 use svm_app::types::WasmType;
 
 use wasmer_runtime_core::{
@@ -9,45 +12,38 @@ use wasmer_runtime_core::{
 };
 
 pub(crate) unsafe fn to_wasmer_import_func(import: &svm_import_t) -> Export {
-    todo!()
-    // match import.value {
-    //     svm_import_value::Func(ref func) => {
-    //         let wasmer_sig = to_wasmer_func_sig(&func.sig);
-    //         let ptr = func.func.as_ptr();
+    match import.value {
+        svm_import_value::Func(ref func) => {
+            let wasmer_sig = to_wasmer_func_sig(&func.sig);
+            let ptr = func.func.as_ptr();
 
-    //         Export::Function {
-    //             func: FuncPointer::new(ptr as _),
-    //             ctx: Context::Internal,
-    //             signature: Arc::new(wasmer_sig),
-    //         }
-    //     }
-    // }
+            Export::Function {
+                func: FuncPointer::new(ptr as _),
+                ctx: Context::Internal,
+                signature: Arc::new(wasmer_sig),
+            }
+        }
+    }
 }
 
 unsafe fn to_wasmer_func_sig(sig: &svm_import_func_sig_t) -> FuncSig {
-    todo!()
-    // let params = to_wasmer_types_vec(&sig.params[..]);
-    // let returns = to_wasmer_types_vec(&sig.returns[..]);
+    let params = to_wasmer_types_vec(sig.params);
+    let returns = to_wasmer_types_vec(sig.returns);
 
-    // FuncSig::new(params, returns)
+    FuncSig::new(params, returns)
 }
 
 #[inline]
-unsafe fn to_wasmer_types_vec(types: &[WasmType]) -> Vec<Type> {
-    todo!()
-    // types.iter().map(|ty| ty.into()).collect()
-}
+unsafe fn to_wasmer_types_vec(types: svm_byte_array) -> Vec<Type> {
+    let types: Result<Vec<WasmType>, io::Error> = Vec::try_from(types);
 
-#[cfg(test)]
-mod test {
-    use super::*;
+    let types = types.unwrap();
 
-    #[test]
-    fn svm_value_type_into_wasmer_type() {
-        assert_eq!(Type::I32, svm_value_type::SVM_I32.into());
-        assert_eq!(Type::I64, svm_value_type::SVM_I64.into());
-
-        assert_eq!(Type::I32, (&svm_value_type::SVM_I32).into());
-        assert_eq!(Type::I64, (&svm_value_type::SVM_I64).into());
-    }
+    types
+        .iter()
+        .map(|ty| match ty {
+            WasmType::I32 => Type::I32,
+            WasmType::I64 => Type::I64,
+        })
+        .collect()
 }

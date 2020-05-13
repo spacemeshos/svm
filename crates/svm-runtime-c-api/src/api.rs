@@ -204,6 +204,7 @@ pub unsafe extern "C" fn svm_imports_alloc(imports: *mut *mut c_void, count: u32
 /// # Example
 ///
 /// ```rust
+/// use svm_app::types::WasmType;
 /// use svm_runtime_c_api::*;
 ///
 /// fn foo() {
@@ -215,8 +216,8 @@ pub unsafe extern "C" fn svm_imports_alloc(imports: *mut *mut c_void, count: u32
 ///
 /// let module_name = "env".into();
 /// let import_name = "foo".into();
-/// let params = vec![].into();
-/// let returns = vec![].into();
+/// let params = Vec::<WasmType>::new();
+/// let returns = Vec::<WasmType>::new();
 /// let func = foo as *const std::ffi::c_void;
 /// let mut error = svm_byte_array::default();
 ///
@@ -226,8 +227,8 @@ pub unsafe extern "C" fn svm_imports_alloc(imports: *mut *mut c_void, count: u32
 ///     module_name,
 ///     import_name,
 ///     func,
-///     params,
-///     returns,
+///     params.into(),
+///     returns.into(),
 ///     &mut error)
 /// };
 /// assert!(res.is_ok());

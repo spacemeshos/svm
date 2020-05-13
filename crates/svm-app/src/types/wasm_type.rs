@@ -10,7 +10,17 @@ pub enum WasmType {
     I64,
 }
 
-/// Converts `WasmType` to its numeric representation
+/// Converts `WasmType` to its raw representation
+///
+/// ```
+/// use svm_app::types::WasmType;
+///
+/// let ty: u8 = WasmType::I32.into();
+/// assert_eq!(ty, 0u8);
+///
+/// let ty: u8 = WasmType::I64.into();
+/// assert_eq!(ty, 1u8);
+/// ```
 impl From<&WasmType> for u8 {
     fn from(ty: &WasmType) -> u8 {
         match ty {
@@ -28,13 +38,27 @@ impl From<WasmType> for u8 {
 }
 
 /// Wasm function arguments error
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum WasmTypeError {
     /// Unsupported type
     UnsupportedType(u8),
 }
 
-/// Converts `WasmType` to its numeric representation
+/// Converts `WasmType` to its raw representation
+///
+/// ```
+/// use std::convert::TryFrom;
+/// use svm_app::types::{WasmType, WasmTypeError};
+///
+/// let ty = WasmType::try_from(0u8).unwrap();
+/// assert_eq!(ty, WasmType::I32);
+///
+/// let ty = WasmType::try_from(1u8).unwrap();
+/// assert_eq!(ty, WasmType::I64);
+///
+/// let err = WasmType::try_from(2u8).err().unwrap();
+/// assert_eq!(err, WasmTypeError::UnsupportedType(2u8));
+/// ```
 impl TryFrom<u8> for WasmType {
     type Error = WasmTypeError;
 
