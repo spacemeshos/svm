@@ -28,8 +28,8 @@ pub struct svm_value_array {
 /// assert_eq!(values.length, 2);
 ///
 /// let slice: &[svm_value] = unsafe { std::slice::from_raw_parts(values.values, 2) };
-/// assert_eq!(slice[0], svm_value { ty: svm_value_type::SVM_I32, i32_val: 10, i64_val: 0 });
-/// assert_eq!(slice[1], svm_value { ty: svm_value_type::SVM_I64, i32_val: 0,  i64_val: 20 });
+/// assert_eq!(slice[0], svm_value { ty: svm_value_type { SVM_I32_ON: true, SVM_I64_ON: false }, i32_val: 10, i64_val: 0 });
+/// assert_eq!(slice[1], svm_value { ty: svm_value_type { SVM_I32_ON: false, SVM_I64_ON: true }, i32_val: 0,  i64_val: 20 });
 /// ```
 ///
 impl From<&[WasmValue]> for svm_value_array {
@@ -63,8 +63,8 @@ impl From<Vec<WasmValue>> for svm_value_array {
 /// use svm_runtime_c_api::{svm_value, svm_value_array, svm_value_type};
 ///
 /// let values  = vec![
-///     svm_value { ty: svm_value_type::SVM_I32, i32_val: 10, i64_val: 0 },
-///     svm_value { ty: svm_value_type::SVM_I64, i32_val: 0,  i64_val: 20 }
+///     svm_value { ty: svm_value_type { SVM_I32_ON: true,  SVM_I64_ON: false }, i32_val: 10, i64_val: 0 },
+///     svm_value { ty: svm_value_type { SVM_I32_ON: false, SVM_I64_ON: true }, i32_val: 0,  i64_val: 20 }
 /// ];
 /// let (ptr, len, _cap) = values.into_raw_parts();
 /// let arr = svm_value_array { values: ptr, length: len as u64 };
@@ -106,22 +106,28 @@ pub struct svm_value {
 /// use svm_runtime_c_api::{svm_value, svm_value_type};
 ///
 /// let wasm_val: svm_value = WasmValue::I32(10).into();
-/// assert_eq!(wasm_val, svm_value { ty: svm_value_type::SVM_I32, i32_val: 10, i64_val: 0 });
+/// assert_eq!(wasm_val, svm_value { ty: svm_value_type { SVM_I32_ON: true, SVM_I64_ON: false }, i32_val: 10, i64_val: 0 });
 ///
 /// let wasm_val: svm_value = WasmValue::I64(20).into();
-/// assert_eq!(wasm_val, svm_value { ty: svm_value_type::SVM_I64, i32_val: 0, i64_val: 20 });
+/// assert_eq!(wasm_val, svm_value { ty: svm_value_type { SVM_I32_ON: false, SVM_I64_ON: true }, i32_val: 0, i64_val: 20 });
 /// ```
 ///
 impl From<&WasmValue> for svm_value {
     fn from(val: &WasmValue) -> Self {
         match *val {
             WasmValue::I32(v) => Self {
-                ty: svm_value_type::SVM_I32,
+                ty: svm_value_type {
+                    SVM_I32_ON: true,
+                    SVM_I64_ON: false,
+                },
                 i32_val: v,
                 i64_val: 0,
             },
             WasmValue::I64(v) => Self {
-                ty: svm_value_type::SVM_I64,
+                ty: svm_value_type {
+                    SVM_I32_ON: false,
+                    SVM_I64_ON: true,
+                },
                 i64_val: v,
                 i32_val: 0,
             },
@@ -145,18 +151,35 @@ impl From<WasmValue> for svm_value {
 /// use svm_app::types::WasmValue;
 /// use svm_runtime_c_api::{svm_value, svm_value_type};
 ///
-/// let wasm_val: WasmValue = svm_value { ty: svm_value_type::SVM_I32, i32_val: 10, i64_val: 0 }.into();
+/// let wasm_val: WasmValue = svm_value {
+///   ty: svm_value_type { SVM_I32_ON: true, SVM_I64_ON: false },
+///   i32_val: 10,
+///   i64_val: 0,
+/// }.into();
+///
 /// assert_eq!(wasm_val, WasmValue::I32(10));
 ///
-/// let wasm_val: WasmValue = svm_value { ty: svm_value_type::SVM_I64, i32_val: 0, i64_val: 20 }.into();
+/// let wasm_val: WasmValue = svm_value {
+///   ty: svm_value_type { SVM_I32_ON: false, SVM_I64_ON: true },
+///   i32_val: 0,
+///   i64_val: 20
+/// }.into();
+///
 /// assert_eq!(wasm_val, WasmValue::I64(20));
 ///
 /// ```
 impl From<svm_value> for WasmValue {
     fn from(val: svm_value) -> WasmValue {
-        match val.ty {
-            svm_value_type::SVM_I32 => WasmValue::I32(val.i32_val),
-            svm_value_type::SVM_I64 => WasmValue::I64(val.i64_val),
+        let ty = val.ty;
+
+        if ty.SVM_I32_ON == ty.SVM_I64_ON {
+            unreachable!()
+        }
+
+        if ty.SVM_I32_ON {
+            WasmValue::I32(val.i32_val)
+        } else {
+            WasmValue::I64(val.i64_val)
         }
     }
 }
@@ -165,12 +188,12 @@ impl From<svm_value> for WasmValue {
 #[allow(non_snake_case, non_camel_case_types)]
 #[derive(Debug, Copy, Clone, PartialEq)]
 #[repr(C)]
-pub enum svm_value_type {
+pub struct svm_value_type {
     #[doc(hidden)]
-    SVM_I32 = 1,
+    pub SVM_I32_ON: bool,
 
     #[doc(hidden)]
-    SVM_I64 = 2,
+    pub SVM_I64_ON: bool,
 }
 
 ///
@@ -184,8 +207,8 @@ pub enum svm_value_type {
 /// let i64_type = svm_value_type::try_from(2);
 /// let invalid_type = svm_value_type::try_from(3);
 ///
-/// assert_eq!(svm_value_type::SVM_I32, i32_type.unwrap());
-/// assert_eq!(svm_value_type::SVM_I64, i64_type.unwrap());
+/// assert_eq!(svm_value_type { SVM_I32_ON: true,  SVM_I64_ON: false }, i32_type.unwrap());
+/// assert_eq!(svm_value_type { SVM_I32_ON: false, SVM_I64_ON: true }, i64_type.unwrap());
 ///
 /// assert_eq!(Err("Invalid raw SVM value type: `3`".to_string()), invalid_type);
 /// ```
@@ -195,8 +218,14 @@ impl TryFrom<u8> for svm_value_type {
 
     fn try_from(byte: u8) -> Result<Self, Self::Error> {
         match byte {
-            1 => Ok(svm_value_type::SVM_I32),
-            2 => Ok(svm_value_type::SVM_I64),
+            1 => Ok(svm_value_type {
+                SVM_I32_ON: true,
+                SVM_I64_ON: false,
+            }),
+            2 => Ok(svm_value_type {
+                SVM_I32_ON: false,
+                SVM_I64_ON: true,
+            }),
             _ => Err(format!("Invalid raw SVM value type: `{}`", byte)),
         }
     }
@@ -219,8 +248,8 @@ pub struct svm_value_type_array {
 /// ```rust
 /// use svm_runtime_c_api::{svm_value_type, svm_value_type_array};
 ///
-/// let type1 = svm_value_type::SVM_I32;
-/// let type2 = svm_value_type::SVM_I64;
+/// let type1 = svm_value_type { SVM_I32_ON: true,  SVM_I64_ON: false };
+/// let type2 = svm_value_type { SVM_I32_ON: false, SVM_I64_ON: true };
 /// let types = vec![type1, type2];
 /// let array: svm_value_type_array = (&types).into();
 ///
@@ -244,8 +273,8 @@ impl From<svm_value_type_array> for Vec<svm_value_type> {
 /// ```rust
 /// use svm_runtime_c_api::{svm_value_type, svm_value_type_array};
 ///
-/// let type1 = svm_value_type::SVM_I32;
-/// let type2 = svm_value_type::SVM_I64;
+/// let type1 = svm_value_type { SVM_I32_ON: true,  SVM_I64_ON: false };
+/// let type2 = svm_value_type { SVM_I32_ON: false, SVM_I64_ON: true };
 /// let types = vec![type1, type2];
 ///
 /// let array: svm_value_type_array = (&types).into();

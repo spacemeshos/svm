@@ -7,18 +7,23 @@ use wasmer_runtime_core::{
     types::{FuncSig, Type},
 };
 
-impl Into<Type> for &svm_value_type {
-    fn into(self) -> Type {
-        match self {
-            svm_value_type::SVM_I32 => Type::I32,
-            svm_value_type::SVM_I64 => Type::I64,
+impl From<&svm_value_type> for Type {
+    fn from(value: &svm_value_type) -> Type {
+        if value.SVM_I32_ON == value.SVM_I64_ON {
+            unreachable!()
+        }
+
+        if value.SVM_I32_ON {
+            Type::I32
+        } else {
+            Type::I64
         }
     }
 }
 
-impl Into<Type> for svm_value_type {
-    fn into(self) -> Type {
-        (&self).into()
+impl From<svm_value_type> for Type {
+    fn from(value: svm_value_type) -> Type {
+        (&value).into()
     }
 }
 
@@ -55,10 +60,39 @@ mod test {
 
     #[test]
     fn svm_value_type_into_wasmer_type() {
-        assert_eq!(Type::I32, svm_value_type::SVM_I32.into());
-        assert_eq!(Type::I64, svm_value_type::SVM_I64.into());
+        assert_eq!(
+            Type::I32,
+            svm_value_type {
+                SVM_I32_ON: true,
+                SVM_I64_ON: false,
+            }
+            .into()
+        );
+        assert_eq!(
+            Type::I64,
+            svm_value_type {
+                SVM_I32_ON: false,
+                SVM_I64_ON: true
+            }
+            .into()
+        );
 
-        assert_eq!(Type::I32, (&svm_value_type::SVM_I32).into());
-        assert_eq!(Type::I64, (&svm_value_type::SVM_I64).into());
+        assert_eq!(
+            Type::I32,
+            (&svm_value_type {
+                SVM_I32_ON: true,
+                SVM_I64_ON: false
+            })
+                .into()
+        );
+
+        assert_eq!(
+            Type::I64,
+            (&svm_value_type {
+                SVM_I32_ON: false,
+                SVM_I64_ON: true
+            })
+                .into()
+        );
     }
 }

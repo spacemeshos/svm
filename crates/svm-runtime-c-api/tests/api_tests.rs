@@ -94,9 +94,18 @@ unsafe fn create_imports() -> *const c_void {
         "inc_balance",
         inc_balance as _,
         vec![
-            svm_value_type::SVM_I64,
-            svm_value_type::SVM_I32,
-            svm_value_type::SVM_I32,
+            svm_value_type {
+                SVM_I32_ON: false,
+                SVM_I64_ON: true,
+            },
+            svm_value_type {
+                SVM_I32_ON: true,
+                SVM_I64_ON: false,
+            },
+            svm_value_type {
+                SVM_I32_ON: true,
+                SVM_I64_ON: false,
+            },
         ],
         vec![],
     );
@@ -107,9 +116,18 @@ unsafe fn create_imports() -> *const c_void {
         "mul_balance",
         mul_balance as _,
         vec![
-            svm_value_type::SVM_I64,
-            svm_value_type::SVM_I32,
-            svm_value_type::SVM_I32,
+            svm_value_type {
+                SVM_I32_ON: false,
+                SVM_I64_ON: true,
+            },
+            svm_value_type {
+                SVM_I32_ON: true,
+                SVM_I64_ON: false,
+            },
+            svm_value_type {
+                SVM_I32_ON: true,
+                SVM_I64_ON: false,
+            },
         ],
         vec![],
     );
