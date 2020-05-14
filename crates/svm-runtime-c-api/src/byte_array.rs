@@ -115,6 +115,17 @@ impl From<&[u8]> for svm_byte_array {
     }
 }
 
+impl From<Vec<u8>> for svm_byte_array {
+    fn from(vec: Vec<u8>) -> Self {
+        let (ptr, len, _cap) = vec.into_raw_parts();
+
+        svm_byte_array {
+            bytes: ptr,
+            length: len as u32,
+        }
+    }
+}
+
 impl From<&svm_byte_array> for &[u8] {
     fn from(bytes: &svm_byte_array) -> Self {
         unsafe { std::slice::from_raw_parts(bytes.bytes, bytes.length as usize) }

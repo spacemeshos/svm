@@ -1,4 +1,4 @@
-use std::{convert::TryFrom, ffi::c_void, path::Path, ptr::NonNull};
+use std::{convert::TryFrom, ffi::c_void, io, path::Path, ptr::NonNull};
 
 use log::{debug, error};
 
@@ -11,10 +11,10 @@ use svm_common::{Address, State};
 use svm_runtime::{ctx::SvmCtx, gas::DefaultGasEstimator};
 
 use crate::{
-    helpers, raw_error, raw_utf8_error, raw_validate_error,
+    helpers, raw_error, raw_io_error, raw_utf8_error, raw_validate_error,
     receipt::{encode_app_receipt, encode_exec_receipt, encode_template_receipt},
     svm_byte_array, svm_import_func_sig_t, svm_import_func_t, svm_import_kind, svm_import_t,
-    svm_import_value, svm_result_t, svm_value, svm_value_array, svm_value_type_array,
+    svm_import_value, svm_result_t,
     testing::{self, ClientAppReceipt, ClientExecReceipt, ClientTemplateReceipt},
     RuntimePtr,
 };
@@ -204,6 +204,7 @@ pub unsafe extern "C" fn svm_imports_alloc(imports: *mut *mut c_void, count: u32
 /// # Example
 ///
 /// ```rust
+/// use svm_app::types::WasmType;
 /// use svm_runtime_c_api::*;
 ///
 /// fn foo() {
@@ -215,8 +216,8 @@ pub unsafe extern "C" fn svm_imports_alloc(imports: *mut *mut c_void, count: u32
 ///
 /// let module_name = "env".into();
 /// let import_name = "foo".into();
-/// let params = vec![].into();
-/// let returns = vec![].into();
+/// let params = Vec::<WasmType>::new();
+/// let returns = Vec::<WasmType>::new();
 /// let func = foo as *const std::ffi::c_void;
 /// let mut error = svm_byte_array::default();
 ///
@@ -226,8 +227,8 @@ pub unsafe extern "C" fn svm_imports_alloc(imports: *mut *mut c_void, count: u32
 ///     module_name,
 ///     import_name,
 ///     func,
-///     params,
-///     returns,
+///     params.into(),
+///     returns.into(),
 ///     &mut error)
 /// };
 /// assert!(res.is_ok());
@@ -240,8 +241,8 @@ pub unsafe extern "C" fn svm_import_func_build(
     module_name: svm_byte_array,
     import_name: svm_byte_array,
     func: *const c_void,
-    params: svm_value_type_array,
-    returns: svm_value_type_array,
+    params: svm_byte_array,
+    returns: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
     let imports = &mut *(imports as *mut Vec<svm_import_t>);
@@ -259,8 +260,8 @@ pub unsafe extern "C" fn svm_import_func_build(
     let func = svm_import_func_t {
         func: func.unwrap(),
         sig: svm_import_func_sig_t {
-            params: params.into(),
-            returns: returns.into(),
+            params: params,
+            returns: returns,
         },
     };
 
@@ -777,26 +778,6 @@ pub unsafe extern "C" fn svm_byte_array_destroy(bytes: svm_byte_array) {
     let _ = Vec::from_raw_parts(ptr, length, length);
 }
 
-/// Frees `svm_value_array`
-///
-/// # Example
-///
-/// ```rust
-/// use svm_runtime_c_api::*;
-///
-/// let array = svm_value_array { values: std::ptr::null(), length: 0 };
-/// unsafe { svm_value_array_destroy(array); }
-/// ```
-///
-#[must_use]
-#[no_mangle]
-pub unsafe extern "C" fn svm_value_array_destroy(array: svm_value_array) {
-    let ptr = array.values as *mut svm_value;
-    let length = array.length as usize;
-
-    let _ = Vec::from_raw_parts(ptr, length, length);
-}
-
 /// Receipts helpers
 
 /// In order to spare the SVM client the implementation of the `Receipt`(s) raw decoding the receipts helpers
@@ -926,7 +907,10 @@ pub unsafe extern "C" fn svm_app_receipt_addr(
     }
 }
 
-/// Extracts the spawned-app constructor returns.
+/// Extracts the spawned-app constructor `returns`.
+/// The `returns` are encoded as `svm_byte_array`.
+/// More info regarding the encoding in `byte_array.rs`.
+///
 /// If it succeeded, returns `SVM_SUCCESS`,
 /// Otherwise returns `SVM_FAILURE` and the error message via `error` parameter.
 ///
@@ -936,7 +920,7 @@ pub unsafe extern "C" fn svm_app_receipt_addr(
 ///
 #[no_mangle]
 pub unsafe extern "C" fn svm_app_receipt_returns(
-    returns: *mut svm_value_array,
+    returns: *mut svm_byte_array,
     receipt: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
@@ -1068,7 +1052,10 @@ pub unsafe extern "C" fn svm_exec_receipt_state(
     }
 }
 
-/// Extracts the `Exec App` returns.
+/// Extracts the `Exec App` `returns`.
+/// The `returns` are encoded as `svm_byte_array`.
+/// More info regarding the encoding in `byte_array.rs`.
+///
 /// If it succeeded, returns `SVM_SUCCESS`,
 /// Otherwise returns `SVM_FAILURE` and the error message via `error` parameter.
 ///
@@ -1078,7 +1065,7 @@ pub unsafe extern "C" fn svm_exec_receipt_state(
 ///
 #[no_mangle]
 pub unsafe extern "C" fn svm_exec_receipt_returns(
-    returns: *mut svm_value_array,
+    returns: *mut svm_byte_array,
     receipt: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
@@ -1248,6 +1235,9 @@ pub unsafe extern "C" fn svm_encode_app_template(
 
 /// Constructs a new raw `spawn_app` transaction.
 ///
+/// The `ctor_args` is `svm_byte_array` representing a slice of `WasmValue`.
+/// More info regarding the encoding in `byte_array.rs`.
+///
 #[no_mangle]
 pub unsafe extern "C" fn svm_encode_spawn_app(
     spawn_app: *mut svm_byte_array,
@@ -1255,7 +1245,7 @@ pub unsafe extern "C" fn svm_encode_spawn_app(
     template_addr: svm_byte_array,
     ctor_idx: u16,
     ctor_buf: svm_byte_array,
-    ctor_args: svm_value_array,
+    ctor_args: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
     let template_addr: Result<Address, String> = Address::try_from(template_addr);
@@ -1267,11 +1257,19 @@ pub unsafe extern "C" fn svm_encode_spawn_app(
     let ctor_buf: &[u8] = ctor_buf.into();
     let ctor_buf: Vec<u8> = ctor_buf.iter().cloned().collect();
 
-    let ctor_args: Vec<WasmValue> = ctor_args.into();
+    let ctor_args: Result<Vec<WasmValue>, io::Error> = Vec::try_from(ctor_args);
+
+    if let Err(e) = ctor_args {
+        raw_io_error(e, error);
+        return svm_result_t::SVM_FAILURE;
+    }
+
+    let template_addr = template_addr.unwrap();
+    let ctor_args = ctor_args.unwrap();
 
     let mut bytes = SpawnAppBuilder::new()
         .with_version(version)
-        .with_template(&template_addr.unwrap().into())
+        .with_template(&template_addr.into())
         .with_ctor_index(ctor_idx)
         .with_ctor_buf(&ctor_buf)
         .with_ctor_args(&ctor_args)
@@ -1284,6 +1282,9 @@ pub unsafe extern "C" fn svm_encode_spawn_app(
 
 /// Constructs a new raw `app_tx` transaction.
 ///
+/// The `func_args` is `svm_byte_array` representing a slice of `WasmValue`.
+/// More info regarding the encoding in `byte_array.rs`.
+///
 #[no_mangle]
 pub unsafe extern "C" fn svm_encode_app_tx(
     app_tx: *mut svm_byte_array,
@@ -1291,7 +1292,7 @@ pub unsafe extern "C" fn svm_encode_app_tx(
     app_addr: svm_byte_array,
     func_idx: u16,
     func_buf: svm_byte_array,
-    func_args: svm_value_array,
+    func_args: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
     let app_addr: Result<Address, String> = Address::try_from(app_addr);
@@ -1303,11 +1304,19 @@ pub unsafe extern "C" fn svm_encode_app_tx(
     let func_buf: &[u8] = func_buf.into();
     let func_buf: Vec<u8> = func_buf.iter().cloned().collect();
 
-    let func_args: Vec<WasmValue> = func_args.into();
+    let func_args: Result<Vec<WasmValue>, io::Error> = Vec::try_from(func_args);
+
+    if let Err(e) = func_args {
+        raw_io_error(e, error);
+        return svm_result_t::SVM_FAILURE;
+    }
+
+    let app_addr = app_addr.unwrap();
+    let func_args = func_args.unwrap();
 
     let mut bytes = AppTxBuilder::new()
         .with_version(version)
-        .with_app(&app_addr.unwrap().into())
+        .with_app(&app_addr.into())
         .with_func_index(func_idx)
         .with_func_buf(&func_buf)
         .with_func_args(&func_args)
