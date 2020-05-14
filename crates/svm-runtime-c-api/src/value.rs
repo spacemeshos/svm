@@ -11,7 +11,7 @@ use crate::svm_byte_array;
 /// This file contains the implementation of encoding & decoding of a `Vec<WasmValue>` into `svm_byte_array`.
 /// (and vice-versa).
 ///
-/// This encoding (and decoding) functionality should be also implemented by any SVM clients (e.g: C, Golang).
+/// This encoding (and decoding) functionality should be also implemented by any SVM clients (e.g: C, Go).
 /// The design motivation is sticking with `svm_byte_array` as the mechanism for passing data between SVM client
 /// to SVM (via the `SVM C-API``)
 ///
@@ -31,7 +31,6 @@ use crate::svm_byte_array;
 /// |          | (1 byte)  |   bytes)  |        |   (1 byte)  |   bytes)   |
 /// +----------+--------------------------------+-------------+------------+
 ///
-
 /// Converts `svm_byte_array` into `Vec<WasmerValue>`
 ///
 /// ```
@@ -60,16 +59,14 @@ impl From<&[WasmValue]> for svm_byte_array {
         bytes.write_u8(nvalues as u8);
 
         for value in values.iter() {
-            match value {
-                WasmValue::I32(v) => {
-                    bytes.write_u8(WasmType::I32.into());
-                    bytes.write_u32::<BigEndian>(*v);
-                }
-                WasmValue::I64(v) => {
-                    bytes.write_u8(WasmType::I64.into());
-                    bytes.write_u64::<BigEndian>(*v);
-                }
-            }
+            let ty: WasmType = value.ty();
+            bytes.write_u8(ty.into());
+
+            let value: u64 = value.into();
+            match ty {
+                WasmType::I32 => bytes.write_u32::<BigEndian>(value as u32),
+                WasmType::I64 => bytes.write_u64::<BigEndian>(value),
+            };
         }
 
         bytes.into()
@@ -111,18 +108,13 @@ impl TryFrom<svm_byte_array> for Vec<WasmValue> {
             let ty = cursor.read_u8()?;
             let ty = WasmType::try_from(ty);
 
-            let value = match ty {
-                Ok(WasmType::I32) => {
-                    let value = cursor.read_u32::<BigEndian>()?;
-                    WasmValue::I32(value)
-                }
-                Ok(WasmType::I64) => {
-                    let value = cursor.read_u64::<BigEndian>()?;
-                    WasmValue::I64(value)
-                }
+            let value: u64 = match ty {
+                Ok(WasmType::I32) => cursor.read_u32::<BigEndian>()? as u64,
+                Ok(WasmType::I64) => cursor.read_u64::<BigEndian>()?,
                 _ => return Err(ErrorKind::InvalidInput.into()),
             };
 
+            let value: WasmValue = (ty.unwrap(), value).into();
             values.push(value);
         }
 

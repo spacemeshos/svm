@@ -907,7 +907,10 @@ pub unsafe extern "C" fn svm_app_receipt_addr(
     }
 }
 
-/// Extracts the spawned-app constructor returns.
+/// Extracts the spawned-app constructor `returns`.
+/// The `returns` are encoded as `svm_byte_array`.
+/// More info regarding the encoding in `byte_array.rs`.
+///
 /// If it succeeded, returns `SVM_SUCCESS`,
 /// Otherwise returns `SVM_FAILURE` and the error message via `error` parameter.
 ///
@@ -1049,7 +1052,10 @@ pub unsafe extern "C" fn svm_exec_receipt_state(
     }
 }
 
-/// Extracts the `Exec App` returns.
+/// Extracts the `Exec App` `returns`.
+/// The `returns` are encoded as `svm_byte_array`.
+/// More info regarding the encoding in `byte_array.rs`.
+///
 /// If it succeeded, returns `SVM_SUCCESS`,
 /// Otherwise returns `SVM_FAILURE` and the error message via `error` parameter.
 ///
@@ -1229,6 +1235,9 @@ pub unsafe extern "C" fn svm_encode_app_template(
 
 /// Constructs a new raw `spawn_app` transaction.
 ///
+/// The `ctor_args` is `svm_byte_array` representing a slice of `WasmValue`.
+/// More info regarding the encoding in `byte_array.rs`.
+///
 #[no_mangle]
 pub unsafe extern "C" fn svm_encode_spawn_app(
     spawn_app: *mut svm_byte_array,
@@ -1272,6 +1281,9 @@ pub unsafe extern "C" fn svm_encode_spawn_app(
 }
 
 /// Constructs a new raw `app_tx` transaction.
+///
+/// The `func_args` is `svm_byte_array` representing a slice of `WasmValue`.
+/// More info regarding the encoding in `byte_array.rs`.
 ///
 #[no_mangle]
 pub unsafe extern "C" fn svm_encode_app_tx(

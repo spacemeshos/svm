@@ -11,21 +11,21 @@ use crate::svm_byte_array;
 /// This file contains the implementation of encoding & decoding of a `Vec<WasmType>` into `svm_byte_array`.
 /// (and vice-versa).
 ///
-/// This encoding (and decoding) functionality should be also implemented by any SVM clients (e.g: C, Golang).
+/// This encoding (and decoding) functionality should be also implemented by any SVM clients (e.g: C, Go).
 /// The design motivation is sticking with `svm_byte_array` as the mechanism for passing data between SVM client
 /// to SVM (via the `SVM C-API``)
 ///
 /// ### Encoding format:
 ///
-/// * First byte is for the number of WASM types.
-///
 /// * Then each WASM type is encoded as a `I32` or `I64` (SVM doesn't support Floats).
 ///   The encoding is implemented in `WasmType` under the `svm-app` crate.
 ///
-/// +-------------------------------------------+
-/// | #types   | type #1  |  . . . |  type #N   |
-/// | (1 byte) | (1 byte) |        |  (1 byte)  |
-/// +----------+--------------------------------+
+/// Note: the number of types equals the buffer length (one byte per-type).
+///
+/// +---------------------------------+
+/// |  type #1  |  . . . |  type #N   |
+/// |  (1 byte) |        |  (1 byte)  |
+/// +----------+----------------------+
 ///
 
 /// Converts `Vec<WasmType>` into `svm_byte_array`
@@ -51,11 +51,7 @@ impl From<&[WasmType]> for svm_byte_array {
 
         assert!(ntypes <= std::u8::MAX as usize);
 
-        let capacity = 1 + ntypes;
-
-        let mut bytes = Vec::with_capacity(capacity);
-
-        bytes.write_u8(ntypes as u8);
+        let mut bytes = Vec::with_capacity(ntypes);
 
         for ty in types.iter() {
             let ty = ty.into();
@@ -87,14 +83,10 @@ impl TryFrom<svm_byte_array> for Vec<WasmType> {
         let slice: &[u8] =
             unsafe { std::slice::from_raw_parts(bytes.bytes, bytes.length as usize) };
 
-        let length = slice.len();
-        if length == 0 {
-            return Err(ErrorKind::InvalidInput.into());
-        }
+        let ntypes = slice.len();
 
-        let ntypes = slice[0];
-        let mut types = Vec::with_capacity(ntypes as usize);
-        let mut cursor = Cursor::new(&slice[1..]);
+        let mut types = Vec::with_capacity(ntypes);
+        let mut cursor = Cursor::new(slice);
 
         for _ in 0..ntypes {
             let raw_ty = cursor.read_u8()?;
@@ -116,7 +108,7 @@ mod tests {
         let bytes: svm_byte_array = Vec::<WasmType>::new().into();
 
         let slice: &[u8] = bytes.into();
-        assert_eq!(slice, &[0]);
+        assert_eq!(slice.len(), 0);
     }
 
     #[test]
@@ -127,33 +119,6 @@ mod tests {
         };
 
         let res: Result<Vec<WasmType>, io::Error> = Vec::try_from(bytes);
-
-        assert!(res.is_err());
-    }
-
-    #[test]
-    fn svm_byte_array_to_vec_types_with_zero_items() {
-        let raw = vec![0];
-
-        let bytes = svm_byte_array {
-            bytes: raw.as_ptr(),
-            length: raw.len() as u32,
-        };
-
-        let res: Result<Vec<WasmType>, io::Error> = Vec::try_from(bytes);
         assert_eq!(res.unwrap(), vec![]);
-    }
-
-    #[test]
-    fn svm_byte_array_to_vec_types_with_missing_type_bytes() {
-        let raw = vec![1];
-
-        let bytes = svm_byte_array {
-            bytes: raw.as_ptr(),
-            length: raw.len() as u32,
-        };
-
-        let res: Result<Vec<WasmType>, io::Error> = Vec::try_from(bytes);
-        assert!(res.is_err());
     }
 }
