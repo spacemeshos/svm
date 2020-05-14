@@ -6,7 +6,6 @@
 
 _Spacemesh_ Virtual Machine
 
-
 ### Project Goals
 * Self-contained. Should be hosted by the [Spacemesh Golang full-node](https://github.com/spacemeshos/go-spacemesh) and future _Spacemesh_ Rust full-node
 * Built on top of [wasmer](https://wasmer.io)
