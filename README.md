@@ -1,12 +1,10 @@
 <img src="./docs/assets/logo.png" width=200 height=90/>
 
-[![build](https://travis-ci.org/spacemeshos/svm.svg)](https://travis-ci.org/spacemeshos/svm)
-[![codecov](https://codecov.io/gh/spacemeshos/svm/branch/develop/graph/badge.svg)](https://codecov.io/gh/spacemeshos/svm)
+![build](https://github.com/spacemeshos/svm/workflows/CI/badge.svg)
 [![license](https://img.shields.io/badge/License-MIT-brightgreen.svg)](https://github.com/spacemeshos/svm/blob/master/LICENSE)
 [![gitter](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/spacemesh-os/svm)
 
 _Spacemesh_ Virtual Machine
-
 
 ### Project Goals
 * Self-contained. Should be hosted by the [Spacemesh Golang full-node](https://github.com/spacemeshos/go-spacemesh) and future _Spacemesh_ Rust full-node

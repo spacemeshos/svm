@@ -1,6 +1,6 @@
 use std::{ffi::c_void, ptr::NonNull};
 
-use crate::svm_value_type;
+use crate::svm_byte_array;
 
 /// Represents an `Import` kind
 #[allow(non_camel_case_types)]
@@ -11,13 +11,12 @@ pub enum svm_import_kind {
 
 /// FFI representation for import function signature
 #[allow(non_camel_case_types)]
-#[derive(Debug)]
 pub struct svm_import_func_sig_t {
     /// Function params types
-    pub params: Vec<svm_value_type>,
+    pub params: svm_byte_array,
 
     /// Function returns types
-    pub returns: Vec<svm_value_type>,
+    pub returns: svm_byte_array,
 }
 
 /// FFI representation for import function

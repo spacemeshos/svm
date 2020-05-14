@@ -1,13 +1,13 @@
 extern crate svm_runtime_c_api;
 
 use svm_runtime_c_api as api;
-use svm_runtime_c_api::{svm_byte_array, svm_value_type, testing};
+use svm_runtime_c_api::{svm_byte_array, testing};
 
 use maplit::hashmap;
 
 use std::{collections::HashMap, ffi::c_void};
 
-use svm_app::types::WasmValue;
+use svm_app::types::{WasmType, WasmValue};
 use svm_common::Address;
 use svm_runtime::register::Register;
 
@@ -93,12 +93,8 @@ unsafe fn create_imports() -> *const c_void {
         "env",
         "inc_balance",
         inc_balance as _,
-        vec![
-            svm_value_type::SVM_I64,
-            svm_value_type::SVM_I32,
-            svm_value_type::SVM_I32,
-        ],
-        vec![],
+        vec![WasmType::I64, WasmType::I32, WasmType::I32].into(),
+        Vec::<WasmType>::new().into(),
     );
 
     testing::import_func_create(
@@ -106,12 +102,8 @@ unsafe fn create_imports() -> *const c_void {
         "env",
         "mul_balance",
         mul_balance as _,
-        vec![
-            svm_value_type::SVM_I64,
-            svm_value_type::SVM_I32,
-            svm_value_type::SVM_I32,
-        ],
-        vec![],
+        vec![WasmType::I64, WasmType::I32, WasmType::I32].into(),
+        Vec::<WasmType>::new().into(),
     );
 
     imports as _
