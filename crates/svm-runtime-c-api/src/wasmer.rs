@@ -8,12 +8,16 @@ use wasmer_runtime_core::{
 };
 
 impl From<&svm_value_type> for Type {
-    fn from(value: &svm_value_type) -> Type {
-        if value.SVM_I32_ON == value.SVM_I64_ON {
-            unreachable!()
+    fn from(ty: &svm_value_type) -> Type {
+        if ty.SVM_I32_ON == ty.SVM_I64_ON {
+            if ty.SVM_I32_ON {
+                panic!("SVM_I32_ON and SVM_I64_ON can't be both TRUE")
+            } else {
+                panic!("SVM_I32_ON and SVM_I64_ON can't be both FALSE")
+            }
         }
 
-        if value.SVM_I32_ON {
+        if ty.SVM_I32_ON {
             Type::I32
         } else {
             Type::I64

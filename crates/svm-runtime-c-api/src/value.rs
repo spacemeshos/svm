@@ -174,9 +174,9 @@ impl From<svm_value> for WasmValue {
 
         if ty.SVM_I32_ON == ty.SVM_I64_ON {
             if ty.SVM_I32_ON {
-                unreachable!("SVM_I32_ON and SVM_I64_ON can't be both TRUE")
+                panic!("SVM_I32_ON and SVM_I64_ON can't be both TRUE")
             } else {
-                unreachable!("SVM_I32_ON and SVM_I64_ON can't be both FALSE")
+                panic!("SVM_I32_ON and SVM_I64_ON can't be both FALSE")
             }
         }
 
