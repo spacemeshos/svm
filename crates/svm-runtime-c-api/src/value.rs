@@ -173,7 +173,11 @@ impl From<svm_value> for WasmValue {
         let ty = val.ty;
 
         if ty.SVM_I32_ON == ty.SVM_I64_ON {
-            unreachable!()
+            if ty.SVM_I32_ON {
+                unreachable!("SVM_I32_ON and SVM_I64_ON can't be both TRUE")
+            } else {
+                unreachable!("SVM_I32_ON and SVM_I64_ON can't be both FALSE")
+            }
         }
 
         if ty.SVM_I32_ON {
