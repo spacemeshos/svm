@@ -1,6 +1,8 @@
+use std::io;
 use std::string::FromUtf8Error;
 
 use crate::svm_byte_array;
+
 use svm_runtime::error::ValidateError;
 
 pub(crate) unsafe fn raw_validate_error(err: &ValidateError, raw_err: *mut svm_byte_array) {
@@ -8,13 +10,18 @@ pub(crate) unsafe fn raw_validate_error(err: &ValidateError, raw_err: *mut svm_b
     raw_error(s, raw_err);
 }
 
+pub(crate) unsafe fn raw_io_error(err: io::Error, raw_err: *mut svm_byte_array) {
+    let s = format!("{}", err);
+    raw_error(s, raw_err);
+}
+
 pub(crate) unsafe fn raw_utf8_error<T>(
     utf8_res: Result<T, FromUtf8Error>,
-    error: *mut svm_byte_array,
+    raw_err: *mut svm_byte_array,
 ) {
     let utf8_err = utf8_res.err().unwrap();
 
-    raw_error(utf8_err.to_string(), error);
+    raw_error(utf8_err.to_string(), raw_err);
 }
 
 pub(crate) unsafe fn raw_error(s: String, raw_err: *mut svm_byte_array) {
