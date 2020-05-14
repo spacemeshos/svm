@@ -13,7 +13,7 @@ use crate::svm_byte_array;
 ///
 /// This encoding (and decoding) functionality should be also implemented by any SVM clients (e.g: C, Go).
 /// The design motivation is sticking with `svm_byte_array` as the mechanism for passing data between SVM client
-/// to SVM (via the `SVM C-API``)
+/// to SVM (via the `SVM C-API`)
 ///
 ////
 /// ### Encoding format:
@@ -22,7 +22,7 @@ use crate::svm_byte_array;
 ///
 /// * Then each WASM value is encoded as:
 ///   - A WASM value type. It can be `I32` or `I64` (SVM doesn't support Floats).
-///     The encoding is implemented in `WasmType` under the `svm-app` crate.
+///     The encodings of `WasmType` to `u8` and of `WasmValue` to `u64` sit under the `svm-app` crate.
 ///   - A Big-Endian encoding of the WASM value. `I32` consumes 4 bytes and `I64` 8 bytes.
 ///
 /// +----------------------------------------------------------------------+
