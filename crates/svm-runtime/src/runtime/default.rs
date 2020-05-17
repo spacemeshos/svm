@@ -441,7 +441,7 @@ where
             panic!()
         }
 
-        instance.dyn_func(&func_name.unwrap()).or_else(|_e| {
+        instance.exports.get(&func_name.unwrap()).or_else(|_e| {
             error!("Exported function: `{}` not found", func_idx);
 
             Err(ExecAppError::FuncNotFound {
