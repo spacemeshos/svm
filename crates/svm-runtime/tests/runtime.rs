@@ -24,6 +24,7 @@ macro_rules! default_runtime {
 
         let kv = testing::memory_kv_store_init();
         let raw_kv = testing::memory_kv_store2_init();
+
         let host = std::ptr::null_mut();
         let imports = Vec::new();
 
@@ -56,6 +57,7 @@ fn runtime_validate_template_invalid_wasm() {
         version,
         "My Template",
         page_count,
+        DataLayout::empty(),
         include_str!("wasm/wasm_with_floats.wast"),
         is_wast,
     );
@@ -106,6 +108,7 @@ fn runtime_deploy_template_reaches_oog() {
         version,
         "My Template",
         page_count,
+        DataLayout::empty(),
         include_str!("wasm/runtime_app_ctor.wast"),
         is_wast,
     );
@@ -129,6 +132,7 @@ fn runtime_deploy_template_has_enough_gas() {
         version,
         "My Template",
         page_count,
+        DataLayout::empty(),
         include_str!("wasm/runtime_app_ctor.wast"),
         is_wast,
     );
@@ -154,6 +158,7 @@ fn runtime_spawn_app_with_ctor_reaches_oog() {
         version,
         "My Template",
         page_count,
+        DataLayout::empty(),
         include_str!("wasm/runtime_app_ctor.wast"),
         is_wast,
     );
@@ -193,6 +198,7 @@ fn runtime_spawn_app_with_ctor_with_enough_gas() {
         version,
         "My Template",
         page_count,
+        DataLayout::empty(),
         include_str!("wasm/runtime_app_ctor.wast"),
         is_wast,
     );
@@ -249,6 +255,7 @@ fn runtime_exec_app() {
         version,
         "My Template",
         page_count,
+        DataLayout::empty(),
         include_str!("wasm/runtime_exec_app.wast"),
         is_wast,
     );
@@ -337,6 +344,7 @@ fn runtime_exec_app_reaches_oog() {
         version,
         "My Template",
         page_count,
+        DataLayout::empty(),
         include_str!("wasm/runtime_exec_app.wast"),
         is_wast,
     );

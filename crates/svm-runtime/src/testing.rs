@@ -189,6 +189,7 @@ pub fn build_template(
     version: u32,
     name: &str,
     page_count: u16,
+    data: DataLayout,
     wasm: &str,
     is_wast: bool,
 ) -> Vec<u8> {
@@ -203,6 +204,7 @@ pub fn build_template(
         .with_name(name)
         .with_page_count(page_count)
         .with_code(code.as_slice())
+        .with_data(&data)
         .build()
 }
 
