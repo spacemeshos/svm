@@ -11,6 +11,8 @@ use svm_app::types::{WasmType, WasmValue};
 use svm_common::Address;
 use svm_runtime::register::Register;
 
+use svm_storage2::layout::DataLayout;
+
 #[derive(Debug)]
 struct Host {
     balance: HashMap<Address, i128>,
@@ -109,9 +111,16 @@ unsafe fn create_imports() -> *const c_void {
     imports as _
 }
 
-fn deploy_template_bytes(version: u32, name: &str, page_count: u16, wasm: &str) -> (Vec<u8>, u32) {
+fn deploy_template_bytes(
+    version: u32,
+    name: &str,
+    page_count: u16,
+    data: DataLayout,
+    wasm: &str,
+) -> (Vec<u8>, u32) {
     let is_wast = true;
-    let bytes = svm_runtime::testing::build_template(version, name, page_count, wasm, is_wast);
+    let bytes =
+        svm_runtime::testing::build_template(version, name, page_count, data, wasm, is_wast);
     let length = bytes.len() as u32;
 
     (bytes, length)
@@ -184,6 +193,7 @@ unsafe fn test_svm_runtime() {
     // 1) init runtime
     let mut host = Host::new();
     let mut kv = std::ptr::null_mut();
+    let mut raw_kv = std::ptr::null_mut();
     let mut runtime = std::ptr::null_mut();
     let imports = create_imports();
     let mut error = svm_byte_array::default();
@@ -191,8 +201,17 @@ unsafe fn test_svm_runtime() {
     let res = api::svm_memory_kv_create(&mut kv);
     assert!(res.is_ok());
 
-    let res =
-        api::svm_memory_runtime_create(&mut runtime, kv, host.as_mut_ptr(), imports, &mut error);
+    let res = api::svm_memory_kv_create2(&mut raw_kv);
+    assert!(res.is_ok());
+
+    let res = api::svm_memory_runtime_create(
+        &mut runtime,
+        kv,
+        raw_kv,
+        host.as_mut_ptr(),
+        imports,
+        &mut error,
+    );
 
     assert!(res.is_ok());
 
@@ -209,7 +228,13 @@ unsafe fn test_svm_runtime() {
     };
 
     // raw template
-    let (bytes, length) = deploy_template_bytes(version, "My Template", page_count, code);
+    let (bytes, length) = deploy_template_bytes(
+        version,
+        "My Template",
+        page_count,
+        DataLayout::empty(),
+        code,
+    );
     let template_bytes = svm_byte_array {
         bytes: bytes.as_ptr(),
         length: length,

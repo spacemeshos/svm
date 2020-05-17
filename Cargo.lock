@@ -944,6 +944,7 @@ dependencies = [
  "svm-kv",
  "svm-runtime",
  "svm-storage",
+ "svm-storage2",
  "wabt",
  "wasmer-runtime",
  "wasmer-runtime-c-api",
