@@ -74,6 +74,6 @@ fn app_storage_build(_addr: &AppAddr, state: &State, settings: &AppSettings) -> 
     AppStorage::new(Box::new(cache))
 }
 
-fn app_storage_build2(_addr: &AppAddr, state: &State, path: &PathBuf) -> AppStorage2 {
+fn app_storage_build2(_addr: &AppAddr, state: &State, settings: &AppSettings) -> AppStorage2 {
     todo!()
 }

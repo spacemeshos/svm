@@ -38,7 +38,9 @@ impl KVStore for AppKVStore {
 }
 
 impl AppKVStore {
-    pub fn new(app_addr: Address, raw_kv: Rc<RefCell<dyn KVStore>>) -> Self {
+    pub fn new(app_addr: Address, raw_kv: &Rc<RefCell<dyn KVStore>>) -> Self {
+        let raw_kv = Rc::clone(&raw_kv);
+
         Self { app_addr, raw_kv }
     }
 

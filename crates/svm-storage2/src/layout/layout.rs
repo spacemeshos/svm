@@ -5,7 +5,7 @@ use super::DataLayoutBuilder;
 #[repr(transparent)]
 pub struct VarId(pub u32);
 
-#[derive(PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct DataLayout {
     pub(crate) vars: Vec<(u32, u32)>,
 }

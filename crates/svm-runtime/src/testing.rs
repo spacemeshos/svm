@@ -1,4 +1,10 @@
-use std::{cell::RefCell, collections::HashMap, ffi::c_void, path::Path, rc::Rc};
+use std::{
+    cell::RefCell,
+    collections::HashMap,
+    ffi::c_void,
+    path::{Path, PathBuf},
+    rc::Rc,
+};
 
 use crate::{
     buffer::BufferRef,
@@ -17,9 +23,11 @@ use svm_app::{
     types::{AppAddr, TemplateAddr, WasmValue},
 };
 use svm_common::{Address, State};
-use svm_kv::memory::MemKVStore;
+use svm_kv::{memory::MemKVStore, traits::KVStore};
 use svm_storage::AppStorage;
-use svm_storage2::{app::AppStorage as AppStorage2, layout::DataLayout};
+use svm_storage2::{
+    app::AppKVStore, app::AppStorage as AppStorage2, kv::FakeKV, layout::DataLayout,
+};
 
 use wasmer_runtime_core::{export::Export, import::ImportObject, Instance, Module};
 
@@ -84,7 +92,7 @@ pub fn instance_memory_init(instance: &Instance, offset: u32, bytes: &[u8]) {
 
 /// Returns a `state creator` to be used by wasmer `ImportObject::new_with_data` initializer.
 pub fn app_memory_state_creator(
-    _app_addr: &Address,
+    app_addr: &Address,
     state: &State,
     host: DataWrapper<*mut c_void>,
     host_ctx: DataWrapper<*const c_void>,
@@ -93,12 +101,11 @@ pub fn app_memory_state_creator(
     layout: &DataLayout,
 ) -> (*mut c_void, fn(*mut c_void)) {
     let kv = memory_kv_store_init();
-
     let storage = svm_storage::testing::app_storage_open(state, &kv, page_count);
 
-    // TODO:
-    // * initialize `kv` with `state`
-    let storage2 = AppStorage2::new(layout.clone(), kv);
+    let mut raw_kv = memory_kv_store2_init();
+    let app_kv = AppKVStore::new(app_addr.clone(), &raw_kv);
+    let storage2 = AppStorage2::new(layout.clone(), app_kv);
 
     let ctx = SvmCtx::new(host, host_ctx, gas_limit, storage, storage2);
     let ctx: *mut SvmCtx = Box::into_raw(Box::new(ctx));
@@ -114,14 +121,19 @@ pub fn memory_kv_store_init() -> Rc<RefCell<MemKVStore>> {
     Rc::new(RefCell::new(MemKVStore::new()))
 }
 
+pub fn memory_kv_store2_init() -> Rc<RefCell<dyn KVStore>> {
+    Rc::new(RefCell::new(FakeKV::new()))
+}
+
 /// Creates an in-memory `Runtime` backed by key-value, raw pointer to host and host vmcalls (`imports`)
 pub fn create_memory_runtime(
     host: *mut c_void,
     kv: &Rc<RefCell<MemKVStore>>,
+    raw_kv: &Rc<RefCell<dyn KVStore>>,
     imports: Vec<(String, String, Export)>,
 ) -> DefaultRuntime<DefaultMemoryEnv, DefaultGasEstimator> {
     let storage_builder = runtime_memory_storage_builder(kv);
-    let storage2_builder = runtime_memory_storage2_builder(kv);
+    let storage2_builder = runtime_memory_storage2_builder(raw_kv);
 
     let env = runtime_memory_env_builder();
     let kv_path = Path::new("mem");
@@ -147,8 +159,21 @@ pub fn runtime_memory_storage_builder(kv: &Rc<RefCell<MemKVStore>>) -> Box<Stora
     Box::new(func)
 }
 
-pub fn runtime_memory_storage2_builder(kv: &Rc<RefCell<MemKVStore>>) -> Box<Storage2BuilderFn> {
-    todo!()
+pub fn runtime_memory_storage2_builder(
+    raw_kv: &Rc<RefCell<dyn KVStore>>,
+) -> Box<Storage2BuilderFn> {
+    let raw_kv = Rc::clone(raw_kv);
+
+    let func = move |app_addr: &AppAddr, state: &State, settings: &AppSettings| {
+        let layout = settings.layout.clone();
+
+        let app_addr = app_addr.inner();
+        let app_kv = AppKVStore::new(app_addr.clone(), &raw_kv);
+
+        AppStorage2::new(layout, app_kv)
+    };
+
+    Box::new(func)
 }
 
 /// Creates a new in-memory runtime environment.

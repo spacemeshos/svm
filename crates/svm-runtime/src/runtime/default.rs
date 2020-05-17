@@ -29,7 +29,9 @@ use svm_app::{
 use svm_common::State;
 use svm_gas::Gas;
 use svm_storage::AppStorage;
+
 use svm_storage2::app::AppStorage as AppStorage2;
+use svm_storage2::layout::DataLayout;
 
 use wasmer_runtime::Value as WasmerValue;
 use wasmer_runtime_core::{
@@ -213,7 +215,7 @@ where
         state: &State,
         settings: &AppSettings,
     ) -> AppStorage2 {
-        (self.storage2_builder)(addr, state, &settings.kv_path)
+        (self.storage2_builder)(addr, state, settings)
     }
 
     fn call_ctor(
@@ -288,6 +290,7 @@ where
                 let settings = AppSettings {
                     page_count: template.page_count,
                     kv_path: self.kv_path.clone(),
+                    layout: template.data.clone(),
                 };
 
                 let mut import_object =

@@ -16,16 +16,18 @@ use svm_runtime::{
     testing,
 };
 use svm_storage::page::{PageIndex, PageOffset, PageSliceLayout};
+use svm_storage2::layout::DataLayout;
 
 macro_rules! default_runtime {
     () => {{
         use svm_runtime::testing;
 
         let kv = testing::memory_kv_store_init();
+        let raw_kv = testing::memory_kv_store2_init();
         let host = std::ptr::null_mut();
         let imports = Vec::new();
 
-        testing::create_memory_runtime(host, &kv, imports)
+        testing::create_memory_runtime(host, &kv, &raw_kv, imports)
     }};
 }
 
@@ -215,6 +217,7 @@ fn runtime_spawn_app_with_ctor_with_enough_gas() {
 
     let settings = AppSettings {
         page_count,
+        layout: DataLayout::empty(),
         kv_path: Path::new("mem").to_path_buf(),
     };
 
@@ -302,6 +305,7 @@ fn runtime_exec_app() {
 
     let settings = AppSettings {
         page_count,
+        layout: DataLayout::empty(),
         kv_path: Path::new("mem").to_path_buf(),
     };
 
