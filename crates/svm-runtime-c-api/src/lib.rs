@@ -37,9 +37,6 @@ pub use api::{
     svm_validate_tx,
 };
 pub use byte_array::svm_byte_array;
-pub use import::{
-    svm_import_func_sig_t, svm_import_func_t, svm_import_kind, svm_import_t, svm_import_value,
-};
 pub use result::svm_result_t;
 
 mod runtime_ptr;

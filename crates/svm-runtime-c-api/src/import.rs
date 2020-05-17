@@ -1,44 +1,42 @@
 use std::{ffi::c_void, ptr::NonNull};
 
+use svm_app::types::WasmType;
+
 use crate::svm_byte_array;
 
 /// Represents an `Import` kind
-#[allow(non_camel_case_types)]
-pub enum svm_import_kind {
+pub enum ImportKind {
     #[doc(hidden)]
-    SVM_FUNCTION,
+    Function,
 }
 
 /// FFI representation for import function signature
-#[allow(non_camel_case_types)]
-pub struct svm_import_func_sig_t {
+pub struct ImportFuncSig {
     /// Function params types
-    pub params: svm_byte_array,
+    pub params: Vec<WasmType>,
 
     /// Function returns types
-    pub returns: svm_byte_array,
+    pub returns: Vec<WasmType>,
 }
 
 /// FFI representation for import function
-#[allow(non_camel_case_types)]
-pub struct svm_import_func_t {
+pub struct ImportFunc {
     /// Raw pointer to function
     pub func: NonNull<c_void>,
 
     /// Function signature
-    pub sig: svm_import_func_sig_t,
+    pub sig: ImportFuncSig,
 }
 
 #[doc(hidden)]
-#[allow(non_camel_case_types)]
-pub enum svm_import_value {
+pub enum ImportValue {
     #[doc(hidden)]
-    Func(svm_import_func_t),
+    Func(ImportFunc),
 }
 
 /// An import declaration
 #[allow(non_camel_case_types)]
-pub struct svm_import_t {
+pub struct Import {
     /// Module name string as `svm_byte_array`
     pub module_name: String,
 
@@ -46,8 +44,8 @@ pub struct svm_import_t {
     pub import_name: String,
 
     /// Import type (for example: function import)
-    pub kind: svm_import_kind,
+    pub kind: ImportKind,
 
     /// Import value (for example: a pointer to function)
-    pub value: svm_import_value,
+    pub value: ImportValue,
 }
