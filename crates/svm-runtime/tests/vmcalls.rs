@@ -6,6 +6,7 @@ use wasmer_runtime::{func, imports, Func};
 
 use svm_app::types::HostCtx;
 use svm_common::{Address, State};
+use svm_layout::DataLayout;
 use svm_runtime::{
     gas::MaybeGas,
     helpers::{self, DataWrapper},
@@ -13,7 +14,6 @@ use svm_runtime::{
     vmcalls,
 };
 use svm_storage::page::{PageIndex, PageOffset, PageSliceLayout};
-use svm_storage2::layout::DataLayout;
 
 fn default_test_args() -> (
     Address,

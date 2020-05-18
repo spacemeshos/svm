@@ -3,7 +3,7 @@ use crate::{
     types::AppTemplate,
 };
 
-use svm_storage2::layout::DataLayout;
+use svm_layout::DataLayout;
 
 /// Builds a raw representation for `deploy-template`
 /// Should be used for testing only.

@@ -64,6 +64,7 @@ svm-gas = { path = "crates/svm-gas" }
 svm-abi = { path = "crates/svm-abi" }
 svm-app = { path = "crates/svm-app" }
 svm-storage = { path = "crates/svm-storage" }
+svm-layout = { path = "crates/svm-layout" }
 svm-storage2 = { path = "crates/svm-storage2" }
 svm-compiler = { path = "crates/svm-compiler" }
 svm-runtime = { path = "crates/svm-runtime" }
@@ -79,6 +80,8 @@ members = [
   "crates/svm-common",
   "crates/svm-kv",
   "crates/svm-storage",
+  "crates/svm-layout",
+  "crates/svm-storage2",
   "crates/svm-runtime",
   "crates/svm-compiler",
   "crates/svm-runtime-c-api",

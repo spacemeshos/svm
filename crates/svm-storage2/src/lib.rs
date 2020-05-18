@@ -13,6 +13,3 @@ pub mod app;
 
 /// Key-value abstraction
 pub mod kv;
-
-/// App's data-layout
-pub mod layout;

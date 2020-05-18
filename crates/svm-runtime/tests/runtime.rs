@@ -7,6 +7,7 @@ use svm_app::{
 };
 use svm_common::Address;
 use svm_gas::error::ProgramError;
+use svm_layout::DataLayout;
 use svm_runtime::{
     error::ValidateError,
     gas::MaybeGas,
@@ -16,7 +17,6 @@ use svm_runtime::{
     testing,
 };
 use svm_storage::page::{PageIndex, PageOffset, PageSliceLayout};
-use svm_storage2::layout::DataLayout;
 
 macro_rules! default_runtime {
     () => {{

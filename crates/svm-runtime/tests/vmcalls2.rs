@@ -3,13 +3,13 @@ use wasmer_runtime::{func, imports, Func};
 
 use svm_app::types::HostCtx;
 use svm_common::{Address, State};
+use svm_layout::DataLayout;
 use svm_runtime::{
     gas::MaybeGas,
     helpers::DataWrapper,
     testing::{self, instance_storage2},
     vmcalls,
 };
-use svm_storage2::layout::DataLayout;
 
 macro_rules! assert_vars {
     ($instance:expr, $( $var_id:expr => $expected:expr), *) => {{
@@ -21,7 +21,7 @@ macro_rules! assert_vars {
 
 macro_rules! assert_storage {
     ($instance:expr, $($var_id:expr => $expected:expr), *) => {{
-        use svm_storage2::layout::VarId;
+        use svm_layout::VarId;
 
         let storage = instance_storage2(&$instance);
 
