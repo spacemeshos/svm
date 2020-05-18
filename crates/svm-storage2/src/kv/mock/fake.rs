@@ -25,6 +25,10 @@ impl Node {
     }
 }
 
+/// `FakeKV` is a naive implementation for an in-memory key-value store.
+/// It is also `State` aware, so it implements the `StatefulKVStore` trait.
+///
+/// Should be used only for testing and developement purposes.
 pub struct FakeKV {
     head: State,
 
@@ -82,6 +86,7 @@ impl StatefulKVStore for FakeKV {
 }
 
 impl FakeKV {
+    /// New `FakeKV` initialized with no data.
     pub fn new() -> Self {
         Self {
             head: State::empty(),

@@ -9,6 +9,8 @@ type RewindFn = unsafe extern "C" fn(*const u8, u32);
 type SetFn = unsafe extern "C" fn(*const u8, u32, *const u8, u32);
 type CommitFn = unsafe extern "C" fn();
 
+/// `ExternV` holds pointers to FFI functions for an external key-value store.
+/// It implements the `svm_kv::traits::KVStore` traits by delegation to the FFI functions.
 pub struct ExternKV {
     get_fn: GetFn,
     head_fn: HeadFn,

@@ -9,6 +9,7 @@ pub struct DataLayoutBuilder {
 
 /// `DataLayoutBuilder` represents the fixed-sized variables (storage) of an application.
 impl DataLayoutBuilder {
+    /// New builder
     pub fn new() -> Self {
         Self::with_capacity(0)
     }
@@ -21,6 +22,12 @@ impl DataLayoutBuilder {
         }
     }
 
+    /// Append new variables to layout.
+    /// Each item of `slice` contains the corresponding variable's length.
+    ///
+    /// If prior to calling, `vars` had 4 items (indexed `[0..4)`) - then the first item
+    /// of `slice` will map to the length of variable `4`.
+    /// `slice[1]` will map to variable 5 length and so on.
     pub fn extend_from_slice(&mut self, slice: &[u32]) {
         for len in slice.iter() {
             self.add_var(*len);
@@ -39,6 +46,7 @@ impl DataLayoutBuilder {
         self.next_offset += len;
     }
 
+    /// Finishes the data-layout building process and outputs the result `DataLayout`.
     pub fn build(self) -> DataLayout {
         DataLayout { vars: self.vars }
     }

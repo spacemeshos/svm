@@ -5,6 +5,7 @@ use super::DataLayoutBuilder;
 #[repr(transparent)]
 pub struct VarId(pub u32);
 
+/// In-memory representation of a program's fixed-sized storage variables.
 #[derive(Debug, PartialEq, Clone)]
 pub struct DataLayout {
     pub(crate) vars: Vec<(u32, u32)>,
@@ -27,6 +28,8 @@ impl DataLayout {
         self.vars[vid]
     }
 
+    /// Returns a iterator over the data-layout variables.
+    /// The iterators will return each time an entry of `(var_id, var_offset, var_length)`.
     pub fn iter(&self) -> DataLayoutIter {
         DataLayoutIter {
             cur: 0,
@@ -34,6 +37,7 @@ impl DataLayout {
         }
     }
 
+    /// The number of variables mapped by the layout.
     #[inline]
     pub fn len(&self) -> usize {
         self.vars.len()

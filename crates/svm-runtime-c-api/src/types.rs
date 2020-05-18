@@ -1,9 +1,9 @@
 use std::convert::TryFrom;
-use std::io::{self, Cursor, Error, ErrorKind};
+use std::io::{self, Cursor};
 
 use svm_app::types::WasmType;
 
-use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
+use byteorder::{ReadBytesExt, WriteBytesExt};
 
 use crate::svm_byte_array;
 
@@ -55,7 +55,7 @@ impl From<&[WasmType]> for svm_byte_array {
 
         for ty in types.iter() {
             let ty = ty.into();
-            bytes.write_u8(ty);
+            bytes.write_u8(ty).unwrap();
         }
 
         bytes.into()

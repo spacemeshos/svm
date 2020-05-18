@@ -1,9 +1,4 @@
-use std::{
-    cell::RefCell,
-    ffi::c_void,
-    path::{Path, PathBuf},
-    rc::Rc,
-};
+use std::{cell::RefCell, ffi::c_void, path::Path, rc::Rc};
 
 use svm_app::{
     rocksdb::{RocksdbAppStore, RocksdbAppTemplateStore, RocksdbEnv},
@@ -74,6 +69,6 @@ fn app_storage_build(_addr: &AppAddr, state: &State, settings: &AppSettings) -> 
     AppStorage::new(Box::new(cache))
 }
 
-fn app_storage_build2(_addr: &AppAddr, state: &State, settings: &AppSettings) -> AppStorage2 {
+fn app_storage_build2(_addr: &AppAddr, _state: &State, _settings: &AppSettings) -> AppStorage2 {
     todo!()
 }

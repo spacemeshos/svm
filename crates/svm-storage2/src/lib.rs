@@ -1,4 +1,4 @@
-#![allow(missing_docs)]
+#![deny(missing_docs)]
 #![deny(unused)]
 #![deny(dead_code)]
 #![deny(unreachable_code)]

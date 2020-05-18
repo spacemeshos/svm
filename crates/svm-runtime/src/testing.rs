@@ -1,10 +1,4 @@
-use std::{
-    cell::RefCell,
-    collections::HashMap,
-    ffi::c_void,
-    path::{Path, PathBuf},
-    rc::Rc,
-};
+use std::{cell::RefCell, collections::HashMap, ffi::c_void, path::Path, rc::Rc};
 
 use crate::{
     buffer::BufferRef,
@@ -103,7 +97,7 @@ pub fn app_memory_state_creator(
     let kv = memory_kv_store_init();
     let storage = svm_storage::testing::app_storage_open(state, &kv, page_count);
 
-    let mut raw_kv = memory_kv_store2_init();
+    let raw_kv = memory_kv_store2_init();
     let app_kv = AppKVStore::new(app_addr.clone(), &raw_kv);
     let storage2 = AppStorage2::new(layout.clone(), app_kv);
 
@@ -121,6 +115,7 @@ pub fn memory_kv_store_init() -> Rc<RefCell<MemKVStore>> {
     Rc::new(RefCell::new(MemKVStore::new()))
 }
 
+/// Initializes a new in-memory key-value store.
 pub fn memory_kv_store2_init() -> Rc<RefCell<dyn KVStore>> {
     Rc::new(RefCell::new(FakeKV::new()))
 }
@@ -148,7 +143,7 @@ pub fn create_memory_runtime(
     )
 }
 
-/// Creates an app storage builder function backed by key-value store `kv`.
+/// Returns a function (wrapped inside `Box`) that initializes an App's storage client.
 pub fn runtime_memory_storage_builder(kv: &Rc<RefCell<MemKVStore>>) -> Box<StorageBuilderFn> {
     let kv = Rc::clone(kv);
 
@@ -159,12 +154,13 @@ pub fn runtime_memory_storage_builder(kv: &Rc<RefCell<MemKVStore>>) -> Box<Stora
     Box::new(func)
 }
 
+/// Returns a function (wrapped inside `Box`) that initializes an App's storage client.
 pub fn runtime_memory_storage2_builder(
     raw_kv: &Rc<RefCell<dyn KVStore>>,
 ) -> Box<Storage2BuilderFn> {
     let raw_kv = Rc::clone(raw_kv);
 
-    let func = move |app_addr: &AppAddr, state: &State, settings: &AppSettings| {
+    let func = move |app_addr: &AppAddr, _state: &State, settings: &AppSettings| {
         let layout = settings.layout.clone();
 
         let app_addr = app_addr.inner();

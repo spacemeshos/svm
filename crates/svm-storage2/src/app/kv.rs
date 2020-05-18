@@ -4,6 +4,7 @@ use std::rc::Rc;
 use svm_common::{Address, DefaultKeyHasher, KeyHasher};
 use svm_kv::traits::KVStore;
 
+///   
 pub struct AppKVStore {
     pub(crate) app_addr: Address,
 
@@ -38,6 +39,9 @@ impl KVStore for AppKVStore {
 }
 
 impl AppKVStore {
+    /// Create a new `AppKVStore` instance for application `app_addr`.
+    ///
+    /// Delegates work to raw key-value store `raw_kv`.
     pub fn new(app_addr: Address, raw_kv: &Rc<RefCell<dyn KVStore>>) -> Self {
         let raw_kv = Rc::clone(&raw_kv);
 

@@ -31,7 +31,6 @@ use svm_gas::Gas;
 use svm_storage::AppStorage;
 
 use svm_storage2::app::AppStorage as AppStorage2;
-use svm_storage2::layout::DataLayout;
 
 use wasmer_runtime::Value as WasmerValue;
 use wasmer_runtime_core::{
@@ -209,6 +208,9 @@ where
         (self.storage_builder)(addr, state, settings)
     }
 
+    /// Initialize a new `AppStorage` and returns it.
+    /// This method is of `pub` visibility since it's also helpful for tests that want to
+    /// observe that app storage data.
     pub fn open_app_storage2(
         &self,
         addr: &AppAddr,

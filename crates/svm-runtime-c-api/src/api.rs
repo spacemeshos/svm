@@ -329,6 +329,8 @@ pub unsafe extern "C" fn svm_memory_kv_create(kv: *mut *mut c_void) -> svm_resul
     svm_result_t::SVM_SUCCESS
 }
 
+/// Creates a new in-memory key-value client.
+/// Returns a raw pointer to allocated kv-store via input parameter `raw_kv`.
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_memory_kv_create2(kv: *mut *mut c_void) -> svm_result_t {

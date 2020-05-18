@@ -12,6 +12,7 @@ pub fn wasmer_data_app_storage<'a>(data: *mut c_void) -> &'a mut AppStorage {
     &mut svm_ctx.storage
 }
 
+/// Extracts a mutable-borrowed `AppStorage` from `Wasmer` instance's `data`.
 #[inline]
 pub fn wasmer_data_app_storage2<'a>(data: *mut c_void) -> &'a mut AppStorage2 {
     let svm_ctx = unsafe { svm_common::from_raw_mut::<SvmCtx>(data) };
