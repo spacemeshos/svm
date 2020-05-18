@@ -5,16 +5,17 @@ use log::{debug, error};
 use svm_app::{
     default::DefaultSerializerTypes,
     testing::{AppTxBuilder, DeployAppTemplateBuilder, SpawnAppBuilder},
-    types::{HostCtx, WasmValue},
+    types::{HostCtx, WasmType, WasmValue},
 };
 use svm_common::{Address, State};
 use svm_runtime::{ctx::SvmCtx, gas::DefaultGasEstimator};
 
 use crate::{
-    helpers, raw_error, raw_io_error, raw_utf8_error, raw_validate_error,
+    helpers,
+    import::{Import, ImportFunc, ImportFuncSig, ImportKind, ImportValue},
+    raw_error, raw_io_error, raw_utf8_error, raw_validate_error,
     receipt::{encode_app_receipt, encode_exec_receipt, encode_template_receipt},
-    svm_byte_array, svm_import_func_sig_t, svm_import_func_t, svm_import_kind, svm_import_t,
-    svm_import_value, svm_result_t,
+    svm_byte_array, svm_result_t,
     testing::{self, ClientAppReceipt, ClientExecReceipt, ClientTemplateReceipt},
     RuntimePtr,
 };
@@ -195,7 +196,7 @@ pub unsafe extern "C" fn svm_validate_tx(
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_imports_alloc(imports: *mut *mut c_void, count: u32) -> svm_result_t {
-    let vec: Vec<svm_import_t> = Vec::with_capacity(count as usize);
+    let vec: Vec<Import> = Vec::with_capacity(count as usize);
 
     *imports = svm_common::into_raw_mut(vec);
 
@@ -249,7 +250,7 @@ pub unsafe extern "C" fn svm_import_func_build(
     returns: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
-    let imports = &mut *(imports as *mut Vec<svm_import_t>);
+    let imports = &mut *(imports as *mut Vec<Import>);
 
     assert!(imports.len() < imports.capacity());
 
@@ -261,11 +262,23 @@ pub unsafe extern "C" fn svm_import_func_build(
         return svm_result_t::SVM_FAILURE;
     }
 
-    let func = svm_import_func_t {
+    let params: Result<Vec<WasmType>, io::Error> = Vec::try_from(params);
+    if let Err(e) = params {
+        raw_io_error(e, error);
+        return svm_result_t::SVM_FAILURE;
+    }
+
+    let returns: Result<Vec<WasmType>, io::Error> = Vec::try_from(returns);
+    if let Err(e) = returns {
+        raw_io_error(e, error);
+        return svm_result_t::SVM_FAILURE;
+    }
+
+    let func = ImportFunc {
         func: func.unwrap(),
-        sig: svm_import_func_sig_t {
-            params: params,
-            returns: returns,
+        sig: ImportFuncSig {
+            params: params.unwrap(),
+            returns: returns.unwrap(),
         },
     };
 
@@ -281,11 +294,11 @@ pub unsafe extern "C" fn svm_import_func_build(
         return svm_result_t::SVM_FAILURE;
     }
 
-    let import = svm_import_t {
+    let import = Import {
         module_name: module_name.unwrap(),
         import_name: import_name.unwrap(),
-        kind: svm_import_kind::SVM_FUNCTION,
-        value: svm_import_value::Func(func),
+        kind: ImportKind::Function,
+        value: ImportValue::Func(func),
     };
 
     imports.push(import);
@@ -791,7 +804,7 @@ pub unsafe extern "C" fn svm_runtime_destroy(runtime: *mut c_void) {
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_imports_destroy(imports: *const c_void) {
-    let _ = Box::from_raw(imports as *mut Vec<svm_import_t>);
+    let _ = Box::from_raw(imports as *mut Vec<Import>);
 }
 
 /// Frees `svm_byte_array`

@@ -1,6 +1,9 @@
 use std::ffi::c_void;
 
-use crate::{svm_import_kind, svm_import_t, RuntimePtr};
+use crate::{
+    import::{Import, ImportKind},
+    RuntimePtr,
+};
 
 use svm_runtime::Runtime;
 
@@ -31,11 +34,11 @@ pub unsafe fn cast_imports_to_wasmer_imports(
 
     let mut res: Vec<(String, String, Export)> = Vec::new();
 
-    let imports = &*(imports as *const Vec<svm_import_t>);
+    let imports = &*(imports as *const Vec<Import>);
 
     for import in imports.iter() {
         let wasmer_import = match import.kind {
-            svm_import_kind::SVM_FUNCTION => crate::wasmer::to_wasmer_import_func(import),
+            ImportKind::Function => crate::wasmer::to_wasmer_import_func(import),
         };
 
         let module_name = import.module_name.clone();

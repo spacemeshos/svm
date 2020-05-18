@@ -65,7 +65,7 @@ fn vmcalls_mem_to_reg_copy() {
     let reg = instance_register(&instance, reg_bits, reg_idx);
     assert_eq!(vec![0; reg_size as usize], reg.view());
 
-    let func: Func<(u32, u32, u32, u32)> = instance.func("run").unwrap();
+    let func: Func<(u32, u32, u32, u32)> = instance.exports.get("run").unwrap();
     assert!(func.call(mem_offset, reg_bits, reg_idx, count).is_ok());
 
     // asserting register content is `10, 20, 30, 0, 0, ... 0`
@@ -104,7 +104,7 @@ fn vmcalls_reg_to_mem_copy() {
     assert_eq!(vec![0; count as usize], before);
 
     // copying register into memory
-    let func: Func<(u32, u32, u32, u32)> = instance.func("run").unwrap();
+    let func: Func<(u32, u32, u32, u32)> = instance.exports.get("run").unwrap();
     assert!(func.call(reg_bits, reg_idx, mem_offset, count).is_ok());
 
     let after = testing::instance_memory_view(&instance, mem_offset, count);
@@ -142,7 +142,7 @@ fn vmcalls_storage_read_an_empty_page_slice_to_reg() {
     let reg = instance_register(&instance, reg_bits, reg_idx);
     reg.set(&vec![0xFF; reg_size as usize]);
 
-    let func: Func<(u32, u32, u32, u32, u32)> = instance.func("run").unwrap();
+    let func: Func<(u32, u32, u32, u32, u32)> = instance.exports.get("run").unwrap();
     assert!(func
         .call(page_idx, page_offset, reg_bits, reg_idx, count)
         .is_ok());
@@ -192,7 +192,7 @@ fn vmcalls_storage_read_non_empty_page_slice_to_reg() {
     reg.set(&vec![0xFF; reg_size as usize]);
 
     // we copy slice into register
-    let func: Func<(u32, u32, u32, u32, u32)> = instance.func("run").unwrap();
+    let func: Func<(u32, u32, u32, u32, u32)> = instance.exports.get("run").unwrap();
 
     assert!(func
         .call(page_idx, page_offset, reg_bits, reg_idx, count)
@@ -233,7 +233,7 @@ fn vmcalls_storage_read_an_empty_page_slice_to_mem() {
     assert_eq!(vec![0xFF; count as usize], before);
 
     // we copy page-slice into memory `#0`
-    let func: Func<(u32, u32, u32, u32)> = instance.func("run").unwrap();
+    let func: Func<(u32, u32, u32, u32)> = instance.exports.get("run").unwrap();
     assert!(func.call(page_idx, page_offset, mem_offset, count).is_ok());
 
     let after = testing::instance_memory_view(&instance, mem_offset, count);
@@ -273,7 +273,7 @@ fn vmcalls_storage_read_non_empty_page_slice_to_mem() {
     storage.write_page_slice(&layout, &data[..]);
 
     // we copy slice (page `1`, cells: `100..103`) into memory #0, starting from address `200`
-    let func: Func<(u32, u32, u32, u32)> = instance.func("run").unwrap();
+    let func: Func<(u32, u32, u32, u32)> = instance.exports.get("run").unwrap();
     assert!(func.call(page_idx, page_offset, mem_offset, count).is_ok());
 
     let after = testing::instance_memory_view(&instance, mem_offset, count);
@@ -318,7 +318,7 @@ fn vmcalls_storage_write_from_mem() {
     assert_eq!(vec![0; count as usize], before);
 
     // we copy memory cells `200..`203` into storage (`page 1`, cells: `100..103`)
-    let func: Func<(u32, u32, u32, u32)> = instance.func("run").unwrap();
+    let func: Func<(u32, u32, u32, u32)> = instance.exports.get("run").unwrap();
     assert!(func.call(mem_offset, page_idx, page_offset, count).is_ok());
 
     let after = storage.read_page_slice(&layout);
@@ -366,7 +366,7 @@ fn vmcalls_storage_write_from_reg() {
     assert_eq!(vec![0; count as usize], before);
 
     // we copy register first into storage
-    let func: Func<(u32, u32, u32, u32, u32)> = instance.func("run").unwrap();
+    let func: Func<(u32, u32, u32, u32, u32)> = instance.exports.get("run").unwrap();
 
     assert!(func
         .call(reg_bits, reg_idx, page_idx, page_offset, count)
@@ -403,7 +403,7 @@ fn vmcalls_reg_push() {
     reg.set(&data[..]);
 
     // will call `reg_push` on input register
-    let func: Func<(u32, u32)> = instance.func("run").unwrap();
+    let func: Func<(u32, u32)> = instance.exports.get("run").unwrap();
     assert!(func.call(reg_bits, reg_idx).is_ok());
 
     let reg = instance_register(&instance, reg_bits, reg_idx);
@@ -439,7 +439,7 @@ fn vmcalls_reg_pop() {
     reg.push();
 
     // will call `reg_pop` on input register
-    let func: Func<(u32, u32)> = instance.func("run").unwrap();
+    let func: Func<(u32, u32)> = instance.exports.get("run").unwrap();
     assert!(func.call(reg_bits, reg_idx).is_ok());
 
     // if `instance` triggered `reg_pop` we need to be back to where we were before calling `push`
@@ -475,21 +475,21 @@ fn vmcalls_reg_set_number() {
     );
 
     // run i32 Big-Endian
-    let func: Func<(u32, u32, u32)> = instance.func("run_i32_be").unwrap();
+    let func: Func<(u32, u32, u32)> = instance.exports.get("run_i32_be").unwrap();
     assert!(func.call(reg_bits, reg_idx, n).is_ok());
 
     let reg = instance_register(&instance, reg_bits, reg_idx);
     assert_eq!(&[0x10, 0x20, 0x30, 0x40], &reg.view()[0..4]);
 
     // run i32 Little-Endian
-    let func: Func<(u32, u32, u32)> = instance.func("run_i32_le").unwrap();
+    let func: Func<(u32, u32, u32)> = instance.exports.get("run_i32_le").unwrap();
     assert!(func.call(reg_bits, reg_idx, n).is_ok());
 
     let reg = instance_register(&instance, reg_bits, reg_idx);
     assert_eq!(&[0x40, 0x30, 0x20, 0x10], &reg.view()[0..4]);
 
     // run i64 Big-Endian
-    let func: Func<(u32, u32, u64)> = instance.func("run_i64_be").unwrap();
+    let func: Func<(u32, u32, u64)> = instance.exports.get("run_i64_be").unwrap();
     assert!(func.call(reg_bits, reg_idx, m).is_ok());
 
     let reg = instance_register(&instance, reg_bits, reg_idx);
@@ -499,7 +499,7 @@ fn vmcalls_reg_set_number() {
     );
 
     // run i64 Little-Endian
-    let func: Func<(u32, u32, u64)> = instance.func("run_i64_le").unwrap();
+    let func: Func<(u32, u32, u64)> = instance.exports.get("run_i64_le").unwrap();
     assert!(func.call(reg_bits, reg_idx, m).is_ok());
 
     let reg = instance_register(&instance, reg_bits, reg_idx);
@@ -534,7 +534,7 @@ fn vmcalls_reg_cmp() {
     reg1.set(&[0x10, 0x20, 0x30]);
     reg2.set(&[0x10, 0x20, 0x30]);
 
-    let func: Func<(u32, u32), i32> = instance.func("reg_128_cmp").unwrap();
+    let func: Func<(u32, u32), i32> = instance.exports.get("reg_128_cmp").unwrap();
     let rets = func.call(reg_idx1, reg_idx2);
     assert_eq!(Ok(0), rets);
 
@@ -542,7 +542,7 @@ fn vmcalls_reg_cmp() {
     reg1.set(&[0x10, 0x20, 0x40]);
     reg2.set(&[0x10, 0x20, 0x30]);
 
-    let func: Func<(u32, u32), i32> = instance.func("reg_128_cmp").unwrap();
+    let func: Func<(u32, u32), i32> = instance.exports.get("reg_128_cmp").unwrap();
     let rets = func.call(reg_idx1, reg_idx2);
     assert_eq!(Ok(-1), rets);
 
@@ -550,7 +550,7 @@ fn vmcalls_reg_cmp() {
     reg1.set(&[0x10, 0x20, 0x30]);
     reg2.set(&[0x10, 0x20, 0x40]);
 
-    let func: Func<(u32, u32), i32> = instance.func("reg_128_cmp").unwrap();
+    let func: Func<(u32, u32), i32> = instance.exports.get("reg_128_cmp").unwrap();
     let rets = func.call(reg_idx1, reg_idx2);
     assert_eq!(Ok(1), rets);
 }
@@ -586,7 +586,7 @@ fn vmcalls_host_ctx_read_into_reg() {
         maybe_gas,
     );
 
-    let func: Func<(u32, u32, u32)> = instance.func("run").unwrap();
+    let func: Func<(u32, u32, u32)> = instance.exports.get("run").unwrap();
 
     // copying field #2 (content=`[10, 20]`) into register
     assert!(func.call(field_idx, reg_bits, reg_idx).is_ok());
@@ -620,14 +620,14 @@ fn vmcalls_buffer_copy_to_storage() {
         testing::instantiate(&import_object, include_str!("wasm/buffer.wast"), maybe_gas);
 
     // maybe_create buffer
-    let func: Func<u32> = instance.func("create").unwrap();
+    let func: Func<u32> = instance.exports.get("create").unwrap();
     assert!(func.call(buf_id).is_ok());
 
     let buf = instance_buffer(&instance, buf_id).unwrap();
     buf.write(&data);
 
     // copy buf slice into page
-    let func: Func<(u32, u32, u32, u32, u32)> = instance.func("copy").unwrap();
+    let func: Func<(u32, u32, u32, u32, u32)> = instance.exports.get("copy").unwrap();
     assert!(func
         .call(buf_id, buf_offset, page_idx, page_offset, count)
         .is_ok());
@@ -635,7 +635,7 @@ fn vmcalls_buffer_copy_to_storage() {
     // killing buffer
     assert!(instance_buffer(&instance, buf_id).is_some());
 
-    let func: Func<u32> = instance.func("kill").unwrap();
+    let func: Func<u32> = instance.exports.get("kill").unwrap();
     assert!(func.call(buf_id).is_ok());
 
     assert!(instance_buffer(&instance, buf_id).is_none());
@@ -660,7 +660,7 @@ macro_rules! assert_int_slice {
 
 macro_rules! assert_i32_field {
     ($expected:expr, $instance:expr, $field_idx:expr, $endianness:expr) => {{
-        let func: Func<(u32, u32), u32> = $instance.func("read_i32").unwrap();
+        let func: Func<(u32, u32), u32> = $instance.exports.get("read_i32").unwrap();
 
         assert_eq!($expected, func.call($field_idx, $endianness).unwrap());
     }};
@@ -668,7 +668,7 @@ macro_rules! assert_i32_field {
 
 macro_rules! assert_i64_field {
     ($expected:expr, $instance:expr, $field_idx:expr, $endianness:expr) => {{
-        let func: Func<(u32, u32), u64> = $instance.func("read_i64").unwrap();
+        let func: Func<(u32, u32), u64> = $instance.exports.get("read_i64").unwrap();
 
         assert_eq!($expected, func.call($field_idx, $endianness).unwrap());
     }};
@@ -719,12 +719,12 @@ macro_rules! test_storage_read_int {
 	let (page_idx, page_offset, count) = (slice.0, slice.1, slice.2.len() as u32);
 
 	if count <= 4 {
-	    let func: Func<(u32, u32, u32, u32), u32> = instance.func("read_i32").unwrap();
+	    let func: Func<(u32, u32, u32, u32), u32> = instance.exports.get("read_i32").unwrap();
 
 	    assert_int_slice!(expected as u32, func, page_idx, page_offset, count, $endianness);
 	}
 	else {
-	    let func: Func<(u32, u32, u32, u32), u64> = instance.func("read_i64").unwrap();
+	    let func: Func<(u32, u32, u32, u32), u64> = instance.exports.get("read_i64").unwrap();
 
 	    assert_int_slice!(expected, func, page_idx, page_offset, count, $endianness);
 	}
@@ -763,11 +763,11 @@ macro_rules! test_storage_write_int {
 	let (page_idx, page_offset, nbytes, n) = slices[$slice_idx];
 
 	if nbytes <= 4 {
-	    let func: Func<(u32, u32, u32, u32, u32)> = instance.func("write_i32").unwrap();
+	    let func: Func<(u32, u32, u32, u32, u32)> = instance.exports.get("write_i32").unwrap();
 	    assert!(func.call(page_idx, page_offset, n as u32, nbytes, $endianness).is_ok());
 	}
 	else {
-	    let func: Func<(u32, u32, u64, u32, u32)> = instance.func("write_i64").unwrap();
+	    let func: Func<(u32, u32, u64, u32, u32)> = instance.exports.get("write_i64").unwrap();
 	    assert!(func.call(page_idx, page_offset, n, nbytes, $endianness).is_ok());
 	}
 

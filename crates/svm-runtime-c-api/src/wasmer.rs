@@ -1,49 +1,47 @@
-use std::convert::TryFrom;
 use std::io;
 use std::sync::Arc;
 
-use crate::{svm_byte_array, svm_import_func_sig_t, svm_import_t, svm_import_value};
+use crate::{
+    import::{Import, ImportFuncSig, ImportValue},
+    svm_byte_array,
+};
 
 use svm_app::types::WasmType;
 
 use wasmer_runtime_core::{
-    export::{Context, Export, FuncPointer},
-    types::{FuncSig, Type},
+    export::{Context as WasmerCtx, Export as WasmerExport, FuncPointer as WasmerFuncPtr},
+    types::{FuncSig as WasmerFuncSig, Type as WasmerType},
 };
 
-pub(crate) unsafe fn to_wasmer_import_func(import: &svm_import_t) -> Export {
+pub(crate) unsafe fn to_wasmer_import_func(import: &Import) -> WasmerExport {
     match import.value {
-        svm_import_value::Func(ref func) => {
+        ImportValue::Func(ref func) => {
             let wasmer_sig = to_wasmer_func_sig(&func.sig);
             let ptr = func.func.as_ptr();
 
-            Export::Function {
-                func: FuncPointer::new(ptr as _),
-                ctx: Context::Internal,
+            WasmerExport::Function {
+                func: WasmerFuncPtr::new(ptr as _),
+                ctx: WasmerCtx::Internal,
                 signature: Arc::new(wasmer_sig),
             }
         }
     }
 }
 
-unsafe fn to_wasmer_func_sig(sig: &svm_import_func_sig_t) -> FuncSig {
-    let params = to_wasmer_types_vec(sig.params);
-    let returns = to_wasmer_types_vec(sig.returns);
+unsafe fn to_wasmer_func_sig(sig: &ImportFuncSig) -> WasmerFuncSig {
+    let params = to_wasmer_types_vec(&sig.params);
+    let returns = to_wasmer_types_vec(&sig.returns);
 
-    FuncSig::new(params, returns)
+    WasmerFuncSig::new(params, returns)
 }
 
 #[inline]
-unsafe fn to_wasmer_types_vec(types: svm_byte_array) -> Vec<Type> {
-    let types: Result<Vec<WasmType>, io::Error> = Vec::try_from(types);
-
-    let types = types.unwrap();
-
+unsafe fn to_wasmer_types_vec(types: &[WasmType]) -> Vec<WasmerType> {
     types
         .iter()
         .map(|ty| match ty {
-            WasmType::I32 => Type::I32,
-            WasmType::I64 => Type::I64,
+            WasmType::I32 => WasmerType::I32,
+            WasmType::I64 => WasmerType::I64,
         })
         .collect()
 }
