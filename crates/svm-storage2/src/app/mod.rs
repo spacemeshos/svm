@@ -179,6 +179,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(debug_assertions)]
     #[should_panic]
     fn write_var_value_should_match_layout_length() {
         // `var #0` consumes 4 bytes
