@@ -1272,11 +1272,14 @@ pub unsafe extern "C" fn svm_encode_app_template(
         return svm_result_t::SVM_FAILURE;
     }
 
+    let data: Vec<u32> = vec![];
+
     let mut bytes = DeployAppTemplateBuilder::new()
         .with_version(version)
         .with_name(&name.unwrap())
         .with_page_count(page_count)
         .with_code(code.into())
+        .with_data(&data.into())
         .build();
 
     vec_to_svm_byte_array!(app_template, bytes);
