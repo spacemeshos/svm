@@ -148,13 +148,15 @@ mod tests {
 
     macro_rules! app_kv {
         ($app_addr:expr) => {{
+            use std::{cell::RefCell, rc::Rc};
+
             use crate::app::AppKVStore;
             use crate::kv::FakeKV;
 
-            use std::{cell::RefCell, rc::Rc};
+            use svm_kv::traits::KVStore;
 
-            let raw_kv = Rc::new(RefCell::new(FakeKV::new()));
-            AppKVStore::new($app_addr, raw_kv)
+            let raw_kv: Rc<RefCell<dyn KVStore>> = Rc::new(RefCell::new(FakeKV::new()));
+            AppKVStore::new($app_addr, &raw_kv)
         }};
     }
 

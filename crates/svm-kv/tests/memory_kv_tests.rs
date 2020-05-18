@@ -14,10 +14,9 @@ fn key_store_keys_do_not_exit_by_default() {
     let addr = Address::of("@someone");
 
     let kv: MemKVStore = MemKVStore::new();
-    let ns = vec![0xFF, 0xFF];
     let key = addr.as_slice();
 
-    assert_no_key!(kv, ns, key);
+    assert_no_key!(kv, key);
 }
 
 #[test]
@@ -27,14 +26,13 @@ fn key_store_and_then_key_get() {
     let addr = Address::of("someone");
 
     let mut kv = MemKVStore::new();
-    let ns = vec![0xFF, 0xFF];
     let key = addr.as_slice();
     let val = vec![10, 20, 30];
 
-    let change = (&ns[..], &key[..], &val[..]);
+    let change = (&key[..], &val[..]);
     kv.store(&[change]);
 
-    assert_key_value!(kv, ns, key, val);
+    assert_key_value!(kv, key, val);
 }
 
 #[test]
@@ -44,18 +42,17 @@ fn key_store_override_existing_entry() {
     let mut kv = MemKVStore::new();
     let addr = Address::of("someone");
 
-    let ns = vec![0xFF, 0xFF];
     let key = addr.as_slice();
     let val1 = vec![10, 20, 30];
     let val2 = vec![40, 50, 60];
 
-    let change = (&ns[..], &key[..], &val1[..]);
+    let change = (&key[..], &val1[..]);
     kv.store(&[change]);
-    assert_key_value!(kv, ns, key, val1);
+    assert_key_value!(kv, key, val1);
 
-    let change = (&ns[..], &key[..], &val2[..]);
+    let change = (&key[..], &val2[..]);
     kv.store(&[change]);
-    assert_key_value!(kv, ns, key, val2);
+    assert_key_value!(kv, key, val2);
 }
 
 #[test]
@@ -71,20 +68,16 @@ fn clear() {
 
     let val1 = vec![10, 20, 30];
     let val2 = vec![40, 50, 60];
-    let ns = vec![0xFF, 0xFF];
 
-    let changes = [
-        (&ns[..], &key1[..], &val1[..]),
-        (&ns[..], &key2[..], &val2[..]),
-    ];
+    let changes = [(&key1[..], &val1[..]), (&key2[..], &val2[..])];
 
     kv.store(&changes);
 
-    assert_key_value!(kv, ns, key1, val1);
-    assert_key_value!(kv, ns, key2, val2);
+    assert_key_value!(kv, key1, val1);
+    assert_key_value!(kv, key2, val2);
 
     kv.clear();
 
-    assert_no_key!(kv, ns, key1);
-    assert_no_key!(kv, ns, key2);
+    assert_no_key!(kv, key1);
+    assert_no_key!(kv, key2);
 }

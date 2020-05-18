@@ -109,13 +109,15 @@ mod tests {
 
     macro_rules! app_kv {
         ($app_addr:expr) => {{
+            use std::{cell::RefCell, rc::Rc};
+
             use crate::app::AppKVStore;
             use crate::kv::FakeKV;
 
-            use std::{cell::RefCell, rc::Rc};
+            use svm_kv::traits::KVStore;
 
-            let raw_kv = Rc::new(RefCell::new(FakeKV::new()));
-            AppKVStore::new($app_addr, raw_kv)
+            let raw_kv: Rc<RefCell<dyn KVStore>> = Rc::new(RefCell::new(FakeKV::new()));
+            AppKVStore::new($app_addr, &raw_kv)
         }};
     }
 
@@ -162,7 +164,7 @@ mod tests {
 
         // spin a new app with no in-memory dirty data
         let addr = Address::of("my-app");
-        let kv2 = AppKVStore::new(addr, kv_clone2);
+        let kv2 = AppKVStore::new(addr, &kv_clone2);
         let app2 = AppStorage::new(layout_clone2, kv2);
         assert_vars!(app2, 0 => [0, 0, 0, 0], 1 => [0, 0]);
 
@@ -171,7 +173,7 @@ mod tests {
 
         // we'll spin a new app with no caching
         let addr = Address::of("my-app");
-        let kv3 = AppKVStore::new(addr, kv_clone3);
+        let kv3 = AppKVStore::new(addr, &kv_clone3);
         let mut app3 = AppStorage::new(layout_clone3, kv3);
         write_vars!(app3, 0 => [10, 20, 30, 40], 1 => [50, 60]);
     }

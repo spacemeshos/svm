@@ -65,20 +65,19 @@ mod tests {
     fn rocksdb_sanity() {
         let mut db = Rocksdb::new("rocksdb-tests");
 
-        let ns = vec![0xFF, 0xFF];
         let key = vec![10, 20, 30];
         let val = vec![40, 50, 60];
 
-        let change = (&ns[..], &key[..], &val[..]);
+        let change = (&key[..], &val[..]);
         db.store(&[change]);
 
-        let v = db.get(&ns, &key).unwrap();
+        let v = db.get(&key).unwrap();
         assert_eq!(val, v);
 
         drop(db);
 
         let db = Rocksdb::new("rocksdb-tests");
-        let v = db.get(&ns, &key).unwrap();
+        let v = db.get(&key).unwrap();
         assert_eq!(val, v);
     }
 }

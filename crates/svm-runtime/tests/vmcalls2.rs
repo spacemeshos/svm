@@ -13,7 +13,7 @@ use svm_storage2::layout::DataLayout;
 
 macro_rules! assert_vars {
     ($instance:expr, $( $var_id:expr => $expected:expr), *) => {{
-        let func: Func<u32, u64> = $instance.func("get").unwrap();
+        let func: Func<u32, u64> = $instance.exports.get("get").unwrap();
 
         $( assert_eq!(func.call($var_id), Ok($expected)); )*
     }}
@@ -34,7 +34,7 @@ macro_rules! assert_storage {
 
 macro_rules! var_add {
     ($instance:expr, $var_id:expr, $amount:expr) => {{
-        let func: Func<(u32, u64), ()> = $instance.func("add").unwrap();
+        let func: Func<(u32, u64), ()> = $instance.exports.get("add").unwrap();
         let res = func.call($var_id, $amount);
 
         assert!(res.is_ok());
@@ -53,7 +53,7 @@ macro_rules! host_ctx {
 
 macro_rules! assert_host_ctx {
     ($instance:expr, $( $field:expr => $expected:expr), *) => {{
-        let func: Func<u32, u64> = $instance.func("get_host_ctx").unwrap();
+        let func: Func<u32, u64> = $instance.exports.get("get_host_ctx").unwrap();
 
         $( assert_eq!(func.call($field), Ok($expected)); )*
     }}

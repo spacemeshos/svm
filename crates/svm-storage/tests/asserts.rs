@@ -1,18 +1,18 @@
 #[macro_export]
 macro_rules! assert_no_key {
-    ($kv:expr, $ns:expr, $key: expr) => {{
+    ($kv:expr, $key: expr) => {{
         use svm_kv::traits::KVStore;
 
-        assert!($kv.borrow().get(&$ns, &$key).is_none());
+        assert!($kv.borrow().get(&$key).is_none());
     }};
 }
 
 #[macro_export]
 macro_rules! assert_key_value {
-    ($kv:expr, $ns:expr, $key:expr, $expected:expr) => {{
+    ($kv:expr, $key:expr, $expected:expr) => {{
         use svm_kv::traits::KVStore;
 
-        let actual = $kv.borrow().get(&$ns, &$key).unwrap();
+        let actual = $kv.borrow().get(&$key).unwrap();
         assert_eq!($expected, &actual[..]);
     }};
 }

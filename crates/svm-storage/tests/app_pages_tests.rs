@@ -1,5 +1,4 @@
 use svm_common::State;
-use svm_kv::key::concat_ns_to_key;
 use svm_storage::{
     page::{zero_page, PageIndex},
     testing::{
@@ -35,12 +34,10 @@ fn app_pages_first_time_run_with_no_modifications_then_commit() {
 
     assert_eq!(expected_state, actual_state);
 
-    let expected_key = concat_ns_to_key(&[b's'], expected_state.as_slice());
+    let expected_key = expected_state.as_slice();
     assert_same_keys!(vec![expected_key], kv_keys_vec!(kv));
 
-    let ns = vec![b'p'];
-    let key = concat_ns_to_key(&ns, ph.0);
-    assert_no_key!(kv, ns, key);
+    assert_no_key!(kv, ph.0);
 
     assert_page_content!(pages, 0, None);
     assert_page_content!(pages, 1, None);
@@ -66,15 +63,13 @@ fn app_pages_first_time_run_with_one_modified_page() {
     assert_eq!(expected_state, actual_state);
 
     let state = expected_state.bytes();
-    let page_ns = vec![b'p'];
-    let state_ns = vec![b's'];
-    let page_key = concat_ns_to_key(&page_ns, ph0.0);
-    let state_key = concat_ns_to_key(&state_ns, state);
+    let page_key = ph0.0;
+    let state_key = state;
     let expected_keys = vec![page_key.clone(), state_key.clone()];
 
     assert_same_keys!(expected_keys, kv_keys_vec!(kv));
-    assert_key_value!(kv, state_ns, state, concat_pages_hash(&[ph0, ph1]));
-    assert_key_value!(kv, page_ns, ph0.0, [10, 20, 30]);
+    assert_key_value!(kv, state, concat_pages_hash(&[ph0, ph1]));
+    assert_key_value!(kv, ph0.0, [10, 20, 30]);
 
     assert_page_content!(pages, 0, Some(vec![10, 20, 30]));
     assert_page_content!(pages, 1, None);
@@ -100,17 +95,15 @@ fn app_pages_first_time_run_with_two_modified_pages() {
     assert_eq!(expected_state, actual_state);
 
     let state = expected_state.bytes();
-    let page_ns = vec![b'p'];
-    let state_ns = vec![b's'];
-    let page0_key = concat_ns_to_key(&page_ns, ph0.0);
-    let page1_key = concat_ns_to_key(&page_ns, ph1.0);
-    let state_key = concat_ns_to_key(&state_ns, state);
+    let page0_key = ph0.0;
+    let page1_key = ph1.0;
+    let state_key = state;
     let expected_keys = vec![page0_key.clone(), page1_key.clone(), state_key.clone()];
 
     assert_same_keys!(expected_keys, kv_keys_vec!(kv));
-    assert_key_value!(kv, state_ns, state, concat_pages_hash(&[ph0, ph1]));
-    assert_key_value!(kv, page_ns, ph0.0, [10, 20, 30]);
-    assert_key_value!(kv, page_ns, ph1.0, [40, 50, 60]);
+    assert_key_value!(kv, state, concat_pages_hash(&[ph0, ph1]));
+    assert_key_value!(kv, ph0.0, [10, 20, 30]);
+    assert_key_value!(kv, ph1.0, [40, 50, 60]);
 
     assert_page_content!(pages, 0, Some(vec![10, 20, 30]));
     assert_page_content!(pages, 1, Some(vec![40, 50, 60]));
@@ -144,12 +137,10 @@ fn app_pages_second_run_after_first_run_with_no_modifications() {
 
     let old_state = old_state.bytes();
     let new_state = new_state.bytes();
-    let page_ns = vec![b'p'];
-    let state_ns = vec![b's'];
-    let old_state_key = concat_ns_to_key(&state_ns, old_state);
-    let new_state_key = concat_ns_to_key(&state_ns, new_state);
-    let page0_key = concat_ns_to_key(&page_ns, ph0.0);
-    let page1_key = concat_ns_to_key(&page_ns, ph1.0);
+    let old_state_key = old_state;
+    let new_state_key = new_state;
+    let page0_key = ph0.0;
+    let page1_key = ph1.0;
 
     let expected_keys = vec![
         page0_key.clone(),
@@ -159,10 +150,10 @@ fn app_pages_second_run_after_first_run_with_no_modifications() {
     ];
 
     assert_same_keys!(expected_keys, kv_keys_vec!(kv));
-    assert_key_value!(kv, state_ns, new_state, concat_pages_hash(&[ph0, ph1, ph2]));
-    assert_key_value!(kv, page_ns, ph0.0, [10, 20, 30]);
-    assert_key_value!(kv, page_ns, ph1.0, [40, 50, 60]);
-    assert_no_key!(kv, page_ns, ph2.0);
+    assert_key_value!(kv, new_state, concat_pages_hash(&[ph0, ph1, ph2]));
+    assert_key_value!(kv, ph0.0, [10, 20, 30]);
+    assert_key_value!(kv, ph1.0, [40, 50, 60]);
+    assert_no_key!(kv, ph2.0);
 }
 
 #[test]
@@ -193,13 +184,11 @@ fn app_pages_second_run_after_first_run_with_modifications() {
 
     let old_state = old_state.bytes();
     let new_state = new_state.bytes();
-    let page_ns = vec![b'p'];
-    let state_ns = vec![b's'];
-    let old_state_key = concat_ns_to_key(&state_ns, old_state);
-    let new_state_key = concat_ns_to_key(&state_ns, new_state);
-    let page0_old_key = concat_ns_to_key(&page_ns, ph0_old.0);
-    let page0_key = concat_ns_to_key(&page_ns, ph0.0);
-    let page1_key = concat_ns_to_key(&page_ns, ph1.0);
+    let old_state_key = old_state;
+    let new_state_key = new_state;
+    let page0_old_key = ph0_old.0;
+    let page0_key = ph0.0;
+    let page1_key = ph1.0;
 
     let expected_keys = vec![
         page0_old_key.clone(),
@@ -210,11 +199,11 @@ fn app_pages_second_run_after_first_run_with_modifications() {
     ];
 
     assert_same_keys!(expected_keys, kv_keys_vec!(kv));
-    assert_key_value!(kv, state_ns, new_state, concat_pages_hash(&[ph0, ph1, ph2]));
-    assert_key_value!(kv, page_ns, ph0_old.0, [11, 22, 33]);
-    assert_key_value!(kv, page_ns, ph0.0, [10, 20, 30]);
-    assert_key_value!(kv, page_ns, ph1.0, [40, 50, 60]);
-    assert_no_key!(kv, page_ns, ph2.0);
+    assert_key_value!(kv, new_state, concat_pages_hash(&[ph0, ph1, ph2]));
+    assert_key_value!(kv, ph0_old.0, [11, 22, 33]);
+    assert_key_value!(kv, ph0.0, [10, 20, 30]);
+    assert_key_value!(kv, ph1.0, [40, 50, 60]);
+    assert_no_key!(kv, ph2.0);
 }
 
 #[test]
@@ -246,14 +235,11 @@ fn app_pages_third_run_rollbacks_to_after_first_run() {
     // 3rd run (rollbacks to `state1` initial state)
     let pages = app_pages_open(&state1, &kv, page_count);
 
-    let page_ns = vec![b'p'];
-    let state_ns = vec![b's'];
-
-    let state1_key = concat_ns_to_key(&state_ns, state1.bytes());
-    let state2_key = concat_ns_to_key(&state_ns, state2.bytes());
-    let page0_1_key = concat_ns_to_key(&page_ns, ph0_1.0);
-    let page0_2_key = concat_ns_to_key(&page_ns, ph0_2.0);
-    let page1_2_key = concat_ns_to_key(&page_ns, ph1_2.0);
+    let state1_key = state1.bytes();
+    let state2_key = state2.bytes();
+    let page0_1_key = ph0_1.0;
+    let page0_2_key = ph0_2.0;
+    let page1_2_key = ph1_2.0;
 
     let expected_keys = vec![
         state1_key.clone(),
@@ -270,7 +256,6 @@ fn app_pages_third_run_rollbacks_to_after_first_run() {
 
     assert_key_value!(
         kv,
-        state_ns,
         state1.bytes(),
         concat_pages_hash(&[ph0_1, ph1_1, ph2_1])
     );
@@ -282,7 +267,6 @@ fn app_pages_third_run_rollbacks_to_after_first_run() {
 
     assert_key_value!(
         kv,
-        state_ns,
         state2.bytes(),
         concat_pages_hash(&[ph0_2, ph1_2, ph2_2])
     );

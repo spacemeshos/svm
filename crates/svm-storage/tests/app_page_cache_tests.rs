@@ -24,9 +24,8 @@ fn page_cache_write_page_and_then_commit() {
 
     let ph = default_page_hash(&[10, 20, 30]);
     let key = ph.0;
-    let ns = vec![b'p'];
 
-    assert_no_key!(kv, ns, key);
+    assert_no_key!(kv, key);
 }
 
 #[test]
@@ -50,9 +49,8 @@ fn page_cache_commit_persists_each_dirty_page() {
     // `cache.write_page` doesn't persist the page yet
     let ph = default_page_hash(&[10, 20, 30]);
     let key = ph.0;
-    let ns = vec![b'p'];
 
-    assert_no_key!(kv, ns, key);
+    assert_no_key!(kv, key);
     cache.commit();
-    assert_key_value!(kv, ns, key, [10, 20, 30]);
+    assert_key_value!(kv, key, [10, 20, 30]);
 }
