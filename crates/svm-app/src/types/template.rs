@@ -1,5 +1,7 @@
 use std::fmt;
 
+use svm_storage2::layout::DataLayout;
+
 /// An in-memory representation of an app-template.
 #[allow(missing_docs)]
 #[derive(PartialEq)]
@@ -8,6 +10,7 @@ pub struct AppTemplate {
     pub name: String,
     pub page_count: u16,
     pub code: Vec<u8>,
+    pub data: DataLayout,
 }
 
 impl fmt::Debug for AppTemplate {

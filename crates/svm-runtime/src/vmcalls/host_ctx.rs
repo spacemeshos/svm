@@ -43,6 +43,15 @@ pub fn host_ctx_read_i64_be(ctx: &mut WasmerCtx, field_idx: u32) -> u64 {
     host_ctx_read_int::<BigEndian>(ctx, field_idx)
 }
 
+/// ====================================================================
+/// For SVM v0.2
+pub fn host_get64(ctx: &mut WasmerCtx, field_idx: u32) -> u64 {
+    use_gas!("host_get64", ctx);
+
+    host_ctx_read_int::<BigEndian>(ctx, field_idx)
+}
+/// ====================================================================
+
 fn host_ctx_read_int<T: ByteOrder>(ctx: &mut WasmerCtx, field_idx: u32) -> u64 {
     let host_ctx = helpers::wasmer_data_host_ctx(ctx.data);
     let buf = host_ctx.get(field_idx).unwrap();

@@ -86,6 +86,7 @@ impl<PS: StateAwarePagesStorage> PagesStorage for DefaultPageCache<PS> {
                 let page = self.pages_storage.read_page(page_idx);
 
                 if let Some(page) = page {
+                    // we cache the loaded page
                     self.cached_pages[page_idx.0 as usize] = CachedPage::Cached(page.clone());
 
                     Some(page)

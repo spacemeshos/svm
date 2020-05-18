@@ -3,6 +3,7 @@ use crate::{
     raw::{helpers, Field, NibbleIter, NibbleWriter},
     types::AppTemplate,
 };
+use svm_storage2::layout::{DataLayout, DataLayoutBuilder, VarId};
 
 /// Encodes a raw Deploy-Template.
 pub fn encode_deploy_template(template: &AppTemplate, w: &mut NibbleWriter) {
@@ -10,6 +11,7 @@ pub fn encode_deploy_template(template: &AppTemplate, w: &mut NibbleWriter) {
     encode_name(template, w);
     encode_page_count(template, w);
     encode_code(template, w);
+    encode_data_layout(template, w);
 }
 
 /// Decodes a raw Deploy-Template.
@@ -18,12 +20,14 @@ pub fn decode_deploy_template(iter: &mut NibbleIter) -> Result<AppTemplate, Pars
     let name = decode_name(iter)?;
     let page_count = decode_page_count(iter)?;
     let code = decode_code(iter)?;
+    let data = decode_data_layout(iter)?;
 
     let template = AppTemplate {
         version,
         name,
         page_count,
         code,
+        data,
     };
 
     Ok(template)
@@ -43,6 +47,16 @@ fn encode_name(template: &AppTemplate, w: &mut NibbleWriter) {
 fn encode_page_count(template: &AppTemplate, w: &mut NibbleWriter) {
     let page_count = template.page_count;
     helpers::encode_varuint14(page_count, w);
+}
+
+fn encode_data_layout(template: &AppTemplate, w: &mut NibbleWriter) {
+    let nvars = template.data.len() as u32;
+    helpers::encode_u32_be(nvars, w);
+
+    for (_vid, _off, len) in template.data.iter() {
+        // todo: assert `len` fits 14-bits
+        helpers::encode_varuint14(len as u16, w);
+    }
 }
 
 fn encode_code(template: &AppTemplate, w: &mut NibbleWriter) {
@@ -72,6 +86,22 @@ fn decode_page_count(iter: &mut NibbleIter) -> Result<u16, ParseError> {
     helpers::decode_varuint14(iter, Field::PageCount)
 }
 
+fn decode_data_layout(iter: &mut NibbleIter) -> Result<DataLayout, ParseError> {
+    let nvars = helpers::decode_u32_be(iter, Field::DataLayoutVarsCount)?;
+
+    let mut builder = DataLayoutBuilder::with_capacity(nvars as usize);
+
+    for _vid in 0..nvars as usize {
+        let len = helpers::decode_varuint14(iter, Field::DataLayoutVarLength)?;
+
+        builder.add_var(len as u32);
+    }
+
+    let layout = builder.build();
+
+    Ok(layout)
+}
+
 fn decode_code(iter: &mut NibbleIter) -> Result<Vec<u8>, ParseError> {
     let length = helpers::decode_u32_be(iter, Field::CodeLength)?;
     let code = iter.read_bytes(length as usize);
@@ -90,6 +120,7 @@ mod tests {
             name: "My Template".to_string(),
             page_count: 5,
             code: vec![0x0C, 0x00, 0x0D, 0x0E],
+            data: vec![5, 10].into(),
         };
 
         let mut w = NibbleWriter::new();

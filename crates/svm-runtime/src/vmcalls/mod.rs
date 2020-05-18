@@ -2,13 +2,14 @@ mod buffer;
 mod host_ctx;
 mod register;
 mod storage;
+mod storage2;
 
 pub use buffer::{
     buffer_copy_to_reg, buffer_copy_to_storage, buffer_create, buffer_freeze, buffer_kill,
 };
 pub use host_ctx::{
     host_ctx_read_i32_be, host_ctx_read_i32_le, host_ctx_read_i64_be, host_ctx_read_i64_le,
-    host_ctx_read_into_reg,
+    host_ctx_read_into_reg, host_get64,
 };
 pub use register::{
     reg_cmp, reg_pop, reg_push, reg_set_i32_be, reg_set_i32_le, reg_set_i64_be, reg_set_i64_le,
@@ -19,6 +20,7 @@ pub use storage::{
     storage_write_from_mem, storage_write_from_reg, storage_write_i32_be, storage_write_i32_le,
     storage_write_i64_be, storage_write_i64_le,
 };
+pub use storage2::{get64, set64};
 
 pub use wasmer_runtime_core::{
     func,
@@ -67,4 +69,9 @@ pub fn insert_vmcalls(ns: &mut Namespace) {
     ns.insert("host_ctx_read_i32_le", func!(host_ctx_read_i32_le));
     ns.insert("host_ctx_read_i64_be", func!(host_ctx_read_i64_be));
     ns.insert("host_ctx_read_i64_le", func!(host_ctx_read_i64_le));
+
+    // for v0.2
+    ns.insert("get64", func!(get64));
+    ns.insert("set64", func!(set64));
+    ns.insert("host_get64", func!(host_get64));
 }

@@ -8,16 +8,7 @@ use svm_kv::traits::KVStore;
 
 use std::{cell::RefCell, marker::PhantomData, rc::Rc};
 
-use lazy_static::lazy_static;
 use log::{debug, trace};
-
-lazy_static! {
-    /// `Page` namespace for kv-store.
-    pub static ref PAGE_NS: Vec<u8> = vec![b'p'];
-
-    /// `State` namespace for kv-store.
-    pub static ref STATE_NS: Vec<u8> = vec![b's'];
-}
 
 #[derive(Debug, Clone)]
 enum PageEntry {
@@ -107,7 +98,7 @@ where
         //
         // Then, populates `self.pages`. Each page is initialized with `PageEntry::NotModified(page_hash, None)`
         let state = self.state.as_slice();
-        let v = self.kv.borrow().get(&STATE_NS, state);
+        let v = self.kv.borrow().get(state);
 
         assert!(v.is_some(), "Didn't find state: {:?}", state);
 
@@ -216,7 +207,7 @@ where
         match self.pages[idx] {
             PageEntry::NotModified(ph) => {
                 let key = &ph.0;
-                self.kv.borrow().get(&PAGE_NS, key)
+                self.kv.borrow().get(key)
             }
             PageEntry::Modified(..) => panic!("Not allowed to read a dirty page"),
             PageEntry::Uninitialized => unreachable!(),
@@ -252,19 +243,14 @@ where
 
         let mut entries = Vec::with_capacity(1 + changeset.changes.len());
 
-        let state_entry = (
-            &STATE_NS[..],
-            changeset.state.as_slice(),
-            changeset.jph.as_slice(),
-        );
+        let state_entry = (changeset.state.as_slice(), changeset.jph.as_slice());
         entries.push(state_entry);
 
         for change in changeset.changes.iter() {
             let k = change.new_hash.as_ref();
             let v = &change.new_data[..];
 
-            let entry = (&PAGE_NS[..], k, v);
-            entries.push(entry);
+            entries.push((k, v));
         }
 
         // At last, we store under the flat key-value store (`self.kv`) the following new entries:

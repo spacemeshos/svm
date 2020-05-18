@@ -3,6 +3,8 @@ use crate::{
     types::AppTemplate,
 };
 
+use svm_storage2::layout::DataLayout;
+
 /// Builds a raw representation for `deploy-template`
 /// Should be used for testing only.
 pub struct DeployAppTemplateBuilder {
@@ -10,19 +12,27 @@ pub struct DeployAppTemplateBuilder {
     name: Option<String>,
     page_count: Option<u16>,
     code: Option<Vec<u8>>,
+    data: Option<DataLayout>,
 }
 
 ///
 /// # Example
 ///  
 /// ```rust
-/// use svm_app::{types::AppTemplate, testing::DeployAppTemplateBuilder, raw::{decode_deploy_template, NibbleIter}};
+/// use svm_app::{
+///    types::AppTemplate,
+///    testing::DeployAppTemplateBuilder,
+///    raw::{decode_deploy_template, NibbleIter}
+/// };
+///
+/// let layout = vec![5, 10].into();
 ///
 /// let bytes = DeployAppTemplateBuilder::new()
 ///            .with_version(0)
 ///            .with_name("My Template")
 ///            .with_page_count(10)
 ///            .with_code(&[0xC, 0x0, 0xD, 0xE])
+///            .with_data(&layout)
 ///            .build();
 ///
 /// let mut iter = NibbleIter::new(&bytes[..]);
@@ -32,7 +42,8 @@ pub struct DeployAppTemplateBuilder {
 ///                  version: 0,
 ///                  name: "My Template".to_string(),
 ///                  page_count: 10,
-///                  code: vec![0xC, 0x0, 0xD, 0xE]
+///                  code: vec![0xC, 0x0, 0xD, 0xE],
+///                  data: layout
 ///                };
 ///
 /// assert_eq!(expected, actual);
@@ -48,6 +59,7 @@ impl DeployAppTemplateBuilder {
             name: None,
             code: None,
             page_count: None,
+            data: None,
         }
     }
 
@@ -71,17 +83,24 @@ impl DeployAppTemplateBuilder {
         self
     }
 
+    pub fn with_data(mut self, data: &DataLayout) -> Self {
+        self.data = Some(data.clone());
+        self
+    }
+
     pub fn build(self) -> Vec<u8> {
         let version = self.version.unwrap();
         let name = self.name.unwrap();
         let page_count = self.page_count.unwrap();
         let code = self.code.unwrap();
+        let data = self.data.unwrap();
 
         let app = AppTemplate {
             version,
             name,
             page_count,
             code,
+            data,
         };
 
         let mut w = NibbleWriter::new();

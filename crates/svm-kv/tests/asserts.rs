@@ -1,15 +1,15 @@
 #[macro_export]
 macro_rules! assert_key_value {
-    ($kv:expr, $ns:expr, $key:expr, $expected:expr) => {{
-        let actual = $kv.get(&$ns, &$key).unwrap();
+    ($kv:expr, $key:expr, $expected:expr) => {{
+        let actual = $kv.get(&$key).unwrap();
         assert_eq!($expected, &actual[..]);
     }};
 }
 
 #[macro_export]
 macro_rules! assert_no_key {
-    ($kv:expr, $ns:expr, $key:expr) => {{
-        assert!($kv.get(&$ns, &$key).is_none());
+    ($kv:expr, $key:expr) => {{
+        assert!($kv.get(&$key).is_none());
     }};
 }
 

@@ -8,11 +8,12 @@ edition = "2018"
 
 [dependencies.svm-common]
 path = "../svm-common"
-version = "0.0.0"
 
 [dependencies.svm-app]
 path = "../svm-app"
-version = "0.0.0"
+
+[dependencies.svm-storage2]
+path = "../svm-storage2"
 
 [dependencies]
 clap = "2.33.0"

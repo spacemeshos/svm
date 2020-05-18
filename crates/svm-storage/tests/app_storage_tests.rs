@@ -32,10 +32,9 @@ fn app_storage_read_an_empty_slice_then_override_it_and_then_commit() {
 
     // page is not persisted though since we didn't `commit`
     let ph = default_page_hash(&[10, 20, 30]);
-    let ns = vec![b'p'];
     let key = ph.0;
 
-    assert_no_key!(kv, ns, key);
+    assert_no_key!(kv, key);
 }
 
 #[test]
@@ -58,16 +57,14 @@ fn app_storage_write_slice_without_loading_it_first_and_commit() {
     fill_page(&mut expected_page, &[(100, 10), (101, 20), (102, 30)]);
 
     let ph = default_page_hash(&expected_page);
-    let ns = vec![b'p'];
     let key = ph.0;
 
-    assert_key_value!(kv, ns, key, expected_page);
+    assert_key_value!(kv, key, expected_page);
 }
 
 #[test]
 fn app_storage_read_an_existing_slice_then_overriding_it_and_commit() {
     let page_count = 2;
-    let ns = vec![b'p'];
     let (kv, mut storage) = app_storage_init(page_count);
 
     let layout = PageSliceLayout::new(PageIndex(1), PageOffset(100), 3);
@@ -81,29 +78,28 @@ fn app_storage_read_an_existing_slice_then_overriding_it_and_commit() {
     fill_page(&mut expected_page, &[(100, 40), (101, 50), (102, 60)]);
     let ph2 = default_page_hash(&expected_page);
 
-    let page = kv.borrow().get(&ns, &ph1.0).unwrap();
+    let page = kv.borrow().get(&ph1.0).unwrap();
     assert_eq!(vec![10, 20, 30], &page[100..103]);
     storage.write_page_slice(&layout, &vec![40, 50, 60]);
 
     // new page is on the page-storage, but not persisted yet
     assert_eq!(vec![40, 50, 60], storage.read_page_slice(&layout));
 
-    let page = kv.borrow().get(&ns, &ph1.0).unwrap();
+    let page = kv.borrow().get(&ph1.0).unwrap();
     assert_eq!(vec![10, 20, 30], &page[100..103]);
 
-    assert_eq!(None, kv.borrow().get(&ns, &ph2.0));
+    assert_eq!(None, kv.borrow().get(&ph2.0));
 
     // now we also persist the new page version
     let _ = storage.commit();
 
-    let page = kv.borrow().get(&ns, &ph2.0).unwrap();
+    let page = kv.borrow().get(&ph2.0).unwrap();
     assert_eq!(vec![40, 50, 60], &page[100..103]);
 }
 
 #[test]
 fn app_storage_write_slice_and_commit_then_load_it_override_it_and_commit() {
     let page_count = 2;
-    let ns = vec![b'p'];
     let (kv, mut storage) = app_storage_init(page_count);
 
     let layout = PageSliceLayout::new(PageIndex(1), PageOffset(100), 3);
@@ -129,12 +125,12 @@ fn app_storage_write_slice_and_commit_then_load_it_override_it_and_commit() {
     assert_eq!(vec![40, 50, 60], storage.read_page_slice(&layout));
 
     // 5) commit again
-    let page = kv.borrow().get(&ns, &ph1.0).unwrap();
+    let page = kv.borrow().get(&ph1.0).unwrap();
     assert_eq!(vec![10, 20, 30], &page[100..103]);
 
     let _ = storage.commit();
 
-    let page = kv.borrow().get(&ns, &ph2.0).unwrap();
+    let page = kv.borrow().get(&ph2.0).unwrap();
     assert_eq!(vec![40, 50, 60], &page[100..103]);
 }
 
@@ -161,9 +157,8 @@ fn app_storage_write_two_slices_under_same_page_and_commit() {
     assert_eq!(vec![40, 50], storage.read_page_slice(&layout2));
 
     // commiting two slices under the same page
-    let ns = vec![b'p'];
     let key = ph.0;
-    assert_no_key!(kv, ns, key);
+    assert_no_key!(kv, key);
 
     let state = storage.commit();
 
@@ -174,7 +169,7 @@ fn app_storage_write_two_slices_under_same_page_and_commit() {
     assert_eq!(vec![40, 50], storage.read_page_slice(&layout2));
 
     // querying the key-value store directly
-    let page = kv.borrow().get(&ns, &ph.0).unwrap();
+    let page = kv.borrow().get(&ph.0).unwrap();
     assert_eq!(vec![10, 20, 30], &page[100..103]);
     assert_eq!(vec![40, 50], &page[200..202]);
 }

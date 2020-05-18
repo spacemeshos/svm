@@ -804,6 +804,7 @@ dependencies = [
  "svm-runtime",
  "svm-runtime-c-api",
  "svm-storage",
+ "svm-storage2",
  "tiny-keccak",
  "wabt",
  "wasmer-middleware-common",
@@ -833,6 +834,7 @@ dependencies = [
  "maplit",
  "svm-common",
  "svm-kv",
+ "svm-storage2",
 ]
 
 [[package]]
@@ -844,6 +846,7 @@ dependencies = [
  "regex",
  "svm-app",
  "svm-common",
+ "svm-storage2",
  "tempfile",
 ]
 
@@ -905,6 +908,7 @@ dependencies = [
  "svm-gas",
  "svm-kv",
  "svm-storage",
+ "svm-storage2",
  "wabt",
  "wasmer-middleware-common",
  "wasmer-runtime",
@@ -926,6 +930,7 @@ dependencies = [
  "svm-kv",
  "svm-runtime",
  "svm-storage",
+ "svm-storage2",
  "wabt",
  "wasmer-runtime",
  "wasmer-runtime-c-api",
@@ -942,6 +947,14 @@ dependencies = [
  "lazy_static",
  "log",
  "svm-abi",
+ "svm-common",
+ "svm-kv",
+]
+
+[[package]]
+name = "svm-storage2"
+version = "0.0.0"
+dependencies = [
  "svm-common",
  "svm-kv",
 ]

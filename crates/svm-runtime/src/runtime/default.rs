@@ -16,7 +16,7 @@ use crate::{
     receipt::{make_spawn_app_receipt, ExecReceipt, SpawnAppReceipt, TemplateReceipt},
     runtime::Runtime,
     settings::AppSettings,
-    storage::StorageBuilderFn,
+    storage::{Storage2BuilderFn, StorageBuilderFn},
 };
 use svm_app::{
     error::ParseError,
@@ -29,6 +29,8 @@ use svm_app::{
 use svm_common::State;
 use svm_gas::Gas;
 use svm_storage::AppStorage;
+
+use svm_storage2::app::AppStorage as AppStorage2;
 
 use wasmer_runtime::Value as WasmerValue;
 use wasmer_runtime_core::{
@@ -52,6 +54,9 @@ pub struct DefaultRuntime<ENV, GE> {
 
     /// builds a `AppStorage` instance.
     pub storage_builder: Box<StorageBuilderFn>,
+
+    /// builds a `AppStorage2` instance.
+    pub storage2_builder: Box<Storage2BuilderFn>,
 
     phantom: PhantomData<GE>,
 }
@@ -176,6 +181,7 @@ where
         kv_path: P,
         imports: Vec<(String, String, Export)>,
         storage_builder: Box<StorageBuilderFn>,
+        storage2_builder: Box<Storage2BuilderFn>,
     ) -> Self {
         Self::ensure_not_svm_ns(&imports[..]);
 
@@ -185,6 +191,7 @@ where
             kv_path: kv_path.as_ref().to_path_buf(),
             imports,
             storage_builder,
+            storage2_builder,
             phantom: PhantomData::<GE>,
         }
     }
@@ -199,6 +206,18 @@ where
         settings: &AppSettings,
     ) -> AppStorage {
         (self.storage_builder)(addr, state, settings)
+    }
+
+    /// Initialize a new `AppStorage` and returns it.
+    /// This method is of `pub` visibility since it's also helpful for tests that want to
+    /// observe that app storage data.
+    pub fn open_app_storage2(
+        &self,
+        addr: &AppAddr,
+        state: &State,
+        settings: &AppSettings,
+    ) -> AppStorage2 {
+        (self.storage2_builder)(addr, state, settings)
     }
 
     fn call_ctor(
@@ -273,6 +292,7 @@ where
                 let settings = AppSettings {
                     page_count: template.page_count,
                     kv_path: self.kv_path.clone(),
+                    layout: template.data.clone(),
                 };
 
                 let mut import_object =
@@ -502,6 +522,8 @@ where
         );
 
         let storage = self.open_app_storage(addr, state, settings);
+        let storage2 = self.open_app_storage2(addr, state, settings);
+
         let host_ctx = svm_common::into_raw(host_ctx);
 
         let svm_ctx = SvmCtx::new(
@@ -509,6 +531,7 @@ where
             DataWrapper::new(host_ctx),
             gas_limit,
             storage,
+            storage2,
         );
         let svm_ctx = Box::leak(Box::new(svm_ctx));
 

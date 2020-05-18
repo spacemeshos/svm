@@ -56,16 +56,17 @@ impl From<&[WasmValue]> for svm_byte_array {
 
         let mut bytes = Vec::with_capacity(capacity);
 
-        bytes.write_u8(nvalues as u8);
+        bytes.write_u8(nvalues as u8).unwrap();
 
         for value in values.iter() {
             let ty: WasmType = value.ty();
-            bytes.write_u8(ty.into());
+            bytes.write_u8(ty.into()).unwrap();
 
             let value: u64 = value.into();
+
             match ty {
-                WasmType::I32 => bytes.write_u32::<BigEndian>(value as u32),
-                WasmType::I64 => bytes.write_u64::<BigEndian>(value),
+                WasmType::I32 => bytes.write_u32::<BigEndian>(value as u32).unwrap(),
+                WasmType::I64 => bytes.write_u64::<BigEndian>(value).unwrap(),
             };
         }
 

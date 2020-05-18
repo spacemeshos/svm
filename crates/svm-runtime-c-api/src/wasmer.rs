@@ -1,10 +1,6 @@
-use std::io;
 use std::sync::Arc;
 
-use crate::{
-    import::{Import, ImportFuncSig, ImportValue},
-    svm_byte_array,
-};
+use crate::import::{Import, ImportFuncSig, ImportValue};
 
 use svm_app::types::WasmType;
 

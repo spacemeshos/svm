@@ -1,10 +1,13 @@
 use std::error::Error;
 
 use crate::common;
+
 use svm_app::{
     raw::decode_deploy_template, raw::NibbleIter, testing::DeployAppTemplateBuilder,
     types::AppTemplate,
 };
+
+use svm_storage2::layout::DataLayout;
 
 pub fn encode(
     version: u32,
@@ -20,6 +23,7 @@ pub fn encode(
         .with_name(name)
         .with_page_count(page_count)
         .with_code(&buf)
+        .with_data(&DataLayout::empty())
         .build();
 
     common::write_to_file(output_path, &bytes)?;
