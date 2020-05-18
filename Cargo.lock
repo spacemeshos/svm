@@ -846,6 +846,7 @@ dependencies = [
  "regex",
  "svm-app",
  "svm-common",
+ "svm-storage2",
  "tempfile",
 ]
 
