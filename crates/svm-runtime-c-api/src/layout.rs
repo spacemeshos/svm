@@ -1,7 +1,7 @@
 use std::convert::{TryFrom, TryInto};
 use std::io::{self, ErrorKind};
 
-use byteorder::{BigEndian, ByteOrder, ReadBytesExt};
+use byteorder::{BigEndian, ByteOrder};
 
 use crate::svm_byte_array;
 
@@ -9,6 +9,15 @@ pub use svm_layout::DataLayout;
 
 ///
 /// Parsing raw `DataLayout` given as `svm_byte_array` into `DataLayout`.
+///
+/// Here is the raw reprentation of a `DataLayout`:
+///
+/// +-----------------------------------------------------------+
+/// | var #0 length (4 bytes) | . . . | var #N length (4 bytes) |
+/// +-----------------------------------------------------------+
+///
+/// Each variable length conumes exactly 4 bytes encoded in a Big-Endian order.
+/// Given that, the `length` of the `svm_byte_array` must be divisble by 4.
 ///
 /// # Example
 ///
