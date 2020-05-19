@@ -14,12 +14,6 @@ publish = false
 path = "../svm-common"
 version = "0.0.0"
 
-[dependencies.svm-storage]
-default-features = false
-path = "../svm-storage"
-features = ["svm_memory"]
-version = "0.0.0"
-
 [dependencies.wasmer-runtime]
 default-features = false
 git = "https://github.com/spacemeshos/wasmer"

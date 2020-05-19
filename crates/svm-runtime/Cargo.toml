@@ -12,11 +12,6 @@ path = "../svm-common"
 [dependencies.svm-kv]
 path = "../svm-kv"
 
-[dependencies.svm-storage]
-default-features = false
-path = "../svm-storage"
-features = ["default"]
-
 [dependencies.svm-layout]
 path = "../svm-layout"
 
