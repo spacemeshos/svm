@@ -1,7 +1,7 @@
-#![allow(missing_docs)]
-#![allow(unused)]
-#![allow(dead_code)]
-#![allow(unreachable_code)]
+#![deny(missing_docs)]
+#![deny(unused)]
+#![deny(dead_code)]
+#![deny(unreachable_code)]
 
 //! This crate is responsible on managing the App's storage.
 //!
@@ -13,3 +13,6 @@ pub mod app;
 
 /// Key-value abstraction
 pub mod kv;
+
+/// Tests helpers
+pub mod testing;

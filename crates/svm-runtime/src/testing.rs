@@ -10,17 +10,20 @@ use crate::{
     storage::{Storage2BuilderFn, StorageBuilderFn},
     DefaultRuntime,
 };
-
 use svm_app::{
     memory::{DefaultMemAppStore, DefaultMemAppTemplateStore, DefaultMemoryEnv},
     testing::{AppTxBuilder, DeployAppTemplateBuilder, HostCtxBuilder, SpawnAppBuilder},
     types::{AppAddr, TemplateAddr, WasmValue},
 };
 use svm_common::{Address, State};
-use svm_kv::{memory::MemKVStore, traits::KVStore};
+use svm_kv::memory::MemKVStore;
 use svm_layout::DataLayout;
 use svm_storage::AppStorage;
-use svm_storage2::{app::AppKVStore, app::AppStorage as AppStorage2, kv::FakeKV};
+use svm_storage2::{
+    app::AppKVStore,
+    app::AppStorage as AppStorage2,
+    kv::{FakeKV, StatefulKVStore},
+};
 
 use wasmer_runtime_core::{export::Export, import::ImportObject, Instance, Module};
 
@@ -115,7 +118,7 @@ pub fn memory_kv_store_init() -> Rc<RefCell<MemKVStore>> {
 }
 
 /// Initializes a new in-memory key-value store.
-pub fn memory_kv_store2_init() -> Rc<RefCell<dyn KVStore>> {
+pub fn memory_kv_store2_init() -> Rc<RefCell<dyn StatefulKVStore>> {
     Rc::new(RefCell::new(FakeKV::new()))
 }
 
@@ -123,7 +126,7 @@ pub fn memory_kv_store2_init() -> Rc<RefCell<dyn KVStore>> {
 pub fn create_memory_runtime(
     host: *mut c_void,
     kv: &Rc<RefCell<MemKVStore>>,
-    raw_kv: &Rc<RefCell<dyn KVStore>>,
+    raw_kv: &Rc<RefCell<dyn StatefulKVStore>>,
     imports: Vec<(String, String, Export)>,
 ) -> DefaultRuntime<DefaultMemoryEnv, DefaultGasEstimator> {
     let storage_builder = runtime_memory_storage_builder(kv);
@@ -155,7 +158,7 @@ pub fn runtime_memory_storage_builder(kv: &Rc<RefCell<MemKVStore>>) -> Box<Stora
 
 /// Returns a function (wrapped inside `Box`) that initializes an App's storage client.
 pub fn runtime_memory_storage2_builder(
-    raw_kv: &Rc<RefCell<dyn KVStore>>,
+    raw_kv: &Rc<RefCell<dyn StatefulKVStore>>,
 ) -> Box<Storage2BuilderFn> {
     let raw_kv = Rc::clone(raw_kv);
 

@@ -6,6 +6,10 @@ use crate::kv::StatefulKVStore;
 use svm_common::{Address, DefaultKeyHasher, KeyHasher, State};
 use svm_kv::traits::KVStore;
 
+/// An application-aware (and `State`-aware) key-value store interface responsible of
+/// mapping `u32` input keys (given as a 4 byte-length slice) to global keys under a raw key-value store.
+///
+/// The mapping is dependant on the contextual app's `Address` (see the `new` method).
 pub struct AppKVStore {
     pub(crate) app_addr: Address,
 
@@ -73,5 +77,14 @@ impl AppKVStore {
     #[inline]
     fn hash(&self, bytes: &[u8]) -> Vec<u8> {
         DefaultKeyHasher::hash(bytes).to_vec()
+    }
+}
+
+impl Clone for AppKVStore {
+    fn clone(&self) -> Self {
+        Self {
+            app_addr: self.app_addr.clone(),
+            raw_kv: Rc::clone(&self.raw_kv),
+        }
     }
 }
