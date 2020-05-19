@@ -795,7 +795,7 @@ dependencies = [
  "svm-layout",
  "svm-runtime",
  "svm-runtime-c-api",
- "svm-storage2",
+ "svm-storage",
  "tiny-keccak",
  "wabt",
  "wasmer-middleware-common",
@@ -902,7 +902,7 @@ dependencies = [
  "svm-gas",
  "svm-kv",
  "svm-layout",
- "svm-storage2",
+ "svm-storage",
  "wabt",
  "wasmer-middleware-common",
  "wasmer-runtime",
@@ -924,7 +924,7 @@ dependencies = [
  "svm-kv",
  "svm-layout",
  "svm-runtime",
- "svm-storage2",
+ "svm-storage",
  "wabt",
  "wasmer-runtime",
  "wasmer-runtime-c-api",
@@ -933,7 +933,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "svm-storage2"
+name = "svm-storage"
 version = "0.0.0"
 dependencies = [
  "svm-common",

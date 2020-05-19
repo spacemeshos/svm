@@ -1,7 +1,6 @@
-use svm_layout::{DataLayout, VarId};
-use svm_storage2::{app::AppStorage, testing};
-
 use svm_common::Address;
+use svm_layout::{DataLayout, VarId};
+use svm_storage::{app::AppStorage, testing};
 
 macro_rules! assert_vars {
         ($app:expr, $($var_id:expr => $expected:expr), *) => {{

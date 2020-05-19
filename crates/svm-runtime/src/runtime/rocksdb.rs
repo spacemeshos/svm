@@ -6,7 +6,7 @@ use svm_app::{
     types::AppAddr,
 };
 use svm_common::State;
-use svm_storage2::app::AppStorage as AppStorage2;
+use svm_storage::app::AppStorage;
 
 use crate::{gas::GasEstimator, runtime::DefaultRuntime, settings::AppSettings};
 
@@ -46,6 +46,6 @@ where
     RocksdbEnv::new(app_store, template_store)
 }
 
-fn app_storage_build2(_addr: &AppAddr, _state: &State, _settings: &AppSettings) -> AppStorage2 {
+fn app_storage_build2(_addr: &AppAddr, _state: &State, _settings: &AppSettings) -> AppStorage {
     todo!()
 }

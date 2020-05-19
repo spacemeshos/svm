@@ -7,7 +7,7 @@ use crate::{
     helpers::{self, DataWrapper},
     register::Register,
     settings::AppSettings,
-    storage::Storage2BuilderFn,
+    storage::StorageBuilderFn,
     DefaultRuntime,
 };
 use svm_app::{
@@ -18,12 +18,10 @@ use svm_app::{
 use svm_common::{Address, State};
 use svm_kv::memory::MemKVStore;
 use svm_layout::DataLayout;
-use svm_storage2::{
-    app::AppKVStore,
-    app::AppStorage as AppStorage2,
+use svm_storage::{
+    app::{AppKVStore, AppStorage},
     kv::{FakeKV, StatefulKVStore},
 };
-
 use wasmer_runtime_core::{export::Export, import::ImportObject, Instance, Module};
 
 /// Compiles a wasm program in text format (a.k.a WAST) into a `Module` (`wasmer`)
@@ -48,8 +46,8 @@ pub fn instance_register(instance: &Instance, reg_bits: u32, reg_idx: u32) -> &m
 }
 
 /// Mutably borrows the `AppStorage` of a living `App` instance.
-pub fn instance_storage2(instance: &Instance) -> &mut AppStorage2 {
-    helpers::wasmer_data_app_storage2(instance.context().data)
+pub fn instance_storage(instance: &Instance) -> &mut AppStorage {
+    helpers::wasmer_data_app_storage(instance.context().data)
 }
 
 /// Mutably borrows the Buffer with id `buf_id` of a living `App` instance.
@@ -92,9 +90,9 @@ pub fn app_memory_state_creator(
 ) -> (*mut c_void, fn(*mut c_void)) {
     let raw_kv = memory_kv_store2_init();
     let app_kv = AppKVStore::new(app_addr.clone(), &raw_kv);
-    let storage2 = AppStorage2::new(layout.clone(), app_kv);
+    let storage = AppStorage::new(layout.clone(), app_kv);
 
-    let ctx = SvmCtx::new(host, host_ctx, gas_limit, storage2);
+    let ctx = SvmCtx::new(host, host_ctx, gas_limit, storage);
     let ctx: *mut SvmCtx = Box::into_raw(Box::new(ctx));
 
     let data: *mut c_void = ctx as *const _ as _;
@@ -114,18 +112,18 @@ pub fn create_memory_runtime(
     raw_kv: &Rc<RefCell<dyn StatefulKVStore>>,
     imports: Vec<(String, String, Export)>,
 ) -> DefaultRuntime<DefaultMemoryEnv, DefaultGasEstimator> {
-    let storage2_builder = runtime_memory_storage2_builder(raw_kv);
+    let storage_builder = runtime_memory_storage2_builder(raw_kv);
 
     let env = runtime_memory_env_builder();
     let kv_path = Path::new("mem");
 
-    DefaultRuntime::new(host, env, &kv_path, imports, Box::new(storage2_builder))
+    DefaultRuntime::new(host, env, &kv_path, imports, Box::new(storage_builder))
 }
 
 /// Returns a function (wrapped inside `Box`) that initializes an App's storage client.
 pub fn runtime_memory_storage2_builder(
     raw_kv: &Rc<RefCell<dyn StatefulKVStore>>,
-) -> Box<Storage2BuilderFn> {
+) -> Box<StorageBuilderFn> {
     let raw_kv = Rc::clone(raw_kv);
 
     let func = move |app_addr: &AppAddr, _state: &State, settings: &AppSettings| {
@@ -134,7 +132,7 @@ pub fn runtime_memory_storage2_builder(
         let app_addr = app_addr.inner();
         let app_kv = AppKVStore::new(app_addr.clone(), &raw_kv);
 
-        AppStorage2::new(layout, app_kv)
+        AppStorage::new(layout, app_kv)
     };
 
     Box::new(func)

@@ -7,7 +7,7 @@ use svm_layout::DataLayout;
 use svm_runtime::{
     gas::MaybeGas,
     helpers::DataWrapper,
-    testing::{self, instance_storage2},
+    testing::{self, instance_storage},
     vmcalls,
 };
 
@@ -23,7 +23,7 @@ macro_rules! assert_storage {
     ($instance:expr, $($var_id:expr => $expected:expr), *) => {{
         use svm_layout::VarId;
 
-        let storage = instance_storage2(&$instance);
+        let storage = instance_storage(&$instance);
 
         $(
             let actual = storage.read_var(VarId($var_id));

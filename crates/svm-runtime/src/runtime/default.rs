@@ -16,7 +16,7 @@ use crate::{
     receipt::{make_spawn_app_receipt, ExecReceipt, SpawnAppReceipt, TemplateReceipt},
     runtime::Runtime,
     settings::AppSettings,
-    storage::Storage2BuilderFn,
+    storage::StorageBuilderFn,
 };
 
 use svm_app::{
@@ -29,7 +29,7 @@ use svm_app::{
 };
 use svm_common::State;
 use svm_gas::Gas;
-use svm_storage2::app::AppStorage as AppStorage2;
+use svm_storage::app::AppStorage;
 
 use wasmer_runtime::Value as WasmerValue;
 use wasmer_runtime_core::{
@@ -51,8 +51,8 @@ pub struct DefaultRuntime<ENV, GE> {
     /// External `wasmer` imports (living inside the host) to be consumed by the app.
     pub imports: Vec<(String, String, Export)>,
 
-    /// builds a `AppStorage2` instance.
-    pub storage2_builder: Box<Storage2BuilderFn>,
+    /// builds a `AppStorage` instance.
+    pub storage_builder: Box<StorageBuilderFn>,
 
     phantom: PhantomData<GE>,
 }
@@ -176,7 +176,7 @@ where
         env: ENV,
         kv_path: P,
         imports: Vec<(String, String, Export)>,
-        storage2_builder: Box<Storage2BuilderFn>,
+        storage_builder: Box<StorageBuilderFn>,
     ) -> Self {
         Self::ensure_not_svm_ns(&imports[..]);
 
@@ -185,7 +185,7 @@ where
             host,
             kv_path: kv_path.as_ref().to_path_buf(),
             imports,
-            storage2_builder,
+            storage_builder,
             phantom: PhantomData::<GE>,
         }
     }
@@ -198,8 +198,8 @@ where
         addr: &AppAddr,
         state: &State,
         settings: &AppSettings,
-    ) -> AppStorage2 {
-        (self.storage2_builder)(addr, state, settings)
+    ) -> AppStorage {
+        (self.storage_builder)(addr, state, settings)
     }
 
     fn call_ctor(
@@ -332,7 +332,7 @@ where
                 reason: e.to_string(),
             }),
             Ok(returns) => {
-                let storage = self.instance_storage_mut2(&mut instance);
+                let storage = self.instance_storage_mut(&mut instance);
                 let new_state = Some(storage.commit());
 
                 let returns = self.cast_wasmer_func_returns(returns)?;
@@ -482,9 +482,9 @@ where
     }
 
     #[inline]
-    fn instance_storage_mut2(&self, instance: &mut wasmer_runtime::Instance) -> &mut AppStorage2 {
+    fn instance_storage_mut(&self, instance: &mut wasmer_runtime::Instance) -> &mut AppStorage {
         let wasmer_ctx: &mut wasmer_runtime::Ctx = instance.context_mut();
-        helpers::wasmer_data_app_storage2(wasmer_ctx.data)
+        helpers::wasmer_data_app_storage(wasmer_ctx.data)
     }
 
     fn import_object_create(

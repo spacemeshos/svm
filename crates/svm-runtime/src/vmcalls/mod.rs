@@ -1,7 +1,7 @@
 mod buffer;
 mod host_ctx;
 mod register;
-mod storage2;
+mod storage;
 
 pub use buffer::{buffer_copy_to_reg, buffer_create, buffer_freeze, buffer_kill};
 pub use host_ctx::{
@@ -11,7 +11,7 @@ pub use host_ctx::{
 pub use register::{
     reg_cmp, reg_pop, reg_push, reg_set_i32_be, reg_set_i32_le, reg_set_i64_be, reg_set_i64_le,
 };
-pub use storage2::{get64, set64};
+pub use storage::{get64, set64};
 
 pub use wasmer_runtime_core::{
     func,
