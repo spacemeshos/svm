@@ -3,7 +3,7 @@ use crate::{helpers, use_gas};
 use byteorder::{BigEndian, ByteOrder};
 use wasmer_runtime::Ctx as WasmerCtx;
 
-use svm_storage2::layout::VarId;
+use svm_layout::VarId;
 
 /// Returns the data stored by variable `var_id` as 64-bit integer.
 ///

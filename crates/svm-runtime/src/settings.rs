@@ -1,5 +1,6 @@
 use std::path::PathBuf;
-use svm_storage2::layout::DataLayout;
+
+use svm_layout::DataLayout;
 
 /// Holds settings for using the Runtime.
 #[derive(Debug, Clone)]

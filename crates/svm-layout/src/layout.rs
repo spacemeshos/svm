@@ -1,4 +1,4 @@
-use super::DataLayoutBuilder;
+use crate::builder::DataLayoutBuilder;
 
 /// Repersents a variable. an unsigned integer.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]

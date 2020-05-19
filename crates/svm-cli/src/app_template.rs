@@ -6,8 +6,7 @@ use svm_app::{
     raw::decode_deploy_template, raw::NibbleIter, testing::DeployAppTemplateBuilder,
     types::AppTemplate,
 };
-
-use svm_storage2::layout::DataLayout;
+use svm_layout::DataLayout;
 
 pub fn encode(
     version: u32,

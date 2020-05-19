@@ -1,4 +1,4 @@
-use super::DataLayout;
+use crate::layout::DataLayout;
 
 /// Specifies the fixed-sized variables of an application.
 pub struct DataLayoutBuilder {

@@ -51,6 +51,9 @@ default-features = false
 path = "../svm-storage"
 features = ["svm_memory"]
 
+[dependencies.svm-layout]
+path = "../svm-layout"
+
 [dependencies.svm-storage2]
 path = "../svm-storage2"
 

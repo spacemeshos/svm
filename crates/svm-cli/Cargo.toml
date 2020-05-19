@@ -12,8 +12,8 @@ path = "../svm-common"
 [dependencies.svm-app]
 path = "../svm-app"
 
-[dependencies.svm-storage2]
-path = "../svm-storage2"
+[dependencies.svm-layout]
+path = "../svm-layout"
 
 [dependencies]
 clap = "2.33.0"

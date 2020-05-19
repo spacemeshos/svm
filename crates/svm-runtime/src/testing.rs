@@ -18,10 +18,9 @@ use svm_app::{
 };
 use svm_common::{Address, State};
 use svm_kv::{memory::MemKVStore, traits::KVStore};
+use svm_layout::DataLayout;
 use svm_storage::AppStorage;
-use svm_storage2::{
-    app::AppKVStore, app::AppStorage as AppStorage2, kv::FakeKV, layout::DataLayout,
-};
+use svm_storage2::{app::AppKVStore, app::AppStorage as AppStorage2, kv::FakeKV};
 
 use wasmer_runtime_core::{export::Export, import::ImportObject, Instance, Module};
 

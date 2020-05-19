@@ -192,9 +192,9 @@ dependencies = [
 
 [[package]]
 name = "cmake"
-version = "0.1.43"
+version = "0.1.44"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "49f97562167906afc51aa3fd7e6c83c10a5c96d33bd18f98a4c06a1413134caa"
+checksum = "0e56268c17a6248366d66d4a47a3381369d068cce8409bb1716ed77ea32163bb"
 dependencies = [
  "cc",
 ]
@@ -572,9 +572,9 @@ checksum = "a1d01941d82fa2ab50be1e79e6714289dd7cde78eba4c074bc5a4374f650dfe0"
 
 [[package]]
 name = "quote"
-version = "1.0.5"
+version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "42934bc9c8ab0d3b273a16d8551c8f0fcff46be73276ca083ec2414c15c4ba5e"
+checksum = "54a21852a652ad6f610c9510194f398ff6f8692e334fd1145fed931f7fbe44ea"
 dependencies = [
  "proc-macro2",
 ]
@@ -801,6 +801,7 @@ dependencies = [
  "svm-compiler",
  "svm-gas",
  "svm-kv",
+ "svm-layout",
  "svm-runtime",
  "svm-runtime-c-api",
  "svm-storage",
@@ -834,7 +835,7 @@ dependencies = [
  "maplit",
  "svm-common",
  "svm-kv",
- "svm-storage2",
+ "svm-layout",
 ]
 
 [[package]]
@@ -846,7 +847,7 @@ dependencies = [
  "regex",
  "svm-app",
  "svm-common",
- "svm-storage2",
+ "svm-layout",
  "tempfile",
 ]
 
@@ -895,6 +896,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "svm-layout"
+version = "0.0.0"
+
+[[package]]
 name = "svm-runtime"
 version = "0.0.0"
 dependencies = [
@@ -907,6 +912,7 @@ dependencies = [
  "svm-compiler",
  "svm-gas",
  "svm-kv",
+ "svm-layout",
  "svm-storage",
  "svm-storage2",
  "wabt",
@@ -928,6 +934,7 @@ dependencies = [
  "svm-compiler",
  "svm-gas",
  "svm-kv",
+ "svm-layout",
  "svm-runtime",
  "svm-storage",
  "svm-storage2",
@@ -957,6 +964,7 @@ version = "0.0.0"
 dependencies = [
  "svm-common",
  "svm-kv",
+ "svm-layout",
 ]
 
 [[package]]

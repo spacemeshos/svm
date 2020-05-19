@@ -9,9 +9,8 @@ use std::{collections::HashMap, ffi::c_void};
 
 use svm_app::types::{WasmType, WasmValue};
 use svm_common::Address;
+use svm_layout::DataLayout;
 use svm_runtime::register::Register;
-
-use svm_storage2::layout::DataLayout;
 
 #[derive(Debug)]
 struct Host {

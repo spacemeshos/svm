@@ -12,8 +12,8 @@ path = "../svm-common"
 [dependencies.svm-kv]
 path = "../svm-kv"
 
-[dependencies.svm-storage2]
-path = "../svm-storage2"
+[dependencies.svm-layout]
+path = "../svm-layout"
 
 [dependencies.byteorder]
 version = "1.3.2"

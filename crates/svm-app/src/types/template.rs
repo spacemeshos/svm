@@ -1,6 +1,6 @@
 use std::fmt;
 
-use svm_storage2::layout::DataLayout;
+use svm_layout::DataLayout;
 
 /// An in-memory representation of an app-template.
 #[allow(missing_docs)]
