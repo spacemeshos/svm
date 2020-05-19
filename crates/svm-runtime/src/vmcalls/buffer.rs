@@ -24,21 +24,6 @@ pub fn buffer_freeze(ctx: &mut WasmerCtx, buf_id: u32) {
 }
 
 /// Copies buffer `buf_id` bytes under `buf_offset, buf_offset + 1, ..., buf_offset + count - 1`
-/// to running App's storage, page `page_idx` starting at offset `page_offset`.
-pub fn buffer_copy_to_storage(
-    ctx: &mut WasmerCtx,
-    buf_id: u32,
-    buf_offset: u32,
-    page_idx: u32,
-    page_offset: u32,
-    count: u32,
-) {
-    use_gas!("buffer_copy_to_storage", ctx);
-
-    helpers::buffer_copy_to_storage(ctx.data, buf_id, buf_offset, page_idx, page_offset, count);
-}
-
-/// Copies buffer `buf_id` bytes under `buf_offset, buf_offset + 1, ..., buf_offset + count - 1`
 /// to running App's Register of type `reg_bits` and index `reg_idx`.
 pub fn buffer_copy_to_reg(
     ctx: &mut WasmerCtx,

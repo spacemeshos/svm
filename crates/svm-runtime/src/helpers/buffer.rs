@@ -71,26 +71,6 @@ pub fn buffer_freeze(data: *mut c_void, buf_id: u32) {
 }
 
 /// Copies buffer `buf_id` bytes `buf_offset, buf_offset + 1, ..., buf_offset + len - 1` into
-/// App storage under page `page_idx` starting from offset `page_offset`.
-pub fn buffer_copy_to_storage(
-    data: *mut c_void,
-    buf_id: u32,
-    buf_offset: u32,
-    page_idx: u32,
-    page_offset: u32,
-    len: u32,
-) {
-    let buffer = wasmer_data_buffer(data, buf_id)
-        .unwrap_or_else(|| panic!("Buffer `{}` doesn't exist!", buf_id));
-
-    let storage = helpers::wasmer_data_app_storage(data);
-    let layout = helpers::page_slice_layout(page_idx, page_offset, len);
-
-    let data = buffer.read(buf_offset, len);
-    storage.write_page_slice(&layout, data);
-}
-
-/// Copies buffer `buf_id` bytes `buf_offset, buf_offset + 1, ..., buf_offset + len - 1` into
 /// App's Register of type `reg_bits` and index `reg_idx`.
 pub fn buffer_copy_to_reg(
     data: *mut c_void,

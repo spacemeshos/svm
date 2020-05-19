@@ -323,7 +323,7 @@ macro_rules! box_runtime {
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_memory_kv_create(kv: *mut *mut c_void) -> svm_result_t {
-    let native_kv = svm_runtime::testing::memory_kv_store_init();
+    let native_kv = svm_runtime::testing::memory_kv_store2_init();
 
     *kv = svm_common::into_raw_mut(native_kv);
 
@@ -371,7 +371,6 @@ pub unsafe extern "C" fn svm_memory_kv_create2(kv: *mut *mut c_void) -> svm_resu
 #[no_mangle]
 pub unsafe extern "C" fn svm_memory_runtime_create(
     runtime: *mut *mut c_void,
-    kv: *mut c_void,
     raw_kv: *mut c_void,
     host: *mut c_void,
     imports: *const c_void,
@@ -381,9 +380,8 @@ pub unsafe extern "C" fn svm_memory_runtime_create(
 
     let imports = helpers::cast_imports_to_wasmer_imports(imports);
 
-    let kv = svm_common::from_raw_mut(kv);
     let raw_kv = svm_common::from_raw_mut(raw_kv);
-    let mem_runtime = svm_runtime::testing::create_memory_runtime(host, kv, raw_kv, imports);
+    let mem_runtime = svm_runtime::testing::create_memory_runtime(host, raw_kv, imports);
 
     let res = box_runtime!(runtime, mem_runtime);
 
