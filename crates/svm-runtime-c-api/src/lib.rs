@@ -1,7 +1,7 @@
-#![deny(missing_docs)]
-#![deny(unused)]
-#![deny(dead_code)]
-#![deny(unreachable_code)]
+#![allow(missing_docs)]
+#![allow(unused)]
+#![allow(dead_code)]
+#![allow(unreachable_code)]
 #![feature(vec_into_raw_parts)]
 
 //! This crate is responsible of providing [FFI](https://doc.rust-lang.org/nomicon/ffi.html) interface for the `SVM`.
@@ -17,6 +17,7 @@ mod api;
 mod byte_array;
 mod error;
 mod import;
+mod layout;
 mod macros;
 mod receipt;
 mod result;
