@@ -1,8 +1,11 @@
 use std::collections::HashMap;
 
+use svm_common::State;
 use svm_kv::traits::KVStore;
 
 use super::AppKVStore;
+
+use crate::kv::StatefulKVStore;
 
 /// Interface against the key-value store.
 /// Data is manipulated using `offset` and `length`.
@@ -36,6 +39,16 @@ impl RawStorage {
             app_kv,
             kv_value_size,
         }
+    }
+
+    #[inline]
+    pub fn rewind(&mut self, state: &State) {
+        self.app_kv.rewind(state)
+    }
+
+    #[inline]
+    pub fn head(&self) -> State {
+        self.app_kv.head()
     }
 
     /// Reads the raw data under `offset, offset + 1, ..., offset + length - 1`
@@ -151,11 +164,9 @@ mod tests {
             use std::{cell::RefCell, rc::Rc};
 
             use crate::app::AppKVStore;
-            use crate::kv::FakeKV;
+            use crate::kv::{FakeKV, StatefulKVStore};
 
-            use svm_kv::traits::KVStore;
-
-            let raw_kv: Rc<RefCell<dyn KVStore>> = Rc::new(RefCell::new(FakeKV::new()));
+            let raw_kv: Rc<RefCell<dyn StatefulKVStore>> = Rc::new(RefCell::new(FakeKV::new()));
             AppKVStore::new($app_addr, &raw_kv)
         }};
     }

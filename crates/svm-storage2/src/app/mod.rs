@@ -6,6 +6,7 @@ use raw::{RawChange, RawStorage};
 mod kv;
 pub use kv::AppKVStore;
 
+use svm_common::State;
 use svm_layout::{DataLayout, VarId};
 
 ///
@@ -31,15 +32,30 @@ pub struct AppStorage {
     uncommitted: HashMap<VarId, Vec<u8>>,
 }
 
+// TODO:
+// we need to decide whether `kv_value_size` should be
+// part of transaction (next to the `DataLayout`) or a constant value.
+const KV_VALUE_SIZE: u32 = 32;
+
 impl AppStorage {
     /// New instance for managing app's variabled specified by `layout`.
     /// App's storage is backed by key-value store `kv`.
     pub fn new(layout: DataLayout, app_kv: AppKVStore) -> Self {
         Self {
             layout,
-            raw_storage: RawStorage::new(app_kv, 32),
+            raw_storage: RawStorage::new(app_kv, KV_VALUE_SIZE),
             uncommitted: HashMap::new(),
         }
+    }
+
+    #[inline]
+    pub fn rewind(&mut self, state: &State) {
+        self.raw_storage.rewind(state);
+    }
+
+    #[inline]
+    pub fn head(&self) -> State {
+        self.raw_storage.head()
     }
 
     /// Reads variable `var_id`.
@@ -74,7 +90,7 @@ impl AppStorage {
     }
 
     /// Commits modified (a.k.a) variables into the raw storage.
-    pub fn commit(&mut self) {
+    pub fn commit(&mut self) -> State {
         let var_offset: HashMap<VarId, u32> = self
             .uncommitted
             .keys()
@@ -98,6 +114,8 @@ impl AppStorage {
         self.raw_storage.write(&changes);
 
         debug_assert!(self.uncommitted.is_empty());
+
+        self.raw_storage.head()
     }
 }
 
@@ -112,11 +130,9 @@ mod tests {
             use std::{cell::RefCell, rc::Rc};
 
             use crate::app::AppKVStore;
-            use crate::kv::FakeKV;
+            use crate::kv::{FakeKV, StatefulKVStore};
 
-            use svm_kv::traits::KVStore;
-
-            let raw_kv: Rc<RefCell<dyn KVStore>> = Rc::new(RefCell::new(FakeKV::new()));
+            let raw_kv: Rc<RefCell<dyn StatefulKVStore>> = Rc::new(RefCell::new(FakeKV::new()));
             AppKVStore::new($app_addr, &raw_kv)
         }};
     }

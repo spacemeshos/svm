@@ -1,14 +1,15 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use svm_common::{Address, DefaultKeyHasher, KeyHasher};
+use crate::kv::StatefulKVStore;
+
+use svm_common::{Address, DefaultKeyHasher, KeyHasher, State};
 use svm_kv::traits::KVStore;
 
-///   
 pub struct AppKVStore {
     pub(crate) app_addr: Address,
 
-    pub(crate) raw_kv: Rc<RefCell<dyn KVStore>>,
+    pub(crate) raw_kv: Rc<RefCell<dyn StatefulKVStore>>,
 }
 
 impl KVStore for AppKVStore {
@@ -38,11 +39,22 @@ impl KVStore for AppKVStore {
     }
 }
 
+impl StatefulKVStore for AppKVStore {
+    fn rewind(&mut self, state: &State) {
+        self.raw_kv.borrow_mut().rewind(state)
+    }
+
+    #[must_use]
+    fn head(&self) -> State {
+        self.raw_kv.borrow().head()
+    }
+}
+
 impl AppKVStore {
     /// Create a new `AppKVStore` instance for application `app_addr`.
     ///
     /// Delegates work to raw key-value store `raw_kv`.
-    pub fn new(app_addr: Address, raw_kv: &Rc<RefCell<dyn KVStore>>) -> Self {
+    pub fn new(app_addr: Address, raw_kv: &Rc<RefCell<dyn StatefulKVStore>>) -> Self {
         let raw_kv = Rc::clone(&raw_kv);
 
         Self { app_addr, raw_kv }
