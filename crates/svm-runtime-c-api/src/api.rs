@@ -8,6 +8,7 @@ use svm_app::{
     types::{HostCtx, WasmType, WasmValue},
 };
 use svm_common::{Address, State};
+use svm_layout::DataLayout;
 use svm_runtime::{ctx::SvmCtx, gas::DefaultGasEstimator};
 
 use crate::{
@@ -1264,6 +1265,7 @@ pub unsafe extern "C" fn svm_encode_app_template(
     name: svm_byte_array,
     page_count: u16,
     code: svm_byte_array,
+    data: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
     let name = String::try_from(name);
@@ -1272,14 +1274,18 @@ pub unsafe extern "C" fn svm_encode_app_template(
         return svm_result_t::SVM_FAILURE;
     }
 
-    let data: Vec<u32> = vec![];
+    let data: Result<DataLayout, io::Error> = DataLayout::try_from(data);
+    if let Err(e) = data {
+        raw_io_error(e, error);
+        return svm_result_t::SVM_FAILURE;
+    }
 
     let mut bytes = DeployAppTemplateBuilder::new()
         .with_version(version)
         .with_name(&name.unwrap())
         .with_page_count(page_count)
         .with_code(code.into())
-        .with_data(&data.into())
+        .with_data(&data.unwrap())
         .build();
 
     vec_to_svm_byte_array!(app_template, bytes);
