@@ -1,184 +1,184 @@
-// use std::path::Path;
+use std::path::Path;
 
-// use svm_app::{
-//     error::ParseError,
-//     raw::Field,
-//     types::{HostCtx, WasmValue},
-// };
-// use svm_common::Address;
-// use svm_gas::error::ProgramError;
-// use svm_layout::DataLayout;
-// use svm_runtime::{
-//     error::ValidateError,
-//     gas::MaybeGas,
-//     receipt::{ExecReceipt, SpawnAppReceipt, TemplateReceipt},
-//     runtime::Runtime,
-//     settings::AppSettings,
-//     testing,
-// };
+use svm_app::{
+    error::ParseError,
+    raw::Field,
+    types::{HostCtx, WasmValue},
+};
+use svm_common::Address;
+use svm_gas::error::ProgramError;
+use svm_layout::DataLayout;
+use svm_runtime::{
+    error::ValidateError,
+    gas::MaybeGas,
+    receipt::{ExecReceipt, SpawnAppReceipt, TemplateReceipt},
+    runtime::Runtime,
+    settings::AppSettings,
+    testing,
+};
 
-// macro_rules! default_runtime {
-//     () => {{
-//         use svm_runtime::testing;
+macro_rules! default_runtime {
+    () => {{
+        use svm_runtime::testing;
 
-//         let raw_kv = testing::memory_kv_store2_init();
+        let raw_kv = testing::memory_kv_store2_init();
 
-//         let host = std::ptr::null_mut();
-//         let imports = Vec::new();
+        let host = std::ptr::null_mut();
+        let imports = Vec::new();
 
-//         testing::create_memory_runtime(host, &raw_kv, imports)
-//     }};
-// }
+        testing::create_memory_runtime(host, &raw_kv, imports)
+    }};
+}
 
-// #[test]
-// fn runtime_validate_template_invalid_raw_format() {
-//     let runtime = default_runtime!();
-//     let bytes = vec![0xFF, 0xFF];
+#[test]
+fn default_runtime_validate_template_invalid_raw_format() {
+    let runtime = default_runtime!();
+    let bytes = vec![0xFF, 0xFF];
 
-//     let parse_err = ParseError::NotEnoughBytes(Field::NameLength);
-//     let expected = Err(ValidateError::Parse(parse_err));
+    let parse_err = ParseError::NotEnoughBytes(Field::NameLength);
+    let expected = Err(ValidateError::Parse(parse_err));
 
-//     let actual = runtime.validate_template(&bytes[..]);
-//     assert_eq!(expected, actual);
-// }
+    let actual = runtime.validate_template(&bytes[..]);
+    assert_eq!(expected, actual);
+}
 
-// #[test]
-// fn runtime_validate_template_invalid_wasm() {
-//     let runtime = default_runtime!();
+#[test]
+fn default_runtime_validate_template_invalid_wasm() {
+    let runtime = default_runtime!();
 
-//     let version = 0;
-//     let page_count = 10;
-//     let is_wast = true;
+    let version = 0;
+    let page_count = 10;
+    let is_wast = true;
 
-//     // invalid wasm (has floats)
-//     let bytes = testing::build_template(
-//         version,
-//         "My Template",
-//         page_count,
-//         DataLayout::empty(),
-//         include_str!("wasm/wasm_with_floats.wast"),
-//         is_wast,
-//     );
+    // invalid wasm (has floats)
+    let bytes = testing::build_template(
+        version,
+        "My Template",
+        page_count,
+        DataLayout::empty(),
+        include_str!("wasm/wasm_with_floats.wast"),
+        is_wast,
+    );
 
-//     let prog_err = ProgramError::FloatsNotAllowed;
-//     let expected = Err(ValidateError::Program(prog_err));
+    let prog_err = ProgramError::FloatsNotAllowed;
+    let expected = Err(ValidateError::Program(prog_err));
 
-//     let actual = runtime.validate_template(&bytes[..]);
-//     assert_eq!(expected, actual);
-// }
+    let actual = runtime.validate_template(&bytes[..]);
+    assert_eq!(expected, actual);
+}
 
-// #[test]
-// fn runtime_validate_app_invalid_raw_format() {
-//     let runtime = default_runtime!();
-//     let bytes = vec![0xFF, 0xFF];
+#[test]
+fn default_runtime_validate_app_invalid_raw_format() {
+    let runtime = default_runtime!();
+    let bytes = vec![0xFF, 0xFF];
 
-//     let parse_err = ParseError::NotEnoughBytes(Field::AppTemplate);
-//     let expected = Err(ValidateError::Parse(parse_err));
+    let parse_err = ParseError::NotEnoughBytes(Field::AppTemplate);
+    let expected = Err(ValidateError::Parse(parse_err));
 
-//     let actual = runtime.validate_app(&bytes);
-//     assert_eq!(expected, actual);
-// }
+    let actual = runtime.validate_app(&bytes);
+    assert_eq!(expected, actual);
+}
 
-// #[test]
-// fn runtime_validate_tx_invalid_raw_format() {
-//     let runtime = default_runtime!();
+#[test]
+fn default_runtime_validate_tx_invalid_raw_format() {
+    let runtime = default_runtime!();
 
-//     let bytes = vec![0xFF, 0xFF];
+    let bytes = vec![0xFF, 0xFF];
 
-//     let parse_err = ParseError::NotEnoughBytes(Field::App);
-//     let expected = Err(ValidateError::Parse(parse_err));
+    let parse_err = ParseError::NotEnoughBytes(Field::App);
+    let expected = Err(ValidateError::Parse(parse_err));
 
-//     let actual = runtime.validate_tx(&bytes);
-//     assert_eq!(expected, actual);
-// }
+    let actual = runtime.validate_tx(&bytes);
+    assert_eq!(expected, actual);
+}
 
-// #[test]
-// fn runtime_deploy_template_reaches_oog() {
-//     let mut runtime = default_runtime!();
+#[test]
+fn default_runtime_deploy_template_reaches_oog() {
+    let mut runtime = default_runtime!();
 
-//     let version = 0;
-//     let page_count = 10;
-//     let author = Address::of("author").into();
-//     let maybe_gas = MaybeGas::with(0);
-//     let is_wast = true;
+    let version = 0;
+    let page_count = 10;
+    let author = Address::of("author").into();
+    let maybe_gas = MaybeGas::with(0);
+    let is_wast = true;
 
-//     let bytes = testing::build_template(
-//         version,
-//         "My Template",
-//         page_count,
-//         DataLayout::empty(),
-//         include_str!("wasm/runtime_app_ctor.wast"),
-//         is_wast,
-//     );
+    let bytes = testing::build_template(
+        version,
+        "My Template",
+        page_count,
+        DataLayout::empty(),
+        include_str!("wasm/runtime_app_ctor.wast"),
+        is_wast,
+    );
 
-//     let expected = TemplateReceipt::new_oog();
-//     let actual = runtime.deploy_template(&bytes, &author, HostCtx::new(), maybe_gas);
-//     assert_eq!(expected, actual);
-// }
+    let expected = TemplateReceipt::new_oog();
+    let actual = runtime.deploy_template(&bytes, &author, HostCtx::new(), maybe_gas);
+    assert_eq!(expected, actual);
+}
 
-// #[test]
-// fn runtime_deploy_template_has_enough_gas() {
-//     let mut runtime = default_runtime!();
+#[test]
+fn default_runtime_deploy_template_has_enough_gas() {
+    let mut runtime = default_runtime!();
 
-//     let version = 0;
-//     let page_count = 10;
-//     let author = Address::of("author").into();
-//     let gas_limit = MaybeGas::with(1_0000_000);
-//     let is_wast = true;
+    let version = 0;
+    let page_count = 10;
+    let author = Address::of("author").into();
+    let gas_limit = MaybeGas::with(1_0000_000);
+    let is_wast = true;
 
-//     let bytes = testing::build_template(
-//         version,
-//         "My Template",
-//         page_count,
-//         DataLayout::empty(),
-//         include_str!("wasm/runtime_app_ctor.wast"),
-//         is_wast,
-//     );
+    let bytes = testing::build_template(
+        version,
+        "My Template",
+        page_count,
+        DataLayout::empty(),
+        include_str!("wasm/runtime_app_ctor.wast"),
+        is_wast,
+    );
 
-//     let receipt = runtime.deploy_template(&bytes, &author, HostCtx::new(), gas_limit);
-//     assert!(receipt.success);
-//     assert!(receipt.gas_used.is_some());
-// }
+    let receipt = runtime.deploy_template(&bytes, &author, HostCtx::new(), gas_limit);
+    assert!(receipt.success);
+    assert!(receipt.gas_used.is_some());
+}
 
-// #[test]
-// fn runtime_spawn_app_with_ctor_reaches_oog() {
-//     let mut runtime = default_runtime!();
+#[test]
+fn default_runtime_spawn_app_with_ctor_reaches_oog() {
+    let mut runtime = default_runtime!();
 
-//     // 1) deploying the template
-//     let version = 0;
-//     let page_count = 10;
-//     let author = Address::of("author").into();
-//     let creator = Address::of("creator").into();
-//     let is_wast = true;
-//     let maybe_gas = MaybeGas::new();
+    // 1) deploying the template
+    let version = 0;
+    let page_count = 10;
+    let author = Address::of("author").into();
+    let creator = Address::of("creator").into();
+    let is_wast = true;
+    let maybe_gas = MaybeGas::new();
 
-//     let bytes = testing::build_template(
-//         version,
-//         "My Template",
-//         page_count,
-//         DataLayout::empty(),
-//         include_str!("wasm/runtime_app_ctor.wast"),
-//         is_wast,
-//     );
+    let bytes = testing::build_template(
+        version,
+        "My Template",
+        page_count,
+        DataLayout::empty(),
+        include_str!("wasm/runtime_app_ctor.wast"),
+        is_wast,
+    );
 
-//     let receipt = runtime.deploy_template(&bytes, &author, HostCtx::new(), maybe_gas);
-//     assert!(receipt.success);
+    let receipt = runtime.deploy_template(&bytes, &author, HostCtx::new(), maybe_gas);
+    assert!(receipt.success);
 
-//     let template_addr = receipt.addr.unwrap();
+    let template_addr = receipt.addr.unwrap();
 
-//     // 2) spawn app (and invoking its `ctor`)
-//     let ctor_idx = 0;
-//     let ctor_buf = vec![];
-//     let ctor_args = vec![];
+    // 2) spawn app (and invoking its `ctor`)
+    let ctor_idx = 0;
+    let ctor_buf = vec![];
+    let ctor_args = vec![];
 
-//     let bytes = testing::build_app(version, &template_addr, ctor_idx, &ctor_buf, &ctor_args);
+    let bytes = testing::build_app(version, &template_addr, ctor_idx, &ctor_buf, &ctor_args);
 
-//     let maybe_gas = MaybeGas::with(0);
+    let maybe_gas = MaybeGas::with(0);
 
-//     let expected = SpawnAppReceipt::new_oog();
-//     let actual = runtime.spawn_app(&bytes, &creator, HostCtx::new(), maybe_gas);
-//     assert_eq!(expected, actual);
-// }
+    let expected = SpawnAppReceipt::new_oog();
+    let actual = runtime.spawn_app(&bytes, &creator, HostCtx::new(), maybe_gas);
+    assert_eq!(expected, actual);
+}
 
 // #[test]
 // fn runtime_spawn_app_with_ctor_with_enough_gas() {
