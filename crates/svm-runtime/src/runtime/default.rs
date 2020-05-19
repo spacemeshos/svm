@@ -333,13 +333,12 @@ where
             }),
             Ok(returns) => {
                 let storage = self.instance_storage_mut2(&mut instance);
-                todo!()
-                // let new_state = Some(storage.commit());
+                let new_state = Some(storage.commit());
 
-                // let returns = self.cast_wasmer_func_returns(returns)?;
-                // let gas_used = gas_used.unwrap();
+                let returns = self.cast_wasmer_func_returns(returns)?;
+                let gas_used = gas_used.unwrap();
 
-                // Ok((new_state, returns, gas_used))
+                Ok((new_state, returns, gas_used))
             }
         }
     }
