@@ -1,8 +1,11 @@
 use std::collections::HashMap;
 
+use svm_common::State;
 use svm_kv::traits::KVStore;
 
 use super::AppKVStore;
+
+use crate::kv::StatefulKVStore;
 
 /// Interface against the key-value store.
 /// Data is manipulated using `offset` and `length`.
@@ -36,6 +39,16 @@ impl RawStorage {
             app_kv,
             kv_value_size,
         }
+    }
+
+    #[inline]
+    pub fn rewind(&mut self, state: &State) {
+        self.app_kv.rewind(state)
+    }
+
+    #[inline]
+    pub fn head(&self) -> State {
+        self.app_kv.head()
     }
 
     /// Reads the raw data under `offset, offset + 1, ..., offset + length - 1`
@@ -144,32 +157,21 @@ impl RawStorage {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::testing;
+
     use svm_common::Address;
 
-    macro_rules! app_kv {
-        ($app_addr:expr) => {{
-            use std::{cell::RefCell, rc::Rc};
-
-            use crate::app::AppKVStore;
-            use crate::kv::FakeKV;
-
-            use svm_kv::traits::KVStore;
-
-            let raw_kv: Rc<RefCell<dyn KVStore>> = Rc::new(RefCell::new(FakeKV::new()));
-            AppKVStore::new($app_addr, &raw_kv)
-        }};
-    }
+    const KV_VALUE_SIZE: u32 = 32;
 
     #[test]
     fn raw_storage_var_defaults_to_zeros() {
         let addr = Address::of("my-app");
-        let kv = app_kv!(addr);
+        let kv = testing::create_app_kv(addr);
 
         let off = 10;
         let len = 20;
-        let kv_value_size = 32;
 
-        let storage = RawStorage::new(kv, kv_value_size);
+        let storage = RawStorage::new(kv, KV_VALUE_SIZE);
         let bytes = storage.read(off, len);
 
         assert_eq!(bytes, vec![0; len as usize]);
@@ -178,8 +180,7 @@ mod tests {
     #[test]
     fn raw_storage_store() {
         let addr = Address::of("my-app");
-        let kv = app_kv!(addr);
-        let kv_value_size = 32;
+        let kv = testing::create_app_kv(addr);
 
         let var1 = RawChange {
             offset: 0,
@@ -193,7 +194,7 @@ mod tests {
 
         let changes = vec![var1.clone(), var2.clone()];
 
-        let mut storage = RawStorage::new(kv, kv_value_size);
+        let mut storage = RawStorage::new(kv, KV_VALUE_SIZE);
         storage.write(&changes);
 
         let data1 = storage.read(var1.offset, var1.len());
