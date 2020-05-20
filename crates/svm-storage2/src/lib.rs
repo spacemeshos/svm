@@ -13,3 +13,6 @@ pub mod app;
 
 /// Key-value abstraction
 pub mod kv;
+
+/// Tests helpers
+pub mod testing;

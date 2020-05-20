@@ -1,14 +1,19 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use svm_common::{Address, DefaultKeyHasher, KeyHasher};
+use crate::kv::StatefulKVStore;
+
+use svm_common::{Address, DefaultKeyHasher, KeyHasher, State};
 use svm_kv::traits::KVStore;
 
-///   
+/// An application-aware (and `State`-aware) key-value store interface responsible of
+/// mapping `u32` input keys (given as a 4 byte-length slice) to global keys under a raw key-value store.
+///
+/// The mapping is dependant on the contextual app's `Address` (see the `new` method).
 pub struct AppKVStore {
     pub(crate) app_addr: Address,
 
-    pub(crate) raw_kv: Rc<RefCell<dyn KVStore>>,
+    pub(crate) raw_kv: Rc<RefCell<dyn StatefulKVStore>>,
 }
 
 impl KVStore for AppKVStore {
@@ -38,11 +43,22 @@ impl KVStore for AppKVStore {
     }
 }
 
+impl StatefulKVStore for AppKVStore {
+    fn rewind(&mut self, state: &State) {
+        self.raw_kv.borrow_mut().rewind(state)
+    }
+
+    #[must_use]
+    fn head(&self) -> State {
+        self.raw_kv.borrow().head()
+    }
+}
+
 impl AppKVStore {
     /// Create a new `AppKVStore` instance for application `app_addr`.
     ///
     /// Delegates work to raw key-value store `raw_kv`.
-    pub fn new(app_addr: Address, raw_kv: &Rc<RefCell<dyn KVStore>>) -> Self {
+    pub fn new(app_addr: Address, raw_kv: &Rc<RefCell<dyn StatefulKVStore>>) -> Self {
         let raw_kv = Rc::clone(&raw_kv);
 
         Self { app_addr, raw_kv }
@@ -61,5 +77,14 @@ impl AppKVStore {
     #[inline]
     fn hash(&self, bytes: &[u8]) -> Vec<u8> {
         DefaultKeyHasher::hash(bytes).to_vec()
+    }
+}
+
+impl Clone for AppKVStore {
+    fn clone(&self) -> Self {
+        Self {
+            app_addr: self.app_addr.clone(),
+            raw_kv: Rc::clone(&self.raw_kv),
+        }
     }
 }
