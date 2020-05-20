@@ -182,7 +182,7 @@ unsafe fn test_svm_runtime() {
     let imports = create_imports();
     let mut error = svm_byte_array::default();
 
-    let res = api::svm_memory_kv_create2(&mut raw_kv);
+    let res = api::svm_memory_kv_create(&mut raw_kv);
     assert!(res.is_ok());
 
     let res = api::svm_memory_runtime_create(

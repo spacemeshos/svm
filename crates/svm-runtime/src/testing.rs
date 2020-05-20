@@ -81,7 +81,7 @@ pub fn app_memory_state_creator(
     gas_limit: MaybeGas,
     layout: &DataLayout,
 ) -> (*mut c_void, fn(*mut c_void)) {
-    let raw_kv = memory_kv_store2_init();
+    let raw_kv = memory_kv_store_init();
     let app_kv = AppKVStore::new(app_addr.clone(), &raw_kv);
     let storage = AppStorage::new(layout.clone(), app_kv);
 
@@ -105,7 +105,7 @@ pub fn create_memory_runtime(
     raw_kv: &Rc<RefCell<dyn StatefulKVStore>>,
     imports: Vec<(String, String, Export)>,
 ) -> DefaultRuntime<DefaultMemoryEnv, DefaultGasEstimator> {
-    let storage_builder = runtime_memory_storage2_builder(raw_kv);
+    let storage_builder = runtime_memory_storage_builder(raw_kv);
 
     let env = runtime_memory_env_builder();
     let kv_path = Path::new("mem");
