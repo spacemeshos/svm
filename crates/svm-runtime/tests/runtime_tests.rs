@@ -7,7 +7,7 @@ use svm_app::{
 };
 use svm_common::Address;
 use svm_gas::error::ProgramError;
-use svm_layout::DataLayout;
+use svm_layout::{DataLayout, VarId};
 use svm_runtime::{
     error::ValidateError,
     gas::MaybeGas,
@@ -21,7 +21,7 @@ macro_rules! default_runtime {
     () => {{
         use svm_runtime::testing;
 
-        let raw_kv = testing::memory_kv_store2_init();
+        let raw_kv = testing::memory_kv_store_init();
 
         let host = std::ptr::null_mut();
         let imports = Vec::new();
@@ -172,59 +172,62 @@ fn default_runtime_spawn_app_with_ctor_reaches_oog() {
     assert_eq!(expected, actual);
 }
 
-// #[test]
-// fn runtime_spawn_app_with_ctor_with_enough_gas() {
-//     let mut runtime = default_runtime!();
+#[test]
+fn runtime_spawn_app_with_ctor_with_enough_gas() {
+    let mut runtime = default_runtime!();
 
-//     // 1) deploying the template
-//     let version = 0;
-//     let author = Address::of("author").into();
-//     let creator = Address::of("creator").into();
-//     let is_wast = true;
-//     let maybe_gas = MaybeGas::new();
+    // 1) deploying the template
+    let version = 0;
+    let author = Address::of("author").into();
+    let creator = Address::of("creator").into();
+    let is_wast = true;
+    let maybe_gas = MaybeGas::new();
 
-//     let bytes = testing::build_template(
-//         version,
-//         "My Template",
-//         DataLayout::empty(),
-//         include_str!("wasm/runtime_app_ctor.wast"),
-//         is_wast,
-//     );
+    // data layout consists on one variable of 8 bytes (offsets: `[0..8)`)
+    let layout: DataLayout = vec![8].into();
 
-//     let receipt = runtime.deploy_template(&bytes, &author, HostCtx::new(), maybe_gas);
-//     assert!(receipt.success);
-//     assert!(receipt.gas_used.is_some());
+    let bytes = testing::build_template(
+        version,
+        "My Template",
+        layout.clone(),
+        include_str!("wasm/runtime_app_ctor.wast"),
+        is_wast,
+    );
 
-//     let template_addr = receipt.addr.unwrap();
+    let receipt = runtime.deploy_template(&bytes, &author, HostCtx::new(), maybe_gas);
+    assert!(receipt.success);
+    assert!(receipt.gas_used.is_some());
 
-//     // 2) spawn app (and invoking its `ctor`)
-//     let buf_size: u32 = 10;
-//     let ctor_idx = 0;
-//     let ctor_buf = vec![0xAA, 0xBB, 0xBB, 0xCC, 0xCC, 0xCC, 0xDD, 0xDD, 0xDD, 0xDD];
-//     let ctor_args = vec![WasmValue::I32(buf_size)];
-//     let bytes = testing::build_app(version, &template_addr, ctor_idx, &ctor_buf, &ctor_args);
-//     let gas_limit = MaybeGas::with(1_000_000);
+    let template_addr = receipt.addr.unwrap();
 
-//     let receipt = runtime.spawn_app(&bytes, &creator, HostCtx::new(), gas_limit);
-//     assert!(receipt.success);
-//     assert!(receipt.gas_used.is_some());
+    // 2) spawn app (and invoking its `ctor`)
+    let ctor_func_idx = 0;
+    let ctor_buf = vec![];
+    let ctor_args = vec![WasmValue::I64(10_20_30_40_50_60_70_80)];
+    let bytes = testing::build_app(
+        version,
+        &template_addr,
+        ctor_func_idx,
+        &ctor_buf,
+        &ctor_args,
+    );
+    let gas_limit = MaybeGas::with(1_000_000);
 
-//     let settings = AppSettings {
-//         layout: DataLayout::empty(),
-//         kv_path: Path::new("mem").to_path_buf(),
-//     };
+    let receipt = runtime.spawn_app(&bytes, &creator, HostCtx::new(), gas_limit);
+    assert!(receipt.success);
+    assert!(receipt.gas_used.is_some());
 
-//     let mut storage =
-//         runtime.open_app_storage(receipt.get_app_addr(), receipt.get_init_state(), &settings);
+    let settings = AppSettings {
+        layout,
+        kv_path: Path::new("mem").to_path_buf(),
+    };
 
-//     let layout = PageSliceLayout::new(PageIndex(0), PageOffset(0), buf_size);
-//     let slice = storage.read_page_slice(&layout);
+    let storage =
+        runtime.open_app_storage(receipt.get_app_addr(), receipt.get_init_state(), &settings);
 
-//     assert_eq!(
-//         vec![0xAA, 0xBB, 0xBB, 0xCC, 0xCC, 0xCC, 0xDD, 0xDD, 0xDD, 0xDD],
-//         slice
-//     );
-// }
+    let var = storage.read_var(VarId(0));
+    assert_eq!(var, 10_20_30_40_50_60_70_80u64.to_be_bytes());
+}
 
 // #[test]
 // fn runtime_exec_app() {

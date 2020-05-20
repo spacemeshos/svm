@@ -193,7 +193,7 @@ where
     /// Initialize a new `AppStorage` and returns it.
     /// This method is of `pub` visibility since it's also helpful for tests that want to
     /// observe that app storage data.
-    pub fn open_app_storage2(
+    pub fn open_app_storage(
         &self,
         addr: &AppAddr,
         state: &State,
@@ -499,15 +499,14 @@ where
             addr, state, settings
         );
 
-        let storage2 = self.open_app_storage2(addr, state, settings);
-
+        let storage = self.open_app_storage(addr, state, settings);
         let host_ctx = svm_common::into_raw(host_ctx);
 
         let svm_ctx = SvmCtx::new(
             DataWrapper::new(self.host),
             DataWrapper::new(host_ctx),
             gas_limit,
-            storage2,
+            storage,
         );
         let svm_ctx = Box::leak(Box::new(svm_ctx));
 
