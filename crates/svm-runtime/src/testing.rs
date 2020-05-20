@@ -85,7 +85,6 @@ pub fn app_memory_state_creator(
     host: DataWrapper<*mut c_void>,
     host_ctx: DataWrapper<*const c_void>,
     gas_limit: MaybeGas,
-    page_count: u16,
     layout: &DataLayout,
 ) -> (*mut c_void, fn(*mut c_void)) {
     let raw_kv = memory_kv_store2_init();
@@ -150,7 +149,6 @@ pub fn runtime_memory_env_builder() -> DefaultMemoryEnv {
 pub fn build_template(
     version: u32,
     name: &str,
-    page_count: u16,
     data: DataLayout,
     wasm: &str,
     is_wast: bool,
@@ -164,7 +162,6 @@ pub fn build_template(
     DeployAppTemplateBuilder::new()
         .with_version(version)
         .with_name(name)
-        .with_page_count(page_count)
         .with_code(code.as_slice())
         .with_data(&data)
         .build()

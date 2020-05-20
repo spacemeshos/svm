@@ -10,7 +10,6 @@ use svm_layout::DataLayout;
 pub struct DeployAppTemplateBuilder {
     version: Option<u32>,
     name: Option<String>,
-    page_count: Option<u16>,
     code: Option<Vec<u8>>,
     data: Option<DataLayout>,
 }
@@ -30,7 +29,6 @@ pub struct DeployAppTemplateBuilder {
 /// let bytes = DeployAppTemplateBuilder::new()
 ///            .with_version(0)
 ///            .with_name("My Template")
-///            .with_page_count(10)
 ///            .with_code(&[0xC, 0x0, 0xD, 0xE])
 ///            .with_data(&layout)
 ///            .build();
@@ -41,7 +39,6 @@ pub struct DeployAppTemplateBuilder {
 /// let expected = AppTemplate {
 ///                  version: 0,
 ///                  name: "My Template".to_string(),
-///                  page_count: 10,
 ///                  code: vec![0xC, 0x0, 0xD, 0xE],
 ///                  data: layout
 ///                };
@@ -58,7 +55,6 @@ impl DeployAppTemplateBuilder {
             version: None,
             name: None,
             code: None,
-            page_count: None,
             data: None,
         }
     }
@@ -70,11 +66,6 @@ impl DeployAppTemplateBuilder {
 
     pub fn with_name(mut self, name: &str) -> Self {
         self.name = Some(name.to_string());
-        self
-    }
-
-    pub fn with_page_count(mut self, page_count: u16) -> Self {
-        self.page_count = Some(page_count);
         self
     }
 
@@ -91,14 +82,12 @@ impl DeployAppTemplateBuilder {
     pub fn build(self) -> Vec<u8> {
         let version = self.version.unwrap();
         let name = self.name.unwrap();
-        let page_count = self.page_count.unwrap();
         let code = self.code.unwrap();
         let data = self.data.unwrap();
 
         let app = AppTemplate {
             version,
             name,
-            page_count,
             code,
             data,
         };

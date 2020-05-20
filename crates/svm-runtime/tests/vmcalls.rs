@@ -78,10 +78,9 @@ fn vmcalls_get64_set64() {
     let host_ctx = host_ctx! {};
     let maybe_gas = MaybeGas::new();
     let layout: DataLayout = vec![4, 2].into();
-    let page_count = 0;
 
     let import_object = imports! {
-        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, maybe_gas, page_count, &layout),
+        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, maybe_gas, &layout),
 
         "svm" => {
             "get64" => func!(vmcalls::get64),
@@ -110,7 +109,6 @@ fn host_get64() {
     let state = State::empty();
     let host = DataWrapper::new(std::ptr::null_mut());
     let maybe_gas = MaybeGas::new();
-    let page_count = 0;
     let layout = DataLayout::empty();
 
     let host_ctx = host_ctx! {
@@ -119,7 +117,7 @@ fn host_get64() {
     };
 
     let import_object = imports! {
-        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, maybe_gas, page_count, &layout),
+        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, maybe_gas, &layout),
 
         "svm" => {
             "host_get64" => func!(vmcalls::host_get64),

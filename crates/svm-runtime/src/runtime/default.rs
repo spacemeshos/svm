@@ -272,7 +272,6 @@ where
             Err(e) => e.into(),
             Ok((template, template_addr, _author, _creator)) => {
                 let settings = AppSettings {
-                    page_count: template.page_count,
                     kv_path: self.kv_path.clone(),
                     layout: template.data.clone(),
                 };

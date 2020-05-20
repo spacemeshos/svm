@@ -9,7 +9,6 @@ use svm_layout::{DataLayout, DataLayoutBuilder, VarId};
 pub fn encode_deploy_template(template: &AppTemplate, w: &mut NibbleWriter) {
     encode_version(template, w);
     encode_name(template, w);
-    encode_page_count(template, w);
     encode_code(template, w);
     encode_data_layout(template, w);
 }
@@ -18,14 +17,12 @@ pub fn encode_deploy_template(template: &AppTemplate, w: &mut NibbleWriter) {
 pub fn decode_deploy_template(iter: &mut NibbleIter) -> Result<AppTemplate, ParseError> {
     let version = decode_version(iter)?;
     let name = decode_name(iter)?;
-    let page_count = decode_page_count(iter)?;
     let code = decode_code(iter)?;
     let data = decode_data_layout(iter)?;
 
     let template = AppTemplate {
         version,
         name,
-        page_count,
         code,
         data,
     };
@@ -42,11 +39,6 @@ fn encode_version(template: &AppTemplate, w: &mut NibbleWriter) {
 
 fn encode_name(template: &AppTemplate, w: &mut NibbleWriter) {
     helpers::encode_string(&template.name, w);
-}
-
-fn encode_page_count(template: &AppTemplate, w: &mut NibbleWriter) {
-    let page_count = template.page_count;
-    helpers::encode_varuint14(page_count, w);
 }
 
 fn encode_data_layout(template: &AppTemplate, w: &mut NibbleWriter) {
@@ -82,10 +74,6 @@ fn decode_name(iter: &mut NibbleIter) -> Result<String, ParseError> {
     helpers::decode_string(iter, Field::NameLength, Field::Name)
 }
 
-fn decode_page_count(iter: &mut NibbleIter) -> Result<u16, ParseError> {
-    helpers::decode_varuint14(iter, Field::PageCount)
-}
-
 fn decode_data_layout(iter: &mut NibbleIter) -> Result<DataLayout, ParseError> {
     let nvars = helpers::decode_u32_be(iter, Field::DataLayoutVarsCount)?;
 
@@ -118,7 +106,6 @@ mod tests {
         let template = AppTemplate {
             version: 0,
             name: "My Template".to_string(),
-            page_count: 5,
             code: vec![0x0C, 0x00, 0x0D, 0x0E],
             data: vec![5, 10].into(),
         };

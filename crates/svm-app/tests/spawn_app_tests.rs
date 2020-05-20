@@ -83,7 +83,6 @@ fn spawn_app_valid_app() {
     let template = AppTemplate {
         version: 0,
         name: "My Template".to_string(),
-        page_count: 10,
         code: vec![0x0C, 0x00, 0x0D, 0x0E],
         data: vec![5, 10].into(),
     };

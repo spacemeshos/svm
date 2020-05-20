@@ -5,9 +5,6 @@ use svm_layout::DataLayout;
 /// Holds settings for using the Runtime.
 #[derive(Debug, Clone)]
 pub struct AppSettings {
-    /// #pages required by the app storage
-    pub page_count: u16,
-
     /// App's data-layout in-memory representation.
     pub layout: DataLayout,
 

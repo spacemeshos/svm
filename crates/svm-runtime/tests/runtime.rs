@@ -47,14 +47,12 @@ fn default_runtime_validate_template_invalid_wasm() {
     let runtime = default_runtime!();
 
     let version = 0;
-    let page_count = 10;
     let is_wast = true;
 
     // invalid wasm (has floats)
     let bytes = testing::build_template(
         version,
         "My Template",
-        page_count,
         DataLayout::empty(),
         include_str!("wasm/wasm_with_floats.wast"),
         is_wast,
@@ -97,7 +95,6 @@ fn default_runtime_deploy_template_reaches_oog() {
     let mut runtime = default_runtime!();
 
     let version = 0;
-    let page_count = 10;
     let author = Address::of("author").into();
     let maybe_gas = MaybeGas::with(0);
     let is_wast = true;
@@ -105,7 +102,6 @@ fn default_runtime_deploy_template_reaches_oog() {
     let bytes = testing::build_template(
         version,
         "My Template",
-        page_count,
         DataLayout::empty(),
         include_str!("wasm/runtime_app_ctor.wast"),
         is_wast,
@@ -121,7 +117,6 @@ fn default_runtime_deploy_template_has_enough_gas() {
     let mut runtime = default_runtime!();
 
     let version = 0;
-    let page_count = 10;
     let author = Address::of("author").into();
     let gas_limit = MaybeGas::with(1_0000_000);
     let is_wast = true;
@@ -129,7 +124,6 @@ fn default_runtime_deploy_template_has_enough_gas() {
     let bytes = testing::build_template(
         version,
         "My Template",
-        page_count,
         DataLayout::empty(),
         include_str!("wasm/runtime_app_ctor.wast"),
         is_wast,
@@ -146,7 +140,6 @@ fn default_runtime_spawn_app_with_ctor_reaches_oog() {
 
     // 1) deploying the template
     let version = 0;
-    let page_count = 10;
     let author = Address::of("author").into();
     let creator = Address::of("creator").into();
     let is_wast = true;
@@ -155,7 +148,6 @@ fn default_runtime_spawn_app_with_ctor_reaches_oog() {
     let bytes = testing::build_template(
         version,
         "My Template",
-        page_count,
         DataLayout::empty(),
         include_str!("wasm/runtime_app_ctor.wast"),
         is_wast,
@@ -186,7 +178,6 @@ fn default_runtime_spawn_app_with_ctor_reaches_oog() {
 
 //     // 1) deploying the template
 //     let version = 0;
-//     let page_count = 10;
 //     let author = Address::of("author").into();
 //     let creator = Address::of("creator").into();
 //     let is_wast = true;
@@ -195,7 +186,6 @@ fn default_runtime_spawn_app_with_ctor_reaches_oog() {
 //     let bytes = testing::build_template(
 //         version,
 //         "My Template",
-//         page_count,
 //         DataLayout::empty(),
 //         include_str!("wasm/runtime_app_ctor.wast"),
 //         is_wast,
@@ -220,7 +210,6 @@ fn default_runtime_spawn_app_with_ctor_reaches_oog() {
 //     assert!(receipt.gas_used.is_some());
 
 //     let settings = AppSettings {
-//         page_count,
 //         layout: DataLayout::empty(),
 //         kv_path: Path::new("mem").to_path_buf(),
 //     };

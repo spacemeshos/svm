@@ -1241,7 +1241,6 @@ pub unsafe extern "C" fn svm_encode_app_template(
     app_template: *mut svm_byte_array,
     version: u32,
     name: svm_byte_array,
-    page_count: u16,
     code: svm_byte_array,
     data: svm_byte_array,
     error: *mut svm_byte_array,
@@ -1261,7 +1260,6 @@ pub unsafe extern "C" fn svm_encode_app_template(
     let mut bytes = DeployAppTemplateBuilder::new()
         .with_version(version)
         .with_name(&name.unwrap())
-        .with_page_count(page_count)
         .with_code(code.into())
         .with_data(&data.unwrap())
         .build();

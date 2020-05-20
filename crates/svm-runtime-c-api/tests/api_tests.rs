@@ -110,16 +110,9 @@ unsafe fn create_imports() -> *const c_void {
     imports as _
 }
 
-fn deploy_template_bytes(
-    version: u32,
-    name: &str,
-    page_count: u16,
-    data: DataLayout,
-    wasm: &str,
-) -> (Vec<u8>, u32) {
+fn deploy_template_bytes(version: u32, name: &str, data: DataLayout, wasm: &str) -> (Vec<u8>, u32) {
     let is_wast = true;
-    let bytes =
-        svm_runtime::testing::build_template(version, name, page_count, data, wasm, is_wast);
+    let bytes = svm_runtime::testing::build_template(version, name, data, wasm, is_wast);
     let length = bytes.len() as u32;
 
     (bytes, length)
@@ -212,7 +205,6 @@ unsafe fn test_svm_runtime() {
     // 2) deploy app-template
     let author = Address::of("author").into();
     let code = include_str!("wasm/update-balance.wast");
-    let page_count = 10;
 
     // raw `host ctx`
     let (bytes, length) = host_ctx_bytes(version, hashmap! {});
@@ -222,13 +214,7 @@ unsafe fn test_svm_runtime() {
     };
 
     // raw template
-    let (bytes, length) = deploy_template_bytes(
-        version,
-        "My Template",
-        page_count,
-        DataLayout::empty(),
-        code,
-    );
+    let (bytes, length) = deploy_template_bytes(version, "My Template", DataLayout::empty(), code);
     let template_bytes = svm_byte_array {
         bytes: bytes.as_ptr(),
         length: length,
