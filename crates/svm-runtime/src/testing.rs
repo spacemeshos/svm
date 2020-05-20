@@ -5,9 +5,8 @@ use crate::{
     ctx::SvmCtx,
     gas::{DefaultGasEstimator, MaybeGas},
     helpers::{self, DataWrapper},
-    settings::AppSettings,
     storage::StorageBuilderFn,
-    DefaultRuntime,
+    Config, DefaultRuntime,
 };
 use svm_app::{
     memory::{DefaultMemAppStore, DefaultMemAppTemplateStore, DefaultMemoryEnv},
@@ -119,13 +118,14 @@ pub fn runtime_memory_storage_builder(
 ) -> Box<StorageBuilderFn> {
     let raw_kv = Rc::clone(raw_kv);
 
-    let func = move |app_addr: &AppAddr, _state: &State, settings: &AppSettings| {
-        let layout = settings.layout.clone();
-
+    let func = move |app_addr: &AppAddr, state: &State, layout: &DataLayout, config: &Config| {
         let app_addr = app_addr.inner();
         let app_kv = AppKVStore::new(app_addr.clone(), &raw_kv);
 
-        AppStorage::new(layout, app_kv)
+        let mut storage = AppStorage::new(layout.clone(), app_kv);
+        storage.rewind(state);
+
+        storage
     };
 
     Box::new(func)

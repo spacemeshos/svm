@@ -1,5 +1,3 @@
-use std::path::Path;
-
 use svm_app::{
     error::ParseError,
     raw::Field,
@@ -12,9 +10,7 @@ use svm_runtime::{
     error::ValidateError,
     gas::MaybeGas,
     receipt::{ExecReceipt, SpawnAppReceipt, TemplateReceipt},
-    runtime::Runtime,
-    settings::AppSettings,
-    testing,
+    testing, Runtime,
 };
 
 macro_rules! default_runtime {
@@ -217,13 +213,9 @@ fn runtime_spawn_app_with_ctor_with_enough_gas() {
     assert!(receipt.success);
     assert!(receipt.gas_used.is_some());
 
-    let settings = AppSettings {
-        layout,
-        kv_path: Path::new("mem").to_path_buf(),
-    };
-
-    let storage =
-        runtime.open_app_storage(receipt.get_app_addr(), receipt.get_init_state(), &settings);
+    let addr = receipt.get_app_addr();
+    let state = receipt.get_init_state();
+    let storage = runtime.open_app_storage(&addr, &state, &layout);
 
     let var = storage.read_var(VarId(0));
     assert_eq!(var, 10_20_30_40_50_60_70_80u64.to_be_bytes());

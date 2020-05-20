@@ -6,9 +6,10 @@ use svm_app::{
     types::AppAddr,
 };
 use svm_common::State;
+use svm_layout::DataLayout;
 use svm_storage::app::AppStorage;
 
-use crate::{gas::GasEstimator, runtime::DefaultRuntime, settings::AppSettings};
+use crate::{gas::GasEstimator, runtime::DefaultRuntime, Config};
 
 use wasmer_runtime_core::export::Export;
 
@@ -25,7 +26,7 @@ where
 {
     let env = app_env_build(&kv_path);
 
-    DefaultRuntime::new(host, env, kv_path, imports, Box::new(app_storage_build2))
+    DefaultRuntime::new(host, env, kv_path, imports, Box::new(app_storage_build))
 }
 
 fn app_env_build<P, S>(kv_path: &P) -> RocksdbEnv<S>
@@ -46,6 +47,11 @@ where
     RocksdbEnv::new(app_store, template_store)
 }
 
-fn app_storage_build2(_addr: &AppAddr, _state: &State, _settings: &AppSettings) -> AppStorage {
+fn app_storage_build(
+    _addr: &AppAddr,
+    _state: &State,
+    _layout: &DataLayout,
+    _config: &Config,
+) -> AppStorage {
     todo!()
 }
