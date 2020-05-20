@@ -17,8 +17,9 @@ impl fmt::Debug for AppTemplate {
         let ver = self.fmt_version(self.version);
         let name = self.fmt_name(&self.name);
         let code = self.fmt_code(&self.code);
+        let data = self.fmt_data(&self.data);
 
-        let msg = [ver, name, code].join("\n");
+        let msg = [ver, name, code, data].join("\n");
 
         write!(f, "{}", msg)
     }
@@ -35,5 +36,9 @@ impl AppTemplate {
 
     fn fmt_code(&self, code: &[u8]) -> String {
         format!("Code: {:?}", &code[0..4])
+    }
+
+    fn fmt_data(&self, data: &DataLayout) -> String {
+        format!("Code: {:?}", data)
     }
 }

@@ -43,6 +43,8 @@ impl DataLayout {
         self.vars.len()
     }
 
+    /// Returns the variable index as `usize`.
+    ///
     /// # Panics
     ///
     /// Panics when `var_id` is out-of-range.

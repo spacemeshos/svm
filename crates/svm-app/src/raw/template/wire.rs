@@ -10,7 +10,7 @@ pub fn encode_deploy_template(template: &AppTemplate, w: &mut NibbleWriter) {
     encode_version(template, w);
     encode_name(template, w);
     encode_code(template, w);
-    encode_data_layout(template, w);
+    encode_data(template, w);
 }
 
 /// Decodes a raw Deploy-Template.
@@ -18,7 +18,7 @@ pub fn decode_deploy_template(iter: &mut NibbleIter) -> Result<AppTemplate, Pars
     let version = decode_version(iter)?;
     let name = decode_name(iter)?;
     let code = decode_code(iter)?;
-    let data = decode_data_layout(iter)?;
+    let data = decode_data(iter)?;
 
     let template = AppTemplate {
         version,
@@ -41,12 +41,11 @@ fn encode_name(template: &AppTemplate, w: &mut NibbleWriter) {
     helpers::encode_string(&template.name, w);
 }
 
-fn encode_data_layout(template: &AppTemplate, w: &mut NibbleWriter) {
+fn encode_data(template: &AppTemplate, w: &mut NibbleWriter) {
     let nvars = template.data.len() as u32;
     helpers::encode_u32_be(nvars, w);
 
     for (_vid, _off, len) in template.data.iter() {
-        // todo: assert `len` fits 14-bits
         helpers::encode_varuint14(len as u16, w);
     }
 }
@@ -74,7 +73,7 @@ fn decode_name(iter: &mut NibbleIter) -> Result<String, ParseError> {
     helpers::decode_string(iter, Field::NameLength, Field::Name)
 }
 
-fn decode_data_layout(iter: &mut NibbleIter) -> Result<DataLayout, ParseError> {
+fn decode_data(iter: &mut NibbleIter) -> Result<DataLayout, ParseError> {
     let nvars = helpers::decode_u32_be(iter, Field::DataLayoutVarsCount)?;
 
     let mut builder = DataLayoutBuilder::with_capacity(nvars as usize);
