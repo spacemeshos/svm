@@ -95,7 +95,7 @@ pub fn app_memory_state_creator(
 }
 
 /// Initializes a new in-memory key-value store.
-pub fn memory_kv_store2_init() -> Rc<RefCell<dyn StatefulKVStore>> {
+pub fn memory_kv_store_init() -> Rc<RefCell<dyn StatefulKVStore>> {
     Rc::new(RefCell::new(FakeKV::new()))
 }
 
@@ -114,7 +114,7 @@ pub fn create_memory_runtime(
 }
 
 /// Returns a function (wrapped inside `Box`) that initializes an App's storage client.
-pub fn runtime_memory_storage2_builder(
+pub fn runtime_memory_storage_builder(
     raw_kv: &Rc<RefCell<dyn StatefulKVStore>>,
 ) -> Box<StorageBuilderFn> {
     let raw_kv = Rc::clone(raw_kv);
