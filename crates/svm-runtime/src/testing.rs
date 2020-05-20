@@ -5,7 +5,6 @@ use crate::{
     ctx::SvmCtx,
     gas::{DefaultGasEstimator, MaybeGas},
     helpers::{self, DataWrapper},
-    register::Register,
     settings::AppSettings,
     storage::StorageBuilderFn,
     DefaultRuntime,
@@ -38,11 +37,6 @@ pub fn wasmer_compile(wasm: &str, gas_limit: MaybeGas) -> Module {
 pub fn instantiate(import_object: &ImportObject, wasm: &str, gas_limit: MaybeGas) -> Instance {
     let module = wasmer_compile(wasm, gas_limit);
     module.instantiate(import_object).unwrap()
-}
-
-/// Mutably borrows `SVM` register `reg_bits:reg_idx`
-pub fn instance_register(instance: &Instance, reg_bits: u32, reg_idx: u32) -> &mut Register {
-    helpers::wasmer_data_reg(instance.context().data, reg_bits, reg_idx)
 }
 
 /// Mutably borrows the `AppStorage` of a living `App` instance.

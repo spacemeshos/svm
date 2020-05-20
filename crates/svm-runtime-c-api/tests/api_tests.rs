@@ -10,7 +10,6 @@ use std::{collections::HashMap, ffi::c_void};
 use svm_app::types::{WasmType, WasmValue};
 use svm_common::Address;
 use svm_layout::DataLayout;
-use svm_runtime::register::Register;
 
 #[derive(Debug)]
 struct Host {
@@ -58,28 +57,22 @@ unsafe fn extract_host<'a>(raw_ctx: *mut c_void) -> &'a mut Host {
     svm_common::from_raw_mut::<Host>(host)
 }
 
-unsafe fn extract_reg<'a>(raw_ctx: *mut c_void, reg_bits: i32, reg_idx: i32) -> &'a mut Register {
-    use wasmer_runtime_core::vm::Ctx as WasmerCtx;
-
-    let ctx = svm_common::from_raw_mut::<WasmerCtx>(raw_ctx);
-
-    svm_runtime::helpers::wasmer_data_reg(ctx.data, reg_bits as u32, reg_idx as u32)
-}
-
 unsafe extern "C" fn inc_balance(ctx: *mut c_void, addition: i64, reg_bits: i32, reg_idx: i32) {
-    let host = extract_host(ctx);
-    let reg = extract_reg(ctx, reg_bits, reg_idx);
+    todo!()
+    // let host = extract_host(ctx);
+    // let reg = extract_reg(ctx, reg_bits, reg_idx);
 
-    let addr = Address::from(reg.as_ptr());
-    host.inc_balance(&addr, addition);
+    // let addr = Address::from(reg.as_ptr());
+    // host.inc_balance(&addr, addition);
 }
 
 unsafe extern "C" fn mul_balance(ctx: *mut c_void, mul_by: i64, reg_bits: i32, reg_idx: i32) {
-    let host = extract_host(ctx);
-    let reg = extract_reg(ctx, reg_bits, reg_idx);
+    todo!()
+    // let host = extract_host(ctx);
+    // let reg = extract_reg(ctx, reg_bits, reg_idx);
 
-    let addr = Address::from(reg.as_ptr());
-    host.mul_balance(&addr, mul_by);
+    // let addr = Address::from(reg.as_ptr());
+    // host.mul_balance(&addr, mul_by);
 }
 
 unsafe fn create_imports() -> *const c_void {

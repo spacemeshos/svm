@@ -69,24 +69,3 @@ pub fn buffer_freeze(data: *mut c_void, buf_id: u32) {
         }
     }
 }
-
-/// Copies buffer `buf_id` bytes `buf_offset, buf_offset + 1, ..., buf_offset + len - 1` into
-/// App's Register of type `reg_bits` and index `reg_idx`.
-pub fn buffer_copy_to_reg(
-    data: *mut c_void,
-    buf_id: u32,
-    buf_offset: u32,
-    reg_bits: u32,
-    reg_idx: u32,
-    len: u32,
-) {
-    assert!(len * 8 <= reg_bits);
-
-    let buffer = wasmer_data_buffer(data, buf_id)
-        .unwrap_or_else(|| panic!("Buffer `{}` doesn't exist!", buf_id));
-
-    let slice = buffer.read(buf_offset, len);
-    let reg = helpers::wasmer_data_reg(data, reg_bits, reg_idx);
-
-    reg.set(slice);
-}

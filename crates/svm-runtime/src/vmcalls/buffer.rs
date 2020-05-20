@@ -22,18 +22,3 @@ pub fn buffer_freeze(ctx: &mut WasmerCtx, buf_id: u32) {
 
     helpers::buffer_freeze(ctx.data, buf_id);
 }
-
-/// Copies buffer `buf_id` bytes under `buf_offset, buf_offset + 1, ..., buf_offset + count - 1`
-/// to running App's Register of type `reg_bits` and index `reg_idx`.
-pub fn buffer_copy_to_reg(
-    ctx: &mut WasmerCtx,
-    buf_id: u32,
-    buf_offset: u32,
-    reg_bits: u32,
-    reg_idx: u32,
-    count: u32,
-) {
-    use_gas!("buffer_copy_to_reg", ctx);
-
-    helpers::buffer_copy_to_reg(ctx.data, buf_id, buf_offset, reg_bits, reg_idx, count);
-}
