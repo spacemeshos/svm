@@ -57,7 +57,6 @@ macro_rules! test_var {
 #[test]
 fn query_bool_var() {
     let layout = VarLayout {
-        page_idx: 0,
         offset: 0,
         length: 1,
     };
@@ -69,7 +68,6 @@ fn query_bool_var() {
 #[test]
 fn query_int_u8_var() {
     let layout = VarLayout {
-        page_idx: 0,
         offset: 0,
         length: 1,
     };
@@ -82,19 +80,9 @@ fn query_int_u8_var() {
     );
 }
 
-// #[test]
-// fn query_int_i8_var() {
-//     let layout = VarLayout {
-//         page_idx: 0,
-//         offset: 0,
-//         length: 1,
-//     };
-// }
-
 #[test]
 fn query_blob_var() {
     let layout = VarLayout {
-        page_idx: 0,
         offset: 0,
         length: 3,
     };
@@ -110,7 +98,6 @@ fn query_blob_var() {
 #[test]
 fn query_pubkey_var() {
     let layout = VarLayout {
-        page_idx: 0,
         offset: 2,
         length: 5,
     };
@@ -126,7 +113,6 @@ fn query_pubkey_var() {
 #[test]
 fn query_addr_var() {
     let layout = VarLayout {
-        page_idx: 0,
         offset: 2,
         length: 5,
     };
