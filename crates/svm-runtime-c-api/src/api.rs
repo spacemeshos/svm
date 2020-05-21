@@ -1,4 +1,4 @@
-use std::{convert::TryFrom, ffi::c_void, io, path::Path, ptr::NonNull};
+use std::{cell::RefCell, convert::TryFrom, ffi::c_void, io, path::Path, ptr::NonNull, rc::Rc};
 
 use log::{debug, error};
 
@@ -10,6 +10,7 @@ use svm_app::{
 use svm_common::{Address, State};
 use svm_layout::DataLayout;
 use svm_runtime::{ctx::SvmCtx, gas::DefaultGasEstimator};
+use svm_storage::kv::StatefulKVStore;
 
 use crate::{
     helpers,
@@ -317,12 +318,48 @@ macro_rules! box_runtime {
 
 /// Creates a new in-memory key-value client.
 /// Returns a raw pointer to allocated kv-store via input parameter `raw_kv`.
+///
+/// # Example
+///
+/// ```rust
+/// use svm_runtime_c_api::*;
+///
+/// let mut raw_kv = std::ptr::null_mut();
+/// let res = unsafe { svm_memory_create(&mut raw_kv) };
+/// assert!(res.is_ok());
+/// ```
+///
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_memory_kv_create(kv: *mut *mut c_void) -> svm_result_t {
     let native_kv = svm_runtime::testing::memory_kv_store_init();
 
     *kv = svm_common::into_raw_mut(native_kv);
+
+    svm_result_t::SVM_SUCCESS
+}
+
+/// Frees an in-memory key-value.
+///
+/// # Example
+///
+/// ```rust
+/// use svm_runtime_c_api::*;
+///
+/// let mut raw_kv = std::ptr::null_mut();
+/// let res = unsafe { svm_memory_create(&mut raw_kv) };
+/// assert!(res.is_ok());
+///
+/// let res = unsafe { svm_memory_kv_destroy(raw_kv) };
+/// assert!(res.is_ok());
+/// ```
+///
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_memory_kv_destroy(kv: *mut c_void) -> svm_result_t {
+    let kv: &mut Rc<RefCell<dyn StatefulKVStore>> = svm_common::from_raw_mut(kv);
+
+    let _ = Box::from_raw(kv as *mut _);
 
     svm_result_t::SVM_SUCCESS
 }
