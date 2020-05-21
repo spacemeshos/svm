@@ -43,9 +43,9 @@ fn encode_name(template: &AppTemplate, w: &mut NibbleWriter) {
 
 fn encode_data(template: &AppTemplate, w: &mut NibbleWriter) {
     let nvars = template.data.len() as u32;
-    helpers::encode_u32_be(nvars, w);
+    helpers::encode_varuint14(nvars as u16, w);
 
-    for (_vid, _off, len) in template.data.iter() {
+    for (_varid, _off, len) in template.data.iter() {
         helpers::encode_varuint14(len as u16, w);
     }
 }
@@ -74,7 +74,7 @@ fn decode_name(iter: &mut NibbleIter) -> Result<String, ParseError> {
 }
 
 fn decode_data(iter: &mut NibbleIter) -> Result<DataLayout, ParseError> {
-    let nvars = helpers::decode_u32_be(iter, Field::DataLayoutVarsCount)?;
+    let nvars = helpers::decode_varuint14(iter, Field::DataLayoutVarsCount)?;
 
     let mut builder = DataLayoutBuilder::with_capacity(nvars as usize);
 
