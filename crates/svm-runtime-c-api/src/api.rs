@@ -325,7 +325,7 @@ macro_rules! box_runtime {
 /// use svm_runtime_c_api::*;
 ///
 /// let mut raw_kv = std::ptr::null_mut();
-/// let res = unsafe { svm_memory_create(&mut raw_kv) };
+/// let res = unsafe { svm_memory_kv_create(&mut raw_kv) };
 /// assert!(res.is_ok());
 /// ```
 ///
@@ -347,7 +347,7 @@ pub unsafe extern "C" fn svm_memory_kv_create(kv: *mut *mut c_void) -> svm_resul
 /// use svm_runtime_c_api::*;
 ///
 /// let mut raw_kv = std::ptr::null_mut();
-/// let res = unsafe { svm_memory_create(&mut raw_kv) };
+/// let res = unsafe { svm_memory_kv_create(&mut raw_kv) };
 /// assert!(res.is_ok());
 ///
 /// let res = unsafe { svm_memory_kv_destroy(raw_kv) };
