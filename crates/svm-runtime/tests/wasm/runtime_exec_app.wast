@@ -2,7 +2,7 @@
   (func $get64 (import "svm" "get64") (param i32) (result i64))
   (func $set64 (import "svm" "set64") (param i32 i64))
 
-  (memory 1)  ;; memory `0` (default) is initialized with one page
+  (import "svm" "memory" (memory 1))
 
   (func (export "ctor")
   	nop)

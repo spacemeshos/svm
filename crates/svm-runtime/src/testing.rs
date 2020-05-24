@@ -1,7 +1,6 @@
 use std::{cell::RefCell, collections::HashMap, ffi::c_void, path::Path, rc::Rc};
 
 use crate::{
-    buffer::BufferRef,
     ctx::SvmCtx,
     gas::{DefaultGasEstimator, MaybeGas},
     helpers::{self, DataWrapper},
@@ -41,11 +40,6 @@ pub fn instantiate(import_object: &ImportObject, wasm: &str, gas_limit: MaybeGas
 /// Mutably borrows the `AppStorage` of a living `App` instance.
 pub fn instance_storage(instance: &Instance) -> &mut AppStorage {
     helpers::wasmer_data_app_storage(instance.context().data)
-}
-
-/// Mutably borrows the Buffer with id `buf_id` of a living `App` instance.
-pub fn instance_buffer(instance: &Instance, buf_id: u32) -> Option<&mut BufferRef> {
-    helpers::wasmer_data_buffer(instance.context().data, buf_id)
 }
 
 /// Returns a view of `wasmer` instance memory at `offset`...`offest + len - 1`
