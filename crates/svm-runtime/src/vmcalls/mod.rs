@@ -31,8 +31,8 @@ pub fn insert_vmcalls(ns: &mut Namespace) {
     ns.insert("buffer_freeze", func!(buffer_freeze));
 
     // `host_ctx` vmcalls
-    ns.insert("host_ctx_read_i32_be", func!(host_ctx_read_i32_be));
-    ns.insert("host_ctx_read_i32_le", func!(host_ctx_read_i32_le));
-    ns.insert("host_ctx_read_i64_be", func!(host_ctx_read_i64_be));
-    ns.insert("host_ctx_read_i64_le", func!(host_ctx_read_i64_le));
+    ns.insert("get64", func!(get64));
+    ns.insert("set64", func!(set64));
+
+    // `host context`
 }
