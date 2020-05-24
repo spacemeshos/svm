@@ -3,10 +3,7 @@ mod host_ctx;
 mod storage;
 
 pub use buffer::{buffer_create, buffer_freeze, buffer_kill};
-pub use host_ctx::{
-    host_ctx_read_i32_be, host_ctx_read_i32_le, host_ctx_read_i64_be, host_ctx_read_i64_le,
-    host_get64,
-};
+pub use host_ctx::host_get64;
 pub use storage::{get160, get256, get64, set160, set256, set64};
 
 pub use wasmer_runtime_core::{
