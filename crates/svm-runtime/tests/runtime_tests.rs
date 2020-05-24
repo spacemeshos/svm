@@ -278,7 +278,7 @@ fn default_runtime_exec_app() {
 }
 
 #[test]
-fn runtime_exec_app_reaches_oog() {
+fn default_runtime_exec_app_reaches_oog() {
     let mut runtime = default_runtime!();
 
     // 1) deploying the template
@@ -324,4 +324,62 @@ fn runtime_exec_app_reaches_oog() {
     let actual = runtime.exec_app(&bytes, &init_state, HostCtx::new(), maybe_gas);
 
     assert_eq!(expected, actual)
+}
+
+#[test]
+fn default_runtime_func_buf() {
+    let mut runtime = default_runtime!();
+
+    // 1) deploying the template
+    let version = 0;
+    let author = Address::of("author").into();
+    let is_wast = true;
+    let maybe_gas = MaybeGas::new();
+    let layout: DataLayout = vec![8].into();
+
+    let bytes = testing::build_template(
+        version,
+        "My Template",
+        layout.clone(),
+        include_str!("wasm/runtime_func_buf.wast"),
+        is_wast,
+    );
+
+    let receipt = runtime.deploy_template(&bytes, &author, HostCtx::new(), maybe_gas);
+    assert!(receipt.success);
+
+    let template_addr = receipt.addr.unwrap();
+
+    // 2) spawn app
+    let ctor_idx = 0;
+    let ctor_buf = vec![];
+    let ctor_args = vec![];
+    let creator = Address::of("creator").into();
+
+    let bytes = testing::build_app(version, &template_addr, ctor_idx, &ctor_buf, &ctor_args);
+    let receipt = runtime.spawn_app(&bytes, &creator, HostCtx::new(), maybe_gas);
+    assert!(receipt.success);
+
+    let app_addr = receipt.get_app_addr();
+    let init_state = receipt.get_init_state();
+
+    // 3) executing an app-transaction
+    let func_idx = 1;
+    let func_buf = vec![0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80];
+    let func_buf_ptr = WasmValue::I32(0);
+    let var_id = WasmValue::I32(0);
+    let func_args = vec![var_id, func_buf_ptr];
+    let bytes = testing::build_app_tx(version, &app_addr, func_idx, &func_buf, &func_args);
+
+    let receipt = runtime.exec_app(&bytes, &init_state, HostCtx::new(), maybe_gas);
+    assert!(receipt.success);
+
+    // now we'll read directly from the app's storage
+    // and assert that the data has been persisted as expected.
+
+    let state = receipt.get_new_state();
+    let storage = runtime.open_app_storage(&app_addr, &state, &layout);
+
+    let var = storage.read_var(VarId(0));
+    assert_eq!(var, 0x80_70_60_50_40_30_20_10u64.to_be_bytes());
 }
