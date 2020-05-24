@@ -104,6 +104,62 @@ fn vmcalls_get64_set64() {
 }
 
 #[test]
+#[ignore = "multiple result values not currently supported."]
+fn vmcalls_get160_set160() {
+    let app_addr = Address::of("my-app");
+    let state = State::empty();
+    let host = DataWrapper::new(std::ptr::null_mut());
+    let host_ctx = host_ctx! {};
+    let maybe_gas = MaybeGas::new();
+    let layout: DataLayout = vec![20].into();
+
+    let import_object = imports! {
+        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, maybe_gas, &layout),
+
+        "svm" => {
+            "get160" => func!(vmcalls::get160),
+            "set160" => func!(vmcalls::set160),
+        },
+    };
+
+    let instance = testing::instantiate(
+        &import_object,
+        include_str!("wasm/get160_set160.wast"),
+        maybe_gas,
+    );
+
+    todo!("add asserts");
+}
+
+#[test]
+#[ignore = "multiple result values not currently supported."]
+fn vmcalls_get256_set256() {
+    let app_addr = Address::of("my-app");
+    let state = State::empty();
+    let host = DataWrapper::new(std::ptr::null_mut());
+    let host_ctx = host_ctx! {};
+    let maybe_gas = MaybeGas::new();
+    let layout: DataLayout = vec![20].into();
+
+    let import_object = imports! {
+        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, maybe_gas, &layout),
+
+        "svm" => {
+            "get256" => func!(vmcalls::get256),
+            "set256" => func!(vmcalls::set256),
+        },
+    };
+
+    let instance = testing::instantiate(
+        &import_object,
+        include_str!("wasm/get256_set256.wast"),
+        maybe_gas,
+    );
+
+    todo!("add asserts");
+}
+
+#[test]
 fn host_get64() {
     let app_addr = Address::of("my-app");
     let state = State::empty();
