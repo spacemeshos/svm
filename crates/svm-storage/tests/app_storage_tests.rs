@@ -1,175 +1,69 @@
-mod asserts;
+use svm_common::Address;
+use svm_layout::{DataLayout, VarId};
+use svm_storage::{app::AppStorage, testing};
 
-use svm_kv::traits::KVStore;
-use svm_storage::{
-    page::{zero_page, PageIndex, PageOffset, PageSliceLayout},
-    testing::{app_storage_init, app_storage_open, default_page_hash, fill_page},
-};
+macro_rules! assert_vars {
+        ($app:expr, $($var_id:expr => $expected:expr), *) => {{
+            $(
+                let actual = $app.read_var(VarId($var_id));
+                assert_eq!(actual, $expected);
+             )*
+        }};
+    }
+
+macro_rules! write_vars {
+        ($app:expr, $($var_id:expr => $value:expr), *) => {{
+            $(
+                $app.write_var(VarId($var_id), $value.to_vec());
+             )*
+        }};
+    }
 
 #[test]
-fn app_storage_loading_an_empty_slice_into_the_cache() {
-    let page_count = 10;
-    let (_kv, mut storage) = app_storage_init(page_count);
+fn app_storage_vars_are_persisted_only_on_commit() {
+    // `var #0` consumes 4 bytes (offsets: `[0..4)`)
+    // `var #1` consumes 2 bytes (offsets: `[4, 6)`)
+    let layout = DataLayout::from(vec![4, 2].as_slice());
 
-    let layout = PageSliceLayout::new(PageIndex(1), PageOffset(100), 200);
+    let addr = Address::of("my-app");
+    let kv = testing::create_app_kv(addr);
 
-    assert_eq!(vec![0; 200], storage.read_page_slice(&layout));
+    let mut app = AppStorage::new(layout.clone(), kv.clone());
+
+    // vars are initialized with zeros
+    assert_vars!(app, 0 => [0, 0, 0, 0], 1 => [0, 0]);
+    write_vars!(app, 0 => [10, 20, 30, 40], 1 => [50, 60]);
+
+    // vars latest version are in memory (uncommitted yet)
+    assert_vars!(app, 0 => [10, 20, 30, 40], 1 => [50, 60]);
+
+    // spin a new app with no in-memory dirty data
+    let app2 = AppStorage::new(layout.clone(), kv.clone());
+
+    // `app`'s' uncomitted changes are not reflected yet
+    assert_vars!(app2, 0 => [0, 0, 0, 0], 1 => [0, 0]);
+
+    // now, we'll commit the dirty changes
+    let _state = app.commit();
+
+    // we'll spin a new app with no caching
+    let app3 = AppStorage::new(layout.clone(), kv.clone());
+
+    // asserting that `commit` persisted the data
+    assert_vars!(app3, 0 => [10, 20, 30, 40], 1 => [50, 60]);
 }
 
 #[test]
-fn app_storage_read_an_empty_slice_then_override_it_and_then_commit() {
-    let page_count = 10;
+#[cfg(debug_assertions)]
+#[should_panic]
+fn app_storage_write_var_value_should_match_layout_length() {
+    // `var #0` consumes 4 bytes (i.e `length = 4`)
+    let layout: DataLayout = vec![4].into();
+    let addr = Address::of("my-app");
+    let kv = testing::create_app_kv(addr);
 
-    let (kv, mut storage) = app_storage_init(page_count);
+    let mut app = AppStorage::new(layout, kv);
 
-    let layout = PageSliceLayout::new(PageIndex(1), PageOffset(100), 3);
-
-    assert_eq!(vec![0, 0, 0], storage.read_page_slice(&layout));
-
-    storage.write_page_slice(&layout, &vec![10, 20, 30]);
-
-    assert_eq!(vec![10, 20, 30], storage.read_page_slice(&layout));
-
-    // page is not persisted though since we didn't `commit`
-    let ph = default_page_hash(&[10, 20, 30]);
-    let key = ph.0;
-
-    assert_no_key!(kv, key);
-}
-
-#[test]
-fn app_storage_write_slice_without_loading_it_first_and_commit() {
-    let page_count = 2;
-    let (kv, mut storage) = app_storage_init(page_count);
-
-    // page #1, cells: `100, 1001, 1002`
-    let layout = PageSliceLayout::new(PageIndex(1), PageOffset(100), 3);
-
-    storage.write_page_slice(&layout, &[10, 20, 30]);
-    let new_state = storage.commit();
-
-    // asserting persisted data. when viewed in the context of `new_state`.
-    app_storage_open(&new_state, &kv, page_count);
-
-    assert_eq!(vec![10, 20, 30], storage.read_page_slice(&layout));
-
-    let mut expected_page = zero_page();
-    fill_page(&mut expected_page, &[(100, 10), (101, 20), (102, 30)]);
-
-    let ph = default_page_hash(&expected_page);
-    let key = ph.0;
-
-    assert_key_value!(kv, key, expected_page);
-}
-
-#[test]
-fn app_storage_read_an_existing_slice_then_overriding_it_and_commit() {
-    let page_count = 2;
-    let (kv, mut storage) = app_storage_init(page_count);
-
-    let layout = PageSliceLayout::new(PageIndex(1), PageOffset(100), 3);
-
-    storage.write_page_slice(&layout, &vec![10, 20, 30]);
-    let _ = storage.commit();
-
-    let mut expected_page = zero_page();
-    fill_page(&mut expected_page, &[(100, 10), (101, 20), (102, 30)]);
-    let ph1 = default_page_hash(&expected_page);
-    fill_page(&mut expected_page, &[(100, 40), (101, 50), (102, 60)]);
-    let ph2 = default_page_hash(&expected_page);
-
-    let page = kv.borrow().get(&ph1.0).unwrap();
-    assert_eq!(vec![10, 20, 30], &page[100..103]);
-    storage.write_page_slice(&layout, &vec![40, 50, 60]);
-
-    // new page is on the page-storage, but not persisted yet
-    assert_eq!(vec![40, 50, 60], storage.read_page_slice(&layout));
-
-    let page = kv.borrow().get(&ph1.0).unwrap();
-    assert_eq!(vec![10, 20, 30], &page[100..103]);
-
-    assert_eq!(None, kv.borrow().get(&ph2.0));
-
-    // now we also persist the new page version
-    let _ = storage.commit();
-
-    let page = kv.borrow().get(&ph2.0).unwrap();
-    assert_eq!(vec![40, 50, 60], &page[100..103]);
-}
-
-#[test]
-fn app_storage_write_slice_and_commit_then_load_it_override_it_and_commit() {
-    let page_count = 2;
-    let (kv, mut storage) = app_storage_init(page_count);
-
-    let layout = PageSliceLayout::new(PageIndex(1), PageOffset(100), 3);
-
-    let mut expected_page = zero_page();
-    fill_page(&mut expected_page, &[(100, 10), (101, 20), (102, 30)]);
-    let ph1 = default_page_hash(&expected_page);
-    fill_page(&mut expected_page, &[(100, 40), (101, 50), (102, 60)]);
-    let ph2 = default_page_hash(&expected_page);
-
-    // 1) first page write
-    storage.write_page_slice(&layout, &vec![10, 20, 30]);
-
-    // 2) commit
-    let state = storage.commit();
-
-    // 3) re-load persisted page (we do a `clear` first to make sure we load from the pages-storage)
-    let mut storage = app_storage_open(&state, &kv, page_count);
-    assert_eq!(vec![10, 20, 30], storage.read_page_slice(&layout));
-
-    // 4) page override
-    storage.write_page_slice(&layout, &vec![40, 50, 60]);
-    assert_eq!(vec![40, 50, 60], storage.read_page_slice(&layout));
-
-    // 5) commit again
-    let page = kv.borrow().get(&ph1.0).unwrap();
-    assert_eq!(vec![10, 20, 30], &page[100..103]);
-
-    let _ = storage.commit();
-
-    let page = kv.borrow().get(&ph2.0).unwrap();
-    assert_eq!(vec![40, 50, 60], &page[100..103]);
-}
-
-#[test]
-fn app_storage_write_two_slices_under_same_page_and_commit() {
-    let page_count = 2;
-    let (kv, mut storage) = app_storage_init(page_count);
-
-    let layout1 = PageSliceLayout::new(PageIndex(1), PageOffset(100), 3);
-    let layout2 = PageSliceLayout::new(PageIndex(1), PageOffset(200), 2);
-
-    let mut expected_page = zero_page();
-    fill_page(
-        &mut expected_page,
-        &[(100, 10), (101, 20), (102, 30), (200, 40), (201, 50)],
-    );
-
-    let ph = default_page_hash(&expected_page);
-
-    storage.write_page_slice(&layout1, &vec![10, 20, 30]);
-    storage.write_page_slice(&layout2, &vec![40, 50]);
-
-    assert_eq!(vec![10, 20, 30], storage.read_page_slice(&layout1));
-    assert_eq!(vec![40, 50], storage.read_page_slice(&layout2));
-
-    // commiting two slices under the same page
-    let key = ph.0;
-    assert_no_key!(kv, key);
-
-    let state = storage.commit();
-
-    // asserting persisted data. when viewing in the context of `new_state`.
-    let mut storage = app_storage_open(&state, &kv, page_count);
-
-    assert_eq!(vec![10, 20, 30], storage.read_page_slice(&layout1));
-    assert_eq!(vec![40, 50], storage.read_page_slice(&layout2));
-
-    // querying the key-value store directly
-    let page = kv.borrow().get(&ph.0).unwrap();
-    assert_eq!(vec![10, 20, 30], &page[100..103]);
-    assert_eq!(vec![40, 50], &page[200..202]);
+    // calling `write_var` with 2-byte value (expected variable's to value to be 4 bytes)
+    app.write_var(VarId(0), vec![0, 0]);
 }

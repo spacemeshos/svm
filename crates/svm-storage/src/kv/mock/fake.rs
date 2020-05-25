@@ -115,6 +115,12 @@ impl FakeKV {
     }
 }
 
+impl Drop for FakeKV {
+    fn drop(&mut self) {
+        dbg!("Dropping `FakeKV`");
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

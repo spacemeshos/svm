@@ -334,15 +334,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b919933a397b79c37e33b77bb2aa3dc8eb6e165ad809e58ff75bc7db2e34574"
 
 [[package]]
-name = "hash256-std-hasher"
-version = "0.14.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ff4a5dcbaf4fe8977852851d137546bcad8679c9582f170032ca35b30701138e"
-dependencies = [
- "crunchy",
-]
-
-[[package]]
 name = "hermit-abi"
 version = "0.1.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -805,7 +796,6 @@ dependencies = [
  "svm-runtime",
  "svm-runtime-c-api",
  "svm-storage",
- "svm-storage2",
  "tiny-keccak",
  "wabt",
  "wasmer-middleware-common",
@@ -817,7 +807,7 @@ dependencies = [
 
 [[package]]
 name = "svm-abi"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "byteorder",
  "hex",
@@ -864,7 +854,6 @@ name = "svm-compiler"
 version = "0.0.0"
 dependencies = [
  "svm-common",
- "svm-storage",
  "wabt",
  "wasmer-middleware-common",
  "wasmer-runtime",
@@ -914,7 +903,6 @@ dependencies = [
  "svm-kv",
  "svm-layout",
  "svm-storage",
- "svm-storage2",
  "wabt",
  "wasmer-middleware-common",
  "wasmer-runtime",
@@ -937,7 +925,6 @@ dependencies = [
  "svm-layout",
  "svm-runtime",
  "svm-storage",
- "svm-storage2",
  "wabt",
  "wasmer-runtime",
  "wasmer-runtime-c-api",
@@ -947,19 +934,6 @@ dependencies = [
 
 [[package]]
 name = "svm-storage"
-version = "0.0.0"
-dependencies = [
- "cfg-if",
- "hash256-std-hasher",
- "lazy_static",
- "log",
- "svm-abi",
- "svm-common",
- "svm-kv",
-]
-
-[[package]]
-name = "svm-storage2"
 version = "0.0.0"
 dependencies = [
  "svm-common",

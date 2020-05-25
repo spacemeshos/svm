@@ -2,17 +2,15 @@ use std::{collections::HashMap, ffi::c_void};
 
 use log::debug;
 
-use crate::{buffer::BufferRef, gas::MaybeGas, helpers::DataWrapper, register::Registers};
+use crate::{buffer::BufferRef, gas::MaybeGas, helpers::DataWrapper};
 
 use svm_app::types::HostCtx;
-use svm_storage::AppStorage;
-use svm_storage2::app::AppStorage as AppStorage2;
+use svm_storage::app::AppStorage;
 
 /// `SvmCtx` is a container for the accessible data by `wasmer` instances.
 /// * `host`         - A pointer to the `Host`.
 /// * `host_ctx`     - A pointer to the `HostCtx` (i.e: `sender`, `block_id`, `nonce`, ...).
 /// * `buffers`      - A `HashMap` between `buffer_id` to mutable/read-only `Buffer`.
-/// * `regs`         - Instance's `Registers`.
 /// * `storage`      - Instance's `AppStorage`.
 /// * `gas_metering` - Whether gas metering is enabled.
 #[repr(C)]
@@ -31,17 +29,11 @@ pub struct SvmCtx {
     /// Whether gas metering is enabled or not
     pub gas_metering: bool,
 
-    /// Holds the context registers.
-    pub regs: Registers,
-
     /// Holds the context buffers.
     pub buffers: HashMap<u32, BufferRef>,
 
-    /// An accessor to the app's storage
-    pub storage: AppStorage,
-
     /// An accessor to the app's new storage
-    pub storage2: AppStorage2,
+    pub storage: AppStorage,
 }
 
 unsafe impl Sync for SvmCtx {}
@@ -56,12 +48,10 @@ impl SvmCtx {
         host_ctx: DataWrapper<*const c_void>,
         gas_limit: MaybeGas,
         storage: AppStorage,
-        storage2: AppStorage2,
     ) -> Self {
         let host = host.unwrap();
         let host_ctx = host_ctx.unwrap() as *const HostCtx;
         let buffers = HashMap::new();
-        let regs = Registers::default();
 
         let gas_metering = gas_limit.is_some();
         let gas_limit = gas_limit.unwrap_or(0);
@@ -70,9 +60,7 @@ impl SvmCtx {
             host,
             host_ctx,
             buffers,
-            regs,
             storage,
-            storage2,
             gas_metering,
             gas_limit,
         }

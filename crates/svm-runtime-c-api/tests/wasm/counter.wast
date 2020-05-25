@@ -7,7 +7,7 @@
   (func (export "ctor")
   	nop)
 
-  (func (export "add") (param i64)
+  (func (export "add") (param i64) (result i64)
     ;; push var_id = 0 for later `$set64` usage
     i32.const 0  
 
@@ -20,4 +20,8 @@
     i64.add
 
     ;; store var #0 new value
-    call $set64))
+    call $set64
+
+    ;; return var #0
+    i32.const 0  ;; var_id = 0
+    call $get64))

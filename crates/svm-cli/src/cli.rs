@@ -25,11 +25,6 @@ pub fn new_app<'a, 'b>() -> App<'a, 'b> {
                                 .required(true),
                         )
                         .arg(
-                            Arg::with_name("page_count")
-                                .help("the template page count")
-                                .required(true),
-                        )
-                        .arg(
                             Arg::with_name("code_path")
                                 .help("path to the file containing the template code data")
                                 .required(true),
@@ -148,11 +143,10 @@ pub fn process(matches: ArgMatches) -> Result<String, Box<dyn Error>> {
             ("app_template", Some(matches)) => {
                 let version = value_t!(matches, "version", u32).unwrap_or_else(|e| e.exit());
                 let name = matches.value_of("name").unwrap();
-                let page_count = value_t!(matches, "page_count", u16).unwrap_or_else(|e| e.exit());
                 let code_path = matches.value_of("code_path").unwrap();
                 let output_path = matches.value_of("output_path").unwrap();
 
-                let num = app_template::encode(version, name, page_count, code_path, output_path)?;
+                let num = app_template::encode(version, name, code_path, output_path)?;
                 return Ok(format!("Wrote {} bytes to {}", num, output_path));
             }
             ("spawn_app", Some(matches)) => {

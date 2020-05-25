@@ -14,10 +14,10 @@ use crate::{
     gas::{GasEstimator, MaybeGas, OOGError},
     helpers::{self, DataWrapper},
     receipt::{make_spawn_app_receipt, ExecReceipt, SpawnAppReceipt, TemplateReceipt},
-    runtime::Runtime,
-    settings::AppSettings,
-    storage::{Storage2BuilderFn, StorageBuilderFn},
+    storage::StorageBuilderFn,
+    Config, Runtime,
 };
+
 use svm_app::{
     error::ParseError,
     traits::{Env, EnvTypes},
@@ -28,9 +28,8 @@ use svm_app::{
 };
 use svm_common::State;
 use svm_gas::Gas;
-use svm_storage::AppStorage;
-
-use svm_storage2::app::AppStorage as AppStorage2;
+use svm_layout::DataLayout;
+use svm_storage::app::AppStorage;
 
 use wasmer_runtime::Value as WasmerValue;
 use wasmer_runtime_core::{
@@ -46,17 +45,14 @@ pub struct DefaultRuntime<ENV, GE> {
     /// A raw pointer to host (a.k.a the `Full-Node` in the realm of Blockchain).
     pub host: *mut c_void,
 
-    /// kv-store (rocksdb/leveldb/similar) path where it stores SVM data (templates, app, app-storage).
-    pub kv_path: PathBuf,
+    /// The runtime configuration
+    pub config: Config,
 
     /// External `wasmer` imports (living inside the host) to be consumed by the app.
     pub imports: Vec<(String, String, Export)>,
 
     /// builds a `AppStorage` instance.
     pub storage_builder: Box<StorageBuilderFn>,
-
-    /// builds a `AppStorage2` instance.
-    pub storage2_builder: Box<Storage2BuilderFn>,
 
     phantom: PhantomData<GE>,
 }
@@ -181,17 +177,17 @@ where
         kv_path: P,
         imports: Vec<(String, String, Export)>,
         storage_builder: Box<StorageBuilderFn>,
-        storage2_builder: Box<Storage2BuilderFn>,
     ) -> Self {
         Self::ensure_not_svm_ns(&imports[..]);
+
+        let config = Config::new(kv_path);
 
         Self {
             env,
             host,
-            kv_path: kv_path.as_ref().to_path_buf(),
+            config,
             imports,
             storage_builder,
-            storage2_builder,
             phantom: PhantomData::<GE>,
         }
     }
@@ -203,21 +199,9 @@ where
         &self,
         addr: &AppAddr,
         state: &State,
-        settings: &AppSettings,
+        layout: &DataLayout,
     ) -> AppStorage {
-        (self.storage_builder)(addr, state, settings)
-    }
-
-    /// Initialize a new `AppStorage` and returns it.
-    /// This method is of `pub` visibility since it's also helpful for tests that want to
-    /// observe that app storage data.
-    pub fn open_app_storage2(
-        &self,
-        addr: &AppAddr,
-        state: &State,
-        settings: &AppSettings,
-    ) -> AppStorage2 {
-        (self.storage2_builder)(addr, state, settings)
+        (self.storage_builder)(addr, state, layout, &self.config)
     }
 
     fn call_ctor(
@@ -289,14 +273,8 @@ where
         match self.load_template(&tx) {
             Err(e) => e.into(),
             Ok((template, template_addr, _author, _creator)) => {
-                let settings = AppSettings {
-                    page_count: template.page_count,
-                    kv_path: self.kv_path.clone(),
-                    layout: template.data.clone(),
-                };
-
                 let mut import_object =
-                    self.import_object_create(&tx.app, &state, gas_left, host_ctx, &settings);
+                    self.import_object_create(&template, &tx.app, &state, gas_left, host_ctx);
 
                 self.import_object_extend(&mut import_object);
 
@@ -500,30 +478,26 @@ where
     }
 
     #[inline]
-    fn instance_storage_mut(
-        &self,
-        instance: &mut wasmer_runtime::Instance,
-    ) -> &mut svm_storage::AppStorage {
+    fn instance_storage_mut(&self, instance: &mut wasmer_runtime::Instance) -> &mut AppStorage {
         let wasmer_ctx: &mut wasmer_runtime::Ctx = instance.context_mut();
         helpers::wasmer_data_app_storage(wasmer_ctx.data)
     }
 
     fn import_object_create(
         &self,
-        addr: &AppAddr,
+        template: &AppTemplate,
+        app_addr: &AppAddr,
         state: &State,
         gas_limit: MaybeGas,
         host_ctx: HostCtx,
-        settings: &AppSettings,
     ) -> ImportObject {
         debug!(
-            "runtime `import_object_create` address={:?}, state={:?}, settings={:?}",
-            addr, state, settings
+            "runtime `import_object_create` address={:?}, state={:?}, config={:?}",
+            app_addr, state, self.config
         );
 
-        let storage = self.open_app_storage(addr, state, settings);
-        let storage2 = self.open_app_storage2(addr, state, settings);
-
+        let layout = &template.data;
+        let storage = self.open_app_storage(app_addr, state, layout);
         let host_ctx = svm_common::into_raw(host_ctx);
 
         let svm_ctx = SvmCtx::new(
@@ -531,7 +505,6 @@ where
             DataWrapper::new(host_ctx),
             gas_limit,
             storage,
-            storage2,
         );
         let svm_ctx = Box::leak(Box::new(svm_ctx));
 

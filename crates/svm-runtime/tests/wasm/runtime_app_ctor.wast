@@ -1,12 +1,9 @@
 (module
-  (func $buffer_copy_to_storage (import "svm" "buffer_copy_to_storage") (param i32 i32 i32 i32 i32))
+  (func $set64 (import "svm" "set64") (param i32 i64))
 
   (memory 1)  ;; memory `0` (default) is initialized with one page
 
-  (func (export "ctor") (param i32)
-    i32.const 0  ;; buf_id
-    i32.const 0  ;; buf_offset
-    i32.const 0  ;; page_idx
-    i32.const 0  ;; page_offset
-    get_local 0  ;; len
-    call $buffer_copy_to_storage))
+  (func (export "ctor") (param i64)
+    i32.const 0  ;; var_id = 0
+    get_local 0  ;; var's value 
+    call $set64))

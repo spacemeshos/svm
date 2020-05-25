@@ -3,42 +3,16 @@
 #![deny(dead_code)]
 #![deny(unreachable_code)]
 
-//! `svm-storage` crate is responsible for the app-storage part of the `SVM`
-//! Each app has its own storage
+//! This crate is responsible on managing the App's storage.
+//!
+//! That includes the specification of the app's data-layout,
+//! and execution of operations against the app's storage (reads and writes).
 
-/// Default implementations for crate traits (see `traits.rs`).
-pub mod default;
+/// High-level `AppStorage`
+pub mod app;
 
-mod app_pages;
-mod app_storage;
+/// Key-value abstraction
+pub mod kv;
 
-/// Contains definitions of `Page` related structures. For example: `Page, PageIndex` etc
-pub mod page;
-
-/// Contains definitions `State`-related.
-pub mod state;
-
-pub use crate::{app_pages::AppPages, app_storage::AppStorage};
-
-/// Storage related traits
-pub mod traits;
-
-/// Tests related helpers and asserts
-#[macro_use]
+/// Tests helpers
 pub mod testing;
-
-use cfg_if::cfg_if;
-
-cfg_if! {
-    if #[cfg(feature = "svm_memory")] {
-        /// in-memory backed implementation for storage
-        pub mod memory;
-    }
-}
-
-cfg_if! {
-    if #[cfg(feature = "svm_rocksdb")]  {
-        /// `rocksdb` backed implementation for storage
-        pub mod rocksdb;
-    }
-}

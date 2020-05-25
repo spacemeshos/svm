@@ -1,4 +1,4 @@
-use std::{cell::RefCell, ffi::c_void, path::Path, rc::Rc};
+use std::{ffi::c_void, path::Path};
 
 use svm_app::{
     rocksdb::{RocksdbAppStore, RocksdbAppTemplateStore, RocksdbEnv},
@@ -6,14 +6,10 @@ use svm_app::{
     types::AppAddr,
 };
 use svm_common::State;
-use svm_kv::rocksdb::Rocksdb;
-use svm_storage::{
-    rocksdb::{RocksdbAppPageCache, RocksdbAppPages},
-    AppStorage,
-};
-use svm_storage2::app::AppStorage as AppStorage2;
+use svm_layout::DataLayout;
+use svm_storage::app::AppStorage;
 
-use crate::{gas::GasEstimator, runtime::DefaultRuntime, settings::AppSettings};
+use crate::{gas::GasEstimator, runtime::DefaultRuntime, Config};
 
 use wasmer_runtime_core::export::Export;
 
@@ -30,14 +26,7 @@ where
 {
     let env = app_env_build(&kv_path);
 
-    DefaultRuntime::new(
-        host,
-        env,
-        kv_path,
-        imports,
-        Box::new(app_storage_build),
-        Box::new(app_storage_build2),
-    )
+    DefaultRuntime::new(host, env, kv_path, imports, Box::new(app_storage_build))
 }
 
 fn app_env_build<P, S>(kv_path: &P) -> RocksdbEnv<S>
@@ -58,17 +47,11 @@ where
     RocksdbEnv::new(app_store, template_store)
 }
 
-fn app_storage_build(_addr: &AppAddr, state: &State, settings: &AppSettings) -> AppStorage {
-    let path = Path::new(&settings.kv_path);
-
-    let kv = Rc::new(RefCell::new(Rocksdb::new(path)));
-
-    let pages = RocksdbAppPages::new(kv, state.clone(), settings.page_count);
-    let cache = RocksdbAppPageCache::new(pages, settings.page_count);
-
-    AppStorage::new(Box::new(cache))
-}
-
-fn app_storage_build2(_addr: &AppAddr, _state: &State, _settings: &AppSettings) -> AppStorage2 {
+fn app_storage_build(
+    _addr: &AppAddr,
+    _state: &State,
+    _layout: &DataLayout,
+    _config: &Config,
+) -> AppStorage {
     todo!()
 }

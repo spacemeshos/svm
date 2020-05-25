@@ -13,18 +13,6 @@ use svm_runtime::ctx::SvmCtx;
 use wasmer_runtime_c_api::instance::wasmer_instance_context_t;
 use wasmer_runtime_core::vm::Ctx;
 
-/// Returns a raw pointer to `SVM` live instance register of type `reg_bits:reg_idx`
-pub unsafe fn svm_register_get(
-    raw_ctx: *mut wasmer_instance_context_t,
-    reg_bits: u32,
-    reg_idx: u32,
-) -> *const u8 {
-    let ctx = cast_to_wasmer_ctx(raw_ctx);
-    let reg = svm_runtime::helpers::wasmer_data_reg(ctx.data, reg_bits, reg_idx);
-
-    reg.as_ptr()
-}
-
 /// Given a raw pointer to `wasmer` instance context, mutably borrows inner `data`
 /// and extract from it a pointer to the so called `host`.
 /// (it's type is defined as `T` in thefunction declaration)

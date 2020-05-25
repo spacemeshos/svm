@@ -11,7 +11,6 @@ use svm_layout::DataLayout;
 pub fn encode(
     version: u32,
     name: &str,
-    page_count: u16,
     code_path: &str,
     output_path: &str,
 ) -> Result<usize, Box<dyn Error>> {
@@ -20,7 +19,6 @@ pub fn encode(
     let bytes = DeployAppTemplateBuilder::new()
         .with_version(version)
         .with_name(name)
-        .with_page_count(page_count)
         .with_code(&buf)
         .with_data(&DataLayout::empty())
         .build();

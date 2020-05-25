@@ -46,16 +46,11 @@ path = "../svm-app"
 [dependencies.svm-gas]
 path = "../svm-gas"
 
-[dependencies.svm-storage]
-default-features = false
-path = "../svm-storage"
-features = ["svm_memory"]
-
 [dependencies.svm-layout]
 path = "../svm-layout"
 
-[dependencies.svm-storage2]
-path = "../svm-storage2"
+[dependencies.svm-storage]
+path = "../svm-storage"
 
 [dependencies.svm-compiler]
 default-features = false

@@ -1,14 +1,9 @@
 use svm_app::types::AppAddr;
 use svm_common::State;
+use svm_layout::DataLayout;
+use svm_storage::app::AppStorage;
 
-use svm_storage::AppStorage;
+use crate::Config;
 
-use svm_storage2::app::AppStorage as AppStorage2;
-
-use crate::settings::AppSettings;
-
-/// Represents a function that builds a `AppStorage` given its address, state and settings.
-pub type StorageBuilderFn = dyn Fn(&AppAddr, &State, &AppSettings) -> AppStorage;
-
-/// Represents a function that builds a `AppStorage2` given its address, state and settings.
-pub type Storage2BuilderFn = dyn Fn(&AppAddr, &State, &AppSettings) -> AppStorage2;
+/// `AppStorage` building function signature.
+pub type StorageBuilderFn = dyn Fn(&AppAddr, &State, &DataLayout, &Config) -> AppStorage;

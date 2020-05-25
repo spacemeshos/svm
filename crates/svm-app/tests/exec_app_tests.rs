@@ -48,7 +48,6 @@ fn exec_app_parse() {
     let template = AppTemplate {
         version: 0,
         name: "My Template".to_string(),
-        page_count: 5,
         code: vec![0x0C, 0x00, 0x0D, 0x0E],
         data: vec![].into(),
     };

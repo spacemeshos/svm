@@ -22,13 +22,10 @@ pub struct Var {
 /// Variables storage layout
 #[derive(Debug, Clone, PartialEq)]
 pub struct VarLayout {
-    /// Page index that holds the variable.
-    pub page_idx: usize,
-
-    /// Starting offset within page.
+    /// Starting offset
     pub offset: usize,
 
-    /// Byte length of the variable.
+    /// Byte-length
     pub length: usize,
 }
 
