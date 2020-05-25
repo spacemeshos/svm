@@ -3,13 +3,13 @@
 macro_rules! use_gas {
     ("get32", $wasmer_ctx:expr) => {{
         //
-    ("set32", $wasmer_ctx:expr) => {{
     }};
+    ("set32", $wasmer_ctx:expr) => {{
         //
     }};
     ("get64", $wasmer_ctx:expr) => {{
-    }};
         //
+    }};
     ("set64", $wasmer_ctx:expr) => {{
         //
     }};
