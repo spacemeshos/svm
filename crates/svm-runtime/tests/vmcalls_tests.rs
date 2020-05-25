@@ -11,9 +11,21 @@ use svm_runtime::{
     vmcalls,
 };
 
-macro_rules! assert_vars {
+macro_rules! assert_vars32 {
     ($instance:expr, $( $var_id:expr => $expected:expr), *) => {{
-        let func: Func<u32, u64> = $instance.exports.get("get").unwrap();
+        __assert_vars_impl!(u32, $instance, $( $var_id => $expected), *)
+    }};
+}
+
+macro_rules! assert_vars64 {
+    ($instance:expr, $( $var_id:expr => $expected:expr), *) => {{
+        __assert_vars_impl!(u64, $instance, $( $var_id => $expected), *)
+    }};
+}
+
+macro_rules! __assert_vars_impl {
+    ($ty:ty, $instance:expr, $( $var_id:expr => $expected:expr), *) => {{
+        let func: Func<u32, $ty> = $instance.exports.get("get").unwrap();
 
         $( assert_eq!(func.call($var_id), Ok($expected)); )*
     }}
@@ -32,9 +44,21 @@ macro_rules! assert_storage {
     }};
 }
 
-macro_rules! var_add {
+macro_rules! var_add32 {
     ($instance:expr, $var_id:expr, $amount:expr) => {{
-        let func: Func<(u32, u64), ()> = $instance.exports.get("add").unwrap();
+        __var_add_impl!(u32, $instance, $var_id, $amount)
+    }};
+}
+
+macro_rules! var_add64 {
+    ($instance:expr, $var_id:expr, $amount:expr) => {{
+        __var_add_impl!(u64, $instance, $var_id, $amount)
+    }};
+}
+
+macro_rules! __var_add_impl {
+    ($ty:ty, $instance:expr, $var_id:expr, $amount:expr) => {{
+        let func: Func<(u32, $ty), ()> = $instance.exports.get("add").unwrap();
         let res = func.call($var_id, $amount);
 
         assert!(res.is_ok());
@@ -71,6 +95,39 @@ fn vmcalls_empty_wasm() {
 }
 
 #[test]
+fn vmcalls_get32_set32() {
+    let app_addr = Address::of("my-app");
+    let state = State::empty();
+    let host = DataWrapper::new(std::ptr::null_mut());
+    let host_ctx = host_ctx! {};
+    let maybe_gas = MaybeGas::new();
+    let layout: DataLayout = vec![4, 2].into();
+
+    let import_object = imports! {
+        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, maybe_gas, &layout),
+
+        "svm" => {
+            "get32" => func!(vmcalls::get32),
+            "set32" => func!(vmcalls::set32),
+        },
+    };
+
+    let instance = testing::instantiate(
+        &import_object,
+        include_str!("wasm/get32_set32.wast"),
+        maybe_gas,
+    );
+
+    assert_vars32!(instance, 0 => 0, 1 => 0);
+
+    var_add32!(instance, 0, 5); // adding 5 to var #0
+    var_add32!(instance, 1, 10); // adding 10 to var #1
+
+    assert_vars32!(instance, 0 => 5, 1 => 10);
+    assert_storage!(instance, 0 => [0, 0, 0, 5], 1 => [0, 10]);
+}
+
+#[test]
 fn vmcalls_get64_set64() {
     let app_addr = Address::of("my-app");
     let state = State::empty();
@@ -94,13 +151,69 @@ fn vmcalls_get64_set64() {
         maybe_gas,
     );
 
-    assert_vars!(instance, 0 => 0, 1 => 0);
+    assert_vars64!(instance, 0 => 0, 1 => 0);
 
-    var_add!(instance, 0, 5);
-    var_add!(instance, 1, 10);
+    var_add64!(instance, 0, 5); // adding 5 to var #0
+    var_add64!(instance, 1, 10); // adding 10 to var #1
 
-    assert_vars!(instance, 0 => 5, 1 => 10);
+    assert_vars64!(instance, 0 => 5, 1 => 10);
     assert_storage!(instance, 0 => [0, 0, 0, 5], 1 => [0, 10]);
+}
+
+#[test]
+#[ignore = "multiple result values not currently supported."]
+fn vmcalls_get160_set160() {
+    let app_addr = Address::of("my-app");
+    let state = State::empty();
+    let host = DataWrapper::new(std::ptr::null_mut());
+    let host_ctx = host_ctx! {};
+    let maybe_gas = MaybeGas::new();
+    let layout: DataLayout = vec![20].into();
+
+    let import_object = imports! {
+        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, maybe_gas, &layout),
+
+        "svm" => {
+            "get160" => func!(vmcalls::get160),
+            "set160" => func!(vmcalls::set160),
+        },
+    };
+
+    let instance = testing::instantiate(
+        &import_object,
+        include_str!("wasm/get160_set160.wast"),
+        maybe_gas,
+    );
+
+    todo!("add asserts");
+}
+
+#[test]
+#[ignore = "multiple result values not currently supported."]
+fn vmcalls_get256_set256() {
+    let app_addr = Address::of("my-app");
+    let state = State::empty();
+    let host = DataWrapper::new(std::ptr::null_mut());
+    let host_ctx = host_ctx! {};
+    let maybe_gas = MaybeGas::new();
+    let layout: DataLayout = vec![20].into();
+
+    let import_object = imports! {
+        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, maybe_gas, &layout),
+
+        "svm" => {
+            "get256" => func!(vmcalls::get256),
+            "set256" => func!(vmcalls::set256),
+        },
+    };
+
+    let instance = testing::instantiate(
+        &import_object,
+        include_str!("wasm/get256_set256.wast"),
+        maybe_gas,
+    );
+
+    todo!("add asserts");
 }
 
 #[test]

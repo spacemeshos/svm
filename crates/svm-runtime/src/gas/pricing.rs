@@ -11,106 +11,29 @@ macro_rules! use_gas {
     ("buffer_freeze", $wasmer_ctx:expr) => {{
         //
     }};
-    ("buffer_copy_to_storage", $wasmer_ctx:expr) => {{
-        //
-    }};
-    ("buffer_copy_to_reg", $wasmer_ctx:expr) => {{
-        //
-    }};
 
-    // host-ctx
-    ("host_ctx_read_into_reg", $wasmer_ctx:expr) => {{
+    ("get32", $wasmer_ctx:expr) => {{
         //
     }};
-    ("host_ctx_read_i32_le", $wasmer_ctx:expr) => {{
+    ("set32", $wasmer_ctx:expr) => {{
         //
     }};
-    ("host_ctx_read_i32_be", $wasmer_ctx:expr) => {{
-        //
-    }};
-    ("host_ctx_read_i64_le", $wasmer_ctx:expr) => {{
-        //
-    }};
-    ("host_ctx_read_i64_be", $wasmer_ctx:expr) => {{
-        //
-    }};
-
-    // register
-    ("reg_set_i32_be", $wasmer_ctx:expr) => {{
-        //
-    }};
-    ("reg_set_i32_le", $wasmer_ctx:expr) => {{
-        //
-    }};
-    ("reg_set_i64_be", $wasmer_ctx:expr) => {{
-        //
-    }};
-    ("reg_set_i64_le", $wasmer_ctx:expr) => {{
-        //
-    }};
-    ("reg_push", $wasmer_ctx:expr) => {{
-        //
-    }};
-    ("reg_pop", $wasmer_ctx:expr) => {{
-        //
-    }};
-    ("reg_cmp", $wasmer_ctx:expr) => {{
-        //
-    }};
-    ("reg_set", $wasmer_ctx:expr) => {{
-        //
-    }};
-
-    // storage
-    ("mem_to_reg_copy", $wasmer_ctx:expr) => {{
-        //
-    }};
-    ("reg_to_mem_copy", $wasmer_ctx:expr) => {{
-        //
-    }};
-    ("storage_read_to_reg", $wasmer_ctx:expr) => {{
-        //
-    }};
-    ("storage_read_to_mem", $wasmer_ctx:expr) => {{
-        //
-    }};
-    ("storage_write_from_mem", $wasmer_ctx:expr) => {{
-        //
-    }};
-    ("storage_write_from_reg", $wasmer_ctx:expr) => {{
-        //
-    }};
-    ("storage_write_i32_be", $wasmer_ctx:expr) => {{
-        //
-    }};
-    ("storage_write_i32_le", $wasmer_ctx:expr) => {{
-        //
-    }};
-    ("storage_write_i64_be", $wasmer_ctx:expr) => {{
-        //
-    }};
-    ("storage_write_i64_le", $wasmer_ctx:expr) => {{
-        //
-    }};
-    ("storage_read_i32_be", $wasmer_ctx:expr) => {{
-        //
-    }};
-    ("storage_read_i32_le", $wasmer_ctx:expr) => {{
-        //
-    }};
-    ("storage_read_i64_be", $wasmer_ctx:expr) => {{
-        //
-    }};
-    ("storage_read_i64_le", $wasmer_ctx:expr) => {{
-        //
-    }};
-
-    // For SVM v0.2
-    // ===============================================================
     ("get64", $wasmer_ctx:expr) => {{
         //
     }};
     ("set64", $wasmer_ctx:expr) => {{
+        //
+    }};
+    ("get160", $wasmer_ctx:expr) => {{
+        //
+    }};
+    ("set160", $wasmer_ctx:expr) => {{
+        //
+    }};
+    ("get256", $wasmer_ctx:expr) => {{
+        //
+    }};
+    ("set256", $wasmer_ctx:expr) => {{
         //
     }};
     ("host_get64", $wasmer_ctx:expr) => {{
