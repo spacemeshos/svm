@@ -1,10 +1,28 @@
 /// Updates current running `App`'s `left gas`.
 #[macro_export]
 macro_rules! use_gas {
-    ("get64", $wasmer_ctx:expr) => {{
+    ("get32", $wasmer_ctx:expr) => {{
+        //
+    ("set32", $wasmer_ctx:expr) => {{
+    }};
         //
     }};
+    ("get64", $wasmer_ctx:expr) => {{
+    }};
+        //
     ("set64", $wasmer_ctx:expr) => {{
+        //
+    }};
+    ("get160", $wasmer_ctx:expr) => {{
+        //
+    }};
+    ("set160", $wasmer_ctx:expr) => {{
+        //
+    }};
+    ("get256", $wasmer_ctx:expr) => {{
+        //
+    }};
+    ("set256", $wasmer_ctx:expr) => {{
         //
     }};
     ("host_get64", $wasmer_ctx:expr) => {{
