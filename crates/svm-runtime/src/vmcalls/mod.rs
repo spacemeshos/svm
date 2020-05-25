@@ -29,9 +29,4 @@ pub fn insert_vmcalls(ns: &mut Namespace) {
     ns.insert("buffer_kill", func!(buffer_kill));
     ns.insert("buffer_freeze", func!(buffer_freeze));
 
-    // `host_ctx` vmcalls
-    ns.insert("get64", func!(get64));
-    ns.insert("set64", func!(set64));
-
-    // `host context`
 }

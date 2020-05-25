@@ -39,6 +39,6 @@ impl AppTemplate {
     }
 
     fn fmt_data(&self, data: &DataLayout) -> String {
-        format!("Code: {:?}", data)
+        format!("Data-Layout: {:?}", data)
     }
 }
