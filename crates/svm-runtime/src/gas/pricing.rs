@@ -1,17 +1,6 @@
 /// Updates current running `App`'s `left gas`.
 #[macro_export]
 macro_rules! use_gas {
-    // buffer
-    ("buffer_create", $wasmer_ctx:expr) => {{
-        //
-    }};
-    ("buffer_kill", $wasmer_ctx:expr) => {{
-        //
-    }};
-    ("buffer_freeze", $wasmer_ctx:expr) => {{
-        //
-    }};
-
     ("get32", $wasmer_ctx:expr) => {{
         //
     }};
@@ -39,7 +28,7 @@ macro_rules! use_gas {
     ("host_get64", $wasmer_ctx:expr) => {{
         //
     }};
-    // ===============================================================
+
     ($wasmer_ctx:expr) => {{
         use crate::ctx::SvmCtx;
 

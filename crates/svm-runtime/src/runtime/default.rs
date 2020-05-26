@@ -8,14 +8,13 @@ use std::{
 use log::{debug, error, info};
 
 use crate::{
-    buffer::BufferRef,
     ctx::SvmCtx,
     error::{ExecAppError, SpawnAppError, ValidateError},
     gas::{GasEstimator, MaybeGas, OOGError},
     helpers::{self, DataWrapper},
     receipt::{make_spawn_app_receipt, ExecReceipt, SpawnAppReceipt, TemplateReceipt},
     storage::StorageBuilderFn,
-    Config, Runtime,
+    vmcalls, Config, Runtime,
 };
 
 use svm_app::{
@@ -35,6 +34,9 @@ use wasmer_runtime::Value as WasmerValue;
 use wasmer_runtime_core::{
     export::Export,
     import::{ImportObject, Namespace},
+    memory::Memory,
+    types::MemoryDescriptor,
+    units::Pages,
 };
 
 /// Default `Runtime` implementation based on `wasmer`.
@@ -302,9 +304,8 @@ where
 
         let mut instance = self.instantiate(tx, template_addr, &module, import_object)?;
 
-        self.init_instance_buffer(&tx.func_buf, &mut instance);
-
-        let args = self.prepare_args_and_memory(tx);
+        self.copy_func_buf_to_memory(&tx.func_buf[..], &mut instance);
+        let args = self.prepare_func_args(tx);
 
         let func = match self.get_exported_func(tx, template_addr, &instance) {
             Err(e) => return Err(e),
@@ -314,7 +315,6 @@ where
         let result = func.call(&args);
 
         let gas_used = self.wasmer_instance_gas_used(&instance);
-
         if gas_used.is_err() {
             return Err(ExecAppError::OOG);
         }
@@ -355,21 +355,27 @@ where
         }
     }
 
-    fn init_instance_buffer(&self, func_buf: &Vec<u8>, instance: &mut wasmer_runtime::Instance) {
-        const ARGS_BUF_ID: u32 = 0;
-
+    fn copy_func_buf_to_memory(&self, func_buf: &[u8], instance: &mut wasmer_runtime::Instance) {
         let ctx = instance.context_mut();
+        let memory = ctx.memory(0);
 
-        helpers::buffer_create(ctx.data, ARGS_BUF_ID, func_buf.len() as u32);
+        // Each wasm instance memory contains at least one `WASM Page`. (A `Page` size is 64KB)
+        // The `len(func_buf)` will be less than that size.
+        ///
+        // In any case, the `alloc_wasmer_memory` is in charge of allocating enough memory
+        // for the program to run (so we don't need to have any bounds-checking here).
 
-        match helpers::wasmer_data_buffer(ctx.data, ARGS_BUF_ID).unwrap() {
-            BufferRef::Mutable(.., buf) => {
-                buf.write(&func_buf[..]);
-            }
-            _ => unreachable!(),
-        };
+        // TODO: add to `validate_template` checking that `func_buf` doesn't exceed ???
+        // (we'll need to decide on a `func_buf` limit).
+        //
+        // See [issue #140](https://github.com/spacemeshos/svm/issues/140)
+        //
+        let func_size = func_buf.len();
+        let view = &memory.view::<u8>()[0..func_size];
 
-        helpers::buffer_freeze(ctx.data, ARGS_BUF_ID);
+        for (cell, &byte) in view.iter().zip(func_buf.iter()) {
+            cell.set(byte);
+        }
     }
 
     #[inline]
@@ -458,8 +464,8 @@ where
         func_index
     }
 
-    fn prepare_args_and_memory(&self, tx: &AppTransaction) -> Vec<wasmer_runtime::Value> {
-        debug!("runtime `prepare_args_and_memory`");
+    fn prepare_func_args(&self, tx: &AppTransaction) -> Vec<wasmer_runtime::Value> {
+        debug!("runtime `prepare_func_args`");
 
         let mut wasmer_args = Vec::with_capacity(tx.func_args.len());
 
@@ -530,7 +536,11 @@ where
         import_object.extend(self.imports.clone());
 
         let mut ns = Namespace::new();
-        crate::vmcalls::insert_vmcalls(&mut ns);
+
+        let mem = self.alloc_wasmer_memory();
+        ns.insert("memory", mem);
+
+        vmcalls::wasmer_register(&mut ns);
 
         import_object.register("svm", ns);
     }
@@ -569,6 +579,18 @@ where
                 reason: e.to_string(),
             })
         })
+    }
+
+    /// Instance Memory
+
+    fn alloc_wasmer_memory(&self) -> Memory {
+        let minimum = Pages(1);
+        let maximum = None;
+        let shared = false;
+        let desc = MemoryDescriptor::new(minimum, maximum, shared).unwrap();
+
+        let memory = Memory::new(desc);
+        memory.unwrap()
     }
 
     /// Parse

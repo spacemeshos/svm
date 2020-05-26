@@ -179,7 +179,7 @@ fn vmcalls_get160_set160() {
         },
     };
 
-    let instance = testing::instantiate(
+    let _instance = testing::instantiate(
         &import_object,
         include_str!("wasm/get160_set160.wast"),
         maybe_gas,
@@ -207,7 +207,7 @@ fn vmcalls_get256_set256() {
         },
     };
 
-    let instance = testing::instantiate(
+    let _instance = testing::instantiate(
         &import_object,
         include_str!("wasm/get256_set256.wast"),
         maybe_gas,

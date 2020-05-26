@@ -23,9 +23,6 @@ mod storage;
 /// Implements `SvmCtx`. Used for running `SVM` instances.
 pub mod ctx;
 
-/// `Buffer` used for for running `App`s.
-pub mod buffer;
-
 /// Implements the helpers to be consumed by `SVM` vmcalls.
 #[macro_use]
 pub mod helpers;

@@ -2,7 +2,7 @@ use std::{collections::HashMap, ffi::c_void};
 
 use log::debug;
 
-use crate::{buffer::BufferRef, gas::MaybeGas, helpers::DataWrapper};
+use crate::{gas::MaybeGas, helpers::DataWrapper};
 
 use svm_app::types::HostCtx;
 use svm_storage::app::AppStorage;
@@ -10,7 +10,6 @@ use svm_storage::app::AppStorage;
 /// `SvmCtx` is a container for the accessible data by `wasmer` instances.
 /// * `host`         - A pointer to the `Host`.
 /// * `host_ctx`     - A pointer to the `HostCtx` (i.e: `sender`, `block_id`, `nonce`, ...).
-/// * `buffers`      - A `HashMap` between `buffer_id` to mutable/read-only `Buffer`.
 /// * `storage`      - Instance's `AppStorage`.
 /// * `gas_metering` - Whether gas metering is enabled.
 #[repr(C)]
@@ -28,9 +27,6 @@ pub struct SvmCtx {
 
     /// Whether gas metering is enabled or not
     pub gas_metering: bool,
-
-    /// Holds the context buffers.
-    pub buffers: HashMap<u32, BufferRef>,
 
     /// An accessor to the app's new storage
     pub storage: AppStorage,
@@ -51,7 +47,6 @@ impl SvmCtx {
     ) -> Self {
         let host = host.unwrap();
         let host_ctx = host_ctx.unwrap() as *const HostCtx;
-        let buffers = HashMap::new();
 
         let gas_metering = gas_limit.is_some();
         let gas_limit = gas_limit.unwrap_or(0);
@@ -59,7 +54,6 @@ impl SvmCtx {
         Self {
             host,
             host_ctx,
-            buffers,
             storage,
             gas_metering,
             gas_limit,
