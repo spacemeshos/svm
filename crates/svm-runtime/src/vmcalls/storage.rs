@@ -5,25 +5,45 @@ use wasmer_runtime::Ctx as WasmerCtx;
 
 use svm_layout::VarId;
 
-/// Stores memory `mem_ptr, mem_ptr + 1, ..., mem_ptr + length -1` into variable `var_id`.
-/// We have `length`
+/// Stores memory cells `[mem_ptr, mem_ptr + 1, ..., mem_ptr + 19]` into variable `var_id`.
 ///
 /// # Panics
 ///
-/// Panics if variable `var_id`'s length != `length`
-pub fn store(ctx: &mut WasmerCtx, mem_ptr: u32, length: u32, var_id: u32) {
-    //
+/// Panics if variable `var_id`'s length isn't 20 bytes.
+pub fn store160(ctx: &mut WasmerCtx, mem_idx: u32, mem_ptr: u32, var_id: u32) {
+    use_gas!("store160", ctx);
+
+    let mem_ptr = mem_ptr as usize;
+    let view = &ctx.memory(mem_idx).view::<u8>()[mem_ptr..(mem_ptr + 20)];
+
+    let bytes: Vec<u8> = view.iter().map(|cell| cell.get()).collect();
+
+    let storage = helpers::wasmer_data_app_storage(ctx.data);
+    storage.write_var(VarId(var_id), bytes);
 }
 
-/// Loads variable `var_id` data into memory starting from `mem_ptr`
+/// Loads variable `var_id` data into memory cells `[mem_ptr, mem_ptr + 1, ..., mem_ptr + 19]`
 ///
 /// Returns the variable's length.
 ///
 /// # Panics
 ///
-/// Panics if variable `var_id`'s length != `length`
-pub fn load(ctx: &mut WasmerCtx, var_id: u32, length: u32, mem_ptr: u32) {
-    //
+/// Panics if variable `var_id`'s length isn't 20 bytes.
+pub fn load160(ctx: &mut WasmerCtx, var_id: u32, mem_idx: u32, mem_ptr: u32) {
+    use_gas!("load160", ctx);
+
+    let storage = helpers::wasmer_data_app_storage(ctx.data);
+
+    let bytes = storage.read_var(VarId(var_id));
+    let nbytes = bytes.len();
+
+    assert_eq!(nbytes, 20);
+
+    let mem_ptr = mem_ptr as usize;
+    let view = &ctx.memory(mem_idx).view::<u8>()[mem_ptr..(mem_ptr + 20)];
+    for (cell, &byte) in view.iter().zip(bytes.iter()) {
+        cell.set(byte);
+    }
 }
 
 /// Returns the data stored by variable `var_id` as 32-bit integer.
