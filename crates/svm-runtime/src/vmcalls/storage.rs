@@ -5,11 +5,32 @@ use wasmer_runtime::Ctx as WasmerCtx;
 
 use svm_layout::VarId;
 
+/// Stores memory `mem_ptr, mem_ptr + 1, ..., mem_ptr + length -1` into variable `var_id`.
+/// We have `length`
+///
+/// # Panics
+///
+/// Panics if variable `var_id`'s length != `length`
+pub fn store(ctx: &mut WasmerCtx, mem_ptr: u32, length: u32, var_id: u32) {
+    //
+}
+
+/// Loads variable `var_id` data into memory starting from `mem_ptr`
+///
+/// Returns the variable's length.
+///
+/// # Panics
+///
+/// Panics if variable `var_id`'s length != `length`
+pub fn load(ctx: &mut WasmerCtx, var_id: u32, length: u32, mem_ptr: u32) {
+    //
+}
+
 /// Returns the data stored by variable `var_id` as 32-bit integer.
 ///
 /// # Panics
 ///
-/// Panics when variable `var_id` consumes more than 32-bit.
+/// Panics when variable `var_id` doesn't exist or when it consumes more than 32-bit.
 pub fn get32(ctx: &mut WasmerCtx, var_id: u32) -> u32 {
     use_gas!("get32", ctx);
 
@@ -31,7 +52,7 @@ pub fn get32(ctx: &mut WasmerCtx, var_id: u32) -> u32 {
 ///
 /// # Panics
 ///
-/// Panics when variable `var_id` consumes more than 32-bit,
+/// Panics when variable `var_id` doesn't exist or when it consumes more than 32-bit,
 /// or when it has not enough bytes to hold `value`.
 pub fn set32(ctx: &mut WasmerCtx, var_id: u32, value: u32) {
     use_gas!("set32", ctx);
@@ -51,7 +72,7 @@ pub fn set32(ctx: &mut WasmerCtx, var_id: u32, value: u32) {
 ///
 /// # Panics
 ///
-/// Panics when variable `var_id` consumes more than 64-bit.
+/// Panics when variable `var_id` doesn't exist or when it consumes more than 64-bit.
 pub fn get64(ctx: &mut WasmerCtx, var_id: u32) -> u64 {
     use_gas!("get64", ctx);
 
@@ -90,7 +111,7 @@ pub fn set64(ctx: &mut WasmerCtx, var_id: u32, value: u64) {
 ///
 /// # Panics
 ///
-/// Panics when variable `var_id` layout's length isn't equal to 20.
+/// Panics when variable `var_id` doesn't exist or when its length isn't equal to 20.
 pub fn get160(ctx: &mut WasmerCtx, var_id: u32) -> (u64, u64, u32) {
     use_gas!("get160", ctx);
 
@@ -115,7 +136,7 @@ pub fn get160(ctx: &mut WasmerCtx, var_id: u32) -> (u64, u64, u32) {
 ///
 /// # Panics
 ///
-/// Panics when variable `var_id` layout's length isn't equal to 20.
+/// Panics when variable `var_id` doesn't exist or when its length isn't equal to 20.
 pub fn set160(ctx: &mut WasmerCtx, var_id: u32, a: u64, b: u64, c: u32) {
     use_gas!("set160", ctx);
 
@@ -138,7 +159,7 @@ pub fn set160(ctx: &mut WasmerCtx, var_id: u32, a: u64, b: u64, c: u32) {
 ///
 /// # Panics
 ///
-/// Panics when variable `var_id` layout's length isn't equal to 32
+/// Panics when variable `var_id` doesn't exist or whren its length isn't equal to 32.
 pub fn get256(ctx: &mut WasmerCtx, var_id: u32) -> (u64, u64, u64, u64) {
     use_gas!("get256", ctx);
 
@@ -163,7 +184,7 @@ pub fn get256(ctx: &mut WasmerCtx, var_id: u32) -> (u64, u64, u64, u64) {
 ///
 /// # Panics
 ///
-/// Panics when variable `var_id` layout's length isn't equal to 20.
+/// Panics when variable `var_id` doesn't exist or when its length isn't equal to 20.
 pub fn set256(ctx: &mut WasmerCtx, var_id: u32, a: u64, b: u64, c: u64, d: u64) {
     use_gas!("set160", ctx);
 
