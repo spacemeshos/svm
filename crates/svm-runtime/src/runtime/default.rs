@@ -359,6 +359,17 @@ where
         let ctx = instance.context_mut();
         let memory = ctx.memory(0);
 
+        // we don't need to do bounds-checking since we know the instance memory
+        // is larger than the `func_buf`.
+        //
+        // Each wasm instance memory contains at least one `WASM Page`. (A `Page` size is 64KB)
+        // The `len(func_buf)`
+
+        // TODO: add to `validate_template` checking that `func_buf` doesn't exceed ???
+        // (we'll need to decide on a `func_buf` limit).
+        //
+        // See [issue #140](https://github.com/spacemeshos/svm/issues/140)
+        //
         let func_size = func_buf.len();
         let view = &memory.view::<u8>()[0..func_size];
 
@@ -454,7 +465,7 @@ where
     }
 
     fn prepare_func_args(&self, tx: &AppTransaction) -> Vec<wasmer_runtime::Value> {
-        debug!("runtime `prepare_args_and_memory`");
+        debug!("runtime `prepare_func_args`");
 
         let mut wasmer_args = Vec::with_capacity(tx.func_args.len());
 

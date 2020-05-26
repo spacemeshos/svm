@@ -365,7 +365,8 @@ fn default_runtime_func_buf() {
 
     // 3) executing an app-transaction
     let func_idx = 1;
-    let func_buf = vec![0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80];
+    let func_buf = "Hello World!";
+
     let func_buf_ptr = WasmValue::I32(0);
     let var_id = WasmValue::I32(0);
     let func_args = vec![var_id, func_buf_ptr];
