@@ -359,11 +359,11 @@ where
         let ctx = instance.context_mut();
         let memory = ctx.memory(0);
 
-        // we don't need to do bounds-checking since we know the instance memory
-        // is larger than the `func_buf`.
-        //
         // Each wasm instance memory contains at least one `WASM Page`. (A `Page` size is 64KB)
-        // The `len(func_buf)`
+        // The `len(func_buf)` will be less than that size.
+        ///
+        // In any case, the `alloc_wasmer_memory` is in charge of allocating enough memory
+        // for the program to run (so we don't need to have any bounds-checking here).
 
         // TODO: add to `validate_template` checking that `func_buf` doesn't exceed ???
         // (we'll need to decide on a `func_buf` limit).
