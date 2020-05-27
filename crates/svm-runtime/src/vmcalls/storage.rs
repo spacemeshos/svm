@@ -41,6 +41,7 @@ pub fn load160(ctx: &mut WasmerCtx, var_id: u32, mem_idx: u32, mem_ptr: u32) {
 
     let mem_ptr = mem_ptr as usize;
     let view = &ctx.memory(mem_idx).view::<u8>()[mem_ptr..(mem_ptr + 20)];
+
     for (cell, &byte) in view.iter().zip(bytes.iter()) {
         cell.set(byte);
     }

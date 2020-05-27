@@ -327,7 +327,7 @@ fn default_runtime_exec_app_reaches_oog() {
 }
 
 #[test]
-fn default_runtime_func_buf() {
+fn default_runtime_load160_store160() {
     let mut runtime = default_runtime!();
 
     // 1) deploying the template
@@ -342,7 +342,7 @@ fn default_runtime_func_buf() {
         version,
         "My Template",
         layout.clone(),
-        include_str!("wasm/runtime_func_buf.wast"),
+        include_str!("wasm/load160_store160.wast"),
         is_wast,
     );
 
@@ -365,16 +365,31 @@ fn default_runtime_func_buf() {
     let init_state = receipt.get_init_state();
 
     // 3) storing `func_buf` holding 20-byte address into variable #0 (offset=20, length=20).
-    let addr = Address::of("an address to store.");
-    let func_idx = 1;
-    let func_buf = addr.as_slice().to_vec();
+    let func_idx = 1; // `index 1 <=> `store_addr` export
+    let func_buf = b"an address to store.".to_vec();
+    assert_eq!(func_buf.len(), Address::len());
 
     let var_id = WasmValue::I32(0);
     let mem_ptr = WasmValue::I32(0);
     let func_args = vec![var_id, mem_ptr];
+
     let bytes = testing::build_app_tx(version, &app_addr, func_idx, &func_buf, &func_args);
 
     let receipt = runtime.exec_app(&bytes, &init_state, HostCtx::new(), maybe_gas);
+    assert!(receipt.success);
+
+    let state = receipt.get_new_state();
+
+    // 4) loading the stored address, editing it and then storing it
+    let func_idx = 2; // `index 2 <=> `edit_addr` export
+    let func_buf = b"AN ADDR".to_vec();
+    let func_size = WasmValue::I32(func_buf.len() as u32);
+    let var_id = WasmValue::I32(0);
+    let func_args = vec![func_size, var_id];
+
+    let bytes = testing::build_app_tx(version, &app_addr, func_idx, &func_buf, &func_args);
+
+    let receipt = runtime.exec_app(&bytes, &state, HostCtx::new(), maybe_gas);
     assert!(receipt.success);
 
     // now we'll read directly from the app's storage
@@ -384,5 +399,5 @@ fn default_runtime_func_buf() {
     let storage = runtime.open_app_storage(&app_addr, &state, &layout);
 
     let var = storage.read_var(VarId(0));
-    assert_eq!(var, b"an address to store.");
+    assert_eq!(var, b"AN ADDRess to store.");
 }
