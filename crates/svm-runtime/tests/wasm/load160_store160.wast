@@ -8,10 +8,16 @@
   	nop)
 
   (func (export "store_addr") (param $var_id i32) (param $mem_ptr i32)
-  	i32.const 0 ;; mem_idx
-	get_local $mem_ptr 
-  	get_local $var_id 
+  	i32.const 0         ;; mem_idx
+	get_local $mem_ptr  ;; mem_ptr
+  	get_local $var_id   ;; var_id
 	call $store160)
+
+  (func (export "load_addr") (param $var_id i32) (param $mem_ptr i32)
+  	get_local $var_id   ;; var_id
+  	i32.const 0         ;; mem_idx
+  	get_local $mem_ptr  ;; mem_ptr
+	call $load160)
 
   (func (export "edit_addr") (param $func_buf_size i32) (param $var_id i32) 
 	(local $i i32) 

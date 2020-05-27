@@ -161,6 +161,55 @@ fn vmcalls_get64_set64() {
 }
 
 #[test]
+fn vmcalls_load160_store160() {
+    let app_addr = Address::of("my-app");
+    let state = State::empty();
+    let host = DataWrapper::new(std::ptr::null_mut());
+    let host_ctx = host_ctx! {};
+    let maybe_gas = MaybeGas::new();
+    let layout: DataLayout = vec![20].into();
+
+    let import_object = imports! {
+        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, maybe_gas, &layout),
+
+        "svm" => {
+            "memory" => testing::default_memory(),
+            "load160" => func!(vmcalls::load160),
+            "store160" => func!(vmcalls::store160),
+        },
+    };
+
+    let instance = testing::instantiate(
+        &import_object,
+        include_str!("wasm/load160_store160.wast"),
+        maybe_gas,
+    );
+
+    let addr = b"0x102030405060708090";
+    let addr_ptr = 10;
+    let var_id = 0;
+
+    testing::instance_memory_init(&instance, addr_ptr, &addr[..]);
+
+    // store an `Address` (20 bytes) under var #0
+    let func: Func<(u32, u32)> = instance.exports.get("store_addr").unwrap();
+    assert!(func.call(var_id, addr_ptr).is_ok());
+
+    // now we'll zero the memory
+    testing::instance_memory_init(&instance, 0, &[0; 1000]);
+
+    let mem_ptr = 100;
+    let var = testing::instance_memory_view(&instance, mem_ptr, 20);
+    assert_eq!(var, vec![0; 20]);
+
+    let func: Func<(u32, u32)> = instance.exports.get("load_addr").unwrap();
+    assert!(func.call(var_id, mem_ptr).is_ok());
+
+    let var = testing::instance_memory_view(&instance, mem_ptr, 20);
+    assert_eq!(var, addr);
+}
+
+#[test]
 #[ignore = "multiple result values not currently supported."]
 fn vmcalls_get160_set160() {
     let app_addr = Address::of("my-app");
