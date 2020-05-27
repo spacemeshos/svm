@@ -1,6 +1,6 @@
 (module
-  (func $store160 (import "svm" "store160") (param $mem_idx i32) (param $mem_ptr i32) (param $var_id i32))
-  (func $load160 (import "svm" "load160") (param $var_id i32) (param $mem_idx i32) (param $mem_ptr i32))
+  (func $store256 (import "svm" "store256") (param $mem_idx i32) (param $mem_ptr i32) (param $var_id i32))
+  (func $load256 (import "svm" "load256") (param $var_id i32) (param $mem_idx i32) (param $mem_ptr i32))
 
   (import "svm" "memory" (memory 1))
 
@@ -11,10 +11,10 @@
   	i32.const 0         ;; mem_idx
 	get_local $mem_ptr  ;; mem_ptr
   	get_local $var_id   ;; var_id
-	call $store160)
+	call $store256)
 
   (func (export "load") (param $var_id i32) (param $mem_ptr i32)
   	get_local $var_id   ;; var_id
   	i32.const 0         ;; mem_idx
   	get_local $mem_ptr  ;; mem_ptr
-	call $load160))
+	call $load256))

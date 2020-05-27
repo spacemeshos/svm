@@ -6,12 +6,12 @@ use wasmer_runtime::Ctx as WasmerCtx;
 use svm_layout::VarId;
 
 macro_rules! store_n_impl {
-    ($n:expr, $ctx:ident, $mem_idx:expr, $mem_ptr:expr, $var_id:expr) => {{
+    ($nbytes:expr, $ctx:ident, $mem_idx:expr, $mem_ptr:expr, $var_id:expr) => {{
         use crate::helpers;
         use svm_layout::VarId;
 
         let mem_ptr = $mem_ptr as usize;
-        let view = &$ctx.memory($mem_idx).view::<u8>()[mem_ptr..(mem_ptr + 20)];
+        let view = &$ctx.memory($mem_idx).view::<u8>()[mem_ptr..(mem_ptr + $nbytes)];
 
         let bytes: Vec<u8> = view.iter().map(|cell| cell.get()).collect();
 
@@ -21,7 +21,7 @@ macro_rules! store_n_impl {
 }
 
 macro_rules! load_n_impl {
-    ($n:expr, $ctx:ident, $var_id:expr, $mem_idx:expr, $mem_ptr:expr) => {{
+    ($nbytes:expr, $ctx:ident, $var_id:expr, $mem_idx:expr, $mem_ptr:expr) => {{
         use crate::helpers;
         use svm_layout::VarId;
 
@@ -30,10 +30,10 @@ macro_rules! load_n_impl {
         let bytes = storage.read_var(VarId($var_id));
         let nbytes = bytes.len();
 
-        assert_eq!(nbytes * 8, $n);
+        assert_eq!(nbytes, $nbytes);
 
         let mem_ptr = $mem_ptr as usize;
-        let view = &$ctx.memory($mem_idx).view::<u8>()[mem_ptr..(mem_ptr + 20)];
+        let view = &$ctx.memory($mem_idx).view::<u8>()[mem_ptr..(mem_ptr + $nbytes)];
 
         for (cell, &byte) in view.iter().zip(bytes.iter()) {
             cell.set(byte);
@@ -49,7 +49,7 @@ macro_rules! load_n_impl {
 pub fn store160(ctx: &mut WasmerCtx, mem_idx: u32, mem_ptr: u32, var_id: u32) {
     use_gas!("store160", ctx);
 
-    store_n_impl!(160, ctx, mem_idx, mem_ptr, var_id);
+    store_n_impl!(20, ctx, mem_idx, mem_ptr, var_id);
 }
 
 /// Stores memory cells `[mem_ptr, mem_ptr + 1, ..., mem_ptr + 31]` into variable `var_id`.
@@ -60,7 +60,7 @@ pub fn store160(ctx: &mut WasmerCtx, mem_idx: u32, mem_ptr: u32, var_id: u32) {
 pub fn store256(ctx: &mut WasmerCtx, mem_idx: u32, mem_ptr: u32, var_id: u32) {
     use_gas!("store256", ctx);
 
-    store_n_impl!(256, ctx, mem_idx, mem_ptr, var_id);
+    store_n_impl!(32, ctx, mem_idx, mem_ptr, var_id);
 }
 
 /// Loads variable `var_id` data into memory cells `[mem_ptr, mem_ptr + 1, ..., mem_ptr + 19]`
@@ -73,7 +73,7 @@ pub fn store256(ctx: &mut WasmerCtx, mem_idx: u32, mem_ptr: u32, var_id: u32) {
 pub fn load160(ctx: &mut WasmerCtx, var_id: u32, mem_idx: u32, mem_ptr: u32) {
     use_gas!("load160", ctx);
 
-    load_n_impl!(160, ctx, var_id, mem_idx, mem_ptr);
+    load_n_impl!(20, ctx, var_id, mem_idx, mem_ptr);
 }
 
 /// Loads variable `var_id` data into memory cells `[mem_ptr, mem_ptr + 1, ..., mem_ptr + 31]`
@@ -86,7 +86,7 @@ pub fn load160(ctx: &mut WasmerCtx, var_id: u32, mem_idx: u32, mem_ptr: u32) {
 pub fn load256(ctx: &mut WasmerCtx, var_id: u32, mem_idx: u32, mem_ptr: u32) {
     use_gas!("load256", ctx);
 
-    load_n_impl!(256, ctx, var_id, mem_idx, mem_ptr);
+    load_n_impl!(32, ctx, var_id, mem_idx, mem_ptr);
 }
 
 /// Returns the data stored by variable `var_id` as 32-bit integer.

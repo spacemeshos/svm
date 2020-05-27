@@ -192,7 +192,7 @@ fn vmcalls_load160_store160() {
     testing::instance_memory_init(&instance, addr_ptr, &addr[..]);
 
     // store an `Address` (20 bytes) under var #0
-    let func: Func<(u32, u32)> = instance.exports.get("store_addr").unwrap();
+    let func: Func<(u32, u32)> = instance.exports.get("store").unwrap();
     assert!(func.call(var_id, addr_ptr).is_ok());
 
     // now we'll zero the memory
@@ -202,11 +202,62 @@ fn vmcalls_load160_store160() {
     let var = testing::instance_memory_view(&instance, mem_ptr, 20);
     assert_eq!(var, vec![0; 20]);
 
-    let func: Func<(u32, u32)> = instance.exports.get("load_addr").unwrap();
+    let func: Func<(u32, u32)> = instance.exports.get("load").unwrap();
     assert!(func.call(var_id, mem_ptr).is_ok());
 
     let var = testing::instance_memory_view(&instance, mem_ptr, 20);
     assert_eq!(var, addr);
+}
+
+#[test]
+fn vmcalls_load256_store256() {
+    let app_addr = Address::of("my-app");
+    let state = State::empty();
+    let host = DataWrapper::new(std::ptr::null_mut());
+    let host_ctx = host_ctx! {};
+    let maybe_gas = MaybeGas::new();
+    let layout: DataLayout = vec![32].into();
+
+    let import_object = imports! {
+        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, maybe_gas, &layout),
+
+        "svm" => {
+            "memory" => testing::default_memory(),
+            "load256" => func!(vmcalls::load256),
+            "store256" => func!(vmcalls::store256),
+        },
+    };
+
+    let instance = testing::instantiate(
+        &import_object,
+        include_str!("wasm/load256_store256.wast"),
+        maybe_gas,
+    );
+
+    let pub_key = b"0x102030405060708090AABBCCDDEEFF";
+    assert_eq!(pub_key.len(), 32);
+
+    let pub_key_ptr = 10;
+    let var_id = 0;
+
+    testing::instance_memory_init(&instance, pub_key_ptr, &pub_key[..]);
+
+    // store an `Pub-Key` (32 bytes) under var #0
+    let func: Func<(u32, u32)> = instance.exports.get("store").unwrap();
+    assert!(func.call(var_id, pub_key_ptr).is_ok());
+
+    // now we'll zero the memory
+    testing::instance_memory_init(&instance, 0, &[0; 1000]);
+
+    let mem_ptr = 100;
+    let var = testing::instance_memory_view(&instance, mem_ptr, 32);
+    assert_eq!(var, vec![0; 32]);
+
+    let func: Func<(u32, u32)> = instance.exports.get("load").unwrap();
+    assert!(func.call(var_id, mem_ptr).is_ok());
+
+    let var = testing::instance_memory_view(&instance, mem_ptr, 32);
+    assert_eq!(var, pub_key);
 }
 
 #[test]

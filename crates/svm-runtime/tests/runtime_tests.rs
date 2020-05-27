@@ -327,7 +327,7 @@ fn default_runtime_exec_app_reaches_oog() {
 }
 
 #[test]
-fn default_runtime_load160_store160() {
+fn default_runtime_func_buf() {
     let mut runtime = default_runtime!();
 
     // 1) deploying the template
@@ -342,7 +342,7 @@ fn default_runtime_load160_store160() {
         version,
         "My Template",
         layout.clone(),
-        include_str!("wasm/load160_store160.wast"),
+        include_str!("wasm/runtime_func_buf.wast"),
         is_wast,
     );
 
