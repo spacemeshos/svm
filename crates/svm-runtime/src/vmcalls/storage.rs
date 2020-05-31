@@ -1,6 +1,6 @@
 use crate::{helpers, use_gas};
 
-use byteorder::{BigEndian, ByteOrder};
+use byteorder::{ByteOrder, LittleEndian};
 use wasmer_runtime::Ctx as WasmerCtx;
 
 use svm_layout::VarId;
@@ -20,14 +20,14 @@ pub fn get32(ctx: &mut WasmerCtx, var_id: u32) -> u32 {
 
     assert!(nbytes <= 4);
 
-    let num = BigEndian::read_uint(&bytes, nbytes);
+    let num = LittleEndian::read_uint(&bytes, nbytes);
 
     debug_assert!(num <= std::u32::MAX as u64);
 
     num as u32
 }
 
-/// Sets the data of variable `var_id` to Big-Endian representation of `value`.
+/// Sets the data of variable `var_id` to Little-Endian representation of `value`.
 ///
 /// # Panics
 ///
@@ -42,7 +42,7 @@ pub fn set32(ctx: &mut WasmerCtx, var_id: u32, value: u32) {
     assert!(nbytes <= 4);
 
     let mut buf = vec![0; nbytes as usize];
-    BigEndian::write_uint(&mut buf, value as u64, nbytes as usize);
+    LittleEndian::write_uint(&mut buf, value as u64, nbytes as usize);
 
     storage.write_var(VarId(var_id), buf);
 }
@@ -62,10 +62,10 @@ pub fn get64(ctx: &mut WasmerCtx, var_id: u32) -> u64 {
 
     assert!(nbytes <= 8);
 
-    BigEndian::read_uint(&bytes, nbytes)
+    LittleEndian::read_uint(&bytes, nbytes)
 }
 
-/// Sets the data of variable `var_id` to Big-Endian representation of `value`.
+/// Sets the data of variable `var_id` to Little-Endian representation of `value`.
 ///
 /// # Panics
 ///
@@ -80,7 +80,7 @@ pub fn set64(ctx: &mut WasmerCtx, var_id: u32, value: u64) {
     assert!(nbytes <= 8);
 
     let mut buf = vec![0; nbytes as usize];
-    BigEndian::write_uint(&mut buf, value, nbytes as usize);
+    LittleEndian::write_uint(&mut buf, value, nbytes as usize);
 
     storage.write_var(VarId(var_id), buf);
 }
@@ -101,14 +101,14 @@ pub fn get160(ctx: &mut WasmerCtx, var_id: u32) -> (u64, u64, u32) {
 
     assert_eq!(nbytes, 20);
 
-    let a = BigEndian::read_u64(&bytes[0..8]);
-    let b = BigEndian::read_u64(&bytes[8..16]);
-    let c = BigEndian::read_u32(&bytes[16..20]);
+    let a = LittleEndian::read_u64(&bytes[0..8]);
+    let b = LittleEndian::read_u64(&bytes[8..16]);
+    let c = LittleEndian::read_u32(&bytes[16..20]);
 
     (a, b, c)
 }
 
-/// Sets the data of variable `var_id` to Big-Endian representation of 20-bytes held together by `a`, `b` and `c`.
+/// Sets the data of variable `var_id` to Little-Endian representation of 20-bytes held together by `a`, `b` and `c`.
 /// Parameter `a` hold the most-significant 8-bytes, 'c' the least significant 8-bytes and `b` the remaining middle 4-byte.  
 ///
 /// In total `len(a) + len(b) + len(c) = 20` bytes.
@@ -126,9 +126,9 @@ pub fn set160(ctx: &mut WasmerCtx, var_id: u32, a: u64, b: u64, c: u32) {
 
     let mut buf = vec![0; 20];
 
-    BigEndian::write_u64(&mut buf[0..8], a);
-    BigEndian::write_u64(&mut buf[8..16], b);
-    BigEndian::write_u32(&mut buf[16..20], c);
+    LittleEndian::write_u64(&mut buf[0..8], a);
+    LittleEndian::write_u64(&mut buf[8..16], b);
+    LittleEndian::write_u32(&mut buf[16..20], c);
 
     storage.write_var(VarId(var_id), buf);
 }
@@ -149,15 +149,15 @@ pub fn get256(ctx: &mut WasmerCtx, var_id: u32) -> (u64, u64, u64, u64) {
 
     assert_eq!(nbytes, 32);
 
-    let a = BigEndian::read_u64(&bytes[0..8]);
-    let b = BigEndian::read_u64(&bytes[8..16]);
-    let c = BigEndian::read_u64(&bytes[16..24]);
-    let d = BigEndian::read_u64(&bytes[24..32]);
+    let a = LittleEndian::read_u64(&bytes[0..8]);
+    let b = LittleEndian::read_u64(&bytes[8..16]);
+    let c = LittleEndian::read_u64(&bytes[16..24]);
+    let d = LittleEndian::read_u64(&bytes[24..32]);
 
     (a, b, c, d)
 }
 
-/// Sets the data of variable `var_id` to Big-Endian representation of 32-bytes held together by `a`, `b`, `c` and `d`.
+/// Sets the data of variable `var_id` to Little-Endian representation of 32-bytes held together by `a`, `b`, `c` and `d`.
 ///
 /// In total `len(a) + len(b) + len(c) + len(d) = 32` bytes.
 ///
@@ -174,10 +174,10 @@ pub fn set256(ctx: &mut WasmerCtx, var_id: u32, a: u64, b: u64, c: u64, d: u64) 
 
     let mut buf = vec![0; 32];
 
-    BigEndian::write_u64(&mut buf[0..8], a);
-    BigEndian::write_u64(&mut buf[8..16], b);
-    BigEndian::write_u64(&mut buf[16..24], c);
-    BigEndian::write_u64(&mut buf[24..32], d);
+    LittleEndian::write_u64(&mut buf[0..8], a);
+    LittleEndian::write_u64(&mut buf[8..16], b);
+    LittleEndian::write_u64(&mut buf[16..24], c);
+    LittleEndian::write_u64(&mut buf[24..32], d);
 
     storage.write_var(VarId(var_id), buf);
 }

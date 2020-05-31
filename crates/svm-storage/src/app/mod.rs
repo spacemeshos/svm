@@ -79,7 +79,7 @@ impl AppStorage {
     pub fn write_var(&mut self, var_id: VarId, value: Vec<u8>) {
         let (_off, len) = self.var_layout(var_id);
 
-        debug_assert_eq!(value.len(), len as usize);
+        assert_eq!(value.len(), len as usize);
 
         self.uncommitted.insert(var_id, value);
     }
