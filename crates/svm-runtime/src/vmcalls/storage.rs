@@ -15,6 +15,8 @@ macro_rules! store_n_impl {
 
         let bytes: Vec<u8> = view.iter().map(|cell| cell.get()).collect();
 
+        assert_eq!(bytes.len(), $nbytes);
+
         let storage = helpers::wasmer_data_app_storage($ctx.data);
         storage.write_var(VarId($var_id), bytes);
     }};
