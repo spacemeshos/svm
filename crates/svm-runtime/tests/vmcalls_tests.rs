@@ -124,7 +124,7 @@ fn vmcalls_get32_set32() {
     var_add32!(instance, 1, 10); // adding 10 to var #1
 
     assert_vars32!(instance, 0 => 5, 1 => 10);
-    assert_storage!(instance, 0 => [0, 0, 0, 5], 1 => [0, 10]);
+    assert_storage!(instance, 0 => [5, 0, 0, 0], 1 => [10, 0]);
 }
 
 #[test]
@@ -157,7 +157,7 @@ fn vmcalls_get64_set64() {
     var_add64!(instance, 1, 10); // adding 10 to var #1
 
     assert_vars64!(instance, 0 => 5, 1 => 10);
-    assert_storage!(instance, 0 => [0, 0, 0, 5], 1 => [0, 10]);
+    assert_storage!(instance, 0 => [5, 0, 0, 0], 1 => [10, 0]);
 }
 
 #[test]

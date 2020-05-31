@@ -169,7 +169,7 @@ fn default_runtime_spawn_app_with_ctor_reaches_oog() {
 }
 
 #[test]
-fn runtime_spawn_app_with_ctor_with_enough_gas() {
+fn default_runtime_spawn_app_with_ctor_with_enough_gas() {
     let mut runtime = default_runtime!();
 
     // 1) deploying the template
@@ -218,7 +218,7 @@ fn runtime_spawn_app_with_ctor_with_enough_gas() {
     let storage = runtime.open_app_storage(&addr, &state, &layout);
 
     let var = storage.read_var(VarId(0));
-    assert_eq!(var, 10_20_30_40_50_60_70_80u64.to_be_bytes());
+    assert_eq!(var, 10_20_30_40_50_60_70_80u64.to_le_bytes());
 }
 
 #[test]
@@ -274,7 +274,7 @@ fn default_runtime_exec_app() {
     let storage = runtime.open_app_storage(&app_addr, &state, &layout);
 
     let var = storage.read_var(VarId(0));
-    assert_eq!(var, 10u32.to_be_bytes());
+    assert_eq!(var, 10u32.to_le_bytes());
 }
 
 #[test]
@@ -382,5 +382,5 @@ fn default_runtime_func_buf() {
     let storage = runtime.open_app_storage(&app_addr, &state, &layout);
 
     let var = storage.read_var(VarId(0));
-    assert_eq!(var, 0x80_70_60_50_40_30_20_10u64.to_be_bytes());
+    assert_eq!(var, 0x80_70_60_50_40_30_20_10u64.to_le_bytes());
 }
