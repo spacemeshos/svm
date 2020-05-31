@@ -38,7 +38,7 @@
 		i32.add
 
 		;; byte <- func_buf[i] 
-		;; (i.e reading from `mem[i]` since `func_buf` starts at `address=0`)
+		;; (i.e reading from `mem[i]` since `func_buf` starts at `offset=0`)
 		;;
 		get_local $i
 		i32.load8_u
