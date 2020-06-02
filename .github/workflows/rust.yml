@@ -41,9 +41,7 @@ jobs:
     strategy:
       fail-fast: False
       matrix:
-        os: [ubuntu-latest, macos-latest]
-        # To enable windows build delete the line above and this one then uncoment the one under
-        #os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
         # The "" is just debug
         release: ["", "--release"]
     steps:
