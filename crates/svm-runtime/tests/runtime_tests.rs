@@ -337,7 +337,8 @@ fn default_runtime_func_buf() {
     let author = Address::of("author").into();
     let is_wast = true;
     let maybe_gas = MaybeGas::new();
-    let layout: DataLayout = vec![8].into();
+    let addr_size = Address::len() as u32;
+    let layout: DataLayout = vec![addr_size].into();
 
     let bytes = testing::build_template(
         version,
@@ -365,16 +366,32 @@ fn default_runtime_func_buf() {
     let app_addr = receipt.get_app_addr();
     let init_state = receipt.get_init_state();
 
-    // 3) executing an app-transaction
-    let func_idx = 1;
-    let func_buf = vec![0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80];
+    // 3) storing `func_buf` holding 20-byte address into variable #0 (offset=20, length=20).
+    let func_idx = 1; // `index 1 <=> `store_addr` export
+    let func_buf = b"an address to store.".to_vec();
+    assert_eq!(func_buf.len(), Address::len());
 
-    let func_buf_ptr = WasmValue::I32(0);
     let var_id = WasmValue::I32(0);
-    let func_args = vec![var_id, func_buf_ptr];
+    let mem_ptr = WasmValue::I32(0);
+    let func_args = vec![var_id, mem_ptr];
+
     let bytes = testing::build_app_tx(version, &app_addr, func_idx, &func_buf, &func_args);
 
     let receipt = runtime.exec_app(&bytes, &init_state, HostCtx::new(), maybe_gas);
+    assert!(receipt.success);
+
+    let state = receipt.get_new_state();
+
+    // 4) loading the stored address, editing it and then storing it
+    let func_idx = 2; // `index 2 <=> `edit_addr` export
+    let func_buf = b"AN ADDR".to_vec();
+    let func_size = WasmValue::I32(func_buf.len() as u32);
+    let var_id = WasmValue::I32(0);
+    let func_args = vec![func_size, var_id];
+
+    let bytes = testing::build_app_tx(version, &app_addr, func_idx, &func_buf, &func_args);
+
+    let receipt = runtime.exec_app(&bytes, &state, HostCtx::new(), maybe_gas);
     assert!(receipt.success);
 
     // now we'll read directly from the app's storage
@@ -384,5 +401,5 @@ fn default_runtime_func_buf() {
     let storage = runtime.open_app_storage(&app_addr, &state, &layout);
 
     let var = storage.read_var(VarId(0));
-    assert_eq!(var, 0x80_70_60_50_40_30_20_10u64.to_le_bytes());
+    assert_eq!(var, b"AN ADDRess to store.");
 }

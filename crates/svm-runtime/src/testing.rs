@@ -19,7 +19,10 @@ use svm_storage::{
     app::{AppKVStore, AppStorage},
     kv::{FakeKV, StatefulKVStore},
 };
-use wasmer_runtime_core::{export::Export, import::ImportObject, Instance, Module};
+use wasmer_runtime_core::{
+    export::Export, import::ImportObject, memory::Memory, types::MemoryDescriptor, units::Pages,
+    Instance, Module,
+};
 
 /// Compiles a wasm program in text format (a.k.a WAST) into a `Module` (`wasmer`)
 pub fn wasmer_compile(wasm: &str, gas_limit: MaybeGas) -> Module {
@@ -29,6 +32,16 @@ pub fn wasmer_compile(wasm: &str, gas_limit: MaybeGas) -> Module {
     let gas_limit = gas_limit.unwrap_or(0);
 
     svm_compiler::compile_program(&wasm[..], gas_limit, gas_metering).unwrap()
+}
+
+pub fn default_memory() -> Memory {
+    let minimum = Pages(1);
+    let maximum = Some(Pages(1));
+    let shared = false;
+
+    let desc = MemoryDescriptor::new(minimum, maximum, shared).unwrap();
+    let memory = Memory::new(desc);
+    memory.unwrap()
 }
 
 /// Instantiate a `wasmer` instance
