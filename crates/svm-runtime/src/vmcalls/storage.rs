@@ -42,43 +42,6 @@ macro_rules! load_n_impl {
         }
     }};
 }
-macro_rules! store_n_impl {
-    ($nbytes:expr, $ctx:ident, $mem_idx:expr, $mem_ptr:expr, $var_id:expr) => {{
-        use crate::helpers;
-        use svm_layout::VarId;
-
-        let mem_ptr = $mem_ptr as usize;
-        let view = &$ctx.memory($mem_idx).view::<u8>()[mem_ptr..(mem_ptr + $nbytes)];
-
-        let bytes: Vec<u8> = view.iter().map(|cell| cell.get()).collect();
-
-        assert_eq!(bytes.len(), $nbytes);
-
-        let storage = helpers::wasmer_data_app_storage($ctx.data);
-        storage.write_var(VarId($var_id), bytes);
-    }};
-}
-
-macro_rules! load_n_impl {
-    ($nbytes:expr, $ctx:ident, $var_id:expr, $mem_idx:expr, $mem_ptr:expr) => {{
-        use crate::helpers;
-        use svm_layout::VarId;
-
-        let storage = helpers::wasmer_data_app_storage($ctx.data);
-
-        let bytes = storage.read_var(VarId($var_id));
-        let nbytes = bytes.len();
-
-        assert_eq!(nbytes, $nbytes);
-
-        let mem_ptr = $mem_ptr as usize;
-        let view = &$ctx.memory($mem_idx).view::<u8>()[mem_ptr..(mem_ptr + $nbytes)];
-
-        for (cell, &byte) in view.iter().zip(bytes.iter()) {
-            cell.set(byte);
-        }
-    }};
-}
 
 /// Stores memory cells `[mem_ptr, mem_ptr + 1, ..., mem_ptr + 19]` into variable `var_id`.
 ///

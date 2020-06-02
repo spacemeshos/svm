@@ -8,6 +8,7 @@ pub struct Config {
 }
 
 impl Config {
+    /// Creates a new `Config` instance
     pub fn new<P: AsRef<Path>>(kv_path: P) -> Self {
         Self {
             kv_path: kv_path.as_ref().to_path_buf(),

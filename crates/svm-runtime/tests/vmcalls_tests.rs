@@ -2,7 +2,7 @@ use maplit::hashmap;
 use wasmer_runtime::{func, imports, Func};
 
 use svm_app::types::HostCtx;
-use svm_common::{Address, State};
+use svm_common::Address;
 use svm_layout::DataLayout;
 use svm_runtime::{
     gas::MaybeGas,
@@ -97,14 +97,13 @@ fn vmcalls_empty_wasm() {
 #[test]
 fn vmcalls_get32_set32() {
     let app_addr = Address::of("my-app");
-    let state = State::empty();
     let host = DataWrapper::new(std::ptr::null_mut());
     let host_ctx = host_ctx! {};
     let maybe_gas = MaybeGas::new();
     let layout: DataLayout = vec![4, 2].into();
 
     let import_object = imports! {
-        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, maybe_gas, &layout),
+        move || testing::app_memory_state_creator(&app_addr, host, host_ctx, maybe_gas, &layout),
 
         "svm" => {
             "get32" => func!(vmcalls::get32),
@@ -130,14 +129,13 @@ fn vmcalls_get32_set32() {
 #[test]
 fn vmcalls_get64_set64() {
     let app_addr = Address::of("my-app");
-    let state = State::empty();
     let host = DataWrapper::new(std::ptr::null_mut());
     let host_ctx = host_ctx! {};
     let maybe_gas = MaybeGas::new();
     let layout: DataLayout = vec![4, 2].into();
 
     let import_object = imports! {
-        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, maybe_gas, &layout),
+        move || testing::app_memory_state_creator(&app_addr, host, host_ctx, maybe_gas, &layout),
 
         "svm" => {
             "get64" => func!(vmcalls::get64),
@@ -163,7 +161,6 @@ fn vmcalls_get64_set64() {
 #[test]
 fn host_get64() {
     let app_addr = Address::of("my-app");
-    let state = State::empty();
     let host = DataWrapper::new(std::ptr::null_mut());
     let maybe_gas = MaybeGas::new();
     let layout = DataLayout::empty();
@@ -174,7 +171,7 @@ fn host_get64() {
     };
 
     let import_object = imports! {
-        move || testing::app_memory_state_creator(&app_addr, &state, host, host_ctx, maybe_gas, &layout),
+        move || testing::app_memory_state_creator(&app_addr, host, host_ctx, maybe_gas, &layout),
 
         "svm" => {
             "host_get64" => func!(vmcalls::host_get64),
@@ -188,7 +185,7 @@ fn host_get64() {
     );
 
     assert_host_ctx!(instance,
-        2 => 0x10_20,
-        3 => 0x30_40_50
+        2 => 0x20_10,
+        3 => 0x50_40_30
     );
 }

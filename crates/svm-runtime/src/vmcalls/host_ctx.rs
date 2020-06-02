@@ -1,13 +1,14 @@
 use crate::{helpers, use_gas};
 
-use byteorder::{BigEndian, ByteOrder, LittleEndian};
+use byteorder::{ByteOrder, LittleEndian};
 
 use wasmer_runtime::Ctx as WasmerCtx;
 
+/// Returns the `Host Context` field `field_idx` as i64 (Little-Endian)
 pub fn host_get64(ctx: &mut WasmerCtx, field_idx: u32) -> u64 {
     use_gas!("host_get64", ctx);
 
-    host_ctx_read_int::<BigEndian>(ctx, field_idx)
+    host_ctx_read_int::<LittleEndian>(ctx, field_idx)
 }
 
 fn host_ctx_read_int<T: ByteOrder>(ctx: &mut WasmerCtx, field_idx: u32) -> u64 {
