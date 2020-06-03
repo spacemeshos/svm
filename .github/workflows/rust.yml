@@ -9,7 +9,7 @@ on:
     - master
 
 jobs:
-  llvm
+  llvm:
     # copied from: 
     # https://github.com/rust-rocksdb/rust-rocksdb/blob/master/.github/workflows/rust.yml
     strategy:
@@ -24,7 +24,7 @@ jobs:
     
       - name: Install dependencies
         run: choco install llvm -y
-  build
+  build:
     needs: llvm
     runs-on: ${{ matrix.os }}
     strategy:
