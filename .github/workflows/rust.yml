@@ -14,7 +14,8 @@ jobs:
     strategy:
       fail-fast: False
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        # os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [windows-latest]
 
         # The "" is just debug
         release: ["", "--release"]
@@ -50,7 +51,7 @@ jobs:
         args: ${{ matrix.release }} --all
     - name: Prepare uploads
       shell: bash
-      run: mkdir bins/ && for i in $(ls target/{debug,release}/{libsvm_runtime_c_api.{so,dylib,obj},svm.h}); do mv $i bins/; done
+      run: mkdir bins/ && for i in $(ls target/{debug,release}/{libsvm_runtime_c_api.*,svm.h}); do mv $i bins/; done
     - name: Upload bins
       uses: actions/upload-artifact@master
       with:
