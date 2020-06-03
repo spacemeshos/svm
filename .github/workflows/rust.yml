@@ -9,7 +9,7 @@ on:
     - master
 
 jobs:
-  LLVM:
+  llvm
     # copied from: 
     # https://github.com/rust-rocksdb/rust-rocksdb/blob/master/.github/workflows/rust.yml
     strategy:
@@ -24,35 +24,8 @@ jobs:
     
       - name: Install dependencies
         run: choco install llvm -y
-
-  # Lint:
-  #   runs-on: ubuntu-latest
-  #   strategy:
-  #     fail-fast: False
-  #   steps:
-  #   - name: Download commit
-  #     uses: actions/checkout@v1
-  #     with:
-  #       fetch-depth: 1
-  #   - name: Cache cargo
-  #     id: cache-cargo
-  #     uses: actions/cache@v1
-  #     with:
-  #       path: ~/.cargo/
-  #       key: ${{ runner.os }}-lint-cargo
-  #   - name: Install latest nightly
-  #     uses: actions-rs/toolchain@v1
-  #     with:
-  #       toolchain: nightly
-  #   - name: Lint
-  #     uses: actions-rs/cargo@v1
-  #     with:
-  #       toolchain: nightly
-  #       command: fmt
-  #       args: --all -- --check
-
-  Build:
-    needs: LLVM
+  build
+    needs: llvm
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: False
@@ -89,8 +62,6 @@ jobs:
         toolchain: nightly
         command: test
         args: ${{ matrix.release }} --all
-      env:
-        RUST_TEST_THREADS: 1
     - name: Prepare uploads
       shell: bash
       run: mkdir bins/ && for i in $(ls target/{debug,release}/{libsvm_runtime_c_api.{so,dylib,dll},svm.h}); do mv $i bins/; done
