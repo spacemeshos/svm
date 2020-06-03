@@ -9,22 +9,21 @@ on:
     - master
 
 jobs:
-  LLVM:
+  # LLVM:
     # copied from: 
     # https://github.com/rust-rocksdb/rust-rocksdb/blob/master/.github/workflows/rust.yml
-
-    strategy:
-      fail-fast: True
-    runs-on:
-      - windows-latest
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v2
-        with:
-          submodules: true
-
-      - name: Install dependencies
-        run: choco install llvm -y
+    # strategy:
+    #   fail-fast: True
+    # runs-on:
+    #  - windows-latest
+    #steps:
+    #  - name: Checkout sources
+    #    uses: actions/checkout@v2
+    #    with:
+    #      submodules: true
+    #
+    #  - name: Install dependencies
+    #    run: choco install llvm -y
 
   # Lint:
   #   runs-on: ubuntu-latest
@@ -64,6 +63,14 @@ jobs:
 
         release: [""]
     steps:
+    - name: Install LLVM
+      uses: actions/checkout@v2
+      with:
+        submodules: true
+    
+    - name: Install dependencies
+      run: choco install llvm -y
+
     - name: Download commit
       uses: actions/checkout@v1
       with:
@@ -94,7 +101,7 @@ jobs:
         RUST_TEST_THREADS: 1
     - name: Prepare uploads
       shell: bash
-      run: mkdir bins/ && for i in $(ls target/{debug,release}/{libsvm_runtime_c_api.{so,dylib,dll},svm_wasmer.h}); do mv $i bins/; done
+      run: mkdir bins/ && for i in $(ls target/{debug,release}/{libsvm_runtime_c_api.{so,dylib,dll},svm.h}); do mv $i bins/; done
     - name: Upload bins
       uses: actions/upload-artifact@master
       with:
