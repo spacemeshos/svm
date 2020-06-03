@@ -17,7 +17,7 @@ include = [
 ]
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib", "staticlib"]
 
 [dependencies.rocksdb]
 default-features = false
