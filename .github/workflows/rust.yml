@@ -11,6 +11,22 @@ on:
     - develop
 
 jobs:
+  install-llvm:
+    # copied from: 
+    # https://github.com/rust-rocksdb/rust-rocksdb/blob/master/.github/workflows/rust.yml
+
+    name: install LLVM
+    runs-on:
+      - windows-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - name: Install dependencies
+        run: choco install llvm -y
+
   # Lint:
   #   runs-on: ubuntu-latest
   #   strategy:
