@@ -9,21 +9,21 @@ on:
     - master
 
 jobs:
-  # LLVM:
+  LLVM:
     # copied from: 
     # https://github.com/rust-rocksdb/rust-rocksdb/blob/master/.github/workflows/rust.yml
-    # strategy:
-    #   fail-fast: True
-    # runs-on:
-    #  - windows-latest
-    #steps:
-    #  - name: Checkout sources
-    #    uses: actions/checkout@v2
-    #    with:
-    #      submodules: true
-    #
-    #  - name: Install dependencies
-    #    run: choco install llvm -y
+    strategy:
+      fail-fast: True
+    runs-on:
+      - windows-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+    
+      - name: Install dependencies
+        run: choco install llvm -y
 
   # Lint:
   #   runs-on: ubuntu-latest
@@ -50,7 +50,9 @@ jobs:
   #       toolchain: nightly
   #       command: fmt
   #       args: --all -- --check
+
   Build:
+    needs: LLVM
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: False
@@ -63,14 +65,6 @@ jobs:
 
         release: [""]
     steps:
-    - name: Install LLVM
-      uses: actions/checkout@v2
-      with:
-        submodules: true
-    
-    - name: Install dependencies
-      run: choco install llvm -y
-
     - name: Download commit
       uses: actions/checkout@v1
       with:
