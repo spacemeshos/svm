@@ -21,9 +21,6 @@ jobs:
     steps:
     - name: LLVM (Windows)
       if:  matrix.environment == "windows-latest" 
-      uses: actions/checkout@v2
-      with:
-        submodules: true
       run: choco install llvm -y
     - name: Download commit
       uses: actions/checkout@v1
