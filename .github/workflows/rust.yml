@@ -20,7 +20,7 @@ jobs:
         release: ["", "--release"]
     steps:
     - name: LLVM (Windows)
-      if:  matrix.environment == "windows-latest" 
+      if:  matrix.os == "windows-latest" 
       run: choco install llvm -y
     - name: Download commit
       uses: actions/checkout@v1
