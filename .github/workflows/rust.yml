@@ -51,7 +51,7 @@ jobs:
         args: ${{ matrix.release }} --all
     - name: Prepare uploads
       shell: bash
-      run: mkdir bins/ && for i in $(ls target/{debug,release}/{libsvm_runtime_c_api.*,svm.h}); do mv $i bins/; done
+      run: mkdir bins/ && for i in $(ls target/{debug,release}/{libsvm_runtime_c_api.*,svm_runtime_c_api.dll,svm.h}); do mv $i bins/; done
     - name: Upload bins
       uses: actions/upload-artifact@master
       with:
