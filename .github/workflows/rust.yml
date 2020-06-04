@@ -15,10 +15,8 @@ jobs:
       fail-fast: False
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        # os: [windows-latest]
 
-        # The "" is just debug
-        release: ["", "--release"]
+        release: ["--release"]
     steps:
     - name: LLVM (Windows)
       if:  matrix.os == 'windows-latest'
