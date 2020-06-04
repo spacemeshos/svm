@@ -1,52 +1,28 @@
-name: CI
+name: SVM CI
 
 on:
   push:
     branches:
     - master
-    - develop
   pull_request:
     branches:
     - master
-    - develop
 
 jobs:
-  # Lint:
-  #   runs-on: ubuntu-latest
-  #   strategy:
-  #     fail-fast: False
-  #   steps:
-  #   - name: Download commit
-  #     uses: actions/checkout@v1
-  #     with:
-  #       fetch-depth: 1
-  #   - name: Cache cargo
-  #     id: cache-cargo
-  #     uses: actions/cache@v1
-  #     with:
-  #       path: ~/.cargo/
-  #       key: ${{ runner.os }}-lint-cargo
-  #   - name: Install latest nightly
-  #     uses: actions-rs/toolchain@v1
-  #     with:
-  #       toolchain: nightly
-  #   - name: Lint
-  #     uses: actions-rs/cargo@v1
-  #     with:
-  #       toolchain: nightly
-  #       command: fmt
-  #       args: --all -- --check
-  Build:
+  build:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: False
       matrix:
-        os: [ubuntu-latest, macos-latest]
-        # To enable windows build delete the line above and this one then uncoment the one under
-        #os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        # os: [windows-latest]
+
         # The "" is just debug
         release: ["", "--release"]
     steps:
+    - name: LLVM (Windows)
+      if:  matrix.os == 'windows-latest'
+      run: choco install llvm -y
     - name: Download commit
       uses: actions/checkout@v1
       with:
@@ -73,11 +49,9 @@ jobs:
         toolchain: nightly
         command: test
         args: ${{ matrix.release }} --all
-      env:
-        RUST_TEST_THREADS: 1
     - name: Prepare uploads
       shell: bash
-      run: mkdir bins/ && for i in $(ls target/{debug,release}/{libsvm_runtime_c_api.{so,dylib,dll},svm_wasmer.h}); do mv $i bins/; done
+      run: mkdir bins/ && for i in $(ls target/{debug,release}/{libsvm_runtime_c_api.*,svm.h}); do mv $i bins/; done
     - name: Upload bins
       uses: actions/upload-artifact@master
       with:
