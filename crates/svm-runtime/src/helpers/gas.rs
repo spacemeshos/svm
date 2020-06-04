@@ -2,10 +2,7 @@
 use wasmer_runtime::Ctx as WasmerCtx;
 use wasmer_runtime::Instance;
 
-use crate::{
-    ctx::SvmCtx,
-    gas::{MaybeGas, OOGError},
-};
+use crate::gas::{MaybeGas, OOGError};
 
 /// Decreases the left gas with `gas` units.
 ///
@@ -13,7 +10,7 @@ use crate::{
 ///
 /// Panics `Out of Gas` in case there is no sufficient gas left.
 #[inline]
-pub fn wasmer_use_gas(ctx: &mut WasmerCtx, gas: u64, gas_limit: u64) {
+pub fn wasmer_use_gas(_ctx: &mut WasmerCtx, _gas: u64, _gas_limit: u64) {
     // let used_gas = get_points_used_ctx(ctx);
     // let new_used_gas = used_gas + gas;
 
@@ -28,7 +25,7 @@ pub fn wasmer_use_gas(ctx: &mut WasmerCtx, gas: u64, gas_limit: u64) {
 
 /// On success returns the amount of gas used during App's execution.
 /// Of failure returs `OOGError` (Out-of-Gas).
-pub fn wasmer_gas_used(instance: &Instance) -> Result<MaybeGas, OOGError> {
+pub fn wasmer_gas_used(_instance: &Instance) -> Result<MaybeGas, OOGError> {
     Ok(MaybeGas::new())
 
     // let wasmer_ctx = instance.context();

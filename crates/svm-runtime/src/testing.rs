@@ -13,7 +13,6 @@ use svm_app::{
     types::{AppAddr, TemplateAddr, WasmValue},
 };
 use svm_common::{Address, State};
-use svm_kv::memory::MemKVStore;
 use svm_layout::DataLayout;
 use svm_storage::{
     app::{AppKVStore, AppStorage},
@@ -68,7 +67,6 @@ pub fn instance_memory_init(instance: &Instance, offset: u32, bytes: &[u8]) {
 /// Returns a `state creator` to be used by wasmer `ImportObject::new_with_data` initializer.
 pub fn app_memory_state_creator(
     app_addr: &Address,
-    state: &State,
     host: DataWrapper<*mut c_void>,
     host_ctx: DataWrapper<*const c_void>,
     gas_limit: MaybeGas,
@@ -76,7 +74,9 @@ pub fn app_memory_state_creator(
 ) -> (*mut c_void, fn(*mut c_void)) {
     let raw_kv = memory_kv_store_init();
     let app_kv = AppKVStore::new(app_addr.clone(), &raw_kv);
+
     let storage = AppStorage::new(layout.clone(), app_kv);
+    debug_assert_eq!(storage.head(), State::empty());
 
     let ctx = SvmCtx::new(host, host_ctx, gas_limit, storage);
     let ctx: *mut SvmCtx = Box::into_raw(Box::new(ctx));
@@ -112,7 +112,7 @@ pub fn runtime_memory_storage_builder(
 ) -> Box<StorageBuilderFn> {
     let raw_kv = Rc::clone(raw_kv);
 
-    let func = move |app_addr: &AppAddr, state: &State, layout: &DataLayout, config: &Config| {
+    let func = move |app_addr: &AppAddr, state: &State, layout: &DataLayout, _config: &Config| {
         let app_addr = app_addr.inner();
         let app_kv = AppKVStore::new(app_addr.clone(), &raw_kv);
 

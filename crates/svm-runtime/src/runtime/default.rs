@@ -1,9 +1,4 @@
-use std::{
-    ffi::c_void,
-    fmt,
-    marker::PhantomData,
-    path::{Path, PathBuf},
-};
+use std::{ffi::c_void, fmt, marker::PhantomData, path::Path};
 
 use log::{debug, error, info};
 
@@ -361,7 +356,7 @@ where
 
         // Each wasm instance memory contains at least one `WASM Page`. (A `Page` size is 64KB)
         // The `len(func_buf)` will be less than that size.
-        ///
+        //
         // In any case, the `alloc_wasmer_memory` is in charge of allocating enough memory
         // for the program to run (so we don't need to have any bounds-checking here).
 
