@@ -25,7 +25,7 @@ branch = "develop"
 default-features = false
 git = "https://github.com/spacemeshos/wasmer"
 branch = "develop"
-features = ["singlepass-backend"]
+features = ["cranelift-backend"]
 
 # [dependencies.wasmer-singlepass-backend]
 # git = "https://github.com/spacemeshos/wasmer"
