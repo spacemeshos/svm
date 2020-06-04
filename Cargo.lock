@@ -1364,6 +1364,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "wasmer-win-exception-handler"
+version = "0.17.0"
+source = "git+https://github.com/spacemeshos/wasmer?branch=develop#0575a7ed3f8742c3842afbc455072d957af7f6ce"
+dependencies = [
+ "cc",
+ "libc",
+ "wasmer-runtime-core",
+ "winapi",
+]
+
+[[package]]
 name = "wasmparser"
 version = "0.45.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
