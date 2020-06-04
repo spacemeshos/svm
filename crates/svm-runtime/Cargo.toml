@@ -31,17 +31,18 @@ path = "../svm-gas"
 default-features = false
 git = "https://github.com/spacemeshos/wasmer"
 branch = "develop"
-features = ["default-backend-singlepass"]
+features = ["default-backend-cranelift"]
+# features = ["default-backend-singlepass"]
 
 [dependencies.wasmer-runtime-core]
 default-features = false
 git = "https://github.com/spacemeshos/wasmer"
 branch = "develop"
 
-[dependencies.wasmer-middleware-common]
-default-features = false
-git = "https://github.com/spacemeshos/wasmer"
-branch = "develop"
+# [dependencies.wasmer-middleware-common]
+# default-features = false
+# git = "https://github.com/spacemeshos/wasmer"
+# branch = "develop"
 
 [dependencies]
 log = "0.4"

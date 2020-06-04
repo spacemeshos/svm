@@ -29,7 +29,7 @@ features = ["lz4"]
 default-features = false
 git = "https://github.com/spacemeshos/wasmer"
 branch = "develop"
-features = ["singlepass"]
+features = ["default-backend-cranelift"]
 
 [dependencies.wasmer-runtime-core]
 default-features = false
@@ -40,16 +40,15 @@ branch = "develop"
 default-features = false
 git = "https://github.com/spacemeshos/wasmer"
 branch = "develop"
-features = ["singlepass-backend"]
 
-[dependencies.wasmer-singlepass-backend]
-git = "https://github.com/spacemeshos/wasmer"
-branch = "develop"
+# [dependencies.wasmer-singlepass-backend]
+# git = "https://github.com/spacemeshos/wasmer"
+# branch = "develop"
 
-[dependencies.wasmer-middleware-common]
-default-features = false
-git = "https://github.com/spacemeshos/wasmer"
-branch = "develop"
+# [dependencies.wasmer-middleware-common]
+# default-features = false
+# git = "https://github.com/spacemeshos/wasmer"
+# branch = "develop"
 
 [dependencies]
 libc = "0.2"

@@ -169,6 +169,7 @@ fn default_runtime_spawn_app_with_ctor_reaches_oog() {
 }
 
 #[test]
+#[ignore = "temporarily skipping this test until wasmer cranelift will support middlewares"]
 fn default_runtime_spawn_app_with_ctor_with_enough_gas() {
     let mut runtime = default_runtime!();
 
@@ -278,6 +279,7 @@ fn default_runtime_exec_app() {
 }
 
 #[test]
+#[ignore = "temporarily skipping this test until wasmer cranelift will support middlewares"]
 fn default_runtime_exec_app_reaches_oog() {
     let mut runtime = default_runtime!();
 

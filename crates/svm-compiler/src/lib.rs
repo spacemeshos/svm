@@ -7,6 +7,6 @@
 //! `wasmer` compiler milddlewares for `SVM` usage.
 
 mod compiler;
-mod middleware;
+// mod middleware;
 
 pub use compiler::compile_program;
