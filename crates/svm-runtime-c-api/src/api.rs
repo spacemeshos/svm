@@ -10,7 +10,7 @@ use svm_app::{
 use svm_common::{Address, State};
 use svm_layout::DataLayout;
 use svm_runtime::{ctx::SvmCtx, gas::DefaultGasEstimator};
-use svm_storage::kv::StatefulKVStore;
+use svm_storage::kv::{ExternKV, StatefulKVStore};
 
 use crate::{
     helpers,
@@ -134,14 +134,14 @@ pub unsafe extern "C" fn svm_validate_app(
 ///
 /// // create runtime
 ///
-/// let mut raw_kv = std::ptr::null_mut();
-/// let res = unsafe { svm_memory_kv_create(&mut raw_kv) };
+/// let mut kv = std::ptr::null_mut();
+/// let res = unsafe { svm_memory_kv_create(&mut kv) };
 /// assert!(res.is_ok());
 ///
 /// let mut runtime = std::ptr::null_mut();
 /// let mut error = svm_byte_array::default();
 ///
-/// let res = unsafe { svm_memory_runtime_create(&mut runtime, raw_kv, host, imports, &mut error) };
+/// let res = unsafe { svm_memory_runtime_create(&mut runtime, kv, host, imports, &mut error) };
 /// assert!(res.is_ok());
 ///
 /// let mut app_addr = svm_byte_array::default();
@@ -317,24 +317,68 @@ macro_rules! box_runtime {
 }
 
 /// Creates a new in-memory key-value client.
-/// Returns a raw pointer to allocated kv-store via input parameter `raw_kv`.
+/// Returns a raw pointer to allocated kv-store via input parameter `kv`.
 ///
 /// # Example
 ///
 /// ```rust
 /// use svm_runtime_c_api::*;
 ///
-/// let mut raw_kv = std::ptr::null_mut();
-/// let res = unsafe { svm_memory_kv_create(&mut raw_kv) };
+/// let mut kv = std::ptr::null_mut();
+/// let res = unsafe { svm_memory_kv_create(&mut kv) };
 /// assert!(res.is_ok());
 /// ```
 ///
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_memory_kv_create(kv: *mut *mut c_void) -> svm_result_t {
-    let native_kv = svm_runtime::testing::memory_kv_store_init();
+    let memory_kv = svm_runtime::testing::memory_kv_store_init();
 
-    *kv = svm_common::into_raw_mut(native_kv);
+    *kv = svm_common::into_raw_mut(memory_kv);
+
+    svm_result_t::SVM_SUCCESS
+}
+
+/// Creates a new FFI key-value client.
+/// Returns a raw pointer to allocated kv-store via input parameter `kv`.
+///
+/// # Example
+///
+/// ```rust
+/// use svm_runtime_c_api::*;
+///
+/// unsafe extern "C" fn get(key_ptr: *const u8, key_len: u32, value_ptr: *mut u8, value_len: *mut u32) {}
+/// unsafe extern "C" fn set(key_ptr: *const u8, key_len: u32, value_ptr: *const u8, value_len: u32) {}
+/// unsafe extern "C" fn head(state: *mut u8) {}
+/// unsafe extern "C" fn rewind(state: *const u8) {}
+/// unsafe extern "C" fn commit() {}
+///
+/// let mut kv = std::ptr::null_mut();
+/// let res = unsafe { svm_ffi_kv_create(&mut kv, get, set, head, rewind, commit) };
+/// assert!(res.is_ok());
+/// ```
+///
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_ffi_kv_create(
+    kv: *mut *mut c_void,
+    get_fn: unsafe extern "C" fn(*const u8, u32, *mut u8, *mut u32),
+    set_fn: unsafe extern "C" fn(*const u8, u32, *const u8, u32),
+    head_fn: unsafe extern "C" fn(*mut u8),
+    rewind_fn: unsafe extern "C" fn(*const u8),
+    commit_fn: unsafe extern "C" fn(),
+) -> svm_result_t {
+    let ffi_kv = ExternKV {
+        get_fn,
+        set_fn,
+        head_fn,
+        rewind_fn,
+        commit_fn,
+    };
+
+    let ffi_kv = Rc::new(RefCell::new(ffi_kv));
+
+    *kv = svm_common::into_raw_mut(ffi_kv);
 
     svm_result_t::SVM_SUCCESS
 }
@@ -346,17 +390,17 @@ pub unsafe extern "C" fn svm_memory_kv_create(kv: *mut *mut c_void) -> svm_resul
 /// ```rust
 /// use svm_runtime_c_api::*;
 ///
-/// let mut raw_kv = std::ptr::null_mut();
-/// let res = unsafe { svm_memory_kv_create(&mut raw_kv) };
+/// let mut kv = std::ptr::null_mut();
+/// let res = unsafe { svm_memory_kv_create(&mut kv) };
 /// assert!(res.is_ok());
 ///
-/// let res = unsafe { svm_memory_kv_destroy(raw_kv) };
+/// let res = unsafe { svm_kv_destroy(kv) };
 /// assert!(res.is_ok());
 /// ```
 ///
 #[must_use]
 #[no_mangle]
-pub unsafe extern "C" fn svm_memory_kv_destroy(kv: *mut c_void) -> svm_result_t {
+pub unsafe extern "C" fn svm_kv_destroy(kv: *mut c_void) -> svm_result_t {
     let kv: &mut Rc<RefCell<dyn StatefulKVStore>> = svm_common::from_raw_mut(kv);
 
     let _ = Box::from_raw(kv as *mut _);
@@ -376,12 +420,12 @@ pub unsafe extern "C" fn svm_memory_kv_destroy(kv: *mut c_void) -> svm_result_t 
 /// let host = std::ptr::null_mut();
 /// let mut imports = testing::imports_alloc(0);
 ///
-/// let mut raw_kv = std::ptr::null_mut();
-/// let res = unsafe { svm_memory_kv_create(&mut raw_kv) };
+/// let mut kv = std::ptr::null_mut();
+/// let res = unsafe { svm_memory_kv_create(&mut kv) };
 /// assert!(res.is_ok());
 ///
 /// let mut error = svm_byte_array::default();
-/// let res = unsafe { svm_memory_runtime_create(&mut runtime, raw_kv, host, imports, &mut error) };
+/// let res = unsafe { svm_memory_runtime_create(&mut runtime, kv, host, imports, &mut error) };
 /// assert!(res.is_ok());
 /// ```
 ///
@@ -389,7 +433,7 @@ pub unsafe extern "C" fn svm_memory_kv_destroy(kv: *mut c_void) -> svm_result_t 
 #[no_mangle]
 pub unsafe extern "C" fn svm_memory_runtime_create(
     runtime: *mut *mut c_void,
-    raw_kv: *mut c_void,
+    kv: *mut c_void,
     host: *mut c_void,
     imports: *const c_void,
     _error: *mut svm_byte_array,
@@ -398,8 +442,8 @@ pub unsafe extern "C" fn svm_memory_runtime_create(
 
     let imports = helpers::cast_imports_to_wasmer_imports(imports);
 
-    let raw_kv = svm_common::from_raw_mut(raw_kv);
-    let mem_runtime = svm_runtime::testing::create_memory_runtime(host, raw_kv, imports);
+    let kv = svm_common::from_raw_mut(kv);
+    let mem_runtime = svm_runtime::testing::create_memory_runtime(host, kv, imports);
 
     let res = box_runtime!(runtime, mem_runtime);
 
@@ -474,13 +518,13 @@ pub unsafe extern "C" fn svm_runtime_create(
 /// let mut imports = testing::imports_alloc(0);
 ///
 /// // create runtime
-/// let mut raw_kv = std::ptr::null_mut();
-/// let res = unsafe { svm_memory_kv_create(&mut raw_kv) };
+/// let mut kv = std::ptr::null_mut();
+/// let res = unsafe { svm_memory_kv_create(&mut kv) };
 /// assert!(res.is_ok());
 ///
 /// let mut runtime = std::ptr::null_mut();
 /// let mut error = svm_byte_array::default();
-/// let res = unsafe { svm_memory_runtime_create(&mut runtime, raw_kv, host, imports, &mut error) };
+/// let res = unsafe { svm_memory_runtime_create(&mut runtime, kv, host, imports, &mut error) };
 /// assert!(res.is_ok());
 ///
 /// // deploy template
@@ -571,14 +615,14 @@ pub unsafe extern "C" fn svm_deploy_template(
 ///
 /// // create runtime
 //
-/// let mut raw_kv = std::ptr::null_mut();
-/// let res = unsafe { svm_memory_kv_create(&mut raw_kv) };
+/// let mut kv = std::ptr::null_mut();
+/// let res = unsafe { svm_memory_kv_create(&mut kv) };
 /// assert!(res.is_ok());
 ///
 /// let mut runtime = std::ptr::null_mut();
 /// let mut error = svm_byte_array::default();
 ///
-/// let res = unsafe { svm_memory_runtime_create(&mut runtime, raw_kv, host, imports, &mut error) };
+/// let res = unsafe { svm_memory_runtime_create(&mut runtime, kv, host, imports, &mut error) };
 /// assert!(res.is_ok());
 ///
 /// let mut app_receipt = svm_byte_array::default();
@@ -669,14 +713,14 @@ pub unsafe extern "C" fn svm_spawn_app(
 ///
 /// // create runtime
 ///
-/// let mut raw_kv = std::ptr::null_mut();
-/// let res = unsafe { svm_memory_kv_create(&mut raw_kv) };
+/// let mut kv = std::ptr::null_mut();
+/// let res = unsafe { svm_memory_kv_create(&mut kv) };
 /// assert!(res.is_ok());
 ///
 /// let mut runtime = std::ptr::null_mut();
 /// let mut error = svm_byte_array::default();
 ///
-/// let res = unsafe { svm_memory_runtime_create(&mut runtime, raw_kv, host, imports, &mut error) };
+/// let res = unsafe { svm_memory_runtime_create(&mut runtime, kv, host, imports, &mut error) };
 /// assert!(res.is_ok());
 ///
 /// let mut exec_receipt = svm_byte_array::default();
@@ -770,13 +814,13 @@ pub unsafe extern "C" fn svm_instance_context_host_get(ctx: *mut c_void) -> *mut
 ///
 /// // create runtime
 ///
-/// let mut raw_kv = std::ptr::null_mut();
-/// let res = unsafe { svm_memory_kv_create(&mut raw_kv) };
+/// let mut kv = std::ptr::null_mut();
+/// let res = unsafe { svm_memory_kv_create(&mut kv) };
 /// assert!(res.is_ok());
 ///
 /// let mut runtime = std::ptr::null_mut();
 /// let mut error = svm_byte_array::default();
-/// let res = unsafe { svm_memory_runtime_create(&mut runtime, raw_kv, host, imports, &mut error) };
+/// let res = unsafe { svm_memory_runtime_create(&mut runtime, kv, host, imports, &mut error) };
 /// assert!(res.is_ok());
 ///
 /// // destroy runtime

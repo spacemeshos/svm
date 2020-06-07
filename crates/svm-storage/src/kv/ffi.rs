@@ -16,7 +16,7 @@ static mut BUF: [u8; BUF_SIZE] = [0; BUF_SIZE];
 /// * key_len   - key's byte-length
 /// * value_ptr - a raw pointer to the value's buffer first byte
 /// * value_len - a pointer
-type GetFn = unsafe extern "C" fn(*const u8, u32, *mut u8, *mut u32);
+pub type GetFn = unsafe extern "C" fn(*const u8, u32, *mut u8, *mut u32);
 
 /// # Sets a Key's Value
 ///
@@ -26,7 +26,7 @@ type GetFn = unsafe extern "C" fn(*const u8, u32, *mut u8, *mut u32);
 /// * key_len   - key's byte-length
 /// * value_ptr - a raw pointer to the value's first byte
 /// * value_len - a raw pointer to the value's first byte
-type SetFn = unsafe extern "C" fn(*const u8, u32, *const u8, u32);
+pub type SetFn = unsafe extern "C" fn(*const u8, u32, *const u8, u32);
 
 /// # Head
 ///
@@ -36,13 +36,13 @@ type SetFn = unsafe extern "C" fn(*const u8, u32, *const u8, u32);
 ///
 /// The `state` buffer to copy the `State` to is allocated by `SVM`.
 /// The buffer size will be of 32 bytes (at least).
-type HeadFn = unsafe extern "C" fn(*mut u8);
+pub type HeadFn = unsafe extern "C" fn(*mut u8);
 
 /// # Rewind
 ///
 /// Changes the current `State` pointed by the underlying App's key-value store.
 /// In git it would be equivalent to doing `git reset COMMIT_SHA --hard`
-type RewindFn = unsafe extern "C" fn(*const u8);
+pub type RewindFn = unsafe extern "C" fn(*const u8);
 
 /// # Commit
 ///
@@ -51,16 +51,25 @@ type RewindFn = unsafe extern "C" fn(*const u8);
 /// is being rewinded to it.
 ///
 /// See: `HeadFn` for how to retrieve that new `State`.
-type CommitFn = unsafe extern "C" fn();
+pub type CommitFn = unsafe extern "C" fn();
 
 /// `ExternV` holds pointers to FFI functions for an external key-value store.
 /// It implements the `svm_kv::traits::KVStore` traits by delegation to the FFI functions.
 pub struct ExternKV {
-    get_fn: GetFn,
-    head_fn: HeadFn,
-    rewind_fn: RewindFn,
-    set_fn: SetFn,
-    commit_fn: CommitFn,
+    /// A function-pointer for key-value `Get`
+    pub get_fn: GetFn,
+
+    /// A function-pointer for key-value `Set`
+    pub set_fn: SetFn,
+
+    /// A function-pointer for key-value `Head`
+    pub head_fn: HeadFn,
+
+    /// A function-pointer for key-value `Rewind`
+    pub rewind_fn: RewindFn,
+
+    /// A function-pointer for key-value `Commit`
+    pub commit_fn: CommitFn,
 }
 
 impl KVStore for ExternKV {

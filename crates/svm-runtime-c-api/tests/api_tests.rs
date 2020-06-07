@@ -217,5 +217,5 @@ unsafe fn test_svm_runtime() {
     let _ = api::svm_byte_array_destroy(exec_receipt);
     let _ = api::svm_imports_destroy(imports);
     let _ = api::svm_runtime_destroy(runtime);
-    let _ = api::svm_memory_kv_destroy(raw_kv);
+    let _ = api::svm_kv_destroy(raw_kv);
 }
