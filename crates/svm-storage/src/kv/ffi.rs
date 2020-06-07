@@ -3,10 +3,54 @@ use super::StatefulKVStore;
 use svm_common::State;
 use svm_kv::traits::KVStore;
 
-type GetFn = unsafe extern "C" fn(*const u8, u32, *mut u32) -> *const u8;
-type HeadFn = unsafe extern "C" fn(*mut u32) -> *const u8;
-type RewindFn = unsafe extern "C" fn(*const u8, u32);
+const BUF_SIZE: usize = 1024;
+static mut BUF: [u8; BUF_SIZE] = [0; BUF_SIZE];
+
+/// # Get a Key's Value
+///
+/// Gets a key's matching value.
+/// The value buffer to copy the value to is allocated by `SVM`.
+/// The buffer maximum size is 1024 bytes. (This value should be more than enough).
+///
+/// * key_ptr   - a raw pointer to the key's first byte
+/// * key_len   - key's byte-length
+/// * value_ptr - a raw pointer to the value's buffer first byte
+/// * value_len - a pointer
+type GetFn = unsafe extern "C" fn(*const u8, u32, *mut u8, *mut u32);
+
+/// # Sets a Key's Value
+///
+/// Sets a value for a key.
+///
+/// * key_ptr   - a raw pointer to the key's first byte
+/// * key_len   - key's byte-length
+/// * value_ptr - a raw pointer to the value's first byte
+/// * value_len - a raw pointer to the value's first byte
 type SetFn = unsafe extern "C" fn(*const u8, u32, *const u8, u32);
+
+/// # Head
+///
+/// Returns the current `State` pointed by the underlying App's key-value store.
+/// The word `head` has been chosen for similarity reasons with git.
+/// (`HEAD` in git holds a reference to the current commit).
+///
+/// The `state` buffer to copy the `State` to is allocated by `SVM`.
+/// The buffer size will be of 32 bytes (at least).
+type HeadFn = unsafe extern "C" fn(*mut u8);
+
+/// # Rewind
+///
+/// Changes the current `State` pointed by the underlying App's key-value store.
+/// In git it would be equivalent to doing `git reset COMMIT_SHA --hard`
+type RewindFn = unsafe extern "C" fn(*const u8);
+
+/// # Commit
+///
+/// Commits the pending changes of the underlying key-value store.
+/// As a side-effect, a new `State` is being computed and the current `State` of the App's storage
+/// is being rewinded to it.
+///
+/// See: `HeadFn` for how to retrieve that new `State`.
 type CommitFn = unsafe extern "C" fn();
 
 /// `ExternV` holds pointers to FFI functions for an external key-value store.
@@ -23,17 +67,18 @@ impl KVStore for ExternKV {
     fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
         let key_ptr = key.as_ptr();
         let key_len = key.len() as u32;
-
         let mut value_len = 0;
 
-        let value_ptr = unsafe { (self.get_fn)(key_ptr, key_len, &mut value_len) };
+        unsafe {
+            (self.get_fn)(key_ptr, key_len, BUF.as_mut_ptr(), &mut value_len);
 
-        if value_len > 0 {
-            let value = unsafe { std::slice::from_raw_parts(value_ptr, value_len as usize) };
+            if value_len > 0 {
+                let value = std::slice::from_raw_parts(BUF.as_ptr(), value_len as usize);
 
-            Some(value.to_vec())
-        } else {
-            None
+                Some(value.to_vec())
+            } else {
+                None
+            }
         }
     }
 
@@ -58,23 +103,19 @@ impl KVStore for ExternKV {
 
 impl StatefulKVStore for ExternKV {
     fn rewind(&mut self, state: &State) {
-        let length = State::len() as u32;
-        let ptr = state.as_ptr();
+        let state = state.as_ptr();
 
         unsafe {
-            (self.rewind_fn)(ptr, length);
+            (self.rewind_fn)(state);
         }
     }
 
     #[must_use]
     fn head(&self) -> State {
-        let mut length = 0u32;
         unsafe {
-            let ptr = (self.head_fn)(&mut length);
+            (self.head_fn)(BUF.as_mut_ptr());
 
-            assert_eq!(length, State::len() as u32);
-
-            State::from(ptr)
+            State::from(BUF.as_ptr())
         }
     }
 }

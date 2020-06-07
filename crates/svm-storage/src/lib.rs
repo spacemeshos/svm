@@ -2,6 +2,7 @@
 #![deny(unused)]
 #![deny(dead_code)]
 #![deny(unreachable_code)]
+#![feature(const_mut_refs)]
 
 //! This crate is responsible on managing the App's storage.
 //!
