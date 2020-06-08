@@ -98,7 +98,8 @@ impl StatefulKV for FakeKV {
     }
 
     fn discard(&mut self) {
-        let (_, changes) = self.journal.last_mut().unwrap();
+        let (maybe_state, changes) = self.journal.last_mut().unwrap();
+        matches!(maybe_state, None);
 
         changes.clear();
     }
@@ -108,23 +109,35 @@ impl StatefulKV for FakeKV {
         assert_eq!(changes.len(), 0);
 
         let n = self.journal.len();
+        debug_assert!(n > 0);
+
         let mut parent = self.head.clone();
 
-        for (state, changes) in &self.journal[0..n] {
+        for (state, changes) in &self.journal[0..n - 1] {
             let node = self.make_node(parent.clone(), changes);
+
+            let node_state = state.as_ref().unwrap().clone();
+            self.flushed.insert(node_state, node);
 
             parent = state.clone().unwrap();
         }
+
+        self.journal = vec![(None, Vec::new())];
+
+        self.assert_journal_empty();
     }
 
     #[must_use]
     fn checkpoint(&mut self) -> State {
         let (_, changes) = self.journal.last().unwrap();
-
         let new_state = self.compute_state(&changes);
 
-        self.journal.push((None, Vec::new()));
+        let (maybe_state, _) = self.journal.last_mut().unwrap();
+        matches!(maybe_state, None);
+        maybe_state.replace(new_state.clone());
+
         self.head = new_state.clone();
+        self.journal.push((None, Vec::new()));
 
         new_state
     }
@@ -146,7 +159,7 @@ impl FakeKV {
     }
 
     pub fn rewind(&mut self, state: &State) {
-        assert_eq!(self.journal.len(), 0);
+        self.assert_journal_empty();
 
         self.head = state.clone();
     }
@@ -219,6 +232,34 @@ impl FakeKV {
 
         State::from(&bytes[..])
     }
+
+    fn journal_state_transition(&self, state: &State) -> Option<State> {
+        for (i, (checkpoint, _changes)) in self.journal.iter().enumerate() {
+            match checkpoint {
+                None => return None,
+                Some(checkpoint) => {
+                    if checkpoint.as_slice() == state.as_slice() {
+                        let next = i + 1;
+
+                        let (next_state, _) = &self.journal[next];
+
+                        return next_state.as_ref().cloned();
+                    }
+                }
+            }
+        }
+
+        unreachable!()
+    }
+
+    fn assert_journal_empty(&self) {
+        assert_eq!(self.journal.len(), 1);
+
+        let (maybe_state, changes) = self.journal.last().unwrap();
+
+        assert_eq!(changes.len(), 0);
+        matches!(maybe_state, None);
+    }
 }
 
 impl Drop for FakeKV {
@@ -239,7 +280,11 @@ mod tests {
                 $kv.set(k, v);
             }
 
-            $kv.head()
+            let state = $kv.checkpoint();
+
+            $kv.flush();
+
+            state
         }};
     }
 
@@ -263,9 +308,16 @@ mod tests {
 
     macro_rules! assert_transition {
         ($kv:ident, $s1:expr => $s2:expr) => {{
-            let node2 = $kv.flushed.get(&$s2).unwrap();
+            match $kv.flushed.get(&$s2) {
+                Some(node2) => {
+                    assert_eq!(node2.parent.as_slice(), $s1.as_slice());
+                }
+                None => {
+                    let s2 = $kv.journal_state_transition(&$s1).unwrap();
 
-            assert_eq!(node2.parent.as_slice(), $s1.as_slice());
+                    assert_eq!($s2.as_slice(), s2.as_slice());
+                }
+            }
         }};
     }
 
@@ -381,6 +433,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn fake_kv_rewind() {
         let mut kv = FakeKV::new();
 
