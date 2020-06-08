@@ -5,7 +5,7 @@
 
 //! The `svm-kv` crate is responsible on providing different implementations for the `KVStore` trait.
 
-/// Defines the `KVStore` trait.
+/// Defines the `RawKV` trait.
 pub mod traits;
 
 /// Helpers for composing keys.
