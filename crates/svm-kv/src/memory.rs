@@ -7,6 +7,8 @@ use log::{debug, info};
 /// An implementation for a key-value store (implements `KVStore`) store backed by an underlying `HashMap`
 pub struct MemKVStore {
     map: HashMap<Vec<u8>, Vec<u8>>,
+
+    dirty: Vec<(Vec<u8>, Vec<u8>)>,
 }
 
 impl MemKVStore {
@@ -17,6 +19,7 @@ impl MemKVStore {
 
         Self {
             map: HashMap::new(),
+            dirty: Vec::new(),
         }
     }
 
@@ -45,8 +48,14 @@ impl KVStore for MemKVStore {
         self.map.get(&key).cloned()
     }
 
-    fn store(&mut self, changes: &[(&[u8], &[u8])]) {
-        info!("Storing in-memory kv changeset");
+    fn set(&mut self, key: &[u8], value: &[u8]) {
+        info!("Sets an new in-memory change (`key -> value`)");
+
+        //
+    }
+
+    fn commit(&mut self) {
+        info!("Commits in-memory kv pending changes");
 
         for (k, v) in changes {
             let k = k.to_vec();

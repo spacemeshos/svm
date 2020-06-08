@@ -1,9 +1,17 @@
-/// `KVStore` is a trait for defining an interface against key-value stores, for example `rocksdb/leveldb`.
+/// `KVStore` is a trait for defining an interface against key-value store.
 pub trait KVStore {
-    /// Retrieves the value pointed by `key` (Optional).
+    /// Gets the `value` pointed by by `key`
+    /// In case there is no matching `value` - `None` should be returned.
     #[must_use]
     fn get(&self, key: &[u8]) -> Option<Vec<u8>>;
 
-    /// Stores a batch of changes. Each change is of `(ns, key) -> value` association.
-    fn store(&mut self, changes: &[(&[u8], &[u8])]);
+    /// Sets a new change to be stored upon `commit`.
+    /// Calling `set` should not persist the change but save it for later
+    /// when calling the `commit` method.
+    ///
+    /// See also: `commit`
+    fn set(&mut self, key: &[u8], value: &[u8]);
+
+    /// Commits all pending changes
+    fn commit(&mut self);
 }
