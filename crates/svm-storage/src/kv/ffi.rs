@@ -56,19 +56,19 @@ pub type CommitFn = unsafe extern "C" fn();
 /// `ExternV` holds pointers to FFI functions for an external key-value store.
 /// It implements the `svm_kv::traits::KVStore` traits by delegation to the FFI functions.
 pub struct ExternKV {
-    /// A function-pointer for key-value `Get`
+    /// A function-pointer for a key-value store `Get`
     pub get_fn: GetFn,
 
-    /// A function-pointer for key-value `Set`
+    /// A function-pointer for a key-value store `Set`
     pub set_fn: SetFn,
 
-    /// A function-pointer for key-value `Head`
+    /// A function-pointer for a key-value store `Head`
     pub head_fn: HeadFn,
 
-    /// A function-pointer for key-value `Rewind`
+    /// A function-pointer for a key-value store `Rewind`
     pub rewind_fn: RewindFn,
 
-    /// A function-pointer for key-value `Commit`
+    /// A function-pointer for a key-value store `Commit`
     pub commit_fn: CommitFn,
 }
 
