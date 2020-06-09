@@ -43,8 +43,7 @@ impl RawStorage {
 
     #[inline]
     pub fn rewind(&mut self, state: &State) {
-        todo!()
-        // self.app_kv.rewind(state)
+        self.app_kv.rewind(state)
     }
 
     #[inline]
@@ -86,6 +85,8 @@ impl RawStorage {
         }
 
         self.app_kv.checkpoint();
+
+        self.app_kv.flush();
     }
 
     #[inline]

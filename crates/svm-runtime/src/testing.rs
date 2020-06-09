@@ -117,6 +117,7 @@ pub fn runtime_memory_storage_builder(
         let app_kv = AppKVStore::new(app_addr.clone(), &state_kv);
 
         let mut storage = AppStorage::new(layout.clone(), app_kv);
+
         storage.rewind(state);
 
         storage
