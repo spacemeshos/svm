@@ -1,8 +1,9 @@
 use std::collections::HashMap;
+use std::fmt;
 
 use super::super::StatefulKV;
 
-use svm_common::{DefaultKeyHasher, KeyHasher, State};
+use svm_common::{fmt::fmt_hex, DefaultKeyHasher, KeyHasher, State};
 
 /// `FakeKV` is a naive implementation for an in-memory stateful key-value store.
 ///
@@ -53,6 +54,8 @@ use svm_common::{DefaultKeyHasher, KeyHasher, State};
 pub struct FakeKV {
     head: State,
 
+    flushed_head: State,
+
     flushed: HashMap<State, Node>,
 
     journal: Vec<(Option<State>, Vec<Change>)>,
@@ -61,7 +64,6 @@ pub struct FakeKV {
 #[derive(Debug)]
 struct Change(Vec<u8>, Vec<u8>);
 
-#[derive(Debug)]
 struct Node {
     parent: State,
 
@@ -110,7 +112,7 @@ impl StatefulKV for FakeKV {
         let n = self.journal.len();
         assert!(n > 0);
 
-        let mut parent = self.head.clone();
+        let mut parent = self.flushed_head.clone();
 
         for (state, changes) in &self.journal[0..n - 1] {
             let node = self.make_node(parent.clone(), changes);
@@ -120,6 +122,8 @@ impl StatefulKV for FakeKV {
 
             parent = state.clone().unwrap();
         }
+
+        self.flushed_head = parent;
 
         self.journal = vec![(None, Vec::new())];
 
@@ -145,6 +149,7 @@ impl StatefulKV for FakeKV {
         self.assert_journal_empty();
 
         self.head = state.clone();
+        self.flushed_head = self.head();
     }
 
     #[must_use]
@@ -158,6 +163,7 @@ impl FakeKV {
     pub fn new() -> Self {
         Self {
             head: State::empty(),
+            flushed_head: State::empty(),
             flushed: HashMap::new(),
             journal: vec![(None, Vec::new())],
         }
@@ -177,12 +183,10 @@ impl FakeKV {
     }
 
     fn get_flushed(&self, key: &[u8]) -> Option<Vec<u8>> {
-        let zeros = State::empty();
-
         let mut state = &self.head;
 
         loop {
-            if state.as_slice() == zeros.as_slice() {
+            if state.is_empty() {
                 return None;
             }
 
@@ -261,10 +265,65 @@ impl FakeKV {
     }
 }
 
+impl fmt::Debug for FakeKV {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut flushed_buf = String::new();
+        let mut journal_buf = String::new();
+
+        self.fmt_flushed(&mut flushed_buf)?;
+        self.fmt_journal(&mut journal_buf)?;
+
+        f.debug_struct("FakeKV")
+            .field("HEAD", &fmt_state(&self.head))
+            .field("flushed", &flushed_buf)
+            .field("joural", &journal_buf)
+            .finish()
+    }
+}
+
+impl FakeKV {
+    fn fmt_flushed<W: fmt::Write>(&self, f: &mut W) -> fmt::Result {
+        let mut state = &self.head;
+
+        while state.is_empty() == false {
+            let node = self.flushed.get(&state).unwrap();
+
+            write!(f, "state: {}", &fmt_state(state));
+
+            for (k, v) in node.data.iter() {
+                let k = fmt_hex(k, ", ");
+                let v = fmt_hex(v, ", ");
+
+                write!(f, "{} -> {}", k, v);
+            }
+
+            state = &node.parent;
+        }
+
+        Ok(())
+    }
+
+    fn fmt_journal<W: fmt::Write>(&self, f: &mut W) -> fmt::Result {
+        for (checkpoint, changes) in self.journal.iter() {
+            match checkpoint {
+                Some(checkpoint) => write!(f, "CHECKPOINT: {}", fmt_state(checkpoint)),
+                None => write!(f, "CHECKPOINT: WIP"),
+            };
+        }
+        Ok(())
+    }
+}
+
 impl Drop for FakeKV {
     fn drop(&mut self) {
         dbg!("Dropping `FakeKV`");
     }
+}
+
+fn fmt_state(state: &State) -> String {
+    let bytes = &state.as_slice();
+
+    fmt_hex(&bytes[0..6], "")
 }
 
 #[cfg(test)]
@@ -432,7 +491,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn fake_kv_rewind() {
         let mut kv = FakeKV::new();
 

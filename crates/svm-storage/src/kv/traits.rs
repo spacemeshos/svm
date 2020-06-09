@@ -58,7 +58,6 @@ pub trait StatefulKV {
 
     /// Rewinds the current pointed-to `State`.
     ///
-    ///
     /// # Panics
     ///
     /// Traits implementations are expected to panic in cases there are pending changes.
