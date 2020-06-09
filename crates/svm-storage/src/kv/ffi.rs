@@ -1,7 +1,6 @@
-// use super::StatefulKVStore;
+use super::StatefulKV;
 
-// use svm_common::State;
-// use svm_kv::traits::KVStore;
+use svm_common::State;
 
 const BUF_SIZE: usize = 1024;
 static mut BUF: [u8; BUF_SIZE] = [0; BUF_SIZE];
@@ -28,33 +27,18 @@ pub type GetFn = unsafe extern "C" fn(*const u8, u32, *mut u8, *mut u32);
 /// * value_len - a raw pointer to the value's first byte
 pub type SetFn = unsafe extern "C" fn(*const u8, u32, *const u8, u32);
 
-/// # Head
+/// # Discard
 ///
-/// Returns the current `State` pointed by the underlying App's key-value store.
-/// The word `head` has been chosen for similarity reasons with git.
-/// (`HEAD` in git holds a reference to the current commit).
-///
-/// The `state` buffer to copy the `State` to is allocated by `SVM`.
-/// The buffer size will be of 32 bytes (at least).
-pub type HeadFn = unsafe extern "C" fn(*mut u8);
+/// ...
+pub type DiscardFn = unsafe extern "C" fn();
 
-/// # Rewind
+/// # Checkpoint
 ///
-/// Changes the current `State` pointed by the underlying App's key-value store.
-/// In git it would be equivalent to doing `git reset COMMIT_SHA --hard`
-pub type RewindFn = unsafe extern "C" fn(*const u8);
+/// ...
+pub type CheckpointFn = unsafe extern "C" fn(*mut u8);
 
-/// # Commit
-///
-/// Commits the pending changes of the underlying key-value store.
-/// As a side-effect, a new `State` is being computed and the current `State` of the App's storage
-/// is being rewinded to it.
-///
-/// See: `HeadFn` for how to retrieve that new `State`.
-pub type CommitFn = unsafe extern "C" fn();
-
-/// `ExternV` holds pointers to FFI functions for an external key-value store.
-/// It implements the `svm_kv::traits::KVStore` traits by delegation to the FFI functions.
+/// `ExternKV` holds pointers to FFI functions for an external key-value store.
+/// It implements the `StatefulKV` traits by delegation to the FFI functions.
 pub struct ExternKV {
     /// A function-pointer for a key-value store `Get`
     pub get_fn: GetFn,
@@ -62,20 +46,18 @@ pub struct ExternKV {
     /// A function-pointer for a key-value store `Set`
     pub set_fn: SetFn,
 
-    /// A function-pointer for a key-value store `Head`
-    pub head_fn: HeadFn,
+    /// A function-pointer for a key-value store `Discard`
+    pub discard_fn: DiscardFn,
 
-    /// A function-pointer for a key-value store `Rewind`
-    pub rewind_fn: RewindFn,
-
-    /// A function-pointer for a key-value store `Commit`
-    pub commit_fn: CommitFn,
+    /// A function-pointer for a key-value store `Checkpoint`
+    pub checkpoint_fn: CheckpointFn,
 }
 
-impl KVStore for ExternKV {
+impl StatefulKV for ExternKV {
     fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
         let key_ptr = key.as_ptr();
         let key_len = key.len() as u32;
+
         let mut value_len = 0;
 
         unsafe {
@@ -91,40 +73,36 @@ impl KVStore for ExternKV {
         }
     }
 
-//     fn store(&mut self, changes: &[(&[u8], &[u8])]) {
-//         for (k, v) in changes.iter() {
-//             let key_ptr = k.as_ptr();
-//             let val_ptr = v.as_ptr();
+    fn set(&mut self, key: &[u8], value: &[u8]) {
+        let key_ptr = key.as_ptr();
+        let val_ptr = value.as_ptr();
 
-//             let key_len = k.len() as u32;
-//             let val_len = v.len() as u32;
-
-//             unsafe {
-//                 (self.set_fn)(key_ptr, key_len, val_ptr, val_len);
-//             }
-//         }
-
-//         unsafe {
-//             (self.commit_fn)();
-//         }
-//     }
-// }
-
-impl StatefulKVStore for ExternKV {
-    fn rewind(&mut self, state: &State) {
-        let state = state.as_ptr();
+        let key_len = key.len() as u32;
+        let val_len = value.len() as u32;
 
         unsafe {
-            (self.rewind_fn)(state);
+            (self.set_fn)(key_ptr, key_len, val_ptr, val_len);
         }
+    }
+
+    fn discard(&mut self) {
+        //
+    }
+
+    fn flush(&mut self) {
+        // do nothing
+    }
+
+    fn checkpoint(&mut self) -> State {
+        todo!()
+    }
+
+    fn rewind(&mut self, _state: &State) {
+        // do nothing
     }
 
     #[must_use]
     fn head(&self) -> State {
-        unsafe {
-            (self.head_fn)(BUF.as_mut_ptr());
-
-            State::from(BUF.as_ptr())
-        }
+        unreachable!()
     }
 }

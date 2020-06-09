@@ -349,12 +349,11 @@ pub unsafe extern "C" fn svm_memory_state_kv_create(kv: *mut *mut c_void) -> svm
 ///
 /// unsafe extern "C" fn get(key_ptr: *const u8, key_len: u32, value_ptr: *mut u8, value_len: *mut u32) {}
 /// unsafe extern "C" fn set(key_ptr: *const u8, key_len: u32, value_ptr: *const u8, value_len: u32) {}
-/// unsafe extern "C" fn head(state: *mut u8) {}
-/// unsafe extern "C" fn rewind(state: *const u8) {}
-/// unsafe extern "C" fn commit() {}
+/// unsafe extern "C" fn discard() {}
+/// unsafe extern "C" fn checkpoint(state: *mut u8) {}
 ///
 /// let mut kv = std::ptr::null_mut();
-/// let res = unsafe { svm_ffi_kv_create(&mut kv, get, set, head, rewind, commit) };
+/// let res = unsafe { svm_ffi_kv_create(&mut kv, get, set, discard, checkpoint) };
 /// assert!(res.is_ok());
 /// ```
 ///
@@ -364,16 +363,14 @@ pub unsafe extern "C" fn svm_ffi_kv_create(
     kv: *mut *mut c_void,
     get_fn: unsafe extern "C" fn(*const u8, u32, *mut u8, *mut u32),
     set_fn: unsafe extern "C" fn(*const u8, u32, *const u8, u32),
-    head_fn: unsafe extern "C" fn(*mut u8),
-    rewind_fn: unsafe extern "C" fn(*const u8),
-    commit_fn: unsafe extern "C" fn(),
+    discard_fn: unsafe extern "C" fn(),
+    checkpoint_fn: unsafe extern "C" fn(*mut u8),
 ) -> svm_result_t {
     let ffi_kv = ExternKV {
         get_fn,
         set_fn,
-        head_fn,
-        rewind_fn,
-        commit_fn,
+        discard_fn,
+        checkpoint_fn,
     };
 
     let ffi_kv = Rc::new(RefCell::new(ffi_kv));

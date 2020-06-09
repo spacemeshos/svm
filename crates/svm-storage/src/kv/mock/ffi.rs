@@ -1,5 +1,5 @@
 use super::FakeKV;
-use crate::kv::{ExternKV, StatefulKVStore};
+use crate::kv::{ExternKV, StatefulKV};
 
 use std::slice;
 use std::sync::Mutex;
@@ -7,16 +7,14 @@ use std::sync::Mutex;
 use lazy_static::lazy_static;
 
 use svm_common::State;
-use svm_kv::traits::KVStore;
 
 lazy_static! {
     static ref KV: Mutex<FakeKV> = Mutex::new(FakeKV::new());
     static ref FFI_KV: ExternKV = ExternKV {
         get_fn: get,
         set_fn: set,
-        head_fn: head,
-        rewind_fn: rewind,
-        commit_fn: commit
+        discard_fn: discard,
+        checkpoint_fn: checkpoint,
     };
 }
 
@@ -56,18 +54,14 @@ pub unsafe extern "C" fn set(
     // ...
 }
 
-pub unsafe extern "C" fn head(state_ptr: *mut u8) {
-    let state = kv!().head();
-
-    std::ptr::copy(state.as_ptr(), state_ptr, State::len());
+pub unsafe extern "C" fn discard() {
+    //
 }
 
-pub unsafe extern "C" fn rewind(state_ptr: *const u8) {
-    let state = State::from(state_ptr);
-
-    kv!().rewind(&state);
+pub unsafe extern "C" fn flush() {
+    //
 }
 
-pub unsafe extern "C" fn commit() {
+pub unsafe extern "C" fn checkpoint(state_ptr: *mut u8) {
     //
 }
