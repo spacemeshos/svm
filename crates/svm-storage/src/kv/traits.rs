@@ -56,6 +56,17 @@ pub trait StatefulKV {
     #[must_use]
     fn checkpoint(&mut self) -> State;
 
+    /// Rewinds the current pointed-to `State`.
+    ///
+    ///
+    /// # Panics
+    ///
+    /// Traits implementations are expected to panic in cases there are pending changes.
+    ///
+    /// See also: `checkpoint` and `flush`.
+    ///
+    fn rewind(&mut self, state: &State);
+
     /// Returns the current `State`.
     ///
     /// Its value should be the last created checkpoint `State`.

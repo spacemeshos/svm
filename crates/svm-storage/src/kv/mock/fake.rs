@@ -3,7 +3,6 @@ use std::collections::HashMap;
 use super::super::StatefulKV;
 
 use svm_common::{DefaultKeyHasher, KeyHasher, State};
-use svm_kv::traits::RawKV;
 
 /// `FakeKV` is a naive implementation for an in-memory stateful key-value store.
 ///
@@ -109,7 +108,7 @@ impl StatefulKV for FakeKV {
         assert_eq!(changes.len(), 0);
 
         let n = self.journal.len();
-        debug_assert!(n > 0);
+        assert!(n > 0);
 
         let mut parent = self.head.clone();
 
@@ -142,6 +141,12 @@ impl StatefulKV for FakeKV {
         new_state
     }
 
+    fn rewind(&mut self, state: &State) {
+        self.assert_journal_empty();
+
+        self.head = state.clone();
+    }
+
     #[must_use]
     fn head(&self) -> State {
         self.head.clone()
@@ -156,12 +161,6 @@ impl FakeKV {
             flushed: HashMap::new(),
             journal: vec![(None, Vec::new())],
         }
-    }
-
-    pub fn rewind(&mut self, state: &State) {
-        self.assert_journal_empty();
-
-        self.head = state.clone();
     }
 
     fn get_journal(&self, key: &[u8]) -> Option<Vec<u8>> {
@@ -228,7 +227,7 @@ impl FakeKV {
         }
 
         let bytes = DefaultKeyHasher::hash(&buf);
-        debug_assert_eq!(bytes.len(), State::len());
+        assert_eq!(bytes.len(), State::len());
 
         State::from(&bytes[..])
     }

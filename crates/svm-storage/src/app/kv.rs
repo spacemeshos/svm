@@ -49,6 +49,12 @@ impl StatefulKV for AppKVStore {
 
     #[inline]
     #[must_use]
+    fn rewind(&mut self, state: &State) {
+        self.kv.borrow_mut().rewind(state);
+    }
+
+    #[inline]
+    #[must_use]
     fn head(&self) -> State {
         self.kv.borrow().head()
     }
