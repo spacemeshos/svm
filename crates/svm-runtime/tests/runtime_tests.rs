@@ -17,12 +17,12 @@ macro_rules! default_runtime {
     () => {{
         use svm_runtime::testing;
 
-        let raw_kv = testing::memory_kv_store_init();
+        let state_kv = testing::memory_state_kv_init();
 
         let host = std::ptr::null_mut();
         let imports = Vec::new();
 
-        testing::create_memory_runtime(host, &raw_kv, imports)
+        testing::create_memory_runtime(host, &state_kv, imports)
     }};
 }
 

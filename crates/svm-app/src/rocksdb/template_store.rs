@@ -6,7 +6,7 @@ use crate::{
     types::{AppTemplate, AppTemplateHash, AuthorAddr, TemplateAddr},
 };
 
-use svm_kv::{rocksdb::Rocksdb, traits::KVStore};
+use svm_kv::{rocksdb::Rocksdb, traits::RawKV};
 
 use log::info;
 
@@ -57,7 +57,7 @@ where
         // code-hash -> code
         let entry2 = (&hash.0[..], &bytes[..]);
 
-        self.db.store(&[entry1, entry2]);
+        self.db.set(&[entry1, entry2]);
 
         Ok(())
     }
