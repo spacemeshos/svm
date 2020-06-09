@@ -13,7 +13,6 @@ use svm_app::{
     types::{AppAddr, TemplateAddr, WasmValue},
 };
 use svm_common::{Address, State};
-use svm_kv::traits::RawKV;
 use svm_layout::DataLayout;
 use svm_storage::{
     app::{AppKVStore, AppStorage},
@@ -88,6 +87,8 @@ pub fn app_memory_state_creator(
     (data, dtor)
 }
 
+/// Returns a new in-memory stateful-kv.
+/// It should be used for managing apps' storage.
 pub fn memory_state_kv_init() -> Rc<RefCell<dyn StatefulKV>> {
     Rc::new(RefCell::new(FakeKV::new()))
 }
