@@ -21,7 +21,7 @@
 //!  |   (d)     |           |           |                 |
 //!  |___________|___________|___________|_________________|
 //!  |   func    |   func    |   func    |                 |
-//!  |  arg #1   |  arg #2   |  arg #3   |     . . . .     |                 
+//!  |  arg #1   |  arg #2   |  arg #3   |     . . . .     |
 //!  |   value   |   value   |   value   |                 |
 //!  +___________|___________|___________|_________________+
 //!
@@ -40,8 +40,8 @@
 //!  The protocol `#bits` will be a multiplication of 3,
 //!  and is encoded in Big-Endian as an unsigned-integer.
 //!
-//!  
-//! (b) Function Index Encoding  
+//!
+//! (b) Function Index Encoding
 //! ============================
 //!
 //!  Number is represented in Big-Endian layout (an unsigned-integer).
@@ -49,21 +49,21 @@
 //!  +---------------------------------------------------------+
 //!  |  MSBs  |  Rest  |                 Meaning               |
 //!  -----------------------------------------------------------
-//!  |  0 0   |  .  .  |  Index takes 1 nibble  (2 used bits)  |  
-//!  |  0 1   |  .  .  |  Index takes 2 nibbles (6 used bits)  |  
-//!  |  1 0   |  .  .  |  Index takes 3 nibbles (10 used bits) |   
+//!  |  0 0   |  .  .  |  Index takes 1 nibble  (2 used bits)  |
+//!  |  0 1   |  .  .  |  Index takes 2 nibbles (6 used bits)  |
+//!  |  1 0   |  .  .  |  Index takes 3 nibbles (10 used bits) |
 //!  |  1 1   |  .  .  |  Index takes 4 nibbles (14 uses bits) |
 //!  +--------|--------|---------------------------------------+
 //!
 //!  The `#bits` used numbers are `2 / 6 / 10 / 14` since the two MSB bits
 //!  of the 1st nibble tell us how many nibbles are part of the encoding.
-//!  
+//!
 //!  So if we need 4 nibbles for representing the function index,
 //!  The first nibble will donate 2 bits and the other 3 nibbles will donate 4 bits each.
 //!  So we get: 2 + 3 * 4 = 14
-//!  
 //!
-//!  
+//!
+//!
 //! (c) Function Buf Length Encoding
 //! ================================
 //! The same encoding as `Function Index Encoding` (b)
@@ -95,7 +95,7 @@
 //!  |   1   |  1 1 0  | i64 type, value consumes 7 bytes  |
 //!  |   1   |  1 1 1  | i64 type, value consumes 8 bytes  |
 //!  +_______|_________|___________________________________+
-//!  
+//!
 //! Note:
 //! `0 0 0 0` - represents an `i32` number holding zero.
 //! `0 1 0 1` - represents an `i64` number holding zero.

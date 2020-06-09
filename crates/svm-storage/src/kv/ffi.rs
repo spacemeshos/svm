@@ -1,7 +1,7 @@
-use super::StatefulKVStore;
+// use super::StatefulKVStore;
 
-use svm_common::State;
-use svm_kv::traits::KVStore;
+// use svm_common::State;
+// use svm_kv::traits::KVStore;
 
 const BUF_SIZE: usize = 1024;
 static mut BUF: [u8; BUF_SIZE] = [0; BUF_SIZE];
@@ -91,24 +91,24 @@ impl KVStore for ExternKV {
         }
     }
 
-    fn store(&mut self, changes: &[(&[u8], &[u8])]) {
-        for (k, v) in changes.iter() {
-            let key_ptr = k.as_ptr();
-            let val_ptr = v.as_ptr();
+//     fn store(&mut self, changes: &[(&[u8], &[u8])]) {
+//         for (k, v) in changes.iter() {
+//             let key_ptr = k.as_ptr();
+//             let val_ptr = v.as_ptr();
 
-            let key_len = k.len() as u32;
-            let val_len = v.len() as u32;
+//             let key_len = k.len() as u32;
+//             let val_len = v.len() as u32;
 
-            unsafe {
-                (self.set_fn)(key_ptr, key_len, val_ptr, val_len);
-            }
-        }
+//             unsafe {
+//                 (self.set_fn)(key_ptr, key_len, val_ptr, val_len);
+//             }
+//         }
 
-        unsafe {
-            (self.commit_fn)();
-        }
-    }
-}
+//         unsafe {
+//             (self.commit_fn)();
+//         }
+//     }
+// }
 
 impl StatefulKVStore for ExternKV {
     fn rewind(&mut self, state: &State) {
