@@ -3,7 +3,7 @@ use crate::{
     raw::{helpers, Field, NibbleIter, NibbleWriter},
     types::AppTemplate,
 };
-use svm_layout::{DataLayout, DataLayoutBuilder, VarId};
+use svm_layout::{DataLayout, DataLayoutBuilder};
 
 /// Encodes a raw Deploy-Template.
 pub fn encode_deploy_template(template: &AppTemplate, w: &mut NibbleWriter) {

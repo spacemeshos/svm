@@ -80,6 +80,39 @@ macro_rules! to_svm_byte_array {
     }};
 }
 
+/// Validates syntactically a raw `deploy template` transaction.
+///
+/// Should be called while the transaction is in the `mempool` of the Host.
+/// In case the transaction isn't valid - the transaction should be discarded.
+///
+///
+/// # Example
+///
+/// ```rust, no_run
+/// use svm_runtime_c_api::*;
+/// use svm_common::Address;
+///
+/// let mut host = std::ptr::null_mut();
+///
+/// // allocate imports
+/// let mut imports = testing::imports_alloc(0);
+///
+/// // create runtime
+///
+/// let mut kv = std::ptr::null_mut();
+/// let res = unsafe { svm_memory_state_kv_create(&mut kv) };
+/// assert!(res.is_ok());
+///
+/// let mut runtime = std::ptr::null_mut();
+/// let mut error = svm_byte_array::default();
+///
+/// let res = unsafe { svm_memory_runtime_create(&mut runtime, kv, host, imports, &mut error) };
+/// assert!(res.is_ok());
+///
+/// let bytes = svm_byte_array::default();
+/// let _res = unsafe { svm_validate_template(runtime, bytes, &mut error) };
+/// ```
+///
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_validate_template(
@@ -99,6 +132,39 @@ pub unsafe extern "C" fn svm_validate_template(
     }
 }
 
+/// Validates syntactically a raw `spawn app` transaction.
+///
+/// Should be called while the transaction is in the `mempool` of the Host.
+/// In case the transaction isn't valid - the transaction should be discarded.
+///
+///
+/// # Example
+///
+/// ```rust, no_run
+/// use svm_runtime_c_api::*;
+/// use svm_common::Address;
+///
+/// let mut host = std::ptr::null_mut();
+///
+/// // allocate imports
+/// let mut imports = testing::imports_alloc(0);
+///
+/// // create runtime
+///
+/// let mut kv = std::ptr::null_mut();
+/// let res = unsafe { svm_memory_state_kv_create(&mut kv) };
+/// assert!(res.is_ok());
+///
+/// let mut runtime = std::ptr::null_mut();
+/// let mut error = svm_byte_array::default();
+///
+/// let res = unsafe { svm_memory_runtime_create(&mut runtime, kv, host, imports, &mut error) };
+/// assert!(res.is_ok());
+///
+/// let bytes = svm_byte_array::default();
+/// let _res = unsafe { svm_validate_app(runtime, bytes, &mut error) };
+/// ```
+///
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_validate_app(
@@ -118,7 +184,7 @@ pub unsafe extern "C" fn svm_validate_app(
     }
 }
 
-/// Parses `exec-app` raw transaction.
+/// Validates syntactically a raw `execute app` transaction.
 /// Returns the `App` address that appears in the transaction.
 ///
 /// # Example
@@ -145,8 +211,8 @@ pub unsafe extern "C" fn svm_validate_app(
 /// assert!(res.is_ok());
 ///
 /// let mut app_addr = svm_byte_array::default();
-/// let tx_bytes = svm_byte_array::default();
-/// let _res = unsafe { svm_validate_tx(&mut app_addr, runtime, tx_bytes, &mut error) };
+/// let bytes = svm_byte_array::default();
+/// let _res = unsafe { svm_validate_tx(&mut app_addr, runtime, bytes, &mut error) };
 /// ```
 ///
 #[must_use]
@@ -430,7 +496,7 @@ pub unsafe extern "C" fn svm_memory_state_kv_destroy(kv: *mut c_void) -> svm_res
 #[no_mangle]
 pub unsafe extern "C" fn svm_memory_runtime_create(
     runtime: *mut *mut c_void,
-    kv: *mut c_void,
+    state_kv: *mut c_void,
     host: *mut c_void,
     imports: *const c_void,
     _error: *mut svm_byte_array,
@@ -439,8 +505,8 @@ pub unsafe extern "C" fn svm_memory_runtime_create(
 
     let imports = helpers::cast_imports_to_wasmer_imports(imports);
 
-    let kv = svm_common::from_raw_mut(kv);
-    let mem_runtime = svm_runtime::testing::create_memory_runtime(host, kv, imports);
+    let state_kv = svm_common::from_raw_mut(state_kv);
+    let mem_runtime = svm_runtime::testing::create_memory_runtime(host, state_kv, imports);
 
     let res = box_runtime!(runtime, mem_runtime);
 
@@ -515,13 +581,13 @@ pub unsafe extern "C" fn svm_runtime_create(
 /// let mut imports = testing::imports_alloc(0);
 ///
 /// // create runtime
-/// let mut kv = std::ptr::null_mut();
-/// let res = unsafe { svm_memory_state_kv_create(&mut kv) };
+/// let mut state_kv = std::ptr::null_mut();
+/// let res = unsafe { svm_memory_state_kv_create(&mut state_kv) };
 /// assert!(res.is_ok());
 ///
 /// let mut runtime = std::ptr::null_mut();
 /// let mut error = svm_byte_array::default();
-/// let res = unsafe { svm_memory_runtime_create(&mut runtime, kv, host, imports, &mut error) };
+/// let res = unsafe { svm_memory_runtime_create(&mut runtime, state_kv, host, imports, &mut error) };
 /// assert!(res.is_ok());
 ///
 /// // deploy template
@@ -612,14 +678,14 @@ pub unsafe extern "C" fn svm_deploy_template(
 ///
 /// // create runtime
 //
-/// let mut kv = std::ptr::null_mut();
-/// let res = unsafe { svm_memory_state_kv_create(&mut kv) };
+/// let mut state_kv = std::ptr::null_mut();
+/// let res = unsafe { svm_memory_state_kv_create(&mut state_kv) };
 /// assert!(res.is_ok());
 ///
 /// let mut runtime = std::ptr::null_mut();
 /// let mut error = svm_byte_array::default();
 ///
-/// let res = unsafe { svm_memory_runtime_create(&mut runtime, kv, host, imports, &mut error) };
+/// let res = unsafe { svm_memory_runtime_create(&mut runtime, state_kv, host, imports, &mut error) };
 /// assert!(res.is_ok());
 ///
 /// let mut app_receipt = svm_byte_array::default();
@@ -710,18 +776,18 @@ pub unsafe extern "C" fn svm_spawn_app(
 ///
 /// // create runtime
 ///
-/// let mut kv = std::ptr::null_mut();
-/// let res = unsafe { svm_memory_state_kv_create(&mut kv) };
+/// let mut state_kv = std::ptr::null_mut();
+/// let res = unsafe { svm_memory_state_kv_create(&mut state_kv) };
 /// assert!(res.is_ok());
 ///
 /// let mut runtime = std::ptr::null_mut();
 /// let mut error = svm_byte_array::default();
 ///
-/// let res = unsafe { svm_memory_runtime_create(&mut runtime, kv, host, imports, &mut error) };
+/// let res = unsafe { svm_memory_runtime_create(&mut runtime, state_kv, host, imports, &mut error) };
 /// assert!(res.is_ok());
 ///
 /// let mut exec_receipt = svm_byte_array::default();
-/// let tx_bytes = svm_byte_array::default();
+/// let bytes = svm_byte_array::default();
 /// let state = State::empty().into();
 /// let host_ctx = svm_byte_array::default();
 /// let gas_metering = false;
@@ -731,7 +797,7 @@ pub unsafe extern "C" fn svm_spawn_app(
 ///   svm_exec_app(
 ///     &mut exec_receipt,
 ///     runtime,
-///     tx_bytes,
+///     bytes,
 ///     state,
 ///     host_ctx,
 ///     gas_metering,
@@ -811,13 +877,13 @@ pub unsafe extern "C" fn svm_instance_context_host_get(ctx: *mut c_void) -> *mut
 ///
 /// // create runtime
 ///
-/// let mut kv = std::ptr::null_mut();
-/// let res = unsafe { svm_memory_state_kv_create(&mut kv) };
+/// let mut state_kv = std::ptr::null_mut();
+/// let res = unsafe { svm_memory_state_kv_create(&mut state_kv) };
 /// assert!(res.is_ok());
 ///
 /// let mut runtime = std::ptr::null_mut();
 /// let mut error = svm_byte_array::default();
-/// let res = unsafe { svm_memory_runtime_create(&mut runtime, kv, host, imports, &mut error) };
+/// let res = unsafe { svm_memory_runtime_create(&mut runtime, state_kv, host, imports, &mut error) };
 /// assert!(res.is_ok());
 ///
 /// // destroy runtime

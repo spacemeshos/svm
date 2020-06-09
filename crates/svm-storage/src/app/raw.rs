@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
 use svm_common::State;
-use svm_kv::traits::RawKV;
 
 use super::AppKVStore;
 
@@ -84,7 +83,7 @@ impl RawStorage {
             self.app_kv.set(k, v);
         }
 
-        self.app_kv.checkpoint();
+        let _state = self.app_kv.checkpoint();
 
         self.app_kv.flush();
     }

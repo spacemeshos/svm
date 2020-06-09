@@ -71,13 +71,6 @@ struct Node {
 }
 
 impl Node {
-    fn empty() -> Self {
-        Self {
-            data: HashMap::new(),
-            parent: State::empty(),
-        }
-    }
-
     fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
         self.data.get(key).map(|v| v.to_vec())
     }
@@ -236,6 +229,7 @@ impl FakeKV {
         State::from(&bytes[..])
     }
 
+    #[allow(unused)]
     fn journal_state_transition(&self, state: &State) -> Option<State> {
         for (i, (checkpoint, _changes)) in self.journal.iter().enumerate() {
             match checkpoint {
@@ -288,13 +282,13 @@ impl FakeKV {
         while state.is_empty() == false {
             let node = self.flushed.get(&state).unwrap();
 
-            write!(f, "state: {}", &fmt_state(state));
+            write!(f, "state: {}", &fmt_state(state))?;
 
             for (k, v) in node.data.iter() {
                 let k = fmt_hex(k, ", ");
                 let v = fmt_hex(v, ", ");
 
-                write!(f, "{} -> {}", k, v);
+                write!(f, "{} -> {}", k, v)?;
             }
 
             state = &node.parent;
@@ -304,12 +298,13 @@ impl FakeKV {
     }
 
     fn fmt_journal<W: fmt::Write>(&self, f: &mut W) -> fmt::Result {
-        for (checkpoint, changes) in self.journal.iter() {
+        for (checkpoint, _changes) in self.journal.iter() {
             match checkpoint {
                 Some(checkpoint) => write!(f, "CHECKPOINT: {}", fmt_state(checkpoint)),
                 None => write!(f, "CHECKPOINT: WIP"),
-            };
+            }?;
         }
+
         Ok(())
     }
 }
