@@ -437,6 +437,7 @@ pub unsafe extern "C" fn svm_ffi_kv_create(
         set_fn,
         discard_fn,
         checkpoint_fn,
+        head: None,
     };
 
     let ffi_kv = Rc::new(RefCell::new(ffi_kv));

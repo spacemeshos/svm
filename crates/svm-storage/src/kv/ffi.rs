@@ -29,12 +29,16 @@ pub type SetFn = unsafe extern "C" fn(*const u8, u32, *const u8, u32);
 
 /// # Discard
 ///
-/// ...
+/// Notifies the `Host` to discard the current executed transaction changes.
 pub type DiscardFn = unsafe extern "C" fn();
 
 /// # Checkpoint
 ///
-/// ...
+/// Notifies the `Host` to checkpoint key-value `State`.
+/// Returns the `State` derived for the checkpoint.
+///
+/// Computing a checkpoint doesn't guarantee that the pendind changes and checkpoint
+/// have been persisted. It's up to the `Host` to determine when to save data for long-term usage.
 pub type CheckpointFn = unsafe extern "C" fn(*mut u8);
 
 /// `ExternKV` holds pointers to FFI functions for an external key-value store.
@@ -51,6 +55,10 @@ pub struct ExternKV {
 
     /// A function-pointer for a key-value store `Checkpoint`
     pub checkpoint_fn: CheckpointFn,
+
+    /// The current `State` (optional).
+    /// used for testing/development/tracing purposes.
+    pub head: Option<State>,
 }
 
 impl StatefulKV for ExternKV {
@@ -86,23 +94,36 @@ impl StatefulKV for ExternKV {
     }
 
     fn discard(&mut self) {
-        //
+        unsafe {
+            (self.discard_fn)();
+        }
     }
 
     fn flush(&mut self) {
-        // do nothing
+        // Do nothing.
+        //
+        // This implementation of `StatefulKV` is unique in the sense
+        // that it's the responsibility of the so-called `Host` to decide
+        // on when to actually persist data.
     }
 
     fn checkpoint(&mut self) -> State {
-        todo!()
+        unsafe {
+            (self.checkpoint_fn)(BUF.as_mut_ptr());
+
+            State::from(BUF.as_ptr())
+        }
     }
 
     fn rewind(&mut self, _state: &State) {
-        // do nothing
+        // This method isn't supposed to be called (only for tesing purposes)
+        // since it's the role of the `Host` to manage to current  `State` of an key-value.
     }
 
     #[must_use]
     fn head(&self) -> State {
-        unreachable!()
+        // This method is supposed to be called only for testing/development/tracing purposes.
+
+        self.head.clone().unwrap()
     }
 }
