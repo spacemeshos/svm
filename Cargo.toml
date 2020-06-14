@@ -62,6 +62,7 @@ svm-kv = { path = "crates/svm-kv" }
 svm-gas = { path = "crates/svm-gas" }
 svm-abi = { path = "crates/svm-abi" }
 svm-app = { path = "crates/svm-app" }
+svm-codec = { path = "crates/svm-codec" }
 svm-layout = { path = "crates/svm-layout" }
 svm-storage = { path = "crates/svm-storage" }
 svm-compiler = { path = "crates/svm-compiler" }
@@ -75,6 +76,8 @@ wabt = "0.7.4"
 members = [
   "crates/svm-abi",
   "crates/svm-app",
+  "crates/svm-codec",
+  "crates/svm-types",
   "crates/svm-common",
   "crates/svm-kv",
   "crates/svm-layout",
