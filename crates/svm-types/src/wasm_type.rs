@@ -13,7 +13,7 @@ pub enum WasmType {
 /// Converts `WasmType` to its raw representation
 ///
 /// ```
-/// use svm_app::types::WasmType;
+/// use svm_types::WasmType;
 ///
 /// let ty: u8 = WasmType::I32.into();
 /// assert_eq!(ty, 0u8);
@@ -48,7 +48,7 @@ pub enum WasmTypeError {
 ///
 /// ```
 /// use std::convert::TryFrom;
-/// use svm_app::types::{WasmType, WasmTypeError};
+/// use svm_types::{WasmType, WasmTypeError};
 ///
 /// let ty = WasmType::try_from(0u8).unwrap();
 /// assert_eq!(ty, WasmType::I32);

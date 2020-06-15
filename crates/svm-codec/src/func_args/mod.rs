@@ -6,10 +6,10 @@ pub use encoder::{encode_func_args, encode_func_rets};
 
 #[cfg(test)]
 mod tests {
-    use crate::types::WasmValue;
+    use svm_types::WasmValue;
 
-    use super::super::{NibbleIter, NibbleWriter};
-    use super::{decode_func_args, encode_func_args};
+    use crate::{decode_func_args, encode_func_args};
+    use crate::{NibbleIter, NibbleWriter};
 
     fn assert_encode_decode(args: Vec<WasmValue>) {
         let mut w = NibbleWriter::new();

@@ -76,9 +76,10 @@ fn decode_func_index(iter: &mut NibbleIter) -> Result<u16, ParseError> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     use svm_common::Address;
+    use svm_types::{AppTransaction, WasmValue};
+
+    use crate::{decode_exec_app, encode_exec_app, NibbleIter, NibbleWriter};
 
     #[test]
     fn encode_decode_exec_app() {

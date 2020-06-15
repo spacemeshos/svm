@@ -67,9 +67,10 @@ fn decode_values_layout(iter: &mut NibbleIter) -> Result<Vec<WasmValueLayout>, P
 #[cfg(test)]
 mod tests {
     use super::*;
+
     use crate::{
         nib,
-        raw::{concat_nibbles, wasm::*, Nibble},
+        {concat_nibbles, wasm::*, Nibble},
     };
 
     fn assert_func_args(nibbles: Vec<Nibble>, expected: Vec<WasmValue>) {

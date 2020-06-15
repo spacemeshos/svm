@@ -24,7 +24,7 @@ impl WasmValue {
 /// Returns the `WasmValue` internal integer as `u64`.
 ///
 /// ```
-/// use svm_app::types::WasmValue;
+/// use svm_types::WasmValue;
 ///
 /// assert_eq!(10u64, WasmValue::I32(10).into());
 /// assert_eq!(20u64, WasmValue::I64(20).into());
@@ -49,7 +49,7 @@ impl From<WasmValue> for u64 {
 /// Given a tuple of `WasmType` and `u64` - returns `WasmValue`.
 ///
 /// ```
-/// use svm_app::types::{WasmType, WasmValue};
+/// use svm_types::{WasmType, WasmValue};
 ///
 /// assert_eq!(WasmValue::I32(10), (WasmType::I32, 10u64).into());
 /// assert_eq!(WasmValue::I64(20), (WasmType::I64, 20u64).into());

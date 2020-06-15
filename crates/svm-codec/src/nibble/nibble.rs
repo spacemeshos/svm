@@ -37,7 +37,7 @@ impl Nibble {
     /// # Example
     ///
     /// ```rust
-    /// use svm_app::raw::Nibble;
+    /// use svm_codec::Nibble;
     ///
     /// let nib = Nibble::new(0b_0000_1000);
     /// assert!(nib.is_msb_on());
@@ -53,7 +53,7 @@ impl Nibble {
     /// # Example
     ///
     /// ```rust
-    /// use svm_app::raw::Nibble;
+    /// use svm_codec::Nibble;
     ///
     /// let nib = Nibble::new(0b_0000_0001);
     /// assert!(nib.is_msb_off());
@@ -68,7 +68,7 @@ impl Nibble {
     /// # Example
     ///
     /// ```rust
-    /// use svm_app::raw::Nibble;
+    /// use svm_codec::Nibble;
     ///
     /// let nib = Nibble::new(0b_0000_1001);
     /// assert_eq!([true, false, false, true], nib.bits());
