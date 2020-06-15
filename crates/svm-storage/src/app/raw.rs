@@ -1,11 +1,10 @@
 use std::collections::HashMap;
 
 use svm_common::State;
-use svm_kv::traits::KVStore;
 
 use super::AppKVStore;
 
-use crate::kv::StatefulKVStore;
+use crate::kv::StatefulKV;
 
 /// Interface against the key-value store.
 /// Data is manipulated using `offset` and `length`.
@@ -80,9 +79,13 @@ impl RawStorage {
             raw_changes.push((raw_key, raw_value));
         }
 
-        let raw_changes: Vec<_> = raw_changes.iter().map(|(k, v)| (&k[..], &v[..])).collect();
+        for (k, v) in raw_changes.iter() {
+            self.app_kv.set(k, v);
+        }
 
-        self.app_kv.store(&raw_changes);
+        let _state = self.app_kv.checkpoint();
+
+        self.app_kv.flush();
     }
 
     #[inline]

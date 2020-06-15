@@ -85,15 +85,15 @@ unsafe fn test_svm_runtime() {
 
     // 1) init runtime
     let host = std::ptr::null_mut();
-    let mut raw_kv = std::ptr::null_mut();
+    let mut state_kv = std::ptr::null_mut();
     let mut runtime = std::ptr::null_mut();
     let imports = create_imports();
     let mut error = svm_byte_array::default();
 
-    let res = api::svm_memory_kv_create(&mut raw_kv);
+    let res = api::svm_memory_state_kv_create(&mut state_kv);
     assert!(res.is_ok());
 
-    let res = api::svm_memory_runtime_create(&mut runtime, raw_kv, host, imports, &mut error);
+    let res = api::svm_memory_runtime_create(&mut runtime, state_kv, host, imports, &mut error);
 
     assert!(res.is_ok());
 
@@ -217,5 +217,5 @@ unsafe fn test_svm_runtime() {
     let _ = api::svm_byte_array_destroy(exec_receipt);
     let _ = api::svm_imports_destroy(imports);
     let _ = api::svm_runtime_destroy(runtime);
-    let _ = api::svm_memory_kv_destroy(raw_kv);
+    let _ = api::svm_memory_state_kv_destroy(state_kv);
 }

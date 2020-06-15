@@ -6,8 +6,6 @@ use crate::{
     types::{AppTemplate, AuthorAddr},
 };
 
-use svm_layout::DataLayout;
-
 /// `AppTemplate` default Serializer
 pub struct DefaultAppTemplateSerializer;
 

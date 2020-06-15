@@ -16,7 +16,7 @@ use svm_common::{Address, State};
 use svm_layout::DataLayout;
 use svm_storage::{
     app::{AppKVStore, AppStorage},
-    kv::{FakeKV, StatefulKVStore},
+    kv::{FakeKV, StatefulKV},
 };
 use wasmer_runtime_core::{export::Export, import::ImportObject, Instance, Module};
 
@@ -72,8 +72,8 @@ pub fn app_memory_state_creator(
     gas_limit: MaybeGas,
     layout: &DataLayout,
 ) -> (*mut c_void, fn(*mut c_void)) {
-    let raw_kv = memory_kv_store_init();
-    let app_kv = AppKVStore::new(app_addr.clone(), &raw_kv);
+    let state_kv = memory_state_kv_init();
+    let app_kv = AppKVStore::new(app_addr.clone(), &state_kv);
 
     let storage = AppStorage::new(layout.clone(), app_kv);
     debug_assert_eq!(storage.head(), State::empty());
@@ -87,18 +87,19 @@ pub fn app_memory_state_creator(
     (data, dtor)
 }
 
-/// Initializes a new in-memory key-value store.
-pub fn memory_kv_store_init() -> Rc<RefCell<dyn StatefulKVStore>> {
+/// Returns a new in-memory stateful-kv.
+/// It should be used for managing apps' storage.
+pub fn memory_state_kv_init() -> Rc<RefCell<dyn StatefulKV>> {
     Rc::new(RefCell::new(FakeKV::new()))
 }
 
 /// Creates an in-memory `Runtime` backed by key-value, raw pointer to host and host vmcalls (`imports`)
 pub fn create_memory_runtime(
     host: *mut c_void,
-    raw_kv: &Rc<RefCell<dyn StatefulKVStore>>,
+    state_kv: &Rc<RefCell<dyn StatefulKV>>,
     imports: Vec<(String, String, Export)>,
 ) -> DefaultRuntime<DefaultMemoryEnv, DefaultGasEstimator> {
-    let storage_builder = runtime_memory_storage_builder(raw_kv);
+    let storage_builder = runtime_memory_storage_builder(state_kv);
 
     let env = runtime_memory_env_builder();
     let kv_path = Path::new("mem");
@@ -108,15 +109,16 @@ pub fn create_memory_runtime(
 
 /// Returns a function (wrapped inside `Box`) that initializes an App's storage client.
 pub fn runtime_memory_storage_builder(
-    raw_kv: &Rc<RefCell<dyn StatefulKVStore>>,
+    state_kv: &Rc<RefCell<dyn StatefulKV>>,
 ) -> Box<StorageBuilderFn> {
-    let raw_kv = Rc::clone(raw_kv);
+    let state_kv = Rc::clone(state_kv);
 
     let func = move |app_addr: &AppAddr, state: &State, layout: &DataLayout, _config: &Config| {
         let app_addr = app_addr.inner();
-        let app_kv = AppKVStore::new(app_addr.clone(), &raw_kv);
+        let app_kv = AppKVStore::new(app_addr.clone(), &state_kv);
 
         let mut storage = AppStorage::new(layout.clone(), app_kv);
+
         storage.rewind(state);
 
         storage

@@ -1,11 +1,69 @@
 use std::collections::HashMap;
+use std::fmt;
 
-use super::super::StatefulKVStore;
+use super::super::StatefulKV;
 
-use svm_common::{DefaultKeyHasher, KeyHasher, State};
-use svm_kv::traits::KVStore;
+use svm_common::{fmt::fmt_hex, DefaultKeyHasher, KeyHasher, State};
+
+/// `FakeKV` is a naive implementation for an in-memory stateful key-value store.
+///
+/// Should be used only for testing and development purposes.
+///
+/// At any given point there are two pieces of data:
+///
+/// * `flushed` - represents a fake persisted data.
+///
+///  The data-structure is similar to how git tree works (in a very high-level).
+///  The current `State` is pointed by `head` and each `Node` has its own data and a pointer
+///  to the previous `State`.
+///
+///  So when searching for a key `K` we first look under the internal data stored by S_n',
+///  If there's a matching value `V` we're done. Otherwise, we move to S_n' parent and so on.
+///  If we reach the `S0` (zero state) then it means there is no value for key `K`.
+///
+///   `head`
+///     |
+///     |
+///    \-/
+///  S_n' (last)  -------- parent -------->  S_n   -------- . . . -------->  S0 = 0...0 (first)
+///     data                                 data                              data
+///   (k1, v1')                            (k1, v1)                           (empty)                          
+///   (k2, v2)                             (k4, v4)
+///   (k3, v3)
+///
+/// * `journal` - a vector of unflushed changes.
+///
+///   Each vector item consists of a 2-item tuple.
+///   The first tuple item holds the checkpoint `State`. This is optional since the last uncheckpointed-yet
+///   changes has no checkpoint `State` yet. It will be determined only after finalizing the next checkpoint.
+///   Besides that "un-checkpoint" yet one, all previous `State` have a value. (i.e they are `Some(State)`).
+///   with a single checkpoint.
+///
+///   The second tuple item contains the changeset of the checkpoint. Each `Change` is a `(key, value)` tuple.
+///
+///
+/// ## Looking for a key's value
+///
+/// First we search under the unflushed data - the `journal`.
+/// We scan the journal in reverse order, from the current unfinalized checkpoint to the previous checkpoint and so on.
+/// For each checkpoint we scan its entries list of changes in reverse order.
+///
+/// If we find a matching value we halt and return the found value.
+/// If we've reached the end of the journal then we move to the `unflushed` (see detailed explanation above).
+///
+pub struct FakeKV {
+    head: State,
+
+    flushed_head: State,
+
+    flushed: HashMap<State, Node>,
+
+    journal: Vec<(Option<State>, Vec<Change>)>,
+}
 
 #[derive(Debug)]
+struct Change(Vec<u8>, Vec<u8>);
+
 struct Node {
     parent: State,
 
@@ -13,70 +71,78 @@ struct Node {
 }
 
 impl Node {
-    fn empty() -> Self {
-        Self {
-            data: HashMap::new(),
-            parent: State::empty(),
-        }
-    }
-
     fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
         self.data.get(key).map(|v| v.to_vec())
     }
 }
 
-/// `FakeKV` is a naive implementation for an in-memory key-value store.
-/// It is also `State` aware, so it implements the `StatefulKVStore` trait.
-///
-/// Should be used only for testing and developement purposes.
-pub struct FakeKV {
-    head: State,
-
-    refs: HashMap<State, Node>,
-}
-
-impl KVStore for FakeKV {
+impl StatefulKV for FakeKV {
     #[must_use]
     fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
-        let zeros = State::empty();
-
-        let mut state = &self.head;
-
-        loop {
-            if state.as_slice() == zeros.as_slice() {
-                return None;
-            }
-
-            let node = self.refs.get(&state).unwrap();
-
-            match node.get(key) {
-                None => state = &node.parent,
-                Some(v) => return Some(v),
-            }
-        }
+        self.get_journal(key).or_else(|| self.get_flushed(key))
     }
 
-    fn store(&mut self, changes: &[(&[u8], &[u8])]) {
-        let changes: HashMap<_, _> = changes
-            .iter()
-            .map(|(k, v)| (k.to_vec(), v.to_vec()))
-            .collect();
+    fn set(&mut self, key: &[u8], value: &[u8]) {
+        let key = key.to_vec();
+        let value = value.to_vec();
+        let change = Change(key, value);
 
-        let old_state = &self.head;
-        let new_state = self.compute_state(&changes, old_state);
+        let (_, changes) = self.journal.last_mut().unwrap();
+        changes.push(change);
+    }
 
-        let mut node = Node::empty();
-        node.data = changes;
-        node.parent = old_state.clone();
+    fn discard(&mut self) {
+        let (maybe_state, changes) = self.journal.last_mut().unwrap();
+        matches!(maybe_state, None);
+
+        changes.clear();
+    }
+
+    fn flush(&mut self) {
+        let (_, changes) = self.journal.last_mut().unwrap();
+        assert_eq!(changes.len(), 0);
+
+        let n = self.journal.len();
+        assert!(n > 0);
+
+        let mut parent = self.flushed_head.clone();
+
+        for (state, changes) in &self.journal[0..n - 1] {
+            let node = self.make_node(parent.clone(), changes);
+
+            let node_state = state.as_ref().unwrap().clone();
+            self.flushed.insert(node_state, node);
+
+            parent = state.clone().unwrap();
+        }
+
+        self.flushed_head = parent;
+
+        self.journal = vec![(None, Vec::new())];
+
+        self.assert_journal_empty();
+    }
+
+    #[must_use]
+    fn checkpoint(&mut self) -> State {
+        let (_, changes) = self.journal.last().unwrap();
+        let new_state = self.compute_state(&changes);
+
+        let (maybe_state, _) = self.journal.last_mut().unwrap();
+        matches!(maybe_state, None);
+        maybe_state.replace(new_state.clone());
 
         self.head = new_state.clone();
-        self.refs.insert(new_state, node);
-    }
-}
+        self.journal.push((None, Vec::new()));
 
-impl StatefulKVStore for FakeKV {
+        new_state
+    }
+
     fn rewind(&mut self, state: &State) {
+        self.assert_journal_empty();
+
         self.head = state.clone();
+        self.flushed_head = self.head();
     }
 
     #[must_use]
@@ -90,28 +156,156 @@ impl FakeKV {
     pub fn new() -> Self {
         Self {
             head: State::empty(),
-            refs: HashMap::new(),
+            flushed_head: State::empty(),
+            flushed: HashMap::new(),
+            journal: vec![(None, Vec::new())],
         }
     }
 
-    fn compute_state(&self, changes: &HashMap<Vec<u8>, Vec<u8>>, old_state: &State) -> State {
-        let capacity = changes
+    fn get_journal(&self, key: &[u8]) -> Option<Vec<u8>> {
+        for (_state, changes) in self.journal.iter().rev() {
+            for change in changes.iter().rev() {
+                if change.0 == key {
+                    let value = change.1.to_vec();
+                    return Some(value);
+                }
+            }
+        }
+
+        None
+    }
+
+    fn get_flushed(&self, key: &[u8]) -> Option<Vec<u8>> {
+        let mut state = &self.head;
+
+        loop {
+            if state.is_empty() {
+                return None;
+            }
+
+            let node = self.flushed.get(&state).unwrap();
+
+            match node.get(key) {
+                None => state = &node.parent,
+                Some(v) => return Some(v),
+            }
+        }
+    }
+
+    fn make_node(&self, parent: State, changes: &[Change]) -> Node {
+        let data = changes
             .iter()
-            .fold(State::len(), |acc, (k, v)| acc + k.len() + v.len());
+            .map(|c| {
+                let k = c.0.to_vec();
+                let v = c.1.to_vec();
+
+                (k, v)
+            })
+            .collect();
+
+        Node { parent, data }
+    }
+
+    fn compute_state(&self, changes: &[Change]) -> State {
+        let capacity = changes.iter().fold(State::len(), |acc, change| {
+            let k = &change.0;
+            let v = &change.1;
+
+            acc + k.len() + v.len()
+        });
 
         let mut buf = Vec::with_capacity(capacity);
 
-        buf.extend_from_slice(old_state.as_slice());
+        buf.extend_from_slice(self.head.as_slice());
 
-        for (k, v) in changes.iter() {
-            buf.extend_from_slice(k);
-            buf.extend_from_slice(v);
+        for change in changes.iter() {
+            buf.extend_from_slice(&change.0);
+            buf.extend_from_slice(&change.1);
         }
 
         let bytes = DefaultKeyHasher::hash(&buf);
-        debug_assert_eq!(bytes.len(), State::len());
+        assert_eq!(bytes.len(), State::len());
 
         State::from(&bytes[..])
+    }
+
+    #[allow(unused)]
+    fn journal_state_transition(&self, state: &State) -> Option<State> {
+        for (i, (checkpoint, _changes)) in self.journal.iter().enumerate() {
+            match checkpoint {
+                None => return None,
+                Some(checkpoint) => {
+                    if checkpoint.as_slice() == state.as_slice() {
+                        let next = i + 1;
+
+                        let (next_state, _) = &self.journal[next];
+
+                        return next_state.as_ref().cloned();
+                    }
+                }
+            }
+        }
+
+        unreachable!()
+    }
+
+    fn assert_journal_empty(&self) {
+        assert_eq!(self.journal.len(), 1);
+
+        let (maybe_state, changes) = self.journal.last().unwrap();
+
+        assert_eq!(changes.len(), 0);
+        matches!(maybe_state, None);
+    }
+}
+
+impl fmt::Debug for FakeKV {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut flushed_buf = String::new();
+        let mut journal_buf = String::new();
+
+        self.fmt_flushed(&mut flushed_buf)?;
+        self.fmt_journal(&mut journal_buf)?;
+
+        f.debug_struct("FakeKV")
+            .field("HEAD", &fmt_state(&self.head))
+            .field("flushed", &flushed_buf)
+            .field("joural", &journal_buf)
+            .finish()
+    }
+}
+
+impl FakeKV {
+    fn fmt_flushed<W: fmt::Write>(&self, f: &mut W) -> fmt::Result {
+        let mut state = &self.head;
+
+        while state.is_empty() == false {
+            let node = self.flushed.get(&state).unwrap();
+
+            write!(f, "state: {}", &fmt_state(state))?;
+
+            for (k, v) in node.data.iter() {
+                let k = fmt_hex(k, ", ");
+                let v = fmt_hex(v, ", ");
+
+                write!(f, "{} -> {}", k, v)?;
+            }
+
+            state = &node.parent;
+        }
+
+        Ok(())
+    }
+
+    fn fmt_journal<W: fmt::Write>(&self, f: &mut W) -> fmt::Result {
+        for (checkpoint, _changes) in self.journal.iter() {
+            match checkpoint {
+                Some(checkpoint) => write!(f, "CHECKPOINT: {}", fmt_state(checkpoint)),
+                None => write!(f, "CHECKPOINT: WIP"),
+            }?;
+        }
+
+        Ok(())
     }
 }
 
@@ -119,6 +313,12 @@ impl Drop for FakeKV {
     fn drop(&mut self) {
         dbg!("Dropping `FakeKV`");
     }
+}
+
+fn fmt_state(state: &State) -> String {
+    let bytes = &state.as_slice();
+
+    fmt_hex(&bytes[0..6], "")
 }
 
 #[cfg(test)]
@@ -129,9 +329,15 @@ mod tests {
         ($kv:ident, $( ($k:expr => $v:expr), )* ) => {{
             let changes = vec![$( (&$k[..], &$v[..]), )*];
 
-            $kv.store(&changes[..]);
+            for (k, v) in changes.iter() {
+                $kv.set(k, v);
+            }
 
-            $kv.head()
+            let state = $kv.checkpoint();
+
+            $kv.flush();
+
+            state
         }};
     }
 
@@ -155,9 +361,16 @@ mod tests {
 
     macro_rules! assert_transition {
         ($kv:ident, $s1:expr => $s2:expr) => {{
-            let node2 = $kv.refs.get(&$s2).unwrap();
+            match $kv.flushed.get(&$s2) {
+                Some(node2) => {
+                    assert_eq!(node2.parent.as_slice(), $s1.as_slice());
+                }
+                None => {
+                    let s2 = $kv.journal_state_transition(&$s1).unwrap();
 
-            assert_eq!(node2.parent.as_slice(), $s1.as_slice());
+                    assert_eq!($s2.as_slice(), s2.as_slice());
+                }
+            }
         }};
     }
 

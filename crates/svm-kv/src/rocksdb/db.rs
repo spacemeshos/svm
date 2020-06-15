@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use crate::traits::KVStore;
+use crate::traits::RawKV;
 
 use log::info;
 
@@ -20,7 +20,7 @@ impl Rocksdb {
     }
 }
 
-impl KVStore for Rocksdb {
+impl RawKV for Rocksdb {
     #[allow(clippy::match_wild_err_arm)]
     fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
         match self.db.get(&key) {
@@ -32,7 +32,7 @@ impl KVStore for Rocksdb {
         }
     }
 
-    fn store(&mut self, changes: &[(&[u8], &[u8])]) {
+    fn set(&mut self, changes: &[(&[u8], &[u8])]) {
         let mut batch = rocksdb::WriteBatch::default();
 
         for (k, v) in changes {
@@ -69,7 +69,7 @@ mod tests {
         let val = vec![40, 50, 60];
 
         let change = (&key[..], &val[..]);
-        db.store(&[change]);
+        db.set(&[change]);
 
         let v = db.get(&key).unwrap();
         assert_eq!(val, v);
