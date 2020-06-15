@@ -8,7 +8,7 @@ use svm_common::State;
 pub trait StatefulKV {
     /// Gets the `value` pointed by by `key`.
     ///
-    /// If there's a matchikg pending `value` (i.e not flushed yet) it should be returned.
+    /// If there's a matching pending `value` (i.e not flushed yet) it should be returned.
     /// Otherwise, should proceed looking for `key -> value` under the persisted data.
     ///
     /// In case there is no matching `value`, `None` should be returned.
@@ -27,7 +27,7 @@ pub trait StatefulKV {
 
     /// Discards all pending changes
     ///
-    /// This functionality is useful when an execetud application transaction has failed.
+    /// This functionality is useful when an executed application transaction has failed.
     /// When that happens, we want to discard its changes.
     ///
     /// All the pending changes since the last `checkpoint` will be discarded.
