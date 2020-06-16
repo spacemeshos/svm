@@ -991,6 +991,7 @@ dependencies = [
  "bit-vec",
  "byteorder",
  "maplit",
+ "serde_json",
  "svm-common",
  "svm-layout",
  "svm-types",

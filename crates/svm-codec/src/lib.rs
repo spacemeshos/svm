@@ -2,6 +2,7 @@
 #![allow(unused)]
 #![allow(dead_code)]
 #![allow(unreachable_code)]
+#![feature(vec_into_raw_parts)]
 
 mod app;
 mod error;
@@ -18,6 +19,7 @@ mod version;
 #[macro_use]
 mod nibble;
 
+pub mod api;
 pub mod helpers;
 pub mod traits;
 pub mod wasm;
