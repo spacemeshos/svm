@@ -50,17 +50,16 @@ pub fn alloc(length: usize) -> usize {
 }
 
 pub fn free(ptr: usize) {
-    let ptr = ptr as *mut u8;
-
     let len = read_header_u32(ptr, 0);
     let cap = read_header_u32(ptr, 4);
 
     let len = len as usize + HEADER_SIZE;
     let cap = cap as usize + HEADER_SIZE;
 
-    let _vec = unsafe { Vec::from_raw_parts(ptr, len, cap) };
+    let _vec = unsafe { Vec::from_raw_parts(ptr as *mut u8, len, cap) };
 }
 
+#[inline]
 fn write_header_u32(buf: *mut u8, n: u32, off: usize) {
     unsafe {
         let ptr = buf.add(off);
@@ -70,13 +69,29 @@ fn write_header_u32(buf: *mut u8, n: u32, off: usize) {
     }
 }
 
-fn read_header_u32(buf: *mut u8, off: usize) -> u32 {
+#[inline]
+fn read_header_u32(buf: usize, off: usize) -> u32 {
     unsafe {
+        let buf = buf as *const u8;
         let ptr = buf.add(off);
         let slice = std::slice::from_raw_parts(ptr, 4);
 
         BigEndian::read_u32(slice)
     }
+}
+
+pub fn wasm_buffer<'a>(ptr: usize) -> &'a [u8] {
+    let len = read_header_u32(ptr, 0);
+    let len = len as usize + HEADER_SIZE;
+
+    unsafe { std::slice::from_raw_parts(ptr as *const u8, len) }
+}
+
+pub fn wasm_buffer_mut<'a>(ptr: usize) -> &'a mut [u8] {
+    let len = read_header_u32(ptr, 0);
+    let len = len as usize + HEADER_SIZE;
+
+    unsafe { std::slice::from_raw_parts_mut(ptr as *mut u8, len) }
 }
 
 #[cfg(test)]
@@ -88,10 +103,9 @@ mod test {
         let data: &'static [u8] = b"Hello World";
         let len = data.len();
 
-        let buf_ptr = alloc(len) as *mut u8;
-        let buf_len = HEADER_SIZE + len;
+        let buf_ptr = alloc(len);
 
-        let buf: &mut [u8] = unsafe { std::slice::from_raw_parts_mut(buf_ptr, buf_len) };
+        let buf: &mut [u8] = wasm_buffer_mut(buf_ptr);
 
         let src = data.as_ptr();
         let dst = buf.as_mut_ptr();
@@ -108,6 +122,6 @@ mod test {
         assert_eq!(&buf[HEADER_SIZE..(HEADER_SIZE + len)], b"Hello World");
 
         // freeing the buffer
-        free(buf_ptr as usize);
+        free(buf_ptr);
     }
 }

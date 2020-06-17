@@ -7,6 +7,9 @@
 #[macro_use]
 mod nibble;
 
+#[macro_use]
+mod wasm;
+
 mod api;
 mod app;
 mod error;
@@ -21,7 +24,6 @@ mod traits;
 mod transaction;
 mod varuint14;
 mod version;
-mod wasm;
 
 use app::{decode_spawn_app, encode_spawn_app, DefaultAppDeserializer, DefaultAppSerializer};
 use error::ParseError;
