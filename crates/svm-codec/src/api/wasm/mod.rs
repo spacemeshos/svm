@@ -1,3 +1,5 @@
+mod deploy_template;
+mod exec_app;
 mod spawn_app;
 
 use byteorder::{BigEndian, ByteOrder};
@@ -92,6 +94,21 @@ pub fn wasm_buffer_mut<'a>(ptr: usize) -> &'a mut [u8] {
     let len = len as usize + HEADER_SIZE;
 
     unsafe { std::slice::from_raw_parts_mut(ptr as *mut u8, len) }
+}
+
+pub fn into_wasm_buffer(vec: Vec<u8>) -> usize {
+    let buf_ptr = alloc(vec.len());
+
+    let buf: &mut [u8] = wasm_buffer_mut(buf_ptr);
+
+    let src = vec.as_ptr();
+    let dst = buf.as_mut_ptr();
+
+    unsafe {
+        std::ptr::copy(src, dst.add(HEADER_SIZE), vec.len());
+    }
+
+    buf_ptr
 }
 
 #[cfg(test)]

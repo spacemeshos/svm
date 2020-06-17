@@ -2,7 +2,7 @@ use svm_types::SpawnApp;
 
 use serde_json::Value;
 
-pub fn spawn_app(json: &Value) -> SpawnApp {
+pub fn spawn_app(json: &Value) -> Result<SpawnApp, String> {
     todo!()
 }
 

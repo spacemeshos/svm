@@ -2,7 +2,7 @@ use svm_types::AppTransaction;
 
 use serde_json::Value;
 
-pub fn exec_app(json: &Value) -> AppTransaction {
+pub fn exec_app(json: &Value) -> Result<AppTransaction, String> {
     todo!()
 }
 
