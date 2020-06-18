@@ -15,9 +15,7 @@ use crate::{api, NibbleWriter};
 ///
 pub fn encode_exec_app(ptr: usize) -> usize {
     let slice = wasm_buffer(ptr);
-
     let json: Value = serde_json::from_slice(slice).unwrap();
-
     let tx = api::json::exec_app(&json);
     let tx = tx.unwrap();
 
