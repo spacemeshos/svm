@@ -47,10 +47,10 @@ use version::{decode_version, encode_version};
 /// If the encoding failed, the return WASM buffer will contain a JSON with the error.
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
-pub extern "C" fn wasm_deploy_template(buf_ptr: i32) -> i32 {
+pub extern "C" fn wasm_deploy_template(buf_ptr: i64) -> i64 {
     let tx_ptr = api::wasm::encode_deploy_template(buf_ptr as usize);
 
-    tx_ptr as i32
+    tx_ptr as _
 }
 
 /// ## WASM Spawn-App
@@ -62,10 +62,10 @@ pub extern "C" fn wasm_deploy_template(buf_ptr: i32) -> i32 {
 /// If the encoding failed, the return WASM buffer will contain a JSON with the error.
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
-pub extern "C" fn wasm_spawn_app(buf_ptr: i32) -> i32 {
+pub extern "C" fn wasm_spawn_app(buf_ptr: i64) -> i64 {
     let tx_ptr = api::wasm::encode_spawn_app(buf_ptr as usize);
 
-    tx_ptr as i32
+    tx_ptr as _
 }
 
 /// ## WASM Execute-App
@@ -77,10 +77,10 @@ pub extern "C" fn wasm_spawn_app(buf_ptr: i32) -> i32 {
 /// If the encoding failed, the return WASM buffer will contain a JSON with the error.
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
-pub extern "C" fn wasm_exec_app(buf_ptr: i32) -> i32 {
+pub extern "C" fn wasm_exec_app(buf_ptr: i64) -> i64 {
     let tx_ptr = api::wasm::encode_exec_app(buf_ptr as usize);
 
-    tx_ptr as i32
+    tx_ptr as _
 }
 
 /// ## WASM Buffer Allocate
@@ -90,10 +90,10 @@ pub extern "C" fn wasm_exec_app(buf_ptr: i32) -> i32 {
 /// For more info read: `api::wasm::alloc`
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
-pub extern "C" fn wasm_alloc(length: i32) -> i32 {
+pub extern "C" fn wasm_alloc(length: i64) -> i64 {
     let ptr = api::wasm::alloc(length as usize);
 
-    ptr as i32
+    ptr as _
 }
 
 /// ## WASM Buffer Free
@@ -103,6 +103,6 @@ pub extern "C" fn wasm_alloc(length: i32) -> i32 {
 /// For more info read: `api::wasm::free`
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
-pub extern "C" fn wasm_free(buf_ptr: i32) {
+pub extern "C" fn wasm_free(buf_ptr: i64) {
     api::wasm::free(buf_ptr as usize)
 }
