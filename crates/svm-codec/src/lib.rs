@@ -48,7 +48,9 @@ use version::{decode_version, encode_version};
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
 pub extern "C" fn wasm_deploy_template(buf_ptr: i32) -> i32 {
-    todo!()
+    let tx_ptr = api::wasm::encode_deploy_template(buf_ptr as usize);
+
+    tx_ptr as i32
 }
 
 /// ## WASM Spawn-App
@@ -61,7 +63,9 @@ pub extern "C" fn wasm_deploy_template(buf_ptr: i32) -> i32 {
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
 pub extern "C" fn wasm_spawn_app(buf_ptr: i32) -> i32 {
-    todo!()
+    let tx_ptr = api::wasm::encode_spawn_app(buf_ptr as usize);
+
+    tx_ptr as i32
 }
 
 /// ## WASM Execute-App
@@ -74,7 +78,9 @@ pub extern "C" fn wasm_spawn_app(buf_ptr: i32) -> i32 {
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
 pub extern "C" fn wasm_exec_app(buf_ptr: i32) -> i32 {
-    todo!()
+    let tx_ptr = api::wasm::encode_exec_app(buf_ptr as usize);
+
+    tx_ptr as i32
 }
 
 /// ## WASM Buffer Allocate

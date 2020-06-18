@@ -2,6 +2,10 @@ mod deploy_template;
 mod exec_app;
 mod spawn_app;
 
+pub use deploy_template::encode_deploy_template;
+pub use exec_app::encode_exec_app;
+pub use spawn_app::encode_spawn_app;
+
 use byteorder::{BigEndian, ByteOrder};
 
 const HEADER_LEN_OFF: usize = 0;
