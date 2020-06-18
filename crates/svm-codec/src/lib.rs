@@ -44,7 +44,7 @@ use version::{decode_version, encode_version};
 /// Encodes a `deploy-template` binary-transaction using that JSON value.
 ///
 /// Returns a pointer to a new WASM buffer holding the encoded transaction.
-/// If the encoding failed, the return WASM buffer will contain a JSON with the error.
+/// If the encoding failed, the returned WASM buffer will contain a JSON with the error.
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
 pub extern "C" fn wasm_deploy_template(buf_ptr: i64) -> i64 {
@@ -59,7 +59,7 @@ pub extern "C" fn wasm_deploy_template(buf_ptr: i64) -> i64 {
 /// Encodes a `spawn-app` binary-transaction using that JSON value.
 ///
 /// Returns a pointer to a new WASM buffer holding the encoded transaction.
-/// If the encoding failed, the return WASM buffer will contain a JSON with the error.
+/// If the encoding failed, the returned WASM buffer will contain a JSON with the error.
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
 pub extern "C" fn wasm_spawn_app(buf_ptr: i64) -> i64 {
@@ -74,7 +74,7 @@ pub extern "C" fn wasm_spawn_app(buf_ptr: i64) -> i64 {
 /// Encodes a `exec-app` binary-transaction using that JSON value.
 ///
 /// Returns a pointer to a new WASM buffer holding the encoded transaction.
-/// If the encoding failed, the return WASM buffer will contain a JSON with the error.
+/// If the encoding failed, the returned WASM buffer will contain a JSON with the error.
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
 pub extern "C" fn wasm_exec_app(buf_ptr: i64) -> i64 {
@@ -104,5 +104,5 @@ pub extern "C" fn wasm_alloc(length: i64) -> i64 {
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
 pub extern "C" fn wasm_free(buf_ptr: i64) {
-    api::wasm::free(buf_ptr as usize)
+    api::wasm::free(buf_ptr as usize);
 }
