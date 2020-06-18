@@ -88,7 +88,7 @@ pub fn free(ptr: usize) {
 }
 
 #[inline]
-fn wasm_buf_len(ptr: usize) -> usize {
+pub fn wasm_buf_len(ptr: usize) -> usize {
     read_header_u32(ptr, HEADER_LEN_OFF) as usize
 }
 
@@ -129,10 +129,21 @@ pub fn wasm_buffer<'a>(ptr: usize) -> &'a [u8] {
 /// Given a WASM buffer memory offset in `ptr` parameter,
 /// returns a '&[u8]' to its `Data` section.
 pub fn wasm_buffer_data<'a>(ptr: usize) -> &'a [u8] {
-    let len = wasm_buf_len(ptr);
-    let ptr = ptr as *const u8;
+    let (ptr, len) = wasm_buf_data_ptr(ptr);
 
-    unsafe { std::slice::from_raw_parts(ptr.add(HEADER_SIZE), len) }
+    unsafe { std::slice::from_raw_parts(ptr as *const u8, len) }
+}
+
+/// Given a WASM buffer memory offset in `ptr` parameter,
+/// Returns a 2-item tuple. The left element will be the pointer to the buffer `Data`.
+/// The right element will have the buffer `Data` length
+pub fn wasm_buf_data_ptr<'a>(ptr: usize) -> (usize, usize) {
+    let len = wasm_buf_len(ptr);
+
+    let ptr = ptr as *const u8;
+    let data_ptr = unsafe { ptr.add(HEADER_SIZE) as usize };
+
+    (data_ptr, len)
 }
 
 /// Given a WASM buffer memory offset in `ptr` parameter,

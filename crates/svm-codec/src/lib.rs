@@ -106,3 +106,25 @@ pub extern "C" fn wasm_alloc(length: i64) -> i64 {
 pub extern "C" fn wasm_free(buf_ptr: i64) {
     api::wasm::free(buf_ptr as usize);
 }
+
+/// ## WASM Buffer Length
+///
+/// Returns the buffer `Data` byte-length
+#[no_mangle]
+#[cfg(target_arch = "wasm32")]
+pub extern "C" fn wasm_buffer_length(buf_ptr: i64) -> i32 {
+    let buf_len = api::wasm::wasm_buf_len(buf_ptr as usize);
+
+    buf_len as _
+}
+
+/// ## WASM Buffer Data
+///
+/// Returns a pointer to the buffer `Data`
+#[no_mangle]
+#[cfg(target_arch = "wasm32")]
+pub extern "C" fn wasm_buffer_data(buf_ptr: i64) -> i64 {
+    let (data_ptr, _len) = api::wasm::wasm_buf_data_ptr(buf_ptr as usize);
+
+    data_ptr as _
+}
