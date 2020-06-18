@@ -1,6 +1,19 @@
 use svm_types::SpawnApp;
 
+use crate::api::native::SpawnAppBuilder;
+
 use serde_json::Value;
+
+///
+/// ```json
+/// {
+///   version: 0,            // number
+///   template: '0xA29F...', // string
+///   ctor_idx: 0,           // number
+///   ctor_buf: Blob(...),   // Uint8Array
+///   ctor_args: ['10i32', '20i64', ...] // Array of string
+/// }
+/// ```
 
 pub fn spawn_app(json: &Value) -> Result<SpawnApp, String> {
     todo!()

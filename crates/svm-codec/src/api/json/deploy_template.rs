@@ -1,7 +1,19 @@
 use svm_types::AppTemplate;
 
+use crate::api::native::DeployAppTemplateBuilder;
+
 use serde_json::Value;
 
+///
+/// ```json
+/// {
+///   version: 0,
+///   name: 'My Template',
+///   code: [...],
+///   data: [...],
+/// }
+/// ``
+///
 pub fn deploy_template(json: &Value) -> Result<AppTemplate, String> {
     todo!()
 }
