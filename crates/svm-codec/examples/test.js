@@ -3,7 +3,7 @@
 const fs = require('fs');
 
 async function compileWasmCodec () {
-    const wasm = await WebAssembly.compile(fs.readFileSync('../../../target/wasm32-unknown-unknown/debug/svm_codec.wasm'));
+    const wasm = await WebAssembly.compile(fs.readFileSync('svm_codec.wasm'));
     const importObject = {};
 
     return WebAssembly.instantiate(wasm, importObject)
