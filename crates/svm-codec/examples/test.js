@@ -12,8 +12,7 @@ async function compileWasmCodec () {
 
 function instanceCall(instance, func_name, buf) {
     const func = instance.exports[func_name];
-
-    return func.apply(buf);
+    return func(buf)
 }
 
 function wasmNewBuffer(instance, object) {
@@ -86,17 +85,25 @@ describe('WASM Buffer', function () {
     }),
     it('Encodes `spawn-app` transaction', function () {
 	return compileWasmCodec().then(instance => {
-	    let tx = JSON.stringify({
+	    let tx = {
 	    	version: 0,
-	    	template: '0xAB',
-	    	ctor_index: 0,
-	    	ctor_buf: [],
-	    	ctor_args: [],
-	    });
+		template: '0xAB',
+		ctor_index: 0,
+		ctor_buf:  [],
+		ctor_args: [],
+	    };
 
 	    const buf = wasmNewBuffer(instance, tx);
+	    const result = instanceCall(instance, 'wasm_spawn_app', buf);
 
-	    const result = instanceCall(instance, 'wasm_spawn_app');
+	    let result_length = wasmBufferLength(instance, result);
+	    console.log(result_length);
+	    
+	    const slice = wasmBufferDataSlice(instance, result, 0, result_length);
+	    console.log(slice);
+
+	    // wasmBufferFree(instance, buf);
+	    // wasmBufferFree(instance, result);
 	});
     });
 });

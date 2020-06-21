@@ -1,29 +1,29 @@
-use serde_json::Value;
+use serde_json::{self as json, Value};
 
 use svm_types::SpawnApp;
 
-use super::{alloc, into_wasm_buffer, wasm_buffer};
+use super::{into_wasm_buffer, wasm_buffer_data};
 use crate::{api, NibbleWriter};
 
-///
 /// Encodes a `spawn-app` json input into SVM `spawn-app` binary transaction.
 /// The json input is passed by giving WASM memory start address (`ptr` parameter).
 ///
 /// Returns a pointer to a `transaction buffer`.
-///
-/// See also: `alloc` and `free`
-///
 pub fn encode_spawn_app(ptr: usize) -> usize {
-    let slice = wasm_buffer(ptr);
+    let bytes = wasm_buffer_data(ptr);
+    let json: json::Result<Value> = serde_json::from_slice(bytes);
 
-    let json: Value = serde_json::from_slice(slice).unwrap();
-    let tx = api::json::spawn_app(&json);
+    match json {
+        Ok(json) => todo!("..."),
+        Err(err) => {
+            let msg: String = format!("{:?}", err);
+            let bytes = msg.as_bytes();
 
-    let tx = tx.unwrap();
+            let mut w = NibbleWriter::new();
+            w.write_bytes(bytes);
 
-    let mut w = NibbleWriter::new();
-    crate::encode_spawn_app(&tx, &mut w);
-
-    let bytes = w.into_bytes();
-    into_wasm_buffer(bytes)
+            let bytes = w.into_bytes();
+            into_wasm_buffer(bytes)
+        }
+    }
 }
