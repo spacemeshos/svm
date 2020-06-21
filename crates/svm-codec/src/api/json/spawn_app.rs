@@ -9,8 +9,8 @@ use serde_json::Value;
 /// {
 ///   version: 0,            // number
 ///   template: '0xA29F...', // string
-///   ctor_idx: 0,           // number
-///   ctor_buf: Blob(...),   // Uint8Array
+///   ctor_index: 0,         // number
+///   ctor_buf: [...],       // Array
 ///   ctor_args: ['10i32', '20i64', ...] // Array of string
 /// }
 /// ```

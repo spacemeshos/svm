@@ -1,5 +1,6 @@
 'use strict';
 
+const assert = require('assert');
 const fs = require('fs');
 
 async function compileWasmCodec () {
@@ -9,31 +10,93 @@ async function compileWasmCodec () {
     return WebAssembly.instantiate(wasm, importObject)
 }
 
-const assert = require('assert');
+function instanceCall(instance, func_name, buf) {
+    const func = instance.exports[func_name];
 
-describe('Allocate/Free WASM Buffer', function () {
-    it('Allocate WASM buffer', function () {
+    return func.apply(buf);
+}
+
+function wasmNewBuffer(instance, object) {
+    const objectStr = JSON.stringify(object);
+    const bytes = new TextEncoder('utf-8').encode(objectStr);
+    const buf = wasmBufferAlloc(instance, bytes.length);
+
+    assert.equal(bytes.length, wasmBufferLength(instance, buf));
+
+    copyToWasmBufferData(instance, buf, bytes); 
+
+    return buf;
+}   
+
+function loadWasmBuffer(instance, buf) {
+    let length = wasmBufferLength(instance, buf);
+    const slice = wasmBufferDataSlice(instance, buf, 0, length);
+    const string = new TextDecoder('utf-8').decode(slice);
+
+    return JSON.parse(string)
+}
+
+function wasmBufferAlloc(instance, length) {
+    return instance.exports.wasm_alloc(length);
+}
+
+function wasmBufferFree(instance, buf) {
+    return instance.exports.wasm_free(buf);
+}
+
+function wasmBufferLength(instance, buf) {
+    return instance.exports.wasm_buffer_length(buf);
+}
+
+function wasmBufferDataPtr(instance, buf) {
+    return instance.exports.wasm_buffer_data(buf);
+}
+
+function copyToWasmBufferData(instance, buf, data) {
+    let ptr = wasmBufferDataPtr(instance, buf);
+    let memory = instance.exports.memory.buffer;
+    let view = new Uint8Array(memory);
+    view.set([...data], ptr);
+}
+
+function wasmBufferDataSlice(instance, buf, offset, length) {
+    let ptr = wasmBufferDataPtr(instance, buf);
+
+    const memory = instance.exports.memory.buffer;
+    const view = new Uint8Array(memory);
+    const slice = view.slice(ptr + offset, ptr + offset + length);
+
+    return slice
+}
+
+describe('WASM Buffer', function () {
+    it('Allocate & Free', function () {
 	return compileWasmCodec().then(instance => {
-	    // 1) allocating 100 bytes WASM buffer
-	    const buf = instance.exports.wasm_alloc(100);
+	    let object = {
+		message: 'Hello World',
+		status: 200,
+	    };
 
-	    // 2) copying data to WASM buffer
-	    // asserting the allocated WASM buffer `Data` length
-	    let data_len = instance.exports.wasm_buffer_length(buf);
-	    assert.equal(data_len, 100);
+	    const buf = wasmNewBuffer(instance, object);
+	    const loaded = loadWasmBuffer(instance, buf);
+	    assert.deepEqual(loaded, object);
 
-	    // extracting the pointer to the `Data` section
-	    let data = instance.exports.wasm_buffer_data(buf);
-	    let memory = instance.exports.memory.buffer;
-	    let view = new Uint8Array(memory);
+	    wasmBufferFree(instance, buf);
+	})
+    }),
+    it('Encodes `spawn-app` transaction', function () {
+	return compileWasmCodec().then(instance => {
+	    let tx = JSON.stringify({
+	    	version: 0,
+	    	template: '0xAB',
+	    	ctor_index: 0,
+	    	ctor_buf: [],
+	    	ctor_args: [],
+	    });
 
-	    view.set([10, 20, 30], data);
+	    const buf = wasmNewBuffer(instance, tx);
 
-	    const slice = view.slice(data, data + 3);
-	    assert.deepEqual([...slice], [10, 20, 30]);
-
-	    // 3) Free WASM buffer
-	    instance.exports.wasm_free(buf);
+	    const result = instanceCall(instance, 'wasm_spawn_app');
 	});
     });
 });
