@@ -1,11 +1,14 @@
 contracts/precompiled/*.wasm
 contracts/precompiled/*.wast
 *.out
-libsvm_wasmer_c_api.dylib
 target
 tags
+node_modules
 .DS_Store
 *.rs.bk
 .idea
 .vscode
 .rustc_info.json
+*.dylib
+*.dll
+*.so
