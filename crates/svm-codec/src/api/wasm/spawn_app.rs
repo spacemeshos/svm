@@ -2,7 +2,7 @@ use serde_json::{self as json, Value};
 
 use svm_types::SpawnApp;
 
-use super::{into_wasm_buffer, wasm_buffer_data};
+use super::{error::into_error_buffer, wasm_buffer_data};
 use crate::{api, NibbleWriter};
 
 /// Encodes a `spawn-app` json input into SVM `spawn-app` binary transaction.
@@ -15,15 +15,6 @@ pub fn encode_spawn_app(ptr: usize) -> usize {
 
     match json {
         Ok(json) => todo!("..."),
-        Err(err) => {
-            let msg: String = format!("{:?}", err);
-            let bytes = msg.as_bytes();
-
-            let mut w = NibbleWriter::new();
-            w.write_bytes(bytes);
-
-            let bytes = w.into_bytes();
-            into_wasm_buffer(bytes)
-        }
+        Err(err) => into_error_buffer(err),
     }
 }

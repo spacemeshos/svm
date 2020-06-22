@@ -1,4 +1,5 @@
 mod deploy_template;
+mod error;
 mod exec_app;
 mod spawn_app;
 
@@ -198,7 +199,7 @@ mod test {
     use super::*;
 
     #[test]
-    fn buffer_alloc_and_free() {
+    fn wasm_buffer_alloc_and_free() {
         let data: &'static [u8] = b"Hello World";
         let len = data.len();
 
