@@ -2,7 +2,7 @@ use serde_json::Value;
 
 use svm_types::AppTransaction;
 
-use super::{alloc, into_wasm_buffer, wasm_buffer};
+use super::{alloc, to_wasm_buffer, wasm_buffer};
 use crate::{api, NibbleWriter};
 
 ///
@@ -25,5 +25,5 @@ pub fn encode_deploy_template(ptr: usize) -> usize {
     crate::encode_deploy_template(&tx, &mut w);
 
     let bytes = w.into_bytes();
-    into_wasm_buffer(bytes)
+    to_wasm_buffer(&bytes)
 }

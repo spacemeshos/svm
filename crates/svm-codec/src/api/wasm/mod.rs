@@ -13,6 +13,9 @@ const HEADER_LEN_OFF: usize = 0;
 const HEADER_CAP_OFF: usize = 4;
 const HEADER_SIZE: usize = 8;
 
+const BUF_OK_MARKER: u8 = 1;
+const BUF_ERROR_MARKER: u8 = 0;
+
 /// ## WASM Buffer Layout
 ///
 /// Each WASM Buffer contains 2 section: `Header` and `Data`
@@ -162,16 +165,16 @@ pub fn wasm_buffer_mut<'a>(ptr: usize) -> &'a mut [u8] {
 ///
 /// The WASM buffer should be destroyed later by calling `free` on its address.
 /// (Otherwise, it'll be a memory-leak).
-pub fn into_wasm_buffer(vec: Vec<u8>) -> usize {
-    let buf_ptr = alloc(vec.len());
+pub fn to_wasm_buffer(bytes: &[u8]) -> usize {
+    let buf_ptr = alloc(bytes.len());
 
     let buf: &mut [u8] = wasm_buffer_mut(buf_ptr);
 
-    let src = vec.as_ptr();
+    let src = bytes.as_ptr();
     let dst = buf.as_mut_ptr();
 
     unsafe {
-        std::ptr::copy(src, dst.add(HEADER_SIZE), vec.len());
+        std::ptr::copy(src, dst.add(HEADER_SIZE), bytes.len());
     }
 
     buf_ptr
