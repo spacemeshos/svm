@@ -3,6 +3,9 @@
 const assert = require('assert');
 const fs = require('fs');
 
+const OK_MARKER = 1;
+const ERR_MARKER = 0;
+
 async function compileWasmCodec () {
     const wasm = await WebAssembly.compile(fs.readFileSync('svm_codec.wasm'));
     const importObject = {};
@@ -96,11 +99,12 @@ describe('WASM Buffer', function () {
 	    const buf = wasmNewBuffer(instance, tx);
 	    const result = instanceCall(instance, 'wasm_spawn_app', buf);
 
-	    let result_length = wasmBufferLength(instance, result);
-	    console.log(result_length);
-	    
-	    const slice = wasmBufferDataSlice(instance, result, 0, result_length);
-	    console.log(slice);
+	    let len = wasmBufferLength(instance, result);
+	    const slice = wasmBufferDataSlice(instance, result, 0, len);
+	    assert.equal(slice[0], OK_MARKER);
+
+	    // `bytes` is a `Uint8Array` holding the encoded `SVM spawn-app` transaction
+	    const bytes = slice.slice(1);
 
 	    wasmBufferFree(instance, buf);
 	    wasmBufferFree(instance, result);
