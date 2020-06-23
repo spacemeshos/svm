@@ -74,8 +74,13 @@ fn as_string(json: &Value, field: &str) -> Result<String, JsonError> {
     }
 }
 
-fn as_addr(json: &Value, field: &str) -> Result<Address, JsonError> {
-    let value = as_string(json, field)?;
+fn str_to_bytes(value: &str, field: &str) -> Result<Vec<u8>, JsonError> {
+    if value.len() % 2 == 1 {
+        return Err(JsonError::InvalidField {
+            field: field.to_string(),
+            reason: "value should be of even length".to_string(),
+        });
+    }
 
     if value.chars().any(|c| c.is_ascii_hexdigit() == false) {
         return Err(JsonError::InvalidField {
@@ -84,16 +89,9 @@ fn as_addr(json: &Value, field: &str) -> Result<Address, JsonError> {
         });
     }
 
-    if value.len() != Address::len() * 2 {
-        return Err(JsonError::InvalidField {
-            field: field.to_string(),
-            reason: "value should be exactly {} hex digits".to_string(),
-        });
-    }
-
-    let chars: Vec<char> = value.chars().collect();
-    let bytes: Vec<u8> = chars
-        .as_slice()
+    let bytes = value
+        .chars()
+        .collect::<Vec<_>>()
         .chunks_exact(2)
         .map(|slice| {
             let (c1, c2) = (slice[0], slice[1]);
@@ -101,7 +99,24 @@ fn as_addr(json: &Value, field: &str) -> Result<Address, JsonError> {
         })
         .collect();
 
-    debug_assert_eq!(bytes.len(), Address::len());
+    Ok(bytes)
+}
+
+fn as_blob(json: &Value, field: &str) -> Result<Vec<u8>, JsonError> {
+    let value = as_string(json, field)?;
+    str_to_bytes(&value, field)
+}
+
+fn as_addr(json: &Value, field: &str) -> Result<Address, JsonError> {
+    let value = as_string(json, field)?;
+    let bytes = str_to_bytes(&value, field)?;
+
+    if bytes.len() != Address::len() {
+        return Err(JsonError::InvalidField {
+            field: field.to_string(),
+            reason: "value should be exactly {} hex digits".to_string(),
+        });
+    }
 
     let addr = Address::from(&bytes[..]);
     Ok(addr)
@@ -359,6 +374,47 @@ mod test {
             JsonError::InvalidField {
                 field: "args".to_string(),
                 reason: r#"value `"10i32"` isn't an array"#.to_string()
+            }
+        );
+    }
+
+    #[test]
+    fn json_as_blob_valid() {
+        let data = r#"{ "blob": "1DB30F" }"#;
+
+        let v: Value = serde_json::from_str(data).unwrap();
+        let blob = as_blob(&v, "blob").unwrap();
+        assert_eq!(blob, vec![0x1D, 0xB3, 0x0F])
+    }
+
+    #[test]
+    fn json_as_blob_invalid_chars() {
+        let data = r#"{ "blob": "NOT HEX" }"#;
+
+        let v: Value = serde_json::from_str(data).unwrap();
+        let err = as_blob(&v, "blob").unwrap_err();
+
+        assert_eq!(
+            err,
+            JsonError::InvalidField {
+                field: "blob".to_string(),
+                reason: "value should have only {} hex digits".to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn json_as_blob_invalid_odd_length() {
+        let data = r#"{ "blob": "A0B" }"#;
+
+        let v: Value = serde_json::from_str(data).unwrap();
+        let err = as_blob(&v, "blob").unwrap_err();
+
+        assert_eq!(
+            err,
+            JsonError::InvalidField {
+                field: "blob".to_string(),
+                reason: "value should be of even length".to_string(),
             }
         );
     }
