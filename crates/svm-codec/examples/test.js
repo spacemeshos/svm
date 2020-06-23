@@ -86,7 +86,7 @@ describe('WASM Buffer', function () {
 	    wasmBufferFree(instance, buf);
 	})
     }),
-    it('Encodes `spawn-app` transaction', function () {
+    it('Encodes `spawn-app` valid transaction', function () {
 	return compileWasmCodec().then(instance => {
 	    let tx = {
               version: 0,
@@ -105,6 +105,27 @@ describe('WASM Buffer', function () {
 
 	    // `bytes` is a `Uint8Array` holding the encoded `SVM spawn-app` transaction
 	    const bytes = slice.slice(1);
+
+	    wasmBufferFree(instance, buf);
+	    wasmBufferFree(instance, result);
+	});
+    })
+    it('Encodes `spawn-app` invalid transaction', function () {
+	return compileWasmCodec().then(instance => {
+	    let tx = {
+              version: 0,
+              template: "102030",
+	    };
+
+	    const buf = wasmNewBuffer(instance, tx);
+	    const result = instanceCall(instance, 'wasm_spawn_app', buf);
+
+	    let len = wasmBufferLength(instance, result);
+	    const slice = wasmBufferDataSlice(instance, result, 0, len);
+	    assert.equal(slice[0], ERR_MARKER);
+
+	    const error = new TextDecoder('utf-8').decode(slice.slice(1));
+	    assert.equal(error, "InvalidField { field: \"template\", reason: \"value should be exactly 40 hex digits\" }");
 
 	    wasmBufferFree(instance, buf);
 	    wasmBufferFree(instance, result);
