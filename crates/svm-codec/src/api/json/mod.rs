@@ -13,7 +13,7 @@ use serde_json::Value;
 use svm_common::Address;
 use svm_types::WasmValue;
 
-fn as_u16(json: &Value, field: &str) -> Result<u16, JsonError> {
+pub(crate) fn as_u16(json: &Value, field: &str) -> Result<u16, JsonError> {
     let value: &Value = &json[field];
 
     match value.as_u64() {
@@ -34,7 +34,7 @@ fn as_u16(json: &Value, field: &str) -> Result<u16, JsonError> {
     }
 }
 
-fn as_u32(json: &Value, field: &str) -> Result<u32, JsonError> {
+pub(crate) fn as_u32(json: &Value, field: &str) -> Result<u32, JsonError> {
     let value: &Value = &json[field];
 
     match value.as_u64() {
@@ -62,7 +62,7 @@ fn as_byte(c1: char, c2: char) -> u8 {
     (c1 << 4) | c2
 }
 
-fn as_string(json: &Value, field: &str) -> Result<String, JsonError> {
+pub(crate) fn as_string(json: &Value, field: &str) -> Result<String, JsonError> {
     let value: &Value = &json[field];
 
     match value.as_str() {
@@ -85,7 +85,7 @@ fn str_to_bytes(value: &str, field: &str) -> Result<Vec<u8>, JsonError> {
     if value.chars().any(|c| c.is_ascii_hexdigit() == false) {
         return Err(JsonError::InvalidField {
             field: field.to_string(),
-            reason: "value should have only {} hex digits".to_string(),
+            reason: "value should have only hex digits".to_string(),
         });
     }
 
@@ -102,19 +102,19 @@ fn str_to_bytes(value: &str, field: &str) -> Result<Vec<u8>, JsonError> {
     Ok(bytes)
 }
 
-fn as_blob(json: &Value, field: &str) -> Result<Vec<u8>, JsonError> {
+pub(crate) fn as_blob(json: &Value, field: &str) -> Result<Vec<u8>, JsonError> {
     let value = as_string(json, field)?;
     str_to_bytes(&value, field)
 }
 
-fn as_addr(json: &Value, field: &str) -> Result<Address, JsonError> {
+pub(crate) fn as_addr(json: &Value, field: &str) -> Result<Address, JsonError> {
     let value = as_string(json, field)?;
     let bytes = str_to_bytes(&value, field)?;
 
     if bytes.len() != Address::len() {
         return Err(JsonError::InvalidField {
             field: field.to_string(),
-            reason: "value should be exactly {} hex digits".to_string(),
+            reason: format!("value should be exactly {} hex digits", Address::len() * 2),
         });
     }
 
@@ -122,7 +122,7 @@ fn as_addr(json: &Value, field: &str) -> Result<Address, JsonError> {
     Ok(addr)
 }
 
-fn as_wasm_value(json: &Value, field: &str) -> Result<WasmValue, JsonError> {
+pub(crate) fn as_wasm_value(json: &Value, field: &str) -> Result<WasmValue, JsonError> {
     let value = json.as_str().unwrap();
     let len = value.len();
     let is_i32 = value.ends_with("i32");
@@ -155,7 +155,7 @@ fn as_wasm_value(json: &Value, field: &str) -> Result<WasmValue, JsonError> {
     })
 }
 
-fn as_wasm_values(json: &Value, field: &str) -> Result<Vec<WasmValue>, JsonError> {
+pub(crate) fn as_wasm_values(json: &Value, field: &str) -> Result<Vec<WasmValue>, JsonError> {
     let value: &Value = &json[field];
 
     match value.as_array() {
@@ -181,25 +181,25 @@ fn as_wasm_values(json: &Value, field: &str) -> Result<Vec<WasmValue>, JsonError
 mod test {
     use super::*;
 
-    use serde_json::Value;
+    use serde_json::{json, Value};
 
     #[test]
     fn json_as_u16_valid() {
-        let data = r#"{ "n": 10 }"#;
+        let json = json!({
+            "n": 10
+        });
 
-        let v: Value = serde_json::from_str(data).unwrap();
-        let n = as_u16(&v, "n").unwrap();
-
+        let n = as_u16(&json, "n").unwrap();
         assert_eq!(n, 10u16);
     }
 
     #[test]
     fn json_as_u16_invalid_field() {
-        let data = r#"{ "n": "NaN" }"#;
+        let json = json!({
+            "n": "NaN"
+        });
 
-        let v: Value = serde_json::from_str(data).unwrap();
-        let err = as_u16(&v, "n").unwrap_err();
-
+        let err = as_u16(&json, "n").unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -211,21 +211,21 @@ mod test {
 
     #[test]
     fn json_as_u32_valid() {
-        let data = r#"{ "n": 10 }"#;
+        let json = json!({
+            "n": 10
+        });
 
-        let v: Value = serde_json::from_str(data).unwrap();
-        let n = as_u32(&v, "n").unwrap();
-
+        let n = as_u32(&json, "n").unwrap();
         assert_eq!(n, 10u32);
     }
 
     #[test]
     fn json_as_u32_invalid_field() {
-        let data = r#"{ "n": "NaN" }"#;
+        let json = json!({
+            "n": "NaN"
+        });
 
-        let v: Value = serde_json::from_str(data).unwrap();
-        let err = as_u32(&v, "n").unwrap_err();
-
+        let err = as_u32(&json, "n").unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -237,11 +237,11 @@ mod test {
 
     #[test]
     fn json_as_address_valid() {
-        let data = r#"{ "addr": "10203040506070809000A0B0C0D0E0F0ABCDEFFF" }"#;
+        let json = json!({
+            "addr": "10203040506070809000A0B0C0D0E0F0ABCDEFFF"
+        });
 
-        let v: Value = serde_json::from_str(data).unwrap();
-        let addr: Address = as_addr(&v, "addr").unwrap();
-
+        let addr = as_addr(&json, "addr").unwrap();
         let actual = addr.bytes();
 
         let expected = [
@@ -254,11 +254,11 @@ mod test {
 
     #[test]
     fn json_as_address_invalid_type() {
-        let data = r#"{ "addr": true }"#;
+        let json = json!({
+            "addr": true
+        });
 
-        let v: Value = serde_json::from_str(data).unwrap();
-        let err = as_addr(&v, "addr").unwrap_err();
-
+        let err = as_addr(&json, "addr").unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -270,73 +270,73 @@ mod test {
 
     #[test]
     fn json_as_address_invalid_length() {
-        let data = r#"{ "addr": "1020" }"#;
+        let json = json!({
+            "addr": "1020"
+        });
 
-        let v: Value = serde_json::from_str(data).unwrap();
-        let err = as_addr(&v, "addr").unwrap_err();
-
+        let err = as_addr(&json, "addr").unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
                 field: "addr".to_string(),
-                reason: "value should be exactly {} hex digits".to_string(),
+                reason: "value should be exactly 40 hex digits".to_string(),
             }
         );
     }
 
     #[test]
     fn json_as_address_invalid_chars() {
-        let data = r#"{ "addr": "XYZ" }"#;
+        let json = json!({
+            "addr": "XYWZ"
+        });
 
-        let v: Value = serde_json::from_str(data).unwrap();
-        let err = as_addr(&v, "addr").unwrap_err();
-
+        let err = as_addr(&json, "addr").unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
                 field: "addr".to_string(),
-                reason: "value should have only {} hex digits".to_string(),
+                reason: "value should have only hex digits".to_string(),
             }
         );
     }
 
     #[test]
     fn json_as_wasm_values_i32_valid() {
-        let data = r#"{ "args": ["10i32", "20i32"] }"#;
+        let json = json!({
+            "args": ["10i32", "20i32"]
+        });
 
-        let v: Value = serde_json::from_str(data).unwrap();
-        let args = as_wasm_values(&v, "args").unwrap();
-
+        let args = as_wasm_values(&json, "args").unwrap();
         assert_eq!(args, vec![WasmValue::I32(10), WasmValue::I32(20)]);
     }
 
     #[test]
     fn json_as_wasm_values_i64_valid() {
-        let data = r#"{ "args": ["10i64", "20i64"] }"#;
+        let json = json!({
+            "args": ["10i64", "20i64"]
+        });
 
-        let v: Value = serde_json::from_str(data).unwrap();
-        let args = as_wasm_values(&v, "args").unwrap();
-
+        let args = as_wasm_values(&json, "args").unwrap();
         assert_eq!(args, vec![WasmValue::I64(10), WasmValue::I64(20)]);
     }
 
     #[test]
     fn json_as_wasm_values_i32_and_i64_valid() {
-        let data = r#"{ "args": ["10i32", "20i64"] }"#;
+        let json = json!({
+            "args": ["10i32", "20i64"]
+        });
 
-        let v: Value = serde_json::from_str(data).unwrap();
-        let args = as_wasm_values(&v, "args").unwrap();
-
+        let args = as_wasm_values(&json, "args").unwrap();
         assert_eq!(args, vec![WasmValue::I32(10), WasmValue::I64(20)]);
     }
 
     #[test]
     fn json_as_wasm_values_i32_invalid() {
-        let data = r#"{ "args": ["NaNi32"] }"#;
+        let json = json!({
+            "args": ["NaNi32"]
+        });
 
-        let v: Value = serde_json::from_str(data).unwrap();
-        let err = as_wasm_values(&v, "args").unwrap_err();
-
+        let err = as_wasm_values(&json, "args").unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -348,11 +348,11 @@ mod test {
 
     #[test]
     fn json_as_wasm_values_i64_invalid() {
-        let data = r#"{ "args": ["NaNi64"] }"#;
+        let json = json!({
+            "args": ["NaNi64"]
+        });
 
-        let v: Value = serde_json::from_str(data).unwrap();
-        let err = as_wasm_values(&v, "args").unwrap_err();
-
+        let err = as_wasm_values(&json, "args").unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -364,11 +364,11 @@ mod test {
 
     #[test]
     fn json_as_wasm_values_invalid_type() {
-        let data = r#"{ "args": "10i32" }"#;
+        let json = json!({
+            "args": "10i32"
+        });
 
-        let v: Value = serde_json::from_str(data).unwrap();
-        let err = as_wasm_values(&v, "args").unwrap_err();
-
+        let err = as_wasm_values(&json, "args").unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -380,36 +380,37 @@ mod test {
 
     #[test]
     fn json_as_blob_valid() {
-        let data = r#"{ "blob": "1DB30F" }"#;
+        let json = json!({
+            "blob": "1DB30F"
+        });
 
-        let v: Value = serde_json::from_str(data).unwrap();
-        let blob = as_blob(&v, "blob").unwrap();
+        let blob = as_blob(&json, "blob").unwrap();
         assert_eq!(blob, vec![0x1D, 0xB3, 0x0F])
     }
 
     #[test]
     fn json_as_blob_invalid_chars() {
-        let data = r#"{ "blob": "NOT HEX" }"#;
+        let json = json!({
+            "blob": "NOT HEX!"
+        });
 
-        let v: Value = serde_json::from_str(data).unwrap();
-        let err = as_blob(&v, "blob").unwrap_err();
-
+        let err = as_blob(&json, "blob").unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
                 field: "blob".to_string(),
-                reason: "value should have only {} hex digits".to_string(),
+                reason: "value should have only hex digits".to_string(),
             }
         );
     }
 
     #[test]
     fn json_as_blob_invalid_odd_length() {
-        let data = r#"{ "blob": "A0B" }"#;
+        let json = json!({
+            "blob": "A0B"
+        });
 
-        let v: Value = serde_json::from_str(data).unwrap();
-        let err = as_blob(&v, "blob").unwrap_err();
-
+        let err = as_blob(&json, "blob").unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
