@@ -41,7 +41,7 @@ mod test {
     use super::*;
     use crate::NibbleIter;
 
-    use crate::api::wasm::error::error_as_string;
+    use crate::api::wasm::error_as_string;
 
     use serde_json::json;
 

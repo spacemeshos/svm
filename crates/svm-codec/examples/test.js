@@ -86,11 +86,11 @@ describe('WASM Buffer', function () {
     it('Encodes `spawn-app` transaction', function () {
 	return compileWasmCodec().then(instance => {
 	    let tx = {
-	    	version: 0,
-		template: '0xAB',
-		ctor_index: 0,
-		ctor_buf:  [],
-		ctor_args: [],
+              version: 0,
+              template: "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
+              ctor_index: 1,
+              ctor_buf: "A2B3",
+              ctor_args: ["10i32", "20i64"]
 	    };
 
 	    const buf = wasmNewBuffer(instance, tx);
@@ -102,8 +102,8 @@ describe('WASM Buffer', function () {
 	    const slice = wasmBufferDataSlice(instance, result, 0, result_length);
 	    console.log(slice);
 
-	    // wasmBufferFree(instance, buf);
-	    // wasmBufferFree(instance, result);
+	    wasmBufferFree(instance, buf);
+	    wasmBufferFree(instance, result);
 	});
     });
 });
