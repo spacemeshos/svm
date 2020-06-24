@@ -15,7 +15,7 @@ use svm_types::{App, SpawnApp, WasmValue};
 ///   template: 'A2FB...',  // string
 ///   ctor_index: 0,        // number
 ///   ctor_buf: '',         // string
-///   ctor_args: ['10i32', '20i64', ...] // Array of string
+///   ctor_args: ['10i32', '20i64', ...] // Array of `string`
 /// }
 /// ```
 

@@ -110,6 +110,30 @@ describe('WASM Buffer', function () {
 	    wasmBufferFree(instance, result);
 	});
     })
+    it('Encodes `exec-app` valid transaction', function () {
+	return compileWasmCodec().then(instance => {
+	    let tx = {
+              version: 0,
+              app: "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
+              func_index: 1,
+              func_buf: "A2B3",
+              func_args: ["10i32", "20i64"]
+	    };
+
+	    const buf = wasmNewBuffer(instance, tx);
+	    const result = instanceCall(instance, 'wasm_exec_app', buf);
+
+	    let len = wasmBufferLength(instance, result);
+	    const slice = wasmBufferDataSlice(instance, result, 0, len);
+	    assert.equal(slice[0], OK_MARKER);
+
+	    // `bytes` is a `Uint8Array` holding the encoded `SVM exec-app` transaction
+	    const bytes = slice.slice(1);
+
+	    wasmBufferFree(instance, buf);
+	    wasmBufferFree(instance, result);
+	});
+    })
     it('Encodes `spawn-app` invalid transaction', function () {
 	return compileWasmCodec().then(instance => {
 	    let tx = {
@@ -126,6 +150,27 @@ describe('WASM Buffer', function () {
 
 	    const error = new TextDecoder('utf-8').decode(slice.slice(1));
 	    assert.equal(error, "InvalidField { field: \"template\", reason: \"value should be exactly 40 hex digits\" }");
+
+	    wasmBufferFree(instance, buf);
+	    wasmBufferFree(instance, result);
+	});
+    });
+    it('Encodes `exec-app` invalid transaction', function () {
+	return compileWasmCodec().then(instance => {
+	    let tx = {
+              version: 0,
+              app: "102030",
+	    };
+
+	    const buf = wasmNewBuffer(instance, tx);
+	    const result = instanceCall(instance, 'wasm_exec_app', buf);
+
+	    let len = wasmBufferLength(instance, result);
+	    const slice = wasmBufferDataSlice(instance, result, 0, len);
+	    assert.equal(slice[0], ERR_MARKER);
+
+	    const error = new TextDecoder('utf-8').decode(slice.slice(1));
+	    assert.equal(error, "InvalidField { field: \"app\", reason: \"value should be exactly 40 hex digits\" }");
 
 	    wasmBufferFree(instance, buf);
 	    wasmBufferFree(instance, result);
