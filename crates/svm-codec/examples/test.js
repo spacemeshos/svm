@@ -88,6 +88,52 @@ describe('WASM Buffer', function () {
     })
 });
 
+describe('Deploy Template', function () {
+    it('Encodes & Decodes valid transactions', function () {
+	return compileWasmCodec().then(instance => {
+	    let tx = {
+	      "version": 0,
+	      "name": "My Template",
+	      "code": "C0DE",
+	      "data": "0000000100000003"
+	    };
+
+	    const buf = wasmNewBuffer(instance, tx);
+	    const result = instanceCall(instance, 'wasm_deploy_template', buf);
+
+	    let len = wasmBufferLength(instance, result);
+	    const slice = wasmBufferDataSlice(instance, result, 0, len);
+	    assert.equal(slice[0], OK_MARKER);
+
+	    // `bytes` is a `Uint8Array` holding the encoded `SVM spawn-app` transaction
+	    const bytes = slice.slice(1);
+
+	    wasmBufferFree(instance, buf);
+	    wasmBufferFree(instance, result);
+	});
+    })
+    it('Handles errors for invalid transactions', function () {
+	return compileWasmCodec().then(instance => {
+	    let tx = {
+              version: 0,
+	    };
+
+	    const buf = wasmNewBuffer(instance, tx);
+	    const result = instanceCall(instance, 'wasm_deploy_template', buf);
+
+	    let len = wasmBufferLength(instance, result);
+	    const slice = wasmBufferDataSlice(instance, result, 0, len);
+	    assert.equal(slice[0], ERR_MARKER);
+
+	    const error = new TextDecoder('utf-8').decode(slice.slice(1));
+	    assert.equal(error, "InvalidField { field: \"name\", reason: \"value `null` isn\\'t a string\" }");
+
+	    wasmBufferFree(instance, buf);
+	    wasmBufferFree(instance, result);
+	})
+    })
+});
+
 describe('Spawn App', function () {
     it('Encodes & Decodes valid transactions', function () {
 	return compileWasmCodec().then(instance => {

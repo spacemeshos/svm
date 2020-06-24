@@ -18,7 +18,6 @@ use svm_types::{App, SpawnApp, WasmValue};
 ///   ctor_args: ['10i32', '20i64', ...] // Array of `string`
 /// }
 /// ```
-
 pub fn spawn_app(json: &Value) -> Result<Vec<u8>, JsonError> {
     let version = json::as_u32(json, "version")?;
     let template = json::as_addr(json, "template")?.into();

@@ -48,7 +48,13 @@ use version::{decode_version, encode_version};
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
 pub extern "C" fn wasm_deploy_template(buf_ptr: i32) -> i32 {
-    todo!()
+    match api::wasm::encode_deploy_template(buf_ptr as usize) {
+        Ok(tx_ptr) => tx_ptr as _,
+        Err(err) => {
+            let err_ptr = api::wasm::into_error_buffer(err);
+            err_ptr as _
+        }
+    }
 }
 
 /// ## WASM Spawn-App

@@ -35,7 +35,11 @@ impl AppTemplate {
     }
 
     fn fmt_code(&self, code: &[u8]) -> String {
-        format!("Code: {:?}", &code[0..4])
+        if code.len() >= 4 {
+            format!("Code: {:?}", &code[0..4])
+        } else {
+            format!("Code: {:?}", &code)
+        }
     }
 
     fn fmt_data(&self, data: &DataLayout) -> String {
