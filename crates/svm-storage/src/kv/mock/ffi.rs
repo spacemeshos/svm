@@ -25,7 +25,7 @@ use lazy_static::lazy_static;
 // |     `Host` (mock for `go-spacemesh`)           |
 // |  implements: `get, set, discard, checkpoint`   |
 // |                                                |
-// |   /-\                                          |
+// |    ^                                           |
 // +----|-------------------------------------------+
 // |    |                                           |
 // |    |     SVM Runtime (uses `StatefulKV`)       |
