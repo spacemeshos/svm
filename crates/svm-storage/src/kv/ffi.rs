@@ -66,7 +66,7 @@ impl StatefulKV for ExternKV {
         let key_ptr = key.as_ptr();
         let key_len = key.len() as u32;
 
-        let mut value_len = 0;
+//         let mut value_len = 0;
 
         unsafe {
             (self.get_fn)(key_ptr, key_len, BUF.as_mut_ptr(), &mut value_len);
