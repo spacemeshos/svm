@@ -2,8 +2,8 @@ use super::ExecReceipt;
 
 use crate::{error::SpawnAppError, gas::MaybeGas};
 
-use svm_app::types::{AppAddr, WasmValue};
 use svm_common::State;
+use svm_types::{AppAddr, WasmValue};
 
 /// Returned Receipt after spawning an App.
 #[derive(Debug, PartialEq, Clone)]

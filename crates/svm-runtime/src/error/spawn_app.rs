@@ -1,4 +1,4 @@
-use svm_app::{error::StoreError, types::TemplateAddr};
+use svm_types::TemplateAddr;
 
 use crate::error::ExecAppError;
 

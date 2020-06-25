@@ -4,9 +4,9 @@ use crate::{
     receipt::{ExecReceipt, SpawnAppReceipt, TemplateReceipt},
 };
 
-use svm_app::types::{AppAddr, AuthorAddr, CreatorAddr, HostCtx};
 use svm_common::State;
 use svm_gas::Gas;
+use svm_types::{AppAddr, AuthorAddr, CreatorAddr, HostCtx};
 
 /// Specifies the interface of a `SVM` Runtime.
 pub trait Runtime {

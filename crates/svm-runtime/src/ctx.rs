@@ -4,8 +4,8 @@ use log::debug;
 
 use crate::{gas::MaybeGas, helpers::DataWrapper};
 
-use svm_app::types::HostCtx;
 use svm_storage::app::AppStorage;
+use svm_types::HostCtx;
 
 /// `SvmCtx` is a container for the accessible data by `wasmer` instances.
 /// * `host`         - A pointer to the `Host`.
