@@ -1,8 +1,8 @@
 use svm_types::{AppAddr, AppTransaction};
 
 use crate::{
-    decode_func_args, decode_func_buf, decode_varuint14, decode_version, helpers, Field,
-    NibbleIter, NibbleWriter, ParseError,
+    decode_func_args, decode_func_buf, decode_varuint14, decode_version, error::ParseError,
+    helpers, Field, NibbleIter, NibbleWriter,
 };
 
 /// Encodes a raw App transaction.

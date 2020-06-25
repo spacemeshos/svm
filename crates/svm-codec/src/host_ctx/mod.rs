@@ -25,7 +25,7 @@ use svm_types::HostCtx;
 
 use byteorder::{BigEndian, ReadBytesExt};
 
-use crate::ParseError;
+use crate::error::ParseError;
 
 pub fn decode_host_ctx(bytes: &[u8]) -> Result<HostCtx, ParseError> {
     let mut cursor = Cursor::new(bytes);

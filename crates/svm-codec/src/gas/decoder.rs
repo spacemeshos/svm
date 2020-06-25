@@ -1,6 +1,6 @@
 use svm_types::WasmValue;
 
-use crate::{wasm, NibbleIter, ParseError};
+use crate::{error::ParseError, wasm, NibbleIter};
 
 macro_rules! invalid_layout {
     () => {{

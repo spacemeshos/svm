@@ -2,7 +2,7 @@ use svm_types::{App, SpawnApp, TemplateAddr, WasmValue};
 
 use crate::{
     decode_func_args, decode_func_buf, decode_varuint14, decode_version, encode_func_args,
-    encode_func_buf, encode_varuint14, helpers, Field, NibbleIter, NibbleWriter, ParseError,
+    encode_func_buf, encode_varuint14, error::ParseError, helpers, Field, NibbleIter, NibbleWriter,
 };
 
 /// Encodes a raw Spawn-App transaction.

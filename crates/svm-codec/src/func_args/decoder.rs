@@ -1,4 +1,4 @@
-use crate::ParseError;
+use crate::error::ParseError;
 
 use svm_types::WasmValue;
 

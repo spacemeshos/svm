@@ -1,6 +1,6 @@
 use svm_types::{WasmType, WasmValue};
 
-use crate::{concat_nibbles, wasm::WasmValueLayout, Nibble, NibbleIter, ParseError};
+use crate::{concat_nibbles, error::ParseError, wasm::WasmValueLayout, Nibble, NibbleIter};
 
 /// Decodes a wasm value given its expected `layout`.
 pub fn decode_wasm_value(
