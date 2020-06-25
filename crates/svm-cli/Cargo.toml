@@ -9,8 +9,11 @@ edition = "2018"
 [dependencies.svm-common]
 path = "../svm-common"
 
-[dependencies.svm-app]
-path = "../svm-app"
+[dependencies.svm-types]
+path = "../svm-types"
+
+[dependencies.svm-codec]
+path = "../svm-codec"
 
 [dependencies.svm-layout]
 path = "../svm-layout"

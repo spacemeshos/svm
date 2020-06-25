@@ -18,7 +18,7 @@ use crate::svm_byte_array;
 /// ### Encoding format:
 ///
 /// * Then each WASM type is encoded as a `I32` or `I64` (SVM doesn't support Floats).
-///   The encoding is implemented of `WasmType` to `u8` sits under the `svm-app` crate.
+///   The encoding is implemented of `WasmType` to `u8` sits under the `svm-codec` crate.
 ///
 /// Note: the number of types equals the buffer length (one byte per-type).
 ///

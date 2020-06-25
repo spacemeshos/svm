@@ -22,7 +22,7 @@ use crate::svm_byte_array;
 ///
 /// * Then each WASM value is encoded as:
 ///   - A WASM value type. It can be `I32` or `I64` (SVM doesn't support Floats).
-///     The encodings of `WasmType` to `u8` and of `WasmValue` to `u64` sit under the `svm-app` crate.
+///     The encodings of `WasmType` to `u8` and of `WasmValue` to `u64` sit under the `svm-codec` crate.
 ///   - A Big-Endian encoding of the WASM value. `I32` consumes 4 bytes and `I64` 8 bytes.
 ///
 /// +----------------------------------------------------------------------+
