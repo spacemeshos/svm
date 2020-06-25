@@ -1,8 +1,11 @@
 use svm_types::{AppAddr, AppTransaction};
 
 use crate::{
-    decode_func_args, decode_func_buf, decode_varuint14, decode_version, error::ParseError,
-    helpers, Field, NibbleIter, NibbleWriter,
+    decode_func_args, decode_func_buf, decode_varuint14, decode_version,
+    error::ParseError,
+    helpers,
+    nibble::{NibbleIter, NibbleWriter},
+    Field,
 };
 
 /// Encodes a raw App transaction.
@@ -79,7 +82,10 @@ mod tests {
     use svm_common::Address;
     use svm_types::{AppTransaction, WasmValue};
 
-    use crate::{decode_exec_app, encode_exec_app, NibbleIter, NibbleWriter};
+    use crate::{
+        decode_exec_app, encode_exec_app,
+        nibble::{NibbleIter, NibbleWriter},
+    };
 
     #[test]
     fn encode_decode_exec_app() {

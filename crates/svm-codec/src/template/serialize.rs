@@ -2,8 +2,9 @@ use svm_types::{AppTemplate, AuthorAddr};
 
 use crate::{
     decode_deploy_template, encode_deploy_template, helpers,
+    nibble::{NibbleIter, NibbleWriter},
     traits::{AppTemplateDeserializer, AppTemplateSerializer},
-    Field, NibbleIter, NibbleWriter,
+    Field,
 };
 
 /// `AppTemplate` default Serializer

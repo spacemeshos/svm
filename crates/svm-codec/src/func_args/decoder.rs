@@ -3,8 +3,9 @@ use crate::error::ParseError;
 use svm_types::WasmValue;
 
 use crate::{
+    nibble::NibbleIter,
     wasm::{decode_wasm_value, WasmValueLayout, DO_SKIP, NO_MORE},
-    Field, NibbleIter,
+    Field,
 };
 
 /// Decodes raw func args field.
@@ -70,7 +71,8 @@ mod tests {
 
     use crate::{
         nib,
-        {concat_nibbles, wasm::*, Nibble},
+        nibble::{concat_nibbles, Nibble},
+        wasm::*,
     };
 
     fn assert_func_args(nibbles: Vec<Nibble>, expected: Vec<WasmValue>) {

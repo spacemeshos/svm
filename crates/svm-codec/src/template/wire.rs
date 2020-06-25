@@ -1,8 +1,11 @@
 use svm_types::AppTemplate;
 
 use crate::{
-    decode_varuint14, decode_version, encode_varuint14, error::ParseError, helpers, Field,
-    NibbleIter, NibbleWriter,
+    decode_varuint14, decode_version, encode_varuint14,
+    error::ParseError,
+    helpers,
+    nibble::{NibbleIter, NibbleWriter},
+    Field,
 };
 
 use svm_layout::{DataLayout, DataLayoutBuilder};

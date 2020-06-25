@@ -3,7 +3,11 @@ use svm_types::{App, CreatorAddr, TemplateAddr};
 use crate::{
     decode_version, encode_version,
     traits::{AppDeserializer, AppSerializer},
-    {helpers, Field, NibbleIter, NibbleWriter},
+    {
+        helpers,
+        nibble::{NibbleIter, NibbleWriter},
+        Field,
+    },
 };
 
 /// Default serializer for `App`

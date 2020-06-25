@@ -1,4 +1,4 @@
-use super::super::{encode_varuint14, NibbleWriter};
+use crate::{encode_varuint14, nibble::NibbleWriter};
 
 /// Encodes func buffer.
 pub fn encode_func_buf(buf: &[u8], w: &mut NibbleWriter) {

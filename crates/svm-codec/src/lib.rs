@@ -5,9 +5,6 @@
 #![feature(vec_into_raw_parts)]
 
 #[macro_use]
-mod nibble;
-
-#[macro_use]
 mod wasm;
 
 mod app;
@@ -33,10 +30,11 @@ use transaction::{decode_exec_app, encode_exec_app};
 use varuint14::{decode_varuint14, encode_varuint14};
 use version::{decode_version, encode_version};
 
+#[macro_use]
+pub mod nibble;
+
 pub mod api;
 pub mod error;
-
-pub use nibble::{concat_nibbles, Nibble, NibbleIter, NibbleWriter};
 pub mod serializers {
     use crate::app::{DefaultAppDeserializer, DefaultAppSerializer};
     use crate::template::{DefaultAppTemplateDeserializer, DefaultAppTemplateSerializer};

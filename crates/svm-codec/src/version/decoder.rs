@@ -1,5 +1,5 @@
-use super::super::{Field, NibbleIter};
 use crate::error::ParseError;
+use crate::{nibble::NibbleIter, Field};
 
 use bit_vec::BitVec;
 

@@ -1,6 +1,6 @@
 use svm_types::WasmValue;
 
-use crate::{wasm, NibbleWriter};
+use crate::{nibble::NibbleWriter, wasm};
 
 /// Encodes the `gas_used` field as part of a `Receipt`.
 #[allow(unused)]

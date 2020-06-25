@@ -6,8 +6,8 @@ pub use encoder::encode_func_buf;
 
 #[cfg(test)]
 mod tests {
-    use super::super::{NibbleIter, NibbleWriter};
-    use super::{decode_func_buf, encode_func_buf};
+    use crate::nibble::{NibbleIter, NibbleWriter};
+    use crate::{decode_func_buf, encode_func_buf};
 
     fn assert_encode_decode(buf: Vec<u8>) {
         let mut w = NibbleWriter::new();

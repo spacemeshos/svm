@@ -1,7 +1,7 @@
 use std::fmt;
 
 use super::{to_wasm_buffer, wasm_buffer_data, BUF_ERROR_MARKER, BUF_OK_MARKER};
-use crate::NibbleWriter;
+use crate::nibble::NibbleWriter;
 
 pub fn into_error_buffer<T: fmt::Debug>(err: T) -> usize {
     let msg: String = format!("{:?}", err);

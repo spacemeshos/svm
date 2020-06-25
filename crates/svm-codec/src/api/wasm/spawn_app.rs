@@ -7,7 +7,7 @@ use super::{
     alloc, error::into_error_buffer, free, to_wasm_buffer, wasm_buf_data_copy, wasm_buffer_data,
     BUF_ERROR_MARKER, BUF_OK_MARKER,
 };
-use crate::{api, api::json::JsonError, app, NibbleWriter};
+use crate::{api, api::json::JsonError, app, nibble::NibbleWriter};
 
 /// Encodes a `spawn-app` json input into SVM `spawn-app` binary transaction.
 /// The json input is passed by giving WASM memory start address (`ptr` parameter).
@@ -39,7 +39,7 @@ pub fn encode_spawn_app(ptr: usize) -> Result<usize, JsonError> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::NibbleIter;
+    use crate::nibble::NibbleIter;
 
     use crate::api::wasm::error_as_string;
 

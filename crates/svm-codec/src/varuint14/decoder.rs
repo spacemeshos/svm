@@ -1,4 +1,4 @@
-use crate::{error::ParseError, Field, NibbleIter};
+use crate::{error::ParseError, nibble::NibbleIter, Field};
 
 use bit_vec::BitVec;
 
