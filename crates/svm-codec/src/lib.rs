@@ -38,6 +38,9 @@ pub mod error;
 pub mod serializers {
     use crate::app::{DefaultAppDeserializer, DefaultAppSerializer};
     use crate::template::{DefaultAppTemplateDeserializer, DefaultAppTemplateSerializer};
+    use crate::traits::{
+        AppDeserializer, AppSerializer, AppTemplateDeserializer, AppTemplateSerializer,
+    };
 }
 
 /// ## WASM Deploy-Template
