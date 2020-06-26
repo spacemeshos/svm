@@ -1,9 +1,8 @@
 use std::{ffi::c_void, path::Path};
 
-use svm_app::{
-    rocksdb::{RocksdbAppStore, RocksdbAppTemplateStore, RocksdbEnv},
-    traits::EnvSerializerTypes,
-};
+use crate::env::traits::EnvSerializerTypes;
+
+use svm_app::rocksdb::{RocksdbAppStore, RocksdbAppTemplateStore, RocksdbEnv};
 use svm_common::State;
 use svm_layout::DataLayout;
 use svm_storage::app::AppStorage;

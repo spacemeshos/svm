@@ -2,6 +2,7 @@ use std::{ffi::c_void, fmt, marker::PhantomData, path::Path};
 
 use log::{debug, error, info};
 
+use crate::env::traits::{Env, EnvTypes};
 use crate::{
     ctx::SvmCtx,
     error::{ExecAppError, SpawnAppError, ValidateError},
@@ -12,7 +13,6 @@ use crate::{
     vmcalls, Config, Runtime,
 };
 
-use svm_app::traits::{Env, EnvTypes};
 use svm_codec::error::ParseError;
 use svm_common::State;
 use svm_gas::Gas;
@@ -134,14 +134,12 @@ where
 
         match gas_left {
             Err(..) => SpawnAppReceipt::new_oog(),
-            Ok(gas_left) => match self.install_app(&spawn, creator, &host_ctx) {
-                Ok(addr) => {
-                    let gas_used = install_gas.into();
+            Ok(gas_left) => {
+                let addr = self.install_app(&spawn, creator, &host_ctx);
+                let gas_used = install_gas.into();
 
-                    self.call_ctor(creator, spawn, &addr, host_ctx, gas_used, gas_left)
-                }
-                Err(e) => e.into(),
-            },
+                self.call_ctor(creator, spawn, &addr, host_ctx, gas_used, gas_left)
+            }
         }
     }
 
@@ -223,10 +221,8 @@ where
         gas_used: MaybeGas,
         _gas_left: MaybeGas,
     ) -> TemplateReceipt {
-        match self.env.store_template(template, author, &host_ctx) {
-            Ok(addr) => TemplateReceipt::new(addr, gas_used),
-            Err(..) => panic!("Store failed"),
-        }
+        let addr = self.env.store_template(template, author, &host_ctx);
+        TemplateReceipt::new(addr, gas_used)
     }
 
     fn install_app(
@@ -234,10 +230,8 @@ where
         spawn: &SpawnApp,
         creator: &CreatorAddr,
         host_ctx: &HostCtx,
-    ) -> Result<AppAddr, SpawnAppError> {
-        self.env
-            .store_app(spawn, creator, host_ctx)
-            .or_else(|e| Err(SpawnAppError::StoreFailed(e)))
+    ) -> AppAddr {
+        self.env.store_app(spawn, creator, host_ctx)
     }
 
     fn build_ctor_call(

@@ -1,5 +1,6 @@
 use std::{cell::RefCell, collections::HashMap, ffi::c_void, path::Path, rc::Rc};
 
+use crate::env::memory::{DefaultMemAppStore, DefaultMemAppTemplateStore, DefaultMemoryEnv};
 use crate::{
     ctx::SvmCtx,
     gas::{DefaultGasEstimator, MaybeGas},
@@ -8,9 +9,8 @@ use crate::{
     Config, DefaultRuntime,
 };
 
-use svm_app::{
-    memory::{DefaultMemAppStore, DefaultMemAppTemplateStore, DefaultMemoryEnv},
-    testing::{AppTxBuilder, DeployAppTemplateBuilder, HostCtxBuilder, SpawnAppBuilder},
+use svm_codec::api::builder::{
+    AppTxBuilder, DeployAppTemplateBuilder, HostCtxBuilder, SpawnAppBuilder,
 };
 use svm_common::{Address, State};
 use svm_layout::DataLayout;

@@ -13,9 +13,6 @@ pub enum SpawnAppError {
 
     /// Spawned app ctor has failed.
     CtorFailed(ExecAppError),
-
-    /// Storing the template has failed (operating-system returned a failure).
-    StoreFailed(StoreError),
 }
 
 impl ToString for SpawnAppError {
