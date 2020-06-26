@@ -4,7 +4,7 @@ use crate::{error::ParseError, nibble::NibbleIter, wasm};
 
 macro_rules! invalid_layout {
     () => {{
-        use crate::Field;
+        use crate::api::raw::Field;
 
         return Err(ParseError::UnexpectedLayout(Field::GasUsed));
     }};

@@ -145,7 +145,7 @@ mod tests {
         let bytes = deploy_template(&json).unwrap();
 
         let mut iter = NibbleIter::new(&bytes[..]);
-        let actual = crate::decode_deploy_template(&mut iter).unwrap();
+        let actual = crate::api::raw::decode_deploy_template(&mut iter).unwrap();
 
         let expected = AppTemplate {
             version: 0,

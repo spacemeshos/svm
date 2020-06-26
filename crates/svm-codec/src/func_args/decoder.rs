@@ -2,10 +2,11 @@ use crate::error::ParseError;
 
 use svm_types::WasmValue;
 
+use crate::api::raw::Field;
+
 use crate::{
     nibble::NibbleIter,
     wasm::{decode_wasm_value, WasmValueLayout, DO_SKIP, NO_MORE},
-    Field,
 };
 
 /// Decodes raw func args field.

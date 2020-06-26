@@ -1,6 +1,6 @@
 use svm_types::{App, SpawnApp, TemplateAddr, WasmValue};
 
-use crate::{encode_spawn_app, nibble::NibbleWriter};
+use crate::{api::raw::encode_spawn_app, nibble::NibbleWriter};
 
 /// Builds a raw representation for `spawn-app`
 /// Should be used for testing only.

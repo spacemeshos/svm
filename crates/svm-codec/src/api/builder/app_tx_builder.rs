@@ -1,6 +1,6 @@
 use svm_types::{AppAddr, AppTransaction, WasmValue};
 
-use crate::{encode_exec_app, nibble::NibbleWriter};
+use crate::{api::raw::encode_exec_app, nibble::NibbleWriter};
 
 /// Builds a raw representation for `exec-app`
 /// Should be used for testing only.

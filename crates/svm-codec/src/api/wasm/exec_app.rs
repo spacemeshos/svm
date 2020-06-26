@@ -66,7 +66,7 @@ mod test {
         assert_eq!(data[0], BUF_OK_MARKER);
 
         let mut iter = NibbleIter::new(&data[1..]);
-        let actual = crate::decode_exec_app(&mut iter).unwrap();
+        let actual = crate::api::raw::decode_exec_app(&mut iter).unwrap();
 
         let addr_bytes = vec![
             0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80, 0x90, 0x00, 0xA0, 0xB0, 0xC0, 0xD0,

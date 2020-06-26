@@ -6,8 +6,8 @@ pub use encoder::encode_version;
 
 #[cfg(test)]
 mod tests {
+    use crate::api::raw::{decode_version, encode_version};
     use crate::nibble::{NibbleIter, NibbleWriter};
-    use crate::{decode_version, encode_version};
 
     fn assert_encode_decode(version: u32) {
         let mut w = NibbleWriter::new();

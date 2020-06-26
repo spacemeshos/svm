@@ -65,7 +65,7 @@ mod test {
         assert_eq!(data[0], BUF_OK_MARKER);
 
         let mut iter = NibbleIter::new(&data[1..]);
-        let actual = crate::decode_deploy_template(&mut iter).unwrap();
+        let actual = crate::api::raw::decode_deploy_template(&mut iter).unwrap();
 
         let expected = AppTemplate {
             version: 0,
