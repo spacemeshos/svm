@@ -8,5 +8,6 @@ pub use crate::func_args::{
 };
 pub use crate::func_buf::{decode_func_buf, encode_func_buf};
 pub use crate::gas::{decode_gas_used, encode_gas_used};
+pub use crate::host_ctx::{decode_host_ctx, encode_host_ctx};
 pub use crate::varuint14::{decode_varuint14, encode_varuint14};
 pub use crate::version::{decode_version, encode_version};
