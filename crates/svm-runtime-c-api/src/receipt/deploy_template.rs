@@ -14,7 +14,7 @@
 //!  On success (`is_success = 0`)
 //!  See [error.rs][./error.rs]
 
-use svm_app::raw::NibbleWriter;
+use svm_codec::nibble::NibbleWriter;
 use svm_runtime::receipt::{Receipt, TemplateReceipt};
 
 use super::{encode_error, helpers};

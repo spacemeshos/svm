@@ -1,8 +1,7 @@
-use svm_app::{
-    raw::{decode_func_args, decode_version, NibbleIter},
-    types::{AppAddr, WasmValue},
-};
+use svm_codec::api::raw::{decode_func_args, decode_version};
+use svm_codec::nibble::NibbleIter;
 use svm_common::State;
+use svm_types::{AppAddr, WasmValue};
 
 use super::helpers;
 

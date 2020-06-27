@@ -2,15 +2,13 @@ use std::{cell::RefCell, convert::TryFrom, ffi::c_void, io, path::Path, ptr::Non
 
 use log::{debug, error};
 
-use svm_app::{
-    default::DefaultSerializerTypes,
-    testing::{AppTxBuilder, DeployAppTemplateBuilder, SpawnAppBuilder},
-    types::{HostCtx, WasmType, WasmValue},
-};
+use svm_codec::api::builder::{AppTxBuilder, DeployAppTemplateBuilder, SpawnAppBuilder};
 use svm_common::{Address, State};
 use svm_layout::DataLayout;
+use svm_runtime::env::default::DefaultSerializerTypes;
 use svm_runtime::{ctx::SvmCtx, gas::DefaultGasEstimator};
 use svm_storage::kv::{ExternKV, StatefulKV};
+use svm_types::{HostCtx, WasmType, WasmValue};
 
 use crate::{
     helpers,

@@ -1,7 +1,7 @@
 use std::convert::TryFrom;
 use std::io::{self, Cursor, ErrorKind};
 
-use svm_app::types::{WasmType, WasmValue};
+use svm_types::{WasmType, WasmValue};
 
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 

@@ -20,7 +20,7 @@ pub mod gas;
 
 mod storage;
 
-mod env;
+pub mod env;
 
 /// Implements `SvmCtx`. Used for running `SVM` instances.
 pub mod ctx;

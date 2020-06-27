@@ -1,7 +1,6 @@
-use svm_app::{
-    raw::{decode_version, NibbleIter},
-    types::TemplateAddr,
-};
+use svm_codec::api::raw::decode_version;
+use svm_codec::nibble::NibbleIter;
+use svm_types::TemplateAddr;
 
 use super::helpers;
 
