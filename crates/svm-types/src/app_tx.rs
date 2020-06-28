@@ -43,7 +43,8 @@ impl AppTransaction {
     }
 
     fn fmt_app(&self) -> String {
-        format!("App: {}", AppTransaction::fmt_address(&self.app.inner()))
+        todo!()
+        // format!("App: {}", AppTransaction::fmt_address(&self.app.inner()))
     }
 
     fn fmt_func_idx(&self) -> String {
