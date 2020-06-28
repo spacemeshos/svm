@@ -2,11 +2,12 @@ use std::error::Error;
 
 use crate::common;
 
-use svm_app::{
-    raw::decode_deploy_template, raw::NibbleIter, testing::DeployAppTemplateBuilder,
-    types::AppTemplate,
-};
+use svm_codec::api::builder::DeployAppTemplateBuilder;
+use svm_codec::api::raw::decode_deploy_template;
+use svm_codec::nibble::NibbleIter;
+
 use svm_layout::DataLayout;
+use svm_types::AppTemplate;
 
 pub fn encode(
     version: u32,
