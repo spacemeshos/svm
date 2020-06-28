@@ -1024,6 +1024,7 @@ dependencies = [
  "log",
  "rocksdb",
  "svm-common",
+ "svm-types",
 ]
 
 [[package]]
