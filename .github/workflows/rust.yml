@@ -35,18 +35,24 @@ jobs:
       uses: actions-rs/toolchain@v1
       with:
         toolchain: nightly
-    - name: Build
+    - name: Cargo Build
       uses: actions-rs/cargo@v1
       with:
         toolchain: nightly
         command: build
         args: ${{ matrix.release }} --all
-    - name: Test
+    - name: Cargo Test
       uses: actions-rs/cargo@v1
       with:
         toolchain: nightly
         command: test
-        args: ${{ matrix.release }} --all
+        args: ${{ matrix.release }} --all 
+    - name: npm install
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2-beta
+    - name: Test svm-codec (WASM)
+      shell: bash
+      run: ./svm-codec-ci.sh
     - name: Prepare uploads
       shell: bash
       run: mkdir bins/ && for i in $(ls target/release/{libsvm_runtime_c_api.dylib,libsvm_runtime_c_api.so,svm_runtime_c_api.dll,svm.h}); do mv $i bins/; done
