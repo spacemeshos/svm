@@ -7,8 +7,10 @@ use svm_codec::api::raw;
 
 use svm_common::{Address, State};
 use svm_layout::DataLayout;
+
 use svm_runtime::env::default::DefaultSerializerTypes;
 use svm_runtime::{ctx::SvmCtx, gas::DefaultGasEstimator};
+
 use svm_storage::kv::{ExternKV, StatefulKV};
 use svm_types::{WasmType, WasmValue};
 
@@ -274,7 +276,7 @@ pub unsafe extern "C" fn svm_imports_alloc(imports: *mut *mut c_void, count: u32
 /// # Example
 ///
 /// ```rust
-/// use svm_app::types::WasmType;
+/// use svm_types::WasmType;
 /// use svm_runtime_c_api::*;
 ///
 /// fn foo() {

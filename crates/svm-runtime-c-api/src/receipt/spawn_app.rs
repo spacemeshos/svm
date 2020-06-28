@@ -70,9 +70,9 @@ mod tests {
 
     use crate::testing::{self, ClientAppReceipt};
 
-    use svm_app::{types::AppAddr, types::WasmValue};
     use svm_common::{Address, State};
     use svm_runtime::{error::SpawnAppError, gas::MaybeGas};
+    use svm_types::{AppAddr, WasmValue};
 
     #[test]
     fn encode_decode_app_receipt_error() {

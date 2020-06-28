@@ -13,7 +13,7 @@ pub mod receipt;
 
 /// Implements the most high-level API of `SVM`.
 mod runtime;
-pub use runtime::{Config, DefaultRuntime, Runtime};
+pub use runtime::{create_rocksdb_runtime, Config, DefaultRuntime, Runtime};
 
 /// Gas estimation and metering.
 pub mod gas;
