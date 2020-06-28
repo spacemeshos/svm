@@ -48,8 +48,8 @@ jobs:
         command: test
         args: ${{ matrix.release }} --all 
     - name: npm install
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2-beta
+      uses: actions/checkout@v2
+      uses: actions/setup-node@v2-beta
     - name: Test svm-codec (WASM)
       shell: bash
       run: ./svm-codec-ci.sh
