@@ -52,7 +52,8 @@ jobs:
       with:
         node-version: ${{ matrix.node }}
     - name: rustup wasm32-unknown-unknown
-      shell: rustup target add wasm32-unknown-unknown
+      shell: bash
+      run: rustup target add wasm32-unknown-unknown
     - name: Test svm-codec (WASM)
       shell: bash
       run: ./svm-codec-ci.sh
