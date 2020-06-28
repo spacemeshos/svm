@@ -66,8 +66,13 @@ jobs:
     - name: Prepare `svm_codec.wasm` upload
       shell: bash
       run: mv target/wasm32-unknown-unknown/release/svm_codec.wasm bins/svm_codec.wasm 
-    - name: Upload bins
+    - name: Upload Object file
       uses: actions/upload-artifact@master
       with:
         name: bins-${{ runner.os }}${{ matrix.release }}
         path: bins/
+    - name: Upload `svm_codec.wasm` 
+      uses: actions/upload-artifact@master
+      with:
+        name: svm_codec-${{ runner.os }}.wasm
+        path: target/wasm32-unknown-unknown/release/svm_codec.wasm
