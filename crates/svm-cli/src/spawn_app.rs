@@ -1,11 +1,12 @@
 use std::error::Error;
 
 use crate::common;
-use svm_app::{
-    raw::{decode_spawn_app, NibbleIter},
-    testing::SpawnAppBuilder,
-    types::SpawnApp,
-};
+
+use svm_codec::api::builder::SpawnAppBuilder;
+use svm_codec::api::raw::decode_spawn_app;
+use svm_codec::nibble::NibbleIter;
+
+use svm_types::SpawnApp;
 
 pub fn encode(
     version: u32,

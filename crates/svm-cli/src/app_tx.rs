@@ -1,11 +1,12 @@
 use std::error::Error;
 
 use crate::common;
-use svm_app::{
-    raw::{decode_exec_app, NibbleIter},
-    testing::AppTxBuilder,
-    types::AppTransaction,
-};
+
+use svm_codec::api::builder::AppTxBuilder;
+use svm_codec::api::raw::decode_exec_app;
+use svm_codec::nibble::NibbleIter;
+
+use svm_types::AppTransaction;
 
 pub fn encode(
     version: u32,

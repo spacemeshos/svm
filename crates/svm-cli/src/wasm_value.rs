@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use svm_app::types::WasmValue;
+use svm_types::WasmValue;
 
 #[derive(Debug, PartialEq)]
 pub enum ParseError {
