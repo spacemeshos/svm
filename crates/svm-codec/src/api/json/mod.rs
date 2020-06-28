@@ -10,8 +10,7 @@ pub use spawn_app::spawn_app;
 
 use serde_json::Value;
 
-use svm_common::Address;
-use svm_types::WasmValue;
+use svm_types::{Address, WasmValue};
 
 pub(crate) fn as_u16(json: &Value, field: &str) -> Result<u16, JsonError> {
     let value: &Value = &json[field];

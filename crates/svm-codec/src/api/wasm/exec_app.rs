@@ -1,7 +1,6 @@
 use serde_json::{self as json, Value};
 
-use svm_common::Address;
-use svm_types::{AppTransaction, WasmValue};
+use svm_types::{Address, AppTransaction, WasmValue};
 
 use super::{
     alloc, error::into_error_buffer, free, to_wasm_buffer, wasm_buf_data_copy, wasm_buffer_data,
