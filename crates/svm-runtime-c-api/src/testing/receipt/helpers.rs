@@ -1,6 +1,6 @@
 use svm_codec::api::raw::{self, Field};
 use svm_codec::nibble::{Nibble, NibbleIter};
-use svm_common::{Address, State};
+use svm_types::{Address, State};
 
 pub(crate) fn decode_is_success(iter: &mut NibbleIter) -> u8 {
     let is_success: Nibble = iter.next().unwrap();

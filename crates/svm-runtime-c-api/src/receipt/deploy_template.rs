@@ -48,9 +48,8 @@ fn encode_template_addr(receipt: &TemplateReceipt, w: &mut NibbleWriter) {
 mod tests {
     use super::*;
 
-    use svm_common::Address;
     use svm_runtime::{gas::MaybeGas, receipt::TemplateReceipt};
-    use svm_types::TemplateAddr;
+    use svm_types::{Address, TemplateAddr};
 
     use crate::testing::{self, ClientTemplateReceipt};
 

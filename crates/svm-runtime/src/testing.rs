@@ -12,13 +12,12 @@ use crate::{
 use svm_codec::api::builder::{
     AppTxBuilder, DeployAppTemplateBuilder, HostCtxBuilder, SpawnAppBuilder,
 };
-use svm_common::{Address, State};
 use svm_layout::DataLayout;
 use svm_storage::{
     app::{AppKVStore, AppStorage},
     kv::{FakeKV, StatefulKV},
 };
-use svm_types::{AppAddr, TemplateAddr, WasmValue};
+use svm_types::{Address, AppAddr, State, TemplateAddr, WasmValue};
 use wasmer_runtime_core::{export::Export, import::ImportObject, Instance, Module};
 
 /// Compiles a wasm program in text format (a.k.a WAST) into a `Module` (`wasmer`)

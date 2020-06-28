@@ -1,7 +1,7 @@
 use crate::env::traits::{AppAddressCompute, AppTemplateAddressCompute};
 
-use svm_common::{Address, DefaultKeyHasher, KeyHasher};
-use svm_types::{AppAddr, AppTemplate, HostCtx, SpawnApp, TemplateAddr};
+use svm_common::{DefaultKeyHasher, KeyHasher};
+use svm_types::{Address, AppAddr, AppTemplate, HostCtx, SpawnApp, TemplateAddr};
 
 /// Default implementation for computing an `App` address deterministically.
 pub struct DefaultAppAddressCompute;

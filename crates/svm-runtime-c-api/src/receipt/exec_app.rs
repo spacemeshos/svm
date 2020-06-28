@@ -62,9 +62,8 @@ mod tests {
 
     use crate::testing::{self, ClientExecReceipt};
 
-    use svm_common::{Address, State};
     use svm_runtime::{error::ExecAppError, gas::MaybeGas};
-    use svm_types::WasmValue;
+    use svm_types::{Address, State, WasmValue};
 
     #[test]
     fn encode_decode_exec_receipt_error() {

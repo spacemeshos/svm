@@ -5,14 +5,13 @@ use log::{debug, error};
 use svm_codec::api::builder::{AppTxBuilder, DeployAppTemplateBuilder, SpawnAppBuilder};
 use svm_codec::api::raw;
 
-use svm_common::{Address, State};
 use svm_layout::DataLayout;
 
 use svm_runtime::env::default::DefaultSerializerTypes;
 use svm_runtime::{ctx::SvmCtx, gas::DefaultGasEstimator};
 
 use svm_storage::kv::{ExternKV, StatefulKV};
-use svm_types::{WasmType, WasmValue};
+use svm_types::{Address, State, WasmType, WasmValue};
 
 use crate::{
     helpers,
@@ -92,7 +91,7 @@ macro_rules! to_svm_byte_array {
 ///
 /// ```rust, no_run
 /// use svm_runtime_c_api::*;
-/// use svm_common::Address;
+/// use svm_types::Address;
 ///
 /// let mut host = std::ptr::null_mut();
 ///
@@ -144,7 +143,7 @@ pub unsafe extern "C" fn svm_validate_template(
 ///
 /// ```rust, no_run
 /// use svm_runtime_c_api::*;
-/// use svm_common::Address;
+/// use svm_types::Address;
 ///
 /// let mut host = std::ptr::null_mut();
 ///
@@ -193,7 +192,7 @@ pub unsafe extern "C" fn svm_validate_app(
 ///
 /// ```rust, no_run
 /// use svm_runtime_c_api::*;
-/// use svm_common::Address;
+/// use svm_types::Address;
 ///
 /// let mut host = std::ptr::null_mut();
 ///
@@ -576,7 +575,7 @@ pub unsafe extern "C" fn svm_runtime_create(
 ///
 /// ```rust, no_run
 /// use svm_runtime_c_api::*;
-/// use svm_common::Address;
+/// use svm_types::Address;
 ///
 /// let mut host = std::ptr::null_mut();
 ///
@@ -672,7 +671,7 @@ pub unsafe extern "C" fn svm_deploy_template(
 ///
 /// ```rust, no_run
 /// use svm_runtime_c_api::*;
-/// use svm_common::Address;
+/// use svm_types::Address;
 ///
 /// let mut host = std::ptr::null_mut();
 ///
@@ -770,7 +769,7 @@ pub unsafe extern "C" fn svm_spawn_app(
 /// use std::ffi::c_void;
 ///
 /// use svm_runtime_c_api::*;
-/// use svm_common::{State, Address};
+/// use svm_types::{State, Address};
 ///
 /// let mut host = std::ptr::null_mut();
 ///
@@ -871,7 +870,7 @@ pub unsafe extern "C" fn svm_instance_context_host_get(ctx: *mut c_void) -> *mut
 ///
 /// ```rust, no_run
 /// use svm_runtime_c_api::*;
-/// use svm_common::Address;
+/// use svm_types::Address;
 ///
 /// let mut host = std::ptr::null_mut();
 ///

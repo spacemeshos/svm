@@ -1,5 +1,4 @@
-use svm_common::State;
-use svm_types::WasmValue;
+use svm_types::{State, WasmValue};
 
 use crate::{error::ExecAppError, gas::MaybeGas};
 
