@@ -32,27 +32,41 @@ pub fn encode_host_ctx(host_ctx: &HostCtx) -> Vec<u8> {
 
     let nvalues = map.values().len();
     let values_size = map.values().fold(0, |acc, v| acc + v.len());
-    let buf_size = 4 + 2 + values_size + nvalues * 2;
+    let buf_size = 4 + 2 + values_size + nvalues * 4;
 
-    let mut buf: Vec<u8> = vec![0; buf_size];
+    let mut buf = vec![0; buf_size];
+    let mut pos = 0;
 
-    // `version`
-    BigEndian::write_u32(&mut buf, 0);
+    // `version (4 bytes)`
+    BigEndian::write_u32(&mut buf[pos..], 0);
+    pos += 4;
 
     let nfields = map.len();
     assert!(nfields <= std::u16::MAX as usize);
 
-    // `#fields`
-    BigEndian::write_u16(&mut buf, nfields as u16);
+    // `#fields (2 bytes)`
+    BigEndian::write_u16(&mut buf[pos..], nfields as u16);
+    pos += 2;
 
     for (k, v) in map.iter() {
         assert!(*k <= std::u16::MAX as u32);
 
-        // `field index`
-        BigEndian::write_u16(&mut buf, *k as u16);
+        // `field index` (2 bytes)
+        BigEndian::write_u16(&mut buf[pos..], *k as u16);
+        pos += 2;
 
-        // `field value`
-        buf.extend_from_slice(v);
+        // `field length` (2 bytes)
+        BigEndian::write_u16(&mut buf[pos..], v.len() as u16);
+        pos += 2;
+
+        // `field value` (`v.len()` bytes)
+        unsafe {
+            let src = v.as_ptr();
+            let dst = buf.as_mut_ptr().add(pos);
+
+            std::ptr::copy_nonoverlapping(src, dst, v.len());
+            pos += v.len();
+        }
     }
 
     buf
@@ -67,6 +81,7 @@ pub fn decode_host_ctx(bytes: &[u8]) -> Result<HostCtx, ParseError> {
     let mut fields = HashMap::new();
 
     let field_count = decode_field_count(&mut cursor)?;
+    dbg!(field_count);
 
     for _ in 0..field_count {
         let index = decode_field_index(&mut cursor)?;
@@ -135,6 +150,19 @@ mod tests {
     fn encode_host_ctx_one_field() {
         let map = hashmap! {
             0 => vec![0x10, 0x20],
+        };
+
+        let host_ctx: HostCtx = map.into();
+        let buf = encode_host_ctx(&host_ctx);
+
+        assert_decode!(buf, host_ctx);
+    }
+
+    #[test]
+    fn encode_host_ctx_two_fields() {
+        let map = hashmap! {
+            0 => vec![0x10, 0x20],
+            1 => vec![0x30, 0x40, 0x50],
         };
 
         let host_ctx: HostCtx = map.into();
