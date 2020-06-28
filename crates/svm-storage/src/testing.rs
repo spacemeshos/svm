@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use svm_common::Address;
+use svm_types::Address;
 
 use crate::app::AppKVStore;
 use crate::kv::{FakeKV, StatefulKV};

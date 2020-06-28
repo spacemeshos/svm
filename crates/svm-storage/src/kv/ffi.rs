@@ -1,6 +1,6 @@
 use super::StatefulKV;
 
-use svm_common::State;
+use svm_types::State;
 
 const BUF_SIZE: usize = 1024;
 static mut BUF: [u8; BUF_SIZE] = [0; BUF_SIZE];

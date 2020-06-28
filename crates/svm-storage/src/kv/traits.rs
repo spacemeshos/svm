@@ -1,4 +1,4 @@
-use svm_common::State;
+use svm_types::State;
 
 /// This trait should be implemented by `State`-aware key-value stores.
 ///

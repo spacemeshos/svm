@@ -4,7 +4,7 @@ use crate::kv::{ExternKV, StatefulKV};
 use std::slice;
 use std::sync::Mutex;
 
-use svm_common::State;
+use svm_types::State;
 
 use lazy_static::lazy_static;
 
