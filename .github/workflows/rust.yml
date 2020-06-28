@@ -57,9 +57,12 @@ jobs:
     - name: Test svm-codec (WASM)
       shell: bash
       run: ./svm-codec-ci.sh
-    - name: Prepare uploads
+    - name: Prepare uploads (SVM object file)
       shell: bash
       run: mkdir bins/ && for i in $(ls target/release/{libsvm_runtime_c_api.dylib,libsvm_runtime_c_api.so,svm_runtime_c_api.dll,svm.h}); do mv $i bins/; done
+    - name: Prepare svm_codec.wasm
+      shell: bash
+      run: for i in $(ls target/wasm32-unknown-unknown/release/{svm_codec.wasm}); do mv $i bins/; done
     - name: Upload bins
       uses: actions/upload-artifact@master
       with:
