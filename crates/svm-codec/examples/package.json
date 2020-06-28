@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "description": "\"svm-codec examples\"",
   "main": "index.js",
+  "engines": {
+    "node": ">=0.12",
+    "npm": ">=6.0.0"
+  },
   "scripts": {
     "test": "mocha"
   },
@@ -22,7 +26,6 @@
   },
   "homepage": "https://github.com/spacemeshos/svm#readme",
   "dependencies": {
-    "mocha": "^8.0.1",
-    "typescript": "^3.9.5"
+    "mocha": "^8.0.1"
   }
 }
