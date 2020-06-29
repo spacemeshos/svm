@@ -17,7 +17,8 @@ pub struct AppTxBuilder {
 ///
 /// ```rust
 /// use svm_types::{AppTransaction, WasmValue};
-/// use svm_codec::{api::native::AppTxBuilder, decode_exec_app, NibbleIter};
+/// use svm_codec::nibble::NibbleIter;
+/// use svm_codec::api::{raw::decode_exec_app, builder::AppTxBuilder};
 /// use svm_common::Address;
 ///
 /// let app = Address::of("@my-app").into();
