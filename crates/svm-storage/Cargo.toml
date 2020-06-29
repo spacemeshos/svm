@@ -18,3 +18,6 @@ path = "../svm-common"
 
 [dependencies.svm-layout]
 path = "../svm-layout"
+
+[dependencies]
+lazy_static = "1.4.0"

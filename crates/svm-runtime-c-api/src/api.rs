@@ -10,7 +10,7 @@ use svm_app::{
 use svm_common::{Address, State};
 use svm_layout::DataLayout;
 use svm_runtime::{ctx::SvmCtx, gas::DefaultGasEstimator};
-use svm_storage::kv::StatefulKV;
+use svm_storage::kv::{ExternKV, StatefulKV};
 
 use crate::{
     helpers,
@@ -405,6 +405,48 @@ pub unsafe extern "C" fn svm_memory_state_kv_create(kv: *mut *mut c_void) -> svm
     svm_result_t::SVM_SUCCESS
 }
 
+/// Creates a new FFI key-value client.
+/// Returns a raw pointer to allocated kv-store via input parameter `state_kv`.
+///
+/// # Example
+///
+/// ```rust
+/// use svm_runtime_c_api::*;
+///
+/// unsafe extern "C" fn get(key_ptr: *const u8, key_len: u32, value_ptr: *mut u8, value_len: *mut u32) {}
+/// unsafe extern "C" fn set(key_ptr: *const u8, key_len: u32, value_ptr: *const u8, value_len: u32) {}
+/// unsafe extern "C" fn discard() {}
+/// unsafe extern "C" fn checkpoint(state: *mut u8) {}
+///
+/// let mut kv = std::ptr::null_mut();
+/// let res = unsafe { svm_ffi_state_kv_create(&mut kv, get, set, discard, checkpoint) };
+/// assert!(res.is_ok());
+/// ```
+///
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_ffi_state_kv_create(
+    state_kv: *mut *mut c_void,
+    get_fn: unsafe extern "C" fn(*const u8, u32, *mut u8, *mut u32),
+    set_fn: unsafe extern "C" fn(*const u8, u32, *const u8, u32),
+    discard_fn: unsafe extern "C" fn(),
+    checkpoint_fn: unsafe extern "C" fn(*mut u8),
+) -> svm_result_t {
+    let ffi_kv = ExternKV {
+        get_fn,
+        set_fn,
+        discard_fn,
+        checkpoint_fn,
+        head: None,
+    };
+
+    let ffi_kv = Rc::new(RefCell::new(ffi_kv));
+
+    *state_kv = svm_common::into_raw_mut(ffi_kv);
+
+    svm_result_t::SVM_SUCCESS
+}
+
 /// Frees an in-memory key-value.
 ///
 /// # Example
@@ -416,13 +458,13 @@ pub unsafe extern "C" fn svm_memory_state_kv_create(kv: *mut *mut c_void) -> svm
 /// let res = unsafe { svm_memory_state_kv_create(&mut kv) };
 /// assert!(res.is_ok());
 ///
-/// let res = unsafe { svm_memory_state_kv_destroy(kv) };
+/// let res = unsafe { svm_state_kv_destroy(kv) };
 /// assert!(res.is_ok());
 /// ```
 ///
 #[must_use]
 #[no_mangle]
-pub unsafe extern "C" fn svm_memory_state_kv_destroy(kv: *mut c_void) -> svm_result_t {
+pub unsafe extern "C" fn svm_state_kv_destroy(kv: *mut c_void) -> svm_result_t {
     let kv: &mut Rc<RefCell<dyn StatefulKV>> = svm_common::from_raw_mut(kv);
 
     let _ = Box::from_raw(kv as *mut _);

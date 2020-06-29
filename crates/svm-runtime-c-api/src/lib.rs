@@ -38,7 +38,6 @@ pub use api::{
     svm_runtime_destroy,
     svm_spawn_app,
 
-    
     // Receipts helpers
     svm_app_receipt_addr,
     svm_template_receipt_addr,
@@ -62,8 +61,11 @@ pub use api::{
 
     // In-Memory
     svm_memory_state_kv_create,
-    svm_memory_state_kv_destroy,
+    svm_state_kv_destroy,
     svm_memory_runtime_create,
+
+    // FFI
+    svm_ffi_state_kv_create,
 
     // Validations
     svm_validate_template,

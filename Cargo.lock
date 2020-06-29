@@ -1073,6 +1073,7 @@ dependencies = [
 name = "svm-storage"
 version = "0.0.0"
 dependencies = [
+ "lazy_static",
  "svm-common",
  "svm-kv",
  "svm-layout",

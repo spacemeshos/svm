@@ -22,9 +22,9 @@ use svm_common::{fmt::fmt_hex, DefaultKeyHasher, KeyHasher, State};
 ///  If we reach the `S0` (zero state) then it means there is no value for key `K`.
 ///
 ///   `head`
+///     ^
 ///     |
 ///     |
-///    \-/
 ///  S_n' (last)  -------- parent -------->  S_n   -------- . . . -------->  S0 = 0...0 (first)
 ///     data                                 data                              data
 ///   (k1, v1')                            (k1, v1)                           (empty)                          

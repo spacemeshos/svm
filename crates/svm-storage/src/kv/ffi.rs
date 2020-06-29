@@ -1,80 +1,129 @@
-// use super::StatefulKVStore;
+use super::StatefulKV;
 
-// use svm_common::State;
-// use svm_kv::traits::KVStore;
+use svm_common::State;
 
-// type GetFn = unsafe extern "C" fn(*const u8, u32, *mut u32) -> *const u8;
-// type HeadFn = unsafe extern "C" fn(*mut u32) -> *const u8;
-// type RewindFn = unsafe extern "C" fn(*const u8, u32);
-// type SetFn = unsafe extern "C" fn(*const u8, u32, *const u8, u32);
-// type CommitFn = unsafe extern "C" fn();
+const BUF_SIZE: usize = 1024;
+static mut BUF: [u8; BUF_SIZE] = [0; BUF_SIZE];
 
-// /// `ExternV` holds pointers to FFI functions for an external key-value store.
-// /// It implements the `svm_kv::traits::KVStore` traits by delegation to the FFI functions.
-// pub struct ExternKV {
-//     get_fn: GetFn,
-//     head_fn: HeadFn,
-//     rewind_fn: RewindFn,
-//     set_fn: SetFn,
-//     commit_fn: CommitFn,
-// }
+/// # Get a Key's Value
+///
+/// Gets a key's matching value.
+/// The value buffer to copy the value to is allocated by `SVM`.
+/// The buffer maximum size is 1024 bytes. (This value should be more than enough).
+///
+/// * key_ptr   - a raw pointer to the key's first byte
+/// * key_len   - key's byte-length
+/// * value_ptr - a raw pointer to the value's buffer first byte
+/// * value_len - a pointer
+pub type GetFn = unsafe extern "C" fn(*const u8, u32, *mut u8, *mut u32);
 
-// impl KVStore for ExternKV {
-//     fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
-//         let key_ptr = key.as_ptr();
-//         let key_len = key.len() as u32;
+/// # Sets a Key's Value
+///
+/// Sets a value for a key.
+///
+/// * key_ptr   - a raw pointer to the key's first byte
+/// * key_len   - key's byte-length
+/// * value_ptr - a raw pointer to the value's first byte
+/// * value_len - a raw pointer to the value's first byte
+pub type SetFn = unsafe extern "C" fn(*const u8, u32, *const u8, u32);
 
-//         let mut value_len = 0;
+/// # Discard
+///
+/// Notifies the `Host` to discard the current executed transaction changes.
+pub type DiscardFn = unsafe extern "C" fn();
 
-//         let value_ptr = unsafe { (self.get_fn)(key_ptr, key_len, &mut value_len) };
+/// # Checkpoint
+///
+/// Notifies the `Host` to checkpoint key-value `State`.
+/// Returns the `State` derived for the checkpoint.
+///
+/// Computing a checkpoint doesn't guarantee that the pending changes and checkpoint
+/// have been persisted. It's up to the `Host` to determine when to save data for long-term usage.
+pub type CheckpointFn = unsafe extern "C" fn(*mut u8);
 
-//         if value_len > 0 {
-//             let value = unsafe { std::slice::from_raw_parts(value_ptr, value_len as usize) };
+/// `ExternKV` holds pointers to FFI functions for an external key-value store.
+/// It implements the `StatefulKV` traits by delegation to the FFI functions.
+pub struct ExternKV {
+    /// A function-pointer for a key-value store `Get`
+    pub get_fn: GetFn,
 
-//             Some(value.to_vec())
-//         } else {
-//             None
-//         }
-//     }
+    /// A function-pointer for a key-value store `Set`
+    pub set_fn: SetFn,
 
-//     fn store(&mut self, changes: &[(&[u8], &[u8])]) {
-//         for (k, v) in changes.iter() {
-//             let key_ptr = k.as_ptr();
-//             let val_ptr = v.as_ptr();
+    /// A function-pointer for a key-value store `Discard`
+    pub discard_fn: DiscardFn,
 
-//             let key_len = k.len() as u32;
-//             let val_len = v.len() as u32;
+    /// A function-pointer for a key-value store `Checkpoint`
+    pub checkpoint_fn: CheckpointFn,
 
-//             unsafe {
-//                 (self.set_fn)(key_ptr, key_len, val_ptr, val_len);
-//             }
-//         }
+    /// The current `State` (optional).
+    /// used for testing/development/tracing purposes.
+    pub head: Option<State>,
+}
 
-//         unsafe {
-//             (self.commit_fn)();
-//         }
-//     }
-// }
+impl StatefulKV for ExternKV {
+    fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
+        let key_ptr = key.as_ptr();
+        let key_len = key.len() as u32;
 
-// impl StatefulKVStore for ExternKV {
-//     fn rewind(&mut self, state: &State) {
-//         let length = State::len() as u32;
-//         let ptr = state.as_ptr();
+        let mut value_len = 0;
 
-//         unsafe {
-//             (self.rewind_fn)(ptr, length);
-//         }
-//     }
+        unsafe {
+            (self.get_fn)(key_ptr, key_len, BUF.as_mut_ptr(), &mut value_len);
 
-//     #[must_use]
-//     fn head(&self) -> State {
-//         let mut length = 0u32;
-//         unsafe {
-//             let ptr = (self.head_fn)(&mut length);
+            if value_len > 0 {
+                let value = std::slice::from_raw_parts(BUF.as_ptr(), value_len as usize);
 
-//             assert_eq!(length, State::len() as u32);
+                Some(value.to_vec())
+            } else {
+                None
+            }
+        }
+    }
 
-//             State::from(ptr)
-//         }
-//     }
-// }
+    fn set(&mut self, key: &[u8], value: &[u8]) {
+        let key_ptr = key.as_ptr();
+        let val_ptr = value.as_ptr();
+
+        let key_len = key.len() as u32;
+        let val_len = value.len() as u32;
+
+        unsafe {
+            (self.set_fn)(key_ptr, key_len, val_ptr, val_len);
+        }
+    }
+
+    fn discard(&mut self) {
+        unsafe {
+            (self.discard_fn)();
+        }
+    }
+
+    fn flush(&mut self) {
+        // Do nothing.
+        //
+        // This implementation of `StatefulKV` is unique in the sense
+        // that it's the responsibility of the so-called `Host` to decide
+        // on when to actually persist data.
+    }
+
+    fn checkpoint(&mut self) -> State {
+        unsafe {
+            (self.checkpoint_fn)(BUF.as_mut_ptr());
+
+            State::from(BUF.as_ptr())
+        }
+    }
+
+    fn rewind(&mut self, _state: &State) {
+        // This method isn't supposed to be called (only for tesing purposes)
+        // since it's the role of the `Host` to manage to current  `State` of an key-value.
+    }
+
+    #[must_use]
+    fn head(&self) -> State {
+        // This method is supposed to be called only for testing/development/tracing purposes.
+
+        self.head.clone().unwrap()
+    }
+}
