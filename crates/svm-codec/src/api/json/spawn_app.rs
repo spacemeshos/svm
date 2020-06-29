@@ -6,8 +6,7 @@ use crate::{
     nibble::NibbleWriter,
 };
 
-use svm_common::Address;
-use svm_types::{App, SpawnApp, WasmValue};
+use svm_types::{Address, App, SpawnApp, WasmValue};
 
 ///
 /// ```json

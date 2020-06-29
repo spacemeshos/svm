@@ -47,7 +47,7 @@ impl AppTemplateDeserializer for DefaultAppTemplateDeserializer {
 mod tests {
     use super::*;
 
-    use svm_common::Address;
+    use svm_types::Address;
 
     use DefaultAppTemplateDeserializer as D;
     use DefaultAppTemplateSerializer as S;

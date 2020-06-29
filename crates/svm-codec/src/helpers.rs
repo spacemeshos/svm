@@ -6,7 +6,7 @@ use crate::{
 
 use byteorder::{BigEndian, ByteOrder};
 
-use svm_common::Address;
+use svm_types::Address;
 
 /// Encoders
 

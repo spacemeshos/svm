@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use svm_common::State;
+use svm_types::State;
 
 use super::AppKVStore;
 
@@ -162,7 +162,7 @@ mod tests {
     use super::*;
     use crate::testing;
 
-    use svm_common::Address;
+    use svm_types::Address;
 
     const KV_VALUE_SIZE: u32 = 32;
 

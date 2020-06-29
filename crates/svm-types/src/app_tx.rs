@@ -1,8 +1,6 @@
 use std::fmt;
 
-use crate::{AppAddr, WasmValue};
-
-use svm_common::Address;
+use crate::{Address, AppAddr, WasmValue};
 
 /// An in-memory representation of an exec-app transaction.
 #[derive(PartialEq)]

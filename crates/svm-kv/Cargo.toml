@@ -10,6 +10,9 @@ publish = false
 [dependencies.svm-common]
 path = "../svm-common"
 
+[dependencies.svm-types]
+path = "../svm-types"
+
 [dependencies.db-key]
 optional = true
 version = "0.0.5"

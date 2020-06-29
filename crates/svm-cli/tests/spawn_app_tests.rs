@@ -4,7 +4,7 @@ use crate::common::{fmt_addr, fmt_args, fmt_buf};
 
 mod common;
 use svm_cli::cli;
-use svm_common::Address;
+use svm_types::Address;
 
 struct SpawnAppTestCase {
     version: String,

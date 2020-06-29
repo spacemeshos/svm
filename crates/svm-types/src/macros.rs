@@ -61,7 +61,7 @@ macro_rules! impl_bytes_primitive {
 
             /// Returns a String representation of $primitive
             pub fn as_str(&self) -> String {
-                crate::fmt::fmt_hex(&self.0, "")
+                svm_common::fmt::fmt_hex(&self.0, "")
             }
 
             /// # Safety
@@ -109,8 +109,8 @@ macro_rules! impl_bytes_primitive {
 
                 format!(
                     "{} ... {}",
-                    crate::fmt::fmt_hex(first.as_slice(), separator),
-                    crate::fmt::fmt_hex(last.as_slice(), separator)
+                    svm_common::fmt::fmt_hex(first.as_slice(), separator),
+                    svm_common::fmt::fmt_hex(last.as_slice(), separator)
                 )
             }
 

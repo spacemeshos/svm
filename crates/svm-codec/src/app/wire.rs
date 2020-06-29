@@ -93,7 +93,7 @@ fn decode_ctor_args(iter: &mut NibbleIter) -> Result<Vec<WasmValue>, ParseError>
 mod tests {
     use super::*;
 
-    use svm_common::Address;
+    use svm_types::Address;
 
     #[test]
     fn encode_decode_spawn_app() {

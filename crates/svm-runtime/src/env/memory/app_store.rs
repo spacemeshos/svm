@@ -4,8 +4,7 @@ use crate::env::default::DefaultSerializerTypes as DSer;
 use crate::env::traits::{AppStore, EnvSerializerTypes};
 
 use svm_codec::serializers::{AppDeserializer, AppSerializer};
-use svm_common::Address;
-use svm_types::{App, AppAddr, CreatorAddr};
+use svm_types::{Address, App, AppAddr, CreatorAddr};
 
 /// In-memory `AppStore` implementation.
 /// Should be used for testing purposes only.

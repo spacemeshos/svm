@@ -79,8 +79,7 @@ fn decode_func_index(iter: &mut NibbleIter) -> Result<u16, ParseError> {
 
 #[cfg(test)]
 mod tests {
-    use svm_common::Address;
-    use svm_types::{AppTransaction, WasmValue};
+    use svm_types::{Address, AppTransaction, WasmValue};
 
     use crate::{
         api::raw::{decode_exec_app, encode_exec_app},

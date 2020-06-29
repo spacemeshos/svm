@@ -3,7 +3,8 @@ use std::fmt;
 
 use super::super::StatefulKV;
 
-use svm_common::{fmt::fmt_hex, DefaultKeyHasher, KeyHasher, State};
+use svm_common::{fmt::fmt_hex, DefaultKeyHasher, KeyHasher};
+use svm_types::State;
 
 /// `FakeKV` is a naive implementation for an in-memory stateful key-value store.
 ///

@@ -2,8 +2,7 @@ use std::error::Error;
 
 use crate::wasm_value;
 
-use svm_common::Address;
-use svm_types::WasmValue;
+use svm_types::{Address, WasmValue};
 
 pub fn decode_hex(hex_str: &str) -> Result<Vec<u8>, Box<dyn Error>> {
     match hex::decode(hex_str) {

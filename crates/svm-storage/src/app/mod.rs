@@ -6,8 +6,8 @@ use raw::{RawChange, RawStorage};
 mod kv;
 pub use kv::AppKVStore;
 
-use svm_common::State;
 use svm_layout::{DataLayout, VarId};
+use svm_types::State;
 
 ///
 /// The `AppStorage` manages a running app's storage.

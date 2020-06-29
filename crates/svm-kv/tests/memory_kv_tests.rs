@@ -1,5 +1,5 @@
-use svm_common::Address;
 use svm_kv::{memory::MemRawKV, traits::RawKV};
+use svm_types::Address;
 
 mod asserts;
 

@@ -4,7 +4,7 @@
 /// ```rust
 /// use std::convert::TryFrom;
 ///
-/// use svm_common::Address;
+/// use svm_types::Address;
 /// use svm_runtime_c_api::svm_byte_array;
 ///
 /// let bytes: svm_byte_array = Address::of("aaaa").into();
@@ -44,7 +44,7 @@ macro_rules! impl_from_svm_byte_array {
 /// ```rust
 /// use std::convert::TryFrom;
 ///
-/// use svm_common::Address;
+/// use svm_types::Address;
 /// use svm_runtime_c_api::svm_byte_array;
 ///
 /// let bytes: svm_byte_array = Address::of("@someone").into();

@@ -1,5 +1,5 @@
 use svm_cli::wasm_value;
-use svm_common::Address;
+use svm_types::Address;
 
 pub fn fmt_buf(hex: &str) -> String {
     format!(

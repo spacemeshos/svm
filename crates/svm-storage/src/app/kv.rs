@@ -3,7 +3,8 @@ use std::rc::Rc;
 
 use crate::kv::StatefulKV;
 
-use svm_common::{Address, DefaultKeyHasher, KeyHasher, State};
+use svm_common::{DefaultKeyHasher, KeyHasher};
+use svm_types::{Address, State};
 
 /// An application-aware (and `State`-aware) key-value store interface responsible of
 /// mapping `u32` input keys (given as a 4 byte-length slice) to global keys under a raw key-value store.

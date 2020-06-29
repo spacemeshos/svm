@@ -16,8 +16,7 @@ pub struct SpawnAppBuilder {
 /// # Example
 ///
 /// ```rust
-/// use svm_types::{App, SpawnApp, WasmValue};
-/// use svm_common::Address;
+/// use svm_types::{App, SpawnApp, WasmValue, Address};
 /// use svm_codec::nibble::NibbleIter;
 /// use svm_codec::api::{raw::decode_spawn_app, builder::SpawnAppBuilder};
 ///
