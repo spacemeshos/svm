@@ -29,8 +29,7 @@ impl App {
     }
 
     fn fmt_template(&self, addr: &TemplateAddr) -> String {
-        todo!()
-        // format!("Template: {}", self.fmt_address(addr.inner()))
+        format!("Template: {}", self.fmt_address(addr.inner()))
     }
 
     fn fmt_address(&self, addr: &Address) -> String {

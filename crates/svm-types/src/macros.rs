@@ -61,8 +61,7 @@ macro_rules! impl_bytes_primitive {
 
             /// Returns a String representation of $primitive
             pub fn as_str(&self) -> String {
-                todo!()
-                // crate::fmt::fmt_hex(&self.0, "")
+                svm_common::fmt::fmt_hex(&self.0, "")
             }
 
             /// # Safety
@@ -105,15 +104,14 @@ macro_rules! impl_bytes_primitive {
             /// * ...
             /// * last `last` bytes in hex
             pub fn fmt(&self, first: usize, last: usize, separator: &str) -> String {
-                todo!()
-                // let first = self.first_n(first);
-                // let last = self.last_n(last);
+                let first = self.first_n(first);
+                let last = self.last_n(last);
 
-                // format!(
-                //     "{} ... {}",
-                //     crate::fmt::fmt_hex(first.as_slice(), separator),
-                //     crate::fmt::fmt_hex(last.as_slice(), separator)
-                // )
+                format!(
+                    "{} ... {}",
+                    svm_common::fmt::fmt_hex(first.as_slice(), separator),
+                    svm_common::fmt::fmt_hex(last.as_slice(), separator)
+                )
             }
 
             /// Should be used **only** for tests
