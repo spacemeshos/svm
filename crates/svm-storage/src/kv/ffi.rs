@@ -37,7 +37,7 @@ pub type DiscardFn = unsafe extern "C" fn();
 /// Notifies the `Host` to checkpoint key-value `State`.
 /// Returns the `State` derived for the checkpoint.
 ///
-/// Computing a checkpoint doesn't guarantee that the pending changes and checkpoint
+/// Computing a checkpoint doesn't guarantee that the pendind changes and checkpoint
 /// have been persisted. It's up to the `Host` to determine when to save data for long-term usage.
 pub type CheckpointFn = unsafe extern "C" fn(*mut u8);
 

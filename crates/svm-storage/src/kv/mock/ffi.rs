@@ -31,7 +31,7 @@ use lazy_static::lazy_static;
 // |    |     SVM Runtime (uses `StatefulKV`)       |
 // |    |                                           |
 // |    |                                           |
-// !    !----  `ExternKV` (`impl StatefulKV`)       |
+// !    +----  `ExternKV` (`impl StatefulKV`)       |
 // |                                                |
 // +------------------------------------------------+
 //

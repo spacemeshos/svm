@@ -59,6 +59,11 @@ macro_rules! impl_bytes_primitive {
                 self.0.clone()
             }
 
+            /// Returns a String representation of $primitive
+            pub fn as_str(&self) -> String {
+                crate::fmt::fmt_hex(&self.0, "")
+            }
+
             /// # Safety
             ///
             /// Decomposes a `$primitive` into its raw components.

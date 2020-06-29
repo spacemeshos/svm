@@ -406,7 +406,7 @@ pub unsafe extern "C" fn svm_memory_state_kv_create(kv: *mut *mut c_void) -> svm
 }
 
 /// Creates a new FFI key-value client.
-/// Returns a raw pointer to allocated kv-store via input parameter `state_kv`.
+/// Returns a raw pointer to allocated kv-store via input parameter `kv`.
 ///
 /// # Example
 ///
