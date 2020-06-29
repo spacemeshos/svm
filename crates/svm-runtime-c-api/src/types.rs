@@ -1,7 +1,7 @@
 use std::convert::TryFrom;
 use std::io::{self, Cursor};
 
-use svm_app::types::WasmType;
+use svm_types::WasmType;
 
 use byteorder::{ReadBytesExt, WriteBytesExt};
 
@@ -18,7 +18,7 @@ use crate::svm_byte_array;
 /// ### Encoding format:
 ///
 /// * Then each WASM type is encoded as a `I32` or `I64` (SVM doesn't support Floats).
-///   The encoding is implemented of `WasmType` to `u8` sits under the `svm-app` crate.
+///   The encoding is implemented of `WasmType` to `u8` sits under the `svm-codec` crate.
 ///
 /// Note: the number of types equals the buffer length (one byte per-type).
 ///
@@ -36,7 +36,7 @@ use crate::svm_byte_array;
 /// use std::io;
 /// use std::convert::TryFrom;
 ///
-/// use svm_app::types::WasmType;
+/// use svm_types::WasmType;
 /// use svm_runtime_c_api::svm_byte_array;
 ///
 /// let types = vec![WasmType::I32, WasmType::I64, WasmType::I32];

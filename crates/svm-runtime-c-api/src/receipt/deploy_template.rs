@@ -14,7 +14,7 @@
 //!  On success (`is_success = 0`)
 //!  See [error.rs][./error.rs]
 
-use svm_app::raw::NibbleWriter;
+use svm_codec::nibble::NibbleWriter;
 use svm_runtime::receipt::{Receipt, TemplateReceipt};
 
 use super::{encode_error, helpers};
@@ -48,9 +48,9 @@ fn encode_template_addr(receipt: &TemplateReceipt, w: &mut NibbleWriter) {
 mod tests {
     use super::*;
 
-    use svm_app::types::TemplateAddr;
     use svm_common::Address;
     use svm_runtime::{gas::MaybeGas, receipt::TemplateReceipt};
+    use svm_types::TemplateAddr;
 
     use crate::testing::{self, ClientTemplateReceipt};
 

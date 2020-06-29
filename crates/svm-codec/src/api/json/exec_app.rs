@@ -2,7 +2,8 @@ use serde_json::Value;
 
 use crate::{
     api::json::{self, JsonError},
-    transaction, NibbleWriter,
+    nibble::NibbleWriter,
+    transaction,
 };
 
 use svm_common::Address;
@@ -45,7 +46,7 @@ mod tests {
     use super::*;
     use serde_json::json;
 
-    use crate::NibbleIter;
+    use crate::nibble::NibbleIter;
 
     #[ignore]
     fn json_exec_app_missing_version() {
@@ -144,7 +145,7 @@ mod tests {
         let bytes = exec_app(&json).unwrap();
 
         let mut iter = NibbleIter::new(&bytes[..]);
-        let actual = crate::decode_exec_app(&mut iter).unwrap();
+        let actual = crate::api::raw::decode_exec_app(&mut iter).unwrap();
 
         let addr_bytes = vec![
             0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80, 0x90, 0x00, 0xA0, 0xB0, 0xC0, 0xD0,

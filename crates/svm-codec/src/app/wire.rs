@@ -1,8 +1,14 @@
 use svm_types::{App, SpawnApp, TemplateAddr, WasmValue};
 
-use crate::{
+pub use crate::api::raw::{
     decode_func_args, decode_func_buf, decode_varuint14, decode_version, encode_func_args,
-    encode_func_buf, encode_varuint14, helpers, Field, NibbleIter, NibbleWriter, ParseError,
+    encode_func_buf, encode_varuint14, Field,
+};
+
+use crate::{
+    error::ParseError,
+    helpers,
+    nibble::{NibbleIter, NibbleWriter},
 };
 
 /// Encodes a raw Spawn-App transaction.
@@ -40,7 +46,7 @@ pub fn decode_spawn_app(iter: &mut NibbleIter) -> Result<SpawnApp, ParseError> {
 
 fn encode_version(spawn: &SpawnApp, w: &mut NibbleWriter) {
     let version = spawn.app.version;
-    crate::encode_version(version, w);
+    crate::api::raw::encode_version(version, w);
 }
 
 fn encode_template(spawn: &SpawnApp, w: &mut NibbleWriter) {

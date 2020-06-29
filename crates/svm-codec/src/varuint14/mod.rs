@@ -6,8 +6,8 @@ pub use encoder::encode_varuint14;
 
 #[cfg(test)]
 mod tests {
-    use super::super::{Field, NibbleIter, NibbleWriter};
-    use super::{decode_varuint14, encode_varuint14};
+    use crate::api::raw::{decode_varuint14, encode_varuint14, Field};
+    use crate::nibble::{NibbleIter, NibbleWriter};
 
     fn assert_encode_decode(num: u16) {
         let mut w = NibbleWriter::new();

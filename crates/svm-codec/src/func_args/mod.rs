@@ -8,8 +8,8 @@ pub use encoder::{encode_func_args, encode_func_rets};
 mod tests {
     use svm_types::WasmValue;
 
-    use crate::{decode_func_args, encode_func_args};
-    use crate::{NibbleIter, NibbleWriter};
+    use crate::api::raw::{decode_func_args, encode_func_args};
+    use crate::nibble::{NibbleIter, NibbleWriter};
 
     fn assert_encode_decode(args: Vec<WasmValue>) {
         let mut w = NibbleWriter::new();

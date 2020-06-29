@@ -1,4 +1,4 @@
-use svm_app::{error::StoreError, types::TemplateAddr};
+use svm_types::TemplateAddr;
 
 use crate::error::ExecAppError;
 
@@ -13,9 +13,6 @@ pub enum SpawnAppError {
 
     /// Spawned app ctor has failed.
     CtorFailed(ExecAppError),
-
-    /// Storing the template has failed (operating-system returned a failure).
-    StoreFailed(StoreError),
 }
 
 impl ToString for SpawnAppError {

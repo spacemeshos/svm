@@ -1,6 +1,6 @@
 use std::{ffi::c_void, ptr::NonNull};
 
-use svm_app::types::WasmType;
+use svm_types::WasmType;
 
 /// Represents an `Import` kind
 pub enum ImportKind {

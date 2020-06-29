@@ -7,9 +7,9 @@ use std::{collections::HashMap, convert::TryFrom, ffi::c_void, io};
 
 use maplit::hashmap;
 
-use svm_app::types::WasmValue;
 use svm_common::Address;
 use svm_layout::DataLayout;
+use svm_types::WasmValue;
 
 unsafe fn create_imports() -> *const c_void {
     let mut imports = std::ptr::null_mut();

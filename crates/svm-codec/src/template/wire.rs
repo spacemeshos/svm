@@ -1,8 +1,11 @@
 use svm_types::AppTemplate;
 
+use crate::api::raw::{decode_varuint14, decode_version, encode_varuint14, Field};
+
 use crate::{
-    decode_varuint14, decode_version, encode_varuint14, helpers, Field, NibbleIter, NibbleWriter,
-    ParseError,
+    error::ParseError,
+    helpers,
+    nibble::{NibbleIter, NibbleWriter},
 };
 
 use svm_layout::{DataLayout, DataLayoutBuilder};
@@ -36,7 +39,7 @@ pub fn decode_deploy_template(iter: &mut NibbleIter) -> Result<AppTemplate, Pars
 
 fn encode_version(template: &AppTemplate, w: &mut NibbleWriter) {
     let version = template.version;
-    crate::encode_version(version, w);
+    crate::api::raw::encode_version(version, w);
 }
 
 fn encode_name(template: &AppTemplate, w: &mut NibbleWriter) {

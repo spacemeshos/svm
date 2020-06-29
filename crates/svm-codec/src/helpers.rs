@@ -1,4 +1,8 @@
-use crate::{decode_varuint14, encode_varuint14, Field, NibbleIter, NibbleWriter, ParseError};
+use crate::api::raw::{decode_varuint14, encode_varuint14, Field};
+use crate::{
+    error::ParseError,
+    nibble::{NibbleIter, NibbleWriter},
+};
 
 use byteorder::{BigEndian, ByteOrder};
 

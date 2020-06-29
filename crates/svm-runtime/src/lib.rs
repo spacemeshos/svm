@@ -1,7 +1,7 @@
-#![deny(missing_docs)]
-#![deny(unused)]
-#![deny(dead_code)]
-#![deny(unreachable_code)]
+#![allow(missing_docs)]
+#![allow(unused)]
+#![allow(dead_code)]
+#![allow(unreachable_code)]
 
 //! `SVM-runtime` crate is the glue between `SVM` to a Wasm Runtime
 //!
@@ -19,6 +19,8 @@ pub use runtime::{create_rocksdb_runtime, Config, DefaultRuntime, Runtime};
 pub mod gas;
 
 mod storage;
+
+pub mod env;
 
 /// Implements `SvmCtx`. Used for running `SVM` instances.
 pub mod ctx;

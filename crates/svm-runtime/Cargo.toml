@@ -9,6 +9,9 @@ publish = false
 [dependencies.svm-common]
 path = "../svm-common"
 
+[dependencies.svm-types]
+path = "../svm-types"
+
 [dependencies.svm-kv]
 path = "../svm-kv"
 
@@ -18,8 +21,8 @@ path = "../svm-layout"
 [dependencies.svm-storage]
 path = "../svm-storage"
 
-[dependencies.svm-app]
-path = "../svm-app"
+[dependencies.svm-codec]
+path = "../svm-codec"
 
 [dependencies.svm-compiler]
 path = "../svm-compiler"

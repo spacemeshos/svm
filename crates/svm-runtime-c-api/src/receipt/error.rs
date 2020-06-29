@@ -12,7 +12,8 @@
 //!  +___________________________________________________+
 //!
 
-use svm_app::raw::{encode_varuint14, NibbleWriter};
+use svm_codec::api::raw::encode_varuint14;
+use svm_codec::nibble::NibbleWriter;
 use svm_runtime::receipt::Receipt;
 
 pub(crate) fn encode_error(receipt: &Receipt, w: &mut NibbleWriter) {

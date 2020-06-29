@@ -7,7 +7,7 @@ use super::{
     alloc, error::into_error_buffer, free, to_wasm_buffer, wasm_buf_data_copy, wasm_buffer_data,
     BUF_ERROR_MARKER, BUF_OK_MARKER,
 };
-use crate::{api, api::json::JsonError, app, NibbleWriter};
+use crate::{api, api::json::JsonError, app, nibble::NibbleWriter};
 
 ///
 /// Encodes a `exec-app` json input into SVM `exec-app` binary transaction.
@@ -43,7 +43,7 @@ pub fn encode_exec_app(ptr: usize) -> Result<usize, JsonError> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::NibbleIter;
+    use crate::nibble::NibbleIter;
 
     use crate::api::wasm::error_as_string;
 
@@ -66,7 +66,7 @@ mod test {
         assert_eq!(data[0], BUF_OK_MARKER);
 
         let mut iter = NibbleIter::new(&data[1..]);
-        let actual = crate::decode_exec_app(&mut iter).unwrap();
+        let actual = crate::api::raw::decode_exec_app(&mut iter).unwrap();
 
         let addr_bytes = vec![
             0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80, 0x90, 0x00, 0xA0, 0xB0, 0xC0, 0xD0,

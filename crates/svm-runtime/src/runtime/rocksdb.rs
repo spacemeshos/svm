@@ -1,13 +1,12 @@
 use std::{ffi::c_void, path::Path};
 
-use svm_app::{
-    rocksdb::{RocksdbAppStore, RocksdbAppTemplateStore, RocksdbEnv},
-    traits::EnvSerializerTypes,
-    types::AppAddr,
-};
+use crate::env::rocksdb::{RocksdbAppStore, RocksdbAppTemplateStore, RocksdbEnv};
+use crate::env::traits::EnvSerializerTypes;
+
 use svm_common::State;
 use svm_layout::DataLayout;
 use svm_storage::app::AppStorage;
+use svm_types::AppAddr;
 
 use crate::{gas::GasEstimator, runtime::DefaultRuntime, Config};
 

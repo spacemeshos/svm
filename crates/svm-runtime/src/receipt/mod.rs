@@ -4,7 +4,7 @@ mod spawn_app;
 
 use crate::gas::MaybeGas;
 
-use svm_app::types::WasmValue;
+use svm_types::WasmValue;
 
 pub use deploy_template::TemplateReceipt;
 pub use exec_app::ExecReceipt;

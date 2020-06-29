@@ -2,7 +2,7 @@ use std::ffi::c_void;
 
 use crate::ctx::SvmCtx;
 
-use svm_app::types::HostCtx;
+use svm_types::HostCtx;
 
 /// Given Wasmer Context data, trasmutes it into `SvmCtx` and borrows its inner `host_ctx` field.
 #[inline]

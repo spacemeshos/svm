@@ -3,7 +3,8 @@ use serde_json::Value;
 
 use crate::{
     api::json::{self, JsonError},
-    template, NibbleWriter,
+    nibble::NibbleWriter,
+    template,
 };
 
 use svm_common::Address;
@@ -65,7 +66,7 @@ mod tests {
     use super::*;
     use serde_json::json;
 
-    use crate::NibbleIter;
+    use crate::nibble::NibbleIter;
 
     #[test]
     fn json_deploy_template_missing_version() {
@@ -144,7 +145,7 @@ mod tests {
         let bytes = deploy_template(&json).unwrap();
 
         let mut iter = NibbleIter::new(&bytes[..]);
-        let actual = crate::decode_deploy_template(&mut iter).unwrap();
+        let actual = crate::api::raw::decode_deploy_template(&mut iter).unwrap();
 
         let expected = AppTemplate {
             version: 0,

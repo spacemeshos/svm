@@ -1,8 +1,11 @@
 use svm_types::{AppAddr, AppTransaction};
 
+use crate::api::raw::{decode_func_args, decode_func_buf, decode_varuint14, decode_version, Field};
+
 use crate::{
-    decode_func_args, decode_func_buf, decode_varuint14, decode_version, helpers, Field,
-    NibbleIter, NibbleWriter, ParseError,
+    error::ParseError,
+    helpers,
+    nibble::{NibbleIter, NibbleWriter},
 };
 
 /// Encodes a raw App transaction.
@@ -39,7 +42,7 @@ pub fn decode_exec_app(iter: &mut NibbleIter) -> Result<AppTransaction, ParseErr
 
 fn encode_version(tx: &AppTransaction, w: &mut NibbleWriter) {
     let ver = tx.version;
-    crate::encode_version(ver, w);
+    crate::api::raw::encode_version(ver, w);
 }
 
 fn encode_app(tx: &AppTransaction, w: &mut NibbleWriter) {
@@ -49,17 +52,17 @@ fn encode_app(tx: &AppTransaction, w: &mut NibbleWriter) {
 
 fn encode_func_index(tx: &AppTransaction, w: &mut NibbleWriter) {
     let idx = tx.func_idx;
-    crate::encode_varuint14(idx, w);
+    crate::api::raw::encode_varuint14(idx, w);
 }
 
 fn encode_func_buf(tx: &AppTransaction, w: &mut NibbleWriter) {
     let buf = &tx.func_buf[..];
-    crate::encode_func_buf(buf, w)
+    crate::api::raw::encode_func_buf(buf, w)
 }
 
 fn encode_func_args(tx: &AppTransaction, w: &mut NibbleWriter) {
     let args = &tx.func_args[..];
-    crate::encode_func_args(args, w);
+    crate::api::raw::encode_func_args(args, w);
 }
 
 /// Decoders
@@ -79,7 +82,10 @@ mod tests {
     use svm_common::Address;
     use svm_types::{AppTransaction, WasmValue};
 
-    use crate::{decode_exec_app, encode_exec_app, NibbleIter, NibbleWriter};
+    use crate::{
+        api::raw::{decode_exec_app, encode_exec_app},
+        nibble::{NibbleIter, NibbleWriter},
+    };
 
     #[test]
     fn encode_decode_exec_app() {

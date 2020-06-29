@@ -2,8 +2,8 @@ use svm_types::WasmValue;
 
 use crate::{
     nib,
+    nibble::NibbleWriter,
     wasm::{encode_wasm_value, wasm_value_layout, NO_MORE},
-    NibbleWriter,
 };
 
 /// Encodes func args

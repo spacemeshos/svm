@@ -1,5 +1,6 @@
 use std::{cell::RefCell, collections::HashMap, ffi::c_void, path::Path, rc::Rc};
 
+use crate::env::memory::{DefaultMemAppStore, DefaultMemAppTemplateStore, DefaultMemoryEnv};
 use crate::{
     ctx::SvmCtx,
     gas::{DefaultGasEstimator, MaybeGas},
@@ -7,10 +8,9 @@ use crate::{
     storage::StorageBuilderFn,
     Config, DefaultRuntime,
 };
-use svm_app::{
-    memory::{DefaultMemAppStore, DefaultMemAppTemplateStore, DefaultMemoryEnv},
-    testing::{AppTxBuilder, DeployAppTemplateBuilder, HostCtxBuilder, SpawnAppBuilder},
-    types::{AppAddr, TemplateAddr, WasmValue},
+
+use svm_codec::api::builder::{
+    AppTxBuilder, DeployAppTemplateBuilder, HostCtxBuilder, SpawnAppBuilder,
 };
 use svm_common::{Address, State};
 use svm_layout::DataLayout;
@@ -18,6 +18,7 @@ use svm_storage::{
     app::{AppKVStore, AppStorage},
     kv::{FakeKV, StatefulKV},
 };
+use svm_types::{AppAddr, TemplateAddr, WasmValue};
 use wasmer_runtime_core::{export::Export, import::ImportObject, Instance, Module};
 
 /// Compiles a wasm program in text format (a.k.a WAST) into a `Module` (`wasmer`)

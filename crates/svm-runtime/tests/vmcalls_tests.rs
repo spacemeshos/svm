@@ -1,7 +1,6 @@
 use maplit::hashmap;
 use wasmer_runtime::{func, imports, Func};
 
-use svm_app::types::HostCtx;
 use svm_common::Address;
 use svm_layout::DataLayout;
 use svm_runtime::{
@@ -10,6 +9,7 @@ use svm_runtime::{
     testing::{self, instance_storage},
     vmcalls,
 };
+use svm_types::HostCtx;
 
 macro_rules! assert_vars32 {
     ($instance:expr, $( $var_id:expr => $expected:expr), *) => {{

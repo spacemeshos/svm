@@ -41,8 +41,11 @@ path = "../svm-common"
 [dependencies.svm-kv]
 path = "../svm-kv"
 
-[dependencies.svm-app]
-path = "../svm-app"
+[dependencies.svm-types]
+path = "../svm-types"
+
+[dependencies.svm-codec]
+path = "../svm-codec"
 
 [dependencies.svm-gas]
 path = "../svm-gas"

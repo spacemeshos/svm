@@ -2,15 +2,17 @@ use std::{cell::RefCell, convert::TryFrom, ffi::c_void, io, path::Path, ptr::Non
 
 use log::{debug, error};
 
-use svm_app::{
-    default::DefaultSerializerTypes,
-    testing::{AppTxBuilder, DeployAppTemplateBuilder, SpawnAppBuilder},
-    types::{HostCtx, WasmType, WasmValue},
-};
+use svm_codec::api::builder::{AppTxBuilder, DeployAppTemplateBuilder, SpawnAppBuilder};
+use svm_codec::api::raw;
+
 use svm_common::{Address, State};
 use svm_layout::DataLayout;
+
+use svm_runtime::env::default::DefaultSerializerTypes;
 use svm_runtime::{ctx::SvmCtx, gas::DefaultGasEstimator};
+
 use svm_storage::kv::{ExternKV, StatefulKV};
+use svm_types::{WasmType, WasmValue};
 
 use crate::{
     helpers,
@@ -274,7 +276,7 @@ pub unsafe extern "C" fn svm_imports_alloc(imports: *mut *mut c_void, count: u32
 /// # Example
 ///
 /// ```rust
-/// use svm_app::types::WasmType;
+/// use svm_types::WasmType;
 /// use svm_runtime_c_api::*;
 ///
 /// fn foo() {
@@ -637,9 +639,9 @@ pub unsafe extern "C" fn svm_deploy_template(
         return svm_result_t::SVM_FAILURE;
     }
 
-    let host_ctx = HostCtx::from_raw_parts(host_ctx.bytes, host_ctx.length);
+    let host_ctx = raw::decode_host_ctx(host_ctx.into());
     if host_ctx.is_err() {
-        let s = host_ctx.err().unwrap();
+        let s = format!("{}", host_ctx.err().unwrap());
         raw_error(s, error);
         return svm_result_t::SVM_FAILURE;
     }
@@ -732,9 +734,9 @@ pub unsafe extern "C" fn svm_spawn_app(
         return svm_result_t::SVM_FAILURE;
     }
 
-    let host_ctx = HostCtx::from_raw_parts(host_ctx.bytes, host_ctx.length);
+    let host_ctx = raw::decode_host_ctx(host_ctx.into());
     if host_ctx.is_err() {
-        let s = host_ctx.err().unwrap();
+        let s = format!("{}", host_ctx.err().unwrap());
         raw_error(s, error);
         return svm_result_t::SVM_FAILURE;
     }
@@ -821,9 +823,9 @@ pub unsafe extern "C" fn svm_exec_app(
 ) -> svm_result_t {
     debug!("`svm_exec_app` start");
 
-    let host_ctx = HostCtx::from_raw_parts(host_ctx.bytes, host_ctx.length);
+    let host_ctx = raw::decode_host_ctx(host_ctx.into());
     if host_ctx.is_err() {
-        let s = host_ctx.err().unwrap();
+        let s = format!("{}", host_ctx.err().unwrap());
         raw_error(s, error);
         return svm_result_t::SVM_FAILURE;
     }

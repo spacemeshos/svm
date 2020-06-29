@@ -25,8 +25,8 @@ impl From<HashMap<u32, Vec<u8>>> for HostCtx {
 
 impl HostCtx {
     /// Returns the underlying `HashMap`
-    pub fn into_inner(self) -> HashMap<u32, Vec<u8>> {
-        self.inner
+    pub fn inner(&self) -> &HashMap<u32, Vec<u8>> {
+        &self.inner
     }
 
     /// Looks up field data by its index `field`.

@@ -931,7 +931,6 @@ dependencies = [
  "log",
  "rocksdb",
  "svm-abi",
- "svm-app",
  "svm-codec",
  "svm-common",
  "svm-compiler",
@@ -941,6 +940,7 @@ dependencies = [
  "svm-runtime",
  "svm-runtime-c-api",
  "svm-storage",
+ "svm-types",
  "tiny-keccak",
  "wabt",
  "wasmer-runtime",
@@ -958,29 +958,16 @@ dependencies = [
 ]
 
 [[package]]
-name = "svm-app"
-version = "0.0.0"
-dependencies = [
- "bit-vec",
- "byteorder",
- "lazy_static",
- "log",
- "maplit",
- "svm-common",
- "svm-kv",
- "svm-layout",
-]
-
-[[package]]
 name = "svm-cli"
 version = "0.1.0"
 dependencies = [
  "clap",
  "hex",
  "regex",
- "svm-app",
+ "svm-codec",
  "svm-common",
  "svm-layout",
+ "svm-types",
  "tempfile",
 ]
 
@@ -1051,13 +1038,14 @@ dependencies = [
  "lazy_static",
  "log",
  "maplit",
- "svm-app",
+ "svm-codec",
  "svm-common",
  "svm-compiler",
  "svm-gas",
  "svm-kv",
  "svm-layout",
  "svm-storage",
+ "svm-types",
  "wabt",
  "wasmer-runtime",
  "wasmer-runtime-core",
@@ -1071,7 +1059,7 @@ dependencies = [
  "cbindgen",
  "log",
  "maplit",
- "svm-app",
+ "svm-codec",
  "svm-common",
  "svm-compiler",
  "svm-gas",
@@ -1079,6 +1067,7 @@ dependencies = [
  "svm-layout",
  "svm-runtime",
  "svm-storage",
+ "svm-types",
  "wabt",
  "wasmer-runtime-c-api",
  "wasmer-runtime-core",

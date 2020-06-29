@@ -1,8 +1,5 @@
-use svm_app::{
-    error::ParseError,
-    raw::Field,
-    types::{HostCtx, WasmValue},
-};
+use svm_codec::api::raw::Field;
+use svm_codec::error::ParseError;
 use svm_common::Address;
 use svm_gas::error::ProgramError;
 use svm_layout::{DataLayout, VarId};
@@ -12,6 +9,7 @@ use svm_runtime::{
     receipt::{ExecReceipt, SpawnAppReceipt, TemplateReceipt},
     testing, Runtime,
 };
+use svm_types::{HostCtx, WasmValue};
 
 macro_rules! default_runtime {
     () => {{

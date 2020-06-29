@@ -7,7 +7,7 @@ use super::{
     alloc, error::into_error_buffer, free, to_wasm_buffer, wasm_buf_data_copy, wasm_buffer_data,
     BUF_ERROR_MARKER, BUF_OK_MARKER,
 };
-use crate::{api, api::json::JsonError, app, NibbleWriter};
+use crate::{api, api::json::JsonError, app, nibble::NibbleWriter};
 
 ///
 /// Encodes a `deploy-template` json input into SVM `deploy-template` binary transaction.
@@ -43,7 +43,7 @@ pub fn encode_deploy_template(ptr: usize) -> Result<usize, JsonError> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::NibbleIter;
+    use crate::nibble::NibbleIter;
 
     use crate::api::wasm::error_as_string;
 
@@ -65,7 +65,7 @@ mod test {
         assert_eq!(data[0], BUF_OK_MARKER);
 
         let mut iter = NibbleIter::new(&data[1..]);
-        let actual = crate::decode_deploy_template(&mut iter).unwrap();
+        let actual = crate::api::raw::decode_deploy_template(&mut iter).unwrap();
 
         let expected = AppTemplate {
             version: 0,

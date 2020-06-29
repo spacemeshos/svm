@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::import::{Import, ImportFuncSig, ImportValue};
 
-use svm_app::types::WasmType;
+use svm_types::WasmType;
 
 use wasmer_runtime_core::{
     export::{Context as WasmerCtx, Export as WasmerExport, FuncPointer as WasmerFuncPtr},

@@ -14,33 +14,79 @@
 //! It's an in-memory data that abstracts key-value pairs and thus its data-layout
 //! isn't packed in order to simplify the job of `SVM` clients implementations.
 //!
-//!
 
 use std::{
     collections::HashMap,
     io::{Cursor, Read},
 };
 
+use crate::api::raw;
+use crate::error::ParseError;
+
 use svm_types::HostCtx;
 
-use byteorder::{BigEndian, ReadBytesExt};
+use byteorder::{BigEndian, ByteOrder, ReadBytesExt};
 
-use crate::ParseError;
+pub fn encode_host_ctx(host_ctx: &HostCtx) -> Vec<u8> {
+    let map = host_ctx.inner();
+
+    let nvalues = map.values().len();
+    let values_size = map.values().fold(0, |acc, v| acc + v.len());
+    let buf_size = 4 + 2 + values_size + nvalues * 4;
+
+    let mut buf = vec![0; buf_size];
+    let mut pos = 0;
+
+    // `version (4 bytes)`
+    BigEndian::write_u32(&mut buf[pos..], 0);
+    pos += 4;
+
+    let nfields = map.len();
+    assert!(nfields <= std::u16::MAX as usize);
+
+    // `#fields (2 bytes)`
+    BigEndian::write_u16(&mut buf[pos..], nfields as u16);
+    pos += 2;
+
+    for (k, v) in map.iter() {
+        assert!(*k <= std::u16::MAX as u32);
+
+        // `field index` (2 bytes)
+        BigEndian::write_u16(&mut buf[pos..], *k as u16);
+        pos += 2;
+
+        // `field length` (2 bytes)
+        BigEndian::write_u16(&mut buf[pos..], v.len() as u16);
+        pos += 2;
+
+        // `field value` (`v.len()` bytes)
+        unsafe {
+            let src = v.as_ptr();
+            let dst = buf.as_mut_ptr().add(pos);
+
+            std::ptr::copy_nonoverlapping(src, dst, v.len());
+            pos += v.len();
+        }
+    }
+
+    buf
+}
 
 pub fn decode_host_ctx(bytes: &[u8]) -> Result<HostCtx, ParseError> {
     let mut cursor = Cursor::new(bytes);
 
-    let version = parse_version(&mut cursor);
+    let version = decode_version(&mut cursor)?;
     assert_eq!(version, 0);
 
     let mut fields = HashMap::new();
 
-    let field_count = parse_field_count(&mut cursor);
+    let field_count = decode_field_count(&mut cursor)?;
+    dbg!(field_count);
 
     for _ in 0..field_count {
-        let index = parse_field_index(&mut cursor);
-        let length = parse_field_len(&mut cursor);
-        let bytes = parse_field_bytes(&mut cursor, length);
+        let index = decode_field_index(&mut cursor)?;
+        let length = decode_field_length(&mut cursor)?;
+        let bytes = decode_field_value(&mut cursor, length)?;
 
         fields.insert(index as u32, bytes);
     }
@@ -48,26 +94,80 @@ pub fn decode_host_ctx(bytes: &[u8]) -> Result<HostCtx, ParseError> {
     Ok(fields.into())
 }
 
-fn parse_version(cursor: &mut Cursor<&[u8]>) -> u32 {
-    cursor.read_u32::<BigEndian>().unwrap()
+fn decode_version(cursor: &mut Cursor<&[u8]>) -> Result<u32, ParseError> {
+    let version = cursor.read_u32::<BigEndian>().unwrap();
+    Ok(version)
 }
 
-fn parse_field_count(cursor: &mut Cursor<&[u8]>) -> u16 {
-    cursor.read_u16::<BigEndian>().unwrap()
+fn decode_field_count(cursor: &mut Cursor<&[u8]>) -> Result<u16, ParseError> {
+    let nfields = cursor.read_u16::<BigEndian>().unwrap();
+    Ok(nfields)
 }
 
-fn parse_field_index(cursor: &mut Cursor<&[u8]>) -> u16 {
-    cursor.read_u16::<BigEndian>().unwrap()
+fn decode_field_index(cursor: &mut Cursor<&[u8]>) -> Result<u16, ParseError> {
+    let index = cursor.read_u16::<BigEndian>().unwrap();
+    Ok(index)
 }
 
-fn parse_field_len(cursor: &mut Cursor<&[u8]>) -> u16 {
-    cursor.read_u16::<BigEndian>().unwrap()
+fn decode_field_length(cursor: &mut Cursor<&[u8]>) -> Result<u16, ParseError> {
+    let length = cursor.read_u16::<BigEndian>().unwrap();
+    Ok(length)
 }
 
-fn parse_field_bytes(cursor: &mut Cursor<&[u8]>, field_len: u16) -> Vec<u8> {
+fn decode_field_value(cursor: &mut Cursor<&[u8]>, field_len: u16) -> Result<Vec<u8>, ParseError> {
     let mut buf = vec![0; field_len as usize];
 
     cursor.read_exact(&mut buf[..]).unwrap();
 
-    buf
+    Ok(buf)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use maplit::hashmap;
+
+    macro_rules! assert_decode {
+        ($buf:expr, $expected:expr) => {{
+            let actual = decode_host_ctx(&$buf).unwrap();
+
+            assert_eq!(actual, $expected);
+        }};
+    }
+
+    #[test]
+    fn encode_host_ctx_empty() {
+        let map = hashmap! {};
+
+        let host_ctx: HostCtx = map.into();
+        let buf = encode_host_ctx(&host_ctx);
+
+        assert_decode!(buf, host_ctx);
+    }
+
+    #[test]
+    fn encode_host_ctx_one_field() {
+        let map = hashmap! {
+            0 => vec![0x10, 0x20],
+        };
+
+        let host_ctx: HostCtx = map.into();
+        let buf = encode_host_ctx(&host_ctx);
+
+        assert_decode!(buf, host_ctx);
+    }
+
+    #[test]
+    fn encode_host_ctx_two_fields() {
+        let map = hashmap! {
+            0 => vec![0x10, 0x20],
+            1 => vec![0x30, 0x40, 0x50],
+        };
+
+        let host_ctx: HostCtx = map.into();
+        let buf = encode_host_ctx(&host_ctx);
+
+        assert_decode!(buf, host_ctx);
+    }
 }
