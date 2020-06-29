@@ -57,16 +57,10 @@ jobs:
     - name: Test svm-codec (WASM)
       shell: bash
       run: ./svm-codec-ci.sh
-    - name: Prepare object file upload
+    - name: Prepare Artifacts
       shell: bash
       run: mkdir bins/ && for i in $(ls target/release/{libsvm_runtime_c_api.dylib,libsvm_runtime_c_api.so,svm_runtime_c_api.dll,svm.h}); do mv $i bins/; done
-    - name: Debug `svm_codec.wasm`
-      shell: bash
-      run: ls target/wasm32-unknown-unknown/release/*.wasm
-    - name: Prepare `svm_codec.wasm` upload
-      shell: bash
-      run: mv target/wasm32-unknown-unknown/release/svm_codec.wasm bins/svm_codec.wasm 
-    - name: Upload Object file
+    - name: Upload Artifacts
       uses: actions/upload-artifact@master
       with:
         name: bins-${{ runner.os }}${{ matrix.release }}
@@ -74,5 +68,6 @@ jobs:
     - name: Upload `svm_codec.wasm` 
       uses: actions/upload-artifact@master
       with:
-        name: svm_codec-${{ runner.os }}.wasm
+        name: svm_codec.wasm
+        if:  matrix.os == 'macos-latest'
         path: target/wasm32-unknown-unknown/release/svm_codec.wasm
