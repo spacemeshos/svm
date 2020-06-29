@@ -4,7 +4,7 @@
   "description": "\"svm-codec examples\"",
   "main": "index.js",
   "engines": {
-    "node": ">=0.12",
+    "node": ">=12.6",
     "npm": ">=6.0.0"
   },
   "scripts": {
