@@ -38,6 +38,46 @@ use transaction::{decode_exec_app, encode_exec_app};
 use varuint14::{decode_varuint14, encode_varuint14};
 use version::{decode_version, encode_version};
 
+/// # WASM API
+///
+/// The following API methods are annotated with `#[cfg(target_arch = "wasm32")]`.
+/// In order to output a `.wasm` file run (or run `./build.sh` under the crate root directory).
+/// ```
+//// cargo +nightly build --release --target wasm32-unknown-unknown
+/// ```
+///
+/// The emitted `svm_codec.wasm` is being tested in the `examples/test.js`
+/// In order to build and test run `./run.sh` under the `examples` directory.
+///
+/// The CI of the `SVM` also runs the js tests and outputs `svm_codec.wasm` under the artifacts.
+///
+
+/// ## WASM API Usage
+///
+/// Before calling `wasm_deploy_template/wasm_spawn_app/wasm_exec_app` we need first to allocate
+/// a WASM buffer using the `wasm_alloc` method. After the buffer isn't needed anymore, make sure to
+/// call the `wasm_free` method. (otherwise it'll be a memory-leak).
+///
+/// The data returned by `wasm_deploy_template/wasm_spawn_app/wasm_exec_app` is a pointer to a new allocated
+/// WASM buffer. This WASM buffer is allocated internally by the method and have to be freed later too using `wasm_free`.
+///
+///
+/// WASM Buffer `Data` for Success result:
+/// ```
+/// +------------------------------------------------+
+/// | OK_MAKER = 1 (1 byte) | SVM binary transaction |  
+/// +------------------------------------------------+
+/// ```
+///
+///
+/// WASM Buffer `Data` for Error result:
+/// ```
+/// +------------------------------------------------+
+/// | ERR_MAKER = 0 (1 byte) | UTF-8 String (error)  |  
+/// +------------------------------------------------+
+/// ```
+///
+
 /// ## WASM Deploy-Template
 ///
 /// Reads the WASM buffer given at parameter `buf_ptr` containing a JSON value.
