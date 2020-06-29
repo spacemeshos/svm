@@ -1,6 +1,5 @@
-use svm_types::TemplateAddr;
-
-use crate::error::ExecAppError;
+use crate::receipt::error::ExecAppError;
+use crate::TemplateAddr;
 
 /// Spawning a new app has failed
 #[derive(Debug, PartialEq, Clone)]

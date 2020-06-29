@@ -1,6 +1,6 @@
 use std::{error, fmt};
 
-use svm_types::{AppAddr, TemplateAddr};
+use crate::{AppAddr, TemplateAddr};
 
 /// `exec-app` error
 #[allow(missing_docs)]

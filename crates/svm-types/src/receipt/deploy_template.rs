@@ -1,6 +1,6 @@
-use crate::{error::DeployTemplateError, gas::MaybeGas};
-
-use svm_types::TemplateAddr;
+use crate::gas::MaybeGas;
+use crate::receipt::error::DeployTemplateError;
+use crate::TemplateAddr;
 
 /// Returned Receipt after deploying a Template.
 #[derive(Debug, PartialEq, Clone)]

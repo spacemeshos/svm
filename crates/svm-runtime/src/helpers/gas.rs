@@ -2,7 +2,7 @@
 use wasmer_runtime::Ctx as WasmerCtx;
 use wasmer_runtime::Instance;
 
-use crate::gas::{MaybeGas, OOGError};
+use svm_types::gas::{MaybeGas, OOGError};
 
 /// Decreases the left gas with `gas` units.
 ///

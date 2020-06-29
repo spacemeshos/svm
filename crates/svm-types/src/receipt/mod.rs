@@ -2,23 +2,23 @@ mod deploy_template;
 mod exec_app;
 mod spawn_app;
 
-use crate::gas::MaybeGas;
-
-use svm_types::WasmValue;
+pub mod error;
 
 pub use deploy_template::TemplateReceipt;
 pub use exec_app::ExecReceipt;
 pub use spawn_app::{make_spawn_app_receipt, SpawnAppReceipt};
 
+use crate::{gas::MaybeGas, WasmValue};
+
 /// Borrowed Receipt
 pub enum Receipt<'a> {
-    /// Borrow for a `TemplateReceipt`.
+    /// Borrows a `TemplateReceipt`.
     DeployTemplate(&'a TemplateReceipt),
 
-    /// Borrow for a `SpawnAppReceipt`.
+    /// Borrows a `SpawnAppReceipt`.
     SpawnApp(&'a SpawnAppReceipt),
 
-    /// Borrow for a `ExecReceipt`.
+    /// Borrows a `ExecReceipt`.
     ExecApp(&'a ExecReceipt),
 }
 

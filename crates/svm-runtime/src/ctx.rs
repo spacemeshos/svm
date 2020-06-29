@@ -2,10 +2,10 @@ use std::ffi::c_void;
 
 use log::debug;
 
-use crate::{gas::MaybeGas, helpers::DataWrapper};
+use crate::helpers::DataWrapper;
 
 use svm_storage::app::AppStorage;
-use svm_types::HostCtx;
+use svm_types::{gas::MaybeGas, HostCtx};
 
 /// `SvmCtx` is a container for the accessible data by `wasmer` instances.
 /// * `host`         - A pointer to the `Host`.

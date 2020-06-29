@@ -8,9 +8,6 @@
 //! Currently there is one a single `Runtime` implementation supporting `Wasmer`,
 //! But future WASM Runtime might be added.
 
-/// Runtime Receipts
-pub mod receipt;
-
 /// Implements the most high-level API of `SVM`.
 mod runtime;
 pub use runtime::{create_rocksdb_runtime, Config, DefaultRuntime, Runtime};
@@ -35,5 +32,5 @@ pub mod testing;
 /// Implements the `SVM` vmcalls (a.k.a libcalls / hostcalls / syscalls)
 pub mod vmcalls;
 
-/// Crates errors
+/// Crate errors
 pub mod error;
