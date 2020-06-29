@@ -7,7 +7,8 @@ use byteorder::{BigEndian, WriteBytesExt};
 ///
 /// ```rust
 /// use svm_types::HostCtx;
-/// use svm_codec::api::native::HostCtxBuilder;
+/// use svm_codec::api::builder::HostCtxBuilder;
+/// use svm_codec::api::raw;
 ///
 /// let bytes = HostCtxBuilder::new()
 ///            .with_version(0)
@@ -17,16 +18,14 @@ use byteorder::{BigEndian, WriteBytesExt};
 ///            .with_u32_field(4, 0x60_70_80_90)
 ///            .build();
 ///
-/// let ptr = bytes.as_ptr();
-/// let length = bytes.len() as u32;
-/// let host_ctx = unsafe { HostCtx::from_raw_parts(ptr, length) };
+/// let host_ctx = raw::decode_host_ctx(&bytes).unwrap();
 ///
-/// let fields = host_ctx.unwrap().into_inner();
+/// let map = host_ctx.inner();
 ///
-/// assert_eq!(vec![10, 20, 30], fields[&1]);
-/// assert_eq!(vec![0x10], fields[&2]);
-/// assert_eq!(vec![0x40, 0x50], fields[&3]);
-/// assert_eq!(vec![0x60, 0x70, 0x80, 0x90], fields[&4]);
+/// assert_eq!(vec![10, 20, 30], map[&1]);
+/// assert_eq!(vec![0x10], map[&2]);
+/// assert_eq!(vec![0x40, 0x50], map[&3]);
+/// assert_eq!(vec![0x60, 0x70, 0x80, 0x90], map[&4]);
 /// ```
 ///
 pub struct HostCtxBuilder {

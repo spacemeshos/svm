@@ -18,10 +18,9 @@ pub struct DeployAppTemplateBuilder {
 ///  
 /// ```rust
 /// use svm_types::AppTemplate;
-/// use svm_codec::{
-///    api::native::DeployAppTemplateBuilder,
-///    decode_deploy_template, NibbleIter
-/// };
+/// use svm_codec::nibble::NibbleIter;
+/// use svm_codec::api::raw::decode_deploy_template;
+/// use svm_codec::api::builder::DeployAppTemplateBuilder;
 ///
 /// let layout = vec![5, 10].into();
 ///
