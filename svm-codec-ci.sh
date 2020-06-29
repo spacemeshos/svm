@@ -1,9 +1,10 @@
-cd crates/svm-codec
+pushd crates/svm-codec
 ./build.sh
-cd ..
-cd ..
+popd
 
-cp ./target/wasm32-unknown-unknown/release/svm_codec.wasm svm_codec.wasm
+cp ./target/wasm32-unknown-unknown/release/svm_codec.wasm crates/svm-codec/examples/svm_codec.wasm
 
+pushd crates/svm-codec/examples
 npm install
-npm test crates/svm-codec/examples/test.js 
+npm test
+popd
