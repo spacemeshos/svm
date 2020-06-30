@@ -2,23 +2,13 @@ use std::cmp::{Ordering, PartialEq, PartialOrd};
 use std::fmt;
 use std::ops::{Add, AddAssign, Sub};
 
+use crate::gas::OOGError;
+
 /// `MaybeGas` is essentially an `Option<u64>` with extensions
 /// to faciliate arithmetic additions and subtractions.
 #[derive(Debug, PartialEq, Clone, Copy)]
 #[repr(transparent)]
 pub struct MaybeGas(Option<u64>);
-
-/// Out-of-Gas marker
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub struct OOGError {}
-
-impl fmt::Display for OOGError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Reached Out of Gas")
-    }
-}
-
-impl std::error::Error for OOGError {}
 
 impl MaybeGas {
     /// New `MaybeGas` backed by a `None`

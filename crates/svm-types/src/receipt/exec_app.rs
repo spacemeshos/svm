@@ -1,6 +1,5 @@
-use svm_types::{State, WasmValue};
-
-use crate::{error::ExecAppError, gas::MaybeGas};
+use crate::receipt::error::ExecAppError;
+use crate::{gas::MaybeGas, State, WasmValue};
 
 /// Runtime transaction execution receipt
 #[derive(Debug, PartialEq, Clone)]

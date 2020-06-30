@@ -1,7 +1,7 @@
-use svm_codec::api::raw;
-use svm_codec::nibble::{Nibble, NibbleWriter};
-use svm_runtime::receipt::Receipt;
-use svm_types::{Address, State, WasmValue};
+use crate::api::raw;
+use crate::nibble::{Nibble, NibbleWriter};
+
+use svm_types::{receipt::Receipt, Address, State, WasmValue};
 
 pub(crate) fn encode_is_success(receipt: &Receipt, w: &mut NibbleWriter) {
     let nib = if receipt.is_success() {

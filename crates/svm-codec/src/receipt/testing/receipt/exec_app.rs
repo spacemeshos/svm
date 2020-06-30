@@ -1,5 +1,6 @@
-use svm_codec::api::raw::{decode_func_args, decode_version};
-use svm_codec::nibble::NibbleIter;
+use crate::api::raw::{decode_func_args, decode_version};
+use crate::nibble::NibbleIter;
+
 use svm_types::{State, WasmValue};
 
 use super::helpers;

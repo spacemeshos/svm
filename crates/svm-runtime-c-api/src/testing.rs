@@ -1,11 +1,5 @@
 use std::ffi::c_void;
 
-mod receipt;
-pub use receipt::{
-    decode_app_receipt, decode_exec_receipt, decode_template_receipt, ClientAppReceipt,
-    ClientExecReceipt, ClientTemplateReceipt,
-};
-
 use crate::svm_byte_array;
 
 use svm_runtime::ctx::SvmCtx;

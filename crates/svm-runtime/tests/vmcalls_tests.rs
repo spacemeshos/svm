@@ -3,12 +3,11 @@ use wasmer_runtime::{func, imports, Func};
 
 use svm_layout::DataLayout;
 use svm_runtime::{
-    gas::MaybeGas,
     helpers::DataWrapper,
     testing::{self, instance_storage},
     vmcalls,
 };
-use svm_types::{Address, HostCtx};
+use svm_types::{gas::MaybeGas, Address, HostCtx};
 
 macro_rules! assert_vars32 {
     ($instance:expr, $( $var_id:expr => $expected:expr), *) => {{

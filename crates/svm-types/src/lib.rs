@@ -18,6 +18,8 @@ mod template;
 mod wasm_type;
 mod wasm_value;
 
+pub mod gas;
+pub mod receipt;
 pub use address::{Address, AppAddr, AuthorAddr, CreatorAddr, TemplateAddr};
 pub use address_of::AddressOf;
 pub use app::App;

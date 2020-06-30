@@ -23,12 +23,15 @@ mod version;
 #[macro_use]
 pub mod nibble;
 
+pub mod receipt;
+
 pub mod api;
 
 pub mod error;
 pub mod serializers {
     pub use crate::app::{DefaultAppDeserializer, DefaultAppSerializer};
     pub use crate::template::{DefaultAppTemplateDeserializer, DefaultAppTemplateSerializer};
+
     pub use crate::traits::{
         AppDeserializer, AppSerializer, AppTemplateDeserializer, AppTemplateSerializer,
     };

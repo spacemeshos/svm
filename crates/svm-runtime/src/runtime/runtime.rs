@@ -1,11 +1,8 @@
-use crate::{
-    error::ValidateError,
-    gas::MaybeGas,
-    receipt::{ExecReceipt, SpawnAppReceipt, TemplateReceipt},
-};
+use crate::error::ValidateError;
 
 use svm_gas::Gas;
-use svm_types::{AppAddr, AuthorAddr, CreatorAddr, HostCtx, State};
+use svm_types::receipt::{ExecReceipt, SpawnAppReceipt, TemplateReceipt};
+use svm_types::{gas::MaybeGas, AppAddr, AuthorAddr, CreatorAddr, HostCtx, State};
 
 /// Specifies the interface of a `SVM` Runtime.
 pub trait Runtime {
