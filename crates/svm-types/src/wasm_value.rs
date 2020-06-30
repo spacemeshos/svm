@@ -23,11 +23,16 @@ impl WasmValue {
 
 /// Returns the `WasmValue` internal integer as `u64`.
 ///
+/// # Example
+///
 /// ```
 /// use svm_types::WasmValue;
 ///
-/// assert_eq!(10u64, WasmValue::I32(10).into());
-/// assert_eq!(20u64, WasmValue::I64(20).into());
+/// let n: u64 = WasmValue::I32(10).into();
+/// let m: u64 = WasmValue::I64(20).into();
+///
+/// assert_eq!(n, 10u64);
+/// assert_eq!(m, 20u64);
 /// ```
 impl From<&WasmValue> for u64 {
     #[inline]
@@ -47,6 +52,8 @@ impl From<WasmValue> for u64 {
 }
 
 /// Given a tuple of `WasmType` and `u64` - returns `WasmValue`.
+///
+/// # Example
 ///
 /// ```
 /// use svm_types::{WasmType, WasmValue};

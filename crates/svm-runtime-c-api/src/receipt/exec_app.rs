@@ -18,7 +18,7 @@
 //!  See [error.rs][./error.rs]
 
 use svm_codec::nibble::NibbleWriter;
-use svm_runtime::receipt::{ExecReceipt, Receipt};
+use svm_types::receipt::{ExecReceipt, Receipt};
 
 use super::{encode_error, helpers};
 
@@ -62,8 +62,8 @@ mod tests {
 
     use crate::testing::{self, ClientExecReceipt};
 
-    use svm_runtime::{error::ExecAppError, gas::MaybeGas};
-    use svm_types::{Address, State, WasmValue};
+    use svm_types::receipt::error::ExecAppError;
+    use svm_types::{gas::MaybeGas, Address, State, WasmValue};
 
     #[test]
     fn encode_decode_exec_receipt_error() {

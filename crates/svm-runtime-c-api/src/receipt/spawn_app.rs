@@ -19,7 +19,7 @@
 //!  See [error.rs][./error.rs]
 
 use svm_codec::nibble::NibbleWriter;
-use svm_runtime::receipt::{Receipt, SpawnAppReceipt};
+use svm_types::receipt::{Receipt, SpawnAppReceipt};
 
 use super::{encode_error, helpers};
 
@@ -70,8 +70,8 @@ mod tests {
 
     use crate::testing::{self, ClientAppReceipt};
 
-    use svm_runtime::{error::SpawnAppError, gas::MaybeGas};
-    use svm_types::{Address, AppAddr, State, WasmValue};
+    use svm_types::receipt::error::SpawnAppError;
+    use svm_types::{gas::MaybeGas, Address, AppAddr, State, WasmValue};
 
     #[test]
     fn encode_decode_app_receipt_error() {

@@ -36,7 +36,7 @@ macro_rules! max_gas {
 
 macro_rules! maybe_gas {
     ($gas_metering:expr, $gas_limit:expr) => {{
-        use svm_runtime::gas::MaybeGas;
+        use svm_types::gas::MaybeGas;
 
         if $gas_metering {
             MaybeGas::with($gas_limit)
