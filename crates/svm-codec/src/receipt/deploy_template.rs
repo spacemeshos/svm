@@ -14,17 +14,19 @@
 //!  On success (`is_success = 0`)
 //!  See [error.rs][./error.rs]
 
-use svm_codec::nibble::NibbleWriter;
+use crate::api::raw;
+use crate::nibble::NibbleWriter;
+
 use svm_types::receipt::{Receipt, TemplateReceipt};
 
 use super::{encode_error, helpers};
 
-pub(crate) fn encode_template_receipt(receipt: &TemplateReceipt) -> Vec<u8> {
+pub fn encode_template_receipt(receipt: &TemplateReceipt) -> Vec<u8> {
     let mut w = NibbleWriter::new();
 
     let wrapped_receipt = Receipt::DeployTemplate(receipt);
 
-    helpers::encode_version(0, &mut w);
+    raw::encode_version(0, &mut w);
     helpers::encode_is_success(&wrapped_receipt, &mut w);
 
     if receipt.success {
@@ -50,7 +52,7 @@ mod tests {
 
     use svm_types::{gas::MaybeGas, receipt::TemplateReceipt, Address, TemplateAddr};
 
-    use crate::testing::{self, ClientTemplateReceipt};
+    use crate::receipt::testing::{self, ClientTemplateReceipt};
 
     #[test]
     fn encode_deploy_deploy_receipt() {

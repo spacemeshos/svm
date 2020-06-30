@@ -18,12 +18,12 @@
 //!  On success (`is_success = 0`)
 //!  See [error.rs][./error.rs]
 
-use svm_codec::nibble::NibbleWriter;
+use crate::nibble::NibbleWriter;
 use svm_types::receipt::{Receipt, SpawnAppReceipt};
 
 use super::{encode_error, helpers};
 
-pub(crate) fn encode_app_receipt(receipt: &SpawnAppReceipt) -> Vec<u8> {
+pub fn encode_app_receipt(receipt: &SpawnAppReceipt) -> Vec<u8> {
     let mut w = NibbleWriter::new();
 
     let wrapped_receipt = Receipt::SpawnApp(receipt);
@@ -68,7 +68,7 @@ fn encode_returns(receipt: &SpawnAppReceipt, w: &mut NibbleWriter) {
 mod tests {
     use super::*;
 
-    use crate::testing::{self, ClientAppReceipt};
+    use crate::receipt::testing::{self, ClientAppReceipt};
 
     use svm_types::receipt::error::SpawnAppError;
     use svm_types::{gas::MaybeGas, Address, AppAddr, State, WasmValue};

@@ -16,11 +16,13 @@ use svm_types::{Address, State, WasmType, WasmValue};
 use crate::{
     helpers,
     import::{Import, ImportFunc, ImportFuncSig, ImportKind, ImportValue},
-    raw_error, raw_io_error, raw_utf8_error, raw_validate_error,
-    receipt::{encode_app_receipt, encode_exec_receipt, encode_template_receipt},
-    svm_byte_array, svm_result_t,
-    testing::{self, ClientAppReceipt, ClientExecReceipt, ClientTemplateReceipt},
+    raw_error, raw_io_error, raw_utf8_error, raw_validate_error, svm_byte_array, svm_result_t,
     RuntimePtr,
+};
+
+use svm_codec::receipt::{
+    encode_app_receipt, encode_exec_receipt, encode_template_receipt,
+    testing::{self, ClientAppReceipt, ClientExecReceipt, ClientTemplateReceipt},
 };
 
 macro_rules! max_gas {

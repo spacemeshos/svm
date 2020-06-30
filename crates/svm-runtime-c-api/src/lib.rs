@@ -19,7 +19,6 @@ mod error;
 mod import;
 mod layout;
 mod macros;
-mod receipt;
 mod result;
 mod state;
 mod types;
