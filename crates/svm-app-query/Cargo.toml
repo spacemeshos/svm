@@ -1,5 +1,5 @@
 [package]
-name = "svm-abi"
+name = "svm-app-query"
 version = "0.0.0"
 authors = ["Yaron Wittenstein <yaron.wittenstein@gmail.com>"]
 license = "MIT"

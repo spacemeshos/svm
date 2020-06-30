@@ -1,3 +1,4 @@
+extern crate svm_app_query;
 extern crate svm_codec;
 extern crate svm_compiler;
 extern crate svm_gas;

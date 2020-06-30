@@ -1,6 +1,6 @@
 use serde_json::Value;
 
-use svm_abi::{query::*, render::*, schema::*};
+use svm_app_query::{query::*, render::*, schema::*};
 
 struct StorageMock {
     bytes: Vec<u8>,

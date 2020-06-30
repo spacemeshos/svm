@@ -930,7 +930,7 @@ dependencies = [
  "libc",
  "log",
  "rocksdb",
- "svm-abi",
+ "svm-app-query",
  "svm-codec",
  "svm-common",
  "svm-compiler",
@@ -949,7 +949,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "svm-abi"
+name = "svm-app-query"
 version = "0.0.0"
 dependencies = [
  "byteorder",
