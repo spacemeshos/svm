@@ -1,7 +1,5 @@
 #![no_std]
 #![feature(lang_items)]
-#![cfg_attr(feature = "alloc", feature(alloc))]
-#![cfg_attr(not(feature = "std"), no_std)]
 #![allow(missing_docs)]
 #![allow(unused)]
 #![allow(dead_code)]
@@ -21,11 +19,6 @@ fn panic(_info: &PanicInfo) -> ! {
 #[cfg(not(test))]
 extern "C" fn rust_eh_personality() {}
 
-#[cfg(test)]
-#[macro_use]
-extern crate std;
-
-#[no_std]
 #[cfg(test)]
 mod test {
     use crate::decoder::{DecodeError, Decoder};

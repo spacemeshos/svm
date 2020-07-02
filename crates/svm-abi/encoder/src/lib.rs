@@ -1,4 +1,3 @@
-#![cfg_attr(not(feature = "std"), no_std)]
 #![allow(missing_docs)]
 #![allow(unused)]
 #![allow(dead_code)]
