@@ -1,19 +1,17 @@
+#![cfg_attr(not(feature = "std"), no_std)]
 #![allow(missing_docs)]
 #![allow(unused)]
 #![allow(dead_code)]
 #![allow(unreachable_code)]
 
-pub enum DecodeError<'a> {
-    MissingBytes(&'a str),
-    InvalidType,
-}
+use svm_sdk::{types::Type, value::Address};
 
-trait Encoder {
-    fn encode<W>(&self, buf: W);
-}
+// pub trait Encoder {
+//     fn encode(&self) -> Vec<u8>;
+// }
 
-// trait Decoder {
-//     fn peek(&mut self) -> Result<Type, TypeError>;
-
-//     fn decode(&mut self) -> Result<Value, ValueError>;
+// impl<'a> Encoder for Address<'a> {
+//     fn encode(&self) -> Vec<u8> {
+//         todo!()
+//     }
 // }

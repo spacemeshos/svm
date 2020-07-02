@@ -1,3 +1,5 @@
+#![cfg_attr(not(feature = "std"), no_std)]
+
 extern crate svm_app_query;
 extern crate svm_codec;
 extern crate svm_compiler;

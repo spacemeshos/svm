@@ -1,14 +1,14 @@
 #[repr(transparent)]
-pub struct Address<'a>(&'a [u8; 20]);
+pub struct Address<'a>(pub &'a [u8; 20]);
 
 #[repr(transparent)]
-pub struct PubKey256<'a>(&'a [u8; 32]);
+pub struct PubKey256<'a>(pub &'a [u8; 32]);
 
 #[repr(transparent)]
-pub struct Blob<'a>(&'a [u8]);
+pub struct Blob<'a>(pub &'a [u8]);
 
 #[repr(transparent)]
-pub struct Array<'a, T>(&'a [T]);
+pub struct Array<'a, T>(pub &'a [T]);
 
 impl<'a, T> Array<'a, T> {
     #[inline]
@@ -32,7 +32,7 @@ impl<'a, T> Array<'a, T> {
     }
 }
 
-enum Primitive<'a> {
+pub enum Primitive<'a> {
     // `Blob` of bytes
     Blob(Blob<'a>),
 
@@ -43,11 +43,11 @@ enum Primitive<'a> {
     PubKey256(PubKey256<'a>),
 }
 
-enum Composite<'a> {
+pub enum Composite<'a> {
     Array(&'a [Value<'a>]),
 }
 
-enum Value<'a> {
+pub enum Value<'a> {
     Primitive(Primitive<'a>),
     Composite(Composite<'a>),
 }

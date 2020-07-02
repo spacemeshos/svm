@@ -996,6 +996,8 @@ dependencies = [
  "byteorder",
  "maplit",
  "serde_json",
+ "svm-abi-decoder",
+ "svm-abi-encoder",
  "svm-common",
  "svm-layout",
  "svm-types",
