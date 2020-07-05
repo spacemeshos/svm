@@ -71,6 +71,7 @@ svm-runtime = { path = "crates/svm-runtime" }
 svm-runtime-c-api = { path = "crates/svm-runtime-c-api" }
 svm-abi-encoder = { path = "crates/svm-abi/encoder" }
 svm-abi-decoder = { path = "crates/svm-abi/decoder" }
+svm-abi-tests = { path = "crates/svm-abi/tests" }
 
 [dev-dependencies]
 wabt = "0.7.4"
@@ -80,6 +81,7 @@ members = [
   "crates/svm-app-query",
   "crates/svm-abi/encoder",
   "crates/svm-abi/decoder",
+  "crates/svm-abi/tests",
   "crates/svm-codec",
   "crates/svm-types",
   "crates/svm-common",

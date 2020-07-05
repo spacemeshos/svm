@@ -932,6 +932,7 @@ dependencies = [
  "rocksdb",
  "svm-abi-decoder",
  "svm-abi-encoder",
+ "svm-abi-tests",
  "svm-app-query",
  "svm-codec",
  "svm-common",
@@ -955,6 +956,7 @@ dependencies = [
 name = "svm-abi-decoder"
 version = "0.0.0"
 dependencies = [
+ "svm-abi-encoder",
  "svm-sdk",
 ]
 
@@ -962,6 +964,15 @@ dependencies = [
 name = "svm-abi-encoder"
 version = "0.0.0"
 dependencies = [
+ "svm-sdk",
+]
+
+[[package]]
+name = "svm-abi-tests"
+version = "0.0.0"
+dependencies = [
+ "svm-abi-decoder",
+ "svm-abi-encoder",
  "svm-sdk",
 ]
 
