@@ -38,10 +38,10 @@ macro_rules! impl_slice_primitive {
 }
 
 macro_rules! impl_fixed_primitive {
-    ($ty:ident, $size:expr) => {
+    ($ty:ident, $nbytes:expr) => {
         #[derive(Debug, PartialEq)]
         #[repr(transparent)]
-        pub struct $ty<'a>(pub &'a [u8; $size]);
+        pub struct $ty<'a>(pub &'a [u8; $nbytes]);
 
         impl_slice_primitive!($ty);
     };
@@ -67,8 +67,6 @@ impl_blob_primitive!(Blob3);
 #[derive(Debug, PartialEq)]
 #[repr(transparent)]
 pub struct Array<'a, T>(pub &'a [T]);
-
-impl<'a, T> Array<'a, T> {}
 
 #[derive(Debug, PartialEq)]
 pub enum Primitive<'a> {

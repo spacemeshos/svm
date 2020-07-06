@@ -65,12 +65,15 @@ impl<'a> Encoder for Blob3<'a> {
     }
 }
 
-impl<'a> Encoder for &[Address<'a>] {
+impl<'a, T> Encoder for &[T]
+where
+    T: Encoder,
+{
     fn encode(&self, buf: &mut Vec<u8>) {
         buf.push(marker::ARRAY_START);
 
-        for addr in self.iter() {
-            addr.encode(buf);
+        for elem in self.iter() {
+            elem.encode(buf);
         }
 
         buf.push(marker::ARRAY_END);

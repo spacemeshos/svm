@@ -75,4 +75,28 @@ mod tests {
 
         assert_eq!(value, Value::Composite(Composite::Array(&vec[..])));
     }
+
+    #[test]
+    fn encode_decode_pubkey256_array() {
+        let pkey1 = PubKey256(&[0x10; 32]);
+        let pkey2 = PubKey256(&[0x20; 32]);
+        let pkey3 = PubKey256(&[0x30; 32]);
+
+        let pkeys = vec![pkey1, pkey2, pkey3];
+
+        let mut buf = Vec::new();
+        (&pkeys[..]).encode(&mut buf);
+
+        let mut cursor = Cursor::new(&buf);
+        let mut decoder = Decoder::new();
+        let value = decoder.decode_value(&mut cursor).unwrap();
+
+        let vec = vec![
+            Value::Primitive(Primitive::PubKey256(PubKey256(&[0x10; 32]))),
+            Value::Primitive(Primitive::PubKey256(PubKey256(&[0x20; 32]))),
+            Value::Primitive(Primitive::PubKey256(PubKey256(&[0x30; 32]))),
+        ];
+
+        assert_eq!(value, Value::Composite(Composite::Array(&vec[..])));
+    }
 }
