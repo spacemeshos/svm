@@ -1,36 +1,25 @@
 use core::fmt::Debug;
 
-pub trait Slice {
-    fn len(&self) -> usize;
-
-    fn offset(&self) -> usize;
-
-    fn as_slice(&self) -> &[u8];
-
-    #[inline]
-    fn as_ptr(&self) -> *const u8;
-}
-
 macro_rules! impl_slice_primitive {
     ($ty:ident) => {
-        impl<'a> Slice for $ty<'a> {
+        impl<'a> $ty<'a> {
             #[inline]
-            fn len(&self) -> usize {
+            pub fn len(&self) -> usize {
                 self.0.len()
             }
 
             #[inline]
-            fn offset(&self) -> usize {
+            pub fn offset(&self) -> usize {
                 self.as_ptr() as _
             }
 
             #[inline]
-            fn as_ptr(&self) -> *const u8 {
+            pub fn as_ptr(&self) -> *const u8 {
                 self.0.as_ptr()
             }
 
             #[inline]
-            fn as_slice(&self) -> &[u8] {
+            pub fn as_slice(&self) -> &[u8] {
                 &self.0[..]
             }
         }

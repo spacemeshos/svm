@@ -8,7 +8,7 @@ mod tests {
     use svm_abi_encoder::Encoder;
     use svm_sdk::types::Type;
     use svm_sdk::value::{
-        Address, Array, Blob1, Blob2, Blob3, Composite, Primitive, PubKey256, Slice, Value,
+        Address, Array, Blob1, Blob2, Blob3, Composite, Primitive, PubKey256, Value,
     };
 
     use svm_abi_decoder::{Cursor, DecodeError, Decoder};

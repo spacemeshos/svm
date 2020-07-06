@@ -5,6 +5,11 @@ use svm_sdk::{
 
 use crate::cursor::Cursor;
 
+extern crate alloc;
+
+use alloc::boxed::Box;
+use alloc::vec::Vec;
+
 #[derive(Debug)]
 pub enum TypeError {
     MissingTypeKind,

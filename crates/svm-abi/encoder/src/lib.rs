@@ -1,7 +1,11 @@
+#![no_std]
 #![allow(missing_docs)]
 #![allow(unused)]
 #![allow(dead_code)]
 #![allow(unreachable_code)]
+
+extern crate alloc;
+use crate::alloc::vec::Vec;
 
 use svm_sdk::{
     types::{marker, Composite, Primitive, Type},
@@ -32,9 +36,9 @@ impl<'a> Encoder for Blob1<'a> {
     fn encode(&self, buf: &mut Vec<u8>) {
         buf.push(marker::BLOB_1);
 
-        assert!(buf.len() < std::u8::MAX as usize);
-        buf.push(buf.len() as u8);
+        assert!(buf.len() < core::u8::MAX as usize);
 
+        buf.push(buf.len() as u8);
         buf.extend_from_slice(&self.0[..])
     }
 }
@@ -43,7 +47,7 @@ impl<'a> Encoder for Blob2<'a> {
     fn encode(&self, buf: &mut Vec<u8>) {
         buf.push(marker::BLOB_2);
 
-        assert!(buf.len() < std::u16::MAX as usize);
+        assert!(buf.len() < core::u16::MAX as usize);
 
         let len_bytes = (buf.len() as u16).to_be_bytes();
         buf.extend_from_slice(&len_bytes);
