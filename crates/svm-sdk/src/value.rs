@@ -39,7 +39,7 @@ macro_rules! impl_slice_primitive {
 
 macro_rules! impl_fixed_primitive {
     ($ty:ident, $size:expr) => {
-        #[derive(Debug)]
+        #[derive(Debug, PartialEq)]
         #[repr(transparent)]
         pub struct $ty<'a>(pub &'a [u8; $size]);
 
@@ -49,7 +49,7 @@ macro_rules! impl_fixed_primitive {
 
 macro_rules! impl_blob_primitive {
     ($ty:ident) => {
-        #[derive(core::fmt::Debug)]
+        #[derive(core::fmt::Debug, PartialEq)]
         #[repr(transparent)]
         pub struct $ty<'a>(pub &'a [u8]);
 
@@ -64,13 +64,13 @@ impl_blob_primitive!(Blob1);
 impl_blob_primitive!(Blob2);
 impl_blob_primitive!(Blob3);
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 #[repr(transparent)]
 pub struct Array<'a, T>(pub &'a [T]);
 
 impl<'a, T> Array<'a, T> {}
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Primitive<'a> {
     // `Blob` with `length < 256` bytes
     Blob1(Blob1<'a>),
@@ -88,12 +88,12 @@ pub enum Primitive<'a> {
     PubKey256(PubKey256<'a>),
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Composite<'a> {
     Array(&'a [Value<'a>]),
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Value<'a> {
     Primitive(Primitive<'a>),
     Composite(Composite<'a>),

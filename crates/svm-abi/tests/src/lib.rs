@@ -7,9 +7,11 @@
 mod tests {
     use svm_abi_encoder::Encoder;
     use svm_sdk::types::Type;
-    use svm_sdk::value::{Address, Blob1, Blob2, Blob3, PubKey256, Slice};
+    use svm_sdk::value::{
+        Address, Array, Blob1, Blob2, Blob3, Composite, Primitive, PubKey256, Slice, Value,
+    };
 
-    use svm_abi_decoder::{DecodeError, Decoder};
+    use svm_abi_decoder::{Cursor, DecodeError, Decoder};
 
     #[test]
     fn encode_decode_addr() {
@@ -22,8 +24,9 @@ mod tests {
         let mut buf = Vec::new();
         addr.encode(&mut buf);
 
-        let mut decoder = Decoder::new(&buf);
-        let value = decoder.decode_value().unwrap();
+        let mut cursor = Cursor::new(&buf);
+        let mut decoder = Decoder::new();
+        let value = decoder.decode_value(&mut cursor).unwrap();
 
         let addr = value.as_addr().unwrap();
         assert_eq!(addr.as_slice(), &bytes);
@@ -41,8 +44,9 @@ mod tests {
         let mut buf = Vec::new();
         pkey.encode(&mut buf);
 
-        let mut decoder = Decoder::new(&buf);
-        let value = decoder.decode_value().unwrap();
+        let mut cursor = Cursor::new(&buf);
+        let mut decoder = Decoder::new();
+        let value = decoder.decode_value(&mut cursor).unwrap();
 
         let pkey = value.as_pubkey256().unwrap();
         assert_eq!(pkey.as_slice(), &bytes);
@@ -57,10 +61,18 @@ mod tests {
         let addrs = vec![addr1, addr2, addr3];
 
         let mut buf = Vec::new();
-        addrs.as_slice().encode(&mut buf);
+        (&addrs[..]).encode(&mut buf);
 
-        let mut decoder = Decoder::new(&buf);
-        let value = decoder.decode_value().unwrap();
-        dbg!(value);
+        let mut cursor = Cursor::new(&buf);
+        let mut decoder = Decoder::new();
+        let value = decoder.decode_value(&mut cursor).unwrap();
+
+        let vec = vec![
+            Value::Primitive(Primitive::Address(Address(&[0x10; 20]))),
+            Value::Primitive(Primitive::Address(Address(&[0x20; 20]))),
+            Value::Primitive(Primitive::Address(Address(&[0x30; 20]))),
+        ];
+
+        assert_eq!(value, Value::Composite(Composite::Array(&vec[..])));
     }
 }

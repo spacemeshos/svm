@@ -1,19 +1,19 @@
-pub struct Cursor {
-    bytes: *const u8,
+pub struct Cursor<'a> {
+    pub bytes: &'a [u8],
 
-    offset: usize,
+    pub offset: usize,
 
-    length: usize,
+    pub length: usize,
 }
 
-impl Cursor {
-    pub fn new(bytes: *const u8, length: usize) -> Self {
-        let slice: &[u8] = unsafe { core::slice::from_raw_parts(bytes, length) };
+impl<'a> Cursor<'a> {
+    pub fn new(bytes: &'a [u8]) -> Self {
+        // let slice: &[u8] = unsafe { core::slice::from_raw_parts(bytes, length) };
 
         Self {
             bytes,
             offset: 0,
-            length,
+            length: bytes.len(),
         }
     }
 
@@ -23,12 +23,17 @@ impl Cursor {
     }
 
     #[inline]
-    pub fn peek(&self) -> u8 {
-        unsafe { *self.offset_ptr() }
+    pub fn peek(&self) -> Option<u8> {
+        if self.is_eof() {
+            return None;
+        }
+
+        let byte = unsafe { *self.offset_ptr() };
+        Some(byte)
     }
 
     #[inline]
-    pub fn read_byte(&mut self) -> u8 {
+    pub fn read_byte(&mut self) -> Option<u8> {
         let byte = self.peek();
         self.offset += 1;
 
@@ -36,19 +41,19 @@ impl Cursor {
     }
 
     pub fn read_bytes(&mut self, nbytes: usize) -> Option<*const u8> {
-        let last = self.offset + nbytes - 1;
+        let last_byte_off = self.offset + nbytes - 1;
 
-        if (last >= self.length) {
+        if (last_byte_off >= self.length) {
             return None;
         }
 
-        let ptr = self.offset_ptr();
-        self.offset += self.length;
+        let ptr = unsafe { self.offset_ptr() };
+        self.offset += nbytes;
 
         Some(ptr)
     }
 
-    pub fn offset_ptr(&self) -> *const u8 {
-        unsafe { self.bytes.add(self.offset) }
+    pub unsafe fn offset_ptr(&self) -> *const u8 {
+        self.bytes.as_ptr().add(self.offset)
     }
 }

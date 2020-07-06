@@ -72,5 +72,7 @@ impl<'a> Encoder for &[Address<'a>] {
         for addr in self.iter() {
             addr.encode(buf);
         }
+
+        buf.push(marker::ARRAY_END);
     }
 }
