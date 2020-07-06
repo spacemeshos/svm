@@ -1,4 +1,22 @@
-use core::convert::TryFrom;
+pub mod marker {
+    pub const ARRAY_START: u8 = 0;
+
+    pub const ARRAY_END: u8 = 1;
+
+    pub const TUPLE_START: u8 = 2;
+
+    pub const TUPLE_END: u8 = 3;
+
+    pub const BLOB_1: u8 = 4;
+
+    pub const BLOB_2: u8 = 5;
+
+    pub const BLOB_3: u8 = 6;
+
+    pub const ADDRESS: u8 = 7;
+
+    pub const PUBKEY_256: u8 = 8;
+}
 
 pub enum Primitive {
     Blob1,
@@ -20,34 +38,4 @@ pub enum Composite<'a> {
 pub enum Type<'a> {
     Primitive(Primitive),
     Composite(Composite<'a>),
-}
-
-impl From<Primitive> for u8 {
-    fn from(ty: Primitive) -> u8 {
-        match ty {
-            Primitive::Blob1 => 2,
-            Primitive::Blob2 => 3,
-            Primitive::Blob3 => 4,
-            Primitive::Address => 5,
-            Primitive::PubKey256 => 6,
-        }
-    }
-}
-
-impl From<Composite<'_>> for u8 {
-    fn from(ty: Composite) -> u8 {
-        match ty {
-            Composite::Array(..) => 0,
-            Composite::Tuple(..) => 1,
-        }
-    }
-}
-
-impl From<Type<'_>> for u8 {
-    fn from(ty: Type) -> u8 {
-        match ty {
-            Type::Composite(ty) => ty.into(),
-            Type::Primitive(ty) => ty.into(),
-        }
-    }
 }

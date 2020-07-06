@@ -1,11 +1,22 @@
+#![feature(alloc)]
+
+extern crate alloc;
+
+use alloc::boxed::Box;
+use alloc::vec::Vec;
+
 use svm_sdk::{
-    types::Type,
+    types::{marker, Type},
     value::{self, Address, Blob1, Blob2, Blob3, PubKey256, Value},
 };
+
+use crate::cursor::Cursor;
 
 #[derive(Debug)]
 pub enum TypeError {
     MissingTypeKind,
+
+    InvalidTypeKind,
 }
 
 #[derive(Debug)]
@@ -20,107 +31,90 @@ pub enum DecodeError {
     Value(ValueError),
 }
 
-pub struct Decoder<'a> {
-    bytes: &'a [u8],
-
-    cursor: usize,
-
-    length: usize,
-}
-
 macro_rules! assert_no_eof {
-    ($self:expr) => {{
-        if $self.is_eof() {
+    ($cursor:expr) => {{
+        if $cursor.is_eof() {
             return Err(DecodeError::Type(TypeError::MissingTypeKind));
         }
     }};
 }
 
-impl<'a> Decoder<'a> {
-    pub fn new(bytes: &'a [u8]) -> Self {
-        Self {
-            bytes,
-            cursor: 0,
-            length: bytes.len(),
-        }
-    }
+pub struct Decoder {}
 
-    pub fn decode(&mut self) -> Result<Value, DecodeError> {
-        assert_no_eof!(self);
+impl Decoder {
+    pub fn decode_value(&self, cursor: &mut Cursor) -> Result<Value, DecodeError> {
+        assert_no_eof!(cursor);
 
-        let byte = self.read_byte();
+        let byte = cursor.read_byte();
 
         let value = match byte {
-            0 => todo!(),
-            1 => todo!(),
-            2 => todo!(),
-            3 => todo!(),
-            4 => todo!(),
-            5 => self.decode_addr()?,
-            6 => todo!(),
-            _ => todo!(),
+            marker::ARRAY_START => self.decode_array(cursor)?,
+            marker::TUPLE_START => self.decode_tuple(cursor)?,
+            marker::ADDRESS => self.decode_addr(cursor)?,
+            marker::PUBKEY_256 => self.decode_pubkey256(cursor)?,
+            marker::BLOB_1 => todo!("Blob1"),
+            marker::BLOB_2 => todo!("Blob2"),
+            marker::BLOB_3 => todo!("Blob3"),
+            marker::ARRAY_END => panic!("invalid encoding"),
+            marker::TUPLE_END => panic!("invalid encoding"),
+            _ => unreachable!(),
         };
 
         Ok(value)
     }
 
-    fn decode_composite(&mut self) -> Result<Type, DecodeError> {
-        todo!()
-    }
+    fn decode_array(&self, cursor: &mut Cursor) -> Result<Value, DecodeError> {
+        assert_no_eof!(cursor);
 
-    fn decode_value(&mut self) -> Result<Value, DecodeError> {
-        todo!()
-    }
+        let mut next_byte = cursor.peek();
+        let mut vec: Vec<Value> = Vec::new();
 
-    fn decode_addr(&mut self) -> Result<Value, DecodeError> {
-        let ptr = self.read_bytes(20)?;
-        let bytes = unsafe { core::mem::transmute::<*const u8, &[u8; 20]>(ptr) };
-        let addr = Address(bytes);
+        while next_byte != marker::ARRAY_END {
+            let value = self.decode_value(cursor)?;
+            vec.push(value);
 
-        let primitive = value::Primitive::Address(addr);
-        let value = Value::Primitive(primitive);
-
-        Ok(value)
-    }
-
-    fn decode_pubkey256(&mut self) -> Result<Value, DecodeError> {
-        let ptr = self.read_bytes(32)?;
-        let bytes = unsafe { core::mem::transmute::<*const u8, &[u8; 32]>(ptr) };
-        let pubkey = PubKey256(bytes);
-
-        let primitive = value::Primitive::PubKey256(pubkey);
-        let value = Value::Primitive(primitive);
-
-        Ok(value)
-    }
-
-    #[inline]
-    fn is_eof(&self) -> bool {
-        self.cursor >= self.length
-    }
-
-    #[inline]
-    fn read_byte(&mut self) -> u8 {
-        let byte = self.bytes[self.cursor];
-        self.cursor += 1;
-
-        byte
-    }
-
-    fn read_bytes(&mut self, nbytes: usize) -> Result<*const u8, DecodeError> {
-        let last = self.cursor + nbytes - 1;
-
-        if (last >= self.length) {
-            return Err(DecodeError::Value(ValueError::NotEnoughBytes));
+            next_byte = cursor.peek();
         }
 
-        let ptr = self.cursor_ptr();
-        self.cursor += self.length;
+        let _ = cursor.read_byte();
 
-        Ok(ptr)
+        let vec = Box::leak(Box::new(vec));
+        let array = Value::Composite(value::Composite::Array(vec));
+
+        self.verify_array(&array);
+
+        Ok(array)
     }
 
-    fn cursor_ptr(&self) -> *const u8 {
-        unsafe { self.bytes.as_ptr().add(self.cursor) }
+    fn decode_tuple(&self, cursor: &mut Cursor) -> Result<Value, DecodeError> {
+        todo!()
+    }
+
+    fn decode_addr(&self, cursor: &mut Cursor) -> Result<Value, DecodeError> {
+        // let ptr = self.read_bytes(20)?;
+        // let bytes = unsafe { core::mem::transmute::<*const u8, &[u8; 20]>(ptr) };
+        // let addr = Address(bytes);
+
+        // let primitive = value::Primitive::Address(addr);
+        // let value = Value::Primitive(primitive);
+
+        // Ok(value)
+        todo!()
+    }
+
+    fn decode_pubkey256(&self, cursor: &mut Cursor) -> Result<Value, DecodeError> {
+        // let ptr = self.read_bytes(32)?;
+        // let bytes = unsafe { core::mem::transmute::<*const u8, &[u8; 32]>(ptr) };
+        // let pubkey = PubKey256(bytes);
+
+        // let primitive = value::Primitive::PubKey256(pubkey);
+        // let value = Value::Primitive(primitive);
+
+        // Ok(value)
+        todo!()
+    }
+
+    fn verify_array(&self, value: &Value) -> Result<(), DecodeError> {
+        todo!()
     }
 }
