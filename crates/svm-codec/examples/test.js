@@ -71,6 +71,37 @@ function wasmBufferDataSlice(instance, buf, offset, length) {
     return slice
 }
 
+describe('Encode Function Buffer', function () {
+    it('[Address]', function () {
+	return compileWasmCodec().then(instance => {
+	    let abi = [['Address'], ['PubKey256'], 'Address'];
+
+	    let data = [
+	      ['11233344556677889900AABBCCDDEEFFABCDEFFF'],
+	      ['PUB KEY GOES HERE'],
+	      '10203040506070809000A0B0C0D0E0F0ABCDEFFF',
+	    ];
+
+	    let object = {
+		abi: abi,
+		data: data
+	    };	
+
+	    const buf = wasmNewBuffer(instance, object);
+	    const result = instanceCall(instance, 'wasm_encode_func_buf', buf);
+
+	    let len = wasmBufferLength(instance, result);
+	    const slice = wasmBufferDataSlice(instance, result, 0, len);
+	    assert.equal(slice[0], OK_MARKER);
+
+	    const bytes = slice.slice(1);
+
+	    wasmBufferFree(instance, buf);
+	    wasmBufferFree(instance, result);
+	})
+    })
+})
+
 describe('WASM Buffer', function () {
     it('Allocate & Free', function () {
 	return compileWasmCodec().then(instance => {

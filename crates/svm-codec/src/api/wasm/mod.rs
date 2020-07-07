@@ -1,11 +1,13 @@
 mod deploy_template;
 mod error;
 mod exec_app;
+mod func_buf;
 mod spawn_app;
 
 pub use deploy_template::encode_deploy_template;
 pub use error::{error_as_string, into_error_buffer};
 pub use exec_app::encode_exec_app;
+pub use func_buf::encode_func_buf;
 pub use spawn_app::encode_spawn_app;
 
 use byteorder::{BigEndian, ByteOrder};

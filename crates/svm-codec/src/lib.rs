@@ -22,10 +22,8 @@ mod version;
 
 #[macro_use]
 pub mod nibble;
-
-pub mod receipt;
-
 pub mod api;
+pub mod receipt;
 
 pub mod error;
 pub mod serializers {
@@ -176,6 +174,14 @@ pub extern "C" fn wasm_buffer_length(buf_ptr: i32) -> i32 {
 #[cfg(target_arch = "wasm32")]
 pub extern "C" fn wasm_buffer_data(buf_ptr: i32) -> i32 {
     let (data_ptr, _len) = api::wasm::wasm_buf_data_ptr(buf_ptr as usize);
+
+    data_ptr as _
+}
+
+#[no_mangle]
+#[cfg(target_arch = "wasm32")]
+pub extern "C" fn wasm_encode_func_buf(buf_ptr: i32) -> i32 {
+    let (data_ptr, _len) = api::wasm::encode_func_buf(buf_ptr as usize);
 
     data_ptr as _
 }
