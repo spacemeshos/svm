@@ -202,7 +202,7 @@ pub fn wasm_buf_data_copy(ptr: usize, offset: usize, data: &[u8]) {
     }
 }
 
-pub(crate) fn wasm_buf_encode<F>(ptr: usize, encoder_fn: F) -> Result<usize, JsonError>
+pub(crate) fn wasm_buf_apply<F>(ptr: usize, encoder_fn: F) -> Result<usize, JsonError>
 where
     F: Fn(&Value) -> Result<Vec<u8>, JsonError>,
 {

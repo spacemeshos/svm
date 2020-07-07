@@ -136,8 +136,12 @@ pub(crate) fn as_blob(json: &Value, field: &str) -> Result<Vec<u8>, JsonError> {
 }
 
 pub(crate) fn as_addr(json: &Value, field: &str) -> Result<Address, JsonError> {
-    let value = as_string(json, field)?;
-    let bytes = str_to_bytes(&value, field)?;
+    let s = as_string(json, field)?;
+    str_as_addr(&s, field)
+}
+
+pub(crate) fn str_as_addr(s: &str, field: &str) -> Result<Address, JsonError> {
+    let bytes = str_to_bytes(s, field)?;
 
     if bytes.len() != Address::len() {
         return Err(JsonError::InvalidField {

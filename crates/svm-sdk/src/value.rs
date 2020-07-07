@@ -1,3 +1,4 @@
+use core::cmp::PartialEq;
 use core::fmt::Debug;
 
 macro_rules! impl_slice_primitive {
@@ -33,6 +34,16 @@ macro_rules! impl_fixed_primitive {
         pub struct $ty<'a>(pub &'a [u8; $nbytes]);
 
         impl_slice_primitive!($ty);
+
+        impl<'a> From<&'a [u8]> for $ty<'a> {
+            fn from(bytes: &'a [u8]) -> Self {
+                assert_eq!(bytes.len(), $nbytes);
+
+                let bytes = unsafe { core::mem::transmute::<*const u8, _>(&bytes[0]) };
+
+                $ty(bytes)
+            }
+        }
     };
 }
 
