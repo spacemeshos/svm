@@ -4,7 +4,7 @@ use crate::{
 };
 
 use svm_abi_encoder::Encoder;
-use svm_sdk::value::{Array, Primitive, Value};
+use svm_sdk::value::{Address, Array, Primitive, Value};
 use svm_sdk::{self as sdk};
 
 ///
@@ -100,12 +100,17 @@ mod tests {
             "data": ["10203040506070809000A0B0C0D0E0F0ABCDEFFF"]
         });
 
-        let encoded = encode_func_buf(&json).unwrap();
-        // let actual = decode_func_buf(&encoded).unwrap();
+        let bytes = encode_func_buf(&json).unwrap();
+        let decoder = svm_abi_decoder::Decoder::new();
+        let mut cursor = svm_abi_decoder::Cursor::new(&bytes);
+        let actual = decoder.decode_value(&mut cursor).unwrap();
 
-        // dbg!(actual);
+        let expected = Value::Primitive(Primitive::Address(Address(&[
+            0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80, 0x90, 0x00, 0xA0, 0xB0, 0xC0, 0xD0,
+            0xE0, 0xF0, 0xAB, 0xCD, 0xEF, 0xFF,
+        ])));
 
-        // let expected = Value::Primitive(Primitive::Address(&addr))
+        assert_eq!(expected, actual);
     }
 
     #[ignore]

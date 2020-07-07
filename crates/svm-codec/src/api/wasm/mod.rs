@@ -202,7 +202,7 @@ pub fn wasm_buf_data_copy(ptr: usize, offset: usize, data: &[u8]) {
     }
 }
 
-pub(crate) fn wasm_buf_apply<F>(ptr: usize, encoder_fn: F) -> Result<usize, JsonError>
+pub(crate) fn wasm_buf_apply<F>(ptr: usize, func: F) -> Result<usize, JsonError>
 where
     F: Fn(&Value) -> Result<Vec<u8>, JsonError>,
 {
@@ -211,7 +211,7 @@ where
 
     match json {
         Ok(ref json) => {
-            let bytes = encoder_fn(&json)?;
+            let bytes = func(&json)?;
 
             let mut buf = Vec::with_capacity(1 + bytes.len());
             buf.push(BUF_OK_MARKER);
