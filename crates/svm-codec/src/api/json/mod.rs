@@ -102,7 +102,7 @@ pub(crate) fn as_string(json: &Value, field: &str) -> Result<String, JsonError> 
     }
 }
 
-fn str_to_bytes(value: &str, field: &str) -> Result<Vec<u8>, JsonError> {
+pub(crate) fn str_to_bytes(value: &str, field: &str) -> Result<Vec<u8>, JsonError> {
     if value.len() % 2 == 1 {
         return Err(JsonError::InvalidField {
             field: field.to_string(),
