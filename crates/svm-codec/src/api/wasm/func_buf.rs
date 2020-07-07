@@ -14,7 +14,30 @@ pub fn encode_func_buf(ptr: usize) -> Result<usize, JsonError> {
 
     match json {
         Ok(ref json) => {
-            let bytes = api::json::func_buf(&json)?;
+            let bytes = api::json::encode_func_buf(&json)?;
+
+            let mut buf = Vec::with_capacity(1 + bytes.len());
+            buf.push(BUF_OK_MARKER);
+            buf.extend_from_slice(&bytes);
+
+            // let ptr = to_wasm_buffer(&buf);
+            Ok(ptr)
+        }
+        Err(err) => {
+            let ptr = into_error_buffer(err);
+
+            Ok(ptr)
+        }
+    }
+}
+
+pub fn decode_func_buf(ptr: usize) -> Result<usize, JsonError> {
+    let bytes = wasm_buffer_data(ptr);
+    let json: json::Result<Value> = serde_json::from_slice(bytes);
+
+    match json {
+        Ok(ref json) => {
+            let bytes = api::json::decode_func_buf(&json)?;
 
             let mut buf = Vec::with_capacity(1 + bytes.len());
             buf.push(BUF_OK_MARKER);
@@ -40,6 +63,7 @@ mod test {
 
     use serde_json::json;
 
+    #[ignore]
     #[test]
     fn wasm_encode_func_buf_valid() {
         let json = r#"{
@@ -68,6 +92,7 @@ mod test {
         // free(tx_buf);
     }
 
+    #[ignore]
     #[test]
     fn wasm_encode_func_buf_invalid_json() {
         let json = "{";

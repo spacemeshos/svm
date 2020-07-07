@@ -181,7 +181,23 @@ pub extern "C" fn wasm_buffer_data(buf_ptr: i32) -> i32 {
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
 pub extern "C" fn wasm_encode_func_buf(buf_ptr: i32) -> i32 {
-    let (data_ptr, _len) = api::wasm::encode_func_buf(buf_ptr as usize);
+    match api::wasm::encode_func_buf(buf_ptr as usize) {
+        Ok(ptr) => ptr as _,
+        Err(err) => {
+            let err_ptr = api::wasm::into_error_buffer(err);
+            err_ptr as _
+        }
+    }
+}
 
-    data_ptr as _
+#[no_mangle]
+#[cfg(target_arch = "wasm32")]
+pub extern "C" fn wasm_decode_func_buf(buf_ptr: i32) -> i32 {
+    match api::wasm::decode_func_buf(buf_ptr as usize) {
+        Ok(ptr) => ptr as _,
+        Err(err) => {
+            let err_ptr = api::wasm::into_error_buffer(err);
+            err_ptr as _
+        }
+    }
 }

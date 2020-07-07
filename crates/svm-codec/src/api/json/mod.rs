@@ -7,7 +7,7 @@ mod spawn_app;
 pub use deploy_template::deploy_template;
 pub use error::JsonError;
 pub use exec_app::exec_app;
-pub use func_buf::func_buf;
+pub use func_buf::{decode_func_buf, encode_func_buf};
 pub use spawn_app::spawn_app;
 
 use serde_json::{Map, Value};

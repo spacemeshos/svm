@@ -92,12 +92,15 @@ describe('Encode Function Buffer', function () {
 
 	    let len = wasmBufferLength(instance, result);
 	    const slice = wasmBufferDataSlice(instance, result, 0, len);
-	    assert.equal(slice[0], OK_MARKER);
+	    // assert.equal(slice[0], OK_MARKER);
 
-	    const bytes = slice.slice(1);
+	    const bytes = slice.slice(0);
 
-	    wasmBufferFree(instance, buf);
-	    wasmBufferFree(instance, result);
+	    const string = new TextDecoder('utf-8').decode(bytes);
+	    console.log(JSON.parse(string));
+
+	    // wasmBufferFree(instance, buf);
+	    // wasmBufferFree(instance, result);
 	})
     })
 })
