@@ -3,8 +3,8 @@ use serde_json::{self as json, Value};
 use svm_types::{Address, AppTransaction, WasmValue};
 
 use super::{
-    alloc, error::into_error_buffer, free, to_wasm_buffer, wasm_buf_data_copy, wasm_buffer_data,
-    BUF_ERROR_MARKER, BUF_OK_MARKER,
+    alloc, error::into_error_buffer, free, to_wasm_buffer, wasm_buf_data_copy, wasm_buf_encode,
+    wasm_buffer_data, BUF_ERROR_MARKER, BUF_OK_MARKER,
 };
 use crate::{api, api::json::JsonError, app, nibble::NibbleWriter};
 
@@ -17,26 +17,7 @@ use crate::{api, api::json::JsonError, app, nibble::NibbleWriter};
 /// See also: `alloc` and `free`
 ///
 pub fn encode_exec_app(ptr: usize) -> Result<usize, JsonError> {
-    let bytes = wasm_buffer_data(ptr);
-    let json: json::Result<Value> = serde_json::from_slice(bytes);
-
-    match json {
-        Ok(ref json) => {
-            let bytes = api::json::exec_app(&json)?;
-
-            let mut buf = Vec::with_capacity(1 + bytes.len());
-            buf.push(BUF_OK_MARKER);
-            buf.extend_from_slice(&bytes);
-
-            let ptr = to_wasm_buffer(&buf);
-            Ok(ptr)
-        }
-        Err(err) => {
-            let ptr = into_error_buffer(err);
-
-            Ok(ptr)
-        }
-    }
+    wasm_buf_encode(ptr, api::json::exec_app)
 }
 
 #[cfg(test)]

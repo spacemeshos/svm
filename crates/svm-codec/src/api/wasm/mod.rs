@@ -10,7 +10,9 @@ pub use exec_app::encode_exec_app;
 pub use func_buf::{decode_func_buf, encode_func_buf};
 pub use spawn_app::encode_spawn_app;
 
+use crate::{api, api::json::JsonError, app};
 use byteorder::{BigEndian, ByteOrder};
+use serde_json::{self as json, Value};
 
 const HEADER_LEN_OFF: usize = 0;
 const HEADER_CAP_OFF: usize = 4;
@@ -197,6 +199,32 @@ pub fn wasm_buf_data_copy(ptr: usize, offset: usize, data: &[u8]) {
         let dst = dst.add(HEADER_SIZE).add(offset);
 
         std::ptr::copy(src, dst, data.len());
+    }
+}
+
+pub(crate) fn wasm_buf_encode<F>(ptr: usize, encoder_fn: F) -> Result<usize, JsonError>
+where
+    F: Fn(&Value) -> Result<Vec<u8>, JsonError>,
+{
+    let bytes = wasm_buffer_data(ptr);
+    let json: json::Result<Value> = serde_json::from_slice(bytes);
+
+    match json {
+        Ok(ref json) => {
+            let bytes = encoder_fn(&json)?;
+
+            let mut buf = Vec::with_capacity(1 + bytes.len());
+            buf.push(BUF_OK_MARKER);
+            buf.extend_from_slice(&bytes);
+
+            let ptr = to_wasm_buffer(&buf);
+            Ok(ptr)
+        }
+        Err(err) => {
+            let ptr = into_error_buffer(err);
+
+            Ok(ptr)
+        }
     }
 }
 
