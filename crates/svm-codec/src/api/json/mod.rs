@@ -12,7 +12,8 @@ pub use spawn_app::spawn_app;
 
 use serde_json::{Map, Value};
 
-use svm_types::{Address, WasmValue};
+use svm_sdk::value::Address;
+use svm_types::WasmValue;
 
 pub(crate) fn as_object<'a>(
     json: &'a Value,

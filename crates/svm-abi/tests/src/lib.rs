@@ -8,10 +8,23 @@ mod tests {
     use svm_abi_encoder::Encoder;
     use svm_sdk::types::Type;
     use svm_sdk::value::{
-        Address, Array, Blob1, Blob2, Blob3, Composite, Primitive, PubKey256, Value,
+        Address, AddressOwned, Array, Blob1, Blob2, Blob3, Composite, Primitive, PubKey256, Value,
     };
 
     use svm_abi_decoder::{Cursor, DecodeError, Decoder};
+
+    #[test]
+    fn owned_addr_deref() {
+        let bytes: [u8; 20] = [
+            0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80, 0x90, 0xA0, 0xB0, 0xC0, 0xD0, 0xE0,
+            0xF0, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE,
+        ];
+
+        let owned = AddressOwned(bytes);
+        let borrowed = owned.deref();
+
+        assert_eq!(borrowed.0, &bytes);
+    }
 
     #[test]
     fn encode_decode_addr() {
@@ -61,7 +74,7 @@ mod tests {
         let addrs = vec![addr1, addr2, addr3];
 
         let mut buf = Vec::new();
-        (&addrs[..]).encode(&mut buf);
+        addrs.encode(&mut buf);
 
         let mut cursor = Cursor::new(&buf);
         let mut decoder = Decoder::new();
@@ -85,7 +98,7 @@ mod tests {
         let pkeys = vec![pkey1, pkey2, pkey3];
 
         let mut buf = Vec::new();
-        (&pkeys[..]).encode(&mut buf);
+        pkeys.encode(&mut buf);
 
         let mut cursor = Cursor::new(&buf);
         let mut decoder = Decoder::new();

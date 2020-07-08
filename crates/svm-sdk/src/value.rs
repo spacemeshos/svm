@@ -1,5 +1,8 @@
+#![feature(generic_associated_types)]
+
 use core::cmp::PartialEq;
 use core::fmt::Debug;
+use core::ops::Deref;
 
 macro_rules! impl_slice_primitive {
     ($ty:ident) => {
@@ -28,10 +31,14 @@ macro_rules! impl_slice_primitive {
 }
 
 macro_rules! impl_fixed_primitive {
-    ($ty:ident, $nbytes:expr) => {
+    ($ty:ident, $ty_owned:ident, $nbytes:expr) => {
         #[derive(Debug, PartialEq)]
         #[repr(transparent)]
         pub struct $ty<'a>(pub &'a [u8; $nbytes]);
+
+        #[derive(Debug, PartialEq)]
+        #[repr(transparent)]
+        pub struct $ty_owned(pub [u8; $nbytes]);
 
         impl_slice_primitive!($ty);
 
@@ -42,6 +49,12 @@ macro_rules! impl_fixed_primitive {
                 let bytes = unsafe { core::mem::transmute::<*const u8, _>(&bytes[0]) };
 
                 $ty(bytes)
+            }
+        }
+
+        impl $ty_owned {
+            pub fn deref(&self) -> $ty {
+                $ty(&self.0)
             }
         }
     };
@@ -57,8 +70,8 @@ macro_rules! impl_blob_primitive {
     };
 }
 
-impl_fixed_primitive!(Address, 20);
-impl_fixed_primitive!(PubKey256, 32);
+impl_fixed_primitive!(Address, AddressOwned, 20);
+impl_fixed_primitive!(PubKey256, PubKey256Owned, 32);
 
 impl_blob_primitive!(Blob1);
 impl_blob_primitive!(Blob2);

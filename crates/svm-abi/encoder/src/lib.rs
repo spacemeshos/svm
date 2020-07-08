@@ -83,3 +83,13 @@ where
         buf.push(marker::ARRAY_END);
     }
 }
+
+impl<'a, T> Encoder for Vec<T>
+where
+    T: Encoder,
+{
+    #[inline]
+    fn encode(&self, buf: &mut Vec<u8>) {
+        (&self[..]).encode(buf)
+    }
+}
