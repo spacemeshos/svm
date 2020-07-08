@@ -22,8 +22,12 @@ pub fn encode_func_buf(json: &json::Value) -> Result<Vec<u8>, JsonError> {
     let abi = json::as_array(json, "abi")?;
     let data = json::as_array(json, "data")?;
 
-    // todo: return `JsonError`
-    assert_eq!(abi.len(), data.len());
+    if abi.len() != data.len() {
+        return Err(JsonError::InvalidField {
+            field: "data".to_string(),
+            reason: "`abi` and `data` must be of the same length".to_string(),
+        });
+    }
 
     let mut buf = Vec::new();
 
@@ -45,7 +49,10 @@ fn encode_value(
     match ty {
         json::Value::String(..) => encode_primitive(ty, value, pos, buf),
         json::Value::Array(..) => encode_array(ty, value, pos, buf),
-        _ => todo!("invalid input"),
+        _ => Err(JsonError::InvalidField {
+            field: "abi".to_string(),
+            reason: "`abi` expects only `string` or `Array` items".to_string(),
+        }),
     }
 }
 
@@ -53,11 +60,11 @@ macro_rules! do_encode_array {
     ($values:expr, $ty:ty, $func:expr, $pos:expr, $buf:expr) => {{
         let mut vec = Vec::new();
 
-        for (i, value) in $values.iter().enumerate() {
+        for (i, json) in $values.iter().enumerate() {
             let field = format!("data[{}], item={}", $pos, i);
-            let value = value.as_str().unwrap();
+            let value = json::as_string(json, &field)?;
 
-            let prim = $func(value, &field)?;
+            let prim = $func(&value, &field)?;
             vec.push(prim);
 
             vec.encode($buf);
@@ -92,18 +99,28 @@ fn encode_array(
     pos: usize,
     buf: &mut Vec<u8>,
 ) -> Result<(), JsonError> {
-    let ty: &Vec<json::Value> = ty.as_array().unwrap();
+    let field = format!("abi[{}]", pos);
+    let ty = json::as_array(ty, &field)?;
 
-    // todo: return `JsonError`
-    assert_eq!(ty.len(), 1);
+    if ty.len() != 1 {
+        return Err(JsonError::InvalidField {
+            field: "abi".to_string(),
+            reason: "`Array` items must be of length = 1".to_string(),
+        });
+    }
 
-    let ty = ty[0].as_str().unwrap();
-    let values = value.as_array().unwrap();
+    let ty = json::as_string(&ty[0], &format!("abi[{}][0]", pos))?;
+    let values = json::as_array(value, &format!("data[{}][0]", pos))?;
 
-    match ty {
+    match ty.as_str() {
         "address" => do_encode_array!(values, AddressOwned, str_as_addr, pos, buf),
         "pubkey256" => do_encode_array!(values, PubKey256Owned, str_as_pubkey256, pos, buf),
-        _ => todo!(),
+        _ => {
+            return Err(JsonError::InvalidField {
+                field: format!("data[{}]", pos),
+                reason: format!("unsupported `Array` of type: {}", ty),
+            });
+        }
     }
 
     Ok(())
@@ -115,8 +132,8 @@ fn encode_primitive(
     pos: usize,
     buf: &mut Vec<u8>,
 ) -> Result<(), JsonError> {
-    let ty = ty.as_str().unwrap();
-    let value = value.as_str().unwrap();
+    let ty = json::as_string(ty, &format!("abi[{}]", pos))?;
+    let value = json::as_string(value, &format!("data[{}]", pos))?;
     let field = format!("data[{}]", pos);
 
     do_encode_primitive!(ty, value, field, buf)
