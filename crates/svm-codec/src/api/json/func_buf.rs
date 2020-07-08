@@ -49,7 +49,7 @@ fn encode_value(
     }
 }
 
-macro_rules! encode_primitive_array {
+macro_rules! do_encode_array {
     ($values:expr, $ty:ty, $func:expr, $pos:expr, $buf:expr) => {{
         let mut vec = Vec::new();
 
@@ -62,6 +62,27 @@ macro_rules! encode_primitive_array {
 
             vec.encode($buf);
         }
+    }};
+}
+
+macro_rules! do_encode_primitive {
+    ("address", $json:expr, $field:expr, $buf:expr) => {{
+        let addr: AddressOwned = str_as_addr(value, field)?;
+        addr.encode(buf);
+        Ok(())
+    }};
+
+    ("pubkey256", $json:expr, $field:expr, $buf:expr) => {{
+        let pkey: PubKey256 = str_as_pubkey256(value, field)?;
+        pkey.encode(buf);
+        Ok(())
+    }};
+
+    ($ty:expr, $json:expr, $field:expr, $buf:expr) => {{
+        Err(JsonError::InvalidField {
+            field: "abi".to_string(),
+            reason: format!("invalid ABI type {}", $ty),
+        })
     }};
 }
 
@@ -80,8 +101,8 @@ fn encode_array(
     let values = value.as_array().unwrap();
 
     match ty {
-        "address" => encode_primitive_array!(values, AddressOwned, str_as_addr, pos, buf),
-        "pubkey256" => encode_primitive_array!(values, PubKey256Owned, str_as_pubkey256, pos, buf),
+        "address" => do_encode_array!(values, AddressOwned, str_as_addr, pos, buf),
+        "pubkey256" => do_encode_array!(values, PubKey256Owned, str_as_pubkey256, pos, buf),
         _ => todo!(),
     }
 
@@ -98,18 +119,7 @@ fn encode_primitive(
     let value = value.as_str().unwrap();
     let field = format!("data[{}]", pos);
 
-    match ty {
-        "address" => encode_addr(value, &field, buf)?,
-        "pubkey256" => encode_pubkey256(value, &field, buf)?,
-        _ => {
-            return Err(JsonError::InvalidField {
-                field: "abi".to_string(),
-                reason: format!("invalid ABI type {}", ty),
-            })
-        }
-    }
-
-    Ok(())
+    do_encode_primitive!(ty, value, field, buf)
 }
 
 macro_rules! str_as_primitive {
@@ -134,22 +144,6 @@ fn str_as_addr(s: &str, field: &str) -> Result<AddressOwned, JsonError> {
 
 fn str_as_pubkey256(s: &str, field: &str) -> Result<PubKey256Owned, JsonError> {
     str_as_primitive!(s, PubKey256Owned, field)
-}
-
-fn encode_addr(value: &str, field: &str, buf: &mut Vec<u8>) -> Result<(), JsonError> {
-    let addr: AddressOwned = str_as_addr(value, field)?;
-    addr.encode(buf);
-
-    Ok(())
-}
-
-fn encode_pubkey256(value: &str, field: &str, buf: &mut Vec<u8>) -> Result<(), JsonError> {
-    let bytes = json::str_to_bytes(value, &field)?;
-    let pkey: svm_sdk::value::PubKey256 = (&bytes[..]).into();
-
-    pkey.encode(buf);
-
-    Ok(())
 }
 
 pub fn decode_func_buf(json: &json::Value) -> Result<Vec<u8>, JsonError> {
