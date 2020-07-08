@@ -4,7 +4,7 @@ use crate::{
 };
 
 use svm_abi_encoder::Encoder;
-use svm_sdk::value::{Address, Array, Primitive, PubKey256, Value};
+use svm_sdk::value::{AddressOwned, Array, Primitive, PubKey256Owned, Value};
 use svm_sdk::{self as sdk};
 
 ///
@@ -49,12 +49,18 @@ fn encode_value(
     }
 }
 
-macro_rules! encode_array_primitives {
-    ($strings:expr, $encoder_func:ident) => {{
-        let mut primitives = Vec::new();
+macro_rules! encode_primitive_array {
+    ($values:expr, $ty:ty, $func:expr, $pos:expr, $buf:expr) => {{
+        let mut vec = Vec::new();
 
-        for s in $strings.iter() {
-            let prim = $encoder
+        for (i, value) in $values.iter().enumerate() {
+            let field = format!("data[{}], item={}", $pos, i);
+            let value = value.as_str().unwrap();
+
+            let prim = $func(value, &field)?;
+            vec.push(prim);
+
+            vec.encode($buf);
         }
     }};
 }
@@ -74,18 +80,8 @@ fn encode_array(
     let values = value.as_array().unwrap();
 
     match ty {
-        "address" => {
-            let mut addrs: Vec<Address> = Vec::new();
-
-            for (i, value) in values.iter().enumerate() {
-                // let field = format!("data[{}], item={}", pos, i);
-                // let value = value.as_str().unwrap();
-                // let addr: svm_types::Address = json::str_as_addr(value, &field)?;
-
-                // addrs.push(addr);
-            }
-        }
-        "pubkey256" => todo!(),
+        "address" => encode_primitive_array!(values, AddressOwned, str_as_addr, pos, buf),
+        "pubkey256" => encode_primitive_array!(values, PubKey256Owned, str_as_pubkey256, pos, buf),
         _ => todo!(),
     }
 
@@ -108,7 +104,7 @@ fn encode_primitive(
         _ => {
             return Err(JsonError::InvalidField {
                 field: "abi".to_string(),
-                reason: format!("invalid abi type {}", ty),
+                reason: format!("invalid ABI type {}", ty),
             })
         }
     }
@@ -116,11 +112,32 @@ fn encode_primitive(
     Ok(())
 }
 
-fn encode_addr(value: &str, field: &str, buf: &mut Vec<u8>) -> Result<(), JsonError> {
-    let addr: svm_types::Address = json::str_as_addr(value, &field)?;
-    let bytes = addr.as_slice();
+macro_rules! str_as_primitive {
+    ($s:expr, $ty:ty, $field:expr) => {{
+        let bytes = json::str_to_bytes($s, $field)?;
 
-    let addr: Address = bytes.into();
+        if bytes.len() != <$ty>::size() {
+            return Err(JsonError::InvalidField {
+                field: $field.to_string(),
+                reason: format!("value should be exactly {} hex digits", <$ty>::size() * 2),
+            });
+        }
+
+        let ty: $ty = bytes.into();
+        Ok(ty)
+    }};
+}
+
+fn str_as_addr(s: &str, field: &str) -> Result<AddressOwned, JsonError> {
+    str_as_primitive!(s, AddressOwned, field)
+}
+
+fn str_as_pubkey256(s: &str, field: &str) -> Result<PubKey256Owned, JsonError> {
+    str_as_primitive!(s, PubKey256Owned, field)
+}
+
+fn encode_addr(value: &str, field: &str, buf: &mut Vec<u8>) -> Result<(), JsonError> {
+    let addr: AddressOwned = str_as_addr(value, field)?;
     addr.encode(buf);
 
     Ok(())

@@ -12,8 +12,8 @@ pub use spawn_app::spawn_app;
 
 use serde_json::{Map, Value};
 
-use svm_sdk::value::Address;
-use svm_types::WasmValue;
+use svm_sdk::value::AddressOwned;
+use svm_types::{Address, WasmValue};
 
 pub(crate) fn as_object<'a>(
     json: &'a Value,
@@ -141,6 +141,11 @@ pub(crate) fn as_addr(json: &Value, field: &str) -> Result<Address, JsonError> {
     str_as_addr(&s, field)
 }
 
+// pub(crate) fn as_addr(json: &Value, field: &str) -> Result<AddressOwned, JsonError> {
+//     let s = as_string(json, field)?;
+//     str_as_addr(&s, field)
+// }
+
 pub(crate) fn str_as_addr(s: &str, field: &str) -> Result<Address, JsonError> {
     let bytes = str_to_bytes(s, field)?;
 
@@ -151,7 +156,7 @@ pub(crate) fn str_as_addr(s: &str, field: &str) -> Result<Address, JsonError> {
         });
     }
 
-    let addr = Address::from(&bytes[..]);
+    let addr: Address = (&bytes[..]).into();
     Ok(addr)
 }
 

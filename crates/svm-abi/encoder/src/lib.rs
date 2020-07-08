@@ -9,28 +9,30 @@ use crate::alloc::vec::Vec;
 
 use svm_sdk::{
     types::{marker, Composite, Primitive, Type},
-    value::{Address, Blob1, Blob2, Blob3, PubKey256},
+    value::{Address, AddressOwned, Blob1, Blob2, Blob3, PubKey256, PubKey256Owned},
 };
 
 pub trait Encoder {
     fn encode(&self, buf: &mut Vec<u8>);
 }
 
-impl<'a> Encoder for Address<'a> {
-    fn encode(&self, buf: &mut Vec<u8>) {
-        buf.push(marker::ADDRESS);
+macro_rules! impl_primitive_encoder {
+    ($ty:ty, $marker:path) => {
+        impl Encoder for $ty {
+            fn encode(&self, buf: &mut Vec<u8>) {
+                buf.push($marker);
 
-        buf.extend_from_slice(&self.0[..])
-    }
+                buf.extend_from_slice(&self.0[..])
+            }
+        }
+    };
 }
 
-impl<'a> Encoder for PubKey256<'a> {
-    fn encode(&self, buf: &mut Vec<u8>) {
-        buf.push(marker::PUBKEY_256);
+impl_primitive_encoder!(Address<'_>, marker::ADDRESS);
+impl_primitive_encoder!(AddressOwned, marker::ADDRESS);
 
-        buf.extend_from_slice(&self.0[..])
-    }
-}
+impl_primitive_encoder!(PubKey256<'_>, marker::PUBKEY_256);
+impl_primitive_encoder!(PubKey256Owned, marker::PUBKEY_256);
 
 impl<'a> Encoder for Blob1<'a> {
     fn encode(&self, buf: &mut Vec<u8>) {

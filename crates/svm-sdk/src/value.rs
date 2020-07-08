@@ -4,6 +4,9 @@ use core::cmp::PartialEq;
 use core::fmt::Debug;
 use core::ops::Deref;
 
+extern crate alloc;
+use alloc::vec::Vec;
+
 macro_rules! impl_slice_primitive {
     ($ty:ident) => {
         impl<'a> $ty<'a> {
@@ -42,6 +45,28 @@ macro_rules! impl_fixed_primitive {
 
         impl_slice_primitive!($ty);
 
+        impl<'a> $ty<'a> {
+            pub const fn size() -> usize {
+                $nbytes
+            }
+
+            pub fn to_owned(&self) -> $ty_owned {
+                let bytes = self.0.clone();
+
+                $ty_owned(bytes)
+            }
+        }
+
+        impl $ty_owned {
+            pub const fn size() -> usize {
+                $nbytes
+            }
+
+            pub fn deref(&self) -> $ty {
+                $ty(&self.0)
+            }
+        }
+
         impl<'a> From<&'a [u8]> for $ty<'a> {
             fn from(bytes: &'a [u8]) -> Self {
                 assert_eq!(bytes.len(), $nbytes);
@@ -52,9 +77,16 @@ macro_rules! impl_fixed_primitive {
             }
         }
 
-        impl $ty_owned {
-            pub fn deref(&self) -> $ty {
-                $ty(&self.0)
+        impl From<&[u8]> for $ty_owned {
+            fn from(bytes: &[u8]) -> Self {
+                let ty: $ty = bytes.into();
+                ty.to_owned()
+            }
+        }
+
+        impl From<Vec<u8>> for $ty_owned {
+            fn from(bytes: Vec<u8>) -> Self {
+                (&bytes[..]).into()
             }
         }
     };
