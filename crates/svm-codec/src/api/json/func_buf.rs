@@ -49,9 +49,17 @@ pub fn decode_func_buf(json: &json::Value) -> Result<String, JsonError> {
     let decoder = Decoder::new();
     let mut cursor = Cursor::new(&bytes);
 
-    let value = decoder.decode_value(&mut cursor).unwrap();
-    let json = into_json(&value);
+    let mut jsons = Vec::new();
 
+    while !cursor.is_eof() {
+        // TODO: return `JsonError` instead of using `unwrap`
+        let value = decoder.decode_value(&mut cursor).unwrap();
+
+        let json = into_json(&value);
+        jsons.push(json);
+    }
+
+    let json = serde_json::Value::Array(jsons);
     Ok(json.to_string())
 }
 
@@ -258,6 +266,18 @@ mod tests {
         }};
     }
 
+    macro_rules! assert_func_buf {
+        ($json:expr, $expected:expr) => {{
+            let bytes = encode_func_buf(&$json).unwrap();
+            let data = fmt_hex(&bytes, "");
+            let json = json!({ "data": data });
+            let s = decode_func_buf(&json).unwrap();
+
+            let actual: serde_json::Value = serde_json::from_str(&s).unwrap();
+            assert_eq!($expected, actual);
+        }};
+    }
+
     #[test]
     pub fn json_encode_func_buf_missing_abi() {
         let json = json!({});
@@ -295,19 +315,11 @@ mod tests {
             "data": [addr!("1020304050")]
         });
 
-        let bytes = encode_func_buf(&json).unwrap();
-        let data = fmt_hex(&bytes, "");
-
-        let json = json!({ "data": data });
-
-        let s = decode_func_buf(&json).unwrap();
-        let json = serde_json::from_str::<serde_json::Value>(&s).unwrap();
-
-        assert_eq!(
+        assert_func_buf!(
             json,
-            json!({
+            json!([{
                 "address": "1020304050102030405010203040501020304050"
-            })
+            }])
         );
     }
 
@@ -320,16 +332,12 @@ mod tests {
 
         let bytes = encode_func_buf(&json).unwrap();
 
-        // let decoder = Decoder::new();
-        // let mut cursor = Cursor::new(&bytes);
-        // let actual = decoder.decode_value(&mut cursor).unwrap();
-
-        // let expected = Value::Primitive(Primitive::PubKey256(PubKey256(extend!(
-        //     vec![0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80],
-        //     32
-        // ))));
-
-        // assert_eq!(expected, actual);
+        assert_func_buf!(
+            json,
+            json!([{
+                "pubkey256": "1020304050607080102030405060708010203040506070801020304050607080"
+            }])
+        );
     }
 
     #[test]
@@ -339,24 +347,17 @@ mod tests {
             "data": [[addr!("1020304050"), addr!("60708090A0")]]
         });
 
-        let bytes = encode_func_buf(&json).unwrap();
-        let decoder = Decoder::new();
-        let mut cursor = Cursor::new(&bytes);
-        let actual = decoder.decode_value(&mut cursor).unwrap();
-
-        let addr1 = Value::Primitive(Primitive::Address(Address(extend!(
-            vec![0x10, 0x20, 0x30, 0x40, 0x50],
-            20
-        ))));
-
-        let addr2 = Value::Primitive(Primitive::Address(Address(extend!(
-            vec![0x60, 0x70, 0x80, 0x90, 0xA0],
-            20
-        ))));
-
-        let addrs = [addr1, addr2];
-        let expected = Value::Composite(Composite::Array(&addrs));
-        assert_eq!(expected, actual);
+        assert_func_buf!(
+            json,
+            json!([
+              [{
+                "address": "1020304050102030405010203040501020304050"
+              },
+              {
+                "address": "60708090a060708090a060708090a060708090a0"
+              }]
+            ])
+        );
     }
 
     #[test]
@@ -366,23 +367,36 @@ mod tests {
             "data": [[pkey!("10203040"), pkey!("A0B0C0D0")]]
         });
 
-        let bytes = encode_func_buf(&json).unwrap();
-        let decoder = Decoder::new();
-        let mut cursor = Cursor::new(&bytes);
-        let actual = decoder.decode_value(&mut cursor).unwrap();
+        assert_func_buf!(
+            json,
+            json!([
+              [{
+                "pubkey256": "1020304010203040102030401020304010203040102030401020304010203040",
+              },
+              {
+                "pubkey256": "a0b0c0d0a0b0c0d0a0b0c0d0a0b0c0d0a0b0c0d0a0b0c0d0a0b0c0d0a0b0c0d0",
+              }]
+            ])
+        );
+    }
 
-        let pkey1 = Value::Primitive(Primitive::PubKey256(PubKey256(extend!(
-            vec![0x10, 0x20, 0x30, 0x40],
-            32
-        ))));
+    #[test]
+    pub fn json_encode_func_buf_address_and_pubkey256() {
+        let json = json!({
+            "abi": ["address", "pubkey256"],
+            "data": [addr!("1020304050"), pkey!("A0B0C0D0")]
+        });
 
-        let pkey2 = Value::Primitive(Primitive::PubKey256(PubKey256(extend!(
-            vec![0xA0, 0xB0, 0xC0, 0xD0],
-            32
-        ))));
-
-        let pkeys = [pkey1, pkey2];
-        let expected = Value::Composite(Composite::Array(&pkeys));
-        assert_eq!(expected, actual);
+        assert_func_buf!(
+            json,
+            json!([
+              {
+                "address": "1020304050102030405010203040501020304050",
+              },
+              {
+                "pubkey256": "a0b0c0d0a0b0c0d0a0b0c0d0a0b0c0d0a0b0c0d0a0b0c0d0a0b0c0d0a0b0c0d0",
+              }
+            ])
+        );
     }
 }
