@@ -21,15 +21,14 @@ pub fn fmt_hex(bytes: &[u8], separator: &str) -> String {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
     #[test]
-    fn fmt_hex() {
+    fn test_fmt_hex() {
         let bytes = vec![0x01, 0x20, 0x30, 0x40];
 
-        assert_eq!("01 20 30 40", crate::fmt::fmt_hex(bytes.as_slice(), " "));
-        assert_eq!("01,20,30,40", crate::fmt::fmt_hex(bytes.as_slice(), ","));
-        assert_eq!(
-            "01, 20, 30, 40",
-            crate::fmt::fmt_hex(bytes.as_slice(), ", ")
-        );
+        assert_eq!("01 20 30 40", fmt_hex(bytes.as_slice(), " "));
+        assert_eq!("01,20,30,40", fmt_hex(bytes.as_slice(), ","));
+        assert_eq!("01, 20, 30, 40", fmt_hex(bytes.as_slice(), ", "));
     }
 }

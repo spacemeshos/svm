@@ -23,48 +23,79 @@ pub fn decode_func_buf(ptr: usize) -> Result<usize, JsonError> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::nibble::NibbleIter;
 
     use crate::api::wasm::error_as_string;
+    use crate::nibble::NibbleIter;
 
     use serde_json::json;
+    use svm_common::fmt::fmt_hex;
 
-    #[ignore]
+    fn wasm_buf_as_json(buf_ptr: usize) -> Value {
+        let data = wasm_buffer_data(buf_ptr);
+        assert_eq!(data[0], BUF_OK_MARKER);
+
+        let s = unsafe { String::from_utf8_unchecked(data[1..].to_vec()) };
+        let json: Value = serde_json::from_str(&s).unwrap();
+
+        json
+    }
+
     #[test]
     fn wasm_encode_func_buf_valid() {
         let json = r#"{
-           TBD
+          "abi": ["address"],
+          "data": ["102030405060708090A011121314151617181920"]
         }"#;
 
+        // encode
         let json_buf = to_wasm_buffer(json.as_bytes());
-        let tx_buf = encode_func_buf(json_buf).unwrap();
-
-        let data = wasm_buffer_data(tx_buf);
+        let func_buf = encode_func_buf(json_buf).unwrap();
+        let data = wasm_buffer_data(func_buf);
         assert_eq!(data[0], BUF_OK_MARKER);
 
-        // let mut iter = NibbleIter::new(&data[1..]);
-        // let actual = crate::api::raw::decode_deploy_template(&mut iter).unwrap();
+        // decode
+        let json = json!({
+            "data": fmt_hex(&data[1..], "")
+        })
+        .to_string();
 
-        // let expected = AppTemplate {
-        //     version: 0,
-        //     name: "My Template".to_string(),
-        //     code: vec![0xC0, 0xDE],
-        //     data: vec![1, 3].into(),
-        // };
+        let data_buf = to_wasm_buffer(json.as_bytes());
+        let res_buf = decode_func_buf(data_buf).unwrap();
 
-        // assert_eq!(actual, expected);
+        assert_eq!(
+            wasm_buf_as_json(res_buf),
+            json!([{
+                "address": "102030405060708090a011121314151617181920"
+            }])
+        );
 
-        // free(json_buf);
-        // free(tx_buf);
+        free(json_buf);
+        free(func_buf);
+        free(data_buf);
+        free(res_buf);
     }
 
-    #[ignore]
     #[test]
     fn wasm_encode_func_buf_invalid_json() {
         let json = "{";
 
         let json_buf = to_wasm_buffer(json.as_bytes());
         let error_buf = encode_func_buf(json_buf).unwrap();
+
+        let error = unsafe { error_as_string(error_buf) };
+
+        assert!(error.starts_with(r#"Error("EOF while parsing"#));
+
+        free(json_buf);
+        free(error_buf);
+    }
+
+    #[test]
+    fn wasm_decode_func_buf_invalid_json() {
+        let json = "{";
+
+        let json_buf = to_wasm_buffer(json.as_bytes());
+        let error_buf = decode_func_buf(json_buf).unwrap();
 
         let error = unsafe { error_as_string(error_buf) };
 

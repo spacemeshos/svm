@@ -271,9 +271,10 @@ mod tests {
             let bytes = encode_func_buf(&$json).unwrap();
             let data = fmt_hex(&bytes, "");
             let json = json!({ "data": data });
-            let s = decode_func_buf(&json).unwrap();
 
+            let s = decode_func_buf(&json).unwrap();
             let actual: serde_json::Value = serde_json::from_str(&s).unwrap();
+
             assert_eq!($expected, actual);
         }};
     }

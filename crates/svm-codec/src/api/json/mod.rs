@@ -141,11 +141,6 @@ pub(crate) fn as_addr(json: &Value, field: &str) -> Result<Address, JsonError> {
     str_as_addr(&s, field)
 }
 
-// pub(crate) fn as_addr(json: &Value, field: &str) -> Result<AddressOwned, JsonError> {
-//     let s = as_string(json, field)?;
-//     str_as_addr(&s, field)
-// }
-
 pub(crate) fn str_as_addr(s: &str, field: &str) -> Result<Address, JsonError> {
     let bytes = str_to_bytes(s, field)?;
 

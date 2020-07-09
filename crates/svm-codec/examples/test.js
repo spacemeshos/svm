@@ -72,17 +72,18 @@ function wasmBufferDataSlice(instance, buf, offset, length) {
 }
 
 describe('Encode Function Buffer', function () {
-    it('[Address]', function () {
+    function binToString(bytes) {
+	return Array.from(bytes).map(b => {
+	    return b.toString(16).toUpperCase()
+	}).join('')
+    }
+
+    it('Address', function () {
 	return compileWasmCodec().then(instance => {
-	    let abi = [['Address'], ['PubKey256'], 'Address'];
+	    const abi = ['address'];
+	    const data = ['11233344556677889900AABBCCDDEEFFABCDEFFF'];
 
-	    let data = [
-	      ['11233344556677889900AABBCCDDEEFFABCDEFFF'],
-	      ['PUB KEY GOES HERE'],
-	      '10203040506070809000A0B0C0D0E0F0ABCDEFFF',
-	    ];
-
-	    let object = {
+	    const object = {
 		abi: abi,
 		data: data
 	    };	
@@ -92,15 +93,28 @@ describe('Encode Function Buffer', function () {
 
 	    let len = wasmBufferLength(instance, result);
 	    const slice = wasmBufferDataSlice(instance, result, 0, len);
-	    // assert.equal(slice[0], OK_MARKER);
+	    assert.equal(slice[0], OK_MARKER);
+	    
+	    const bytes = slice.slice(1);
 
-	    const bytes = slice.slice(0);
+	    const object2 = {
+		data: binToString(bytes)
+	    };
 
-	    const string = new TextDecoder('utf-8').decode(bytes);
-	    console.log(JSON.parse(string));
+	    const buf2 = wasmNewBuffer(instance, object2);
+	    const result2 = instanceCall(instance, 'wasm_decode_func_buf', buf2);
 
-	    // wasmBufferFree(instance, buf);
-	    // wasmBufferFree(instance, result);
+	    let len2 = wasmBufferLength(instance, result);
+	    const slice2 = wasmBufferDataSlice(instance, result2, 0, len2);
+	    assert.equal(slice2[0], OK_MARKER);
+
+	    const bytes2 = slice2.slice(1);
+	    console.log(bytes2);
+
+	    wasmBufferFree(instance, buf);
+	    wasmBufferFree(instance, buf2);
+	    wasmBufferFree(instance, result);
+	    wasmBufferFree(instance, result2);
 	})
     })
 })
