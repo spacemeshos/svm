@@ -10,7 +10,3 @@ homepage = "https://github.com/spacemeshos/svm"
 description = "Spacemesh Virtual Machine"
 publish = false
 
-# [lib]
-# crate-type = ["cdylib", "rlib"]
-
-

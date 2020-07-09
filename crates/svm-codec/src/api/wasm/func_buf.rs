@@ -13,7 +13,11 @@ pub fn encode_func_buf(ptr: usize) -> Result<usize, JsonError> {
 }
 
 pub fn decode_func_buf(ptr: usize) -> Result<usize, JsonError> {
-    wasm_buf_apply(ptr, api::json::decode_func_buf)
+    wasm_buf_apply(ptr, |json: &Value| {
+        let s: String = api::json::decode_func_buf(json)?;
+
+        Ok(s.into_bytes())
+    })
 }
 
 #[cfg(test)]

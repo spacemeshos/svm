@@ -1,10 +1,14 @@
 #![feature(generic_associated_types)]
 
 use core::cmp::PartialEq;
-use core::fmt::Debug;
+use core::fmt::{self, Debug};
 use core::ops::Deref;
 
+use core::char;
+
 extern crate alloc;
+
+use alloc::string::String;
 use alloc::vec::Vec;
 
 macro_rules! impl_slice_primitive {
@@ -89,7 +93,36 @@ macro_rules! impl_fixed_primitive {
                 (&bytes[..]).into()
             }
         }
+
+        impl fmt::Display for $ty<'_> {
+            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                for byte in self.0.iter() {
+                    let (a, b) = byte_as_chars(*byte);
+                    write!(f, "{}{}", a, b);
+                }
+
+                Ok(())
+            }
+        }
+
+        impl fmt::Display for $ty_owned {
+            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                let ty: $ty = self.deref();
+
+                <$ty<'_> as fmt::Display>::fmt(&ty, f)
+            }
+        }
     };
+}
+
+fn byte_as_chars(byte: u8) -> (char, char) {
+    let msb: u8 = (byte & 0xF0) >> 4;
+    let lsb: u8 = byte & 0x0F;
+
+    let a = char::from_digit(msb as u32, 16).unwrap();
+    let b = char::from_digit(lsb as u32, 16).unwrap();
+
+    (a, b)
 }
 
 macro_rules! impl_blob_primitive {

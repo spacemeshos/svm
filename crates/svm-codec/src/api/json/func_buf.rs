@@ -1,8 +1,10 @@
 use crate::{
+    api,
     api::json::{self, JsonError},
     nibble::NibbleWriter,
 };
 
+use svm_abi_decoder::{Cursor, Decoder};
 use svm_abi_encoder::Encoder;
 use svm_sdk::value::{
     Address, AddressOwned, Array, Composite, Primitive, PubKey256, PubKey256Owned, Value,
@@ -38,6 +40,39 @@ pub fn encode_func_buf(json: &json::Value) -> Result<Vec<u8>, JsonError> {
     }
 
     Ok(buf)
+}
+
+pub fn decode_func_buf(json: &json::Value) -> Result<String, JsonError> {
+    let raw = json::as_string(json, "data")?;
+    let bytes = json::str_to_bytes(&raw, &format!("data"))?;
+
+    let decoder = Decoder::new();
+    let mut cursor = Cursor::new(&bytes);
+
+    let value = decoder.decode_value(&mut cursor).unwrap();
+    let json = into_json(&value);
+
+    Ok(json.to_string())
+}
+
+fn into_json(value: &Value) -> json::Value {
+    match value {
+        Value::Primitive(Primitive::Address(v)) => {
+            let addr = format!("{}", v);
+            serde_json::json!({ "address": addr })
+        }
+        Value::Primitive(Primitive::PubKey256(v)) => {
+            let pkey = format!("{}", v);
+            serde_json::json!({ "pubkey256": pkey })
+        }
+        Value::Composite(Composite::Array(values)) => {
+            let values = values.iter().map(|v| into_json(&v)).collect();
+            let array = json::Value::Array(values);
+
+            array
+        }
+        _ => unreachable!(),
+    }
 }
 
 fn encode_value(
@@ -158,10 +193,6 @@ fn encode_primitive(
     }
 }
 
-pub fn decode_func_buf(_raw: &json::Value) -> Result<Vec<u8>, JsonError> {
-    todo!()
-}
-
 fn as_str<'a>(raw: &'a json::Value, field: &str) -> Result<&'a str, JsonError> {
     match raw.as_str() {
         None => Err(JsonError::InvalidField {
@@ -185,9 +216,9 @@ fn as_array<'a>(raw: &'a json::Value, field: &str) -> Result<&'a Vec<json::Value
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::json;
 
-    use svm_abi_decoder::{Cursor, Decoder};
+    use serde_json::json;
+    use svm_common::fmt::fmt_hex;
 
     macro_rules! extend {
         ($bytes:expr, $n:expr) => {{
@@ -265,16 +296,19 @@ mod tests {
         });
 
         let bytes = encode_func_buf(&json).unwrap();
-        let decoder = Decoder::new();
-        let mut cursor = Cursor::new(&bytes);
-        let actual = decoder.decode_value(&mut cursor).unwrap();
+        let data = fmt_hex(&bytes, "");
 
-        let expected = Value::Primitive(Primitive::Address(Address(extend!(
-            vec![0x10, 0x20, 0x30, 0x40, 0x50],
-            20
-        ))));
+        let json = json!({ "data": data });
 
-        assert_eq!(expected, actual);
+        let s = decode_func_buf(&json).unwrap();
+        let json = serde_json::from_str::<serde_json::Value>(&s).unwrap();
+
+        assert_eq!(
+            json,
+            json!({
+                "address": "1020304050102030405010203040501020304050"
+            })
+        );
     }
 
     #[test]
@@ -285,16 +319,17 @@ mod tests {
         });
 
         let bytes = encode_func_buf(&json).unwrap();
-        let decoder = Decoder::new();
-        let mut cursor = Cursor::new(&bytes);
-        let actual = decoder.decode_value(&mut cursor).unwrap();
 
-        let expected = Value::Primitive(Primitive::PubKey256(PubKey256(extend!(
-            vec![0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80],
-            32
-        ))));
+        // let decoder = Decoder::new();
+        // let mut cursor = Cursor::new(&bytes);
+        // let actual = decoder.decode_value(&mut cursor).unwrap();
 
-        assert_eq!(expected, actual);
+        // let expected = Value::Primitive(Primitive::PubKey256(PubKey256(extend!(
+        //     vec![0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80],
+        //     32
+        // ))));
+
+        // assert_eq!(expected, actual);
     }
 
     #[test]
