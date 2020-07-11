@@ -72,10 +72,20 @@ function wasmBufferDataSlice(instance, buf, offset, length) {
 }
 
 describe('Encode Function Buffer', function () {
-    function binToString(bytes) {
-	return Array.from(bytes).map(b => {
-	    return b.toString(16).toUpperCase()
-	}).join('')
+    function binToString(array) {
+	let result = "";
+
+	for (const b of array) {
+	    let s = b.toString(16);
+
+	    // padding
+	    if (s.length < 2) {
+		s = '0' + s;
+	    }
+
+	    result += s
+	}
+	return result;
     }
 
     it('Address', function () {
@@ -95,12 +105,8 @@ describe('Encode Function Buffer', function () {
 	    const slice = wasmBufferDataSlice(instance, result, 0, len);
 	    assert.equal(slice[0], OK_MARKER);
 
-	    const bytes = slice.slice(1);
-
-	    // console.log(binToString(bytes));
-
 	    const object2 = {
-	    	data: '0711233344556677889900AABBCCDDEEFFABCDEFFF'
+	    	data: binToString(slice.slice(1))
 	    };
 
 	    const buf2 = wasmNewBuffer(instance, object2);
@@ -108,14 +114,17 @@ describe('Encode Function Buffer', function () {
 
 	    let length2 = wasmBufferLength(instance, result2);
 	    const slice2 = wasmBufferDataSlice(instance, result2, 0, length2);
-	    const string = new TextDecoder('utf-8').decode(slice2);
-	    console.log(string);
-	    // const decoded = loadWasmBuffer(instance, result2);
 
-	    // wasmBufferFree(instance, buf);
-	    // wasmBufferFree(instance, buf2);
-	    // wasmBufferFree(instance, result);
-	    // wasmBufferFree(instance, result2);
+	    const string = new TextDecoder('utf-8').decode(slice2.slice(1));
+	    assert.deepEqual(JSON.parse(string),
+	    		 {
+	    		     result: [{ address: '11233344556677889900aabbccddeeffabcdefff' }]
+	    		 });
+
+	    wasmBufferFree(instance, buf);
+	    wasmBufferFree(instance, buf2);
+	    wasmBufferFree(instance, result);
+	    wasmBufferFree(instance, result2);
 	})
     })
 })
