@@ -16,9 +16,9 @@ use svm_sdk::{self as sdk};
 /// {
 ///   abi: [['address'], ['pubkey256'], 'address'],
 ///   data: [
-///     [ ['0x1020..'], ... ],
-///     [ ['0x3040..'], ... ],
-///     '0x4050'
+///     [ ['1020..'], ... ],
+///     [ ['3040..'], ... ],
+///     '4050'
 ///   ]
 /// }
 /// ```
@@ -42,7 +42,7 @@ pub fn encode_func_buf(json: &json::Value) -> Result<Vec<u8>, JsonError> {
     Ok(buf)
 }
 
-pub fn decode_func_buf(json: &json::Value) -> Result<String, JsonError> {
+pub fn decode_func_buf(json: &json::Value) -> Result<serde_json::Value, JsonError> {
     let raw = json::as_string(json, "data")?;
     let bytes = json::str_to_bytes(&raw, &format!("data"))?;
 
@@ -52,15 +52,20 @@ pub fn decode_func_buf(json: &json::Value) -> Result<String, JsonError> {
     let mut jsons = Vec::new();
 
     while !cursor.is_eof() {
-        // TODO: return `JsonError` instead of using `unwrap`
-        let value = decoder.decode_value(&mut cursor).unwrap();
-
-        let json = into_json(&value);
-        jsons.push(json);
+        match decoder.decode_value(&mut cursor) {
+            Ok(value) => {
+                let json = into_json(&value);
+                jsons.push(json);
+            }
+            Err(e) => return Err(JsonError::InvalidJson(format!("{:?}", e))),
+        }
     }
 
-    let json = serde_json::Value::Array(jsons);
-    Ok(json.to_string())
+    let array = serde_json::Value::Array(jsons);
+
+    let json = serde_json::json!({ "result": array });
+
+    Ok(json)
 }
 
 fn into_json(value: &Value) -> json::Value {
@@ -202,23 +207,17 @@ fn encode_primitive(
 }
 
 fn as_str<'a>(raw: &'a json::Value, field: &str) -> Result<&'a str, JsonError> {
-    match raw.as_str() {
-        None => Err(JsonError::InvalidField {
-            field: field.to_string(),
-            reason: format!("value `{}` isn't a string", raw),
-        }),
-        Some(raw) => Ok(raw),
-    }
+    raw.as_str().ok_or(JsonError::InvalidField {
+        field: field.to_string(),
+        reason: format!("value `{}` isn't a string", raw),
+    })
 }
 
 fn as_array<'a>(raw: &'a json::Value, field: &str) -> Result<&'a Vec<json::Value>, JsonError> {
-    match raw.as_array() {
-        None => Err(JsonError::InvalidField {
-            field: field.to_string(),
-            reason: format!("value `{}` isn't an Array", raw),
-        }),
-        Some(raw) => Ok(raw),
-    }
+    raw.as_array().ok_or(JsonError::InvalidField {
+        field: field.to_string(),
+        reason: format!("value `{}` isn't an Array", raw),
+    })
 }
 
 #[cfg(test)]

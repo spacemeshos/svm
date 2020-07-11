@@ -156,7 +156,16 @@ pub(crate) fn str_as_addr(s: &str, field: &str) -> Result<Address, JsonError> {
 }
 
 pub(crate) fn as_wasm_value(json: &Value, field: &str) -> Result<WasmValue, JsonError> {
-    let value = json.as_str().unwrap();
+    let value = match json {
+        Value::String(s) => s,
+        _ => {
+            return Err(JsonError::InvalidField {
+                field: field.to_string(),
+                reason: format!("wasm vaulue should be of a string"),
+            })
+        }
+    };
+
     let len = value.len();
     let is_i32 = value.ends_with("i32");
     let is_i64 = value.ends_with("i64");

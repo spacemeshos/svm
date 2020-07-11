@@ -14,9 +14,12 @@ pub fn encode_func_buf(ptr: usize) -> Result<usize, JsonError> {
 
 pub fn decode_func_buf(ptr: usize) -> Result<usize, JsonError> {
     wasm_buf_apply(ptr, |json: &Value| {
-        let s: String = api::json::decode_func_buf(json)?;
+        let json = api::json::decode_func_buf(json)?;
 
-        Ok(s.into_bytes())
+        match serde_json::to_string(&json) {
+            Ok(s) => Ok(s.into_bytes()),
+            Err(e) => Err(JsonError::Unknown(format!("{}", e))),
+        }
     })
 }
 

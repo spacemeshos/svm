@@ -14,7 +14,7 @@ use alloc::vec::Vec;
 pub enum TypeError {
     MissingTypeKind,
 
-    InvalidTypeKind,
+    InvalidTypeKind(u8),
 }
 
 #[derive(Debug)]
@@ -65,7 +65,7 @@ impl Decoder {
     pub fn decode_value(&self, cursor: &mut Cursor) -> Result<Value, DecodeError> {
         assert_no_eof!(cursor);
 
-        let byte = cursor.read_byte().unwrap();
+        let byte = self.read_byte(cursor)?;
 
         let value = match byte {
             marker::ARRAY_START => self.decode_array(cursor)?,
@@ -77,7 +77,7 @@ impl Decoder {
             marker::BLOB_3 => todo!("Blob3"),
             marker::ARRAY_END => panic!("invalid encoding"),
             marker::TUPLE_END => panic!("invalid encoding"),
-            _ => unreachable!(),
+            _ => return Err(DecodeError::Type(TypeError::InvalidTypeKind(byte))),
         };
 
         Ok(value)
@@ -86,7 +86,7 @@ impl Decoder {
     fn decode_array(&self, cursor: &mut Cursor) -> Result<Value, DecodeError> {
         assert_no_eof!(cursor);
 
-        let mut next_byte = cursor.peek().unwrap();
+        let mut next_byte = self.peek(cursor)?;
         let mut values = Vec::new();
 
         while next_byte != marker::ARRAY_END {
@@ -97,10 +97,10 @@ impl Decoder {
                 todo!("invalid state")
             }
 
-            next_byte = cursor.peek().unwrap();
+            next_byte = self.peek(cursor)?;
         }
 
-        let _ = cursor.read_byte().unwrap();
+        let _ = self.read_byte(cursor)?;
 
         let values = Box::leak(Box::new(values));
         let array = Value::Composite(value::Composite::Array(values));
@@ -125,5 +125,19 @@ impl Decoder {
     fn verify_array(&self, value: &Value) -> Result<(), DecodeError> {
         // todo!()
         Ok(())
+    }
+
+    #[inline]
+    fn read_byte(&self, cursor: &mut Cursor) -> Result<u8, DecodeError> {
+        cursor
+            .read_byte()
+            .ok_or(DecodeError::Value(ValueError::NotEnoughBytes))
+    }
+
+    #[inline]
+    fn peek(&self, cursor: &mut Cursor) -> Result<u8, DecodeError> {
+        cursor
+            .peek()
+            .ok_or(DecodeError::Value(ValueError::NotEnoughBytes))
     }
 }

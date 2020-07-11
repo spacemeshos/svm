@@ -84,8 +84,8 @@ describe('Encode Function Buffer', function () {
 	    const data = ['11233344556677889900AABBCCDDEEFFABCDEFFF'];
 
 	    const object = {
-		abi: abi,
-		data: data
+	    	abi: abi,
+	    	data: data
 	    };	
 
 	    const buf = wasmNewBuffer(instance, object);
@@ -94,27 +94,28 @@ describe('Encode Function Buffer', function () {
 	    let len = wasmBufferLength(instance, result);
 	    const slice = wasmBufferDataSlice(instance, result, 0, len);
 	    assert.equal(slice[0], OK_MARKER);
-	    
+
 	    const bytes = slice.slice(1);
 
+	    // console.log(binToString(bytes));
+
 	    const object2 = {
-		data: binToString(bytes)
+	    	data: '0711233344556677889900AABBCCDDEEFFABCDEFFF'
 	    };
 
 	    const buf2 = wasmNewBuffer(instance, object2);
 	    const result2 = instanceCall(instance, 'wasm_decode_func_buf', buf2);
 
-	    let len2 = wasmBufferLength(instance, result);
-	    const slice2 = wasmBufferDataSlice(instance, result2, 0, len2);
-	    assert.equal(slice2[0], OK_MARKER);
+	    let length2 = wasmBufferLength(instance, result2);
+	    const slice2 = wasmBufferDataSlice(instance, result2, 0, length2);
+	    const string = new TextDecoder('utf-8').decode(slice2);
+	    console.log(string);
+	    // const decoded = loadWasmBuffer(instance, result2);
 
-	    const bytes2 = slice2.slice(1);
-	    console.log(bytes2);
-
-	    wasmBufferFree(instance, buf);
-	    wasmBufferFree(instance, buf2);
-	    wasmBufferFree(instance, result);
-	    wasmBufferFree(instance, result2);
+	    // wasmBufferFree(instance, buf);
+	    // wasmBufferFree(instance, buf2);
+	    // wasmBufferFree(instance, result);
+	    // wasmBufferFree(instance, result2);
 	})
     })
 })
