@@ -1,12 +1,5 @@
-use serde_json::{self as json, Value};
-
-use svm_types::{Address, AppTransaction, WasmValue};
-
-use super::{
-    alloc, error::into_error_buffer, free, to_wasm_buffer, wasm_buf_apply, wasm_buf_data_copy,
-    wasm_buffer_data, BUF_ERROR_MARKER, BUF_OK_MARKER,
-};
-use crate::{api, api::json::JsonError, app, nibble::NibbleWriter};
+use super::wasm_buf_apply;
+use crate::{api, api::json::JsonError};
 
 ///
 /// Encodes a `exec-app` json input into SVM `exec-app` binary transaction.

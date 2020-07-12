@@ -6,7 +6,7 @@ use crate::{
     transaction,
 };
 
-use svm_types::{Address, AppTransaction, WasmValue};
+use svm_types::AppTransaction;
 
 ///
 /// ```json

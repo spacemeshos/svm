@@ -10,7 +10,7 @@ pub use exec_app::encode_exec_app;
 pub use func_buf::{decode_func_buf, encode_func_buf};
 pub use spawn_app::encode_spawn_app;
 
-use crate::{api, api::json::JsonError, app};
+use crate::api::json::JsonError;
 use byteorder::{BigEndian, ByteOrder};
 use serde_json::{self as json, Value};
 
@@ -68,7 +68,7 @@ const BUF_ERROR_MARKER: u8 = 0;
 /// If for the `capacity` of the `Data` will be bigger - it will also increase the amount of allocated data.
 pub fn alloc(length: usize) -> usize {
     let buf_len = HEADER_SIZE + length;
-    let mut buf = vec![0; buf_len];
+    let buf = vec![0; buf_len];
 
     let (ptr, len, cap) = buf.into_raw_parts();
     debug_assert_eq!(len, buf_len);

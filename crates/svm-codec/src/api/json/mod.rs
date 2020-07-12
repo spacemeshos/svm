@@ -10,25 +10,9 @@ pub use exec_app::exec_app;
 pub use func_buf::{decode_func_buf, encode_func_buf};
 pub use spawn_app::spawn_app;
 
-use serde_json::{Map, Value};
+use serde_json::Value;
 
-use svm_sdk::value::AddressOwned;
 use svm_types::{Address, WasmValue};
-
-pub(crate) fn as_object<'a>(
-    json: &'a Value,
-    field: &str,
-) -> Result<&'a Map<String, Value>, JsonError> {
-    let value: &Value = &json[field];
-
-    match value.as_object() {
-        None => Err(JsonError::InvalidField {
-            field: field.to_string(),
-            reason: format!("value `{}` isn't an Object", value),
-        }),
-        Some(value) => Ok(value),
-    }
-}
 
 pub(crate) fn as_array<'a>(json: &'a Value, field: &str) -> Result<&'a Vec<Value>, JsonError> {
     let value: &Value = &json[field];

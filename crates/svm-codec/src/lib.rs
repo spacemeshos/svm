@@ -1,7 +1,15 @@
+//! This crate is responsible for doing the binary encoding for SVM transactions.
+//! It code is compiled as a single WASM file and it should be integrated by Wallet Apps.
+//!
+//! By doing that, a Wallet Apps can locally encode a binary transaction without having to re-implement all the logic
+//! of the `svm-codec`.
+//
+//! The CI of the SVM outputs the WASM package of `svm-codec` as one of its artifacts.
+
 #![allow(missing_docs)]
-#![allow(unused)]
-#![allow(dead_code)]
-#![allow(unreachable_code)]
+#![deny(unused)]
+#![deny(dead_code)]
+#![deny(unreachable_code)]
 #![feature(vec_into_raw_parts)]
 
 #[macro_use]
@@ -20,8 +28,17 @@ mod transaction;
 mod varuint14;
 mod version;
 
+/// Code related to dealing with Nibbles (a nibble consists of 4-bits).
 #[macro_use]
 pub mod nibble;
+
+/// Wraps the exposed APIs under a single place.
+/// This crate exposes the following APIs:
+///
+/// * Builder
+/// * Raw  
+/// * JSON   
+/// * WASM
 pub mod api;
 pub mod receipt;
 
