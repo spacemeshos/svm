@@ -67,9 +67,11 @@ mod test {
 
         assert_eq!(
             wasm_buf_as_json(res_buf),
-            json!([{
+            json!({
+              "result": [{
                 "address": "102030405060708090a011121314151617181920"
-            }])
+              }]
+            })
         );
 
         free(json_buf);

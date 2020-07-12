@@ -271,8 +271,7 @@ mod tests {
             let data = fmt_hex(&bytes, "");
             let json = json!({ "data": data });
 
-            let s = decode_func_buf(&json).unwrap();
-            let actual: serde_json::Value = serde_json::from_str(&s).unwrap();
+            let actual = decode_func_buf(&json).unwrap();
 
             assert_eq!($expected, actual);
         }};
@@ -317,9 +316,9 @@ mod tests {
 
         assert_func_buf!(
             json,
-            json!([{
-                "address": "1020304050102030405010203040501020304050"
-            }])
+            json!({
+              "result": [{"address": "1020304050102030405010203040501020304050"}]
+            })
         );
     }
 
@@ -334,9 +333,27 @@ mod tests {
 
         assert_func_buf!(
             json,
-            json!([{
-                "pubkey256": "1020304050607080102030405060708010203040506070801020304050607080"
-            }])
+            json!({
+              "result": [{"pubkey256": "1020304050607080102030405060708010203040506070801020304050607080"}]
+            })
+        );
+    }
+
+    #[test]
+    pub fn json_encode_func_buf_invalid_primitive() {
+        let json = json!({
+            "abi": ["invalid"],
+            "data": [pkey!("1020304050607080")]
+        });
+
+        let err = encode_func_buf(&json).unwrap_err();
+
+        assert_eq!(
+            err,
+            JsonError::InvalidField {
+                field: "abi".to_string(),
+                reason: "invalid ABI type `invalid`".to_string(),
+            }
         );
     }
 
@@ -349,14 +366,15 @@ mod tests {
 
         assert_func_buf!(
             json,
-            json!([
-              [{
-                "address": "1020304050102030405010203040501020304050"
-              },
-              {
-                "address": "60708090a060708090a060708090a060708090a0"
-              }]
-            ])
+            json!({
+              "result": [
+                [{
+                    "address": "1020304050102030405010203040501020304050"
+                },
+                {
+                    "address": "60708090a060708090a060708090a060708090a0"
+                }]]
+            })
         );
     }
 
@@ -369,14 +387,15 @@ mod tests {
 
         assert_func_buf!(
             json,
-            json!([
-              [{
-                "pubkey256": "1020304010203040102030401020304010203040102030401020304010203040",
-              },
-              {
-                "pubkey256": "a0b0c0d0a0b0c0d0a0b0c0d0a0b0c0d0a0b0c0d0a0b0c0d0a0b0c0d0a0b0c0d0",
-              }]
-            ])
+            json!({
+              "result": [
+                [{
+                    "pubkey256": "1020304010203040102030401020304010203040102030401020304010203040",
+                },
+                {
+                    "pubkey256": "a0b0c0d0a0b0c0d0a0b0c0d0a0b0c0d0a0b0c0d0a0b0c0d0a0b0c0d0a0b0c0d0",
+                }]]
+            })
         );
     }
 
@@ -389,14 +408,15 @@ mod tests {
 
         assert_func_buf!(
             json,
-            json!([
+            json!({
+              "result": [
               {
                 "address": "1020304050102030405010203040501020304050",
               },
               {
                 "pubkey256": "a0b0c0d0a0b0c0d0a0b0c0d0a0b0c0d0a0b0c0d0a0b0c0d0a0b0c0d0a0b0c0d0",
-              }
-            ])
+              }]
+            })
         );
     }
 }
