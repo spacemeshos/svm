@@ -184,6 +184,68 @@ describe('Encode Function Buffer', function () {
     	    		 });
     	})
     })
+
+    it('[address]', function () {
+    	return compileWasmCodec().then(instance => {
+	    const addr1 = generateAddress('1020304050');
+	    const addr2 = generateAddress('a0b0c0d0');
+
+	    const object = {
+	    	abi: [ ['address'] ],
+	    	data: [ [addr1, addr2] ],
+	    };	
+
+	    let encoded = encodeFuncBuf(instance, object);
+    	    let decoded = decodeFuncBuf(instance, encoded);
+
+    	    assert.deepEqual(decoded,
+    	    		 {
+    	    		     result: [ [{address: addr1}, {address: addr2}] ]
+    	    		 });
+	})
+    });
+
+    it('[pubkey256]', function () {
+    	return compileWasmCodec().then(instance => {
+	    const pkey1 = generatePubKey256('10203040');
+	    const pkey2 = generatePubKey256('a0b0c0d0');
+
+	    const object = {
+	    	abi: [ ['pubkey256'] ],
+	    	data: [ [pkey1, pkey2] ],
+	    };	
+
+	    let encoded = encodeFuncBuf(instance, object);
+    	    let decoded = decodeFuncBuf(instance, encoded);
+
+    	    assert.deepEqual(decoded,
+    	    		 {
+    	    		     result: [ [{pubkey256: pkey1}, {pubkey256: pkey2}] ]
+    	    		 });
+	})
+    });
+
+    it('[address, [address], pubkey256]', function () {
+    	return compileWasmCodec().then(instance => {
+	    const addr1 = generateAddress('1020304050');
+	    const addr2 = generateAddress('a0b0c0d0');
+	    const addr3 = generateAddress('aabbccdd');
+	    const pkey1 = generatePubKey256('60708090');
+
+	    const object = {
+	    	abi: ['address', ['address'], 'pubkey256'],
+	    	data: [addr1, [addr2, addr3], pkey1],
+	    };	
+
+	    let encoded = encodeFuncBuf(instance, object);
+    	    let decoded = decodeFuncBuf(instance, encoded);
+
+    	    assert.deepEqual(decoded,
+    	    		 {
+    	    		     result: [{address: addr1}, [{address: addr2}, {address: addr3}], {pubkey256: pkey1}] 
+    	    		 });
+	})
+    });
 })
 
 describe('WASM Buffer', function () {
