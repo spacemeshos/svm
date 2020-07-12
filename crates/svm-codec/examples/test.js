@@ -80,6 +80,29 @@ function wasmBufferDataSlice(instance, buf, offset, length) {
     return slice
 }
 
+function repeatString(s, byteLength) {
+    const n = s.length;
+    const t = byteLength * 2;
+
+    assert(t % n == 0);
+
+    let m = t / n;
+
+    return s.repeat(m)
+}
+
+function generateAddress(s) {
+    // an `Address` takes 20 bytes
+    // which are 40 hexadecimal digits
+    return repeatString(s, 20)
+}
+
+function generatePubKey256(s) {
+    // an `Address` takes 32 bytes
+    // which are 64 hexadecimal digits
+    return repeatString(s, 32)
+}
+
 describe('Encode Function Buffer', function () {
     function binToString(array) {
 	let result = "";
@@ -127,13 +150,12 @@ describe('Encode Function Buffer', function () {
 
 	return json;
     }
-	
 
     it('address', function () {
 	return compileWasmCodec().then(instance => {
 	    const object = {
 	    	abi: ['address'],
-	    	data: ['11233344556677889900AABBCCDDEEFFABCDEFFF'],
+	    	data: [generateAddress('1020304050')],
 	    };	
 
 	    let encoded = encodeFuncBuf(instance, object);
@@ -141,9 +163,26 @@ describe('Encode Function Buffer', function () {
 
 	    assert.deepEqual(decoded,
 	    		 {
-	    		     result: [{ address: '11233344556677889900aabbccddeeffabcdefff' }]
+	    		     result: [{ address: generateAddress('1020304050') }]
 	    		 });
 	})
+    })
+
+    it('pubkey256', function () {
+    	return compileWasmCodec().then(instance => {
+    	    const object = {
+    	    	abi: ['pubkey256'],
+    	    	data: [generatePubKey256('10203040')]
+    	    };	
+
+    	    let encoded = encodeFuncBuf(instance, object);
+    	    let decoded = decodeFuncBuf(instance, encoded);
+
+    	    assert.deepEqual(decoded,
+    	    		 {
+    	    		     result: [{ pubkey256: generatePubKey256('10203040') }]
+    	    		 });
+    	})
     })
 })
 
