@@ -1,34 +1,34 @@
-#![feature(generic_associated_types)]
-
 use core::cmp::PartialEq;
 use core::fmt::{self, Debug};
-use core::ops::Deref;
 
 use core::char;
 
 extern crate alloc;
 
-use alloc::string::String;
 use alloc::vec::Vec;
 
 macro_rules! impl_slice_primitive {
     ($ty:ident) => {
         impl<'a> $ty<'a> {
+            #[allow(missing_docs)]
             #[inline]
             pub fn len(&self) -> usize {
                 self.0.len()
             }
 
+            #[allow(missing_docs)]
             #[inline]
             pub fn offset(&self) -> usize {
                 self.as_ptr() as _
             }
 
+            #[allow(missing_docs)]
             #[inline]
             pub fn as_ptr(&self) -> *const u8 {
                 self.0.as_ptr()
             }
 
+            #[allow(missing_docs)]
             #[inline]
             pub fn as_slice(&self) -> &[u8] {
                 &self.0[..]
@@ -39,10 +39,12 @@ macro_rules! impl_slice_primitive {
 
 macro_rules! impl_fixed_primitive {
     ($ty:ident, $ty_owned:ident, $nbytes:expr) => {
+        #[allow(missing_docs)]
         #[derive(Debug, PartialEq)]
         #[repr(transparent)]
         pub struct $ty<'a>(pub &'a [u8; $nbytes]);
 
+        #[allow(missing_docs)]
         #[derive(Debug, PartialEq)]
         #[repr(transparent)]
         pub struct $ty_owned(pub [u8; $nbytes]);
@@ -50,10 +52,12 @@ macro_rules! impl_fixed_primitive {
         impl_slice_primitive!($ty);
 
         impl<'a> $ty<'a> {
+            /// Size in bytes
             pub const fn size() -> usize {
                 $nbytes
             }
 
+            /// Creates a new type with cloned data
             pub fn to_owned(&self) -> $ty_owned {
                 let bytes = self.0.clone();
 
@@ -62,10 +66,12 @@ macro_rules! impl_fixed_primitive {
         }
 
         impl $ty_owned {
+            /// Size in bytes
             pub const fn size() -> usize {
                 $nbytes
             }
 
+            /// Returns a type containing borrowed data
             pub fn deref(&self) -> $ty {
                 $ty(&self.0)
             }
@@ -125,68 +131,37 @@ fn byte_as_chars(byte: u8) -> (char, char) {
     (a, b)
 }
 
-macro_rules! impl_blob_primitive {
-    ($ty:ident) => {
-        #[derive(core::fmt::Debug, PartialEq)]
-        #[repr(transparent)]
-        pub struct $ty<'a>(pub &'a [u8]);
-
-        impl_slice_primitive!($ty);
-    };
-}
-
 impl_fixed_primitive!(Address, AddressOwned, 20);
 impl_fixed_primitive!(PubKey256, PubKey256Owned, 32);
 
-impl_blob_primitive!(Blob1);
-impl_blob_primitive!(Blob2);
-impl_blob_primitive!(Blob3);
-
+/// Array value
 #[derive(Debug, PartialEq)]
 #[repr(transparent)]
 pub struct Array<'a, T>(pub &'a [T]);
 
+/// Primitive value
 #[derive(Debug, PartialEq)]
 pub enum Primitive<'a> {
-    // `Blob` with `length < 256` bytes
-    Blob1(Blob1<'a>),
-
-    // `Blob` with `length < 65,536` bytes
-    Blob2(Blob2<'a>),
-
-    // `Blob` with `length < 16,777,216` bytes
-    Blob3(Blob3<'a>),
-
-    // An `Address` (20 bytes)
+    /// An `Address` (20 bytes)
     Address(Address<'a>),
 
     /// `Public-Key` consisting of 256-bit (32 bytes)
     PubKey256(PubKey256<'a>),
 }
 
+/// Composite value
 #[derive(Debug, PartialEq)]
 pub enum Composite<'a> {
+    /// An `Array`
     Array(&'a [Value<'a>]),
 }
 
+/// A value
 #[derive(Debug, PartialEq)]
 pub enum Value<'a> {
+    /// A `Primitive` value
     Primitive(Primitive<'a>),
+
+    /// A `Composite` value
     Composite(Composite<'a>),
-}
-
-impl<'a> Value<'a> {
-    pub fn as_addr(self) -> Option<Address<'a>> {
-        match self {
-            Value::Primitive(Primitive::Address(addr)) => Some(addr),
-            _ => None,
-        }
-    }
-
-    pub fn as_pubkey256(self) -> Option<PubKey256<'a>> {
-        match self {
-            Value::Primitive(Primitive::PubKey256(pubkey)) => Some(pubkey),
-            _ => None,
-        }
-    }
 }
