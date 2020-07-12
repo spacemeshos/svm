@@ -1,6 +1,6 @@
 use svm_sdk::{
-    types::{marker, Type},
-    value::{self, Address, Blob1, Blob2, Blob3, PubKey256, Value},
+    types::marker,
+    value::{self, Address, PubKey256, Value},
 };
 
 use crate::cursor::Cursor;
@@ -24,10 +24,13 @@ pub enum ValueError {
     NotEnoughBytes,
 }
 
+/// Denotes a decode error
 #[derive(Debug)]
 pub enum DecodeError {
+    /// Type decode error
     Type(TypeError),
 
+    /// Value decode error
     Value(ValueError),
 }
 
@@ -53,13 +56,17 @@ macro_rules! decode_fixed_primitive {
     }};
 }
 
-pub struct Decoder {}
+/// Decodes a encoded function buffer back into a `sdk_values::Value`
+pub struct Decoder;
 
 impl Decoder {
+    /// New instance
     pub fn new() -> Self {
         Self {}
     }
 
+    /// Decodes the next `sdk_types::Value` (primitive or composite) and returns it.
+    /// Returns `DecodeError` when decode fails.
     pub fn decode_value(&self, cursor: &mut Cursor) -> Result<Value, DecodeError> {
         assert_no_eof!(cursor);
 
@@ -96,7 +103,7 @@ impl Decoder {
         let values = Box::leak(Box::new(values));
         let array = Value::Composite(value::Composite::Array(values));
 
-        self.verify_array(&array);
+        self.verify_array(&array)?;
 
         Ok(array)
     }
@@ -109,7 +116,7 @@ impl Decoder {
         decode_fixed_primitive!(self, PubKey256, 32, cursor)
     }
 
-    fn verify_array(&self, value: &Value) -> Result<(), DecodeError> {
+    fn verify_array(&self, _value: &Value) -> Result<(), DecodeError> {
         // todo!()
         Ok(())
     }

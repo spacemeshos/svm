@@ -1,17 +1,17 @@
-#![allow(missing_docs)]
-#![allow(unused)]
-#![allow(dead_code)]
-#![allow(unreachable_code)]
+//! This crate tests the encoding & decoding of a function buffer.
+//! using SVM default ABI.
+
+#![deny(missing_docs)]
+#![deny(unused)]
+#![deny(dead_code)]
+#![deny(unreachable_code)]
 
 #[cfg(test)]
 mod tests {
     use svm_abi_encoder::Encoder;
-    use svm_sdk::types::Type;
-    use svm_sdk::value::{
-        Address, AddressOwned, Array, Blob1, Blob2, Blob3, Composite, Primitive, PubKey256, Value,
-    };
+    use svm_sdk::value::{Address, AddressOwned, Composite, Primitive, PubKey256, Value};
 
-    use svm_abi_decoder::{Cursor, DecodeError, Decoder};
+    use svm_abi_decoder::{Cursor, Decoder};
 
     #[test]
     fn owned_addr_deref() {
@@ -38,7 +38,7 @@ mod tests {
         addr.encode(&mut buf);
 
         let mut cursor = Cursor::new(&buf);
-        let mut decoder = Decoder::new();
+        let decoder = Decoder::new();
         let value = decoder.decode_value(&mut cursor).unwrap();
 
         let addr = value.as_addr().unwrap();
@@ -58,7 +58,7 @@ mod tests {
         pkey.encode(&mut buf);
 
         let mut cursor = Cursor::new(&buf);
-        let mut decoder = Decoder::new();
+        let decoder = Decoder::new();
         let value = decoder.decode_value(&mut cursor).unwrap();
 
         let pkey = value.as_pubkey256().unwrap();
@@ -77,7 +77,7 @@ mod tests {
         addrs.encode(&mut buf);
 
         let mut cursor = Cursor::new(&buf);
-        let mut decoder = Decoder::new();
+        let decoder = Decoder::new();
         let value = decoder.decode_value(&mut cursor).unwrap();
 
         let vec = vec![
@@ -101,7 +101,7 @@ mod tests {
         pkeys.encode(&mut buf);
 
         let mut cursor = Cursor::new(&buf);
-        let mut decoder = Decoder::new();
+        let decoder = Decoder::new();
         let value = decoder.decode_value(&mut cursor).unwrap();
 
         let vec = vec![
