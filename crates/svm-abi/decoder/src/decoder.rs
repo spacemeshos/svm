@@ -67,13 +67,9 @@ impl Decoder {
 
         let value = match byte {
             marker::ARRAY_START => self.decode_array(cursor)?,
-            marker::TUPLE_START => self.decode_tuple(cursor)?,
             marker::ADDRESS => self.decode_addr(cursor)?,
             marker::PUBKEY_256 => self.decode_pubkey256(cursor)?,
-            marker::BLOB_1 => todo!("Blob1"),
-            marker::BLOB_2 => todo!("Blob2"),
-            marker::BLOB_3 => todo!("Blob3"),
-            marker::ARRAY_END | marker::TUPLE_END => {
+            marker::ARRAY_END => {
                 return Err(DecodeError::Type(TypeError::ProhibitedTypeKind(byte)))
             }
             _ => return Err(DecodeError::Type(TypeError::InvalidTypeKind(byte))),
@@ -103,10 +99,6 @@ impl Decoder {
         self.verify_array(&array);
 
         Ok(array)
-    }
-
-    fn decode_tuple(&self, cursor: &mut Cursor) -> Result<Value, DecodeError> {
-        todo!()
     }
 
     fn decode_addr(&self, cursor: &mut Cursor) -> Result<Value, DecodeError> {
