@@ -15,6 +15,8 @@ pub enum TypeError {
     MissingTypeKind,
 
     InvalidTypeKind(u8),
+
+    ProhibitedTypeKind(u8),
 }
 
 #[derive(Debug)]
@@ -75,8 +77,9 @@ impl Decoder {
             marker::BLOB_1 => todo!("Blob1"),
             marker::BLOB_2 => todo!("Blob2"),
             marker::BLOB_3 => todo!("Blob3"),
-            marker::ARRAY_END => panic!("invalid encoding"),
-            marker::TUPLE_END => panic!("invalid encoding"),
+            marker::ARRAY_END | marker::TUPLE_END => {
+                return Err(DecodeError::Type(TypeError::ProhibitedTypeKind(byte)))
+            }
             _ => return Err(DecodeError::Type(TypeError::InvalidTypeKind(byte))),
         };
 

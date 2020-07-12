@@ -419,4 +419,34 @@ mod tests {
             })
         );
     }
+
+    #[test]
+    pub fn json_decode_func_buf_with_corrupted_input() {
+        // invalid length
+        let json = json!({ "data": "000" });
+        let err = decode_func_buf(&json).unwrap_err();
+        assert_eq!(
+            err,
+            JsonError::InvalidField {
+                field: "data".to_string(),
+                reason: "value should be of even length".to_string(),
+            }
+        );
+
+        // missing type-kind
+        let json = json!({ "data": "0000" });
+        let err = decode_func_buf(&json).unwrap_err();
+        assert_eq!(
+            err,
+            JsonError::InvalidJson("Type(MissingTypeKind)".to_string())
+        );
+
+        // prohibited usage of a type-kind
+        let json = json!({ "data": "01" });
+        let err = decode_func_buf(&json).unwrap_err();
+        assert_eq!(
+            err,
+            JsonError::InvalidJson("Type(ProhibitedTypeKind(1))".to_string())
+        );
+    }
 }
