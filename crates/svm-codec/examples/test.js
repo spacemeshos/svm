@@ -38,6 +38,15 @@ function loadWasmBuffer(instance, buf) {
     return JSON.parse(string)
 }
 
+function loadWasmBufferDataAsJson(instance, buf) {
+    let length = wasmBufferLength(instance, buf);
+    const slice = wasmBufferDataSlice(instance, buf, 0, length);
+    assert.equal(slice[0], OK_MARKER);
+
+    const string = new TextDecoder('utf-8').decode(slice.slice(1));
+    return JSON.parse(string)
+}
+
 function wasmBufferAlloc(instance, length) {
     return instance.exports.wasm_alloc(length);
 }
@@ -88,43 +97,52 @@ describe('Encode Function Buffer', function () {
 	return result;
     }
 
-    it('Address', function () {
-	return compileWasmCodec().then(instance => {
-	    const abi = ['address'];
-	    const data = ['11233344556677889900AABBCCDDEEFFABCDEFFF'];
+    function encodeFuncBuf(instance, object) {
+	const buf = wasmNewBuffer(instance, object);
+	const result = instanceCall(instance, 'wasm_encode_func_buf', buf);
 
+	const len = wasmBufferLength(instance, result);
+	const slice = wasmBufferDataSlice(instance, result, 0, len);
+	assert.equal(slice[0], OK_MARKER);
+
+	const data = slice.slice(1)
+
+	wasmBufferFree(instance, buf);
+	wasmBufferFree(instance, result);
+
+	return data
+    }
+
+    function decodeFuncBuf(instance, encodedData) {
+	const object = {
+	    data: binToString(encodedData)
+	};
+
+	const buf = wasmNewBuffer(instance, object);
+	const result = instanceCall(instance, 'wasm_decode_func_buf', buf);
+	const json = loadWasmBufferDataAsJson(instance, result);
+
+	wasmBufferFree(instance, buf);
+	wasmBufferFree(instance, result);
+
+	return json;
+    }
+	
+
+    it('address', function () {
+	return compileWasmCodec().then(instance => {
 	    const object = {
-	    	abi: abi,
-	    	data: data
+	    	abi: ['address'],
+	    	data: ['11233344556677889900AABBCCDDEEFFABCDEFFF'],
 	    };	
 
-	    const buf = wasmNewBuffer(instance, object);
-	    const result = instanceCall(instance, 'wasm_encode_func_buf', buf);
+	    let encoded = encodeFuncBuf(instance, object);
+	    let decoded = decodeFuncBuf(instance, encoded);
 
-	    let len = wasmBufferLength(instance, result);
-	    const slice = wasmBufferDataSlice(instance, result, 0, len);
-	    assert.equal(slice[0], OK_MARKER);
-
-	    const object2 = {
-	    	data: binToString(slice.slice(1))
-	    };
-
-	    const buf2 = wasmNewBuffer(instance, object2);
-	    const result2 = instanceCall(instance, 'wasm_decode_func_buf', buf2);
-
-	    let length2 = wasmBufferLength(instance, result2);
-	    const slice2 = wasmBufferDataSlice(instance, result2, 0, length2);
-
-	    const string = new TextDecoder('utf-8').decode(slice2.slice(1));
-	    assert.deepEqual(JSON.parse(string),
+	    assert.deepEqual(decoded,
 	    		 {
 	    		     result: [{ address: '11233344556677889900aabbccddeeffabcdefff' }]
 	    		 });
-
-	    wasmBufferFree(instance, buf);
-	    wasmBufferFree(instance, buf2);
-	    wasmBufferFree(instance, result);
-	    wasmBufferFree(instance, result2);
 	})
     })
 })
