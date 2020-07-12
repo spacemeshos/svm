@@ -40,14 +40,10 @@ macro_rules! assert_no_eof {
 }
 
 macro_rules! decode_fixed_primitive {
-    ($ty:ident, $n:expr, $cursor:expr) => {{
-        let ptr = $cursor.read_bytes($n);
+    ($self:expr, $ty:ident, $n:expr, $cursor:expr) => {{
+        let ptr = $self.read_bytes($cursor, $n)?;
 
-        if ptr.is_none() {
-            panic!("invalid encoding")
-        }
-
-        let bytes = unsafe { core::mem::transmute::<*const u8, &[u8; $n]>(ptr.unwrap()) };
+        let bytes = unsafe { core::mem::transmute::<*const u8, &[u8; $n]>(ptr) };
         let addr = $ty(bytes);
 
         let primitive = value::Primitive::$ty(addr);
@@ -96,10 +92,6 @@ impl Decoder {
             let v = self.decode_value(cursor)?;
             values.push(v);
 
-            if cursor.is_eof() {
-                todo!("invalid state")
-            }
-
             next_byte = self.peek(cursor)?;
         }
 
@@ -118,11 +110,11 @@ impl Decoder {
     }
 
     fn decode_addr(&self, cursor: &mut Cursor) -> Result<Value, DecodeError> {
-        decode_fixed_primitive!(Address, 20, cursor)
+        decode_fixed_primitive!(self, Address, 20, cursor)
     }
 
     fn decode_pubkey256(&self, cursor: &mut Cursor) -> Result<Value, DecodeError> {
-        decode_fixed_primitive!(PubKey256, 32, cursor)
+        decode_fixed_primitive!(self, PubKey256, 32, cursor)
     }
 
     fn verify_array(&self, value: &Value) -> Result<(), DecodeError> {
@@ -134,6 +126,17 @@ impl Decoder {
     fn read_byte(&self, cursor: &mut Cursor) -> Result<u8, DecodeError> {
         cursor
             .read_byte()
+            .ok_or(DecodeError::Value(ValueError::NotEnoughBytes))
+    }
+
+    #[inline]
+    fn read_bytes<'a>(
+        &self,
+        cursor: &'a mut Cursor,
+        nbytes: usize,
+    ) -> Result<*const u8, DecodeError> {
+        cursor
+            .read_bytes(nbytes)
             .ok_or(DecodeError::Value(ValueError::NotEnoughBytes))
     }
 
