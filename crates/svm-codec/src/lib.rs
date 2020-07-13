@@ -197,8 +197,8 @@ pub extern "C" fn wasm_buffer_data(buf_ptr: i32) -> i32 {
 
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
-pub extern "C" fn wasm_encode_func_buf(buf_ptr: i32) -> i32 {
-    match api::wasm::encode_func_buf(buf_ptr as usize) {
+pub extern "C" fn wasm_encode_calldata(buf_ptr: i32) -> i32 {
+    match api::wasm::encode_calldata(buf_ptr as usize) {
         Ok(ptr) => ptr as _,
         Err(err) => {
             let err_ptr = api::wasm::into_error_buffer(err);
@@ -209,20 +209,8 @@ pub extern "C" fn wasm_encode_func_buf(buf_ptr: i32) -> i32 {
 
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
-pub extern "C" fn wasm_decode_func_buf(buf_ptr: i32) -> i32 {
-    match api::wasm::decode_func_buf(buf_ptr as usize) {
-        Ok(ptr) => ptr as _,
-        Err(err) => {
-            let err_ptr = api::wasm::into_error_buffer(err);
-            err_ptr as _
-        }
-    }
-}
-
-#[no_mangle]
-#[cfg(target_arch = "wasm32")]
-pub extern "C" fn wasm_encode_call_data(buf_ptr: i32) -> i32 {
-    match api::wasm::encode_call_data(buf_ptr as usize) {
+pub extern "C" fn wasm_decode_calldata(buf_ptr: i32) -> i32 {
+    match api::wasm::decode_calldata(buf_ptr as usize) {
         Ok(ptr) => ptr as _,
         Err(err) => {
             let err_ptr = api::wasm::into_error_buffer(err);
