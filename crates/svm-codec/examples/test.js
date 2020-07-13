@@ -41,6 +41,16 @@ function loadWasmBuffer(instance, buf) {
 function loadWasmBufferDataAsJson(instance, buf) {
     let length = wasmBufferLength(instance, buf);
     const slice = wasmBufferDataSlice(instance, buf, 0, length);
+
+    if (slice[0] === ERR_MARKER) {
+	const bytes = slice.slice(1);
+	const msg = new TextDecoder('utf-8').decode(bytes);
+
+	console.log(msg);
+
+	throw msg;
+    }
+
     assert.equal(slice[0], OK_MARKER);
 
     const string = new TextDecoder('utf-8').decode(slice.slice(1));
@@ -104,45 +114,21 @@ function generatePubKey256(s) {
 }
 
 describe('Encode Function Buffer', function () {
-    function binToString(array) {
-	let result = "";
-
-	for (const b of array) {
-	    let s = b.toString(16);
-
-	    // padding
-	    if (s.length < 2) {
-		s = '0' + s;
-	    }
-
-	    result += s
-	}
-	return result;
-    }
-
-    function encodeFuncBuf(instance, object) {
+    function encodeCallData(instance, object) {
 	const buf = wasmNewBuffer(instance, object);
-	const result = instanceCall(instance, 'wasm_encode_func_buf', buf);
+	const result = instanceCall(instance, 'wasm_encode_calldata', buf);
 
-	const len = wasmBufferLength(instance, result);
-	const slice = wasmBufferDataSlice(instance, result, 0, len);
-	assert.equal(slice[0], OK_MARKER);
-
-	const data = slice.slice(1)
+	const encoded = loadWasmBufferDataAsJson(instance, result);
 
 	wasmBufferFree(instance, buf);
 	wasmBufferFree(instance, result);
 
-	return data
+	return encoded
     }
 
-    function decodeFuncBuf(instance, encodedData) {
-	const object = {
-	    data: binToString(encodedData)
-	};
-
-	const buf = wasmNewBuffer(instance, object);
-	const result = instanceCall(instance, 'wasm_decode_func_buf', buf);
+    function decodeCallData(instance, encodedData) {
+	const buf = wasmNewBuffer(instance, encodedData);
+	const result = instanceCall(instance, 'wasm_decode_calldata', buf);
 	const json = loadWasmBufferDataAsJson(instance, result);
 
 	wasmBufferFree(instance, buf);
@@ -158,12 +144,14 @@ describe('Encode Function Buffer', function () {
 	    	data: [generateAddress('1020304050')],
 	    };	
 
-	    let encoded = encodeFuncBuf(instance, object);
-	    let decoded = decodeFuncBuf(instance, encoded);
+	    let encoded = encodeCallData(instance, object);
+	    
+	    let decoded = decodeCallData(instance, encoded);
 
 	    assert.deepEqual(decoded,
 	    		 {
-	    		     result: [{ address: generateAddress('1020304050') }]
+	    		     func_args: [],
+	    		     func_buf: [{ address: generateAddress('1020304050') }]
 	    		 });
 	})
     })
@@ -175,12 +163,13 @@ describe('Encode Function Buffer', function () {
     	    	data: [generatePubKey256('10203040')]
     	    };	
 
-    	    let encoded = encodeFuncBuf(instance, object);
-    	    let decoded = decodeFuncBuf(instance, encoded);
+    	    let encoded = encodeCallData(instance, object);
+    	    let decoded = decodeCallData(instance, encoded);
 
     	    assert.deepEqual(decoded,
     	    		 {
-    	    		     result: [{ pubkey256: generatePubKey256('10203040') }]
+			     func_args: [],
+    	    		     func_buf: [{ pubkey256: generatePubKey256('10203040') }]
     	    		 });
     	})
     })
@@ -195,12 +184,13 @@ describe('Encode Function Buffer', function () {
 	    	data: [ [addr1, addr2] ],
 	    };	
 
-	    let encoded = encodeFuncBuf(instance, object);
-    	    let decoded = decodeFuncBuf(instance, encoded);
+	    let encoded = encodeCallData(instance, object);
+    	    let decoded = decodeCallData(instance, encoded);
 
     	    assert.deepEqual(decoded,
     	    		 {
-    	    		     result: [ [{address: addr1}, {address: addr2}] ]
+			     func_args: [],
+    	    		     func_buf: [ [{address: addr1}, {address: addr2}] ]
     	    		 });
 	})
     });
@@ -215,12 +205,13 @@ describe('Encode Function Buffer', function () {
 	    	data: [ [pkey1, pkey2] ],
 	    };	
 
-	    let encoded = encodeFuncBuf(instance, object);
-    	    let decoded = decodeFuncBuf(instance, encoded);
+	    let encoded = encodeCallData(instance, object);
+    	    let decoded = decodeCallData(instance, encoded);
 
     	    assert.deepEqual(decoded,
     	    		 {
-    	    		     result: [ [{pubkey256: pkey1}, {pubkey256: pkey2}] ]
+			     func_args: [],
+    	    		     func_buf: [ [{pubkey256: pkey1}, {pubkey256: pkey2}] ]
     	    		 });
 	})
     });
@@ -237,12 +228,13 @@ describe('Encode Function Buffer', function () {
 	    	data: [addr1, [addr2, addr3], pkey1],
 	    };	
 
-	    let encoded = encodeFuncBuf(instance, object);
-    	    let decoded = decodeFuncBuf(instance, encoded);
+	    let encoded = encodeCallData(instance, object);
+    	    let decoded = decodeCallData(instance, encoded);
 
     	    assert.deepEqual(decoded,
     	    		 {
-    	    		     result: [{address: addr1}, [{address: addr2}, {address: addr3}], {pubkey256: pkey1}] 
+			     func_args: [],
+    	    		     func_buf: [{address: addr1}, [{address: addr2}, {address: addr3}], {pubkey256: pkey1}] 
     	    		 });
 	})
     });
