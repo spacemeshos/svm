@@ -1,9 +1,11 @@
+mod calldata;
 mod deploy_template;
 mod error;
 mod exec_app;
 mod func_buf;
 mod spawn_app;
 
+pub use calldata::{decode_calldata, encode_calldata};
 pub use deploy_template::deploy_template;
 pub use error::JsonError;
 pub use exec_app::exec_app;
@@ -13,6 +15,13 @@ pub use spawn_app::spawn_app;
 use serde_json::Value;
 
 use svm_types::{Address, WasmValue};
+
+pub(crate) fn to_bytes(json: &Value) -> Result<Vec<u8>, JsonError> {
+    match serde_json::to_string(&json) {
+        Ok(s) => Ok(s.into_bytes()),
+        Err(e) => Err(JsonError::Unknown(format!("{}", e))),
+    }
+}
 
 pub(crate) fn as_array<'a>(json: &'a Value, field: &str) -> Result<&'a Vec<Value>, JsonError> {
     let value: &Value = &json[field];
@@ -85,6 +94,10 @@ pub(crate) fn as_string(json: &Value, field: &str) -> Result<String, JsonError> 
         }),
         Some(value) => Ok(value.to_string()),
     }
+}
+
+pub(crate) fn bytes_to_str(bytes: &[u8]) -> String {
+    svm_common::fmt::fmt_hex(bytes, "")
 }
 
 pub(crate) fn str_to_bytes(value: &str, field: &str) -> Result<Vec<u8>, JsonError> {
@@ -185,10 +198,6 @@ pub(crate) fn as_wasm_values(json: &Value, field: &str) -> Result<Vec<WasmValue>
     let value: &Value = &json[field];
 
     match value.as_array() {
-        None => Err(JsonError::InvalidField {
-            field: field.to_string(),
-            reason: format!("value `{}` isn't an array", value),
-        }),
         Some(vec) => {
             let mut values = Vec::with_capacity(vec.len());
             let field = format!("{} (array item)", field);
@@ -200,6 +209,10 @@ pub(crate) fn as_wasm_values(json: &Value, field: &str) -> Result<Vec<WasmValue>
 
             Ok(values)
         }
+        None => Err(JsonError::InvalidField {
+            field: field.to_string(),
+            reason: format!("value `{}` isn't an array", value),
+        }),
     }
 }
 

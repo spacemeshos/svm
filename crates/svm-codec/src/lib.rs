@@ -7,9 +7,9 @@
 //! The CI of the SVM outputs the WASM package of `svm-codec` as one of its artifacts.
 
 #![allow(missing_docs)]
-#![deny(unused)]
-#![deny(dead_code)]
-#![deny(unreachable_code)]
+#![allow(unused)]
+#![allow(dead_code)]
+#![allow(unreachable_code)]
 #![feature(vec_into_raw_parts)]
 
 #[macro_use]
@@ -211,6 +211,18 @@ pub extern "C" fn wasm_encode_func_buf(buf_ptr: i32) -> i32 {
 #[cfg(target_arch = "wasm32")]
 pub extern "C" fn wasm_decode_func_buf(buf_ptr: i32) -> i32 {
     match api::wasm::decode_func_buf(buf_ptr as usize) {
+        Ok(ptr) => ptr as _,
+        Err(err) => {
+            let err_ptr = api::wasm::into_error_buffer(err);
+            err_ptr as _
+        }
+    }
+}
+
+#[no_mangle]
+#[cfg(target_arch = "wasm32")]
+pub extern "C" fn wasm_encode_call_data(buf_ptr: i32) -> i32 {
+    match api::wasm::encode_call_data(buf_ptr as usize) {
         Ok(ptr) => ptr as _,
         Err(err) => {
             let err_ptr = api::wasm::into_error_buffer(err);
