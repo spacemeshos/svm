@@ -24,16 +24,25 @@ mod test {
 
     use svm_types::{Address, AppTransaction, WasmValue};
 
+    use serde_json::{json, Value};
+
     #[test]
     fn wasm_encode_exec_app_valid() {
-        let json = r#"{
+        let calldata = api::json::encode_calldata(&json!({
+            "abi": ["i32", "i64"],
+            "data": [10, 20]
+        }))
+        .unwrap();
+
+        let json = json!({
           "version": 0,
           "app": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
           "func_index": 1,
-          "func_buf": "A2B3",
-          "func_args": ["10i32", "20i64"]
-        }"#;
+          "func_buf": calldata["func_buf"],
+          "func_args": calldata["func_args"]
+        });
 
+        let json = serde_json::to_string(&json).unwrap();
         let json_buf = to_wasm_buffer(json.as_bytes());
         let tx_buf = encode_exec_app(json_buf).unwrap();
 
@@ -52,7 +61,7 @@ mod test {
             version: 0,
             app: Address::from(&addr_bytes[..]).into(),
             func_idx: 1,
-            func_buf: vec![0xA2, 0xB3],
+            func_buf: vec![],
             func_args: vec![WasmValue::I32(10), WasmValue::I64(20)],
         };
 

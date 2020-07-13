@@ -32,7 +32,7 @@ pub fn encode_calldata(json: &json::Value) -> Result<Value, JsonError> {
         }
     }
 
-    let func_args = encode_func_args(&args)?;
+    let func_args = json::encode_func_args(&args)?;
     let func_buf = encode_func_buf(buf_abi, buf_data)?;
 
     let json = json!({
@@ -43,26 +43,14 @@ pub fn encode_calldata(json: &json::Value) -> Result<Value, JsonError> {
     Ok(json)
 }
 
-fn encode_func_args(args: &[String]) -> Result<Vec<u8>, JsonError> {
-    let json = json!({ "args": args });
-    let args = json::as_wasm_values(&json, "args")?;
-
-    let mut w = NibbleWriter::new();
-    raw::encode_func_args(&args, &mut w);
-
-    Ok(w.into_bytes())
-}
-
 fn encode_func_buf(abi: Vec<Value>, data: Vec<Value>) -> Result<Vec<u8>, JsonError> {
     let abi = Value::Array(abi);
     let data = Value::Array(data);
 
-    let json = json!({
+    json::encode_func_buf(&json!({
         "abi": abi,
         "data": data
-    });
-
-    json::encode_func_buf(&json)
+    }))
 }
 
 pub fn decode_calldata(json: &json::Value) -> Result<Value, JsonError> {
@@ -84,7 +72,7 @@ pub fn decode_calldata(json: &json::Value) -> Result<Value, JsonError> {
 
     let json = json!({
         "func_args": func_args,
-        "func_buf": func_buf["result"],
+        "func_buf": func_buf,
     });
 
     Ok(json)
@@ -97,10 +85,11 @@ mod tests {
     #[test]
     pub fn encode_calldata_sanity() {
         let addr = "102030405060708090A0112233445566778899AA";
+        let pkey = "1020304050607080102030405060708010203040506070801020304050607080";
 
         let json = json!({
-            "abi": ["i32", "address", "i64"],
-            "data": [10, addr, 30]
+            "abi": ["i32", "address", "i64", "pubkey256"],
+            "data": [10, addr, 30, pkey]
         });
 
         let calldata = encode_calldata(&json).unwrap();
@@ -110,7 +99,10 @@ mod tests {
             decoded,
             json!({
                 "func_args": ["10i32", "30i64"],
-                "func_buf": [{"address": "102030405060708090a0112233445566778899aa"}],
+                "func_buf": [
+                    {"address": "102030405060708090a0112233445566778899aa"},
+                    {"pubkey256": "1020304050607080102030405060708010203040506070801020304050607080"}
+                ],
             })
         );
     }

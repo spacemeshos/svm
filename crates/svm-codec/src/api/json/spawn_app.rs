@@ -1,9 +1,10 @@
-use serde_json::Value;
+use serde_json::{json, Value};
 
 use crate::{
     api::json::{self, JsonError},
+    api::raw,
     app,
-    nibble::NibbleWriter,
+    nibble::{NibbleIter, NibbleWriter},
 };
 
 use svm_types::{App, SpawnApp};
@@ -15,15 +16,22 @@ use svm_types::{App, SpawnApp};
 ///   template: 'A2FB...',  // string
 ///   ctor_index: 0,        // number
 ///   ctor_buf: '',         // string
-///   ctor_args: ['10i32', '20i64', ...] // Array of `string`
+///   ctor_args: ['10i32', '20i64', ...] // Array of `String`
 /// }
 /// ```
 pub fn spawn_app(json: &Value) -> Result<Vec<u8>, JsonError> {
     let version = json::as_u32(json, "version")?;
     let template = json::as_addr(json, "template")?.into();
     let ctor_idx = json::as_u16(json, "ctor_index")?;
-    let ctor_buf = json::as_blob(json, "ctor_buf")?;
-    let ctor_args = json::as_wasm_values(json, "ctor_args")?;
+
+    let ctor_buf = json::as_string(json, "ctor_buf")?;
+    let ctor_buf = json::str_to_bytes(&ctor_buf, "ctor_buf")?;
+
+    let ctor_args = json::as_string(json, "ctor_args")?;
+    let ctor_args = json::str_to_bytes(&ctor_args, "ctor_args")?;
+
+    let mut iter = NibbleIter::new(&ctor_args);
+    let ctor_args = raw::decode_func_args(&mut iter).unwrap();
 
     let spawn = SpawnApp {
         app: App { version, template },
@@ -115,11 +123,17 @@ mod tests {
 
     #[test]
     fn json_spawn_app_missing_ctor_args() {
+        let calldata = json::encode_calldata(&json!({
+            "abi": [],
+            "data": []
+        }))
+        .unwrap();
+
         let json = json!({
             "version": 0,
             "template": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
             "ctor_index": 0,
-            "ctor_buf": "0000"
+            "ctor_buf": calldata["func_buf"]
         });
 
         let err = spawn_app(&json).unwrap_err();
@@ -127,19 +141,25 @@ mod tests {
             err,
             JsonError::InvalidField {
                 field: "ctor_args".to_string(),
-                reason: "value `null` isn\'t an array".to_string(),
+                reason: "value `null` isn\'t a string".to_string(),
             }
         );
     }
 
     #[test]
     fn json_spawn_app_valid() {
+        let calldata = json::encode_calldata(&json!({
+            "abi": ["i32", "i64"],
+            "data": [10, 20]
+        }))
+        .unwrap();
+
         let json = json!({
             "version": 0,
             "template": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
             "ctor_index": 1,
-            "ctor_buf": "A2B3",
-            "ctor_args": ["10i32", "20i64"]
+            "ctor_buf": calldata["func_buf"],
+            "ctor_args": calldata["func_args"]
         });
 
         let bytes = spawn_app(&json).unwrap();
@@ -158,7 +178,7 @@ mod tests {
                 template: Address::from(&addr_bytes[..]).into(),
             },
             ctor_idx: 1,
-            ctor_buf: vec![0xA2, 0xB3],
+            ctor_buf: vec![],
             ctor_args: vec![WasmValue::I32(10), WasmValue::I64(20)],
         };
 

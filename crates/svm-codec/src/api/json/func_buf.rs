@@ -1,3 +1,5 @@
+use serde_json::json;
+
 use crate::api::json::{self, JsonError};
 
 use svm_abi_decoder::{Cursor, Decoder};
@@ -42,21 +44,20 @@ pub fn decode_func_buf(json: &json::Value) -> Result<serde_json::Value, JsonErro
     let decoder = Decoder::new();
     let mut cursor = Cursor::new(&bytes);
 
-    let mut jsons = Vec::new();
+    let mut items = Vec::new();
 
     while !cursor.is_eof() {
         match decoder.decode_value(&mut cursor) {
             Ok(value) => {
                 let json = into_json(&value);
-                jsons.push(json);
+                items.push(json);
             }
             Err(e) => return Err(JsonError::InvalidJson(format!("{:?}", e))),
         }
     }
 
-    let array = serde_json::Value::Array(jsons);
-
-    let json = serde_json::json!({ "result": array });
+    let mut json = json!({ "items": items });
+    let json = json["items"].take();
 
     Ok(json)
 }
@@ -295,9 +296,7 @@ mod tests {
 
         assert_func_buf!(
             json,
-            json!({
-              "result": [{"address": "1020304050102030405010203040501020304050"}]
-            })
+            json!([{"address": "1020304050102030405010203040501020304050"}])
         );
     }
 
@@ -310,9 +309,7 @@ mod tests {
 
         assert_func_buf!(
             json,
-            json!({
-              "result": [{"pubkey256": "1020304050607080102030405060708010203040506070801020304050607080"}]
-            })
+            json!([{"pubkey256": "1020304050607080102030405060708010203040506070801020304050607080"}])
         );
     }
 
@@ -343,15 +340,14 @@ mod tests {
 
         assert_func_buf!(
             json,
-            json!({
-              "result": [
-                [{
-                    "address": "1020304050102030405010203040501020304050"
-                },
-                {
-                    "address": "60708090a060708090a060708090a060708090a0"
-                }]]
-            })
+            json!([[
+              {
+                "address": "1020304050102030405010203040501020304050"
+              },
+              {
+                "address": "60708090a060708090a060708090a060708090a0"
+              }
+            ]])
         );
     }
 
@@ -364,15 +360,14 @@ mod tests {
 
         assert_func_buf!(
             json,
-            json!({
-              "result": [
-                [{
-                    "pubkey256": "1020304010203040102030401020304010203040102030401020304010203040",
-                },
-                {
-                    "pubkey256": "a0b0c0d0a0b0c0d0a0b0c0d0a0b0c0d0a0b0c0d0a0b0c0d0a0b0c0d0a0b0c0d0",
-                }]]
-            })
+            json!([[
+             {
+                 "pubkey256": "1020304010203040102030401020304010203040102030401020304010203040",
+               },
+               {
+                 "pubkey256": "a0b0c0d0a0b0c0d0a0b0c0d0a0b0c0d0a0b0c0d0a0b0c0d0a0b0c0d0a0b0c0d0",
+               }
+            ]])
         );
     }
 
@@ -385,15 +380,14 @@ mod tests {
 
         assert_func_buf!(
             json,
-            json!({
-              "result": [
+            json!([
               {
                 "address": "1020304050102030405010203040501020304050",
               },
               {
                 "pubkey256": "a0b0c0d0a0b0c0d0a0b0c0d0a0b0c0d0a0b0c0d0a0b0c0d0a0b0c0d0a0b0c0d0",
-              }]
-            })
+              }
+            ])
         );
     }
 

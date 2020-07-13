@@ -12,6 +12,7 @@ pub fn encode_spawn_app(ptr: usize) -> Result<usize, JsonError> {
 #[cfg(test)]
 mod test {
     use super::*;
+
     use crate::nibble::NibbleIter;
 
     use crate::api::wasm::{
@@ -20,16 +21,25 @@ mod test {
 
     use svm_types::{Address, App, SpawnApp, WasmValue};
 
+    use serde_json::{json, Value};
+
     #[test]
     fn wasm_encode_spawn_app_valid() {
-        let json = r#"{
+        let calldata = api::json::encode_calldata(&json!({
+            "abi": ["i32", "i64"],
+            "data": [10, 20]
+        }))
+        .unwrap();
+
+        let json = json!({
           "version": 0,
           "template": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
           "ctor_index": 1,
-          "ctor_buf": "A2B3",
-          "ctor_args": ["10i32", "20i64"]
-        }"#;
+          "ctor_buf": calldata["func_buf"],
+          "ctor_args": calldata["func_args"]
+        });
 
+        let json = serde_json::to_string(&json).unwrap();
         let json_buf = to_wasm_buffer(json.as_bytes());
         let tx_buf = encode_spawn_app(json_buf).unwrap();
 
@@ -50,7 +60,7 @@ mod test {
                 template: Address::from(&addr_bytes[..]).into(),
             },
             ctor_idx: 1,
-            ctor_buf: vec![0xA2, 0xB3],
+            ctor_buf: vec![],
             ctor_args: vec![WasmValue::I32(10), WasmValue::I64(20)],
         };
 

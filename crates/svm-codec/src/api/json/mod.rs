@@ -2,6 +2,7 @@ mod calldata;
 mod deploy_template;
 mod error;
 mod exec_app;
+mod func_args;
 mod func_buf;
 mod spawn_app;
 
@@ -9,6 +10,7 @@ pub use calldata::{decode_calldata, encode_calldata};
 pub use deploy_template::deploy_template;
 pub use error::JsonError;
 pub use exec_app::exec_app;
+pub use func_args::{decode_func_args, encode_func_args};
 pub use func_buf::{decode_func_buf, encode_func_buf};
 pub use spawn_app::spawn_app;
 
