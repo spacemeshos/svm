@@ -13,6 +13,20 @@ mod tests {
 
     use svm_abi_decoder::{Cursor, Decoder};
 
+    fn into_addr(value: Value) -> Address {
+        match value {
+            Value::Primitive(Primitive::Address(addr)) => addr,
+            _ => panic!(),
+        }
+    }
+
+    fn into_pubkey256(value: Value) -> PubKey256 {
+        match value {
+            Value::Primitive(Primitive::PubKey256(pkey)) => pkey,
+            _ => panic!(),
+        }
+    }
+
     #[test]
     fn owned_addr_deref() {
         let bytes: [u8; 20] = [
@@ -41,7 +55,7 @@ mod tests {
         let decoder = Decoder::new();
         let value = decoder.decode_value(&mut cursor).unwrap();
 
-        let addr = value.as_addr().unwrap();
+        let addr = into_addr(value);
         assert_eq!(addr.as_slice(), &bytes);
     }
 
@@ -61,7 +75,7 @@ mod tests {
         let decoder = Decoder::new();
         let value = decoder.decode_value(&mut cursor).unwrap();
 
-        let pkey = value.as_pubkey256().unwrap();
+        let pkey = into_pubkey256(value);
         assert_eq!(pkey.as_slice(), &bytes);
     }
 

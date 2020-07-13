@@ -44,6 +44,8 @@ mod tests {
     use super::*;
     use serde_json::json;
 
+    use svm_types::{Address, WasmValue};
+
     use crate::nibble::NibbleIter;
 
     #[test]

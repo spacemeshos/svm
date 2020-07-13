@@ -22,8 +22,9 @@ pub fn decode_func_buf(ptr: usize) -> Result<usize, JsonError> {
 mod test {
     use super::*;
 
-    use crate::api::wasm::error_as_string;
-    use crate::nibble::NibbleIter;
+    use crate::api::wasm::{
+        error_as_string, free, to_wasm_buffer, wasm_buffer_data, BUF_OK_MARKER,
+    };
 
     use serde_json::json;
     use svm_common::fmt::fmt_hex;

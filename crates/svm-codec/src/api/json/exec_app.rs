@@ -46,8 +46,9 @@ mod tests {
     use serde_json::json;
 
     use crate::nibble::NibbleIter;
+    use svm_types::{Address, WasmValue};
 
-    #[ignore]
+    #[test]
     fn json_exec_app_missing_version() {
         let json = json!({});
 

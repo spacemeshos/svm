@@ -207,7 +207,7 @@ pub(crate) fn as_wasm_values(json: &Value, field: &str) -> Result<Vec<WasmValue>
 mod test {
     use super::*;
 
-    use serde_json::{json, Value};
+    use serde_json::json;
 
     #[test]
     fn json_as_u16_valid() {

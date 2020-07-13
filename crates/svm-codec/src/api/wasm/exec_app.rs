@@ -18,9 +18,11 @@ mod test {
     use super::*;
     use crate::nibble::NibbleIter;
 
-    use crate::api::wasm::error_as_string;
+    use crate::api::wasm::{
+        error_as_string, free, to_wasm_buffer, wasm_buffer_data, BUF_OK_MARKER,
+    };
 
-    use serde_json::json;
+    use svm_types::{Address, AppTransaction, WasmValue};
 
     #[test]
     fn wasm_encode_exec_app_valid() {

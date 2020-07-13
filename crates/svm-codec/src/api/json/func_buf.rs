@@ -77,7 +77,6 @@ fn into_json(value: &Value) -> json::Value {
 
             array
         }
-        _ => unreachable!(),
     }
 }
 
@@ -220,19 +219,6 @@ mod tests {
     use serde_json::json;
     use svm_common::fmt::fmt_hex;
 
-    macro_rules! extend {
-        ($bytes:expr, $n:expr) => {{
-            assert_eq!($n % $bytes.len(), 0);
-
-            let m = $n / $bytes.len();
-            let vec = (&$bytes[..]).repeat(m);
-
-            let vec = Box::leak(Box::new(vec));
-
-            unsafe { core::mem::transmute::<*const u8, &[u8; $n]>(vec.as_ptr()) }
-        }};
-    }
-
     macro_rules! repeat_str {
         ($str:expr, $size:expr) => {{
             let len = $str.len();
@@ -321,8 +307,6 @@ mod tests {
             "abi": ["pubkey256"],
             "data": [pkey!("1020304050607080")]
         });
-
-        let bytes = encode_func_buf(&json).unwrap();
 
         assert_func_buf!(
             json,

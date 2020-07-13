@@ -18,9 +18,10 @@ mod test {
     use super::*;
     use crate::nibble::NibbleIter;
 
-    use crate::api::wasm::error_as_string;
-
-    use serde_json::json;
+    use crate::api::wasm::{
+        error_as_string, free, to_wasm_buffer, wasm_buffer_data, BUF_OK_MARKER,
+    };
+    use svm_types::AppTemplate;
 
     #[test]
     fn wasm_encode_deploy_template_valid() {
