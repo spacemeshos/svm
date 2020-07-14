@@ -130,6 +130,18 @@ pub extern "C" fn wasm_spawn_app(buf_ptr: i32) -> i32 {
     }
 }
 
+#[no_mangle]
+#[cfg(target_arch = "wasm32")]
+pub extern "C" fn wasm_decode_spawn_app(buf_ptr: i32) -> i32 {
+    match api::wasm::decode_spawn_app(buf_ptr as usize) {
+        Ok(tx_ptr) => tx_ptr as _,
+        Err(err) => {
+            let err_ptr = api::wasm::into_error_buffer(err);
+            err_ptr as _
+        }
+    }
+}
+
 /// ## WASM Execute-App
 ///
 /// Reads the WASM buffer given at parameter `buf_ptr` containing a JSON value.

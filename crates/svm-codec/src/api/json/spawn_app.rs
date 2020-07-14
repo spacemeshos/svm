@@ -7,7 +7,7 @@ use crate::{
     nibble::{NibbleIter, NibbleWriter},
 };
 
-use svm_types::{App, SpawnApp};
+use svm_types::{AddressOf, App, SpawnApp, WasmValue};
 
 ///
 /// ```json
@@ -45,6 +45,49 @@ pub fn spawn_app(json: &Value) -> Result<Vec<u8>, JsonError> {
 
     let bytes = w.into_bytes();
     Ok(bytes)
+}
+
+pub fn decode_spawn_app(json: &Value) -> Result<Value, JsonError> {
+    let data = json::as_string(json, "data")?;
+    let bytes = json::str_to_bytes(&data, "data")?;
+
+    let mut iter = NibbleIter::new(&bytes);
+    let spawn = raw::decode_spawn_app(&mut iter).unwrap();
+
+    let version = spawn.app.version;
+    let ctor_idx = spawn.ctor_idx;
+    let template = addr_as_string(&spawn.app.template);
+
+    let ctor_buf = json::bytes_to_str(&spawn.ctor_buf);
+    let ctor_buf = json::decode_func_buf(&json!({ "data": ctor_buf }))?;
+
+    let ctor_args = args_as_string(&spawn.ctor_args);
+
+    let json = json!({
+        "version": version,
+        "template": template,
+        "ctor_index": ctor_idx,
+        "ctor_buf": ctor_buf,
+        "ctor_args": ctor_args
+    });
+
+    Ok(json)
+}
+
+fn addr_as_string<T>(addr: &AddressOf<T>) -> String {
+    let bytes = addr.inner().as_slice();
+
+    json::bytes_to_str(bytes)
+}
+
+fn args_as_string(func_args: &[WasmValue]) -> Vec<String> {
+    func_args
+        .iter()
+        .map(|v| match v {
+            WasmValue::I32(v) => format!("{}i32", v),
+            WasmValue::I64(v) => format!("{}i64", v),
+        })
+        .collect()
 }
 
 #[cfg(test)]
@@ -148,40 +191,35 @@ mod tests {
 
     #[test]
     fn json_spawn_app_valid() {
+        let template_addr = "1122334455667788990011223344556677889900";
+
         let calldata = json::encode_calldata(&json!({
-            "abi": ["i32", "i64"],
-            "data": [10, 20]
+            "abi": ["i32", "address", "i64"],
+            "data": [10, template_addr, 20]
         }))
         .unwrap();
 
         let json = json!({
-            "version": 0,
+            "version": 1,
             "template": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
-            "ctor_index": 1,
+            "ctor_index": 2,
             "ctor_buf": calldata["func_buf"],
             "ctor_args": calldata["func_args"]
         });
 
         let bytes = spawn_app(&json).unwrap();
+        let data = json::bytes_to_str(&bytes);
+        let json = decode_spawn_app(&json!({ "data": data })).unwrap();
 
-        let mut iter = NibbleIter::new(&bytes[..]);
-        let actual = crate::api::raw::decode_spawn_app(&mut iter).unwrap();
-
-        let addr_bytes = vec![
-            0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80, 0x90, 0x00, 0xA0, 0xB0, 0xC0, 0xD0,
-            0xE0, 0xF0, 0xAB, 0xCD, 0xEF, 0xFF,
-        ];
-
-        let expected = SpawnApp {
-            app: App {
-                version: 0,
-                template: Address::from(&addr_bytes[..]).into(),
-            },
-            ctor_idx: 1,
-            ctor_buf: vec![],
-            ctor_args: vec![WasmValue::I32(10), WasmValue::I64(20)],
-        };
-
-        assert_eq!(actual, expected);
+        assert_eq!(
+            json,
+            json!({
+                "version": 1,
+                "template": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
+                "ctor_index": 2,
+                "ctor_buf": [{"address": template_addr}],
+                "ctor_args": ["10i32", "20i64"],
+            })
+        );
     }
 }
