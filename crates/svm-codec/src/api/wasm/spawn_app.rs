@@ -60,19 +60,18 @@ mod test {
         let data = wasm_buffer_data(tx_buf);
         assert_eq!(data[0], BUF_OK_MARKER);
 
-        free(json_buf);
-        free(tx_buf);
-
         let data = json::bytes_to_str(&data[1..]);
         let json = json!({ "data": data });
         let json = serde_json::to_string(&json).unwrap();
-        let json_buf = to_wasm_buffer(json.as_bytes());
-        let tx_buf = decode_spawn_app(json_buf).unwrap();
-        let data = wasm_buffer_data(tx_buf);
-        assert_eq!(data[0], BUF_OK_MARKER);
 
         free(json_buf);
+        let json_buf = to_wasm_buffer(json.as_bytes());
+
         free(tx_buf);
+        let tx_buf = decode_spawn_app(json_buf).unwrap();
+
+        let data = wasm_buffer_data(tx_buf);
+        assert_eq!(data[0], BUF_OK_MARKER);
 
         let json: Value = serde_json::from_slice(&data[1..]).unwrap();
 
@@ -86,6 +85,9 @@ mod test {
                 "ctor_args": ["10i32", "20i64"],
             })
         );
+
+        free(json_buf);
+        free(tx_buf);
     }
 
     #[test]
