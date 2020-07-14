@@ -30,6 +30,8 @@ pub struct SvmCtx {
 
     /// An accessor to the app's new storage
     pub storage: AppStorage,
+
+    pub logs: Vec<(Vec<u8>, u32)>,
 }
 
 unsafe impl Sync for SvmCtx {}
@@ -50,6 +52,7 @@ impl SvmCtx {
 
         let gas_metering = gas_limit.is_some();
         let gas_limit = gas_limit.unwrap_or(0);
+        let logs = Vec::new();
 
         Self {
             host,
@@ -57,6 +60,7 @@ impl SvmCtx {
             storage,
             gas_metering,
             gas_limit,
+            logs,
         }
     }
 }

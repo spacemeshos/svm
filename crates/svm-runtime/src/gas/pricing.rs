@@ -28,6 +28,9 @@ macro_rules! use_gas {
     ("host_get64", $wasmer_ctx:expr) => {{
         //
     }};
+    ("log", $wasmer_ctx:expr) => {{
+        //
+    }};
 
     ($wasmer_ctx:expr) => {{
         use crate::ctx::SvmCtx;
