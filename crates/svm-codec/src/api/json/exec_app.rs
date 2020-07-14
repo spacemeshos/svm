@@ -19,7 +19,7 @@ use svm_types::{AddressOf, App, AppTransaction, WasmValue};
 ///   func_args: ['10i32', '20i64', ...] // Array of `string`
 /// }
 /// ```
-pub fn exec_app(json: &Value) -> Result<Vec<u8>, JsonError> {
+pub fn encode_exec_app(json: &Value) -> Result<Vec<u8>, JsonError> {
     let version = json::as_u32(json, "version")?;
     let app = json::as_addr(json, "app")?.into();
     let func_idx = json::as_u16(json, "func_index")?;
@@ -103,7 +103,7 @@ mod tests {
     fn json_exec_app_missing_version() {
         let json = json!({});
 
-        let err = exec_app(&json).unwrap_err();
+        let err = encode_exec_app(&json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -119,7 +119,7 @@ mod tests {
             "version": 0
         });
 
-        let err = exec_app(&json).unwrap_err();
+        let err = encode_exec_app(&json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -136,7 +136,7 @@ mod tests {
             "app": "10203040506070809000A0B0C0D0E0F0ABCDEFFF"
         });
 
-        let err = exec_app(&json).unwrap_err();
+        let err = encode_exec_app(&json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -154,7 +154,7 @@ mod tests {
             "func_index": 0,
         });
 
-        let err = exec_app(&json).unwrap_err();
+        let err = encode_exec_app(&json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -178,7 +178,7 @@ mod tests {
             "func_buf": calldata["func_buf"]
         });
 
-        let err = exec_app(&json).unwrap_err();
+        let err = encode_exec_app(&json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -204,7 +204,7 @@ mod tests {
             "func_args": calldata["func_args"]
         });
 
-        let bytes = exec_app(&json).unwrap();
+        let bytes = encode_exec_app(&json).unwrap();
 
         let mut iter = NibbleIter::new(&bytes[..]);
         let actual = crate::api::raw::decode_exec_app(&mut iter).unwrap();

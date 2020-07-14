@@ -19,7 +19,7 @@ use svm_types::{AddressOf, App, SpawnApp, WasmValue};
 ///   ctor_args: ['10i32', '20i64', ...] // Array of `String`
 /// }
 /// ```
-pub fn spawn_app(json: &Value) -> Result<Vec<u8>, JsonError> {
+pub fn encode_spawn_app(json: &Value) -> Result<Vec<u8>, JsonError> {
     let version = json::as_u32(json, "version")?;
     let template = json::as_addr(json, "template")?.into();
     let ctor_idx = json::as_u16(json, "ctor_index")?;
@@ -103,7 +103,7 @@ mod tests {
     fn json_spawn_app_missing_version() {
         let json = json!({});
 
-        let err = spawn_app(&json).unwrap_err();
+        let err = encode_spawn_app(&json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -119,7 +119,7 @@ mod tests {
             "version": 0
         });
 
-        let err = spawn_app(&json).unwrap_err();
+        let err = encode_spawn_app(&json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -136,7 +136,7 @@ mod tests {
             "template": "10203040506070809000A0B0C0D0E0F0ABCDEFFF"
         });
 
-        let err = spawn_app(&json).unwrap_err();
+        let err = encode_spawn_app(&json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -154,7 +154,7 @@ mod tests {
             "ctor_index": 0,
         });
 
-        let err = spawn_app(&json).unwrap_err();
+        let err = encode_spawn_app(&json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -179,7 +179,7 @@ mod tests {
             "ctor_buf": calldata["func_buf"]
         });
 
-        let err = spawn_app(&json).unwrap_err();
+        let err = encode_spawn_app(&json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -207,7 +207,7 @@ mod tests {
             "ctor_args": calldata["func_args"]
         });
 
-        let bytes = spawn_app(&json).unwrap();
+        let bytes = encode_spawn_app(&json).unwrap();
         let data = json::bytes_to_str(&bytes);
         let json = decode_spawn_app(&json!({ "data": data })).unwrap();
 

@@ -11,7 +11,7 @@ use crate::{
 ///
 /// Returns a pointer to a `transaction buffer`.
 pub fn encode_spawn_app(ptr: usize) -> Result<usize, JsonError> {
-    wasm_buf_apply(ptr, api::json::spawn_app)
+    wasm_buf_apply(ptr, api::json::encode_spawn_app)
 }
 
 pub fn decode_spawn_app(ptr: usize) -> Result<usize, JsonError> {

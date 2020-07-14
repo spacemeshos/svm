@@ -334,7 +334,7 @@ describe('Spawn App', function () {
 	    };
 
 	    const buf = wasmNewBuffer(instance, tx);
-	    const result = instanceCall(instance, 'wasm_spawn_app', buf);
+	    const result = instanceCall(instance, 'wasm_encode_spawn_app', buf);
 
 	    let len = wasmBufferLength(instance, result);
 	    const slice = wasmBufferDataSlice(instance, result, 0, len);
@@ -361,7 +361,7 @@ describe('Spawn App', function () {
 	    };
 
 	    const buf = wasmNewBuffer(instance, tx);
-	    const result = instanceCall(instance, 'wasm_spawn_app', buf);
+	    const result = instanceCall(instance, 'wasm_encode_spawn_app', buf);
 
 	    const error = loadWasmBufferError(instance, result);
 	    assert.equal(error, "InvalidField { field: \"template\", reason: \"value should be exactly 40 hex digits\" }");
@@ -391,7 +391,7 @@ describe('Execute App (a.k.a `Call Method`)', function () {
 	    };
 
 	    const buf = wasmNewBuffer(instance, tx);
-	    const result = instanceCall(instance, 'wasm_exec_app', buf);
+	    const result = instanceCall(instance, 'wasm_encode_exec_app', buf);
 
 	    let len = wasmBufferLength(instance, result);
 	    const slice = wasmBufferDataSlice(instance, result, 0, len);
@@ -412,7 +412,7 @@ describe('Execute App (a.k.a `Call Method`)', function () {
 	    };
 
 	    const buf = wasmNewBuffer(instance, tx);
-	    const result = instanceCall(instance, 'wasm_exec_app', buf);
+	    const result = instanceCall(instance, 'wasm_encode_exec_app', buf);
 
 	    const error = loadWasmBufferError(instance, result);
 	    assert.equal(error, "InvalidField { field: \"app\", reason: \"value should be exactly 40 hex digits\" }");

@@ -15,7 +15,7 @@ use crate::{
 /// See also: `alloc` and `free`
 ///
 pub fn encode_exec_app(ptr: usize) -> Result<usize, JsonError> {
-    wasm_buf_apply(ptr, api::json::exec_app)
+    wasm_buf_apply(ptr, api::json::encode_exec_app)
 }
 
 pub fn decode_exec_app(ptr: usize) -> Result<usize, JsonError> {

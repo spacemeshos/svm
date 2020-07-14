@@ -9,10 +9,10 @@ mod spawn_app;
 pub use calldata::{decode_calldata, encode_calldata};
 pub use deploy_template::deploy_template;
 pub use error::JsonError;
-pub use exec_app::{decode_exec_app, exec_app};
+pub use exec_app::{decode_exec_app, encode_exec_app};
 pub use func_args::{decode_func_args, encode_func_args};
 pub use func_buf::{decode_func_buf, encode_func_buf};
-pub use spawn_app::{decode_spawn_app, spawn_app};
+pub use spawn_app::{decode_spawn_app, encode_spawn_app};
 
 use serde_json::Value;
 

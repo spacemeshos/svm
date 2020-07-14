@@ -120,7 +120,7 @@ pub extern "C" fn wasm_deploy_template(buf_ptr: i32) -> i32 {
 /// If the encoding failed, the returned WASM buffer will contain a String containing the error message.
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
-pub extern "C" fn wasm_spawn_app(buf_ptr: i32) -> i32 {
+pub extern "C" fn wasm_encode_spawn_app(buf_ptr: i32) -> i32 {
     match api::wasm::encode_spawn_app(buf_ptr as usize) {
         Ok(tx_ptr) => tx_ptr as _,
         Err(err) => {
@@ -151,7 +151,7 @@ pub extern "C" fn wasm_decode_spawn_app(buf_ptr: i32) -> i32 {
 /// If the encoding failed, the returned WASM buffer will contain a String containing the error message.
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
-pub extern "C" fn wasm_exec_app(buf_ptr: i32) -> i32 {
+pub extern "C" fn wasm_encode_exec_app(buf_ptr: i32) -> i32 {
     match api::wasm::encode_exec_app(buf_ptr as usize) {
         Ok(tx_ptr) => tx_ptr as _,
         Err(err) => {
