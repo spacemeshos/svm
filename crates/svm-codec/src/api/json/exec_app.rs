@@ -1,4 +1,4 @@
-use serde_json::Value;
+use serde_json::{json, Value};
 
 use crate::{
     api::json::{self, JsonError},
@@ -7,7 +7,7 @@ use crate::{
     transaction,
 };
 
-use svm_types::AppTransaction;
+use svm_types::{AddressOf, App, AppTransaction, WasmValue};
 
 ///
 /// ```json
@@ -46,6 +46,49 @@ pub fn exec_app(json: &Value) -> Result<Vec<u8>, JsonError> {
 
     let bytes = w.into_bytes();
     Ok(bytes)
+}
+
+pub fn decode_exec_app(json: &Value) -> Result<Value, JsonError> {
+    let data = json::as_string(json, "data")?;
+    let bytes = json::str_to_bytes(&data, "data")?;
+
+    let mut iter = NibbleIter::new(&bytes);
+    let tx = raw::decode_exec_app(&mut iter).unwrap();
+
+    let version = tx.version;
+    let func_idx = tx.func_idx;
+    let app = addr_as_string(&tx.app);
+
+    let func_buf = json::bytes_to_str(&tx.func_buf);
+    let func_buf = json::decode_func_buf(&json!({ "data": func_buf }))?;
+
+    let func_args = args_as_string(&tx.func_args);
+
+    let json = json!({
+        "version": version,
+        "app": app,
+        "func_index": func_idx,
+        "func_buf": func_buf,
+        "func_args": func_args
+    });
+
+    Ok(json)
+}
+
+fn addr_as_string<T>(addr: &AddressOf<T>) -> String {
+    let bytes = addr.inner().as_slice();
+
+    json::bytes_to_str(bytes)
+}
+
+fn args_as_string(func_args: &[WasmValue]) -> Vec<String> {
+    func_args
+        .iter()
+        .map(|v| match v {
+            WasmValue::I32(v) => format!("{}i32", v),
+            WasmValue::I64(v) => format!("{}i64", v),
+        })
+        .collect()
 }
 
 #[cfg(test)]

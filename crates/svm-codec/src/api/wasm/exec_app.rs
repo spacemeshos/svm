@@ -1,5 +1,10 @@
+use serde_json::Value;
+
 use super::wasm_buf_apply;
-use crate::{api, api::json::JsonError};
+use crate::{
+    api,
+    api::json::{self, JsonError},
+};
 
 ///
 /// Encodes a `exec-app` json input into SVM `exec-app` binary transaction.
@@ -11,6 +16,14 @@ use crate::{api, api::json::JsonError};
 ///
 pub fn encode_exec_app(ptr: usize) -> Result<usize, JsonError> {
     wasm_buf_apply(ptr, api::json::exec_app)
+}
+
+pub fn decode_exec_app(ptr: usize) -> Result<usize, JsonError> {
+    wasm_buf_apply(ptr, |json: &Value| {
+        let json = api::json::decode_exec_app(json)?;
+
+        api::json::to_bytes(&json)
+    })
 }
 
 #[cfg(test)]
@@ -28,6 +41,8 @@ mod test {
 
     #[test]
     fn wasm_encode_exec_app_valid() {
+        let app_addr = "1122334455667788990011223344556677889900";
+
         let calldata = api::json::encode_calldata(&json!({
             "abi": ["i32", "i64"],
             "data": [10, 20]
@@ -35,9 +50,9 @@ mod test {
         .unwrap();
 
         let json = json!({
-          "version": 0,
-          "app": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
-          "func_index": 1,
+          "version": 1,
+          "app": app_addr,
+          "func_index": 2,
           "func_buf": calldata["func_buf"],
           "func_args": calldata["func_args"]
         });
@@ -49,26 +64,32 @@ mod test {
         let data = wasm_buffer_data(tx_buf);
         assert_eq!(data[0], BUF_OK_MARKER);
 
-        let mut iter = NibbleIter::new(&data[1..]);
-        let actual = crate::api::raw::decode_exec_app(&mut iter).unwrap();
+        free(json_buf);
+        free(tx_buf);
 
-        let addr_bytes = vec![
-            0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80, 0x90, 0x00, 0xA0, 0xB0, 0xC0, 0xD0,
-            0xE0, 0xF0, 0xAB, 0xCD, 0xEF, 0xFF,
-        ];
-
-        let expected = AppTransaction {
-            version: 0,
-            app: Address::from(&addr_bytes[..]).into(),
-            func_idx: 1,
-            func_buf: vec![],
-            func_args: vec![WasmValue::I32(10), WasmValue::I64(20)],
-        };
-
-        assert_eq!(actual, expected);
+        let data = json::bytes_to_str(&data[1..]);
+        let json = json!({ "data": data });
+        let json = serde_json::to_string(&json).unwrap();
+        let json_buf = to_wasm_buffer(json.as_bytes());
+        let tx_buf = decode_exec_app(json_buf).unwrap();
+        let data = wasm_buffer_data(tx_buf);
+        assert_eq!(data[0], BUF_OK_MARKER);
 
         free(json_buf);
         free(tx_buf);
+
+        let json: Value = serde_json::from_slice(&data[1..]).unwrap();
+
+        assert_eq!(
+            json,
+            json!({
+                "version": 1,
+                "app": app_addr,
+                "func_index": 2,
+                "func_buf": [],
+                "func_args": ["10i32", "20i64"],
+            })
+        );
     }
 
     #[test]
