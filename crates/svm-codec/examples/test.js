@@ -153,6 +153,22 @@ function decodeCallData(instance, encodedData) {
     return json;
 }
 
+function binToString(array) {
+    let result = "";
+
+    for (const b of array) {
+	let s = b.toString(16);
+
+	// padding
+	if (s.length < 2) {
+	    s = '0' + s;
+	}
+
+	result += s
+    }
+    return result;
+}
+
 describe('Encode Function Buffer', function () {
     it('address', function () {
 	return compileWasmCodec().then(instance => {
@@ -316,41 +332,63 @@ describe('Deploy Template', function () {
 });
 
 describe('Spawn App', function () {
+    function encodeSpawnApp(instance, template, calldata) {
+	let tx = {
+	    version: 0,
+	    template: template,
+	    ctor_index: 1,
+	    ctor_buf: calldata['func_buf'],
+	    ctor_args: calldata['func_args']
+	};
+
+	const buf = wasmNewBuffer(instance, tx);
+	const result = instanceCall(instance, 'wasm_encode_spawn_app', buf);
+
+	let len = wasmBufferLength(instance, result);
+	const slice = wasmBufferDataSlice(instance, result, 0, len);
+	assert.equal(slice[0], OK_MARKER);
+
+	wasmBufferFree(instance, buf);
+	wasmBufferFree(instance, result);
+
+	return slice.slice(1);
+    }
+
+    function decodeSpawnApp(instance, bytes) {
+	const data = binToString(bytes);
+
+	const buf = wasmNewBuffer(instance, {data: data});
+	const result = instanceCall(instance, 'wasm_decode_spawn_app', buf);
+	const json = loadWasmBufferDataAsJson(instance, result);
+
+	wasmBufferFree(instance, buf);
+	wasmBufferFree(instance, result);
+
+	return json
+    }
+
     it('Encodes & Decodes valid transactions', function () {
 	return compileWasmCodec().then(instance => {
+	    const template = generateAddress('1020304050');
+	    const pkey = generatePubKey256('11223344');
+
 	    const object = {
-	    	abi: ['i32', 'address', 'i64'],
-	    	data: [10, generateAddress('1020304050'), 20],
+	    	abi: ['i32', 'pubkey256', 'i64'],
+	    	data: [10, pkey, 20],
 	    };	
 
-	    const calldata = encodeCallData(instance, object);
+	    let calldata = encodeCallData(instance, object);
+	    const bytes = encodeSpawnApp(instance, template, calldata);
+	    const json = decodeSpawnApp(instance, bytes);
 
-	    let tx = {
-		version: 0,
-		template: '10203040506070809000A0B0C0D0E0F0ABCDEFFF',
-		ctor_index: 1,
-		ctor_buf: calldata['func_buf'],
-		ctor_args: calldata['func_args'],
-	    };
-
-	    const buf = wasmNewBuffer(instance, tx);
-	    const result = instanceCall(instance, 'wasm_encode_spawn_app', buf);
-
-	    let len = wasmBufferLength(instance, result);
-	    const slice = wasmBufferDataSlice(instance, result, 0, len);
-
-	    if (slice[0] == ERR_MARKER) {
-		const err = loadWasmBufferError(instance, result);
-		console.log(err);
-	    }
-
-	    assert.equal(slice[0], OK_MARKER);
-
-	    // `bytes` is a `Uint8Array` holding the encoded `SVM spawn-app` transaction
-	    const bytes = slice.slice(1);
-
-	    wasmBufferFree(instance, buf);
-	    wasmBufferFree(instance, result);
+	    assert.deepEqual(json,
+			     {
+				 version: 0,
+				 template: template,
+				 ctor_index: 1,
+				 ctor_args: ['10i32', '20i64'],
+				 ctor_buf: [{pubkey256: pkey}],
+			     });
 	});
     })
     it('Handles errors for invalid transactions', function () {
@@ -373,43 +411,68 @@ describe('Spawn App', function () {
 });
 
 describe('Execute App (a.k.a `Call Method`)', function () {
+    function encodeExecApp(instance, app, calldata) {
+	let tx = {
+	    version: 0,
+	    app: app,
+	    func_index: 1,
+	    func_buf: calldata['func_buf'],
+	    func_args: calldata['func_args']
+	};
+
+	const buf = wasmNewBuffer(instance, tx);
+	const result = instanceCall(instance, 'wasm_encode_exec_app', buf);
+
+	let len = wasmBufferLength(instance, result);
+	const slice = wasmBufferDataSlice(instance, result, 0, len);
+	assert.equal(slice[0], OK_MARKER);
+
+	wasmBufferFree(instance, buf);
+	wasmBufferFree(instance, result);
+
+	return slice.slice(1);
+    }
+
+    function decodeExecApp(instance, bytes) {
+	const data = binToString(bytes);
+
+	const buf = wasmNewBuffer(instance, {data: data});
+	const result = instanceCall(instance, 'wasm_decode_exec_app', buf);
+	const json = loadWasmBufferDataAsJson(instance, result);
+
+	wasmBufferFree(instance, buf);
+	wasmBufferFree(instance, result);
+
+	return json
+    }
+
     it('Encodes & Decodes valid transaction', function () {
 	return compileWasmCodec().then(instance => {
+	    const app = generateAddress('1020304050');
+	    const pkey = generatePubKey256('11223344');
+
 	    const object = {
-	    	abi: ['i32', 'address', 'i64'],
-	    	data: [10, generateAddress('1020304050'), 20],
+	    	abi: ['i32', 'pubkey256', 'i64'],
+	    	data: [10, pkey, 20],
 	    };	
 
 	    let calldata = encodeCallData(instance, object);
+	    const bytes = encodeExecApp(instance, app, calldata);
+	    const json = decodeExecApp(instance, bytes);
 
-	    let tx = {
-		version: 0,
-		app: '10203040506070809000A0B0C0D0E0F0ABCDEFFF',
-		func_index: 1,
-		func_buf: calldata['func_buf'],
-		func_args: calldata['func_args']
-	    };
-
-	    const buf = wasmNewBuffer(instance, tx);
-	    const result = instanceCall(instance, 'wasm_encode_exec_app', buf);
-
-	    let len = wasmBufferLength(instance, result);
-	    const slice = wasmBufferDataSlice(instance, result, 0, len);
-	    assert.equal(slice[0], OK_MARKER);
-
-	    // `bytes` is a `Uint8Array` holding the encoded `SVM exec-app` transaction
-	    const bytes = slice.slice(1);
-
-	    wasmBufferFree(instance, buf);
-	    wasmBufferFree(instance, result);
+	    assert.deepEqual(json,
+			     {
+				 version: 0,
+				 app: app,
+				 func_index: 1,
+				 func_args: ['10i32', '20i64'],
+				 func_buf: [{pubkey256: pkey}],
+			     });
 	});
     })
     it('Handles errors for invalid transactions', function () {
 	return compileWasmCodec().then(instance => {
-	    let tx = {
-              version: 0,
-              app: '102030',
-	    };
+	    let tx = {version: 0, app: '102030'};
 
 	    const buf = wasmNewBuffer(instance, tx);
 	    const result = instanceCall(instance, 'wasm_encode_exec_app', buf);
