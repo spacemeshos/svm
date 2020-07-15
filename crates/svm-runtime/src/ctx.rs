@@ -5,7 +5,7 @@ use log::debug;
 use crate::helpers::DataWrapper;
 
 use svm_storage::app::AppStorage;
-use svm_types::{gas::MaybeGas, HostCtx};
+use svm_types::{gas::MaybeGas, receipt::Log, HostCtx};
 
 /// `SvmCtx` is a container for the accessible data by `wasmer` instances.
 /// * `host`         - A pointer to the `Host`.
@@ -31,7 +31,7 @@ pub struct SvmCtx {
     /// An accessor to the app's new storage
     pub storage: AppStorage,
 
-    pub logs: Vec<(Vec<u8>, u32)>,
+    pub logs: Vec<Log>,
 }
 
 unsafe impl Sync for SvmCtx {}
@@ -64,7 +64,7 @@ impl SvmCtx {
         }
     }
 
-    pub fn take_logs(&mut self) -> Vec<(Vec<u8>, u32)> {
+    pub fn take_logs(&mut self) -> Vec<Log> {
         std::mem::take(&mut self.logs)
     }
 }

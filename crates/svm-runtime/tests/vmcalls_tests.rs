@@ -9,7 +9,7 @@ use svm_runtime::{
     testing::{self, instance_storage},
     vmcalls,
 };
-use svm_types::{gas::MaybeGas, Address, HostCtx};
+use svm_types::{gas::MaybeGas, receipt::Log, Address, HostCtx};
 
 macro_rules! assert_vars32 {
     ($instance:expr, $( $var_id:expr => $expected:expr), *) => {{
@@ -232,5 +232,11 @@ fn vmcalls_log() {
 
     let logs = testing::instance_logs(&instance);
 
-    assert_eq!(&logs, &[(b"Hello World".to_vec(), 200)]);
+    assert_eq!(
+        logs,
+        vec![Log {
+            msg: b"Hello World".to_vec(),
+            code: 200
+        }]
+    );
 }

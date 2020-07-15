@@ -19,7 +19,7 @@ use svm_storage::app::AppStorage;
 use svm_types::{
     gas::{MaybeGas, OOGError},
     receipt::error::{ExecAppError, SpawnAppError},
-    receipt::{make_spawn_app_receipt, ExecReceipt, SpawnAppReceipt, TemplateReceipt},
+    receipt::{make_spawn_app_receipt, ExecReceipt, Log, SpawnAppReceipt, TemplateReceipt},
     AppAddr, AppTemplate, AppTransaction, AuthorAddr, CreatorAddr, HostCtx, SpawnApp, State,
     TemplateAddr, WasmValue,
 };
@@ -287,7 +287,7 @@ where
         template_addr: &TemplateAddr,
         import_object: &ImportObject,
         gas_left: MaybeGas,
-    ) -> Result<(Option<State>, Vec<WasmValue>, MaybeGas), ExecAppError> {
+    ) -> Result<(Option<State>, Vec<WasmValue>, Vec<Log>, MaybeGas), ExecAppError> {
         let module = self.compile_template(tx, &template, &template_addr, gas_left)?;
 
         let mut instance = self.instantiate(tx, template_addr, &module, import_object)?;
@@ -301,8 +301,9 @@ where
         };
 
         let result = func.call(&args);
+        let logs = self.instance_logs(&instance);
 
-        let gas_used = self.wasmer_instance_gas_used(&instance);
+        let gas_used = self.instance_gas_used(&instance);
         if gas_used.is_err() {
             return Err(ExecAppError::OOG);
         }
@@ -322,24 +323,24 @@ where
                 let returns = self.cast_wasmer_func_returns(returns)?;
                 let gas_used = gas_used.unwrap();
 
-                Ok((new_state, returns, gas_used))
+                Ok((new_state, returns, logs, gas_used))
             }
         }
     }
 
     fn make_receipt(
         &self,
-        result: Result<(Option<State>, Vec<WasmValue>, MaybeGas), ExecAppError>,
+        result: Result<(Option<State>, Vec<WasmValue>, Vec<Log>, MaybeGas), ExecAppError>,
     ) -> ExecReceipt {
         match result {
             Err(e) => e.into(),
-            Ok((new_state, returns, gas_used)) => ExecReceipt {
+            Ok((new_state, returns, logs, gas_used)) => ExecReceipt {
                 success: true,
                 error: None,
                 returns: Some(returns),
                 new_state,
                 gas_used,
-                logs: Vec::new(),
+                logs,
             },
         }
     }
@@ -368,11 +369,13 @@ where
     }
 
     #[inline]
-    fn wasmer_instance_gas_used(
-        &self,
-        instance: &wasmer_runtime::Instance,
-    ) -> Result<MaybeGas, OOGError> {
+    fn instance_gas_used(&self, instance: &wasmer_runtime::Instance) -> Result<MaybeGas, OOGError> {
         helpers::wasmer_gas_used(instance)
+    }
+
+    #[inline]
+    fn instance_logs(&self, instance: &wasmer_runtime::Instance) -> Vec<Log> {
+        Vec::new()
     }
 
     fn cast_wasmer_func_returns(

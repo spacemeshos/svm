@@ -17,7 +17,7 @@ use svm_storage::{
     app::{AppKVStore, AppStorage},
     kv::{FakeKV, StatefulKV},
 };
-use svm_types::{gas::MaybeGas, Address, AppAddr, State, TemplateAddr, WasmValue};
+use svm_types::{gas::MaybeGas, receipt::Log, Address, AppAddr, State, TemplateAddr, WasmValue};
 use wasmer_runtime_core::{export::Export, import::ImportObject, Instance, Module};
 
 /// Compiles a wasm program in text format (a.k.a WAST) into a `Module` (`wasmer`)
@@ -38,11 +38,13 @@ pub fn instantiate(import_object: &ImportObject, wasm: &str, gas_limit: MaybeGas
 
 /// Mutably borrows the `AppStorage` of a living `App` instance.
 pub fn instance_storage(instance: &Instance) -> &mut AppStorage {
-    helpers::wasmer_data_app_storage(instance.context().data)
+    let ctx = instance.context();
+    helpers::wasmer_data_app_storage(ctx.data)
 }
 
-pub fn instance_logs(instance: &Instance) -> &[(Vec<u8>, u32)] {
-    helpers::wasmer_data_logs(instance.context().data)
+pub fn instance_logs(instance: &Instance) -> Vec<Log> {
+    let ctx = instance.context();
+    helpers::wasmer_data_logs(ctx.data)
 }
 
 /// Returns a view of `wasmer` instance memory at `offset`...`offest + len - 1`
