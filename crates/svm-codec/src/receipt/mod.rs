@@ -2,6 +2,7 @@ mod deploy_template;
 mod error;
 mod exec_app;
 mod helpers;
+mod logs;
 mod spawn_app;
 
 pub mod testing;

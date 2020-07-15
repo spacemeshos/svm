@@ -81,6 +81,7 @@ mod tests {
             new_state: None,
             returns: None,
             gas_used: MaybeGas::new(),
+            logs: Vec::new(),
         };
 
         let bytes = encode_exec_receipt(&receipt);
@@ -105,6 +106,7 @@ mod tests {
             new_state: Some(new_state),
             returns: Some(Vec::new()),
             gas_used: MaybeGas::with(100),
+            logs: Vec::new(),
         };
 
         let bytes = encode_exec_receipt(&receipt);
@@ -130,6 +132,7 @@ mod tests {
             new_state: Some(new_state),
             returns: Some(returns),
             gas_used: MaybeGas::with(100),
+            logs: Vec::new(),
         };
 
         let bytes = encode_exec_receipt(&receipt);

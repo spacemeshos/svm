@@ -1,6 +1,4 @@
-use super::ExecReceipt;
-
-use crate::receipt::error::SpawnAppError;
+use crate::receipt::{error::SpawnAppError, ExecReceipt, Log};
 use crate::{gas::MaybeGas, AppAddr, State, WasmValue};
 
 /// Returned Receipt after spawning an App.
@@ -23,6 +21,9 @@ pub struct SpawnAppReceipt {
 
     /// The amount of gas used
     pub gas_used: MaybeGas,
+
+    /// logged entries during spawn-app's ctor running
+    pub logs: Vec<Log>,
 }
 
 impl SpawnAppReceipt {
@@ -35,6 +36,7 @@ impl SpawnAppReceipt {
             init_state: None,
             returns: None,
             gas_used: MaybeGas::new(),
+            logs: Vec::new(),
         }
     }
 
@@ -68,6 +70,7 @@ impl From<SpawnAppError> for SpawnAppReceipt {
             init_state: None,
             returns: None,
             gas_used: MaybeGas::new(),
+            logs: Vec::new(),
         }
     }
 }
@@ -84,6 +87,7 @@ pub fn make_spawn_app_receipt(ctor_receipt: ExecReceipt, app_addr: &AppAddr) -> 
             init_state: ctor_receipt.new_state,
             returns: ctor_receipt.returns,
             gas_used: ctor_receipt.gas_used,
+            logs: Vec::new(),
         }
     } else {
         let error = ctor_receipt.error.unwrap();
@@ -95,6 +99,7 @@ pub fn make_spawn_app_receipt(ctor_receipt: ExecReceipt, app_addr: &AppAddr) -> 
             init_state: None,
             returns: None,
             gas_used: MaybeGas::new(),
+            logs: Vec::new(),
         }
     }
 }

@@ -339,6 +339,7 @@ where
                 returns: Some(returns),
                 new_state,
                 gas_used,
+                logs: Vec::new(),
             },
         }
     }

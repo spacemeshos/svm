@@ -1,4 +1,4 @@
-use crate::receipt::error::ExecAppError;
+use crate::receipt::{error::ExecAppError, Log};
 use crate::{gas::MaybeGas, State, WasmValue};
 
 /// Runtime transaction execution receipt
@@ -18,6 +18,9 @@ pub struct ExecReceipt {
 
     /// The amount of gas used.
     pub gas_used: MaybeGas,
+
+    /// logged entries during execution of app's transaction
+    pub logs: Vec<Log>,
 }
 
 impl ExecReceipt {
@@ -29,6 +32,7 @@ impl ExecReceipt {
             new_state: None,
             returns: None,
             gas_used: MaybeGas::new(),
+            logs: Vec::new(),
         }
     }
 
@@ -51,6 +55,7 @@ impl From<ExecAppError> for ExecReceipt {
             new_state: None,
             returns: None,
             gas_used: MaybeGas::new(),
+            logs: Vec::new(),
         }
     }
 }

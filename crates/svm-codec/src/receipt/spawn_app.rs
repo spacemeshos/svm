@@ -13,6 +13,9 @@
 //!  |          |            |                            |
 //!  |  ret #2  |   .  .  .  |         gas_used           |
 //!  +__________|____________|____________________________+
+//!  |          |            |         |                  |
+//!  |  #logs   | log 1 blob |  . . .  |     log #N       |
+//!  +__________|____________|_________|__________________+
 //!
 //!
 //!  On success (`is_success = 0`)
@@ -90,6 +93,7 @@ mod tests {
             init_state: None,
             returns: None,
             gas_used: MaybeGas::new(),
+            logs: Vec::new(),
         };
 
         let bytes = encode_app_receipt(&receipt);
@@ -117,6 +121,7 @@ mod tests {
             init_state: Some(init_state),
             returns: Some(Vec::new()),
             gas_used: MaybeGas::with(100),
+            logs: Vec::new(),
         };
 
         let bytes = encode_app_receipt(&receipt);
@@ -145,6 +150,7 @@ mod tests {
             init_state: Some(init_state),
             returns: Some(returns),
             gas_used: MaybeGas::with(100),
+            logs: Vec::new(),
         };
 
         let bytes = encode_app_receipt(&receipt);
