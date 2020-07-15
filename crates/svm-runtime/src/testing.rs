@@ -41,6 +41,10 @@ pub fn instance_storage(instance: &Instance) -> &mut AppStorage {
     helpers::wasmer_data_app_storage(instance.context().data)
 }
 
+pub fn instance_logs(instance: &Instance) -> &[(Vec<u8>, u32)] {
+    helpers::wasmer_data_logs(instance.context().data)
+}
+
 /// Returns a view of `wasmer` instance memory at `offset`...`offest + len - 1`
 pub fn instance_memory_view(instance: &Instance, offset: u32, len: u32) -> Vec<u8> {
     let view = instance.context().memory(0).view();

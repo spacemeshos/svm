@@ -63,6 +63,10 @@ impl SvmCtx {
             logs,
         }
     }
+
+    pub fn take_logs(&mut self) -> Vec<(Vec<u8>, u32)> {
+        std::mem::take(&mut self.logs)
+    }
 }
 
 impl Drop for SvmCtx {

@@ -1,6 +1,8 @@
 use maplit::hashmap;
 use wasmer_runtime::{func, imports, Func};
 
+use wasmer_runtime_core::{memory::Memory, types::MemoryDescriptor, units::Pages};
+
 use svm_layout::DataLayout;
 use svm_runtime::{
     helpers::DataWrapper,
@@ -157,7 +159,7 @@ fn vmcalls_get64_set64() {
 }
 
 #[test]
-fn host_get64() {
+fn vmcalls_host_get64() {
     let app_addr = Address::of("my-app");
     let host = DataWrapper::new(std::ptr::null_mut());
     let maybe_gas = MaybeGas::new();
@@ -186,4 +188,49 @@ fn host_get64() {
         2 => 0x20_10,
         3 => 0x50_40_30
     );
+}
+
+#[test]
+fn vmcalls_log() {
+    let app_addr = Address::of("my-app");
+    let host = DataWrapper::new(std::ptr::null_mut());
+    let maybe_gas = MaybeGas::new();
+    let layout = DataLayout::empty();
+
+    let host_ctx = host_ctx! {};
+
+    let minimum = Pages(1);
+    let maximum = None;
+    let shared = false;
+    let desc = MemoryDescriptor::new(minimum, maximum, shared).unwrap();
+    let memory = Memory::new(desc).unwrap();
+
+    let import_object = imports! {
+        move || testing::app_memory_state_creator(&app_addr, host, host_ctx, maybe_gas, &layout),
+
+        "svm" => {
+            "memory" => memory,
+
+            "log" => func!(vmcalls::log),
+        },
+    };
+
+    let instance = testing::instantiate(&import_object, include_str!("wasm/log.wast"), maybe_gas);
+    let memory: &Memory = instance.context().memory(0);
+
+    let data = b"Hello World";
+
+    for (cell, byte) in memory.view::<u8>().iter().zip(data) {
+        cell.set(*byte);
+    }
+
+    let logs = testing::instance_logs(&instance);
+    assert!(logs.is_empty());
+
+    let func: Func = instance.exports.get("sayHello").unwrap();
+    let _ = func.call().unwrap();
+
+    let logs = testing::instance_logs(&instance);
+
+    assert_eq!(&logs, &[(b"Hello World".to_vec(), 200)]);
 }
