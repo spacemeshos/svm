@@ -36,6 +36,17 @@ impl ExecReceipt {
         }
     }
 
+    pub fn from_err(error: ExecAppError, logs: Vec<Log>) -> Self {
+        Self {
+            success: false,
+            error: Some(error),
+            new_state: None,
+            returns: None,
+            gas_used: MaybeGas::new(),
+            logs,
+        }
+    }
+
     /// Returns App's new `State``. Panics if transaction has failed.
     pub fn get_new_state(&self) -> &State {
         self.new_state.as_ref().unwrap()
@@ -49,18 +60,5 @@ impl ExecReceipt {
     /// Take the Receipt's logged entries out
     pub fn take_logs(&mut self) -> Vec<Log> {
         std::mem::take(&mut self.logs)
-    }
-}
-
-impl From<ExecAppError> for ExecReceipt {
-    fn from(error: ExecAppError) -> Self {
-        Self {
-            success: false,
-            error: Some(error),
-            new_state: None,
-            returns: None,
-            gas_used: MaybeGas::new(),
-            logs: Vec::new(),
-        }
     }
 }

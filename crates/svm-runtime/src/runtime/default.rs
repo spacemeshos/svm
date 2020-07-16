@@ -134,7 +134,19 @@ where
         let gas_left = gas_limit - install_gas;
 
         match gas_left {
-            Err(..) => SpawnAppReceipt::new_oog(Vec::new()),
+            Err(..) => {
+                let log = Log {
+                    msg: format!(
+                        "not enough gas (installation_gas = {}) for installation",
+                        install_gas
+                    )
+                    .into_bytes(),
+
+                    code: 1,
+                };
+
+                SpawnAppReceipt::new_oog(vec![log])
+            }
             Ok(gas_left) => {
                 let addr = self.install_app(&spawn, creator, &host_ctx);
                 let gas_used = install_gas.into();
@@ -261,7 +273,10 @@ where
         info!("runtime `exec_app`");
 
         match self.load_template(&tx) {
-            Err(e) => e.into(),
+            Err(e) => {
+                let empty_logs = Vec::new();
+                ExecReceipt::from_err(e, empty_logs)
+            }
             Ok((template, template_addr, _author, _creator)) => {
                 let mut import_object =
                     self.import_object_create(&template, &tx.app, &state, gas_left, host_ctx);
@@ -304,16 +319,15 @@ where
         }
 
         let mut instance = instance.unwrap();
-
         self.copy_func_buf_to_memory(&tx.func_buf, &mut instance);
-        let args = self.prepare_func_args(tx);
 
+        let args = self.prepare_func_args(tx);
         let func = match self.get_exported_func(tx, template_addr, &instance) {
             Err(e) => return (Err(e), empty_logs),
             Ok(func) => func,
         };
-
         let func_res = func.call(&args);
+
         let logs = self.instance_logs(&instance);
 
         let gas_used = self.instance_gas_used(&instance);
@@ -354,7 +368,7 @@ where
         logs: Vec<Log>,
     ) -> ExecReceipt {
         match result {
-            Err(e) => e.into(),
+            Err(e) => ExecReceipt::from_err(e, logs),
             Ok((new_state, returns, gas_used)) => ExecReceipt {
                 success: true,
                 error: None,
