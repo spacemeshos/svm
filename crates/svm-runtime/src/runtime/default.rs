@@ -298,9 +298,7 @@ where
             return (Err(err), empty_logs);
         }
 
-        let module = module.unwrap();
-
-        let instance = self.instantiate(tx, template_addr, &module, import_object);
+        let instance = self.instantiate(tx, template_addr, &module.unwrap(), import_object);
         if let Err(err) = instance {
             return (Err(err), empty_logs);
         }

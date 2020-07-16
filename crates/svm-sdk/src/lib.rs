@@ -1,4 +1,5 @@
 #![no_std]
+#![feature(core_intrinsics)]
 
 //! This crate implements SDK for SVM.
 //! Using this crate when writing SVM Templates in Rust isn't mandatory but should be very useful.
@@ -15,3 +16,12 @@ pub mod types;
 
 /// SDK values
 pub mod value;
+
+mod log;
+
+/// Logging API
+pub use log::log;
+
+/// `ensure` macro
+#[macro_use]
+pub mod ensure;

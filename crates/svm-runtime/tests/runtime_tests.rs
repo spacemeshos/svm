@@ -155,8 +155,9 @@ fn default_runtime_spawn_app_with_ctor_reaches_oog() {
     let bytes = testing::build_app(version, &template_addr, ctor_idx, &ctor_buf, &ctor_args);
 
     let maybe_gas = MaybeGas::with(0);
+    let logs = Vec::new();
 
-    let expected = SpawnAppReceipt::new_oog();
+    let expected = SpawnAppReceipt::new_oog(logs);
     let actual = runtime.spawn_app(&bytes, &creator, HostCtx::new(), maybe_gas);
     assert_eq!(expected, actual);
 }
@@ -314,8 +315,9 @@ fn default_runtime_exec_app_reaches_oog() {
     let func_args = vec![WasmValue::I64(10)];
     let bytes = testing::build_app_tx(version, &app_addr, func_idx, &func_buf, &func_args);
     let maybe_gas = MaybeGas::with(0);
+    let logs = Vec::new();
 
-    let expected = ExecReceipt::new_oog();
+    let expected = ExecReceipt::new_oog(logs);
     let actual = runtime.exec_app(&bytes, &init_state, HostCtx::new(), maybe_gas);
 
     assert_eq!(expected, actual)
