@@ -25,14 +25,14 @@ pub struct ExecReceipt {
 
 impl ExecReceipt {
     /// Creates a `ExecReceipt` for reaching reaching `Out-of-Gas`.
-    pub fn new_oog() -> Self {
+    pub fn new_oog(logs: Vec<Log>) -> Self {
         Self {
             success: false,
             error: Some(ExecAppError::OOG),
             new_state: None,
             returns: None,
             gas_used: MaybeGas::new(),
-            logs: Vec::new(),
+            logs,
         }
     }
 
@@ -44,6 +44,11 @@ impl ExecReceipt {
     /// Returns executed transaction results. Panics if transaction has failed.
     pub fn get_returns(&self) -> &Vec<WasmValue> {
         self.returns.as_ref().unwrap()
+    }
+
+    /// Take the Receipt's logged entries out
+    pub fn take_logs(&mut self) -> Vec<Log> {
+        std::mem::take(&mut self.logs)
     }
 }
 
