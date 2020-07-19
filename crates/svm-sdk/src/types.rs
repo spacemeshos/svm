@@ -14,6 +14,9 @@ pub mod marker {
     pub const PUBKEY_256: u8 = 3;
 }
 
+/// A marker trait for Primitives
+pub trait PrimitiveMarker {}
+
 /// Represents a Primitive type
 pub enum Primitive {
     /// denotes `Address` (20 bytes)

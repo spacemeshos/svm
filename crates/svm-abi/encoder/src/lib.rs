@@ -1,6 +1,6 @@
 #![no_std]
 
-//! This crate is responsible of encoding SVM types (its actuall type and their values to be precise),
+//! This crate is responsible of encoding SVM types (its actual type and their values to be precise),
 //! according to a simple ABI format.
 //! The ABI consists of encoding:
 //!
@@ -41,11 +41,11 @@ extern crate alloc;
 use crate::alloc::vec::Vec;
 
 use svm_sdk::{
-    types::marker,
+    types::{marker, PrimitiveMarker},
     value::{Address, AddressOwned, PubKey256, PubKey256Owned},
 };
 
-/// A traits to be implemented by of types.
+/// A trait used to encoding a value (of `primitive` or `composite` type)
 pub trait Encoder {
     /// Encodes `self` and outputs the data into `buf`
     fn encode(&self, buf: &mut Vec<u8>);
@@ -72,7 +72,7 @@ impl_primitive_encoder!(PubKey256Owned, marker::PUBKEY_256);
 
 impl<'a, T> Encoder for &[T]
 where
-    T: Encoder,
+    T: Encoder + PrimitiveMarker,
 {
     fn encode(&self, buf: &mut Vec<u8>) {
         buf.push(marker::ARRAY_START);
@@ -87,7 +87,7 @@ where
 
 impl<'a, T> Encoder for Vec<T>
 where
-    T: Encoder,
+    T: Encoder + PrimitiveMarker,
 {
     #[inline]
     fn encode(&self, buf: &mut Vec<u8>) {
