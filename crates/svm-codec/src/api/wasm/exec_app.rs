@@ -76,9 +76,6 @@ mod test {
         let data = wasm_buffer_data(tx_buf);
         assert_eq!(data[0], BUF_OK_MARKER);
 
-        free(json_buf);
-        free(tx_buf);
-
         let json: Value = serde_json::from_slice(&data[1..]).unwrap();
 
         assert_eq!(
@@ -91,6 +88,9 @@ mod test {
                 "func_args": ["10i32", "20i64"],
             })
         );
+
+        free(json_buf);
+        free(tx_buf);
     }
 
     #[test]
