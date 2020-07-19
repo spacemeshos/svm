@@ -1,12 +1,13 @@
-use serde_json::Value;
+use serde_json::{json, Value};
 
 use crate::{
     api::json::{self, JsonError},
-    nibble::NibbleWriter,
+    api::raw,
+    nibble::{NibbleIter, NibbleWriter},
     transaction,
 };
 
-use svm_types::{Address, AppTransaction, WasmValue};
+use svm_types::{AddressOf, App, AppTransaction, WasmValue};
 
 ///
 /// ```json
@@ -18,12 +19,19 @@ use svm_types::{Address, AppTransaction, WasmValue};
 ///   func_args: ['10i32', '20i64', ...] // Array of `string`
 /// }
 /// ```
-pub fn exec_app(json: &Value) -> Result<Vec<u8>, JsonError> {
+pub fn encode_exec_app(json: &Value) -> Result<Vec<u8>, JsonError> {
     let version = json::as_u32(json, "version")?;
     let app = json::as_addr(json, "app")?.into();
     let func_idx = json::as_u16(json, "func_index")?;
-    let func_buf = json::as_blob(json, "func_buf")?;
-    let func_args = json::as_wasm_values(json, "func_args")?;
+
+    let func_buf = json::as_string(json, "func_buf")?;
+    let func_buf = json::str_to_bytes(&func_buf, "func_buf")?;
+
+    let func_args = json::as_string(json, "func_args")?;
+    let func_args = json::str_to_bytes(&func_args, "func_args")?;
+
+    let mut iter = NibbleIter::new(&func_args);
+    let func_args = raw::decode_func_args(&mut iter).unwrap();
 
     let tx = AppTransaction {
         version,
@@ -40,18 +48,62 @@ pub fn exec_app(json: &Value) -> Result<Vec<u8>, JsonError> {
     Ok(bytes)
 }
 
+pub fn decode_exec_app(json: &Value) -> Result<Value, JsonError> {
+    let data = json::as_string(json, "data")?;
+    let bytes = json::str_to_bytes(&data, "data")?;
+
+    let mut iter = NibbleIter::new(&bytes);
+    let tx = raw::decode_exec_app(&mut iter).unwrap();
+
+    let version = tx.version;
+    let func_idx = tx.func_idx;
+    let app = addr_as_string(&tx.app);
+
+    let func_buf = json::bytes_to_str(&tx.func_buf);
+    let func_buf = json::decode_func_buf(&json!({ "data": func_buf }))?;
+
+    let func_args = args_as_string(&tx.func_args);
+
+    let json = json!({
+        "version": version,
+        "app": app,
+        "func_index": func_idx,
+        "func_buf": func_buf,
+        "func_args": func_args
+    });
+
+    Ok(json)
+}
+
+fn addr_as_string<T>(addr: &AddressOf<T>) -> String {
+    let bytes = addr.inner().as_slice();
+
+    json::bytes_to_str(bytes)
+}
+
+fn args_as_string(func_args: &[WasmValue]) -> Vec<String> {
+    func_args
+        .iter()
+        .map(|v| match v {
+            WasmValue::I32(v) => format!("{}i32", v),
+            WasmValue::I64(v) => format!("{}i64", v),
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use serde_json::json;
 
     use crate::nibble::NibbleIter;
+    use svm_types::{Address, WasmValue};
 
-    #[ignore]
+    #[test]
     fn json_exec_app_missing_version() {
         let json = json!({});
 
-        let err = exec_app(&json).unwrap_err();
+        let err = encode_exec_app(&json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -67,7 +119,7 @@ mod tests {
             "version": 0
         });
 
-        let err = exec_app(&json).unwrap_err();
+        let err = encode_exec_app(&json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -84,7 +136,7 @@ mod tests {
             "app": "10203040506070809000A0B0C0D0E0F0ABCDEFFF"
         });
 
-        let err = exec_app(&json).unwrap_err();
+        let err = encode_exec_app(&json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -102,7 +154,7 @@ mod tests {
             "func_index": 0,
         });
 
-        let err = exec_app(&json).unwrap_err();
+        let err = encode_exec_app(&json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -114,34 +166,45 @@ mod tests {
 
     #[test]
     fn json_exec_app_missing_func_args() {
+        let calldata = json::encode_calldata(&json!({
+            "abi": ["i32", "i64"],
+            "data": [10, 20],
+        }))
+        .unwrap();
         let json = json!({
             "version": 0,
             "app": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
             "func_index": 0,
-            "func_buf": "0000"
+            "func_buf": calldata["func_buf"]
         });
 
-        let err = exec_app(&json).unwrap_err();
+        let err = encode_exec_app(&json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
                 field: "func_args".to_string(),
-                reason: "value `null` isn\'t an array".to_string(),
+                reason: "value `null` isn\'t a string".to_string(),
             }
         );
     }
 
     #[test]
     fn json_exec_app_valid() {
+        let calldata = json::encode_calldata(&json!({
+            "abi": ["i32", "i64"],
+            "data": [10, 20],
+        }))
+        .unwrap();
+
         let json = json!({
             "version": 0,
             "app": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
             "func_index": 1,
-            "func_buf": "A2B3",
-            "func_args": ["10i32", "20i64"]
+            "func_buf": calldata["func_buf"],
+            "func_args": calldata["func_args"]
         });
 
-        let bytes = exec_app(&json).unwrap();
+        let bytes = encode_exec_app(&json).unwrap();
 
         let mut iter = NibbleIter::new(&bytes[..]);
         let actual = crate::api::raw::decode_exec_app(&mut iter).unwrap();
@@ -155,7 +218,7 @@ mod tests {
             version: 0,
             app: Address::from(&addr_bytes[..]).into(),
             func_idx: 1,
-            func_buf: vec![0xA2, 0xB3],
+            func_buf: vec![],
             func_args: vec![WasmValue::I32(10), WasmValue::I64(20)],
         };
 

@@ -1,12 +1,5 @@
-use serde_json::{self as json, Value};
-
-use svm_types::{Address, AppTemplate, WasmValue};
-
-use super::{
-    alloc, error::into_error_buffer, free, to_wasm_buffer, wasm_buf_data_copy, wasm_buffer_data,
-    BUF_ERROR_MARKER, BUF_OK_MARKER,
-};
-use crate::{api, api::json::JsonError, app, nibble::NibbleWriter};
+use super::wasm_buf_apply;
+use crate::{api, api::json::JsonError};
 
 ///
 /// Encodes a `deploy-template` json input into SVM `deploy-template` binary transaction.
@@ -17,26 +10,7 @@ use crate::{api, api::json::JsonError, app, nibble::NibbleWriter};
 /// See also: `alloc` and `free`
 ///
 pub fn encode_deploy_template(ptr: usize) -> Result<usize, JsonError> {
-    let bytes = wasm_buffer_data(ptr);
-    let json: json::Result<Value> = serde_json::from_slice(bytes);
-
-    match json {
-        Ok(ref json) => {
-            let bytes = api::json::deploy_template(&json)?;
-
-            let mut buf = Vec::with_capacity(1 + bytes.len());
-            buf.push(BUF_OK_MARKER);
-            buf.extend_from_slice(&bytes);
-
-            let ptr = to_wasm_buffer(&buf);
-            Ok(ptr)
-        }
-        Err(err) => {
-            let ptr = into_error_buffer(err);
-
-            Ok(ptr)
-        }
-    }
+    wasm_buf_apply(ptr, api::json::deploy_template)
 }
 
 #[cfg(test)]
@@ -44,9 +18,10 @@ mod test {
     use super::*;
     use crate::nibble::NibbleIter;
 
-    use crate::api::wasm::error_as_string;
-
-    use serde_json::json;
+    use crate::api::wasm::{
+        error_as_string, free, to_wasm_buffer, wasm_buffer_data, BUF_OK_MARKER,
+    };
+    use svm_types::AppTemplate;
 
     #[test]
     fn wasm_encode_deploy_template_valid() {

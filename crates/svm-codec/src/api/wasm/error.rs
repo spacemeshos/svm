@@ -1,6 +1,6 @@
 use std::fmt;
 
-use super::{to_wasm_buffer, wasm_buffer_data, BUF_ERROR_MARKER, BUF_OK_MARKER};
+use super::{to_wasm_buffer, wasm_buffer_data, BUF_ERROR_MARKER};
 use crate::nibble::NibbleWriter;
 
 pub fn into_error_buffer<T: fmt::Debug>(err: T) -> usize {

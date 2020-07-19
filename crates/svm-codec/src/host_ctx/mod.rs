@@ -20,13 +20,13 @@ use std::{
     io::{Cursor, Read},
 };
 
-use crate::api::raw;
 use crate::error::ParseError;
 
 use svm_types::HostCtx;
 
 use byteorder::{BigEndian, ByteOrder, ReadBytesExt};
 
+/// Encodes the `HostContext`, see the format above in the beginning of this file.
 pub fn encode_host_ctx(host_ctx: &HostCtx) -> Vec<u8> {
     let map = host_ctx.inner();
 
@@ -72,6 +72,8 @@ pub fn encode_host_ctx(host_ctx: &HostCtx) -> Vec<u8> {
     buf
 }
 
+/// Decodes an encoded `Host Context`.
+/// When fails - returns a `ParseError`
 pub fn decode_host_ctx(bytes: &[u8]) -> Result<HostCtx, ParseError> {
     let mut cursor = Cursor::new(bytes);
 

@@ -1,14 +1,18 @@
+mod calldata;
 mod deploy_template;
 mod error;
 mod exec_app;
 mod spawn_app;
 
+pub use calldata::{decode_calldata, encode_calldata};
 pub use deploy_template::encode_deploy_template;
 pub use error::{error_as_string, into_error_buffer};
-pub use exec_app::encode_exec_app;
-pub use spawn_app::encode_spawn_app;
+pub use exec_app::{decode_exec_app, encode_exec_app};
+pub use spawn_app::{decode_spawn_app, encode_spawn_app};
 
+use crate::api::json::JsonError;
 use byteorder::{BigEndian, ByteOrder};
+use serde_json::{self as json, Value};
 
 const HEADER_LEN_OFF: usize = 0;
 const HEADER_CAP_OFF: usize = 4;
@@ -64,7 +68,7 @@ const BUF_ERROR_MARKER: u8 = 0;
 /// If for the `capacity` of the `Data` will be bigger - it will also increase the amount of allocated data.
 pub fn alloc(length: usize) -> usize {
     let buf_len = HEADER_SIZE + length;
-    let mut buf = vec![0; buf_len];
+    let buf = vec![0; buf_len];
 
     let (ptr, len, cap) = buf.into_raw_parts();
     debug_assert_eq!(len, buf_len);
@@ -195,6 +199,32 @@ pub fn wasm_buf_data_copy(ptr: usize, offset: usize, data: &[u8]) {
         let dst = dst.add(HEADER_SIZE).add(offset);
 
         std::ptr::copy(src, dst, data.len());
+    }
+}
+
+pub(crate) fn wasm_buf_apply<F>(ptr: usize, func: F) -> Result<usize, JsonError>
+where
+    F: Fn(&Value) -> Result<Vec<u8>, JsonError>,
+{
+    let bytes = wasm_buffer_data(ptr);
+    let json: json::Result<Value> = serde_json::from_slice(bytes);
+
+    match json {
+        Ok(ref json) => {
+            let bytes = func(&json)?;
+
+            let mut buf = Vec::with_capacity(1 + bytes.len());
+            buf.push(BUF_OK_MARKER);
+            buf.extend_from_slice(&bytes);
+
+            let ptr = to_wasm_buffer(&buf);
+            Ok(ptr)
+        }
+        Err(err) => {
+            let ptr = into_error_buffer(err);
+
+            Ok(ptr)
+        }
     }
 }
 

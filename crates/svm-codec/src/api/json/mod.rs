@@ -1,16 +1,41 @@
+mod calldata;
 mod deploy_template;
 mod error;
 mod exec_app;
+mod func_args;
+mod func_buf;
 mod spawn_app;
 
+pub use calldata::{decode_calldata, encode_calldata};
 pub use deploy_template::deploy_template;
 pub use error::JsonError;
-pub use exec_app::exec_app;
-pub use spawn_app::spawn_app;
+pub use exec_app::{decode_exec_app, encode_exec_app};
+pub use func_args::{decode_func_args, encode_func_args};
+pub use func_buf::{decode_func_buf, encode_func_buf};
+pub use spawn_app::{decode_spawn_app, encode_spawn_app};
 
 use serde_json::Value;
 
 use svm_types::{Address, WasmValue};
+
+pub(crate) fn to_bytes(json: &Value) -> Result<Vec<u8>, JsonError> {
+    match serde_json::to_string(&json) {
+        Ok(s) => Ok(s.into_bytes()),
+        Err(e) => Err(JsonError::Unknown(format!("{}", e))),
+    }
+}
+
+pub(crate) fn as_array<'a>(json: &'a Value, field: &str) -> Result<&'a Vec<Value>, JsonError> {
+    let value: &Value = &json[field];
+
+    match value.as_array() {
+        None => Err(JsonError::InvalidField {
+            field: field.to_string(),
+            reason: format!("value `{}` isn't an Array", value),
+        }),
+        Some(value) => Ok(value),
+    }
+}
 
 pub(crate) fn as_u16(json: &Value, field: &str) -> Result<u16, JsonError> {
     let value: &Value = &json[field];
@@ -73,7 +98,11 @@ pub(crate) fn as_string(json: &Value, field: &str) -> Result<String, JsonError> 
     }
 }
 
-fn str_to_bytes(value: &str, field: &str) -> Result<Vec<u8>, JsonError> {
+pub(crate) fn bytes_to_str(bytes: &[u8]) -> String {
+    svm_common::fmt::fmt_hex(bytes, "")
+}
+
+pub(crate) fn str_to_bytes(value: &str, field: &str) -> Result<Vec<u8>, JsonError> {
     if value.len() % 2 == 1 {
         return Err(JsonError::InvalidField {
             field: field.to_string(),
@@ -107,8 +136,12 @@ pub(crate) fn as_blob(json: &Value, field: &str) -> Result<Vec<u8>, JsonError> {
 }
 
 pub(crate) fn as_addr(json: &Value, field: &str) -> Result<Address, JsonError> {
-    let value = as_string(json, field)?;
-    let bytes = str_to_bytes(&value, field)?;
+    let s = as_string(json, field)?;
+    str_as_addr(&s, field)
+}
+
+pub(crate) fn str_as_addr(s: &str, field: &str) -> Result<Address, JsonError> {
+    let bytes = str_to_bytes(s, field)?;
 
     if bytes.len() != Address::len() {
         return Err(JsonError::InvalidField {
@@ -117,12 +150,21 @@ pub(crate) fn as_addr(json: &Value, field: &str) -> Result<Address, JsonError> {
         });
     }
 
-    let addr = Address::from(&bytes[..]);
+    let addr: Address = (&bytes[..]).into();
     Ok(addr)
 }
 
 pub(crate) fn as_wasm_value(json: &Value, field: &str) -> Result<WasmValue, JsonError> {
-    let value = json.as_str().unwrap();
+    let value = match json {
+        Value::String(s) => s,
+        _ => {
+            return Err(JsonError::InvalidField {
+                field: field.to_string(),
+                reason: format!("wasm vaulue should be of a string"),
+            })
+        }
+    };
+
     let len = value.len();
     let is_i32 = value.ends_with("i32");
     let is_i64 = value.ends_with("i64");
@@ -158,10 +200,6 @@ pub(crate) fn as_wasm_values(json: &Value, field: &str) -> Result<Vec<WasmValue>
     let value: &Value = &json[field];
 
     match value.as_array() {
-        None => Err(JsonError::InvalidField {
-            field: field.to_string(),
-            reason: format!("value `{}` isn't an array", value),
-        }),
         Some(vec) => {
             let mut values = Vec::with_capacity(vec.len());
             let field = format!("{} (array item)", field);
@@ -173,6 +211,10 @@ pub(crate) fn as_wasm_values(json: &Value, field: &str) -> Result<Vec<WasmValue>
 
             Ok(values)
         }
+        None => Err(JsonError::InvalidField {
+            field: field.to_string(),
+            reason: format!("value `{}` isn't an array", value),
+        }),
     }
 }
 
@@ -180,7 +222,7 @@ pub(crate) fn as_wasm_values(json: &Value, field: &str) -> Result<Vec<WasmValue>
 mod test {
     use super::*;
 
-    use serde_json::{json, Value};
+    use serde_json::json;
 
     #[test]
     fn json_as_u16_valid() {

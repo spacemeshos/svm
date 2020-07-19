@@ -8,7 +8,7 @@ use crate::{
 };
 
 use svm_layout::{DataLayout, DataLayoutBuilder};
-use svm_types::{Address, AppTemplate, WasmValue};
+use svm_types::AppTemplate;
 
 ///
 /// ```json

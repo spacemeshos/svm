@@ -91,7 +91,7 @@ impl AppStorage {
         self.layout.get_var(var_id)
     }
 
-    /// Commits modified (a.k.a) variables into the raw storage.
+    /// Commits modified variables into the raw storage.
     #[must_use]
     pub fn commit(&mut self) -> State {
         let var_offset: HashMap<VarId, u32> = self

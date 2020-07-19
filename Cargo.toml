@@ -60,24 +60,32 @@ hex = "0.4"
 svm-common = { path = "crates/svm-common" }
 svm-kv = { path = "crates/svm-kv" }
 svm-gas = { path = "crates/svm-gas" }
-svm-abi = { path = "crates/svm-abi" }
+svm-app-query = { path = "crates/svm-app-query" }
 svm-types = { path = "crates/svm-types" }
+svm-sdk = { path = "crates/svm-sdk" }
 svm-codec = { path = "crates/svm-codec" }
 svm-layout = { path = "crates/svm-layout" }
 svm-storage = { path = "crates/svm-storage" }
 svm-compiler = { path = "crates/svm-compiler" }
 svm-runtime = { path = "crates/svm-runtime" }
 svm-runtime-c-api = { path = "crates/svm-runtime-c-api" }
+svm-abi-encoder = { path = "crates/svm-abi/encoder" }
+svm-abi-decoder = { path = "crates/svm-abi/decoder" }
+svm-abi-tests = { path = "crates/svm-abi/tests" }
 
 [dev-dependencies]
 wabt = "0.7.4"
 
 [workspace]
 members = [
-  "crates/svm-abi",
+  "crates/svm-app-query",
+  "crates/svm-abi/encoder",
+  "crates/svm-abi/decoder",
+  "crates/svm-abi/tests",
   "crates/svm-codec",
   "crates/svm-types",
   "crates/svm-common",
+  "crates/svm-sdk",
   "crates/svm-kv",
   "crates/svm-layout",
   "crates/svm-storage",

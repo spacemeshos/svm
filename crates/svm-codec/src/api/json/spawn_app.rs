@@ -1,12 +1,13 @@
-use serde_json::Value;
+use serde_json::{json, Value};
 
 use crate::{
     api::json::{self, JsonError},
+    api::raw,
     app,
-    nibble::NibbleWriter,
+    nibble::{NibbleIter, NibbleWriter},
 };
 
-use svm_types::{Address, App, SpawnApp, WasmValue};
+use svm_types::{AddressOf, App, SpawnApp, WasmValue};
 
 ///
 /// ```json
@@ -15,15 +16,22 @@ use svm_types::{Address, App, SpawnApp, WasmValue};
 ///   template: 'A2FB...',  // string
 ///   ctor_index: 0,        // number
 ///   ctor_buf: '',         // string
-///   ctor_args: ['10i32', '20i64', ...] // Array of `string`
+///   ctor_args: ['10i32', '20i64', ...] // Array of `String`
 /// }
 /// ```
-pub fn spawn_app(json: &Value) -> Result<Vec<u8>, JsonError> {
+pub fn encode_spawn_app(json: &Value) -> Result<Vec<u8>, JsonError> {
     let version = json::as_u32(json, "version")?;
     let template = json::as_addr(json, "template")?.into();
     let ctor_idx = json::as_u16(json, "ctor_index")?;
-    let ctor_buf = json::as_blob(json, "ctor_buf")?;
-    let ctor_args = json::as_wasm_values(json, "ctor_args")?;
+
+    let ctor_buf = json::as_string(json, "ctor_buf")?;
+    let ctor_buf = json::str_to_bytes(&ctor_buf, "ctor_buf")?;
+
+    let ctor_args = json::as_string(json, "ctor_args")?;
+    let ctor_args = json::str_to_bytes(&ctor_args, "ctor_args")?;
+
+    let mut iter = NibbleIter::new(&ctor_args);
+    let ctor_args = raw::decode_func_args(&mut iter).unwrap();
 
     let spawn = SpawnApp {
         app: App { version, template },
@@ -39,10 +47,55 @@ pub fn spawn_app(json: &Value) -> Result<Vec<u8>, JsonError> {
     Ok(bytes)
 }
 
+pub fn decode_spawn_app(json: &Value) -> Result<Value, JsonError> {
+    let data = json::as_string(json, "data")?;
+    let bytes = json::str_to_bytes(&data, "data")?;
+
+    let mut iter = NibbleIter::new(&bytes);
+    let spawn = raw::decode_spawn_app(&mut iter).unwrap();
+
+    let version = spawn.app.version;
+    let ctor_idx = spawn.ctor_idx;
+    let template = addr_as_string(&spawn.app.template);
+
+    let ctor_buf = json::bytes_to_str(&spawn.ctor_buf);
+    let ctor_buf = json::decode_func_buf(&json!({ "data": ctor_buf }))?;
+
+    let ctor_args = args_as_string(&spawn.ctor_args);
+
+    let json = json!({
+        "version": version,
+        "template": template,
+        "ctor_index": ctor_idx,
+        "ctor_buf": ctor_buf,
+        "ctor_args": ctor_args
+    });
+
+    Ok(json)
+}
+
+fn addr_as_string<T>(addr: &AddressOf<T>) -> String {
+    let bytes = addr.inner().as_slice();
+
+    json::bytes_to_str(bytes)
+}
+
+fn args_as_string(func_args: &[WasmValue]) -> Vec<String> {
+    func_args
+        .iter()
+        .map(|v| match v {
+            WasmValue::I32(v) => format!("{}i32", v),
+            WasmValue::I64(v) => format!("{}i64", v),
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use serde_json::json;
+
+    use svm_types::{Address, WasmValue};
 
     use crate::nibble::NibbleIter;
 
@@ -50,7 +103,7 @@ mod tests {
     fn json_spawn_app_missing_version() {
         let json = json!({});
 
-        let err = spawn_app(&json).unwrap_err();
+        let err = encode_spawn_app(&json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -66,7 +119,7 @@ mod tests {
             "version": 0
         });
 
-        let err = spawn_app(&json).unwrap_err();
+        let err = encode_spawn_app(&json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -83,7 +136,7 @@ mod tests {
             "template": "10203040506070809000A0B0C0D0E0F0ABCDEFFF"
         });
 
-        let err = spawn_app(&json).unwrap_err();
+        let err = encode_spawn_app(&json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -101,7 +154,7 @@ mod tests {
             "ctor_index": 0,
         });
 
-        let err = spawn_app(&json).unwrap_err();
+        let err = encode_spawn_app(&json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -113,53 +166,60 @@ mod tests {
 
     #[test]
     fn json_spawn_app_missing_ctor_args() {
+        let calldata = json::encode_calldata(&json!({
+            "abi": [],
+            "data": []
+        }))
+        .unwrap();
+
         let json = json!({
             "version": 0,
             "template": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
             "ctor_index": 0,
-            "ctor_buf": "0000"
+            "ctor_buf": calldata["func_buf"]
         });
 
-        let err = spawn_app(&json).unwrap_err();
+        let err = encode_spawn_app(&json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
                 field: "ctor_args".to_string(),
-                reason: "value `null` isn\'t an array".to_string(),
+                reason: "value `null` isn\'t a string".to_string(),
             }
         );
     }
 
     #[test]
     fn json_spawn_app_valid() {
+        let template_addr = "1122334455667788990011223344556677889900";
+
+        let calldata = json::encode_calldata(&json!({
+            "abi": ["i32", "address", "i64"],
+            "data": [10, template_addr, 20]
+        }))
+        .unwrap();
+
         let json = json!({
-            "version": 0,
+            "version": 1,
             "template": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
-            "ctor_index": 1,
-            "ctor_buf": "A2B3",
-            "ctor_args": ["10i32", "20i64"]
+            "ctor_index": 2,
+            "ctor_buf": calldata["func_buf"],
+            "ctor_args": calldata["func_args"]
         });
 
-        let bytes = spawn_app(&json).unwrap();
+        let bytes = encode_spawn_app(&json).unwrap();
+        let data = json::bytes_to_str(&bytes);
+        let json = decode_spawn_app(&json!({ "data": data })).unwrap();
 
-        let mut iter = NibbleIter::new(&bytes[..]);
-        let actual = crate::api::raw::decode_spawn_app(&mut iter).unwrap();
-
-        let addr_bytes = vec![
-            0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80, 0x90, 0x00, 0xA0, 0xB0, 0xC0, 0xD0,
-            0xE0, 0xF0, 0xAB, 0xCD, 0xEF, 0xFF,
-        ];
-
-        let expected = SpawnApp {
-            app: App {
-                version: 0,
-                template: Address::from(&addr_bytes[..]).into(),
-            },
-            ctor_idx: 1,
-            ctor_buf: vec![0xA2, 0xB3],
-            ctor_args: vec![WasmValue::I32(10), WasmValue::I64(20)],
-        };
-
-        assert_eq!(actual, expected);
+        assert_eq!(
+            json,
+            json!({
+                "version": 1,
+                "template": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
+                "ctor_index": 2,
+                "ctor_buf": [{"address": template_addr}],
+                "ctor_args": ["10i32", "20i64"],
+            })
+        );
     }
 }

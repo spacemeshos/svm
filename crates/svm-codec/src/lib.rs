@@ -1,3 +1,11 @@
+//! This crate is responsible for doing the binary encoding for SVM transactions.
+//! It code is compiled as a single WASM file and it should be integrated by Wallet Apps.
+//!
+//! By doing that, a Wallet Apps can locally encode a binary transaction without having to re-implement all the logic
+//! of the `svm-codec`.
+//
+//! The CI of the SVM outputs the WASM package of `svm-codec` as one of its artifacts.
+
 #![allow(missing_docs)]
 #![allow(unused)]
 #![allow(dead_code)]
@@ -20,12 +28,19 @@ mod transaction;
 mod varuint14;
 mod version;
 
+/// Code related to dealing with Nibbles (a nibble consists of 4-bits).
 #[macro_use]
 pub mod nibble;
 
-pub mod receipt;
-
+/// Wraps the exposed APIs under a single place.
+/// This crate exposes the following APIs:
+///
+/// * Builder
+/// * Raw  
+/// * JSON   
+/// * WASM
 pub mod api;
+pub mod receipt;
 
 pub mod error;
 pub mod serializers {
@@ -105,8 +120,20 @@ pub extern "C" fn wasm_deploy_template(buf_ptr: i32) -> i32 {
 /// If the encoding failed, the returned WASM buffer will contain a String containing the error message.
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
-pub extern "C" fn wasm_spawn_app(buf_ptr: i32) -> i32 {
+pub extern "C" fn wasm_encode_spawn_app(buf_ptr: i32) -> i32 {
     match api::wasm::encode_spawn_app(buf_ptr as usize) {
+        Ok(tx_ptr) => tx_ptr as _,
+        Err(err) => {
+            let err_ptr = api::wasm::into_error_buffer(err);
+            err_ptr as _
+        }
+    }
+}
+
+#[no_mangle]
+#[cfg(target_arch = "wasm32")]
+pub extern "C" fn wasm_decode_spawn_app(buf_ptr: i32) -> i32 {
+    match api::wasm::decode_spawn_app(buf_ptr as usize) {
         Ok(tx_ptr) => tx_ptr as _,
         Err(err) => {
             let err_ptr = api::wasm::into_error_buffer(err);
@@ -124,8 +151,19 @@ pub extern "C" fn wasm_spawn_app(buf_ptr: i32) -> i32 {
 /// If the encoding failed, the returned WASM buffer will contain a String containing the error message.
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
-pub extern "C" fn wasm_exec_app(buf_ptr: i32) -> i32 {
+pub extern "C" fn wasm_encode_exec_app(buf_ptr: i32) -> i32 {
     match api::wasm::encode_exec_app(buf_ptr as usize) {
+        Ok(tx_ptr) => tx_ptr as _,
+        Err(err) => {
+            let err_ptr = api::wasm::into_error_buffer(err);
+            err_ptr as _
+        }
+    }
+}
+#[no_mangle]
+#[cfg(target_arch = "wasm32")]
+pub extern "C" fn wasm_decode_exec_app(buf_ptr: i32) -> i32 {
+    match api::wasm::decode_exec_app(buf_ptr as usize) {
         Ok(tx_ptr) => tx_ptr as _,
         Err(err) => {
             let err_ptr = api::wasm::into_error_buffer(err);
@@ -178,4 +216,28 @@ pub extern "C" fn wasm_buffer_data(buf_ptr: i32) -> i32 {
     let (data_ptr, _len) = api::wasm::wasm_buf_data_ptr(buf_ptr as usize);
 
     data_ptr as _
+}
+
+#[no_mangle]
+#[cfg(target_arch = "wasm32")]
+pub extern "C" fn wasm_encode_calldata(buf_ptr: i32) -> i32 {
+    match api::wasm::encode_calldata(buf_ptr as usize) {
+        Ok(ptr) => ptr as _,
+        Err(err) => {
+            let err_ptr = api::wasm::into_error_buffer(err);
+            err_ptr as _
+        }
+    }
+}
+
+#[no_mangle]
+#[cfg(target_arch = "wasm32")]
+pub extern "C" fn wasm_decode_calldata(buf_ptr: i32) -> i32 {
+    match api::wasm::decode_calldata(buf_ptr as usize) {
+        Ok(ptr) => ptr as _,
+        Err(err) => {
+            let err_ptr = api::wasm::into_error_buffer(err);
+            err_ptr as _
+        }
+    }
 }

@@ -930,7 +930,10 @@ dependencies = [
  "libc",
  "log",
  "rocksdb",
- "svm-abi",
+ "svm-abi-decoder",
+ "svm-abi-encoder",
+ "svm-abi-tests",
+ "svm-app-query",
  "svm-codec",
  "svm-common",
  "svm-compiler",
@@ -939,6 +942,7 @@ dependencies = [
  "svm-layout",
  "svm-runtime",
  "svm-runtime-c-api",
+ "svm-sdk",
  "svm-storage",
  "svm-types",
  "tiny-keccak",
@@ -949,7 +953,31 @@ dependencies = [
 ]
 
 [[package]]
-name = "svm-abi"
+name = "svm-abi-decoder"
+version = "0.0.0"
+dependencies = [
+ "svm-abi-encoder",
+ "svm-sdk",
+]
+
+[[package]]
+name = "svm-abi-encoder"
+version = "0.0.0"
+dependencies = [
+ "svm-sdk",
+]
+
+[[package]]
+name = "svm-abi-tests"
+version = "0.0.0"
+dependencies = [
+ "svm-abi-decoder",
+ "svm-abi-encoder",
+ "svm-sdk",
+]
+
+[[package]]
+name = "svm-app-query"
 version = "0.0.0"
 dependencies = [
  "byteorder",
@@ -979,8 +1007,11 @@ dependencies = [
  "byteorder",
  "maplit",
  "serde_json",
+ "svm-abi-decoder",
+ "svm-abi-encoder",
  "svm-common",
  "svm-layout",
+ "svm-sdk",
  "svm-types",
 ]
 
@@ -1073,6 +1104,10 @@ dependencies = [
  "wasmer-runtime-c-api",
  "wasmer-runtime-core",
 ]
+
+[[package]]
+name = "svm-sdk"
+version = "0.0.0"
 
 [[package]]
 name = "svm-storage"

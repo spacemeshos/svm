@@ -8,12 +8,12 @@ pub fn fmt_hex(bytes: &[u8], separator: &str) -> String {
 
     if n > 0 {
         for b in bytes.iter().take(n - 1) {
-            let _ = buf.write_fmt(format_args!("{:X}{}", b, separator));
+            let _ = buf.write_fmt(format_args!("{:02X}{}", b, separator));
         }
 
         // last byte has no following separator
         let last = bytes.last().unwrap();
-        let _ = buf.write_fmt(format_args!("{:X}", last));
+        let _ = buf.write_fmt(format_args!("{:02X}", last));
     }
 
     buf
@@ -21,15 +21,14 @@ pub fn fmt_hex(bytes: &[u8], separator: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    #[test]
-    fn fmt_hex() {
-        let bytes = vec![0x10, 0x20, 0x30, 0x40];
+    use super::*;
 
-        assert_eq!("10 20 30 40", crate::fmt::fmt_hex(bytes.as_slice(), " "));
-        assert_eq!("10,20,30,40", crate::fmt::fmt_hex(bytes.as_slice(), ","));
-        assert_eq!(
-            "10, 20, 30, 40",
-            crate::fmt::fmt_hex(bytes.as_slice(), ", ")
-        );
+    #[test]
+    fn test_fmt_hex() {
+        let bytes = vec![0x01, 0x20, 0x30, 0x40];
+
+        assert_eq!("01 20 30 40", fmt_hex(bytes.as_slice(), " "));
+        assert_eq!("01,20,30,40", fmt_hex(bytes.as_slice(), ","));
+        assert_eq!("01, 20, 30, 40", fmt_hex(bytes.as_slice(), ", "));
     }
 }

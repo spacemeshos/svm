@@ -34,7 +34,7 @@ pub struct StorageQuery {
 
 /// This trait should be implemented by App's storage interfaces.
 ///
-/// See `AppStorage` under the `svm-abi` crate.
+/// See `AppStorage` under the `svm-storage` crate.
 pub trait StorageReader<V, VR: VarRenderer<V>> {
     /// Executes a read request.
     ///
