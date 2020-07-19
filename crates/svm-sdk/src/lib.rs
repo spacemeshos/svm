@@ -1,5 +1,4 @@
 #![no_std]
-#![feature(core_intrinsics)]
 
 //! This crate implements SDK for SVM.
 //! Using this crate when writing SVM Templates in Rust isn't mandatory but should be very useful.
