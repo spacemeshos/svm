@@ -56,7 +56,7 @@ macro_rules! decode_fixed_primitive {
     }};
 }
 
-/// Decodes a encoded function buffer back into a `sdk_values::Value`
+/// Decodes an encoded function buffer back into a `sdk_values::Value`
 pub struct Decoder;
 
 impl Decoder {
