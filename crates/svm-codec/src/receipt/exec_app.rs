@@ -1,17 +1,19 @@
-//!         `ExecReceipt` Raw Format Version 0
+//!         `Exec App` Receipt Raw Format Version 0
 //!
 //!  On success (`is_success = 1`)
 //!  +---------------------------------------------------+
-//!  |            |              |                       |
-//!  |  version   |  is_success  |     app new state     |
-//!  |            |  (1 nibble)  |      (32 bytes)       |
-//!  +____________|______________|_______________________+
+//!  |  tx type  |  version   | is_success |  New state  |
+//!  | (1 byte)  | (1 nibble) | (1 nibble) | (32 bytes)  |
+//!  +___________|____________|__________________________+
 //!  |          |              |         |               |
 //!  | #returns | ret #1 type  | ret #1  |  ret #2  type |
 //!  +__________|______________|_________|_______________+
 //!  |          |            |                           |
 //!  |  ret #2  |   .  .  .  |         gas_used          |
 //!  +__________|____________|___________________________+
+//!  |          |            |         |                 |
+//!  |  #logs   | log 1 blob |  . . .  |     log #N      |
+//!  +__________|____________|_________|_________________+
 //!
 //!
 //!  On success (`is_success = 0`)

@@ -1,18 +1,15 @@
 //!     `Deploy Template` Receipt Raw Format Version 0
 //!
 //!  On success (`is_success = 1`)
-//!  +---------------------------------------------------+
-//!  |   format   |              |                       |
-//!  |  version   |  is_success  |    Template Address   |
-//!  |  (4 bytes) |   (1 byte)   |      (20 bytes)       |
-//!  +____________|______________|_______________________+
-//!  |                                                   |
-//!  |                   gas_used                        |
-//!  +___________________________________________________+
 //!
+//!  +-------------------------------------------------------------------+
+//!  | tx type  |   version  |  is_success | Template Address | gas_used |
+//!  | (1 byte) | (1 nibble) |  (1 byte)   |    (20 bytes)    |          |
+//!  +_______________________|___________________________________________+
 //!
 //!  On success (`is_success = 0`)
 //!  See [error.rs][./error.rs]
+//!
 
 use crate::api::raw;
 use crate::nibble::NibbleWriter;
