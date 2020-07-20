@@ -40,6 +40,11 @@ impl SpawnAppReceipt {
         }
     }
 
+    /// Returns spawned-app `Error`. Panics if spawning has *not* failed.
+    pub fn get_error(&self) -> &SpawnAppError {
+        self.error.as_ref().unwrap()
+    }
+
     /// Returns spawned-app `Address`. Panics if spawning has failed.
     pub fn get_app_addr(&self) -> &AppAddr {
         self.app_addr.as_ref().unwrap()

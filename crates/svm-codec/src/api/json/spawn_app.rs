@@ -56,12 +56,11 @@ pub fn decode_spawn_app(json: &Value) -> Result<Value, JsonError> {
 
     let version = spawn.app.version;
     let ctor_idx = spawn.ctor_idx;
-    let template = addr_as_string(&spawn.app.template);
+    let template = json::addr_to_str(&spawn.app.template.inner());
 
     let ctor_buf = json::bytes_to_str(&spawn.ctor_buf);
     let ctor_buf = json::decode_func_buf(&json!({ "data": ctor_buf }))?;
-
-    let ctor_args = args_as_string(&spawn.ctor_args);
+    let ctor_args = json::wasm_values_to_json(&spawn.ctor_args);
 
     let json = json!({
         "version": version,
@@ -72,22 +71,6 @@ pub fn decode_spawn_app(json: &Value) -> Result<Value, JsonError> {
     });
 
     Ok(json)
-}
-
-fn addr_as_string<T>(addr: &AddressOf<T>) -> String {
-    let bytes = addr.inner().as_slice();
-
-    json::bytes_to_str(bytes)
-}
-
-fn args_as_string(func_args: &[WasmValue]) -> Vec<String> {
-    func_args
-        .iter()
-        .map(|v| match v {
-            WasmValue::I32(v) => format!("{}i32", v),
-            WasmValue::I64(v) => format!("{}i64", v),
-        })
-        .collect()
 }
 
 #[cfg(test)]

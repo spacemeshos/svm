@@ -4,6 +4,7 @@ mod error;
 mod exec_app;
 mod func_args;
 mod func_buf;
+mod receipt;
 mod spawn_app;
 
 pub use calldata::{decode_calldata, encode_calldata};
@@ -12,11 +13,12 @@ pub use error::JsonError;
 pub use exec_app::{decode_exec_app, encode_exec_app};
 pub use func_args::{decode_func_args, encode_func_args};
 pub use func_buf::{decode_func_buf, encode_func_buf};
+pub use receipt::to_json;
 pub use spawn_app::{decode_spawn_app, encode_spawn_app};
 
-use serde_json::Value;
+use serde_json::{json, Value};
 
-use svm_types::{Address, WasmValue};
+use svm_types::{gas::MaybeGas, receipt::Log, Address, State, WasmValue};
 
 pub(crate) fn to_bytes(json: &Value) -> Result<Vec<u8>, JsonError> {
     match serde_json::to_string(&json) {
@@ -152,6 +154,45 @@ pub(crate) fn str_as_addr(s: &str, field: &str) -> Result<Address, JsonError> {
 
     let addr: Address = (&bytes[..]).into();
     Ok(addr)
+}
+
+pub(crate) fn addr_to_str(addr: &Address) -> String {
+    bytes_to_str(addr.as_slice())
+}
+
+pub(crate) fn state_to_str(state: &State) -> String {
+    bytes_to_str(state.as_slice())
+}
+
+pub(crate) fn gas_to_json(gas: &MaybeGas) -> i64 {
+    if gas.is_some() {
+        gas.unwrap() as _
+    } else {
+        (-1)
+    }
+}
+
+pub(crate) fn wasm_values_to_json(values: &[WasmValue]) -> Vec<String> {
+    values
+        .iter()
+        .map(|v| match v {
+            WasmValue::I32(v) => format!("{}i32", v),
+            WasmValue::I64(v) => format!("{}i64", v),
+        })
+        .collect()
+}
+
+pub(crate) fn logs_to_json(logs: &[Log]) -> Vec<Value> {
+    logs.iter()
+        .map(|log| {
+            let msg = unsafe { String::from_utf8_unchecked(log.msg.clone()) };
+
+            json!({
+                "msg": msg,
+                "code": log.code
+            })
+        })
+        .collect()
 }
 
 pub(crate) fn as_wasm_value(json: &Value, field: &str) -> Result<WasmValue, JsonError> {
