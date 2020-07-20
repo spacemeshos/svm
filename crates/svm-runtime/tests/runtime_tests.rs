@@ -3,7 +3,7 @@ use svm_codec::error::ParseError;
 use svm_gas::error::ProgramError;
 use svm_layout::{DataLayout, VarId};
 use svm_runtime::{error::ValidateError, testing, Runtime};
-use svm_types::receipt::{ExecReceipt, SpawnAppReceipt, TemplateReceipt};
+use svm_types::receipt::{ExecReceipt, Log, SpawnAppReceipt, TemplateReceipt};
 use svm_types::{gas::MaybeGas, Address, HostCtx, WasmValue};
 
 macro_rules! default_runtime {
@@ -153,10 +153,14 @@ fn default_runtime_spawn_app_with_ctor_reaches_oog() {
     let ctor_args = vec![];
 
     let bytes = testing::build_app(version, &template_addr, ctor_idx, &ctor_buf, &ctor_args);
-
     let maybe_gas = MaybeGas::with(0);
 
-    let expected = SpawnAppReceipt::new_oog();
+    let log = Log {
+        msg: b"not enough gas (installation_gas = 22000) for installation".to_vec(),
+        code: 1,
+    };
+
+    let expected = SpawnAppReceipt::new_oog(vec![log]);
     let actual = runtime.spawn_app(&bytes, &creator, HostCtx::new(), maybe_gas);
     assert_eq!(expected, actual);
 }
@@ -314,8 +318,9 @@ fn default_runtime_exec_app_reaches_oog() {
     let func_args = vec![WasmValue::I64(10)];
     let bytes = testing::build_app_tx(version, &app_addr, func_idx, &func_buf, &func_args);
     let maybe_gas = MaybeGas::with(0);
+    let logs = Vec::new();
 
-    let expected = ExecReceipt::new_oog();
+    let expected = ExecReceipt::new_oog(logs);
     let actual = runtime.exec_app(&bytes, &init_state, HostCtx::new(), maybe_gas);
 
     assert_eq!(expected, actual)

@@ -51,6 +51,11 @@ impl<'a> NibbleIter<'a> {
         self.nibbles_read % 2 == 0
     }
 
+    #[inline]
+    pub fn read_byte(&mut self) -> u8 {
+        self.read_bytes(1)[0]
+    }
+
     /// Reads `count` bytes (i.e `2 * count` nibbles).
     pub fn read_bytes(&mut self, count: usize) -> Vec<u8> {
         // `count` bytes <=> `2 * count` nibbles

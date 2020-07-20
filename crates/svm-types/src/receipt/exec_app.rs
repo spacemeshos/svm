@@ -1,4 +1,4 @@
-use crate::receipt::error::ExecAppError;
+use crate::receipt::{error::ExecAppError, Log};
 use crate::{gas::MaybeGas, State, WasmValue};
 
 /// Runtime transaction execution receipt
@@ -18,17 +18,32 @@ pub struct ExecReceipt {
 
     /// The amount of gas used.
     pub gas_used: MaybeGas,
+
+    /// logged entries during execution of app's transaction
+    pub logs: Vec<Log>,
 }
 
 impl ExecReceipt {
     /// Creates a `ExecReceipt` for reaching reaching `Out-of-Gas`.
-    pub fn new_oog() -> Self {
+    pub fn new_oog(logs: Vec<Log>) -> Self {
         Self {
             success: false,
             error: Some(ExecAppError::OOG),
             new_state: None,
             returns: None,
             gas_used: MaybeGas::new(),
+            logs,
+        }
+    }
+
+    pub fn from_err(error: ExecAppError, logs: Vec<Log>) -> Self {
+        Self {
+            success: false,
+            error: Some(error),
+            new_state: None,
+            returns: None,
+            gas_used: MaybeGas::new(),
+            logs,
         }
     }
 
@@ -41,16 +56,9 @@ impl ExecReceipt {
     pub fn get_returns(&self) -> &Vec<WasmValue> {
         self.returns.as_ref().unwrap()
     }
-}
 
-impl From<ExecAppError> for ExecReceipt {
-    fn from(error: ExecAppError) -> Self {
-        Self {
-            success: false,
-            error: Some(error),
-            new_state: None,
-            returns: None,
-            gas_used: MaybeGas::new(),
-        }
+    /// Take the Receipt's logged entries out
+    pub fn take_logs(&mut self) -> Vec<Log> {
+        std::mem::take(&mut self.logs)
     }
 }

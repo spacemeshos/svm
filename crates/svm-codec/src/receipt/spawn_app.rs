@@ -13,6 +13,9 @@
 //!  |          |            |                            |
 //!  |  ret #2  |   .  .  .  |         gas_used           |
 //!  +__________|____________|____________________________+
+//!  |          |            |         |                  |
+//!  |  #logs   | log 1 blob |  . . .  |     log #N       |
+//!  +__________|____________|_________|__________________+
 //!
 //!
 //!  On success (`is_success = 0`)
@@ -21,7 +24,7 @@
 use crate::nibble::NibbleWriter;
 use svm_types::receipt::{Receipt, SpawnAppReceipt};
 
-use super::{encode_error, helpers};
+use super::{encode_error, helpers, logs::encode_logs};
 
 pub fn encode_app_receipt(receipt: &SpawnAppReceipt) -> Vec<u8> {
     let mut w = NibbleWriter::new();
@@ -36,6 +39,7 @@ pub fn encode_app_receipt(receipt: &SpawnAppReceipt) -> Vec<u8> {
         encode_init_state(receipt, &mut w);
         encode_returns(&receipt, &mut w);
         helpers::encode_gas_used(&wrapped_receipt, &mut w);
+        encode_logs(&receipt.logs, &mut w);
     } else {
         encode_error(&wrapped_receipt, &mut w);
     };
@@ -70,7 +74,7 @@ mod tests {
 
     use crate::receipt::testing::{self, ClientAppReceipt};
 
-    use svm_types::receipt::error::SpawnAppError;
+    use svm_types::receipt::{error::SpawnAppError, Log};
     use svm_types::{gas::MaybeGas, Address, AppAddr, State, WasmValue};
 
     #[test]
@@ -90,6 +94,7 @@ mod tests {
             init_state: None,
             returns: None,
             gas_used: MaybeGas::new(),
+            logs: Vec::new(),
         };
 
         let bytes = encode_app_receipt(&receipt);
@@ -103,11 +108,17 @@ mod tests {
         let addr: AppAddr = Address::of("my-app").into();
         let init_state = State::of("some-state");
 
+        let logs = vec![Log {
+            msg: b"something happened".to_vec(),
+            code: 200,
+        }];
+
         let expected = ClientAppReceipt::Success {
             addr: addr.clone(),
             init_state: init_state.clone(),
             ctor_returns: Vec::new(),
             gas_used: 100,
+            logs: logs.clone(),
         };
 
         let receipt = SpawnAppReceipt {
@@ -117,6 +128,7 @@ mod tests {
             init_state: Some(init_state),
             returns: Some(Vec::new()),
             gas_used: MaybeGas::with(100),
+            logs: logs.clone(),
         };
 
         let bytes = encode_app_receipt(&receipt);
@@ -130,12 +142,17 @@ mod tests {
         let addr: AppAddr = Address::of("my-app").into();
         let init_state = State::of("some-state");
         let returns = vec![WasmValue::I32(10), WasmValue::I64(20), WasmValue::I32(30)];
+        let logs = vec![Log {
+            msg: b"something happened".to_vec(),
+            code: 200,
+        }];
 
         let expected = ClientAppReceipt::Success {
             addr: addr.clone(),
             init_state: init_state.clone(),
             ctor_returns: vec![WasmValue::I32(10), WasmValue::I64(20), WasmValue::I32(30)],
             gas_used: 100,
+            logs: logs.clone(),
         };
 
         let receipt = SpawnAppReceipt {
@@ -145,6 +162,7 @@ mod tests {
             init_state: Some(init_state),
             returns: Some(returns),
             gas_used: MaybeGas::with(100),
+            logs: logs.clone(),
         };
 
         let bytes = encode_app_receipt(&receipt);

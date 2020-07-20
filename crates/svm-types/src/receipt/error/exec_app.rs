@@ -1,5 +1,6 @@
 use std::{error, fmt};
 
+use crate::receipt::Log;
 use crate::{AppAddr, TemplateAddr};
 
 /// `exec-app` error
@@ -88,6 +89,7 @@ impl fmt::Display for ExecAppError {
                 func_idx,
                 func_args,
                 reason,
+                ..
             } => self.fmt_exec_failed(app_addr, template_addr, *func_idx, func_args, reason),
             ExecAppError::InvalidReturnValue {
                 app_addr,

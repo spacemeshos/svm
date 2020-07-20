@@ -19,7 +19,7 @@ use svm_storage::app::AppStorage;
 use svm_types::{
     gas::{MaybeGas, OOGError},
     receipt::error::{ExecAppError, SpawnAppError},
-    receipt::{make_spawn_app_receipt, ExecReceipt, SpawnAppReceipt, TemplateReceipt},
+    receipt::{make_spawn_app_receipt, ExecReceipt, Log, SpawnAppReceipt, TemplateReceipt},
     AppAddr, AppTemplate, AppTransaction, AuthorAddr, CreatorAddr, HostCtx, SpawnApp, State,
     TemplateAddr, WasmValue,
 };
@@ -134,7 +134,19 @@ where
         let gas_left = gas_limit - install_gas;
 
         match gas_left {
-            Err(..) => SpawnAppReceipt::new_oog(),
+            Err(..) => {
+                let log = Log {
+                    msg: format!(
+                        "not enough gas (installation_gas = {}) for installation",
+                        install_gas
+                    )
+                    .into_bytes(),
+
+                    code: 1,
+                };
+
+                SpawnAppReceipt::new_oog(vec![log])
+            }
             Ok(gas_left) => {
                 let addr = self.install_app(&spawn, creator, &host_ctx);
                 let gas_used = install_gas.into();
@@ -261,17 +273,20 @@ where
         info!("runtime `exec_app`");
 
         match self.load_template(&tx) {
-            Err(e) => e.into(),
+            Err(e) => {
+                let empty_logs = Vec::new();
+                ExecReceipt::from_err(e, empty_logs)
+            }
             Ok((template, template_addr, _author, _creator)) => {
                 let mut import_object =
                     self.import_object_create(&template, &tx.app, &state, gas_left, host_ctx);
 
                 self.import_object_extend(&mut import_object);
 
-                let result =
+                let (result, logs) =
                     self.do_exec_app(&tx, &template, &template_addr, &import_object, gas_left);
 
-                let receipt = self.make_receipt(result);
+                let receipt = self.make_receipt(result, logs);
 
                 info!("receipt: {:?}", receipt);
 
@@ -287,27 +302,40 @@ where
         template_addr: &TemplateAddr,
         import_object: &ImportObject,
         gas_left: MaybeGas,
-    ) -> Result<(Option<State>, Vec<WasmValue>, MaybeGas), ExecAppError> {
-        let module = self.compile_template(tx, &template, &template_addr, gas_left)?;
+    ) -> (
+        Result<(Option<State>, Vec<WasmValue>, MaybeGas), ExecAppError>,
+        Vec<Log>,
+    ) {
+        let empty_logs = Vec::new();
 
-        let mut instance = self.instantiate(tx, template_addr, &module, import_object)?;
-
-        self.copy_func_buf_to_memory(&tx.func_buf[..], &mut instance);
-        let args = self.prepare_func_args(tx);
-
-        let func = match self.get_exported_func(tx, template_addr, &instance) {
-            Err(e) => return Err(e),
-            Ok(func) => func,
-        };
-
-        let result = func.call(&args);
-
-        let gas_used = self.wasmer_instance_gas_used(&instance);
-        if gas_used.is_err() {
-            return Err(ExecAppError::OOG);
+        let module = self.compile_template(tx, &template, &template_addr, gas_left);
+        if let Err(err) = module {
+            return (Err(err), empty_logs);
         }
 
-        match result {
+        let instance = self.instantiate(tx, template_addr, &module.unwrap(), import_object);
+        if let Err(err) = instance {
+            return (Err(err), empty_logs);
+        }
+
+        let mut instance = instance.unwrap();
+        self.copy_func_buf_to_memory(&tx.func_buf, &mut instance);
+
+        let args = self.prepare_func_args(tx);
+        let func = match self.get_exported_func(tx, template_addr, &instance) {
+            Err(e) => return (Err(e), empty_logs),
+            Ok(func) => func,
+        };
+        let func_res = func.call(&args);
+
+        let logs = self.instance_logs(&instance);
+
+        let gas_used = self.instance_gas_used(&instance);
+        if gas_used.is_err() {
+            return (Err(ExecAppError::OOG), logs);
+        }
+
+        let result = match func_res {
             Err(e) => Err(ExecAppError::ExecFailed {
                 app_addr: tx.app.clone(),
                 template_addr: template_addr.clone(),
@@ -319,26 +347,35 @@ where
                 let storage = self.instance_storage_mut(&mut instance);
                 let new_state = Some(storage.commit());
 
-                let returns = self.cast_wasmer_func_returns(returns)?;
+                let returns = self.cast_wasmer_func_returns(returns);
+
+                if let Err(err) = returns {
+                    return (Err(err), logs);
+                }
+
                 let gas_used = gas_used.unwrap();
 
-                Ok((new_state, returns, gas_used))
+                Ok((new_state, returns.unwrap(), gas_used))
             }
-        }
+        };
+
+        (result, logs)
     }
 
     fn make_receipt(
         &self,
         result: Result<(Option<State>, Vec<WasmValue>, MaybeGas), ExecAppError>,
+        logs: Vec<Log>,
     ) -> ExecReceipt {
         match result {
-            Err(e) => e.into(),
+            Err(e) => ExecReceipt::from_err(e, logs),
             Ok((new_state, returns, gas_used)) => ExecReceipt {
                 success: true,
                 error: None,
                 returns: Some(returns),
                 new_state,
                 gas_used,
+                logs,
             },
         }
     }
@@ -367,11 +404,14 @@ where
     }
 
     #[inline]
-    fn wasmer_instance_gas_used(
-        &self,
-        instance: &wasmer_runtime::Instance,
-    ) -> Result<MaybeGas, OOGError> {
+    fn instance_gas_used(&self, instance: &wasmer_runtime::Instance) -> Result<MaybeGas, OOGError> {
         helpers::wasmer_gas_used(instance)
+    }
+
+    #[inline]
+    fn instance_logs(&self, instance: &wasmer_runtime::Instance) -> Vec<Log> {
+        let ctx = instance.context();
+        helpers::wasmer_data_logs(ctx.data)
     }
 
     fn cast_wasmer_func_returns(
@@ -559,7 +599,7 @@ where
         let gas_left = gas_left.unwrap_or(0);
 
         svm_compiler::compile_program(&template.code, gas_left, gas_metering).or_else(|e| {
-            error!("module compilation failed (template={:?})", template_addr);
+            error!("module module failed (template={:?})", template_addr);
 
             Err(ExecAppError::CompilationFailed {
                 app_addr: tx.app.clone(),

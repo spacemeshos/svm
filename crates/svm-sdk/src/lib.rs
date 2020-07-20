@@ -15,3 +15,12 @@ pub mod types;
 
 /// SDK values
 pub mod value;
+
+mod log;
+
+/// Logging API
+pub use log::log;
+
+/// `ensure` macro
+#[macro_use]
+pub mod ensure;

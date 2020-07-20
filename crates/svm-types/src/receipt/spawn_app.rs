@@ -1,6 +1,4 @@
-use super::ExecReceipt;
-
-use crate::receipt::error::SpawnAppError;
+use crate::receipt::{error::SpawnAppError, ExecReceipt, Log};
 use crate::{gas::MaybeGas, AppAddr, State, WasmValue};
 
 /// Returned Receipt after spawning an App.
@@ -23,11 +21,14 @@ pub struct SpawnAppReceipt {
 
     /// The amount of gas used
     pub gas_used: MaybeGas,
+
+    /// logged entries during spawn-app's ctor running
+    pub logs: Vec<Log>,
 }
 
 impl SpawnAppReceipt {
     /// Creates a `SpawnAppReceipt` for reaching reaching `Out-of-Gas`.
-    pub fn new_oog() -> Self {
+    pub fn new_oog(logs: Vec<Log>) -> Self {
         Self {
             success: false,
             error: Some(SpawnAppError::OOG),
@@ -35,6 +36,7 @@ impl SpawnAppReceipt {
             init_state: None,
             returns: None,
             gas_used: MaybeGas::new(),
+            logs,
         }
     }
 
@@ -57,6 +59,11 @@ impl SpawnAppReceipt {
     pub fn get_gas_used(&self) -> MaybeGas {
         self.gas_used
     }
+
+    /// Take the Receipt's logged entries out
+    pub fn take_logs(&mut self) -> Vec<Log> {
+        std::mem::take(&mut self.logs)
+    }
 }
 
 impl From<SpawnAppError> for SpawnAppReceipt {
@@ -68,13 +75,18 @@ impl From<SpawnAppError> for SpawnAppReceipt {
             init_state: None,
             returns: None,
             gas_used: MaybeGas::new(),
+            logs: Vec::new(),
         }
     }
 }
 
 #[allow(missing_docs)]
-pub fn make_spawn_app_receipt(ctor_receipt: ExecReceipt, app_addr: &AppAddr) -> SpawnAppReceipt {
+pub fn make_spawn_app_receipt(
+    mut ctor_receipt: ExecReceipt,
+    app_addr: &AppAddr,
+) -> SpawnAppReceipt {
     let app_addr = Some(app_addr.clone());
+    let logs = ctor_receipt.take_logs();
 
     if ctor_receipt.success {
         SpawnAppReceipt {
@@ -84,6 +96,7 @@ pub fn make_spawn_app_receipt(ctor_receipt: ExecReceipt, app_addr: &AppAddr) -> 
             init_state: ctor_receipt.new_state,
             returns: ctor_receipt.returns,
             gas_used: ctor_receipt.gas_used,
+            logs,
         }
     } else {
         let error = ctor_receipt.error.unwrap();
@@ -95,6 +108,7 @@ pub fn make_spawn_app_receipt(ctor_receipt: ExecReceipt, app_addr: &AppAddr) -> 
             init_state: None,
             returns: None,
             gas_used: MaybeGas::new(),
+            logs,
         }
     }
 }

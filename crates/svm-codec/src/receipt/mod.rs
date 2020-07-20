@@ -4,6 +4,8 @@ mod exec_app;
 mod helpers;
 mod spawn_app;
 
+pub(crate) mod logs;
+
 pub mod testing;
 
 use error::encode_error;

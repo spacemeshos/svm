@@ -1,11 +1,13 @@
 mod deploy_template;
 mod exec_app;
+mod log;
 mod spawn_app;
 
 pub mod error;
 
 pub use deploy_template::TemplateReceipt;
 pub use exec_app::ExecReceipt;
+pub use log::Log;
 pub use spawn_app::{make_spawn_app_receipt, SpawnAppReceipt};
 
 use crate::{gas::MaybeGas, WasmValue};

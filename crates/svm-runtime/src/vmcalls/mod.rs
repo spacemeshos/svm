@@ -1,7 +1,9 @@
 mod host_ctx;
+mod logs;
 mod storage;
 
 pub use host_ctx::host_get64;
+pub use logs::log;
 pub use storage::{get32, get64, load160, load256, set32, set64, store160, store256};
 
 pub use wasmer_runtime_core::{
@@ -24,4 +26,6 @@ pub fn wasmer_register(ns: &mut Namespace) {
     ns.insert("store256", func!(store256));
 
     ns.insert("host_get64", func!(host_get64));
+
+    ns.insert("log", func!(log));
 }

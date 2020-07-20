@@ -18,9 +18,9 @@
 //!  See [error.rs][./error.rs]
 
 use crate::nibble::NibbleWriter;
-use svm_types::receipt::{ExecReceipt, Receipt};
+use svm_types::receipt::{ExecReceipt, Log, Receipt};
 
-use super::{encode_error, helpers};
+use super::{encode_error, helpers, logs::encode_logs};
 
 pub fn encode_exec_receipt(receipt: &ExecReceipt) -> Vec<u8> {
     let mut w = NibbleWriter::new();
@@ -34,6 +34,7 @@ pub fn encode_exec_receipt(receipt: &ExecReceipt) -> Vec<u8> {
         encode_new_state(receipt, &mut w);
         encode_returns(receipt, &mut w);
         helpers::encode_gas_used(&wrapped_receipt, &mut w);
+        encode_logs(&receipt.logs, &mut w);
     } else {
         encode_error(&wrapped_receipt, &mut w);
     };
@@ -71,6 +72,11 @@ mod tests {
             app_addr: Address::of("my-app").into(),
         };
 
+        let logs = vec![Log {
+            msg: b"something happened".to_vec(),
+            code: 200,
+        }];
+
         let expected = ClientExecReceipt::Failure {
             error: error.to_string(),
         };
@@ -81,6 +87,7 @@ mod tests {
             new_state: None,
             returns: None,
             gas_used: MaybeGas::new(),
+            logs,
         };
 
         let bytes = encode_exec_receipt(&receipt);
@@ -93,10 +100,16 @@ mod tests {
     fn encode_decode_exec_receipt_success_without_returns() {
         let new_state = State::of("some-state");
 
+        let logs = vec![Log {
+            msg: b"something happened".to_vec(),
+            code: 200,
+        }];
+
         let expected = ClientExecReceipt::Success {
             new_state: new_state.clone(),
             func_returns: Vec::new(),
             gas_used: 100,
+            logs: logs.clone(),
         };
 
         let receipt = ExecReceipt {
@@ -105,6 +118,7 @@ mod tests {
             new_state: Some(new_state),
             returns: Some(Vec::new()),
             gas_used: MaybeGas::with(100),
+            logs: logs.clone(),
         };
 
         let bytes = encode_exec_receipt(&receipt);
@@ -118,10 +132,16 @@ mod tests {
         let new_state = State::of("some-state");
         let returns = vec![WasmValue::I32(10), WasmValue::I64(20), WasmValue::I32(30)];
 
+        let logs = vec![Log {
+            msg: b"something happened".to_vec(),
+            code: 200,
+        }];
+
         let expected = ClientExecReceipt::Success {
             new_state: new_state.clone(),
             func_returns: vec![WasmValue::I32(10), WasmValue::I64(20), WasmValue::I32(30)],
             gas_used: 100,
+            logs: logs.clone(),
         };
 
         let receipt = ExecReceipt {
@@ -130,6 +150,7 @@ mod tests {
             new_state: Some(new_state),
             returns: Some(returns),
             gas_used: MaybeGas::with(100),
+            logs: logs.clone(),
         };
 
         let bytes = encode_exec_receipt(&receipt);
