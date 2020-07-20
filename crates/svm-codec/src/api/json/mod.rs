@@ -13,7 +13,7 @@ pub use error::JsonError;
 pub use exec_app::{decode_exec_app, encode_exec_app};
 pub use func_args::{decode_func_args, encode_func_args};
 pub use func_buf::{decode_func_buf, encode_func_buf};
-pub use receipt::to_json;
+pub use receipt::decode_receipt;
 pub use spawn_app::{decode_spawn_app, encode_spawn_app};
 
 use serde_json::{json, Value};

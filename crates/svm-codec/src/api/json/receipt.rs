@@ -4,7 +4,23 @@ use crate::api::json::{self, JsonError};
 
 use svm_types::receipt::{error::SpawnAppError, SpawnAppReceipt};
 
-pub fn to_json(receipt: &SpawnAppReceipt) -> Value {
+pub fn decode_receipt(json: &Value) -> Result<Value, JsonError> {
+    let data = json::as_string(json, "data")?;
+    let bytes = json::str_to_bytes(&data, "data")?;
+
+    assert!(bytes.len() > 0);
+
+    // match bytes[0] {
+    //     1 => {
+    //         //
+    //     }
+    //     _ => todo!(),
+    // }
+
+    todo!()
+}
+
+fn decode_spawn_app(receipt: &SpawnAppReceipt) -> Value {
     if receipt.success {
         success_receipt(receipt)
     } else {
@@ -44,6 +60,8 @@ fn error_receipt(receipt: &SpawnAppReceipt) -> Value {
 mod tests {
     use super::*;
 
+    use super::json;
+
     use svm_types::{gas::MaybeGas, receipt::Log, Address, AppAddr, State, WasmValue};
 
     #[test]
@@ -72,7 +90,9 @@ mod tests {
             logs,
         };
 
-        let json = to_json(&receipt);
+        let bytes = crate::receipt::encode_app_receipt(&receipt);
+        let data = json::bytes_to_str(&bytes);
+        let json = decode_receipt(&json!({ "data": data })).unwrap();
 
         assert_eq!(
             json,
@@ -109,7 +129,9 @@ mod tests {
             logs,
         };
 
-        let json = to_json(&receipt);
+        let bytes = crate::receipt::encode_app_receipt(&receipt);
+        let data = json::bytes_to_str(&bytes);
+        let json = decode_receipt(&json!({ "data": data })).unwrap();
 
         assert_eq!(
             json,
