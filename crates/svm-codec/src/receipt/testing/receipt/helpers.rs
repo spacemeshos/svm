@@ -3,6 +3,10 @@ use crate::nibble::{Nibble, NibbleIter};
 
 use svm_types::{Address, State};
 
+pub(crate) fn decode_type(iter: &mut NibbleIter) -> u8 {
+    iter.read_byte()
+}
+
 pub(crate) fn decode_is_success(iter: &mut NibbleIter) -> u8 {
     let is_success: Nibble = iter.next().unwrap();
     is_success.inner()

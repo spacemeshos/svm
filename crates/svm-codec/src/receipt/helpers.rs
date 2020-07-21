@@ -20,6 +20,10 @@ pub(crate) fn encode_gas_used(receipt: &Receipt, w: &mut NibbleWriter) {
     raw::encode_gas_used(gas_used, w);
 }
 
+pub(crate) fn encode_type(ty: u8, w: &mut NibbleWriter) {
+    w.write_byte(ty);
+}
+
 pub(crate) fn encode_version(version: u32, w: &mut NibbleWriter) {
     raw::encode_version(version, w);
 }

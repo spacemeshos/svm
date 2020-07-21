@@ -172,7 +172,7 @@ pub extern "C" fn wasm_decode_exec_app(buf_ptr: i32) -> i32 {
     }
 }
 
-/// ## WASM Buffer Allocate
+/// ## WASM Buffer Allocation
 ///
 /// Allocates a new WASM Buffer holding data of `length` bytes.
 ///
@@ -185,7 +185,7 @@ pub extern "C" fn wasm_alloc(length: i32) -> i32 {
     ptr as _
 }
 
-/// ## WASM Buffer Free
+/// ## WASM Buffer Freeing
 ///
 /// Frees the WASM buffer allocated starting from offset `buf_ptr`.
 ///

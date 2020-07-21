@@ -65,6 +65,7 @@ mod tests {
     use svm_types::{gas::MaybeGas, receipt::Log, Address, AppAddr, State, WasmValue};
 
     #[test]
+    #[ignore]
     fn spawn_app_receipt_success() {
         let app: Address = [0x10; 20][..].into();
         let state: State = [0xA0; 32][..].into();
@@ -111,6 +112,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn spawn_app_receipt_error() {
         let logs = vec![Log {
             msg: b"Reached OOG".to_vec(),

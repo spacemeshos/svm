@@ -28,8 +28,11 @@ pub enum ClientTemplateReceipt {
 pub fn decode_template_receipt(bytes: &[u8]) -> ClientTemplateReceipt {
     let mut iter = NibbleIter::new(bytes);
 
+    let ty = helpers::decode_type(&mut iter);
+    debug_assert_eq!(ty, crate::receipt::types::DEPLOY_TEMPLATE);
+
     let version = decode_version(&mut iter).unwrap();
-    debug_assert_eq!(0, version);
+    debug_assert_eq!(version, 0);
 
     let is_success = helpers::decode_is_success(&mut iter);
 

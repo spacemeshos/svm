@@ -23,6 +23,7 @@ pub fn encode_template_receipt(receipt: &TemplateReceipt) -> Vec<u8> {
 
     let wrapped_receipt = Receipt::DeployTemplate(receipt);
 
+    helpers::encode_type(super::types::DEPLOY_TEMPLATE, &mut w);
     raw::encode_version(0, &mut w);
     helpers::encode_is_success(&wrapped_receipt, &mut w);
 

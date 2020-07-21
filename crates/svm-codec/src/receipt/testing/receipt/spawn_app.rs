@@ -38,6 +38,9 @@ pub enum ClientAppReceipt {
 pub fn decode_app_receipt(bytes: &[u8]) -> ClientAppReceipt {
     let mut iter = NibbleIter::new(bytes);
 
+    let ty = helpers::decode_type(&mut iter);
+    debug_assert_eq!(ty, crate::receipt::types::SPAWN_APP);
+
     let version = decode_version(&mut iter).unwrap();
     debug_assert_eq!(0, version);
 

@@ -36,6 +36,9 @@ pub enum ClientExecReceipt {
 pub fn decode_exec_receipt(bytes: &[u8]) -> ClientExecReceipt {
     let mut iter = NibbleIter::new(bytes);
 
+    let ty = helpers::decode_type(&mut iter);
+    debug_assert_eq!(ty, crate::receipt::types::EXEC_APP);
+
     let version = decode_version(&mut iter).unwrap();
     debug_assert_eq!(0, version);
 
