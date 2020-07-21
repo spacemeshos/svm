@@ -1,8 +1,9 @@
-use crate::api::raw;
-use crate::nibble::{Nibble, NibbleWriter};
+use crate::api::raw::{self, Field};
+use crate::nibble::{Nibble, NibbleIter, NibbleWriter};
 
 use svm_types::{receipt::Receipt, Address, State, WasmValue};
 
+/// Encoders
 pub(crate) fn encode_is_success(receipt: &Receipt, w: &mut NibbleWriter) {
     let nib = if receipt.is_success() {
         Nibble::new(1)
@@ -40,4 +41,38 @@ pub(crate) fn encode_addr(addr: &Address, w: &mut NibbleWriter) {
 pub(crate) fn encode_state(state: &State, w: &mut NibbleWriter) {
     let bytes = state.as_slice();
     w.write_bytes(bytes)
+}
+
+/// Decoders
+
+pub(crate) fn decode_type(iter: &mut NibbleIter) -> u8 {
+    iter.read_byte()
+}
+
+pub(crate) fn decode_is_success(iter: &mut NibbleIter) -> u8 {
+    let is_success: Nibble = iter.next().unwrap();
+    is_success.inner()
+}
+
+pub(crate) fn decode_receipt_error(iter: &mut NibbleIter) -> String {
+    let len = raw::decode_varuint14(iter, Field::ErrorLength).unwrap();
+    let bytes = iter.read_bytes(len as usize);
+
+    String::from_utf8(bytes).unwrap()
+}
+
+pub(crate) fn decode_state(iter: &mut NibbleIter) -> State {
+    let bytes = iter.read_bytes(State::len());
+
+    State::from(&bytes[..])
+}
+
+pub(crate) fn decode_address(iter: &mut NibbleIter) -> Address {
+    let bytes = iter.read_bytes(Address::len());
+
+    Address::from(&bytes[..])
+}
+
+pub(crate) fn decode_gas_used(iter: &mut NibbleIter) -> u64 {
+    raw::decode_gas_used(iter).unwrap()
 }

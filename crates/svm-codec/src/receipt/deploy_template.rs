@@ -12,8 +12,9 @@
 //!
 
 use crate::api::raw;
-use crate::nibble::NibbleWriter;
+use crate::nibble::{NibbleIter, NibbleWriter};
 
+use svm_types::gas::MaybeGas;
 use svm_types::receipt::{Receipt, TemplateReceipt};
 
 use super::{encode_error, helpers};
@@ -35,6 +36,41 @@ pub fn encode_template_receipt(receipt: &TemplateReceipt) -> Vec<u8> {
     };
 
     w.into_bytes()
+}
+
+pub fn decode_template_receipt(bytes: &[u8]) -> TemplateReceipt {
+    let mut iter = NibbleIter::new(bytes);
+
+    let ty = helpers::decode_type(&mut iter);
+    debug_assert_eq!(ty, crate::receipt::types::DEPLOY_TEMPLATE);
+
+    let version = raw::decode_version(&mut iter).unwrap();
+    debug_assert_eq!(version, 0);
+
+    let is_success = helpers::decode_is_success(&mut iter);
+
+    match is_success {
+        0 => {
+            // error
+            let error = helpers::decode_receipt_error(&mut iter);
+
+            todo!()
+            // ClientTemplateReceipt::Failure { error }
+        }
+        1 => {
+            // success
+            let addr = helpers::decode_address(&mut iter);
+            let gas_used = helpers::decode_gas_used(&mut iter);
+
+            TemplateReceipt {
+                success: true,
+                error: None,
+                addr: Some(addr.into()),
+                gas_used: MaybeGas::with(gas_used),
+            }
+        }
+        _ => unreachable!(),
+    }
 }
 
 fn encode_template_addr(receipt: &TemplateReceipt, w: &mut NibbleWriter) {

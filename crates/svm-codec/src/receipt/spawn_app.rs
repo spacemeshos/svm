@@ -20,10 +20,13 @@
 //!  On success (`is_success = 0`)
 //!  See [error.rs][./error.rs]
 
-use crate::nibble::NibbleWriter;
+use crate::api::raw;
+use crate::nibble::{NibbleIter, NibbleWriter};
+
+use svm_types::gas::MaybeGas;
 use svm_types::receipt::{Receipt, SpawnAppReceipt};
 
-use super::{encode_error, helpers, logs::encode_logs};
+use super::{encode_error, helpers, logs};
 
 pub fn encode_app_receipt(receipt: &SpawnAppReceipt) -> Vec<u8> {
     let mut w = NibbleWriter::new();
@@ -39,12 +42,53 @@ pub fn encode_app_receipt(receipt: &SpawnAppReceipt) -> Vec<u8> {
         encode_init_state(receipt, &mut w);
         encode_returns(&receipt, &mut w);
         helpers::encode_gas_used(&wrapped_receipt, &mut w);
-        encode_logs(&receipt.logs, &mut w);
+        logs::encode_logs(&receipt.logs, &mut w);
     } else {
         encode_error(&wrapped_receipt, &mut w);
     };
 
     w.into_bytes()
+}
+
+pub fn decode_app_receipt(bytes: &[u8]) -> SpawnAppReceipt {
+    let mut iter = NibbleIter::new(bytes);
+
+    let ty = helpers::decode_type(&mut iter);
+    debug_assert_eq!(ty, crate::receipt::types::SPAWN_APP);
+
+    let version = raw::decode_version(&mut iter).unwrap();
+    debug_assert_eq!(0, version);
+
+    let is_success = helpers::decode_is_success(&mut iter);
+
+    match is_success {
+        0 => {
+            // error
+            let error = helpers::decode_receipt_error(&mut iter);
+
+            todo!()
+            // ClientAppReceipt::Failure { error }
+        }
+        1 => {
+            // success
+            let addr = helpers::decode_address(&mut iter);
+            let init_state = helpers::decode_state(&mut iter);
+            let returns = raw::decode_func_args(&mut iter).unwrap();
+            let gas_used = helpers::decode_gas_used(&mut iter);
+            let logs = logs::decode_logs(&mut iter);
+
+            SpawnAppReceipt {
+                success: true,
+                error: None,
+                app_addr: Some(addr.into()),
+                init_state: Some(init_state),
+                gas_used: MaybeGas::with(gas_used),
+                returns: Some(returns),
+                logs,
+            }
+        }
+        _ => unreachable!(),
+    }
 }
 
 fn encode_app_addr(receipt: &SpawnAppReceipt, w: &mut NibbleWriter) {

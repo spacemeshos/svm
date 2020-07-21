@@ -19,10 +19,13 @@
 //!  On success (`is_success = 0`)
 //!  See [error.rs][./error.rs]
 
-use crate::nibble::NibbleWriter;
+use crate::api::raw;
+use crate::nibble::{NibbleIter, NibbleWriter};
+
+use svm_types::gas::MaybeGas;
 use svm_types::receipt::{ExecReceipt, Log, Receipt};
 
-use super::{encode_error, helpers, logs::encode_logs};
+use super::{encode_error, helpers, logs};
 
 pub fn encode_exec_receipt(receipt: &ExecReceipt) -> Vec<u8> {
     let mut w = NibbleWriter::new();
@@ -37,12 +40,50 @@ pub fn encode_exec_receipt(receipt: &ExecReceipt) -> Vec<u8> {
         encode_new_state(receipt, &mut w);
         encode_returns(receipt, &mut w);
         helpers::encode_gas_used(&wrapped_receipt, &mut w);
-        encode_logs(&receipt.logs, &mut w);
+        logs::encode_logs(&receipt.logs, &mut w);
     } else {
         encode_error(&wrapped_receipt, &mut w);
     };
 
     w.into_bytes()
+}
+
+pub fn decode_exec_receipt(bytes: &[u8]) -> ExecReceipt {
+    let mut iter = NibbleIter::new(bytes);
+
+    let ty = helpers::decode_type(&mut iter);
+    debug_assert_eq!(ty, crate::receipt::types::EXEC_APP);
+
+    let version = raw::decode_version(&mut iter).unwrap();
+    debug_assert_eq!(0, version);
+
+    let is_success = helpers::decode_is_success(&mut iter);
+
+    match is_success {
+        0 => {
+            // error
+            let error = helpers::decode_receipt_error(&mut iter);
+            todo!()
+            // ClientExecReceipt::Failure { error }
+        }
+        1 => {
+            // success
+            let new_state = helpers::decode_state(&mut iter);
+            let returns = raw::decode_func_args(&mut iter).unwrap();
+            let gas_used = helpers::decode_gas_used(&mut iter);
+            let logs = logs::decode_logs(&mut iter);
+
+            ExecReceipt {
+                success: true,
+                error: None,
+                new_state: Some(new_state),
+                gas_used: MaybeGas::with(gas_used),
+                returns: Some(returns),
+                logs,
+            }
+        }
+        _ => unreachable!(),
+    }
 }
 
 fn encode_new_state(receipt: &ExecReceipt, w: &mut NibbleWriter) {

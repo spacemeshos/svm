@@ -1,8 +1,12 @@
 use serde_json::{json, Value};
 
 use crate::api::json::{self, JsonError};
+use crate::api::raw;
 
-use svm_types::receipt::{error::SpawnAppError, SpawnAppReceipt};
+use svm_types::receipt::{
+    error::{DeployTemplateError, ExecAppError, SpawnAppError},
+    ExecReceipt, SpawnAppReceipt, TemplateReceipt,
+};
 
 pub fn decode_receipt(json: &Value) -> Result<Value, JsonError> {
     let data = json::as_string(json, "data")?;
@@ -10,51 +14,45 @@ pub fn decode_receipt(json: &Value) -> Result<Value, JsonError> {
 
     assert!(bytes.len() > 0);
 
-    // match bytes[0] {
-    //     1 => {
-    //         //
-    //     }
-    //     _ => todo!(),
-    // }
+    let receipt = raw::decode_receipt(&bytes);
 
     todo!()
+    // let json = match receipt {
+    //     Receipt::DeployTemplate(r) => todo!(),
+    //     Receipt::SpawnApp(r) => todo!(),
+    //     Receipt::ExecApp(r) => todo!(),
+    // };
+
+    // Ok(json)
 }
 
-fn decode_spawn_app(receipt: &SpawnAppReceipt) -> Value {
-    if receipt.success {
-        success_receipt(receipt)
-    } else {
-        error_receipt(receipt)
-    }
-}
+// fn decode_spawn_app(receipt: &ClientAppReceipt) -> Value {
+//     match receipt {
+//         ClientAppReceipt::Success { addr, init_state, ctor_returns, gas_used, logs }
 
-fn success_receipt(receipt: &SpawnAppReceipt) -> Value {
-    let app = receipt.get_app_addr();
-    let state = receipt.get_init_state();
-    let returns = receipt.get_returns();
-    let gas_used = receipt.get_gas_used();
+//         json!({
+//             "success": true,
+//             "app": json::addr_to_str(app.inner()),
+//             "state": json::state_to_str(state),
+//             "returns": json::wasm_values_to_json(returns),
+//             "gas_used": json::gas_to_json(&gas_used),
+//             "logs": json::logs_to_json(&receipt.logs),
+//         },
+//         _ => todo!()
+//     }
+// }
 
-    json!({
-        "success": true,
-        "app": json::addr_to_str(app.inner()),
-        "state": json::state_to_str(state),
-        "returns": json::wasm_values_to_json(returns),
-        "gas_used": json::gas_to_json(&gas_used),
-        "logs": json::logs_to_json(&receipt.logs),
-    })
-}
+// fn error_receipt(receipt: &SpawnAppReceipt) -> Value {
+//     let gas_used = receipt.get_gas_used();
+//     let error = receipt.get_error();
 
-fn error_receipt(receipt: &SpawnAppReceipt) -> Value {
-    let gas_used = receipt.get_gas_used();
-    let error = receipt.get_error();
-
-    json!({
-        "success": false,
-        "error": error.to_string(),
-        "gas_used": json::gas_to_json(&gas_used),
-        "logs": json::logs_to_json(&receipt.logs),
-    })
-}
+//     json!({
+//         "success": false,
+//         "error": error.to_string(),
+//         "gas_used": json::gas_to_json(&gas_used),
+//         "logs": json::logs_to_json(&receipt.logs),
+//     })
+// }
 
 #[cfg(test)]
 mod tests {
