@@ -1,5 +1,5 @@
 use crate::gas::MaybeGas;
-use crate::receipt::error::DeployTemplateError;
+use crate::receipt::ReceiptError;
 use crate::TemplateAddr;
 
 /// Returned Receipt after deploying a Template.
@@ -9,7 +9,7 @@ pub struct TemplateReceipt {
     pub success: bool,
 
     /// the error in case spawning failed
-    pub error: Option<DeployTemplateError>,
+    pub error: Option<ReceiptError>,
 
     /// The deployed template `Address`
     pub addr: Option<TemplateAddr>,
@@ -33,7 +33,7 @@ impl TemplateReceipt {
     pub fn new_oog() -> Self {
         Self {
             success: false,
-            error: Some(DeployTemplateError::OOG),
+            error: Some(ReceiptError::OOG),
             addr: None,
             gas_used: MaybeGas::new(),
         }
@@ -45,8 +45,8 @@ impl TemplateReceipt {
     }
 }
 
-impl From<DeployTemplateError> for TemplateReceipt {
-    fn from(error: DeployTemplateError) -> Self {
+impl From<ReceiptError> for TemplateReceipt {
+    fn from(error: ReceiptError) -> Self {
         Self {
             success: false,
             error: Some(error),

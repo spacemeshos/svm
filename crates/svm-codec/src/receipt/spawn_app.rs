@@ -116,20 +116,14 @@ fn encode_returns(receipt: &SpawnAppReceipt, w: &mut NibbleWriter) {
 mod tests {
     use super::*;
 
-    use crate::receipt::testing::{self, ClientAppReceipt, ClientReceipt};
-
-    use svm_types::receipt::{error::SpawnAppError, Log};
+    use svm_types::receipt::{Log, ReceiptError};
     use svm_types::{gas::MaybeGas, Address, AppAddr, State, WasmValue};
 
     #[test]
-    fn encode_decode_app_receipt_error() {
+    fn encode_decode_spawn_app_receipt_error() {
         let template_addr = Address::of("my-template").into();
 
-        let error = SpawnAppError::TemplateNotFound(template_addr);
-
-        let expected = ClientReceipt::SpawnApp(ClientAppReceipt::Failure {
-            error: error.to_string(),
-        });
+        let error = ReceiptError::TemplateNotFound(template_addr);
 
         let receipt = SpawnAppReceipt {
             success: false,
@@ -142,13 +136,14 @@ mod tests {
         };
 
         let bytes = encode_app_receipt(&receipt);
-        let actual = testing::decode_receipt(&bytes[..]);
+        let actual = crate::receipt::decode_receipt(&bytes[..]);
 
-        assert_eq!(expected, actual);
+        todo!()
+        // assert_eq!(expected, actual);
     }
 
     #[test]
-    fn encode_decode_app_receipt_success_without_returns() {
+    fn encode_decode_spawn_app_receipt_success_without_returns() {
         let addr: AppAddr = Address::of("my-app").into();
         let init_state = State::of("some-state");
 
@@ -156,14 +151,6 @@ mod tests {
             msg: b"something happened".to_vec(),
             code: 200,
         }];
-
-        let expected = ClientReceipt::SpawnApp(ClientAppReceipt::Success {
-            addr: addr.clone(),
-            init_state: init_state.clone(),
-            ctor_returns: Vec::new(),
-            gas_used: 100,
-            logs: logs.clone(),
-        });
 
         let receipt = SpawnAppReceipt {
             success: true,
@@ -176,13 +163,14 @@ mod tests {
         };
 
         let bytes = encode_app_receipt(&receipt);
-        let actual = testing::decode_receipt(&bytes[..]);
+        let actual = crate::receipt::decode_receipt(&bytes[..]);
 
-        assert_eq!(expected, actual);
+        todo!()
+        // assert_eq!(expected, actual);
     }
 
     #[test]
-    fn encode_decode_app_receipt_success_with_returns() {
+    fn encode_decode_spawn_app_receipt_success_with_returns() {
         let addr: AppAddr = Address::of("my-app").into();
         let init_state = State::of("some-state");
         let returns = vec![WasmValue::I32(10), WasmValue::I64(20), WasmValue::I32(30)];
@@ -190,14 +178,6 @@ mod tests {
             msg: b"something happened".to_vec(),
             code: 200,
         }];
-
-        let expected = ClientReceipt::SpawnApp(ClientAppReceipt::Success {
-            addr: addr.clone(),
-            init_state: init_state.clone(),
-            ctor_returns: vec![WasmValue::I32(10), WasmValue::I64(20), WasmValue::I32(30)],
-            gas_used: 100,
-            logs: logs.clone(),
-        });
 
         let receipt = SpawnAppReceipt {
             success: true,
@@ -210,8 +190,9 @@ mod tests {
         };
 
         let bytes = encode_app_receipt(&receipt);
-        let actual = testing::decode_receipt(&bytes[..]);
+        let actual = crate::receipt::decode_receipt(&bytes[..]);
 
-        assert_eq!(expected, actual);
+        todo!()
+        // assert_eq!(expected, actual);
     }
 }

@@ -86,16 +86,9 @@ mod tests {
 
     use svm_types::{gas::MaybeGas, receipt::TemplateReceipt, Address, TemplateAddr};
 
-    use crate::receipt::testing::{self, ClientReceipt, ClientTemplateReceipt};
-
     #[test]
-    fn encode_deploy_deploy_receipt() {
+    fn encode_decode_deploy_template_receipt() {
         let addr: TemplateAddr = Address::of("my-template").into();
-
-        let expected = ClientReceipt::DeployTemplate(ClientTemplateReceipt::Success {
-            addr: addr.clone(),
-            gas_used: 100,
-        });
 
         let receipt = TemplateReceipt {
             success: true,
@@ -105,8 +98,9 @@ mod tests {
         };
 
         let bytes = encode_template_receipt(&receipt);
-        let actual = testing::decode_receipt(&bytes[..]);
+        let actual = crate::receipt::decode_receipt(&bytes[..]);
 
-        assert_eq!(expected, actual);
+        todo!()
+        // assert_eq!(expected, actual);
     }
 }
