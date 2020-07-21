@@ -72,7 +72,7 @@ fn encode_returns(receipt: &SpawnAppReceipt, w: &mut NibbleWriter) {
 mod tests {
     use super::*;
 
-    use crate::receipt::testing::{self, ClientAppReceipt};
+    use crate::receipt::testing::{self, ClientAppReceipt, ClientReceipt};
 
     use svm_types::receipt::{error::SpawnAppError, Log};
     use svm_types::{gas::MaybeGas, Address, AppAddr, State, WasmValue};
@@ -83,9 +83,9 @@ mod tests {
 
         let error = SpawnAppError::TemplateNotFound(template_addr);
 
-        let expected = ClientAppReceipt::Failure {
+        let expected = ClientReceipt::SpawnApp(ClientAppReceipt::Failure {
             error: error.to_string(),
-        };
+        });
 
         let receipt = SpawnAppReceipt {
             success: false,
@@ -98,7 +98,7 @@ mod tests {
         };
 
         let bytes = encode_app_receipt(&receipt);
-        let actual = testing::decode_app_receipt(&bytes[..]);
+        let actual = testing::decode_receipt(&bytes[..]);
 
         assert_eq!(expected, actual);
     }
@@ -113,13 +113,13 @@ mod tests {
             code: 200,
         }];
 
-        let expected = ClientAppReceipt::Success {
+        let expected = ClientReceipt::SpawnApp(ClientAppReceipt::Success {
             addr: addr.clone(),
             init_state: init_state.clone(),
             ctor_returns: Vec::new(),
             gas_used: 100,
             logs: logs.clone(),
-        };
+        });
 
         let receipt = SpawnAppReceipt {
             success: true,
@@ -132,7 +132,7 @@ mod tests {
         };
 
         let bytes = encode_app_receipt(&receipt);
-        let actual = testing::decode_app_receipt(&bytes[..]);
+        let actual = testing::decode_receipt(&bytes[..]);
 
         assert_eq!(expected, actual);
     }
@@ -147,13 +147,13 @@ mod tests {
             code: 200,
         }];
 
-        let expected = ClientAppReceipt::Success {
+        let expected = ClientReceipt::SpawnApp(ClientAppReceipt::Success {
             addr: addr.clone(),
             init_state: init_state.clone(),
             ctor_returns: vec![WasmValue::I32(10), WasmValue::I64(20), WasmValue::I32(30)],
             gas_used: 100,
             logs: logs.clone(),
-        };
+        });
 
         let receipt = SpawnAppReceipt {
             success: true,
@@ -166,7 +166,7 @@ mod tests {
         };
 
         let bytes = encode_app_receipt(&receipt);
-        let actual = testing::decode_app_receipt(&bytes[..]);
+        let actual = testing::decode_receipt(&bytes[..]);
 
         assert_eq!(expected, actual);
     }
