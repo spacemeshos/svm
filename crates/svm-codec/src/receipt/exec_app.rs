@@ -56,7 +56,7 @@ pub fn decode_exec_receipt(bytes: &[u8]) -> ExecReceipt {
     let ty = helpers::decode_type(&mut iter);
     debug_assert_eq!(ty, crate::receipt::types::EXEC_APP);
 
-    let version = raw::decode_version(&mut iter).unwrap();
+    let version = helpers::decode_version(&mut iter).unwrap();
     debug_assert_eq!(0, version);
 
     let is_success = helpers::decode_is_success(&mut iter);

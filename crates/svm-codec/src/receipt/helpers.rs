@@ -1,4 +1,5 @@
 use crate::api::raw::{self, Field};
+use crate::error::ParseError;
 use crate::nibble::{Nibble, NibbleIter, NibbleWriter};
 
 use svm_types::{
@@ -8,6 +9,11 @@ use svm_types::{
 };
 
 /// Encoders
+
+pub(crate) fn encode_version(version: u32, w: &mut NibbleWriter) {
+    raw::encode_version(version, w)
+}
+
 pub(crate) fn encode_is_success(receipt: &Receipt, w: &mut NibbleWriter) {
     let nib = if receipt.is_success() {
         Nibble::new(1)
@@ -28,10 +34,6 @@ pub(crate) fn encode_type(ty: u8, w: &mut NibbleWriter) {
     w.write_byte(ty);
 }
 
-pub(crate) fn encode_version(version: u32, w: &mut NibbleWriter) {
-    raw::encode_version(version, w);
-}
-
 pub(crate) fn encode_returns(returns: &[WasmValue], w: &mut NibbleWriter) {
     raw::encode_func_rets(returns, w)
 }
@@ -48,6 +50,10 @@ pub(crate) fn encode_state(state: &State, w: &mut NibbleWriter) {
 
 /// Decoders
 
+pub(crate) fn decode_version(iter: &mut NibbleIter) -> Result<u32, ParseError> {
+    raw::decode_version(iter)
+}
+
 pub(crate) fn decode_type(iter: &mut NibbleIter) -> u8 {
     iter.read_byte()
 }
@@ -55,10 +61,6 @@ pub(crate) fn decode_type(iter: &mut NibbleIter) -> u8 {
 pub(crate) fn decode_is_success(iter: &mut NibbleIter) -> u8 {
     let is_success: Nibble = iter.next().unwrap();
     is_success.inner()
-}
-
-pub(crate) fn decode_receipt_error(iter: &mut NibbleIter) -> (ReceiptError, Vec<Log>) {
-    todo!()
 }
 
 pub(crate) fn decode_state(iter: &mut NibbleIter) -> State {

@@ -72,7 +72,7 @@ fn encode_ctor_args(spawn: &SpawnApp, w: &mut NibbleWriter) {
 /// Decoders
 
 fn decode_template(iter: &mut NibbleIter) -> Result<TemplateAddr, ParseError> {
-    let addr = helpers::decode_address(iter, Field::AppTemplate)?;
+    let addr = helpers::decode_address(iter, Field::TemplateAddr)?;
 
     Ok(TemplateAddr::new(addr))
 }

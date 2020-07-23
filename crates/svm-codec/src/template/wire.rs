@@ -91,7 +91,7 @@ fn decode_data(iter: &mut NibbleIter) -> Result<DataLayout, ParseError> {
 }
 
 fn decode_code(iter: &mut NibbleIter) -> Result<Vec<u8>, ParseError> {
-    let length = helpers::decode_u32_be(iter, Field::CodeLength)?;
+    let length = helpers::decode_u32_be(iter, Field::CodeSize)?;
     let code = iter.read_bytes(length as usize);
 
     Ok(code)

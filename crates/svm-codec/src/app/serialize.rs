@@ -47,7 +47,7 @@ impl AppDeserializer for DefaultAppDeserializer {
             _ => return None,
         };
 
-        let template = match helpers::decode_address(&mut iter, Field::AppTemplate) {
+        let template = match helpers::decode_address(&mut iter, Field::TemplateAddr) {
             Ok(addr) => TemplateAddr::new(addr),
             _ => return None,
         };

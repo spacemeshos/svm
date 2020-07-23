@@ -2,11 +2,11 @@
 //!
 //!  On success (`is_success = 1`)
 //!  +-----------------------------------------------------+
-//!  |   tx type  |  version   | is_success |  App Address |
-//!  | (1 byte)   | (1 nibble) | (1 nibble) |  (20 bytes)  |
-//!  +____________|____________|____________|______________+
+//!  |  tx type  |  version   | is_success |  App Address  |
+//!  | (1 byte)  | (1 nibble) | (1 nibble) |  (20 bytes)   |
+//!  +___________|____________|____________|_______________+
 //!  |              |           |             |            |
-//!  |  init state  | #returns  | ret #1 type | ret  #1    |
+//!  |  init state  | #returns  | ret #1 type |  ret  #1   |
 //!  |  (32 bytes)  |           |             |            |
 //!  +______________|___________|_____________|____________+
 //!  |          |            |                             |
@@ -58,7 +58,7 @@ pub fn decode_app_receipt(bytes: &[u8]) -> SpawnAppReceipt {
     let ty = helpers::decode_type(&mut iter);
     debug_assert_eq!(ty, crate::receipt::types::SPAWN_APP);
 
-    let version = raw::decode_version(&mut iter).unwrap();
+    let version = helpers::decode_version(&mut iter).unwrap();
     debug_assert_eq!(0, version);
 
     let is_success = helpers::decode_is_success(&mut iter);

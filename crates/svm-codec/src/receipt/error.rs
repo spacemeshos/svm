@@ -55,7 +55,7 @@
 //!   +-------------------+-----------------------------------------------+
 //!
 
-use crate::api::raw::{self, Field};
+use crate::api::raw::Field;
 use crate::helpers;
 
 use crate::nib;
@@ -96,7 +96,7 @@ pub(crate) fn encode_error(err: &ReceiptError, logs: &[Log], w: &mut NibbleWrite
         } => {
             helpers::encode_address(template_addr.inner(), w);
             helpers::encode_address(app_addr.inner(), w);
-            raw::encode_varuint14(*func_idx, w);
+            helpers::encode_func_index(*func_idx, w);
         }
         Err::FuncFailed {
             app_addr,
@@ -106,7 +106,7 @@ pub(crate) fn encode_error(err: &ReceiptError, logs: &[Log], w: &mut NibbleWrite
         } => {
             helpers::encode_address(template_addr.inner(), w);
             helpers::encode_address(app_addr.inner(), w);
-            raw::encode_varuint14(*func_idx, w);
+            helpers::encode_func_index(*func_idx, w);
             helpers::encode_string(msg, w);
         }
     };
@@ -187,7 +187,7 @@ fn decode_instantiation_err(iter: &mut NibbleIter) -> ReceiptError {
 
 fn decode_func_not_found(iter: &mut NibbleIter) -> ReceiptError {
     let (template_addr, app_addr) = decode_addrs(iter);
-    let func_idx = decode_func_index(iter);
+    let func_idx = helpers::decode_func_index(iter).unwrap();
 
     ReceiptError::FuncNotFound {
         template_addr,
@@ -198,7 +198,7 @@ fn decode_func_not_found(iter: &mut NibbleIter) -> ReceiptError {
 
 fn decode_func_err(iter: &mut NibbleIter) -> ReceiptError {
     let (template_addr, app_addr) = decode_addrs(iter);
-    let func_idx = decode_func_index(iter);
+    let func_idx = helpers::decode_func_index(iter).unwrap();
     let msg = decode_msg(iter);
 
     ReceiptError::FuncFailed {
@@ -217,19 +217,15 @@ fn decode_addrs(iter: &mut NibbleIter) -> (TemplateAddr, AppAddr) {
 }
 
 fn decode_template_addr(iter: &mut NibbleIter) -> Address {
-    helpers::decode_address(iter, Field::AppTemplate).unwrap()
+    helpers::decode_address(iter, Field::TemplateAddr).unwrap()
 }
 
 fn decode_app_addr(iter: &mut NibbleIter) -> Address {
-    helpers::decode_address(iter, Field::App).unwrap()
+    helpers::decode_address(iter, Field::AppAddr).unwrap()
 }
 
 fn decode_msg(iter: &mut NibbleIter) -> String {
     helpers::decode_string(iter, Field::StringLength, Field::String).unwrap()
-}
-
-fn decode_func_index(iter: &mut NibbleIter) -> u16 {
-    raw::decode_varuint14(iter, Field::FuncIndex).unwrap()
 }
 
 #[cfg(test)]

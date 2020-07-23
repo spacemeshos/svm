@@ -11,7 +11,6 @@
 //!  See [error.rs][./error.rs]
 //!
 
-use crate::api::raw;
 use crate::nibble::{NibbleIter, NibbleWriter};
 
 use svm_types::gas::MaybeGas;
@@ -25,7 +24,7 @@ pub fn encode_template_receipt(receipt: &TemplateReceipt) -> Vec<u8> {
     let wrapped_receipt = Receipt::DeployTemplate(receipt);
 
     helpers::encode_type(super::types::DEPLOY_TEMPLATE, &mut w);
-    raw::encode_version(0, &mut w);
+    helpers::encode_version(0, &mut w);
     helpers::encode_is_success(&wrapped_receipt, &mut w);
 
     if receipt.success {
@@ -45,13 +44,14 @@ pub fn decode_template_receipt(bytes: &[u8]) -> TemplateReceipt {
     let ty = helpers::decode_type(&mut iter);
     debug_assert_eq!(ty, crate::receipt::types::DEPLOY_TEMPLATE);
 
-    let version = raw::decode_version(&mut iter).unwrap();
+    let version = helpers::decode_version(&mut iter).unwrap();
     debug_assert_eq!(version, 0);
 
     let is_success = helpers::decode_is_success(&mut iter);
 
     match is_success {
         0 => {
+            // error
             let (err, logs) = decode_error(&mut iter);
             TemplateReceipt::from_err(err, logs)
         }
