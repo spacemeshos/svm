@@ -279,10 +279,9 @@ mod tests {
 
     #[test]
     fn decode_receipt_app_not_found() {
-        let template_addr = Address::of("some-template");
         let app_addr = Address::of("some-app");
 
-        let err = ReceiptError::AppNotFound(template_addr.into(), app_addr.into());
+        let err = ReceiptError::AppNotFound(app_addr.into());
 
         let mut w = NibbleWriter::new();
         encode_error(&err, &test_logs(), &mut w);

@@ -109,9 +109,8 @@ mod tests {
 
     #[test]
     fn encode_decode_exec_receipt_error() {
-        let template = Address::of("my-template");
         let app = Address::of("my-app");
-        let error = ReceiptError::AppNotFound(template.into(), app.into());
+        let error = ReceiptError::AppNotFound(app.into());
 
         let logs = vec![Log {
             msg: b"something happened".to_vec(),
