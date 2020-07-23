@@ -20,14 +20,15 @@
 //!
 //!  * Template Not Found
 //!   +---------------------+
-//!   |  Address (20 bytes) |
+//!   |  Template Address   |
+//!   |     (20 bytes)      |
 //!   +---------------------+
 //!
 //!  * App Not Found
-//!   +-------------------+---------------+
-//!   |  Template Address | App Address   |     
-//!   |   (20 bytes)      |  (20 bytes)   |  
-//!   +-------------------+---------------+
+//!   +---------------------+
+//!   |     App Address     |
+//!   |     (20 bytes)      |
+//!   +---------------------+
 //!
 //!  * Compilation Failed
 //!   +-------------------+---------------+-----------------+
@@ -61,7 +62,7 @@ use crate::nib;
 use crate::nibble::{Nibble, NibbleIter, NibbleWriter};
 
 use svm_types::receipt::{Log, ReceiptError, ReceiptError as Err};
-use svm_types::{AppAddr, TemplateAddr};
+use svm_types::{Address, AppAddr, TemplateAddr};
 
 use super::logs;
 
@@ -73,10 +74,7 @@ pub(crate) fn encode_error(err: &ReceiptError, logs: &[Log], w: &mut NibbleWrite
     match err {
         Err::OOG => (),
         Err::TemplateNotFound(template_addr) => helpers::encode_address(template_addr.inner(), w),
-        Err::AppNotFound(template_addr, app_addr) => {
-            helpers::encode_address(template_addr.inner(), w);
-            helpers::encode_address(app_addr.inner(), w);
-        }
+        Err::AppNotFound(app_addr) => helpers::encode_address(app_addr.inner(), w),
         Err::CompilationFailed {
             app_addr,
             template_addr,
@@ -154,15 +152,15 @@ fn decode_oog(iter: &mut NibbleIter) -> ReceiptError {
 }
 
 fn decode_template_not_found(iter: &mut NibbleIter) -> ReceiptError {
-    let template_addr = helpers::decode_address(iter, Field::AppTemplate).unwrap();
+    let template_addr = decode_template_addr(iter);
 
     ReceiptError::TemplateNotFound(template_addr.into())
 }
 
 fn decode_app_not_found(iter: &mut NibbleIter) -> ReceiptError {
-    let (template_addr, app_addr) = decode_addrs(iter);
+    let app_addr = decode_app_addr(iter);
 
-    ReceiptError::AppNotFound(template_addr, app_addr)
+    ReceiptError::AppNotFound(app_addr.into())
 }
 
 fn decode_compilation_err(iter: &mut NibbleIter) -> ReceiptError {
@@ -212,10 +210,18 @@ fn decode_func_err(iter: &mut NibbleIter) -> ReceiptError {
 }
 
 fn decode_addrs(iter: &mut NibbleIter) -> (TemplateAddr, AppAddr) {
-    let template_addr = helpers::decode_address(iter, Field::AppTemplate).unwrap();
-    let app_addr = helpers::decode_address(iter, Field::App).unwrap();
+    let template_addr = decode_template_addr(iter);
+    let app_addr = decode_app_addr(iter);
 
     (template_addr.into(), app_addr.into())
+}
+
+fn decode_template_addr(iter: &mut NibbleIter) -> Address {
+    helpers::decode_address(iter, Field::AppTemplate).unwrap()
+}
+
+fn decode_app_addr(iter: &mut NibbleIter) -> Address {
+    helpers::decode_address(iter, Field::App).unwrap()
 }
 
 fn decode_msg(iter: &mut NibbleIter) -> String {

@@ -341,8 +341,7 @@ where
                 app_addr: tx.app.clone(),
                 template_addr: template_addr.clone(),
                 func_idx: tx.func_idx,
-                func_args: self.vec_to_str(&tx.func_args),
-                reason: e.to_string(),
+                msg: e.to_string(),
             }),
             Ok(returns) => {
                 let storage = self.instance_storage_mut(&mut instance);
@@ -445,7 +444,7 @@ where
             Err(ReceiptError::InstantiationFailed {
                 app_addr: tx.app.clone(),
                 template_addr: template_addr.clone(),
-                reason: e.to_string(),
+                msg: e.to_string(),
             })
         })
     }
@@ -582,9 +581,7 @@ where
 
         self.env
             .load_template_by_app(&tx.app)
-            .ok_or_else(|| ReceiptError::AppNotFound {
-                app_addr: tx.app.clone(),
-            })
+            .ok_or_else(|| ReceiptError::AppNotFound(tx.app.clone()))
     }
 
     fn compile_template(
@@ -605,7 +602,7 @@ where
             Err(ReceiptError::CompilationFailed {
                 app_addr: tx.app.clone(),
                 template_addr: template_addr.clone(),
-                reason: e.to_string(),
+                msg: e.to_string(),
             })
         })
     }
@@ -648,18 +645,6 @@ where
     }
 
     /// Helpers
-    fn vec_to_str<T: fmt::Debug>(&self, items: &Vec<T>) -> String {
-        let mut buf = String::new();
-
-        for (i, arg) in items.iter().enumerate() {
-            if i != 0 {
-                buf.push_str(", ");
-            }
-            buf.push_str(&format!("{:?}, ", arg));
-        }
-
-        buf
-    }
 
     fn ensure_not_svm_ns(imports: &[(String, String, Export)]) {
         if imports.iter().any(|(ns, _, _)| ns == "svm") {

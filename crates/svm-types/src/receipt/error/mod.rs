@@ -8,7 +8,7 @@ use crate::{AppAddr, TemplateAddr};
 pub enum ReceiptError {
     OOG,
     TemplateNotFound(TemplateAddr),
-    AppNotFound(TemplateAddr, AppAddr),
+    AppNotFound(AppAddr),
     CompilationFailed {
         app_addr: AppAddr,
         template_addr: TemplateAddr,
