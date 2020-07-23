@@ -32,7 +32,8 @@ pub fn encode_template_receipt(receipt: &TemplateReceipt) -> Vec<u8> {
         encode_template_addr(receipt, &mut w);
         helpers::encode_gas_used(&wrapped_receipt, &mut w);
     } else {
-        encode_error(receipt.get_error(), &mut w);
+        let logs = Vec::new();
+        encode_error(receipt.get_error(), &logs, &mut w);
     };
 
     w.into_bytes()
@@ -97,7 +98,7 @@ mod tests {
         };
 
         let bytes = encode_template_receipt(&receipt);
-        let decoded = crate::receipt::decode_receipt(&bytes[..]);
+        let decoded = crate::receipt::decode_receipt(&bytes);
 
         assert_eq!(decoded.into_deploy_template(), receipt);
     }

@@ -42,7 +42,9 @@ pub fn encode_exec_receipt(receipt: &ExecReceipt) -> Vec<u8> {
         helpers::encode_gas_used(&wrapped_receipt, &mut w);
         logs::encode_logs(&receipt.logs, &mut w);
     } else {
-        encode_error(receipt.get_error(), &mut w);
+        let logs = receipt.get_logs();
+
+        encode_error(receipt.get_error(), logs, &mut w);
     };
 
     w.into_bytes()
