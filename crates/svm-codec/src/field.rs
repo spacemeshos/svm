@@ -21,6 +21,8 @@ pub enum Field {
     DataLayoutVarLength,
     FuncArgsNoMoreMark,
     ErrorLength,
+    String,
+    StringLength,
 }
 
 impl fmt::Display for Field {

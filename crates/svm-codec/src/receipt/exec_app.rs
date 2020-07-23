@@ -25,7 +25,7 @@ use crate::nibble::{NibbleIter, NibbleWriter};
 use svm_types::gas::MaybeGas;
 use svm_types::receipt::{ExecReceipt, Log, Receipt};
 
-use super::{encode_error, helpers, logs};
+use super::{decode_error, encode_error, helpers, logs};
 
 pub fn encode_exec_receipt(receipt: &ExecReceipt) -> Vec<u8> {
     let mut w = NibbleWriter::new();
@@ -42,7 +42,7 @@ pub fn encode_exec_receipt(receipt: &ExecReceipt) -> Vec<u8> {
         helpers::encode_gas_used(&wrapped_receipt, &mut w);
         logs::encode_logs(&receipt.logs, &mut w);
     } else {
-        encode_error(&wrapped_receipt, &mut w);
+        encode_error(receipt.get_error(), &mut w);
     };
 
     w.into_bytes()
@@ -61,10 +61,8 @@ pub fn decode_exec_receipt(bytes: &[u8]) -> ExecReceipt {
 
     match is_success {
         0 => {
-            // error
-            let error = helpers::decode_receipt_error(&mut iter);
-            todo!()
-            // ClientExecReceipt::Failure { error }
+            let (err, logs) = decode_error(&mut iter);
+            ExecReceipt::from_err(err, logs)
         }
         1 => {
             // success
@@ -77,8 +75,8 @@ pub fn decode_exec_receipt(bytes: &[u8]) -> ExecReceipt {
                 success: true,
                 error: None,
                 new_state: Some(new_state),
-                gas_used: MaybeGas::with(gas_used),
                 returns: Some(returns),
+                gas_used,
                 logs,
             }
         }
@@ -105,14 +103,13 @@ fn encode_returns(receipt: &ExecReceipt, w: &mut NibbleWriter) {
 mod tests {
     use super::*;
 
-    use svm_types::receipt::ReceiptError;
-    use svm_types::{gas::MaybeGas, Address, State, WasmValue};
+    use svm_types::{gas::MaybeGas, receipt::ReceiptError, Address, State, WasmValue};
 
     #[test]
     fn encode_decode_exec_receipt_error() {
-        let error = ReceiptError::AppNotFound {
-            app_addr: Address::of("my-app").into(),
-        };
+        let template = Address::of("my-template");
+        let app = Address::of("my-app");
+        let error = ReceiptError::AppNotFound(template.into(), app.into());
 
         let logs = vec![Log {
             msg: b"something happened".to_vec(),
@@ -129,10 +126,9 @@ mod tests {
         };
 
         let bytes = encode_exec_receipt(&receipt);
-        let actual = crate::receipt::decode_receipt(&bytes[..]);
+        let decoded = crate::receipt::decode_receipt(&bytes[..]);
 
-        todo!()
-        // assert_eq!(expected, actual);
+        assert_eq!(decoded.into_exec_app(), receipt);
     }
 
     #[test]
@@ -154,10 +150,9 @@ mod tests {
         };
 
         let bytes = encode_exec_receipt(&receipt);
-        let actual = crate::receipt::decode_receipt(&bytes[..]);
+        let decoded = crate::receipt::decode_receipt(&bytes[..]);
 
-        todo!()
-        // assert_eq!(expected, actual);
+        assert_eq!(decoded.into_exec_app(), receipt);
     }
 
     #[test]
@@ -180,9 +175,8 @@ mod tests {
         };
 
         let bytes = encode_exec_receipt(&receipt);
-        let actual = crate::receipt::decode_receipt(&bytes[..]);
+        let decoded = crate::receipt::decode_receipt(&bytes[..]);
 
-        todo!()
-        // assert_eq!(expected, actual);
+        assert_eq!(decoded.into_exec_app(), receipt);
     }
 }

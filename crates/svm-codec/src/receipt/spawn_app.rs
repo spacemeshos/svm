@@ -26,7 +26,7 @@ use crate::nibble::{NibbleIter, NibbleWriter};
 use svm_types::gas::MaybeGas;
 use svm_types::receipt::{Receipt, SpawnAppReceipt};
 
-use super::{encode_error, helpers, logs};
+use super::{decode_error, encode_error, helpers, logs};
 
 pub fn encode_app_receipt(receipt: &SpawnAppReceipt) -> Vec<u8> {
     let mut w = NibbleWriter::new();
@@ -44,7 +44,7 @@ pub fn encode_app_receipt(receipt: &SpawnAppReceipt) -> Vec<u8> {
         helpers::encode_gas_used(&wrapped_receipt, &mut w);
         logs::encode_logs(&receipt.logs, &mut w);
     } else {
-        encode_error(&wrapped_receipt, &mut w);
+        encode_error(receipt.get_error(), &mut w);
     };
 
     w.into_bytes()
@@ -63,11 +63,8 @@ pub fn decode_app_receipt(bytes: &[u8]) -> SpawnAppReceipt {
 
     match is_success {
         0 => {
-            // error
-            let error = helpers::decode_receipt_error(&mut iter);
-
-            todo!()
-            // ClientAppReceipt::Failure { error }
+            let (err, logs) = decode_error(&mut iter);
+            SpawnAppReceipt::from_err(err, logs)
         }
         1 => {
             // success
@@ -82,8 +79,8 @@ pub fn decode_app_receipt(bytes: &[u8]) -> SpawnAppReceipt {
                 error: None,
                 app_addr: Some(addr.into()),
                 init_state: Some(init_state),
-                gas_used: MaybeGas::with(gas_used),
                 returns: Some(returns),
+                gas_used,
                 logs,
             }
         }
@@ -136,10 +133,9 @@ mod tests {
         };
 
         let bytes = encode_app_receipt(&receipt);
-        let actual = crate::receipt::decode_receipt(&bytes[..]);
+        let decoded = crate::receipt::decode_receipt(&bytes);
 
-        todo!()
-        // assert_eq!(expected, actual);
+        // assert_eq!(decoded.into_spawn_app(), receipt);
     }
 
     #[test]
@@ -163,10 +159,9 @@ mod tests {
         };
 
         let bytes = encode_app_receipt(&receipt);
-        let actual = crate::receipt::decode_receipt(&bytes[..]);
+        let decoded = crate::receipt::decode_receipt(&bytes);
 
-        todo!()
-        // assert_eq!(expected, actual);
+        assert_eq!(decoded.into_spawn_app(), receipt);
     }
 
     #[test]
@@ -190,9 +185,8 @@ mod tests {
         };
 
         let bytes = encode_app_receipt(&receipt);
-        let actual = crate::receipt::decode_receipt(&bytes[..]);
+        let decoded = crate::receipt::decode_receipt(&bytes);
 
-        todo!()
-        // assert_eq!(expected, actual);
+        assert_eq!(decoded.into_spawn_app(), receipt);
     }
 }

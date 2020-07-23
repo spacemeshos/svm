@@ -21,8 +21,7 @@ use crate::{
 };
 
 use svm_codec::receipt::{
-    encode_app_receipt, encode_exec_receipt, encode_template_receipt,
-    testing::{self, ClientAppReceipt, ClientExecReceipt, ClientTemplateReceipt},
+    decode_receipt, encode_app_receipt, encode_exec_receipt, encode_template_receipt,
 };
 
 macro_rules! max_gas {
@@ -973,7 +972,7 @@ pub unsafe extern "C" fn svm_template_receipt_addr(
     receipt: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
-    let receipt = testing::decode_receipt(receipt.into());
+    let receipt = decode_receipt(receipt.into());
 
     match receipt.into_deploy_template() {
         ClientTemplateReceipt::Success { addr, .. } => {
@@ -1004,7 +1003,7 @@ pub unsafe extern "C" fn svm_template_receipt_gas(
     receipt: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
-    let receipt = testing::decode_receipt(receipt.into());
+    let receipt = decode_receipt(receipt.into());
 
     match receipt.into_deploy_template() {
         ClientTemplateReceipt::Success { gas_used: gas, .. } => {
@@ -1034,7 +1033,7 @@ pub unsafe extern "C" fn svm_app_receipt_status(
     receipt: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
-    let receipt = testing::decode_receipt(receipt.into());
+    let receipt = decode_receipt(receipt.into());
 
     match receipt.into_spawn_app() {
         ClientAppReceipt::Success { .. } => svm_result_t::SVM_SUCCESS,
@@ -1059,7 +1058,7 @@ pub unsafe extern "C" fn svm_app_receipt_addr(
     receipt: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
-    let receipt = testing::decode_receipt(receipt.into());
+    let receipt = decode_receipt(receipt.into());
 
     match receipt.into_spawn_app() {
         ClientAppReceipt::Success { addr, .. } => {
@@ -1090,7 +1089,7 @@ pub unsafe extern "C" fn svm_app_receipt_returns(
     receipt: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
-    let receipt = testing::decode_receipt(receipt.into());
+    let receipt = decode_receipt(receipt.into());
 
     match receipt.into_spawn_app() {
         ClientAppReceipt::Success { ctor_returns, .. } => {
@@ -1121,7 +1120,7 @@ pub unsafe extern "C" fn svm_app_receipt_gas(
     receipt: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
-    let receipt = testing::decode_receipt(receipt.into());
+    let receipt = decode_receipt(receipt.into());
 
     match receipt.into_spawn_app() {
         ClientAppReceipt::Success { gas_used: gas, .. } => {
@@ -1152,7 +1151,7 @@ pub unsafe extern "C" fn svm_app_receipt_state(
     receipt: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
-    let receipt = testing::decode_receipt(receipt.into());
+    let receipt = decode_receipt(receipt.into());
 
     match receipt.into_spawn_app() {
         ClientAppReceipt::Success { init_state, .. } => {
@@ -1179,7 +1178,7 @@ pub unsafe extern "C" fn svm_exec_receipt_status(
     receipt: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
-    let receipt = testing::decode_receipt(receipt.into());
+    let receipt = decode_receipt(receipt.into());
 
     match receipt.into_exec_app() {
         ClientExecReceipt::Success { .. } => svm_result_t::SVM_SUCCESS,
@@ -1204,7 +1203,7 @@ pub unsafe extern "C" fn svm_exec_receipt_state(
     receipt: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
-    let receipt = testing::decode_receipt(receipt.into());
+    let receipt = decode_receipt(receipt.into());
 
     match receipt.into_exec_app() {
         ClientExecReceipt::Success { new_state, .. } => {
@@ -1235,7 +1234,7 @@ pub unsafe extern "C" fn svm_exec_receipt_returns(
     receipt: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
-    let receipt = testing::decode_receipt(receipt.into());
+    let receipt = decode_receipt(receipt.into());
 
     match receipt.into_exec_app() {
         ClientExecReceipt::Success { func_returns, .. } => {
@@ -1266,7 +1265,7 @@ pub unsafe extern "C" fn svm_exec_receipt_gas(
     receipt: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
-    let receipt = testing::decode_receipt(receipt.into());
+    let receipt = decode_receipt(receipt.into());
 
     match receipt.into_exec_app() {
         ClientExecReceipt::Success { gas_used: gas, .. } => {

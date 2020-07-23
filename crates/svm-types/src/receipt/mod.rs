@@ -25,38 +25,6 @@ pub enum Receipt<'a> {
     ExecApp(&'a ExecReceipt),
 }
 
-#[derive(Debug, PartialEq)]
-pub enum ReceiptOwned {
-    DeployTemplate(TemplateReceipt),
-
-    SpawnApp(SpawnAppReceipt),
-
-    ExecApp(ExecReceipt),
-}
-
-impl ReceiptOwned {
-    pub fn into_deploy_template(self) -> TemplateReceipt {
-        match self {
-            ReceiptOwned::DeployTemplate(r) => r,
-            _ => unreachable!(),
-        }
-    }
-
-    pub fn into_spawn_app(self) -> SpawnAppReceipt {
-        match self {
-            ReceiptOwned::SpawnApp(r) => r,
-            _ => unreachable!(),
-        }
-    }
-
-    pub fn into_exec_app(self) -> ExecReceipt {
-        match self {
-            ReceiptOwned::ExecApp(r) => r,
-            _ => unreachable!(),
-        }
-    }
-}
-
 impl<'a> Receipt<'a> {
     /// Returns whether the transaction succeeded.
     pub fn is_success(&self) -> bool {
@@ -85,12 +53,45 @@ impl<'a> Receipt<'a> {
         }
     }
 
-    /// Returns a failed transaction error as a `String`.
-    pub fn error_string(&self) -> String {
+    /// Returns a `ReceiptError`
+    pub fn get_error(&self) -> &ReceiptError {
         match self {
-            Self::DeployTemplate(r) => format!("{:?}", r.error.as_ref().unwrap()),
-            Self::SpawnApp(r) => format!("{:?}", r.error.as_ref().unwrap()),
-            Self::ExecApp(r) => format!("{:?}", r.error.as_ref().unwrap()),
+            Self::DeployTemplate(r) => r.error.as_ref().unwrap(),
+            Self::SpawnApp(r) => r.error.as_ref().unwrap(),
+            Self::ExecApp(r) => r.error.as_ref().unwrap(),
+        }
+    }
+}
+
+/// Owned Receipt
+#[derive(Debug, PartialEq)]
+pub enum ReceiptOwned {
+    DeployTemplate(TemplateReceipt),
+
+    SpawnApp(SpawnAppReceipt),
+
+    ExecApp(ExecReceipt),
+}
+
+impl ReceiptOwned {
+    pub fn into_deploy_template(self) -> TemplateReceipt {
+        match self {
+            ReceiptOwned::DeployTemplate(r) => r,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn into_spawn_app(self) -> SpawnAppReceipt {
+        match self {
+            ReceiptOwned::SpawnApp(r) => r,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn into_exec_app(self) -> ExecReceipt {
+        match self {
+            ReceiptOwned::ExecApp(r) => r,
+            _ => unreachable!(),
         }
     }
 }

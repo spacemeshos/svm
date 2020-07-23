@@ -57,6 +57,10 @@ impl ExecReceipt {
         self.returns.as_ref().unwrap()
     }
 
+    pub fn get_error(&self) -> &ReceiptError {
+        self.error.as_ref().unwrap()
+    }
+
     /// Take the Receipt's logged entries out
     pub fn take_logs(&mut self) -> Vec<Log> {
         std::mem::take(&mut self.logs)

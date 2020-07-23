@@ -6,7 +6,7 @@ mod spawn_app;
 
 pub(crate) mod logs;
 
-use error::encode_error;
+pub(crate) use error::{decode_error, encode_error};
 
 mod types {
     pub const DEPLOY_TEMPLATE: u8 = 0;

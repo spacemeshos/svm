@@ -40,6 +40,18 @@ impl SpawnAppReceipt {
         }
     }
 
+    pub fn from_err(error: ReceiptError, logs: Vec<Log>) -> Self {
+        Self {
+            success: false,
+            error: Some(error),
+            app_addr: None,
+            init_state: None,
+            returns: None,
+            gas_used: MaybeGas::new(),
+            logs,
+        }
+    }
+
     /// Returns spawned-app `Error`. Panics if spawning has *not* failed.
     pub fn get_error(&self) -> &ReceiptError {
         self.error.as_ref().unwrap()
@@ -68,20 +80,6 @@ impl SpawnAppReceipt {
     /// Take the Receipt's logged entries out
     pub fn take_logs(&mut self) -> Vec<Log> {
         std::mem::take(&mut self.logs)
-    }
-}
-
-impl From<ReceiptError> for SpawnAppReceipt {
-    fn from(error: ReceiptError) -> Self {
-        Self {
-            success: false,
-            error: Some(error),
-            app_addr: None,
-            init_state: None,
-            returns: None,
-            gas_used: MaybeGas::new(),
-            logs: Vec::new(),
-        }
     }
 }
 

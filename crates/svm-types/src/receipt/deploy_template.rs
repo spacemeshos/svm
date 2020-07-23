@@ -1,5 +1,6 @@
 use crate::gas::MaybeGas;
-use crate::receipt::ReceiptError;
+use crate::receipt::{Log, ReceiptError};
+
 use crate::TemplateAddr;
 
 /// Returned Receipt after deploying a Template.
@@ -16,6 +17,8 @@ pub struct TemplateReceipt {
 
     /// The amount of gas used for template deployment
     pub gas_used: MaybeGas,
+
+    pub logs: Vec<Log>,
 }
 
 impl TemplateReceipt {
@@ -26,6 +29,7 @@ impl TemplateReceipt {
             error: None,
             addr: Some(addr),
             gas_used,
+            logs: Vec::new(),
         }
     }
 
@@ -36,12 +40,27 @@ impl TemplateReceipt {
             error: Some(ReceiptError::OOG),
             addr: None,
             gas_used: MaybeGas::new(),
+            logs: Vec::new(),
+        }
+    }
+
+    pub fn from_err(error: ReceiptError, logs: Vec<Log>) -> Self {
+        Self {
+            success: false,
+            error: Some(error),
+            addr: None,
+            gas_used: MaybeGas::new(),
+            logs,
         }
     }
 
     /// Returns the deployed template address. Panics if deploy has failed.
     pub fn get_template_addr(&self) -> &TemplateAddr {
         self.addr.as_ref().unwrap()
+    }
+
+    pub fn get_error(&self) -> &ReceiptError {
+        self.error.as_ref().unwrap()
     }
 }
 
@@ -52,6 +71,7 @@ impl From<ReceiptError> for TemplateReceipt {
             error: Some(error),
             addr: None,
             gas_used: MaybeGas::new(),
+            logs: Vec::new(),
         }
     }
 }

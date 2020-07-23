@@ -17,7 +17,7 @@ use crate::nibble::{NibbleIter, NibbleWriter};
 use svm_types::gas::MaybeGas;
 use svm_types::receipt::{Receipt, TemplateReceipt};
 
-use super::{encode_error, helpers};
+use super::{decode_error, encode_error, helpers};
 
 pub fn encode_template_receipt(receipt: &TemplateReceipt) -> Vec<u8> {
     let mut w = NibbleWriter::new();
@@ -32,7 +32,7 @@ pub fn encode_template_receipt(receipt: &TemplateReceipt) -> Vec<u8> {
         encode_template_addr(receipt, &mut w);
         helpers::encode_gas_used(&wrapped_receipt, &mut w);
     } else {
-        encode_error(&wrapped_receipt, &mut w);
+        encode_error(receipt.get_error(), &mut w);
     };
 
     w.into_bytes()
@@ -51,11 +51,8 @@ pub fn decode_template_receipt(bytes: &[u8]) -> TemplateReceipt {
 
     match is_success {
         0 => {
-            // error
-            let error = helpers::decode_receipt_error(&mut iter);
-
-            todo!()
-            // ClientTemplateReceipt::Failure { error }
+            let (err, logs) = decode_error(&mut iter);
+            TemplateReceipt::from_err(err, logs)
         }
         1 => {
             // success
@@ -66,7 +63,8 @@ pub fn decode_template_receipt(bytes: &[u8]) -> TemplateReceipt {
                 success: true,
                 error: None,
                 addr: Some(addr.into()),
-                gas_used: MaybeGas::with(gas_used),
+                gas_used,
+                logs: Vec::new(),
             }
         }
         _ => unreachable!(),
@@ -88,19 +86,19 @@ mod tests {
 
     #[test]
     fn encode_decode_deploy_template_receipt() {
-        let addr: TemplateAddr = Address::of("my-template").into();
+        let addr = Address::of("my-template").into();
 
         let receipt = TemplateReceipt {
             success: true,
             error: None,
             addr: Some(addr),
             gas_used: MaybeGas::with(100),
+            logs: Vec::new(),
         };
 
         let bytes = encode_template_receipt(&receipt);
-        let actual = crate::receipt::decode_receipt(&bytes[..]);
+        let decoded = crate::receipt::decode_receipt(&bytes[..]);
 
-        todo!()
-        // assert_eq!(expected, actual);
+        assert_eq!(decoded.into_deploy_template(), receipt);
     }
 }

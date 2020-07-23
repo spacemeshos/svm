@@ -1,7 +1,11 @@
 use crate::api::raw::{self, Field};
 use crate::nibble::{Nibble, NibbleIter, NibbleWriter};
 
-use svm_types::{receipt::Receipt, Address, State, WasmValue};
+use svm_types::{
+    gas::MaybeGas,
+    receipt::{Log, Receipt, ReceiptError},
+    Address, State, WasmValue,
+};
 
 /// Encoders
 pub(crate) fn encode_is_success(receipt: &Receipt, w: &mut NibbleWriter) {
@@ -15,10 +19,9 @@ pub(crate) fn encode_is_success(receipt: &Receipt, w: &mut NibbleWriter) {
 }
 
 pub(crate) fn encode_gas_used(receipt: &Receipt, w: &mut NibbleWriter) {
-    let maybe_gas = receipt.get_gas_used();
-    let gas_used = maybe_gas.unwrap_or(0);
+    let gas_used = receipt.get_gas_used();
 
-    raw::encode_gas_used(gas_used, w);
+    raw::encode_gas_used(&gas_used, w);
 }
 
 pub(crate) fn encode_type(ty: u8, w: &mut NibbleWriter) {
@@ -54,11 +57,8 @@ pub(crate) fn decode_is_success(iter: &mut NibbleIter) -> u8 {
     is_success.inner()
 }
 
-pub(crate) fn decode_receipt_error(iter: &mut NibbleIter) -> String {
-    let len = raw::decode_varuint14(iter, Field::ErrorLength).unwrap();
-    let bytes = iter.read_bytes(len as usize);
-
-    String::from_utf8(bytes).unwrap()
+pub(crate) fn decode_receipt_error(iter: &mut NibbleIter) -> (ReceiptError, Vec<Log>) {
+    todo!()
 }
 
 pub(crate) fn decode_state(iter: &mut NibbleIter) -> State {
@@ -73,6 +73,6 @@ pub(crate) fn decode_address(iter: &mut NibbleIter) -> Address {
     Address::from(&bytes[..])
 }
 
-pub(crate) fn decode_gas_used(iter: &mut NibbleIter) -> u64 {
+pub(crate) fn decode_gas_used(iter: &mut NibbleIter) -> MaybeGas {
     raw::decode_gas_used(iter).unwrap()
 }

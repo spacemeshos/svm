@@ -15,10 +15,15 @@ impl NibbleWriter {
         }
     }
 
+    #[inline]
+    pub fn push(&mut self, nib: Nibble) {
+        self.nibbles.push(nib);
+    }
+
     /// Appends `nibbles` to the underlying stream.
     pub fn write(&mut self, nibbles: &[Nibble]) {
         for nib in nibbles.iter() {
-            self.nibbles.push(*nib);
+            self.push(*nib);
         }
     }
 
@@ -52,7 +57,7 @@ impl NibbleWriter {
             self.write(&[padding]);
         }
 
-        let (bytes, rem) = concat_nibbles(&self.nibbles[..]);
+        let (bytes, rem) = concat_nibbles(&self.nibbles);
         debug_assert!(rem.is_none());
 
         bytes

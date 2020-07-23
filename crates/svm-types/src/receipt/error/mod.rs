@@ -8,37 +8,26 @@ use crate::{AppAddr, TemplateAddr};
 pub enum ReceiptError {
     OOG,
     TemplateNotFound(TemplateAddr),
-    FuncFailed {
-        app_addr: AppAddr,
-        template_addr: TemplateAddr,
-        func_idx: u16,
-        func_args: String,
-        reason: String,
-    },
-    AppNotFound {
-        app_addr: AppAddr,
-    },
+    AppNotFound(TemplateAddr, AppAddr),
     CompilationFailed {
         app_addr: AppAddr,
         template_addr: TemplateAddr,
-        reason: String,
+        msg: String,
     },
     InstantiationFailed {
         app_addr: AppAddr,
         template_addr: TemplateAddr,
-        reason: String,
+        msg: String,
     },
     FuncNotFound {
         app_addr: AppAddr,
         template_addr: TemplateAddr,
         func_idx: u16,
     },
-    InvalidReturnValue {
+    FuncFailed {
         app_addr: AppAddr,
         template_addr: TemplateAddr,
         func_idx: u16,
-        func_args: String,
-        func_rets: String,
-        reason: String,
+        msg: String,
     },
 }
