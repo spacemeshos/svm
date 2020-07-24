@@ -241,3 +241,15 @@ pub extern "C" fn wasm_decode_calldata(buf_ptr: i32) -> i32 {
         }
     }
 }
+
+#[no_mangle]
+#[cfg(target_arch = "wasm32")]
+pub extern "C" fn wasm_decode_receipt(buf_ptr: i32) -> i32 {
+    match api::wasm::decode_receipt(buf_ptr as usize) {
+        Ok(ptr) => ptr as _,
+        Err(err) => {
+            let err_ptr = api::wasm::into_error_buffer(err);
+            err_ptr as _
+        }
+    }
+}
