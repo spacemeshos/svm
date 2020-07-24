@@ -59,7 +59,7 @@ fn default_runtime_validate_app_invalid_raw_format() {
     let runtime = default_runtime!();
     let bytes = vec![0xFF, 0xFF];
 
-    let parse_err = ParseError::NotEnoughBytes(Field::AppTemplate);
+    let parse_err = ParseError::NotEnoughBytes(Field::TemplateAddr);
     let expected = Err(ValidateError::Parse(parse_err));
 
     let actual = runtime.validate_app(&bytes);
@@ -72,7 +72,7 @@ fn default_runtime_validate_tx_invalid_raw_format() {
 
     let bytes = vec![0xFF, 0xFF];
 
-    let parse_err = ParseError::NotEnoughBytes(Field::App);
+    let parse_err = ParseError::NotEnoughBytes(Field::AppAddr);
     let expected = Err(ValidateError::Parse(parse_err));
 
     let actual = runtime.validate_tx(&bytes);
