@@ -81,7 +81,6 @@ impl SpawnAppReceipt {
         &self.logs
     }
 
-    /// Take the Receipt's logged entries out
     pub fn take_logs(&mut self) -> Vec<Log> {
         std::mem::take(&mut self.logs)
     }

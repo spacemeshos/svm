@@ -7,6 +7,12 @@ macro_rules! impl_bytes_primitive {
         #[repr(transparent)]
         pub struct $primitive(pub(self) [u8; $byte_count]);
 
+        impl From<[u8; $byte_count]> for $primitive {
+            fn from(data: [u8; $byte_count]) -> $primitive {
+                $primitive(data)
+            }
+        }
+
         impl From<&[u8]> for $primitive {
             fn from(slice: &[u8]) -> $primitive {
                 assert_eq!($byte_count, slice.len());

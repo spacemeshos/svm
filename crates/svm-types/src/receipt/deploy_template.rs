@@ -62,16 +62,12 @@ impl TemplateReceipt {
     pub fn get_error(&self) -> &ReceiptError {
         self.error.as_ref().unwrap()
     }
-}
 
-impl From<ReceiptError> for TemplateReceipt {
-    fn from(error: ReceiptError) -> Self {
-        Self {
-            success: false,
-            error: Some(error),
-            addr: None,
-            gas_used: MaybeGas::new(),
-            logs: Vec::new(),
-        }
+    pub fn get_logs(&self) -> &[Log] {
+        &self.logs
+    }
+
+    pub fn take_logs(&mut self) -> Vec<Log> {
+        std::mem::take(&mut self.logs)
     }
 }

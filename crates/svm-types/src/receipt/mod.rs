@@ -74,6 +74,14 @@ pub enum ReceiptOwned {
 }
 
 impl ReceiptOwned {
+    pub fn success(&self) -> bool {
+        match self {
+            ReceiptOwned::DeployTemplate(receipt) => receipt.success,
+            ReceiptOwned::SpawnApp(receipt) => receipt.success,
+            ReceiptOwned::ExecApp(receipt) => receipt.success,
+        }
+    }
+
     pub fn into_deploy_template(self) -> TemplateReceipt {
         match self {
             ReceiptOwned::DeployTemplate(r) => r,
@@ -92,6 +100,22 @@ impl ReceiptOwned {
         match self {
             ReceiptOwned::ExecApp(r) => r,
             _ => unreachable!(),
+        }
+    }
+
+    pub fn get_logs(&self) -> &[Log] {
+        match self {
+            ReceiptOwned::DeployTemplate(receipt) => receipt.get_logs(),
+            ReceiptOwned::SpawnApp(receipt) => receipt.get_logs(),
+            ReceiptOwned::ExecApp(receipt) => receipt.get_logs(),
+        }
+    }
+
+    pub fn get_error(&self) -> &ReceiptError {
+        match self {
+            ReceiptOwned::DeployTemplate(receipt) => receipt.get_error(),
+            ReceiptOwned::SpawnApp(receipt) => receipt.get_error(),
+            ReceiptOwned::ExecApp(receipt) => receipt.get_error(),
         }
     }
 }

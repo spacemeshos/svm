@@ -16,7 +16,7 @@ use crate::nibble::{NibbleIter, NibbleWriter};
 use svm_types::gas::MaybeGas;
 use svm_types::receipt::{Receipt, TemplateReceipt};
 
-use super::{decode_error, encode_error, helpers};
+use super::{decode_error, encode_error, helpers, logs};
 
 pub fn encode_template_receipt(receipt: &TemplateReceipt) -> Vec<u8> {
     let mut w = NibbleWriter::new();
@@ -30,6 +30,7 @@ pub fn encode_template_receipt(receipt: &TemplateReceipt) -> Vec<u8> {
     if receipt.success {
         encode_template_addr(receipt, &mut w);
         helpers::encode_gas_used(&wrapped_receipt, &mut w);
+        logs::encode_logs(&receipt.logs, &mut w);
     } else {
         let logs = Vec::new();
         encode_error(receipt.get_error(), &logs, &mut w);
@@ -59,13 +60,14 @@ pub fn decode_template_receipt(bytes: &[u8]) -> TemplateReceipt {
             // success
             let addr = helpers::decode_address(&mut iter);
             let gas_used = helpers::decode_gas_used(&mut iter);
+            let logs = logs::decode_logs(&mut iter);
 
             TemplateReceipt {
                 success: true,
                 error: None,
                 addr: Some(addr.into()),
                 gas_used,
-                logs: Vec::new(),
+                logs,
             }
         }
         _ => unreachable!(),

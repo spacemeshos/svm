@@ -3,7 +3,9 @@ use serde_json::{json, Value};
 use crate::api::json::{self, JsonError};
 use crate::api::raw;
 
-use svm_types::receipt::{ExecReceipt, ReceiptError, SpawnAppReceipt, TemplateReceipt};
+use svm_types::receipt::{
+    ExecReceipt, Log, ReceiptError, ReceiptOwned, SpawnAppReceipt, TemplateReceipt,
+};
 
 pub fn decode_receipt(json: &Value) -> Result<Value, JsonError> {
     let data = json::as_string(json, "data")?;
@@ -12,44 +14,169 @@ pub fn decode_receipt(json: &Value) -> Result<Value, JsonError> {
     assert!(bytes.len() > 0);
 
     let receipt = raw::decode_receipt(&bytes);
+    let ty = receipt_type(&receipt);
 
-    todo!()
-    // let json = match receipt {
-    //     Receipt::DeployTemplate(r) => todo!(),
-    //     Receipt::SpawnApp(r) => todo!(),
-    //     Receipt::ExecApp(r) => todo!(),
-    // };
+    let json = if receipt.success() {
+        match receipt {
+            ReceiptOwned::DeployTemplate(receipt) => decode_deploy_template(&receipt, ty),
+            ReceiptOwned::SpawnApp(receipt) => decode_spawn_app(&receipt, ty),
+            ReceiptOwned::ExecApp(receipt) => decode_exe_app(&receipt, ty),
+        }
+    } else {
+        let ty = receipt_type(&receipt);
+        let logs = receipt.get_logs();
+        let err = receipt.get_error();
 
-    // Ok(json)
+        decode_error(ty, err, logs)
+    };
+
+    Ok(json)
 }
 
-// fn decode_spawn_app(receipt: &ClientAppReceipt) -> Value {
-//     match receipt {
-//         ClientAppReceipt::Success { addr, init_state, ctor_returns, gas_used, logs }
+fn receipt_type(receipt: &ReceiptOwned) -> &'static str {
+    match receipt {
+        ReceiptOwned::DeployTemplate(..) => "deploy-template",
+        ReceiptOwned::SpawnApp(..) => "spawn-app",
+        ReceiptOwned::ExecApp(..) => "exec-app",
+    }
+}
 
-//         json!({
-//             "success": true,
-//             "app": json::addr_to_str(app.inner()),
-//             "state": json::state_to_str(state),
-//             "returns": json::wasm_values_to_json(returns),
-//             "gas_used": json::gas_to_json(&gas_used),
-//             "logs": json::logs_to_json(&receipt.logs),
-//         },
-//         _ => todo!()
-//     }
-// }
+fn decode_error(ty: &'static str, err: &ReceiptError, logs: &[Log]) -> Value {
+    let mut json = {
+        match err {
+            ReceiptError::OOG => json!({
+                "err_type": "oog",
+            }),
+            ReceiptError::TemplateNotFound(template_addr) => json!({
+                "err_type": "template-not-found",
+                "template_addr": json::addr_to_str(template_addr.inner()),
+            }),
+            ReceiptError::AppNotFound(app_addr) => json!({
+                "err_type": "app-not-found",
+                "app_addr": json::addr_to_str(app_addr.inner()),
+            }),
+            ReceiptError::CompilationFailed {
+                app_addr,
+                template_addr,
+                msg,
+            } => json!({
+                "err_type": "compilation-failed",
+                "template_addr": json::addr_to_str(template_addr.inner()),
+                "app_addr": json::addr_to_str(app_addr.inner()),
+                "message": msg,
+            }),
+            ReceiptError::InstantiationFailed {
+                app_addr,
+                template_addr,
+                msg,
+            } => json!({
+                "err_type": "instantiation-failed",
+                "template_addr": json::addr_to_str(template_addr.inner()),
+                "app_addr": json::addr_to_str(app_addr.inner()),
+                "message": msg,
+            }),
+            ReceiptError::FuncNotFound {
+                app_addr,
+                template_addr,
+                func_idx,
+            } => json!({
+                "err_type": "function-not-found",
+                "template_addr": json::addr_to_str(template_addr.inner()),
+                "app_addr": json::addr_to_str(app_addr.inner()),
+                "func_index": func_idx,
+            }),
+            ReceiptError::FuncFailed {
+                app_addr,
+                template_addr,
+                func_idx,
+                msg,
+            } => json!({
+                "err_type": "function-failed",
+                "template_addr": json::addr_to_str(template_addr.inner()),
+                "app_addr": json::addr_to_str(app_addr.inner()),
+                "func_index": func_idx,
+                "message": msg,
+            }),
+        }
+    };
 
-// fn error_receipt(receipt: &SpawnAppReceipt) -> Value {
-//     let gas_used = receipt.get_gas_used();
-//     let error = receipt.get_error();
+    let logs = json::logs_to_json(logs);
 
-//     json!({
-//         "success": false,
-//         "error": error.to_string(),
-//         "gas_used": json::gas_to_json(&gas_used),
-//         "logs": json::logs_to_json(&receipt.logs),
-//     })
-// }
+    let map: &mut serde_json::Map<String, Value> = json.as_object_mut().unwrap();
+    let mut map: serde_json::Map<String, Value> = std::mem::take(map);
+
+    map.insert("type".into(), Value::String(ty.into()));
+    map.insert("success".into(), Value::Bool(false));
+    map.insert("logs".into(), Value::Array(logs));
+
+    map.into()
+}
+
+fn decode_deploy_template(receipt: &TemplateReceipt, ty: &'static str) -> Value {
+    debug_assert!(receipt.success);
+    debug_assert!(receipt.error.is_none());
+
+    let TemplateReceipt {
+        addr,
+        gas_used,
+        logs,
+        ..
+    } = receipt;
+
+    json!({
+        "type": ty,
+        "success": true,
+        "addr": json::addr_to_str(addr.as_ref().unwrap().inner()),
+        "gas_used": json::gas_to_json(&gas_used),
+        "logs": json::logs_to_json(&receipt.logs),
+    })
+}
+
+fn decode_spawn_app(receipt: &SpawnAppReceipt, ty: &'static str) -> Value {
+    debug_assert!(receipt.success);
+    debug_assert!(receipt.error.is_none());
+
+    let SpawnAppReceipt {
+        app_addr,
+        init_state,
+        returns,
+        gas_used,
+        logs,
+        ..
+    } = receipt;
+
+    json!({
+        "type": ty,
+        "success": true,
+        "app": json::addr_to_str(app_addr.as_ref().unwrap().inner()),
+        "state": json::state_to_str(init_state.as_ref().unwrap()),
+        "returns": json::wasm_values_to_json(returns.as_ref().unwrap()),
+        "gas_used": json::gas_to_json(&gas_used),
+        "logs": json::logs_to_json(&receipt.logs),
+    })
+}
+
+fn decode_exe_app(receipt: &ExecReceipt, ty: &'static str) -> Value {
+    debug_assert!(receipt.success);
+    debug_assert!(receipt.error.is_none());
+
+    let ExecReceipt {
+        new_state,
+        returns,
+        gas_used,
+        logs,
+        ..
+    } = receipt;
+
+    json!({
+        "type": ty,
+        "success": true,
+        "new_state": json::state_to_str(new_state.as_ref().unwrap()),
+        "returns": json::wasm_values_to_json(returns.as_ref().unwrap()),
+        "gas_used": json::gas_to_json(&gas_used),
+        "logs": json::logs_to_json(&receipt.logs),
+    })
+}
 
 #[cfg(test)]
 mod tests {
@@ -60,10 +187,51 @@ mod tests {
     use svm_types::{gas::MaybeGas, receipt::Log, Address, AppAddr, State, WasmValue};
 
     #[test]
-    #[ignore]
-    fn spawn_app_receipt_success() {
-        let app: Address = [0x10; 20][..].into();
-        let state: State = [0xA0; 32][..].into();
+    fn decode_receipt_deploy_template_receipt_success() {
+        let template: Address = [0x10; 20].into();
+
+        let logs = vec![
+            Log {
+                msg: b"Log entry #1".to_vec(),
+                code: 100,
+            },
+            Log {
+                msg: b"Log entry #2".to_vec(),
+                code: 200,
+            },
+        ];
+
+        let receipt = TemplateReceipt {
+            success: true,
+            error: None,
+            addr: Some(template.into()),
+            gas_used: MaybeGas::with(10),
+            logs,
+        };
+
+        let bytes = crate::receipt::encode_template_receipt(&receipt);
+        let data = json::bytes_to_str(&bytes);
+        let json = decode_receipt(&json!({ "data": data })).unwrap();
+
+        assert_eq!(
+            json,
+            json!({
+                "success": true,
+                "type": "deploy-template",
+                "addr": "1010101010101010101010101010101010101010",
+                "gas_used": 10,
+                "logs": [
+                    {"msg": "Log entry #1", "code": 100},
+                    {"msg": "Log entry #2", "code": 200}
+                ]
+            })
+        );
+    }
+
+    #[test]
+    fn decode_receipt_spawn_app_receipt_success() {
+        let app: Address = [0x10; 20].into();
+        let state: State = [0xA0; 32].into();
 
         let logs = vec![
             Log {
@@ -94,12 +262,13 @@ mod tests {
             json,
             json!({
                 "success": true,
+                "type": "spawn-app",
                 "app": "1010101010101010101010101010101010101010",
                 "gas_used": 10,
                 "returns": ["10i32", "20i64"],
                 "state": "A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0",
                 "logs": [
-                    {"msg": "Log entry #1", "code": 100,},
+                    {"msg": "Log entry #1", "code": 100},
                     {"msg": "Log entry #2", "code": 200}
                 ]
             })
@@ -107,8 +276,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
-    fn spawn_app_receipt_error() {
+    fn decode_receipt_spawn_app_receipt_error() {
         let logs = vec![Log {
             msg: b"Reached OOG".to_vec(),
             code: 0,
@@ -131,10 +299,54 @@ mod tests {
         assert_eq!(
             json,
             json!({
+               "type": "spawn-app",
                "success": false,
-               "error": "OOG",
-               "gas_used": 1000,
+               "err_type": "oog",
                "logs": [{"code": 0, "msg": "Reached OOG"}],
+            })
+        );
+    }
+
+    #[test]
+    fn decode_receipt_exec_app_receipt_success() {
+        let state: State = [0xA0; 32].into();
+
+        let logs = vec![
+            Log {
+                msg: b"Log entry #1".to_vec(),
+                code: 100,
+            },
+            Log {
+                msg: b"Log entry #2".to_vec(),
+                code: 200,
+            },
+        ];
+
+        let receipt = ExecReceipt {
+            success: true,
+            error: None,
+            new_state: Some(state),
+            returns: Some(vec![WasmValue::I32(10), WasmValue::I64(20)]),
+            gas_used: MaybeGas::with(10),
+            logs,
+        };
+
+        let bytes = crate::receipt::encode_exec_receipt(&receipt);
+        let data = json::bytes_to_str(&bytes);
+        let json = decode_receipt(&json!({ "data": data })).unwrap();
+
+        assert_eq!(
+            json,
+            json!({
+                "success": true,
+                "type": "exec-app",
+                "gas_used": 10,
+                "returns": ["10i32", "20i64"],
+                "new_state": "A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0",
+                "logs": [
+                    {"msg": "Log entry #1", "code": 100},
+                    {"msg": "Log entry #2", "code": 200}
+                ]
             })
         );
     }
