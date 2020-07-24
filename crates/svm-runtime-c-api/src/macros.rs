@@ -57,8 +57,8 @@ macro_rules! impl_from_svm_byte_array {
 #[macro_export]
 macro_rules! impl_into_svm_byte_array {
     ($struct:ident) => {
-        impl From<$struct> for $crate::svm_byte_array {
-            fn from(value: $struct) -> Self {
+        impl From<&$struct> for $crate::svm_byte_array {
+            fn from(value: &$struct) -> Self {
                 // `bytes` is a copy of the underlying bytes.
                 let bytes = value.bytes();
 
@@ -73,6 +73,12 @@ macro_rules! impl_into_svm_byte_array {
                     bytes: bytes.as_ptr(),
                     length,
                 }
+            }
+        }
+
+        impl From<$struct> for $crate::svm_byte_array {
+            fn from(value: $struct) -> Self {
+                (&value).into()
             }
         }
     };

@@ -1091,6 +1091,7 @@ dependencies = [
  "cbindgen",
  "log",
  "maplit",
+ "serde_json",
  "svm-codec",
  "svm-common",
  "svm-compiler",

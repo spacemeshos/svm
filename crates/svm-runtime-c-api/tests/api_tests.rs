@@ -1,14 +1,15 @@
 extern crate svm_runtime_c_api;
 
+use maplit::hashmap;
+
 use svm_runtime_c_api as api;
 use svm_runtime_c_api::svm_byte_array;
 
-use std::{collections::HashMap, convert::TryFrom, ffi::c_void, io};
+use std::{collections::HashMap, ffi::c_void};
 
-use maplit::hashmap;
-
+use svm_codec::api::raw;
 use svm_layout::DataLayout;
-use svm_types::{Address, WasmValue};
+use svm_types::{Address, State, WasmValue};
 
 unsafe fn create_imports() -> *const c_void {
     let mut imports = std::ptr::null_mut();
@@ -93,7 +94,6 @@ unsafe fn test_svm_runtime() {
     assert!(res.is_ok());
 
     let res = api::svm_memory_runtime_create(&mut runtime, state_kv, host, imports, &mut error);
-
     assert!(res.is_ok());
 
     // 2) deploy app-template
@@ -128,9 +128,9 @@ unsafe fn test_svm_runtime() {
     assert!(res.is_ok());
 
     // extract the `template-address` out of theh receipt
-    let mut template_addr = svm_byte_array::default();
-    let res = api::svm_template_receipt_addr(&mut template_addr, template_receipt, &mut error);
-    assert!(res.is_ok());
+    let receipt = raw::decode_receipt(template_receipt.into()).into_deploy_template();
+    let template_addr: &Address = receipt.get_template_addr().inner();
+    let template_addr: svm_byte_array = template_addr.into();
 
     // 3) spawn app
     let spawner = Address::of("spawner").into();
@@ -145,10 +145,10 @@ unsafe fn test_svm_runtime() {
         length: length,
     };
 
-    let mut app_receipt = svm_byte_array::default();
+    let mut spawn_receipt = svm_byte_array::default();
 
     let res = api::svm_spawn_app(
-        &mut app_receipt,
+        &mut spawn_receipt,
         runtime,
         app_bytes,
         spawner,
@@ -160,11 +160,12 @@ unsafe fn test_svm_runtime() {
     assert!(res.is_ok());
 
     // extracts the spawned-app `Address` and initial `State`.
-    let mut app_addr = svm_byte_array::default();
-    let mut init_state = svm_byte_array::default();
+    let receipt = raw::decode_receipt(spawn_receipt.into()).into_spawn_app();
+    let app_addr: &Address = receipt.get_app_addr().inner();
+    let app_addr: svm_byte_array = app_addr.into();
 
-    assert!(api::svm_app_receipt_addr(&mut app_addr, app_receipt, &mut error).is_ok());
-    assert!(api::svm_app_receipt_state(&mut init_state, app_receipt, &mut error).is_ok());
+    let init_state: &State = receipt.get_init_state();
+    let init_state: svm_byte_array = init_state.into();
 
     // 4) execute app
     let func_idx = 1;
@@ -183,7 +184,6 @@ unsafe fn test_svm_runtime() {
     assert!(res.is_ok());
 
     // 4.2) execute the app-transaction
-
     let mut exec_receipt = svm_byte_array::default();
 
     let res = api::svm_exec_app(
@@ -198,21 +198,14 @@ unsafe fn test_svm_runtime() {
     );
     assert!(res.is_ok());
 
-    let mut returns = svm_byte_array {
-        bytes: std::ptr::null(),
-        length: 0,
-    };
-    let res = api::svm_exec_receipt_returns(&mut returns, exec_receipt, &mut error);
-    assert!(res.is_ok());
-
-    let returns: Result<Vec<WasmValue>, io::Error> = Vec::try_from(returns);
-    assert_eq!(returns.unwrap(), vec![WasmValue::I64(10)]);
+    let receipt = raw::decode_receipt(exec_receipt.into()).into_exec_app();
+    assert_eq!(receipt.get_returns(), &vec![WasmValue::I64(10)]);
 
     let _ = api::svm_byte_array_destroy(template_addr);
     let _ = api::svm_byte_array_destroy(app_addr);
     let _ = api::svm_byte_array_destroy(init_state);
     let _ = api::svm_byte_array_destroy(template_receipt);
-    let _ = api::svm_byte_array_destroy(app_receipt);
+    let _ = api::svm_byte_array_destroy(spawn_receipt);
     let _ = api::svm_byte_array_destroy(exec_receipt);
     let _ = api::svm_imports_destroy(imports);
     let _ = api::svm_runtime_destroy(runtime);
