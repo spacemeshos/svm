@@ -14,6 +14,7 @@ use svm_types::{AddressOf, App, SpawnApp, WasmValue};
 /// {
 ///   version: 0,           // number
 ///   template: 'A2FB...',  // string
+///   name: 'My App',       // string
 ///   ctor_index: 0,        // number
 ///   ctor_buf: '',         // string
 ///   ctor_args: ['10i32', '20i64', ...] // Array of `String`
@@ -22,6 +23,7 @@ use svm_types::{AddressOf, App, SpawnApp, WasmValue};
 pub fn encode_spawn_app(json: &Value) -> Result<Vec<u8>, JsonError> {
     let version = json::as_u32(json, "version")?;
     let template = json::as_addr(json, "template")?.into();
+    let name = json::as_string(json, "name")?;
     let ctor_idx = json::as_u16(json, "ctor_index")?;
 
     let ctor_buf = json::as_string(json, "ctor_buf")?;
@@ -34,7 +36,11 @@ pub fn encode_spawn_app(json: &Value) -> Result<Vec<u8>, JsonError> {
     let ctor_args = raw::decode_func_args(&mut iter).unwrap();
 
     let spawn = SpawnApp {
-        app: App { version, template },
+        app: App {
+            version,
+            name,
+            template,
+        },
         ctor_idx,
         ctor_args,
         ctor_buf,
@@ -61,10 +67,12 @@ pub fn decode_spawn_app(json: &Value) -> Result<Value, JsonError> {
     let ctor_buf = json::bytes_to_str(&spawn.ctor_buf);
     let ctor_buf = json::decode_func_buf(&json!({ "data": ctor_buf }))?;
     let ctor_args = json::wasm_values_to_json(&spawn.ctor_args);
+    let name = spawn.app.name;
 
     let json = json!({
         "version": version,
         "template": template,
+        "name": name,
         "ctor_index": ctor_idx,
         "ctor_buf": ctor_buf,
         "ctor_args": ctor_args
@@ -113,10 +121,28 @@ mod tests {
     }
 
     #[test]
-    fn json_spawn_app_missing_ctor_index() {
+    fn json_spawn_app_missing_name() {
         let json = json!({
             "version": 0,
             "template": "10203040506070809000A0B0C0D0E0F0ABCDEFFF"
+        });
+
+        let err = encode_spawn_app(&json).unwrap_err();
+        assert_eq!(
+            err,
+            JsonError::InvalidField {
+                field: "name".to_string(),
+                reason: "value `null` isn\'t a string".to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn json_spawn_app_missing_ctor_index() {
+        let json = json!({
+            "version": 0,
+            "template": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
+            "name": "My App",
         });
 
         let err = encode_spawn_app(&json).unwrap_err();
@@ -134,6 +160,7 @@ mod tests {
         let json = json!({
             "version": 0,
             "template": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
+            "name": "My App",
             "ctor_index": 0,
         });
 
@@ -158,6 +185,7 @@ mod tests {
         let json = json!({
             "version": 0,
             "template": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
+            "name": "My App",
             "ctor_index": 0,
             "ctor_buf": calldata["func_buf"]
         });
@@ -185,6 +213,7 @@ mod tests {
         let json = json!({
             "version": 1,
             "template": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
+            "name": "My App",
             "ctor_index": 2,
             "ctor_buf": calldata["func_buf"],
             "ctor_args": calldata["func_args"]
@@ -199,6 +228,7 @@ mod tests {
             json!({
                 "version": 1,
                 "template": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
+                "name": "My App",
                 "ctor_index": 2,
                 "ctor_buf": [{"address": template_addr}],
                 "ctor_args": ["10i32", "20i64"],

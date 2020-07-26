@@ -332,10 +332,11 @@ describe('Deploy Template', function () {
 });
 
 describe('Spawn App', function () {
-    function encodeSpawnApp(instance, template, calldata) {
+    function encodeSpawnApp(instance, template, name, calldata) {
 	let tx = {
 	    version: 0,
 	    template: template,
+	    name: name,
 	    ctor_index: 1,
 	    ctor_buf: calldata['func_buf'],
 	    ctor_args: calldata['func_args']
@@ -371,6 +372,7 @@ describe('Spawn App', function () {
 	return compileWasmCodec().then(instance => {
 	    const template = generateAddress('1020304050');
 	    const pkey = generatePubKey256('11223344');
+	    const name = 'My App';
 
 	    const object = {
 	    	abi: ['i32', 'pubkey256', 'i64'],
@@ -378,13 +380,14 @@ describe('Spawn App', function () {
 	    };	
 
 	    let calldata = encodeCallData(instance, object);
-	    const bytes = encodeSpawnApp(instance, template, calldata);
+	    const bytes = encodeSpawnApp(instance, template, name, calldata);
 	    const json = decodeSpawnApp(instance, bytes);
 
 	    assert.deepEqual(json,
 			     {
 				 version: 0,
 				 template: template,
+				 name: name,
 				 ctor_index: 1,
 				 ctor_args: ['10i32', '20i64'],
 				 ctor_buf: [{pubkey256: pkey}],

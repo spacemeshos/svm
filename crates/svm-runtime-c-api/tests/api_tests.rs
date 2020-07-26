@@ -33,14 +33,21 @@ fn deploy_template_bytes(version: u32, name: &str, wasm: &str) -> (Vec<u8>, u32)
 fn spawn_app_bytes(
     version: u32,
     template_addr: &svm_byte_array,
+    name: &str,
     ctor_idx: u16,
     ctor_buf: &Vec<u8>,
     ctor_args: &Vec<WasmValue>,
 ) -> (Vec<u8>, u32) {
     let template_addr = Address::from(*&template_addr.bytes as *const c_void).into();
 
-    let bytes =
-        svm_runtime::testing::build_app(version, &template_addr, ctor_idx, ctor_buf, ctor_args);
+    let bytes = svm_runtime::testing::build_app(
+        version,
+        &template_addr,
+        name,
+        ctor_idx,
+        ctor_buf,
+        ctor_args,
+    );
     let length = bytes.len() as u32;
 
     (bytes, length)
@@ -133,13 +140,21 @@ unsafe fn test_svm_runtime() {
     let template_addr: svm_byte_array = template_addr.into();
 
     // 3) spawn app
+    let name = "My App";
     let spawner = Address::of("spawner").into();
     let ctor_idx = 0;
     let ctor_buf = vec![];
     let ctor_args = vec![];
 
     // raw `spawn-app`
-    let (bytes, length) = spawn_app_bytes(version, &template_addr, ctor_idx, &ctor_buf, &ctor_args);
+    let (bytes, length) = spawn_app_bytes(
+        version,
+        &template_addr,
+        name,
+        ctor_idx,
+        &ctor_buf,
+        &ctor_args,
+    );
     let app_bytes = svm_byte_array {
         bytes: bytes.as_ptr(),
         length: length,
