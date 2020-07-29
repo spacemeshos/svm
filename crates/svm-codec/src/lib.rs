@@ -92,6 +92,18 @@ pub mod serializers {
 /// ```
 ///
 
+macro_rules! wasm_func_call {
+    ($func:ident, $buf_ptr:expr) => {{
+        match api::wasm::$func($buf_ptr as usize) {
+            Ok(tx_ptr) => tx_ptr as _,
+            Err(err) => {
+                let err_ptr = api::wasm::into_error_buffer(err);
+                err_ptr as _
+            }
+        }
+    }};
+}
+
 /// ## WASM Deploy-Template
 ///
 /// Reads the WASM buffer given at parameter `buf_ptr` containing a JSON value.
@@ -102,13 +114,7 @@ pub mod serializers {
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
 pub extern "C" fn wasm_deploy_template(buf_ptr: i32) -> i32 {
-    match api::wasm::encode_deploy_template(buf_ptr as usize) {
-        Ok(tx_ptr) => tx_ptr as _,
-        Err(err) => {
-            let err_ptr = api::wasm::into_error_buffer(err);
-            err_ptr as _
-        }
-    }
+    wasm_func_call!(encode_deploy_template, buf_ptr)
 }
 
 /// ## WASM Spawn-App
@@ -121,25 +127,13 @@ pub extern "C" fn wasm_deploy_template(buf_ptr: i32) -> i32 {
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
 pub extern "C" fn wasm_encode_spawn_app(buf_ptr: i32) -> i32 {
-    match api::wasm::encode_spawn_app(buf_ptr as usize) {
-        Ok(tx_ptr) => tx_ptr as _,
-        Err(err) => {
-            let err_ptr = api::wasm::into_error_buffer(err);
-            err_ptr as _
-        }
-    }
+    wasm_func_call!(encode_spawn_app, buf_ptr)
 }
 
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
 pub extern "C" fn wasm_decode_spawn_app(buf_ptr: i32) -> i32 {
-    match api::wasm::decode_spawn_app(buf_ptr as usize) {
-        Ok(tx_ptr) => tx_ptr as _,
-        Err(err) => {
-            let err_ptr = api::wasm::into_error_buffer(err);
-            err_ptr as _
-        }
-    }
+    wasm_func_call!(decode_spawn_app, buf_ptr)
 }
 
 /// ## WASM Execute-App
@@ -152,27 +146,16 @@ pub extern "C" fn wasm_decode_spawn_app(buf_ptr: i32) -> i32 {
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
 pub extern "C" fn wasm_encode_exec_app(buf_ptr: i32) -> i32 {
-    match api::wasm::encode_exec_app(buf_ptr as usize) {
-        Ok(tx_ptr) => tx_ptr as _,
-        Err(err) => {
-            let err_ptr = api::wasm::into_error_buffer(err);
-            err_ptr as _
-        }
-    }
+    wasm_func_call!(encode_exec_app, buf_ptr)
 }
+
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
 pub extern "C" fn wasm_decode_exec_app(buf_ptr: i32) -> i32 {
-    match api::wasm::decode_exec_app(buf_ptr as usize) {
-        Ok(tx_ptr) => tx_ptr as _,
-        Err(err) => {
-            let err_ptr = api::wasm::into_error_buffer(err);
-            err_ptr as _
-        }
-    }
+    wasm_func_call!(decode_exec_app, buf_ptr)
 }
 
-/// ## WASM Buffer Allocate
+/// ## WASM Buffer Allocation
 ///
 /// Allocates a new WASM Buffer holding data of `length` bytes.
 ///
@@ -185,7 +168,7 @@ pub extern "C" fn wasm_alloc(length: i32) -> i32 {
     ptr as _
 }
 
-/// ## WASM Buffer Free
+/// ## WASM Buffer Freeing
 ///
 /// Frees the WASM buffer allocated starting from offset `buf_ptr`.
 ///
@@ -221,23 +204,17 @@ pub extern "C" fn wasm_buffer_data(buf_ptr: i32) -> i32 {
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
 pub extern "C" fn wasm_encode_calldata(buf_ptr: i32) -> i32 {
-    match api::wasm::encode_calldata(buf_ptr as usize) {
-        Ok(ptr) => ptr as _,
-        Err(err) => {
-            let err_ptr = api::wasm::into_error_buffer(err);
-            err_ptr as _
-        }
-    }
+    wasm_func_call!(encode_calldata, buf_ptr)
 }
 
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
 pub extern "C" fn wasm_decode_calldata(buf_ptr: i32) -> i32 {
-    match api::wasm::decode_calldata(buf_ptr as usize) {
-        Ok(ptr) => ptr as _,
-        Err(err) => {
-            let err_ptr = api::wasm::into_error_buffer(err);
-            err_ptr as _
-        }
-    }
+    wasm_func_call!(decode_calldata, buf_ptr)
+}
+
+#[no_mangle]
+#[cfg(target_arch = "wasm32")]
+pub extern "C" fn wasm_decode_receipt(buf_ptr: i32) -> i32 {
+    wasm_func_call!(decode_receipt, buf_ptr)
 }

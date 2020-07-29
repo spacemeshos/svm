@@ -1,32 +1,38 @@
-//!         `ExecReceipt` Raw Format Version 0
+//!         `Exec App` Receipt Raw Format Version 0
 //!
 //!  On success (`is_success = 1`)
 //!  +---------------------------------------------------+
-//!  |            |              |                       |
-//!  |  version   |  is_success  |     app new state     |
-//!  |            |  (1 nibble)  |      (32 bytes)       |
-//!  +____________|______________|_______________________+
+//!  |  tx type  |  version   | is_success |  New state  |
+//!  | (1 byte)  | (1 nibble) | (1 nibble) | (32 bytes)  |
+//!  +___________|____________|__________________________+
 //!  |          |              |         |               |
 //!  | #returns | ret #1 type  | ret #1  |  ret #2  type |
 //!  +__________|______________|_________|_______________+
 //!  |          |            |                           |
 //!  |  ret #2  |   .  .  .  |         gas_used          |
 //!  +__________|____________|___________________________+
+//!  |          |            |         |                 |
+//!  |  #logs   | log 1 blob |  . . .  |     log #N      |
+//!  +__________|____________|_________|_________________+
 //!
 //!
 //!  On success (`is_success = 0`)
 //!  See [error.rs][./error.rs]
 
-use crate::nibble::NibbleWriter;
+use crate::api::raw;
+use crate::nibble::{NibbleIter, NibbleWriter};
+
+use svm_types::gas::MaybeGas;
 use svm_types::receipt::{ExecReceipt, Log, Receipt};
 
-use super::{encode_error, helpers, logs::encode_logs};
+use super::{decode_error, encode_error, helpers, logs};
 
 pub fn encode_exec_receipt(receipt: &ExecReceipt) -> Vec<u8> {
     let mut w = NibbleWriter::new();
 
     let wrapped_receipt = Receipt::ExecApp(receipt);
 
+    helpers::encode_type(super::types::EXEC_APP, &mut w);
     helpers::encode_version(0, &mut w);
     helpers::encode_is_success(&wrapped_receipt, &mut w);
 
@@ -34,12 +40,50 @@ pub fn encode_exec_receipt(receipt: &ExecReceipt) -> Vec<u8> {
         encode_new_state(receipt, &mut w);
         encode_returns(receipt, &mut w);
         helpers::encode_gas_used(&wrapped_receipt, &mut w);
-        encode_logs(&receipt.logs, &mut w);
+        logs::encode_logs(&receipt.logs, &mut w);
     } else {
-        encode_error(&wrapped_receipt, &mut w);
+        let logs = receipt.get_logs();
+
+        encode_error(receipt.get_error(), logs, &mut w);
     };
 
     w.into_bytes()
+}
+
+pub fn decode_exec_receipt(bytes: &[u8]) -> ExecReceipt {
+    let mut iter = NibbleIter::new(bytes);
+
+    let ty = helpers::decode_type(&mut iter);
+    debug_assert_eq!(ty, crate::receipt::types::EXEC_APP);
+
+    let version = helpers::decode_version(&mut iter).unwrap();
+    debug_assert_eq!(0, version);
+
+    let is_success = helpers::decode_is_success(&mut iter);
+
+    match is_success {
+        0 => {
+            let (err, logs) = decode_error(&mut iter);
+            ExecReceipt::from_err(err, logs)
+        }
+        1 => {
+            // success
+            let new_state = helpers::decode_state(&mut iter);
+            let returns = raw::decode_func_args(&mut iter).unwrap();
+            let gas_used = helpers::decode_gas_used(&mut iter);
+            let logs = logs::decode_logs(&mut iter);
+
+            ExecReceipt {
+                success: true,
+                error: None,
+                new_state: Some(new_state),
+                returns: Some(returns),
+                gas_used,
+                logs,
+            }
+        }
+        _ => unreachable!(),
+    }
 }
 
 fn encode_new_state(receipt: &ExecReceipt, w: &mut NibbleWriter) {
@@ -61,25 +105,17 @@ fn encode_returns(receipt: &ExecReceipt, w: &mut NibbleWriter) {
 mod tests {
     use super::*;
 
-    use crate::receipt::testing::{self, ClientExecReceipt};
-
-    use svm_types::receipt::error::ExecAppError;
-    use svm_types::{gas::MaybeGas, Address, State, WasmValue};
+    use svm_types::{gas::MaybeGas, receipt::ReceiptError, Address, State, WasmValue};
 
     #[test]
     fn encode_decode_exec_receipt_error() {
-        let error = ExecAppError::AppNotFound {
-            app_addr: Address::of("my-app").into(),
-        };
+        let app = Address::of("my-app");
+        let error = ReceiptError::AppNotFound(app.into());
 
         let logs = vec![Log {
             msg: b"something happened".to_vec(),
             code: 200,
         }];
-
-        let expected = ClientExecReceipt::Failure {
-            error: error.to_string(),
-        };
 
         let receipt = ExecReceipt {
             success: false,
@@ -91,9 +127,9 @@ mod tests {
         };
 
         let bytes = encode_exec_receipt(&receipt);
-        let actual = testing::decode_exec_receipt(&bytes[..]);
+        let decoded = crate::receipt::decode_receipt(&bytes[..]);
 
-        assert_eq!(expected, actual);
+        assert_eq!(decoded.into_exec_app(), receipt);
     }
 
     #[test]
@@ -105,13 +141,6 @@ mod tests {
             code: 200,
         }];
 
-        let expected = ClientExecReceipt::Success {
-            new_state: new_state.clone(),
-            func_returns: Vec::new(),
-            gas_used: 100,
-            logs: logs.clone(),
-        };
-
         let receipt = ExecReceipt {
             success: true,
             error: None,
@@ -122,9 +151,9 @@ mod tests {
         };
 
         let bytes = encode_exec_receipt(&receipt);
-        let actual = testing::decode_exec_receipt(&bytes[..]);
+        let decoded = crate::receipt::decode_receipt(&bytes[..]);
 
-        assert_eq!(expected, actual);
+        assert_eq!(decoded.into_exec_app(), receipt);
     }
 
     #[test]
@@ -137,13 +166,6 @@ mod tests {
             code: 200,
         }];
 
-        let expected = ClientExecReceipt::Success {
-            new_state: new_state.clone(),
-            func_returns: vec![WasmValue::I32(10), WasmValue::I64(20), WasmValue::I32(30)],
-            gas_used: 100,
-            logs: logs.clone(),
-        };
-
         let receipt = ExecReceipt {
             success: true,
             error: None,
@@ -154,8 +176,8 @@ mod tests {
         };
 
         let bytes = encode_exec_receipt(&receipt);
-        let actual = testing::decode_exec_receipt(&bytes[..]);
+        let decoded = crate::receipt::decode_receipt(&bytes[..]);
 
-        assert_eq!(expected, actual);
+        assert_eq!(decoded.into_exec_app(), receipt);
     }
 }

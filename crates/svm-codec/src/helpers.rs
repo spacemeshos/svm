@@ -1,4 +1,4 @@
-use crate::api::raw::{decode_varuint14, encode_varuint14, Field};
+use crate::api::raw::{self, decode_varuint14, encode_varuint14, Field};
 use crate::{
     error::ParseError,
     nibble::{NibbleIter, NibbleWriter},
@@ -24,6 +24,10 @@ pub fn encode_string(s: &str, w: &mut NibbleWriter) {
     encode_varuint14(length as u16, w);
 
     w.write_bytes(&bytes[..]);
+}
+
+pub fn encode_func_index(func_idx: u16, w: &mut NibbleWriter) {
+    raw::encode_varuint14(func_idx, w);
 }
 
 pub fn encode_u32_be(n: u32, w: &mut NibbleWriter) {
@@ -78,4 +82,8 @@ pub fn decode_u32_be(iter: &mut NibbleIter, field: Field) -> Result<u32, ParseEr
     let n = BigEndian::read_u32(&bytes[..]);
 
     Ok(n)
+}
+
+pub fn decode_func_index(iter: &mut NibbleIter) -> Result<u16, ParseError> {
+    raw::decode_varuint14(iter, Field::FuncIndex)
 }

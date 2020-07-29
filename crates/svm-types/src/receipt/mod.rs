@@ -3,7 +3,8 @@ mod exec_app;
 mod log;
 mod spawn_app;
 
-pub mod error;
+mod error;
+pub use error::ReceiptError;
 
 pub use deploy_template::TemplateReceipt;
 pub use exec_app::ExecReceipt;
@@ -52,12 +53,69 @@ impl<'a> Receipt<'a> {
         }
     }
 
-    /// Returns a failed transaction error as a `String`.
-    pub fn error_string(&self) -> String {
+    /// Returns a `ReceiptError`
+    pub fn get_error(&self) -> &ReceiptError {
         match self {
-            Self::DeployTemplate(r) => r.error.as_ref().unwrap().to_string(),
-            Self::SpawnApp(r) => r.error.as_ref().unwrap().to_string(),
-            Self::ExecApp(r) => r.error.as_ref().unwrap().to_string(),
+            Self::DeployTemplate(r) => r.error.as_ref().unwrap(),
+            Self::SpawnApp(r) => r.error.as_ref().unwrap(),
+            Self::ExecApp(r) => r.error.as_ref().unwrap(),
+        }
+    }
+}
+
+/// Owned Receipt
+#[derive(Debug, PartialEq)]
+pub enum ReceiptOwned {
+    DeployTemplate(TemplateReceipt),
+
+    SpawnApp(SpawnAppReceipt),
+
+    ExecApp(ExecReceipt),
+}
+
+impl ReceiptOwned {
+    pub fn success(&self) -> bool {
+        match self {
+            ReceiptOwned::DeployTemplate(receipt) => receipt.success,
+            ReceiptOwned::SpawnApp(receipt) => receipt.success,
+            ReceiptOwned::ExecApp(receipt) => receipt.success,
+        }
+    }
+
+    pub fn into_deploy_template(self) -> TemplateReceipt {
+        match self {
+            ReceiptOwned::DeployTemplate(r) => r,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn into_spawn_app(self) -> SpawnAppReceipt {
+        match self {
+            ReceiptOwned::SpawnApp(r) => r,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn into_exec_app(self) -> ExecReceipt {
+        match self {
+            ReceiptOwned::ExecApp(r) => r,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn get_logs(&self) -> &[Log] {
+        match self {
+            ReceiptOwned::DeployTemplate(receipt) => receipt.get_logs(),
+            ReceiptOwned::SpawnApp(receipt) => receipt.get_logs(),
+            ReceiptOwned::ExecApp(receipt) => receipt.get_logs(),
+        }
+    }
+
+    pub fn get_error(&self) -> &ReceiptError {
+        match self {
+            ReceiptOwned::DeployTemplate(receipt) => receipt.get_error(),
+            ReceiptOwned::SpawnApp(receipt) => receipt.get_error(),
+            ReceiptOwned::ExecApp(receipt) => receipt.get_error(),
         }
     }
 }

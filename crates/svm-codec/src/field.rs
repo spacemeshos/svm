@@ -3,17 +3,19 @@ use std::fmt;
 #[allow(missing_docs)]
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum Field {
+    String,
+    StringLength,
     GasUsed,
     Author,
     Creator,
     Version,
     NameLength,
     Name,
-    PageCount,
-    CodeLength,
+    CodeSize,
     Code,
-    AppTemplate,
-    App,
+    Address,
+    TemplateAddr,
+    AppAddr,
     FuncIndex,
     FuncBufLength,
     FuncBuf,

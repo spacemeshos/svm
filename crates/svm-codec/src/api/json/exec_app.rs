@@ -57,12 +57,11 @@ pub fn decode_exec_app(json: &Value) -> Result<Value, JsonError> {
 
     let version = tx.version;
     let func_idx = tx.func_idx;
-    let app = addr_as_string(&tx.app);
+    let app = json::addr_to_str(&tx.app.inner());
 
     let func_buf = json::bytes_to_str(&tx.func_buf);
     let func_buf = json::decode_func_buf(&json!({ "data": func_buf }))?;
-
-    let func_args = args_as_string(&tx.func_args);
+    let func_args = json::wasm_values_to_json(&tx.func_args);
 
     let json = json!({
         "version": version,
@@ -73,22 +72,6 @@ pub fn decode_exec_app(json: &Value) -> Result<Value, JsonError> {
     });
 
     Ok(json)
-}
-
-fn addr_as_string<T>(addr: &AddressOf<T>) -> String {
-    let bytes = addr.inner().as_slice();
-
-    json::bytes_to_str(bytes)
-}
-
-fn args_as_string(func_args: &[WasmValue]) -> Vec<String> {
-    func_args
-        .iter()
-        .map(|v| match v {
-            WasmValue::I32(v) => format!("{}i32", v),
-            WasmValue::I64(v) => format!("{}i64", v),
-        })
-        .collect()
 }
 
 #[cfg(test)]

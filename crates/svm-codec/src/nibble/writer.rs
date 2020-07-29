@@ -15,10 +15,15 @@ impl NibbleWriter {
         }
     }
 
+    #[inline]
+    pub fn push(&mut self, nib: Nibble) {
+        self.nibbles.push(nib);
+    }
+
     /// Appends `nibbles` to the underlying stream.
     pub fn write(&mut self, nibbles: &[Nibble]) {
         for nib in nibbles.iter() {
-            self.nibbles.push(*nib);
+            self.push(*nib);
         }
     }
 
@@ -26,11 +31,17 @@ impl NibbleWriter {
     /// (each byte consists of 2 nibbles).
     pub fn write_bytes(&mut self, bytes: &[u8]) {
         for byte in bytes.iter() {
-            let lnib = nib!((byte & 0xF0) >> 4);
-            let rnib = nib!(byte & 0x0F);
-
-            self.write(&[lnib, rnib]);
+            self.write_byte(*byte);
         }
+    }
+
+    /// Appends a `byte` to the underlying stream.
+    #[inline]
+    pub fn write_byte(&mut self, byte: u8) {
+        let lnib = nib!((byte & 0xF0) >> 4);
+        let rnib = nib!(byte & 0x0F);
+
+        self.write(&[lnib, rnib]);
     }
 
     /// Closes the `NibbleWriter` and returns the underlying streams as `Vec<u8>`.
@@ -46,7 +57,7 @@ impl NibbleWriter {
             self.write(&[padding]);
         }
 
-        let (bytes, rem) = concat_nibbles(&self.nibbles[..]);
+        let (bytes, rem) = concat_nibbles(&self.nibbles);
         debug_assert!(rem.is_none());
 
         bytes

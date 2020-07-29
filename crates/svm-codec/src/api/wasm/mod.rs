@@ -2,12 +2,14 @@ mod calldata;
 mod deploy_template;
 mod error;
 mod exec_app;
+mod receipt;
 mod spawn_app;
 
 pub use calldata::{decode_calldata, encode_calldata};
 pub use deploy_template::encode_deploy_template;
 pub use error::{error_as_string, into_error_buffer};
 pub use exec_app::{decode_exec_app, encode_exec_app};
+pub use receipt::decode_receipt;
 pub use spawn_app::{decode_spawn_app, encode_spawn_app};
 
 use crate::api::json::JsonError;

@@ -1,7 +1,7 @@
-#![deny(missing_docs)]
-#![deny(unused)]
-#![deny(dead_code)]
-#![deny(unreachable_code)]
+#![allow(missing_docs)]
+#![allow(unused)]
+#![allow(dead_code)]
+#![allow(unreachable_code)]
 #![feature(vec_into_raw_parts)]
 
 //! This crate is responsible of providing [FFI](https://doc.rust-lang.org/nomicon/ffi.html) interface for the `SVM`.
@@ -37,13 +37,6 @@ pub use api::{
     svm_runtime_destroy,
     svm_spawn_app,
 
-    // Receipts helpers
-    svm_app_receipt_addr,
-    svm_template_receipt_addr,
-    svm_app_receipt_state,
-    svm_exec_receipt_returns,
-    svm_exec_receipt_state,
-    
     // Utils
     svm_byte_array_destroy,
     svm_instance_context_host_get,

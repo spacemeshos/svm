@@ -1,3 +1,4 @@
+use svm_types::gas::MaybeGas;
 use svm_types::WasmValue;
 
 use crate::{error::ParseError, nibble::NibbleIter, wasm};
@@ -12,7 +13,7 @@ macro_rules! invalid_layout {
 
 /// Decodes the `gas_used` field of a `Receipt`.
 #[allow(unused)]
-pub fn decode_gas_used(iter: &mut NibbleIter) -> Result<u64, ParseError> {
+pub fn decode_gas_used(iter: &mut NibbleIter) -> Result<MaybeGas, ParseError> {
     let nib = iter.next();
 
     let layout = if let Some(nib) = nib {
@@ -24,6 +25,8 @@ pub fn decode_gas_used(iter: &mut NibbleIter) -> Result<u64, ParseError> {
     let value = wasm::decode_wasm_value(&layout, iter)?;
 
     if let WasmValue::I64(gas_used) = value {
+        let gas_used = MaybeGas::with(gas_used);
+
         Ok(gas_used)
     } else {
         invalid_layout!()

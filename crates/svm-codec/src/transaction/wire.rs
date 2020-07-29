@@ -68,7 +68,7 @@ fn encode_func_args(tx: &AppTransaction, w: &mut NibbleWriter) {
 /// Decoders
 
 fn decode_app(iter: &mut NibbleIter) -> Result<AppAddr, ParseError> {
-    let addr = helpers::decode_address(iter, Field::App)?;
+    let addr = helpers::decode_address(iter, Field::AppAddr)?;
 
     Ok(addr.into())
 }

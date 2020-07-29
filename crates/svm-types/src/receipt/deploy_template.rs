@@ -1,5 +1,6 @@
 use crate::gas::MaybeGas;
-use crate::receipt::error::DeployTemplateError;
+use crate::receipt::{Log, ReceiptError};
+
 use crate::TemplateAddr;
 
 /// Returned Receipt after deploying a Template.
@@ -9,13 +10,15 @@ pub struct TemplateReceipt {
     pub success: bool,
 
     /// the error in case spawning failed
-    pub error: Option<DeployTemplateError>,
+    pub error: Option<ReceiptError>,
 
     /// The deployed template `Address`
     pub addr: Option<TemplateAddr>,
 
     /// The amount of gas used for template deployment
     pub gas_used: MaybeGas,
+
+    pub logs: Vec<Log>,
 }
 
 impl TemplateReceipt {
@@ -26,6 +29,7 @@ impl TemplateReceipt {
             error: None,
             addr: Some(addr),
             gas_used,
+            logs: Vec::new(),
         }
     }
 
@@ -33,9 +37,20 @@ impl TemplateReceipt {
     pub fn new_oog() -> Self {
         Self {
             success: false,
-            error: Some(DeployTemplateError::OOG),
+            error: Some(ReceiptError::OOG),
             addr: None,
             gas_used: MaybeGas::new(),
+            logs: Vec::new(),
+        }
+    }
+
+    pub fn from_err(error: ReceiptError, logs: Vec<Log>) -> Self {
+        Self {
+            success: false,
+            error: Some(error),
+            addr: None,
+            gas_used: MaybeGas::new(),
+            logs,
         }
     }
 
@@ -43,15 +58,16 @@ impl TemplateReceipt {
     pub fn get_template_addr(&self) -> &TemplateAddr {
         self.addr.as_ref().unwrap()
     }
-}
 
-impl From<DeployTemplateError> for TemplateReceipt {
-    fn from(error: DeployTemplateError) -> Self {
-        Self {
-            success: false,
-            error: Some(error),
-            addr: None,
-            gas_used: MaybeGas::new(),
-        }
+    pub fn get_error(&self) -> &ReceiptError {
+        self.error.as_ref().unwrap()
+    }
+
+    pub fn get_logs(&self) -> &[Log] {
+        &self.logs
+    }
+
+    pub fn take_logs(&mut self) -> Vec<Log> {
+        std::mem::take(&mut self.logs)
     }
 }

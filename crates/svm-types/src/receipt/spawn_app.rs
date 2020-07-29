@@ -1,4 +1,4 @@
-use crate::receipt::{error::SpawnAppError, ExecReceipt, Log};
+use crate::receipt::{ExecReceipt, Log, ReceiptError};
 use crate::{gas::MaybeGas, AppAddr, State, WasmValue};
 
 /// Returned Receipt after spawning an App.
@@ -8,7 +8,7 @@ pub struct SpawnAppReceipt {
     pub success: bool,
 
     /// the error in case spawning failed
-    pub error: Option<SpawnAppError>,
+    pub error: Option<ReceiptError>,
 
     /// the spawned app `Address`
     pub app_addr: Option<AppAddr>,
@@ -31,13 +31,30 @@ impl SpawnAppReceipt {
     pub fn new_oog(logs: Vec<Log>) -> Self {
         Self {
             success: false,
-            error: Some(SpawnAppError::OOG),
+            error: Some(ReceiptError::OOG),
             app_addr: None,
             init_state: None,
             returns: None,
             gas_used: MaybeGas::new(),
             logs,
         }
+    }
+
+    pub fn from_err(error: ReceiptError, logs: Vec<Log>) -> Self {
+        Self {
+            success: false,
+            error: Some(error),
+            app_addr: None,
+            init_state: None,
+            returns: None,
+            gas_used: MaybeGas::new(),
+            logs,
+        }
+    }
+
+    /// Returns spawned-app `Error`. Panics if spawning has *not* failed.
+    pub fn get_error(&self) -> &ReceiptError {
+        self.error.as_ref().unwrap()
     }
 
     /// Returns spawned-app `Address`. Panics if spawning has failed.
@@ -60,23 +77,12 @@ impl SpawnAppReceipt {
         self.gas_used
     }
 
-    /// Take the Receipt's logged entries out
+    pub fn get_logs(&self) -> &[Log] {
+        &self.logs
+    }
+
     pub fn take_logs(&mut self) -> Vec<Log> {
         std::mem::take(&mut self.logs)
-    }
-}
-
-impl From<SpawnAppError> for SpawnAppReceipt {
-    fn from(error: SpawnAppError) -> Self {
-        Self {
-            success: false,
-            error: Some(error),
-            app_addr: None,
-            init_state: None,
-            returns: None,
-            gas_used: MaybeGas::new(),
-            logs: Vec::new(),
-        }
     }
 }
 
@@ -103,7 +109,7 @@ pub fn make_spawn_app_receipt(
 
         SpawnAppReceipt {
             success: false,
-            error: Some(SpawnAppError::CtorFailed(error)),
+            error: Some(error),
             app_addr,
             init_state: None,
             returns: None,

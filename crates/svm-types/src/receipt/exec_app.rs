@@ -1,4 +1,4 @@
-use crate::receipt::{error::ExecAppError, Log};
+use crate::receipt::{Log, ReceiptError};
 use crate::{gas::MaybeGas, State, WasmValue};
 
 /// Runtime transaction execution receipt
@@ -8,7 +8,7 @@ pub struct ExecReceipt {
     pub success: bool,
 
     /// The execution error in case execution failed.
-    pub error: Option<ExecAppError>,
+    pub error: Option<ReceiptError>,
 
     /// The new app `State` if execution succedded.
     pub new_state: Option<State>,
@@ -28,7 +28,7 @@ impl ExecReceipt {
     pub fn new_oog(logs: Vec<Log>) -> Self {
         Self {
             success: false,
-            error: Some(ExecAppError::OOG),
+            error: Some(ReceiptError::OOG),
             new_state: None,
             returns: None,
             gas_used: MaybeGas::new(),
@@ -36,7 +36,7 @@ impl ExecReceipt {
         }
     }
 
-    pub fn from_err(error: ExecAppError, logs: Vec<Log>) -> Self {
+    pub fn from_err(error: ReceiptError, logs: Vec<Log>) -> Self {
         Self {
             success: false,
             error: Some(error),
@@ -55,6 +55,14 @@ impl ExecReceipt {
     /// Returns executed transaction results. Panics if transaction has failed.
     pub fn get_returns(&self) -> &Vec<WasmValue> {
         self.returns.as_ref().unwrap()
+    }
+
+    pub fn get_error(&self) -> &ReceiptError {
+        self.error.as_ref().unwrap()
+    }
+
+    pub fn get_logs(&self) -> &[Log] {
+        &self.logs
     }
 
     /// Take the Receipt's logged entries out

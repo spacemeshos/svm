@@ -18,8 +18,9 @@ use svm_layout::DataLayout;
 use svm_storage::app::AppStorage;
 use svm_types::{
     gas::{MaybeGas, OOGError},
-    receipt::error::{ExecAppError, SpawnAppError},
-    receipt::{make_spawn_app_receipt, ExecReceipt, Log, SpawnAppReceipt, TemplateReceipt},
+    receipt::{
+        make_spawn_app_receipt, ExecReceipt, Log, ReceiptError, SpawnAppReceipt, TemplateReceipt,
+    },
     AppAddr, AppTemplate, AppTransaction, AuthorAddr, CreatorAddr, HostCtx, SpawnApp, State,
     TemplateAddr, WasmValue,
 };
@@ -303,7 +304,7 @@ where
         import_object: &ImportObject,
         gas_left: MaybeGas,
     ) -> (
-        Result<(Option<State>, Vec<WasmValue>, MaybeGas), ExecAppError>,
+        Result<(Option<State>, Vec<WasmValue>, MaybeGas), ReceiptError>,
         Vec<Log>,
     ) {
         let empty_logs = Vec::new();
@@ -332,16 +333,15 @@ where
 
         let gas_used = self.instance_gas_used(&instance);
         if gas_used.is_err() {
-            return (Err(ExecAppError::OOG), logs);
+            return (Err(ReceiptError::OOG), logs);
         }
 
         let result = match func_res {
-            Err(e) => Err(ExecAppError::ExecFailed {
+            Err(e) => Err(ReceiptError::FuncFailed {
                 app_addr: tx.app.clone(),
                 template_addr: template_addr.clone(),
                 func_idx: tx.func_idx,
-                func_args: self.vec_to_str(&tx.func_args),
-                reason: e.to_string(),
+                msg: e.to_string(),
             }),
             Ok(returns) => {
                 let storage = self.instance_storage_mut(&mut instance);
@@ -364,7 +364,7 @@ where
 
     fn make_receipt(
         &self,
-        result: Result<(Option<State>, Vec<WasmValue>, MaybeGas), ExecAppError>,
+        result: Result<(Option<State>, Vec<WasmValue>, MaybeGas), ReceiptError>,
         logs: Vec<Log>,
     ) -> ExecReceipt {
         match result {
@@ -417,7 +417,7 @@ where
     fn cast_wasmer_func_returns(
         &self,
         returns: Vec<WasmerValue>,
-    ) -> Result<Vec<WasmValue>, ExecAppError> {
+    ) -> Result<Vec<WasmValue>, ReceiptError> {
         let mut values = Vec::new();
 
         for ret in returns.iter() {
@@ -437,14 +437,14 @@ where
         template_addr: &TemplateAddr,
         module: &wasmer_runtime::Module,
         import_object: &ImportObject,
-    ) -> Result<wasmer_runtime::Instance, ExecAppError> {
+    ) -> Result<wasmer_runtime::Instance, ReceiptError> {
         info!("runtime `instantiate` (wasmer module instantiate)");
 
         module.instantiate(import_object).or_else(|e| {
-            Err(ExecAppError::InstantiationFailed {
+            Err(ReceiptError::InstantiationFailed {
                 app_addr: tx.app.clone(),
                 template_addr: template_addr.clone(),
-                reason: e.to_string(),
+                msg: e.to_string(),
             })
         })
     }
@@ -454,7 +454,7 @@ where
         tx: &AppTransaction,
         template_addr: &TemplateAddr,
         instance: &'a wasmer_runtime::Instance,
-    ) -> Result<wasmer_runtime::DynFunc<'a>, ExecAppError> {
+    ) -> Result<wasmer_runtime::DynFunc<'a>, ReceiptError> {
         let func_idx = self.derive_func_index(instance, tx);
 
         let func_name = instance
@@ -476,7 +476,7 @@ where
         instance.exports.get(&func_name.unwrap()).or_else(|_e| {
             error!("Exported function: `{}` not found", func_idx);
 
-            Err(ExecAppError::FuncNotFound {
+            Err(ReceiptError::FuncNotFound {
                 app_addr: tx.app.clone(),
                 template_addr: template_addr.clone(),
                 func_idx: *&tx.func_idx,
@@ -576,14 +576,12 @@ where
     fn load_template(
         &self,
         tx: &AppTransaction,
-    ) -> Result<(AppTemplate, TemplateAddr, AuthorAddr, CreatorAddr), ExecAppError> {
+    ) -> Result<(AppTemplate, TemplateAddr, AuthorAddr, CreatorAddr), ReceiptError> {
         info!("runtime `load_template`");
 
         self.env
             .load_template_by_app(&tx.app)
-            .ok_or_else(|| ExecAppError::AppNotFound {
-                app_addr: tx.app.clone(),
-            })
+            .ok_or_else(|| ReceiptError::AppNotFound(tx.app.clone()))
     }
 
     fn compile_template(
@@ -592,7 +590,7 @@ where
         template: &AppTemplate,
         template_addr: &TemplateAddr,
         gas_left: MaybeGas,
-    ) -> Result<wasmer_runtime::Module, ExecAppError> {
+    ) -> Result<wasmer_runtime::Module, ReceiptError> {
         info!("runtime `compile_template` (template={:?})", template_addr);
 
         let gas_metering = gas_left.is_some();
@@ -601,10 +599,10 @@ where
         svm_compiler::compile_program(&template.code, gas_left, gas_metering).or_else(|e| {
             error!("module module failed (template={:?})", template_addr);
 
-            Err(ExecAppError::CompilationFailed {
+            Err(ReceiptError::CompilationFailed {
                 app_addr: tx.app.clone(),
                 template_addr: template_addr.clone(),
-                reason: e.to_string(),
+                msg: e.to_string(),
             })
         })
     }
@@ -647,18 +645,6 @@ where
     }
 
     /// Helpers
-    fn vec_to_str<T: fmt::Debug>(&self, items: &Vec<T>) -> String {
-        let mut buf = String::new();
-
-        for (i, arg) in items.iter().enumerate() {
-            if i != 0 {
-                buf.push_str(", ");
-            }
-            buf.push_str(&format!("{:?}, ", arg));
-        }
-
-        buf
-    }
 
     fn ensure_not_svm_ns(imports: &[(String, String, Export)]) {
         if imports.iter().any(|(ns, _, _)| ns == "svm") {
