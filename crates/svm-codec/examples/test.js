@@ -170,6 +170,60 @@ function binToString(array) {
 }
 
 describe('Encode Function Buffer', function () {
+    it('i32', function () {
+	return compileWasmCodec().then(instance => {
+	    const object = {
+	    	abi: ['i32'],
+	    	data: [10],
+	    };	
+
+	    let encoded = encodeCallData(instance, object);
+	    let decoded = decodeCallData(instance, encoded);
+
+	    assert.deepEqual(decoded,
+	    		 {
+	    		     func_args: ['10i32'],
+	    		     func_buf: []
+	    		 });
+	})
+    })
+
+    it('i64', function () {
+	return compileWasmCodec().then(instance => {
+	    const object = {
+	    	abi: ['i64'],
+	    	data: [10],
+	    };	
+
+	    let encoded = encodeCallData(instance, object);
+	    let decoded = decodeCallData(instance, encoded);
+
+	    assert.deepEqual(decoded,
+	    		 {
+	    		     func_args: ['10i64'],
+	    		     func_buf: []
+	    		 });
+	})
+    })
+
+    it('amount', function () {
+	return compileWasmCodec().then(instance => {
+	    const object = {
+	    	abi: ['amount'],
+	    	data: [10],
+	    };	
+
+	    let encoded = encodeCallData(instance, object);
+	    let decoded = decodeCallData(instance, encoded);
+
+	    assert.deepEqual(decoded,
+	    		 {
+	    		     func_args: ['10i64'],
+	    		     func_buf: []
+	    		 });
+	})
+    })
+
     it('address', function () {
 	return compileWasmCodec().then(instance => {
 	    const object = {
@@ -248,16 +302,19 @@ describe('Encode Function Buffer', function () {
 	})
     });
 
-    it('[address, [address], pubkey256]', function () {
+    it('[address, i32, [address], amount, pubkey256, i64]', function () {
     	return compileWasmCodec().then(instance => {
 	    const addr1 = generateAddress('1020304050');
 	    const addr2 = generateAddress('a0b0c0d0');
 	    const addr3 = generateAddress('aabbccdd');
 	    const pkey1 = generatePubKey256('60708090');
+	    const i32 = 10;
+	    const amount = 20;
+	    const i64 = 30;
 
 	    const object = {
-	    	abi: ['address', ['address'], 'pubkey256'],
-	    	data: [addr1, [addr2, addr3], pkey1],
+	    	abi: ['address', 'i32', ['address'], 'amount', 'pubkey256', 'i64'],
+	    	data: [addr1, i32, [addr2, addr3], amount, pkey1, i64],
 	    };	
 
 	    let encoded = encodeCallData(instance, object);
@@ -265,7 +322,7 @@ describe('Encode Function Buffer', function () {
 
     	    assert.deepEqual(decoded,
     	    		 {
-			     func_args: [],
+			     func_args: ['10i32', '20i64', '30i64'],
     	    		     func_buf: [{address: addr1}, [{address: addr2}, {address: addr3}], {pubkey256: pkey1}] 
     	    		 });
 	})

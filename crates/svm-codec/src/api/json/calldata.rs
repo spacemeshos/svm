@@ -24,7 +24,7 @@ pub fn encode_calldata(json: &json::Value) -> Result<Value, JsonError> {
     for (ty, raw) in abi.iter().zip(data) {
         match ty.as_str() {
             Some("i32") => args.push(format!("{}i32", raw)),
-            Some("i64") => args.push(format!("{}i64", raw)),
+            Some("i64") | Some("amount") => args.push(format!("{}i64", raw)),
             _ => {
                 buf_abi.push(ty.clone());
                 buf_data.push(raw.clone())
@@ -88,8 +88,8 @@ mod tests {
         let pkey = "1020304050607080102030405060708010203040506070801020304050607080";
 
         let json = json!({
-            "abi": ["i32", "address", "i64", "pubkey256"],
-            "data": [10, addr, 30, pkey]
+            "abi": ["i32", "amount", "address", "i64", "pubkey256"],
+            "data": [10, 20, addr, 30, pkey]
         });
 
         let calldata = encode_calldata(&json).unwrap();
@@ -98,7 +98,7 @@ mod tests {
         assert_eq!(
             decoded,
             json!({
-                "func_args": ["10i32", "30i64"],
+                "func_args": ["10i32", "20i64", "30i64"],
                 "func_buf": [
                     {"address": "102030405060708090a0112233445566778899aa"},
                     {"pubkey256": "1020304050607080102030405060708010203040506070801020304050607080"}
