@@ -148,15 +148,23 @@ fn default_runtime_spawn_app_with_ctor_reaches_oog() {
     let template_addr = receipt.addr.unwrap();
 
     // 2) spawn app (and invoking its `ctor`)
+    let name = "My App";
     let ctor_idx = 0;
     let ctor_buf = vec![];
     let ctor_args = vec![];
 
-    let bytes = testing::build_app(version, &template_addr, ctor_idx, &ctor_buf, &ctor_args);
+    let bytes = testing::build_app(
+        version,
+        &template_addr,
+        name,
+        ctor_idx,
+        &ctor_buf,
+        &ctor_args,
+    );
     let maybe_gas = MaybeGas::with(0);
 
     let log = Log {
-        msg: b"not enough gas (installation_gas = 22000) for installation".to_vec(),
+        msg: b"not enough gas (installation_gas = 29000) for installation".to_vec(),
         code: 1,
     };
 
@@ -195,12 +203,14 @@ fn default_runtime_spawn_app_with_ctor_with_enough_gas() {
     let template_addr = receipt.addr.unwrap();
 
     // 2) spawn app (and invoking its `ctor`)
+    let name = "My App";
     let ctor_func_idx = 0;
     let ctor_buf = vec![];
     let ctor_args = vec![WasmValue::I64(10_20_30_40_50_60_70_80)];
     let bytes = testing::build_app(
         version,
         &template_addr,
+        name,
         ctor_func_idx,
         &ctor_buf,
         &ctor_args,
@@ -244,12 +254,20 @@ fn default_runtime_exec_app() {
     let template_addr = receipt.addr.unwrap();
 
     // 2) spawn app
+    let name = "My App";
     let ctor_idx = 0;
     let ctor_buf = vec![];
     let ctor_args = vec![];
     let creator = Address::of("creator").into();
 
-    let bytes = testing::build_app(version, &template_addr, ctor_idx, &ctor_buf, &ctor_args);
+    let bytes = testing::build_app(
+        version,
+        &template_addr,
+        name,
+        ctor_idx,
+        &ctor_buf,
+        &ctor_args,
+    );
     let receipt = runtime.spawn_app(&bytes, &creator, HostCtx::new(), maybe_gas);
     assert!(receipt.success);
 
@@ -302,11 +320,19 @@ fn default_runtime_exec_app_reaches_oog() {
     let template_addr = receipt.addr.unwrap();
 
     // 2) spawn app
+    let name = "My App";
     let ctor_idx = 0;
     let ctor_buf = vec![];
     let ctor_args = vec![];
 
-    let bytes = testing::build_app(version, &template_addr, ctor_idx, &ctor_buf, &ctor_args);
+    let bytes = testing::build_app(
+        version,
+        &template_addr,
+        name,
+        ctor_idx,
+        &ctor_buf,
+        &ctor_args,
+    );
     let receipt = runtime.spawn_app(&bytes, &creator, HostCtx::new(), maybe_gas);
 
     let app_addr = receipt.get_app_addr();
@@ -352,12 +378,20 @@ fn default_runtime_func_buf() {
     let template_addr = receipt.addr.unwrap();
 
     // 2) spawn app
+    let name = "My Name";
     let ctor_idx = 0;
     let ctor_buf = vec![];
     let ctor_args = vec![];
     let creator = Address::of("creator").into();
 
-    let bytes = testing::build_app(version, &template_addr, ctor_idx, &ctor_buf, &ctor_args);
+    let bytes = testing::build_app(
+        version,
+        &template_addr,
+        name,
+        ctor_idx,
+        &ctor_buf,
+        &ctor_args,
+    );
     let receipt = runtime.spawn_app(&bytes, &creator, HostCtx::new(), maybe_gas);
     assert!(receipt.success);
 

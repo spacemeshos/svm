@@ -23,6 +23,7 @@ impl AppSerializer for DefaultAppSerializer {
         encode_version(app.version, &mut w);
         Self::encode_template(app, &mut w);
         Self::encode_creator(creator, &mut w);
+        Self::encode_name(app, &mut w);
 
         w.into_bytes()
     }
@@ -35,6 +36,10 @@ impl DefaultAppSerializer {
 
     fn encode_creator(creator: &CreatorAddr, w: &mut NibbleWriter) {
         helpers::encode_address(creator.inner(), w);
+    }
+
+    fn encode_name(app: &App, w: &mut NibbleWriter) {
+        helpers::encode_string(&app.name, w);
     }
 }
 
@@ -57,7 +62,16 @@ impl AppDeserializer for DefaultAppDeserializer {
             _ => return None,
         };
 
-        let app = App { version, template };
+        let name = match helpers::decode_string(&mut iter, Field::NameLength, Field::Name) {
+            Ok(name) => name,
+            _ => return None,
+        };
+
+        let app = App {
+            version,
+            name,
+            template,
+        };
 
         Some((app, creator))
     }

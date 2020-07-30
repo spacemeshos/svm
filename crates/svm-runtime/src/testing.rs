@@ -167,6 +167,7 @@ pub fn build_template(
 pub fn build_app(
     version: u32,
     template: &TemplateAddr,
+    name: &str,
     ctor_idx: u16,
     ctor_buf: &Vec<u8>,
     ctor_args: &Vec<WasmValue>,
@@ -174,6 +175,7 @@ pub fn build_app(
     SpawnAppBuilder::new()
         .with_version(version)
         .with_template(template)
+        .with_name(name)
         .with_ctor_index(ctor_idx)
         .with_ctor_buf(ctor_buf)
         .with_ctor_args(ctor_args)

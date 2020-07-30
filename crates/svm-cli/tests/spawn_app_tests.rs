@@ -9,17 +9,19 @@ use svm_types::Address;
 struct SpawnAppTestCase {
     version: String,
     template_addr_hex: String,
+    name: String,
     ctor_idx: String,
     ctor_buf: String,
     ctor_args: Vec<String>,
 }
 
 #[test]
-fn encode_decode() {
+fn encode_decode_spawn_app() {
     let cases = vec![
         SpawnAppTestCase {
             version: String::from("0"),
             template_addr_hex: String::from("00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa"),
+            name: "My App".to_string(),
             ctor_idx: String::from("0"),
             ctor_buf: String::from("11bb11bb12345678"),
             ctor_args: vec![String::from("10i32"), String::from("20i64")],
@@ -27,6 +29,7 @@ fn encode_decode() {
         SpawnAppTestCase {
             version: String::from("0"),
             template_addr_hex: String::from("00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa"),
+            name: "My App".to_string(),
             ctor_idx: String::from("12"),
             ctor_buf: String::from(""),
             ctor_args: vec![String::from("1073741824i64"), String::from("0i32")],
@@ -34,11 +37,11 @@ fn encode_decode() {
     ];
 
     for case in cases {
-        test_encode_decode(case)
+        test_encode_decode_spawn_app(case)
     }
 }
 
-fn test_encode_decode(case: SpawnAppTestCase) {
+fn test_encode_decode_spawn_app(case: SpawnAppTestCase) {
     let tempfile_path = tempfile::NamedTempFile::new().unwrap();
     let tempfile_path = tempfile_path.path().to_str().unwrap();
 
@@ -50,6 +53,7 @@ fn test_encode_decode(case: SpawnAppTestCase) {
         output_path,
         &case.version,
         &case.template_addr_hex,
+        &case.name,
         &case.ctor_idx,
         &case.ctor_buf,
     ];
@@ -74,24 +78,26 @@ fn test_encode_decode(case: SpawnAppTestCase) {
     let output = cli::process(matches).unwrap();
 
     let re = Regex::new(
-        r"Version: (.*)\nTemplate: (.*)\nctor_idx: (\d+)\nctor_buf: (.*)\nctor_args: (.*)",
+        r"Version: (.*)\nName: (.*)\nTemplate: (.*)\nctor_idx: (\d+)\nctor_buf: (.*)\nctor_args: (.*)",
     )
     .unwrap();
     let caps = re.captures(&output).unwrap();
 
     assert_eq!(&caps[1], case.version);
-    assert_eq!(&caps[2], fmt_addr(&case.template_addr_hex));
-    assert_eq!(&caps[3], case.ctor_idx);
-    assert_eq!(&caps[4], fmt_buf(&case.ctor_buf));
-    assert_eq!(&caps[5], fmt_args(case.ctor_args));
+    assert_eq!(&caps[2], case.name);
+    assert_eq!(&caps[3], fmt_addr(&case.template_addr_hex));
+    assert_eq!(&caps[4], case.ctor_idx);
+    assert_eq!(&caps[5], fmt_buf(&case.ctor_buf));
+    assert_eq!(&caps[6], fmt_args(case.ctor_args));
 }
 
 #[test]
-fn encode_invalid_outputpath() {
+fn encode_spawn_app_invalid_outputpath() {
     let output_path = "";
     let version = "0";
     let template_addr = "00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa";
     let ctor_idx = "0";
+    let name = "My App";
 
     let input = vec![
         "myprog",
@@ -100,6 +106,7 @@ fn encode_invalid_outputpath() {
         output_path,
         version,
         template_addr,
+        name,
         ctor_idx,
     ];
 
@@ -114,11 +121,12 @@ fn encode_invalid_outputpath() {
 }
 
 #[test]
-fn encode_invalid_template_addr() {
+fn encode_spawn_app_invalid_template_addr() {
     let output_path = "";
     let version = "0";
     let template_addr = "00aa00aa00aa00aa00aa";
     let ctor_idx = "0";
+    let name = "My App";
 
     let input = vec![
         "myprog",
@@ -127,6 +135,7 @@ fn encode_invalid_template_addr() {
         output_path,
         version,
         template_addr,
+        name,
         ctor_idx,
     ];
 
@@ -144,7 +153,7 @@ fn encode_invalid_template_addr() {
 }
 
 #[test]
-fn encode_invalid_hex() {
+fn encode_spawn_app_invalid_hex() {
     let invalid_hex_str = "00a";
     assert!(hex::decode(invalid_hex_str).is_err());
 
@@ -153,6 +162,7 @@ fn encode_invalid_hex() {
     let version = "0";
     let template_addr = invalid_hex_str;
     let ctor_idx = "0";
+    let name = "My App";
 
     let input = vec![
         "myprog",
@@ -161,6 +171,7 @@ fn encode_invalid_hex() {
         output_path,
         version,
         template_addr,
+        name,
         ctor_idx,
     ];
 
@@ -178,6 +189,7 @@ fn encode_invalid_hex() {
     let version = "0";
     let template_addr = "00aa00aa00aa00aa00aa00aa00aa00aa00aa00aa";
     let ctor_idx = "0";
+    let name = "My App";
     let ctor_buf = invalid_hex_str;
 
     let input = vec![
@@ -187,6 +199,7 @@ fn encode_invalid_hex() {
         output_path,
         version,
         template_addr,
+        name,
         ctor_idx,
         ctor_buf,
     ];

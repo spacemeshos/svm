@@ -15,6 +15,7 @@ use crate::{
 pub fn encode_spawn_app(spawn: &SpawnApp, w: &mut NibbleWriter) {
     encode_version(spawn, w);
     encode_template(spawn, w);
+    encode_name(spawn, w);
     encode_ctor_index(spawn, w);
     encode_ctor_buf(spawn, w);
     encode_ctor_args(spawn, w);
@@ -26,11 +27,16 @@ pub fn encode_spawn_app(spawn: &SpawnApp, w: &mut NibbleWriter) {
 pub fn decode_spawn_app(iter: &mut NibbleIter) -> Result<SpawnApp, ParseError> {
     let version = decode_version(iter)?;
     let template = decode_template(iter)?;
+    let name = decode_name(iter)?;
     let ctor_idx = decode_ctor_index(iter)?;
     let ctor_buf = decode_ctor_buf(iter)?;
     let ctor_args = decode_ctor_args(iter)?;
 
-    let app = App { version, template };
+    let app = App {
+        version,
+        name,
+        template,
+    };
 
     let spawn = SpawnApp {
         app,
@@ -47,6 +53,11 @@ pub fn decode_spawn_app(iter: &mut NibbleIter) -> Result<SpawnApp, ParseError> {
 fn encode_version(spawn: &SpawnApp, w: &mut NibbleWriter) {
     let version = spawn.app.version;
     crate::api::raw::encode_version(version, w);
+}
+
+fn encode_name(spawn: &SpawnApp, w: &mut NibbleWriter) {
+    let name = &spawn.app.name;
+    helpers::encode_string(name, w);
 }
 
 fn encode_template(spawn: &SpawnApp, w: &mut NibbleWriter) {
@@ -77,6 +88,10 @@ fn decode_template(iter: &mut NibbleIter) -> Result<TemplateAddr, ParseError> {
     Ok(TemplateAddr::new(addr))
 }
 
+fn decode_name(iter: &mut NibbleIter) -> Result<String, ParseError> {
+    helpers::decode_string(iter, Field::NameLength, Field::Name)
+}
+
 fn decode_ctor_index(iter: &mut NibbleIter) -> Result<u16, ParseError> {
     decode_varuint14(iter, Field::FuncIndex)
 }
@@ -100,6 +115,7 @@ mod tests {
         let spawn = SpawnApp {
             app: App {
                 version: 0,
+                name: "my-app".to_string(),
                 template: Address::of("my-template").into(),
             },
             ctor_idx: 10,

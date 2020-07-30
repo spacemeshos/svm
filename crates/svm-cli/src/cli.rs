@@ -52,6 +52,7 @@ pub fn new_app<'a, 'b>() -> App<'a, 'b> {
                                 .help("the app template address, in hex")
                                 .required(true),
                         )
+                        .arg(Arg::with_name("name").help("the app name").required(true))
                         .arg(
                             Arg::with_name("ctor_idx")
                                 .help("the app constructor func index")
@@ -152,6 +153,7 @@ pub fn process(matches: ArgMatches) -> Result<String, Box<dyn Error>> {
             ("spawn_app", Some(matches)) => {
                 let version = value_t!(matches, "version", u32).unwrap_or_else(|e| e.exit());
                 let template_addr_hex = matches.value_of("template_addr").unwrap();
+                let name = matches.value_of("name").unwrap();
                 let ctor_idx = value_t!(matches, "ctor_idx", u16).unwrap_or_else(|e| e.exit());
                 let ctor_buf_hex = matches.value_of("ctor_buf");
                 let ctor_args: Option<Vec<_>> = matches.values_of("ctor_args").map(|v| v.collect());
@@ -160,6 +162,7 @@ pub fn process(matches: ArgMatches) -> Result<String, Box<dyn Error>> {
                 let num = spawn_app::encode(
                     version,
                     template_addr_hex,
+                    name,
                     ctor_idx,
                     ctor_buf_hex,
                     ctor_args,

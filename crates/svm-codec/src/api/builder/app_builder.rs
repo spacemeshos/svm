@@ -7,6 +7,7 @@ use crate::{api::raw::encode_spawn_app, nibble::NibbleWriter};
 pub struct SpawnAppBuilder {
     version: Option<u32>,
     template: Option<TemplateAddr>,
+    name: Option<String>,
     ctor_idx: Option<u16>,
     ctor_buf: Option<Vec<u8>>,
     ctor_args: Option<Vec<WasmValue>>,
@@ -21,6 +22,7 @@ pub struct SpawnAppBuilder {
 /// use svm_codec::api::{raw::decode_spawn_app, builder::SpawnAppBuilder};
 ///
 /// let template = Address::of("@template").into();
+/// let name = "My App".to_string();
 /// let ctor_idx = 2;
 /// let ctor_buf = vec![0x10, 0x20, 0x30];
 /// let ctor_args = vec![WasmValue::I32(0x40), WasmValue::I64(0x50)];
@@ -28,15 +30,16 @@ pub struct SpawnAppBuilder {
 /// let bytes = SpawnAppBuilder::new()
 ///             .with_version(0)
 ///             .with_template(&template)
+///             .with_name(&name)
 ///             .with_ctor_index(ctor_idx)
 ///             .with_ctor_buf(&ctor_buf)
 ///             .with_ctor_args(&ctor_args)
 ///             .build();
 ///
-/// let mut iter = NibbleIter::new(&bytes[..]);
+/// let mut iter = NibbleIter::new(&bytes);
 /// let actual = decode_spawn_app(&mut iter).unwrap();
 /// let expected = SpawnApp {
-///                  app: App { version: 0, template },
+///                  app: App { version: 0, name, template },
 ///                  ctor_idx,
 ///                  ctor_buf,
 ///                  ctor_args
@@ -52,6 +55,7 @@ impl SpawnAppBuilder {
         Self {
             version: None,
             template: None,
+            name: None,
             ctor_idx: None,
             ctor_buf: None,
             ctor_args: None,
@@ -65,6 +69,11 @@ impl SpawnAppBuilder {
 
     pub fn with_template(mut self, template: &TemplateAddr) -> Self {
         self.template = Some(template.clone());
+        self
+    }
+
+    pub fn with_name(mut self, name: &str) -> Self {
+        self.name = Some(name.to_string());
         self
     }
 
@@ -86,6 +95,7 @@ impl SpawnAppBuilder {
     pub fn build(self) -> Vec<u8> {
         let version = self.version.unwrap();
         let template = self.template.unwrap();
+        let name = self.name.unwrap();
         let ctor_idx = self.ctor_idx.unwrap();
 
         let ctor_buf = match self.ctor_buf {
@@ -99,7 +109,11 @@ impl SpawnAppBuilder {
         };
 
         let spawn = SpawnApp {
-            app: App { version, template },
+            app: App {
+                version,
+                name,
+                template,
+            },
             ctor_idx,
             ctor_buf,
             ctor_args,

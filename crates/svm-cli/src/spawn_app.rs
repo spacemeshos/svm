@@ -11,6 +11,7 @@ use svm_types::SpawnApp;
 pub fn encode(
     version: u32,
     template_addr_hex: &str,
+    name: &str,
     ctor_idx: u16,
     ctor_buf_hex: Option<&str>,
     ctor_args: Option<Vec<&str>>,
@@ -31,6 +32,7 @@ pub fn encode(
     let bytes = SpawnAppBuilder::new()
         .with_version(version)
         .with_template(&template_addr.into())
+        .with_name(name)
         .with_ctor_index(ctor_idx)
         .with_ctor_buf(&ctor_buf.unwrap_or(vec![]))
         .with_ctor_args(&ctor_args.unwrap_or(vec![]))

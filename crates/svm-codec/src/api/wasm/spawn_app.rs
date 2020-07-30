@@ -49,6 +49,7 @@ mod test {
         let json = json!({
           "version": 1,
           "template": template_addr,
+          "name": "My App",
           "ctor_index": 2,
           "ctor_buf": calldata["func_buf"],
           "ctor_args": calldata["func_args"]
@@ -80,6 +81,7 @@ mod test {
             json!({
                 "version": 1,
                 "template": template_addr,
+                "name": "My App",
                 "ctor_index": 2,
                 "ctor_buf": [],
                 "ctor_args": ["10i32", "20i64"],
