@@ -6,16 +6,6 @@
 #[repr(transparent)]
 pub struct Nibble(u8);
 
-/// Creates a new `Nibble`.
-#[macro_export]
-macro_rules! nib {
-    ($val:expr) => {{
-        use crate::nibble::Nibble;
-
-        Nibble::new($val)
-    }};
-}
-
 impl Nibble {
     /// Creates a new Nibble.
     /// asserts that input `byte` is less than or equal to 0x0F (binary: 000_1111).

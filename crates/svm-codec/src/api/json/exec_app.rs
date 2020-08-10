@@ -1,9 +1,10 @@
+use svm_nibble::{NibbleIter, NibbleWriter};
+
 use serde_json::{json, Value};
 
 use crate::{
     api::json::{self, JsonError},
     api::raw,
-    nibble::{NibbleIter, NibbleWriter},
     transaction,
 };
 
@@ -79,7 +80,7 @@ mod tests {
     use super::*;
     use serde_json::json;
 
-    use crate::nibble::NibbleIter;
+    use svm_nibble::NibbleIter;
     use svm_types::{Address, WasmValue};
 
     #[test]

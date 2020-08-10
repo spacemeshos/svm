@@ -1,3 +1,4 @@
+use svm_nibble::{NibbleIter, NibbleWriter};
 use svm_types::{App, SpawnApp, TemplateAddr, WasmValue};
 
 pub use crate::api::raw::{
@@ -5,11 +6,7 @@ pub use crate::api::raw::{
     encode_func_buf, encode_varuint14, Field,
 };
 
-use crate::{
-    error::ParseError,
-    helpers,
-    nibble::{NibbleIter, NibbleWriter},
-};
+use crate::{error::ParseError, helpers};
 
 /// Encodes a raw Spawn-App transaction.
 pub fn encode_spawn_app(spawn: &SpawnApp, w: &mut NibbleWriter) {

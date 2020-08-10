@@ -1012,6 +1012,7 @@ dependencies = [
  "svm-abi-encoder",
  "svm-common",
  "svm-layout",
+ "svm-nibble",
  "svm-sdk",
  "svm-types",
 ]

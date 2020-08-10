@@ -1,9 +1,10 @@
+use svm_nibble::NibbleWriter;
+
 use byteorder::{BigEndian, ByteOrder};
 use serde_json::Value;
 
 use crate::{
     api::json::{self, JsonError},
-    nibble::NibbleWriter,
     template,
 };
 
@@ -65,7 +66,7 @@ mod tests {
     use super::*;
     use serde_json::json;
 
-    use crate::nibble::NibbleIter;
+    use svm_nibble::NibbleIter;
 
     #[test]
     fn json_deploy_template_missing_version() {

@@ -1,12 +1,9 @@
+use svm_nibble::{NibbleIter, NibbleWriter};
 use svm_types::{AppAddr, AppTransaction};
 
 use crate::api::raw::{decode_func_args, decode_func_buf, decode_varuint14, decode_version, Field};
 
-use crate::{
-    error::ParseError,
-    helpers,
-    nibble::{NibbleIter, NibbleWriter},
-};
+use crate::{error::ParseError, helpers};
 
 /// Encodes a raw App transaction.
 pub fn encode_exec_app(tx: &AppTransaction, w: &mut NibbleWriter) {
@@ -79,12 +76,10 @@ fn decode_func_index(iter: &mut NibbleIter) -> Result<u16, ParseError> {
 
 #[cfg(test)]
 mod tests {
+    use svm_nibble::{NibbleIter, NibbleWriter};
     use svm_types::{Address, AppTransaction, WasmValue};
 
-    use crate::{
-        api::raw::{decode_exec_app, encode_exec_app},
-        nibble::{NibbleIter, NibbleWriter},
-    };
+    use crate::api::raw::{decode_exec_app, encode_exec_app};
 
     #[test]
     fn encode_decode_exec_app() {

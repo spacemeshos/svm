@@ -1,5 +1,6 @@
+use svm_nibble::NibbleWriter;
+
 use crate::api::raw::encode_varuint14;
-use crate::nibble::NibbleWriter;
 
 /// Encodes func buffer.
 pub fn encode_func_buf(buf: &[u8], w: &mut NibbleWriter) {
@@ -14,7 +15,7 @@ pub fn encode_func_buf(buf: &[u8], w: &mut NibbleWriter) {
 
 #[cfg(test)]
 mod tests {
-    use crate::nib;
+    use svm_nibble::nib;
 
     use super::*;
 

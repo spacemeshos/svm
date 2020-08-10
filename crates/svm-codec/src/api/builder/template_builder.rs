@@ -1,6 +1,7 @@
+use svm_nibble::NibbleWriter;
 use svm_types::AppTemplate;
 
-use crate::{api::raw::encode_deploy_template, nibble::NibbleWriter};
+use crate::api::raw::encode_deploy_template;
 
 use svm_layout::DataLayout;
 

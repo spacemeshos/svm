@@ -1,12 +1,9 @@
+use svm_nibble::{NibbleIter, NibbleWriter};
 use svm_types::AppTemplate;
 
 use crate::api::raw::{decode_varuint14, decode_version, encode_varuint14, Field};
 
-use crate::{
-    error::ParseError,
-    helpers,
-    nibble::{NibbleIter, NibbleWriter},
-};
+use crate::{error::ParseError, helpers};
 
 use svm_layout::{DataLayout, DataLayoutBuilder};
 

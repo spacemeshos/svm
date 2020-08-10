@@ -19,13 +19,12 @@
 //!  On success (`is_success = 0`)
 //!  See [error.rs][./error.rs]
 
-use crate::api::raw;
-use crate::nibble::{NibbleIter, NibbleWriter};
-
+use svm_nibble::{NibbleIter, NibbleWriter};
 use svm_types::gas::MaybeGas;
 use svm_types::receipt::{ExecReceipt, Log, Receipt};
 
 use super::{decode_error, encode_error, helpers, logs};
+use crate::api::raw;
 
 pub fn encode_exec_receipt(receipt: &ExecReceipt) -> Vec<u8> {
     let mut w = NibbleWriter::new();

@@ -1,4 +1,5 @@
-use crate::{api::raw::Field, error::ParseError, nibble::NibbleIter};
+use crate::{api::raw::Field, error::ParseError};
+use svm_nibble::NibbleIter;
 
 use bit_vec::BitVec;
 

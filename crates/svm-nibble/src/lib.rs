@@ -13,6 +13,7 @@
 
 mod concat;
 mod iter;
+mod macros;
 mod nibble;
 mod writer;
 

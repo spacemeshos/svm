@@ -26,13 +26,12 @@ pub fn decode_spawn_app(ptr: usize) -> Result<usize, JsonError> {
 mod test {
     use super::*;
 
-    use crate::nibble::NibbleIter;
+    use svm_nibble::NibbleIter;
+    use svm_types::{Address, App, SpawnApp, WasmValue};
 
     use crate::api::wasm::{
         error_as_string, free, to_wasm_buffer, wasm_buffer_data, BUF_OK_MARKER,
     };
-
-    use svm_types::{Address, App, SpawnApp, WasmValue};
 
     use serde_json::{json, Value};
 

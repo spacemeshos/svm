@@ -1,10 +1,10 @@
+use svm_nibble::{NibbleIter, NibbleWriter};
 use svm_types::{AppTemplate, AuthorAddr};
 
 use crate::api::raw::{decode_deploy_template, encode_deploy_template, Field};
 
 use crate::{
     helpers,
-    nibble::{NibbleIter, NibbleWriter},
     traits::{AppTemplateDeserializer, AppTemplateSerializer},
 };
 
