@@ -4,9 +4,7 @@ use std::{
     iter::Iterator,
 };
 
-use crate::error::ParseError;
-
-use super::{concat_nibbles, Nibble};
+use crate::{concat_nibbles, Nibble};
 
 /// Nibbles Iterator
 pub struct NibbleIter<'a> {
@@ -70,7 +68,7 @@ impl<'a> NibbleIter<'a> {
 
     /// Making sure there are no nibbles left to read,
     /// except for an optional padding nibble, used to even the number of nibbles.
-    pub fn ensure_eof(&mut self) -> Result<(), ParseError> {
+    pub fn ensure_eof<E>(&mut self, err: E) -> Result<(), E> {
         if self.is_byte_aligned() == false {
             let nib = self.next();
             debug_assert!(nib.is_some());
@@ -78,7 +76,7 @@ impl<'a> NibbleIter<'a> {
 
         match self.next() {
             None => Ok(()),
-            Some(..) => Err(ParseError::ExpectedEOF),
+            Some(..) => Err(err),
         }
     }
 }

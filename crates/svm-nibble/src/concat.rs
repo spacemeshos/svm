@@ -1,4 +1,4 @@
-use super::Nibble;
+use crate::Nibble;
 
 /// Concatenates a slice of `Nibble`(s) into a `Vec<u8>`.
 /// Two consecutive nibbles become a single byte.

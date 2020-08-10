@@ -940,6 +940,7 @@ dependencies = [
  "svm-gas",
  "svm-kv",
  "svm-layout",
+ "svm-nibble",
  "svm-runtime",
  "svm-runtime-c-api",
  "svm-sdk",
@@ -1061,6 +1062,10 @@ dependencies = [
 [[package]]
 name = "svm-layout"
 version = "0.0.0"
+
+[[package]]
+name = "svm-nibble"
+version = "0.1.0"
 
 [[package]]
 name = "svm-runtime"
