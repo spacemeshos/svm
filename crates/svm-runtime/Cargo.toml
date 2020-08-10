@@ -6,29 +6,21 @@ license = "MIT"
 edition = "2018"
 publish = false
 
-[dependencies.svm-common]
-path = "../svm-common"
+[dependencies]
+svm-common = { path = "../svm-common" }
+svm-types = { path = "../svm-types" }
+svm-kv = { path = "../svm-kv" }
+svm-layout = { path = "../svm-layout" }
+svm-storage = { path = "../svm-storage" }
+svm-nibble = { path = "../svm-nibble" }
+svm-codec = { path = "../svm-codec" }
+svm-compiler = { path = "../svm-compiler" }
+svm-gas = { path = "../svm-gas" }
+log = "0.4"
+byteorder = "1.3.2"
+lazy_static = "1.4.0"
+wabt = "0.7.4"
 
-[dependencies.svm-types]
-path = "../svm-types"
-
-[dependencies.svm-kv]
-path = "../svm-kv"
-
-[dependencies.svm-layout]
-path = "../svm-layout"
-
-[dependencies.svm-storage]
-path = "../svm-storage"
-
-[dependencies.svm-codec]
-path = "../svm-codec"
-
-[dependencies.svm-compiler]
-path = "../svm-compiler"
-
-[dependencies.svm-gas]
-path = "../svm-gas"
 
 [dependencies.wasmer-runtime]
 default-features = false
@@ -46,12 +38,6 @@ branch = "develop"
 # default-features = false
 # git = "https://github.com/spacemeshos/wasmer"
 # branch = "develop"
-
-[dependencies]
-log = "0.4"
-byteorder = "1.3.2"
-lazy_static = "1.4.0"
-wabt = "0.7.4"
 
 [dev-dependencies]
 maplit = "1.0.2"

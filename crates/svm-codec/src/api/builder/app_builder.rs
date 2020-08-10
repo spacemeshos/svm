@@ -19,7 +19,7 @@ pub struct SpawnAppBuilder {
 ///
 /// ```rust
 /// use svm_types::{App, SpawnApp, WasmValue, Address};
-/// use svm_codec::nibble::NibbleIter;
+/// use svm_nibble::NibbleIter;
 /// use svm_codec::api::{raw::decode_spawn_app, builder::SpawnAppBuilder};
 ///
 /// let template = Address::of("@template").into();
