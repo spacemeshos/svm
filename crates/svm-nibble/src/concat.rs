@@ -1,3 +1,7 @@
+extern crate alloc;
+
+use alloc::vec::Vec;
+
 use crate::Nibble;
 
 /// Concatenates a slice of `Nibble`(s) into a `Vec<u8>`.
@@ -32,6 +36,8 @@ mod tests {
     use super::*;
 
     use crate::nib;
+
+    use alloc::vec;
 
     #[test]
     fn concat_nibbles_even_nibbles() {

@@ -1,3 +1,16 @@
+#![no_std]
+#![deny(missing_docs)]
+#![deny(unused)]
+#![deny(dead_code)]
+#![deny(unreachable_code)]
+
+//! This crate is managing reading/write streams of Nibble.
+//! One nibble equals 4 bits (half a byte).
+//! The mechanism implemented within this crate will be used for implementing:
+//! * `svm-codec`
+//! * `svm-abi`
+//! * writing SVM apps.
+
 mod concat;
 mod iter;
 mod nibble;

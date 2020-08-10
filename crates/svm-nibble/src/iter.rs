@@ -1,19 +1,19 @@
-use std::{
-    fmt,
-    io::{Cursor, Read},
-    iter::Iterator,
-};
+extern crate alloc;
+use alloc::vec::Vec;
+
+use core::fmt;
+use core::iter::Iterator;
 
 use crate::{concat_nibbles, Nibble};
 
 /// Nibbles Iterator
 pub struct NibbleIter<'a> {
-    buf: [u8; 1],
-    length: u64,
+    data: &'a [u8],
+    length: usize,
+    cursor: usize,
     no_more_bytes: bool,
     last_byte: Option<u8>,
     nibbles_read: usize,
-    cursor: Cursor<&'a [u8]>,
 }
 
 impl<'a> fmt::Debug for NibbleIter<'a> {
@@ -29,13 +29,12 @@ impl<'a> fmt::Debug for NibbleIter<'a> {
 impl<'a> NibbleIter<'a> {
     /// Creates a new Iterator over input `data`.
     pub fn new(data: &'a [u8]) -> Self {
-        let cursor = Cursor::new(data);
-        let length = cursor.get_ref().len() as u64;
+        let length = data.len();
 
         Self {
-            cursor,
+            data,
             length,
-            buf: [0; 1],
+            cursor: 0,
             nibbles_read: 0,
             last_byte: None,
             no_more_bytes: false,
@@ -49,6 +48,7 @@ impl<'a> NibbleIter<'a> {
         self.nibbles_read % 2 == 0
     }
 
+    /// Reads a single byte (2 nibbles)
     #[inline]
     pub fn read_byte(&mut self) -> u8 {
         self.read_bytes(1)[0]
@@ -92,19 +92,16 @@ impl<'a> Iterator for NibbleIter<'a> {
                         return None;
                     }
 
-                    if self.cursor.position() >= self.length {
+                    if self.cursor >= self.length {
                         self.no_more_bytes = true;
                         return None;
                     }
 
-                    if let Err(..) = self.cursor.read_exact(&mut self.buf) {
-                        panic!("Not enough bytes")
-                    }
-
-                    let byte = self.buf[0];
+                    let byte = self.data[self.cursor];
                     self.last_byte = Some(byte);
+                    self.cursor += 1;
 
-                    // given `byte` is `lnibble | rnibble`
+                    // given `byte` is `L-nibble | R-nibble`
                     // we return the left nibble encoded as a byte in the form:
                     // `0b_0000_{lnibble}`
 
@@ -126,6 +123,8 @@ impl<'a> Iterator for NibbleIter<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    use alloc::vec;
 
     fn read_nibble(iter: &mut NibbleIter) -> u8 {
         iter.next().unwrap().inner()
