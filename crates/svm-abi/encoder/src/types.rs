@@ -1,6 +1,54 @@
-use svm_nibble::{Nibble, NibbleWriter};
+//! The ABI consists of encoding:
+//!
+//! * Primitive - Currently only `Address` (20 bytes) and `PublicKey256` (256-bit <=> 32 bytes) are supported.
+//!
+//! * Composite - Currently only an `Array` of the `Primitive`(s) above is supported.
+//!
+//! ## Primitive Encoding:
+//!
+//! #### Fixed-Size
+//!
+//! +---------------------------+
+//! | type  | type value (blob) |
+//! +---------------------------+
+//!
+//!
+//! ## Composite Encoding:
+//!
+//! ### Array of primitives
+//!
+//! +-----------------------------------------------------+-----------------------------------------------------------+
+//! | Array Start Marker (1 byte) | Primitive #1 Encoding | . . . | Primitive #N Encoding | Array End Marker (1 byte) |
+//! +-----------------------------------------------------------------------------------------------------------------+
+//!
+//!
+//! ### Note:
+//!
+//! Actually the current `Encoder` code supports encoding also `Array` of `Array`'s but it'll error when decoded
+//! (see the `svm-abi-decoder` crate).
+//!
+
+extern crate alloc;
+use alloc::vec::Vec;
+
+use svm_nibble::{nib, NibbleWriter};
 
 use crate::{layout, Encoder};
+
+use svm_sdk::{
+    types::PrimitiveMarker,
+    value::{Address, AddressOwned},
+};
+
+impl Encoder for bool {
+    fn encode(&self, w: &mut NibbleWriter) {
+        if *self {
+            w.push(nib!(layout::BOOL_TRUE));
+        } else {
+            w.push(nib!(layout::BOOL_FALSE));
+        }
+    }
+}
 
 impl Encoder for u8 {
     fn encode(&self, w: &mut NibbleWriter) {
@@ -159,5 +207,46 @@ impl Encoder for i64 {
     fn encode(&self, w: &mut NibbleWriter) {
         let n = *self as u64;
         <u64 as Encoder>::encode(&n, w);
+    }
+}
+
+macro_rules! impl_primitive_encoder {
+    ($ty:ty, $marker:path) => {
+        impl Encoder for $ty {
+            /// Encodes `self` (of type `$ty`) and outputs the data into `w`
+            fn encode(&self, w: &mut NibbleWriter) {
+                w.push(nib!($marker));
+
+                w.write_bytes(&self.0[..]);
+            }
+        }
+    };
+}
+
+impl_primitive_encoder!(Address<'_>, layout::ADDRESS);
+impl_primitive_encoder!(AddressOwned, layout::ADDRESS);
+
+impl<'a, T> Encoder for &[T]
+where
+    T: Encoder + PrimitiveMarker,
+{
+    fn encode(&self, w: &mut NibbleWriter) {
+        w.push(nib!(layout::ARRAY_START));
+
+        for elem in self.iter() {
+            elem.encode(w);
+        }
+
+        w.push(nib!(layout::ARRAY_END));
+    }
+}
+
+impl<'a, T> Encoder for Vec<T>
+where
+    T: Encoder + PrimitiveMarker,
+{
+    #[inline]
+    fn encode(&self, w: &mut NibbleWriter) {
+        (&self[..]).encode(w)
     }
 }

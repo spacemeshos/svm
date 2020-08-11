@@ -31,11 +31,6 @@
 // +---------+---------+--------------------------+
 //
 
-use svm_sdk::types::Primitive as Type;
-use svm_sdk::value::Primitive as Value;
-
-use crate::Encoder;
-
 // Boolean
 pub const BOOL_FALSE: u8 = 0b_0000_0000;
 pub const BOOL_TRUE: u8 = 0b_0000_0001;
