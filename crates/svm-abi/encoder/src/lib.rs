@@ -1,4 +1,5 @@
 #![no_std]
+#![feature(exclusive_range_pattern)]
 
 //! This crate is responsible of encoding SVM types (its actual type and their values to be precise),
 //! according to a simple ABI format.
@@ -67,27 +68,27 @@ macro_rules! impl_primitive_encoder {
 // impl_primitive_encoder!(Address<'_>, marker::ADDRESS);
 // impl_primitive_encoder!(AddressOwned, marker::ADDRESS);
 
-impl<'a, T> Encoder for &[T]
-where
-    T: Encoder + PrimitiveMarker,
-{
-    fn encode(&self, buf: &mut Vec<u8>) {
-        // buf.push(marker::ARRAY_START);
+// impl<'a, T> Encoder for &[T]
+// where
+//     T: Encoder + PrimitiveMarker,
+// {
+//     fn encode(&self, buf: &mut Vec<u8>) {
+//         // buf.push(marker::ARRAY_START);
 
-        for elem in self.iter() {
-            elem.encode(buf);
-        }
+//         for elem in self.iter() {
+//             elem.encode(buf);
+//         }
 
-        // buf.push(marker::ARRAY_END);
-    }
-}
+//         // buf.push(marker::ARRAY_END);
+//     }
+// }
 
-impl<'a, T> Encoder for Vec<T>
-where
-    T: Encoder + PrimitiveMarker,
-{
-    #[inline]
-    fn encode(&self, buf: &mut Vec<u8>) {
-        (&self[..]).encode(buf)
-    }
-}
+// impl<'a, T> Encoder for Vec<T>
+// where
+//     T: Encoder + PrimitiveMarker,
+// {
+//     #[inline]
+//     fn encode(&self, buf: &mut Vec<u8>) {
+//         (&self[..]).encode(buf)
+//     }
+// }
