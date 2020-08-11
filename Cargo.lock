@@ -965,6 +965,7 @@ dependencies = [
 name = "svm-abi-encoder"
 version = "0.0.0"
 dependencies = [
+ "svm-nibble",
  "svm-sdk",
 ]
 

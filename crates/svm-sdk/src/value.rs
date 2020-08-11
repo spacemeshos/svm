@@ -136,7 +136,6 @@ fn byte_as_chars(byte: u8) -> (char, char) {
 }
 
 impl_fixed_primitive!(Address, AddressOwned, 20);
-impl_fixed_primitive!(PubKey256, PubKey256Owned, 32);
 
 /// Array value
 #[derive(Debug, PartialEq)]
@@ -146,11 +145,13 @@ pub struct Array<'a, T>(pub &'a [T]);
 /// Primitive value
 #[derive(Debug, PartialEq)]
 pub enum Primitive<'a> {
-    /// An `Address` (20 bytes)
-    Address(Address<'a>),
+    Bool(bool),
 
-    /// `Public-Key` consisting of 256-bit (32 bytes)
-    PubKey256(PubKey256<'a>),
+    I32(i32),
+
+    I64(i64),
+
+    Address(Address<'a>),
 }
 
 /// Composite value

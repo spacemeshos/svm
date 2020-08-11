@@ -5,10 +5,10 @@
 //!
 //! The crate is compiled with `![no_std]` (no Rust stdlib) annotation in order to reduce the compiled WASM size.
 
-#![deny(missing_docs)]
+#![allow(missing_docs)]
 #![allow(unused)]
-#![deny(dead_code)]
-#![deny(unreachable_code)]
+#![allow(dead_code)]
+#![allow(unreachable_code)]
 
 /// SDK types
 pub mod types;

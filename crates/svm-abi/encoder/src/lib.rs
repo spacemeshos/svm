@@ -32,24 +32,24 @@
 //! (see the `svm-abi-decoder` crate).
 //!
 
-#![deny(missing_docs)]
-#![deny(unused)]
-#![deny(dead_code)]
-#![deny(unreachable_code)]
+#![allow(missing_docs)]
+#![allow(unused)]
+#![allow(dead_code)]
+#![allow(unreachable_code)]
 
 extern crate alloc;
-use crate::alloc::vec::Vec;
+use alloc::vec::Vec;
 
 use svm_sdk::{
-    types::{marker, PrimitiveMarker},
-    value::{Address, AddressOwned, PubKey256, PubKey256Owned},
+    types::{Primitive, PrimitiveMarker},
+    value::{Address, AddressOwned},
 };
 
-/// A trait used to encoding a value (of `primitive` or `composite` type)
-pub trait Encoder {
-    /// Encodes `self` and outputs the data into `buf`
-    fn encode(&self, buf: &mut Vec<u8>);
-}
+mod layout;
+mod traits;
+mod types;
+
+pub use traits::Encoder;
 
 macro_rules! impl_primitive_encoder {
     ($ty:ty, $marker:path) => {
@@ -64,24 +64,21 @@ macro_rules! impl_primitive_encoder {
     };
 }
 
-impl_primitive_encoder!(Address<'_>, marker::ADDRESS);
-impl_primitive_encoder!(AddressOwned, marker::ADDRESS);
-
-impl_primitive_encoder!(PubKey256<'_>, marker::PUBKEY_256);
-impl_primitive_encoder!(PubKey256Owned, marker::PUBKEY_256);
+// impl_primitive_encoder!(Address<'_>, marker::ADDRESS);
+// impl_primitive_encoder!(AddressOwned, marker::ADDRESS);
 
 impl<'a, T> Encoder for &[T]
 where
     T: Encoder + PrimitiveMarker,
 {
     fn encode(&self, buf: &mut Vec<u8>) {
-        buf.push(marker::ARRAY_START);
+        // buf.push(marker::ARRAY_START);
 
         for elem in self.iter() {
             elem.encode(buf);
         }
 
-        buf.push(marker::ARRAY_END);
+        // buf.push(marker::ARRAY_END);
     }
 }
 
