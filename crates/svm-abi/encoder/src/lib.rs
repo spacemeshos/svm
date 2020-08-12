@@ -2,14 +2,14 @@
 //! according to a simple ABI format.
 
 #![no_std]
-#![deny(missing_docs)]
-#![deny(unused)]
+#![allow(missing_docs)]
+#![allow(unused)]
 #![allow(dead_code)]
-#![deny(unreachable_code)]
+#![allow(unreachable_code)]
 
 mod layout;
 mod traits;
-
-pub mod types;
+mod types;
 
 pub use traits::Encoder;
+pub use types::*;
