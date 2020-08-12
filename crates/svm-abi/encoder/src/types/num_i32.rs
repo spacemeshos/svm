@@ -1,43 +1,45 @@
+extern crate alloc;
+use alloc::vec::Vec;
+
 use svm_abi_layout::layout;
-use svm_nibble::NibbleWriter;
 
 use crate::Encoder;
 
 macro_rules! encode {
     ($ty:ty, $MARK_1B:expr, $MARK_2B:expr, $MARK_3B:expr, $MARK_4B:expr) => {
         impl Encoder for $ty {
-            fn encode(&self, w: &mut NibbleWriter) {
+            fn encode(&self, w: &mut Vec<u8>) {
                 let v = *self as u32;
 
                 match v {
                     0x00..=0xFF_FF => {
-                        w.write_byte($MARK_1B);
-                        w.write_byte(v as u8);
+                        w.push($MARK_1B);
+                        w.push(v as u8);
                     }
                     0x01_00_00..=0xFF_FF_FF => {
-                        w.write_byte($MARK_2B);
+                        w.push($MARK_2B);
 
                         let bytes: [u8; 4] = v.to_be_bytes();
 
                         debug_assert_eq!(bytes[0], 0);
                         debug_assert_eq!(bytes[1], 0);
 
-                        w.write_bytes(&bytes[2..]);
+                        w.extend_from_slice(&bytes[2..]);
                     }
                     0x_01_00_00..=0xFF_FF_FF => {
-                        w.write_byte($MARK_3B);
+                        w.push($MARK_3B);
 
                         let bytes: [u8; 4] = v.to_be_bytes();
 
                         debug_assert_eq!(bytes[0], 0);
 
-                        w.write_bytes(&bytes[1..]);
+                        w.extend_from_slice(&bytes[1..]);
                     }
                     0x01_00_00_00..=0xFF_FF_FF_FF => {
-                        w.write_byte($MARK_4B);
+                        w.push($MARK_4B);
 
                         let bytes: [u8; 4] = self.to_be_bytes();
-                        w.write_bytes(&bytes);
+                        w.extend_from_slice(&bytes);
                     }
                 }
             }

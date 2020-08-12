@@ -958,6 +958,8 @@ dependencies = [
 name = "svm-abi-decoder"
 version = "0.0.0"
 dependencies = [
+ "svm-abi-layout",
+ "svm-nibble",
  "svm-sdk",
 ]
 
@@ -966,7 +968,6 @@ name = "svm-abi-encoder"
 version = "0.0.0"
 dependencies = [
  "svm-abi-layout",
- "svm-nibble",
  "svm-sdk",
 ]
 
@@ -980,6 +981,8 @@ version = "0.0.0"
 dependencies = [
  "svm-abi-decoder",
  "svm-abi-encoder",
+ "svm-abi-layout",
+ "svm-nibble",
  "svm-sdk",
 ]
 

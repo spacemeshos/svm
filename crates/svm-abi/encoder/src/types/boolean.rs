@@ -1,14 +1,16 @@
+extern crate alloc;
+use alloc::vec::Vec;
+
 use svm_abi_layout::layout;
-use svm_nibble::{nib, NibbleWriter};
 
 use crate::Encoder;
 
 impl Encoder for bool {
-    fn encode(&self, w: &mut NibbleWriter) {
+    fn encode(&self, w: &mut Vec<u8>) {
         if *self {
-            w.push(nib!(layout::BOOL_TRUE));
+            w.push(layout::BOOL_TRUE);
         } else {
-            w.push(nib!(layout::BOOL_FALSE));
+            w.push(layout::BOOL_FALSE);
         }
     }
 }

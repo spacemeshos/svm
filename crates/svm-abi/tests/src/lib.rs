@@ -8,21 +8,14 @@
 
 #[cfg(test)]
 mod tests {
-    use svm_abi_encoder::Encoder;
-    use svm_sdk::value::{Address, AddressOwned, Composite, Primitive, PubKey256, Value};
-
     use svm_abi_decoder::{Cursor, Decoder};
+    use svm_abi_encoder::Encoder;
+    use svm_nibble::NibbleWriter;
+    use svm_sdk::value::{Address, AddressOwned, Composite, Primitive, Value};
 
     fn into_addr(value: Value) -> Address {
         match value {
             Value::Primitive(Primitive::Address(addr)) => addr,
-            _ => panic!(),
-        }
-    }
-
-    fn into_pubkey256(value: Value) -> PubKey256 {
-        match value {
-            Value::Primitive(Primitive::PubKey256(pkey)) => pkey,
             _ => panic!(),
         }
     }
@@ -48,8 +41,8 @@ mod tests {
         ];
         let addr = Address(&bytes);
 
-        let mut buf = Vec::new();
-        addr.encode(&mut buf);
+        let mut w = NibbleWriter::new();
+        addr.encode(&mut w);
 
         let mut cursor = Cursor::new(&buf);
         let decoder = Decoder::new();
@@ -57,26 +50,6 @@ mod tests {
 
         let addr = into_addr(value);
         assert_eq!(addr.as_slice(), &bytes);
-    }
-
-    #[test]
-    fn encode_decode_pubkey256() {
-        let bytes: [u8; 32] = [
-            0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80, 0x90, 0xA0, 0xB0, 0xC0, 0xD0, 0xE0,
-            0xF0, 0xAA, 0xAA, 0xF0, 0xE0, 0xD0, 0xC0, 0xB0, 0xA0, 0x90, 0x80, 0x70, 0x60, 0x50,
-            0x40, 0x30, 0x20, 0x10,
-        ];
-        let pkey = PubKey256(&bytes);
-
-        let mut buf = Vec::new();
-        pkey.encode(&mut buf);
-
-        let mut cursor = Cursor::new(&buf);
-        let decoder = Decoder::new();
-        let value = decoder.decode_value(&mut cursor).unwrap();
-
-        let pkey = into_pubkey256(value);
-        assert_eq!(pkey.as_slice(), &bytes);
     }
 
     #[test]
@@ -98,30 +71,6 @@ mod tests {
             Value::Primitive(Primitive::Address(Address(&[0x10; 20]))),
             Value::Primitive(Primitive::Address(Address(&[0x20; 20]))),
             Value::Primitive(Primitive::Address(Address(&[0x30; 20]))),
-        ];
-
-        assert_eq!(value, Value::Composite(Composite::Array(&vec[..])));
-    }
-
-    #[test]
-    fn encode_decode_pubkey256_array() {
-        let pkey1 = PubKey256(&[0x10; 32]);
-        let pkey2 = PubKey256(&[0x20; 32]);
-        let pkey3 = PubKey256(&[0x30; 32]);
-
-        let pkeys = vec![pkey1, pkey2, pkey3];
-
-        let mut buf = Vec::new();
-        pkeys.encode(&mut buf);
-
-        let mut cursor = Cursor::new(&buf);
-        let decoder = Decoder::new();
-        let value = decoder.decode_value(&mut cursor).unwrap();
-
-        let vec = vec![
-            Value::Primitive(Primitive::PubKey256(PubKey256(&[0x10; 32]))),
-            Value::Primitive(Primitive::PubKey256(PubKey256(&[0x20; 32]))),
-            Value::Primitive(Primitive::PubKey256(PubKey256(&[0x30; 32]))),
         ];
 
         assert_eq!(value, Value::Composite(Composite::Array(&vec[..])));

@@ -28,6 +28,9 @@
 //! (see the `svm-abi-decoder` crate).
 //!
 
+extern crate alloc;
+use alloc::vec::Vec;
+
 mod amount;
 mod array;
 mod boolean;
@@ -44,7 +47,6 @@ pub use num_i32::*;
 pub use num_i64::*;
 
 use svm_abi_layout::layout;
-use svm_nibble::{nib, NibbleWriter};
 use svm_sdk::{
     types::PrimitiveMarker,
     value::{Address, AddressOwned},
@@ -56,10 +58,10 @@ macro_rules! impl_primitive_encoder {
     ($ty:ty, $marker:path) => {
         impl Encoder for $ty {
             /// Encodes `self` (of type `$ty`) and outputs the data into `w`
-            fn encode(&self, w: &mut NibbleWriter) {
-                w.push(nib!($marker));
+            fn encode(&self, w: &mut Vec<u8>) {
+                w.push($marker);
 
-                w.write_bytes(&self.0[..]);
+                w.extend_from_slice(&self.0[..]);
             }
         }
     };

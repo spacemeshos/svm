@@ -1,9 +1,6 @@
-use svm_sdk::{
-    types::marker,
-    value::{self, Address, PubKey256, Value},
-};
-
-use crate::cursor::Cursor;
+use svm_abi_layout::layout;
+use svm_nibble::NibbleIter;
+use svm_sdk::value::{self, Address, Value};
 
 extern crate alloc;
 
@@ -35,16 +32,16 @@ pub enum DecodeError {
 }
 
 macro_rules! assert_no_eof {
-    ($cursor:expr) => {{
-        if $cursor.is_eof() {
-            return Err(DecodeError::Type(TypeError::MissingTypeKind));
-        }
+    ($iter:expr) => {{
+        let err = DecodeError::Type(TypeError::MissingTypeKind);
+
+        $iter.ensure_eof::<DecodeError>(err)?;
     }};
 }
 
 macro_rules! decode_fixed_primitive {
-    ($self:expr, $ty:ident, $n:expr, $cursor:expr) => {{
-        let ptr = $self.read_bytes($cursor, $n)?;
+    ($self:expr, $ty:ident, $n:expr, $iter:expr) => {{
+        let ptr = $self.read_bytes($iter, $n)?;
 
         let bytes = unsafe { core::mem::transmute::<*const u8, &[u8; $n]>(ptr) };
         let addr = $ty(bytes);
@@ -67,38 +64,44 @@ impl Decoder {
 
     /// Decodes the next `sdk_types::Value` (primitive or composite) and returns it.
     /// Returns `DecodeError` when decode fails.
-    pub fn decode_value(&self, cursor: &mut Cursor) -> Result<Value, DecodeError> {
-        assert_no_eof!(cursor);
+    pub fn decode_value(&self, iter: &mut NibbleIter) -> Result<Value, DecodeError> {
+        assert_no_eof!(iter);
 
-        let byte = self.read_byte(cursor)?;
+        let marker = self.read_marker(iter)?;
 
-        let value = match byte {
-            marker::ARRAY_START => self.decode_array(cursor)?,
-            marker::ADDRESS => self.decode_addr(cursor)?,
-            marker::PUBKEY_256 => self.decode_pubkey256(cursor)?,
-            marker::ARRAY_END => {
-                return Err(DecodeError::Type(TypeError::ProhibitedTypeKind(byte)))
-            }
-            _ => return Err(DecodeError::Type(TypeError::InvalidTypeKind(byte))),
+        match marker {
+            layout::ADDRESS => self.decode_addr(iter)?,
+            _ => todo!(),
         };
 
-        Ok(value)
+        // let value = match byte {
+        //     layout::ARRAY_START => self.decode_array(iter)?,
+        //     layout::ADDRESS => self.decode_addr(iter)?,
+        //     layout::ARRAY_END => {
+        //         return Err(DecodeError::Type(TypeError::ProhibitedTypeKind(byte)))
+        //     }
+        //     _ => return Err(DecodeError::Type(TypeError::InvalidTypeKind(byte))),
+        // };
+
+        // Ok(value)
+
+        todo!()
     }
 
-    fn decode_array(&self, cursor: &mut Cursor) -> Result<Value, DecodeError> {
-        assert_no_eof!(cursor);
+    fn decode_array(&self, iter: &mut NibbleIter) -> Result<Value, DecodeError> {
+        assert_no_eof!(iter);
 
-        let mut next_byte = self.peek(cursor)?;
+        let mut next_byte = self.peek(iter)?;
         let mut values = Vec::new();
 
-        while next_byte != marker::ARRAY_END {
-            let v = self.decode_value(cursor)?;
+        while next_byte != layout::ARRAY_END {
+            let v = self.decode_value(iter)?;
             values.push(v);
 
-            next_byte = self.peek(cursor)?;
+            next_byte = self.peek(iter)?;
         }
 
-        let _ = self.read_byte(cursor)?;
+        let _ = self.read_byte(iter)?;
 
         let values = Box::leak(Box::new(values));
         let array = Value::Composite(value::Composite::Array(values));
@@ -108,12 +111,8 @@ impl Decoder {
         Ok(array)
     }
 
-    fn decode_addr(&self, cursor: &mut Cursor) -> Result<Value, DecodeError> {
-        decode_fixed_primitive!(self, Address, 20, cursor)
-    }
-
-    fn decode_pubkey256(&self, cursor: &mut Cursor) -> Result<Value, DecodeError> {
-        decode_fixed_primitive!(self, PubKey256, 32, cursor)
+    fn decode_addr(&self, iter: &mut NibbleIter) -> Result<Value, DecodeError> {
+        decode_fixed_primitive!(self, Address, 20, iter)
     }
 
     fn verify_array(&self, _value: &Value) -> Result<(), DecodeError> {
@@ -122,27 +121,52 @@ impl Decoder {
     }
 
     #[inline]
-    fn read_byte(&self, cursor: &mut Cursor) -> Result<u8, DecodeError> {
-        cursor
-            .read_byte()
-            .ok_or(DecodeError::Value(ValueError::NotEnoughBytes))
+    fn read_byte(&self, iter: &mut NibbleIter) -> Result<u8, DecodeError> {
+        todo!()
+        // iter.read_byte()
+        //     .ok_or(DecodeError::Value(ValueError::NotEnoughBytes))
     }
 
     #[inline]
     fn read_bytes<'a>(
         &self,
-        cursor: &'a mut Cursor,
+        iter: &'a mut NibbleIter,
         nbytes: usize,
     ) -> Result<*const u8, DecodeError> {
-        cursor
-            .read_bytes(nbytes)
-            .ok_or(DecodeError::Value(ValueError::NotEnoughBytes))
+        todo!()
+        // iter.read_bytes(nbytes)
+        //     .ok_or(DecodeError::Value(ValueError::NotEnoughBytes))
     }
 
     #[inline]
-    fn peek(&self, cursor: &mut Cursor) -> Result<u8, DecodeError> {
-        cursor
-            .peek()
-            .ok_or(DecodeError::Value(ValueError::NotEnoughBytes))
+    fn peek(&self, iter: &mut NibbleIter) -> Result<u8, DecodeError> {
+        todo!()
+        // iter.peek()
+        //     .ok_or(DecodeError::Value(ValueError::NotEnoughBytes))
+    }
+
+    #[inline]
+    fn read_marker(&self, iter: &mut NibbleIter) -> Result<u8, DecodeError> {
+        let nib = iter.next();
+
+        if let Some(nib) = nib {
+            let byte = nib.inner();
+            let has_more = byte & 0b_1000_0000 != 0;
+
+            let marker = if has_more {
+                let rnib = iter.next();
+
+                if let Some(rnib) = rnib {
+                    let rnib = rnib.inner();
+                    let lnib = byte << 4;
+
+                    return Ok(lnib | rnib);
+                }
+            } else {
+                return Ok(nib.inner());
+            };
+        }
+
+        Err(DecodeError::Value(ValueError::NotEnoughBytes))
     }
 }
