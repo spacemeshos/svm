@@ -2,6 +2,7 @@
 //! according to a simple ABI format.
 
 #![no_std]
+#![feature(exclusive_range_pattern)]
 #![allow(missing_docs)]
 #![allow(unused)]
 #![allow(dead_code)]
