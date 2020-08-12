@@ -1,6 +1,7 @@
+use svm_abi_layout::layout;
 use svm_nibble::NibbleWriter;
 
-use crate::{layout, Encoder};
+use crate::Encoder;
 
 macro_rules! encode {
     ($ty:ty, $MARK_1B:expr, $MARK_2B:expr) => {

@@ -1,5 +1,5 @@
 [package]
-name = "svm-abi-encoder"
+name = "svm-abi-layout"
 version = "0.0.0"
 authors = ["Yaron Wittenstein <yaron.wittenstein@gmail.com>"]
 license = "MIT"
@@ -9,8 +9,3 @@ repository = "https://github.com/spacemeshos/svm"
 homepage = "https://github.com/spacemeshos/svm"
 description = "Spacemesh Virtual Machine"
 publish = false
-
-[dependencies]
-svm-sdk = { path = "./../../svm-sdk" }
-svm-nibble = { path = "./../../svm-nibble" }
-svm-abi-layout = { path = "./../layout" }

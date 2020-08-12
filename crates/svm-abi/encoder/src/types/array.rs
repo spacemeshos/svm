@@ -1,10 +1,11 @@
 extern crate alloc;
 use alloc::vec::Vec;
 
+use svm_abi_layout::layout;
 use svm_nibble::{nib, NibbleWriter};
 use svm_sdk::types::PrimitiveMarker;
 
-use crate::{layout, Encoder};
+use crate::Encoder;
 
 impl<'a, T> Encoder for &[T]
 where

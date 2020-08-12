@@ -1,6 +1,7 @@
+use svm_abi_layout::layout;
 use svm_nibble::NibbleWriter;
 
-use crate::{layout, Encoder};
+use crate::Encoder;
 
 impl Encoder for u8 {
     fn encode(&self, w: &mut NibbleWriter) {

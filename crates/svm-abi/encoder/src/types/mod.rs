@@ -43,13 +43,14 @@ pub use num_i16::*;
 pub use num_i32::*;
 pub use num_i64::*;
 
+use svm_abi_layout::layout;
 use svm_nibble::{nib, NibbleWriter};
 use svm_sdk::{
     types::PrimitiveMarker,
     value::{Address, AddressOwned},
 };
 
-use crate::{layout, Encoder};
+use crate::Encoder;
 
 macro_rules! impl_primitive_encoder {
     ($ty:ty, $marker:path) => {
