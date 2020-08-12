@@ -63,6 +63,7 @@ svm-gas = { path = "crates/svm-gas" }
 svm-app-query = { path = "crates/svm-app-query" }
 svm-types = { path = "crates/svm-types" }
 svm-sdk = { path = "crates/svm-sdk" }
+svm-nibble = { path = "crates/svm-nibble" }
 svm-codec = { path = "crates/svm-codec" }
 svm-layout = { path = "crates/svm-layout" }
 svm-storage = { path = "crates/svm-storage" }
@@ -82,6 +83,7 @@ members = [
   "crates/svm-abi/encoder",
   "crates/svm-abi/decoder",
   "crates/svm-abi/tests",
+  "crates/svm-nibble",
   "crates/svm-codec",
   "crates/svm-types",
   "crates/svm-common",
@@ -92,7 +94,6 @@ members = [
   "crates/svm-runtime",
   "crates/svm-compiler",
   "crates/svm-runtime-c-api",
-  "crates/svm-cli",
 ]
 
 exclude = [

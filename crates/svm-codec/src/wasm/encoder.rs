@@ -1,6 +1,7 @@
+use svm_nibble::{nib, NibbleWriter};
 use svm_types::WasmValue;
 
-use crate::{nib, nibble::NibbleWriter, wasm::wasm_value_layout};
+use crate::wasm::wasm_value_layout;
 
 /// Encodes the wasm value.
 /// Important: The wasm value layout isn't encoded under this method.

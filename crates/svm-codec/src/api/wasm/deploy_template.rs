@@ -16,12 +16,13 @@ pub fn encode_deploy_template(ptr: usize) -> Result<usize, JsonError> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::nibble::NibbleIter;
+
+    use svm_nibble::NibbleIter;
+    use svm_types::AppTemplate;
 
     use crate::api::wasm::{
         error_as_string, free, to_wasm_buffer, wasm_buffer_data, BUF_OK_MARKER,
     };
-    use svm_types::AppTemplate;
 
     #[test]
     fn wasm_encode_deploy_template_valid() {

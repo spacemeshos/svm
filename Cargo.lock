@@ -940,6 +940,7 @@ dependencies = [
  "svm-gas",
  "svm-kv",
  "svm-layout",
+ "svm-nibble",
  "svm-runtime",
  "svm-runtime-c-api",
  "svm-sdk",
@@ -986,20 +987,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "svm-cli"
-version = "0.1.0"
-dependencies = [
- "clap",
- "hex",
- "regex",
- "svm-codec",
- "svm-common",
- "svm-layout",
- "svm-types",
- "tempfile",
-]
-
-[[package]]
 name = "svm-codec"
 version = "0.0.0"
 dependencies = [
@@ -1011,6 +998,7 @@ dependencies = [
  "svm-abi-encoder",
  "svm-common",
  "svm-layout",
+ "svm-nibble",
  "svm-sdk",
  "svm-types",
 ]
@@ -1063,6 +1051,10 @@ name = "svm-layout"
 version = "0.0.0"
 
 [[package]]
+name = "svm-nibble"
+version = "0.1.0"
+
+[[package]]
 name = "svm-runtime"
 version = "0.0.0"
 dependencies = [
@@ -1076,6 +1068,7 @@ dependencies = [
  "svm-gas",
  "svm-kv",
  "svm-layout",
+ "svm-nibble",
  "svm-storage",
  "svm-types",
  "wabt",

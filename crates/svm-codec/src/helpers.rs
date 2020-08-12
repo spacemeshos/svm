@@ -1,12 +1,10 @@
-use crate::api::raw::{self, decode_varuint14, encode_varuint14, Field};
-use crate::{
-    error::ParseError,
-    nibble::{NibbleIter, NibbleWriter},
-};
-
 use byteorder::{BigEndian, ByteOrder};
 
+use svm_nibble::{NibbleIter, NibbleWriter};
 use svm_types::Address;
+
+use crate::api::raw::{self, decode_varuint14, encode_varuint14, Field};
+use crate::error::ParseError;
 
 /// Encoders
 

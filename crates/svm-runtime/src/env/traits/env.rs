@@ -4,10 +4,10 @@ use crate::env::traits::{
 use crate::env::types::AppTemplateHash;
 
 use svm_codec::error::ParseError;
-use svm_codec::nibble::NibbleIter;
 use svm_codec::serializers::{
     AppDeserializer, AppSerializer, AppTemplateDeserializer, AppTemplateSerializer,
 };
+use svm_nibble::NibbleIter;
 use svm_types::{
     App, AppAddr, AppTemplate, AppTransaction, AuthorAddr, CreatorAddr, HostCtx, SpawnApp,
     TemplateAddr,
@@ -87,7 +87,7 @@ pub trait Env {
         let mut iter = NibbleIter::new(bytes);
 
         let template = svm_codec::api::raw::decode_deploy_template(&mut iter)?;
-        iter.ensure_eof()?;
+        iter.ensure_eof(ParseError::ExpectedEOF)?;
 
         Ok(template)
     }
@@ -99,7 +99,7 @@ pub trait Env {
         let mut iter = NibbleIter::new(bytes);
 
         let spawn = svm_codec::api::raw::decode_spawn_app(&mut iter)?;
-        iter.ensure_eof()?;
+        iter.ensure_eof(ParseError::ExpectedEOF)?;
 
         Ok(spawn)
     }
@@ -111,7 +111,7 @@ pub trait Env {
         let mut iter = NibbleIter::new(bytes);
 
         let tx = svm_codec::api::raw::decode_exec_app(&mut iter)?;
-        iter.ensure_eof()?;
+        iter.ensure_eof(ParseError::ExpectedEOF)?;
 
         Ok(tx)
     }

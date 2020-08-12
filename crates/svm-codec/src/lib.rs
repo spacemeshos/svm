@@ -28,10 +28,6 @@ mod transaction;
 mod varuint14;
 mod version;
 
-/// Code related to dealing with Nibbles (a nibble consists of 4-bits).
-#[macro_use]
-pub mod nibble;
-
 /// Wraps the exposed APIs under a single place.
 /// This crate exposes the following APIs:
 ///

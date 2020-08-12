@@ -1,13 +1,13 @@
+use svm_nibble::{NibbleIter, NibbleWriter};
+use svm_types::{AddressOf, App, SpawnApp, WasmValue};
+
 use serde_json::{json, Value};
 
 use crate::{
     api::json::{self, JsonError},
     api::raw,
     app,
-    nibble::{NibbleIter, NibbleWriter},
 };
-
-use svm_types::{AddressOf, App, SpawnApp, WasmValue};
 
 ///
 /// ```json
@@ -86,9 +86,8 @@ mod tests {
     use super::*;
     use serde_json::json;
 
+    use svm_nibble::NibbleIter;
     use svm_types::{Address, WasmValue};
-
-    use crate::nibble::NibbleIter;
 
     #[test]
     fn json_spawn_app_missing_version() {

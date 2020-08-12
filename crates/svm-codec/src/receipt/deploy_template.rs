@@ -11,8 +11,7 @@
 //!  See [error.rs][./error.rs]
 //!
 
-use crate::nibble::{NibbleIter, NibbleWriter};
-
+use svm_nibble::{NibbleIter, NibbleWriter};
 use svm_types::gas::MaybeGas;
 use svm_types::receipt::{Receipt, TemplateReceipt};
 

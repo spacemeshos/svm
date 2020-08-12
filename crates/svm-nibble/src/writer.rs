@@ -1,6 +1,8 @@
-use crate::nib;
+extern crate alloc;
 
-use super::{concat_nibbles, Nibble};
+use alloc::vec::Vec;
+
+use crate::{concat_nibbles, nib, Nibble};
 
 /// Nibbles Writer.
 pub struct NibbleWriter {
@@ -15,6 +17,7 @@ impl NibbleWriter {
         }
     }
 
+    /// Pushes a new nibble to the end of stream
     #[inline]
     pub fn push(&mut self, nib: Nibble) {
         self.nibbles.push(nib);

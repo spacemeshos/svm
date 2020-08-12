@@ -1,6 +1,7 @@
+use svm_nibble::NibbleWriter;
 use svm_types::{AppAddr, AppTransaction, WasmValue};
 
-use crate::{api::raw::encode_exec_app, nibble::NibbleWriter};
+use crate::api::raw::encode_exec_app;
 
 /// Builds a raw representation for `exec-app`
 /// Should be used for testing only.
@@ -17,7 +18,7 @@ pub struct AppTxBuilder {
 ///
 /// ```rust
 /// use svm_types::{AppTransaction, WasmValue, Address};
-/// use svm_codec::nibble::NibbleIter;
+/// use svm_nibble::NibbleIter;
 /// use svm_codec::api::{raw::decode_exec_app, builder::AppTxBuilder};
 ///
 /// let app = Address::of("@my-app").into();

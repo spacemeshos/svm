@@ -1,10 +1,7 @@
+use svm_nibble::{nib, NibbleWriter};
 use svm_types::WasmValue;
 
-use crate::{
-    nib,
-    nibble::NibbleWriter,
-    wasm::{encode_wasm_value, wasm_value_layout, NO_MORE},
-};
+use crate::wasm::{encode_wasm_value, wasm_value_layout, NO_MORE};
 
 /// Encodes func args
 pub fn encode_func_args(args: &[WasmValue], w: &mut NibbleWriter) {

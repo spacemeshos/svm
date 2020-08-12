@@ -6,8 +6,10 @@ pub use encoder::encode_version;
 
 #[cfg(test)]
 mod tests {
+    use svm_nibble::{NibbleIter, NibbleWriter};
+
     use crate::api::raw::{decode_version, encode_version};
-    use crate::nibble::{NibbleIter, NibbleWriter};
+    use crate::error::ParseError;
 
     fn assert_encode_decode(version: u32) {
         let mut w = NibbleWriter::new();
@@ -20,7 +22,7 @@ mod tests {
         let decoded = decode_version(&mut iter).unwrap();
         assert_eq!(version, decoded);
 
-        assert!(iter.ensure_eof().is_ok());
+        assert!(iter.ensure_eof(ParseError::ExpectedEOF).is_ok());
     }
 
     #[test]

@@ -6,8 +6,10 @@ pub use encoder::encode_func_buf;
 
 #[cfg(test)]
 mod tests {
+    use svm_nibble::{NibbleIter, NibbleWriter};
+
     use crate::api::raw::{decode_func_buf, encode_func_buf};
-    use crate::nibble::{NibbleIter, NibbleWriter};
+    use crate::error::ParseError;
 
     fn assert_encode_decode(buf: Vec<u8>) {
         let mut w = NibbleWriter::new();
@@ -20,7 +22,7 @@ mod tests {
         let decoded = decode_func_buf(&mut iter).unwrap();
         assert_eq!(buf, decoded);
 
-        assert!(iter.ensure_eof().is_ok());
+        assert!(iter.ensure_eof(ParseError::ExpectedEOF).is_ok());
     }
 
     #[test]

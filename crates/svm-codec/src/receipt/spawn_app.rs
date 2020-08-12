@@ -20,8 +20,9 @@
 //!  On success (`is_success = 0`)
 //!  See [error.rs][./error.rs]
 
+use svm_nibble::{NibbleIter, NibbleWriter};
+
 use crate::api::raw;
-use crate::nibble::{NibbleIter, NibbleWriter};
 
 use svm_types::gas::MaybeGas;
 use svm_types::receipt::{Receipt, SpawnAppReceipt};

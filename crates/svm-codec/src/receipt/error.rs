@@ -58,8 +58,7 @@
 use crate::api::raw::Field;
 use crate::helpers;
 
-use crate::nib;
-use crate::nibble::{Nibble, NibbleIter, NibbleWriter};
+use svm_nibble::{nib, Nibble, NibbleIter, NibbleWriter};
 
 use svm_types::receipt::{Log, ReceiptError, ReceiptError as Err};
 use svm_types::{Address, AppAddr, TemplateAddr};

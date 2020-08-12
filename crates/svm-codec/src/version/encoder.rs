@@ -1,5 +1,4 @@
-use crate::nib;
-use crate::nibble::{Nibble, NibbleWriter};
+use svm_nibble::{nib, Nibble, NibbleWriter};
 
 /// Encodes version.
 pub fn encode_version(mut version: u32, w: &mut NibbleWriter) {

@@ -6,10 +6,11 @@ pub use encoder::{encode_func_args, encode_func_rets};
 
 #[cfg(test)]
 mod tests {
+    use svm_nibble::{NibbleIter, NibbleWriter};
     use svm_types::WasmValue;
 
     use crate::api::raw::{decode_func_args, encode_func_args};
-    use crate::nibble::{NibbleIter, NibbleWriter};
+    use crate::error::ParseError;
 
     fn assert_encode_decode(args: Vec<WasmValue>) {
         let mut w = NibbleWriter::new();
@@ -22,7 +23,7 @@ mod tests {
         let decoded = decode_func_args(&mut iter).unwrap();
         assert_eq!(args, decoded);
 
-        assert!(iter.ensure_eof().is_ok());
+        assert!(iter.ensure_eof(ParseError::ExpectedEOF).is_ok());
     }
 
     #[test]

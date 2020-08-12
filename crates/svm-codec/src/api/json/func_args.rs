@@ -1,12 +1,12 @@
+use svm_nibble::{NibbleIter, NibbleWriter};
+use svm_types::WasmValue;
+
 use serde_json::{json, Value};
 
 use crate::{
     api::json::{self, JsonError},
     api::raw,
-    nibble::{NibbleIter, NibbleWriter},
 };
-
-use svm_types::WasmValue;
 
 pub fn encode_func_args(args: &[String]) -> Result<Vec<u8>, JsonError> {
     let json = json!({ "args": args });

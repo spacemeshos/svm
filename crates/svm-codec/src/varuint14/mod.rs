@@ -6,8 +6,10 @@ pub use encoder::encode_varuint14;
 
 #[cfg(test)]
 mod tests {
+    use svm_nibble::{NibbleIter, NibbleWriter};
+
     use crate::api::raw::{decode_varuint14, encode_varuint14, Field};
-    use crate::nibble::{NibbleIter, NibbleWriter};
+    use crate::error::ParseError;
 
     fn assert_encode_decode(num: u16) {
         let mut w = NibbleWriter::new();
@@ -23,7 +25,7 @@ mod tests {
         let decoded = decode_varuint14(&mut iter, field).unwrap();
         assert_eq!(num, decoded);
 
-        assert!(iter.ensure_eof().is_ok());
+        assert!(iter.ensure_eof(ParseError::ExpectedEOF).is_ok());
     }
 
     #[test]

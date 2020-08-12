@@ -6,16 +6,6 @@
 #[repr(transparent)]
 pub struct Nibble(u8);
 
-/// Creates a new `Nibble`.
-#[macro_export]
-macro_rules! nib {
-    ($val:expr) => {{
-        use crate::nibble::Nibble;
-
-        Nibble::new($val)
-    }};
-}
-
 impl Nibble {
     /// Creates a new Nibble.
     /// asserts that input `byte` is less than or equal to 0x0F (binary: 000_1111).
@@ -37,7 +27,7 @@ impl Nibble {
     /// # Example
     ///
     /// ```rust
-    /// use svm_codec::nibble::Nibble;
+    /// use svm_nibble::Nibble;
     ///
     /// let nib = Nibble::new(0b_0000_1000);
     /// assert!(nib.is_msb_on());
@@ -53,7 +43,7 @@ impl Nibble {
     /// # Example
     ///
     /// ```rust
-    /// use svm_codec::nibble::Nibble;
+    /// use svm_nibble::Nibble;
     ///
     /// let nib = Nibble::new(0b_0000_0001);
     /// assert!(nib.is_msb_off());
@@ -68,7 +58,7 @@ impl Nibble {
     /// # Example
     ///
     /// ```rust
-    /// use svm_codec::nibble::Nibble;
+    /// use svm_nibble::Nibble;
     ///
     /// let nib = Nibble::new(0b_0000_1001);
     /// assert_eq!([true, false, false, true], nib.bits());

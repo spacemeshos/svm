@@ -29,13 +29,13 @@ pub fn decode_exec_app(ptr: usize) -> Result<usize, JsonError> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::nibble::NibbleIter;
+
+    use svm_nibble::NibbleIter;
+    use svm_types::{Address, AppTransaction, WasmValue};
 
     use crate::api::wasm::{
         error_as_string, free, to_wasm_buffer, wasm_buffer_data, BUF_OK_MARKER,
     };
-
-    use svm_types::{Address, AppTransaction, WasmValue};
 
     use serde_json::{json, Value};
 

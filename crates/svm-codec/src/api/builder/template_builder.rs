@@ -1,6 +1,7 @@
+use svm_nibble::NibbleWriter;
 use svm_types::AppTemplate;
 
-use crate::{api::raw::encode_deploy_template, nibble::NibbleWriter};
+use crate::api::raw::encode_deploy_template;
 
 use svm_layout::DataLayout;
 
@@ -18,7 +19,7 @@ pub struct DeployAppTemplateBuilder {
 ///  
 /// ```rust
 /// use svm_types::AppTemplate;
-/// use svm_codec::nibble::NibbleIter;
+/// use svm_nibble::NibbleIter;
 /// use svm_codec::api::raw::decode_deploy_template;
 /// use svm_codec::api::builder::DeployAppTemplateBuilder;
 ///

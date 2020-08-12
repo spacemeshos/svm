@@ -1,7 +1,7 @@
-use svm_types::gas::MaybeGas;
-use svm_types::WasmValue;
+use svm_nibble::NibbleIter;
+use svm_types::{gas::MaybeGas, WasmValue};
 
-use crate::{error::ParseError, nibble::NibbleIter, wasm};
+use crate::{error::ParseError, wasm};
 
 macro_rules! invalid_layout {
     () => {{

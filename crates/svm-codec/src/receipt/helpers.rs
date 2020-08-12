@@ -1,6 +1,7 @@
+use svm_nibble::{Nibble, NibbleIter, NibbleWriter};
+
 use crate::api::raw::{self, Field};
 use crate::error::ParseError;
-use crate::nibble::{Nibble, NibbleIter, NibbleWriter};
 
 use svm_types::{
     gas::MaybeGas,

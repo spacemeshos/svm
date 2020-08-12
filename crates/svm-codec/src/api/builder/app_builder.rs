@@ -1,6 +1,7 @@
+use svm_nibble::NibbleWriter;
 use svm_types::{App, SpawnApp, TemplateAddr, WasmValue};
 
-use crate::{api::raw::encode_spawn_app, nibble::NibbleWriter};
+use crate::api::raw::encode_spawn_app;
 
 /// Builds a raw representation for `spawn-app`
 /// Should be used for testing only.
@@ -18,7 +19,7 @@ pub struct SpawnAppBuilder {
 ///
 /// ```rust
 /// use svm_types::{App, SpawnApp, WasmValue, Address};
-/// use svm_codec::nibble::NibbleIter;
+/// use svm_nibble::NibbleIter;
 /// use svm_codec::api::{raw::decode_spawn_app, builder::SpawnAppBuilder};
 ///
 /// let template = Address::of("@template").into();

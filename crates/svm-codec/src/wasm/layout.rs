@@ -1,6 +1,5 @@
+use svm_nibble::{nib, Nibble};
 use svm_types::{WasmType, WasmValue};
-
-use crate::{nib, nibble::Nibble};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct WasmValueLayout {
