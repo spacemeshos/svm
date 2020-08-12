@@ -28,18 +28,20 @@
 //! (see the `svm-abi-decoder` crate).
 //!
 
-mod ty_array;
-mod ty_bool;
-mod ty_i16;
-mod ty_i32;
-mod ty_i64;
-mod ty_i8;
+mod amount;
+mod array;
+mod boolean;
+mod num_i16;
+mod num_i32;
+mod num_i64;
+mod num_i8;
 
-pub use ty_array::*;
-pub use ty_bool::*;
-pub use ty_i16::*;
-pub use ty_i32::*;
-pub use ty_i64::*;
+pub use amount::*;
+pub use array::*;
+pub use boolean::*;
+pub use num_i16::*;
+pub use num_i32::*;
+pub use num_i64::*;
 
 use svm_nibble::{nib, NibbleWriter};
 use svm_sdk::{

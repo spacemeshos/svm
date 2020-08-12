@@ -10,6 +10,9 @@
 #![allow(dead_code)]
 #![allow(unreachable_code)]
 
+mod amount;
+pub use amount::Amount;
+
 /// SDK types
 pub mod types;
 
