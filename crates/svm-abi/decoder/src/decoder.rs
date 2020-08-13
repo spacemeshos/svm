@@ -1,5 +1,7 @@
 use svm_abi_layout::layout;
-use svm_sdk::value::{self, Address, Value};
+
+use svm_sdk::value::{self, Address, Primitive, Value};
+use svm_sdk::Amount;
 
 use crate::Cursor;
 
@@ -13,8 +15,6 @@ pub enum TypeError {
     MissingTypeKind,
 
     InvalidTypeKind(u8),
-
-    ProhibitedTypeKind(u8),
 }
 
 enum TypeKind {
@@ -60,10 +60,10 @@ macro_rules! decode_fixed_primitive {
         let ptr = $self.read_bytes($iter, $n)?;
 
         let bytes = unsafe { core::mem::transmute::<*const u8, &[u8; $n]>(ptr) };
-        let addr = $ty(bytes);
+        let value = $ty(bytes);
 
-        let primitive = value::Primitive::$ty(addr);
-        let value = Value::Primitive(primitive);
+        let prim = value::Primitive::$ty(value);
+        let value = Value::Primitive(prim);
 
         Ok(value)
     }};
@@ -85,56 +85,159 @@ impl Decoder {
 
         let kind = self.read_type_kind(cursor)?;
 
-        match kind {
-            TypeKind::Address => self.decode_addr(cursor)?,
-            _ => todo!(),
+        let value = match kind {
+            TypeKind::Bool => self.decode_bool(cursor)?.into(),
+            TypeKind::Address => self.decode_addr(cursor)?.into(),
+            TypeKind::Amount => self.decode_amount(cursor)?.into(),
+            TypeKind::I8 => self.decode_i8(cursor)?.into(),
+            TypeKind::U8 => self.decode_u8(cursor)?.into(),
+            TypeKind::I16 => self.decode_i16(cursor)?.into(),
+            TypeKind::U16 => self.decode_u16(cursor)?.into(),
+            TypeKind::I32 => self.decode_i32(cursor)?.into(),
+            TypeKind::U32 => self.decode_u32(cursor)?.into(),
+            TypeKind::I64 => self.decode_i64(cursor)?.into(),
+            TypeKind::U64 => self.decode_u64(cursor)?.into(),
+            TypeKind::Array => self.decode_array(cursor)?,
         };
 
-        // let value = match byte {
-        //     layout::ARRAY_START => self.decode_array(cursor)?,
-        //     layout::ADDRESS => self.decode_addr(cursor)?,
-        //     layout::ARRAY_END => {
-        //         return Err(DecodeError::Type(TypeError::ProhibitedTypeKind(byte)))
-        //     }
-        //     _ => return Err(DecodeError::Type(TypeError::InvalidTypeKind(byte))),
-        // };
-
-        // Ok(value)
-
-        todo!()
+        Ok(value)
     }
 
-    fn decode_array(&self, cursor: &mut Cursor) -> Result<Value, DecodeError> {
-        assert_no_eof!(cursor);
-        todo!()
+    fn decode_bool(&self, cursor: &mut Cursor) -> Result<Value, DecodeError> {
+        let byte = self.read_byte(cursor)?;
 
-        // let mut next_byte = self.peek(cursor)?;
-        // let mut values = Vec::new();
+        let v = match byte {
+            layout::BOOL_FALSE => false,
+            layout::BOOL_TRUE => true,
+            _ => unreachable!(),
+        };
 
-        // while next_byte != layout::ARRAY_END {
-        //     let v = self.decode_value(cursor)?;
-        //     values.push(v);
-
-        //     next_byte = self.peek(cursor)?;
-        // }
-
-        // let _ = self.read_byte(cursor)?;
-
-        // let values = Box::leak(Box::new(values));
-        // let array = Value::Composite(value::Composite::Array(values));
-
-        // self.verify_array(&array)?;
-
-        // Ok(array)
+        Ok(v.into())
     }
 
     fn decode_addr(&self, cursor: &mut Cursor) -> Result<Value, DecodeError> {
         decode_fixed_primitive!(self, Address, 20, cursor)
     }
 
-    fn verify_array(&self, _value: &Value) -> Result<(), DecodeError> {
-        // todo!()
-        Ok(())
+    fn decode_amount(&self, cursor: &mut Cursor) -> Result<Value, DecodeError> {
+        let byte = self.read_byte(cursor)?;
+
+        let nbytes = match byte {
+            layout::AMOUNT_1B => 1,
+            layout::AMOUNT_2B => 2,
+            layout::AMOUNT_3B => 3,
+            layout::AMOUNT_4B => 4,
+            layout::AMOUNT_5B => 5,
+            layout::AMOUNT_6B => 6,
+            layout::AMOUNT_7B => 7,
+            layout::AMOUNT_8B => 8,
+            _ => unreachable!(),
+        };
+
+        let num = self.read_num(cursor, nbytes)?;
+        let amount = Amount(num);
+
+        Ok(amount.into())
+    }
+
+    fn decode_i8(&self, cursor: &mut Cursor) -> Result<i8, DecodeError> {
+        let num = self.read_num(cursor, 1)? as i8;
+        Ok(num)
+    }
+
+    fn decode_u8(&self, cursor: &mut Cursor) -> Result<u8, DecodeError> {
+        let num = self.decode_i8(cursor)? as u8;
+        Ok(num)
+    }
+
+    fn decode_i16(&self, cursor: &mut Cursor) -> Result<i16, DecodeError> {
+        let byte = self.read_byte(cursor)?;
+
+        let nbytes = match byte {
+            layout::I16_1B | layout::U16_1B => 1,
+            layout::I16_2B | layout::U16_2B => 2,
+            _ => unreachable!(),
+        };
+
+        let num = self.read_num(cursor, nbytes)? as i16;
+        Ok(num)
+    }
+
+    fn decode_u16(&self, cursor: &mut Cursor) -> Result<u16, DecodeError> {
+        let num = self.decode_i16(cursor)? as u16;
+        Ok(num)
+    }
+
+    fn decode_i32(&self, cursor: &mut Cursor) -> Result<i32, DecodeError> {
+        let byte = self.read_byte(cursor)?;
+
+        let nbytes = match byte {
+            layout::I32_1B | layout::U32_1B => 1,
+            layout::I32_2B | layout::U32_2B => 2,
+            layout::I32_3B | layout::U32_3B => 3,
+            layout::I32_4B | layout::U32_4B => 4,
+            _ => unreachable!(),
+        };
+
+        let num = self.read_num(cursor, nbytes)? as i32;
+        Ok(num)
+    }
+
+    fn decode_u32(&self, cursor: &mut Cursor) -> Result<u32, DecodeError> {
+        let num = self.decode_i32(cursor)? as u32;
+        Ok(num)
+    }
+
+    fn decode_i64(&self, cursor: &mut Cursor) -> Result<i64, DecodeError> {
+        let byte = self.read_byte(cursor)?;
+
+        let nbytes = match byte {
+            layout::I64_1B | layout::U64_1B => 1,
+            layout::I64_2B | layout::U64_2B => 2,
+            layout::I64_3B | layout::U64_3B => 3,
+            layout::I64_4B | layout::U64_4B => 4,
+            layout::I64_1B | layout::U64_5B => 5,
+            layout::I64_2B | layout::U64_6B => 6,
+            layout::I64_3B | layout::U64_7B => 7,
+            layout::I64_4B | layout::U64_8B => 8,
+            _ => unreachable!(),
+        };
+
+        let num = self.read_num(cursor, nbytes)? as i64;
+        Ok(num)
+    }
+
+    fn decode_u64(&self, cursor: &mut Cursor) -> Result<u64, DecodeError> {
+        let num = self.decode_i64(cursor)? as u64;
+        Ok(num)
+    }
+
+    fn decode_array(&self, cursor: &mut Cursor) -> Result<Value, DecodeError> {
+        assert_no_eof!(cursor);
+
+        let byte = self.read_byte(cursor)?;
+
+        let nitems = match byte {
+            layout::ARR_0 => 0,
+            layout::ARR_1 => 1,
+            layout::ARR_2 => 2,
+            layout::ARR_3 => 3,
+            layout::ARR_4 => 4,
+            layout::ARR_5 => 5,
+            layout::ARR_6 => 6,
+            layout::ARR_0_255 => self.read_byte(cursor)?,
+            _ => unreachable!(),
+        };
+
+        let mut values: Vec<Value> = Vec::with_capacity(nitems as usize);
+
+        for _ in 0..nitems {
+            let value = self.decode_value(cursor)?;
+            values.push(value);
+        }
+
+        let values: &[Value] = Box::leak(Box::new(values));
+        Ok(values.into())
     }
 
     #[inline]
@@ -142,6 +245,31 @@ impl Decoder {
         cursor
             .read_byte()
             .ok_or(DecodeError::Value(ValueError::NotEnoughBytes))
+    }
+
+    #[inline]
+    fn read_num(&self, cursor: &mut Cursor, nbytes: usize) -> Result<u64, DecodeError> {
+        debug_assert!(nbytes > 0 && nbytes <= 8);
+
+        macro_rules! from_be_bytes {
+            ($ptr:expr, $nbytes:expr) => {{
+                let mut buf: [u8; 8] = [0; 8];
+
+                unsafe {
+                    let src = $ptr;
+                    let dst = buf.as_mut_ptr();
+
+                    core::ptr::copy_nonoverlapping(src, dst, $nbytes);
+                }
+
+                u64::from_be_bytes(buf)
+            }};
+        }
+
+        let ptr = self.read_bytes(cursor, nbytes)?;
+        let num = from_be_bytes!(ptr, nbytes);
+
+        Ok(num)
     }
 
     #[inline]
@@ -164,7 +292,7 @@ impl Decoder {
 
     #[inline]
     fn read_type_kind(&self, cursor: &mut Cursor) -> Result<TypeKind, DecodeError> {
-        let byte = self.read_byte(cursor)?;
+        let byte = self.peek(cursor)?;
 
         let kind = match byte {
             layout::BOOL_FALSE | layout::BOOL_TRUE => TypeKind::Bool,

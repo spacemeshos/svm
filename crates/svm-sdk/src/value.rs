@@ -1,6 +1,8 @@
 use core::cmp::PartialEq;
 use core::fmt::{self, Debug};
 
+use crate::Amount;
+
 use core::char;
 
 extern crate alloc;
@@ -147,11 +149,25 @@ pub struct Array<'a, T>(pub &'a [T]);
 pub enum Primitive<'a> {
     Bool(bool),
 
+    Address(Address<'a>),
+
+    Amount(Amount),
+
+    I8(i8),
+
+    U8(u8),
+
+    I16(i16),
+
+    U16(u16),
+
     I32(i32),
+
+    U32(u32),
 
     I64(i64),
 
-    Address(Address<'a>),
+    U64(u64),
 }
 
 /// Composite value
@@ -169,4 +185,48 @@ pub enum Value<'a> {
 
     /// A `Composite` value
     Composite(Composite<'a>),
+}
+
+macro_rules! impl_from_num_to_value {
+    ($prim_ty:ident, $rust_ty:ident) => {
+        impl From<$rust_ty> for Value<'_> {
+            fn from(num: $rust_ty) -> Self {
+                let prim = Primitive::$prim_ty(num);
+                Value::Primitive(prim)
+            }
+        }
+    };
+}
+
+impl_from_num_to_value!(I8, i8);
+impl_from_num_to_value!(U8, u8);
+
+impl_from_num_to_value!(I16, i16);
+impl_from_num_to_value!(U16, u16);
+
+impl_from_num_to_value!(I32, i32);
+impl_from_num_to_value!(U32, u32);
+
+impl_from_num_to_value!(I64, i64);
+impl_from_num_to_value!(U64, u64);
+
+impl From<bool> for Value<'_> {
+    fn from(v: bool) -> Self {
+        let prim = Primitive::Bool(v);
+        Value::Primitive(prim)
+    }
+}
+
+impl From<Amount> for Value<'_> {
+    fn from(amount: Amount) -> Self {
+        let prim = Primitive::Amount(amount);
+        Value::Primitive(prim)
+    }
+}
+
+impl<'a> From<&'a [Value<'_>]> for Value<'a> {
+    fn from(slice: &'a [Value]) -> Self {
+        let comp = Composite::Array(slice);
+        Value::Composite(comp)
+    }
 }
