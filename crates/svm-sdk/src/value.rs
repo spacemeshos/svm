@@ -187,46 +187,72 @@ pub enum Value<'a> {
     Composite(Composite<'a>),
 }
 
-macro_rules! impl_from_num_to_value {
-    ($prim_ty:ident, $rust_ty:ident) => {
+macro_rules! impl_from_rust_to_value {
+    ($prim_ident:ident, $rust_ty:ident) => {
         impl From<$rust_ty> for Value<'_> {
             fn from(num: $rust_ty) -> Self {
-                let prim = Primitive::$prim_ty(num);
+                let prim = Primitive::$prim_ident(num);
                 Value::Primitive(prim)
             }
         }
     };
 }
 
-impl_from_num_to_value!(I8, i8);
-impl_from_num_to_value!(U8, u8);
+impl_from_rust_to_value!(Bool, bool);
+impl_from_rust_to_value!(Amount, Amount);
 
-impl_from_num_to_value!(I16, i16);
-impl_from_num_to_value!(U16, u16);
+impl_from_rust_to_value!(I8, i8);
+impl_from_rust_to_value!(U8, u8);
 
-impl_from_num_to_value!(I32, i32);
-impl_from_num_to_value!(U32, u32);
+impl_from_rust_to_value!(I16, i16);
+impl_from_rust_to_value!(U16, u16);
 
-impl_from_num_to_value!(I64, i64);
-impl_from_num_to_value!(U64, u64);
+impl_from_rust_to_value!(I32, i32);
+impl_from_rust_to_value!(U32, u32);
 
-impl From<bool> for Value<'_> {
-    fn from(v: bool) -> Self {
-        let prim = Primitive::Bool(v);
-        Value::Primitive(prim)
-    }
-}
-
-impl From<Amount> for Value<'_> {
-    fn from(amount: Amount) -> Self {
-        let prim = Primitive::Amount(amount);
-        Value::Primitive(prim)
-    }
-}
+impl_from_rust_to_value!(I64, i64);
+impl_from_rust_to_value!(U64, u64);
 
 impl<'a> From<&'a [Value<'_>]> for Value<'a> {
     fn from(slice: &'a [Value]) -> Self {
         let comp = Composite::Array(slice);
         Value::Composite(comp)
+    }
+}
+
+macro_rules! impl_from_value_to_rust {
+    ($prim_ident:ident, $rust_ty:ty) => {
+        impl From<Value<'_>> for $rust_ty {
+            fn from(value: Value) -> Self {
+                match value {
+                    Value::Primitive(Primitive::$prim_ident(v)) => v,
+                    _ => unreachable!(),
+                }
+            }
+        }
+    };
+}
+
+impl_from_value_to_rust!(Bool, bool);
+impl_from_value_to_rust!(Amount, Amount);
+
+impl_from_value_to_rust!(I8, i8);
+impl_from_value_to_rust!(U8, u8);
+
+impl_from_value_to_rust!(I16, i16);
+impl_from_value_to_rust!(U16, u16);
+
+impl_from_value_to_rust!(I32, i32);
+impl_from_value_to_rust!(U32, u32);
+
+impl_from_value_to_rust!(I64, i64);
+impl_from_value_to_rust!(U64, u64);
+
+impl<'a> From<Value<'a>> for Address<'a> {
+    fn from(value: Value<'a>) -> Self {
+        match value {
+            Value::Primitive(Primitive::Address(addr)) => addr,
+            _ => unreachable!(),
+        }
     }
 }

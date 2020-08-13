@@ -981,7 +981,6 @@ dependencies = [
  "svm-abi-decoder",
  "svm-abi-encoder",
  "svm-abi-layout",
- "svm-nibble",
  "svm-sdk",
 ]
 

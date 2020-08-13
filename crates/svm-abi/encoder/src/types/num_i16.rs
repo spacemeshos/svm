@@ -20,8 +20,7 @@ macro_rules! encode {
                         w.push($MARK_2B);
 
                         let bytes: [u8; 2] = v.to_be_bytes();
-                        w.push(bytes[0]);
-                        w.push(bytes[1]);
+                        w.extend_from_slice(&bytes);
                     }
                 };
             }

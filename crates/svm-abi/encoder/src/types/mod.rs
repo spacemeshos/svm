@@ -28,9 +28,7 @@
 //! (see the `svm-abi-decoder` crate).
 //!
 
-extern crate alloc;
-use alloc::vec::Vec;
-
+mod address;
 mod amount;
 mod array;
 mod boolean;
@@ -39,33 +37,10 @@ mod num_i32;
 mod num_i64;
 mod num_i8;
 
+pub use address::*;
 pub use amount::*;
 pub use array::*;
 pub use boolean::*;
 pub use num_i16::*;
 pub use num_i32::*;
 pub use num_i64::*;
-
-use svm_abi_layout::layout;
-use svm_sdk::{
-    types::PrimitiveMarker,
-    value::{Address, AddressOwned},
-};
-
-use crate::Encoder;
-
-macro_rules! impl_primitive_encoder {
-    ($ty:ty, $marker:path) => {
-        impl Encoder for $ty {
-            /// Encodes `self` (of type `$ty`) and outputs the data into `w`
-            fn encode(&self, w: &mut Vec<u8>) {
-                w.push($marker);
-
-                w.extend_from_slice(&self.0[..]);
-            }
-        }
-    };
-}
-
-impl_primitive_encoder!(Address<'_>, layout::ADDRESS);
-impl_primitive_encoder!(AddressOwned, layout::ADDRESS);

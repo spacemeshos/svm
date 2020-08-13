@@ -80,7 +80,7 @@ pub mod layout {
     pub const BOOL_TRUE: u8 = 0b_0_001_0000;
 
     // Address
-    pub const ADDRESS: u8 = 0b_0_010_000;
+    pub const ADDRESS: u8 = 0b_0_010_0000;
 
     /// Amount
     pub const AMOUNT_1B: u8 = 0b_0_000_0001;

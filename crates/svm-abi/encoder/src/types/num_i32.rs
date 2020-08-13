@@ -12,11 +12,11 @@ macro_rules! encode {
                 let v = *self as u32;
 
                 match v {
-                    0x00..=0xFF_FF => {
+                    0x00..=0xFF => {
                         w.push($MARK_1B);
                         w.push(v as u8);
                     }
-                    0x01_00_00..=0xFF_FF_FF => {
+                    0x01_00..=0xFF_FF => {
                         w.push($MARK_2B);
 
                         let bytes: [u8; 4] = v.to_be_bytes();

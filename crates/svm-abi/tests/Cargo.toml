@@ -14,5 +14,4 @@ publish = false
 svm-abi-layout = { path = "./../layout" }
 svm-abi-encoder = { path = "./../encoder" }
 svm-abi-decoder = { path = "./../decoder" }
-svm-nibble = { path = "./../../svm-nibble" }
 svm-sdk = { path = "./../../svm-sdk" }

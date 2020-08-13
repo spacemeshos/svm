@@ -116,6 +116,10 @@ impl Decoder {
     }
 
     fn decode_addr(&self, cursor: &mut Cursor) -> Result<Value, DecodeError> {
+        let byte = self.read_byte(cursor)?;
+
+        debug_assert_eq!(byte, layout::ADDRESS);
+
         decode_fixed_primitive!(self, Address, 20, cursor)
     }
 
@@ -141,6 +145,10 @@ impl Decoder {
     }
 
     fn decode_i8(&self, cursor: &mut Cursor) -> Result<i8, DecodeError> {
+        let byte = self.read_byte(cursor)?;
+
+        debug_assert!(byte == layout::I8 || byte == layout::U8);
+
         let num = self.read_num(cursor, 1)? as i8;
         Ok(num)
     }
@@ -196,10 +204,10 @@ impl Decoder {
             layout::I64_2B | layout::U64_2B => 2,
             layout::I64_3B | layout::U64_3B => 3,
             layout::I64_4B | layout::U64_4B => 4,
-            layout::I64_1B | layout::U64_5B => 5,
-            layout::I64_2B | layout::U64_6B => 6,
-            layout::I64_3B | layout::U64_7B => 7,
-            layout::I64_4B | layout::U64_8B => 8,
+            layout::I64_5B | layout::U64_5B => 5,
+            layout::I64_6B | layout::U64_6B => 6,
+            layout::I64_7B | layout::U64_7B => 7,
+            layout::I64_8B | layout::U64_8B => 8,
             _ => unreachable!(),
         };
 
@@ -253,16 +261,16 @@ impl Decoder {
 
         macro_rules! from_be_bytes {
             ($ptr:expr, $nbytes:expr) => {{
-                let mut buf: [u8; 8] = [0; 8];
+                let mut n: u64 = 0;
+                let ptr = $ptr as *const u8;
 
-                unsafe {
-                    let src = $ptr;
-                    let dst = buf.as_mut_ptr();
+                for i in 0..$nbytes {
+                    let d = unsafe { *ptr.offset(i as isize) };
 
-                    core::ptr::copy_nonoverlapping(src, dst, $nbytes);
+                    n = (n << 8) + d as u64;
                 }
 
-                u64::from_be_bytes(buf)
+                n
             }};
         }
 
