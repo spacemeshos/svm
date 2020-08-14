@@ -2,7 +2,7 @@ use svm_nibble::{NibbleIter, NibbleWriter};
 use svm_types::{App, SpawnApp, TemplateAddr, WasmValue};
 
 pub use crate::api::raw::{
-    decode_calldata, decode_varuint14, decode_version, encode_func_buf, encode_varuint14, Field,
+    decode_calldata, decode_varuint14, decode_version, encode_calldata, encode_varuint14, Field,
 };
 
 use crate::{error::ParseError, helpers};
@@ -65,7 +65,7 @@ fn encode_ctor_index(spawn: &SpawnApp, w: &mut NibbleWriter) {
 
 fn encode_ctor_calldata(spawn: &SpawnApp, w: &mut NibbleWriter) {
     let ctor_calldata = &*spawn.calldata;
-    encode_func_buf(ctor_calldata, w);
+    encode_calldata(ctor_calldata, w);
 }
 
 /// Decoders
@@ -103,8 +103,7 @@ mod tests {
                 template: Address::of("my-template").into(),
             },
             ctor_idx: 10,
-            ctor_buf: vec![0x10, 0x20, 0x30],
-            ctor_args: vec![WasmValue::I32(20), WasmValue::I64(30)],
+            calldata: vec![0x10, 0x20, 0x30],
         };
 
         let mut w = NibbleWriter::new();

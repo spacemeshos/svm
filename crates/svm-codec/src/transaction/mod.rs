@@ -9,21 +9,11 @@
 //!  |             Function Index Encoding (b)             |
 //!  |_____________________________________________________|
 //!  |            |                                        |
-//!  |  func-buf  |                                        |
-//!  |  #length   |           func-buf blob                |
+//!  |  calldata  |                                        |
+//!  |  #length   |           calldata blob                |
 //!  |  encoding  |                                        |
 //!  |    (c)     |                                        |
 //!  |____________|________________________________________|
-//!  |   func    |   func    |   func    |                 |
-//!  |  arg #1   |  arg #2   |  arg #3   |                 |
-//!  |  layout   |  layout   |  layout   |     . . . .     |
-//!  | encoding  | encoding  | encoding  |                 |
-//!  |   (d)     |           |           |                 |
-//!  |___________|___________|___________|_________________|
-//!  |   func    |   func    |   func    |                 |
-//!  |  arg #1   |  arg #2   |  arg #3   |     . . . .     |
-//!  |   value   |   value   |   value   |                 |
-//!  +___________|___________|___________|_________________+
 //!
 //!
 //!
@@ -62,43 +52,6 @@
 //!  The first nibble will donate 2 bits and the other 3 nibbles will donate 4 bits each.
 //!  So we get: 2 + 3 * 4 = 14
 //!
-//!
-//!
-//! (c) Function Buf Length Encoding
-//! ================================
-//! The same encoding as `Function Index Encoding` (b)
-//!
-//!
-//! (d) Func Args Layout Encoding
-//! =============================
-//!
-//!  Each function arg is represented by one nibble.
-//!
-//!  i32/i64 | #bytes  |           Meaning
-//!  +-----------------------------------------------------+
-//!  |   0   |  0 0 0  | i32 type, value consumes 0 bytes  |
-//!  |   0   |  0 0 1  | i32 type, value consumes 1 bytes  |
-//!  |   0   |  0 1 0  | i32 type, value consumes 2 bytes  |
-//!  |   0   |  0 1 1  | i32 type, value consumes 3 bytes  |
-//!  |   0   |  1 0 0  | i32 type, value consumes 4 bytes  |
-//!  |-----------------------------------------------------|
-//!  |   0   |  1 0 1  | i64 type, value consumes 0 bytes  |
-//!  |   0   |  1 1 0  | no more func args                 |
-//!  |   0   |  1 1 1  | ignore (skip to next nibble)      |
-//!  |-----------------------------------------------------|
-//!  |   1   |  0 0 0  | i64 type, value consumes 1 bytes  |
-//!  |   1   |  0 0 1  | i64 type, value consumes 2 bytes  |
-//!  |   1   |  0 1 0  | i64 type, value consumes 3 bytes  |
-//!  |   1   |  0 1 1  | i64 type, value consumes 4 bytes  |
-//!  |   1   |  1 0 0  | i64 type, value consumes 5 bytes  |
-//!  |   1   |  1 0 1  | i64 type, value consumes 6 bytes  |
-//!  |   1   |  1 1 0  | i64 type, value consumes 7 bytes  |
-//!  |   1   |  1 1 1  | i64 type, value consumes 8 bytes  |
-//!  +_______|_________|___________________________________+
-//!
-//! Note:
-//! `0 0 0 0` - represents an `i32` number holding zero.
-//! `0 1 0 1` - represents an `i64` number holding zero.
 
 mod wire;
 

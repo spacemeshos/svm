@@ -16,8 +16,7 @@ use svm_types::{AddressOf, App, AppTransaction, WasmValue};
 ///   version: 0,      // number
 ///   app: 'A2FB...',  // string
 ///   func_index: 0,   // number
-///   func_buf: '',   // string
-///   func_args: ['10i32', '20i64', ...] // Array of `string`
+///   calldata: '',    // string
 /// }
 /// ```
 pub fn encode_exec_app(json: &Value) -> Result<Vec<u8>, JsonError> {
@@ -25,21 +24,14 @@ pub fn encode_exec_app(json: &Value) -> Result<Vec<u8>, JsonError> {
     let app = json::as_addr(json, "app")?.into();
     let func_idx = json::as_u16(json, "func_index")?;
 
-    let func_buf = json::as_string(json, "func_buf")?;
-    let func_buf = json::str_to_bytes(&func_buf, "func_buf")?;
-
-    let func_args = json::as_string(json, "func_args")?;
-    let func_args = json::str_to_bytes(&func_args, "func_args")?;
-
-    let mut iter = NibbleIter::new(&func_args);
-    let func_args = raw::decode_func_args(&mut iter).unwrap();
+    let calldata = json::as_string(json, "calldata")?;
+    let calldata = json::str_to_bytes(&calldata, "calldata")?;
 
     let tx = AppTransaction {
         version,
         app,
         func_idx,
-        func_args,
-        func_buf,
+        calldata,
     };
 
     let mut w = NibbleWriter::new();
@@ -60,16 +52,14 @@ pub fn decode_exec_app(json: &Value) -> Result<Value, JsonError> {
     let func_idx = tx.func_idx;
     let app = json::addr_to_str(&tx.app.inner());
 
-    let func_buf = json::bytes_to_str(&tx.func_buf);
-    let func_buf = json::decode_func_buf(&json!({ "data": func_buf }))?;
-    let func_args = json::wasm_values_to_json(&tx.func_args);
+    let calldata = json::bytes_to_str(&tx.calldata);
+    let calldata = json::decode_func_buf(&json!({ "data": calldata }))?;
 
     let json = json!({
         "version": version,
         "app": app,
         "func_index": func_idx,
-        "func_buf": func_buf,
-        "func_args": func_args
+        "calldata": calldata,
     });
 
     Ok(json)
@@ -142,7 +132,7 @@ mod tests {
         assert_eq!(
             err,
             JsonError::InvalidField {
-                field: "func_buf".to_string(),
+                field: "calldata".to_string(),
                 reason: "value `null` isn\'t a string".to_string(),
             }
         );
@@ -159,7 +149,7 @@ mod tests {
             "version": 0,
             "app": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
             "func_index": 0,
-            "func_buf": calldata["func_buf"]
+            "calldata": calldata["calldata"]
         });
 
         let err = encode_exec_app(&json).unwrap_err();
@@ -184,8 +174,7 @@ mod tests {
             "version": 0,
             "app": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
             "func_index": 1,
-            "func_buf": calldata["func_buf"],
-            "func_args": calldata["func_args"]
+            "calldata": calldata["calldata"],
         });
 
         let bytes = encode_exec_app(&json).unwrap();
@@ -202,8 +191,7 @@ mod tests {
             version: 0,
             app: Address::from(&addr_bytes[..]).into(),
             func_idx: 1,
-            func_buf: vec![],
-            func_args: vec![WasmValue::I32(10), WasmValue::I64(20)],
+            calldata: vec![],
         };
 
         assert_eq!(actual, expected);

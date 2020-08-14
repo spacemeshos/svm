@@ -54,26 +54,12 @@ fn encode_func_buf(abi: Vec<Value>, data: Vec<Value>) -> Result<Vec<u8>, JsonErr
 }
 
 pub fn decode_calldata(json: &json::Value) -> Result<Value, JsonError> {
-    let data = json::as_string(json, "func_args")?;
-    let data = json::str_to_bytes(&data, "func_args")?;
+    let data = json::as_string(json, "calldata")?;
+    let calldata = json::str_to_bytes(&data, "calldata")?;
 
     let mut iter = NibbleIter::new(&data);
-    let func_args: Vec<_> = raw::decode_func_args(&mut iter)
-        .unwrap()
-        .iter()
-        .map(|v| match v {
-            WasmValue::I32(v) => format!("{}i32", v),
-            WasmValue::I64(v) => format!("{}i64", v),
-        })
-        .collect();
 
-    let data = json::as_string(json, "func_buf")?;
-    let func_buf = json::decode_func_buf(&json!({ "data": data }))?;
-
-    let json = json!({
-        "func_args": func_args,
-        "func_buf": func_buf,
-    });
+    let json = json!({ "calldata": calldata });
 
     Ok(json)
 }

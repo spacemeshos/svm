@@ -1,7 +1,7 @@
 use svm_nibble::{NibbleIter, NibbleWriter};
 use svm_types::{AppAddr, AppTransaction};
 
-use crate::api::raw::{decode_func_args, decode_func_buf, decode_varuint14, decode_version, Field};
+use crate::api::raw::{decode_calldata, decode_varuint14, decode_version, Field};
 
 use crate::{error::ParseError, helpers};
 
@@ -10,8 +10,7 @@ pub fn encode_exec_app(tx: &AppTransaction, w: &mut NibbleWriter) {
     encode_version(tx, w);
     encode_app(tx, w);
     encode_func_index(tx, w);
-    encode_func_buf(tx, w);
-    encode_func_args(tx, w);
+    encode_calldata(tx, w);
 }
 
 /// Parsing a raw `AppTransaction` transaction given as raw bytes.
@@ -21,15 +20,13 @@ pub fn decode_exec_app(iter: &mut NibbleIter) -> Result<AppTransaction, ParseErr
     let version = decode_version(iter)?;
     let app = decode_app(iter)?;
     let func_idx = decode_func_index(iter)?;
-    let func_buf = decode_func_buf(iter)?;
-    let func_args = decode_func_args(iter)?;
+    let calldata = decode_calldata(iter)?;
 
     let tx = AppTransaction {
         version,
         app,
         func_idx,
-        func_args,
-        func_buf,
+        calldata,
     };
 
     Ok(tx)
@@ -52,14 +49,9 @@ fn encode_func_index(tx: &AppTransaction, w: &mut NibbleWriter) {
     crate::api::raw::encode_varuint14(idx, w);
 }
 
-fn encode_func_buf(tx: &AppTransaction, w: &mut NibbleWriter) {
-    let buf = &tx.func_buf[..];
-    crate::api::raw::encode_func_buf(buf, w)
-}
-
-fn encode_func_args(tx: &AppTransaction, w: &mut NibbleWriter) {
-    let args = &tx.func_args[..];
-    crate::api::raw::encode_func_args(args, w);
+fn encode_calldata(tx: &AppTransaction, w: &mut NibbleWriter) {
+    let buf = &tx.calldata[..];
+    crate::api::raw::encode_calldata(buf, w)
 }
 
 /// Decoders
@@ -87,8 +79,7 @@ mod tests {
             version: 0,
             app: Address::of("my-app").into(),
             func_idx: 0,
-            func_buf: vec![0x10, 0x0, 0x30],
-            func_args: vec![WasmValue::I32(20), WasmValue::I64(30)],
+            calldata: vec![0x10, 0x0, 0x30],
         };
 
         let mut w = NibbleWriter::new();

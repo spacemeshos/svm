@@ -9,8 +9,7 @@ pub struct AppTxBuilder {
     version: Option<u32>,
     app: Option<AppAddr>,
     func_idx: Option<u16>,
-    func_buf: Option<Vec<u8>>,
-    func_args: Option<Vec<WasmValue>>,
+    callldata: Option<Vec<u8>>,
 }
 
 ///
@@ -24,15 +23,13 @@ pub struct AppTxBuilder {
 /// let app = Address::of("@my-app").into();
 ///
 /// let func_idx = 10;
-/// let func_buf = vec![0x10, 0x20, 0x30];
-/// let func_args = vec![WasmValue::I32(40), WasmValue::I64(50)];
+/// let callldata = vec![0x10, 0x20, 0x30];
 ///
 /// let bytes = AppTxBuilder::new()
 ///            .with_version(0)
 ///            .with_app(&app)
 ///            .with_func_index(func_idx)
-///            .with_func_buf(&func_buf)
-///            .with_func_args(&func_args[..])
+///            .with_calldata(&callldata)
 ///            .build();
 ///
 /// let mut iter = NibbleIter::new(&bytes[..]);
@@ -41,8 +38,7 @@ pub struct AppTxBuilder {
 ///                  version: 0,
 ///                  app,
 ///                  func_idx,
-///                  func_buf,
-///                  func_args,
+///                  callldata,
 ///                };
 ///
 /// assert_eq!(expected, actual);
@@ -56,8 +52,7 @@ impl AppTxBuilder {
             version: None,
             app: None,
             func_idx: None,
-            func_buf: None,
-            func_args: None,
+            callldata: None,
         }
     }
 
@@ -76,13 +71,8 @@ impl AppTxBuilder {
         self
     }
 
-    pub fn with_func_buf(mut self, func_buf: &Vec<u8>) -> Self {
-        self.func_buf = Some(func_buf.to_vec());
-        self
-    }
-
-    pub fn with_func_args(mut self, func_args: &[WasmValue]) -> Self {
-        self.func_args = Some(func_args.to_vec());
+    pub fn with_calldata(mut self, callldata: &Vec<u8>) -> Self {
+        self.callldata = Some(callldata.to_vec());
         self
     }
 
@@ -91,22 +81,16 @@ impl AppTxBuilder {
         let app = self.app.unwrap();
         let func_idx = self.func_idx.unwrap();
 
-        let func_buf = match self.func_buf {
+        let calldata = match self.callldata {
             None => vec![],
-            Some(buf) => buf.to_vec(),
-        };
-
-        let func_args = match self.func_args {
-            None => vec![],
-            Some(args) => args.to_vec(),
+            Some(calldata) => calldata.to_vec(),
         };
 
         let tx = AppTransaction {
             version,
             app,
             func_idx,
-            func_buf,
-            func_args,
+            calldata,
         };
 
         let mut w = NibbleWriter::new();
