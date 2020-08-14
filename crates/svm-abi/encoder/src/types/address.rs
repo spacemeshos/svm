@@ -15,7 +15,6 @@ macro_rules! impl_primitive_encoder {
             /// Encodes `self` (of type `$ty`) and outputs the data into `w`
             fn encode(&self, w: &mut Vec<u8>) {
                 w.push($marker);
-
                 w.extend_from_slice(&self.0[..]);
             }
         }

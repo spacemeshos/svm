@@ -16,6 +16,7 @@
 mod wasm;
 
 mod app;
+mod calldata;
 mod field;
 mod func_args;
 mod func_buf;

@@ -2,6 +2,7 @@ pub use crate::app::{decode_spawn_app, encode_spawn_app};
 pub use crate::template::{decode_deploy_template, encode_deploy_template};
 pub use crate::transaction::{decode_exec_app, encode_exec_app};
 
+pub use crate::calldata::{decode_calldata, encode_calldata};
 pub use crate::field::Field;
 pub use crate::func_args::{
     decode_func_args, decode_func_rets, encode_func_args, encode_func_rets,

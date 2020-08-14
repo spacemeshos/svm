@@ -4,7 +4,7 @@ use crate::api::json::{self, JsonError};
 
 use svm_abi_decoder::{Cursor, Decoder};
 use svm_abi_encoder::Encoder;
-use svm_sdk::value::{AddressOwned, Composite, Primitive, PubKey256Owned, Value};
+use svm_sdk::value::{AddressOwned, Composite, Primitive, Value};
 
 ///
 /// ```json
@@ -68,16 +68,13 @@ fn into_json(value: &Value) -> json::Value {
             let addr = format!("{}", v);
             serde_json::json!({ "address": addr })
         }
-        Value::Primitive(Primitive::PubKey256(v)) => {
-            let pkey = format!("{}", v);
-            serde_json::json!({ "pubkey256": pkey })
-        }
         Value::Composite(Composite::Array(values)) => {
             let values = values.iter().map(|v| into_json(&v)).collect();
             let array = json::Value::Array(values);
 
             array
         }
+        _ => todo!(),
     }
 }
 
@@ -174,7 +171,6 @@ fn encode_array(
 
     match ty {
         "address" => do_encode_array!(raw, AddressOwned, pos, buf),
-        "pubkey256" => do_encode_array!(raw, PubKey256Owned, pos, buf),
         _ => Err(JsonError::InvalidField {
             field: format!("data[{}]", pos),
             reason: format!("unsupported `Array` of type: {}", ty),
@@ -194,7 +190,6 @@ fn encode_primitive(
 
     match ty {
         "address" => do_encode_primitive!("address", raw, &field, buf),
-        "pubkey256" => do_encode_primitive!("pubkey256", raw, &field, buf),
         _ => do_encode_primitive!(ty, &field, buf),
     }
 }

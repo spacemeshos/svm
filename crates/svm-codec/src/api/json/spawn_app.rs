@@ -16,8 +16,7 @@ use crate::{
 ///   template: 'A2FB...',  // string
 ///   name: 'My App',       // string
 ///   ctor_index: 0,        // number
-///   ctor_buf: '',         // string
-///   ctor_args: ['10i32', '20i64', ...] // Array of `String`
+///   calldata: '',         // string
 /// }
 /// ```
 pub fn encode_spawn_app(json: &Value) -> Result<Vec<u8>, JsonError> {
@@ -26,14 +25,8 @@ pub fn encode_spawn_app(json: &Value) -> Result<Vec<u8>, JsonError> {
     let name = json::as_string(json, "name")?;
     let ctor_idx = json::as_u16(json, "ctor_index")?;
 
-    let ctor_buf = json::as_string(json, "ctor_buf")?;
-    let ctor_buf = json::str_to_bytes(&ctor_buf, "ctor_buf")?;
-
-    let ctor_args = json::as_string(json, "ctor_args")?;
-    let ctor_args = json::str_to_bytes(&ctor_args, "ctor_args")?;
-
-    let mut iter = NibbleIter::new(&ctor_args);
-    let ctor_args = raw::decode_func_args(&mut iter).unwrap();
+    let calldata = json::as_string(json, "calldata")?;
+    let calldata = json::str_to_bytes(&calldata, "calldata")?;
 
     let spawn = SpawnApp {
         app: App {
@@ -42,8 +35,7 @@ pub fn encode_spawn_app(json: &Value) -> Result<Vec<u8>, JsonError> {
             template,
         },
         ctor_idx,
-        ctor_args,
-        ctor_buf,
+        calldata,
     };
 
     let mut w = NibbleWriter::new();
@@ -64,9 +56,8 @@ pub fn decode_spawn_app(json: &Value) -> Result<Value, JsonError> {
     let ctor_idx = spawn.ctor_idx;
     let template = json::addr_to_str(&spawn.app.template.inner());
 
-    let ctor_buf = json::bytes_to_str(&spawn.ctor_buf);
-    let ctor_buf = json::decode_func_buf(&json!({ "data": ctor_buf }))?;
-    let ctor_args = json::wasm_values_to_json(&spawn.ctor_args);
+    let calldata = json::bytes_to_str(&spawn.calldata);
+    let calldata = json::decode_func_buf(&json!({ "data": calldata }))?;
     let name = spawn.app.name;
 
     let json = json!({
@@ -74,8 +65,7 @@ pub fn decode_spawn_app(json: &Value) -> Result<Value, JsonError> {
         "template": template,
         "name": name,
         "ctor_index": ctor_idx,
-        "ctor_buf": ctor_buf,
-        "ctor_args": ctor_args
+        "calldata": calldata,
     });
 
     Ok(json)
@@ -167,7 +157,7 @@ mod tests {
         assert_eq!(
             err,
             JsonError::InvalidField {
-                field: "ctor_buf".to_string(),
+                field: "calldata".to_string(),
                 reason: "value `null` isn\'t a string".to_string(),
             }
         );
@@ -186,7 +176,7 @@ mod tests {
             "template": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
             "name": "My App",
             "ctor_index": 0,
-            "ctor_buf": calldata["func_buf"]
+            "calldata": calldata["func_buf"]
         });
 
         let err = encode_spawn_app(&json).unwrap_err();
@@ -214,7 +204,7 @@ mod tests {
             "template": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
             "name": "My App",
             "ctor_index": 2,
-            "ctor_buf": calldata["func_buf"],
+            "calldata": calldata["func_buf"],
             "ctor_args": calldata["func_args"]
         });
 
@@ -229,7 +219,7 @@ mod tests {
                 "template": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
                 "name": "My App",
                 "ctor_index": 2,
-                "ctor_buf": [{"address": template_addr}],
+                "calldata": [{"address": template_addr}],
                 "ctor_args": ["10i32", "20i64"],
             })
         );
