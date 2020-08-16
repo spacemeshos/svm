@@ -44,3 +44,51 @@ pub use boolean::*;
 pub use num_i16::*;
 pub use num_i32::*;
 pub use num_i64::*;
+
+extern crate alloc;
+use alloc::vec::Vec;
+
+use crate::traits::Encoder;
+
+use svm_sdk::value::{Composite, Primitive, Value};
+
+pub fn encode(value: &Value<'_>) -> Vec<u8> {
+    let mut w = Vec::new();
+
+    do_encode(value, &mut w);
+
+    w
+}
+
+fn do_encode(value: &Value<'_>, w: &mut Vec<u8>) {
+    match value {
+        Value::Primitive(p) => encode_primitive(p, w),
+        Value::Composite(c) => encode_composite(c, w),
+    }
+}
+
+fn encode_primitive(p: &Primitive<'_>, w: &mut Vec<u8>) {
+    match p {
+        Primitive::Address(p) => p.encode(w),
+        Primitive::Amount(p) => p.encode(w),
+        Primitive::Bool(p) => p.encode(w),
+        Primitive::I8(p) => p.encode(w),
+        Primitive::U8(p) => p.encode(w),
+        Primitive::I16(p) => p.encode(w),
+        Primitive::U16(p) => p.encode(w),
+        Primitive::I32(p) => p.encode(w),
+        Primitive::U32(p) => p.encode(w),
+        Primitive::I64(p) => p.encode(w),
+        Primitive::U64(p) => p.encode(w),
+    }
+}
+
+fn encode_composite(c: &Composite, w: &mut Vec<u8>) {
+    match c {
+        Composite::Array(values) => {
+            for v in values.iter() {
+                do_encode(v, w);
+            }
+        }
+    }
+}
