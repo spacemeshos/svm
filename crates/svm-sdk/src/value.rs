@@ -150,6 +150,8 @@ pub enum Primitive<'a> {
 
     Address(Address<'a>),
 
+    AddressOwned(AddressOwned),
+
     Amount(Amount),
 
     I8(i8),
@@ -174,6 +176,8 @@ pub enum Primitive<'a> {
 pub enum Composite<'a> {
     /// An `Array`
     Array(&'a [Value<'a>]),
+
+    ArrayOwned(Vec<Value<'a>>),
 }
 
 /// A value
@@ -212,9 +216,30 @@ impl_from_rust_to_value!(U32, u32);
 impl_from_rust_to_value!(I64, i64);
 impl_from_rust_to_value!(U64, u64);
 
+impl<'a> From<Address<'a>> for Value<'a> {
+    fn from(addr: Address<'a>) -> Self {
+        let addr = Primitive::Address(addr);
+        Value::Primitive(addr)
+    }
+}
+
+impl From<AddressOwned> for Value<'_> {
+    fn from(addr: AddressOwned) -> Self {
+        let addr = Primitive::AddressOwned(addr);
+        Value::Primitive(addr)
+    }
+}
+
 impl<'a> From<&'a [Value<'_>]> for Value<'a> {
     fn from(slice: &'a [Value]) -> Self {
         let comp = Composite::Array(slice);
+        Value::Composite(comp)
+    }
+}
+
+impl<'a> From<Vec<Value<'a>>> for Value<'a> {
+    fn from(array: Vec<Value<'a>>) -> Value<'a> {
+        let comp = Composite::ArrayOwned(array);
         Value::Composite(comp)
     }
 }
@@ -251,6 +276,15 @@ impl<'a> From<Value<'a>> for Address<'a> {
     fn from(value: Value<'a>) -> Self {
         match value {
             Value::Primitive(Primitive::Address(addr)) => addr,
+            _ => unreachable!(),
+        }
+    }
+}
+
+impl From<Value<'_>> for AddressOwned {
+    fn from(value: Value<'_>) -> Self {
+        match value {
+            Value::Primitive(Primitive::AddressOwned(addr)) => addr,
             _ => unreachable!(),
         }
     }

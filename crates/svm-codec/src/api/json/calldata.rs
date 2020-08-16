@@ -1,5 +1,7 @@
-use serde_json::{json, Value};
+use serde_json::json;
+
 use svm_abi_encoder::Encoder;
+use svm_sdk::value::{Address, AddressOwned, Composite, Primitive, Value};
 
 use crate::api::json::{self, JsonError};
 use crate::api::raw;
@@ -21,13 +23,14 @@ pub fn encode_calldata(json: &json::Value) -> Result<Vec<u8>, JsonError> {
         let ty = ty.as_str().unwrap();
         let raw = raw.as_str().unwrap();
 
-        let _value = encode_value(ty, raw, &mut buf)?;
+        let value = encode_value(ty, raw)?;
+        value.encode(&mut buf);
     }
 
     Ok(buf)
 }
 
-pub fn decode_calldata(json: &json::Value) -> Result<Value, JsonError> {
+pub fn decode_calldata(json: &json::Value) -> Result<json::Value, JsonError> {
     let data = json::as_string(json, "calldata")?;
     let calldata = json::str_to_bytes(&data, "calldata")?;
 
@@ -36,16 +39,16 @@ pub fn decode_calldata(json: &json::Value) -> Result<Value, JsonError> {
     Ok(json)
 }
 
-fn encode_value(ty: &str, value: &str, buf: &mut Vec<u8>) -> Result<(), JsonError> {
+fn encode_value<'a>(ty: &'a str, value: &'a str) -> Result<Value<'static>, JsonError> {
     let json = json!({ "calldata": value });
 
     macro_rules! encode {
         ($func:ident) => {{
-            json::$func(&json, "calldata")?.encode(buf)
+            json::$func(&json, "calldata")?.into()
         }};
     }
 
-    match ty {
+    let value: Value = match ty {
         "bool" => encode!(as_bool),
         "i8" => encode!(as_i8),
         "u8" => encode!(as_u8),
@@ -60,19 +63,39 @@ fn encode_value(ty: &str, value: &str, buf: &mut Vec<u8>) -> Result<(), JsonErro
             let addr: svm_types::Address = json::as_addr(&json, "calldata")?;
             let bytes: &[u8] = addr.as_slice();
 
-            let addr: svm_sdk::value::Address = bytes.into();
-            addr.encode(buf)
+            let addr: Address = bytes.into();
+            let addr: AddressOwned = addr.to_owned();
+            addr.into()
         }
-        "array" => todo!(),
+        "[address]" => {
+            // For now we only support `[address]` array.
+
+            let mut values: Vec<Value> = Vec::new();
+
+            let array: &Vec<json::Value> = json::as_array(&json, "calldata")?;
+
+            for elem in array {
+                let elem = elem.as_str().unwrap();
+
+                let value = encode_value("address", elem)?;
+                let addr: AddressOwned = value.into();
+
+                let v: Value = addr.into();
+                values.push(v);
+            }
+
+            let c = Composite::ArrayOwned(values);
+            Value::Composite(c)
+        }
         _ => {
             return Err(JsonError::InvalidField {
-                field: "data".to_string(),
-                reason: "`abi` and `data` must be of the same length".to_string(),
+                field: "abi".to_string(),
+                reason: format!("invalid ABI type: `{}`", ty),
             })
         }
     };
 
-    Ok(())
+    Ok(value)
 }
 
 #[cfg(test)]

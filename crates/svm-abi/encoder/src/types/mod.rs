@@ -52,12 +52,17 @@ use crate::traits::Encoder;
 
 use svm_sdk::value::{Composite, Primitive, Value};
 
-pub fn encode(value: &Value<'_>) -> Vec<u8> {
-    let mut w = Vec::new();
+impl Encoder for &Value<'_> {
+    fn encode(&self, w: &mut Vec<u8>) {
+        do_encode(self, w)
+    }
+}
 
-    do_encode(value, &mut w);
-
-    w
+impl Encoder for Value<'_> {
+    #[inline]
+    fn encode(&self, w: &mut Vec<u8>) {
+        (&self).encode(w)
+    }
 }
 
 fn do_encode(value: &Value<'_>, w: &mut Vec<u8>) {
@@ -70,6 +75,7 @@ fn do_encode(value: &Value<'_>, w: &mut Vec<u8>) {
 fn encode_primitive(p: &Primitive<'_>, w: &mut Vec<u8>) {
     match p {
         Primitive::Address(p) => p.encode(w),
+        Primitive::AddressOwned(p) => p.encode(w),
         Primitive::Amount(p) => p.encode(w),
         Primitive::Bool(p) => p.encode(w),
         Primitive::I8(p) => p.encode(w),
@@ -86,6 +92,11 @@ fn encode_primitive(p: &Primitive<'_>, w: &mut Vec<u8>) {
 fn encode_composite(c: &Composite, w: &mut Vec<u8>) {
     match c {
         Composite::Array(values) => {
+            for v in values.iter() {
+                do_encode(v, w);
+            }
+        }
+        Composite::ArrayOwned(values) => {
             for v in values.iter() {
                 do_encode(v, w);
             }
