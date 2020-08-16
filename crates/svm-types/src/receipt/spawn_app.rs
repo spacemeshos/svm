@@ -1,5 +1,5 @@
 use crate::receipt::{ExecReceipt, Log, ReceiptError};
-use crate::{gas::MaybeGas, AppAddr, State, WasmValue};
+use crate::{gas::MaybeGas, AppAddr, State};
 
 /// Returned Receipt after spawning an App.
 #[derive(Debug, PartialEq, Clone)]
@@ -17,7 +17,7 @@ pub struct SpawnAppReceipt {
     pub init_state: Option<State>,
 
     /// returned ctor values
-    pub returns: Option<Vec<WasmValue>>,
+    pub returns: Option<Vec<u8>>,
 
     /// The amount of gas used
     pub gas_used: MaybeGas,
@@ -68,7 +68,7 @@ impl SpawnAppReceipt {
     }
 
     /// Returns spawned-app results. Panics if spawning has failed.
-    pub fn get_returns(&self) -> &Vec<WasmValue> {
+    pub fn get_returns(&self) -> &Vec<u8> {
         self.returns.as_ref().unwrap()
     }
 

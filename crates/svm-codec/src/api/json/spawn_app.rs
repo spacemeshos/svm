@@ -57,7 +57,7 @@ pub fn decode_spawn_app(json: &Value) -> Result<Value, JsonError> {
     let template = json::addr_to_str(&spawn.app.template.inner());
 
     let calldata = json::bytes_to_str(&spawn.calldata);
-    let calldata = json::decode_func_buf(&json!({ "data": calldata }))?;
+    let calldata = json::decode_calldata(&json!({ "data": calldata }))?;
     let name = spawn.app.name;
 
     let json = json!({

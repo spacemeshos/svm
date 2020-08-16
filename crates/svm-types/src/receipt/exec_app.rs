@@ -14,7 +14,7 @@ pub struct ExecReceipt {
     pub new_state: Option<State>,
 
     /// Returned values.
-    pub returns: Option<Vec<WasmValue>>,
+    pub returns: Option<Vec<u8>>,
 
     /// The amount of gas used.
     pub gas_used: MaybeGas,
@@ -53,7 +53,7 @@ impl ExecReceipt {
     }
 
     /// Returns executed transaction results. Panics if transaction has failed.
-    pub fn get_returns(&self) -> &Vec<WasmValue> {
+    pub fn get_returns(&self) -> &Vec<u8> {
         self.returns.as_ref().unwrap()
     }
 

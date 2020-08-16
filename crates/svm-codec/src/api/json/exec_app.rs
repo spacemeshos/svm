@@ -53,7 +53,7 @@ pub fn decode_exec_app(json: &Value) -> Result<Value, JsonError> {
     let app = json::addr_to_str(&tx.app.inner());
 
     let calldata = json::bytes_to_str(&tx.calldata);
-    let calldata = json::decode_func_buf(&json!({ "data": calldata }))?;
+    let calldata = json::decode_calldata(&json!({ "data": calldata }))?;
 
     let json = json!({
         "version": version,

@@ -73,7 +73,7 @@ pub fn decode_app_receipt(bytes: &[u8]) -> SpawnAppReceipt {
             // success
             let addr = helpers::decode_address(&mut iter);
             let init_state = helpers::decode_state(&mut iter);
-            let returns = raw::decode_func_args(&mut iter).unwrap();
+            let returns = raw::decode_calldata(&mut iter).unwrap();
             let gas_used = helpers::decode_gas_used(&mut iter);
             let logs = logs::decode_logs(&mut iter);
 
@@ -117,7 +117,7 @@ mod tests {
     use super::*;
 
     use svm_types::receipt::{Log, ReceiptError};
-    use svm_types::{gas::MaybeGas, Address, AppAddr, State, WasmValue};
+    use svm_types::{gas::MaybeGas, Address, AppAddr, State};
 
     #[test]
     fn encode_decode_spawn_app_receipt_error() {
@@ -171,7 +171,7 @@ mod tests {
     fn encode_decode_spawn_app_receipt_success_with_returns() {
         let addr: AppAddr = Address::of("my-app").into();
         let init_state = State::of("some-state");
-        let returns = vec![WasmValue::I32(10), WasmValue::I64(20), WasmValue::I32(30)];
+        let returns = vec![0x10, 0x20];
         let logs = vec![Log {
             msg: b"something happened".to_vec(),
             code: 200,

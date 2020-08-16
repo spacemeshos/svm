@@ -1,8 +1,5 @@
 use serde_json::{json, Value};
 
-use svm_nibble::{NibbleIter, NibbleWriter};
-use svm_types::WasmValue;
-
 use crate::api::json::{self, JsonError};
 use crate::api::raw;
 
@@ -17,47 +14,33 @@ pub fn encode_calldata(json: &json::Value) -> Result<Value, JsonError> {
         });
     }
 
-    let mut args = Vec::new();
-    let mut buf_abi = Vec::new();
-    let mut buf_data = Vec::new();
+    todo!("dynamically construct a `Value`");
 
-    for (ty, raw) in abi.iter().zip(data) {
-        match ty.as_str() {
-            Some("i32") => args.push(format!("{}i32", raw)),
-            Some("i64") | Some("amount") => args.push(format!("{}i64", raw)),
-            _ => {
-                buf_abi.push(ty.clone());
-                buf_data.push(raw.clone())
-            }
-        }
-    }
+    // for (ty, raw) in abi.iter().zip(data) {
+    //     let ty = ty.as_str();
 
-    let func_args = json::encode_func_args(&args)?;
-    let func_buf = encode_func_buf(buf_abi, buf_data)?;
+    //     buf_abi.push(ty.clone());
+    //     buf_data.push(raw.clone());
+    // }
 
-    let json = json!({
-        "func_args": json::bytes_to_str(&func_args),
-        "func_buf": json::bytes_to_str(&func_buf),
-    });
+    // let abi = Value::Array(abi);
+    // let data = Value::Array(data);
 
-    Ok(json)
-}
+    // let calldata = json::encode_calldata(&json!({
+    //     "abi": abi,
+    //     "data": data
+    // }));
 
-fn encode_func_buf(abi: Vec<Value>, data: Vec<Value>) -> Result<Vec<u8>, JsonError> {
-    let abi = Value::Array(abi);
-    let data = Value::Array(data);
+    // let json = json!({
+    //     "calldata": json::bytes_to_str(&calldata),
+    // });
 
-    json::encode_func_buf(&json!({
-        "abi": abi,
-        "data": data
-    }))
+    // Ok(json)
 }
 
 pub fn decode_calldata(json: &json::Value) -> Result<Value, JsonError> {
     let data = json::as_string(json, "calldata")?;
     let calldata = json::str_to_bytes(&data, "calldata")?;
-
-    let mut iter = NibbleIter::new(&data);
 
     let json = json!({ "calldata": calldata });
 
@@ -85,7 +68,7 @@ mod tests {
             decoded,
             json!({
                 "func_args": ["10i32", "20i64", "30i64"],
-                "func_buf": [
+                "calldata": [
                     {"address": "102030405060708090a0112233445566778899aa"},
                     {"pubkey256": "1020304050607080102030405060708010203040506070801020304050607080"}
                 ],

@@ -14,7 +14,7 @@ pub use spawn_app::{decode_spawn_app, encode_spawn_app};
 
 use serde_json::{json, Value};
 
-use svm_types::{gas::MaybeGas, receipt::Log, Address, State, WasmValue};
+use svm_types::{gas::MaybeGas, receipt::Log, Address, State};
 
 pub(crate) fn to_bytes(json: &Value) -> Result<Vec<u8>, JsonError> {
     match serde_json::to_string(&json) {
@@ -168,16 +168,6 @@ pub(crate) fn gas_to_json(gas: &MaybeGas) -> i64 {
     }
 }
 
-pub(crate) fn wasm_values_to_json(values: &[WasmValue]) -> Vec<String> {
-    values
-        .iter()
-        .map(|v| match v {
-            WasmValue::I32(v) => format!("{}i32", v),
-            WasmValue::I64(v) => format!("{}i64", v),
-        })
-        .collect()
-}
-
 pub(crate) fn logs_to_json(logs: &[Log]) -> Vec<Value> {
     logs.iter()
         .map(|log| {
@@ -189,70 +179,6 @@ pub(crate) fn logs_to_json(logs: &[Log]) -> Vec<Value> {
             })
         })
         .collect()
-}
-
-pub(crate) fn as_wasm_value(json: &Value, field: &str) -> Result<WasmValue, JsonError> {
-    let value = match json {
-        Value::String(s) => s,
-        _ => {
-            return Err(JsonError::InvalidField {
-                field: field.to_string(),
-                reason: format!("wasm vaulue should be of a string"),
-            })
-        }
-    };
-
-    let len = value.len();
-    let is_i32 = value.ends_with("i32");
-    let is_i64 = value.ends_with("i64");
-    let mut valid = true;
-
-    if valid && is_i32 {
-        let value = &value[0..(len - 3)];
-
-        match value.parse::<u32>() {
-            Ok(v) => return Ok(WasmValue::I32(v)),
-            Err(..) => valid = false,
-        }
-    }
-
-    if valid && is_i64 {
-        let value = &value[0..(len - 3)];
-
-        match value.parse::<u64>() {
-            Ok(v) => return Ok(WasmValue::I64(v)),
-            Err(..) => valid = false,
-        }
-    }
-
-    debug_assert!(!valid);
-
-    Err(JsonError::InvalidField {
-        field: field.to_string(),
-        reason: "item should be of pattern `{number}i32` or `{number}i64`".to_string(),
-    })
-}
-
-pub(crate) fn as_wasm_values(json: &Value, field: &str) -> Result<Vec<WasmValue>, JsonError> {
-    let value: &Value = &json[field];
-
-    match value.as_array() {
-        Some(vec) => {
-            let mut values = Vec::with_capacity(vec.len());
-            let field = format!("{} (array item)", field);
-
-            for v in vec.iter() {
-                let v = as_wasm_value(v, &field)?;
-                values.push(v);
-            }
-
-            Ok(values)
-        }
-        None => Err(JsonError::InvalidField {
-            field: field.to_string(),
-            reason: format!("value `{}` isn't an array", value),
-        }),
-    }
 }
 
 #[cfg(test)]
@@ -374,84 +300,6 @@ mod test {
             JsonError::InvalidField {
                 field: "addr".to_string(),
                 reason: "value should have only hex digits".to_string(),
-            }
-        );
-    }
-
-    #[test]
-    fn json_as_wasm_values_i32_valid() {
-        let json = json!({
-            "args": ["10i32", "20i32"]
-        });
-
-        let args = as_wasm_values(&json, "args").unwrap();
-        assert_eq!(args, vec![WasmValue::I32(10), WasmValue::I32(20)]);
-    }
-
-    #[test]
-    fn json_as_wasm_values_i64_valid() {
-        let json = json!({
-            "args": ["10i64", "20i64"]
-        });
-
-        let args = as_wasm_values(&json, "args").unwrap();
-        assert_eq!(args, vec![WasmValue::I64(10), WasmValue::I64(20)]);
-    }
-
-    #[test]
-    fn json_as_wasm_values_i32_and_i64_valid() {
-        let json = json!({
-            "args": ["10i32", "20i64"]
-        });
-
-        let args = as_wasm_values(&json, "args").unwrap();
-        assert_eq!(args, vec![WasmValue::I32(10), WasmValue::I64(20)]);
-    }
-
-    #[test]
-    fn json_as_wasm_values_i32_invalid() {
-        let json = json!({
-            "args": ["NaNi32"]
-        });
-
-        let err = as_wasm_values(&json, "args").unwrap_err();
-        assert_eq!(
-            err,
-            JsonError::InvalidField {
-                field: "args (array item)".to_string(),
-                reason: "item should be of pattern `{number}i32` or `{number}i64`".to_string(),
-            }
-        );
-    }
-
-    #[test]
-    fn json_as_wasm_values_i64_invalid() {
-        let json = json!({
-            "args": ["NaNi64"]
-        });
-
-        let err = as_wasm_values(&json, "args").unwrap_err();
-        assert_eq!(
-            err,
-            JsonError::InvalidField {
-                field: "args (array item)".to_string(),
-                reason: "item should be of pattern `{number}i32` or `{number}i64`".to_string(),
-            }
-        );
-    }
-
-    #[test]
-    fn json_as_wasm_values_invalid_type() {
-        let json = json!({
-            "args": "10i32"
-        });
-
-        let err = as_wasm_values(&json, "args").unwrap_err();
-        assert_eq!(
-            err,
-            JsonError::InvalidField {
-                field: "args".to_string(),
-                reason: r#"value `"10i32"` isn't an array"#.to_string()
             }
         );
     }

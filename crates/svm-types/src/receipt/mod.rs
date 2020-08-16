@@ -36,7 +36,7 @@ impl<'a> Receipt<'a> {
     }
 
     /// Returns the executed transaction results.
-    pub fn get_returns(&self) -> &Vec<WasmValue> {
+    pub fn get_returns(&self) -> &Vec<u8> {
         match self {
             Self::DeployTemplate(..) => unreachable!(),
             Self::SpawnApp(r) => r.get_returns(),
