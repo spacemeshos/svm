@@ -1,9 +1,10 @@
 use serde_json::{json, Value};
+use svm_abi_encoder::Encoder;
 
 use crate::api::json::{self, JsonError};
 use crate::api::raw;
 
-pub fn encode_calldata(json: &json::Value) -> Result<Value, JsonError> {
+pub fn encode_calldata(json: &json::Value) -> Result<Vec<u8>, JsonError> {
     let abi = json::as_array(json, "abi")?;
     let data = json::as_array(json, "data")?;
 
@@ -14,28 +15,16 @@ pub fn encode_calldata(json: &json::Value) -> Result<Value, JsonError> {
         });
     }
 
-    todo!("dynamically construct a `Value`");
+    let mut buf = Vec::new();
 
-    // for (ty, raw) in abi.iter().zip(data) {
-    //     let ty = ty.as_str();
+    for (ty, raw) in abi.iter().zip(data) {
+        let ty = ty.as_str().unwrap();
+        let raw = raw.as_str().unwrap();
 
-    //     buf_abi.push(ty.clone());
-    //     buf_data.push(raw.clone());
-    // }
+        let _value = encode_value(ty, raw, &mut buf)?;
+    }
 
-    // let abi = Value::Array(abi);
-    // let data = Value::Array(data);
-
-    // let calldata = json::encode_calldata(&json!({
-    //     "abi": abi,
-    //     "data": data
-    // }));
-
-    // let json = json!({
-    //     "calldata": json::bytes_to_str(&calldata),
-    // });
-
-    // Ok(json)
+    Ok(buf)
 }
 
 pub fn decode_calldata(json: &json::Value) -> Result<Value, JsonError> {
@@ -45,6 +34,24 @@ pub fn decode_calldata(json: &json::Value) -> Result<Value, JsonError> {
     let json = json!({ "calldata": calldata });
 
     Ok(json)
+}
+
+fn encode_value(ty: &str, value: &str, buf: &mut Vec<u8>) -> Result<Value, JsonError> {
+    match ty {
+        "bool" => todo!(),
+        "i8" => todo!(),
+        "u8" => todo!(),
+        "i16" => todo!(),
+        "u16" => todo!(),
+        "i32" => todo!(),
+        "u32" => todo!(),
+        "i64" => todo!(),
+        "u64" => todo!(),
+        "amount" => todo!(),
+        "address" => todo!(),
+        "array" => todo!(),
+        _ => todo!(),
+    }
 }
 
 #[cfg(test)]

@@ -14,6 +14,7 @@ pub use spawn_app::{decode_spawn_app, encode_spawn_app};
 
 use serde_json::{json, Value};
 
+use svm_sdk::Amount;
 use svm_types::{gas::MaybeGas, receipt::Log, Address, State};
 
 pub(crate) fn to_bytes(json: &Value) -> Result<Vec<u8>, JsonError> {
@@ -23,19 +24,79 @@ pub(crate) fn to_bytes(json: &Value) -> Result<Vec<u8>, JsonError> {
     }
 }
 
-pub(crate) fn as_array<'a>(json: &'a Value, field: &str) -> Result<&'a Vec<Value>, JsonError> {
+pub(crate) fn as_bool(json: &Value, field: &str) -> Result<bool, JsonError> {
     let value: &Value = &json[field];
 
-    match value.as_array() {
-        None => Err(JsonError::InvalidField {
+    value.as_bool().ok_or(JsonError::InvalidField {
+        field: field.to_string(),
+        reason: format!("value `{}` isn't a boolean", value),
+    })
+}
+
+pub(crate) fn as_u8(json: &Value, field: &str) -> Result<u8, JsonError> {
+    let value: &Value = &json[field];
+
+    value
+        .as_u64()
+        .ok_or(JsonError::InvalidField {
             field: field.to_string(),
-            reason: format!("value `{}` isn't an Array", value),
-        }),
-        Some(value) => Ok(value),
-    }
+            reason: format!("value `{}` isn't a number", value),
+        })
+        .and_then(|v| {
+            if v > std::u8::MAX as u64 {
+                Err(JsonError::InvalidField {
+                    field: field.to_string(),
+                    reason: format!("value `{}` doesn't fit into `u8`", v),
+                })
+            } else {
+                Ok(v as u8)
+            }
+        })
+}
+
+pub(crate) fn as_i8(json: &Value, field: &str) -> Result<i8, JsonError> {
+    let value: &Value = &json[field];
+
+    value
+        .as_u64()
+        .ok_or(JsonError::InvalidField {
+            field: field.to_string(),
+            reason: format!("value `{}` isn't a number", value),
+        })
+        .and_then(|v| {
+            if v > std::i8::MAX as u64 {
+                Err(JsonError::InvalidField {
+                    field: field.to_string(),
+                    reason: format!("value `{}` doesn't fit into `i8`", v),
+                })
+            } else {
+                Ok(v as i8)
+            }
+        })
 }
 
 pub(crate) fn as_u16(json: &Value, field: &str) -> Result<u16, JsonError> {
+    let value: &Value = &json[field];
+
+    value
+        .as_u64()
+        .ok_or(JsonError::InvalidField {
+            field: field.to_string(),
+            reason: format!("value `{}` isn't a number", value),
+        })
+        .and_then(|v| {
+            if v > std::u16::MAX as u64 {
+                Err(JsonError::InvalidField {
+                    field: field.to_string(),
+                    reason: format!("value `{}` doesn't fit into `u16` integer", v),
+                })
+            } else {
+                Ok(v as u16)
+            }
+        })
+}
+
+pub(crate) fn as_i16(json: &Value, field: &str) -> Result<i16, JsonError> {
     let value: &Value = &json[field];
 
     match value.as_u64() {
@@ -44,13 +105,13 @@ pub(crate) fn as_u16(json: &Value, field: &str) -> Result<u16, JsonError> {
             reason: format!("value `{}` isn't a number", value),
         }),
         Some(value) => {
-            if value > std::u16::MAX as u64 {
+            if value > std::i16::MAX as u64 {
                 Err(JsonError::InvalidField {
                     field: field.to_string(),
-                    reason: format!("value `{}` doesn't fit into 16-bit integer", value),
+                    reason: format!("value `{}` doesn't fit into `i16` integer", value),
                 })
             } else {
-                Ok(value as u16)
+                Ok(value as i16)
             }
         }
     }
@@ -59,41 +120,94 @@ pub(crate) fn as_u16(json: &Value, field: &str) -> Result<u16, JsonError> {
 pub(crate) fn as_u32(json: &Value, field: &str) -> Result<u32, JsonError> {
     let value: &Value = &json[field];
 
-    match value.as_u64() {
-        None => Err(JsonError::InvalidField {
+    value
+        .as_u64()
+        .ok_or(JsonError::InvalidField {
             field: field.to_string(),
             reason: format!("value `{}` isn't a number", value),
-        }),
-        Some(value) => {
-            if value > std::u32::MAX as u64 {
+        })
+        .and_then(|v| {
+            if v > std::u32::MAX as u64 {
                 Err(JsonError::InvalidField {
                     field: field.to_string(),
-                    reason: format!("value `{}` doesn't fit into 32-bit integer", value),
+                    reason: format!("value `{}` doesn't fit into `u32` integer", v),
                 })
             } else {
-                Ok(value as u32)
+                Ok(v as u32)
             }
-        }
-    }
+        })
 }
 
-fn as_byte(c1: char, c2: char) -> u8 {
-    let c1 = c1.to_digit(16).unwrap() as u8;
-    let c2 = c2.to_digit(16).unwrap() as u8;
+pub(crate) fn as_i32(json: &Value, field: &str) -> Result<i32, JsonError> {
+    let value: &Value = &json[field];
 
-    (c1 << 4) | c2
+    value
+        .as_u64()
+        .ok_or(JsonError::InvalidField {
+            field: field.to_string(),
+            reason: format!("value `{}` isn't a number", value),
+        })
+        .and_then(|v| {
+            if v > std::i32::MAX as u64 {
+                Err(JsonError::InvalidField {
+                    field: field.to_string(),
+                    reason: format!("value `{}` doesn't fit into `i32` integer", v),
+                })
+            } else {
+                Ok(v as i32)
+            }
+        })
+}
+
+pub(crate) fn as_u64(json: &Value, field: &str) -> Result<u64, JsonError> {
+    let value: &Value = &json[field];
+
+    value.as_u64().ok_or(JsonError::InvalidField {
+        field: field.to_string(),
+        reason: format!("value `{}` isn't a u64 number", value),
+    })
+}
+
+pub(crate) fn as_i64(json: &Value, field: &str) -> Result<i64, JsonError> {
+    let value: &Value = &json[field];
+
+    value.as_i64().ok_or(JsonError::InvalidField {
+        field: field.to_string(),
+        reason: format!("value `{}` isn't a i64 number", value),
+    })
+}
+
+pub(crate) fn as_amount(json: &Value, field: &str) -> Result<Amount, JsonError> {
+    let value: &Value = &json[field];
+
+    value
+        .as_u64()
+        .map(|v| Amount(v))
+        .ok_or(JsonError::InvalidField {
+            field: field.to_string(),
+            reason: format!("value `{}` isn't a number", value),
+        })
 }
 
 pub(crate) fn as_string(json: &Value, field: &str) -> Result<String, JsonError> {
     let value: &Value = &json[field];
 
-    match value.as_str() {
-        None => Err(JsonError::InvalidField {
+    value
+        .as_str()
+        .map(|v| v.to_string())
+        .ok_or(JsonError::InvalidField {
             field: field.to_string(),
             reason: format!("value `{}` isn't a string", value),
-        }),
-        Some(value) => Ok(value.to_string()),
-    }
+        })
+}
+
+pub(crate) fn as_array<'a>(json: &'a Value, field: &str) -> Result<&'a Vec<Value>, JsonError> {
+    let value: &Value = &json[field];
+
+    value.as_array().ok_or(JsonError::InvalidField {
+        field: field.to_string(),
+        reason: format!("value `{}` isn't an Array", value),
+    })
 }
 
 pub(crate) fn bytes_to_str(bytes: &[u8]) -> String {
@@ -115,13 +229,20 @@ pub(crate) fn str_to_bytes(value: &str, field: &str) -> Result<Vec<u8>, JsonErro
         });
     }
 
+    fn chars_as_byte(c1: char, c2: char) -> u8 {
+        let c1 = c1.to_digit(16).unwrap() as u8;
+        let c2 = c2.to_digit(16).unwrap() as u8;
+
+        (c1 << 4) | c2
+    }
+
     let bytes = value
         .chars()
         .collect::<Vec<_>>()
         .chunks_exact(2)
         .map(|slice| {
             let (c1, c2) = (slice[0], slice[1]);
-            as_byte(c1, c2)
+            chars_as_byte(c1, c2)
         })
         .collect();
 
