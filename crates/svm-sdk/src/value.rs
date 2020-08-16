@@ -14,12 +14,6 @@ macro_rules! impl_slice_primitive {
         impl<'a> $ty<'a> {
             #[allow(missing_docs)]
             #[inline]
-            pub fn len(&self) -> usize {
-                self.0.len()
-            }
-
-            #[allow(missing_docs)]
-            #[inline]
             pub fn offset(&self) -> usize {
                 self.as_ptr() as _
             }
@@ -59,7 +53,7 @@ macro_rules! impl_fixed_primitive {
 
         impl<'a> $ty<'a> {
             /// Size in bytes
-            pub const fn size() -> usize {
+            pub const fn len() -> usize {
                 $nbytes
             }
 
@@ -73,13 +67,18 @@ macro_rules! impl_fixed_primitive {
 
         impl $ty_owned {
             /// Size in bytes
-            pub const fn size() -> usize {
+            pub const fn len() -> usize {
                 $nbytes
             }
 
             /// Returns a type containing borrowed data
             pub fn deref(&self) -> $ty {
                 $ty(&self.0)
+            }
+
+            #[inline]
+            pub fn as_slice(&self) -> &[u8] {
+                &self.0[..]
             }
         }
 

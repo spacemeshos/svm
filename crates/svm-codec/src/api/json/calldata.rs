@@ -36,22 +36,43 @@ pub fn decode_calldata(json: &json::Value) -> Result<Value, JsonError> {
     Ok(json)
 }
 
-fn encode_value(ty: &str, value: &str, buf: &mut Vec<u8>) -> Result<Value, JsonError> {
-    match ty {
-        "bool" => todo!(),
-        "i8" => todo!(),
-        "u8" => todo!(),
-        "i16" => todo!(),
-        "u16" => todo!(),
-        "i32" => todo!(),
-        "u32" => todo!(),
-        "i64" => todo!(),
-        "u64" => todo!(),
-        "amount" => todo!(),
-        "address" => todo!(),
-        "array" => todo!(),
-        _ => todo!(),
+fn encode_value(ty: &str, value: &str, buf: &mut Vec<u8>) -> Result<(), JsonError> {
+    let json = json!({ "calldata": value });
+
+    macro_rules! encode {
+        ($func:ident) => {{
+            json::$func(&json, "calldata")?.encode(buf)
+        }};
     }
+
+    match ty {
+        "bool" => encode!(as_bool),
+        "i8" => encode!(as_i8),
+        "u8" => encode!(as_u8),
+        "i16" => encode!(as_i16),
+        "u16" => encode!(as_u16),
+        "i32" => encode!(as_i32),
+        "u32" => encode!(as_u32),
+        "i64" => encode!(as_i64),
+        "u64" => encode!(as_u64),
+        "amount" => encode!(as_amount),
+        "address" => {
+            let addr: svm_types::Address = json::as_addr(&json, "calldata")?;
+            let bytes: &[u8] = addr.as_slice();
+
+            let addr: svm_sdk::value::Address = bytes.into();
+            addr.encode(buf)
+        }
+        "array" => todo!(),
+        _ => {
+            return Err(JsonError::InvalidField {
+                field: "data".to_string(),
+                reason: "`abi` and `data` must be of the same length".to_string(),
+            })
+        }
+    };
+
+    Ok(())
 }
 
 #[cfg(test)]
