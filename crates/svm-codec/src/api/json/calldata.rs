@@ -6,6 +6,21 @@ use svm_sdk::value::{Address, AddressOwned, Composite, Primitive, Value};
 use crate::api::json::{self, JsonError};
 use crate::api::raw;
 
+macro_rules! as_str {
+    ($json:expr) => {{
+        let s = $json.as_str();
+
+        if s.is_none() {
+            return Err(JsonError::InvalidField {
+                field: "data".to_string(),
+                reason: "non-string value".to_string(),
+            });
+        }
+
+        Ok(s.unwrap())
+    }};
+}
+
 pub fn encode_calldata(json: &json::Value) -> Result<Vec<u8>, JsonError> {
     let abi = json::as_array(json, "abi")?;
     let data = json::as_array(json, "data")?;
@@ -20,8 +35,7 @@ pub fn encode_calldata(json: &json::Value) -> Result<Vec<u8>, JsonError> {
     let mut buf = Vec::new();
 
     for (ty, raw) in abi.iter().zip(data) {
-        let ty = ty.as_str().unwrap();
-        let raw = raw.as_str().unwrap();
+        let ty = as_str!(ty)?;
 
         let value = encode_value(ty, raw)?;
         value.encode(&mut buf);
@@ -39,7 +53,11 @@ pub fn decode_calldata(json: &json::Value) -> Result<json::Value, JsonError> {
     Ok(json)
 }
 
-fn encode_value<'a>(ty: &'a str, value: &'a str) -> Result<Value<'static>, JsonError> {
+fn encode_value<'a>(ty: &'a str, value: &json::Value) -> Result<Value<'static>, JsonError> {
+    if ty.starts_with("[") {
+        return encode_array(ty, value);
+    }
+
     let json = json!({ "calldata": value });
 
     macro_rules! encode {
@@ -67,26 +85,6 @@ fn encode_value<'a>(ty: &'a str, value: &'a str) -> Result<Value<'static>, JsonE
             let addr: AddressOwned = addr.to_owned();
             addr.into()
         }
-        "[address]" => {
-            // For now we only support `[address]` array.
-
-            let mut values: Vec<Value> = Vec::new();
-
-            let array: &Vec<json::Value> = json::as_array(&json, "calldata")?;
-
-            for elem in array {
-                let elem = elem.as_str().unwrap();
-
-                let value = encode_value("address", elem)?;
-                let addr: AddressOwned = value.into();
-
-                let v: Value = addr.into();
-                values.push(v);
-            }
-
-            let c = Composite::ArrayOwned(values);
-            Value::Composite(c)
-        }
         _ => {
             return Err(JsonError::InvalidField {
                 field: "abi".to_string(),
@@ -96,6 +94,34 @@ fn encode_value<'a>(ty: &'a str, value: &'a str) -> Result<Value<'static>, JsonE
     };
 
     Ok(value)
+}
+
+fn encode_array(ty: &str, value: &json::Value) -> Result<Value<'static>, JsonError> {
+    debug_assert!(ty.starts_with("["));
+
+    if !ty.ends_with("]") {
+        return Err(JsonError::InvalidField {
+            field: "calldata".to_string(),
+            reason: format!(
+                "ABI type that starts with `[` should end with a `]` (got: {})",
+                ty
+            ),
+        });
+    }
+
+    let ty: &str = &ty[1..ty.len() - 1];
+    let json = json!({ "calldata": value });
+    let elems = json::as_array(&json, "calldata")?;
+
+    let mut array = Vec::new();
+
+    for elem in elems {
+        let elem = encode_value(ty, elem)?;
+        array.push(elem);
+    }
+
+    let c = Composite::ArrayOwned(array);
+    Ok(Value::Composite(c))
 }
 
 #[cfg(test)]
