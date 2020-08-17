@@ -8,10 +8,7 @@ use svm_sdk::value::Value;
 
 use crate::Encoder;
 
-impl<'a, T> Encoder for &[T]
-where
-    T: Encoder + PrimitiveMarker,
-{
+impl Encoder for &[&dyn Encoder] {
     fn encode(&self, w: &mut Vec<u8>) {
         assert!(self.len() < 255);
 
@@ -35,10 +32,7 @@ where
     }
 }
 
-impl<'a, T> Encoder for Vec<T>
-where
-    T: Encoder + PrimitiveMarker,
-{
+impl Encoder for Vec<&dyn Encoder> {
     #[inline]
     fn encode(&self, w: &mut Vec<u8>) {
         (&self[..]).encode(w)

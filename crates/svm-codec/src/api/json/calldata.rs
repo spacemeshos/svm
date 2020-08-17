@@ -40,15 +40,13 @@ pub fn encode_calldata(json: &Json) -> Result<Json, JsonError> {
     buf.push(nargs);
 
     for (ty, raw) in abi.iter().zip(data) {
-        let ty = as_str!(ty)?;
-
         let value = encode_value(ty, raw)?;
         value.encode(&mut buf);
     }
 
     let calldata = json::bytes_to_str(&buf);
-
     let json = json!({ "calldata": calldata });
+
     Ok(json)
 }
 
@@ -120,22 +118,24 @@ fn composite_as_json(c: &Composite<'_>) -> (Json, Json) {
     let mut values: Vec<Json> = Vec::new();
 
     for elem in array {
-        let (ty, json) = value_as_json(elem);
+        let (ty, value) = value_as_json(elem);
 
         types.push(ty);
+        values.push(value);
     }
 
     // TODO: assert that all `types` are the same
     let ty = types.pop().unwrap();
 
-    (ty, Json::Array(values))
+    (Json::Array(vec![ty]), Json::Array(values))
 }
 
-fn encode_value<'a>(ty: &'a str, value: &Json) -> Result<Value<'static>, JsonError> {
-    if ty.starts_with("[") {
+fn encode_value<'a>(ty: &Json, value: &Json) -> Result<Value<'static>, JsonError> {
+    if ty.is_array() {
         return encode_array(ty, value);
     }
 
+    let ty = as_str!(ty)?;
     let json = json!({ "calldata": value });
 
     macro_rules! encode {
@@ -174,20 +174,14 @@ fn encode_value<'a>(ty: &'a str, value: &Json) -> Result<Value<'static>, JsonErr
     Ok(value)
 }
 
-fn encode_array(ty: &str, value: &Json) -> Result<Value<'static>, JsonError> {
-    debug_assert!(ty.starts_with("["));
+fn encode_array(ty: &Json, value: &Json) -> Result<Value<'static>, JsonError> {
+    debug_assert!(ty.is_array());
 
-    if !ty.ends_with("]") {
-        return Err(JsonError::InvalidField {
-            field: "calldata".to_string(),
-            reason: format!(
-                "ABI type that starts with `[` should end with a `]` (got: {})",
-                ty
-            ),
-        });
-    }
+    let types = ty.as_array().unwrap();
+    assert_eq!(types.len(), 1);
 
-    let ty: &str = &ty[1..ty.len() - 1];
+    let ty = &types[0];
+
     let json = json!({ "calldata": value });
     let elems = json::as_array(&json, "calldata")?;
 
@@ -266,6 +260,8 @@ mod tests {
 
     #[test]
     pub fn encode_calldata_array() {
+        test!([["u32"]], [[10, 20, 30]]);
+        test!([["i8"]], [[-10, 0, 30]]);
         test!([["u32"], ["i8"]], [[10, 20, 30], [-10, 0, 20]]);
     }
 }

@@ -223,8 +223,10 @@ impl Decoder {
     fn decode_array(&self, cursor: &mut Cursor) -> Result<Value, DecodeError> {
         assert_no_eof!(cursor);
 
-        let byte = self.read_byte(cursor)?;
+        extern crate std;
+        use std::dbg;
 
+        let byte = self.read_byte(cursor)?;
         let nitems = match byte {
             layout::ARR_0 => 0,
             layout::ARR_1 => 1,
@@ -244,8 +246,8 @@ impl Decoder {
             values.push(value);
         }
 
-        let values: &[Value] = Box::leak(Box::new(values));
-        Ok(values.into())
+        let values: Value = values.into();
+        Ok(values)
     }
 
     #[inline]

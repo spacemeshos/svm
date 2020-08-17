@@ -92,14 +92,12 @@ fn encode_primitive(p: &Primitive<'_>, w: &mut Vec<u8>) {
 fn encode_composite(c: &Composite, w: &mut Vec<u8>) {
     match c {
         Composite::Array(values) => {
-            for v in values.iter() {
-                do_encode(v, w);
-            }
+            let values: Vec<&dyn Encoder> = values.iter().map(|v| v as &dyn Encoder).collect();
+            values.encode(w);
         }
         Composite::ArrayOwned(values) => {
-            for v in values.iter() {
-                do_encode(v, w);
-            }
+            let values: Vec<&dyn Encoder> = values.iter().map(|v| v as &dyn Encoder).collect();
+            values.encode(w);
         }
     }
 }

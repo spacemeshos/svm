@@ -140,11 +140,11 @@ pub mod layout {
 
     // Array
     pub const ARR_0: u8 = 0b_0_000_0110;
-    pub const ARR_1: u8 = 0b_0_000_0110;
-    pub const ARR_2: u8 = 0b_0_000_0110;
-    pub const ARR_3: u8 = 0b_0_000_0110;
-    pub const ARR_4: u8 = 0b_0_000_0110;
-    pub const ARR_5: u8 = 0b_0_000_0110;
-    pub const ARR_6: u8 = 0b_0_000_0110;
-    pub const ARR_0_255: u8 = 0b_0_000_0110;
+    pub const ARR_1: u8 = 0b_0_001_0110;
+    pub const ARR_2: u8 = 0b_0_010_0110;
+    pub const ARR_3: u8 = 0b_0_011_0110;
+    pub const ARR_4: u8 = 0b_0_100_0110;
+    pub const ARR_5: u8 = 0b_0_101_0110;
+    pub const ARR_6: u8 = 0b_0_110_0110;
+    pub const ARR_0_255: u8 = 0b_0_111_0110;
 }
