@@ -204,8 +204,7 @@ mod tests {
             "template": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
             "name": "My App",
             "ctor_index": 2,
-            "calldata": calldata["func_buf"],
-            "ctor_args": calldata["func_args"]
+            "calldata": calldata["calldata"],
         });
 
         let bytes = encode_spawn_app(&json).unwrap();

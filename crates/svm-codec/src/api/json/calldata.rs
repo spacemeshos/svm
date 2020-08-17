@@ -1,5 +1,7 @@
 use serde_json::json;
+use serde_json::Value as Json;
 
+use svm_abi_decoder::{Cursor, Decoder};
 use svm_abi_encoder::Encoder;
 use svm_sdk::value::{Address, AddressOwned, Composite, Primitive, Value};
 
@@ -21,7 +23,7 @@ macro_rules! as_str {
     }};
 }
 
-pub fn encode_calldata(json: &json::Value) -> Result<Vec<u8>, JsonError> {
+pub fn encode_calldata(json: &Json) -> Result<Json, JsonError> {
     let abi = json::as_array(json, "abi")?;
     let data = json::as_array(json, "data")?;
 
@@ -34,6 +36,9 @@ pub fn encode_calldata(json: &json::Value) -> Result<Vec<u8>, JsonError> {
 
     let mut buf = Vec::new();
 
+    let nargs = abi.len() as u8;
+    buf.push(nargs);
+
     for (ty, raw) in abi.iter().zip(data) {
         let ty = as_str!(ty)?;
 
@@ -41,19 +46,92 @@ pub fn encode_calldata(json: &json::Value) -> Result<Vec<u8>, JsonError> {
         value.encode(&mut buf);
     }
 
-    Ok(buf)
-}
-
-pub fn decode_calldata(json: &json::Value) -> Result<json::Value, JsonError> {
-    let data = json::as_string(json, "calldata")?;
-    let calldata = json::str_to_bytes(&data, "calldata")?;
+    let calldata = json::bytes_to_str(&buf);
 
     let json = json!({ "calldata": calldata });
-
     Ok(json)
 }
 
-fn encode_value<'a>(ty: &'a str, value: &json::Value) -> Result<Value<'static>, JsonError> {
+pub fn decode_calldata(json: &Json) -> Result<Json, JsonError> {
+    let data = json::as_string(json, "calldata")?;
+    let calldata = json::str_to_bytes(&data, "calldata")?;
+
+    let nargs = calldata[0];
+
+    let mut decoder = Decoder::new();
+    let mut cursor = Cursor::new(&calldata[1..]);
+
+    let mut abi: Vec<Json> = Vec::new();
+    let mut data: Vec<Json> = Vec::new();
+
+    for _ in 0..nargs {
+        let value: Value = decoder.decode_value(&mut cursor).unwrap();
+        let (ty, item) = value_as_json(&value);
+
+        abi.push(ty);
+        data.push(item);
+    }
+
+    let result = json!({ "abi": abi, "data": data });
+    Ok(result)
+}
+
+fn value_as_json(value: &Value) -> (Json, Json) {
+    match value {
+        Value::Primitive(p) => primitive_as_json(p),
+        Value::Composite(c) => composite_as_json(c),
+    }
+}
+
+fn primitive_as_json(p: &Primitive<'_>) -> (Json, Json) {
+    match p {
+        Primitive::Bool(b) => (Json::String("bool".into()), json!(b)),
+        Primitive::Amount(a) => (Json::String("amount".into()), json!(a.0)),
+        Primitive::I8(n) => (Json::String("i8".into()), json!(n)),
+        Primitive::U8(n) => (Json::String("u8".into()), json!(n)),
+        Primitive::I16(n) => (Json::String("i16".into()), json!(n)),
+        Primitive::U16(n) => (Json::String("u16".into()), json!(n)),
+        Primitive::I32(n) => (Json::String("i32".into()), json!(n)),
+        Primitive::U32(n) => (Json::String("u32".into()), json!(n)),
+        Primitive::I64(n) => (Json::String("i64".into()), json!(n)),
+        Primitive::U64(n) => (Json::String("u64".into()), json!(n)),
+        Primitive::Address(addr) => {
+            let s = json::bytes_to_str(addr.as_slice());
+            (Json::String("address".into()), json!(s))
+        }
+        Primitive::AddressOwned(addr) => {
+            let s = json::bytes_to_str(addr.as_slice());
+            (Json::String("address".into()), json!(s))
+        }
+    }
+}
+
+fn composite_as_json(c: &Composite<'_>) -> (Json, Json) {
+    let array: &[Value] = match c {
+        Composite::Array(inner) => inner,
+        Composite::ArrayOwned(inner) => inner,
+    };
+
+    if (array.is_empty()) {
+        return (Json::Null, Json::Array(Vec::new()));
+    }
+
+    let mut types: Vec<Json> = Vec::new();
+    let mut values: Vec<Json> = Vec::new();
+
+    for elem in array {
+        let (ty, json) = value_as_json(elem);
+
+        types.push(ty);
+    }
+
+    // TODO: assert that all `types` are the same
+    let ty = types.pop().unwrap();
+
+    (ty, Json::Array(values))
+}
+
+fn encode_value<'a>(ty: &'a str, value: &Json) -> Result<Value<'static>, JsonError> {
     if ty.starts_with("[") {
         return encode_array(ty, value);
     }
@@ -96,7 +174,7 @@ fn encode_value<'a>(ty: &'a str, value: &json::Value) -> Result<Value<'static>, 
     Ok(value)
 }
 
-fn encode_array(ty: &str, value: &json::Value) -> Result<Value<'static>, JsonError> {
+fn encode_array(ty: &str, value: &Json) -> Result<Value<'static>, JsonError> {
     debug_assert!(ty.starts_with("["));
 
     if !ty.ends_with("]") {
@@ -128,28 +206,66 @@ fn encode_array(ty: &str, value: &json::Value) -> Result<Value<'static>, JsonErr
 mod tests {
     use super::*;
 
+    macro_rules! test {
+        ($abi:expr, $data:expr) => {{
+            let json = json!({"abi": $abi, "data": $data });
+
+            let encoded = encode_calldata(&json).unwrap();
+            let decoded = decode_calldata(&encoded).unwrap();
+
+            assert_eq!(
+                decoded,
+                json!({"abi": $abi, "data": $data })
+            );
+        }}
+    }
+
     #[test]
-    pub fn encode_calldata_sanity() {
-        let addr = "102030405060708090A0112233445566778899AA";
-        let pkey = "1020304050607080102030405060708010203040506070801020304050607080";
+    pub fn encode_calldata_bool() {
+        test!(["bool", "bool"], [true, false]);
+    }
 
-        let json = json!({
-            "abi": ["i32", "amount", "address", "i64", "pubkey256"],
-            "data": [10, 20, addr, 30, pkey]
-        });
+    #[test]
+    pub fn encode_calldata_i8_u8() {
+        test!(["i8", "u8"], [std::i8::MIN as isize, std::u8::MAX as isize]);
+    }
 
-        let calldata = encode_calldata(&json).unwrap();
-        let decoded = json::decode_calldata(&calldata).unwrap();
-
-        assert_eq!(
-            decoded,
-            json!({
-                "func_args": ["10i32", "20i64", "30i64"],
-                "calldata": [
-                    {"address": "102030405060708090a0112233445566778899aa"},
-                    {"pubkey256": "1020304050607080102030405060708010203040506070801020304050607080"}
-                ],
-            })
+    #[test]
+    pub fn encode_calldata_i16_u16() {
+        test!(
+            ["i16", "u16"],
+            [std::i16::MIN as isize, std::u16::MAX as isize]
         );
+    }
+
+    #[test]
+    pub fn encode_calldata_i32_u32() {
+        test!(
+            ["i32", "u32"],
+            [std::i32::MIN as isize, std::u32::MAX as isize]
+        );
+    }
+
+    #[test]
+    pub fn encode_calldata_i64_u64() {
+        test!(["i64"], [std::i64::MIN as isize]);
+        test!(["u64"], [std::u64::MAX as usize]);
+    }
+
+    #[test]
+    pub fn encode_calldata_amount() {
+        test!(["amount", "amount"], [10 as u64, 20 as u64]);
+    }
+
+    #[test]
+    pub fn encode_calldata_address() {
+        let addr = "1020304050607080900010203040506070809000";
+
+        test!(["address"], [addr]);
+    }
+
+    #[test]
+    pub fn encode_calldata_array() {
+        test!([["u32"], ["i8"]], [[10, 20, 30], [-10, 0, 20]]);
     }
 }
