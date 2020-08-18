@@ -14,12 +14,13 @@ mod tests {
 
     macro_rules! test {
         ($ty:ty, $rust_value:expr) => {{
-            let rust_value: $ty = $rust_value;
+            let rust_value: $ty = $rust_value.clone();
             let abi_value: Value = rust_value.into();
 
             let mut buf_native = Vec::new();
             let mut buf_abi_value = Vec::new();
 
+            let rust_value: $ty = $rust_value.clone();
             rust_value.encode(&mut buf_native);
             abi_value.encode(&mut buf_abi_value);
 
@@ -199,59 +200,25 @@ mod tests {
         test!(u64, std::u64::MAX as u64);
     }
 
-    // #[test]
-    // fn encode_decode_addr() {
-    //     let bytes: [u8; 20] = [
-    //         0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80, 0x90, 0xA0, 0xB0, 0xC0, 0xD0, 0xE0,
-    //         0xF0, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE,
-    //     ];
-    //     let addr = AddressOwned(bytes);
+    #[test]
+    fn encode_decode_addr() {
+        test!(Address, Address(&[0x10; 20]));
 
-    //     test!(AddressOwned, addr);
+        test!(AddressOwned, AddressOwned([0x10; 20]));
+    }
+    #[test]
+    fn display_addr() {
+        let bytes = [
+            0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80, 0x90, 0xA0, 0x11, 0x22, 0x33, 0x44,
+            0x55, 0x66, 0x77, 0x88, 0x99, 0xAA,
+        ];
 
-    //     let mut buf_native = Vec::new();
-    //     addr.encode(&mut buf_native);
+        let addr = Address(&bytes);
+        let s = format!("{}", addr);
+        assert_eq!(s, "102030405060708090a0112233445566778899aa");
 
-    //     let mut cursor = Cursor::new(&buf_native);
-    //     let decoder = Decoder::new();
-    //     let abi_value = decoder.decode_value(&mut cursor).unwrap();
-
-    //     let addr: Address = abi_value.into();
-    //     assert_eq!(addr.as_slice(), &bytes);
-    // }
-
-    // #[test]
-    // fn encode_decode_addr_array() {
-    //     let addr1 = Address(&[0x10; 20]);
-    //     let addr2 = Address(&[0x20; 20]);
-    //     let addr3 = Address(&[0x30; 20]);
-
-    //     let addrs = vec![addr1, addr2, addr3];
-
-    //     let mut buf_native  = Vec::new();
-    //     addrs.encode(&mut buf_native );
-
-    //     let mut cursor = Cursor::new(&buf_native );
-    //     let decoder = Decoder::new();
-    //     let abi_value = decoder.decode_value(&mut cursor).unwrap();
-
-    //     let vec = vec![
-    //         Value::Primitive(Primitive::Address(Address(&[0x10; 20]))),
-    //         Value::Primitive(Primitive::Address(Address(&[0x20; 20]))),
-    //         Value::Primitive(Primitive::Address(Address(&[0x30; 20]))),
-    //     ];
-
-    //     assert_eq!(abi_value, Value::Composite(Composite::Array(&vec[..])));
-    // }
-
-    // #[test]
-    // fn display_addr() {
-    //     let addr = Address(&[
-    //         0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80, 0x90, 0xA0, 0x11, 0x22, 0x33, 0x44,
-    //         0x55, 0x66, 0x77, 0x88, 0x99, 0xAA,
-    //     ]);
-
-    //     let s = format!("{}", addr);
-    //     assert_eq!(s, "102030405060708090a0112233445566778899aa");
-    // }
+        let addr = AddressOwned(bytes);
+        let s = format!("{}", addr);
+        assert_eq!(s, "102030405060708090a0112233445566778899aa");
+    }
 }

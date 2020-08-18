@@ -36,14 +36,14 @@ macro_rules! impl_slice_primitive {
 macro_rules! impl_fixed_primitive {
     ($ty:ident, $ty_owned:ident, $nbytes:expr) => {
         #[allow(missing_docs)]
-        #[derive(Debug, PartialEq)]
+        #[derive(Debug, PartialEq, Clone)]
         #[repr(transparent)]
         pub struct $ty<'a>(pub &'a [u8; $nbytes]);
 
         impl<'a> $crate::types::PrimitiveMarker for $ty<'a> {}
 
         #[allow(missing_docs)]
-        #[derive(Debug, PartialEq)]
+        #[derive(Debug, PartialEq, Clone)]
         #[repr(transparent)]
         pub struct $ty_owned(pub [u8; $nbytes]);
 
@@ -284,6 +284,7 @@ impl<'a> From<Value<'a>> for Address<'a> {
 impl From<Value<'_>> for AddressOwned {
     fn from(value: Value<'_>) -> Self {
         match value {
+            Value::Primitive(Primitive::Address(addr)) => addr.to_owned(),
             Value::Primitive(Primitive::AddressOwned(addr)) => addr,
             _ => unreachable!(),
         }
