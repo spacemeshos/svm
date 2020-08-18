@@ -9,7 +9,7 @@ use std::{collections::HashMap, ffi::c_void};
 
 use svm_codec::api::raw;
 use svm_layout::DataLayout;
-use svm_types::{Address, State, WasmValue};
+use svm_types::{Address, State};
 
 unsafe fn create_imports() -> *const c_void {
     let mut imports = std::ptr::null_mut();
@@ -35,19 +35,11 @@ fn spawn_app_bytes(
     template_addr: &svm_byte_array,
     name: &str,
     ctor_idx: u16,
-    ctor_buf: &Vec<u8>,
-    ctor_args: &Vec<WasmValue>,
+    calldata: &Vec<u8>,
 ) -> (Vec<u8>, u32) {
     let template_addr = Address::from(*&template_addr.bytes as *const c_void).into();
 
-    let bytes = svm_runtime::testing::build_app(
-        version,
-        &template_addr,
-        name,
-        ctor_idx,
-        ctor_buf,
-        ctor_args,
-    );
+    let bytes = svm_runtime::testing::build_app(version, &template_addr, name, ctor_idx, calldata);
     let length = bytes.len() as u32;
 
     (bytes, length)
@@ -57,14 +49,12 @@ fn exec_app_bytes(
     version: u32,
     app_addr: &svm_byte_array,
     func_idx: u16,
-    func_buf: &Vec<u8>,
-    func_args: &Vec<WasmValue>,
+    calldata: &Vec<u8>,
 ) -> (Vec<u8>, u32) {
     let app_addr: &[u8] = app_addr.into();
     let app_addr = Address::from(app_addr).into();
 
-    let bytes =
-        svm_runtime::testing::build_app_tx(version, &app_addr, func_idx, func_buf, func_args);
+    let bytes = svm_runtime::testing::build_app_tx(version, &app_addr, func_idx, calldata);
 
     let length = bytes.len() as u32;
 
@@ -143,18 +133,10 @@ unsafe fn test_svm_runtime() {
     let name = "My App";
     let spawner = Address::of("spawner").into();
     let ctor_idx = 0;
-    let ctor_buf = vec![];
-    let ctor_args = vec![];
+    let calldata = vec![];
 
     // raw `spawn-app`
-    let (bytes, length) = spawn_app_bytes(
-        version,
-        &template_addr,
-        name,
-        ctor_idx,
-        &ctor_buf,
-        &ctor_args,
-    );
+    let (bytes, length) = spawn_app_bytes(version, &template_addr, name, ctor_idx, &calldata);
     let app_bytes = svm_byte_array {
         bytes: bytes.as_ptr(),
         length: length,
@@ -184,10 +166,9 @@ unsafe fn test_svm_runtime() {
 
     // 4) execute app
     let func_idx = 1;
-    let func_buf = vec![];
-    let func_args = vec![WasmValue::I64(10)];
+    let calldata = vec![];
 
-    let (bytes, length) = exec_app_bytes(version, &app_addr, func_idx, &func_buf, &func_args);
+    let (bytes, length) = exec_app_bytes(version, &app_addr, func_idx, &calldata);
     let tx_bytes = svm_byte_array {
         bytes: bytes.as_ptr(),
         length: length,
@@ -213,8 +194,7 @@ unsafe fn test_svm_runtime() {
     );
     assert!(res.is_ok());
 
-    let receipt = raw::decode_receipt(exec_receipt.into()).into_exec_app();
-    assert_eq!(receipt.get_returns(), &vec![WasmValue::I64(10)]);
+    let _receipt = raw::decode_receipt(exec_receipt.into()).into_exec_app();
 
     let _ = api::svm_byte_array_destroy(template_addr);
     let _ = api::svm_byte_array_destroy(app_addr);
