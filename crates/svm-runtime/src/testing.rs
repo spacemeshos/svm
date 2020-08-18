@@ -169,16 +169,14 @@ pub fn build_app(
     template: &TemplateAddr,
     name: &str,
     ctor_idx: u16,
-    ctor_buf: &Vec<u8>,
-    ctor_args: &Vec<WasmValue>,
+    calldata: &Vec<u8>,
 ) -> Vec<u8> {
     SpawnAppBuilder::new()
         .with_version(version)
         .with_template(template)
         .with_name(name)
         .with_ctor_index(ctor_idx)
-        .with_ctor_buf(ctor_buf)
-        .with_ctor_args(ctor_args)
+        .with_calldata(calldata)
         .build()
 }
 
@@ -187,15 +185,13 @@ pub fn build_app_tx(
     version: u32,
     app_addr: &AppAddr,
     func_idx: u16,
-    func_buf: &Vec<u8>,
-    func_args: &Vec<WasmValue>,
+    calldata: &Vec<u8>,
 ) -> Vec<u8> {
     AppTxBuilder::new()
         .with_version(version)
         .with_app(app_addr)
         .with_func_index(func_idx)
-        .with_func_buf(func_buf)
-        .with_func_args(func_args)
+        .with_calldata(calldata)
         .build()
 }
 

@@ -258,8 +258,7 @@ where
             version: 0,
             app: app_addr.clone(),
             func_idx: spawn.ctor_idx,
-            func_args: spawn.ctor_args,
-            func_buf: spawn.ctor_buf,
+            calldata: spawn.calldata,
         }
     }
 
@@ -320,14 +319,13 @@ where
         }
 
         let mut instance = instance.unwrap();
-        self.copy_func_buf_to_memory(&tx.func_buf, &mut instance);
+        self.copy_calldata_to_memory(&tx.calldata, &mut instance);
 
-        let args = self.prepare_func_args(tx);
         let func = match self.get_exported_func(tx, template_addr, &instance) {
             Err(e) => return (Err(e), empty_logs),
             Ok(func) => func,
         };
-        let func_res = func.call(&args);
+        let func_res = func.call(&[]);
 
         let logs = self.instance_logs(&instance);
 
@@ -372,7 +370,7 @@ where
             Ok((new_state, returns, gas_used)) => ExecReceipt {
                 success: true,
                 error: None,
-                returns: Some(returns),
+                returns: None,
                 new_state,
                 gas_used,
                 logs,
@@ -380,25 +378,25 @@ where
         }
     }
 
-    fn copy_func_buf_to_memory(&self, func_buf: &[u8], instance: &mut wasmer_runtime::Instance) {
+    fn copy_calldata_to_memory(&self, calldata: &[u8], instance: &mut wasmer_runtime::Instance) {
         let ctx = instance.context_mut();
         let memory = ctx.memory(0);
 
         // Each wasm instance memory contains at least one `WASM Page`. (A `Page` size is 64KB)
-        // The `len(func_buf)` will be less than that size.
+        // The `len(calldata)` will be less than that size.
         //
         // In any case, the `alloc_wasmer_memory` is in charge of allocating enough memory
         // for the program to run (so we don't need to have any bounds-checking here).
 
-        // TODO: add to `validate_template` checking that `func_buf` doesn't exceed ???
-        // (we'll need to decide on a `func_buf` limit).
+        // TODO: add to `validate_template` checking that `calldata` doesn't exceed ???
+        // (we'll need to decide on a `calldata` limit).
         //
         // See [issue #140](https://github.com/spacemeshos/svm/issues/140)
         //
-        let func_size = func_buf.len();
+        let func_size = calldata.len();
         let view = &memory.view::<u8>()[0..func_size];
 
-        for (cell, &byte) in view.iter().zip(func_buf.iter()) {
+        for (cell, &byte) in view.iter().zip(calldata.iter()) {
             cell.set(byte);
         }
     }
@@ -490,25 +488,6 @@ where
         let func_index = rel_func_index + imported_funcs;
 
         func_index
-    }
-
-    fn prepare_func_args(&self, tx: &AppTransaction) -> Vec<wasmer_runtime::Value> {
-        debug!("runtime `prepare_func_args`");
-
-        let mut wasmer_args = Vec::with_capacity(tx.func_args.len());
-
-        for arg in tx.func_args.iter() {
-            let wasmer_arg = match arg {
-                WasmValue::I32(v) => WasmerValue::I32(*v as i32),
-                WasmValue::I64(v) => WasmerValue::I64(*v as i64),
-            };
-
-            wasmer_args.push(wasmer_arg);
-        }
-
-        debug!("wasmer args={:?}", wasmer_args);
-
-        wasmer_args
     }
 
     #[inline]

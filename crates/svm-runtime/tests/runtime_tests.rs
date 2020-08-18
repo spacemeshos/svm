@@ -4,7 +4,7 @@ use svm_gas::error::ProgramError;
 use svm_layout::{DataLayout, VarId};
 use svm_runtime::{error::ValidateError, testing, Runtime};
 use svm_types::receipt::{ExecReceipt, Log, SpawnAppReceipt, TemplateReceipt};
-use svm_types::{gas::MaybeGas, Address, HostCtx, WasmValue};
+use svm_types::{gas::MaybeGas, Address, HostCtx};
 
 macro_rules! default_runtime {
     () => {{
@@ -150,17 +150,9 @@ fn default_runtime_spawn_app_with_ctor_reaches_oog() {
     // 2) spawn app (and invoking its `ctor`)
     let name = "My App";
     let ctor_idx = 0;
-    let ctor_buf = vec![];
-    let ctor_args = vec![];
+    let calldata = vec![];
 
-    let bytes = testing::build_app(
-        version,
-        &template_addr,
-        name,
-        ctor_idx,
-        &ctor_buf,
-        &ctor_args,
-    );
+    let bytes = testing::build_app(version, &template_addr, name, ctor_idx, &calldata);
     let maybe_gas = MaybeGas::with(0);
 
     let log = Log {
@@ -205,16 +197,8 @@ fn default_runtime_spawn_app_with_ctor_with_enough_gas() {
     // 2) spawn app (and invoking its `ctor`)
     let name = "My App";
     let ctor_func_idx = 0;
-    let ctor_buf = vec![];
-    let ctor_args = vec![WasmValue::I64(10_20_30_40_50_60_70_80)];
-    let bytes = testing::build_app(
-        version,
-        &template_addr,
-        name,
-        ctor_func_idx,
-        &ctor_buf,
-        &ctor_args,
-    );
+    let calldata = vec![];
+    let bytes = testing::build_app(version, &template_addr, name, ctor_func_idx, &calldata);
     let gas_limit = MaybeGas::with(1_000_000);
 
     let receipt = runtime.spawn_app(&bytes, &creator, HostCtx::new(), gas_limit);
@@ -256,18 +240,10 @@ fn default_runtime_exec_app() {
     // 2) spawn app
     let name = "My App";
     let ctor_idx = 0;
-    let ctor_buf = vec![];
-    let ctor_args = vec![];
+    let calldata = vec![];
     let creator = Address::of("creator").into();
 
-    let bytes = testing::build_app(
-        version,
-        &template_addr,
-        name,
-        ctor_idx,
-        &ctor_buf,
-        &ctor_args,
-    );
+    let bytes = testing::build_app(version, &template_addr, name, ctor_idx, &calldata);
     let receipt = runtime.spawn_app(&bytes, &creator, HostCtx::new(), maybe_gas);
     assert!(receipt.success);
 
@@ -276,9 +252,8 @@ fn default_runtime_exec_app() {
 
     // 3) executing an app-transaction
     let func_idx = 1;
-    let func_buf = vec![];
-    let func_args = vec![WasmValue::I64(10)];
-    let bytes = testing::build_app_tx(version, &app_addr, func_idx, &func_buf, &func_args);
+    let calldata = vec![];
+    let bytes = testing::build_app_tx(version, &app_addr, func_idx, &calldata);
 
     let receipt = runtime.exec_app(&bytes, &init_state, HostCtx::new(), maybe_gas);
     assert!(receipt.success);
@@ -322,17 +297,9 @@ fn default_runtime_exec_app_reaches_oog() {
     // 2) spawn app
     let name = "My App";
     let ctor_idx = 0;
-    let ctor_buf = vec![];
-    let ctor_args = vec![];
+    let calldata = vec![];
 
-    let bytes = testing::build_app(
-        version,
-        &template_addr,
-        name,
-        ctor_idx,
-        &ctor_buf,
-        &ctor_args,
-    );
+    let bytes = testing::build_app(version, &template_addr, name, ctor_idx, &calldata);
     let receipt = runtime.spawn_app(&bytes, &creator, HostCtx::new(), maybe_gas);
 
     let app_addr = receipt.get_app_addr();
@@ -340,9 +307,8 @@ fn default_runtime_exec_app_reaches_oog() {
 
     // 3) executing an app-transaction (reaching out-of-gas)
     let func_idx = 1;
-    let func_buf = vec![];
-    let func_args = vec![WasmValue::I64(10)];
-    let bytes = testing::build_app_tx(version, &app_addr, func_idx, &func_buf, &func_args);
+    let calldata = vec![];
+    let bytes = testing::build_app_tx(version, &app_addr, func_idx, &calldata);
     let maybe_gas = MaybeGas::with(0);
     let logs = Vec::new();
 
@@ -380,18 +346,10 @@ fn default_runtime_func_buf() {
     // 2) spawn app
     let name = "My Name";
     let ctor_idx = 0;
-    let ctor_buf = vec![];
-    let ctor_args = vec![];
+    let calldata = vec![];
     let creator = Address::of("creator").into();
 
-    let bytes = testing::build_app(
-        version,
-        &template_addr,
-        name,
-        ctor_idx,
-        &ctor_buf,
-        &ctor_args,
-    );
+    let bytes = testing::build_app(version, &template_addr, name, ctor_idx, &calldata);
     let receipt = runtime.spawn_app(&bytes, &creator, HostCtx::new(), maybe_gas);
     assert!(receipt.success);
 
@@ -403,11 +361,8 @@ fn default_runtime_func_buf() {
     let func_buf = b"an address to store.".to_vec();
     assert_eq!(func_buf.len(), Address::len());
 
-    let var_id = WasmValue::I32(0);
-    let mem_ptr = WasmValue::I32(0);
-    let func_args = vec![var_id, mem_ptr];
-
-    let bytes = testing::build_app_tx(version, &app_addr, func_idx, &func_buf, &func_args);
+    let calldata = vec![];
+    let bytes = testing::build_app_tx(version, &app_addr, func_idx, &calldata);
 
     let receipt = runtime.exec_app(&bytes, &init_state, HostCtx::new(), maybe_gas);
     assert!(receipt.success);
@@ -416,12 +371,8 @@ fn default_runtime_func_buf() {
 
     // 4) loading the stored address, editing it and then storing it
     let func_idx = 2; // `index 2 <=> `edit_addr` export
-    let func_buf = b"AN ADDR".to_vec();
-    let func_size = WasmValue::I32(func_buf.len() as u32);
-    let var_id = WasmValue::I32(0);
-    let func_args = vec![func_size, var_id];
-
-    let bytes = testing::build_app_tx(version, &app_addr, func_idx, &func_buf, &func_args);
+    let calldata = b"AN ADDR".to_vec();
+    let bytes = testing::build_app_tx(version, &app_addr, func_idx, &calldata);
 
     let receipt = runtime.exec_app(&bytes, &state, HostCtx::new(), maybe_gas);
     assert!(receipt.success);
