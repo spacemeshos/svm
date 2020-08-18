@@ -17,7 +17,7 @@ pub struct SpawnAppBuilder {
 /// # Example
 ///
 /// ```rust
-/// use svm_types::{App, SpawnApp, WasmValue, Address};
+/// use svm_types::{App, SpawnApp, Address};
 /// use svm_nibble::NibbleIter;
 /// use svm_codec::api::{raw::decode_spawn_app, builder::SpawnAppBuilder};
 ///
@@ -25,15 +25,13 @@ pub struct SpawnAppBuilder {
 /// let name = "My App".to_string();
 /// let ctor_idx = 2;
 /// let calldata = vec![0x10, 0x20, 0x30];
-/// let ctor_args = vec![WasmValue::I32(0x40), WasmValue::I64(0x50)];
 ///
 /// let bytes = SpawnAppBuilder::new()
 ///             .with_version(0)
 ///             .with_template(&template)
 ///             .with_name(&name)
 ///             .with_ctor_index(ctor_idx)
-///             .with_ctor_buf(&calldata)
-///             .with_ctor_args(&ctor_args)
+///             .with_calldata(&calldata)
 ///             .build();
 ///
 /// let mut iter = NibbleIter::new(&bytes);
@@ -42,7 +40,6 @@ pub struct SpawnAppBuilder {
 ///                  app: App { version: 0, name, template },
 ///                  ctor_idx,
 ///                  calldata,
-///                  ctor_args
 ///                };
 ///
 //// assert_eq!(expected, actual);

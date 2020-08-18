@@ -206,6 +206,13 @@ mod tests {
 
         test!(AddressOwned, AddressOwned([0x10; 20]));
     }
+
+    #[ignore]
+    #[test]
+    fn encode_decode_empty_array() {
+        let empty: Vec<u32> = Vec::new();
+    }
+
     #[test]
     fn display_addr() {
         let bytes = [

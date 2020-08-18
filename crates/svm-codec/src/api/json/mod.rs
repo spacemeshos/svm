@@ -258,7 +258,7 @@ pub(crate) fn str_as_addr(s: &str, field: &str) -> Result<Address, JsonError> {
     if bytes.len() != Address::len() {
         return Err(JsonError::InvalidField {
             field: field.to_string(),
-            reason: format!("v should be exactly {} hex digits", Address::len() * 2),
+            reason: format!("value should be exactly {} hex digits", Address::len() * 2),
         });
     }
 
@@ -322,7 +322,7 @@ mod test {
             err,
             JsonError::InvalidField {
                 field: "n".to_string(),
-                reason: r#"v `"NaN"` isn't a number"#.to_string()
+                reason: r#"value `"NaN"` isn't a number"#.to_string()
             }
         );
     }
@@ -348,7 +348,7 @@ mod test {
             err,
             JsonError::InvalidField {
                 field: "n".to_string(),
-                reason: r#"v `"NaN"` isn't a number"#.to_string()
+                reason: r#"value `"NaN"` isn't a number"#.to_string()
             }
         );
     }
@@ -381,7 +381,7 @@ mod test {
             err,
             JsonError::InvalidField {
                 field: "addr".to_string(),
-                reason: r#"v `true` isn't a string"#.to_string()
+                reason: r#"value `true` isn't a string"#.to_string()
             }
         );
     }
@@ -397,7 +397,7 @@ mod test {
             err,
             JsonError::InvalidField {
                 field: "addr".to_string(),
-                reason: "v should be exactly 40 hex digits".to_string(),
+                reason: "value should be exactly 40 hex digits".to_string(),
             }
         );
     }
@@ -413,7 +413,7 @@ mod test {
             err,
             JsonError::InvalidField {
                 field: "addr".to_string(),
-                reason: "v should have only hex digits".to_string(),
+                reason: "value should have only hex digits".to_string(),
             }
         );
     }
@@ -439,7 +439,7 @@ mod test {
             err,
             JsonError::InvalidField {
                 field: "blob".to_string(),
-                reason: "v should have only hex digits".to_string(),
+                reason: "value should have only hex digits".to_string(),
             }
         );
     }
@@ -455,7 +455,7 @@ mod test {
             err,
             JsonError::InvalidField {
                 field: "blob".to_string(),
-                reason: "v should be of even length".to_string(),
+                reason: "value should be of even length".to_string(),
             }
         );
     }

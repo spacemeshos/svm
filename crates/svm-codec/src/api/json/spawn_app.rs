@@ -57,7 +57,8 @@ pub fn decode_spawn_app(json: &Value) -> Result<Value, JsonError> {
     let template = json::addr_to_str(&spawn.app.template.inner());
 
     let calldata = json::bytes_to_str(&spawn.calldata);
-    let calldata = json::decode_calldata(&json!({ "data": calldata }))?;
+    let calldata = json::decode_calldata(&json!({ "calldata": calldata }))?;
+
     let name = spawn.app.name;
 
     let json = json!({
@@ -164,38 +165,12 @@ mod tests {
     }
 
     #[test]
-    fn json_spawn_app_missing_ctor_args() {
-        let calldata = json::encode_calldata(&json!({
-            "abi": [],
-            "data": []
-        }))
-        .unwrap();
-
-        let json = json!({
-            "version": 0,
-            "template": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
-            "name": "My App",
-            "ctor_index": 0,
-            "calldata": calldata["func_buf"]
-        });
-
-        let err = encode_spawn_app(&json).unwrap_err();
-        assert_eq!(
-            err,
-            JsonError::InvalidField {
-                field: "ctor_args".to_string(),
-                reason: "value `null` isn\'t a string".to_string(),
-            }
-        );
-    }
-
-    #[test]
     fn json_spawn_app_valid() {
         let template_addr = "1122334455667788990011223344556677889900";
 
         let calldata = json::encode_calldata(&json!({
-            "abi": ["i32", "address", "i64"],
-            "data": [10, template_addr, 20]
+            "abi": ["i32", "i64"],
+            "data": [10, 20]
         }))
         .unwrap();
 
@@ -218,8 +193,10 @@ mod tests {
                 "template": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
                 "name": "My App",
                 "ctor_index": 2,
-                "calldata": [{"address": template_addr}],
-                "ctor_args": ["10i32", "20i64"],
+                "calldata": {
+                    "abi": ["i32", "i64"],
+                    "data": [10, 20]
+                }
             })
         );
     }

@@ -53,7 +53,7 @@ pub fn decode_exec_app(json: &Value) -> Result<Value, JsonError> {
     let app = json::addr_to_str(&tx.app.inner());
 
     let calldata = json::bytes_to_str(&tx.calldata);
-    let calldata = json::decode_calldata(&json!({ "data": calldata }))?;
+    let calldata = json::decode_calldata(&json!({ "calldata": calldata }))?;
 
     let json = json!({
         "version": version,
@@ -121,7 +121,7 @@ mod tests {
     }
 
     #[test]
-    fn json_exec_app_missing_func_buf() {
+    fn json_exec_app_missing_calldata() {
         let json = json!({
             "version": 0,
             "app": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
@@ -133,30 +133,6 @@ mod tests {
             err,
             JsonError::InvalidField {
                 field: "calldata".to_string(),
-                reason: "value `null` isn\'t a string".to_string(),
-            }
-        );
-    }
-
-    #[test]
-    fn json_exec_app_missing_func_args() {
-        let calldata = json::encode_calldata(&json!({
-            "abi": ["i32", "i64"],
-            "data": [10, 20],
-        }))
-        .unwrap();
-        let json = json!({
-            "version": 0,
-            "app": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
-            "func_index": 0,
-            "calldata": calldata["calldata"]
-        });
-
-        let err = encode_exec_app(&json).unwrap_err();
-        assert_eq!(
-            err,
-            JsonError::InvalidField {
-                field: "func_args".to_string(),
                 reason: "value `null` isn\'t a string".to_string(),
             }
         );
@@ -178,22 +154,20 @@ mod tests {
         });
 
         let bytes = encode_exec_app(&json).unwrap();
+        let data = json::bytes_to_str(&bytes);
+        let json = decode_exec_app(&json!({ "data": data })).unwrap();
 
-        let mut iter = NibbleIter::new(&bytes[..]);
-        let actual = crate::api::raw::decode_exec_app(&mut iter).unwrap();
-
-        let addr_bytes = vec![
-            0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80, 0x90, 0x00, 0xA0, 0xB0, 0xC0, 0xD0,
-            0xE0, 0xF0, 0xAB, 0xCD, 0xEF, 0xFF,
-        ];
-
-        let expected = AppTransaction {
-            version: 0,
-            app: Address::from(&addr_bytes[..]).into(),
-            func_idx: 1,
-            calldata: vec![],
-        };
-
-        assert_eq!(actual, expected);
+        assert_eq!(
+            json,
+            json!({
+                "version": 0,
+                "app": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
+                "func_index": 1,
+                "calldata": {
+                    "abi": ["i32", "i64"],
+                    "data": [10, 20]
+                }
+            })
+        );
     }
 }

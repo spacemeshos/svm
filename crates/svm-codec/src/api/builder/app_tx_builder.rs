@@ -9,7 +9,7 @@ pub struct AppTxBuilder {
     version: Option<u32>,
     app: Option<AppAddr>,
     func_idx: Option<u16>,
-    callldata: Option<Vec<u8>>,
+    calldata: Option<Vec<u8>>,
 }
 
 ///
@@ -23,13 +23,13 @@ pub struct AppTxBuilder {
 /// let app = Address::of("@my-app").into();
 ///
 /// let func_idx = 10;
-/// let callldata = vec![0x10, 0x20, 0x30];
+/// let calldata = vec![0x10, 0x20, 0x30];
 ///
 /// let bytes = AppTxBuilder::new()
 ///            .with_version(0)
 ///            .with_app(&app)
 ///            .with_func_index(func_idx)
-///            .with_calldata(&callldata)
+///            .with_calldata(&calldata)
 ///            .build();
 ///
 /// let mut iter = NibbleIter::new(&bytes[..]);
@@ -38,7 +38,7 @@ pub struct AppTxBuilder {
 ///                  version: 0,
 ///                  app,
 ///                  func_idx,
-///                  callldata,
+///                  calldata,
 ///                };
 ///
 /// assert_eq!(expected, actual);
@@ -52,7 +52,7 @@ impl AppTxBuilder {
             version: None,
             app: None,
             func_idx: None,
-            callldata: None,
+            calldata: None,
         }
     }
 
@@ -71,8 +71,8 @@ impl AppTxBuilder {
         self
     }
 
-    pub fn with_calldata(mut self, callldata: &Vec<u8>) -> Self {
-        self.callldata = Some(callldata.to_vec());
+    pub fn with_calldata(mut self, calldata: &Vec<u8>) -> Self {
+        self.calldata = Some(calldata.to_vec());
         self
     }
 
@@ -81,7 +81,7 @@ impl AppTxBuilder {
         let app = self.app.unwrap();
         let func_idx = self.func_idx.unwrap();
 
-        let calldata = match self.callldata {
+        let calldata = match self.calldata {
             None => vec![],
             Some(calldata) => calldata.to_vec(),
         };
