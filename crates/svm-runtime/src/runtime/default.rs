@@ -393,12 +393,20 @@ where
         //
         // See [issue #140](https://github.com/spacemeshos/svm/issues/140)
         //
-        let func_size = calldata.len();
-        let view = &memory.view::<u8>()[0..func_size];
+        let view = &memory.view::<u8>()[0..calldata.len()];
 
         for (cell, &byte) in view.iter().zip(calldata.iter()) {
             cell.set(byte);
         }
+
+        // Syncing the `instance`'s underlying `SvmCtx` about the `calldata`
+        // ================================================================
+        // TODO: ask `instance` to allocate memory for the `calldata`
+        let calldata_ptr: i32 = 0;
+        // ================================================================
+
+        let svm_ctx = self.instance_svm_ctx(instance);
+        svm_ctx.set_calldata(calldata_ptr, calldata.len() as i32);
     }
 
     #[inline]
@@ -494,6 +502,12 @@ where
     fn instance_storage_mut(&self, instance: &mut wasmer_runtime::Instance) -> &mut AppStorage {
         let wasmer_ctx: &mut wasmer_runtime::Ctx = instance.context_mut();
         helpers::wasmer_data_app_storage(wasmer_ctx.data)
+    }
+
+    #[inline]
+    fn instance_svm_ctx<'a>(&self, instance: &'a mut wasmer_runtime::Instance) -> &'a mut SvmCtx {
+        let wasmer_ctx: &mut wasmer_runtime::Ctx = instance.context_mut();
+        helpers::wasmer_data_svm(wasmer_ctx.data)
     }
 
     fn import_object_create(
