@@ -163,58 +163,58 @@ function binToString(array) {
     return result;
 }
 
-describe('Encode Function Buffer', function () {
-    it('i32', function () {
+describe('Encode Calldata', function () {
+    function testCallData(instance, abi, data) {
+	const calldata = {
+	    abi: abi,
+	    data: data,
+	};	
+
+	let encoded = encodeCallData(instance, calldata);
+	let decoded = decodeCallData(instance, encoded);
+
+	assert.deepEqual(decoded, calldata);
+    }
+
+    it('i8', function () {
 	return compileWasmCodec().then(instance => {
-	    const object = {
-	    	abi: ['i32'],
-	    	data: [10],
-	    };	
-
-	    let encoded = encodeCallData(instance, object);
-	    let decoded = decodeCallData(instance, encoded);
-
-	    assert.deepEqual(decoded,
-	    		 {
-			     abi: ['i32'],
-			     data: [10]
-	    		 });
+	    testCallData(instance, ['i8'], [-10]);
 	})
     })
 
-    it('i64', function () {
+    it('u8', function () {
 	return compileWasmCodec().then(instance => {
-	    const object = {
-	    	abi: ['i64'],
-	    	data: [10],
-	    };	
+	    testCallData(instance, ['u8'], [10]);
+	})
+    })
 
-	    let encoded = encodeCallData(instance, object);
-	    let decoded = decodeCallData(instance, encoded);
+    it('i16', function () {
+	return compileWasmCodec().then(instance => {
+	    testCallData(instance, ['i16'], [-10]);
+	})
+    })
 
-	    assert.deepEqual(decoded,
-	    		 {
-			     abi: ['i64'],
-			     data: [10]
-	    		 });
+    it('u16', function () {
+	return compileWasmCodec().then(instance => {
+	    testCallData(instance, ['u16'], [10]);
+	})
+    })
+
+    it('i32', function () {
+	return compileWasmCodec().then(instance => {
+	    testCallData(instance, ['i32'], [-10]);
+	});
+    })
+
+    it('u32', function () {
+	return compileWasmCodec().then(instance => {
+	    testCallData(instance, ['u32'], [10]);
 	})
     })
 
     it('amount', function () {
 	return compileWasmCodec().then(instance => {
-	    const object = {
-	    	abi: ['amount'],
-	    	data: [10],
-	    };	
-
-	    let encoded = encodeCallData(instance, object);
-	    let decoded = decodeCallData(instance, encoded);
-
-	    assert.deepEqual(decoded,
-	    		 {
-			     abi: ['amount'],
-			     data: [10],
-	    		 });
+	    testCallData(instance, ['amount'], [10]);
 	})
     })
 
