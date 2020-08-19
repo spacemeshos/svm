@@ -19,6 +19,9 @@ pub mod types;
 /// SDK values
 pub mod value;
 
+/// Memory allocation on Heap
+pub mod memory;
+
 mod log;
 
 /// Logging API
