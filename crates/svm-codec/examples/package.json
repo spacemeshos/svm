@@ -26,6 +26,6 @@
   },
   "homepage": "https://github.com/spacemeshos/svm#readme",
   "dependencies": {
-    "mocha": "^8.0.1"
+    "mocha": "^8.1.1"
   }
 }

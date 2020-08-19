@@ -124,12 +124,6 @@ function generateAddress(s) {
     return repeatString(s, 20)
 }
 
-function generatePubKey256(s) {
-    // an `Address` takes 32 bytes
-    // which are 64 hexadecimal digits
-    return repeatString(s, 32)
-}
-
 function encodeCallData(instance, object) {
     const buf = wasmNewBuffer(instance, object);
     const result = instanceCall(instance, 'wasm_encode_calldata', buf);
@@ -182,8 +176,8 @@ describe('Encode Function Buffer', function () {
 
 	    assert.deepEqual(decoded,
 	    		 {
-	    		     func_args: ['10i32'],
-	    		     func_buf: []
+			     abi: ['i32'],
+			     data: [10]
 	    		 });
 	})
     })
@@ -200,8 +194,8 @@ describe('Encode Function Buffer', function () {
 
 	    assert.deepEqual(decoded,
 	    		 {
-	    		     func_args: ['10i64'],
-	    		     func_buf: []
+			     abi: ['i64'],
+			     data: [10]
 	    		 });
 	})
     })
@@ -218,17 +212,18 @@ describe('Encode Function Buffer', function () {
 
 	    assert.deepEqual(decoded,
 	    		 {
-	    		     func_args: ['10i64'],
-	    		     func_buf: []
+			     abi: ['amount'],
+			     data: [10],
 	    		 });
 	})
     })
 
     it('address', function () {
 	return compileWasmCodec().then(instance => {
+	    const addr = generateAddress('1020304050')
 	    const object = {
 	    	abi: ['address'],
-	    	data: [generateAddress('1020304050')],
+	    	data: [addr],
 	    };	
 
 	    let encoded = encodeCallData(instance, object);
@@ -236,34 +231,16 @@ describe('Encode Function Buffer', function () {
 
 	    assert.deepEqual(decoded,
 	    		 {
-	    		     func_args: [],
-	    		     func_buf: [{ address: generateAddress('1020304050') }]
+			     abi: ['address'],
+			     data: [addr],
 	    		 });
 	})
-    })
-
-    it('pubkey256', function () {
-    	return compileWasmCodec().then(instance => {
-    	    const object = {
-    	    	abi: ['pubkey256'],
-    	    	data: [generatePubKey256('10203040')]
-    	    };	
-
-    	    let encoded = encodeCallData(instance, object);
-    	    let decoded = decodeCallData(instance, encoded);
-
-    	    assert.deepEqual(decoded,
-    	    		 {
-			     func_args: [],
-    	    		     func_buf: [{ pubkey256: generatePubKey256('10203040') }]
-    	    		 });
-    	})
     })
 
     it('[address]', function () {
     	return compileWasmCodec().then(instance => {
 	    const addr1 = generateAddress('1020304050');
-	    const addr2 = generateAddress('a0b0c0d0');
+	    const addr2 = generateAddress('A0B0C0D0');
 
 	    const object = {
 	    	abi: [ ['address'] ],
@@ -275,55 +252,8 @@ describe('Encode Function Buffer', function () {
 
     	    assert.deepEqual(decoded,
     	    		 {
-			     func_args: [],
-    	    		     func_buf: [ [{address: addr1}, {address: addr2}] ]
-    	    		 });
-	})
-    });
-
-    it('[pubkey256]', function () {
-    	return compileWasmCodec().then(instance => {
-	    const pkey1 = generatePubKey256('10203040');
-	    const pkey2 = generatePubKey256('a0b0c0d0');
-
-	    const object = {
-	    	abi: [ ['pubkey256'] ],
-	    	data: [ [pkey1, pkey2] ],
-	    };	
-
-	    let encoded = encodeCallData(instance, object);
-    	    let decoded = decodeCallData(instance, encoded);
-
-    	    assert.deepEqual(decoded,
-    	    		 {
-			     func_args: [],
-    	    		     func_buf: [ [{pubkey256: pkey1}, {pubkey256: pkey2}] ]
-    	    		 });
-	})
-    });
-
-    it('[address, i32, [address], amount, pubkey256, i64]', function () {
-    	return compileWasmCodec().then(instance => {
-	    const addr1 = generateAddress('1020304050');
-	    const addr2 = generateAddress('a0b0c0d0');
-	    const addr3 = generateAddress('aabbccdd');
-	    const pkey1 = generatePubKey256('60708090');
-	    const i32 = 10;
-	    const amount = 20;
-	    const i64 = 30;
-
-	    const object = {
-	    	abi: ['address', 'i32', ['address'], 'amount', 'pubkey256', 'i64'],
-	    	data: [addr1, i32, [addr2, addr3], amount, pkey1, i64],
-	    };	
-
-	    let encoded = encodeCallData(instance, object);
-    	    let decoded = decodeCallData(instance, encoded);
-
-    	    assert.deepEqual(decoded,
-    	    		 {
-			     func_args: ['10i32', '20i64', '30i64'],
-    	    		     func_buf: [{address: addr1}, [{address: addr2}, {address: addr3}], {pubkey256: pkey1}] 
+			     abi: [ ['address'] ],
+			     data: [ [addr1, addr2] ]
     	    		 });
 	})
     });
@@ -395,8 +325,7 @@ describe('Spawn App', function () {
 	    template: template,
 	    name: name,
 	    ctor_index: 1,
-	    ctor_buf: calldata['func_buf'],
-	    ctor_args: calldata['func_args']
+	    calldata: calldata,
 	};
 
 	const buf = wasmNewBuffer(instance, tx);
@@ -428,16 +357,15 @@ describe('Spawn App', function () {
     it('Encodes & Decodes valid transactions', function () {
 	return compileWasmCodec().then(instance => {
 	    const template = generateAddress('1020304050');
-	    const pkey = generatePubKey256('11223344');
 	    const name = 'My App';
 
 	    const object = {
-	    	abi: ['i32', 'pubkey256', 'i64'],
-	    	data: [10, pkey, 20],
+	    	abi: ['i32', 'i64'],
+	    	data: [10, 20],
 	    };	
 
 	    let calldata = encodeCallData(instance, object);
-	    const bytes = encodeSpawnApp(instance, template, name, calldata);
+	    const bytes = encodeSpawnApp(instance, template, name, calldata['calldata']);
 	    const json = decodeSpawnApp(instance, bytes);
 
 	    assert.deepEqual(json,
@@ -446,8 +374,10 @@ describe('Spawn App', function () {
 				 template: template,
 				 name: name,
 				 ctor_index: 1,
-				 ctor_args: ['10i32', '20i64'],
-				 ctor_buf: [{pubkey256: pkey}],
+				 calldata: {
+				     abi: ['i32', 'i64'],
+				     data: [10, 20]
+				 }
 			     });
 	});
     })
@@ -476,8 +406,7 @@ describe('Execute App (a.k.a `Call Method`)', function () {
 	    version: 0,
 	    app: app,
 	    func_index: 1,
-	    func_buf: calldata['func_buf'],
-	    func_args: calldata['func_args']
+	    calldata: calldata,
 	};
 
 	const buf = wasmNewBuffer(instance, tx);
@@ -509,15 +438,14 @@ describe('Execute App (a.k.a `Call Method`)', function () {
     it('Encodes & Decodes valid transaction', function () {
 	return compileWasmCodec().then(instance => {
 	    const app = generateAddress('1020304050');
-	    const pkey = generatePubKey256('11223344');
 
 	    const object = {
-	    	abi: ['i32', 'pubkey256', 'i64'],
-	    	data: [10, pkey, 20],
+	    	abi: ['i32', 'i64'],
+	    	data: [10, 20],
 	    };	
 
 	    let calldata = encodeCallData(instance, object);
-	    const bytes = encodeExecApp(instance, app, calldata);
+	    const bytes = encodeExecApp(instance, app, calldata['calldata']);
 	    const json = decodeExecApp(instance, bytes);
 
 	    assert.deepEqual(json,
@@ -525,8 +453,10 @@ describe('Execute App (a.k.a `Call Method`)', function () {
 				 version: 0,
 				 app: app,
 				 func_index: 1,
-				 func_args: ['10i32', '20i64'],
-				 func_buf: [{pubkey256: pkey}],
+				 calldata: {
+				     abi: ['i32', 'i64'],
+				     data: [10, 20]
+				 }
 			     });
 	});
     })
