@@ -1,10 +1,16 @@
+use svm_abi_encoder::Encoder;
+
 use svm_codec::api::raw::Field;
 use svm_codec::error::ParseError;
+
 use svm_gas::error::ProgramError;
 use svm_layout::{DataLayout, VarId};
 use svm_runtime::{error::ValidateError, testing, testing::WasmFile, Runtime};
+
 use svm_types::receipt::{ExecReceipt, Log, SpawnAppReceipt, TemplateReceipt};
 use svm_types::{gas::MaybeGas, Address, HostCtx};
+
+use svm_sdk::value::AddressOwned;
 
 macro_rules! default_runtime {
     () => {{
@@ -211,51 +217,52 @@ fn default_runtime_calldata() {
     let version = 0;
     let author = Address::of("author").into();
     let maybe_gas = MaybeGas::new();
-    let layout: DataLayout = vec![4].into();
+    let layout: DataLayout = vec![20].into();
 
     let bytes = testing::build_template(
         version,
         "My Template",
         layout.clone(),
-        // WasmFile::Text(include_str!("wasm/runtime_calldata.wast")),
-        WasmFile::Binary(include_bytes!("wasm/runtime_calldata.wast")),
+        WasmFile::Binary(include_bytes!("wasm/runtime_calldata.wasm")),
     );
 
     let receipt = runtime.deploy_template(&bytes, &author, HostCtx::new(), maybe_gas);
-    dbg!(receipt);
-    // assert!(receipt.success);
+    assert!(receipt.success);
 
-    // let template_addr = receipt.addr.unwrap();
+    let template_addr = receipt.addr.unwrap();
 
-    // // 2) spawn app
-    // let name = "My App";
-    // let ctor_idx = 0;
-    // let calldata = vec![];
-    // let creator = Address::of("creator").into();
+    // 2) spawn app
+    let name = "My App";
+    let ctor_idx = 1; // initialize
+    let calldata = vec![];
+    let creator = Address::of("creator").into();
+    let bytes = testing::build_app(version, &template_addr, name, ctor_idx, &calldata);
+    let receipt = runtime.spawn_app(&bytes, &creator, HostCtx::new(), maybe_gas);
+    assert!(receipt.success);
 
-    // let bytes = testing::build_app(version, &template_addr, name, ctor_idx, &calldata);
-    // let receipt = runtime.spawn_app(&bytes, &creator, HostCtx::new(), maybe_gas);
-    // assert!(receipt.success);
+    let app_addr = receipt.get_app_addr();
+    let init_state = receipt.get_init_state();
 
-    // let app_addr = receipt.get_app_addr();
-    // let init_state = receipt.get_init_state();
+    // 3) executing an app-transaction
+    let func_idx = 2;
+    let msg = AddressOwned([0x10; 20]);
 
-    // // 3) executing an app-transaction
-    // let func_idx = 1;
-    // let calldata = vec![];
-    // let bytes = testing::build_app_tx(version, &app_addr, func_idx, &calldata);
+    let mut calldata = Vec::new();
+    msg.encode(&mut calldata);
 
-    // let receipt = runtime.exec_app(&bytes, &init_state, HostCtx::new(), maybe_gas);
-    // assert!(receipt.success);
+    let bytes = testing::build_app_tx(version, &app_addr, func_idx, &calldata);
 
-    // // now we'll read directly from the app's storage
-    // // and assert that the data has been persisted as expected.
+    let receipt = runtime.exec_app(&bytes, &init_state, HostCtx::new(), maybe_gas);
+    assert!(receipt.success);
 
-    // let state = receipt.get_new_state();
-    // let storage = runtime.open_app_storage(&app_addr, &state, &layout);
+    // now we'll read directly from the app's storage
+    // and assert that the data has been persisted as expected.
 
-    // let var = storage.read_var(VarId(0));
-    // assert_eq!(var, 10u32.to_le_bytes());
+    let state = receipt.get_new_state();
+    let storage = runtime.open_app_storage(&app_addr, &state, &layout);
+
+    let var = storage.read_var(VarId(0));
+    assert_eq!(var, [0x10; 20]);
 }
 
 #[test]

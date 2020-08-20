@@ -5,6 +5,7 @@ use svm_sdk::value::Address;
 
 const VAR_ID: i32 = 0;
 
+#[link(wasm_import_module = "svm")]
 extern "C" {
     fn calldata_ptr() -> i32;
 
@@ -22,6 +23,11 @@ fn get_calldata() -> &'static [u8] {
 
         core::slice::from_raw_parts(ptr as *const u8, len as usize)
     }
+}
+
+#[no_mangle]
+pub extern "C" fn initialize() {
+    //
 }
 
 #[no_mangle]

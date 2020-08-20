@@ -41,3 +41,5 @@ branch = "develop"
 
 [dev-dependencies]
 maplit = "1.0.2"
+svm-sdk = { path = "../svm-sdk" }
+svm-abi-encoder = { path = "../svm-abi/encoder" }
