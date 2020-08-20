@@ -944,7 +944,6 @@ dependencies = [
  "svm-nibble",
  "svm-runtime",
  "svm-runtime-c-api",
- "svm-runtime-examples-calldata",
  "svm-sdk",
  "svm-storage",
  "svm-types",
@@ -1105,14 +1104,6 @@ dependencies = [
  "wabt",
  "wasmer-runtime-c-api",
  "wasmer-runtime-core",
-]
-
-[[package]]
-name = "svm-runtime-examples-calldata"
-version = "0.1.0"
-dependencies = [
- "svm-abi-decoder",
- "svm-sdk",
 ]
 
 [[package]]
