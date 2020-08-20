@@ -20,6 +20,21 @@ use svm_storage::{
 use svm_types::{gas::MaybeGas, receipt::Log, Address, AppAddr, State, TemplateAddr, WasmValue};
 use wasmer_runtime_core::{export::Export, import::ImportObject, Instance, Module};
 
+pub enum WasmFile<'a> {
+    Text(&'a str),
+
+    Binary(&'a [u8]),
+}
+
+impl<'a> WasmFile<'a> {
+    fn into_bytes(self) -> Vec<u8> {
+        match self {
+            Self::Text(wat) => wabt::wat2wasm(wat).unwrap(),
+            Self::Binary(wasm) => wasm.to_vec(),
+        }
+    }
+}
+
 /// Compiles a wasm program in text format (a.k.a WAST) into a `Module` (`wasmer`)
 pub fn wasmer_compile(wasm: &str, gas_limit: MaybeGas) -> Module {
     let wasm = wabt::wat2wasm(&wasm).unwrap();
@@ -142,23 +157,13 @@ pub fn runtime_memory_env_builder() -> DefaultMemoryEnv {
 }
 
 /// Synthesizes a raw deploy-template transaction.
-pub fn build_template(
-    version: u32,
-    name: &str,
-    data: DataLayout,
-    wasm: &str,
-    is_wast: bool,
-) -> Vec<u8> {
-    let code = if is_wast {
-        wabt::wat2wasm(wasm).unwrap()
-    } else {
-        wasm.as_bytes().to_vec()
-    };
+pub fn build_template(version: u32, name: &str, data: DataLayout, wasm: WasmFile) -> Vec<u8> {
+    let wasm = wasm.into_bytes();
 
     DeployAppTemplateBuilder::new()
         .with_version(version)
         .with_name(name)
-        .with_code(code.as_slice())
+        .with_code(&wasm)
         .with_data(&data)
         .build()
 }

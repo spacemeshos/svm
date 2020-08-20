@@ -2,7 +2,7 @@ use svm_codec::api::raw::Field;
 use svm_codec::error::ParseError;
 use svm_gas::error::ProgramError;
 use svm_layout::{DataLayout, VarId};
-use svm_runtime::{error::ValidateError, testing, Runtime};
+use svm_runtime::{error::ValidateError, testing, testing::WasmFile, Runtime};
 use svm_types::receipt::{ExecReceipt, Log, SpawnAppReceipt, TemplateReceipt};
 use svm_types::{gas::MaybeGas, Address, HostCtx};
 
@@ -36,15 +36,13 @@ fn default_runtime_validate_template_invalid_wasm() {
     let runtime = default_runtime!();
 
     let version = 0;
-    let is_wast = true;
 
     // invalid wasm (has floats)
     let bytes = testing::build_template(
         version,
         "My Template",
         DataLayout::empty(),
-        include_str!("wasm/wasm_with_floats.wast"),
-        is_wast,
+        WasmFile::Text(include_str!("wasm/wasm_with_floats.wast")),
     );
 
     let prog_err = ProgramError::FloatsNotAllowed;
@@ -86,14 +84,12 @@ fn default_runtime_deploy_template_reaches_oog() {
     let version = 0;
     let author = Address::of("author").into();
     let maybe_gas = MaybeGas::with(0);
-    let is_wast = true;
 
     let bytes = testing::build_template(
         version,
         "My Template",
         DataLayout::empty(),
-        include_str!("wasm/runtime_app_ctor.wast"),
-        is_wast,
+        WasmFile::Text(include_str!("wasm/runtime_app_ctor.wast")),
     );
 
     let expected = TemplateReceipt::new_oog();
@@ -108,14 +104,12 @@ fn default_runtime_deploy_template_has_enough_gas() {
     let version = 0;
     let author = Address::of("author").into();
     let gas_limit = MaybeGas::with(1_0000_000);
-    let is_wast = true;
 
     let bytes = testing::build_template(
         version,
         "My Template",
         DataLayout::empty(),
-        include_str!("wasm/runtime_app_ctor.wast"),
-        is_wast,
+        WasmFile::Text(include_str!("wasm/runtime_app_ctor.wast")),
     );
 
     let receipt = runtime.deploy_template(&bytes, &author, HostCtx::new(), gas_limit);
@@ -131,15 +125,13 @@ fn default_runtime_spawn_app_with_ctor_reaches_oog() {
     let version = 0;
     let author = Address::of("author").into();
     let creator = Address::of("creator").into();
-    let is_wast = true;
     let maybe_gas = MaybeGas::new();
 
     let bytes = testing::build_template(
         version,
         "My Template",
         DataLayout::empty(),
-        include_str!("wasm/runtime_app_ctor.wast"),
-        is_wast,
+        WasmFile::Text(include_str!("wasm/runtime_app_ctor.wast")),
     );
 
     let receipt = runtime.deploy_template(&bytes, &author, HostCtx::new(), maybe_gas);
@@ -174,7 +166,6 @@ fn default_runtime_spawn_app_with_ctor_with_enough_gas() {
     let version = 0;
     let author = Address::of("author").into();
     let creator = Address::of("creator").into();
-    let is_wast = true;
     let maybe_gas = MaybeGas::new();
 
     // data layout consists on one variable of 8 bytes (offsets: `[0..8)`)
@@ -184,8 +175,7 @@ fn default_runtime_spawn_app_with_ctor_with_enough_gas() {
         version,
         "My Template",
         layout.clone(),
-        include_str!("wasm/runtime_app_ctor.wast"),
-        is_wast,
+        WasmFile::Text(include_str!("wasm/runtime_app_ctor.wast")),
     );
 
     let receipt = runtime.deploy_template(&bytes, &author, HostCtx::new(), maybe_gas);
@@ -214,13 +204,12 @@ fn default_runtime_spawn_app_with_ctor_with_enough_gas() {
 }
 
 #[test]
-fn default_runtime_exec_app() {
+fn default_runtime_calldata() {
     let mut runtime = default_runtime!();
 
     // 1) deploying the template
     let version = 0;
     let author = Address::of("author").into();
-    let is_wast = true;
     let maybe_gas = MaybeGas::new();
     let layout: DataLayout = vec![4].into();
 
@@ -228,44 +217,45 @@ fn default_runtime_exec_app() {
         version,
         "My Template",
         layout.clone(),
-        include_str!("wasm/runtime_exec_app.wast"),
-        is_wast,
+        // WasmFile::Text(include_str!("wasm/runtime_calldata.wast")),
+        WasmFile::Binary(include_bytes!("wasm/runtime_calldata.wast")),
     );
 
     let receipt = runtime.deploy_template(&bytes, &author, HostCtx::new(), maybe_gas);
-    assert!(receipt.success);
+    dbg!(receipt);
+    // assert!(receipt.success);
 
-    let template_addr = receipt.addr.unwrap();
+    // let template_addr = receipt.addr.unwrap();
 
-    // 2) spawn app
-    let name = "My App";
-    let ctor_idx = 0;
-    let calldata = vec![];
-    let creator = Address::of("creator").into();
+    // // 2) spawn app
+    // let name = "My App";
+    // let ctor_idx = 0;
+    // let calldata = vec![];
+    // let creator = Address::of("creator").into();
 
-    let bytes = testing::build_app(version, &template_addr, name, ctor_idx, &calldata);
-    let receipt = runtime.spawn_app(&bytes, &creator, HostCtx::new(), maybe_gas);
-    assert!(receipt.success);
+    // let bytes = testing::build_app(version, &template_addr, name, ctor_idx, &calldata);
+    // let receipt = runtime.spawn_app(&bytes, &creator, HostCtx::new(), maybe_gas);
+    // assert!(receipt.success);
 
-    let app_addr = receipt.get_app_addr();
-    let init_state = receipt.get_init_state();
+    // let app_addr = receipt.get_app_addr();
+    // let init_state = receipt.get_init_state();
 
-    // 3) executing an app-transaction
-    let func_idx = 1;
-    let calldata = vec![];
-    let bytes = testing::build_app_tx(version, &app_addr, func_idx, &calldata);
+    // // 3) executing an app-transaction
+    // let func_idx = 1;
+    // let calldata = vec![];
+    // let bytes = testing::build_app_tx(version, &app_addr, func_idx, &calldata);
 
-    let receipt = runtime.exec_app(&bytes, &init_state, HostCtx::new(), maybe_gas);
-    assert!(receipt.success);
+    // let receipt = runtime.exec_app(&bytes, &init_state, HostCtx::new(), maybe_gas);
+    // assert!(receipt.success);
 
-    // now we'll read directly from the app's storage
-    // and assert that the data has been persisted as expected.
+    // // now we'll read directly from the app's storage
+    // // and assert that the data has been persisted as expected.
 
-    let state = receipt.get_new_state();
-    let storage = runtime.open_app_storage(&app_addr, &state, &layout);
+    // let state = receipt.get_new_state();
+    // let storage = runtime.open_app_storage(&app_addr, &state, &layout);
 
-    let var = storage.read_var(VarId(0));
-    assert_eq!(var, 10u32.to_le_bytes());
+    // let var = storage.read_var(VarId(0));
+    // assert_eq!(var, 10u32.to_le_bytes());
 }
 
 #[test]
@@ -277,7 +267,6 @@ fn default_runtime_exec_app_reaches_oog() {
     let version = 0;
     let author = Address::of("author").into();
     let creator = Address::of("creator").into();
-    let is_wast = true;
     let maybe_gas = MaybeGas::new();
     let layout: DataLayout = vec![4].into();
 
@@ -285,8 +274,7 @@ fn default_runtime_exec_app_reaches_oog() {
         version,
         "My Template",
         layout,
-        include_str!("wasm/runtime_exec_app.wast"),
-        is_wast,
+        WasmFile::Text(include_str!("wasm/runtime_exec_app.wast")),
     );
 
     let receipt = runtime.deploy_template(&bytes, &author, HostCtx::new(), maybe_gas);
