@@ -7,8 +7,10 @@ use svm_runtime_c_api::svm_byte_array;
 
 use std::{collections::HashMap, ffi::c_void};
 
+use svm_abi_encoder::Encoder;
 use svm_codec::api::raw;
 use svm_layout::DataLayout;
+use svm_runtime::testing::WasmFile;
 use svm_types::{Address, State};
 
 unsafe fn create_imports() -> *const c_void {
@@ -21,10 +23,9 @@ unsafe fn create_imports() -> *const c_void {
     imports as _
 }
 
-fn deploy_template_bytes(version: u32, name: &str, wasm: &str) -> (Vec<u8>, u32) {
-    let is_wast = true;
+fn deploy_template_bytes(version: u32, name: &str, wasm: &[u8]) -> (Vec<u8>, u32) {
     let data: DataLayout = vec![4].into();
-    let bytes = svm_runtime::testing::build_template(version, name, data, wasm, is_wast);
+    let bytes = svm_runtime::testing::build_template(version, name, data, WasmFile::Binary(wasm));
     let length = bytes.len() as u32;
 
     (bytes, length)
@@ -95,7 +96,7 @@ unsafe fn test_svm_runtime() {
 
     // 2) deploy app-template
     let author = Address::of("author").into();
-    let code = include_str!("wasm/counter.wast");
+    let wasm = include_bytes!("wasm/counter.wasm");
 
     // raw `host ctx`
     let (bytes, length) = host_ctx_bytes(version, hashmap! {});
@@ -105,7 +106,7 @@ unsafe fn test_svm_runtime() {
     };
 
     // raw template
-    let (bytes, length) = deploy_template_bytes(version, "My Template", code);
+    let (bytes, length) = deploy_template_bytes(version, "My Template", wasm);
     let template_bytes = svm_byte_array {
         bytes: bytes.as_ptr(),
         length: length,
@@ -132,8 +133,11 @@ unsafe fn test_svm_runtime() {
     // 3) spawn app
     let name = "My App";
     let spawner = Address::of("spawner").into();
-    let ctor_idx = 0;
-    let calldata = vec![];
+    let ctor_idx = 1;
+    let mut counter: u32 = 10;
+
+    let mut calldata = Vec::new();
+    counter.encode(&mut calldata);
 
     // raw `spawn-app`
     let (bytes, length) = spawn_app_bytes(version, &template_addr, name, ctor_idx, &calldata);
@@ -166,7 +170,10 @@ unsafe fn test_svm_runtime() {
 
     // 4) execute app
     let func_idx = 1;
-    let calldata = vec![];
+
+    counter += 10;
+    let mut calldata = Vec::new();
+    counter.encode(&mut calldata);
 
     let (bytes, length) = exec_app_bytes(version, &app_addr, func_idx, &calldata);
     let tx_bytes = svm_byte_array {

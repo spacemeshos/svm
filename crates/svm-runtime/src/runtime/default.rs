@@ -345,7 +345,8 @@ where
                 let storage = self.instance_storage_mut(&mut instance);
                 let new_state = Some(storage.commit());
 
-                let returns = self.cast_wasmer_func_returns(returns);
+                // TODO: return theh `returndata` back
+                let returns = Ok(Vec::new());
 
                 if let Err(err) = returns {
                     return (Err(err), logs);
@@ -370,7 +371,7 @@ where
             Ok((new_state, returns, gas_used)) => ExecReceipt {
                 success: true,
                 error: None,
-                returns: None,
+                returns: Some(Vec::new()),
                 new_state,
                 gas_used,
                 logs,
@@ -418,23 +419,6 @@ where
     fn instance_logs(&self, instance: &wasmer_runtime::Instance) -> Vec<Log> {
         let ctx = instance.context();
         helpers::wasmer_data_logs(ctx.data)
-    }
-
-    fn cast_wasmer_func_returns(
-        &self,
-        returns: Vec<WasmerValue>,
-    ) -> Result<Vec<WasmValue>, ReceiptError> {
-        let mut values = Vec::new();
-
-        for ret in returns.iter() {
-            match ret {
-                WasmerValue::I32(v) => values.push(WasmValue::I32(*v as u32)),
-                WasmerValue::I64(v) => values.push(WasmValue::I64(*v as u64)),
-                _ => unreachable!(),
-            }
-        }
-
-        Ok(values)
     }
 
     fn instantiate(
