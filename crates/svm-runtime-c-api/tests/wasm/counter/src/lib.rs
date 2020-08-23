@@ -1,6 +1,7 @@
 #![no_std]
 
 use svm_abi_decoder::{Cursor, Decoder};
+use svm_sdk;
 
 const VAR_ID: u32 = 0;
 
@@ -22,6 +23,11 @@ fn get_calldata() -> &'static [u8] {
 
         core::slice::from_raw_parts(ptr as *const u8, len as usize)
     }
+}
+
+#[no_mangle]
+pub extern "C" fn svm_alloc(size: i32) -> i32 {
+    svm_sdk::memory::alloc(size as usize) as i32
 }
 
 #[no_mangle]

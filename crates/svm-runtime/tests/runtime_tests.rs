@@ -244,7 +244,7 @@ fn default_runtime_calldata() {
     let init_state = receipt.get_init_state();
 
     // 3) executing an app-transaction
-    let func_idx = 2;
+    let func_idx = 3;
     let msg = AddressOwned([0x10; 20]);
 
     let mut calldata = Vec::new();
