@@ -321,7 +321,7 @@ where
 
         let mut instance = instance.unwrap();
 
-        let wasm_ptr = self.alloc_calldata(&tx.calldata, &mut instance);
+        let wasm_ptr = self.alloc_calldata(tx, template_addr, &mut instance);
         if let Err(err) = wasm_ptr {
             return (Err(err), empty_logs);
         }
@@ -352,7 +352,7 @@ where
                 let storage = self.instance_storage_mut(&mut instance);
                 let new_state = Some(storage.commit());
 
-                // TODO: return theh `returndata` back
+                // TODO: return the `returndata` back
                 let returns = Ok(Vec::new());
 
                 if let Err(err) = returns {
@@ -388,22 +388,38 @@ where
 
     fn alloc_calldata(
         &self,
-        calldata: &[u8],
+        tx: &AppTransaction,
+        template_addr: &TemplateAddr,
         instance: &mut wasmer_runtime::Instance,
     ) -> Result<WasmPtr<u8>, ReceiptError> {
         let alloc = instance.exports.get("svm_alloc");
 
         if alloc.is_err() {
-            todo!("return an error");
+            let err = ReceiptError::FuncNotFound {
+                app_addr: tx.app.clone(),
+                template_addr: template_addr.clone(),
+                func_idx: 0, // TODO: this field will be discarded once we get rid of the `func_idx`
+                             // we'll use `func_name` (String instead).
+            };
+
+            return Err(err);
         }
 
         let alloc: wasmer_runtime::Func<(i32), i32> = alloc.unwrap();
 
-        let size = calldata.len() as i32;
+        let size = tx.calldata.len() as i32;
         let res = alloc.call(size);
 
         if res.is_err() {
-            todo!("return allocation failed...");
+            let err = ReceiptError::FuncFailed {
+                app_addr: tx.app.clone(),
+                template_addr: template_addr.clone(),
+                msg: "Allocation failed for `svm_alloc`".to_string(),
+                func_idx: 0, // TODO: this field will be discarded once we get rid of the `func_idx`
+                             // we'll use `func_name` (String instead).
+            };
+
+            return Err(err);
         }
 
         let offset: i32 = res.unwrap();
