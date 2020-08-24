@@ -34,10 +34,7 @@ default-features = false
 git = "https://github.com/spacemeshos/wasmer"
 branch = "develop"
 
-# [dependencies.wasmer-middleware-common]
-# default-features = false
-# git = "https://github.com/spacemeshos/wasmer"
-# branch = "develop"
-
 [dev-dependencies]
 maplit = "1.0.2"
+svm-sdk = { path = "../svm-sdk" }
+svm-abi-encoder = { path = "../svm-abi/encoder" }

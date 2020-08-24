@@ -2,8 +2,6 @@ mod calldata;
 mod deploy_template;
 mod error;
 mod exec_app;
-mod func_args;
-mod func_buf;
 mod receipt;
 mod spawn_app;
 
@@ -11,14 +9,13 @@ pub use calldata::{decode_calldata, encode_calldata};
 pub use deploy_template::deploy_template;
 pub use error::JsonError;
 pub use exec_app::{decode_exec_app, encode_exec_app};
-pub use func_args::{decode_func_args, encode_func_args};
-pub use func_buf::{decode_func_buf, encode_func_buf};
 pub use receipt::decode_receipt;
 pub use spawn_app::{decode_spawn_app, encode_spawn_app};
 
 use serde_json::{json, Value};
 
-use svm_types::{gas::MaybeGas, receipt::Log, Address, State, WasmValue};
+use svm_sdk::Amount;
+use svm_types::{gas::MaybeGas, receipt::Log, Address, State};
 
 pub(crate) fn to_bytes(json: &Value) -> Result<Vec<u8>, JsonError> {
     match serde_json::to_string(&json) {
@@ -27,105 +24,218 @@ pub(crate) fn to_bytes(json: &Value) -> Result<Vec<u8>, JsonError> {
     }
 }
 
-pub(crate) fn as_array<'a>(json: &'a Value, field: &str) -> Result<&'a Vec<Value>, JsonError> {
-    let value: &Value = &json[field];
+pub(crate) fn as_bool(json: &Value, field: &str) -> Result<bool, JsonError> {
+    let v: &Value = &json[field];
 
-    match value.as_array() {
-        None => Err(JsonError::InvalidField {
+    v.as_bool().ok_or(JsonError::InvalidField {
+        field: field.to_string(),
+        reason: format!("value `{}` isn't a boolean", v),
+    })
+}
+
+pub(crate) fn as_u8(json: &Value, field: &str) -> Result<u8, JsonError> {
+    let v: &Value = &json[field];
+
+    v.as_u64()
+        .ok_or(JsonError::InvalidField {
             field: field.to_string(),
-            reason: format!("value `{}` isn't an Array", value),
-        }),
-        Some(value) => Ok(value),
-    }
+            reason: format!("value `{}` isn't a number", v),
+        })
+        .and_then(|v| {
+            if v > std::u8::MAX as u64 {
+                Err(JsonError::InvalidField {
+                    field: field.to_string(),
+                    reason: format!("value `{}` doesn't fit into `u8`", v),
+                })
+            } else {
+                Ok(v as u8)
+            }
+        })
+}
+
+pub(crate) fn as_i8(json: &Value, field: &str) -> Result<i8, JsonError> {
+    let v: &Value = &json[field];
+
+    v.as_i64()
+        .ok_or(JsonError::InvalidField {
+            field: field.to_string(),
+            reason: format!("value `{}` isn't a number", v),
+        })
+        .and_then(|v| {
+            if v > std::i8::MAX as i64 || v < std::i8::MIN as i64 {
+                Err(JsonError::InvalidField {
+                    field: field.to_string(),
+                    reason: format!("value `{}` doesn't fit into `i8`", v),
+                })
+            } else {
+                Ok(v as i8)
+            }
+        })
 }
 
 pub(crate) fn as_u16(json: &Value, field: &str) -> Result<u16, JsonError> {
-    let value: &Value = &json[field];
+    let v: &Value = &json[field];
 
-    match value.as_u64() {
-        None => Err(JsonError::InvalidField {
+    v.as_u64()
+        .ok_or(JsonError::InvalidField {
             field: field.to_string(),
-            reason: format!("value `{}` isn't a number", value),
-        }),
-        Some(value) => {
-            if value > std::u16::MAX as u64 {
+            reason: format!("value `{}` isn't a number", v),
+        })
+        .and_then(|v| {
+            if v > std::u16::MAX as u64 {
                 Err(JsonError::InvalidField {
                     field: field.to_string(),
-                    reason: format!("value `{}` doesn't fit into 16-bit integer", value),
+                    reason: format!("value `{}` doesn't fit into `u16` integer", v),
                 })
             } else {
-                Ok(value as u16)
+                Ok(v as u16)
+            }
+        })
+}
+
+pub(crate) fn as_i16(json: &Value, field: &str) -> Result<i16, JsonError> {
+    let v: &Value = &json[field];
+
+    match v.as_i64() {
+        None => Err(JsonError::InvalidField {
+            field: field.to_string(),
+            reason: format!("value `{}` isn't a number", v),
+        }),
+        Some(v) => {
+            if v > std::i16::MAX as i64 || v < std::i16::MIN as i64 {
+                Err(JsonError::InvalidField {
+                    field: field.to_string(),
+                    reason: format!("value `{}` doesn't fit into `i16` integer", v),
+                })
+            } else {
+                Ok(v as i16)
             }
         }
     }
 }
 
 pub(crate) fn as_u32(json: &Value, field: &str) -> Result<u32, JsonError> {
-    let value: &Value = &json[field];
+    let v: &Value = &json[field];
 
-    match value.as_u64() {
-        None => Err(JsonError::InvalidField {
+    v.as_u64()
+        .ok_or(JsonError::InvalidField {
             field: field.to_string(),
-            reason: format!("value `{}` isn't a number", value),
-        }),
-        Some(value) => {
-            if value > std::u32::MAX as u64 {
+            reason: format!("value `{}` isn't a number", v),
+        })
+        .and_then(|v| {
+            if v > std::u32::MAX as u64 {
                 Err(JsonError::InvalidField {
                     field: field.to_string(),
-                    reason: format!("value `{}` doesn't fit into 32-bit integer", value),
+                    reason: format!("value `{}` doesn't fit into `u32` integer", v),
                 })
             } else {
-                Ok(value as u32)
+                Ok(v as u32)
             }
-        }
-    }
+        })
 }
 
-fn as_byte(c1: char, c2: char) -> u8 {
-    let c1 = c1.to_digit(16).unwrap() as u8;
-    let c2 = c2.to_digit(16).unwrap() as u8;
+pub(crate) fn as_i32(json: &Value, field: &str) -> Result<i32, JsonError> {
+    let v: &Value = &json[field];
 
-    (c1 << 4) | c2
+    v.as_i64()
+        .ok_or(JsonError::InvalidField {
+            field: field.to_string(),
+            reason: format!("value `{}` isn't a number", v),
+        })
+        .and_then(|v| {
+            if v > std::i32::MAX as i64 || v < std::i32::MIN as i64 {
+                Err(JsonError::InvalidField {
+                    field: field.to_string(),
+                    reason: format!("value `{}` doesn't fit into `i32` integer", v),
+                })
+            } else {
+                Ok(v as i32)
+            }
+        })
+}
+
+pub(crate) fn as_u64(json: &Value, field: &str) -> Result<u64, JsonError> {
+    let v: &Value = &json[field];
+
+    v.as_u64().ok_or(JsonError::InvalidField {
+        field: field.to_string(),
+        reason: format!("value `{}` isn't a u64 number", v),
+    })
+}
+
+pub(crate) fn as_i64(json: &Value, field: &str) -> Result<i64, JsonError> {
+    let v: &Value = &json[field];
+
+    v.as_i64().ok_or(JsonError::InvalidField {
+        field: field.to_string(),
+        reason: format!("value `{}` isn't a i64 number", v),
+    })
+}
+
+pub(crate) fn as_amount(json: &Value, field: &str) -> Result<Amount, JsonError> {
+    let v: &Value = &json[field];
+
+    v.as_u64()
+        .map(|v| Amount(v))
+        .ok_or(JsonError::InvalidField {
+            field: field.to_string(),
+            reason: format!("value `{}` isn't a number", v),
+        })
 }
 
 pub(crate) fn as_string(json: &Value, field: &str) -> Result<String, JsonError> {
-    let value: &Value = &json[field];
+    let v: &Value = &json[field];
 
-    match value.as_str() {
-        None => Err(JsonError::InvalidField {
+    v.as_str()
+        .map(|v| v.to_string())
+        .ok_or(JsonError::InvalidField {
             field: field.to_string(),
-            reason: format!("value `{}` isn't a string", value),
-        }),
-        Some(value) => Ok(value.to_string()),
-    }
+            reason: format!("value `{}` isn't a string", v),
+        })
+}
+
+pub(crate) fn as_array<'a>(json: &'a Value, field: &str) -> Result<&'a Vec<Value>, JsonError> {
+    let v: &Value = &json[field];
+
+    v.as_array().ok_or(JsonError::InvalidField {
+        field: field.to_string(),
+        reason: format!("value `{}` isn't an Array", v),
+    })
 }
 
 pub(crate) fn bytes_to_str(bytes: &[u8]) -> String {
     svm_common::fmt::fmt_hex(bytes, "")
 }
 
-pub(crate) fn str_to_bytes(value: &str, field: &str) -> Result<Vec<u8>, JsonError> {
-    if value.len() % 2 == 1 {
+pub(crate) fn str_to_bytes(v: &str, field: &str) -> Result<Vec<u8>, JsonError> {
+    if v.len() % 2 == 1 {
         return Err(JsonError::InvalidField {
             field: field.to_string(),
             reason: "value should be of even length".to_string(),
         });
     }
 
-    if value.chars().any(|c| c.is_ascii_hexdigit() == false) {
+    if v.chars().any(|c| c.is_ascii_hexdigit() == false) {
         return Err(JsonError::InvalidField {
             field: field.to_string(),
             reason: "value should have only hex digits".to_string(),
         });
     }
 
-    let bytes = value
+    fn chars_as_byte(c1: char, c2: char) -> u8 {
+        let c1 = c1.to_digit(16).unwrap() as u8;
+        let c2 = c2.to_digit(16).unwrap() as u8;
+
+        (c1 << 4) | c2
+    }
+
+    let bytes = v
         .chars()
         .collect::<Vec<_>>()
         .chunks_exact(2)
         .map(|slice| {
             let (c1, c2) = (slice[0], slice[1]);
-            as_byte(c1, c2)
+            chars_as_byte(c1, c2)
         })
         .collect();
 
@@ -133,8 +243,8 @@ pub(crate) fn str_to_bytes(value: &str, field: &str) -> Result<Vec<u8>, JsonErro
 }
 
 pub(crate) fn as_blob(json: &Value, field: &str) -> Result<Vec<u8>, JsonError> {
-    let value = as_string(json, field)?;
-    str_to_bytes(&value, field)
+    let v = as_string(json, field)?;
+    str_to_bytes(&v, field)
 }
 
 pub(crate) fn as_addr(json: &Value, field: &str) -> Result<Address, JsonError> {
@@ -172,16 +282,6 @@ pub(crate) fn gas_to_json(gas: &MaybeGas) -> i64 {
     }
 }
 
-pub(crate) fn wasm_values_to_json(values: &[WasmValue]) -> Vec<String> {
-    values
-        .iter()
-        .map(|v| match v {
-            WasmValue::I32(v) => format!("{}i32", v),
-            WasmValue::I64(v) => format!("{}i64", v),
-        })
-        .collect()
-}
-
 pub(crate) fn logs_to_json(logs: &[Log]) -> Vec<Value> {
     logs.iter()
         .map(|log| {
@@ -193,70 +293,6 @@ pub(crate) fn logs_to_json(logs: &[Log]) -> Vec<Value> {
             })
         })
         .collect()
-}
-
-pub(crate) fn as_wasm_value(json: &Value, field: &str) -> Result<WasmValue, JsonError> {
-    let value = match json {
-        Value::String(s) => s,
-        _ => {
-            return Err(JsonError::InvalidField {
-                field: field.to_string(),
-                reason: format!("wasm vaulue should be of a string"),
-            })
-        }
-    };
-
-    let len = value.len();
-    let is_i32 = value.ends_with("i32");
-    let is_i64 = value.ends_with("i64");
-    let mut valid = true;
-
-    if valid && is_i32 {
-        let value = &value[0..(len - 3)];
-
-        match value.parse::<u32>() {
-            Ok(v) => return Ok(WasmValue::I32(v)),
-            Err(..) => valid = false,
-        }
-    }
-
-    if valid && is_i64 {
-        let value = &value[0..(len - 3)];
-
-        match value.parse::<u64>() {
-            Ok(v) => return Ok(WasmValue::I64(v)),
-            Err(..) => valid = false,
-        }
-    }
-
-    debug_assert!(!valid);
-
-    Err(JsonError::InvalidField {
-        field: field.to_string(),
-        reason: "item should be of pattern `{number}i32` or `{number}i64`".to_string(),
-    })
-}
-
-pub(crate) fn as_wasm_values(json: &Value, field: &str) -> Result<Vec<WasmValue>, JsonError> {
-    let value: &Value = &json[field];
-
-    match value.as_array() {
-        Some(vec) => {
-            let mut values = Vec::with_capacity(vec.len());
-            let field = format!("{} (array item)", field);
-
-            for v in vec.iter() {
-                let v = as_wasm_value(v, &field)?;
-                values.push(v);
-            }
-
-            Ok(values)
-        }
-        None => Err(JsonError::InvalidField {
-            field: field.to_string(),
-            reason: format!("value `{}` isn't an array", value),
-        }),
-    }
 }
 
 #[cfg(test)]
@@ -378,84 +414,6 @@ mod test {
             JsonError::InvalidField {
                 field: "addr".to_string(),
                 reason: "value should have only hex digits".to_string(),
-            }
-        );
-    }
-
-    #[test]
-    fn json_as_wasm_values_i32_valid() {
-        let json = json!({
-            "args": ["10i32", "20i32"]
-        });
-
-        let args = as_wasm_values(&json, "args").unwrap();
-        assert_eq!(args, vec![WasmValue::I32(10), WasmValue::I32(20)]);
-    }
-
-    #[test]
-    fn json_as_wasm_values_i64_valid() {
-        let json = json!({
-            "args": ["10i64", "20i64"]
-        });
-
-        let args = as_wasm_values(&json, "args").unwrap();
-        assert_eq!(args, vec![WasmValue::I64(10), WasmValue::I64(20)]);
-    }
-
-    #[test]
-    fn json_as_wasm_values_i32_and_i64_valid() {
-        let json = json!({
-            "args": ["10i32", "20i64"]
-        });
-
-        let args = as_wasm_values(&json, "args").unwrap();
-        assert_eq!(args, vec![WasmValue::I32(10), WasmValue::I64(20)]);
-    }
-
-    #[test]
-    fn json_as_wasm_values_i32_invalid() {
-        let json = json!({
-            "args": ["NaNi32"]
-        });
-
-        let err = as_wasm_values(&json, "args").unwrap_err();
-        assert_eq!(
-            err,
-            JsonError::InvalidField {
-                field: "args (array item)".to_string(),
-                reason: "item should be of pattern `{number}i32` or `{number}i64`".to_string(),
-            }
-        );
-    }
-
-    #[test]
-    fn json_as_wasm_values_i64_invalid() {
-        let json = json!({
-            "args": ["NaNi64"]
-        });
-
-        let err = as_wasm_values(&json, "args").unwrap_err();
-        assert_eq!(
-            err,
-            JsonError::InvalidField {
-                field: "args (array item)".to_string(),
-                reason: "item should be of pattern `{number}i32` or `{number}i64`".to_string(),
-            }
-        );
-    }
-
-    #[test]
-    fn json_as_wasm_values_invalid_type() {
-        let json = json!({
-            "args": "10i32"
-        });
-
-        let err = as_wasm_values(&json, "args").unwrap_err();
-        assert_eq!(
-            err,
-            JsonError::InvalidField {
-                field: "args".to_string(),
-                reason: r#"value `"10i32"` isn't an array"#.to_string()
             }
         );
     }

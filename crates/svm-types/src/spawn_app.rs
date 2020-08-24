@@ -11,11 +11,8 @@ pub struct SpawnApp {
     /// ctor function index
     pub ctor_idx: u16,
 
-    /// ctor function buffer
-    pub ctor_buf: Vec<u8>,
-
-    /// ctor function args
-    pub ctor_args: Vec<WasmValue>,
+    /// calldata
+    pub calldata: Vec<u8>,
 }
 
 impl fmt::Debug for SpawnApp {
@@ -25,9 +22,8 @@ impl fmt::Debug for SpawnApp {
         writeln!(f, "ctor_idx: {}", self.ctor_idx)?;
         writeln!(
             f,
-            "ctor_buf: {:?}",
-            self.ctor_buf.iter().take(4).collect::<Vec<_>>()
-        )?;
-        writeln!(f, "ctor_args: {:?}", self.ctor_args)
+            "calldata: {:?}",
+            self.calldata.iter().take(4).collect::<Vec<_>>()
+        )
     }
 }

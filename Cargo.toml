@@ -41,15 +41,6 @@ default-features = false
 git = "https://github.com/spacemeshos/wasmer"
 branch = "develop"
 
-# [dependencies.wasmer-singlepass-backend]
-# git = "https://github.com/spacemeshos/wasmer"
-# branch = "develop"
-
-# [dependencies.wasmer-middleware-common]
-# default-features = false
-# git = "https://github.com/spacemeshos/wasmer"
-# branch = "develop"
-
 [dependencies]
 libc = "0.2"
 byteorder = "1.3.2"
@@ -70,6 +61,7 @@ svm-storage = { path = "crates/svm-storage" }
 svm-compiler = { path = "crates/svm-compiler" }
 svm-runtime = { path = "crates/svm-runtime" }
 svm-runtime-c-api = { path = "crates/svm-runtime-c-api" }
+svm-abi-layout = { path = "crates/svm-abi/layout" }
 svm-abi-encoder = { path = "crates/svm-abi/encoder" }
 svm-abi-decoder = { path = "crates/svm-abi/decoder" }
 svm-abi-tests = { path = "crates/svm-abi/tests" }
@@ -80,6 +72,7 @@ wabt = "0.7.4"
 [workspace]
 members = [
   "crates/svm-app-query",
+  "crates/svm-abi/layout",
   "crates/svm-abi/encoder",
   "crates/svm-abi/decoder",
   "crates/svm-abi/tests",
@@ -94,8 +87,4 @@ members = [
   "crates/svm-runtime",
   "crates/svm-compiler",
   "crates/svm-runtime-c-api",
-]
-
-exclude = [
-  "crates/svm-extern",
 ]

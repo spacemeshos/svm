@@ -258,8 +258,7 @@ where
             version: 0,
             app: app_addr.clone(),
             func_idx: spawn.ctor_idx,
-            func_args: spawn.ctor_args,
-            func_buf: spawn.ctor_buf,
+            calldata: spawn.calldata,
         }
     }
 
@@ -320,14 +319,13 @@ where
         }
 
         let mut instance = instance.unwrap();
-        self.copy_func_buf_to_memory(&tx.func_buf, &mut instance);
+        self.copy_calldata_to_memory(&tx.calldata, &mut instance);
 
-        let args = self.prepare_func_args(tx);
         let func = match self.get_exported_func(tx, template_addr, &instance) {
             Err(e) => return (Err(e), empty_logs),
             Ok(func) => func,
         };
-        let func_res = func.call(&args);
+        let func_res = func.call(&[]);
 
         let logs = self.instance_logs(&instance);
 
@@ -347,7 +345,8 @@ where
                 let storage = self.instance_storage_mut(&mut instance);
                 let new_state = Some(storage.commit());
 
-                let returns = self.cast_wasmer_func_returns(returns);
+                // TODO: return theh `returndata` back
+                let returns = Ok(Vec::new());
 
                 if let Err(err) = returns {
                     return (Err(err), logs);
@@ -372,7 +371,7 @@ where
             Ok((new_state, returns, gas_used)) => ExecReceipt {
                 success: true,
                 error: None,
-                returns: Some(returns),
+                returns: Some(Vec::new()),
                 new_state,
                 gas_used,
                 logs,
@@ -380,27 +379,35 @@ where
         }
     }
 
-    fn copy_func_buf_to_memory(&self, func_buf: &[u8], instance: &mut wasmer_runtime::Instance) {
+    fn copy_calldata_to_memory(&self, calldata: &[u8], instance: &mut wasmer_runtime::Instance) {
         let ctx = instance.context_mut();
         let memory = ctx.memory(0);
 
         // Each wasm instance memory contains at least one `WASM Page`. (A `Page` size is 64KB)
-        // The `len(func_buf)` will be less than that size.
+        // The `len(calldata)` will be less than that size.
         //
         // In any case, the `alloc_wasmer_memory` is in charge of allocating enough memory
         // for the program to run (so we don't need to have any bounds-checking here).
 
-        // TODO: add to `validate_template` checking that `func_buf` doesn't exceed ???
-        // (we'll need to decide on a `func_buf` limit).
+        // TODO: add to `validate_template` checking that `calldata` doesn't exceed ???
+        // (we'll need to decide on a `calldata` limit).
         //
         // See [issue #140](https://github.com/spacemeshos/svm/issues/140)
         //
-        let func_size = func_buf.len();
-        let view = &memory.view::<u8>()[0..func_size];
+        let view = &memory.view::<u8>()[0..calldata.len()];
 
-        for (cell, &byte) in view.iter().zip(func_buf.iter()) {
+        for (cell, &byte) in view.iter().zip(calldata.iter()) {
             cell.set(byte);
         }
+
+        // Syncing the `instance`'s underlying `SvmCtx` about the `calldata`
+        // ================================================================
+        // TODO: ask `instance` to allocate memory for the `calldata`
+        let calldata_ptr: i32 = 0;
+        // ================================================================
+
+        let svm_ctx = self.instance_svm_ctx(instance);
+        svm_ctx.set_calldata(calldata_ptr, calldata.len() as i32);
     }
 
     #[inline]
@@ -412,23 +419,6 @@ where
     fn instance_logs(&self, instance: &wasmer_runtime::Instance) -> Vec<Log> {
         let ctx = instance.context();
         helpers::wasmer_data_logs(ctx.data)
-    }
-
-    fn cast_wasmer_func_returns(
-        &self,
-        returns: Vec<WasmerValue>,
-    ) -> Result<Vec<WasmValue>, ReceiptError> {
-        let mut values = Vec::new();
-
-        for ret in returns.iter() {
-            match ret {
-                WasmerValue::I32(v) => values.push(WasmValue::I32(*v as u32)),
-                WasmerValue::I64(v) => values.push(WasmValue::I64(*v as u64)),
-                _ => unreachable!(),
-            }
-        }
-
-        Ok(values)
     }
 
     fn instantiate(
@@ -492,29 +482,16 @@ where
         func_index
     }
 
-    fn prepare_func_args(&self, tx: &AppTransaction) -> Vec<wasmer_runtime::Value> {
-        debug!("runtime `prepare_func_args`");
-
-        let mut wasmer_args = Vec::with_capacity(tx.func_args.len());
-
-        for arg in tx.func_args.iter() {
-            let wasmer_arg = match arg {
-                WasmValue::I32(v) => WasmerValue::I32(*v as i32),
-                WasmValue::I64(v) => WasmerValue::I64(*v as i64),
-            };
-
-            wasmer_args.push(wasmer_arg);
-        }
-
-        debug!("wasmer args={:?}", wasmer_args);
-
-        wasmer_args
-    }
-
     #[inline]
     fn instance_storage_mut(&self, instance: &mut wasmer_runtime::Instance) -> &mut AppStorage {
         let wasmer_ctx: &mut wasmer_runtime::Ctx = instance.context_mut();
         helpers::wasmer_data_app_storage(wasmer_ctx.data)
+    }
+
+    #[inline]
+    fn instance_svm_ctx<'a>(&self, instance: &'a mut wasmer_runtime::Instance) -> &'a mut SvmCtx {
+        let wasmer_ctx: &mut wasmer_runtime::Ctx = instance.context_mut();
+        helpers::wasmer_data_svm(wasmer_ctx.data)
     }
 
     fn import_object_create(

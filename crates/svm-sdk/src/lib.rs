@@ -5,16 +5,22 @@
 //!
 //! The crate is compiled with `![no_std]` (no Rust stdlib) annotation in order to reduce the compiled WASM size.
 
-#![deny(missing_docs)]
+#![allow(missing_docs)]
 #![allow(unused)]
-#![deny(dead_code)]
-#![deny(unreachable_code)]
+#![allow(dead_code)]
+#![allow(unreachable_code)]
+
+mod amount;
+pub use amount::Amount;
 
 /// SDK types
 pub mod types;
 
 /// SDK values
 pub mod value;
+
+/// Memory allocation on Heap
+pub mod memory;
 
 mod log;
 

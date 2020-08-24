@@ -11,6 +11,7 @@ description = "Spacemesh Virtual Machine"
 publish = false
 
 [dev-dependencies]
+svm-abi-layout = { path = "./../layout" }
 svm-abi-encoder = { path = "./../encoder" }
 svm-abi-decoder = { path = "./../decoder" }
 svm-sdk = { path = "./../../svm-sdk" }

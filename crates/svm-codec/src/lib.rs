@@ -16,9 +16,8 @@
 mod wasm;
 
 mod app;
+mod calldata;
 mod field;
-mod func_args;
-mod func_buf;
 mod gas;
 mod helpers;
 mod host_ctx;

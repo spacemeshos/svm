@@ -60,10 +60,8 @@ mod test {
         assert_eq!(
             wasm_buf_as_json(res_buf),
             json!({
-              "func_args": ["10i32"],
-              "func_buf": [{
-                "address": "102030405060708090a011121314151617181920"
-              }]
+              "abi": ["i32", "address"],
+              "data": [10, "102030405060708090A011121314151617181920"]
             })
         );
 

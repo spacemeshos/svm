@@ -12,3 +12,4 @@ publish = false
 
 [dependencies]
 svm-sdk = { path = "./../../svm-sdk" }
+svm-abi-layout = { path = "./../layout" }

@@ -10,31 +10,28 @@ pub struct SpawnAppBuilder {
     template: Option<TemplateAddr>,
     name: Option<String>,
     ctor_idx: Option<u16>,
-    ctor_buf: Option<Vec<u8>>,
-    ctor_args: Option<Vec<WasmValue>>,
+    calldata: Option<Vec<u8>>,
 }
 
 ///
 /// # Example
 ///
 /// ```rust
-/// use svm_types::{App, SpawnApp, WasmValue, Address};
+/// use svm_types::{App, SpawnApp, Address};
 /// use svm_nibble::NibbleIter;
 /// use svm_codec::api::{raw::decode_spawn_app, builder::SpawnAppBuilder};
 ///
 /// let template = Address::of("@template").into();
 /// let name = "My App".to_string();
 /// let ctor_idx = 2;
-/// let ctor_buf = vec![0x10, 0x20, 0x30];
-/// let ctor_args = vec![WasmValue::I32(0x40), WasmValue::I64(0x50)];
+/// let calldata = vec![0x10, 0x20, 0x30];
 ///
 /// let bytes = SpawnAppBuilder::new()
 ///             .with_version(0)
 ///             .with_template(&template)
 ///             .with_name(&name)
 ///             .with_ctor_index(ctor_idx)
-///             .with_ctor_buf(&ctor_buf)
-///             .with_ctor_args(&ctor_args)
+///             .with_calldata(&calldata)
 ///             .build();
 ///
 /// let mut iter = NibbleIter::new(&bytes);
@@ -42,8 +39,7 @@ pub struct SpawnAppBuilder {
 /// let expected = SpawnApp {
 ///                  app: App { version: 0, name, template },
 ///                  ctor_idx,
-///                  ctor_buf,
-///                  ctor_args
+///                  calldata,
 ///                };
 ///
 //// assert_eq!(expected, actual);
@@ -58,8 +54,7 @@ impl SpawnAppBuilder {
             template: None,
             name: None,
             ctor_idx: None,
-            ctor_buf: None,
-            ctor_args: None,
+            calldata: None,
         }
     }
 
@@ -83,13 +78,8 @@ impl SpawnAppBuilder {
         self
     }
 
-    pub fn with_ctor_buf(mut self, ctor_buf: &Vec<u8>) -> Self {
-        self.ctor_buf = Some(ctor_buf.clone());
-        self
-    }
-
-    pub fn with_ctor_args(mut self, ctor_args: &Vec<WasmValue>) -> Self {
-        self.ctor_args = Some(ctor_args.clone());
+    pub fn with_calldata(mut self, calldata: &Vec<u8>) -> Self {
+        self.calldata = Some(calldata.clone());
         self
     }
 
@@ -99,14 +89,9 @@ impl SpawnAppBuilder {
         let name = self.name.unwrap();
         let ctor_idx = self.ctor_idx.unwrap();
 
-        let ctor_buf = match self.ctor_buf {
+        let calldata = match self.calldata {
             None => vec![],
-            Some(buf) => buf.to_vec(),
-        };
-
-        let ctor_args = match self.ctor_args {
-            None => vec![],
-            Some(args) => args.to_vec(),
+            Some(calldata) => calldata.to_vec(),
         };
 
         let spawn = SpawnApp {
@@ -116,8 +101,7 @@ impl SpawnAppBuilder {
                 template,
             },
             ctor_idx,
-            ctor_buf,
-            ctor_args,
+            calldata,
         };
 
         let mut w = NibbleWriter::new();

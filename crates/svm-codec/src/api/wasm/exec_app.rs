@@ -53,8 +53,7 @@ mod test {
           "version": 1,
           "app": app_addr,
           "func_index": 2,
-          "func_buf": calldata["func_buf"],
-          "func_args": calldata["func_args"]
+          "calldata": calldata["calldata"],
         });
 
         let json = serde_json::to_string(&json).unwrap();
@@ -84,8 +83,10 @@ mod test {
                 "version": 1,
                 "app": app_addr,
                 "func_index": 2,
-                "func_buf": [],
-                "func_args": ["10i32", "20i64"],
+                "calldata": {
+                    "abi": ["i32", "i64"],
+                    "data": [10, 20],
+                }
             })
         );
 

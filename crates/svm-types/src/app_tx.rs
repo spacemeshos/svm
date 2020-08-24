@@ -14,11 +14,8 @@ pub struct AppTransaction {
     /// Function Export Index to execute
     pub func_idx: u16,
 
-    /// Function buffer
-    pub func_buf: Vec<u8>,
-
-    /// `App` function args
-    pub func_args: Vec<WasmValue>,
+    /// Transaction's calldata
+    pub calldata: Vec<u8>,
 }
 
 impl fmt::Debug for AppTransaction {
@@ -26,10 +23,9 @@ impl fmt::Debug for AppTransaction {
         let version = self.fmt_version();
         let app = self.fmt_app();
         let func_idx = self.fmt_func_idx();
-        let func_buf = self.fmt_func_buf();
-        let func_args = self.fmt_func_args();
+        let calldata = self.fmt_calldata();
 
-        let msg = [version, app, func_idx, func_buf, func_args];
+        let msg = [version, app, func_idx, calldata];
 
         write!(f, "{}", msg.join("\n"))
     }
@@ -48,15 +44,11 @@ impl AppTransaction {
         format!("func_idx: {}", self.func_idx)
     }
 
-    fn fmt_func_buf(&self) -> String {
+    fn fmt_calldata(&self) -> String {
         format!(
-            "func_buf: {:?}",
-            self.func_buf.iter().take(4).collect::<Vec<_>>()
+            "calldata: {:?}",
+            self.calldata.iter().take(4).collect::<Vec<_>>()
         )
-    }
-
-    fn fmt_func_args(&self) -> String {
-        format!("func_args: {:?}", self.func_args)
     }
 
     fn fmt_address(addr: &Address) -> String {

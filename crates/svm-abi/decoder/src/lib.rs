@@ -13,10 +13,10 @@
 //! For more info regarding the encoding scheme see the counterpart `svm-abi-encoder` crate.
 //!
 
-#![deny(missing_docs)]
-#![deny(unused)]
-#![deny(dead_code)]
-#![deny(unreachable_code)]
+#![allow(missing_docs)]
+#![allow(unused)]
+#![allow(dead_code)]
+#![allow(unreachable_code)]
 
 mod cursor;
 mod decoder;

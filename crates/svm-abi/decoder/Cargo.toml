@@ -12,6 +12,4 @@ publish = false
 
 [dependencies]
 svm-sdk = { path = "./../../svm-sdk" }
-
-[dev-dependencies]
-svm-abi-encoder = { path = "./../encoder" }
+svm-abi-layout = { path = "./../layout" }

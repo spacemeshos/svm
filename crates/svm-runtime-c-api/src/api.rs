@@ -11,7 +11,7 @@ use svm_runtime::env::default::DefaultSerializerTypes;
 use svm_runtime::{ctx::SvmCtx, gas::DefaultGasEstimator};
 
 use svm_storage::kv::{ExternKV, StatefulKV};
-use svm_types::{Address, State, WasmType, WasmValue};
+use svm_types::{Address, State, WasmType};
 
 use crate::{
     helpers,
@@ -1068,17 +1068,13 @@ pub unsafe extern "C" fn svm_encode_app_template(
 
 /// Constructs a new raw `spawn_app` transaction.
 ///
-/// The `ctor_args` is `svm_byte_array` representing a slice of `WasmValue`.
-/// More info regarding the encoding in `byte_array.rs`.
-///
 #[no_mangle]
 pub unsafe extern "C" fn svm_encode_spawn_app(
     spawn_app: *mut svm_byte_array,
     version: u32,
     template_addr: svm_byte_array,
     ctor_idx: u16,
-    ctor_buf: svm_byte_array,
-    ctor_args: svm_byte_array,
+    calldata: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
     let template_addr: Result<Address, String> = Address::try_from(template_addr);
@@ -1087,25 +1083,16 @@ pub unsafe extern "C" fn svm_encode_spawn_app(
         return svm_result_t::SVM_FAILURE;
     }
 
-    let ctor_buf: &[u8] = ctor_buf.into();
-    let ctor_buf: Vec<u8> = ctor_buf.iter().cloned().collect();
-
-    let ctor_args: Result<Vec<WasmValue>, io::Error> = Vec::try_from(ctor_args);
-
-    if let Err(e) = ctor_args {
-        raw_io_error(e, error);
-        return svm_result_t::SVM_FAILURE;
-    }
+    let calldata: &[u8] = calldata.into();
+    let calldata: Vec<u8> = calldata.iter().cloned().collect();
 
     let template_addr = template_addr.unwrap();
-    let ctor_args = ctor_args.unwrap();
 
     let mut bytes = SpawnAppBuilder::new()
         .with_version(version)
         .with_template(&template_addr.into())
         .with_ctor_index(ctor_idx)
-        .with_ctor_buf(&ctor_buf)
-        .with_ctor_args(&ctor_args)
+        .with_calldata(&calldata)
         .build();
 
     vec_to_svm_byte_array!(spawn_app, bytes);
@@ -1115,17 +1102,13 @@ pub unsafe extern "C" fn svm_encode_spawn_app(
 
 /// Constructs a new raw `app_tx` transaction.
 ///
-/// The `func_args` is `svm_byte_array` representing a slice of `WasmValue`.
-/// More info regarding the encoding in `byte_array.rs`.
-///
 #[no_mangle]
 pub unsafe extern "C" fn svm_encode_app_tx(
     app_tx: *mut svm_byte_array,
     version: u32,
     app_addr: svm_byte_array,
     func_idx: u16,
-    func_buf: svm_byte_array,
-    func_args: svm_byte_array,
+    calldata: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
     let app_addr: Result<Address, String> = Address::try_from(app_addr);
@@ -1134,25 +1117,16 @@ pub unsafe extern "C" fn svm_encode_app_tx(
         return svm_result_t::SVM_FAILURE;
     }
 
-    let func_buf: &[u8] = func_buf.into();
-    let func_buf: Vec<u8> = func_buf.iter().cloned().collect();
-
-    let func_args: Result<Vec<WasmValue>, io::Error> = Vec::try_from(func_args);
-
-    if let Err(e) = func_args {
-        raw_io_error(e, error);
-        return svm_result_t::SVM_FAILURE;
-    }
+    let calldata: &[u8] = calldata.into();
+    let calldata: Vec<u8> = calldata.iter().cloned().collect();
 
     let app_addr = app_addr.unwrap();
-    let func_args = func_args.unwrap();
 
     let mut bytes = AppTxBuilder::new()
         .with_version(version)
         .with_app(&app_addr.into())
         .with_func_index(func_idx)
-        .with_func_buf(&func_buf)
-        .with_func_args(&func_args)
+        .with_calldata(&calldata)
         .build();
 
     vec_to_svm_byte_array!(app_tx, bytes);

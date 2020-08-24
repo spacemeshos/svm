@@ -28,6 +28,12 @@ macro_rules! use_gas {
     ("host_get64", $wasmer_ctx:expr) => {{
         //
     }};
+    ("calldata_ptr", $wasmer_ctx:expr) => {{
+        //
+    }};
+    ("calldata_len", $wasmer_ctx:expr) => {{
+        //
+    }};
     ("log", $wasmer_ctx:expr) => {{
         //
     }};

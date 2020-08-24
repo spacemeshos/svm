@@ -50,8 +50,7 @@ mod test {
           "template": template_addr,
           "name": "My App",
           "ctor_index": 2,
-          "ctor_buf": calldata["func_buf"],
-          "ctor_args": calldata["func_args"]
+          "calldata": calldata["calldata"],
         });
 
         let json = serde_json::to_string(&json).unwrap();
@@ -82,8 +81,10 @@ mod test {
                 "template": template_addr,
                 "name": "My App",
                 "ctor_index": 2,
-                "ctor_buf": [],
-                "ctor_args": ["10i32", "20i64"],
+                "calldata": {
+                    "abi": ["i32", "i64"],
+                    "data": [10, 20],
+                }
             })
         );
 

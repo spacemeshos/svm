@@ -1,29 +1,27 @@
-/// Markers for encoding types.
-/// Each marker consists of a single-byte and it denote a type.
-pub mod marker {
-    /// `Array` start marker
-    pub const ARRAY_START: u8 = 0;
-
-    /// `Array` end marker
-    pub const ARRAY_END: u8 = 1;
-
-    /// `Address` marker
-    pub const ADDRESS: u8 = 2;
-
-    /// `PubKey` of 256-bit marker
-    pub const PUBKEY_256: u8 = 3;
-}
-
 /// A marker trait for Primitives
 pub trait PrimitiveMarker {}
 
+macro_rules! mark_primitive {
+    ($($ty:ty),*) => {
+        $( impl PrimitiveMarker for $ty {} )*
+    };
+}
+
+mark_primitive!(bool);
+mark_primitive!(u8, i8);
+mark_primitive!(u16, i16);
+mark_primitive!(u32, i32);
+mark_primitive!(u64, i64);
+
 /// Represents a Primitive type
 pub enum Primitive {
-    /// denotes `Address` (20 bytes)
-    Address,
+    Bool,
 
-    /// denotes `PubKey256` (32 bytes)
-    PubKey256,
+    I32,
+
+    I64,
+
+    Address,
 }
 
 /// Represents a Composite type

@@ -68,7 +68,7 @@ pub fn decode_exec_receipt(bytes: &[u8]) -> ExecReceipt {
         1 => {
             // success
             let new_state = helpers::decode_state(&mut iter);
-            let returns = raw::decode_func_args(&mut iter).unwrap();
+            let returns = raw::decode_calldata(&mut iter).unwrap();
             let gas_used = helpers::decode_gas_used(&mut iter);
             let logs = logs::decode_logs(&mut iter);
 
@@ -158,7 +158,7 @@ mod tests {
     #[test]
     fn encode_decode_exec_receipt_success_with_returns() {
         let new_state = State::of("some-state");
-        let returns = vec![WasmValue::I32(10), WasmValue::I64(20), WasmValue::I32(30)];
+        let returns = vec![0x10, 0x20];
 
         let logs = vec![Log {
             msg: b"something happened".to_vec(),

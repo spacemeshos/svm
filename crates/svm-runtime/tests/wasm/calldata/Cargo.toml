@@ -1,0 +1,15 @@
+[package]
+name = "svm-runtime-examples-calldata"
+version = "0.1.0"
+authors = ["Yaron Wittenstein <yaron.wittenstein@gmail.com>"]
+edition = "2018"
+publish = false
+
+[lib]
+crate-type = ['cdylib']
+
+[dependencies]
+svm-abi-decoder = { path = "../../../../svm-abi/decoder" }
+svm-sdk = { path = "../../../../svm-sdk" }
+
+[workspace]

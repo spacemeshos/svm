@@ -32,6 +32,9 @@ pub struct SvmCtx {
     pub storage: AppStorage,
 
     pub logs: Vec<Log>,
+
+    /// Pointer to calldata. Tuple stores `(ptr, len)`.
+    pub calldata: Option<(i32, i32)>,
 }
 
 unsafe impl Sync for SvmCtx {}
@@ -61,7 +64,16 @@ impl SvmCtx {
             gas_metering,
             gas_limit,
             logs,
+            calldata: None,
         }
+    }
+
+    pub fn set_calldata(&mut self, ptr: i32, len: i32) {
+        self.calldata = Some((ptr, len));
+    }
+
+    pub fn get_calldata(&self) -> (i32, i32) {
+        self.calldata.unwrap()
     }
 
     pub fn take_logs(&mut self) -> Vec<Log> {
