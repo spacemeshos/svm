@@ -223,9 +223,6 @@ impl Decoder {
     fn decode_array(&self, cursor: &mut Cursor) -> Result<Value, DecodeError> {
         assert_no_eof!(cursor);
 
-        extern crate std;
-        use std::dbg;
-
         let byte = self.read_byte(cursor)?;
         let nitems = match byte {
             layout::ARR_0 => 0,
