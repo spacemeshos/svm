@@ -33,8 +33,8 @@ pub struct SvmCtx {
 
     pub logs: Vec<Log>,
 
-    /// Pointer to calldata. Tuple stores `(ptr, len)`.
-    pub calldata: Option<(i32, i32)>,
+    /// Pointer to calldata. Tuple stores `(offset, len)`.
+    pub calldata: Option<(usize, usize)>,
 }
 
 unsafe impl Sync for SvmCtx {}
@@ -68,11 +68,11 @@ impl SvmCtx {
         }
     }
 
-    pub fn set_calldata(&mut self, ptr: i32, len: i32) {
-        self.calldata = Some((ptr, len));
+    pub fn set_calldata(&mut self, offset: usize, len: usize) {
+        self.calldata = Some((offset, len));
     }
 
-    pub fn get_calldata(&self) -> (i32, i32) {
+    pub fn get_calldata(&self) -> (usize, usize) {
         self.calldata.unwrap()
     }
 

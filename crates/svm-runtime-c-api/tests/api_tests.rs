@@ -133,7 +133,7 @@ unsafe fn test_svm_runtime() {
     // 3) spawn app
     let name = "My App";
     let spawner = Address::of("spawner").into();
-    let ctor_idx = 1;
+    let ctor_idx = 2;
     let mut counter: u32 = 10;
 
     let mut calldata = Vec::new();
@@ -169,7 +169,7 @@ unsafe fn test_svm_runtime() {
     let init_state: svm_byte_array = init_state.into();
 
     // 4) execute app
-    let func_idx = 1;
+    let func_idx = 3;
 
     counter += 10;
     let mut calldata = Vec::new();

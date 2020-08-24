@@ -26,6 +26,7 @@ use svm_types::{
 };
 
 use wasmer_runtime::Value as WasmerValue;
+use wasmer_runtime::WasmPtr;
 use wasmer_runtime_core::{
     export::Export,
     import::{ImportObject, Namespace},
@@ -319,7 +320,13 @@ where
         }
 
         let mut instance = instance.unwrap();
-        self.copy_calldata_to_memory(&tx.calldata, &mut instance);
+
+        let wasm_ptr = self.alloc_calldata(tx, template_addr, &mut instance);
+        if let Err(err) = wasm_ptr {
+            return (Err(err), empty_logs);
+        }
+
+        self.set_calldata(&tx.calldata, wasm_ptr.unwrap(), &mut instance);
 
         let func = match self.get_exported_func(tx, template_addr, &instance) {
             Err(e) => return (Err(e), empty_logs),
@@ -345,7 +352,7 @@ where
                 let storage = self.instance_storage_mut(&mut instance);
                 let new_state = Some(storage.commit());
 
-                // TODO: return theh `returndata` back
+                // TODO: return the `returndata` back
                 let returns = Ok(Vec::new());
 
                 if let Err(err) = returns {
@@ -379,12 +386,58 @@ where
         }
     }
 
-    fn copy_calldata_to_memory(&self, calldata: &[u8], instance: &mut wasmer_runtime::Instance) {
+    fn alloc_calldata(
+        &self,
+        tx: &AppTransaction,
+        template_addr: &TemplateAddr,
+        instance: &mut wasmer_runtime::Instance,
+    ) -> Result<WasmPtr<u8>, ReceiptError> {
+        let alloc = instance.exports.get("svm_alloc");
+
+        if alloc.is_err() {
+            let err = ReceiptError::FuncNotFound {
+                app_addr: tx.app.clone(),
+                template_addr: template_addr.clone(),
+                func_idx: 0, // TODO: this field will be discarded once we get rid of the `func_idx`
+                             // we'll use `func_name` (String instead).
+            };
+
+            return Err(err);
+        }
+
+        let alloc: wasmer_runtime::Func<(i32), i32> = alloc.unwrap();
+
+        let size = tx.calldata.len() as i32;
+        let res = alloc.call(size);
+
+        if res.is_err() {
+            let err = ReceiptError::FuncFailed {
+                app_addr: tx.app.clone(),
+                template_addr: template_addr.clone(),
+                msg: "Allocation failed for `svm_alloc`".to_string(),
+                func_idx: 0, // TODO: this field will be discarded once we get rid of the `func_idx`
+                             // we'll use `func_name` (String instead).
+            };
+
+            return Err(err);
+        }
+
+        let offset: i32 = res.unwrap();
+        Ok(WasmPtr::new(offset as u32))
+    }
+
+    fn set_calldata(
+        &self,
+        calldata: &[u8],
+        ptr: WasmPtr<u8>,
+        instance: &mut wasmer_runtime::Instance,
+    ) {
         let ctx = instance.context_mut();
         let memory = ctx.memory(0);
+        let offset = ptr.offset();
 
         // Each wasm instance memory contains at least one `WASM Page`. (A `Page` size is 64KB)
-        // The `len(calldata)` will be less than that size.
+        // The `len(calldata)` will be less than the `WASM Page` size.
         //
         // In any case, the `alloc_wasmer_memory` is in charge of allocating enough memory
         // for the program to run (so we don't need to have any bounds-checking here).
@@ -393,21 +446,17 @@ where
         // (we'll need to decide on a `calldata` limit).
         //
         // See [issue #140](https://github.com/spacemeshos/svm/issues/140)
-        //
-        let view = &memory.view::<u8>()[0..calldata.len()];
+        let offset = ptr.offset() as usize;
+        let len = calldata.len();
+        let view = &memory.view::<u8>()[offset..(offset + len)];
 
         for (cell, &byte) in view.iter().zip(calldata.iter()) {
             cell.set(byte);
         }
 
-        // Syncing the `instance`'s underlying `SvmCtx` about the `calldata`
-        // ================================================================
-        // TODO: ask `instance` to allocate memory for the `calldata`
-        let calldata_ptr: i32 = 0;
-        // ================================================================
-
         let svm_ctx = self.instance_svm_ctx(instance);
-        svm_ctx.set_calldata(calldata_ptr, calldata.len() as i32);
+
+        svm_ctx.set_calldata(offset, len);
     }
 
     #[inline]
