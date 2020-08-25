@@ -9,7 +9,7 @@ use svm_types::{AppAddr, State};
 
 use crate::{gas::GasEstimator, runtime::DefaultRuntime, Config};
 
-use wasmer_runtime_core::export::Export;
+use wasmer::Export;
 
 /// Creates a new `Runtime` backed by `rocksdb` for persistence.
 pub fn create_rocksdb_runtime<P, S, GE>(

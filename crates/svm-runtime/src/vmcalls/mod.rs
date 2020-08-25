@@ -1,3 +1,7 @@
+use wasmer::{Exports, Function, ImportObject, Store};
+
+use crate::ctx::SvmCtx;
+
 mod calldata;
 mod host_ctx;
 mod logs;
@@ -8,29 +12,29 @@ pub use host_ctx::host_get64;
 pub use logs::log;
 pub use storage::{get32, get64, load160, load256, set32, set64, store160, store256};
 
-pub use wasmer_runtime_core::{
-    func,
-    import::{IsExport, Namespace},
-};
+macro_rules! func {
+    ($store:ident, $env:ident, $f:expr) => {{
+        Function::new_native_with_env($store, $env.clone(), $f)
+    }};
+}
 
-/// Injects into namespace `ns` the `SVM` internal vmcalls.
-pub fn wasmer_register(ns: &mut Namespace) {
-    ns.insert("calldata_ptr", func!(calldata_ptr));
-    ns.insert("calldata_len", func!(calldata_len));
+pub fn wasmer_register(store: &Store, env: SvmCtx, ns: &mut Exports) {
+    ns.insert("calldata_ptr", func!(store, env, calldata_ptr));
+    ns.insert("calldata_len", func!(store, env, calldata_len));
 
-    ns.insert("host_get64", func!(host_get64));
+    ns.insert("host_get64", func!(store, env, host_get64));
 
-    ns.insert("get32", func!(get32));
-    ns.insert("set32", func!(set32));
+    ns.insert("get32", func!(store, env, get32));
+    ns.insert("set32", func!(store, env, set32));
 
-    ns.insert("get64", func!(get64));
-    ns.insert("set64", func!(set64));
+    ns.insert("get64", func!(store, env, get64));
+    ns.insert("set64", func!(store, env, set64));
 
-    ns.insert("load160", func!(load160));
-    ns.insert("store160", func!(store160));
+    ns.insert("load160", func!(store, env, load160));
+    ns.insert("store160", func!(store, env, store160));
 
-    ns.insert("load256", func!(load256));
-    ns.insert("store256", func!(store256));
+    ns.insert("load256", func!(store, env, load256));
+    ns.insert("store256", func!(store, env, store256));
 
-    ns.insert("log", func!(log));
+    ns.insert("log", func!(store, env, log));
 }

@@ -1,4 +1,8 @@
-use std::{cell::RefCell, collections::HashMap, ffi::c_void, path::Path, rc::Rc};
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::ffi::c_void;
+use std::path::Path;
+use std::rc::Rc;
 
 use crate::env::memory::{DefaultMemAppStore, DefaultMemAppTemplateStore, DefaultMemoryEnv};
 use crate::{
@@ -18,7 +22,8 @@ use svm_storage::{
     kv::{FakeKV, StatefulKV},
 };
 use svm_types::{gas::MaybeGas, receipt::Log, Address, AppAddr, State, TemplateAddr, WasmValue};
-use wasmer_runtime_core::{export::Export, import::ImportObject, Instance, Module};
+
+use wasmer::{Export, ImportObject, Instance, Module};
 
 pub enum WasmFile<'a> {
     Text(&'a str),
@@ -29,7 +34,7 @@ pub enum WasmFile<'a> {
 impl<'a> WasmFile<'a> {
     fn into_bytes(self) -> Vec<u8> {
         match self {
-            Self::Text(wat) => wabt::wat2wasm(wat).unwrap(),
+            Self::Text(wat) => todo!(),
             Self::Binary(wasm) => wasm.to_vec(),
         }
     }
@@ -37,7 +42,8 @@ impl<'a> WasmFile<'a> {
 
 /// Compiles a wasm program in text format (a.k.a WAST) into a `Module` (`wasmer`)
 pub fn wasmer_compile(wasm: &str, gas_limit: MaybeGas) -> Module {
-    let wasm = wabt::wat2wasm(&wasm).unwrap();
+    todo!("wat to binary");
+    let wasm = vec![];
 
     let gas_metering = gas_limit.is_some();
     let gas_limit = gas_limit.unwrap_or(0);
@@ -47,42 +53,47 @@ pub fn wasmer_compile(wasm: &str, gas_limit: MaybeGas) -> Module {
 
 /// Instantiate a `wasmer` instance
 pub fn instantiate(import_object: &ImportObject, wasm: &str, gas_limit: MaybeGas) -> Instance {
-    let module = wasmer_compile(wasm, gas_limit);
-    module.instantiate(import_object).unwrap()
+    todo!();
+    // let module = wasmer_compile(wasm, gas_limit);
+    // module.instantiate(import_object).unwrap()
 }
 
 /// Mutably borrows the `AppStorage` of a living `App` instance.
 pub fn instance_storage(instance: &Instance) -> &mut AppStorage {
-    let ctx = instance.context();
-    helpers::wasmer_data_app_storage(ctx.data)
+    todo!();
+    // let ctx = instance.context();
+    // helpers::wasmer_data_app_storage(ctx.data)
 }
 
 pub fn instance_logs(instance: &Instance) -> Vec<Log> {
-    let ctx = instance.context();
-    helpers::wasmer_data_logs(ctx.data)
+    todo!();
+    // let ctx = instance.context();
+    // helpers::wasmer_data_logs(ctx.data)
 }
 
 /// Returns a view of `wasmer` instance memory at `offset`...`offest + len - 1`
 pub fn instance_memory_view(instance: &Instance, offset: u32, len: u32) -> Vec<u8> {
-    let view = instance.context().memory(0).view();
+    todo!();
+    // let view = instance.context().memory(0).view();
 
-    let start = offset as usize;
-    let end = start + len as usize;
+    // let start = offset as usize;
+    // let end = start + len as usize;
 
-    view[start..end].iter().map(|cell| cell.get()).collect()
+    // view[start..end].iter().map(|cell| cell.get()).collect()
 }
 
 /// Copies input slice `bytes` into `wasmer` instance memory starting at offset `offset`.
 pub fn instance_memory_init(instance: &Instance, offset: u32, bytes: &[u8]) {
-    let view = instance.context().memory(0).view();
+    todo!();
+    // let view = instance.context().memory(0).view();
 
-    let start = offset as usize;
-    let end = start + bytes.len() as usize;
-    let cells = &view[start..end];
+    // let start = offset as usize;
+    // let end = start + bytes.len() as usize;
+    // let cells = &view[start..end];
 
-    for (cell, byte) in cells.iter().zip(bytes.iter()) {
-        cell.set(*byte);
-    }
+    // for (cell, byte) in cells.iter().zip(bytes.iter()) {
+    //     cell.set(*byte);
+    // }
 }
 
 /// Returns a `state creator` to be used by wasmer `ImportObject::new_with_data` initializer.

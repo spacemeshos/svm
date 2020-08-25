@@ -8,5 +8,5 @@ use svm_storage::app::AppStorage;
 #[inline]
 pub fn wasmer_data_app_storage<'a>(data: *mut c_void) -> &'a mut AppStorage {
     let svm_ctx = unsafe { svm_common::from_raw_mut::<SvmCtx>(data) };
-    &mut svm_ctx.storage
+    svm_ctx.storage_mut()
 }

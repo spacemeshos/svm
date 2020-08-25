@@ -1,4 +1,6 @@
+use std::cell::RefCell;
 use std::ffi::c_void;
+use std::sync::Arc;
 
 use log::debug;
 
@@ -12,8 +14,61 @@ use svm_types::{gas::MaybeGas, receipt::Log, HostCtx};
 /// * `host_ctx`     - A pointer to the `HostCtx` (i.e: `sender`, `block_id`, `nonce`, ...).
 /// * `storage`      - Instance's `AppStorage`.
 /// * `gas_metering` - Whether gas metering is enabled.
-#[repr(C)]
+
 pub struct SvmCtx {
+    inner: Arc<RefCell<SvmCtxInner>>,
+}
+
+impl SvmCtx {
+    pub fn new(
+        host: DataWrapper<*mut c_void>,
+        host_ctx: DataWrapper<*const c_void>,
+        gas_limit: MaybeGas,
+        storage: AppStorage,
+    ) -> Self {
+        let inner = SvmCtxInner::new(host, host_ctx, gas_limit, storage);
+
+        Self {
+            inner: Arc::new(RefCell::new(inner)),
+        }
+    }
+
+    pub fn host_ctx(&self) -> &HostCtx {
+        let ptr: *const HostCtx = self.inner.borrow().host_ctx;
+
+        unsafe { &*ptr }
+    }
+
+    pub fn storage(&self) -> &AppStorage {
+        &self.inner.borrow().storage
+    }
+
+    pub fn storage_mut(&self) -> &mut AppStorage {
+        &mut self.inner.borrow_mut().storage
+    }
+
+    pub fn set_calldata(&self, offset: usize, len: usize) {
+        self.inner.borrow_mut().set_calldata(offset, len);
+    }
+
+    pub fn get_calldata(&self) -> (usize, usize) {
+        return self.inner.borrow_mut().get_calldata();
+    }
+
+    pub fn take_logs(&mut self) -> Vec<Log> {
+        return self.inner.borrow_mut().take_logs();
+    }
+}
+
+impl Clone for SvmCtx {
+    fn clone(&self) -> Self {
+        SvmCtx {
+            inner: self.inner.clone(),
+        }
+    }
+}
+
+struct SvmCtxInner {
     /// A pointer to the `host`.
     ///
     /// For example, `host` will point a to struct having an access to the balance of each account.
@@ -40,10 +95,7 @@ pub struct SvmCtx {
 unsafe impl Sync for SvmCtx {}
 unsafe impl Send for SvmCtx {}
 
-impl SvmCtx {
-    /// Initializes a new empty `SvmCtx`
-    ///
-    /// * `storage` - a mutably borrowed `AppStorage`
+impl SvmCtxInner {
     pub fn new(
         host: DataWrapper<*mut c_void>,
         host_ctx: DataWrapper<*const c_void>,
@@ -81,7 +133,7 @@ impl SvmCtx {
     }
 }
 
-impl Drop for SvmCtx {
+impl Drop for SvmCtxInner {
     fn drop(&mut self) {
         debug!("Dropping `SvmCtx`...");
 

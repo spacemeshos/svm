@@ -1,10 +1,13 @@
-use std::{ffi::c_void, fmt, marker::PhantomData, path::Path};
+use std::ffi::c_void;
+use std::fmt;
+use std::marker::PhantomData;
+use std::path::Path;
 
 use log::{debug, error, info};
 
-use crate::env::traits::{Env, EnvTypes};
 use crate::{
     ctx::SvmCtx,
+    env::traits::{Env, EnvTypes},
     error::ValidateError,
     gas::GasEstimator,
     helpers::{self, DataWrapper},
@@ -25,14 +28,9 @@ use svm_types::{
     TemplateAddr, WasmValue,
 };
 
-use wasmer_runtime::Value as WasmerValue;
-use wasmer_runtime::WasmPtr;
-use wasmer_runtime_core::{
-    export::Export,
-    import::{ImportObject, Namespace},
-    memory::Memory,
-    types::MemoryDescriptor,
-    units::Pages,
+use wasmer::{
+    Export, Exports, Function, ImportObject, Instance, Memory, Module, NativeFunc, Pages, Store,
+    Value, WasmPtr,
 };
 
 /// Default `Runtime` implementation based on `wasmer`.
@@ -279,10 +277,16 @@ where
                 ExecReceipt::from_err(e, empty_logs)
             }
             Ok((template, template_addr, _author, _creator)) => {
-                let mut import_object =
-                    self.import_object_create(&template, &tx.app, &state, gas_left, host_ctx);
+                let ctx: SvmCtx = self.create_ctx(&template, &tx.app, &state, gas_left, host_ctx);
 
-                self.import_object_extend(&mut import_object);
+                let import_object = ImportObject::new();
+
+                todo!();
+                // TODO: create a store via `svm-compiler` crate
+                let store = Store::default();
+
+                todo!("add imports");
+                // self.import_object_extend(&store, ctx, &mut import_object);
 
                 let (result, logs) =
                     self.do_exec_app(&tx, &template, &template_addr, &import_object, gas_left);
@@ -390,9 +394,9 @@ where
         &self,
         tx: &AppTransaction,
         template_addr: &TemplateAddr,
-        instance: &mut wasmer_runtime::Instance,
+        instance: &mut Instance,
     ) -> Result<WasmPtr<u8>, ReceiptError> {
-        let alloc = instance.exports.get("svm_alloc");
+        let alloc = instance.exports.get_native_function("svm_alloc");
 
         if alloc.is_err() {
             let err = ReceiptError::FuncNotFound {
@@ -405,81 +409,77 @@ where
             return Err(err);
         }
 
-        let alloc: wasmer_runtime::Func<(i32), i32> = alloc.unwrap();
+        let alloc: NativeFunc<i32, i32> = alloc.unwrap();
 
         let size = tx.calldata.len() as i32;
-        let res = alloc.call(size);
+        let offset = alloc.call(size);
 
-        if res.is_err() {
+        if offset.is_err() {
             let err = ReceiptError::FuncFailed {
                 app_addr: tx.app.clone(),
                 template_addr: template_addr.clone(),
                 msg: "Allocation failed for `svm_alloc`".to_string(),
                 func_idx: 0, // TODO: this field will be discarded once we get rid of the `func_idx`
-                             // we'll use `func_name` (String instead).
             };
 
             return Err(err);
         }
 
-        let offset: i32 = res.unwrap();
-        Ok(WasmPtr::new(offset as u32))
+        let offset = offset.unwrap() as u32;
+        Ok(WasmPtr::new(offset))
     }
 
-    fn set_calldata(
-        &self,
-        calldata: &[u8],
-        ptr: WasmPtr<u8>,
-        instance: &mut wasmer_runtime::Instance,
-    ) {
-        let ctx = instance.context_mut();
-        let memory = ctx.memory(0);
-        let offset = ptr.offset();
+    fn set_calldata(&self, calldata: &[u8], ptr: WasmPtr<u8>, instance: &mut Instance) {
+        todo!()
+        // let ctx = instance.context_mut();
+        // let memory = ctx.memory(0);
+        // let offset = ptr.offset();
 
-        // Each wasm instance memory contains at least one `WASM Page`. (A `Page` size is 64KB)
-        // The `len(calldata)` will be less than the `WASM Page` size.
-        //
-        // In any case, the `alloc_wasmer_memory` is in charge of allocating enough memory
-        // for the program to run (so we don't need to have any bounds-checking here).
+        // // Each wasm instance memory contains at least one `WASM Page`. (A `Page` size is 64KB)
+        // // The `len(calldata)` will be less than the `WASM Page` size.
+        // //
+        // // In any case, the `alloc_wasmer_memory` is in charge of allocating enough memory
+        // // for the program to run (so we don't need to have any bounds-checking here).
 
-        // TODO: add to `validate_template` checking that `calldata` doesn't exceed ???
-        // (we'll need to decide on a `calldata` limit).
-        //
-        // See [issue #140](https://github.com/spacemeshos/svm/issues/140)
-        let offset = ptr.offset() as usize;
-        let len = calldata.len();
-        let view = &memory.view::<u8>()[offset..(offset + len)];
+        // // TODO: add to `validate_template` checking that `calldata` doesn't exceed ???
+        // // (we'll need to decide on a `calldata` limit).
+        // //
+        // // See [issue #140](https://github.com/spacemeshos/svm/issues/140)
+        // let offset = ptr.offset() as usize;
+        // let len = calldata.len();
+        // let view = &memory.view::<u8>()[offset..(offset + len)];
 
-        for (cell, &byte) in view.iter().zip(calldata.iter()) {
-            cell.set(byte);
-        }
+        // for (cell, &byte) in view.iter().zip(calldata.iter()) {
+        //     cell.set(byte);
+        // }
 
-        let svm_ctx = self.instance_svm_ctx(instance);
+        // let svm_ctx = self.instance_svm_ctx(instance);
 
-        svm_ctx.set_calldata(offset, len);
+        // svm_ctx.set_calldata(offset, len);
     }
 
     #[inline]
-    fn instance_gas_used(&self, instance: &wasmer_runtime::Instance) -> Result<MaybeGas, OOGError> {
+    fn instance_gas_used(&self, instance: &Instance) -> Result<MaybeGas, OOGError> {
         helpers::wasmer_gas_used(instance)
     }
 
     #[inline]
-    fn instance_logs(&self, instance: &wasmer_runtime::Instance) -> Vec<Log> {
-        let ctx = instance.context();
-        helpers::wasmer_data_logs(ctx.data)
+    fn instance_logs(&self, instance: &Instance) -> Vec<Log> {
+        todo!()
+        // let ctx = instance.context();
+        // helpers::wasmer_data_logs(ctx.data)
     }
 
     fn instantiate(
         &self,
         tx: &AppTransaction,
         template_addr: &TemplateAddr,
-        module: &wasmer_runtime::Module,
+        module: &Module,
         import_object: &ImportObject,
-    ) -> Result<wasmer_runtime::Instance, ReceiptError> {
+    ) -> Result<Instance, ReceiptError> {
         info!("runtime `instantiate` (wasmer module instantiate)");
 
-        module.instantiate(import_object).or_else(|e| {
+        Instance::new(module, import_object).or_else(|e| {
             Err(ReceiptError::InstantiationFailed {
                 app_addr: tx.app.clone(),
                 template_addr: template_addr.clone(),
@@ -488,113 +488,82 @@ where
         })
     }
 
-    fn get_exported_func<'a>(
+    fn get_exported_func(
         &self,
         tx: &AppTransaction,
         template_addr: &TemplateAddr,
-        instance: &'a wasmer_runtime::Instance,
-    ) -> Result<wasmer_runtime::DynFunc<'a>, ReceiptError> {
-        let func_idx = self.derive_func_index(instance, tx);
+        instance: &Instance,
+    ) -> Result<Function, ReceiptError> {
+        todo!()
+        // TODO: instance.exports.get_function(func_name)
 
-        let func_name = instance
-            .exports()
-            .filter(|(_name, export)| matches!(export, Export::Function { .. }))
-            .find_map(|(name, _)| {
-                if func_idx == instance.resolve_func(&name).unwrap() {
-                    Some(name)
-                } else {
-                    None
-                }
-            });
+        // let func_idx = self.derive_func_index(instance, tx);
 
-        if func_name.is_none() {
-            // TOOD: ...
-            panic!()
-        }
+        // let func_name = instance
+        //     .exports
+        //     .iter()
+        //     .filter(|(_name, export)| matches!(export, Export::Function { .. }))
+        //     .find_map(|(name, _)| {
+        //         if func_idx == instance.resolve_func(&name).unwrap() {
+        //             Some(name)
+        //         } else {
+        //             None
+        //         }
+        //     });
 
-        instance.exports.get(&func_name.unwrap()).or_else(|_e| {
-            error!("Exported function: `{}` not found", func_idx);
+        // if func_name.is_none() {
+        //     // TOOD: ...
+        //     panic!()
+        // }
 
-            Err(ReceiptError::FuncNotFound {
-                app_addr: tx.app.clone(),
-                template_addr: template_addr.clone(),
-                func_idx: *&tx.func_idx,
-            })
-        })
-    }
+        // instance.exports.get(&func_name.unwrap()).or_else(|_e| {
+        //     error!("Exported function: `{}` not found", func_idx);
 
-    fn derive_func_index(&self, instance: &wasmer_runtime::Instance, tx: &AppTransaction) -> usize {
-        let rel_func_index = tx.func_idx as usize;
-        let imported_funcs = instance.module.info.imported_functions.len();
-        let func_index = rel_func_index + imported_funcs;
-
-        func_index
+        //     Err(ReceiptError::FuncNotFound {
+        //         app_addr: tx.app.clone(),
+        //         template_addr: template_addr.clone(),
+        //         func_idx: *&tx.func_idx,
+        //     })
+        // })
     }
 
     #[inline]
-    fn instance_storage_mut(&self, instance: &mut wasmer_runtime::Instance) -> &mut AppStorage {
-        let wasmer_ctx: &mut wasmer_runtime::Ctx = instance.context_mut();
-        helpers::wasmer_data_app_storage(wasmer_ctx.data)
+    fn instance_storage_mut(&self, instance: &mut Instance) -> &mut AppStorage {
+        todo!()
     }
 
     #[inline]
-    fn instance_svm_ctx<'a>(&self, instance: &'a mut wasmer_runtime::Instance) -> &'a mut SvmCtx {
-        let wasmer_ctx: &mut wasmer_runtime::Ctx = instance.context_mut();
-        helpers::wasmer_data_svm(wasmer_ctx.data)
+    fn instance_svm_ctx<'a>(&self, instance: &'a mut Instance) -> &'a mut SvmCtx {
+        todo!()
     }
 
-    fn import_object_create(
+    fn create_ctx(
         &self,
         template: &AppTemplate,
         app_addr: &AppAddr,
         state: &State,
         gas_limit: MaybeGas,
         host_ctx: HostCtx,
-    ) -> ImportObject {
-        debug!(
-            "runtime `import_object_create` address={:?}, state={:?}, config={:?}",
-            app_addr, state, self.config
-        );
-
+    ) -> SvmCtx {
         let layout = &template.data;
         let storage = self.open_app_storage(app_addr, state, layout);
         let host_ctx = svm_common::into_raw(host_ctx);
 
-        let svm_ctx = SvmCtx::new(
+        SvmCtx::new(
             DataWrapper::new(self.host),
             DataWrapper::new(host_ctx),
             gas_limit,
             storage,
-        );
-        let svm_ctx = Box::leak(Box::new(svm_ctx));
-
-        let state_creator = move || {
-            let data: *mut c_void = svm_ctx as *const SvmCtx as *mut SvmCtx as _;
-
-            let dtor: fn(*mut c_void) = |ctx_data| {
-                let ctx_ptr = ctx_data as *mut SvmCtx;
-
-                // triggers memory releasing
-                unsafe {
-                    let _ = Box::from_raw(ctx_ptr);
-                }
-            };
-
-            (data, dtor)
-        };
-
-        ImportObject::new_with_data(state_creator)
+        )
     }
 
-    fn import_object_extend(&self, import_object: &mut ImportObject) {
-        import_object.extend(self.imports.clone());
-
-        let mut ns = Namespace::new();
+    fn import_object_extend(&self, store: &Store, ctx: SvmCtx, import_object: &mut ImportObject) {
+        let mut ns = Exports::new();
 
         let mem = self.alloc_wasmer_memory();
         ns.insert("memory", mem);
 
-        vmcalls::wasmer_register(&mut ns);
+        vmcalls::wasmer_register(store, ctx, &mut ns);
 
         import_object.register("svm", ns);
     }
@@ -616,7 +585,7 @@ where
         template: &AppTemplate,
         template_addr: &TemplateAddr,
         gas_left: MaybeGas,
-    ) -> Result<wasmer_runtime::Module, ReceiptError> {
+    ) -> Result<Module, ReceiptError> {
         info!("runtime `compile_template` (template={:?})", template_addr);
 
         let gas_metering = gas_left.is_some();
@@ -636,13 +605,7 @@ where
     /// Instance Memory
 
     fn alloc_wasmer_memory(&self) -> Memory {
-        let minimum = Pages(1);
-        let maximum = None;
-        let shared = false;
-        let desc = MemoryDescriptor::new(minimum, maximum, shared).unwrap();
-
-        let memory = Memory::new(desc);
-        memory.unwrap()
+        todo!()
     }
 
     /// Parse

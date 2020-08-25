@@ -779,16 +779,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3728d817d99e5ac407411fa471ff9800a778d88a24685968b36824eaf4bee400"
 
 [[package]]
-name = "memmap"
-version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6585fd95e7bb50d6cc31e20d4cf9afb4e2ba16c5846fc76793f11218da9c475b"
-dependencies = [
- "libc",
- "winapi",
-]
-
-[[package]]
 name = "memoffset"
 version = "0.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1379,9 +1369,8 @@ dependencies = [
  "svm-sdk",
  "svm-storage",
  "svm-types",
- "wabt",
- "wasmer-runtime",
- "wasmer-runtime-core",
+ "wasmer 1.0.0-alpha01.0",
+ "wat",
 ]
 
 [[package]]
@@ -1810,19 +1799,6 @@ dependencies = [
  "thiserror",
  "wasmer-compiler",
  "wasmer-types",
-]
-
-[[package]]
-name = "wasmer-runtime"
-version = "0.17.0"
-source = "git+https://github.com/spacemeshos/wasmer?branch=develop#8090185a46e10edd98ffef018b32485567256bb1"
-dependencies = [
- "lazy_static",
- "memmap",
- "serde",
- "serde_derive",
- "wasmer-clif-backend",
- "wasmer-runtime-core",
 ]
 
 [[package]]
