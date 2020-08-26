@@ -28,8 +28,8 @@ use svm_types::{
 };
 
 use wasmer::{
-    Export, Exports, Function, ImportObject, Instance, Memory, Module, NativeFunc, Pages, Store,
-    Value, WasmPtr,
+    Export, Exports, Function, ImportObject, Instance, Memory, MemoryType, Module, NativeFunc,
+    Pages, Store, Value, WasmPtr,
 };
 
 /// Default `Runtime` implementation based on `wasmer`.
@@ -340,7 +340,7 @@ where
         };
         let func_res = func.call(&[]);
 
-        let logs = self.instance_logs(&instance);
+        let logs = ctx.borrow_mut().take_logs();
 
         let gas_used = self.instance_gas_used(&instance);
         if gas_used.is_err() {
@@ -355,7 +355,7 @@ where
                 msg: e.to_string(),
             }),
             Ok(returns) => {
-                let storage = self.instance_storage_mut(&mut instance);
+                let storage = &mut ctx.borrow_mut().storage;
                 let new_state = Some(storage.commit());
 
                 // TODO: return the `returndata` back
@@ -440,7 +440,7 @@ where
         // // Each wasm instance memory contains at least one `WASM Page`. (A `Page` size is 64KB)
         // // The `len(calldata)` will be less than the `WASM Page` size.
         // //
-        // // In any case, the `alloc_wasmer_memory` is in charge of allocating enough memory
+        // // In any case, the `alloc_memory` is in charge of allocating enough memory
         // // for the program to run (so we don't need to have any bounds-checking here).
 
         // // TODO: add to `validate_template` checking that `calldata` doesn't exceed ???
@@ -462,14 +462,8 @@ where
 
     #[inline]
     fn instance_gas_used(&self, instance: &Instance) -> Result<MaybeGas, OOGError> {
-        helpers::wasmer_gas_used(instance)
-    }
-
-    #[inline]
-    fn instance_logs(&self, instance: &Instance) -> Vec<Log> {
         todo!()
-        // let ctx = instance.context();
-        // helpers::wasmer_data_logs(ctx.data)
+        // helpers::wasmer_gas_used(instance)
     }
 
     fn instantiate(
@@ -529,16 +523,6 @@ where
         // })
     }
 
-    #[inline]
-    fn instance_storage_mut(&self, instance: &mut Instance) -> &mut AppStorage {
-        todo!()
-    }
-
-    #[inline]
-    fn instance_svm_ctx<'a>(&self, instance: &'a mut Instance) -> &'a mut Context {
-        todo!()
-    }
-
     fn create_ctx(
         &self,
         template: &AppTemplate,
@@ -562,10 +546,11 @@ where
     fn create_import_object(&self, store: &Store, ctx: &Context) -> ImportObject {
         let mut import_object = ImportObject::new();
 
-        let mem = self.alloc_wasmer_memory();
+        let memory = self.alloc_memory(store);
 
         let mut ns = Exports::new();
-        ns.insert("memory", mem);
+
+        ns.insert("memory", memory);
 
         vmcalls::wasmer_register(store, ctx, &mut ns);
         import_object.register("svm", ns);
@@ -608,10 +593,14 @@ where
         })
     }
 
-    /// Instance Memory
+    fn alloc_memory(&self, store: &Store) -> Memory {
+        let min = Pages(1);
+        let max = None;
+        let shared = false;
+        let ty = MemoryType::new(min, max, shared);
 
-    fn alloc_wasmer_memory(&self) -> Memory {
-        todo!()
+        // TODO: return error when memory creation has failed.
+        Memory::new(store, ty).unwrap()
     }
 
     /// Parse
