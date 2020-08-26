@@ -1,6 +1,6 @@
-use std::cell::RefCell;
+use std::cell::{Ref, RefCell, RefMut};
 use std::ffi::c_void;
-use std::sync::Arc;
+use std::rc::Rc;
 
 use log::debug;
 
@@ -17,7 +17,7 @@ use svm_types::{gas::MaybeGas, receipt::Log, HostCtx};
 /// * `gas_metering` - Whether gas metering is enabled.
 
 pub struct Context {
-    inner: Arc<RefCell<Inner>>,
+    inner: Rc<RefCell<Inner>>,
 }
 
 impl Context {
@@ -30,38 +30,38 @@ impl Context {
         let inner = Inner::new(host, host_ctx, gas_limit, storage);
 
         Self {
-            inner: Arc::new(RefCell::new(inner)),
+            inner: Rc::new(RefCell::new(inner)),
         }
     }
 
     pub fn host_ctx(&self) -> &HostCtx {
-        let ptr: *const HostCtx = self.inner.borrow().host_ctx;
+        todo!()
+        // let ptr: *const HostCtx = self.inner.borrow().host_ctx;
 
-        unsafe { &*ptr }
+        // unsafe { &*ptr }
     }
 
-    pub fn storage(&self) -> &AppStorage {
-        todo!()
-
-        // let inner: &Inner = self.inner.borrow();
-        // &inner.storage
+    pub fn borrow(&self) -> Ref<Inner> {
+        self.inner.borrow()
     }
 
-    pub fn storage_mut(&self) -> &mut AppStorage {
-        todo!()
-        // &mut self.inner.borrow_mut().storage
+    pub fn borrow_mut(&self) -> RefMut<Inner> {
+        self.inner.borrow_mut()
     }
 
     pub fn set_calldata(&self, offset: usize, len: usize) {
-        self.inner.borrow_mut().set_calldata(offset, len);
+        todo!()
+        // self.inner.borrow_mut().set_calldata(offset, len);
     }
 
     pub fn get_calldata(&self) -> (usize, usize) {
-        return self.inner.borrow_mut().get_calldata();
+        todo!()
+        // return self.inner.borrow_mut().get_calldata();
     }
 
     pub fn take_logs(&mut self) -> Vec<Log> {
-        return self.inner.borrow_mut().take_logs();
+        todo!()
+        // return self.inner.borrow_mut().take_logs();
     }
 }
 
@@ -73,29 +73,29 @@ impl Clone for Context {
     }
 }
 
-struct Inner {
+pub struct Inner {
     /// A pointer to the `host`.
     ///
     /// For example, `host` will point a to struct having an access to the balance of each account.
-    host: *mut c_void,
+    pub host: *mut c_void,
 
     /// Raw pointer to host context fields.
-    host_ctx: *const HostCtx,
+    pub host_ctx: *const HostCtx,
 
     /// Gas limit (relevant only when `gas_metering = true`)
-    gas_limit: u64,
+    pub gas_limit: u64,
 
     /// Whether gas metering is enabled or not
-    gas_metering: bool,
+    pub gas_metering: bool,
 
     /// An accessor to the App's storage
-    storage: AppStorage,
+    pub storage: AppStorage,
 
     /// App's logs
-    logs: Vec<Log>,
+    pub logs: Vec<Log>,
 
     /// Pointer to calldata. Tuple stores `(offset, len)`.
-    calldata: Option<(usize, usize)>,
+    pub calldata: Option<(usize, usize)>,
 }
 
 unsafe impl Sync for Context {}

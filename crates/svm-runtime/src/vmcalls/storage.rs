@@ -100,7 +100,7 @@ pub fn load256(ctx: &mut Context, var_id: u32, mem_idx: u32, mem_ptr: u32) {
 pub fn get32(ctx: &mut Context, var_id: u32) -> u32 {
     use_gas!("get32", ctx);
 
-    let storage = ctx.storage();
+    let storage = &ctx.borrow().storage;
 
     let bytes = storage.read_var(VarId(var_id));
     let nbytes = bytes.len();
@@ -123,7 +123,8 @@ pub fn get32(ctx: &mut Context, var_id: u32) -> u32 {
 pub fn set32(ctx: &mut Context, var_id: u32, value: u32) {
     use_gas!("set32", ctx);
 
-    let storage = ctx.storage_mut();
+    let storage = &mut ctx.borrow_mut().storage;
+
     let (_off, nbytes) = storage.var_layout(VarId(var_id));
 
     assert!(nbytes <= 4);
@@ -142,7 +143,7 @@ pub fn set32(ctx: &mut Context, var_id: u32, value: u32) {
 pub fn get64(ctx: &mut Context, var_id: u32) -> u64 {
     use_gas!("get64", ctx);
 
-    let storage = ctx.storage();
+    let storage = &ctx.borrow().storage;
 
     let bytes = storage.read_var(VarId(var_id));
     let nbytes = bytes.len();
@@ -161,7 +162,8 @@ pub fn get64(ctx: &mut Context, var_id: u32) -> u64 {
 pub fn set64(ctx: &mut Context, var_id: u32, value: u64) {
     use_gas!("set64", ctx);
 
-    let storage = ctx.storage_mut();
+    let storage = &mut ctx.borrow_mut().storage;
+
     let (_off, nbytes) = storage.var_layout(VarId(var_id));
 
     assert!(nbytes <= 8);
