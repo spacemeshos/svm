@@ -175,7 +175,7 @@ where
     ENV: Env<Types = TY>,
     GE: GasEstimator,
 {
-    /// Initializes a new `DefaultRuntime` instance.
+    /// Initializes a new `DefaultRuntime`.
     pub fn new<P: AsRef<Path>>(
         host: *mut c_void,
         env: ENV,
@@ -335,7 +335,7 @@ where
 
         self.set_calldata(&tx.calldata, wasm_ptr.unwrap(), &mut instance);
 
-        let func = match self.get_exported_func(tx, template_addr, &instance) {
+        let func = match self.get_func(tx, template_addr, &instance) {
             Err(e) => return (Err(e), empty_logs),
             Ok(func) => func,
         };
@@ -485,13 +485,19 @@ where
         })
     }
 
-    fn get_exported_func(
+    fn get_func<'instance>(
         &self,
         tx: &AppTransaction,
         template_addr: &TemplateAddr,
-        instance: &Instance,
-    ) -> Result<Function, ReceiptError> {
-        todo!()
+        instance: &'instance Instance,
+    ) -> Result<&'instance Function, ReceiptError> {
+        instance.exports.get_function(&tx.func).or_else(|err| {
+            Err(ReceiptError::FuncNotFound {
+                app_addr: tx.app.clone(),
+                template_addr: template_addr.clone(),
+                func: tx.func.clone(),
+            })
+        })
     }
 
     fn create_ctx(
