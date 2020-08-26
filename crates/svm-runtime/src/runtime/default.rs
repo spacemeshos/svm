@@ -234,6 +234,7 @@ where
         _gas_left: MaybeGas,
     ) -> TemplateReceipt {
         let addr = self.env.store_template(template, author, &host_ctx);
+
         TemplateReceipt::new(addr, gas_used)
     }
 
@@ -432,7 +433,8 @@ where
     }
 
     fn set_calldata(&self, calldata: &[u8], ptr: WasmPtr<u8>, instance: &mut Instance) {
-        todo!()
+        todo!();
+
         // let ctx = instance.context_mut();
         // let memory = ctx.memory(0);
         // let offset = ptr.offset();
@@ -491,36 +493,6 @@ where
         instance: &Instance,
     ) -> Result<Function, ReceiptError> {
         todo!()
-        // TODO: instance.exports.get_function(func_name)
-
-        // let func_idx = self.derive_func_index(instance, tx);
-
-        // let func_name = instance
-        //     .exports
-        //     .iter()
-        //     .filter(|(_name, export)| matches!(export, Export::Function { .. }))
-        //     .find_map(|(name, _)| {
-        //         if func_idx == instance.resolve_func(&name).unwrap() {
-        //             Some(name)
-        //         } else {
-        //             None
-        //         }
-        //     });
-
-        // if func_name.is_none() {
-        //     // TOOD: ...
-        //     panic!()
-        // }
-
-        // instance.exports.get(&func_name.unwrap()).or_else(|_e| {
-        //     error!("Exported function: `{}` not found", func_idx);
-
-        //     Err(ReceiptError::FuncNotFound {
-        //         app_addr: tx.app.clone(),
-        //         template_addr: template_addr.clone(),
-        //         func_idx: *&tx.func_idx,
-        //     })
-        // })
     }
 
     fn create_ctx(

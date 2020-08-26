@@ -91,21 +91,21 @@ pub(crate) fn encode_error(err: &ReceiptError, logs: &[Log], w: &mut NibbleWrite
         Err::FuncNotFound {
             app_addr,
             template_addr,
-            func_idx,
+            func,
         } => {
             helpers::encode_address(template_addr.inner(), w);
             helpers::encode_address(app_addr.inner(), w);
-            helpers::encode_func_index(*func_idx, w);
+            helpers::encode_string(func, w);
         }
         Err::FuncFailed {
             app_addr,
             template_addr,
-            func_idx,
+            func,
             msg,
         } => {
             helpers::encode_address(template_addr.inner(), w);
             helpers::encode_address(app_addr.inner(), w);
-            helpers::encode_func_index(*func_idx, w);
+            helpers::encode_string(func, w);
             helpers::encode_string(msg, w);
         }
     };
@@ -186,24 +186,24 @@ fn decode_instantiation_err(iter: &mut NibbleIter) -> ReceiptError {
 
 fn decode_func_not_found(iter: &mut NibbleIter) -> ReceiptError {
     let (template_addr, app_addr) = decode_addrs(iter);
-    let func_idx = helpers::decode_func_index(iter).unwrap();
+    let func = helpers::decode_string(iter, Field::FuncNameLength, Field::FuncName).unwrap();
 
     ReceiptError::FuncNotFound {
         template_addr,
         app_addr,
-        func_idx,
+        func,
     }
 }
 
 fn decode_func_err(iter: &mut NibbleIter) -> ReceiptError {
     let (template_addr, app_addr) = decode_addrs(iter);
-    let func_idx = helpers::decode_func_index(iter).unwrap();
+    let func = helpers::decode_string(iter, Field::FuncNameLength, Field::FuncName).unwrap();
     let msg = decode_msg(iter);
 
     ReceiptError::FuncFailed {
         template_addr,
         app_addr,
-        func_idx,
+        func,
         msg,
     }
 }
@@ -328,12 +328,12 @@ mod tests {
     fn decode_receipt_func_not_found() {
         let template_addr = Address::of("some-template");
         let app_addr = Address::of("some-app");
-        let func_idx = 1;
+        let func = 1;
 
         let err = ReceiptError::FuncNotFound {
             app_addr: app_addr.into(),
             template_addr: template_addr.into(),
-            func_idx,
+            func,
         };
 
         let mut w = NibbleWriter::new();
@@ -348,13 +348,13 @@ mod tests {
     fn decode_receipt_func_failed() {
         let template_addr = Address::of("some-template");
         let app_addr = Address::of("some-app");
-        let func_idx = 1;
+        let func = 1;
         let msg = "Invalid input".to_string();
 
         let err = ReceiptError::FuncFailed {
             app_addr: app_addr.into(),
             template_addr: template_addr.into(),
-            func_idx,
+            func,
             msg,
         };
 

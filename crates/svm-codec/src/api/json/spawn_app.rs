@@ -15,7 +15,7 @@ use crate::{
 ///   version: 0,           // number
 ///   template: 'A2FB...',  // string
 ///   name: 'My App',       // string
-///   ctor_index: 0,        // number
+///   ctor: 'initialize',   // number
 ///   calldata: '',         // string
 /// }
 /// ```
@@ -23,7 +23,7 @@ pub fn encode_spawn_app(json: &Value) -> Result<Vec<u8>, JsonError> {
     let version = json::as_u32(json, "version")?;
     let template = json::as_addr(json, "template")?.into();
     let name = json::as_string(json, "name")?;
-    let ctor_idx = json::as_u16(json, "ctor_index")?;
+    let ctor = json::as_string(json, "ctor")?;
 
     let calldata = json::as_string(json, "calldata")?;
     let calldata = json::str_to_bytes(&calldata, "calldata")?;
@@ -34,7 +34,7 @@ pub fn encode_spawn_app(json: &Value) -> Result<Vec<u8>, JsonError> {
             name,
             template,
         },
-        ctor_idx,
+        ctor,
         calldata,
     };
 
@@ -53,7 +53,7 @@ pub fn decode_spawn_app(json: &Value) -> Result<Value, JsonError> {
     let spawn = raw::decode_spawn_app(&mut iter).unwrap();
 
     let version = spawn.app.version;
-    let ctor_idx = spawn.ctor_idx;
+    let ctor = spawn.ctor;
     let template = json::addr_to_str(&spawn.app.template.inner());
 
     let calldata = json::bytes_to_str(&spawn.calldata);
@@ -65,7 +65,7 @@ pub fn decode_spawn_app(json: &Value) -> Result<Value, JsonError> {
         "version": version,
         "template": template,
         "name": name,
-        "ctor_index": ctor_idx,
+        "ctor": ctor,
         "calldata": calldata,
     });
 
@@ -139,7 +139,7 @@ mod tests {
         assert_eq!(
             err,
             JsonError::InvalidField {
-                field: "ctor_index".to_string(),
+                field: "ctor".to_string(),
                 reason: "value `null` isn\'t a number".to_string(),
             }
         );
@@ -151,7 +151,7 @@ mod tests {
             "version": 0,
             "template": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
             "name": "My App",
-            "ctor_index": 0,
+            "ctor": 0,
         });
 
         let err = encode_spawn_app(&json).unwrap_err();
@@ -178,7 +178,7 @@ mod tests {
             "version": 1,
             "template": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
             "name": "My App",
-            "ctor_index": 2,
+            "ctor": 2,
             "calldata": calldata["calldata"],
         });
 
@@ -192,7 +192,7 @@ mod tests {
                 "version": 1,
                 "template": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
                 "name": "My App",
-                "ctor_index": 2,
+                "ctor": 2,
                 "calldata": {
                     "abi": ["i32", "i64"],
                     "data": [10, 20]

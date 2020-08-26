@@ -24,10 +24,6 @@ pub fn encode_string(s: &str, w: &mut NibbleWriter) {
     w.write_bytes(&bytes[..]);
 }
 
-pub fn encode_func_index(func_idx: u16, w: &mut NibbleWriter) {
-    raw::encode_varuint14(func_idx, w);
-}
-
 pub fn encode_u32_be(n: u32, w: &mut NibbleWriter) {
     let mut buf = vec![0; 4];
     BigEndian::write_u32(&mut buf, n);
@@ -80,8 +76,4 @@ pub fn decode_u32_be(iter: &mut NibbleIter, field: Field) -> Result<u32, ParseEr
     let n = BigEndian::read_u32(&bytes[..]);
 
     Ok(n)
-}
-
-pub fn decode_func_index(iter: &mut NibbleIter) -> Result<u16, ParseError> {
-    raw::decode_varuint14(iter, Field::FuncIndex)
 }

@@ -15,14 +15,14 @@ use svm_types::{AddressOf, App, AppTransaction, WasmValue};
 /// {
 ///   version: 0,      // number
 ///   app: 'A2FB...',  // string
-///   func_index: 0,   // number
+///   func: 'do_work', // string
 ///   calldata: '',    // string
 /// }
 /// ```
 pub fn encode_exec_app(json: &Value) -> Result<Vec<u8>, JsonError> {
     let version = json::as_u32(json, "version")?;
     let app = json::as_addr(json, "app")?.into();
-    let func_idx = json::as_u16(json, "func_index")?;
+    let func = json::as_string(json, "func")?;
 
     let calldata = json::as_string(json, "calldata")?;
     let calldata = json::str_to_bytes(&calldata, "calldata")?;
@@ -30,7 +30,7 @@ pub fn encode_exec_app(json: &Value) -> Result<Vec<u8>, JsonError> {
     let tx = AppTransaction {
         version,
         app,
-        func_idx,
+        func,
         calldata,
     };
 
@@ -49,7 +49,7 @@ pub fn decode_exec_app(json: &Value) -> Result<Value, JsonError> {
     let tx = raw::decode_exec_app(&mut iter).unwrap();
 
     let version = tx.version;
-    let func_idx = tx.func_idx;
+    let func = tx.func.clone();
     let app = json::addr_to_str(&tx.app.inner());
 
     let calldata = json::bytes_to_str(&tx.calldata);
@@ -58,7 +58,7 @@ pub fn decode_exec_app(json: &Value) -> Result<Value, JsonError> {
     let json = json!({
         "version": version,
         "app": app,
-        "func_index": func_idx,
+        "func": func,
         "calldata": calldata,
     });
 
