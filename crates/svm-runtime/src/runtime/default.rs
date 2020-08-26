@@ -276,19 +276,20 @@ where
                 ExecReceipt::from_err(e, empty_logs)
             }
             Ok((template, template_addr, _author, _creator)) => {
+                let store = svm_compiler::new_store();
+
                 let ctx: Context = self.create_ctx(&template, &tx.app, &state, gas_left, host_ctx);
+                let import_object = self.create_import_object(&store, &ctx);
 
-                let import_object = ImportObject::new();
-
-                todo!();
-                // TODO: create a store via `svm-compiler` crate
-                let store = Store::default();
-
-                todo!("add imports");
-                // self.import_object_extend(&store, ctx, &mut import_object);
-
-                let (result, logs) =
-                    self.do_exec_app(&tx, &template, &template_addr, &import_object, gas_left);
+                let (result, logs) = self.do_exec_app(
+                    &store,
+                    &ctx,
+                    &tx,
+                    &template,
+                    &template_addr,
+                    &import_object,
+                    gas_left,
+                );
 
                 let receipt = self.make_receipt(result, logs);
 
@@ -301,6 +302,8 @@ where
 
     fn do_exec_app(
         &self,
+        store: &Store,
+        ctx: &Context,
         tx: &AppTransaction,
         template: &AppTemplate,
         template_addr: &TemplateAddr,
@@ -312,7 +315,7 @@ where
     ) {
         let empty_logs = Vec::new();
 
-        let module = self.compile_template(tx, &template, &template_addr, gas_left);
+        let module = self.compile_template(store, tx, &template, &template_addr, gas_left);
         if let Err(err) = module {
             return (Err(err), empty_logs);
         }
@@ -556,15 +559,18 @@ where
         )
     }
 
-    fn import_object_extend(&self, store: &Store, ctx: Context, import_object: &mut ImportObject) {
-        let mut ns = Exports::new();
+    fn create_import_object(&self, store: &Store, ctx: &Context) -> ImportObject {
+        let mut import_object = ImportObject::new();
 
         let mem = self.alloc_wasmer_memory();
+
+        let mut ns = Exports::new();
         ns.insert("memory", mem);
 
         vmcalls::wasmer_register(store, ctx, &mut ns);
-
         import_object.register("svm", ns);
+
+        import_object
     }
 
     fn load_template(
@@ -580,6 +586,7 @@ where
 
     fn compile_template(
         &self,
+        store: &Store,
         tx: &AppTransaction,
         template: &AppTemplate,
         template_addr: &TemplateAddr,
@@ -590,7 +597,7 @@ where
         let gas_metering = gas_left.is_some();
         let gas_left = gas_left.unwrap_or(0);
 
-        svm_compiler::compile_program(&template.code, gas_left, gas_metering).or_else(|e| {
+        svm_compiler::compile(store, &template.code, gas_left, gas_metering).or_else(|e| {
             error!("module module failed (template={:?})", template_addr);
 
             Err(ReceiptError::CompilationFailed {

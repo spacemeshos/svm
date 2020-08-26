@@ -14,11 +14,14 @@ pub use storage::{get32, get64, load160, load256, set32, set64, store160, store2
 
 macro_rules! func {
     ($store:ident, $ctx:ident, $f:expr) => {{
-        Function::new_native_with_env($store, $ctx.clone(), $f)
+        // Each host function own it's own `Context`
+        let ctx = $ctx.clone();
+
+        Function::new_native_with_env($store, ctx, $f)
     }};
 }
 
-pub fn wasmer_register(store: &Store, ctx: Context, ns: &mut Exports) {
+pub fn wasmer_register(store: &Store, ctx: &Context, ns: &mut Exports) {
     ns.insert("calldata_ptr", func!(store, ctx, calldata_ptr));
     ns.insert("calldata_len", func!(store, ctx, calldata_len));
 

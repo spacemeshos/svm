@@ -8,4 +8,4 @@
 
 mod compiler;
 
-pub use compiler::compile_program;
+pub use compiler::{compile, new_store};

@@ -8,13 +8,18 @@ use wasmer_compiler::CompileError;
 // * inject `gas-metering` middleware.
 // * inject the validation middleware.
 #[must_use]
-pub fn compile_program(
+pub fn compile(
+    store: &Store,
     wasm: &[u8],
     _gas_limit: u64,
     _gas_metering: bool,
 ) -> Result<Module, CompileError> {
-    let engine = JIT::new(&Cranelift::default()).engine();
-    let store = Store::new(&engine);
+    Module::new(&store, wasm)
+}
 
-    Module::from_binary(&store, wasm)
+/// New fresh `Store`
+#[must_use]
+pub fn new_store() -> Store {
+    let engine = JIT::new(&Cranelift::default()).engine();
+    Store::new(&engine)
 }

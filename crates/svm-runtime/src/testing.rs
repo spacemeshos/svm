@@ -41,13 +41,14 @@ impl<'a> WasmFile<'a> {
 
 /// Compiles a wasm program in text format (a.k.a WAST) into a `Module` (`wasmer`)
 pub fn wasmer_compile(wasm: &str, gas_limit: MaybeGas) -> Module {
-    todo!("wat to binary");
-    let wasm = vec![];
+    todo!()
+    // todo!("wat to binary");
+    // let wasm = vec![];
 
-    let gas_metering = gas_limit.is_some();
-    let gas_limit = gas_limit.unwrap_or(0);
+    // let gas_metering = gas_limit.is_some();
+    // let gas_limit = gas_limit.unwrap_or(0);
 
-    svm_compiler::compile_program(&wasm[..], gas_limit, gas_metering).unwrap()
+    // svm_compiler::compile(&wasm[..], gas_limit, gas_metering).unwrap()
 }
 
 /// Instantiate a `wasmer` instance
