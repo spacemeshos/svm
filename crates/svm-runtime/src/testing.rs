@@ -184,29 +184,24 @@ pub fn build_app(
     version: u32,
     template: &TemplateAddr,
     name: &str,
-    ctor_idx: u16,
+    ctor: &str,
     calldata: &Vec<u8>,
 ) -> Vec<u8> {
     SpawnAppBuilder::new()
         .with_version(version)
         .with_template(template)
         .with_name(name)
-        .with_ctor_index(ctor_idx)
+        .with_ctor(ctor)
         .with_calldata(calldata)
         .build()
 }
 
 /// Synthesizes a raw exec-app transaction.
-pub fn build_app_tx(
-    version: u32,
-    app_addr: &AppAddr,
-    func_idx: u16,
-    calldata: &Vec<u8>,
-) -> Vec<u8> {
+pub fn build_app_tx(version: u32, app_addr: &AppAddr, func: &str, calldata: &Vec<u8>) -> Vec<u8> {
     AppTxBuilder::new()
         .with_version(version)
         .with_app(app_addr)
-        .with_func_index(func_idx)
+        .with_func(func)
         .with_calldata(calldata)
         .build()
 }

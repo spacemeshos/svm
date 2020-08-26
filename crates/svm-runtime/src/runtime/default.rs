@@ -256,7 +256,7 @@ where
         AppTransaction {
             version: 0,
             app: app_addr.clone(),
-            func_idx: spawn.ctor_idx,
+            func: spawn.ctor,
             calldata: spawn.calldata,
         }
     }
@@ -352,7 +352,7 @@ where
             Err(e) => Err(ReceiptError::FuncFailed {
                 app_addr: tx.app.clone(),
                 template_addr: template_addr.clone(),
-                func_idx: tx.func_idx,
+                func: tx.func.clone(),
                 msg: e.to_string(),
             }),
             Ok(returns) => {
@@ -405,8 +405,7 @@ where
             let err = ReceiptError::FuncNotFound {
                 app_addr: tx.app.clone(),
                 template_addr: template_addr.clone(),
-                func_idx: 0, // TODO: this field will be discarded once we get rid of the `func_idx`
-                             // we'll use `func_name` (String instead).
+                func: "svm_alloc".to_string(),
             };
 
             return Err(err);
@@ -422,7 +421,7 @@ where
                 app_addr: tx.app.clone(),
                 template_addr: template_addr.clone(),
                 msg: "Allocation failed for `svm_alloc`".to_string(),
-                func_idx: 0, // TODO: this field will be discarded once we get rid of the `func_idx`
+                func: "svm_alloc".to_string(),
             };
 
             return Err(err);
