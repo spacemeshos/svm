@@ -6,13 +6,12 @@ use std::path::Path;
 use log::{debug, error, info};
 
 use crate::{
-    ctx::SvmCtx,
     env::traits::{Env, EnvTypes},
     error::ValidateError,
     gas::GasEstimator,
     helpers::{self, DataWrapper},
     storage::StorageBuilderFn,
-    vmcalls, Config, Runtime,
+    vmcalls, Config, Context, Runtime,
 };
 
 use svm_codec::error::ParseError;
@@ -277,7 +276,7 @@ where
                 ExecReceipt::from_err(e, empty_logs)
             }
             Ok((template, template_addr, _author, _creator)) => {
-                let ctx: SvmCtx = self.create_ctx(&template, &tx.app, &state, gas_left, host_ctx);
+                let ctx: Context = self.create_ctx(&template, &tx.app, &state, gas_left, host_ctx);
 
                 let import_object = ImportObject::new();
 
@@ -453,9 +452,9 @@ where
         //     cell.set(byte);
         // }
 
-        // let svm_ctx = self.instance_svm_ctx(instance);
+        // let ctx = self.instance_svm_ctx(instance);
 
-        // svm_ctx.set_calldata(offset, len);
+        // ctx.set_calldata(offset, len);
     }
 
     #[inline]
@@ -533,7 +532,7 @@ where
     }
 
     #[inline]
-    fn instance_svm_ctx<'a>(&self, instance: &'a mut Instance) -> &'a mut SvmCtx {
+    fn instance_svm_ctx<'a>(&self, instance: &'a mut Instance) -> &'a mut Context {
         todo!()
     }
 
@@ -544,12 +543,12 @@ where
         state: &State,
         gas_limit: MaybeGas,
         host_ctx: HostCtx,
-    ) -> SvmCtx {
+    ) -> Context {
         let layout = &template.data;
         let storage = self.open_app_storage(app_addr, state, layout);
         let host_ctx = svm_common::into_raw(host_ctx);
 
-        SvmCtx::new(
+        Context::new(
             DataWrapper::new(self.host),
             DataWrapper::new(host_ctx),
             gas_limit,
@@ -557,7 +556,7 @@ where
         )
     }
 
-    fn import_object_extend(&self, store: &Store, ctx: SvmCtx, import_object: &mut ImportObject) {
+    fn import_object_extend(&self, store: &Store, ctx: Context, import_object: &mut ImportObject) {
         let mut ns = Exports::new();
 
         let mem = self.alloc_wasmer_memory();

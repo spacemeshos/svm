@@ -1,9 +1,8 @@
-use crate::ctx::SvmCtx;
-use crate::{helpers, use_gas};
+use crate::{helpers, use_gas, Context};
 
 use svm_types::receipt::Log;
 
-pub fn log(ctx: &mut SvmCtx, msg_ptr: u32, msg_len: u32, code: u32) {
+pub fn log(ctx: &mut Context, msg_ptr: u32, msg_len: u32, code: u32) {
     use_gas!("log", ctx);
 
     todo!()
@@ -20,7 +19,7 @@ pub fn log(ctx: &mut SvmCtx, msg_ptr: u32, msg_len: u32, code: u32) {
     //     code: code as u8,
     // };
 
-    // let svm_ctx = unsafe { svm_common::from_raw_mut::<SvmCtx>(ctx.data) };
+    // let svm_ctx = unsafe { svm_common::from_raw_mut::<C>(ctx.data) };
 
     // svm_ctx.logs.push(log);
 }

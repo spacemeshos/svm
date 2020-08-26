@@ -19,8 +19,9 @@ mod storage;
 
 pub mod env;
 
-/// Implements `SvmCtx`. Used for running `SVM` instances.
-pub mod ctx;
+/// Implements `Context`. Used for managing data of running `SVM` apps.
+mod context;
+pub use context::Context;
 
 /// Implements the helpers to be consumed by `SVM` vmcalls.
 #[macro_use]

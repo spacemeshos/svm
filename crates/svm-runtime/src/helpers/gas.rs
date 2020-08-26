@@ -1,7 +1,7 @@
 // use wasmer_middleware_common::metering::{get_points_used_ctx, set_points_used_ctx};
 use wasmer::Instance;
 
-use crate::ctx::SvmCtx;
+use crate::Context;
 
 use svm_types::gas::{MaybeGas, OOGError};
 
@@ -11,7 +11,7 @@ use svm_types::gas::{MaybeGas, OOGError};
 ///
 /// Panics `Out of Gas` in case there is no sufficient gas left.
 #[inline]
-pub fn wasmer_use_gas(_ctx: &mut SvmCtx, _gas: u64, _gas_limit: u64) {
+pub fn wasmer_use_gas(_ctx: &mut Context, _gas: u64, _gas_limit: u64) {
     // let used_gas = get_points_used_ctx(ctx);
     // let new_used_gas = used_gas + gas;
 
@@ -31,7 +31,7 @@ pub fn wasmer_gas_used(_instance: &Instance) -> Result<MaybeGas, OOGError> {
 
     // let wasmer_ctx = instance.context();
 
-    // let svm_ctx: &mut SvmCtx = unsafe { svm_common::from_raw_mut::<SvmCtx>(wasmer_ctx.data) };
+    // let svm_ctx: &mut Context = unsafe { svm_common::from_raw_mut::<Context>(wasmer_ctx.data) };
 
     // if svm_ctx.gas_metering {
     //     let gas_used = get_points_used_ctx(&wasmer_ctx);

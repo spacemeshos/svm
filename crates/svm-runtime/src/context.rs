@@ -9,24 +9,25 @@ use crate::helpers::DataWrapper;
 use svm_storage::app::AppStorage;
 use svm_types::{gas::MaybeGas, receipt::Log, HostCtx};
 
-/// `SvmCtx` is a container for the accessible data by `wasmer` instances.
+/// `Context` is a container for the accessible data by `wasmer` instances.
+///
 /// * `host`         - A pointer to the `Host`.
 /// * `host_ctx`     - A pointer to the `HostCtx` (i.e: `sender`, `block_id`, `nonce`, ...).
 /// * `storage`      - Instance's `AppStorage`.
 /// * `gas_metering` - Whether gas metering is enabled.
 
-pub struct SvmCtx {
-    inner: Arc<RefCell<SvmCtxInner>>,
+pub struct Context {
+    inner: Arc<RefCell<Inner>>,
 }
 
-impl SvmCtx {
+impl Context {
     pub fn new(
         host: DataWrapper<*mut c_void>,
         host_ctx: DataWrapper<*const c_void>,
         gas_limit: MaybeGas,
         storage: AppStorage,
     ) -> Self {
-        let inner = SvmCtxInner::new(host, host_ctx, gas_limit, storage);
+        let inner = Inner::new(host, host_ctx, gas_limit, storage);
 
         Self {
             inner: Arc::new(RefCell::new(inner)),
@@ -40,11 +41,15 @@ impl SvmCtx {
     }
 
     pub fn storage(&self) -> &AppStorage {
-        &self.inner.borrow().storage
+        todo!()
+
+        // let inner: &Inner = self.inner.borrow();
+        // &inner.storage
     }
 
     pub fn storage_mut(&self) -> &mut AppStorage {
-        &mut self.inner.borrow_mut().storage
+        todo!()
+        // &mut self.inner.borrow_mut().storage
     }
 
     pub fn set_calldata(&self, offset: usize, len: usize) {
@@ -60,43 +65,44 @@ impl SvmCtx {
     }
 }
 
-impl Clone for SvmCtx {
+impl Clone for Context {
     fn clone(&self) -> Self {
-        SvmCtx {
+        Context {
             inner: self.inner.clone(),
         }
     }
 }
 
-struct SvmCtxInner {
+struct Inner {
     /// A pointer to the `host`.
     ///
     /// For example, `host` will point a to struct having an access to the balance of each account.
-    pub host: *mut c_void,
+    host: *mut c_void,
 
     /// Raw pointer to host context fields.
-    pub host_ctx: *const HostCtx,
+    host_ctx: *const HostCtx,
 
     /// Gas limit (relevant only when `gas_metering = true`)
-    pub gas_limit: u64,
+    gas_limit: u64,
 
     /// Whether gas metering is enabled or not
-    pub gas_metering: bool,
+    gas_metering: bool,
 
-    /// An accessor to the app's new storage
-    pub storage: AppStorage,
+    /// An accessor to the App's storage
+    storage: AppStorage,
 
-    pub logs: Vec<Log>,
+    /// App's logs
+    logs: Vec<Log>,
 
     /// Pointer to calldata. Tuple stores `(offset, len)`.
-    pub calldata: Option<(usize, usize)>,
+    calldata: Option<(usize, usize)>,
 }
 
-unsafe impl Sync for SvmCtx {}
-unsafe impl Send for SvmCtx {}
+unsafe impl Sync for Context {}
+unsafe impl Send for Context {}
 
-impl SvmCtxInner {
-    pub fn new(
+impl Inner {
+    fn new(
         host: DataWrapper<*mut c_void>,
         host_ctx: DataWrapper<*const c_void>,
         gas_limit: MaybeGas,
@@ -120,22 +126,22 @@ impl SvmCtxInner {
         }
     }
 
-    pub fn set_calldata(&mut self, offset: usize, len: usize) {
+    fn set_calldata(&mut self, offset: usize, len: usize) {
         self.calldata = Some((offset, len));
     }
 
-    pub fn get_calldata(&self) -> (usize, usize) {
+    fn get_calldata(&self) -> (usize, usize) {
         self.calldata.unwrap()
     }
 
-    pub fn take_logs(&mut self) -> Vec<Log> {
+    fn take_logs(&mut self) -> Vec<Log> {
         std::mem::take(&mut self.logs)
     }
 }
 
-impl Drop for SvmCtxInner {
+impl Drop for Inner {
     fn drop(&mut self) {
-        debug!("Dropping `SvmCtx`...");
+        debug!("Dropping `Context`...");
 
         unsafe {
             let _ = Box::from_raw(self.host_ctx as *mut HostCtx);

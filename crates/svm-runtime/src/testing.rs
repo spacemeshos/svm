@@ -6,11 +6,10 @@ use std::rc::Rc;
 
 use crate::env::memory::{DefaultMemAppStore, DefaultMemAppTemplateStore, DefaultMemoryEnv};
 use crate::{
-    ctx::SvmCtx,
     gas::DefaultGasEstimator,
     helpers::{self, DataWrapper},
     storage::StorageBuilderFn,
-    Config, DefaultRuntime,
+    Config, Context, DefaultRuntime,
 };
 
 use svm_codec::api::builder::{
@@ -110,8 +109,8 @@ pub fn app_memory_state_creator(
     let storage = AppStorage::new(layout.clone(), app_kv);
     debug_assert_eq!(storage.head(), State::empty());
 
-    let ctx = SvmCtx::new(host, host_ctx, gas_limit, storage);
-    let ctx: *mut SvmCtx = Box::into_raw(Box::new(ctx));
+    let ctx = Context::new(host, host_ctx, gas_limit, storage);
+    let ctx: *mut Context = Box::into_raw(Box::new(ctx));
 
     let data: *mut c_void = ctx as *const _ as _;
     let dtor: fn(*mut c_void) = |_| {};
