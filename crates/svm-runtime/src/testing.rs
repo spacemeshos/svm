@@ -96,29 +96,6 @@ pub fn instance_memory_init(instance: &Instance, offset: u32, bytes: &[u8]) {
     // }
 }
 
-/// Returns a `state creator` to be used by wasmer `ImportObject::new_with_data` initializer.
-pub fn app_memory_state_creator(
-    app_addr: &Address,
-    host: DataWrapper<*mut c_void>,
-    host_ctx: DataWrapper<*const c_void>,
-    gas_limit: MaybeGas,
-    layout: &DataLayout,
-) -> (*mut c_void, fn(*mut c_void)) {
-    let state_kv = memory_state_kv_init();
-    let app_kv = AppKVStore::new(app_addr.clone(), &state_kv);
-
-    let storage = AppStorage::new(layout.clone(), app_kv);
-    debug_assert_eq!(storage.head(), State::empty());
-
-    let ctx = Context::new(host, host_ctx, gas_limit, storage);
-    let ctx: *mut Context = Box::into_raw(Box::new(ctx));
-
-    let data: *mut c_void = ctx as *const _ as _;
-    let dtor: fn(*mut c_void) = |_| {};
-
-    (data, dtor)
-}
-
 /// Returns a new in-memory stateful-kv.
 /// It should be used for managing apps' storage.
 pub fn memory_state_kv_init() -> Rc<RefCell<dyn StatefulKV>> {

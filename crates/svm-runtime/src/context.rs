@@ -3,6 +3,7 @@ use std::ffi::c_void;
 use std::rc::Rc;
 
 use log::debug;
+use wasmer::Memory;
 
 use crate::helpers::DataWrapper;
 
@@ -16,18 +17,20 @@ use svm_types::{gas::MaybeGas, receipt::Log, HostCtx};
 /// * `storage`      - Instance's `AppStorage`.
 /// * `gas_metering` - Whether gas metering is enabled.
 
+#[derive(Clone)]
 pub struct Context {
-    inner: Rc<RefCell<CtxHandle>>,
+    inner: Rc<RefCell<ContextInner>>,
 }
 
 impl Context {
     pub fn new(
+        memory: Memory,
         host: DataWrapper<*mut c_void>,
         host_ctx: DataWrapper<*const c_void>,
         gas_limit: MaybeGas,
         storage: AppStorage,
     ) -> Self {
-        let inner = CtxHandle::new(host, host_ctx, gas_limit, storage);
+        let inner = ContextInner::new(memory, host, host_ctx, gas_limit, storage);
 
         Self {
             inner: Rc::new(RefCell::new(inner)),
@@ -40,24 +43,19 @@ impl Context {
         unsafe { &*ptr }
     }
 
-    pub fn borrow(&self) -> Ref<CtxHandle> {
+    pub fn borrow(&self) -> Ref<ContextInner> {
         self.inner.borrow()
     }
 
-    pub fn borrow_mut(&self) -> RefMut<CtxHandle> {
+    pub fn borrow_mut(&self) -> RefMut<ContextInner> {
         self.inner.borrow_mut()
     }
 }
 
-impl Clone for Context {
-    fn clone(&self) -> Self {
-        Context {
-            inner: self.inner.clone(),
-        }
-    }
-}
+pub struct ContextInner {
+    /// Instance's memory
+    pub memory: Memory,
 
-pub struct CtxHandle {
     /// A pointer to the `host`.
     ///
     /// For example, `host` will point a to struct having an access to the balance of each account.
@@ -82,11 +80,9 @@ pub struct CtxHandle {
     pub calldata: Option<(usize, usize)>,
 }
 
-unsafe impl Sync for Context {}
-unsafe impl Send for Context {}
-
-impl CtxHandle {
+impl ContextInner {
     fn new(
+        memory: Memory,
         host: DataWrapper<*mut c_void>,
         host_ctx: DataWrapper<*const c_void>,
         gas_limit: MaybeGas,
@@ -100,6 +96,7 @@ impl CtxHandle {
         let logs = Vec::new();
 
         Self {
+            memory,
             host,
             host_ctx,
             storage,
@@ -123,7 +120,7 @@ impl CtxHandle {
     }
 }
 
-impl Drop for CtxHandle {
+impl Drop for ContextInner {
     fn drop(&mut self) {
         debug!("Dropping `Context`...");
 

@@ -278,8 +278,9 @@ where
             }
             Ok((template, template_addr, _author, _creator)) => {
                 let store = svm_compiler::new_store();
+                let memory = self.alloc_memory(&store);
 
-                let ctx: Context = self.create_ctx(&template, &tx.app, &state, gas_left, host_ctx);
+                let ctx = self.create_ctx(memory, &template, &tx.app, &state, gas_left, host_ctx);
                 let import_object = self.create_import_object(&store, &ctx);
 
                 let (result, logs) = self.do_exec_app(
@@ -502,6 +503,7 @@ where
 
     fn create_ctx(
         &self,
+        memory: Memory,
         template: &AppTemplate,
         app_addr: &AppAddr,
         state: &State,
@@ -513,6 +515,7 @@ where
         let host_ctx = svm_common::into_raw(host_ctx);
 
         Context::new(
+            memory,
             DataWrapper::new(self.host),
             DataWrapper::new(host_ctx),
             gas_limit,
@@ -523,7 +526,7 @@ where
     fn create_import_object(&self, store: &Store, ctx: &Context) -> ImportObject {
         let mut import_object = ImportObject::new();
 
-        let memory = self.alloc_memory(store);
+        let memory = ctx.borrow().memory.clone();
 
         let mut ns = Exports::new();
 
