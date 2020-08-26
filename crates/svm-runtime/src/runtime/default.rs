@@ -334,7 +334,7 @@ where
             return (Err(err), empty_logs);
         }
 
-        self.set_calldata(&tx.calldata, wasm_ptr.unwrap(), &mut instance);
+        self.set_calldata(ctx, &tx.calldata, wasm_ptr.unwrap());
 
         let func = match self.get_func(tx, template_addr, &instance) {
             Err(e) => return (Err(e), empty_logs),
@@ -432,40 +432,35 @@ where
         Ok(WasmPtr::new(offset))
     }
 
-    fn set_calldata(&self, calldata: &[u8], ptr: WasmPtr<u8>, instance: &mut Instance) {
-        todo!();
+    fn set_calldata(&self, ctx: &Context, calldata: &[u8], ptr: WasmPtr<u8>) {
+        let memory = &ctx.borrow().memory;
+        let offset = ptr.offset();
 
-        // let ctx = instance.context_mut();
-        // let memory = ctx.memory(0);
-        // let offset = ptr.offset();
+        // Each wasm instance memory contains at least one `WASM Page`. (A `Page` size is 64KB)
+        // The `len(calldata)` will be less than the `WASM Page` size.
+        //
+        // In any case, the `alloc_memory` is in charge of allocating enough memory
+        // for the program to run (so we don't need to have any bounds-checking here).
 
-        // // Each wasm instance memory contains at least one `WASM Page`. (A `Page` size is 64KB)
-        // // The `len(calldata)` will be less than the `WASM Page` size.
-        // //
-        // // In any case, the `alloc_memory` is in charge of allocating enough memory
-        // // for the program to run (so we don't need to have any bounds-checking here).
+        // TODO: add to `validate_template` checking that `calldata` doesn't exceed ???
+        // (we'll need to decide on a `calldata` limit).
+        //
+        // See [issue #140](https://github.com/spacemeshos/svm/issues/140)
+        let offset = ptr.offset() as usize;
+        let len = calldata.len();
+        let view = &memory.view::<u8>()[offset..(offset + len)];
 
-        // // TODO: add to `validate_template` checking that `calldata` doesn't exceed ???
-        // // (we'll need to decide on a `calldata` limit).
-        // //
-        // // See [issue #140](https://github.com/spacemeshos/svm/issues/140)
-        // let offset = ptr.offset() as usize;
-        // let len = calldata.len();
-        // let view = &memory.view::<u8>()[offset..(offset + len)];
+        for (cell, &byte) in view.iter().zip(calldata.iter()) {
+            cell.set(byte);
+        }
 
-        // for (cell, &byte) in view.iter().zip(calldata.iter()) {
-        //     cell.set(byte);
-        // }
-
-        // let ctx = self.instance_svm_ctx(instance);
-
-        // ctx.set_calldata(offset, len);
+        ctx.borrow_mut().set_calldata(offset, len);
     }
 
     #[inline]
-    fn instance_gas_used(&self, instance: &Instance) -> Result<MaybeGas, OOGError> {
-        todo!()
-        // helpers::wasmer_gas_used(instance)
+    fn instance_gas_used(&self, _instance: &Instance) -> Result<MaybeGas, OOGError> {
+        // TODO: read `gas_used` out of `instance`
+        Ok(MaybeGas::new())
     }
 
     fn instantiate(

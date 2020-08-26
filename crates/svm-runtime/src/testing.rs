@@ -22,7 +22,7 @@ use svm_storage::{
 };
 use svm_types::{gas::MaybeGas, receipt::Log, Address, AppAddr, State, TemplateAddr, WasmValue};
 
-use wasmer::{Export, ImportObject, Instance, Module};
+use wasmer::{Export, ImportObject, Instance, Module, Store};
 
 pub enum WasmFile<'a> {
     Text(&'a str),
@@ -33,67 +33,42 @@ pub enum WasmFile<'a> {
 impl<'a> WasmFile<'a> {
     fn into_bytes(self) -> Vec<u8> {
         match self {
-            Self::Text(wat) => todo!(),
+            Self::Text(text) => wat::parse_str(text).unwrap(),
             Self::Binary(wasm) => wasm.to_vec(),
         }
     }
 }
 
+impl<'a> From<&'a str> for WasmFile<'a> {
+    fn from(text: &'a str) -> Self {
+        Self::Text(text)
+    }
+}
+
+pub fn wasmer_store() -> Store {
+    svm_compiler::new_store()
+}
+
 /// Compiles a wasm program in text format (a.k.a WAST) into a `Module` (`wasmer`)
-pub fn wasmer_compile(wasm: &str, gas_limit: MaybeGas) -> Module {
-    todo!()
-    // todo!("wat to binary");
-    // let wasm = vec![];
+pub fn wasmer_compile(store: &Store, wasm_file: WasmFile, gas_limit: MaybeGas) -> Module {
+    let wasm = wasm_file.into_bytes();
 
-    // let gas_metering = gas_limit.is_some();
-    // let gas_limit = gas_limit.unwrap_or(0);
+    let gas_metering = gas_limit.is_some();
+    let gas_limit = gas_limit.unwrap_or(0);
 
-    // svm_compiler::compile(&wasm[..], gas_limit, gas_metering).unwrap()
+    svm_compiler::compile(store, &wasm, gas_limit, gas_metering).unwrap()
 }
 
 /// Instantiate a `wasmer` instance
-pub fn instantiate(import_object: &ImportObject, wasm: &str, gas_limit: MaybeGas) -> Instance {
-    todo!();
-    // let module = wasmer_compile(wasm, gas_limit);
-    // module.instantiate(import_object).unwrap()
-}
+pub fn instantiate(
+    store: &Store,
+    import_object: &ImportObject,
+    wasm_file: WasmFile,
+    gas_limit: MaybeGas,
+) -> Instance {
+    let module = wasmer_compile(store, wasm_file, gas_limit);
 
-/// Mutably borrows the `AppStorage` of a living `App` instance.
-pub fn instance_storage(instance: &Instance) -> &mut AppStorage {
-    todo!();
-    // let ctx = instance.context();
-    // helpers::wasmer_data_app_storage(ctx.data)
-}
-
-pub fn instance_logs(instance: &Instance) -> Vec<Log> {
-    todo!();
-    // let ctx = instance.context();
-    // helpers::wasmer_data_logs(ctx.data)
-}
-
-/// Returns a view of `wasmer` instance memory at `offset`...`offest + len - 1`
-pub fn instance_memory_view(instance: &Instance, offset: u32, len: u32) -> Vec<u8> {
-    todo!();
-    // let view = instance.context().memory(0).view();
-
-    // let start = offset as usize;
-    // let end = start + len as usize;
-
-    // view[start..end].iter().map(|cell| cell.get()).collect()
-}
-
-/// Copies input slice `bytes` into `wasmer` instance memory starting at offset `offset`.
-pub fn instance_memory_init(instance: &Instance, offset: u32, bytes: &[u8]) {
-    todo!();
-    // let view = instance.context().memory(0).view();
-
-    // let start = offset as usize;
-    // let end = start + bytes.len() as usize;
-    // let cells = &view[start..end];
-
-    // for (cell, byte) in cells.iter().zip(bytes.iter()) {
-    //     cell.set(*byte);
-    // }
+    Instance::new(&module, import_object).unwrap()
 }
 
 /// Returns a new in-memory stateful-kv.
