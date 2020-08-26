@@ -17,7 +17,7 @@ use svm_types::{gas::MaybeGas, receipt::Log, HostCtx};
 /// * `gas_metering` - Whether gas metering is enabled.
 
 pub struct Context {
-    inner: Rc<RefCell<Inner>>,
+    inner: Rc<RefCell<CtxHandle>>,
 }
 
 impl Context {
@@ -27,7 +27,7 @@ impl Context {
         gas_limit: MaybeGas,
         storage: AppStorage,
     ) -> Self {
-        let inner = Inner::new(host, host_ctx, gas_limit, storage);
+        let inner = CtxHandle::new(host, host_ctx, gas_limit, storage);
 
         Self {
             inner: Rc::new(RefCell::new(inner)),
@@ -35,33 +35,17 @@ impl Context {
     }
 
     pub fn host_ctx(&self) -> &HostCtx {
-        todo!()
-        // let ptr: *const HostCtx = self.inner.borrow().host_ctx;
+        let ptr: *const HostCtx = self.borrow().host_ctx;
 
-        // unsafe { &*ptr }
+        unsafe { &*ptr }
     }
 
-    pub fn borrow(&self) -> Ref<Inner> {
+    pub fn borrow(&self) -> Ref<CtxHandle> {
         self.inner.borrow()
     }
 
-    pub fn borrow_mut(&self) -> RefMut<Inner> {
+    pub fn borrow_mut(&self) -> RefMut<CtxHandle> {
         self.inner.borrow_mut()
-    }
-
-    pub fn set_calldata(&self, offset: usize, len: usize) {
-        todo!()
-        // self.inner.borrow_mut().set_calldata(offset, len);
-    }
-
-    pub fn get_calldata(&self) -> (usize, usize) {
-        todo!()
-        // return self.inner.borrow_mut().get_calldata();
-    }
-
-    pub fn take_logs(&mut self) -> Vec<Log> {
-        todo!()
-        // return self.inner.borrow_mut().take_logs();
     }
 }
 
@@ -73,7 +57,7 @@ impl Clone for Context {
     }
 }
 
-pub struct Inner {
+pub struct CtxHandle {
     /// A pointer to the `host`.
     ///
     /// For example, `host` will point a to struct having an access to the balance of each account.
@@ -101,7 +85,7 @@ pub struct Inner {
 unsafe impl Sync for Context {}
 unsafe impl Send for Context {}
 
-impl Inner {
+impl CtxHandle {
     fn new(
         host: DataWrapper<*mut c_void>,
         host_ctx: DataWrapper<*const c_void>,
@@ -126,20 +110,20 @@ impl Inner {
         }
     }
 
-    fn set_calldata(&mut self, offset: usize, len: usize) {
+    pub fn set_calldata(&mut self, offset: usize, len: usize) {
         self.calldata = Some((offset, len));
     }
 
-    fn get_calldata(&self) -> (usize, usize) {
+    pub fn get_calldata(&self) -> (usize, usize) {
         self.calldata.unwrap()
     }
 
-    fn take_logs(&mut self) -> Vec<Log> {
+    pub fn take_logs(&mut self) -> Vec<Log> {
         std::mem::take(&mut self.logs)
     }
 }
 
-impl Drop for Inner {
+impl Drop for CtxHandle {
     fn drop(&mut self) {
         debug!("Dropping `Context`...");
 

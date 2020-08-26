@@ -15,5 +15,5 @@ pub fn calldata_len(ctx: &mut Context) -> i32 {
 
 #[inline]
 fn calldata(ctx: &mut Context) -> (usize, usize) {
-    ctx.get_calldata()
+    ctx.borrow().get_calldata()
 }
