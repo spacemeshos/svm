@@ -22,7 +22,7 @@ use svm_storage::{
 };
 use svm_types::{gas::MaybeGas, receipt::Log, Address, AppAddr, State, TemplateAddr, WasmValue};
 
-use wasmer::{Export, ImportObject, Instance, Module, Store};
+use wasmer::{Export, ImportObject, Instance, Memory, MemoryType, Module, Pages, Store};
 
 pub enum WasmFile<'a> {
     Text(&'a str),
@@ -47,6 +47,15 @@ impl<'a> From<&'a str> for WasmFile<'a> {
 
 pub fn wasmer_store() -> Store {
     svm_compiler::new_store()
+}
+
+pub fn wasmer_memory(store: &Store) -> Memory {
+    let min = Pages(1);
+    let max = None;
+    let shared = false;
+    let ty = MemoryType::new(min, max, shared);
+
+    Memory::new(store, ty).expect("Memory allocation has failed.")
 }
 
 /// Compiles a wasm program in text format (a.k.a WAST) into a `Module` (`wasmer`)

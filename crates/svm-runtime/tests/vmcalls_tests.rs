@@ -1,10 +1,12 @@
 #![allow(unused)]
 use maplit::hashmap;
 
+use std::ffi::c_void;
+
 use wasmer::imports;
 
 use svm_layout::DataLayout;
-use svm_runtime::{helpers::DataWrapper, testing, vmcalls};
+use svm_runtime::{testing, vmcalls, Context};
 use svm_types::{gas::MaybeGas, receipt::Log, Address, HostCtx};
 
 macro_rules! assert_vars32 {
@@ -63,11 +65,9 @@ macro_rules! __var_add_impl {
 
 macro_rules! host_ctx {
     ($($field:expr => $bytes:expr),*) => {{
-        let ctx = HostCtx::from(hashmap! {
+        HostCtx::from(hashmap! {
             $( $field => $bytes.to_vec() ),*
-        });
-
-        DataWrapper::new(svm_common::into_raw(ctx))
+        })
     }};
 }
 
@@ -79,8 +79,12 @@ macro_rules! assert_host_ctx {
     }}
 }
 
-struct TestContext {
-    //
+macro_rules! func {
+    ($store:ident, $ctx:ident, $f:expr) => {{
+        use wasmer::Function;
+
+        Function::new_native_with_env(&$store, $ctx.clone(), $f)
+    }};
 }
 
 #[test]
@@ -93,41 +97,44 @@ fn vmcalls_empty_wasm() {
     let maybe_gas = MaybeGas::new();
 
     let store = testing::wasmer_store();
-    let context = TestContext {};
     let import_object = imports! {};
 
     testing::instantiate(&store, &import_object, wasm, maybe_gas);
 }
 
-// #[test]
-// fn vmcalls_get32_set32() {
-//     let app_addr = Address::of("my-app");
-//     let host = DataWrapper::new(std::ptr::null_mut());
-//     let host_ctx = host_ctx! {};
-//     let maybe_gas = MaybeGas::new();
-//     let layout: DataLayout = vec![4, 2].into();
+#[test]
+fn vmcalls_get32_set32() {
+    let app_addr = Address::of("my-app");
+    let host: *mut c_void = std::ptr::null_mut();
+    let host_ctx = host_ctx! {};
+    let maybe_gas = MaybeGas::new();
+    let layout: DataLayout = vec![4, 2].into();
 
-//     let import_object = imports! {
-//         "svm" => {
-//             "get32" => func!(vmcalls::get32),
-//             "set32" => func!(vmcalls::set32),
-//         },
-//     };
+    let store = testing::wasmer_store();
+    let memory = testing::wasmer_memory(&store);
+    // let ctx = Context::new();
 
-//     let instance = testing::instantiate(
-//         &import_object,
-//         include_str!("wasm/get32_set32.wast"),
-//         maybe_gas,
-//     );
+    // let import_object = imports! {
+    //     "svm" => {
+    //         "get32" => func!(store, ctx, vmcalls::get32),
+    //         "set32" => func!(store, ctx, vmcalls::set32),
+    //     }
+    // };
 
-//     assert_vars32!(instance, 0 => 0, 1 => 0);
+    // let instance = testing::instantiate(
+    //     &import_object,
+    //     include_str!("wasm/get32_set32.wast"),
+    //     maybe_gas,
+    // );
 
-//     var_add32!(instance, 0, 5); // adding 5 to var #0
-//     var_add32!(instance, 1, 10); // adding 10 to var #1
+    // assert_vars32!(instance, 0 => 0, 1 => 0);
 
-//     assert_vars32!(instance, 0 => 5, 1 => 10);
-//     assert_storage!(instance, 0 => [5, 0, 0, 0], 1 => [10, 0]);
-// }
+    // var_add32!(instance, 0, 5); // adding 5 to var #0
+    // var_add32!(instance, 1, 10); // adding 10 to var #1
+
+    // assert_vars32!(instance, 0 => 5, 1 => 10);
+    // assert_storage!(instance, 0 => [5, 0, 0, 0], 1 => [10, 0]);
+}
 
 // #[test]
 // fn vmcalls_get64_set64() {

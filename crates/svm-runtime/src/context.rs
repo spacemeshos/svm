@@ -5,8 +5,6 @@ use std::rc::Rc;
 use log::debug;
 use wasmer::Memory;
 
-use crate::helpers::DataWrapper;
-
 use svm_storage::app::AppStorage;
 use svm_types::{gas::MaybeGas, receipt::Log, HostCtx};
 
@@ -25,8 +23,8 @@ pub struct Context {
 impl Context {
     pub fn new(
         memory: Memory,
-        host: DataWrapper<*mut c_void>,
-        host_ctx: DataWrapper<*const c_void>,
+        host: *mut c_void,
+        host_ctx: HostCtx,
         gas_limit: MaybeGas,
         storage: AppStorage,
     ) -> Self {
@@ -35,12 +33,6 @@ impl Context {
         Self {
             inner: Rc::new(RefCell::new(inner)),
         }
-    }
-
-    pub fn host_ctx(&self) -> &HostCtx {
-        let ptr: *const HostCtx = self.borrow().host_ctx;
-
-        unsafe { &*ptr }
     }
 
     pub fn borrow(&self) -> Ref<ContextInner> {
@@ -62,7 +54,7 @@ pub struct ContextInner {
     pub host: *mut c_void,
 
     /// Raw pointer to host context fields.
-    pub host_ctx: *const HostCtx,
+    pub host_ctx: HostCtx,
 
     /// Gas limit (relevant only when `gas_metering = true`)
     pub gas_limit: u64,
@@ -83,14 +75,11 @@ pub struct ContextInner {
 impl ContextInner {
     fn new(
         memory: Memory,
-        host: DataWrapper<*mut c_void>,
-        host_ctx: DataWrapper<*const c_void>,
+        host: *mut c_void,
+        host_ctx: HostCtx,
         gas_limit: MaybeGas,
         storage: AppStorage,
     ) -> Self {
-        let host = host.unwrap();
-        let host_ctx = host_ctx.unwrap() as *const HostCtx;
-
         let gas_metering = gas_limit.is_some();
         let gas_limit = gas_limit.unwrap_or(0);
         let logs = Vec::new();
@@ -117,15 +106,5 @@ impl ContextInner {
 
     pub fn take_logs(&mut self) -> Vec<Log> {
         std::mem::take(&mut self.logs)
-    }
-}
-
-impl Drop for ContextInner {
-    fn drop(&mut self) {
-        debug!("Dropping `Context`...");
-
-        unsafe {
-            let _ = Box::from_raw(self.host_ctx as *mut HostCtx);
-        }
     }
 }

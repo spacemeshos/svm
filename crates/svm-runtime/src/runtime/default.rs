@@ -507,15 +507,8 @@ where
     ) -> Context {
         let layout = &template.data;
         let storage = self.open_app_storage(app_addr, state, layout);
-        let host_ctx = svm_common::into_raw(host_ctx);
 
-        Context::new(
-            memory,
-            DataWrapper::new(self.host),
-            DataWrapper::new(host_ctx),
-            gas_limit,
-            storage,
-        )
+        Context::new(memory, self.host, host_ctx, gas_limit, storage)
     }
 
     fn create_import_object(&self, store: &Store, ctx: &Context) -> ImportObject {
