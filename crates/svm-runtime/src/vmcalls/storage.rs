@@ -49,7 +49,7 @@ macro_rules! load_n_impl {
 /// # Panics
 ///
 /// Panics if variable `var_id`'s length isn't 20 bytes.
-pub fn store160(ctx: &mut Context, _mem_idx: u32, mem_ptr: u32, var_id: u32) {
+pub fn store160(ctx: &mut Context, mem_ptr: u32, var_id: u32) {
     use_gas!("store160", ctx);
 
     store_n_impl!(20, ctx, mem_ptr, var_id);
@@ -62,7 +62,7 @@ pub fn store160(ctx: &mut Context, _mem_idx: u32, mem_ptr: u32, var_id: u32) {
 /// # Panics
 ///
 /// Panics if variable `var_id`'s length isn't 20 bytes.
-pub fn load160(ctx: &mut Context, var_id: u32, _mem_idx: u32, mem_ptr: u32) {
+pub fn load160(ctx: &mut Context, var_id: u32, mem_ptr: u32) {
     use_gas!("load160", ctx);
 
     load_n_impl!(20, ctx, var_id, mem_ptr);

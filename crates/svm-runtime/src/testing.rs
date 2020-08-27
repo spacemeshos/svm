@@ -45,6 +45,12 @@ impl<'a> From<&'a str> for WasmFile<'a> {
     }
 }
 
+impl<'a> From<&'a [u8]> for WasmFile<'a> {
+    fn from(wasm: &'a [u8]) -> Self {
+        Self::Binary(wasm)
+    }
+}
+
 pub fn wasmer_store() -> Store {
     svm_compiler::new_store()
 }

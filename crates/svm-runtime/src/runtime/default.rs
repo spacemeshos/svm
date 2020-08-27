@@ -280,7 +280,8 @@ where
                 let store = svm_compiler::new_store();
                 let memory = self.alloc_memory(&store);
 
-                let ctx = self.create_ctx(memory, &template, &tx.app, &state, gas_left, host_ctx);
+                let ctx =
+                    self.create_context(memory, &template, &tx.app, &state, gas_left, host_ctx);
                 let import_object = self.create_import_object(&store, &ctx);
 
                 let (result, logs) = self.do_exec_app(
@@ -342,7 +343,7 @@ where
         };
         let func_res = func.call(&[]);
 
-        let logs = ctx.borrow_mut().take_logs();
+        let logs = self.take_logs(ctx);
 
         let gas_used = self.instance_gas_used(&instance);
         if gas_used.is_err() {
@@ -374,6 +375,10 @@ where
         };
 
         (result, logs)
+    }
+
+    fn take_logs(&self, ctx: &Context) -> Vec<Log> {
+        ctx.borrow_mut().take_logs()
     }
 
     fn make_receipt(
@@ -412,47 +417,52 @@ where
             return Err(err);
         }
 
-        let alloc: NativeFunc<i32, i32> = alloc.unwrap();
+        let alloc: NativeFunc<u32, u32> = alloc.unwrap();
 
-        let size = tx.calldata.len() as i32;
+        let size = tx.calldata.len() as u32;
         let offset = alloc.call(size);
 
         if offset.is_err() {
             let err = ReceiptError::FuncFailed {
                 app_addr: tx.app.clone(),
                 template_addr: template_addr.clone(),
-                msg: "Allocation failed for `svm_alloc`".to_string(),
+                msg: "Allocation has failed for `svm_alloc`".to_string(),
                 func: "svm_alloc".to_string(),
             };
 
             return Err(err);
         }
 
-        let offset = offset.unwrap() as u32;
+        let offset = offset.unwrap();
         Ok(WasmPtr::new(offset))
     }
 
     fn set_calldata(&self, ctx: &Context, calldata: &[u8], ptr: WasmPtr<u8>) {
-        let memory = &ctx.borrow().memory;
-        let offset = ptr.offset();
+        let (offset, len) = {
+            let memory = &ctx.borrow().memory;
+            let offset = ptr.offset();
 
-        // Each wasm instance memory contains at least one `WASM Page`. (A `Page` size is 64KB)
-        // The `len(calldata)` will be less than the `WASM Page` size.
-        //
-        // In any case, the `alloc_memory` is in charge of allocating enough memory
-        // for the program to run (so we don't need to have any bounds-checking here).
+            // Each wasm instance memory contains at least one `WASM Page`. (A `Page` size is 64KB)
+            // The `len(calldata)` will be less than the `WASM Page` size.
+            //
+            // In any case, the `alloc_memory` is in charge of allocating enough memory
+            // for the program to run (so we don't need to have any bounds-checking here).
 
-        // TODO: add to `validate_template` checking that `calldata` doesn't exceed ???
-        // (we'll need to decide on a `calldata` limit).
-        //
-        // See [issue #140](https://github.com/spacemeshos/svm/issues/140)
-        let offset = ptr.offset() as usize;
-        let len = calldata.len();
-        let view = &memory.view::<u8>()[offset..(offset + len)];
+            // TODO: add to `validate_template` checking that `calldata` doesn't exceed ???
+            // (we'll need to decide on a `calldata` limit).
+            //
+            // See [issue #140](https://github.com/spacemeshos/svm/issues/140)
+            let offset = ptr.offset() as usize;
+            let len = calldata.len();
 
-        for (cell, &byte) in view.iter().zip(calldata.iter()) {
-            cell.set(byte);
-        }
+            let view = &memory.view::<u8>()[offset..(offset + len)];
+
+            for (cell, &byte) in view.iter().zip(calldata.iter()) {
+                cell.set(byte);
+            }
+
+            (offset, len)
+        };
 
         ctx.borrow_mut().set_calldata(offset, len);
     }
@@ -496,7 +506,7 @@ where
         })
     }
 
-    fn create_ctx(
+    fn create_context(
         &self,
         memory: Memory,
         template: &AppTemplate,
@@ -562,7 +572,7 @@ where
     }
 
     fn alloc_memory(&self, store: &Store) -> Memory {
-        let min = Pages(1);
+        let min = Pages(100);
         let max = None;
         let shared = false;
         let ty = MemoryType::new(min, max, shared);
@@ -602,11 +612,5 @@ where
         if imports.iter().any(|(ns, _, _)| ns == "svm") {
             panic!("Imports namespace can't be `svm` since it's a reserved name.")
         }
-    }
-}
-
-impl<ENV, GE> Drop for DefaultRuntime<ENV, GE> {
-    fn drop(&mut self) {
-        info!("dropping DefaultRuntime...");
     }
 }
