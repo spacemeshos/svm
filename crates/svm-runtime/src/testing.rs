@@ -69,7 +69,7 @@ pub fn wasmer_compile(store: &Store, wasm_file: WasmFile, gas_limit: MaybeGas) -
 }
 
 /// Instantiate a `wasmer` instance
-pub fn instantiate(
+pub fn wasmer_instantiate(
     store: &Store,
     import_object: &ImportObject,
     wasm_file: WasmFile,
@@ -78,6 +78,13 @@ pub fn instantiate(
     let module = wasmer_compile(store, wasm_file, gas_limit);
 
     Instance::new(&module, import_object).unwrap()
+}
+
+pub fn blank_storage(app_addr: &Address, layout: &DataLayout) -> AppStorage {
+    let state_kv = memory_state_kv_init();
+    let app_kv = AppKVStore::new(app_addr.clone(), &state_kv);
+
+    AppStorage::new(layout.clone(), app_kv)
 }
 
 /// Returns a new in-memory stateful-kv.

@@ -3,7 +3,7 @@ use maplit::hashmap;
 
 use std::ffi::c_void;
 
-use wasmer::imports;
+use wasmer::{imports, Function, NativeFunc};
 
 use svm_layout::DataLayout;
 use svm_runtime::{testing, vmcalls, Context};
@@ -23,17 +23,17 @@ macro_rules! assert_vars64 {
 
 macro_rules! __assert_vars_impl {
     ($ty:ty, $instance:expr, $( $var_id:expr => $expected:expr), *) => {{
-        let func: Func<u32, $ty> = $instance.exports.get("get").unwrap();
+        let func: &NativeFunc<u32, $ty> = &$instance.exports.get_native_function("get").unwrap();
 
-        $( assert_eq!(func.call($var_id), Ok($expected)); )*
-    }}
+        $( assert_eq!(func.call($var_id).unwrap(), $expected); )*
+    }};
 }
 
 macro_rules! assert_storage {
-    ($instance:expr, $($var_id:expr => $expected:expr), *) => {{
+    ($ctx:expr, $($var_id:expr => $expected:expr), *) => {{
         use svm_layout::VarId;
 
-        let storage = instance_storage(&$instance);
+        let storage = &$ctx.borrow().storage;
 
         $(
             let actual = storage.read_var(VarId($var_id));
@@ -56,7 +56,9 @@ macro_rules! var_add64 {
 
 macro_rules! __var_add_impl {
     ($ty:ty, $instance:expr, $var_id:expr, $amount:expr) => {{
-        let func: Func<(u32, $ty), ()> = $instance.exports.get("add").unwrap();
+        let func: NativeFunc<(u32, $ty), ()> =
+            $instance.exports.get_native_function("add").unwrap();
+
         let res = func.call($var_id, $amount);
 
         assert!(res.is_ok());
@@ -73,16 +75,14 @@ macro_rules! host_ctx {
 
 macro_rules! assert_host_ctx {
     ($instance:expr, $( $field:expr => $expected:expr), *) => {{
-        let func: Func<u32, u64> = $instance.exports.get("get_host_ctx").unwrap();
+        let func: &NativeFunc<u32, u64> = &$instance.exports.get_native_function("get_host_ctx").unwrap();
 
-        $( assert_eq!(func.call($field), Ok($expected)); )*
+        $( assert_eq!(func.call($field).unwrap(), $expected); )*
     }}
 }
 
 macro_rules! func {
     ($store:ident, $ctx:ident, $f:expr) => {{
-        use wasmer::Function;
-
         Function::new_native_with_env(&$store, $ctx.clone(), $f)
     }};
 }
@@ -94,12 +94,12 @@ fn vmcalls_empty_wasm() {
           (func (export "run")))"#
         .into();
 
-    let maybe_gas = MaybeGas::new();
+    let gas_limit = MaybeGas::new();
 
     let store = testing::wasmer_store();
     let import_object = imports! {};
 
-    testing::instantiate(&store, &import_object, wasm, maybe_gas);
+    testing::wasmer_instantiate(&store, &import_object, wasm, gas_limit);
 }
 
 #[test]
@@ -107,140 +107,158 @@ fn vmcalls_get32_set32() {
     let app_addr = Address::of("my-app");
     let host: *mut c_void = std::ptr::null_mut();
     let host_ctx = host_ctx! {};
-    let maybe_gas = MaybeGas::new();
+    let gas_limit = MaybeGas::new();
     let layout: DataLayout = vec![4, 2].into();
 
     let store = testing::wasmer_store();
     let memory = testing::wasmer_memory(&store);
-    // let ctx = Context::new();
+    let storage = testing::blank_storage(&app_addr, &layout);
+    let ctx = Context::new(memory, host, host_ctx, gas_limit, storage);
 
-    // let import_object = imports! {
-    //     "svm" => {
-    //         "get32" => func!(store, ctx, vmcalls::get32),
-    //         "set32" => func!(store, ctx, vmcalls::set32),
-    //     }
-    // };
+    let import_object = imports! {
+        "svm" => {
+            "get32" => func!(store, ctx, vmcalls::get32),
+            "set32" => func!(store, ctx, vmcalls::set32),
+        }
+    };
 
-    // let instance = testing::instantiate(
-    //     &import_object,
-    //     include_str!("wasm/get32_set32.wast"),
-    //     maybe_gas,
-    // );
+    let instance = testing::wasmer_instantiate(
+        &store,
+        &import_object,
+        include_str!("wasm/get32_set32.wast").into(),
+        gas_limit,
+    );
 
-    // assert_vars32!(instance, 0 => 0, 1 => 0);
+    assert_vars32!(instance, 0 => 0, 1 => 0);
 
-    // var_add32!(instance, 0, 5); // adding 5 to var #0
-    // var_add32!(instance, 1, 10); // adding 10 to var #1
+    var_add32!(instance, 0, 5); // adding 5 to var #0
+    var_add32!(instance, 1, 10); // adding 10 to var #1
 
-    // assert_vars32!(instance, 0 => 5, 1 => 10);
-    // assert_storage!(instance, 0 => [5, 0, 0, 0], 1 => [10, 0]);
+    assert_vars32!(instance, 0 => 5, 1 => 10);
+
+    assert_storage!(ctx, 0 => [5, 0, 0, 0], 1 => [10, 0]);
 }
 
-// #[test]
-// fn vmcalls_get64_set64() {
-//     let app_addr = Address::of("my-app");
-//     let host = DataWrapper::new(std::ptr::null_mut());
-//     let host_ctx = host_ctx! {};
-//     let maybe_gas = MaybeGas::new();
-//     let layout: DataLayout = vec![4, 2].into();
+#[test]
+fn vmcalls_get64_set64() {
+    let app_addr = Address::of("my-app");
+    let host: *mut c_void = std::ptr::null_mut();
+    let host_ctx = host_ctx! {};
+    let gas_limit = MaybeGas::new();
+    let layout: DataLayout = vec![4, 2].into();
 
-//     let import_object = imports! {
-//         "svm" => {
-//             "get64" => func!(vmcalls::get64),
-//             "set64" => func!(vmcalls::set64),
-//         },
-//     };
+    let store = testing::wasmer_store();
+    let memory = testing::wasmer_memory(&store);
+    let storage = testing::blank_storage(&app_addr, &layout);
+    let ctx = Context::new(memory, host, host_ctx, gas_limit, storage);
 
-//     let instance = testing::instantiate(
-//         &import_object,
-//         include_str!("wasm/get64_set64.wast"),
-//         maybe_gas,
-//     );
+    let import_object = imports! {
+        "svm" => {
+            "get64" => func!(store, ctx, vmcalls::get64),
+            "set64" => func!(store, ctx, vmcalls::set64),
+        },
+    };
 
-//     assert_vars64!(instance, 0 => 0, 1 => 0);
+    let instance = testing::wasmer_instantiate(
+        &store,
+        &import_object,
+        include_str!("wasm/get64_set64.wast").into(),
+        gas_limit,
+    );
 
-//     var_add64!(instance, 0, 5); // adding 5 to var #0
-//     var_add64!(instance, 1, 10); // adding 10 to var #1
+    assert_vars64!(instance, 0 => 0, 1 => 0);
 
-//     assert_vars64!(instance, 0 => 5, 1 => 10);
-//     assert_storage!(instance, 0 => [5, 0, 0, 0], 1 => [10, 0]);
-// }
+    var_add64!(instance, 0, 5); // adding 5 to var #0
+    var_add64!(instance, 1, 10); // adding 10 to var #1
 
-// #[test]
-// fn vmcalls_host_get64() {
-//     let app_addr = Address::of("my-app");
-//     let host = DataWrapper::new(std::ptr::null_mut());
-//     let maybe_gas = MaybeGas::new();
-//     let layout = DataLayout::empty();
+    assert_vars64!(instance, 0 => 5, 1 => 10);
 
-//     let host_ctx = host_ctx! {
-//         2 => [0x10, 0x20],
-//         3 => [0x30, 0x40, 0x50]
-//     };
+    assert_storage!(ctx, 0 => [5, 0, 0, 0], 1 => [10, 0]);
+}
 
-//     let import_object = imports! {
-//         "svm" => {
-//             "host_get64" => func!(vmcalls::host_get64),
-//         },
-//     };
+#[test]
+fn vmcalls_host_get64() {
+    let app_addr = Address::of("my-app");
+    let host: *mut c_void = std::ptr::null_mut();
+    let gas_limit = MaybeGas::new();
+    let layout = DataLayout::empty();
 
-//     let instance = testing::instantiate(
-//         &import_object,
-//         include_str!("wasm/host_get64.wast"),
-//         maybe_gas,
-//     );
+    let host_ctx = host_ctx! {
+        2 => [0x10, 0x20],
+        3 => [0x30, 0x40, 0x50]
+    };
 
-//     assert_host_ctx!(instance,
-//         2 => 0x20_10,
-//         3 => 0x50_40_30
-//     );
-// }
+    let store = testing::wasmer_store();
+    let memory = testing::wasmer_memory(&store);
+    let storage = testing::blank_storage(&app_addr, &layout);
+    let ctx = Context::new(memory, host, host_ctx, gas_limit, storage);
 
-// #[test]
-// fn vmcalls_log() {
-//     let app_addr = Address::of("my-app");
-//     let host = DataWrapper::new(std::ptr::null_mut());
-//     let maybe_gas = MaybeGas::new();
-//     let layout = DataLayout::empty();
+    let import_object = imports! {
+        "svm" => {
+            "host_get64" => func!(store, ctx, vmcalls::host_get64),
+        },
+    };
 
-//     let host_ctx = host_ctx! {};
+    let instance = testing::wasmer_instantiate(
+        &store,
+        &import_object,
+        include_str!("wasm/host_get64.wast").into(),
+        gas_limit,
+    );
 
-//     let minimum = Pages(1);
-//     let maximum = None;
-//     let shared = false;
-//     let desc = MemoryDescriptor::new(minimum, maximum, shared).unwrap();
-//     let memory = Memory::new(desc).unwrap();
+    assert_host_ctx!(instance,
+        2 => 0x20_10,
+        3 => 0x50_40_30
+    );
+}
 
-//     let import_object = imports! {
-//         "svm" => {
-//             "memory" => memory,
+#[test]
+fn vmcalls_log() {
+    let app_addr = Address::of("my-app");
+    let host: *mut c_void = std::ptr::null_mut();
+    let gas_limit = MaybeGas::new();
+    let layout = DataLayout::empty();
 
-//             "log" => func!(vmcalls::log),
-//         },
-//     };
+    let host_ctx = host_ctx! {};
 
-//     let instance = testing::instantiate(&import_object, include_str!("wasm/log.wast"), maybe_gas);
-//     let memory: &Memory = instance.context().memory(0);
+    let store = testing::wasmer_store();
+    let memory = testing::wasmer_memory(&store);
+    let storage = testing::blank_storage(&app_addr, &layout);
+    let ctx = Context::new(memory.clone(), host, host_ctx, gas_limit, storage);
 
-//     let data = b"Hello World";
+    let import_object = imports! {
+        "svm" => {
+            "memory" => memory.clone(),
+            "log" => func!(store, ctx, vmcalls::log),
+        },
+    };
 
-//     for (cell, byte) in memory.view::<u8>().iter().zip(data) {
-//         cell.set(*byte);
-//     }
+    let instance = testing::wasmer_instantiate(
+        &store,
+        &import_object,
+        include_str!("wasm/log.wast").into(),
+        gas_limit,
+    );
 
-//     let logs = testing::instance_logs(&instance);
-//     assert!(logs.is_empty());
+    let data = b"Hello World";
 
-//     let func: Func = instance.exports.get("sayHello").unwrap();
-//     let _ = func.call().unwrap();
+    for (cell, byte) in memory.view::<u8>().iter().zip(data) {
+        cell.set(*byte);
+    }
 
-//     let logs = testing::instance_logs(&instance);
+    let logs = ctx.borrow_mut().take_logs();
+    assert!(logs.is_empty());
 
-//     assert_eq!(
-//         logs,
-//         vec![Log {
-//             msg: b"Hello World".to_vec(),
-//             code: 200
-//         }]
-//     );
-// }
+    let func = instance.exports.get_function("sayHello").unwrap();
+    let _ = func.call(&[]).unwrap();
+
+    let logs = ctx.borrow_mut().take_logs();
+
+    assert_eq!(
+        logs,
+        vec![Log {
+            msg: b"Hello World".to_vec(),
+            code: 200
+        }]
+    );
+}
