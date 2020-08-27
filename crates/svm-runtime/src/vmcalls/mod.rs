@@ -10,7 +10,7 @@ mod storage;
 pub use calldata::{calldata_len, calldata_ptr};
 pub use host_ctx::host_get64;
 pub use logs::log;
-pub use storage::{get32, get64, load160, load256, set32, set64, store160, store256};
+pub use storage::{get32, get64, load160, set32, set64, store160};
 
 macro_rules! func {
     ($store:ident, $ctx:ident, $f:expr) => {{
@@ -35,9 +35,6 @@ pub fn wasmer_register(store: &Store, ctx: &Context, ns: &mut Exports) {
 
     ns.insert("load160", func!(store, ctx, load160));
     ns.insert("store160", func!(store, ctx, store160));
-
-    ns.insert("load256", func!(store, ctx, load256));
-    ns.insert("store256", func!(store, ctx, store256));
 
     ns.insert("log", func!(store, ctx, log));
 }

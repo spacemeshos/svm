@@ -177,6 +177,48 @@ fn vmcalls_get64_set64() {
 }
 
 #[test]
+fn vmcalls_store160() {
+    let app_addr = Address::of("11223344556677889900");
+    let host: *mut c_void = std::ptr::null_mut();
+    let gas_limit = MaybeGas::new();
+    let layout: DataLayout = vec![20].into();
+
+    let host_ctx = host_ctx! {};
+
+    let store = testing::wasmer_store();
+    let memory = testing::wasmer_memory(&store);
+    let storage = testing::blank_storage(&app_addr, &layout);
+    let ctx = Context::new(memory.clone(), host, host_ctx, gas_limit, storage);
+
+    let import_object = imports! {
+        "svm" => {
+            "memory" => memory.clone(),
+            "load160" => func!(store, ctx, vmcalls::load160),
+            "store160" => func!(store, ctx, vmcalls::store160),
+        },
+    };
+
+    let instance = testing::wasmer_instantiate(
+        &store,
+        &import_object,
+        include_str!("wasm/load160_store160.wast").into(),
+        gas_limit,
+    );
+
+    for (cell, byte) in memory.view::<u8>().iter().zip(app_addr.as_slice()) {
+        cell.set(*byte);
+    }
+
+    let func: NativeFunc<(u32, u32)> = instance.exports.get_native_function("store").unwrap();
+    let ptr = 0;
+    let var_id = 0;
+
+    func.call(var_id, ptr).expect("function has failed");
+
+    assert_storage!(ctx, 0 => b"11223344556677889900");
+}
+
+#[test]
 fn vmcalls_host_get64() {
     let app_addr = Address::of("my-app");
     let host: *mut c_void = std::ptr::null_mut();

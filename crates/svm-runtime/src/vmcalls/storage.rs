@@ -5,26 +5,27 @@ use byteorder::{ByteOrder, LittleEndian};
 use svm_layout::VarId;
 
 macro_rules! store_n_impl {
-    ($nbytes:expr, $ctx:ident, $mem_idx:expr, $mem_ptr:expr, $var_id:expr) => {{
-        todo!();
-        // use crate::helpers;
-        // use svm_layout::VarId;
+    ($nbytes:expr, $ctx:ident, $mem_ptr:expr, $var_id:expr) => {{
+        use svm_layout::VarId;
 
-        // let mem_ptr = $mem_ptr as usize;
-        // let view = &$ctx.memory($mem_idx).view::<u8>()[mem_ptr..(mem_ptr + $nbytes)];
+        let bytes: Vec<u8> = {
+            let memory = &$ctx.borrow().memory;
+            let start = $mem_ptr as usize;
+            let end = start + $nbytes;
+            let view = &memory.view::<u8>()[start..end];
 
-        // let bytes: Vec<u8> = view.iter().map(|cell| cell.get()).collect();
+            view.iter().map(|cell| cell.get()).collect()
+        };
+        assert_eq!(bytes.len(), $nbytes);
 
-        // assert_eq!(bytes.len(), $nbytes);
-
-        // let storage = helpers::wasmer_data_app_storage($ctx.data);
-        // storage.write_var(VarId($var_id), bytes);
+        let storage = &mut $ctx.borrow_mut().storage;
+        storage.write_var(VarId($var_id), bytes);
     }};
 }
 
 macro_rules! load_n_impl {
-    ($nbytes:expr, $ctx:ident, $var_id:expr, $mem_idx:expr, $mem_ptr:expr) => {{
-        todo!()
+    ($nbytes:expr, $ctx:ident, $var_id:expr, $mem_ptr:expr) => {{
+        todo!();
         // use crate::helpers;
         // use svm_layout::VarId;
 
@@ -49,21 +50,10 @@ macro_rules! load_n_impl {
 /// # Panics
 ///
 /// Panics if variable `var_id`'s length isn't 20 bytes.
-pub fn store160(ctx: &mut Context, mem_idx: u32, mem_ptr: u32, var_id: u32) {
+pub fn store160(ctx: &mut Context, _mem_idx: u32, mem_ptr: u32, var_id: u32) {
     use_gas!("store160", ctx);
 
-    store_n_impl!(20, ctx, mem_idx, mem_ptr, var_id);
-}
-
-/// Stores memory cells `[mem_ptr, mem_ptr + 1, ..., mem_ptr + 31]` into variable `var_id`.
-///
-/// # Panics
-///
-/// Panics if variable `var_id`'s length isn't 32 bytes.
-pub fn store256(ctx: &mut Context, mem_idx: u32, mem_ptr: u32, var_id: u32) {
-    use_gas!("store256", ctx);
-
-    store_n_impl!(32, ctx, mem_idx, mem_ptr, var_id);
+    store_n_impl!(20, ctx, mem_ptr, var_id);
 }
 
 /// Loads variable `var_id` data into memory cells `[mem_ptr, mem_ptr + 1, ..., mem_ptr + 19]`
@@ -73,23 +63,10 @@ pub fn store256(ctx: &mut Context, mem_idx: u32, mem_ptr: u32, var_id: u32) {
 /// # Panics
 ///
 /// Panics if variable `var_id`'s length isn't 20 bytes.
-pub fn load160(ctx: &mut Context, var_id: u32, mem_idx: u32, mem_ptr: u32) {
+pub fn load160(ctx: &mut Context, var_id: u32, _mem_idx: u32, mem_ptr: u32) {
     use_gas!("load160", ctx);
 
-    load_n_impl!(20, ctx, var_id, mem_idx, mem_ptr);
-}
-
-/// Loads variable `var_id` data into memory cells `[mem_ptr, mem_ptr + 1, ..., mem_ptr + 31]`
-///
-/// Returns the variable's length.
-///
-/// # Panics
-///
-/// Panics if variable `var_id`'s length isn't 32 bytes.
-pub fn load256(ctx: &mut Context, var_id: u32, mem_idx: u32, mem_ptr: u32) {
-    use_gas!("load256", ctx);
-
-    load_n_impl!(32, ctx, var_id, mem_idx, mem_ptr);
+    load_n_impl!(20, ctx, var_id, mem_ptr);
 }
 
 /// Returns the data stored by variable `var_id` as 32-bit integer.
