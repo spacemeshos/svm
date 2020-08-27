@@ -25,23 +25,22 @@ macro_rules! store_n_impl {
 
 macro_rules! load_n_impl {
     ($nbytes:expr, $ctx:ident, $var_id:expr, $mem_ptr:expr) => {{
-        todo!();
-        // use crate::helpers;
-        // use svm_layout::VarId;
+        use svm_layout::VarId;
 
-        // let storage = helpers::wasmer_data_app_storage($ctx.data);
+        let storage = &$ctx.borrow().storage;
 
-        // let bytes = storage.read_var(VarId($var_id));
-        // let nbytes = bytes.len();
+        let bytes = storage.read_var(VarId($var_id));
+        let nbytes = bytes.len();
+        assert_eq!(nbytes, $nbytes);
 
-        // assert_eq!(nbytes, $nbytes);
+        let memory = &$ctx.borrow().memory;
+        let start = $mem_ptr as usize;
+        let end = start + $nbytes;
+        let view = &memory.view::<u8>()[start..end];
 
-        // let mem_ptr = $mem_ptr as usize;
-        // let view = &$ctx.memory($mem_idx).view::<u8>()[mem_ptr..(mem_ptr + $nbytes)];
-
-        // for (cell, &byte) in view.iter().zip(bytes.iter()) {
-        //     cell.set(byte);
-        // }
+        for (cell, &byte) in view.iter().zip(bytes.iter()) {
+            cell.set(byte);
+        }
     }};
 }
 
