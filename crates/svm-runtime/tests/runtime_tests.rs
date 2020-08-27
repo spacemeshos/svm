@@ -253,17 +253,16 @@ fn default_runtime_calldata() {
     let bytes = testing::build_app_tx(version, &app_addr, func, &calldata);
 
     let receipt = runtime.exec_app(&bytes, &init_state, HostCtx::new(), maybe_gas);
-    dbg!(receipt);
-    // assert!(receipt.success);
+    assert!(receipt.success);
 
-    // // now we'll read directly from the app's storage
-    // // and assert that the data has been persisted as expected.
+    // now we'll read directly from the app's storage
+    // and assert that the data has been persisted as expected.
 
-    // let state = receipt.get_new_state();
-    // let storage = runtime.open_app_storage(&app_addr, &state, &layout);
+    let state = receipt.get_new_state();
+    let storage = runtime.open_app_storage(&app_addr, &state, &layout);
 
-    // let var = storage.read_var(VarId(0));
-    // assert_eq!(var, [0x10; 20]);
+    let var = storage.read_var(VarId(0));
+    assert_eq!(var, [0x10; 20]);
 }
 
 // #[test]

@@ -572,7 +572,7 @@ where
     }
 
     fn alloc_memory(&self, store: &Store) -> Memory {
-        let min = Pages(100);
+        let min = Pages(1);
         let max = None;
         let shared = false;
         let ty = MemoryType::new(min, max, shared);
