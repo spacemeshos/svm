@@ -1,5 +1,5 @@
+use crate::use_gas;
 use crate::Context;
-use crate::{helpers, use_gas};
 
 pub fn calldata_ptr(ctx: &mut Context) -> i32 {
     use_gas!("calldata_ptr", ctx);

@@ -23,10 +23,6 @@ pub mod env;
 mod context;
 pub use context::Context;
 
-/// Implements the helpers to be consumed by `SVM` vmcalls.
-#[macro_use]
-pub mod helpers;
-
 /// Implements common functionalities to be consnumed by tests.
 pub mod testing;
 

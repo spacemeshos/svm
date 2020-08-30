@@ -9,7 +9,6 @@ use crate::{
     env::traits::{Env, EnvTypes},
     error::ValidateError,
     gas::GasEstimator,
-    helpers::{self, DataWrapper},
     storage::StorageBuilderFn,
     vmcalls, Config, Context, Runtime,
 };

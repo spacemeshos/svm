@@ -1,4 +1,4 @@
-use crate::{helpers, use_gas, Context};
+use crate::{use_gas, Context};
 
 use byteorder::{ByteOrder, LittleEndian};
 
