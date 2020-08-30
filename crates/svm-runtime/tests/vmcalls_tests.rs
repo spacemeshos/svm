@@ -109,9 +109,8 @@ fn vmcalls_get32_set32() {
     let layout: DataLayout = vec![4, 2].into();
 
     let store = testing::wasmer_store();
-    let memory = testing::wasmer_memory(&store);
     let storage = testing::blank_storage(&app_addr, &layout);
-    let ctx = Context::new(memory, host, host_ctx, gas_limit, storage);
+    let ctx = Context::new(host, host_ctx, gas_limit, storage);
 
     let import_object = imports! {
         "svm" => {
@@ -146,9 +145,8 @@ fn vmcalls_get64_set64() {
     let layout: DataLayout = vec![4, 2].into();
 
     let store = testing::wasmer_store();
-    let memory = testing::wasmer_memory(&store);
     let storage = testing::blank_storage(&app_addr, &layout);
-    let ctx = Context::new(memory, host, host_ctx, gas_limit, storage);
+    let ctx = Context::new(host, host_ctx, gas_limit, storage);
 
     let import_object = imports! {
         "svm" => {
@@ -186,7 +184,7 @@ fn vmcalls_load160() {
     let store = testing::wasmer_store();
     let memory = testing::wasmer_memory(&store);
     let storage = testing::blank_storage(&app_addr, &layout);
-    let ctx = Context::new(memory.clone(), host, host_ctx, gas_limit, storage);
+    let ctx = Context::new(host, host_ctx, gas_limit, storage);
 
     let import_object = imports! {
         "svm" => {
@@ -232,7 +230,7 @@ fn vmcalls_store160() {
     let store = testing::wasmer_store();
     let memory = testing::wasmer_memory(&store);
     let storage = testing::blank_storage(&app_addr, &layout);
-    let ctx = Context::new(memory.clone(), host, host_ctx, gas_limit, storage);
+    let ctx = Context::new(host, host_ctx, gas_limit, storage);
 
     let import_object = imports! {
         "svm" => {
@@ -275,9 +273,8 @@ fn vmcalls_host_get64() {
     };
 
     let store = testing::wasmer_store();
-    let memory = testing::wasmer_memory(&store);
     let storage = testing::blank_storage(&app_addr, &layout);
-    let ctx = Context::new(memory, host, host_ctx, gas_limit, storage);
+    let ctx = Context::new(host, host_ctx, gas_limit, storage);
 
     let import_object = imports! {
         "svm" => {
@@ -310,7 +307,7 @@ fn vmcalls_log() {
     let store = testing::wasmer_store();
     let memory = testing::wasmer_memory(&store);
     let storage = testing::blank_storage(&app_addr, &layout);
-    let ctx = Context::new(memory.clone(), host, host_ctx, gas_limit, storage);
+    let ctx = Context::new(host, host_ctx, gas_limit, storage);
 
     let import_object = imports! {
         "svm" => {

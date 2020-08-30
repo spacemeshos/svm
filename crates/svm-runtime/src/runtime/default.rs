@@ -278,10 +278,7 @@ where
             }
             Ok((template, template_addr, _author, _creator)) => {
                 let store = svm_compiler::new_store();
-                let memory = self.alloc_memory(&store);
-
-                let ctx =
-                    self.create_context(memory, &template, &tx.app, &state, gas_left, host_ctx);
+                let ctx = self.create_context(&template, &tx.app, &state, gas_left, host_ctx);
                 let import_object = self.create_import_object(&store, &ctx);
 
                 let (result, logs) = self.do_exec_app(
@@ -329,6 +326,8 @@ where
         }
 
         let mut instance = instance.unwrap();
+
+        self.set_memory(ctx, &mut instance);
 
         let wasm_ptr = self.alloc_calldata(tx, template_addr, &mut instance);
         if let Err(err) = wasm_ptr {
@@ -399,6 +398,12 @@ where
         }
     }
 
+    fn set_memory(&self, ctx: &Context, instance: &mut Instance) {
+        // TODO: raise when no exported memory
+        let memory = instance.exports.get_memory("memory").unwrap();
+        ctx.borrow_mut().set_memory(memory.clone());
+    }
+
     fn alloc_calldata(
         &self,
         tx: &AppTransaction,
@@ -439,7 +444,8 @@ where
 
     fn set_calldata(&self, ctx: &Context, calldata: &[u8], ptr: WasmPtr<u8>) {
         let (offset, len) = {
-            let memory = &ctx.borrow().memory;
+            let borrow = ctx.borrow();
+            let memory = borrow.get_memory();
             let offset = ptr.offset();
 
             // Each wasm instance memory contains at least one `WASM Page`. (A `Page` size is 64KB)
@@ -508,7 +514,6 @@ where
 
     fn create_context(
         &self,
-        memory: Memory,
         template: &AppTemplate,
         app_addr: &AppAddr,
         state: &State,
@@ -518,17 +523,13 @@ where
         let layout = &template.data;
         let storage = self.open_app_storage(app_addr, state, layout);
 
-        Context::new(memory, self.host, host_ctx, gas_limit, storage)
+        Context::new(self.host, host_ctx, gas_limit, storage)
     }
 
     fn create_import_object(&self, store: &Store, ctx: &Context) -> ImportObject {
         let mut import_object = ImportObject::new();
 
-        let memory = ctx.borrow().memory.clone();
-
         let mut ns = Exports::new();
-
-        ns.insert("memory", memory);
 
         vmcalls::wasmer_register(store, ctx, &mut ns);
         import_object.register("svm", ns);
@@ -570,18 +571,6 @@ where
             })
         })
     }
-
-    fn alloc_memory(&self, store: &Store) -> Memory {
-        let min = Pages(1);
-        let max = None;
-        let shared = false;
-        let ty = MemoryType::new(min, max, shared);
-
-        // TODO: return error when memory creation has failed.
-        Memory::new(store, ty).unwrap()
-    }
-
-    /// Parse
 
     fn parse_deploy_template(&self, bytes: &[u8]) -> Result<AppTemplate, ParseError> {
         self.env.parse_deploy_template(bytes)

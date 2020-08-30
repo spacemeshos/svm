@@ -265,50 +265,50 @@ fn default_runtime_calldata() {
     assert_eq!(var, [0x10; 20]);
 }
 
-// #[test]
-// #[ignore = "temporarily skipping this test until wasmer cranelift will support middlewares"]
-// fn default_runtime_exec_app_reaches_oog() {
-//     let mut runtime = default_runtime!();
+#[test]
+#[ignore = "temporarily skipping this test until wasmer cranelift will support middlewares"]
+fn default_runtime_exec_app_reaches_oog() {
+    let mut runtime = default_runtime!();
 
-//     // 1) deploying the template
-//     let version = 0;
-//     let author = Address::of("author").into();
-//     let creator = Address::of("creator").into();
-//     let maybe_gas = MaybeGas::new();
-//     let layout: DataLayout = vec![4].into();
+    // 1) deploying the template
+    let version = 0;
+    let author = Address::of("author").into();
+    let creator = Address::of("creator").into();
+    let maybe_gas = MaybeGas::new();
+    let layout: DataLayout = vec![4].into();
 
-//     let bytes = testing::build_template(
-//         version,
-//         "My Template",
-//         layout,
-//         WasmFile::Text(include_str!("wasm/runtime_exec_app.wast")),
-//     );
+    let bytes = testing::build_template(
+        version,
+        "My Template",
+        layout,
+        include_str!("wasm/runtime_exec_app.wast").into(),
+    );
 
-//     let receipt = runtime.deploy_template(&bytes, &author, HostCtx::new(), maybe_gas);
-//     assert!(receipt.success);
+    let receipt = runtime.deploy_template(&bytes, &author, HostCtx::new(), maybe_gas);
+    assert!(receipt.success);
 
-//     let template_addr = receipt.addr.unwrap();
+    let template_addr = receipt.addr.unwrap();
 
-//     // 2) spawn app
-//     let name = "My App";
-//     let ctor = 0;
-//     let calldata = vec![];
+    // 2) spawn app
+    let name = "My App";
+    let ctor = "ctor";
+    let calldata = vec![];
 
-//     let bytes = testing::build_app(version, &template_addr, name, ctor, &calldata);
-//     let receipt = runtime.spawn_app(&bytes, &creator, HostCtx::new(), maybe_gas);
+    let bytes = testing::build_app(version, &template_addr, name, ctor, &calldata);
+    let receipt = runtime.spawn_app(&bytes, &creator, HostCtx::new(), maybe_gas);
 
-//     let app_addr = receipt.get_app_addr();
-//     let init_state = receipt.get_init_state();
+    let app_addr = receipt.get_app_addr();
+    let init_state = receipt.get_init_state();
 
-//     // 3) executing an app-transaction (reaching out-of-gas)
-//     let func = 1;
-//     let calldata = vec![];
-//     let bytes = testing::build_app_tx(version, &app_addr, func, &calldata);
-//     let maybe_gas = MaybeGas::with(0);
-//     let logs = Vec::new();
+    // 3) executing an app-transaction (reaching out-of-gas)
+    let func = "add";
+    let calldata = vec![];
+    let bytes = testing::build_app_tx(version, &app_addr, func, &calldata);
+    let maybe_gas = MaybeGas::with(0);
+    let logs = Vec::new();
 
-//     let expected = ExecReceipt::new_oog(logs);
-//     let actual = runtime.exec_app(&bytes, &init_state, HostCtx::new(), maybe_gas);
+    let expected = ExecReceipt::new_oog(logs);
+    let actual = runtime.exec_app(&bytes, &init_state, HostCtx::new(), maybe_gas);
 
-//     assert_eq!(expected, actual)
-// }
+    assert_eq!(expected, actual)
+}

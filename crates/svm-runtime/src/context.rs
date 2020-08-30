@@ -22,13 +22,12 @@ pub struct Context {
 
 impl Context {
     pub fn new(
-        memory: Memory,
         host: *mut c_void,
         host_ctx: HostCtx,
         gas_limit: MaybeGas,
         storage: AppStorage,
     ) -> Self {
-        let inner = ContextInner::new(memory, host, host_ctx, gas_limit, storage);
+        let inner = ContextInner::new(host, host_ctx, gas_limit, storage);
 
         Self {
             inner: Rc::new(RefCell::new(inner)),
@@ -45,9 +44,6 @@ impl Context {
 }
 
 pub struct ContextInner {
-    /// Instance's memory
-    pub memory: Memory,
-
     /// A pointer to the `host`.
     ///
     /// For example, `host` will point a to struct having an access to the balance of each account.
@@ -68,30 +64,27 @@ pub struct ContextInner {
     /// App's logs
     pub logs: Vec<Log>,
 
+    /// Instance's memory
+    memory: Option<Memory>,
+
     /// Pointer to calldata. Tuple stores `(offset, len)`.
-    pub calldata: Option<(usize, usize)>,
+    calldata: Option<(usize, usize)>,
 }
 
 impl ContextInner {
-    fn new(
-        memory: Memory,
-        host: *mut c_void,
-        host_ctx: HostCtx,
-        gas_limit: MaybeGas,
-        storage: AppStorage,
-    ) -> Self {
+    fn new(host: *mut c_void, host_ctx: HostCtx, gas_limit: MaybeGas, storage: AppStorage) -> Self {
         let gas_metering = gas_limit.is_some();
         let gas_limit = gas_limit.unwrap_or(0);
         let logs = Vec::new();
 
         Self {
-            memory,
             host,
             host_ctx,
             storage,
             gas_metering,
             gas_limit,
             logs,
+            memory: None,
             calldata: None,
         }
     }
@@ -102,6 +95,16 @@ impl ContextInner {
 
     pub fn get_calldata(&self) -> (usize, usize) {
         self.calldata.unwrap()
+    }
+
+    pub fn set_memory(&mut self, memory: Memory) {
+        self.memory = Some(memory);
+    }
+
+    pub fn get_memory(&self) -> &Memory {
+        debug_assert!(self.memory.is_some());
+
+        self.memory.as_ref().unwrap()
     }
 
     pub fn take_logs(&mut self) -> Vec<Log> {

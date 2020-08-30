@@ -9,7 +9,8 @@ macro_rules! store_n_impl {
         use svm_layout::VarId;
 
         let bytes: Vec<u8> = {
-            let memory = &$ctx.borrow().memory;
+            let borrow = $ctx.borrow();
+            let memory = borrow.get_memory();
             let start = $mem_ptr as usize;
             let end = start + $nbytes;
             let view = &memory.view::<u8>()[start..end];
@@ -33,7 +34,8 @@ macro_rules! load_n_impl {
         let nbytes = bytes.len();
         assert_eq!(nbytes, $nbytes);
 
-        let memory = &$ctx.borrow().memory;
+        let borrow = $ctx.borrow();
+        let memory = borrow.get_memory();
         let start = $mem_ptr as usize;
         let end = start + $nbytes;
         let view = &memory.view::<u8>()[start..end];
