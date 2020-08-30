@@ -27,8 +27,8 @@ use svm_types::{
 };
 
 use wasmer::{
-    Export, Exports, Function, ImportObject, Instance, Memory, MemoryType, Module, NativeFunc,
-    Pages, Store, Value, WasmPtr,
+    Export, Exports, Extern, Function, ImportObject, Instance, Memory, MemoryType, Module,
+    NativeFunc, Pages, Store, Value, WasmPtr,
 };
 
 /// Default `Runtime` implementation based on `wasmer`.
@@ -42,8 +42,8 @@ pub struct DefaultRuntime<ENV, GE> {
     /// The runtime configuration
     pub config: Config,
 
-    /// External `wasmer` imports (living inside the host) to be consumed by the app.
-    pub imports: Vec<(String, String, Export)>,
+    /// External imports (living inside the host) to be consumed by the App.
+    pub imports: Vec<(String, Export)>,
 
     /// builds a `AppStorage` instance.
     pub storage_builder: Box<StorageBuilderFn>,
@@ -179,11 +179,9 @@ where
         host: *mut c_void,
         env: ENV,
         kv_path: P,
-        imports: Vec<(String, String, Export)>,
+        imports: Vec<(String, Export)>,
         storage_builder: Box<StorageBuilderFn>,
     ) -> Self {
-        Self::ensure_not_svm_ns(&imports[..]);
-
         let config = Config::new(kv_path);
 
         Self {
@@ -528,10 +526,18 @@ where
     fn create_import_object(&self, store: &Store, ctx: &Context) -> ImportObject {
         let mut import_object = ImportObject::new();
 
-        let mut ns = Exports::new();
+        let mut svm = Exports::new();
+        let mut env = Exports::new();
 
-        vmcalls::wasmer_register(store, ctx, &mut ns);
-        import_object.register("svm", ns);
+        vmcalls::wasmer_register(store, ctx, &mut svm);
+
+        for (name, export) in self.imports.iter() {
+            let external = Extern::from_export(store, export.clone());
+            env.insert(name, external);
+        }
+
+        import_object.register("svm", svm);
+        import_object.register("env", env);
 
         import_object
     }
@@ -592,13 +598,5 @@ where
     fn compute_install_app_gas(&self, bytes: &[u8], _spawn: &SpawnApp) -> u64 {
         // todo!()
         1000 * (bytes.len() as u64)
-    }
-
-    /// Helpers
-
-    fn ensure_not_svm_ns(imports: &[(String, String, Export)]) {
-        if imports.iter().any(|(ns, _, _)| ns == "svm") {
-            panic!("Imports namespace can't be `svm` since it's a reserved name.")
-        }
     }
 }

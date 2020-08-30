@@ -98,7 +98,7 @@ pub fn memory_state_kv_init() -> Rc<RefCell<dyn StatefulKV>> {
 pub fn create_memory_runtime(
     host: *mut c_void,
     state_kv: &Rc<RefCell<dyn StatefulKV>>,
-    imports: Vec<(String, String, Export)>,
+    imports: Vec<(String, Export)>,
 ) -> DefaultRuntime<DefaultMemoryEnv, DefaultGasEstimator> {
     let storage_builder = runtime_memory_storage_builder(state_kv);
 
@@ -119,7 +119,6 @@ pub fn runtime_memory_storage_builder(
         let app_kv = AppKVStore::new(app_addr.clone(), &state_kv);
 
         let mut storage = AppStorage::new(layout.clone(), app_kv);
-
         storage.rewind(state);
 
         storage

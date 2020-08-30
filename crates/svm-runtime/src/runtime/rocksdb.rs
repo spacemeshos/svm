@@ -15,7 +15,7 @@ use wasmer::Export;
 pub fn create_rocksdb_runtime<P, S, GE>(
     host: *mut c_void,
     kv_path: P,
-    imports: Vec<(String, String, Export)>,
+    imports: Vec<(String, Export)>,
 ) -> DefaultRuntime<RocksdbEnv<S>, GE>
 where
     P: AsRef<Path>,
