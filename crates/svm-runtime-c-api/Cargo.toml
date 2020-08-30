@@ -9,61 +9,28 @@ publish = false
 [lib]
 crate-type = ["cdylib", "staticlib", "rlib"]
 
-# [dependencies.wasmer-runtime]
-# default-features = false
-# git = "https://github.com/spacemeshos/wasmer"
-# branch = "develop"
-# features = ["default-backend-cranelift"]
-# features = ["default-backend-singlepass"]
-
-[dependencies.wasmer-runtime-core]
+[dependencies.wasmer]
+version = "1.0.0-alpha01.0"
 default-features = false
-git = "https://github.com/spacemeshos/wasmer"
-branch = "develop"
+features = ["default-cranelift", "default-jit"]
 
-[dependencies.wasmer-runtime-c-api]
+[dependencies.wasmer-c-api]
+version = "1.0.0-alpha01.0"
 default-features = false
-git = "https://github.com/spacemeshos/wasmer"
-branch = "develop"
-features = ["cranelift-backend"]
-
-# [dependencies.wasmer-singlepass-backend]
-# git = "https://github.com/spacemeshos/wasmer"
-# branch = "develop"
-
-[dependencies.svm-runtime]
-default-features = false
-path = "../svm-runtime"
-
-[dependencies.svm-common]
-path = "../svm-common"
-
-[dependencies.svm-kv]
-path = "../svm-kv"
-
-[dependencies.svm-types]
-path = "../svm-types"
-
-[dependencies.svm-codec]
-path = "../svm-codec"
-
-[dependencies.svm-gas]
-path = "../svm-gas"
-
-[dependencies.svm-layout]
-path = "../svm-layout"
-
-[dependencies.svm-storage]
-path = "../svm-storage"
-
-[dependencies.svm-compiler]
-default-features = false
-path = "../svm-compiler"
-features = []
+features = ["cranelift", "jit"]
 
 [dependencies]
 log = "0.4"
 byteorder = "1.3.2"
+svm-runtime = { path = "../svm-runtime", default-features = false }
+svm-common = { path = "../svm-common" }
+svm-kv = { path = "../svm-kv" }
+svm-types = { path = "../svm-types" }
+svm-codec = { path = "../svm-codec" }
+svm-gas = { path = "../svm-gas" }
+svm-layout = { path = "../svm-layout" }
+svm-storage = { path = "../svm-storage" }
+svm-compiler = { path = "../svm-compiler", default-features = false, features = [] }
 
 [dev-dependencies]
 wabt = "0.7.4"
