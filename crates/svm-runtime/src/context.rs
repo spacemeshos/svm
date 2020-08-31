@@ -34,6 +34,20 @@ impl Context {
         }
     }
 
+    pub fn new_with_memory(
+        memory: Memory,
+        host: *mut c_void,
+        host_ctx: HostCtx,
+        gas_limit: MaybeGas,
+        storage: AppStorage,
+    ) -> Self {
+        let ctx = Self::new(host, host_ctx, gas_limit, storage);
+
+        ctx.borrow_mut().set_memory(memory);
+
+        ctx
+    }
+
     pub fn borrow(&self) -> Ref<ContextInner> {
         self.inner.borrow()
     }

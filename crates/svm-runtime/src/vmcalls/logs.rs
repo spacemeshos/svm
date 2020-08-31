@@ -8,13 +8,15 @@ pub fn log(ctx: &mut Context, msg_ptr: u32, msg_len: u32, code: u32) {
     let start = msg_ptr as usize;
     let end = start + msg_len as usize;
 
-    let borrow = ctx.borrow();
-    let memory = borrow.get_memory();
+    let msg: Vec<u8> = {
+        let borrow = ctx.borrow();
+        let memory = borrow.get_memory();
 
-    let msg: Vec<u8> = memory.view()[start..end]
-        .iter()
-        .map(|cell| cell.get())
-        .collect();
+        memory.view()[start..end]
+            .iter()
+            .map(|cell| cell.get())
+            .collect()
+    };
 
     let log = Log {
         msg,
