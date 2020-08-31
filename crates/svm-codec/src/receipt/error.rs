@@ -328,7 +328,7 @@ mod tests {
     fn decode_receipt_func_not_found() {
         let template_addr = Address::of("some-template");
         let app_addr = Address::of("some-app");
-        let func = 1;
+        let func = "do_something".to_string();
 
         let err = ReceiptError::FuncNotFound {
             app_addr: app_addr.into(),
@@ -348,7 +348,7 @@ mod tests {
     fn decode_receipt_func_failed() {
         let template_addr = Address::of("some-template");
         let app_addr = Address::of("some-app");
-        let func = 1;
+        let func = "do_something".to_string();
         let msg = "Invalid input".to_string();
 
         let err = ReceiptError::FuncFailed {

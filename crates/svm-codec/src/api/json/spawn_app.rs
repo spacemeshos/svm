@@ -12,18 +12,18 @@ use crate::{
 ///
 /// ```json
 /// {
-///   version: 0,           // number
-///   template: 'A2FB...',  // string
-///   name: 'My App',       // string
-///   ctor: 'initialize',   // number
-///   calldata: '',         // string
+///   version: 0,              // number
+///   template: 'A2FB...',     // string
+///   name: 'My App',          // string
+///   ctor_name: 'initialize', // number
+///   calldata: '',            // string
 /// }
 /// ```
 pub fn encode_spawn_app(json: &Value) -> Result<Vec<u8>, JsonError> {
     let version = json::as_u32(json, "version")?;
     let template = json::as_addr(json, "template")?.into();
     let name = json::as_string(json, "name")?;
-    let ctor = json::as_string(json, "ctor")?;
+    let ctor_name = json::as_string(json, "ctor_name")?;
 
     let calldata = json::as_string(json, "calldata")?;
     let calldata = json::str_to_bytes(&calldata, "calldata")?;
@@ -34,7 +34,7 @@ pub fn encode_spawn_app(json: &Value) -> Result<Vec<u8>, JsonError> {
             name,
             template,
         },
-        ctor,
+        ctor_name,
         calldata,
     };
 
@@ -53,7 +53,7 @@ pub fn decode_spawn_app(json: &Value) -> Result<Value, JsonError> {
     let spawn = raw::decode_spawn_app(&mut iter).unwrap();
 
     let version = spawn.app.version;
-    let ctor = spawn.ctor;
+    let ctor_name = spawn.ctor_name;
     let template = json::addr_to_str(&spawn.app.template.inner());
 
     let calldata = json::bytes_to_str(&spawn.calldata);
@@ -65,7 +65,7 @@ pub fn decode_spawn_app(json: &Value) -> Result<Value, JsonError> {
         "version": version,
         "template": template,
         "name": name,
-        "ctor": ctor,
+        "ctor_name": ctor_name,
         "calldata": calldata,
     });
 
@@ -128,7 +128,7 @@ mod tests {
     }
 
     #[test]
-    fn json_spawn_app_missing_ctor_index() {
+    fn json_spawn_app_missing_ctor_name() {
         let json = json!({
             "version": 0,
             "template": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
@@ -139,8 +139,8 @@ mod tests {
         assert_eq!(
             err,
             JsonError::InvalidField {
-                field: "ctor".to_string(),
-                reason: "value `null` isn\'t a number".to_string(),
+                field: "ctor_name".to_string(),
+                reason: "value `null` isn\'t a string".to_string(),
             }
         );
     }
@@ -151,7 +151,7 @@ mod tests {
             "version": 0,
             "template": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
             "name": "My App",
-            "ctor": 0,
+            "ctor_name": "initialize",
         });
 
         let err = encode_spawn_app(&json).unwrap_err();
@@ -178,7 +178,7 @@ mod tests {
             "version": 1,
             "template": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
             "name": "My App",
-            "ctor": 2,
+            "ctor_name": "initialize",
             "calldata": calldata["calldata"],
         });
 
@@ -192,7 +192,7 @@ mod tests {
                 "version": 1,
                 "template": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
                 "name": "My App",
-                "ctor": 2,
+                "ctor_name": "initialize",
                 "calldata": {
                     "abi": ["i32", "i64"],
                     "data": [10, 20]

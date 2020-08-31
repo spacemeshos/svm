@@ -12,7 +12,7 @@ pub struct AppTransaction {
     pub app: AppAddr,
 
     /// Function's name to execute
-    pub func: String,
+    pub func_name: String,
 
     /// Transaction's calldata
     pub calldata: Vec<u8>,
@@ -22,10 +22,10 @@ impl fmt::Debug for AppTransaction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let version = self.fmt_version();
         let app = self.fmt_app();
-        let func = self.fmt_func();
+        let func_name = self.fmt_func();
         let calldata = self.fmt_calldata();
 
-        let msg = [version, app, func, calldata];
+        let msg = [version, app, func_name, calldata];
 
         write!(f, "{}", msg.join("\n"))
     }
@@ -41,7 +41,7 @@ impl AppTransaction {
     }
 
     fn fmt_func(&self) -> String {
-        format!("function: {}", self.func)
+        format!("function: {}", self.func_name)
     }
 
     fn fmt_calldata(&self) -> String {

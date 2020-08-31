@@ -49,7 +49,7 @@ mod test {
           "version": 1,
           "template": template_addr,
           "name": "My App",
-          "ctor_index": 2,
+          "ctor_name": "initialize",
           "calldata": calldata["calldata"],
         });
 
@@ -80,7 +80,7 @@ mod test {
                 "version": 1,
                 "template": template_addr,
                 "name": "My App",
-                "ctor_index": 2,
+                "ctor_name": "initialize",
                 "calldata": {
                     "abi": ["i32", "i64"],
                     "data": [10, 20],

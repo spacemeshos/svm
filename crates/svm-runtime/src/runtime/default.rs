@@ -253,7 +253,7 @@ where
         AppTransaction {
             version: 0,
             app: app_addr.clone(),
-            func: spawn.ctor,
+            func_name: spawn.ctor_name,
             calldata: spawn.calldata,
         }
     }
@@ -350,7 +350,7 @@ where
             Err(e) => Err(ReceiptError::FuncFailed {
                 app_addr: tx.app.clone(),
                 template_addr: template_addr.clone(),
-                func: tx.func.clone(),
+                func: tx.func_name.clone(),
                 msg: e.to_string(),
             }),
             Ok(returns) => {
@@ -500,11 +500,11 @@ where
         template_addr: &TemplateAddr,
         instance: &'instance Instance,
     ) -> Result<&'instance Function, ReceiptError> {
-        instance.exports.get_function(&tx.func).or_else(|err| {
+        instance.exports.get_function(&tx.func_name).or_else(|err| {
             Err(ReceiptError::FuncNotFound {
                 app_addr: tx.app.clone(),
                 template_addr: template_addr.clone(),
-                func: tx.func.clone(),
+                func: tx.func_name.clone(),
             })
         })
     }

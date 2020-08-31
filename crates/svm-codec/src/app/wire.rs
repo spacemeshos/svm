@@ -17,13 +17,13 @@ pub fn encode_spawn_app(spawn: &SpawnApp, w: &mut NibbleWriter) {
 }
 
 /// Parsing a raw `spawn-app` transaction given as raw bytes.
-/// Returns the parsed transaction as a tuple consisting of an `App` struct and `ctor` buffer args.
+/// Returns the parsed transaction as a tuple consisting of an `App` struct and `ctor_name` buffer args.
 /// On failure, returns `ParseError`.
 pub fn decode_spawn_app(iter: &mut NibbleIter) -> Result<SpawnApp, ParseError> {
     let version = decode_version(iter)?;
     let template = decode_template(iter)?;
     let name = decode_name(iter)?;
-    let ctor = decode_ctor(iter)?;
+    let ctor_name = decode_ctor(iter)?;
     let calldata = decode_ctor_calldata(iter)?;
 
     let app = App {
@@ -34,7 +34,7 @@ pub fn decode_spawn_app(iter: &mut NibbleIter) -> Result<SpawnApp, ParseError> {
 
     let spawn = SpawnApp {
         app,
-        ctor,
+        ctor_name,
         calldata,
     };
 
@@ -59,9 +59,9 @@ fn encode_template(spawn: &SpawnApp, w: &mut NibbleWriter) {
 }
 
 fn encode_ctor(spawn: &SpawnApp, w: &mut NibbleWriter) {
-    let ctor = &spawn.ctor;
+    let ctor_name = &spawn.ctor_name;
 
-    helpers::encode_string(ctor, w);
+    helpers::encode_string(ctor_name, w);
 }
 
 fn encode_ctor_calldata(spawn: &SpawnApp, w: &mut NibbleWriter) {
@@ -103,7 +103,7 @@ mod tests {
                 name: "my-app".to_string(),
                 template: Address::of("my-template").into(),
             },
-            ctor_idx: 10,
+            ctor_name: "initialize".to_string(),
             calldata: vec![0x10, 0x20, 0x30],
         };
 

@@ -23,6 +23,7 @@ pub enum Field {
     ErrorLength,
     FuncNameLength,
     FuncName,
+    FuncIndex,
 }
 
 impl fmt::Display for Field {

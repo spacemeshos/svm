@@ -8,7 +8,7 @@ use crate::api::raw::encode_exec_app;
 pub struct AppTxBuilder {
     version: Option<u32>,
     app: Option<AppAddr>,
-    func: Option<String>,
+    func_name: Option<String>,
     calldata: Option<Vec<u8>>,
 }
 
@@ -22,13 +22,13 @@ pub struct AppTxBuilder {
 ///
 /// let app = Address::of("@my-app").into();
 ///
-/// let func = "do_work";
+/// let func_name = "do_work";
 /// let calldata = vec![0x10, 0x20, 0x30];
 ///
 /// let bytes = AppTxBuilder::new()
 ///            .with_version(0)
 ///            .with_app(&app)
-///            .with_func(func)
+///            .with_func(func_name)
 ///            .with_calldata(&calldata)
 ///            .build();
 ///
@@ -37,7 +37,7 @@ pub struct AppTxBuilder {
 /// let expected = AppTransaction {
 ///                  version: 0,
 ///                  app,
-///                  func,
+///                  func_name: func_name.to_string(),
 ///                  calldata,
 ///                };
 ///
@@ -51,7 +51,7 @@ impl AppTxBuilder {
         Self {
             version: None,
             app: None,
-            func: None,
+            func_name: None,
             calldata: None,
         }
     }
@@ -66,8 +66,8 @@ impl AppTxBuilder {
         self
     }
 
-    pub fn with_func(mut self, func: &str) -> Self {
-        self.func = Some(func.to_string());
+    pub fn with_func(mut self, func_name: &str) -> Self {
+        self.func_name = Some(func_name.to_string());
         self
     }
 
@@ -79,7 +79,7 @@ impl AppTxBuilder {
     pub fn build(self) -> Vec<u8> {
         let version = self.version.unwrap();
         let app = self.app.unwrap();
-        let func = self.func.unwrap();
+        let func_name = self.func_name.unwrap();
 
         let calldata = match self.calldata {
             None => vec![],
@@ -89,7 +89,7 @@ impl AppTxBuilder {
         let tx = AppTransaction {
             version,
             app,
-            func,
+            func_name,
             calldata,
         };
 

@@ -19,13 +19,13 @@ pub fn encode_exec_app(tx: &AppTransaction, w: &mut NibbleWriter) {
 pub fn decode_exec_app(iter: &mut NibbleIter) -> Result<AppTransaction, ParseError> {
     let version = decode_version(iter)?;
     let app = decode_app(iter)?;
-    let func = decode_func(iter)?;
+    let func_name = decode_func(iter)?;
     let calldata = decode_calldata(iter)?;
 
     let tx = AppTransaction {
         version,
         app,
-        func,
+        func_name,
         calldata,
     };
 
@@ -45,7 +45,7 @@ fn encode_app(tx: &AppTransaction, w: &mut NibbleWriter) {
 }
 
 fn encode_func(tx: &AppTransaction, w: &mut NibbleWriter) {
-    helpers::encode_string(&tx.func, w);
+    helpers::encode_string(&tx.func_name, w);
 }
 
 fn encode_calldata(tx: &AppTransaction, w: &mut NibbleWriter) {
@@ -77,7 +77,7 @@ mod tests {
         let tx = AppTransaction {
             version: 0,
             app: Address::of("my-app").into(),
-            func: 0,
+            func_name: "do_work".to_string(),
             calldata: vec![0x10, 0x0, 0x30],
         };
 

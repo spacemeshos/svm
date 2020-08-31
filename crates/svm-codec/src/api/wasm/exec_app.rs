@@ -52,7 +52,7 @@ mod test {
         let json = json!({
           "version": 1,
           "app": app_addr,
-          "func_index": 2,
+          "func_name": "do_something",
           "calldata": calldata["calldata"],
         });
 
@@ -82,7 +82,7 @@ mod test {
             json!({
                 "version": 1,
                 "app": app_addr,
-                "func_index": 2,
+                "func_name": "do_something",
                 "calldata": {
                     "abi": ["i32", "i64"],
                     "data": [10, 20],
