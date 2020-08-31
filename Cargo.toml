@@ -26,9 +26,14 @@ version = "0.12.4"
 features = ["lz4"]
 
 [dependencies.wasmer]
-version = "1.0.0-alpha01.0"
+git = "https://github.com/wasmerio/wasmer"
 default-features = false
 features = ["default-cranelift", "default-jit"]
+
+[dependencies.wasmer-c-api]
+git = "https://github.com/wasmerio/wasmer"
+default-features = false
+features = ["cranelift", "jit"]
 
 [dependencies]
 libc = "0.2"

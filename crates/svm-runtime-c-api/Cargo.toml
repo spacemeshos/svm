@@ -10,12 +10,12 @@ publish = false
 crate-type = ["cdylib", "staticlib", "rlib"]
 
 [dependencies.wasmer]
-version = "1.0.0-alpha01.0"
+git = "https://github.com/wasmerio/wasmer"
 default-features = false
 features = ["default-cranelift", "default-jit"]
 
 [dependencies.wasmer-c-api]
-version = "1.0.0-alpha01.0"
+git = "https://github.com/wasmerio/wasmer"
 default-features = false
 features = ["cranelift", "jit"]
 

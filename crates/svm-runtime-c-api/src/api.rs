@@ -1,4 +1,10 @@
-use std::{cell::RefCell, convert::TryFrom, ffi::c_void, io, path::Path, ptr::NonNull, rc::Rc};
+use std::cell::RefCell;
+use std::convert::TryFrom;
+use std::ffi::c_void;
+use std::io;
+use std::path::Path;
+use std::ptr::NonNull;
+use std::rc::Rc;
 
 use log::{debug, error};
 
@@ -8,7 +14,7 @@ use svm_codec::api::raw;
 use svm_layout::DataLayout;
 
 use svm_runtime::env::default::DefaultSerializerTypes;
-use svm_runtime::{ctx::SvmCtx, gas::DefaultGasEstimator};
+use svm_runtime::{gas::DefaultGasEstimator, Context};
 
 use svm_storage::kv::{ExternKV, StatefulKV};
 use svm_types::{Address, State, WasmType};

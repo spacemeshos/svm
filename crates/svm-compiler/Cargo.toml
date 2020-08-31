@@ -15,12 +15,12 @@ path = "../svm-common"
 version = "0.0.0"
 
 [dependencies.wasmer]
-version = "1.0.0-alpha01.0"
+git = "https://github.com/wasmerio/wasmer"
 default-features = false
 features = ["default-cranelift", "default-jit"]
 
 [dependencies.wasmer-compiler]
-version = "1.0.0-alpha01.0"
+git = "https://github.com/wasmerio/wasmer"
 
 [dependencies.wasmparser]
 version = "0.57.0"
