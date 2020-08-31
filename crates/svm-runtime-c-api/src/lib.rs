@@ -22,8 +22,8 @@ mod macros;
 mod result;
 mod state;
 mod types;
+mod utils;
 mod value;
-mod wasmer;
 
 pub(crate) use error::{raw_error, raw_io_error, raw_utf8_error, raw_validate_error};
 

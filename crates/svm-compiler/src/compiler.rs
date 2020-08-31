@@ -14,7 +14,7 @@ pub fn compile(
     _gas_limit: u64,
     _gas_metering: bool,
 ) -> Result<Module, CompileError> {
-    Module::new(&store, wasm)
+    Module::from_binary(&store, wasm)
 }
 
 /// New fresh `Store`

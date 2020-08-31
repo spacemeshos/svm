@@ -48,10 +48,12 @@ impl Context {
         ctx
     }
 
+    #[inline]
     pub fn borrow(&self) -> Ref<ContextInner> {
         self.inner.borrow()
     }
 
+    #[inline]
     pub fn borrow_mut(&self) -> RefMut<ContextInner> {
         self.inner.borrow_mut()
     }

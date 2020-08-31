@@ -861,12 +861,13 @@ pub unsafe extern "C" fn svm_exec_app(
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_instance_context_host_get(ctx: *mut c_void) -> *mut c_void {
-    use wasmer_runtime_core::vm::Ctx;
+    todo!()
+    // use wasmer_runtime_core::vm::Ctx;
 
-    let wasmer_ctx = svm_common::from_raw::<Ctx>(ctx);
-    let svm_ctx = svm_common::from_raw::<SvmCtx>(wasmer_ctx.data);
+    // let wasmer_ctx = svm_common::from_raw::<Ctx>(ctx);
+    // let svm_ctx = svm_common::from_raw::<SvmCtx>(wasmer_ctx.data);
 
-    svm_ctx.host
+    // svm_ctx.host
 }
 
 /// Destroys the Runtime and its associated resources.
@@ -1079,7 +1080,7 @@ pub unsafe extern "C" fn svm_encode_spawn_app(
     spawn_app: *mut svm_byte_array,
     version: u32,
     template_addr: svm_byte_array,
-    ctor_idx: u16,
+    ctor_name: svm_byte_array,
     calldata: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
@@ -1094,10 +1095,13 @@ pub unsafe extern "C" fn svm_encode_spawn_app(
 
     let template_addr = template_addr.unwrap();
 
+    // TODO: return an error instead of `unwrap()`
+    let ctor_name = String::try_from(ctor_name).unwrap();
+
     let mut bytes = SpawnAppBuilder::new()
         .with_version(version)
         .with_template(&template_addr.into())
-        .with_ctor_index(ctor_idx)
+        .with_ctor(&ctor_name)
         .with_calldata(&calldata)
         .build();
 
@@ -1113,7 +1117,7 @@ pub unsafe extern "C" fn svm_encode_app_tx(
     app_tx: *mut svm_byte_array,
     version: u32,
     app_addr: svm_byte_array,
-    func_idx: u16,
+    func_name: svm_byte_array,
     calldata: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
@@ -1126,12 +1130,14 @@ pub unsafe extern "C" fn svm_encode_app_tx(
     let calldata: &[u8] = calldata.into();
     let calldata: Vec<u8> = calldata.iter().cloned().collect();
 
+    // TODO: return an error instead of `unwrap()`
+    let func_name = String::try_from(func_name).unwrap();
     let app_addr = app_addr.unwrap();
 
     let mut bytes = AppTxBuilder::new()
         .with_version(version)
         .with_app(&app_addr.into())
-        .with_func_index(func_idx)
+        .with_func(&func_name)
         .with_calldata(&calldata)
         .build();
 
