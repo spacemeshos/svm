@@ -1,6 +1,7 @@
 use std::ffi::c_void;
 use std::ptr;
 
+use crate::Context;
 use svm_types::WasmType;
 
 use wasmer::{Export, FunctionType, Type as WasmerType};
@@ -18,13 +19,14 @@ pub struct Import {
 }
 
 impl Import {
-    pub fn to_wasmer<E>(&self, env: E) -> Export {
+    pub fn to_wasmer(&self, ctx: Context) -> Export {
         let params = to_wasmer_types(&self.params);
         let returns = to_wasmer_types(&self.returns);
         let signature = FunctionType::new(params, returns);
 
-        let boxed_env = Box::new(env);
-        let vmctx = Box::into_raw(boxed_env) as *mut VMContext;
+        // TODO: needs to free `ctx`.
+        let boxed_env = Box::new(ctx);
+        let vmctx = Box::into_raw(boxed_env) as *mut _ as *mut VMContext;
 
         let func = ExportFunction {
             address: self.func_ptr as _,
