@@ -18,6 +18,9 @@ jobs:
         node: ['12']
         release: ["--release"]
     steps:
+    - name: Automake (macOS)
+      if:  matrix.os == 'macos-latest'
+      run: brew install automake
     - name: LLVM (Windows)
       if:  matrix.os == 'windows-latest'
       run: choco install llvm -y
