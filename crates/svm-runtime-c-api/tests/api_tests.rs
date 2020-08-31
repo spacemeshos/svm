@@ -35,12 +35,11 @@ fn spawn_app_bytes(
     version: u32,
     template_addr: &svm_byte_array,
     name: &str,
-    ctor_idx: u16,
+    ctor_name: &str,
     calldata: &Vec<u8>,
 ) -> (Vec<u8>, u32) {
     let template_addr = Address::from(*&template_addr.bytes as *const c_void).into();
-
-    let bytes = svm_runtime::testing::build_app(version, &template_addr, name, ctor_idx, calldata);
+    let bytes = svm_runtime::testing::build_app(version, &template_addr, name, ctor_name, calldata);
     let length = bytes.len() as u32;
 
     (bytes, length)
@@ -49,13 +48,13 @@ fn spawn_app_bytes(
 fn exec_app_bytes(
     version: u32,
     app_addr: &svm_byte_array,
-    func_idx: u16,
+    func_name: &str,
     calldata: &Vec<u8>,
 ) -> (Vec<u8>, u32) {
     let app_addr: &[u8] = app_addr.into();
     let app_addr = Address::from(app_addr).into();
 
-    let bytes = svm_runtime::testing::build_app_tx(version, &app_addr, func_idx, calldata);
+    let bytes = svm_runtime::testing::build_app_tx(version, &app_addr, func_name, calldata);
 
     let length = bytes.len() as u32;
 
@@ -133,14 +132,14 @@ unsafe fn test_svm_runtime() {
     // 3) spawn app
     let name = "My App";
     let spawner = Address::of("spawner").into();
-    let ctor_idx = 2;
+    let ctor_name = "initialize";
     let mut counter: u32 = 10;
 
     let mut calldata = Vec::new();
     counter.encode(&mut calldata);
 
     // raw `spawn-app`
-    let (bytes, length) = spawn_app_bytes(version, &template_addr, name, ctor_idx, &calldata);
+    let (bytes, length) = spawn_app_bytes(version, &template_addr, name, ctor_name, &calldata);
     let app_bytes = svm_byte_array {
         bytes: bytes.as_ptr(),
         length: length,
@@ -169,13 +168,13 @@ unsafe fn test_svm_runtime() {
     let init_state: svm_byte_array = init_state.into();
 
     // 4) execute app
-    let func_idx = 3;
+    let func_name = "add";
 
     counter += 10;
     let mut calldata = Vec::new();
     counter.encode(&mut calldata);
 
-    let (bytes, length) = exec_app_bytes(version, &app_addr, func_idx, &calldata);
+    let (bytes, length) = exec_app_bytes(version, &app_addr, func_name, &calldata);
     let tx_bytes = svm_byte_array {
         bytes: bytes.as_ptr(),
         length: length,

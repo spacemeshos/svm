@@ -11,6 +11,9 @@ git = "https://github.com/wasmerio/wasmer"
 default-features = false
 features = ["default-cranelift", "default-jit"]
 
+[dependencies.wasmer-vm]
+git = "https://github.com/wasmerio/wasmer"
+
 [dependencies]
 svm-common = { path = "../svm-common" }
 svm-types = { path = "../svm-types" }

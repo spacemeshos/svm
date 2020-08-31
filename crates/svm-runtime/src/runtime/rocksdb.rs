@@ -7,7 +7,7 @@ use svm_layout::DataLayout;
 use svm_storage::app::AppStorage;
 use svm_types::{AppAddr, State};
 
-use crate::{gas::GasEstimator, runtime::DefaultRuntime, Config};
+use crate::{gas::GasEstimator, runtime::DefaultRuntime, Config, Import};
 
 use wasmer::Export;
 
@@ -15,7 +15,7 @@ use wasmer::Export;
 pub fn create_rocksdb_runtime<P, S, GE>(
     host: *mut c_void,
     kv_path: P,
-    imports: Vec<(String, Export)>,
+    imports: Vec<Import>,
 ) -> DefaultRuntime<RocksdbEnv<S>, GE>
 where
     P: AsRef<Path>,

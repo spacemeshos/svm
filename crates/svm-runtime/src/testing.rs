@@ -5,7 +5,8 @@ use std::path::Path;
 use std::rc::Rc;
 
 use crate::env::memory::{DefaultMemAppStore, DefaultMemAppTemplateStore, DefaultMemoryEnv};
-use crate::{gas::DefaultGasEstimator, storage::StorageBuilderFn, Config, Context, DefaultRuntime};
+use crate::{gas::DefaultGasEstimator, storage::StorageBuilderFn};
+use crate::{Config, Context, DefaultRuntime, Import};
 
 use svm_codec::api::builder::{
     AppTxBuilder, DeployAppTemplateBuilder, HostCtxBuilder, SpawnAppBuilder,
@@ -98,7 +99,7 @@ pub fn memory_state_kv_init() -> Rc<RefCell<dyn StatefulKV>> {
 pub fn create_memory_runtime(
     host: *mut c_void,
     state_kv: &Rc<RefCell<dyn StatefulKV>>,
-    imports: Vec<(String, Export)>,
+    imports: Vec<Import>,
 ) -> DefaultRuntime<DefaultMemoryEnv, DefaultGasEstimator> {
     let storage_builder = runtime_memory_storage_builder(state_kv);
 

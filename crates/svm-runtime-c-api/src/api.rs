@@ -14,16 +14,14 @@ use svm_codec::api::raw;
 use svm_layout::DataLayout;
 
 use svm_runtime::env::default::DefaultSerializerTypes;
-use svm_runtime::{gas::DefaultGasEstimator, Context};
+use svm_runtime::{gas::DefaultGasEstimator, Context, Import};
 
 use svm_storage::kv::{ExternKV, StatefulKV};
 use svm_types::{Address, State, WasmType};
 
 use crate::{
-    helpers,
-    import::{Import, ImportFunc, ImportFuncSig, ImportKind, ImportValue},
-    raw_error, raw_io_error, raw_utf8_error, raw_validate_error, svm_byte_array, svm_result_t,
-    RuntimePtr,
+    helpers, raw_error, raw_io_error, raw_utf8_error, raw_validate_error, svm_byte_array,
+    svm_result_t, RuntimePtr,
 };
 
 use svm_codec::receipt::{encode_app_receipt, encode_exec_receipt, encode_template_receipt};
@@ -251,6 +249,7 @@ pub unsafe extern "C" fn svm_validate_tx(
 }
 
 /// Allocates space for the host imports.
+/// See `svm_imports_destroy` for freeing the imports.
 ///
 /// # Example
 ///
@@ -290,19 +289,17 @@ pub unsafe extern "C" fn svm_imports_alloc(imports: *mut *mut c_void, count: u32
 /// // allocate one imports
 /// let mut imports = testing::imports_alloc(1);
 ///
-/// let module_name = "env".into();
 /// let import_name = "foo".into();
 /// let params = Vec::<WasmType>::new();
 /// let returns = Vec::<WasmType>::new();
-/// let func = foo as *const std::ffi::c_void;
+/// let func_ptr = foo as *const std::ffi::c_void;
 /// let mut error = svm_byte_array::default();
 ///
 /// let res = unsafe {
-///   svm_import_func_build(
+///   svm_import_func_new(
 ///     imports,
-///     module_name,
 ///     import_name,
-///     func,
+///     func_ptr,
 ///     params.into(),
 ///     returns.into(),
 ///     &mut error)
@@ -312,26 +309,27 @@ pub unsafe extern "C" fn svm_imports_alloc(imports: *mut *mut c_void, count: u32
 ///
 #[must_use]
 #[no_mangle]
-pub unsafe extern "C" fn svm_import_func_build(
+pub unsafe extern "C" fn svm_import_func_new(
     imports: *mut c_void,
-    module_name: svm_byte_array,
     import_name: svm_byte_array,
-    func: *const c_void,
+    func_ptr: *const c_void,
     params: svm_byte_array,
     returns: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
-    let imports = &mut *(imports as *mut Vec<Import>);
+    let imports = helpers::cast_to_imports(imports);
 
     assert!(imports.len() < imports.capacity());
 
-    let func = NonNull::new(func as *mut c_void);
-    if func.is_none() {
-        let s = String::from("`func` parameter must not be NULL");
+    let func_ptr = NonNull::new(func_ptr as *mut c_void);
+    if func_ptr.is_none() {
+        let s = String::from("`func_ptr` parameter must not be NULL");
         raw_error(s, error);
 
         return svm_result_t::SVM_FAILURE;
     }
+
+    let func_ptr: *const c_void = func_ptr.unwrap().as_ptr();
 
     let params: Result<Vec<WasmType>, io::Error> = Vec::try_from(params);
     if let Err(e) = params {
@@ -345,20 +343,6 @@ pub unsafe extern "C" fn svm_import_func_build(
         return svm_result_t::SVM_FAILURE;
     }
 
-    let func = ImportFunc {
-        func: func.unwrap(),
-        sig: ImportFuncSig {
-            params: params.unwrap(),
-            returns: returns.unwrap(),
-        },
-    };
-
-    let module_name = String::try_from(module_name);
-    if module_name.is_err() {
-        raw_utf8_error(module_name, error);
-        return svm_result_t::SVM_FAILURE;
-    }
-
     let import_name = String::try_from(import_name);
     if import_name.is_err() {
         raw_utf8_error(import_name, error);
@@ -366,10 +350,10 @@ pub unsafe extern "C" fn svm_import_func_build(
     }
 
     let import = Import {
-        module_name: module_name.unwrap(),
-        import_name: import_name.unwrap(),
-        kind: ImportKind::Function,
-        value: ImportValue::Func(func),
+        func_ptr,
+        name: import_name.unwrap(),
+        params: params.unwrap(),
+        returns: returns.unwrap(),
     };
 
     imports.push(import);
@@ -510,10 +494,9 @@ pub unsafe extern "C" fn svm_memory_runtime_create(
 ) -> svm_result_t {
     debug!("`svm_memory_runtime_create` start");
 
-    let imports = helpers::cast_imports_to_wasmer_imports(imports);
-
+    let imports = helpers::cast_to_imports(imports);
     let state_kv = svm_common::from_raw_mut(state_kv);
-    let mem_runtime = svm_runtime::testing::create_memory_runtime(host, state_kv, imports);
+    let mem_runtime = svm_runtime::testing::create_memory_runtime(host, state_kv, imports.to_vec());
 
     let res = box_runtime!(runtime, mem_runtime);
 
@@ -559,13 +542,13 @@ pub unsafe extern "C" fn svm_runtime_create(
     }
 
     let kv_path = kv_path.unwrap();
-    let imports = helpers::cast_imports_to_wasmer_imports(imports);
+    let imports = helpers::cast_to_imports(imports);
 
     let rocksdb_runtime = svm_runtime::create_rocksdb_runtime::<
         &Path,
         DefaultSerializerTypes,
         DefaultGasEstimator,
-    >(host, Path::new(&kv_path), imports);
+    >(host, Path::new(&kv_path), imports.to_vec());
 
     let res = box_runtime!(runtime, rocksdb_runtime);
 

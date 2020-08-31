@@ -30,6 +30,12 @@ git = "https://github.com/wasmerio/wasmer"
 default-features = false
 features = ["default-cranelift", "default-jit"]
 
+[dependencies.wasmer-vm]
+git = "https://github.com/wasmerio/wasmer"
+
+[dependencies.wasmer-types]
+git = "https://github.com/wasmerio/wasmer"
+
 [dependencies.wasmer-c-api]
 git = "https://github.com/wasmerio/wasmer"
 default-features = false

@@ -1130,6 +1130,8 @@ dependencies = [
  "tiny-keccak",
  "wasmer",
  "wasmer-c-api",
+ "wasmer-types",
+ "wasmer-vm",
  "wat",
 ]
 
@@ -1259,6 +1261,7 @@ dependencies = [
  "svm-storage",
  "svm-types",
  "wasmer",
+ "wasmer-vm",
  "wat",
 ]
 

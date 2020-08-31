@@ -10,7 +10,7 @@ use crate::{
     error::ValidateError,
     gas::GasEstimator,
     storage::StorageBuilderFn,
-    vmcalls, Config, Context, Runtime,
+    vmcalls, Config, Context, Import, Runtime,
 };
 
 use svm_codec::error::ParseError;
@@ -43,7 +43,7 @@ pub struct DefaultRuntime<ENV, GE> {
     pub config: Config,
 
     /// External imports (living inside the host) to be consumed by the App.
-    pub imports: Vec<(String, Export)>,
+    pub imports: Vec<Import>,
 
     /// builds a `AppStorage` instance.
     pub storage_builder: Box<StorageBuilderFn>,
@@ -179,7 +179,7 @@ where
         host: *mut c_void,
         env: ENV,
         kv_path: P,
-        imports: Vec<(String, Export)>,
+        imports: Vec<Import>,
         storage_builder: Box<StorageBuilderFn>,
     ) -> Self {
         let config = Config::new(kv_path);
@@ -531,9 +531,12 @@ where
 
         vmcalls::wasmer_register(store, ctx, &mut svm);
 
-        for (name, export) in self.imports.iter() {
-            let external = Extern::from_export(store, export.clone());
-            env.insert(name, external);
+        for import in self.imports.iter() {
+            let name = import.name.clone();
+            let import = import.to_wasmer(ctx.clone());
+
+            let ext = Extern::from_export(store, import);
+            env.insert(name, ext);
         }
 
         import_object.register("svm", svm);
