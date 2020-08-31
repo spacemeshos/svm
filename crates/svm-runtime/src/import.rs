@@ -25,8 +25,8 @@ impl Import {
         let signature = FunctionType::new(params, returns);
 
         // TODO: needs to free `ctx`.
-        let boxed_env = Box::new(ctx);
-        let vmctx = Box::into_raw(boxed_env) as *mut _ as *mut VMContext;
+        let boxed_ctx = Box::new(ctx);
+        let vmctx = Box::into_raw(boxed_ctx) as *mut _ as *mut VMContext;
 
         let func = ExportFunction {
             address: self.func_ptr as _,
