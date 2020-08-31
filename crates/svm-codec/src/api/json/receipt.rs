@@ -78,23 +78,23 @@ fn decode_error(ty: &'static str, err: &ReceiptError, logs: &[Log]) -> Value {
             ReceiptError::FuncNotFound {
                 app_addr,
                 template_addr,
-                func_idx,
+                func,
             } => json!({
                 "err_type": "function-not-found",
                 "template_addr": json::addr_to_str(template_addr.inner()),
                 "app_addr": json::addr_to_str(app_addr.inner()),
-                "func_index": func_idx,
+                "func": func,
             }),
             ReceiptError::FuncFailed {
                 app_addr,
                 template_addr,
-                func_idx,
+                func,
                 msg,
             } => json!({
                 "err_type": "function-failed",
                 "template_addr": json::addr_to_str(template_addr.inner()),
                 "app_addr": json::addr_to_str(app_addr.inner()),
-                "func_index": func_idx,
+                "func": func,
                 "message": msg,
             }),
         }

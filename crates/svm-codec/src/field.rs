@@ -16,13 +16,14 @@ pub enum Field {
     Address,
     TemplateAddr,
     AppAddr,
-    FuncIndex,
     CallDataLength,
     CallData,
     DataLayoutVarsCount,
     DataLayoutVarLength,
-    FuncArgsNoMoreMark,
     ErrorLength,
+    FuncNameLength,
+    FuncName,
+    FuncIndex,
 }
 
 impl fmt::Display for Field {

@@ -9,7 +9,7 @@ pub struct SpawnAppBuilder {
     version: Option<u32>,
     template: Option<TemplateAddr>,
     name: Option<String>,
-    ctor_idx: Option<u16>,
+    ctor_name: Option<String>,
     calldata: Option<Vec<u8>>,
 }
 
@@ -23,14 +23,14 @@ pub struct SpawnAppBuilder {
 ///
 /// let template = Address::of("@template").into();
 /// let name = "My App".to_string();
-/// let ctor_idx = 2;
+/// let ctor_name = "initialize";
 /// let calldata = vec![0x10, 0x20, 0x30];
 ///
 /// let bytes = SpawnAppBuilder::new()
 ///             .with_version(0)
 ///             .with_template(&template)
 ///             .with_name(&name)
-///             .with_ctor_index(ctor_idx)
+///             .with_ctor(ctor_name)
 ///             .with_calldata(&calldata)
 ///             .build();
 ///
@@ -38,7 +38,7 @@ pub struct SpawnAppBuilder {
 /// let actual = decode_spawn_app(&mut iter).unwrap();
 /// let expected = SpawnApp {
 ///                  app: App { version: 0, name, template },
-///                  ctor_idx,
+///                  ctor_name: ctor_name.to_string(),
 ///                  calldata,
 ///                };
 ///
@@ -53,7 +53,7 @@ impl SpawnAppBuilder {
             version: None,
             template: None,
             name: None,
-            ctor_idx: None,
+            ctor_name: None,
             calldata: None,
         }
     }
@@ -73,8 +73,8 @@ impl SpawnAppBuilder {
         self
     }
 
-    pub fn with_ctor_index(mut self, ctor_idx: u16) -> Self {
-        self.ctor_idx = Some(ctor_idx);
+    pub fn with_ctor(mut self, ctor_name: &str) -> Self {
+        self.ctor_name = Some(ctor_name.to_string());
         self
     }
 
@@ -87,7 +87,7 @@ impl SpawnAppBuilder {
         let version = self.version.unwrap();
         let template = self.template.unwrap();
         let name = self.name.unwrap();
-        let ctor_idx = self.ctor_idx.unwrap();
+        let ctor_name = self.ctor_name.unwrap();
 
         let calldata = match self.calldata {
             None => vec![],
@@ -100,7 +100,7 @@ impl SpawnAppBuilder {
                 name,
                 template,
             },
-            ctor_idx,
+            ctor_name,
             calldata,
         };
 

@@ -13,16 +13,16 @@ use svm_types::{AddressOf, App, AppTransaction, WasmValue};
 ///
 /// ```json
 /// {
-///   version: 0,      // number
-///   app: 'A2FB...',  // string
-///   func_index: 0,   // number
-///   calldata: '',    // string
+///   version: 0,           // number
+///   app: 'A2FB...',       // string
+///   func_name: 'do_work', // string
+///   calldata: '',         // string
 /// }
 /// ```
 pub fn encode_exec_app(json: &Value) -> Result<Vec<u8>, JsonError> {
     let version = json::as_u32(json, "version")?;
     let app = json::as_addr(json, "app")?.into();
-    let func_idx = json::as_u16(json, "func_index")?;
+    let func_name = json::as_string(json, "func_name")?;
 
     let calldata = json::as_string(json, "calldata")?;
     let calldata = json::str_to_bytes(&calldata, "calldata")?;
@@ -30,7 +30,7 @@ pub fn encode_exec_app(json: &Value) -> Result<Vec<u8>, JsonError> {
     let tx = AppTransaction {
         version,
         app,
-        func_idx,
+        func_name,
         calldata,
     };
 
@@ -49,7 +49,7 @@ pub fn decode_exec_app(json: &Value) -> Result<Value, JsonError> {
     let tx = raw::decode_exec_app(&mut iter).unwrap();
 
     let version = tx.version;
-    let func_idx = tx.func_idx;
+    let func_name = tx.func_name.clone();
     let app = json::addr_to_str(&tx.app.inner());
 
     let calldata = json::bytes_to_str(&tx.calldata);
@@ -58,7 +58,7 @@ pub fn decode_exec_app(json: &Value) -> Result<Value, JsonError> {
     let json = json!({
         "version": version,
         "app": app,
-        "func_index": func_idx,
+        "func_name": func_name,
         "calldata": calldata,
     });
 
@@ -104,7 +104,7 @@ mod tests {
     }
 
     #[test]
-    fn json_exec_app_missing_func_index() {
+    fn json_exec_app_missing_func_name() {
         let json = json!({
             "version": 0,
             "app": "10203040506070809000A0B0C0D0E0F0ABCDEFFF"
@@ -114,8 +114,8 @@ mod tests {
         assert_eq!(
             err,
             JsonError::InvalidField {
-                field: "func_index".to_string(),
-                reason: "value `null` isn\'t a number".to_string(),
+                field: "func_name".to_string(),
+                reason: "value `null` isn\'t a string".to_string(),
             }
         );
     }
@@ -125,7 +125,7 @@ mod tests {
         let json = json!({
             "version": 0,
             "app": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
-            "func_index": 0,
+            "func_name": "do_something",
         });
 
         let err = encode_exec_app(&json).unwrap_err();
@@ -149,7 +149,7 @@ mod tests {
         let json = json!({
             "version": 0,
             "app": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
-            "func_index": 1,
+            "func_name": "do_something",
             "calldata": calldata["calldata"],
         });
 
@@ -162,7 +162,7 @@ mod tests {
             json!({
                 "version": 0,
                 "app": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
-                "func_index": 1,
+                "func_name": "do_something",
                 "calldata": {
                     "abi": ["i32", "i64"],
                     "data": [10, 20]

@@ -16,14 +16,12 @@ mod address;
 mod api;
 mod byte_array;
 mod error;
-mod import;
 mod layout;
 mod macros;
 mod result;
 mod state;
 mod types;
 mod value;
-mod wasmer;
 
 pub(crate) use error::{raw_error, raw_io_error, raw_utf8_error, raw_validate_error};
 
@@ -47,7 +45,7 @@ pub use api::{
     svm_estimate_spawn_app,
 
     // Imports
-    svm_import_func_build,
+    svm_import_func_new,
     svm_imports_alloc,
     svm_imports_destroy,
 
@@ -64,6 +62,7 @@ pub use api::{
     svm_validate_app,
     svm_validate_tx,
 };
+
 pub use byte_array::svm_byte_array;
 pub use result::svm_result_t;
 

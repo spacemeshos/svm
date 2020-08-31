@@ -9,7 +9,7 @@ use crate::{error::ParseError, helpers};
 pub fn encode_exec_app(tx: &AppTransaction, w: &mut NibbleWriter) {
     encode_version(tx, w);
     encode_app(tx, w);
-    encode_func_index(tx, w);
+    encode_func(tx, w);
     encode_calldata(tx, w);
 }
 
@@ -19,13 +19,13 @@ pub fn encode_exec_app(tx: &AppTransaction, w: &mut NibbleWriter) {
 pub fn decode_exec_app(iter: &mut NibbleIter) -> Result<AppTransaction, ParseError> {
     let version = decode_version(iter)?;
     let app = decode_app(iter)?;
-    let func_idx = decode_func_index(iter)?;
+    let func_name = decode_func(iter)?;
     let calldata = decode_calldata(iter)?;
 
     let tx = AppTransaction {
         version,
         app,
-        func_idx,
+        func_name,
         calldata,
     };
 
@@ -44,9 +44,8 @@ fn encode_app(tx: &AppTransaction, w: &mut NibbleWriter) {
     helpers::encode_address(addr, w);
 }
 
-fn encode_func_index(tx: &AppTransaction, w: &mut NibbleWriter) {
-    let idx = tx.func_idx;
-    crate::api::raw::encode_varuint14(idx, w);
+fn encode_func(tx: &AppTransaction, w: &mut NibbleWriter) {
+    helpers::encode_string(&tx.func_name, w);
 }
 
 fn encode_calldata(tx: &AppTransaction, w: &mut NibbleWriter) {
@@ -62,8 +61,8 @@ fn decode_app(iter: &mut NibbleIter) -> Result<AppAddr, ParseError> {
     Ok(addr.into())
 }
 
-fn decode_func_index(iter: &mut NibbleIter) -> Result<u16, ParseError> {
-    decode_varuint14(iter, Field::FuncIndex)
+fn decode_func(iter: &mut NibbleIter) -> Result<String, ParseError> {
+    helpers::decode_string(iter, Field::FuncNameLength, Field::FuncName)
 }
 
 #[cfg(test)]
@@ -78,7 +77,7 @@ mod tests {
         let tx = AppTransaction {
             version: 0,
             app: Address::of("my-app").into(),
-            func_idx: 0,
+            func_name: "do_work".to_string(),
             calldata: vec![0x10, 0x0, 0x30],
         };
 

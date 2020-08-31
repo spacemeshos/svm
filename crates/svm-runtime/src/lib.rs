@@ -15,16 +15,15 @@ pub use runtime::{create_rocksdb_runtime, Config, DefaultRuntime, Runtime};
 /// Gas estimation and metering.
 pub mod gas;
 
+mod import;
 mod storage;
 
 pub mod env;
+pub use import::Import;
 
-/// Implements `SvmCtx`. Used for running `SVM` instances.
-pub mod ctx;
-
-/// Implements the helpers to be consumed by `SVM` vmcalls.
-#[macro_use]
-pub mod helpers;
+/// Implements `Context`. Used for managing data of running `SVM` apps.
+mod context;
+pub use context::Context;
 
 /// Implements common functionalities to be consnumed by tests.
 pub mod testing;

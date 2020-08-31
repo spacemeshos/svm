@@ -12,18 +12,18 @@ pub fn encode_spawn_app(spawn: &SpawnApp, w: &mut NibbleWriter) {
     encode_version(spawn, w);
     encode_template(spawn, w);
     encode_name(spawn, w);
-    encode_ctor_index(spawn, w);
+    encode_ctor(spawn, w);
     encode_ctor_calldata(spawn, w);
 }
 
 /// Parsing a raw `spawn-app` transaction given as raw bytes.
-/// Returns the parsed transaction as a tuple consisting of an `App` struct and `ctor` buffer args.
+/// Returns the parsed transaction as a tuple consisting of an `App` struct and `ctor_name` buffer args.
 /// On failure, returns `ParseError`.
 pub fn decode_spawn_app(iter: &mut NibbleIter) -> Result<SpawnApp, ParseError> {
     let version = decode_version(iter)?;
     let template = decode_template(iter)?;
     let name = decode_name(iter)?;
-    let ctor_idx = decode_ctor_index(iter)?;
+    let ctor_name = decode_ctor(iter)?;
     let calldata = decode_ctor_calldata(iter)?;
 
     let app = App {
@@ -34,7 +34,7 @@ pub fn decode_spawn_app(iter: &mut NibbleIter) -> Result<SpawnApp, ParseError> {
 
     let spawn = SpawnApp {
         app,
-        ctor_idx,
+        ctor_name,
         calldata,
     };
 
@@ -58,9 +58,10 @@ fn encode_template(spawn: &SpawnApp, w: &mut NibbleWriter) {
     helpers::encode_address(template.inner(), w);
 }
 
-fn encode_ctor_index(spawn: &SpawnApp, w: &mut NibbleWriter) {
-    let ctor_idx = spawn.ctor_idx;
-    encode_varuint14(ctor_idx, w);
+fn encode_ctor(spawn: &SpawnApp, w: &mut NibbleWriter) {
+    let ctor_name = &spawn.ctor_name;
+
+    helpers::encode_string(ctor_name, w);
 }
 
 fn encode_ctor_calldata(spawn: &SpawnApp, w: &mut NibbleWriter) {
@@ -80,8 +81,8 @@ fn decode_name(iter: &mut NibbleIter) -> Result<String, ParseError> {
     helpers::decode_string(iter, Field::NameLength, Field::Name)
 }
 
-fn decode_ctor_index(iter: &mut NibbleIter) -> Result<u16, ParseError> {
-    decode_varuint14(iter, Field::FuncIndex)
+fn decode_ctor(iter: &mut NibbleIter) -> Result<String, ParseError> {
+    helpers::decode_string(iter, Field::NameLength, Field::Name)
 }
 
 fn decode_ctor_calldata(iter: &mut NibbleIter) -> Result<Vec<u8>, ParseError> {
@@ -102,7 +103,7 @@ mod tests {
                 name: "my-app".to_string(),
                 template: Address::of("my-template").into(),
             },
-            ctor_idx: 10,
+            ctor_name: "initialize".to_string(),
             calldata: vec![0x10, 0x20, 0x30],
         };
 

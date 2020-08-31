@@ -22,12 +22,12 @@ pub enum ReceiptError {
     FuncNotFound {
         app_addr: AppAddr,
         template_addr: TemplateAddr,
-        func_idx: u16,
+        func: String,
     },
     FuncFailed {
         app_addr: AppAddr,
         template_addr: TemplateAddr,
-        func_idx: u16,
+        func: String,
         msg: String,
     },
 }

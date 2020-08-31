@@ -19,12 +19,6 @@ macro_rules! use_gas {
     ("store160", $wasmer_ctx:expr) => {{
         //
     }};
-    ("load256", $wasmer_ctx:expr) => {{
-        //
-    }};
-    ("store256", $wasmer_ctx:expr) => {{
-        //
-    }};
     ("host_get64", $wasmer_ctx:expr) => {{
         //
     }};

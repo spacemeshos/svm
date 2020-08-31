@@ -1,13 +1,12 @@
-use std::{cell::RefCell, collections::HashMap, ffi::c_void, path::Path, rc::Rc};
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::ffi::c_void;
+use std::path::Path;
+use std::rc::Rc;
 
 use crate::env::memory::{DefaultMemAppStore, DefaultMemAppTemplateStore, DefaultMemoryEnv};
-use crate::{
-    ctx::SvmCtx,
-    gas::DefaultGasEstimator,
-    helpers::{self, DataWrapper},
-    storage::StorageBuilderFn,
-    Config, DefaultRuntime,
-};
+use crate::{gas::DefaultGasEstimator, storage::StorageBuilderFn};
+use crate::{Config, Context, DefaultRuntime, Import};
 
 use svm_codec::api::builder::{
     AppTxBuilder, DeployAppTemplateBuilder, HostCtxBuilder, SpawnAppBuilder,
@@ -18,7 +17,8 @@ use svm_storage::{
     kv::{FakeKV, StatefulKV},
 };
 use svm_types::{gas::MaybeGas, receipt::Log, Address, AppAddr, State, TemplateAddr, WasmValue};
-use wasmer_runtime_core::{export::Export, import::ImportObject, Instance, Module};
+
+use wasmer::{Export, ImportObject, Instance, Memory, MemoryType, Module, Pages, Store};
 
 pub enum WasmFile<'a> {
     Text(&'a str),
@@ -29,83 +29,64 @@ pub enum WasmFile<'a> {
 impl<'a> WasmFile<'a> {
     fn into_bytes(self) -> Vec<u8> {
         match self {
-            Self::Text(wat) => wabt::wat2wasm(wat).unwrap(),
+            Self::Text(text) => wat::parse_str(text).unwrap(),
             Self::Binary(wasm) => wasm.to_vec(),
         }
     }
 }
 
+impl<'a> From<&'a str> for WasmFile<'a> {
+    fn from(text: &'a str) -> Self {
+        Self::Text(text)
+    }
+}
+
+impl<'a> From<&'a [u8]> for WasmFile<'a> {
+    fn from(wasm: &'a [u8]) -> Self {
+        Self::Binary(wasm)
+    }
+}
+
+pub fn wasmer_store() -> Store {
+    svm_compiler::new_store()
+}
+
+pub fn wasmer_memory(store: &Store) -> Memory {
+    let min = Pages(1);
+    let max = None;
+    let shared = false;
+    let ty = MemoryType::new(min, max, shared);
+
+    Memory::new(store, ty).expect("Memory allocation has failed.")
+}
+
 /// Compiles a wasm program in text format (a.k.a WAST) into a `Module` (`wasmer`)
-pub fn wasmer_compile(wasm: &str, gas_limit: MaybeGas) -> Module {
-    let wasm = wabt::wat2wasm(&wasm).unwrap();
+pub fn wasmer_compile(store: &Store, wasm_file: WasmFile, gas_limit: MaybeGas) -> Module {
+    let wasm = wasm_file.into_bytes();
 
     let gas_metering = gas_limit.is_some();
     let gas_limit = gas_limit.unwrap_or(0);
 
-    svm_compiler::compile_program(&wasm[..], gas_limit, gas_metering).unwrap()
+    svm_compiler::compile(store, &wasm, gas_limit, gas_metering).unwrap()
 }
 
 /// Instantiate a `wasmer` instance
-pub fn instantiate(import_object: &ImportObject, wasm: &str, gas_limit: MaybeGas) -> Instance {
-    let module = wasmer_compile(wasm, gas_limit);
-    module.instantiate(import_object).unwrap()
-}
-
-/// Mutably borrows the `AppStorage` of a living `App` instance.
-pub fn instance_storage(instance: &Instance) -> &mut AppStorage {
-    let ctx = instance.context();
-    helpers::wasmer_data_app_storage(ctx.data)
-}
-
-pub fn instance_logs(instance: &Instance) -> Vec<Log> {
-    let ctx = instance.context();
-    helpers::wasmer_data_logs(ctx.data)
-}
-
-/// Returns a view of `wasmer` instance memory at `offset`...`offest + len - 1`
-pub fn instance_memory_view(instance: &Instance, offset: u32, len: u32) -> Vec<u8> {
-    let view = instance.context().memory(0).view();
-
-    let start = offset as usize;
-    let end = start + len as usize;
-
-    view[start..end].iter().map(|cell| cell.get()).collect()
-}
-
-/// Copies input slice `bytes` into `wasmer` instance memory starting at offset `offset`.
-pub fn instance_memory_init(instance: &Instance, offset: u32, bytes: &[u8]) {
-    let view = instance.context().memory(0).view();
-
-    let start = offset as usize;
-    let end = start + bytes.len() as usize;
-    let cells = &view[start..end];
-
-    for (cell, byte) in cells.iter().zip(bytes.iter()) {
-        cell.set(*byte);
-    }
-}
-
-/// Returns a `state creator` to be used by wasmer `ImportObject::new_with_data` initializer.
-pub fn app_memory_state_creator(
-    app_addr: &Address,
-    host: DataWrapper<*mut c_void>,
-    host_ctx: DataWrapper<*const c_void>,
+pub fn wasmer_instantiate(
+    store: &Store,
+    import_object: &ImportObject,
+    wasm_file: WasmFile,
     gas_limit: MaybeGas,
-    layout: &DataLayout,
-) -> (*mut c_void, fn(*mut c_void)) {
+) -> Instance {
+    let module = wasmer_compile(store, wasm_file, gas_limit);
+
+    Instance::new(&module, import_object).unwrap()
+}
+
+pub fn blank_storage(app_addr: &Address, layout: &DataLayout) -> AppStorage {
     let state_kv = memory_state_kv_init();
     let app_kv = AppKVStore::new(app_addr.clone(), &state_kv);
 
-    let storage = AppStorage::new(layout.clone(), app_kv);
-    debug_assert_eq!(storage.head(), State::empty());
-
-    let ctx = SvmCtx::new(host, host_ctx, gas_limit, storage);
-    let ctx: *mut SvmCtx = Box::into_raw(Box::new(ctx));
-
-    let data: *mut c_void = ctx as *const _ as _;
-    let dtor: fn(*mut c_void) = |_| {};
-
-    (data, dtor)
+    AppStorage::new(layout.clone(), app_kv)
 }
 
 /// Returns a new in-memory stateful-kv.
@@ -118,7 +99,7 @@ pub fn memory_state_kv_init() -> Rc<RefCell<dyn StatefulKV>> {
 pub fn create_memory_runtime(
     host: *mut c_void,
     state_kv: &Rc<RefCell<dyn StatefulKV>>,
-    imports: Vec<(String, String, Export)>,
+    imports: Vec<Import>,
 ) -> DefaultRuntime<DefaultMemoryEnv, DefaultGasEstimator> {
     let storage_builder = runtime_memory_storage_builder(state_kv);
 
@@ -139,7 +120,6 @@ pub fn runtime_memory_storage_builder(
         let app_kv = AppKVStore::new(app_addr.clone(), &state_kv);
 
         let mut storage = AppStorage::new(layout.clone(), app_kv);
-
         storage.rewind(state);
 
         storage
@@ -173,29 +153,24 @@ pub fn build_app(
     version: u32,
     template: &TemplateAddr,
     name: &str,
-    ctor_idx: u16,
+    ctor: &str,
     calldata: &Vec<u8>,
 ) -> Vec<u8> {
     SpawnAppBuilder::new()
         .with_version(version)
         .with_template(template)
         .with_name(name)
-        .with_ctor_index(ctor_idx)
+        .with_ctor(ctor)
         .with_calldata(calldata)
         .build()
 }
 
 /// Synthesizes a raw exec-app transaction.
-pub fn build_app_tx(
-    version: u32,
-    app_addr: &AppAddr,
-    func_idx: u16,
-    calldata: &Vec<u8>,
-) -> Vec<u8> {
+pub fn build_app_tx(version: u32, app_addr: &AppAddr, func: &str, calldata: &Vec<u8>) -> Vec<u8> {
     AppTxBuilder::new()
         .with_version(version)
         .with_app(app_addr)
-        .with_func_index(func_idx)
+        .with_func(func)
         .with_calldata(calldata)
         .build()
 }
