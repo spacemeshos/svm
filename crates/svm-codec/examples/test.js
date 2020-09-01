@@ -324,7 +324,7 @@ describe('Spawn App', function () {
 	    version: 0,
 	    template: template,
 	    name: name,
-	    ctor_index: 1,
+	    ctor_name: 'initialize',
 	    calldata: calldata,
 	};
 
@@ -373,7 +373,7 @@ describe('Spawn App', function () {
 				 version: 0,
 				 template: template,
 				 name: name,
-				 ctor_index: 1,
+				 ctor_name: 'initialize',
 				 calldata: {
 				     abi: ['i32', 'i64'],
 				     data: [10, 20]
@@ -405,7 +405,7 @@ describe('Execute App (a.k.a `Call Method`)', function () {
 	let tx = {
 	    version: 0,
 	    app: app,
-	    func_index: 1,
+	    func_name: 'do_something',
 	    calldata: calldata,
 	};
 
@@ -452,7 +452,7 @@ describe('Execute App (a.k.a `Call Method`)', function () {
 			     {
 				 version: 0,
 				 app: app,
-				 func_index: 1,
+				 func_name: 'do_something',
 				 calldata: {
 				     abi: ['i32', 'i64'],
 				     data: [10, 20]
