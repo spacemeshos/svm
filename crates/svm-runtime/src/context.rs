@@ -110,6 +110,8 @@ impl ContextInner {
     }
 
     pub fn get_calldata(&self) -> (usize, usize) {
+        debug_assert!(self.calldata.is_some());
+
         self.calldata.unwrap()
     }
 

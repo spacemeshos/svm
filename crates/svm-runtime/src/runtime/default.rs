@@ -378,8 +378,7 @@ where
                 let ptr: &WasmerValue = &rets[0];
                 let len: &WasmerValue = &rets[1];
 
-                // read Memory `ptr, ptr + 1, ptr + len - 1`
-                let returndata = Vec::new();
+                let returndata = self.read_memory(ctx, ptr, len);
                 Some(returndata)
             }
             n => panic!(format!("Too may WASM function #returns: {}", n)),
@@ -391,17 +390,17 @@ where
         let memory = borrow.get_memory();
 
         let (ptr, len) = match (ptr, len) {
-            (WasmerValue::I32(a), WasmerValue::I32(b)) => (*a, *b),
-            (WasmerValue::I64(a), WasmerValue::I64(b)) => (*a as i32, *b as i32),
-            (WasmerValue::I32(a), WasmerValue::I64(b)) => (*a, *b as i32),
-            (WasmerValue::I64(a), WasmerValue::I32(b)) => (*a as i32, *b),
+            (WasmerValue::I32(a), WasmerValue::I32(b)) => (*a as usize, *b as usize),
+            (WasmerValue::I64(a), WasmerValue::I64(b)) => (*a as usize, *b as usize),
+            (WasmerValue::I32(a), WasmerValue::I64(b)) => (*a as usize, *b as usize),
+            (WasmerValue::I64(a), WasmerValue::I32(b)) => (*a as usize, *b as usize),
             _ => panic!("Invalid WASM function return type"),
         };
 
         let view = memory.view::<u8>();
-        let cells = view[ptr..ptr]
+        let cells = &view[ptr..(ptr + len)];
 
-        Vec::new()
+        cells.iter().map(|c| c.get()).collect()
     }
 
     fn take_logs(&self, ctx: &Context) -> Vec<Log> {
