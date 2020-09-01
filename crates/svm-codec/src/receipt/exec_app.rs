@@ -6,7 +6,7 @@
 //!  | (1 byte)  | (1 nibble) | (1 nibble) | (32 bytes)  |
 //!  +___________|____________|__________________________+
 //!  |          |              |         |               |
-//!  | #returns | ret #1 type  | ret #1  |  ret #2  type |
+//!  | #returndata | ret #1 type  | ret #1  |  ret #2  type |
 //!  +__________|______________|_________|_______________+
 //!  |          |            |                           |
 //!  |  ret #2  |   .  .  .  |         gas_used          |
@@ -68,7 +68,7 @@ pub fn decode_exec_receipt(bytes: &[u8]) -> ExecReceipt {
         1 => {
             // success
             let new_state = helpers::decode_state(&mut iter);
-            let returns = raw::decode_calldata(&mut iter).unwrap();
+            let returndata = raw::decode_calldata(&mut iter).unwrap();
             let gas_used = helpers::decode_gas_used(&mut iter);
             let logs = logs::decode_logs(&mut iter);
 
@@ -76,7 +76,7 @@ pub fn decode_exec_receipt(bytes: &[u8]) -> ExecReceipt {
                 success: true,
                 error: None,
                 new_state: Some(new_state),
-                returns: Some(returns),
+                returndata: Some(returndata),
                 gas_used,
                 logs,
             }
@@ -96,8 +96,8 @@ fn encode_new_state(receipt: &ExecReceipt, w: &mut NibbleWriter) {
 fn encode_returns(receipt: &ExecReceipt, w: &mut NibbleWriter) {
     debug_assert!(receipt.success);
 
-    let returns = receipt.get_returns();
-    helpers::encode_returns(&returns, w);
+    let returndata = receipt.get_returns();
+    helpers::encode_returns(&returndata, w);
 }
 
 #[cfg(test)]
@@ -120,7 +120,7 @@ mod tests {
             success: false,
             error: Some(error),
             new_state: None,
-            returns: None,
+            returndata: None,
             gas_used: MaybeGas::new(),
             logs,
         };
@@ -144,7 +144,7 @@ mod tests {
             success: true,
             error: None,
             new_state: Some(new_state),
-            returns: Some(Vec::new()),
+            returndata: Some(Vec::new()),
             gas_used: MaybeGas::with(100),
             logs: logs.clone(),
         };
@@ -158,7 +158,7 @@ mod tests {
     #[test]
     fn encode_decode_exec_receipt_success_with_returns() {
         let new_state = State::of("some-state");
-        let returns = vec![0x10, 0x20];
+        let returndata = vec![0x10, 0x20];
 
         let logs = vec![Log {
             msg: b"something happened".to_vec(),
@@ -169,7 +169,7 @@ mod tests {
             success: true,
             error: None,
             new_state: Some(new_state),
-            returns: Some(returns),
+            returndata: Some(returndata),
             gas_used: MaybeGas::with(100),
             logs: logs.clone(),
         };

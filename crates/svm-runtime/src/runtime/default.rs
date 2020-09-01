@@ -23,12 +23,12 @@ use svm_types::{
         make_spawn_app_receipt, ExecReceipt, Log, ReceiptError, SpawnAppReceipt, TemplateReceipt,
     },
     AppAddr, AppTemplate, AppTransaction, AuthorAddr, CreatorAddr, HostCtx, SpawnApp, State,
-    TemplateAddr, WasmValue,
+    TemplateAddr,
 };
 
 use wasmer::{
     Export, Exports, Extern, Function, ImportObject, Instance, Memory, MemoryType, Module,
-    NativeFunc, Pages, Store, Value, WasmPtr,
+    NativeFunc, Pages, Store, Type as WasmerType, Value as WasmerValue, WasmPtr,
 };
 
 /// Default `Runtime` implementation based on `wasmer`.
@@ -194,7 +194,7 @@ where
         }
     }
 
-    /// Initialize a new `AppStorage` and returns it.
+    /// Initialize a new `AppStorage` and returndata it.
     /// This method is of `pub` visibility since it's also helpful for tests that want to
     /// observe that app storage data.
     pub fn open_app_storage(
@@ -307,7 +307,7 @@ where
         import_object: &ImportObject,
         gas_left: MaybeGas,
     ) -> (
-        Result<(Option<State>, Vec<WasmValue>, MaybeGas), ReceiptError>,
+        Result<(Option<State>, Option<Vec<u8>>, MaybeGas), ReceiptError>,
         Vec<Log>,
     ) {
         let empty_logs = Vec::new();
@@ -337,8 +337,8 @@ where
             Err(e) => return (Err(e), empty_logs),
             Ok(func) => func,
         };
-        let func_res = func.call(&[]);
 
+        let func_res = func.call(&[]);
         let logs = self.take_logs(ctx);
 
         let gas_used = self.instance_gas_used(&instance);
@@ -353,24 +353,55 @@ where
                 func: tx.func_name.clone(),
                 msg: e.to_string(),
             }),
-            Ok(returns) => {
+            Ok(rets) => {
                 let storage = &mut ctx.borrow_mut().storage;
+                let returndata = self.take_calldata(ctx, rets);
                 let new_state = Some(storage.commit());
 
-                // TODO: return the `returndata` back
-                let returns = Ok(Vec::new());
-
-                if let Err(err) = returns {
-                    return (Err(err), logs);
-                }
-
-                let gas_used = gas_used.unwrap();
-
-                Ok((new_state, returns.unwrap(), gas_used))
+                Ok((new_state, returndata, gas_used.unwrap()))
             }
         };
 
         (result, logs)
+    }
+
+    fn take_calldata(&self, ctx: &Context, rets: Box<[WasmerValue]>) -> Option<Vec<u8>> {
+        match rets.len() {
+            0 => {
+                // wasm function returned no values
+                None
+            }
+            1 => panic!(format!(
+                "WASM functions with a single return value aren's supported."
+            )),
+            2 => {
+                let ptr: &WasmerValue = &rets[0];
+                let len: &WasmerValue = &rets[1];
+
+                // read Memory `ptr, ptr + 1, ptr + len - 1`
+                let returndata = Vec::new();
+                Some(returndata)
+            }
+            n => panic!(format!("Too may WASM function #returns: {}", n)),
+        }
+    }
+
+    fn read_memory(&self, ctx: &Context, ptr: &WasmerValue, len: &WasmerValue) -> Vec<u8> {
+        let borrow = ctx.borrow();
+        let memory = borrow.get_memory();
+
+        let (ptr, len) = match (ptr, len) {
+            (WasmerValue::I32(a), WasmerValue::I32(b)) => (*a, *b),
+            (WasmerValue::I64(a), WasmerValue::I64(b)) => (*a as i32, *b as i32),
+            (WasmerValue::I32(a), WasmerValue::I64(b)) => (*a, *b as i32),
+            (WasmerValue::I64(a), WasmerValue::I32(b)) => (*a as i32, *b),
+            _ => panic!("Invalid WASM function return type"),
+        };
+
+        let view = memory.view::<u8>();
+        let cells = view[ptr..ptr]
+
+        Vec::new()
     }
 
     fn take_logs(&self, ctx: &Context) -> Vec<Log> {
@@ -379,15 +410,15 @@ where
 
     fn make_receipt(
         &self,
-        result: Result<(Option<State>, Vec<WasmValue>, MaybeGas), ReceiptError>,
+        result: Result<(Option<State>, Option<Vec<u8>>, MaybeGas), ReceiptError>,
         logs: Vec<Log>,
     ) -> ExecReceipt {
         match result {
             Err(e) => ExecReceipt::from_err(e, logs),
-            Ok((new_state, returns, gas_used)) => ExecReceipt {
+            Ok((new_state, returndata, gas_used)) => ExecReceipt {
                 success: true,
                 error: None,
-                returns: Some(Vec::new()),
+                returndata,
                 new_state,
                 gas_used,
                 logs,

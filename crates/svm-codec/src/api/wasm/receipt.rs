@@ -38,7 +38,7 @@ mod test {
             error: None,
             app_addr: Some(app.into()),
             init_state: Some(state),
-            returns: Some(vec![0x10, 0x20]),
+            returndata: Some(vec![0x10, 0x20]),
             gas_used: MaybeGas::with(10),
             logs,
         };
@@ -63,7 +63,7 @@ mod test {
                 "type": "spawn-app",
                 "app": "1010101010101010101010101010101010101010",
                 "gas_used": 10,
-                "returns": "1020",
+                "returndata": "1020",
                 "state": "A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0",
                 "logs": []
             })

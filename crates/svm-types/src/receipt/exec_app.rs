@@ -13,8 +13,8 @@ pub struct ExecReceipt {
     /// The new app `State` if execution succedded.
     pub new_state: Option<State>,
 
-    /// Returned values.
-    pub returns: Option<Vec<u8>>,
+    /// Returned the data
+    pub returndata: Option<Vec<u8>>,
 
     /// The amount of gas used.
     pub gas_used: MaybeGas,
@@ -30,7 +30,7 @@ impl ExecReceipt {
             success: false,
             error: Some(ReceiptError::OOG),
             new_state: None,
-            returns: None,
+            returndata: None,
             gas_used: MaybeGas::new(),
             logs,
         }
@@ -41,7 +41,7 @@ impl ExecReceipt {
             success: false,
             error: Some(error),
             new_state: None,
-            returns: None,
+            returndata: None,
             gas_used: MaybeGas::new(),
             logs,
         }
@@ -54,7 +54,7 @@ impl ExecReceipt {
 
     /// Returns executed transaction results. Panics if transaction has failed.
     pub fn get_returns(&self) -> &Vec<u8> {
-        self.returns.as_ref().unwrap()
+        self.returndata.as_ref().unwrap()
     }
 
     pub fn get_error(&self) -> &ReceiptError {

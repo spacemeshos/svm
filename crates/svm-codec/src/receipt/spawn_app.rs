@@ -6,7 +6,7 @@
 //!  | (1 byte)  | (1 nibble) | (1 nibble) |  (20 bytes)   |
 //!  +___________|____________|____________|_______________+
 //!  |              |           |             |            |
-//!  |  init state  | #returns  | ret #1 type |  ret  #1   |
+//!  |  init state  | #returndata  | ret #1 type |  ret  #1   |
 //!  |  (32 bytes)  |           |             |            |
 //!  +______________|___________|_____________|____________+
 //!  |          |            |                             |
@@ -73,7 +73,7 @@ pub fn decode_app_receipt(bytes: &[u8]) -> SpawnAppReceipt {
             // success
             let addr = helpers::decode_address(&mut iter);
             let init_state = helpers::decode_state(&mut iter);
-            let returns = raw::decode_calldata(&mut iter).unwrap();
+            let returndata = raw::decode_calldata(&mut iter).unwrap();
             let gas_used = helpers::decode_gas_used(&mut iter);
             let logs = logs::decode_logs(&mut iter);
 
@@ -82,7 +82,7 @@ pub fn decode_app_receipt(bytes: &[u8]) -> SpawnAppReceipt {
                 error: None,
                 app_addr: Some(addr.into()),
                 init_state: Some(init_state),
-                returns: Some(returns),
+                returndata: Some(returndata),
                 gas_used,
                 logs,
             }
@@ -108,8 +108,8 @@ fn encode_init_state(receipt: &SpawnAppReceipt, w: &mut NibbleWriter) {
 fn encode_returns(receipt: &SpawnAppReceipt, w: &mut NibbleWriter) {
     debug_assert!(receipt.success);
 
-    let returns = receipt.get_returns();
-    helpers::encode_returns(&returns, w);
+    let returndata = receipt.get_returns();
+    helpers::encode_returns(&returndata, w);
 }
 
 #[cfg(test)]
@@ -130,7 +130,7 @@ mod tests {
             error: Some(error),
             app_addr: None,
             init_state: None,
-            returns: None,
+            returndata: None,
             gas_used: MaybeGas::new(),
             logs: Vec::new(),
         };
@@ -156,7 +156,7 @@ mod tests {
             error: None,
             app_addr: Some(addr),
             init_state: Some(init_state),
-            returns: Some(Vec::new()),
+            returndata: Some(Vec::new()),
             gas_used: MaybeGas::with(100),
             logs: logs.clone(),
         };
@@ -171,7 +171,7 @@ mod tests {
     fn encode_decode_spawn_app_receipt_success_with_returns() {
         let addr: AppAddr = Address::of("my-app").into();
         let init_state = State::of("some-state");
-        let returns = vec![0x10, 0x20];
+        let returndata = vec![0x10, 0x20];
         let logs = vec![Log {
             msg: b"something happened".to_vec(),
             code: 200,
@@ -182,7 +182,7 @@ mod tests {
             error: None,
             app_addr: Some(addr),
             init_state: Some(init_state),
-            returns: Some(returns),
+            returndata: Some(returndata),
             gas_used: MaybeGas::with(100),
             logs: logs.clone(),
         };
