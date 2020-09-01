@@ -257,7 +257,7 @@ fn vmcalls_store160() {
 
     func.call(var_id, ptr).expect("function has failed");
 
-    // assert_storage!(ctx, 0 => b"11223344556677889900");
+    assert_storage!(ctx, 0 => b"11223344556677889900");
 }
 
 #[test]
