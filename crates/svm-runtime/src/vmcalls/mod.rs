@@ -5,11 +5,13 @@ use crate::Context;
 mod calldata;
 mod host_ctx;
 mod logs;
+mod returndata;
 mod storage;
 
-pub use calldata::{calldata_len, calldata_ptr};
+pub use calldata::{calldata_len, calldata_offset};
 pub use host_ctx::host_get64;
 pub use logs::log;
+pub use returndata::set_returndata;
 pub use storage::{get32, get64, load160, set32, set64, store160};
 
 macro_rules! func {
@@ -22,8 +24,9 @@ macro_rules! func {
 }
 
 pub fn wasmer_register(store: &Store, ctx: &Context, ns: &mut Exports) {
-    ns.insert("calldata_ptr", func!(store, ctx, calldata_ptr));
+    ns.insert("calldata_offset", func!(store, ctx, calldata_offset));
     ns.insert("calldata_len", func!(store, ctx, calldata_len));
+    ns.insert("set_returndata", func!(store, ctx, set_returndata));
 
     ns.insert("host_get64", func!(store, ctx, host_get64));
 

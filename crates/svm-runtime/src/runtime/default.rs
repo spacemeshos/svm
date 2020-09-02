@@ -59,9 +59,9 @@ where
 {
     fn validate_template(&self, bytes: &[u8]) -> Result<(), ValidateError> {
         let template = self.parse_deploy_template(bytes)?;
-        let wasm = &template.code[..];
+        let code = &template.code;
 
-        svm_gas::validate_code(wasm).map_err(|e| e.into())
+        svm_gas::validate_code(code).map_err(|e| e.into())
     }
 
     fn validate_app(&self, bytes: &[u8]) -> Result<(), ValidateError> {
@@ -331,6 +331,10 @@ where
             return (Err(err), empty_logs);
         }
 
+        // we assert that `svm_alloc` didn't touch the `returndata`
+        // TODO: return an error instead of `panic`
+        self.assert_no_returndata(ctx);
+
         self.set_calldata(ctx, &tx.calldata, wasm_ptr.unwrap());
 
         let func = match self.get_func(tx, template_addr, &instance) {
@@ -353,52 +357,41 @@ where
                 func: tx.func_name.clone(),
                 msg: e.to_string(),
             }),
-            Ok(rets) => {
-                let storage = &mut ctx.borrow_mut().storage;
-                let returndata = self.take_calldata(ctx, rets);
-                let new_state = Some(storage.commit());
+            Ok(returns) => {
+                let returndata = self.take_returndata(ctx, returns);
+                let new_state = self.commit_chages(ctx);
 
-                Ok((new_state, returndata, gas_used.unwrap()))
+                Ok((Some(new_state), returndata, gas_used.unwrap()))
             }
         };
 
         (result, logs)
     }
 
-    fn take_calldata(&self, ctx: &Context, rets: Box<[WasmerValue]>) -> Option<Vec<u8>> {
-        match rets.len() {
-            0 => {
-                // wasm function returned no values
-                None
-            }
-            1 => panic!(format!(
-                "WASM functions with a single return value aren's supported."
-            )),
-            2 => {
-                let ptr: &WasmerValue = &rets[0];
-                let len: &WasmerValue = &rets[1];
-
-                let returndata = self.read_memory(ctx, ptr, len);
-                Some(returndata)
-            }
-            n => panic!(format!("Too may WASM function #returns: {}", n)),
-        }
+    #[inline]
+    fn commit_chages(&self, ctx: &Context) -> State {
+        let storage = &mut ctx.borrow_mut().storage;
+        storage.commit()
     }
 
-    fn read_memory(&self, ctx: &Context, ptr: &WasmerValue, len: &WasmerValue) -> Vec<u8> {
+    #[inline]
+    fn assert_no_returndata(&self, ctx: &Context) {
+        assert!(ctx.borrow().returndata.is_none())
+    }
+
+    fn take_returndata(&self, ctx: &Context, returns: Box<[WasmerValue]>) -> Option<Vec<u8>> {
+        let data = ctx.borrow().returndata;
+
+        data.map(|(offset, len)| self.read_memory(ctx, offset, len))
+    }
+
+    fn read_memory(&self, ctx: &Context, offset: usize, len: usize) -> Vec<u8> {
         let borrow = ctx.borrow();
         let memory = borrow.get_memory();
 
-        let (ptr, len) = match (ptr, len) {
-            (WasmerValue::I32(a), WasmerValue::I32(b)) => (*a as usize, *b as usize),
-            (WasmerValue::I64(a), WasmerValue::I64(b)) => (*a as usize, *b as usize),
-            (WasmerValue::I32(a), WasmerValue::I64(b)) => (*a as usize, *b as usize),
-            (WasmerValue::I64(a), WasmerValue::I32(b)) => (*a as usize, *b as usize),
-            _ => panic!("Invalid WASM function return type"),
-        };
-
+        // TODO: guard again out-of-bounds
         let view = memory.view::<u8>();
-        let cells = &view[ptr..(ptr + len)];
+        let cells = &view[offset..(offset + len)];
 
         cells.iter().map(|c| c.get()).collect()
     }
@@ -475,7 +468,7 @@ where
             let memory = borrow.get_memory();
             let offset = ptr.offset();
 
-            // Each wasm instance memory contains at least one `WASM Page`. (A `Page` size is 64KB)
+            // Each WASM instance memory contains at least one `WASM Page`. (A `Page` size is 64KB)
             // The `len(calldata)` will be less than the `WASM Page` size.
             //
             // In any case, the `alloc_memory` is in charge of allocating enough memory
@@ -488,6 +481,7 @@ where
             let offset = ptr.offset() as usize;
             let len = calldata.len();
 
+            // TODO: guard again out-of-bounds
             let view = &memory.view::<u8>()[offset..(offset + len)];
 
             for (cell, &byte) in view.iter().zip(calldata.iter()) {

@@ -27,6 +27,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "svm-abi-encoder"
+version = "0.0.0"
+dependencies = [
+ "svm-abi-layout",
+ "svm-sdk",
+]
+
+[[package]]
 name = "svm-abi-layout"
 version = "0.0.0"
 
@@ -35,6 +43,7 @@ name = "svm-runtime-examples-calldata"
 version = "0.1.0"
 dependencies = [
  "svm-abi-decoder",
+ "svm-abi-encoder",
  "svm-sdk",
  "wee_alloc",
 ]

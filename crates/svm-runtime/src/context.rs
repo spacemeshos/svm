@@ -80,10 +80,13 @@ pub struct ContextInner {
     /// App's logs
     pub logs: Vec<Log>,
 
+    /// Pointer to `returndata`. Tuple stores `(offset, len)`.
+    pub returndata: Option<(usize, usize)>,
+
     /// Instance's memory
     memory: Option<Memory>,
 
-    /// Pointer to calldata. Tuple stores `(offset, len)`.
+    /// Pointer to `calldata`. Tuple stores `(offset, len)`.
     calldata: Option<(usize, usize)>,
 }
 
@@ -102,6 +105,7 @@ impl ContextInner {
             logs,
             memory: None,
             calldata: None,
+            returndata: None,
         }
     }
 
@@ -113,6 +117,12 @@ impl ContextInner {
         debug_assert!(self.calldata.is_some());
 
         self.calldata.unwrap()
+    }
+
+    pub fn set_returndata(&mut self, offset: usize, len: usize) {
+        debug_assert!(self.returndata.is_none());
+
+        self.returndata = Some((offset, len));
     }
 
     pub fn set_memory(&mut self, memory: Memory) {

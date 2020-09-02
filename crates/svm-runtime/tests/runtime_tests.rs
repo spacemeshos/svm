@@ -1,4 +1,7 @@
+use svm_abi_decoder::{Cursor, Decoder};
 use svm_abi_encoder::Encoder;
+
+use svm_sdk::value::{Address as AbiAddr, AddressOwned};
 
 use svm_codec::api::raw::Field;
 use svm_codec::error::ParseError;
@@ -9,8 +12,6 @@ use svm_runtime::{error::ValidateError, testing, Runtime};
 
 use svm_types::receipt::{ExecReceipt, Log, SpawnAppReceipt, TemplateReceipt};
 use svm_types::{gas::MaybeGas, Address, HostCtx};
-
-use svm_sdk::value::AddressOwned;
 
 macro_rules! default_runtime {
     () => {{
@@ -174,7 +175,7 @@ fn default_runtime_spawn_app_with_ctor_with_enough_gas() {
     let creator = Address::of("creator").into();
     let maybe_gas = MaybeGas::new();
 
-    // data layout consists on one variable of 8 bytes (offsets: `[0..8)`)
+    // raw layout consists on one variable of 8 bytes (offsets: `[0..8)`)
     let layout: DataLayout = vec![8].into();
 
     let bytes = testing::build_template(
@@ -210,7 +211,7 @@ fn default_runtime_spawn_app_with_ctor_with_enough_gas() {
 }
 
 #[test]
-fn default_runtime_calldata() {
+fn default_runtime_calldata_returndata() {
     let mut runtime = default_runtime!();
 
     // 1) deploying the template
@@ -243,7 +244,7 @@ fn default_runtime_calldata() {
     let app_addr = receipt.get_app_addr();
     let init_state = receipt.get_init_state();
 
-    // 3) executing an app-transaction
+    // 3) execute a transaction
     let func = "store_addr";
     let msg = AddressOwned([0x10; 20]);
 
@@ -255,14 +256,24 @@ fn default_runtime_calldata() {
     let receipt = runtime.exec_app(&bytes, &init_state, HostCtx::new(), maybe_gas);
     assert!(receipt.success);
 
-    // now we'll read directly from the app's storage
-    // and assert that the data has been persisted as expected.
-
     let state = receipt.get_new_state();
-    let storage = runtime.open_app_storage(&app_addr, &state, &layout);
 
-    let var = storage.read_var(VarId(0));
-    assert_eq!(var, [0x10; 20]);
+    // 4) execute a transaction with `returndata`
+    let func = "return_addr";
+    let calldata = vec![];
+
+    let bytes = testing::build_app_tx(version, &app_addr, func, &calldata);
+
+    let receipt = runtime.exec_app(&bytes, &state, HostCtx::new(), maybe_gas);
+    assert!(receipt.success);
+
+    let raw = receipt.returndata.unwrap();
+    let mut cursor = Cursor::new(&raw);
+    let decoder = Decoder::new();
+
+    let decoded = decoder.decode_value(&mut cursor).unwrap();
+    let addr: AbiAddr = decoded.into();
+    assert_eq!(addr, AbiAddr(&[0x10; 20]));
 }
 
 #[test]
