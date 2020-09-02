@@ -37,7 +37,7 @@ pub fn encode_exec_receipt(receipt: &ExecReceipt) -> Vec<u8> {
 
     if receipt.success {
         encode_new_state(receipt, &mut w);
-        encode_returns(receipt, &mut w);
+        encode_returndata(receipt, &mut w);
         helpers::encode_gas_used(&wrapped_receipt, &mut w);
         logs::encode_logs(&receipt.logs, &mut w);
     } else {
@@ -68,7 +68,7 @@ pub fn decode_exec_receipt(bytes: &[u8]) -> ExecReceipt {
         1 => {
             // success
             let new_state = helpers::decode_state(&mut iter);
-            let returndata = raw::decode_calldata(&mut iter).unwrap();
+            let returndata = raw::decode_abi_data(&mut iter).unwrap();
             let gas_used = helpers::decode_gas_used(&mut iter);
             let logs = logs::decode_logs(&mut iter);
 
@@ -93,11 +93,11 @@ fn encode_new_state(receipt: &ExecReceipt, w: &mut NibbleWriter) {
     helpers::encode_state(&new_state, w);
 }
 
-fn encode_returns(receipt: &ExecReceipt, w: &mut NibbleWriter) {
+fn encode_returndata(receipt: &ExecReceipt, w: &mut NibbleWriter) {
     debug_assert!(receipt.success);
 
-    let returndata = receipt.get_returns();
-    helpers::encode_returns(&returndata, w);
+    let data = receipt.get_returndata();
+    helpers::encode_abi_data(&data, w);
 }
 
 #[cfg(test)]

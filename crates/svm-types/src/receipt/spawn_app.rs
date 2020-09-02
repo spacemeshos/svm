@@ -68,7 +68,7 @@ impl SpawnAppReceipt {
     }
 
     /// Returns spawned-app results. Panics if spawning has failed.
-    pub fn get_returns(&self) -> &Vec<u8> {
+    pub fn get_returndata(&self) -> &Vec<u8> {
         self.returndata.as_ref().unwrap()
     }
 

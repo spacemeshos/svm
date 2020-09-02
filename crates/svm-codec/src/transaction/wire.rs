@@ -1,7 +1,7 @@
 use svm_nibble::{NibbleIter, NibbleWriter};
 use svm_types::{AppAddr, AppTransaction};
 
-use crate::api::raw::{decode_calldata, decode_varuint14, decode_version, Field};
+use crate::api::raw::{decode_abi_data, decode_varuint14, decode_version, encode_abi_data, Field};
 
 use crate::{error::ParseError, helpers};
 
@@ -20,7 +20,7 @@ pub fn decode_exec_app(iter: &mut NibbleIter) -> Result<AppTransaction, ParseErr
     let version = decode_version(iter)?;
     let app = decode_app(iter)?;
     let func_name = decode_func(iter)?;
-    let calldata = decode_calldata(iter)?;
+    let calldata = decode_abi_data(iter)?;
 
     let tx = AppTransaction {
         version,
@@ -50,7 +50,7 @@ fn encode_func(tx: &AppTransaction, w: &mut NibbleWriter) {
 
 fn encode_calldata(tx: &AppTransaction, w: &mut NibbleWriter) {
     let buf = &tx.calldata[..];
-    crate::api::raw::encode_calldata(buf, w)
+    encode_abi_data(buf, w)
 }
 
 /// Decoders

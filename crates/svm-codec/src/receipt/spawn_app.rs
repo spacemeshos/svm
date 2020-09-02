@@ -41,7 +41,7 @@ pub fn encode_app_receipt(receipt: &SpawnAppReceipt) -> Vec<u8> {
     if receipt.success {
         encode_app_addr(receipt, &mut w);
         encode_init_state(receipt, &mut w);
-        encode_returns(&receipt, &mut w);
+        encode_returndata(&receipt, &mut w);
         helpers::encode_gas_used(&wrapped_receipt, &mut w);
         logs::encode_logs(&receipt.logs, &mut w);
     } else {
@@ -73,7 +73,7 @@ pub fn decode_app_receipt(bytes: &[u8]) -> SpawnAppReceipt {
             // success
             let addr = helpers::decode_address(&mut iter);
             let init_state = helpers::decode_state(&mut iter);
-            let returndata = raw::decode_calldata(&mut iter).unwrap();
+            let returndata = raw::decode_abi_data(&mut iter).unwrap();
             let gas_used = helpers::decode_gas_used(&mut iter);
             let logs = logs::decode_logs(&mut iter);
 
@@ -105,11 +105,11 @@ fn encode_init_state(receipt: &SpawnAppReceipt, w: &mut NibbleWriter) {
     helpers::encode_state(&state, w);
 }
 
-fn encode_returns(receipt: &SpawnAppReceipt, w: &mut NibbleWriter) {
+fn encode_returndata(receipt: &SpawnAppReceipt, w: &mut NibbleWriter) {
     debug_assert!(receipt.success);
 
-    let returndata = receipt.get_returns();
-    helpers::encode_returns(&returndata, w);
+    let data = receipt.get_returndata();
+    helpers::encode_abi_data(&data, w);
 }
 
 #[cfg(test)]

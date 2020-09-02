@@ -3,7 +3,7 @@ use svm_nibble::{NibbleIter, NibbleWriter};
 use crate::api::raw::{decode_varuint14, encode_varuint14, Field};
 use crate::error::ParseError;
 
-pub fn encode_calldata(calldata: &[u8], w: &mut NibbleWriter) {
+pub fn encode_abi_data(calldata: &[u8], w: &mut NibbleWriter) {
     let len = calldata.len();
 
     assert!(len <= std::u16::MAX as usize);
@@ -13,7 +13,7 @@ pub fn encode_calldata(calldata: &[u8], w: &mut NibbleWriter) {
     w.write_bytes(calldata)
 }
 
-pub fn decode_calldata<'a>(iter: &mut NibbleIter) -> Result<Vec<u8>, ParseError> {
+pub fn decode_abi_data<'a>(iter: &mut NibbleIter) -> Result<Vec<u8>, ParseError> {
     let len = decode_varuint14(iter, Field::CallDataLength)? as usize;
 
     let bytes = iter.read_bytes(len);
