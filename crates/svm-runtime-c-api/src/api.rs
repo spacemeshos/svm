@@ -840,19 +840,6 @@ pub unsafe extern "C" fn svm_exec_app(
     svm_result_t::SVM_SUCCESS
 }
 
-/// Returns a raw pointer to `the host` extracted from a raw pointer to `wasmer` context.
-#[must_use]
-#[no_mangle]
-pub unsafe extern "C" fn svm_instance_context_host_get(ctx: *mut c_void) -> *mut c_void {
-    todo!()
-    // use wasmer_runtime_core::vm::Ctx;
-
-    // let wasmer_ctx = svm_common::from_raw::<Ctx>(ctx);
-    // let svm_ctx = svm_common::from_raw::<SvmCtx>(wasmer_ctx.data);
-
-    // svm_ctx.host
-}
-
 /// Destroys the Runtime and its associated resources.
 ///
 /// # Example

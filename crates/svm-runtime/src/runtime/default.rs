@@ -361,7 +361,7 @@ where
                 let returndata = self.take_returndata(ctx, returns);
                 let new_state = self.commit_chages(ctx);
 
-                Ok((Some(new_state), returndata, gas_used.unwrap()))
+                Ok((Some(new_state), Some(returndata), gas_used.unwrap()))
             }
         };
 
@@ -379,10 +379,13 @@ where
         assert!(ctx.borrow().returndata.is_none())
     }
 
-    fn take_returndata(&self, ctx: &Context, returns: Box<[WasmerValue]>) -> Option<Vec<u8>> {
+    fn take_returndata(&self, ctx: &Context, returns: Box<[WasmerValue]>) -> Vec<u8> {
         let data = ctx.borrow().returndata;
 
-        data.map(|(offset, len)| self.read_memory(ctx, offset, len))
+        match data {
+            Some((offset, len)) => self.read_memory(ctx, offset, len),
+            None => Vec::new(),
+        }
     }
 
     fn read_memory(&self, ctx: &Context, offset: usize, len: usize) -> Vec<u8> {

@@ -32,12 +32,7 @@ pub use api::{
     svm_exec_app,
     svm_deploy_template,
     svm_runtime_create,
-    svm_runtime_destroy,
     svm_spawn_app,
-
-    // Utils
-    svm_byte_array_destroy,
-    svm_instance_context_host_get,
     
     // Gas Estimations
     svm_estimate_deploy_template,
@@ -47,11 +42,9 @@ pub use api::{
     // Imports
     svm_import_func_new,
     svm_imports_alloc,
-    svm_imports_destroy,
 
     // In-Memory
     svm_memory_state_kv_create,
-    svm_state_kv_destroy,
     svm_memory_runtime_create,
 
     // FFI
@@ -61,6 +54,12 @@ pub use api::{
     svm_validate_template,
     svm_validate_app,
     svm_validate_tx,
+
+    // Destroy
+    svm_runtime_destroy,
+    svm_state_kv_destroy,
+    svm_imports_destroy,
+    svm_byte_array_destroy,
 };
 
 pub use byte_array::svm_byte_array;
