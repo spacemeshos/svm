@@ -1,8 +1,8 @@
 
 (module
   ;; import `SVM` vmcalls
-  (func $get32 (import "svm" "get32") (param i32) (result i32))
-  (func $set32 (import "svm" "set32") (param i32 i32))
+  (func $get32 (import "svm" "svm_get32") (param i32) (result i32))
+  (func $set32 (import "svm" "svm_set32") (param i32 i32))
 
   (func (export "get") (param $var_id i32) (result i32)
       get_local $var_id 
