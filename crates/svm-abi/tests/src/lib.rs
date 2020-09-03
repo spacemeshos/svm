@@ -12,7 +12,7 @@ mod tests {
     use svm_abi_encoder::Encoder;
     use svm_sdk::value::{Address, AddressOwned, Composite, Primitive, Value};
 
-    macro_rules! test {
+    macro_rules! test_primitive {
         ($ty:ty, $rust_value:expr) => {{
             let rust_value: $ty = $rust_value.clone();
             let abi_value: Value = rust_value.into();
@@ -52,159 +52,175 @@ mod tests {
 
     #[test]
     fn encode_decode_bool() {
-        test!(bool, true);
-        test!(bool, false);
+        test_primitive!(bool, true);
+        test_primitive!(bool, false);
+    }
+
+    #[test]
+    fn encode_decode_bool_array() {
+        let mut bytes = Vec::new();
+
+        vec![true, false, true].encode(&mut bytes);
+
+        let mut cursor = Cursor::new(&bytes);
+        let decoder = Decoder::new();
+
+        let value: Value = decoder.decode_value(&mut cursor).unwrap();
+        let bools: [bool; 3] = value.into();
+
+        assert_eq!(bools, [true, false, true]);
     }
 
     #[test]
     fn encode_decode_i8() {
-        test!(i8, -5);
-        test!(i8, 5);
+        test_primitive!(i8, -5);
+        test_primitive!(i8, 5);
 
-        test!(i8, 0);
-        test!(i8, -1);
-        test!(i8, std::i8::MIN as i8);
-        test!(i8, std::i8::MAX as i8);
+        test_primitive!(i8, 0);
+        test_primitive!(i8, -1);
+
+        test_primitive!(i8, std::i8::MIN as i8);
+        test_primitive!(i8, std::i8::MAX as i8);
     }
 
     #[test]
     fn encode_decode_u8() {
-        test!(u8, 5);
+        test_primitive!(u8, 5);
+        test_primitive!(u8, 0);
 
-        test!(u8, 0);
-        test!(u8, std::u8::MIN as u8);
-        test!(u8, std::u8::MAX as u8);
+        test_primitive!(u8, std::u8::MIN as u8);
+        test_primitive!(u8, std::u8::MAX as u8);
     }
 
     #[test]
     fn encode_decode_i16() {
-        test!(i16, -5);
-        test!(i16, 5);
+        test_primitive!(i16, -5);
+        test_primitive!(i16, 5);
 
-        test!(i16, 0);
-        test!(i16, -1);
+        test_primitive!(i16, 0);
+        test_primitive!(i16, -1);
 
-        test!(i16, std::i8::MIN as i16);
-        test!(i16, std::i8::MAX as i16);
+        test_primitive!(i16, std::i8::MIN as i16);
+        test_primitive!(i16, std::i8::MAX as i16);
 
-        test!(i16, std::u8::MIN as i16);
-        test!(i16, std::u8::MAX as i16);
+        test_primitive!(i16, std::u8::MIN as i16);
+        test_primitive!(i16, std::u8::MAX as i16);
 
-        test!(i16, std::i16::MIN as i16);
-        test!(i16, std::i16::MAX as i16);
+        test_primitive!(i16, std::i16::MIN as i16);
+        test_primitive!(i16, std::i16::MAX as i16);
     }
 
     #[test]
     fn encode_decode_u16() {
-        test!(u16, 5);
-        test!(u16, 0);
+        test_primitive!(u16, 5);
+        test_primitive!(u16, 0);
 
-        test!(u16, 127);
+        test_primitive!(u16, 127);
 
-        test!(u16, std::i8::MIN as u16);
-        test!(u16, std::i8::MAX as u16);
+        test_primitive!(u16, std::i8::MIN as u16);
+        test_primitive!(u16, std::i8::MAX as u16);
 
-        test!(u16, std::u8::MIN as u16);
-        test!(u16, std::u8::MAX as u16);
+        test_primitive!(u16, std::u8::MIN as u16);
+        test_primitive!(u16, std::u8::MAX as u16);
 
-        test!(u16, std::i16::MAX as u16);
-        test!(u16, std::u16::MAX as u16);
+        test_primitive!(u16, std::i16::MAX as u16);
+        test_primitive!(u16, std::u16::MAX as u16);
     }
 
     #[test]
     fn encode_decode_i32() {
-        test!(i32, 5);
-        test!(i32, 0);
-        test!(i32, -1);
+        test_primitive!(i32, 5);
+        test_primitive!(i32, 0);
+        test_primitive!(i32, -1);
 
-        test!(i32, std::i8::MIN as i32);
-        test!(i32, std::i8::MAX as i32);
+        test_primitive!(i32, std::i8::MIN as i32);
+        test_primitive!(i32, std::i8::MAX as i32);
 
-        test!(i32, std::u8::MIN as i32);
-        test!(i32, std::u8::MAX as i32);
+        test_primitive!(i32, std::u8::MIN as i32);
+        test_primitive!(i32, std::u8::MAX as i32);
 
-        test!(i32, std::i16::MIN as i32);
-        test!(i32, std::i16::MAX as i32);
+        test_primitive!(i32, std::i16::MIN as i32);
+        test_primitive!(i32, std::i16::MAX as i32);
 
-        test!(i32, std::u16::MIN as i32);
-        test!(i32, std::u16::MAX as i32);
+        test_primitive!(i32, std::u16::MIN as i32);
+        test_primitive!(i32, std::u16::MAX as i32);
 
-        test!(i32, std::i32::MIN as i32);
-        test!(i32, std::i32::MAX as i32);
+        test_primitive!(i32, std::i32::MIN as i32);
+        test_primitive!(i32, std::i32::MAX as i32);
     }
 
     #[test]
     fn encode_decode_u32() {
-        test!(u32, 5);
-        test!(u32, 0);
+        test_primitive!(u32, 5);
+        test_primitive!(u32, 0);
 
-        test!(u32, std::i8::MAX as u32);
+        test_primitive!(u32, std::i8::MAX as u32);
 
-        test!(u32, std::u8::MIN as u32);
-        test!(u32, std::u8::MAX as u32);
+        test_primitive!(u32, std::u8::MIN as u32);
+        test_primitive!(u32, std::u8::MAX as u32);
 
-        test!(u32, std::i16::MIN as u32);
-        test!(u32, std::i16::MAX as u32);
+        test_primitive!(u32, std::i16::MIN as u32);
+        test_primitive!(u32, std::i16::MAX as u32);
 
-        test!(u32, std::u16::MIN as u32);
-        test!(u32, std::u16::MAX as u32);
+        test_primitive!(u32, std::u16::MIN as u32);
+        test_primitive!(u32, std::u16::MAX as u32);
 
-        test!(u32, std::i32::MIN as u32);
-        test!(u32, std::i32::MAX as u32);
+        test_primitive!(u32, std::i32::MIN as u32);
+        test_primitive!(u32, std::i32::MAX as u32);
 
-        test!(u32, std::u32::MIN as u32);
-        test!(u32, std::u32::MAX as u32);
+        test_primitive!(u32, std::u32::MIN as u32);
+        test_primitive!(u32, std::u32::MAX as u32);
     }
 
     #[test]
     fn encode_decode_i64() {
-        test!(i64, 5);
-        test!(i64, 0);
+        test_primitive!(i64, 5);
+        test_primitive!(i64, 0);
 
-        test!(i64, std::i8::MAX as i64);
+        test_primitive!(i64, std::i8::MAX as i64);
 
-        test!(i64, std::u8::MIN as i64);
-        test!(i64, std::u8::MAX as i64);
+        test_primitive!(i64, std::u8::MIN as i64);
+        test_primitive!(i64, std::u8::MAX as i64);
 
-        test!(i64, std::i16::MIN as i64);
-        test!(i64, std::i16::MAX as i64);
+        test_primitive!(i64, std::i16::MIN as i64);
+        test_primitive!(i64, std::i16::MAX as i64);
 
-        test!(i64, std::u16::MIN as i64);
-        test!(i64, std::u16::MAX as i64);
+        test_primitive!(i64, std::u16::MIN as i64);
+        test_primitive!(i64, std::u16::MAX as i64);
 
-        test!(i64, std::i32::MIN as i64);
-        test!(i64, std::i32::MAX as i64);
+        test_primitive!(i64, std::i32::MIN as i64);
+        test_primitive!(i64, std::i32::MAX as i64);
 
-        test!(i64, std::u32::MIN as i64);
-        test!(i64, std::u32::MAX as i64);
+        test_primitive!(i64, std::u32::MIN as i64);
+        test_primitive!(i64, std::u32::MAX as i64);
 
-        test!(i64, std::i64::MIN as i64);
-        test!(i64, std::i64::MAX as i64);
+        test_primitive!(i64, std::i64::MIN as i64);
+        test_primitive!(i64, std::i64::MAX as i64);
     }
 
     #[test]
     fn encode_decode_u64() {
-        test!(u64, 5);
-        test!(u64, 0);
+        test_primitive!(u64, 5);
+        test_primitive!(u64, 0);
 
-        test!(u64, std::u8::MIN as u64);
-        test!(u64, std::u8::MAX as u64);
+        test_primitive!(u64, std::u8::MIN as u64);
+        test_primitive!(u64, std::u8::MAX as u64);
 
-        test!(u64, std::u16::MIN as u64);
-        test!(u64, std::u16::MAX as u64);
+        test_primitive!(u64, std::u16::MIN as u64);
+        test_primitive!(u64, std::u16::MAX as u64);
 
-        test!(u64, std::u32::MIN as u64);
-        test!(u64, std::u32::MAX as u64);
+        test_primitive!(u64, std::u32::MIN as u64);
+        test_primitive!(u64, std::u32::MAX as u64);
 
-        test!(u64, std::u64::MAX as u64);
-        test!(u64, std::u64::MAX as u64);
+        test_primitive!(u64, std::u64::MAX as u64);
+        test_primitive!(u64, std::u64::MAX as u64);
     }
 
     #[test]
     fn encode_decode_addr() {
-        test!(Address, Address(&[0x10; 20]));
+        test_primitive!(Address, Address(&[0x10; 20]));
 
-        test!(AddressOwned, AddressOwned([0x10; 20]));
+        test_primitive!(AddressOwned, AddressOwned([0x10; 20]));
     }
 
     #[ignore]

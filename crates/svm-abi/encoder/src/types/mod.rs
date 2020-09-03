@@ -74,6 +74,7 @@ fn do_encode(value: &Value<'_>, w: &mut Vec<u8>) {
 
 fn encode_primitive(p: &Primitive<'_>, w: &mut Vec<u8>) {
     match p {
+        Primitive::Unit => unreachable!(),
         Primitive::Address(p) => p.encode(w),
         Primitive::AddressOwned(p) => p.encode(w),
         Primitive::Amount(p) => p.encode(w),
