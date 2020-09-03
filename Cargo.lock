@@ -1294,6 +1294,10 @@ dependencies = [
 [[package]]
 name = "svm-sdk"
 version = "0.0.0"
+dependencies = [
+ "lazy_static",
+ "svm-layout",
+]
 
 [[package]]
 name = "svm-storage"

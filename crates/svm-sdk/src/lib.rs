@@ -10,9 +10,6 @@
 #![allow(dead_code)]
 #![allow(unreachable_code)]
 
-mod amount;
-pub use amount::Amount;
-
 /// SDK types
 pub mod types;
 
@@ -22,10 +19,18 @@ pub mod value;
 /// Memory allocation on Heap
 pub mod memory;
 
+mod amount;
+mod host;
+mod layer_id;
 mod log;
+mod storage;
 
-/// Logging API
 pub use log::log;
+
+pub use amount::Amount;
+pub use host::Host;
+pub use layer_id::LayerId;
+pub use storage::Storage;
 
 /// `ensure` macro
 #[macro_use]

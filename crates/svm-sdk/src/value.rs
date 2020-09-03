@@ -36,14 +36,14 @@ macro_rules! impl_slice_primitive {
 macro_rules! impl_fixed_primitive {
     ($ty:ident, $ty_owned:ident, $nbytes:expr) => {
         #[allow(missing_docs)]
-        #[derive(Debug, PartialEq, Clone)]
+        #[derive(Debug, PartialEq, Eq, Clone, Hash)]
         #[repr(transparent)]
         pub struct $ty<'a>(pub &'a [u8; $nbytes]);
 
         impl<'a> $crate::types::PrimitiveMarker for $ty<'a> {}
 
         #[allow(missing_docs)]
-        #[derive(Debug, PartialEq, Clone)]
+        #[derive(Debug, PartialEq, Eq, Clone, Hash)]
         #[repr(transparent)]
         pub struct $ty_owned(pub [u8; $nbytes]);
 

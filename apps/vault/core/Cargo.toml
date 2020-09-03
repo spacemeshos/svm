@@ -1,5 +1,5 @@
 [package]
-name = "svm-sdk"
+name = "svm-app-vault-core"
 version = "0.0.0"
 authors = ["Yaron Wittenstein <yaron.wittenstein@gmail.com>"]
 license = "MIT"
@@ -10,6 +10,12 @@ homepage = "https://github.com/spacemeshos/svm"
 description = "Spacemesh Virtual Machine"
 publish = false
 
+[workspace]
+
+[dependencies]
+svm-sdk = { path = "../../../crates/svm-sdk" }
+svm-abi-decoder = { path = "../../../crates/svm-abi/decoder" }
+
 [dev-dependencies]
+svm-abi-encoder = { path = "../../../crates/svm-abi/encoder" }
 lazy_static = "1.4.0"
-svm-layout = { path = "../svm-layout" }

@@ -1,7 +1,4 @@
-extern "C" {
-    #[link_section = "svm"]
-    fn svm_log(msg_ptr: u32, msg_len: u32, code: u32);
-}
+include!("externs.rs");
 
 /// Log the string `msg` along with code `code` into the running App logs.
 pub fn log(msg: &str, code: u8) {
