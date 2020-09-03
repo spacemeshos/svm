@@ -1,6 +1,6 @@
 use core::cmp::PartialEq;
 use core::fmt::{self, Debug};
-use core::mem::MaybeUninit;
+use core::mem::{size_of, MaybeUninit};
 
 use crate::Amount;
 
@@ -299,9 +299,9 @@ impl From<Value<'_>> for AddressOwned {
     }
 }
 
-macro_rules! impl_from_value_to_rust_borrowed_array {
+macro_rules! impl_to_rust_borrowed_array {
     ($($n:expr)*) => {
-        $( impl_from_value_to_rust_borrowed_array!{@one $n} )*
+        $( impl_to_rust_borrowed_array!{@one $n} )*
     };
     (@one $n:expr) => {
         impl<'a> From<Value<'a>> for [&'a Value<'a>; $n] {
@@ -326,22 +326,35 @@ macro_rules! impl_from_value_to_rust_borrowed_array {
     };
 }
 
-macro_rules! impl_from_value_to_rust_owned_array {
-    ($($n:expr)*) => {
-        $( impl_from_value_to_rust_owned_array!{@one $n} )*
+macro_rules! impl_to_rust_owned_array {
+    ([] => $($tt:tt)*) => {};
+    ([$T:tt $($T_tail:tt)*] => $($tt:tt)*) => {
+        impl_to_rust_owned_array!($T => $($tt)*);
+
+        impl_to_rust_owned_array!([$($T_tail)*] => $($tt)*);
     };
-    (@one $n:expr) => {
-        impl<'a> From<Value<'a>> for [Value<'a>; $n] {
+
+    ($T:tt => ) => {};
+    ($T:tt => $n:tt $($tt:tt)*) => {
+        impl_to_rust_owned_array!(@implement $T $n);
+        impl_to_rust_owned_array!($T => $($tt)*);
+    };
+    (@implement $T:tt $n:tt) => {
+        impl<'a> From<Value<'a>> for [$T; $n]
+            where Value<'a>: Into<$T>
+        {
             fn from(value: Value<'a>) -> Self {
                 match value {
                     Value::Composite(Composite::ArrayOwned(mut values)) => {
                         assert_eq!(values.len(), $n);
 
-                        let mut array: [MaybeUninit<Value<'a>>; $n] = MaybeUninit::uninit_array();
+                        let mut array: [MaybeUninit<$T>; $n] = MaybeUninit::uninit_array();
 
                         for (i, v) in values.drain(..).enumerate() {
-                            array[i] = MaybeUninit::new(v);
+                            array[i] = MaybeUninit::new(v.into());
                         }
+
+                        assert_eq!(size_of::<[MaybeUninit<$T>; $n]>(), size_of::<[$T; $n]>());
 
                         unsafe { core::mem::transmute::<_, Self>(array) }
                     }
@@ -349,9 +362,18 @@ macro_rules! impl_from_value_to_rust_owned_array {
                 }
             }
         }
-
     };
 }
 
-impl_from_value_to_rust_borrowed_array!(1 2 3 4 5 6 7 8 9 10);
-impl_from_value_to_rust_owned_array!(1 2 3 4 5 6 7 8 9 10);
+impl_to_rust_borrowed_array!(1 2 3 4 5);
+
+#[rustfmt::skip]
+impl_to_rust_owned_array!([
+    bool
+    Amount
+    i8 u8
+    i16 u16
+    i32 u32
+    i64 u64
+    AddressOwned
+] => 1 2 3 4 5);
