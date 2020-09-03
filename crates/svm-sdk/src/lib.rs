@@ -1,4 +1,5 @@
 #![no_std]
+#![feature(maybe_uninit_uninit_array)]
 
 //! This crate implements SDK for SVM.
 //! Using this crate when writing SVM Templates in Rust isn't mandatory but should be very useful.

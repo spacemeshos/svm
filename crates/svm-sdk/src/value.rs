@@ -1,5 +1,6 @@
 use core::cmp::PartialEq;
 use core::fmt::{self, Debug};
+use core::mem::MaybeUninit;
 
 use crate::Amount;
 
@@ -188,6 +189,10 @@ pub enum Value<'a> {
 }
 
 impl<'a> Value<'a> {
+    pub(crate) const fn unit() -> Value<'static> {
+        Value::Primitive(Primitive::Unit)
+    }
+
     pub(crate) const fn unit_ref() -> &'static Value<'static> {
         &Value::Primitive(Primitive::Unit)
     }
@@ -294,9 +299,9 @@ impl From<Value<'_>> for AddressOwned {
     }
 }
 
-macro_rules! impl_from_value_to_rust_array {
+macro_rules! impl_from_value_to_rust_borrowed_array {
     ($($n:expr)*) => {
-        $( impl_from_value_to_rust_array!{@one $n} )*
+        $( impl_from_value_to_rust_borrowed_array!{@one $n} )*
     };
     (@one $n:expr) => {
         impl<'a> From<Value<'a>> for [&'a Value<'a>; $n] {
@@ -321,4 +326,32 @@ macro_rules! impl_from_value_to_rust_array {
     };
 }
 
-impl_from_value_to_rust_array!(1 2 3 4 5 6 7 8 9 10);
+macro_rules! impl_from_value_to_rust_owned_array {
+    ($($n:expr)*) => {
+        $( impl_from_value_to_rust_owned_array!{@one $n} )*
+    };
+    (@one $n:expr) => {
+        impl<'a> From<Value<'a>> for [Value<'a>; $n] {
+            fn from(value: Value<'a>) -> Self {
+                match value {
+                    Value::Composite(Composite::ArrayOwned(mut values)) => {
+                        assert_eq!(values.len(), $n);
+
+                        let mut array: [MaybeUninit<Value<'a>>; $n] = MaybeUninit::uninit_array();
+
+                        for (i, v) in values.drain(..).enumerate() {
+                            array[i] = MaybeUninit::new(v);
+                        }
+
+                        unsafe { core::mem::transmute::<_, Self>(array) }
+                    }
+                    _ => unreachable!(),
+                }
+            }
+        }
+
+    };
+}
+
+impl_from_value_to_rust_borrowed_array!(1 2 3 4 5 6 7 8 9 10);
+impl_from_value_to_rust_owned_array!(1 2 3 4 5 6 7 8 9 10);
