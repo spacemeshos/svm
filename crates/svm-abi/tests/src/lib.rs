@@ -11,6 +11,7 @@ mod tests {
     use svm_abi_decoder::{Cursor, Decoder};
     use svm_abi_encoder::Encoder;
     use svm_sdk::value::{Address, AddressOwned, Composite, Primitive, Value};
+    use svm_sdk::Amount;
 
     macro_rules! test_primitive {
         ($ty:ty, $rust_value:expr) => {{
@@ -251,6 +252,28 @@ mod tests {
         test_array!([u64; 1], [10u64]);
         test_array!([u64; 2], [5u64, 10u64]);
         test_array!([u64; 3], [1064, 20u64, 30u64]);
+    }
+
+    #[test]
+    fn encode_decode_amount() {
+        test_primitive!(Amount, Amount(5));
+        test_primitive!(Amount, Amount(0));
+
+        test_primitive!(Amount, Amount(std::u8::MIN as u64));
+        test_primitive!(Amount, Amount(std::u8::MAX as u64));
+
+        test_primitive!(Amount, Amount(std::u16::MIN as u64));
+        test_primitive!(Amount, Amount(std::u16::MAX as u64));
+
+        test_primitive!(Amount, Amount(std::u32::MIN as u64));
+        test_primitive!(Amount, Amount(std::u32::MAX as u64));
+
+        test_primitive!(Amount, Amount(std::u64::MAX as u64));
+        test_primitive!(Amount, Amount(std::u64::MAX as u64));
+
+        test_array!([Amount; 1], [Amount(10)]);
+        test_array!([Amount; 2], [Amount(5), Amount(10)]);
+        test_array!([Amount; 3], [Amount(10), Amount(20), Amount(30)]);
     }
 
     #[test]
