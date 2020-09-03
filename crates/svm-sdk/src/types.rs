@@ -15,6 +15,8 @@ mark_primitive!(u64, i64);
 
 /// Represents a Primitive type
 pub enum Primitive {
+    Unit,
+
     Bool,
 
     I32,

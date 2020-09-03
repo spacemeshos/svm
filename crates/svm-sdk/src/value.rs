@@ -138,14 +138,11 @@ fn byte_as_chars(byte: u8) -> (char, char) {
 
 impl_fixed_primitive!(Address, AddressOwned, 20);
 
-/// Array value
-#[derive(Debug, PartialEq)]
-#[repr(transparent)]
-pub struct Array<'a, T>(pub &'a [T]);
-
 /// Primitive value
 #[derive(Debug, PartialEq)]
 pub enum Primitive<'a> {
+    Unit,
+
     Bool(bool),
 
     Address(Address<'a>),
@@ -188,6 +185,12 @@ pub enum Value<'a> {
 
     /// A `Composite` value
     Composite(Composite<'a>),
+}
+
+impl<'a> Value<'a> {
+    pub(crate) const fn unit_ref() -> &'static Value<'static> {
+        &Value::Primitive(Primitive::Unit)
+    }
 }
 
 macro_rules! impl_from_rust_to_value {
@@ -290,3 +293,32 @@ impl From<Value<'_>> for AddressOwned {
         }
     }
 }
+
+macro_rules! impl_from_value_to_rust_array {
+    ($($n:expr)*) => {
+        $( impl_from_value_to_rust_array!{@one $n} )*
+    };
+    (@one $n:expr) => {
+        impl<'a> From<Value<'a>> for [&'a Value<'a>; $n] {
+            fn from(value: Value<'a>) -> Self {
+                match value {
+                    Value::Composite(Composite::Array(values)) => {
+                        assert_eq!(values.len(), $n);
+
+                        let unit = Value::unit_ref();
+                        let mut array: [&Value<'a>; $n] = [unit; $n];
+
+                        for (i, v) in values.iter().enumerate() {
+                            array[i] = v;
+                        }
+
+                        array
+                    }
+                    _ => unreachable!(),
+                }
+            }
+        }
+    };
+}
+
+impl_from_value_to_rust_array!(1 2 3 4 5 6 7 8 9 10);
