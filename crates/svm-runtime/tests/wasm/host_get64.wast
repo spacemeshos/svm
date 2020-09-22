@@ -1,6 +1,6 @@
 (module
   ;; import `SVM` vmcalls
-  (func $host_get64 (import "svm" "host_get64") (param i32) (result i64))
+  (func $host_get64 (import "svm" "svm_host_get64") (param i32) (result i64))
 
   (memory 1)  ;; memory `0` (default) is initialized with one page
 

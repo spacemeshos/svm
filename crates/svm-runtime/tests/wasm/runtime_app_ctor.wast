@@ -1,5 +1,5 @@
 (module
-  (func $set64 (import "svm" "set64") (param i32 i64))
+  (func $set64 (import "svm" "svm_set64") (param i32 i64))
 
   (memory 1)  ;; memory `0` (default) is initialized with one page
 

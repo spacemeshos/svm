@@ -1,5 +1,5 @@
 (module
-  (func $log (import "svm" "log") (param $msg_ptr i32) (param $msg_len i32) (param $code i32))
+  (func $log (import "svm" "svm_log") (param $msg_ptr i32) (param $msg_len i32) (param $code i32))
 
   (import "svm" "memory" (memory $mem 0))
 

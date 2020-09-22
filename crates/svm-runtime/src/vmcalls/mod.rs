@@ -16,7 +16,7 @@ pub use storage::{get32, get64, load160, set32, set64, store160};
 
 macro_rules! func {
     ($store:ident, $ctx:ident, $f:expr) => {{
-        // Each host function own it's own `Context`
+        // Each host function owns its own `Context`.
         let ctx = $ctx.clone();
 
         Function::new_native_with_env($store, ctx, $f)
@@ -24,20 +24,20 @@ macro_rules! func {
 }
 
 pub fn wasmer_register(store: &Store, ctx: &Context, ns: &mut Exports) {
-    ns.insert("calldata_offset", func!(store, ctx, calldata_offset));
-    ns.insert("calldata_len", func!(store, ctx, calldata_len));
-    ns.insert("set_returndata", func!(store, ctx, set_returndata));
+    ns.insert("svm_calldata_offset", func!(store, ctx, calldata_offset));
+    ns.insert("svm_calldata_len", func!(store, ctx, calldata_len));
+    ns.insert("svm_set_returndata", func!(store, ctx, set_returndata));
 
-    ns.insert("host_get64", func!(store, ctx, host_get64));
+    ns.insert("svm_host_get64", func!(store, ctx, host_get64));
 
-    ns.insert("get32", func!(store, ctx, get32));
-    ns.insert("set32", func!(store, ctx, set32));
+    ns.insert("svm_get32", func!(store, ctx, get32));
+    ns.insert("svm_set32", func!(store, ctx, set32));
 
-    ns.insert("get64", func!(store, ctx, get64));
-    ns.insert("set64", func!(store, ctx, set64));
+    ns.insert("svm_get64", func!(store, ctx, get64));
+    ns.insert("svm_set64", func!(store, ctx, set64));
 
-    ns.insert("load160", func!(store, ctx, load160));
-    ns.insert("store160", func!(store, ctx, store160));
+    ns.insert("svm_load160", func!(store, ctx, load160));
+    ns.insert("svm_store160", func!(store, ctx, store160));
 
-    ns.insert("log", func!(store, ctx, log));
+    ns.insert("svm_log", func!(store, ctx, log));
 }

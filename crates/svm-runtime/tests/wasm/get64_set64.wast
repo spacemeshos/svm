@@ -1,7 +1,7 @@
 (module
   ;; import `SVM` vmcalls
-  (func $get64 (import "svm" "get64") (param i32) (result i64))
-  (func $set64 (import "svm" "set64") (param i32 i64))
+  (func $get64 (import "svm" "svm_get64") (param i32) (result i64))
+  (func $set64 (import "svm" "svm_set64") (param i32 i64))
 
   (func (export "get") (param $var_id i32) (result i64)
       (get_local $var_id) 

@@ -5,19 +5,19 @@ const VAR_ID: u32 = 0;
 
 #[link(wasm_import_module = "svm")]
 extern "C" {
-    fn calldata_offset() -> i32;
+    fn svm_calldata_offset() -> i32;
 
-    fn calldata_len() -> i32;
+    fn svm_calldata_len() -> i32;
 
-    fn get32(var_id: u32) -> u32;
+    fn svm_get32(var_id: u32) -> u32;
 
-    fn set32(var_id: u32, value: u32);
+    fn svm_set32(var_id: u32, value: u32);
 }
 
 fn get_calldata() -> &'static [u8] {
     unsafe {
-        let ptr = calldata_offset();
-        let len = calldata_len();
+        let ptr = svm_calldata_offset();
+        let len = svm_calldata_len();
 
         core::slice::from_raw_parts(ptr as *const u8, len as usize)
     }
@@ -38,7 +38,7 @@ pub extern "C" fn initialize() {
     let initial: u32 = decoder.decode_value(&mut cursor).unwrap().into();
 
     unsafe {
-        set32(VAR_ID, initial);
+        svm_set32(VAR_ID, initial);
     }
 }
 
@@ -52,9 +52,9 @@ pub extern "C" fn add() {
     let addition: u32 = decoder.decode_value(&mut cursor).unwrap().into();
 
     unsafe {
-        let old = get32(VAR_ID);
+        let old = svm_get32(VAR_ID);
         let new = old + addition;
 
-        set32(VAR_ID, new);
+        svm_set32(VAR_ID, new);
     }
 }

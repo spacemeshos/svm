@@ -114,8 +114,8 @@ fn vmcalls_get32_set32() {
 
     let import_object = imports! {
         "svm" => {
-            "get32" => func!(store, ctx, vmcalls::get32),
-            "set32" => func!(store, ctx, vmcalls::set32),
+            "svm_get32" => func!(store, ctx, vmcalls::get32),
+            "svm_set32" => func!(store, ctx, vmcalls::set32),
         }
     };
 
@@ -150,8 +150,8 @@ fn vmcalls_get64_set64() {
 
     let import_object = imports! {
         "svm" => {
-            "get64" => func!(store, ctx, vmcalls::get64),
-            "set64" => func!(store, ctx, vmcalls::set64),
+            "svm_get64" => func!(store, ctx, vmcalls::get64),
+            "svm_set64" => func!(store, ctx, vmcalls::set64),
         },
     };
 
@@ -189,8 +189,8 @@ fn vmcalls_load160() {
     let import_object = imports! {
         "svm" => {
             "memory" => memory.clone(),
-            "load160" => func!(store, ctx, vmcalls::load160),
-            "store160" => func!(store, ctx, vmcalls::store160),
+            "svm_load160" => func!(store, ctx, vmcalls::load160),
+            "svm_store160" => func!(store, ctx, vmcalls::store160),
         },
     };
 
@@ -235,8 +235,8 @@ fn vmcalls_store160() {
     let import_object = imports! {
         "svm" => {
             "memory" => memory.clone(),
-            "load160" => func!(store, ctx, vmcalls::load160),
-            "store160" => func!(store, ctx, vmcalls::store160),
+            "svm_load160" => func!(store, ctx, vmcalls::load160),
+            "svm_store160" => func!(store, ctx, vmcalls::store160),
         },
     };
 
@@ -278,7 +278,7 @@ fn vmcalls_host_get64() {
 
     let import_object = imports! {
         "svm" => {
-            "host_get64" => func!(store, ctx, vmcalls::host_get64),
+            "svm_host_get64" => func!(store, ctx, vmcalls::host_get64),
         },
     };
 
@@ -312,7 +312,7 @@ fn vmcalls_log() {
     let import_object = imports! {
         "svm" => {
             "memory" => memory.clone(),
-            "log" => func!(store, ctx, vmcalls::log),
+            "svm_log" => func!(store, ctx, vmcalls::log),
         },
     };
 
