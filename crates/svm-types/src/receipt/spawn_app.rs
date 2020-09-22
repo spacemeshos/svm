@@ -16,8 +16,8 @@ pub struct SpawnAppReceipt {
     /// the spawned app initial state (after executing its ctor)
     pub init_state: Option<State>,
 
-    /// returned ctor values
-    pub returns: Option<Vec<u8>>,
+    /// returned ctor data
+    pub returndata: Option<Vec<u8>>,
 
     /// The amount of gas used
     pub gas_used: MaybeGas,
@@ -34,7 +34,7 @@ impl SpawnAppReceipt {
             error: Some(ReceiptError::OOG),
             app_addr: None,
             init_state: None,
-            returns: None,
+            returndata: None,
             gas_used: MaybeGas::new(),
             logs,
         }
@@ -46,7 +46,7 @@ impl SpawnAppReceipt {
             error: Some(error),
             app_addr: None,
             init_state: None,
-            returns: None,
+            returndata: None,
             gas_used: MaybeGas::new(),
             logs,
         }
@@ -68,8 +68,8 @@ impl SpawnAppReceipt {
     }
 
     /// Returns spawned-app results. Panics if spawning has failed.
-    pub fn get_returns(&self) -> &Vec<u8> {
-        self.returns.as_ref().unwrap()
+    pub fn get_returndata(&self) -> &Vec<u8> {
+        self.returndata.as_ref().unwrap()
     }
 
     /// Returns spawned-app gas-used
@@ -100,7 +100,7 @@ pub fn make_spawn_app_receipt(
             error: None,
             app_addr,
             init_state: ctor_receipt.new_state,
-            returns: ctor_receipt.returns,
+            returndata: ctor_receipt.returndata,
             gas_used: ctor_receipt.gas_used,
             logs,
         }
@@ -112,7 +112,7 @@ pub fn make_spawn_app_receipt(
             error: Some(error),
             app_addr,
             init_state: None,
-            returns: None,
+            returndata: None,
             gas_used: MaybeGas::new(),
             logs,
         }

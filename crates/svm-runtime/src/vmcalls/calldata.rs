@@ -1,8 +1,8 @@
 use crate::use_gas;
 use crate::Context;
 
-pub fn calldata_ptr(ctx: &mut Context) -> i32 {
-    use_gas!("calldata_ptr", ctx);
+pub fn calldata_offset(ctx: &mut Context) -> i32 {
+    use_gas!("calldata_offset", ctx);
 
     calldata(ctx).0 as i32
 }

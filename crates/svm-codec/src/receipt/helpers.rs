@@ -35,8 +35,8 @@ pub(crate) fn encode_type(ty: u8, w: &mut NibbleWriter) {
     w.write_byte(ty);
 }
 
-pub(crate) fn encode_returns(returns: &[u8], w: &mut NibbleWriter) {
-    raw::encode_calldata(returns, w)
+pub(crate) fn encode_abi_data(returns: &[u8], w: &mut NibbleWriter) {
+    raw::encode_abi_data(returns, w)
 }
 
 pub(crate) fn encode_addr(addr: &Address, w: &mut NibbleWriter) {

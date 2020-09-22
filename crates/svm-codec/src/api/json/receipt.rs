@@ -139,7 +139,7 @@ fn decode_spawn_app(receipt: &SpawnAppReceipt, ty: &'static str) -> Value {
     let SpawnAppReceipt {
         app_addr,
         init_state,
-        returns,
+        returndata,
         gas_used,
         logs,
         ..
@@ -150,7 +150,7 @@ fn decode_spawn_app(receipt: &SpawnAppReceipt, ty: &'static str) -> Value {
         "success": true,
         "app": json::addr_to_str(app_addr.as_ref().unwrap().inner()),
         "state": json::state_to_str(init_state.as_ref().unwrap()),
-        "returns": json::bytes_to_str(returns.as_ref().unwrap()),
+        "returndata": json::bytes_to_str(returndata.as_ref().unwrap()),
         "gas_used": json::gas_to_json(&gas_used),
         "logs": json::logs_to_json(&receipt.logs),
     })
@@ -162,7 +162,7 @@ fn decode_exe_app(receipt: &ExecReceipt, ty: &'static str) -> Value {
 
     let ExecReceipt {
         new_state,
-        returns,
+        returndata,
         gas_used,
         logs,
         ..
@@ -172,7 +172,7 @@ fn decode_exe_app(receipt: &ExecReceipt, ty: &'static str) -> Value {
         "type": ty,
         "success": true,
         "new_state": json::state_to_str(new_state.as_ref().unwrap()),
-        "returns": json::bytes_to_str(returns.as_ref().unwrap()),
+        "returndata": json::bytes_to_str(returndata.as_ref().unwrap()),
         "gas_used": json::gas_to_json(&gas_used),
         "logs": json::logs_to_json(&receipt.logs),
     })
@@ -249,7 +249,7 @@ mod tests {
             error: None,
             app_addr: Some(app.into()),
             init_state: Some(state),
-            returns: Some(vec![0x10, 0x20, 0x30]),
+            returndata: Some(vec![0x10, 0x20, 0x30]),
             gas_used: MaybeGas::with(10),
             logs,
         };
@@ -265,7 +265,7 @@ mod tests {
                 "type": "spawn-app",
                 "app": "1010101010101010101010101010101010101010",
                 "gas_used": 10,
-                "returns": "102030",
+                "returndata": "102030",
                 "state": "A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0",
                 "logs": [
                     {"msg": "Log entry #1", "code": 100},
@@ -287,7 +287,7 @@ mod tests {
             error: Some(ReceiptError::OOG),
             app_addr: None,
             init_state: None,
-            returns: None,
+            returndata: None,
             gas_used: MaybeGas::with(1000),
             logs,
         };
@@ -326,7 +326,7 @@ mod tests {
             success: true,
             error: None,
             new_state: Some(state),
-            returns: Some(vec![0x10, 0x20]),
+            returndata: Some(vec![0x10, 0x20]),
             gas_used: MaybeGas::with(10),
             logs,
         };
@@ -341,7 +341,7 @@ mod tests {
                 "success": true,
                 "type": "exec-app",
                 "gas_used": 10,
-                "returns": "1020",
+                "returndata": "1020",
                 "new_state": "A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0",
                 "logs": [
                     {"msg": "Log entry #1", "code": 100},

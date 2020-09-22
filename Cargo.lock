@@ -1249,6 +1249,7 @@ dependencies = [
  "lazy_static",
  "log",
  "maplit",
+ "svm-abi-decoder",
  "svm-abi-encoder",
  "svm-codec",
  "svm-common",

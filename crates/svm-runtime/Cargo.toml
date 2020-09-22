@@ -33,3 +33,4 @@ wat = "1.0"
 maplit = "1.0.2"
 svm-sdk = { path = "../svm-sdk" }
 svm-abi-encoder = { path = "../svm-abi/encoder" }
+svm-abi-decoder = { path = "../svm-abi/decoder" }

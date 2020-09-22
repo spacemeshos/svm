@@ -15,8 +15,8 @@
 #[macro_use]
 mod wasm;
 
+mod abi;
 mod app;
-mod calldata;
 mod field;
 mod gas;
 mod helpers;
@@ -199,7 +199,7 @@ pub extern "C" fn wasm_buffer_data(buf_ptr: i32) -> i32 {
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
 pub extern "C" fn wasm_encode_calldata(buf_ptr: i32) -> i32 {
-    wasm_func_call!(encode_calldata, buf_ptr)
+    wasm_func_call!(encode_abi_data, buf_ptr)
 }
 
 #[no_mangle]

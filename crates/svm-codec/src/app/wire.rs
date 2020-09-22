@@ -2,7 +2,7 @@ use svm_nibble::{NibbleIter, NibbleWriter};
 use svm_types::{App, SpawnApp, TemplateAddr, WasmValue};
 
 pub use crate::api::raw::{
-    decode_calldata, decode_varuint14, decode_version, encode_calldata, encode_varuint14, Field,
+    decode_abi_data, decode_varuint14, decode_version, encode_abi_data, encode_varuint14, Field,
 };
 
 use crate::{error::ParseError, helpers};
@@ -66,7 +66,7 @@ fn encode_ctor(spawn: &SpawnApp, w: &mut NibbleWriter) {
 
 fn encode_ctor_calldata(spawn: &SpawnApp, w: &mut NibbleWriter) {
     let ctor_calldata = &*spawn.calldata;
-    encode_calldata(ctor_calldata, w);
+    encode_abi_data(ctor_calldata, w);
 }
 
 /// Decoders
@@ -86,7 +86,7 @@ fn decode_ctor(iter: &mut NibbleIter) -> Result<String, ParseError> {
 }
 
 fn decode_ctor_calldata(iter: &mut NibbleIter) -> Result<Vec<u8>, ParseError> {
-    decode_calldata(iter)
+    decode_abi_data(iter)
 }
 
 #[cfg(test)]

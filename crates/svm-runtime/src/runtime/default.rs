@@ -23,12 +23,12 @@ use svm_types::{
         make_spawn_app_receipt, ExecReceipt, Log, ReceiptError, SpawnAppReceipt, TemplateReceipt,
     },
     AppAddr, AppTemplate, AppTransaction, AuthorAddr, CreatorAddr, HostCtx, SpawnApp, State,
-    TemplateAddr, WasmValue,
+    TemplateAddr,
 };
 
 use wasmer::{
     Export, Exports, Extern, Function, ImportObject, Instance, Memory, MemoryType, Module,
-    NativeFunc, Pages, Store, Value, WasmPtr,
+    NativeFunc, Pages, Store, Type as WasmerType, Value as WasmerValue, WasmPtr,
 };
 
 /// Default `Runtime` implementation based on `wasmer`.
@@ -59,9 +59,9 @@ where
 {
     fn validate_template(&self, bytes: &[u8]) -> Result<(), ValidateError> {
         let template = self.parse_deploy_template(bytes)?;
-        let wasm = &template.code[..];
+        let code = &template.code;
 
-        svm_gas::validate_code(wasm).map_err(|e| e.into())
+        svm_gas::validate_code(code).map_err(|e| e.into())
     }
 
     fn validate_app(&self, bytes: &[u8]) -> Result<(), ValidateError> {
@@ -194,7 +194,7 @@ where
         }
     }
 
-    /// Initialize a new `AppStorage` and returns it.
+    /// Initialize a new `AppStorage` and returndata it.
     /// This method is of `pub` visibility since it's also helpful for tests that want to
     /// observe that app storage data.
     pub fn open_app_storage(
@@ -307,7 +307,7 @@ where
         import_object: &ImportObject,
         gas_left: MaybeGas,
     ) -> (
-        Result<(Option<State>, Vec<WasmValue>, MaybeGas), ReceiptError>,
+        Result<(Option<State>, Option<Vec<u8>>, MaybeGas), ReceiptError>,
         Vec<Log>,
     ) {
         let empty_logs = Vec::new();
@@ -331,14 +331,18 @@ where
             return (Err(err), empty_logs);
         }
 
+        // we assert that `svm_alloc` didn't touch the `returndata`
+        // TODO: return an error instead of `panic`
+        self.assert_no_returndata(ctx);
+
         self.set_calldata(ctx, &tx.calldata, wasm_ptr.unwrap());
 
         let func = match self.get_func(tx, template_addr, &instance) {
             Err(e) => return (Err(e), empty_logs),
             Ok(func) => func,
         };
-        let func_res = func.call(&[]);
 
+        let func_res = func.call(&[]);
         let logs = self.take_logs(ctx);
 
         let gas_used = self.instance_gas_used(&instance);
@@ -354,23 +358,45 @@ where
                 msg: e.to_string(),
             }),
             Ok(returns) => {
-                let storage = &mut ctx.borrow_mut().storage;
-                let new_state = Some(storage.commit());
+                let returndata = self.take_returndata(ctx, returns);
+                let new_state = self.commit_chages(ctx);
 
-                // TODO: return the `returndata` back
-                let returns = Ok(Vec::new());
-
-                if let Err(err) = returns {
-                    return (Err(err), logs);
-                }
-
-                let gas_used = gas_used.unwrap();
-
-                Ok((new_state, returns.unwrap(), gas_used))
+                Ok((Some(new_state), Some(returndata), gas_used.unwrap()))
             }
         };
 
         (result, logs)
+    }
+
+    #[inline]
+    fn commit_chages(&self, ctx: &Context) -> State {
+        let storage = &mut ctx.borrow_mut().storage;
+        storage.commit()
+    }
+
+    #[inline]
+    fn assert_no_returndata(&self, ctx: &Context) {
+        assert!(ctx.borrow().returndata.is_none())
+    }
+
+    fn take_returndata(&self, ctx: &Context, returns: Box<[WasmerValue]>) -> Vec<u8> {
+        let data = ctx.borrow().returndata;
+
+        match data {
+            Some((offset, len)) => self.read_memory(ctx, offset, len),
+            None => Vec::new(),
+        }
+    }
+
+    fn read_memory(&self, ctx: &Context, offset: usize, len: usize) -> Vec<u8> {
+        let borrow = ctx.borrow();
+        let memory = borrow.get_memory();
+
+        // TODO: guard again out-of-bounds
+        let view = memory.view::<u8>();
+        let cells = &view[offset..(offset + len)];
+
+        cells.iter().map(|c| c.get()).collect()
     }
 
     fn take_logs(&self, ctx: &Context) -> Vec<Log> {
@@ -379,15 +405,15 @@ where
 
     fn make_receipt(
         &self,
-        result: Result<(Option<State>, Vec<WasmValue>, MaybeGas), ReceiptError>,
+        result: Result<(Option<State>, Option<Vec<u8>>, MaybeGas), ReceiptError>,
         logs: Vec<Log>,
     ) -> ExecReceipt {
         match result {
             Err(e) => ExecReceipt::from_err(e, logs),
-            Ok((new_state, returns, gas_used)) => ExecReceipt {
+            Ok((new_state, returndata, gas_used)) => ExecReceipt {
                 success: true,
                 error: None,
-                returns: Some(Vec::new()),
+                returndata,
                 new_state,
                 gas_used,
                 logs,
@@ -445,7 +471,7 @@ where
             let memory = borrow.get_memory();
             let offset = ptr.offset();
 
-            // Each wasm instance memory contains at least one `WASM Page`. (A `Page` size is 64KB)
+            // Each WASM instance memory contains at least one `WASM Page`. (A `Page` size is 64KB)
             // The `len(calldata)` will be less than the `WASM Page` size.
             //
             // In any case, the `alloc_memory` is in charge of allocating enough memory
@@ -458,6 +484,7 @@ where
             let offset = ptr.offset() as usize;
             let len = calldata.len();
 
+            // TODO: guard again out-of-bounds
             let view = &memory.view::<u8>()[offset..(offset + len)];
 
             for (cell, &byte) in view.iter().zip(calldata.iter()) {

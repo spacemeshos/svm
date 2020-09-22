@@ -1,5 +1,3 @@
-#![no_std]
-
 use svm_abi_decoder::{Cursor, Decoder};
 use svm_sdk;
 
@@ -7,7 +5,7 @@ const VAR_ID: u32 = 0;
 
 #[link(wasm_import_module = "svm")]
 extern "C" {
-    fn calldata_ptr() -> i32;
+    fn calldata_offset() -> i32;
 
     fn calldata_len() -> i32;
 
@@ -18,7 +16,7 @@ extern "C" {
 
 fn get_calldata() -> &'static [u8] {
     unsafe {
-        let ptr = calldata_ptr();
+        let ptr = calldata_offset();
         let len = calldata_len();
 
         core::slice::from_raw_parts(ptr as *const u8, len as usize)
