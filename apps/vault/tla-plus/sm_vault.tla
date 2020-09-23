@@ -35,7 +35,7 @@ variables
             [
                 Masters |-> {M1, M2, M3},
                 Balance |-> 0,
-                Pending |-> <<>>
+                Pending |-> [Master |-> {}, Amount |-> {}]
             ]
 
 define    
@@ -54,9 +54,9 @@ define
            {C \in All: SeqSum(C) = TOTAL_COINS}
            
     
-    VaultIsPending == VAULT.Pending = <<>>
+    VaultIsPending == VAULT.Pending.Master /= {}
     
-    VaultPendingMaster == VAULT.Pending["Master"]
+    VaultPendingMaster == VAULT.Pending.Master
     
     MasterAccount(M) == CHOOSE ACC \in ACCOUNTS: ACC.Master = M
           
@@ -109,7 +109,7 @@ begin
             else
                 \* Withdraw approve
                  
-                 with M \in (VAULT.Masters \ {VaultPendingMaster}) do
+                 with M \in (VAULT.Masters) do
                     skip;
                     \* WithdrawApprove(MasterAccount(M))
                  end with;
@@ -132,7 +132,7 @@ begin
 
 end algorithm; *)
 
-\* BEGIN TRANSLATION - the hash of the PCal code: PCal-7cd2c9841b0ad9a622a9827fce31c121
+\* BEGIN TRANSLATION - the hash of the PCal code: PCal-ce0a7dcf3e8d8cc4695ebfed35ea7ba9
 VARIABLES STEP, LAYER, ACCOUNTS, VAULT, pc
 
 (* define statement *)
@@ -151,9 +151,9 @@ AllCoins ==
        {C \in All: SeqSum(C) = TOTAL_COINS}
 
 
-VaultIsPending == VAULT.Pending = <<>>
+VaultIsPending == VAULT.Pending.Master /= {}
 
-VaultPendingMaster == VAULT.Pending["Master"]
+VaultPendingMaster == VAULT.Pending.Master
 
 MasterAccount(M) == CHOOSE ACC \in ACCOUNTS: ACC.Master = M
 
@@ -187,7 +187,7 @@ Init == (* Global variables *)
                         [
                             Masters |-> {M1, M2, M3},
                             Balance |-> 0,
-                            Pending |-> <<>>
+                            Pending |-> [Master |-> {}, Amount |-> {}]
                         ])
         /\ pc = "Lbl_1"
 
@@ -201,7 +201,7 @@ Lbl_1 == /\ pc = "Lbl_1"
                                             /\ Assert((ACCOUNTS[I]).Balance >= AMOUNT, 
                                                       "Failure of assertion at line 85, column 5 of macro called at line 106, column 21.")
                                             /\ VAULT' = [VAULT EXCEPT !.Pending = [Master |-> (ACCOUNTS[I]).Master, Amount |-> AMOUNT]]
-                                ELSE /\ \E M \in (VAULT.Masters \ {VaultPendingMaster}):
+                                ELSE /\ \E M \in (VAULT.Masters):
                                           TRUE
                                      /\ VAULT' = VAULT
                           /\ UNCHANGED <<LAYER, ACCOUNTS>>
@@ -229,10 +229,10 @@ Spec == Init /\ [][Next]_vars
 
 Termination == <>(pc = "Done")
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-63f68d919041e73a7c56446021bcab9f
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-0b7919d4c7bc59f2e5ad3df581893e43
 
 
 =============================================================================
 \* Modification History
-\* Last modified Wed Sep 23 18:16:02 IDT 2020 by yaronwittenstein
+\* Last modified Wed Sep 23 20:45:25 IDT 2020 by yaronwittenstein
 \* Created Wed Sep 23 10:52:51 IDT 2020 by yaronwittenstein
