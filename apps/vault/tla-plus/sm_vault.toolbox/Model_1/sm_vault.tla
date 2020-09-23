@@ -41,6 +41,8 @@ variables
 define    
     Pick(S) == CHOOSE s \in S: TRUE
     
+    Range(f) == {f[x] : x \in DOMAIN f}
+    
     RECURSIVE SeqSum(_)
     SeqSum(S) ==
         IF S = <<>> THEN
@@ -58,7 +60,9 @@ define
     
     VaultPendingMaster == VAULT.Pending.Master
     
-    MasterAccount(M) == CHOOSE ACC \in ACCOUNTS: ACC.Master = M
+    VaultPendingAmount == VAULT.Pending.Amount
+    
+    AccountByMaster(M) == CHOOSE ACC \in Range(ACCOUNTS): ACC.Master = M
           
     NonNegeBalanceInvariant == (\A I \in 1..ACCOUNT_COUNT: ACCOUNTS[1].Balance >= 0)
                                     /\
@@ -70,7 +74,7 @@ define
 end define;
     
 
-macro Fund(FROM, AMOUNT)
+macro FundVault(FROM, AMOUNT)
 begin
     assert FROM.Balance >= AMOUNT;
     
@@ -78,22 +82,39 @@ begin
     VAULT.Balance := VAULT.Balance + AMOUNT;
 end macro;
 
+macro FundAccount(ACC, AMOUNT) 
+begin
+    ACC.Balance := ACC.Balance + AMOUNT
+end macro;
 
 macro WithdrawBegin(ACC, AMOUNT) 
 begin
     assert ~VaultIsPending;
-    assert ACC.Balance >= AMOUNT;
+    assert VAULT.Balance >= AMOUNT;
     
     VAULT.Pending := [Master |-> ACC.Master, Amount |-> AMOUNT]
 end macro;
 
 macro WithdrawApprove(ACC)
 begin
-    assert VaultIsPending
+    assert VaultIsPending;
+    assert VAULT.Balance >= VaultPendingAmount;
+    
+    if (ACC.Master \in VAULT.Masters) /\ (ACC.Master /= VaultPendingMaster) then
+        \* do withdraw
+        VAULT.Balance := VAULT.Balance - VaultPendingAmount
+        \* FundAccount(AccountByMaster(VaultPendingMaster), VaultPendingAmount);
+        
+        \* Reset pending
+        VAULT.Pending := [Master |-> {}, Amount |-> {}];
+    end if;  
 end macro;
 
 begin
-    while STEP < TOTAL_STEPS do
+    while STEP < TOTAL_STEPS do     
+        \* we always increment `STEP`
+        STEP := STEP + 1;
+        
         either 
             \* Withdraw (Begin / Approve)
             
@@ -101,7 +122,7 @@ begin
                 \* Withdraw begin
                 
                 with I \in 1..ACCOUNT_COUNT,
-                    AMOUNT \in 0..ACCOUNTS[I].Balance
+                    AMOUNT \in 0..VAULT.Balance
                 do
                     WithdrawBegin(ACCOUNTS[I], AMOUNT)
                 end with;
@@ -109,9 +130,8 @@ begin
             else
                 \* Withdraw approve
                  
-                 with M \in (VAULT.Masters) do
-                    skip;
-                    \* WithdrawApprove(MasterAccount(M))
+                 with M \in VAULT.Masters do
+                    WithdrawApprove(AccountByMaster(M))
                  end with;
             end if; 
         or
@@ -119,24 +139,23 @@ begin
             with I \in 1..ACCOUNT_COUNT,
                 AMOUNT \in 0..ACCOUNTS[I].Balance
             do
-                Fund(ACCOUNTS[I], AMOUNT)
+                FundVault(ACCOUNTS[I], AMOUNT)
             end with; 
         or
             \* Next layer    
             LAYER := LAYER + 1  
         end either;
-        
-        \* we always increment `STEP`
-        STEP := STEP + 1;
     end while;
 
 end algorithm; *)
 
-\* BEGIN TRANSLATION - the hash of the PCal code: PCal-ce0a7dcf3e8d8cc4695ebfed35ea7ba9
+\* BEGIN TRANSLATION - the hash of the PCal code: PCal-3d958cf041924fbd4f0f4e8c5828b510
 VARIABLES STEP, LAYER, ACCOUNTS, VAULT, pc
 
 (* define statement *)
 Pick(S) == CHOOSE s \in S: TRUE
+
+Range(f) == {f[x] : x \in DOMAIN f}
 
 RECURSIVE SeqSum(_)
 SeqSum(S) ==
@@ -155,7 +174,9 @@ VaultIsPending == VAULT.Pending.Master /= {}
 
 VaultPendingMaster == VAULT.Pending.Master
 
-MasterAccount(M) == CHOOSE ACC \in ACCOUNTS: ACC.Master = M
+VaultPendingAmount == VAULT.Pending.Amount
+
+AccountByMaster(M) == CHOOSE ACC \in Range(ACCOUNTS): ACC.Master = M
 
 NonNegeBalanceInvariant == (\A I \in 1..ACCOUNT_COUNT: ACCOUNTS[1].Balance >= 0)
                                 /\
@@ -193,28 +214,34 @@ Init == (* Global variables *)
 
 Lbl_1 == /\ pc = "Lbl_1"
          /\ IF STEP < TOTAL_STEPS
-               THEN /\ \/ /\ IF ~VaultIsPending
+               THEN /\ STEP' = STEP + 1
+                    /\ \/ /\ IF ~VaultIsPending
                                 THEN /\ \E I \in 1..ACCOUNT_COUNT:
-                                          \E AMOUNT \in 0..ACCOUNTS[I].Balance:
+                                          \E AMOUNT \in 0..VAULT.Balance:
                                             /\ Assert(~VaultIsPending, 
-                                                      "Failure of assertion at line 84, column 5 of macro called at line 106, column 21.")
-                                            /\ Assert((ACCOUNTS[I]).Balance >= AMOUNT, 
-                                                      "Failure of assertion at line 85, column 5 of macro called at line 106, column 21.")
+                                                      "Failure of assertion at line 92, column 5 of macro called at line 126, column 21.")
+                                            /\ Assert(VAULT.Balance >= AMOUNT, 
+                                                      "Failure of assertion at line 93, column 5 of macro called at line 126, column 21.")
                                             /\ VAULT' = [VAULT EXCEPT !.Pending = [Master |-> (ACCOUNTS[I]).Master, Amount |-> AMOUNT]]
-                                ELSE /\ \E M \in (VAULT.Masters):
-                                          TRUE
-                                     /\ VAULT' = VAULT
+                                ELSE /\ \E M \in VAULT.Masters:
+                                          /\ Assert(VaultIsPending, 
+                                                    "Failure of assertion at line 100, column 5 of macro called at line 133, column 21.")
+                                          /\ Assert(VAULT.Balance >= VaultPendingAmount, 
+                                                    "Failure of assertion at line 101, column 5 of macro called at line 133, column 21.")
+                                          /\ IF ((AccountByMaster(M)).Master \in VAULT.Masters) /\ ((AccountByMaster(M)).Master /= VaultPendingMaster)
+                                                THEN /\ VAULT' = [VAULT EXCEPT !.Pending = [Master |-> {}, Amount |-> {}]]
+                                                ELSE /\ TRUE
+                                                     /\ VAULT' = VAULT
                           /\ UNCHANGED <<LAYER, ACCOUNTS>>
                        \/ /\ \E I \in 1..ACCOUNT_COUNT:
                                \E AMOUNT \in 0..ACCOUNTS[I].Balance:
                                  /\ Assert((ACCOUNTS[I]).Balance >= AMOUNT, 
-                                           "Failure of assertion at line 75, column 5 of macro called at line 122, column 17.")
+                                           "Failure of assertion at line 79, column 5 of macro called at line 141, column 17.")
                                  /\ ACCOUNTS' = [ACCOUNTS EXCEPT ![I].Balance = (ACCOUNTS[I]).Balance - AMOUNT]
                                  /\ VAULT' = [VAULT EXCEPT !.Balance = VAULT.Balance + AMOUNT]
                           /\ LAYER' = LAYER
                        \/ /\ LAYER' = LAYER + 1
                           /\ UNCHANGED <<ACCOUNTS, VAULT>>
-                    /\ STEP' = STEP + 1
                     /\ pc' = "Lbl_1"
                ELSE /\ pc' = "Done"
                     /\ UNCHANGED << STEP, LAYER, ACCOUNTS, VAULT >>
@@ -229,10 +256,10 @@ Spec == Init /\ [][Next]_vars
 
 Termination == <>(pc = "Done")
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-0b7919d4c7bc59f2e5ad3df581893e43
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-1e9449c9dde529bc4766c36405ffca12
 
 
 =============================================================================
 \* Modification History
-\* Last modified Wed Sep 23 20:45:25 IDT 2020 by yaronwittenstein
+\* Last modified Wed Sep 23 22:14:01 IDT 2020 by yaronwittenstein
 \* Created Wed Sep 23 10:52:51 IDT 2020 by yaronwittenstein
