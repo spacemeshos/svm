@@ -32,13 +32,13 @@ AccountBalance == LET All == [MASTERS -> 0..TOTAL_COINS]
                   IN {f \in All: SumAccounts(f) = TOTAL_COINS}
 
 VaultMasters[D \in (SUBSET MASTERS \ {{}})] ==
-    LET All == [D -> MASTERS \X MASTERS]
+    LET All == [D -> MASTERS \X MASTERS \X MASTERS]
     IN
     {      
         f \in All:
-            \A x \in DOMAIN f:
-                \E y, z \in MASTERS:
-                    f[x] = <<y, z>> /\ (Ord(x) > Ord(y)) /\ (Ord(y) > Ord(z))
+            \A w \in DOMAIN f:
+                \E x, y, z \in MASTERS:
+                    f[w] = <<x, y, z>> /\ (Ord(w) > Ord(x)) /\ (Ord(x) > Ord(y)) /\ (Ord(y) > Ord(z))
     }
 
 
@@ -50,7 +50,7 @@ variables
     amount,
     current_vault,
     acc_balance \in AccountBalance,
-    vault_masters \in VaultMasters[{"M3"}],   
+    vault_masters \in VaultMasters[{"M4"}],   
     vault_withdraw = [v \in Vaults |-> [Master |-> {}, Amount |-> 0]],
     vault_cancel_master = [v \in Vaults |-> {}];
 
@@ -74,7 +74,7 @@ define
                               
     SameTotalCoins == SumAccounts(acc_balance) = TOTAL_COINS
     
-    NonNegBalanceInvriant == \A m \in MASTERS: acc_balance[m] >= 0
+    NonNegBalanceInvariant == \A m \in MASTERS: acc_balance[m] >= 0
 end define; 
 
 
@@ -110,12 +110,16 @@ Work:
                         if c > 0 then
                             assert MultiSigBegin(v, m);  
     
-                            vault_withdraw[v] := [Master |-> {m}, Amount |-> c]
+                            vault_withdraw[v] := [Master |-> {m}, Amount |-> c];
+                            goto Work;
+                        else
+                            goto Work;
                         end if;
                     end with;     
                 else                   
                     with m \in (PairSet(vault_masters[v]) \ vault_withdraw[v].Master)
                     do
+                        
                         assert MultiSigComplete(v, m); 
                         
                         amount := vault_withdraw[v].Amount;
@@ -172,7 +176,7 @@ Work:
     
     end while;
 end algorithm;*)
-\* BEGIN TRANSLATION - the hash of the PCal code: PCal-46db657ede04d52f5bbb3ad68eee4e3d
+\* BEGIN TRANSLATION - the hash of the PCal code: PCal-ff9bcd7c9b64f4c0a18a523119839a30
 CONSTANT defaultInitValue
 VARIABLES steps, src, dst, amount, current_vault, acc_balance, vault_masters, 
           vault_withdraw, vault_cancel_master, pc
@@ -197,7 +201,7 @@ MultiSigComplete(v, m) == /\ IsVaultAccount(v)
 
 SameTotalCoins == SumAccounts(acc_balance) = TOTAL_COINS
 
-NonNegBalanceInvriant == \A m \in MASTERS: acc_balance[m] >= 0
+NonNegBalanceInvariant == \A m \in MASTERS: acc_balance[m] >= 0
 
 
 vars == << steps, src, dst, amount, current_vault, acc_balance, vault_masters, 
@@ -210,7 +214,7 @@ Init == (* Global variables *)
         /\ amount = defaultInitValue
         /\ current_vault = defaultInitValue
         /\ acc_balance \in AccountBalance
-        /\ vault_masters \in VaultMasters[{"M3"}]
+        /\ vault_masters \in VaultMasters[{"M4"}]
         /\ vault_withdraw = [v \in Vaults |-> [Master |-> {}, Amount |-> 0]]
         /\ vault_cancel_master = [v \in Vaults |-> {}]
         /\ pc = "Start"
@@ -242,13 +246,13 @@ Work == /\ pc = "Work"
                                                 THEN /\ Assert(MultiSigBegin(v, m), 
                                                                "Failure of assertion at line 111, column 29.")
                                                      /\ vault_withdraw' = [vault_withdraw EXCEPT ![v] = [Master |-> {m}, Amount |-> c]]
-                                                ELSE /\ TRUE
+                                                     /\ pc' = "Work"
+                                                ELSE /\ pc' = "Work"
                                                      /\ UNCHANGED vault_withdraw
-                                      /\ pc' = "AfterWork"
                                       /\ UNCHANGED << src, dst, amount >>
                                  ELSE /\ \E m \in (PairSet(vault_masters[v]) \ vault_withdraw[v].Master):
                                            /\ Assert(MultiSigComplete(v, m), 
-                                                     "Failure of assertion at line 119, column 25.")
+                                                     "Failure of assertion at line 123, column 25.")
                                            /\ amount' = vault_withdraw[v].Amount
                                            /\ src' = v
                                            /\ dst' = RandomElement(vault_withdraw[v].Master)
@@ -315,7 +319,7 @@ Spec == Init /\ [][Next]_vars
 
 Termination == <>(pc = "Done")
 
-\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-7f9f9c55bd5354ca6c73fdd897b01bf9
+\* END TRANSLATION - the hash of the generated TLA code (remove to silence divergence warnings): TLA-c1e2ea242d1bb75f5887d6f2672db16b
 
 
 =============================================================================
