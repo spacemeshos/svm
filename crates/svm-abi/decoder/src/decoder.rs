@@ -80,7 +80,7 @@ impl Decoder {
 
     /// Decodes the next `sdk_types::Value` (primitive or composite) and returns it.
     /// Returns `DecodeError` when decode fails.
-    pub fn decode_value(&self, cursor: &mut Cursor) -> Result<Value, DecodeError> {
+    pub fn decode_value<'a>(&self, cursor: &mut Cursor) -> Result<Value<'a>, DecodeError> {
         assert_no_eof!(cursor);
 
         let kind = self.read_type_kind(cursor)?;
@@ -103,7 +103,7 @@ impl Decoder {
         Ok(value)
     }
 
-    fn decode_bool(&self, cursor: &mut Cursor) -> Result<Value, DecodeError> {
+    fn decode_bool<'a>(&self, cursor: &mut Cursor) -> Result<Value<'a>, DecodeError> {
         let byte = self.read_byte(cursor)?;
 
         let v = match byte {
@@ -115,7 +115,7 @@ impl Decoder {
         Ok(v.into())
     }
 
-    fn decode_addr(&self, cursor: &mut Cursor) -> Result<Value, DecodeError> {
+    fn decode_addr<'a>(&self, cursor: &mut Cursor) -> Result<Value<'a>, DecodeError> {
         let byte = self.read_byte(cursor)?;
 
         debug_assert_eq!(byte, layout::ADDRESS);
@@ -123,7 +123,7 @@ impl Decoder {
         decode_fixed_primitive!(self, Address, 20, cursor)
     }
 
-    fn decode_amount(&self, cursor: &mut Cursor) -> Result<Value, DecodeError> {
+    fn decode_amount<'a>(&self, cursor: &mut Cursor) -> Result<Value<'a>, DecodeError> {
         let byte = self.read_byte(cursor)?;
 
         let nbytes = match byte {
@@ -220,7 +220,7 @@ impl Decoder {
         Ok(num)
     }
 
-    fn decode_array(&self, cursor: &mut Cursor) -> Result<Value, DecodeError> {
+    fn decode_array<'a>(&self, cursor: &mut Cursor) -> Result<Value<'a>, DecodeError> {
         assert_no_eof!(cursor);
 
         let byte = self.read_byte(cursor)?;

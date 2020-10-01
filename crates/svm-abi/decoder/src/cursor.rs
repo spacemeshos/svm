@@ -11,6 +11,8 @@ pub struct Cursor<'a> {
     /// The traversed function buffer
     pub bytes: &'a [u8],
 
+    pub length: usize,
+
     /// The current pointed-by offset
     pub offset: usize,
 }
@@ -18,19 +20,17 @@ pub struct Cursor<'a> {
 impl<'a> Cursor<'a> {
     /// Creates a new `Cursor` for encoded function buffer `bytes`
     pub fn new(bytes: &'a [u8]) -> Self {
-        Self { bytes, offset: 0 }
+        Self {
+            bytes,
+            length: bytes.len(),
+            offset: 0,
+        }
     }
 
     /// Returns whether cursor has finished traversal
     #[inline]
     pub fn is_eof(&self) -> bool {
-        self.offset >= self.len()
-    }
-
-    /// The length of the underlying buffer
-    #[inline]
-    pub fn len(&self) -> usize {
-        self.bytes.len()
+        self.offset >= self.length
     }
 
     /// Returns the next looked-at byte without incrementing `offset`
@@ -63,7 +63,7 @@ impl<'a> Cursor<'a> {
     pub fn read_bytes(&mut self, nbytes: usize) -> Option<*const u8> {
         let last_byte_off = self.offset + nbytes - 1;
 
-        if last_byte_off >= self.len() {
+        if last_byte_off >= self.length {
             return None;
         }
 
@@ -74,7 +74,8 @@ impl<'a> Cursor<'a> {
     }
 
     /// Returns a raw pointer to the current pointed-at address.
-    pub unsafe fn offset_ptr(&self) -> *const u8 {
+    #[inline]
+    unsafe fn offset_ptr(&self) -> *const u8 {
         self.bytes.as_ptr().add(self.offset)
     }
 }

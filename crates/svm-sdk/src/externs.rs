@@ -2,9 +2,9 @@
 extern "C" {
     fn svm_transfer(dst_ptr: u32, amount: u64);
 
-    fn svm_host_get64(field_idx: u32) -> u64;
-
     fn svm_host_get(field_idx: u32, mem_ptr: u32);
+
+    fn svm_host_get64(field_idx: u32) -> u64;
 
     fn svm_calldata_offset() -> u32;
 

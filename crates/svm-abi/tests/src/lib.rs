@@ -8,7 +8,7 @@
 
 #[cfg(test)]
 mod tests {
-    use svm_abi_decoder::{Cursor, Decoder};
+    use svm_abi_decoder::{CallData, Cursor, Decoder};
     use svm_abi_encoder::Encoder;
     use svm_sdk::value::{Address, AddressOwned, Composite, Primitive, Value};
     use svm_sdk::Amount;
