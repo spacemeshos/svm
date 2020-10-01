@@ -1,17 +1,15 @@
-/// Used for traversal of the encoded function buffer.
+/// Used for traversal of the encoded function input (a.k.a `calldata`).
 /// It will be used by the `Decoder`.
 ///
 /// By having the isolation between the `Decoder` and `Cursor` we are able
 /// to execute a `Decoder` method that receives as a parameter `&mut Cursor`  
-/// while the `Decoder` is borrowed `&self`.
+/// while the `Decoder` is borrowed as `&self`.
 ///
 /// This separation was born out of a need to comply to the safe Rust ownership rules
 /// (see the look under the `decode_array` under `Decoder` as an example).
 pub struct Cursor<'a> {
     /// The traversed function buffer
     pub bytes: &'a [u8],
-
-    pub length: usize,
 
     /// The current pointed-by offset
     pub offset: usize,
@@ -20,17 +18,13 @@ pub struct Cursor<'a> {
 impl<'a> Cursor<'a> {
     /// Creates a new `Cursor` for encoded function buffer `bytes`
     pub fn new(bytes: &'a [u8]) -> Self {
-        Self {
-            bytes,
-            length: bytes.len(),
-            offset: 0,
-        }
+        Self { bytes, offset: 0 }
     }
 
     /// Returns whether cursor has finished traversal
     #[inline]
     pub fn is_eof(&self) -> bool {
-        self.offset >= self.length
+        self.offset >= self.bytes.len()
     }
 
     /// Returns the next looked-at byte without incrementing `offset`
@@ -63,7 +57,7 @@ impl<'a> Cursor<'a> {
     pub fn read_bytes(&mut self, nbytes: usize) -> Option<*const u8> {
         let last_byte_off = self.offset + nbytes - 1;
 
-        if last_byte_off >= self.length {
+        if last_byte_off >= self.bytes.len() {
             return None;
         }
 

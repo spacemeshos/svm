@@ -290,6 +290,36 @@ mod tests {
     }
 
     #[test]
+    fn calldata_sanity() {
+        fn next(c: &mut CallData) -> Value<'static> {
+            c.next().unwrap()
+        }
+
+        let a: u32 = 10;
+        let b: i16 = 20;
+        let c = true;
+
+        let mut buf = Vec::new();
+        a.encode(&mut buf);
+        b.encode(&mut buf);
+        c.encode(&mut buf);
+
+        let ptr = buf.as_ptr();
+        let slice = unsafe { core::slice::from_raw_parts(ptr, buf.len()) };
+
+        let mut calldata = CallData::new(slice);
+
+        let a_: u32 = next(&mut calldata).into();
+        assert_eq!(a, a_);
+
+        let b_: i16 = next(&mut calldata).into();
+        assert_eq!(b, b_);
+
+        let c_: bool = next(&mut calldata).into();
+        assert_eq!(c, c_);
+    }
+
+    #[test]
     fn display_addr() {
         let bytes = [
             0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80, 0x90, 0xA0, 0x11, 0x22, 0x33, 0x44,
