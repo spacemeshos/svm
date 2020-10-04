@@ -293,6 +293,19 @@ mod tests {
     }
 
     #[test]
+    fn calldata_next_1() {
+        let a: u32 = 10;
+
+        let mut buf = Vec::new();
+        a.encode(&mut buf);
+
+        let mut calldata = CallData::new(as_static!(buf));
+        let a_ = calldata.next_1();
+
+        assert_eq!(a, a_);
+    }
+
+    #[test]
     fn calldata_next_2() {
         let a: u32 = 10;
         let b: i16 = 20;

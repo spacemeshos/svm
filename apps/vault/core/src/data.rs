@@ -8,17 +8,19 @@ impl VaultData {
     // Vault type
     /////////////////////////////////////////////////////////////
     pub fn store_type(ty: VaultType) {
-        let var_id = VarId::VAULT_TYPE;
-        let ty: u32 = ty.into();
+        todo!()
+        // let var_id = VarId::VAULT_TYPE;
+        // let ty: bool = ty.into();
 
-        Storage::set32(var_id, ty)
+        // Storage::set32(var_id, ty)
     }
 
     pub fn load_type() -> VaultType {
-        let var_id = VarId::VAULT_TYPE;
-        let ty = Storage::get32(var_id);
+        todo!()
+        // let var_id = VarId::VAULT_TYPE;
+        // let ty = Storage::get32(var_id);
 
-        ty.into()
+        // ty.into()
     }
 
     // Master Account

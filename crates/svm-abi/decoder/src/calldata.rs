@@ -37,6 +37,15 @@ impl Iterator for CallData {
 }
 
 impl CallData {
+    pub fn next_1<T1>(&mut self) -> T1
+    where
+        T1: From<Value<'static>>,
+    {
+        let v1 = self.next().unwrap();
+
+        v1.into()
+    }
+
     pub fn next_2<T1, T2>(&mut self) -> (T1, T2)
     where
         T1: From<Value<'static>>,

@@ -299,33 +299,6 @@ impl From<Value<'_>> for AddressOwned {
     }
 }
 
-macro_rules! impl_to_rust_borrowed_array {
-    ($($n:expr)*) => {
-        $( impl_to_rust_borrowed_array!{@one $n} )*
-    };
-    (@one $n:expr) => {
-        impl<'a> From<Value<'a>> for [&'a Value<'a>; $n] {
-            fn from(value: Value<'a>) -> Self {
-                match value {
-                    Value::Composite(Composite::Array(values)) => {
-                        assert_eq!(values.len(), $n);
-
-                        let unit = Value::unit_ref();
-                        let mut array: [&Value<'a>; $n] = [unit; $n];
-
-                        for (i, v) in values.iter().enumerate() {
-                            array[i] = v;
-                        }
-
-                        array
-                    }
-                    _ => unreachable!(),
-                }
-            }
-        }
-    };
-}
-
 macro_rules! impl_to_rust_owned_array {
     ([] => $($tt:tt)*) => {};
     ([$T:tt $($T_tail:tt)*] => $($tt:tt)*) => {
@@ -341,7 +314,7 @@ macro_rules! impl_to_rust_owned_array {
     };
     (@implement $T:tt $n:tt) => {
         impl<'a> From<Value<'a>> for [$T; $n]
-            where Value<'a>: Into<$T>
+        where Value<'a>: Into<$T>
         {
             fn from(value: Value<'a>) -> Self {
                 match value {
@@ -365,7 +338,7 @@ macro_rules! impl_to_rust_owned_array {
     };
 }
 
-impl_to_rust_borrowed_array!(1 2 3 4 5);
+// impl_to_rust_borrowed_array!([Address] => 1 2);
 
 #[rustfmt::skip]
 impl_to_rust_owned_array!([

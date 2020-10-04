@@ -27,7 +27,7 @@ fn host() -> MutexGuard<'static, InnerHost> {
 }
 
 struct InnerHost {
-    pub func_buf: Option<&'static [u8]>,
+    pub calldata: Option<&'static [u8]>,
 
     pub accounts: HashMap<AddressOwned, Amount>,
 
@@ -41,7 +41,7 @@ struct InnerHost {
 impl InnerHost {
     fn new() -> Self {
         Self {
-            func_buf: None,
+            calldata: None,
             sender: None,
             accounts: HashMap::default(),
             layer_id: LayerId(0),
@@ -67,7 +67,7 @@ impl InnerHost {
     }
 
     fn reset(&mut self) {
-        self.func_buf = None;
+        self.calldata = None;
         self.sender = None;
         self.accounts = HashMap::new();
         self.layer_id = LayerId(0);
@@ -96,7 +96,7 @@ impl Host {
     pub fn get_calldata(&self) -> &'static [u8] {
         let host = host();
 
-        host.func_buf.as_ref().unwrap()
+        host.calldata.as_ref().unwrap()
     }
 
     pub fn now(&self) -> LayerId {
@@ -105,10 +105,10 @@ impl Host {
         host.layer_id
     }
 
-    pub fn set_func_buf(&self, func_buf: &'static [u8]) {
+    pub fn set_func_buf(&self, calldata: &'static [u8]) {
         let mut host = host();
 
-        host.func_buf = Some(func_buf);
+        host.calldata = Some(calldata);
     }
 
     pub fn set_sender(&self, sender: AddressOwned) {

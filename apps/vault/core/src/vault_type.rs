@@ -4,21 +4,20 @@ pub enum VaultType {
     MultiSig,
 }
 
-impl From<u32> for VaultType {
-    fn from(v: u32) -> Self {
+impl From<bool> for VaultType {
+    fn from(v: bool) -> Self {
         match v {
-            0 => VaultType::Simple,
-            1 => VaultType::MultiSig,
-            _ => todo!("log error"),
+            true => VaultType::Simple,
+            false => VaultType::MultiSig,
         }
     }
 }
 
-impl From<VaultType> for u32 {
-    fn from(ty: VaultType) -> u32 {
+impl From<VaultType> for bool {
+    fn from(ty: VaultType) -> bool {
         match ty {
-            VaultType::Simple => 0,
-            VaultType::MultiSig => 1,
+            VaultType::Simple => true,
+            VaultType::MultiSig => false,
         }
     }
 }
