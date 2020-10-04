@@ -391,9 +391,6 @@ mod tests {
         e.encode(&mut buf);
         f.encode(&mut buf);
 
-        let ptr = buf.as_ptr();
-        let slice = unsafe { core::slice::from_raw_parts(ptr, buf.len()) };
-
         let mut calldata = CallData::new(as_static!(buf));
         let (a_, b_, c_, d_, e_, f_): (u32, i16, bool, [u8; 2], [u16; 3], Amount) =
             calldata.next_6();
