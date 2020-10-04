@@ -55,3 +55,20 @@ impl Encoder for Vec<&dyn Encoder> {
         (&self[..]).encode(w)
     }
 }
+
+macro_rules! impl_array_encode {
+    ($($N:expr),*) => {
+        $( impl_array_encode!{@ $N} )*
+    };
+
+    (@ $N:expr) => {
+        impl<T: Encoder> Encoder for [T; $N] {
+            #[inline]
+            fn encode(&self, w: &mut Vec<u8>) {
+                (&self[..]).encode(w)
+            }
+        }
+    };
+}
+
+impl_array_encode!(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10);

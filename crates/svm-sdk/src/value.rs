@@ -376,4 +376,4 @@ impl_to_rust_owned_array!([
     i32 u32
     i64 u64
     AddressOwned
-] => 1 2 3 4 5);
+] => 1 2 3 4 5 6 7 8 9 10);

@@ -37,7 +37,7 @@ impl Iterator for CallData {
 }
 
 impl CallData {
-    fn next_2<T1, T2>(&mut self) -> (T1, T2)
+    pub fn next_2<T1, T2>(&mut self) -> (T1, T2)
     where
         T1: From<Value<'static>>,
         T2: From<Value<'static>>,
@@ -48,7 +48,7 @@ impl CallData {
         (v1.into(), v2.into())
     }
 
-    fn next_3<T1, T2, T3>(&mut self) -> (T1, T2, T3)
+    pub fn next_3<T1, T2, T3>(&mut self) -> (T1, T2, T3)
     where
         T1: From<Value<'static>>,
         T2: From<Value<'static>>,
@@ -61,7 +61,7 @@ impl CallData {
         (v1.into(), v2.into(), v3.into())
     }
 
-    fn next_4<T1, T2, T3, T4>(&mut self) -> (T1, T2, T3, T4)
+    pub fn next_4<T1, T2, T3, T4>(&mut self) -> (T1, T2, T3, T4)
     where
         T1: From<Value<'static>>,
         T2: From<Value<'static>>,
@@ -76,7 +76,7 @@ impl CallData {
         (v1.into(), v2.into(), v3.into(), v4.into())
     }
 
-    fn next_5<T1, T2, T3, T4, T5>(&mut self) -> (T1, T2, T3, T4, T5)
+    pub fn next_5<T1, T2, T3, T4, T5>(&mut self) -> (T1, T2, T3, T4, T5)
     where
         T1: From<Value<'static>>,
         T2: From<Value<'static>>,
@@ -93,7 +93,7 @@ impl CallData {
         (v1.into(), v2.into(), v3.into(), v4.into(), v5.into())
     }
 
-    fn next_6<T1, T2, T3, T4, T5, T6>(&mut self) -> (T1, T2, T3, T4, T5, T6)
+    pub fn next_6<T1, T2, T3, T4, T5, T6>(&mut self) -> (T1, T2, T3, T4, T5, T6)
     where
         T1: From<Value<'static>>,
         T2: From<Value<'static>>,

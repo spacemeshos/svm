@@ -8,33 +8,38 @@
 
 #[cfg(test)]
 mod tests {
-    use svm_abi_decoder::{CallData, Cursor, Decoder};
+    use svm_abi_decoder::CallData;
     use svm_abi_encoder::Encoder;
     use svm_sdk::value::{Address, AddressOwned, Composite, Primitive, Value};
     use svm_sdk::Amount;
 
+    macro_rules! as_static {
+        ($bytes:expr) => {
+            unsafe { core::mem::transmute::<_, &'static [u8]>(&$bytes[..]) }
+        };
+    }
+
     macro_rules! test_primitive {
         ($ty:ty, $rust_value:expr) => {{
             let rust_value: $ty = $rust_value.clone();
-            let abi_value: Value = rust_value.into();
+            let value: Value = rust_value.into();
 
-            let mut buf_native = Vec::new();
-            let mut buf_abi_value = Vec::new();
+            let mut buf_rust = Vec::new();
+            let mut buf_value = Vec::new();
 
             let rust_value: $ty = $rust_value.clone();
-            rust_value.encode(&mut buf_native);
-            abi_value.encode(&mut buf_abi_value);
+            rust_value.encode(&mut buf_rust);
+            value.encode(&mut buf_value);
 
-            // Asserting that encoding a Rust rust_value number
+            // Asserting that encoding a Rust primitive
             // gives the same results when encoding the corresponding `Value` wrapper.
-            assert_eq!(buf_native, buf_abi_value);
+            assert_eq!(&buf_rust, &buf_value);
 
-            let mut cursor = Cursor::new(&buf_native);
-            let decoder = Decoder::new();
-            let abi_value = decoder.decode_value(&mut cursor).unwrap();
+            let mut calldata = CallData::new(as_static!(&buf_rust));
+            let decoded_val: Value = calldata.next().unwrap();
 
-            let n: $ty = abi_value.into();
-            assert_eq!(n, $rust_value);
+            let decoded_rust_val: $ty = decoded_val.into();
+            assert_eq!(decoded_rust_val, $rust_value);
         }};
     }
 
@@ -44,10 +49,8 @@ mod tests {
 
             $rust_array.to_vec().encode(&mut bytes);
 
-            let mut cursor = Cursor::new(&bytes);
-            let decoder = Decoder::new();
-
-            let value: Value = decoder.decode_value(&mut cursor).unwrap();
+            let mut calldata = CallData::new(as_static!(&bytes));
+            let value: Value = calldata.next().unwrap();
             let decoded: $ty = value.into();
 
             assert_eq!(decoded, $rust_array);
@@ -290,11 +293,23 @@ mod tests {
     }
 
     #[test]
-    fn calldata_sanity() {
-        fn next(c: &mut CallData) -> Value<'static> {
-            c.next().unwrap()
-        }
+    fn calldata_next_2() {
+        let a: u32 = 10;
+        let b: i16 = 20;
 
+        let mut buf = Vec::new();
+        a.encode(&mut buf);
+        b.encode(&mut buf);
+
+        let mut calldata = CallData::new(as_static!(buf));
+        let (a_, b_) = calldata.next_2();
+
+        assert_eq!(a, a_);
+        assert_eq!(b, b_);
+    }
+
+    #[test]
+    fn calldata_next_3() {
         let a: u32 = 10;
         let b: i16 = 20;
         let c = true;
@@ -304,19 +319,91 @@ mod tests {
         b.encode(&mut buf);
         c.encode(&mut buf);
 
+        let mut calldata = CallData::new(as_static!(buf));
+        let (a_, b_, c_) = calldata.next_3();
+
+        assert_eq!(a, a_);
+        assert_eq!(b, b_);
+        assert_eq!(c, c_);
+    }
+
+    #[test]
+    fn calldata_next_4() {
+        let a: u32 = 10;
+        let b: i16 = 20;
+        let c = true;
+        let d: [u8; 2] = [30, 40];
+
+        let mut buf = Vec::new();
+        a.encode(&mut buf);
+        b.encode(&mut buf);
+        c.encode(&mut buf);
+        d.encode(&mut buf);
+
+        let mut calldata = CallData::new(as_static!(buf));
+        let (a_, b_, c_, d_): (u32, i16, bool, [u8; 2]) = calldata.next_4();
+
+        assert_eq!(a, a_);
+        assert_eq!(b, b_);
+        assert_eq!(c, c_);
+        assert_eq!(d, d_);
+    }
+
+    #[test]
+    fn calldata_next_5() {
+        let a: u32 = 10;
+        let b: i16 = 20;
+        let c = true;
+        let d: [u8; 2] = [30, 40];
+        let e: [u16; 3] = [50, 60, 70];
+
+        let mut buf = Vec::new();
+        a.encode(&mut buf);
+        b.encode(&mut buf);
+        c.encode(&mut buf);
+        d.encode(&mut buf);
+        e.encode(&mut buf);
+
+        let mut calldata = CallData::new(as_static!(buf));
+        let (a_, b_, c_, d_, e_): (u32, i16, bool, [u8; 2], [u16; 3]) = calldata.next_5();
+
+        assert_eq!(a, a_);
+        assert_eq!(b, b_);
+        assert_eq!(c, c_);
+        assert_eq!(d, d_);
+        assert_eq!(e, e_);
+    }
+
+    #[test]
+    fn calldata_next_6() {
+        let a: u32 = 10;
+        let b: i16 = 20;
+        let c = true;
+        let d: [u8; 2] = [30, 40];
+        let e: [u16; 3] = [50, 60, 70];
+        let f = Amount(100);
+
+        let mut buf = Vec::new();
+        a.encode(&mut buf);
+        b.encode(&mut buf);
+        c.encode(&mut buf);
+        d.encode(&mut buf);
+        e.encode(&mut buf);
+        f.encode(&mut buf);
+
         let ptr = buf.as_ptr();
         let slice = unsafe { core::slice::from_raw_parts(ptr, buf.len()) };
 
-        let mut calldata = CallData::new(slice);
+        let mut calldata = CallData::new(as_static!(buf));
+        let (a_, b_, c_, d_, e_, f_): (u32, i16, bool, [u8; 2], [u16; 3], Amount) =
+            calldata.next_6();
 
-        let a_: u32 = next(&mut calldata).into();
         assert_eq!(a, a_);
-
-        let b_: i16 = next(&mut calldata).into();
         assert_eq!(b, b_);
-
-        let c_: bool = next(&mut calldata).into();
         assert_eq!(c, c_);
+        assert_eq!(d, d_);
+        assert_eq!(e, e_);
+        assert_eq!(f, f_);
     }
 
     #[test]
