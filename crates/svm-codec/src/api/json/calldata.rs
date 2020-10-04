@@ -101,6 +101,7 @@ fn primitive_as_json(p: &Primitive<'_>) -> (Json, Json) {
             let s = json::bytes_to_str(addr.as_slice());
             (Json::String("address".into()), json!(s))
         }
+        Primitive::Unit => unreachable!(),
     }
 }
 
