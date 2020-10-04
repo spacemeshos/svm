@@ -1,8 +1,8 @@
-use svm_abi_decoder::{Cursor, Decoder};
+use svm_abi_decoder::CallData;
 
 use svm_sdk::ensure;
 use svm_sdk::{
-    value::{self, Address, Array},
+    value::{self, Address},
     Amount, Host,
 };
 
@@ -32,13 +32,13 @@ macro_rules! decode_addr {
 }
 
 macro_rules! decode_masters {
-    ($decoder:ident, $cursor:ident) => {{
-        match $decoder.decode_value(&mut $cursor) {
-            Ok(v) => {
+    ($calldata:expr) => {{
+        match $calldata.next() {
+            Some(v) => {
                 let addrs = v.into();
                 addrs
             }
-            Err(..) => panic!("invalid `calldata`"),
+            _ => panic!("invalid `calldata`"),
         }
     }};
 }
@@ -46,8 +46,6 @@ macro_rules! decode_masters {
 macro_rules! decode_action {
     ($action:ident, $spending_limit:expr, $decoder:ident, $cursor:ident) => {
         let bytes = Host::get_calldata();
-        let mut $cursor = Cursor::new(bytes);
-        let $decoder = Decoder::new();
 
         let masters = decode_masters!($decoder, $cursor);
         let spending_account: Address<'static> = decode_addr!($decoder, $cursor);
@@ -76,7 +74,7 @@ fn simple_initialize(spending_limit: Amount) {
 
     let masters = &action.masters;
 
-    ensure!(masters.len() == 1, "Wrong number of master accounts given.");
+    ensure!(masters.len() == 1, "Wrong number of Master Keys given.");
 
     VaultData::store_type(VaultType::Simple);
     VaultData::store_master_account(&masters[0], 1);
@@ -89,7 +87,7 @@ fn multisig_initialize(spending_limit: Amount) {
 
     let masters = &action.masters;
 
-    ensure!(masters.len() == 3, "Wrong number of master accounts given.");
+    ensure!(masters.len() == 3, "Wrong number of Master Keys given.");
 
     let a = &masters[0];
     let b = &masters[1];
@@ -110,6 +108,6 @@ fn multisig_initialize(spending_limit: Amount) {
 fn assert_not_same(addr1: &Address, addr2: &Address) {
     ensure!(
         addr1 != addr2,
-        "Master Accounts must be different from one another."
+        "Master Keys must be different from one another."
     );
 }

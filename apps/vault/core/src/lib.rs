@@ -17,27 +17,27 @@ use vault_type::VaultType;
 
 pub use action::{Action, ActionKind};
 
-pub fn initialize(vault_ty: VaultType, spending_limit: Amount) {
-    actions::initialize(vault_ty, spending_limit);
+pub fn initialize() {
+    actions::initialize();
 }
 
-pub fn withdraw(ty: VaultType, amount: Amount) {
-    actions::withdraw(ty, amount)
+pub fn withdraw() {
+    // actions::withdraw()
 }
 
-pub fn daily_withdraw(amount: Amount) {
-    actions::daily_withdraw(amount)
+pub fn daily_withdraw() {
+    // actions::daily_withdraw()
 }
 
 pub fn set_spending_account() {
-    actions::set_spending_account();
+    // actions::set_spending_account();
 }
 
-pub fn set_spending_limit(amount: Amount) {
-    actions::set_spending_limit(amount)
+pub fn set_spending_limit() {
+    // actions::set_spending_limit()
 }
 
-pub fn cancel_action(action: ActionKind) {
+pub fn cancel_action() {
     // let vault_ty = VaultData::load_type();
 
     // ensure!(

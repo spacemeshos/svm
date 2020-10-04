@@ -23,5 +23,5 @@ mod cursor;
 mod decoder;
 
 pub use calldata::CallData;
-pub use cursor::Cursor;
-pub use decoder::{DecodeError, Decoder};
+pub(crate) use cursor::Cursor;
+pub(crate) use decoder::{DecodeError, Decoder};

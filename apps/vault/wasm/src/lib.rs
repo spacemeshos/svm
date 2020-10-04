@@ -14,20 +14,20 @@ use svm_app_vault_core as api;
 
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
-pub extern "C" fn initialize(vault_ty: i32, spending_limit: i64) {
-    api::initialize(vault_ty.into(), spending_limit.into())
+pub extern "C" fn initialize() {
+    api::initialize()
 }
 
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
-pub extern "C" fn withdraw(vault_ty: i32, amount: i64) {
-    api::withdraw(vault_ty.into(), amount.into())
+pub extern "C" fn withdraw() {
+    api::withdraw()
 }
 
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
-pub extern "C" fn daily_withdraw(amount: i64) {
-    api::daily_withdraw(amount.into())
+pub extern "C" fn daily_withdraw() {
+    api::daily_withdraw()
 }
 
 #[no_mangle]
@@ -38,13 +38,13 @@ pub extern "C" fn set_spending_account() {
 
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
-pub extern "C" fn set_spending_limit(amount: i64) {
+pub extern "C" fn set_spending_limit() {
     api::set_spending_limit(amount.into())
 }
 
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
-pub extern "C" fn cancel_action(action: i32) {
+pub extern "C" fn cancel_action() {
     // api::cancel_action(action.into());
 }
 
