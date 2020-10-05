@@ -2,14 +2,11 @@ use svm_abi_decoder::CallData;
 
 use svm_sdk::ensure;
 use svm_sdk::{
-    value::{self, Address, AddressOwned, Value},
+    value::{self, Address, Value},
     Amount, Host,
 };
 
 use crate::{VaultData, VaultType};
-
-extern crate alloc;
-use alloc::vec::Vec;
 
 pub fn initialize() {
     let bytes = Host::get_calldata();
@@ -27,14 +24,14 @@ pub fn initialize() {
 }
 
 fn simple_initialize(mut calldata: CallData) {
-    let masters: [AddressOwned; 1] = calldata.next_1();
+    let masters: [Address; 1] = calldata.next_1();
 
     VaultData::store_type(VaultType::Simple);
-    // VaultData::store_master_account(&masters[0], 1);
+    VaultData::store_master_account(&masters[0], 1);
 }
 
 fn multisig_initialize(mut calldata: CallData) {
-    let masters: [AddressOwned; 3] = calldata.next_1();
+    let masters: [Address; 3] = calldata.next_1();
 
     let (a, b, c) = (&masters[0], &masters[1], &masters[2]);
 
@@ -43,12 +40,12 @@ fn multisig_initialize(mut calldata: CallData) {
     assert_not_same(b, c);
 
     VaultData::store_type(VaultType::MultiSig);
-    // VaultData::store_master_account(a, 1);
-    // VaultData::store_master_account(b, 2);
-    // VaultData::store_master_account(c, 3);
+    VaultData::store_master_account(a, 1);
+    VaultData::store_master_account(b, 2);
+    VaultData::store_master_account(c, 3);
 }
 
-fn assert_not_same(addr1: &AddressOwned, addr2: &AddressOwned) {
+fn assert_not_same(addr1: &Address, addr2: &Address) {
     ensure!(
         addr1 != addr2,
         "Master Keys must be different from one another."

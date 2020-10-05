@@ -327,7 +327,7 @@ macro_rules! impl_to_rust_owned_array {
                             array[i] = MaybeUninit::new(v.into());
                         }
 
-                        assert_eq!(size_of::<[MaybeUninit<$T>; $n]>(), size_of::<[$T; $n]>());
+                        debug_assert_eq!(size_of::<[MaybeUninit<$T>; $n]>(), size_of::<[$T; $n]>());
 
                         unsafe { core::mem::transmute::<_, Self>(array) }
                     }
@@ -338,7 +338,44 @@ macro_rules! impl_to_rust_owned_array {
     };
 }
 
-// impl_to_rust_borrowed_array!([Address] => 1 2);
+macro_rules! impl_to_rust_owned_array_with_lifetime {
+    ([] => $($tt:tt)*) => {};
+    ([$T:tt $($T_tail:tt)*] => $($tt:tt)*) => {
+        impl_to_rust_owned_array_with_lifetime!($T => $($tt)*);
+
+        impl_to_rust_owned_array_with_lifetime!([$($T_tail)*] => $($tt)*);
+    };
+
+    ($T:tt => ) => {};
+    ($T:tt => $n:tt $($tt:tt)*) => {
+        impl_to_rust_owned_array_with_lifetime!(@implement $T $n);
+        impl_to_rust_owned_array_with_lifetime!($T => $($tt)*);
+    };
+    (@implement $T:tt $n:tt) => {
+        impl<'a> From<Value<'a>> for [$T<'a>; $n]
+        where Value<'a>: Into<$T<'a>>
+        {
+            fn from(value: Value<'a>) -> Self {
+                match value {
+                    Value::Composite(Composite::ArrayOwned(mut values)) => {
+                        assert_eq!(values.len(), $n);
+
+                        let mut array: [MaybeUninit<$T<'a>>; $n] = MaybeUninit::uninit_array();
+
+                        for (i, v) in values.drain(..).enumerate() {
+                            array[i] = MaybeUninit::new(v.into());
+                        }
+
+                        debug_assert_eq!(size_of::<[MaybeUninit<$T<'a>>; $n]>(), size_of::<[$T<'a>; $n]>());
+
+                        unsafe { core::mem::transmute::<_, Self>(array) }
+                    }
+                    _ => unreachable!(),
+                }
+            }
+        }
+    };
+}
 
 #[rustfmt::skip]
 impl_to_rust_owned_array!([
@@ -349,4 +386,9 @@ impl_to_rust_owned_array!([
     i32 u32
     i64 u64
     AddressOwned
+] => 1 2 3 4 5 6 7 8 9 10);
+
+#[rustfmt::skip]
+impl_to_rust_owned_array_with_lifetime!([
+    Address
 ] => 1 2 3 4 5 6 7 8 9 10);
