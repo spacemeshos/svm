@@ -52,6 +52,27 @@ use crate::traits::Encoder;
 
 use svm_sdk::value::{Composite, Primitive, Value};
 
+impl<T> Encoder for &Option<T>
+where
+    T: Encoder,
+{
+    fn encode(&self, w: &mut Vec<u8>) {
+        match self {
+            None => encode_none(w),
+            Some(v) => v.encode(w),
+        }
+    }
+}
+
+impl<T> Encoder for Option<T>
+where
+    T: Encoder,
+{
+    fn encode(&self, w: &mut Vec<u8>) {
+        (&self).encode(w)
+    }
+}
+
 impl Encoder for &Value<'_> {
     fn encode(&self, w: &mut Vec<u8>) {
         do_encode(self, w)
@@ -74,7 +95,7 @@ fn do_encode(value: &Value<'_>, w: &mut Vec<u8>) {
 
 fn encode_primitive(p: &Primitive<'_>, w: &mut Vec<u8>) {
     match p {
-        Primitive::None => unreachable!(),
+        Primitive::None => encode_none(w),
         Primitive::Address(p) => p.encode(w),
         Primitive::AddressOwned(p) => p.encode(w),
         Primitive::Amount(p) => p.encode(w),
@@ -101,4 +122,10 @@ fn encode_composite(c: &Composite, w: &mut Vec<u8>) {
             values.encode(w);
         }
     }
+}
+
+fn encode_none(w: &mut Vec<u8>) {
+    use svm_abi_layout::layout;
+
+    w.push(layout::NONE);
 }

@@ -189,11 +189,11 @@ pub enum Value<'a> {
 }
 
 impl<'a> Value<'a> {
-    pub(crate) const fn none() -> Value<'static> {
+    pub const fn none() -> Value<'static> {
         Value::Primitive(Primitive::None)
     }
 
-    pub(crate) const fn none_ref() -> &'static Value<'static> {
+    pub const fn none_ref() -> &'static Value<'static> {
         &Value::Primitive(Primitive::None)
     }
 }
@@ -201,12 +201,24 @@ impl<'a> Value<'a> {
 macro_rules! impl_from_rust_to_value {
     ($prim_ident:ident, $T:ident) => {
         impl From<$T> for Value<'_> {
-            fn from(num: $T) -> Self {
-                let prim = Primitive::$prim_ident(num);
+            fn from(val: $T) -> Self {
+                let prim = Primitive::$prim_ident(val);
                 Value::Primitive(prim)
             }
         }
     };
+}
+
+impl<'a, T> From<Option<T>> for Value<'a>
+where
+    T: Into<Value<'a>>,
+{
+    fn from(val: Option<T>) -> Self {
+        match val {
+            None => Value::Primitive(Primitive::None),
+            Some(v) => v.into(),
+        }
+    }
 }
 
 impl_from_rust_to_value!(Bool, bool);
@@ -299,11 +311,32 @@ impl<'a> From<Value<'a>> for Address<'a> {
     }
 }
 
+impl<'a> From<Value<'a>> for Option<Address<'a>> {
+    fn from(value: Value<'a>) -> Self {
+        match value {
+            Value::Primitive(Primitive::None) => None,
+            Value::Primitive(Primitive::Address(addr)) => Some(addr),
+            _ => unreachable!(),
+        }
+    }
+}
+
 impl From<Value<'_>> for AddressOwned {
     fn from(value: Value<'_>) -> Self {
         match value {
             Value::Primitive(Primitive::Address(addr)) => addr.to_owned(),
             Value::Primitive(Primitive::AddressOwned(addr)) => addr,
+            _ => unreachable!(),
+        }
+    }
+}
+
+impl From<Value<'_>> for Option<AddressOwned> {
+    fn from(value: Value<'_>) -> Self {
+        match value {
+            Value::Primitive(Primitive::None) => None,
+            Value::Primitive(Primitive::Address(addr)) => Some(addr.to_owned()),
+            Value::Primitive(Primitive::AddressOwned(addr)) => Some(addr),
             _ => unreachable!(),
         }
     }

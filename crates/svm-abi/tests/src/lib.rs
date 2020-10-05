@@ -81,6 +81,12 @@ mod tests {
     }
 
     #[test]
+    fn encode_decode_none() {
+        test_primitive!(Option<u8>, None);
+        test_primitive!(Option<u32>, None);
+    }
+
+    #[test]
     fn encode_decode_i8() {
         test_primitive!(i8, -5);
         test_primitive!(i8, 5);
@@ -282,14 +288,31 @@ mod tests {
     #[test]
     fn encode_decode_addr() {
         test_primitive!(Address, Address(&[0x10; 20]));
+        test_primitive!(Option<Address>, Some(Address(&[0x10; 20])));
+        test_primitive!(Option<Address>, None);
 
         test_primitive!(AddressOwned, AddressOwned([0x10; 20]));
+        test_primitive!(Option<AddressOwned>, Some(AddressOwned([0x10; 20])));
+        test_primitive!(Option<AddressOwned>, None);
 
         test_array!([AddressOwned; 1], [AddressOwned([0x10; 20])]);
         test_array!(
             [AddressOwned; 2],
             [AddressOwned([0x10; 20]), AddressOwned([0x20; 20])]
         );
+    }
+
+    #[test]
+    fn calldata_next() {
+        let a: u32 = 10;
+
+        let mut buf = Vec::new();
+        a.encode(&mut buf);
+
+        let mut calldata = CallData::new(as_static!(buf));
+        let a_ = calldata.next().unwrap().into();
+
+        assert_eq!(a, a_);
     }
 
     #[test]

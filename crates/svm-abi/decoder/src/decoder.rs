@@ -18,6 +18,7 @@ pub enum TypeError {
 }
 
 enum TypeKind {
+    None,
     Bool,
     Address,
     Amount,
@@ -86,6 +87,7 @@ impl Decoder {
         let kind = self.read_type_kind(cursor)?;
 
         let value = match kind {
+            TypeKind::None => self.decode_none(cursor)?.into(),
             TypeKind::Bool => self.decode_bool(cursor)?.into(),
             TypeKind::Address => self.decode_addr(cursor)?.into(),
             TypeKind::Amount => self.decode_amount(cursor)?.into(),
@@ -101,6 +103,14 @@ impl Decoder {
         };
 
         Ok(value)
+    }
+
+    fn decode_none<'a>(&self, cursor: &mut Cursor) -> Result<Value<'a>, DecodeError> {
+        let byte = self.read_byte(cursor)?;
+
+        debug_assert_eq!(byte, layout::NONE);
+
+        Ok(Value::none())
     }
 
     fn decode_bool<'a>(&self, cursor: &mut Cursor) -> Result<Value<'a>, DecodeError> {
@@ -302,6 +312,7 @@ impl Decoder {
         let byte = self.peek(cursor)?;
 
         let kind = match byte {
+            layout::NONE => TypeKind::None,
             layout::BOOL_FALSE | layout::BOOL_TRUE => TypeKind::Bool,
             layout::ADDRESS => TypeKind::Address,
 

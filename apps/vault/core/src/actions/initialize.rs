@@ -12,25 +12,32 @@ pub fn initialize() {
     let bytes = Host::get_calldata();
     let mut calldata = CallData::new(bytes);
 
-    let (ty, spending_limit, spending_account): (bool, _, _) = calldata.next_3();
-
-    VaultData::store_spending_limit(spending_limit);
-    VaultData::store_spending_account(&spending_account);
-
+    let ty: bool = calldata.next_1();
     match ty.into() {
-        VaultType::Simple => simple_initialize(calldata),
-        VaultType::MultiSig => multisig_initialize(calldata),
+        VaultType::Simple => simple_initialize(&mut calldata),
+        VaultType::MultiSig => multisig_initialize(&mut calldata),
+    }
+
+    let limit: Option<Amount> = calldata.next_1();
+
+    if let Some(limit) = limit {
+        VaultData::store_spending_limit(limit);
+    }
+
+    let account: Option<Address> = calldata.next_1();
+    if let Some(account) = account {
+        VaultData::store_spending_account(&account);
     }
 }
 
-fn simple_initialize(mut calldata: CallData) {
+fn simple_initialize(calldata: &mut CallData) {
     let masters: [Address; 1] = calldata.next_1();
 
     VaultData::store_type(VaultType::Simple);
     VaultData::store_master_account(&masters[0], 1);
 }
 
-fn multisig_initialize(mut calldata: CallData) {
+fn multisig_initialize(calldata: &mut CallData) {
     let masters: [Address; 3] = calldata.next_1();
 
     let (a, b, c) = (&masters[0], &masters[1], &masters[2]);
