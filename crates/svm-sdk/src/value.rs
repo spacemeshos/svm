@@ -142,7 +142,7 @@ impl_fixed_primitive!(Address, AddressOwned, 20);
 /// Primitive value
 #[derive(Debug, PartialEq)]
 pub enum Primitive<'a> {
-    Unit,
+    None,
 
     Bool(bool),
 
@@ -189,19 +189,19 @@ pub enum Value<'a> {
 }
 
 impl<'a> Value<'a> {
-    pub(crate) const fn unit() -> Value<'static> {
-        Value::Primitive(Primitive::Unit)
+    pub(crate) const fn none() -> Value<'static> {
+        Value::Primitive(Primitive::None)
     }
 
-    pub(crate) const fn unit_ref() -> &'static Value<'static> {
-        &Value::Primitive(Primitive::Unit)
+    pub(crate) const fn none_ref() -> &'static Value<'static> {
+        &Value::Primitive(Primitive::None)
     }
 }
 
 macro_rules! impl_from_rust_to_value {
-    ($prim_ident:ident, $rust_ty:ident) => {
-        impl From<$rust_ty> for Value<'_> {
-            fn from(num: $rust_ty) -> Self {
+    ($prim_ident:ident, $T:ident) => {
+        impl From<$T> for Value<'_> {
+            fn from(num: $T) -> Self {
                 let prim = Primitive::$prim_ident(num);
                 Value::Primitive(prim)
             }
@@ -253,11 +253,21 @@ impl<'a> From<Vec<Value<'a>>> for Value<'a> {
 }
 
 macro_rules! impl_from_value_to_rust {
-    ($prim_ident:ident, $rust_ty:ty) => {
-        impl From<Value<'_>> for $rust_ty {
+    ($prim_ident:ident, $T:ty) => {
+        impl From<Value<'_>> for $T {
             fn from(value: Value) -> Self {
                 match value {
                     Value::Primitive(Primitive::$prim_ident(v)) => v,
+                    _ => unreachable!(),
+                }
+            }
+        }
+
+        impl From<Value<'_>> for Option<$T> {
+            fn from(value: Value) -> Self {
+                match value {
+                    Value::Primitive(Primitive::None) => None,
+                    Value::Primitive(Primitive::$prim_ident(v)) => Some(v),
                     _ => unreachable!(),
                 }
             }
