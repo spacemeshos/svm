@@ -1,9 +1,11 @@
-// mod daily;
-// mod getters;
-// mod withdraw;
+mod auth;
+mod daily;
 mod initialize;
 
-// pub use daily::{set_spending_account, set_spending_limit};
-// pub use getters::*;
+// mod getters;
+// mod withdraw;
+
 pub use initialize::initialize;
+
+// pub use getters::*;
 // pub use withdraw::{daily_withdraw, withdraw};
