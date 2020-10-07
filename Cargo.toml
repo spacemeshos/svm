@@ -54,6 +54,7 @@ svm-gas = { path = "crates/svm-gas" }
 svm-app-query = { path = "crates/svm-app-query" }
 svm-types = { path = "crates/svm-types" }
 svm-sdk = { path = "crates/svm-sdk" }
+svm-sdk-macros = { path = "crates/svm-sdk-macros" }
 svm-nibble = { path = "crates/svm-nibble" }
 svm-codec = { path = "crates/svm-codec" }
 svm-layout = { path = "crates/svm-layout" }
