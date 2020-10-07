@@ -3,58 +3,58 @@ use crate::{VaultData, VaultType};
 use svm_abi_decoder::CallData;
 
 use svm_sdk::ensure;
-use svm_sdk::value::Address;
+use svm_sdk::value::{Address, AddressOwned};
 
 pub(crate) fn auth_simple(calldata: &mut CallData) {
     assert_simple_vault();
 
-    let input_master: Address = calldata.next_1();
-    let storage_master = VaultData::load_master_account(1);
+    let master_input: Address = calldata.next_1();
+    let master_db = VaultData::load_master_account(1);
 
-    ensure!(
-        input_master == storage_master,
-        "Invalid input master account"
-    );
+    ensure!(master_input == master_db, "Invalid input Master-Key");
 }
 
-pub(crate) fn auth_multisig_begin(calldata: &mut CallData) -> Address {
+pub(crate) fn auth_multisig_begin(calldata: &mut CallData) -> AddressOwned {
     assert_multisig_vault();
 
     let mut good_input = false;
-    let input_master = calldata.next_1();
+    let master_begin: Address = calldata.next_1();
 
     for i in 1..=3 {
-        let storage_master = VaultData::load_master_account(i);
+        let master_db = VaultData::load_master_account(i);
 
-        if input_master == storage_master {
+        if master_begin == master_db {
+            good_input = true;
+            break;
+        }
+    }
+
+    ensure!(good_input, "Invalid Master-Key given");
+
+    master_begin.to_owned()
+}
+
+pub(crate) fn auth_multisig_complete(calldata: &mut CallData, master_begin: Address) {
+    assert_multisig_vault();
+
+    let mut good_input = false;
+    let master_complete: Address = calldata.next_1();
+
+    ensure!(
+        master_complete != master_begin,
+        "Master-Key is already in-use."
+    );
+
+    for i in 1..=3 {
+        let master_db = VaultData::load_master_account(i);
+
+        if master_db == master_complete {
             good_input = true;
             break;
         }
     }
 
     ensure!(good_input, "Invalid Master given");
-
-    input_master
-}
-
-pub(crate) fn auth_multisig_complete(calldata: &mut CallData, begin_addr: &Address) {
-    todo!();
-
-    // assert_multisig_vault();
-
-    // let mut good_input = false;
-    // let input_master: Address = calldata.next_1();
-
-    // for i in 1..=3 {
-    //     let storage_master = VaultData::load_master_account(i);
-
-    //     if input_master == storage_master {
-    //         good_input = true;
-    //         break;
-    //     }
-    // }
-
-    // ensure!(good_input, "Invalid Master given");
 }
 
 pub(crate) fn auth_multisig_reset(ctx: &str) {

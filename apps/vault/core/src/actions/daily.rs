@@ -27,7 +27,7 @@ pub fn multisig_set_spending_account_complete() {
     let bytes = Host::get_calldata();
     let mut calldata = CallData::new(bytes);
 
-    // TODO: load begin_addr from storage
-    let begin_addr = Address(&[0; 20]);
-    auth::auth_multisig_complete(&mut calldata, &begin_addr);
+    // TODO: load master_begin from storage
+    let master_begin = Address(&[0; 20]);
+    auth::auth_multisig_complete(&mut calldata, master_begin);
 }

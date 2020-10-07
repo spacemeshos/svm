@@ -26,20 +26,20 @@ impl VaultData {
     // Master Account
     /////////////////////////////////////////////////////////////
     pub fn store_master_account(account: &Address, index: usize) {
-        let var_id = master_account_var(index);
+        let var_id = vault_master(index);
 
         store_account(account, var_id)
     }
 
     pub fn load_master_account(index: usize) -> Address<'static> {
-        let var_id = master_account_var(index);
+        let var_id = vault_master(index);
 
         load_account(var_id)
     }
 
-    // Pending Withdraw Master
+    // Pending Request Master
     /////////////////////////////////////////////////////////////
-    pub fn store_pending_withdraw_master(account: &Address) {
+    pub fn store_pending_req_master(account: &Address) {
         let var_id = VarId::PENDING_WITHDRAW_MASTER;
 
         store_account(account, var_id)
@@ -174,26 +174,73 @@ struct VarId;
 impl VarId {
     const VAULT_TYPE: u32 = 0;
 
-    const MASTER_ADDR1: u32 = 1;
-    const MASTER_ADDR2: u32 = 2;
-    const MASTER_ADDR3: u32 = 3;
+    const MASTER_1: u32 = 1;
+    const MASTER_2: u32 = 2;
+    const MASTER_3: u32 = 3;
 
     const SPENDING_LIMIT: u32 = 4;
     const SPENDING_ACCOUNT: u32 = 5;
     const SPENT_TODAY: u32 = 6;
     const LAST_SPENT: u32 = 7;
 
-    const PENDING_WITHDRAW_MASTER: u32 = 8;
-    const PENDING_WITHDRAW_RECEIVER: u32 = 9;
-    const PENDING_WITHDRAW_AMOUNT: u32 = 10;
-    const PENDING_WITHDRAW_LAYER: u32 = 11;
+    // Pending Withdraw
+    ///////////////////////////////
+
+    const WITHDRAW_1_MASTER: u32 = 8;
+    const WITHDRAW_1_RECEIVER: u32 = 9;
+    const WITHDRAW_1_AMOUNT: u32 = 10;
+    const WITHDRAW_1_LAYER: u32 = 11;
+
+    const WITHDRAW_2_MASTER: u32 = 12;
+    const WITHDRAW_2_RECEIVER: u32 = 13;
+    const WITHDRAW_2_AMOUNT: u32 = 14;
+    const WITHDRAW_2_LAYER: u32 = 15;
+
+    const WITHDRAW_3_MASTER: u32 = 16;
+    const WITHDRAW_3_RECEIVER: u32 = 17;
+    const WITHDRAW_3_AMOUNT: u32 = 18;
+    const WITHDRAW_3_LAYER: u32 = 19;
+
+    // Pending Set Daily Limit
+    /////////////////////////////////
+    const DAILY_LIMIT_1_MASTER: u32 = 20;
+    const DAILY_LIMIT_1_RECEIVER: u32 = 21;
+    const DAILY_LIMIT_1_AMOUNT: u32 = 22;
+    const DAILY_LIMIT_1_LAYER: u32 = 23;
+
+    const DAILY_LIMIT_2_MASTER: u32 = 24;
+    const DAILY_LIMIT_2_RECEIVER: u32 = 25;
+    const DAILY_LIMIT_2_AMOUNT: u32 = 26;
+    const DAILY_LIMIT_2_LAYER: u32 = 27;
+
+    const DAILY_LIMIT_3_MASTER: u32 = 28;
+    const DAILY_LIMIT_3_RECEIVER: u32 = 29;
+    const DAILY_LIMIT_3_AMOUNT: u32 = 30;
+    const DAILY_LIMIT_3_LAYER: u32 = 31;
+
+    // Pending Set Daily Spending Account
+    /////////////////////////////////
+    const DAIY_ACCOUNT_1_MASTER: u32 = 32;
+    const DAIY_ACCOUNT_1_RECEIVER: u32 = 33;
+    const DAIY_ACCOUNT_1_AMOUNT: u32 = 34;
+    const DAIY_ACCOUNT_1_LAYER: u32 = 35;
+
+    const DAILY_ACCOUNT_2_MASTER: u32 = 36;
+    const DAILY_ACCOUNT_2_RECEIVER: u32 = 37;
+    const DAILY_ACCOUNT_2_AMOUNT: u32 = 38;
+    const DAILY_ACCOUNT_2_LAYER: u32 = 39;
+
+    const DAILY_ACCOUNT_3_MASTER: u32 = 40;
+    const DAILY_ACCOUNT_3_RECEIVER: u32 = 41;
+    const DAILY_ACCOUNT_3_AMOUNT: u32 = 42;
+    const DAILY_ACCOUNT_3_LAYER: u32 = 43;
 }
 
-fn master_account_var(index: usize) -> u32 {
+fn vault_master(index: usize) -> u32 {
     match index {
-        1 => VarId::MASTER_ADDR1,
-        2 => VarId::MASTER_ADDR2,
-        3 => VarId::MASTER_ADDR3,
+        1 => VarId::MASTER_1,
+        2 => VarId::MASTER_2,
+        3 => VarId::MASTER_3,
         _ => unreachable!(),
     }
 }
