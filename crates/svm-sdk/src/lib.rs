@@ -10,6 +10,10 @@
 #![allow(dead_code)]
 #![allow(unreachable_code)]
 
+mod storage;
+
+pub use storage::Storage;
+
 mod amount;
 pub use amount::Amount;
 

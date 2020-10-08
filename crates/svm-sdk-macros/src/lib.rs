@@ -6,28 +6,28 @@ use std::collections::HashMap;
 
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::{quote, ToTokens};
-use syn::{parse_macro_input, Data, DataStruct, DeriveInput, Field, Fields, FieldsNamed, Type};
+use syn::{
+    parse_macro_input, Data, DataStruct, DeriveInput, Field, Fields, FieldsNamed, Path,
+    PathArguments, Type,
+};
 
 #[proc_macro_derive(AppStorage)]
 pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
 
-    let name = input.ident.clone();
+    let name = storage_name(&input.ident);
     let input = as_struct(input);
     let fields = take_fields(input);
-
     let vars = assign_vars(&fields);
 
-    let getters = getters_ast(&fields, &vars);
-    let setters = setters_ast(&fields, &vars);
-
-    let new_name = Ident::new(&format!("{}Storage", name), Span::call_site());
+    let getters = getters_ast(&vars);
+    let setters = setters_ast(&vars);
 
     (quote! {
         #[derive(Debug)]
-        struct #new_name;
+        struct #name;
 
-        impl #new_name {
+        impl #name {
             #getters
 
             #setters
@@ -36,10 +36,29 @@ pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     .into()
 }
 
-enum StorageVar {
-    Primitive(Ident),
+#[repr(transparent)]
+#[derive(Debug, PartialEq, Hash, Copy, Clone)]
+struct VarId(u32);
 
-    Array(Ident, usize),
+impl ToTokens for &VarId {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let id = self.0;
+        tokens.extend(quote! { #id });
+    }
+}
+
+enum Var {
+    Primitive {
+        id: VarId,
+        name: Ident,
+        ty: Ident,
+    },
+    Array {
+        id: VarId,
+        name: Ident,
+        ty: Ident,
+        size: u32,
+    },
 }
 
 fn as_struct(input: DeriveInput) -> DataStruct {
@@ -58,51 +77,36 @@ fn take_fields(input: DataStruct) -> FieldsNamed {
     }
 }
 
-fn assign_vars(fields: &FieldsNamed) -> HashMap<Ident, usize> {
-    let mut vars = HashMap::new();
+fn assign_vars(fields: &FieldsNamed) -> Vec<Var> {
+    let mut vars = Vec::new();
     let mut index = 0;
 
     for f in fields.named.iter() {
-        let ty = field_type(f);
+        let id = VarId(index);
+        let var = field_as_var(id, f);
 
-        match ty {
-            StorageVar::Primitive(ident) => {
-                vars.insert(ident, index);
+        match &var {
+            Var::Primitive { id, name, ty } => {
                 index += 1;
             }
-            StorageVar::Array(ident, size) => {
-                vars.insert(ident, index);
+            Var::Array { id, name, ty, size } => {
                 index += size;
             }
         }
+
+        vars.push(var);
     }
 
     vars
 }
 
-fn getters_ast(fields: &FieldsNamed, vars: &HashMap<Ident, usize>) -> TokenStream {
+fn getters_ast(vars: &[Var]) -> TokenStream {
     let mut getters = Vec::new();
 
-    for f in fields.named.iter() {
-        let ident = getter_ident(f);
-        let ty = field_type(f);
+    for var in vars.iter() {
+        let ast = getter_ast(var);
 
-        let getter = match ty {
-            StorageVar::Primitive(ty) => {
-                quote! {
-                    pub fn #ident() -> #ty {
-                        todo!()
-                    }
-                }
-            }
-            StorageVar::Array(ty, size) => {
-                quote! {
-                    //
-                }
-            }
-        };
-
-        getters.push(getter);
+        getters.push(ast);
     }
 
     let ast = quote! {
@@ -112,62 +116,164 @@ fn getters_ast(fields: &FieldsNamed, vars: &HashMap<Ident, usize>) -> TokenStrea
     ast.into()
 }
 
-fn setters_ast(fields: &FieldsNamed, vars: &HashMap<Ident, usize>) -> TokenStream {
-    for f in fields.named.iter() {}
+fn setters_ast(vars: &[Var]) -> TokenStream {
+    let mut setters = Vec::new();
 
-    quote! {
-        //
+    for var in vars.iter() {
+        let ast = setter_ast(var);
+
+        setters.push(ast);
+    }
+
+    let ast = quote! {
+        #(#setters)*
+    };
+
+    ast.into()
+}
+
+fn field_as_var(id: VarId, field: &Field) -> Var {
+    match &field.ty {
+        Type::Array(array) => todo!(),
+        Type::Path(path) => {
+            assert!(path.qself.is_none());
+
+            let path = &path.path;
+            assert_eq!(path.segments.len(), 1);
+
+            let segment = &path.segments[0];
+            assert!(matches!(segment.arguments, PathArguments::None));
+
+            let name = field_ident(field);
+            let ty = segment.ident.clone();
+
+            match ty.to_string().as_str() {
+                #[rustfmt::skip]
+                "bool"    | 
+                "Amount"  | 
+                "i8"      |
+                "u8"      |
+                "i16"     |
+                "u16"     |
+                "i32"     |
+                "u32"     |
+                "i64"     |
+                "u64"     |
+                "Address" |
+                "AddressOwned" => {
+                    Var::Primitive {
+                        id,
+                        name,
+                        ty
+                    }
+                },
+                _ => panic!("Invalid Storage field type: {}", ty),
+            }
+        }
+        _ => panic!("Invalid Type"),
     }
 }
 
-fn field_type(field: &Field) -> StorageVar {
-    // match &field.ty {
-    //     Type::Array(array) => {}
-    //     _ => panic!("Invalid Type"),
-    // }
-
-    todo!()
+fn getter_ident(var_name: &Ident) -> Ident {
+    Ident::new(&format!("get_{}", var_name), Span::call_site())
 }
 
-fn getter_ident(f: &Field) -> Ident {
-    Ident::new(&format!("get_{}", field_ident(f)), Span::call_site())
-}
-
-fn getter_type(f: &Field) -> Ident {
-    Ident::new("usize", Span::call_site())
-}
-
-fn setter_type(f: &Field) -> Ident {
-    Ident::new("usize", Span::call_site())
-}
-
-fn setter_ident(f: &Field) -> Ident {
-    Ident::new(&format!("set_{}", field_ident(f)), Span::call_site())
+fn setter_ident(var_name: &Ident) -> Ident {
+    Ident::new(&format!("set_{}", var_name), Span::call_site())
 }
 
 fn field_ident(f: &Field) -> Ident {
     f.ident.as_ref().unwrap().clone()
 }
 
-fn prim_getter_ast(name: Ident, ty: Ident) -> TokenStream {
-    todo!()
+fn storage_name(name: &Ident) -> Ident {
+    Ident::new(&format!("{}Storage", name), Span::call_site())
+}
 
-    // match ty.to_string().as_str() {
-    //     "bool" => {
-    //         quote! {}
-    //     }
-    //     "i8" => {}
-    //     "u8" => {}
-    //     _ => todo!(),
-    // };
+fn getter_ast(var: &Var) -> TokenStream {
+    if let Var::Primitive { id, name, ty } = var {
+        let getter_name = getter_ident(name);
 
-    // let body_ast = quote! {
-    //     todo!()
-    // };
+        match ty.to_string().as_str() {
+            "i8" | "u8" | "i16" | "u16" | "i32" | "u32" => {
+                quote! {
+                    fn #getter_name () -> #ty {
+                        let v = svm_sdk::Storage::get32(#id);
 
-    // quote! {
-    //     pub fn #name () -> #ty {
-    //         #body_ast
-    //     }
-    // }
+                        v as #ty
+                    }
+                }
+            }
+            "u64" | "i64" => {
+                quote! {
+                    fn #getter_name () -> #ty {
+                        let v = svm_sdk::Storage::get64(#id);
+
+                        v as #ty
+                    }
+                }
+            }
+            "bool" => quote! {
+                fn #getter_name () -> bool {
+                    let v = svm_sdk::Storage::get32(0);
+
+                    match v {
+                        0 => false,
+                        1 => true,
+                        _ => unreachable!()
+                    }
+                }
+            },
+            "Amount" => quote! {
+                fn #getter_name () -> svm_sdk::Amount {
+                    let v = svm_sdk::Storage::get64(#id);
+
+                    svm_sdk::Amount(v)
+                }
+            },
+            _ => unreachable!(),
+        }
+    } else {
+        unreachable!()
+    }
+}
+
+fn setter_ast(var: &Var) -> TokenStream {
+    if let Var::Primitive { id, name, ty } = var {
+        let setter_name = setter_ident(name);
+
+        match ty.to_string().as_str() {
+            "i8" | "u8" | "i16" | "u16" | "i32" | "u32" => {
+                quote! {
+                    fn #setter_name (value: #ty) {
+                        svm_sdk::Storage::set32(#id, value);
+                    }
+                }
+            }
+            "u64" | "i64" => {
+                quote! {
+                    fn #setter_name (value: #ty) {
+                        svm_sdk::Storage::set64(#id, value);
+                    }
+                }
+            }
+            "bool" => quote! {
+                fn #setter_name (value: bool) {
+                    match value {
+                        true => svm_sdk::Storage::set32(#id, 1),
+                        false => svm_sdk::Storage::set32(#id, 0),
+                    }
+                }
+            },
+            "Amount" => quote! {
+                fn #setter_name (value: svm_sdk::Amount) {
+                    let v = amount.0;
+                    svm_sdk::Storage::set64(#id, v);
+                }
+            },
+            _ => unreachable!(),
+        }
+    } else {
+        unreachable!()
+    }
 }
