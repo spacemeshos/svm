@@ -143,8 +143,6 @@ fn field_as_var(id: VarId, field: &Field) -> Var {
             let path = &path.path;
             let ty = segments_path_as_ident(&path);
 
-            dbg!(ty.to_string().as_str());
-
             match ty.to_string().as_str() {
                 #[rustfmt::skip]
                 "bool"    | 
@@ -285,7 +283,7 @@ fn setter_ast(var: &Var) -> TokenStream {
                     fn #setter_name (value: #ty) {
                         #includes
 
-                        Storage::set32(#id, value);
+                        Storage::set32(#id, value as u32);
                     }
                 }
             }
@@ -294,7 +292,7 @@ fn setter_ast(var: &Var) -> TokenStream {
                     fn #setter_name (value: #ty) {
                         #includes
 
-                        Storage::set64(#id, value);
+                        Storage::set64(#id, value as u64);
                     }
                 }
             }
