@@ -12,7 +12,8 @@
 
 mod storage;
 
-pub use storage::Storage;
+pub use storage::ExtStorage;
+pub use storage::MockStorage;
 
 mod amount;
 pub use amount::Amount;

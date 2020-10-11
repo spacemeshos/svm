@@ -194,12 +194,15 @@ fn getter_ast(var: &Var) -> TokenStream {
     if let Var::Primitive { id, name, ty } = var {
         let getter_name = getter_ident(name);
 
+        let includes = include_storage_ast();
+
         match ty.to_string().as_str() {
             "i8" | "u8" | "i16" | "u16" | "i32" | "u32" => {
                 quote! {
                     fn #getter_name () -> #ty {
-                        let v = svm_sdk::Storage::get32(#id);
+                        #includes
 
+                        let v = Storage::get32(#id);
                         v as #ty
                     }
                 }
@@ -207,16 +210,18 @@ fn getter_ast(var: &Var) -> TokenStream {
             "u64" | "i64" => {
                 quote! {
                     fn #getter_name () -> #ty {
-                        let v = svm_sdk::Storage::get64(#id);
+                        #includes
 
+                        let v = Storage::get64(#id);
                         v as #ty
                     }
                 }
             }
             "bool" => quote! {
                 fn #getter_name () -> bool {
-                    let v = svm_sdk::Storage::get32(0);
+                    #includes
 
+                    let v = Storage::get32(#id);
                     match v {
                         0 => false,
                         1 => true,
@@ -226,8 +231,9 @@ fn getter_ast(var: &Var) -> TokenStream {
             },
             "Amount" => quote! {
                 fn #getter_name () -> svm_sdk::Amount {
-                    let v = svm_sdk::Storage::get64(#id);
+                    #includes
 
+                    let v = Storage::get64(#id);
                     svm_sdk::Amount(v)
                 }
             },
@@ -241,39 +247,57 @@ fn getter_ast(var: &Var) -> TokenStream {
 fn setter_ast(var: &Var) -> TokenStream {
     if let Var::Primitive { id, name, ty } = var {
         let setter_name = setter_ident(name);
+        let includes = include_storage_ast();
 
         match ty.to_string().as_str() {
             "i8" | "u8" | "i16" | "u16" | "i32" | "u32" => {
                 quote! {
                     fn #setter_name (value: #ty) {
-                        svm_sdk::Storage::set32(#id, value);
+                        #includes
+
+                        Storage::set32(#id, value);
                     }
                 }
             }
             "u64" | "i64" => {
                 quote! {
                     fn #setter_name (value: #ty) {
-                        svm_sdk::Storage::set64(#id, value);
+                        #includes
+
+                        Storage::set64(#id, value);
                     }
                 }
             }
             "bool" => quote! {
                 fn #setter_name (value: bool) {
+                    #includes
+
                     match value {
-                        true => svm_sdk::Storage::set32(#id, 1),
-                        false => svm_sdk::Storage::set32(#id, 0),
+                        true => Storage::set32(#id, 1),
+                        false => Storage::set32(#id, 0),
                     }
                 }
             },
             "Amount" => quote! {
                 fn #setter_name (value: svm_sdk::Amount) {
-                    let v = amount.0;
-                    svm_sdk::Storage::set64(#id, v);
+                    #includes
+
+                    Storage::set64(#id, amount.0);
                 }
             },
             _ => unreachable!(),
         }
     } else {
         unreachable!()
+    }
+}
+
+fn include_storage_ast() -> TokenStream {
+    quote! {
+        #[cfg(test)]
+        use svm_sdk::MockStorage as Storage;
+
+        #[cfg(not(test))]
+        use svm_sdk::ExtStorage as Storage;
     }
 }
