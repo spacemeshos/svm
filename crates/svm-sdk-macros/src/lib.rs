@@ -138,19 +138,18 @@ fn field_as_var(id: VarId, field: &Field) -> Var {
         Type::Path(path) => {
             assert!(path.qself.is_none());
 
-            let path = &path.path;
-            assert_eq!(path.segments.len(), 1);
-
-            let segment = &path.segments[0];
-            assert!(matches!(segment.arguments, PathArguments::None));
-
             let name = field_ident(field);
-            let ty = segment.ident.clone();
+
+            let path = &path.path;
+            let ty = segments_path_as_ident(&path);
+
+            dbg!(ty.to_string().as_str());
 
             match ty.to_string().as_str() {
                 #[rustfmt::skip]
                 "bool"    | 
-                "Amount"  | 
+                "Amount"  |
+                "svm_sdk::Amount" |
                 "i8"      |
                 "u8"      |
                 "i16"     |
@@ -172,6 +171,37 @@ fn field_as_var(id: VarId, field: &Field) -> Var {
         }
         _ => panic!("Invalid Type"),
     }
+}
+
+fn segments_path_as_ident(path: &Path) -> Ident {
+    match path.segments.len() {
+        1 => single_segment_path_ident(path),
+        2 => double_segments_path_ident(path),
+        _ => panic!("Invalid field type"),
+    }
+}
+
+fn single_segment_path_ident(path: &Path) -> Ident {
+    path_segment_as_ident(path, 0)
+}
+
+fn double_segments_path_ident(path: &Path) -> Ident {
+    todo!()
+    // let first = path_segment_as_ident(path, 0);
+    // let second = path_segment_as_ident(path, 1);
+
+    // let merged = format!("{}::{}", first, second);
+
+    // Ident::new(&merged, Span::call_site())
+}
+
+fn path_segment_as_ident(path: &Path, index: usize) -> Ident {
+    debug_assert!(path.segments.len() > index);
+
+    let segment = &path.segments[index];
+    assert!(matches!(segment.arguments, PathArguments::None));
+
+    segment.ident.clone()
 }
 
 fn getter_ident(var_name: &Ident) -> Ident {
@@ -229,7 +259,7 @@ fn getter_ast(var: &Var) -> TokenStream {
                     }
                 }
             },
-            "Amount" => quote! {
+            "Amount" | "svm_sdk::Amount" => quote! {
                 fn #getter_name () -> svm_sdk::Amount {
                     #includes
 
@@ -278,11 +308,11 @@ fn setter_ast(var: &Var) -> TokenStream {
                     }
                 }
             },
-            "Amount" => quote! {
+            "Amount" | "svm_sdk::Amount" => quote! {
                 fn #setter_name (value: svm_sdk::Amount) {
                     #includes
 
-                    Storage::set64(#id, amount.0);
+                    Storage::set64(#id, value.0);
                 }
             },
             _ => unreachable!(),
