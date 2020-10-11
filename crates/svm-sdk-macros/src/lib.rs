@@ -147,7 +147,6 @@ fn field_as_var(id: VarId, field: &Field) -> Var {
                 #[rustfmt::skip]
                 "bool"    | 
                 "Amount"  |
-                "svm_sdk::Amount" |
                 "i8"      |
                 "u8"      |
                 "i16"     |
@@ -257,12 +256,26 @@ fn getter_ast(var: &Var) -> TokenStream {
                     }
                 }
             },
-            "Amount" | "svm_sdk::Amount" => quote! {
+            "Amount" => quote! {
                 fn #getter_name () -> svm_sdk::Amount {
                     #includes
 
                     let v = Storage::get64(#id);
                     svm_sdk::Amount(v)
+                }
+            },
+            "AddressOwned" => quote! {
+                fn #getter_name () -> svm_sdk::value::AddressOwned {
+                    #includes
+
+                    let offset = svm_sdk::memory::alloc(20);
+                    Storage::load160(#id, offset);
+
+                    let slice = unsafe {
+                        core::slice::from_raw_parts(offset as *const u8, 20)
+                    };
+
+                    slice.into()
                 }
             },
             _ => unreachable!(),
@@ -306,11 +319,19 @@ fn setter_ast(var: &Var) -> TokenStream {
                     }
                 }
             },
-            "Amount" | "svm_sdk::Amount" => quote! {
-                fn #setter_name (value: svm_sdk::Amount) {
+            "Amount" => quote! {
+                fn #setter_name (amount: svm_sdk::Amount) {
                     #includes
 
-                    Storage::set64(#id, value.0);
+                    Storage::set64(#id, amount.0);
+                }
+            },
+            "AddressOwned" => quote! {
+                fn #setter_name (addr: &svm_sdk::value::AddressOwned) {
+                    #includes
+
+                    let off = addr.offset();
+                    Storage::store160(#id, off);
                 }
             },
             _ => unreachable!(),

@@ -1,43 +1,39 @@
 #![allow(unused)]
 
-use svm_sdk::{value::Address, Amount};
+use svm_sdk::{value::AddressOwned, Amount};
 use svm_sdk_macros::AppStorage;
 
 #[derive(AppStorage, Debug)]
 struct Test {
-    debug_mode: bool,
-
-    total: Amount,
-
+    flag: bool,
+    amount: Amount,
+    addr: AddressOwned,
     ubyte: u8,
     sbyte: i8,
-
     uword: u16,
     sword: i16,
-
     udoubleword: u32,
     sdoubleword: i32,
-
     uquadword: u64,
     squadword: i64,
 }
 
 #[test]
 fn test_bool() {
-    assert_eq!(TestStorage::get_debug_mode(), false);
+    assert_eq!(TestStorage::get_flag(), false);
 
-    TestStorage::set_debug_mode(true);
+    TestStorage::set_flag(true);
 
-    assert_eq!(TestStorage::get_debug_mode(), true);
+    assert_eq!(TestStorage::get_flag(), true);
 }
 
 #[test]
 fn test_amount() {
-    assert_eq!(TestStorage::get_total(), Amount(0));
+    assert_eq!(TestStorage::get_amount(), Amount(0));
 
-    TestStorage::set_total(Amount(10));
+    TestStorage::set_amount(Amount(10));
 
-    assert_eq!(TestStorage::get_total(), Amount(10));
+    assert_eq!(TestStorage::get_amount(), Amount(10));
 }
 
 #[test]
@@ -110,4 +106,14 @@ fn test_i64() {
     TestStorage::set_squadword(std::i64::MAX);
 
     assert_eq!(TestStorage::get_squadword(), std::i64::MAX);
+}
+
+#[test]
+fn test_address_owned() {
+    assert_eq!(TestStorage::get_addr(), AddressOwned([0; 20]));
+
+    let addr = AddressOwned([0x10; 20]);
+    TestStorage::set_addr(&addr);
+
+    assert_eq!(TestStorage::get_addr(), AddressOwned([0x10; 20]));
 }

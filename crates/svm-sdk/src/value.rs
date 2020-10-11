@@ -76,6 +76,18 @@ macro_rules! impl_fixed_primitive {
                 $ty(&self.0)
             }
 
+            #[allow(missing_docs)]
+            #[inline]
+            pub fn offset(&self) -> usize {
+                self.as_ptr() as _
+            }
+
+            #[allow(missing_docs)]
+            #[inline]
+            pub fn as_ptr(&self) -> *const u8 {
+                self.0.as_ptr()
+            }
+
             #[inline]
             pub fn as_slice(&self) -> &[u8] {
                 &self.0[..]
