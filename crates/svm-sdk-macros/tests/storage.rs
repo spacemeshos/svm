@@ -9,14 +9,14 @@ struct Test {
     amount: Amount,
     addr: AddressOwned,
     addrs: [AddressOwned; 3],
-    ubyte: u8,
-    sbyte: i8,
-    uword: u16,
-    sword: i16,
-    udoubleword: u32,
-    sdoubleword: i32,
-    uquadword: u64,
-    squadword: i64,
+    uu8: u8,
+    ii8: i8,
+    uu16: u16,
+    ii16: i16,
+    uu32: u32,
+    ii32: i32,
+    uu64: u64,
+    ii64: i64,
 }
 
 #[test]
@@ -39,74 +39,74 @@ fn test_amount() {
 
 #[test]
 fn test_u8() {
-    assert_eq!(TestStorage::get_ubyte(), 0);
+    assert_eq!(TestStorage::get_uu8(), 0);
 
-    TestStorage::set_ubyte(255u8);
+    TestStorage::set_uu8(255u8);
 
-    assert_eq!(TestStorage::get_ubyte(), 255u8);
+    assert_eq!(TestStorage::get_uu8(), 255u8);
 }
 
 #[test]
 fn test_i8() {
-    assert_eq!(TestStorage::get_sbyte(), 0);
+    assert_eq!(TestStorage::get_ii8(), 0);
 
-    TestStorage::set_sbyte(127i8);
+    TestStorage::set_ii8(127i8);
 
-    assert_eq!(TestStorage::get_sbyte(), 127i8);
+    assert_eq!(TestStorage::get_ii8(), 127i8);
 }
 
 #[test]
 fn test_u16() {
-    assert_eq!(TestStorage::get_uword(), 0);
+    assert_eq!(TestStorage::get_uu16(), 0);
 
-    TestStorage::set_uword(std::u16::MAX);
+    TestStorage::set_uu16(std::u16::MAX);
 
-    assert_eq!(TestStorage::get_uword(), std::u16::MAX);
+    assert_eq!(TestStorage::get_uu16(), std::u16::MAX);
 }
 
 #[test]
 fn test_i16() {
-    assert_eq!(TestStorage::get_sword(), 0);
+    assert_eq!(TestStorage::get_ii16(), 0);
 
-    TestStorage::set_sword(std::i16::MAX);
+    TestStorage::set_ii16(std::i16::MAX);
 
-    assert_eq!(TestStorage::get_sword(), std::i16::MAX);
+    assert_eq!(TestStorage::get_ii16(), std::i16::MAX);
 }
 
 #[test]
 fn test_u32() {
-    assert_eq!(TestStorage::get_udoubleword(), 0);
+    assert_eq!(TestStorage::get_uu32(), 0);
 
-    TestStorage::set_udoubleword(std::u32::MAX);
+    TestStorage::set_uu32(std::u32::MAX);
 
-    assert_eq!(TestStorage::get_udoubleword(), std::u32::MAX);
+    assert_eq!(TestStorage::get_uu32(), std::u32::MAX);
 }
 
 #[test]
 fn test_i32() {
-    assert_eq!(TestStorage::get_sdoubleword(), 0);
+    assert_eq!(TestStorage::get_ii32(), 0);
 
-    TestStorage::set_sdoubleword(std::i32::MAX);
+    TestStorage::set_ii32(std::i32::MAX);
 
-    assert_eq!(TestStorage::get_sdoubleword(), std::i32::MAX);
+    assert_eq!(TestStorage::get_ii32(), std::i32::MAX);
 }
 
 #[test]
 fn test_u64() {
-    assert_eq!(TestStorage::get_uquadword(), 0);
+    assert_eq!(TestStorage::get_uu64(), 0);
 
-    TestStorage::set_uquadword(std::u64::MAX);
+    TestStorage::set_uu64(std::u64::MAX);
 
-    assert_eq!(TestStorage::get_uquadword(), std::u64::MAX);
+    assert_eq!(TestStorage::get_uu64(), std::u64::MAX);
 }
 
 #[test]
 fn test_i64() {
-    assert_eq!(TestStorage::get_squadword(), 0);
+    assert_eq!(TestStorage::get_ii64(), 0);
 
-    TestStorage::set_squadword(std::i64::MAX);
+    TestStorage::set_ii64(std::i64::MAX);
 
-    assert_eq!(TestStorage::get_squadword(), std::i64::MAX);
+    assert_eq!(TestStorage::get_ii64(), std::i64::MAX);
 }
 
 #[test]
