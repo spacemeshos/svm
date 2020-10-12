@@ -8,6 +8,7 @@ struct Test {
     flag: bool,
     amount: Amount,
     addr: AddressOwned,
+    addrs: [AddressOwned; 3],
     ubyte: u8,
     sbyte: i8,
     uword: u16,

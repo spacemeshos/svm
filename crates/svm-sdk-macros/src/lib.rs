@@ -7,8 +7,8 @@ use std::collections::HashMap;
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::{quote, ToTokens};
 use syn::{
-    parse_macro_input, Data, DataStruct, DeriveInput, Field, Fields, FieldsNamed, Path,
-    PathArguments, Type,
+    parse_macro_input, Data, DataStruct, DeriveInput, Expr, ExprLit, Field, Fields, FieldsNamed,
+    Lit, Path, PathArguments, Type, TypeArray, TypePath,
 };
 
 #[proc_macro_derive(AppStorage)]
@@ -134,17 +134,59 @@ fn setters_ast(vars: &[Var]) -> TokenStream {
 
 fn field_as_var(id: VarId, field: &Field) -> Var {
     match &field.ty {
-        Type::Array(array) => todo!(),
-        Type::Path(path) => {
-            assert!(path.qself.is_none());
-
+        Type::Array(array) => {
+            let ty = parse_array_elem_type(&array);
+            let size = parse_array_length(&array);
             let name = field_ident(field);
 
-            let path = &path.path;
-            let ty = segments_path_as_ident(&path);
+            Var::Array { id, name, ty, size }
+        }
+        Type::Path(path) => {
+            let name = field_ident(field);
+            let ty = parse_type_path(path);
 
-            match ty.to_string().as_str() {
-                #[rustfmt::skip]
+            Var::Primitive { id, name, ty }
+        }
+        _ => panic!("Invalid Type"),
+    }
+}
+
+fn parse_array_elem_type(array: &TypeArray) -> Ident {
+    match *array.elem {
+        Type::Path(ref path) => parse_type_path(path),
+        _ => panic!("Invalid array type"),
+    }
+}
+
+fn parse_array_length(array: &TypeArray) -> u32 {
+    match &array.len {
+        Expr::Lit(ExprLit { attrs, lit }) => {
+            assert!(attrs.is_empty());
+
+            match lit {
+                Lit::Int(int) => {
+                    let int = int.base10_parse();
+
+                    match int {
+                        Ok(int) => return int,
+                        Err(..) => panic!("Invalid array length"),
+                    }
+                }
+                _ => panic!("Invalid array length"),
+            }
+        }
+        _ => panic!("Invalid array length"),
+    }
+}
+
+fn parse_type_path(path: &TypePath) -> Ident {
+    assert!(path.qself.is_none());
+
+    let path = &path.path;
+    let ty = segments_path_as_ident(&path);
+
+    match ty.to_string().as_str() {
+        #[rustfmt::skip]
                 "bool"    | 
                 "Amount"  |
                 "i8"      |
@@ -156,17 +198,8 @@ fn field_as_var(id: VarId, field: &Field) -> Var {
                 "i64"     |
                 "u64"     |
                 "Address" |
-                "AddressOwned" => {
-                    Var::Primitive {
-                        id,
-                        name,
-                        ty
-                    }
-                },
-                _ => panic!("Invalid Storage field type: {}", ty),
-            }
-        }
-        _ => panic!("Invalid Type"),
+                "AddressOwned" => ty.clone(),
+        _ => panic!("Invalid Storage field type: {}", ty),
     }
 }
 
@@ -218,126 +251,153 @@ fn storage_name(name: &Ident) -> Ident {
 }
 
 fn getter_ast(var: &Var) -> TokenStream {
-    if let Var::Primitive { id, name, ty } = var {
-        let getter_name = getter_ident(name);
+    let includes = include_storage_ast();
 
-        let includes = include_storage_ast();
+    match var {
+        Var::Primitive { id, name, ty } => {
+            let getter_name = getter_ident(name);
 
-        match ty.to_string().as_str() {
-            "i8" | "u8" | "i16" | "u16" | "i32" | "u32" => {
-                quote! {
-                    fn #getter_name () -> #ty {
+            match ty.to_string().as_str() {
+                "i8" | "u8" | "i16" | "u16" | "i32" | "u32" => {
+                    quote! {
+                        fn #getter_name () -> #ty {
+                            #includes
+
+                            let v = Storage::get32(#id);
+                            v as #ty
+                        }
+                    }
+                }
+                "u64" | "i64" => {
+                    quote! {
+                        fn #getter_name () -> #ty {
+                            #includes
+
+                            let v = Storage::get64(#id);
+                            v as #ty
+                        }
+                    }
+                }
+                "bool" => quote! {
+                    fn #getter_name () -> bool {
                         #includes
 
                         let v = Storage::get32(#id);
-                        v as #ty
+                        match v {
+                            0 => false,
+                            1 => true,
+                            _ => unreachable!()
+                        }
                     }
-                }
-            }
-            "u64" | "i64" => {
-                quote! {
-                    fn #getter_name () -> #ty {
+                },
+                "Amount" => quote! {
+                    fn #getter_name () -> svm_sdk::Amount {
                         #includes
 
                         let v = Storage::get64(#id);
-                        v as #ty
+                        svm_sdk::Amount(v)
                     }
-                }
+                },
+                "AddressOwned" => quote! {
+                    fn #getter_name () -> svm_sdk::value::AddressOwned {
+                        #includes
+
+                        let offset = svm_sdk::memory::alloc(20);
+                        Storage::load160(#id, offset);
+
+                        let slice = unsafe {
+                            core::slice::from_raw_parts(offset as *const u8, 20)
+                        };
+
+                        slice.into()
+                    }
+                },
+                _ => unreachable!(),
             }
-            "bool" => quote! {
-                fn #getter_name () -> bool {
-                    #includes
-
-                    let v = Storage::get32(#id);
-                    match v {
-                        0 => false,
-                        1 => true,
-                        _ => unreachable!()
-                    }
-                }
-            },
-            "Amount" => quote! {
-                fn #getter_name () -> svm_sdk::Amount {
-                    #includes
-
-                    let v = Storage::get64(#id);
-                    svm_sdk::Amount(v)
-                }
-            },
-            "AddressOwned" => quote! {
-                fn #getter_name () -> svm_sdk::value::AddressOwned {
-                    #includes
-
-                    let offset = svm_sdk::memory::alloc(20);
-                    Storage::load160(#id, offset);
-
-                    let slice = unsafe {
-                        core::slice::from_raw_parts(offset as *const u8, 20)
-                    };
-
-                    slice.into()
-                }
-            },
-            _ => unreachable!(),
         }
-    } else {
-        unreachable!()
+        Var::Array { id, name, ty, size } => {
+            let getter_name = getter_ident(name);
+
+            match ty.to_string().as_str() {
+                "AddressOwned" => quote! {
+                    fn #getter_name (index: usize) -> svm_sdk::value::AddressOwned {
+                        #includes
+
+                        todo!()
+                    }
+                },
+                _ => unreachable!(),
+            }
+        }
     }
 }
 
 fn setter_ast(var: &Var) -> TokenStream {
-    if let Var::Primitive { id, name, ty } = var {
-        let setter_name = setter_ident(name);
-        let includes = include_storage_ast();
+    let includes = include_storage_ast();
 
-        match ty.to_string().as_str() {
-            "i8" | "u8" | "i16" | "u16" | "i32" | "u32" => {
-                quote! {
-                    fn #setter_name (value: #ty) {
+    match var {
+        Var::Primitive { id, name, ty } => {
+            let setter_name = setter_ident(name);
+
+            match ty.to_string().as_str() {
+                "i8" | "u8" | "i16" | "u16" | "i32" | "u32" => {
+                    quote! {
+                        fn #setter_name (value: #ty) {
+                            #includes
+
+                            Storage::set32(#id, value as u32);
+                        }
+                    }
+                }
+                "u64" | "i64" => {
+                    quote! {
+                        fn #setter_name (value: #ty) {
+                            #includes
+
+                            Storage::set64(#id, value as u64);
+                        }
+                    }
+                }
+                "bool" => quote! {
+                    fn #setter_name (value: bool) {
                         #includes
 
-                        Storage::set32(#id, value as u32);
+                        match value {
+                            true => Storage::set32(#id, 1),
+                            false => Storage::set32(#id, 0),
+                        }
                     }
-                }
-            }
-            "u64" | "i64" => {
-                quote! {
-                    fn #setter_name (value: #ty) {
+                },
+                "Amount" => quote! {
+                    fn #setter_name (amount: svm_sdk::Amount) {
                         #includes
 
-                        Storage::set64(#id, value as u64);
+                        Storage::set64(#id, amount.0);
                     }
-                }
+                },
+                "AddressOwned" => quote! {
+                    fn #setter_name (addr: &svm_sdk::value::AddressOwned) {
+                        #includes
+
+                        let off = addr.offset();
+                        Storage::store160(#id, off);
+                    }
+                },
+                _ => unreachable!(),
             }
-            "bool" => quote! {
-                fn #setter_name (value: bool) {
-                    #includes
-
-                    match value {
-                        true => Storage::set32(#id, 1),
-                        false => Storage::set32(#id, 0),
-                    }
-                }
-            },
-            "Amount" => quote! {
-                fn #setter_name (amount: svm_sdk::Amount) {
-                    #includes
-
-                    Storage::set64(#id, amount.0);
-                }
-            },
-            "AddressOwned" => quote! {
-                fn #setter_name (addr: &svm_sdk::value::AddressOwned) {
-                    #includes
-
-                    let off = addr.offset();
-                    Storage::store160(#id, off);
-                }
-            },
-            _ => unreachable!(),
         }
-    } else {
-        unreachable!()
+        Var::Array { id, name, ty, size } => {
+            let setter_name = setter_ident(name);
+
+            match ty.to_string().as_str() {
+                "AddressOwned" => quote! {
+                    fn #setter_name(addr: &svm_sdk::value::AddressOwned, index: usize) {
+                        todo!()
+                    }
+                },
+                _ => unreachable!(),
+            }
+        }
     }
 }
 
