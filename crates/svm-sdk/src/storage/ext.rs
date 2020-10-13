@@ -34,11 +34,11 @@ impl Storage for ExtStorage {
         unsafe { svm_set64(var_id, value) }
     }
 
-    fn store160(var_id: u32, ptr: usize) {
-        unsafe { svm_store160(ptr as u32, var_id) }
+    fn store160(var_id: u32, offset: usize) {
+        unsafe { svm_store160(offset as u32, var_id) }
     }
 
-    fn load160(var_id: u32, ptr: usize) {
-        unsafe { svm_load160(var_id, ptr as u32) }
+    fn load160(var_id: u32, offset: usize) {
+        unsafe { svm_load160(var_id, offset as u32) }
     }
 }

@@ -7,6 +7,7 @@ pub use traits::Storage;
 pub use ext::ExtStorage;
 pub use mock::MockStorage;
 
+use crate::value::{Address, AddressOwned};
 use crate::Amount;
 
 pub fn get32<S: Storage>(var_id: u32) -> u32 {
@@ -54,6 +55,45 @@ pub fn set_amount<S: Storage>(var_id: u32, value: Amount) {
     let value = value.0;
 
     set64::<S>(var_id, value);
+}
+
+pub fn load160<S: Storage>(var_id: u32) -> &'static [u8] {
+    let offset = crate::memory::alloc(20);
+
+    S::load160(var_id, offset);
+
+    unsafe { core::slice::from_raw_parts(offset as *const u8, 20) }
+}
+
+pub fn store160<S: Storage>(var_id: u32, slice: &[u8]) {
+    let ptr: *const u8 = slice.as_ptr();
+    let offset = ptr as usize;
+
+    S::store160(var_id, offset);
+}
+
+pub fn get_addr<S: Storage>(var_id: u32) -> Address<'static> {
+    let slice = load160::<S>(var_id);
+
+    slice.into()
+}
+
+pub fn set_addr<S: Storage>(var_id: u32, addr: &Address<'static>) {
+    let slice = addr.as_slice();
+
+    store160::<S>(var_id, slice);
+}
+
+pub fn get_addr_owned<S: Storage>(var_id: u32) -> AddressOwned {
+    let slice = load160::<S>(var_id);
+
+    slice.into()
+}
+
+pub fn set_addr_owned<S: Storage>(var_id: u32, addr: &AddressOwned) {
+    let slice = addr.as_slice();
+
+    store160::<S>(var_id, slice);
 }
 
 // Array
@@ -106,6 +146,10 @@ pub fn array_set_amount<S: Storage>(var_id: u32, index: u32, length: u32, value:
     let value = value.0;
 
     array_set64::<S>(var_id, index, length, value);
+}
+
+pub fn array_get_addr<S: Storage>(var_id: u32, index: u32, length: u32, addr: &Address) {
+    todo!()
 }
 
 #[inline]

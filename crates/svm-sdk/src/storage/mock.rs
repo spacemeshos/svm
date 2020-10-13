@@ -83,7 +83,7 @@ impl InnerStorage {
     }
 
     fn store_vec(&mut self, var_id: u32, offset: usize, len: usize) {
-        let bytes = unsafe { core::slice::from_raw_parts(offset as *const u8, len) };
+        let bytes = self.from_raw_parts(offset, len);
         let vec = bytes.to_vec();
 
         self.set_var(var_id, Var::Blob(vec))

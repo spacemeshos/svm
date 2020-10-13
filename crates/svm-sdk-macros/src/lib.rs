@@ -310,12 +310,21 @@ fn getter_ast(var: &Var) -> TokenStream {
                         }
                     }
                 }
+                "Address" => {
+                    quote! {
+                        fn #getter_name () -> svm_sdk::value::Address<'static> {
+                            #includes
+
+                            svm_sdk::storage::get_addr::<StorageImpl>(#id)
+                        }
+                    }
+                }
                 "AddressOwned" => {
                     quote! {
                         fn #getter_name () -> svm_sdk::value::AddressOwned {
                             #includes
 
-                            todo!()
+                            svm_sdk::storage::get_addr_owned::<StorageImpl>(#id)
                         }
                     }
                 }
@@ -421,10 +430,10 @@ fn setter_ast(var: &Var) -> TokenStream {
                     }
                 },
                 "AddressOwned" => quote! {
-                    fn #setter_name (addr: &svm_sdk::value::AddressOwned) {
+                    fn #setter_name (value: &svm_sdk::value::AddressOwned) {
                         #includes
 
-                        todo!()
+                        svm_sdk::storage::set_addr_owned::<StorageImpl>(#id, &value);
                     }
                 },
                 _ => unreachable!(),
