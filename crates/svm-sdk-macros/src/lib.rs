@@ -63,7 +63,7 @@ enum Var {
         id: VarId,
         name: Ident,
         ty: Ident,
-        size: u32,
+        length: u32,
     },
 }
 
@@ -95,8 +95,13 @@ fn assign_vars(fields: &FieldsNamed) -> Vec<Var> {
             Var::Primitive { id, name, ty } => {
                 index += 1;
             }
-            Var::Array { id, name, ty, size } => {
-                index += size;
+            Var::Array {
+                id,
+                name,
+                ty,
+                length,
+            } => {
+                index += length;
             }
         }
 
@@ -142,10 +147,15 @@ fn field_as_var(id: VarId, field: &Field) -> Var {
     match &field.ty {
         Type::Array(array) => {
             let ty = parse_array_elem_type(&array);
-            let size = parse_array_length(&array);
+            let length = parse_array_length(&array);
             let name = field_ident(field);
 
-            Var::Array { id, name, ty, size }
+            Var::Array {
+                id,
+                name,
+                ty,
+                length,
+            }
         }
         Type::Path(path) => {
             let name = field_ident(field);
@@ -257,8 +267,6 @@ fn storage_name(name: &Ident) -> Ident {
 }
 
 fn getter_ast(var: &Var) -> TokenStream {
-    let includes = include_storage_ast();
-
     match var {
         Var::Primitive { id, name, ty } => {
             let getter_name = getter_ident(name);
@@ -267,68 +275,74 @@ fn getter_ast(var: &Var) -> TokenStream {
                 "i8" | "u8" | "i16" | "u16" | "i32" | "u32" => {
                     quote! {
                         fn #getter_name () -> #ty {
-                            #includes
-
-                            let v = Storage::get32(#id);
-                            v as #ty
+                            svm_sdk::storage::get32(#id) as #ty
                         }
                     }
                 }
                 "u64" | "i64" => {
                     quote! {
                         fn #getter_name () -> #ty {
-                            #includes
-
-                            let v = Storage::get64(#id);
-                            v as #ty
+                            svm_sdk::storage::get64(#id) as #ty
                         }
                     }
                 }
                 "bool" => quote! {
                     fn #getter_name () -> bool {
-                        #includes
-
-                        let v = Storage::get32(#id);
-                        match v {
-                            0 => false,
-                            1 => true,
-                            _ => unreachable!()
-                        }
+                        svm_sdk::storage::get_bool(#id)
                     }
                 },
                 "Amount" => quote! {
                     fn #getter_name () -> svm_sdk::Amount {
-                        #includes
-
-                        let v = Storage::get64(#id);
-                        svm_sdk::Amount(v)
+                        svm_sdk::storage::get_amount(#id)
                     }
                 },
                 "AddressOwned" => quote! {
                     fn #getter_name () -> svm_sdk::value::AddressOwned {
-                        #includes
-
-                        let offset = svm_sdk::memory::alloc(20);
-                        Storage::load160(#id, offset);
-
-                        let slice = unsafe {
-                            core::slice::from_raw_parts(offset as *const u8, 20)
-                        };
-
-                        slice.into()
+                        todo!()
                     }
                 },
                 _ => unreachable!(),
             }
         }
-        Var::Array { id, name, ty, size } => {
+        Var::Array {
+            id,
+            name,
+            ty,
+            length,
+        } => {
             let getter_name = getter_ident(name);
 
             match ident_as_str!(ty) {
+                "i8" | "u8" | "i16" | "u16" | "i32" | "u32" => {
+                    quote! {
+                        fn #getter_name (index: usize) -> #ty {
+                            let value = svm_sdk::storage::array_get32(#id, index, #length);
+                            value as #ty
+                        }
+                    }
+                }
+                "u64" | "i64" => {
+                    quote! {
+                        fn #getter_name (index: usize) -> #ty {
+                            let value = svm_sdk::storage::array_get64(#id, index, #length);
+                            value as #ty
+                        }
+                    }
+                }
+                "bool" => {
+                    quote! {
+                        fn #getter_name (index: usize) -> bool {
+                            svm_sdk::storage::array_get_bool(#id, index, #length)
+                        }
+                    }
+                }
+                "Amount" => quote! {
+                    fn #getter_name (index: usize) -> svm_sdk::Amount {
+                        svm_sdk::storage::array_get_amount(#id, index, #length)
+                    }
+                },
                 "AddressOwned" => quote! {
                     fn #getter_name (index: usize) -> svm_sdk::value::AddressOwned {
-                        #includes
-
                         todo!()
                     }
                 },
@@ -339,8 +353,6 @@ fn getter_ast(var: &Var) -> TokenStream {
 }
 
 fn setter_ast(var: &Var) -> TokenStream {
-    let includes = include_storage_ast();
-
     match var {
         Var::Primitive { id, name, ty } => {
             let setter_name = setter_ident(name);
@@ -349,70 +361,79 @@ fn setter_ast(var: &Var) -> TokenStream {
                 "i8" | "u8" | "i16" | "u16" | "i32" | "u32" => {
                     quote! {
                         fn #setter_name (value: #ty) {
-                            #includes
-
-                            Storage::set32(#id, value as u32);
+                            svm_sdk::storage::set32(#id, value as u32);
                         }
                     }
                 }
                 "u64" | "i64" => {
                     quote! {
                         fn #setter_name (value: #ty) {
-                            #includes
-
-                            Storage::set64(#id, value as u64);
+                            svm_sdk::storage::set64(#id, value as u64);
                         }
                     }
                 }
                 "bool" => quote! {
                     fn #setter_name (value: bool) {
-                        #includes
-
-                        match value {
-                            true => Storage::set32(#id, 1),
-                            false => Storage::set32(#id, 0),
-                        }
+                        svm_sdk::storage::set_bool(#id, value);
                     }
                 },
                 "Amount" => quote! {
-                    fn #setter_name (amount: svm_sdk::Amount) {
-                        #includes
-
-                        Storage::set64(#id, amount.0);
+                    fn #setter_name (value: svm_sdk::Amount) {
+                        svm_sdk::storage::set_amount(#id, value);
                     }
                 },
                 "AddressOwned" => quote! {
                     fn #setter_name (addr: &svm_sdk::value::AddressOwned) {
-                        #includes
-
-                        let off = addr.offset();
-                        Storage::store160(#id, off);
-                    }
-                },
-                _ => unreachable!(),
-            }
-        }
-        Var::Array { id, name, ty, size } => {
-            let setter_name = setter_ident(name);
-
-            match ident_as_str!(ty) {
-                "AddressOwned" => quote! {
-                    fn #setter_name(addr: &svm_sdk::value::AddressOwned, index: usize) {
                         todo!()
                     }
                 },
                 _ => unreachable!(),
             }
         }
-    }
-}
+        Var::Array {
+            id,
+            name,
+            ty,
+            length,
+        } => {
+            let setter_name = setter_ident(name);
 
-fn include_storage_ast() -> TokenStream {
-    quote! {
-        #[cfg(test)]
-        use svm_sdk::MockStorage as Storage;
-
-        #[cfg(not(test))]
-        use svm_sdk::ExtStorage as Storage;
+            match ident_as_str!(ty) {
+                "i8" | "u8" | "i16" | "u16" | "i32" | "u32" => {
+                    quote! {
+                        fn #setter_name (value: #ty, index: usize) {
+                            svm_sdk::storage::array_set32(#id, index, #length, value as u32);
+                        }
+                    }
+                }
+                "u64" | "i64" => {
+                    quote! {
+                        fn #setter_name (value: #ty, index: usize) {
+                            svm_sdk::storage::array_set64(#id, index, #length, value as u64);
+                        }
+                    }
+                }
+                "bool" => {
+                    quote! {
+                        fn #setter_name (value: bool, index: usize) {
+                            svm_sdk::storage::array_set_bool(#id, index, #length, value);
+                        }
+                    }
+                }
+                "Amount" => {
+                    quote! {
+                        fn #setter_name (value: Amount, index: usize) {
+                            svm_sdk::storage::array_set_amount(#id, index, #length, value);
+                        }
+                    }
+                }
+                "AddressOwned" => quote! {
+                    fn #setter_name(value: &svm_sdk::value::AddressOwned, index: usize) {
+                        todo!()
+                    }
+                },
+                _ => unreachable!(),
+            }
+        }
     }
 }

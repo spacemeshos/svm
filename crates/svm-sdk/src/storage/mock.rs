@@ -7,6 +7,8 @@ use alloc::vec::Vec;
 use std::collections::HashMap;
 use std::sync::{Mutex, MutexGuard};
 
+use crate::storage::Storage;
+
 use lazy_static::lazy_static;
 
 lazy_static! {
@@ -61,20 +63,12 @@ impl InnerStorage {
         self.set_var(var_id, Var::I64(value));
     }
 
-    pub fn store160(&mut self, var_id: u32, ptr: usize) {
-        self.store_vec(var_id, ptr, 20);
+    pub fn store160(&mut self, var_id: u32, offset: usize) {
+        self.store_vec(var_id, offset, 20);
     }
 
-    pub fn store256(&mut self, var_id: u32, ptr: usize) {
-        self.store_vec(var_id, ptr, 32);
-    }
-
-    pub fn load160(&self, var_id: u32, ptr: usize) {
-        self.load_vec(var_id, ptr, 20)
-    }
-
-    pub fn load256(&self, var_id: u32, ptr: usize) {
-        self.load_vec(var_id, ptr, 32)
+    pub fn load160(&self, var_id: u32, offset: usize) {
+        self.load_vec(var_id, offset, 20)
     }
 
     fn get_var<F>(&self, var_id: u32, default: F) -> Var
@@ -88,20 +82,20 @@ impl InnerStorage {
         self.vars.insert(var_id, var);
     }
 
-    fn store_vec(&mut self, var_id: u32, ptr: usize, len: usize) {
-        let bytes = unsafe { core::slice::from_raw_parts(ptr as *const u8, len) };
+    fn store_vec(&mut self, var_id: u32, offset: usize, len: usize) {
+        let bytes = unsafe { core::slice::from_raw_parts(offset as *const u8, len) };
         let vec = bytes.to_vec();
 
         self.set_var(var_id, Var::Blob(vec))
     }
 
-    fn load_vec(&self, var_id: u32, ptr: usize, len: usize) {
+    fn load_vec(&self, var_id: u32, offset: usize, len: usize) {
         let var = self.get_var(var_id, || Var::Blob(vec![0; len]));
 
         match var {
             Var::Blob(vec) => unsafe {
                 let src: *const u8 = vec.as_ptr();
-                let dst = ptr as *mut u8;
+                let dst = offset as *mut u8;
                 let len = vec.len();
 
                 core::ptr::copy_nonoverlapping(src, dst, len)
@@ -110,8 +104,8 @@ impl InnerStorage {
         }
     }
 
-    fn from_raw_parts(&self, ptr: usize, len: usize) -> &[u8] {
-        unsafe { core::slice::from_raw_parts(ptr as *const u8, len) }
+    fn from_raw_parts(&self, offset: usize, len: usize) -> &[u8] {
+        unsafe { core::slice::from_raw_parts(offset as *const u8, len) }
     }
 
     fn clear(&mut self) {
@@ -119,65 +113,55 @@ impl InnerStorage {
     }
 }
 
-pub struct Storage;
+pub struct MockStorage;
 
-impl Storage {
-    pub fn get32(var_id: u32) -> u32 {
+impl Storage for MockStorage {
+    fn get32(var_id: u32) -> u32 {
         let storage = storage();
 
         storage.get32(var_id)
     }
 
-    pub fn get64(var_id: u32) -> u64 {
+    fn get64(var_id: u32) -> u64 {
         let storage = storage();
 
         storage.get64(var_id)
     }
 
-    pub fn set32(var_id: u32, value: u32) {
+    fn set32(var_id: u32, value: u32) {
         let mut storage = storage();
 
         storage.set32(var_id, value)
     }
 
-    pub fn set64(var_id: u32, value: u64) {
+    fn set64(var_id: u32, value: u64) {
         let mut storage = storage();
 
         storage.set64(var_id, value)
     }
 
-    pub fn store160(var_id: u32, ptr: usize) {
+    fn store160(var_id: u32, offset: usize) {
         let mut storage = storage();
 
-        storage.store160(var_id, ptr)
+        storage.store160(var_id, offset)
     }
 
-    pub fn store256(var_id: u32, ptr: usize) {
-        let mut storage = storage();
-
-        storage.store256(var_id, ptr)
-    }
-
-    pub fn load160(var_id: u32, ptr: usize) {
+    fn load160(var_id: u32, offset: usize) {
         let storage = storage();
 
-        storage.load160(var_id, ptr)
+        storage.load160(var_id, offset)
     }
+}
 
-    pub fn load256(var_id: u32, ptr: usize) {
-        let storage = storage();
-
-        storage.load256(var_id, ptr)
-    }
-
-    pub fn clear() {
+impl MockStorage {
+    fn clear() {
         let mut storage = storage();
 
         storage.clear();
     }
 
-    pub fn from_raw_parts<'a>(ptr: usize, len: usize) -> &'a [u8] {
-        unsafe { core::slice::from_raw_parts(ptr as *const u8, len) }
+    fn from_raw_parts<'a>(offset: usize, len: usize) -> &'a [u8] {
+        unsafe { core::slice::from_raw_parts(offset as *const u8, len) }
     }
 }
 
@@ -196,7 +180,7 @@ mod tests {
     }
 
     fn storage_clear() {
-        Storage::clear();
+        MockStorage::clear();
     }
 
     fn test(f: fn() -> ()) {
@@ -208,7 +192,7 @@ mod tests {
 
         // Holding `guard` throughout the test-lifetime.
         // By doing that, we make sure that the tests are running in a linear-order (one test at a time)..
-        // That's crucial since `Storage` serves as a shared-memory resource.
+        // That's crucial since `MockStorage` serves as a shared-memory resource.
         drop(guard);
     }
 
@@ -218,13 +202,13 @@ mod tests {
             let var1 = 1;
             let var2 = 2;
 
-            Storage::set32(var1, 10);
-            Storage::set32(var2, 20);
+            MockStorage::set32(var1, 10);
+            MockStorage::set32(var2, 20);
 
-            let v = Storage::get32(var1);
+            let v = MockStorage::get32(var1);
             assert_eq!(v, 10u32);
 
-            let v = Storage::get32(var2);
+            let v = MockStorage::get32(var2);
             assert_eq!(v, 20u32);
         });
     }
@@ -235,13 +219,13 @@ mod tests {
             let var1 = 1;
             let var2 = 2;
 
-            Storage::set64(var1, 10);
-            Storage::set64(var2, 20);
+            MockStorage::set64(var1, 10);
+            MockStorage::set64(var2, 20);
 
-            let v = Storage::get64(var1);
+            let v = MockStorage::get64(var1);
             assert_eq!(v, 10u64);
 
-            let v = Storage::get64(var2);
+            let v = MockStorage::get64(var2);
             assert_eq!(v, 20u64);
         });
     }
@@ -259,14 +243,14 @@ mod tests {
                 let ptr1 = alloc(n);
                 let ptr2 = alloc(n);
 
-                Storage::$store_fn(var1, addr1.as_ptr() as usize);
-                Storage::$store_fn(var2, addr2.as_ptr() as usize);
+                MockStorage::$store_fn(var1, addr1.as_ptr() as usize);
+                MockStorage::$store_fn(var2, addr2.as_ptr() as usize);
 
-                Storage::$load_fn(var1, ptr1);
-                Storage::$load_fn(var2, ptr2);
+                MockStorage::$load_fn(var1, ptr1);
+                MockStorage::$load_fn(var2, ptr2);
 
-                let slice1 = Storage::from_raw_parts(ptr1, n);
-                let slice2 = Storage::from_raw_parts(ptr2, n);
+                let slice1 = MockStorage::from_raw_parts(ptr1, n);
+                let slice2 = MockStorage::from_raw_parts(ptr2, n);
 
                 assert_eq!(slice1, vec![0x10; n]);
                 assert_eq!(slice2, vec![0x20; n]);
@@ -277,10 +261,5 @@ mod tests {
     #[test]
     fn storage_mock_load160_store160() {
         check_load_store!(20, load160, store160);
-    }
-
-    #[test]
-    fn storage_mock_load256_store256() {
-        check_load_store!(20, load256, store256);
     }
 }
