@@ -47,6 +47,12 @@ impl ToTokens for &VarId {
     }
 }
 
+macro_rules! ident_as_str {
+    ($ident:expr) => {
+        $ident.to_string().as_str()
+    };
+}
+
 enum Var {
     Primitive {
         id: VarId,
@@ -185,7 +191,7 @@ fn parse_type_path(path: &TypePath) -> Ident {
     let path = &path.path;
     let ty = segments_path_as_ident(&path);
 
-    match ty.to_string().as_str() {
+    match ident_as_str!(ty) {
         #[rustfmt::skip]
                 "bool"    | 
                 "Amount"  |
@@ -257,7 +263,7 @@ fn getter_ast(var: &Var) -> TokenStream {
         Var::Primitive { id, name, ty } => {
             let getter_name = getter_ident(name);
 
-            match ty.to_string().as_str() {
+            match ident_as_str!(ty) {
                 "i8" | "u8" | "i16" | "u16" | "i32" | "u32" => {
                     quote! {
                         fn #getter_name () -> #ty {
@@ -318,7 +324,7 @@ fn getter_ast(var: &Var) -> TokenStream {
         Var::Array { id, name, ty, size } => {
             let getter_name = getter_ident(name);
 
-            match ty.to_string().as_str() {
+            match ident_as_str!(ty) {
                 "AddressOwned" => quote! {
                     fn #getter_name (index: usize) -> svm_sdk::value::AddressOwned {
                         #includes
@@ -339,7 +345,7 @@ fn setter_ast(var: &Var) -> TokenStream {
         Var::Primitive { id, name, ty } => {
             let setter_name = setter_ident(name);
 
-            match ty.to_string().as_str() {
+            match ident_as_str!(ty) {
                 "i8" | "u8" | "i16" | "u16" | "i32" | "u32" => {
                     quote! {
                         fn #setter_name (value: #ty) {
@@ -389,7 +395,7 @@ fn setter_ast(var: &Var) -> TokenStream {
         Var::Array { id, name, ty, size } => {
             let setter_name = setter_ident(name);
 
-            match ty.to_string().as_str() {
+            match ident_as_str!(ty) {
                 "AddressOwned" => quote! {
                     fn #setter_name(addr: &svm_sdk::value::AddressOwned, index: usize) {
                         todo!()
