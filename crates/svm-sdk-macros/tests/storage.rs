@@ -109,12 +109,12 @@ fn test_i64() {
     assert_eq!(TestStorage::get_ii64(), std::i64::MAX);
 }
 
-#[test]
-fn test_address_owned() {
-    assert_eq!(TestStorage::get_addr(), AddressOwned([0; 20]));
+// #[test]
+// fn test_address_owned() {
+//     assert_eq!(TestStorage::get_addr(), AddressOwned([0; 20]));
 
-    let addr = AddressOwned([0x10; 20]);
-    TestStorage::set_addr(&addr);
+//     let addr = AddressOwned([0x10; 20]);
+//     TestStorage::set_addr(&addr);
 
-    assert_eq!(TestStorage::get_addr(), AddressOwned([0x10; 20]));
-}
+//     assert_eq!(TestStorage::get_addr(), AddressOwned([0x10; 20]));
+// }
