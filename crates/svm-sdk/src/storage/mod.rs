@@ -98,65 +98,65 @@ pub fn set_addr_owned<S: Storage>(var_id: u32, addr: &AddressOwned) {
 
 // Array
 
-pub fn array_get_bool<S: Storage>(var_id: u32, index: u32, length: u32) -> bool {
+pub fn array_get_bool<S: Storage>(var_id: u32, index: usize, length: u32) -> bool {
     let var_id = cell_offset(var_id, index, length);
 
     get_bool::<S>(var_id)
 }
 
-pub fn array_set_bool<S: Storage>(var_id: u32, index: u32, length: u32, value: bool) {
+pub fn array_set_bool<S: Storage>(var_id: u32, index: usize, length: u32, value: bool) {
     let var_id = cell_offset(var_id, index, length);
 
     set_bool::<S>(var_id, value);
 }
 
-pub fn array_get32<S: Storage>(var_id: u32, index: u32, length: u32) -> u32 {
+pub fn array_get32<S: Storage>(var_id: u32, index: usize, length: u32) -> u32 {
     let var_id = cell_offset(var_id, index, length);
 
     get32::<S>(var_id)
 }
 
-pub fn array_set32<S: Storage>(var_id: u32, index: u32, length: u32, value: u32) {
+pub fn array_set32<S: Storage>(var_id: u32, index: usize, length: u32, value: u32) {
     let var_id = cell_offset(var_id, index, length);
 
     set32::<S>(var_id, value)
 }
 
-pub fn array_get64<S: Storage>(var_id: u32, index: u32, length: u32) -> u64 {
+pub fn array_get64<S: Storage>(var_id: u32, index: usize, length: u32) -> u64 {
     let var_id = cell_offset(var_id, index, length);
 
     get64::<S>(var_id)
 }
 
-pub fn array_set64<S: Storage>(var_id: u32, index: u32, length: u32, value: u64) {
+pub fn array_set64<S: Storage>(var_id: u32, index: usize, length: u32, value: u64) {
     let var_id = cell_offset(var_id, index, length);
 
     set64::<S>(var_id, value)
 }
 
 #[inline]
-pub fn array_get_amount<S: Storage>(var_id: u32, index: u32, length: u32) -> Amount {
+pub fn array_get_amount<S: Storage>(var_id: u32, index: usize, length: u32) -> Amount {
     let value = array_get64::<S>(var_id, index, length);
 
     Amount(value)
 }
 
 #[inline]
-pub fn array_set_amount<S: Storage>(var_id: u32, index: u32, length: u32, value: Amount) {
+pub fn array_set_amount<S: Storage>(var_id: u32, index: usize, length: u32, value: Amount) {
     let value = value.0;
 
     array_set64::<S>(var_id, index, length, value);
 }
 
-pub fn array_get_addr<S: Storage>(var_id: u32, index: u32, length: u32, addr: &Address) {
+pub fn array_get_addr<S: Storage>(var_id: u32, index: usize, length: u32, addr: &Address) {
     todo!()
 }
 
 #[inline]
-fn cell_offset(var_id: u32, index: u32, length: u32) -> u32 {
-    let var_id = var_id + index;
+fn cell_offset(var_id: u32, index: usize, length: u32) -> u32 {
+    let index = index as u32;
 
-    assert!(var_id < length);
+    assert!(index < length);
 
-    var_id
+    var_id + index
 }

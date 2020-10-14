@@ -450,7 +450,7 @@ fn setter_ast(var: &Var) -> TokenStream {
             match ident_as_str!(ty) {
                 "i8" | "u8" | "i16" | "u16" | "i32" | "u32" => {
                     quote! {
-                        fn #setter_name (value: #ty, index: usize) {
+                        fn #setter_name (index: usize, value: #ty) {
                             #includes
 
                             svm_sdk::storage::array_set32::<StorageImpl>(#id, index, #length, value as u32);
@@ -459,7 +459,7 @@ fn setter_ast(var: &Var) -> TokenStream {
                 }
                 "u64" | "i64" => {
                     quote! {
-                        fn #setter_name (value: #ty, index: usize) {
+                        fn #setter_name (index: usize, value: #ty) {
                             #includes
 
                             svm_sdk::storage::array_set64::<StorageImpl>(#id, index, #length, value as u64);
@@ -468,7 +468,7 @@ fn setter_ast(var: &Var) -> TokenStream {
                 }
                 "bool" => {
                     quote! {
-                        fn #setter_name (value: bool, index: usize) {
+                        fn #setter_name (index: usize, value: bool) {
                             #includes
 
                             svm_sdk::storage::array_set_bool::<StorageImpl>(#id, index, #length, value);
@@ -477,7 +477,7 @@ fn setter_ast(var: &Var) -> TokenStream {
                 }
                 "Amount" => {
                     quote! {
-                        fn #setter_name (value: Amount, index: usize) {
+                        fn #setter_name (index: usize, value: Amount) {
                             #includes
 
                             svm_sdk::storage::array_set_amount::<StorageImpl>(#id, index, #length, value);
@@ -485,7 +485,7 @@ fn setter_ast(var: &Var) -> TokenStream {
                     }
                 }
                 "AddressOwned" => quote! {
-                    fn #setter_name(value: &svm_sdk::value::AddressOwned, index: usize) {
+                    fn #setter_name(index: usize, value: &svm_sdk::value::AddressOwned) {
                         #includes
 
                         todo!()
