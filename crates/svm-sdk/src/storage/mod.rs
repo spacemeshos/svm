@@ -78,8 +78,8 @@ pub fn get_addr<S: Storage>(var_id: u32) -> Address<'static> {
     slice.into()
 }
 
-pub fn set_addr<S: Storage>(var_id: u32, addr: &Address<'static>) {
-    let slice = addr.as_slice();
+pub fn set_addr<'a, S: Storage>(var_id: u32, value: &Address<'a>) {
+    let slice = value.as_slice();
 
     store160::<S>(var_id, slice);
 }
@@ -90,8 +90,8 @@ pub fn get_addr_owned<S: Storage>(var_id: u32) -> AddressOwned {
     slice.into()
 }
 
-pub fn set_addr_owned<S: Storage>(var_id: u32, addr: &AddressOwned) {
-    let slice = addr.as_slice();
+pub fn set_addr_owned<S: Storage>(var_id: u32, value: &AddressOwned) {
+    let slice = value.as_slice();
 
     store160::<S>(var_id, slice);
 }
@@ -148,8 +148,23 @@ pub fn array_set_amount<S: Storage>(var_id: u32, index: usize, length: u32, valu
     array_set64::<S>(var_id, index, length, value);
 }
 
-pub fn array_get_addr<S: Storage>(var_id: u32, index: usize, length: u32, addr: &Address) {
-    todo!()
+pub fn array_get_addr_owned<S: Storage>(var_id: u32, index: usize, length: u32) -> AddressOwned {
+    let var_id = cell_offset(var_id, index, length);
+    let slice = load160::<S>(var_id);
+
+    slice.into()
+}
+
+pub fn array_set_addr_owned<S: Storage>(
+    var_id: u32,
+    index: usize,
+    length: u32,
+    value: &AddressOwned,
+) {
+    let var_id = cell_offset(var_id, index, length);
+    let slice = value.as_slice();
+
+    store160::<S>(var_id, slice)
 }
 
 #[inline]
