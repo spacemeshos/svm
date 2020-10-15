@@ -7,8 +7,7 @@ pub use traits::Storage;
 pub use ext::ExtStorage;
 pub use mock::MockStorage;
 
-use crate::value::{Address, AddressOwned};
-use crate::Amount;
+use crate::{Address, Amount};
 
 pub fn get32<S: Storage>(var_id: u32) -> u32 {
     S::get32(var_id)
@@ -84,18 +83,6 @@ pub fn set_addr<S: Storage>(var_id: u32, value: &Address) {
     store160::<S>(var_id, slice);
 }
 
-pub fn get_addr_owned<S: Storage>(var_id: u32) -> AddressOwned {
-    let slice = load160::<S>(var_id);
-
-    slice.into()
-}
-
-pub fn set_addr_owned<S: Storage>(var_id: u32, value: &AddressOwned) {
-    let slice = value.as_slice();
-
-    store160::<S>(var_id, slice);
-}
-
 // Array
 
 pub fn array_get_bool<S: Storage>(var_id: u32, index: usize, length: u32) -> bool {
@@ -148,19 +135,14 @@ pub fn array_set_amount<S: Storage>(var_id: u32, index: usize, length: u32, valu
     array_set64::<S>(var_id, index, length, value);
 }
 
-pub fn array_get_addr_owned<S: Storage>(var_id: u32, index: usize, length: u32) -> AddressOwned {
+pub fn array_get_addr<S: Storage>(var_id: u32, index: usize, length: u32) -> Address {
     let var_id = cell_offset(var_id, index, length);
     let slice = load160::<S>(var_id);
 
     slice.into()
 }
 
-pub fn array_set_addr_owned<S: Storage>(
-    var_id: u32,
-    index: usize,
-    length: u32,
-    value: &AddressOwned,
-) {
+pub fn array_set_addr_owned<S: Storage>(var_id: u32, index: usize, length: u32, value: &Address) {
     let var_id = cell_offset(var_id, index, length);
     let slice = value.as_slice();
 

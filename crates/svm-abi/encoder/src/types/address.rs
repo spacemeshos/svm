@@ -1,11 +1,9 @@
 extern crate alloc;
+
 use alloc::vec::Vec;
 
 use svm_abi_layout::layout;
-use svm_sdk::{
-    types::PrimitiveMarker,
-    value::{Address, AddressOwned},
-};
+use svm_sdk::{types::PrimitiveMarker, Address};
 
 use crate::Encoder;
 
@@ -15,11 +13,10 @@ macro_rules! impl_primitive_encoder {
             /// Encodes `self` (of type `$ty`) and outputs the data into `w`
             fn encode(&self, w: &mut Vec<u8>) {
                 w.push($marker);
-                w.extend_from_slice(&self.0[..]);
+                w.extend_from_slice(self.as_slice());
             }
         }
     };
 }
 
-impl_primitive_encoder!(Address<'_>, layout::ADDRESS);
-impl_primitive_encoder!(AddressOwned, layout::ADDRESS);
+impl_primitive_encoder!(Address, layout::ADDRESS);

@@ -213,8 +213,7 @@ fn parse_type_path(path: &TypePath) -> Ident {
                 "u32"     |
                 "i64"     |
                 "u64"     |
-                "Address" |
-                "AddressOwned" => ty.clone(),
+                "Address" => ty.clone(),
         _ => panic!("Invalid StorageImpl field type: {}", ty),
     }
 }
@@ -312,28 +311,10 @@ fn getter_ast(var: &Var) -> TokenStream {
                 }
                 "Address" => {
                     quote! {
-                        fn #getter_name () -> svm_sdk::value::Address<'static> {
+                        fn #getter_name () -> svm_sdk::Address {
                             #includes
 
                             svm_sdk::storage::get_addr::<StorageImpl>(#id)
-                        }
-                    }
-                }
-                "Address" => {
-                    quote! {
-                        fn #getter_name () -> svm_sdk::value::Address<'static> {
-                            #includes
-
-                            svm_sdk::storage::get_addr::<StorageImpl>(#id)
-                        }
-                    }
-                }
-                "AddressOwned" => {
-                    quote! {
-                        fn #getter_name () -> svm_sdk::value::AddressOwned {
-                            #includes
-
-                            svm_sdk::storage::get_addr_owned::<StorageImpl>(#id)
                         }
                     }
                 }
@@ -385,11 +366,11 @@ fn getter_ast(var: &Var) -> TokenStream {
                         svm_sdk::storage::array_get_amount::<StorageImpl>(#id, index, #length)
                     }
                 },
-                "AddressOwned" => quote! {
-                    fn #getter_name (index: usize) -> svm_sdk::value::AddressOwned {
+                "Address" => quote! {
+                    fn #getter_name (index: usize) -> svm_sdk::Address {
                         #includes
 
-                        svm_sdk::storage::array_get_addr_owned::<StorageImpl>(#id, index, #length)
+                        todo!()
                     }
                 },
                 _ => unreachable!(),
@@ -439,17 +420,10 @@ fn setter_ast(var: &Var) -> TokenStream {
                     }
                 },
                 "Address" => quote! {
-                    fn #setter_name<'a>(value: &svm_sdk::value::Address<'a>) {
+                    fn #setter_name(value: &svm_sdk::Address) {
                         #includes
 
-                        svm_sdk::storage::set_addr_owned::<StorageImpl>(#id, &value);
-                    }
-                },
-                "AddressOwned" => quote! {
-                    fn #setter_name (value: &svm_sdk::value::AddressOwned) {
-                        #includes
-
-                        svm_sdk::storage::set_addr_owned::<StorageImpl>(#id, &value);
+                        svm_sdk::storage::set_addr::<StorageImpl>(#id, value);
                     }
                 },
                 _ => unreachable!(),
@@ -500,13 +474,15 @@ fn setter_ast(var: &Var) -> TokenStream {
                         }
                     }
                 }
-                "AddressOwned" => quote! {
-                    fn #setter_name(index: usize, value: &svm_sdk::value::AddressOwned) {
-                        #includes
+                "Address" => {
+                    quote! {
+                        fn #setter_name (index: usize, value: &svm_sdk::Address) {
+                            #includes
 
-                        svm_sdk::storage::array_set_addr_owned::<StorageImpl>(#id, index, #length, value);
+                            todo!()
+                        }
                     }
-                },
+                }
                 _ => unreachable!(),
             }
         }

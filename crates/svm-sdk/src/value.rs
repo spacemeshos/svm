@@ -1,152 +1,11 @@
 use core::cmp::PartialEq;
 use core::fmt::{self, Debug};
 
-use crate::Amount;
-
-use core::char;
+use crate::{Address, Amount};
 
 extern crate alloc;
 
 use alloc::vec::Vec;
-
-macro_rules! impl_fixed_primitive {
-    ($ty:ident, $ty_owned:ident, $nbytes:expr) => {
-        #[allow(missing_docs)]
-        #[repr(transparent)]
-        #[derive(Debug, PartialEq, Clone)]
-        pub struct $ty(*const u8);
-
-        impl $crate::types::PrimitiveMarker for $ty {}
-
-        #[allow(missing_docs)]
-        #[derive(Debug, PartialEq, Clone)]
-        #[repr(transparent)]
-        pub struct $ty_owned([u8; $nbytes]);
-
-        impl $crate::types::PrimitiveMarker for $ty_owned {}
-
-        impl $ty {
-            #[allow(missing_docs)]
-            #[inline]
-            pub fn offset(&self) -> usize {
-                self.as_ptr() as _
-            }
-
-            #[allow(missing_docs)]
-            #[inline]
-            pub fn as_ptr(&self) -> *const u8 {
-                self.0
-            }
-
-            #[allow(missing_docs)]
-            #[inline]
-            pub const fn len() -> usize {
-                $nbytes
-            }
-
-            #[allow(missing_docs)]
-            #[inline]
-            pub fn as_slice(&self) -> &[u8] {
-                unsafe { core::slice::from_raw_parts(self.0, Self::len()) }
-            }
-
-            /// Creates a new type with cloned data
-            pub fn to_owned(&self) -> $ty_owned {
-                todo!()
-                // let array = unsafe { core::mem::transmute::<_, [u8; $nbytes]>(slice) };
-
-                // $ty_owned(array)
-            }
-        }
-
-        impl $ty_owned {
-            /// Size in bytes
-            pub const fn len() -> usize {
-                $nbytes
-            }
-
-            /// Returns a type containing borrowed data
-            pub fn deref(&self) -> $ty {
-                let ptr = self.as_ptr();
-
-                $ty(ptr)
-            }
-
-            #[allow(missing_docs)]
-            #[inline]
-            pub fn offset(&self) -> usize {
-                self.as_ptr() as _
-            }
-
-            #[allow(missing_docs)]
-            #[inline]
-            pub fn as_ptr(&self) -> *const u8 {
-                self.0.as_ptr()
-            }
-
-            #[inline]
-            pub fn as_slice(&self) -> &[u8] {
-                &self.0[..]
-            }
-        }
-
-        impl<'a> From<&'a [u8]> for $ty {
-            fn from(bytes: &'a [u8]) -> Self {
-                assert_eq!(bytes.len(), $nbytes);
-
-                let bytes = unsafe { core::mem::transmute::<*const u8, _>(&bytes[0]) };
-
-                $ty(bytes)
-            }
-        }
-
-        impl From<&[u8]> for $ty_owned {
-            fn from(bytes: &[u8]) -> Self {
-                let ty: $ty = bytes.into();
-                ty.to_owned()
-            }
-        }
-
-        impl From<Vec<u8>> for $ty_owned {
-            fn from(bytes: Vec<u8>) -> Self {
-                (&bytes[..]).into()
-            }
-        }
-
-        impl fmt::Display for $ty {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                let slice = self.as_slice();
-
-                for byte in slice.iter() {
-                    let (a, b) = byte_as_chars(*byte);
-                    write!(f, "{}{}", a, b);
-                }
-
-                Ok(())
-            }
-        }
-
-        impl fmt::Display for $ty_owned {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                let ty: $ty = self.deref();
-
-                <$ty as fmt::Display>::fmt(&ty, f)
-            }
-        }
-    };
-}
-
-fn byte_as_chars(byte: u8) -> (char, char) {
-    let msb: u8 = (byte & 0xF0) >> 4;
-    let lsb: u8 = byte & 0x0F;
-
-    let a = char::from_digit(msb as u32, 16).unwrap();
-    let b = char::from_digit(lsb as u32, 16).unwrap();
-
-    (a, b)
-}
-
-impl_fixed_primitive!(Address, AddressOwned, 20);
 
 /// Array value
 #[derive(Debug, PartialEq)]
@@ -159,8 +18,6 @@ pub enum Primitive {
     Bool(bool),
 
     Address(Address),
-
-    AddressOwned(AddressOwned),
 
     Amount(Amount),
 
@@ -233,13 +90,6 @@ impl<'a> From<Address> for Value<'a> {
     }
 }
 
-impl From<AddressOwned> for Value<'_> {
-    fn from(addr: AddressOwned) -> Self {
-        let addr = Primitive::AddressOwned(addr);
-        Value::Primitive(addr)
-    }
-}
-
 impl<'a> From<&'a [Value<'_>]> for Value<'a> {
     fn from(slice: &'a [Value]) -> Self {
         let comp = Composite::Array(slice);
@@ -286,16 +136,6 @@ impl<'a> From<Value<'a>> for Address {
     fn from(value: Value<'a>) -> Self {
         match value {
             Value::Primitive(Primitive::Address(addr)) => addr,
-            _ => unreachable!(),
-        }
-    }
-}
-
-impl From<Value<'_>> for AddressOwned {
-    fn from(value: Value<'_>) -> Self {
-        match value {
-            Value::Primitive(Primitive::Address(addr)) => addr.to_owned(),
-            Value::Primitive(Primitive::AddressOwned(addr)) => addr,
             _ => unreachable!(),
         }
     }

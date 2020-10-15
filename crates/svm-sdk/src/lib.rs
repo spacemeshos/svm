@@ -21,6 +21,9 @@ pub mod types;
 /// SDK values
 pub mod value;
 
+mod blob;
+pub use blob::Address;
+
 /// Memory allocation on Heap
 pub mod memory;
 

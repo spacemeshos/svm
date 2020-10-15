@@ -1,9 +1,6 @@
 #![allow(unused)]
 
-use svm_sdk::{
-    value::{Addr, AddressOwned},
-    Amount,
-};
+use svm_sdk::{Address, Amount};
 use svm_sdk_macros::AppStorage;
 
 #[derive(AppStorage, Debug)]
@@ -11,8 +8,7 @@ struct Test {
     // Primitives
     flag: bool,
     amount: Amount,
-    addr_ref: Addr,
-    addr: AddressOwned,
+    addr: Address,
     uu8: u8,
     ii8: i8,
     uu16: u16,
@@ -25,7 +21,7 @@ struct Test {
     // Arrays
     flags: [bool; 2],
     amounts: [Amount; 3],
-    addrs: [AddressOwned; 2],
+    addrs: [Address; 2],
     uu8s: [u8; 2],
     ii8s: [i8; 2],
     uu16s: [u16; 2],
@@ -128,22 +124,14 @@ fn test_i64() {
 
 #[test]
 fn test_address() {
-    assert_eq!(TestStorage::get_addr_ref(), Address(&[0; 20]));
+    let empty_addr: Address = [0; 20].into();
 
-    // let addr = Address(&[0x10; 20]);
-    // TestStorage::set_addr_ref(&addr);
+    assert_eq!(TestStorage::get_addr(), empty_addr);
 
-    // assert_eq!(TestStorage::get_addr_ref(), Address(&[0x10; 20]));
-}
-
-#[test]
-fn test_address_owned() {
-    assert_eq!(TestStorage::get_addr(), AddressOwned([0; 20]));
-
-    let addr = AddressOwned([0x10; 20]);
+    let addr: Address = [0x10; 20].into();
     TestStorage::set_addr(&addr);
 
-    assert_eq!(TestStorage::get_addr(), AddressOwned([0x10; 20]));
+    assert_eq!(TestStorage::get_addr(), addr);
 }
 
 #[test]
@@ -261,16 +249,4 @@ fn test_array_i64() {
 
     assert_eq!(TestStorage::get_ii64s(0), -10i64);
     assert_eq!(TestStorage::get_ii64s(1), 0i64);
-}
-
-#[test]
-fn test_array_address_owned() {
-    assert_eq!(TestStorage::get_addrs(0), AddressOwned([0; 20]));
-    assert_eq!(TestStorage::get_addrs(1), AddressOwned([0; 20]));
-
-    let addr = AddressOwned([0x10; 20]);
-    TestStorage::set_addrs(0, &addr);
-
-    assert_eq!(TestStorage::get_addrs(0), AddressOwned([0x10; 20]));
-    assert_eq!(TestStorage::get_addrs(1), AddressOwned([0; 20]));
 }
