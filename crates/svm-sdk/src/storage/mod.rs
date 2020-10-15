@@ -72,13 +72,13 @@ pub fn store160<S: Storage>(var_id: u32, slice: &[u8]) {
     S::store160(var_id, offset);
 }
 
-pub fn get_addr<S: Storage>(var_id: u32) -> Address<'static> {
+pub fn get_addr<S: Storage>(var_id: u32) -> Address {
     let slice = load160::<S>(var_id);
 
     slice.into()
 }
 
-pub fn set_addr<'a, S: Storage>(var_id: u32, value: &Address<'a>) {
+pub fn set_addr<S: Storage>(var_id: u32, value: &Address) {
     let slice = value.as_slice();
 
     store160::<S>(var_id, slice);
