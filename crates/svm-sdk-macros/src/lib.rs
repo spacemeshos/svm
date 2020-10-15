@@ -370,7 +370,7 @@ fn getter_ast(var: &Var) -> TokenStream {
                     fn #getter_name (index: usize) -> svm_sdk::Address {
                         #includes
 
-                        todo!()
+                        svm_sdk::storage::array_get_addr::<StorageImpl>(#id, index, #length)
                     }
                 },
                 _ => unreachable!(),
@@ -479,7 +479,7 @@ fn setter_ast(var: &Var) -> TokenStream {
                         fn #setter_name (index: usize, value: &svm_sdk::Address) {
                             #includes
 
-                            todo!()
+                            svm_sdk::storage::array_set_addr::<StorageImpl>(#id, index, #length, value);
                         }
                     }
                 }

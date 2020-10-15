@@ -142,7 +142,7 @@ pub fn array_get_addr<S: Storage>(var_id: u32, index: usize, length: u32) -> Add
     slice.into()
 }
 
-pub fn array_set_addr_owned<S: Storage>(var_id: u32, index: usize, length: u32, value: &Address) {
+pub fn array_set_addr<S: Storage>(var_id: u32, index: usize, length: u32, value: &Address) {
     let var_id = cell_offset(var_id, index, length);
     let slice = value.as_slice();
 

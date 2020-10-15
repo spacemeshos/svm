@@ -124,9 +124,9 @@ fn test_i64() {
 
 #[test]
 fn test_address() {
-    let empty_addr: Address = [0; 20].into();
+    let empty: Address = [0; 20].into();
 
-    assert_eq!(TestStorage::get_addr(), empty_addr);
+    assert_eq!(TestStorage::get_addr(), empty);
 
     let addr: Address = [0x10; 20].into();
     TestStorage::set_addr(&addr);
@@ -161,6 +161,20 @@ fn test_array_amount() {
     assert_eq!(TestStorage::get_amounts(0), Amount(10));
     assert_eq!(TestStorage::get_amounts(1), Amount(20));
     assert_eq!(TestStorage::get_amounts(2), Amount(30));
+}
+
+#[test]
+fn test_array_address() {
+    let empty: Address = [0; Address::len()].into();
+
+    assert_eq!(TestStorage::get_addrs(0), empty);
+    assert_eq!(TestStorage::get_addrs(1), empty);
+
+    let addr: Address = [0x10; 20].into();
+    TestStorage::set_addrs(0, &addr);
+
+    assert_eq!(TestStorage::get_addrs(0), addr);
+    assert_eq!(TestStorage::get_addrs(1), empty);
 }
 
 #[test]
