@@ -3,7 +3,8 @@ use serde_json::Value as Json;
 
 use svm_abi_decoder::{Cursor, Decoder};
 use svm_abi_encoder::Encoder;
-use svm_sdk::value::{Address, AddressOwned, Composite, Primitive, Value};
+use svm_sdk::value::{Composite, Primitive, Value};
+use svm_sdk::Address;
 
 use crate::api::json::{self, JsonError};
 use crate::api::raw;
@@ -81,7 +82,7 @@ fn value_as_json(value: &Value) -> (Json, Json) {
     }
 }
 
-fn primitive_as_json(p: &Primitive<'_>) -> (Json, Json) {
+fn primitive_as_json(p: &Primitive) -> (Json, Json) {
     match p {
         Primitive::Bool(b) => (Json::String("bool".into()), json!(b)),
         Primitive::Amount(a) => (Json::String("amount".into()), json!(a.0)),
@@ -94,10 +95,6 @@ fn primitive_as_json(p: &Primitive<'_>) -> (Json, Json) {
         Primitive::I64(n) => (Json::String("i64".into()), json!(n)),
         Primitive::U64(n) => (Json::String("u64".into()), json!(n)),
         Primitive::Address(addr) => {
-            let s = json::bytes_to_str(addr.as_slice());
-            (Json::String("address".into()), json!(s))
-        }
-        Primitive::AddressOwned(addr) => {
             let s = json::bytes_to_str(addr.as_slice());
             (Json::String("address".into()), json!(s))
         }
@@ -157,10 +154,10 @@ fn encode_value<'a>(ty: &Json, value: &Json) -> Result<Value<'static>, JsonError
         "amount" => encode!(as_amount),
         "address" => {
             let addr: svm_types::Address = json::as_addr(&json, "calldata")?;
-            let bytes: &[u8] = addr.as_slice();
 
+            let bytes = addr.bytes();
             let addr: Address = bytes.into();
-            let addr: AddressOwned = addr.to_owned();
+
             addr.into()
         }
         _ => {
