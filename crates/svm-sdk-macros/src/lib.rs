@@ -217,7 +217,7 @@ fn parse_type_path(path: &TypePath) -> Ident {
                 "i64"     |
                 "u64"     |
                 "Address" => ty.clone(),
-        _ => panic!("Invalid StorageImpl field type: {}", ty),
+        _ => panic!("Invalid Storage field type: {}", ty),
     }
 }
 
