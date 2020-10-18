@@ -18,8 +18,8 @@ pub fn storage(
 
 #[proc_macro_attribute]
 pub fn endpoint(
-    _args: proc_macro::TokenStream,
+    args: proc_macro::TokenStream,
     input: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
-    parse_endpoint(input)
+    parse_endpoint(args, input)
 }

@@ -7,7 +7,16 @@ use syn::{
     Lit, Path, PathArguments, Type, TypeArray, TypePath,
 };
 
-pub fn parse_endpoint(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let _input = parse_macro_input!(input as DeriveInput);
-    todo!()
+pub fn parse_endpoint(
+    args: proc_macro::TokenStream,
+    input: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
+    dbg!(args);
+    dbg!("---------------");
+    dbg!(input);
+
+    (quote! {
+        //
+    })
+    .into()
 }
