@@ -11,8 +11,11 @@ use syn::{
     Lit, Path, PathArguments, Type, TypeArray, TypePath,
 };
 
-#[proc_macro_derive(AppStorage)]
-pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+#[proc_macro_attribute]
+pub fn storage(
+    args: proc_macro::TokenStream,
+    input: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
 
     let name = storage_name(&input.ident);

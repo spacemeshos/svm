@@ -1,9 +1,10 @@
 #![allow(unused)]
 
 use svm_sdk::{Address, Amount};
-use svm_sdk_macros::AppStorage;
+use svm_sdk_macros::storage;
 
-#[derive(AppStorage, Debug)]
+#[storage]
+#[derive(Debug)]
 struct Test {
     // Primitives
     flag: bool,
