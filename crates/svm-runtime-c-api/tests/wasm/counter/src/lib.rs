@@ -1,4 +1,4 @@
-use svm_abi_decoder::{Cursor, Decoder};
+use svm_abi_decoder::CallData;
 use svm_sdk;
 
 const VAR_ID: u32 = 0;
@@ -32,10 +32,9 @@ pub extern "C" fn svm_alloc(size: i32) -> i32 {
 pub extern "C" fn initialize() {
     let calldata = get_calldata();
 
-    let mut cursor = Cursor::new(calldata);
-    let decoder = Decoder::new();
+    let mut calldata = CallData::new(calldata);
 
-    let initial: u32 = decoder.decode_value(&mut cursor).unwrap().into();
+    let initial: u32 = calldata.next_1();
 
     unsafe {
         svm_set32(VAR_ID, initial);
@@ -46,10 +45,9 @@ pub extern "C" fn initialize() {
 pub extern "C" fn add() {
     let calldata = get_calldata();
 
-    let mut cursor = Cursor::new(calldata);
-    let decoder = Decoder::new();
+    let mut calldata = CallData::new(calldata);
 
-    let addition: u32 = decoder.decode_value(&mut cursor).unwrap().into();
+    let addition: u32 = calldata.next_1();
 
     unsafe {
         let old = svm_get32(VAR_ID);

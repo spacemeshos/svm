@@ -3,7 +3,7 @@
 
 use svm_abi_decoder::{Cursor, Decoder};
 use svm_abi_encoder::Encoder;
-use svm_sdk::value::Address;
+use svm_sdk::Address;
 
 const VAR_ID: u32 = 0;
 
@@ -67,7 +67,7 @@ pub extern "C" fn return_addr() {
     unsafe { svm_set_returndata(ptr as u32, len as u32) }
 }
 
-fn load_addr() -> Address<'static> {
+fn load_addr() -> Address {
     let ptr = svm_sdk::memory::alloc(20) as u32;
 
     unsafe { svm_load160(VAR_ID, ptr) };
