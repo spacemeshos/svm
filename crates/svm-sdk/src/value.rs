@@ -15,6 +15,8 @@ pub struct Array<'a, T>(pub &'a [T]);
 /// Primitive value
 #[derive(Debug, PartialEq)]
 pub enum Primitive {
+    None,
+
     Bool(bool),
 
     Address(Address),
@@ -55,6 +57,12 @@ pub enum Value<'a> {
 
     /// A `Composite` value
     Composite(Composite<'a>),
+}
+
+impl<'a> Value<'a> {
+    pub const fn none() -> Value<'static> {
+        Value::Primitive(Primitive::None)
+    }
 }
 
 macro_rules! impl_from_rust_to_value {
