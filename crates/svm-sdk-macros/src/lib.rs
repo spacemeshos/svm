@@ -1,12 +1,18 @@
-extern crate proc_macro;
+use cfg_if::cfg_if;
 
-mod storage;
-use storage::parse_storage;
+cfg_if! {
+    if #[cfg(not(windows))] {
+        extern crate proc_macro;
 
-#[proc_macro_attribute]
-pub fn storage(
-    _args: proc_macro::TokenStream,
-    input: proc_macro::TokenStream,
-) -> proc_macro::TokenStream {
-    parse_storage(input)
+        mod storage;
+        use storage::parse_storage;
+
+        #[proc_macro_attribute]
+        pub fn storage(
+            _args: proc_macro::TokenStream,
+            input: proc_macro::TokenStream,
+        ) -> proc_macro::TokenStream {
+            parse_storage(input)
+        }
+    }
 }
