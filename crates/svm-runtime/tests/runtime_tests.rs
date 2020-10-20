@@ -1,7 +1,7 @@
 use svm_abi_decoder::{Cursor, Decoder};
 use svm_abi_encoder::Encoder;
 
-use svm_sdk::value::{Address as AbiAddr, AddressOwned};
+use svm_sdk::Address as AbiAddr;
 
 use svm_codec::api::raw::Field;
 use svm_codec::error::ParseError;
@@ -246,7 +246,7 @@ fn default_runtime_calldata_returndata() {
 
     // 3) execute a transaction
     let func = "store_addr";
-    let msg = AddressOwned([0x10; 20]);
+    let msg: AbiAddr = [0x10; 20].into();
 
     let mut calldata = Vec::new();
     msg.encode(&mut calldata);
@@ -273,7 +273,7 @@ fn default_runtime_calldata_returndata() {
 
     let decoded = decoder.decode_value(&mut cursor).unwrap();
     let addr: AbiAddr = decoded.into();
-    assert_eq!(addr, AbiAddr(&[0x10; 20]));
+    assert_eq!(addr.as_slice(), &[0x10; 20]);
 }
 
 #[test]

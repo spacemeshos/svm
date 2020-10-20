@@ -10,6 +10,8 @@
 #![allow(dead_code)]
 #![allow(unreachable_code)]
 
+pub mod storage;
+
 mod amount;
 pub use amount::Amount;
 
@@ -18,6 +20,9 @@ pub mod types;
 
 /// SDK values
 pub mod value;
+
+mod blob;
+pub use blob::Address;
 
 /// Memory allocation on Heap
 pub mod memory;

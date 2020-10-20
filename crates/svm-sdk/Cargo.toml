@@ -10,3 +10,5 @@ homepage = "https://github.com/spacemeshos/svm"
 description = "Spacemesh Virtual Machine"
 publish = false
 
+[dependencies]
+lazy_static = "1.4.0"

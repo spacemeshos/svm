@@ -1,7 +1,7 @@
 use svm_abi_layout::layout;
 
-use svm_sdk::value::{self, Address, Primitive, Value};
-use svm_sdk::Amount;
+use svm_sdk::value::{self, Primitive, Value};
+use svm_sdk::{Address, Amount};
 
 use crate::Cursor;
 
@@ -58,11 +58,9 @@ macro_rules! assert_no_eof {
 macro_rules! decode_fixed_primitive {
     ($self:expr, $ty:ident, $n:expr, $iter:expr) => {{
         let ptr = $self.read_bytes($iter, $n)?;
+        let value: $ty = ptr.into();
 
-        let bytes = unsafe { core::mem::transmute::<*const u8, &[u8; $n]>(ptr) };
-        let value = $ty(bytes);
-
-        let prim = value::Primitive::$ty(value);
+        let prim = Primitive::$ty(value);
         let value = Value::Primitive(prim);
 
         Ok(value)

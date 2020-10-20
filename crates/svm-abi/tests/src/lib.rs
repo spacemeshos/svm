@@ -10,7 +10,9 @@
 mod tests {
     use svm_abi_decoder::{Cursor, Decoder};
     use svm_abi_encoder::Encoder;
-    use svm_sdk::value::{Address, AddressOwned, Composite, Primitive, Value};
+
+    use svm_sdk::value::{Composite, Primitive, Value};
+    use svm_sdk::Address;
 
     macro_rules! test {
         ($ty:ty, $rust_value:expr) => {{
@@ -35,19 +37,6 @@ mod tests {
             let n: $ty = abi_value.into();
             assert_eq!(n, $rust_value);
         }};
-    }
-
-    #[test]
-    fn owned_addr_deref() {
-        let bytes: [u8; 20] = [
-            0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80, 0x90, 0xA0, 0xB0, 0xC0, 0xD0, 0xE0,
-            0xF0, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE,
-        ];
-
-        let owned = AddressOwned(bytes);
-        let borrowed = owned.deref();
-
-        assert_eq!(borrowed.0, &bytes);
     }
 
     #[test]
@@ -202,15 +191,9 @@ mod tests {
 
     #[test]
     fn encode_decode_addr() {
-        test!(Address, Address(&[0x10; 20]));
+        let addr: Address = [0x10; Address::len()].into();
 
-        test!(AddressOwned, AddressOwned([0x10; 20]));
-    }
-
-    #[ignore]
-    #[test]
-    fn encode_decode_empty_array() {
-        let empty: Vec<u32> = Vec::new();
+        test!(Address, addr);
     }
 
     #[test]
@@ -220,11 +203,7 @@ mod tests {
             0x55, 0x66, 0x77, 0x88, 0x99, 0xAA,
         ];
 
-        let addr = Address(&bytes);
-        let s = format!("{}", addr);
-        assert_eq!(s, "102030405060708090a0112233445566778899aa");
-
-        let addr = AddressOwned(bytes);
+        let addr: Address = bytes.into();
         let s = format!("{}", addr);
         assert_eq!(s, "102030405060708090a0112233445566778899aa");
     }
