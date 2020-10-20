@@ -31,7 +31,7 @@ cfg_if! {
         /// ```
         ///
         /// The above `MyStorage` struct code will be translated (roughly) in compile-time
-        /// to the following lower-level code.
+        /// to the following lower-level code:
         ///
         /// ```rust
         /// use svm_sdk::{Amount, Address};
