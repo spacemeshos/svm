@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use cfg_if::cfg_if;
 
 cfg_if! {
@@ -5,7 +7,10 @@ cfg_if! {
         extern crate proc_macro;
 
         mod storage;
+        mod endpoint;
+
         use storage::parse_storage;
+        use endpoint::parse_endpoint;
 
         ///
         /// The `#[storage]` proc-macro attribute consumes a struct and translates
@@ -78,6 +83,14 @@ cfg_if! {
             input: proc_macro::TokenStream,
         ) -> proc_macro::TokenStream {
             parse_storage(input)
+        }
+
+        #[proc_macro_attribute]
+        pub fn endpoint(
+            _args: proc_macro::TokenStream,
+            input: proc_macro::TokenStream,
+        ) -> proc_macro::TokenStream {
+            parse_endpoint(input)
         }
     }
 }
