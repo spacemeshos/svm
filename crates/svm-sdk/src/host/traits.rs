@@ -10,15 +10,29 @@ pub trait Host {
 
     fn sender(&self) -> Address;
 
-    fn balance(&self) -> Amount;
+    fn app_addr(&self) -> Address;
 
-    fn layer(&self) -> LayerId;
+    fn layer_id(&self) -> LayerId;
 
-    fn get_balance(&self, addr: &Address) -> Amount;
+    fn balance_of(&self, addr: Address) -> Amount;
 
-    fn transfer(&self, dst: &Address, amount: Amount);
+    fn transfer(&self, dst: Address, amount: Amount);
+
+    fn log(&self, msg: &str, code: u8);
 
     fn get_logs(&self) -> Vec<(String, u8)>;
 
-    fn log(&self, msg: &str, code: u8);
+    #[inline]
+    fn sender_balance(&self) -> Amount {
+        let sender = self.sender();
+
+        self.balance_of(sender)
+    }
+
+    #[inline]
+    fn app_balance(&self) -> Amount {
+        let addr = self.app_addr();
+
+        self.balance_of(addr)
+    }
 }
