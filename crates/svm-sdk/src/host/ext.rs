@@ -15,19 +15,18 @@ extern "C" {
 
     fn svm_calldata_len() -> u32;
 
-    fn svm_host_get64(field: u32) -> u64;
-
     fn svm_log(msg_ptr: u32, msg_len: u32, code: u32);
-
-    fn svm_load160(var_id: u32, ptr: u32);
 }
 
-const HOST_LAYER_ID: u32 = 0;
-const HOST_BALANCE: u32 = 1;
-
-#[link(wasm_import_module = "env")]
+#[link(wasm_import_module = "host")]
 extern "C" {
-    //
+    fn host_get_balance(ptr: u32);
+
+    fn host_sender(ptr: u32);
+
+    fn host_layer() -> u64;
+
+    fn host_transfer(dst_ptr: u32, amount: u64);
 }
 
 use lazy_static::lazy_static;

@@ -1280,7 +1280,6 @@ dependencies = [
  "byteorder",
  "cbindgen 0.9.1",
  "log",
- "maplit",
  "serde_json",
  "svm-abi-encoder",
  "svm-codec",

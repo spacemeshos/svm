@@ -22,8 +22,7 @@ use svm_types::{
     receipt::{
         make_spawn_app_receipt, ExecReceipt, Log, ReceiptError, SpawnAppReceipt, TemplateReceipt,
     },
-    AppAddr, AppTemplate, AppTransaction, AuthorAddr, CreatorAddr, HostCtx, SpawnApp, State,
-    TemplateAddr,
+    AppAddr, AppTemplate, AppTransaction, AuthorAddr, CreatorAddr, SpawnApp, State, TemplateAddr,
 };
 
 use wasmer::{
@@ -99,7 +98,6 @@ where
         &mut self,
         bytes: &[u8],
         author: &AuthorAddr,
-        host_ctx: HostCtx,
         gas_limit: MaybeGas,
     ) -> TemplateReceipt {
         info!("runtime `deploy_template`");
@@ -111,7 +109,7 @@ where
             let gas_used = MaybeGas::with(install_gas);
             let gas_left = gas_limit;
 
-            self.install_template(&template, author, host_ctx, gas_used, gas_left)
+            self.install_template(&template, author, gas_used, gas_left)
         } else {
             TemplateReceipt::new_oog()
         }
@@ -121,7 +119,6 @@ where
         &mut self,
         bytes: &[u8],
         creator: &CreatorAddr,
-        host_ctx: HostCtx,
         gas_limit: MaybeGas,
     ) -> SpawnAppReceipt {
         info!("runtime `spawn_app`");
@@ -146,25 +143,19 @@ where
                 SpawnAppReceipt::new_oog(vec![log])
             }
             Ok(gas_left) => {
-                let addr = self.install_app(&spawn, creator, &host_ctx);
+                let addr = self.install_app(&spawn, creator);
                 let gas_used = install_gas.into();
 
-                self.call_ctor(creator, spawn, &addr, host_ctx, gas_used, gas_left)
+                self.call_ctor(creator, spawn, &addr, gas_used, gas_left)
             }
         }
     }
 
-    fn exec_app(
-        &self,
-        bytes: &[u8],
-        state: &State,
-        host_ctx: HostCtx,
-        gas_limit: MaybeGas,
-    ) -> ExecReceipt {
+    fn exec_app(&self, bytes: &[u8], state: &State, gas_limit: MaybeGas) -> ExecReceipt {
         let tx = self.parse_exec_app(bytes).unwrap();
         let gas_used = MaybeGas::with(0);
 
-        self._exec_app(&tx, state, host_ctx, gas_used, gas_limit)
+        self._exec_app(&tx, state, gas_used, gas_limit)
     }
 }
 
@@ -211,13 +202,12 @@ where
         creator: &CreatorAddr,
         spawn: SpawnApp,
         app_addr: &AppAddr,
-        host_ctx: HostCtx,
         gas_used: MaybeGas,
         gas_left: MaybeGas,
     ) -> SpawnAppReceipt {
         let ctor = self.build_ctor_call(creator, spawn, app_addr);
 
-        let ctor_receipt = self._exec_app(&ctor, &State::empty(), host_ctx, gas_used, gas_left);
+        let ctor_receipt = self._exec_app(&ctor, &State::empty(), gas_used, gas_left);
 
         make_spawn_app_receipt(ctor_receipt, app_addr)
     }
@@ -226,22 +216,16 @@ where
         &mut self,
         template: &AppTemplate,
         author: &AuthorAddr,
-        host_ctx: HostCtx,
         gas_used: MaybeGas,
         _gas_left: MaybeGas,
     ) -> TemplateReceipt {
-        let addr = self.env.store_template(template, author, &host_ctx);
+        let addr = self.env.store_template(template, author);
 
         TemplateReceipt::new(addr, gas_used)
     }
 
-    fn install_app(
-        &mut self,
-        spawn: &SpawnApp,
-        creator: &CreatorAddr,
-        host_ctx: &HostCtx,
-    ) -> AppAddr {
-        self.env.store_app(spawn, creator, host_ctx)
+    fn install_app(&mut self, spawn: &SpawnApp, creator: &CreatorAddr) -> AppAddr {
+        self.env.store_app(spawn, creator)
     }
 
     fn build_ctor_call(
@@ -262,7 +246,6 @@ where
         &self,
         tx: &AppTransaction,
         state: &State,
-        host_ctx: HostCtx,
         _gas_used: MaybeGas,
         gas_left: MaybeGas,
     ) -> ExecReceipt {
@@ -275,7 +258,7 @@ where
             }
             Ok((template, template_addr, _author, _creator)) => {
                 let store = svm_compiler::new_store();
-                let ctx = self.create_context(&template, &tx.app, &state, gas_left, host_ctx);
+                let ctx = self.create_context(&template, &tx.app, &state, gas_left);
                 let import_object = self.create_import_object(&store, &ctx);
 
                 let (result, logs) = self.do_exec_app(
@@ -542,12 +525,11 @@ where
         app_addr: &AppAddr,
         state: &State,
         gas_limit: MaybeGas,
-        host_ctx: HostCtx,
     ) -> Context {
         let layout = &template.data;
         let storage = self.open_app_storage(app_addr, state, layout);
 
-        Context::new(self.host, host_ctx, gas_limit, storage)
+        Context::new(self.host, gas_limit, storage)
     }
 
     fn create_import_object(&self, store: &Store, ctx: &Context) -> ImportObject {

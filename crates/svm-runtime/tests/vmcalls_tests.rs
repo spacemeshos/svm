@@ -7,7 +7,7 @@ use wasmer::{imports, Function, NativeFunc};
 
 use svm_layout::{DataLayout, VarId};
 use svm_runtime::{testing, vmcalls, Context};
-use svm_types::{gas::MaybeGas, receipt::Log, Address, HostCtx};
+use svm_types::{gas::MaybeGas, receipt::Log, Address};
 
 macro_rules! assert_vars32 {
     ($instance:expr, $( $var_id:expr => $expected:expr), *) => {{
@@ -63,14 +63,6 @@ macro_rules! __var_add_impl {
     }};
 }
 
-macro_rules! host_ctx {
-    ($($field:expr => $bytes:expr),*) => {{
-        HostCtx::from(hashmap! {
-            $( $field => $bytes.to_vec() ),*
-        })
-    }};
-}
-
 macro_rules! assert_host_ctx {
     ($instance:expr, $( $field:expr => $expected:expr), *) => {{
         let func: &NativeFunc<u32, u64> = &$instance.exports.get_native_function("get_host_ctx").unwrap();
@@ -104,13 +96,12 @@ fn vmcalls_empty_wasm() {
 fn vmcalls_get32_set32() {
     let app_addr = Address::of("my-app");
     let host: *mut c_void = std::ptr::null_mut();
-    let host_ctx = host_ctx! {};
     let gas_limit = MaybeGas::new();
     let layout: DataLayout = vec![4, 2].into();
 
     let store = testing::wasmer_store();
     let storage = testing::blank_storage(&app_addr, &layout);
-    let ctx = Context::new(host, host_ctx, gas_limit, storage);
+    let ctx = Context::new(host, gas_limit, storage);
 
     let import_object = imports! {
         "svm" => {
@@ -140,13 +131,12 @@ fn vmcalls_get32_set32() {
 fn vmcalls_get64_set64() {
     let app_addr = Address::of("my-app");
     let host: *mut c_void = std::ptr::null_mut();
-    let host_ctx = host_ctx! {};
     let gas_limit = MaybeGas::new();
     let layout: DataLayout = vec![4, 2].into();
 
     let store = testing::wasmer_store();
     let storage = testing::blank_storage(&app_addr, &layout);
-    let ctx = Context::new(host, host_ctx, gas_limit, storage);
+    let ctx = Context::new(host, gas_limit, storage);
 
     let import_object = imports! {
         "svm" => {
@@ -179,12 +169,10 @@ fn vmcalls_load160() {
     let gas_limit = MaybeGas::new();
     let layout: DataLayout = vec![20].into();
 
-    let host_ctx = host_ctx! {};
-
     let store = testing::wasmer_store();
     let memory = testing::wasmer_memory(&store);
     let storage = testing::blank_storage(&app_addr, &layout);
-    let ctx = Context::new_with_memory(memory.clone(), host, host_ctx, gas_limit, storage);
+    let ctx = Context::new_with_memory(memory.clone(), host, gas_limit, storage);
 
     let import_object = imports! {
         "svm" => {
@@ -225,12 +213,10 @@ fn vmcalls_store160() {
     let gas_limit = MaybeGas::new();
     let layout: DataLayout = vec![20].into();
 
-    let host_ctx = host_ctx! {};
-
     let store = testing::wasmer_store();
     let memory = testing::wasmer_memory(&store);
     let storage = testing::blank_storage(&app_addr, &layout);
-    let ctx = Context::new_with_memory(memory.clone(), host, host_ctx, gas_limit, storage);
+    let ctx = Context::new_with_memory(memory.clone(), host, gas_limit, storage);
 
     let import_object = imports! {
         "svm" => {
@@ -261,53 +247,16 @@ fn vmcalls_store160() {
 }
 
 #[test]
-fn vmcalls_host_get64() {
-    let app_addr = Address::of("my-app");
-    let host: *mut c_void = std::ptr::null_mut();
-    let gas_limit = MaybeGas::new();
-    let layout = DataLayout::empty();
-
-    let host_ctx = host_ctx! {
-        2 => [0x10, 0x20],
-        3 => [0x30, 0x40, 0x50]
-    };
-
-    let store = testing::wasmer_store();
-    let storage = testing::blank_storage(&app_addr, &layout);
-    let ctx = Context::new(host, host_ctx, gas_limit, storage);
-
-    let import_object = imports! {
-        "svm" => {
-            "svm_host_get64" => func!(store, ctx, vmcalls::host_get64),
-        },
-    };
-
-    let instance = testing::wasmer_instantiate(
-        &store,
-        &import_object,
-        include_str!("wasm/host_get64.wast").into(),
-        gas_limit,
-    );
-
-    assert_host_ctx!(instance,
-        2 => 0x20_10,
-        3 => 0x50_40_30
-    );
-}
-
-#[test]
 fn vmcalls_log() {
     let app_addr = Address::of("my-app");
     let host: *mut c_void = std::ptr::null_mut();
     let gas_limit = MaybeGas::new();
     let layout = DataLayout::empty();
 
-    let host_ctx = host_ctx! {};
-
     let store = testing::wasmer_store();
     let memory = testing::wasmer_memory(&store);
     let storage = testing::blank_storage(&app_addr, &layout);
-    let ctx = Context::new_with_memory(memory.clone(), host, host_ctx, gas_limit, storage);
+    let ctx = Context::new_with_memory(memory.clone(), host, gas_limit, storage);
 
     let import_object = imports! {
         "svm" => {

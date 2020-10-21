@@ -2,7 +2,7 @@ use crate::error::ValidateError;
 
 use svm_gas::Gas;
 use svm_types::receipt::{ExecReceipt, SpawnAppReceipt, TemplateReceipt};
-use svm_types::{gas::MaybeGas, AppAddr, AuthorAddr, CreatorAddr, HostCtx, State};
+use svm_types::{gas::MaybeGas, AppAddr, AuthorAddr, CreatorAddr, State};
 
 /// Specifies the interface of a `SVM` Runtime.
 pub trait Runtime {
@@ -29,7 +29,6 @@ pub trait Runtime {
         &mut self,
         bytes: &[u8],
         author: &AuthorAddr,
-        host_ctx: HostCtx,
         gas_limit: MaybeGas,
     ) -> TemplateReceipt;
 
@@ -38,7 +37,6 @@ pub trait Runtime {
         &mut self,
         bytes: &[u8],
         creator: &CreatorAddr,
-        host_ctx: HostCtx,
         gas_limit: MaybeGas,
     ) -> SpawnAppReceipt;
 
@@ -51,11 +49,5 @@ pub trait Runtime {
     /// On failure:
     /// * Receipt returns the occurred error
     /// * Receipt informs the amount of gas used (transaction gas limit)
-    fn exec_app(
-        &self,
-        bytes: &[u8],
-        state: &State,
-        host_ctx: HostCtx,
-        gas_limit: MaybeGas,
-    ) -> ExecReceipt;
+    fn exec_app(&self, bytes: &[u8], state: &State, gas_limit: MaybeGas) -> ExecReceipt;
 }

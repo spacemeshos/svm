@@ -11,7 +11,7 @@ use svm_layout::{DataLayout, VarId};
 use svm_runtime::{error::ValidateError, testing, Runtime};
 
 use svm_types::receipt::{ExecReceipt, Log, SpawnAppReceipt, TemplateReceipt};
-use svm_types::{gas::MaybeGas, Address, HostCtx};
+use svm_types::{gas::MaybeGas, Address};
 
 macro_rules! default_runtime {
     () => {{
@@ -100,7 +100,7 @@ fn default_runtime_deploy_template_reaches_oog() {
     );
 
     let expected = TemplateReceipt::new_oog();
-    let actual = runtime.deploy_template(&bytes, &author, HostCtx::new(), maybe_gas);
+    let actual = runtime.deploy_template(&bytes, &author, maybe_gas);
     assert_eq!(expected, actual);
 }
 
@@ -119,7 +119,7 @@ fn default_runtime_deploy_template_has_enough_gas() {
         include_str!("wasm/runtime_app_ctor.wast").into(),
     );
 
-    let receipt = runtime.deploy_template(&bytes, &author, HostCtx::new(), gas_limit);
+    let receipt = runtime.deploy_template(&bytes, &author, gas_limit);
     assert!(receipt.success);
     assert!(receipt.gas_used.is_some());
 }
@@ -141,7 +141,7 @@ fn default_runtime_spawn_app_with_ctor_reaches_oog() {
         include_str!("wasm/runtime_app_ctor.wast").into(),
     );
 
-    let receipt = runtime.deploy_template(&bytes, &author, HostCtx::new(), maybe_gas);
+    let receipt = runtime.deploy_template(&bytes, &author, maybe_gas);
     assert!(receipt.success);
 
     let template_addr = receipt.addr.unwrap();
@@ -160,7 +160,7 @@ fn default_runtime_spawn_app_with_ctor_reaches_oog() {
     };
 
     let expected = SpawnAppReceipt::new_oog(vec![log]);
-    let actual = runtime.spawn_app(&bytes, &creator, HostCtx::new(), maybe_gas);
+    let actual = runtime.spawn_app(&bytes, &creator, maybe_gas);
     assert_eq!(expected, actual);
 }
 
@@ -185,7 +185,7 @@ fn default_runtime_spawn_app_with_ctor_with_enough_gas() {
         include_str!("wasm/runtime_app_ctor.wast").into(),
     );
 
-    let receipt = runtime.deploy_template(&bytes, &author, HostCtx::new(), maybe_gas);
+    let receipt = runtime.deploy_template(&bytes, &author, maybe_gas);
     assert!(receipt.success);
     assert!(receipt.gas_used.is_some());
 
@@ -198,7 +198,7 @@ fn default_runtime_spawn_app_with_ctor_with_enough_gas() {
     let bytes = testing::build_app(version, &template_addr, name, ctor, &calldata);
     let gas_limit = MaybeGas::with(1_000_000);
 
-    let receipt = runtime.spawn_app(&bytes, &creator, HostCtx::new(), gas_limit);
+    let receipt = runtime.spawn_app(&bytes, &creator, gas_limit);
     assert!(receipt.success);
     assert!(receipt.gas_used.is_some());
 
@@ -227,7 +227,7 @@ fn default_runtime_calldata_returndata() {
         (&include_bytes!("wasm/runtime_calldata.wasm")[..]).into(),
     );
 
-    let receipt = runtime.deploy_template(&bytes, &author, HostCtx::new(), maybe_gas);
+    let receipt = runtime.deploy_template(&bytes, &author, maybe_gas);
     assert!(receipt.success);
 
     let template_addr = receipt.addr.unwrap();
@@ -238,7 +238,7 @@ fn default_runtime_calldata_returndata() {
     let calldata = vec![];
     let creator = Address::of("creator").into();
     let bytes = testing::build_app(version, &template_addr, name, ctor, &calldata);
-    let receipt = runtime.spawn_app(&bytes, &creator, HostCtx::new(), maybe_gas);
+    let receipt = runtime.spawn_app(&bytes, &creator, maybe_gas);
     assert!(receipt.success);
 
     let app_addr = receipt.get_app_addr();
@@ -253,7 +253,7 @@ fn default_runtime_calldata_returndata() {
 
     let bytes = testing::build_app_tx(version, &app_addr, func, &calldata);
 
-    let receipt = runtime.exec_app(&bytes, &init_state, HostCtx::new(), maybe_gas);
+    let receipt = runtime.exec_app(&bytes, &init_state, maybe_gas);
     assert!(receipt.success);
 
     let state = receipt.get_new_state();
@@ -264,7 +264,7 @@ fn default_runtime_calldata_returndata() {
 
     let bytes = testing::build_app_tx(version, &app_addr, func, &calldata);
 
-    let receipt = runtime.exec_app(&bytes, &state, HostCtx::new(), maybe_gas);
+    let receipt = runtime.exec_app(&bytes, &state, maybe_gas);
     assert!(receipt.success);
 
     let raw = receipt.returndata.unwrap();
@@ -295,7 +295,7 @@ fn default_runtime_exec_app_reaches_oog() {
         include_str!("wasm/runtime_exec_app.wast").into(),
     );
 
-    let receipt = runtime.deploy_template(&bytes, &author, HostCtx::new(), maybe_gas);
+    let receipt = runtime.deploy_template(&bytes, &author, maybe_gas);
     assert!(receipt.success);
 
     let template_addr = receipt.addr.unwrap();
@@ -306,7 +306,7 @@ fn default_runtime_exec_app_reaches_oog() {
     let calldata = vec![];
 
     let bytes = testing::build_app(version, &template_addr, name, ctor, &calldata);
-    let receipt = runtime.spawn_app(&bytes, &creator, HostCtx::new(), maybe_gas);
+    let receipt = runtime.spawn_app(&bytes, &creator, maybe_gas);
 
     let app_addr = receipt.get_app_addr();
     let init_state = receipt.get_init_state();
@@ -319,7 +319,7 @@ fn default_runtime_exec_app_reaches_oog() {
     let logs = Vec::new();
 
     let expected = ExecReceipt::new_oog(logs);
-    let actual = runtime.exec_app(&bytes, &init_state, HostCtx::new(), maybe_gas);
+    let actual = runtime.exec_app(&bytes, &init_state, maybe_gas);
 
     assert_eq!(expected, actual)
 }

@@ -8,9 +8,7 @@ use crate::env::memory::{DefaultMemAppStore, DefaultMemAppTemplateStore, Default
 use crate::{gas::DefaultGasEstimator, storage::StorageBuilderFn};
 use crate::{Config, Context, DefaultRuntime, Import};
 
-use svm_codec::api::builder::{
-    AppTxBuilder, DeployAppTemplateBuilder, HostCtxBuilder, SpawnAppBuilder,
-};
+use svm_codec::api::builder::{AppTxBuilder, DeployAppTemplateBuilder, SpawnAppBuilder};
 use svm_layout::DataLayout;
 use svm_storage::{
     app::{AppKVStore, AppStorage},
@@ -173,15 +171,4 @@ pub fn build_app_tx(version: u32, app_addr: &AppAddr, func: &str, calldata: &Vec
         .with_func(func)
         .with_calldata(calldata)
         .build()
-}
-
-/// Encodes a raw `HostCtx` and returns it as `Vec<u8>`.
-pub fn build_host_ctx(version: u32, fields: HashMap<u32, Vec<u8>>) -> Vec<u8> {
-    let mut builder = HostCtxBuilder::new().with_version(version);
-
-    for (idx, value) in fields.iter() {
-        builder = builder.with_raw_field(*idx, &value[..]);
-    }
-
-    builder.build()
 }
