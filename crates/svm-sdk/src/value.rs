@@ -15,6 +15,8 @@ pub struct Array<'a, T>(pub &'a [T]);
 /// Primitive value
 #[derive(Debug, PartialEq)]
 pub enum Primitive {
+    None,
+
     Bool(bool),
 
     Address(Address),
@@ -57,15 +59,33 @@ pub enum Value<'a> {
     Composite(Composite<'a>),
 }
 
+impl<'a> Value<'a> {
+    pub const fn none() -> Value<'static> {
+        Value::Primitive(Primitive::None)
+    }
+}
+
 macro_rules! impl_from_rust_to_value {
-    ($prim_ident:ident, $rust_ty:ident) => {
-        impl From<$rust_ty> for Value<'_> {
-            fn from(num: $rust_ty) -> Self {
+    ($prim_ident:ident, $T:ident) => {
+        impl From<$T> for Value<'_> {
+            fn from(num: $T) -> Self {
                 let prim = Primitive::$prim_ident(num);
                 Value::Primitive(prim)
             }
         }
     };
+}
+
+impl<'a, T> From<Option<T>> for Value<'a>
+where
+    T: Into<Value<'a>>,
+{
+    fn from(val: Option<T>) -> Self {
+        match val {
+            None => Value::Primitive(Primitive::None),
+            Some(v) => v.into(),
+        }
+    }
 }
 
 impl_from_rust_to_value!(Bool, bool);
@@ -105,11 +125,21 @@ impl<'a> From<Vec<Value<'a>>> for Value<'a> {
 }
 
 macro_rules! impl_from_value_to_rust {
-    ($prim_ident:ident, $rust_ty:ty) => {
-        impl From<Value<'_>> for $rust_ty {
+    ($prim_ident:ident, $T:ty) => {
+        impl From<Value<'_>> for $T {
             fn from(value: Value) -> Self {
                 match value {
                     Value::Primitive(Primitive::$prim_ident(v)) => v,
+                    _ => unreachable!(),
+                }
+            }
+        }
+
+        impl From<Value<'_>> for Option<$T> {
+            fn from(value: Value) -> Self {
+                match value {
+                    Value::Primitive(Primitive::None) => None,
+                    Value::Primitive(Primitive::$prim_ident(v)) => Some(v),
                     _ => unreachable!(),
                 }
             }
@@ -140,3 +170,64 @@ impl<'a> From<Value<'a>> for Address {
         }
     }
 }
+
+impl From<Value<'_>> for Option<Address> {
+    fn from(value: Value<'_>) -> Self {
+        match value {
+            Value::Primitive(Primitive::None) => None,
+            Value::Primitive(Primitive::Address(addr)) => Some(addr),
+            _ => unreachable!(),
+        }
+    }
+}
+
+macro_rules! impl_to_rust_array {
+    ([] => $($tt:tt)*) => {};
+    ([$T:tt $($T_tail:tt)*] => $($tt:tt)*) => {
+        impl_to_rust_array!($T => $($tt)*);
+        impl_to_rust_array!([$($T_tail)*] => $($tt)*);
+    };
+
+    ($T:tt => ) => {};
+    ($T:tt => $n:tt $($tt:tt)*) => {
+        impl_to_rust_array!(@implement $T $n);
+        impl_to_rust_array!($T => $($tt)*);
+    };
+    (@implement $T:tt $n:tt) => {
+        impl<'a> From<Value<'a>> for [$T; $n]
+        where Value<'a>: Into<$T>
+        {
+            fn from(value: Value<'a>) -> Self {
+                use core::mem::{size_of, MaybeUninit};
+
+                match value {
+                    Value::Composite(Composite::ArrayOwned(mut values)) => {
+                        assert_eq!(values.len(), $n);
+
+                        let mut array: [MaybeUninit<$T>; $n] = MaybeUninit::uninit_array();
+
+                        for (i, v) in values.drain(..).enumerate() {
+                            array[i] = MaybeUninit::new(v.into());
+                        }
+
+                        debug_assert_eq!(size_of::<[MaybeUninit<$T>; $n]>(), size_of::<[$T; $n]>());
+
+                        unsafe { core::mem::transmute::<_, Self>(array) }
+                    }
+                    _ => unreachable!(),
+                }
+            }
+        }
+    };
+}
+
+#[rustfmt::skip]
+impl_to_rust_array!([
+    Amount
+    Address
+    bool
+    i8 u8
+    i16 u16
+    i32 u32
+    i64 u64
+] => 1 2 3 4 5 6 7 8 9 10);

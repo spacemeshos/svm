@@ -1,11 +1,20 @@
-#![allow(unused)]
+use cfg_if::cfg_if;
 
-use svm_sdk::{Address, Amount};
-use svm_abi_encoder::
+cfg_if! {
+    if #[cfg(not(windows))] {
 
-use svm_sdk_macros::endpoint;
+        use svm_sdk_macros::endpoint;
 
-#[endpoint]
-fn init(calldata: CallData) {
-    //
+        #[endpoint]
+        fn add(a: i32, b: i32) -> i32 {
+            a + b
+        }
+
+        #[test]
+        fn test_endpoint() {
+            let c = add(10, 20);
+
+            assert_eq!(c, 30);
+        }
+    }
 }
