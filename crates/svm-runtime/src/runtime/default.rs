@@ -536,7 +536,7 @@ where
         let mut import_object = ImportObject::new();
 
         let mut svm = Exports::new();
-        let mut env = Exports::new();
+        let mut host = Exports::new();
 
         vmcalls::wasmer_register(store, ctx, &mut svm);
 
@@ -545,11 +545,11 @@ where
             let import = import.to_wasmer(ctx.clone());
 
             let ext = Extern::from_export(store, import);
-            env.insert(name, ext);
+            host.insert(name, ext);
         }
 
         import_object.register("svm", svm);
-        import_object.register("env", env);
+        import_object.register("host", host);
 
         import_object
     }

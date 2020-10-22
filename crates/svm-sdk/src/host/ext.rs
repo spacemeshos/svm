@@ -1,4 +1,5 @@
 use crate::host::Host;
+use crate::memory;
 use crate::{Address, Amount, LayerId};
 
 extern crate alloc;
@@ -15,18 +16,22 @@ extern "C" {
 
     fn svm_calldata_len() -> u32;
 
-    fn svm_log(msg_ptr: u32, msg_len: u32, code: u32);
+    fn svm_returndata(offset: u32, length: u32);
+
+    fn svm_log(offset: u32, length: u32, code: u32);
 }
 
 #[link(wasm_import_module = "host")]
 extern "C" {
-    fn host_get_balance(ptr: u32);
+    fn host_balance(offset: u32) -> u64;
 
-    fn host_sender(ptr: u32);
+    fn host_sender(offset: u32);
+
+    fn host_app(offset: u32);
 
     fn host_layer() -> u64;
 
-    fn host_transfer(dst_ptr: u32, amount: u64);
+    fn host_transfer(dst_offset: u32, amount: u64);
 }
 
 use lazy_static::lazy_static;
@@ -61,6 +66,13 @@ impl Host for ExtHost {
     }
 
     #[inline]
+    fn set_returndata(&self, bytes: &[u8]) {
+        let host = host();
+
+        host.set_returndata(bytes);
+    }
+
+    #[inline]
     fn sender(&self) -> Address {
         let host = host();
 
@@ -68,10 +80,10 @@ impl Host for ExtHost {
     }
 
     #[inline]
-    fn app_addr(&self) -> Address {
+    fn app(&self) -> Address {
         let host = host();
 
-        host.app_addr()
+        host.app()
     }
 
     #[inline]
@@ -82,17 +94,17 @@ impl Host for ExtHost {
     }
 
     #[inline]
-    fn balance_of(&self, addr: Address) -> Amount {
+    fn balance_of(&self, addr: &Address) -> Amount {
         let host = host();
 
-        host.balance_of(addr)
+        host.balance_of(&addr)
     }
 
     #[inline]
-    fn transfer(&self, dst: Address, amount: Amount) {
+    fn transfer(&self, dst: &Address, amount: Amount) {
         let host = host();
 
-        host.transfer(dst, amount);
+        host.transfer(&dst, amount);
     }
 
     #[inline]
@@ -100,13 +112,6 @@ impl Host for ExtHost {
         let host = host();
 
         host.log(msg, code);
-    }
-
-    #[inline]
-    fn get_logs(&self) -> Vec<(String, u8)> {
-        let host = host();
-
-        host.get_logs()
     }
 }
 
@@ -116,50 +121,88 @@ impl Host for InnerHost {
     #[inline]
     fn get_calldata(&self) -> &'static [u8] {
         unsafe {
-            let ptr = svm_calldata_offset();
+            let offset = svm_calldata_offset();
             let len = svm_calldata_len() as _;
 
-            core::slice::from_raw_parts(ptr as *const u8, len)
+            core::slice::from_raw_parts(offset as *const u8, len)
+        }
+    }
+
+    #[inline]
+    fn set_returndata(&self, bytes: &[u8]) {
+        unsafe {
+            let offset = bytes.as_ptr() as u32;
+            let length = bytes.len() as u32;
+
+            svm_returndata(offset, length);
         }
     }
 
     #[inline]
     fn sender(&self) -> Address {
-        todo!()
+        unsafe {
+            let offset = self.alloc_addr();
+
+            host_sender(offset);
+
+            offset.into()
+        }
     }
 
     #[inline]
-    fn app_addr(&self) -> Address {
-        todo!()
+    fn app(&self) -> Address {
+        unsafe {
+            let offset = self.alloc_addr();
+
+            host_app(offset);
+
+            offset.into()
+        }
     }
 
     #[inline]
     fn layer_id(&self) -> LayerId {
-        todo!()
+        unsafe {
+            let id = host_layer();
+
+            LayerId(id)
+        }
     }
 
     #[inline]
-    fn balance_of(&self, addr: Address) -> Amount {
-        todo!()
+    fn balance_of(&self, addr: &Address) -> Amount {
+        unsafe {
+            let offset = addr.offset() as u32;
+
+            let amount = host_balance(offset);
+
+            Amount(amount)
+        }
     }
 
     #[inline]
-    fn transfer(&self, dst: Address, amount: Amount) {
-        todo!()
+    fn transfer(&self, dst: &Address, amount: Amount) {
+        unsafe {
+            let dst = dst.offset() as u32;
+
+            host_transfer(dst, amount.0);
+        }
     }
 
     #[inline]
     fn log(&self, msg: &str, code: u8) {
         unsafe {
-            let ptr = msg.as_ptr() as u32;
+            let offset = msg.as_ptr() as u32;
             let len = msg.len() as u32;
 
-            svm_log(ptr, len, code as u32)
+            svm_log(offset, len, code as u32)
         }
     }
+}
 
+impl InnerHost {
     #[inline]
-    fn get_logs(&self) -> Vec<(String, u8)> {
-        todo!()
+    fn alloc_addr(&self) -> u32 {
+        memory::alloc(Address::len()) as u32
     }
 }
