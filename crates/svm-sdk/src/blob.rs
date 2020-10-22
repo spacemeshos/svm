@@ -49,6 +49,15 @@ macro_rules! impl_blob_type {
             }
         }
 
+        impl From<u32> for $ty {
+            #[inline]
+            fn from(offset: u32) -> Self {
+                let ptr = offset as *const u8;
+
+                ptr.into()
+            }
+        }
+
         impl From<&'static [u8]> for $ty {
             #[inline]
             fn from(bytes: &'static [u8]) -> Self {

@@ -9,8 +9,7 @@ use svm_codec::serializers::{
 };
 use svm_nibble::NibbleIter;
 use svm_types::{
-    App, AppAddr, AppTemplate, AppTransaction, AuthorAddr, CreatorAddr, HostCtx, SpawnApp,
-    TemplateAddr,
+    App, AppAddr, AppTemplate, AppTransaction, AuthorAddr, CreatorAddr, SpawnApp, TemplateAddr,
 };
 
 /// `Env` storage serialization types
@@ -69,13 +68,13 @@ pub trait Env {
     }
 
     /// Computes `AppTemplate` account address
-    fn derive_template_address(&self, template: &AppTemplate, host_ctx: &HostCtx) -> TemplateAddr {
-        <Self::Types as EnvTypes>::AppTemplateAddressCompute::compute(template, host_ctx)
+    fn derive_template_address(&self, template: &AppTemplate) -> TemplateAddr {
+        <Self::Types as EnvTypes>::AppTemplateAddressCompute::compute(template)
     }
 
     /// Computes `App` account address
-    fn derive_app_address(&self, spawn: &SpawnApp, host_ctx: &HostCtx) -> AppAddr {
-        <Self::Types as EnvTypes>::AppAddressCompute::compute(spawn, host_ctx)
+    fn derive_app_address(&self, spawn: &SpawnApp) -> AppAddr {
+        <Self::Types as EnvTypes>::AppAddressCompute::compute(spawn)
     }
 
     /// Wire
@@ -119,13 +118,8 @@ pub trait Env {
     /// Stores the following:
     /// * `TemplateAddress` -> `TemplateHash`
     /// * `TemplateHash` -> `AppTemplate` data
-    fn store_template(
-        &mut self,
-        template: &AppTemplate,
-        author: &AuthorAddr,
-        host_ctx: &HostCtx,
-    ) -> TemplateAddr {
-        let addr = self.derive_template_address(template, host_ctx);
+    fn store_template(&mut self, template: &AppTemplate, author: &AuthorAddr) -> TemplateAddr {
+        let addr = self.derive_template_address(template);
         let hash = self.compute_template_hash(template);
 
         let store = self.get_template_store_mut();
@@ -135,17 +129,12 @@ pub trait Env {
     }
 
     /// Stores `app address` -> `app-template address` relation.
-    fn store_app(
-        &mut self,
-        spawn: &SpawnApp,
-        creator: &CreatorAddr,
-        host_ctx: &HostCtx,
-    ) -> AppAddr {
+    fn store_app(&mut self, spawn: &SpawnApp, creator: &CreatorAddr) -> AppAddr {
         let app = &spawn.app;
         let template = &app.template;
 
         if self.template_exists(template) {
-            let addr = self.derive_app_address(spawn, host_ctx);
+            let addr = self.derive_app_address(spawn);
             let store = self.get_app_store_mut();
 
             store.store(app, creator, &addr);

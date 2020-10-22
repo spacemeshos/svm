@@ -583,7 +583,6 @@ pub unsafe extern "C" fn svm_runtime_create(
 /// // deploy template
 /// let mut receipt = svm_byte_array::default();
 /// let author: svm_byte_array = Address::of("@author").into();
-/// let host_ctx = svm_byte_array::default();
 /// let template_bytes = svm_byte_array::default();
 /// let gas_metering = false;
 /// let gas_limit = 0;
@@ -594,7 +593,6 @@ pub unsafe extern "C" fn svm_runtime_create(
 ///     runtime,
 ///     template_bytes,
 ///     author,
-///     host_ctx,
 ///     gas_metering,
 ///     gas_limit,
 ///     &mut error)
@@ -610,7 +608,6 @@ pub unsafe extern "C" fn svm_deploy_template(
     runtime: *mut c_void,
     bytes: svm_byte_array,
     author: svm_byte_array,
-    host_ctx: svm_byte_array,
     gas_metering: bool,
     gas_limit: u64,
     error: *mut svm_byte_array,
@@ -626,21 +623,9 @@ pub unsafe extern "C" fn svm_deploy_template(
         return svm_result_t::SVM_FAILURE;
     }
 
-    let host_ctx = raw::decode_host_ctx(host_ctx.into());
-    if host_ctx.is_err() {
-        let s = format!("{}", host_ctx.err().unwrap());
-        raw_error(s, error);
-        return svm_result_t::SVM_FAILURE;
-    }
-
     let gas_limit = maybe_gas!(gas_metering, gas_limit);
 
-    let rust_receipt = runtime.deploy_template(
-        bytes.into(),
-        &author.unwrap().into(),
-        host_ctx.unwrap(),
-        gas_limit,
-    );
+    let rust_receipt = runtime.deploy_template(bytes.into(), &author.unwrap().into(), gas_limit);
 
     let mut receipt_bytes = encode_template_receipt(&rust_receipt);
 
@@ -681,7 +666,6 @@ pub unsafe extern "C" fn svm_deploy_template(
 /// let mut app_receipt = svm_byte_array::default();
 /// let mut init_state = svm_byte_array::default();
 /// let creator = Address::of("@creator").into();
-/// let host_ctx = svm_byte_array::default();
 /// let app_bytes = svm_byte_array::default();
 /// let gas_metering = false;
 /// let gas_limit = 0;
@@ -692,7 +676,6 @@ pub unsafe extern "C" fn svm_deploy_template(
 ///     runtime,
 ///     app_bytes,
 ///     creator,
-///     host_ctx,
 ///     gas_metering,
 ///     gas_limit,
 ///     &mut error)
@@ -706,7 +689,6 @@ pub unsafe extern "C" fn svm_spawn_app(
     runtime: *mut c_void,
     bytes: svm_byte_array,
     creator: svm_byte_array,
-    host_ctx: svm_byte_array,
     gas_metering: bool,
     gas_limit: u64,
     error: *mut svm_byte_array,
@@ -721,21 +703,9 @@ pub unsafe extern "C" fn svm_spawn_app(
         return svm_result_t::SVM_FAILURE;
     }
 
-    let host_ctx = raw::decode_host_ctx(host_ctx.into());
-    if host_ctx.is_err() {
-        let s = format!("{}", host_ctx.err().unwrap());
-        raw_error(s, error);
-        return svm_result_t::SVM_FAILURE;
-    }
-
     let gas_limit = maybe_gas!(gas_metering, gas_limit);
 
-    let rust_receipt = runtime.spawn_app(
-        bytes.into(),
-        &creator.unwrap().into(),
-        host_ctx.unwrap(),
-        gas_limit,
-    );
+    let rust_receipt = runtime.spawn_app(bytes.into(), &creator.unwrap().into(), gas_limit);
 
     let mut receipt_bytes = encode_app_receipt(&rust_receipt);
 
@@ -779,7 +749,6 @@ pub unsafe extern "C" fn svm_spawn_app(
 /// let mut exec_receipt = svm_byte_array::default();
 /// let bytes = svm_byte_array::default();
 /// let state = State::empty().into();
-/// let host_ctx = svm_byte_array::default();
 /// let gas_metering = false;
 /// let gas_limit = 0;
 ///
@@ -789,7 +758,6 @@ pub unsafe extern "C" fn svm_spawn_app(
 ///     runtime,
 ///     bytes,
 ///     state,
-///     host_ctx,
 ///     gas_metering,
 ///     gas_limit,
 ///     &mut error)
@@ -803,21 +771,12 @@ pub unsafe extern "C" fn svm_exec_app(
     runtime: *mut c_void,
     bytes: svm_byte_array,
     state: svm_byte_array,
-    host_ctx: svm_byte_array,
     gas_metering: bool,
     gas_limit: u64,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
     debug!("`svm_exec_app` start");
 
-    let host_ctx = raw::decode_host_ctx(host_ctx.into());
-    if host_ctx.is_err() {
-        let s = format!("{}", host_ctx.err().unwrap());
-        raw_error(s, error);
-        return svm_result_t::SVM_FAILURE;
-    }
-
-    let host_ctx = host_ctx.unwrap();
     let runtime = helpers::cast_to_runtime_mut(runtime);
     let state: Result<State, String> = State::try_from(state);
 
@@ -828,7 +787,7 @@ pub unsafe extern "C" fn svm_exec_app(
 
     let gas_limit = maybe_gas!(gas_metering, gas_limit);
 
-    let rust_receipt = runtime.exec_app(bytes.into(), &state.unwrap(), host_ctx, gas_limit);
+    let rust_receipt = runtime.exec_app(bytes.into(), &state.unwrap(), gas_limit);
     let mut receipt_bytes = encode_exec_receipt(&rust_receipt);
 
     // returning encoded `ExecReceipt` as `svm_byte_array`.

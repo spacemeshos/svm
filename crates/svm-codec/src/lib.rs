@@ -20,7 +20,6 @@ mod app;
 mod field;
 mod gas;
 mod helpers;
-mod host_ctx;
 mod template;
 mod traits;
 mod transaction;

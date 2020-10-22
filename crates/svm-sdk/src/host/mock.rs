@@ -43,16 +43,22 @@ impl Host for MockHost {
         host.get_calldata()
     }
 
+    fn set_returndata(&self, bytes: &[u8]) {
+        let host = host();
+
+        host.set_returndata(bytes);
+    }
+
     fn sender(&self) -> Address {
         let host = host();
 
         host.sender()
     }
 
-    fn app_addr(&self) -> Address {
+    fn app(&self) -> Address {
         let host = host();
 
-        host.app_addr()
+        host.app()
     }
 
     fn layer_id(&self) -> LayerId {
@@ -61,13 +67,13 @@ impl Host for MockHost {
         host.layer_id()
     }
 
-    fn balance_of(&self, addr: Address) -> Amount {
+    fn balance_of(&self, addr: &Address) -> Amount {
         let host = host();
 
         host.balance_of(addr)
     }
 
-    fn transfer(&self, dst: Address, amount: Amount) {
+    fn transfer(&self, dst: &Address, amount: Amount) {
         let host = host();
 
         host.transfer(dst, amount);
@@ -78,22 +84,18 @@ impl Host for MockHost {
 
         host.log(msg, code);
     }
-
-    fn get_logs(&self) -> Vec<(String, u8)> {
-        let host = host();
-
-        host.get_logs()
-    }
 }
 
 struct InnerHost {
     pub calldata: RefCell<Option<&'static [u8]>>,
 
+    pub returndata: RefCell<Option<Vec<u8>>>,
+
     pub accounts: RefCell<HashMap<Address, Amount>>,
 
     pub sender: RefCell<Option<Address>>,
 
-    pub app_addr: RefCell<Option<Address>>,
+    pub app: RefCell<Option<Address>>,
 
     pub layer_id: RefCell<Option<LayerId>>,
 
@@ -106,8 +108,9 @@ impl InnerHost {
     fn new() -> Self {
         Self {
             calldata: RefCell::new(None),
+            returndata: RefCell::new(None),
             sender: RefCell::new(None),
-            app_addr: RefCell::new(None),
+            app: RefCell::new(None),
             accounts: RefCell::new(HashMap::default()),
             layer_id: RefCell::new(None),
             logs: RefCell::new(Vec::new()),
@@ -118,16 +121,28 @@ impl InnerHost {
         *self.calldata.borrow_mut() = Some(bytes);
     }
 
+    fn get_returndata(&self) -> Option<Vec<u8>> {
+        self.returndata.borrow().clone()
+    }
+
+    fn set_balance(&self, addr: &Address, amount: Amount) {
+        self.accounts.borrow_mut().insert(addr.clone(), amount);
+    }
+
     fn set_sender(&self, sender: Address) {
         *self.sender.borrow_mut() = Some(sender);
     }
 
-    fn set_app_addr(&self, app_addr: Address) {
-        *self.app_addr.borrow_mut() = Some(app_addr);
+    fn set_app(&self, app: Address) {
+        *self.app.borrow_mut() = Some(app);
     }
 
     fn set_layer_id(&self, layer_id: LayerId) {
         *self.layer_id.borrow_mut() = Some(layer_id);
+    }
+
+    fn get_logs(&self) -> Vec<(String, u8)> {
+        self.logs.borrow().clone()
     }
 
     fn reset(&mut self) {
@@ -140,42 +155,44 @@ impl Host for InnerHost {
         self.calldata.borrow().unwrap()
     }
 
+    fn set_returndata(&self, bytes: &[u8]) {
+        *self.returndata.borrow_mut() = Some(bytes.to_vec());
+    }
+
     fn sender(&self) -> Address {
         self.sender.borrow().unwrap().clone()
     }
 
-    fn app_addr(&self) -> Address {
-        self.app_addr.borrow().unwrap().clone()
+    fn app(&self) -> Address {
+        self.app.borrow().unwrap().clone()
     }
 
     fn layer_id(&self) -> LayerId {
         self.layer_id.borrow().unwrap()
     }
 
-    fn balance_of(&self, addr: Address) -> Amount {
-        let sender = self.sender();
-
-        *self.accounts.borrow().get(&sender).unwrap_or(&Amount(0))
+    fn balance_of(&self, addr: &Address) -> Amount {
+        *self.accounts.borrow().get(addr).unwrap_or(&Amount(0))
     }
 
-    fn transfer(&self, dst: Address, amount: Amount) {
+    fn transfer(&self, dst: &Address, amount: Amount) {
         let app_balance = self.app_balance();
 
         assert!(app_balance >= amount);
 
-        let dst_balance = self.balance_of(dst.clone());
+        let dst_balance = self.balance_of(dst);
 
         let src_balance = app_balance - amount;
         let dst_balance = dst_balance + amount;
 
-        let src = self.app_addr();
+        let src = self.app();
 
         {
             self.accounts.borrow_mut().insert(src, src_balance);
         }
 
         {
-            self.accounts.borrow_mut().insert(dst, dst_balance);
+            self.accounts.borrow_mut().insert(dst.clone(), dst_balance);
         }
     }
 
@@ -183,10 +200,6 @@ impl Host for InnerHost {
         let log = (msg.to_string(), code);
 
         self.logs.borrow_mut().push(log);
-    }
-
-    fn get_logs(&self) -> Vec<(String, u8)> {
-        self.logs.borrow().clone()
     }
 }
 
@@ -213,82 +226,110 @@ mod tests {
     }
 
     #[test]
-    fn host_mock_calldata() {
+    fn host_calldata() {
         test(|| {
-            let buf = b"Hello World!";
-            MockHost::instance().set_calldata(buf);
+            let host = MockHost::instance();
 
-            let buf = MockHost::instance().get_calldata();
-            assert_eq!(buf, b"Hello World!");
+            let calldata = b"Hello World!";
+            host.set_calldata(calldata);
+
+            let calldata = host.get_calldata();
+            assert_eq!(calldata, b"Hello World!");
         });
     }
 
-    //     #[test]
-    //     fn host_accounts_balance() {
-    //         test(|| {
-    //             let addr1: Address = [0x10; 20].into();
-    //             let addr2: Address = [0x20; 20].into();
+    #[test]
+    fn host_returndata() {
+        test(|| {
+            let host = MockHost::instance();
 
-    //             MockHost.set_balance(&addr1, Amount(10));
-    //             MockHost.set_balance(&addr2, Amount(20));
+            let returndata = host.get_returndata();
+            assert_eq!(returndata, None);
 
-    //             let amount1 = MockHost.get_balance(&addr1);
-    //             let amount2 = MockHost.get_balance(&addr2);
+            let returndata = b"Done.";
+            host.set_returndata(returndata);
 
-    //             assert_eq!(amount1, Amount(10));
-    //             assert_eq!(amount2, Amount(20));
-    //         });
-    //     }
+            let returndata = host.get_returndata().unwrap();
+            assert_eq!(returndata, b"Done.");
+        });
+    }
 
-    //     #[test]
-    //     fn host_transfer() {
-    //         test(|| {
-    //             let src: Address = [0x10; 20].into();
-    //             let dst: Address = [0x20; 20].into();
+    #[test]
+    fn host_accounts() {
+        test(|| {
+            let host = MockHost::instance();
 
-    //             MockHost.set_sender(src);
+            let addr1: Address = [0x10; 20].into();
+            let addr2: Address = [0x20; 20].into();
 
-    //             MockHost.set_balance(&src, Amount(10));
-    //             MockHost.set_balance(&dst, Amount(20));
+            host.set_balance(&addr1, Amount(10));
+            host.set_balance(&addr2, Amount(20));
 
-    //             let amount1 = MockHost.get_balance(&src);
-    //             let amount2 = MockHost.get_balance(&dst);
-    //             assert_eq!(amount1, Amount(10));
-    //             assert_eq!(amount2, Amount(20));
+            let amount1 = host.balance_of(&addr1);
+            let amount2 = host.balance_of(&addr2);
 
-    //             MockHost.transfer(&dst, Amount(5));
+            assert_eq!(amount1, Amount(10));
+            assert_eq!(amount2, Amount(20));
+        });
+    }
 
-    //             let amount1 = MockHost.get_balance(&src);
-    //             let amount2 = MockHost.get_balance(&dst);
-    //             assert_eq!(amount1, Amount(10 - 5));
-    //             assert_eq!(amount2, Amount(20 + 5));
-    //         });
-    //     }
+    #[test]
+    fn host_transfer() {
+        test(|| {
+            let host = MockHost::instance();
 
-    //     #[test]
-    //     fn host_layer() {
-    //         test(|| {
-    //             MockHost.set_layer(LayerId(10));
+            let src: Address = [0x10; 20].into();
+            let dst: Address = [0x20; 20].into();
 
-    //             let layer = MockHost.now();
-    //             assert_eq!(layer, LayerId(10));
-    //         });
-    //     }
+            host.set_app(src);
 
-    //     #[test]
-    //     fn host_logs() {
-    //         test(|| {
-    //             let logs = MockHost.get_logs();
-    //             assert!(logs.is_empty());
+            host.set_balance(&src, Amount(10));
+            host.set_balance(&dst, Amount(20));
 
-    //             MockHost.log("Log #1", 100);
-    //             MockHost.log("Log #2", 200);
+            let amount1 = host.balance_of(&src);
+            let amount2 = host.balance_of(&dst);
 
-    //             let logs = MockHost.get_logs();
-    //             assert_eq!(
-    //                 logs,
-    //                 vec![("Log #1".to_string(), 100), ("Log #2".to_string(), 200)]
-    //             )
-    //         });
-    //     }
+            assert_eq!(amount1, Amount(10));
+            assert_eq!(amount2, Amount(20));
+
+            host.transfer(&dst, Amount(5));
+
+            let amount1 = host.balance_of(&src);
+            let amount2 = host.balance_of(&dst);
+
+            assert_eq!(amount1, Amount(10 - 5));
+            assert_eq!(amount2, Amount(20 + 5));
+        });
+    }
+
+    #[test]
+    fn host_layer() {
+        test(|| {
+            let host = MockHost::instance();
+
+            host.set_layer_id(LayerId(10));
+
+            let layer = host.layer_id();
+            assert_eq!(layer, LayerId(10));
+        });
+    }
+
+    #[test]
+    fn host_logs() {
+        test(|| {
+            let host = MockHost::instance();
+
+            let logs = host.get_logs();
+            assert!(logs.is_empty());
+
+            host.log("Log #1", 100);
+            host.log("Log #2", 200);
+
+            let logs = host.get_logs();
+            assert_eq!(
+                logs,
+                vec![("Log #1".to_string(), 100), ("Log #2".to_string(), 200)]
+            )
+        });
+    }
 }

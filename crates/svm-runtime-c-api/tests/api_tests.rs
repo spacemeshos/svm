@@ -1,11 +1,9 @@
 extern crate svm_runtime_c_api;
 
-use maplit::hashmap;
-
 use svm_runtime_c_api as api;
 use svm_runtime_c_api::svm_byte_array;
 
-use std::{collections::HashMap, ffi::c_void};
+use std::ffi::c_void;
 
 use svm_abi_encoder::Encoder;
 use svm_codec::api::raw;
@@ -61,13 +59,6 @@ fn exec_app_bytes(
     (bytes, length)
 }
 
-fn host_ctx_bytes(version: u32, fields: HashMap<u32, Vec<u8>>) -> (Vec<u8>, u32) {
-    let bytes = svm_runtime::testing::build_host_ctx(version, fields);
-    let length = bytes.len() as u32;
-
-    (bytes, length)
-}
-
 #[test]
 fn svm_runtime_exec_app() {
     unsafe {
@@ -97,13 +88,6 @@ unsafe fn test_svm_runtime() {
     let author = Address::of("author").into();
     let wasm = include_bytes!("wasm/counter.wasm");
 
-    // raw `host ctx`
-    let (bytes, length) = host_ctx_bytes(version, hashmap! {});
-    let host_ctx = svm_byte_array {
-        bytes: bytes.as_ptr(),
-        length: length,
-    };
-
     // raw template
     let (bytes, length) = deploy_template_bytes(version, "My Template", wasm);
     let template_bytes = svm_byte_array {
@@ -117,7 +101,6 @@ unsafe fn test_svm_runtime() {
         runtime,
         template_bytes,
         author,
-        host_ctx,
         gas_metering,
         gas_limit,
         &mut error,
@@ -152,7 +135,6 @@ unsafe fn test_svm_runtime() {
         runtime,
         app_bytes,
         spawner,
-        host_ctx,
         gas_metering,
         gas_limit,
         &mut error,
@@ -193,7 +175,6 @@ unsafe fn test_svm_runtime() {
         runtime,
         tx_bytes,
         init_state,
-        host_ctx,
         gas_metering,
         gas_limit,
         &mut error,
