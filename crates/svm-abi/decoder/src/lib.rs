@@ -18,8 +18,10 @@
 #![allow(dead_code)]
 #![allow(unreachable_code)]
 
+mod calldata;
 mod cursor;
 mod decoder;
 
+pub use calldata::CallData;
 pub use cursor::Cursor;
 pub use decoder::{DecodeError, Decoder};

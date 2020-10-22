@@ -4,8 +4,8 @@
 //! +-----------+---------+---------------------------+
 //! | 0 | 0 0 0 | 0 0 0 0 |  False (Boolean)          |
 //! | 0 | 0 0 1 | 0 0 0 0 |  True  (Boolean)          |
-//! | 0 | 0 1 0 | 0 0 0 0 |  Address                  |
-//! | 0 | 0 1 1 | 0 0 0 0 |  Reserved                 |
+//! | 0 | 0 1 0 | 0 0 0 0 |  None                     |
+//! | 0 | 0 1 1 | 0 0 0 0 |  Address                  |
 //! | 0 | 1 0 0 | 0 0 0 0 |  Reserved                 |
 //! | 0 | 1 0 1 | 0 0 0 0 |  Reserved                 |
 //! | 0 | 1 1 0 | 0 0 0 0 |  Reserved                 |
@@ -79,8 +79,11 @@ pub mod layout {
     pub const BOOL_FALSE: u8 = 0b_0_000_0000;
     pub const BOOL_TRUE: u8 = 0b_0_001_0000;
 
+    // None
+    pub const NONE: u8 = 0b_0_010_0000;
+
     // Address
-    pub const ADDRESS: u8 = 0b_0_010_0000;
+    pub const ADDRESS: u8 = 0b_0_011_0000;
 
     /// Amount
     pub const AMOUNT_1B: u8 = 0b_0_000_0001;
