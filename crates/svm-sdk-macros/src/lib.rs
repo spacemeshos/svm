@@ -94,11 +94,3 @@ cfg_if! {
         }
     }
 }
-
-#[proc_macro_attribute]
-pub fn endpoint(
-    args: proc_macro::TokenStream,
-    input: proc_macro::TokenStream,
-) -> proc_macro::TokenStream {
-    parse_endpoint(args, input)
-}
