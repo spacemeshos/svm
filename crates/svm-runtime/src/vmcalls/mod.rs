@@ -3,13 +3,11 @@ use wasmer::{Exports, Function, ImportObject, Store};
 use crate::Context;
 
 mod calldata;
-mod host_ctx;
 mod logs;
 mod returndata;
 mod storage;
 
 pub use calldata::{calldata_len, calldata_offset};
-pub use host_ctx::host_get64;
 pub use logs::log;
 pub use returndata::set_returndata;
 pub use storage::{get32, get64, load160, set32, set64, store160};
@@ -27,8 +25,6 @@ pub fn wasmer_register(store: &Store, ctx: &Context, ns: &mut Exports) {
     ns.insert("svm_calldata_offset", func!(store, ctx, calldata_offset));
     ns.insert("svm_calldata_len", func!(store, ctx, calldata_len));
     ns.insert("svm_set_returndata", func!(store, ctx, set_returndata));
-
-    ns.insert("svm_host_get64", func!(store, ctx, host_get64));
 
     ns.insert("svm_get32", func!(store, ctx, get32));
     ns.insert("svm_set32", func!(store, ctx, set32));

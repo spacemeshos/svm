@@ -20,7 +20,6 @@ mod app;
 mod field;
 mod gas;
 mod helpers;
-mod host_ctx;
 mod template;
 mod traits;
 mod transaction;
@@ -101,53 +100,53 @@ macro_rules! wasm_func_call {
 
 /// ## WASM Deploy-Template
 ///
-/// Reads the WASM buffer given at parameter `buf_ptr` containing a JSON value.
+/// Reads the WASM buffer given at parameter `ptr` containing a JSON value.
 /// Encodes a `deploy-template` binary-transaction using that JSON value.
 ///
 /// Returns a pointer to a new WASM buffer holding the encoded transaction.
 /// If the encoding failed, the returned WASM buffer will contain a String containing the error message.
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
-pub extern "C" fn wasm_deploy_template(buf_ptr: i32) -> i32 {
-    wasm_func_call!(encode_deploy_template, buf_ptr)
+pub extern "C" fn wasm_deploy_template(ptr: i32) -> i32 {
+    wasm_func_call!(encode_deploy_template, ptr)
 }
 
 /// ## WASM Spawn-App
 ///
-/// Reads the WASM buffer given at parameter `buf_ptr` containing a JSON value.
+/// Reads the WASM buffer given at parameter `ptr` containing a JSON value.
 /// Encodes a `spawn-app` binary-transaction using that JSON value.
 ///
 /// Returns a pointer to a new WASM buffer holding the encoded transaction.
 /// If the encoding failed, the returned WASM buffer will contain a String containing the error message.
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
-pub extern "C" fn wasm_encode_spawn_app(buf_ptr: i32) -> i32 {
-    wasm_func_call!(encode_spawn_app, buf_ptr)
+pub extern "C" fn wasm_encode_spawn_app(ptr: i32) -> i32 {
+    wasm_func_call!(encode_spawn_app, ptr)
 }
 
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
-pub extern "C" fn wasm_decode_spawn_app(buf_ptr: i32) -> i32 {
-    wasm_func_call!(decode_spawn_app, buf_ptr)
+pub extern "C" fn wasm_decode_spawn_app(ptr: i32) -> i32 {
+    wasm_func_call!(decode_spawn_app, ptr)
 }
 
 /// ## WASM Execute-App
 ///
-/// Reads the WASM buffer given at parameter `buf_ptr` containing a JSON value.
+/// Reads the WASM buffer given at parameter `ptr` containing a JSON value.
 /// Encodes a `exec-app` binary-transaction using that JSON value.
 ///
 /// Returns a pointer to a new WASM buffer holding the encoded transaction.
 /// If the encoding failed, the returned WASM buffer will contain a String containing the error message.
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
-pub extern "C" fn wasm_encode_exec_app(buf_ptr: i32) -> i32 {
-    wasm_func_call!(encode_exec_app, buf_ptr)
+pub extern "C" fn wasm_encode_exec_app(ptr: i32) -> i32 {
+    wasm_func_call!(encode_exec_app, ptr)
 }
 
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
-pub extern "C" fn wasm_decode_exec_app(buf_ptr: i32) -> i32 {
-    wasm_func_call!(decode_exec_app, buf_ptr)
+pub extern "C" fn wasm_decode_exec_app(ptr: i32) -> i32 {
+    wasm_func_call!(decode_exec_app, ptr)
 }
 
 /// ## WASM Buffer Allocation
@@ -165,13 +164,13 @@ pub extern "C" fn wasm_alloc(length: i32) -> i32 {
 
 /// ## WASM Buffer Freeing
 ///
-/// Frees the WASM buffer allocated starting from offset `buf_ptr`.
+/// Frees the WASM buffer allocated starting from offset `ptr`.
 ///
 /// For more info read: `api::wasm::free`
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
-pub extern "C" fn wasm_free(buf_ptr: i32) {
-    api::wasm::free(buf_ptr as usize);
+pub extern "C" fn wasm_free(ptr: i32) {
+    api::wasm::free(ptr as usize);
 }
 
 /// ## WASM Buffer Length
@@ -179,8 +178,8 @@ pub extern "C" fn wasm_free(buf_ptr: i32) {
 /// Returns the buffer `Data` byte-length
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
-pub extern "C" fn wasm_buffer_length(buf_ptr: i32) -> i32 {
-    let buf_len = api::wasm::wasm_buf_len(buf_ptr as usize);
+pub extern "C" fn wasm_buffer_length(ptr: i32) -> i32 {
+    let buf_len = api::wasm::wasm_buf_len(ptr as usize);
 
     buf_len as _
 }
@@ -190,26 +189,26 @@ pub extern "C" fn wasm_buffer_length(buf_ptr: i32) -> i32 {
 /// Returns a pointer to the buffer `Data`
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
-pub extern "C" fn wasm_buffer_data(buf_ptr: i32) -> i32 {
-    let (data_ptr, _len) = api::wasm::wasm_buf_data_ptr(buf_ptr as usize);
+pub extern "C" fn wasm_buffer_data(ptr: i32) -> i32 {
+    let (data_ptr, _len) = api::wasm::wasm_buf_data_ptr(ptr as usize);
 
     data_ptr as _
 }
 
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
-pub extern "C" fn wasm_encode_calldata(buf_ptr: i32) -> i32 {
-    wasm_func_call!(encode_abi_data, buf_ptr)
+pub extern "C" fn wasm_encode_calldata(ptr: i32) -> i32 {
+    wasm_func_call!(encode_calldata, ptr)
 }
 
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
-pub extern "C" fn wasm_decode_calldata(buf_ptr: i32) -> i32 {
-    wasm_func_call!(decode_calldata, buf_ptr)
+pub extern "C" fn wasm_decode_calldata(ptr: i32) -> i32 {
+    wasm_func_call!(decode_calldata, ptr)
 }
 
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
-pub extern "C" fn wasm_decode_receipt(buf_ptr: i32) -> i32 {
-    wasm_func_call!(decode_receipt, buf_ptr)
+pub extern "C" fn wasm_decode_receipt(ptr: i32) -> i32 {
+    wasm_func_call!(decode_receipt, ptr)
 }

@@ -1,13 +1,13 @@
 use crate::env::traits::{AppAddressCompute, AppTemplateAddressCompute};
 
 use svm_common::{DefaultKeyHasher, KeyHasher};
-use svm_types::{Address, AppAddr, AppTemplate, HostCtx, SpawnApp, TemplateAddr};
+use svm_types::{Address, AppAddr, AppTemplate, SpawnApp, TemplateAddr};
 
 /// Default implementation for computing an `App` address deterministically.
 pub struct DefaultAppAddressCompute;
 
 impl AppAddressCompute for DefaultAppAddressCompute {
-    fn compute(spawn: &SpawnApp, _host_ctx: &HostCtx) -> AppAddr {
+    fn compute(spawn: &SpawnApp) -> AppAddr {
         let app = &spawn.app;
 
         // TODO:
@@ -32,7 +32,7 @@ impl AppAddressCompute for DefaultAppAddressCompute {
 pub struct DefaultAppTemplateAddressCompute;
 
 impl AppTemplateAddressCompute for DefaultAppTemplateAddressCompute {
-    fn compute(template: &AppTemplate, _host_ctx: &HostCtx) -> TemplateAddr {
+    fn compute(template: &AppTemplate) -> TemplateAddr {
         let mut buf = Vec::with_capacity(Address::len() + template.code.len());
 
         // TODO: extract `author` from `host_ctx`

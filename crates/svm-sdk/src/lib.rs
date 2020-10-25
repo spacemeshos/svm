@@ -11,10 +11,14 @@
 #![allow(dead_code)]
 #![allow(unreachable_code)]
 
+pub mod host;
 pub mod storage;
 
 mod amount;
 pub use amount::Amount;
+
+mod layer_id;
+pub use layer_id::LayerId;
 
 /// SDK types
 pub mod types;

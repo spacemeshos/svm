@@ -1,7 +1,7 @@
 macro_rules! impl_blob_type {
     ($ty:ident, $nbytes:expr) => {
         use core::char;
-        use core::cmp::PartialEq;
+        use core::cmp::{Eq, PartialEq};
         use core::fmt::{self, Debug};
 
         extern crate alloc;
@@ -11,7 +11,7 @@ macro_rules! impl_blob_type {
 
         #[allow(missing_docs)]
         #[repr(transparent)]
-        #[derive(core::fmt::Debug, Clone)]
+        #[derive(core::fmt::Debug, Copy, Clone, Hash)]
         pub struct $ty(*const u8);
 
         impl $crate::types::PrimitiveMarker for $ty {}
@@ -46,6 +46,15 @@ macro_rules! impl_blob_type {
             #[inline]
             fn from(ptr: *const u8) -> Self {
                 $ty(ptr)
+            }
+        }
+
+        impl From<u32> for $ty {
+            #[inline]
+            fn from(offset: u32) -> Self {
+                let ptr = offset as *const u8;
+
+                ptr.into()
             }
         }
 
@@ -106,6 +115,8 @@ macro_rules! impl_blob_type {
                 self.as_slice() == other.as_slice()
             }
         }
+
+        impl Eq for $ty {}
     };
 }
 
