@@ -10,28 +10,69 @@ use alloc::string::String;
 use std::sync::{Mutex, MutexGuard};
 use std::vec::Vec;
 
+/// ### `offset` meaning in this file:
+///
+/// The parameter `offset` here denotes a memory address integer serving as a pointer to a cell
+/// within the current running WASM instance. Counting is zero-based.
+
+/// ## SVM Imports  
+///
+/// WASM Imports under namespace `svm` for SVM programs.
+/// Each running SVM app can assume their existence regardless of
+/// the additional imports given by the Spacemesh node.
 #[link(wasm_import_module = "svm")]
 extern "C" {
+    /// Returns the memory offset where the transaction's input `calldata` starts.
     fn svm_calldata_offset() -> u32;
 
+    /// Returns the transaction's input `calldata` byte-length.
     fn svm_calldata_len() -> u32;
 
-    fn svm_returndata(offset: u32, length: u32);
+    /// Signals to SVM that the current running transaction output (a.k.a `returndata`)
+    /// lays out in memory starting from offset `offset` and its byte-length is `length`.
+    ///
+    /// * Not calling that method during app execution will result in an empty `returndata`.
+    ///
+    /// * Calling this method multiple times - the last call wins.
+    fn svm_set_returndata(offset: u32, length: u32);
 
+    /// Sends to SVM the logging message that starts
+    /// at memory offset `offset` (of byte-length `length`)
+    /// and it's associated message code (for signaling errors severity such as `trace/info/error` etc.)
     fn svm_log(offset: u32, length: u32, code: u32);
 }
 
-#[link(wasm_import_module = "host")]
+/// ## Spacemesh Imports
+///
+/// WASM imports under namespace `sm` for SVM programs targeting Spacemesh Full-Node (i.e `go-spacemesh`).
+/// Each running SVM programs under Spacemesh platform can assume their existence.
+///
+/// If other blockchain projects will want to take SVM and use it for their purposes then they
+/// should bring their own imports.
+#[link(wasm_import_module = "sm")]
 extern "C" {
-    fn host_balance(offset: u32) -> u64;
+    /// Receives an account address.
+    /// (The `Address::len()` bytes starting at memory offset `offset`)
+    ///
+    /// Returns the account balance.
+    fn sm_balance(offset: u32) -> u64;
 
-    fn host_sender(offset: u32);
+    /// Receives an offset to allocated `Address` (`Address::len()` of bytes).
+    /// The node will copy the address of the current executed transaction `sender`
+    /// starting at offset `offset`.
+    fn sm_sender(offset: u32);
 
-    fn host_app(offset: u32);
+    /// Receives an offset to allocated `Address` (`Address::len()` of bytes).
+    /// The node will copy the address of the current executed transaction `app`
+    /// starting at offset `offset`.
+    fn sm_app(offset: u32);
 
-    fn host_layer() -> u64;
+    /// Returns the Spacemesh layer the current executed transaction is running at.
+    fn sm_layer() -> u64;
 
-    fn host_transfer(dst_offset: u32, amount: u64);
+    /// Transfers `amount` coins from the current running `app` ("the source")
+    /// to the account ("the destination") which is address is starts offset `dst_offset` (`Address::len()` of bytes).
+    fn sm_transfer(dst_offset: u32, amount: u64);
 }
 
 use lazy_static::lazy_static;
@@ -49,10 +90,17 @@ fn host() -> MutexGuard<'static, InnerHost> {
     HOST.lock().unwrap()
 }
 
+/// Implements the `Host` trait.
+/// Its methods delegate work to the singleton `InnerHost` instance
+/// which also implements the `Host` trait and contains the actual implementation of the `Host` trait.
+///
+/// In order to get access to this singleton instance the API user should use `ExtHost::instance()`
+/// when running in non-test environment. Otherwise, a run-time linking error will be raised since the linker
+/// won't know how to link these `extern "C"` functions above. (see `MockHost` for running when at test environment).
 pub struct ExtHost;
 
 impl ExtHost {
-    fn instance() -> MutexGuard<'static, InnerHost> {
+    pub fn instance() -> MutexGuard<'static, InnerHost> {
         host()
     }
 }
@@ -115,7 +163,7 @@ impl Host for ExtHost {
     }
 }
 
-struct InnerHost;
+pub struct InnerHost;
 
 impl Host for InnerHost {
     #[inline]
@@ -134,7 +182,7 @@ impl Host for InnerHost {
             let offset = bytes.as_ptr() as u32;
             let length = bytes.len() as u32;
 
-            svm_returndata(offset, length);
+            svm_set_returndata(offset, length);
         }
     }
 
@@ -143,7 +191,7 @@ impl Host for InnerHost {
         unsafe {
             let offset = self.alloc_addr();
 
-            host_sender(offset);
+            sm_sender(offset);
 
             offset.into()
         }
@@ -154,7 +202,7 @@ impl Host for InnerHost {
         unsafe {
             let offset = self.alloc_addr();
 
-            host_app(offset);
+            sm_app(offset);
 
             offset.into()
         }
@@ -163,7 +211,7 @@ impl Host for InnerHost {
     #[inline]
     fn layer_id(&self) -> LayerId {
         unsafe {
-            let id = host_layer();
+            let id = sm_layer();
 
             LayerId(id)
         }
@@ -174,7 +222,7 @@ impl Host for InnerHost {
         unsafe {
             let offset = addr.offset() as u32;
 
-            let amount = host_balance(offset);
+            let amount = sm_balance(offset);
 
             Amount(amount)
         }
@@ -185,7 +233,7 @@ impl Host for InnerHost {
         unsafe {
             let dst = dst.offset() as u32;
 
-            host_transfer(dst, amount.0);
+            sm_transfer(dst, amount.0);
         }
     }
 
