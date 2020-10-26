@@ -1,0 +1,16 @@
+[package]
+name = "svm-sdk-host"
+version = "0.0.0"
+authors = ["Yaron Wittenstein <yaron.wittenstein@gmail.com>"]
+license = "MIT"
+edition = "2018"
+readme = "README.md"
+repository = "https://github.com/spacemeshos/svm"
+homepage = "https://github.com/spacemeshos/svm"
+description = "Spacemesh Virtual Machine"
+publish = false
+
+[dependencies]
+lazy_static = "1.4.0"
+svm-sdk-alloc = { path = "../svm-sdk-alloc" }
+svm-sdk-types = { path = "../svm-sdk-types" }

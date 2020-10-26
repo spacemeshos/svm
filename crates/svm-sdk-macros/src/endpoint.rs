@@ -23,13 +23,13 @@ struct FuncSig {
 }
 
 pub fn parse_endpoint(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let includes = includes_ast();
-
     let (fn_sig, iter) = parse_func_sig(input.into());
     let body = parse_func_body(iter);
 
     let name = &fn_sig.name;
     let prologue = func_prologue(&fn_sig);
+
+    let includes = includes_ast();
 
     (quote! {
         #includes

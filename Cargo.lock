@@ -1131,7 +1131,11 @@ dependencies = [
  "svm-runtime",
  "svm-runtime-c-api",
  "svm-sdk",
+ "svm-sdk-alloc",
+ "svm-sdk-host",
  "svm-sdk-macros",
+ "svm-sdk-storage",
+ "svm-sdk-types",
  "svm-storage",
  "svm-types",
  "tiny-keccak",
@@ -1305,6 +1309,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "svm-sdk-alloc"
+version = "0.1.0"
+
+[[package]]
+name = "svm-sdk-host"
+version = "0.0.0"
+dependencies = [
+ "lazy_static",
+ "svm-sdk-alloc",
+ "svm-sdk-types",
+]
+
+[[package]]
 name = "svm-sdk-macros"
 version = "0.1.0"
 dependencies = [
@@ -1315,6 +1332,17 @@ dependencies = [
  "svm-sdk",
  "syn",
 ]
+
+[[package]]
+name = "svm-sdk-storage"
+version = "0.0.0"
+dependencies = [
+ "lazy_static",
+]
+
+[[package]]
+name = "svm-sdk-types"
+version = "0.0.0"
 
 [[package]]
 name = "svm-storage"
