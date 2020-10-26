@@ -1151,7 +1151,7 @@ name = "svm-abi-decoder"
 version = "0.0.0"
 dependencies = [
  "svm-abi-layout",
- "svm-sdk",
+ "svm-sdk-types",
 ]
 
 [[package]]
@@ -1159,7 +1159,7 @@ name = "svm-abi-encoder"
 version = "0.0.0"
 dependencies = [
  "svm-abi-layout",
- "svm-sdk",
+ "svm-sdk-types",
 ]
 
 [[package]]
@@ -1306,6 +1306,10 @@ name = "svm-sdk"
 version = "0.0.0"
 dependencies = [
  "lazy_static",
+ "svm-sdk-alloc",
+ "svm-sdk-host",
+ "svm-sdk-storage",
+ "svm-sdk-types",
 ]
 
 [[package]]

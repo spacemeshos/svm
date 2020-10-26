@@ -12,3 +12,7 @@ publish = false
 
 [dependencies]
 lazy_static = "1.4.0"
+svm-sdk-alloc = { path = "../svm-sdk-alloc" }
+svm-sdk-types = { path = "../svm-sdk-types" }
+svm-sdk-host = { path = "../svm-sdk-host" }
+svm-sdk-storage = { path = "../svm-sdk-storage" }

@@ -2,7 +2,7 @@ extern crate alloc;
 use alloc::vec::Vec;
 
 use svm_abi_layout::layout;
-use svm_sdk::Amount;
+use svm_sdk_types::Amount;
 
 use crate::Encoder;
 

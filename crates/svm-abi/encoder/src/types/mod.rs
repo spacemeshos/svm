@@ -50,7 +50,7 @@ use alloc::vec::Vec;
 
 use crate::traits::Encoder;
 
-use svm_sdk::value::{Composite, Primitive, Value};
+use svm_sdk_types::value::{Composite, Primitive, Value};
 
 impl<T> Encoder for &Option<T>
 where

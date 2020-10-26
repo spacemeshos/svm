@@ -11,27 +11,6 @@
 #![allow(dead_code)]
 #![allow(unreachable_code)]
 
-pub mod host;
-pub mod storage;
-
-mod amount;
-pub use amount::Amount;
-
-mod layer_id;
-pub use layer_id::LayerId;
-
-/// SDK types
-pub mod types;
-
-/// SDK values
-pub mod value;
-
-mod blob;
-pub use blob::Address;
-
-/// Memory allocation on Heap
-pub mod memory;
-
 mod log;
 
 /// Logging API
@@ -40,3 +19,13 @@ pub use log::log;
 /// `ensure` macro
 #[macro_use]
 pub mod ensure;
+
+use svm_sdk_alloc;
+use svm_sdk_host;
+use svm_sdk_storage;
+use svm_sdk_types;
+
+pub use svm_sdk_alloc::*;
+pub use svm_sdk_host::*;
+pub use svm_sdk_storage::*;
+pub use svm_sdk_types::*;
