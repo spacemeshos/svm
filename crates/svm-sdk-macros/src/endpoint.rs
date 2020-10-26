@@ -20,34 +20,38 @@ struct FuncSig {
     name: Ident,
 
     params: Vec<Param>,
-
-    body: TokenStream,
 }
 
 pub fn parse_endpoint(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let input: TokenStream = input.into();
-    let _func_sig = parse_func_sig(input.clone());
-
     let includes = includes_ast();
+
+    let (fn_sig, iter) = parse_func_sig(input.into());
+    let body = parse_func_body(iter);
+
+    let name = &fn_sig.name;
+    let prologue = func_prologue(&fn_sig);
 
     (quote! {
         #includes
 
-        #input
+        fn #name() {
+            #prologue
+
+            #body
+        }
     })
     .into()
 }
 
-fn parse_func_sig(mut input: TokenStream) -> FuncSig {
+fn parse_func_sig(mut input: TokenStream) -> (FuncSig, IntoIter) {
     let mut iter = input.into_iter();
 
     let name = parse_func_name(&mut iter);
-    dbg!(format!("function name: {}", name));
-
     let params = parse_func_params(&mut iter);
-    let body = parse_func_body(&mut iter);
 
-    FuncSig { name, params, body }
+    let sig = FuncSig { name, params };
+
+    (sig, iter)
 }
 
 fn parse_func_name(iter: &mut IntoIter) -> Ident {
@@ -110,12 +114,47 @@ fn parse_func_params(iter: &mut IntoIter) -> Vec<Param> {
     }
 }
 
-fn parse_func_body(iter: &mut IntoIter) -> TokenStream {
-    let body = iter.collect();
+fn parse_func_body(mut iter: IntoIter) -> TokenStream {
+    let tt = iter.next();
 
-    dbg!(&body);
+    if let Some(TokenTree::Group(group)) = tt {
+        assert_eq!(group.delimiter(), Delimiter::Brace);
 
-    body
+        let stream = group.stream();
+        let iter = stream.into_iter();
+
+        iter.collect()
+    } else {
+        panic!("`endpoint` can't have a return value (use `returncalldata` instead).")
+    }
+}
+
+fn func_prologue(sig: &FuncSig) -> TokenStream {
+    let mut assigns: Vec<TokenStream> = Vec::new();
+
+    let init = quote! {
+        let bytes = Node.get_calldata();
+
+        let mut calldata = svm_abi_decoder::CallData::new(bytes);
+    };
+
+    for param in sig.params.iter() {
+        let name = &param.name;
+        let ty = &param.ty;
+
+        let assign = quote! {
+            let #name: #ty = calldata.next_1();
+        };
+
+        assigns.push(assign.into());
+    }
+
+    (quote! {
+        #init
+
+        #(#assigns)*
+    })
+    .into()
 }
 
 fn as_ident(tt: Option<TokenTree>) -> Ident {
@@ -172,11 +211,13 @@ fn assert_punct(tt: Option<TokenTree>, expected: &Punct) {
 
 fn includes_ast() -> TokenStream {
     quote! {
+        use svm_sdk::host::Host;
+
         #[cfg(test)]
-        use svm_sdk::host::MockHost;
+        use svm_sdk::host::MockHost as Node;
 
         #[cfg(not(test))]
-        use svm_sdk::host::ExtHost;
+        use svm_sdk::host::ExtHost as Node;
 
         use svm_sdk::{Amount, Address, LayerId, ensure, log};
     }

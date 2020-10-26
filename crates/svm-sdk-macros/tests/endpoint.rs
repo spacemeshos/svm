@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use cfg_if::cfg_if;
 
 cfg_if! {
@@ -6,8 +8,8 @@ cfg_if! {
         use svm_sdk_macros::endpoint;
 
         #[endpoint]
-        fn add(a: i32, b: i32) -> i32 {
-            a + b
+        fn add(a: i32, b: i32) {
+            let _c = a + b;
         }
 
         #[test]

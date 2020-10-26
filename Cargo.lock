@@ -1311,6 +1311,7 @@ dependencies = [
  "cfg-if 1.0.0",
  "proc-macro2",
  "quote",
+ "svm-abi-decoder",
  "svm-sdk",
  "syn",
 ]
