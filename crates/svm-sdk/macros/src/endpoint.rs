@@ -1,7 +1,7 @@
 extern crate proc_macro;
 
 use proc_macro2::token_stream::IntoIter;
-use proc_macro2::{Delimiter, Ident, Literal, Punct, Spacing, Span, TokenStream, TokenTree};
+use proc_macro2::{Delimiter, Group, Ident, Literal, Punct, Spacing, Span, TokenStream, TokenTree};
 
 use quote::{quote, ToTokens};
 
@@ -13,6 +13,7 @@ use syn::{
 
 struct Param {
     name: Ident,
+
     ty: Ident,
 }
 
@@ -20,13 +21,16 @@ struct FuncSig {
     name: Ident,
 
     params: Vec<Param>,
+
+    returns: TokenStream,
 }
 
 pub fn parse_endpoint(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let (fn_sig, iter) = parse_func_sig(input.into());
-    let body = parse_func_body(iter);
+    let (fn_sig, next) = parse_func_sig(input.into());
+    let body = parse_func_body(next);
 
     let name = &fn_sig.name;
+    let returns = &fn_sig.returns;
     let prologue = func_prologue(&fn_sig);
 
     let includes = includes_ast();
@@ -34,7 +38,7 @@ pub fn parse_endpoint(input: proc_macro::TokenStream) -> proc_macro::TokenStream
     (quote! {
         #includes
 
-        fn #name() {
+        fn #name() #returns {
             #prologue
 
             #body
@@ -43,15 +47,20 @@ pub fn parse_endpoint(input: proc_macro::TokenStream) -> proc_macro::TokenStream
     .into()
 }
 
-fn parse_func_sig(mut input: TokenStream) -> (FuncSig, IntoIter) {
+fn parse_func_sig(mut input: TokenStream) -> (FuncSig, TokenTree) {
     let mut iter = input.into_iter();
 
     let name = parse_func_name(&mut iter);
     let params = parse_func_params(&mut iter);
+    let (returns, next) = parse_func_returns(iter);
 
-    let sig = FuncSig { name, params };
+    let sig = FuncSig {
+        name,
+        params,
+        returns,
+    };
 
-    (sig, iter)
+    (sig, next)
 }
 
 fn parse_func_name(iter: &mut IntoIter) -> Ident {
@@ -114,10 +123,38 @@ fn parse_func_params(iter: &mut IntoIter) -> Vec<Param> {
     }
 }
 
-fn parse_func_body(mut iter: IntoIter) -> TokenStream {
-    let tt = iter.next();
+fn parse_func_returns(mut iter: IntoIter) -> (TokenStream, TokenTree) {
+    let mut tts: Vec<TokenTree> = Vec::new();
 
-    if let Some(TokenTree::Group(group)) = tt {
+    loop {
+        let tt = iter.next();
+
+        if tt.is_none() {
+            panic!("Missing function body.")
+        }
+
+        let tt = tt.unwrap();
+
+        let returns_ends = match &tt {
+            TokenTree::Group(g) => g.delimiter() == Delimiter::Brace,
+            _ => false,
+        };
+
+        if returns_ends {
+            let tts = quote! {
+                #(#tts)*
+            };
+
+            return (tts, tt);
+        } else {
+            tts.push(tt);
+        }
+    }
+
+    unreachable!()
+}
+fn parse_func_body(body: TokenTree) -> TokenStream {
+    if let TokenTree::Group(group) = body {
         assert_eq!(group.delimiter(), Delimiter::Brace);
 
         let stream = group.stream();
@@ -125,7 +162,7 @@ fn parse_func_body(mut iter: IntoIter) -> TokenStream {
 
         iter.collect()
     } else {
-        panic!("`endpoint` can't have a return value (use `returncalldata` instead).")
+        unreachable!()
     }
 }
 
@@ -218,7 +255,5 @@ fn includes_ast() -> TokenStream {
 
         #[cfg(not(test))]
         use svm_sdk::host::ExtHost as Node;
-
-        use svm_sdk::{Amount, Address, LayerId, ensure, log};
     }
 }
