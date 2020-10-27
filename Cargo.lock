@@ -1347,6 +1347,8 @@ name = "svm-sdk-storage"
 version = "0.0.0"
 dependencies = [
  "lazy_static",
+ "svm-sdk-alloc",
+ "svm-sdk-types",
 ]
 
 [[package]]

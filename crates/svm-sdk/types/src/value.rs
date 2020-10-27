@@ -50,8 +50,8 @@ pub enum Composite<'a> {
 /// # Example
 ///
 /// ```rust
-/// use svm_sdk::Address;
-/// use svm_sdk::value::Value;
+/// use svm_sdk_types::Address;
+/// use svm_sdk_types::value::Value;
 ///
 /// let addr1: Address = [0x10; Address::len()].into();
 ///
@@ -104,7 +104,7 @@ macro_rules! impl_from_rust_to_value {
 /// # Example (boolean)
 ///
 /// ```rust
-/// use svm_sdk::value::Value;
+/// use svm_sdk_types::value::Value;
 ///
 /// let value: Value = true.into();
 /// let truthy: bool = value.into();
@@ -116,7 +116,7 @@ macro_rules! impl_from_rust_to_value {
 /// # Example (`i8` - same for other integers)
 ///
 /// ```rust
-/// use svm_sdk::value::Value;
+/// use svm_sdk_types::value::Value;
 ///
 /// let value: Value = 100i8.into();
 /// let num: i8 = value.into();
@@ -128,8 +128,8 @@ macro_rules! impl_from_rust_to_value {
 /// # Example (`Amount`)
 ///
 /// ```rust
-/// use svm_sdk::Amount;
-/// use svm_sdk::value::Value;
+/// use svm_sdk_types::Amount;
+/// use svm_sdk_types::value::Value;
 ///
 /// let value: Value = Amount(100).into();
 /// let amount: Amount = value.into();
@@ -141,7 +141,7 @@ macro_rules! impl_from_rust_to_value {
 /// # Example (Address)
 ///
 /// ```rust
-/// use svm_sdk::value::Value;
+/// use svm_sdk_types::value::Value;
 ///
 /// let value: Value = 10i32.into();
 /// let num: Option<i32> = value.into();
@@ -153,7 +153,7 @@ macro_rules! impl_from_rust_to_value {
 /// # Example
 ///
 /// ```rust
-/// use svm_sdk::value::Value;
+/// use svm_sdk_types::value::Value;
 ///
 /// let value: Value = Value::none();
 /// let num: Option<i32> = value.into();
@@ -200,7 +200,7 @@ pub struct Array<'a, T>(pub &'a [T]);
 /// # Example
 ///
 /// ```rust
-/// use svm_sdk::value::Value;
+/// use svm_sdk_types::value::Value;
 ///
 /// let value1: Value = 10u8.into();
 /// let value2: Value = 20u8.into();
@@ -222,7 +222,7 @@ impl<'a> From<&'a [Value<'_>]> for Value<'a> {
 /// # Example
 ///
 /// ```rust
-/// use svm_sdk::value::Value;
+/// use svm_sdk_types::value::Value;
 ///
 /// let value1: Value = 10u8.into();
 /// let value2: Value = 20u8.into();

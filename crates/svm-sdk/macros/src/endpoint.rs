@@ -211,7 +211,7 @@ fn assert_punct(tt: Option<TokenTree>, expected: &Punct) {
 
 fn includes_ast() -> TokenStream {
     quote! {
-        use svm_sdk::host::Host;
+        use svm_sdk::host::traits::Host;
 
         #[cfg(test)]
         use svm_sdk::host::MockHost as Node;

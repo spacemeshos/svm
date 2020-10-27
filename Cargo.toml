@@ -55,10 +55,10 @@ svm-app-query = { path = "crates/svm-app-query" }
 svm-types = { path = "crates/svm-types" }
 svm-sdk-alloc = { path = "crates/svm-sdk/alloc" }
 svm-sdk-types = { path = "crates/svm-sdk/types" }
-svm-sdk-storage = { path = "crates/svm-sdk-storage" }
-svm-sdk-host = { path = "crates/svm-sdk-host" }
+svm-sdk-storage = { path = "crates/svm-sdk/storage" }
+svm-sdk-host = { path = "crates/svm-sdk/host" }
+svm-sdk-macros = { path = "crates/svm-sdk/macros" }
 svm-sdk = { path = "crates/svm-sdk" }
-svm-sdk-macros = { path = "crates/svm-sdk-macros" }
 svm-nibble = { path = "crates/svm-nibble" }
 svm-codec = { path = "crates/svm-codec" }
 svm-layout = { path = "crates/svm-layout" }
@@ -87,10 +87,10 @@ members = [
   "crates/svm-common",
   "crates/svm-sdk/alloc",
   "crates/svm-sdk/types",
-  "crates/svm-sdk-storage",
-  "crates/svm-sdk-host",
+  "crates/svm-sdk/storage",
+  "crates/svm-sdk/host",
+  "crates/svm-sdk/macros",
   "crates/svm-sdk",
-  "crates/svm-sdk-macros",
   "crates/svm-kv",
   "crates/svm-layout",
   "crates/svm-storage",

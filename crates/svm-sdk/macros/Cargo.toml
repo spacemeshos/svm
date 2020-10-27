@@ -8,8 +8,8 @@ edition = "2018"
 proc-macro = true
 
 [dependencies]
-svm-sdk = { path = "../svm-sdk" }
-svm-abi-decoder = { path = "../svm-abi/decoder" }
+svm-sdk = { path = ".." }
+svm-abi-decoder = { path = "../../svm-abi/decoder" }
 proc-macro2 = "1.0.24"
 quote = "1.0.7"
 syn = "1.0.42"

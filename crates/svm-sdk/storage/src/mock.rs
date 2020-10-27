@@ -173,7 +173,7 @@ fn storage() -> MutexGuard<'static, InnerStorage> {
 mod tests {
     use super::*;
 
-    use crate::memory::alloc;
+    use svm_sdk_alloc::alloc;
 
     lazy_static! {
         static ref TEST_LOCK: Mutex<()> = Mutex::new(());

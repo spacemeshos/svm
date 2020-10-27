@@ -51,28 +51,28 @@ cfg_if! {
         ///
         /// impl MyStorage {
         ///   fn get_amount() -> Amount {
-        ///       svm_sdk::storage::get_amount::<StorageImpl>(0)
+        ///       svm_sdk::storage::ops::get_amount::<StorageImpl>(0)
         ///   }
         ///
         ///   fn set_amount(value: Amount) {
-        ///       svm_sdk::storage::set_amount::<StorageImpl>(0, value);
+        ///       svm_sdk::storage::ops::set_amount::<StorageImpl>(0, value);
         ///   }
         ///
         ///   fn get_addr() -> Address {
-        ///       svm_sdk::storage::get_addr::<StorageImpl>(0)
+        ///       svm_sdk::storage::ops::get_addr::<StorageImpl>(0)
         ///   }
         ///
         ///   fn set_addr(value: &Address) {
-        ///       svm_sdk::storage::set_addr::<StorageImpl>(1, value);
+        ///       svm_sdk::storage::ops::set_addr::<StorageImpl>(1, value);
         ///   }
         ///
         ///   fn get_data(index: usize) -> u32 {
-        ///       let value = svm_sdk::storage::array_get32::<StorageImpl>(2, index, 3);
+        ///       let value = svm_sdk::storage::ops::array_get32::<StorageImpl>(2, index, 3);
         ///       value as u32
         ///   }
         ///
         ///   fn set_data(index: usize, value: u32) {
-        //        svm_sdk::storage::array_set_addr::<StorageImpl>(2, index, 3, value)
+        //        svm_sdk::storage::ops::array_set_addr::<StorageImpl>(2, index, 3, value)
         ///   }
         /// }
         /// ```
