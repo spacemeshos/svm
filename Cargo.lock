@@ -1326,6 +1326,8 @@ name = "svm-sdk-host"
 version = "0.0.0"
 dependencies = [
  "lazy_static",
+ "svm-abi-decoder",
+ "svm-abi-encoder",
  "svm-sdk-alloc",
  "svm-sdk-types",
 ]
@@ -1338,6 +1340,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "svm-abi-decoder",
+ "svm-abi-encoder",
  "svm-sdk",
  "syn",
 ]

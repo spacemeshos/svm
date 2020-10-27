@@ -11,12 +11,14 @@ use syn::{
     PathArguments, Type, TypeArray, TypePath,
 };
 
+#[derive(Debug, Clone)]
 struct Param {
     name: Ident,
 
     ty: Ident,
 }
 
+#[derive(Debug, Clone)]
 struct FuncSig {
     name: Ident,
 
@@ -33,15 +35,26 @@ pub fn parse_endpoint(input: proc_macro::TokenStream) -> proc_macro::TokenStream
     let returns = &fn_sig.returns;
     let prologue = func_prologue(&fn_sig);
 
-    let includes = includes_ast();
+    let includes = endpoint_includes();
 
     (quote! {
-        #includes
+        fn #name() {
+            #includes
 
-        fn #name() #returns {
-            #prologue
+            fn __inner__() #returns {
+                #prologue
 
-            #body
+                #body
+            }
+
+            use svm_abi_encoder::Encoder;
+
+            let mut bytes = Vec::new();
+
+            let rets = __inner__();
+            rets.encode(&mut bytes);
+
+            Node.set_returndata(&bytes);
         }
     })
     .into()
@@ -72,7 +85,7 @@ fn parse_func_name(iter: &mut IntoIter) -> Ident {
     if let Some(TokenTree::Ident(name)) = tt {
         name
     } else {
-        panic!("Expected function name")
+        panic!("Expected function's name")
     }
 }
 
@@ -135,12 +148,12 @@ fn parse_func_returns(mut iter: IntoIter) -> (TokenStream, TokenTree) {
 
         let tt = tt.unwrap();
 
-        let returns_ends = match &tt {
+        let returns_end = match &tt {
             TokenTree::Group(g) => g.delimiter() == Delimiter::Brace,
             _ => false,
         };
 
-        if returns_ends {
+        if returns_end {
             let tts = quote! {
                 #(#tts)*
             };
@@ -246,7 +259,7 @@ fn assert_punct(tt: Option<TokenTree>, expected: &Punct) {
     }
 }
 
-fn includes_ast() -> TokenStream {
+fn endpoint_includes() -> TokenStream {
     quote! {
         use svm_sdk::host::traits::Host;
 

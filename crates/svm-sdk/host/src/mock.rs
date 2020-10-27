@@ -31,7 +31,7 @@ fn host() -> MutexGuard<'static, InnerHost> {
 pub struct MockHost;
 
 impl MockHost {
-    fn instance() -> MutexGuard<'static, InnerHost> {
+    pub fn instance() -> MutexGuard<'static, InnerHost> {
         host()
     }
 }
@@ -86,7 +86,7 @@ impl Host for MockHost {
     }
 }
 
-struct InnerHost {
+pub struct InnerHost {
     pub calldata: RefCell<Option<&'static [u8]>>,
 
     pub returndata: RefCell<Option<Vec<u8>>>,
@@ -117,35 +117,47 @@ impl InnerHost {
         }
     }
 
-    fn set_calldata(&self, bytes: &'static [u8]) {
+    pub fn set_calldata<T>(&self, calldata: T)
+    where
+        T: svm_abi_encoder::Encoder,
+    {
+        let mut bytes = Vec::new();
+        calldata.encode(&mut bytes);
+
+        let bytes: &'static [u8] = bytes.leak();
+
+        self.set_raw_calldata(bytes);
+    }
+
+    pub fn set_raw_calldata(&self, bytes: &'static [u8]) {
         *self.calldata.borrow_mut() = Some(bytes);
     }
 
-    fn get_returndata(&self) -> Option<Vec<u8>> {
+    pub fn get_returndata(&self) -> Option<Vec<u8>> {
         self.returndata.borrow().clone()
     }
 
-    fn set_balance(&self, addr: &Address, amount: Amount) {
+    pub fn set_balance(&self, addr: &Address, amount: Amount) {
         self.accounts.borrow_mut().insert(addr.clone(), amount);
     }
 
-    fn set_sender(&self, sender: Address) {
+    pub fn set_sender(&self, sender: Address) {
         *self.sender.borrow_mut() = Some(sender);
     }
 
-    fn set_app(&self, app: Address) {
+    pub fn set_app(&self, app: Address) {
         *self.app.borrow_mut() = Some(app);
     }
 
-    fn set_layer_id(&self, layer_id: LayerId) {
+    pub fn set_layer_id(&self, layer_id: LayerId) {
         *self.layer_id.borrow_mut() = Some(layer_id);
     }
 
-    fn get_logs(&self) -> Vec<(String, u8)> {
+    pub fn get_logs(&self) -> Vec<(String, u8)> {
         self.logs.borrow().clone()
     }
 
-    fn reset(&mut self) {
+    pub fn reset(&mut self) {
         *self = Self::new();
     }
 }
@@ -231,7 +243,7 @@ mod tests {
             let host = MockHost::instance();
 
             let calldata = b"Hello World!";
-            host.set_calldata(calldata);
+            host.set_raw_calldata(calldata);
 
             let calldata = host.get_calldata();
             assert_eq!(calldata, b"Hello World!");

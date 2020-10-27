@@ -9,6 +9,7 @@ proc-macro = true
 
 [dependencies]
 svm-sdk = { path = ".." }
+svm-abi-encoder = { path = "../../svm-abi/encoder" }
 svm-abi-decoder = { path = "../../svm-abi/decoder" }
 proc-macro2 = "1.0.24"
 quote = "1.0.7"
