@@ -33,6 +33,7 @@ impl Import {
             vmctx,
             signature,
             kind: VMFunctionKind::Static,
+            call_trampoline: None,
         };
 
         func.into()
