@@ -36,6 +36,7 @@ mod num_i16;
 mod num_i32;
 mod num_i64;
 mod num_i8;
+mod tuples;
 
 pub use address::*;
 pub use amount::*;
@@ -44,6 +45,7 @@ pub use boolean::*;
 pub use num_i16::*;
 pub use num_i32::*;
 pub use num_i64::*;
+pub use tuples::*;
 
 extern crate alloc;
 use alloc::vec::Vec;
