@@ -99,9 +99,6 @@ pub struct InnerHost {
     pub logs: RefCell<Vec<(String, u8)>>,
 }
 
-unsafe impl Send for InnerHost {}
-unsafe impl Sync for InnerHost {}
-
 impl InnerHost {
     fn new() -> Self {
         Self {
