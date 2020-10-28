@@ -4,7 +4,7 @@ use cfg_if::cfg_if;
 
 cfg_if! {
     if #[cfg(not(windows))] {
-        use svm_sdk::Amount;
+        use svm_sdk::{Amount, Address};
         use svm_sdk::host::{MockHost, traits::Host};
         use svm_abi_encoder::Encoder;
         use svm_abi_decoder::CallData;
@@ -27,18 +27,25 @@ cfg_if! {
         }
 
         #[endpoint]
-        fn add(a: i32, b: i32) -> (Amount, bool) {
-            let c = a + b;
+        fn add(a: u8, b: u64, c: Amount, addr: Address) -> (Amount, bool) {
+            let a = Amount(a as u64);
+            let b = Amount(b as u64);
 
-            let amount = Amount(c as u64);
+            let amount = a + b + c;
             let err = false;
 
             return (amount, err)
         }
 
         #[test]
-        fn test_endpoint() {
-            set_calldata((10i32, 20i32));
+        fn test_add() {
+            let a = 10u8;
+            let b = 20u64;
+            let c = Amount(5);
+            let addr: Address = [0x10; Address::len()].into();
+
+            let calldata = (a, b, c, addr);
+            set_calldata(calldata);
 
             add();
 
@@ -46,7 +53,7 @@ cfg_if! {
 
             let (amount, err): (Amount, bool) = returndata.next_2();
 
-            assert_eq!(amount, Amount(30));
+            assert_eq!(amount, Amount(35));
             assert_eq!(err, false);
         }
     }
