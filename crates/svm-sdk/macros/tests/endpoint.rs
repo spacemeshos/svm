@@ -10,6 +10,14 @@ cfg_if! {
 
         use svm_sdk_macros::endpoint;
 
+        use std::sync::Mutex;
+
+        use lazy_static::lazy_static;
+
+        lazy_static! {
+            static ref TEST_LOCK: Mutex<()> = Mutex::new(());
+        }
+
         fn set_calldata<T: Encoder>(calldata: T)  {
             let host = MockHost::instance();
 
@@ -27,10 +35,15 @@ cfg_if! {
         }
 
         fn test<F>(f: F) where F: FnOnce() {
+            // run the tests in a serial manner
+            let guard = TEST_LOCK.lock().unwrap();
+
             let host = MockHost::instance();
             host.reset();
 
             f();
+
+            drop(guard)
         }
 
         #[endpoint]

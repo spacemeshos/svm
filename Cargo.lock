@@ -1339,6 +1339,7 @@ name = "svm-sdk-macros"
 version = "0.1.0"
 dependencies = [
  "cfg-if 1.0.0",
+ "lazy_static",
  "proc-macro2",
  "quote",
  "svm-abi-decoder",
