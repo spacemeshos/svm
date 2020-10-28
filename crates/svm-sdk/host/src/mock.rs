@@ -9,78 +9,75 @@ extern crate std;
 use alloc::string::{String, ToString};
 use core::cell::RefCell;
 
+use std::cell::UnsafeCell;
 use std::collections::HashMap;
-use std::sync::{Mutex, MutexGuard};
+use std::mem::MaybeUninit;
+use std::sync::Once;
 use std::vec::Vec;
 
-use lazy_static::lazy_static;
+static INIT: Once = Once::new();
 
-lazy_static! {
-    static ref HOST: Mutex<InnerHost> = {
-        let host = InnerHost::new();
-
-        Mutex::new(host)
-    };
-}
-
-#[inline]
-fn host() -> MutexGuard<'static, InnerHost> {
-    HOST.lock().unwrap()
-}
+static mut HOST: MaybeUninit<InnerHost> = MaybeUninit::uninit();
 
 pub struct MockHost;
 
 impl MockHost {
-    pub fn instance() -> MutexGuard<'static, InnerHost> {
-        host()
+    pub fn instance() -> &'static InnerHost {
+        unsafe {
+            INIT.call_once(|| {
+                HOST = MaybeUninit::new(InnerHost::new());
+            });
+
+            std::mem::transmute(HOST.as_ptr())
+        }
     }
 }
 
 impl Host for MockHost {
     fn get_calldata(&self) -> &'static [u8] {
-        let host = host();
+        let host = Self::instance();
 
         host.get_calldata()
     }
 
     fn set_returndata(&self, bytes: &[u8]) {
-        let host = host();
+        let host = Self::instance();
 
         host.set_returndata(bytes);
     }
 
     fn sender(&self) -> Address {
-        let host = host();
+        let host = Self::instance();
 
         host.sender()
     }
 
     fn app(&self) -> Address {
-        let host = host();
+        let host = Self::instance();
 
         host.app()
     }
 
     fn layer_id(&self) -> LayerId {
-        let host = host();
+        let host = Self::instance();
 
         host.layer_id()
     }
 
     fn balance_of(&self, addr: &Address) -> Amount {
-        let host = host();
+        let host = Self::instance();
 
         host.balance_of(addr)
     }
 
     fn transfer(&self, dst: &Address, amount: Amount) {
-        let host = host();
+        let host = Self::instance();
 
         host.transfer(dst, amount);
     }
 
     fn log(&self, msg: &str, code: u8) {
-        let host = host();
+        let host = Self::instance();
 
         host.log(msg, code);
     }
@@ -103,6 +100,7 @@ pub struct InnerHost {
 }
 
 unsafe impl Send for InnerHost {}
+unsafe impl Sync for InnerHost {}
 
 impl InnerHost {
     fn new() -> Self {
@@ -157,8 +155,13 @@ impl InnerHost {
         self.logs.borrow().clone()
     }
 
-    pub fn reset(&mut self) {
-        *self = Self::new();
+    pub fn reset(&self) {
+        *self.calldata.borrow_mut() = None;
+        *self.returndata.borrow_mut() = None;
+        *self.sender.borrow_mut() = None;
+        *self.app.borrow_mut() = None;
+        *self.layer_id.borrow_mut() = None;
+        self.logs.borrow_mut().clear();
     }
 }
 
@@ -223,18 +226,22 @@ mod tests {
 
     use alloc::vec;
 
+    use lazy_static::lazy_static;
+    use std::sync::Mutex;
+
     lazy_static! {
         static ref TEST_LOCK: Mutex<()> = Mutex::new(());
     }
 
     fn test(f: fn() -> ()) {
+        // we use a `Mutex` to enforce serial execution of `MockHost`'s tests.
         let guard = TEST_LOCK.lock().unwrap();
 
         MockHost::instance().reset();
 
         f();
 
-        drop(guard);
+        drop(guard)
     }
 
     #[test]

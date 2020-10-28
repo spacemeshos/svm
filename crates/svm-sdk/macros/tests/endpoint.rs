@@ -20,30 +20,22 @@ cfg_if! {
         fn test_endpoint() {
             use svm_abi_decoder::CallData;
 
-            {
-                let host = MockHost::instance();
+            let host = MockHost::instance();
 
-                let calldata = (10i32, 20i32);
-                host.set_calldata(calldata);
-            }
+            let calldata = (10i32, 20i32);
+            host.set_calldata(calldata);
 
             add();
 
-            {
-                use svm_abi_decoder::CallData;
+            let bytes = host.get_returndata();
 
-                let host = MockHost::instance();
+            let bytes: &'static [u8] = bytes.unwrap().leak();
+            let mut returndata = CallData::new(bytes);
 
-                let bytes = host.get_returndata();
+            let (amount, err): (Amount, bool) = returndata.next_2();
 
-                let bytes: &'static [u8] = bytes.unwrap().leak();
-                let mut returndata = CallData::new(&bytes);
-
-                let (amount, err): (Amount, bool) = returndata.next_2();
-
-                assert_eq!(amount, Amount(30));
-                assert_eq!(err, false);
-            }
+            assert_eq!(amount, Amount(30));
+            assert_eq!(err, false);
         }
     }
 }
