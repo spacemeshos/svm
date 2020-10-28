@@ -48,11 +48,13 @@ pub fn parse_endpoint(input: proc_macro::TokenStream) -> proc_macro::TokenStream
     let name = fn_sig.name();
     let returns = fn_sig.returns();
     let prologue = func_prologue(&fn_sig);
+    let epilogue = func_epilogue();
 
     let includes = endpoint_includes();
 
     (quote! {
-        fn #name() {
+        #[no_mangle]
+        pub extern "C" fn #name() {
             #includes
 
             fn __inner__() #returns {
@@ -61,6 +63,15 @@ pub fn parse_endpoint(input: proc_macro::TokenStream) -> proc_macro::TokenStream
                 #body
             }
 
+            #epilogue
+        }
+    })
+    .into()
+}
+
+fn func_epilogue() -> TokenStream {
+    quote! {
+        {
             use svm_sdk::traits::Encoder;
 
             let mut bytes = Vec::new();
@@ -70,8 +81,7 @@ pub fn parse_endpoint(input: proc_macro::TokenStream) -> proc_macro::TokenStream
 
             Node.set_returndata(&bytes);
         }
-    })
-    .into()
+    }
 }
 
 fn parse_func_sig(mut input: TokenStream) -> (FuncSig, TokenTree) {

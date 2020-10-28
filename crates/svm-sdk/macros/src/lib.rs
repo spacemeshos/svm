@@ -89,16 +89,27 @@ cfg_if! {
         ///
         /// ```rust, no_run
         /// use svm_sdk::{Amount, Address};
+        /// use svm_sdk_macros::endpoint;
         ///
+        /// #[endpoint]
+        /// fn work(a: Amount, to_double: bool) -> Amount {
+        ///     if to_double {
+        ///         a * Amount(2)
+        ///     }
+        ///     else {
+        ///         a
+        ///     }
+        /// }
         /// ```
         ///
         /// Will be translated (roughly) to the following code:
         ///
-        /// ```rust, no_run
-        /// use svm_sdk::{Amount, Address};
+        /// ```rust
+        /// use svm_sdk::Amount;
         ///
-        /// pub fn work() {
-        ///     use svm_sdk::host::traits::Host;
+        /// #[no_mangle]
+        /// pub extern "C" fn work() {
+        ///     use svm_sdk::traits::Host;
         ///
         ///     #[cfg(test)]
         ///     use svm_sdk::host::MockHost as Node;
@@ -106,8 +117,32 @@ cfg_if! {
         ///     #[cfg(not(test))]
         ///     use svm_sdk::host::ExtHost as Node;
         ///
-        ///     fn __inner__() -> (Amount, bool) {
-        ///         todo!()
+        ///     fn __inner__() -> Amount {
+        ///         use svm_sdk::CallData;
+        ///
+        ///         let bytes = Node.get_calldata();
+        ///         let mut calldata = CallData::new(bytes);
+        ///
+        ///         let a: Amount = calldata.next_1();
+        ///         let to_double: bool = calldata.next_1();
+        ///
+        ///         if to_double {
+        ///             a * Amount(2)
+        ///         }
+        ///         else {
+        ///             a
+        ///         }
+        ///     }
+        ///
+        ///     {
+        ///         use svm_sdk::traits::Encoder;
+        ///
+        ///         let mut bytes = Vec::new();
+        ///
+        ///         let rets = __inner__();
+        ///         rets.encode(&mut bytes);
+        ///
+        ///         Node.set_returndata(&bytes);
         ///     }
         /// }
         /// ```
