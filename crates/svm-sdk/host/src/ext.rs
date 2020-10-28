@@ -90,13 +90,13 @@ static mut HOST: MaybeUninit<InnerHost> = MaybeUninit::uninit();
 pub struct ExtHost;
 
 impl ExtHost {
-    pub fn instance() -> &'static InnerHost {
+    pub fn instance() -> &'static mut InnerHost {
         unsafe {
             INIT.call_once(|| {
                 HOST = MaybeUninit::new(InnerHost::new());
             });
 
-            std::mem::transmute(HOST.as_ptr())
+            std::mem::transmute(HOST.as_mut_ptr())
         }
     }
 }
@@ -110,7 +110,7 @@ impl Host for ExtHost {
     }
 
     #[inline]
-    fn set_returndata(&self, bytes: &[u8]) {
+    fn set_returndata(&mut self, bytes: &[u8]) {
         let host = Self::instance();
 
         host.set_returndata(bytes);
@@ -145,14 +145,14 @@ impl Host for ExtHost {
     }
 
     #[inline]
-    fn transfer(&self, dst: &Address, amount: Amount) {
+    fn transfer(&mut self, dst: &Address, amount: Amount) {
         let host = Self::instance();
 
         host.transfer(&dst, amount);
     }
 
     #[inline]
-    fn log(&self, msg: &str, code: u8) {
+    fn log(&mut self, msg: &str, code: u8) {
         let host = Self::instance();
 
         host.log(msg, code);
@@ -173,7 +173,7 @@ impl Host for InnerHost {
     }
 
     #[inline]
-    fn set_returndata(&self, bytes: &[u8]) {
+    fn set_returndata(&mut self, bytes: &[u8]) {
         unsafe {
             let offset = bytes.as_ptr() as u32;
             let length = bytes.len() as u32;
@@ -225,7 +225,7 @@ impl Host for InnerHost {
     }
 
     #[inline]
-    fn transfer(&self, dst: &Address, amount: Amount) {
+    fn transfer(&mut self, dst: &Address, amount: Amount) {
         unsafe {
             let dst = dst.offset() as u32;
 
@@ -234,7 +234,7 @@ impl Host for InnerHost {
     }
 
     #[inline]
-    fn log(&self, msg: &str, code: u8) {
+    fn log(&mut self, msg: &str, code: u8) {
         unsafe {
             let offset = msg.as_ptr() as u32;
             let len = msg.len() as u32;

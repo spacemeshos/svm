@@ -23,7 +23,6 @@ cfg_if! {
         /// Here is a simple example of declaring a storage:
         ///
         /// ```rust
-        ///
         /// use svm_sdk::{Amount, Address};
         /// use svm_sdk_macros::storage;
         ///
@@ -85,6 +84,34 @@ cfg_if! {
             parse_storage(input)
         }
 
+        ///
+        /// The `#[endpoint]` proc-macro attribute facilitates the task of implementing a public method
+        ///
+        /// ```rust, no_run
+        /// use svm_sdk::{Amount, Address};
+        ///
+        /// ```
+        ///
+        /// Will be translated (roughly) to the following code:
+        ///
+        /// ```rust, no_run
+        /// use svm_sdk::{Amount, Address};
+        ///
+        /// pub fn work() {
+        ///     use svm_sdk::host::traits::Host;
+        ///
+        ///     #[cfg(test)]
+        ///     use svm_sdk::host::MockHost as Node;
+        ///
+        ///     #[cfg(not(test))]
+        ///     use svm_sdk::host::ExtHost as Node;
+        ///
+        ///     fn __inner__() -> (Amount, bool) {
+        ///         todo!()
+        ///     }
+        /// }
+        /// ```
+        ///
         #[proc_macro_attribute]
         pub fn endpoint(
             _args: proc_macro::TokenStream,

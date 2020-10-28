@@ -8,7 +8,7 @@ use alloc::vec::Vec;
 pub trait Host {
     fn get_calldata(&self) -> &'static [u8];
 
-    fn set_returndata(&self, bytes: &[u8]);
+    fn set_returndata(&mut self, bytes: &[u8]);
 
     fn sender(&self) -> Address;
 
@@ -18,9 +18,9 @@ pub trait Host {
 
     fn balance_of(&self, addr: &Address) -> Amount;
 
-    fn transfer(&self, dst: &Address, amount: Amount);
+    fn transfer(&mut self, dst: &Address, amount: Amount);
 
-    fn log(&self, msg: &str, code: u8);
+    fn log(&mut self, msg: &str, code: u8);
 
     #[inline]
     fn sender_balance(&self) -> Amount {

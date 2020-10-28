@@ -27,12 +27,26 @@ struct FuncSig {
     returns: TokenStream,
 }
 
+impl FuncSig {
+    fn name(&self) -> Ident {
+        self.name.clone()
+    }
+
+    fn params(&self) -> &[Param] {
+        &self.params
+    }
+
+    fn returns(&self) -> &TokenStream {
+        &self.returns
+    }
+}
+
 pub fn parse_endpoint(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let (fn_sig, next) = parse_func_sig(input.into());
     let body = parse_func_body(next);
 
-    let name = &fn_sig.name;
-    let returns = &fn_sig.returns;
+    let name = fn_sig.name();
+    let returns = fn_sig.returns();
     let prologue = func_prologue(&fn_sig);
 
     let includes = endpoint_includes();

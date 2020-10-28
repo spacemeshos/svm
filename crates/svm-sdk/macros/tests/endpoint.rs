@@ -26,6 +26,13 @@ cfg_if! {
             returndata
         }
 
+        fn test<F>(f: F) where F: FnOnce() {
+            let host = MockHost::instance();
+            host.reset();
+
+            f();
+        }
+
         #[endpoint]
         fn add(a: u8, b: u64, c: Amount) -> (Amount, bool) {
             let a = Amount(a as u64);
@@ -49,47 +56,51 @@ cfg_if! {
 
         #[test]
         fn test_add() {
-            let a = 10u8;
-            let b = 20u64;
-            let c = Amount(5);
+            test(|| {
+                let a = 10u8;
+                let b = 20u64;
+                let c = Amount(5);
 
-            let calldata = (a, b, c);
-            set_calldata(&calldata);
+                let calldata = (a, b, c);
+                set_calldata(&calldata);
 
-            add();
+                add();
 
-            let mut returndata = get_returndata();
+                let mut returndata = get_returndata();
 
-            let (amount, err): (Amount, bool) = returndata.next_2();
+                let (amount, err): (Amount, bool) = returndata.next_2();
 
-            assert_eq!(amount, Amount(35));
-            assert_eq!(err, false);
+                assert_eq!(amount, Amount(35));
+                assert_eq!(err, false);
+            });
         }
 
         #[test]
         fn test_first_or_second() {
-            let addr2: Address = [0x10; Address::len()].into();
-            let addr1: Address = [0x20; Address::len()].into();
+            test(|| {
+                let addr2: Address = [0x10; Address::len()].into();
+                let addr1: Address = [0x20; Address::len()].into();
 
-            // 1) use `first = true`
-            let calldata = (true, addr1, addr2);
-            set_calldata(&calldata);
+                // 1) use `first = true`
+                let calldata = (true, addr1, addr2);
+                set_calldata(&calldata);
 
-            first_or_second();
+                first_or_second();
 
-            let mut returndata = get_returndata();
-            let addr: Address = returndata.next_1();
-            assert_eq!(addr, addr1);
+                let mut returndata = get_returndata();
+                let addr: Address = returndata.next_1();
+                assert_eq!(addr, addr1);
 
-            // 2) use `first = false`
-            let calldata = (false, addr1, addr2);
-            set_calldata(&calldata);
+                // 2) use `first = false`
+                let calldata = (false, addr1, addr2);
+                set_calldata(&calldata);
 
-            first_or_second();
+                first_or_second();
 
-            let mut returndata = get_returndata();
-            let addr: Address = returndata.next_1();
-            assert_eq!(addr, addr2);
+                let mut returndata = get_returndata();
+                let addr: Address = returndata.next_1();
+                assert_eq!(addr, addr2);
+            });
         }
     }
 }
