@@ -61,7 +61,7 @@ pub fn parse_endpoint(input: proc_macro::TokenStream) -> proc_macro::TokenStream
                 #body
             }
 
-            use svm_abi_encoder::Encoder;
+            use svm_sdk::traits::Encoder;
 
             let mut bytes = Vec::new();
 
@@ -199,7 +199,7 @@ fn func_prologue(sig: &FuncSig) -> TokenStream {
     let init = quote! {
         let bytes = Node.get_calldata();
 
-        let mut calldata = svm_abi_decoder::CallData::new(bytes);
+        let mut calldata = svm_sdk::CallData::new(bytes);
     };
 
     for param in sig.params.iter() {
@@ -275,7 +275,7 @@ fn assert_punct(tt: Option<TokenTree>, expected: &Punct) {
 
 fn endpoint_includes() -> TokenStream {
     quote! {
-        use svm_sdk::host::traits::Host;
+        use svm_sdk::traits::Host;
 
         #[cfg(test)]
         use svm_sdk::host::MockHost as Node;

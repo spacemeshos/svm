@@ -26,10 +26,16 @@ use svm_sdk_types;
 
 pub use svm_sdk_alloc::{alloc, Ptr};
 
+pub use svm_abi_decoder::{CallData, DecodeError};
+
 pub mod host {
     pub use svm_sdk_host::{ExtHost, MockHost};
+}
 
-    pub use svm_sdk_host::traits;
+pub mod traits {
+    pub use svm_abi_encoder::Encoder;
+    pub use svm_sdk_host::traits::Host;
+    pub use svm_sdk_storage::Storage;
 }
 
 pub mod storage {
@@ -71,10 +77,6 @@ pub mod storage {
             array_get_addr,
             array_set_addr
         };
-    }
-
-    pub mod traits {
-        pub use svm_sdk_storage::Storage;
     }
 }
 

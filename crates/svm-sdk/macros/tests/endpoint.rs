@@ -4,10 +4,10 @@ use cfg_if::cfg_if;
 
 cfg_if! {
     if #[cfg(not(windows))] {
-        use svm_sdk::{Amount, Address};
-        use svm_sdk::host::{MockHost, traits::Host};
-        use svm_abi_encoder::Encoder;
-        use svm_abi_decoder::CallData;
+        use svm_sdk::{Amount, Address, CallData};
+        use svm_sdk::host::MockHost;
+        use svm_sdk::traits::{Encoder, Host};
+
         use svm_sdk_macros::endpoint;
 
         fn set_calldata<T: Encoder>(calldata: T)  {

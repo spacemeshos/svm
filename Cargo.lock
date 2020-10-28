@@ -1311,6 +1311,8 @@ name = "svm-sdk"
 version = "0.0.0"
 dependencies = [
  "lazy_static",
+ "svm-abi-decoder",
+ "svm-abi-encoder",
  "svm-sdk-alloc",
  "svm-sdk-host",
  "svm-sdk-storage",
