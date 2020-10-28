@@ -54,7 +54,7 @@ use crate::traits::Encoder;
 
 use svm_sdk_types::value::{Composite, Primitive, Value};
 
-impl<T> Encoder for &Option<T>
+impl<T> Encoder for Option<T>
 where
     T: Encoder,
 {
@@ -66,25 +66,10 @@ where
     }
 }
 
-impl<T> Encoder for Option<T>
-where
-    T: Encoder,
-{
-    fn encode(&self, w: &mut Vec<u8>) {
-        (&self).encode(w)
-    }
-}
-
-impl Encoder for &Value<'_> {
-    fn encode(&self, w: &mut Vec<u8>) {
-        do_encode(self, w)
-    }
-}
-
 impl Encoder for Value<'_> {
     #[inline]
     fn encode(&self, w: &mut Vec<u8>) {
-        (&self).encode(w)
+        do_encode(self, w)
     }
 }
 

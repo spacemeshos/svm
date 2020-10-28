@@ -27,7 +27,7 @@ cfg_if! {
         }
 
         #[endpoint]
-        fn add(a: u8, b: u64, c: Amount, addr: Address) -> (Amount, bool) {
+        fn add(a: u8, b: u64, c: Amount) -> (Amount, bool) {
             let a = Amount(a as u64);
             let b = Amount(b as u64);
 
@@ -37,15 +37,24 @@ cfg_if! {
             return (amount, err)
         }
 
+        #[endpoint]
+        fn first_or_second(first: bool, addr1: Address, addr2: Address) -> Address {
+            if first {
+                addr1
+            }
+            else {
+                addr2
+            }
+        }
+
         #[test]
         fn test_add() {
             let a = 10u8;
             let b = 20u64;
             let c = Amount(5);
-            let addr: Address = [0x10; Address::len()].into();
 
-            let calldata = (a, b, c, addr);
-            set_calldata(calldata);
+            let calldata = (a, b, c);
+            set_calldata(&calldata);
 
             add();
 
@@ -55,6 +64,32 @@ cfg_if! {
 
             assert_eq!(amount, Amount(35));
             assert_eq!(err, false);
+        }
+
+        #[test]
+        fn test_first_or_second() {
+            let addr2: Address = [0x10; Address::len()].into();
+            let addr1: Address = [0x20; Address::len()].into();
+
+            // 1) use `first = true`
+            let calldata = (true, addr1, addr2);
+            set_calldata(&calldata);
+
+            first_or_second();
+
+            let mut returndata = get_returndata();
+            let addr: Address = returndata.next_1();
+            assert_eq!(addr, addr1);
+
+            // 2) use `first = false`
+            let calldata = (false, addr1, addr2);
+            set_calldata(&calldata);
+
+            first_or_second();
+
+            let mut returndata = get_returndata();
+            let addr: Address = returndata.next_1();
+            assert_eq!(addr, addr2);
         }
     }
 }
