@@ -22,7 +22,7 @@ cfg_if! {
         ///
         /// Here is a simple example of declaring a storage:
         ///
-        /// ```no_run
+        /// ```rust
         /// use svm_sdk::{Amount, Address};
         /// use svm_sdk_macros::storage;
         ///
@@ -37,7 +37,7 @@ cfg_if! {
         /// The above `MyStorage` struct code will be translated (roughly) in compile-time
         /// to the following lower-level code:
         ///
-        /// ``` no_run
+        /// ``` rust
         /// use svm_sdk::{Amount, Address};
         ///
         /// #[cfg(not(test))]
@@ -85,9 +85,14 @@ cfg_if! {
         }
 
         ///
-        /// The `#[endpoint]` proc-macro attribute facilitates the task of implementing a public method
+        /// The `#[endpoint]` proc-macro attribute facilitates the task of implementing SVM app's endpoint.
+        /// Each function annotated with this proc-macro will be transformed into a WASM function export in the compiler's final output.
         ///
-        /// ```no_run
+        /// # Example
+        ///
+        /// Here is an example using `#[endpoint]`:
+        ///
+        /// ```rust
         /// use svm_sdk::{Amount, Address};
         /// use svm_sdk_macros::endpoint;
         ///
@@ -102,9 +107,9 @@ cfg_if! {
         /// }
         /// ```
         ///
-        /// Will be translated (roughly) to the following code:
+        /// The above method will be translated (roughly) to the following code:
         ///
-        /// ```no_run
+        /// ```rust
         /// use svm_sdk::Amount;
         ///
         /// #[no_mangle]
