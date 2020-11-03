@@ -1,5 +1,5 @@
 [package]
-name = "svm-abi-tests"
+name = "svm-sdk-types"
 version = "0.0.0"
 authors = ["Yaron Wittenstein <yaron.wittenstein@gmail.com>"]
 license = "MIT"
@@ -10,8 +10,4 @@ homepage = "https://github.com/spacemeshos/svm"
 description = "Spacemesh Virtual Machine"
 publish = false
 
-[dev-dependencies]
-svm-abi-layout = { path = "./../layout" }
-svm-abi-encoder = { path = "./../encoder" }
-svm-abi-decoder = { path = "./../decoder" }
-svm-sdk = { path = "../../svm-sdk" }
+[dependencies]

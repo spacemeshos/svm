@@ -257,7 +257,7 @@ fn getter_ast(var: &Var) -> TokenStream {
                         fn #getter_name () -> #ty {
                             #includes
 
-                            svm_sdk::storage::get32::<StorageImpl>(#id) as #ty
+                            svm_sdk::storage::ops::get32::<StorageImpl>(#id) as #ty
                         }
                     }
                 }
@@ -266,7 +266,7 @@ fn getter_ast(var: &Var) -> TokenStream {
                         fn #getter_name () -> #ty {
                             #includes
 
-                            svm_sdk::storage::get64::<StorageImpl>(#id) as #ty
+                            svm_sdk::storage::ops::get64::<StorageImpl>(#id) as #ty
                         }
                     }
                 }
@@ -275,7 +275,7 @@ fn getter_ast(var: &Var) -> TokenStream {
                         fn #getter_name () -> bool {
                             #includes
 
-                            svm_sdk::storage::get_bool::<StorageImpl>(#id) as #ty
+                            svm_sdk::storage::ops::get_bool::<StorageImpl>(#id) as #ty
                         }
                     }
                 }
@@ -284,7 +284,7 @@ fn getter_ast(var: &Var) -> TokenStream {
                         fn #getter_name () -> svm_sdk::Amount {
                             #includes
 
-                            svm_sdk::storage::get_amount::<StorageImpl>(#id)
+                            svm_sdk::storage::ops::get_amount::<StorageImpl>(#id)
                         }
                     }
                 }
@@ -293,7 +293,7 @@ fn getter_ast(var: &Var) -> TokenStream {
                         fn #getter_name () -> svm_sdk::Address {
                             #includes
 
-                            svm_sdk::storage::get_addr::<StorageImpl>(#id)
+                            svm_sdk::storage::ops::get_addr::<StorageImpl>(#id)
                         }
                     }
                 }
@@ -314,7 +314,7 @@ fn getter_ast(var: &Var) -> TokenStream {
                         fn #getter_name (index: usize) -> #ty {
                             #includes
 
-                            let value = svm_sdk::storage::array_get32::<StorageImpl>(#id, index, #length);
+                            let value = svm_sdk::storage::ops::array_get32::<StorageImpl>(#id, index, #length);
                             value as #ty
                         }
                     }
@@ -324,7 +324,7 @@ fn getter_ast(var: &Var) -> TokenStream {
                         fn #getter_name (index: usize) -> #ty {
                             #includes
 
-                            let value = svm_sdk::storage::array_get64::<StorageImpl>(#id, index, #length);
+                            let value = svm_sdk::storage::ops::array_get64::<StorageImpl>(#id, index, #length);
                             value as #ty
                         }
                     }
@@ -334,7 +334,7 @@ fn getter_ast(var: &Var) -> TokenStream {
                         fn #getter_name (index: usize) -> bool {
                             #includes
 
-                            svm_sdk::storage::array_get_bool::<StorageImpl>(#id, index, #length)
+                            svm_sdk::storage::ops::array_get_bool::<StorageImpl>(#id, index, #length)
                         }
                     }
                 }
@@ -342,14 +342,14 @@ fn getter_ast(var: &Var) -> TokenStream {
                     fn #getter_name (index: usize) -> svm_sdk::Amount {
                         #includes
 
-                        svm_sdk::storage::array_get_amount::<StorageImpl>(#id, index, #length)
+                        svm_sdk::storage::ops::array_get_amount::<StorageImpl>(#id, index, #length)
                     }
                 },
                 "Address" => quote! {
                     fn #getter_name (index: usize) -> svm_sdk::Address {
                         #includes
 
-                        svm_sdk::storage::array_get_addr::<StorageImpl>(#id, index, #length)
+                        svm_sdk::storage::ops::array_get_addr::<StorageImpl>(#id, index, #length)
                     }
                 },
                 _ => unreachable!(),
@@ -371,7 +371,7 @@ fn setter_ast(var: &Var) -> TokenStream {
                         fn #setter_name (value: #ty) {
                             #includes
 
-                            svm_sdk::storage::set32::<StorageImpl>(#id, value as u32);
+                            svm_sdk::storage::ops::set32::<StorageImpl>(#id, value as u32);
                         }
                     }
                 }
@@ -380,7 +380,7 @@ fn setter_ast(var: &Var) -> TokenStream {
                         fn #setter_name (value: #ty) {
                             #includes
 
-                            svm_sdk::storage::set64::<StorageImpl>(#id, value as u64);
+                            svm_sdk::storage::ops::set64::<StorageImpl>(#id, value as u64);
                         }
                     }
                 }
@@ -388,21 +388,21 @@ fn setter_ast(var: &Var) -> TokenStream {
                     fn #setter_name (value: bool) {
                         #includes
 
-                        svm_sdk::storage::set_bool::<StorageImpl>(#id, value);
+                        svm_sdk::storage::ops::set_bool::<StorageImpl>(#id, value);
                     }
                 },
                 "Amount" => quote! {
                     fn #setter_name (value: svm_sdk::Amount) {
                         #includes
 
-                        svm_sdk::storage::set_amount::<StorageImpl>(#id, value);
+                        svm_sdk::storage::ops::set_amount::<StorageImpl>(#id, value);
                     }
                 },
                 "Address" => quote! {
                     fn #setter_name(value: &svm_sdk::Address) {
                         #includes
 
-                        svm_sdk::storage::set_addr::<StorageImpl>(#id, value);
+                        svm_sdk::storage::ops::set_addr::<StorageImpl>(#id, value);
                     }
                 },
                 _ => unreachable!(),
@@ -422,7 +422,7 @@ fn setter_ast(var: &Var) -> TokenStream {
                         fn #setter_name (index: usize, value: #ty) {
                             #includes
 
-                            svm_sdk::storage::array_set32::<StorageImpl>(#id, index, #length, value as u32);
+                            svm_sdk::storage::ops::array_set32::<StorageImpl>(#id, index, #length, value as u32);
                         }
                     }
                 }
@@ -431,7 +431,7 @@ fn setter_ast(var: &Var) -> TokenStream {
                         fn #setter_name (index: usize, value: #ty) {
                             #includes
 
-                            svm_sdk::storage::array_set64::<StorageImpl>(#id, index, #length, value as u64);
+                            svm_sdk::storage::ops::array_set64::<StorageImpl>(#id, index, #length, value as u64);
                         }
                     }
                 }
@@ -440,7 +440,7 @@ fn setter_ast(var: &Var) -> TokenStream {
                         fn #setter_name (index: usize, value: bool) {
                             #includes
 
-                            svm_sdk::storage::array_set_bool::<StorageImpl>(#id, index, #length, value);
+                            svm_sdk::storage::ops::array_set_bool::<StorageImpl>(#id, index, #length, value);
                         }
                     }
                 }
@@ -449,7 +449,7 @@ fn setter_ast(var: &Var) -> TokenStream {
                         fn #setter_name (index: usize, value: Amount) {
                             #includes
 
-                            svm_sdk::storage::array_set_amount::<StorageImpl>(#id, index, #length, value);
+                            svm_sdk::storage::ops::array_set_amount::<StorageImpl>(#id, index, #length, value);
                         }
                     }
                 }
@@ -458,7 +458,7 @@ fn setter_ast(var: &Var) -> TokenStream {
                         fn #setter_name (index: usize, value: &svm_sdk::Address) {
                             #includes
 
-                            svm_sdk::storage::array_set_addr::<StorageImpl>(#id, index, #length, value);
+                            svm_sdk::storage::ops::array_set_addr::<StorageImpl>(#id, index, #length, value);
                         }
                     }
                 }

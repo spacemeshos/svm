@@ -1,4 +1,4 @@
-use crate::storage::Storage;
+use crate::traits::Storage;
 
 #[link(wasm_import_module = "svm")]
 extern "C" {

@@ -11,5 +11,5 @@ description = "Spacemesh Virtual Machine"
 publish = false
 
 [dependencies]
-svm-sdk = { path = "./../../svm-sdk" }
+svm-sdk-types = { path = "../../svm-sdk/types" }
 svm-abi-layout = { path = "./../layout" }

@@ -1,13 +1,25 @@
+#![no_std]
+#![feature(maybe_uninit_uninit_array)]
+
+//! This crate implements Storage SDK API for SVM.
+//! Using this crate when writing SVM Templates in Rust isn't mandatory but should be very useful.
+//!
+//! The crate is compiled with `![no_std]` (no Rust stdlib) annotation in order to reduce the compiled WASM size.
+
+#![allow(missing_docs)]
+#![allow(unused)]
+#![allow(dead_code)]
+#![allow(unreachable_code)]
+
 mod ext;
 mod mock;
 mod traits;
 
-pub use traits::Storage;
-
 pub use ext::ExtStorage;
 pub use mock::MockStorage;
+pub use traits::Storage;
 
-use crate::{Address, Amount};
+use svm_sdk_types::{Address, Amount};
 
 pub fn get32<S: Storage>(var_id: u32) -> u32 {
     S::get32(var_id)
@@ -57,11 +69,12 @@ pub fn set_amount<S: Storage>(var_id: u32, value: Amount) {
 }
 
 pub fn load160<S: Storage>(var_id: u32) -> &'static [u8] {
-    let offset = crate::memory::alloc(20);
+    use svm_sdk_alloc::alloc;
+    let ptr = alloc(20);
 
-    S::load160(var_id, offset);
+    S::load160(var_id, ptr.offset());
 
-    unsafe { core::slice::from_raw_parts(offset as *const u8, 20) }
+    unsafe { core::slice::from_raw_parts(ptr.as_ptr(), 20) }
 }
 
 pub fn store160<S: Storage>(var_id: u32, slice: &[u8]) {

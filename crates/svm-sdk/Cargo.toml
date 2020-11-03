@@ -12,3 +12,9 @@ publish = false
 
 [dependencies]
 lazy_static = "1.4.0"
+svm-sdk-alloc = { path = "alloc" }
+svm-sdk-types = { path = "types" }
+svm-sdk-host = { path = "host" }
+svm-sdk-storage = { path = "storage" }
+svm-abi-encoder = { path = "../svm-abi/encoder" }
+svm-abi-decoder = { path = "../svm-abi/decoder" }

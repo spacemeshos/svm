@@ -1,7 +1,7 @@
 use svm_abi_layout::layout;
 
-use svm_sdk::value::{self, Primitive, Value};
-use svm_sdk::{Address, Amount};
+use svm_sdk_types::value::{self, Primitive, Value};
+use svm_sdk_types::{Address, Amount};
 
 use crate::Cursor;
 

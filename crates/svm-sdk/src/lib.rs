@@ -11,27 +11,6 @@
 #![allow(dead_code)]
 #![allow(unreachable_code)]
 
-pub mod host;
-pub mod storage;
-
-mod amount;
-pub use amount::Amount;
-
-mod layer_id;
-pub use layer_id::LayerId;
-
-/// SDK types
-pub mod types;
-
-/// SDK values
-pub mod value;
-
-mod blob;
-pub use blob::Address;
-
-/// Memory allocation on Heap
-pub mod memory;
-
 mod log;
 
 /// Logging API
@@ -40,3 +19,65 @@ pub use log::log;
 /// `ensure` macro
 #[macro_use]
 pub mod ensure;
+
+use svm_sdk_alloc;
+use svm_sdk_storage;
+use svm_sdk_types;
+
+pub use svm_sdk_alloc::{alloc, Ptr};
+
+pub use svm_abi_decoder::{CallData, DecodeError};
+
+pub mod host {
+    pub use svm_sdk_host::{ExtHost, MockHost};
+}
+
+pub mod traits {
+    pub use svm_abi_encoder::Encoder;
+    pub use svm_sdk_host::traits::Host;
+    pub use svm_sdk_storage::Storage;
+}
+
+pub mod storage {
+    pub use svm_sdk_storage::{ExtStorage, MockStorage};
+
+    pub mod ops {
+        #[rustfmt::skip]
+        pub use svm_sdk_storage::{
+            get32,
+            set32,
+
+            get64,
+            set64,
+
+            get_bool,
+            set_bool,
+
+            get_amount,
+            set_amount,
+
+            load160,
+            store160,
+
+            get_addr,
+            set_addr,
+
+            array_get_bool,
+            array_set_bool,
+
+            array_get32,
+            array_set32,
+
+            array_get64,
+            array_set64,
+            
+            array_get_amount,
+            array_set_amount,
+
+            array_get_addr,
+            array_set_addr
+        };
+    }
+}
+
+pub use svm_sdk_types::*;

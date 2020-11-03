@@ -8,8 +8,13 @@ edition = "2018"
 proc-macro = true
 
 [dependencies]
-svm-sdk = { path = "../svm-sdk" }
+svm-sdk = { path = ".." }
+svm-abi-encoder = { path = "../../svm-abi/encoder" }
+svm-abi-decoder = { path = "../../svm-abi/decoder" }
 proc-macro2 = "1.0.24"
 quote = "1.0.7"
 syn = "1.0.42"
 cfg-if = "1.0.0"
+
+[dev-dependencies]
+lazy_static = "1.4.0"

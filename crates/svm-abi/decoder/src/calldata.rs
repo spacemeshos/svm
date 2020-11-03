@@ -2,7 +2,7 @@ use core::iter::Iterator;
 
 use crate::{Cursor, DecodeError, Decoder};
 
-use svm_sdk::value::Value;
+use svm_sdk_types::value::Value;
 
 pub struct CallData {
     cursor: Cursor<'static>,

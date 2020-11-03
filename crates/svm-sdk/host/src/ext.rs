@@ -1,13 +1,15 @@
-use crate::host::Host;
-use crate::memory;
-use crate::{Address, Amount, LayerId};
+use crate::traits::Host;
+
+use svm_sdk_alloc::Ptr;
+use svm_sdk_types::{Address, Amount, LayerId};
 
 extern crate alloc;
 extern crate std;
 
 use alloc::string::String;
 
-use std::sync::{Mutex, MutexGuard};
+use std::mem::MaybeUninit;
+use std::sync::Once;
 use std::vec::Vec;
 
 /// ### `offset` meaning in this file:
@@ -75,20 +77,11 @@ extern "C" {
     fn sm_transfer(dst_offset: u32, amount: u64);
 }
 
-use lazy_static::lazy_static;
+/// Regarding why we don't use any concurrency primitives for initializing `HOST`
+/// see the explanation of `MockHost`.
+static INIT: Once = Once::new();
 
-lazy_static! {
-    static ref HOST: Mutex<InnerHost> = {
-        let host = InnerHost {};
-
-        Mutex::new(host)
-    };
-}
-
-#[inline]
-fn host() -> MutexGuard<'static, InnerHost> {
-    HOST.lock().unwrap()
-}
+static mut HOST: MaybeUninit<InnerHost> = MaybeUninit::uninit();
 
 /// Implements the `Host` trait.
 /// Its methods delegate work to the singleton `InnerHost` instance
@@ -100,64 +93,70 @@ fn host() -> MutexGuard<'static, InnerHost> {
 pub struct ExtHost;
 
 impl ExtHost {
-    pub fn instance() -> MutexGuard<'static, InnerHost> {
-        host()
+    pub fn instance() -> &'static mut InnerHost {
+        unsafe {
+            INIT.call_once(|| {
+                HOST = MaybeUninit::new(InnerHost::new());
+            });
+
+            std::mem::transmute(HOST.as_mut_ptr())
+        }
     }
 }
 
 impl Host for ExtHost {
     #[inline]
     fn get_calldata(&self) -> &'static [u8] {
-        let host = host();
+        let host = Self::instance();
 
         host.get_calldata()
     }
 
     #[inline]
-    fn set_returndata(&self, bytes: &[u8]) {
-        let host = host();
+    fn set_returndata(&mut self, bytes: &[u8]) {
+        let host = Self::instance();
 
         host.set_returndata(bytes);
     }
 
     #[inline]
     fn sender(&self) -> Address {
-        let host = host();
+        let host = Self::instance();
 
         host.sender()
     }
 
     #[inline]
     fn app(&self) -> Address {
-        let host = host();
+        let host = Self::instance();
 
         host.app()
     }
 
     #[inline]
     fn layer_id(&self) -> LayerId {
-        let host = host();
+        let host = Self::instance();
 
         host.layer_id()
     }
 
     #[inline]
     fn balance_of(&self, addr: &Address) -> Amount {
-        let host = host();
+        let host = Self::instance();
 
         host.balance_of(&addr)
     }
 
     #[inline]
-    fn transfer(&self, dst: &Address, amount: Amount) {
-        let host = host();
+    fn transfer(&mut self, dst: &Address, amount: Amount) {
+        let host = Self::instance();
 
         host.transfer(&dst, amount);
     }
 
     #[inline]
-    fn log(&self, msg: &str, code: u8) {
-        let host = host();
+    fn log(&mut self, msg: &str, code: u8) {
+        let host = Self::instance();
 
         host.log(msg, code);
     }
@@ -177,7 +176,7 @@ impl Host for InnerHost {
     }
 
     #[inline]
-    fn set_returndata(&self, bytes: &[u8]) {
+    fn set_returndata(&mut self, bytes: &[u8]) {
         unsafe {
             let offset = bytes.as_ptr() as u32;
             let length = bytes.len() as u32;
@@ -229,7 +228,7 @@ impl Host for InnerHost {
     }
 
     #[inline]
-    fn transfer(&self, dst: &Address, amount: Amount) {
+    fn transfer(&mut self, dst: &Address, amount: Amount) {
         unsafe {
             let dst = dst.offset() as u32;
 
@@ -238,7 +237,7 @@ impl Host for InnerHost {
     }
 
     #[inline]
-    fn log(&self, msg: &str, code: u8) {
+    fn log(&mut self, msg: &str, code: u8) {
         unsafe {
             let offset = msg.as_ptr() as u32;
             let len = msg.len() as u32;
@@ -249,8 +248,14 @@ impl Host for InnerHost {
 }
 
 impl InnerHost {
+    fn new() -> Self {
+        Self {}
+    }
+
     #[inline]
     fn alloc_addr(&self) -> u32 {
-        memory::alloc(Address::len()) as u32
+        let ptr = svm_sdk_alloc::alloc(Address::len());
+
+        ptr.offset() as u32
     }
 }

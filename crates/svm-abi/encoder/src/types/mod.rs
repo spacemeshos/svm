@@ -36,6 +36,7 @@ mod num_i16;
 mod num_i32;
 mod num_i64;
 mod num_i8;
+mod tuples;
 
 pub use address::*;
 pub use amount::*;
@@ -44,15 +45,16 @@ pub use boolean::*;
 pub use num_i16::*;
 pub use num_i32::*;
 pub use num_i64::*;
+pub use tuples::*;
 
 extern crate alloc;
 use alloc::vec::Vec;
 
 use crate::traits::Encoder;
 
-use svm_sdk::value::{Composite, Primitive, Value};
+use svm_sdk_types::value::{Composite, Primitive, Value};
 
-impl<T> Encoder for &Option<T>
+impl<T> Encoder for Option<T>
 where
     T: Encoder,
 {
@@ -64,25 +66,10 @@ where
     }
 }
 
-impl<T> Encoder for Option<T>
-where
-    T: Encoder,
-{
-    fn encode(&self, w: &mut Vec<u8>) {
-        (&self).encode(w)
-    }
-}
-
-impl Encoder for &Value<'_> {
-    fn encode(&self, w: &mut Vec<u8>) {
-        do_encode(self, w)
-    }
-}
-
 impl Encoder for Value<'_> {
     #[inline]
     fn encode(&self, w: &mut Vec<u8>) {
-        (&self).encode(w)
+        do_encode(self, w)
     }
 }
 

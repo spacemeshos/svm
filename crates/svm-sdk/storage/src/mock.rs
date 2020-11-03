@@ -5,19 +5,17 @@ use alloc::vec;
 use alloc::vec::Vec;
 
 use std::collections::HashMap;
-use std::sync::{Mutex, MutexGuard};
+use std::mem::MaybeUninit;
+use std::sync::Once;
 
-use crate::storage::Storage;
+use crate::traits::Storage;
 
-use lazy_static::lazy_static;
+/// Regarding why we don't use any concurrency primitives for initializing `STORAGE`
+/// see the explanation of `MockHost`.
 
-lazy_static! {
-    static ref STORAGE: Mutex<InnerStorage> = {
-        let storage = InnerStorage::new();
+static INIT: Once = Once::new();
 
-        Mutex::new(storage)
-    };
-}
+static mut STORAGE: MaybeUninit<InnerStorage> = MaybeUninit::uninit();
 
 #[derive(Debug, Clone, PartialEq)]
 enum Var {
@@ -115,39 +113,51 @@ impl InnerStorage {
 
 pub struct MockStorage;
 
+impl MockStorage {
+    pub fn instance() -> &'static mut InnerStorage {
+        unsafe {
+            INIT.call_once(|| {
+                STORAGE = MaybeUninit::new(InnerStorage::new());
+            });
+
+            std::mem::transmute(STORAGE.as_mut_ptr())
+        }
+    }
+}
+
 impl Storage for MockStorage {
     fn get32(var_id: u32) -> u32 {
-        let storage = storage();
+        let mut storage = Self::instance();
 
         storage.get32(var_id)
     }
 
     fn get64(var_id: u32) -> u64 {
-        let storage = storage();
+        let mut storage = Self::instance();
 
         storage.get64(var_id)
     }
 
     fn set32(var_id: u32, value: u32) {
-        let mut storage = storage();
+        let mut storage = Self::instance();
 
         storage.set32(var_id, value)
     }
 
     fn set64(var_id: u32, value: u64) {
-        let mut storage = storage();
+        let mut storage = Self::instance();
 
         storage.set64(var_id, value)
     }
 
     fn store160(var_id: u32, offset: usize) {
-        let mut storage = storage();
+        let mut storage = Self::instance();
 
         storage.store160(var_id, offset)
     }
 
     fn load160(var_id: u32, offset: usize) {
-        let storage = storage();
+        let mut storage = Self::instance();
 
         storage.load160(var_id, offset)
     }
@@ -155,7 +165,7 @@ impl Storage for MockStorage {
 
 impl MockStorage {
     fn clear() {
-        let mut storage = storage();
+        let mut storage = Self::instance();
 
         storage.clear();
     }
@@ -165,15 +175,14 @@ impl MockStorage {
     }
 }
 
-fn storage() -> MutexGuard<'static, InnerStorage> {
-    STORAGE.lock().unwrap()
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    use crate::memory::alloc;
+    use svm_sdk_alloc::alloc;
+
+    use lazy_static::lazy_static;
+    use std::sync::Mutex;
 
     lazy_static! {
         static ref TEST_LOCK: Mutex<()> = Mutex::new(());
@@ -184,16 +193,14 @@ mod tests {
     }
 
     fn test(f: fn() -> ()) {
+        // Holding `guard` throughout the test-lifetime.
+        // By doing that, we make sure that the tests are running in a linear-order (one test at a time)..
+        // That's crucial since `MockStorage` serves as a shared-memory resource.
         let guard = TEST_LOCK.lock().unwrap();
 
         storage_clear();
 
         f();
-
-        // Holding `guard` throughout the test-lifetime.
-        // By doing that, we make sure that the tests are running in a linear-order (one test at a time)..
-        // That's crucial since `MockStorage` serves as a shared-memory resource.
-        drop(guard);
     }
 
     #[test]
@@ -240,17 +247,17 @@ mod tests {
                 let addr1 = vec![0x10u8; n];
                 let addr2 = vec![0x20u8; n];
 
-                let ptr1 = alloc(n);
-                let ptr2 = alloc(n);
+                let off1 = alloc(n).offset();
+                let off2 = alloc(n).offset();
 
                 MockStorage::$store_fn(var1, addr1.as_ptr() as usize);
                 MockStorage::$store_fn(var2, addr2.as_ptr() as usize);
 
-                MockStorage::$load_fn(var1, ptr1);
-                MockStorage::$load_fn(var2, ptr2);
+                MockStorage::$load_fn(var1, off1);
+                MockStorage::$load_fn(var2, off2);
 
-                let slice1 = MockStorage::from_raw_parts(ptr1, n);
-                let slice2 = MockStorage::from_raw_parts(ptr2, n);
+                let slice1 = MockStorage::from_raw_parts(off1, n);
+                let slice2 = MockStorage::from_raw_parts(off2, n);
 
                 assert_eq!(slice1, vec![0x10; n]);
                 assert_eq!(slice2, vec![0x20; n]);
