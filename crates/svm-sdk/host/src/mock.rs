@@ -1,4 +1,5 @@
 use crate::traits::Host;
+
 use svm_sdk_types::{Address, Amount, LayerId};
 
 extern crate core;
@@ -14,6 +15,11 @@ use std::collections::HashMap;
 use std::mem::MaybeUninit;
 use std::sync::Once;
 use std::vec::Vec;
+
+/// Since SVM apps run one-by-one there is no need for any concurrency primitives usage.
+/// We implement the `Host`'s singleton initialization using `unsafe` tools.
+///
+/// This pattern is similarly used in other cases throughout this crate.
 
 static INIT: Once = Once::new();
 

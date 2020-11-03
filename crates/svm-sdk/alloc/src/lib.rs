@@ -15,14 +15,31 @@ extern crate alloc;
 
 use alloc::alloc::{alloc_zeroed, Layout};
 
-pub fn alloc(n: usize) -> usize {
-    let layout = Layout::array::<u8>(n).unwrap();
+/// This method uses the process's Global Allocator.
+/// It allocates `nbytes` bytes on the Heap.
+///
+/// The allocated space is zeroed for security and deterministic concerns.
+///
+/// Returns `Ptr` to the allocated space.
+pub fn alloc(nbytes: usize) -> Ptr {
+    let layout = Layout::array::<u8>(nbytes).unwrap();
 
     let ptr: *mut u8 = unsafe { alloc_zeroed(layout) };
 
-    ptr as _
+    Ptr(ptr as _)
 }
 
-#[derive(Debug, PartialEq, Copy, Clone, Hash)]
-#[repr(transparent)]
-pub struct Ptr(pub usize);
+/// WASM memory addresses are represented as `32` or `64` bit.
+pub struct Ptr(usize);
+
+impl Ptr {
+    /// Returns the pointed address as an integer
+    pub fn offset(&self) -> usize {
+        self.0
+    }
+
+    /// Returns the pointed address as a raw pointer.
+    pub fn as_ptr(&self) -> *const u8 {
+        self.0 as _
+    }
+}

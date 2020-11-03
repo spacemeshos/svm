@@ -70,11 +70,11 @@ pub fn set_amount<S: Storage>(var_id: u32, value: Amount) {
 
 pub fn load160<S: Storage>(var_id: u32) -> &'static [u8] {
     use svm_sdk_alloc::alloc;
-    let offset = alloc(20);
+    let ptr = alloc(20);
 
-    S::load160(var_id, offset);
+    S::load160(var_id, ptr.offset());
 
-    unsafe { core::slice::from_raw_parts(offset as *const u8, 20) }
+    unsafe { core::slice::from_raw_parts(ptr.as_ptr(), 20) }
 }
 
 pub fn store160<S: Storage>(var_id: u32, slice: &[u8]) {

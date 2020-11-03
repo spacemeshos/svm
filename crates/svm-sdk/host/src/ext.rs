@@ -1,5 +1,6 @@
 use crate::traits::Host;
 
+use svm_sdk_alloc::Ptr;
 use svm_sdk_types::{Address, Amount, LayerId};
 
 extern crate alloc;
@@ -76,6 +77,8 @@ extern "C" {
     fn sm_transfer(dst_offset: u32, amount: u64);
 }
 
+/// Regarding why we don't use any concurrency primitives for initializing `HOST`
+/// see the explanation of `MockHost`.
 static INIT: Once = Once::new();
 
 static mut HOST: MaybeUninit<InnerHost> = MaybeUninit::uninit();
@@ -251,6 +254,8 @@ impl InnerHost {
 
     #[inline]
     fn alloc_addr(&self) -> u32 {
-        svm_sdk_alloc::alloc(Address::len()) as u32
+        let ptr = svm_sdk_alloc::alloc(Address::len());
+
+        ptr.offset() as u32
     }
 }
