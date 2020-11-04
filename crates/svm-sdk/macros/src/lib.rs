@@ -8,9 +8,7 @@ cfg_if! {
 
         mod storage;
         mod endpoint;
-
-        use storage::parse_storage;
-        use endpoint::parse_endpoint;
+        mod app;
 
         ///
         /// The `#[storage]` proc-macro attribute consumes a struct and translates
@@ -76,14 +74,6 @@ cfg_if! {
         /// }
         /// ```
         ///
-        #[proc_macro_attribute]
-        pub fn storage(
-            _args: proc_macro::TokenStream,
-            input: proc_macro::TokenStream,
-        ) -> proc_macro::TokenStream {
-            parse_storage(input)
-        }
-
         ///
         /// The `#[endpoint]` proc-macro attribute facilitates the task of implementing SVM app's endpoint.
         /// Each function annotated with this proc-macro will be transformed into a WASM function export in the compiler's final output.
@@ -153,11 +143,13 @@ cfg_if! {
         /// ```
         ///
         #[proc_macro_attribute]
-        pub fn endpoint(
-            _args: proc_macro::TokenStream,
+        pub fn app(
+            args: proc_macro::TokenStream,
             input: proc_macro::TokenStream,
         ) -> proc_macro::TokenStream {
-            parse_endpoint(input)
+            let output = app::parse_app(args.into(), input.into());
+
+            output.into()
         }
     }
 }
