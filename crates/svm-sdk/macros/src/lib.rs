@@ -8,7 +8,12 @@ cfg_if! {
 
         mod storage;
         mod endpoint;
+        mod function2;
+        mod struct2;
         mod app;
+
+        use function2::Function;
+        use struct2::Struct;
 
         ///
         /// The `#[storage]` proc-macro attribute consumes a struct and translates
@@ -147,9 +152,10 @@ cfg_if! {
             args: proc_macro::TokenStream,
             input: proc_macro::TokenStream,
         ) -> proc_macro::TokenStream {
-            let output = app::parse_app(args.into(), input.into());
-
-            output.into()
+            match app::parse_app(args.into(), input.into()) {
+                Err(err) => todo!(),
+                Ok(output) => output.into()
+            }
         }
     }
 }
