@@ -72,6 +72,7 @@ macro_rules! impl_into_svm_byte_array {
                 $crate::svm_byte_array {
                     bytes: bytes.as_ptr(),
                     length,
+                    capacity: length,
                 }
             }
         }

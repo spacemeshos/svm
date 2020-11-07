@@ -21,12 +21,9 @@ unsafe fn create_imports() -> *const c_void {
     imports as _
 }
 
-fn deploy_template_bytes(version: u32, name: &str, wasm: &[u8]) -> (Vec<u8>, u32) {
+fn deploy_template_bytes(version: u32, name: &str, wasm: &[u8]) -> Vec<u8> {
     let data: DataLayout = vec![4].into();
-    let bytes = svm_runtime::testing::build_template(version, name, data, WasmFile::Binary(wasm));
-    let length = bytes.len() as u32;
-
-    (bytes, length)
+    svm_runtime::testing::build_template(version, name, data, WasmFile::Binary(wasm))
 }
 
 fn spawn_app_bytes(
@@ -35,12 +32,9 @@ fn spawn_app_bytes(
     name: &str,
     ctor_name: &str,
     calldata: &Vec<u8>,
-) -> (Vec<u8>, u32) {
+) -> Vec<u8> {
     let template_addr = Address::from(*&template_addr.bytes as *const c_void).into();
-    let bytes = svm_runtime::testing::build_app(version, &template_addr, name, ctor_name, calldata);
-    let length = bytes.len() as u32;
-
-    (bytes, length)
+    svm_runtime::testing::build_app(version, &template_addr, name, ctor_name, calldata)
 }
 
 fn exec_app_bytes(
@@ -48,15 +42,11 @@ fn exec_app_bytes(
     app_addr: &svm_byte_array,
     func_name: &str,
     calldata: &Vec<u8>,
-) -> (Vec<u8>, u32) {
+) -> Vec<u8> {
     let app_addr: &[u8] = app_addr.into();
     let app_addr = Address::from(app_addr).into();
 
-    let bytes = svm_runtime::testing::build_app_tx(version, &app_addr, func_name, calldata);
-
-    let length = bytes.len() as u32;
-
-    (bytes, length)
+    svm_runtime::testing::build_app_tx(version, &app_addr, func_name, calldata)
 }
 
 #[test]
@@ -89,11 +79,8 @@ unsafe fn test_svm_runtime() {
     let wasm = include_bytes!("wasm/counter.wasm");
 
     // raw template
-    let (bytes, length) = deploy_template_bytes(version, "My Template", wasm);
-    let template_bytes = svm_byte_array {
-        bytes: bytes.as_ptr(),
-        length: length,
-    };
+    let bytes = deploy_template_bytes(version, "My Template", wasm);
+    let template_bytes: svm_byte_array = bytes.into();
 
     let mut template_receipt = svm_byte_array::default();
     let res = api::svm_deploy_template(
@@ -122,11 +109,8 @@ unsafe fn test_svm_runtime() {
     counter.encode(&mut calldata);
 
     // raw `spawn-app`
-    let (bytes, length) = spawn_app_bytes(version, &template_addr, name, ctor_name, &calldata);
-    let app_bytes = svm_byte_array {
-        bytes: bytes.as_ptr(),
-        length: length,
-    };
+    let bytes = spawn_app_bytes(version, &template_addr, name, ctor_name, &calldata);
+    let app_bytes: svm_byte_array = bytes.into();
 
     let mut spawn_receipt = svm_byte_array::default();
 
@@ -156,11 +140,8 @@ unsafe fn test_svm_runtime() {
     let mut calldata = Vec::new();
     counter.encode(&mut calldata);
 
-    let (bytes, length) = exec_app_bytes(version, &app_addr, func_name, &calldata);
-    let tx_bytes = svm_byte_array {
-        bytes: bytes.as_ptr(),
-        length: length,
-    };
+    let bytes = exec_app_bytes(version, &app_addr, func_name, &calldata);
+    let tx_bytes: svm_byte_array = bytes.into();
 
     // 4.1) validates tx and extracts its `App`'s `Address`
     let mut app_addr = svm_byte_array::default();

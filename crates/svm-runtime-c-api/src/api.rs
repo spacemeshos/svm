@@ -873,8 +873,9 @@ pub unsafe extern "C" fn svm_imports_destroy(imports: *const c_void) {
 pub unsafe extern "C" fn svm_byte_array_destroy(bytes: svm_byte_array) {
     let ptr = bytes.bytes as *mut u8;
     let length = bytes.length as usize;
+    let capacity = bytes.capacity as usize;
 
-    let _ = Vec::from_raw_parts(ptr, length, length);
+    let _ = Vec::from_raw_parts(ptr, length, capacity);
 }
 
 /// Given a raw `deploy-template` transaction (the `bytes` parameter),

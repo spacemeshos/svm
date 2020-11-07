@@ -116,6 +116,7 @@ mod tests {
         let bytes = svm_byte_array {
             bytes: std::ptr::null(),
             length: 0,
+            capacity: 0,
         };
 
         let res: Result<Vec<WasmType>, io::Error> = Vec::try_from(bytes);
