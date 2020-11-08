@@ -16,7 +16,7 @@ use std::{convert::TryFrom, string::FromUtf8Error};
 /// ```
 ///
 #[allow(non_camel_case_types)]
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 #[repr(C)]
 pub struct svm_byte_array {
     /// Raw pointer to the beginning of array.
@@ -139,7 +139,7 @@ mod tests {
         assert_eq!(s1_len, bytes.length);
         assert_eq!(s1_capacity, bytes.capacity);
 
-        let s2 = String::try_from(bytes).unwrap();
+        let s2 = String::try_from(bytes.clone()).unwrap();
         assert_eq!(s2, "Hello World!".to_string());
         assert_ne!(s2.as_ptr(), bytes.bytes); // `s2` is a clone.
         assert_eq!(s2.len() as u32, bytes.length);

@@ -95,7 +95,7 @@ unsafe fn test_svm_runtime() {
     assert!(res.is_ok());
 
     // extract the `template-address` out of theh receipt
-    let receipt = raw::decode_receipt(template_receipt.into()).into_deploy_template();
+    let receipt = raw::decode_receipt(template_receipt.clone().into()).into_deploy_template();
     let template_addr: &Address = receipt.get_template_addr().inner();
     let template_addr: svm_byte_array = template_addr.into();
 
@@ -126,7 +126,7 @@ unsafe fn test_svm_runtime() {
     assert!(res.is_ok());
 
     // extracts the spawned-app `Address` and initial `State`.
-    let receipt = raw::decode_receipt(spawn_receipt.into()).into_spawn_app();
+    let receipt = raw::decode_receipt(spawn_receipt.clone().into()).into_spawn_app();
     let app_addr: &Address = receipt.get_app_addr().inner();
     let app_addr: svm_byte_array = app_addr.into();
 
@@ -145,7 +145,7 @@ unsafe fn test_svm_runtime() {
 
     // 4.1) validates tx and extracts its `App`'s `Address`
     let mut app_addr = svm_byte_array::default();
-    let res = api::svm_validate_tx(&mut app_addr, runtime, tx_bytes, &mut error);
+    let res = api::svm_validate_tx(&mut app_addr, runtime, tx_bytes.clone(), &mut error);
     assert!(res.is_ok());
 
     // 4.2) execute the app-transaction
@@ -155,14 +155,14 @@ unsafe fn test_svm_runtime() {
         &mut exec_receipt,
         runtime,
         tx_bytes,
-        init_state,
+        init_state.clone(),
         gas_metering,
         gas_limit,
         &mut error,
     );
     assert!(res.is_ok());
 
-    let _receipt = raw::decode_receipt(exec_receipt.into()).into_exec_app();
+    let _receipt = raw::decode_receipt(exec_receipt.clone().into()).into_exec_app();
 
     let _ = api::svm_byte_array_destroy(template_addr);
     let _ = api::svm_byte_array_destroy(app_addr);
