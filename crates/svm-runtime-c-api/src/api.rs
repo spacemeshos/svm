@@ -289,7 +289,7 @@ pub unsafe extern "C" fn svm_imports_alloc(imports: *mut *mut c_void, count: u32
 /// // allocate one imports
 /// let mut imports = testing::imports_alloc(1);
 ///
-/// let import_name = "foo".into();
+/// let import_name = String::from("foo").into();
 /// let params = Vec::<WasmType>::new();
 /// let returns = Vec::<WasmType>::new();
 /// let func_ptr = foo as *const std::ffi::c_void;
@@ -514,7 +514,7 @@ pub unsafe extern "C" fn svm_memory_runtime_create(
 /// use svm_runtime_c_api::*;
 ///
 /// let mut runtime = std::ptr::null_mut();
-/// let path = "path goes here".into();
+/// let path = String::from("path goes here").into();
 /// let host = std::ptr::null_mut();
 /// let mut imports = testing::imports_alloc(0);
 /// let mut error = svm_byte_array::default();
