@@ -158,7 +158,7 @@ mod tests {
         let bytes = svm_byte_array {
             bytes: raw.as_ptr(),
             length: raw.len() as u32,
-            capacity: raw.len() as u32,
+            capacity: raw.capacity() as u32,
         };
 
         let res: Result<Vec<WasmValue>, io::Error> = Vec::try_from(bytes);
@@ -172,7 +172,7 @@ mod tests {
         let bytes = svm_byte_array {
             bytes: raw.as_ptr(),
             length: raw.len() as u32,
-            capacity: raw.len() as u32,
+            capacity: raw.capacity() as u32,
         };
 
         let res: Result<Vec<WasmValue>, io::Error> = Vec::try_from(bytes);
