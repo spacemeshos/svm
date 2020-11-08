@@ -13,7 +13,7 @@ cfg_if! {
         mod function;
 
         use function::Function;
-        use attr::FuncAttribute;
+        use attr::{FuncAttribute, FuncAttrKind};
 
         ///
         /// The `#[storage]` proc-macro attribute consumes a struct and translates

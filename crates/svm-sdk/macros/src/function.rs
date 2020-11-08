@@ -6,7 +6,7 @@ use quote::{quote, ToTokens};
 use syn::parse::{Parse, ParseStream};
 use syn::{Attribute, ItemFn, Result, Signature};
 
-use crate::FuncAttribute;
+use crate::{attr, FuncAttrKind, FuncAttribute};
 
 pub struct Function {
     raw: ItemFn,
@@ -64,32 +64,60 @@ impl ToTokens for Function {
     }
 }
 
-fn endpoint_tokens(func: &Function) -> TokenStream {
-    todo!()
-}
-
-fn fundable_tokens(func: &Function) -> TokenStream {
-    todo!()
-}
-
-fn before_fund_tokens(func: &Function) -> TokenStream {
-    todo!()
-}
-
 fn pure_tokens(func: &Function) -> TokenStream {
     func.raw.to_token_stream()
 }
 
 pub fn func_attrs(func: &mut Function) -> Result<Vec<FuncAttribute>> {
-    todo!()
-}
-
-fn map_raw_attrs(func: &mut Function) -> Result<Vec<FuncAttribute>> {
     let mut attrs = Vec::new();
 
-    for raw_attr in func.take_raw_attrs() {
-        // let attr: FuncAttribute = syn::parse2(raw_attr.tokens)?;
+    for attr in func.take_raw_attrs() {
+        let attr = attr::parse_attr(attr)?;
+
+        attrs.push(attr);
     }
 
     Ok(attrs)
+}
+
+fn rewrite_func(func: &mut Function) -> Result<TokenStream> {
+    let attrs = func_attrs(func)?;
+
+    validate_attrs(&attrs);
+
+    let ast = quote! {
+        //
+    };
+
+    Ok(ast)
+}
+
+fn validate_attrs(attrs: &[FuncAttribute]) {
+    let mut seen_endpoint = false;
+    let mut seen_fundable = false;
+    let mut seen_before_fund = false;
+
+    for attr in attrs {
+        match attr.kind() {
+            FuncAttrKind::Endpoint => {
+                if seen_endpoint {
+                    panic!("Each function can be annotated with `#[endpoint]` exactly once.")
+                }
+                seen_endpoint = true;
+            }
+            FuncAttrKind::BeforeFund => {
+                if seen_before_fund {
+                    panic!("Each function can be annotated with `#[before_fund]` exactly once.")
+                }
+                seen_before_fund = true;
+            }
+            FuncAttrKind::Fundable => {
+                if seen_fundable {
+                    panic!("Each function can be annotated with `#[fundable]` exactly once.")
+                }
+                seen_fundable = true;
+            }
+            FuncAttrKind::Other => continue,
+        }
+    }
 }

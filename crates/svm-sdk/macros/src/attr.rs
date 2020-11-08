@@ -17,7 +17,18 @@ pub enum FuncAttribute {
     Other(TokenStream),
 }
 
-#[derive(Debug)]
+impl FuncAttribute {
+    pub fn kind(&self) -> FuncAttrKind {
+        match self {
+            FuncAttribute::Endpoint => FuncAttrKind::Endpoint,
+            FuncAttribute::BeforeFund => FuncAttrKind::BeforeFund,
+            FuncAttribute::Fundable(..) => FuncAttrKind::Fundable,
+            FuncAttribute::Other(..) => FuncAttrKind::Other,
+        }
+    }
+}
+
+#[derive(Debug, PartialEq)]
 pub enum FuncAttrKind {
     Endpoint,
 
@@ -28,8 +39,8 @@ pub enum FuncAttrKind {
     Other,
 }
 
-pub fn parse_attr(attr: &Attribute) -> Result<FuncAttribute> {
-    let kind = parse_attr_kind(attr)?;
+pub fn parse_attr(attr: Attribute) -> Result<FuncAttribute> {
+    let kind = parse_attr_kind(&attr)?;
 
     let attr = match kind {
         FuncAttrKind::Endpoint => {
@@ -43,7 +54,7 @@ pub fn parse_attr(attr: &Attribute) -> Result<FuncAttribute> {
             FuncAttribute::BeforeFund
         }
         FuncAttrKind::Fundable => {
-            let tokens = attr.tokens.clone();
+            let tokens = attr.tokens;
             let mut iter = tokens.into_iter();
 
             if let Some(TokenTree::Group(group)) = iter.next() {
@@ -106,8 +117,10 @@ mod test {
             #[endpoint]
         };
 
-        let func_attr = parse_attr(&attr).unwrap();
+        let func_attr = parse_attr(attr).unwrap();
         assert!(matches!(func_attr, FuncAttribute::Endpoint));
+
+        assert_eq!(func_attr.kind(), FuncAttrKind::Endpoint);
     }
 
     #[test]
@@ -116,8 +129,10 @@ mod test {
             #[before_fund]
         };
 
-        let func_attr = parse_attr(&attr).unwrap();
+        let func_attr = parse_attr(attr).unwrap();
         assert!(matches!(func_attr, FuncAttribute::BeforeFund));
+
+        assert_eq!(func_attr.kind(), FuncAttrKind::BeforeFund);
     }
 
     #[test]
@@ -126,9 +141,10 @@ mod test {
             #[fundable(deny_funding)]
         };
 
-        let actual = parse_attr(&attr);
-        let expected = FuncAttribute::Fundable("deny_funding".to_string());
+        let actual = parse_attr(attr).unwrap();
+        assert_eq!(actual.kind(), FuncAttrKind::Fundable);
 
+        let expected = FuncAttribute::Fundable("deny_funding".to_string());
         assert!(matches!(actual, expected));
     }
 
@@ -138,10 +154,10 @@ mod test {
             #[derive(Debug, Copy, Clone)]
         };
 
-        let attr = parse_attr(&attr).unwrap();
-        assert!(matches!(attr, FuncAttribute::Other(..)));
+        let func_attr = parse_attr(attr).unwrap();
+        assert_eq!(func_attr.kind(), FuncAttrKind::Other);
 
-        if let FuncAttribute::Other(tokens) = attr {
+        if let FuncAttribute::Other(tokens) = func_attr {
             assert_eq!(tokens.to_string(), "# [derive (Debug , Copy , Clone)]");
         } else {
             unreachable!()
