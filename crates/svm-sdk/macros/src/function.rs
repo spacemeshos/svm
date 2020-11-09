@@ -114,7 +114,7 @@ fn expand_endpoint_attr(func: &Function, attrs: &[FuncAttribute]) -> Result<Toke
     Ok(ast)
 }
 
-fn endpoint_includes() -> TokenStream {
+fn host_includes() -> TokenStream {
     quote! {
         use svm_sdk::traits::Host;
 
@@ -127,7 +127,7 @@ fn endpoint_includes() -> TokenStream {
 }
 
 fn expand_endpoint_prologue(func: &Function) -> Result<TokenStream> {
-    let includes = endpoint_includes();
+    let includes = host_includes();
 
     let init = quote! {
         let bytes = Node.get_calldata();
@@ -190,8 +190,23 @@ fn expand_endpoint_returns(func: &Function) -> Result<TokenStream> {
 fn expand_fundable_attr(ast: TokenStream, attrs: &[FuncAttribute]) -> Result<TokenStream> {
     debug_assert!(has_fundable_attr(attrs));
 
+    let attr = find_attr(attrs, FuncAttrKind::Fundable);
+
+    let fund_hook = match attr {
+        FuncAttribute::Fundable(s) => s,
+        _ => unreachable!(),
+    };
+
+    let includes = host_includes();
+
     let ast = quote! {
-        //
+        {
+            #includes;
+
+            let value: svm_sdk::Amount = Node.get_value();
+
+            #fund_hook(value);
+        }
     };
 
     Ok(ast)
@@ -494,25 +509,27 @@ fn validate_ret_type(ty: &ReturnType) -> Result<()> {
 }
 
 fn has_endpoint_attr(attrs: &[FuncAttribute]) -> bool {
-    attrs
-        .iter()
-        .any(|attr| matches!(attr, FuncAttribute::Endpoint))
+    has_attr(attrs, FuncAttrKind::Endpoint)
 }
 
 fn has_before_fund_attr(attrs: &[FuncAttribute]) -> bool {
-    attrs
-        .iter()
-        .any(|attr| matches!(attr, FuncAttribute::BeforeFund))
+    has_attr(attrs, FuncAttrKind::BeforeFund)
 }
 
 fn has_fundable_attr(attrs: &[FuncAttribute]) -> bool {
-    attrs
-        .iter()
-        .any(|attr| matches!(attr, FuncAttribute::Fundable(..)))
+    has_attr(attrs, FuncAttrKind::Fundable)
 }
 
 fn has_other_attr(attrs: &[FuncAttribute]) -> bool {
-    attrs
-        .iter()
-        .any(|attr| matches!(attr, FuncAttribute::Other(..)))
+    has_attr(attrs, FuncAttrKind::Other)
+}
+
+fn has_attr(attrs: &[FuncAttribute], kind: FuncAttrKind) -> bool {
+    attrs.iter().any(|attr| attr.kind() == kind)
+}
+
+fn find_attr(attrs: &[FuncAttribute], kind: FuncAttrKind) -> &FuncAttribute {
+    let attr = attrs.iter().find(|attr| attr.kind() == kind);
+
+    attr.unwrap()
 }

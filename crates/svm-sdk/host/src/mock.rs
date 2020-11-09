@@ -52,6 +52,12 @@ impl Host for MockHost {
         host.set_returndata(bytes);
     }
 
+    fn value(&self) -> Amount {
+        let host = Self::instance();
+
+        host.value()
+    }
+
     fn sender(&self) -> Address {
         let host = Self::instance();
 
@@ -96,6 +102,8 @@ pub struct InnerHost {
 
     pub accounts: HashMap<Address, Amount>,
 
+    pub value: Option<Amount>,
+
     pub sender: Option<Address>,
 
     pub app: Option<Address>,
@@ -110,6 +118,7 @@ impl InnerHost {
         Self {
             calldata: None,
             returndata: None,
+            value: None,
             sender: None,
             app: None,
             accounts: HashMap::new(),
@@ -142,6 +151,10 @@ impl InnerHost {
         self.accounts.insert(addr.clone(), amount);
     }
 
+    pub fn set_value(&mut self, value: Amount) {
+        self.value = Some(value);
+    }
+
     pub fn set_sender(&mut self, sender: Address) {
         self.sender = Some(sender);
     }
@@ -161,6 +174,7 @@ impl InnerHost {
     pub fn reset(&mut self) {
         self.calldata = None;
         self.returndata = None;
+        self.value = None;
         self.sender = None;
         self.app = None;
         self.layer_id = None;
@@ -175,6 +189,10 @@ impl Host for InnerHost {
 
     fn set_returndata(&mut self, bytes: &[u8]) {
         self.returndata = Some(bytes.to_vec());
+    }
+
+    fn value(&self) -> Amount {
+        self.value.unwrap().clone()
     }
 
     fn sender(&self) -> Address {

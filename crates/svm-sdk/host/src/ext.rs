@@ -53,6 +53,9 @@ extern "C" {
 /// should bring their own imports.
 #[link(wasm_import_module = "sm")]
 extern "C" {
+    /// Returns the `value` field of the current executed transaction.
+    fn sm_value() -> u64;
+
     /// Receives an account address.
     /// (The `Address::len()` bytes starting at memory offset `offset`)
     ///
@@ -120,6 +123,13 @@ impl Host for ExtHost {
     }
 
     #[inline]
+    fn value(&self) -> Amount {
+        let host = Self::instance();
+
+        host.value()
+    }
+
+    #[inline]
     fn sender(&self) -> Address {
         let host = Self::instance();
 
@@ -182,6 +192,15 @@ impl Host for InnerHost {
             let length = bytes.len() as u32;
 
             svm_set_returndata(offset, length);
+        }
+    }
+
+    #[inline]
+    fn value(&self) -> Amount {
+        unsafe {
+            let value = sm_value();
+
+            Amount(value)
         }
     }
 
