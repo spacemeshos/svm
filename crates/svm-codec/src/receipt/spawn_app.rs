@@ -1,4 +1,4 @@
-//!           `Spawn App` Receipt Raw Format Version 0
+//! `Spawn App` Receipt Raw Format Version 0
 //!
 //!  On success (`is_success = 1`)
 //!  +-----------------------------------------------------+

@@ -1,4 +1,4 @@
-//!                   `Spawn-App` Raw Format
+//! `Spawn-App` Raw Format
 //!  ----------------------------------------------------------
 //!  |               |                                        |
 //!  |    `version`  |        `AppTemplate` (`Address`)       |
