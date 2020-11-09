@@ -14,14 +14,6 @@ pub struct Function {
     raw: ItemFn,
 }
 
-pub struct Param {
-    //
-}
-
-pub struct Return {
-    //
-}
-
 impl Function {
     pub fn new(raw: ItemFn) -> Self {
         Self { raw }
@@ -39,22 +31,16 @@ impl Function {
         &self.raw.sig
     }
 
-    pub fn raw_sig_mut(&mut self) -> &mut Signature {
-        &mut self.raw.sig
-    }
-
     pub fn take_raw_attrs(&mut self) -> Vec<Attribute> {
         std::mem::replace(&mut self.raw.attrs, Vec::new())
     }
-}
 
-impl ToTokens for Function {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        let ast = quote! {
-            //
-        };
+    pub fn stream(&self) -> TokenStream {
+        let mut tokens = TokenStream::new();
 
-        tokens.extend(ast);
+        self.raw.to_tokens(&mut tokens);
+
+        tokens
     }
 }
 
@@ -128,28 +114,77 @@ fn expand_endpoint_attr(func: &Function, attrs: &[FuncAttribute]) -> Result<Toke
     Ok(ast)
 }
 
+fn endpoint_includes() -> TokenStream {
+    quote! {
+        use svm_sdk::traits::Host;
+
+        #[cfg(test)]
+        use svm_sdk::host::MockHost as Node;
+
+        #[cfg(not(test))]
+        use svm_sdk::host::ExtHost as Node;
+    }
+}
+
 fn expand_endpoint_prologue(func: &Function) -> Result<TokenStream> {
-    let ast = quote! {
-        //
+    let includes = endpoint_includes();
+
+    let init = quote! {
+        let bytes = Node.get_calldata();
+        let mut calldata = svm_sdk::CallData::new(bytes);
     };
+
+    let mut assigns: Vec<TokenStream> = Vec::new();
+    let sig = func.raw_sig();
+
+    for input in &sig.inputs {
+        if let FnArg::Typed(PatType { pat, ty, .. }) = input {
+            let assign = quote! {
+                let #pat: #ty = calldata.next_1();
+            };
+
+            assigns.push(assign.into());
+        } else {
+            unreachable!()
+        }
+    }
+
+    let ast = quote! {
+        #includes
+
+        #init
+
+        #(#assigns)*
+    }
+    .into();
 
     Ok(ast)
 }
 
 fn expand_endpoint_epilogue(func: &Function) -> Result<TokenStream> {
     let ast = quote! {
-        //
+        {
+            use svm_sdk::traits::Encoder;
+
+            let mut bytes = Vec::new();
+
+            let rets = __inner__();
+            rets.encode(&mut bytes);
+
+            Node.set_returndata(&bytes);
+        }
     };
 
     Ok(ast)
 }
 
 fn expand_endpoint_returns(func: &Function) -> Result<TokenStream> {
-    let ast = quote! {
-        //
-    };
+    let mut tokens = TokenStream::new();
 
-    Ok(ast)
+    let sig = func.raw_sig();
+    sig.output.to_tokens(&mut tokens);
+
+    Ok(tokens)
 }
 
 fn expand_fundable_attr(ast: TokenStream, attrs: &[FuncAttribute]) -> Result<TokenStream> {
@@ -165,8 +200,11 @@ fn expand_fundable_attr(ast: TokenStream, attrs: &[FuncAttribute]) -> Result<Tok
 fn expand_before_fund_attr(func: &Function, attrs: &[FuncAttribute]) -> Result<TokenStream> {
     debug_assert!(has_before_fund_attr(attrs));
 
+    let func = func.stream();
+
     let ast = quote! {
-        //
+        #[inline]
+        #func
     };
 
     Ok(ast)
@@ -471,4 +509,10 @@ fn has_fundable_attr(attrs: &[FuncAttribute]) -> bool {
     attrs
         .iter()
         .any(|attr| matches!(attr, FuncAttribute::Fundable(..)))
+}
+
+fn has_other_attr(attrs: &[FuncAttribute]) -> bool {
+    attrs
+        .iter()
+        .any(|attr| matches!(attr, FuncAttribute::Other(..)))
 }
