@@ -272,7 +272,7 @@ fn validate_attrs_no_dups(attrs: &[FuncAttribute]) -> Result<()> {
                 if seen_fundable {
                     return Err(Error::new(
                         span,
-                        "Each function can be annotated with `#[fundable]` exactly once.",
+                        "Each function can be annotated with `#[fundable(..)]` exactly once.",
                     ));
                 }
                 seen_fundable = true;
@@ -642,6 +642,43 @@ mod test {
     }
 
     #[test]
+    fn endpoint_used_twice_fails() {
+        let err = "Each function can be annotated with `#[endpoint]` exactly once.";
+
+        assert_err!(
+            err,
+            #[endpoint]
+            #[endpoint]
+            fn get() {}
+        );
+    }
+
+    #[test]
+    fn before_fund_used_twice_fails() {
+        let err = "Each function can be annotated with `#[before_fund]` exactly once.";
+
+        assert_err!(
+            err,
+            #[before_fund]
+            #[before_fund]
+            fn get(value: svm_sdk::Amount) {}
+        );
+    }
+
+    #[test]
+    fn fundable_used_twice_fails() {
+        let err = "Each function can be annotated with `#[fundable(..)]` exactly once.";
+
+        assert_err!(
+            err,
+            #[fundable(allow)]
+            #[fundable(allow)]
+            #[endpoint]
+            fn get(value: svm_sdk::Amount) {}
+        );
+    }
+
+    #[test]
     fn before_fund_func_with_no_args_falis() {
         let err = "`#[before_fund]` annotated function should have signature of `fn(value: svm_sdk::Amount) -> ()`";
 
@@ -673,6 +710,30 @@ mod test {
             fn deny(v: svm_sdk::Amount) -> u32 {
                 0
             }
+        );
+    }
+
+    #[test]
+    fn endpoint_func_valid_sig() {
+        assert_ok!(
+            #[endpoint]
+            fn get(v: svm_sdk::Amount) {}
+        );
+
+        assert_ok!(
+            #[endpoint]
+            fn get(v: svm_sdk::Amount) -> (u32, svm_sdk::Address) {
+                panic!()
+            }
+        );
+    }
+
+    #[test]
+    fn fundable_func_valid_sig() {
+        assert_ok!(
+            #[fundable(allow)]
+            #[endpoint]
+            fn get(addr: svm_sdk::Address) {}
         );
     }
 
