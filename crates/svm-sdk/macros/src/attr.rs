@@ -1,10 +1,10 @@
 use proc_macro2::token_stream::IntoIter;
-use proc_macro2::{Delimiter, Group, TokenStream, TokenTree};
+use proc_macro2::{Delimiter, Group, Span, TokenStream, TokenTree};
 
 use quote::{quote, ToTokens};
 
 use syn::parse::{Parse, ParseStream};
-use syn::{braced, token, Attribute, Ident, Result, Token};
+use syn::{braced, token, Attribute, Error, Ident, Result, Token};
 
 #[derive(Debug)]
 pub enum FuncAttribute {
@@ -65,7 +65,12 @@ pub fn parse_attr(attr: Attribute) -> Result<FuncAttribute> {
 
                 FuncAttribute::Fundable(ident.to_string())
             } else {
-                todo!("explain we expected a different input format")
+                let span = Span::call_site();
+
+                return Err(Error::new(
+                    span,
+                    "`fundable` attribute should be of format `#[fundable(hook-fn)]`",
+                ));
             }
         }
         FuncAttrKind::Other => FuncAttribute::Other(quote! { #attr }),
@@ -146,6 +151,20 @@ mod test {
 
         let expected = FuncAttribute::Fundable("deny_funding".to_string());
         assert!(matches!(actual, expected));
+    }
+
+    #[test]
+    fn func_attr_fundable_without_hook() {
+        let attr: Attribute = parse_quote! {
+            #[fundable]
+        };
+
+        let err = parse_attr(attr).unwrap_err();
+
+        assert_eq!(
+            err.to_string(),
+            "`fundable` attribute should be of format `#[fundable(hook-fn)]`"
+        );
     }
 
     #[test]

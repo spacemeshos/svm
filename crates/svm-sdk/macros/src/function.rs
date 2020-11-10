@@ -44,18 +44,6 @@ impl Function {
     }
 }
 
-pub fn func_attrs(func: &mut Function) -> Result<Vec<FuncAttribute>> {
-    let mut attrs = Vec::new();
-
-    for attr in func.take_raw_attrs() {
-        let attr = attr::parse_attr(attr)?;
-
-        attrs.push(attr);
-    }
-
-    Ok(attrs)
-}
-
 fn rewrite_func(func: &mut Function) -> Result<TokenStream> {
     let attrs = func_attrs(func)?;
 
@@ -72,6 +60,18 @@ fn rewrite_func(func: &mut Function) -> Result<TokenStream> {
     let ast = expand_other_attrs(ast, &attrs)?;
 
     Ok(ast)
+}
+
+fn func_attrs(func: &mut Function) -> Result<Vec<FuncAttribute>> {
+    let mut attrs = Vec::new();
+
+    for attr in func.take_raw_attrs() {
+        let attr = attr::parse_attr(attr)?;
+
+        attrs.push(attr);
+    }
+
+    Ok(attrs)
 }
 
 fn validate_attrs(attrs: &[FuncAttribute]) -> Result<()> {
@@ -226,10 +226,6 @@ fn expand_before_fund_attr(func: &Function, attrs: &[FuncAttribute]) -> Result<T
 }
 
 fn expand_other_attrs(ast: TokenStream, attrs: &[FuncAttribute]) -> Result<TokenStream> {
-    let ast = quote! {
-        //
-    };
-
     Ok(ast)
 }
 
@@ -532,4 +528,62 @@ fn find_attr(attrs: &[FuncAttribute], kind: FuncAttrKind) -> &FuncAttribute {
     let attr = attrs.iter().find(|attr| attr.kind() == kind);
 
     attr.unwrap()
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    use syn::parse_quote;
+
+    #[test]
+    fn endpoint_and_fundable_attrs_wrong_order() {
+        let raw_func: ItemFn = parse_quote! {
+            #[endpoint]
+            #[fundable(deny)]
+            fn get() {}
+        };
+
+        let mut func = Function::new(raw_func);
+        let err = rewrite_func(&mut func).unwrap_err();
+
+        assert_eq!(
+            err.to_string(),
+            "`#[fundable(..)]` should be placed above `#[endpoint]`"
+        );
+    }
+
+    #[test]
+    fn endpoint_and_before_fund_not_allowed() {
+        let raw_func: ItemFn = parse_quote! {
+            #[before_fund]
+            #[endpoint]
+            fn get() {}
+        };
+
+        let mut func = Function::new(raw_func);
+        let err = rewrite_func(&mut func).unwrap_err();
+
+        assert_eq!(
+            err.to_string(),
+            "#[endpoint]` and `#[before_fund]` can\'t co-exist."
+        );
+    }
+
+    #[test]
+    fn before_fund_and_fundable_not_allowed() {
+        let raw_func: ItemFn = parse_quote! {
+            #[before_fund]
+            #[endpoint]
+            fn get() {}
+        };
+
+        let mut func = Function::new(raw_func);
+        let err = rewrite_func(&mut func).unwrap_err();
+
+        assert_eq!(
+            err.to_string(),
+            "#[endpoint]` and `#[before_fund]` can\'t co-exist."
+        );
+    }
 }
