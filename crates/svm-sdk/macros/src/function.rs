@@ -572,138 +572,120 @@ mod test {
 
     use syn::parse_quote;
 
+    macro_rules! assert_err {
+        ($expected:expr, $($tt:tt)*) => {{
+            let raw_func: ItemFn = parse_quote!( $($tt)* );
+
+            let mut func = Function::new(raw_func);
+
+            let actual = rewrite_func(&mut func).unwrap_err();
+            assert_eq!($expected, actual.to_string());
+        }};
+    }
+
+    macro_rules! assert_ok {
+        ($($tt:tt)*) => {{
+            let raw_func: ItemFn = parse_quote!( $($tt)* );
+
+            let mut func = Function::new(raw_func);
+
+            let res = rewrite_func(&mut func);
+            assert!(res.is_ok());
+        }};
+    }
+
     #[test]
     fn fundable_can_not_live_alone() {
-        let raw_func: ItemFn = parse_quote! {
+        let err = "#[fundable(..)] can\'t be used without `#[endpoint]`";
+
+        assert_err!(
+            err,
             #[fundable(deny)]
             fn deny() {}
-        };
-
-        let mut func = Function::new(raw_func);
-        let err = rewrite_func(&mut func).unwrap_err();
-
-        assert_eq!(
-            err.to_string(),
-            "#[fundable(..)] can\'t be used without `#[endpoint]`"
-        );
+        )
     }
 
     #[test]
     fn endpoint_and_fundable_attrs_wrong_order() {
-        let raw_func: ItemFn = parse_quote! {
+        let err = "`#[fundable(..)]` should be placed above `#[endpoint]`";
+
+        assert_err!(
+            err,
             #[endpoint]
             #[fundable(deny)]
             fn get() {}
-        };
-
-        let mut func = Function::new(raw_func);
-        let err = rewrite_func(&mut func).unwrap_err();
-
-        assert_eq!(
-            err.to_string(),
-            "`#[fundable(..)]` should be placed above `#[endpoint]`"
         );
     }
 
     #[test]
     fn endpoint_and_before_fund_fails() {
-        let raw_func: ItemFn = parse_quote! {
+        let err = "#[endpoint]` and `#[before_fund]` can't co-exist.";
+
+        assert_err!(
+            err,
             #[before_fund]
             #[endpoint]
             fn get() {}
-        };
-
-        let mut func = Function::new(raw_func);
-        let err = rewrite_func(&mut func).unwrap_err();
-
-        assert_eq!(
-            err.to_string(),
-            "#[endpoint]` and `#[before_fund]` can't co-exist."
         );
     }
 
     #[test]
     fn before_fund_and_fundable_not_allowed() {
-        let raw_func: ItemFn = parse_quote! {
+        let err = "#[endpoint]` and `#[before_fund]` can't co-exist.";
+
+        assert_err!(
+            err,
             #[before_fund]
             #[endpoint]
             fn get() {}
-        };
-
-        let mut func = Function::new(raw_func);
-        let err = rewrite_func(&mut func).unwrap_err();
-
-        assert_eq!(
-            err.to_string(),
-            "#[endpoint]` and `#[before_fund]` can't co-exist."
         );
     }
 
     #[test]
     fn before_fund_func_with_no_args_falis() {
-        let raw_func: ItemFn = parse_quote! {
+        let err = "`#[before_fund]` annotated function should have signature of `fn(value: svm_sdk::Amount) -> ()`";
+
+        assert_err!(
+            err,
             #[before_fund]
             fn deny() {}
-        };
-
-        let mut func = Function::new(raw_func);
-        let err = rewrite_func(&mut func).unwrap_err();
-
-        assert_eq!(
-            err.to_string(),
-            "`#[before_fund]` annotated function should have signature of `fn(value: svm_sdk::Amount) -> ()`"
         );
     }
 
     #[test]
     fn before_fund_func_has_more_than_one_args_fails() {
-        let raw_func: ItemFn = parse_quote! {
+        let err = "`#[before_fund]` annotated function should have signature of `fn(value: svm_sdk::Amount) -> ()`";
+
+        assert_err!(
+            err,
             #[before_fund]
             fn deny(a: svm_sdk::Amount, b: svm_sdk::Amount) {}
-        };
-
-        let mut func = Function::new(raw_func);
-        let err = rewrite_func(&mut func).unwrap_err();
-
-        assert_eq!(
-            err.to_string(),
-            "`#[before_fund]` annotated function should have signature of `fn(value: svm_sdk::Amount) -> ()`"
         );
     }
 
     #[test]
     fn before_fund_func_with_return_type_fails() {
-        let raw_func: ItemFn = parse_quote! {
+        let err = "`#[before_fund]` annotated function should have signature of `fn(value: svm_sdk::Amount) -> ()`";
+
+        assert_err!(
+            err,
             #[before_fund]
-            fn deny(v: svm_sdk::Amount) -> u32 { 0 }
-        };
-
-        let mut func = Function::new(raw_func);
-        let err = rewrite_func(&mut func).unwrap_err();
-
-        assert_eq!(
-            err.to_string(),
-            "`#[before_fund]` annotated function should have signature of `fn(value: svm_sdk::Amount) -> ()`"
+            fn deny(v: svm_sdk::Amount) -> u32 {
+                0
+            }
         );
     }
 
     #[test]
     fn before_fund_func_valid_sig() {
-        fn assert_valid(raw_func: ItemFn) {
-            let mut func = Function::new(raw_func);
-
-            let res = rewrite_func(&mut func);
-            assert!(res.is_ok());
-        }
-
-        assert_valid(parse_quote! {
+        assert_ok!(
             #[before_fund]
             fn allow(v: svm_sdk::Amount) {}
-        });
+        );
 
-        assert_valid(parse_quote! {
+        assert_ok!(
             #[before_fund]
-            fn allow(v: Amount) { }
-        });
+            fn allow(v: Amount) {}
+        );
     }
 }
