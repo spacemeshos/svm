@@ -289,7 +289,7 @@ pub unsafe extern "C" fn svm_imports_alloc(imports: *mut *mut c_void, count: u32
 /// // allocate one imports
 /// let mut imports = testing::imports_alloc(1);
 ///
-/// let import_name = "foo".into();
+/// let import_name = String::from("foo").into();
 /// let params = Vec::<WasmType>::new();
 /// let returns = Vec::<WasmType>::new();
 /// let func_ptr = foo as *const std::ffi::c_void;
@@ -514,7 +514,7 @@ pub unsafe extern "C" fn svm_memory_runtime_create(
 /// use svm_runtime_c_api::*;
 ///
 /// let mut runtime = std::ptr::null_mut();
-/// let path = "path goes here".into();
+/// let path = String::from("path goes here").into();
 /// let host = std::ptr::null_mut();
 /// let mut imports = testing::imports_alloc(0);
 /// let mut error = svm_byte_array::default();
@@ -873,8 +873,9 @@ pub unsafe extern "C" fn svm_imports_destroy(imports: *const c_void) {
 pub unsafe extern "C" fn svm_byte_array_destroy(bytes: svm_byte_array) {
     let ptr = bytes.bytes as *mut u8;
     let length = bytes.length as usize;
+    let capacity = bytes.capacity as usize;
 
-    let _ = Vec::from_raw_parts(ptr, length, length);
+    let _ = Vec::from_raw_parts(ptr, length, capacity);
 }
 
 /// Given a raw `deploy-template` transaction (the `bytes` parameter),

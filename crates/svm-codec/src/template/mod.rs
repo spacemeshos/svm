@@ -1,4 +1,4 @@
-//!                  `AppTemplate` Raw Format
+//! `AppTemplate` Raw Format
 //!  +-----------------------------------------------------+
 //!  |            |                |                       |
 //!  |  version   |  name length   |         name          |

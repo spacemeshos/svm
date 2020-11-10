@@ -1,4 +1,4 @@
-//!     Execute `AppTransaction` Raw Format Version 0.0
+//! Execute `AppTransaction` Raw Format Version 0.0
 //!  +-----------------------------------------------------+
 //!  |   proto     |                                       |
 //!  |  version    |            `AppAddress`               |
