@@ -19,7 +19,7 @@ impl Function {
         Self { raw }
     }
 
-    pub fn name(&self) -> Ident {
+    pub fn raw_name(&self) -> Ident {
         self.raw_sig().ident.clone()
     }
 
@@ -31,8 +31,8 @@ impl Function {
         &self.raw.sig
     }
 
-    pub fn take_raw_attrs(&mut self) -> Vec<Attribute> {
-        std::mem::replace(&mut self.raw.attrs, Vec::new())
+    pub fn raw_attrs(&self) -> Vec<Attribute> {
+        self.raw.attrs.clone()
     }
 
     pub fn stream(&self) -> TokenStream {
@@ -65,7 +65,7 @@ fn rewrite_func(func: &mut Function) -> Result<TokenStream> {
 fn func_attrs(func: &mut Function) -> Result<Vec<FuncAttribute>> {
     let mut attrs = Vec::new();
 
-    for attr in func.take_raw_attrs() {
+    for attr in func.raw_attrs() {
         let attr = attr::parse_attr(attr)?;
 
         attrs.push(attr);
@@ -85,7 +85,7 @@ fn validate_attrs(attrs: &[FuncAttribute]) -> Result<()> {
 fn expand_endpoint_attr(func: &Function, attrs: &[FuncAttribute]) -> Result<TokenStream> {
     debug_assert!(has_endpoint_attr(attrs));
 
-    let name = func.name();
+    let name = func.raw_name();
     let prologue = expand_endpoint_prologue(func)?;
     let epilogue = expand_endpoint_epilogue(func)?;
     let returns = expand_endpoint_returns(func)?;
@@ -162,8 +162,12 @@ fn expand_endpoint_prologue(func: &Function) -> Result<TokenStream> {
 }
 
 fn expand_endpoint_epilogue(func: &Function) -> Result<TokenStream> {
+    let includes = host_includes();
+
     let ast = quote! {
         {
+            #includes
+
             use svm_sdk::traits::Encoder;
 
             let mut bytes = Vec::new();
@@ -214,6 +218,8 @@ fn expand_fundable_attr(ast: TokenStream, attrs: &[FuncAttribute]) -> Result<Tok
 
 fn expand_before_fund_attr(func: &Function, attrs: &[FuncAttribute]) -> Result<TokenStream> {
     debug_assert!(has_before_fund_attr(attrs));
+
+    validate_before_fund_func_sig(func)?;
 
     let func = func.stream();
 
@@ -492,7 +498,7 @@ fn validate_ret_type(ty: &ReturnType) -> Result<()> {
                 )),
                 Type::Slice(..) => Err(Error::new(
                     span,
-                    "`endpoint` can't use dynamically sized slices for its parameters types",
+                    "`endpoint` can't use dynamically-sized slices for its parameters types",
                 )),
                 Type::TraitObject(..) => Err(Error::new(
                     span,
@@ -502,6 +508,38 @@ fn validate_ret_type(ty: &ReturnType) -> Result<()> {
             }
         }
     }
+}
+
+fn validate_before_fund_func_sig(func: &Function) -> Result<()> {
+    let sig = func.raw_sig();
+    let span = Span::call_site();
+    let msg = "`#[before_fund]` annotated function should have signature of `fn(value: svm_sdk::Amount) -> ()`";
+
+    if sig.inputs.len() != 1 || matches!(sig.output, ReturnType::Default) == false {
+        return Err(Error::new(span, msg));
+    }
+
+    let input = sig.inputs.first().unwrap();
+
+    if let FnArg::Typed(PatType { attrs, ty, .. }) = input {
+        if !attrs.is_empty() {
+            return Err(Error::new(span, msg));
+        }
+
+        let mut tokens = TokenStream::new();
+        ty.to_tokens(&mut tokens);
+
+        let ty = tokens.to_string();
+        let ty = ty.as_str();
+
+        dbg!(&ty);
+
+        if ty == "svm_sdk :: Amount" || ty == "Amount" {
+            return Ok(());
+        }
+    }
+
+    Err(Error::new(span, msg))
 }
 
 fn has_endpoint_attr(attrs: &[FuncAttribute]) -> bool {
@@ -566,7 +604,7 @@ mod test {
 
         assert_eq!(
             err.to_string(),
-            "#[endpoint]` and `#[before_fund]` can\'t co-exist."
+            "#[endpoint]` and `#[before_fund]` can't co-exist."
         );
     }
 
@@ -583,7 +621,75 @@ mod test {
 
         assert_eq!(
             err.to_string(),
-            "#[endpoint]` and `#[before_fund]` can\'t co-exist."
+            "#[endpoint]` and `#[before_fund]` can't co-exist."
         );
+    }
+
+    #[test]
+    fn before_fund_func_has_no_args() {
+        let raw_func: ItemFn = parse_quote! {
+            #[before_fund]
+            fn deny() {}
+        };
+
+        let mut func = Function::new(raw_func);
+        let err = rewrite_func(&mut func).unwrap_err();
+
+        assert_eq!(
+            err.to_string(),
+            "`#[before_fund]` annotated function should have signature of `fn(value: svm_sdk::Amount) -> ()`"
+        );
+    }
+
+    #[test]
+    fn before_fund_func_has_more_than_one_args() {
+        let raw_func: ItemFn = parse_quote! {
+            #[before_fund]
+            fn deny(a: svm_sdk::Amount, b: svm_sdk::Amount) {}
+        };
+
+        let mut func = Function::new(raw_func);
+        let err = rewrite_func(&mut func).unwrap_err();
+
+        assert_eq!(
+            err.to_string(),
+            "`#[before_fund]` annotated function should have signature of `fn(value: svm_sdk::Amount) -> ()`"
+        );
+    }
+
+    #[test]
+    fn before_fund_func_with_return_type() {
+        let raw_func: ItemFn = parse_quote! {
+            #[before_fund]
+            fn deny(v: svm_sdk::Amount) -> u32 { 0 }
+        };
+
+        let mut func = Function::new(raw_func);
+        let err = rewrite_func(&mut func).unwrap_err();
+
+        assert_eq!(
+            err.to_string(),
+            "`#[before_fund]` annotated function should have signature of `fn(value: svm_sdk::Amount) -> ()`"
+        );
+    }
+
+    #[test]
+    fn before_fund_func_valid_sig() {
+        fn assert_valid(raw: ItemFn) {
+            let mut func = Function::new(raw);
+
+            let res = rewrite_func(&mut func);
+            assert!(res.is_ok());
+        }
+
+        assert_valid(parse_quote! {
+            #[before_fund]
+            fn allow(v: svm_sdk::Amount) { }
+        });
+
+        assert_valid(parse_quote! {
+            #[before_fund]
+            fn allow(v: Amount) { }
+        });
     }
 }
