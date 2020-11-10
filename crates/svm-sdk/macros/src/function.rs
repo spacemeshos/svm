@@ -532,8 +532,6 @@ fn validate_before_fund_func_sig(func: &Function) -> Result<()> {
         let ty = tokens.to_string();
         let ty = ty.as_str();
 
-        dbg!(&ty);
-
         if ty == "svm_sdk :: Amount" || ty == "Amount" {
             return Ok(());
         }
@@ -608,7 +606,7 @@ mod test {
     }
 
     #[test]
-    fn endpoint_and_before_fund_not_allowed() {
+    fn endpoint_and_before_fund_fails() {
         let raw_func: ItemFn = parse_quote! {
             #[before_fund]
             #[endpoint]
@@ -642,7 +640,7 @@ mod test {
     }
 
     #[test]
-    fn before_fund_func_has_no_args() {
+    fn before_fund_func_with_no_args_falis() {
         let raw_func: ItemFn = parse_quote! {
             #[before_fund]
             fn deny() {}
@@ -658,7 +656,7 @@ mod test {
     }
 
     #[test]
-    fn before_fund_func_has_more_than_one_args() {
+    fn before_fund_func_has_more_than_one_args_fails() {
         let raw_func: ItemFn = parse_quote! {
             #[before_fund]
             fn deny(a: svm_sdk::Amount, b: svm_sdk::Amount) {}
@@ -674,7 +672,7 @@ mod test {
     }
 
     #[test]
-    fn before_fund_func_with_return_type() {
+    fn before_fund_func_with_return_type_fails() {
         let raw_func: ItemFn = parse_quote! {
             #[before_fund]
             fn deny(v: svm_sdk::Amount) -> u32 { 0 }
@@ -700,7 +698,7 @@ mod test {
 
         assert_valid(parse_quote! {
             #[before_fund]
-            fn allow(v: svm_sdk::Amount) { }
+            fn allow(v: svm_sdk::Amount) {}
         });
 
         assert_valid(parse_quote! {
