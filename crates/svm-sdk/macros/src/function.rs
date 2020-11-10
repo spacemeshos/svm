@@ -11,12 +11,12 @@ use syn::{
 use crate::{attr, FuncAttrKind, FuncAttribute};
 
 pub struct Function {
-    raw: ItemFn,
+    raw_func: ItemFn,
 }
 
 impl Function {
-    pub fn new(raw: ItemFn) -> Self {
-        Self { raw }
+    pub fn new(raw_func: ItemFn) -> Self {
+        Self { raw_func }
     }
 
     pub fn raw_name(&self) -> Ident {
@@ -24,21 +24,21 @@ impl Function {
     }
 
     pub fn raw_body(&self) -> &Block {
-        &self.raw.block
+        &self.raw_func.block
     }
 
     pub fn raw_sig(&self) -> &Signature {
-        &self.raw.sig
+        &self.raw_func.sig
     }
 
     pub fn raw_attrs(&self) -> Vec<Attribute> {
-        self.raw.attrs.clone()
+        self.raw_func.attrs.clone()
     }
 
     pub fn stream(&self) -> TokenStream {
         let mut tokens = TokenStream::new();
 
-        self.raw.to_tokens(&mut tokens);
+        self.raw_func.to_tokens(&mut tokens);
 
         tokens
     }
@@ -236,7 +236,7 @@ fn expand_other_attrs(ast: TokenStream, attrs: &[FuncAttribute]) -> Result<Token
 }
 
 fn expand_func(func: &Function, _attrs: &[FuncAttribute]) -> Result<TokenStream> {
-    let ast = func.raw.to_token_stream();
+    let ast = func.raw_func.to_token_stream();
 
     Ok(ast)
 }
@@ -439,7 +439,7 @@ fn validate_arg_type(ty: &Box<Type>) -> Result<()> {
         )),
         Type::Ptr(..) => Err(Error::new(
             span,
-            "`endpoint` can't use raw pointers for its parameters types",
+            "`endpoint` can't use raw_func pointers for its parameters types",
         )),
         Type::Reference(..) => Err(Error::new(
             span,
@@ -490,7 +490,7 @@ fn validate_ret_type(ty: &ReturnType) -> Result<()> {
                 )),
                 Type::Ptr(..) => Err(Error::new(
                     span,
-                    "`endpoint` can't use raw pointers for its parameters types",
+                    "`endpoint` can't use raw_func pointers for its parameters types",
                 )),
                 Type::Reference(..) => Err(Error::new(
                     span,
@@ -573,6 +573,22 @@ mod test {
     use super::*;
 
     use syn::parse_quote;
+
+    #[test]
+    fn fundable_can_not_live_alone() {
+        let raw_func: ItemFn = parse_quote! {
+            #[fundable(deny)]
+            fn deny() {}
+        };
+
+        let mut func = Function::new(raw_func);
+        let err = rewrite_func(&mut func).unwrap_err();
+
+        assert_eq!(
+            err.to_string(),
+            "#[fundable(..)] can\'t be used without `#[endpoint]`"
+        );
+    }
 
     #[test]
     fn endpoint_and_fundable_attrs_wrong_order() {
@@ -675,8 +691,8 @@ mod test {
 
     #[test]
     fn before_fund_func_valid_sig() {
-        fn assert_valid(raw: ItemFn) {
-            let mut func = Function::new(raw);
+        fn assert_valid(raw_func: ItemFn) {
+            let mut func = Function::new(raw_func);
 
             let res = rewrite_func(&mut func);
             assert!(res.is_ok());
