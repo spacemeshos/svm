@@ -9,17 +9,18 @@ use syn::{
 };
 
 use crate::function::{has_endpoint_attr, has_fundable_attr};
+
 use crate::{attr, FuncAttrKind, FuncAttribute, Function};
 
 pub fn expand(func: &Function, attrs: &[FuncAttribute]) -> Result<TokenStream> {
     debug_assert!(has_endpoint_attr(attrs));
 
-    validate_endpoint_sig(func)?;
+    validate_sig(func)?;
 
     let name = func.raw_name();
-    let prologue = expand_endpoint_prologue(func)?;
-    let epilogue = expand_endpoint_epilogue(func)?;
-    let returns = expand_endpoint_returns(func)?;
+    let prologue = expand_prologue(func)?;
+    let epilogue = expand_epilogue(func)?;
+    let returns = expand_returns(func)?;
     let body = func.raw_body();
 
     let ast = quote! {
@@ -37,7 +38,7 @@ pub fn expand(func: &Function, attrs: &[FuncAttribute]) -> Result<TokenStream> {
     };
 
     let ast = if has_fundable_attr(attrs) {
-        crate::function::expand_fundable_attr(ast, &attrs)?
+        super::fundable::expand(ast, &attrs)?
     } else {
         ast
     };
@@ -45,7 +46,7 @@ pub fn expand(func: &Function, attrs: &[FuncAttribute]) -> Result<TokenStream> {
     Ok(ast)
 }
 
-fn expand_endpoint_prologue(func: &Function) -> Result<TokenStream> {
+fn expand_prologue(func: &Function) -> Result<TokenStream> {
     let includes = crate::function::host_includes();
 
     let init = quote! {
@@ -80,7 +81,7 @@ fn expand_endpoint_prologue(func: &Function) -> Result<TokenStream> {
     Ok(ast)
 }
 
-fn expand_endpoint_epilogue(func: &Function) -> Result<TokenStream> {
+fn expand_epilogue(func: &Function) -> Result<TokenStream> {
     let includes = crate::function::host_includes();
 
     let ast = quote! {
@@ -101,7 +102,7 @@ fn expand_endpoint_epilogue(func: &Function) -> Result<TokenStream> {
     Ok(ast)
 }
 
-fn expand_endpoint_returns(func: &Function) -> Result<TokenStream> {
+fn expand_returns(func: &Function) -> Result<TokenStream> {
     let mut tokens = TokenStream::new();
 
     let sig = func.raw_sig();
@@ -110,7 +111,7 @@ fn expand_endpoint_returns(func: &Function) -> Result<TokenStream> {
     Ok(tokens)
 }
 
-fn validate_endpoint_sig(func: &Function) -> Result<()> {
+fn validate_sig(func: &Function) -> Result<()> {
     let sig = func.raw_sig();
     let span = Span::call_site();
 

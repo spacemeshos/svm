@@ -8,8 +8,11 @@ use syn::{
     Attribute, Block, Error, FnArg, ItemFn, Pat, PatType, Result, ReturnType, Signature, Type,
 };
 
-use crate::endpoint;
 use crate::{attr, FuncAttrKind, FuncAttribute};
+
+mod before_fund;
+mod endpoint;
+mod fundable;
 
 pub struct Function {
     raw_func: ItemFn,
@@ -45,7 +48,7 @@ impl Function {
     }
 }
 
-fn rewrite_func(func: &mut Function) -> Result<TokenStream> {
+fn to_tokens(func: &Function) -> Result<TokenStream> {
     let attrs = func_attrs(func)?;
 
     validate_attrs(&attrs)?;
@@ -53,7 +56,7 @@ fn rewrite_func(func: &mut Function) -> Result<TokenStream> {
     let ast = if has_endpoint_attr(&attrs) {
         endpoint::expand(func, &attrs)?
     } else if has_before_fund_attr(&attrs) {
-        expand_before_fund_attr(func, &attrs)?
+        before_fund::expand(func, &attrs)?
     } else {
         expand_func(func, &attrs)?
     };
@@ -63,7 +66,7 @@ fn rewrite_func(func: &mut Function) -> Result<TokenStream> {
     Ok(ast)
 }
 
-fn func_attrs(func: &mut Function) -> Result<Vec<FuncAttribute>> {
+fn func_attrs(func: &Function) -> Result<Vec<FuncAttribute>> {
     let mut attrs = Vec::new();
 
     for attr in func.raw_attrs() {
@@ -93,46 +96,6 @@ pub fn host_includes() -> TokenStream {
         #[cfg(not(test))]
         use svm_sdk::host::ExtHost as Node;
     }
-}
-
-pub fn expand_fundable_attr(ast: TokenStream, attrs: &[FuncAttribute]) -> Result<TokenStream> {
-    debug_assert!(has_fundable_attr(attrs));
-
-    let attr = find_attr(attrs, FuncAttrKind::Fundable);
-
-    let fund_hook = match attr {
-        FuncAttribute::Fundable(s) => s,
-        _ => unreachable!(),
-    };
-
-    let includes = host_includes();
-
-    let ast = quote! {
-        {
-            #includes;
-
-            let value: svm_sdk::Amount = Node.get_value();
-
-            #fund_hook(value);
-        }
-    };
-
-    Ok(ast)
-}
-
-pub fn expand_before_fund_attr(func: &Function, attrs: &[FuncAttribute]) -> Result<TokenStream> {
-    debug_assert!(has_before_fund_attr(attrs));
-
-    validate_before_fund_func_sig(func)?;
-
-    let func = func.stream();
-
-    let ast = quote! {
-        #[inline]
-        #func
-    };
-
-    Ok(ast)
 }
 
 pub fn expand_other_attrs(ast: TokenStream, attrs: &[FuncAttribute]) -> Result<TokenStream> {
@@ -253,36 +216,6 @@ fn validate_attrs_order(attrs: &[FuncAttribute]) -> Result<()> {
     Ok(())
 }
 
-fn validate_before_fund_func_sig(func: &Function) -> Result<()> {
-    let sig = func.raw_sig();
-    let span = Span::call_site();
-    let msg = "`#[before_fund]` annotated function should have signature of `fn(value: svm_sdk::Amount) -> ()`";
-
-    if sig.inputs.len() != 1 || matches!(sig.output, ReturnType::Default) == false {
-        return Err(Error::new(span, msg));
-    }
-
-    let input = sig.inputs.first().unwrap();
-
-    if let FnArg::Typed(PatType { attrs, ty, .. }) = input {
-        if !attrs.is_empty() {
-            return Err(Error::new(span, msg));
-        }
-
-        let mut tokens = TokenStream::new();
-        ty.to_tokens(&mut tokens);
-
-        let ty = tokens.to_string();
-        let ty = ty.as_str();
-
-        if ty == "svm_sdk :: Amount" || ty == "Amount" {
-            return Ok(());
-        }
-    }
-
-    Err(Error::new(span, msg))
-}
-
 pub fn has_endpoint_attr(attrs: &[FuncAttribute]) -> bool {
     has_attr(attrs, FuncAttrKind::Endpoint)
 }
@@ -291,19 +224,19 @@ pub fn has_before_fund_attr(attrs: &[FuncAttribute]) -> bool {
     has_attr(attrs, FuncAttrKind::BeforeFund)
 }
 
-pub(crate) fn has_fundable_attr(attrs: &[FuncAttribute]) -> bool {
+pub fn has_fundable_attr(attrs: &[FuncAttribute]) -> bool {
     has_attr(attrs, FuncAttrKind::Fundable)
 }
 
-pub(crate) fn has_other_attr(attrs: &[FuncAttribute]) -> bool {
+pub fn has_other_attr(attrs: &[FuncAttribute]) -> bool {
     has_attr(attrs, FuncAttrKind::Other)
 }
 
-pub(crate) fn has_attr(attrs: &[FuncAttribute], kind: FuncAttrKind) -> bool {
+pub fn has_attr(attrs: &[FuncAttribute], kind: FuncAttrKind) -> bool {
     attrs.iter().any(|attr| attr.kind() == kind)
 }
 
-pub(crate) fn find_attr(attrs: &[FuncAttribute], kind: FuncAttrKind) -> &FuncAttribute {
+pub fn find_attr(attrs: &[FuncAttribute], kind: FuncAttrKind) -> &FuncAttribute {
     let attr = attrs.iter().find(|attr| attr.kind() == kind);
 
     attr.unwrap()
@@ -320,7 +253,7 @@ mod test {
             let raw_func: ItemFn = parse_quote!( $($tt)* );
             let mut func = Function::new(raw_func);
 
-            let actual = rewrite_func(&mut func).unwrap_err();
+            let actual = to_tokens(&mut func).unwrap_err();
             assert_eq!($expected, actual.to_string());
         }};
     }
@@ -331,7 +264,7 @@ mod test {
 
             let mut func = Function::new(raw_func);
 
-            let res = rewrite_func(&mut func);
+            let res = to_tokens(&mut func);
             assert!(res.is_ok());
         }};
     }

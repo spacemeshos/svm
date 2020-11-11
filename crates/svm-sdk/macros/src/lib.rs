@@ -10,7 +10,6 @@ cfg_if! {
         mod app;
         mod attr;
         mod function;
-        mod endpoint;
 
         use function::Function;
         use attr::{FuncAttribute, FuncAttrKind};
