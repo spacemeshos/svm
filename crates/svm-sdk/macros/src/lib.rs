@@ -7,7 +7,6 @@ cfg_if! {
         extern crate proc_macro;
 
         mod storage;
-        mod endpoint;
         mod app;
         mod attr;
         mod function;
