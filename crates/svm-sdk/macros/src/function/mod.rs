@@ -1,7 +1,6 @@
 use proc_macro2::{Ident, Span, TokenStream};
 
 use quote::{quote, ToTokens};
-
 use syn::{Attribute, Block, Error, ItemFn, Result, Signature};
 
 use crate::{attr, FuncAttrKind, FuncAttribute};
@@ -44,7 +43,7 @@ impl Function {
     }
 }
 
-fn to_tokens(func: &Function) -> Result<TokenStream> {
+fn expand(func: &Function) -> Result<TokenStream> {
     let attrs = func_attrs(func)?;
 
     validate_attrs(&attrs)?;
@@ -246,7 +245,7 @@ mod test {
             let raw_func: ItemFn = parse_quote!( $($tt)* );
             let mut func = Function::new(raw_func);
 
-            let actual = to_tokens(&mut func).unwrap_err();
+            let actual = expand(&mut func).unwrap_err();
             assert_eq!($expected, actual.to_string());
         }};
     }
@@ -257,7 +256,7 @@ mod test {
 
             let mut func = Function::new(raw_func);
 
-            let res = to_tokens(&mut func);
+            let res = expand(&mut func);
             assert!(res.is_ok());
         }};
     }

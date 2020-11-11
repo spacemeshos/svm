@@ -16,7 +16,7 @@ pub struct App {
     pub aliases: Vec<ItemType>,
 }
 
-pub fn transform(_args: TokenStream, input: TokenStream) -> Result<TokenStream> {
+pub fn expand(_args: TokenStream, input: TokenStream) -> Result<TokenStream> {
     let module = syn::parse2(input)?;
     let _module = parse_app(module)?;
 
@@ -38,7 +38,7 @@ pub fn parse_app(mut raw_app: ItemMod) -> Result<App> {
     let (_, content) = raw_app.content.take().unwrap();
 
     for item in content {
-        // TODO: Is is possible to extact the `item` real `Span`?
+        // TODO: Is is possible to extract the `item` real `Span`?
         let span = Span::call_site();
 
         match item {

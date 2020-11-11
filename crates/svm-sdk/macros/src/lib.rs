@@ -8,8 +8,10 @@ cfg_if! {
         mod app;
         mod attr;
         mod function;
+        mod r#struct;
 
         use function::Function;
+        use r#struct::Struct;
         use attr::{FuncAttribute, FuncAttrKind};
 
         ///
@@ -149,7 +151,7 @@ cfg_if! {
             args: proc_macro::TokenStream,
             input: proc_macro::TokenStream,
         ) -> proc_macro::TokenStream {
-            match app::transform(args.into(), input.into()) {
+            match app::expand(args.into(), input.into()) {
                 Err(err) => {
                     dbg!(err);
 
