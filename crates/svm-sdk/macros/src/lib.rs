@@ -25,16 +25,16 @@ cfg_if! {
         ///
         /// Here is a simple example of declaring a storage:
         ///
-        /// ```rust
-        /// use svm_sdk::{Amount, Address};
-        /// use svm_sdk_macros::storage;
+        /// ```rust, no_compile
+        /// // use svm_sdk::{Amount, Address};
+        /// // use svm_sdk_macros::storage;
         ///
-        /// #[storage]
-        /// struct MyStorage {
-        ///   amount: Amount,
-        ///   addr: Address,
-        ///   data: [u32; 3],
-        /// }
+        /// // #[storage]
+        /// // struct MyStorage {
+        /// //   amount: Amount,
+        /// //   addr: Address,
+        /// //   data: [u32; 3],
+        /// // }
         /// ```
         ///
         /// The above `MyStorage` struct code will be translated (roughly) in compile-time
@@ -87,19 +87,19 @@ cfg_if! {
         ///
         /// Here is an example using `#[endpoint]`:
         ///
-        /// ```rust
-        /// use svm_sdk::{Amount, Address};
-        /// use svm_sdk_macros::endpoint;
+        /// ```rust, no_compile
+        /// // use svm_sdk::{Amount, Address};
+        /// // use svm_sdk_macros::endpoint;
         ///
-        /// #[endpoint]
-        /// fn work(a: Amount, to_double: bool) -> Amount {
-        ///     if to_double {
-        ///         a * Amount(2)
-        ///     }
-        ///     else {
-        ///         a
-        ///     }
-        /// }
+        /// // #[endpoint]
+        /// // fn work(a: Amount, to_double: bool) -> Amount {
+        /// //     if to_double {
+        /// //         a * Amount(2)
+        /// //     }
+        /// //     else {
+        /// //         a
+        /// //     }
+        /// // }
         /// ```
         ///
         /// The above method will be translated (roughly) to the following code:

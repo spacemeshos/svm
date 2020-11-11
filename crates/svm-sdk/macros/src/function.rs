@@ -575,7 +575,6 @@ mod test {
     macro_rules! assert_err {
         ($expected:expr, $($tt:tt)*) => {{
             let raw_func: ItemFn = parse_quote!( $($tt)* );
-
             let mut func = Function::new(raw_func);
 
             let actual = rewrite_func(&mut func).unwrap_err();
@@ -596,7 +595,7 @@ mod test {
 
     #[test]
     fn fundable_can_not_live_alone() {
-        let err = "#[fundable(..)] can\'t be used without `#[endpoint]`";
+        let err = "#[fundable(..)] can't be used without `#[endpoint]`";
 
         assert_err!(
             err,
