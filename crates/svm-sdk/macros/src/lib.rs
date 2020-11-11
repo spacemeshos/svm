@@ -4,8 +4,6 @@ use cfg_if::cfg_if;
 
 cfg_if! {
     if #[cfg(not(windows))] {
-        extern crate proc_macro;
-
         mod storage;
         mod app;
         mod attr;

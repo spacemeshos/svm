@@ -1,13 +1,9 @@
-extern crate proc_macro;
-
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 
-use syn::parse::{Parse, ParseStream};
-use syn::punctuated::Punctuated;
 use syn::{
-    braced, parenthesized, token, Attribute, Error, Field, Item, ItemFn, ItemMod, ItemStruct,
-    ItemType, ItemUse, Result, Token, Visibility,
+     Error, Item, ItemMod, ItemStruct,
+    ItemType, ItemUse, Result, 
 };
 
 use crate::Function;
@@ -20,9 +16,9 @@ pub struct App {
     pub aliases: Vec<ItemType>,
 }
 
-pub fn transform(args: TokenStream, input: TokenStream) -> Result<TokenStream> {
+pub fn transform(_args: TokenStream, input: TokenStream) -> Result<TokenStream> {
     let module = syn::parse2(input)?;
-    let module = parse_app(module)?;
+    let _module = parse_app(module)?;
 
     let ast = quote! {
         //
@@ -53,52 +49,52 @@ pub fn parse_app(mut raw_app: ItemMod) -> Result<App> {
             Item::Struct(item) => structs.push(item),
             Item::Use(item) => imports.push(item),
             Item::Type(item) => aliases.push(item),
-            Item::Const(item) => {
+            Item::Const(..) => {
                 let msg = "declaring `const` inside `#[app]` is not supported.";
                 return Err(Error::new(span, msg));
             }
-            Item::Enum(item) => {
+            Item::Enum(..) => {
                 let msg = "declaring `enum` inside `#[app]` is not supported.";
                 return Err(Error::new(span, msg));
             }
-            Item::ExternCrate(item) => {
+            Item::ExternCrate(..) => {
                 let msg = "using `extern crate` inside `#[app]` is not supported.";
                 return Err(Error::new(span, msg));
             }
-            Item::ForeignMod(item) => {
+            Item::ForeignMod(..) => {
                 let msg =
                     "using foreign items such as `extern \"C\"` inside `#[app]` is not supported.";
                 return Err(Error::new(span, msg));
             }
-            Item::Impl(item) => {
+            Item::Impl(..) => {
                 let msg = "using `impl` inside `#[app]` is not supported.";
                 return Err(Error::new(span, msg));
             }
-            Item::Macro(item) => {
+            Item::Macro(..) => {
                 let msg = "declaring `macro_rules!` inside `#[app]` is not supported.";
                 return Err(Error::new(span, msg));
             }
-            Item::Macro2(item) => {
+            Item::Macro2(..) => {
                 let msg = "declaring `macro` inside `#[app]` is not supported.";
                 return Err(Error::new(span, msg));
             }
-            Item::Mod(item) => {
+            Item::Mod(..) => {
                 let msg = "declaring new modules inside `#[app]` is not supported.";
                 return Err(Error::new(span, msg));
             }
-            Item::Static(item) => {
+            Item::Static(..) => {
                 let msg = "declaring new `static` items inside `#[app]` is not supported.";
                 return Err(Error::new(span, msg));
             }
-            Item::Trait(item) => {
+            Item::Trait(..) => {
                 let msg = "declaring new traits inside `#[app]` is not supported.";
                 return Err(Error::new(span, msg));
             }
-            Item::TraitAlias(item) => {
+            Item::TraitAlias(..) => {
                 let msg = "using trait aliases inside `#[app]` is not supported.";
                 return Err(Error::new(span, msg));
             }
-            Item::Union(item) => {
+            Item::Union(..) => {
                 let msg = "declaring `union` inside `#[app]` is not supported.";
                 return Err(Error::new(span, msg));
             }

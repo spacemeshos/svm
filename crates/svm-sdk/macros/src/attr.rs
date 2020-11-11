@@ -1,10 +1,9 @@
-use proc_macro2::token_stream::IntoIter;
-use proc_macro2::{Delimiter, Group, Span, TokenStream, TokenTree};
+use proc_macro2::{Delimiter, Span, TokenStream, TokenTree};
 
 use quote::{quote, ToTokens};
 
 use syn::parse::{Parse, ParseStream};
-use syn::{braced, token, Attribute, Error, Ident, Result, Token};
+use syn::{Attribute, Error, Ident, Result};
 
 #[derive(Debug)]
 pub enum FuncAttribute {

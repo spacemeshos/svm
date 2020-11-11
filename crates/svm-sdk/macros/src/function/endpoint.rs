@@ -1,16 +1,12 @@
-use proc_macro2::token_stream::IntoIter;
-use proc_macro2::{Delimiter, Group, Ident, Literal, Punct, Spacing, Span, TokenStream, TokenTree};
+use proc_macro2::{Span, TokenStream};
 
 use quote::{quote, ToTokens};
 
-use syn::parse::{Parse, ParseStream};
-use syn::{
-    Attribute, Block, Error, FnArg, ItemFn, Pat, PatType, Result, ReturnType, Signature, Type,
-};
+use syn::{Error, FnArg, Pat, PatType, Result, ReturnType, Type};
 
 use crate::function::{has_endpoint_attr, has_fundable_attr};
 
-use crate::{attr, FuncAttrKind, FuncAttribute, Function};
+use crate::{FuncAttribute, Function};
 
 pub fn expand(func: &Function, attrs: &[FuncAttribute]) -> Result<TokenStream> {
     debug_assert!(has_endpoint_attr(attrs));
@@ -19,7 +15,7 @@ pub fn expand(func: &Function, attrs: &[FuncAttribute]) -> Result<TokenStream> {
 
     let name = func.raw_name();
     let prologue = expand_prologue(func)?;
-    let epilogue = expand_epilogue(func)?;
+    let epilogue = expand_epilogue()?;
     let returns = expand_returns(func)?;
     let body = func.raw_body();
 
@@ -81,7 +77,7 @@ fn expand_prologue(func: &Function) -> Result<TokenStream> {
     Ok(ast)
 }
 
-fn expand_epilogue(func: &Function) -> Result<TokenStream> {
+fn expand_epilogue() -> Result<TokenStream> {
     let includes = crate::function::host_includes();
 
     let ast = quote! {

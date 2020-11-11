@@ -1,15 +1,11 @@
-use proc_macro2::token_stream::IntoIter;
-use proc_macro2::{Delimiter, Group, Ident, Literal, Punct, Spacing, Span, TokenStream, TokenTree};
+use proc_macro2::{Span, TokenStream};
 
 use quote::{quote, ToTokens};
 
-use syn::parse::{Parse, ParseStream};
-use syn::{
-    Attribute, Block, Error, FnArg, ItemFn, Pat, PatType, Result, ReturnType, Signature, Type,
-};
+use syn::{Error, FnArg, PatType, Result, ReturnType};
 
 use super::has_before_fund_attr;
-use crate::{attr, FuncAttrKind, FuncAttribute, Function};
+use crate::{FuncAttribute, Function};
 
 pub fn expand(func: &Function, attrs: &[FuncAttribute]) -> Result<TokenStream> {
     debug_assert!(has_before_fund_attr(attrs));

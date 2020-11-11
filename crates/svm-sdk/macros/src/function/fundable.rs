@@ -1,17 +1,13 @@
-use proc_macro2::token_stream::IntoIter;
-use proc_macro2::{Delimiter, Group, Ident, Literal, Punct, Spacing, Span, TokenStream, TokenTree};
+use proc_macro2::TokenStream;
 
-use quote::{quote, ToTokens};
+use quote::quote;
 
-use syn::parse::{Parse, ParseStream};
-use syn::{
-    Attribute, Block, Error, FnArg, ItemFn, Pat, PatType, Result, ReturnType, Signature, Type,
-};
+use syn::Result;
 
 use crate::function::find_attr;
-use crate::{attr, FuncAttrKind, FuncAttribute};
+use crate::{FuncAttrKind, FuncAttribute};
 
-pub fn expand(ast: TokenStream, attrs: &[FuncAttribute]) -> Result<TokenStream> {
+pub fn expand(_ast: TokenStream, attrs: &[FuncAttribute]) -> Result<TokenStream> {
     debug_assert!(crate::function::has_fundable_attr(attrs));
 
     let attr = find_attr(attrs, FuncAttrKind::Fundable);

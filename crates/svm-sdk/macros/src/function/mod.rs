@@ -1,12 +1,8 @@
-use proc_macro2::token_stream::IntoIter;
-use proc_macro2::{Delimiter, Group, Ident, Literal, Punct, Spacing, Span, TokenStream, TokenTree};
+use proc_macro2::{Ident, Span, TokenStream};
 
 use quote::{quote, ToTokens};
 
-use syn::parse::{Parse, ParseStream};
-use syn::{
-    Attribute, Block, Error, FnArg, ItemFn, Pat, PatType, Result, ReturnType, Signature, Type,
-};
+use syn::{Attribute, Block, Error, ItemFn, Result, Signature};
 
 use crate::{attr, FuncAttrKind, FuncAttribute};
 
@@ -98,7 +94,7 @@ pub fn host_includes() -> TokenStream {
     }
 }
 
-pub fn expand_other_attrs(ast: TokenStream, attrs: &[FuncAttribute]) -> Result<TokenStream> {
+pub fn expand_other_attrs(ast: TokenStream, _attrs: &[FuncAttribute]) -> Result<TokenStream> {
     Ok(ast)
 }
 
@@ -130,7 +126,7 @@ fn validate_attrs_no_dups(attrs: &[FuncAttribute]) -> Result<()> {
                 if seen_before_fund {
                     return Err(Error::new(
                         span,
-                        ("Each function can be annotated with `#[before_fund]` exactly once."),
+                        "Each function can be annotated with `#[before_fund]` exactly once.",
                     ));
                 }
                 seen_before_fund = true;
@@ -193,7 +189,6 @@ fn validate_attrs_usage(attrs: &[FuncAttribute]) -> Result<()> {
 fn validate_attrs_order(attrs: &[FuncAttribute]) -> Result<()> {
     let span = Span::call_site();
     let mut seen_endpoint = false;
-    let mut seen_fundable = false;
 
     for attr in attrs {
         match attr.kind() {
@@ -206,8 +201,6 @@ fn validate_attrs_order(attrs: &[FuncAttribute]) -> Result<()> {
                         "`#[fundable(..)]` should be placed above `#[endpoint]`",
                     ));
                 }
-
-                seen_fundable = true;
             }
             FuncAttrKind::Other => continue,
         }
