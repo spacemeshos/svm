@@ -8,6 +8,7 @@ use syn::{
     Attribute, Block, Error, FnArg, ItemFn, Pat, PatType, Result, ReturnType, Signature, Type,
 };
 
+use crate::endpoint;
 use crate::{attr, FuncAttrKind, FuncAttribute};
 
 pub struct Function {
@@ -50,7 +51,7 @@ fn rewrite_func(func: &mut Function) -> Result<TokenStream> {
     validate_attrs(&attrs)?;
 
     let ast = if has_endpoint_attr(&attrs) {
-        expand_endpoint_attr(func, &attrs)?
+        endpoint::expand(func, &attrs)?
     } else if has_before_fund_attr(&attrs) {
         expand_before_fund_attr(func, &attrs)?
     } else {
@@ -82,39 +83,7 @@ fn validate_attrs(attrs: &[FuncAttribute]) -> Result<()> {
     Ok(())
 }
 
-fn expand_endpoint_attr(func: &Function, attrs: &[FuncAttribute]) -> Result<TokenStream> {
-    debug_assert!(has_endpoint_attr(attrs));
-
-    let name = func.raw_name();
-    let prologue = expand_endpoint_prologue(func)?;
-    let epilogue = expand_endpoint_epilogue(func)?;
-    let returns = expand_endpoint_returns(func)?;
-    let body = func.raw_body();
-
-    let ast = quote! {
-        #[no_mangle]
-        pub extern "C" fn #name() {
-
-            fn __inner__() #returns {
-                #prologue
-
-                #body
-            }
-
-            #epilogue
-        }
-    };
-
-    let ast = if has_fundable_attr(attrs) {
-        expand_fundable_attr(ast, &attrs)?
-    } else {
-        ast
-    };
-
-    Ok(ast)
-}
-
-fn host_includes() -> TokenStream {
+pub fn host_includes() -> TokenStream {
     quote! {
         use svm_sdk::traits::Host;
 
@@ -126,72 +95,7 @@ fn host_includes() -> TokenStream {
     }
 }
 
-fn expand_endpoint_prologue(func: &Function) -> Result<TokenStream> {
-    let includes = host_includes();
-
-    let init = quote! {
-        let bytes = Node.get_calldata();
-        let mut calldata = svm_sdk::CallData::new(bytes);
-    };
-
-    let mut assigns: Vec<TokenStream> = Vec::new();
-    let sig = func.raw_sig();
-
-    for input in &sig.inputs {
-        if let FnArg::Typed(PatType { pat, ty, .. }) = input {
-            let assign = quote! {
-                let #pat: #ty = calldata.next_1();
-            };
-
-            assigns.push(assign.into());
-        } else {
-            unreachable!()
-        }
-    }
-
-    let ast = quote! {
-        #includes
-
-        #init
-
-        #(#assigns)*
-    }
-    .into();
-
-    Ok(ast)
-}
-
-fn expand_endpoint_epilogue(func: &Function) -> Result<TokenStream> {
-    let includes = host_includes();
-
-    let ast = quote! {
-        {
-            #includes
-
-            use svm_sdk::traits::Encoder;
-
-            let mut bytes = Vec::new();
-
-            let rets = __inner__();
-            rets.encode(&mut bytes);
-
-            Node.set_returndata(&bytes);
-        }
-    };
-
-    Ok(ast)
-}
-
-fn expand_endpoint_returns(func: &Function) -> Result<TokenStream> {
-    let mut tokens = TokenStream::new();
-
-    let sig = func.raw_sig();
-    sig.output.to_tokens(&mut tokens);
-
-    Ok(tokens)
-}
-
-fn expand_fundable_attr(ast: TokenStream, attrs: &[FuncAttribute]) -> Result<TokenStream> {
+pub fn expand_fundable_attr(ast: TokenStream, attrs: &[FuncAttribute]) -> Result<TokenStream> {
     debug_assert!(has_fundable_attr(attrs));
 
     let attr = find_attr(attrs, FuncAttrKind::Fundable);
@@ -216,7 +120,7 @@ fn expand_fundable_attr(ast: TokenStream, attrs: &[FuncAttribute]) -> Result<Tok
     Ok(ast)
 }
 
-fn expand_before_fund_attr(func: &Function, attrs: &[FuncAttribute]) -> Result<TokenStream> {
+pub fn expand_before_fund_attr(func: &Function, attrs: &[FuncAttribute]) -> Result<TokenStream> {
     debug_assert!(has_before_fund_attr(attrs));
 
     validate_before_fund_func_sig(func)?;
@@ -231,11 +135,11 @@ fn expand_before_fund_attr(func: &Function, attrs: &[FuncAttribute]) -> Result<T
     Ok(ast)
 }
 
-fn expand_other_attrs(ast: TokenStream, attrs: &[FuncAttribute]) -> Result<TokenStream> {
+pub fn expand_other_attrs(ast: TokenStream, attrs: &[FuncAttribute]) -> Result<TokenStream> {
     Ok(ast)
 }
 
-fn expand_func(func: &Function, _attrs: &[FuncAttribute]) -> Result<TokenStream> {
+pub fn expand_func(func: &Function, _attrs: &[FuncAttribute]) -> Result<TokenStream> {
     let ast = func.raw_func.to_token_stream();
 
     Ok(ast)
@@ -349,167 +253,6 @@ fn validate_attrs_order(attrs: &[FuncAttribute]) -> Result<()> {
     Ok(())
 }
 
-fn validate_endpoint_sig(func: &Function) -> Result<()> {
-    let sig = func.raw_sig();
-    let span = Span::call_site();
-
-    if sig.constness.is_some() {
-        return Err(Error::new(span, "`endpoint` function can't be `const`"));
-    }
-
-    if sig.asyncness.is_some() {
-        return Err(Error::new(span, "`endpoint` function can't be `async`"));
-    }
-
-    if sig.unsafety.is_some() {
-        return Err(Error::new(span, "`endpoint` function can't be `unsafe`"));
-    }
-
-    if sig.abi.is_some() {
-        return Err(Error::new(span, "`endpoint` function can't be `extern`"));
-    }
-
-    if !sig.generics.params.is_empty() {
-        return Err(Error::new(span, "`endpoint` function can't use generics."));
-    }
-
-    if sig.variadic.is_some() {
-        return Err(Error::new(span, "`endpoint` function can't use variadics."));
-    }
-
-    if sig.receiver().is_some() {
-        return Err(Error::new(span, "`endpoint` function can't use `self`"));
-    }
-
-    for arg in &sig.inputs {
-        if let FnArg::Typed(PatType { attrs, pat, ty, .. }) = arg {
-            if !attrs.is_empty() {
-                return Err(Error::new(span, "`endpoint` params can't have attributes."));
-            }
-
-            validate_arg_pat(pat)?;
-            validate_arg_type(ty)?;
-        } else {
-            unreachable!()
-        }
-    }
-
-    validate_ret_type(&sig.output)?;
-
-    Ok(())
-}
-
-fn validate_arg_pat(pat: &Box<Pat>) -> Result<()> {
-    match **pat {
-        Pat::Type(..) => Ok(()),
-        _ => {
-            let span = Span::call_site();
-
-            Err(Error::new(
-                span,
-                "`endpoint` parameters definitions are expected to be of pattern: `name: type`",
-            ))
-        }
-    }
-}
-
-fn validate_arg_type(ty: &Box<Type>) -> Result<()> {
-    let span = Span::call_site();
-
-    match **ty {
-        Type::BareFn(..) => Err(Error::new(
-            span,
-            "`endpoint` can't have a bare function as a parameter type",
-        )),
-        Type::ImplTrait(..) => Err(Error::new(
-            span,
-            "`endpoint` can't use an `impl` for its parameters types",
-        )),
-        Type::Macro(..) => Err(Error::new(
-            span,
-            "`endpoint` can't use an macros within it parameters types",
-        )),
-        Type::Never(..) => Err(Error::new(
-            span,
-            "`endpoint` can't use `!` for its parameters types",
-        )),
-        Type::Paren(..) => Err(Error::new(
-            span,
-            "`endpoint` can't use parentheses for its parameters types",
-        )),
-        Type::Ptr(..) => Err(Error::new(
-            span,
-            "`endpoint` can't use raw_func pointers for its parameters types",
-        )),
-        Type::Reference(..) => Err(Error::new(
-            span,
-            "`endpoint` can't use references for its parameters types",
-        )),
-        Type::Slice(..) => Err(Error::new(
-            span,
-            "`endpoint` can't use dynamically sized slices for its parameters types",
-        )),
-        Type::TraitObject(..) => Err(Error::new(
-            span,
-            "`endpoint` can't use trait objects for its parameters types",
-        )),
-        Type::Tuple(..) => Err(Error::new(
-            span,
-            "`endpoint` can't use right now tuples for its parameters types",
-        )),
-        _ => Ok(()),
-    }
-}
-
-fn validate_ret_type(ty: &ReturnType) -> Result<()> {
-    match ty {
-        ReturnType::Default => Ok(()),
-        ReturnType::Type(.., ty) => {
-            let span = Span::call_site();
-
-            match **ty {
-                Type::BareFn(..) => Err(Error::new(
-                    span,
-                    "`endpoint` can't have a bare function as a return type",
-                )),
-                Type::ImplTrait(..) => Err(Error::new(
-                    span,
-                    "`endpoint` can't use an `impl` for its return type",
-                )),
-                Type::Macro(..) => Err(Error::new(
-                    span,
-                    "`endpoint` can't use an macros for its return type",
-                )),
-                Type::Never(..) => Err(Error::new(
-                    span,
-                    "`endpoint` can't use `!` for its parameters types",
-                )),
-                Type::Paren(..) => Err(Error::new(
-                    span,
-                    "`endpoint` can't use parentheses for its parameters types",
-                )),
-                Type::Ptr(..) => Err(Error::new(
-                    span,
-                    "`endpoint` can't use raw_func pointers for its parameters types",
-                )),
-                Type::Reference(..) => Err(Error::new(
-                    span,
-                    "`endpoint` can't use reference for its parameters types",
-                )),
-                Type::Slice(..) => Err(Error::new(
-                    span,
-                    "`endpoint` can't use dynamically-sized slices for its parameters types",
-                )),
-                Type::TraitObject(..) => Err(Error::new(
-                    span,
-                    "`endpoint` can't use trait objects for its parameters types",
-                )),
-                _ => Ok(()),
-            }
-        }
-    }
-}
-
 fn validate_before_fund_func_sig(func: &Function) -> Result<()> {
     let sig = func.raw_sig();
     let span = Span::call_site();
@@ -540,27 +283,27 @@ fn validate_before_fund_func_sig(func: &Function) -> Result<()> {
     Err(Error::new(span, msg))
 }
 
-fn has_endpoint_attr(attrs: &[FuncAttribute]) -> bool {
+pub fn has_endpoint_attr(attrs: &[FuncAttribute]) -> bool {
     has_attr(attrs, FuncAttrKind::Endpoint)
 }
 
-fn has_before_fund_attr(attrs: &[FuncAttribute]) -> bool {
+pub fn has_before_fund_attr(attrs: &[FuncAttribute]) -> bool {
     has_attr(attrs, FuncAttrKind::BeforeFund)
 }
 
-fn has_fundable_attr(attrs: &[FuncAttribute]) -> bool {
+pub(crate) fn has_fundable_attr(attrs: &[FuncAttribute]) -> bool {
     has_attr(attrs, FuncAttrKind::Fundable)
 }
 
-fn has_other_attr(attrs: &[FuncAttribute]) -> bool {
+pub(crate) fn has_other_attr(attrs: &[FuncAttribute]) -> bool {
     has_attr(attrs, FuncAttrKind::Other)
 }
 
-fn has_attr(attrs: &[FuncAttribute], kind: FuncAttrKind) -> bool {
+pub(crate) fn has_attr(attrs: &[FuncAttribute], kind: FuncAttrKind) -> bool {
     attrs.iter().any(|attr| attr.kind() == kind)
 }
 
-fn find_attr(attrs: &[FuncAttribute], kind: FuncAttrKind) -> &FuncAttribute {
+pub(crate) fn find_attr(attrs: &[FuncAttribute], kind: FuncAttrKind) -> &FuncAttribute {
     let attr = attrs.iter().find(|attr| attr.kind() == kind);
 
     attr.unwrap()
