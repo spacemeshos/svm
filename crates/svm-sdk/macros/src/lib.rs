@@ -4,7 +4,6 @@ use cfg_if::cfg_if;
 
 cfg_if! {
     if #[cfg(not(windows))] {
-        mod storage;
         mod app;
         mod function;
         mod r#struct;

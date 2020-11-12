@@ -8,7 +8,7 @@ mod before_fund;
 mod endpoint;
 mod fundable;
 
-use attr::{has_before_fund_attr, has_endpoint_attr, FuncAttrKind, FuncAttribute};
+use attr::{has_before_fund_attr, has_endpoint_attr, FuncAttr, FuncAttrKind};
 
 pub struct Function {
     raw_func: ItemFn,
@@ -45,7 +45,7 @@ impl Function {
 }
 
 fn expand(func: &Function) -> Result<TokenStream> {
-    let attrs = func_attrs(func)?;
+    let attrs = attr::func_attrs(func)?;
 
     validate_attrs(&attrs)?;
 
@@ -62,19 +62,7 @@ fn expand(func: &Function) -> Result<TokenStream> {
     Ok(ast)
 }
 
-fn func_attrs(func: &Function) -> Result<Vec<FuncAttribute>> {
-    let mut attrs = Vec::new();
-
-    for attr in func.raw_attrs() {
-        let attr = attr::parse_attr(attr)?;
-
-        attrs.push(attr);
-    }
-
-    Ok(attrs)
-}
-
-fn validate_attrs(attrs: &[FuncAttribute]) -> Result<()> {
+fn validate_attrs(attrs: &[FuncAttr]) -> Result<()> {
     validate_attrs_no_dups(attrs)?;
     validate_attrs_usage(attrs)?;
     validate_attrs_order(attrs)?;
@@ -94,17 +82,17 @@ pub fn host_includes() -> TokenStream {
     }
 }
 
-pub fn expand_other_attrs(ast: TokenStream, _attrs: &[FuncAttribute]) -> Result<TokenStream> {
+pub fn expand_other_attrs(ast: TokenStream, _attrs: &[FuncAttr]) -> Result<TokenStream> {
     Ok(ast)
 }
 
-pub fn expand_func(func: &Function, _attrs: &[FuncAttribute]) -> Result<TokenStream> {
+pub fn expand_func(func: &Function, _attrs: &[FuncAttr]) -> Result<TokenStream> {
     let ast = func.raw_func.to_token_stream();
 
     Ok(ast)
 }
 
-fn validate_attrs_no_dups(attrs: &[FuncAttribute]) -> Result<()> {
+fn validate_attrs_no_dups(attrs: &[FuncAttr]) -> Result<()> {
     let span = Span::call_site();
 
     let mut seen_endpoint = false;
@@ -147,7 +135,7 @@ fn validate_attrs_no_dups(attrs: &[FuncAttribute]) -> Result<()> {
     Ok(())
 }
 
-fn validate_attrs_usage(attrs: &[FuncAttribute]) -> Result<()> {
+fn validate_attrs_usage(attrs: &[FuncAttr]) -> Result<()> {
     let span = Span::call_site();
     let mut seen_endpoint = false;
     let mut seen_fundable = false;
@@ -186,7 +174,7 @@ fn validate_attrs_usage(attrs: &[FuncAttribute]) -> Result<()> {
     Ok(())
 }
 
-fn validate_attrs_order(attrs: &[FuncAttribute]) -> Result<()> {
+fn validate_attrs_order(attrs: &[FuncAttr]) -> Result<()> {
     let span = Span::call_site();
     let mut seen_endpoint = false;
 

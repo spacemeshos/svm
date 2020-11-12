@@ -2,10 +2,15 @@ use proc_macro2::{Ident, Span, TokenStream};
 use quote::{quote, ToTokens};
 use syn::{
     Attribute, Data, DataStruct, DeriveInput, Expr, ExprLit, Field, Fields, FieldsNamed, Generics,
-    ItemStruct, Lit, Path, PathArguments, Type, TypeArray, TypePath,
+    ItemStruct, Lit, Path, PathArguments, Result, Type, TypeArray, TypePath,
 };
 
+mod attr;
 mod storage;
+mod var;
+
+use attr::{has_storage_attr, StructAttr, StructAttrKind};
+use var::{Var, VarId};
 
 pub struct Struct {
     raw_struct: ItemStruct,
@@ -41,8 +46,18 @@ impl Struct {
     }
 }
 
-pub fn expand(strukt: &Struct) -> TokenStream {
-    todo!()
+pub fn expand(strukt: &Struct) -> Result<TokenStream> {
+    let attrs = attr::struct_attrs(strukt)?;
+
+    validate_attrs(&attrs)?;
+
+    if has_storage_attr(&attrs) {
+        storage::expand(strukt, &attrs)
+    } else {
+        todo!()
+    }
 }
 
-// fn storage_attrs(strukt: &Struct)  -> Result<Vec<S
+fn validate_attrs(attrs: &[StructAttr]) -> Result<()> {
+    Ok(())
+}

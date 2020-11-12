@@ -4,15 +4,15 @@ use quote::quote;
 use syn::Result;
 
 use super::attr;
-use attr::{find_attr, has_fundable_attr, FuncAttrKind, FuncAttribute};
+use attr::{find_attr, has_fundable_attr, FuncAttr, FuncAttrKind};
 
-pub fn expand(_ast: TokenStream, attrs: &[FuncAttribute]) -> Result<TokenStream> {
+pub fn expand(_ast: TokenStream, attrs: &[FuncAttr]) -> Result<TokenStream> {
     debug_assert!(has_fundable_attr(attrs));
 
     let attr = find_attr(attrs, FuncAttrKind::Fundable);
 
     let fund_hook = match attr {
-        FuncAttribute::Fundable(s) => s,
+        FuncAttr::Fundable(s) => s,
         _ => unreachable!(),
     };
 

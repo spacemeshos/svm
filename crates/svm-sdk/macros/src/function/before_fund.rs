@@ -4,11 +4,11 @@ use quote::{quote, ToTokens};
 use syn::{Error, FnArg, PatType, Result, ReturnType};
 
 use super::attr;
-use attr::{has_before_fund_attr, FuncAttribute};
+use attr::{has_before_fund_attr, FuncAttr};
 
 use crate::Function;
 
-pub fn expand(func: &Function, attrs: &[FuncAttribute]) -> Result<TokenStream> {
+pub fn expand(func: &Function, attrs: &[FuncAttr]) -> Result<TokenStream> {
     debug_assert!(has_before_fund_attr(attrs));
 
     validate_before_fund_func_sig(func)?;

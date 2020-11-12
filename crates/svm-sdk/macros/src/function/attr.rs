@@ -5,27 +5,7 @@ use quote::{quote, ToTokens};
 use syn::parse::{Parse, ParseStream};
 use syn::{Attribute, Error, Ident, Result};
 
-#[derive(Debug)]
-pub enum FuncAttribute {
-    Endpoint,
-
-    BeforeFund,
-
-    Fundable(String),
-
-    Other(TokenStream),
-}
-
-impl FuncAttribute {
-    pub fn kind(&self) -> FuncAttrKind {
-        match self {
-            FuncAttribute::Endpoint => FuncAttrKind::Endpoint,
-            FuncAttribute::BeforeFund => FuncAttrKind::BeforeFund,
-            FuncAttribute::Fundable(..) => FuncAttrKind::Fundable,
-            FuncAttribute::Other(..) => FuncAttrKind::Other,
-        }
-    }
-}
+use crate::Function;
 
 #[derive(Debug, PartialEq)]
 pub enum FuncAttrKind {
@@ -38,19 +18,53 @@ pub enum FuncAttrKind {
     Other,
 }
 
-pub fn parse_attr(attr: Attribute) -> Result<FuncAttribute> {
+#[derive(Debug)]
+pub enum FuncAttr {
+    Endpoint,
+
+    BeforeFund,
+
+    Fundable(String),
+
+    Other(TokenStream),
+}
+
+impl FuncAttr {
+    pub fn kind(&self) -> FuncAttrKind {
+        match self {
+            FuncAttr::Endpoint => FuncAttrKind::Endpoint,
+            FuncAttr::BeforeFund => FuncAttrKind::BeforeFund,
+            FuncAttr::Fundable(..) => FuncAttrKind::Fundable,
+            FuncAttr::Other(..) => FuncAttrKind::Other,
+        }
+    }
+}
+
+pub fn func_attrs(func: &Function) -> Result<Vec<FuncAttr>> {
+    let mut attrs = Vec::new();
+
+    for attr in func.raw_attrs() {
+        let attr = parse_attr(attr)?;
+
+        attrs.push(attr);
+    }
+
+    Ok(attrs)
+}
+
+pub fn parse_attr(attr: Attribute) -> Result<FuncAttr> {
     let kind = parse_attr_kind(&attr)?;
 
     let attr = match kind {
         FuncAttrKind::Endpoint => {
             assert!(attr.tokens.is_empty());
 
-            FuncAttribute::Endpoint
+            FuncAttr::Endpoint
         }
         FuncAttrKind::BeforeFund => {
             assert!(attr.tokens.is_empty());
 
-            FuncAttribute::BeforeFund
+            FuncAttr::BeforeFund
         }
         FuncAttrKind::Fundable => {
             let tokens = attr.tokens;
@@ -62,7 +76,7 @@ pub fn parse_attr(attr: Attribute) -> Result<FuncAttribute> {
                 let stream = group.stream();
                 let ident = syn::parse2::<Ident>(stream)?;
 
-                FuncAttribute::Fundable(ident.to_string())
+                FuncAttr::Fundable(ident.to_string())
             } else {
                 let span = Span::call_site();
 
@@ -72,7 +86,7 @@ pub fn parse_attr(attr: Attribute) -> Result<FuncAttribute> {
                 ));
             }
         }
-        FuncAttrKind::Other => FuncAttribute::Other(quote! { #attr }),
+        FuncAttrKind::Other => FuncAttr::Other(quote! { #attr }),
     };
 
     Ok(attr)
@@ -104,27 +118,27 @@ impl Parse for FuncAttrKind {
     }
 }
 
-pub fn has_endpoint_attr(attrs: &[FuncAttribute]) -> bool {
+pub fn has_endpoint_attr(attrs: &[FuncAttr]) -> bool {
     has_attr(attrs, FuncAttrKind::Endpoint)
 }
 
-pub fn has_before_fund_attr(attrs: &[FuncAttribute]) -> bool {
+pub fn has_before_fund_attr(attrs: &[FuncAttr]) -> bool {
     has_attr(attrs, FuncAttrKind::BeforeFund)
 }
 
-pub fn has_fundable_attr(attrs: &[FuncAttribute]) -> bool {
+pub fn has_fundable_attr(attrs: &[FuncAttr]) -> bool {
     has_attr(attrs, FuncAttrKind::Fundable)
 }
 
-pub fn has_other_attr(attrs: &[FuncAttribute]) -> bool {
+pub fn has_other_attr(attrs: &[FuncAttr]) -> bool {
     has_attr(attrs, FuncAttrKind::Other)
 }
 
-pub fn has_attr(attrs: &[FuncAttribute], kind: FuncAttrKind) -> bool {
+pub fn has_attr(attrs: &[FuncAttr], kind: FuncAttrKind) -> bool {
     attrs.iter().any(|attr| attr.kind() == kind)
 }
 
-pub fn find_attr(attrs: &[FuncAttribute], kind: FuncAttrKind) -> &FuncAttribute {
+pub fn find_attr(attrs: &[FuncAttr], kind: FuncAttrKind) -> &FuncAttr {
     let attr = attrs.iter().find(|attr| attr.kind() == kind);
 
     attr.unwrap()
@@ -148,7 +162,7 @@ mod test {
         };
 
         let func_attr = parse_attr(attr).unwrap();
-        assert!(matches!(func_attr, FuncAttribute::Endpoint));
+        assert!(matches!(func_attr, FuncAttr::Endpoint));
 
         assert_eq!(func_attr.kind(), FuncAttrKind::Endpoint);
     }
@@ -160,7 +174,7 @@ mod test {
         };
 
         let func_attr = parse_attr(attr).unwrap();
-        assert!(matches!(func_attr, FuncAttribute::BeforeFund));
+        assert!(matches!(func_attr, FuncAttr::BeforeFund));
 
         assert_eq!(func_attr.kind(), FuncAttrKind::BeforeFund);
     }
@@ -174,7 +188,7 @@ mod test {
         let actual = parse_attr(attr).unwrap();
         assert_eq!(actual.kind(), FuncAttrKind::Fundable);
 
-        let expected = FuncAttribute::Fundable("deny_funding".to_string());
+        let expected = FuncAttr::Fundable("deny_funding".to_string());
         assert!(matches!(actual, expected));
     }
 
@@ -201,7 +215,7 @@ mod test {
         let func_attr = parse_attr(attr).unwrap();
         assert_eq!(func_attr.kind(), FuncAttrKind::Other);
 
-        if let FuncAttribute::Other(tokens) = func_attr {
+        if let FuncAttr::Other(tokens) = func_attr {
             assert_eq!(tokens.to_string(), "# [derive (Debug , Copy , Clone)]");
         } else {
             unreachable!()
