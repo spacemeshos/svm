@@ -35,9 +35,6 @@ pub struct DefaultRuntime<ENV, GE> {
     /// The runtime environment. Used mainly for managing app persistence.
     pub env: ENV,
 
-    /// A raw pointer to host (a.k.a the `Full-Node` in the realm of Blockchain).
-    pub host: *mut c_void,
-
     /// The runtime configuration
     pub config: Config,
 
@@ -167,7 +164,6 @@ where
 {
     /// Initializes a new `DefaultRuntime`.
     pub fn new<P: AsRef<Path>>(
-        host: *mut c_void,
         env: ENV,
         kv_path: P,
         imports: Vec<Import>,
@@ -177,7 +173,6 @@ where
 
         Self {
             env,
-            host,
             config,
             imports,
             storage_builder,
@@ -529,7 +524,7 @@ where
         let layout = &template.data;
         let storage = self.open_app_storage(app_addr, state, layout);
 
-        Context::new(self.host, gas_limit, storage)
+        Context::new(gas_limit, storage)
     }
 
     fn create_import_object(&self, store: &Store, ctx: &Context) -> ImportObject {

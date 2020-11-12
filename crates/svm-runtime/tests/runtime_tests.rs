@@ -19,10 +19,9 @@ macro_rules! default_runtime {
 
         let state_kv = testing::memory_state_kv_init();
 
-        let host = std::ptr::null_mut();
         let imports = Vec::new();
 
-        testing::create_memory_runtime(host, &state_kv, imports)
+        testing::create_memory_runtime(&state_kv, imports)
     }};
 }
 

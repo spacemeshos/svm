@@ -93,9 +93,8 @@ pub fn memory_state_kv_init() -> Rc<RefCell<dyn StatefulKV>> {
     Rc::new(RefCell::new(FakeKV::new()))
 }
 
-/// Creates an in-memory `Runtime` backed by key-value, raw pointer to host and host vmcalls (`imports`)
+/// Creates an in-memory `Runtime` backed by key-value and host vmcalls (`imports`).
 pub fn create_memory_runtime(
-    host: *mut c_void,
     state_kv: &Rc<RefCell<dyn StatefulKV>>,
     imports: Vec<Import>,
 ) -> DefaultRuntime<DefaultMemoryEnv, DefaultGasEstimator> {
@@ -104,7 +103,7 @@ pub fn create_memory_runtime(
     let env = runtime_memory_env_builder();
     let kv_path = Path::new("mem");
 
-    DefaultRuntime::new(host, env, &kv_path, imports, Box::new(storage_builder))
+    DefaultRuntime::new(env, &kv_path, imports, Box::new(storage_builder))
 }
 
 /// Returns a function (wrapped inside `Box`) that initializes an App's storage client.
