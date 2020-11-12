@@ -1,14 +1,13 @@
 use proc_macro2::TokenStream;
 
 use quote::quote;
-
 use syn::Result;
 
-use crate::function::find_attr;
-use crate::{FuncAttrKind, FuncAttribute};
+use super::attr;
+use attr::{find_attr, has_fundable_attr, FuncAttrKind, FuncAttribute};
 
 pub fn expand(_ast: TokenStream, attrs: &[FuncAttribute]) -> Result<TokenStream> {
-    debug_assert!(crate::function::has_fundable_attr(attrs));
+    debug_assert!(has_fundable_attr(attrs));
 
     let attr = find_attr(attrs, FuncAttrKind::Fundable);
 

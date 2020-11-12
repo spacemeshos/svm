@@ -3,11 +3,12 @@ use proc_macro2::{Ident, Span, TokenStream};
 use quote::{quote, ToTokens};
 use syn::{Attribute, Block, Error, ItemFn, Result, Signature};
 
-use crate::{attr, FuncAttrKind, FuncAttribute};
-
+mod attr;
 mod before_fund;
 mod endpoint;
 mod fundable;
+
+use attr::{has_before_fund_attr, has_endpoint_attr, FuncAttrKind, FuncAttribute};
 
 pub struct Function {
     raw_func: ItemFn,
@@ -206,32 +207,6 @@ fn validate_attrs_order(attrs: &[FuncAttribute]) -> Result<()> {
     }
 
     Ok(())
-}
-
-pub fn has_endpoint_attr(attrs: &[FuncAttribute]) -> bool {
-    has_attr(attrs, FuncAttrKind::Endpoint)
-}
-
-pub fn has_before_fund_attr(attrs: &[FuncAttribute]) -> bool {
-    has_attr(attrs, FuncAttrKind::BeforeFund)
-}
-
-pub fn has_fundable_attr(attrs: &[FuncAttribute]) -> bool {
-    has_attr(attrs, FuncAttrKind::Fundable)
-}
-
-pub fn has_other_attr(attrs: &[FuncAttribute]) -> bool {
-    has_attr(attrs, FuncAttrKind::Other)
-}
-
-pub fn has_attr(attrs: &[FuncAttribute], kind: FuncAttrKind) -> bool {
-    attrs.iter().any(|attr| attr.kind() == kind)
-}
-
-pub fn find_attr(attrs: &[FuncAttribute], kind: FuncAttrKind) -> &FuncAttribute {
-    let attr = attrs.iter().find(|attr| attr.kind() == kind);
-
-    attr.unwrap()
 }
 
 #[cfg(test)]

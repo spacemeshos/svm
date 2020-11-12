@@ -1,11 +1,12 @@
 use proc_macro2::{Span, TokenStream};
 
 use quote::{quote, ToTokens};
-
 use syn::{Error, FnArg, PatType, Result, ReturnType};
 
-use super::has_before_fund_attr;
-use crate::{FuncAttribute, Function};
+use super::attr;
+use attr::{has_before_fund_attr, FuncAttribute};
+
+use crate::Function;
 
 pub fn expand(func: &Function, attrs: &[FuncAttribute]) -> Result<TokenStream> {
     debug_assert!(has_before_fund_attr(attrs));

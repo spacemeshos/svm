@@ -6,13 +6,11 @@ cfg_if! {
     if #[cfg(not(windows))] {
         mod storage;
         mod app;
-        mod attr;
         mod function;
         mod r#struct;
 
         use function::Function;
         use r#struct::Struct;
-        use attr::{FuncAttribute, FuncAttrKind};
 
         ///
         /// The `#[storage]` proc-macro attribute consumes a struct and translates

@@ -41,6 +41,8 @@ impl Struct {
     }
 }
 
-pub fn expand(strukt: &Struct) -> proc_macro::TokenStream {
+pub fn expand(strukt: &Struct) -> TokenStream {
     todo!()
 }
+
+// fn storage_attrs(strukt: &Struct)  -> Result<Vec<S

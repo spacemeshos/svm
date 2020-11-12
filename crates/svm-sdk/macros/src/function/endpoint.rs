@@ -1,12 +1,12 @@
 use proc_macro2::{Span, TokenStream};
 
 use quote::{quote, ToTokens};
-
 use syn::{Error, FnArg, Pat, PatType, Result, ReturnType, Type};
 
-use crate::function::{has_endpoint_attr, has_fundable_attr};
+use super::attr;
+use attr::{has_endpoint_attr, has_fundable_attr, FuncAttribute};
 
-use crate::{FuncAttribute, Function};
+use crate::Function;
 
 pub fn expand(func: &Function, attrs: &[FuncAttribute]) -> Result<TokenStream> {
     debug_assert!(has_endpoint_attr(attrs));

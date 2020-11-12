@@ -104,6 +104,32 @@ impl Parse for FuncAttrKind {
     }
 }
 
+pub fn has_endpoint_attr(attrs: &[FuncAttribute]) -> bool {
+    has_attr(attrs, FuncAttrKind::Endpoint)
+}
+
+pub fn has_before_fund_attr(attrs: &[FuncAttribute]) -> bool {
+    has_attr(attrs, FuncAttrKind::BeforeFund)
+}
+
+pub fn has_fundable_attr(attrs: &[FuncAttribute]) -> bool {
+    has_attr(attrs, FuncAttrKind::Fundable)
+}
+
+pub fn has_other_attr(attrs: &[FuncAttribute]) -> bool {
+    has_attr(attrs, FuncAttrKind::Other)
+}
+
+pub fn has_attr(attrs: &[FuncAttribute], kind: FuncAttrKind) -> bool {
+    attrs.iter().any(|attr| attr.kind() == kind)
+}
+
+pub fn find_attr(attrs: &[FuncAttribute], kind: FuncAttrKind) -> &FuncAttribute {
+    let attr = attrs.iter().find(|attr| attr.kind() == kind);
+
+    attr.unwrap()
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
