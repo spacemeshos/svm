@@ -41,16 +41,17 @@ macro_rules! ident_as_str {
 
 fn storage_vars(strukt: &Struct) -> Result<Vec<Var>> {
     let mut vars = Vec::new();
-    let mut index = 0;
+    let mut id = VarId(0);
 
     let fields = strukt.raw_fields();
 
     ensure_named_fields(fields)?;
 
     for f in fields {
-        let id = VarId(index);
         let var = field_var(f, id)?;
         vars.push(var);
+
+        id = next_var(id);
     }
 
     Ok(vars)
@@ -66,7 +67,7 @@ fn field_var(field: &Field, id: VarId) -> Result<Var> {
 
     let var = match &field.ty {
         Type::Array(array) => {
-            let ty = parse_array_elem_type(&array);
+            let ty = parse_array_elem_type(&array)?;
             let length = parse_array_length(&array);
             let name = field_ident(field);
 
@@ -79,20 +80,29 @@ fn field_var(field: &Field, id: VarId) -> Result<Var> {
         }
         Type::Path(path) => {
             let name = field_ident(field);
-            let ty = parse_type_path(path);
+            let ty = parse_type_path(path)?;
 
             Var::Primitive { id, name, ty }
         }
-        _ => todo!("Invalid Type"),
+        _ => {
+            return Err(Error::new(
+                span,
+                "`#[storage]` supports only path (for example: `svm_sdk::Amount`) and Array types.",
+            ));
+        }
     };
 
     Ok(var)
 }
 
-fn parse_array_elem_type(array: &TypeArray) -> Ident {
+fn parse_array_elem_type(array: &TypeArray) -> Result<Ident> {
     match *array.elem {
         Type::Path(ref path) => parse_type_path(path),
-        _ => todo!("Invalid array type"),
+        _ => {
+            let span = Span::call_site();
+
+            Err(Error::new(span, "`#[storage]` Array elements must be of type path (for example: `svm_sdk::Amount`)."))
+        }
     }
 }
 
@@ -102,11 +112,11 @@ fn parse_array_length(array: &TypeArray) -> u32 {
             assert!(attrs.is_empty());
 
             match lit {
-                Lit::Int(int) => {
-                    let int = int.base10_parse();
+                Lit::Int(num) => {
+                    let num = num.base10_parse();
 
-                    match int {
-                        Ok(int) => return int,
+                    match num {
+                        Ok(num) => num,
                         Err(..) => todo!("Invalid array length"),
                     }
                 }
@@ -117,51 +127,42 @@ fn parse_array_length(array: &TypeArray) -> u32 {
     }
 }
 
-fn parse_type_path(path: &TypePath) -> Ident {
-    assert!(path.qself.is_none());
+fn parse_type_path(path: &TypePath) -> Result<Ident> {
+    let ty = path_as_str(&path);
 
-    let path = &path.path;
-    let ty = segments_path_as_ident(&path);
-
-    match ident_as_str!(ty) {
+    match ty.as_str() {
         #[rustfmt::skip]
-                "bool"    | 
-                "Amount"  |
-                "i8"      |
-                "u8"      |
-                "i16"     |
-                "u16"     |
-                "i32"     |
-                "u32"     |
-                "i64"     |
-                "u64"     |
-                "Address" => ty.clone(),
-        _ => todo!("Invalid Storage field type: {}", ty),
+        "bool"    | 
+        "Amount"  |
+        "svm_sdk :: Amount"  |
+        "i8"      |
+        "u8"      |
+        "i16"     |
+        "u16"     |
+        "i32"     |
+        "u32"     |
+        "i64"     |
+        "u64"     |
+        "Address" |
+        "svm_sdk :: Address" => {
+            let ident = Ident::new(&ty, Span::call_site());
+
+            Ok(ident)
+        }
+        _ => {
+            let span = Span::call_site();
+            let msg = format!("Invalid `#[storage]` field type: {}", ty);
+
+            Err(Error::new(span, msg))
+        }
     }
 }
 
-fn segments_path_as_ident(path: &Path) -> Ident {
-    match path.segments.len() {
-        1 => single_segment_path_ident(path),
-        _ => todo!("Invalid field type"),
-    }
-}
+fn path_as_str(path: &TypePath) -> String {
+    let path = &path.path;
+    let path = quote! { #path };
 
-fn single_segment_path_ident(path: &Path) -> Ident {
-    path_segment_as_ident(path, 0)
-}
-
-fn path_segment_as_ident(path: &Path, index: usize) -> Ident {
-    debug_assert!(path.segments.len() > index);
-
-    let segment = &path.segments[index];
-    assert!(matches!(segment.arguments, PathArguments::None));
-
-    segment.ident.clone()
-}
-
-fn field_ident(f: &Field) -> Ident {
-    f.ident.as_ref().unwrap().clone()
+    path.to_string()
 }
 
 fn ensure_named_fields(fields: &Fields) -> Result<()> {
@@ -445,4 +446,13 @@ fn include_storage_ast() -> TokenStream {
         #[cfg(not(test))]
         use svm_sdk::storage::ExtStorage as StorageImpl;
     }
+}
+
+fn next_var(var_id: VarId) -> VarId {
+    let id = var_id.0;
+    VarId(id + 1)
+}
+
+fn field_ident(f: &Field) -> Ident {
+    f.ident.as_ref().unwrap().clone()
 }
