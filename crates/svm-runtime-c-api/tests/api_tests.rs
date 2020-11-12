@@ -62,7 +62,6 @@ unsafe fn test_svm_runtime() {
     let gas_limit = 0;
 
     // 1) init runtime
-    let host = std::ptr::null_mut();
     let mut state_kv = std::ptr::null_mut();
     let mut runtime = std::ptr::null_mut();
     let imports = create_imports();
@@ -71,7 +70,7 @@ unsafe fn test_svm_runtime() {
     let res = api::svm_memory_state_kv_create(&mut state_kv);
     assert!(res.is_ok());
 
-    let res = api::svm_memory_runtime_create(&mut runtime, state_kv, host, imports, &mut error);
+    let res = api::svm_memory_runtime_create(&mut runtime, state_kv, imports, &mut error);
     assert!(res.is_ok());
 
     // 2) deploy app-template

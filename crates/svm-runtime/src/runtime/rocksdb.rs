@@ -13,7 +13,6 @@ use wasmer::Export;
 
 /// Creates a new `Runtime` backed by `rocksdb` for persistence.
 pub fn create_rocksdb_runtime<P, S, GE>(
-    host: *mut c_void,
     kv_path: P,
     imports: Vec<Import>,
 ) -> DefaultRuntime<RocksdbEnv<S>, GE>
@@ -24,7 +23,7 @@ where
 {
     let env = app_env_build(&kv_path);
 
-    DefaultRuntime::new(host, env, kv_path, imports, Box::new(app_storage_build))
+    DefaultRuntime::new(env, kv_path, imports, Box::new(app_storage_build))
 }
 
 fn app_env_build<P, S>(kv_path: &P) -> RocksdbEnv<S>

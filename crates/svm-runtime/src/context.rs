@@ -10,7 +10,6 @@ use svm_types::{gas::MaybeGas, receipt::Log};
 
 /// `Context` is a container for the accessible data by `wasmer` instances.
 ///
-/// * `host`         - A pointer to the `Host`.
 /// * `storage`      - Instance's `AppStorage`.
 /// * `gas_metering` - Whether gas metering is enabled.
 
@@ -20,21 +19,16 @@ pub struct Context {
 }
 
 impl Context {
-    pub fn new(host: *mut c_void, gas_limit: MaybeGas, storage: AppStorage) -> Self {
-        let inner = ContextInner::new(host, gas_limit, storage);
+    pub fn new(gas_limit: MaybeGas, storage: AppStorage) -> Self {
+        let inner = ContextInner::new(gas_limit, storage);
 
         Self {
             inner: Rc::new(RefCell::new(inner)),
         }
     }
 
-    pub fn new_with_memory(
-        memory: Memory,
-        host: *mut c_void,
-        gas_limit: MaybeGas,
-        storage: AppStorage,
-    ) -> Self {
-        let ctx = Self::new(host, gas_limit, storage);
+    pub fn new_with_memory(memory: Memory, gas_limit: MaybeGas, storage: AppStorage) -> Self {
+        let ctx = Self::new(gas_limit, storage);
 
         ctx.borrow_mut().set_memory(memory);
 
@@ -53,11 +47,6 @@ impl Context {
 }
 
 pub struct ContextInner {
-    /// A pointer to the `host`.
-    ///
-    /// For example, `host` will point a to struct having an access to the balance of each account.
-    pub host: *mut c_void,
-
     /// Gas limit (relevant only when `gas_metering = true`)
     pub gas_limit: u64,
 
@@ -81,13 +70,12 @@ pub struct ContextInner {
 }
 
 impl ContextInner {
-    fn new(host: *mut c_void, gas_limit: MaybeGas, storage: AppStorage) -> Self {
+    fn new(gas_limit: MaybeGas, storage: AppStorage) -> Self {
         let gas_metering = gas_limit.is_some();
         let gas_limit = gas_limit.unwrap_or(0);
         let logs = Vec::new();
 
         Self {
-            host,
             storage,
             gas_metering,
             gas_limit,
