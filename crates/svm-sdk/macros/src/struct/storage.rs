@@ -68,7 +68,7 @@ fn field_var(field: &Field, id: VarId) -> Result<Var> {
     let var = match &field.ty {
         Type::Array(array) => {
             let ty = parse_array_elem_type(&array)?;
-            let length = parse_array_length(&array);
+            let length = parse_array_length(&array)?;
             let name = field_ident(field);
 
             Var::Array {
@@ -106,25 +106,23 @@ fn parse_array_elem_type(array: &TypeArray) -> Result<Ident> {
     }
 }
 
-fn parse_array_length(array: &TypeArray) -> u32 {
-    match &array.len {
-        Expr::Lit(ExprLit { attrs, lit }) => {
-            assert!(attrs.is_empty());
+fn parse_array_length(array: &TypeArray) -> Result<u32> {
+    if let Expr::Lit(ExprLit { attrs, lit }) = &array.len {
+        assert!(attrs.is_empty());
 
-            match lit {
-                Lit::Int(num) => {
-                    let num = num.base10_parse();
+        if let Lit::Int(num) = lit {
+            let num = num.base10_parse();
 
-                    match num {
-                        Ok(num) => num,
-                        Err(..) => todo!("Invalid array length"),
-                    }
-                }
-                _ => todo!("Invalid array length"),
+            if num.is_ok() {
+                return num;
             }
         }
-        _ => todo!("Invalid array length"),
     }
+
+    let span = Span::call_site();
+    let msg = "Invalid array length";
+
+    Err(Error::new(span, msg))
 }
 
 fn parse_type_path(path: &TypePath) -> Result<Ident> {
@@ -241,7 +239,7 @@ fn getter_ast(var: &Var) -> TokenStream {
                         }
                     }
                 }
-                "Amount" => {
+                "svm_sdk :: Amount" | "Amount" => {
                     quote! {
                         fn #getter_name () -> svm_sdk::Amount {
                             #includes
@@ -250,7 +248,7 @@ fn getter_ast(var: &Var) -> TokenStream {
                         }
                     }
                 }
-                "Address" => {
+                "svm_sdk :: Address" | "Address" => {
                     quote! {
                         fn #getter_name () -> svm_sdk::Address {
                             #includes
@@ -300,14 +298,14 @@ fn getter_ast(var: &Var) -> TokenStream {
                         }
                     }
                 }
-                "Amount" => quote! {
+                "svm_sdk :: Amount" | "Amount" => quote! {
                     fn #getter_name (index: usize) -> svm_sdk::Amount {
                         #includes
 
                         svm_sdk::storage::ops::array_get_amount::<StorageImpl>(#id, index, #length)
                     }
                 },
-                "Address" => quote! {
+                "svm_sdk :: Address" | "Address" => quote! {
                     fn #getter_name (index: usize) -> svm_sdk::Address {
                         #includes
 
@@ -353,14 +351,14 @@ fn setter_ast(var: &Var) -> TokenStream {
                         svm_sdk::storage::ops::set_bool::<StorageImpl>(#id, value);
                     }
                 },
-                "Amount" => quote! {
+                "svm_sdk :: Amount" | "Amount" => quote! {
                     fn #setter_name (value: svm_sdk::Amount) {
                         #includes
 
                         svm_sdk::storage::ops::set_amount::<StorageImpl>(#id, value);
                     }
                 },
-                "Address" => quote! {
+                "svm_sdk::Address" | "Address" => quote! {
                     fn #setter_name(value: &svm_sdk::Address) {
                         #includes
 
@@ -406,7 +404,7 @@ fn setter_ast(var: &Var) -> TokenStream {
                         }
                     }
                 }
-                "Amount" => {
+                "svm_sdk :: Amount" | "Amount" => {
                     quote! {
                         fn #setter_name (index: usize, value: Amount) {
                             #includes
@@ -415,7 +413,7 @@ fn setter_ast(var: &Var) -> TokenStream {
                         }
                     }
                 }
-                "Address" => {
+                "svm_sdk :: Address" | "Address" => {
                     quote! {
                         fn #setter_name (index: usize, value: &svm_sdk::Address) {
                             #includes
