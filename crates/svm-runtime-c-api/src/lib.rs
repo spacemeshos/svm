@@ -16,6 +16,7 @@ mod address;
 mod api;
 mod byte_array;
 mod error;
+mod externals;
 mod layout;
 mod macros;
 mod result;

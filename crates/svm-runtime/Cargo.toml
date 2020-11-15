@@ -7,12 +7,12 @@ edition = "2018"
 publish = false
 
 [dependencies.wasmer]
-git = "https://github.com/wasmerio/wasmer"
+version="1.0.0-alpha5"
 default-features = false
 features = ["default-cranelift", "default-jit"]
 
 [dependencies.wasmer-vm]
-git = "https://github.com/wasmerio/wasmer"
+version="1.0.0-alpha5"
 
 [dependencies]
 svm-common = { path = "../svm-common" }

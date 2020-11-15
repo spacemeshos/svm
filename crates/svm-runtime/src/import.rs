@@ -5,7 +5,7 @@ use crate::Context;
 use svm_types::WasmType;
 
 use wasmer::{Export, FunctionType, Type as WasmerType};
-use wasmer_vm::{ExportFunction, VMContext, VMFunctionKind};
+use wasmer_vm::{ExportFunction, VMContext, VMFunctionEnvironment, VMFunctionKind};
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Import {
@@ -19,14 +19,15 @@ pub struct Import {
 }
 
 impl Import {
-    pub fn to_wasmer(&self, ctx: Context) -> Export {
+    pub fn to_wasmer(&self, _ctx: Context) -> Export {
         let params = to_wasmer_types(&self.params);
         let returns = to_wasmer_types(&self.returns);
+
         let signature = FunctionType::new(params, returns);
 
-        // TODO: needs to free `ctx`.
-        let boxed_ctx = Box::new(ctx);
-        let vmctx = Box::into_raw(boxed_ctx) as *mut _ as *mut VMContext;
+        let vmctx = VMFunctionEnvironment {
+            host_env: std::ptr::null_mut(),
+        };
 
         let func = ExportFunction {
             address: self.func_ptr as _,
