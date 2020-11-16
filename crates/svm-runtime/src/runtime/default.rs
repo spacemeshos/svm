@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::ffi::c_void;
 use std::fmt;
 use std::marker::PhantomData;
@@ -38,7 +39,7 @@ pub struct DefaultRuntime<ENV, GE> {
     /// The runtime configuration
     pub config: Config,
 
-    /// External imports (living inside the host) to be consumed by the App.
+    /// External imports (living inside the so-called `Host` or `Node`) to be consumed by the App.
     pub imports: Vec<Import>,
 
     /// builds a `AppStorage` instance.
@@ -531,20 +532,26 @@ where
         let mut import_object = ImportObject::new();
 
         let mut svm = Exports::new();
-        let mut host = Exports::new();
-
         vmcalls::wasmer_register(store, ctx, &mut svm);
 
-        for import in self.imports.iter() {
-            let name = import.name.clone();
-            let import = import.to_wasmer(ctx.clone());
+        let mut imports = HashMap::new();
 
-            let ext = Extern::from_export(store, import);
-            host.insert(name, ext);
+        for import in self.imports.iter() {
+            let namespace = import.namespace().clone();
+            let name = import.name().clone();
+
+            let exports = imports.entry(namespace).or_insert(Exports::new());
+
+            let export = import.wasmer_export(store, ctx.clone());
+            let ext = Extern::from_export(store, export);
+
+            exports.insert(name, ext);
         }
 
+        for (ns, exports) in imports.drain() {
+            import_object.register(ns, exports);
+        }
         import_object.register("svm", svm);
-        import_object.register("host", host);
 
         import_object
     }

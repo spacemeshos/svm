@@ -11,6 +11,11 @@ version="1.0.0-alpha5"
 default-features = false
 features = ["default-cranelift", "default-jit"]
 
+[dependencies.wasmer-c-api]
+version="1.0.0-alpha5"
+default-features = false
+features = ["cranelift", "jit"]
+
 [dependencies.wasmer-vm]
 version="1.0.0-alpha5"
 

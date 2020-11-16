@@ -19,7 +19,7 @@ mod import;
 mod storage;
 
 pub mod env;
-pub use import::Import;
+pub use import::{ExternImport, Import};
 
 /// Implements `Context`. Used for managing data of running `SVM` apps.
 mod context;

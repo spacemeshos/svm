@@ -1277,6 +1277,7 @@ dependencies = [
  "svm-storage",
  "svm-types",
  "wasmer",
+ "wasmer-c-api",
  "wasmer-vm",
  "wat",
 ]

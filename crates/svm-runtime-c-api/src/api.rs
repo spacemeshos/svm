@@ -14,7 +14,7 @@ use svm_codec::api::raw;
 use svm_layout::DataLayout;
 
 use svm_runtime::env::default::DefaultSerializerTypes;
-use svm_runtime::{gas::DefaultGasEstimator, Context, Import};
+use svm_runtime::{gas::DefaultGasEstimator, Context, ExternImport, Import};
 
 use svm_storage::kv::{ExternKV, StatefulKV};
 use svm_types::{Address, State, WasmType};
@@ -282,6 +282,7 @@ pub unsafe extern "C" fn svm_imports_alloc(imports: *mut *mut c_void, count: u32
 /// // allocate one imports
 /// let mut imports = testing::imports_alloc(1);
 ///
+/// let namespace = String::from("env").into();
 /// let import_name = String::from("foo").into();
 /// let params = Vec::<WasmType>::new();
 /// let returns = Vec::<WasmType>::new();
@@ -292,6 +293,7 @@ pub unsafe extern "C" fn svm_imports_alloc(imports: *mut *mut c_void, count: u32
 ///   svm_import_func_new(
 ///     imports,
 ///     import_name,
+///     namespace,
 ///     func_ptr,
 ///     params.into(),
 ///     returns.into(),
@@ -305,6 +307,7 @@ pub unsafe extern "C" fn svm_imports_alloc(imports: *mut *mut c_void, count: u32
 pub unsafe extern "C" fn svm_import_func_new(
     imports: *mut c_void,
     import_name: svm_byte_array,
+    namespace: svm_byte_array,
     func_ptr: *const c_void,
     params: svm_byte_array,
     returns: svm_byte_array,
@@ -342,12 +345,19 @@ pub unsafe extern "C" fn svm_import_func_new(
         return svm_result_t::SVM_FAILURE;
     }
 
-    let import = Import {
+    let namespace = String::try_from(namespace);
+    if namespace.is_err() {
+        raw_utf8_error(namespace, error);
+        return svm_result_t::SVM_FAILURE;
+    }
+
+    let import = Import::Extern(ExternImport {
         func_ptr,
         name: import_name.unwrap(),
+        namespace: namespace.unwrap(),
         params: params.unwrap(),
         returns: returns.unwrap(),
-    };
+    });
 
     imports.push(import);
 
