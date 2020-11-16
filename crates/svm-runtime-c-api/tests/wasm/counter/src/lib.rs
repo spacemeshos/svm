@@ -60,6 +60,6 @@ pub extern "C" fn add_and_mul() {
         let new = old + add;
         svm_set32(VAR_ID, new);
 
-        counter_mul(1, 2);
+        counter_mul(VAR_ID, mul);
     }
 }

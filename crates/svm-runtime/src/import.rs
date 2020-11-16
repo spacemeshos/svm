@@ -11,7 +11,7 @@ use wasmer::{Export, Exportable, Function, FunctionType, RuntimeError, Store, Ty
 use wasmer_c_api::wasm_c_api::{
     externals::{
         wasm_env_finalizer_t, wasm_extern_as_func, wasm_extern_t, wasm_func_as_extern,
-        wasm_func_callback_t, wasm_func_new_with_env, wasm_func_t,
+        wasm_func_callback_with_env_t, wasm_func_new_with_env, wasm_func_t,
     },
     trap::wasm_trap_t,
     types::{wasm_functype_t, wasm_valkind_enum},
@@ -69,7 +69,7 @@ pub struct ExternImport {
 }
 
 impl Import {
-    pub fn wasmer_export(&self, store: &Store, context: Context) -> Export {
+    pub fn wasmer_export(&self, store: &Store, ctx: &mut Context) -> Export {
         match self {
             Import::Host(import) => {
                 // let func_ty = self.wasmer_function_ty();
@@ -88,46 +88,53 @@ impl Import {
             Import::Extern(import) => {
                 unsafe {
                     // This code is almost a clone of the code here:
-                    // https://github.com/wasmerio/wasmer/blob/7847acaae1e7a0eade13b65def1f3feeac95efd7/lib/c-api/src/wasm_c_api/externals/function.rs#L34
+                    // https://github.com/wasmerio/wasmer/blob/7847acaae1e7a0eade13b65def1f3feeac95efd7/lib/c-api/src/wasm_c_api/externals/function.rs#L86
+
                     let func_ty = self.wasmer_function_ty();
 
-                    let callback: wasm_func_callback_t = std::mem::transmute(import.func_ptr);
+                    let callback: wasm_func_callback_with_env_t =
+                        std::mem::transmute(import.func_ptr);
 
                     let num_rets = func_ty.results().len();
 
-                    let inner_callback = move |args: &[Val]| -> Result<Vec<Val>, RuntimeError> {
-                        let processed_args: wasm_val_vec_t = args
-                            .into_iter()
-                            .map(TryInto::try_into)
-                            .collect::<Result<Vec<wasm_val_t>, _>>()
-                            .expect("Argument conversion failed")
-                            .into();
+                    let inner_callback =
+                        move |env: &mut *mut c_void,
+                              args: &[Val]|
+                              -> Result<Vec<Val>, RuntimeError> {
+                            let processed_args: wasm_val_vec_t = args
+                                .into_iter()
+                                .map(TryInto::try_into)
+                                .collect::<Result<Vec<wasm_val_t>, _>>()
+                                .expect("Argument conversion failed")
+                                .into();
 
-                        let zero = wasm_val_t::try_from(Val::I64(0)).unwrap();
-                        let mut results: wasm_val_vec_t = vec![zero; num_rets].into();
+                            let zero = wasm_val_t::try_from(Val::I64(0)).unwrap();
+                            let mut results: wasm_val_vec_t = vec![zero; num_rets].into();
 
-                        let trap = callback(&processed_args, &mut results);
+                            let trap = callback(*env, &processed_args, &mut results);
 
-                        if !trap.is_null() {
-                            let trap: Box<wasm_trap_t> = Box::from_raw(trap);
+                            if !trap.is_null() {
+                                let trap: Box<wasm_trap_t> = Box::from_raw(trap);
 
-                            // TODO: we want access to `trap.inner`
-                            let err = RuntimeError::new("unexpected error");
-                            return Err(err);
-                        }
+                                // TODO: we want access to `trap.inner`
+                                let err = RuntimeError::new("unexpected error");
+                                return Err(err);
+                            }
 
-                        let processed_results = results
-                            .into_slice()
-                            .expect("Failed to convert `results` into a slice")
-                            .into_iter()
-                            .map(TryInto::try_into)
-                            .collect::<Result<Vec<Val>, _>>()
-                            .expect("Result conversion failed");
+                            let processed_results = results
+                                .into_slice()
+                                .expect("Failed to convert `results` into a slice")
+                                .into_iter()
+                                .map(TryInto::try_into)
+                                .collect::<Result<Vec<Val>, _>>()
+                                .expect("Result conversion failed");
 
-                        Ok(processed_results)
-                    };
+                            Ok(processed_results)
+                        };
 
-                    let function = Function::new(store, &func_ty, inner_callback);
+                    let env = ctx as *mut Context as *mut c_void;
+                    let function = Function::new_with_env(store, &func_ty, env, inner_callback);
+
                     function.to_export()
                 }
             }

@@ -1,8 +1,11 @@
+#![allow(unused)]
+
 extern crate svm_runtime_c_api;
 
 use svm_runtime_c_api as api;
 use svm_runtime_c_api::svm_byte_array;
 
+use std::convert::TryFrom;
 use std::ffi::c_void;
 
 use svm_codec::api::raw;
@@ -11,31 +14,33 @@ use svm_runtime::{testing::WasmFile, vmcalls, Context};
 use svm_sdk::traits::Encoder;
 use svm_types::{Address, State, WasmType};
 
-use wasmer_c_api::wasm_c_api::{trap::wasm_trap_t, value::wasm_val_vec_t};
+use wasmer::Val;
+use wasmer_c_api::wasm_c_api::{
+    trap::wasm_trap_t,
+    value::{wasm_val_t, wasm_val_vec_t},
+};
 
 #[no_mangle]
-extern "C" fn counter_mul(
-    ctx: &mut Context,
+unsafe extern "C" fn counter_mul(
+    ctx: *mut c_void,
     args: *const wasm_val_vec_t,
-    rets: *mut wasm_val_vec_t,
+    results: *mut wasm_val_vec_t,
 ) -> *mut wasm_trap_t {
-    dbg!("XXXXXXXXXXXX");
-    dbg!("XXXXXXXXXXXX");
-    dbg!("XXXXXXXXXXXX");
-    dbg!("XXXXXXXXXXXX");
-    dbg!("XXXXXXXXXXXX");
-    dbg!("XXXXXXXXXXXX");
-    dbg!("XXXXXXXXXXXX");
-    dbg!("XXXXXXXXXXXX");
-    dbg!("XXXXXXXXXXXX");
-    dbg!("XXXXXXXXXXXX");
+    let args = &*args;
+    let args: &[wasm_val_t] = std::slice::from_raw_parts(args.data, args.size);
 
-    // dbg!(format!("var_id: {}, mul: {}", var_id, mul));
-    // let mut counter = vmcalls::get32(ctx, var_id);
+    let ctx = &mut *(ctx as *mut Context);
 
-    // counter *= mul;
+    let var_id = Val::try_from(&args[0]).unwrap();
+    let mul = Val::try_from(&args[1]).unwrap();
 
-    // vmcalls::set32(ctx, var_id, counter);
+    let var_id = var_id.unwrap_i32() as u32;
+    let mul = mul.unwrap_i32() as u32;
+
+    let old = vmcalls::get32(ctx, var_id);
+    let new = old * mul;
+
+    vmcalls::set32(ctx, var_id, new);
 
     return std::ptr::null_mut();
 }
@@ -188,9 +193,9 @@ unsafe fn test_svm_runtime() {
     let mul = 3u32;
 
     let mut calldata = Vec::new();
+
     add.encode(&mut calldata);
     mul.encode(&mut calldata);
-    // vec![add, mul].encode(&mut calldata);
 
     let bytes = exec_app_bytes(version, &app_addr, func_name, &calldata);
     let tx_bytes: svm_byte_array = bytes.into();
@@ -215,8 +220,6 @@ unsafe fn test_svm_runtime() {
     assert!(res.is_ok());
 
     let receipt = raw::decode_receipt(exec_receipt.clone().into()).into_exec_app();
-    dbg!(&receipt);
-
     assert_eq!(receipt.success, true);
 
     let _ = api::svm_byte_array_destroy(template_addr);

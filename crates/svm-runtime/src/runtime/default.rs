@@ -255,8 +255,8 @@ where
             }
             Ok((template, template_addr, _author, _creator)) => {
                 let store = svm_compiler::new_store();
-                let ctx = self.create_context(&template, &tx.app, &state, gas_left);
-                let import_object = self.create_import_object(&store, &ctx);
+                let mut ctx = self.create_context(&template, &tx.app, &state, gas_left);
+                let import_object = self.create_import_object(&store, &mut ctx);
 
                 let (result, logs) = self.do_exec_app(
                     &store,
@@ -529,7 +529,7 @@ where
         Context::new(gas_limit, storage)
     }
 
-    fn create_import_object(&self, store: &Store, ctx: &Context) -> ImportObject {
+    fn create_import_object(&self, store: &Store, ctx: &mut Context) -> ImportObject {
         let mut import_object = ImportObject::new();
 
         let mut exports = HashMap::new();
@@ -540,7 +540,7 @@ where
             let namespace = import.namespace();
             let ns_exports = exports.entry(namespace).or_insert(Exports::new());
 
-            let export = import.wasmer_export(store, ctx.clone());
+            let export = import.wasmer_export(store, ctx);
             let ext = Extern::from_export(store, export);
 
             ns_exports.insert(import.name(), ext);
