@@ -14,7 +14,7 @@ use wasmer::Export;
 /// Creates a new `Runtime` backed by `rocksdb` for persistence.
 pub fn create_rocksdb_runtime<P, S, GE>(
     kv_path: P,
-    imports: Vec<Import>,
+    imports: *const Vec<Import>,
 ) -> DefaultRuntime<RocksdbEnv<S>, GE>
 where
     P: AsRef<Path>,

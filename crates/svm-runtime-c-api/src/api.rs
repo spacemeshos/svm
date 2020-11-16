@@ -497,7 +497,7 @@ pub unsafe extern "C" fn svm_memory_runtime_create(
 
     let imports = helpers::cast_to_imports(imports);
     let state_kv = svm_common::from_raw_mut(state_kv);
-    let mem_runtime = svm_runtime::testing::create_memory_runtime(state_kv, imports.to_vec());
+    let mem_runtime = svm_runtime::testing::create_memory_runtime(state_kv, imports);
 
     let res = box_runtime!(runtime, mem_runtime);
 

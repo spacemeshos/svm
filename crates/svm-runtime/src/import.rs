@@ -20,6 +20,7 @@ use wasmer_c_api::wasm_c_api::{
 
 pub enum Import {
     Host(HostImport),
+
     Extern(ExternImport),
 }
 
@@ -39,7 +40,8 @@ impl Import {
     }
 }
 
-type WasmerHostFunction = dyn Fn(&mut Context, &[Val]) -> Result<Vec<Val>, RuntimeError> + 'static;
+type WasmerHostFunction =
+    Box<dyn Fn(&mut Context, &[Val]) -> Result<Vec<Val>, RuntimeError> + 'static>;
 
 pub struct HostImport {
     pub name: String,
@@ -50,7 +52,7 @@ pub struct HostImport {
 
     pub returns: Vec<WasmType>,
 
-    pub func: Box<WasmerHostFunction>,
+    pub func: WasmerHostFunction,
 }
 
 #[derive(Debug, Clone)]
@@ -69,7 +71,20 @@ pub struct ExternImport {
 impl Import {
     pub fn wasmer_export(&self, store: &Store, context: Context) -> Export {
         match self {
-            Import::Host(import) => todo!("this is for testing purposes"),
+            Import::Host(import) => {
+                // let func_ty = self.wasmer_function_ty();
+
+                // let inner_callback =
+                //     move |ctx: &mut Context, args: &[Val]| -> Result<Vec<Val>, RuntimeError> {
+                //         let func = &*import.func;
+
+                //         todo!()
+                //     };
+
+                // let callback = Function::new_with_env(store, &func_ty, context, inner_callback);
+
+                todo!()
+            }
             Import::Extern(import) => {
                 unsafe {
                     // This code is almost a clone of the code here:

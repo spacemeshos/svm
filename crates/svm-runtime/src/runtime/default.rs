@@ -40,7 +40,7 @@ pub struct DefaultRuntime<ENV, GE> {
     pub config: Config,
 
     /// External imports (living inside the so-called `Host` or `Node`) to be consumed by the App.
-    pub imports: Vec<Import>,
+    pub imports: *const Vec<Import>,
 
     /// builds a `AppStorage` instance.
     pub storage_builder: Box<StorageBuilderFn>,
@@ -167,7 +167,7 @@ where
     pub fn new<P: AsRef<Path>>(
         env: ENV,
         kv_path: P,
-        imports: Vec<Import>,
+        imports: *const Vec<Import>,
         storage_builder: Box<StorageBuilderFn>,
     ) -> Self {
         let config = Config::new(kv_path);
@@ -533,7 +533,9 @@ where
 
         let mut exports = HashMap::new();
 
-        for import in self.imports.iter() {
+        let imports: &[Import] = unsafe { &*self.imports as _ };
+
+        for import in imports.iter() {
             let namespace = import.namespace();
             let ns_exports = exports.entry(namespace).or_insert(Exports::new());
 
