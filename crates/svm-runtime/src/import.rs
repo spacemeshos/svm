@@ -89,8 +89,8 @@ impl Import {
                 unsafe {
                     // This code is almost a clone of the code here:
                     // https://github.com/wasmerio/wasmer/blob/7847acaae1e7a0eade13b65def1f3feeac95efd7/lib/c-api/src/wasm_c_api/externals/function.rs#L34
-
                     let func_ty = self.wasmer_function_ty();
+
                     let callback: wasm_func_callback_t = std::mem::transmute(import.func_ptr);
 
                     let num_rets = func_ty.results().len();

@@ -1,5 +1,4 @@
-use svm_abi_decoder::CallData;
-use svm_sdk;
+use svm_sdk::CallData;
 
 const VAR_ID: u32 = 0;
 
@@ -14,6 +13,11 @@ extern "C" {
     fn svm_set32(var_id: u32, value: u32);
 }
 
+#[link(wasm_import_module = "host")]
+extern "C" {
+    fn counter_mul(var_id: u32, mul: u32);
+}
+
 fn get_calldata() -> &'static [u8] {
     unsafe {
         let ptr = svm_calldata_offset();
@@ -25,14 +29,15 @@ fn get_calldata() -> &'static [u8] {
 
 #[no_mangle]
 pub extern "C" fn svm_alloc(size: i32) -> i32 {
-    svm_sdk::memory::alloc(size as usize) as i32
+    let ptr = svm_sdk::alloc(size as usize);
+
+    ptr.offset() as i32
 }
 
 #[no_mangle]
 pub extern "C" fn initialize() {
-    let calldata = get_calldata();
-
-    let mut calldata = CallData::new(calldata);
+    let bytes = get_calldata();
+    let mut calldata = CallData::new(bytes);
 
     let initial: u32 = calldata.next_1();
 
@@ -42,17 +47,19 @@ pub extern "C" fn initialize() {
 }
 
 #[no_mangle]
-pub extern "C" fn add() {
+pub extern "C" fn add_and_mul() {
     let calldata = get_calldata();
 
     let mut calldata = CallData::new(calldata);
 
-    let addition: u32 = calldata.next_1();
+    let add: u32 = calldata.next_1();
+    let mul: u32 = calldata.next_1();
 
     unsafe {
         let old = svm_get32(VAR_ID);
-        let new = old + addition;
-
+        let new = old + add;
         svm_set32(VAR_ID, new);
+
+        counter_mul(1, 2);
     }
 }

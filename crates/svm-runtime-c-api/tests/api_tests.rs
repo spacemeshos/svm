@@ -5,17 +5,66 @@ use svm_runtime_c_api::svm_byte_array;
 
 use std::ffi::c_void;
 
-use svm_abi_encoder::Encoder;
 use svm_codec::api::raw;
 use svm_layout::DataLayout;
-use svm_runtime::testing::WasmFile;
-use svm_types::{Address, State};
+use svm_runtime::{testing::WasmFile, vmcalls, Context};
+use svm_sdk::traits::Encoder;
+use svm_types::{Address, State, WasmType};
+
+use wasmer_c_api::wasm_c_api::{trap::wasm_trap_t, value::wasm_val_vec_t};
+
+#[no_mangle]
+extern "C" fn counter_mul(
+    ctx: &mut Context,
+    args: *const wasm_val_vec_t,
+    rets: *mut wasm_val_vec_t,
+) -> *mut wasm_trap_t {
+    dbg!("XXXXXXXXXXXX");
+    dbg!("XXXXXXXXXXXX");
+    dbg!("XXXXXXXXXXXX");
+    dbg!("XXXXXXXXXXXX");
+    dbg!("XXXXXXXXXXXX");
+    dbg!("XXXXXXXXXXXX");
+    dbg!("XXXXXXXXXXXX");
+    dbg!("XXXXXXXXXXXX");
+    dbg!("XXXXXXXXXXXX");
+    dbg!("XXXXXXXXXXXX");
+
+    // dbg!(format!("var_id: {}, mul: {}", var_id, mul));
+    // let mut counter = vmcalls::get32(ctx, var_id);
+
+    // counter *= mul;
+
+    // vmcalls::set32(ctx, var_id, counter);
+
+    return std::ptr::null_mut();
+}
 
 unsafe fn create_imports() -> *const c_void {
     let mut imports = std::ptr::null_mut();
-    let length = 0;
+    let length = 1;
 
     let res = api::svm_imports_alloc(&mut imports, length);
+    assert!(res.is_ok());
+
+    // `counter_mul` import
+    let func_ptr: *const c_void = counter_mul as _;
+    let params = vec![WasmType::I32, WasmType::I32];
+    let returns: Vec<WasmType> = Vec::new();
+    let namespace = b"host".to_vec();
+    let import_name = b"counter_mul".to_vec();
+
+    let mut error = svm_byte_array::default();
+
+    let res = api::svm_import_func_new(
+        imports,
+        namespace.into(),
+        import_name.into(),
+        func_ptr,
+        params.into(),
+        returns.into(),
+        &mut error,
+    );
     assert!(res.is_ok());
 
     imports as _
@@ -102,10 +151,10 @@ unsafe fn test_svm_runtime() {
     let name = "My App";
     let spawner = Address::of("spawner").into();
     let ctor_name = "initialize";
-    let mut counter: u32 = 10;
+    let counter_init: u32 = 10;
 
     let mut calldata = Vec::new();
-    counter.encode(&mut calldata);
+    counter_init.encode(&mut calldata);
 
     // raw `spawn-app`
     let bytes = spawn_app_bytes(version, &template_addr, name, ctor_name, &calldata);
@@ -126,18 +175,22 @@ unsafe fn test_svm_runtime() {
 
     // extracts the spawned-app `Address` and initial `State`.
     let receipt = raw::decode_receipt(spawn_receipt.clone().into()).into_spawn_app();
-    let app_addr: &Address = receipt.get_app_addr().inner();
+    assert_eq!(receipt.success, true);
+    let app_addr = receipt.get_app_addr().inner();
     let app_addr: svm_byte_array = app_addr.into();
 
-    let init_state: &State = receipt.get_init_state();
+    let init_state = receipt.get_init_state();
     let init_state: svm_byte_array = init_state.into();
 
     // 4) execute app
-    let func_name = "add";
+    let func_name = "add_and_mul";
+    let add = 5u32;
+    let mul = 3u32;
 
-    counter += 10;
     let mut calldata = Vec::new();
-    counter.encode(&mut calldata);
+    add.encode(&mut calldata);
+    mul.encode(&mut calldata);
+    // vec![add, mul].encode(&mut calldata);
 
     let bytes = exec_app_bytes(version, &app_addr, func_name, &calldata);
     let tx_bytes: svm_byte_array = bytes.into();
@@ -161,7 +214,10 @@ unsafe fn test_svm_runtime() {
     );
     assert!(res.is_ok());
 
-    let _receipt = raw::decode_receipt(exec_receipt.clone().into()).into_exec_app();
+    let receipt = raw::decode_receipt(exec_receipt.clone().into()).into_exec_app();
+    dbg!(&receipt);
+
+    assert_eq!(receipt.success, true);
 
     let _ = api::svm_byte_array_destroy(template_addr);
     let _ = api::svm_byte_array_destroy(app_addr);

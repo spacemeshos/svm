@@ -1,9 +1,8 @@
 #![feature(vec_into_raw_parts)]
 #![allow(improper_ctypes_definitions)]
 
-use svm_abi_decoder::{Cursor, Decoder};
-use svm_abi_encoder::Encoder;
-use svm_sdk::Address;
+use svm_sdk::traits::Encoder;
+use svm_sdk::{Address, CallData};
 
 const VAR_ID: u32 = 0;
 
@@ -39,18 +38,18 @@ pub extern "C" fn initialize() {
 
 #[no_mangle]
 pub extern "C" fn svm_alloc(size: u32) -> u32 {
-    svm_sdk::memory::alloc(size as usize) as u32
+    let ptr = svm_sdk::alloc(size as usize);
+
+    ptr.offset() as u32
 }
 
 #[no_mangle]
 pub extern "C" fn store_addr() {
-    let calldata = get_calldata();
+    let bytes = get_calldata();
+    let mut calldata = CallData::new(bytes);
 
-    let mut cursor = Cursor::new(calldata);
-    let decoder = Decoder::new();
-
-    let addr: Address = decoder.decode_value(&mut cursor).unwrap().into();
-    let offset = addr.as_ptr() as usize as u32;
+    let addr: Address = calldata.next_1();
+    let offset = addr.offset() as u32;
 
     unsafe { svm_store160(offset, VAR_ID) };
 }
@@ -68,11 +67,12 @@ pub extern "C" fn return_addr() {
 }
 
 fn load_addr() -> Address {
-    let ptr = svm_sdk::memory::alloc(20) as u32;
+    let ptr = svm_sdk::alloc(Address::len());
+    let off = ptr.offset() as u32;
 
-    unsafe { svm_load160(VAR_ID, ptr) };
+    unsafe { svm_load160(VAR_ID, off) };
 
-    let bytes: &[u8] = unsafe { core::slice::from_raw_parts(ptr as *const u8, 20) };
+    let bytes: &[u8] = unsafe { core::slice::from_raw_parts(ptr.as_ptr(), Address::len()) };
 
     bytes.into()
 }

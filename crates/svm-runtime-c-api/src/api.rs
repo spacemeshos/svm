@@ -292,8 +292,8 @@ pub unsafe extern "C" fn svm_imports_alloc(imports: *mut *mut c_void, count: u32
 /// let res = unsafe {
 ///   svm_import_func_new(
 ///     imports,
-///     import_name,
 ///     namespace,
+///     import_name,
 ///     func_ptr,
 ///     params.into(),
 ///     returns.into(),
@@ -306,8 +306,8 @@ pub unsafe extern "C" fn svm_imports_alloc(imports: *mut *mut c_void, count: u32
 #[no_mangle]
 pub unsafe extern "C" fn svm_import_func_new(
     imports: *mut c_void,
-    import_name: svm_byte_array,
     namespace: svm_byte_array,
+    import_name: svm_byte_array,
     func_ptr: *const c_void,
     params: svm_byte_array,
     returns: svm_byte_array,
