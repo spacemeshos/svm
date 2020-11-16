@@ -547,7 +547,7 @@ pub unsafe extern "C" fn svm_runtime_create(
         &Path,
         DefaultSerializerTypes,
         DefaultGasEstimator,
-    >(Path::new(&kv_path), imports.to_vec());
+    >(Path::new(&kv_path), imports);
 
     let res = box_runtime!(runtime, rocksdb_runtime);
 

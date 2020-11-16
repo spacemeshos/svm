@@ -22,6 +22,7 @@ where
     GE: GasEstimator,
 {
     let env = app_env_build(&kv_path);
+    let imports = unsafe { &*imports };
 
     DefaultRuntime::new(env, kv_path, imports, Box::new(app_storage_build))
 }

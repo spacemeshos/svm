@@ -20,7 +20,7 @@ macro_rules! default_runtime {
         let state_kv = testing::memory_state_kv_init();
         let imports = Vec::new();
 
-        let imports = Box::into_raw(Box::new(imports));
+        let imports = Box::leak(Box::new(imports));
 
         testing::create_memory_runtime(&state_kv, imports)
     }};

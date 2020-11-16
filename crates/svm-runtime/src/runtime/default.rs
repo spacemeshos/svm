@@ -31,19 +31,19 @@ use wasmer::{
     NativeFunc, Pages, Store, Type as WasmerType, Value as WasmerValue, WasmPtr,
 };
 
-/// Default `Runtime` implementation based on `wasmer`.
+/// Default `Runtime` implementation based on `Wasmer`.
 pub struct DefaultRuntime<ENV, GE> {
     /// The runtime environment. Used mainly for managing app persistence.
-    pub env: ENV,
+    env: ENV,
 
     /// The runtime configuration
-    pub config: Config,
+    config: Config,
 
-    /// External imports (living inside the so-called `Host` or `Node`) to be consumed by the App.
-    pub imports: *const Vec<Import>,
+    /// External imports (living in the so-called `Host` or `Node`) to be consumed by the App.
+    imports: *const Vec<Import>,
 
     /// builds a `AppStorage` instance.
-    pub storage_builder: Box<StorageBuilderFn>,
+    storage_builder: Box<StorageBuilderFn>,
 
     phantom: PhantomData<GE>,
 }
@@ -167,10 +167,11 @@ where
     pub fn new<P: AsRef<Path>>(
         env: ENV,
         kv_path: P,
-        imports: *const Vec<Import>,
+        imports: &Vec<Import>,
         storage_builder: Box<StorageBuilderFn>,
     ) -> Self {
         let config = Config::new(kv_path);
+        let imports = imports as *const _;
 
         Self {
             env,
