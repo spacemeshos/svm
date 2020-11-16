@@ -69,21 +69,7 @@ pub struct ExternImport {
 impl Import {
     pub fn wasmer_export(&self, store: &Store, context: Context) -> Export {
         match self {
-            Import::Host(import) => {
-                todo!()
-                // let func_ty = self.wasmer_function_ty();
-
-                // let inner_callback =
-                //     move |ctx: &mut Context, args: &[Val]| -> Result<Vec<Val>, RuntimeError> {
-                //         // let callback = &import.func;
-                //         // let result = callback(ctx, args);
-
-                //         todo!()
-                //     };
-
-                // let func = Function::new_with_env(store, &func_ty, context, inner_callback);
-                // func.to_export()
-            }
+            Import::Host(import) => todo!("this is for testing purposes"),
             Import::Extern(import) => {
                 unsafe {
                     // This code is almost a clone of the code here:
@@ -102,9 +88,7 @@ impl Import {
                             .expect("Argument conversion failed")
                             .into();
 
-                        let zero = Val::I64(0);
-                        let zero = wasm_val_t::try_from(zero).unwrap();
-
+                        let zero = wasm_val_t::try_from(Val::I64(0)).unwrap();
                         let mut results: wasm_val_vec_t = vec![zero; num_rets].into();
 
                         let trap = callback(&processed_args, &mut results);
@@ -143,6 +127,7 @@ impl Import {
 
         let params = to_wasmer_types(params);
         let returns = to_wasmer_types(returns);
+
         FunctionType::new(params, returns)
     }
 }

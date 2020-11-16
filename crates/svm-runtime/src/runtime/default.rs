@@ -531,26 +531,24 @@ where
     fn create_import_object(&self, store: &Store, ctx: &Context) -> ImportObject {
         let mut import_object = ImportObject::new();
 
-        let mut svm = Exports::new();
-        vmcalls::wasmer_register(store, ctx, &mut svm);
-
-        let mut imports = HashMap::new();
+        let mut exports = HashMap::new();
 
         for import in self.imports.iter() {
-            let namespace = import.namespace().clone();
-            let name = import.name().clone();
-
-            let exports = imports.entry(namespace).or_insert(Exports::new());
+            let namespace = import.namespace();
+            let ns_exports = exports.entry(namespace).or_insert(Exports::new());
 
             let export = import.wasmer_export(store, ctx.clone());
             let ext = Extern::from_export(store, export);
 
-            exports.insert(name, ext);
+            ns_exports.insert(import.name(), ext);
         }
 
-        for (ns, exports) in imports.drain() {
+        for (ns, exports) in exports {
             import_object.register(ns, exports);
         }
+
+        let mut svm = Exports::new();
+        vmcalls::wasmer_register(store, ctx, &mut svm);
         import_object.register("svm", svm);
 
         import_object
