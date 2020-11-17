@@ -10,8 +10,6 @@ crate-type = ['cdylib']
 
 [dependencies]
 wee_alloc = "0.4.5"
-svm-abi-decoder = { path = "../../../../svm-abi/decoder" }
-svm-abi-encoder = { path = "../../../../svm-abi/encoder" }
 svm-sdk = { path = "../../../../svm-sdk" }
 
 [workspace]

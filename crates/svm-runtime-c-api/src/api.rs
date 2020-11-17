@@ -275,20 +275,27 @@ pub unsafe extern "C" fn svm_imports_alloc(imports: *mut *mut c_void, count: u32
 /// use svm_types::WasmType;
 /// use svm_runtime_c_api::*;
 ///
+/// use std::ffi::c_void;
+///
+///
 /// fn foo() {
 ///   // ...
 /// }
 ///
-/// // allocate one imports
+/// #[repr(C)]
+/// struct function_id(u32);
+///
+/// // allocate one import
 /// let mut imports = testing::imports_alloc(1);
 ///
 /// let namespace = String::from("env").into();
 /// let import_name = String::from("foo").into();
 /// let params = Vec::<WasmType>::new();
 /// let returns = Vec::<WasmType>::new();
-/// let func_ptr = foo as *const std::ffi::c_void;
-/// let host_env = std::ptr::null();
 /// let mut error = svm_byte_array::default();
+///
+/// let func_ptr = foo as *const c_void;
+/// let host_env = svm_common::into_raw_mut(function_id(0));
 ///
 /// let res = unsafe {
 ///   svm_import_func_new(
@@ -643,7 +650,7 @@ pub unsafe extern "C" fn svm_deploy_template(
     // should call later `svm_receipt_destroy`
     vec_to_svm_byte_array!(receipt, receipt_bytes);
 
-    debug!("`svm_exec_app` returns `SVM_SUCCESS`");
+    debug!("`svm_deploy_template` returns `SVM_SUCCESS`");
 
     svm_result_t::SVM_SUCCESS
 }

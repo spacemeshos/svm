@@ -1,12 +1,20 @@
+#![feature(vec_into_raw_parts)]
+
+use svm_sdk::traits::Encoder;
 use svm_sdk::CallData;
+
+#[global_allocator]
+static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 const VAR_ID: u32 = 0;
 
 #[link(wasm_import_module = "svm")]
 extern "C" {
-    fn svm_calldata_offset() -> i32;
+    fn svm_calldata_offset() -> u32;
 
-    fn svm_calldata_len() -> i32;
+    fn svm_calldata_len() -> u32;
+
+    fn svm_set_returndata(offset: u32, length: u32);
 
     fn svm_get32(var_id: u32) -> u32;
 
@@ -57,9 +65,18 @@ pub extern "C" fn add_and_mul() {
 
     unsafe {
         let a = svm_get32(VAR_ID);
-        svm_set32(VAR_ID, a + add);
-
-        let b = counter_mul(VAR_ID, mul);
+        let b = a + add;
         svm_set32(VAR_ID, b);
+
+        let c = counter_mul(VAR_ID, mul);
+        svm_set32(VAR_ID, c);
+
+        let mut buf = Vec::new();
+        let results = vec![a, b, c];
+        results.encode(&mut buf);
+
+        let (ptr, len, _cap) = buf.into_raw_parts();
+
+        svm_set_returndata(ptr as u32, len as u32);
     }
 }

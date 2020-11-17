@@ -12,8 +12,10 @@ use std::ffi::c_void;
 use svm_codec::api::raw;
 use svm_layout::DataLayout;
 use svm_runtime::{svm_env_t, testing::WasmFile, vmcalls, Context};
-use svm_sdk::traits::Encoder;
 use svm_types::{Address, State, WasmType};
+
+use svm_sdk::traits::Encoder;
+use svm_sdk::CallData;
 
 use wasmer::{RuntimeError, Val};
 use wasmer_c_api::wasm_c_api::{
@@ -279,6 +281,19 @@ unsafe fn test_svm_runtime() {
 
     let receipt = raw::decode_receipt(exec_receipt.clone().into()).into_exec_app();
     assert_eq!(receipt.success, true);
+
+    let bytes = receipt.get_returndata();
+    let slice: &[u8] = bytes.as_slice();
+    let slice: &'static [u8] = unsafe { std::mem::transmute(slice) };
+
+    let mut calldata = CallData::new(slice);
+
+    let [a, b, c]: [u32; 3] = calldata.next_1();
+
+    assert_eq!(
+        (a, b, c),
+        (counter_init, counter_init + add, (counter_init + add) * mul)
+    );
 
     let _ = api::svm_byte_array_destroy(template_addr);
     let _ = api::svm_byte_array_destroy(app_addr);
