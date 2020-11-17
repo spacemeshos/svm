@@ -15,7 +15,7 @@ extern "C" {
 
 #[link(wasm_import_module = "host")]
 extern "C" {
-    fn counter_mul(var_id: u32, mul: u32);
+    fn counter_mul(var_id: u32, mul: u32) -> u32;
 }
 
 fn get_calldata() -> &'static [u8] {
@@ -56,10 +56,10 @@ pub extern "C" fn add_and_mul() {
     let mul: u32 = calldata.next_1();
 
     unsafe {
-        let old = svm_get32(VAR_ID);
-        let new = old + add;
-        svm_set32(VAR_ID, new);
+        let a = svm_get32(VAR_ID);
+        svm_set32(VAR_ID, a + add);
 
-        counter_mul(VAR_ID, mul);
+        let b = counter_mul(VAR_ID, mul);
+        svm_set32(VAR_ID, b);
     }
 }

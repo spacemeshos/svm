@@ -14,7 +14,7 @@ use svm_codec::api::raw;
 use svm_layout::DataLayout;
 
 use svm_runtime::env::default::DefaultSerializerTypes;
-use svm_runtime::{gas::DefaultGasEstimator, Context, ExternImport, Import};
+use svm_runtime::{gas::DefaultGasEstimator, Context, ExternImport};
 
 use svm_storage::kv::{ExternKV, StatefulKV};
 use svm_types::{Address, State, WasmType};
@@ -259,7 +259,7 @@ pub unsafe extern "C" fn svm_validate_tx(
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_imports_alloc(imports: *mut *mut c_void, count: u32) -> svm_result_t {
-    let vec: Vec<Import> = Vec::with_capacity(count as usize);
+    let vec: Vec<ExternImport> = Vec::with_capacity(count as usize);
 
     *imports = svm_common::into_raw_mut(vec);
 
@@ -287,6 +287,7 @@ pub unsafe extern "C" fn svm_imports_alloc(imports: *mut *mut c_void, count: u32
 /// let params = Vec::<WasmType>::new();
 /// let returns = Vec::<WasmType>::new();
 /// let func_ptr = foo as *const std::ffi::c_void;
+/// let host_env = std::ptr::null();
 /// let mut error = svm_byte_array::default();
 ///
 /// let res = unsafe {
@@ -295,6 +296,7 @@ pub unsafe extern "C" fn svm_imports_alloc(imports: *mut *mut c_void, count: u32
 ///     namespace,
 ///     import_name,
 ///     func_ptr,
+///     host_env,
 ///     params.into(),
 ///     returns.into(),
 ///     &mut error)
@@ -309,6 +311,7 @@ pub unsafe extern "C" fn svm_import_func_new(
     namespace: svm_byte_array,
     import_name: svm_byte_array,
     func_ptr: *const c_void,
+    host_env: *const c_void,
     params: svm_byte_array,
     returns: svm_byte_array,
     error: *mut svm_byte_array,
@@ -325,7 +328,16 @@ pub unsafe extern "C" fn svm_import_func_new(
         return svm_result_t::SVM_FAILURE;
     }
 
+    let host_env = NonNull::new(host_env as *mut c_void);
+    if host_env.is_none() {
+        let s = String::from("`host_env` parameter must not be NULL");
+        raw_error(s, error);
+
+        return svm_result_t::SVM_FAILURE;
+    }
+
     let func_ptr: *const c_void = func_ptr.unwrap().as_ptr();
+    let host_env: *const c_void = host_env.unwrap().as_ptr();
 
     let params: Result<Vec<WasmType>, io::Error> = Vec::try_from(params);
     if let Err(e) = params {
@@ -351,13 +363,14 @@ pub unsafe extern "C" fn svm_import_func_new(
         return svm_result_t::SVM_FAILURE;
     }
 
-    let import = Import::Extern(ExternImport {
+    let import = ExternImport {
         func_ptr,
+        host_env,
         name: import_name.unwrap(),
         namespace: namespace.unwrap(),
         params: params.unwrap(),
         returns: returns.unwrap(),
-    });
+    };
 
     imports.push(import);
 
@@ -845,7 +858,7 @@ pub unsafe extern "C" fn svm_runtime_destroy(runtime: *mut c_void) {
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_imports_destroy(imports: *const c_void) {
-    let _ = Box::from_raw(imports as *mut Vec<Import>);
+    let _ = Box::from_raw(imports as *mut Vec<ExternImport>);
 }
 
 /// Frees `svm_byte_array`

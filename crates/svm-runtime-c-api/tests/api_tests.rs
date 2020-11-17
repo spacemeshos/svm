@@ -3,46 +3,98 @@
 extern crate svm_runtime_c_api;
 
 use svm_runtime_c_api as api;
-use svm_runtime_c_api::svm_byte_array;
+
+use api::svm_byte_array;
 
 use std::convert::TryFrom;
 use std::ffi::c_void;
 
 use svm_codec::api::raw;
 use svm_layout::DataLayout;
-use svm_runtime::{testing::WasmFile, vmcalls, Context};
+use svm_runtime::{svm_env_t, testing::WasmFile, vmcalls, Context};
 use svm_sdk::traits::Encoder;
 use svm_types::{Address, State, WasmType};
 
-use wasmer::Val;
+use wasmer::{RuntimeError, Val};
 use wasmer_c_api::wasm_c_api::{
     trap::wasm_trap_t,
-    value::{wasm_val_t, wasm_val_vec_t},
+    value::{wasm_val_copy, wasm_val_t, wasm_val_vec_t},
 };
 
-#[no_mangle]
-unsafe extern "C" fn counter_mul(
-    ctx: *mut c_void,
-    args: *const wasm_val_vec_t,
-    results: *mut wasm_val_vec_t,
-) -> *mut wasm_trap_t {
-    let args = &*args;
-    let args: &[wasm_val_t] = std::slice::from_raw_parts(args.data, args.size);
+fn counter_mul(ctx: &mut Context, args: &[Val]) -> Result<Vec<Val>, RuntimeError> {
+    assert_eq!(args.len(), 2);
 
-    let ctx = &mut *(ctx as *mut Context);
-
-    let var_id = Val::try_from(&args[0]).unwrap();
-    let mul = Val::try_from(&args[1]).unwrap();
-
-    let var_id = var_id.unwrap_i32() as u32;
-    let mul = mul.unwrap_i32() as u32;
+    let var_id = args[0].unwrap_i32() as u32;
+    let mul = args[1].unwrap_i32() as u32;
 
     let old = vmcalls::get32(ctx, var_id);
     let new = old * mul;
 
-    vmcalls::set32(ctx, var_id, new);
+    let results = vec![Val::I32(new as i32)];
+    Ok(results)
+}
 
-    return std::ptr::null_mut();
+#[derive(Debug)]
+#[repr(C)]
+struct func_index_t(u32);
+
+const COUNTER_MUL_FN_INDEX: u32 = 123;
+
+fn wasm_trap(err: RuntimeError) -> *mut wasm_trap_t {
+    let trap: wasm_trap_t = err.into();
+
+    Box::into_raw(Box::new(trap))
+}
+
+unsafe fn copy_results(results: *mut wasm_val_vec_t, values: &[Val]) {
+    let values: Vec<wasm_val_t> = values
+        .iter()
+        .map(|v| wasm_val_t::try_from(v).unwrap())
+        .collect();
+
+    let results: &mut wasm_val_vec_t = &mut *results;
+
+    results.size = values.len();
+
+    for (i, val) in values.iter().enumerate() {
+        let out_ptr = results.data.add(i);
+
+        wasm_val_copy(out_ptr, val);
+    }
+}
+
+#[no_mangle]
+unsafe extern "C" fn trampoline(
+    env: *mut c_void,
+    args: *const wasm_val_vec_t,
+    results: *mut wasm_val_vec_t,
+) -> *mut wasm_trap_t {
+    let env: &svm_env_t = env.into();
+    let func_idx = env.host_env::<func_index_t>();
+
+    match func_idx.0 {
+        COUNTER_MUL_FN_INDEX => {
+            let args = &*args;
+            let args: &[wasm_val_t] = std::slice::from_raw_parts(args.data, args.size);
+            let args: Vec<Val> = args.iter().map(|v| Val::try_from(v).unwrap()).collect();
+
+            let ctx = env.inner_mut();
+
+            match counter_mul(ctx, &args) {
+                Ok(values) => {
+                    copy_results(results, &values);
+
+                    return std::ptr::null_mut();
+                }
+                Err(err) => wasm_trap(err),
+            }
+        }
+        _ => {
+            let err = RuntimeError::new(format!("Unknown host function indexed: {}", func_idx.0));
+
+            wasm_trap(err)
+        }
+    }
 }
 
 unsafe fn create_imports() -> *const c_void {
@@ -53,9 +105,14 @@ unsafe fn create_imports() -> *const c_void {
     assert!(res.is_ok());
 
     // `counter_mul` import
-    let func_ptr: *const c_void = counter_mul as _;
+    let func_ptr: *const c_void = trampoline as _;
+
+    let func_idx = func_index_t(COUNTER_MUL_FN_INDEX);
+    let func_idx: *mut func_index_t = Box::into_raw(Box::new(func_idx));
+    let host_env = func_idx as *mut c_void as *const c_void;
+
     let params = vec![WasmType::I32, WasmType::I32];
-    let returns: Vec<WasmType> = Vec::new();
+    let returns = vec![WasmType::I32];
     let namespace = b"host".to_vec();
     let import_name = b"counter_mul".to_vec();
 
@@ -66,6 +123,7 @@ unsafe fn create_imports() -> *const c_void {
         namespace.into(),
         import_name.into(),
         func_ptr,
+        host_env,
         params.into(),
         returns.into(),
         &mut error,

@@ -11,7 +11,7 @@ use crate::{
     error::ValidateError,
     gas::GasEstimator,
     storage::StorageBuilderFn,
-    vmcalls, Config, Context, Import, Runtime,
+    vmcalls, Config, Context, ExternImport, Runtime,
 };
 
 use svm_codec::error::ParseError;
@@ -40,7 +40,7 @@ pub struct DefaultRuntime<ENV, GE> {
     config: Config,
 
     /// External imports (living in the so-called `Host` or `Node`) to be consumed by the App.
-    imports: *const Vec<Import>,
+    imports: *const Vec<ExternImport>,
 
     /// builds a `AppStorage` instance.
     storage_builder: Box<StorageBuilderFn>,
@@ -167,7 +167,7 @@ where
     pub fn new<P: AsRef<Path>>(
         env: ENV,
         kv_path: P,
-        imports: &Vec<Import>,
+        imports: &Vec<ExternImport>,
         storage_builder: Box<StorageBuilderFn>,
     ) -> Self {
         let config = Config::new(kv_path);
@@ -534,7 +534,7 @@ where
 
         let mut exports = HashMap::new();
 
-        let imports: &[Import] = unsafe { &*self.imports as _ };
+        let imports: &[ExternImport] = unsafe { &*self.imports as _ };
 
         for import in imports.iter() {
             let namespace = import.namespace();
