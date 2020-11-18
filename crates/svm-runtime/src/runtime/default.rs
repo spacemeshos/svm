@@ -11,7 +11,7 @@ use crate::{
     error::ValidateError,
     gas::GasEstimator,
     storage::StorageBuilderFn,
-    vmcalls, Config, Context, ExternImport, Runtime,
+    svm_env_t, vmcalls, Config, Context, ExternImport, Runtime,
 };
 
 use svm_codec::error::ParseError;
@@ -256,7 +256,7 @@ where
             Ok((template, template_addr, _author, _creator)) => {
                 let store = svm_compiler::new_store();
                 let mut ctx = self.create_context(&template, &tx.app, &state, gas_left);
-                let import_object = self.create_import_object(&store, &mut ctx);
+                let (import_object, funcs_envs) = self.create_import_object(&store, &mut ctx);
 
                 let (result, logs) = self.do_exec_app(
                     &store,
@@ -268,11 +268,21 @@ where
                     gas_left,
                 );
 
+                self.funcs_envs_destroy(funcs_envs);
+
                 let receipt = self.make_receipt(result, logs);
 
                 info!("receipt: {:?}", receipt);
 
                 receipt
+            }
+        }
+    }
+
+    fn funcs_envs_destroy(&self, mut funcs_envs: Vec<*const svm_env_t>) {
+        for func_env in funcs_envs.drain(..) {
+            unsafe {
+                let _ = Box::from_raw(func_env as *mut svm_env_t);
             }
         }
     }
@@ -529,8 +539,13 @@ where
         Context::new(gas_limit, storage)
     }
 
-    fn create_import_object(&self, store: &Store, ctx: &mut Context) -> ImportObject {
+    fn create_import_object(
+        &self,
+        store: &Store,
+        ctx: &mut Context,
+    ) -> (ImportObject, Vec<*const svm_env_t>) {
         let mut import_object = ImportObject::new();
+        let mut funcs_envs = Vec::new();
 
         let mut exports = HashMap::new();
 
@@ -540,7 +555,9 @@ where
             let namespace = import.namespace();
             let ns_exports = exports.entry(namespace).or_insert(Exports::new());
 
-            let export = import.wasmer_export(store, ctx);
+            let (export, func_env) = import.wasmer_export(store, ctx);
+
+            funcs_envs.push(func_env);
             let ext = Extern::from_export(store, export);
 
             ns_exports.insert(import.name(), ext);
@@ -554,7 +571,7 @@ where
         vmcalls::wasmer_register(store, ctx, &mut svm);
         import_object.register("svm", svm);
 
-        import_object
+        (import_object, funcs_envs)
     }
 
     fn load_template(

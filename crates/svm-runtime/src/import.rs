@@ -40,6 +40,12 @@ impl svm_env_t {
     }
 }
 
+impl Drop for svm_env_t {
+    fn drop(&mut self) {
+        dbg!("dropping `svm_env_t`");
+    }
+}
+
 impl From<*mut c_void> for &svm_env_t {
     fn from(env: *mut c_void) -> Self {
         unsafe { &*(env as *mut svm_env_t) }
@@ -62,10 +68,10 @@ pub struct ExternImport {
 }
 
 impl ExternImport {
-    pub fn wasmer_export(&self, store: &Store, ctx: &mut Context) -> Export {
+    pub fn wasmer_export(&self, store: &Store, ctx: &mut Context) -> (Export, *const svm_env_t) {
         unsafe {
             // This code is almost a clone of the code here:
-            // https://github.com/wasmerio/wasmer/blob/7847acaae1e7a0eade13b65def1f3feeac95efd7/lib/c-api/src/wasm_c_api/externals/function.rs#L86
+            // https://github.com/wasmerio/wasmer/blob/7847acaae1e7a0eade13b65def1f3feeac95efd7/lib/c-api/src/wasm_c_api/externals/func.rs#L86
 
             let func_ty = self.wasmer_function_ty();
 
@@ -86,8 +92,6 @@ impl ExternImport {
                     let mut results: wasm_val_vec_t = vec![zero; num_rets].into();
 
                     let trap = callback(*env, &processed_args, &mut results);
-
-                    // TODO: insert here release of `env`
 
                     if !trap.is_null() {
                         let trap: Box<wasm_trap_t> = Box::from_raw(trap);
@@ -117,10 +121,14 @@ impl ExternImport {
             };
 
             // TODO: dealloc `func_env` (using finalizer??)
-            let func_env = Box::into_raw(Box::new(func_env)) as *mut c_void;
+            let func_env = svm_common::into_raw_mut(func_env);
 
-            let function = Function::new_with_env(store, &func_ty, func_env, inner_callback);
-            function.to_export()
+            let func = Function::new_with_env(store, &func_ty, func_env, inner_callback);
+            let export = func.to_export();
+
+            let func_env = func_env as *const svm_env_t;
+
+            (export, func_env)
         }
     }
 
