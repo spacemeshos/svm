@@ -96,7 +96,8 @@ impl ExternImport {
                     if !trap.is_null() {
                         let trap: Box<wasm_trap_t> = Box::from_raw(trap);
 
-                        // TODO: we want access to `trap.inner`
+                        /// TODO: we want access to `trap.inner`
+                        /// (this field has visibility of `pub(crate)`)
                         let err = RuntimeError::new("unexpected error");
                         return Err(err);
                     }
@@ -112,14 +113,24 @@ impl ExternImport {
                     Ok(processed_results)
                 };
 
+            /// making the input `&mut Context` appear as `*const c_void`
             let inner_env = ctx as *mut Context as *const Context as *const c_void;
             let host_env = self.host_env;
 
+            /// The import used `env` (using Wasmer terminology) will be a struct of `svm_env_t`
+            /// This `#[repr(C)]` struct will contain two pointers to two types of `env`:
+            ///
+            /// 1. SVM Internal - a pointer to the `Context`
+            ///    Once SVM has finished executing a transaction its memory will be deallocated.
+            ///
+            /// 2. Host env - a pointer given as input by the so-called `Host`
+            ///    The responsibility of release that memory is up to the caller (the `host`).
             let func_env = svm_env_t {
                 inner_env,
                 host_env,
             };
 
+            /// The heap-allocated `func_env` will be dellocated by later by `SVM` running runtime.
             let func_env = svm_common::into_raw_mut(func_env);
 
             let func = Function::new_with_env(store, &func_ty, func_env, inner_callback);
