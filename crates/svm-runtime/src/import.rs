@@ -120,7 +120,6 @@ impl ExternImport {
                 host_env,
             };
 
-            // TODO: dealloc `func_env` (using finalizer??)
             let func_env = svm_common::into_raw_mut(func_env);
 
             let func = Function::new_with_env(store, &func_ty, func_env, inner_callback);

@@ -15,7 +15,7 @@ use svm_runtime::{svm_env_t, testing::WasmFile, vmcalls, Context};
 use svm_types::{Address, State, WasmType};
 
 use svm_sdk::traits::Encoder;
-use svm_sdk::CallData;
+use svm_sdk::ReturnData;
 
 use wasmer::{RuntimeError, Val};
 use wasmer_c_api::wasm_c_api::{
@@ -23,6 +23,8 @@ use wasmer_c_api::wasm_c_api::{
     value::{wasm_val_copy, wasm_val_t, wasm_val_vec_t},
 };
 
+/// We should land here when `trampoline` has been called with `host_env` containing
+/// a function index equaling to `COUNTER_MUL_FN_INDEX`
 fn counter_mul(ctx: &mut Context, args: &[Val]) -> Result<Vec<Val>, RuntimeError> {
     assert_eq!(args.len(), 2);
 
@@ -36,18 +38,43 @@ fn counter_mul(ctx: &mut Context, args: &[Val]) -> Result<Vec<Val>, RuntimeError
     Ok(results)
 }
 
+/// This struct will serve as our `host_env`.
+/// We use here integers as function identifiers to be called by the `trampoline`.
 #[derive(Debug)]
 #[repr(C)]
 struct func_index_t(u32);
+
+type Callback = fn(&mut Context, &[Val]) -> Result<Vec<Val>, RuntimeError>;
 
 const COUNTER_MUL_FN_INDEX: u32 = 123;
 
 fn wasm_trap(err: RuntimeError) -> *mut wasm_trap_t {
     let trap: wasm_trap_t = err.into();
 
+    // this heap-allocated memory will be released by SVM.
+    // (See: `ExternImport#wasmer_export`)
+
     Box::into_raw(Box::new(trap))
 }
 
+/// Given a function identifier stored as part of the `host_env`
+/// we can know what Rust native function to call
+fn func_index_to_callback(func_idx: &func_index_t) -> Option<Callback> {
+    match func_idx.0 {
+        COUNTER_MUL_FN_INDEX => Some(counter_mul),
+        _ => None,
+    }
+}
+
+unsafe fn prepare_args(args: *const wasm_val_vec_t) -> Vec<Val> {
+    let args = &*args;
+    let args: &[wasm_val_t] = std::slice::from_raw_parts(args.data, args.size);
+
+    args.iter().map(|v| Val::try_from(v).unwrap()).collect()
+}
+
+/// The memory for results has already by zero-allocated, we're left with filling-in
+/// the values given by `values` parameter.
 unsafe fn copy_results(results: *mut wasm_val_vec_t, values: &[Val]) {
     let values: Vec<wasm_val_t> = values
         .iter()
@@ -65,6 +92,20 @@ unsafe fn copy_results(results: *mut wasm_val_vec_t, values: &[Val]) {
     }
 }
 
+/// The `trampoline` is the actual host function that will be called by SVM running.
+/// Each host function will ask SVM to call that `trampoline` function.
+///
+/// The critical difference between different imports is the `host_env` attached to each import.
+/// By placing a function identifier under each `host env` the `trampoline` can figure out to which
+/// Rust function to call. In this example we've introduced `func_index_t` (merely an wrapper for an integer)
+/// as our `host_env`. Other clients can use the same technique very similarly.
+///
+/// Each import function will also give its function signature. The `trampoline` will receive under its values specified
+/// in the import function signature. In addition to required memory for the `results` will be allocated prior calling `trampoline`
+/// such that the `trampoline` will only be left with placing the `results` values.
+///
+/// In case the `trampoline` failed, a pointer to heap-allocated trap will be propagated back to SVM.
+/// SVM will be responsible of deallocating that memory pointed by that `wasm_trap_t`.
 #[no_mangle]
 unsafe extern "C" fn trampoline(
     env: *mut c_void,
@@ -73,29 +114,30 @@ unsafe extern "C" fn trampoline(
 ) -> *mut wasm_trap_t {
     let env: &svm_env_t = env.into();
     let func_idx = env.host_env::<func_index_t>();
+    let callback = func_index_to_callback(func_idx);
 
-    match func_idx.0 {
-        COUNTER_MUL_FN_INDEX => {
-            let args = &*args;
-            let args: &[wasm_val_t] = std::slice::from_raw_parts(args.data, args.size);
-            let args: Vec<Val> = args.iter().map(|v| Val::try_from(v).unwrap()).collect();
+    if let Some(callback) = callback {
+        let args = prepare_args(args);
+        let ctx = env.inner_mut();
 
-            let ctx = env.inner_mut();
+        match callback(ctx, &args) {
+            Ok(values) => {
+                /// We copy the values returned by `callback` to `results`.
+                /// This copying operation must not fail (otherwise it's an undefined-behavior).
+                copy_results(results, &values);
 
-            match counter_mul(ctx, &args) {
-                Ok(values) => {
-                    copy_results(results, &values);
-
-                    return std::ptr::null_mut();
-                }
-                Err(err) => wasm_trap(err),
+                /// since `callback` didn't error, we return a `NULL` pointer signaling
+                // that there was no trap has occurred.
+                return std::ptr::null_mut();
             }
+            Err(err) => wasm_trap(err),
         }
-        _ => {
-            let err = RuntimeError::new(format!("Unknown host function indexed: {}", func_idx.0));
+    } else {
+        /// `trampoline` has nowhere to jump.
+        /// (There is no function associated with `func_idx.0` integer).
+        let err = RuntimeError::new(format!("Unknown host function indexed: {}", func_idx.0));
 
-            wasm_trap(err)
-        }
+        wasm_trap(err)
     }
 }
 
@@ -283,12 +325,9 @@ unsafe fn test_svm_runtime() {
     assert_eq!(receipt.success, true);
 
     let bytes = receipt.get_returndata();
-    let slice: &[u8] = bytes.as_slice();
-    let slice: &'static [u8] = unsafe { std::mem::transmute(slice) };
+    let mut returndata = ReturnData::new(bytes.as_slice());
 
-    let mut calldata = CallData::new(slice);
-
-    let [a, b, c]: [u32; 3] = calldata.next_1();
+    let [a, b, c]: [u32; 3] = returndata.next_1();
 
     assert_eq!(
         (a, b, c),

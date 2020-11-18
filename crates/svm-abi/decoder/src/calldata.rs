@@ -5,13 +5,13 @@ use crate::{Cursor, DecodeError, Decoder};
 use svm_sdk_types::value::Value;
 
 pub struct CallData {
-    cursor: Cursor<'static>,
+    cursor: Cursor,
 
     decoder: Decoder,
 }
 
 impl CallData {
-    pub fn new(bytes: &'static [u8]) -> Self {
+    pub fn new(bytes: &[u8]) -> Self {
         Self {
             cursor: Cursor::new(bytes),
             decoder: Decoder::new(),
