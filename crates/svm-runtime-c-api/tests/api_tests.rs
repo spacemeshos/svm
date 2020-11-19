@@ -10,6 +10,7 @@ use std::convert::TryFrom;
 use std::ffi::c_void;
 
 use svm_codec::api::raw;
+use svm_ffi::svm_byte_array;
 use svm_layout::DataLayout;
 use svm_runtime::{svm_env_t, testing::WasmFile, vmcalls, Context};
 use svm_types::{Address, State, WasmType};

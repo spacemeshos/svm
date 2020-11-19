@@ -1,6 +1,6 @@
 use std::ffi::c_void;
 
-use crate::svm_byte_array;
+use svm_ffi::svm_byte_array;
 
 use svm_runtime::Context;
 

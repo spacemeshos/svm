@@ -5,7 +5,7 @@
 /// use std::convert::TryFrom;
 ///
 /// use svm_types::Address;
-/// use svm_runtime_c_api::svm_byte_array;
+/// use svm_ffi::svm_byte_array;
 ///
 /// let bytes: svm_byte_array = Address::of("aaaa").into();
 /// assert_eq!(Address::len(), bytes.length as usize);
@@ -45,7 +45,7 @@ macro_rules! impl_from_svm_byte_array {
 /// use std::convert::TryFrom;
 ///
 /// use svm_types::Address;
-/// use svm_runtime_c_api::svm_byte_array;
+/// use svm_ffi::svm_byte_array;
 ///
 /// let bytes: svm_byte_array = Address::of("@someone").into();
 /// assert_eq!(Address::len(), bytes.length as usize);

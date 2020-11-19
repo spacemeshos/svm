@@ -26,7 +26,7 @@ pub use svm_layout::DataLayout;
 /// use std::convert::TryFrom;
 ///
 /// use svm_layout::{VarId, DataLayout};
-/// use svm_runtime_c_api::svm_byte_array;
+/// use svm_ffi::svm_byte_array;
 ///
 /// let data: Vec<u8> = vec![0, 0, 0, 10, 0, 0, 0, 20, 0, 0, 0, 30];
 /// let bytes: svm_byte_array = data.into();

@@ -65,6 +65,7 @@ svm-layout = { path = "crates/svm-layout" }
 svm-storage = { path = "crates/svm-storage" }
 svm-compiler = { path = "crates/svm-compiler" }
 svm-runtime = { path = "crates/svm-runtime" }
+svm-ffi = { path = "crates/svm-ffi" }
 svm-runtime-c-api = { path = "crates/svm-runtime-c-api" }
 svm-abi-layout = { path = "crates/svm-abi/layout" }
 svm-abi-encoder = { path = "crates/svm-abi/encoder" }
@@ -96,5 +97,6 @@ members = [
   "crates/svm-storage",
   "crates/svm-runtime",
   "crates/svm-compiler",
+  "crates/svm-ffi",
   "crates/svm-runtime-c-api",
 ]

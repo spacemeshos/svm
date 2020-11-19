@@ -6,7 +6,7 @@ use std::{convert::TryFrom, string::FromUtf8Error};
 ///
 /// ```rust
 /// use std::{convert::TryFrom, string::FromUtf8Error};
-/// use svm_runtime_c_api::svm_byte_array;
+/// use svm_ffi::svm_byte_array;
 ///
 /// let s1 = "Hello World!".to_string();
 /// let bytes: svm_byte_array = s1.into();
@@ -36,7 +36,7 @@ pub struct svm_byte_array {
 /// # Example
 ///
 /// ```rust
-/// use svm_runtime_c_api::svm_byte_array;
+/// use svm_ffi::svm_byte_array;
 ///
 /// let array = svm_byte_array::default();
 ///
@@ -79,11 +79,11 @@ impl TryFrom<&svm_byte_array> for String {
     fn try_from(bytes: &svm_byte_array) -> Result<Self, Self::Error> {
         let slice: &[u8] = bytes.into();
 
-        /// data is cloned here, so the new `String` won't be merely an alias,
-        /// and `bytes` will still require a separate deallocation.
-        ///
-        /// Making it an alias is unsafe because the data may not have
-        /// been dynamically allocated, or not by Rust's global allocator.
+        // data is cloned here, so the new `String` won't be merely an alias,
+        // and `bytes` will still require a separate deallocation.
+        //
+        // Making it an alias is unsafe because the data may not have
+        // been dynamically allocated, or not by Rust's global allocator.
         let vec = slice.to_vec();
 
         String::from_utf8(vec)
@@ -123,6 +123,7 @@ mod tests {
 
         let ptr = vec.as_ptr();
         let bytes: svm_byte_array = vec.into();
+
         assert_eq!(ptr, bytes.bytes); // `bytes` is an alias.
         assert_eq!(3, bytes.length);
         assert_eq!(4, bytes.capacity);
@@ -135,6 +136,7 @@ mod tests {
         let s1_len = s1.len() as u32;
         let s1_capacity = s1.capacity() as u32;
         let bytes: svm_byte_array = s1.into();
+
         assert_eq!(s1_ptr, bytes.bytes); // `bytes` is an alias.
         assert_eq!(s1_len, bytes.length);
         assert_eq!(s1_capacity, bytes.capacity);
