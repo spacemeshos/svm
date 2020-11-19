@@ -11,15 +11,12 @@ version="1.0.0-alpha5"
 default-features = false
 features = ["default-cranelift", "default-jit"]
 
-[dependencies.wasmer-c-api]
-version="1.0.0-alpha5"
-default-features = false
-features = ["cranelift", "jit"]
-
-[dependencies.wasmer-vm]
-version="1.0.0-alpha5"
-
 [dependencies]
+log = "0.4"
+byteorder = "1.3.2"
+lazy_static = "1.4.0"
+wat = "1.0"
+svm-ffi = { path = "../svm-ffi" }
 svm-common = { path = "../svm-common" }
 svm-types = { path = "../svm-types" }
 svm-kv = { path = "../svm-kv" }
@@ -29,10 +26,6 @@ svm-nibble = { path = "../svm-nibble" }
 svm-codec = { path = "../svm-codec" }
 svm-compiler = { path = "../svm-compiler" }
 svm-gas = { path = "../svm-gas" }
-log = "0.4"
-byteorder = "1.3.2"
-lazy_static = "1.4.0"
-wat = "1.0"
 
 [dev-dependencies]
 maplit = "1.0.2"

@@ -32,6 +32,16 @@ pub struct svm_byte_array {
     pub capacity: u32,
 }
 
+impl svm_byte_array {
+    pub unsafe fn destroy(self) {
+        let ptr = self.bytes as *mut u8;
+        let length = self.length as usize;
+        let capacity = self.capacity as usize;
+
+        let _ = Vec::from_raw_parts(ptr, length, capacity);
+    }
+}
+
 ///
 /// # Example
 ///

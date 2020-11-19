@@ -11,10 +11,11 @@ use crate::{
     error::ValidateError,
     gas::GasEstimator,
     storage::StorageBuilderFn,
-    svm_env_t, vmcalls, Config, Context, ExternImport, Runtime,
+    vmcalls, Config, Context, ExternImport, Runtime,
 };
 
 use svm_codec::error::ParseError;
+use svm_ffi::svm_env_t;
 use svm_gas::Gas;
 use svm_layout::DataLayout;
 use svm_storage::app::AppStorage;
