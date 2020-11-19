@@ -1312,9 +1312,6 @@ dependencies = [
  "svm-storage",
  "svm-types",
  "wabt",
- "wasmer",
- "wasmer-c-api",
- "wasmer-vm",
 ]
 
 [[package]]

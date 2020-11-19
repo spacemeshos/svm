@@ -16,3 +16,11 @@ impl From<svm_trap_t> for String {
         }
     }
 }
+
+impl From<String> for svm_trap_t {
+    fn from(err: String) -> svm_trap_t {
+        let error: svm_byte_array = err.into();
+
+        svm_trap_t { error }
+    }
+}
