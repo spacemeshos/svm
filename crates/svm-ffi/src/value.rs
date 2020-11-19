@@ -43,7 +43,7 @@ use crate::svm_byte_array;
 /// let values = vec![WasmValue::I32(5), WasmValue::I64(10)];
 ///
 /// let bytes: svm_byte_array = (&values).into();
-/// let vec: Result<_, io::Error> = Vec::<WasmValue>::try_from(bytes);
+/// let vec: Result<_, io::Error> = Vec::<WasmValue>::try_from(&bytes);
 ///
 /// assert_eq!(vec.unwrap(), values);
 /// ```

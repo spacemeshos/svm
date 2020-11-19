@@ -19,18 +19,17 @@ use svm_sdk::ReturnData;
 /// We should land here when `trampoline` has been called with `host_env` containing
 /// a function index equaling to `COUNTER_MUL_FN_INDEX`
 fn counter_mul(ctx: &mut Context, args: &[WasmValue]) -> Result<Vec<WasmValue>, &'static str> {
-    // assert_eq!(args.len(), 2);
+    assert_eq!(args.len(), 2);
 
-    // let var_id = args[0].unwrap_i32() as u32;
-    // let mul = args[1].unwrap_i32() as u32;
+    let var_id = args[0].as_i32().unwrap();
+    let mul = args[1].as_i32().unwrap();
 
-    // let old = vmcalls::get32(ctx, var_id);
-    // let new = old * mul;
+    let old = vmcalls::get32(ctx, var_id);
+    let new = old * mul;
 
-    // let results = vec![Val::I32(new as i32)];
-    // Ok(results)
+    let results = vec![WasmValue::I32(new)];
 
-    Ok(Vec::new())
+    Ok(results)
 }
 
 /// This struct will serve as our `host_env`.
@@ -117,12 +116,18 @@ unsafe extern "C" fn trampoline(
 
         match callback(ctx, &args) {
             Ok(values) => {
+                let values: svm_byte_array = values.into();
+
+                (*results).bytes = values.bytes;
+                (*results).length = values.length;
+                (*results).capacity = values.capacity;
+
                 /// We copy the values returned by `callback` to `results`.
                 /// This copying operation must not fail (otherwise it's an undefined-behavior).
                 // copy_results(results, &values);
 
                 /// since `callback` didn't error, we return a `NULL` pointer signaling
-                // that there was no trap has occurred.
+                // that there no trap has occurred.
                 return std::ptr::null_mut();
             }
             Err(err) => wasm_trap(err.to_string()),
