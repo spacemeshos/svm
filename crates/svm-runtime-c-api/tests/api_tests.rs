@@ -4,8 +4,6 @@ extern crate svm_runtime_c_api;
 
 use svm_runtime_c_api as api;
 
-use api::svm_byte_array;
-
 use std::convert::TryFrom;
 use std::ffi::c_void;
 

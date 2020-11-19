@@ -278,6 +278,8 @@ pub unsafe extern "C" fn svm_imports_alloc(imports: *mut *mut c_void, count: u32
 /// # Example
 ///
 /// ```rust
+/// use std::ffi::c_void;
+///
 /// use svm_runtime_c_api::*;
 ///
 /// use svm_types::WasmType;
