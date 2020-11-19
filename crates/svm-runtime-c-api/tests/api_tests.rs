@@ -1,12 +1,12 @@
 extern crate svm_runtime_c_api;
 
 use svm_runtime_c_api as api;
-use svm_runtime_c_api::svm_byte_array;
 
 use std::ffi::c_void;
 
 use svm_abi_encoder::Encoder;
 use svm_codec::api::raw;
+use svm_ffi::svm_byte_array;
 use svm_layout::DataLayout;
 use svm_runtime::testing::WasmFile;
 use svm_types::{Address, State};

@@ -37,7 +37,7 @@ use crate::svm_byte_array;
 /// use std::convert::TryFrom;
 ///
 /// use svm_types::WasmType;
-/// use svm_runtime_c_api::svm_byte_array;
+/// use svm_ffi::svm_byte_array;
 ///
 /// let types = vec![WasmType::I32, WasmType::I64, WasmType::I32];
 /// let bytes: svm_byte_array = types.into();

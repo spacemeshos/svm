@@ -1,8 +1,7 @@
 use std::io;
 use std::string::FromUtf8Error;
 
-use crate::svm_byte_array;
-
+use svm_ffi::svm_byte_array;
 use svm_runtime::error::ValidateError;
 
 pub(crate) unsafe fn raw_validate_error(err: &ValidateError, raw_err: *mut svm_byte_array) {

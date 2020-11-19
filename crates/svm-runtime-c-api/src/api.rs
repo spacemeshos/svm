@@ -16,12 +16,12 @@ use svm_layout::DataLayout;
 use svm_runtime::env::default::DefaultSerializerTypes;
 use svm_runtime::{gas::DefaultGasEstimator, Context, Import};
 
+use svm_ffi::svm_byte_array;
 use svm_storage::kv::{ExternKV, StatefulKV};
 use svm_types::{Address, State, WasmType};
 
 use crate::{
-    helpers, raw_error, raw_io_error, raw_utf8_error, raw_validate_error, svm_byte_array,
-    svm_result_t, RuntimePtr,
+    helpers, raw_error, raw_io_error, raw_utf8_error, raw_validate_error, svm_result_t, RuntimePtr,
 };
 
 use svm_codec::receipt::{encode_app_receipt, encode_exec_receipt, encode_template_receipt};
@@ -76,7 +76,7 @@ macro_rules! vec_to_svm_byte_array {
 
 macro_rules! to_svm_byte_array {
     ($raw_byte_array:expr, $ptr:expr, $length:expr) => {{
-        use crate::svm_byte_array;
+        use svm_ffi::svm_byte_array;
 
         let bytes: &mut svm_byte_array = &mut *$raw_byte_array;
         bytes.bytes = $ptr;
@@ -94,7 +94,9 @@ macro_rules! to_svm_byte_array {
 ///
 /// ```rust, no_run
 /// use svm_runtime_c_api::*;
+///
 /// use svm_types::Address;
+/// use svm_ffi::svm_byte_array;
 ///
 /// // allocate imports
 /// let mut imports = testing::imports_alloc(0);
@@ -144,7 +146,9 @@ pub unsafe extern "C" fn svm_validate_template(
 ///
 /// ```rust, no_run
 /// use svm_runtime_c_api::*;
+///
 /// use svm_types::Address;
+/// use svm_ffi::svm_byte_array;
 ///
 /// // allocate imports
 /// let mut imports = testing::imports_alloc(0);
@@ -190,7 +194,9 @@ pub unsafe extern "C" fn svm_validate_app(
 ///
 /// ```rust, no_run
 /// use svm_runtime_c_api::*;
+///
 /// use svm_types::Address;
+/// use svm_ffi::svm_byte_array;
 ///
 /// // allocate imports
 /// let mut imports = testing::imports_alloc(0);
@@ -272,8 +278,10 @@ pub unsafe extern "C" fn svm_imports_alloc(imports: *mut *mut c_void, count: u32
 /// # Example
 ///
 /// ```rust
-/// use svm_types::WasmType;
 /// use svm_runtime_c_api::*;
+///
+/// use svm_types::WasmType;
+/// use svm_ffi::svm_byte_array;
 ///
 /// fn foo() {
 ///   // ...
@@ -463,6 +471,8 @@ pub unsafe extern "C" fn svm_state_kv_destroy(kv: *mut c_void) -> svm_result_t {
 /// ```rust
 /// use svm_runtime_c_api::*;
 ///
+/// use svm_ffi::svm_byte_array;
+///
 /// let mut runtime = std::ptr::null_mut();
 /// let mut imports = testing::imports_alloc(0);
 ///
@@ -503,6 +513,8 @@ pub unsafe extern "C" fn svm_memory_runtime_create(
 ///
 /// ```rust, no_run
 /// use svm_runtime_c_api::*;
+///
+/// use svm_ffi::svm_byte_array;
 ///
 /// let mut runtime = std::ptr::null_mut();
 /// let path = String::from("path goes here").into();
@@ -552,7 +564,9 @@ pub unsafe extern "C" fn svm_runtime_create(
 ///
 /// ```rust, no_run
 /// use svm_runtime_c_api::*;
+///
 /// use svm_types::Address;
+/// use svm_ffi::svm_byte_array;
 ///
 /// // allocate imports
 /// let mut imports = testing::imports_alloc(0);
@@ -631,7 +645,9 @@ pub unsafe extern "C" fn svm_deploy_template(
 ///
 /// ```rust, no_run
 /// use svm_runtime_c_api::*;
+///
 /// use svm_types::Address;
+/// use svm_ffi::svm_byte_array;
 ///
 /// // allocate imports
 /// let mut imports = testing::imports_alloc(0);
@@ -712,7 +728,9 @@ pub unsafe extern "C" fn svm_spawn_app(
 /// use std::ffi::c_void;
 ///
 /// use svm_runtime_c_api::*;
+///
 /// use svm_types::{State, Address};
+/// use svm_ffi::svm_byte_array;
 ///
 /// // allocate imports
 /// let mut imports = testing::imports_alloc(0);
@@ -788,7 +806,9 @@ pub unsafe extern "C" fn svm_exec_app(
 ///
 /// ```rust, no_run
 /// use svm_runtime_c_api::*;
+///
 /// use svm_types::Address;
+/// use svm_ffi::svm_byte_array;
 ///
 /// // allocate imports
 /// let mut imports = testing::imports_alloc(0);
@@ -844,6 +864,8 @@ pub unsafe extern "C" fn svm_imports_destroy(imports: *const c_void) {
 ///
 /// ```rust
 /// use svm_runtime_c_api::*;
+///
+/// use svm_ffi::svm_byte_array;
 ///
 /// let bytes = svm_byte_array::default();
 /// unsafe { svm_byte_array_destroy(bytes); }
