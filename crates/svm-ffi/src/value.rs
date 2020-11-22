@@ -31,6 +31,30 @@ use crate::svm_byte_array;
 /// |          | (1 byte)  |   bytes)  |        |   (1 byte)  |   bytes)   |
 /// +----------+--------------------------------+-------------+------------+
 ///
+
+pub fn alloc_wasm_values(types: &[WasmType]) -> svm_byte_array {
+    let nvalues = types.len();
+
+    assert!(nvalues <= std::u8::MAX as usize);
+
+    let capacity = 1 + nvalues * 9;
+
+    let mut bytes = Vec::with_capacity(capacity);
+
+    bytes.write_u8(nvalues as u8).unwrap();
+
+    for ty in types {
+        bytes.write_u8(ty.into()).unwrap();
+
+        match ty {
+            WasmType::I32 => bytes.write_u32::<BigEndian>(0).unwrap(),
+            WasmType::I64 => bytes.write_u64::<BigEndian>(0).unwrap(),
+        };
+    }
+
+    bytes.into()
+}
+
 /// Converts `svm_byte_array` into `Vec<WasmerValue>`
 ///
 /// ```

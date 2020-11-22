@@ -5,7 +5,7 @@ use crate::Context;
 
 use wasmer::{Export, Exportable, Function, FunctionType, RuntimeError, Store, Type, Val};
 
-use svm_ffi::{svm_byte_array, svm_env_t, svm_func_callback_t, svm_trap_t};
+use svm_ffi::{svm_byte_array, svm_env_t, svm_func_callback_t, svm_trap_t, svm_wasm_types_t};
 use svm_types::{WasmType, WasmValue};
 
 #[derive(Debug, Clone)]
@@ -30,15 +30,17 @@ impl ExternImport {
             // https://github.com/wasmerio/wasmer/blob/7847acaae1e7a0eade13b65def1f3feeac95efd7/lib/c-api/src/wasm_c_api/externals/func.rs#L86
 
             let callback: svm_func_callback_t = std::mem::transmute(self.func_ptr);
+            let returns = self.returns.clone();
 
             let inner_callback =
                 move |env: &mut *mut c_void, args: &[Val]| -> Result<Vec<Val>, RuntimeError> {
                     let args: Vec<WasmValue> = wasmer_vals_to_wasm_vals(args)?;
                     let args: svm_byte_array = args.into();
 
-                    let mut results = svm_byte_array::default();
+                    let results = alloc_results(*env);
+                    let results = Box::into_raw(Box::new(results));
 
-                    let trap = callback(*env, &args, &mut results);
+                    let trap = callback(*env, &args, results);
 
                     // manually releasing `args` internals
                     args.destroy();
@@ -52,7 +54,9 @@ impl ExternImport {
                         return Err(err);
                     }
 
-                    match Vec::<WasmValue>::try_from(&results) {
+                    let results = Box::from_raw(results);
+
+                    match Vec::<WasmValue>::try_from(&*results) {
                         Ok(vals) => {
                             let wasmer_vals = wasm_vals_to_wasmer_vals(&vals);
 
@@ -61,7 +65,7 @@ impl ExternImport {
 
                             Ok(wasmer_vals)
                         }
-                        Err(..) => Err(RuntimeError::new("Invalid wasm values")),
+                        Err(..) => Err(RuntimeError::new("Invalid WASM values")),
                     }
                 };
 
@@ -70,6 +74,14 @@ impl ExternImport {
             /// making the input `&mut Context` appear as `*const c_void`
             let inner_env = ctx as *mut Context as *const Context as *const c_void;
             let host_env = self.host_env;
+
+            let (ptr, length, capacity) = Vec::into_raw_parts(self.returns.clone());
+
+            let returns = svm_wasm_types_t {
+                ptr: ptr as *const c_void,
+                length,
+                capacity,
+            };
 
             /// The import used `env` (using Wasmer terminology) will be a struct of `svm_env_t`
             /// This `#[repr(C)]` struct will contain two pointers to two types of `env`:
@@ -82,6 +94,7 @@ impl ExternImport {
             let func_env = svm_env_t {
                 inner_env,
                 host_env,
+                returns,
             };
 
             /// The heap-allocated `func_env` will be dellocated by later by `SVM` running runtime.
@@ -146,4 +159,11 @@ fn wasm_vals_to_wasmer_vals(vals: &[WasmValue]) -> Vec<Val> {
             WasmValue::I64(v) => Val::I64(*v as i64),
         })
         .collect()
+}
+
+unsafe fn alloc_results(env: *mut c_void) -> svm_byte_array {
+    let env: &svm_env_t = env.into();
+    let types = env.return_types();
+
+    svm_ffi::alloc_wasm_values(types)
 }

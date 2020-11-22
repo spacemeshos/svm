@@ -66,26 +66,6 @@ unsafe fn prepare_args(args: *const svm_byte_array) -> Result<Vec<WasmValue>, &'
     Vec::<WasmValue>::try_from(args).map_err(|_| "Invalid args")
 }
 
-/// The memory for results has already been zero-allocated, we're left with filling-in
-/// the values given by `values` parameter.
-///
-// unsafe fn copy_results(results: *mut wasm_val_vec_t, values: &[Val]) {
-// let values: Vec<wasm_val_t> = values
-//     .iter()
-//     .map(|v| wasm_val_t::try_from(v).unwrap())
-//     .collect();
-
-// let results: &mut wasm_val_vec_t = &mut *results;
-
-// results.size = values.len();
-
-// for (i, val) in values.iter().enumerate() {
-//     let out_ptr = results.data.add(i);
-
-//     wasm_val_copy(out_ptr, val);
-// }
-// }
-
 /// The `trampoline` is the actual host function that will be called by SVM running.
 /// Each host function will ask SVM to call that `trampoline` function.
 ///
@@ -116,15 +96,12 @@ unsafe extern "C" fn trampoline(
 
         match callback(ctx, &args) {
             Ok(values) => {
-                let values: svm_byte_array = values.into();
-
-                (*results).bytes = values.bytes;
-                (*results).length = values.length;
-                (*results).capacity = values.capacity;
-
                 /// We copy the values returned by `callback` to `results`.
                 /// This copying operation must not fail (otherwise it's an undefined-behavior).
-                // copy_results(results, &values);
+                let results: &mut svm_byte_array = &mut *results;
+                if results.copy_wasm_values(&values) == false {
+                    unreachable!()
+                }
 
                 /// since `callback` didn't error, we return a `NULL` pointer signaling
                 // that there no trap has occurred.

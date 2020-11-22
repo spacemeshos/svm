@@ -2,6 +2,7 @@
 #![allow(unused)]
 #![allow(dead_code)]
 #![allow(unreachable_code)]
+#![feature(vec_into_raw_parts)]
 
 //! `SVM-runtime` crate is the glue between `SVM` to a Wasm Runtime
 //!

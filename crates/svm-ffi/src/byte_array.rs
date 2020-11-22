@@ -1,11 +1,17 @@
-use std::{convert::TryFrom, string::FromUtf8Error};
+use std::convert::TryFrom;
+use std::string::FromUtf8Error;
+
+use byteorder::{BigEndian, ByteOrder};
+
+use svm_types::{WasmType, WasmValue};
 
 /// FFI representation for a byte-array
 ///
 /// # Example
 ///
 /// ```rust
-/// use std::{convert::TryFrom, string::FromUtf8Error};
+/// use std::convert::TryFrom;
+/// use std::string::FromUtf8Error;
 /// use svm_ffi::svm_byte_array;
 ///
 /// let s1 = "Hello World!".to_string();
@@ -39,6 +45,58 @@ impl svm_byte_array {
         let capacity = self.capacity as usize;
 
         let _ = Vec::from_raw_parts(ptr, length, capacity);
+    }
+
+    pub unsafe fn copy_wasm_values(&mut self, values: &[WasmValue]) -> bool {
+        let nvalues = std::ptr::read::<u8>(self.bytes) as usize;
+
+        if nvalues != values.len() {
+            return false;
+        }
+
+        // `ptr` starts at the 2nd byte pointed by `self.bytes`.
+        // (the skipped byte stands for the `#values`).
+        let mut ptr = self.bytes.add(1);
+
+        macro_rules! copy_wasm_val {
+            ($val:expr, $size:expr, $bits:expr) => {{
+                paste::item! {
+                    // First, we want to ensure that `ptr` points now on `i32` type as well,
+                    // (otherwise, the copy aborts)
+
+                    let ty = WasmType::try_from(*ptr);
+                    if ty.is_err() {
+                        // `svm_byte_array` content is corrupted!
+                        return false;
+                    }
+
+                    if ty.unwrap() != WasmType::I32 {
+                        // host function didn't abide to the agreed function return types.
+                        return false;
+                    }
+
+                    // skip the type byte (we've already verified it's valid).
+                    ptr = ptr.add(1);
+
+                    // we override the zero-ed `i32` value with the data given by `val`
+                    let buf = std::slice::from_raw_parts_mut(ptr as *mut u8, $size);
+
+                    BigEndian::[<write_u $bits>](buf, *$val);
+
+                    // advances `ptr` to point to the next wasm value.
+                    ptr = ptr.add($size);
+                }
+            }};
+        };
+
+        for val in values {
+            match val {
+                WasmValue::I32(v) => copy_wasm_val!(v, 4, 32),
+                WasmValue::I64(v) => copy_wasm_val!(v, 8, 64),
+            }
+        }
+
+        true
     }
 }
 
