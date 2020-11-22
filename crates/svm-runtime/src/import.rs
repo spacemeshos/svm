@@ -37,10 +37,8 @@ impl ExternImport {
                     let args: Vec<WasmValue> = wasmer_vals_to_wasm_vals(args)?;
                     let args: svm_byte_array = args.into();
 
-                    let results = alloc_results(*env);
-                    let results = Box::into_raw(Box::new(results));
-
-                    let trap = callback(*env, &args, results);
+                    let mut results = alloc_results(*env);
+                    let trap = callback(*env, &args, &mut results);
 
                     // manually releasing `args` internals
                     args.destroy();
@@ -54,9 +52,7 @@ impl ExternImport {
                         return Err(err);
                     }
 
-                    let results = Box::from_raw(results);
-
-                    match Vec::<WasmValue>::try_from(&*results) {
+                    match Vec::<WasmValue>::try_from(&results) {
                         Ok(vals) => {
                             let wasmer_vals = wasm_vals_to_wasmer_vals(&vals);
 

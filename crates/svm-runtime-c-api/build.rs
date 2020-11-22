@@ -1,6 +1,9 @@
 extern crate cbindgen;
+
 use cbindgen::{Builder, Language};
-use std::{env, path::PathBuf};
+
+use std::env;
+use std::path::PathBuf;
 
 fn main() {
     generate_svm_header();
@@ -20,10 +23,12 @@ fn generate_svm_header() {
 
     // build using cbindgen
     Builder::new()
-        .with_crate(crate_dir.clone())
         .with_language(Language::C)
+        .with_crate(crate_dir.clone())
         .with_include_guard("SVM_H")
         .with_parse_expand(&["svm-runtime-c-api"])
+        .with_parse_deps(true)
+        .with_documentation(false)
         .generate()
         .expect("Unable to generate C bindings")
         .write_to_file(src_header.as_path());
