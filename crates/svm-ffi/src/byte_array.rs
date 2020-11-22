@@ -79,6 +79,40 @@ impl svm_byte_array {
     /// assert_eq!(dst, src);
     /// ```
     ///
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use svm_types::{WasmType, WasmValue};
+    /// use svm_ffi::{svm_byte_array, alloc_wasm_values};
+    ///
+    /// let types = vec![WasmType::I64, WasmType::I32];
+    /// let src = vec![WasmValue::I32(10)];
+    ////
+    /// let mut dst: svm_byte_array = alloc_wasm_values(&types);
+    /// let is_ok = unsafe { dst.copy_wasm_values(&src) };
+    ///
+    /// // `types.len() = 2` and `src.len() = 1`
+    /// assert!(is_ok == false);
+    /// ```
+    ///
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use svm_types::{WasmType, WasmValue};
+    /// use svm_ffi::{svm_byte_array, alloc_wasm_values};
+    ///
+    /// let types = vec![WasmType::I64, WasmType::I32];
+    /// let src = vec![WasmValue::I32(10), WasmValue::I32(20)];
+    ////
+    /// let mut dst: svm_byte_array = alloc_wasm_values(&types);
+    /// let is_ok = unsafe { dst.copy_wasm_values(&src) };
+    ///
+    /// // `src` and `types` have different layouts
+    /// assert!(is_ok == false);
+    /// ```
+    ///
     pub unsafe fn copy_wasm_values(&mut self, values: &[WasmValue]) -> bool {
         let nvalues = std::ptr::read::<u8>(self.bytes) as usize;
 
