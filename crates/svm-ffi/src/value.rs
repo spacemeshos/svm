@@ -32,6 +32,26 @@ use crate::svm_byte_array;
 /// +----------+--------------------------------+-------------+------------+
 ///
 
+/// Allocates a raw WASM values slice.
+/// The types for each item are determined by the input layout `types`.
+/// Each WASM value is assigned with zero.
+///
+/// # Example
+///
+/// ```rust
+/// use std::convert::TryFrom;
+///
+/// use svm_types::{WasmType, WasmValue};
+/// use svm_ffi::alloc_wasm_values;
+///
+///
+/// let types = vec![WasmType::I64, WasmType::I32, WasmType::I64];
+/// let values = alloc_wasm_values(&types);
+///
+/// let values = Vec::<WasmValue>::try_from(&values).unwrap();
+/// assert_eq!(values, vec![WasmValue::I64(0), WasmValue::I32(0), WasmValue::I64(0)]);
+/// ```
+///
 pub fn alloc_wasm_values(types: &[WasmType]) -> svm_byte_array {
     let nvalues = types.len();
 

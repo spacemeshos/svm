@@ -47,6 +47,16 @@ impl svm_byte_array {
         let _ = Vec::from_raw_parts(ptr, length, capacity);
     }
 
+    /// Copies the WASM values given by `values` into the raw format of `self`.
+    /// This function doesn't modify `self` WASM values layout - it only overrides its values.
+    ///
+    /// The WASM values layout `self` should been allocated before-hand.
+    /// (see `crate::alloc_wasm_values`)
+    ///
+    /// In case the layout of `self` is different from what has been given by `values`
+    /// the function returns `false` (this is an undefined-behavior)
+    ///
+    /// When the copying process succeeds - the function returns `true`.
     pub unsafe fn copy_wasm_values(&mut self, values: &[WasmValue]) -> bool {
         let nvalues = std::ptr::read::<u8>(self.bytes) as usize;
 
