@@ -57,6 +57,28 @@ impl svm_byte_array {
     /// the function returns `false` (this is an undefined-behavior)
     ///
     /// When the copying process succeeds - the function returns `true`.
+    ///
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use std::convert::TryFrom;
+    ///
+    /// use svm_types::{WasmType, WasmValue};
+    /// use svm_ffi::{svm_byte_array, alloc_wasm_values};
+    ///
+    /// let types = vec![WasmType::I64, WasmType::I32, WasmType::I64];
+    /// let src = vec![WasmValue::I64(10), WasmValue::I32(20), WasmValue::I64(30)];
+    ////
+    /// let mut dst: svm_byte_array = alloc_wasm_values(&types);
+    ///
+    /// let is_ok = unsafe { dst.copy_wasm_values(&src) };
+    /// assert!(is_ok);
+    ///
+    /// let dst = Vec::<WasmValue>::try_from(&dst).unwrap();
+    /// assert_eq!(dst, src);
+    /// ```
+    ///
     pub unsafe fn copy_wasm_values(&mut self, values: &[WasmValue]) -> bool {
         let nvalues = std::ptr::read::<u8>(self.bytes) as usize;
 
@@ -80,7 +102,7 @@ impl svm_byte_array {
                         return false;
                     }
 
-                    if ty.unwrap() != WasmType::I32 {
+                    if ty.unwrap() != WasmType::[<I $bits>] {
                         // host function didn't abide to the agreed function return types.
                         return false;
                     }

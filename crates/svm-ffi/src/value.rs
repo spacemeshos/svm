@@ -44,7 +44,6 @@ use crate::svm_byte_array;
 /// use svm_types::{WasmType, WasmValue};
 /// use svm_ffi::alloc_wasm_values;
 ///
-///
 /// let types = vec![WasmType::I64, WasmType::I32, WasmType::I64];
 /// let values = alloc_wasm_values(&types);
 ///
