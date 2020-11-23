@@ -62,7 +62,7 @@ jobs:
       run: ./svm-codec-ci.sh
     - name: Prepare Artifacts
       shell: bash
-      run: mkdir bins/ && for i in $(ls target/release/{libsvm_runtime_c_api.dylib,libsvm_runtime_c_api.so,svm_runtime_c_api.dll,svm.h}); do mv $i bins/; done
+      run: mkdir bins/ && for i in $(ls target/release/{libsvm_runtime_c_api.dylib,libsvm_runtime_c_api.so,svm_runtime_c_api.dll,svm.h, svm_types.h}); do mv $i bins/; done
     - name: Upload Artifacts
       uses: actions/upload-artifact@master
       with:

@@ -8,7 +8,7 @@ extern crate svm_ffi;
 extern crate svm_gas;
 extern crate svm_kv;
 extern crate svm_nibble;
-extern crate svm_nruntime;
+extern crate svm_runtime;
 extern crate svm_runtime_c_api;
 extern crate svm_storage;
 extern crate svm_types;

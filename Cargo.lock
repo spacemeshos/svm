@@ -118,11 +118,13 @@ checksum = "08c48aae112d48ed9f069b33538ea9e3e90aa263cfa3d1c24309612b1f7472de"
 
 [[package]]
 name = "cbindgen"
-version = "0.9.1"
+version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9daec6140ab4dcd38c3dd57e580b59a621172a526ac79f1527af760a55afeafd"
+checksum = "1df6a11bba1d7cab86c166cecf4cf8acd7d02b7b65924d81b33d27197f22ee35"
 dependencies = [
  "clap",
+ "heck",
+ "indexmap",
  "log",
  "proc-macro2",
  "quote",
@@ -470,6 +472,15 @@ name = "hashbrown"
 version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d7afe4a420e3fe79967a00898cc1f4db7c8a49a9333a29f8a4bd76a253d5cd04"
+
+[[package]]
+name = "heck"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "20564e78d53d2bb135c343b3f47714a56af2061f1c928fdb541dc7b9fdd94205"
+dependencies = [
+ "unicode-segmentation",
+]
 
 [[package]]
 name = "hermit-abi"
@@ -1135,6 +1146,7 @@ name = "svm-ffi"
 version = "0.0.0"
 dependencies = [
  "byteorder",
+ "cbindgen",
  "paste",
  "svm-layout",
  "svm-types",
@@ -1420,6 +1432,12 @@ checksum = "f50de3927f93d202783f4513cda820ab47ef17f624b03c096e86ef00c67e6b5f"
 dependencies = [
  "lazy_static",
 ]
+
+[[package]]
+name = "unicode-segmentation"
+version = "1.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "db8716a166f290ff49dabc18b44aa407cb7c6dbe1aa0971b44b8a24b0ca35aae"
 
 [[package]]
 name = "unicode-width"

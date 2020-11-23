@@ -19,7 +19,7 @@ mod result;
 pub(crate) use error::{raw_error, raw_io_error, raw_utf8_error, raw_validate_error};
 
 /// re-exposing `svm_byte_array` (consequently should appear in the `svm.h`)
-mod types;
+pub mod types;
 pub use types::svm_byte_array;
 
 /// `SVM` FFI Interface

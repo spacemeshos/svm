@@ -34,4 +34,4 @@ svm-sdk = { path = "../svm-sdk" }
 svm-abi-encoder = { path = "../svm-abi/encoder" }
 
 [build-dependencies]
-cbindgen = "0.9.1"
+cbindgen = "0.15.0"
