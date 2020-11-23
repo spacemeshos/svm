@@ -367,14 +367,14 @@ pub unsafe extern "C" fn svm_import_func_new(
         return svm_result_t::SVM_FAILURE;
     }
 
-    let import = ExternImport {
+    let import = ExternImport::new(
+        import_name.unwrap(),
+        namespace.unwrap(),
+        params.unwrap(),
+        returns.unwrap(),
         func,
         host_env,
-        name: import_name.unwrap(),
-        namespace: namespace.unwrap(),
-        params: params.unwrap(),
-        returns: returns.unwrap(),
-    };
+    );
 
     imports.push(import);
 

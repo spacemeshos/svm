@@ -1,5 +1,6 @@
 use std::convert::{TryFrom, TryInto};
 use std::ffi::c_void;
+use std::rc::Rc;
 
 use crate::Context;
 
@@ -10,21 +11,38 @@ use svm_types::{WasmType, WasmValue};
 
 #[derive(Debug, Clone)]
 pub struct ExternImport {
-    pub name: String,
+    name: String,
 
-    pub namespace: String,
+    namespace: String,
 
-    pub params: Vec<WasmType>,
+    params: Vec<WasmType>,
 
-    // TODO: make it `Rc<..>`
-    pub returns: Vec<WasmType>,
+    returns: Rc<Vec<WasmType>>,
 
-    pub func: svm_func_callback_t,
+    func: svm_func_callback_t,
 
-    pub host_env: *const c_void,
+    host_env: *const c_void,
 }
 
 impl ExternImport {
+    pub fn new(
+        name: String,
+        namespace: String,
+        params: Vec<WasmType>,
+        returns: Vec<WasmType>,
+        func: svm_func_callback_t,
+        host_env: *const c_void,
+    ) -> Self {
+        Self {
+            name,
+            namespace,
+            params,
+            returns: Rc::new(returns),
+            func,
+            host_env,
+        }
+    }
+
     pub fn wasmer_export(&self, store: &Store, ctx: &mut Context) -> (Export, *const svm_env_t) {
         unsafe {
             // The following code has been highly influenced by code here:
