@@ -1,5 +1,4 @@
 use std::convert::TryFrom;
-use std::ffi::c_void;
 use std::io::{self, Cursor};
 
 use svm_types::WasmType;
@@ -7,17 +6,6 @@ use svm_types::WasmType;
 use byteorder::{ReadBytesExt, WriteBytesExt};
 
 use crate::svm_byte_array;
-
-#[allow(non_camel_case_types)]
-#[derive(Clone)]
-#[repr(C)]
-pub struct svm_wasm_types_t {
-    pub ptr: *const c_void,
-
-    pub length: usize,
-
-    pub capacity: usize,
-}
 
 ///
 /// This file contains the implementation of encoding & decoding of a `Vec<WasmType>` into `svm_byte_array`.

@@ -56,6 +56,13 @@ pub fn alloc_wasm_values(types: &[WasmType]) -> svm_byte_array {
 
     assert!(nvalues <= std::u8::MAX as usize);
 
+    // since allocation is a relatively expansive task,
+    // we'd better allocate in a single-shot the maximum volume we'll need:
+    //
+    // 1. A single byte for `#values`
+    // 2. Nine bytes for each value.
+    //    * Each value is prepended with a single byte denoting its type
+    //    * Each WASM value can consume at most 8 bytes
     let capacity = 1 + nvalues * 9;
 
     let mut bytes = Vec::with_capacity(capacity);

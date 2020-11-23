@@ -5,7 +5,7 @@ use crate::Context;
 
 use wasmer::{Export, Exportable, Function, FunctionType, RuntimeError, Store, Type, Val};
 
-use svm_ffi::{svm_byte_array, svm_env_t, svm_func_callback_t, svm_trap_t, svm_wasm_types_t};
+use svm_ffi::{svm_byte_array, svm_env_t, svm_func_callback_t, svm_trap_t};
 use svm_types::{WasmType, WasmValue};
 
 #[derive(Debug, Clone)]
@@ -16,6 +16,7 @@ pub struct ExternImport {
 
     pub params: Vec<WasmType>,
 
+    // TODO: make it `Rc<..>`
     pub returns: Vec<WasmType>,
 
     pub func: svm_func_callback_t,
@@ -37,7 +38,7 @@ impl ExternImport {
                     let args: Vec<WasmValue> = wasmer_vals_to_wasm_vals(args)?;
                     let args: svm_byte_array = args.into();
 
-                    let mut results = alloc_results(*env);
+                    let mut results = svm_ffi::alloc_wasm_values(&returns);
                     let trap = func(*env, &args, &mut results);
 
                     // manually releasing `args` internals
@@ -54,6 +55,8 @@ impl ExternImport {
 
                     match Vec::<WasmValue>::try_from(&results) {
                         Ok(vals) => {
+                            // TODO: validate the returns types.
+
                             let wasmer_vals = wasm_vals_to_wasmer_vals(&vals);
 
                             // manually releasing `results` internals
@@ -71,14 +74,6 @@ impl ExternImport {
             let inner_env = ctx as *mut Context as *const Context as *const c_void;
             let host_env = self.host_env;
 
-            let (ptr, length, capacity) = Vec::into_raw_parts(self.returns.clone());
-
-            let returns = svm_wasm_types_t {
-                ptr: ptr as *const c_void,
-                length,
-                capacity,
-            };
-
             /// The import used `env` (using Wasmer terminology) will be a struct of `svm_env_t`
             /// This `#[repr(C)]` struct will contain two pointers to two types of `env`:
             ///
@@ -90,7 +85,6 @@ impl ExternImport {
             let func_env = svm_env_t {
                 inner_env,
                 host_env,
-                returns,
             };
 
             /// The heap-allocated `func_env` will be deallocated by later by `SVM` running runtime.
@@ -133,6 +127,7 @@ fn to_wasmer_types(types: &[WasmType]) -> Vec<Type> {
         .collect()
 }
 
+#[inline]
 fn wasmer_vals_to_wasm_vals(wasmer_vals: &[Val]) -> Result<Vec<WasmValue>, RuntimeError> {
     let mut values = Vec::new();
 
@@ -149,6 +144,7 @@ fn wasmer_vals_to_wasm_vals(wasmer_vals: &[Val]) -> Result<Vec<WasmValue>, Runti
     Ok(values)
 }
 
+#[inline]
 fn wasm_vals_to_wasmer_vals(vals: &[WasmValue]) -> Vec<Val> {
     vals.iter()
         .map(|val| match val {
@@ -156,11 +152,4 @@ fn wasm_vals_to_wasmer_vals(vals: &[WasmValue]) -> Vec<Val> {
             WasmValue::I64(v) => Val::I64(*v as i64),
         })
         .collect()
-}
-
-unsafe fn alloc_results(env: *mut svm_env_t) -> svm_byte_array {
-    let env: &svm_env_t = &*env;
-    let types = env.return_types();
-
-    svm_ffi::alloc_wasm_values(types)
 }
