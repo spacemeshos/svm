@@ -1,10 +1,8 @@
-use std::ffi::c_void;
-
-use crate::{svm_byte_array, svm_trap_t};
+use crate::{svm_byte_array, svm_env_t, svm_trap_t};
 
 #[allow(non_camel_case_types)]
-pub type svm_func_callback_t = fn(
-    env: *const c_void,
+pub type svm_func_callback_t = unsafe extern "C" fn(
+    env: *mut svm_env_t,
     args: *const svm_byte_array,
     results: *mut svm_byte_array,
 ) -> *mut svm_trap_t;

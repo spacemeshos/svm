@@ -24,6 +24,7 @@ fn main() {
         .include_item("svm_trap_t")
         .include_item("svm_func_callback_t")
         .include_item("svm_wasm_types_t")
+        .include_item("svm_env_t")
         .with_documentation(false)
         .generate()
         .expect("Unable to generate C bindings")

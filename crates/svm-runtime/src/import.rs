@@ -18,7 +18,7 @@ pub struct ExternImport {
 
     pub returns: Vec<WasmType>,
 
-    pub func_ptr: *const c_void,
+    pub func: svm_func_callback_t,
 
     pub host_env: *const c_void,
 }
@@ -29,16 +29,16 @@ impl ExternImport {
             // The following code has been highly influenced by code here:
             // https://github.com/wasmerio/wasmer/blob/7847acaae1e7a0eade13b65def1f3feeac95efd7/lib/c-api/src/wasm_c_api/externals/func.rs#L86
 
-            let callback: svm_func_callback_t = std::mem::transmute(self.func_ptr);
             let returns = self.returns.clone();
+            let func = self.func;
 
             let inner_callback =
-                move |env: &mut *mut c_void, args: &[Val]| -> Result<Vec<Val>, RuntimeError> {
+                move |env: &mut *mut svm_env_t, args: &[Val]| -> Result<Vec<Val>, RuntimeError> {
                     let args: Vec<WasmValue> = wasmer_vals_to_wasm_vals(args)?;
                     let args: svm_byte_array = args.into();
 
                     let mut results = alloc_results(*env);
-                    let trap = callback(*env, &args, &mut results);
+                    let trap = func(*env, &args, &mut results);
 
                     // manually releasing `args` internals
                     args.destroy();
@@ -93,8 +93,9 @@ impl ExternImport {
                 returns,
             };
 
-            /// The heap-allocated `func_env` will be dellocated by later by `SVM` running runtime.
-            let func_env = svm_common::into_raw_mut(func_env);
+            /// The heap-allocated `func_env` will be deallocated by later by `SVM` running runtime.
+            /// (See method `funcs_envs_destroy` under `src/runtime/default.rs`)
+            let func_env = Box::into_raw(Box::new(func_env));
 
             let func = Function::new_with_env(store, &func_ty, func_env, inner_callback);
             let export = func.to_export();
@@ -157,8 +158,8 @@ fn wasm_vals_to_wasmer_vals(vals: &[WasmValue]) -> Vec<Val> {
         .collect()
 }
 
-unsafe fn alloc_results(env: *mut c_void) -> svm_byte_array {
-    let env: &svm_env_t = env.into();
+unsafe fn alloc_results(env: *mut svm_env_t) -> svm_byte_array {
+    let env: &svm_env_t = &*env;
     let types = env.return_types();
 
     svm_ffi::alloc_wasm_values(types)

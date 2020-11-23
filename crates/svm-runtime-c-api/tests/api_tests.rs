@@ -80,13 +80,12 @@ unsafe fn prepare_args(args: *const svm_byte_array) -> Result<Vec<WasmValue>, &'
 ///
 /// In case the `trampoline` failed, a pointer to heap-allocated trap will be propagated back to SVM.
 /// SVM will be responsible of deallocating that memory pointed by that `svm_trap_t`.
-#[no_mangle]
 unsafe extern "C" fn trampoline(
-    env: *mut c_void,
+    env: *mut svm_env_t,
     args: *const svm_byte_array,
     results: *mut svm_byte_array,
 ) -> *mut svm_trap_t {
-    let env: &svm_env_t = env.into();
+    let env: &svm_env_t = &*env;
     let func_idx = env.host_env::<func_index_t>();
     let callback = func_index_to_callback(func_idx);
 
@@ -126,8 +125,6 @@ unsafe fn create_imports() -> *const c_void {
     assert!(res.is_ok());
 
     // `counter_mul` import
-    let func_ptr: *const c_void = trampoline as _;
-
     let func_idx = func_index_t(COUNTER_MUL_FN_INDEX);
     let func_idx: *mut func_index_t = Box::into_raw(Box::new(func_idx));
     let host_env = func_idx as *mut c_void as *const c_void;
@@ -143,7 +140,7 @@ unsafe fn create_imports() -> *const c_void {
         imports,
         namespace.into(),
         import_name.into(),
-        func_ptr,
+        trampoline,
         host_env,
         params.into(),
         returns.into(),
