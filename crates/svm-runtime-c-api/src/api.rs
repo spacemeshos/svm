@@ -264,7 +264,7 @@ pub unsafe extern "C" fn svm_validate_tx(
 pub unsafe extern "C" fn svm_imports_alloc(imports: *mut *mut c_void, count: u32) -> svm_result_t {
     let vec: Vec<ExternImport> = Vec::with_capacity(count as usize);
 
-    *imports = svm_common::into_raw_mut(vec);
+    *imports = svm_ffi::into_raw_mut(vec);
 
     svm_result_t::SVM_SUCCESS
 }
@@ -301,7 +301,7 @@ pub unsafe extern "C" fn svm_imports_alloc(imports: *mut *mut c_void, count: u32
 /// let returns = Vec::<WasmType>::new();
 /// let mut error = svm_byte_array::default();
 ///
-/// let host_env = svm_common::into_raw_mut(function_id(0));
+/// let host_env = svm_ffi::into_raw_mut(function_id(0));
 ///
 /// let res = unsafe {
 ///   svm_import_func_new(
@@ -386,7 +386,7 @@ macro_rules! box_runtime {
         let runtime_ptr = RuntimePtr::new(Box::new($runtime));
 
         //  `svm_runtime_destroy` should be called later for freeing memory.
-        *$raw_runtime = svm_common::into_raw_mut(runtime_ptr);
+        *$raw_runtime = svm_ffi::into_raw_mut(runtime_ptr);
 
         svm_result_t::SVM_SUCCESS
     }};
@@ -410,7 +410,7 @@ macro_rules! box_runtime {
 pub unsafe extern "C" fn svm_memory_state_kv_create(kv: *mut *mut c_void) -> svm_result_t {
     let state_kv = svm_runtime::testing::memory_state_kv_init();
 
-    *kv = svm_common::into_raw_mut(state_kv);
+    *kv = svm_ffi::into_raw_mut(state_kv);
 
     svm_result_t::SVM_SUCCESS
 }
@@ -452,7 +452,7 @@ pub unsafe extern "C" fn svm_ffi_state_kv_create(
 
     let ffi_kv = Rc::new(RefCell::new(ffi_kv));
 
-    *state_kv = svm_common::into_raw_mut(ffi_kv);
+    *state_kv = svm_ffi::into_raw_mut(ffi_kv);
 
     svm_result_t::SVM_SUCCESS
 }
@@ -475,7 +475,7 @@ pub unsafe extern "C" fn svm_ffi_state_kv_create(
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_state_kv_destroy(kv: *mut c_void) -> svm_result_t {
-    let kv: &mut Rc<RefCell<dyn StatefulKV>> = svm_common::from_raw_mut(kv);
+    let kv: &mut Rc<RefCell<dyn StatefulKV>> = svm_ffi::as_mut(kv);
 
     let _ = Box::from_raw(kv as *mut _);
 
@@ -515,7 +515,7 @@ pub unsafe extern "C" fn svm_memory_runtime_create(
     debug!("`svm_memory_runtime_create` start");
 
     let imports = helpers::cast_to_imports(imports);
-    let state_kv = svm_common::from_raw_mut(state_kv);
+    let state_kv = svm_ffi::as_mut(state_kv);
     let mem_runtime = svm_runtime::testing::create_memory_runtime(state_kv, imports);
 
     let res = box_runtime!(runtime, mem_runtime);
