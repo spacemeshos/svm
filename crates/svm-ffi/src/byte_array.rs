@@ -47,109 +47,54 @@ impl svm_byte_array {
         let _ = Vec::from_raw_parts(ptr, length, capacity);
     }
 
-    /// Copies the WASM values given by `values` into the raw format of `self`.
-    /// This function doesn't modify `self` WASM values layout - it only overrides its values.
-    ///
-    /// The WASM values layout `self` should been allocated before-hand.
-    /// (see `crate::alloc_wasm_values`)
-    ///
-    /// In case the layout of `self` is different from what has been given by `values`
-    /// the function returns `false` (this is an undefined-behavior)
-    ///
-    /// When the copying process succeeds - the function returns `true`.
-    ///
+    /// Copies the WASM values given by `values` into the raw format of `self` (i.e `svm_byte_array`).
+    /// The function receives an allocated buffer filled with zeros it should fill-in.
     ///
     /// # Example
     ///
     /// ```rust
     /// use std::convert::TryFrom;
     ///
-    /// use svm_types::{WasmType, WasmValue};
-    /// use svm_ffi::{svm_byte_array, alloc_wasm_values};
+    /// use svm_types::WasmValue;
+    /// use svm_ffi::svm_byte_array;
     ///
-    /// let types = vec![WasmType::I64, WasmType::I32, WasmType::I64];
     /// let src = vec![WasmValue::I64(10), WasmValue::I32(20), WasmValue::I64(30)];
-    ////
-    /// let mut dst: svm_byte_array = alloc_wasm_values(&types);
     ///
-    /// let is_ok = unsafe { dst.copy_wasm_values(&src) };
-    /// assert!(is_ok);
+    /// // We allocate `dst` with zeros.
+    /// let size = 1 + 9 * src.len();
+    /// let mut dst: svm_byte_array = vec![0; size].into();
     ///
-    /// let dst = Vec::<WasmValue>::try_from(&dst).unwrap();
-    /// assert_eq!(dst, src);
+    /// // We fill-in `dst` with the WASM values given by `src`
+    /// unsafe { dst.copy_wasm_values(&src) };
+    ///
+    /// let copied = Vec::<WasmValue>::try_from(&dst).unwrap();
+    /// assert_eq!(copied, src);
+    ///
+    /// // de-allocate `dst`
+    /// unsafe { dst.destroy() };
     /// ```
-    ///
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use svm_types::{WasmType, WasmValue};
-    /// use svm_ffi::{svm_byte_array, alloc_wasm_values};
-    ///
-    /// let types = vec![WasmType::I64, WasmType::I32];
-    /// let src = vec![WasmValue::I32(10)];
-    ////
-    /// let mut dst: svm_byte_array = alloc_wasm_values(&types);
-    /// let is_ok = unsafe { dst.copy_wasm_values(&src) };
-    ///
-    /// // `types.len() = 2` and `src.len() = 1`
-    /// assert!(is_ok == false);
-    /// ```
-    ///
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use svm_types::{WasmType, WasmValue};
-    /// use svm_ffi::{svm_byte_array, alloc_wasm_values};
-    ///
-    /// let types = vec![WasmType::I64, WasmType::I32];
-    /// let src = vec![WasmValue::I32(10), WasmValue::I32(20)];
-    ////
-    /// let mut dst: svm_byte_array = alloc_wasm_values(&types);
-    /// let is_ok = unsafe { dst.copy_wasm_values(&src) };
-    ///
-    /// // `src` and `types` have different layouts
-    /// assert!(is_ok == false);
-    /// ```
-    ///
-    pub unsafe fn copy_wasm_values(&mut self, values: &[WasmValue]) -> bool {
-        let nvalues = std::ptr::read::<u8>(self.bytes) as usize;
+    pub unsafe fn copy_wasm_values(&mut self, values: &[WasmValue]) {
+        assert!(values.len() <= 255);
 
-        if nvalues != values.len() {
-            return false;
-        }
+        let nvalues = values.len() as u8;
 
-        // `ptr` starts at the 2nd byte pointed by `self.bytes`.
-        // (the skipped byte stands for the `#values`).
-        let mut ptr = self.bytes.add(1);
+        let mut ptr = self.bytes as *mut u8;
+
+        // The first byte signifies the `#values`.
+        std::ptr::write::<u8>(ptr, nvalues);
+        ptr = ptr.add(1);
 
         macro_rules! copy_wasm_val {
-            ($val:expr, $size:expr, $bits:expr) => {{
+            ($ty:expr, $val:expr, $size:expr, $bits:expr) => {{
                 paste::item! {
-                    // First, we want to ensure that `ptr` points now on `i32` type as well,
-                    // (otherwise, the copy aborts)
-
-                    let ty = WasmType::try_from(*ptr);
-                    if ty.is_err() {
-                        // `svm_byte_array` content is corrupted!
-                        return false;
-                    }
-
-                    if ty.unwrap() != WasmType::[<I $bits>] {
-                        // host function didn't abide to the agreed function return types.
-                        return false;
-                    }
-
-                    // skip the type byte (we've already verified it's valid).
+                    // First we copy the `type` of the WASM value
+                    let ty: u8 = $ty.into();
+                    std::ptr::write::<u8>(ptr, ty);
                     ptr = ptr.add(1);
 
-                    // we override the zero-ed `i32` value with the data given by `val`
+                    // We copy the `value` with the data given by `$val`
                     let buf = std::slice::from_raw_parts_mut(ptr as *mut u8, $size);
-
                     BigEndian::[<write_u $bits>](buf, *$val);
-
-                    // advances `ptr` to point to the next wasm value.
                     ptr = ptr.add($size);
                 }
             }};
@@ -157,12 +102,10 @@ impl svm_byte_array {
 
         for val in values {
             match val {
-                WasmValue::I32(v) => copy_wasm_val!(v, 4, 32),
-                WasmValue::I64(v) => copy_wasm_val!(v, 8, 64),
+                WasmValue::I32(v) => copy_wasm_val!(WasmType::I32, v, 4, 32),
+                WasmValue::I64(v) => copy_wasm_val!(WasmType::I64, v, 8, 64),
             }
         }
-
-        true
     }
 }
 

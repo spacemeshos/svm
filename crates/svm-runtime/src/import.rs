@@ -48,7 +48,7 @@ impl ExternImport {
             // The following code has been highly influenced by code here:
             // https://github.com/wasmerio/wasmer/blob/7847acaae1e7a0eade13b65def1f3feeac95efd7/lib/c-api/src/wasm_c_api/externals/func.rs#L86
 
-            let returns = self.returns.clone();
+            let returns_types = self.returns.clone();
             let func = self.func;
 
             let inner_callback =
@@ -56,7 +56,7 @@ impl ExternImport {
                     let args: Vec<WasmValue> = wasmer_vals_to_wasm_vals(args)?;
                     let args: svm_byte_array = args.into();
 
-                    let mut results = svm_ffi::alloc_wasm_values(&returns);
+                    let mut results = svm_ffi::alloc_wasm_values(returns_types.len());
                     let trap = func(*env, &args, &mut results);
 
                     // manually releasing `args` internals
@@ -68,21 +68,23 @@ impl ExternImport {
                         let err_msg: String = (*trap).into();
                         let err = RuntimeError::new(err_msg);
 
+                        // manually releasing `results` internals
+                        results.destroy();
+
                         return Err(err);
                     }
 
-                    match Vec::<WasmValue>::try_from(&results) {
-                        Ok(vals) => {
-                            // TODO: validate the returns types.
+                    let vals = to_wasm_values(&results, &returns_types);
 
-                            let wasmer_vals = wasm_vals_to_wasmer_vals(&vals);
+                    // manually releasing `results` internals
+                    results.destroy();
 
-                            // manually releasing `results` internals
-                            results.destroy();
+                    if let Some(vals) = vals {
+                        let vals = wasm_vals_to_wasmer_vals(&vals);
 
-                            Ok(wasmer_vals)
-                        }
-                        Err(..) => Err(RuntimeError::new("Invalid WASM values")),
+                        Ok(vals)
+                    } else {
+                        Err(RuntimeError::new("Invalid WASM values"))
                     }
                 };
 
@@ -143,6 +145,29 @@ fn to_wasmer_types(types: &[WasmType]) -> Vec<Type> {
             _ => panic!("Only i32 and i64 are supported."),
         })
         .collect()
+}
+
+#[inline]
+fn to_wasm_values(bytes: &svm_byte_array, types: &[WasmType]) -> Option<Vec<WasmValue>> {
+    let results = Vec::<WasmValue>::try_from(bytes);
+
+    if results.is_err() {
+        return None;
+    }
+
+    let results = results.unwrap();
+
+    if results.len() != types.len() {
+        return None;
+    }
+
+    for (val, ty) in results.iter().zip(types.iter()) {
+        if val.ty() != *ty {
+            return None;
+        }
+    }
+
+    Some(results)
 }
 
 #[inline]

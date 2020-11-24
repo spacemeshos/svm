@@ -25,6 +25,7 @@ fn generate_svm_header() {
         .with_crate(crate_dir.clone())
         .with_include_guard("SVM_H")
         .with_include("svm_types.h")
+        .with_documentation(true)
         .generate()
         .expect("Unable to generate C bindings")
         .write_to_file(src_header.as_path());

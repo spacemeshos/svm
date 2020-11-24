@@ -32,51 +32,11 @@ use crate::svm_byte_array;
 /// +----------+--------------------------------+-------------+------------+
 ///
 
-/// Allocates a raw WASM values slice.
-/// The types for each item are determined by the input layout `types`.
-/// Each WASM value is assigned with zero.
-///
-/// # Example
-///
-/// ```rust
-/// use std::convert::TryFrom;
-///
-/// use svm_types::{WasmType, WasmValue};
-/// use svm_ffi::alloc_wasm_values;
-///
-/// let types = vec![WasmType::I64, WasmType::I32, WasmType::I64];
-/// let values = alloc_wasm_values(&types);
-///
-/// let values = Vec::<WasmValue>::try_from(&values).unwrap();
-/// assert_eq!(values, vec![WasmValue::I64(0), WasmValue::I32(0), WasmValue::I64(0)]);
-/// ```
-///
-pub fn alloc_wasm_values(types: &[WasmType]) -> svm_byte_array {
-    let nvalues = types.len();
-
-    assert!(nvalues <= std::u8::MAX as usize);
-
-    // since allocation is a relatively expansive task,
-    // we'd better allocate in a single-shot the maximum volume we'll need:
-    //
-    // 1. A single byte for `#values`
-    // 2. Nine bytes for each value.
-    //    * Each value is prepended with a single byte denoting its type
-    //    * Each WASM value can consume at most 8 bytes
-    let capacity = 1 + nvalues * 9;
-
-    let mut bytes = Vec::with_capacity(capacity);
-
-    bytes.write_u8(nvalues as u8).unwrap();
-
-    for ty in types {
-        bytes.write_u8(ty.into()).unwrap();
-
-        match ty {
-            WasmType::I32 => bytes.write_u32::<BigEndian>(0).unwrap(),
-            WasmType::I64 => bytes.write_u64::<BigEndian>(0).unwrap(),
-        };
-    }
+/// Allocates a raw buffer destined to hold exactly `nvalues` WASM values.
+/// The buffer is initialized with zeros.
+pub fn alloc_wasm_values(nvalues: usize) -> svm_byte_array {
+    let cap = wasm_values_capacity(nvalues);
+    let bytes = vec![0; cap];
 
     bytes.into()
 }
@@ -103,9 +63,8 @@ impl From<&[WasmValue]> for svm_byte_array {
 
         assert!(nvalues <= std::u8::MAX as usize);
 
-        let capacity = 1 + nvalues * 9;
-
-        let mut bytes = Vec::with_capacity(capacity);
+        let cap = wasm_values_capacity(nvalues);
+        let mut bytes = Vec::with_capacity(cap);
 
         bytes.write_u8(nvalues as u8).unwrap();
 
@@ -172,6 +131,19 @@ impl TryFrom<&svm_byte_array> for Vec<WasmValue> {
 
         Ok(values)
     }
+}
+
+fn wasm_values_capacity(nvalues: usize) -> usize {
+    assert!(nvalues <= std::u8::MAX as usize);
+
+    // since allocation is a relatively expansive task,
+    // we'd better allocate in a single-shot the maximum volume we'll need:
+    //
+    // 1. A single byte for `#values`
+    // 2. Nine bytes for each value.
+    //    * Each value is prepended with a single byte denoting its type
+    //    * Each WASM value can consume at most 8 bytes
+    1 + nvalues * 9
 }
 
 #[cfg(test)]

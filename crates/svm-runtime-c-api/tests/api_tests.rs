@@ -98,9 +98,7 @@ unsafe extern "C" fn trampoline(
                 /// We copy the values returned by `callback` to `results`.
                 /// This copying operation must not fail (otherwise it's an undefined-behavior).
                 let results: &mut svm_byte_array = &mut *results;
-                if results.copy_wasm_values(&values) == false {
-                    unreachable!()
-                }
+                results.copy_wasm_values(&values);
 
                 /// since `callback` didn't error, we return a `NULL` pointer signaling
                 // that there no trap has occurred.
