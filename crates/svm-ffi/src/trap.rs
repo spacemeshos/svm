@@ -11,10 +11,9 @@ pub struct svm_trap_t {
 impl svm_trap_t {
     pub fn alloc(size: usize) -> *mut svm_trap_t {
         let error = svm_byte_array::new(size as usize);
-
         let trap = svm_trap_t { error };
 
-        Box::into_raw(Box::new(trap))
+        crate::into_raw(trap) as _
     }
 
     pub unsafe fn destroy(self) {

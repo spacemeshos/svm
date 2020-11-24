@@ -5,6 +5,8 @@ use byteorder::{BigEndian, ByteOrder};
 
 use svm_types::{WasmType, WasmValue};
 
+use crate::tracking;
+
 /// FFI representation for a byte-array
 ///
 /// # Example
@@ -52,6 +54,8 @@ impl svm_byte_array {
         let capacity = self.capacity as usize;
 
         let _ = Vec::from_raw_parts(ptr, length, capacity);
+
+        tracking::decrement_live::<Self>();
     }
 
     /// Copies the WASM values given by `values` into the raw format of `self` (i.e `svm_byte_array`).
@@ -148,6 +152,8 @@ impl From<String> for svm_byte_array {
 impl From<Vec<u8>> for svm_byte_array {
     fn from(vec: Vec<u8>) -> Self {
         let (ptr, len, cap) = vec.into_raw_parts();
+
+        tracking::increment_live::<Self>();
 
         svm_byte_array {
             bytes: ptr,

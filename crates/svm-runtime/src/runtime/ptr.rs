@@ -1,13 +1,11 @@
-use std::{
-    ffi::c_void,
-    ops::{Deref, DerefMut},
-};
+use std::ffi::c_void;
+use std::ops::{Deref, DerefMut};
 
-use log::debug;
+use crate::Runtime;
 
-use svm_runtime::Runtime;
-
-/// Smart-pointer for a `Runtime`
+/// A Smart-pointer for a `Runtime`
+///
+/// Its main usage will be FFI related code.
 #[repr(C)]
 pub struct RuntimePtr {
     inner: Box<dyn Runtime>,
@@ -21,11 +19,21 @@ impl RuntimePtr {
 
     /// Copies the `RuntimePtr` into the heap, and returns a raw pointer to it.
     pub fn into_raw(self) -> *mut c_void {
-        let boxed = Box::new(self);
+        svm_ffi::into_raw(self)
+    }
 
-        let ptr: *mut RuntimePtr = Box::into_raw(boxed);
+    pub fn from_raw(ptr: *mut c_void) {
+        let ptr: *mut RuntimePtr = ptr as _;
 
-        ptr as _
+        let _: RuntimePtr = svm_ffi::from_raw(ptr);
+    }
+}
+
+impl<'a> From<*mut c_void> for &'a mut Box<dyn Runtime> {
+    fn from(ptr: *mut c_void) -> Self {
+        let ptr: &mut RuntimePtr = unsafe { svm_ffi::as_mut(ptr) };
+
+        &mut *ptr
     }
 }
 
@@ -40,11 +48,5 @@ impl Deref for RuntimePtr {
 impl DerefMut for RuntimePtr {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.inner
-    }
-}
-
-impl Drop for RuntimePtr {
-    fn drop(&mut self) {
-        debug!("Dropping RuntimePtr...");
     }
 }

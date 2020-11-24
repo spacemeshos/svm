@@ -6,9 +6,6 @@
 
 //! This crate is responsible of providing [FFI](https://doc.rust-lang.org/nomicon/ffi.html) interface for the `SVM`.
 
-/// Crate common helpers
-pub mod helpers;
-
 /// Crate common tests specific helpers
 pub mod testing;
 
@@ -56,6 +53,3 @@ pub use api::{
 };
 
 pub use result::svm_result_t;
-
-mod runtime_ptr;
-use runtime_ptr::RuntimePtr;

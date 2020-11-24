@@ -20,28 +20,20 @@ pub use value::alloc_wasm_values;
 
 use std::ffi::c_void;
 
-/// Receives an object, and returns a raw `*const c_void` pointer to it.
-#[must_use]
-#[inline]
-pub fn into_raw<T>(obj: T) -> *const c_void {
-    let ptr: *mut T = Box::into_raw(Box::new(obj));
-
-    ptr as *const T as _
-}
-
 /// Receives an object, and returns a raw `*mut c_void` pointer to it.
 #[must_use]
 #[inline]
-pub fn into_raw_mut<T>(obj: T) -> *mut c_void {
-    let ptr: *mut T = Box::into_raw(Box::new(obj));
+pub fn into_raw<T>(obj: T) -> *mut c_void {
+    tracking::increment_live::<T>();
 
+    let ptr: *mut T = Box::into_raw(Box::new(obj));
     ptr as _
 }
 
 #[must_use]
 #[inline]
-pub fn from_raw<T>(ptr: *const c_void) -> T {
-    let ptr: *mut T = ptr as *const T as *mut T;
+pub fn from_raw<T>(ptr: *mut T) -> T {
+    tracking::increment_live::<T>();
 
     unsafe { *Box::from_raw(ptr) }
 }

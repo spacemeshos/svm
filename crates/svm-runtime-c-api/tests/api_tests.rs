@@ -115,7 +115,7 @@ unsafe extern "C" fn trampoline(
     }
 }
 
-unsafe fn create_imports() -> *const c_void {
+unsafe fn create_imports() -> *mut c_void {
     let mut imports = std::ptr::null_mut();
     let length = 1;
 
@@ -185,6 +185,8 @@ fn svm_runtime_exec_app() {
 }
 
 unsafe fn test_svm_runtime() {
+    svm_ffi::tracking::clear();
+
     let version: u32 = 0;
     let gas_metering = false;
     let gas_limit = 0;
@@ -200,6 +202,8 @@ unsafe fn test_svm_runtime() {
 
     let res = api::svm_memory_runtime_create(&mut runtime, state_kv, imports, &mut error);
     assert!(res.is_ok());
+
+    dbg!(svm_ffi::tracking::snapshot());
 
     // 2) deploy app-template
     let author = Address::of("author").into();
@@ -315,4 +319,6 @@ unsafe fn test_svm_runtime() {
     let _ = api::svm_imports_destroy(imports);
     let _ = api::svm_runtime_destroy(runtime);
     let _ = api::svm_state_kv_destroy(state_kv);
+
+    // assert_eq!(svm_ffi::tracking::total_live_count(), 0);
 }
