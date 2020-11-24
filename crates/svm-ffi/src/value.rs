@@ -36,9 +36,8 @@ use crate::svm_byte_array;
 /// The buffer is initialized with zeros.
 pub fn alloc_wasm_values(nvalues: usize) -> svm_byte_array {
     let cap = wasm_values_capacity(nvalues);
-    let bytes = vec![0; cap];
 
-    bytes.into()
+    svm_byte_array::new(cap)
 }
 
 /// Converts `svm_byte_array` into `Vec<WasmerValue>`

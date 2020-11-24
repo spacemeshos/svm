@@ -65,11 +65,14 @@ impl ExternImport {
                     if !trap.is_null() {
                         let trap: Box<svm_trap_t> = Box::from_raw(trap);
 
-                        let err_msg: String = (*trap).into();
+                        let err_msg: String = (&*trap).into();
                         let err = RuntimeError::new(err_msg);
 
                         // manually releasing `results` internals
                         results.destroy();
+
+                        // manually releasing `trap` internals
+                        trap.destroy();
 
                         return Err(err);
                     }

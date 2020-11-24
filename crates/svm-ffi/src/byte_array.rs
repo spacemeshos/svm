@@ -39,6 +39,13 @@ pub struct svm_byte_array {
 }
 
 impl svm_byte_array {
+    /// Creates a new `svm_byte_array` backed by a buffer of zeros sized `size`.
+    pub fn new(size: usize) -> Self {
+        let vec = vec![0u8; size];
+
+        vec.into()
+    }
+
     pub unsafe fn destroy(self) {
         let ptr = self.bytes as *mut u8;
         let length = self.length as usize;

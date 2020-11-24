@@ -21,7 +21,7 @@ use svm_types::{Address, State, WasmType};
 
 use crate::RuntimePtr;
 use crate::{helpers, raw_error, raw_io_error, raw_utf8_error, raw_validate_error, svm_result_t};
-use svm_ffi::{svm_byte_array, svm_env_t, svm_func_callback_t};
+use svm_ffi::{svm_byte_array, svm_env_t, svm_func_callback_t, svm_trap_t};
 
 use svm_codec::receipt::{encode_app_receipt, encode_exec_receipt, encode_template_receipt};
 
@@ -875,6 +875,23 @@ pub unsafe extern "C" fn svm_runtime_destroy(runtime: *mut c_void) {
 #[no_mangle]
 pub unsafe extern "C" fn svm_imports_destroy(imports: *const c_void) {
     let _ = Box::from_raw(imports as *mut Vec<ExternImport>);
+}
+
+/// Allocates a new `svm_trap_t` with inner `error` of size `size`.
+#[no_mangle]
+pub unsafe extern "C" fn svm_trap_alloc(size: u32) -> *mut svm_trap_t {
+    svm_trap_t::alloc(size)
+}
+
+/// Deallocates all memory consumed by `trap`.
+///
+/// This method should be used for mainly for tests or similar, since `*mut trap_t`(s) returned by host functions
+/// are being deallocated internally by SVM.
+#[no_mangle]
+pub unsafe extern "C" fn svm_trap_destroy(trap: *mut svm_trap_t) {
+    let trap = Box::from_raw(trap);
+
+    trap.destroy()
 }
 
 /// Frees `svm_byte_array`
