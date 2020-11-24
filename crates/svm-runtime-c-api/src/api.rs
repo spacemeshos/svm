@@ -880,7 +880,7 @@ pub unsafe extern "C" fn svm_imports_destroy(imports: *const c_void) {
 /// Allocates a new `svm_trap_t` with inner `error` of size `size`.
 #[no_mangle]
 pub unsafe extern "C" fn svm_trap_alloc(size: u32) -> *mut svm_trap_t {
-    svm_trap_t::alloc(size)
+    svm_trap_t::alloc(size as usize)
 }
 
 /// Deallocates all memory consumed by `trap`.
