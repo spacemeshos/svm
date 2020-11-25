@@ -7,7 +7,6 @@ mod env;
 mod layout;
 mod macros;
 mod state;
-mod trap;
 mod types;
 mod value;
 
@@ -15,7 +14,6 @@ pub use byte_array::svm_byte_array;
 pub mod tracking;
 pub use callback::svm_func_callback_t;
 pub use env::svm_env_t;
-pub use trap::svm_trap_t;
 pub use value::alloc_wasm_values;
 
 use std::ffi::c_void;

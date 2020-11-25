@@ -275,14 +275,14 @@ pub unsafe extern "C" fn svm_imports_alloc(imports: *mut *mut c_void, count: u32
 /// ```rust
 /// use svm_runtime_c_api::*;
 ///
-/// use svm_ffi::{svm_env_t, svm_func_callback_t, svm_byte_array, svm_trap_t};
+/// use svm_ffi::{svm_env_t, svm_func_callback_t, svm_byte_array};
 /// use svm_types::WasmType;
 ///
 /// unsafe extern "C" fn host_func(
 ///   env:     *mut svm_env_t,
 ///   args:    *const svm_byte_array,
 ///   results: *mut svm_byte_array
-/// ) -> *mut svm_trap_t {
+/// ) -> *mut svm_byte_array {
 ///   // ...
 ///   return std::ptr::null_mut()
 /// }
@@ -873,23 +873,6 @@ pub unsafe extern "C" fn svm_imports_destroy(imports: *const c_void) {
     let _ = Box::from_raw(imports as *mut Vec<ExternImport>);
 }
 
-/// Allocates a new `svm_trap_t` with inner `error` of size `size`.
-#[no_mangle]
-pub unsafe extern "C" fn svm_trap_alloc(size: u32) -> *mut svm_trap_t {
-    svm_trap_t::alloc(size as usize)
-}
-
-/// Deallocates all memory consumed by `trap`.
-///
-/// This method should be used for mainly for tests or similar, since `*mut trap_t`(s) returned by host functions
-/// are being deallocated internally by SVM.
-#[no_mangle]
-pub unsafe extern "C" fn svm_trap_destroy(trap: *mut svm_trap_t) {
-    let trap = svm_ffi::from_raw(trap);
-
-    trap.destroy()
-}
-
 /// Frees `svm_byte_array`
 ///
 /// # Example
@@ -907,6 +890,17 @@ pub unsafe extern "C" fn svm_trap_destroy(trap: *mut svm_trap_t) {
 #[no_mangle]
 pub unsafe extern "C" fn svm_byte_array_destroy(bytes: svm_byte_array) {
     bytes.destroy()
+}
+
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_wasm_error_create(msg: svm_byte_array) -> *mut svm_byte_array {
+    let msg: &[u8] = msg.into();
+    let bytes = msg.to_vec();
+
+    let err: svm_byte_array = bytes.into();
+
+    Box::into_raw(Box::new(err))
 }
 
 /// Given a raw `deploy-template` transaction (the `bytes` parameter),

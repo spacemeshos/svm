@@ -6,7 +6,7 @@ use crate::Context;
 
 use wasmer::{Export, Exportable, Function, FunctionType, RuntimeError, Store, Type, Val};
 
-use svm_ffi::{svm_byte_array, svm_env_t, svm_func_callback_t, svm_trap_t};
+use svm_ffi::{svm_byte_array, svm_env_t, svm_func_callback_t};
 use svm_types::{WasmType, WasmValue};
 
 #[derive(Debug, Clone)]
@@ -51,44 +51,42 @@ impl ExternImport {
             let returns_types = self.returns.clone();
             let func = self.func;
 
-            let inner_callback =
+            let wrapper_callback =
                 move |env: &mut *mut svm_env_t, args: &[Val]| -> Result<Vec<Val>, RuntimeError> {
                     let args: Vec<WasmValue> = wasmer_vals_to_wasm_vals(args)?;
                     let args: svm_byte_array = args.into();
 
                     let mut results = svm_ffi::alloc_wasm_values(returns_types.len());
-                    let trap = func(*env, &args, &mut results);
+                    let err = func(*env, &args, &mut results);
 
                     // manually releasing `args` internals
                     args.destroy();
 
-                    if !trap.is_null() {
-                        let trap: Box<svm_trap_t> = Box::from_raw(trap);
-
-                        let err_msg: String = (&*trap).into();
-                        let err = RuntimeError::new(err_msg);
-
+                    if !err.is_null() {
                         // manually releasing `results` internals
                         results.destroy();
 
-                        // manually releasing `trap` internals
-                        trap.destroy();
+                        let err_msg = String::try_from(&*err);
 
-                        return Err(err);
+                        let err_msg: String = match err_msg {
+                            Ok(msg) => msg,
+                            Err(..) => format!(
+                                "Host function failed but error message isn't a valid UTF-8 String"
+                            ),
+                        };
+
+                        let err = *Box::from_raw(err);
+                        err.destroy();
+
+                        return Err(RuntimeError::new(err_msg));
                     }
 
-                    let vals = to_wasm_values(&results, &returns_types);
+                    let vals = parse_results(&results, &returns_types);
 
                     // manually releasing `results` internals
                     results.destroy();
 
-                    if let Some(vals) = vals {
-                        let vals = wasm_vals_to_wasmer_vals(&vals);
-
-                        Ok(vals)
-                    } else {
-                        Err(RuntimeError::new("Invalid WASM values"))
-                    }
+                    vals.map(|vals| wasm_vals_to_wasmer_vals(&vals))
                 };
 
             let func_ty = self.wasmer_function_ty();
@@ -114,7 +112,7 @@ impl ExternImport {
             /// (See method `funcs_envs_destroy` under `src/runtime/default.rs`)
             let func_env = Box::into_raw(Box::new(func_env));
 
-            let func = Function::new_with_env(store, &func_ty, func_env, inner_callback);
+            let func = Function::new_with_env(store, &func_ty, func_env, wrapper_callback);
             let export = func.to_export();
 
             let func_env = func_env as *const svm_env_t;
@@ -151,26 +149,38 @@ fn to_wasmer_types(types: &[WasmType]) -> Vec<Type> {
 }
 
 #[inline]
-fn to_wasm_values(bytes: &svm_byte_array, types: &[WasmType]) -> Option<Vec<WasmValue>> {
+fn parse_results(
+    bytes: &svm_byte_array,
+    types: &[WasmType],
+) -> Result<Vec<WasmValue>, RuntimeError> {
     let results = Vec::<WasmValue>::try_from(bytes);
 
     if results.is_err() {
-        return None;
+        return Err(RuntimeError::new("Invalid results"));
     }
 
     let results = results.unwrap();
 
     if results.len() != types.len() {
-        return None;
+        return Err(RuntimeError::new(format!(
+            "Wrong number of #returns (expected: {}, actual: {})",
+            types.len(),
+            results.len()
+        )));
     }
 
-    for (val, ty) in results.iter().zip(types.iter()) {
+    for (i, (val, ty)) in results.iter().zip(types.iter()).enumerate() {
         if val.ty() != *ty {
-            return None;
+            return Err(RuntimeError::new(format!(
+                "Wrong WASM type for return value #{} (expected: {:?}, actual: {:?})",
+                i,
+                *ty,
+                val.ty(),
+            )));
         }
     }
 
-    Some(results)
+    Ok(results)
 }
 
 #[inline]
