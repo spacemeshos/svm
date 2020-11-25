@@ -8,7 +8,7 @@ use std::convert::TryFrom;
 use std::ffi::c_void;
 
 use svm_codec::api::raw;
-use svm_ffi::{svm_byte_array, svm_env_t, svm_trap_t};
+use svm_ffi::{svm_byte_array, svm_env_t};
 use svm_layout::DataLayout;
 use svm_runtime::{testing::WasmFile, vmcalls, Context};
 use svm_types::{Address, State, WasmType, WasmValue};
@@ -42,15 +42,6 @@ type Callback = fn(&mut Context, &[WasmValue]) -> Result<Vec<WasmValue>, &'stati
 
 const COUNTER_MUL_FN_INDEX: u32 = 123;
 
-fn wasm_trap(err: String) -> *mut svm_trap_t {
-    let trap: svm_trap_t = err.into();
-
-    // this heap-allocated memory will be released by SVM.
-    // (See: `ExternImport#wasmer_export`)
-
-    Box::into_raw(Box::new(trap))
-}
-
 /// Given a function identifier stored as part of the `host_env`
 /// we can know what Rust native function to call
 fn func_index_to_callback(func_idx: &func_index_t) -> Option<Callback> {
@@ -66,6 +57,12 @@ unsafe fn prepare_args(args: *const svm_byte_array) -> Result<Vec<WasmValue>, &'
     Vec::<WasmValue>::try_from(args).map_err(|_| "Invalid args")
 }
 
+fn wasm_error(msg: String) -> *mut svm_byte_array {
+    let bytes: svm_byte_array = msg.into();
+
+    Box::into_raw(Box::new(bytes))
+}
+
 /// The `trampoline` is the actual host function that will be called by SVM running.
 /// Each host function will ask SVM to call that `trampoline` function.
 ///
@@ -78,13 +75,13 @@ unsafe fn prepare_args(args: *const svm_byte_array) -> Result<Vec<WasmValue>, &'
 /// in the import function signature. In addition to required memory for the `results` will be allocated prior calling `trampoline`
 /// such that the `trampoline` will only be left with placing the `results` values.
 ///
-/// In case the `trampoline` failed, a pointer to heap-allocated trap will be propagated back to SVM.
-/// SVM will be responsible of deallocating that memory pointed by that `svm_trap_t`.
+/// In case the `trampoline` failed, a pointer to heap-allocated error message will be propagated back to SVM.
+/// SVM will be responsible of deallocating the error message.
 unsafe extern "C" fn trampoline(
     env: *mut svm_env_t,
     args: *const svm_byte_array,
     results: *mut svm_byte_array,
-) -> *mut svm_trap_t {
+) -> *mut svm_byte_array {
     let env: &svm_env_t = &*env;
     let func_idx = env.host_env::<func_index_t>();
     let callback = func_index_to_callback(func_idx);
@@ -104,14 +101,14 @@ unsafe extern "C" fn trampoline(
                 // that there no trap has occurred.
                 return std::ptr::null_mut();
             }
-            Err(err) => wasm_trap(err.to_string()),
+            Err(err) => wasm_error(err.to_string()),
         }
     } else {
         /// `trampoline` has nowhere to jump.
         /// (There is no function associated with `func_idx.0` integer).
         let err = format!("Unknown host function indexed: {}", func_idx.0);
 
-        wasm_trap(err)
+        wasm_error(err)
     }
 }
 
