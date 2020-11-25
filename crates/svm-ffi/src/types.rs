@@ -22,22 +22,22 @@ use crate::svm_byte_array;
 ///
 /// Note: the number of types equals the buffer length (one byte per-type).
 ///
-/// +---------------------------------+
+/// +-----------+--------+------------+
 /// |  type #1  |  . . . |  type #N   |
 /// |  (1 byte) |        |  (1 byte)  |
-/// +----------+----------------------+
+/// +-----------+--------+------------+
 ///
 
 /// Converts `Vec<WasmType>` into `svm_byte_array`
 ///
-/// # Examples
+/// # Example
 ///
 /// ````
 /// use std::io;
 /// use std::convert::TryFrom;
 ///
 /// use svm_types::WasmType;
-/// use svm_runtime_c_api::svm_byte_array;
+/// use svm_ffi::svm_byte_array;
 ///
 /// let types = vec![WasmType::I32, WasmType::I64, WasmType::I32];
 /// let bytes: svm_byte_array = types.into();
@@ -45,6 +45,7 @@ use crate::svm_byte_array;
 /// let types: Result<Vec<WasmType>, io::Error> = Vec::try_from(bytes);
 /// assert_eq!(types.unwrap(), vec![WasmType::I32, WasmType::I64, WasmType::I32]);
 /// ````
+///
 impl From<&[WasmType]> for svm_byte_array {
     fn from(types: &[WasmType]) -> svm_byte_array {
         let ntypes = types.len();

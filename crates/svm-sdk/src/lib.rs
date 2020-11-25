@@ -26,7 +26,7 @@ use svm_sdk_types;
 
 pub use svm_sdk_alloc::{alloc, Ptr};
 
-pub use svm_abi_decoder::{CallData, DecodeError};
+pub use svm_abi_decoder::{CallData, DecodeError, ReturnData};
 
 pub mod host {
     pub use svm_sdk_host::{ExtHost, MockHost};

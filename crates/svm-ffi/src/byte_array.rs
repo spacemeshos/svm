@@ -1,12 +1,18 @@
-use std::{convert::TryFrom, string::FromUtf8Error};
+use std::convert::TryFrom;
+use std::string::FromUtf8Error;
+
+use byteorder::{BigEndian, ByteOrder};
+
+use svm_types::{WasmType, WasmValue};
 
 /// FFI representation for a byte-array
 ///
 /// # Example
 ///
 /// ```rust
-/// use std::{convert::TryFrom, string::FromUtf8Error};
-/// use svm_runtime_c_api::svm_byte_array;
+/// use std::convert::TryFrom;
+/// use std::string::FromUtf8Error;
+/// use svm_ffi::svm_byte_array;
 ///
 /// let s1 = "Hello World!".to_string();
 /// let bytes: svm_byte_array = s1.into();
@@ -32,11 +38,89 @@ pub struct svm_byte_array {
     pub capacity: u32,
 }
 
+impl svm_byte_array {
+    /// Creates a new `svm_byte_array` backed by a buffer of zeros sized `size`.
+    pub fn new(size: usize) -> Self {
+        let vec = vec![0u8; size];
+
+        vec.into()
+    }
+
+    pub unsafe fn destroy(self) {
+        let ptr = self.bytes as *mut u8;
+        let length = self.length as usize;
+        let capacity = self.capacity as usize;
+
+        let _ = Vec::from_raw_parts(ptr, length, capacity);
+    }
+
+    /// Copies the WASM values given by `values` into the raw format of `self` (i.e `svm_byte_array`).
+    /// The function receives an allocated buffer filled with zeros it should fill-in.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use std::convert::TryFrom;
+    ///
+    /// use svm_types::WasmValue;
+    /// use svm_ffi::svm_byte_array;
+    ///
+    /// let src = vec![WasmValue::I64(10), WasmValue::I32(20), WasmValue::I64(30)];
+    ///
+    /// // We allocate `dst` with zeros.
+    /// let size = 1 + 9 * src.len();
+    /// let mut dst: svm_byte_array = vec![0; size].into();
+    ///
+    /// // We fill-in `dst` with the WASM values given by `src`
+    /// unsafe { dst.copy_wasm_values(&src) };
+    ///
+    /// let copied = Vec::<WasmValue>::try_from(&dst).unwrap();
+    /// assert_eq!(copied, src);
+    ///
+    /// // de-allocate `dst`
+    /// unsafe { dst.destroy() };
+    /// ```
+    pub unsafe fn copy_wasm_values(&mut self, values: &[WasmValue]) {
+        assert!(values.len() <= 255);
+
+        let nvalues = values.len() as u8;
+
+        let mut ptr = self.bytes as *mut u8;
+
+        // The first byte signifies the `#values`.
+        std::ptr::write::<u8>(ptr, nvalues);
+        ptr = ptr.add(1);
+
+        macro_rules! copy_wasm_val {
+            ($ty:expr, $val:expr, $size:expr, $bits:expr) => {{
+                paste::item! {
+                    // First we copy the `type` of the WASM value
+                    let ty: u8 = $ty.into();
+                    std::ptr::write::<u8>(ptr, ty);
+                    ptr = ptr.add(1);
+
+                    // We copy the `value` with the data given by `$val`
+                    let buf = std::slice::from_raw_parts_mut(ptr as *mut u8, $size);
+                    BigEndian::[<write_u $bits>](buf, *$val);
+                    ptr = ptr.add($size);
+                }
+            }};
+        };
+
+        for val in values {
+            match val {
+                WasmValue::I32(v) => copy_wasm_val!(WasmType::I32, v, 4, 32),
+                WasmValue::I64(v) => copy_wasm_val!(WasmType::I64, v, 8, 64),
+            }
+        }
+    }
+}
+
 ///
 /// # Example
 ///
 /// ```rust
-/// use svm_runtime_c_api::svm_byte_array;
+/// use svm_ffi::svm_byte_array;
 ///
 /// let array = svm_byte_array::default();
 ///
@@ -79,11 +163,11 @@ impl TryFrom<&svm_byte_array> for String {
     fn try_from(bytes: &svm_byte_array) -> Result<Self, Self::Error> {
         let slice: &[u8] = bytes.into();
 
-        /// data is cloned here, so the new `String` won't be merely an alias,
-        /// and `bytes` will still require a separate deallocation.
-        ///
-        /// Making it an alias is unsafe because the data may not have
-        /// been dynamically allocated, or not by Rust's global allocator.
+        // data is cloned here, so the new `String` won't be merely an alias,
+        // and `bytes` will still require a separate deallocation.
+        //
+        // Making it an alias is unsafe because the data may not have
+        // been dynamically allocated, or not by Rust's global allocator.
         let vec = slice.to_vec();
 
         String::from_utf8(vec)
@@ -123,6 +207,7 @@ mod tests {
 
         let ptr = vec.as_ptr();
         let bytes: svm_byte_array = vec.into();
+
         assert_eq!(ptr, bytes.bytes); // `bytes` is an alias.
         assert_eq!(3, bytes.length);
         assert_eq!(4, bytes.capacity);
@@ -135,6 +220,7 @@ mod tests {
         let s1_len = s1.len() as u32;
         let s1_capacity = s1.capacity() as u32;
         let bytes: svm_byte_array = s1.into();
+
         assert_eq!(s1_ptr, bytes.bytes); // `bytes` is an alias.
         assert_eq!(s1_len, bytes.length);
         assert_eq!(s1_capacity, bytes.capacity);

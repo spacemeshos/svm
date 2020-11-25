@@ -4,6 +4,7 @@ extern crate svm_abi_layout;
 extern crate svm_app_query;
 extern crate svm_codec;
 extern crate svm_compiler;
+extern crate svm_ffi;
 extern crate svm_gas;
 extern crate svm_kv;
 extern crate svm_nibble;

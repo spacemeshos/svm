@@ -31,6 +31,15 @@ use crate::svm_byte_array;
 /// |          | (1 byte)  |   bytes)  |        |   (1 byte)  |   bytes)   |
 /// +----------+--------------------------------+-------------+------------+
 ///
+
+/// Allocates a raw buffer destined to hold exactly `nvalues` WASM values.
+/// The buffer is initialized with zeros.
+pub fn alloc_wasm_values(nvalues: usize) -> svm_byte_array {
+    let cap = wasm_values_capacity(nvalues);
+
+    svm_byte_array::new(cap)
+}
+
 /// Converts `svm_byte_array` into `Vec<WasmerValue>`
 ///
 /// ```
@@ -38,23 +47,23 @@ use crate::svm_byte_array;
 /// use std::convert::TryFrom;
 ///
 /// use svm_types::WasmValue;
-/// use svm_runtime_c_api::svm_byte_array;
+/// use svm_ffi::svm_byte_array;
 ///
 /// let values = vec![WasmValue::I32(5), WasmValue::I64(10)];
 ///
 /// let bytes: svm_byte_array = (&values).into();
-/// let vec: Result<_, io::Error> = Vec::<WasmValue>::try_from(bytes);
+/// let vec: Result<_, io::Error> = Vec::<WasmValue>::try_from(&bytes);
 ///
 /// assert_eq!(vec.unwrap(), values);
 /// ```
 impl From<&[WasmValue]> for svm_byte_array {
     fn from(values: &[WasmValue]) -> svm_byte_array {
         let nvalues = values.len();
+
         assert!(nvalues <= std::u8::MAX as usize);
 
-        let capacity = 1 + nvalues * 9;
-
-        let mut bytes = Vec::with_capacity(capacity);
+        let cap = wasm_values_capacity(nvalues);
+        let mut bytes = Vec::with_capacity(cap);
 
         bytes.write_u8(nvalues as u8).unwrap();
 
@@ -88,10 +97,10 @@ impl From<&Vec<WasmValue>> for svm_byte_array {
     }
 }
 
-impl TryFrom<svm_byte_array> for Vec<WasmValue> {
+impl TryFrom<&svm_byte_array> for Vec<WasmValue> {
     type Error = io::Error;
 
-    fn try_from(bytes: svm_byte_array) -> Result<Self, Self::Error> {
+    fn try_from(bytes: &svm_byte_array) -> Result<Self, Self::Error> {
         let slice: &[u8] =
             unsafe { std::slice::from_raw_parts(bytes.bytes, bytes.length as usize) };
 
@@ -123,6 +132,19 @@ impl TryFrom<svm_byte_array> for Vec<WasmValue> {
     }
 }
 
+fn wasm_values_capacity(nvalues: usize) -> usize {
+    assert!(nvalues <= std::u8::MAX as usize);
+
+    // since allocation is a relatively expansive task,
+    // we'd better allocate in a single-shot the maximum volume we'll need:
+    //
+    // 1. A single byte for `#values`
+    // 2. Nine bytes for each value.
+    //    * Each value is prepended with a single byte denoting its type
+    //    * Each WASM value can consume at most 8 bytes
+    1 + nvalues * 9
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -146,7 +168,7 @@ mod tests {
             capacity: 0,
         };
 
-        let res: Result<Vec<WasmValue>, io::Error> = Vec::try_from(bytes);
+        let res: Result<Vec<WasmValue>, io::Error> = Vec::try_from(&bytes);
 
         assert!(res.is_err());
     }
@@ -161,7 +183,8 @@ mod tests {
             capacity: raw.capacity() as u32,
         };
 
-        let res: Result<Vec<WasmValue>, io::Error> = Vec::try_from(bytes);
+        let res: Result<Vec<WasmValue>, io::Error> = Vec::try_from(&bytes);
+
         assert_eq!(res.unwrap(), vec![]);
     }
 
@@ -175,7 +198,7 @@ mod tests {
             capacity: raw.capacity() as u32,
         };
 
-        let res: Result<Vec<WasmValue>, io::Error> = Vec::try_from(bytes);
+        let res: Result<Vec<WasmValue>, io::Error> = Vec::try_from(&bytes);
         assert!(res.is_err());
     }
 
@@ -189,7 +212,7 @@ mod tests {
             capacity: raw.capacity() as u32,
         };
 
-        let res: Result<Vec<WasmValue>, io::Error> = Vec::try_from(bytes);
+        let res: Result<Vec<WasmValue>, io::Error> = Vec::try_from(&bytes);
         assert!(res.is_err());
     }
 }

@@ -2,7 +2,7 @@ use std::ffi::c_void;
 
 use crate::RuntimePtr;
 
-use svm_runtime::{Import, Runtime};
+use svm_runtime::{ExternImport, Runtime};
 
 /// Casts raw pointer to borrowed Runtime
 #[inline]
@@ -16,6 +16,6 @@ pub unsafe fn cast_to_runtime_mut<'a>(raw_runtime: *mut c_void) -> &'a mut Box<d
     &mut *(raw_runtime as *mut RuntimePtr)
 }
 
-pub unsafe fn cast_to_imports<'a>(imports: *const c_void) -> &'a mut Vec<Import> {
-    &mut *(imports as *mut Vec<Import>)
+pub unsafe fn cast_to_imports<'a>(imports: *const c_void) -> &'a mut Vec<ExternImport> {
+    &mut *(imports as *mut Vec<ExternImport>)
 }

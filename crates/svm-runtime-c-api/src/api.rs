@@ -14,15 +14,14 @@ use svm_codec::api::raw;
 use svm_layout::DataLayout;
 
 use svm_runtime::env::default::DefaultSerializerTypes;
-use svm_runtime::{gas::DefaultGasEstimator, Context, Import};
+use svm_runtime::{gas::DefaultGasEstimator, Context, ExternImport};
 
 use svm_storage::kv::{ExternKV, StatefulKV};
 use svm_types::{Address, State, WasmType};
 
-use crate::{
-    helpers, raw_error, raw_io_error, raw_utf8_error, raw_validate_error, svm_byte_array,
-    svm_result_t, RuntimePtr,
-};
+use crate::RuntimePtr;
+use crate::{helpers, raw_error, raw_io_error, raw_utf8_error, raw_validate_error, svm_result_t};
+use svm_ffi::{svm_byte_array, svm_env_t, svm_func_callback_t};
 
 use svm_codec::receipt::{encode_app_receipt, encode_exec_receipt, encode_template_receipt};
 
@@ -76,8 +75,6 @@ macro_rules! vec_to_svm_byte_array {
 
 macro_rules! to_svm_byte_array {
     ($raw_byte_array:expr, $ptr:expr, $length:expr) => {{
-        use crate::svm_byte_array;
-
         let bytes: &mut svm_byte_array = &mut *$raw_byte_array;
         bytes.bytes = $ptr;
         bytes.length = $length as u32;
@@ -94,6 +91,8 @@ macro_rules! to_svm_byte_array {
 ///
 /// ```rust, no_run
 /// use svm_runtime_c_api::*;
+///
+/// use svm_ffi::svm_byte_array;
 /// use svm_types::Address;
 ///
 /// // allocate imports
@@ -144,6 +143,8 @@ pub unsafe extern "C" fn svm_validate_template(
 ///
 /// ```rust, no_run
 /// use svm_runtime_c_api::*;
+///
+/// use svm_ffi::svm_byte_array;
 /// use svm_types::Address;
 ///
 /// // allocate imports
@@ -190,6 +191,8 @@ pub unsafe extern "C" fn svm_validate_app(
 ///
 /// ```rust, no_run
 /// use svm_runtime_c_api::*;
+///
+/// use svm_ffi::svm_byte_array;
 /// use svm_types::Address;
 ///
 /// // allocate imports
@@ -259,7 +262,7 @@ pub unsafe extern "C" fn svm_validate_tx(
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_imports_alloc(imports: *mut *mut c_void, count: u32) -> svm_result_t {
-    let vec: Vec<Import> = Vec::with_capacity(count as usize);
+    let vec: Vec<ExternImport> = Vec::with_capacity(count as usize);
 
     *imports = svm_common::into_raw_mut(vec);
 
@@ -272,27 +275,41 @@ pub unsafe extern "C" fn svm_imports_alloc(imports: *mut *mut c_void, count: u32
 /// # Example
 ///
 /// ```rust
-/// use svm_types::WasmType;
 /// use svm_runtime_c_api::*;
 ///
-/// fn foo() {
+/// use svm_ffi::{svm_env_t, svm_func_callback_t, svm_byte_array};
+/// use svm_types::WasmType;
+///
+/// unsafe extern "C" fn host_func(
+///   env:     *mut svm_env_t,
+///   args:    *const svm_byte_array,
+///   results: *mut svm_byte_array
+/// ) -> *mut svm_byte_array {
 ///   // ...
+///   return std::ptr::null_mut()
 /// }
 ///
-/// // allocate one imports
+/// #[repr(C)]
+/// struct function_id(u32);
+///
+/// // allocate one import
 /// let mut imports = testing::imports_alloc(1);
 ///
+/// let namespace = String::from("env").into();
 /// let import_name = String::from("foo").into();
 /// let params = Vec::<WasmType>::new();
 /// let returns = Vec::<WasmType>::new();
-/// let func_ptr = foo as *const std::ffi::c_void;
 /// let mut error = svm_byte_array::default();
+///
+/// let host_env = svm_common::into_raw_mut(function_id(0));
 ///
 /// let res = unsafe {
 ///   svm_import_func_new(
 ///     imports,
+///     namespace,
 ///     import_name,
-///     func_ptr,
+///     host_func,
+///     host_env,
 ///     params.into(),
 ///     returns.into(),
 ///     &mut error)
@@ -304,8 +321,10 @@ pub unsafe extern "C" fn svm_imports_alloc(imports: *mut *mut c_void, count: u32
 #[no_mangle]
 pub unsafe extern "C" fn svm_import_func_new(
     imports: *mut c_void,
+    namespace: svm_byte_array,
     import_name: svm_byte_array,
-    func_ptr: *const c_void,
+    func: svm_func_callback_t,
+    host_env: *const c_void,
     params: svm_byte_array,
     returns: svm_byte_array,
     error: *mut svm_byte_array,
@@ -314,15 +333,15 @@ pub unsafe extern "C" fn svm_import_func_new(
 
     assert!(imports.len() < imports.capacity());
 
-    let func_ptr = NonNull::new(func_ptr as *mut c_void);
-    if func_ptr.is_none() {
-        let s = String::from("`func_ptr` parameter must not be NULL");
+    let host_env = NonNull::new(host_env as *mut c_void);
+    if host_env.is_none() {
+        let s = String::from("`host_env` parameter must not be NULL");
         raw_error(s, error);
 
         return svm_result_t::SVM_FAILURE;
     }
 
-    let func_ptr: *const c_void = func_ptr.unwrap().as_ptr();
+    let host_env: *const c_void = host_env.unwrap().as_ptr();
 
     let params: Result<Vec<WasmType>, io::Error> = Vec::try_from(params);
     if let Err(e) = params {
@@ -342,12 +361,20 @@ pub unsafe extern "C" fn svm_import_func_new(
         return svm_result_t::SVM_FAILURE;
     }
 
-    let import = Import {
-        func_ptr,
-        name: import_name.unwrap(),
-        params: params.unwrap(),
-        returns: returns.unwrap(),
-    };
+    let namespace = String::try_from(namespace);
+    if namespace.is_err() {
+        raw_utf8_error(namespace, error);
+        return svm_result_t::SVM_FAILURE;
+    }
+
+    let import = ExternImport::new(
+        import_name.unwrap(),
+        namespace.unwrap(),
+        params.unwrap(),
+        returns.unwrap(),
+        func,
+        host_env,
+    );
 
     imports.push(import);
 
@@ -463,6 +490,8 @@ pub unsafe extern "C" fn svm_state_kv_destroy(kv: *mut c_void) -> svm_result_t {
 /// ```rust
 /// use svm_runtime_c_api::*;
 ///
+/// use svm_ffi::svm_byte_array;
+///
 /// let mut runtime = std::ptr::null_mut();
 /// let mut imports = testing::imports_alloc(0);
 ///
@@ -487,7 +516,7 @@ pub unsafe extern "C" fn svm_memory_runtime_create(
 
     let imports = helpers::cast_to_imports(imports);
     let state_kv = svm_common::from_raw_mut(state_kv);
-    let mem_runtime = svm_runtime::testing::create_memory_runtime(state_kv, imports.to_vec());
+    let mem_runtime = svm_runtime::testing::create_memory_runtime(state_kv, imports);
 
     let res = box_runtime!(runtime, mem_runtime);
 
@@ -503,6 +532,8 @@ pub unsafe extern "C" fn svm_memory_runtime_create(
 ///
 /// ```rust, no_run
 /// use svm_runtime_c_api::*;
+///
+/// use svm_ffi::svm_byte_array;
 ///
 /// let mut runtime = std::ptr::null_mut();
 /// let path = String::from("path goes here").into();
@@ -537,7 +568,7 @@ pub unsafe extern "C" fn svm_runtime_create(
         &Path,
         DefaultSerializerTypes,
         DefaultGasEstimator,
-    >(Path::new(&kv_path), imports.to_vec());
+    >(Path::new(&kv_path), imports);
 
     let res = box_runtime!(runtime, rocksdb_runtime);
 
@@ -552,6 +583,8 @@ pub unsafe extern "C" fn svm_runtime_create(
 ///
 /// ```rust, no_run
 /// use svm_runtime_c_api::*;
+///
+/// use svm_ffi::svm_byte_array;
 /// use svm_types::Address;
 ///
 /// // allocate imports
@@ -620,7 +653,7 @@ pub unsafe extern "C" fn svm_deploy_template(
     // should call later `svm_receipt_destroy`
     vec_to_svm_byte_array!(receipt, receipt_bytes);
 
-    debug!("`svm_exec_app` returns `SVM_SUCCESS`");
+    debug!("`svm_deploy_template` returns `SVM_SUCCESS`");
 
     svm_result_t::SVM_SUCCESS
 }
@@ -631,6 +664,8 @@ pub unsafe extern "C" fn svm_deploy_template(
 ///
 /// ```rust, no_run
 /// use svm_runtime_c_api::*;
+///
+/// use svm_ffi::svm_byte_array;
 /// use svm_types::Address;
 ///
 /// // allocate imports
@@ -712,7 +747,9 @@ pub unsafe extern "C" fn svm_spawn_app(
 /// use std::ffi::c_void;
 ///
 /// use svm_runtime_c_api::*;
+///
 /// use svm_types::{State, Address};
+/// use svm_ffi::svm_byte_array;
 ///
 /// // allocate imports
 /// let mut imports = testing::imports_alloc(0);
@@ -788,7 +825,9 @@ pub unsafe extern "C" fn svm_exec_app(
 ///
 /// ```rust, no_run
 /// use svm_runtime_c_api::*;
+///
 /// use svm_types::Address;
+/// use svm_ffi::svm_byte_array;
 ///
 /// // allocate imports
 /// let mut imports = testing::imports_alloc(0);
@@ -835,7 +874,7 @@ pub unsafe extern "C" fn svm_runtime_destroy(runtime: *mut c_void) {
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_imports_destroy(imports: *const c_void) {
-    let _ = Box::from_raw(imports as *mut Vec<Import>);
+    let _ = Box::from_raw(imports as *mut Vec<ExternImport>);
 }
 
 /// Frees `svm_byte_array`
@@ -845,6 +884,8 @@ pub unsafe extern "C" fn svm_imports_destroy(imports: *const c_void) {
 /// ```rust
 /// use svm_runtime_c_api::*;
 ///
+/// use svm_ffi::svm_byte_array;
+///
 /// let bytes = svm_byte_array::default();
 /// unsafe { svm_byte_array_destroy(bytes); }
 /// ```
@@ -852,11 +893,18 @@ pub unsafe extern "C" fn svm_imports_destroy(imports: *const c_void) {
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_byte_array_destroy(bytes: svm_byte_array) {
-    let ptr = bytes.bytes as *mut u8;
-    let length = bytes.length as usize;
-    let capacity = bytes.capacity as usize;
+    bytes.destroy()
+}
 
-    let _ = Vec::from_raw_parts(ptr, length, capacity);
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_wasm_error_create(msg: svm_byte_array) -> *mut svm_byte_array {
+    let msg: &[u8] = msg.into();
+    let bytes = msg.to_vec();
+
+    let err: svm_byte_array = bytes.into();
+
+    Box::into_raw(Box::new(err))
 }
 
 /// Given a raw `deploy-template` transaction (the `bytes` parameter),

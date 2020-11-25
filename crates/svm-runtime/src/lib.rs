@@ -2,6 +2,7 @@
 #![allow(unused)]
 #![allow(dead_code)]
 #![allow(unreachable_code)]
+#![feature(vec_into_raw_parts)]
 
 //! `SVM-runtime` crate is the glue between `SVM` to a Wasm Runtime
 //!
@@ -19,7 +20,7 @@ mod import;
 mod storage;
 
 pub mod env;
-pub use import::Import;
+pub use import::ExternImport;
 
 /// Implements `Context`. Used for managing data of running `SVM` apps.
 mod context;

@@ -12,16 +12,9 @@ pub mod helpers;
 /// Crate common tests specific helpers
 pub mod testing;
 
-mod address;
 mod api;
-mod byte_array;
 mod error;
-mod layout;
-mod macros;
 mod result;
-mod state;
-mod types;
-mod value;
 
 pub(crate) use error::{raw_error, raw_io_error, raw_utf8_error, raw_validate_error};
 
@@ -60,10 +53,12 @@ pub use api::{
     svm_state_kv_destroy,
     svm_imports_destroy,
     svm_byte_array_destroy,
+
+    // Error
+    svm_wasm_error_create
 };
 
-pub use byte_array::svm_byte_array;
 pub use result::svm_result_t;
 
 mod runtime_ptr;
-pub use runtime_ptr::RuntimePtr;
+use runtime_ptr::RuntimePtr;

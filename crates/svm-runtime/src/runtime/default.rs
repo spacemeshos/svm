@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::ffi::c_void;
 use std::fmt;
 use std::marker::PhantomData;
@@ -10,10 +11,11 @@ use crate::{
     error::ValidateError,
     gas::GasEstimator,
     storage::StorageBuilderFn,
-    vmcalls, Config, Context, Import, Runtime,
+    vmcalls, Config, Context, ExternImport, Runtime,
 };
 
 use svm_codec::error::ParseError;
+use svm_ffi::svm_env_t;
 use svm_gas::Gas;
 use svm_layout::DataLayout;
 use svm_storage::app::AppStorage;
@@ -30,19 +32,19 @@ use wasmer::{
     NativeFunc, Pages, Store, Type as WasmerType, Value as WasmerValue, WasmPtr,
 };
 
-/// Default `Runtime` implementation based on `wasmer`.
+/// Default `Runtime` implementation based on `Wasmer`.
 pub struct DefaultRuntime<ENV, GE> {
     /// The runtime environment. Used mainly for managing app persistence.
-    pub env: ENV,
+    env: ENV,
 
     /// The runtime configuration
-    pub config: Config,
+    config: Config,
 
-    /// External imports (living inside the host) to be consumed by the App.
-    pub imports: Vec<Import>,
+    /// External imports (living in the so-called `Host` or `Node`) to be consumed by the App.
+    imports: *const Vec<ExternImport>,
 
     /// builds a `AppStorage` instance.
-    pub storage_builder: Box<StorageBuilderFn>,
+    storage_builder: Box<StorageBuilderFn>,
 
     phantom: PhantomData<GE>,
 }
@@ -166,10 +168,11 @@ where
     pub fn new<P: AsRef<Path>>(
         env: ENV,
         kv_path: P,
-        imports: Vec<Import>,
+        imports: &Vec<ExternImport>,
         storage_builder: Box<StorageBuilderFn>,
     ) -> Self {
         let config = Config::new(kv_path);
+        let imports = imports as *const _;
 
         Self {
             env,
@@ -253,8 +256,8 @@ where
             }
             Ok((template, template_addr, _author, _creator)) => {
                 let store = svm_compiler::new_store();
-                let ctx = self.create_context(&template, &tx.app, &state, gas_left);
-                let import_object = self.create_import_object(&store, &ctx);
+                let mut ctx = self.create_context(&template, &tx.app, &state, gas_left);
+                let (import_object, funcs_envs) = self.create_import_object(&store, &mut ctx);
 
                 let (result, logs) = self.do_exec_app(
                     &store,
@@ -266,11 +269,21 @@ where
                     gas_left,
                 );
 
+                self.funcs_envs_destroy(funcs_envs);
+
                 let receipt = self.make_receipt(result, logs);
 
                 info!("receipt: {:?}", receipt);
 
                 receipt
+            }
+        }
+    }
+
+    fn funcs_envs_destroy(&self, mut funcs_envs: Vec<*const svm_env_t>) {
+        for func_env in funcs_envs.drain(..) {
+            unsafe {
+                let _ = Box::from_raw(func_env as *mut svm_env_t);
             }
         }
     }
@@ -527,26 +540,39 @@ where
         Context::new(gas_limit, storage)
     }
 
-    fn create_import_object(&self, store: &Store, ctx: &Context) -> ImportObject {
+    fn create_import_object(
+        &self,
+        store: &Store,
+        ctx: &mut Context,
+    ) -> (ImportObject, Vec<*const svm_env_t>) {
         let mut import_object = ImportObject::new();
+        let mut funcs_envs = Vec::new();
 
-        let mut svm = Exports::new();
-        let mut host = Exports::new();
+        let mut exports = HashMap::new();
 
-        vmcalls::wasmer_register(store, ctx, &mut svm);
+        let imports: &[ExternImport] = unsafe { &*self.imports as _ };
 
-        for import in self.imports.iter() {
-            let name = import.name.clone();
-            let import = import.to_wasmer(ctx.clone());
+        for import in imports.iter() {
+            let namespace = import.namespace();
+            let ns_exports = exports.entry(namespace).or_insert(Exports::new());
 
-            let ext = Extern::from_export(store, import);
-            host.insert(name, ext);
+            let (export, func_env) = import.wasmer_export(store, ctx);
+
+            funcs_envs.push(func_env);
+            let ext = Extern::from_export(store, export);
+
+            ns_exports.insert(import.name(), ext);
         }
 
-        import_object.register("svm", svm);
-        import_object.register("host", host);
+        for (ns, exports) in exports {
+            import_object.register(ns, exports);
+        }
 
-        import_object
+        let mut svm = Exports::new();
+        vmcalls::wasmer_register(store, ctx, &mut svm);
+        import_object.register("svm", svm);
+
+        (import_object, funcs_envs)
     }
 
     fn load_template(

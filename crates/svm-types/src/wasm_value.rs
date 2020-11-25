@@ -19,6 +19,22 @@ impl WasmValue {
             WasmValue::I64(..) => WasmType::I64,
         }
     }
+
+    #[inline]
+    pub fn as_i32(&self) -> Option<u32> {
+        match self {
+            WasmValue::I32(v) => Some(*v),
+            WasmValue::I64(v) => None,
+        }
+    }
+
+    #[inline]
+    pub fn as_i64(&self) -> Option<u64> {
+        match self {
+            WasmValue::I32(v) => None,
+            WasmValue::I64(v) => Some(*v),
+        }
+    }
 }
 
 /// Returns the `WasmValue` internal integer as `u64`.
