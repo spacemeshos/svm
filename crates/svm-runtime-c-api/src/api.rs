@@ -19,7 +19,7 @@ use svm_types::{Address, State, WasmType};
 use svm_runtime::env::default::DefaultSerializerTypes;
 use svm_runtime::{gas::DefaultGasEstimator, Context, ExternImport, Runtime, RuntimePtr};
 
-use svm_ffi::{svm_byte_array, svm_env_t, svm_func_callback_t, svm_trap_t};
+use svm_ffi::{svm_byte_array, svm_env_t, svm_func_callback_t};
 
 use crate::{raw_error, raw_io_error, raw_utf8_error, raw_validate_error, svm_result_t};
 
