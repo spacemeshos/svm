@@ -53,6 +53,9 @@ pub use api::{
     svm_state_kv_destroy,
     svm_imports_destroy,
     svm_byte_array_destroy,
+
+    // Error
+    svm_wasm_error_create
 };
 
 pub use result::svm_result_t;

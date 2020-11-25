@@ -57,10 +57,10 @@ unsafe fn prepare_args(args: *const svm_byte_array) -> Result<Vec<WasmValue>, &'
     Vec::<WasmValue>::try_from(args).map_err(|_| "Invalid args")
 }
 
-fn wasm_error(msg: String) -> *mut svm_byte_array {
+unsafe fn wasm_error(msg: String) -> *mut svm_byte_array {
     let bytes: svm_byte_array = msg.into();
 
-    Box::into_raw(Box::new(bytes))
+    api::svm_wasm_error_create(bytes)
 }
 
 /// The `trampoline` is the actual host function that will be called by SVM running.
@@ -148,6 +148,7 @@ unsafe fn create_imports() -> *const c_void {
 
 fn deploy_template_bytes(version: u32, name: &str, wasm: &[u8]) -> Vec<u8> {
     let data: DataLayout = vec![4].into();
+
     svm_runtime::testing::build_template(version, name, data, WasmFile::Binary(wasm))
 }
 
