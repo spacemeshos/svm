@@ -81,18 +81,12 @@ impl ExternImport {
                         return Err(RuntimeError::new(err_msg));
                     }
 
-                    let vals = to_wasm_values(&results, &returns_types);
+                    let vals = parse_results(&results, &returns_types);
 
                     // manually releasing `results` internals
                     results.destroy();
 
-                    if let Some(vals) = vals {
-                        let vals = wasm_vals_to_wasmer_vals(&vals);
-
-                        Ok(vals)
-                    } else {
-                        Err(RuntimeError::new("Invalid WASM values"))
-                    }
+                    vals.map(|vals| wasm_vals_to_wasmer_vals(&vals))
                 };
 
             let func_ty = self.wasmer_function_ty();
@@ -155,26 +149,38 @@ fn to_wasmer_types(types: &[WasmType]) -> Vec<Type> {
 }
 
 #[inline]
-fn to_wasm_values(bytes: &svm_byte_array, types: &[WasmType]) -> Option<Vec<WasmValue>> {
+fn parse_results(
+    bytes: &svm_byte_array,
+    types: &[WasmType],
+) -> Result<Vec<WasmValue>, RuntimeError> {
     let results = Vec::<WasmValue>::try_from(bytes);
 
     if results.is_err() {
-        return None;
+        return Err(RuntimeError::new("Invalid results"));
     }
 
     let results = results.unwrap();
 
     if results.len() != types.len() {
-        return None;
+        return Err(RuntimeError::new(format!(
+            "Wrong number of #returns (expected: {}, actual: {})",
+            types.len(),
+            results.len()
+        )));
     }
 
-    for (val, ty) in results.iter().zip(types.iter()) {
+    for (i, (val, ty)) in results.iter().zip(types.iter()).enumerate() {
         if val.ty() != *ty {
-            return None;
+            return Err(RuntimeError::new(format!(
+                "Wrong WASM type for return value #{} (expected: {:?}, actual: {:?})",
+                i,
+                *ty,
+                val.ty(),
+            )));
         }
     }
 
-    Some(results)
+    Ok(results)
 }
 
 #[inline]
