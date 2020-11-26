@@ -25,6 +25,7 @@ pub fn into_raw<T>(obj: T) -> *mut c_void {
     tracking::increment_live::<T>();
 
     let ptr: *mut T = Box::into_raw(Box::new(obj));
+
     ptr as _
 }
 
