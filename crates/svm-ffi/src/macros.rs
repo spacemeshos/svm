@@ -69,18 +69,13 @@ macro_rules! impl_into_svm_byte_array {
                 let bytes: &[u8] = Box::leak(Box::new(bytes));
                 let length = bytes.len() as u32;
 
-                let ty = std::any::TypeId::of::<$struct>();
-                let name = std::any::type_name::<$struct>();
-
-                let ty = crate::types::TypeIdOrStr::TypeId(ty, name);
-
-                let type_id = crate::tracking::interned_type(ty);
+                crate::tracking::increment_live::<$struct>();
 
                 $crate::svm_byte_array {
                     bytes: bytes.as_ptr(),
                     length,
                     capacity: length,
-                    type_id,
+                    type_id: crate::tracking::interned_type::<$struct>(),
                 }
             }
         }

@@ -158,7 +158,7 @@ mod tests {
 
         let ty = TypeIdOrStr::TypeId(ty, name);
 
-        tracking::interned_type(ty)
+        tracking::interned_type_1(ty)
     }
 
     #[test]

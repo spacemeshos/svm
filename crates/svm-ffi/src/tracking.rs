@@ -17,7 +17,15 @@ lazy_static! {
 }
 
 #[must_use]
-pub fn interned_type(ty: TypeIdOrStr) -> usize {
+pub fn interned_type<T: 'static>() -> usize {
+    let ty = std::any::TypeId::of::<T>();
+    let name = std::any::type_name::<T>();
+
+    interned_type_1(TypeIdOrStr::TypeId(ty, name))
+}
+
+#[must_use]
+pub fn interned_type_1(ty: TypeIdOrStr) -> usize {
     let mut types = TYPES.lock().unwrap();
 
     let ty_num = types.get(&ty);
@@ -162,7 +170,7 @@ pub fn increment_live_1(ty: TypeId, name: &'static str) {
 pub fn increment_live_2(ty: TypeIdOrStr) {
     if is_enabled() {
         let mut stats = acquire_stats().unwrap();
-        let ty = interned_type(ty);
+        let ty = interned_type_1(ty);
 
         let entry = stats.entry(ty).or_insert(0);
         *entry += 1;
@@ -177,7 +185,7 @@ pub fn decrement_live<T: 'static>() {
 }
 
 pub fn decrement_live_1(ty: TypeIdOrStr) {
-    let ty = interned_type(ty);
+    let ty = interned_type_1(ty);
 
     decrement_live_2(ty);
 }
@@ -199,7 +207,8 @@ pub fn live_count<T: 'static>() -> i32 {
 }
 
 pub fn live_count_1(ty: TypeId, name: &'static str) -> i32 {
-    let ty = interned_type(TypeIdOrStr::TypeId(ty, name));
+    let ty = TypeIdOrStr::TypeId(ty, name);
+    let ty = interned_type_1(ty);
 
     live_count_2(ty)
 }

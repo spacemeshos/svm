@@ -44,17 +44,6 @@ pub struct svm_byte_array {
     pub type_id: usize,
 }
 
-impl Default for svm_byte_array {
-    fn default() -> Self {
-        Self {
-            bytes: std::ptr::null(),
-            length: 0,
-            capacity: 0,
-            type_id: 0,
-        }
-    }
-}
-
 impl svm_byte_array {
     /// Creates a new `svm_byte_array` backed by a buffer of zeros sized `size`.
     pub fn new(size: usize) -> Self {
@@ -148,16 +137,33 @@ impl svm_byte_array {
 // /// assert_eq!(0, array.capacity);
 // /// ```
 // ///
-// impl Default for svm_byte_array {
-//     fn default() -> Self {
-//         Self {
-//             bytes: std::ptr::null(),
-//             length: 0,
-//             capacity: 0,
-//             type_id:
-//         }
-//     }
-// }
+impl Default for svm_byte_array {
+    fn default() -> Self {
+        Self {
+            bytes: std::ptr::null(),
+            length: 0,
+            capacity: 0,
+            type_id: 0,
+        }
+    }
+}
+
+impl From<(&'static str, Vec<u8>)> for svm_byte_array {
+    fn from((ty, vec): (&'static str, Vec<u8>)) -> Self {
+        let (ptr, len, cap) = vec.into_raw_parts();
+
+        let ty = TypeIdOrStr::Str(ty);
+
+        tracking::increment_live_2(ty);
+
+        svm_byte_array {
+            bytes: ptr,
+            length: len as u32,
+            capacity: cap as u32,
+            type_id: tracking::interned_type_1(ty),
+        }
+    }
+}
 
 impl From<(TypeIdOrStr, Vec<u8>)> for svm_byte_array {
     fn from((ty, vec): (TypeIdOrStr, Vec<u8>)) -> Self {
@@ -169,7 +175,7 @@ impl From<(TypeIdOrStr, Vec<u8>)> for svm_byte_array {
             bytes: ptr,
             length: len as u32,
             capacity: cap as u32,
-            type_id: tracking::interned_type(ty),
+            type_id: tracking::interned_type_1(ty),
         }
     }
 }
