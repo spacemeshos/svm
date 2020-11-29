@@ -73,9 +73,7 @@ macro_rules! impl_into_svm_byte_array {
                     bytes: bytes.as_ptr(),
                     length,
                     capacity: length,
-
-                    #[cfg(test)]
-                    type_id: Some(std::any::TypeId::of::<$struct>()),
+                    type_id: std::any::TypeId::of::<$struct>(),
                 }
             }
         }

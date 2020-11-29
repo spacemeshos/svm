@@ -166,7 +166,7 @@ mod tests {
             bytes: std::ptr::null(),
             length: 0,
             capacity: 0,
-            type_id: None,
+            type_id: std::any::TypeId::of::<Vec<WasmValue>>(),
         };
 
         let res: Result<Vec<WasmValue>, io::Error> = Vec::try_from(&bytes);
@@ -182,7 +182,7 @@ mod tests {
             bytes: raw.as_ptr(),
             length: raw.len() as u32,
             capacity: raw.capacity() as u32,
-            type_id: None,
+            type_id: std::any::TypeId::of::<Vec<WasmValue>>(),
         };
 
         let res: Result<Vec<WasmValue>, io::Error> = Vec::try_from(&bytes);
@@ -198,7 +198,7 @@ mod tests {
             bytes: raw.as_ptr(),
             length: raw.len() as u32,
             capacity: raw.capacity() as u32,
-            type_id: None,
+            type_id: std::any::TypeId::of::<Vec<WasmValue>>(),
         };
 
         let res: Result<Vec<WasmValue>, io::Error> = Vec::try_from(&bytes);
@@ -213,7 +213,7 @@ mod tests {
             bytes: raw.as_ptr(),
             length: raw.len() as u32,
             capacity: raw.capacity() as u32,
-            type_id: None,
+            type_id: std::any::TypeId::of::<Vec<WasmValue>>(),
         };
 
         let res: Result<Vec<WasmValue>, io::Error> = Vec::try_from(&bytes);

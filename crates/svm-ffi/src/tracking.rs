@@ -1,10 +1,11 @@
+use std::any::TypeId;
 use std::collections::HashMap;
 use std::sync::{Mutex, MutexGuard};
 
 use lazy_static::lazy_static;
 
 lazy_static! {
-    static ref STATS: Mutex<HashMap<&'static str, i32>> = Mutex::new(HashMap::new());
+    static ref STATS: Mutex<HashMap<TypeId, i32>> = Mutex::new(HashMap::new());
     static ref ENABLED: Mutex<bool> = Mutex::new(false);
     static ref TEST: Mutex<()> = Mutex::new(());
 }
@@ -27,7 +28,7 @@ pub fn end(guard: MutexGuard<'static, ()>) {
 
 #[must_use]
 #[cfg(test)]
-pub fn acquire_stats() -> Option<MutexGuard<'static, HashMap<&'static str, i32>>> {
+pub fn acquire_stats() -> Option<MutexGuard<'static, HashMap<TypeId, i32>>> {
     if is_enabled() {
         let lock = STATS.lock().unwrap();
 
@@ -39,7 +40,7 @@ pub fn acquire_stats() -> Option<MutexGuard<'static, HashMap<&'static str, i32>>
 
 #[must_use]
 #[cfg(not(test))]
-pub fn acquire_stats() -> Option<MutexGuard<'static, HashMap<&'static str, i32>>> {
+pub fn acquire_stats() -> Option<MutexGuard<'static, HashMap<TypeId, i32>>> {
     let lock = STATS.lock().unwrap();
 
     Some(lock)
@@ -85,27 +86,20 @@ fn clear() {
     }
 }
 
-pub fn snapshot() -> Option<HashMap<&'static str, i32>> {
+pub fn snapshot() -> Option<HashMap<TypeId, i32>> {
     let stats = acquire_stats();
 
     stats.map(|s| s.clone())
 }
 
-pub fn increment_live<T>() {
-    if is_enabled() {
-        let ty = std::any::type_name::<T>();
-        // dbg!(format!("increment_live::<{}>()", ty));
+pub fn increment_live<T: 'static>() {
+    let ty = std::any::TypeId::of::<T>();
 
-        let mut stats = acquire_stats().unwrap();
-
-        let entry = stats.entry(ty).or_insert(0);
-        *entry += 1;
-    }
+    increment_live_1(ty);
 }
 
-pub fn decrement_live<T>() {
+pub fn increment_live_1(ty: TypeId) {
     if is_enabled() {
-        let ty = std::any::type_name::<T>();
         let mut stats = acquire_stats().unwrap();
 
         let entry = stats.entry(ty).or_insert(0);
@@ -113,12 +107,27 @@ pub fn decrement_live<T>() {
     }
 }
 
-pub fn live_count<T>() -> i32 {
+pub fn decrement_live<T: 'static>() {
+    let ty = std::any::TypeId::of::<T>();
+
+    decrement_live_1(ty);
+}
+
+pub fn decrement_live_1(ty: TypeId) {
     if is_enabled() {
-        let ty = std::any::type_name::<T>();
+        let mut stats = acquire_stats().unwrap();
+
+        let entry = stats.entry(ty).or_insert(0);
+        *entry -= 1;
+    }
+}
+
+pub fn live_count<T: 'static>() -> i32 {
+    if is_enabled() {
+        let ty = std::any::TypeId::of::<T>();
         let stats = acquire_stats().unwrap();
 
-        match stats.get(ty) {
+        match stats.get(&ty) {
             None => 0,
             Some(count) => *count,
         }

@@ -41,8 +41,7 @@ pub struct svm_byte_array {
     /// needs first to be re-constructed using the proper allocated capacity).
     pub capacity: u32,
 
-    #[cfg(test)]
-    pub type_id: Option<TypeId>,
+    pub type_id: TypeId,
 }
 
 impl svm_byte_array {
@@ -60,7 +59,7 @@ impl svm_byte_array {
 
         let _ = Vec::from_raw_parts(ptr, length, capacity);
 
-        tracking::decrement_live::<Self>();
+        tracking::decrement_live_1(self.type_id)
     }
 
     /// Copies the WASM values given by `values` into the raw format of `self` (i.e `svm_byte_array`).
@@ -104,8 +103,8 @@ impl svm_byte_array {
             ($ty:expr, $val:expr, $size:expr, $bits:expr) => {{
                 paste::item! {
                     // First we copy the `type` of the WASM value
-                    let ty: u8 = $ty.into();
-                    std::ptr::write::<u8>(ptr, ty);
+                    let type_id: u8 = $ty.into();
+                    std::ptr::write::<u8>(ptr, type_id);
                     ptr = ptr.add(1);
 
                     // We copy the `value` with the data given by `$val`
@@ -125,45 +124,41 @@ impl svm_byte_array {
     }
 }
 
-///
-/// # Example
-///
-/// ```rust
-/// use svm_ffi::svm_byte_array;
-///
-/// let array = svm_byte_array::default();
-///
-/// assert_eq!(std::ptr::null(), array.bytes);
-/// assert_eq!(0, array.length);
-/// assert_eq!(0, array.capacity);
-/// ```
-///
-impl Default for svm_byte_array {
-    fn default() -> Self {
-        Self {
-            bytes: std::ptr::null(),
-            length: 0,
-            capacity: 0,
-
-            #[cfg(test)]
-            type_id: None,
-        }
-    }
-}
+// ///
+// /// # Example
+// ///
+// /// ```rust
+// /// use svm_ffi::svm_byte_array;
+// ///
+// /// let array = svm_byte_array::default();
+// ///
+// /// assert_eq!(std::ptr::null(), array.bytes);
+// /// assert_eq!(0, array.length);
+// /// assert_eq!(0, array.capacity);
+// /// ```
+// ///
+// impl Default for svm_byte_array {
+//     fn default() -> Self {
+//         Self {
+//             bytes: std::ptr::null(),
+//             length: 0,
+//             capacity: 0,
+//             type_id:
+//         }
+//     }
+// }
 
 impl From<(TypeId, Vec<u8>)> for svm_byte_array {
-    fn from((_ty, vec): (TypeId, Vec<u8>)) -> Self {
+    fn from((type_id, vec): (TypeId, Vec<u8>)) -> Self {
         let (ptr, len, cap) = vec.into_raw_parts();
 
-        tracking::increment_live::<Self>();
+        tracking::increment_live_1(type_id);
 
         svm_byte_array {
             bytes: ptr,
             length: len as u32,
             capacity: cap as u32,
-
-            #[cfg(test)]
-            type_id: Some(_ty),
+            type_id,
         }
     }
 }
