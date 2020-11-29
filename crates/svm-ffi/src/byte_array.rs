@@ -1,6 +1,8 @@
 use std::convert::TryFrom;
 use std::string::FromUtf8Error;
 
+use std::any::TypeId;
+
 use byteorder::{BigEndian, ByteOrder};
 
 use svm_types::{WasmType, WasmValue};
@@ -38,6 +40,9 @@ pub struct svm_byte_array {
     /// an instance of a data structure such as `Vec` (which in order to properly get deallocated
     /// needs first to be re-constructed using the proper allocated capacity).
     pub capacity: u32,
+
+    #[cfg(test)]
+    pub type_id: Option<TypeId>,
 }
 
 impl svm_byte_array {
@@ -139,18 +144,15 @@ impl Default for svm_byte_array {
             bytes: std::ptr::null(),
             length: 0,
             capacity: 0,
+
+            #[cfg(test)]
+            type_id: None,
         }
     }
 }
 
-impl From<String> for svm_byte_array {
-    fn from(s: String) -> Self {
-        s.into_bytes().into()
-    }
-}
-
-impl From<Vec<u8>> for svm_byte_array {
-    fn from(vec: Vec<u8>) -> Self {
+impl From<(TypeId, Vec<u8>)> for svm_byte_array {
+    fn from((_ty, vec): (TypeId, Vec<u8>)) -> Self {
         let (ptr, len, cap) = vec.into_raw_parts();
 
         tracking::increment_live::<Self>();
@@ -159,7 +161,24 @@ impl From<Vec<u8>> for svm_byte_array {
             bytes: ptr,
             length: len as u32,
             capacity: cap as u32,
+
+            #[cfg(test)]
+            type_id: Some(_ty),
         }
+    }
+}
+
+impl From<Vec<u8>> for svm_byte_array {
+    fn from(vec: Vec<u8>) -> Self {
+        (TypeId::of::<Vec<u8>>(), vec).into()
+    }
+}
+
+impl From<String> for svm_byte_array {
+    fn from(s: String) -> Self {
+        let vec = s.into_bytes();
+
+        (TypeId::of::<String>(), vec).into()
     }
 }
 

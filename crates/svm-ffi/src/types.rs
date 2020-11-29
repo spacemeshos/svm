@@ -118,6 +118,7 @@ mod tests {
             bytes: std::ptr::null(),
             length: 0,
             capacity: 0,
+            type_id: None,
         };
 
         let res: Result<Vec<WasmType>, io::Error> = Vec::try_from(bytes);

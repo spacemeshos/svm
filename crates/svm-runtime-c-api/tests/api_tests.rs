@@ -175,6 +175,14 @@ fn exec_app_bytes(
     svm_runtime::testing::build_app_tx(version, &app_addr, func_name, calldata)
 }
 
+fn dbg_snapshot(index: usize) {
+    dbg!("===================================================");
+    dbg!(format!("Snapshot #{}:", index));
+
+    dbg!(svm_ffi::tracking::snapshot());
+    dbg!("===================================================");
+}
+
 #[test]
 fn svm_runtime_exec_app() {
     unsafe {
@@ -182,12 +190,15 @@ fn svm_runtime_exec_app() {
     }
 }
 
+#[cfg(test)]
 unsafe fn test_svm_runtime() {
-    svm_ffi::tracking::clear();
+    let guard = svm_ffi::tracking::start();
 
     let version: u32 = 0;
     let gas_metering = false;
     let gas_limit = 0;
+
+    dbg_snapshot(0);
 
     // 1) init runtime
     let mut state_kv = std::ptr::null_mut();
@@ -201,7 +212,7 @@ unsafe fn test_svm_runtime() {
     let res = api::svm_memory_runtime_create(&mut runtime, state_kv, imports, &mut error);
     assert!(res.is_ok());
 
-    dbg!(svm_ffi::tracking::snapshot());
+    dbg_snapshot(1);
 
     // 2) deploy app-template
     let author = Address::of("author").into();
@@ -222,6 +233,8 @@ unsafe fn test_svm_runtime() {
         &mut error,
     );
     assert!(res.is_ok());
+
+    dbg_snapshot(2);
 
     // extract the `template-address` out of theh receipt
     let receipt = raw::decode_receipt(template_receipt.clone().into()).into_deploy_template();
@@ -263,6 +276,8 @@ unsafe fn test_svm_runtime() {
     let init_state = receipt.get_init_state();
     let init_state: svm_byte_array = init_state.into();
 
+    dbg_snapshot(3);
+
     // 4) execute app
     let func_name = "add_and_mul";
     let add = 5u32;
@@ -295,6 +310,8 @@ unsafe fn test_svm_runtime() {
     );
     assert!(res.is_ok());
 
+    dbg_snapshot(4);
+
     let receipt = raw::decode_receipt(exec_receipt.clone().into()).into_exec_app();
     assert_eq!(receipt.success, true);
 
@@ -319,4 +336,10 @@ unsafe fn test_svm_runtime() {
     let _ = api::svm_state_kv_destroy(state_kv);
 
     // assert_eq!(svm_ffi::tracking::total_live_count(), 0);
+
+    dbg_snapshot(5);
+
+    svm_ffi::tracking::end(guard);
+
+    panic!()
 }

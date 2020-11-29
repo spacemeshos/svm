@@ -22,10 +22,10 @@ impl RuntimePtr {
         svm_ffi::into_raw(self)
     }
 
-    pub fn from_raw(ptr: *mut c_void) {
+    pub fn from_raw(ptr: *mut c_void) -> Self {
         let ptr: *mut RuntimePtr = ptr as _;
 
-        let _: RuntimePtr = svm_ffi::from_raw(ptr);
+        svm_ffi::from_raw(ptr)
     }
 }
 

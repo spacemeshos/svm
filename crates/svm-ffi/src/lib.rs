@@ -32,18 +32,9 @@ pub fn into_raw<T>(obj: T) -> *mut c_void {
 #[must_use]
 #[inline]
 pub fn from_raw<T>(ptr: *mut T) -> T {
-    tracking::increment_live::<T>();
+    tracking::decrement_live::<T>();
 
     unsafe { *Box::from_raw(ptr) }
-}
-
-/// # Safety
-///
-/// Receives a `*const c_void` pointer and returns the a borrowed reference to the underlying object.
-#[must_use]
-#[inline]
-pub unsafe fn r#as<'a, T>(ptr: *const c_void) -> &'a T {
-    &*(ptr as *const T)
 }
 
 /// # Safety

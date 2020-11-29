@@ -86,7 +86,7 @@ impl From<&[WasmValue]> for svm_byte_array {
 impl From<Vec<WasmValue>> for svm_byte_array {
     #[inline]
     fn from(values: Vec<WasmValue>) -> svm_byte_array {
-        (&values[..]).into()
+        (&values).into()
     }
 }
 
@@ -166,6 +166,7 @@ mod tests {
             bytes: std::ptr::null(),
             length: 0,
             capacity: 0,
+            type_id: None,
         };
 
         let res: Result<Vec<WasmValue>, io::Error> = Vec::try_from(&bytes);
@@ -181,6 +182,7 @@ mod tests {
             bytes: raw.as_ptr(),
             length: raw.len() as u32,
             capacity: raw.capacity() as u32,
+            type_id: None,
         };
 
         let res: Result<Vec<WasmValue>, io::Error> = Vec::try_from(&bytes);
@@ -196,6 +198,7 @@ mod tests {
             bytes: raw.as_ptr(),
             length: raw.len() as u32,
             capacity: raw.capacity() as u32,
+            type_id: None,
         };
 
         let res: Result<Vec<WasmValue>, io::Error> = Vec::try_from(&bytes);
@@ -210,6 +213,7 @@ mod tests {
             bytes: raw.as_ptr(),
             length: raw.len() as u32,
             capacity: raw.capacity() as u32,
+            type_id: None,
         };
 
         let res: Result<Vec<WasmValue>, io::Error> = Vec::try_from(&bytes);

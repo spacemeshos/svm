@@ -475,7 +475,7 @@ pub unsafe extern "C" fn svm_ffi_state_kv_create(
 pub unsafe extern "C" fn svm_state_kv_destroy(kv: *mut c_void) -> svm_result_t {
     let kv: &mut Rc<RefCell<dyn StatefulKV>> = svm_ffi::as_mut(kv);
 
-    let _ = Box::from_raw(kv as *mut _);
+    let _ = svm_ffi::from_raw(kv);
 
     svm_result_t::SVM_SUCCESS
 }
@@ -848,7 +848,7 @@ pub unsafe extern "C" fn svm_exec_app(
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_runtime_destroy(runtime: *mut c_void) {
-    RuntimePtr::from_raw(runtime);
+    let _ = RuntimePtr::from_raw(runtime);
 }
 
 /// Frees allocated imports resources.
@@ -869,8 +869,10 @@ pub unsafe extern "C" fn svm_runtime_destroy(runtime: *mut c_void) {
 ///
 #[must_use]
 #[no_mangle]
-pub unsafe extern "C" fn svm_imports_destroy(imports: *const c_void) {
-    let _ = Box::from_raw(imports as *mut Vec<ExternImport>);
+pub unsafe extern "C" fn svm_imports_destroy(imports: *mut c_void) {
+    let imports = svm_ffi::as_mut::<Vec<ExternImport>>(imports);
+
+    let _ = svm_ffi::from_raw::<Vec<ExternImport>>(imports);
 }
 
 /// Frees `svm_byte_array`
@@ -899,8 +901,9 @@ pub unsafe extern "C" fn svm_wasm_error_create(msg: svm_byte_array) -> *mut svm_
     let bytes = msg.to_vec();
 
     let err: svm_byte_array = bytes.into();
+    let err = svm_ffi::into_raw(err);
 
-    Box::into_raw(Box::new(err))
+    svm_ffi::as_mut(err)
 }
 
 /// Given a raw `deploy-template` transaction (the `bytes` parameter),
