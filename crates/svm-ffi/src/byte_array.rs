@@ -1,13 +1,13 @@
+use std::any::TypeId;
 use std::convert::TryFrom;
 use std::string::FromUtf8Error;
-
-use std::any::TypeId;
 
 use byteorder::{BigEndian, ByteOrder};
 
 use svm_types::{WasmType, WasmValue};
 
 use crate::tracking;
+use crate::types::TypeIdOrStr;
 
 /// FFI representation for a byte-array
 ///
@@ -41,7 +41,18 @@ pub struct svm_byte_array {
     /// needs first to be re-constructed using the proper allocated capacity).
     pub capacity: u32,
 
-    pub type_id: TypeId,
+    pub type_id: usize,
+}
+
+impl Default for svm_byte_array {
+    fn default() -> Self {
+        Self {
+            bytes: std::ptr::null(),
+            length: 0,
+            capacity: 0,
+            type_id: 0,
+        }
+    }
 }
 
 impl svm_byte_array {
@@ -59,7 +70,7 @@ impl svm_byte_array {
 
         let _ = Vec::from_raw_parts(ptr, length, capacity);
 
-        tracking::decrement_live_1(self.type_id)
+        tracking::decrement_live_2(self.type_id)
     }
 
     /// Copies the WASM values given by `values` into the raw format of `self` (i.e `svm_byte_array`).
@@ -148,24 +159,27 @@ impl svm_byte_array {
 //     }
 // }
 
-impl From<(TypeId, Vec<u8>)> for svm_byte_array {
-    fn from((type_id, vec): (TypeId, Vec<u8>)) -> Self {
+impl From<(TypeIdOrStr, Vec<u8>)> for svm_byte_array {
+    fn from((ty, vec): (TypeIdOrStr, Vec<u8>)) -> Self {
         let (ptr, len, cap) = vec.into_raw_parts();
 
-        tracking::increment_live_1(type_id);
+        tracking::increment_live_2(ty);
 
         svm_byte_array {
             bytes: ptr,
             length: len as u32,
             capacity: cap as u32,
-            type_id,
+            type_id: tracking::interned_type(ty),
         }
     }
 }
 
 impl From<Vec<u8>> for svm_byte_array {
     fn from(vec: Vec<u8>) -> Self {
-        (TypeId::of::<Vec<u8>>(), vec).into()
+        let ty = TypeId::of::<Vec<u8>>();
+        let name = std::any::type_name::<Vec<u8>>();
+
+        (TypeIdOrStr::TypeId(ty, name), vec).into()
     }
 }
 
@@ -173,7 +187,10 @@ impl From<String> for svm_byte_array {
     fn from(s: String) -> Self {
         let vec = s.into_bytes();
 
-        (TypeId::of::<String>(), vec).into()
+        let ty = TypeId::of::<String>();
+        let name = std::any::type_name::<String>();
+
+        (TypeIdOrStr::TypeId(ty, name), vec).into()
     }
 }
 

@@ -4,10 +4,44 @@ use std::sync::{Mutex, MutexGuard};
 
 use lazy_static::lazy_static;
 
+use crate::types::TypeIdOrStr;
+
 lazy_static! {
-    static ref STATS: Mutex<HashMap<TypeId, i32>> = Mutex::new(HashMap::new());
+    static ref STATS: Mutex<HashMap<usize, i32>> = Mutex::new(HashMap::new());
     static ref ENABLED: Mutex<bool> = Mutex::new(false);
     static ref TEST: Mutex<()> = Mutex::new(());
+
+    // `TypeId` interning
+    static ref TYPES: Mutex<HashMap<TypeIdOrStr, usize>> = Mutex::new(HashMap::new());
+    static ref REV_TYPES: Mutex<HashMap<usize, TypeIdOrStr>> = Mutex::new(HashMap::new());
+}
+
+#[must_use]
+pub fn interned_type(ty: TypeIdOrStr) -> usize {
+    let mut types = TYPES.lock().unwrap();
+
+    let ty_num = types.get(&ty);
+
+    match ty_num {
+        Some(num) => *num,
+        None => {
+            let ty_num = types.len() + 1;
+
+            types.insert(ty, ty_num);
+
+            let mut rev_types = REV_TYPES.lock().unwrap();
+            rev_types.insert(ty_num, ty);
+
+            ty_num
+        }
+    }
+}
+
+#[must_use]
+pub fn num_type(num: usize) -> Option<TypeIdOrStr> {
+    let rev_types = REV_TYPES.lock().unwrap();
+
+    rev_types.get(&num).copied()
 }
 
 #[must_use]
@@ -28,7 +62,7 @@ pub fn end(guard: MutexGuard<'static, ()>) {
 
 #[must_use]
 #[cfg(test)]
-pub fn acquire_stats() -> Option<MutexGuard<'static, HashMap<TypeId, i32>>> {
+pub fn acquire_stats() -> Option<MutexGuard<'static, HashMap<usize, i32>>> {
     if is_enabled() {
         let lock = STATS.lock().unwrap();
 
@@ -40,7 +74,7 @@ pub fn acquire_stats() -> Option<MutexGuard<'static, HashMap<TypeId, i32>>> {
 
 #[must_use]
 #[cfg(not(test))]
-pub fn acquire_stats() -> Option<MutexGuard<'static, HashMap<TypeId, i32>>> {
+pub fn acquire_stats() -> Option<MutexGuard<'static, HashMap<usize, i32>>> {
     let lock = STATS.lock().unwrap();
 
     Some(lock)
@@ -86,34 +120,69 @@ fn clear() {
     }
 }
 
-pub fn snapshot() -> Option<HashMap<TypeId, i32>> {
-    let stats = acquire_stats();
+pub fn snapshot() -> HashMap<&'static str, i32> {
+    let stats = acquire_stats().unwrap();
 
-    stats.map(|s| s.clone())
+    let rev_types = REV_TYPES.lock().unwrap();
+
+    let mut snapshot = HashMap::new();
+
+    for (ty, count) in stats.iter() {
+        let ty = rev_types.get(&ty);
+
+        match ty {
+            None => {
+                snapshot.insert("[MISSING]", *count);
+            }
+            Some(ty) => {
+                let ty_name = match *ty {
+                    TypeIdOrStr::TypeId(_, name) => name,
+                    TypeIdOrStr::Str(ty) => ty,
+                };
+
+                snapshot.insert(ty_name, *count);
+            }
+        };
+    }
+
+    snapshot
 }
 
 pub fn increment_live<T: 'static>() {
     let ty = std::any::TypeId::of::<T>();
+    let name = std::any::type_name::<T>();
 
-    increment_live_1(ty);
+    increment_live_1(ty, name)
 }
 
-pub fn increment_live_1(ty: TypeId) {
+pub fn increment_live_1(ty: TypeId, name: &'static str) {
+    increment_live_2(TypeIdOrStr::TypeId(ty, name))
+}
+
+pub fn increment_live_2(ty: TypeIdOrStr) {
     if is_enabled() {
         let mut stats = acquire_stats().unwrap();
+        let ty = interned_type(ty);
 
         let entry = stats.entry(ty).or_insert(0);
-        *entry -= 1;
+        *entry += 1;
     }
 }
 
 pub fn decrement_live<T: 'static>() {
     let ty = std::any::TypeId::of::<T>();
+    let name = std::any::type_name::<T>();
 
-    decrement_live_1(ty);
+    decrement_live_1(TypeIdOrStr::TypeId(ty, name));
 }
 
-pub fn decrement_live_1(ty: TypeId) {
+pub fn decrement_live_1(ty: TypeIdOrStr) {
+    let ty = interned_type(ty);
+
+    decrement_live_2(ty);
+}
+
+pub fn decrement_live_2(ty: usize) {
     if is_enabled() {
         let mut stats = acquire_stats().unwrap();
 
@@ -123,8 +192,20 @@ pub fn decrement_live_1(ty: TypeId) {
 }
 
 pub fn live_count<T: 'static>() -> i32 {
+    let ty = std::any::TypeId::of::<T>();
+    let name = std::any::type_name::<T>();
+
+    live_count_1(ty, name)
+}
+
+pub fn live_count_1(ty: TypeId, name: &'static str) -> i32 {
+    let ty = interned_type(TypeIdOrStr::TypeId(ty, name));
+
+    live_count_2(ty)
+}
+
+fn live_count_2(ty: usize) -> i32 {
     if is_enabled() {
-        let ty = std::any::TypeId::of::<T>();
         let stats = acquire_stats().unwrap();
 
         match stats.get(&ty) {

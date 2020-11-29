@@ -7,6 +7,13 @@ use byteorder::{ReadBytesExt, WriteBytesExt};
 
 use crate::svm_byte_array;
 
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub enum TypeIdOrStr {
+    TypeId(std::any::TypeId, &'static str),
+
+    Str(&'static str),
+}
+
 ///
 /// This file contains the implementation of encoding & decoding of a `Vec<WasmType>` into `svm_byte_array`.
 /// (and vice-versa).
@@ -118,7 +125,7 @@ mod tests {
             bytes: std::ptr::null(),
             length: 0,
             capacity: 0,
-            type_id: std::any::TypeId::of::<Vec<WasmType>>(),
+            type_id: 0,
         };
 
         let res: Result<Vec<WasmType>, io::Error> = Vec::try_from(bytes);

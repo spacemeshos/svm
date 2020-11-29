@@ -149,6 +149,18 @@ fn wasm_values_capacity(nvalues: usize) -> usize {
 mod tests {
     use super::*;
 
+    use crate::tracking;
+    use crate::types::TypeIdOrStr;
+
+    fn raw_type_id<T: 'static>() -> usize {
+        let ty = std::any::TypeId::of::<T>();
+        let name = std::any::type_name::<T>();
+
+        let ty = TypeIdOrStr::TypeId(ty, name);
+
+        tracking::interned_type(ty)
+    }
+
     #[test]
     fn empty_vec_values_to_svm_byte_array() {
         let vec = Vec::<WasmValue>::new();
@@ -162,13 +174,7 @@ mod tests {
 
     #[test]
     fn empty_svm_byte_array_to_vec_values_errors() {
-        let bytes = svm_byte_array {
-            bytes: std::ptr::null(),
-            length: 0,
-            capacity: 0,
-            type_id: std::any::TypeId::of::<Vec<WasmValue>>(),
-        };
-
+        let bytes = svm_byte_array::default();
         let res: Result<Vec<WasmValue>, io::Error> = Vec::try_from(&bytes);
 
         assert!(res.is_err());
@@ -182,7 +188,7 @@ mod tests {
             bytes: raw.as_ptr(),
             length: raw.len() as u32,
             capacity: raw.capacity() as u32,
-            type_id: std::any::TypeId::of::<Vec<WasmValue>>(),
+            type_id: raw_type_id::<Vec<WasmValue>>(),
         };
 
         let res: Result<Vec<WasmValue>, io::Error> = Vec::try_from(&bytes);
@@ -198,7 +204,7 @@ mod tests {
             bytes: raw.as_ptr(),
             length: raw.len() as u32,
             capacity: raw.capacity() as u32,
-            type_id: std::any::TypeId::of::<Vec<WasmValue>>(),
+            type_id: raw_type_id::<Vec<WasmValue>>(),
         };
 
         let res: Result<Vec<WasmValue>, io::Error> = Vec::try_from(&bytes);
@@ -213,7 +219,7 @@ mod tests {
             bytes: raw.as_ptr(),
             length: raw.len() as u32,
             capacity: raw.capacity() as u32,
-            type_id: std::any::TypeId::of::<Vec<WasmValue>>(),
+            type_id: raw_type_id::<Vec<WasmValue>>(),
         };
 
         let res: Result<Vec<WasmValue>, io::Error> = Vec::try_from(&bytes);
