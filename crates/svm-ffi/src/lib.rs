@@ -1,6 +1,4 @@
 #![feature(vec_into_raw_parts)]
-#![feature(const_type_id)]
-#![feature(const_type_name)]
 
 mod address;
 mod byte_array;
@@ -13,7 +11,6 @@ mod types;
 mod value;
 
 pub use byte_array::svm_byte_array;
-pub use types::TypeIdOrStr;
 pub mod tracking;
 pub use callback::svm_func_callback_t;
 pub use env::svm_env_t;
@@ -24,7 +21,7 @@ use std::ffi::c_void;
 /// Receives an object, and returns a raw `*mut c_void` pointer to it.
 #[must_use]
 #[inline]
-pub fn into_raw<T: 'static>(ty: TypeIdOrStr, obj: T) -> *mut c_void {
+pub fn into_raw<T: 'static>(ty: svm_types::Type, obj: T) -> *mut c_void {
     let ptr: *mut T = Box::into_raw(Box::new(obj));
 
     tracking::increment_live_2(ty);
@@ -34,7 +31,7 @@ pub fn into_raw<T: 'static>(ty: TypeIdOrStr, obj: T) -> *mut c_void {
 
 #[must_use]
 #[inline]
-pub fn from_raw<T: 'static>(ty: TypeIdOrStr, ptr: *mut T) -> T {
+pub fn from_raw<T: 'static>(ty: svm_types::Type, ptr: *mut T) -> T {
     tracking::decrement_live_1(ty);
 
     unsafe { *Box::from_raw(ptr) }

@@ -1,36 +1,33 @@
 #![allow(unused)]
 
-extern crate svm_runtime_c_api;
-
 use svm_runtime_c_api as api;
 
 use std::convert::TryFrom;
 use std::ffi::c_void;
 
 use svm_codec::api::raw;
-use svm_ffi::TypeIdOrStr;
 use svm_ffi::{svm_byte_array, svm_env_t};
 use svm_layout::DataLayout;
 use svm_runtime::{testing::WasmFile, vmcalls, Context};
-use svm_types::{Address, State, WasmType, WasmValue};
+use svm_types::{Address, State, Type, WasmType, WasmValue};
 
 use svm_sdk::traits::Encoder;
 use svm_sdk::ReturnData;
 
-static TEST_STRING_TY: TypeIdOrStr = TypeIdOrStr::Str("test String");
-static AUTHOR: TypeIdOrStr = TypeIdOrStr::Str("author");
-static SPAWNER: TypeIdOrStr = TypeIdOrStr::Str("spawner");
-static SENDER: TypeIdOrStr = TypeIdOrStr::Str("sender");
-static TEMPLATE_ADDR: TypeIdOrStr = TypeIdOrStr::Str("template address");
-static APP_ADDR: TypeIdOrStr = TypeIdOrStr::Str("app address");
-static INIT_STATE: TypeIdOrStr = TypeIdOrStr::Str("init state");
-static DEPLOY_TEMPLATE_TX: TypeIdOrStr = TypeIdOrStr::Str("deploy template tx");
-static SPAWN_APP_TX: TypeIdOrStr = TypeIdOrStr::Str("spawn app tx");
-static EXEC_APP_TX: TypeIdOrStr = TypeIdOrStr::Str("exec app tx");
-static IMPORT_NS: TypeIdOrStr = TypeIdOrStr::Str("import nasmespace");
-static IMPORT_NAME: TypeIdOrStr = TypeIdOrStr::Str("import name");
-static PARAMS_TYPES: TypeIdOrStr = TypeIdOrStr::Str("import params types");
-static RETURNS_TYPES: TypeIdOrStr = TypeIdOrStr::Str("import returns types");
+static TEST_STRING_TY: Type = Type::Str("test String");
+static AUTHOR: Type = Type::Str("author");
+static SPAWNER: Type = Type::Str("spawner");
+static SENDER: Type = Type::Str("sender");
+static TEMPLATE_ADDR: Type = Type::Str("template address");
+static APP_ADDR: Type = Type::Str("app address");
+static INIT_STATE: Type = Type::Str("init state");
+static DEPLOY_TEMPLATE_TX: Type = Type::Str("deploy template tx");
+static SPAWN_APP_TX: Type = Type::Str("spawn app tx");
+static EXEC_APP_TX: Type = Type::Str("exec app tx");
+static IMPORT_NS: Type = Type::Str("import nasmespace");
+static IMPORT_NAME: Type = Type::Str("import name");
+static PARAMS_TYPES: Type = Type::Str("import params types");
+static RETURNS_TYPES: Type = Type::Str("import returns types");
 
 /// We should land here when `trampoline` has been called with `host_env` containing
 /// a function index equaling to `COUNTER_MUL_FN_INDEX`

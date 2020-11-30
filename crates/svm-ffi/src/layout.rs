@@ -26,9 +26,10 @@ pub use svm_layout::DataLayout;
 /// use std::convert::TryFrom;
 ///
 /// use svm_layout::{VarId, DataLayout};
-/// use svm_ffi::{svm_byte_array, TypeIdOrStr};
+/// use svm_types::Type;
+/// use svm_ffi::svm_byte_array;
 ///
-/// let ty = TypeIdOrStr::of::<Vec<u8>>();
+/// let ty = Type::of::<Vec<u8>>();
 /// let data: Vec<u8> = vec![0, 0, 0, 10, 0, 0, 0, 20, 0, 0, 0, 30];
 /// let bytes: svm_byte_array = (ty, data).into();
 ///

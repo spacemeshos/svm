@@ -1,7 +1,7 @@
 use std::ffi::c_void;
 use std::ops::{Deref, DerefMut};
 
-use svm_ffi::TypeIdOrStr;
+use svm_types::Type;
 
 use crate::Runtime;
 
@@ -13,7 +13,7 @@ pub struct RuntimePtr {
     inner: Box<dyn Runtime>,
 }
 
-static RUNTIME_PTR_TY: TypeIdOrStr = TypeIdOrStr::of::<RuntimePtr>();
+static RUNTIME_PTR_TY: Type = Type::of::<RuntimePtr>();
 
 impl RuntimePtr {
     /// A new `RuntimePtr` smart-pointer

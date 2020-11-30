@@ -1,12 +1,11 @@
 use std::convert::TryFrom;
 use std::io::{self, Cursor, ErrorKind};
 
-use svm_types::{WasmType, WasmValue};
+use svm_types::{Type, WasmType, WasmValue};
 
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 
 use crate::svm_byte_array;
-use crate::types::TypeIdOrStr;
 
 ///
 /// This file contains the implementation of encoding & decoding of a `Vec<WasmValue>` into `svm_byte_array`.
@@ -37,7 +36,7 @@ use crate::types::TypeIdOrStr;
 /// The buffer is initialized with zeros.
 pub fn alloc_wasm_values(nvalues: usize) -> svm_byte_array {
     let cap = wasm_values_capacity(nvalues);
-    let ty = TypeIdOrStr::of::<&[WasmValue]>();
+    let ty = Type::of::<&[WasmValue]>();
 
     svm_byte_array::new(cap, ty)
 }
@@ -48,10 +47,10 @@ pub fn alloc_wasm_values(nvalues: usize) -> svm_byte_array {
 /// use std::io;
 /// use std::convert::TryFrom;
 ///
-/// use svm_types::WasmValue;
-/// use svm_ffi::{svm_byte_array, TypeIdOrStr};
+/// use svm_types::{WasmValue, Type};
+/// use svm_ffi::svm_byte_array;
 ///
-/// let ty = TypeIdOrStr::of::<Vec<WasmValue>>();
+/// let ty = Type::of::<Vec<WasmValue>>();
 /// let values = vec![WasmValue::I32(5), WasmValue::I64(10)];
 ///
 /// let bytes: svm_byte_array = (ty, (&values)).into();
@@ -59,8 +58,8 @@ pub fn alloc_wasm_values(nvalues: usize) -> svm_byte_array {
 ///
 /// assert_eq!(vec.unwrap(), values);
 /// ```
-impl From<(TypeIdOrStr, &[WasmValue])> for svm_byte_array {
-    fn from((ty, values): (TypeIdOrStr, &[WasmValue])) -> svm_byte_array {
+impl From<(Type, &[WasmValue])> for svm_byte_array {
+    fn from((ty, values): (Type, &[WasmValue])) -> svm_byte_array {
         let nvalues = values.len();
 
         assert!(nvalues <= std::u8::MAX as usize);
@@ -86,16 +85,16 @@ impl From<(TypeIdOrStr, &[WasmValue])> for svm_byte_array {
     }
 }
 
-impl From<(TypeIdOrStr, Vec<WasmValue>)> for svm_byte_array {
+impl From<(Type, Vec<WasmValue>)> for svm_byte_array {
     #[inline]
-    fn from((ty, values): (TypeIdOrStr, Vec<WasmValue>)) -> svm_byte_array {
+    fn from((ty, values): (Type, Vec<WasmValue>)) -> svm_byte_array {
         (ty, (&values)).into()
     }
 }
 
-impl From<(TypeIdOrStr, &Vec<WasmValue>)> for svm_byte_array {
+impl From<(Type, &Vec<WasmValue>)> for svm_byte_array {
     #[inline]
-    fn from((ty, values): (TypeIdOrStr, &Vec<WasmValue>)) -> svm_byte_array {
+    fn from((ty, values): (Type, &Vec<WasmValue>)) -> svm_byte_array {
         (ty, &values[..]).into()
     }
 }
@@ -153,13 +152,12 @@ mod tests {
     use super::*;
 
     use crate::tracking;
-    use crate::types::TypeIdOrStr;
 
     fn raw_type_id<T: 'static>() -> usize {
         let ty = std::any::TypeId::of::<T>();
         let name = std::any::type_name::<T>();
 
-        let ty = TypeIdOrStr::TypeId(ty, name);
+        let ty = Type::TypeId(ty, name);
 
         tracking::interned_type_1(ty)
     }
@@ -168,7 +166,7 @@ mod tests {
     fn empty_vec_values_to_svm_byte_array() {
         let vec = Vec::<WasmValue>::new();
 
-        let bytes: svm_byte_array = (TypeIdOrStr::of::<Vec<WasmValue>>(), vec).into();
+        let bytes: svm_byte_array = (Type::of::<Vec<WasmValue>>(), vec).into();
         let slice: &[u8] = bytes.into();
 
         let nvalues = slice[0];

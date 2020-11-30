@@ -3,10 +3,9 @@ use std::string::FromUtf8Error;
 
 use byteorder::{BigEndian, ByteOrder};
 
-use svm_types::{WasmType, WasmValue};
+use svm_types::{Type, WasmType, WasmValue};
 
 use crate::tracking;
-use crate::types::TypeIdOrStr;
 
 /// FFI representation for a byte-array
 ///
@@ -16,9 +15,10 @@ use crate::types::TypeIdOrStr;
 /// use std::convert::TryFrom;
 /// use std::string::FromUtf8Error;
 ///
-/// use svm_ffi::{svm_byte_array, TypeIdOrStr};
+/// use svm_types::Type;
+/// use svm_ffi::svm_byte_array;
 ///
-/// let ty = TypeIdOrStr::Str("test string");
+/// let ty = Type::Str("test string");
 ///
 /// let s1 = "Hello World!".to_string();
 /// let bytes: svm_byte_array = (ty, s1).into();
@@ -48,7 +48,7 @@ pub struct svm_byte_array {
 
 impl svm_byte_array {
     /// Creates a new `svm_byte_array` backed by a buffer of zeros sized `size`.
-    pub fn new(size: usize, ty: TypeIdOrStr) -> Self {
+    pub fn new(size: usize, ty: Type) -> Self {
         let vec = vec![0u8; size];
 
         (ty, vec).into()
@@ -72,15 +72,15 @@ impl svm_byte_array {
     /// ```rust
     /// use std::convert::TryFrom;
     ///
-    /// use svm_types::WasmValue;
-    /// use svm_ffi::{svm_byte_array, TypeIdOrStr};
+    /// use svm_types::{WasmValue, Type};
+    /// use svm_ffi::svm_byte_array;
     ///
     /// let src = vec![WasmValue::I64(10), WasmValue::I32(20), WasmValue::I64(30)];
     ///
     /// // We allocate `dst` with zeros.
     /// let size = 1 + 9 * src.len();
     ///
-    /// let ty = TypeIdOrStr::of::<Vec<WasmValue>>();
+    /// let ty = Type::of::<Vec<WasmValue>>();
     /// let vec = vec![0u8; size];
     ///
     /// let mut dst: svm_byte_array = (ty, vec).into();
@@ -154,8 +154,8 @@ impl Default for svm_byte_array {
     }
 }
 
-impl From<(TypeIdOrStr, Vec<u8>)> for svm_byte_array {
-    fn from((ty, vec): (TypeIdOrStr, Vec<u8>)) -> Self {
+impl From<(Type, Vec<u8>)> for svm_byte_array {
+    fn from((ty, vec): (Type, Vec<u8>)) -> Self {
         let (ptr, len, cap) = vec.into_raw_parts();
 
         tracking::increment_live_2(ty);
@@ -169,8 +169,8 @@ impl From<(TypeIdOrStr, Vec<u8>)> for svm_byte_array {
     }
 }
 
-impl From<(TypeIdOrStr, String)> for svm_byte_array {
-    fn from((ty, s): (TypeIdOrStr, String)) -> Self {
+impl From<(Type, String)> for svm_byte_array {
+    fn from((ty, s): (Type, String)) -> Self {
         let vec = s.into_bytes();
 
         (ty, vec).into()
@@ -239,7 +239,7 @@ mod tests {
         let s1_ptr = s1.as_ptr();
         let s1_len = s1.len() as u32;
         let s1_capacity = s1.capacity() as u32;
-        let bytes: svm_byte_array = (TypeIdOrStr::of::<String>(), s1).into();
+        let bytes: svm_byte_array = (Type::of::<String>(), s1).into();
 
         assert_eq!(s1_ptr, bytes.bytes); // `bytes` is an alias.
         assert_eq!(s1_len, bytes.length);

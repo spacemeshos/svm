@@ -4,7 +4,7 @@ use std::sync::{Mutex, MutexGuard};
 
 use lazy_static::lazy_static;
 
-use crate::types::TypeIdOrStr;
+use svm_types::Type;
 
 lazy_static! {
     static ref STATS: Mutex<HashMap<usize, i32>> = Mutex::new(HashMap::new());
@@ -12,19 +12,19 @@ lazy_static! {
     static ref TEST: Mutex<()> = Mutex::new(());
 
     // `TypeId` interning
-    static ref TYPES: Mutex<HashMap<TypeIdOrStr, usize>> = Mutex::new(HashMap::new());
-    static ref REV_TYPES: Mutex<HashMap<usize, TypeIdOrStr>> = Mutex::new(HashMap::new());
+    static ref TYPES: Mutex<HashMap<Type, usize>> = Mutex::new(HashMap::new());
+    static ref REV_TYPES: Mutex<HashMap<usize, Type>> = Mutex::new(HashMap::new());
 }
 
 #[must_use]
 pub fn interned_type<T: 'static>() -> usize {
-    let ty = TypeIdOrStr::of::<T>();
+    let ty = Type::of::<T>();
 
     interned_type_1(ty)
 }
 
 #[must_use]
-pub fn interned_type_1(ty: TypeIdOrStr) -> usize {
+pub fn interned_type_1(ty: Type) -> usize {
     let mut types = TYPES.lock().unwrap();
 
     let ty_num = types.get(&ty);
@@ -45,7 +45,7 @@ pub fn interned_type_1(ty: TypeIdOrStr) -> usize {
 }
 
 #[must_use]
-pub fn num_type(num: usize) -> Option<TypeIdOrStr> {
+pub fn num_type(num: usize) -> Option<Type> {
     let rev_types = REV_TYPES.lock().unwrap();
 
     rev_types.get(&num).copied()
@@ -143,8 +143,8 @@ pub fn snapshot() -> HashMap<&'static str, i32> {
             }
             Some(ty) => {
                 let ty_name = match *ty {
-                    TypeIdOrStr::TypeId(_, name) => name,
-                    TypeIdOrStr::Str(ty) => ty,
+                    Type::TypeId(_, name) => name,
+                    Type::Str(ty) => ty,
                 };
 
                 snapshot.insert(ty_name, *count);
@@ -156,16 +156,16 @@ pub fn snapshot() -> HashMap<&'static str, i32> {
 }
 
 pub fn increment_live<T: 'static>() {
-    let ty = TypeIdOrStr::of::<T>();
+    let ty = Type::of::<T>();
 
     increment_live_2(ty)
 }
 
 pub fn increment_live_1(ty: TypeId, name: &'static str) {
-    increment_live_2(TypeIdOrStr::TypeId(ty, name))
+    increment_live_2(Type::TypeId(ty, name))
 }
 
-pub fn increment_live_2(ty: TypeIdOrStr) {
+pub fn increment_live_2(ty: Type) {
     if is_enabled() {
         let mut stats = acquire_stats().unwrap();
         let ty = interned_type_1(ty);
@@ -176,12 +176,12 @@ pub fn increment_live_2(ty: TypeIdOrStr) {
 }
 
 pub fn decrement_live<T: 'static>() {
-    let ty = TypeIdOrStr::of::<T>();
+    let ty = Type::of::<T>();
 
     decrement_live_1(ty);
 }
 
-pub fn decrement_live_1(ty: TypeIdOrStr) {
+pub fn decrement_live_1(ty: Type) {
     let ty = interned_type_1(ty);
 
     decrement_live_2(ty);
@@ -201,14 +201,14 @@ pub fn decrement_live_2(ty: usize) {
 }
 
 pub fn live_count<T: 'static>() -> i32 {
-    let ty = TypeIdOrStr::of::<T>();
+    let ty = Type::of::<T>();
     let ty = interned_type_1(ty);
 
     live_count_2(ty)
 }
 
 pub fn live_count_1(ty: TypeId, name: &'static str) -> i32 {
-    let ty = TypeIdOrStr::TypeId(ty, name);
+    let ty = Type::TypeId(ty, name);
     let ty = interned_type_1(ty);
 
     live_count_2(ty)

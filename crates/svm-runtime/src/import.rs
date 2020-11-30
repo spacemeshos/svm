@@ -4,13 +4,14 @@ use std::rc::Rc;
 
 use crate::Context;
 
-use wasmer::{Export, Exportable, Function, FunctionType, RuntimeError, Store, Type, Val};
+use wasmer::{
+    Export, Exportable, Function, FunctionType, RuntimeError, Store, Type as WasmerType, Val,
+};
 
-use svm_ffi::TypeIdOrStr;
 use svm_ffi::{svm_byte_array, svm_env_t, svm_func_callback_t};
-use svm_types::{WasmType, WasmValue};
+use svm_types::{Type, WasmType, WasmValue};
 
-static WASMER_ARGS_STR: TypeIdOrStr = TypeIdOrStr::Str("Wasmer Args");
+static WASMER_ARGS_STR: Type = Type::Str("Wasmer Args");
 
 #[derive(Debug, Clone)]
 pub struct ExternImport {
@@ -140,12 +141,12 @@ impl ExternImport {
     }
 }
 
-fn to_wasmer_types(types: &[WasmType]) -> Vec<Type> {
+fn to_wasmer_types(types: &[WasmType]) -> Vec<WasmerType> {
     types
         .iter()
         .map(|ty| match ty {
-            WasmType::I32 => Type::I32,
-            WasmType::I64 => Type::I64,
+            WasmType::I32 => WasmerType::I32,
+            WasmType::I64 => WasmerType::I64,
             _ => panic!("Only i32 and i64 are supported."),
         })
         .collect()

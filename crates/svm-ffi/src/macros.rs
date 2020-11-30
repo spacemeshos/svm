@@ -4,10 +4,10 @@
 /// ```rust
 /// use std::convert::TryFrom;
 ///
-/// use svm_types::Address;
-/// use svm_ffi::{svm_byte_array, TypeIdOrStr};
+/// use svm_types::{Address, Type};
+/// use svm_ffi::svm_byte_array;
 ///
-/// let ty = TypeIdOrStr::Str("@someone address");
+/// let ty = Type::Str("@someone address");
 /// let addr = Address::of("@someone");
 ///
 /// let bytes: svm_byte_array = (ty, addr).into();
@@ -47,10 +47,10 @@ macro_rules! impl_from_svm_byte_array {
 /// ```rust
 /// use std::convert::TryFrom;
 ///
-/// use svm_types::Address;
-/// use svm_ffi::{svm_byte_array, TypeIdOrStr};
+/// use svm_types::{Address, Type};
+/// use svm_ffi::svm_byte_array;
 
-/// let ty = TypeIdOrStr::Str("@someone address");
+/// let ty = Type::Str("@someone address");
 /// let addr = Address::of("@someone");
 ///
 /// let bytes: svm_byte_array = (ty, addr).into();
@@ -63,8 +63,8 @@ macro_rules! impl_from_svm_byte_array {
 #[macro_export]
 macro_rules! impl_into_svm_byte_array {
     ($struct:ident) => {
-        impl From<(crate::TypeIdOrStr, &$struct)> for $crate::svm_byte_array {
-            fn from((ty, value): (crate::TypeIdOrStr, &$struct)) -> Self {
+        impl From<(svm_types::Type, &$struct)> for $crate::svm_byte_array {
+            fn from((ty, value): (svm_types::Type, &$struct)) -> Self {
                 // `bytes` is a copy of the underlying bytes.
                 let bytes = value.bytes();
 
@@ -88,8 +88,8 @@ macro_rules! impl_into_svm_byte_array {
             }
         }
 
-        impl From<(crate::TypeIdOrStr, $struct)> for $crate::svm_byte_array {
-            fn from((ty, value): (crate::TypeIdOrStr, $struct)) -> Self {
+        impl From<(svm_types::Type, $struct)> for $crate::svm_byte_array {
+            fn from((ty, value): (svm_types::Type, $struct)) -> Self {
                 (ty, (&value)).into()
             }
         }

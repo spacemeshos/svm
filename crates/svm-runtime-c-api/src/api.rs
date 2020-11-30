@@ -14,12 +14,11 @@ use svm_codec::receipt::{encode_app_receipt, encode_exec_receipt, encode_templat
 
 use svm_layout::DataLayout;
 use svm_storage::kv::{ExternKV, StatefulKV};
-use svm_types::{Address, State, WasmType};
+use svm_types::{Address, State, Type, WasmType};
 
 use svm_runtime::env::default::DefaultSerializerTypes;
 use svm_runtime::{gas::DefaultGasEstimator, Context, ExternImport, Runtime, RuntimePtr};
 
-use svm_ffi::TypeIdOrStr;
 use svm_ffi::{svm_byte_array, svm_env_t, svm_func_callback_t};
 
 use crate::{raw_error, raw_io_error, raw_utf8_error, raw_validate_error, svm_result_t};
@@ -35,17 +34,17 @@ macro_rules! max_gas {
     }};
 }
 
-static WASM_ERROR_TYPE: TypeIdOrStr = TypeIdOrStr::Str("wasm error");
-static WASM_ERROR_PTR_TYPE: TypeIdOrStr = TypeIdOrStr::Str("wasm error ptr");
-static KV_TYPE: TypeIdOrStr = TypeIdOrStr::Str("key-value");
-static VALIDATE_TX_APP_ADDR_TY: TypeIdOrStr = TypeIdOrStr::Str("svm_validate_tx app_addr");
-static DEPLOY_TEMPLATE_RECEIPT_TY: TypeIdOrStr = TypeIdOrStr::Str("deploy-template receipt");
-static SPAWN_APP_RECEIPT_TY: TypeIdOrStr = TypeIdOrStr::Str("spawn-app receipt");
-static EXEC_APP_RECEIPT_TY: TypeIdOrStr = TypeIdOrStr::Str("exec-app receipt");
+static WASM_ERROR_TYPE: Type = Type::Str("wasm error");
+static WASM_ERROR_PTR_TYPE: Type = Type::Str("wasm error ptr");
+static KV_TYPE: Type = Type::Str("key-value");
+static VALIDATE_TX_APP_ADDR_TY: Type = Type::Str("svm_validate_tx app_addr");
+static DEPLOY_TEMPLATE_RECEIPT_TY: Type = Type::Str("deploy-template receipt");
+static SPAWN_APP_RECEIPT_TY: Type = Type::Str("spawn-app receipt");
+static EXEC_APP_RECEIPT_TY: Type = Type::Str("exec-app receipt");
 
-static ENCODE_DEPLOY_TEMPLATE_TY: TypeIdOrStr = TypeIdOrStr::Str("svm_encode_app_template");
-static ENCODE_SPAWN_APP_TY: TypeIdOrStr = TypeIdOrStr::Str("svm_encode_spawn_app");
-static ENCODE_EXEC_APP_TY: TypeIdOrStr = TypeIdOrStr::Str("svm_encode_app_tx");
+static ENCODE_DEPLOY_TEMPLATE_TY: Type = Type::Str("svm_encode_app_template");
+static ENCODE_SPAWN_APP_TY: Type = Type::Str("svm_encode_spawn_app");
+static ENCODE_EXEC_APP_TY: Type = Type::Str("svm_encode_app_tx");
 
 macro_rules! maybe_gas {
     ($gas_metering:expr, $gas_limit:expr) => {{
@@ -278,7 +277,7 @@ pub unsafe extern "C" fn svm_validate_tx(
 #[no_mangle]
 pub unsafe extern "C" fn svm_imports_alloc(imports: *mut *mut c_void, count: u32) -> svm_result_t {
     let vec: Vec<ExternImport> = Vec::with_capacity(count as usize);
-    let ty = TypeIdOrStr::of::<Vec<ExternImport>>();
+    let ty = Type::of::<Vec<ExternImport>>();
 
     *imports = svm_ffi::into_raw(ty, vec);
 
@@ -294,8 +293,7 @@ pub unsafe extern "C" fn svm_imports_alloc(imports: *mut *mut c_void, count: u32
 /// use svm_runtime_c_api::*;
 ///
 /// use svm_ffi::{svm_env_t, svm_func_callback_t, svm_byte_array};
-/// use svm_ffi::TypeIdOrStr;
-/// use svm_types::WasmType;
+/// use svm_types::{WasmType, Type};
 ///
 /// unsafe extern "C" fn host_func(
 ///   env:     *mut svm_env_t,
@@ -312,11 +310,11 @@ pub unsafe extern "C" fn svm_imports_alloc(imports: *mut *mut c_void, count: u32
 /// // allocate one import
 /// let mut imports = testing::imports_alloc(1);
 ///
-/// let namespace_ty = TypeIdOrStr::Str("import ns");
-/// let name_ty = TypeIdOrStr::Str("import name");
-/// let params_ty = TypeIdOrStr::Str("import params");
-/// let returns_ty = TypeIdOrStr::Str("import returns");
-/// let host_env_ty = TypeIdOrStr::Str("host env");
+/// let namespace_ty = Type::Str("import ns");
+/// let name_ty = Type::Str("import name");
+/// let params_ty = Type::Str("import params");
+/// let returns_ty = Type::Str("import returns");
+/// let host_env_ty = Type::Str("host env");
 ///
 /// let namespace: svm_byte_array = (namespace_ty, String::from("env")).into();
 /// let import_name: svm_byte_array = (name_ty, String::from("foo")).into();
@@ -556,11 +554,12 @@ pub unsafe extern "C" fn svm_memory_runtime_create(
 /// ```rust, no_run
 /// use svm_runtime_c_api::*;
 ///
-/// use svm_ffi::{svm_byte_array, TypeIdOrStr};
+/// use svm_types::Type;
+/// use svm_ffi::svm_byte_array;
 ///
 /// let mut runtime = std::ptr::null_mut();
 ///
-/// let ty = TypeIdOrStr::Str("path");
+/// let ty = Type::Str("path");
 /// let path = String::from("path goes here");
 
 /// let path: svm_byte_array = (ty, path).into();
@@ -611,8 +610,8 @@ pub unsafe extern "C" fn svm_runtime_create(
 /// ```rust, no_run
 /// use svm_runtime_c_api::*;
 ///
-/// use svm_ffi::{svm_byte_array, TypeIdOrStr};
-/// use svm_types::Address;
+/// use svm_ffi::svm_byte_array;
+/// use svm_types::{Address, Type};
 ///
 /// // allocate imports
 /// let mut imports = testing::imports_alloc(0);
@@ -629,7 +628,7 @@ pub unsafe extern "C" fn svm_runtime_create(
 ///
 /// // deploy template
 /// let mut receipt = svm_byte_array::default();
-/// let ty = TypeIdOrStr::Str("author");
+/// let ty = Type::Str("author");
 /// let author: svm_byte_array = (ty, Address::of("@author")).into();
 /// let template_bytes = svm_byte_array::default();
 /// let gas_metering = false;
@@ -693,8 +692,8 @@ pub unsafe extern "C" fn svm_deploy_template(
 /// ```rust, no_run
 /// use svm_runtime_c_api::*;
 ///
-/// use svm_ffi::{svm_byte_array, TypeIdOrStr};
-/// use svm_types::Address;
+/// use svm_ffi::svm_byte_array;
+/// use svm_types::{Address, Type};
 ///
 /// // allocate imports
 /// let mut imports = testing::imports_alloc(0);
@@ -714,7 +713,7 @@ pub unsafe extern "C" fn svm_deploy_template(
 /// let mut app_receipt = svm_byte_array::default();
 /// let mut init_state = svm_byte_array::default();
 ///
-/// let spawner_ty = TypeIdOrStr::Str("spawner");
+/// let spawner_ty = Type::Str("spawner");
 /// let spawner: svm_byte_array = (spawner_ty, Address::of("@spawner")).into();
 /// let app_bytes = svm_byte_array::default();
 /// let gas_metering = false;
@@ -778,8 +777,8 @@ pub unsafe extern "C" fn svm_spawn_app(
 ///
 /// use svm_runtime_c_api::*;
 ///
-/// use svm_types::{State, Address};
-/// use svm_ffi::{svm_byte_array, TypeIdOrStr};
+/// use svm_types::{State, Address, Type};
+/// use svm_ffi::svm_byte_array;
 ///
 /// // allocate imports
 /// let mut imports = testing::imports_alloc(0);
@@ -798,7 +797,7 @@ pub unsafe extern "C" fn svm_spawn_app(
 ///
 /// let mut exec_receipt = svm_byte_array::default();
 /// let bytes = svm_byte_array::default();
-/// let ty = TypeIdOrStr::of::<State>();
+/// let ty = Type::of::<State>();
 /// let state = (ty, State::empty()).into();
 /// let gas_metering = false;
 /// let gas_limit = 0;
@@ -904,7 +903,7 @@ pub unsafe extern "C" fn svm_runtime_destroy(runtime: *mut c_void) {
 #[no_mangle]
 pub unsafe extern "C" fn svm_imports_destroy(imports: *mut c_void) {
     let imports = svm_ffi::as_mut::<Vec<ExternImport>>(imports);
-    let ty = TypeIdOrStr::of::<Vec<ExternImport>>();
+    let ty = Type::of::<Vec<ExternImport>>();
 
     let _ = svm_ffi::from_raw::<Vec<ExternImport>>(ty, imports);
 }
