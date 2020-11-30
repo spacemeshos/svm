@@ -142,22 +142,32 @@ unsafe fn create_imports() -> *mut c_void {
 
     let params = vec![WasmType::I32, WasmType::I32];
     let returns = vec![WasmType::I32];
-    let namespace = b"host".to_vec();
+    let import_ns = b"host".to_vec();
     let import_name = b"counter_mul".to_vec();
 
     let mut error = svm_byte_array::default();
 
+    let import_ns: svm_byte_array = (IMPORT_NS, import_ns).into();
+    let import_name: svm_byte_array = (IMPORT_NAME, import_name).into();
+    let params: svm_byte_array = (PARAMS_TYPES, params).into();
+    let returns: svm_byte_array = (RETURNS_TYPES, returns).into();
+
     let res = api::svm_import_func_new(
         imports,
-        (IMPORT_NS, namespace).into(),
-        (IMPORT_NAME, import_name).into(),
+        import_ns.clone(),
+        import_name.clone(),
         trampoline,
         host_env,
-        (PARAMS_TYPES, params).into(),
-        (RETURNS_TYPES, returns).into(),
+        params.clone(),
+        returns.clone(),
         &mut error,
     );
     assert!(res.is_ok());
+
+    let _ = api::svm_byte_array_destroy(import_ns);
+    let _ = api::svm_byte_array_destroy(import_name);
+    let _ = api::svm_byte_array_destroy(params);
+    let _ = api::svm_byte_array_destroy(returns);
 
     imports as _
 }
@@ -228,8 +238,6 @@ unsafe fn test_svm_runtime() {
     let res = api::svm_memory_runtime_create(&mut runtime, state_kv, imports, &mut error);
     assert!(res.is_ok());
 
-    // dbg_snapshot(1);
-
     // 2) deploy app-template
     let author: svm_byte_array = (AUTHOR, Address::of("author")).into();
     let wasm = include_bytes!("wasm/counter.wasm");
@@ -249,8 +257,6 @@ unsafe fn test_svm_runtime() {
         &mut error,
     );
     assert!(res.is_ok());
-
-    // dbg_snapshot(2);
 
     // extract the `template-address` out of theh receipt
     let receipt = raw::decode_receipt(template_receipt.clone().into()).into_deploy_template();
@@ -292,8 +298,6 @@ unsafe fn test_svm_runtime() {
     let init_state = receipt.get_init_state();
     let init_state: svm_byte_array = (INIT_STATE, init_state).into();
 
-    // dbg_snapshot(3);
-
     // 4) execute app
     let func_name = "add_and_mul";
     let add = 5u32;
@@ -331,8 +335,6 @@ unsafe fn test_svm_runtime() {
     );
     assert!(res.is_ok());
 
-    // dbg_snapshot(4);
-
     let receipt = raw::decode_receipt(exec_receipt.clone().into()).into_exec_app();
     assert_eq!(receipt.success, true);
 
@@ -353,6 +355,7 @@ unsafe fn test_svm_runtime() {
     let _ = api::svm_byte_array_destroy(spawner);
     let _ = api::svm_byte_array_destroy(template_addr);
     let _ = api::svm_byte_array_destroy(app_addr);
+    let _ = api::svm_byte_array_destroy(derived_app_addr);
     let _ = api::svm_byte_array_destroy(init_state);
     let _ = api::svm_byte_array_destroy(template_receipt);
     let _ = api::svm_byte_array_destroy(spawn_receipt);
@@ -361,11 +364,9 @@ unsafe fn test_svm_runtime() {
     let _ = api::svm_runtime_destroy(runtime);
     let _ = api::svm_state_kv_destroy(state_kv);
 
-    // assert_eq!(svm_ffi::tracking::total_live_count(), 0);
+    assert_eq!(svm_ffi::tracking::total_live_count(), 0);
 
-    dbg_snapshot(5);
+    dbg_snapshot(1);
 
     svm_ffi::tracking::end(guard);
-
-    panic!()
 }
