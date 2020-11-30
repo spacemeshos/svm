@@ -1,4 +1,3 @@
-use std::any::TypeId;
 use std::convert::TryFrom;
 use std::string::FromUtf8Error;
 
@@ -46,10 +45,10 @@ pub struct svm_byte_array {
 
 impl svm_byte_array {
     /// Creates a new `svm_byte_array` backed by a buffer of zeros sized `size`.
-    pub fn new(size: usize) -> Self {
+    pub fn new(size: usize, ty: TypeIdOrStr) -> Self {
         let vec = vec![0u8; size];
 
-        vec.into()
+        (ty, vec).into()
     }
 
     pub unsafe fn destroy(self) {
@@ -148,23 +147,6 @@ impl Default for svm_byte_array {
     }
 }
 
-impl From<(&'static str, Vec<u8>)> for svm_byte_array {
-    fn from((ty, vec): (&'static str, Vec<u8>)) -> Self {
-        let (ptr, len, cap) = vec.into_raw_parts();
-
-        let ty = TypeIdOrStr::Str(ty);
-
-        tracking::increment_live_2(ty);
-
-        svm_byte_array {
-            bytes: ptr,
-            length: len as u32,
-            capacity: cap as u32,
-            type_id: tracking::interned_type_1(ty),
-        }
-    }
-}
-
 impl From<(TypeIdOrStr, Vec<u8>)> for svm_byte_array {
     fn from((ty, vec): (TypeIdOrStr, Vec<u8>)) -> Self {
         let (ptr, len, cap) = vec.into_raw_parts();
@@ -180,23 +162,11 @@ impl From<(TypeIdOrStr, Vec<u8>)> for svm_byte_array {
     }
 }
 
-impl From<Vec<u8>> for svm_byte_array {
-    fn from(vec: Vec<u8>) -> Self {
-        let ty = TypeId::of::<Vec<u8>>();
-        let name = std::any::type_name::<Vec<u8>>();
-
-        (TypeIdOrStr::TypeId(ty, name), vec).into()
-    }
-}
-
-impl From<String> for svm_byte_array {
-    fn from(s: String) -> Self {
+impl From<(TypeIdOrStr, String)> for svm_byte_array {
+    fn from((ty, s): (TypeIdOrStr, String)) -> Self {
         let vec = s.into_bytes();
 
-        let ty = TypeId::of::<String>();
-        let name = std::any::type_name::<String>();
-
-        (TypeIdOrStr::TypeId(ty, name), vec).into()
+        (ty, vec).into()
     }
 }
 
@@ -249,7 +219,7 @@ mod tests {
         vec.push(0x30u8);
 
         let ptr = vec.as_ptr();
-        let bytes: svm_byte_array = vec.into();
+        let bytes: svm_byte_array = ("Vec<u8>".into(), vec).into();
 
         assert_eq!(ptr, bytes.bytes); // `bytes` is an alias.
         assert_eq!(3, bytes.length);
@@ -262,7 +232,7 @@ mod tests {
         let s1_ptr = s1.as_ptr();
         let s1_len = s1.len() as u32;
         let s1_capacity = s1.capacity() as u32;
-        let bytes: svm_byte_array = s1.into();
+        let bytes: svm_byte_array = (TypeIdOrStr::of::<String>(), s1).into();
 
         assert_eq!(s1_ptr, bytes.bytes); // `bytes` is an alias.
         assert_eq!(s1_len, bytes.length);

@@ -11,6 +11,7 @@ mod types;
 mod value;
 
 pub use byte_array::svm_byte_array;
+pub use types::TypeIdOrStr;
 pub mod tracking;
 pub use callback::svm_func_callback_t;
 pub use env::svm_env_t;

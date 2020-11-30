@@ -6,6 +6,7 @@ use svm_types::{WasmType, WasmValue};
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 
 use crate::svm_byte_array;
+use crate::types::TypeIdOrStr;
 
 ///
 /// This file contains the implementation of encoding & decoding of a `Vec<WasmValue>` into `svm_byte_array`.
@@ -36,8 +37,9 @@ use crate::svm_byte_array;
 /// The buffer is initialized with zeros.
 pub fn alloc_wasm_values(nvalues: usize) -> svm_byte_array {
     let cap = wasm_values_capacity(nvalues);
+    let ty = TypeIdOrStr::of::<&[WasmValue]>();
 
-    svm_byte_array::new(cap)
+    svm_byte_array::new(cap, ty)
 }
 
 /// Converts `svm_byte_array` into `Vec<WasmerValue>`
@@ -56,8 +58,8 @@ pub fn alloc_wasm_values(nvalues: usize) -> svm_byte_array {
 ///
 /// assert_eq!(vec.unwrap(), values);
 /// ```
-impl From<&[WasmValue]> for svm_byte_array {
-    fn from(values: &[WasmValue]) -> svm_byte_array {
+impl From<(TypeIdOrStr, &[WasmValue])> for svm_byte_array {
+    fn from((ty, values): (TypeIdOrStr, &[WasmValue])) -> svm_byte_array {
         let nvalues = values.len();
 
         assert!(nvalues <= std::u8::MAX as usize);
@@ -79,21 +81,21 @@ impl From<&[WasmValue]> for svm_byte_array {
             };
         }
 
-        bytes.into()
+        (ty, bytes).into()
     }
 }
 
-impl From<Vec<WasmValue>> for svm_byte_array {
+impl From<(TypeIdOrStr, Vec<WasmValue>)> for svm_byte_array {
     #[inline]
-    fn from(values: Vec<WasmValue>) -> svm_byte_array {
-        (&values).into()
+    fn from((ty, values): (TypeIdOrStr, Vec<WasmValue>)) -> svm_byte_array {
+        (ty, (&values)).into()
     }
 }
 
-impl From<&Vec<WasmValue>> for svm_byte_array {
+impl From<(TypeIdOrStr, &Vec<WasmValue>)> for svm_byte_array {
     #[inline]
-    fn from(values: &Vec<WasmValue>) -> svm_byte_array {
-        (&values[..]).into()
+    fn from((ty, values): (TypeIdOrStr, &Vec<WasmValue>)) -> svm_byte_array {
+        (ty, &values[..]).into()
     }
 }
 
@@ -165,7 +167,7 @@ mod tests {
     fn empty_vec_values_to_svm_byte_array() {
         let vec = Vec::<WasmValue>::new();
 
-        let bytes: svm_byte_array = vec.into();
+        let bytes: svm_byte_array = (TypeIdOrStr::of::<Vec<WasmValue>>(), vec).into();
         let slice: &[u8] = bytes.into();
 
         let nvalues = slice[0];

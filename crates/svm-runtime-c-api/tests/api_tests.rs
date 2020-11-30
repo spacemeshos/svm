@@ -8,6 +8,7 @@ use std::convert::TryFrom;
 use std::ffi::c_void;
 
 use svm_codec::api::raw;
+use svm_ffi::TypeIdOrStr;
 use svm_ffi::{svm_byte_array, svm_env_t};
 use svm_layout::DataLayout;
 use svm_runtime::{testing::WasmFile, vmcalls, Context};
@@ -15,6 +16,15 @@ use svm_types::{Address, State, WasmType, WasmValue};
 
 use svm_sdk::traits::Encoder;
 use svm_sdk::ReturnData;
+
+static TEST_STRING_TY: TypeIdOrStr = TypeIdOrStr::Str("test String");
+static TEST_DEPLOY_TEMPLATE_TX: TypeIdOrStr = TypeIdOrStr::Str("deploy template tx");
+static TEST_SPAWN_APP_TX: TypeIdOrStr = TypeIdOrStr::Str("spawn app tx");
+static TEST_EXEC_APP_TX: TypeIdOrStr = TypeIdOrStr::Str("exec app tx");
+static TEST_IMPORT_NS: TypeIdOrStr = TypeIdOrStr::Str("import nasmespace");
+static TEST_IMPORT_NAME: TypeIdOrStr = TypeIdOrStr::Str("import name");
+static TEST_PARAMS_TYPES: TypeIdOrStr = TypeIdOrStr::Str("import params types");
+static TEST_RETURNS_TYPES: TypeIdOrStr = TypeIdOrStr::Str("import returns types");
 
 /// We should land here when `trampoline` has been called with `host_env` containing
 /// a function index equaling to `COUNTER_MUL_FN_INDEX`
@@ -58,7 +68,7 @@ unsafe fn prepare_args(args: *const svm_byte_array) -> Result<Vec<WasmValue>, &'
 }
 
 unsafe fn wasm_error(msg: String) -> *mut svm_byte_array {
-    let bytes: svm_byte_array = msg.into();
+    let bytes: svm_byte_array = (TEST_STRING_TY, msg).into();
 
     api::svm_wasm_error_create(bytes)
 }
@@ -133,12 +143,12 @@ unsafe fn create_imports() -> *mut c_void {
 
     let res = api::svm_import_func_new(
         imports,
-        namespace.into(),
-        import_name.into(),
+        (TEST_IMPORT_NS, namespace).into(),
+        (TEST_IMPORT_NAME, import_name).into(),
         trampoline,
         host_env,
-        params.into(),
-        returns.into(),
+        (TEST_PARAMS_TYPES, params).into(),
+        (TEST_RETURNS_TYPES, returns).into(),
         &mut error,
     );
     assert!(res.is_ok());
@@ -220,7 +230,7 @@ unsafe fn test_svm_runtime() {
 
     // raw template
     let bytes = deploy_template_bytes(version, "My Template", wasm);
-    let template_bytes: svm_byte_array = bytes.into();
+    let template_bytes: svm_byte_array = (TEST_DEPLOY_TEMPLATE_TX, bytes).into();
 
     let mut template_receipt = svm_byte_array::default();
     let res = api::svm_deploy_template(
@@ -252,7 +262,7 @@ unsafe fn test_svm_runtime() {
 
     // raw `spawn-app`
     let bytes = spawn_app_bytes(version, &template_addr, name, ctor_name, &calldata);
-    let app_bytes: svm_byte_array = bytes.into();
+    let app_bytes: svm_byte_array = (TEST_SPAWN_APP_TX, bytes).into();
 
     let mut spawn_receipt = svm_byte_array::default();
 
@@ -289,7 +299,7 @@ unsafe fn test_svm_runtime() {
     mul.encode(&mut calldata);
 
     let bytes = exec_app_bytes(version, &app_addr, func_name, &calldata);
-    let tx_bytes: svm_byte_array = bytes.into();
+    let tx_bytes: svm_byte_array = (TEST_EXEC_APP_TX, bytes).into();
 
     // 4.1) validates tx and extracts its `App`'s `Address`
     let mut app_addr = svm_byte_array::default();

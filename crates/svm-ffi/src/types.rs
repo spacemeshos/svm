@@ -14,6 +14,21 @@ pub enum TypeIdOrStr {
     Str(&'static str),
 }
 
+impl TypeIdOrStr {
+    pub fn of<T: 'static>() -> Self {
+        let ty = std::any::TypeId::of::<T>();
+        let name = std::any::type_name::<T>();
+
+        TypeIdOrStr::TypeId(ty, name)
+    }
+}
+
+impl From<&'static str> for TypeIdOrStr {
+    fn from(s: &'static str) -> Self {
+        TypeIdOrStr::Str(s)
+    }
+}
+
 ///
 /// This file contains the implementation of encoding & decoding of a `Vec<WasmType>` into `svm_byte_array`.
 /// (and vice-versa).
@@ -53,8 +68,8 @@ pub enum TypeIdOrStr {
 /// assert_eq!(types.unwrap(), vec![WasmType::I32, WasmType::I64, WasmType::I32]);
 /// ````
 ///
-impl From<&[WasmType]> for svm_byte_array {
-    fn from(types: &[WasmType]) -> svm_byte_array {
+impl From<(TypeIdOrStr, &[WasmType])> for svm_byte_array {
+    fn from((ty, types): (TypeIdOrStr, &[WasmType])) -> svm_byte_array {
         let ntypes = types.len();
 
         assert!(ntypes <= std::u8::MAX as usize);
@@ -66,21 +81,21 @@ impl From<&[WasmType]> for svm_byte_array {
             bytes.write_u8(ty).unwrap();
         }
 
-        bytes.into()
+        (ty, bytes).into()
     }
 }
 
-impl From<Vec<WasmType>> for svm_byte_array {
+impl From<(TypeIdOrStr, Vec<WasmType>)> for svm_byte_array {
     #[inline]
-    fn from(types: Vec<WasmType>) -> svm_byte_array {
-        (&types[..]).into()
+    fn from((ty, types): (TypeIdOrStr, Vec<WasmType>)) -> svm_byte_array {
+        (ty, &types[..]).into()
     }
 }
 
-impl From<&Vec<WasmType>> for svm_byte_array {
+impl From<(TypeIdOrStr, &Vec<WasmType>)> for svm_byte_array {
     #[inline]
-    fn from(types: &Vec<WasmType>) -> svm_byte_array {
-        (&types[..]).into()
+    fn from((ty, types): (TypeIdOrStr, &Vec<WasmType>)) -> svm_byte_array {
+        (ty, &types[..]).into()
     }
 }
 
@@ -113,7 +128,8 @@ mod tests {
 
     #[test]
     fn empty_vec_types_to_svm_byte_array() {
-        let bytes: svm_byte_array = Vec::<WasmType>::new().into();
+        let ty = TypeIdOrStr::Str("empty vec");
+        let bytes: svm_byte_array = (ty, Vec::<WasmType>::new()).into();
 
         let slice: &[u8] = bytes.into();
         assert_eq!(slice.len(), 0);

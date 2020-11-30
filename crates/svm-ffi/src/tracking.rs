@@ -18,10 +18,9 @@ lazy_static! {
 
 #[must_use]
 pub fn interned_type<T: 'static>() -> usize {
-    let ty = std::any::TypeId::of::<T>();
-    let name = std::any::type_name::<T>();
+    let ty = TypeIdOrStr::of::<T>();
 
-    interned_type_1(TypeIdOrStr::TypeId(ty, name))
+    interned_type_1(ty)
 }
 
 #[must_use]
@@ -157,10 +156,9 @@ pub fn snapshot() -> HashMap<&'static str, i32> {
 }
 
 pub fn increment_live<T: 'static>() {
-    let ty = std::any::TypeId::of::<T>();
-    let name = std::any::type_name::<T>();
+    let ty = TypeIdOrStr::of::<T>();
 
-    increment_live_1(ty, name)
+    increment_live_2(ty)
 }
 
 pub fn increment_live_1(ty: TypeId, name: &'static str) {
@@ -178,10 +176,9 @@ pub fn increment_live_2(ty: TypeIdOrStr) {
 }
 
 pub fn decrement_live<T: 'static>() {
-    let ty = std::any::TypeId::of::<T>();
-    let name = std::any::type_name::<T>();
+    let ty = TypeIdOrStr::of::<T>();
 
-    decrement_live_1(TypeIdOrStr::TypeId(ty, name));
+    decrement_live_1(ty);
 }
 
 pub fn decrement_live_1(ty: TypeIdOrStr) {
@@ -200,10 +197,10 @@ pub fn decrement_live_2(ty: usize) {
 }
 
 pub fn live_count<T: 'static>() -> i32 {
-    let ty = std::any::TypeId::of::<T>();
-    let name = std::any::type_name::<T>();
+    let ty = TypeIdOrStr::of::<T>();
+    let ty = interned_type_1(ty);
 
-    live_count_1(ty, name)
+    live_count_2(ty)
 }
 
 pub fn live_count_1(ty: TypeId, name: &'static str) -> i32 {

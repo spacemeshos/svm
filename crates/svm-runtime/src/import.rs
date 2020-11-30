@@ -6,8 +6,11 @@ use crate::Context;
 
 use wasmer::{Export, Exportable, Function, FunctionType, RuntimeError, Store, Type, Val};
 
+use svm_ffi::TypeIdOrStr;
 use svm_ffi::{svm_byte_array, svm_env_t, svm_func_callback_t};
 use svm_types::{WasmType, WasmValue};
+
+static WASMER_ARGS_STR: TypeIdOrStr = TypeIdOrStr::Str("Wasmer Args");
 
 #[derive(Debug, Clone)]
 pub struct ExternImport {
@@ -54,7 +57,7 @@ impl ExternImport {
             let wrapper_callback =
                 move |env: &mut *mut svm_env_t, args: &[Val]| -> Result<Vec<Val>, RuntimeError> {
                     let args: Vec<WasmValue> = wasmer_vals_to_wasm_vals(args)?;
-                    let args: svm_byte_array = args.into();
+                    let args: svm_byte_array = (WASMER_ARGS_STR, args).into();
 
                     let mut results = svm_ffi::alloc_wasm_values(returns_types.len());
                     let err = func(*env, &args, &mut results);

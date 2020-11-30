@@ -19,6 +19,7 @@ use svm_types::{Address, State, WasmType};
 use svm_runtime::env::default::DefaultSerializerTypes;
 use svm_runtime::{gas::DefaultGasEstimator, Context, ExternImport, Runtime, RuntimePtr};
 
+use svm_ffi::TypeIdOrStr;
 use svm_ffi::{svm_byte_array, svm_env_t, svm_func_callback_t};
 
 use crate::{raw_error, raw_io_error, raw_utf8_error, raw_validate_error, svm_result_t};
@@ -33,6 +34,8 @@ macro_rules! max_gas {
         }
     }};
 }
+
+static WASM_ERROR_TYPE: TypeIdOrStr = TypeIdOrStr::Str("wasm error");
 
 macro_rules! maybe_gas {
     ($gas_metering:expr, $gas_limit:expr) => {{
@@ -900,7 +903,7 @@ pub unsafe extern "C" fn svm_wasm_error_create(msg: svm_byte_array) -> *mut svm_
     let msg: &[u8] = msg.into();
     let bytes = msg.to_vec();
 
-    let err: svm_byte_array = bytes.into();
+    let err: svm_byte_array = (WASM_ERROR_TYPE, bytes).into();
     let err = svm_ffi::into_raw(err);
 
     svm_ffi::as_mut(err)
