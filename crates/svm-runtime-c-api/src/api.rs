@@ -294,6 +294,7 @@ pub unsafe extern "C" fn svm_imports_alloc(imports: *mut *mut c_void, count: u32
 /// use svm_runtime_c_api::*;
 ///
 /// use svm_ffi::{svm_env_t, svm_func_callback_t, svm_byte_array};
+/// use svm_ffi::TypeIdOrStr;
 /// use svm_types::WasmType;
 ///
 /// unsafe extern "C" fn host_func(
@@ -311,23 +312,29 @@ pub unsafe extern "C" fn svm_imports_alloc(imports: *mut *mut c_void, count: u32
 /// // allocate one import
 /// let mut imports = testing::imports_alloc(1);
 ///
-/// let namespace = String::from("env").into();
-/// let import_name = String::from("foo").into();
-/// let params = Vec::<WasmType>::new();
-/// let returns = Vec::<WasmType>::new();
+/// let namespace_ty = TypeIdOrStr::Str("import ns");
+/// let name_ty = TypeIdOrStr::Str("import name");
+/// let params_ty = TypeIdOrStr::Str("import params");
+/// let returns_ty = TypeIdOrStr::Str("import returns");
+/// let host_env_ty = TypeIdOrStr::Str("host env");
+///
+/// let namespace: svm_byte_array = (namespace_ty, String::from("env")).into();
+/// let import_name: svm_byte_array = (name_ty, String::from("foo")).into();
+/// let params: svm_byte_array = (params_ty, Vec::<WasmType>::new()).into();
+/// let returns: svm_byte_array = (returns_ty,Vec::<WasmType>::new()).into();
 /// let mut error = svm_byte_array::default();
 ///
-/// let host_env = svm_ffi::into_raw(function_id(0));
+/// let host_env = svm_ffi::into_raw(host_env_ty, function_id(0));
 ///
 /// let res = unsafe {
 ///   svm_import_func_new(
 ///     imports,
-///     namespace,
-///     import_name,
+///     namespace.clone(),
+///     import_name.clone(),
 ///     host_func,
 ///     host_env,
-///     params.into(),
-///     returns.into(),
+///     params.clone(),
+///     returns.clone(),
 ///     &mut error)
 /// };
 /// assert!(res.is_ok());
@@ -549,10 +556,14 @@ pub unsafe extern "C" fn svm_memory_runtime_create(
 /// ```rust, no_run
 /// use svm_runtime_c_api::*;
 ///
-/// use svm_ffi::svm_byte_array;
+/// use svm_ffi::{svm_byte_array, TypeIdOrStr};
 ///
 /// let mut runtime = std::ptr::null_mut();
-/// let path = String::from("path goes here").into();
+///
+/// let ty = TypeIdOrStr::Str("path");
+/// let path = String::from("path goes here");
+
+/// let path: svm_byte_array = (ty, path).into();
 /// let mut imports = testing::imports_alloc(0);
 /// let mut error = svm_byte_array::default();
 ///
@@ -600,7 +611,7 @@ pub unsafe extern "C" fn svm_runtime_create(
 /// ```rust, no_run
 /// use svm_runtime_c_api::*;
 ///
-/// use svm_ffi::svm_byte_array;
+/// use svm_ffi::{svm_byte_array, TypeIdOrStr};
 /// use svm_types::Address;
 ///
 /// // allocate imports
@@ -618,7 +629,8 @@ pub unsafe extern "C" fn svm_runtime_create(
 ///
 /// // deploy template
 /// let mut receipt = svm_byte_array::default();
-/// let author: svm_byte_array = Address::of("@author").into();
+/// let ty = TypeIdOrStr::Str("author");
+/// let author: svm_byte_array = (ty, Address::of("@author")).into();
 /// let template_bytes = svm_byte_array::default();
 /// let gas_metering = false;
 /// let gas_limit = 0;
@@ -681,7 +693,7 @@ pub unsafe extern "C" fn svm_deploy_template(
 /// ```rust, no_run
 /// use svm_runtime_c_api::*;
 ///
-/// use svm_ffi::svm_byte_array;
+/// use svm_ffi::{svm_byte_array, TypeIdOrStr};
 /// use svm_types::Address;
 ///
 /// // allocate imports
@@ -701,7 +713,9 @@ pub unsafe extern "C" fn svm_deploy_template(
 ///
 /// let mut app_receipt = svm_byte_array::default();
 /// let mut init_state = svm_byte_array::default();
-/// let creator = Address::of("@creator").into();
+///
+/// let spawner_ty = TypeIdOrStr::Str("spawner");
+/// let spawner: svm_byte_array = (spawner_ty, Address::of("@spawner")).into();
 /// let app_bytes = svm_byte_array::default();
 /// let gas_metering = false;
 /// let gas_limit = 0;
@@ -711,7 +725,7 @@ pub unsafe extern "C" fn svm_deploy_template(
 ///     &mut app_receipt,
 ///     runtime,
 ///     app_bytes,
-///     creator,
+///     spawner,
 ///     gas_metering,
 ///     gas_limit,
 ///     &mut error)
@@ -724,7 +738,7 @@ pub unsafe extern "C" fn svm_spawn_app(
     receipt: *mut svm_byte_array,
     runtime: *mut c_void,
     bytes: svm_byte_array,
-    creator: svm_byte_array,
+    spawner: svm_byte_array,
     gas_metering: bool,
     gas_limit: u64,
     error: *mut svm_byte_array,
@@ -732,16 +746,16 @@ pub unsafe extern "C" fn svm_spawn_app(
     debug!("`svm_spawn_app` start");
 
     let runtime: &mut Box<dyn Runtime> = runtime.into();
-    let creator: Result<Address, String> = Address::try_from(creator);
+    let spawner: Result<Address, String> = Address::try_from(spawner);
 
-    if let Err(s) = creator {
+    if let Err(s) = spawner {
         raw_error(s, error);
         return svm_result_t::SVM_FAILURE;
     }
 
     let gas_limit = maybe_gas!(gas_metering, gas_limit);
 
-    let rust_receipt = runtime.spawn_app(bytes.into(), &creator.unwrap().into(), gas_limit);
+    let rust_receipt = runtime.spawn_app(bytes.into(), &spawner.unwrap().into(), gas_limit);
 
     let mut receipt_bytes = encode_app_receipt(&rust_receipt);
 
@@ -765,7 +779,7 @@ pub unsafe extern "C" fn svm_spawn_app(
 /// use svm_runtime_c_api::*;
 ///
 /// use svm_types::{State, Address};
-/// use svm_ffi::svm_byte_array;
+/// use svm_ffi::{svm_byte_array, TypeIdOrStr};
 ///
 /// // allocate imports
 /// let mut imports = testing::imports_alloc(0);
@@ -784,7 +798,8 @@ pub unsafe extern "C" fn svm_spawn_app(
 ///
 /// let mut exec_receipt = svm_byte_array::default();
 /// let bytes = svm_byte_array::default();
-/// let state = State::empty().into();
+/// let ty = TypeIdOrStr::of::<State>();
+/// let state = (ty, State::empty()).into();
 /// let gas_metering = false;
 /// let gas_limit = 0;
 ///

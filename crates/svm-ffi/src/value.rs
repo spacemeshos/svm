@@ -49,11 +49,12 @@ pub fn alloc_wasm_values(nvalues: usize) -> svm_byte_array {
 /// use std::convert::TryFrom;
 ///
 /// use svm_types::WasmValue;
-/// use svm_ffi::svm_byte_array;
+/// use svm_ffi::{svm_byte_array, TypeIdOrStr};
 ///
+/// let ty = TypeIdOrStr::of::<Vec<WasmValue>>();
 /// let values = vec![WasmValue::I32(5), WasmValue::I64(10)];
 ///
-/// let bytes: svm_byte_array = (&values).into();
+/// let bytes: svm_byte_array = (ty, (&values)).into();
 /// let vec: Result<_, io::Error> = Vec::<WasmValue>::try_from(&bytes);
 ///
 /// assert_eq!(vec.unwrap(), values);

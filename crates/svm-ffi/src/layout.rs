@@ -26,10 +26,11 @@ pub use svm_layout::DataLayout;
 /// use std::convert::TryFrom;
 ///
 /// use svm_layout::{VarId, DataLayout};
-/// use svm_ffi::svm_byte_array;
+/// use svm_ffi::{svm_byte_array, TypeIdOrStr};
 ///
+/// let ty = TypeIdOrStr::of::<Vec<u8>>();
 /// let data: Vec<u8> = vec![0, 0, 0, 10, 0, 0, 0, 20, 0, 0, 0, 30];
-/// let bytes: svm_byte_array = data.into();
+/// let bytes: svm_byte_array = (ty, data).into();
 ///
 /// let layout: Result<DataLayout, io::Error> = DataLayout::try_from(bytes);
 /// assert!(layout.is_ok());

@@ -5,13 +5,16 @@
 /// use std::convert::TryFrom;
 ///
 /// use svm_types::Address;
-/// use svm_ffi::svm_byte_array;
+/// use svm_ffi::{svm_byte_array, TypeIdOrStr};
 ///
-/// let bytes: svm_byte_array = Address::of("aaaa").into();
+/// let ty = TypeIdOrStr::Str("@someone address");
+/// let addr = Address::of("@someone");
+///
+/// let bytes: svm_byte_array = (ty, addr).into();
 /// assert_eq!(Address::len(), bytes.length as usize);
 ///
 /// let res: Result<Address, String> = Address::try_from(bytes);
-/// assert_eq!(Address::of("aaaa"), res.unwrap());
+/// assert_eq!(Address::of("@someone"), res.unwrap());
 /// ```
 ///
 #[macro_export]
@@ -45,9 +48,12 @@ macro_rules! impl_from_svm_byte_array {
 /// use std::convert::TryFrom;
 ///
 /// use svm_types::Address;
-/// use svm_ffi::svm_byte_array;
+/// use svm_ffi::{svm_byte_array, TypeIdOrStr};
+
+/// let ty = TypeIdOrStr::Str("@someone address");
+/// let addr = Address::of("@someone");
 ///
-/// let bytes: svm_byte_array = Address::of("@someone").into();
+/// let bytes: svm_byte_array = (ty, addr).into();
 /// assert_eq!(Address::len(), bytes.length as usize);
 ///
 /// let res: Result<Address, String> = Address::try_from(bytes);

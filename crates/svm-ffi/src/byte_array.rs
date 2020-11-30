@@ -15,10 +15,13 @@ use crate::types::TypeIdOrStr;
 /// ```rust
 /// use std::convert::TryFrom;
 /// use std::string::FromUtf8Error;
-/// use svm_ffi::svm_byte_array;
+///
+/// use svm_ffi::{svm_byte_array, TypeIdOrStr};
+///
+/// let ty = TypeIdOrStr::Str("test string");
 ///
 /// let s1 = "Hello World!".to_string();
-/// let bytes: svm_byte_array = s1.into();
+/// let bytes: svm_byte_array = (ty, s1).into();
 ///
 /// let s2 = String::try_from(bytes).unwrap();
 /// assert_eq!(s2, "Hello World!".to_string());
@@ -70,13 +73,17 @@ impl svm_byte_array {
     /// use std::convert::TryFrom;
     ///
     /// use svm_types::WasmValue;
-    /// use svm_ffi::svm_byte_array;
+    /// use svm_ffi::{svm_byte_array, TypeIdOrStr};
     ///
     /// let src = vec![WasmValue::I64(10), WasmValue::I32(20), WasmValue::I64(30)];
     ///
     /// // We allocate `dst` with zeros.
     /// let size = 1 + 9 * src.len();
-    /// let mut dst: svm_byte_array = vec![0; size].into();
+    ///
+    /// let ty = TypeIdOrStr::of::<Vec<WasmValue>>();
+    /// let vec = vec![0u8; size];
+    ///
+    /// let mut dst: svm_byte_array = (ty, vec).into();
     ///
     /// // We fill-in `dst` with the WASM values given by `src`
     /// unsafe { dst.copy_wasm_values(&src) };

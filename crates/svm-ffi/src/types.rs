@@ -59,10 +59,11 @@ impl From<&'static str> for TypeIdOrStr {
 /// use std::convert::TryFrom;
 ///
 /// use svm_types::WasmType;
-/// use svm_ffi::svm_byte_array;
+/// use svm_ffi::{svm_byte_array, TypeIdOrStr};
 ///
+/// let ty = TypeIdOrStr::of::<Vec<WasmType>>();
 /// let types = vec![WasmType::I32, WasmType::I64, WasmType::I32];
-/// let bytes: svm_byte_array = types.into();
+/// let bytes: svm_byte_array = (ty, types).into();
 ///
 /// let types: Result<Vec<WasmType>, io::Error> = Vec::try_from(bytes);
 /// assert_eq!(types.unwrap(), vec![WasmType::I32, WasmType::I64, WasmType::I32]);
