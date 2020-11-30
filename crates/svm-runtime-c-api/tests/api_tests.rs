@@ -74,9 +74,9 @@ unsafe fn prepare_args(args: *const svm_byte_array) -> Result<Vec<WasmValue>, &'
 }
 
 unsafe fn wasm_error(msg: String) -> *mut svm_byte_array {
-    let bytes: svm_byte_array = (TEST_STRING_TY, msg).into();
+    let template_bytes: svm_byte_array = (TEST_STRING_TY, msg).into();
 
-    api::svm_wasm_error_create(bytes)
+    api::svm_wasm_error_create(template_bytes)
 }
 
 /// The `trampoline` is the actual host function that will be called by SVM running.
@@ -228,29 +228,29 @@ unsafe fn test_svm_runtime() {
     let res = api::svm_memory_runtime_create(&mut runtime, state_kv, imports, &mut error);
     assert!(res.is_ok());
 
-    dbg_snapshot(1);
+    // dbg_snapshot(1);
 
     // 2) deploy app-template
-    let author = (AUTHOR, Address::of("author")).into();
+    let author: svm_byte_array = (AUTHOR, Address::of("author")).into();
     let wasm = include_bytes!("wasm/counter.wasm");
 
     // raw template
-    let bytes = deploy_template_bytes(version, "My Template", wasm);
-    let template_bytes: svm_byte_array = (DEPLOY_TEMPLATE_TX, bytes).into();
+    let template_bytes = deploy_template_bytes(version, "My Template", wasm);
+    let template_bytes: svm_byte_array = (DEPLOY_TEMPLATE_TX, template_bytes).into();
 
     let mut template_receipt = svm_byte_array::default();
     let res = api::svm_deploy_template(
         &mut template_receipt,
         runtime,
-        template_bytes,
-        author,
+        template_bytes.clone(),
+        author.clone(),
         gas_metering,
         gas_limit,
         &mut error,
     );
     assert!(res.is_ok());
 
-    dbg_snapshot(2);
+    // dbg_snapshot(2);
 
     // extract the `template-address` out of theh receipt
     let receipt = raw::decode_receipt(template_receipt.clone().into()).into_deploy_template();
@@ -259,7 +259,7 @@ unsafe fn test_svm_runtime() {
 
     // 3) spawn app
     let name = "My App";
-    let spawner = (SPAWNER, Address::of("spawner")).into();
+    let spawner: svm_byte_array = (SPAWNER, Address::of("spawner")).into();
     let ctor_name = "initialize";
     let counter_init: u32 = 10;
 
@@ -267,16 +267,16 @@ unsafe fn test_svm_runtime() {
     counter_init.encode(&mut calldata);
 
     // raw `spawn-app`
-    let bytes = spawn_app_bytes(version, &template_addr, name, ctor_name, &calldata);
-    let app_bytes: svm_byte_array = (SPAWN_APP_TX, bytes).into();
+    let app_bytes = spawn_app_bytes(version, &template_addr, name, ctor_name, &calldata);
+    let app_bytes: svm_byte_array = (SPAWN_APP_TX, app_bytes).into();
 
     let mut spawn_receipt = svm_byte_array::default();
 
     let res = api::svm_spawn_app(
         &mut spawn_receipt,
         runtime,
-        app_bytes,
-        spawner,
+        app_bytes.clone(),
+        spawner.clone(),
         gas_metering,
         gas_limit,
         &mut error,
@@ -292,7 +292,7 @@ unsafe fn test_svm_runtime() {
     let init_state = receipt.get_init_state();
     let init_state: svm_byte_array = (INIT_STATE, init_state).into();
 
-    dbg_snapshot(3);
+    // dbg_snapshot(3);
 
     // 4) execute app
     let func_name = "add_and_mul";
@@ -304,12 +304,17 @@ unsafe fn test_svm_runtime() {
     add.encode(&mut calldata);
     mul.encode(&mut calldata);
 
-    let bytes = exec_app_bytes(version, &app_addr, func_name, &calldata);
-    let tx_bytes: svm_byte_array = (EXEC_APP_TX, bytes).into();
+    let exec_bytes = exec_app_bytes(version, &app_addr, func_name, &calldata);
+    let exec_bytes: svm_byte_array = (EXEC_APP_TX, exec_bytes).into();
 
     // 4.1) validates tx and extracts its `App`'s `Address`
-    let mut app_addr = svm_byte_array::default();
-    let res = api::svm_validate_tx(&mut app_addr, runtime, tx_bytes.clone(), &mut error);
+    let mut derived_app_addr = svm_byte_array::default();
+    let res = api::svm_validate_tx(
+        &mut derived_app_addr,
+        runtime,
+        exec_bytes.clone(),
+        &mut error,
+    );
     assert!(res.is_ok());
 
     // 4.2) execute the app-transaction
@@ -318,7 +323,7 @@ unsafe fn test_svm_runtime() {
     let res = api::svm_exec_app(
         &mut exec_receipt,
         runtime,
-        tx_bytes,
+        exec_bytes.clone(),
         init_state.clone(),
         gas_metering,
         gas_limit,
@@ -326,7 +331,7 @@ unsafe fn test_svm_runtime() {
     );
     assert!(res.is_ok());
 
-    dbg_snapshot(4);
+    // dbg_snapshot(4);
 
     let receipt = raw::decode_receipt(exec_receipt.clone().into()).into_exec_app();
     assert_eq!(receipt.success, true);
@@ -341,6 +346,11 @@ unsafe fn test_svm_runtime() {
         (counter_init, counter_init + add, (counter_init + add) * mul)
     );
 
+    let _ = api::svm_byte_array_destroy(template_bytes);
+    let _ = api::svm_byte_array_destroy(app_bytes);
+    let _ = api::svm_byte_array_destroy(exec_bytes);
+    let _ = api::svm_byte_array_destroy(author);
+    let _ = api::svm_byte_array_destroy(spawner);
     let _ = api::svm_byte_array_destroy(template_addr);
     let _ = api::svm_byte_array_destroy(app_addr);
     let _ = api::svm_byte_array_destroy(init_state);
