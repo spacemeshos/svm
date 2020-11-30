@@ -1,6 +1,8 @@
 use std::ffi::c_void;
 use std::ops::{Deref, DerefMut};
 
+use svm_ffi::TypeIdOrStr;
+
 use crate::Runtime;
 
 /// A Smart-pointer for a `Runtime`
@@ -11,6 +13,8 @@ pub struct RuntimePtr {
     inner: Box<dyn Runtime>,
 }
 
+static RUNTIME_PTR_TY: TypeIdOrStr = TypeIdOrStr::of::<RuntimePtr>();
+
 impl RuntimePtr {
     /// A new `RuntimePtr` smart-pointer
     pub fn new(inner: Box<dyn Runtime>) -> Self {
@@ -19,13 +23,13 @@ impl RuntimePtr {
 
     /// Copies the `RuntimePtr` into the heap, and returns a raw pointer to it.
     pub fn into_raw(self) -> *mut c_void {
-        svm_ffi::into_raw(self)
+        svm_ffi::into_raw(RUNTIME_PTR_TY, self)
     }
 
     pub fn from_raw(ptr: *mut c_void) -> Self {
         let ptr: *mut RuntimePtr = ptr as _;
 
-        svm_ffi::from_raw(ptr)
+        svm_ffi::from_raw(RUNTIME_PTR_TY, ptr)
     }
 }
 

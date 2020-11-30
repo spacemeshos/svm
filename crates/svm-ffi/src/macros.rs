@@ -57,8 +57,8 @@ macro_rules! impl_from_svm_byte_array {
 #[macro_export]
 macro_rules! impl_into_svm_byte_array {
     ($struct:ident) => {
-        impl From<&$struct> for $crate::svm_byte_array {
-            fn from(value: &$struct) -> Self {
+        impl From<(crate::TypeIdOrStr, &$struct)> for $crate::svm_byte_array {
+            fn from((ty, value): (crate::TypeIdOrStr, &$struct)) -> Self {
                 // `bytes` is a copy of the underlying bytes.
                 let bytes = value.bytes();
 
@@ -69,20 +69,22 @@ macro_rules! impl_into_svm_byte_array {
                 let bytes: &[u8] = Box::leak(Box::new(bytes));
                 let length = bytes.len() as u32;
 
-                crate::tracking::increment_live::<$struct>();
+                crate::tracking::increment_live_2(ty);
+
+                let ty = crate::tracking::interned_type_1(ty);
 
                 $crate::svm_byte_array {
                     bytes: bytes.as_ptr(),
                     length,
                     capacity: length,
-                    type_id: crate::tracking::interned_type::<$struct>(),
+                    type_id: ty,
                 }
             }
         }
 
-        impl From<$struct> for $crate::svm_byte_array {
-            fn from(value: $struct) -> Self {
-                (&value).into()
+        impl From<(crate::TypeIdOrStr, $struct)> for $crate::svm_byte_array {
+            fn from((ty, value): (crate::TypeIdOrStr, $struct)) -> Self {
+                (ty, (&value)).into()
             }
         }
     };

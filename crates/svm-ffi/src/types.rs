@@ -15,7 +15,7 @@ pub enum TypeIdOrStr {
 }
 
 impl TypeIdOrStr {
-    pub fn of<T: 'static>() -> Self {
+    pub const fn of<T: 'static>() -> Self {
         let ty = std::any::TypeId::of::<T>();
         let name = std::any::type_name::<T>();
 

@@ -18,13 +18,19 @@ use svm_sdk::traits::Encoder;
 use svm_sdk::ReturnData;
 
 static TEST_STRING_TY: TypeIdOrStr = TypeIdOrStr::Str("test String");
-static TEST_DEPLOY_TEMPLATE_TX: TypeIdOrStr = TypeIdOrStr::Str("deploy template tx");
-static TEST_SPAWN_APP_TX: TypeIdOrStr = TypeIdOrStr::Str("spawn app tx");
-static TEST_EXEC_APP_TX: TypeIdOrStr = TypeIdOrStr::Str("exec app tx");
-static TEST_IMPORT_NS: TypeIdOrStr = TypeIdOrStr::Str("import nasmespace");
-static TEST_IMPORT_NAME: TypeIdOrStr = TypeIdOrStr::Str("import name");
-static TEST_PARAMS_TYPES: TypeIdOrStr = TypeIdOrStr::Str("import params types");
-static TEST_RETURNS_TYPES: TypeIdOrStr = TypeIdOrStr::Str("import returns types");
+static AUTHOR: TypeIdOrStr = TypeIdOrStr::Str("author");
+static SPAWNER: TypeIdOrStr = TypeIdOrStr::Str("spawner");
+static SENDER: TypeIdOrStr = TypeIdOrStr::Str("sender");
+static TEMPLATE_ADDR: TypeIdOrStr = TypeIdOrStr::Str("template address");
+static APP_ADDR: TypeIdOrStr = TypeIdOrStr::Str("app address");
+static INIT_STATE: TypeIdOrStr = TypeIdOrStr::Str("init state");
+static DEPLOY_TEMPLATE_TX: TypeIdOrStr = TypeIdOrStr::Str("deploy template tx");
+static SPAWN_APP_TX: TypeIdOrStr = TypeIdOrStr::Str("spawn app tx");
+static EXEC_APP_TX: TypeIdOrStr = TypeIdOrStr::Str("exec app tx");
+static IMPORT_NS: TypeIdOrStr = TypeIdOrStr::Str("import nasmespace");
+static IMPORT_NAME: TypeIdOrStr = TypeIdOrStr::Str("import name");
+static PARAMS_TYPES: TypeIdOrStr = TypeIdOrStr::Str("import params types");
+static RETURNS_TYPES: TypeIdOrStr = TypeIdOrStr::Str("import returns types");
 
 /// We should land here when `trampoline` has been called with `host_env` containing
 /// a function index equaling to `COUNTER_MUL_FN_INDEX`
@@ -143,12 +149,12 @@ unsafe fn create_imports() -> *mut c_void {
 
     let res = api::svm_import_func_new(
         imports,
-        (TEST_IMPORT_NS, namespace).into(),
-        (TEST_IMPORT_NAME, import_name).into(),
+        (IMPORT_NS, namespace).into(),
+        (IMPORT_NAME, import_name).into(),
         trampoline,
         host_env,
-        (TEST_PARAMS_TYPES, params).into(),
-        (TEST_RETURNS_TYPES, returns).into(),
+        (PARAMS_TYPES, params).into(),
+        (RETURNS_TYPES, returns).into(),
         &mut error,
     );
     assert!(res.is_ok());
@@ -225,12 +231,12 @@ unsafe fn test_svm_runtime() {
     dbg_snapshot(1);
 
     // 2) deploy app-template
-    let author = Address::of("author").into();
+    let author = (AUTHOR, Address::of("author")).into();
     let wasm = include_bytes!("wasm/counter.wasm");
 
     // raw template
     let bytes = deploy_template_bytes(version, "My Template", wasm);
-    let template_bytes: svm_byte_array = (TEST_DEPLOY_TEMPLATE_TX, bytes).into();
+    let template_bytes: svm_byte_array = (DEPLOY_TEMPLATE_TX, bytes).into();
 
     let mut template_receipt = svm_byte_array::default();
     let res = api::svm_deploy_template(
@@ -249,11 +255,11 @@ unsafe fn test_svm_runtime() {
     // extract the `template-address` out of theh receipt
     let receipt = raw::decode_receipt(template_receipt.clone().into()).into_deploy_template();
     let template_addr: &Address = receipt.get_template_addr().inner();
-    let template_addr: svm_byte_array = template_addr.into();
+    let template_addr: svm_byte_array = (TEMPLATE_ADDR, template_addr).into();
 
     // 3) spawn app
     let name = "My App";
-    let spawner = Address::of("spawner").into();
+    let spawner = (SPAWNER, Address::of("spawner")).into();
     let ctor_name = "initialize";
     let counter_init: u32 = 10;
 
@@ -262,7 +268,7 @@ unsafe fn test_svm_runtime() {
 
     // raw `spawn-app`
     let bytes = spawn_app_bytes(version, &template_addr, name, ctor_name, &calldata);
-    let app_bytes: svm_byte_array = (TEST_SPAWN_APP_TX, bytes).into();
+    let app_bytes: svm_byte_array = (SPAWN_APP_TX, bytes).into();
 
     let mut spawn_receipt = svm_byte_array::default();
 
@@ -281,10 +287,10 @@ unsafe fn test_svm_runtime() {
     let receipt = raw::decode_receipt(spawn_receipt.clone().into()).into_spawn_app();
     assert_eq!(receipt.success, true);
     let app_addr = receipt.get_app_addr().inner();
-    let app_addr: svm_byte_array = app_addr.into();
+    let app_addr: svm_byte_array = (APP_ADDR, app_addr).into();
 
     let init_state = receipt.get_init_state();
-    let init_state: svm_byte_array = init_state.into();
+    let init_state: svm_byte_array = (INIT_STATE, init_state).into();
 
     dbg_snapshot(3);
 
@@ -299,7 +305,7 @@ unsafe fn test_svm_runtime() {
     mul.encode(&mut calldata);
 
     let bytes = exec_app_bytes(version, &app_addr, func_name, &calldata);
-    let tx_bytes: svm_byte_array = (TEST_EXEC_APP_TX, bytes).into();
+    let tx_bytes: svm_byte_array = (EXEC_APP_TX, bytes).into();
 
     // 4.1) validates tx and extracts its `App`'s `Address`
     let mut app_addr = svm_byte_array::default();

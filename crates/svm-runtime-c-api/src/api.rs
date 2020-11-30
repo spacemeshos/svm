@@ -36,6 +36,8 @@ macro_rules! max_gas {
 }
 
 static WASM_ERROR_TYPE: TypeIdOrStr = TypeIdOrStr::Str("wasm error");
+static WASM_ERROR_PTR_TYPE: TypeIdOrStr = TypeIdOrStr::Str("wasm error ptr");
+static KV_TY: TypeIdOrStr = TypeIdOrStr::Str("key-value");
 
 macro_rules! maybe_gas {
     ($gas_metering:expr, $gas_limit:expr) => {{
@@ -264,8 +266,9 @@ pub unsafe extern "C" fn svm_validate_tx(
 #[no_mangle]
 pub unsafe extern "C" fn svm_imports_alloc(imports: *mut *mut c_void, count: u32) -> svm_result_t {
     let vec: Vec<ExternImport> = Vec::with_capacity(count as usize);
+    let ty = TypeIdOrStr::of::<Vec<ExternImport>>();
 
-    *imports = svm_ffi::into_raw(vec);
+    *imports = svm_ffi::into_raw(ty, vec);
 
     svm_result_t::SVM_SUCCESS
 }
@@ -387,7 +390,7 @@ macro_rules! box_runtime {
         let runtime_ptr = RuntimePtr::new(Box::new($runtime));
 
         // `svm_runtime_destroy` should be called later for freeing memory.
-        *$raw_runtime = svm_ffi::into_raw(runtime_ptr);
+        *$raw_runtime = RuntimePtr::into_raw(runtime_ptr);
 
         svm_result_t::SVM_SUCCESS
     }};
@@ -411,7 +414,7 @@ macro_rules! box_runtime {
 pub unsafe extern "C" fn svm_memory_state_kv_create(kv: *mut *mut c_void) -> svm_result_t {
     let state_kv = svm_runtime::testing::memory_state_kv_init();
 
-    *kv = svm_ffi::into_raw(state_kv);
+    *kv = svm_ffi::into_raw(KV_TY, state_kv);
 
     svm_result_t::SVM_SUCCESS
 }
@@ -453,7 +456,7 @@ pub unsafe extern "C" fn svm_ffi_state_kv_create(
 
     let ffi_kv = Rc::new(RefCell::new(ffi_kv));
 
-    *state_kv = svm_ffi::into_raw(ffi_kv);
+    *state_kv = svm_ffi::into_raw(KV_TY, ffi_kv);
 
     svm_result_t::SVM_SUCCESS
 }
@@ -478,7 +481,7 @@ pub unsafe extern "C" fn svm_ffi_state_kv_create(
 pub unsafe extern "C" fn svm_state_kv_destroy(kv: *mut c_void) -> svm_result_t {
     let kv: &mut Rc<RefCell<dyn StatefulKV>> = svm_ffi::as_mut(kv);
 
-    let _ = svm_ffi::from_raw(kv);
+    let _ = svm_ffi::from_raw(KV_TY, kv);
 
     svm_result_t::SVM_SUCCESS
 }
@@ -874,8 +877,9 @@ pub unsafe extern "C" fn svm_runtime_destroy(runtime: *mut c_void) {
 #[no_mangle]
 pub unsafe extern "C" fn svm_imports_destroy(imports: *mut c_void) {
     let imports = svm_ffi::as_mut::<Vec<ExternImport>>(imports);
+    let ty = TypeIdOrStr::of::<Vec<ExternImport>>();
 
-    let _ = svm_ffi::from_raw::<Vec<ExternImport>>(imports);
+    let _ = svm_ffi::from_raw::<Vec<ExternImport>>(ty, imports);
 }
 
 /// Frees `svm_byte_array`
@@ -904,7 +908,7 @@ pub unsafe extern "C" fn svm_wasm_error_create(msg: svm_byte_array) -> *mut svm_
     let bytes = msg.to_vec();
 
     let err: svm_byte_array = (WASM_ERROR_TYPE, bytes).into();
-    let err = svm_ffi::into_raw(err);
+    let err = svm_ffi::into_raw(WASM_ERROR_PTR_TYPE, err);
 
     svm_ffi::as_mut(err)
 }

@@ -1,4 +1,6 @@
 #![feature(vec_into_raw_parts)]
+#![feature(const_type_id)]
+#![feature(const_type_name)]
 
 mod address;
 mod byte_array;
@@ -22,18 +24,18 @@ use std::ffi::c_void;
 /// Receives an object, and returns a raw `*mut c_void` pointer to it.
 #[must_use]
 #[inline]
-pub fn into_raw<T: 'static>(obj: T) -> *mut c_void {
+pub fn into_raw<T: 'static>(ty: TypeIdOrStr, obj: T) -> *mut c_void {
     let ptr: *mut T = Box::into_raw(Box::new(obj));
 
-    tracking::increment_live::<T>();
+    tracking::increment_live_2(ty);
 
     ptr as _
 }
 
 #[must_use]
 #[inline]
-pub fn from_raw<T: 'static>(ptr: *mut T) -> T {
-    tracking::decrement_live::<T>();
+pub fn from_raw<T: 'static>(ty: TypeIdOrStr, ptr: *mut T) -> T {
+    tracking::decrement_live_1(ty);
 
     unsafe { *Box::from_raw(ptr) }
 }

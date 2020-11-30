@@ -193,6 +193,10 @@ pub fn decrement_live_2(ty: usize) {
 
         let entry = stats.entry(ty).or_insert(0);
         *entry -= 1;
+
+        if *entry == 0 {
+            stats.remove(&ty);
+        }
     }
 }
 
