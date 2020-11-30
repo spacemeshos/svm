@@ -361,7 +361,7 @@ unsafe fn test_svm_runtime() {
     let _ = api::svm_runtime_destroy(runtime);
     let _ = api::svm_state_kv_destroy(state_kv);
 
-    assert_eq!(svm_ffi::tracking::total_live_count(), 0);
+    assert_eq!(svm_ffi::tracking::total_live(), 0);
 
     dbg_snapshot(1);
 

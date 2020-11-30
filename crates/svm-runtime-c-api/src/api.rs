@@ -849,6 +849,34 @@ pub unsafe extern "C" fn svm_exec_app(
     svm_result_t::SVM_SUCCESS
 }
 
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_total_live_resources() -> i32 {
+    svm_ffi::tracking::total_live()
+}
+
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_resources_iter(
+    iter: *mut *mut c_void,
+    error: *mut svm_byte_array,
+) -> svm_result_t {
+    // use svm_ffi::SnapshotIter;
+
+    // *iter = svm_ffi::into_raw()
+
+    svm_result_t::SVM_SUCCESS
+}
+
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_resources_next(
+    iter: *mut c_void,
+    error: *mut svm_byte_array,
+) -> svm_result_t {
+    svm_result_t::SVM_SUCCESS
+}
+
 /// Destroys the Runtime and its associated resources.
 ///
 /// # Example
