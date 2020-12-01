@@ -36,20 +36,14 @@ macro_rules! max_gas {
     }};
 }
 
-static WASM_ERROR_TYPE: Type = Type::Str("wasm error");
-static WASM_ERROR_PTR_TYPE: Type = Type::Str("wasm error ptr");
 static KV_TYPE: Type = Type::Str("key-value");
-static VALIDATE_TX_APP_ADDR_TY: Type = Type::Str("svm_validate_tx app_addr");
-static DEPLOY_TEMPLATE_RECEIPT_TY: Type = Type::Str("deploy-template receipt");
-static SPAWN_APP_RECEIPT_TY: Type = Type::Str("spawn-app receipt");
-static EXEC_APP_RECEIPT_TY: Type = Type::Str("exec-app receipt");
-static ENCODE_DEPLOY_TEMPLATE_TY: Type = Type::Str("svm_encode_app_template");
-static ENCODE_SPAWN_APP_TY: Type = Type::Str("svm_encode_spawn_app");
-static ENCODE_EXEC_APP_TY: Type = Type::Str("svm_encode_app_tx");
-static RESOURCE_TY: Type = Type::Str("svm_resource_t");
-static RESOURCE_NAME_TY: Type = Type::Str("resource-name");
-static RESOURCE_NAME_PTR_TY: Type = Type::Str("resource-name-ptr");
-static RESOURCES_ITER_TY: Type = Type::Str("resources-iter");
+static VALIDATE_TX_APP_ADDR_TYPE: Type = Type::Str("svm_validate_tx app_addr");
+static DEPLOY_TEMPLATE_RECEIPT_TYPE: Type = Type::Str("deploy-template receipt");
+static SPAWN_APP_RECEIPT_TYPE: Type = Type::Str("spawn-app receipt");
+static EXEC_APP_RECEIPT_TYPE: Type = Type::Str("exec-app receipt");
+static ENCODE_DEPLOY_TEMPLATE_TYPE: Type = Type::Str("svm_encode_app_template");
+static ENCODE_SPAWN_APP_TYPE: Type = Type::Str("svm_encode_spawn_app");
+static ENCODE_EXEC_APP_TYPE: Type = Type::Str("svm_encode_app_tx");
 
 macro_rules! maybe_gas {
     ($gas_metering:expr, $gas_limit:expr) => {{
@@ -65,37 +59,37 @@ macro_rules! maybe_gas {
 
 macro_rules! addr_to_svm_byte_array {
     ($ty:expr, $raw_byte_array:expr, $addr:expr) => {{
-        let (ptr, _len, _cap) = $addr.into_raw_parts();
-        to_svm_byte_array!($ty, $raw_byte_array, ptr, Address::len());
+        let (ptr, len, cap) = $addr.into_raw_parts();
+
+        to_svm_byte_array!($ty, $raw_byte_array, ptr, len, cap);
     }};
 }
 
 macro_rules! state_to_svm_byte_array {
     ($ty:expr, $raw_byte_array:expr, $state:expr) => {{
-        let (ptr, _len, _cap) = $state.into_raw_parts();
-        to_svm_byte_array!($ty, $raw_byte_array, ptr, State::len());
+        let (ptr, len, cap) = $state.into_raw_parts();
+
+        to_svm_byte_array!($ty, $raw_byte_array, ptr, len, cap);
     }};
 }
 
 macro_rules! vec_to_svm_byte_array {
     ($ty:expr, $raw_byte_array:expr, $vec:expr) => {{
-        let len = $vec.len();
-        $vec.truncate(len);
+        let (ptr, len, cap) = $vec.into_raw_parts();
 
-        let (ptr, _len, _cap) = $vec.into_raw_parts();
-
-        to_svm_byte_array!($ty, $raw_byte_array, ptr, len);
+        to_svm_byte_array!($ty, $raw_byte_array, ptr, len, cap);
     }};
 }
 
 macro_rules! to_svm_byte_array {
-    ($ty:expr, $raw_byte_array:expr, $ptr:expr, $length:expr) => {{
+    ($ty:expr, $raw_byte_array:expr, $ptr:expr, $len:expr, $cap:expr) => {{
         let bytes: &mut svm_byte_array = &mut *$raw_byte_array;
 
         svm_ffi::tracking::increment_live_2($ty);
 
         bytes.bytes = $ptr;
-        bytes.length = $length as u32;
+        bytes.length = $len as u32;
+        bytes.capacity = $cap as u32;
         bytes.type_id = svm_ffi::tracking::interned_type_1($ty);
     }};
 }
@@ -250,7 +244,7 @@ pub unsafe extern "C" fn svm_validate_tx(
         Ok(addr) => {
             // returning encoded `AppReceipt` as `svm_byte_array`.
             // should call later `svm_receipt_destroy`
-            addr_to_svm_byte_array!(VALIDATE_TX_APP_ADDR_TY, app_addr, addr.unwrap());
+            addr_to_svm_byte_array!(VALIDATE_TX_APP_ADDR_TYPE, app_addr, addr.unwrap());
 
             debug!("`svm_validate_tx` returns `SVM_SUCCESS`");
             svm_result_t::SVM_SUCCESS
@@ -683,7 +677,7 @@ pub unsafe extern "C" fn svm_deploy_template(
 
     // returning encoded `TemplateReceipt` as `svm_byte_array`.
     // should call later `svm_receipt_destroy`
-    vec_to_svm_byte_array!(DEPLOY_TEMPLATE_RECEIPT_TY, receipt, receipt_bytes);
+    vec_to_svm_byte_array!(DEPLOY_TEMPLATE_RECEIPT_TYPE, receipt, receipt_bytes);
 
     debug!("`svm_deploy_template` returns `SVM_SUCCESS`");
 
@@ -765,7 +759,7 @@ pub unsafe extern "C" fn svm_spawn_app(
 
     // returning encoded `AppReceipt` as `svm_byte_array`.
     // should call later `svm_receipt_destroy`
-    vec_to_svm_byte_array!(SPAWN_APP_RECEIPT_TY, receipt, receipt_bytes);
+    vec_to_svm_byte_array!(SPAWN_APP_RECEIPT_TYPE, receipt, receipt_bytes);
 
     debug!("`svm_spawn_app` returns `SVM_SUCCESS`");
 
@@ -847,7 +841,7 @@ pub unsafe extern "C" fn svm_exec_app(
 
     // returning encoded `ExecReceipt` as `svm_byte_array`.
     // should call later `svm_receipt_destroy`
-    vec_to_svm_byte_array!(EXEC_APP_RECEIPT_TY, receipt, receipt_bytes);
+    vec_to_svm_byte_array!(EXEC_APP_RECEIPT_TYPE, receipt, receipt_bytes);
 
     debug!("`svm_exec_app` returns `SVM_SUCCESS`");
 
@@ -868,7 +862,9 @@ pub unsafe extern "C" fn svm_resources_iter_new(
 ) -> svm_result_t {
     let snapshot = svm_ffi::tracking::take_snapshot();
 
-    *iter = svm_ffi::into_raw(RESOURCES_ITER_TY, snapshot);
+    let ty = svm_ffi::SVM_RESOURCES_ITER_TYPE;
+
+    *iter = svm_ffi::into_raw(ty, snapshot);
 
     svm_result_t::SVM_SUCCESS
 }
@@ -881,7 +877,8 @@ pub unsafe extern "C" fn svm_resources_iter_next(iter: *mut c_void) -> *mut svm_
     match iter.next() {
         None => std::ptr::null_mut(),
         Some(resource) => {
-            let ptr = svm_ffi::into_raw(RESOURCE_TY, resource);
+            let ty = svm_ffi::SVM_RESOURCE_TYPE;
+            let ptr = svm_ffi::into_raw(ty, resource);
 
             svm_ffi::as_mut::<svm_resource_t>(ptr)
         }
@@ -891,7 +888,14 @@ pub unsafe extern "C" fn svm_resources_iter_next(iter: *mut c_void) -> *mut svm_
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_resources_iter_destroy(iter: *mut c_void) {
-    let _ = svm_ffi::from_raw(RESOURCES_ITER_TY, iter);
+    let ty = svm_ffi::SVM_RESOURCES_ITER_TYPE;
+    let _ = svm_ffi::from_raw(ty, iter);
+}
+
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_resource_destroy(resource: *mut c_void) {
+    let _ = svm_ffi::from_raw(svm_ffi::SVM_RESOURCE_TYPE, resource);
 }
 
 #[must_use]
@@ -900,9 +904,9 @@ pub unsafe extern "C" fn svm_resource_type_name(ty: usize) -> *mut svm_byte_arra
     match svm_ffi::tracking::interned_type_rev(ty) {
         Some(ty) => {
             let ty = format!("{}", ty);
-            let ty: svm_byte_array = (RESOURCE_NAME_TY, ty).into();
+            let ty: svm_byte_array = (svm_ffi::SVM_RESOURCE_NAME_TYPE, ty).into();
 
-            let ptr = svm_ffi::into_raw(RESOURCE_NAME_PTR_TY, ty);
+            let ptr = svm_ffi::into_raw(svm_ffi::SVM_RESOURCE_NAME_PTR_TYPE, ty);
             ptr as _
         }
         None => std::ptr::null_mut(),
@@ -912,15 +916,9 @@ pub unsafe extern "C" fn svm_resource_type_name(ty: usize) -> *mut svm_byte_arra
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_resource_type_name_destroy(ptr: *mut svm_byte_array) {
-    let ptr = svm_ffi::from_raw(RESOURCE_NAME_PTR_TY, ptr);
+    let ptr = svm_ffi::from_raw(svm_ffi::SVM_RESOURCE_NAME_PTR_TYPE, ptr);
 
     svm_byte_array_destroy(ptr)
-}
-
-#[must_use]
-#[no_mangle]
-pub unsafe extern "C" fn svm_resource_destroy(resource: *mut c_void) {
-    let _ = svm_ffi::from_raw(RESOURCE_TY, resource);
 }
 
 /// Destroys the Runtime and its associated resources.
@@ -1007,8 +1005,10 @@ pub unsafe extern "C" fn svm_wasm_error_create(msg: svm_byte_array) -> *mut svm_
     let msg: &[u8] = msg.into();
     let bytes = msg.to_vec();
 
-    let err: svm_byte_array = (WASM_ERROR_TYPE, bytes).into();
-    let err = svm_ffi::into_raw(WASM_ERROR_PTR_TYPE, err);
+    let err: svm_byte_array = (svm_ffi::SVM_WASM_ERROR_TYPE, bytes).into();
+
+    let ty = svm_ffi::SVM_WASM_ERROR_TYPE_PTR;
+    let err = svm_ffi::into_raw(ty, err);
 
     svm_ffi::as_mut(err)
 }
@@ -1133,7 +1133,7 @@ pub unsafe extern "C" fn svm_encode_app_template(
         .with_data(&data.unwrap())
         .build();
 
-    vec_to_svm_byte_array!(ENCODE_DEPLOY_TEMPLATE_TY, app_template, bytes);
+    vec_to_svm_byte_array!(ENCODE_DEPLOY_TEMPLATE_TYPE, app_template, bytes);
 
     svm_result_t::SVM_SUCCESS
 }
@@ -1170,7 +1170,7 @@ pub unsafe extern "C" fn svm_encode_spawn_app(
         .with_calldata(&calldata)
         .build();
 
-    vec_to_svm_byte_array!(ENCODE_SPAWN_APP_TY, spawn_app, bytes);
+    vec_to_svm_byte_array!(ENCODE_SPAWN_APP_TYPE, spawn_app, bytes);
 
     svm_result_t::SVM_SUCCESS
 }
@@ -1206,7 +1206,7 @@ pub unsafe extern "C" fn svm_encode_app_tx(
         .with_calldata(&calldata)
         .build();
 
-    vec_to_svm_byte_array!(ENCODE_EXEC_APP_TY, app_tx, bytes);
+    vec_to_svm_byte_array!(ENCODE_EXEC_APP_TYPE, app_tx, bytes);
 
     svm_result_t::SVM_SUCCESS
 }

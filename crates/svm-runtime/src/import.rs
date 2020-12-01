@@ -47,7 +47,7 @@ impl ExternImport {
         }
     }
 
-    pub fn wasmer_export(&self, store: &Store, ctx: &mut Context) -> (Export, *const svm_env_t) {
+    pub fn wasmer_export(&self, store: &Store, ctx: &mut Context) -> (Export, *mut svm_env_t) {
         unsafe {
             // The following code has been highly influenced by code here:
             // https://github.com/wasmerio/wasmer/blob/7847acaae1e7a0eade13b65def1f3feeac95efd7/lib/c-api/src/wasm_c_api/externals/func.rs#L86
@@ -79,7 +79,8 @@ impl ExternImport {
                             ),
                         };
 
-                        let err = *Box::from_raw(err);
+                        let ty = svm_ffi::SVM_WASM_ERROR_TYPE;
+                        let err = svm_ffi::from_raw(ty, err);
                         err.destroy();
 
                         return Err(RuntimeError::new(err_msg));
@@ -96,7 +97,7 @@ impl ExternImport {
             let func_ty = self.wasmer_function_ty();
 
             /// making the input `&mut Context` appear as `*const c_void`
-            let inner_env = ctx as *mut Context as *const Context as *const c_void;
+            let inner_env = ctx as *mut Context as *const c_void;
             let host_env = self.host_env;
 
             /// The import used `env` (using Wasmer terminology) will be a struct of `svm_env_t`
@@ -114,12 +115,11 @@ impl ExternImport {
 
             /// The heap-allocated `func_env` will be deallocated by later by `SVM` running runtime.
             /// (See method `funcs_envs_destroy` under `src/runtime/default.rs`)
-            let func_env = Box::into_raw(Box::new(func_env));
+            let ty = Type::of::<svm_env_t>();
+            let func_env = svm_ffi::into_raw(ty, func_env) as *mut svm_env_t;
 
             let func = Function::new_with_env(store, &func_ty, func_env, wrapper_callback);
             let export = func.to_export();
-
-            let func_env = func_env as *const svm_env_t;
 
             (export, func_env)
         }

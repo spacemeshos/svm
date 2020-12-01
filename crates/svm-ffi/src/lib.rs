@@ -19,6 +19,14 @@ pub use tracking::{svm_resource_iter_t, svm_resource_t};
 pub use value::alloc_wasm_values;
 
 use std::ffi::c_void;
+use svm_types::Type;
+
+pub static SVM_WASM_ERROR_TYPE: Type = Type::Str("wasm error type");
+pub static SVM_WASM_ERROR_TYPE_PTR: Type = Type::Str("wasm error type pointer");
+pub static SVM_RESOURCE_TYPE: Type = Type::of::<svm_resource_t>();
+pub static SVM_RESOURCES_ITER_TYPE: Type = Type::of::<svm_resource_iter_t>();
+pub static SVM_RESOURCE_NAME_TYPE: Type = Type::Str("resource-name");
+pub static SVM_RESOURCE_NAME_PTR_TYPE: Type = Type::Str("resource-name ptr");
 
 /// Receives an object, and returns a raw `*mut c_void` pointer to it.
 #[must_use]

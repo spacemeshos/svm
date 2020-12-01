@@ -25,11 +25,12 @@ use svm_types::{
         make_spawn_app_receipt, ExecReceipt, Log, ReceiptError, SpawnAppReceipt, TemplateReceipt,
     },
     AppAddr, AppTemplate, AppTransaction, AuthorAddr, CreatorAddr, SpawnApp, State, TemplateAddr,
+    Type,
 };
 
 use wasmer::{
     Export, Exports, Extern, Function, ImportObject, Instance, Memory, MemoryType, Module,
-    NativeFunc, Pages, Store, Type as WasmerType, Value as WasmerValue, WasmPtr,
+    NativeFunc, Store, Type as WasmerType, Value as WasmerValue, WasmPtr,
 };
 
 /// Default `Runtime` implementation based on `Wasmer`.
@@ -280,10 +281,11 @@ where
         }
     }
 
-    fn funcs_envs_destroy(&self, mut funcs_envs: Vec<*const svm_env_t>) {
+    fn funcs_envs_destroy(&self, mut funcs_envs: Vec<*mut svm_env_t>) {
         for func_env in funcs_envs.drain(..) {
             unsafe {
-                let _ = Box::from_raw(func_env as *mut svm_env_t);
+                let ty = Type::of::<svm_env_t>();
+                let _ = svm_ffi::from_raw(ty, func_env);
             }
         }
     }
@@ -544,7 +546,7 @@ where
         &self,
         store: &Store,
         ctx: &mut Context,
-    ) -> (ImportObject, Vec<*const svm_env_t>) {
+    ) -> (ImportObject, Vec<*mut svm_env_t>) {
         let mut import_object = ImportObject::new();
         let mut funcs_envs = Vec::new();
 
