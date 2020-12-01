@@ -61,7 +61,7 @@ impl svm_byte_array {
 
         let _ = Vec::from_raw_parts(ptr, length, capacity);
 
-        tracking::decrement_live_2(self.type_id)
+        tracking::decrement_live_1(self.type_id)
     }
 
     /// Copies the WASM values given by `values` into the raw format of `self` (i.e `svm_byte_array`).
@@ -158,13 +158,13 @@ impl From<(Type, Vec<u8>)> for svm_byte_array {
     fn from((ty, vec): (Type, Vec<u8>)) -> Self {
         let (ptr, len, cap) = vec.into_raw_parts();
 
-        tracking::increment_live_2(ty);
+        tracking::increment_live(ty);
 
         svm_byte_array {
             bytes: ptr,
             length: len as u32,
             capacity: cap as u32,
-            type_id: tracking::interned_type_1(ty),
+            type_id: tracking::interned_type(ty),
         }
     }
 }

@@ -34,7 +34,7 @@ pub static SVM_RESOURCE_NAME_PTR_TYPE: Type = Type::Str("resource-name ptr");
 pub fn into_raw<T: 'static>(ty: svm_types::Type, obj: T) -> *mut c_void {
     let ptr: *mut T = Box::into_raw(Box::new(obj));
 
-    tracking::increment_live_2(ty);
+    tracking::increment_live(ty);
 
     ptr as _
 }
@@ -42,7 +42,7 @@ pub fn into_raw<T: 'static>(ty: svm_types::Type, obj: T) -> *mut c_void {
 #[must_use]
 #[inline]
 pub fn from_raw<T: 'static>(ty: svm_types::Type, ptr: *mut T) -> T {
-    tracking::decrement_live_1(ty);
+    tracking::decrement_live(ty);
 
     unsafe { *Box::from_raw(ptr) }
 }

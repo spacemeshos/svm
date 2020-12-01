@@ -66,37 +66,26 @@ pub fn take_snapshot() -> svm_resource_iter_t {
     svm_resource_iter_t::new(iter)
 }
 
-pub fn increment_live<T: 'static>() {
-    let ty = Type::of::<T>();
+pub fn increment_live(ty: Type) {
+    let ty = interning::interned_type(ty);
 
-    increment_live_2(ty)
+    increment_live_1(ty)
 }
 
-pub fn increment_live_1(ty: std::any::TypeId, name: &'static str) {
-    increment_live_2(Type::TypeId(ty, name))
-}
-
-pub fn increment_live_2(ty: Type) {
+pub fn increment_live_1(ty: usize) {
     let mut stats = acquire();
-    let ty = interning::interned_type_1(ty);
 
     let entry = stats.entry(ty).or_insert(0);
     *entry += 1;
 }
 
-pub fn decrement_live<T: 'static>() {
-    let ty = Type::of::<T>();
+pub fn decrement_live(ty: Type) {
+    let ty = interning::interned_type(ty);
 
     decrement_live_1(ty);
 }
 
-pub fn decrement_live_1(ty: Type) {
-    let ty = interning::interned_type_1(ty);
-
-    decrement_live_2(ty);
-}
-
-pub fn decrement_live_2(ty: usize) {
+pub fn decrement_live_1(ty: usize) {
     let mut stats = acquire();
 
     let entry = stats.entry(ty).or_insert(0);
@@ -107,21 +96,13 @@ pub fn decrement_live_2(ty: usize) {
     }
 }
 
-pub fn live_count<T: 'static>() -> i32 {
-    let ty = Type::of::<T>();
-    let ty = interning::interned_type_1(ty);
+pub fn live_count(ty: Type) -> i32 {
+    let ty = interning::interned_type(ty);
 
-    live_count_2(ty)
+    live_count_1(ty)
 }
 
-pub fn live_count_1(ty: std::any::TypeId, name: &'static str) -> i32 {
-    let ty = Type::TypeId(ty, name);
-    let ty = interning::interned_type_1(ty);
-
-    live_count_2(ty)
-}
-
-fn live_count_2(ty: usize) -> i32 {
+pub fn live_count_1(ty: usize) -> i32 {
     let stats = acquire();
 
     match stats.get(&ty) {

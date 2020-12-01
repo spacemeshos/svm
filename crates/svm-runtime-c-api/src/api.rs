@@ -85,12 +85,12 @@ macro_rules! to_svm_byte_array {
     ($ty:expr, $raw_byte_array:expr, $ptr:expr, $len:expr, $cap:expr) => {{
         let bytes: &mut svm_byte_array = &mut *$raw_byte_array;
 
-        svm_ffi::tracking::increment_live_2($ty);
+        svm_ffi::tracking::increment_live($ty);
 
         bytes.bytes = $ptr;
         bytes.length = $len as u32;
         bytes.capacity = $cap as u32;
-        bytes.type_id = svm_ffi::tracking::interned_type_1($ty);
+        bytes.type_id = svm_ffi::tracking::interned_type($ty);
     }};
 }
 

@@ -11,14 +11,7 @@ lazy_static! {
 }
 
 #[must_use]
-pub fn interned_type<T: 'static>() -> usize {
-    let ty = Type::of::<T>();
-
-    interned_type_1(ty)
-}
-
-#[must_use]
-pub fn interned_type_1(ty: Type) -> usize {
+pub fn interned_type(ty: Type) -> usize {
     let mut types = TYPES.lock().unwrap();
 
     let ty_num = types.get(&ty);

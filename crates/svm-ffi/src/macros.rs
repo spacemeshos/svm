@@ -66,6 +66,7 @@ macro_rules! impl_into_svm_byte_array {
         impl From<(svm_types::Type, &$struct)> for $crate::svm_byte_array {
             fn from((ty, value): (svm_types::Type, &$struct)) -> Self {
                 // `bytes` is a copy of the underlying bytes.
+                // and it is of type array (i.e: `[u8; N])`.
                 let bytes = value.bytes();
 
                 debug_assert_eq!($struct::len(), bytes.len());
@@ -75,15 +76,15 @@ macro_rules! impl_into_svm_byte_array {
                 let bytes: &[u8] = Box::leak(Box::new(bytes));
                 let length = bytes.len() as u32;
 
-                crate::tracking::increment_live_2(ty);
+                crate::tracking::increment_live(ty);
 
-                let ty = crate::tracking::interned_type_1(ty);
+                let type_id = crate::tracking::interned_type(ty);
 
                 $crate::svm_byte_array {
                     bytes: bytes.as_ptr(),
                     length,
                     capacity: length,
-                    type_id: ty,
+                    type_id,
                 }
             }
         }
