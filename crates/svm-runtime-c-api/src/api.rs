@@ -19,7 +19,9 @@ use svm_types::{Address, State, Type, WasmType};
 use svm_runtime::env::default::DefaultSerializerTypes;
 use svm_runtime::{gas::DefaultGasEstimator, Context, ExternImport, Runtime, RuntimePtr};
 
-use svm_ffi::{svm_byte_array, svm_env_t, svm_func_callback_t};
+use svm_ffi::{
+    svm_byte_array, svm_env_t, svm_func_callback_t, svm_resource_iter_t, svm_resource_t,
+};
 
 use crate::{raw_error, raw_io_error, raw_utf8_error, raw_validate_error, svm_result_t};
 
@@ -41,10 +43,13 @@ static VALIDATE_TX_APP_ADDR_TY: Type = Type::Str("svm_validate_tx app_addr");
 static DEPLOY_TEMPLATE_RECEIPT_TY: Type = Type::Str("deploy-template receipt");
 static SPAWN_APP_RECEIPT_TY: Type = Type::Str("spawn-app receipt");
 static EXEC_APP_RECEIPT_TY: Type = Type::Str("exec-app receipt");
-
 static ENCODE_DEPLOY_TEMPLATE_TY: Type = Type::Str("svm_encode_app_template");
 static ENCODE_SPAWN_APP_TY: Type = Type::Str("svm_encode_spawn_app");
 static ENCODE_EXEC_APP_TY: Type = Type::Str("svm_encode_app_tx");
+static RESOURCE_TY: Type = Type::Str("svm_resource_t");
+static RESOURCE_NAME_TY: Type = Type::Str("resource-name");
+static RESOURCE_NAME_PTR_TY: Type = Type::Str("resource-name-ptr");
+static RESOURCES_ITER_TY: Type = Type::Str("resources-iter");
 
 macro_rules! maybe_gas {
     ($gas_metering:expr, $gas_limit:expr) => {{
@@ -857,24 +862,65 @@ pub unsafe extern "C" fn svm_total_live_resources() -> i32 {
 
 #[must_use]
 #[no_mangle]
-pub unsafe extern "C" fn svm_resources_iter(
+pub unsafe extern "C" fn svm_resources_iter_new(
     iter: *mut *mut c_void,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
-    // use svm_ffi::SnapshotIter;
+    let snapshot = svm_ffi::tracking::take_snapshot();
 
-    // *iter = svm_ffi::into_raw()
+    *iter = svm_ffi::into_raw(RESOURCES_ITER_TY, snapshot);
 
     svm_result_t::SVM_SUCCESS
 }
 
 #[must_use]
 #[no_mangle]
-pub unsafe extern "C" fn svm_resources_next(
-    iter: *mut c_void,
-    error: *mut svm_byte_array,
-) -> svm_result_t {
-    svm_result_t::SVM_SUCCESS
+pub unsafe extern "C" fn svm_resources_iter_next(iter: *mut c_void) -> *mut svm_resource_t {
+    let iter = svm_ffi::as_mut::<svm_resource_iter_t>(iter);
+
+    match iter.next() {
+        None => std::ptr::null_mut(),
+        Some(resource) => {
+            let ptr = svm_ffi::into_raw(RESOURCE_TY, resource);
+
+            svm_ffi::as_mut::<svm_resource_t>(ptr)
+        }
+    }
+}
+
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_resources_iter_destroy(iter: *mut c_void) {
+    let _ = svm_ffi::from_raw(RESOURCES_ITER_TY, iter);
+}
+
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_resource_type_name(ty: usize) -> *mut svm_byte_array {
+    match svm_ffi::tracking::interned_type_rev(ty) {
+        Some(ty) => {
+            let ty = format!("{}", ty);
+            let ty: svm_byte_array = (RESOURCE_NAME_TY, ty).into();
+
+            let ptr = svm_ffi::into_raw(RESOURCE_NAME_PTR_TY, ty);
+            ptr as _
+        }
+        None => std::ptr::null_mut(),
+    }
+}
+
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_resource_type_name_destroy(ptr: *mut svm_byte_array) {
+    let ptr = svm_ffi::from_raw(RESOURCE_NAME_PTR_TY, ptr);
+
+    svm_byte_array_destroy(ptr)
+}
+
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_resource_destroy(resource: *mut c_void) {
+    let _ = svm_ffi::from_raw(RESOURCE_TY, resource);
 }
 
 /// Destroys the Runtime and its associated resources.

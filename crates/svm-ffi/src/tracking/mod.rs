@@ -1,12 +1,11 @@
 mod interning;
-mod iter;
 mod snapshot;
 
-pub use interning::{interned_type, interned_type_1};
-pub use iter::{svm_resource_t, Snapshot};
+pub use interning::{interned_type, interned_type_1, interned_type_rev};
 pub use snapshot::{
     decrement_live, decrement_live_1, decrement_live_2, increment_live, increment_live_1,
-    increment_live_2, live_count, live_count_1, snapshot, total_live,
+    increment_live_2, live_count, live_count_1, svm_resource_iter_t, svm_resource_t, take_snapshot,
+    total_live,
 };
 
 // #[must_use]

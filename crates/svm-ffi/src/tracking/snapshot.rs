@@ -1,11 +1,40 @@
 use std::collections::HashMap;
 use std::sync::{Mutex, MutexGuard};
+use std::vec::IntoIter;
 
 use super::interning;
 
 use svm_types::Type;
 
 use lazy_static::lazy_static;
+
+#[allow(non_camel_case_types)]
+#[derive(Debug, Clone, PartialEq)]
+#[repr(C)]
+pub struct svm_resource_t {
+    pub type_id: usize,
+
+    pub count: i32,
+}
+
+#[allow(non_camel_case_types)]
+pub struct svm_resource_iter_t {
+    iter: IntoIter<svm_resource_t>,
+}
+
+impl svm_resource_iter_t {
+    pub fn new(iter: IntoIter<svm_resource_t>) -> Self {
+        Self { iter }
+    }
+}
+
+impl Iterator for svm_resource_iter_t {
+    type Item = svm_resource_t;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next()
+    }
+}
 
 lazy_static! {
     static ref STATS: Mutex<HashMap<usize, i32>> = Mutex::new(HashMap::new());
@@ -21,30 +50,20 @@ pub fn release(_guard: MutexGuard<'static, HashMap<usize, i32>>) {
     //
 }
 
-pub fn snapshot() -> HashMap<&'static str, i32> {
+pub fn take_snapshot() -> svm_resource_iter_t {
     let stats = acquire();
 
-    let mut snapshot = HashMap::new();
+    let resources: Vec<_> = stats
+        .iter()
+        .map(|(type_id, count)| svm_resource_t {
+            type_id: *type_id,
+            count: *count,
+        })
+        .collect();
 
-    for (interned_ty, count) in stats.iter() {
-        let ty = interning::interned_type_rev(*interned_ty);
+    let iter = resources.into_iter();
 
-        match ty {
-            None => {
-                snapshot.insert("[**Unknown Type**]", *count);
-            }
-            Some(ty) => {
-                let ty_name = match ty {
-                    Type::TypeId(_, name) => name,
-                    Type::Str(ty) => ty,
-                };
-
-                snapshot.insert(ty_name, *count);
-            }
-        };
-    }
-
-    snapshot
+    svm_resource_iter_t::new(iter)
 }
 
 pub fn increment_live<T: 'static>() {

@@ -38,6 +38,17 @@ pub enum Type {
     Str(&'static str),
 }
 
+use std::fmt;
+
+impl fmt::Display for Type {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Type::Str(s) => write!(f, "{}", s),
+            Type::TypeId(_ty, s) => write!(f, "{}", s),
+        }
+    }
+}
+
 impl Type {
     pub const fn of<T: 'static>() -> Self {
         let ty = std::any::TypeId::of::<T>();

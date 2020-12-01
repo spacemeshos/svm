@@ -12,8 +12,10 @@ mod value;
 
 pub use byte_array::svm_byte_array;
 pub mod tracking;
+
 pub use callback::svm_func_callback_t;
 pub use env::svm_env_t;
+pub use tracking::{svm_resource_iter_t, svm_resource_t};
 pub use value::alloc_wasm_values;
 
 use std::ffi::c_void;
