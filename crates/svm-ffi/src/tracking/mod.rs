@@ -4,7 +4,8 @@ mod snapshot;
 pub use interning::{interned_type, interned_type_rev};
 pub use snapshot::{
     decrement_live, decrement_live_1, increment_live, increment_live_1, live_count, live_count_1,
-    svm_resource_iter_t, svm_resource_t, take_snapshot, total_live,
+    set_tracking_off, set_tracking_on, svm_resource_iter_t, svm_resource_t, take_snapshot,
+    total_live,
 };
 
 // #[must_use]
@@ -60,19 +61,6 @@ pub use snapshot::{
 //     let mut enabled = acquire_enabled();
 
 //     *enabled = value;
-// }
-
-// #[cfg(test)]
-// pub fn is_enabled() -> bool {
-//     let enabled = acquire_enabled();
-
-//     *enabled == true
-// }
-
-// #[cfg(not(test))]
-// #[inline]
-// fn is_enabled() -> bool {
-//     true
 // }
 
 // fn clear() {

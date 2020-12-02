@@ -1,12 +1,86 @@
 use std::collections::HashMap;
-use std::sync::{Mutex, MutexGuard};
+use std::sync::{Condvar, Mutex, MutexGuard};
 use std::vec::IntoIter;
+
+use std::thread::ThreadId;
 
 use super::interning;
 
 use svm_types::Type;
 
 use lazy_static::lazy_static;
+
+lazy_static! {
+    static ref STATS: Mutex<HashMap<usize, i32>> = Mutex::new(HashMap::new());
+    static ref CURRENT_TEST_TOKEN: Mutex<Option<ThreadId>> = Mutex::new(None);
+    static ref CURRENT_TEST_CVAR: Condvar = Condvar::new();
+}
+
+#[cfg(test)]
+pub fn acquire_stats() -> Option<MutexGuard<'static, HashMap<usize, i32>>> {
+    if is_tracking_on() {
+        todo!()
+    } else {
+        None
+    }
+}
+
+#[must_use]
+#[cfg(not(test))]
+pub fn acquire_stats() -> Option<MutexGuard<'static, HashMap<usize, i32>>> {
+    let lock = STATS.lock().unwrap();
+
+    Some(lock)
+}
+
+#[allow(dead_code)]
+pub fn release_stats(_guard: Option<MutexGuard<'static, HashMap<usize, i32>>>) {
+    //
+}
+
+pub fn set_tracking_on() {
+    let mut lock = CURRENT_TEST_TOKEN.lock().unwrap();
+
+    while lock.is_some() {
+        lock = CURRENT_TEST_CVAR.wait(lock).unwrap();
+    }
+
+    assert!(lock.is_none());
+
+    let token = std::thread::current().id();
+
+    *lock = Some(token);
+}
+
+pub fn set_tracking_off() {
+    let mut lock = CURRENT_TEST_TOKEN.lock().unwrap();
+    let token = std::thread::current().id();
+
+    assert_eq!(lock.as_ref(), Some(&token));
+
+    *lock = None;
+}
+
+#[cfg(test)]
+fn is_tracking_on() -> bool {
+    let lock = CURRENT_TEST_TOKEN.lock().unwrap();
+
+    if lock.is_none() {
+        return false;
+    }
+
+    let held_token = lock.unwrap();
+    let token = std::thread::current().id();
+
+    held_token == token
+}
+
+#[allow(dead_code)]
+#[cfg(not(test))]
+#[inline]
+fn is_tracking_on() -> bool {
+    true
+}
 
 #[allow(non_camel_case_types)]
 #[derive(Debug, Clone, PartialEq)]
@@ -36,24 +110,13 @@ impl Iterator for svm_resource_iter_t {
     }
 }
 
-lazy_static! {
-    static ref STATS: Mutex<HashMap<usize, i32>> = Mutex::new(HashMap::new());
-}
-
-#[must_use]
-pub fn acquire() -> MutexGuard<'static, HashMap<usize, i32>> {
-    STATS.lock().unwrap()
-}
-
-#[allow(dead_code)]
-pub fn release(_guard: MutexGuard<'static, HashMap<usize, i32>>) {
-    //
-}
-
 pub fn take_snapshot() -> svm_resource_iter_t {
-    let stats = acquire();
+    let stats = acquire_stats();
+
+    assert!(stats.is_some());
 
     let resources: Vec<_> = stats
+        .unwrap()
         .iter()
         .map(|(type_id, count)| svm_resource_t {
             type_id: *type_id,
@@ -73,10 +136,12 @@ pub fn increment_live(ty: Type) {
 }
 
 pub fn increment_live_1(ty: usize) {
-    let mut stats = acquire();
+    let stats = acquire_stats();
 
-    let entry = stats.entry(ty).or_insert(0);
-    *entry += 1;
+    if let Some(mut stats) = stats {
+        let entry = stats.entry(ty).or_insert(0);
+        *entry += 1;
+    }
 }
 
 pub fn decrement_live(ty: Type) {
@@ -86,13 +151,15 @@ pub fn decrement_live(ty: Type) {
 }
 
 pub fn decrement_live_1(ty: usize) {
-    let mut stats = acquire();
+    let stats = acquire_stats();
 
-    let entry = stats.entry(ty).or_insert(0);
-    *entry -= 1;
+    if let Some(mut stats) = stats {
+        let entry = stats.entry(ty).or_insert(0);
+        *entry -= 1;
 
-    if *entry == 0 {
-        stats.remove(&ty);
+        if *entry == 0 {
+            stats.remove(&ty);
+        }
     }
 }
 
@@ -103,16 +170,24 @@ pub fn live_count(ty: Type) -> i32 {
 }
 
 pub fn live_count_1(ty: usize) -> i32 {
-    let stats = acquire();
+    let stats = acquire_stats();
 
-    match stats.get(&ty) {
-        None => 0,
-        Some(count) => *count,
+    if let Some(stats) = stats {
+        match stats.get(&ty) {
+            None => 0,
+            Some(count) => *count,
+        }
+    } else {
+        0
     }
 }
 
 pub fn total_live() -> i32 {
-    let stats = acquire();
+    let stats = acquire_stats();
 
-    stats.iter().map(|(_ty, count)| count).sum()
+    if let Some(stats) = stats {
+        stats.iter().map(|(_ty, count)| count).sum()
+    } else {
+        0
+    }
 }
