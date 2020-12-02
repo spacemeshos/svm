@@ -6,7 +6,7 @@ use std::convert::TryFrom;
 use std::ffi::c_void;
 
 use svm_codec::api::raw;
-use svm_ffi::{svm_byte_array, svm_env_t};
+use svm_ffi::{svm_byte_array, svm_env_t, tracking};
 use svm_layout::DataLayout;
 use svm_runtime::{testing::WasmFile, vmcalls, Context};
 use svm_types::{Address, State, Type, WasmType, WasmValue};
@@ -198,14 +198,6 @@ fn exec_app_bytes(
     svm_runtime::testing::build_app_tx(version, &app_addr, func_name, calldata)
 }
 
-fn dbg_snapshot(index: usize) {
-    dbg!("===================================================");
-    dbg!(format!("Snapshot #{}:", index));
-
-    dbg!(svm_ffi::tracking::snapshot());
-    dbg!("===================================================");
-}
-
 #[test]
 fn svm_runtime_exec_app() {
     unsafe {
@@ -215,13 +207,13 @@ fn svm_runtime_exec_app() {
 
 #[cfg(test)]
 unsafe fn test_svm_runtime() {
-    let guard = svm_ffi::tracking::start();
+    tracking::set_tracking_on();
 
     let version: u32 = 0;
     let gas_metering = false;
     let gas_limit = 0;
 
-    dbg_snapshot(0);
+    assert_eq!(tracking::total_live(), 0);
 
     // 1) init runtime
     let mut state_kv = std::ptr::null_mut();
@@ -345,6 +337,8 @@ unsafe fn test_svm_runtime() {
         (counter_init, counter_init + add, (counter_init + add) * mul)
     );
 
+    assert_ne!(tracking::total_live(), 0);
+
     let _ = api::svm_byte_array_destroy(template_bytes);
     let _ = api::svm_byte_array_destroy(app_bytes);
     let _ = api::svm_byte_array_destroy(exec_bytes);
@@ -361,9 +355,7 @@ unsafe fn test_svm_runtime() {
     let _ = api::svm_runtime_destroy(runtime);
     let _ = api::svm_state_kv_destroy(state_kv);
 
-    assert_eq!(svm_ffi::tracking::total_live(), 0);
+    assert_eq!(tracking::total_live(), 0);
 
-    dbg_snapshot(1);
-
-    svm_ffi::tracking::end(guard);
+    tracking::set_tracking_off();
 }

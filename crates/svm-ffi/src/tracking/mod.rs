@@ -8,104 +8,92 @@ pub use snapshot::{
     total_live,
 };
 
-// #[must_use]
-// pub fn start() -> MutexGuard<'static, ()> {
-//     let lock = TEST.lock().unwrap();
+#[cfg(test)]
+mod test {
+    use super::*;
 
-//     enable();
-//     clear();
+    use maplit::hashmap;
+    use svm_types::Type;
 
-//     lock
-// }
+    struct A;
 
-// pub fn end(guard: MutexGuard<'static, ()>) {
-//     disable();
+    struct B;
 
-//     drop(guard);
-// }
+    #[test]
+    fn tracks_by_type() {
+        set_tracking_on();
 
-// #[must_use]
-// #[cfg(test)]
-// pub fn acquire_stats() -> Option<MutexGuard<'static, HashMap<usize, i32>>> {
-//     if is_enabled() {
-//         let lock = STATS.lock().unwrap();
+        assert_eq!(total_live(), 0);
 
-//         Some(lock)
-//     } else {
-//         None
-//     }
-// }
+        let ty_a = Type::of::<A>();
+        let ty_b = Type::of::<B>();
 
-// #[must_use]
-// #[cfg(not(test))]
-// pub fn acquire_stats() -> Option<MutexGuard<'static, HashMap<usize, i32>>> {
-//     let lock = STATS.lock().unwrap();
+        increment_live(ty_a);
+        increment_live(ty_a);
+        increment_live(ty_b);
 
-//     Some(lock)
-// }
+        assert_eq!(live_count(ty_a), 2);
+        assert_eq!(live_count(ty_b), 1);
+        assert_eq!(total_live(), 3);
 
-// #[must_use]
-// pub fn acquire_enabled() -> MutexGuard<'static, bool> {
-//     ENABLED.lock().unwrap()
-// }
+        decrement_live(ty_a);
+        decrement_live(ty_b);
 
-// fn enable() {
-//     enable_disable(true);
-// }
+        assert_eq!(live_count(ty_a), 1);
+        assert_eq!(live_count(ty_b), 0);
+        assert_eq!(total_live(), 1);
 
-// fn disable() {
-//     enable_disable(false);
-// }
+        decrement_live(ty_a);
 
-// fn enable_disable(value: bool) {
-//     let mut enabled = acquire_enabled();
+        assert_eq!(live_count(ty_a), 0);
+        assert_eq!(live_count(ty_b), 0);
+        assert_eq!(total_live(), 0);
 
-//     *enabled = value;
-// }
+        set_tracking_off();
+    }
 
-// fn clear() {
-//     let stats = acquire_stats();
+    #[test]
+    fn snapshot_taking() {
+        set_tracking_on();
 
-//     if let Some(mut stats) = stats {
-//         stats.clear();
-//     }
-// }
+        assert_eq!(total_live(), 0);
 
-// #[cfg(test)]
-// mod test {
-//     use super::*;
+        let ty_a = Type::of::<A>();
+        let ty_b = Type::of::<B>();
 
-//     struct A;
+        increment_live(ty_a);
+        increment_live(ty_a);
+        increment_live(ty_b);
 
-//     struct B;
+        let iter = take_snapshot();
+        let snapshot = iter.prettify();
 
-//     #[test]
-//     fn tracks_by_type() {
-//         let l = track_start();
+        set_tracking_off();
 
-//         assert_eq!(total_live(), 0);
+        assert_eq!(
+            snapshot,
+            hashmap! {
+                Some(ty_a) => 2,
+                Some(ty_b) => 1
+            }
+        )
+    }
 
-//         increment_live::<A>();
-//         increment_live::<A>();
-//         increment_live::<B>();
+    #[test]
+    fn setting_tracking_on_resets_tracking() {
+        set_tracking_on();
 
-//         assert_eq!(live_count::<A>(), 2);
-//         assert_eq!(live_count::<B>(), 1);
-//         assert_eq!(total_live(), 3);
+        assert_eq!(total_live(), 0);
 
-//         decrement_live::<A>();
-//         decrement_live::<B>();
+        let ty_a = Type::of::<A>();
 
-//         assert_eq!(live_count::<A>(), 1);
-//         assert_eq!(live_count::<B>(), 0);
-//         assert_eq!(total_live(), 1);
+        increment_live(ty_a);
+        increment_live(ty_a);
+        assert_eq!(total_live(), 2);
 
-//         decrement_live::<A>();
+        set_tracking_off();
 
-//         assert_eq!(live_count::<A>(), 0);
-//         assert_eq!(live_count::<B>(), 0);
-//         assert_eq!(total_live(), 0);
-
-//         track_end(l);
-//     }
-// }
+        set_tracking_on();
+        assert_eq!(total_live(), 0);
+    }
+}

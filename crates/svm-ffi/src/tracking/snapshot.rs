@@ -1,8 +1,7 @@
 use std::collections::HashMap;
 use std::sync::{Condvar, Mutex, MutexGuard};
-use std::vec::IntoIter;
-
 use std::thread::ThreadId;
+use std::vec::IntoIter;
 
 use super::interning;
 
@@ -19,7 +18,9 @@ lazy_static! {
 #[cfg(test)]
 pub fn acquire_stats() -> Option<MutexGuard<'static, HashMap<usize, i32>>> {
     if is_tracking_on() {
-        todo!()
+        let lock = STATS.lock().unwrap();
+
+        Some(lock)
     } else {
         None
     }
@@ -49,7 +50,14 @@ pub fn set_tracking_on() {
 
     let token = std::thread::current().id();
 
+    clear();
+
     *lock = Some(token);
+}
+
+fn clear() {
+    let mut stats = STATS.lock().unwrap();
+    *stats = HashMap::new();
 }
 
 pub fn set_tracking_off() {
@@ -59,6 +67,8 @@ pub fn set_tracking_off() {
     assert_eq!(lock.as_ref(), Some(&token));
 
     *lock = None;
+
+    CURRENT_TEST_CVAR.notify_all();
 }
 
 #[cfg(test)]
@@ -99,6 +109,19 @@ pub struct svm_resource_iter_t {
 impl svm_resource_iter_t {
     pub fn new(iter: IntoIter<svm_resource_t>) -> Self {
         Self { iter }
+    }
+
+    pub fn prettify(self) -> HashMap<Option<Type>, i32> {
+        let mut map = HashMap::new();
+
+        for resource in self {
+            let ty = interning::interned_type_rev(resource.type_id);
+            let count = resource.count;
+
+            map.insert(ty, count);
+        }
+
+        map
     }
 }
 

@@ -21,4 +21,4 @@ svm-layout = { path = "../svm-layout" }
 cbindgen = "0.15.0"
 
 [dev-dependencies]
-uuid = "0.8.1"
+maplit = "1.0.2"
