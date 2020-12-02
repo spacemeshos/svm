@@ -1,18 +1,21 @@
 #![allow(unused)]
 
-use svm_runtime_c_api as api;
-
+use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::ffi::c_void;
 
+use svm_runtime_c_api as api;
+
 use svm_codec::api::raw;
-use svm_ffi::{svm_byte_array, svm_env_t, tracking};
+use svm_ffi::{svm_byte_array, svm_env_t, svm_resource_iter_t, svm_resource_t, tracking};
 use svm_layout::DataLayout;
 use svm_runtime::{testing::WasmFile, vmcalls, Context};
 use svm_types::{Address, State, Type, WasmType, WasmValue};
 
 use svm_sdk::traits::Encoder;
 use svm_sdk::ReturnData;
+
+use maplit::hashmap;
 
 static TEST_STRING_TY: Type = Type::Str("test String");
 static AUTHOR: Type = Type::Str("author");
@@ -196,6 +199,66 @@ fn exec_app_bytes(
     let app_addr = Address::from(app_addr).into();
 
     svm_runtime::testing::build_app_tx(version, &app_addr, func_name, calldata)
+}
+
+#[test]
+fn svm_resources_tracking() {
+    unsafe {
+        tracking::set_tracking_on();
+
+        let ty1 = Type::Str("#1");
+        let s1 = "Hello".to_string();
+        let hello: svm_byte_array = (ty1, s1).into();
+
+        let ty2 = Type::Str("#2");
+        let s2 = "World".to_string();
+        let world: svm_byte_array = (ty2, s2).into();
+
+        let s3 = "New World".to_string();
+        let new_world: svm_byte_array = (ty2, s3).into();
+
+        let snapshot = tracking::take_snapshot();
+
+        assert_eq!(api::svm_total_live_resources(), 3);
+
+        let iter = api::svm_resource_iter_new();
+
+        let r1 = &mut *api::svm_resource_iter_next(iter);
+        let r2 = &mut *api::svm_resource_iter_next(iter);
+
+        let raw_ty1 = &mut *api::svm_resource_type_name_resolve(r1.type_id);
+        let raw_ty2 = &mut *api::svm_resource_type_name_resolve(r2.type_id);
+
+        let ty1 = String::try_from(raw_ty1.clone()).unwrap();
+        let ty2 = String::try_from(raw_ty2.clone()).unwrap();
+
+        let mut map = HashMap::new();
+        map.insert(ty1, r1.count);
+        map.insert(ty2, r2.count);
+
+        assert_eq!(
+            map,
+            hashmap! { "#1".to_string() => 1, "#2".to_string() => 2}
+        );
+
+        let r3 = api::svm_resource_iter_next(iter);
+        assert_eq!(r3, std::ptr::null_mut());
+
+        api::svm_resource_type_name_destroy(raw_ty1);
+        api::svm_resource_type_name_destroy(raw_ty2);
+
+        api::svm_resource_destroy(r1);
+        api::svm_resource_destroy(r2);
+        api::svm_resource_iter_destroy(iter);
+
+        api::svm_byte_array_destroy(hello);
+        api::svm_byte_array_destroy(world);
+        api::svm_byte_array_destroy(new_world);
+
+        assert_eq!(api::svm_total_live_resources(), 0);
+
+        tracking::set_tracking_off();
+    }
 }
 
 #[test]

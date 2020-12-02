@@ -14,19 +14,19 @@ lazy_static! {
 pub fn interned_type(ty: Type) -> usize {
     let mut types = TYPES.lock().unwrap();
 
-    let ty_num = types.get(&ty);
+    let interned = types.get(&ty);
 
-    match ty_num {
-        Some(num) => *num,
+    match interned {
+        Some(n) => *n,
         None => {
-            let ty_num = types.len() + 1;
+            let interned = types.len() + 1;
 
-            types.insert(ty, ty_num);
+            types.insert(ty, interned);
 
             let mut rev_types = REV_TYPES.lock().unwrap();
-            rev_types.insert(ty_num, ty);
+            rev_types.insert(interned, ty);
 
-            ty_num
+            interned
         }
     }
 }

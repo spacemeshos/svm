@@ -1217,6 +1217,7 @@ dependencies = [
  "byteorder",
  "cbindgen",
  "log",
+ "maplit",
  "serde_json",
  "svm-abi-encoder",
  "svm-codec",

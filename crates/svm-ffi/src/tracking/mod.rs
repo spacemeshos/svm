@@ -13,6 +13,7 @@ mod test {
     use super::*;
 
     use maplit::hashmap;
+
     use svm_types::Type;
 
     struct A;
@@ -89,11 +90,12 @@ mod test {
 
         increment_live(ty_a);
         increment_live(ty_a);
+
         assert_eq!(total_live(), 2);
-
         set_tracking_off();
-
         set_tracking_on();
         assert_eq!(total_live(), 0);
+
+        set_tracking_off();
     }
 }

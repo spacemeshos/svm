@@ -86,8 +86,8 @@ fn is_tracking_on() -> bool {
 }
 
 #[allow(dead_code)]
-#[cfg(not(test))]
 #[inline]
+#[cfg(not(test))]
 fn is_tracking_on() -> bool {
     true
 }

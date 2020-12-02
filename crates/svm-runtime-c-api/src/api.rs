@@ -20,7 +20,7 @@ use svm_runtime::env::default::DefaultSerializerTypes;
 use svm_runtime::{gas::DefaultGasEstimator, Context, ExternImport, Runtime, RuntimePtr};
 
 use svm_ffi::{
-    svm_byte_array, svm_env_t, svm_func_callback_t, svm_resource_iter_t, svm_resource_t,
+    svm_byte_array, svm_env_t, svm_func_callback_t, svm_resource_iter_t, svm_resource_t, tracking,
 };
 
 use crate::{raw_error, raw_io_error, raw_utf8_error, raw_validate_error, svm_result_t};
@@ -36,7 +36,7 @@ macro_rules! max_gas {
     }};
 }
 
-static KV_TYPE: Type = Type::Str("key-value");
+static KV_TYPE: Type = Type::Str("key-value store");
 static VALIDATE_TX_APP_ADDR_TYPE: Type = Type::Str("svm_validate_tx app_addr");
 static DEPLOY_TEMPLATE_RECEIPT_TYPE: Type = Type::Str("deploy-template receipt");
 static SPAWN_APP_RECEIPT_TYPE: Type = Type::Str("spawn-app receipt");
@@ -85,12 +85,12 @@ macro_rules! to_svm_byte_array {
     ($ty:expr, $raw_byte_array:expr, $ptr:expr, $len:expr, $cap:expr) => {{
         let bytes: &mut svm_byte_array = &mut *$raw_byte_array;
 
-        svm_ffi::tracking::increment_live($ty);
+        tracking::increment_live($ty);
 
         bytes.bytes = $ptr;
         bytes.length = $len as u32;
         bytes.capacity = $cap as u32;
-        bytes.type_id = svm_ffi::tracking::interned_type($ty);
+        bytes.type_id = tracking::interned_type($ty);
     }};
 }
 
@@ -851,27 +851,21 @@ pub unsafe extern "C" fn svm_exec_app(
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_total_live_resources() -> i32 {
-    svm_ffi::tracking::total_live()
+    tracking::total_live()
 }
 
 #[must_use]
 #[no_mangle]
-pub unsafe extern "C" fn svm_resources_iter_new(
-    iter: *mut *mut c_void,
-    error: *mut svm_byte_array,
-) -> svm_result_t {
-    let snapshot = svm_ffi::tracking::take_snapshot();
-
+pub unsafe extern "C" fn svm_resource_iter_new() -> *mut c_void {
     let ty = svm_ffi::SVM_RESOURCES_ITER_TYPE;
+    let snapshot = tracking::take_snapshot();
 
-    *iter = svm_ffi::into_raw(ty, snapshot);
-
-    svm_result_t::SVM_SUCCESS
+    svm_ffi::into_raw(ty, snapshot)
 }
 
 #[must_use]
 #[no_mangle]
-pub unsafe extern "C" fn svm_resources_iter_next(iter: *mut c_void) -> *mut svm_resource_t {
+pub unsafe extern "C" fn svm_resource_iter_next(iter: *mut c_void) -> *mut svm_resource_t {
     let iter = svm_ffi::as_mut::<svm_resource_iter_t>(iter);
 
     match iter.next() {
@@ -887,21 +881,21 @@ pub unsafe extern "C" fn svm_resources_iter_next(iter: *mut c_void) -> *mut svm_
 
 #[must_use]
 #[no_mangle]
-pub unsafe extern "C" fn svm_resources_iter_destroy(iter: *mut c_void) {
+pub unsafe extern "C" fn svm_resource_iter_destroy(iter: *mut c_void) {
     let ty = svm_ffi::SVM_RESOURCES_ITER_TYPE;
     let _ = svm_ffi::from_raw(ty, iter);
 }
 
 #[must_use]
 #[no_mangle]
-pub unsafe extern "C" fn svm_resource_destroy(resource: *mut c_void) {
+pub unsafe extern "C" fn svm_resource_destroy(resource: *mut svm_resource_t) {
     let _ = svm_ffi::from_raw(svm_ffi::SVM_RESOURCE_TYPE, resource);
 }
 
 #[must_use]
 #[no_mangle]
-pub unsafe extern "C" fn svm_resource_type_name(ty: usize) -> *mut svm_byte_array {
-    match svm_ffi::tracking::interned_type_rev(ty) {
+pub unsafe extern "C" fn svm_resource_type_name_resolve(ty: usize) -> *mut svm_byte_array {
+    match tracking::interned_type_rev(ty) {
         Some(ty) => {
             let ty = format!("{}", ty);
             let ty: svm_byte_array = (svm_ffi::SVM_RESOURCE_NAME_TYPE, ty).into();
