@@ -1,12 +1,7 @@
 use std::collections::HashMap;
-use std::sync::{Mutex, MutexGuard};
-use std::vec::IntoIter;
-
-#[cfg(test)]
-use std::sync::Condvar;
-
-#[cfg(test)]
+use std::sync::{Condvar, Mutex, MutexGuard};
 use std::thread::ThreadId;
+use std::vec::IntoIter;
 
 use super::interning;
 
@@ -16,10 +11,6 @@ use lazy_static::lazy_static;
 
 lazy_static! {
     static ref STATS: Mutex<HashMap<usize, i32>> = Mutex::new(HashMap::new());
-}
-
-#[cfg(test)]
-lazy_static! {
     static ref CURRENT_TEST_TOKEN: Mutex<Option<ThreadId>> = Mutex::new(None);
     static ref CURRENT_TEST_CVAR: Condvar = Condvar::new();
 }
@@ -48,7 +39,7 @@ pub fn release_stats(_guard: Option<MutexGuard<'static, HashMap<usize, i32>>>) {
     //
 }
 
-#[cfg(test)]
+#[allow(dead_code)]
 pub fn set_tracking_on() {
     let mut lock = CURRENT_TEST_TOKEN.lock().unwrap();
 
@@ -65,13 +56,12 @@ pub fn set_tracking_on() {
     *lock = Some(token);
 }
 
-#[cfg(test)]
 fn clear() {
     let mut stats = STATS.lock().unwrap();
     *stats = HashMap::new();
 }
 
-#[cfg(test)]
+#[allow(dead_code)]
 pub fn set_tracking_off() {
     let mut lock = CURRENT_TEST_TOKEN.lock().unwrap();
     let token = std::thread::current().id();
