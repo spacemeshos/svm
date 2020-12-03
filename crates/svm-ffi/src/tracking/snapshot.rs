@@ -1,7 +1,12 @@
 use std::collections::HashMap;
-use std::sync::{Condvar, Mutex, MutexGuard};
-use std::thread::ThreadId;
+use std::sync::{Mutex, MutexGuard};
 use std::vec::IntoIter;
+
+#[cfg(test)]
+use std::sync::Condvar;
+
+#[cfg(test)]
+use std::thread::ThreadId;
 
 use super::interning;
 
@@ -11,6 +16,10 @@ use lazy_static::lazy_static;
 
 lazy_static! {
     static ref STATS: Mutex<HashMap<usize, i32>> = Mutex::new(HashMap::new());
+}
+
+#[cfg(test)]
+lazy_static! {
     static ref CURRENT_TEST_TOKEN: Mutex<Option<ThreadId>> = Mutex::new(None);
     static ref CURRENT_TEST_CVAR: Condvar = Condvar::new();
 }
@@ -39,6 +48,7 @@ pub fn release_stats(_guard: Option<MutexGuard<'static, HashMap<usize, i32>>>) {
     //
 }
 
+#[cfg(test)]
 pub fn set_tracking_on() {
     let mut lock = CURRENT_TEST_TOKEN.lock().unwrap();
 
@@ -55,11 +65,13 @@ pub fn set_tracking_on() {
     *lock = Some(token);
 }
 
+#[cfg(test)]
 fn clear() {
     let mut stats = STATS.lock().unwrap();
     *stats = HashMap::new();
 }
 
+#[cfg(test)]
 pub fn set_tracking_off() {
     let mut lock = CURRENT_TEST_TOKEN.lock().unwrap();
     let token = std::thread::current().id();
@@ -92,25 +104,31 @@ fn is_tracking_on() -> bool {
     true
 }
 
+/// Represents a manually-allocated resource.
 #[allow(non_camel_case_types)]
 #[derive(Debug, Clone, PartialEq)]
 #[repr(C)]
 pub struct svm_resource_t {
+    /// Type interned value
     pub type_id: usize,
 
+    /// `#resources` of that type
     pub count: i32,
 }
 
+/// Iterator over the `svm_resource_t`.
 #[allow(non_camel_case_types)]
 pub struct svm_resource_iter_t {
     iter: IntoIter<svm_resource_t>,
 }
 
 impl svm_resource_iter_t {
+    /// New instance, wraps the input iterator.
     pub fn new(iter: IntoIter<svm_resource_t>) -> Self {
         Self { iter }
     }
 
+    /// Returns `HashMap`, where each entry maps between a `Type` to its #resources.
     pub fn prettify(self) -> HashMap<Option<Type>, i32> {
         let mut map = HashMap::new();
 
@@ -133,6 +151,8 @@ impl Iterator for svm_resource_iter_t {
     }
 }
 
+/// Takes a snapshot of the manually allocated resources
+/// and returns an iterator over it.
 pub fn take_snapshot() -> svm_resource_iter_t {
     let stats = acquire_stats();
 
@@ -152,31 +172,39 @@ pub fn take_snapshot() -> svm_resource_iter_t {
     svm_resource_iter_t::new(iter)
 }
 
+/// Increments the number of manually-allocated instances of type `Type`.
 pub fn increment_live(ty: Type) {
     let ty = interning::interned_type(ty);
 
     increment_live_1(ty)
 }
 
+/// Increments the number of manually-allocated instances of type (given as an interned value).
 pub fn increment_live_1(ty: usize) {
     let stats = acquire_stats();
 
     if let Some(mut stats) = stats {
+        // when tracking if on
+
         let entry = stats.entry(ty).or_insert(0);
         *entry += 1;
     }
 }
 
+/// Decrements the number of manually-allocated instances of type `Type`.
 pub fn decrement_live(ty: Type) {
     let ty = interning::interned_type(ty);
 
     decrement_live_1(ty);
 }
 
+/// Decrements the number of manually-allocated instances of type (given as an interned value).
 pub fn decrement_live_1(ty: usize) {
     let stats = acquire_stats();
 
     if let Some(mut stats) = stats {
+        // when tracking if on
+
         let entry = stats.entry(ty).or_insert(0);
         *entry -= 1;
 
@@ -186,12 +214,14 @@ pub fn decrement_live_1(ty: usize) {
     }
 }
 
+/// The number of manually-allocated instances of type `Type`.
 pub fn live_count(ty: Type) -> i32 {
     let ty = interning::interned_type(ty);
 
     live_count_1(ty)
 }
 
+/// The number of manually-allocated instances of type `Type` (given as an interned value).
 pub fn live_count_1(ty: usize) -> i32 {
     let stats = acquire_stats();
 
@@ -201,16 +231,19 @@ pub fn live_count_1(ty: usize) -> i32 {
             Some(count) => *count,
         }
     } else {
+        // when tracking if off
         0
     }
 }
 
+/// The total number of manually-allocated resources.
 pub fn total_live() -> i32 {
     let stats = acquire_stats();
 
     if let Some(stats) = stats {
         stats.iter().map(|(_ty, count)| count).sum()
     } else {
+        // when tracking if off
         0
     }
 }

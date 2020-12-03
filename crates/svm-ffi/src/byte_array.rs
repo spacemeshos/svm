@@ -43,6 +43,9 @@ pub struct svm_byte_array {
     /// needs first to be re-constructed using the proper allocated capacity).
     pub capacity: u32,
 
+    /// The `svm_types::Type` associated with the data represented by `bytes`.
+    /// It's the interned value of the type.
+    /// (since we need the struct fields to be compatible with the `#[repr(C)]`).
     pub type_id: usize,
 }
 
@@ -54,6 +57,7 @@ impl svm_byte_array {
         (ty, vec).into()
     }
 
+    /// Releases the memory region starting at `ptr` (of length `length` bytes).
     pub unsafe fn destroy(self) {
         let ptr = self.bytes as *mut u8;
         let length = self.length as usize;
