@@ -31,10 +31,22 @@ pub use template::AppTemplate;
 pub use wasm_type::{WasmType, WasmTypeError};
 pub use wasm_value::WasmValue;
 
+/// Represents a type in one of two ways:
+/// * `(std::any::TypeId, &'static str str)`
+///
+/// * `&'static str`
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 pub enum Type {
+    /// An integer (`std::any::TypeId`) along it a static string.
+    /// This string will usually be the value of `std::any::type_name::<T>()`
     TypeId(std::any::TypeId, &'static str),
 
+    /// A static string.
+    /// It enables the API user to attach descriptive names as types.
+    ///
+    /// One can name instances of the same Rust native `struct/enum`
+    /// using different strings. It makes it easier to troubleshoot
+    /// allocation/deallocation of resources since we can pinpoint each resource.
     Str(&'static str),
 }
 
