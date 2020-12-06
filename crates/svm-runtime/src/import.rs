@@ -6,6 +6,7 @@ use crate::Context;
 
 use wasmer::{
     Export, Exportable, Function, FunctionType, RuntimeError, Store, Type as WasmerType, Val,
+    WasmerEnv,
 };
 
 use svm_ffi::{svm_byte_array, svm_env_t, svm_func_callback_t};
@@ -55,13 +56,19 @@ impl ExternImport {
             let returns_types = self.returns.clone();
             let func = self.func;
 
+            #[derive(wasmer::WasmerEnv)]
+            struct WrapperEnv {
+                func_env: *mut svm_env_t,
+            }
+
             let wrapper_callback =
-                move |env: &mut *mut svm_env_t, args: &[Val]| -> Result<Vec<Val>, RuntimeError> {
+                move |env: &WrapperEnv, args: &[Val]| -> Result<Vec<Val>, RuntimeError> {
                     let args: Vec<WasmValue> = wasmer_vals_to_wasm_vals(args)?;
                     let args: svm_byte_array = (WASMER_ARGS_STR, args).into();
 
                     let mut results = svm_ffi::alloc_wasm_values(returns_types.len());
-                    let err: *mut svm_byte_array = func(*env, &args, &mut results);
+
+                    let err = func(env.func_env, &args, &mut results);
 
                     // manually releasing `args` internals
                     args.destroy();
@@ -118,7 +125,8 @@ impl ExternImport {
             let ty = Type::of::<svm_env_t>();
             let func_env = svm_ffi::into_raw(ty, func_env) as *mut svm_env_t;
 
-            let func = Function::new_with_env(store, &func_ty, func_env, wrapper_callback);
+            let func =
+                Function::new_with_env(store, &func_ty, WrapperEnv { func_env }, wrapper_callback);
             let export = func.to_export();
 
             (export, func_env)

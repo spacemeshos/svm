@@ -561,7 +561,7 @@ where
             let (export, func_env) = import.wasmer_export(store, ctx);
 
             funcs_envs.push(func_env);
-            let ext = Extern::from_export(store, export);
+            let ext = Extern::from_vm_export(store, export);
 
             ns_exports.insert(import.name(), ext);
         }
