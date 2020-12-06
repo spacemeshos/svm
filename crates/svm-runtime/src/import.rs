@@ -51,7 +51,7 @@ impl ExternImport {
     pub fn wasmer_export(&self, store: &Store, ctx: &mut Context) -> (Export, *mut svm_env_t) {
         unsafe {
             // The following code has been highly influenced by code here:
-            // https://github.com/wasmerio/wasmer/blob/7847acaae1e7a0eade13b65def1f3feeac95efd7/lib/c-api/src/wasm_c_api/externals/func.rs#L86
+            // https://github.com/wasmerio/wasmer/blob/e9529c2c868c6c4d7f39bad2d2194682066a9522/lib/c-api/src/wasm_c_api/externals/function.rs#L89
 
             let returns_types = self.returns.clone();
             let func = self.func;
@@ -69,7 +69,7 @@ impl ExternImport {
                     let mut results = svm_ffi::alloc_wasm_values(returns_types.len());
 
                     let env = env.func_env as *mut svm_env_t;
-                    let err = func(env, &args, &mut results);
+                    let err: *mut svm_byte_array = func(env, &args, &mut results);
 
                     // manually releasing `args` internals
                     args.destroy();
@@ -78,7 +78,9 @@ impl ExternImport {
                         // manually releasing `results` internals
                         results.destroy();
 
-                        let err_msg = String::try_from(&*err);
+                        let err_ty = svm_ffi::SVM_WASM_ERROR_TYPE_PTR;
+                        let err: svm_byte_array = svm_ffi::from_raw(err_ty, err);
+                        let err_msg = String::try_from(&err);
 
                         let err_msg: String = match err_msg {
                             Ok(msg) => msg,
@@ -87,8 +89,6 @@ impl ExternImport {
                             ),
                         };
 
-                        let ty = svm_ffi::SVM_WASM_ERROR_TYPE;
-                        let err = svm_ffi::from_raw(ty, err);
                         err.destroy();
 
                         return Err(RuntimeError::new(err_msg));

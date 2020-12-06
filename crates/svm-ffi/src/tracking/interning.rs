@@ -10,7 +10,9 @@ lazy_static! {
     static ref REV_TYPES: Mutex<HashMap<usize, Type>> = Mutex::new(HashMap::new());
 }
 
-/// Returns the interned value of `Type`
+/// Returns the interned value of `Type`.
+/// If there is already an interned value it's returned,
+/// Otherwise, an interned value is generated for `ty`, stored for future-use and returned.
 #[must_use]
 pub fn interned_type(ty: Type) -> usize {
     let mut types = TYPES.lock().unwrap();
