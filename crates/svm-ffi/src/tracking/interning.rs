@@ -6,7 +6,10 @@ use svm_types::Type;
 use lazy_static::lazy_static;
 
 lazy_static! {
+    /// Maps each `Type` to it' interned value
     static ref TYPES: Mutex<HashMap<Type, usize>> = Mutex::new(HashMap::new());
+
+    /// Maps each interned value to its origin `Type`
     static ref REV_TYPES: Mutex<HashMap<usize, Type>> = Mutex::new(HashMap::new());
 }
 
