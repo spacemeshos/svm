@@ -44,8 +44,7 @@ pub struct svm_byte_array {
     pub capacity: u32,
 
     /// The `svm_types::Type` associated with the data represented by `bytes`.
-    /// It's the interned value of the type.
-    /// (since we need the struct fields to be compatible with the `#[repr(C)]`).
+    /// It's the interned value of the type. (For more info see `tracking::interning.rs`)
     pub type_id: usize,
 }
 

@@ -5,6 +5,13 @@ use svm_types::Type;
 
 use lazy_static::lazy_static;
 
+// Since `svm_byte_array` is exchanged between `Rust` and external-code (i.e FFI code)
+// we can't use `Type` for `type_id`.
+//
+// That's why we apply the interning technique for `Type` (`svm_types::Type`).
+// By doing that we can use its interned representation in `svm_byte_array`.
+//
+// We also implement reverse-interpretation. Give an interned type, we can relate it to its Rust `Type` value.
 lazy_static! {
     /// Maps each `Type` to its interned value
     static ref TYPES: Mutex<HashMap<Type, usize>> = Mutex::new(HashMap::new());
