@@ -68,8 +68,7 @@ impl ExternImport {
 
                     let mut results = svm_ffi::alloc_wasm_values(returns_types.len());
 
-                    let env = env.func_env as *mut svm_env_t;
-                    let err: *mut svm_byte_array = func(env, &args, &mut results);
+                    let err = func(env.func_env, &args, &mut results);
 
                     // manually releasing `args` internals
                     args.destroy();
