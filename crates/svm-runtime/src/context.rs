@@ -3,6 +3,7 @@ use std::ffi::c_void;
 use std::rc::Rc;
 
 use log::debug;
+
 use wasmer::Memory;
 
 use svm_storage::app::AppStorage;
@@ -13,7 +14,7 @@ use svm_types::{gas::MaybeGas, receipt::Log};
 /// * `storage`      - Instance's `AppStorage`.
 /// * `gas_metering` - Whether gas metering is enabled.
 
-#[derive(Clone)]
+#[derive(wasmer::WasmerEnv, Clone)]
 pub struct Context {
     inner: Rc<RefCell<ContextInner>>,
 }

@@ -26,7 +26,7 @@ version = "0.12.4"
 features = ["lz4"]
 
 [dependencies.wasmer]
-version="1.0.0-alpha5"
+version="1.0.0-beta1"
 default-features = false
 features = ["default-cranelift", "default-jit"]
 

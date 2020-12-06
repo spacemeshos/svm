@@ -2,7 +2,7 @@ use crate::{use_gas, Context};
 
 use svm_types::receipt::Log;
 
-pub fn log(ctx: &mut Context, msg_ptr: u32, msg_len: u32, code: u32) {
+pub fn log(ctx: &Context, msg_ptr: u32, msg_len: u32, code: u32) {
     use_gas!("log", ctx);
 
     let start = msg_ptr as usize;
