@@ -865,6 +865,13 @@ pub unsafe extern "C" fn svm_resource_iter_new() -> *mut c_void {
 
 #[must_use]
 #[no_mangle]
+pub unsafe extern "C" fn svm_resource_iter_destroy(iter: *mut c_void) {
+    let ty = svm_ffi::SVM_RESOURCES_ITER_TYPE;
+    let _ = svm_ffi::from_raw(ty, iter);
+}
+
+#[must_use]
+#[no_mangle]
 pub unsafe extern "C" fn svm_resource_iter_next(iter: *mut c_void) -> *mut svm_resource_t {
     let iter = svm_ffi::as_mut::<svm_resource_iter_t>(iter);
 
@@ -877,13 +884,6 @@ pub unsafe extern "C" fn svm_resource_iter_next(iter: *mut c_void) -> *mut svm_r
             svm_ffi::as_mut::<svm_resource_t>(ptr)
         }
     }
-}
-
-#[must_use]
-#[no_mangle]
-pub unsafe extern "C" fn svm_resource_iter_destroy(iter: *mut c_void) {
-    let ty = svm_ffi::SVM_RESOURCES_ITER_TYPE;
-    let _ = svm_ffi::from_raw(ty, iter);
 }
 
 #[must_use]

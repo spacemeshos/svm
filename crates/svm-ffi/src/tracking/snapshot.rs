@@ -10,8 +10,35 @@ use svm_types::Type;
 use lazy_static::lazy_static;
 
 lazy_static! {
+    /// Stores for each interned type its number of live instances.
+    /// In case a value is negative, it signals there is probably a bug in the code.
+    /// (There must not be more deallocations than allocations for a type).
     static ref STATS: Mutex<HashMap<usize, i32>> = Mutex::new(HashMap::new());
+
+    /// By default when a tests are running, their resources tracking is off.
+    /// It means that we can run in parallel tests that have no resources tracking.
+    ///
+    /// For the rest of the tests that do care about resources tracking,
+    /// these must coordinate together to ensure the tracking logic is safe.
+    /// It means that at any given point only one test with tracking on can have access and modify
+    //// the state of allocated resources. (i.e modify `STATS` above).
+    ///
+    /// The best practice for tests that would like to track resources is to call
+    /// `set_tracking_on` right in their beginning and `set_tracking_off` at their end.
+    /// The way `set_tracking_on` works is by storing a unique token under `CURRENT_TEST_TOKEN`.
+    /// That token denotes the currently running test. Here we take advantage of the fact that
+    /// each thread runs only a single test at a time and so we use the `current thread id` as our token.
+    ///
+    /// When two tests (or more) want to turn tracking on, a parallel call `set_tracking_on` will arbitrarily
+    /// let exactly one of these tests to acquire a lock on `CURRENT_TEST_TOKEN` and store its origin thread id (the so-called `token`).
+    ///
+    /// The other test (associated with a different thread) will await for the `CURRENT_TEST_TOKEN` value to be clear again.
+    /// For that, it will use a condition-variable named `CURRENT_TEST_CVAR`.
+    ///
+    /// Once the running test will complete, it'll call `set_tracking_off`, and notify the `CURRENT_TEST_CVAR` subscribers.
+    /// These threads will wake-up and again, only one thread will gain control and modify the `CURRENT_TEST_TOKEN` with a new value and so on.
     static ref CURRENT_TEST_TOKEN: Mutex<Option<ThreadId>> = Mutex::new(None);
+
     static ref CURRENT_TEST_CVAR: Condvar = Condvar::new();
 }
 
@@ -34,16 +61,16 @@ pub fn acquire_stats() -> Option<MutexGuard<'static, HashMap<usize, i32>>> {
     Some(lock)
 }
 
-#[allow(dead_code)]
-pub fn release_stats(_guard: Option<MutexGuard<'static, HashMap<usize, i32>>>) {
-    //
-}
-
+/// Turns on resources tracking
 #[allow(dead_code)]
 pub fn set_tracking_on() {
     let mut lock = CURRENT_TEST_TOKEN.lock().unwrap();
 
     while lock.is_some() {
+        // There is another test (belonging to a different thread)
+        // that is running with tracking on.
+        // We'll register the condition-variable `CURRENT_TEST_CVAR` to be notified
+        // when we can get a new chance to proceed.
         lock = CURRENT_TEST_CVAR.wait(lock).unwrap();
     }
 
@@ -51,8 +78,10 @@ pub fn set_tracking_on() {
 
     let token = std::thread::current().id();
 
+    // Each tracking test needs to start tracking for a blank slate.
     clear();
 
+    // Mark that current thread is the new owner of resources tracking.
     *lock = Some(token);
 }
 
@@ -61,6 +90,7 @@ fn clear() {
     *stats = HashMap::new();
 }
 
+/// Turns off resources tracking
 #[allow(dead_code)]
 pub fn set_tracking_off() {
     let mut lock = CURRENT_TEST_TOKEN.lock().unwrap();
@@ -68,11 +98,13 @@ pub fn set_tracking_off() {
 
     assert_eq!(lock.as_ref(), Some(&token));
 
+    // We've finished running our test
+    // It's time to let others get their chance to use resources tracking.
     *lock = None;
-
     CURRENT_TEST_CVAR.notify_all();
 }
 
+/// Resources whether resources tracking is on (test mode only).
 #[cfg(test)]
 fn is_tracking_on() -> bool {
     let lock = CURRENT_TEST_TOKEN.lock().unwrap();
@@ -84,9 +116,18 @@ fn is_tracking_on() -> bool {
     let held_token = lock.unwrap();
     let token = std::thread::current().id();
 
+    // Other tests that don't care about resources tracking
+    // will have a token different than currently held one and hence
+    // `held_token == token` will be `false`
+    //
+    // Tests that do want to track resources need first to call `set_tracking_on`
+    // as explained above (under the `lazy_static!` section).
+    // Calling `set_tracking_on` right at start guarantees that only a single test with tracking on enabled
+    // can make a progress at any given time and we get `held_token == token` as `true`
     held_token == token
 }
 
+/// Resources tracking is always on when running in a non-test mode.
 #[allow(dead_code)]
 #[inline]
 #[cfg(not(test))]
@@ -174,7 +215,7 @@ pub fn increment_live_1(ty: usize) {
     let stats = acquire_stats();
 
     if let Some(mut stats) = stats {
-        // when tracking if on
+        // when tracking is on
 
         let entry = stats.entry(ty).or_insert(0);
         *entry += 1;
@@ -193,7 +234,7 @@ pub fn decrement_live_1(ty: usize) {
     let stats = acquire_stats();
 
     if let Some(mut stats) = stats {
-        // when tracking if on
+        // when tracking is on
 
         let entry = stats.entry(ty).or_insert(0);
         *entry -= 1;
@@ -221,7 +262,7 @@ pub fn live_count_1(ty: usize) -> i32 {
             Some(count) => *count,
         }
     } else {
-        // when tracking if off
+        // when tracking is off
         0
     }
 }
@@ -233,7 +274,7 @@ pub fn total_live() -> i32 {
     if let Some(stats) = stats {
         stats.iter().map(|(_ty, count)| count).sum()
     } else {
-        // when tracking if off
+        // when tracking is off
         0
     }
 }
