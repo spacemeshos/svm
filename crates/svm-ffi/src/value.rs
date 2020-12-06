@@ -1,7 +1,7 @@
 use std::convert::TryFrom;
 use std::io::{self, Cursor, ErrorKind};
 
-use svm_types::{WasmType, WasmValue};
+use svm_types::{Type, WasmType, WasmValue};
 
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 
@@ -36,8 +36,9 @@ use crate::svm_byte_array;
 /// The buffer is initialized with zeros.
 pub fn alloc_wasm_values(nvalues: usize) -> svm_byte_array {
     let cap = wasm_values_capacity(nvalues);
+    let ty = Type::of::<&[WasmValue]>();
 
-    svm_byte_array::new(cap)
+    svm_byte_array::new(cap, ty)
 }
 
 /// Converts `svm_byte_array` into `Vec<WasmerValue>`
@@ -46,18 +47,19 @@ pub fn alloc_wasm_values(nvalues: usize) -> svm_byte_array {
 /// use std::io;
 /// use std::convert::TryFrom;
 ///
-/// use svm_types::WasmValue;
+/// use svm_types::{WasmValue, Type};
 /// use svm_ffi::svm_byte_array;
 ///
+/// let ty = Type::of::<Vec<WasmValue>>();
 /// let values = vec![WasmValue::I32(5), WasmValue::I64(10)];
 ///
-/// let bytes: svm_byte_array = (&values).into();
+/// let bytes: svm_byte_array = (ty, (&values)).into();
 /// let vec: Result<_, io::Error> = Vec::<WasmValue>::try_from(&bytes);
 ///
 /// assert_eq!(vec.unwrap(), values);
 /// ```
-impl From<&[WasmValue]> for svm_byte_array {
-    fn from(values: &[WasmValue]) -> svm_byte_array {
+impl From<(Type, &[WasmValue])> for svm_byte_array {
+    fn from((ty, values): (Type, &[WasmValue])) -> svm_byte_array {
         let nvalues = values.len();
 
         assert!(nvalues <= std::u8::MAX as usize);
@@ -79,21 +81,21 @@ impl From<&[WasmValue]> for svm_byte_array {
             };
         }
 
-        bytes.into()
+        (ty, bytes).into()
     }
 }
 
-impl From<Vec<WasmValue>> for svm_byte_array {
+impl From<(Type, Vec<WasmValue>)> for svm_byte_array {
     #[inline]
-    fn from(values: Vec<WasmValue>) -> svm_byte_array {
-        (&values[..]).into()
+    fn from((ty, values): (Type, Vec<WasmValue>)) -> svm_byte_array {
+        (ty, (&values)).into()
     }
 }
 
-impl From<&Vec<WasmValue>> for svm_byte_array {
+impl From<(Type, &Vec<WasmValue>)> for svm_byte_array {
     #[inline]
-    fn from(values: &Vec<WasmValue>) -> svm_byte_array {
-        (&values[..]).into()
+    fn from((ty, values): (Type, &Vec<WasmValue>)) -> svm_byte_array {
+        (ty, &values[..]).into()
     }
 }
 
@@ -149,11 +151,22 @@ fn wasm_values_capacity(nvalues: usize) -> usize {
 mod tests {
     use super::*;
 
+    use crate::tracking;
+
+    fn raw_type_id<T: 'static>() -> usize {
+        let ty = std::any::TypeId::of::<T>();
+        let name = std::any::type_name::<T>();
+
+        let ty = Type::TypeId(ty, name);
+
+        tracking::interned_type(ty)
+    }
+
     #[test]
     fn empty_vec_values_to_svm_byte_array() {
         let vec = Vec::<WasmValue>::new();
 
-        let bytes: svm_byte_array = vec.into();
+        let bytes: svm_byte_array = (Type::of::<Vec<WasmValue>>(), vec).into();
         let slice: &[u8] = bytes.into();
 
         let nvalues = slice[0];
@@ -162,12 +175,7 @@ mod tests {
 
     #[test]
     fn empty_svm_byte_array_to_vec_values_errors() {
-        let bytes = svm_byte_array {
-            bytes: std::ptr::null(),
-            length: 0,
-            capacity: 0,
-        };
-
+        let bytes = svm_byte_array::default();
         let res: Result<Vec<WasmValue>, io::Error> = Vec::try_from(&bytes);
 
         assert!(res.is_err());
@@ -181,6 +189,7 @@ mod tests {
             bytes: raw.as_ptr(),
             length: raw.len() as u32,
             capacity: raw.capacity() as u32,
+            type_id: raw_type_id::<Vec<WasmValue>>(),
         };
 
         let res: Result<Vec<WasmValue>, io::Error> = Vec::try_from(&bytes);
@@ -196,6 +205,7 @@ mod tests {
             bytes: raw.as_ptr(),
             length: raw.len() as u32,
             capacity: raw.capacity() as u32,
+            type_id: raw_type_id::<Vec<WasmValue>>(),
         };
 
         let res: Result<Vec<WasmValue>, io::Error> = Vec::try_from(&bytes);
@@ -210,6 +220,7 @@ mod tests {
             bytes: raw.as_ptr(),
             length: raw.len() as u32,
             capacity: raw.capacity() as u32,
+            type_id: raw_type_id::<Vec<WasmValue>>(),
         };
 
         let res: Result<Vec<WasmValue>, io::Error> = Vec::try_from(&bytes);

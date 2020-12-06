@@ -6,9 +6,6 @@
 
 //! This crate is responsible of providing [FFI](https://doc.rust-lang.org/nomicon/ffi.html) interface for the `SVM`.
 
-/// Crate common helpers
-pub mod helpers;
-
 /// Crate common tests specific helpers
 pub mod testing;
 
@@ -55,10 +52,16 @@ pub use api::{
     svm_byte_array_destroy,
 
     // Error
-    svm_wasm_error_create
+    svm_wasm_error_create,
+
+    // Resources tracking
+    svm_total_live_resources,
+    svm_resource_iter_new,
+    svm_resource_iter_next,
+    svm_resource_iter_destroy,
+    svm_resource_destroy,
+    svm_resource_type_name_resolve,
+    svm_resource_type_name_destroy
 };
 
 pub use result::svm_result_t;
-
-mod runtime_ptr;
-use runtime_ptr::RuntimePtr;

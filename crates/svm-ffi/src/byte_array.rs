@@ -3,7 +3,9 @@ use std::string::FromUtf8Error;
 
 use byteorder::{BigEndian, ByteOrder};
 
-use svm_types::{WasmType, WasmValue};
+use svm_types::{Type, WasmType, WasmValue};
+
+use crate::tracking;
 
 /// FFI representation for a byte-array
 ///
@@ -12,10 +14,14 @@ use svm_types::{WasmType, WasmValue};
 /// ```rust
 /// use std::convert::TryFrom;
 /// use std::string::FromUtf8Error;
+///
+/// use svm_types::Type;
 /// use svm_ffi::svm_byte_array;
 ///
+/// let ty = Type::Str("test string");
+///
 /// let s1 = "Hello World!".to_string();
-/// let bytes: svm_byte_array = s1.into();
+/// let bytes: svm_byte_array = (ty, s1).into();
 ///
 /// let s2 = String::try_from(bytes).unwrap();
 /// assert_eq!(s2, "Hello World!".to_string());
@@ -36,22 +42,29 @@ pub struct svm_byte_array {
     /// an instance of a data structure such as `Vec` (which in order to properly get deallocated
     /// needs first to be re-constructed using the proper allocated capacity).
     pub capacity: u32,
+
+    /// The `svm_types::Type` associated with the data represented by `bytes`.
+    /// It's the interned value of the type. (For more info see `tracking::interning.rs`)
+    pub type_id: usize,
 }
 
 impl svm_byte_array {
     /// Creates a new `svm_byte_array` backed by a buffer of zeros sized `size`.
-    pub fn new(size: usize) -> Self {
+    pub fn new(size: usize, ty: Type) -> Self {
         let vec = vec![0u8; size];
 
-        vec.into()
+        (ty, vec).into()
     }
 
+    /// Releases the memory region starting at `ptr` (of length `length` bytes).
     pub unsafe fn destroy(self) {
         let ptr = self.bytes as *mut u8;
         let length = self.length as usize;
         let capacity = self.capacity as usize;
 
         let _ = Vec::from_raw_parts(ptr, length, capacity);
+
+        tracking::decrement_live_1(self.type_id)
     }
 
     /// Copies the WASM values given by `values` into the raw format of `self` (i.e `svm_byte_array`).
@@ -62,14 +75,18 @@ impl svm_byte_array {
     /// ```rust
     /// use std::convert::TryFrom;
     ///
-    /// use svm_types::WasmValue;
+    /// use svm_types::{WasmValue, Type};
     /// use svm_ffi::svm_byte_array;
     ///
     /// let src = vec![WasmValue::I64(10), WasmValue::I32(20), WasmValue::I64(30)];
     ///
     /// // We allocate `dst` with zeros.
     /// let size = 1 + 9 * src.len();
-    /// let mut dst: svm_byte_array = vec![0; size].into();
+    ///
+    /// let ty = Type::of::<Vec<WasmValue>>();
+    /// let vec = vec![0u8; size];
+    ///
+    /// let mut dst: svm_byte_array = (ty, vec).into();
     ///
     /// // We fill-in `dst` with the WASM values given by `src`
     /// unsafe { dst.copy_wasm_values(&src) };
@@ -95,8 +112,8 @@ impl svm_byte_array {
             ($ty:expr, $val:expr, $size:expr, $bits:expr) => {{
                 paste::item! {
                     // First we copy the `type` of the WASM value
-                    let ty: u8 = $ty.into();
-                    std::ptr::write::<u8>(ptr, ty);
+                    let type_id: u8 = $ty.into();
+                    std::ptr::write::<u8>(ptr, type_id);
                     ptr = ptr.add(1);
 
                     // We copy the `value` with the data given by `$val`
@@ -116,44 +133,50 @@ impl svm_byte_array {
     }
 }
 
-///
-/// # Example
-///
-/// ```rust
-/// use svm_ffi::svm_byte_array;
-///
-/// let array = svm_byte_array::default();
-///
-/// assert_eq!(std::ptr::null(), array.bytes);
-/// assert_eq!(0, array.length);
-/// assert_eq!(0, array.capacity);
-/// ```
-///
+// ///
+// /// # Example
+// ///
+// /// ```rust
+// /// use svm_ffi::svm_byte_array;
+// ///
+// /// let array = svm_byte_array::default();
+// ///
+// /// assert_eq!(std::ptr::null(), array.bytes);
+// /// assert_eq!(0, array.length);
+// /// assert_eq!(0, array.capacity);
+// /// ```
+// ///
 impl Default for svm_byte_array {
     fn default() -> Self {
         Self {
             bytes: std::ptr::null(),
             length: 0,
             capacity: 0,
+            type_id: 0,
         }
     }
 }
 
-impl From<String> for svm_byte_array {
-    fn from(s: String) -> Self {
-        s.into_bytes().into()
-    }
-}
-
-impl From<Vec<u8>> for svm_byte_array {
-    fn from(vec: Vec<u8>) -> Self {
+impl From<(Type, Vec<u8>)> for svm_byte_array {
+    fn from((ty, vec): (Type, Vec<u8>)) -> Self {
         let (ptr, len, cap) = vec.into_raw_parts();
+
+        tracking::increment_live(ty);
 
         svm_byte_array {
             bytes: ptr,
             length: len as u32,
             capacity: cap as u32,
+            type_id: tracking::interned_type(ty),
         }
+    }
+}
+
+impl From<(Type, String)> for svm_byte_array {
+    fn from((ty, s): (Type, String)) -> Self {
+        let vec = s.into_bytes();
+
+        (ty, vec).into()
     }
 }
 
@@ -206,7 +229,7 @@ mod tests {
         vec.push(0x30u8);
 
         let ptr = vec.as_ptr();
-        let bytes: svm_byte_array = vec.into();
+        let bytes: svm_byte_array = ("Vec<u8>".into(), vec).into();
 
         assert_eq!(ptr, bytes.bytes); // `bytes` is an alias.
         assert_eq!(3, bytes.length);
@@ -219,7 +242,7 @@ mod tests {
         let s1_ptr = s1.as_ptr();
         let s1_len = s1.len() as u32;
         let s1_capacity = s1.capacity() as u32;
-        let bytes: svm_byte_array = s1.into();
+        let bytes: svm_byte_array = (Type::of::<String>(), s1).into();
 
         assert_eq!(s1_ptr, bytes.bytes); // `bytes` is an alias.
         assert_eq!(s1_len, bytes.length);

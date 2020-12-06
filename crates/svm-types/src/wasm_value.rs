@@ -20,6 +20,8 @@ impl WasmValue {
         }
     }
 
+    /// Returns `Option<u32>` when `self` is of `I32(..)`
+    /// and `None` otherwise.
     #[inline]
     pub fn as_i32(&self) -> Option<u32> {
         match self {
@@ -28,6 +30,8 @@ impl WasmValue {
         }
     }
 
+    /// Returns `Option<u64>` when `self` is of `I64(..)`
+    /// and `None` otherwise.
     #[inline]
     pub fn as_i64(&self) -> Option<u64> {
         match self {

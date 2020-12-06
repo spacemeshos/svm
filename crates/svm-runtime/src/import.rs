@@ -4,10 +4,14 @@ use std::rc::Rc;
 
 use crate::Context;
 
-use wasmer::{Export, Exportable, Function, FunctionType, RuntimeError, Store, Type, Val};
+use wasmer::{
+    Export, Exportable, Function, FunctionType, RuntimeError, Store, Type as WasmerType, Val,
+};
 
 use svm_ffi::{svm_byte_array, svm_env_t, svm_func_callback_t};
-use svm_types::{WasmType, WasmValue};
+use svm_types::{Type, WasmType, WasmValue};
+
+static WASMER_ARGS_STR: Type = Type::Str("Wasmer Args");
 
 #[derive(Debug, Clone)]
 pub struct ExternImport {
@@ -43,10 +47,10 @@ impl ExternImport {
         }
     }
 
-    pub fn wasmer_export(&self, store: &Store, ctx: &mut Context) -> (Export, *const svm_env_t) {
+    pub fn wasmer_export(&self, store: &Store, ctx: &mut Context) -> (Export, *mut svm_env_t) {
         unsafe {
             // The following code has been highly influenced by code here:
-            // https://github.com/wasmerio/wasmer/blob/7847acaae1e7a0eade13b65def1f3feeac95efd7/lib/c-api/src/wasm_c_api/externals/func.rs#L86
+            // https://github.com/wasmerio/wasmer/blob/e9529c2c868c6c4d7f39bad2d2194682066a9522/lib/c-api/src/wasm_c_api/externals/function.rs#L89
 
             let returns_types = self.returns.clone();
             let func = self.func;
@@ -54,10 +58,10 @@ impl ExternImport {
             let wrapper_callback =
                 move |env: &mut *mut svm_env_t, args: &[Val]| -> Result<Vec<Val>, RuntimeError> {
                     let args: Vec<WasmValue> = wasmer_vals_to_wasm_vals(args)?;
-                    let args: svm_byte_array = args.into();
+                    let args: svm_byte_array = (WASMER_ARGS_STR, args).into();
 
                     let mut results = svm_ffi::alloc_wasm_values(returns_types.len());
-                    let err = func(*env, &args, &mut results);
+                    let err: *mut svm_byte_array = func(*env, &args, &mut results);
 
                     // manually releasing `args` internals
                     args.destroy();
@@ -66,7 +70,9 @@ impl ExternImport {
                         // manually releasing `results` internals
                         results.destroy();
 
-                        let err_msg = String::try_from(&*err);
+                        let err_ty = svm_ffi::SVM_WASM_ERROR_TYPE_PTR;
+                        let err: svm_byte_array = svm_ffi::from_raw(err_ty, err);
+                        let err_msg = String::try_from(&err);
 
                         let err_msg: String = match err_msg {
                             Ok(msg) => msg,
@@ -75,7 +81,6 @@ impl ExternImport {
                             ),
                         };
 
-                        let err = *Box::from_raw(err);
                         err.destroy();
 
                         return Err(RuntimeError::new(err_msg));
@@ -92,7 +97,7 @@ impl ExternImport {
             let func_ty = self.wasmer_function_ty();
 
             /// making the input `&mut Context` appear as `*const c_void`
-            let inner_env = ctx as *mut Context as *const Context as *const c_void;
+            let inner_env = ctx as *mut Context as *const c_void;
             let host_env = self.host_env;
 
             /// The import used `env` (using Wasmer terminology) will be a struct of `svm_env_t`
@@ -110,12 +115,11 @@ impl ExternImport {
 
             /// The heap-allocated `func_env` will be deallocated by later by `SVM` running runtime.
             /// (See method `funcs_envs_destroy` under `src/runtime/default.rs`)
-            let func_env = Box::into_raw(Box::new(func_env));
+            let ty = Type::of::<svm_env_t>();
+            let func_env = svm_ffi::into_raw(ty, func_env) as *mut svm_env_t;
 
             let func = Function::new_with_env(store, &func_ty, func_env, wrapper_callback);
             let export = func.to_export();
-
-            let func_env = func_env as *const svm_env_t;
 
             (export, func_env)
         }
@@ -137,12 +141,12 @@ impl ExternImport {
     }
 }
 
-fn to_wasmer_types(types: &[WasmType]) -> Vec<Type> {
+fn to_wasmer_types(types: &[WasmType]) -> Vec<WasmerType> {
     types
         .iter()
         .map(|ty| match ty {
-            WasmType::I32 => Type::I32,
-            WasmType::I64 => Type::I64,
+            WasmType::I32 => WasmerType::I32,
+            WasmType::I64 => WasmerType::I64,
             _ => panic!("Only i32 and i64 are supported."),
         })
         .collect()

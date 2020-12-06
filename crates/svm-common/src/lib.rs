@@ -13,5 +13,4 @@ mod key_hasher;
 pub mod fmt;
 
 pub use default_key_hasher::DefaultKeyHasher;
-pub use ffi::{from_raw, from_raw_mut, into_raw, into_raw_mut};
 pub use key_hasher::KeyHasher;

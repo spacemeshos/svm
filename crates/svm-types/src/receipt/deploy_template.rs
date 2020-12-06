@@ -18,6 +18,7 @@ pub struct TemplateReceipt {
     /// The amount of gas used for template deployment
     pub gas_used: MaybeGas,
 
+    /// generated logs during transaction execution.
     pub logs: Vec<Log>,
 }
 
