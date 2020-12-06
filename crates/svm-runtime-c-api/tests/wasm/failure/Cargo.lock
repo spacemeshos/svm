@@ -45,7 +45,7 @@ name = "svm-abi-layout"
 version = "0.0.0"
 
 [[package]]
-name = "svm-runtime-examples-counter"
+name = "svm-runtime-examples-failure"
 version = "0.1.0"
 dependencies = [
  "svm-sdk",

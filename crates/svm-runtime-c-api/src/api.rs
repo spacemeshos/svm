@@ -10,21 +10,20 @@ use log::{debug, error};
 
 use svm_codec::api::builder::{AppTxBuilder, DeployAppTemplateBuilder, SpawnAppBuilder};
 use svm_codec::api::raw;
+use svm_codec::receipt::{encode_app_receipt, encode_exec_receipt, encode_template_receipt};
 
 use svm_layout::DataLayout;
+use svm_storage::kv::{ExternKV, StatefulKV};
+use svm_types::{Address, State, Type, WasmType};
 
 use svm_runtime::env::default::DefaultSerializerTypes;
-use svm_runtime::{gas::DefaultGasEstimator, Context, Import};
+use svm_runtime::{gas::DefaultGasEstimator, Context, ExternImport, Runtime, RuntimePtr};
 
-use svm_storage::kv::{ExternKV, StatefulKV};
-use svm_types::{Address, State, WasmType};
-
-use crate::{
-    helpers, raw_error, raw_io_error, raw_utf8_error, raw_validate_error, svm_byte_array,
-    svm_result_t, RuntimePtr,
+use svm_ffi::{
+    svm_byte_array, svm_env_t, svm_func_callback_t, svm_resource_iter_t, svm_resource_t, tracking,
 };
 
-use svm_codec::receipt::{encode_app_receipt, encode_exec_receipt, encode_template_receipt};
+use crate::{raw_error, raw_io_error, raw_utf8_error, raw_validate_error, svm_result_t};
 
 macro_rules! max_gas {
     ($estimation:expr) => {{
@@ -36,6 +35,15 @@ macro_rules! max_gas {
         }
     }};
 }
+
+static KV_TYPE: Type = Type::Str("key-value store");
+static VALIDATE_TX_APP_ADDR_TYPE: Type = Type::Str("svm_validate_tx app_addr");
+static DEPLOY_TEMPLATE_RECEIPT_TYPE: Type = Type::Str("deploy-template receipt");
+static SPAWN_APP_RECEIPT_TYPE: Type = Type::Str("spawn-app receipt");
+static EXEC_APP_RECEIPT_TYPE: Type = Type::Str("exec-app receipt");
+static ENCODE_DEPLOY_TEMPLATE_TYPE: Type = Type::Str("svm_encode_app_template");
+static ENCODE_SPAWN_APP_TYPE: Type = Type::Str("svm_encode_spawn_app");
+static ENCODE_EXEC_APP_TYPE: Type = Type::Str("svm_encode_app_tx");
 
 macro_rules! maybe_gas {
     ($gas_metering:expr, $gas_limit:expr) => {{
@@ -50,37 +58,39 @@ macro_rules! maybe_gas {
 }
 
 macro_rules! addr_to_svm_byte_array {
-    ($raw_byte_array:expr, $addr:expr) => {{
-        let (ptr, _len, _cap) = $addr.into_raw_parts();
-        to_svm_byte_array!($raw_byte_array, ptr, Address::len());
+    ($ty:expr, $raw_byte_array:expr, $addr:expr) => {{
+        let (ptr, len, cap) = $addr.into_raw_parts();
+
+        to_svm_byte_array!($ty, $raw_byte_array, ptr, len, cap);
     }};
 }
 
 macro_rules! state_to_svm_byte_array {
-    ($raw_byte_array:expr, $state:expr) => {{
-        let (ptr, _len, _cap) = $state.into_raw_parts();
-        to_svm_byte_array!($raw_byte_array, ptr, State::len());
+    ($ty:expr, $raw_byte_array:expr, $state:expr) => {{
+        let (ptr, len, cap) = $state.into_raw_parts();
+
+        to_svm_byte_array!($ty, $raw_byte_array, ptr, len, cap);
     }};
 }
 
 macro_rules! vec_to_svm_byte_array {
-    ($raw_byte_array:expr, $vec:expr) => {{
-        let len = $vec.len();
-        $vec.truncate(len);
+    ($ty:expr, $raw_byte_array:expr, $vec:expr) => {{
+        let (ptr, len, cap) = $vec.into_raw_parts();
 
-        let (ptr, _len, _cap) = $vec.into_raw_parts();
-
-        to_svm_byte_array!($raw_byte_array, ptr, len);
+        to_svm_byte_array!($ty, $raw_byte_array, ptr, len, cap);
     }};
 }
 
 macro_rules! to_svm_byte_array {
-    ($raw_byte_array:expr, $ptr:expr, $length:expr) => {{
-        use crate::svm_byte_array;
-
+    ($ty:expr, $raw_byte_array:expr, $ptr:expr, $len:expr, $cap:expr) => {{
         let bytes: &mut svm_byte_array = &mut *$raw_byte_array;
+
+        tracking::increment_live($ty);
+
         bytes.bytes = $ptr;
-        bytes.length = $length as u32;
+        bytes.length = $len as u32;
+        bytes.capacity = $cap as u32;
+        bytes.type_id = tracking::interned_type($ty);
     }};
 }
 
@@ -94,6 +104,8 @@ macro_rules! to_svm_byte_array {
 ///
 /// ```rust, no_run
 /// use svm_runtime_c_api::*;
+///
+/// use svm_ffi::svm_byte_array;
 /// use svm_types::Address;
 ///
 /// // allocate imports
@@ -118,11 +130,11 @@ macro_rules! to_svm_byte_array {
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_validate_template(
-    runtime: *const c_void,
+    runtime: *mut c_void,
     bytes: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
-    let runtime = helpers::cast_to_runtime(runtime);
+    let runtime: &mut Box<dyn Runtime> = runtime.into();
 
     match runtime.validate_template(bytes.into()) {
         Ok(()) => svm_result_t::SVM_SUCCESS,
@@ -144,6 +156,8 @@ pub unsafe extern "C" fn svm_validate_template(
 ///
 /// ```rust, no_run
 /// use svm_runtime_c_api::*;
+///
+/// use svm_ffi::svm_byte_array;
 /// use svm_types::Address;
 ///
 /// // allocate imports
@@ -167,11 +181,11 @@ pub unsafe extern "C" fn svm_validate_template(
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_validate_app(
-    runtime: *const c_void,
+    runtime: *mut c_void,
     bytes: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
-    let runtime = helpers::cast_to_runtime(runtime);
+    let runtime: &mut Box<dyn Runtime> = runtime.into();
 
     match runtime.validate_app(bytes.into()) {
         Ok(()) => svm_result_t::SVM_SUCCESS,
@@ -190,6 +204,8 @@ pub unsafe extern "C" fn svm_validate_app(
 ///
 /// ```rust, no_run
 /// use svm_runtime_c_api::*;
+///
+/// use svm_ffi::svm_byte_array;
 /// use svm_types::Address;
 ///
 /// // allocate imports
@@ -216,19 +232,19 @@ pub unsafe extern "C" fn svm_validate_app(
 #[no_mangle]
 pub unsafe extern "C" fn svm_validate_tx(
     app_addr: *mut svm_byte_array,
-    runtime: *const c_void,
+    runtime: *mut c_void,
     bytes: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
     debug!("`svm_validate_tx` start");
 
-    let runtime = helpers::cast_to_runtime(runtime);
+    let runtime: &mut Box<dyn Runtime> = runtime.into();
 
     match runtime.validate_tx(bytes.into()) {
         Ok(addr) => {
             // returning encoded `AppReceipt` as `svm_byte_array`.
             // should call later `svm_receipt_destroy`
-            addr_to_svm_byte_array!(app_addr, addr.unwrap());
+            addr_to_svm_byte_array!(VALIDATE_TX_APP_ADDR_TYPE, app_addr, addr.unwrap());
 
             debug!("`svm_validate_tx` returns `SVM_SUCCESS`");
             svm_result_t::SVM_SUCCESS
@@ -259,9 +275,10 @@ pub unsafe extern "C" fn svm_validate_tx(
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_imports_alloc(imports: *mut *mut c_void, count: u32) -> svm_result_t {
-    let vec: Vec<Import> = Vec::with_capacity(count as usize);
+    let vec: Vec<ExternImport> = Vec::with_capacity(count as usize);
+    let ty = Type::of::<Vec<ExternImport>>();
 
-    *imports = svm_common::into_raw_mut(vec);
+    *imports = svm_ffi::into_raw(ty, vec);
 
     svm_result_t::SVM_SUCCESS
 }
@@ -272,29 +289,49 @@ pub unsafe extern "C" fn svm_imports_alloc(imports: *mut *mut c_void, count: u32
 /// # Example
 ///
 /// ```rust
-/// use svm_types::WasmType;
 /// use svm_runtime_c_api::*;
 ///
-/// fn foo() {
+/// use svm_ffi::{svm_env_t, svm_func_callback_t, svm_byte_array};
+/// use svm_types::{WasmType, Type};
+///
+/// unsafe extern "C" fn host_func(
+///   env:     *mut svm_env_t,
+///   args:    *const svm_byte_array,
+///   results: *mut svm_byte_array
+/// ) -> *mut svm_byte_array {
 ///   // ...
+///   return std::ptr::null_mut()
 /// }
 ///
-/// // allocate one imports
+/// #[repr(C)]
+/// struct function_id(u32);
+///
+/// // allocate one import
 /// let mut imports = testing::imports_alloc(1);
 ///
-/// let import_name = String::from("foo").into();
-/// let params = Vec::<WasmType>::new();
-/// let returns = Vec::<WasmType>::new();
-/// let func_ptr = foo as *const std::ffi::c_void;
+/// let namespace_ty = Type::Str("import ns");
+/// let name_ty = Type::Str("import name");
+/// let params_ty = Type::Str("import params");
+/// let returns_ty = Type::Str("import returns");
+/// let host_env_ty = Type::Str("host env");
+///
+/// let namespace: svm_byte_array = (namespace_ty, String::from("env")).into();
+/// let import_name: svm_byte_array = (name_ty, String::from("foo")).into();
+/// let params: svm_byte_array = (params_ty, Vec::<WasmType>::new()).into();
+/// let returns: svm_byte_array = (returns_ty,Vec::<WasmType>::new()).into();
 /// let mut error = svm_byte_array::default();
+///
+/// let host_env = svm_ffi::into_raw(host_env_ty, function_id(0));
 ///
 /// let res = unsafe {
 ///   svm_import_func_new(
 ///     imports,
-///     import_name,
-///     func_ptr,
-///     params.into(),
-///     returns.into(),
+///     namespace.clone(),
+///     import_name.clone(),
+///     host_func,
+///     host_env,
+///     params.clone(),
+///     returns.clone(),
 ///     &mut error)
 /// };
 /// assert!(res.is_ok());
@@ -304,25 +341,27 @@ pub unsafe extern "C" fn svm_imports_alloc(imports: *mut *mut c_void, count: u32
 #[no_mangle]
 pub unsafe extern "C" fn svm_import_func_new(
     imports: *mut c_void,
+    namespace: svm_byte_array,
     import_name: svm_byte_array,
-    func_ptr: *const c_void,
+    func: svm_func_callback_t,
+    host_env: *const c_void,
     params: svm_byte_array,
     returns: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
-    let imports = helpers::cast_to_imports(imports);
+    let imports = svm_ffi::as_mut::<Vec<ExternImport>>(imports);
 
     assert!(imports.len() < imports.capacity());
 
-    let func_ptr = NonNull::new(func_ptr as *mut c_void);
-    if func_ptr.is_none() {
-        let s = String::from("`func_ptr` parameter must not be NULL");
+    let host_env = NonNull::new(host_env as *mut c_void);
+    if host_env.is_none() {
+        let s = String::from("`host_env` parameter must not be NULL");
         raw_error(s, error);
 
         return svm_result_t::SVM_FAILURE;
     }
 
-    let func_ptr: *const c_void = func_ptr.unwrap().as_ptr();
+    let host_env: *const c_void = host_env.unwrap().as_ptr();
 
     let params: Result<Vec<WasmType>, io::Error> = Vec::try_from(params);
     if let Err(e) = params {
@@ -342,12 +381,20 @@ pub unsafe extern "C" fn svm_import_func_new(
         return svm_result_t::SVM_FAILURE;
     }
 
-    let import = Import {
-        func_ptr,
-        name: import_name.unwrap(),
-        params: params.unwrap(),
-        returns: returns.unwrap(),
-    };
+    let namespace = String::try_from(namespace);
+    if namespace.is_err() {
+        raw_utf8_error(namespace, error);
+        return svm_result_t::SVM_FAILURE;
+    }
+
+    let import = ExternImport::new(
+        import_name.unwrap(),
+        namespace.unwrap(),
+        params.unwrap(),
+        returns.unwrap(),
+        func,
+        host_env,
+    );
 
     imports.push(import);
 
@@ -358,8 +405,8 @@ macro_rules! box_runtime {
     ($raw_runtime:expr, $runtime:expr) => {{
         let runtime_ptr = RuntimePtr::new(Box::new($runtime));
 
-        //  `svm_runtime_destroy` should be called later for freeing memory.
-        *$raw_runtime = svm_common::into_raw_mut(runtime_ptr);
+        // `svm_runtime_destroy` should be called later for freeing memory.
+        *$raw_runtime = RuntimePtr::into_raw(runtime_ptr);
 
         svm_result_t::SVM_SUCCESS
     }};
@@ -383,7 +430,7 @@ macro_rules! box_runtime {
 pub unsafe extern "C" fn svm_memory_state_kv_create(kv: *mut *mut c_void) -> svm_result_t {
     let state_kv = svm_runtime::testing::memory_state_kv_init();
 
-    *kv = svm_common::into_raw_mut(state_kv);
+    *kv = svm_ffi::into_raw(KV_TYPE, state_kv);
 
     svm_result_t::SVM_SUCCESS
 }
@@ -425,7 +472,7 @@ pub unsafe extern "C" fn svm_ffi_state_kv_create(
 
     let ffi_kv = Rc::new(RefCell::new(ffi_kv));
 
-    *state_kv = svm_common::into_raw_mut(ffi_kv);
+    *state_kv = svm_ffi::into_raw(KV_TYPE, ffi_kv);
 
     svm_result_t::SVM_SUCCESS
 }
@@ -448,9 +495,9 @@ pub unsafe extern "C" fn svm_ffi_state_kv_create(
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_state_kv_destroy(kv: *mut c_void) -> svm_result_t {
-    let kv: &mut Rc<RefCell<dyn StatefulKV>> = svm_common::from_raw_mut(kv);
+    let kv: &mut Rc<RefCell<dyn StatefulKV>> = svm_ffi::as_mut(kv);
 
-    let _ = Box::from_raw(kv as *mut _);
+    let _ = svm_ffi::from_raw(KV_TYPE, kv);
 
     svm_result_t::SVM_SUCCESS
 }
@@ -462,6 +509,8 @@ pub unsafe extern "C" fn svm_state_kv_destroy(kv: *mut c_void) -> svm_result_t {
 ///
 /// ```rust
 /// use svm_runtime_c_api::*;
+///
+/// use svm_ffi::svm_byte_array;
 ///
 /// let mut runtime = std::ptr::null_mut();
 /// let mut imports = testing::imports_alloc(0);
@@ -480,14 +529,14 @@ pub unsafe extern "C" fn svm_state_kv_destroy(kv: *mut c_void) -> svm_result_t {
 pub unsafe extern "C" fn svm_memory_runtime_create(
     runtime: *mut *mut c_void,
     state_kv: *mut c_void,
-    imports: *const c_void,
+    imports: *mut c_void,
     _error: *mut svm_byte_array,
 ) -> svm_result_t {
     debug!("`svm_memory_runtime_create` start");
 
-    let imports = helpers::cast_to_imports(imports);
-    let state_kv = svm_common::from_raw_mut(state_kv);
-    let mem_runtime = svm_runtime::testing::create_memory_runtime(state_kv, imports.to_vec());
+    let imports = svm_ffi::as_mut::<Vec<ExternImport>>(imports);
+    let state_kv = svm_ffi::as_mut(state_kv);
+    let mem_runtime = svm_runtime::testing::create_memory_runtime(state_kv, imports);
 
     let res = box_runtime!(runtime, mem_runtime);
 
@@ -504,8 +553,15 @@ pub unsafe extern "C" fn svm_memory_runtime_create(
 /// ```rust, no_run
 /// use svm_runtime_c_api::*;
 ///
+/// use svm_types::Type;
+/// use svm_ffi::svm_byte_array;
+///
 /// let mut runtime = std::ptr::null_mut();
-/// let path = String::from("path goes here").into();
+///
+/// let ty = Type::Str("path");
+/// let path = String::from("path goes here");
+
+/// let path: svm_byte_array = (ty, path).into();
 /// let mut imports = testing::imports_alloc(0);
 /// let mut error = svm_byte_array::default();
 ///
@@ -518,7 +574,7 @@ pub unsafe extern "C" fn svm_memory_runtime_create(
 pub unsafe extern "C" fn svm_runtime_create(
     runtime: *mut *mut c_void,
     kv_path: svm_byte_array,
-    imports: *const c_void,
+    imports: *mut c_void,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
     debug!("`svm_runtime_create` start");
@@ -531,13 +587,13 @@ pub unsafe extern "C" fn svm_runtime_create(
     }
 
     let kv_path = kv_path.unwrap();
-    let imports = helpers::cast_to_imports(imports);
+    let imports = svm_ffi::as_mut::<Vec<ExternImport>>(imports);
 
     let rocksdb_runtime = svm_runtime::create_rocksdb_runtime::<
         &Path,
         DefaultSerializerTypes,
         DefaultGasEstimator,
-    >(Path::new(&kv_path), imports.to_vec());
+    >(Path::new(&kv_path), imports);
 
     let res = box_runtime!(runtime, rocksdb_runtime);
 
@@ -552,7 +608,9 @@ pub unsafe extern "C" fn svm_runtime_create(
 ///
 /// ```rust, no_run
 /// use svm_runtime_c_api::*;
-/// use svm_types::Address;
+///
+/// use svm_ffi::svm_byte_array;
+/// use svm_types::{Address, Type};
 ///
 /// // allocate imports
 /// let mut imports = testing::imports_alloc(0);
@@ -569,7 +627,8 @@ pub unsafe extern "C" fn svm_runtime_create(
 ///
 /// // deploy template
 /// let mut receipt = svm_byte_array::default();
-/// let author: svm_byte_array = Address::of("@author").into();
+/// let ty = Type::Str("author");
+/// let author: svm_byte_array = (ty, Address::of("@author")).into();
 /// let template_bytes = svm_byte_array::default();
 /// let gas_metering = false;
 /// let gas_limit = 0;
@@ -601,7 +660,7 @@ pub unsafe extern "C" fn svm_deploy_template(
 ) -> svm_result_t {
     debug!("`svm_deploy_template` start`");
 
-    let runtime = helpers::cast_to_runtime_mut(runtime);
+    let runtime: &mut Box<dyn Runtime> = runtime.into();
 
     let author: Result<Address, String> = Address::try_from(author);
 
@@ -618,9 +677,9 @@ pub unsafe extern "C" fn svm_deploy_template(
 
     // returning encoded `TemplateReceipt` as `svm_byte_array`.
     // should call later `svm_receipt_destroy`
-    vec_to_svm_byte_array!(receipt, receipt_bytes);
+    vec_to_svm_byte_array!(DEPLOY_TEMPLATE_RECEIPT_TYPE, receipt, receipt_bytes);
 
-    debug!("`svm_exec_app` returns `SVM_SUCCESS`");
+    debug!("`svm_deploy_template` returns `SVM_SUCCESS`");
 
     svm_result_t::SVM_SUCCESS
 }
@@ -631,7 +690,9 @@ pub unsafe extern "C" fn svm_deploy_template(
 ///
 /// ```rust, no_run
 /// use svm_runtime_c_api::*;
-/// use svm_types::Address;
+///
+/// use svm_ffi::svm_byte_array;
+/// use svm_types::{Address, Type};
 ///
 /// // allocate imports
 /// let mut imports = testing::imports_alloc(0);
@@ -650,7 +711,9 @@ pub unsafe extern "C" fn svm_deploy_template(
 ///
 /// let mut app_receipt = svm_byte_array::default();
 /// let mut init_state = svm_byte_array::default();
-/// let creator = Address::of("@creator").into();
+///
+/// let spawner_ty = Type::Str("spawner");
+/// let spawner: svm_byte_array = (spawner_ty, Address::of("@spawner")).into();
 /// let app_bytes = svm_byte_array::default();
 /// let gas_metering = false;
 /// let gas_limit = 0;
@@ -660,7 +723,7 @@ pub unsafe extern "C" fn svm_deploy_template(
 ///     &mut app_receipt,
 ///     runtime,
 ///     app_bytes,
-///     creator,
+///     spawner,
 ///     gas_metering,
 ///     gas_limit,
 ///     &mut error)
@@ -673,30 +736,30 @@ pub unsafe extern "C" fn svm_spawn_app(
     receipt: *mut svm_byte_array,
     runtime: *mut c_void,
     bytes: svm_byte_array,
-    creator: svm_byte_array,
+    spawner: svm_byte_array,
     gas_metering: bool,
     gas_limit: u64,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
     debug!("`svm_spawn_app` start");
 
-    let runtime = helpers::cast_to_runtime_mut(runtime);
-    let creator: Result<Address, String> = Address::try_from(creator);
+    let runtime: &mut Box<dyn Runtime> = runtime.into();
+    let spawner: Result<Address, String> = Address::try_from(spawner);
 
-    if let Err(s) = creator {
+    if let Err(s) = spawner {
         raw_error(s, error);
         return svm_result_t::SVM_FAILURE;
     }
 
     let gas_limit = maybe_gas!(gas_metering, gas_limit);
 
-    let rust_receipt = runtime.spawn_app(bytes.into(), &creator.unwrap().into(), gas_limit);
+    let rust_receipt = runtime.spawn_app(bytes.into(), &spawner.unwrap().into(), gas_limit);
 
     let mut receipt_bytes = encode_app_receipt(&rust_receipt);
 
     // returning encoded `AppReceipt` as `svm_byte_array`.
     // should call later `svm_receipt_destroy`
-    vec_to_svm_byte_array!(receipt, receipt_bytes);
+    vec_to_svm_byte_array!(SPAWN_APP_RECEIPT_TYPE, receipt, receipt_bytes);
 
     debug!("`svm_spawn_app` returns `SVM_SUCCESS`");
 
@@ -712,7 +775,9 @@ pub unsafe extern "C" fn svm_spawn_app(
 /// use std::ffi::c_void;
 ///
 /// use svm_runtime_c_api::*;
-/// use svm_types::{State, Address};
+///
+/// use svm_types::{State, Address, Type};
+/// use svm_ffi::svm_byte_array;
 ///
 /// // allocate imports
 /// let mut imports = testing::imports_alloc(0);
@@ -731,7 +796,8 @@ pub unsafe extern "C" fn svm_spawn_app(
 ///
 /// let mut exec_receipt = svm_byte_array::default();
 /// let bytes = svm_byte_array::default();
-/// let state = State::empty().into();
+/// let ty = Type::of::<State>();
+/// let state = (ty, State::empty()).into();
 /// let gas_metering = false;
 /// let gas_limit = 0;
 ///
@@ -760,7 +826,7 @@ pub unsafe extern "C" fn svm_exec_app(
 ) -> svm_result_t {
     debug!("`svm_exec_app` start");
 
-    let runtime = helpers::cast_to_runtime_mut(runtime);
+    let runtime: &mut Box<dyn Runtime> = runtime.into();
     let state: Result<State, String> = State::try_from(state);
 
     if let Err(msg) = state {
@@ -775,11 +841,78 @@ pub unsafe extern "C" fn svm_exec_app(
 
     // returning encoded `ExecReceipt` as `svm_byte_array`.
     // should call later `svm_receipt_destroy`
-    vec_to_svm_byte_array!(receipt, receipt_bytes);
+    vec_to_svm_byte_array!(EXEC_APP_RECEIPT_TYPE, receipt, receipt_bytes);
 
     debug!("`svm_exec_app` returns `SVM_SUCCESS`");
 
     svm_result_t::SVM_SUCCESS
+}
+
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_total_live_resources() -> i32 {
+    tracking::total_live()
+}
+
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_resource_iter_new() -> *mut c_void {
+    let ty = svm_ffi::SVM_RESOURCES_ITER_TYPE;
+    let snapshot = tracking::take_snapshot();
+
+    svm_ffi::into_raw(ty, snapshot)
+}
+
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_resource_iter_destroy(iter: *mut c_void) {
+    let ty = svm_ffi::SVM_RESOURCES_ITER_TYPE;
+    let _ = svm_ffi::from_raw(ty, iter);
+}
+
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_resource_iter_next(iter: *mut c_void) -> *mut svm_resource_t {
+    let iter = svm_ffi::as_mut::<svm_resource_iter_t>(iter);
+
+    match iter.next() {
+        None => std::ptr::null_mut(),
+        Some(resource) => {
+            let ty = svm_ffi::SVM_RESOURCE_TYPE;
+            let ptr = svm_ffi::into_raw(ty, resource);
+
+            svm_ffi::as_mut::<svm_resource_t>(ptr)
+        }
+    }
+}
+
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_resource_destroy(resource: *mut svm_resource_t) {
+    let _ = svm_ffi::from_raw(svm_ffi::SVM_RESOURCE_TYPE, resource);
+}
+
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_resource_type_name_resolve(ty: usize) -> *mut svm_byte_array {
+    match tracking::interned_type_rev(ty) {
+        Some(ty) => {
+            let ty = format!("{}", ty);
+            let ty: svm_byte_array = (svm_ffi::SVM_RESOURCE_NAME_TYPE, ty).into();
+
+            let ptr = svm_ffi::into_raw(svm_ffi::SVM_RESOURCE_NAME_PTR_TYPE, ty);
+            ptr as _
+        }
+        None => std::ptr::null_mut(),
+    }
+}
+
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_resource_type_name_destroy(ptr: *mut svm_byte_array) {
+    let ptr = svm_ffi::from_raw(svm_ffi::SVM_RESOURCE_NAME_PTR_TYPE, ptr);
+
+    svm_byte_array_destroy(ptr)
 }
 
 /// Destroys the Runtime and its associated resources.
@@ -788,7 +921,9 @@ pub unsafe extern "C" fn svm_exec_app(
 ///
 /// ```rust, no_run
 /// use svm_runtime_c_api::*;
+///
 /// use svm_types::Address;
+/// use svm_ffi::svm_byte_array;
 ///
 /// // allocate imports
 /// let mut imports = testing::imports_alloc(0);
@@ -811,9 +946,7 @@ pub unsafe extern "C" fn svm_exec_app(
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_runtime_destroy(runtime: *mut c_void) {
-    debug!("`svm_runtime_destroy`");
-
-    let _ = Box::from_raw(runtime as *mut RuntimePtr);
+    let _ = RuntimePtr::from_raw(runtime);
 }
 
 /// Frees allocated imports resources.
@@ -834,8 +967,11 @@ pub unsafe extern "C" fn svm_runtime_destroy(runtime: *mut c_void) {
 ///
 #[must_use]
 #[no_mangle]
-pub unsafe extern "C" fn svm_imports_destroy(imports: *const c_void) {
-    let _ = Box::from_raw(imports as *mut Vec<Import>);
+pub unsafe extern "C" fn svm_imports_destroy(imports: *mut c_void) {
+    let imports = svm_ffi::as_mut::<Vec<ExternImport>>(imports);
+    let ty = Type::of::<Vec<ExternImport>>();
+
+    let _ = svm_ffi::from_raw::<Vec<ExternImport>>(ty, imports);
 }
 
 /// Frees `svm_byte_array`
@@ -845,6 +981,8 @@ pub unsafe extern "C" fn svm_imports_destroy(imports: *const c_void) {
 /// ```rust
 /// use svm_runtime_c_api::*;
 ///
+/// use svm_ffi::svm_byte_array;
+///
 /// let bytes = svm_byte_array::default();
 /// unsafe { svm_byte_array_destroy(bytes); }
 /// ```
@@ -852,11 +990,21 @@ pub unsafe extern "C" fn svm_imports_destroy(imports: *const c_void) {
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_byte_array_destroy(bytes: svm_byte_array) {
-    let ptr = bytes.bytes as *mut u8;
-    let length = bytes.length as usize;
-    let capacity = bytes.capacity as usize;
+    bytes.destroy()
+}
 
-    let _ = Vec::from_raw_parts(ptr, length, capacity);
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_wasm_error_create(msg: svm_byte_array) -> *mut svm_byte_array {
+    let msg: &[u8] = msg.into();
+    let bytes = msg.to_vec();
+
+    let err: svm_byte_array = (svm_ffi::SVM_WASM_ERROR_TYPE, bytes).into();
+
+    let ty = svm_ffi::SVM_WASM_ERROR_TYPE_PTR;
+    let err = svm_ffi::into_raw(ty, err);
+
+    svm_ffi::as_mut(err)
 }
 
 /// Given a raw `deploy-template` transaction (the `bytes` parameter),
@@ -875,7 +1023,7 @@ pub unsafe extern "C" fn svm_estimate_deploy_template(
     bytes: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
-    let runtime = helpers::cast_to_runtime_mut(runtime);
+    let runtime: &mut Box<dyn Runtime> = runtime.into();
 
     match runtime.estimate_deploy_template(bytes.into()) {
         Ok(est) => {
@@ -905,7 +1053,7 @@ pub unsafe extern "C" fn svm_estimate_spawn_app(
     bytes: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
-    let runtime = helpers::cast_to_runtime_mut(runtime);
+    let runtime: &mut Box<dyn Runtime> = runtime.into();
 
     match runtime.estimate_spawn_app(bytes.into()) {
         Ok(est) => {
@@ -935,7 +1083,7 @@ pub unsafe extern "C" fn svm_estimate_exec_app(
     bytes: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
-    let runtime = helpers::cast_to_runtime_mut(runtime);
+    let runtime: &mut Box<dyn Runtime> = runtime.into();
 
     match runtime.estimate_exec_app(bytes.into()) {
         Ok(est) => {
@@ -979,7 +1127,7 @@ pub unsafe extern "C" fn svm_encode_app_template(
         .with_data(&data.unwrap())
         .build();
 
-    vec_to_svm_byte_array!(app_template, bytes);
+    vec_to_svm_byte_array!(ENCODE_DEPLOY_TEMPLATE_TYPE, app_template, bytes);
 
     svm_result_t::SVM_SUCCESS
 }
@@ -1016,7 +1164,7 @@ pub unsafe extern "C" fn svm_encode_spawn_app(
         .with_calldata(&calldata)
         .build();
 
-    vec_to_svm_byte_array!(spawn_app, bytes);
+    vec_to_svm_byte_array!(ENCODE_SPAWN_APP_TYPE, spawn_app, bytes);
 
     svm_result_t::SVM_SUCCESS
 }
@@ -1052,7 +1200,7 @@ pub unsafe extern "C" fn svm_encode_app_tx(
         .with_calldata(&calldata)
         .build();
 
-    vec_to_svm_byte_array!(app_tx, bytes);
+    vec_to_svm_byte_array!(ENCODE_EXEC_APP_TYPE, app_tx, bytes);
 
     svm_result_t::SVM_SUCCESS
 }

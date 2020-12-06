@@ -29,7 +29,7 @@ name = "svm-abi-decoder"
 version = "0.0.0"
 dependencies = [
  "svm-abi-layout",
- "svm-sdk",
+ "svm-sdk-types",
 ]
 
 [[package]]
@@ -37,7 +37,7 @@ name = "svm-abi-encoder"
 version = "0.0.0"
 dependencies = [
  "svm-abi-layout",
- "svm-sdk",
+ "svm-sdk-types",
 ]
 
 [[package]]
@@ -48,8 +48,6 @@ version = "0.0.0"
 name = "svm-runtime-examples-calldata"
 version = "0.1.0"
 dependencies = [
- "svm-abi-decoder",
- "svm-abi-encoder",
  "svm-sdk",
  "wee_alloc",
 ]
@@ -59,7 +57,40 @@ name = "svm-sdk"
 version = "0.0.0"
 dependencies = [
  "lazy_static",
+ "svm-abi-decoder",
+ "svm-abi-encoder",
+ "svm-sdk-alloc",
+ "svm-sdk-host",
+ "svm-sdk-storage",
+ "svm-sdk-types",
 ]
+
+[[package]]
+name = "svm-sdk-alloc"
+version = "0.0.0"
+
+[[package]]
+name = "svm-sdk-host"
+version = "0.0.0"
+dependencies = [
+ "svm-abi-decoder",
+ "svm-abi-encoder",
+ "svm-sdk-alloc",
+ "svm-sdk-types",
+]
+
+[[package]]
+name = "svm-sdk-storage"
+version = "0.0.0"
+dependencies = [
+ "lazy_static",
+ "svm-sdk-alloc",
+ "svm-sdk-types",
+]
+
+[[package]]
+name = "svm-sdk-types"
+version = "0.0.0"
 
 [[package]]
 name = "wee_alloc"

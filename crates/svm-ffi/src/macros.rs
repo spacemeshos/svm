@@ -4,14 +4,17 @@
 /// ```rust
 /// use std::convert::TryFrom;
 ///
-/// use svm_types::Address;
-/// use svm_runtime_c_api::svm_byte_array;
+/// use svm_types::{Address, Type};
+/// use svm_ffi::svm_byte_array;
 ///
-/// let bytes: svm_byte_array = Address::of("aaaa").into();
+/// let ty = Type::Str("@someone address");
+/// let addr = Address::of("@someone");
+///
+/// let bytes: svm_byte_array = (ty, addr).into();
 /// assert_eq!(Address::len(), bytes.length as usize);
 ///
 /// let res: Result<Address, String> = Address::try_from(bytes);
-/// assert_eq!(Address::of("aaaa"), res.unwrap());
+/// assert_eq!(Address::of("@someone"), res.unwrap());
 /// ```
 ///
 #[macro_export]
@@ -44,10 +47,13 @@ macro_rules! impl_from_svm_byte_array {
 /// ```rust
 /// use std::convert::TryFrom;
 ///
-/// use svm_types::Address;
-/// use svm_runtime_c_api::svm_byte_array;
+/// use svm_types::{Address, Type};
+/// use svm_ffi::svm_byte_array;
+
+/// let ty = Type::Str("@someone address");
+/// let addr = Address::of("@someone");
 ///
-/// let bytes: svm_byte_array = Address::of("@someone").into();
+/// let bytes: svm_byte_array = (ty, addr).into();
 /// assert_eq!(Address::len(), bytes.length as usize);
 ///
 /// let res: Result<Address, String> = Address::try_from(bytes);
@@ -57,9 +63,10 @@ macro_rules! impl_from_svm_byte_array {
 #[macro_export]
 macro_rules! impl_into_svm_byte_array {
     ($struct:ident) => {
-        impl From<&$struct> for $crate::svm_byte_array {
-            fn from(value: &$struct) -> Self {
+        impl From<(svm_types::Type, &$struct)> for $crate::svm_byte_array {
+            fn from((ty, value): (svm_types::Type, &$struct)) -> Self {
                 // `bytes` is a copy of the underlying bytes.
+                // and it is of type array (i.e: `[u8; N])`.
                 let bytes = value.bytes();
 
                 debug_assert_eq!($struct::len(), bytes.len());
@@ -69,17 +76,22 @@ macro_rules! impl_into_svm_byte_array {
                 let bytes: &[u8] = Box::leak(Box::new(bytes));
                 let length = bytes.len() as u32;
 
+                crate::tracking::increment_live(ty);
+
+                let type_id = crate::tracking::interned_type(ty);
+
                 $crate::svm_byte_array {
                     bytes: bytes.as_ptr(),
                     length,
                     capacity: length,
+                    type_id,
                 }
             }
         }
 
-        impl From<$struct> for $crate::svm_byte_array {
-            fn from(value: $struct) -> Self {
-                (&value).into()
+        impl From<(svm_types::Type, $struct)> for $crate::svm_byte_array {
+            fn from((ty, value): (svm_types::Type, $struct)) -> Self {
+                (ty, (&value)).into()
             }
         }
     };

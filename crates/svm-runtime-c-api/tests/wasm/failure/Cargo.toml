@@ -1,5 +1,5 @@
 [package]
-name = "svm-runtime-examples-counter"
+name = "svm-runtime-examples-failure"
 version = "0.1.0"
 authors = ["Yaron Wittenstein <yaron.wittenstein@gmail.com>"]
 edition = "2018"

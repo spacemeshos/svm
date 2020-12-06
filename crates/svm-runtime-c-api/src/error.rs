@@ -1,9 +1,9 @@
 use std::io;
 use std::string::FromUtf8Error;
 
-use crate::svm_byte_array;
-
+use svm_ffi::svm_byte_array;
 use svm_runtime::error::ValidateError;
+use svm_types::Type;
 
 pub(crate) unsafe fn raw_validate_error(err: &ValidateError, raw_err: *mut svm_byte_array) {
     let s = format!("{}", err);
@@ -25,10 +25,10 @@ pub(crate) unsafe fn raw_utf8_error<T>(
 }
 
 pub(crate) unsafe fn raw_error(s: String, raw_err: *mut svm_byte_array) {
-    let s = Box::leak(Box::new(s));
+    let ty = Type::Str("runtime-c-api-error");
+    let err: svm_byte_array = (ty, s).into();
 
     let raw_err = &mut *raw_err;
 
-    raw_err.bytes = s.as_ptr();
-    raw_err.length = s.as_bytes().len() as u32;
+    *raw_err = err;
 }

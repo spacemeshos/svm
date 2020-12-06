@@ -2,6 +2,7 @@
 #![allow(unused)]
 #![allow(dead_code)]
 #![allow(unreachable_code)]
+#![feature(vec_into_raw_parts)]
 
 //! `SVM-runtime` crate is the glue between `SVM` to a Wasm Runtime
 //!
@@ -10,7 +11,7 @@
 
 /// Implements the most high-level API of `SVM`.
 mod runtime;
-pub use runtime::{create_rocksdb_runtime, Config, DefaultRuntime, Runtime};
+pub use runtime::{create_rocksdb_runtime, Config, DefaultRuntime, Runtime, RuntimePtr};
 
 /// Gas estimation and metering.
 pub mod gas;
@@ -19,7 +20,7 @@ mod import;
 mod storage;
 
 pub mod env;
-pub use import::Import;
+pub use import::ExternImport;
 
 /// Implements `Context`. Used for managing data of running `SVM` apps.
 mod context;

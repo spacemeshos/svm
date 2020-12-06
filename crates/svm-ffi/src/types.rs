@@ -1,7 +1,7 @@
 use std::convert::TryFrom;
 use std::io::{self, Cursor};
 
-use svm_types::WasmType;
+use svm_types::{Type, WasmType};
 
 use byteorder::{ReadBytesExt, WriteBytesExt};
 
@@ -22,31 +22,33 @@ use crate::svm_byte_array;
 ///
 /// Note: the number of types equals the buffer length (one byte per-type).
 ///
-/// +---------------------------------+
+/// +-----------+--------+------------+
 /// |  type #1  |  . . . |  type #N   |
 /// |  (1 byte) |        |  (1 byte)  |
-/// +----------+----------------------+
+/// +-----------+--------+------------+
 ///
 
 /// Converts `Vec<WasmType>` into `svm_byte_array`
 ///
-/// # Examples
+/// # Example
 ///
 /// ````
 /// use std::io;
 /// use std::convert::TryFrom;
 ///
-/// use svm_types::WasmType;
-/// use svm_runtime_c_api::svm_byte_array;
+/// use svm_types::{WasmType, Type};
+/// use svm_ffi::svm_byte_array;
 ///
+/// let ty = Type::of::<Vec<WasmType>>();
 /// let types = vec![WasmType::I32, WasmType::I64, WasmType::I32];
-/// let bytes: svm_byte_array = types.into();
+/// let bytes: svm_byte_array = (ty, types).into();
 ///
 /// let types: Result<Vec<WasmType>, io::Error> = Vec::try_from(bytes);
 /// assert_eq!(types.unwrap(), vec![WasmType::I32, WasmType::I64, WasmType::I32]);
 /// ````
-impl From<&[WasmType]> for svm_byte_array {
-    fn from(types: &[WasmType]) -> svm_byte_array {
+///
+impl From<(Type, &[WasmType])> for svm_byte_array {
+    fn from((ty, types): (Type, &[WasmType])) -> svm_byte_array {
         let ntypes = types.len();
 
         assert!(ntypes <= std::u8::MAX as usize);
@@ -58,21 +60,21 @@ impl From<&[WasmType]> for svm_byte_array {
             bytes.write_u8(ty).unwrap();
         }
 
-        bytes.into()
+        (ty, bytes).into()
     }
 }
 
-impl From<Vec<WasmType>> for svm_byte_array {
+impl From<(Type, Vec<WasmType>)> for svm_byte_array {
     #[inline]
-    fn from(types: Vec<WasmType>) -> svm_byte_array {
-        (&types[..]).into()
+    fn from((ty, types): (Type, Vec<WasmType>)) -> svm_byte_array {
+        (ty, &types[..]).into()
     }
 }
 
-impl From<&Vec<WasmType>> for svm_byte_array {
+impl From<(Type, &Vec<WasmType>)> for svm_byte_array {
     #[inline]
-    fn from(types: &Vec<WasmType>) -> svm_byte_array {
-        (&types[..]).into()
+    fn from((ty, types): (Type, &Vec<WasmType>)) -> svm_byte_array {
+        (ty, &types[..]).into()
     }
 }
 
@@ -105,7 +107,8 @@ mod tests {
 
     #[test]
     fn empty_vec_types_to_svm_byte_array() {
-        let bytes: svm_byte_array = Vec::<WasmType>::new().into();
+        let ty = Type::Str("empty vec");
+        let bytes: svm_byte_array = (ty, Vec::<WasmType>::new()).into();
 
         let slice: &[u8] = bytes.into();
         assert_eq!(slice.len(), 0);
@@ -117,6 +120,7 @@ mod tests {
             bytes: std::ptr::null(),
             length: 0,
             capacity: 0,
+            type_id: 0,
         };
 
         let res: Result<Vec<WasmType>, io::Error> = Vec::try_from(bytes);
