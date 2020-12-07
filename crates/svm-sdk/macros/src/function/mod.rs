@@ -220,7 +220,14 @@ mod test {
             let mut func = Function::new(raw_func);
 
             let res = expand(&mut func);
-            assert!(res.is_ok());
+
+            if res.is_err() {
+                let err = res.unwrap_err();
+                panic!(err);
+            }
+            else {
+                assert!(res.is_ok());
+            }
         }};
     }
 

@@ -45,8 +45,9 @@ pub fn expand(func: &Function, attrs: &[FuncAttr]) -> Result<TokenStream> {
 fn expand_prologue(func: &Function) -> Result<TokenStream> {
     let includes = crate::function::host_includes();
 
-    let init = quote! {
+    let calldata = quote! {
         let bytes = Node.get_calldata();
+
         let mut calldata = svm_sdk::CallData::new(bytes);
     };
 
@@ -68,7 +69,7 @@ fn expand_prologue(func: &Function) -> Result<TokenStream> {
     let ast = quote! {
         #includes
 
-        #init
+        #calldata
 
         #(#assigns)*
     }
@@ -86,10 +87,12 @@ fn expand_epilogue() -> Result<TokenStream> {
 
             use svm_sdk::traits::Encoder;
 
-            let mut bytes = Vec::new();
+            extern crate alloc;
 
-            let rets = __inner__();
-            rets.encode(&mut bytes);
+            let mut bytes = alloc::vec::Vec::new();
+
+            let returns = __inner__();
+            returns.encode(&mut bytes);
 
             Node.set_returndata(&bytes);
         }
@@ -159,7 +162,7 @@ fn validate_sig(func: &Function) -> Result<()> {
 
 fn validate_arg_pat(pat: &Box<Pat>) -> Result<()> {
     match **pat {
-        Pat::Type(..) => Ok(()),
+        Pat::Ident(..) => Ok(()),
         _ => {
             let span = Span::call_site();
 
