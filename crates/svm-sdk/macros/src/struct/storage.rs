@@ -2,8 +2,8 @@ use proc_macro2::{Ident, Span, TokenStream};
 
 use quote::{quote, ToTokens};
 use syn::{
-    Error, Expr, ExprLit, Field, Fields, Lit, Path, PathArguments, Result, Type, TypeArray,
-    TypePath,
+    Error, Expr, ExprLit, Field, Fields, ItemStruct, Lit, Path, PathArguments, Result, Type,
+    TypeArray, TypePath,
 };
 
 use super::{attr, Var, VarId};

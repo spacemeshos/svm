@@ -44,7 +44,7 @@ impl Function {
     }
 }
 
-fn expand(func: &Function) -> Result<TokenStream> {
+pub fn expand(func: &Function) -> Result<TokenStream> {
     let attrs = attr::func_attrs(func)?;
 
     validate_attrs(&attrs)?;

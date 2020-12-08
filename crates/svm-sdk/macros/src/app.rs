@@ -6,22 +6,35 @@ use syn::{
     ItemType, ItemUse, Result, 
 };
 
-use crate::Function;
+use crate::{Struct, Function};
+use super::{r#struct, function};
 
 pub struct App {
     pub name: Ident,
     pub functions: Vec<Function>,
-    pub structs: Vec<ItemStruct>,
+    pub structs: Vec<Struct>,
     pub imports: Vec<ItemUse>,
     pub aliases: Vec<ItemType>,
 }
 
 pub fn expand(_args: TokenStream, input: TokenStream) -> Result<TokenStream> {
     let module = syn::parse2(input)?;
-    let _module = parse_app(module)?;
+    let app = parse_app(module)?;
+
+    let imports = &app.imports;
+    let aliases = &app.aliases;
+
+    let structs = expand_structs(&app)?;
+    let functions = expand_functions(&app)?;
 
     let ast = quote! {
-        //
+        #(#imports)*
+
+        #(#aliases)*
+
+        #structs
+
+        #functions
     };
 
     Ok(ast)
@@ -46,7 +59,10 @@ pub fn parse_app(mut raw_app: ItemMod) -> Result<App> {
                 let func = Function::new(item);
                 functions.push(func);
             }
-            Item::Struct(item) => structs.push(item),
+            Item::Struct(item) => {
+                let strukt = Struct::new(item);
+                structs.push(strukt);
+            }
             Item::Use(item) => imports.push(item),
             Item::Type(item) => aliases.push(item),
             Item::Const(..) => {
@@ -115,6 +131,38 @@ pub fn parse_app(mut raw_app: ItemMod) -> Result<App> {
     };
 
     Ok(app)
+}
+
+pub fn expand_structs(app: &App) -> Result<TokenStream> {
+    let mut structs = Vec::new();
+
+    for strukt in &app.structs {
+        let strukt = r#struct::expand(strukt)?;
+
+        structs.push(strukt);
+    }
+
+    let ast = quote! {
+        #(#structs)*
+    };
+
+    Ok(ast)
+}
+
+pub fn expand_functions(app: &App) -> Result<TokenStream> {
+    let mut funcs = Vec::new();
+
+    for func in &app.functions {
+        let func = function::expand(func)?;
+        
+        funcs.push(func);
+    } 
+
+    let ast = quote! {
+        #(#funcs)*;
+    };
+
+    Ok(ast)
 }
 
 #[cfg(test)]

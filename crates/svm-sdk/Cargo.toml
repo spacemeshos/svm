@@ -18,3 +18,11 @@ svm-sdk-host = { path = "host" }
 svm-sdk-storage = { path = "storage" }
 svm-abi-encoder = { path = "../svm-abi/encoder" }
 svm-abi-decoder = { path = "../svm-abi/decoder" }
+svm-sdk-macros = { path = "macros" }
+
+[[test]]
+name = "tests"
+path = "tests/storage.rs"
+
+[dev-dependencies]
+trybuild = { version = "1.0", features = ["diff"] }

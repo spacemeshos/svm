@@ -21,8 +21,11 @@ pub use log::log;
 pub mod ensure;
 
 use svm_sdk_alloc;
+use svm_sdk_macros;
 use svm_sdk_storage;
 use svm_sdk_types;
+
+pub use svm_sdk_macros::app;
 
 pub use svm_sdk_alloc::{alloc, Ptr};
 
