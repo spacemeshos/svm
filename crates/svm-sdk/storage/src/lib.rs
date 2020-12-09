@@ -15,10 +15,13 @@ mod ext;
 mod mock;
 mod traits;
 
-#[cfg(ext)]
+#[cfg(not(any(feature = "ffi", feature = "mock")))]
+compile_error!("must have at least one feature flag turned-on (`ffi` or `mock`)");
+
+#[cfg(feature = "ffi")]
 pub use ext::ExtStorage;
 
-#[cfg(mock)]
+#[cfg(feature = "mock")]
 pub use mock::MockStorage;
 
 pub use traits::Storage;

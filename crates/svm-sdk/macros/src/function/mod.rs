@@ -74,10 +74,10 @@ pub fn host_includes() -> TokenStream {
     quote! {
         use svm_sdk::traits::Host;
 
-        #[cfg(test)]
+        #[cfg(feature = "mock")]
         use svm_sdk::host::MockHost as Node;
 
-        #[cfg(not(test))]
+        #[cfg(feature = "ffi")]
         use svm_sdk::host::ExtHost as Node;
     }
 }

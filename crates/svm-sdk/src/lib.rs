@@ -31,11 +31,17 @@ pub use svm_sdk_alloc::{alloc, Ptr};
 
 pub use svm_abi_decoder::{CallData, DecodeError, ReturnData};
 
+#[cfg(not(any(feature = "ffi", feature = "mock")))]
+compile_error!("must have at least one feature flag turned-on (`ffi` or `mock`)");
+
+#[cfg(all(feature = "ffi", feature = "mock"))]
+compile_error!("cannot have both feature-flags `ffi` and `mock` turned-on");
+
 pub mod host {
-    #[cfg(ffi)]
+    #[cfg(feature = "ffi")]
     pub use svm_sdk_host::ExtHost;
 
-    #[cfg(mock)]
+    #[cfg(feature = "mock")]
     pub use svm_sdk_host::MockHost;
 }
 
@@ -46,10 +52,10 @@ pub mod traits {
 }
 
 pub mod storage {
-    #[cfg(ffi)]
+    #[cfg(feature = "ffi")]
     pub use svm_sdk_storage::ExtStorage;
 
-    #[cfg(mock)]
+    #[cfg(feature = "mock")]
     pub use svm_sdk_storage::MockStorage;
 
     pub mod ops {

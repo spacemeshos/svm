@@ -438,16 +438,13 @@ fn setter_ident(var_name: &Ident) -> Ident {
 
 fn include_storage_ast() -> TokenStream {
     quote! {
-        cfg_if::cfg_if! {
-            if #[cfg(test)] {
-                // #[cfg(test)]
-                use svm_sdk::storage::MockStorage as StorageImpl;
-            }
-            else {
-                // #[cfg(not(test))]
-                use svm_sdk::storage::ExtStorage as StorageImpl;
-            }
-        }
+        use svm_sdk::traits::Storage;
+
+        #[cfg(feature = "mock")]
+        use svm_sdk::storage::MockStorage as StorageImpl;
+
+        #[cfg(feature = "ffi")]
+        use svm_sdk::storage::ExtStorage as StorageImpl;
     }
 }
 
