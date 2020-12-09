@@ -1092,6 +1092,7 @@ dependencies = [
  "svm-sdk-host",
  "svm-sdk-macros",
  "svm-sdk-storage",
+ "svm-sdk-tests",
  "svm-sdk-types",
  "svm-storage",
  "svm-types",
@@ -1272,7 +1273,6 @@ dependencies = [
 name = "svm-sdk"
 version = "0.0.0"
 dependencies = [
- "cfg-if 1.0.0",
  "lazy_static",
  "svm-abi-decoder",
  "svm-abi-encoder",
@@ -1281,7 +1281,6 @@ dependencies = [
  "svm-sdk-macros",
  "svm-sdk-storage",
  "svm-sdk-types",
- "trybuild",
 ]
 
 [[package]]
@@ -1325,6 +1324,15 @@ dependencies = [
  "lazy_static",
  "svm-sdk-alloc",
  "svm-sdk-types",
+]
+
+[[package]]
+name = "svm-sdk-tests"
+version = "0.0.0"
+dependencies = [
+ "cfg-if 1.0.0",
+ "svm-sdk",
+ "trybuild",
 ]
 
 [[package]]

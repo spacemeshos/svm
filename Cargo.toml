@@ -49,6 +49,7 @@ svm-sdk-storage = { path = "crates/svm-sdk/storage" }
 svm-sdk-host = { path = "crates/svm-sdk/host" }
 svm-sdk-macros = { path = "crates/svm-sdk/macros" }
 svm-sdk = { path = "crates/svm-sdk" }
+svm-sdk-tests = { path = "crates/svm-sdk-tests" }
 svm-nibble = { path = "crates/svm-nibble" }
 svm-codec = { path = "crates/svm-codec" }
 svm-layout = { path = "crates/svm-layout" }
@@ -82,6 +83,7 @@ members = [
   "crates/svm-sdk/host",
   "crates/svm-sdk/macros",
   "crates/svm-sdk",
+  "crates/svm-sdk-tests",
   "crates/svm-kv",
   "crates/svm-layout",
   "crates/svm-storage",
