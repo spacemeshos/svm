@@ -19,3 +19,8 @@ svm-sdk-storage = { path = "storage" }
 svm-abi-encoder = { path = "../svm-abi/encoder" }
 svm-abi-decoder = { path = "../svm-abi/decoder" }
 svm-sdk-macros = { path = "macros" }
+
+[features]
+default = ["mock", "ffi"]
+mock = ["svm-sdk-host/mock", "svm-sdk-storage/mock"]
+ffi = ["svm-sdk-host/ffi", "svm-sdk-storage/ffi"]

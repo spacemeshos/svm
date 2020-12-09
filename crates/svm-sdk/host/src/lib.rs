@@ -17,5 +17,8 @@ pub mod traits;
 mod ext;
 mod mock;
 
+#[cfg(ffi)]
 pub use ext::ExtHost;
+
+#[cfg(mock)]
 pub use mock::MockHost;

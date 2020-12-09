@@ -16,14 +16,17 @@ cfg_if! {
             args: proc_macro::TokenStream,
             input: proc_macro::TokenStream,
         ) -> proc_macro::TokenStream {
-            match app::expand(args.into(), input.into()) {
-                Err(err) => {
-                    dbg!(err);
+            let ast = quote::quote! {};
 
-                    panic!("...")
-                }
-                Ok(output) => output.into()
-            }
+            ast.into()
+            // match app::expand(args.into(), input.into()) {
+            //     Err(err) => {
+            //         dbg!(err);
+
+            //         panic!("...")
+            //     }
+            //     Ok(output) => output.into()
+            // }
         }
     }
 }

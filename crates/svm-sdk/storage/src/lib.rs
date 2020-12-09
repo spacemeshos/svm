@@ -15,8 +15,12 @@ mod ext;
 mod mock;
 mod traits;
 
+#[cfg(ext)]
 pub use ext::ExtStorage;
+
+#[cfg(mock)]
 pub use mock::MockStorage;
+
 pub use traits::Storage;
 
 use svm_sdk_types::{Address, Amount};

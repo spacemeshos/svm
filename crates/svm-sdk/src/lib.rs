@@ -32,7 +32,11 @@ pub use svm_sdk_alloc::{alloc, Ptr};
 pub use svm_abi_decoder::{CallData, DecodeError, ReturnData};
 
 pub mod host {
-    pub use svm_sdk_host::{ExtHost, MockHost};
+    #[cfg(ffi)]
+    pub use svm_sdk_host::ExtHost;
+
+    #[cfg(mock)]
+    pub use svm_sdk_host::MockHost;
 }
 
 pub mod traits {
@@ -42,7 +46,11 @@ pub mod traits {
 }
 
 pub mod storage {
-    pub use svm_sdk_storage::{ExtStorage, MockStorage};
+    #[cfg(ffi)]
+    pub use svm_sdk_storage::ExtStorage;
+
+    #[cfg(mock)]
+    pub use svm_sdk_storage::MockStorage;
 
     pub mod ops {
         #[rustfmt::skip]

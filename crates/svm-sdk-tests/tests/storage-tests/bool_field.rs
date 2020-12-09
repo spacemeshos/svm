@@ -9,6 +9,6 @@ mod App {
 }
 
 fn main() {
-    let v = Storage::get_flag();
-    assert!(v == false);
+    // let v = Storage::get_flag();
+    // assert!(v == false);
 }
