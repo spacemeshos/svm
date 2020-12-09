@@ -25,16 +25,16 @@ pub fn expand(_args: TokenStream, input: TokenStream) -> Result<TokenStream> {
     let aliases = &app.aliases;
 
     let structs = expand_structs(&app)?;
-    let functions = expand_functions(&app)?;
+    // let functions = expand_functions(&app)?;
 
     let ast = quote! {
-        #(#imports)*
+        // #(#imports)*
 
-        #(#aliases)*
+        // #(#aliases)*
 
         #structs
 
-        #functions
+        // #functions
     };
 
     Ok(ast)

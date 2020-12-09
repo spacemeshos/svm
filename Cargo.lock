@@ -1066,6 +1066,7 @@ name = "svm"
 version = "0.0.0"
 dependencies = [
  "byteorder",
+ "cfg-if 1.0.0",
  "hex",
  "lazy_static",
  "libc",
@@ -1271,6 +1272,7 @@ dependencies = [
 name = "svm-sdk"
 version = "0.0.0"
 dependencies = [
+ "cfg-if 1.0.0",
  "lazy_static",
  "svm-abi-decoder",
  "svm-abi-encoder",
@@ -1290,6 +1292,7 @@ version = "0.0.0"
 name = "svm-sdk-host"
 version = "0.0.0"
 dependencies = [
+ "cfg-if 1.0.0",
  "lazy_static",
  "svm-abi-decoder",
  "svm-abi-encoder",
@@ -1318,6 +1321,7 @@ dependencies = [
 name = "svm-sdk-storage"
 version = "0.0.0"
 dependencies = [
+ "cfg-if 1.0.0",
  "lazy_static",
  "svm-sdk-alloc",
  "svm-sdk-types",
