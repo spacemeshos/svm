@@ -1,17 +1,20 @@
 use proc_macro2::{Ident, TokenStream};
 
 use quote::{quote, ToTokens};
+use syn::Type;
 
 pub enum Var {
     Primitive {
         id: VarId,
         name: Ident,
-        ty: Ident,
+        ty: Type,
+        ty_str: String,
     },
     Array {
         id: VarId,
         name: Ident,
-        ty: Ident,
+        ty: Type,
+        ty_str: String,
         length: u32,
     },
 }

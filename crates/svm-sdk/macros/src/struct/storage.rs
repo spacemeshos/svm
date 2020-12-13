@@ -33,12 +33,6 @@ pub fn expand(strukt: &Struct, attrs: &[StructAttr]) -> Result<TokenStream> {
     Ok(ast)
 }
 
-macro_rules! ident_as_str {
-    ($ident:expr) => {
-        $ident.to_string().as_str()
-    };
-}
-
 fn storage_vars(strukt: &Struct) -> Result<Vec<Var>> {
     let mut vars = Vec::new();
     let mut id = VarId(0);
@@ -67,7 +61,7 @@ fn field_var(field: &Field, id: VarId) -> Result<Var> {
 
     let var = match &field.ty {
         Type::Array(array) => {
-            let ty = parse_array_elem_type(&array)?;
+            let (ty, ty_str) = parse_array_elem_type(&array)?;
             let length = parse_array_length(&array)?;
             let name = field_ident(field);
 
@@ -75,14 +69,20 @@ fn field_var(field: &Field, id: VarId) -> Result<Var> {
                 id,
                 name,
                 ty,
+                ty_str,
                 length,
             }
         }
         Type::Path(path) => {
             let name = field_ident(field);
-            let ty = parse_type_path(path)?;
+            let (ty, ty_str) = parse_type_path(path)?;
 
-            Var::Primitive { id, name, ty }
+            Var::Primitive {
+                id,
+                name,
+                ty,
+                ty_str,
+            }
         }
         _ => {
             return Err(Error::new(
@@ -95,7 +95,7 @@ fn field_var(field: &Field, id: VarId) -> Result<Var> {
     Ok(var)
 }
 
-fn parse_array_elem_type(array: &TypeArray) -> Result<Ident> {
+fn parse_array_elem_type(array: &TypeArray) -> Result<(Type, String)> {
     match *array.elem {
         Type::Path(ref path) => parse_type_path(path),
         _ => {
@@ -125,10 +125,10 @@ fn parse_array_length(array: &TypeArray) -> Result<u32> {
     Err(Error::new(span, msg))
 }
 
-fn parse_type_path(path: &TypePath) -> Result<Ident> {
-    let ty = path_as_str(&path);
+fn parse_type_path(path: &TypePath) -> Result<(Type, String)> {
+    let ty_str = path_as_str(&path);
 
-    match ty.as_str() {
+    match ty_str.as_str() {
         #[rustfmt::skip]
         "bool"    | 
         "Amount"  |
@@ -143,13 +143,13 @@ fn parse_type_path(path: &TypePath) -> Result<Ident> {
         "u64"     |
         "Address" |
         "svm_sdk :: Address" => {
-            let ident = Ident::new(&ty, Span::call_site());
+            let ty = Type::Path(path.clone());
 
-            Ok(ident)
+            Ok((ty, ty_str))
         }
         _ => {
             let span = Span::call_site();
-            let msg = format!("Invalid `#[storage]` field type: {}", ty);
+            let msg = format!("Invalid `#[storage]` field type: {}", ty_str);
 
             Err(Error::new(span, msg))
         }
@@ -208,10 +208,15 @@ fn getter_ast(var: &Var) -> TokenStream {
     let includes = include_storage_ast();
 
     match var {
-        Var::Primitive { id, name, ty } => {
+        Var::Primitive {
+            id,
+            name,
+            ty,
+            ty_str,
+        } => {
             let getter_name = getter_ident(name);
 
-            match ident_as_str!(ty) {
+            match ty_str.as_str() {
                 "i8" | "u8" | "i16" | "u16" | "i32" | "u32" => {
                     quote! {
                         fn #getter_name () -> #ty {
@@ -264,11 +269,12 @@ fn getter_ast(var: &Var) -> TokenStream {
             id,
             name,
             ty,
+            ty_str,
             length,
         } => {
             let getter_name = getter_ident(name);
 
-            match ident_as_str!(ty) {
+            match ty_str.as_str() {
                 "i8" | "u8" | "i16" | "u16" | "i32" | "u32" => {
                     quote! {
                         fn #getter_name (index: usize) -> #ty {
@@ -322,10 +328,15 @@ fn setter_ast(var: &Var) -> TokenStream {
     let includes = include_storage_ast();
 
     match var {
-        Var::Primitive { id, name, ty } => {
+        Var::Primitive {
+            id,
+            name,
+            ty,
+            ty_str,
+        } => {
             let setter_name = setter_ident(name);
 
-            match ident_as_str!(ty) {
+            match ty_str.as_str() {
                 "i8" | "u8" | "i16" | "u16" | "i32" | "u32" => {
                     quote! {
                         fn #setter_name (value: #ty) {
@@ -372,11 +383,12 @@ fn setter_ast(var: &Var) -> TokenStream {
             id,
             name,
             ty,
+            ty_str,
             length,
         } => {
             let setter_name = setter_ident(name);
 
-            match ident_as_str!(ty) {
+            match ty_str.as_str() {
                 "i8" | "u8" | "i16" | "u16" | "i32" | "u32" => {
                     quote! {
                         fn #setter_name (index: usize, value: #ty) {
