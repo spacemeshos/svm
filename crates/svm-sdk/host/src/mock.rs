@@ -37,6 +37,27 @@ impl MockHost {
             std::mem::transmute(HOST.as_mut_ptr())
         }
     }
+
+    pub fn set_calldata<T>(calldata: T)
+    where
+        T: svm_abi_encoder::Encoder,
+    {
+        let host = Self::instance();
+
+        host.set_calldata(calldata)
+    }
+
+    pub fn set_raw_calldata(bytes: &[u8]) {
+        let host = Self::instance();
+
+        host.set_raw_calldata(bytes)
+    }
+
+    pub fn get_returndata() -> Option<Vec<u8>> {
+        let host = Self::instance();
+
+        host.get_returndata()
+    }
 }
 
 impl Host for MockHost {
@@ -139,7 +160,10 @@ impl InnerHost {
         self.set_raw_calldata(bytes);
     }
 
-    pub fn set_raw_calldata(&mut self, bytes: &'static [u8]) {
+    pub fn set_raw_calldata(&mut self, bytes: &[u8]) {
+        let bytes = bytes.to_vec();
+        let bytes: &'static [u8] = bytes.leak();
+
         self.calldata = Some(bytes);
     }
 

@@ -27,9 +27,8 @@ use svm_sdk_types;
 
 pub use svm_sdk_macros::app;
 
-pub use svm_sdk_alloc::{alloc, Ptr};
-
 pub use svm_abi_decoder::{CallData, DecodeError, ReturnData};
+pub use svm_sdk_alloc::{alloc, Ptr};
 
 #[cfg(not(any(feature = "ffi", feature = "mock")))]
 compile_error!("must have at least one feature flag turned-on (`ffi` or `mock`)");
