@@ -43,6 +43,7 @@ fn storage_vars(strukt: &Struct) -> Result<Vec<Var>> {
 
     for f in fields {
         let var = field_var(f, id)?;
+
         vars.push(var);
 
         id = next_var(id);
@@ -56,12 +57,13 @@ fn field_var(field: &Field, id: VarId) -> Result<Var> {
 
     if !field.attrs.is_empty() {
         let msg = "`#[storage]` fields should have no attributes.";
+
         return Err(Error::new(span, msg));
     }
 
     let var = match &field.ty {
         Type::Array(array) => {
-            let (ty, ty_str) = parse_array_elem_type(&array)?;
+            let (ty, ty_str) = parse_array_element_type(&array)?;
             let length = parse_array_length(&array)?;
             let name = field_ident(field);
 
@@ -95,7 +97,7 @@ fn field_var(field: &Field, id: VarId) -> Result<Var> {
     Ok(var)
 }
 
-fn parse_array_elem_type(array: &TypeArray) -> Result<(Type, String)> {
+fn parse_array_element_type(array: &TypeArray) -> Result<(Type, String)> {
     match *array.elem {
         Type::Path(ref path) => parse_type_path(path),
         _ => {
@@ -132,7 +134,9 @@ fn parse_type_path(path: &TypePath) -> Result<(Type, String)> {
         #[rustfmt::skip]
         "bool"    | 
         "Amount"  |
+        "Address" |
         "svm_sdk :: Amount"  |
+        "svm_sdk :: Address" |
         "i8"      |
         "u8"      |
         "i16"     |
@@ -140,9 +144,7 @@ fn parse_type_path(path: &TypePath) -> Result<(Type, String)> {
         "i32"     |
         "u32"     |
         "i64"     |
-        "u64"     |
-        "Address" |
-        "svm_sdk :: Address" => {
+        "u64"     => {
             let ty = Type::Path(path.clone());
 
             Ok((ty, ty_str))
@@ -262,7 +264,7 @@ fn getter_ast(var: &Var) -> TokenStream {
                         }
                     }
                 }
-                _ => unreachable!(),
+                ty => unreachable!(format!("Type `{}` is not supported", ty)),
             }
         }
         Var::Array {
@@ -318,7 +320,7 @@ fn getter_ast(var: &Var) -> TokenStream {
                         svm_sdk::storage::ops::array_get_addr::<StorageImpl>(#id, index, #length)
                     }
                 },
-                _ => unreachable!(),
+                ty => unreachable!(format!("Type `{}` is not supported", ty)),
             }
         }
     }
@@ -369,14 +371,14 @@ fn setter_ast(var: &Var) -> TokenStream {
                         svm_sdk::storage::ops::set_amount::<StorageImpl>(#id, value);
                     }
                 },
-                "svm_sdk::Address" | "Address" => quote! {
+                "svm_sdk :: Address" | "Address" => quote! {
                     fn #setter_name(value: &svm_sdk::Address) {
                         #includes
 
                         svm_sdk::storage::ops::set_addr::<StorageImpl>(#id, value);
                     }
                 },
-                _ => unreachable!(),
+                ty => unreachable!(format!("Type `{}` is not supported", ty)),
             }
         }
         Var::Array {
@@ -418,7 +420,7 @@ fn setter_ast(var: &Var) -> TokenStream {
                 }
                 "svm_sdk :: Amount" | "Amount" => {
                     quote! {
-                        fn #setter_name (index: usize, value: Amount) {
+                        fn #setter_name (index: usize, value: svm_sdk::Amount) {
                             #includes
 
                             svm_sdk::storage::ops::array_set_amount::<StorageImpl>(#id, index, #length, value);
@@ -434,7 +436,7 @@ fn setter_ast(var: &Var) -> TokenStream {
                         }
                     }
                 }
-                _ => unreachable!(),
+                ty => unreachable!(format!("Type `{}` is not supported", ty)),
             }
         }
     }
