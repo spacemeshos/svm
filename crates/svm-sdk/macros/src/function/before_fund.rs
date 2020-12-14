@@ -13,11 +13,14 @@ pub fn expand(func: &Function, attrs: &[FuncAttr]) -> Result<TokenStream> {
 
     validate_before_fund_func_sig(func)?;
 
-    let func = func.stream();
+    let sig = func.raw_sig();
+    let body = func.raw_body();
 
     let ast = quote! {
         #[inline]
-        #func
+        #sig {
+            #body
+        }
     };
 
     Ok(ast)

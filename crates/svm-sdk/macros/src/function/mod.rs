@@ -34,14 +34,6 @@ impl Function {
     pub fn raw_attrs(&self) -> Vec<Attribute> {
         self.raw_func.attrs.clone()
     }
-
-    pub fn stream(&self) -> TokenStream {
-        let mut tokens = TokenStream::new();
-
-        self.raw_func.to_tokens(&mut tokens);
-
-        tokens
-    }
 }
 
 pub fn expand(func: &Function) -> Result<TokenStream> {
