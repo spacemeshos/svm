@@ -11,7 +11,7 @@ mod App {
         0
     }
 
-    #[before_fund]
+    #[fundable_hook]
     fn take_coins(_value: Amount) {
         Node
     }

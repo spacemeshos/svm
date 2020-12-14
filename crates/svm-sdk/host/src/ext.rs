@@ -106,6 +106,13 @@ impl ExtHost {
             std::mem::transmute(HOST.as_mut_ptr())
         }
     }
+
+    #[inline]
+    pub fn value() -> Amount {
+        let host = Self::instance();
+
+        host.value()
+    }
 }
 
 impl Host for ExtHost {

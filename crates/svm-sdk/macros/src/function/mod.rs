@@ -4,11 +4,11 @@ use quote::{quote, ToTokens};
 use syn::{Attribute, Block, Error, ItemFn, Result, Signature};
 
 mod attr;
-mod before_fund;
 mod endpoint;
 mod fundable;
+mod fundable_hook;
 
-use attr::{has_before_fund_attr, has_endpoint_attr, FuncAttr, FuncAttrKind};
+use attr::{has_endpoint_attr, has_fundable_hook_attr, FuncAttr, FuncAttrKind};
 
 pub struct Function {
     raw_func: ItemFn,
@@ -43,8 +43,8 @@ pub fn expand(func: &Function) -> Result<TokenStream> {
 
     let ast = if has_endpoint_attr(&attrs) {
         endpoint::expand(func, &attrs)?
-    } else if has_before_fund_attr(&attrs) {
-        before_fund::expand(func, &attrs)?
+    } else if has_fundable_hook_attr(&attrs) {
+        fundable_hook::expand(func, &attrs)?
     } else {
         expand_func(func, &attrs)?
     };
@@ -89,7 +89,7 @@ fn validate_attrs_no_dups(attrs: &[FuncAttr]) -> Result<()> {
 
     let mut seen_endpoint = false;
     let mut seen_fundable = false;
-    let mut seen_before_fund = false;
+    let mut seen_fundable_hook = false;
 
     for attr in attrs {
         match attr.kind() {
@@ -102,14 +102,14 @@ fn validate_attrs_no_dups(attrs: &[FuncAttr]) -> Result<()> {
                 }
                 seen_endpoint = true;
             }
-            FuncAttrKind::BeforeFund => {
-                if seen_before_fund {
+            FuncAttrKind::FundableHook => {
+                if seen_fundable_hook {
                     return Err(Error::new(
                         span,
-                        "Each function can be annotated with `#[before_fund]` exactly once.",
+                        "Each function can be annotated with `#[fundable_hook]` exactly once.",
                     ));
                 }
-                seen_before_fund = true;
+                seen_fundable_hook = true;
             }
             FuncAttrKind::Fundable => {
                 if seen_fundable {
@@ -131,28 +131,28 @@ fn validate_attrs_usage(attrs: &[FuncAttr]) -> Result<()> {
     let span = Span::call_site();
     let mut seen_endpoint = false;
     let mut seen_fundable = false;
-    let mut seen_before_fund = false;
+    let mut seen_fundable_hook = false;
 
     for attr in attrs {
         match attr.kind() {
             FuncAttrKind::Endpoint => seen_endpoint = true,
-            FuncAttrKind::BeforeFund => seen_before_fund = true,
+            FuncAttrKind::FundableHook => seen_fundable_hook = true,
             FuncAttrKind::Fundable => seen_fundable = true,
             FuncAttrKind::Other => continue,
         }
     }
 
-    if seen_endpoint && seen_before_fund {
+    if seen_endpoint && seen_fundable_hook {
         return Err(Error::new(
             span,
-            "#[endpoint]` and `#[before_fund]` can't co-exist.",
+            "#[endpoint]` and `#[fundable_hook]` can't co-exist.",
         ));
     }
 
-    if seen_fundable && seen_before_fund {
+    if seen_fundable && seen_fundable_hook {
         return Err(Error::new(
             span,
-            "#[before_fund]` and `#[fundable(..)]` can't co-exist.",
+            "#[fundable_hook]` and `#[fundable(..)]` can't co-exist.",
         ));
     }
 
@@ -173,7 +173,7 @@ fn validate_attrs_order(attrs: &[FuncAttr]) -> Result<()> {
     for attr in attrs {
         match attr.kind() {
             FuncAttrKind::Endpoint => seen_endpoint = true,
-            FuncAttrKind::BeforeFund => continue,
+            FuncAttrKind::FundableHook => continue,
             FuncAttrKind::Fundable => {
                 if seen_endpoint {
                     return Err(Error::new(
@@ -247,24 +247,24 @@ mod test {
     }
 
     #[test]
-    fn endpoint_and_before_fund_fails() {
-        let err = "#[endpoint]` and `#[before_fund]` can't co-exist.";
+    fn endpoint_and_fundable_hook_fails() {
+        let err = "#[endpoint]` and `#[fundable_hook]` can't co-exist.";
 
         assert_err!(
             err,
-            #[before_fund]
+            #[fundable_hook]
             #[endpoint]
             fn get() {}
         );
     }
 
     #[test]
-    fn before_fund_and_fundable_not_allowed() {
-        let err = "#[endpoint]` and `#[before_fund]` can't co-exist.";
+    fn fundable_hook_and_fundable_not_allowed() {
+        let err = "#[endpoint]` and `#[fundable_hook]` can't co-exist.";
 
         assert_err!(
             err,
-            #[before_fund]
+            #[fundable_hook]
             #[endpoint]
             fn get() {}
         );
@@ -283,13 +283,13 @@ mod test {
     }
 
     #[test]
-    fn before_fund_used_twice_fails() {
-        let err = "Each function can be annotated with `#[before_fund]` exactly once.";
+    fn fundable_hook_used_twice_fails() {
+        let err = "Each function can be annotated with `#[fundable_hook]` exactly once.";
 
         assert_err!(
             err,
-            #[before_fund]
-            #[before_fund]
+            #[fundable_hook]
+            #[fundable_hook]
             fn get(value: svm_sdk::Amount) {}
         );
     }
@@ -308,34 +308,34 @@ mod test {
     }
 
     #[test]
-    fn before_fund_func_with_no_args_falis() {
-        let err = "`#[before_fund]` annotated function should have signature of `fn(value: svm_sdk::Amount) -> ()`";
+    fn fundable_hook_func_with_no_args_falis() {
+        let err = "`#[fundable_hook]` annotated function should have signature of `fn(value: svm_sdk::Amount) -> ()`";
 
         assert_err!(
             err,
-            #[before_fund]
+            #[fundable_hook]
             fn deny() {}
         );
     }
 
     #[test]
-    fn before_fund_func_has_more_than_one_args_fails() {
-        let err = "`#[before_fund]` annotated function should have signature of `fn(value: svm_sdk::Amount) -> ()`";
+    fn fundable_hook_func_has_more_than_one_args_fails() {
+        let err = "`#[fundable_hook]` annotated function should have signature of `fn(value: svm_sdk::Amount) -> ()`";
 
         assert_err!(
             err,
-            #[before_fund]
+            #[fundable_hook]
             fn deny(a: svm_sdk::Amount, b: svm_sdk::Amount) {}
         );
     }
 
     #[test]
-    fn before_fund_func_with_return_type_fails() {
-        let err = "`#[before_fund]` annotated function should have signature of `fn(value: svm_sdk::Amount) -> ()`";
+    fn fundable_hook_func_with_return_type_fails() {
+        let err = "`#[fundable_hook]` annotated function should have signature of `fn(value: svm_sdk::Amount) -> ()`";
 
         assert_err!(
             err,
-            #[before_fund]
+            #[fundable_hook]
             fn deny(v: svm_sdk::Amount) -> u32 {
                 0
             }
@@ -367,14 +367,14 @@ mod test {
     }
 
     #[test]
-    fn before_fund_func_valid_sig() {
+    fn fundable_hook_func_valid_sig() {
         assert_ok!(
-            #[before_fund]
+            #[fundable_hook]
             fn allow(v: svm_sdk::Amount) {}
         );
 
         assert_ok!(
-            #[before_fund]
+            #[fundable_hook]
             fn allow(v: Amount) {}
         );
     }

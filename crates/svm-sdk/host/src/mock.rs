@@ -2,9 +2,8 @@ use crate::traits::Host;
 
 use svm_sdk_types::{Address, Amount, LayerId};
 
-extern crate core;
-
 extern crate alloc;
+extern crate core;
 extern crate std;
 
 use alloc::string::{String, ToString};
@@ -93,6 +92,12 @@ impl MockHost {
         let host = Self::instance();
 
         host.set_layer_id(layer_id);
+    }
+
+    pub fn value() -> Amount {
+        let host = Self::instance();
+
+        host.value()
     }
 
     pub fn sender() -> Address {

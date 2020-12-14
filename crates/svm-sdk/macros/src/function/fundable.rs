@@ -22,7 +22,7 @@ pub fn expand(_ast: TokenStream, attrs: &[FuncAttr]) -> Result<TokenStream> {
         {
             #includes;
 
-            let value: svm_sdk::Amount = Node.get_value();
+            let value: svm_sdk::Amount = Node::value();
 
             #fund_hook(value);
         }

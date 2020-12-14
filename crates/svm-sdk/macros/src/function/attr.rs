@@ -11,9 +11,9 @@ use crate::Function;
 pub enum FuncAttrKind {
     Endpoint,
 
-    BeforeFund,
-
     Fundable,
+
+    FundableHook,
 
     Other,
 }
@@ -22,9 +22,9 @@ pub enum FuncAttrKind {
 pub enum FuncAttr {
     Endpoint,
 
-    BeforeFund,
-
     Fundable(String),
+
+    FundableHook,
 
     Other(TokenStream),
 }
@@ -33,7 +33,7 @@ impl FuncAttr {
     pub fn kind(&self) -> FuncAttrKind {
         match self {
             FuncAttr::Endpoint => FuncAttrKind::Endpoint,
-            FuncAttr::BeforeFund => FuncAttrKind::BeforeFund,
+            FuncAttr::FundableHook => FuncAttrKind::FundableHook,
             FuncAttr::Fundable(..) => FuncAttrKind::Fundable,
             FuncAttr::Other(..) => FuncAttrKind::Other,
         }
@@ -61,10 +61,10 @@ pub fn parse_attr(attr: Attribute) -> Result<FuncAttr> {
 
             FuncAttr::Endpoint
         }
-        FuncAttrKind::BeforeFund => {
+        FuncAttrKind::FundableHook => {
             assert!(attr.tokens.is_empty());
 
-            FuncAttr::BeforeFund
+            FuncAttr::FundableHook
         }
         FuncAttrKind::Fundable => {
             let tokens = attr.tokens;
@@ -110,7 +110,7 @@ impl Parse for FuncAttrKind {
         let kind = match ident_str {
             "endpoint" => FuncAttrKind::Endpoint,
             "fundable" => FuncAttrKind::Fundable,
-            "before_fund" => FuncAttrKind::BeforeFund,
+            "fundable_hook" => FuncAttrKind::FundableHook,
             _ => FuncAttrKind::Other,
         };
 
@@ -122,8 +122,8 @@ pub fn has_endpoint_attr(attrs: &[FuncAttr]) -> bool {
     has_attr(attrs, FuncAttrKind::Endpoint)
 }
 
-pub fn has_before_fund_attr(attrs: &[FuncAttr]) -> bool {
-    has_attr(attrs, FuncAttrKind::BeforeFund)
+pub fn has_fundable_hook_attr(attrs: &[FuncAttr]) -> bool {
+    has_attr(attrs, FuncAttrKind::FundableHook)
 }
 
 pub fn has_fundable_attr(attrs: &[FuncAttr]) -> bool {
@@ -168,15 +168,15 @@ mod test {
     }
 
     #[test]
-    fn func_attr_before_fund() {
+    fn func_attr_fundable_hook() {
         let attr: Attribute = parse_quote! {
-            #[before_fund]
+            #[fundable_hook]
         };
 
         let func_attr = parse_attr(attr).unwrap();
-        assert!(matches!(func_attr, FuncAttr::BeforeFund));
+        assert!(matches!(func_attr, FuncAttr::FundableHook));
 
-        assert_eq!(func_attr.kind(), FuncAttrKind::BeforeFund);
+        assert_eq!(func_attr.kind(), FuncAttrKind::FundableHook);
     }
 
     #[test]
