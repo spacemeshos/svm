@@ -4,4 +4,5 @@ fn endpoint_tests() {
 
     t.pass("tests/endpoint/bool_params.rs");
     t.pass("tests/endpoint/amount_params.rs");
+    t.pass("tests/endpoint/address_params.rs");
 }
