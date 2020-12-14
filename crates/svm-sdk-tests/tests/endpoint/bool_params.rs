@@ -1,5 +1,7 @@
 use svm_sdk::app;
 
+use svm_sdk_tests::call_1;
+
 #[app]
 mod App {
     #[endpoint]
@@ -8,33 +10,10 @@ mod App {
     }
 }
 
-fn call<T>(args: Vec<T>, func: extern "C" fn()) -> svm_sdk::ReturnData
-where
-    T: svm_sdk::traits::Encoder,
-{
-    use svm_sdk::host::MockHost;
-
-    let mut bytes = Vec::new();
-
-    for arg in args {
-        arg.encode(&mut bytes);
-    }
-
-    MockHost::set_raw_calldata(&bytes);
-
-    func();
-
-    let bytes = MockHost::get_returndata();
-
-    svm_sdk::ReturnData::new(&bytes.unwrap())
-}
-
 fn main() {
-    let mut returns = call(vec![true, true], and);
-    let res: bool = returns.next_1();
-    assert!(res);
+    let res: bool = call_1(and, vec![true, true]);
+    assert_eq!(res, true);
 
-    let mut returns = call(vec![false, true], and);
-    let res: bool = returns.next_1();
+    let res: bool = call_1(and, vec![false, true]);
     assert_eq!(res, false);
 }
