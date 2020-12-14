@@ -26,6 +26,8 @@ where
     MockHost::set_raw_calldata(&bytes);
     MockHost::set_value(value);
 
+    // TODO: MockHost::transfer(from: sender, to: app)
+
     func();
 
     let bytes = MockHost::get_returndata();

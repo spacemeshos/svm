@@ -19,9 +19,16 @@ pub fn expand(func: &Function, attrs: &[FuncAttr]) -> Result<TokenStream> {
     let returns = expand_returns(func)?;
     let body = func.raw_body();
 
+    let call_fundable_hook = if has_fundable_attr(attrs) {
+        super::fundable::expand(&attrs)?
+    } else {
+        quote! {}
+    };
+
     let ast = quote! {
         #[no_mangle]
         pub extern "C" fn #name() {
+            #call_fundable_hook
 
             fn __inner__() #returns {
                 #prologue
@@ -31,12 +38,6 @@ pub fn expand(func: &Function, attrs: &[FuncAttr]) -> Result<TokenStream> {
 
             #epilogue
         }
-    };
-
-    let ast = if has_fundable_attr(attrs) {
-        super::fundable::expand(ast, &attrs)?
-    } else {
-        ast
     };
 
     Ok(ast)

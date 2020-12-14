@@ -1,19 +1,26 @@
-use svm_sdk::host::MockHost;
 use svm_sdk::{app, Amount};
 
 use svm_sdk_tests::call_and_fund_1;
 
 #[app]
 mod App {
-    // #[fundable(take_coins)]
+    #[storage]
+    struct Storage {
+        coins: Amount,
+    }
+
+    #[fundable(update_coins)]
     #[endpoint]
-    fn do_something() -> u8 {
+    fn do_nothing() -> u8 {
         0
     }
 
     #[fundable_hook]
-    fn take_coins(_value: Amount) {
-        Node
+    fn update_coins(value: Amount) {
+        let old_coins = Storage::get_coins();
+        let new_coins = old_coins + value;
+
+        Storage::set_coins(new_coins);
     }
 }
 
@@ -21,8 +28,14 @@ fn test_fund() {
     let params = Vec::<bool>::new();
     let value = Amount(10);
 
-    let res: u8 = call_and_fund_1(do_something, params, value);
+    let coins = Storage::get_coins();
+    assert_eq!(coins, Amount(0));
+
+    let res: u8 = call_and_fund_1(do_nothing, params, value);
     assert_eq!(res, 0);
+
+    let coins = Storage::get_coins();
+    assert_eq!(coins, value);
 }
 
 fn main() {
