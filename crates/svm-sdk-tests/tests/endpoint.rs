@@ -3,4 +3,5 @@ fn endpoint_tests() {
     let t = trybuild::TestCases::new();
 
     t.pass("tests/endpoint/bool_params.rs");
+    t.pass("tests/endpoint/amount_params.rs");
 }
