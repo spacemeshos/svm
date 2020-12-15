@@ -12,6 +12,7 @@ fn pass(t: &TestCases, test: &'static str) {
 
 fn compile_fail(t: &TestCases, test: &'static str) {
     MockHost::reset();
+    MockStorage::clear();
 
     t.compile_fail(test);
 }

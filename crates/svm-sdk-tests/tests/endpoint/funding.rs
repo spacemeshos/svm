@@ -11,9 +11,7 @@ mod App {
 
     #[fundable(update_coins)]
     #[endpoint]
-    fn do_nothing() -> u8 {
-        0
-    }
+    fn do_nothing() {}
 
     #[fundable_hook]
     fn update_coins(value: Amount) {
@@ -31,8 +29,8 @@ fn test_fund() {
     let coins = Storage::get_coins();
     assert_eq!(coins, Amount(0));
 
-    let res: u8 = call_and_fund_1(do_nothing, params, value);
-    assert_eq!(res, 0);
+    let res: () = call_and_fund_1(do_nothing, params, value);
+    assert_eq!(res, ());
 
     let coins = Storage::get_coins();
     assert_eq!(coins, value);

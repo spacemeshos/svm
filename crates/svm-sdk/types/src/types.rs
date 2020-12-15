@@ -7,6 +7,7 @@ macro_rules! mark_primitive {
     };
 }
 
+mark_primitive!(());
 mark_primitive!(bool);
 mark_primitive!(u8, i8);
 mark_primitive!(u16, i16);

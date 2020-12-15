@@ -12,6 +12,8 @@ use alloc::vec::Vec;
 pub enum Primitive {
     None,
 
+    Unit,
+
     Bool(bool),
 
     Address(Address),
@@ -71,6 +73,11 @@ pub enum Value<'a> {
 }
 
 impl<'a> Value<'a> {
+    /// Returns a `Value` representing the ABI `Unit`
+    pub const fn unit() -> Value<'static> {
+        Value::Primitive(Primitive::Unit)
+    }
+
     /// Returns a `Value` representing the ABI `None`
     pub const fn none() -> Value<'static> {
         Value::Primitive(Primitive::None)
@@ -138,7 +145,7 @@ macro_rules! impl_from_rust_to_value {
 /// ```
 ///
 ///
-/// # Example (Address)
+/// # Example (Option<T>)
 ///
 /// ```rust
 /// use svm_sdk_types::value::Value;
@@ -169,6 +176,22 @@ where
             None => Value::Primitive(Primitive::None),
             Some(v) => v.into(),
         }
+    }
+}
+
+/// # Example
+///
+/// ```rust
+/// use svm_sdk_types::value::Value;
+///
+/// let value: Value = ().into();
+/// let unit: () = value.into();
+///
+/// assert_eq!(unit, ());
+/// ```
+impl From<()> for Value<'_> {
+    fn from(_val: ()) -> Self {
+        Value::unit()
     }
 }
 
@@ -258,6 +281,15 @@ macro_rules! impl_from_value_to_rust {
             }
         }
     };
+}
+
+impl From<Value<'_>> for () {
+    fn from(value: Value) -> Self {
+        match value {
+            Value::Primitive(Primitive::Unit) => (),
+            _ => unreachable!(),
+        }
+    }
 }
 
 impl_from_value_to_rust!(Bool, bool);

@@ -37,6 +37,7 @@ mod num_i32;
 mod num_i64;
 mod num_i8;
 mod tuples;
+mod unit;
 
 pub use address::*;
 pub use amount::*;
@@ -83,6 +84,7 @@ fn do_encode(value: &Value<'_>, w: &mut Vec<u8>) {
 fn encode_primitive(p: &Primitive, w: &mut Vec<u8>) {
     match p {
         Primitive::None => encode_none(w),
+        Primitive::Unit => encode_unit(w),
         Primitive::Address(p) => p.encode(w),
         Primitive::Amount(p) => p.encode(w),
         Primitive::Bool(p) => p.encode(w),
@@ -114,4 +116,10 @@ fn encode_none(w: &mut Vec<u8>) {
     use svm_abi_layout::layout;
 
     w.push(layout::NONE);
+}
+
+fn encode_unit(w: &mut Vec<u8>) {
+    use svm_abi_layout::layout;
+
+    w.push(layout::UNIT);
 }
