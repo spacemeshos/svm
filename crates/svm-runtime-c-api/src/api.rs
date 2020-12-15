@@ -569,6 +569,7 @@ pub unsafe extern "C" fn svm_memory_runtime_create(
 /// assert!(res.is_ok());
 /// ```
 ///
+#[cfg(feature = "default-rocksdb")]
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_runtime_create(

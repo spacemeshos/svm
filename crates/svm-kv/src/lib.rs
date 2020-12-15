@@ -12,7 +12,7 @@ pub mod traits;
 pub mod key;
 
 /// An in-memory implementation for `KVStore`
-#[cfg(feature = "memory")]
+#[cfg(feature = "default-memory")]
 pub mod memory;
 
 /// `KVStore` backed by rocksdb

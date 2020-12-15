@@ -28,7 +28,6 @@ features = ["lz4"]
 [dependencies.wasmer]
 version="1.0.0-beta1"
 default-features = false
-features = ["default-cranelift", "default-jit"]
 
 [dependencies]
 libc = "0.2"
@@ -38,7 +37,7 @@ log = "0.4"
 lazy_static = "1.4.0"
 hex = "0.4"
 svm-common = { path = "crates/svm-common" }
-svm-kv = { path = "crates/svm-kv" }
+svm-kv = { path = "crates/svm-kv", default-features = false }
 svm-gas = { path = "crates/svm-gas" }
 svm-app-query = { path = "crates/svm-app-query" }
 svm-types = { path = "crates/svm-types" }
@@ -52,10 +51,10 @@ svm-nibble = { path = "crates/svm-nibble" }
 svm-codec = { path = "crates/svm-codec" }
 svm-layout = { path = "crates/svm-layout" }
 svm-storage = { path = "crates/svm-storage" }
-svm-compiler = { path = "crates/svm-compiler" }
-svm-runtime = { path = "crates/svm-runtime" }
+svm-compiler = { path = "crates/svm-compiler", default-features = false }
+svm-runtime = { path = "crates/svm-runtime", default-features = false }
 svm-ffi = { path = "crates/svm-ffi" }
-svm-runtime-c-api = { path = "crates/svm-runtime-c-api" }
+svm-runtime-c-api = { path = "crates/svm-runtime-c-api", default-features = false }
 svm-abi-layout = { path = "crates/svm-abi/layout" }
 svm-abi-encoder = { path = "crates/svm-abi/encoder" }
 svm-abi-decoder = { path = "crates/svm-abi/decoder" }
@@ -89,3 +88,8 @@ members = [
   "crates/svm-ffi",
   "crates/svm-runtime-c-api",
 ]
+
+[features]
+default = ["default-memory"]
+default-memory = ["svm-runtime-c-api/default-memory", "svm-runtime/default-memory", "svm-kv/default-memory"]
+default-rocksdb = ["svm-runtime-c-api/default-rocksdb", "svm-runtime/default-rocksdb", "svm-kv/default-rocksdb"]

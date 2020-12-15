@@ -30,6 +30,6 @@ log = "0.4"
 env_logger = "0.7.0"
 
 [features]
-default = ["memory", "default-rocksdb"]
-memory = []
+default = ["default-memory"]
+default-memory = []
 default-rocksdb = ["rocksdb"]

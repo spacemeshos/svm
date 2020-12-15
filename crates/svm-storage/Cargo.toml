@@ -12,6 +12,7 @@ publish = false
 
 [dependencies.svm-kv]
 path = "../svm-kv"
+default-features = false
 
 [dependencies.svm-common]
 path = "../svm-common"
@@ -24,3 +25,8 @@ path = "../svm-layout"
 
 [dependencies]
 lazy_static = "1.4.0"
+
+[features]
+default = ["default-memory"]
+default-memory = ["svm-kv/default-memory"]
+default-rocksdb = ["svm-kv/default-rocksdb"]
