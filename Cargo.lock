@@ -1327,7 +1327,6 @@ dependencies = [
 name = "svm-sdk-tests"
 version = "0.0.0"
 dependencies = [
- "cfg-if 1.0.0",
  "svm-sdk",
  "svm-sdk-types",
  "trybuild",

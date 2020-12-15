@@ -11,7 +11,6 @@ description = "Spacemesh Virtual Machine"
 publish = false
 
 [dependencies]
-cfg-if = "1.0"
 svm-sdk = { path = "../svm-sdk", default-features = false }
 svm-sdk-types = { path = "../svm-sdk/types" }
 
