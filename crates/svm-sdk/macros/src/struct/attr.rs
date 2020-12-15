@@ -30,10 +30,10 @@ impl StructAttr {
     }
 }
 
-pub fn struct_attrs(strukt: &Struct) -> Result<Vec<StructAttr>> {
+pub fn struct_attrs(raw_attrs: &[Attribute]) -> Result<Vec<StructAttr>> {
     let mut attrs = Vec::new();
 
-    for attr in strukt.raw_attrs() {
+    for attr in raw_attrs {
         let attr = parse_attr(attr)?;
 
         attrs.push(attr);
@@ -42,7 +42,7 @@ pub fn struct_attrs(strukt: &Struct) -> Result<Vec<StructAttr>> {
     Ok(attrs)
 }
 
-pub fn parse_attr(attr: Attribute) -> Result<StructAttr> {
+pub fn parse_attr(attr: &Attribute) -> Result<StructAttr> {
     let kind = parse_attr_kind(&attr)?;
 
     let attr = match kind {

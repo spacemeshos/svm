@@ -26,7 +26,18 @@ where
     MockHost::set_raw_calldata(&bytes);
     MockHost::set_value(value);
 
-    // TODO: MockHost::transfer(from: sender, to: app)
+    // In order to make the function fully compatible with
+    // a real-world scenario, we need to feed it with the `sender`
+    // executing `app` address as well.
+    //
+    // ```
+    // MockHost:set_sender(sender);
+    // MockHost::transfer(app, value);
+    // ```
+    //
+    // This won't assist us in any way to check the functionality of the proc-macros
+    // implemented under the `svm-sdk` crate. Thus, we omit this part and reduce
+    // the maintenance costs of the `svm-sdk-tests` crate.
 
     func();
 

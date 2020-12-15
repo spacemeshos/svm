@@ -13,11 +13,7 @@ pub fn app(
     input: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
     match app::expand(args.into(), input.into()) {
-        Err(err) => {
-            dbg!(err);
-
-            panic!("...")
-        }
+        Err(err) => err.to_compile_error().into(),
         Ok(output) => output.into(),
     }
 }

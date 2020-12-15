@@ -9,24 +9,28 @@ mod attr;
 mod storage;
 mod var;
 
-use attr::{has_storage_attr, StructAttr, StructAttrKind};
-use var::{Var, VarId};
+pub use attr::{has_storage_attr, StructAttr, StructAttrKind};
+pub use var::{Var, VarId};
 
 pub struct Struct {
     raw_struct: ItemStruct,
+
+    attrs: Result<Vec<StructAttr>>,
 }
 
 impl Struct {
     pub fn new(raw_struct: ItemStruct) -> Self {
-        Self { raw_struct }
+        let attrs = attr::struct_attrs(&raw_struct.attrs);
+
+        Self { raw_struct, attrs }
     }
 
     pub fn raw_name(&self) -> Ident {
         self.raw_struct.ident.clone()
     }
 
-    pub fn raw_attrs(&self) -> Vec<Attribute> {
-        self.raw_struct.attrs.clone()
+    pub fn raw_attrs(&self) -> &[Attribute] {
+        &self.raw_struct.attrs
     }
 
     pub fn raw_generics(&self) -> &Generics {
@@ -35,6 +39,10 @@ impl Struct {
 
     pub fn raw_fields(&self) -> &Fields {
         &self.raw_struct.fields
+    }
+
+    pub fn attrs(&self) -> &Result<Vec<StructAttr>> {
+        &self.attrs
     }
 
     pub fn stream(&self) -> TokenStream {
@@ -47,17 +55,14 @@ impl Struct {
 }
 
 pub fn expand(strukt: &Struct) -> Result<TokenStream> {
-    let attrs = attr::struct_attrs(strukt)?;
-
-    validate_attrs(&attrs)?;
-
-    if has_storage_attr(&attrs) {
-        storage::expand(strukt, &attrs)
-    } else {
-        todo!()
+    match strukt.attrs() {
+        Ok(attrs) => {
+            if has_storage_attr(attrs) {
+                storage::expand(strukt, attrs)
+            } else {
+                todo!()
+            }
+        }
+        Err(err) => Err(err.clone()),
     }
-}
-
-fn validate_attrs(attrs: &[StructAttr]) -> Result<()> {
-    Ok(())
 }

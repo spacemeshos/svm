@@ -9,20 +9,44 @@ use syn::{
 use crate::{Struct, Function};
 use super::{r#struct, function};
 
+use r#struct::has_storage_attr;
+
 pub struct App {
-    pub name: Ident,
-    pub functions: Vec<Function>,
-    pub structs: Vec<Struct>,
-    pub imports: Vec<ItemUse>,
-    pub aliases: Vec<ItemType>,
+    name: Ident,
+    functions: Vec<Function>,
+    structs: Vec<Struct>,
+    imports: Vec<ItemUse>,
+    aliases: Vec<ItemType>,
+}
+
+impl App {
+    pub fn name(&self) -> &Ident {
+        &self.name
+    }
+
+    pub fn functions(&self) -> &[Function] {
+        &self.functions
+    }
+
+    pub fn structs(&self) -> &[Struct] {
+        &self.structs
+    }
+
+    pub fn imports(&self) -> &[ItemUse] {
+        &self.imports
+    }
+
+    pub fn aliases(&self) -> &[ItemType] {
+        &self.aliases
+    }
 }
 
 pub fn expand(_args: TokenStream, input: TokenStream) -> Result<TokenStream> {
     let module = syn::parse2(input)?;
     let app = parse_app(module)?;
 
-    let imports = &app.imports;
-    let aliases = &app.aliases;
+    let imports = app.imports();
+    let aliases = app.aliases();
 
     let structs = expand_structs(&app)?;
     let functions = expand_functions(&app)?;
@@ -133,10 +157,12 @@ pub fn parse_app(mut raw_app: ItemMod) -> Result<App> {
     Ok(app)
 }
 
-pub fn expand_structs(app: &App) -> Result<TokenStream> {
+fn expand_structs(app: &App) -> Result<TokenStream> {
     let mut structs = Vec::new();
 
-    for strukt in &app.structs {
+    validate_structs(app)?;
+
+    for strukt in app.structs() {
         let strukt = r#struct::expand(strukt)?;
 
         structs.push(strukt);
@@ -149,10 +175,34 @@ pub fn expand_structs(app: &App) -> Result<TokenStream> {
     Ok(ast)
 }
 
-pub fn expand_functions(app: &App) -> Result<TokenStream> {
+fn validate_structs(app: &App) -> Result<()> {
+    let mut seen_storage = false;
+
+    for strukt in app.structs() {
+        match strukt.attrs() {
+            Ok(attrs) => {
+                if has_storage_attr(attrs) {
+                    if seen_storage {
+                        let msg = format!("an App can have only a single `#[storage]`");
+                        let span = Span::call_site();
+
+                        return Err(Error::new(span, msg));
+                    }
+
+                    seen_storage = true;
+                }
+            }
+            Err(err) => return Err(err.clone())
+        }
+    }
+
+    Ok(())
+}
+
+fn expand_functions(app: &App) -> Result<TokenStream> {
     let mut funcs = Vec::new();
 
-    for func in &app.functions {
+    for func in app.functions() {
         let func = function::expand(func)?;
         
         funcs.push(func);
