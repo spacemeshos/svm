@@ -6,5 +6,7 @@ fn endpoint_tests() {
     t.pass("tests/endpoint/amount_params.rs");
     t.pass("tests/endpoint/address_params.rs");
     t.pass("tests/endpoint/integers_params.rs");
+
     t.pass("tests/endpoint/funding.rs");
+    t.compile_fail("tests/endpoint/endpoint_with_fundable_hook.rs");
 }
