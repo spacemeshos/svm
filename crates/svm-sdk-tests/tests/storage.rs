@@ -2,6 +2,7 @@
 fn storage_tests() {
     let t = trybuild::TestCases::new();
 
+    t.compile_fail("tests/storage/invalid_field.rs");
     t.compile_fail("tests/storage/singleton.rs");
 
     t.pass("tests/storage/bool_field.rs");
