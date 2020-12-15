@@ -1,8 +1,11 @@
 use svm_sdk::host::MockHost;
+use svm_sdk::storage::MockStorage;
+
 use trybuild::TestCases;
 
 fn pass(t: &TestCases, test: &'static str) {
     MockHost::reset();
+    MockStorage::clear();
 
     t.pass(test);
 }

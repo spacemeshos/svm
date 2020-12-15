@@ -123,6 +123,16 @@ impl MockStorage {
             std::mem::transmute(STORAGE.as_mut_ptr())
         }
     }
+
+    pub fn clear() {
+        let mut storage = Self::instance();
+
+        storage.clear();
+    }
+
+    fn from_raw_parts<'a>(offset: usize, len: usize) -> &'a [u8] {
+        unsafe { core::slice::from_raw_parts(offset as *const u8, len) }
+    }
 }
 
 impl Storage for MockStorage {
@@ -160,18 +170,6 @@ impl Storage for MockStorage {
         let mut storage = Self::instance();
 
         storage.load160(var_id, offset)
-    }
-}
-
-impl MockStorage {
-    fn clear() {
-        let mut storage = Self::instance();
-
-        storage.clear();
-    }
-
-    fn from_raw_parts<'a>(offset: usize, len: usize) -> &'a [u8] {
-        unsafe { core::slice::from_raw_parts(offset as *const u8, len) }
     }
 }
 
