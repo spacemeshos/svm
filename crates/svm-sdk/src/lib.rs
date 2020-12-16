@@ -232,6 +232,101 @@
 /// }
 /// ```
 ///
+/// ### Funding
+///
+/// Each running app is also an account meaning it has its own balance.
+/// When calling an app's endpoint, the transaction `value` field is allowed to be positive.
+///
+/// In such case we'd like to let the running an app a chance to be notified about the funding
+/// and let it invoke some arbitrary hook to update its state.
+///
+/// Thus, each `#[endpoint]` might be annotated with an additional `#[fundable(..)]` attribute.  
+/// In addition to that `#[fundable_hook]` should be added so that the `#[fundable(..)]` will use them.
+///
+/// Here is an example:
+///
+/// ```rust
+/// use svm_sdk::app;
+///
+/// #[app]
+/// mod App {
+///   #[storage]
+///   struct Storage {
+///     coins: Amount
+///   }
+///
+///   #[fundable(update_coins)]
+///   #[endpoint]
+///   fn do_nothing() {}
+///
+///   #[fundable_hook]
+///   fn update_coins(value: svm_sdk::Amount) {
+///     let old_coins = Storage::get_coins();
+///     let new_coins = old_coins + value;
+///
+///     Storage::set_coins(new_coins);
+///   }
+/// }
+/// ```
+///
+/// If we invoke SVM transaction over function `do_nothing` and `value = 100`
+/// What logically happens behind-the-scenes is:
+///
+/// 1) Since `value > 0` - the transaction `sender` transfers `100` coins
+///  to the `app` balance.
+///
+/// 2) Now, SVM is invokes the app `update_coins` with `value = Amount(100)`.
+/// The reason that this is the fundable-hook to be called is since it's being
+/// referenced by the `#[fundable(..)]` of `do_nothing` endpoint.
+///
+/// The running of `update_coins` gives the app a chance to update it's state.
+/// In our example it updates the `coins` field. That means that real balance
+/// of the app in any given point will be at-least the value of the `coins` field.
+///
+/// 3) The `do_nothing` endpoint code is being executed.
+///
+///
+/// The way things truly works implementation-wise looks more like this:
+///
+/// ```rust
+/// fn update_coins(value: svm_sdk::Amount) {
+///   // ...
+/// }
+///
+/// #[no_mangle]
+/// pub extern "C" fn do_nothing() {
+///     use svm_sdk::traits::Host;
+///
+///     #[cfg(feature = "mock")]
+///     use svm_sdk::host::MockHost as Node;
+///
+///     #[cfg(feature = "ffi")]
+///     use svm_sdk::host::ExtHost as Node;
+///
+///     // we grab the `value` given in the transaction
+///     // if it's positive, we issue a call to `update_coins`
+///     let value: svm_sdk::Amount = Node.value();
+///
+///     if value > svm_sdk::Amount(0) {
+///       update_coins(value);
+///     }
+///
+///     fn __inner__() {
+///        // the logic of `do_nothing` (empty in our example)
+///     }
+///
+///     {
+///         use svm_sdk::traits::Encoder;
+///
+///         let mut bytes = Vec::new();
+///
+///         let rets = __inner__();
+///         rets.encode(&mut bytes);
+///
+///         Node.set_returndata(&bytes);
+///     }
+/// }
+/// ```
 mod log;
 
 /// Logging API
