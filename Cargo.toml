@@ -25,9 +25,15 @@ optional = true
 version = "0.12.4"
 features = ["lz4"]
 
-[dependencies.wasmer]
+[target.'cfg(unix)'.dependencies.wasmer]
 version="1.0.0-beta1"
 default-features = false
+features = ["singlepass", "default-jit"]
+
+[target.'cfg(windows)'.dependencies.wasmer]
+version="1.0.0-beta1"
+default-features = false
+features = ["default-cranelift", "default-jit"]
 
 [dependencies]
 libc = "0.2"

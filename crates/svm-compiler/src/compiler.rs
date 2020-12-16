@@ -20,10 +20,10 @@ pub fn compile(
 /// New fresh `Store`
 #[must_use]
 pub fn new_store() -> Store {
-    #[cfg(feature = "cranelift")]
+    #[cfg(windows)]
     let engine = JIT::new(&wasmer::Cranelift::default()).engine();
 
-    #[cfg(feature = "singlepass")]
+    #[cfg(unix)]
     let engine = JIT::new(&wasmer::Singlepass::default()).engine();
 
     Store::new(&engine)

@@ -25,7 +25,7 @@ svm-codec = { path = "../svm-codec" }
 svm-gas = { path = "../svm-gas" }
 svm-layout = { path = "../svm-layout" }
 svm-storage = { path = "../svm-storage" }
-svm-compiler = { path = "../svm-compiler", default-features = false, features = [] }
+svm-compiler = { path = "../svm-compiler" }
 
 [dev-dependencies]
 wabt = "0.7.4"
