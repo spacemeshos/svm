@@ -15,13 +15,15 @@ mod result;
 
 pub(crate) use error::{raw_error, raw_io_error, raw_utf8_error, raw_validate_error};
 
+#[cfg(feature = "default-rocksdb")]
+pub use api::svm_runtime_create;
+
 /// `SVM` FFI Interface
 #[rustfmt::skip]
 pub use api::{
     // Runtime
     svm_exec_app,
     svm_deploy_template,
-    svm_runtime_create,
     svm_spawn_app,
     
     // Gas Estimations

@@ -6,6 +6,7 @@ license = "MIT"
 edition = "2018"
 publish = false
 
+
 [dependencies.wasmer]
 version="1.0.0-beta1"
 default-features = false
@@ -19,9 +20,9 @@ wat = "1.0"
 svm-ffi = { path = "../svm-ffi" }
 svm-common = { path = "../svm-common" }
 svm-types = { path = "../svm-types" }
-svm-kv = { path = "../svm-kv" }
-svm-layout = { path = "../svm-layout" }
-svm-storage = { path = "../svm-storage" }
+svm-layout = { path = "../svm-layout" } 
+svm-kv = { path = "../svm-kv", default-features = false }
+svm-storage = { path = "../svm-storage", default-features = false }
 svm-nibble = { path = "../svm-nibble" }
 svm-codec = { path = "../svm-codec" }
 svm-compiler = { path = "../svm-compiler" }
@@ -32,3 +33,8 @@ maplit = "1.0.2"
 svm-sdk = { path = "../svm-sdk" }
 svm-abi-encoder = { path = "../svm-abi/encoder" }
 svm-abi-decoder = { path = "../svm-abi/decoder" }
+
+[features]
+default = ["default-memory"]
+default-memory = ["svm-kv/default-memory", "svm-storage/default-memory"]
+default-rocksdb = ["svm-kv/default-rocksdb", "svm-storage/default-rocksdb"]
