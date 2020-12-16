@@ -11,7 +11,10 @@
 
 /// Implements the most high-level API of `SVM`.
 mod runtime;
-pub use runtime::{create_rocksdb_runtime, Config, DefaultRuntime, Runtime, RuntimePtr};
+pub use runtime::{Config, DefaultRuntime, Runtime, RuntimePtr};
+
+#[cfg(feature = "default-rocksdb")]
+pub use runtime::create_rocksdb_runtime;
 
 /// Gas estimation and metering.
 pub mod gas;

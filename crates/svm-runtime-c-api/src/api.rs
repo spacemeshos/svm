@@ -569,6 +569,7 @@ pub unsafe extern "C" fn svm_memory_runtime_create(
 /// assert!(res.is_ok());
 /// ```
 ///
+#[cfg(feature = "default-rocksdb")]
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_runtime_create(
@@ -1139,6 +1140,7 @@ pub unsafe extern "C" fn svm_encode_spawn_app(
     spawn_app: *mut svm_byte_array,
     version: u32,
     template_addr: svm_byte_array,
+    name: svm_byte_array,
     ctor_name: svm_byte_array,
     calldata: svm_byte_array,
     error: *mut svm_byte_array,
@@ -1155,11 +1157,13 @@ pub unsafe extern "C" fn svm_encode_spawn_app(
     let template_addr = template_addr.unwrap();
 
     // TODO: return an error instead of `unwrap()`
+    let name = String::try_from(name).unwrap();
     let ctor_name = String::try_from(ctor_name).unwrap();
 
     let mut bytes = SpawnAppBuilder::new()
         .with_version(version)
         .with_template(&template_addr.into())
+        .with_name(&name)
         .with_ctor(&ctor_name)
         .with_calldata(&calldata)
         .build();

@@ -14,12 +14,12 @@ path = "../svm-common"
 path = "../svm-types"
 
 [dependencies.db-key]
-optional = true
 version = "0.0.5"
+optional = true
 
 [dependencies.rocksdb]
-optional = true
 version = "0.12.4"
+optional = true
 default-features = false
 features = ["lz4"]
 
@@ -30,6 +30,6 @@ log = "0.4"
 env_logger = "0.7.0"
 
 [features]
-default = ["memory", "default-rocksdb"]
-memory = []
+default = ["default-memory"]
+default-memory = []
 default-rocksdb = ["rocksdb"]
