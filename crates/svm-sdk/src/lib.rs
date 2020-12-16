@@ -5,11 +5,29 @@
 #![allow(dead_code)]
 #![allow(unreachable_code)]
 
-//! This crate implements SDK for SVM.
+//! This crate implements SDK procedural-macros for writing apps (templates if to be more precise) on the SVM platform.
 //! Using this crate when writing SVM Templates in Rust isn't mandatory but should be very useful.
 //!
-//! The crate is compiled with `![no_std]` (no Rust stdlib) annotation in order to reduce the compiled WASM size.
-
+//! The crate is compiled with `![no_std]` (no Rust standard library) in order to reduce the compiled WASM size.
+///
+/// ### `#[app]` proc-macro:
+///
+/// The root procedural-macro is `[app]` and it should decorate a Rust module.
+/// Here is an example for a minimum App:
+///
+/// ```rust
+/// use svm_sdk::app;
+///
+/// #[app]
+/// mod App {
+/// }
+/// ```
+///
+/// Generally, each app should have a way to manage its own storage.
+/// And that's what we'll cover now - the `#[storage]` proc-macro.
+///
+/// ### `#[storage]`` proc-macro
+///
 /// The `#[storage]` proc-macro attribute consumes a struct and translates
 /// its field into more low-level code that interacts against the `svm-sdk` Storage.
 /// For testing purposes the storage used will be `MockStorage` and `ExtStorage` otherwise.
@@ -75,7 +93,7 @@
 /// }
 /// ```
 ///
-/// The `#[storage]` proc-macro attribute consumes a struct and translates
+/// The `#[storage]` attribute consumes a struct and translates
 /// its field into more low-level code that interacts against the `svm-sdk` Storage.
 /// For testing purposes the storage used will be `MockStorage` and `ExtStorage` otherwise.
 ///
@@ -140,8 +158,12 @@
 /// }
 /// ```
 ///
+/// Besides `#[storage]` each app should expose a public API for the platform, otherwise
+/// no one can use it - that's the role of the endpoints.
 ///
-/// The `#[endpoint]` proc-macro attribute facilitates the task of implementing SVM app's endpoint.
+/// ### `[endpoint]` proc-macro:
+///
+/// The `#[endpoint]` attribute facilitates the task of implementing SVM app's endpoint.
 /// Each function annotated with this proc-macro will be transformed into a WASM function export in the compiler's final output.
 ///
 /// # Example
@@ -209,6 +231,7 @@
 ///     }
 /// }
 /// ```
+///
 mod log;
 
 /// Logging API
