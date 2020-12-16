@@ -24,7 +24,9 @@ pub fn expand(attrs: &[FuncAttr]) -> Result<TokenStream> {
 
             let value: svm_sdk::Amount = Node::value();
 
-            #fund_hook(value);
+            if value > svm_sdk::Amount(0) {
+                #fund_hook(value);
+            }
         }
     };
 
