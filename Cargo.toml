@@ -25,12 +25,7 @@ optional = true
 version = "0.12.4"
 features = ["lz4"]
 
-[target.'cfg(unix)'.dependencies.wasmer]
-version="1.0.0-beta1"
-default-features = false
-features = ["singlepass", "default-jit"]
-
-[target.'cfg(windows)'.dependencies.wasmer]
+[dependencies.wasmer]
 version="1.0.0-beta1"
 default-features = false
 features = ["default-cranelift", "default-jit"]
@@ -56,7 +51,7 @@ svm-sdk = { path = "crates/svm-sdk" }
 svm-nibble = { path = "crates/svm-nibble" }
 svm-codec = { path = "crates/svm-codec" }
 svm-layout = { path = "crates/svm-layout" }
-svm-storage = { path = "crates/svm-storage" }
+svm-storage = { path = "crates/svm-storage", default-features = false }
 svm-compiler = { path = "crates/svm-compiler", default-features = false }
 svm-runtime = { path = "crates/svm-runtime", default-features = false }
 svm-ffi = { path = "crates/svm-ffi" }

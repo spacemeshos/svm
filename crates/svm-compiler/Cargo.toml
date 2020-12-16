@@ -17,19 +17,10 @@ version = "0.0.0"
 [dependencies.wasmer-compiler]
 version="1.0.0-beta1"
 
-[dependencies.wasmparser]
-version = "0.65"
-default-features = false
-
-[dev-dependencies]
-wat = "1.0"
-
-[target.'cfg(unix)'.dependencies.wasmer]
-version="1.0.0-beta1"
-default-features = false
-features = ["singlepass", "default-jit"]
-
-[target.'cfg(windows)'.dependencies.wasmer]
+[dependencies.wasmer]
 version="1.0.0-beta1"
 default-features = false
 features = ["default-cranelift", "default-jit"]
+
+[dev-dependencies]
+wat = "1.0"

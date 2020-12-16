@@ -374,32 +374,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b72465f46d518f6015d9cf07f7f3013a95dd6b9c2747c3d65ae0cce43929d14f"
 
 [[package]]
-name = "dynasm"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "62a59fbab09460c1569eeea9b5e4cf62f13f5198b1c2ba0e5196dd7fdd17cd42"
-dependencies = [
- "bitflags",
- "byteorder",
- "lazy_static",
- "proc-macro-error",
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
-name = "dynasmrt"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "85bec3edae2841d37b1c3dc7f3fd403c9061f26e9ffeeee97a3ea909b1bb2ef1"
-dependencies = [
- "byteorder",
- "dynasm",
- "memmap",
-]
-
-[[package]]
 name = "either"
 version = "1.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -648,16 +622,6 @@ name = "memchr"
 version = "2.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0ee1c47aaa256ecabcaea351eae4a9b01ef39ed810004e298d2511ed284b1525"
-
-[[package]]
-name = "memmap"
-version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6585fd95e7bb50d6cc31e20d4cf9afb4e2ba16c5846fc76793f11218da9c475b"
-dependencies = [
- "libc",
- "winapi",
-]
 
 [[package]]
 name = "memoffset"
@@ -1190,7 +1154,6 @@ dependencies = [
  "svm-common",
  "wasmer",
  "wasmer-compiler",
- "wasmparser",
  "wat",
 ]
 
@@ -1561,7 +1524,6 @@ dependencies = [
  "thiserror",
  "wasmer-compiler",
  "wasmer-compiler-cranelift",
- "wasmer-compiler-singlepass",
  "wasmer-derive",
  "wasmer-engine",
  "wasmer-engine-jit",
@@ -1603,25 +1565,6 @@ dependencies = [
  "serde",
  "smallvec",
  "tracing",
- "wasmer-compiler",
- "wasmer-types",
- "wasmer-vm",
-]
-
-[[package]]
-name = "wasmer-compiler-singlepass"
-version = "1.0.0-beta1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bdcb01d834ce3a8556ea487813d9f05159170c212c6789f52cc18a467b27f9ca"
-dependencies = [
- "byteorder",
- "dynasm",
- "dynasmrt",
- "lazy_static",
- "more-asserts",
- "rayon",
- "serde",
- "smallvec",
  "wasmer-compiler",
  "wasmer-types",
  "wasmer-vm",
