@@ -21,8 +21,8 @@ fn compile_fail(t: &TestCases, test: &'static str) {
 fn storage_tests() {
     let t = trybuild::TestCases::new();
 
-    // compile_fail(&t, "tests/storage/invalid_field.rs");
-    // compile_fail(&t, "tests/storage/singleton.rs");
+    compile_fail(&t, "tests/storage/invalid_field.rs");
+    compile_fail(&t, "tests/storage/singleton.rs");
 
     pass(&t, "tests/storage/bool_field.rs");
     pass(&t, "tests/storage/amount_field.rs");

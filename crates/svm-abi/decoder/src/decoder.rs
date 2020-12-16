@@ -370,7 +370,13 @@ impl Decoder {
             | layout::ARR_6
             | layout::ARR_0_255 => TypeKind::Array,
 
-            _ => unreachable!(),
+            _ => {
+                extern crate std;
+
+                let err = std::format!("svm-abi-decoder: Unsupported type-kind {}", byte);
+
+                unreachable!(err)
+            }
         };
 
         Ok(kind)

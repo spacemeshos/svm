@@ -42,8 +42,13 @@ where
     func();
 
     let bytes = MockHost::get_returndata();
+    let bytes = bytes.unwrap();
 
-    ReturnData::new(&bytes.unwrap())
+    let returns = ReturnData::new(&bytes);
+
+    std::mem::forget(bytes);
+
+    returns
 }
 
 pub fn call_1<T, O>(func: extern "C" fn(), args: Vec<T>) -> O
