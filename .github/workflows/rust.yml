@@ -43,13 +43,13 @@ jobs:
       with:
         toolchain: nightly
         command: build
-        args: ${{ matrix.release }} --all --features=default-memory,default-rocksdb
+        args: ${{ matrix.release }} --all --features=default-memory,default-rocksdb --no-default-features
     - name: Cargo Test
       uses: actions-rs/cargo@v1
       with:
         toolchain: nightly
         command: test
-        args: ${{ matrix.release }} --all --features=default-memory
+        args: ${{ matrix.release }} --all --features=default-memory --no-default-features
     - name: Setup node
       uses: actions/setup-node@v1
       with:

@@ -91,7 +91,10 @@ members = [
   "crates/svm-compiler",
   "crates/svm-ffi",
   "crates/svm-runtime-c-api",
-  "apps/simple-vault",
+]
+
+exclude = [
+  "apps/*",
 ]
 
 [features]
