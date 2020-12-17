@@ -1,19 +1,24 @@
 [package]
-name = "simple-vault"
+name = "svm-apps"
 version = "0.0.0"
 authors = ["Yaron Wittenstein <yaron.wittenstein@gmail.com>"]
 license = "MIT"
 edition = "2018"
-readme = "README.md"
 repository = "https://github.com/spacemeshos/svm"
 homepage = "https://github.com/spacemeshos/svm"
 description = "Spacemesh Virtual Machine"
 publish = false
 
 [dependencies]
-svm-sdk = { path = "../../crates/svm-sdk", default-features = false }
+svm-sdk = { path = "../crates/svm-sdk", default-features = false }
+simple-vault = { path = "simple-vault", default-features = false }
+
+[workspace]
+members = [
+  "simple-vault"
+]
 
 [features]
 default = ["mock"]
-mock = ["svm-sdk/mock"]
-ffi = ["svm-sdk/ffi"]
+mock = ["simple-vault/mock"]
+ffi = ["simple-vault/ffi"]

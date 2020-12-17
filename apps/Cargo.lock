@@ -25,6 +25,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "simple-vault"
+version = "0.0.0"
+dependencies = [
+ "svm-sdk",
+]
+
+[[package]]
 name = "svm-abi-decoder"
 version = "0.0.0"
 dependencies = [
@@ -43,6 +50,14 @@ dependencies = [
 [[package]]
 name = "svm-abi-layout"
 version = "0.0.0"
+
+[[package]]
+name = "svm-apps"
+version = "0.0.0"
+dependencies = [
+ "simple-vault",
+ "svm-sdk",
+]
 
 [[package]]
 name = "svm-sdk"
@@ -98,13 +113,6 @@ dependencies = [
 [[package]]
 name = "svm-sdk-types"
 version = "0.0.0"
-
-[[package]]
-name = "svm-vault"
-version = "0.0.0"
-dependencies = [
- "svm-sdk",
-]
 
 [[package]]
 name = "syn"
