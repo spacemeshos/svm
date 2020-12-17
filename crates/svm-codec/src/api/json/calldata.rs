@@ -99,6 +99,7 @@ fn primitive_as_json(p: &Primitive) -> (Json, Json) {
             (Json::String("address".into()), json!(s))
         }
         Primitive::None => unreachable!(),
+        Primitive::Unit => unreachable!(),
     }
 }
 

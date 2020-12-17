@@ -74,6 +74,11 @@ mod tests {
     }
 
     #[test]
+    fn encode_decode_unit() {
+        test_primitive!((), ());
+    }
+
+    #[test]
     fn encode_decode_i8() {
         test_primitive!(i8, -5);
         test_primitive!(i8, 5);

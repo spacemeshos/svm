@@ -8,13 +8,20 @@ edition = "2018"
 proc-macro = true
 
 [dependencies]
-svm-sdk = { path = ".." }
+quote = "1.0.7"
+syn = { version = "1.0.42", features = ["full"] }
 svm-abi-encoder = { path = "../../svm-abi/encoder" }
 svm-abi-decoder = { path = "../../svm-abi/decoder" }
+svm-sdk-storage = { path = "../storage" }
+svm-sdk-types = { path = "../types" }
+svm-sdk-host = { path = "../host" }
 proc-macro2 = "1.0.24"
-quote = "1.0.7"
-syn = "1.0.42"
-cfg-if = "1.0.0"
 
 [dev-dependencies]
 lazy_static = "1.4.0"
+trybuild = { version = "1.0", features = ["diff"] }
+
+[features]
+default = ["mock"]
+ffi = ["svm-sdk-host/ffi", "svm-sdk-storage/ffi"]
+mock = ["svm-sdk-host/mock", "svm-sdk-storage/mock"]

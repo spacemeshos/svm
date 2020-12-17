@@ -17,5 +17,11 @@ pub mod traits;
 mod ext;
 mod mock;
 
+#[cfg(not(any(feature = "ffi", feature = "mock")))]
+compile_error!("must have at least one feature flag turned-on (`ffi` or `mock`)");
+
+#[cfg(feature = "ffi")]
 pub use ext::ExtHost;
+
+#[cfg(feature = "mock")]
 pub use mock::MockHost;

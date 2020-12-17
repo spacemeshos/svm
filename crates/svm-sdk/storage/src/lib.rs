@@ -15,8 +15,15 @@ mod ext;
 mod mock;
 mod traits;
 
+#[cfg(not(any(feature = "ffi", feature = "mock")))]
+compile_error!("must have at least one feature flag turned-on (`ffi` or `mock`)");
+
+#[cfg(feature = "ffi")]
 pub use ext::ExtStorage;
+
+#[cfg(feature = "mock")]
 pub use mock::MockStorage;
+
 pub use traits::Storage;
 
 use svm_sdk_types::{Address, Amount};

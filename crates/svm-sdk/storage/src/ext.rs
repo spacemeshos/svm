@@ -10,9 +10,9 @@ extern "C" {
 
     fn svm_set64(var_id: u32, value: u64);
 
-    fn svm_store160(mem_ptr: u32, var_id: u32);
+    fn svm_store160(offset: u32, var_id: u32);
 
-    fn svm_load160(var_id: u32, mem_ptr: u32);
+    fn svm_load160(var_id: u32, offset: u32);
 }
 
 pub struct ExtStorage;

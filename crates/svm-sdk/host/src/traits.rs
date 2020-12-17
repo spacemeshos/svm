@@ -14,6 +14,8 @@ pub trait Host {
 
     fn app(&self) -> Address;
 
+    fn value(&self) -> Amount;
+
     fn layer_id(&self) -> LayerId;
 
     fn balance_of(&self, addr: &Address) -> Amount;

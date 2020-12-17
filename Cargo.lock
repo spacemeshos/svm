@@ -374,6 +374,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b72465f46d518f6015d9cf07f7f3013a95dd6b9c2747c3d65ae0cce43929d14f"
 
 [[package]]
+name = "dissimilar"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fc4b29f4b9bb94bf267d57269fd0706d343a160937108e9619fe380645428abb"
+
+[[package]]
 name = "either"
 version = "1.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1050,6 +1056,7 @@ name = "svm"
 version = "0.0.0"
 dependencies = [
  "byteorder",
+ "cfg-if 1.0.0",
  "hex",
  "lazy_static",
  "libc",
@@ -1075,6 +1082,7 @@ dependencies = [
  "svm-sdk-host",
  "svm-sdk-macros",
  "svm-sdk-storage",
+ "svm-sdk-tests",
  "svm-sdk-types",
  "svm-storage",
  "svm-types",
@@ -1259,6 +1267,7 @@ dependencies = [
  "svm-abi-encoder",
  "svm-sdk-alloc",
  "svm-sdk-host",
+ "svm-sdk-macros",
  "svm-sdk-storage",
  "svm-sdk-types",
 ]
@@ -1282,14 +1291,16 @@ dependencies = [
 name = "svm-sdk-macros"
 version = "0.1.0"
 dependencies = [
- "cfg-if 1.0.0",
  "lazy_static",
  "proc-macro2",
  "quote",
  "svm-abi-decoder",
  "svm-abi-encoder",
- "svm-sdk",
+ "svm-sdk-host",
+ "svm-sdk-storage",
+ "svm-sdk-types",
  "syn",
+ "trybuild",
 ]
 
 [[package]]
@@ -1299,6 +1310,15 @@ dependencies = [
  "lazy_static",
  "svm-sdk-alloc",
  "svm-sdk-types",
+]
+
+[[package]]
+name = "svm-sdk-tests"
+version = "0.0.0"
+dependencies = [
+ "svm-sdk",
+ "svm-sdk-types",
+ "trybuild",
 ]
 
 [[package]]
@@ -1450,6 +1470,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f50de3927f93d202783f4513cda820ab47ef17f624b03c096e86ef00c67e6b5f"
 dependencies = [
  "lazy_static",
+]
+
+[[package]]
+name = "trybuild"
+version = "1.0.35"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b7d30fe369fd650072b352b1a9cb9587669de6b89be3b8225544012c1c45292d"
+dependencies = [
+ "dissimilar",
+ "glob 0.3.0",
+ "lazy_static",
+ "serde",
+ "serde_json",
+ "termcolor",
+ "toml",
 ]
 
 [[package]]

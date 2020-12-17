@@ -18,3 +18,8 @@ svm-abi-decoder = { path = "../../svm-abi/decoder" }
 
 [dev-dependencies]
 lazy_static = "1.4.0"
+
+[features]
+default = ["ffi", "mock"]
+ffi = []
+mock = []

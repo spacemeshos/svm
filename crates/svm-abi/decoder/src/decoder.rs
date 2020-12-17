@@ -19,6 +19,7 @@ pub enum TypeError {
 
 enum TypeKind {
     None,
+    Unit,
     Bool,
     Address,
     Amount,
@@ -86,6 +87,7 @@ impl Decoder {
 
         let value = match kind {
             TypeKind::None => self.decode_none(cursor)?.into(),
+            TypeKind::Unit => self.decode_unit(cursor)?.into(),
             TypeKind::Bool => self.decode_bool(cursor)?.into(),
             TypeKind::Address => self.decode_addr(cursor)?.into(),
             TypeKind::Amount => self.decode_amount(cursor)?.into(),
@@ -109,6 +111,14 @@ impl Decoder {
         debug_assert_eq!(byte, layout::NONE);
 
         Ok(Value::none())
+    }
+
+    fn decode_unit<'a>(&self, cursor: &mut Cursor) -> Result<Value<'a>, DecodeError> {
+        let byte = self.read_byte(cursor)?;
+
+        debug_assert_eq!(byte, layout::UNIT);
+
+        Ok(Value::unit())
     }
 
     fn decode_bool<'a>(&self, cursor: &mut Cursor) -> Result<Value<'a>, DecodeError> {
@@ -311,6 +321,7 @@ impl Decoder {
 
         let kind = match byte {
             layout::NONE => TypeKind::None,
+            layout::UNIT => TypeKind::Unit,
             layout::BOOL_FALSE | layout::BOOL_TRUE => TypeKind::Bool,
             layout::ADDRESS => TypeKind::Address,
 
@@ -359,7 +370,13 @@ impl Decoder {
             | layout::ARR_6
             | layout::ARR_0_255 => TypeKind::Array,
 
-            _ => unreachable!(),
+            _ => {
+                extern crate std;
+
+                let err = std::format!("svm-abi-decoder: Unsupported type-kind {}", byte);
+
+                unreachable!(err)
+            }
         };
 
         Ok(kind)

@@ -22,6 +22,7 @@ use std::vec::Vec;
 /// WASM Imports under namespace `svm` for SVM programs.
 /// Each running SVM app can assume their existence regardless of
 /// the additional imports given by the Spacemesh node.
+
 #[link(wasm_import_module = "svm")]
 extern "C" {
     /// Returns the memory offset where the transaction's input `calldata` starts.
@@ -53,6 +54,9 @@ extern "C" {
 /// should bring their own imports.
 #[link(wasm_import_module = "sm")]
 extern "C" {
+    /// Returns the `value` field of the current executed transaction.
+    fn sm_value() -> u64;
+
     /// Receives an account address.
     /// (The `Address::len()` bytes starting at memory offset `offset`)
     ///
@@ -102,6 +106,13 @@ impl ExtHost {
             std::mem::transmute(HOST.as_mut_ptr())
         }
     }
+
+    #[inline]
+    pub fn value() -> Amount {
+        let host = Self::instance();
+
+        host.value()
+    }
 }
 
 impl Host for ExtHost {
@@ -117,6 +128,13 @@ impl Host for ExtHost {
         let host = Self::instance();
 
         host.set_returndata(bytes);
+    }
+
+    #[inline]
+    fn value(&self) -> Amount {
+        let host = Self::instance();
+
+        host.value()
     }
 
     #[inline]
@@ -182,6 +200,15 @@ impl Host for InnerHost {
             let length = bytes.len() as u32;
 
             svm_set_returndata(offset, length);
+        }
+    }
+
+    #[inline]
+    fn value(&self) -> Amount {
+        unsafe {
+            let value = sm_value();
+
+            Amount(value)
         }
     }
 
