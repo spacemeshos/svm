@@ -1,0 +1,19 @@
+[package]
+name = "svm-vault"
+version = "0.0.0"
+authors = ["Yaron Wittenstein <yaron.wittenstein@gmail.com>"]
+license = "MIT"
+edition = "2018"
+readme = "README.md"
+repository = "https://github.com/spacemeshos/svm"
+homepage = "https://github.com/spacemeshos/svm"
+description = "Spacemesh Virtual Machine"
+publish = false
+
+[dependencies]
+svm-sdk = { path = "../../crates/svm-sdk", default-features = false }
+
+[features]
+default = ["ffi"]
+mock = ["svm-sdk/mock"]
+ffi = ["svm-sdk/ffi"]
