@@ -88,7 +88,7 @@
 ///   }
 ///
 ///   fn set_data(index: usize, value: u32) {
-///       svm_sdk::storage::ops::array_set_addr::<StorageImpl>(2, index, 3, value)
+///       svm_sdk::storage::ops::array_set32::<StorageImpl>(2, index, 3, value);
 ///   }
 /// }
 /// ```
@@ -153,7 +153,7 @@
 ///   }
 ///
 ///   fn set_data(index: usize, value: u32) {
-///       svm_sdk::storage::ops::array_set_addr::<StorageImpl>(2, index, 3, value)
+///       svm_sdk::storage::ops::array_set32::<StorageImpl>(2, index, 3, value);
 ///   }
 /// }
 /// ```
