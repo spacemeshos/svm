@@ -4,11 +4,12 @@ use quote::{quote, ToTokens};
 use syn::{Attribute, Block, Error, ItemFn, Result, Signature};
 
 mod attr;
+mod ctor;
 mod endpoint;
 mod fundable;
 mod fundable_hook;
 
-use attr::{has_endpoint_attr, has_fundable_hook_attr, FuncAttr, FuncAttrKind};
+use attr::{has_ctor_attr, has_endpoint_attr, has_fundable_hook_attr, FuncAttr, FuncAttrKind};
 
 pub struct Function {
     raw_func: ItemFn,
@@ -41,7 +42,9 @@ pub fn expand(func: &Function) -> Result<TokenStream> {
 
     validate_attrs(&attrs)?;
 
-    let ast = if has_endpoint_attr(&attrs) {
+    let ast = if has_ctor_attr(&attrs) {
+        ctor::expand(func, &attrs)?
+    } else if has_endpoint_attr(&attrs) {
         endpoint::expand(func, &attrs)?
     } else if has_fundable_hook_attr(&attrs) {
         fundable_hook::expand(func, &attrs)?
@@ -87,12 +90,23 @@ pub fn expand_func(func: &Function, _attrs: &[FuncAttr]) -> Result<TokenStream> 
 fn validate_attrs_no_dups(attrs: &[FuncAttr]) -> Result<()> {
     let span = Span::call_site();
 
+    let mut seen_ctor = false;
     let mut seen_endpoint = false;
     let mut seen_fundable = false;
     let mut seen_fundable_hook = false;
 
     for attr in attrs {
         match attr.kind() {
+            FuncAttrKind::Ctor => {
+                if seen_ctor {
+                    return Err(Error::new(
+                        span,
+                        "Each function can be annotated with `#[ctor]` exactly once.",
+                    ));
+                }
+                seen_ctor = true;
+            }
+
             FuncAttrKind::Endpoint => {
                 if seen_endpoint {
                     return Err(Error::new(
@@ -129,17 +143,26 @@ fn validate_attrs_no_dups(attrs: &[FuncAttr]) -> Result<()> {
 
 fn validate_attrs_usage(attrs: &[FuncAttr]) -> Result<()> {
     let span = Span::call_site();
+    let mut seen_ctor = false;
     let mut seen_endpoint = false;
     let mut seen_fundable = false;
     let mut seen_fundable_hook = false;
 
     for attr in attrs {
         match attr.kind() {
+            FuncAttrKind::Ctor => seen_ctor = true,
             FuncAttrKind::Endpoint => seen_endpoint = true,
             FuncAttrKind::FundableHook => seen_fundable_hook = true,
             FuncAttrKind::Fundable => seen_fundable = true,
             FuncAttrKind::Other => continue,
         }
+    }
+
+    if seen_ctor && seen_endpoint {
+        return Err(Error::new(
+            span,
+            "#[ctor]` and `#[endpoint]` can't co-exist.",
+        ));
     }
 
     if seen_endpoint && seen_fundable_hook {
@@ -156,10 +179,10 @@ fn validate_attrs_usage(attrs: &[FuncAttr]) -> Result<()> {
         ));
     }
 
-    if seen_fundable && !seen_endpoint {
+    if seen_fundable && !seen_endpoint && !seen_ctor {
         return Err(Error::new(
             span,
-            "#[fundable(..)] can't be used without `#[endpoint]`",
+            "#[fundable(..)] can't be used without `#[endpoint]` or `#[ctor]`",
         ));
     }
 
@@ -168,13 +191,23 @@ fn validate_attrs_usage(attrs: &[FuncAttr]) -> Result<()> {
 
 fn validate_attrs_order(attrs: &[FuncAttr]) -> Result<()> {
     let span = Span::call_site();
+
+    let mut seen_ctor = false;
     let mut seen_endpoint = false;
 
     for attr in attrs {
         match attr.kind() {
+            FuncAttrKind::Ctor => seen_ctor = true,
             FuncAttrKind::Endpoint => seen_endpoint = true,
             FuncAttrKind::FundableHook => continue,
             FuncAttrKind::Fundable => {
+                if seen_ctor {
+                    return Err(Error::new(
+                        span,
+                        "`#[fundable(..)]` should be placed above `#[ctor]`",
+                    ));
+                }
+
                 if seen_endpoint {
                     return Err(Error::new(
                         span,
@@ -225,13 +258,25 @@ mod test {
 
     #[test]
     fn fundable_can_not_live_alone() {
-        let err = "#[fundable(..)] can't be used without `#[endpoint]`";
+        let err = "#[fundable(..)] can't be used without `#[endpoint]` or `#[ctor]`";
 
         assert_err!(
             err,
             #[fundable(deny)]
             fn deny() {}
         )
+    }
+
+    #[test]
+    fn ctor_and_fundable_attrs_wrong_order() {
+        let err = "`#[fundable(..)]` should be placed above `#[ctor]`";
+
+        assert_err!(
+            err,
+            #[ctor]
+            #[fundable(deny)]
+            fn get() {}
+        );
     }
 
     #[test]
@@ -242,6 +287,18 @@ mod test {
             err,
             #[endpoint]
             #[fundable(deny)]
+            fn get() {}
+        );
+    }
+
+    #[test]
+    fn endpoint_and_ctor_fails() {
+        let err = "#[ctor]` and `#[endpoint]` can't co-exist.";
+
+        assert_err!(
+            err,
+            #[ctor]
+            #[endpoint]
             fn get() {}
         );
     }
@@ -260,12 +317,24 @@ mod test {
 
     #[test]
     fn fundable_hook_and_fundable_not_allowed() {
-        let err = "#[endpoint]` and `#[fundable_hook]` can't co-exist.";
+        let err = "#[fundable_hook]` and `#[fundable(..)]` can't co-exist.";
 
         assert_err!(
             err,
             #[fundable_hook]
-            #[endpoint]
+            #[fundable(default)]
+            fn get() {}
+        );
+    }
+
+    #[test]
+    fn ctor_used_twice_fails() {
+        let err = "Each function can be annotated with `#[ctor]` exactly once.";
+
+        assert_err!(
+            err,
+            #[ctor]
+            #[ctor]
             fn get() {}
         );
     }
