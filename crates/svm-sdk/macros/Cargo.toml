@@ -8,6 +8,8 @@ edition = "2018"
 proc-macro = true
 
 [dependencies]
+wee_alloc = "0.4.5"
+proc-macro2 = "1.0.24"
 quote = "1.0.7"
 syn = { version = "1.0.42", features = ["full"] }
 svm-abi-encoder = { path = "../../svm-abi/encoder" }
@@ -15,7 +17,6 @@ svm-abi-decoder = { path = "../../svm-abi/decoder" }
 svm-sdk-storage = { path = "../storage" }
 svm-sdk-types = { path = "../types" }
 svm-sdk-host = { path = "../host" }
-proc-macro2 = "1.0.24"
 
 [dev-dependencies]
 lazy_static = "1.4.0"
