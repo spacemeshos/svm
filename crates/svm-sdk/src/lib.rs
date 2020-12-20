@@ -336,17 +336,14 @@ pub use log::log;
 #[macro_use]
 pub mod ensure;
 
-use svm_sdk_macros;
-use svm_sdk_storage;
-use svm_sdk_types;
-
+pub use svm_abi_decoder::{CallData, DecodeError, ReturnData};
+pub use svm_sdk_alloc::{alloc, Ptr};
 pub use svm_sdk_macros::app;
 
-pub use svm_abi_decoder::{CallData, DecodeError, ReturnData};
-
-extern crate svm_sdk_alloc;
-
-pub use svm_sdk_alloc::{alloc, Ptr, ALLOC};
+// in order to use the following `global allocator` one should
+// call `extern crate svm_sdk;` (instead of `use svm_sdk;`)
+#[global_allocator]
+pub static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 #[cfg(not(any(feature = "ffi", feature = "mock")))]
 compile_error!("must have at least one feature flag turned-on (`ffi` or `mock`)");
