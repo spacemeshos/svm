@@ -4,17 +4,17 @@ use svm_sdk_tests::{call_1, call_2};
 
 #[app]
 mod App {
-    #[endpoint]
+    #[ctor]
     fn not(a: bool) -> bool {
         !(a)
     }
 
-    #[endpoint]
+    #[ctor]
     fn and(a: bool, b: bool) -> bool {
         a && b
     }
 
-    #[endpoint]
+    #[ctor]
     fn swap(a: bool, b: bool) -> (bool, bool) {
         (b, a)
     }
