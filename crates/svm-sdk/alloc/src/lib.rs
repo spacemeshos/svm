@@ -15,6 +15,9 @@ extern crate alloc;
 
 use alloc::alloc::{alloc_zeroed, Layout};
 
+#[global_allocator]
+pub static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
+
 /// This method uses the process's Global Allocator.
 /// It allocates `nbytes` bytes on the Heap.
 ///

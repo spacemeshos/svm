@@ -1276,11 +1276,15 @@ dependencies = [
  "svm-sdk-macros",
  "svm-sdk-storage",
  "svm-sdk-types",
+ "wee_alloc",
 ]
 
 [[package]]
 name = "svm-sdk-alloc"
 version = "0.0.0"
+dependencies = [
+ "wee_alloc",
+]
 
 [[package]]
 name = "svm-sdk-host"

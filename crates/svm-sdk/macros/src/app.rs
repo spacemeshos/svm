@@ -220,8 +220,8 @@ fn expand_functions(app: &App) -> Result<TokenStream> {
 
 fn alloc_func_ast() -> TokenStream {
     quote! {
-        #[global_allocator]
-        static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
+        // injects the `#[global_allocator]`
+        extern crate svm_sdk;
 
         #[no_mangle]
         pub extern "C" fn svm_alloc(size: u32) -> u32 {
