@@ -9,6 +9,8 @@ use crate::Function;
 
 #[derive(Debug, PartialEq)]
 pub enum FuncAttrKind {
+    Ctor,
+
     Endpoint,
 
     Fundable,
@@ -20,6 +22,8 @@ pub enum FuncAttrKind {
 
 #[derive(Debug)]
 pub enum FuncAttr {
+    Ctor,
+
     Endpoint,
 
     Fundable(String),
@@ -32,6 +36,7 @@ pub enum FuncAttr {
 impl FuncAttr {
     pub fn kind(&self) -> FuncAttrKind {
         match self {
+            FuncAttr::Ctor => FuncAttrKind::Ctor,
             FuncAttr::Endpoint => FuncAttrKind::Endpoint,
             FuncAttr::FundableHook => FuncAttrKind::FundableHook,
             FuncAttr::Fundable(..) => FuncAttrKind::Fundable,
@@ -56,6 +61,11 @@ pub fn parse_attr(attr: Attribute) -> Result<FuncAttr> {
     let kind = parse_attr_kind(&attr)?;
 
     let attr = match kind {
+        FuncAttrKind::Ctor => {
+            assert!(attr.tokens.is_empty());
+
+            FuncAttr::Ctor
+        }
         FuncAttrKind::Endpoint => {
             assert!(attr.tokens.is_empty());
 
@@ -108,6 +118,7 @@ impl Parse for FuncAttrKind {
         let ident_str = ident_str.as_str();
 
         let kind = match ident_str {
+            "ctor" => FuncAttrKind::Ctor,
             "endpoint" => FuncAttrKind::Endpoint,
             "fundable" => FuncAttrKind::Fundable,
             "fundable_hook" => FuncAttrKind::FundableHook,
@@ -116,6 +127,14 @@ impl Parse for FuncAttrKind {
 
         Ok(kind)
     }
+}
+
+pub fn has_endpoint_or_ctor_attr(attrs: &[FuncAttr]) -> bool {
+    has_endpoint_attr(attrs) || has_ctor_attr(attrs)
+}
+
+pub fn has_ctor_attr(attrs: &[FuncAttr]) -> bool {
+    has_attr(attrs, FuncAttrKind::Ctor)
 }
 
 pub fn has_endpoint_attr(attrs: &[FuncAttr]) -> bool {
