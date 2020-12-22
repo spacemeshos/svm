@@ -50,11 +50,14 @@ pub fn expand(_args: TokenStream, input: TokenStream) -> Result<TokenStream> {
 
     let structs = expand_structs(&app)?;
     let functions = expand_functions(&app)?;
+    let alloc_func = alloc_func_ast();
 
     let ast = quote! {
         // #(#imports)*
 
         // #(#aliases)*
+
+        #alloc_func
 
         #structs
 
@@ -213,6 +216,20 @@ fn expand_functions(app: &App) -> Result<TokenStream> {
     };
 
     Ok(ast)
+}
+
+fn alloc_func_ast() -> TokenStream {
+    quote! {
+        // injects the `#[global_allocator]`
+        extern crate svm_sdk;
+
+        #[no_mangle]
+        pub extern "C" fn svm_alloc(size: u32) -> u32 {
+            let ptr = svm_sdk::alloc(size as usize);
+
+            ptr.offset() as u32
+        }
+    }
 }
 
 #[cfg(test)]
