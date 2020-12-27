@@ -1,5 +1,4 @@
-#[global_allocator]
-static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
+extern crate svm_sdk;
 
 #[link(wasm_import_module = "host")]
 extern "C" {

@@ -1,10 +1,9 @@
 #![feature(vec_into_raw_parts)]
 
+extern crate svm_sdk;
+
 use svm_sdk::traits::Encoder;
 use svm_sdk::CallData;
-
-#[global_allocator]
-static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 const VAR_ID: u32 = 0;
 
