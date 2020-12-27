@@ -1,3 +1,5 @@
+use std::fmt;
+
 use proc_macro2::{Ident, TokenStream};
 
 use quote::{quote, ToTokens};
@@ -17,6 +19,23 @@ pub enum Var {
         ty_str: String,
         length: u32,
     },
+}
+
+impl fmt::Debug for Var {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Var::Primitive {
+                id, name, ty_str, ..
+            } => writeln!(f, "Var #{} - {}: {}", id.0, name, ty_str),
+            Var::Array {
+                id,
+                name,
+                ty_str,
+                length,
+                ..
+            } => writeln!(f, "Var #{} - {}: [{}; {}]", id.0, name, ty_str, length),
+        }
+    }
 }
 
 #[repr(transparent)]

@@ -6,7 +6,7 @@ use syn::{
     ItemType, ItemUse, Result, 
 };
 
-use crate::{Struct, Function};
+use crate::{schema, Struct, Function, Schema};
 use super::{r#struct, function};
 
 use r#struct::has_storage_attr;
@@ -41,7 +41,7 @@ impl App {
     }
 }
 
-pub fn expand(_args: TokenStream, input: TokenStream) -> Result<TokenStream> {
+pub fn expand(_args: TokenStream, input: TokenStream) -> Result<(Schema, TokenStream)> {
     let module = syn::parse2(input)?;
     let app = parse_app(module)?;
 
@@ -51,6 +51,8 @@ pub fn expand(_args: TokenStream, input: TokenStream) -> Result<TokenStream> {
     let structs = expand_structs(&app)?;
     let functions = expand_functions(&app)?;
     let alloc_func = alloc_func_ast();
+
+    let schema = schema::app_schema(&app);
 
     let ast = quote! {
         // #(#imports)*
@@ -64,7 +66,7 @@ pub fn expand(_args: TokenStream, input: TokenStream) -> Result<TokenStream> {
         #functions
     };
 
-    Ok(ast)
+    Ok((schema,ast))
 }
 
 pub fn parse_app(mut raw_app: ItemMod) -> Result<App> {

@@ -5,12 +5,14 @@ use crate::r#struct::has_storage_attr;
 use crate::storage_vars;
 use crate::{App, Function, Var};
 
-pub struct AppSchema {
+#[derive(Debug)]
+pub struct Schema {
     exports: Vec<Export>,
 
     storage: Vec<Var>,
 }
 
+#[derive(Debug)]
 pub struct Export {
     is_ctor: bool,
 
@@ -20,9 +22,10 @@ pub struct Export {
 
     wasm_name: String,
 
-    sig: Signature,
+    signature: Signature,
 }
 
+#[derive(Debug)]
 pub struct Signature {
     params: Vec<(String, String)>,
 
@@ -54,7 +57,7 @@ impl Signature {
     }
 }
 
-impl AppSchema {
+impl Schema {
     pub fn new() -> Self {
         Self {
             exports: Vec::new(),
@@ -86,7 +89,15 @@ impl AppSchema {
     }
 }
 
-pub fn storage_schema(app: &App) -> Vec<Var> {
+pub fn app_schema(app: &App) -> Schema {
+    let storage = storage_schema(app);
+
+    let exports = app.functions().iter().map(export_schema).collect();
+
+    Schema { storage, exports }
+}
+
+fn storage_schema(app: &App) -> Vec<Var> {
     let storage = app
         .structs()
         .iter()
@@ -100,7 +111,23 @@ pub fn storage_schema(app: &App) -> Vec<Var> {
     storage_vars(&storage).unwrap()
 }
 
-pub fn function_sig(func: &Function) -> Signature {
+fn export_schema(func: &Function) -> Export {
+    let is_ctor = false;
+    let is_fundable = false;
+    let api_name = func.raw_name().to_string();
+    let wasm_name = func.raw_name().to_string();
+    let signature = function_sig(func);
+
+    Export {
+        is_ctor,
+        is_fundable,
+        api_name,
+        wasm_name,
+        signature,
+    }
+}
+
+fn function_sig(func: &Function) -> Signature {
     let raw_sig = func.raw_sig();
 
     let mut sig = Signature::new();
