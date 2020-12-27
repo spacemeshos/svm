@@ -9,7 +9,6 @@ publish = false
 crate-type = ['cdylib']
 
 [dependencies]
-wee_alloc = "0.4.5"
 svm-sdk = { path = "../../../../svm-sdk" }
 
 [workspace]

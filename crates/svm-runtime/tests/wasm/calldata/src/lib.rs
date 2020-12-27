@@ -1,13 +1,12 @@
 #![feature(vec_into_raw_parts)]
 #![allow(improper_ctypes_definitions)]
 
+extern crate svm_sdk;
+
 use svm_sdk::traits::Encoder;
 use svm_sdk::{Address, CallData};
 
 const VAR_ID: u32 = 0;
-
-#[global_allocator]
-static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 #[link(wasm_import_module = "svm")]
 extern "C" {
