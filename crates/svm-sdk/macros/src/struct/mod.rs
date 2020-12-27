@@ -10,6 +10,7 @@ mod storage;
 mod var;
 
 pub use attr::{has_storage_attr, StructAttr, StructAttrKind};
+pub use storage::storage_vars;
 pub use var::{Var, VarId};
 
 pub struct Struct {

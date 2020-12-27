@@ -2,10 +2,15 @@
 
 mod app;
 mod function;
+mod schema;
 mod r#struct;
 
+use app::App;
 use function::Function;
-use r#struct::Struct;
+use r#struct::storage_vars;
+use r#struct::{Struct, Var};
+
+use schema::{AppSchema, Export};
 
 #[proc_macro_attribute]
 pub fn app(
