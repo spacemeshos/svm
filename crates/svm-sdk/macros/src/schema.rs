@@ -1,6 +1,7 @@
 use quote::quote;
 use syn::{FnArg, PatType};
 
+use crate::function::{func_attrs, has_ctor_attr, has_endpoint_attr, has_fundable_attr};
 use crate::r#struct::has_storage_attr;
 use crate::storage_vars;
 use crate::{App, Function, Var};
@@ -92,7 +93,19 @@ impl Schema {
 pub fn app_schema(app: &App) -> Schema {
     let storage = storage_schema(app);
 
-    let exports = app.functions().iter().map(export_schema).collect();
+    let exports = app
+        .functions()
+        .iter()
+        .filter(|func| {
+            let attrs = func_attrs(func).unwrap();
+
+            let is_endpoint = has_endpoint_attr(&attrs);
+            let is_ctor = has_ctor_attr(&attrs);
+
+            is_endpoint || is_ctor
+        })
+        .map(export_schema)
+        .collect();
 
     Schema { storage, exports }
 }
@@ -112,9 +125,16 @@ fn storage_schema(app: &App) -> Vec<Var> {
 }
 
 fn export_schema(func: &Function) -> Export {
-    let is_ctor = false;
-    let is_fundable = false;
+    let attrs = func_attrs(func).unwrap();
+
+    let is_ctor = has_ctor_attr(&attrs);
+    let is_fundable = has_fundable_attr(&attrs);
+
     let api_name = func.raw_name().to_string();
+
+    // TODO: future PR will uglify the name of the endpoint
+    // in order to save space in the transactions.
+    // The original (code) name will appear in the `schema.json` (off-chain).
     let wasm_name = func.raw_name().to_string();
     let signature = function_sig(func);
 
