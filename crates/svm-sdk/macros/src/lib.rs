@@ -19,10 +19,6 @@ pub fn app(
 ) -> proc_macro::TokenStream {
     match app::expand(args.into(), input.into()) {
         Err(err) => err.to_compile_error().into(),
-        Ok((schema, ast)) => {
-            dbg!(schema);
-
-            ast.into()
-        }
+        Ok((schema, ast)) => ast.into(),
     }
 }

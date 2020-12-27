@@ -98,17 +98,17 @@ pub fn app_schema(app: &App) -> Schema {
 }
 
 fn storage_schema(app: &App) -> Vec<Var> {
-    let storage = app
-        .structs()
-        .iter()
-        .find(|s| {
-            let attrs = s.attrs().as_ref().unwrap();
+    let storage = app.structs().iter().find(|s| {
+        let attrs = s.attrs().as_ref().unwrap();
 
-            has_storage_attr(attrs)
-        })
-        .unwrap();
+        has_storage_attr(attrs)
+    });
 
-    storage_vars(&storage).unwrap()
+    if let Some(storage) = storage {
+        storage_vars(&storage).unwrap()
+    } else {
+        Vec::new()
+    }
 }
 
 fn export_schema(func: &Function) -> Export {
