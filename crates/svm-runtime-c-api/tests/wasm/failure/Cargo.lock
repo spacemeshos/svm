@@ -67,7 +67,6 @@ name = "svm-runtime-examples-failure"
 version = "0.1.0"
 dependencies = [
  "svm-sdk",
- "wee_alloc",
 ]
 
 [[package]]
@@ -82,11 +81,15 @@ dependencies = [
  "svm-sdk-macros",
  "svm-sdk-storage",
  "svm-sdk-types",
+ "wee_alloc",
 ]
 
 [[package]]
 name = "svm-sdk-alloc"
 version = "0.0.0"
+dependencies = [
+ "wee_alloc",
+]
 
 [[package]]
 name = "svm-sdk-host"
@@ -110,6 +113,7 @@ dependencies = [
  "svm-sdk-storage",
  "svm-sdk-types",
  "syn",
+ "wee_alloc",
 ]
 
 [[package]]
