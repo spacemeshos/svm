@@ -8,17 +8,30 @@ use syn::Type;
 pub enum Var {
     Primitive {
         id: VarId,
+        offset: usize,
         name: Ident,
         ty: Type,
         ty_str: String,
+        byte_count: usize,
     },
     Array {
         id: VarId,
+        offset: usize,
         name: Ident,
         ty: Type,
         ty_str: String,
         length: u32,
+        byte_count: usize,
     },
+}
+
+impl Var {
+    pub fn byte_count(&self) -> usize {
+        match *self {
+            Var::Primitive { byte_count, .. } => byte_count,
+            Var::Array { byte_count, .. } => byte_count,
+        }
+    }
 }
 
 impl fmt::Debug for Var {

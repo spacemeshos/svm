@@ -34,7 +34,7 @@ pub fn struct_attrs(raw_attrs: &[Attribute]) -> Result<Vec<StructAttr>> {
     let mut attrs = Vec::new();
 
     for attr in raw_attrs {
-        let attr = parse_attr(attr)?;
+        let attr = parse_struct_attr(attr)?;
 
         attrs.push(attr);
     }
@@ -42,8 +42,8 @@ pub fn struct_attrs(raw_attrs: &[Attribute]) -> Result<Vec<StructAttr>> {
     Ok(attrs)
 }
 
-pub fn parse_attr(attr: &Attribute) -> Result<StructAttr> {
-    let kind = parse_attr_kind(&attr)?;
+pub fn parse_struct_attr(attr: &Attribute) -> Result<StructAttr> {
+    let kind = parse_struct_attr_kind(&attr)?;
 
     let attr = match kind {
         StructAttrKind::Storage => {
@@ -57,7 +57,7 @@ pub fn parse_attr(attr: &Attribute) -> Result<StructAttr> {
     Ok(attr)
 }
 
-fn parse_attr_kind(attr: &Attribute) -> Result<StructAttrKind> {
+fn parse_struct_attr_kind(attr: &Attribute) -> Result<StructAttrKind> {
     let mut tokens = TokenStream::new();
 
     let path = &attr.path;
@@ -69,7 +69,7 @@ fn parse_attr_kind(attr: &Attribute) -> Result<StructAttrKind> {
 impl Parse for StructAttrKind {
     fn parse(input: ParseStream) -> Result<Self> {
         let ident: Ident = input.parse()?;
-        let ident_str = format!("{}", ident);
+        let ident_str = ident.to_string();
         let ident_str = ident_str.as_str();
 
         let kind = match ident_str {
@@ -82,9 +82,9 @@ impl Parse for StructAttrKind {
 }
 
 pub fn has_storage_attr(attrs: &[StructAttr]) -> bool {
-    has_attr(attrs, StructAttrKind::Storage)
+    struct_has_attr(attrs, StructAttrKind::Storage)
 }
 
-pub fn has_attr(attrs: &[StructAttr], kind: StructAttrKind) -> bool {
+pub fn struct_has_attr(attrs: &[StructAttr], kind: StructAttrKind) -> bool {
     attrs.iter().any(|attr| attr.kind() == kind)
 }
