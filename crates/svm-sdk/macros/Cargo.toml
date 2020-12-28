@@ -12,6 +12,7 @@ wee_alloc = "0.4.5"
 proc-macro2 = "1.0.24"
 quote = "1.0.7"
 syn = { version = "1.0.42", features = ["full"] }
+serde_json = { version = "1.0", optional = true }
 svm-abi-encoder = { path = "../../svm-abi/encoder" }
 svm-abi-decoder = { path = "../../svm-abi/decoder" }
 svm-sdk-storage = { path = "../storage" }
@@ -23,8 +24,8 @@ lazy_static = "1.4.0"
 trybuild = { version = "1.0", features = ["diff"] }
 
 [features]
-default = ["mock"]
+default = ["mock", "api", "layout"]
 ffi = ["svm-sdk-host/ffi", "svm-sdk-storage/ffi"]
 mock = ["svm-sdk-host/mock", "svm-sdk-storage/mock"]
-api = []
+api = ["serde_json"]
 layout = []

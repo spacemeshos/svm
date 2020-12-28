@@ -5,6 +5,9 @@ mod function;
 mod schema;
 mod r#struct;
 
+#[cfg(feature = "api")]
+mod api;
+
 use app::App;
 use function::Function;
 use r#struct::storage_vars;

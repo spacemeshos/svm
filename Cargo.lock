@@ -1304,6 +1304,7 @@ dependencies = [
  "lazy_static",
  "proc-macro2",
  "quote",
+ "serde_json",
  "svm-abi-decoder",
  "svm-abi-encoder",
  "svm-sdk-host",

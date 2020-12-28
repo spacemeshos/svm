@@ -15,15 +15,15 @@ pub struct Schema {
 
 #[derive(Debug)]
 pub struct Export {
-    is_ctor: bool,
+    pub is_ctor: bool,
 
-    is_fundable: bool,
+    pub is_fundable: bool,
 
-    api_name: String,
+    pub api_name: String,
 
-    wasm_name: String,
+    pub wasm_name: String,
 
-    signature: Signature,
+    pub signature: Signature,
 }
 
 #[derive(Debug)]
