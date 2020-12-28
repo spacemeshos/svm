@@ -9,7 +9,11 @@ mod endpoint;
 mod fundable;
 mod fundable_hook;
 
-use attr::{has_ctor_attr, has_endpoint_attr, has_fundable_hook_attr, FuncAttr, FuncAttrKind};
+use attr::{FuncAttr, FuncAttrKind};
+
+pub use attr::{
+    func_attrs, has_ctor_attr, has_endpoint_attr, has_fundable_attr, has_fundable_hook_attr,
+};
 
 pub struct Function {
     raw_func: ItemFn,
@@ -38,7 +42,7 @@ impl Function {
 }
 
 pub fn expand(func: &Function) -> Result<TokenStream> {
-    let attrs = attr::func_attrs(func)?;
+    let attrs = func_attrs(func)?;
 
     validate_attrs(&attrs)?;
 

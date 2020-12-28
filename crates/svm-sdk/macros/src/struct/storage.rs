@@ -33,7 +33,7 @@ pub fn expand(strukt: &Struct, attrs: &[StructAttr]) -> Result<TokenStream> {
     Ok(ast)
 }
 
-fn storage_vars(strukt: &Struct) -> Result<Vec<Var>> {
+pub fn storage_vars(strukt: &Struct) -> Result<Vec<Var>> {
     let mut vars = Vec::new();
     let mut id = VarId(0);
 
