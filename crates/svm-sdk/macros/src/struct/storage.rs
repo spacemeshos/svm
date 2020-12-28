@@ -36,13 +36,16 @@ pub fn expand(strukt: &Struct, attrs: &[StructAttr]) -> Result<TokenStream> {
 pub fn storage_vars(strukt: &Struct) -> Result<Vec<Var>> {
     let mut vars = Vec::new();
     let mut id = VarId(0);
+    let mut offset = 0;
 
     let fields = strukt.raw_fields();
 
     ensure_named_fields(fields)?;
 
     for f in fields {
-        let var = field_var(f, id)?;
+        let var = field_var(f, id, offset)?;
+
+        offset += var.byte_count();
 
         vars.push(var);
 
@@ -52,7 +55,7 @@ pub fn storage_vars(strukt: &Struct) -> Result<Vec<Var>> {
     Ok(vars)
 }
 
-fn field_var(field: &Field, id: VarId) -> Result<Var> {
+fn field_var(field: &Field, id: VarId, offset: usize) -> Result<Var> {
     let span = Span::call_site();
 
     if !field.attrs.is_empty() {
@@ -60,6 +63,8 @@ fn field_var(field: &Field, id: VarId) -> Result<Var> {
 
         return Err(Error::new(span, msg));
     }
+
+    let byte_count = field_byte_count(field);
 
     let var = match &field.ty {
         Type::Array(array) => {
@@ -73,6 +78,8 @@ fn field_var(field: &Field, id: VarId) -> Result<Var> {
                 ty,
                 ty_str,
                 length,
+                offset,
+                byte_count,
             }
         }
         Type::Path(path) => {
@@ -84,6 +91,8 @@ fn field_var(field: &Field, id: VarId) -> Result<Var> {
                 name,
                 ty,
                 ty_str,
+                offset,
+                byte_count,
             }
         }
         _ => {
@@ -215,6 +224,7 @@ fn getter_ast(var: &Var) -> TokenStream {
             name,
             ty,
             ty_str,
+            ..
         } => {
             let getter_name = getter_ident(name);
 
@@ -273,6 +283,7 @@ fn getter_ast(var: &Var) -> TokenStream {
             ty,
             ty_str,
             length,
+            ..
         } => {
             let getter_name = getter_ident(name);
 
@@ -335,6 +346,7 @@ fn setter_ast(var: &Var) -> TokenStream {
             name,
             ty,
             ty_str,
+            ..
         } => {
             let setter_name = setter_ident(name);
 
@@ -387,6 +399,7 @@ fn setter_ast(var: &Var) -> TokenStream {
             ty,
             ty_str,
             length,
+            ..
         } => {
             let setter_name = setter_ident(name);
 
@@ -469,4 +482,8 @@ fn next_var(var_id: VarId) -> VarId {
 
 fn field_ident(f: &Field) -> Ident {
     f.ident.as_ref().unwrap().clone()
+}
+
+fn field_byte_count(f: &Field) -> usize {
+    0
 }
