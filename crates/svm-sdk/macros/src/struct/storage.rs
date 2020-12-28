@@ -64,13 +64,12 @@ fn field_var(field: &Field, id: VarId, offset: usize) -> Result<Var> {
         return Err(Error::new(span, msg));
     }
 
-    let byte_count = field_byte_count(field);
-
     let var = match &field.ty {
         Type::Array(array) => {
             let (ty, ty_str) = parse_array_element_type(&array)?;
             let length = parse_array_length(&array)?;
             let name = field_ident(field);
+            let byte_count = field_byte_count(&ty_str);
 
             Var::Array {
                 id,
@@ -85,6 +84,7 @@ fn field_var(field: &Field, id: VarId, offset: usize) -> Result<Var> {
         Type::Path(path) => {
             let name = field_ident(field);
             let (ty, ty_str) = parse_type_path(path)?;
+            let byte_count = field_byte_count(&ty_str);
 
             Var::Primitive {
                 id,
@@ -484,6 +484,21 @@ fn field_ident(f: &Field) -> Ident {
     f.ident.as_ref().unwrap().clone()
 }
 
-fn field_byte_count(f: &Field) -> usize {
-    0
+fn field_byte_count(ty: &str) -> usize {
+    match ty {
+        "bool" => 1,
+        "Amount" => 8,
+        "Address" => 20,
+        "svm_sdk :: Amount" => 8,
+        "svm_sdk :: Address" => 20,
+        "i8" => 1,
+        "u8" => 1,
+        "i16" => 2,
+        "u16" => 2,
+        "i32" => 4,
+        "u32" => 4,
+        "i64" => 8,
+        "u64" => 8,
+        _ => unreachable!(),
+    }
 }
