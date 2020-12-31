@@ -122,7 +122,7 @@ impl svm_byte_array {
                     ptr = ptr.add($size);
                 }
             }};
-        };
+        }
 
         for val in values {
             match val {
