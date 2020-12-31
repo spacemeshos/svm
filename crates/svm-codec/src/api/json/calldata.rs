@@ -1,7 +1,7 @@
 use serde_json::json;
 use serde_json::Value as Json;
 
-use svm_abi_decoder::{Cursor, Decoder};
+use svm_abi_decoder::{CallData, Cursor, Decoder};
 use svm_abi_encoder::Encoder;
 use svm_sdk::value::{Composite, Primitive, Value};
 use svm_sdk::Address;
@@ -37,9 +37,6 @@ pub fn encode_calldata(json: &Json) -> Result<Json, JsonError> {
 
     let mut buf = Vec::new();
 
-    let nargs = abi.len() as u8;
-    buf.push(nargs);
-
     for (ty, raw) in abi.iter().zip(data) {
         let value = encode_value(ty, raw)?;
         value.encode(&mut buf);
@@ -54,17 +51,12 @@ pub fn encode_calldata(json: &Json) -> Result<Json, JsonError> {
 pub fn decode_calldata(json: &Json) -> Result<Json, JsonError> {
     let data = json::as_string(json, "calldata")?;
     let calldata = json::str_to_bytes(&data, "calldata")?;
-
-    let nargs = calldata[0];
-
-    let mut decoder = Decoder::new();
-    let mut cursor = Cursor::new(&calldata[1..]);
+    let mut calldata = CallData::new(&calldata);
 
     let mut abi: Vec<Json> = Vec::new();
     let mut data: Vec<Json> = Vec::new();
 
-    for _ in 0..nargs {
-        let value: Value = decoder.decode_value(&mut cursor).unwrap();
+    while let Some(value) = calldata.next() {
         let (ty, item) = value_as_json(&value);
 
         abi.push(ty);
