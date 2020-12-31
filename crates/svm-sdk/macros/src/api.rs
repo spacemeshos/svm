@@ -1,12 +1,22 @@
 use crate::{Export, Schema, Signature, Var};
 
 use serde_json::{json, Value};
+use quote::{quote, ToTokens};
+use proc_macro2::TokenStream;
 
 pub fn json_api(schema: &Schema) -> Value {
     let exports = emit_exports(schema);
     let storage = emit_storage(schema);
 
     json!({"exports": exports, "storage": storage})
+}
+
+pub fn json_api_tokens(schema: &Schema) -> TokenStream {
+    let json = json_api(schema).to_string();
+
+    quote! {
+        #json
+    }
 }
 
 fn emit_exports(schema: &Schema) -> Value {

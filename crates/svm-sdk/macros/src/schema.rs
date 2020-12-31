@@ -8,6 +8,8 @@ use crate::{App, Function, Var};
 
 #[derive(Debug)]
 pub struct Schema {
+    name: String,
+
     exports: Vec<Export>,
 
     storage: Vec<Var>,
@@ -59,8 +61,9 @@ impl Signature {
 }
 
 impl Schema {
-    pub fn new() -> Self {
+    pub fn new(name: String) -> Self {
         Self {
+            name,
             exports: Vec::new(),
             storage: Vec::new(),
         }
@@ -68,6 +71,10 @@ impl Schema {
 
     pub fn add_export(&mut self, export: Export) {
         self.exports.push(export);
+    }
+
+    pub fn name(&self) -> String {
+        self.name.clone()
     }
 
     pub fn endpoints(&self) -> Vec<&Export> {
@@ -91,6 +98,7 @@ impl Schema {
 }
 
 pub fn app_schema(app: &App) -> Schema {
+    let name = app.name().to_string();
     let storage = storage_schema(app);
 
     let exports = app
@@ -107,7 +115,11 @@ pub fn app_schema(app: &App) -> Schema {
         .map(export_schema)
         .collect();
 
-    Schema { storage, exports }
+    Schema {
+        name,
+        storage,
+        exports,
+    }
 }
 
 fn storage_schema(app: &App) -> Vec<Var> {
