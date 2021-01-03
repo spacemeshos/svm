@@ -18,15 +18,8 @@ fn compile_fail(t: &TestCases, test: &'static str) {
 }
 
 #[test]
-fn endpoint_tests() {
+fn schema_tests() {
     let t = TestCases::new();
 
-    pass(&t, "tests/endpoint/bool_params.rs");
-    pass(&t, "tests/endpoint/amount_params.rs");
-    pass(&t, "tests/endpoint/address_params.rs");
-    pass(&t, "tests/endpoint/integers_params.rs");
-
-    pass(&t, "tests/endpoint/funding.rs");
-    pass(&t, "tests/endpoint/schema.rs");
-    compile_fail(&t, "tests/endpoint/endpoint_with_fundable_hook.rs");
+    pass(&t, "tests/schema/ctor_schema.rs");
 }

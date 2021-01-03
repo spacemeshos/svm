@@ -70,7 +70,7 @@ pub fn expand(_args: TokenStream, input: TokenStream) -> Result<(Schema, TokenSt
 
         #[cfg(feature = "api")]
         pub fn raw_schema() -> String {
-            #json
+            #json.to_string()
         }
     };
 

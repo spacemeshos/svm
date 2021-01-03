@@ -1328,6 +1328,7 @@ dependencies = [
 name = "svm-sdk-tests"
 version = "0.0.0"
 dependencies = [
+ "serde_json",
  "svm-sdk",
  "svm-sdk-types",
  "trybuild",
