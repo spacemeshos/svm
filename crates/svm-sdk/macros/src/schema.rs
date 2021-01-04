@@ -29,34 +29,53 @@ pub struct Export {
 }
 
 #[derive(Debug)]
-pub struct Signature {
-    params: Vec<(String, String)>,
+pub enum Param {
+    Primitive {
+        name: String,
+        ty: String,
+    },
+    Array {
+        name: String,
+        ty: String,
+        length: usize,
+    },
+}
 
-    returns: Vec<String>,
+#[derive(Debug)]
+pub enum Output {
+    Primitive { ty: String },
+    Tuple { elems: Vec<String> },
+}
+
+#[derive(Debug)]
+pub struct Signature {
+    params: Vec<Param>,
+
+    output: Option<Output>,
 }
 
 impl Signature {
     pub fn new() -> Self {
         Self {
             params: Vec::new(),
-            returns: Vec::new(),
+            output: None,
         }
     }
 
-    pub fn add_param(&mut self, name: String, ty: String) {
-        self.params.push((name, ty));
+    pub fn push_param(&mut self, param: Param) {
+        self.params.push(param);
     }
 
-    pub fn add_return(&mut self, ty: String) {
-        self.returns.push(ty);
+    pub fn set_output(&mut self, out: Output) {
+        self.output = Some(out);
     }
 
-    pub fn params(&self) -> &[(String, String)] {
+    pub fn params(&self) -> &[Param] {
         &self.params
     }
 
-    pub fn returns(&self) -> &[String] {
-        &self.returns
+    pub fn output(&self) -> Option<&Output> {
+        self.output.as_ref()
     }
 }
 
@@ -169,7 +188,12 @@ fn function_sig(func: &Function) -> Signature {
             let name = quote! { #pat };
             let ty = quote! { #ty };
 
-            sig.add_param(name.to_string(), ty.to_string());
+            let param = Param::Primitive {
+                name: name.to_string(),
+                ty: ty.to_string(),
+            };
+
+            sig.push_param(param);
         } else {
             unreachable!()
         }
@@ -179,17 +203,24 @@ fn function_sig(func: &Function) -> Signature {
         match &**ty {
             Type::Path(ty) => {
                 let ty = quote! { #ty };
+                let out = Output::Primitive { ty: ty.to_string() };
 
-                sig.add_return(ty.to_string());
+                sig.set_output(out);
             }
             Type::Array(ty) => {
                 todo!();
             }
             Type::Tuple(tuple) => {
+                let mut elems = Vec::new();
+
                 for elem in tuple.elems.iter() {
-                    let elem_ty = quote! { #elem };
-                    sig.add_return(elem_ty.to_string());
+                    let elem = quote! { #elem };
+
+                    elems.push(elem.to_string());
                 }
+
+                let out = Output::Tuple { elems };
+                sig.set_output(out);
             }
             _ => unreachable!(),
         }

@@ -23,7 +23,7 @@ fn main() {
                 "is_ctor": false,
                 "is_fundable": false,
                 "signature": json!({"params": [
-                    json!({"name": "a", "type": "[bool ; 3]"}),
+                    json!({"name": "a", "type": "[bool]", "length": 3}),
                 ], "returns": []}),
             })],
         })
