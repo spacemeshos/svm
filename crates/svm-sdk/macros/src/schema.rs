@@ -1,5 +1,5 @@
 use quote::quote;
-use syn::{FnArg, PatType};
+use syn::{FnArg, PatType, ReturnType, Type, TypeTuple};
 
 use crate::function::{func_attrs, has_ctor_attr, has_endpoint_attr, has_fundable_attr};
 use crate::r#struct::has_storage_attr;
@@ -172,6 +172,26 @@ fn function_sig(func: &Function) -> Signature {
             sig.add_param(name.to_string(), ty.to_string());
         } else {
             unreachable!()
+        }
+    }
+
+    if let ReturnType::Type(.., ty) = &raw_sig.output {
+        match &**ty {
+            Type::Path(ty) => {
+                let ty = quote! { #ty };
+
+                sig.add_return(ty.to_string());
+            }
+            Type::Array(ty) => {
+                todo!();
+            }
+            Type::Tuple(tuple) => {
+                for elem in tuple.elems.iter() {
+                    let elem_ty = quote! { #elem };
+                    sig.add_return(elem_ty.to_string());
+                }
+            }
+            _ => unreachable!(),
         }
     }
 

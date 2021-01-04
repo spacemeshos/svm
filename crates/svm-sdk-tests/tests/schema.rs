@@ -21,8 +21,9 @@ fn compile_fail(t: &TestCases, test: &'static str) {
 fn schema_tests() {
     let t = TestCases::new();
 
-    // pass(&t, "tests/schema/ctor_schema.rs");
-    // pass(&t, "tests/schema/ctor_fundable_schema.rs");
-    // pass(&t, "tests/schema/ctor_with_params_schema.rs");
-    pass(&t, "tests/schema/ctor_with_returns_schema.rs");
+    pass(&t, "tests/schema/ctor_schema.rs");
+    pass(&t, "tests/schema/ctor_fundable_schema.rs");
+    pass(&t, "tests/schema/endpoint_with_params_schema.rs");
+    pass(&t, "tests/schema/endpoint_with_returns_tuple_schema.rs");
+    pass(&t, "tests/schema/endpoint_with_returns_path_schema.rs");
 }
