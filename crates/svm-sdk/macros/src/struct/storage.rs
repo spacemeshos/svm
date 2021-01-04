@@ -45,11 +45,18 @@ pub fn storage_vars(strukt: &Struct) -> Result<Vec<Var>> {
     for f in fields {
         let var = field_var(f, id, offset)?;
 
-        offset += var.byte_count();
+        match var {
+            Var::Primitive { .. } => {
+                offset += var.byte_count();
+                id = next_var(id, 1);
+            }
+            Var::Array { length, .. } => {
+                offset += var.byte_count() * (length as usize);
+                id = next_var(id, length);
+            }
+        }
 
         vars.push(var);
-
-        id = next_var(id);
     }
 
     Ok(vars)
@@ -475,9 +482,9 @@ fn include_storage_ast() -> TokenStream {
     }
 }
 
-fn next_var(var_id: VarId) -> VarId {
+fn next_var(var_id: VarId, length: u32) -> VarId {
     let id = var_id.0;
-    VarId(id + 1)
+    VarId(id + length)
 }
 
 fn field_ident(f: &Field) -> Ident {
