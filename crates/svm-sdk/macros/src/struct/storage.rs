@@ -7,7 +7,7 @@ use super::{attr, Var, VarId};
 use attr::{has_storage_attr, StructAttr};
 
 use crate::r#type;
-use crate::{Struct, Type};
+use crate::{PrimType, Struct, Type};
 
 pub fn expand(strukt: &Struct, attrs: &[StructAttr]) -> Result<TokenStream> {
     debug_assert!(has_storage_attr(attrs));
@@ -70,35 +70,33 @@ fn field_var(field: &Field, id: VarId, offset: usize) -> Result<Var> {
     }
 
     let name = field_ident(field);
-    let ty = r#type::parse_type(&field.ty)?;
+    let ty = Type::new(&field.ty)?;
 
     let var = match ty {
-        Type::Array { elem, length } => {
-            let ty = elem.ty;
-            let ty_str = elem.ty_str.clone();
-
-            let byte_count = field_byte_count(&ty_str);
+        Type::Array {
+            elem,
+            length,
+            elem_raw,
+        } => {
+            let elem_ty = Type::new(&elem_raw)?.into_primitive();
+            let byte_count = field_byte_count(&elem_ty);
 
             Var::Array {
                 id,
                 name,
-                ty,
-                ty_str,
+                elem_ty,
                 length,
                 offset,
                 byte_count,
             }
         }
-        Type::Primitive(prim) => {
-            let ty_str = prim.ty_str.clone();
-            let byte_count = field_byte_count(&ty_str);
-            let ty = prim.ty;
+        Type::Primitive(ty) => {
+            let byte_count = field_byte_count(&ty);
 
             Var::Primitive {
                 id,
                 name,
                 ty,
-                ty_str,
                 offset,
                 byte_count,
             }
@@ -159,16 +157,10 @@ fn getter_ast(var: &Var) -> TokenStream {
     let includes = include_storage_ast();
 
     match var {
-        Var::Primitive {
-            id,
-            name,
-            ty,
-            ty_str,
-            ..
-        } => {
+        Var::Primitive { id, name, ty, .. } => {
             let getter_name = getter_ident(name);
 
-            match ty_str.as_str() {
+            match ty.as_str() {
                 "i8" | "u8" | "i16" | "u16" | "i32" | "u32" => {
                     quote! {
                         fn #getter_name () -> #ty {
@@ -220,31 +212,30 @@ fn getter_ast(var: &Var) -> TokenStream {
         Var::Array {
             id,
             name,
-            ty,
-            ty_str,
+            elem_ty,
             length,
             ..
         } => {
             let getter_name = getter_ident(name);
 
-            match ty_str.as_str() {
+            match elem_ty.as_str() {
                 "i8" | "u8" | "i16" | "u16" | "i32" | "u32" => {
                     quote! {
-                        fn #getter_name (index: usize) -> #ty {
+                        fn #getter_name (index: usize) -> #elem_ty {
                             #includes
 
                             let value = svm_sdk::storage::ops::array_get32::<StorageImpl>(#id, index, #length);
-                            value as #ty
+                            value as #elem_ty
                         }
                     }
                 }
                 "u64" | "i64" => {
                     quote! {
-                        fn #getter_name (index: usize) -> #ty {
+                        fn #getter_name (index: usize) -> #elem_ty {
                             #includes
 
                             let value = svm_sdk::storage::ops::array_get64::<StorageImpl>(#id, index, #length);
-                            value as #ty
+                            value as #elem_ty
                         }
                     }
                 }
@@ -281,16 +272,10 @@ fn setter_ast(var: &Var) -> TokenStream {
     let includes = include_storage_ast();
 
     match var {
-        Var::Primitive {
-            id,
-            name,
-            ty,
-            ty_str,
-            ..
-        } => {
+        Var::Primitive { id, name, ty, .. } => {
             let setter_name = setter_ident(name);
 
-            match ty_str.as_str() {
+            match ty.as_str() {
                 "i8" | "u8" | "i16" | "u16" | "i32" | "u32" => {
                     quote! {
                         fn #setter_name (value: #ty) {
@@ -336,17 +321,16 @@ fn setter_ast(var: &Var) -> TokenStream {
         Var::Array {
             id,
             name,
-            ty,
-            ty_str,
+            elem_ty,
             length,
             ..
         } => {
             let setter_name = setter_ident(name);
 
-            match ty_str.as_str() {
+            match elem_ty.as_str() {
                 "i8" | "u8" | "i16" | "u16" | "i32" | "u32" => {
                     quote! {
-                        fn #setter_name (index: usize, value: #ty) {
+                        fn #setter_name (index: usize, value: #elem_ty) {
                             #includes
 
                             svm_sdk::storage::ops::array_set32::<StorageImpl>(#id, index, #length, value as u32);
@@ -355,7 +339,7 @@ fn setter_ast(var: &Var) -> TokenStream {
                 }
                 "u64" | "i64" => {
                     quote! {
-                        fn #setter_name (index: usize, value: #ty) {
+                        fn #setter_name (index: usize, value: #elem_ty) {
                             #includes
 
                             svm_sdk::storage::ops::array_set64::<StorageImpl>(#id, index, #length, value as u64);
@@ -424,8 +408,8 @@ fn field_ident(f: &Field) -> Ident {
     f.ident.as_ref().unwrap().clone()
 }
 
-fn field_byte_count(ty: &str) -> usize {
-    match ty {
+fn field_byte_count(ty: &PrimType) -> usize {
+    match ty.as_str() {
         "bool" => 1,
         "Amount" => 8,
         "Address" => 20,

@@ -1,7 +1,4 @@
-use crate::{
-    schema::{Output, Param},
-    Export, Schema, Signature, Var,
-};
+use crate::{Export, PrimType, Schema, Signature, Type, Var};
 
 use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
@@ -47,20 +44,27 @@ fn emit_signature(e: &Export) -> Value {
     json!({"params": params, "returns": returns})
 }
 
-fn emit_param(param: &Param) -> Value {
-    match param {
-        Param::Primitive { name, ty } => json!({"name":name, "type": ty}),
-        Param::Array { name, ty, length } => {
-            json!({"name": name, "type": format!("[{}]", ty), "length": length})
+fn emit_param(param: &(String, Type)) -> Value {
+    let name = &param.0;
+    let ty = &param.1;
+
+    match ty {
+        Type::Primitive(prim) => json!({"name": name, "type": prim.as_str()}),
+        Type::Array { elem, length, .. } => {
+            json!({"name": name, "type": format!("[{}]", elem.as_str()), "length": length})
         }
+        Type::Tuple { .. } => unreachable!(),
     }
 }
 
-fn emit_output(out: Option<&Output>) -> Value {
+fn emit_output(out: Option<&Type>) -> Value {
     if let Some(out) = out {
         match out {
-            Output::Primitive { ty } => json!({ "type": ty }),
-            Output::Tuple { elems } => json!({}),
+            Type::Primitive(prim) => json!({ "type": prim.as_str() }),
+            Type::Array { elem, length, .. } => {
+                json!({ "type": elem.as_str(), "length": length })
+            }
+            Type::Tuple { .. } => todo!(),
         }
     } else {
         json!({})
@@ -86,7 +90,7 @@ fn emit_primitive_var(var: &Var) -> Value {
         offset,
         name,
         byte_count,
-        ty_str,
+        ty,
         ..
     } = var
     {
@@ -94,7 +98,7 @@ fn emit_primitive_var(var: &Var) -> Value {
             "id": id.0,
             "offset": offset,
             "name": name.to_string(),
-            "type": typify(ty_str),
+            "type": typify(ty),
             "byte_count": byte_count
         })
     } else {
@@ -108,7 +112,7 @@ fn emit_array_var(var: &Var) -> Value {
         offset,
         name,
         byte_count,
-        ty_str,
+        elem_ty,
         length,
         ..
     } = var
@@ -117,7 +121,7 @@ fn emit_array_var(var: &Var) -> Value {
             "id": id.0,
             "offset": offset,
             "name": name.to_string(),
-            "type": format!("[{}]", typify(ty_str)),
+            "type": format!("[{}]", typify(elem_ty)),
             "length": length,
             "byte_count": byte_count
         })
@@ -126,7 +130,7 @@ fn emit_array_var(var: &Var) -> Value {
     }
 }
 
-fn typify(ty: &String) -> String {
+fn typify(ty: &PrimType) -> String {
     match ty.as_str() {
         "svm_sdk :: Amount" => "Amount".to_string(),
         "svm_sdk :: Address" => "Address".to_string(),

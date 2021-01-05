@@ -4,9 +4,8 @@ use syn::{FnArg, PatType, ReturnType, TypeTuple};
 use crate::function::{func_attrs, has_ctor_attr, has_endpoint_attr, has_fundable_attr};
 use crate::r#struct::has_storage_attr;
 use crate::storage_vars;
-use crate::{App, Function, Var};
+use crate::{App, Function, Type, Var};
 
-#[derive(Debug)]
 pub struct Schema {
     name: String,
 
@@ -15,7 +14,6 @@ pub struct Schema {
     storage: Vec<Var>,
 }
 
-#[derive(Debug)]
 pub struct Export {
     pub is_ctor: bool,
 
@@ -28,31 +26,10 @@ pub struct Export {
     pub signature: Signature,
 }
 
-#[derive(Debug)]
-pub enum Param {
-    Primitive {
-        name: String,
-        ty: String,
-    },
-    Array {
-        name: String,
-        ty: String,
-        length: usize,
-    },
-}
-
-#[derive(Debug)]
-pub enum Output {
-    Primitive { ty: String },
-
-    Tuple { elems: Vec<String> },
-}
-
-#[derive(Debug)]
 pub struct Signature {
-    params: Vec<Param>,
+    params: Vec<(String, Type)>,
 
-    output: Option<Output>,
+    output: Option<Type>,
 }
 
 impl Signature {
@@ -63,19 +40,19 @@ impl Signature {
         }
     }
 
-    pub fn push_param(&mut self, param: Param) {
+    pub fn push_param(&mut self, param: (String, Type)) {
         self.params.push(param);
     }
 
-    pub fn set_output(&mut self, out: Output) {
+    pub fn set_output(&mut self, out: Type) {
         self.output = Some(out);
     }
 
-    pub fn params(&self) -> &[Param] {
+    pub fn params(&self) -> &[(String, Type)] {
         &self.params
     }
 
-    pub fn output(&self) -> Option<&Output> {
+    pub fn output(&self) -> Option<&Type> {
         self.output.as_ref()
     }
 }
@@ -186,44 +163,12 @@ fn function_sig(func: &Function) -> Signature {
 
     for input in &raw_sig.inputs {
         if let FnArg::Typed(PatType { pat, ty, .. }) = input {
+            let ty = Type::new(ty).unwrap();
             let name = quote! { #pat };
-            let ty = quote! { #ty };
 
-            let param = Param::Primitive {
-                name: name.to_string(),
-                ty: ty.to_string(),
-            };
-
-            sig.push_param(param);
+            sig.push_param((name.to_string(), ty));
         } else {
             unreachable!()
-        }
-    }
-
-    if let ReturnType::Type(.., ty) = &raw_sig.output {
-        match &**ty {
-            syn::Type::Path(ty) => {
-                let ty = quote! { #ty };
-                let out = Output::Primitive { ty: ty.to_string() };
-
-                sig.set_output(out);
-            }
-            syn::Type::Array(ty) => {
-                todo!();
-            }
-            syn::Type::Tuple(tuple) => {
-                let mut elems = Vec::new();
-
-                for elem in tuple.elems.iter() {
-                    let elem = quote! { #elem };
-
-                    elems.push(elem.to_string());
-                }
-
-                let out = Output::Tuple { elems };
-                sig.set_output(out);
-            }
-            _ => unreachable!(),
         }
     }
 

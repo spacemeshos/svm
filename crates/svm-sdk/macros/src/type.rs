@@ -1,34 +1,79 @@
 use std::todo;
 
-use proc_macro2::Span;
+use proc_macro2::{Span, TokenStream};
 use quote::{quote, ToTokens};
 use syn::{Error, Expr, ExprLit, Lit, Result, TypeArray, TypePath};
 
 pub struct PrimType {
-    pub ty: syn::Type,
+    ty_raw: syn::Type,
 
-    pub ty_str: String,
+    ty_str: String,
+}
+
+impl ToTokens for PrimType {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        self.ty_raw().to_tokens(tokens)
+    }
+}
+
+impl PrimType {
+    pub fn new(path: &TypePath) -> Result<Self> {
+        parse_primitive_type(path)
+    }
+
+    pub fn ty_raw(&self) -> &syn::Type {
+        &self.ty_raw
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.ty_str
+    }
 }
 
 pub enum Type {
     Primitive(PrimType),
 
-    Array { elem: PrimType, length: u32 },
+    Array {
+        elem: PrimType,
+        length: u32,
+        elem_raw: syn::Type,
+    },
 
-    Tuple { elems: Vec<Box<Type>> },
+    Tuple {
+        elems: Vec<Box<Type>>,
+    },
 }
 
-pub fn parse_type(ty: &syn::Type) -> Result<Type> {
-    match ty {
-        syn::Type::Array(ty) => parse_array_type(ty),
-        syn::Type::Path(ty) => {
-            let prim = parse_primitive_type(ty)?;
-            let ty = Type::Primitive(prim);
-
-            Ok(ty)
+impl ToTokens for Type {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        match self {
+            Type::Primitive(prim) => prim.to_tokens(tokens),
+            Type::Array { array_raw, .. } => array_raw.to_tokens(tokens),
+            Type::Tuple { tuple_raw, .. } => tuple_raw.to_tokens(tokens),
         }
-        syn::Type::Tuple(ty) => parse_tuple_type(ty),
-        _ => unreachable!(),
+    }
+}
+
+impl Type {
+    pub fn new(ty: &syn::Type) -> Result<Self> {
+        match ty {
+            syn::Type::Array(ty) => parse_array_type(ty),
+            syn::Type::Path(ty) => {
+                let prim = parse_primitive_type(ty)?;
+                let ty = Type::Primitive(prim);
+
+                Ok(ty)
+            }
+            syn::Type::Tuple(ty) => parse_tuple_type(ty),
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn into_primitive(self) -> PrimType {
+        match self {
+            Type::Primitive(prim) => prim,
+            _ => unreachable!(),
+        }
     }
 }
 
@@ -51,7 +96,7 @@ fn parse_primitive_type(path: &TypePath) -> Result<PrimType> {
         "i64"     |
         "u64"     => {
             let ty = syn::Type::Path(path.clone());
-            let prim = PrimType { ty, ty_str};
+            let prim = PrimType { ty_raw: ty, ty_str};
 
             Ok(prim)
         }
@@ -68,14 +113,14 @@ fn parse_array_type(ty: &TypeArray) -> Result<Type> {
     let elem = parse_array_element_type(ty)?;
     let length = parse_array_length(ty)?;
 
-    let ty = Type::Array { elem, length };
+    let elem_raw = Type::Array { elem, length };
     Ok(ty)
 }
 
-fn parse_tuple_type(ty: &syn::TypeTuple) -> Result<Type> {
-    let mut elems: Vec<Box<Type>> = Vec::new();
+fn parse_tuple_type(tuple_raw: &syn::TypeTuple) -> Result<Type> {
+    let mut elems = Vec::new();
 
-    for elem in ty.elems.iter() {
+    for elem in tuple_raw.elems.iter() {
         match elem {
             syn::Type::Path(path) => {
                 let prim = parse_primitive_type(path)?;
@@ -90,7 +135,7 @@ fn parse_tuple_type(ty: &syn::TypeTuple) -> Result<Type> {
         };
     }
 
-    let ty = Type::Tuple { elems };
+    let ty = Type::Tuple { elems, tuple_raw };
     Ok(ty)
 }
 
@@ -102,7 +147,7 @@ fn parse_array_element_type(ty: &TypeArray) -> Result<PrimType> {
 
             Err(Error::new(
                 span,
-                "`Array elements must be of type path (for example: `svm_sdk::Amount`).",
+                "`Array elements must be primitives (for example: `svm_sdk::Amount`).",
             ))
         }
     }

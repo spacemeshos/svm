@@ -13,7 +13,7 @@ use app::App;
 use function::Function;
 use r#struct::storage_vars;
 use r#struct::{Struct, Var};
-use r#type::Type;
+use r#type::{PrimType, Type};
 
 use schema::{Export, Schema, Signature};
 
