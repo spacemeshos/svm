@@ -27,7 +27,7 @@ fn main() {
                     json!({"name": "b", "type": "u64"}),
                     json!({"name": "c", "type": "Amount"}),
                     json!({"name": "d", "type": "Address"}),
-                ], "returns": []}),
+                ], "returns": {}}),
             })],
         })
     );

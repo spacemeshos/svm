@@ -50,7 +50,9 @@ fn emit_signature(e: &Export) -> Value {
 fn emit_param(param: &Param) -> Value {
     match param {
         Param::Primitive { name, ty } => json!({"name":name, "type": ty}),
-        Param::Array { name, ty, length } => json!({"name": name, "type":ty, "length": length}),
+        Param::Array { name, ty, length } => {
+            json!({"name": name, "type": format!("[{}]", ty), "length": length})
+        }
     }
 }
 

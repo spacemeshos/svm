@@ -27,7 +27,7 @@ fn main() {
                 "wasm_name": "call",
                 "is_ctor": false,
                 "is_fundable": true,
-                "signature": json!({"params": [], "returns": []}),
+                "signature": json!({"params": [], "returns": {}}),
             })],
         })
     );

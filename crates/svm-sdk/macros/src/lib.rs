@@ -4,6 +4,7 @@ mod app;
 mod function;
 mod schema;
 mod r#struct;
+mod r#type;
 
 #[cfg(feature = "api")]
 mod api;
@@ -12,6 +13,7 @@ use app::App;
 use function::Function;
 use r#struct::storage_vars;
 use r#struct::{Struct, Var};
+use r#type::Type;
 
 use schema::{Export, Schema, Signature};
 

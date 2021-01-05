@@ -1,15 +1,13 @@
 use proc_macro2::{Ident, Span, TokenStream};
 
 use quote::{quote, ToTokens};
-use syn::{
-    Error, Expr, ExprLit, Field, Fields, ItemStruct, Lit, Path, PathArguments, Result, Type,
-    TypeArray, TypePath,
-};
+use syn::{Error, Field, Fields, ItemStruct, Path, PathArguments, Result};
 
 use super::{attr, Var, VarId};
 use attr::{has_storage_attr, StructAttr};
 
-use crate::Struct;
+use crate::r#type;
+use crate::{Struct, Type};
 
 pub fn expand(strukt: &Struct, attrs: &[StructAttr]) -> Result<TokenStream> {
     debug_assert!(has_storage_attr(attrs));
@@ -71,11 +69,14 @@ fn field_var(field: &Field, id: VarId, offset: usize) -> Result<Var> {
         return Err(Error::new(span, msg));
     }
 
-    let var = match &field.ty {
-        Type::Array(array) => {
-            let (ty, ty_str) = parse_array_element_type(&array)?;
-            let length = parse_array_length(&array)?;
-            let name = field_ident(field);
+    let name = field_ident(field);
+    let ty = r#type::parse_type(&field.ty)?;
+
+    let var = match ty {
+        Type::Array { elem, length } => {
+            let ty = elem.ty;
+            let ty_str = elem.ty_str.clone();
+
             let byte_count = field_byte_count(&ty_str);
 
             Var::Array {
@@ -88,10 +89,10 @@ fn field_var(field: &Field, id: VarId, offset: usize) -> Result<Var> {
                 byte_count,
             }
         }
-        Type::Path(path) => {
-            let name = field_ident(field);
-            let (ty, ty_str) = parse_type_path(path)?;
+        Type::Primitive(prim) => {
+            let ty_str = prim.ty_str.clone();
             let byte_count = field_byte_count(&ty_str);
+            let ty = prim.ty;
 
             Var::Primitive {
                 id,
@@ -105,80 +106,12 @@ fn field_var(field: &Field, id: VarId, offset: usize) -> Result<Var> {
         _ => {
             return Err(Error::new(
                 span,
-                "`#[storage]` supports only path (for example: `svm_sdk::Amount`) and Array types.",
+                "`#[storage]` supports only Primitive (for example: `svm_sdk::Amount`) and Array types.",
             ));
         }
     };
 
     Ok(var)
-}
-
-fn parse_array_element_type(array: &TypeArray) -> Result<(Type, String)> {
-    match *array.elem {
-        Type::Path(ref path) => parse_type_path(path),
-        _ => {
-            let span = Span::call_site();
-
-            Err(Error::new(span, "`#[storage]` Array elements must be of type path (for example: `svm_sdk::Amount`)."))
-        }
-    }
-}
-
-fn parse_array_length(array: &TypeArray) -> Result<u32> {
-    if let Expr::Lit(ExprLit { attrs, lit }) = &array.len {
-        assert!(attrs.is_empty());
-
-        if let Lit::Int(num) = lit {
-            let num = num.base10_parse();
-
-            if num.is_ok() {
-                return num;
-            }
-        }
-    }
-
-    let span = Span::call_site();
-    let msg = "Invalid array length";
-
-    Err(Error::new(span, msg))
-}
-
-fn parse_type_path(path: &TypePath) -> Result<(Type, String)> {
-    let ty_str = path_as_str(&path);
-
-    match ty_str.as_str() {
-        #[rustfmt::skip]
-        "bool"    | 
-        "Amount"  |
-        "Address" |
-        "svm_sdk :: Amount"  |
-        "svm_sdk :: Address" |
-        "i8"      |
-        "u8"      |
-        "i16"     |
-        "u16"     |
-        "i32"     |
-        "u32"     |
-        "i64"     |
-        "u64"     => {
-            let ty = Type::Path(path.clone());
-
-            Ok((ty, ty_str))
-        }
-        _ => {
-            let span = Span::call_site();
-            let msg = format!("Invalid `#[storage]` field type: {}", ty_str);
-
-            Err(Error::new(span, msg))
-        }
-    }
-}
-
-fn path_as_str(path: &TypePath) -> String {
-    let path = &path.path;
-    let path = quote! { #path };
-
-    path.to_string()
 }
 
 fn ensure_named_fields(fields: &Fields) -> Result<()> {

@@ -34,10 +34,6 @@ impl Struct {
         &self.raw_struct.attrs
     }
 
-    pub fn raw_generics(&self) -> &Generics {
-        &self.raw_struct.generics
-    }
-
     pub fn raw_fields(&self) -> &Fields {
         &self.raw_struct.fields
     }

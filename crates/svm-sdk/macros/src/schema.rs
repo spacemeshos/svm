@@ -1,5 +1,5 @@
 use quote::quote;
-use syn::{FnArg, PatType, ReturnType, Type, TypeTuple};
+use syn::{FnArg, PatType, ReturnType, TypeTuple};
 
 use crate::function::{func_attrs, has_ctor_attr, has_endpoint_attr, has_fundable_attr};
 use crate::r#struct::has_storage_attr;
@@ -44,6 +44,7 @@ pub enum Param {
 #[derive(Debug)]
 pub enum Output {
     Primitive { ty: String },
+
     Tuple { elems: Vec<String> },
 }
 
@@ -201,16 +202,16 @@ fn function_sig(func: &Function) -> Signature {
 
     if let ReturnType::Type(.., ty) = &raw_sig.output {
         match &**ty {
-            Type::Path(ty) => {
+            syn::Type::Path(ty) => {
                 let ty = quote! { #ty };
                 let out = Output::Primitive { ty: ty.to_string() };
 
                 sig.set_output(out);
             }
-            Type::Array(ty) => {
+            syn::Type::Array(ty) => {
                 todo!();
             }
-            Type::Tuple(tuple) => {
+            syn::Type::Tuple(tuple) => {
                 let mut elems = Vec::new();
 
                 for elem in tuple.elems.iter() {
