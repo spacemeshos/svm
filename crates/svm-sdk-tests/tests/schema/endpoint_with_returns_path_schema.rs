@@ -26,9 +26,7 @@ fn main() {
                 "is_fundable": false,
                 "signature": json!({
                     "params": [],
-                    "returns": [
-                        { "type": "Amount" },
-                     ]
+                    "returns": { "type": "Amount" },
                 }),
             })],
         })

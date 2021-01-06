@@ -172,5 +172,11 @@ fn function_sig(func: &Function) -> Signature {
         }
     }
 
+    if let ReturnType::Type(.., ty) = &raw_sig.output {
+        let ty = Type::new(&ty).unwrap();
+
+        sig.set_output(ty);
+    }
+
     sig
 }

@@ -27,6 +27,5 @@ fn endpoint_tests() {
     pass(&t, "tests/endpoint/integers_params.rs");
 
     pass(&t, "tests/endpoint/funding.rs");
-    pass(&t, "tests/endpoint/schema.rs");
     compile_fail(&t, "tests/endpoint/endpoint_with_fundable_hook.rs");
 }

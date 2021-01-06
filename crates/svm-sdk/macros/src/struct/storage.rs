@@ -74,11 +74,8 @@ fn field_var(field: &Field, id: VarId, offset: usize) -> Result<Var> {
 
     let var = match ty {
         Type::Array {
-            elem,
-            length,
-            elem_raw,
+            elem_ty, length, ..
         } => {
-            let elem_ty = Type::new(&elem_raw)?.into_primitive();
             let byte_count = field_byte_count(&elem_ty);
 
             Var::Array {

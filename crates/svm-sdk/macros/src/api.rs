@@ -50,24 +50,43 @@ fn emit_param(param: &(String, Type)) -> Value {
 
     match ty {
         Type::Primitive(prim) => json!({"name": name, "type": prim.as_str()}),
-        Type::Array { elem, length, .. } => {
+        Type::Array {
+            elem_ty: elem,
+            length,
+            ..
+        } => {
             json!({"name": name, "type": format!("[{}]", elem.as_str()), "length": length})
         }
         Type::Tuple { .. } => unreachable!(),
     }
 }
 
-fn emit_output(out: Option<&Type>) -> Value {
-    if let Some(out) = out {
-        match out {
-            Type::Primitive(prim) => json!({ "type": prim.as_str() }),
-            Type::Array { elem, length, .. } => {
-                json!({ "type": elem.as_str(), "length": length })
+fn emit_output(ty: Option<&Type>) -> Value {
+    if let Some(ty) = ty {
+        match ty {
+            Type::Primitive(..) | Type::Array { .. } => emit_output_type(ty),
+            Type::Tuple { elems, .. } => {
+                let elems = elems.iter().map(|ty| emit_output_type(&*ty)).collect();
+
+                Value::Array(elems)
             }
-            Type::Tuple { .. } => todo!(),
         }
     } else {
         json!({})
+    }
+}
+
+fn emit_output_type(ty: &Type) -> Value {
+    match ty {
+        Type::Primitive(prim) => json!({ "type": prim.as_str() }),
+        Type::Array {
+            elem_ty: elem,
+            length,
+            ..
+        } => {
+            json!({ "type": elem.as_str(), "length": length })
+        }
+        Type::Tuple { .. } => unreachable!("Nested tuples are not allowed"),
     }
 }
 
@@ -134,6 +153,6 @@ fn typify(ty: &PrimType) -> String {
     match ty.as_str() {
         "svm_sdk :: Amount" => "Amount".to_string(),
         "svm_sdk :: Address" => "Address".to_string(),
-        _ => ty.into(),
+        _ => ty.as_str().to_string(),
     }
 }

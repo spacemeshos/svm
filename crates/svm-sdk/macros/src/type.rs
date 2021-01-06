@@ -5,7 +5,7 @@ use quote::{quote, ToTokens};
 use syn::{Error, Expr, ExprLit, Lit, Result, TypeArray, TypePath};
 
 pub struct PrimType {
-    ty_raw: syn::Type,
+    ty_raw: TokenStream,
 
     ty_str: String,
 }
@@ -21,7 +21,7 @@ impl PrimType {
         parse_primitive_type(path)
     }
 
-    pub fn ty_raw(&self) -> &syn::Type {
+    pub fn ty_raw(&self) -> &TokenStream {
         &self.ty_raw
     }
 
@@ -34,13 +34,15 @@ pub enum Type {
     Primitive(PrimType),
 
     Array {
-        elem: PrimType,
+        elem_ty: PrimType,
         length: u32,
-        elem_raw: syn::Type,
+        array_raw: TokenStream,
     },
 
     Tuple {
         elems: Vec<Box<Type>>,
+
+        tuple_raw: TokenStream,
     },
 }
 
@@ -95,8 +97,8 @@ fn parse_primitive_type(path: &TypePath) -> Result<PrimType> {
         "u32"     |
         "i64"     |
         "u64"     => {
-            let ty = syn::Type::Path(path.clone());
-            let prim = PrimType { ty_raw: ty, ty_str};
+            let ty_raw = quote!{ #path };
+            let prim = PrimType { ty_raw, ty_str};
 
             Ok(prim)
         }
@@ -110,17 +112,23 @@ fn parse_primitive_type(path: &TypePath) -> Result<PrimType> {
 }
 
 fn parse_array_type(ty: &TypeArray) -> Result<Type> {
-    let elem = parse_array_element_type(ty)?;
+    let array_raw = quote! { #ty };
+    let elem_ty = parse_array_element_type(ty)?;
     let length = parse_array_length(ty)?;
 
-    let elem_raw = Type::Array { elem, length };
+    let ty = Type::Array {
+        array_raw,
+        elem_ty,
+        length,
+    };
     Ok(ty)
 }
 
-fn parse_tuple_type(tuple_raw: &syn::TypeTuple) -> Result<Type> {
+fn parse_tuple_type(ty: &syn::TypeTuple) -> Result<Type> {
+    let tuple_raw = quote! { #ty };
     let mut elems = Vec::new();
 
-    for elem in tuple_raw.elems.iter() {
+    for elem in ty.elems.iter() {
         match elem {
             syn::Type::Path(path) => {
                 let prim = parse_primitive_type(path)?;
