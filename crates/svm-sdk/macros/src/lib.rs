@@ -10,7 +10,7 @@ mod r#type;
 mod api;
 
 use app::App;
-use function::Function;
+use function::{FuncAttrKind, FuncAttr, Function};
 use r#struct::storage_vars;
 use r#struct::{Struct, Var};
 use r#type::{PrimType, Type};

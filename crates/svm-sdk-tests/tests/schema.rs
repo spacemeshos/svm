@@ -19,6 +19,9 @@ fn schema_tests() {
     pass(&t, "tests/schema/ctor_schema.rs");
     pass(&t, "tests/schema/ctor_fundable_schema.rs");
 
+    pass(&t, "tests/schema/ctor_with_doc.rs");
+    pass(&t, "tests/schema/endpoint_with_doc.rs");
+
     pass(&t, "tests/schema/endpoint_fundable_schema.rs");
     pass(&t, "tests/schema/endpoint_with_params_schema.rs");
     pass(&t, "tests/schema/endpoint_with_params_array_schema.rs");

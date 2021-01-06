@@ -1,11 +1,12 @@
-#![allow(unused)]
 use serde_json::{json, Value};
-use svm_sdk::{app, Address, Amount};
+use svm_sdk::app;
 
 #[app]
 mod App {
-    #[endpoint]
-    fn call(a: [bool; 3]) {}
+    #[endpoint(doc = "ANDing `a` and `b`")]
+    fn and(a: bool, b: bool) -> bool {
+        a && b
+    }
 }
 
 fn main() {
@@ -18,14 +19,15 @@ fn main() {
         json!({
             "storage": [],
             "exports": [json!({
-                "api_name": "call",
-                "wasm_name": "call",
+                "api_name": "and",
+                "wasm_name": "and",
                 "is_ctor": false,
                 "is_fundable": false,
-                "doc": "",
+                "doc": "ANDing `a` and `b`",
                 "signature": json!({"params": [
-                    json!({"name": "a", "type": "[bool]", "length": 3}),
-                ], "returns": {}}),
+                    json!({"name": "a", "type": "bool"}),
+                    json!({"name": "b", "type": "bool"}),
+                ], "returns": {"type": "bool"}}),
             })],
         })
     );

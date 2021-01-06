@@ -1,5 +1,3 @@
-contracts/precompiled/*.wasm
-contracts/precompiled/*.wast
 *.out
 target
 tags

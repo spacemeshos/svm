@@ -24,6 +24,7 @@ fn main() {
                 "wasm_name": "call",
                 "is_ctor": false,
                 "is_fundable": false,
+                "doc": "",
                 "signature": json!({
                     "params": [],
                     "returns": { "type": "Amount" },

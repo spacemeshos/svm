@@ -22,6 +22,7 @@ fn main() {
                 "wasm_name": "call",
                 "is_ctor": false,
                 "is_fundable": false,
+                "doc": "",
                 "signature": json!({"params": [
                     json!({"name": "a", "type": "bool"}),
                     json!({"name": "b", "type": "u64"}),

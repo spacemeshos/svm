@@ -21,6 +21,7 @@ fn main() {
                 "wasm_name": "init",
                 "is_ctor": true,
                 "is_fundable": false,
+                "doc": "",
                 "signature": json!({"params": [], "returns": {}}),
             })],
         })

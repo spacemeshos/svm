@@ -27,6 +27,7 @@ fn emit_exports(schema: &Schema) -> Value {
                 "is_fundable": e.is_fundable,
                 "api_name": e.api_name,
                 "wasm_name": e.wasm_name,
+                "doc": e.doc,
                 "signature": emit_signature(e)
             })
         })

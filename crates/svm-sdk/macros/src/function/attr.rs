@@ -3,9 +3,50 @@ use proc_macro2::{Delimiter, Span, TokenStream, TokenTree};
 use quote::{quote, ToTokens};
 
 use syn::parse::{Parse, ParseStream};
-use syn::{Attribute, Error, Ident, Result};
+use syn::punctuated::Punctuated;
+use syn::{Attribute, Error, Ident, LitStr, Result, Token};
 
 use crate::Function;
+
+#[derive(Debug, PartialEq)]
+pub struct Doc(Option<String>);
+
+impl Doc {
+    pub fn new(doc: String) -> Self {
+        Self(Some(doc))
+    }
+
+    pub fn empty() -> Self {
+        Self(None)
+    }
+
+    pub fn to_string(&self) -> String {
+        if let Some(doc) = &self.0 {
+            doc.clone()
+        } else {
+            String::new()
+        }
+    }
+}
+
+impl Parse for Doc {
+    fn parse(input: ParseStream) -> Result<Self> {
+        if input.is_empty() {
+            return Ok(Doc::empty());
+        }
+
+        let ident: Ident = input.parse()?;
+        let equals: Token![=] = input.parse()?;
+
+        if ident.to_string().as_str() == "doc" {
+            let doc: LitStr = input.parse()?;
+
+            Ok(Doc::new(doc.value()))
+        } else {
+            unreachable!()
+        }
+    }
+}
 
 #[derive(Debug, PartialEq)]
 pub enum FuncAttrKind {
@@ -22,9 +63,9 @@ pub enum FuncAttrKind {
 
 #[derive(Debug)]
 pub enum FuncAttr {
-    Ctor,
+    Ctor(Doc),
 
-    Endpoint,
+    Endpoint(Doc),
 
     Fundable(String),
 
@@ -36,8 +77,8 @@ pub enum FuncAttr {
 impl FuncAttr {
     pub fn kind(&self) -> FuncAttrKind {
         match self {
-            FuncAttr::Ctor => FuncAttrKind::Ctor,
-            FuncAttr::Endpoint => FuncAttrKind::Endpoint,
+            FuncAttr::Ctor(..) => FuncAttrKind::Ctor,
+            FuncAttr::Endpoint(..) => FuncAttrKind::Endpoint,
             FuncAttr::FundableHook => FuncAttrKind::FundableHook,
             FuncAttr::Fundable(..) => FuncAttrKind::Fundable,
             FuncAttr::Other(..) => FuncAttrKind::Other,
@@ -58,18 +99,26 @@ pub fn func_attrs(func: &Function) -> Result<Vec<FuncAttr>> {
 }
 
 pub fn parse_attr(attr: Attribute) -> Result<FuncAttr> {
+    fn parse_doc(attr: &Attribute) -> Result<Doc> {
+        if attr.tokens.is_empty() {
+            Ok(Doc::empty())
+        } else {
+            attr.parse_args::<Doc>()
+        }
+    }
+
     let kind = parse_attr_kind(&attr)?;
 
     let attr = match kind {
         FuncAttrKind::Ctor => {
-            assert!(attr.tokens.is_empty());
+            let doc = parse_doc(&attr)?;
 
-            FuncAttr::Ctor
+            FuncAttr::Ctor(doc)
         }
         FuncAttrKind::Endpoint => {
-            assert!(attr.tokens.is_empty());
+            let doc = parse_doc(&attr)?;
 
-            FuncAttr::Endpoint
+            FuncAttr::Endpoint(doc)
         }
         FuncAttrKind::FundableHook => {
             assert!(attr.tokens.is_empty());
@@ -114,10 +163,8 @@ fn parse_attr_kind(attr: &Attribute) -> Result<FuncAttrKind> {
 impl Parse for FuncAttrKind {
     fn parse(input: ParseStream) -> Result<Self> {
         let ident: Ident = input.parse()?;
-        let ident_str = format!("{}", ident);
-        let ident_str = ident_str.as_str();
 
-        let kind = match ident_str {
+        let kind = match ident.to_string().as_str() {
             "ctor" => FuncAttrKind::Ctor,
             "endpoint" => FuncAttrKind::Endpoint,
             "fundable" => FuncAttrKind::Fundable,

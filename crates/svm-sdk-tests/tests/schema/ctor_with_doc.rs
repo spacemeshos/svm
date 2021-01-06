@@ -1,16 +1,10 @@
 use serde_json::{json, Value};
-use svm_sdk::{app, Amount};
+use svm_sdk::app;
 
 #[app]
 mod App {
-    #[fundable(default_funding)]
-    #[endpoint]
-    fn call() {}
-
-    #[fundable_hook]
-    fn default_funding(_value: Amount) {
-        //
-    }
+    #[ctor(doc = "Initializing a new app")]
+    fn initialize() {}
 }
 
 fn main() {
@@ -23,11 +17,11 @@ fn main() {
         json!({
             "storage": [],
             "exports": [json!({
-                "api_name": "call",
-                "wasm_name": "call",
-                "is_ctor": false,
-                "is_fundable": true,
-                "doc": "",
+                "api_name": "initialize",
+                "wasm_name": "initialize",
+                "is_ctor": true,
+                "is_fundable": false,
+                "doc": "Initializing a new app",
                 "signature": json!({"params": [], "returns": {}}),
             })],
         })

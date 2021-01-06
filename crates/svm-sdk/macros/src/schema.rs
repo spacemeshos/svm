@@ -1,10 +1,10 @@
 use quote::quote;
 use syn::{FnArg, PatType, ReturnType, TypeTuple};
 
-use crate::function::{func_attrs, has_ctor_attr, has_endpoint_attr, has_fundable_attr};
+use crate::function::{find_attr, func_attrs, has_ctor_attr, has_endpoint_attr, has_fundable_attr};
 use crate::r#struct::has_storage_attr;
 use crate::storage_vars;
-use crate::{App, Function, Type, Var};
+use crate::{App, FuncAttr, FuncAttrKind, Function, Type, Var};
 
 pub struct Schema {
     name: String,
@@ -24,6 +24,8 @@ pub struct Export {
     pub wasm_name: String,
 
     pub signature: Signature,
+
+    pub doc: String,
 }
 
 pub struct Signature {
@@ -141,6 +143,18 @@ fn export_schema(func: &Function) -> Export {
 
     let api_name = func.raw_name().to_string();
 
+    let attr = if is_ctor {
+        find_attr(&attrs, FuncAttrKind::Ctor)
+    } else {
+        find_attr(&attrs, FuncAttrKind::Endpoint)
+    };
+
+    let doc = match attr {
+        FuncAttr::Ctor(doc) => doc.to_string(),
+        FuncAttr::Endpoint(doc) => doc.to_string(),
+        _ => unreachable!(),
+    };
+
     // TODO: future PR will uglify the name of the endpoint
     // in order to save space in the transactions.
     // The original (code) name will appear in the `schema.json` (off-chain).
@@ -153,6 +167,7 @@ fn export_schema(func: &Function) -> Export {
         api_name,
         wasm_name,
         signature,
+        doc,
     }
 }
 
