@@ -228,7 +228,7 @@ mod test {
         };
 
         let func_attr = parse_attr(attr).unwrap();
-        assert!(matches!(func_attr, FuncAttr::Endpoint));
+        assert!(matches!(func_attr, FuncAttr::Endpoint(..)));
 
         assert_eq!(func_attr.kind(), FuncAttrKind::Endpoint);
     }
