@@ -19,6 +19,9 @@ pub struct Context {
     inner: Rc<RefCell<ContextInner>>,
 }
 
+unsafe impl Send for Context {}
+unsafe impl Sync for Context {}
+
 impl Context {
     pub fn new(gas_limit: MaybeGas, storage: AppStorage) -> Self {
         let inner = ContextInner::new(gas_limit, storage);

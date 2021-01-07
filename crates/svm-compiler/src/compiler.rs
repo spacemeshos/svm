@@ -20,7 +20,7 @@ pub fn compile(
 /// New fresh `Store`
 #[must_use]
 pub fn new_store() -> Store {
-    let engine = JIT::new(&wasmer::Cranelift::default()).engine();
+    let engine = JIT::new(wasmer::Cranelift::default()).engine();
 
     Store::new(&engine)
 }
