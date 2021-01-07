@@ -51,7 +51,7 @@ impl ExternImport {
     pub fn wasmer_export(&self, store: &Store, ctx: &mut Context) -> (Export, *mut svm_env_t) {
         unsafe {
             // The following code has been highly influenced by code here:
-            // https://github.com/wasmerio/wasmer/blob/e9529c2c868c6c4d7f39bad2d2194682066a9522/lib/c-api/src/wasm_c_api/externals/function.rs#L89
+            // https://github.com/wasmerio/wasmer/blob/dd69438efdd629a7b5ae8de53a774f177b0da48a/lib/c-api/src/wasm_c_api/externals/function.rs#L89
 
             let returns_types = self.returns.clone();
             let func = self.func;
@@ -61,6 +61,8 @@ impl ExternImport {
                 func_env: *mut svm_env_t,
             }
 
+            // SVM is single-threaded.
+            // `Send`, `Sync` and `Clone` are required by `wasmer::WasmerEnv`
             unsafe impl Send for WrapperEnv {}
             unsafe impl Sync for WrapperEnv {}
 
