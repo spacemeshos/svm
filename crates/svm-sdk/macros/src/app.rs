@@ -50,7 +50,7 @@ pub fn expand(_args: TokenStream, input: TokenStream) -> Result<(Schema, TokenSt
     let aliases = app.aliases();
 
     let structs = expand_structs(&app)?;
-    let functions = expand_functions(&app, &schema)?;
+    let functions = expand_functions(&app)?;
     let alloc_func = alloc_func_ast();
 
     #[cfg(feature = "api")]
@@ -80,6 +80,7 @@ pub fn parse_app(mut raw_app: ItemMod) -> Result<App> {
     let name = raw_app.ident.clone();
 
     let mut functions = Vec::new();
+
     let mut structs = Vec::new();
     let mut imports = Vec::new();
     let mut aliases = Vec::new();
@@ -92,7 +93,7 @@ pub fn parse_app(mut raw_app: ItemMod) -> Result<App> {
 
         match item {
             Item::Fn(item) => {
-                let func = Function::new(item);
+                let func = Function::new(item, functions.len());
                 functions.push(func);
             }
             Item::Struct(item) => {
@@ -211,11 +212,11 @@ fn validate_structs(app: &App) -> Result<()> {
     Ok(())
 }
 
-fn expand_functions(app: &App, schema: &Schema) -> Result<TokenStream> {
+fn expand_functions(app: &App) -> Result<TokenStream> {
     let mut funcs = Vec::new();
 
     for func in app.functions() {
-        let func = function::expand(func, schema)?;
+        let func = function::expand(func)?;
         
         funcs.push(func);
     } 

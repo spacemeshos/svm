@@ -23,7 +23,7 @@ pub struct Export {
 
     pub api_name: String,
 
-    pub wasm_name: String,
+    pub export_name: String,
 
     pub signature: Signature,
 
@@ -116,8 +116,7 @@ pub fn app_schema(app: &App) -> Schema {
 
             is_endpoint || is_ctor
         })
-        .enumerate()
-        .map(|(i, func)| export_schema(func, i))
+        .map(export_schema)
         .map(|export| (export.api_name.clone(), export))
         .collect();
 
@@ -142,14 +141,14 @@ fn storage_schema(app: &App) -> Vec<Var> {
     }
 }
 
-fn export_schema(func: &Function, func_index: usize) -> Export {
+fn export_schema(func: &Function) -> Export {
     let attrs = func_attrs(func).unwrap();
 
     let is_ctor = has_ctor_attr(&attrs);
     let is_fundable = has_fundable_attr(&attrs);
 
     let api_name = func.raw_name().to_string();
-    let wasm_name = format!("_{}", func_index);
+    let export_name = func.export_name();
 
     let attr = if is_ctor {
         find_attr(&attrs, FuncAttrKind::Ctor)
@@ -169,7 +168,7 @@ fn export_schema(func: &Function, func_index: usize) -> Export {
         is_ctor,
         is_fundable,
         api_name,
-        wasm_name,
+        export_name,
         signature,
         doc,
     }

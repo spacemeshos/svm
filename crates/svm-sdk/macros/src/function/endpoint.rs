@@ -8,19 +8,14 @@ use syn::{Error, FnArg, Pat, PatType, Result, ReturnType, Type};
 use super::attr;
 use attr::{has_endpoint_or_ctor_attr, has_fundable_attr, FuncAttr};
 
-use crate::{schema::Schema, Function};
+use crate::Function;
 
-pub fn expand(func: &Function, attrs: &[FuncAttr], schema: &Schema) -> Result<TokenStream> {
+pub fn expand(func: &Function, attrs: &[FuncAttr]) -> Result<TokenStream> {
     debug_assert!(has_endpoint_or_ctor_attr(attrs));
 
     validate_sig(func)?;
 
-    let ident = func.raw_name();
-    let name = format!("{}", ident);
-
-    let export = schema.get_export(&name);
-    let wasm_name = export.wasm_name.clone();
-
+    let name = func.raw_name();
     let prologue = expand_prologue(func)?;
     let epilogue = expand_epilogue()?;
     let returns = expand_returns(func)?;
@@ -32,10 +27,20 @@ pub fn expand(func: &Function, attrs: &[FuncAttr], schema: &Schema) -> Result<To
         quote! {}
     };
 
-    let export_name = format!("\"{}\"", wasm_name);
+    fn func_attrs(func: &Function) -> TokenStream {
+        if cfg!(target_arch = "wasm32") {
+            let export_name = func.export_name();
+
+            quote! { #[export_name = #export_name] }
+        } else {
+            quote! { #[no_mangle] }
+        }
+    }
+
+    let func_attrs = func_attrs(func);
 
     let ast = quote! {
-        #[export_name = #export_name]
+        #func_attrs
         pub extern "C" fn #name() {
             #call_fundable_hook
 
