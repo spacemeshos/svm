@@ -20,13 +20,12 @@ pub fn json_api_tokens(schema: &Schema) -> TokenStream {
 fn emit_exports(schema: &Schema) -> Value {
     let exports = schema
         .exports()
-        .iter()
         .map(|e| {
             json!({
                 "is_ctor": e.is_ctor,
                 "is_fundable": e.is_fundable,
                 "api_name": e.api_name,
-                "wasm_name": e.wasm_name,
+                "wasm_name": e.export_name,
                 "doc": e.doc,
                 "signature": emit_signature(e)
             })

@@ -1,3 +1,5 @@
+use std::fmt::format;
+
 use proc_macro2::{Span, TokenStream};
 
 use quote::{quote, ToTokens};
@@ -25,8 +27,20 @@ pub fn expand(func: &Function, attrs: &[FuncAttr]) -> Result<TokenStream> {
         quote! {}
     };
 
+    fn func_attrs(func: &Function) -> TokenStream {
+        if cfg!(target_arch = "wasm32") {
+            let export_name = func.export_name();
+
+            quote! { #[export_name = #export_name] }
+        } else {
+            quote! { #[no_mangle] }
+        }
+    }
+
+    let func_attrs = func_attrs(func);
+
     let ast = quote! {
-        #[no_mangle]
+        #func_attrs
         pub extern "C" fn #name() {
             #call_fundable_hook
 

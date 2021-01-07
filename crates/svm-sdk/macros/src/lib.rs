@@ -10,11 +10,10 @@ mod r#type;
 mod api;
 
 use app::App;
-use function::{FuncAttrKind, FuncAttr, Function};
+use function::{FuncAttr, FuncAttrKind, Function};
 use r#struct::storage_vars;
 use r#struct::{Struct, Var};
 use r#type::{PrimType, Type};
-
 use schema::{Export, Schema, Signature};
 
 #[proc_macro_attribute]

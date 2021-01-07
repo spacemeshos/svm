@@ -4,6 +4,6 @@ use syn::Result;
 use super::attr::FuncAttr;
 use crate::Function;
 
-pub fn expand(func: &Function, attrs: &[FuncAttr]) -> Result<TokenStream> {
+pub(crate) fn expand(func: &Function, attrs: &[FuncAttr]) -> Result<TokenStream> {
     super::endpoint::expand(func, attrs)
 }
