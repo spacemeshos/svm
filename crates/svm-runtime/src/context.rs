@@ -19,6 +19,8 @@ pub struct Context {
     inner: Rc<RefCell<ContextInner>>,
 }
 
+// SVM is single-threaded.
+// `Send`, `Sync` and `Clone` are required by `wasmer::WasmerEnv`
 unsafe impl Send for Context {}
 unsafe impl Sync for Context {}
 
