@@ -1,15 +1,13 @@
 use proc_macro2::{Ident, Span, TokenStream};
 
 use quote::{quote, ToTokens};
-use syn::{
-    Error, Expr, ExprLit, Field, Fields, ItemStruct, Lit, Path, PathArguments, Result, Type,
-    TypeArray, TypePath,
-};
+use syn::{Error, Field, Fields, ItemStruct, Path, PathArguments, Result};
 
 use super::{attr, Var, VarId};
 use attr::{has_storage_attr, StructAttr};
 
-use crate::Struct;
+use crate::r#type;
+use crate::{PrimType, Struct, Type};
 
 pub fn expand(strukt: &Struct, attrs: &[StructAttr]) -> Result<TokenStream> {
     debug_assert!(has_storage_attr(attrs));
@@ -45,11 +43,18 @@ pub fn storage_vars(strukt: &Struct) -> Result<Vec<Var>> {
     for f in fields {
         let var = field_var(f, id, offset)?;
 
-        offset += var.byte_count();
+        match var {
+            Var::Primitive { .. } => {
+                offset += var.byte_count();
+                id = next_var(id, 1);
+            }
+            Var::Array { length, .. } => {
+                offset += var.byte_count() * (length as usize);
+                id = next_var(id, length);
+            }
+        }
 
         vars.push(var);
-
-        id = next_var(id);
     }
 
     Ok(vars)
@@ -64,33 +69,31 @@ fn field_var(field: &Field, id: VarId, offset: usize) -> Result<Var> {
         return Err(Error::new(span, msg));
     }
 
-    let var = match &field.ty {
-        Type::Array(array) => {
-            let (ty, ty_str) = parse_array_element_type(&array)?;
-            let length = parse_array_length(&array)?;
-            let name = field_ident(field);
-            let byte_count = field_byte_count(&ty_str);
+    let name = field_ident(field);
+    let ty = Type::new(&field.ty)?;
+
+    let var = match ty {
+        Type::Array {
+            elem_ty, length, ..
+        } => {
+            let byte_count = field_byte_count(&elem_ty);
 
             Var::Array {
                 id,
                 name,
-                ty,
-                ty_str,
+                elem_ty,
                 length,
                 offset,
                 byte_count,
             }
         }
-        Type::Path(path) => {
-            let name = field_ident(field);
-            let (ty, ty_str) = parse_type_path(path)?;
-            let byte_count = field_byte_count(&ty_str);
+        Type::Primitive(ty) => {
+            let byte_count = field_byte_count(&ty);
 
             Var::Primitive {
                 id,
                 name,
                 ty,
-                ty_str,
                 offset,
                 byte_count,
             }
@@ -98,80 +101,12 @@ fn field_var(field: &Field, id: VarId, offset: usize) -> Result<Var> {
         _ => {
             return Err(Error::new(
                 span,
-                "`#[storage]` supports only path (for example: `svm_sdk::Amount`) and Array types.",
+                "`#[storage]` supports only Primitive (for example: `svm_sdk::Amount`) and Array types.",
             ));
         }
     };
 
     Ok(var)
-}
-
-fn parse_array_element_type(array: &TypeArray) -> Result<(Type, String)> {
-    match *array.elem {
-        Type::Path(ref path) => parse_type_path(path),
-        _ => {
-            let span = Span::call_site();
-
-            Err(Error::new(span, "`#[storage]` Array elements must be of type path (for example: `svm_sdk::Amount`)."))
-        }
-    }
-}
-
-fn parse_array_length(array: &TypeArray) -> Result<u32> {
-    if let Expr::Lit(ExprLit { attrs, lit }) = &array.len {
-        assert!(attrs.is_empty());
-
-        if let Lit::Int(num) = lit {
-            let num = num.base10_parse();
-
-            if num.is_ok() {
-                return num;
-            }
-        }
-    }
-
-    let span = Span::call_site();
-    let msg = "Invalid array length";
-
-    Err(Error::new(span, msg))
-}
-
-fn parse_type_path(path: &TypePath) -> Result<(Type, String)> {
-    let ty_str = path_as_str(&path);
-
-    match ty_str.as_str() {
-        #[rustfmt::skip]
-        "bool"    | 
-        "Amount"  |
-        "Address" |
-        "svm_sdk :: Amount"  |
-        "svm_sdk :: Address" |
-        "i8"      |
-        "u8"      |
-        "i16"     |
-        "u16"     |
-        "i32"     |
-        "u32"     |
-        "i64"     |
-        "u64"     => {
-            let ty = Type::Path(path.clone());
-
-            Ok((ty, ty_str))
-        }
-        _ => {
-            let span = Span::call_site();
-            let msg = format!("Invalid `#[storage]` field type: {}", ty_str);
-
-            Err(Error::new(span, msg))
-        }
-    }
-}
-
-fn path_as_str(path: &TypePath) -> String {
-    let path = &path.path;
-    let path = quote! { #path };
-
-    path.to_string()
 }
 
 fn ensure_named_fields(fields: &Fields) -> Result<()> {
@@ -219,16 +154,10 @@ fn getter_ast(var: &Var) -> TokenStream {
     let includes = include_storage_ast();
 
     match var {
-        Var::Primitive {
-            id,
-            name,
-            ty,
-            ty_str,
-            ..
-        } => {
+        Var::Primitive { id, name, ty, .. } => {
             let getter_name = getter_ident(name);
 
-            match ty_str.as_str() {
+            match ty.as_str() {
                 "i8" | "u8" | "i16" | "u16" | "i32" | "u32" => {
                     quote! {
                         fn #getter_name () -> #ty {
@@ -280,31 +209,30 @@ fn getter_ast(var: &Var) -> TokenStream {
         Var::Array {
             id,
             name,
-            ty,
-            ty_str,
+            elem_ty,
             length,
             ..
         } => {
             let getter_name = getter_ident(name);
 
-            match ty_str.as_str() {
+            match elem_ty.as_str() {
                 "i8" | "u8" | "i16" | "u16" | "i32" | "u32" => {
                     quote! {
-                        fn #getter_name (index: usize) -> #ty {
+                        fn #getter_name (index: usize) -> #elem_ty {
                             #includes
 
                             let value = svm_sdk::storage::ops::array_get32::<StorageImpl>(#id, index, #length);
-                            value as #ty
+                            value as #elem_ty
                         }
                     }
                 }
                 "u64" | "i64" => {
                     quote! {
-                        fn #getter_name (index: usize) -> #ty {
+                        fn #getter_name (index: usize) -> #elem_ty {
                             #includes
 
                             let value = svm_sdk::storage::ops::array_get64::<StorageImpl>(#id, index, #length);
-                            value as #ty
+                            value as #elem_ty
                         }
                     }
                 }
@@ -341,16 +269,10 @@ fn setter_ast(var: &Var) -> TokenStream {
     let includes = include_storage_ast();
 
     match var {
-        Var::Primitive {
-            id,
-            name,
-            ty,
-            ty_str,
-            ..
-        } => {
+        Var::Primitive { id, name, ty, .. } => {
             let setter_name = setter_ident(name);
 
-            match ty_str.as_str() {
+            match ty.as_str() {
                 "i8" | "u8" | "i16" | "u16" | "i32" | "u32" => {
                     quote! {
                         fn #setter_name (value: #ty) {
@@ -396,17 +318,16 @@ fn setter_ast(var: &Var) -> TokenStream {
         Var::Array {
             id,
             name,
-            ty,
-            ty_str,
+            elem_ty,
             length,
             ..
         } => {
             let setter_name = setter_ident(name);
 
-            match ty_str.as_str() {
+            match elem_ty.as_str() {
                 "i8" | "u8" | "i16" | "u16" | "i32" | "u32" => {
                     quote! {
-                        fn #setter_name (index: usize, value: #ty) {
+                        fn #setter_name (index: usize, value: #elem_ty) {
                             #includes
 
                             svm_sdk::storage::ops::array_set32::<StorageImpl>(#id, index, #length, value as u32);
@@ -415,7 +336,7 @@ fn setter_ast(var: &Var) -> TokenStream {
                 }
                 "u64" | "i64" => {
                     quote! {
-                        fn #setter_name (index: usize, value: #ty) {
+                        fn #setter_name (index: usize, value: #elem_ty) {
                             #includes
 
                             svm_sdk::storage::ops::array_set64::<StorageImpl>(#id, index, #length, value as u64);
@@ -475,17 +396,17 @@ fn include_storage_ast() -> TokenStream {
     }
 }
 
-fn next_var(var_id: VarId) -> VarId {
+fn next_var(var_id: VarId, length: u32) -> VarId {
     let id = var_id.0;
-    VarId(id + 1)
+    VarId(id + length)
 }
 
 fn field_ident(f: &Field) -> Ident {
     f.ident.as_ref().unwrap().clone()
 }
 
-fn field_byte_count(ty: &str) -> usize {
-    match ty {
+fn field_byte_count(ty: &PrimType) -> usize {
+    match ty.as_str() {
         "bool" => 1,
         "Amount" => 8,
         "Address" => 20,

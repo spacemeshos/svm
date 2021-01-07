@@ -54,6 +54,9 @@ pub fn expand(_args: TokenStream, input: TokenStream) -> Result<(Schema, TokenSt
 
     let schema = schema::app_schema(&app);
 
+    #[cfg(feature = "api")]
+    let json = crate::api::json_api_tokens(&schema);
+
     let ast = quote! {
         // #(#imports)*
 
@@ -64,9 +67,14 @@ pub fn expand(_args: TokenStream, input: TokenStream) -> Result<(Schema, TokenSt
         #structs
 
         #functions
+
+        #[cfg(feature = "api")]
+        pub fn raw_schema() -> String {
+            #json.to_string()
+        }
     };
 
-    Ok((schema,ast))
+    Ok((schema,  ast))
 }
 
 pub fn parse_app(mut raw_app: ItemMod) -> Result<App> {

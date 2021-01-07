@@ -1,25 +1,23 @@
 use std::fmt;
 
-use proc_macro2::{Ident, TokenStream};
+use crate::{PrimType, Type};
 
+use proc_macro2::{Ident, TokenStream};
 use quote::{quote, ToTokens};
-use syn::Type;
 
 pub enum Var {
     Primitive {
         id: VarId,
         offset: usize,
         name: Ident,
-        ty: Type,
-        ty_str: String,
+        ty: PrimType,
         byte_count: usize,
     },
     Array {
         id: VarId,
         offset: usize,
         name: Ident,
-        ty: Type,
-        ty_str: String,
+        elem_ty: PrimType,
         length: u32,
         byte_count: usize,
     },
@@ -37,16 +35,23 @@ impl Var {
 impl fmt::Debug for Var {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Var::Primitive {
-                id, name, ty_str, ..
-            } => writeln!(f, "Var #{} - {}: {}", id.0, name, ty_str),
+            Var::Primitive { id, name, ty, .. } => {
+                writeln!(f, "Var #{} - {}: {}", id.0, name, ty.as_str())
+            }
             Var::Array {
                 id,
                 name,
-                ty_str,
+                elem_ty,
                 length,
                 ..
-            } => writeln!(f, "Var #{} - {}: [{}; {}]", id.0, name, ty_str, length),
+            } => writeln!(
+                f,
+                "Var #{} - {}: [{}; {}]",
+                id.0,
+                name,
+                elem_ty.as_str(),
+                length
+            ),
         }
     }
 }

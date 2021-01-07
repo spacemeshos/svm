@@ -1,66 +1,68 @@
 use quote::quote;
-use syn::{FnArg, PatType};
+use syn::{FnArg, PatType, ReturnType, TypeTuple};
 
-use crate::function::{func_attrs, has_ctor_attr, has_endpoint_attr, has_fundable_attr};
+use crate::function::{find_attr, func_attrs, has_ctor_attr, has_endpoint_attr, has_fundable_attr};
 use crate::r#struct::has_storage_attr;
 use crate::storage_vars;
-use crate::{App, Function, Var};
+use crate::{App, FuncAttr, FuncAttrKind, Function, Type, Var};
 
-#[derive(Debug)]
 pub struct Schema {
+    name: String,
+
     exports: Vec<Export>,
 
     storage: Vec<Var>,
 }
 
-#[derive(Debug)]
 pub struct Export {
-    is_ctor: bool,
+    pub is_ctor: bool,
 
-    is_fundable: bool,
+    pub is_fundable: bool,
 
-    api_name: String,
+    pub api_name: String,
 
-    wasm_name: String,
+    pub wasm_name: String,
 
-    signature: Signature,
+    pub signature: Signature,
+
+    pub doc: String,
 }
 
-#[derive(Debug)]
 pub struct Signature {
-    params: Vec<(String, String)>,
+    params: Vec<(String, Type)>,
 
-    returns: Vec<String>,
+    output: Option<Type>,
 }
 
 impl Signature {
     pub fn new() -> Self {
         Self {
             params: Vec::new(),
-            returns: Vec::new(),
+            output: None,
         }
     }
 
-    pub fn add_param(&mut self, name: String, ty: String) {
-        self.params.push((name, ty));
+    pub fn push_param(&mut self, param: (String, Type)) {
+        self.params.push(param);
     }
 
-    pub fn add_return(&mut self, ty: String) {
-        self.returns.push(ty);
+    pub fn set_output(&mut self, out: Type) {
+        self.output = Some(out);
     }
 
-    pub fn params(&self) -> &[(String, String)] {
+    pub fn params(&self) -> &[(String, Type)] {
         &self.params
     }
 
-    pub fn returns(&self) -> &[String] {
-        &self.returns
+    pub fn output(&self) -> Option<&Type> {
+        self.output.as_ref()
     }
 }
 
 impl Schema {
-    pub fn new() -> Self {
+    pub fn new(name: String) -> Self {
         Self {
+            name,
             exports: Vec::new(),
             storage: Vec::new(),
         }
@@ -68,6 +70,10 @@ impl Schema {
 
     pub fn add_export(&mut self, export: Export) {
         self.exports.push(export);
+    }
+
+    pub fn name(&self) -> String {
+        self.name.clone()
     }
 
     pub fn endpoints(&self) -> Vec<&Export> {
@@ -91,6 +97,7 @@ impl Schema {
 }
 
 pub fn app_schema(app: &App) -> Schema {
+    let name = app.name().to_string();
     let storage = storage_schema(app);
 
     let exports = app
@@ -107,7 +114,11 @@ pub fn app_schema(app: &App) -> Schema {
         .map(export_schema)
         .collect();
 
-    Schema { storage, exports }
+    Schema {
+        name,
+        storage,
+        exports,
+    }
 }
 
 fn storage_schema(app: &App) -> Vec<Var> {
@@ -132,6 +143,18 @@ fn export_schema(func: &Function) -> Export {
 
     let api_name = func.raw_name().to_string();
 
+    let attr = if is_ctor {
+        find_attr(&attrs, FuncAttrKind::Ctor)
+    } else {
+        find_attr(&attrs, FuncAttrKind::Endpoint)
+    };
+
+    let doc = match attr {
+        FuncAttr::Ctor(doc) => doc.to_string(),
+        FuncAttr::Endpoint(doc) => doc.to_string(),
+        _ => unreachable!(),
+    };
+
     // TODO: future PR will uglify the name of the endpoint
     // in order to save space in the transactions.
     // The original (code) name will appear in the `schema.json` (off-chain).
@@ -144,6 +167,7 @@ fn export_schema(func: &Function) -> Export {
         api_name,
         wasm_name,
         signature,
+        doc,
     }
 }
 
@@ -154,13 +178,19 @@ fn function_sig(func: &Function) -> Signature {
 
     for input in &raw_sig.inputs {
         if let FnArg::Typed(PatType { pat, ty, .. }) = input {
+            let ty = Type::new(ty).unwrap();
             let name = quote! { #pat };
-            let ty = quote! { #ty };
 
-            sig.add_param(name.to_string(), ty.to_string());
+            sig.push_param((name.to_string(), ty));
         } else {
             unreachable!()
         }
+    }
+
+    if let ReturnType::Type(.., ty) = &raw_sig.output {
+        let ty = Type::new(&ty).unwrap();
+
+        sig.set_output(ty);
     }
 
     sig
