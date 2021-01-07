@@ -44,15 +44,14 @@ impl App {
 pub fn expand(_args: TokenStream, input: TokenStream) -> Result<(Schema, TokenStream)> {
     let module = syn::parse2(input)?;
     let app = parse_app(module)?;
+    let schema = schema::app_schema(&app);
 
     let imports = app.imports();
     let aliases = app.aliases();
 
     let structs = expand_structs(&app)?;
-    let functions = expand_functions(&app)?;
+    let functions = expand_functions(&app, &schema)?;
     let alloc_func = alloc_func_ast();
-
-    let schema = schema::app_schema(&app);
 
     #[cfg(feature = "api")]
     let json = crate::api::json_api_tokens(&schema);
@@ -212,11 +211,11 @@ fn validate_structs(app: &App) -> Result<()> {
     Ok(())
 }
 
-fn expand_functions(app: &App) -> Result<TokenStream> {
+fn expand_functions(app: &App, schema: &Schema) -> Result<TokenStream> {
     let mut funcs = Vec::new();
 
     for func in app.functions() {
-        let func = function::expand(func)?;
+        let func = function::expand(func, schema)?;
         
         funcs.push(func);
     } 

@@ -20,7 +20,6 @@ pub fn json_api_tokens(schema: &Schema) -> TokenStream {
 fn emit_exports(schema: &Schema) -> Value {
     let exports = schema
         .exports()
-        .iter()
         .map(|e| {
             json!({
                 "is_ctor": e.is_ctor,

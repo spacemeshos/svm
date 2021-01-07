@@ -15,6 +15,8 @@ pub use attr::{
 };
 pub use attr::{FuncAttr, FuncAttrKind};
 
+use crate::schema::Schema;
+
 pub struct Function {
     raw_func: ItemFn,
 }
@@ -41,15 +43,15 @@ impl Function {
     }
 }
 
-pub fn expand(func: &Function) -> Result<TokenStream> {
+pub fn expand(func: &Function, schema: &Schema) -> Result<TokenStream> {
     let attrs = func_attrs(func)?;
 
     validate_attrs(&attrs)?;
 
     let ast = if has_ctor_attr(&attrs) {
-        ctor::expand(func, &attrs)?
+        ctor::expand(func, &attrs, schema)?
     } else if has_endpoint_attr(&attrs) {
-        endpoint::expand(func, &attrs)?
+        endpoint::expand(func, &attrs, schema)?
     } else if has_fundable_hook_attr(&attrs) {
         fundable_hook::expand(func, &attrs)?
     } else {

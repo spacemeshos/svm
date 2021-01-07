@@ -1,3 +1,5 @@
+use std::fmt::format;
+
 use proc_macro2::{Span, TokenStream};
 
 use quote::{quote, ToTokens};
@@ -6,14 +8,19 @@ use syn::{Error, FnArg, Pat, PatType, Result, ReturnType, Type};
 use super::attr;
 use attr::{has_endpoint_or_ctor_attr, has_fundable_attr, FuncAttr};
 
-use crate::Function;
+use crate::{schema::Schema, Function};
 
-pub fn expand(func: &Function, attrs: &[FuncAttr]) -> Result<TokenStream> {
+pub fn expand(func: &Function, attrs: &[FuncAttr], schema: &Schema) -> Result<TokenStream> {
     debug_assert!(has_endpoint_or_ctor_attr(attrs));
 
     validate_sig(func)?;
 
-    let name = func.raw_name();
+    let ident = func.raw_name();
+    let name = format!("{}", ident);
+
+    let export = schema.get_export(&name);
+    let wasm_name = export.wasm_name.clone();
+
     let prologue = expand_prologue(func)?;
     let epilogue = expand_epilogue()?;
     let returns = expand_returns(func)?;
@@ -25,8 +32,10 @@ pub fn expand(func: &Function, attrs: &[FuncAttr]) -> Result<TokenStream> {
         quote! {}
     };
 
+    let export_name = format!("\"{}\"", wasm_name);
+
     let ast = quote! {
-        #[no_mangle]
+        #[export_name = #export_name]
         pub extern "C" fn #name() {
             #call_fundable_hook
 
