@@ -8,7 +8,7 @@ publish = false
 
 
 [dependencies.wasmer]
-version="1.0.0-beta1"
+version="1.0.0"
 default-features = false
 features = ["default-cranelift", "default-jit"]
 

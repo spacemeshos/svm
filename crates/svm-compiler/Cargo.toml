@@ -15,10 +15,10 @@ path = "../svm-common"
 version = "0.0.0"
 
 [dependencies.wasmer-compiler]
-version="1.0.0-beta1"
+version="1.0.0"
 
 [dependencies.wasmer]
-version="1.0.0-beta1"
+version="1.0.0"
 default-features = false
 features = ["default-cranelift", "default-jit"]
 
