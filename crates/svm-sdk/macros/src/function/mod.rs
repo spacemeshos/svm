@@ -49,7 +49,11 @@ impl Function {
     }
 
     pub fn export_name(&self) -> String {
-        format!("_{}", self.index)
+        if cfg!(target_arch = "wasm32") {
+            format!("_{}", self.index)
+        } else {
+            format!("{}", self.raw_name())
+        }
     }
 }
 
