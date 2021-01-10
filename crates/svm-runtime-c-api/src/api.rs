@@ -470,7 +470,7 @@ pub unsafe extern "C" fn svm_ffi_state_kv_create(
         head: None,
     };
 
-    let ffi_kv = Rc::new(RefCell::new(ffi_kv));
+    let ffi_kv: Rc<RefCell<dyn StatefulKV>> = Rc::new(RefCell::new(ffi_kv));
 
     *state_kv = svm_ffi::into_raw(KV_TYPE, ffi_kv);
 
