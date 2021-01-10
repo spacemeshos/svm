@@ -44,6 +44,7 @@ impl App {
 pub fn expand(_args: TokenStream, input: TokenStream) -> Result<(Schema, TokenStream)> {
     let module = syn::parse2(input)?;
     let app = parse_app(module)?;
+    let schema = schema::app_schema(&app);
 
     let imports = app.imports();
     let aliases = app.aliases();
@@ -51,8 +52,6 @@ pub fn expand(_args: TokenStream, input: TokenStream) -> Result<(Schema, TokenSt
     let structs = expand_structs(&app)?;
     let functions = expand_functions(&app)?;
     let alloc_func = alloc_func_ast();
-
-    let schema = schema::app_schema(&app);
 
     #[cfg(feature = "api")]
     let json = crate::api::json_api_tokens(&schema);
@@ -81,6 +80,7 @@ pub fn parse_app(mut raw_app: ItemMod) -> Result<App> {
     let name = raw_app.ident.clone();
 
     let mut functions = Vec::new();
+
     let mut structs = Vec::new();
     let mut imports = Vec::new();
     let mut aliases = Vec::new();
@@ -93,7 +93,7 @@ pub fn parse_app(mut raw_app: ItemMod) -> Result<App> {
 
         match item {
             Item::Fn(item) => {
-                let func = Function::new(item);
+                let func = Function::new(item, functions.len());
                 functions.push(func);
             }
             Item::Struct(item) => {

@@ -1,3 +1,5 @@
+use std::collections::{hash_map::Values, HashMap};
+
 use quote::quote;
 use syn::{FnArg, PatType, ReturnType, TypeTuple};
 
@@ -9,7 +11,7 @@ use crate::{App, FuncAttr, FuncAttrKind, Function, Type, Var};
 pub struct Schema {
     name: String,
 
-    exports: Vec<Export>,
+    exports: HashMap<String, Export>,
 
     storage: Vec<Var>,
 }
@@ -21,7 +23,7 @@ pub struct Export {
 
     pub api_name: String,
 
-    pub wasm_name: String,
+    pub export_name: String,
 
     pub signature: Signature,
 
@@ -63,32 +65,35 @@ impl Schema {
     pub fn new(name: String) -> Self {
         Self {
             name,
-            exports: Vec::new(),
+            exports: HashMap::new(),
             storage: Vec::new(),
         }
     }
 
     pub fn add_export(&mut self, export: Export) {
-        self.exports.push(export);
+        let name = export.api_name.clone();
+
+        self.exports.insert(name, export);
+    }
+
+    pub fn get_export(&self, name: &str) -> &Export {
+        self.exports.get(name).as_ref().unwrap()
     }
 
     pub fn name(&self) -> String {
         self.name.clone()
     }
 
+    pub fn exports(&self) -> Values<String, Export> {
+        self.exports.values().into_iter()
+    }
+
     pub fn endpoints(&self) -> Vec<&Export> {
-        self.exports
-            .iter()
-            .filter(|exp| exp.is_ctor == false)
-            .collect()
+        self.exports().filter(|exp| exp.is_ctor == false).collect()
     }
 
     pub fn ctors(&self) -> Vec<&Export> {
-        self.exports.iter().filter(|exp| exp.is_ctor).collect()
-    }
-
-    pub fn exports(&self) -> &[Export] {
-        &self.exports
+        self.exports().filter(|exp| exp.is_ctor).collect()
     }
 
     pub fn storage(&self) -> &[Var] {
@@ -112,6 +117,7 @@ pub fn app_schema(app: &App) -> Schema {
             is_endpoint || is_ctor
         })
         .map(export_schema)
+        .map(|export| (export.api_name.clone(), export))
         .collect();
 
     Schema {
@@ -142,6 +148,7 @@ fn export_schema(func: &Function) -> Export {
     let is_fundable = has_fundable_attr(&attrs);
 
     let api_name = func.raw_name().to_string();
+    let export_name = func.export_name();
 
     let attr = if is_ctor {
         find_attr(&attrs, FuncAttrKind::Ctor)
@@ -155,17 +162,13 @@ fn export_schema(func: &Function) -> Export {
         _ => unreachable!(),
     };
 
-    // TODO: future PR will uglify the name of the endpoint
-    // in order to save space in the transactions.
-    // The original (code) name will appear in the `schema.json` (off-chain).
-    let wasm_name = func.raw_name().to_string();
     let signature = function_sig(func);
 
     Export {
         is_ctor,
         is_fundable,
         api_name,
-        wasm_name,
+        export_name,
         signature,
         doc,
     }

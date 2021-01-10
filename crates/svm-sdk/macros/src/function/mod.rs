@@ -15,13 +15,17 @@ pub use attr::{
 };
 pub use attr::{FuncAttr, FuncAttrKind};
 
+use crate::schema::Schema;
+
 pub struct Function {
     raw_func: ItemFn,
+
+    index: usize,
 }
 
 impl Function {
-    pub fn new(raw_func: ItemFn) -> Self {
-        Self { raw_func }
+    pub fn new(raw_func: ItemFn, index: usize) -> Self {
+        Self { raw_func, index }
     }
 
     pub fn raw_name(&self) -> Ident {
@@ -38,6 +42,18 @@ impl Function {
 
     pub fn raw_attrs(&self) -> Vec<Attribute> {
         self.raw_func.attrs.clone()
+    }
+
+    pub fn index(&self) -> usize {
+        self.index
+    }
+
+    pub fn export_name(&self) -> String {
+        if cfg!(target_arch = "wasm32") {
+            format!("_{}", self.index)
+        } else {
+            format!("{}", self.raw_name())
+        }
     }
 }
 
@@ -235,7 +251,7 @@ mod test {
     macro_rules! assert_err {
         ($expected:expr, $($tt:tt)*) => {{
             let raw_func: ItemFn = parse_quote!( $($tt)* );
-            let mut func = Function::new(raw_func);
+            let mut func = Function::new(raw_func, 0);
 
             let actual = expand(&mut func).unwrap_err();
             assert_eq!($expected, actual.to_string());
@@ -246,7 +262,7 @@ mod test {
         ($($tt:tt)*) => {{
             let raw_func: ItemFn = parse_quote!( $($tt)* );
 
-            let mut func = Function::new(raw_func);
+            let mut func = Function::new(raw_func, 0);
 
             let res = expand(&mut func);
 
