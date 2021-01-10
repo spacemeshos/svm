@@ -122,8 +122,8 @@ impl StatefulKV for ExternKV {
     }
 
     fn rewind(&mut self, _state: &State) {
-        // This method isn't supposed to be called (only for tesing purposes)
-        // since it's the role of the `Host` to manage to current  `State` of an kenn
+        // This method isn't supposed to be called when using the `FFI` key-value store.
+        // since it's the role of the `Host` to manage to do the rewind.
     }
 
     #[must_use]
