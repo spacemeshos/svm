@@ -10,12 +10,14 @@ use lazy_static::lazy_static;
 
 // This file contains a mock implementation from the `Host`'s angle.
 //
-// The `Host` (i.e `go-spacemesh` but theoretically other Full-Node)
+// The `Host` (i.e `go-spacemesh` but theoretically any other Full-Node)
 // exposes to `ExternKV` (the `FFI_KV` below) the following functions pointers:
+//
 // * `get`
 // * `set`
 // * `discard`
 // * `checkpoint`
+// * `head`
 //
 // Now, the mock implementation of these functions (i.e the `Host`) will be to use `FakeKV`
 // which is an in-memory implementation of the `StatefulKV` trait. (the static `KV` below).
@@ -43,7 +45,7 @@ lazy_static! {
         set_fn: set,
         discard_fn: discard,
         checkpoint_fn: checkpoint,
-        head: None,
+        head_fn: head
     };
 }
 
@@ -91,4 +93,10 @@ pub unsafe extern "C" fn checkpoint(state_ptr: *mut u8) {
     let state = kv!().checkpoint();
 
     std::ptr::copy(state.as_ptr(), state_ptr, State::len());
+}
+
+pub unsafe extern "C" fn head(head_ptr: *mut u8) {
+    let state = kv!().head();
+
+    std::ptr::copy(state.as_ptr(), head_ptr, State::len());
 }

@@ -41,6 +41,13 @@ pub type DiscardFn = unsafe extern "C" fn();
 /// have been persisted. It's up to the `Host` to determine when to save data for long-term usage.
 pub type CheckpointFn = unsafe extern "C" fn(*mut u8);
 
+/// # Head
+///
+/// Returns the current `State` of the key-value.
+///
+/// state_ptr - a raw pointer to the where the `head` should be copied to.
+pub type HeadFn = unsafe extern "C" fn(*mut u8);
+
 /// `ExternKV` holds pointers to FFI functions for an external key-value store.
 /// It implements the `StatefulKV` traits by delegation to the FFI functions.
 pub struct ExternKV {
@@ -56,9 +63,8 @@ pub struct ExternKV {
     /// A function-pointer for a key-value store `Checkpoint`
     pub checkpoint_fn: CheckpointFn,
 
-    /// The current `State` (optional).
-    /// used for testing/development/tracing purposes.
-    pub head: Option<State>,
+    /// A function-pointer for a key-value store `Head`
+    pub head_fn: HeadFn,
 }
 
 impl StatefulKV for ExternKV {
@@ -116,14 +122,16 @@ impl StatefulKV for ExternKV {
     }
 
     fn rewind(&mut self, _state: &State) {
-        // This method isn't supposed to be called (only for tesing purposes)
-        // since it's the role of the `Host` to manage to current  `State` of an key-value.
+        // This method isn't supposed to be called when using the `FFI` key-value store.
+        // since it's the role of the `Host` to manage to do the rewind.
     }
 
     #[must_use]
     fn head(&self) -> State {
-        // This method is supposed to be called only for testing/development/tracing purposes.
+        unsafe {
+            (self.head_fn)(BUF.as_mut_ptr());
 
-        self.head.clone().unwrap()
+            State::from(BUF.as_ptr())
+        }
     }
 }
