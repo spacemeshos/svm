@@ -6,7 +6,7 @@ use syn::{
     ItemType, ItemUse, Result, 
 };
 
-use crate::{schema, Struct, Function, Schema};
+use crate::{api, schema, Struct, Function, Schema};
 use super::{r#struct, function};
 
 use r#struct::has_storage_attr;
@@ -20,8 +20,8 @@ pub struct App {
 }
 
 impl App {
-    pub fn name(&self) -> &Ident {
-        &self.name
+    pub fn name(&self) -> String {
+        self.name.to_string()
     }
 
     pub fn functions(&self) -> &[Function] {
@@ -54,7 +54,13 @@ pub fn expand(_args: TokenStream, input: TokenStream) -> Result<(Schema, TokenSt
     let alloc_func = alloc_func_ast();
 
     #[cfg(feature = "api")]
-    let json = crate::api::json_api_tokens(&schema);
+    let json = api::json_api(&schema);
+
+    #[cfg(feature = "api")]
+    let stream = api::json_tokenstream(&json);
+
+    #[cfg(all(feature = "api", target_os = "wasm32"))]   
+    api::json_write(&format!("{}-schema.json", app.name()), &json); 
 
     let ast = quote! {
         // #(#imports)*
@@ -67,9 +73,9 @@ pub fn expand(_args: TokenStream, input: TokenStream) -> Result<(Schema, TokenSt
 
         #functions
 
-        #[cfg(feature = "api")]
+        #[cfg(all(feature = "api", not(target_os = "wasm32")))]
         pub fn raw_schema() -> String {
-            #json.to_string()
+            #stream.to_string()
         }
     };
 

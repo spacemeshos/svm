@@ -1,3 +1,5 @@
+use std::io::Write;
+
 use crate::{Export, PrimType, Schema, Signature, Type, Var};
 
 use proc_macro2::TokenStream;
@@ -11,8 +13,14 @@ pub fn json_api(schema: &Schema) -> Value {
     json!({"exports": exports, "storage": storage})
 }
 
-pub fn json_api_tokens(schema: &Schema) -> TokenStream {
-    let json = json_api(schema).to_string();
+pub fn json_write(file_name: &str, json: &Value) {
+    let bytes = serde_json::to_vec(json).unwrap();
+
+    std::fs::write(file_name, bytes);
+}
+
+pub fn json_tokenstream(json: &Value) -> TokenStream {
+    let json = json.to_string();
 
     quote! { #json }
 }
