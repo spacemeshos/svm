@@ -1,4 +1,4 @@
-use std::io::Write;
+use std::{io::Write, todo};
 
 use crate::{Export, PrimType, Schema, Signature, Type, Var};
 
@@ -7,10 +7,30 @@ use quote::{quote, ToTokens};
 use serde_json::{json, Value};
 
 pub fn json_api(schema: &Schema) -> Value {
-    let exports = emit_exports(schema);
-    let storage = emit_storage(schema);
+    let exports = exports_api(schema);
+    let storage = storage_api(schema);
 
     json!({"exports": exports, "storage": storage})
+}
+
+pub fn json_data_layout(schema: &Schema) -> Value {
+    let data: Vec<usize> = schema
+        .storage()
+        .iter()
+        .fold(Vec::new(), |mut acc, v| match v {
+            Var::Primitive { byte_count, .. } => {
+                acc.push(*byte_count);
+                acc
+            }
+            Var::Array {
+                byte_count, length, ..
+            } => {
+                acc.extend(vec![*byte_count; *length as usize]);
+                acc
+            }
+        });
+
+    json!({ "data": data })
 }
 
 pub fn json_write(file_name: &str, json: &Value) {
@@ -25,7 +45,7 @@ pub fn json_tokenstream(json: &Value) -> TokenStream {
     quote! { #json }
 }
 
-fn emit_exports(schema: &Schema) -> Value {
+fn exports_api(schema: &Schema) -> Value {
     let exports = schema
         .exports()
         .map(|e| {
@@ -98,7 +118,7 @@ fn emit_output_type(ty: &Type) -> Value {
     }
 }
 
-fn emit_storage(schema: &Schema) -> Value {
+fn storage_api(schema: &Schema) -> Value {
     let vars = schema
         .storage()
         .iter()

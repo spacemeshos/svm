@@ -1,5 +1,6 @@
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
+use serde_json::Value;
 
 use syn::{
      Error, Item, ItemMod, ItemStruct,
@@ -54,13 +55,15 @@ pub fn expand(_args: TokenStream, input: TokenStream) -> Result<(Schema, TokenSt
     let alloc_func = alloc_func_ast();
 
     #[cfg(feature = "api")]
-    let json = api::json_api(&schema);
+    let api = api::json_api(&schema);
 
     #[cfg(feature = "api")]
-    let stream = api::json_tokenstream(&json);
+    let stream = api::json_tokenstream(&api);
 
-    #[cfg(all(feature = "api", target_os = "wasm32"))]   
-    api::json_write(&format!("{}-schema.json", app.name()), &json); 
+    #[cfg(feature = "api")]
+    let data = api::json_data_layout(&schema); 
+
+    write_schema(&app, &api, &data);
 
     let ast = quote! {
         // #(#imports)*
@@ -73,12 +76,12 @@ pub fn expand(_args: TokenStream, input: TokenStream) -> Result<(Schema, TokenSt
 
         #functions
 
-        #[cfg(all(feature = "api", not(target_os = "wasm32")))]
+        #[cfg(all(feature = "api", not(target_arch = "wasm32")))]
         pub fn raw_schema() -> String {
             #stream.to_string()
         }
     };
-
+    
     Ok((schema,  ast))
 }
 
@@ -174,6 +177,17 @@ pub fn parse_app(mut raw_app: ItemMod) -> Result<App> {
     };
 
     Ok(app)
+}
+
+#[cfg(all(feature = "api", target_arch = "wasm32"))]   
+fn write_schema(app: &App, api: &Value, data: &Value) {
+    api::json_write(&format!("{}-api.json", app.name()), api); 
+    api::json_write(&format!("{}-data.json", app.name()), data); 
+}
+
+#[cfg(any(not(feature = "api"), not(target_arch = "wasm32")))]   
+fn write_schema(app: &App, api: &Value, data: &Value) {
+    //
 }
 
 fn expand_structs(app: &App) -> Result<TokenStream> {
