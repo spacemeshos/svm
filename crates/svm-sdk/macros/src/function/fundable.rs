@@ -1,22 +1,23 @@
 use proc_macro2::{Ident, Span, TokenStream};
-
 use quote::quote;
 use syn::Result;
 
-use super::attr;
-use attr::{find_attr, has_fundable_attr, FuncAttr, FuncAttrKind};
+use super::attr::{find_attr, has_fundable_attr, FuncAttr, FuncAttrKind};
+
+use crate::function;
 
 pub fn expand(attrs: &[FuncAttr]) -> Result<TokenStream> {
     debug_assert!(has_fundable_attr(attrs));
 
-    let attr = find_attr(attrs, FuncAttrKind::Fundable);
+    let attr = find_attr(attrs, FuncAttrKind::Fundable).unwrap();
 
     let fund_hook = match attr {
-        FuncAttr::Fundable(s) => Ident::new(s, Span::call_site()),
+        FuncAttr::Fundable(None) => Ident::new("svm_fund", Span::call_site()),
+        FuncAttr::Fundable(Some(hook)) => Ident::new(hook, Span::call_site()),
         _ => unreachable!(),
     };
 
-    let includes = crate::function::host_includes();
+    let includes = function::host_includes();
 
     let ast = quote! {
         {

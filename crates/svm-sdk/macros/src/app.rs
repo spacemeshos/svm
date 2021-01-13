@@ -45,7 +45,7 @@ impl App {
 pub fn expand(_args: TokenStream, input: TokenStream) -> Result<(Schema, TokenStream)> {
     let module = syn::parse2(input)?;
     let app = parse_app(module)?;
-    let schema = schema::app_schema(&app);
+    let schema = schema::app_schema(&app)?;
 
     let imports = app.imports();
     let aliases = app.aliases();
@@ -233,6 +233,8 @@ fn validate_structs(app: &App) -> Result<()> {
 }
 
 fn expand_functions(app: &App) -> Result<TokenStream> {
+    validate_funcs(app)?;
+
     let mut funcs = Vec::new();
 
     for func in app.functions() {
@@ -246,6 +248,10 @@ fn expand_functions(app: &App) -> Result<TokenStream> {
     };
 
     Ok(ast)
+}
+
+fn validate_funcs(app: &App)->Result<()> {
+    Ok(())
 }
 
 fn alloc_func_ast() -> TokenStream {
@@ -407,6 +413,25 @@ mod test {
             #[app]
             mod my_app {
                 union U {}
+            }
+        );
+    }
+
+    #[test]
+    fn app_with_two_default_fundable_hook_not_allowed() {
+        let err = "...";
+
+        assert_err!(
+            err,
+            #[app]
+            mod my_app {
+                #[fundable_hook(true)]
+                fn allow(v: svm::Amount) {}
+
+                #[fundable_hook(true)]
+                fn deny(v: svm::Amount) {
+                    panic!()
+                }
             }
         );
     }

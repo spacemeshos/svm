@@ -5,10 +5,10 @@ use proc_macro2::{Span, TokenStream};
 use quote::{quote, ToTokens};
 use syn::{Error, FnArg, Pat, PatType, Result, ReturnType, Type};
 
-use super::attr;
+use super::{attr, fundable};
 use attr::{has_endpoint_or_ctor_attr, has_fundable_attr, FuncAttr};
 
-use crate::Function;
+use crate::{function, Function};
 
 pub fn expand(func: &Function, attrs: &[FuncAttr]) -> Result<TokenStream> {
     debug_assert!(has_endpoint_or_ctor_attr(attrs));
@@ -22,7 +22,7 @@ pub fn expand(func: &Function, attrs: &[FuncAttr]) -> Result<TokenStream> {
     let body = func.raw_body();
 
     let call_fundable_hook = if has_fundable_attr(attrs) {
-        super::fundable::expand(&attrs)?
+        fundable::expand(&attrs)?
     } else {
         quote! {}
     };
@@ -58,7 +58,7 @@ pub fn expand(func: &Function, attrs: &[FuncAttr]) -> Result<TokenStream> {
 }
 
 fn expand_prologue(func: &Function) -> Result<TokenStream> {
-    let includes = crate::function::host_includes();
+    let includes = function::host_includes();
 
     let calldata = quote! {
         let bytes = Node.get_calldata();
@@ -94,7 +94,7 @@ fn expand_prologue(func: &Function) -> Result<TokenStream> {
 }
 
 fn expand_epilogue() -> Result<TokenStream> {
-    let includes = crate::function::host_includes();
+    let includes = function::host_includes();
 
     let ast = quote! {
         {
