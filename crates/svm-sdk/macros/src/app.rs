@@ -10,6 +10,7 @@ use syn::{
 use crate::{api, schema, Struct, Function, Schema};
 use super::{r#struct, function};
 
+use r#function::{has_default_fundable_hook_attr, func_attrs};
 use r#struct::has_storage_attr;
 
 pub struct App {
@@ -89,7 +90,6 @@ pub fn parse_app(mut raw_app: ItemMod) -> Result<App> {
     let name = raw_app.ident.clone();
 
     let mut functions = Vec::new();
-
     let mut structs = Vec::new();
     let mut imports = Vec::new();
     let mut aliases = Vec::new();
@@ -176,8 +176,33 @@ pub fn parse_app(mut raw_app: ItemMod) -> Result<App> {
         aliases,
     };
 
+    validate_app(&app)?;
+
     Ok(app)
 }
+
+fn validate_app(app: &App) -> Result<()> {
+    let span = Span::call_site();
+    let mut seen_default_fundable_hook = false;
+
+    for func in app.functions().iter() {
+        let attrs = func_attrs(func).unwrap();
+
+        if has_default_fundable_hook_attr(&attrs) {
+            if seen_default_fundable_hook {
+                return Err(Error::new(
+                    span,
+                    "There can be only a single default `fundable hook`",
+                ));
+            }
+
+            seen_default_fundable_hook = true;
+        }
+    }
+
+    Ok(())
+}
+
 
 #[cfg(all(feature = "api", target_arch = "wasm32"))]   
 fn write_schema(app: &App, api: &Value, data: &Value) {
@@ -421,7 +446,7 @@ mod test {
 
     #[test]
     fn app_with_two_default_fundable_hook_not_allowed() {
-        let err = "There can be exactly a single `default fundable hook`";
+        let err = "There can be only a single default `fundable hook`";
 
         assert_err!(
             err,

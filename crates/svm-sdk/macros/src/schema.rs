@@ -106,8 +106,6 @@ impl Schema {
 }
 
 pub fn app_schema(app: &App) -> Result<Schema> {
-    validate_app(app)?;
-
     let name = app.name().to_string();
     let storage = storage_schema(app);
 
@@ -133,32 +131,6 @@ pub fn app_schema(app: &App) -> Result<Schema> {
     };
 
     Ok(schema)
-}
-
-fn validate_app(app: &App) -> Result<()> {
-    let span = Span::call_site();
-    let mut seen_default_fundable_hook = false;
-
-    for func in app.functions().iter() {
-        let attrs = func_attrs(func)?;
-
-        if has_default_fundable_hook_attr(&attrs) {
-            if seen_default_fundable_hook {
-                return Err(Error::new(
-                    span,
-                    "There can be only a single default `fundable hook`",
-                ));
-            }
-
-            seen_default_fundable_hook = true;
-        }
-    }
-
-    if seen_default_fundable_hook == false {
-        return Err(Error::new(span, "A default `fundable hook` is missing"));
-    }
-
-    Ok(())
 }
 
 fn storage_schema(app: &App) -> Vec<Var> {
