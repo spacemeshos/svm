@@ -7,15 +7,17 @@ mod attr;
 mod ctor;
 mod endpoint;
 mod fundable;
-mod fundable_hook;
+pub mod fundable_hook;
 
 pub use attr::{
     find_attr, func_attrs, has_ctor_attr, has_default_fundable_hook_attr, has_endpoint_attr,
     has_fundable_attr, has_fundable_hook_attr,
 };
+
 pub use attr::{FuncAttr, FuncAttrKind};
 
 use crate::schema::Schema;
+use crate::App;
 
 pub struct Function {
     raw_func: ItemFn,
@@ -57,15 +59,15 @@ impl Function {
     }
 }
 
-pub fn expand(func: &Function) -> Result<TokenStream> {
+pub fn expand(func: &Function, app: &App) -> Result<TokenStream> {
     let attrs = func_attrs(func)?;
 
     validate_attrs(&attrs)?;
 
     let ast = if has_ctor_attr(&attrs) {
-        ctor::expand(func, &attrs)?
+        ctor::expand(func, &attrs, app)?
     } else if has_endpoint_attr(&attrs) {
-        endpoint::expand(func, &attrs)?
+        endpoint::expand(func, &attrs, app)?
     } else if has_fundable_hook_attr(&attrs) {
         fundable_hook::expand(func, &attrs)?
     } else {

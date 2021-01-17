@@ -26,6 +26,15 @@ pub fn expand(func: &Function, attrs: &[FuncAttr]) -> Result<TokenStream> {
     Ok(ast)
 }
 
+pub fn expand_default() -> Result<TokenStream> {
+    let ast = quote! {
+        #[no_mangle]
+        pub extern "C" fn svm_fund() { }
+    };
+
+    Ok(ast)
+}
+
 fn validate_fundable_hook_func_sig(func: &Function) -> Result<()> {
     let sig = func.raw_sig();
     let span = Span::call_site();

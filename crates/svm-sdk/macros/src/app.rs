@@ -19,6 +19,7 @@ pub struct App {
     structs: Vec<Struct>,
     imports: Vec<ItemUse>,
     aliases: Vec<ItemType>,
+    default_fundable_hook: Option<Ident>
 }
 
 impl App {
@@ -40,6 +41,14 @@ impl App {
 
     pub fn aliases(&self) -> &[ItemType] {
         &self.aliases
+    }
+
+    pub fn default_fundable_hook(&self) -> Option<Ident> {
+        self.default_fundable_hook.clone()
+    }
+
+    pub fn set_default_fundable_hook(&mut self, hook: Ident) {
+        self.default_fundable_hook = Some(hook)
     }
 }
 
@@ -168,22 +177,28 @@ pub fn parse_app(mut raw_app: ItemMod) -> Result<App> {
         }
     }
 
-    let app = App {
+    let mut app = App {
         name,
         functions,
         structs,
         imports,
         aliases,
+        default_fundable_hook: None,
     };
 
-    validate_app(&app)?;
+    let default = extract_default_fundable_hook(&app)?;
+
+    if default.is_some() {
+        app.set_default_fundable_hook(default.unwrap());
+    }
 
     Ok(app)
 }
 
-fn validate_app(app: &App) -> Result<()> {
+fn extract_default_fundable_hook(app: &App) -> Result<Option<Ident>> {
     let span = Span::call_site();
     let mut seen_default_fundable_hook = false;
+    let mut default = None; 
 
     for func in app.functions().iter() {
         let attrs = func_attrs(func).unwrap();
@@ -197,10 +212,12 @@ fn validate_app(app: &App) -> Result<()> {
             }
 
             seen_default_fundable_hook = true;
+
+            default = Some(func.raw_name());
         }
     }
 
-    Ok(())
+    Ok(default)
 }
 
 
@@ -263,13 +280,22 @@ fn expand_functions(app: &App) -> Result<TokenStream> {
     let mut funcs = Vec::new();
 
     for func in app.functions() {
-        let func = function::expand(func)?;
+        let func = function::expand(func, app)?;
         
         funcs.push(func);
     } 
 
+    let implicit_fundable_hook = if app.default_fundable_hook().is_some() {
+        quote! {}
+    }
+    else {
+        function::fundable_hook::expand_default()?
+    };
+
     let ast = quote! {
         #(#funcs)*
+
+        #implicit_fundable_hook
     };
 
     Ok(ast)

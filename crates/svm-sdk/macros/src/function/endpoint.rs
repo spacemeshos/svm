@@ -8,9 +8,9 @@ use syn::{Error, FnArg, Pat, PatType, Result, ReturnType, Type};
 use super::{attr, fundable};
 use attr::{has_endpoint_or_ctor_attr, has_fundable_attr, FuncAttr};
 
-use crate::{function, Function};
+use crate::{function, App, Function};
 
-pub fn expand(func: &Function, attrs: &[FuncAttr]) -> Result<TokenStream> {
+pub fn expand(func: &Function, attrs: &[FuncAttr], app: &App) -> Result<TokenStream> {
     debug_assert!(has_endpoint_or_ctor_attr(attrs));
 
     validate_sig(func)?;
@@ -22,7 +22,7 @@ pub fn expand(func: &Function, attrs: &[FuncAttr]) -> Result<TokenStream> {
     let body = func.raw_body();
 
     let call_fundable_hook = if has_fundable_attr(attrs) {
-        fundable::expand(&attrs)?
+        fundable::expand(&attrs, app)?
     } else {
         quote! {}
     };
