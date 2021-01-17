@@ -128,25 +128,17 @@ pub fn parse_attr(attr: Attribute) -> Result<FuncAttr> {
             if attr.tokens.is_empty() {
                 FuncAttr::FundableHook { default: false }
             } else {
-                // let path = quote! { attr.parse_meta::<Path>().unwrap() };
-
+                let ident = attr.parse_args::<Ident>()?;
                 FuncAttr::FundableHook { default: true }
             }
         }
         FuncAttrKind::Fundable => {
-            let tokens = attr.tokens;
-            let mut iter = tokens.into_iter();
-
-            if let Some(TokenTree::Group(group)) = iter.next() {
-                assert_eq!(group.delimiter(), Delimiter::Parenthesis);
-
-                let stream = group.stream();
-                let ident = syn::parse2::<Ident>(stream)?;
-
-                FuncAttr::Fundable(Some(ident.to_string()))
-            } else {
+            if attr.tokens.is_empty() {
                 // using the `default fundable hook`
                 FuncAttr::Fundable(None)
+            } else {
+                let ident = attr.parse_args::<Ident>()?;
+                FuncAttr::Fundable(Some(ident.to_string()))
             }
         }
         FuncAttrKind::Other => FuncAttr::Other(quote! { #attr }),

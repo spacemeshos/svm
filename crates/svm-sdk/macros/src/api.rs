@@ -1,4 +1,4 @@
-use std::{io::Write, todo};
+use std::io::Write;
 
 use crate::{Export, PrimType, Schema, Signature, Type, Var};
 

@@ -10,8 +10,8 @@ mod fundable;
 mod fundable_hook;
 
 pub use attr::{
-    find_attr, func_attrs, has_ctor_attr, has_endpoint_attr, has_fundable_attr,
-    has_fundable_hook_attr,
+    find_attr, func_attrs, has_ctor_attr, has_default_fundable_hook_attr, has_endpoint_attr,
+    has_fundable_attr, has_fundable_hook_attr,
 };
 pub use attr::{FuncAttr, FuncAttrKind};
 
@@ -397,35 +397,24 @@ mod test {
     }
 
     #[test]
-    fn fundable_hook_func_with_no_args_falis() {
-        let err = "`#[fundable_hook]` annotated function should have signature of `fn(value: svm_sdk::Amount) -> ()`";
+    fn fundable_hook_func_with_args_fails() {
+        let err = "`#[fundable_hook]` annotated function should have signature of `fn() -> ()`";
 
         assert_err!(
             err,
             #[fundable_hook]
-            fn deny() {}
-        );
-    }
-
-    #[test]
-    fn fundable_hook_func_has_more_than_one_args_fails() {
-        let err = "`#[fundable_hook]` annotated function should have signature of `fn(value: svm_sdk::Amount) -> ()`";
-
-        assert_err!(
-            err,
-            #[fundable_hook]
-            fn deny(a: svm_sdk::Amount, b: svm_sdk::Amount) {}
+            fn deny(v: svm_sdk::Amount) {}
         );
     }
 
     #[test]
     fn fundable_hook_func_with_return_type_fails() {
-        let err = "`#[fundable_hook]` annotated function should have signature of `fn(value: svm_sdk::Amount) -> ()`";
+        let err = "`#[fundable_hook]` annotated function should have signature of `fn() -> ()`";
 
         assert_err!(
             err,
             #[fundable_hook]
-            fn deny(v: svm_sdk::Amount) -> u32 {
+            fn deny() -> u32 {
                 0
             }
         );
@@ -459,12 +448,7 @@ mod test {
     fn fundable_hook_func_valid_sig() {
         assert_ok!(
             #[fundable_hook]
-            fn allow(v: svm_sdk::Amount) {}
-        );
-
-        assert_ok!(
-            #[fundable_hook]
-            fn allow(v: Amount) {}
+            fn allow() {}
         );
     }
 }

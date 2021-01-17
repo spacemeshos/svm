@@ -280,6 +280,8 @@ mod test {
 
             let res = parse_app(raw_app);
 
+            assert!(res.is_err());
+
             // we can't use `unwrap_err()` since `App`
             // doesn't implement `std::fmt::Debug`
             let actual = res.err().unwrap();
@@ -419,19 +421,19 @@ mod test {
 
     #[test]
     fn app_with_two_default_fundable_hook_not_allowed() {
-        let err = "...";
+        let err = "There can be exactly a single `default fundable hook`";
 
         assert_err!(
             err,
             #[app]
             mod my_app {
-                #[fundable_hook(true)]
-                fn allow(v: svm::Amount) {}
+                #[fundable_hook(default)]
+                fn allow() {}
 
-                #[fundable_hook(true)]
-                fn deny(v: svm::Amount) {
+                #[fundable_hook(default)]
+                fn deny() {
                     panic!()
-                }
+                } 
             }
         );
     }
