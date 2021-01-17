@@ -10,6 +10,13 @@ fn pass(t: &TestCases, test: &'static str) {
     t.pass(test);
 }
 
+fn compile_fail(t: &TestCases, test: &'static str) {
+    MockHost::reset();
+    MockStorage::clear();
+
+    t.compile_fail(test);
+}
+
 #[test]
 fn ctor_tests() {
     let t = TestCases::new();
@@ -32,4 +39,6 @@ fn ctor_tests() {
     // * When trying to execute a function of an existing `app` defined as a `ctor`
     // in the `deploy-template` - the validation phase should fail the transaction.
     pass(&t, "tests/ctor/bool_params.rs");
+
+    compile_fail(&t, "tests/ctor/ctor_and_fundable_attrs_wrong_order.rs");
 }

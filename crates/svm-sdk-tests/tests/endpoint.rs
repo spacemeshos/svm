@@ -27,5 +27,12 @@ fn endpoint_tests() {
     pass(&t, "tests/endpoint/integers_params.rs");
 
     pass(&t, "tests/endpoint/funding.rs");
+
+    compile_fail(&t, "tests/endpoint/endpoint_and_ctor_fails.rs");
     compile_fail(&t, "tests/endpoint/endpoint_with_fundable_hook.rs");
+
+    compile_fail(
+        &t,
+        "tests/endpoint/endpoint_and_fundable_attrs_wrong_order.rs",
+    );
 }

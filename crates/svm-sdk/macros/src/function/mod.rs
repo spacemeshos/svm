@@ -248,41 +248,7 @@ fn validate_attrs_order(attrs: &[FuncAttr]) -> Result<()> {
 mod test {
     use super::*;
 
-    /*     #[test]
-    fn ctor_and_fundable_attrs_wrong_order() {
-        let err = "`#[fundable(..)]` should be placed above `#[ctor]`";
-
-        assert_err!(
-            err,
-            #[ctor]
-            #[fundable(deny)]
-            fn get() {}
-        );
-    }
-
-    #[test]
-    fn endpoint_and_fundable_attrs_wrong_order() {
-        let err = "`#[fundable(..)]` should be placed above `#[endpoint]`";
-
-        assert_err!(
-            err,
-            #[endpoint]
-            #[fundable(deny)]
-            fn get() {}
-        );
-    }
-
-    #[test]
-    fn endpoint_and_ctor_fails() {
-        let err = "#[ctor]` and `#[endpoint]` can't co-exist.";
-
-        assert_err!(
-            err,
-            #[ctor]
-            #[endpoint]
-            fn get() {}
-        );
-    }
+    /*
 
     #[test]
     fn endpoint_and_fundable_hook_fails() {
