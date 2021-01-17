@@ -6,7 +6,7 @@ use syn::{Error, FnArg, PatType, Result, ReturnType};
 use super::attr;
 use attr::{has_fundable_hook_attr, FuncAttr};
 
-use crate::Function;
+use crate::{function, Function};
 
 pub fn expand(func: &Function, attrs: &[FuncAttr]) -> Result<TokenStream> {
     debug_assert!(has_fundable_hook_attr(attrs));
@@ -16,9 +16,13 @@ pub fn expand(func: &Function, attrs: &[FuncAttr]) -> Result<TokenStream> {
     let sig = func.raw_sig();
     let body = func.raw_body();
 
+    let includes = function::host_includes();
+
     let ast = quote! {
         #[inline]
         #sig {
+            #includes
+
             #body
         }
     };

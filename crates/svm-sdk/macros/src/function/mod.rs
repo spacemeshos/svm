@@ -248,48 +248,7 @@ fn validate_attrs_order(attrs: &[FuncAttr]) -> Result<()> {
 mod test {
     use super::*;
 
-    use syn::parse_quote;
-
-    macro_rules! assert_err {
-        ($expected:expr, $($tt:tt)*) => {{
-            let raw_func: ItemFn = parse_quote!( $($tt)* );
-            let mut func = Function::new(raw_func, 0);
-
-            let actual = expand(&mut func).unwrap_err();
-            assert_eq!($expected, actual.to_string());
-        }};
-    }
-
-    macro_rules! assert_ok {
-        ($($tt:tt)*) => {{
-            let raw_func: ItemFn = parse_quote!( $($tt)* );
-
-            let mut func = Function::new(raw_func, 0);
-
-            let res = expand(&mut func);
-
-            if res.is_err() {
-                let err = res.unwrap_err();
-                panic!(err);
-            }
-            else {
-                assert!(res.is_ok());
-            }
-        }};
-    }
-
-    #[test]
-    fn fundable_can_not_live_alone() {
-        let err = "#[fundable(..)] can't be used without `#[endpoint]` or `#[ctor]`";
-
-        assert_err!(
-            err,
-            #[fundable(deny)]
-            fn deny() {}
-        )
-    }
-
-    #[test]
+    /*     #[test]
     fn ctor_and_fundable_attrs_wrong_order() {
         let err = "`#[fundable(..)]` should be placed above `#[ctor]`";
 
@@ -452,5 +411,5 @@ mod test {
             #[fundable_hook]
             fn allow() {}
         );
-    }
+    } */
 }

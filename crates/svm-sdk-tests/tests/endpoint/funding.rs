@@ -17,7 +17,9 @@ mod App {
     fn do_nothing() {}
 
     #[fundable_hook]
-    fn update_coins(value: Amount) {
+    fn update_coins() {
+        let value = Node::value();
+
         let old_coins = Storage::get_coins();
         let new_coins = old_coins + value;
 

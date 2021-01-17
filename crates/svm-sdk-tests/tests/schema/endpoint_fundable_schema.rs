@@ -1,14 +1,14 @@
 use serde_json::{json, Value};
-use svm_sdk::{app, Amount};
+use svm_sdk::app;
 
 #[app]
 mod App {
-    #[fundable(default_funding)]
+    #[fundable]
     #[endpoint]
     fn call() {}
 
-    #[fundable_hook]
-    fn default_funding(_value: Amount) {
+    #[fundable_hook(default)]
+    fn fund() {
         //
     }
 }

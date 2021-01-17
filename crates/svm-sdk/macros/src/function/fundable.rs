@@ -15,6 +15,7 @@ pub fn expand(attrs: &[FuncAttr], app: &App) -> Result<TokenStream> {
         FuncAttr::Fundable(None) => app
             .default_fundable_hook()
             .unwrap_or(Ident::new("svm_fund", Span::call_site())),
+
         FuncAttr::Fundable(Some(hook)) => Ident::new(hook, Span::call_site()),
         _ => unreachable!(),
     };

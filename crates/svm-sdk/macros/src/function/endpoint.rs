@@ -58,8 +58,6 @@ pub fn expand(func: &Function, attrs: &[FuncAttr], app: &App) -> Result<TokenStr
 }
 
 fn expand_prologue(func: &Function) -> Result<TokenStream> {
-    let includes = function::host_includes();
-
     let calldata = quote! {
         let bytes = Node.get_calldata();
 
@@ -80,6 +78,8 @@ fn expand_prologue(func: &Function) -> Result<TokenStream> {
             unreachable!()
         }
     }
+
+    let includes = function::host_includes();
 
     let ast = quote! {
         #includes
