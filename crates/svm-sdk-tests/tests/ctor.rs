@@ -41,4 +41,5 @@ fn ctor_tests() {
     pass(&t, "tests/ctor/bool_params.rs");
 
     compile_fail(&t, "tests/ctor/ctor_and_fundable_attrs_wrong_order.rs");
+    compile_fail(&t, "tests/ctor/ctor_used_twice_fails.rs");
 }

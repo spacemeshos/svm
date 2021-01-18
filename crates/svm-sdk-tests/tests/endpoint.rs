@@ -30,9 +30,22 @@ fn endpoint_tests() {
 
     compile_fail(&t, "tests/endpoint/endpoint_and_ctor_fails.rs");
     compile_fail(&t, "tests/endpoint/endpoint_with_fundable_hook.rs");
+    compile_fail(
+        &t,
+        "tests/endpoint/fundable_hook_and_fundable_not_allowed.rs",
+    );
 
     compile_fail(
         &t,
         "tests/endpoint/endpoint_and_fundable_attrs_wrong_order.rs",
+    );
+
+    compile_fail(&t, "tests/endpoint/endpoint_used_twice_fails.rs");
+    compile_fail(&t, "tests/endpoint/fundable_hook_used_twice_fails.rs");
+    compile_fail(&t, "tests/endpoint/fundable_used_twice_fails.rs");
+    compile_fail(&t, "tests/endpoint/fundable_hook_func_with_args_fails.rs");
+    compile_fail(
+        &t,
+        "tests/endpoint/fundable_hook_func_with_return_type_fails.rs",
     );
 }
