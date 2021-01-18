@@ -2,7 +2,7 @@ use svm_sdk::app;
 
 #[app]
 mod App {
-    #[ctor]
+    #[endpoint]
     #[fundable(deny)]
     fn init() {}
 }
