@@ -11,25 +11,41 @@ mod tests {
     use crate::api::raw::{decode_version, encode_version};
     use crate::error::ParseError;
 
-    fn assert_encode_decode(version: u32) {
+    fn encode(version: u32) -> Vec<u8> {
         let mut w = NibbleWriter::new();
 
         encode_version(version, &mut w);
 
-        let data = w.into_bytes();
-        let mut iter = NibbleIter::new(&data[..]);
+        w.into_bytes()
+    }
 
-        let decoded = decode_version(&mut iter).unwrap();
-        assert_eq!(version, decoded);
+    fn decode(bytes: Vec<u8>) -> u32 {
+        let mut iter = NibbleIter::new(&bytes);
+
+        let version = decode_version(&mut iter).unwrap();
 
         assert!(iter.ensure_eof(ParseError::ExpectedEOF).is_ok());
+
+        version
     }
 
     #[test]
     fn encode_decode_version() {
-        assert_encode_decode(0);
-        assert_encode_decode(std::u8::MAX.into());
-        assert_encode_decode(std::u16::MAX.into());
-        assert_encode_decode(1 << 20);
+        /*         let bytes = encode(0);
+        let decoded = decode(bytes);
+        assert_eq!(decoded, 0);
+
+        let bytes = encode(0b_10100000_00000011_00000000_00000000);
+        let decoded = decode(bytes);
+        assert_eq!(decoded, 0b_10100000_00000011);
+
+        let bytes = encode(0b_10100000_11000111_01000100_00000000);
+        let decoded = decode(bytes);
+        assert_eq!(decoded, 0b_10100000_11000111_01000100); */
+
+        let bytes = encode(0b_10100000_11000111_10000100_0000001);
+        dbg!(bytes);
+        /*         let decoded = decode(bytes);
+        assert_eq!(decoded, 0b_10100000_11000111_10000100_0000001); */
     }
 }

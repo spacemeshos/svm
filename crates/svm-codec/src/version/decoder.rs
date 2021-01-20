@@ -3,52 +3,32 @@ use svm_nibble::NibbleIter;
 use crate::api::raw::Field;
 use crate::error::ParseError;
 
-use bit_vec::BitVec;
-
-/// Decodes the version into `u32` bytes.
+/// Decodes the `version` into an `u32`
 pub fn decode_version(iter: &mut NibbleIter) -> Result<u32, ParseError> {
-    let mut bits = BitVec::new();
+    let mut version = 0;
 
-    for nibble in iter {
-        let [_msb_0, msb_1, msb_2, msb_3] = nibble.bits();
+    let mut byte = iter.read_byte();
 
-        bits.push(msb_1);
-        bits.push(msb_2);
-        bits.push(msb_3);
+    while has_more(byte) {
+        version = append(version, byte);
 
-        if nibble.is_msb_off() {
-            break;
-        }
+        byte = iter.read_byte();
     }
 
-    if bits.is_empty() {
-        return Err(ParseError::EmptyField(Field::Version));
-    }
+    version = append(version, byte);
 
-    if bits.len() > 32 {
-        return Err(ParseError::TooManyBytes(Field::Version));
-    }
+    Ok(version)
+}
 
-    let padding = 32 - bits.len();
+fn has_more(byte: u8) -> bool {
+    byte & 0b_1000_0000 != 0
+}
 
-    if padding > 0 {
-        let mut new_bits = BitVec::from_elem(padding, false);
+fn append(mut n: u32, byte: u8) -> u32 {
+    n <<= 8;
+    n += (byte as u32);
 
-        new_bits.append(&mut bits);
-        bits = new_bits;
-    };
-
-    let bytes = bits.to_bytes();
-    assert_eq!(4, bytes.len());
-
-    let mut be_bytes: [u8; 4] = [0; 4];
-
-    for (i, byte) in bytes.iter().enumerate() {
-        be_bytes[i] = *byte;
-    }
-
-    let ver = u32::from_be_bytes(be_bytes);
-    Ok(ver)
+    n
 }
 
 #[cfg(test)]
@@ -56,7 +36,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn decode_version_no_nibbles() {
+    fn decode_version_empty_input() {
         let vec = vec![];
         let mut iter = NibbleIter::new(&vec[..]);
 
@@ -66,7 +46,7 @@ mod tests {
     }
 
     #[test]
-    fn decode_version_one_nibble() {
+    fn decode_version_one_byte() {
         let vec = vec![0b0101_1111];
         let mut iter = NibbleIter::new(&vec[..]);
 
@@ -75,7 +55,7 @@ mod tests {
     }
 
     #[test]
-    fn decode_version_two_nibbles() {
+    fn decode_version_two_bytes() {
         let vec = vec![0b1101_0011];
         let mut iter = NibbleIter::new(&vec[..]);
 
@@ -84,7 +64,16 @@ mod tests {
     }
 
     #[test]
-    fn decode_version_three_nibbles() {
+    fn decode_version_three_bytes() {
+        let vec = vec![0b1101_1011, 0b0010_0000];
+        let mut iter = NibbleIter::new(&vec[..]);
+
+        let ver = decode_version(&mut iter).unwrap();
+        assert_eq!(0b101_011_010, ver);
+    }
+
+    #[test]
+    fn decode_version_four_bytes() {
         let vec = vec![0b1101_1011, 0b0010_0000];
         let mut iter = NibbleIter::new(&vec[..]);
 
