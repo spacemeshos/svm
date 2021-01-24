@@ -1,9 +1,13 @@
 use std::collections::{hash_map::Values, HashMap};
 
+use proc_macro2::Span;
 use quote::quote;
-use syn::{FnArg, PatType, ReturnType, TypeTuple};
+use syn::{Error, FnArg, PatType, Result, ReturnType, TypeTuple};
 
-use crate::function::{find_attr, func_attrs, has_ctor_attr, has_endpoint_attr, has_fundable_attr};
+use crate::function::{
+    find_attr, func_attrs, has_ctor_attr, has_default_fundable_hook_attr, has_endpoint_attr,
+    has_fundable_attr,
+};
 use crate::r#struct::has_storage_attr;
 use crate::storage_vars;
 use crate::{App, FuncAttr, FuncAttrKind, Function, Type, Var};
@@ -101,7 +105,7 @@ impl Schema {
     }
 }
 
-pub fn app_schema(app: &App) -> Schema {
+pub fn app_schema(app: &App) -> Result<Schema> {
     let name = app.name().to_string();
     let storage = storage_schema(app);
 
@@ -120,11 +124,13 @@ pub fn app_schema(app: &App) -> Schema {
         .map(|export| (export.api_name.clone(), export))
         .collect();
 
-    Schema {
+    let schema = Schema {
         name,
         storage,
         exports,
-    }
+    };
+
+    Ok(schema)
 }
 
 fn storage_schema(app: &App) -> Vec<Var> {
@@ -156,7 +162,7 @@ fn export_schema(func: &Function) -> Export {
         find_attr(&attrs, FuncAttrKind::Endpoint)
     };
 
-    let doc = match attr {
+    let doc = match attr.unwrap() {
         FuncAttr::Ctor(doc) => doc.to_string(),
         FuncAttr::Endpoint(doc) => doc.to_string(),
         _ => unreachable!(),

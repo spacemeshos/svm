@@ -9,7 +9,7 @@ mod r#type;
 #[cfg(feature = "api")]
 mod api;
 
-use app::App;
+use app::{parse_app, App};
 use function::{FuncAttr, FuncAttrKind, Function};
 use r#struct::storage_vars;
 use r#struct::{Struct, Var};

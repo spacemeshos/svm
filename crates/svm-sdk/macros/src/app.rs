@@ -2,14 +2,12 @@ use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 use serde_json::Value;
 
-use syn::{
-     Error, Item, ItemMod, ItemStruct,
-    ItemType, ItemUse, Result, 
-};
+use syn::{Error, Item, ItemMod, ItemStruct, ItemType, ItemUse, Result};
 
-use crate::{api, schema, Struct, Function, Schema};
-use super::{r#struct, function};
+use super::{function, r#struct};
+use crate::{api, schema, Function, Schema, Struct};
 
+use r#function::{func_attrs, has_default_fundable_hook_attr};
 use r#struct::has_storage_attr;
 
 pub struct App {
@@ -18,6 +16,7 @@ pub struct App {
     structs: Vec<Struct>,
     imports: Vec<ItemUse>,
     aliases: Vec<ItemType>,
+    default_fundable_hook: Option<Ident>,
 }
 
 impl App {
@@ -40,12 +39,20 @@ impl App {
     pub fn aliases(&self) -> &[ItemType] {
         &self.aliases
     }
+
+    pub fn default_fundable_hook(&self) -> Option<Ident> {
+        self.default_fundable_hook.clone()
+    }
+
+    pub fn set_default_fundable_hook(&mut self, hook: Ident) {
+        self.default_fundable_hook = Some(hook)
+    }
 }
 
 pub fn expand(_args: TokenStream, input: TokenStream) -> Result<(Schema, TokenStream)> {
     let module = syn::parse2(input)?;
     let app = parse_app(module)?;
-    let schema = schema::app_schema(&app);
+    let schema = schema::app_schema(&app)?;
 
     let imports = app.imports();
     let aliases = app.aliases();
@@ -61,7 +68,7 @@ pub fn expand(_args: TokenStream, input: TokenStream) -> Result<(Schema, TokenSt
     let stream = api::json_tokenstream(&api);
 
     #[cfg(feature = "api")]
-    let data = api::json_data_layout(&schema); 
+    let data = api::json_data_layout(&schema);
 
     write_schema(&app, &api, &data);
 
@@ -81,15 +88,14 @@ pub fn expand(_args: TokenStream, input: TokenStream) -> Result<(Schema, TokenSt
             #stream.to_string()
         }
     };
-    
-    Ok((schema,  ast))
+
+    Ok((schema, ast))
 }
 
 pub fn parse_app(mut raw_app: ItemMod) -> Result<App> {
     let name = raw_app.ident.clone();
 
     let mut functions = Vec::new();
-
     let mut structs = Vec::new();
     let mut imports = Vec::new();
     let mut aliases = Vec::new();
@@ -168,24 +174,56 @@ pub fn parse_app(mut raw_app: ItemMod) -> Result<App> {
         }
     }
 
-    let app = App {
+    let mut app = App {
         name,
         functions,
         structs,
         imports,
         aliases,
+        default_fundable_hook: None,
     };
+
+    let default = extract_default_fundable_hook(&app)?;
+
+    if default.is_some() {
+        app.set_default_fundable_hook(default.unwrap());
+    }
 
     Ok(app)
 }
 
-#[cfg(all(feature = "api", target_arch = "wasm32"))]   
-fn write_schema(app: &App, api: &Value, data: &Value) {
-    api::json_write(&format!("{}-api.json", app.name()), api); 
-    api::json_write(&format!("{}-data.json", app.name()), data); 
+fn extract_default_fundable_hook(app: &App) -> Result<Option<Ident>> {
+    let span = Span::call_site();
+    let mut seen_default_fundable_hook = false;
+    let mut default = None;
+
+    for func in app.functions().iter() {
+        let attrs = func_attrs(func).unwrap();
+
+        if has_default_fundable_hook_attr(&attrs) {
+            if seen_default_fundable_hook {
+                return Err(Error::new(
+                    span,
+                    "There can be only a single default `fundable hook`",
+                ));
+            }
+
+            seen_default_fundable_hook = true;
+
+            default = Some(func.raw_name());
+        }
+    }
+
+    Ok(default)
 }
 
-#[cfg(any(not(feature = "api"), not(target_arch = "wasm32")))]   
+#[cfg(all(feature = "api", target_arch = "wasm32"))]
+fn write_schema(app: &App, api: &Value, data: &Value) {
+    api::json_write(&format!("{}-api.json", app.name()), api);
+    api::json_write(&format!("{}-data.json", app.name()), data);
+}
+
+#[cfg(any(not(feature = "api"), not(target_arch = "wasm32")))]
 fn write_schema(app: &App, api: &Value, data: &Value) {
     //
 }
@@ -225,7 +263,7 @@ fn validate_structs(app: &App) -> Result<()> {
                     seen_storage = true;
                 }
             }
-            Err(err) => return Err(err.clone())
+            Err(err) => return Err(err.clone()),
         }
     }
 
@@ -233,19 +271,33 @@ fn validate_structs(app: &App) -> Result<()> {
 }
 
 fn expand_functions(app: &App) -> Result<TokenStream> {
+    validate_funcs(app)?;
+
     let mut funcs = Vec::new();
 
     for func in app.functions() {
-        let func = function::expand(func)?;
-        
+        let func = function::expand(func, app)?;
+
         funcs.push(func);
-    } 
+    }
+
+    let implicit_fundable_hook = if app.default_fundable_hook().is_some() {
+        quote! {}
+    } else {
+        function::fundable_hook::expand_default()?
+    };
 
     let ast = quote! {
         #(#funcs)*
+
+        #implicit_fundable_hook
     };
 
     Ok(ast)
+}
+
+fn validate_funcs(app: &App) -> Result<()> {
+    Ok(())
 }
 
 fn alloc_func_ast() -> TokenStream {
@@ -259,155 +311,5 @@ fn alloc_func_ast() -> TokenStream {
 
             ptr.offset() as u32
         }
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    use syn::parse_quote;
-
-    macro_rules! assert_err {
-        ($expected:expr, $($tt:tt)*) => {{
-            let raw_app: ItemMod = parse_quote!( $($tt)* );
-
-            let res = parse_app(raw_app);
-
-            // we can't use `unwrap_err()` since `App`
-            // doesn't implement `std::fmt::Debug`
-            let actual = res.err().unwrap();
-
-            assert_eq!($expected, actual.to_string());
-        }};
-    }
-
-    #[test]
-    fn app_empty() {
-        let raw_app: ItemMod = parse_quote! {
-            #[app]
-            mod my_app {}
-        };
-
-        let res = parse_app(raw_app);
-        assert!(res.is_ok());
-    }
-
-    #[test]
-    fn app_declaring_const_not_allowed() {
-        let err = "declaring `const` inside `#[app]` is not supported.";
-
-        assert_err!(
-            err,
-            #[app]
-            mod my_app {
-                const N: u32 = 10;
-            }
-        );
-    }
-
-    #[test]
-    fn app_declaring_static_not_allowed() {
-        let err = "declaring new `static` items inside `#[app]` is not supported.";
-
-        assert_err!(
-            err,
-            #[app]
-            mod my_app {
-                static N: u32 = 10;
-            }
-        );
-    }
-
-    #[test]
-    fn app_declaring_enum_not_allowed() {
-        let err = "declaring `enum` inside `#[app]` is not supported.";
-
-        assert_err!(
-            err,
-            #[app]
-            mod my_app {
-                enum MyEum {}
-            }
-        );
-    }
-
-    #[test]
-    fn app_using_extern_crate_not_allowed() {
-        let err = "using `extern crate` inside `#[app]` is not supported.";
-
-        assert_err!(
-            err,
-            #[app]
-            mod my_app {
-                extern crate alloc;
-            }
-        );
-    }
-
-    #[test]
-    fn app_using_ffi_not_allowed() {
-        let err = "using foreign items such as `extern \"C\"` inside `#[app]` is not supported.";
-
-        assert_err!(
-            err,
-            #[app]
-            mod my_app {
-                extern "C" {}
-            }
-        );
-    }
-
-    #[test]
-    fn app_using_impl_not_allowed() {
-        let err = "using `impl` inside `#[app]` is not supported.";
-
-        assert_err!(
-            err,
-            #[app]
-            mod my_app {
-                struct S;
-
-                impl S {}
-            }
-        );
-    }
-
-    #[test]
-    fn app_using_macro_rules_not_allowed() {
-        let err = "declaring `macro_rules!` inside `#[app]` is not supported.";
-
-        assert_err!(
-            err,
-            #[app]
-            mod my_app {
-                macro_rules! print {}
-            }
-        );
-    }
-
-    #[test]
-    fn app_declaring_traits_not_allowed() {
-         let err = "declaring new traits inside `#[app]` is not supported.";
-
-        assert_err!(err,
-            #[app]
-            mod my_app {
-                trait Print {}
-            }
-        );
-    }
-
-    #[test]
-    fn app_declaring_union_not_allowed() {
-        let err = "declaring `union` inside `#[app]` is not supported.";
-
-        assert_err!(
-            err,
-            #[app]
-            mod my_app {
-                union U {}
-            }
-        );
     }
 }

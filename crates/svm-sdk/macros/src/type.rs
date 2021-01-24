@@ -1,5 +1,3 @@
-use std::todo;
-
 use proc_macro2::{Span, TokenStream};
 use quote::{quote, ToTokens};
 use syn::{Error, Expr, ExprLit, Lit, Result, TypeArray, TypePath};

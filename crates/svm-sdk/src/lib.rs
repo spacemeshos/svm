@@ -255,12 +255,14 @@
 ///     coins: Amount
 ///   }
 ///
-///   #[fundable(update_coins)]
+///   #[fundable]
 ///   #[endpoint]
 ///   fn do_nothing() {}
 ///
-///   #[fundable_hook]
-///   fn update_coins(value: svm_sdk::Amount) {
+///   #[fundable_hook(default)]
+///   fn fund() {
+///     let value = Node::value();
+///
 ///     let old_coins = Storage::get_coins();
 ///     let new_coins = old_coins + value;
 ///
