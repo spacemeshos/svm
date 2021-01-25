@@ -12,21 +12,17 @@ mod tests {
     use std::io::Cursor;
 
     fn encode(version: u32) -> Vec<u8> {
-        let mut w = Vec::new();
+        let mut buf = Vec::new();
 
-        encode_version(version, &mut w);
+        encode_version(version, &mut buf);
 
-        w
+        buf
     }
 
     fn decode(bytes: Vec<u8>) -> u32 {
-        let mut cursor = Cursor::new(&bytes);
+        let mut cursor = Cursor::new(&bytes[..]);
 
-        let version = decode_version(&mut cursor).unwrap();
-
-        assert!(iter.ensure_eof(ParseError::ExpectedEOF).is_ok());
-
-        version
+        decode_version(&mut cursor).unwrap()
     }
 
     #[test]

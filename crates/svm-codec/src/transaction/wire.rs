@@ -69,10 +69,9 @@ fn decode_func(cursor: &mut Cursor<&[u8]>) -> Result<String, ParseError> {
 
 #[cfg(test)]
 mod tests {
-    use svm_nibble::NibbleIter;
-    use svm_types::{Address, AppTransaction, WasmValue};
+    use super::*;
 
-    use crate::api::raw::{decode_exec_app, encode_exec_app};
+    use svm_types::Address;
 
     #[test]
     fn encode_decode_exec_app() {
@@ -86,8 +85,8 @@ mod tests {
         let mut bytes = Vec::new();
         encode_exec_app(&tx, &mut bytes);
 
-        let mut iter = NibbleIter::new(&bytes);
-        let decoded = decode_exec_app(&mut iter).unwrap();
+        let mut cursor = Cursor::new(&bytes[..]);
+        let decoded = decode_exec_app(&mut cursor).unwrap();
 
         assert_eq!(tx, decoded);
     }

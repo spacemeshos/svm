@@ -1,7 +1,5 @@
 use std::io::{Cursor, Read};
 
-use svm_nibble::NibbleIter;
-
 use crate::api::raw::Field;
 use crate::error::ParseError;
 
@@ -52,44 +50,51 @@ mod tests {
 
     #[test]
     fn decode_version_empty_input() {
-        let vec = vec![];
-        let mut iter = NibbleIter::new(&vec);
+        let bytes = Vec::new();
+        let mut cursor = Cursor::new(&bytes[..]);
 
-        let expected = Err(ParseError::EmptyField(Field::Version));
+        let expected = ParseError::EmptyField(Field::Version);
+        let actual = decode_version(&mut cursor).unwrap_err();
 
-        assert_eq!(expected, decode_version(&mut iter));
+        assert_eq!(expected, actual);
     }
 
     #[test]
     fn decode_version_two_bytes() {
-        let vec = vec![0b_11010000, 0b_00000011];
-        let mut iter = NibbleIter::new(&vec);
+        let bytes = vec![0b_11010000, 0b_00000011];
+        let mut cursor = Cursor::new(&bytes[..]);
 
-        let actual = decode_version(&mut iter).unwrap();
-        assert_eq!(0b_11010000_00000011, actual);
+        let expected = 0b_11010000_00000011;
+        let actual = decode_version(&mut cursor).unwrap();
+
+        assert_eq!(expected, actual);
     }
 
     #[test]
     fn decode_version_three_bytes() {
-        let vec = vec![0b_11010000, 0b_11000011, 0b_00000011];
-        let mut iter = NibbleIter::new(&vec);
+        let bytes = vec![0b_11010000, 0b_11000011, 0b_00000011];
+        let mut cursor = Cursor::new(&bytes[..]);
 
-        let actual = decode_version(&mut iter).unwrap();
-        assert_eq!(0b_11010000_11000011_00000011, actual);
+        let expected = 0b_11010000_11000011_00000011;
+        let actual = decode_version(&mut cursor).unwrap();
+
+        assert_eq!(expected, actual);
     }
 
     #[test]
     fn decode_version_four_bytes() {
-        let vec = vec![0b_11010000, 0b_11000011, 0b_10000011, 0b_00000101];
-        let mut iter = NibbleIter::new(&vec[..]);
+        let bytes = vec![0b_11010000, 0b_11000011, 0b_10000011, 0b_00000101];
+        let mut cursor = Cursor::new(&bytes[..]);
 
-        let actual = decode_version(&mut iter).unwrap();
-        assert_eq!(0b_11010000_11000011_10000011_00000101, actual);
+        let expected = 0b_11010000_11000011_10000011_00000101;
+        let actual = decode_version(&mut cursor).unwrap();
+
+        assert_eq!(expected, actual);
     }
 
     #[test]
     fn decode_version_too_many_bytes() {
-        let vec = vec![
+        let bytes = vec![
             0b1000_1000,
             0b1000_1000,
             0b1000_1000,
@@ -99,10 +104,11 @@ mod tests {
             0b1000_1000,
             0b0000_0000,
         ];
-        let mut iter = NibbleIter::new(&vec);
+        let mut cursor = Cursor::new(&bytes[..]);
 
-        let expected = Err(ParseError::TooManyBytes(Field::Version));
+        let expected = ParseError::TooManyBytes(Field::Version);
+        let actual = decode_version(&mut cursor).unwrap_err();
 
-        assert_eq!(expected, decode_version(&mut iter));
+        assert_eq!(expected, actual);
     }
 }

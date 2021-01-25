@@ -117,11 +117,11 @@ mod tests {
         };
 
         let mut bytes = Vec::new();
-        encode_deploy_template(&template, &mut w);
+        encode_deploy_template(&template, &mut bytes);
 
-        let mut iter = NibbleIter::new(&bytes);
+        let mut cursor = Cursor::new(&bytes[..]);
 
-        let decoded = decode_deploy_template(&mut iter).unwrap();
+        let decoded = decode_deploy_template(&mut cursor).unwrap();
 
         assert_eq!(template, decoded);
     }

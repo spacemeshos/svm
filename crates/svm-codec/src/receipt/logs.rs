@@ -96,7 +96,7 @@ mod tests {
         encode_logs(&[], &mut buf);
 
         let mut cursor = Cursor::new(&buf[..]);
-        let logs = decode_logs(&mut cursor);
+        let logs = decode_logs(&mut cursor).unwrap();
 
         assert!(logs.is_empty());
     }
@@ -113,7 +113,7 @@ mod tests {
         encode_logs(&[log.clone()], &mut buf);
 
         let mut cursor = Cursor::new(&buf[..]);
-        let logs = decode_logs(&mut cursor);
+        let logs = decode_logs(&mut cursor).unwrap();
 
         assert_eq!(logs, vec![log]);
     }
@@ -135,7 +135,7 @@ mod tests {
         encode_logs(&[log1.clone(), log2.clone()], &mut buf);
 
         let mut cursor = Cursor::new(&buf[..]);
-        let logs = decode_logs(&mut cursor);
+        let logs = decode_logs(&mut cursor).unwrap();
 
         assert_eq!(logs, vec![log1, log2]);
     }

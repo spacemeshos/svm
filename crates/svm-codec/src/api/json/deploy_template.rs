@@ -1,10 +1,8 @@
 use byteorder::{BigEndian, ByteOrder};
 use serde_json::Value;
 
-use crate::{
-    api::json::{self, JsonError},
-    template,
-};
+use crate::api::json::{self, JsonError};
+use crate::template;
 
 use svm_layout::{DataLayout, DataLayoutBuilder};
 use svm_types::AppTemplate;
@@ -142,7 +140,7 @@ mod tests {
         });
 
         let bytes = deploy_template(&json).unwrap();
-        let cursor = Cursor::new(&bytes);
+        let mut cursor = Cursor::new(&bytes[..]);
 
         let actual = crate::api::raw::decode_deploy_template(&mut cursor).unwrap();
 

@@ -114,9 +114,9 @@ mod tests {
         let mut bytes = Vec::new();
         encode_spawn_app(&spawn, &mut bytes);
 
-        let mut iter = NibbleIter::new(&bytes);
+        let mut cursor = Cursor::new(&bytes[..]);
 
-        let decoded = decode_spawn_app(&mut iter).unwrap();
+        let decoded = decode_spawn_app(&mut cursor).unwrap();
 
         assert_eq!(spawn, decoded);
     }

@@ -278,8 +278,8 @@ mod tests {
 
         let err = ReceiptError::AppNotFound(app_addr.into());
 
-        let mut buf = Vec::new();
-        encode_error(&err, &test_logs(), &mut buf);
+        let mut bytes = Vec::new();
+        encode_error(&err, &test_logs(), &mut bytes);
 
         let mut cursor = Cursor::new(&bytes[..]);
         let decoded = decode_error(&mut cursor);
