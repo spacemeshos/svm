@@ -10,12 +10,12 @@ pub fn decode_version(iter: &mut NibbleIter) -> Result<u32, ParseError> {
     let mut byte = iter.read_byte();
 
     while has_more(byte) {
-        version = append(version, byte);
+        version = append(version, byte)?;
 
         byte = iter.read_byte();
     }
 
-    version = append(version, byte);
+    version = append(version, byte)?;
 
     Ok(version)
 }
@@ -24,11 +24,14 @@ fn has_more(byte: u8) -> bool {
     byte & 0b_1000_0000 != 0
 }
 
-fn append(mut n: u32, byte: u8) -> u32 {
-    n <<= 8;
-    n += (byte as u32);
+fn append(n: u32, byte: u8) -> Result<u32, ParseError> {
+    if let Some(n) = n.checked_shl(8) {
+        if let Some(n) = n.checked_add(byte.into()) {
+            return Ok(n);
+        }
+    }
 
-    n
+    Err(ParseError::TooManyBytes(Field::Version))
 }
 
 #[cfg(test)]
@@ -38,7 +41,7 @@ mod tests {
     #[test]
     fn decode_version_empty_input() {
         let vec = vec![];
-        let mut iter = NibbleIter::new(&vec[..]);
+        let mut iter = NibbleIter::new(&vec);
 
         let expected = Err(ParseError::EmptyField(Field::Version));
 
@@ -46,39 +49,30 @@ mod tests {
     }
 
     #[test]
-    fn decode_version_one_byte() {
-        let vec = vec![0b0101_1111];
-        let mut iter = NibbleIter::new(&vec[..]);
-
-        let ver = decode_version(&mut iter).unwrap();
-        assert_eq!(0b101, ver);
-    }
-
-    #[test]
     fn decode_version_two_bytes() {
-        let vec = vec![0b1101_0011];
-        let mut iter = NibbleIter::new(&vec[..]);
+        let vec = vec![0b_11010000, 0b_00000011];
+        let mut iter = NibbleIter::new(&vec);
 
-        let ver = decode_version(&mut iter).unwrap();
-        assert_eq!(0b101_011, ver);
+        let actual = decode_version(&mut iter).unwrap();
+        assert_eq!(0b_11010000_00000011, actual);
     }
 
     #[test]
     fn decode_version_three_bytes() {
-        let vec = vec![0b1101_1011, 0b0010_0000];
-        let mut iter = NibbleIter::new(&vec[..]);
+        let vec = vec![0b_11010000, 0b_11000011, 0b_00000011];
+        let mut iter = NibbleIter::new(&vec);
 
-        let ver = decode_version(&mut iter).unwrap();
-        assert_eq!(0b101_011_010, ver);
+        let actual = decode_version(&mut iter).unwrap();
+        assert_eq!(0b_11010000_11000011_00000011, actual);
     }
 
     #[test]
     fn decode_version_four_bytes() {
-        let vec = vec![0b1101_1011, 0b0010_0000];
+        let vec = vec![0b_11010000, 0b_11000011, 0b_10000011, 0b_00000101];
         let mut iter = NibbleIter::new(&vec[..]);
 
-        let ver = decode_version(&mut iter).unwrap();
-        assert_eq!(0b101_011_010, ver);
+        let actual = decode_version(&mut iter).unwrap();
+        assert_eq!(0b_11010000_11000011_10000011_00000101, actual);
     }
 
     #[test]
@@ -89,9 +83,11 @@ mod tests {
             0b1000_1000,
             0b1000_1000,
             0b1000_1000,
+            0b1000_1000,
+            0b1000_1000,
             0b0000_0000,
         ];
-        let mut iter = NibbleIter::new(&vec[..]);
+        let mut iter = NibbleIter::new(&vec);
 
         let expected = Err(ParseError::TooManyBytes(Field::Version));
 
