@@ -19,7 +19,8 @@
 //!  On success (`is_success = 0`)
 //!  See [error.rs][./error.rs]
 
-use svm_nibble::{NibbleIter, NibbleWriter};
+use std::io::Cursor;
+
 use svm_types::gas::MaybeGas;
 use svm_types::receipt::{ExecReceipt, Log, Receipt};
 
@@ -27,7 +28,7 @@ use super::{decode_error, encode_error, helpers, logs};
 use crate::api::raw;
 
 pub fn encode_exec_receipt(receipt: &ExecReceipt) -> Vec<u8> {
-    let mut w = NibbleWriter::new();
+    let mut w = Vec::new();
 
     let wrapped_receipt = Receipt::ExecApp(receipt);
 
@@ -46,31 +47,31 @@ pub fn encode_exec_receipt(receipt: &ExecReceipt) -> Vec<u8> {
         encode_error(receipt.get_error(), logs, &mut w);
     };
 
-    w.into_bytes()
+    w
 }
 
 pub fn decode_exec_receipt(bytes: &[u8]) -> ExecReceipt {
-    let mut iter = NibbleIter::new(bytes);
+    let mut cursor = Cursor::new(bytes);
 
-    let ty = helpers::decode_type(&mut iter);
+    let ty = helpers::decode_type(&mut cursor).unwrap();
     debug_assert_eq!(ty, crate::receipt::types::EXEC_APP);
 
-    let version = helpers::decode_version(&mut iter).unwrap();
+    let version = helpers::decode_version(&mut cursor).unwrap();
     debug_assert_eq!(0, version);
 
-    let is_success = helpers::decode_is_success(&mut iter);
+    let is_success = helpers::decode_is_success(&mut cursor).unwrap();
 
     match is_success {
         0 => {
-            let (err, logs) = decode_error(&mut iter);
+            let (err, logs) = decode_error(&mut cursor);
             ExecReceipt::from_err(err, logs)
         }
         1 => {
             // success
-            let new_state = helpers::decode_state(&mut iter);
-            let returndata = raw::decode_abi_data(&mut iter).unwrap();
-            let gas_used = helpers::decode_gas_used(&mut iter);
-            let logs = logs::decode_logs(&mut iter);
+            let new_state = helpers::decode_state(&mut cursor).unwrap();
+            let returndata = raw::decode_abi_data(&mut cursor).unwrap();
+            let gas_used = helpers::decode_gas_used(&mut cursor).unwrap();
+            let logs = logs::decode_logs(&mut cursor).unwrap();
 
             ExecReceipt {
                 success: true,
@@ -85,7 +86,7 @@ pub fn decode_exec_receipt(bytes: &[u8]) -> ExecReceipt {
     }
 }
 
-fn encode_new_state(receipt: &ExecReceipt, w: &mut NibbleWriter) {
+fn encode_new_state(receipt: &ExecReceipt, w: &mut Vec<u8>) {
     debug_assert!(receipt.success);
 
     let new_state = receipt.get_new_state();
@@ -93,7 +94,7 @@ fn encode_new_state(receipt: &ExecReceipt, w: &mut NibbleWriter) {
     helpers::encode_state(&new_state, w);
 }
 
-fn encode_returndata(receipt: &ExecReceipt, w: &mut NibbleWriter) {
+fn encode_returndata(receipt: &ExecReceipt, w: &mut Vec<u8>) {
     debug_assert!(receipt.success);
 
     let data = receipt.get_returndata();
@@ -104,7 +105,9 @@ fn encode_returndata(receipt: &ExecReceipt, w: &mut NibbleWriter) {
 mod tests {
     use super::*;
 
-    use svm_types::{gas::MaybeGas, receipt::ReceiptError, Address, State, WasmValue};
+    use svm_types::gas::MaybeGas;
+    use svm_types::receipt::ReceiptError;
+    use svm_types::{Address, State};
 
     #[test]
     fn encode_decode_exec_receipt_error() {

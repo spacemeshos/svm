@@ -6,23 +6,23 @@ pub use encoder::encode_version;
 
 #[cfg(test)]
 mod tests {
-    use svm_nibble::{NibbleIter, NibbleWriter};
-
     use crate::api::raw::{decode_version, encode_version};
     use crate::error::ParseError;
 
+    use std::io::Cursor;
+
     fn encode(version: u32) -> Vec<u8> {
-        let mut w = NibbleWriter::new();
+        let mut w = Vec::new();
 
         encode_version(version, &mut w);
 
-        w.into_bytes()
+        w
     }
 
     fn decode(bytes: Vec<u8>) -> u32 {
-        let mut iter = NibbleIter::new(&bytes);
+        let mut cursor = Cursor::new(&bytes);
 
-        let version = decode_version(&mut iter).unwrap();
+        let version = decode_version(&mut cursor).unwrap();
 
         assert!(iter.ensure_eof(ParseError::ExpectedEOF).is_ok());
 

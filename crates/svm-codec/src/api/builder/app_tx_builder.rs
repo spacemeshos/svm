@@ -1,5 +1,4 @@
-use svm_nibble::NibbleWriter;
-use svm_types::{AppAddr, AppTransaction, WasmValue};
+use svm_types::{AppAddr, AppTransaction};
 
 use crate::api::raw::encode_exec_app;
 
@@ -16,8 +15,9 @@ pub struct AppTxBuilder {
 /// # Example
 ///
 /// ```rust
-/// use svm_types::{AppTransaction, WasmValue, Address};
-/// use svm_nibble::NibbleIter;
+/// use std::io::Cursor;
+///
+/// use svm_types::{AppTransaction, Address};
 /// use svm_codec::api::{raw::decode_exec_app, builder::AppTxBuilder};
 ///
 /// let app = Address::of("@my-app").into();
@@ -32,8 +32,8 @@ pub struct AppTxBuilder {
 ///            .with_calldata(&calldata)
 ///            .build();
 ///
-/// let mut iter = NibbleIter::new(&bytes[..]);
-/// let actual = decode_exec_app(&mut iter).unwrap();
+/// let mut cursor = Cursor::new(&bytes);
+/// let actual = decode_exec_app(&mut cursor).unwrap();
 /// let expected = AppTransaction {
 ///                  version: 0,
 ///                  app,
@@ -93,10 +93,10 @@ impl AppTxBuilder {
             calldata,
         };
 
-        let mut w = NibbleWriter::new();
+        let mut w = Vec::new();
 
         encode_exec_app(&tx, &mut w);
 
-        w.into_bytes()
+        w
     }
 }

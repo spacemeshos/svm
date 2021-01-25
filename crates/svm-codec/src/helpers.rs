@@ -1,6 +1,7 @@
+use std::io::{Cursor, Read};
+
 use byteorder::{BigEndian, ByteOrder};
 
-use svm_nibble::{NibbleIter, NibbleWriter};
 use svm_types::Address;
 
 use crate::api::raw::{self, decode_varuint14, encode_varuint14, Field};
@@ -8,12 +9,13 @@ use crate::error::ParseError;
 
 /// Encoders
 
-pub fn encode_address(addr: &Address, w: &mut NibbleWriter) {
+pub fn encode_address(addr: &Address, w: &mut Vec<u8>) {
     let bytes = addr.bytes();
-    w.write_bytes(&bytes[..]);
+
+    w.extend_from_slice(&bytes);
 }
 
-pub fn encode_string(s: &str, w: &mut NibbleWriter) {
+pub fn encode_string(s: &str, w: &mut Vec<u8>) {
     let bytes = s.as_bytes();
     let length = bytes.len();
 
@@ -21,59 +23,61 @@ pub fn encode_string(s: &str, w: &mut NibbleWriter) {
 
     encode_varuint14(length as u16, w);
 
-    w.write_bytes(&bytes[..]);
+    w.extend_from_slice(&bytes);
 }
 
-pub fn encode_u32_be(n: u32, w: &mut NibbleWriter) {
+pub fn encode_u32_be(n: u32, w: &mut Vec<u8>) {
     let mut buf = vec![0; 4];
+
     BigEndian::write_u32(&mut buf, n);
 
-    w.write_bytes(&buf[..]);
+    w.extend_from_slice(&buf);
 }
 
 /// Decoders
 
 #[must_use]
-pub fn decode_address(iter: &mut NibbleIter, field: Field) -> Result<Address, ParseError> {
-    let bytes = iter.read_bytes(Address::len());
+pub fn decode_address(cursor: &mut Cursor<&[u8]>, field: Field) -> Result<Address, ParseError> {
+    let mut buf = [0; Address::len()];
 
-    if bytes.len() != Address::len() {
+    if cursor.read_exact(&mut buf).is_err() {
         return Err(ParseError::NotEnoughBytes(field));
     }
 
-    let addr = Address::from(&bytes[..]);
+    let addr = buf.into();
+
     Ok(addr)
 }
 
 #[must_use]
 pub fn decode_string(
-    iter: &mut NibbleIter,
+    cursor: &mut Cursor<&[u8]>,
     len_field: Field,
     field: Field,
 ) -> Result<String, ParseError> {
-    let length = decode_varuint14(iter, len_field)? as usize;
+    let length = decode_varuint14(cursor, len_field)? as usize;
 
     if length == 0 {
         return Err(ParseError::EmptyField(len_field));
     }
 
-    let bytes = iter.read_bytes(length);
+    let mut buf = Vec::with_capacity(length);
 
-    if bytes.len() != length {
+    if cursor.read_exact(&mut buf).is_err() {
         return Err(ParseError::NotEnoughBytes(field));
     }
 
-    String::from_utf8(bytes).or_else(|_e| Err(ParseError::InvalidUTF8String(field)))
+    String::from_utf8(buf).or_else(|_e| Err(ParseError::InvalidUTF8String(field)))
 }
 
-pub fn decode_u32_be(iter: &mut NibbleIter, field: Field) -> Result<u32, ParseError> {
-    let bytes = iter.read_bytes(4);
+pub fn decode_u32_be(cursor: &mut Cursor<&[u8]>, field: Field) -> Result<u32, ParseError> {
+    let mut buf = [0; 4];
 
-    if bytes.len() != 4 {
+    if cursor.read_exact(&mut buf).is_err() {
         return Err(ParseError::NotEnoughBytes(field));
     }
 
-    let n = BigEndian::read_u32(&bytes[..]);
+    let n = BigEndian::read_u32(&buf);
 
     Ok(n)
 }

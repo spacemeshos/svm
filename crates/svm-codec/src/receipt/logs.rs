@@ -1,5 +1,9 @@
-use svm_nibble::{NibbleIter, NibbleWriter};
+use std::io::{Cursor, Read};
+
 use svm_types::receipt::Log;
+
+use crate::error::ParseError;
+use crate::field::Field;
 
 ///                   
 /// +-----------------+
@@ -16,39 +20,69 @@ use svm_types::receipt::Log;
 /// |  msg length (1 byte) | msg (blob of bytes) | code (1 byte)  |  ---> log #N
 /// +---------------------------------------+---------------------+
 ///
-pub fn encode_logs(logs: &[Log], w: &mut NibbleWriter) {
+pub fn encode_logs(logs: &[Log], w: &mut Vec<u8>) {
     let nlogs = logs.len();
     assert!(nlogs <= std::u8::MAX as usize);
 
-    w.write_bytes(&[nlogs as u8]);
+    w.push(nlogs as u8);
 
     for log in logs.iter() {
         let len = log.msg.len();
         assert!(log.msg.len() <= std::u8::MAX as usize);
 
         // `msg` length
-        w.write_bytes(&[len as u8]);
+        w.push(len as u8);
 
         // `msg` blob
-        w.write_bytes(&log.msg);
+        w.extend_from_slice(&log.msg);
 
-        // `code`
-        w.write_bytes(&[log.code]);
+        // `msg` code
+        w.push(log.code);
     }
 }
 
-pub fn decode_logs(iter: &mut NibbleIter) -> Vec<Log> {
-    let nlogs = iter.read_byte();
+pub fn decode_logs(cursor: &mut Cursor<&[u8]>) -> Result<Vec<Log>, ParseError> {
+    let mut buf = [0; 1];
 
-    (0..nlogs)
-        .map(|_| {
-            let len = iter.read_byte();
-            let msg = iter.read_bytes(len as usize);
-            let code = iter.read_byte();
+    if cursor.read_exact(&mut buf).is_err() {
+        return Err(ParseError::NotEnoughBytes(Field::LogsCount));
+    }
 
-            Log { msg, code }
-        })
-        .collect()
+    let nlogs = buf[0] as usize;
+
+    let mut logs = Vec::with_capacity(nlogs);
+
+    for _ in (0..nlogs) {
+        let log = decode_log(cursor)?;
+
+        logs.push(log);
+    }
+
+    Ok(logs)
+}
+
+fn decode_log(cursor: &mut Cursor<&[u8]>) -> Result<Log, ParseError> {
+    let mut buf = [0; 1];
+
+    if cursor.read_exact(&mut buf).is_err() {
+        return Err(ParseError::NotEnoughBytes(Field::LogMessageLength));
+    }
+
+    let len = buf[0];
+
+    let mut msg = Vec::with_capacity(len as usize);
+    if cursor.read_exact(&mut msg).is_err() {
+        return Err(ParseError::NotEnoughBytes(Field::LogMessage));
+    }
+
+    if cursor.read_exact(&mut buf).is_err() {
+        return Err(ParseError::NotEnoughBytes(Field::LogCode));
+    }
+    let code = buf[0];
+
+    let log = Log { msg, code };
+
+    Ok(log)
 }
 
 #[cfg(test)]
@@ -57,40 +91,36 @@ mod tests {
 
     #[test]
     fn encode_logs_empty() {
-        let mut w = NibbleWriter::new();
+        let mut buf = Vec::new();
 
-        encode_logs(&[], &mut w);
+        encode_logs(&[], &mut buf);
 
-        let bytes = w.into_bytes();
-
-        let mut iter = NibbleIter::new(&bytes);
-        let logs = decode_logs(&mut iter);
+        let mut cursor = Cursor::new(&buf[..]);
+        let logs = decode_logs(&mut cursor);
 
         assert!(logs.is_empty());
     }
 
     #[test]
     fn encode_logs_single_entry() {
-        let mut w = NibbleWriter::new();
+        let mut buf = Vec::new();
 
         let log = Log {
             msg: b"been here".to_vec(),
             code: 200,
         };
 
-        encode_logs(&[log.clone()], &mut w);
+        encode_logs(&[log.clone()], &mut buf);
 
-        let bytes = w.into_bytes();
-
-        let mut iter = NibbleIter::new(&bytes);
-        let logs = decode_logs(&mut iter);
+        let mut cursor = Cursor::new(&buf[..]);
+        let logs = decode_logs(&mut cursor);
 
         assert_eq!(logs, vec![log]);
     }
 
     #[test]
     fn encode_logs_single_mulitiple_entries() {
-        let mut w = NibbleWriter::new();
+        let mut buf = Vec::new();
 
         let log1 = Log {
             msg: b"been here".to_vec(),
@@ -102,12 +132,10 @@ mod tests {
             code: 201,
         };
 
-        encode_logs(&[log1.clone(), log2.clone()], &mut w);
+        encode_logs(&[log1.clone(), log2.clone()], &mut buf);
 
-        let bytes = w.into_bytes();
-
-        let mut iter = NibbleIter::new(&bytes);
-        let logs = decode_logs(&mut iter);
+        let mut cursor = Cursor::new(&buf[..]);
+        let logs = decode_logs(&mut cursor);
 
         assert_eq!(logs, vec![log1, log2]);
     }

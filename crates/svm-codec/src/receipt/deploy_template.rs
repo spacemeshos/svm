@@ -5,20 +5,21 @@
 //!  +-------------------------------------------------------------------+
 //!  | tx type  |   version  |  is_success | Template Address | gas_used |
 //!  | (1 byte) | (1 nibble) |  (1 byte)   |    (20 bytes)    |          |
-//!  +_______________________|___________________________________________+
+//!  +_______________________|_____________|__________________|__________+
 //!
 //!  On success (`is_success = 0`)
 //!  See [error.rs][./error.rs]
 //!
 
-use svm_nibble::{NibbleIter, NibbleWriter};
+use std::io::Cursor;
+
 use svm_types::gas::MaybeGas;
 use svm_types::receipt::{Receipt, TemplateReceipt};
 
 use super::{decode_error, encode_error, helpers, logs};
 
 pub fn encode_template_receipt(receipt: &TemplateReceipt) -> Vec<u8> {
-    let mut w = NibbleWriter::new();
+    let mut w = Vec::new();
 
     let wrapped_receipt = Receipt::DeployTemplate(receipt);
 
@@ -35,31 +36,32 @@ pub fn encode_template_receipt(receipt: &TemplateReceipt) -> Vec<u8> {
         encode_error(receipt.get_error(), &logs, &mut w);
     };
 
-    w.into_bytes()
+    w
 }
 
 pub fn decode_template_receipt(bytes: &[u8]) -> TemplateReceipt {
-    let mut iter = NibbleIter::new(bytes);
+    let mut cursor = Cursor::new(bytes);
 
-    let ty = helpers::decode_type(&mut iter);
+    let ty = helpers::decode_type(&mut cursor).unwrap();
     debug_assert_eq!(ty, crate::receipt::types::DEPLOY_TEMPLATE);
 
-    let version = helpers::decode_version(&mut iter).unwrap();
+    let version = helpers::decode_version(&mut cursor).unwrap();
     debug_assert_eq!(version, 0);
 
-    let is_success = helpers::decode_is_success(&mut iter);
+    let is_success = helpers::decode_is_success(&mut cursor).unwrap();
 
     match is_success {
         0 => {
             // error
-            let (err, logs) = decode_error(&mut iter);
+            let (err, logs) = decode_error(&mut cursor);
+
             TemplateReceipt::from_err(err, logs)
         }
         1 => {
             // success
-            let addr = helpers::decode_address(&mut iter);
-            let gas_used = helpers::decode_gas_used(&mut iter);
-            let logs = logs::decode_logs(&mut iter);
+            let addr = helpers::decode_address(&mut cursor).unwrap();
+            let gas_used = helpers::decode_gas_used(&mut cursor).unwrap();
+            let logs = logs::decode_logs(&mut cursor).unwrap();
 
             TemplateReceipt {
                 success: true,
@@ -73,7 +75,7 @@ pub fn decode_template_receipt(bytes: &[u8]) -> TemplateReceipt {
     }
 }
 
-fn encode_template_addr(receipt: &TemplateReceipt, w: &mut NibbleWriter) {
+fn encode_template_addr(receipt: &TemplateReceipt, w: &mut Vec<u8>) {
     debug_assert!(receipt.success);
 
     let addr = receipt.get_template_addr();
@@ -84,7 +86,9 @@ fn encode_template_addr(receipt: &TemplateReceipt, w: &mut NibbleWriter) {
 mod tests {
     use super::*;
 
-    use svm_types::{gas::MaybeGas, receipt::TemplateReceipt, Address, TemplateAddr};
+    use svm_types::gas::MaybeGas;
+    use svm_types::receipt::TemplateReceipt;
+    use svm_types::{Address, TemplateAddr};
 
     #[test]
     fn encode_decode_deploy_template_receipt() {

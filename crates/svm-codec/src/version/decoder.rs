@@ -1,23 +1,35 @@
+use std::io::{Cursor, Read};
+
 use svm_nibble::NibbleIter;
 
 use crate::api::raw::Field;
 use crate::error::ParseError;
 
 /// Decodes the `version` into an `u32`
-pub fn decode_version(iter: &mut NibbleIter) -> Result<u32, ParseError> {
+pub fn decode_version(cursor: &mut Cursor<&[u8]>) -> Result<u32, ParseError> {
     let mut version = 0;
 
-    let mut byte = iter.read_byte();
+    let mut byte = read_byte(cursor)?;
 
     while has_more(byte) {
         version = append(version, byte)?;
 
-        byte = iter.read_byte();
+        byte = read_byte(cursor)?;
     }
 
     version = append(version, byte)?;
 
     Ok(version)
+}
+
+fn read_byte(cursor: &mut Cursor<&[u8]>) -> Result<u8, ParseError> {
+    let mut buf = [0; 1];
+
+    if cursor.read_exact(&mut buf).is_err() {
+        return Err(ParseError::NotEnoughBytes(Field::Version));
+    }
+
+    Ok(buf[0])
 }
 
 fn has_more(byte: u8) -> bool {

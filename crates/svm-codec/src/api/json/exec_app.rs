@@ -1,4 +1,4 @@
-use svm_nibble::{NibbleIter, NibbleWriter};
+use std::io::Cursor;
 
 use serde_json::{json, Value};
 
@@ -8,7 +8,7 @@ use crate::{
     transaction,
 };
 
-use svm_types::{AddressOf, App, AppTransaction, WasmValue};
+use svm_types::{AddressOf, App, AppTransaction};
 
 ///
 /// ```json
@@ -34,19 +34,18 @@ pub fn encode_exec_app(json: &Value) -> Result<Vec<u8>, JsonError> {
         calldata,
     };
 
-    let mut w = NibbleWriter::new();
-    transaction::encode_exec_app(&tx, &mut w);
+    let mut buf = Vec::new();
+    transaction::encode_exec_app(&tx, &mut buf);
 
-    let bytes = w.into_bytes();
-    Ok(bytes)
+    Ok(buf)
 }
 
 pub fn decode_exec_app(json: &Value) -> Result<Value, JsonError> {
     let data = json::as_string(json, "data")?;
     let bytes = json::str_to_bytes(&data, "data")?;
 
-    let mut iter = NibbleIter::new(&bytes);
-    let tx = raw::decode_exec_app(&mut iter).unwrap();
+    let mut cursor = Cursor::new(&bytes[..]);
+    let tx = raw::decode_exec_app(&mut cursor).unwrap();
 
     let version = tx.version;
     let func_name = tx.func_name.clone();
@@ -70,8 +69,7 @@ mod tests {
     use super::*;
     use serde_json::json;
 
-    use svm_nibble::NibbleIter;
-    use svm_types::{Address, WasmValue};
+    use svm_types::Address;
 
     #[test]
     fn json_exec_app_missing_version() {

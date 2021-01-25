@@ -1,5 +1,5 @@
 //! This crate is responsible for doing the binary encoding for SVM transactions.
-//! It code is compiled as a single WASM file and it should be integrated by Wallet Apps.
+//! It code is compiled as a single WASM file and it should be integrated by Wallet Apps (`smapp`).
 //!
 //! By doing that, a Wallet Apps can locally encode a binary transaction without having to re-implement all the logic
 //! of the `svm-codec`.

@@ -1,4 +1,5 @@
-use svm_nibble::{NibbleIter, NibbleWriter};
+use std::io::{Cursor, Read};
+
 use svm_types::{AppAddr, AppTransaction};
 
 use crate::api::raw::{decode_abi_data, decode_varuint14, decode_version, encode_abi_data, Field};
@@ -6,7 +7,7 @@ use crate::api::raw::{decode_abi_data, decode_varuint14, decode_version, encode_
 use crate::{error::ParseError, helpers};
 
 /// Encodes a raw App transaction.
-pub fn encode_exec_app(tx: &AppTransaction, w: &mut NibbleWriter) {
+pub fn encode_exec_app(tx: &AppTransaction, w: &mut Vec<u8>) {
     encode_version(tx, w);
     encode_app(tx, w);
     encode_func(tx, w);
@@ -16,11 +17,11 @@ pub fn encode_exec_app(tx: &AppTransaction, w: &mut NibbleWriter) {
 /// Parsing a raw `AppTransaction` transaction given as raw bytes.
 /// Returns the parsed transaction as a `AppTransaction` struct.
 /// On failure, returns `ParseError`.
-pub fn decode_exec_app(iter: &mut NibbleIter) -> Result<AppTransaction, ParseError> {
-    let version = decode_version(iter)?;
-    let app = decode_app(iter)?;
-    let func_name = decode_func(iter)?;
-    let calldata = decode_abi_data(iter)?;
+pub fn decode_exec_app(cursor: &mut Cursor<&[u8]>) -> Result<AppTransaction, ParseError> {
+    let version = decode_version(cursor)?;
+    let app = decode_app(cursor)?;
+    let func_name = decode_func(cursor)?;
+    let calldata = decode_abi_data(cursor)?;
 
     let tx = AppTransaction {
         version,
@@ -34,40 +35,41 @@ pub fn decode_exec_app(iter: &mut NibbleIter) -> Result<AppTransaction, ParseErr
 
 /// Encoders
 
-fn encode_version(tx: &AppTransaction, w: &mut NibbleWriter) {
-    let ver = tx.version;
-    crate::api::raw::encode_version(ver, w);
+fn encode_version(tx: &AppTransaction, w: &mut Vec<u8>) {
+    crate::api::raw::encode_version(tx.version, w);
 }
 
-fn encode_app(tx: &AppTransaction, w: &mut NibbleWriter) {
+fn encode_app(tx: &AppTransaction, w: &mut Vec<u8>) {
     let addr = tx.app.inner();
+
     helpers::encode_address(addr, w);
 }
 
-fn encode_func(tx: &AppTransaction, w: &mut NibbleWriter) {
+fn encode_func(tx: &AppTransaction, w: &mut Vec<u8>) {
     helpers::encode_string(&tx.func_name, w);
 }
 
-fn encode_calldata(tx: &AppTransaction, w: &mut NibbleWriter) {
-    let buf = &tx.calldata[..];
-    encode_abi_data(buf, w)
+fn encode_calldata(tx: &AppTransaction, w: &mut Vec<u8>) {
+    let calldata = &tx.calldata;
+
+    encode_abi_data(calldata, w)
 }
 
 /// Decoders
 
-fn decode_app(iter: &mut NibbleIter) -> Result<AppAddr, ParseError> {
-    let addr = helpers::decode_address(iter, Field::AppAddr)?;
+fn decode_app(cursor: &mut Cursor<&[u8]>) -> Result<AppAddr, ParseError> {
+    let addr = helpers::decode_address(cursor, Field::AppAddr)?;
 
     Ok(addr.into())
 }
 
-fn decode_func(iter: &mut NibbleIter) -> Result<String, ParseError> {
-    helpers::decode_string(iter, Field::FuncNameLength, Field::FuncName)
+fn decode_func(cursor: &mut Cursor<&[u8]>) -> Result<String, ParseError> {
+    helpers::decode_string(cursor, Field::FuncNameLength, Field::FuncName)
 }
 
 #[cfg(test)]
 mod tests {
-    use svm_nibble::{NibbleIter, NibbleWriter};
+    use svm_nibble::NibbleIter;
     use svm_types::{Address, AppTransaction, WasmValue};
 
     use crate::api::raw::{decode_exec_app, encode_exec_app};
@@ -81,12 +83,10 @@ mod tests {
             calldata: vec![0x10, 0x0, 0x30],
         };
 
-        let mut w = NibbleWriter::new();
-        encode_exec_app(&tx, &mut w);
+        let mut bytes = Vec::new();
+        encode_exec_app(&tx, &mut bytes);
 
-        let bytes = w.into_bytes();
-        let mut iter = NibbleIter::new(&bytes[..]);
-
+        let mut iter = NibbleIter::new(&bytes);
         let decoded = decode_exec_app(&mut iter).unwrap();
 
         assert_eq!(tx, decoded);

@@ -12,6 +12,7 @@ pub enum Field {
     NameLength,
     Name,
     CodeSize,
+    State,
     Code,
     Address,
     TemplateAddr,
@@ -23,7 +24,12 @@ pub enum Field {
     ErrorLength,
     FuncNameLength,
     FuncName,
-    FuncIndex,
+    ReceiptType,
+    ReceiptStatus,
+    LogsCount,
+    LogMessage,
+    LogMessageLength,
+    LogCode,
 }
 
 impl fmt::Display for Field {

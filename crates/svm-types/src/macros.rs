@@ -100,7 +100,7 @@ macro_rules! impl_bytes_primitive {
 
             /// Returns the number of bytes of `$primitive`
             #[inline]
-            pub fn len() -> usize {
+            pub const fn len() -> usize {
                 $byte_count
             }
 

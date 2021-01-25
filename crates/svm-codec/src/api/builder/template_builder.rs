@@ -1,4 +1,3 @@
-use svm_nibble::NibbleWriter;
 use svm_types::AppTemplate;
 
 use crate::api::raw::encode_deploy_template;
@@ -18,8 +17,9 @@ pub struct DeployAppTemplateBuilder {
 /// # Example
 ///  
 /// ```rust
+/// use std::io::Cursor;
+///
 /// use svm_types::AppTemplate;
-/// use svm_nibble::NibbleIter;
 /// use svm_codec::api::raw::decode_deploy_template;
 /// use svm_codec::api::builder::DeployAppTemplateBuilder;
 ///
@@ -32,8 +32,8 @@ pub struct DeployAppTemplateBuilder {
 ///            .with_data(&layout)
 ///            .build();
 ///
-/// let mut iter = NibbleIter::new(&bytes[..]);
-/// let actual = decode_deploy_template(&mut iter).unwrap();
+/// let mut cursor = Cursor::new(&bytes);
+/// let actual = decode_deploy_template(&mut cursor).unwrap();
 ///
 /// let expected = AppTemplate {
 ///                  version: 0,
@@ -90,10 +90,10 @@ impl DeployAppTemplateBuilder {
             data,
         };
 
-        let mut w = NibbleWriter::new();
+        let mut w = Vec::new();
 
         encode_deploy_template(&app, &mut w);
 
-        w.into_bytes()
+        w
     }
 }

@@ -1,4 +1,3 @@
-use svm_nibble::NibbleWriter;
 use svm_types::{App, SpawnApp, TemplateAddr, WasmValue};
 
 use crate::api::raw::encode_spawn_app;
@@ -17,8 +16,9 @@ pub struct SpawnAppBuilder {
 /// # Example
 ///
 /// ```rust
+/// use std::io::Cursor;
+///
 /// use svm_types::{App, SpawnApp, Address};
-/// use svm_nibble::NibbleIter;
 /// use svm_codec::api::{raw::decode_spawn_app, builder::SpawnAppBuilder};
 ///
 /// let template = Address::of("@template").into();
@@ -34,8 +34,8 @@ pub struct SpawnAppBuilder {
 ///             .with_calldata(&calldata)
 ///             .build();
 ///
-/// let mut iter = NibbleIter::new(&bytes);
-/// let actual = decode_spawn_app(&mut iter).unwrap();
+/// let mut cursor = Cursor::new(&bytes);
+/// let actual = decode_spawn_app(&mut cursor).unwrap();
 /// let expected = SpawnApp {
 ///                  app: App { version: 0, name, template },
 ///                  ctor_name: ctor_name.to_string(),
@@ -104,10 +104,10 @@ impl SpawnAppBuilder {
             calldata,
         };
 
-        let mut w = NibbleWriter::new();
+        let mut w = Vec::new();
 
         encode_spawn_app(&spawn, &mut w);
 
-        w.into_bytes()
+        w
     }
 }

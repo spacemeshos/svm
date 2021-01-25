@@ -1,17 +1,15 @@
-use svm_nibble::NibbleWriter;
-
 /// Encodes version
-pub fn encode_version(mut version: u32, w: &mut NibbleWriter) {
+pub fn encode_version(mut version: u32, w: &mut Vec<u8>) {
     let mut byte = msb(version);
 
     while has_more(byte) {
-        w.write_byte(byte);
+        w.push(byte);
 
         version = shift(version);
         byte = msb(version);
     }
 
-    w.write_byte(byte);
+    w.push(byte);
 }
 
 fn has_more(byte: u8) -> bool {
@@ -31,11 +29,11 @@ mod tests {
     use super::*;
 
     fn assert_encoding(version: u32, expected: Vec<u8>) {
-        let mut w = NibbleWriter::new();
+        let mut actual = Vec::new();
 
-        encode_version(version, &mut w);
+        encode_version(version, &mut actual);
 
-        assert_eq!(expected, w.into_bytes());
+        assert_eq!(expected, actual)
     }
 
     #[test]

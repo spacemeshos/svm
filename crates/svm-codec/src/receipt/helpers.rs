@@ -1,81 +1,100 @@
-use svm_nibble::{Nibble, NibbleIter, NibbleWriter};
+use std::io::{Cursor, Read};
 
 use crate::api::raw::{self, Field};
 use crate::error::ParseError;
 
-use svm_types::{
-    gas::MaybeGas,
-    receipt::{Log, Receipt, ReceiptError},
-    Address, State, WasmValue,
-};
+use svm_types::gas::MaybeGas;
+use svm_types::receipt::{Log, Receipt, ReceiptError};
+use svm_types::{Address, State};
 
 /// Encoders
 
-pub(crate) fn encode_version(version: u32, w: &mut NibbleWriter) {
+pub(crate) fn encode_version(version: u32, w: &mut Vec<u8>) {
     raw::encode_version(version, w)
 }
 
-pub(crate) fn encode_is_success(receipt: &Receipt, w: &mut NibbleWriter) {
+pub(crate) fn encode_is_success(receipt: &Receipt, w: &mut Vec<u8>) {
     let nib = if receipt.is_success() {
-        Nibble::new(1)
+        w.push(1);
     } else {
-        Nibble::new(0)
+        w.push(0);
     };
-
-    w.write(&[nib])
 }
 
-pub(crate) fn encode_gas_used(receipt: &Receipt, w: &mut NibbleWriter) {
+pub(crate) fn encode_gas_used(receipt: &Receipt, w: &mut Vec<u8>) {
     let gas_used = receipt.get_gas_used();
 
     raw::encode_gas_used(&gas_used, w);
 }
 
-pub(crate) fn encode_type(ty: u8, w: &mut NibbleWriter) {
-    w.write_byte(ty);
+pub(crate) fn encode_type(ty: u8, w: &mut Vec<u8>) {
+    w.push(ty);
 }
 
-pub(crate) fn encode_abi_data(returns: &[u8], w: &mut NibbleWriter) {
+pub(crate) fn encode_abi_data(returns: &[u8], w: &mut Vec<u8>) {
     raw::encode_abi_data(returns, w)
 }
 
-pub(crate) fn encode_addr(addr: &Address, w: &mut NibbleWriter) {
+pub(crate) fn encode_addr(addr: &Address, w: &mut Vec<u8>) {
     let bytes = addr.as_slice();
-    w.write_bytes(bytes)
+
+    w.extend_from_slice(bytes)
 }
 
-pub(crate) fn encode_state(state: &State, w: &mut NibbleWriter) {
+pub(crate) fn encode_state(state: &State, w: &mut Vec<u8>) {
     let bytes = state.as_slice();
-    w.write_bytes(bytes)
+
+    w.extend_from_slice(bytes)
 }
 
 /// Decoders
 
-pub(crate) fn decode_version(iter: &mut NibbleIter) -> Result<u32, ParseError> {
-    raw::decode_version(iter)
+pub(crate) fn decode_version(cursor: &mut Cursor<&[u8]>) -> Result<u32, ParseError> {
+    raw::decode_version(cursor)
 }
 
-pub(crate) fn decode_type(iter: &mut NibbleIter) -> u8 {
-    iter.read_byte()
+pub(crate) fn decode_type(cursor: &mut Cursor<&[u8]>) -> Result<u8, ParseError> {
+    let mut buf = [0; 1];
+
+    if cursor.read_exact(&mut buf).is_err() {
+        return Err(ParseError::NotEnoughBytes(Field::ReceiptType));
+    }
+
+    Ok(buf[0])
 }
 
-pub(crate) fn decode_is_success(iter: &mut NibbleIter) -> u8 {
-    let is_success: Nibble = iter.next().unwrap();
-    is_success.inner()
+pub(crate) fn decode_is_success(cursor: &mut Cursor<&[u8]>) -> Result<u8, ParseError> {
+    let mut buf = [0; 1];
+
+    if cursor.read_exact(&mut buf).is_err() {
+        return Err(ParseError::NotEnoughBytes(Field::ReceiptStatus));
+    }
+
+    Ok(buf[0])
 }
 
-pub(crate) fn decode_state(iter: &mut NibbleIter) -> State {
-    let bytes = iter.read_bytes(State::len());
+pub(crate) fn decode_state(cursor: &mut Cursor<&[u8]>) -> Result<State, ParseError> {
+    let mut buf = [0; State::len()];
 
-    State::from(&bytes[..])
+    if cursor.read_exact(&mut buf).is_err() {
+        return Err(ParseError::NotEnoughBytes(Field::State));
+    }
+
+    let state = State::from(&buf[..]);
+    Ok(state)
 }
 
-pub(crate) fn decode_address(iter: &mut NibbleIter) -> Address {
-    let bytes = iter.read_bytes(Address::len());
+pub(crate) fn decode_address(cursor: &mut Cursor<&[u8]>) -> Result<Address, ParseError> {
+    let mut buf = [0; Address::len()];
 
-    Address::from(&bytes[..])
+    if cursor.read_exact(&mut buf).is_err() {
+        return Err(ParseError::NotEnoughBytes(Field::Address));
+    }
+
+    let addr = Address::from(&buf[..]);
+    Ok(addr)
 }
 
-pub(crate) fn decode_gas_used(iter: &mut NibbleIter) -> MaybeGas {
-    raw::decode_gas_used(iter).unwrap()
+pub(crate) fn decode_gas_used(cursor: &mut Cursor<&[u8]>) -> Result<MaybeGas, ParseError> {
+    raw::decode_gas_used(cursor)
 }

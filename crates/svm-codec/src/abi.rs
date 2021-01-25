@@ -1,28 +1,28 @@
-use svm_nibble::{NibbleIter, NibbleWriter};
+use std::io::{Cursor, Read};
 
 use crate::api::raw::{decode_varuint14, encode_varuint14, Field};
 use crate::error::ParseError;
 
-pub fn encode_abi_data(calldata: &[u8], w: &mut NibbleWriter) {
+pub fn encode_abi_data(calldata: &[u8], w: &mut Vec<u8>) {
     let len = calldata.len();
 
     assert!(len <= std::u16::MAX as usize);
 
     encode_varuint14(len as u16, w);
 
-    w.write_bytes(calldata)
+    w.extend_from_slice(calldata)
 }
 
-pub fn decode_abi_data<'a>(iter: &mut NibbleIter) -> Result<Vec<u8>, ParseError> {
-    let len = decode_varuint14(iter, Field::CallDataLength)? as usize;
+pub fn decode_abi_data<'a>(cursor: &mut Cursor<&[u8]>) -> Result<Vec<u8>, ParseError> {
+    let len = decode_varuint14(cursor, Field::CallDataLength)? as usize;
 
-    let bytes = iter.read_bytes(len);
+    let mut buf = Vec::with_capacity(len);
 
-    if bytes.len() != len {
+    if cursor.read_exact(&mut buf).is_err() {
         return Err(ParseError::NotEnoughBytes(Field::CallData));
     }
 
-    debug_assert_eq!(len, bytes.len());
+    debug_assert_eq!(len, buf.len());
 
-    Ok(bytes)
+    Ok(buf)
 }

@@ -1,4 +1,5 @@
-use svm_nibble::{NibbleIter, NibbleWriter};
+use std::io::Cursor;
+
 use svm_types::{AppTemplate, AuthorAddr};
 
 use crate::api::raw::{decode_deploy_template, encode_deploy_template, Field};
@@ -16,25 +17,25 @@ pub struct DefaultAppTemplateDeserializer;
 
 impl AppTemplateSerializer for DefaultAppTemplateSerializer {
     fn serialize(template: &AppTemplate, author: &AuthorAddr) -> Vec<u8> {
-        let mut w = NibbleWriter::new();
+        let mut w = Vec::new();
 
         encode_deploy_template(template, &mut w);
         helpers::encode_address(author.inner(), &mut w);
 
-        w.into_bytes()
+        w
     }
 }
 
 impl AppTemplateDeserializer for DefaultAppTemplateDeserializer {
     fn deserialize(bytes: &[u8]) -> Option<(AppTemplate, AuthorAddr)> {
-        let mut iter = NibbleIter::new(bytes);
+        let mut cursor = Cursor::new(bytes);
 
-        let template = match decode_deploy_template(&mut iter) {
+        let template = match decode_deploy_template(&mut cursor) {
             Ok(template) => template,
             _ => return None,
         };
 
-        let author = match helpers::decode_address(&mut iter, Field::Author) {
+        let author = match helpers::decode_address(&mut cursor, Field::Author) {
             Ok(addr) => AuthorAddr::new(addr),
             _ => return None,
         };
