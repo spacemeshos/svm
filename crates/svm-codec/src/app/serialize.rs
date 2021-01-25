@@ -1,14 +1,10 @@
 use std::io::Cursor;
 
-use svm_nibble::NibbleIter;
 use svm_types::{App, CreatorAddr, TemplateAddr};
 
 use crate::api::raw::{decode_version, encode_version, Field};
-
-use crate::{
-    helpers,
-    traits::{AppDeserializer, AppSerializer},
-};
+use crate::helpers;
+use crate::traits::{AppDeserializer, AppSerializer};
 
 /// Default serializer for `App`
 pub struct DefaultAppSerializer;

@@ -12,9 +12,6 @@
 #![allow(unreachable_code)]
 #![feature(vec_into_raw_parts)]
 
-#[macro_use]
-mod wasm;
-
 mod abi;
 mod app;
 mod field;

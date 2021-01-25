@@ -30,7 +30,6 @@ pub fn decode_exec_app(ptr: usize) -> Result<usize, JsonError> {
 mod test {
     use super::*;
 
-    use svm_nibble::NibbleIter;
     use svm_types::{Address, AppTransaction, WasmValue};
 
     use crate::api::wasm::{
