@@ -1,9 +1,9 @@
 use serde_json::Value;
 
 use super::wasm_buf_apply;
-use crate::{
-    api,
-    api::json::{self, JsonError},
+use crate::api::{
+    self,
+    json::{self, JsonError},
 };
 
 /// Encodes a `spawn-app` json input into SVM `spawn-app` binary transaction.

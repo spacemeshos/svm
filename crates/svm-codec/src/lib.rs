@@ -20,7 +20,6 @@ mod helpers;
 mod template;
 mod traits;
 mod transaction;
-mod varuint14;
 mod version;
 
 /// Wraps the exposed APIs under a single place.

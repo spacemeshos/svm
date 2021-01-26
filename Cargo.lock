@@ -1240,7 +1240,6 @@ dependencies = [
  "svm-gas",
  "svm-kv",
  "svm-layout",
- "svm-nibble",
  "svm-sdk",
  "svm-storage",
  "svm-types",

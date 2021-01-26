@@ -2,7 +2,7 @@ use std::io::{Cursor, Read};
 
 use svm_types::{AppAddr, AppTransaction};
 
-use crate::api::raw::{decode_abi_data, decode_varuint14, decode_version, encode_abi_data, Field};
+use crate::api::raw::{decode_abi_data, decode_version, encode_abi_data, Field};
 
 use crate::{error::ParseError, helpers};
 

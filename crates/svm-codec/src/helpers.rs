@@ -4,7 +4,7 @@ use byteorder::{BigEndian, ByteOrder};
 
 use svm_types::Address;
 
-use crate::api::raw::{self, decode_varuint14, encode_varuint14, Field};
+use crate::api::raw::{self, Field};
 use crate::error::ParseError;
 
 /// Encoders
@@ -19,11 +19,18 @@ pub fn encode_string(s: &str, w: &mut Vec<u8>) {
     let bytes = s.as_bytes();
     let length = bytes.len();
 
-    assert!(length <= std::u16::MAX as usize);
+    assert!(length <= std::u8::MAX as usize);
 
-    encode_varuint14(length as u16, w);
-
+    w.push(length as u8);
     w.extend_from_slice(&bytes);
+}
+
+pub fn encode_u16_be(n: u16, w: &mut Vec<u8>) {
+    let mut buf = vec![0; 2];
+
+    BigEndian::write_u16(&mut buf, n);
+
+    w.extend_from_slice(&buf);
 }
 
 pub fn encode_u32_be(n: u32, w: &mut Vec<u8>) {
@@ -55,12 +62,13 @@ pub fn decode_string(
     len_field: Field,
     field: Field,
 ) -> Result<String, ParseError> {
-    let length = decode_varuint14(cursor, len_field)? as usize;
+    let mut buf = [0; 1];
 
-    if length == 0 {
-        return Err(ParseError::EmptyField(len_field));
+    if cursor.read_exact(&mut buf).is_err() {
+        return Err(ParseError::EmptyField(field));
     }
 
+    let length = buf[0] as usize;
     let mut buf = Vec::with_capacity(length);
 
     if cursor.read_exact(&mut buf).is_err() {
@@ -68,6 +76,18 @@ pub fn decode_string(
     }
 
     String::from_utf8(buf).or_else(|_e| Err(ParseError::InvalidUTF8String(field)))
+}
+
+pub fn decode_u16_be(cursor: &mut Cursor<&[u8]>, field: Field) -> Result<u16, ParseError> {
+    let mut buf = [0; 2];
+
+    if cursor.read_exact(&mut buf).is_err() {
+        return Err(ParseError::NotEnoughBytes(field));
+    }
+
+    let n = BigEndian::read_u16(&buf);
+
+    Ok(n)
 }
 
 pub fn decode_u32_be(cursor: &mut Cursor<&[u8]>, field: Field) -> Result<u32, ParseError> {

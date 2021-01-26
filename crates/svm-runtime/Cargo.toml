@@ -23,7 +23,6 @@ svm-types = { path = "../svm-types" }
 svm-layout = { path = "../svm-layout" } 
 svm-kv = { path = "../svm-kv", default-features = false }
 svm-storage = { path = "../svm-storage", default-features = false }
-svm-nibble = { path = "../svm-nibble" }
 svm-codec = { path = "../svm-codec" }
 svm-compiler = { path = "../svm-compiler" }
 svm-gas = { path = "../svm-gas" }

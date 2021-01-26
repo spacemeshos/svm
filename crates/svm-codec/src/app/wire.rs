@@ -2,9 +2,7 @@ use std::io::Cursor;
 
 use svm_types::{App, SpawnApp, TemplateAddr, WasmValue};
 
-pub use crate::api::raw::{
-    decode_abi_data, decode_varuint14, decode_version, encode_abi_data, encode_varuint14, Field,
-};
+pub use crate::api::raw::{decode_abi_data, decode_version, encode_abi_data, Field};
 
 use crate::{error::ParseError, helpers};
 

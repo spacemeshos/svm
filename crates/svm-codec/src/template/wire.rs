@@ -1,15 +1,12 @@
-use std::{
-    fs::File,
-    io::{Cursor, Read},
-};
-
-use svm_types::AppTemplate;
-
-use crate::api::raw::{decode_varuint14, decode_version, encode_varuint14, Field};
-
-use crate::{error::ParseError, helpers};
+use std::fs::File;
+use std::io::{Cursor, Read};
 
 use svm_layout::{DataLayout, DataLayoutBuilder};
+use svm_types::AppTemplate;
+
+use crate::api::raw::{decode_version, Field};
+use crate::error::ParseError;
+use crate::helpers;
 
 /// Encodes a raw Deploy-Template.
 pub fn encode_deploy_template(template: &AppTemplate, w: &mut Vec<u8>) {
@@ -48,11 +45,14 @@ fn encode_name(template: &AppTemplate, w: &mut Vec<u8>) {
 }
 
 fn encode_data(template: &AppTemplate, w: &mut Vec<u8>) {
-    let nvars = template.data.len() as u32;
-    encode_varuint14(nvars as u16, w);
+    let nvars = template.data.len();
+
+    assert!(nvars < std::u16::MAX as usize);
+
+    helpers::encode_u16_be(nvars as u16, w);
 
     for (_varid, _off, len) in template.data.iter() {
-        encode_varuint14(len as u16, w);
+        helpers::encode_u16_be(len as u16, w);
     }
 }
 
@@ -76,12 +76,12 @@ fn decode_name(cursor: &mut Cursor<&[u8]>) -> Result<String, ParseError> {
 }
 
 fn decode_data(cursor: &mut Cursor<&[u8]>) -> Result<DataLayout, ParseError> {
-    let nvars = decode_varuint14(cursor, Field::DataLayoutVarsCount)?;
+    let nvars = helpers::decode_u16_be(cursor, Field::DataLayoutVarsCount)?;
 
     let mut builder = DataLayoutBuilder::with_capacity(nvars as usize);
 
     for _vid in 0..nvars as usize {
-        let len = decode_varuint14(cursor, Field::DataLayoutVarLength)?;
+        let len = helpers::decode_u16_be(cursor, Field::DataLayoutVarLength)?;
 
         builder.add_var(len as u32);
     }
