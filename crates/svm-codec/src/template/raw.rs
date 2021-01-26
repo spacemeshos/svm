@@ -6,7 +6,7 @@ use svm_types::AppTemplate;
 
 use crate::api::raw;
 use crate::common;
-use crate::{Field, ParseError};
+use crate::{Field, ParseError, ReadExt};
 
 /// Encodes a raw Deploy-Template.
 pub fn encode_deploy_template(template: &AppTemplate, w: &mut Vec<u8>) {
@@ -37,7 +37,8 @@ pub fn decode_deploy_template(cursor: &mut Cursor<&[u8]>) -> Result<AppTemplate,
 
 fn encode_version(template: &AppTemplate, w: &mut Vec<u8>) {
     let version = template.version;
-    crate::api::raw::encode_version(version, w);
+
+    raw::encode_version(version, w);
 }
 
 fn encode_name(template: &AppTemplate, w: &mut Vec<u8>) {
@@ -76,31 +77,31 @@ fn decode_name(cursor: &mut Cursor<&[u8]>) -> Result<String, ParseError> {
 }
 
 fn decode_data(cursor: &mut Cursor<&[u8]>) -> Result<DataLayout, ParseError> {
-    let nvars = common::decode_u16_be(cursor, Field::DataLayoutVarsCount)?;
+    match cursor.read_u16_be() {
+        Err(..) => Err(ParseError::NotEnoughBytes(Field::DataLayoutVarsCount)),
+        Ok(nvars) => {
+            let mut builder = DataLayoutBuilder::with_capacity(nvars as usize);
 
-    let mut builder = DataLayoutBuilder::with_capacity(nvars as usize);
+            for _vid in 0..nvars as usize {
+                match cursor.read_u16_be() {
+                    Err(..) => return Err(ParseError::NotEnoughBytes(Field::DataLayoutVarLength)),
+                    Ok(length) => builder.add_var(length as u32),
+                }
+            }
 
-    for _vid in 0..nvars as usize {
-        let len = common::decode_u16_be(cursor, Field::DataLayoutVarLength)?;
-
-        builder.add_var(len as u32);
+            let layout = builder.build();
+            Ok(layout)
+        }
     }
-
-    let layout = builder.build();
-
-    Ok(layout)
 }
 
 fn decode_code(cursor: &mut Cursor<&[u8]>) -> Result<Vec<u8>, ParseError> {
-    let length = common::decode_u32_be(cursor, Field::CodeSize)?;
-
-    let mut buf = Vec::with_capacity(length as usize);
-
-    if cursor.read_exact(&mut buf).is_err() {
-        return Err(ParseError::NotEnoughBytes(Field::Code));
+    match cursor.read_u32_be() {
+        Err(..) => Err(ParseError::NotEnoughBytes(Field::Code)),
+        Ok(length) => cursor
+            .read_bytes(length as usize)
+            .map_err(|_| ParseError::NotEnoughBytes(Field::Code)),
     }
-
-    Ok(buf)
 }
 
 #[cfg(test)]

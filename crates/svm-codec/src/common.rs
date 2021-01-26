@@ -64,15 +64,3 @@ pub fn decode_string(
         }
     }
 }
-
-pub fn decode_u16_be(cursor: &mut Cursor<&[u8]>, field: Field) -> Result<u16, ParseError> {
-    cursor
-        .read_u16_be()
-        .map_err(|_| ParseError::NotEnoughBytes(field))
-}
-
-pub fn decode_u32_be(cursor: &mut Cursor<&[u8]>, field: Field) -> Result<u32, ParseError> {
-    cursor
-        .read_u32_be()
-        .map_err(|_| ParseError::NotEnoughBytes(field))
-}
