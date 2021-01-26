@@ -14,12 +14,15 @@
 
 mod abi;
 mod app;
-mod field;
 mod common;
+mod cursor;
+mod field;
+mod serialize;
 mod template;
-mod traits;
 mod transaction;
 mod version;
+
+pub use cursor::ReadExt;
 
 /// Wraps the exposed APIs under a single place.
 /// This crate exposes the following APIs:
@@ -36,7 +39,7 @@ pub mod serializers {
     pub use crate::app::{DefaultAppDeserializer, DefaultAppSerializer};
     pub use crate::template::{DefaultAppTemplateDeserializer, DefaultAppTemplateSerializer};
 
-    pub use crate::traits::{
+    pub use crate::serialize::{
         AppDeserializer, AppSerializer, AppTemplateDeserializer, AppTemplateSerializer,
     };
 }

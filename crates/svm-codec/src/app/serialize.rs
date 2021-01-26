@@ -4,7 +4,7 @@ use svm_types::{App, CreatorAddr, TemplateAddr};
 
 use crate::api::raw::{decode_version, encode_version, Field};
 use crate::common;
-use crate::traits::{AppDeserializer, AppSerializer};
+use crate::serialize::{AppDeserializer, AppSerializer};
 
 /// Default serializer for `App`
 pub struct DefaultAppSerializer;

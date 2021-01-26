@@ -13,7 +13,7 @@ pub use receipt::decode_receipt;
 pub use spawn_app::{decode_spawn_app, encode_spawn_app};
 
 use crate::api::json::JsonError;
-use byteorder::{BigEndian, ByteOrder};
+
 use serde_json::{self as json, Value};
 
 const HEADER_LEN_OFF: usize = 0;
@@ -114,7 +114,11 @@ fn write_header_u32(buf: *mut u8, n: u32, off: usize) {
         let ptr = buf.add(off);
         let slice = std::slice::from_raw_parts_mut(ptr, 4);
 
-        BigEndian::write_u32(slice, n)
+        let bytes: [u8; 4] = n.to_be_bytes();
+
+        unsafe {
+            std::ptr::copy(bytes.as_ptr(), slice.as_mut_ptr(), 4);
+        }
     }
 }
 
@@ -124,7 +128,9 @@ fn read_header_u32(ptr: usize, off: usize) -> u32 {
         let ptr = ptr as *const u8;
         let slice = std::slice::from_raw_parts(ptr.add(off), 4);
 
-        BigEndian::read_u32(slice)
+        let bytes: [u8; 4] = [slice[0], slice[1], slice[2], slice[3]];
+
+        u32::from_be_bytes(bytes)
     }
 }
 

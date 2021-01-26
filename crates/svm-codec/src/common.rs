@@ -1,11 +1,10 @@
 use std::io::{Cursor, Read};
 
-use byteorder::{BigEndian, ByteOrder};
-
 use svm_types::Address;
 
 use crate::api::raw::{self, Field};
 use crate::error::ParseError;
+use crate::ReadExt;
 
 /// Encoders
 
@@ -26,19 +25,15 @@ pub fn encode_string(s: &str, w: &mut Vec<u8>) {
 }
 
 pub fn encode_u16_be(n: u16, w: &mut Vec<u8>) {
-    let mut buf = vec![0; 2];
+    let mut bytes = n.to_be_bytes();
 
-    BigEndian::write_u16(&mut buf, n);
-
-    w.extend_from_slice(&buf);
+    w.extend_from_slice(&bytes);
 }
 
 pub fn encode_u32_be(n: u32, w: &mut Vec<u8>) {
-    let mut buf = vec![0; 4];
+    let mut bytes = n.to_be_bytes();
 
-    BigEndian::write_u32(&mut buf, n);
-
-    w.extend_from_slice(&buf);
+    w.extend_from_slice(&bytes);
 }
 
 /// Decoders
@@ -79,25 +74,13 @@ pub fn decode_string(
 }
 
 pub fn decode_u16_be(cursor: &mut Cursor<&[u8]>, field: Field) -> Result<u16, ParseError> {
-    let mut buf = [0; 2];
-
-    if cursor.read_exact(&mut buf).is_err() {
-        return Err(ParseError::NotEnoughBytes(field));
-    }
-
-    let n = BigEndian::read_u16(&buf);
-
-    Ok(n)
+    cursor
+        .read_u16_be()
+        .map_err(|_| ParseError::NotEnoughBytes(field))
 }
 
 pub fn decode_u32_be(cursor: &mut Cursor<&[u8]>, field: Field) -> Result<u32, ParseError> {
-    let mut buf = [0; 4];
-
-    if cursor.read_exact(&mut buf).is_err() {
-        return Err(ParseError::NotEnoughBytes(field));
-    }
-
-    let n = BigEndian::read_u32(&buf);
-
-    Ok(n)
+    cursor
+        .read_u32_be()
+        .map_err(|_| ParseError::NotEnoughBytes(field))
 }

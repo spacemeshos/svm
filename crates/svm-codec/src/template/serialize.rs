@@ -6,7 +6,7 @@ use crate::api::raw::{decode_deploy_template, encode_deploy_template, Field};
 
 use crate::{
     common,
-    traits::{AppTemplateDeserializer, AppTemplateSerializer},
+    serialize::{AppTemplateDeserializer, AppTemplateSerializer},
 };
 
 /// `AppTemplate` default Serializer

@@ -1,4 +1,3 @@
-use byteorder::{BigEndian, ByteOrder};
 use serde_json::Value;
 
 use crate::api::json::{self, JsonError};
@@ -47,7 +46,11 @@ fn to_data_layout(blob: Vec<u8>) -> Result<DataLayout, JsonError> {
 
     let data: Vec<u32> = blob
         .chunks_exact(4)
-        .map(|buf| BigEndian::read_u32(&buf))
+        .map(|buf| {
+            let bytes: [u8; 4] = [buf[0], buf[1], buf[2], buf[3]];
+
+            u32::from_be_bytes(bytes)
+        })
         .collect();
 
     let mut builder = DataLayoutBuilder::new();
