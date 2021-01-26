@@ -1,7 +1,7 @@
 use std::io::{Cursor, Read};
 
-use crate::api::raw::{self, Field};
-use crate::error::ParseError;
+use crate::api::raw;
+use crate::{Field, ParseError};
 
 use svm_types::gas::MaybeGas;
 use svm_types::receipt::{Log, Receipt, ReceiptError};

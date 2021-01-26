@@ -4,9 +4,9 @@ use std::io::{Cursor, Read};
 use svm_layout::{DataLayout, DataLayoutBuilder};
 use svm_types::AppTemplate;
 
-use crate::api::raw::{decode_version, Field};
-use crate::error::ParseError;
+use crate::api::raw;
 use crate::common;
+use crate::{Field, ParseError};
 
 /// Encodes a raw Deploy-Template.
 pub fn encode_deploy_template(template: &AppTemplate, w: &mut Vec<u8>) {
@@ -18,7 +18,7 @@ pub fn encode_deploy_template(template: &AppTemplate, w: &mut Vec<u8>) {
 
 /// Decodes a raw Deploy-Template.
 pub fn decode_deploy_template(cursor: &mut Cursor<&[u8]>) -> Result<AppTemplate, ParseError> {
-    let version = decode_version(cursor)?;
+    let version = raw::decode_version(cursor)?;
     let name = decode_name(cursor)?;
     let code = decode_code(cursor)?;
     let data = decode_data(cursor)?;

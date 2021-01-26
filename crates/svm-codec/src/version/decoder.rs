@@ -1,7 +1,6 @@
 use std::io::{Cursor, Read};
 
-use crate::api::raw::Field;
-use crate::error::ParseError;
+use crate::{Field, ParseError};
 
 /// Decodes the `version` into an `u32`
 pub fn decode_version(cursor: &mut Cursor<&[u8]>) -> Result<u32, ParseError> {

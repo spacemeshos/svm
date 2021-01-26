@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::api::raw::Field;
+use crate::Field;
 
 #[allow(missing_docs)]
 #[derive(PartialEq, Clone)]

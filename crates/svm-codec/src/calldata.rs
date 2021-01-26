@@ -1,8 +1,6 @@
 use std::io::Cursor;
 
-use crate::api::raw::Field;
-use crate::error::ParseError;
-use crate::ReadExt;
+use crate::{Field, ParseError, ReadExt};
 
 pub fn encode_calldata(calldata: &[u8], w: &mut Vec<u8>) {
     let length = calldata.len();

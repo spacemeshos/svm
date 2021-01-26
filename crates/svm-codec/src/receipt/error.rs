@@ -57,8 +57,8 @@
 
 use std::io::{Cursor, Read};
 
-use crate::api::raw::Field;
 use crate::common;
+use crate::Field;
 
 use svm_types::receipt::{Log, ReceiptError, ReceiptError as Err};
 use svm_types::{Address, AppAddr, TemplateAddr};

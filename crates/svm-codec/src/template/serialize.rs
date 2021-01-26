@@ -2,12 +2,10 @@ use std::io::Cursor;
 
 use svm_types::{AppTemplate, AuthorAddr};
 
-use crate::api::raw::{decode_deploy_template, encode_deploy_template, Field};
-
-use crate::{
-    common,
-    serialize::{AppTemplateDeserializer, AppTemplateSerializer},
-};
+use crate::api::raw;
+use crate::common;
+use crate::serialize::{AppTemplateDeserializer, AppTemplateSerializer};
+use crate::Field;
 
 /// `AppTemplate` default Serializer
 pub struct DefaultAppTemplateSerializer;
@@ -19,7 +17,7 @@ impl AppTemplateSerializer for DefaultAppTemplateSerializer {
     fn serialize(template: &AppTemplate, author: &AuthorAddr) -> Vec<u8> {
         let mut w = Vec::new();
 
-        encode_deploy_template(template, &mut w);
+        raw::encode_deploy_template(template, &mut w);
         common::encode_address(author.inner(), &mut w);
 
         w
@@ -30,7 +28,7 @@ impl AppTemplateDeserializer for DefaultAppTemplateDeserializer {
     fn deserialize(bytes: &[u8]) -> Option<(AppTemplate, AuthorAddr)> {
         let mut cursor = Cursor::new(bytes);
 
-        let template = match decode_deploy_template(&mut cursor) {
+        let template = match raw::decode_deploy_template(&mut cursor) {
             Ok(template) => template,
             _ => return None,
         };
