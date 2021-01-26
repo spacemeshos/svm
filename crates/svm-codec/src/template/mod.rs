@@ -18,8 +18,8 @@
 
 mod serialize;
 mod validate;
-mod wire;
+mod raw;
 
 pub use serialize::{DefaultAppTemplateDeserializer, DefaultAppTemplateSerializer};
 pub use validate::validate_template;
-pub use wire::{decode_deploy_template, encode_deploy_template};
+pub use raw::{decode_deploy_template, encode_deploy_template};

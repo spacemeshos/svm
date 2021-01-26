@@ -5,7 +5,7 @@ use svm_types::{AppTemplate, AuthorAddr};
 use crate::api::raw::{decode_deploy_template, encode_deploy_template, Field};
 
 use crate::{
-    helpers,
+    common,
     traits::{AppTemplateDeserializer, AppTemplateSerializer},
 };
 
@@ -20,7 +20,7 @@ impl AppTemplateSerializer for DefaultAppTemplateSerializer {
         let mut w = Vec::new();
 
         encode_deploy_template(template, &mut w);
-        helpers::encode_address(author.inner(), &mut w);
+        common::encode_address(author.inner(), &mut w);
 
         w
     }
@@ -35,7 +35,7 @@ impl AppTemplateDeserializer for DefaultAppTemplateDeserializer {
             _ => return None,
         };
 
-        let author = match helpers::decode_address(&mut cursor, Field::Author) {
+        let author = match common::decode_address(&mut cursor, Field::Author) {
             Ok(addr) => AuthorAddr::new(addr),
             _ => return None,
         };

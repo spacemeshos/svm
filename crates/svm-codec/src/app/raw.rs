@@ -4,7 +4,7 @@ use svm_types::{App, SpawnApp, TemplateAddr, WasmValue};
 
 pub use crate::api::raw::{decode_abi_data, decode_version, encode_abi_data, Field};
 
-use crate::{error::ParseError, helpers};
+use crate::{error::ParseError, common};
 
 /// Encodes a raw Spawn-App transaction.
 pub fn encode_spawn_app(spawn: &SpawnApp, w: &mut Vec<u8>) {
@@ -50,19 +50,19 @@ fn encode_version(spawn: &SpawnApp, w: &mut Vec<u8>) {
 
 fn encode_name(spawn: &SpawnApp, w: &mut Vec<u8>) {
     let name = &spawn.app.name;
-    helpers::encode_string(name, w);
+    common::encode_string(name, w);
 }
 
 fn encode_template(spawn: &SpawnApp, w: &mut Vec<u8>) {
     let template = &spawn.app.template;
 
-    helpers::encode_address(template.inner(), w);
+    common::encode_address(template.inner(), w);
 }
 
 fn encode_ctor(spawn: &SpawnApp, w: &mut Vec<u8>) {
     let ctor_name = &spawn.ctor_name;
 
-    helpers::encode_string(ctor_name, w);
+    common::encode_string(ctor_name, w);
 }
 
 fn encode_ctor_calldata(spawn: &SpawnApp, w: &mut Vec<u8>) {
@@ -74,17 +74,17 @@ fn encode_ctor_calldata(spawn: &SpawnApp, w: &mut Vec<u8>) {
 /// Decoders
 
 fn decode_template(cursor: &mut Cursor<&[u8]>) -> Result<TemplateAddr, ParseError> {
-    let addr = helpers::decode_address(cursor, Field::TemplateAddr)?;
+    let addr = common::decode_address(cursor, Field::TemplateAddr)?;
 
     Ok(TemplateAddr::new(addr))
 }
 
 fn decode_name(cursor: &mut Cursor<&[u8]>) -> Result<String, ParseError> {
-    helpers::decode_string(cursor, Field::NameLength, Field::Name)
+    common::decode_string(cursor, Field::NameLength, Field::Name)
 }
 
 fn decode_ctor(cursor: &mut Cursor<&[u8]>) -> Result<String, ParseError> {
-    helpers::decode_string(cursor, Field::NameLength, Field::Name)
+    common::decode_string(cursor, Field::NameLength, Field::Name)
 }
 
 fn decode_ctor_calldata(cursor: &mut Cursor<&[u8]>) -> Result<Vec<u8>, ParseError> {

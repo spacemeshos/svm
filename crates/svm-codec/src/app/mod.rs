@@ -9,8 +9,8 @@
 //!  |_______________|________________________________________|
 //!
 
+mod raw;
 mod serialize;
-mod wire;
 
+pub use raw::{decode_spawn_app, encode_spawn_app};
 pub use serialize::{DefaultAppDeserializer, DefaultAppSerializer};
-pub use wire::{decode_spawn_app, encode_spawn_app};

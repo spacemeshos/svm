@@ -6,7 +6,7 @@ use svm_types::AppTemplate;
 
 use crate::api::raw::{decode_version, Field};
 use crate::error::ParseError;
-use crate::helpers;
+use crate::common;
 
 /// Encodes a raw Deploy-Template.
 pub fn encode_deploy_template(template: &AppTemplate, w: &mut Vec<u8>) {
@@ -41,7 +41,7 @@ fn encode_version(template: &AppTemplate, w: &mut Vec<u8>) {
 }
 
 fn encode_name(template: &AppTemplate, w: &mut Vec<u8>) {
-    helpers::encode_string(&template.name, w);
+    common::encode_string(&template.name, w);
 }
 
 fn encode_data(template: &AppTemplate, w: &mut Vec<u8>) {
@@ -49,10 +49,10 @@ fn encode_data(template: &AppTemplate, w: &mut Vec<u8>) {
 
     assert!(nvars < std::u16::MAX as usize);
 
-    helpers::encode_u16_be(nvars as u16, w);
+    common::encode_u16_be(nvars as u16, w);
 
     for (_varid, _off, len) in template.data.iter() {
-        helpers::encode_u16_be(len as u16, w);
+        common::encode_u16_be(len as u16, w);
     }
 }
 
@@ -63,7 +63,7 @@ fn encode_code(template: &AppTemplate, w: &mut Vec<u8>) {
     let length = code.len();
     assert!(length < std::u32::MAX as usize);
 
-    helpers::encode_u32_be(length as u32, w);
+    common::encode_u32_be(length as u32, w);
 
     // code
     w.extend_from_slice(code)
@@ -72,16 +72,16 @@ fn encode_code(template: &AppTemplate, w: &mut Vec<u8>) {
 /// Decoders
 
 fn decode_name(cursor: &mut Cursor<&[u8]>) -> Result<String, ParseError> {
-    helpers::decode_string(cursor, Field::NameLength, Field::Name)
+    common::decode_string(cursor, Field::NameLength, Field::Name)
 }
 
 fn decode_data(cursor: &mut Cursor<&[u8]>) -> Result<DataLayout, ParseError> {
-    let nvars = helpers::decode_u16_be(cursor, Field::DataLayoutVarsCount)?;
+    let nvars = common::decode_u16_be(cursor, Field::DataLayoutVarsCount)?;
 
     let mut builder = DataLayoutBuilder::with_capacity(nvars as usize);
 
     for _vid in 0..nvars as usize {
-        let len = helpers::decode_u16_be(cursor, Field::DataLayoutVarLength)?;
+        let len = common::decode_u16_be(cursor, Field::DataLayoutVarLength)?;
 
         builder.add_var(len as u32);
     }
@@ -92,7 +92,7 @@ fn decode_data(cursor: &mut Cursor<&[u8]>) -> Result<DataLayout, ParseError> {
 }
 
 fn decode_code(cursor: &mut Cursor<&[u8]>) -> Result<Vec<u8>, ParseError> {
-    let length = helpers::decode_u32_be(cursor, Field::CodeSize)?;
+    let length = common::decode_u32_be(cursor, Field::CodeSize)?;
 
     let mut buf = Vec::with_capacity(length as usize);
 

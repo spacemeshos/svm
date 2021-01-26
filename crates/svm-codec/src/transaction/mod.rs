@@ -15,6 +15,6 @@
 //!
 //!
 
-mod wire;
+mod raw;
 
-pub use wire::{decode_exec_app, encode_exec_app};
+pub use raw::{decode_exec_app, encode_exec_app};

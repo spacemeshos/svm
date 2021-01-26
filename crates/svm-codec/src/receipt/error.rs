@@ -58,7 +58,7 @@
 use std::io::{Cursor, Read};
 
 use crate::api::raw::Field;
-use crate::helpers;
+use crate::common;
 
 use svm_types::receipt::{Log, ReceiptError, ReceiptError as Err};
 use svm_types::{Address, AppAddr, TemplateAddr};
@@ -72,8 +72,8 @@ pub(crate) fn encode_error(err: &ReceiptError, logs: &[Log], w: &mut Vec<u8>) {
 
     match err {
         Err::OOG => (),
-        Err::TemplateNotFound(template_addr) => helpers::encode_address(template_addr.inner(), w),
-        Err::AppNotFound(app_addr) => helpers::encode_address(app_addr.inner(), w),
+        Err::TemplateNotFound(template_addr) => common::encode_address(template_addr.inner(), w),
+        Err::AppNotFound(app_addr) => common::encode_address(app_addr.inner(), w),
         Err::CompilationFailed {
             app_addr,
             template_addr,
@@ -84,18 +84,18 @@ pub(crate) fn encode_error(err: &ReceiptError, logs: &[Log], w: &mut Vec<u8>) {
             template_addr,
             msg,
         } => {
-            helpers::encode_address(template_addr.inner(), w);
-            helpers::encode_address(app_addr.inner(), w);
-            helpers::encode_string(msg, w);
+            common::encode_address(template_addr.inner(), w);
+            common::encode_address(app_addr.inner(), w);
+            common::encode_string(msg, w);
         }
         Err::FuncNotFound {
             app_addr,
             template_addr,
             func,
         } => {
-            helpers::encode_address(template_addr.inner(), w);
-            helpers::encode_address(app_addr.inner(), w);
-            helpers::encode_string(func, w);
+            common::encode_address(template_addr.inner(), w);
+            common::encode_address(app_addr.inner(), w);
+            common::encode_string(func, w);
         }
         Err::FuncFailed {
             app_addr,
@@ -103,10 +103,10 @@ pub(crate) fn encode_error(err: &ReceiptError, logs: &[Log], w: &mut Vec<u8>) {
             func,
             msg,
         } => {
-            helpers::encode_address(template_addr.inner(), w);
-            helpers::encode_address(app_addr.inner(), w);
-            helpers::encode_string(func, w);
-            helpers::encode_string(msg, w);
+            common::encode_address(template_addr.inner(), w);
+            common::encode_address(app_addr.inner(), w);
+            common::encode_string(func, w);
+            common::encode_string(msg, w);
         }
     };
 }
@@ -188,7 +188,7 @@ fn decode_instantiation_err(cursor: &mut Cursor<&[u8]>) -> ReceiptError {
 
 fn decode_func_not_found(cursor: &mut Cursor<&[u8]>) -> ReceiptError {
     let (template_addr, app_addr) = decode_addrs(cursor);
-    let func = helpers::decode_string(cursor, Field::FuncNameLength, Field::FuncName).unwrap();
+    let func = common::decode_string(cursor, Field::FuncNameLength, Field::FuncName).unwrap();
 
     ReceiptError::FuncNotFound {
         template_addr,
@@ -199,7 +199,7 @@ fn decode_func_not_found(cursor: &mut Cursor<&[u8]>) -> ReceiptError {
 
 fn decode_func_err(cursor: &mut Cursor<&[u8]>) -> ReceiptError {
     let (template_addr, app_addr) = decode_addrs(cursor);
-    let func = helpers::decode_string(cursor, Field::FuncNameLength, Field::FuncName).unwrap();
+    let func = common::decode_string(cursor, Field::FuncNameLength, Field::FuncName).unwrap();
     let msg = decode_msg(cursor);
 
     ReceiptError::FuncFailed {
@@ -218,15 +218,15 @@ fn decode_addrs(cursor: &mut Cursor<&[u8]>) -> (TemplateAddr, AppAddr) {
 }
 
 fn decode_template_addr(cursor: &mut Cursor<&[u8]>) -> Address {
-    helpers::decode_address(cursor, Field::TemplateAddr).unwrap()
+    common::decode_address(cursor, Field::TemplateAddr).unwrap()
 }
 
 fn decode_app_addr(cursor: &mut Cursor<&[u8]>) -> Address {
-    helpers::decode_address(cursor, Field::AppAddr).unwrap()
+    common::decode_address(cursor, Field::AppAddr).unwrap()
 }
 
 fn decode_msg(cursor: &mut Cursor<&[u8]>) -> String {
-    helpers::decode_string(cursor, Field::StringLength, Field::String).unwrap()
+    common::decode_string(cursor, Field::StringLength, Field::String).unwrap()
 }
 
 #[cfg(test)]

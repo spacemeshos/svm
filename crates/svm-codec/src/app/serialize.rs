@@ -3,7 +3,7 @@ use std::io::Cursor;
 use svm_types::{App, CreatorAddr, TemplateAddr};
 
 use crate::api::raw::{decode_version, encode_version, Field};
-use crate::helpers;
+use crate::common;
 use crate::traits::{AppDeserializer, AppSerializer};
 
 /// Default serializer for `App`
@@ -27,15 +27,15 @@ impl AppSerializer for DefaultAppSerializer {
 
 impl DefaultAppSerializer {
     fn encode_template(app: &App, w: &mut Vec<u8>) {
-        helpers::encode_address(app.template.inner(), w);
+        common::encode_address(app.template.inner(), w);
     }
 
     fn encode_creator(creator: &CreatorAddr, w: &mut Vec<u8>) {
-        helpers::encode_address(creator.inner(), w);
+        common::encode_address(creator.inner(), w);
     }
 
     fn encode_name(app: &App, w: &mut Vec<u8>) {
-        helpers::encode_string(&app.name, w);
+        common::encode_string(&app.name, w);
     }
 }
 
@@ -48,17 +48,17 @@ impl AppDeserializer for DefaultAppDeserializer {
             _ => return None,
         };
 
-        let template = match helpers::decode_address(&mut cursor, Field::TemplateAddr) {
+        let template = match common::decode_address(&mut cursor, Field::TemplateAddr) {
             Ok(addr) => TemplateAddr::new(addr),
             _ => return None,
         };
 
-        let creator = match helpers::decode_address(&mut cursor, Field::Creator) {
+        let creator = match common::decode_address(&mut cursor, Field::Creator) {
             Ok(addr) => CreatorAddr::new(addr),
             _ => return None,
         };
 
-        let name = match helpers::decode_string(&mut cursor, Field::NameLength, Field::Name) {
+        let name = match common::decode_string(&mut cursor, Field::NameLength, Field::Name) {
             Ok(name) => name,
             _ => return None,
         };

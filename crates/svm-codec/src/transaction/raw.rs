@@ -4,7 +4,7 @@ use svm_types::{AppAddr, AppTransaction};
 
 use crate::api::raw::{decode_abi_data, decode_version, encode_abi_data, Field};
 
-use crate::{error::ParseError, helpers};
+use crate::{error::ParseError, common};
 
 /// Encodes a raw App transaction.
 pub fn encode_exec_app(tx: &AppTransaction, w: &mut Vec<u8>) {
@@ -42,11 +42,11 @@ fn encode_version(tx: &AppTransaction, w: &mut Vec<u8>) {
 fn encode_app(tx: &AppTransaction, w: &mut Vec<u8>) {
     let addr = tx.app.inner();
 
-    helpers::encode_address(addr, w);
+    common::encode_address(addr, w);
 }
 
 fn encode_func(tx: &AppTransaction, w: &mut Vec<u8>) {
-    helpers::encode_string(&tx.func_name, w);
+    common::encode_string(&tx.func_name, w);
 }
 
 fn encode_calldata(tx: &AppTransaction, w: &mut Vec<u8>) {
@@ -58,13 +58,13 @@ fn encode_calldata(tx: &AppTransaction, w: &mut Vec<u8>) {
 /// Decoders
 
 fn decode_app(cursor: &mut Cursor<&[u8]>) -> Result<AppAddr, ParseError> {
-    let addr = helpers::decode_address(cursor, Field::AppAddr)?;
+    let addr = common::decode_address(cursor, Field::AppAddr)?;
 
     Ok(addr.into())
 }
 
 fn decode_func(cursor: &mut Cursor<&[u8]>) -> Result<String, ParseError> {
-    helpers::decode_string(cursor, Field::FuncNameLength, Field::FuncName)
+    common::decode_string(cursor, Field::FuncNameLength, Field::FuncName)
 }
 
 #[cfg(test)]
