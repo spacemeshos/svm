@@ -1,4 +1,4 @@
-use std::io::{Cursor, Read};
+use std::io::Cursor;
 
 use svm_types::Address;
 
@@ -40,15 +40,10 @@ pub fn encode_u32_be(n: u32, w: &mut Vec<u8>) {
 
 #[must_use]
 pub fn decode_address(cursor: &mut Cursor<&[u8]>, field: Field) -> Result<Address, ParseError> {
-    let mut buf = [0; Address::len()];
-
-    if cursor.read_exact(&mut buf).is_err() {
-        return Err(ParseError::NotEnoughBytes(field));
-    }
-
-    let addr = buf.into();
-
-    Ok(addr)
+    cursor
+        .read_bytes(Address::len())
+        .map(|bytes| Address::from(&bytes[..]))
+        .map_err(|_| ParseError::NotEnoughBytes(field))
 }
 
 #[must_use]
@@ -57,20 +52,19 @@ pub fn decode_string(
     len_field: Field,
     field: Field,
 ) -> Result<String, ParseError> {
-    let mut buf = [0; 1];
+    match cursor.read_byte() {
+        Err(..) => Err(ParseError::EmptyField(field)),
+        Ok(byte) => {
+            let length = byte as usize;
 
-    if cursor.read_exact(&mut buf).is_err() {
-        return Err(ParseError::EmptyField(field));
+            match cursor.read_bytes(length) {
+                Err(..) => Err(ParseError::NotEnoughBytes(field)),
+                Ok(vec) => {
+                    String::from_utf8(vec).map_err(|_e| ParseError::InvalidUTF8String(field))
+                }
+            }
+        }
     }
-
-    let length = buf[0] as usize;
-    let mut buf = Vec::with_capacity(length);
-
-    if cursor.read_exact(&mut buf).is_err() {
-        return Err(ParseError::NotEnoughBytes(field));
-    }
-
-    String::from_utf8(buf).or_else(|_e| Err(ParseError::InvalidUTF8String(field)))
 }
 
 pub fn decode_u16_be(cursor: &mut Cursor<&[u8]>, field: Field) -> Result<u16, ParseError> {

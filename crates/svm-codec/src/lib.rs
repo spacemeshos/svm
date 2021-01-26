@@ -12,7 +12,7 @@
 #![allow(unreachable_code)]
 #![feature(vec_into_raw_parts)]
 
-mod abi;
+mod calldata;
 mod app;
 mod common;
 mod cursor;
@@ -23,6 +23,7 @@ mod transaction;
 mod version;
 
 pub use cursor::ReadExt;
+pub use field::Field;
 
 /// Wraps the exposed APIs under a single place.
 /// This crate exposes the following APIs:
@@ -34,7 +35,9 @@ pub use cursor::ReadExt;
 pub mod api;
 pub mod receipt;
 
-pub mod error;
+mod error;
+pub use error::ParseError;
+
 pub mod serializers {
     pub use crate::app::{DefaultAppDeserializer, DefaultAppSerializer};
     pub use crate::template::{DefaultAppTemplateDeserializer, DefaultAppTemplateSerializer};

@@ -70,7 +70,7 @@ pub fn decode_app_receipt(bytes: &[u8]) -> SpawnAppReceipt {
             // success
             let addr = helpers::decode_address(&mut cursor).unwrap();
             let init_state = helpers::decode_state(&mut cursor).unwrap();
-            let returndata = raw::decode_abi_data(&mut cursor).unwrap();
+            let returndata = raw::decode_calldata(&mut cursor).unwrap();
             let gas_used = helpers::decode_gas_used(&mut cursor).unwrap();
             let logs = logs::decode_logs(&mut cursor).unwrap();
 

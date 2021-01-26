@@ -2,9 +2,10 @@ use std::io::Cursor;
 
 use svm_types::{App, SpawnApp, TemplateAddr, WasmValue};
 
-pub use crate::api::raw::{decode_abi_data, decode_version, encode_abi_data, Field};
+pub use crate::api::raw;
+pub use crate::Field;
 
-use crate::{error::ParseError, common};
+use crate::{common, error::ParseError};
 
 /// Encodes a raw Spawn-App transaction.
 pub fn encode_spawn_app(spawn: &SpawnApp, w: &mut Vec<u8>) {
@@ -19,7 +20,7 @@ pub fn encode_spawn_app(spawn: &SpawnApp, w: &mut Vec<u8>) {
 /// Returns the parsed transaction as a tuple consisting of an `App` struct and `ctor_name` buffer args.
 /// On failure, returns `ParseError`.
 pub fn decode_spawn_app(cursor: &mut Cursor<&[u8]>) -> Result<SpawnApp, ParseError> {
-    let version = decode_version(cursor)?;
+    let version = raw::decode_version(cursor)?;
     let template = decode_template(cursor)?;
     let name = decode_name(cursor)?;
     let ctor_name = decode_ctor(cursor)?;
@@ -50,6 +51,7 @@ fn encode_version(spawn: &SpawnApp, w: &mut Vec<u8>) {
 
 fn encode_name(spawn: &SpawnApp, w: &mut Vec<u8>) {
     let name = &spawn.app.name;
+
     common::encode_string(name, w);
 }
 
@@ -68,7 +70,7 @@ fn encode_ctor(spawn: &SpawnApp, w: &mut Vec<u8>) {
 fn encode_ctor_calldata(spawn: &SpawnApp, w: &mut Vec<u8>) {
     let calldata = &*spawn.calldata;
 
-    encode_abi_data(calldata, w);
+    raw::encode_calldata(calldata, w);
 }
 
 /// Decoders
@@ -88,7 +90,7 @@ fn decode_ctor(cursor: &mut Cursor<&[u8]>) -> Result<String, ParseError> {
 }
 
 fn decode_ctor_calldata(cursor: &mut Cursor<&[u8]>) -> Result<Vec<u8>, ParseError> {
-    decode_abi_data(cursor)
+    raw::decode_calldata(cursor)
 }
 
 #[cfg(test)]

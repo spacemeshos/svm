@@ -32,7 +32,7 @@ pub(crate) fn encode_type(ty: u8, w: &mut Vec<u8>) {
 }
 
 pub(crate) fn encode_abi_data(returns: &[u8], w: &mut Vec<u8>) {
-    raw::encode_abi_data(returns, w)
+    raw::encode_calldata(returns, w)
 }
 
 pub(crate) fn encode_addr(addr: &Address, w: &mut Vec<u8>) {
