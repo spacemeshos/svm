@@ -5,7 +5,7 @@ use svm_types::{AppTemplate, AuthorAddr};
 use crate::api::raw;
 use crate::common;
 use crate::serialize::{AppTemplateDeserializer, AppTemplateSerializer};
-use crate::Field;
+use crate::{Field, ReadExt};
 
 /// `AppTemplate` default Serializer
 pub struct DefaultAppTemplateSerializer;
@@ -33,8 +33,8 @@ impl AppTemplateDeserializer for DefaultAppTemplateDeserializer {
             _ => return None,
         };
 
-        let author = match common::decode_address(&mut cursor, Field::Author) {
-            Ok(addr) => AuthorAddr::new(addr),
+        let author = match cursor.read_address() {
+            Ok(addr) => AuthorAddr::new(addr.into()),
             _ => return None,
         };
 

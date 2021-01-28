@@ -6,7 +6,7 @@ use svm_types::AppTemplate;
 
 use crate::api::raw;
 use crate::common;
-use crate::{Field, ParseError, ReadExt};
+use crate::{Field, ParseError, ReadExt, WriteExt};
 
 /// Encodes a raw Deploy-Template.
 pub fn encode_deploy_template(template: &AppTemplate, w: &mut Vec<u8>) {
@@ -50,10 +50,10 @@ fn encode_data(template: &AppTemplate, w: &mut Vec<u8>) {
 
     assert!(nvars < std::u16::MAX as usize);
 
-    common::encode_u16_be(nvars as u16, w);
+    w.write_u16_be(nvars as u16);
 
     for (_varid, _off, len) in template.data.iter() {
-        common::encode_u16_be(len as u16, w);
+        w.write_u16_be(len as u16);
     }
 }
 
@@ -64,7 +64,7 @@ fn encode_code(template: &AppTemplate, w: &mut Vec<u8>) {
     let length = code.len();
     assert!(length < std::u32::MAX as usize);
 
-    common::encode_u32_be(length as u32, w);
+    w.write_u32_be(length as u32);
 
     // code
     w.extend_from_slice(code)
@@ -73,7 +73,11 @@ fn encode_code(template: &AppTemplate, w: &mut Vec<u8>) {
 /// Decoders
 
 fn decode_name(cursor: &mut Cursor<&[u8]>) -> Result<String, ParseError> {
-    common::decode_string(cursor, Field::NameLength, Field::Name)
+    match cursor.read_string() {
+        Ok(Ok(name)) => Ok(name),
+        Ok(Err(..)) => Err(ParseError::InvalidUTF8String(Field::Name)),
+        Err(..) => Err(ParseError::NotEnoughBytes(Field::Name)),
+    }
 }
 
 fn decode_data(cursor: &mut Cursor<&[u8]>) -> Result<DataLayout, ParseError> {

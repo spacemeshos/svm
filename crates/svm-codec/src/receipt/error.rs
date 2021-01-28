@@ -57,8 +57,7 @@
 
 use std::io::{Cursor, Read};
 
-use crate::common;
-use crate::Field;
+use crate::{Field, ReadExt, WriteExt};
 
 use svm_types::receipt::{Log, ReceiptError, ReceiptError as Err};
 use svm_types::{Address, AppAddr, TemplateAddr};
@@ -72,8 +71,8 @@ pub(crate) fn encode_error(err: &ReceiptError, logs: &[Log], w: &mut Vec<u8>) {
 
     match err {
         Err::OOG => (),
-        Err::TemplateNotFound(template_addr) => common::encode_address(template_addr.inner(), w),
-        Err::AppNotFound(app_addr) => common::encode_address(app_addr.inner(), w),
+        Err::TemplateNotFound(template_addr) => w.write_address(template_addr.inner()),
+        Err::AppNotFound(app_addr) => w.write_address(app_addr.inner()),
         Err::CompilationFailed {
             app_addr,
             template_addr,
@@ -84,18 +83,18 @@ pub(crate) fn encode_error(err: &ReceiptError, logs: &[Log], w: &mut Vec<u8>) {
             template_addr,
             msg,
         } => {
-            common::encode_address(template_addr.inner(), w);
-            common::encode_address(app_addr.inner(), w);
-            common::encode_string(msg, w);
+            w.write_address(template_addr.inner());
+            w.write_address(app_addr.inner());
+            w.write_string(msg);
         }
         Err::FuncNotFound {
             app_addr,
             template_addr,
             func,
         } => {
-            common::encode_address(template_addr.inner(), w);
-            common::encode_address(app_addr.inner(), w);
-            common::encode_string(func, w);
+            w.write_address(template_addr.inner());
+            w.write_address(app_addr.inner());
+            w.write_string(func);
         }
         Err::FuncFailed {
             app_addr,
@@ -103,10 +102,10 @@ pub(crate) fn encode_error(err: &ReceiptError, logs: &[Log], w: &mut Vec<u8>) {
             func,
             msg,
         } => {
-            common::encode_address(template_addr.inner(), w);
-            common::encode_address(app_addr.inner(), w);
-            common::encode_string(func, w);
-            common::encode_string(msg, w);
+            w.write_address(template_addr.inner());
+            w.write_address(app_addr.inner());
+            w.write_string(func);
+            w.write_string(msg);
         }
     };
 }
@@ -126,10 +125,7 @@ fn encode_err_type(err: &ReceiptError, w: &mut Vec<u8>) {
 }
 
 pub(crate) fn decode_error(cursor: &mut Cursor<&[u8]>) -> (ReceiptError, Vec<Log>) {
-    let mut buf = [0; 1];
-    cursor.read_exact(&mut buf).unwrap();
-
-    let ty = buf[0];
+    let ty = cursor.read_byte().unwrap();
     let logs = logs::decode_logs(cursor).unwrap();
 
     let err = {
@@ -188,7 +184,7 @@ fn decode_instantiation_err(cursor: &mut Cursor<&[u8]>) -> ReceiptError {
 
 fn decode_func_not_found(cursor: &mut Cursor<&[u8]>) -> ReceiptError {
     let (template_addr, app_addr) = decode_addrs(cursor);
-    let func = common::decode_string(cursor, Field::FuncNameLength, Field::FuncName).unwrap();
+    let func = decode_func(cursor);
 
     ReceiptError::FuncNotFound {
         template_addr,
@@ -199,7 +195,7 @@ fn decode_func_not_found(cursor: &mut Cursor<&[u8]>) -> ReceiptError {
 
 fn decode_func_err(cursor: &mut Cursor<&[u8]>) -> ReceiptError {
     let (template_addr, app_addr) = decode_addrs(cursor);
-    let func = common::decode_string(cursor, Field::FuncNameLength, Field::FuncName).unwrap();
+    let func = decode_func(cursor);
     let msg = decode_msg(cursor);
 
     ReceiptError::FuncFailed {
@@ -210,6 +206,10 @@ fn decode_func_err(cursor: &mut Cursor<&[u8]>) -> ReceiptError {
     }
 }
 
+fn decode_func(cursor: &mut Cursor<&[u8]>) -> String {
+    cursor.read_string().unwrap().unwrap()
+}
+
 fn decode_addrs(cursor: &mut Cursor<&[u8]>) -> (TemplateAddr, AppAddr) {
     let template_addr = decode_template_addr(cursor);
     let app_addr = decode_app_addr(cursor);
@@ -218,15 +218,15 @@ fn decode_addrs(cursor: &mut Cursor<&[u8]>) -> (TemplateAddr, AppAddr) {
 }
 
 fn decode_template_addr(cursor: &mut Cursor<&[u8]>) -> Address {
-    common::decode_address(cursor, Field::TemplateAddr).unwrap()
+    cursor.read_address().unwrap()
 }
 
 fn decode_app_addr(cursor: &mut Cursor<&[u8]>) -> Address {
-    common::decode_address(cursor, Field::AppAddr).unwrap()
+    cursor.read_address().unwrap()
 }
 
 fn decode_msg(cursor: &mut Cursor<&[u8]>) -> String {
-    common::decode_string(cursor, Field::StringLength, Field::String).unwrap()
+    cursor.read_string().unwrap().unwrap()
 }
 
 #[cfg(test)]

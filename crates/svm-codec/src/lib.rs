@@ -12,17 +12,17 @@
 #![allow(unreachable_code)]
 #![feature(vec_into_raw_parts)]
 
-mod calldata;
 mod app;
+mod calldata;
 mod common;
-mod cursor;
+mod ext;
 mod field;
 mod serialize;
 mod template;
 mod transaction;
 mod version;
 
-pub use cursor::ReadExt;
+pub use ext::{ReadExt, WriteExt};
 pub use field::Field;
 
 /// Wraps the exposed APIs under a single place.

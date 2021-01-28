@@ -4,12 +4,10 @@ use std::fmt;
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum Field {
     String,
-    StringLength,
     GasUsed,
     Author,
     Creator,
     Version,
-    NameLength,
     Name,
     CodeSize,
     State,
@@ -22,8 +20,8 @@ pub enum Field {
     DataLayoutVarsCount,
     DataLayoutVarLength,
     ErrorLength,
-    FuncNameLength,
-    FuncName,
+    Function,
+    Ctor,
     ReceiptType,
     ReceiptStatus,
     LogsCount,

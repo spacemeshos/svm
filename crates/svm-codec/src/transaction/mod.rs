@@ -20,10 +20,8 @@ use std::io::{Cursor, Read};
 use svm_types::{AppAddr, AppTransaction};
 
 use crate::api::raw;
-use crate::Field;
-
 use crate::common;
-use crate::error::ParseError;
+use crate::{Field, ParseError, ReadExt};
 
 /// Encodes a raw App transaction.
 pub fn encode_exec_app(tx: &AppTransaction, w: &mut Vec<u8>) {
@@ -77,13 +75,18 @@ fn encode_calldata(tx: &AppTransaction, w: &mut Vec<u8>) {
 /// Decoders
 
 fn decode_app(cursor: &mut Cursor<&[u8]>) -> Result<AppAddr, ParseError> {
-    let addr = common::decode_address(cursor, Field::AppAddr)?;
-
-    Ok(addr.into())
+    match cursor.read_address() {
+        Ok(addr) => Ok(addr.into()),
+        Err(..) => Err(ParseError::NotEnoughBytes(Field::AppAddr)),
+    }
 }
 
 fn decode_func(cursor: &mut Cursor<&[u8]>) -> Result<String, ParseError> {
-    common::decode_string(cursor, Field::FuncNameLength, Field::FuncName)
+    match cursor.read_string() {
+        Ok(Ok(func)) => Ok(func),
+        Ok(Err(..)) => Err(ParseError::InvalidUTF8String(Field::Function)),
+        Err(..) => Err(ParseError::NotEnoughBytes(Field::Function)),
+    }
 }
 
 #[cfg(test)]

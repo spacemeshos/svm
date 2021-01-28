@@ -3,9 +3,7 @@ use std::io::Cursor;
 use svm_types::{App, SpawnApp, TemplateAddr, WasmValue};
 
 pub use crate::api::raw;
-pub use crate::Field;
-
-use crate::{common, error::ParseError};
+pub use crate::{Field, ParseError, ReadExt, WriteExt};
 
 /// Encodes a raw Spawn-App transaction.
 pub fn encode_spawn_app(spawn: &SpawnApp, w: &mut Vec<u8>) {
@@ -52,19 +50,19 @@ fn encode_version(spawn: &SpawnApp, w: &mut Vec<u8>) {
 fn encode_name(spawn: &SpawnApp, w: &mut Vec<u8>) {
     let name = &spawn.app.name;
 
-    common::encode_string(name, w);
+    w.write_string(name);
 }
 
 fn encode_template(spawn: &SpawnApp, w: &mut Vec<u8>) {
     let template = &spawn.app.template;
 
-    common::encode_address(template.inner(), w);
+    w.write_address(template.inner());
 }
 
 fn encode_ctor(spawn: &SpawnApp, w: &mut Vec<u8>) {
-    let ctor_name = &spawn.ctor_name;
+    let ctor = &spawn.ctor_name;
 
-    common::encode_string(ctor_name, w);
+    w.write_string(ctor);
 }
 
 fn encode_ctor_calldata(spawn: &SpawnApp, w: &mut Vec<u8>) {
@@ -76,17 +74,26 @@ fn encode_ctor_calldata(spawn: &SpawnApp, w: &mut Vec<u8>) {
 /// Decoders
 
 fn decode_template(cursor: &mut Cursor<&[u8]>) -> Result<TemplateAddr, ParseError> {
-    let addr = common::decode_address(cursor, Field::TemplateAddr)?;
-
-    Ok(TemplateAddr::new(addr))
+    match cursor.read_address() {
+        Ok(addr) => Ok(addr.into()),
+        Err(..) => Err(ParseError::NotEnoughBytes(Field::Address)),
+    }
 }
 
 fn decode_name(cursor: &mut Cursor<&[u8]>) -> Result<String, ParseError> {
-    common::decode_string(cursor, Field::NameLength, Field::Name)
+    match cursor.read_string() {
+        Ok(Ok(name)) => Ok(name),
+        Ok(Err(..)) => Err(ParseError::InvalidUTF8String(Field::Name)),
+        Err(..) => Err(ParseError::NotEnoughBytes(Field::Name)),
+    }
 }
 
 fn decode_ctor(cursor: &mut Cursor<&[u8]>) -> Result<String, ParseError> {
-    common::decode_string(cursor, Field::NameLength, Field::Name)
+    match cursor.read_string() {
+        Ok(Ok(ctor)) => Ok(ctor),
+        Ok(Err(..)) => Err(ParseError::InvalidUTF8String(Field::Ctor)),
+        Err(..) => Err(ParseError::NotEnoughBytes(Field::Ctor)),
+    }
 }
 
 fn decode_ctor_calldata(cursor: &mut Cursor<&[u8]>) -> Result<Vec<u8>, ParseError> {
