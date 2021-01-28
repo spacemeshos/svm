@@ -1,8 +1,7 @@
+use svm_layout::DataLayout;
 use svm_types::AppTemplate;
 
-use crate::api::raw::encode_deploy_template;
-
-use svm_layout::DataLayout;
+use crate::template;
 
 /// Builds a raw representation for `deploy-template`
 /// Should be used for testing only.
@@ -92,7 +91,7 @@ impl DeployAppTemplateBuilder {
 
         let mut w = Vec::new();
 
-        encode_deploy_template(&app, &mut w);
+        template::encode_deploy_template(&app, &mut w);
 
         w
     }

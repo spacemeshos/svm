@@ -4,11 +4,9 @@ use svm_types::{AddressOf, App, SpawnApp};
 
 use serde_json::{json, Value};
 
-use crate::{
-    api::json::{self, JsonError},
-    api::raw,
-    app,
-};
+use crate::api::json::{self, JsonError};
+
+use crate::app;
 
 ///
 /// ```json
@@ -50,7 +48,7 @@ pub fn decode_spawn_app(json: &Value) -> Result<Value, JsonError> {
     let bytes = json::str_to_bytes(&data, "data")?;
 
     let mut cursor = Cursor::new(&bytes[..]);
-    let spawn = raw::decode_spawn_app(&mut cursor).unwrap();
+    let spawn = app::decode_spawn_app(&mut cursor).unwrap();
 
     let version = spawn.app.version;
     let ctor_name = spawn.ctor_name;

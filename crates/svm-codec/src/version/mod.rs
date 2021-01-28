@@ -6,10 +6,11 @@ pub use encoder::encode_version;
 
 #[cfg(test)]
 mod tests {
-    use crate::api::raw::{decode_version, encode_version};
-    use crate::error::ParseError;
+    use super::*;
 
     use std::io::Cursor;
+
+    use crate::ParseError;
 
     fn encode(version: u32) -> Vec<u8> {
         let mut buf = Vec::new();

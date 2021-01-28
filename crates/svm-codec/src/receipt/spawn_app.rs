@@ -19,27 +19,28 @@
 
 use std::io::Cursor;
 
-use crate::api::raw;
-
 use svm_types::gas::MaybeGas;
 use svm_types::receipt::{Receipt, SpawnAppReceipt};
 
-use super::{decode_error, encode_error, helpers, logs};
+use super::{decode_error, encode_error, gas, helpers, logs};
+
+use crate::{calldata, version};
+use crate::{ReadExt, WriteExt};
 
 pub fn encode_app_receipt(receipt: &SpawnAppReceipt) -> Vec<u8> {
     let mut w = Vec::new();
 
     let wrapped_receipt = Receipt::SpawnApp(receipt);
 
-    helpers::encode_type(super::types::SPAWN_APP, &mut w);
-    helpers::encode_version(0, &mut w);
+    w.push(super::types::SPAWN_APP);
+    version::encode_version(0, &mut w);
     helpers::encode_is_success(&wrapped_receipt, &mut w);
 
     if receipt.success {
         encode_app_addr(receipt, &mut w);
         encode_init_state(receipt, &mut w);
         encode_returndata(&receipt, &mut w);
-        helpers::encode_gas_used(&wrapped_receipt, &mut w);
+        gas::encode_gas_used(&receipt.gas_used, &mut w);
         logs::encode_logs(&receipt.logs, &mut w);
     } else {
         let logs = receipt.get_logs();
@@ -53,10 +54,10 @@ pub fn encode_app_receipt(receipt: &SpawnAppReceipt) -> Vec<u8> {
 pub fn decode_app_receipt(bytes: &[u8]) -> SpawnAppReceipt {
     let mut cursor = Cursor::new(bytes);
 
-    let ty = helpers::decode_type(&mut cursor).unwrap();
+    let ty = cursor.read_byte().unwrap();
     debug_assert_eq!(ty, crate::receipt::types::SPAWN_APP);
 
-    let version = helpers::decode_version(&mut cursor).unwrap();
+    let version = version::decode_version(&mut cursor).unwrap();
     debug_assert_eq!(0, version);
 
     let is_success = helpers::decode_is_success(&mut cursor).unwrap();
@@ -68,10 +69,10 @@ pub fn decode_app_receipt(bytes: &[u8]) -> SpawnAppReceipt {
         }
         1 => {
             // success
-            let addr = helpers::decode_address(&mut cursor).unwrap();
-            let init_state = helpers::decode_state(&mut cursor).unwrap();
-            let returndata = raw::decode_calldata(&mut cursor).unwrap();
-            let gas_used = helpers::decode_gas_used(&mut cursor).unwrap();
+            let addr = cursor.read_address().unwrap();
+            let init_state = cursor.read_state().unwrap();
+            let returndata = calldata::decode_calldata(&mut cursor).unwrap();
+            let gas_used = gas::decode_gas_used(&mut cursor).unwrap();
             let logs = logs::decode_logs(&mut cursor).unwrap();
 
             SpawnAppReceipt {
@@ -92,21 +93,24 @@ fn encode_app_addr(receipt: &SpawnAppReceipt, w: &mut Vec<u8>) {
     debug_assert!(receipt.success);
 
     let addr = receipt.get_app_addr();
-    helpers::encode_addr(addr.inner(), w)
+
+    w.write_address(addr.inner());
 }
 
 fn encode_init_state(receipt: &SpawnAppReceipt, w: &mut Vec<u8>) {
     debug_assert!(receipt.success);
 
     let state = receipt.get_init_state();
-    helpers::encode_state(&state, w);
+
+    w.write_state(state);
 }
 
 fn encode_returndata(receipt: &SpawnAppReceipt, w: &mut Vec<u8>) {
     debug_assert!(receipt.success);
 
     let data = receipt.get_returndata();
-    helpers::encode_abi_data(&data, w);
+
+    calldata::encode_calldata(&data, w);
 }
 
 #[cfg(test)]

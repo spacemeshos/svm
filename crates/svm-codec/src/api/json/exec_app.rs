@@ -2,11 +2,8 @@ use std::io::Cursor;
 
 use serde_json::{json, Value};
 
+use crate::api::json::{self, JsonError};
 use crate::transaction;
-use crate::{
-    api::json::{self, JsonError},
-    api::raw,
-};
 
 use svm_types::{AddressOf, App, AppTransaction};
 
@@ -45,7 +42,7 @@ pub fn decode_exec_app(json: &Value) -> Result<Value, JsonError> {
     let bytes = json::str_to_bytes(&data, "data")?;
 
     let mut cursor = Cursor::new(&bytes[..]);
-    let tx = raw::decode_exec_app(&mut cursor).unwrap();
+    let tx = transaction::decode_exec_app(&mut cursor).unwrap();
 
     let version = tx.version;
     let func_name = tx.func_name.clone();

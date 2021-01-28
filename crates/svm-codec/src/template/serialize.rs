@@ -2,8 +2,8 @@ use std::io::Cursor;
 
 use svm_types::{AppTemplate, AuthorAddr};
 
-use crate::api::raw;
 use crate::serialize::{AppTemplateDeserializer, AppTemplateSerializer};
+use crate::template;
 use crate::{Field, ReadExt, WriteExt};
 
 /// `AppTemplate` default Serializer
@@ -16,7 +16,7 @@ impl AppTemplateSerializer for DefaultAppTemplateSerializer {
     fn serialize(template: &AppTemplate, author: &AuthorAddr) -> Vec<u8> {
         let mut w = Vec::new();
 
-        raw::encode_deploy_template(template, &mut w);
+        template::encode_deploy_template(template, &mut w);
 
         w.write_address(author.inner());
 
@@ -28,7 +28,7 @@ impl AppTemplateDeserializer for DefaultAppTemplateDeserializer {
     fn deserialize(bytes: &[u8]) -> Option<(AppTemplate, AuthorAddr)> {
         let mut cursor = Cursor::new(bytes);
 
-        let template = match raw::decode_deploy_template(&mut cursor) {
+        let template = match template::decode_deploy_template(&mut cursor) {
             Ok(template) => template,
             _ => return None,
         };

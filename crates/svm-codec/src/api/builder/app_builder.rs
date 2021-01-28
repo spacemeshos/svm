@@ -1,6 +1,6 @@
 use svm_types::{App, SpawnApp, TemplateAddr, WasmValue};
 
-use crate::api::raw::encode_spawn_app;
+use crate::app;
 
 /// Builds a raw representation for `spawn-app`
 /// Should be used for testing only.
@@ -106,7 +106,7 @@ impl SpawnAppBuilder {
 
         let mut w = Vec::new();
 
-        encode_spawn_app(&spawn, &mut w);
+        app::encode_spawn_app(&spawn, &mut w);
 
         w
     }

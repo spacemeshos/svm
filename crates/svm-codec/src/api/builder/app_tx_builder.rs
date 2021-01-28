@@ -1,6 +1,6 @@
 use svm_types::{AppAddr, AppTransaction};
 
-use crate::api::raw::encode_exec_app;
+use crate::transaction;
 
 /// Builds a raw representation for `exec-app`
 /// Should be used for testing only.
@@ -95,7 +95,7 @@ impl AppTxBuilder {
 
         let mut w = Vec::new();
 
-        encode_exec_app(&tx, &mut w);
+        transaction::encode_exec_app(&tx, &mut w);
 
         w
     }

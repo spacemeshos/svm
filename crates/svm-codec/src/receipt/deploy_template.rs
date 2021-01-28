@@ -16,20 +16,23 @@ use std::io::Cursor;
 use svm_types::gas::MaybeGas;
 use svm_types::receipt::{Receipt, TemplateReceipt};
 
-use super::{decode_error, encode_error, helpers, logs};
+use super::{decode_error, encode_error, gas, helpers, logs};
+
+use crate::version;
+use crate::{ReadExt, WriteExt};
 
 pub fn encode_template_receipt(receipt: &TemplateReceipt) -> Vec<u8> {
     let mut w = Vec::new();
 
     let wrapped_receipt = Receipt::DeployTemplate(receipt);
 
-    helpers::encode_type(super::types::DEPLOY_TEMPLATE, &mut w);
-    helpers::encode_version(0, &mut w);
+    w.push(super::types::DEPLOY_TEMPLATE);
+    version::encode_version(0, &mut w);
     helpers::encode_is_success(&wrapped_receipt, &mut w);
 
     if receipt.success {
         encode_template_addr(receipt, &mut w);
-        helpers::encode_gas_used(&wrapped_receipt, &mut w);
+        gas::encode_gas_used(&receipt.gas_used, &mut w);
         logs::encode_logs(&receipt.logs, &mut w);
     } else {
         let logs = Vec::new();
@@ -42,10 +45,10 @@ pub fn encode_template_receipt(receipt: &TemplateReceipt) -> Vec<u8> {
 pub fn decode_template_receipt(bytes: &[u8]) -> TemplateReceipt {
     let mut cursor = Cursor::new(bytes);
 
-    let ty = helpers::decode_type(&mut cursor).unwrap();
+    let ty = cursor.read_byte().unwrap();
     debug_assert_eq!(ty, crate::receipt::types::DEPLOY_TEMPLATE);
 
-    let version = helpers::decode_version(&mut cursor).unwrap();
+    let version = version::decode_version(&mut cursor).unwrap();
     debug_assert_eq!(version, 0);
 
     let is_success = helpers::decode_is_success(&mut cursor).unwrap();
@@ -59,8 +62,8 @@ pub fn decode_template_receipt(bytes: &[u8]) -> TemplateReceipt {
         }
         1 => {
             // success
-            let addr = helpers::decode_address(&mut cursor).unwrap();
-            let gas_used = helpers::decode_gas_used(&mut cursor).unwrap();
+            let addr = cursor.read_address().unwrap();
+            let gas_used = gas::decode_gas_used(&mut cursor).unwrap();
             let logs = logs::decode_logs(&mut cursor).unwrap();
 
             TemplateReceipt {
@@ -79,7 +82,8 @@ fn encode_template_addr(receipt: &TemplateReceipt, w: &mut Vec<u8>) {
     debug_assert!(receipt.success);
 
     let addr = receipt.get_template_addr();
-    helpers::encode_addr(addr.inner(), w);
+
+    w.write_address(addr.inner());
 }
 
 #[cfg(test)]
