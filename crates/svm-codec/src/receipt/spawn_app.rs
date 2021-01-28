@@ -3,7 +3,7 @@
 //!  On success (`is_success = 1`)
 //!  +-----------------------------------------------------+
 //!  |  tx type  |  version   | is_success  | App Address  |
-//!  | (1 byte)  |  (1 byte)  |  (1 byte)   |  (20 bytes)  |
+//!  | (1 byte)  |            |  (1 byte)   |  (20 bytes)  |
 //!  +___________|____________|_____________|______________+
 //!  |              |              |                       |
 //!  |  init state  | #returndata  |      gas_used         |

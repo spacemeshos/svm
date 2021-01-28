@@ -4,7 +4,7 @@ use std::io::{Cursor, Read};
 use svm_layout::{DataLayout, DataLayoutBuilder};
 use svm_types::AppTemplate;
 
-use crate::{common, version};
+use crate::version;
 use crate::{Field, ParseError, ReadExt, WriteExt};
 
 /// Encodes a raw Deploy-Template.
@@ -41,7 +41,7 @@ fn encode_version(template: &AppTemplate, w: &mut Vec<u8>) {
 }
 
 fn encode_name(template: &AppTemplate, w: &mut Vec<u8>) {
-    common::encode_string(&template.name, w);
+    w.write_string(&template.name);
 }
 
 fn encode_data(template: &AppTemplate, w: &mut Vec<u8>) {

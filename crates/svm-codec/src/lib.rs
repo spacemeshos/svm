@@ -14,7 +14,6 @@
 
 mod app;
 mod calldata;
-mod common;
 mod ext;
 mod field;
 mod serialize;
