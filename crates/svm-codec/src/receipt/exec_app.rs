@@ -21,7 +21,7 @@ use std::io::Cursor;
 use svm_types::gas::MaybeGas;
 use svm_types::receipt::{ExecReceipt, Log, Receipt};
 
-use super::{decode_error, encode_error, gas, helpers, logs};
+use super::{decode_error, encode_error, gas, logs};
 
 use crate::{calldata, version};
 use crate::{ReadExt, WriteExt};
@@ -29,11 +29,9 @@ use crate::{ReadExt, WriteExt};
 pub fn encode_exec_receipt(receipt: &ExecReceipt) -> Vec<u8> {
     let mut w = Vec::new();
 
-    let wrapped_receipt = Receipt::ExecApp(receipt);
-
     w.push(super::types::EXEC_APP);
     version::encode_version(0, &mut w);
-    helpers::encode_is_success(&wrapped_receipt, &mut w);
+    w.write_bool(receipt.success);
 
     if receipt.success {
         encode_new_state(receipt, &mut w);
@@ -58,15 +56,14 @@ pub fn decode_exec_receipt(bytes: &[u8]) -> ExecReceipt {
     let version = version::decode_version(&mut cursor).unwrap();
     debug_assert_eq!(0, version);
 
-    let is_success = helpers::decode_is_success(&mut cursor).unwrap();
+    let is_success = cursor.read_bool().unwrap();
 
     match is_success {
-        0 => {
+        false => {
             let (err, logs) = decode_error(&mut cursor);
             ExecReceipt::from_err(err, logs)
         }
-        1 => {
-            // success
+        true => {
             let new_state = cursor.read_state().unwrap();
             let returndata = calldata::decode_calldata(&mut cursor).unwrap();
             let gas_used = gas::decode_gas_used(&mut cursor).unwrap();

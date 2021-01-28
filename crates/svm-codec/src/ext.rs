@@ -9,6 +9,8 @@ pub trait ReadExt {
 
     fn read_bytes(&mut self, length: usize) -> Result<Vec<u8>>;
 
+    fn read_bool(&mut self) -> Result<bool>;
+
     fn read_u16_be(&mut self) -> Result<u16>;
 
     fn read_u32_be(&mut self) -> Result<u32>;
@@ -23,6 +25,8 @@ pub trait ReadExt {
 }
 
 pub trait WriteExt {
+    fn write_bool(&mut self, b: bool);
+
     fn write_u16_be(&mut self, n: u16);
 
     fn write_u32_be(&mut self, n: u32);
@@ -49,6 +53,14 @@ impl ReadExt for Cursor<&[u8]> {
         let _ = self.read_exact(&mut buf)?;
 
         Ok(buf)
+    }
+
+    fn read_bool(&mut self) -> Result<bool> {
+        let byte = self.read_byte()?;
+
+        let b = byte != 0;
+
+        Ok(b)
     }
 
     fn read_u16_be(&mut self) -> Result<u16> {
@@ -104,6 +116,12 @@ impl ReadExt for Cursor<&[u8]> {
 }
 
 impl WriteExt for Vec<u8> {
+    fn write_bool(&mut self, b: bool) {
+        let byte = if (b == false) { 0 } else { 1 };
+
+        self.push(byte);
+    }
+
     fn write_u16_be(&mut self, n: u16) {
         let bytes = n.to_be_bytes();
 

@@ -2,7 +2,6 @@ mod deploy_template;
 mod error;
 mod exec_app;
 mod gas;
-mod helpers;
 mod spawn_app;
 
 pub(crate) mod logs;
@@ -19,7 +18,6 @@ mod types {
 
 pub use deploy_template::{decode_template_receipt, encode_template_receipt};
 pub use exec_app::{decode_exec_receipt, encode_exec_receipt};
-pub use gas::{decode_gas_used, encode_gas_used};
 pub use spawn_app::{decode_app_receipt, encode_app_receipt};
 
 use svm_types::receipt::{ExecReceipt, ReceiptOwned, SpawnAppReceipt, TemplateReceipt};

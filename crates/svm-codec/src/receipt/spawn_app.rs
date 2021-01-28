@@ -22,7 +22,7 @@ use std::io::Cursor;
 use svm_types::gas::MaybeGas;
 use svm_types::receipt::{Receipt, SpawnAppReceipt};
 
-use super::{decode_error, encode_error, gas, helpers, logs};
+use super::{decode_error, encode_error, gas, logs};
 
 use crate::{calldata, version};
 use crate::{ReadExt, WriteExt};
@@ -30,11 +30,9 @@ use crate::{ReadExt, WriteExt};
 pub fn encode_app_receipt(receipt: &SpawnAppReceipt) -> Vec<u8> {
     let mut w = Vec::new();
 
-    let wrapped_receipt = Receipt::SpawnApp(receipt);
-
     w.push(super::types::SPAWN_APP);
     version::encode_version(0, &mut w);
-    helpers::encode_is_success(&wrapped_receipt, &mut w);
+    w.write_bool(receipt.success);
 
     if receipt.success {
         encode_app_addr(receipt, &mut w);
@@ -60,15 +58,14 @@ pub fn decode_app_receipt(bytes: &[u8]) -> SpawnAppReceipt {
     let version = version::decode_version(&mut cursor).unwrap();
     debug_assert_eq!(0, version);
 
-    let is_success = helpers::decode_is_success(&mut cursor).unwrap();
+    let is_success = cursor.read_bool().unwrap();
 
     match is_success {
-        0 => {
+        false => {
             let (err, logs) = decode_error(&mut cursor);
             SpawnAppReceipt::from_err(err, logs)
         }
-        1 => {
-            // success
+        true => {
             let addr = cursor.read_address().unwrap();
             let init_state = cursor.read_state().unwrap();
             let returndata = calldata::decode_calldata(&mut cursor).unwrap();
