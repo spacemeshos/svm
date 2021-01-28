@@ -3,9 +3,8 @@ use std::io::Cursor;
 use svm_types::{AppTemplate, AuthorAddr};
 
 use crate::api::raw;
-use crate::common;
 use crate::serialize::{AppTemplateDeserializer, AppTemplateSerializer};
-use crate::{Field, ReadExt};
+use crate::{Field, ReadExt, WriteExt};
 
 /// `AppTemplate` default Serializer
 pub struct DefaultAppTemplateSerializer;
@@ -18,7 +17,8 @@ impl AppTemplateSerializer for DefaultAppTemplateSerializer {
         let mut w = Vec::new();
 
         raw::encode_deploy_template(template, &mut w);
-        common::encode_address(author.inner(), &mut w);
+
+        w.write_address(author.inner());
 
         w
     }

@@ -1,16 +1,6 @@
 use std::io::Cursor;
 
-use svm_types::Address;
-
 use crate::{Field, ParseError, ReadExt};
-
-/// Encoders
-
-pub fn encode_address(addr: &Address, w: &mut Vec<u8>) {
-    let bytes = addr.bytes();
-
-    w.extend_from_slice(&bytes);
-}
 
 pub fn encode_string(s: &str, w: &mut Vec<u8>) {
     let bytes = s.as_bytes();
@@ -35,7 +25,7 @@ pub fn decode_string(
 
             match cursor.read_bytes(length) {
                 Err(..) => Err(ParseError::NotEnoughBytes(field)),
-                Ok(vec) =>{
+                Ok(vec) => {
                     String::from_utf8(vec).map_err(|_e| ParseError::InvalidUTF8String(field))
                 }
             }

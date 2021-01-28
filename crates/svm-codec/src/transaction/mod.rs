@@ -20,8 +20,7 @@ use std::io::{Cursor, Read};
 use svm_types::{AppAddr, AppTransaction};
 
 use crate::api::raw;
-use crate::common;
-use crate::{Field, ParseError, ReadExt};
+use crate::{Field, ParseError, ReadExt, WriteExt};
 
 /// Encodes a raw App transaction.
 pub fn encode_exec_app(tx: &AppTransaction, w: &mut Vec<u8>) {
@@ -59,11 +58,13 @@ fn encode_version(tx: &AppTransaction, w: &mut Vec<u8>) {
 fn encode_app(tx: &AppTransaction, w: &mut Vec<u8>) {
     let addr = tx.app.inner();
 
-    common::encode_address(addr, w);
+    w.write_address(addr);
 }
 
 fn encode_func(tx: &AppTransaction, w: &mut Vec<u8>) {
-    common::encode_string(&tx.func_name, w);
+    let func = &tx.func_name;
+
+    w.write_string(func);
 }
 
 fn encode_calldata(tx: &AppTransaction, w: &mut Vec<u8>) {
