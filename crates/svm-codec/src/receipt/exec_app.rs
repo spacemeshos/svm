@@ -3,10 +3,10 @@
 //!  On success (`is_success = 1`)
 //!  +---------------------------------------------------+
 //!  |  tx type  |  version   | is_success |  new state  |
-//!  | (1 byte)  |            | (byte)     | (32 bytes)  |
+//!  | (1 byte)  |  (2 bytes) |  (1 byte)  | (32 bytes)  |
 //!  +___________|____________|____________|_____________+
 //!  |                       |                           |
-//!  |       returndata      |         gas_used          |
+//!  |       returndata      |    gas_used (8 bytes)     |
 //!  +_______________________|___________________________+
 //!  |          |            |         |                 |
 //!  |  #logs   | log 1 blob |  . . .  |     log #N      |

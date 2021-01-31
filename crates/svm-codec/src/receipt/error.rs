@@ -4,7 +4,7 @@
 //!   On failure (`is_success = 0`)
 //!  +-------------------------------------------------------+
 //!  |  tx type |    version   |  is_success |  error code   |
-//!  | (1 byte) |  (1 nibble)  |  (1 nibble) |  (1 nibble)   |
+//!  | (1 byte) |  (2 bytes)   |  (1 bytes)  |  (1 bytes)    |
 //!  +__________|______________|_____________|_______________+
 //!  |          |          |         |            |          |
 //!  |  #logs   |  log #1  |  . . .  |  log #N-1  |  log #N  |

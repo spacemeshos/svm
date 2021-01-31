@@ -22,7 +22,7 @@ use std::io::Cursor;
 use svm_types::gas::MaybeGas;
 use svm_types::receipt::{Receipt, SpawnAppReceipt};
 
-use super::{decode_error, encode_error, gas, logs};
+use super::{decode_error, decode_receipt, encode_error, gas, logs};
 
 use crate::{calldata, common};
 use crate::{ReadExt, WriteExt};
@@ -142,7 +142,7 @@ mod tests {
         };
 
         let bytes = encode_app_receipt(&receipt);
-        let decoded = crate::receipt::decode_receipt(&bytes);
+        let decoded = decode_receipt(&bytes);
 
         assert_eq!(decoded.into_spawn_app(), receipt);
     }
@@ -169,7 +169,7 @@ mod tests {
         };
 
         let bytes = encode_app_receipt(&receipt);
-        let decoded = crate::receipt::decode_receipt(&bytes);
+        let decoded = decode_receipt(&bytes);
 
         assert_eq!(decoded.into_spawn_app(), receipt);
     }
@@ -196,7 +196,7 @@ mod tests {
         };
 
         let bytes = encode_app_receipt(&receipt);
-        let decoded = crate::receipt::decode_receipt(&bytes);
+        let decoded = decode_receipt(&bytes);
 
         assert_eq!(decoded.into_spawn_app(), receipt);
     }

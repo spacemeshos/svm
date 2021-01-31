@@ -16,7 +16,7 @@ use std::io::Cursor;
 use svm_types::gas::MaybeGas;
 use svm_types::receipt::{Receipt, TemplateReceipt};
 
-use super::{decode_error, encode_error, gas, logs};
+use super::{decode_error, decode_receipt, encode_error, gas, logs, types};
 
 use crate::common;
 use crate::{ReadExt, WriteExt};
@@ -24,7 +24,7 @@ use crate::{ReadExt, WriteExt};
 pub fn encode_template_receipt(receipt: &TemplateReceipt) -> Vec<u8> {
     let mut w = Vec::new();
 
-    w.push(super::types::DEPLOY_TEMPLATE);
+    w.push(types::DEPLOY_TEMPLATE);
     encode_version(receipt, &mut w);
     w.write_bool(receipt.success);
 
@@ -44,7 +44,7 @@ pub fn decode_template_receipt(bytes: &[u8]) -> TemplateReceipt {
     let mut cursor = Cursor::new(bytes);
 
     let ty = cursor.read_byte().unwrap();
-    debug_assert_eq!(ty, crate::receipt::types::DEPLOY_TEMPLATE);
+    debug_assert_eq!(ty, types::DEPLOY_TEMPLATE);
 
     let version = common::decode_version(&mut cursor).unwrap();
     debug_assert_eq!(version, 0);
@@ -111,7 +111,7 @@ mod tests {
         };
 
         let bytes = encode_template_receipt(&receipt);
-        let decoded = crate::receipt::decode_receipt(&bytes);
+        let decoded = decode_receipt(&bytes);
 
         assert_eq!(decoded.into_deploy_template(), receipt);
     }

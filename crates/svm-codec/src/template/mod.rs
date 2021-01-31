@@ -1,9 +1,10 @@
 //! `AppTemplate` Raw Format
-//!  ______________________________________________________
-//!  |            |                |                       |
-//!  |  version   |  name length   |         name          |
-//!  |            |  (varuint14)   |        (UTF-8)        |
-//!  +____________|________________|_______________________+
+//!
+//!  +_____________________________________________________+
+//!  |            |                                        |
+//!  |  version   |              name                      |
+//!  |  (2 bytes) |            (String)                    |
+//!  +____________|________________________________________+
 //!  |               |                                     |
 //!  |  Code #bytes  |          Code (WASM)                |
 //!  |   (4 bytes)   |                                     |
@@ -16,10 +17,10 @@
 //!
 //!
 
+mod raw;
 mod serialize;
 mod validate;
-mod raw;
 
+pub use raw::{decode_deploy_template, encode_deploy_template};
 pub use serialize::{DefaultAppTemplateDeserializer, DefaultAppTemplateSerializer};
 pub use validate::validate_template;
-pub use raw::{decode_deploy_template, encode_deploy_template};

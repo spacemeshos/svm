@@ -25,6 +25,10 @@ pub trait ReadExt {
 }
 
 pub trait WriteExt {
+    fn write_byte(&mut self, byte: u8);
+
+    fn write_bytes(&mut self, bytes: &[u8]);
+
     fn write_bool(&mut self, b: bool);
 
     fn write_u16_be(&mut self, n: u16);
@@ -94,7 +98,6 @@ impl ReadExt for Cursor<&[u8]> {
 
     fn read_string(&mut self) -> Result<std::result::Result<String, FromUtf8Error>> {
         let length = self.read_byte()?;
-
         let bytes = self.read_bytes(length as usize)?;
 
         let string = String::from_utf8(bytes);
@@ -118,45 +121,58 @@ impl ReadExt for Cursor<&[u8]> {
 }
 
 impl WriteExt for Vec<u8> {
+    fn write_byte(&mut self, byte: u8) {
+        self.push(byte);
+    }
+
+    fn write_bytes(&mut self, bytes: &[u8]) {
+        self.extend_from_slice(bytes);
+    }
+
     fn write_bool(&mut self, b: bool) {
         let byte = if (b == false) { 0 } else { 1 };
 
-        self.push(byte);
+        self.write_byte(byte);
     }
 
     fn write_u16_be(&mut self, n: u16) {
         let bytes = n.to_be_bytes();
 
-        self.extend_from_slice(&bytes[..]);
+        self.write_bytes(&bytes[..]);
     }
 
     fn write_u32_be(&mut self, n: u32) {
         let bytes = n.to_be_bytes();
 
-        self.extend_from_slice(&bytes[..]);
+        self.write_bytes(&bytes[..]);
     }
 
     fn write_u64_be(&mut self, n: u64) {
         let bytes = n.to_be_bytes();
 
-        self.extend_from_slice(&bytes[..]);
+        self.write_bytes(&bytes[..]);
     }
 
     fn write_string(&mut self, s: &str) {
-        let bytes = s.as_bytes();
+        let length = s.len();
 
-        self.extend_from_slice(bytes);
+        assert!(length <= std::u8::MAX as usize);
+
+        self.write_byte(length as u8);
+
+        let bytes = s.as_bytes();
+        self.write_bytes(bytes);
     }
 
     fn write_address(&mut self, addr: &Address) {
         let bytes = addr.as_slice();
 
-        self.extend_from_slice(bytes);
+        self.write_bytes(bytes);
     }
 
     fn write_state(&mut self, state: &State) {
         let bytes = state.as_slice();
 
-        self.extend_from_slice(bytes);
+        self.write_bytes(bytes);
     }
 }

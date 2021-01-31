@@ -11,7 +11,7 @@ pub use exec_app::ExecReceipt;
 pub use log::Log;
 pub use spawn_app::{make_spawn_app_receipt, SpawnAppReceipt};
 
-use crate::{gas::MaybeGas, WasmValue};
+use crate::gas::MaybeGas;
 
 /// Borrowed Receipt
 pub enum Receipt<'a> {

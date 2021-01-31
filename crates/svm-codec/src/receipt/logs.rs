@@ -2,8 +2,7 @@ use std::io::{Cursor, Read};
 
 use svm_types::receipt::Log;
 
-use crate::error::ParseError;
-use crate::field::Field;
+use crate::{Field, ParseError, ReadExt, WriteExt};
 
 ///                   
 /// +-----------------+
@@ -28,6 +27,7 @@ pub fn encode_logs(logs: &[Log], w: &mut Vec<u8>) {
 
     for log in logs.iter() {
         let len = log.msg.len();
+
         assert!(log.msg.len() <= std::u8::MAX as usize);
 
         // `msg` length
@@ -42,23 +42,20 @@ pub fn encode_logs(logs: &[Log], w: &mut Vec<u8>) {
 }
 
 pub fn decode_logs(cursor: &mut Cursor<&[u8]>) -> Result<Vec<Log>, ParseError> {
-    let mut buf = [0; 1];
+    match cursor.read_byte() {
+        Ok(nlogs) => {
+            let mut logs = Vec::with_capacity(nlogs as usize);
 
-    if cursor.read_exact(&mut buf).is_err() {
-        return Err(ParseError::NotEnoughBytes(Field::LogsCount));
+            for _ in (0..nlogs) {
+                let log = decode_log(cursor)?;
+
+                logs.push(log);
+            }
+
+            Ok(logs)
+        }
+        Err(..) => Err(ParseError::NotEnoughBytes(Field::LogsCount)),
     }
-
-    let nlogs = buf[0] as usize;
-
-    let mut logs = Vec::with_capacity(nlogs);
-
-    for _ in (0..nlogs) {
-        let log = decode_log(cursor)?;
-
-        logs.push(log);
-    }
-
-    Ok(logs)
 }
 
 fn decode_log(cursor: &mut Cursor<&[u8]>) -> Result<Log, ParseError> {
