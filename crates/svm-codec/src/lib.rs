@@ -12,14 +12,15 @@
 #![allow(unreachable_code)]
 #![feature(vec_into_raw_parts)]
 
-mod app;
 mod calldata;
 mod ext;
 mod field;
 mod serialize;
-mod template;
-mod transaction;
 mod version;
+
+pub mod app;
+pub mod template;
+pub mod transaction;
 
 pub use ext::{ReadExt, WriteExt};
 pub use field::Field;

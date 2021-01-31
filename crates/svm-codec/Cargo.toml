@@ -19,7 +19,7 @@ svm-types = { path = "../svm-types" }
 svm-layout = { path = "../svm-layout" }
 svm-abi-encoder = { path = "../svm-abi/encoder" }
 svm-abi-decoder = { path = "../svm-abi/decoder" }
-svm-sdk = { path = "../svm-sdk" }
+svm-sdk-types = { path = "../svm-sdk/types" }
 serde_json = "1.0"
 
 [dev-dependencies]

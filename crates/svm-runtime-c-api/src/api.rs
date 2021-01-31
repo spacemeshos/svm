@@ -9,7 +9,6 @@ use std::rc::Rc;
 use log::{debug, error};
 
 use svm_codec::api::builder::{AppTxBuilder, DeployAppTemplateBuilder, SpawnAppBuilder};
-use svm_codec::api::raw;
 use svm_codec::receipt::{encode_app_receipt, encode_exec_receipt, encode_template_receipt};
 
 use svm_layout::DataLayout;

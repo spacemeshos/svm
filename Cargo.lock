@@ -1149,7 +1149,7 @@ dependencies = [
  "svm-abi-encoder",
  "svm-common",
  "svm-layout",
- "svm-sdk",
+ "svm-sdk-types",
  "svm-types",
 ]
 

@@ -5,10 +5,11 @@ use crate::env::traits::{
 };
 use crate::env::types::AppTemplateHash;
 
-use svm_codec::error::ParseError;
 use svm_codec::serializers::{
     AppDeserializer, AppSerializer, AppTemplateDeserializer, AppTemplateSerializer,
 };
+use svm_codec::ParseError;
+use svm_codec::{app, template, transaction};
 use svm_types::{
     App, AppAddr, AppTemplate, AppTransaction, AuthorAddr, CreatorAddr, SpawnApp, TemplateAddr,
 };
@@ -86,8 +87,7 @@ pub trait Env {
     fn parse_deploy_template(&self, bytes: &[u8]) -> Result<AppTemplate, ParseError> {
         let mut cursor = Cursor::new(bytes);
 
-        let template = svm_codec::api::raw::decode_deploy_template(&mut cursor)?;
-        cursor.ensure_eof(ParseError::ExpectedEOF)?;
+        let template = template::decode_deploy_template(&mut cursor)?;
 
         Ok(template)
     }
@@ -98,8 +98,7 @@ pub trait Env {
     fn parse_spawn_app(&self, bytes: &[u8]) -> Result<SpawnApp, ParseError> {
         let mut cursor = Cursor::new(bytes);
 
-        let spawn = svm_codec::api::raw::decode_spawn_app(&mut cursor)?;
-        cursor.ensure_eof(ParseError::ExpectedEOF)?;
+        let spawn = app::decode_spawn_app(&mut cursor)?;
 
         Ok(spawn)
     }
@@ -110,9 +109,7 @@ pub trait Env {
     fn parse_exec_app(&self, bytes: &[u8]) -> Result<AppTransaction, ParseError> {
         let mut cursor = Cursor::new(bytes);
 
-        let tx = svm_codec::api::raw::decode_exec_app(&mut cursor)?;
-
-        cursor.ensure_eof(ParseError::ExpectedEOF)?;
+        let tx = transaction::decode_exec_app(&mut cursor)?;
 
         Ok(tx)
     }

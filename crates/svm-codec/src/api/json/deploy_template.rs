@@ -145,7 +145,7 @@ mod tests {
         let bytes = deploy_template(&json).unwrap();
         let mut cursor = Cursor::new(&bytes[..]);
 
-        let actual = crate::api::raw::decode_deploy_template(&mut cursor).unwrap();
+        let actual = template::decode_deploy_template(&mut cursor).unwrap();
 
         let expected = AppTemplate {
             version: 0,
