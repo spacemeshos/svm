@@ -4,7 +4,7 @@ use std::io::{Cursor, Read};
 use svm_layout::{DataLayout, DataLayoutBuilder};
 use svm_types::AppTemplate;
 
-use crate::version;
+use crate::common;
 use crate::{Field, ParseError, ReadExt, WriteExt};
 
 /// Encodes a raw Deploy-Template.
@@ -17,7 +17,7 @@ pub fn encode_deploy_template(template: &AppTemplate, w: &mut Vec<u8>) {
 
 /// Decodes a raw Deploy-Template.
 pub fn decode_deploy_template(cursor: &mut Cursor<&[u8]>) -> Result<AppTemplate, ParseError> {
-    let version = version::decode_version(cursor)?;
+    let version = decode_version(cursor)?;
     let name = decode_name(cursor)?;
     let code = decode_code(cursor)?;
     let data = decode_data(cursor)?;
@@ -35,9 +35,9 @@ pub fn decode_deploy_template(cursor: &mut Cursor<&[u8]>) -> Result<AppTemplate,
 /// Encoders
 
 fn encode_version(template: &AppTemplate, w: &mut Vec<u8>) {
-    let version = template.version;
+    let v = &template.version;
 
-    version::encode_version(version, w);
+    common::encode_version(*v, w);
 }
 
 fn encode_name(template: &AppTemplate, w: &mut Vec<u8>) {
@@ -70,6 +70,11 @@ fn encode_code(template: &AppTemplate, w: &mut Vec<u8>) {
 }
 
 /// Decoders
+
+#[inline]
+fn decode_version(cursor: &mut Cursor<&[u8]>) -> Result<u16, ParseError> {
+    common::decode_version(cursor)
+}
 
 fn decode_name(cursor: &mut Cursor<&[u8]>) -> Result<String, ParseError> {
     match cursor.read_string() {

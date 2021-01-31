@@ -5,7 +5,7 @@ use crate::transaction;
 /// Builds a raw representation for `exec-app`
 /// Should be used for testing only.
 pub struct AppTxBuilder {
-    version: Option<u32>,
+    version: Option<u16>,
     app: Option<AppAddr>,
     func_name: Option<String>,
     calldata: Option<Vec<u8>>,
@@ -56,7 +56,7 @@ impl AppTxBuilder {
         }
     }
 
-    pub fn with_version(mut self, version: u32) -> Self {
+    pub fn with_version(mut self, version: u16) -> Self {
         self.version = Some(version);
         self
     }

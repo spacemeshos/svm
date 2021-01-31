@@ -5,6 +5,8 @@ use crate::App;
 /// Struct representation of the parsed raw Spawn-App.
 #[derive(PartialEq)]
 pub struct SpawnApp {
+    pub version: u16,
+
     /// Holds all `SpawnApp` non-ctor_name related data.
     pub app: App,
 

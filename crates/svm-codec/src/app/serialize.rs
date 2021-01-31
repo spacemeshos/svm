@@ -3,7 +3,6 @@ use std::io::Cursor;
 use svm_types::{App, CreatorAddr, TemplateAddr};
 
 use crate::serialize::{AppDeserializer, AppSerializer};
-use crate::version;
 use crate::{Field, ReadExt, WriteExt};
 
 /// Default serializer for `App`
@@ -16,7 +15,6 @@ impl AppSerializer for DefaultAppSerializer {
     fn serialize(app: &App, creator: &CreatorAddr) -> Vec<u8> {
         let mut w = Vec::new();
 
-        version::encode_version(app.version, &mut w);
         encode_template(app, &mut w);
         encode_creator(creator, &mut w);
         encode_name(app, &mut w);
@@ -43,11 +41,6 @@ impl AppDeserializer for DefaultAppDeserializer {
     fn deserialize(bytes: &[u8]) -> Option<(App, CreatorAddr)> {
         let mut cursor = Cursor::new(bytes);
 
-        let version = match version::decode_version(&mut cursor) {
-            Ok(ver) => ver,
-            _ => return None,
-        };
-
         let template = match cursor.read_address() {
             Ok(addr) => TemplateAddr::new(addr),
             _ => return None,
@@ -63,11 +56,7 @@ impl AppDeserializer for DefaultAppDeserializer {
             _ => return None,
         };
 
-        let app = App {
-            version,
-            name,
-            template,
-        };
+        let app = App { name, template };
 
         Some((app, creator))
     }

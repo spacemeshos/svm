@@ -6,7 +6,7 @@ use crate::{Address, AppAddr, WasmValue};
 #[derive(PartialEq)]
 pub struct AppTransaction {
     /// The app-transaction version.
-    pub version: u32,
+    pub version: u16,
 
     /// The `App` account address
     pub app: AppAddr,

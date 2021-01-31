@@ -6,7 +6,7 @@ use crate::template;
 /// Builds a raw representation for `deploy-template`
 /// Should be used for testing only.
 pub struct DeployAppTemplateBuilder {
-    version: Option<u32>,
+    version: Option<u16>,
     name: Option<String>,
     code: Option<Vec<u8>>,
     data: Option<DataLayout>,
@@ -56,7 +56,7 @@ impl DeployAppTemplateBuilder {
         }
     }
 
-    pub fn with_version(mut self, version: u32) -> Self {
+    pub fn with_version(mut self, version: u16) -> Self {
         self.version = Some(version);
         self
     }

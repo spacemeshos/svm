@@ -23,14 +23,14 @@ use svm_types::receipt::{ExecReceipt, Log, Receipt};
 
 use super::{decode_error, encode_error, gas, logs};
 
-use crate::{calldata, version};
+use crate::{calldata, common};
 use crate::{ReadExt, WriteExt};
 
 pub fn encode_exec_receipt(receipt: &ExecReceipt) -> Vec<u8> {
     let mut w = Vec::new();
 
     w.push(super::types::EXEC_APP);
-    version::encode_version(0, &mut w);
+    common::encode_version(receipt.version, &mut w);
     w.write_bool(receipt.success);
 
     if receipt.success {
@@ -53,7 +53,7 @@ pub fn decode_exec_receipt(bytes: &[u8]) -> ExecReceipt {
     let ty = cursor.read_byte().unwrap();
     debug_assert_eq!(ty, crate::receipt::types::EXEC_APP);
 
-    let version = version::decode_version(&mut cursor).unwrap();
+    let version = common::decode_version(&mut cursor).unwrap();
     debug_assert_eq!(0, version);
 
     let is_success = cursor.read_bool().unwrap();
@@ -70,6 +70,7 @@ pub fn decode_exec_receipt(bytes: &[u8]) -> ExecReceipt {
             let logs = logs::decode_logs(&mut cursor).unwrap();
 
             ExecReceipt {
+                version,
                 success: true,
                 error: None,
                 new_state: Some(new_state),
@@ -115,6 +116,7 @@ mod tests {
         }];
 
         let receipt = ExecReceipt {
+            version: 0,
             success: false,
             error: Some(error),
             new_state: None,
@@ -139,6 +141,7 @@ mod tests {
         }];
 
         let receipt = ExecReceipt {
+            version: 0,
             success: true,
             error: None,
             new_state: Some(new_state),
@@ -164,6 +167,7 @@ mod tests {
         }];
 
         let receipt = ExecReceipt {
+            version: 0,
             success: true,
             error: None,
             new_state: Some(new_state),

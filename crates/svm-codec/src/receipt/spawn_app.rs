@@ -24,14 +24,14 @@ use svm_types::receipt::{Receipt, SpawnAppReceipt};
 
 use super::{decode_error, encode_error, gas, logs};
 
-use crate::{calldata, version};
+use crate::{calldata, common};
 use crate::{ReadExt, WriteExt};
 
 pub fn encode_app_receipt(receipt: &SpawnAppReceipt) -> Vec<u8> {
     let mut w = Vec::new();
 
     w.push(super::types::SPAWN_APP);
-    version::encode_version(0, &mut w);
+    encode_version(receipt, &mut w);
     w.write_bool(receipt.success);
 
     if receipt.success {
@@ -55,7 +55,7 @@ pub fn decode_app_receipt(bytes: &[u8]) -> SpawnAppReceipt {
     let ty = cursor.read_byte().unwrap();
     debug_assert_eq!(ty, crate::receipt::types::SPAWN_APP);
 
-    let version = version::decode_version(&mut cursor).unwrap();
+    let version = common::decode_version(&mut cursor).unwrap();
     debug_assert_eq!(0, version);
 
     let is_success = cursor.read_bool().unwrap();
@@ -73,6 +73,7 @@ pub fn decode_app_receipt(bytes: &[u8]) -> SpawnAppReceipt {
             let logs = logs::decode_logs(&mut cursor).unwrap();
 
             SpawnAppReceipt {
+                version,
                 success: true,
                 error: None,
                 app_addr: Some(addr.into()),
@@ -84,6 +85,12 @@ pub fn decode_app_receipt(bytes: &[u8]) -> SpawnAppReceipt {
         }
         _ => unreachable!(),
     }
+}
+
+fn encode_version(receipt: &SpawnAppReceipt, w: &mut Vec<u8>) {
+    let v = &receipt.version;
+
+    common::encode_version(*v, w);
 }
 
 fn encode_app_addr(receipt: &SpawnAppReceipt, w: &mut Vec<u8>) {
@@ -124,6 +131,7 @@ mod tests {
         let error = ReceiptError::TemplateNotFound(template_addr);
 
         let receipt = SpawnAppReceipt {
+            version: 0,
             success: false,
             error: Some(error),
             app_addr: None,
@@ -136,7 +144,7 @@ mod tests {
         let bytes = encode_app_receipt(&receipt);
         let decoded = crate::receipt::decode_receipt(&bytes);
 
-        // assert_eq!(decoded.into_spawn_app(), receipt);
+        assert_eq!(decoded.into_spawn_app(), receipt);
     }
 
     #[test]
@@ -150,6 +158,7 @@ mod tests {
         }];
 
         let receipt = SpawnAppReceipt {
+            version: 0,
             success: true,
             error: None,
             app_addr: Some(addr),
@@ -176,6 +185,7 @@ mod tests {
         }];
 
         let receipt = SpawnAppReceipt {
+            version: 0,
             success: true,
             error: None,
             app_addr: Some(addr),

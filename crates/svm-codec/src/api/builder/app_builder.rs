@@ -5,7 +5,7 @@ use crate::app;
 /// Builds a raw representation for `spawn-app`
 /// Should be used for testing only.
 pub struct SpawnAppBuilder {
-    version: Option<u32>,
+    version: Option<u16>,
     template: Option<TemplateAddr>,
     name: Option<String>,
     ctor_name: Option<String>,
@@ -58,7 +58,7 @@ impl SpawnAppBuilder {
         }
     }
 
-    pub fn with_version(mut self, version: u32) -> Self {
+    pub fn with_version(mut self, version: u16) -> Self {
         self.version = Some(version);
         self
     }
@@ -95,11 +95,8 @@ impl SpawnAppBuilder {
         };
 
         let spawn = SpawnApp {
-            app: App {
-                version,
-                name,
-                template,
-            },
+            version,
+            app: App { name, template },
             ctor_name,
             calldata,
         };

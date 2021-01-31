@@ -35,6 +35,7 @@ mod test {
         let logs = Vec::new();
 
         let receipt = SpawnAppReceipt {
+            version: 0,
             success: true,
             error: None,
             app_addr: Some(app.into()),

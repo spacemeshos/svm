@@ -19,12 +19,12 @@ use std::io::{Cursor, Read};
 
 use svm_types::{AppAddr, AppTransaction};
 
-use crate::{calldata, version};
+use crate::{calldata, common};
 use crate::{Field, ParseError, ReadExt, WriteExt};
 
 /// Encodes a raw App transaction.
 pub fn encode_exec_app(tx: &AppTransaction, w: &mut Vec<u8>) {
-    version::encode_version(tx.version, w);
+    encode_version(tx, w);
     encode_app(tx, w);
     encode_func(tx, w);
     encode_calldata(tx, w);
@@ -34,7 +34,7 @@ pub fn encode_exec_app(tx: &AppTransaction, w: &mut Vec<u8>) {
 /// Returns the parsed transaction as a `AppTransaction` struct.
 /// On failure, returns `ParseError`.
 pub fn decode_exec_app(cursor: &mut Cursor<&[u8]>) -> Result<AppTransaction, ParseError> {
-    let version = version::decode_version(cursor)?;
+    let version = decode_version(cursor)?;
     let app = decode_app(cursor)?;
     let func_name = decode_func(cursor)?;
     let calldata = calldata::decode_calldata(cursor)?;
@@ -52,7 +52,9 @@ pub fn decode_exec_app(cursor: &mut Cursor<&[u8]>) -> Result<AppTransaction, Par
 /// Encoders
 
 fn encode_version(tx: &AppTransaction, w: &mut Vec<u8>) {
-    version::encode_version(tx.version, w);
+    let v = &tx.version;
+
+    common::encode_version(*v, w);
 }
 
 fn encode_app(tx: &AppTransaction, w: &mut Vec<u8>) {
@@ -74,6 +76,11 @@ fn encode_calldata(tx: &AppTransaction, w: &mut Vec<u8>) {
 }
 
 /// Decoders
+
+#[inline]
+fn decode_version(cursor: &mut Cursor<&[u8]>) -> Result<u16, ParseError> {
+    common::decode_version(cursor)
+}
 
 fn decode_app(cursor: &mut Cursor<&[u8]>) -> Result<AppAddr, ParseError> {
     match cursor.read_address() {

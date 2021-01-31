@@ -18,14 +18,14 @@ use svm_types::receipt::{Receipt, TemplateReceipt};
 
 use super::{decode_error, encode_error, gas, logs};
 
-use crate::version;
+use crate::common;
 use crate::{ReadExt, WriteExt};
 
 pub fn encode_template_receipt(receipt: &TemplateReceipt) -> Vec<u8> {
     let mut w = Vec::new();
 
     w.push(super::types::DEPLOY_TEMPLATE);
-    version::encode_version(0, &mut w);
+    encode_version(receipt, &mut w);
     w.write_bool(receipt.success);
 
     if receipt.success {
@@ -46,7 +46,7 @@ pub fn decode_template_receipt(bytes: &[u8]) -> TemplateReceipt {
     let ty = cursor.read_byte().unwrap();
     debug_assert_eq!(ty, crate::receipt::types::DEPLOY_TEMPLATE);
 
-    let version = version::decode_version(&mut cursor).unwrap();
+    let version = common::decode_version(&mut cursor).unwrap();
     debug_assert_eq!(version, 0);
 
     let is_success = cursor.read_bool().unwrap();
@@ -63,6 +63,7 @@ pub fn decode_template_receipt(bytes: &[u8]) -> TemplateReceipt {
             let logs = logs::decode_logs(&mut cursor).unwrap();
 
             TemplateReceipt {
+                version,
                 success: true,
                 error: None,
                 addr: Some(addr.into()),
@@ -72,6 +73,12 @@ pub fn decode_template_receipt(bytes: &[u8]) -> TemplateReceipt {
         }
         _ => unreachable!(),
     }
+}
+
+fn encode_version(receipt: &TemplateReceipt, w: &mut Vec<u8>) {
+    let v = &receipt.version;
+
+    w.write_u16_be(*v);
 }
 
 fn encode_template_addr(receipt: &TemplateReceipt, w: &mut Vec<u8>) {
@@ -95,6 +102,7 @@ mod tests {
         let addr = Address::of("my-template").into();
 
         let receipt = TemplateReceipt {
+            version: 0,
             success: true,
             error: None,
             addr: Some(addr),

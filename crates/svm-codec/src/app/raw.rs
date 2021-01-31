@@ -2,7 +2,7 @@ use std::io::Cursor;
 
 use svm_types::{App, SpawnApp, TemplateAddr, WasmValue};
 
-use crate::{calldata, version};
+use crate::{calldata, common};
 use crate::{Field, ParseError, ReadExt, WriteExt};
 
 /// Encodes a raw Spawn-App transaction.
@@ -18,19 +18,16 @@ pub fn encode_spawn_app(spawn: &SpawnApp, w: &mut Vec<u8>) {
 /// Returns the parsed transaction as a tuple consisting of an `App` struct and `ctor_name` buffer args.
 /// On failure, returns `ParseError`.
 pub fn decode_spawn_app(cursor: &mut Cursor<&[u8]>) -> Result<SpawnApp, ParseError> {
-    let version = version::decode_version(cursor)?;
+    let version = decode_version(cursor)?;
     let template = decode_template(cursor)?;
     let name = decode_name(cursor)?;
     let ctor_name = decode_ctor(cursor)?;
     let calldata = decode_ctor_calldata(cursor)?;
 
-    let app = App {
-        version,
-        name,
-        template,
-    };
+    let app = App { name, template };
 
     let spawn = SpawnApp {
+        version,
         app,
         ctor_name,
         calldata,
@@ -42,9 +39,9 @@ pub fn decode_spawn_app(cursor: &mut Cursor<&[u8]>) -> Result<SpawnApp, ParseErr
 /// Encoders
 
 fn encode_version(spawn: &SpawnApp, w: &mut Vec<u8>) {
-    let version = spawn.app.version;
+    let v = &spawn.version;
 
-    version::encode_version(version, w);
+    common::encode_version(*v, w);
 }
 
 fn encode_name(spawn: &SpawnApp, w: &mut Vec<u8>) {
@@ -72,6 +69,11 @@ fn encode_ctor_calldata(spawn: &SpawnApp, w: &mut Vec<u8>) {
 }
 
 /// Decoders
+
+#[inline]
+fn decode_version(cursor: &mut Cursor<&[u8]>) -> Result<u16, ParseError> {
+    common::decode_version(cursor)
+}
 
 fn decode_template(cursor: &mut Cursor<&[u8]>) -> Result<TemplateAddr, ParseError> {
     match cursor.read_address() {
@@ -109,8 +111,8 @@ mod tests {
     #[test]
     fn encode_decode_spawn_app() {
         let spawn = SpawnApp {
+            version: 0,
             app: App {
-                version: 0,
                 name: "my-app".to_string(),
                 template: Address::of("my-template").into(),
             },

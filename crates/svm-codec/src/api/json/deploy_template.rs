@@ -16,7 +16,7 @@ use svm_types::AppTemplate;
 /// }
 /// ```
 pub fn deploy_template(json: &Value) -> Result<Vec<u8>, JsonError> {
-    let version = json::as_u32(json, "version")?;
+    let version = json::as_u32(json, "version")? as u16;
     let name = json::as_string(json, "name")?;
     let code = json::as_blob(json, "code")?;
     let data = json::as_blob(json, "data")?;

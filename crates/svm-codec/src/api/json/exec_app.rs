@@ -17,7 +17,7 @@ use svm_types::{AddressOf, App, AppTransaction};
 /// }
 /// ```
 pub fn encode_exec_app(json: &Value) -> Result<Vec<u8>, JsonError> {
-    let version = json::as_u32(json, "version")?;
+    let version = json::as_u32(json, "version")? as u16;
     let app = json::as_addr(json, "app")?.into();
     let func_name = json::as_string(json, "func_name")?;
 

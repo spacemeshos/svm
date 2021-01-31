@@ -202,6 +202,7 @@ mod tests {
         ];
 
         let receipt = TemplateReceipt {
+            version: 0,
             success: true,
             error: None,
             addr: Some(template.into()),
@@ -245,6 +246,7 @@ mod tests {
         ];
 
         let receipt = SpawnAppReceipt {
+            version: 0,
             success: true,
             error: None,
             app_addr: Some(app.into()),
@@ -283,6 +285,7 @@ mod tests {
         }];
 
         let receipt = SpawnAppReceipt {
+            version: 0,
             success: false,
             error: Some(ReceiptError::OOG),
             app_addr: None,
@@ -323,6 +326,7 @@ mod tests {
         ];
 
         let receipt = ExecReceipt {
+            version: 0,
             success: true,
             error: None,
             new_state: Some(state),
