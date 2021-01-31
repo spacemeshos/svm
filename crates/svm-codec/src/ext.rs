@@ -31,6 +31,8 @@ pub trait WriteExt {
 
     fn write_u32_be(&mut self, n: u32);
 
+    fn write_u64_be(&mut self, n: u64);
+
     fn write_string(&mut self, s: &str);
 
     fn write_address(&mut self, addr: &Address);
@@ -129,6 +131,12 @@ impl WriteExt for Vec<u8> {
     }
 
     fn write_u32_be(&mut self, n: u32) {
+        let bytes = n.to_be_bytes();
+
+        self.extend_from_slice(&bytes[..]);
+    }
+
+    fn write_u64_be(&mut self, n: u64) {
         let bytes = n.to_be_bytes();
 
         self.extend_from_slice(&bytes[..]);
