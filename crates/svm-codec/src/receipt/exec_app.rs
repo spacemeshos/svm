@@ -29,7 +29,7 @@ use crate::{ReadExt, WriteExt};
 pub fn encode_exec_receipt(receipt: &ExecReceipt) -> Vec<u8> {
     let mut w = Vec::new();
 
-    w.push(super::types::EXEC_APP);
+    w.write_byte(super::types::EXEC_APP);
     common::encode_version(receipt.version, &mut w);
     w.write_bool(receipt.success);
 

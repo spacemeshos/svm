@@ -11,7 +11,6 @@ pub enum ParseError {
     TooManyBytes(Field),
     NotSupported(Field),
     InvalidUTF8String(Field),
-    InvalidProtocolVersion(u32),
     UnexpectedLayout(Field),
 }
 
@@ -22,7 +21,6 @@ impl fmt::Display for ParseError {
             ParseError::EmptyField(f) => write!(fmt, "Field `{}` must not be empty", f),
             ParseError::NotEnoughBytes(f) => write!(fmt, "Not enough bytes for field `{}`", f),
             ParseError::TooManyBytes(f) => write!(fmt, "Too many bytes for field `{}`", f),
-            ParseError::InvalidProtocolVersion(msg) => write!(fmt, "{}", msg),
             ParseError::NotSupported(f) => write!(fmt, "Feature `{}` is not supported yet", f),
             ParseError::InvalidUTF8String(f) => {
                 write!(fmt, "Field `{}` must be a valid UTF-8 string", f)

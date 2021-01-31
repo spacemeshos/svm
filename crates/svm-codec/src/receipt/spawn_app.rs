@@ -22,7 +22,7 @@ use std::io::Cursor;
 use svm_types::gas::MaybeGas;
 use svm_types::receipt::{Receipt, SpawnAppReceipt};
 
-use super::{decode_error, decode_receipt, encode_error, gas, logs};
+use super::{decode_error, decode_receipt, encode_error, gas, logs, types};
 
 use crate::{calldata, common};
 use crate::{ReadExt, WriteExt};
@@ -30,7 +30,7 @@ use crate::{ReadExt, WriteExt};
 pub fn encode_app_receipt(receipt: &SpawnAppReceipt) -> Vec<u8> {
     let mut w = Vec::new();
 
-    w.push(super::types::SPAWN_APP);
+    w.write_byte(types::SPAWN_APP);
     encode_version(receipt, &mut w);
     w.write_bool(receipt.success);
 
@@ -53,7 +53,7 @@ pub fn decode_app_receipt(bytes: &[u8]) -> SpawnAppReceipt {
     let mut cursor = Cursor::new(bytes);
 
     let ty = cursor.read_byte().unwrap();
-    debug_assert_eq!(ty, crate::receipt::types::SPAWN_APP);
+    debug_assert_eq!(ty, types::SPAWN_APP);
 
     let version = common::decode_version(&mut cursor).unwrap();
     debug_assert_eq!(0, version);

@@ -12,7 +12,6 @@
 //!  |               |             |         |             |
 //!  |  Data-Layout  |  var #0     |         |   var #N    |
 //!  |  #variables   |  length     |  . . .  |   length    |
-//!  |  (varuint14)  | (varuint14) |         | (varuint14) |
 //!  +_______________|_____________|_________|_____________+
 //!
 //!

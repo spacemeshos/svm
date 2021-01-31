@@ -23,7 +23,7 @@ pub fn encode_logs(logs: &[Log], w: &mut Vec<u8>) {
     let nlogs = logs.len();
     assert!(nlogs <= std::u8::MAX as usize);
 
-    w.push(nlogs as u8);
+    w.write_byte(nlogs as u8);
 
     for log in logs.iter() {
         let len = log.msg.len();
@@ -31,13 +31,13 @@ pub fn encode_logs(logs: &[Log], w: &mut Vec<u8>) {
         assert!(log.msg.len() <= std::u8::MAX as usize);
 
         // `msg` length
-        w.push(len as u8);
+        w.write_byte(len as u8);
 
         // `msg` blob
-        w.extend_from_slice(&log.msg);
+        w.write_bytes(&log.msg);
 
         // `msg` code
-        w.push(log.code);
+        w.write_byte(log.code);
     }
 }
 
@@ -59,27 +59,27 @@ pub fn decode_logs(cursor: &mut Cursor<&[u8]>) -> Result<Vec<Log>, ParseError> {
 }
 
 fn decode_log(cursor: &mut Cursor<&[u8]>) -> Result<Log, ParseError> {
-    let mut buf = [0; 1];
+    match cursor.read_byte() {
+        Ok(length) => {
+            let msg = cursor.read_bytes(length as usize);
+            if msg.is_err() {
+                return Err(ParseError::NotEnoughBytes(Field::LogMessage));
+            };
 
-    if cursor.read_exact(&mut buf).is_err() {
-        return Err(ParseError::NotEnoughBytes(Field::LogMessageLength));
+            let code = cursor.read_byte();
+            if code.is_err() {
+                return Err(ParseError::NotEnoughBytes(Field::LogCode));
+            }
+
+            let log = Log {
+                msg: msg.unwrap(),
+                code: code.unwrap(),
+            };
+
+            Ok(log)
+        }
+        Err(..) => Err(ParseError::NotEnoughBytes(Field::LogMessageLength)),
     }
-
-    let len = buf[0];
-
-    let mut msg = Vec::with_capacity(len as usize);
-    if cursor.read_exact(&mut msg).is_err() {
-        return Err(ParseError::NotEnoughBytes(Field::LogMessage));
-    }
-
-    if cursor.read_exact(&mut buf).is_err() {
-        return Err(ParseError::NotEnoughBytes(Field::LogCode));
-    }
-    let code = buf[0];
-
-    let log = Log { msg, code };
-
-    Ok(log)
 }
 
 #[cfg(test)]

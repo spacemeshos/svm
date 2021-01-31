@@ -66,7 +66,7 @@ fn encode_code(template: &AppTemplate, w: &mut Vec<u8>) {
     w.write_u32_be(length as u32);
 
     // code
-    w.extend_from_slice(code)
+    w.write_bytes(code);
 }
 
 /// Decoders

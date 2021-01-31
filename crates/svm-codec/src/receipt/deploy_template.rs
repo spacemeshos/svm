@@ -4,7 +4,7 @@
 //!
 //!  +--------------------------------------:-----------------------------+
 //!  | tx type  |   version   |  is_success | template address | gas_used |
-//!  | (1 byte) |             |  (1 byte)   |    (20 bytes)    |          |
+//!  | (1 byte) |  (2 bytes)  |  (1 byte)   |    (20 bytes)    |          |
 //!  +__________|_____________|_____________|__________________|__________+
 //!
 //!  On success (`is_success = 0`)
@@ -24,7 +24,7 @@ use crate::{ReadExt, WriteExt};
 pub fn encode_template_receipt(receipt: &TemplateReceipt) -> Vec<u8> {
     let mut w = Vec::new();
 
-    w.push(types::DEPLOY_TEMPLATE);
+    w.write_byte(types::DEPLOY_TEMPLATE);
     encode_version(receipt, &mut w);
     w.write_bool(receipt.success);
 
@@ -76,9 +76,9 @@ pub fn decode_template_receipt(bytes: &[u8]) -> TemplateReceipt {
 }
 
 fn encode_version(receipt: &TemplateReceipt, w: &mut Vec<u8>) {
-    let v = &receipt.version;
+    let v = receipt.version;
 
-    w.write_u16_be(*v);
+    common::encode_version(v, w);
 }
 
 fn encode_template_addr(receipt: &TemplateReceipt, w: &mut Vec<u8>) {
