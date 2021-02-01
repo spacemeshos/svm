@@ -19,8 +19,8 @@ pub struct DeployAppTemplateBuilder {
 /// use std::io::Cursor;
 ///
 /// use svm_types::AppTemplate;
-/// use svm_codec::api::raw::decode_deploy_template;
 /// use svm_codec::api::builder::DeployAppTemplateBuilder;
+/// use svm_codec::template;
 ///
 /// let layout = vec![5, 10].into();
 ///
@@ -31,8 +31,8 @@ pub struct DeployAppTemplateBuilder {
 ///            .with_data(&layout)
 ///            .build();
 ///
-/// let mut cursor = Cursor::new(&bytes);
-/// let actual = decode_deploy_template(&mut cursor).unwrap();
+/// let mut cursor = Cursor::new(&bytes[..]);
+/// let actual = template::decode_deploy_template(&mut cursor).unwrap();
 ///
 /// let expected = AppTemplate {
 ///                  version: 0,

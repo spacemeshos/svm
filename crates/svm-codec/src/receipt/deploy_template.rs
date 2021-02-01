@@ -2,10 +2,10 @@
 //!
 //!  On success (`is_success = 1`)
 //!
-//!  +--------------------------------------:-----------------------------+
-//!  | tx type  |   version   |  is_success | template address | gas_used |
-//!  | (1 byte) |  (2 bytes)  |  (1 byte)   |    (20 bytes)    |          |
-//!  +__________|_____________|_____________|__________________|__________+
+//!  +--------------------------------------:------------------------------+
+//!  | tx type  |   version   |  is_success | template address | gas_used  |
+//!  | (1 byte) |  (2 bytes)  |  (1 byte)   |    (20 bytes)    | (8 bytes) |
+//!  +__________|_____________|_____________|__________________|___________+
 //!
 //!  On success (`is_success = 0`)
 //!  See [error.rs][./error.rs]
@@ -34,6 +34,7 @@ pub fn encode_template_receipt(receipt: &TemplateReceipt) -> Vec<u8> {
         logs::encode_logs(&receipt.logs, &mut w);
     } else {
         let logs = Vec::new();
+
         encode_error(receipt.get_error(), &logs, &mut w);
     };
 
@@ -58,7 +59,7 @@ pub fn decode_template_receipt(bytes: &[u8]) -> TemplateReceipt {
             TemplateReceipt::from_err(err, logs)
         }
         true => {
-            let addr = cursor.read_address().unwrap();
+            let addr = cursor.read_address().expect("expected an address");
             let gas_used = gas::decode_gas_used(&mut cursor).unwrap();
             let logs = logs::decode_logs(&mut cursor).unwrap();
 
@@ -99,13 +100,13 @@ mod tests {
 
     #[test]
     fn encode_decode_deploy_template_receipt() {
-        let addr = Address::of("my-template").into();
+        let addr = Address::repeat(0xAB);
 
         let receipt = TemplateReceipt {
             version: 0,
             success: true,
             error: None,
-            addr: Some(addr),
+            addr: Some(addr.into()),
             gas_used: MaybeGas::with(100),
             logs: Vec::new(),
         };

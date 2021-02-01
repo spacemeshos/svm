@@ -19,7 +19,8 @@ pub struct SpawnAppBuilder {
 /// use std::io::Cursor;
 ///
 /// use svm_types::{App, SpawnApp, Address};
-/// use svm_codec::api::{raw::decode_spawn_app, builder::SpawnAppBuilder};
+/// use svm_codec::api::builder::SpawnAppBuilder;
+/// use svm_codec::app;
 ///
 /// let template = Address::of("@template").into();
 /// let name = "My App".to_string();
@@ -34,10 +35,11 @@ pub struct SpawnAppBuilder {
 ///             .with_calldata(&calldata)
 ///             .build();
 ///
-/// let mut cursor = Cursor::new(&bytes);
-/// let actual = decode_spawn_app(&mut cursor).unwrap();
+/// let mut cursor = Cursor::new(&bytes[..]);
+/// let actual = app::decode_spawn_app(&mut cursor).unwrap();
 /// let expected = SpawnApp {
-///                  app: App { version: 0, name, template },
+///                  version: 0,
+///                  app: App { name, template },
 ///                  ctor_name: ctor_name.to_string(),
 ///                  calldata,
 ///                };

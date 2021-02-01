@@ -406,6 +406,7 @@ where
         match result {
             Err(e) => ExecReceipt::from_err(e, logs),
             Ok((new_state, returndata, gas_used)) => ExecReceipt {
+                version: 0,
                 success: true,
                 error: None,
                 returndata,

@@ -54,7 +54,7 @@ impl ReadExt for Cursor<&[u8]> {
     }
 
     fn read_bytes(&mut self, length: usize) -> Result<Vec<u8>> {
-        let mut buf = Vec::with_capacity(length);
+        let mut buf = vec![0; length];
 
         let _ = self.read_exact(&mut buf)?;
 

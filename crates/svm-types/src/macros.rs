@@ -70,6 +70,16 @@ macro_rules! impl_bytes_primitive {
                 svm_common::fmt::fmt_hex(&self.0, "")
             }
 
+            pub fn zeros() -> Self {
+                Self::repeat(0)
+            }
+
+            pub fn repeat(byte: u8) -> Self {
+                let bytes = [byte; $byte_count];
+
+                Self(bytes)
+            }
+
             /// # Safety
             ///
             /// Decomposes a `$primitive` into its raw components.

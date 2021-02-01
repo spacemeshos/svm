@@ -18,7 +18,8 @@ pub struct AppTxBuilder {
 /// use std::io::Cursor;
 ///
 /// use svm_types::{AppTransaction, Address};
-/// use svm_codec::api::{raw::decode_exec_app, builder::AppTxBuilder};
+/// use svm_codec::api::builder::AppTxBuilder;
+/// use svm_codec::transaction;
 ///
 /// let app = Address::of("@my-app").into();
 ///
@@ -32,8 +33,8 @@ pub struct AppTxBuilder {
 ///            .with_calldata(&calldata)
 ///            .build();
 ///
-/// let mut cursor = Cursor::new(&bytes);
-/// let actual = decode_exec_app(&mut cursor).unwrap();
+/// let mut cursor = Cursor::new(&bytes[..]);
+/// let actual = transaction::decode_exec_app(&mut cursor).unwrap();
 /// let expected = AppTransaction {
 ///                  version: 0,
 ///                  app,
