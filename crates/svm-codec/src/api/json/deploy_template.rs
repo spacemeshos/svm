@@ -22,11 +22,20 @@ pub fn deploy_template(json: &Value) -> Result<Vec<u8>, JsonError> {
     let data = json::as_blob(json, "data")?;
     let data = to_data_layout(data)?;
 
+    let mut ctors = Vec::new();
+
+    for ctor in json::as_array(json, "ctors")? {
+        let ctor = json::as_string(ctor, "ctors")?;
+
+        ctors.push(ctor);
+    }
+
     let template = AppTemplate {
         version,
         name,
         code,
         data,
+        ctors,
     };
 
     let mut buf = Vec::new();
@@ -152,6 +161,7 @@ mod tests {
             name: "My Template".to_string(),
             code: vec![0xC0, 0xDE],
             data: vec![1, 3].into(),
+            ctors: vec!["init".into(), "start".into()],
         };
 
         assert_eq!(actual, expected);

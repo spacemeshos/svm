@@ -2,28 +2,15 @@ use crate::impl_bytes_primitive;
 
 impl_bytes_primitive!(State, 32);
 
-impl State {
-    /// Returns an empty `State`
-    pub fn empty() -> State {
-        State([0; 32])
-    }
-
-    /// Returns whether `self` is empty.
-    /// An empty `State` consists solely of zeros.
-    pub fn is_empty(&self) -> bool {
-        self.0 == [0; 32]
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn state_empty() {
-        assert_eq!([0; 32], State::empty().0);
+    fn state_zeros() {
+        assert_eq!([0; 32], State::zeros().0);
 
-        assert!(State::empty().is_empty());
+        assert!(State::zeros().is_zeros());
     }
 
     #[test]

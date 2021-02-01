@@ -208,7 +208,7 @@ where
     ) -> SpawnAppReceipt {
         let ctor = self.build_ctor_call(creator, spawn, app_addr);
 
-        let ctor_receipt = self._exec_app(&ctor, &State::empty(), gas_used, gas_left);
+        let ctor_receipt = self._exec_app(&ctor, &State::zeros(), gas_used, gas_left);
 
         make_spawn_app_receipt(ctor_receipt, app_addr)
     }

@@ -13,6 +13,7 @@ pub fn encode_deploy_template(template: &AppTemplate, w: &mut Vec<u8>) {
     encode_name(template, w);
     encode_code(template, w);
     encode_data(template, w);
+    encode_ctors(template, w);
 }
 
 /// Decodes a raw Deploy-Template.
@@ -21,8 +22,10 @@ pub fn decode_deploy_template(cursor: &mut Cursor<&[u8]>) -> Result<AppTemplate,
     let name = decode_name(cursor)?;
     let code = decode_code(cursor)?;
     let data = decode_data(cursor)?;
+    let ctors = decode_ctors(cursor)?;
 
     let template = AppTemplate {
+        ctors,
         version,
         name,
         code,
@@ -69,6 +72,10 @@ fn encode_code(template: &AppTemplate, w: &mut Vec<u8>) {
     w.write_bytes(code);
 }
 
+fn encode_ctors(template: &AppTemplate, w: &mut Vec<u8>) {
+    //
+}
+
 /// Decoders
 
 #[inline]
@@ -112,6 +119,12 @@ fn decode_code(cursor: &mut Cursor<&[u8]>) -> Result<Vec<u8>, ParseError> {
     }
 }
 
+fn decode_ctors(cursor: &mut Cursor<&[u8]>) -> Result<Vec<String>, ParseError> {
+    let ctors = Vec::new();
+
+    Ok(ctors)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -123,6 +136,7 @@ mod tests {
             name: "My Template".to_string(),
             code: vec![0x0C, 0x00, 0x0D, 0x0E],
             data: vec![5, 10].into(),
+            ctors: vec!["init".into(), "start".into()],
         };
 
         let mut bytes = Vec::new();

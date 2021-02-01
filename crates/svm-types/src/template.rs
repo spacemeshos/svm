@@ -1,4 +1,3 @@
-use std::cmp::min;
 use std::fmt;
 
 use svm_layout::DataLayout;
@@ -11,37 +10,23 @@ pub struct AppTemplate {
     pub name: String,
     pub code: Vec<u8>,
     pub data: DataLayout,
+    pub ctors: Vec<String>,
 }
 
 impl fmt::Debug for AppTemplate {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let ver = self.fmt_version(self.version);
-        let name = self.fmt_name(&self.name);
-        let code = self.fmt_code(&self.code);
-        let data = self.fmt_data(&self.data);
-
-        let msg = [ver, name, code, data].join("\n");
-
-        write!(f, "{}", msg)
+        f.debug_struct("AppTemplate")
+            .field("version", &self.version)
+            .field("name", &self.name)
+            .field("code", &fmt_code(&self.code))
+            .field("data", &self.data)
+            .field("ctors", &self.ctors)
+            .finish()
     }
 }
 
-impl AppTemplate {
-    fn fmt_version(&self, version: u16) -> String {
-        format!("Version: {}", version)
-    }
+fn fmt_code(code: &[u8]) -> String {
+    let n = std::cmp::min(code.len(), 4);
 
-    fn fmt_name(&self, name: &str) -> String {
-        format!("Name: {}", name)
-    }
-
-    fn fmt_code(&self, code: &[u8]) -> String {
-        let n = min(code.len(), 4);
-
-        format!("Code: {:?}", &code[0..n])
-    }
-
-    fn fmt_data(&self, data: &DataLayout) -> String {
-        format!("Data-Layout: {:?}", data)
-    }
+    format!("Code: {:?}", &code[0..n])
 }

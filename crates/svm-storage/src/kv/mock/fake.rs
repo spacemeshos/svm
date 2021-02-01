@@ -156,8 +156,8 @@ impl FakeKV {
     /// New `FakeKV` initialized with no data.
     pub fn new() -> Self {
         Self {
-            head: State::empty(),
-            flushed_head: State::empty(),
+            head: State::zeros(),
+            flushed_head: State::zeros(),
             flushed: HashMap::new(),
             journal: vec![(None, Vec::new())],
         }
@@ -180,7 +180,7 @@ impl FakeKV {
         let mut state = &self.head;
 
         loop {
-            if state.is_empty() {
+            if state.is_zeros() {
                 return None;
             }
 
@@ -280,7 +280,7 @@ impl FakeKV {
     fn fmt_flushed<W: fmt::Write>(&self, f: &mut W) -> fmt::Result {
         let mut state = &self.head;
 
-        while state.is_empty() == false {
+        while state.is_zeros() == false {
             let node = self.flushed.get(&state).unwrap();
 
             write!(f, "state: {}", &fmt_state(state))?;
@@ -378,7 +378,7 @@ mod tests {
     #[test]
     fn fake_kv_empty() {
         let kv = FakeKV::new();
-        assert_eq!(kv.head, State::empty());
+        assert_eq!(kv.head, State::zeros());
     }
 
     #[test]
