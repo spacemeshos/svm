@@ -33,7 +33,8 @@ mod test {
           "version": 0,
           "name": "My Template",
           "code": "C0DE",
-          "data": "0000000100000003"
+          "data": "0000000100000003",
+          "ctors": ["init", "start"]
         }"#;
 
         let json_buf = to_wasm_buffer(json.as_bytes());

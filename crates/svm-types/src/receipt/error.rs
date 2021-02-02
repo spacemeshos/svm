@@ -1,7 +1,3 @@
-mod deploy_template;
-mod exec_app;
-mod spawn_app;
-
 use crate::{AppAddr, TemplateAddr};
 
 #[derive(Debug, PartialEq, Clone)]

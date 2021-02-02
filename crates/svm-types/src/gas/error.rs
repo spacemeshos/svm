@@ -7,7 +7,7 @@ pub struct OOGError;
 
 impl fmt::Display for OOGError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Reached Out of Gas")
+        write!(f, "Reached Out-of-Gas")
     }
 }
 

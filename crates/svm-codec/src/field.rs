@@ -22,6 +22,7 @@ pub enum Field {
     ErrorLength,
     Function,
     Ctor,
+    CtorsCount,
     ReceiptType,
     ReceiptStatus,
     LogsCount,

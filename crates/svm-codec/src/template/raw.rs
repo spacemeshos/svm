@@ -73,7 +73,15 @@ fn encode_code(template: &AppTemplate, w: &mut Vec<u8>) {
 }
 
 fn encode_ctors(template: &AppTemplate, w: &mut Vec<u8>) {
-    //
+    let count = template.ctors.len();
+
+    assert!(count < std::u8::MAX as usize);
+
+    w.write_byte(count as u8);
+
+    for ctor in template.ctors.iter() {
+        w.write_string(ctor);
+    }
 }
 
 /// Decoders
@@ -120,9 +128,22 @@ fn decode_code(cursor: &mut Cursor<&[u8]>) -> Result<Vec<u8>, ParseError> {
 }
 
 fn decode_ctors(cursor: &mut Cursor<&[u8]>) -> Result<Vec<String>, ParseError> {
-    let ctors = Vec::new();
+    match cursor.read_byte() {
+        Err(..) => Err(ParseError::NotEnoughBytes(Field::CtorsCount)),
+        Ok(count) => {
+            let mut ctors = Vec::with_capacity(count as usize);
 
-    Ok(ctors)
+            for _ in 0..count {
+                if let Ok(Ok(ctor)) = cursor.read_string() {
+                    ctors.push(ctor);
+                } else {
+                    return Err(ParseError::NotEnoughBytes(Field::Ctor));
+                }
+            }
+
+            Ok(ctors)
+        }
+    }
 }
 
 #[cfg(test)]

@@ -1,8 +1,8 @@
 #![allow(unused)]
 
-use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::ffi::c_void;
+use std::{collections::HashMap, vec};
 
 use svm_runtime_c_api as api;
 
@@ -226,10 +226,10 @@ unsafe fn create_success_imports() -> *mut c_void {
     imports as _
 }
 
-fn deploy_template_bytes(version: u16, name: &str, wasm: &[u8]) -> Vec<u8> {
+fn deploy_template_bytes(version: u16, name: &str, ctors: &[String], wasm: &[u8]) -> Vec<u8> {
     let data: DataLayout = vec![4].into();
 
-    svm_runtime::testing::build_template(version, name, data, WasmFile::Binary(wasm))
+    svm_runtime::testing::build_template(version, name, data, ctors, WasmFile::Binary(wasm))
 }
 
 fn spawn_app_bytes(
@@ -343,7 +343,8 @@ fn svm_runtime_failure() {
         let wasm = include_bytes!("wasm/failure.wasm");
 
         // raw template
-        let msg = deploy_template_bytes(version, "My Template", wasm);
+        let ctors = vec!["initialize".to_string()];
+        let msg = deploy_template_bytes(version, "My Template", &ctors, wasm);
         let msg: svm_byte_array = (DEPLOY_TEMPLATE_TX, msg).into();
 
         let mut template_receipt = svm_byte_array::default();
@@ -480,10 +481,11 @@ fn svm_runtime_success() {
 
         // 2) deploy app-template
         let author: svm_byte_array = (AUTHOR, Address::of("author")).into();
+        let ctors = vec!["initialize".to_string()];
         let wasm = include_bytes!("wasm/counter.wasm");
 
         // raw template
-        let msg = deploy_template_bytes(version, "My Template", wasm);
+        let msg = deploy_template_bytes(version, "My Template", &ctors, wasm);
         let msg: svm_byte_array = (DEPLOY_TEMPLATE_TX, msg).into();
 
         let mut template_receipt = svm_byte_array::default();

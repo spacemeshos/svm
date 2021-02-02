@@ -25,9 +25,9 @@ pub fn deploy_template(json: &Value) -> Result<Vec<u8>, JsonError> {
     let mut ctors = Vec::new();
 
     for ctor in json::as_array(json, "ctors")? {
-        let ctor = json::as_string(ctor, "ctors")?;
+        let ctor = ctor.as_str().unwrap();
 
-        ctors.push(ctor);
+        ctors.push(ctor.to_string());
     }
 
     let template = AppTemplate {
@@ -143,12 +143,32 @@ mod tests {
     }
 
     #[test]
+    fn json_deploy_template_missing_ctors() {
+        let json = json!({
+            "version": 0,
+            "name": "My Template",
+            "code": "C0DE",
+            "data": "0000000100000003",
+        });
+
+        let err = deploy_template(&json).unwrap_err();
+        assert_eq!(
+            err,
+            JsonError::InvalidField {
+                field: "ctors".to_string(),
+                reason: "value `null` isn\'t an Array".to_string(),
+            }
+        );
+    }
+
+    #[test]
     fn json_deploy_template_valid() {
         let json = json!({
             "version": 0,
             "name": "My Template",
             "code": "C0DE",
-            "data": "0000000100000003"
+            "data": "0000000100000003",
+            "ctors": ["init", "start"]
         });
 
         let bytes = deploy_template(&json).unwrap();

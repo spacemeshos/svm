@@ -28,5 +28,5 @@ impl fmt::Debug for AppTemplate {
 fn fmt_code(code: &[u8]) -> String {
     let n = std::cmp::min(code.len(), 4);
 
-    format!("Code: {:?}", &code[0..n])
+    format!("{:?}", &code[0..n])
 }

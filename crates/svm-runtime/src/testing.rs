@@ -134,7 +134,13 @@ pub fn runtime_memory_env_builder() -> DefaultMemoryEnv {
 }
 
 /// Synthesizes a raw deploy-template transaction.
-pub fn build_template(version: u16, name: &str, data: DataLayout, wasm: WasmFile) -> Vec<u8> {
+pub fn build_template(
+    version: u16,
+    name: &str,
+    data: DataLayout,
+    ctors: &[String],
+    wasm: WasmFile,
+) -> Vec<u8> {
     let wasm = wasm.into_bytes();
 
     DeployAppTemplateBuilder::new()
@@ -142,6 +148,7 @@ pub fn build_template(version: u16, name: &str, data: DataLayout, wasm: WasmFile
         .with_name(name)
         .with_code(&wasm)
         .with_data(&data)
+        .with_ctors(ctors)
         .build()
 }
 

@@ -24,7 +24,7 @@ pub struct DeployAppTemplateBuilder {
 /// use svm_codec::template;
 ///
 /// let layout = vec![5, 10].into();
-/// lets ctors = vec!["init".to_string()];
+/// let ctors = vec!["init".to_string()];
 ///
 /// let bytes = DeployAppTemplateBuilder::new()
 ///            .with_version(0)
@@ -41,7 +41,8 @@ pub struct DeployAppTemplateBuilder {
 ///                  version: 0,
 ///                  name: "My Template".to_string(),
 ///                  code: vec![0xC, 0x0, 0xD, 0xE],
-///                  data: layout
+///                  data: layout,
+///                  ctors: vec!["init".to_string()]
 ///                };
 ///
 /// assert_eq!(expected, actual);

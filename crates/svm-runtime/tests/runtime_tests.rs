@@ -41,14 +41,15 @@ fn default_runtime_validate_template_invalid_raw_format() {
 #[test]
 fn default_runtime_validate_template_invalid_wasm() {
     let runtime = default_runtime!();
-
     let version = 0;
+    let ctors = Vec::new();
 
     // invalid wasm (has floats)
     let bytes = testing::build_template(
         version,
         "My Template",
         DataLayout::empty(),
+        &ctors,
         include_str!("wasm/wasm_with_floats.wast").into(),
     );
 
@@ -92,11 +93,13 @@ fn default_runtime_deploy_template_reaches_oog() {
     let version = 0;
     let author = Address::of("author").into();
     let maybe_gas = MaybeGas::with(0);
+    let ctors = vec!["ctor".to_string()];
 
     let bytes = testing::build_template(
         version,
         "My Template",
         DataLayout::empty(),
+        &ctors,
         include_str!("wasm/runtime_app_ctor.wast").into(),
     );
 
@@ -112,11 +115,13 @@ fn default_runtime_deploy_template_has_enough_gas() {
     let version = 0;
     let author = Address::of("author").into();
     let gas_limit = MaybeGas::with(1_0000_000);
+    let ctors = vec!["ctor".to_string()];
 
     let bytes = testing::build_template(
         version,
         "My Template",
         DataLayout::empty(),
+        &ctors,
         include_str!("wasm/runtime_app_ctor.wast").into(),
     );
 
@@ -134,11 +139,13 @@ fn default_runtime_spawn_app_with_ctor_reaches_oog() {
     let author = Address::of("author").into();
     let creator = Address::of("creator").into();
     let maybe_gas = MaybeGas::new();
+    let ctors = vec!["ctor".to_string()];
 
     let bytes = testing::build_template(
         version,
         "My Template",
         DataLayout::empty(),
+        &ctors,
         include_str!("wasm/runtime_app_ctor.wast").into(),
     );
 
@@ -175,6 +182,7 @@ fn default_runtime_spawn_app_with_ctor_with_enough_gas() {
     let author = Address::of("author").into();
     let creator = Address::of("creator").into();
     let maybe_gas = MaybeGas::new();
+    let ctors = vec!["ctor".to_string()];
 
     // raw layout consists on one variable of 8 bytes (offsets: `[0..8)`)
     let layout: DataLayout = vec![8].into();
@@ -183,6 +191,7 @@ fn default_runtime_spawn_app_with_ctor_with_enough_gas() {
         version,
         "My Template",
         layout.clone(),
+        &ctors,
         include_str!("wasm/runtime_app_ctor.wast").into(),
     );
 
@@ -220,11 +229,13 @@ fn default_runtime_calldata_returndata() {
     let author = Address::of("author").into();
     let maybe_gas = MaybeGas::new();
     let layout: DataLayout = vec![20].into();
+    let ctors = vec!["initialize".to_string()];
 
     let bytes = testing::build_template(
         version,
         "My Template",
         layout.clone(),
+        &ctors,
         (&include_bytes!("wasm/runtime_calldata.wasm")[..]).into(),
     );
 
@@ -288,11 +299,13 @@ fn default_runtime_exec_app_reaches_oog() {
     let creator = Address::of("creator").into();
     let maybe_gas = MaybeGas::new();
     let layout: DataLayout = vec![4].into();
+    let ctors = vec!["ctors".to_string()];
 
     let bytes = testing::build_template(
         version,
         "My Template",
         layout,
+        &ctors,
         include_str!("wasm/runtime_exec_app.wast").into(),
     );
 
