@@ -43,16 +43,22 @@
 //!   +-------------------+---------------------------------+
 //!
 //!  * Function Not Found
-//!   +-------------------+---------------+-----------------+
-//!   |  Template Address | App Address   |    Func Index   |
-//!   |   (20 bytes)      |  (20 bytes)   |   (varuint14)   |
-//!   +-------------------+---------------------------------+
+//!   +-------------------+---------------+--------------+
+//!   |  Template Address | App Address   |   Function   |
+//!   |   (20 bytes)      |  (20 bytes)   |   (String)   |
+//!   +-------------------+------------------------------+
 //!
 //!  * Function Failed
-//!   +-------------------+---------------+-------------------------------+
-//!   |  Template Address |  App Address  |  Func Index  |     Error      |
-//!   |   (20 bytes)      |   (20 bytes)  |  (varuint14) | (UTF-8 String) |
-//!   +-------------------+-----------------------------------------------+
+//!   +-------------------+---------------+-----------------------------+
+//!   |  Template Address |  App Address  |  Function  |     Error      |
+//!   |   (20 bytes)      |   (20 bytes)  |   (String) | (UTF-8 String) |
+//!   +-------------------+---------------------------------------------+
+//!
+//!  * Function Not Allowed
+//!   +-------------------+---------------+-----------------------------+
+//!   |  Template Address |  App Address  |  Function  |     Error      |
+//!   |   (20 bytes)      |   (20 bytes)  |   (String) | (UTF-8 String) |
+//!   +-------------------+---------------------------------------------+
 //!
 
 use std::io::{Cursor, Read};
@@ -107,6 +113,17 @@ pub(crate) fn encode_error(err: &ReceiptError, logs: &[Log], w: &mut Vec<u8>) {
             w.write_string(func);
             w.write_string(msg);
         }
+        Err::FuncNotAllowed {
+            app_addr,
+            template_addr,
+            func,
+            msg,
+        } => {
+            w.write_address(template_addr.inner());
+            w.write_address(app_addr.inner());
+            w.write_string(func);
+            w.write_string(msg);
+        }
     };
 }
 
@@ -119,6 +136,7 @@ fn encode_err_type(err: &ReceiptError, w: &mut Vec<u8>) {
         Err::InstantiationFailed { .. } => 4,
         Err::FuncNotFound { .. } => 5,
         Err::FuncFailed { .. } => 6,
+        Err::FuncNotAllowed { .. } => 7,
     };
 
     w.push(ty);
@@ -136,7 +154,8 @@ pub(crate) fn decode_error(cursor: &mut Cursor<&[u8]>) -> (ReceiptError, Vec<Log
             3 => decode_compilation_err(cursor),
             4 => decode_instantiation_err(cursor),
             5 => decode_func_not_found(cursor),
-            6 => decode_func_err(cursor),
+            6 => decode_func_failed(cursor),
+            7 => decode_func_not_allowed(cursor),
             _ => unreachable!(),
         }
     };
@@ -193,12 +212,25 @@ fn decode_func_not_found(cursor: &mut Cursor<&[u8]>) -> ReceiptError {
     }
 }
 
-fn decode_func_err(cursor: &mut Cursor<&[u8]>) -> ReceiptError {
+fn decode_func_failed(cursor: &mut Cursor<&[u8]>) -> ReceiptError {
     let (template_addr, app_addr) = decode_addrs(cursor);
     let func = decode_func(cursor);
     let msg = decode_msg(cursor);
 
     ReceiptError::FuncFailed {
+        template_addr,
+        app_addr,
+        func,
+        msg,
+    }
+}
+
+fn decode_func_not_allowed(cursor: &mut Cursor<&[u8]>) -> ReceiptError {
+    let (template_addr, app_addr) = decode_addrs(cursor);
+    let func = decode_func(cursor);
+    let msg = decode_msg(cursor);
+
+    ReceiptError::FuncNotAllowed {
         template_addr,
         app_addr,
         func,
@@ -348,6 +380,27 @@ mod tests {
         let msg = "Invalid input".to_string();
 
         let err = ReceiptError::FuncFailed {
+            app_addr: app_addr.into(),
+            template_addr: template_addr.into(),
+            func,
+            msg,
+        };
+
+        let mut buf = Vec::new();
+        encode_error(&err, &test_logs(), &mut buf);
+
+        let mut cursor = Cursor::new(&buf[..]);
+        let decoded = decode_error(&mut cursor);
+    }
+
+    #[test]
+    fn decode_receipt_func_not_allowed() {
+        let template_addr = Address::of("some-template");
+        let app_addr = Address::of("some-app");
+        let func = "init".to_string();
+        let msg = "expected a ctor".to_string();
+
+        let err = ReceiptError::FuncNotAllowed {
             app_addr: app_addr.into(),
             template_addr: template_addr.into(),
             func,

@@ -84,7 +84,7 @@ impl SpawnAppReceipt {
 }
 
 #[allow(missing_docs)]
-pub fn make_spawn_app_receipt(
+pub fn into_spawn_app_receipt(
     mut ctor_receipt: ExecReceipt,
     app_addr: &AppAddr,
 ) -> SpawnAppReceipt {

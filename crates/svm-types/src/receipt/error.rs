@@ -26,4 +26,10 @@ pub enum ReceiptError {
         func: String,
         msg: String,
     },
+    FuncNotAllowed {
+        app_addr: AppAddr,
+        template_addr: TemplateAddr,
+        func: String,
+        msg: String,
+    },
 }
