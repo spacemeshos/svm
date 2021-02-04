@@ -44,6 +44,8 @@ impl AppTemplateDeserializer for DefaultAppTemplateDeserializer {
 
 #[cfg(test)]
 mod tests {
+    use std::vec;
+
     use super::*;
 
     use svm_types::Address;
@@ -58,6 +60,7 @@ mod tests {
             name: "My Template".to_string(),
             code: vec![0x0C, 0x00, 0x0D, 0x0E],
             data: vec![10, 20, 30].into(),
+            ctors: vec!["init".into(), "start".into()],
         };
 
         let author = Address::of("@author").into();

@@ -808,7 +808,7 @@ pub unsafe extern "C" fn svm_spawn_app(
 /// let mut exec_receipt = svm_byte_array::default();
 /// let bytes = svm_byte_array::default();
 /// let ty = Type::of::<State>();
-/// let state = (ty, State::empty()).into();
+/// let state = (ty, State::zeros()).into();
 /// let gas_metering = false;
 /// let gas_limit = 0;
 ///

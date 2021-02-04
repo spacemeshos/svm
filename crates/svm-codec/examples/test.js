@@ -282,6 +282,7 @@ describe("Deploy Template", function () {
         name: "My Template",
         code: "C0DE",
         data: "0000000100000003",
+        ctors: ["init", "start"],
       };
 
       const buf = wasmNewBuffer(instance, tx);

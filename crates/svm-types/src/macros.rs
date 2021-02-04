@@ -74,6 +74,10 @@ macro_rules! impl_bytes_primitive {
                 Self::repeat(0)
             }
 
+            pub fn is_zeros(&self) -> bool {
+                self.0 == [0; $byte_count]
+            }
+
             pub fn repeat(byte: u8) -> Self {
                 let bytes = [byte; $byte_count];
 

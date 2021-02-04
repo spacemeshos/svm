@@ -1,7 +1,3 @@
-mod deploy_template;
-mod exec_app;
-mod spawn_app;
-
 use crate::{AppAddr, TemplateAddr};
 
 #[derive(Debug, PartialEq, Clone)]
@@ -25,6 +21,12 @@ pub enum ReceiptError {
         func: String,
     },
     FuncFailed {
+        app_addr: AppAddr,
+        template_addr: TemplateAddr,
+        func: String,
+        msg: String,
+    },
+    FuncNotAllowed {
         app_addr: AppAddr,
         template_addr: TemplateAddr,
         func: String,

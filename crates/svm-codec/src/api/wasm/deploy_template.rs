@@ -18,7 +18,7 @@ pub fn encode_deploy_template(ptr: usize) -> Result<usize, JsonError> {
 mod test {
     use super::*;
 
-    use std::io::Cursor;
+    use std::{io::Cursor, vec};
 
     use svm_types::AppTemplate;
 
@@ -33,7 +33,8 @@ mod test {
           "version": 0,
           "name": "My Template",
           "code": "C0DE",
-          "data": "0000000100000003"
+          "data": "0000000100000003",
+          "ctors": ["init", "start"]
         }"#;
 
         let json_buf = to_wasm_buffer(json.as_bytes());
@@ -50,6 +51,7 @@ mod test {
             name: "My Template".to_string(),
             code: vec![0xC0, 0xDE],
             data: vec![1, 3].into(),
+            ctors: vec!["init".into(), "start".into()],
         };
 
         assert_eq!(actual, expected);
