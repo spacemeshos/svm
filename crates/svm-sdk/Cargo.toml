@@ -14,7 +14,7 @@ publish = false
 wee_alloc = "0.4.5"
 lazy_static = "1.4.0"
 svm-sdk-host = { path = "host" }
-svm-sdk-storage = { path = "storage" }
+svm-sdk-storage = { path = "storage", default-features = false }
 svm-sdk-alloc = { path = "alloc" }
 svm-sdk-types = { path = "types" }
 svm-abi-encoder = { path = "../svm-abi/encoder" }

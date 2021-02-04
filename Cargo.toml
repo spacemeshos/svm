@@ -53,10 +53,10 @@ svm-sdk-tests = { path = "crates/svm-sdk-tests" }
 svm-nibble = { path = "crates/svm-nibble" }
 svm-codec = { path = "crates/svm-codec" }
 svm-layout = { path = "crates/svm-layout" }
+svm-ffi = { path = "crates/svm-ffi" }
 svm-storage = { path = "crates/svm-storage", default-features = false }
 svm-compiler = { path = "crates/svm-compiler", default-features = false }
 svm-runtime = { path = "crates/svm-runtime", default-features = false }
-svm-ffi = { path = "crates/svm-ffi" }
 svm-runtime-c-api = { path = "crates/svm-runtime-c-api", default-features = false }
 svm-abi-layout = { path = "crates/svm-abi/layout" }
 svm-abi-encoder = { path = "crates/svm-abi/encoder" }
@@ -91,6 +91,10 @@ members = [
   "crates/svm-compiler",
   "crates/svm-ffi",
   "crates/svm-runtime-c-api",
+]
+
+exclude = [
+  "apps/*",
 ]
 
 [features]
