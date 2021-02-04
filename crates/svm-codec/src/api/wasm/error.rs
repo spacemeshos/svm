@@ -1,20 +1,17 @@
 use std::fmt;
 
-use svm_nibble::NibbleWriter;
-
 use super::{to_wasm_buffer, wasm_buffer_data, BUF_ERROR_MARKER};
 
 pub fn into_error_buffer<T: fmt::Debug>(err: T) -> usize {
     let msg: String = format!("{:?}", err);
     let bytes = msg.as_bytes();
 
-    let mut w = NibbleWriter::new();
+    let mut buf = Vec::with_capacity(1 + bytes.len());
 
-    w.write_bytes(&[BUF_ERROR_MARKER]);
-    w.write_bytes(bytes);
+    buf.push(BUF_ERROR_MARKER);
+    buf.extend_from_slice(bytes);
 
-    let bytes = w.into_bytes();
-    to_wasm_buffer(&bytes)
+    to_wasm_buffer(&buf)
 }
 
 pub unsafe fn error_as_string(buf: usize) -> String {

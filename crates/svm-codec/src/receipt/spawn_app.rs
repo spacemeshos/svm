@@ -2,16 +2,13 @@
 //!
 //!  On success (`is_success = 1`)
 //!  +-----------------------------------------------------+
-//!  |  tx type  |  version   | is_success |  App Address  |
-//!  | (1 byte)  | (1 nibble) | (1 nibble) |  (20 bytes)   |
-//!  +___________|____________|____________|_______________+
-//!  |              |           |             |            |
-//!  |  init state  | #returndata  | ret #1 type |  ret  #1   |
-//!  |  (32 bytes)  |           |             |            |
-//!  +______________|___________|_____________|____________+
-//!  |          |            |                             |
-//!  |  ret #2  |   .  .  .  |         gas_used            |
-//!  +__________|____________|_____________________________+
+//!  |  tx type  |  version   | is_success  | App Address  |
+//!  | (1 byte)  |            |  (1 byte)   |  (20 bytes)  |
+//!  +___________|____________|_____________|______________+
+//!  |              |              |                       |
+//!  |  init state  | #returndata  |      gas_used         |
+//!  |  (32 bytes)  |              |                       |
+//!  +______________|______________|_______________________+
 //!  |          |            |         |                   |
 //!  |  #logs   | log 1 blob |  . . .  |     log #N        |
 //!  +__________|____________|_________|___________________+
@@ -20,29 +17,28 @@
 //!  On success (`is_success = 0`)
 //!  See [error.rs][./error.rs]
 
-use svm_nibble::{NibbleIter, NibbleWriter};
-
-use crate::api::raw;
+use std::io::Cursor;
 
 use svm_types::gas::MaybeGas;
 use svm_types::receipt::{Receipt, SpawnAppReceipt};
 
-use super::{decode_error, encode_error, helpers, logs};
+use super::{decode_error, decode_receipt, encode_error, gas, logs, types};
+
+use crate::{calldata, common};
+use crate::{ReadExt, WriteExt};
 
 pub fn encode_app_receipt(receipt: &SpawnAppReceipt) -> Vec<u8> {
-    let mut w = NibbleWriter::new();
+    let mut w = Vec::new();
 
-    let wrapped_receipt = Receipt::SpawnApp(receipt);
-
-    helpers::encode_type(super::types::SPAWN_APP, &mut w);
-    helpers::encode_version(0, &mut w);
-    helpers::encode_is_success(&wrapped_receipt, &mut w);
+    w.write_byte(types::SPAWN_APP);
+    encode_version(receipt, &mut w);
+    w.write_bool(receipt.success);
 
     if receipt.success {
         encode_app_addr(receipt, &mut w);
         encode_init_state(receipt, &mut w);
         encode_returndata(&receipt, &mut w);
-        helpers::encode_gas_used(&wrapped_receipt, &mut w);
+        gas::encode_gas_used(&receipt.gas_used, &mut w);
         logs::encode_logs(&receipt.logs, &mut w);
     } else {
         let logs = receipt.get_logs();
@@ -50,34 +46,34 @@ pub fn encode_app_receipt(receipt: &SpawnAppReceipt) -> Vec<u8> {
         encode_error(receipt.get_error(), logs, &mut w);
     };
 
-    w.into_bytes()
+    w
 }
 
 pub fn decode_app_receipt(bytes: &[u8]) -> SpawnAppReceipt {
-    let mut iter = NibbleIter::new(bytes);
+    let mut cursor = Cursor::new(bytes);
 
-    let ty = helpers::decode_type(&mut iter);
-    debug_assert_eq!(ty, crate::receipt::types::SPAWN_APP);
+    let ty = cursor.read_byte().unwrap();
+    debug_assert_eq!(ty, types::SPAWN_APP);
 
-    let version = helpers::decode_version(&mut iter).unwrap();
+    let version = common::decode_version(&mut cursor).unwrap();
     debug_assert_eq!(0, version);
 
-    let is_success = helpers::decode_is_success(&mut iter);
+    let is_success = cursor.read_bool().unwrap();
 
     match is_success {
-        0 => {
-            let (err, logs) = decode_error(&mut iter);
+        false => {
+            let (err, logs) = decode_error(&mut cursor);
             SpawnAppReceipt::from_err(err, logs)
         }
-        1 => {
-            // success
-            let addr = helpers::decode_address(&mut iter);
-            let init_state = helpers::decode_state(&mut iter);
-            let returndata = raw::decode_abi_data(&mut iter).unwrap();
-            let gas_used = helpers::decode_gas_used(&mut iter);
-            let logs = logs::decode_logs(&mut iter);
+        true => {
+            let addr = cursor.read_address().unwrap();
+            let init_state = cursor.read_state().unwrap();
+            let returndata = calldata::decode_calldata(&mut cursor).unwrap();
+            let gas_used = gas::decode_gas_used(&mut cursor).unwrap();
+            let logs = logs::decode_logs(&mut cursor).unwrap();
 
             SpawnAppReceipt {
+                version,
                 success: true,
                 error: None,
                 app_addr: Some(addr.into()),
@@ -91,25 +87,34 @@ pub fn decode_app_receipt(bytes: &[u8]) -> SpawnAppReceipt {
     }
 }
 
-fn encode_app_addr(receipt: &SpawnAppReceipt, w: &mut NibbleWriter) {
+fn encode_version(receipt: &SpawnAppReceipt, w: &mut Vec<u8>) {
+    let v = &receipt.version;
+
+    common::encode_version(*v, w);
+}
+
+fn encode_app_addr(receipt: &SpawnAppReceipt, w: &mut Vec<u8>) {
     debug_assert!(receipt.success);
 
     let addr = receipt.get_app_addr();
-    helpers::encode_addr(addr.inner(), w)
+
+    w.write_address(addr.inner());
 }
 
-fn encode_init_state(receipt: &SpawnAppReceipt, w: &mut NibbleWriter) {
+fn encode_init_state(receipt: &SpawnAppReceipt, w: &mut Vec<u8>) {
     debug_assert!(receipt.success);
 
     let state = receipt.get_init_state();
-    helpers::encode_state(&state, w);
+
+    w.write_state(state);
 }
 
-fn encode_returndata(receipt: &SpawnAppReceipt, w: &mut NibbleWriter) {
+fn encode_returndata(receipt: &SpawnAppReceipt, w: &mut Vec<u8>) {
     debug_assert!(receipt.success);
 
     let data = receipt.get_returndata();
-    helpers::encode_abi_data(&data, w);
+
+    calldata::encode_calldata(&data, w);
 }
 
 #[cfg(test)]
@@ -126,6 +131,7 @@ mod tests {
         let error = ReceiptError::TemplateNotFound(template_addr);
 
         let receipt = SpawnAppReceipt {
+            version: 0,
             success: false,
             error: Some(error),
             app_addr: None,
@@ -136,9 +142,9 @@ mod tests {
         };
 
         let bytes = encode_app_receipt(&receipt);
-        let decoded = crate::receipt::decode_receipt(&bytes);
+        let decoded = decode_receipt(&bytes);
 
-        // assert_eq!(decoded.into_spawn_app(), receipt);
+        assert_eq!(decoded.into_spawn_app(), receipt);
     }
 
     #[test]
@@ -152,6 +158,7 @@ mod tests {
         }];
 
         let receipt = SpawnAppReceipt {
+            version: 0,
             success: true,
             error: None,
             app_addr: Some(addr),
@@ -162,7 +169,7 @@ mod tests {
         };
 
         let bytes = encode_app_receipt(&receipt);
-        let decoded = crate::receipt::decode_receipt(&bytes);
+        let decoded = decode_receipt(&bytes);
 
         assert_eq!(decoded.into_spawn_app(), receipt);
     }
@@ -178,6 +185,7 @@ mod tests {
         }];
 
         let receipt = SpawnAppReceipt {
+            version: 0,
             success: true,
             error: None,
             app_addr: Some(addr),
@@ -188,7 +196,7 @@ mod tests {
         };
 
         let bytes = encode_app_receipt(&receipt);
-        let decoded = crate::receipt::decode_receipt(&bytes);
+        let decoded = decode_receipt(&bytes);
 
         assert_eq!(decoded.into_spawn_app(), receipt);
     }

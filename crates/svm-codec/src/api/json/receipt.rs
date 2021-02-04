@@ -1,7 +1,7 @@
 use serde_json::{json, Value};
 
 use crate::api::json::{self, JsonError};
-use crate::api::raw;
+use crate::receipt;
 
 use svm_types::receipt::{
     ExecReceipt, Log, ReceiptError, ReceiptOwned, SpawnAppReceipt, TemplateReceipt,
@@ -13,7 +13,7 @@ pub fn decode_receipt(json: &Value) -> Result<Value, JsonError> {
 
     assert!(bytes.len() > 0);
 
-    let receipt = raw::decode_receipt(&bytes);
+    let receipt = receipt::decode_receipt(&bytes);
     let ty = receipt_type(&receipt);
 
     let json = if receipt.success() {
@@ -202,6 +202,7 @@ mod tests {
         ];
 
         let receipt = TemplateReceipt {
+            version: 0,
             success: true,
             error: None,
             addr: Some(template.into()),
@@ -245,6 +246,7 @@ mod tests {
         ];
 
         let receipt = SpawnAppReceipt {
+            version: 0,
             success: true,
             error: None,
             app_addr: Some(app.into()),
@@ -283,6 +285,7 @@ mod tests {
         }];
 
         let receipt = SpawnAppReceipt {
+            version: 0,
             success: false,
             error: Some(ReceiptError::OOG),
             app_addr: None,
@@ -323,6 +326,7 @@ mod tests {
         ];
 
         let receipt = ExecReceipt {
+            version: 0,
             success: true,
             error: None,
             new_state: Some(state),

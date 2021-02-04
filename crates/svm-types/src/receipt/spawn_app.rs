@@ -1,9 +1,13 @@
+use std::io::SeekFrom;
+
 use crate::receipt::{ExecReceipt, Log, ReceiptError};
 use crate::{gas::MaybeGas, AppAddr, State};
 
 /// Returned Receipt after spawning an App.
 #[derive(Debug, PartialEq, Clone)]
 pub struct SpawnAppReceipt {
+    pub version: u16,
+
     /// whether spawn succedded or not
     pub success: bool,
 
@@ -29,19 +33,12 @@ pub struct SpawnAppReceipt {
 impl SpawnAppReceipt {
     /// Creates a `SpawnAppReceipt` for reaching reaching `Out-of-Gas`.
     pub fn new_oog(logs: Vec<Log>) -> Self {
-        Self {
-            success: false,
-            error: Some(ReceiptError::OOG),
-            app_addr: None,
-            init_state: None,
-            returndata: None,
-            gas_used: MaybeGas::new(),
-            logs,
-        }
+        Self::from_err(ReceiptError::OOG, Vec::new())
     }
 
     pub fn from_err(error: ReceiptError, logs: Vec<Log>) -> Self {
         Self {
+            version: 0,
             success: false,
             error: Some(error),
             app_addr: None,
@@ -96,6 +93,7 @@ pub fn make_spawn_app_receipt(
 
     if ctor_receipt.success {
         SpawnAppReceipt {
+            version: 0,
             success: true,
             error: None,
             app_addr,
@@ -108,6 +106,7 @@ pub fn make_spawn_app_receipt(
         let error = ctor_receipt.error.unwrap();
 
         SpawnAppReceipt {
+            version: 0,
             success: false,
             error: Some(error),
             app_addr,

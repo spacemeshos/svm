@@ -1,22 +1,30 @@
 use proc_macro2::{Ident, Span, TokenStream};
-
 use quote::quote;
 use syn::Result;
 
-use super::attr;
-use attr::{find_attr, has_fundable_attr, FuncAttr, FuncAttrKind};
+use super::attr::{find_attr, has_fundable_attr, FuncAttr, FuncAttrKind};
 
-pub fn expand(attrs: &[FuncAttr]) -> Result<TokenStream> {
+use crate::{function, App};
+
+pub fn expand(attrs: &[FuncAttr], app: &App) -> Result<TokenStream> {
     debug_assert!(has_fundable_attr(attrs));
 
-    let attr = find_attr(attrs, FuncAttrKind::Fundable);
+    let attr = find_attr(attrs, FuncAttrKind::Fundable).unwrap();
 
-    let fund_hook = match attr {
-        FuncAttr::Fundable(s) => Ident::new(s, Span::call_site()),
+    let fundable_hook = match attr {
+        FuncAttr::Fundable(None) => app
+            .default_fundable_hook()
+            .unwrap_or(Ident::new("svm_fund", Span::call_site())),
+
+        FuncAttr::Fundable(Some(hook)) => Ident::new(hook, Span::call_site()),
         _ => unreachable!(),
     };
 
-    let includes = crate::function::host_includes();
+    call_fundable_hook_ast(fundable_hook)
+}
+
+pub fn call_fundable_hook_ast(fundable_hook: Ident) -> Result<TokenStream> {
+    let includes = function::host_includes();
 
     let ast = quote! {
         {
@@ -25,7 +33,7 @@ pub fn expand(attrs: &[FuncAttr]) -> Result<TokenStream> {
             let value: svm_sdk::Amount = Node::value();
 
             if value > svm_sdk::Amount(0) {
-                #fund_hook(value);
+                #fundable_hook();
             }
         }
     };

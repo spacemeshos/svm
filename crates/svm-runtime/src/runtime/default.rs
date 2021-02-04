@@ -14,16 +14,18 @@ use crate::{
     vmcalls, Config, Context, ExternImport, Runtime,
 };
 
-use svm_codec::error::ParseError;
+use svm_codec::ParseError;
 use svm_ffi::svm_env_t;
 use svm_gas::Gas;
 use svm_layout::DataLayout;
 use svm_storage::app::AppStorage;
+
+use svm_types::gas::{MaybeGas, OOGError};
+use svm_types::receipt::{
+    make_spawn_app_receipt, ExecReceipt, Log, ReceiptError, SpawnAppReceipt, TemplateReceipt,
+};
+
 use svm_types::{
-    gas::{MaybeGas, OOGError},
-    receipt::{
-        make_spawn_app_receipt, ExecReceipt, Log, ReceiptError, SpawnAppReceipt, TemplateReceipt,
-    },
     AppAddr, AppTemplate, AppTransaction, AuthorAddr, CreatorAddr, SpawnApp, State, TemplateAddr,
     Type,
 };
@@ -404,6 +406,7 @@ where
         match result {
             Err(e) => ExecReceipt::from_err(e, logs),
             Ok((new_state, returndata, gas_used)) => ExecReceipt {
+                version: 0,
                 success: true,
                 error: None,
                 returndata,

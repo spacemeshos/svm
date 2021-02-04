@@ -2,8 +2,12 @@ use proc_macro2::{Delimiter, Span, TokenStream, TokenTree};
 
 use quote::{quote, ToTokens};
 
-use syn::parse::{Parse, ParseStream};
 use syn::punctuated::Punctuated;
+use syn::{
+    parse::{Parse, ParseStream},
+    token::Else,
+    Path,
+};
 use syn::{Attribute, Error, Ident, LitStr, Result, Token};
 
 use crate::Function;
@@ -67,19 +71,19 @@ pub enum FuncAttr {
 
     Endpoint(Doc),
 
-    Fundable(String),
+    Fundable(Option<String>),
 
-    FundableHook,
+    FundableHook { default: bool },
 
     Other(TokenStream),
 }
 
 impl FuncAttr {
     pub fn kind(&self) -> FuncAttrKind {
-        match self {
+        match *self {
             FuncAttr::Ctor(..) => FuncAttrKind::Ctor,
             FuncAttr::Endpoint(..) => FuncAttrKind::Endpoint,
-            FuncAttr::FundableHook => FuncAttrKind::FundableHook,
+            FuncAttr::FundableHook { .. } => FuncAttrKind::FundableHook,
             FuncAttr::Fundable(..) => FuncAttrKind::Fundable,
             FuncAttr::Other(..) => FuncAttrKind::Other,
         }
@@ -121,28 +125,20 @@ pub fn parse_attr(attr: Attribute) -> Result<FuncAttr> {
             FuncAttr::Endpoint(doc)
         }
         FuncAttrKind::FundableHook => {
-            assert!(attr.tokens.is_empty());
-
-            FuncAttr::FundableHook
+            if attr.tokens.is_empty() {
+                FuncAttr::FundableHook { default: false }
+            } else {
+                let ident = attr.parse_args::<Ident>()?;
+                FuncAttr::FundableHook { default: true }
+            }
         }
         FuncAttrKind::Fundable => {
-            let tokens = attr.tokens;
-            let mut iter = tokens.into_iter();
-
-            if let Some(TokenTree::Group(group)) = iter.next() {
-                assert_eq!(group.delimiter(), Delimiter::Parenthesis);
-
-                let stream = group.stream();
-                let ident = syn::parse2::<Ident>(stream)?;
-
-                FuncAttr::Fundable(ident.to_string())
+            if attr.tokens.is_empty() {
+                // using the `default fundable hook`
+                FuncAttr::Fundable(None)
             } else {
-                let span = Span::call_site();
-
-                return Err(Error::new(
-                    span,
-                    "`fundable` attribute should be of format `#[fundable(hook-fn)]`",
-                ));
+                let ident = attr.parse_args::<Ident>()?;
+                FuncAttr::Fundable(Some(ident.to_string()))
             }
         }
         FuncAttrKind::Other => FuncAttr::Other(quote! { #attr }),
@@ -192,6 +188,18 @@ pub fn has_fundable_hook_attr(attrs: &[FuncAttr]) -> bool {
     has_attr(attrs, FuncAttrKind::FundableHook)
 }
 
+pub fn has_default_fundable_hook_attr(attrs: &[FuncAttr]) -> bool {
+    let attrs = filter_attrs(attrs, FuncAttrKind::FundableHook);
+
+    attrs.iter().any(|attr| {
+        if let FuncAttr::FundableHook { default } = attr {
+            *default
+        } else {
+            unreachable!()
+        }
+    })
+}
+
 pub fn has_fundable_attr(attrs: &[FuncAttr]) -> bool {
     has_attr(attrs, FuncAttrKind::Fundable)
 }
@@ -204,10 +212,18 @@ pub fn has_attr(attrs: &[FuncAttr], kind: FuncAttrKind) -> bool {
     attrs.iter().any(|attr| attr.kind() == kind)
 }
 
-pub fn find_attr(attrs: &[FuncAttr], kind: FuncAttrKind) -> &FuncAttr {
-    let attr = attrs.iter().find(|attr| attr.kind() == kind);
+pub fn find_attr(attrs: &[FuncAttr], kind: FuncAttrKind) -> Option<&FuncAttr> {
+    let attrs = filter_attrs(attrs, kind);
 
-    attr.unwrap()
+    if attrs.is_empty() {
+        None
+    } else {
+        attrs.first().map(|attr| *attr)
+    }
+}
+
+pub fn filter_attrs(attrs: &[FuncAttr], kind: FuncAttrKind) -> Vec<&FuncAttr> {
+    attrs.iter().filter(|attr| attr.kind() == kind).collect()
 }
 
 #[cfg(test)]
@@ -240,7 +256,25 @@ mod test {
         };
 
         let func_attr = parse_attr(attr).unwrap();
-        assert!(matches!(func_attr, FuncAttr::FundableHook));
+        assert!(matches!(
+            func_attr,
+            FuncAttr::FundableHook { default: false }
+        ));
+
+        assert_eq!(func_attr.kind(), FuncAttrKind::FundableHook);
+    }
+
+    #[test]
+    fn func_attr_default_fundable_hook() {
+        let attr: Attribute = parse_quote! {
+            #[fundable_hook(default)]
+        };
+
+        let func_attr = parse_attr(attr).unwrap();
+        assert!(matches!(
+            func_attr,
+            FuncAttr::FundableHook { default: true }
+        ));
 
         assert_eq!(func_attr.kind(), FuncAttrKind::FundableHook);
     }
@@ -254,22 +288,18 @@ mod test {
         let actual = parse_attr(attr).unwrap();
         assert_eq!(actual.kind(), FuncAttrKind::Fundable);
 
-        let expected = FuncAttr::Fundable("deny_funding".to_string());
+        let expected = FuncAttr::Fundable(Some("deny_funding".to_string()));
         assert!(matches!(actual, expected));
     }
 
     #[test]
-    fn func_attr_fundable_without_hook() {
+    fn func_attr_default_fundable() {
         let attr: Attribute = parse_quote! {
             #[fundable]
         };
 
-        let err = parse_attr(attr).unwrap_err();
-
-        assert_eq!(
-            err.to_string(),
-            "`fundable` attribute should be of format `#[fundable(hook-fn)]`"
-        );
+        let func_attr = parse_attr(attr).unwrap();
+        assert_eq!(func_attr.kind(), FuncAttrKind::Fundable);
     }
 
     #[test]

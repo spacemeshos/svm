@@ -1,3 +1,5 @@
+use std::vec;
+
 use crate::gas::MaybeGas;
 use crate::receipt::{Log, ReceiptError};
 
@@ -6,6 +8,8 @@ use crate::TemplateAddr;
 /// Returned Receipt after deploying a Template.
 #[derive(Debug, PartialEq, Clone)]
 pub struct TemplateReceipt {
+    pub version: u16,
+
     /// whether spawn succedded or not
     pub success: bool,
 
@@ -26,6 +30,7 @@ impl TemplateReceipt {
     /// Creates a new `TemplateReceipt` struct.
     pub fn new(addr: TemplateAddr, gas_used: MaybeGas) -> Self {
         Self {
+            version: 0,
             success: true,
             error: None,
             addr: Some(addr),
@@ -36,17 +41,12 @@ impl TemplateReceipt {
 
     /// Creates a `TemplateReceipt` for reaching reaching `Out-of-Gas`.
     pub fn new_oog() -> Self {
-        Self {
-            success: false,
-            error: Some(ReceiptError::OOG),
-            addr: None,
-            gas_used: MaybeGas::new(),
-            logs: Vec::new(),
-        }
+        Self::from_err(ReceiptError::OOG, Vec::new())
     }
 
     pub fn from_err(error: ReceiptError, logs: Vec<Log>) -> Self {
         Self {
+            version: 0,
             success: false,
             error: Some(error),
             addr: None,

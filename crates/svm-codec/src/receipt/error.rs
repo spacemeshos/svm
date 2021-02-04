@@ -3,8 +3,8 @@
 //!
 //!   On failure (`is_success = 0`)
 //!  +-------------------------------------------------------+
-//!  |  tx type |    version   |  is_success |  error code   |
-//!  | (1 byte) |  (1 nibble)  |  (1 nibble) |  (1 nibble)   |
+//!  |  tx type |   version    |  is_success |  error code   |
+//!  | (1 byte) |  (2 bytes)   |  (1 bytes)  |  (1 bytes)    |
 //!  +__________|______________|_____________|_______________+
 //!  |          |          |         |            |          |
 //!  |  #logs   |  log #1  |  . . .  |  log #N-1  |  log #N  |
@@ -55,25 +55,24 @@
 //!   +-------------------+-----------------------------------------------+
 //!
 
-use crate::api::raw::Field;
-use crate::helpers;
+use std::io::{Cursor, Read};
 
-use svm_nibble::{nib, Nibble, NibbleIter, NibbleWriter};
+use crate::{Field, ReadExt, WriteExt};
 
 use svm_types::receipt::{Log, ReceiptError, ReceiptError as Err};
 use svm_types::{Address, AppAddr, TemplateAddr};
 
 use super::logs;
 
-pub(crate) fn encode_error(err: &ReceiptError, logs: &[Log], w: &mut NibbleWriter) {
+pub(crate) fn encode_error(err: &ReceiptError, logs: &[Log], w: &mut Vec<u8>) {
     encode_err_type(err, w);
 
     logs::encode_logs(logs, w);
 
     match err {
         Err::OOG => (),
-        Err::TemplateNotFound(template_addr) => helpers::encode_address(template_addr.inner(), w),
-        Err::AppNotFound(app_addr) => helpers::encode_address(app_addr.inner(), w),
+        Err::TemplateNotFound(template_addr) => w.write_address(template_addr.inner()),
+        Err::AppNotFound(app_addr) => w.write_address(app_addr.inner()),
         Err::CompilationFailed {
             app_addr,
             template_addr,
@@ -84,18 +83,18 @@ pub(crate) fn encode_error(err: &ReceiptError, logs: &[Log], w: &mut NibbleWrite
             template_addr,
             msg,
         } => {
-            helpers::encode_address(template_addr.inner(), w);
-            helpers::encode_address(app_addr.inner(), w);
-            helpers::encode_string(msg, w);
+            w.write_address(template_addr.inner());
+            w.write_address(app_addr.inner());
+            w.write_string(msg);
         }
         Err::FuncNotFound {
             app_addr,
             template_addr,
             func,
         } => {
-            helpers::encode_address(template_addr.inner(), w);
-            helpers::encode_address(app_addr.inner(), w);
-            helpers::encode_string(func, w);
+            w.write_address(template_addr.inner());
+            w.write_address(app_addr.inner());
+            w.write_string(func);
         }
         Err::FuncFailed {
             app_addr,
@@ -103,15 +102,15 @@ pub(crate) fn encode_error(err: &ReceiptError, logs: &[Log], w: &mut NibbleWrite
             func,
             msg,
         } => {
-            helpers::encode_address(template_addr.inner(), w);
-            helpers::encode_address(app_addr.inner(), w);
-            helpers::encode_string(func, w);
-            helpers::encode_string(msg, w);
+            w.write_address(template_addr.inner());
+            w.write_address(app_addr.inner());
+            w.write_string(func);
+            w.write_string(msg);
         }
     };
 }
 
-fn encode_err_type(err: &ReceiptError, w: &mut NibbleWriter) {
+fn encode_err_type(err: &ReceiptError, w: &mut Vec<u8>) {
     let ty = match err {
         Err::OOG => 0,
         Err::TemplateNotFound(..) => 1,
@@ -122,23 +121,22 @@ fn encode_err_type(err: &ReceiptError, w: &mut NibbleWriter) {
         Err::FuncFailed { .. } => 6,
     };
 
-    w.push(nib!(ty));
+    w.push(ty);
 }
 
-pub(crate) fn decode_error(iter: &mut NibbleIter) -> (ReceiptError, Vec<Log>) {
-    let err_type: Nibble = iter.next().unwrap();
-
-    let logs = logs::decode_logs(iter);
+pub(crate) fn decode_error(cursor: &mut Cursor<&[u8]>) -> (ReceiptError, Vec<Log>) {
+    let ty = cursor.read_byte().unwrap();
+    let logs = logs::decode_logs(cursor).unwrap();
 
     let err = {
-        match err_type.inner() {
-            0 => decode_oog(iter),
-            1 => decode_template_not_found(iter),
-            2 => decode_app_not_found(iter),
-            3 => decode_compilation_err(iter),
-            4 => decode_instantiation_err(iter),
-            5 => decode_func_not_found(iter),
-            6 => decode_func_err(iter),
+        match ty {
+            0 => decode_oog(cursor),
+            1 => decode_template_not_found(cursor),
+            2 => decode_app_not_found(cursor),
+            3 => decode_compilation_err(cursor),
+            4 => decode_instantiation_err(cursor),
+            5 => decode_func_not_found(cursor),
+            6 => decode_func_err(cursor),
             _ => unreachable!(),
         }
     };
@@ -146,25 +144,25 @@ pub(crate) fn decode_error(iter: &mut NibbleIter) -> (ReceiptError, Vec<Log>) {
     (err, logs)
 }
 
-fn decode_oog(iter: &mut NibbleIter) -> ReceiptError {
+fn decode_oog(_cursor: &mut Cursor<&[u8]>) -> ReceiptError {
     ReceiptError::OOG
 }
 
-fn decode_template_not_found(iter: &mut NibbleIter) -> ReceiptError {
-    let template_addr = decode_template_addr(iter);
+fn decode_template_not_found(cursor: &mut Cursor<&[u8]>) -> ReceiptError {
+    let template_addr = decode_template_addr(cursor);
 
     ReceiptError::TemplateNotFound(template_addr.into())
 }
 
-fn decode_app_not_found(iter: &mut NibbleIter) -> ReceiptError {
-    let app_addr = decode_app_addr(iter);
+fn decode_app_not_found(cursor: &mut Cursor<&[u8]>) -> ReceiptError {
+    let app_addr = decode_app_addr(cursor);
 
     ReceiptError::AppNotFound(app_addr.into())
 }
 
-fn decode_compilation_err(iter: &mut NibbleIter) -> ReceiptError {
-    let (template_addr, app_addr) = decode_addrs(iter);
-    let msg = decode_msg(iter);
+fn decode_compilation_err(cursor: &mut Cursor<&[u8]>) -> ReceiptError {
+    let (template_addr, app_addr) = decode_addrs(cursor);
+    let msg = decode_msg(cursor);
 
     ReceiptError::CompilationFailed {
         template_addr,
@@ -173,9 +171,9 @@ fn decode_compilation_err(iter: &mut NibbleIter) -> ReceiptError {
     }
 }
 
-fn decode_instantiation_err(iter: &mut NibbleIter) -> ReceiptError {
-    let (template_addr, app_addr) = decode_addrs(iter);
-    let msg = decode_msg(iter);
+fn decode_instantiation_err(cursor: &mut Cursor<&[u8]>) -> ReceiptError {
+    let (template_addr, app_addr) = decode_addrs(cursor);
+    let msg = decode_msg(cursor);
 
     ReceiptError::InstantiationFailed {
         template_addr,
@@ -184,9 +182,9 @@ fn decode_instantiation_err(iter: &mut NibbleIter) -> ReceiptError {
     }
 }
 
-fn decode_func_not_found(iter: &mut NibbleIter) -> ReceiptError {
-    let (template_addr, app_addr) = decode_addrs(iter);
-    let func = helpers::decode_string(iter, Field::FuncNameLength, Field::FuncName).unwrap();
+fn decode_func_not_found(cursor: &mut Cursor<&[u8]>) -> ReceiptError {
+    let (template_addr, app_addr) = decode_addrs(cursor);
+    let func = decode_func(cursor);
 
     ReceiptError::FuncNotFound {
         template_addr,
@@ -195,10 +193,10 @@ fn decode_func_not_found(iter: &mut NibbleIter) -> ReceiptError {
     }
 }
 
-fn decode_func_err(iter: &mut NibbleIter) -> ReceiptError {
-    let (template_addr, app_addr) = decode_addrs(iter);
-    let func = helpers::decode_string(iter, Field::FuncNameLength, Field::FuncName).unwrap();
-    let msg = decode_msg(iter);
+fn decode_func_err(cursor: &mut Cursor<&[u8]>) -> ReceiptError {
+    let (template_addr, app_addr) = decode_addrs(cursor);
+    let func = decode_func(cursor);
+    let msg = decode_msg(cursor);
 
     ReceiptError::FuncFailed {
         template_addr,
@@ -208,23 +206,27 @@ fn decode_func_err(iter: &mut NibbleIter) -> ReceiptError {
     }
 }
 
-fn decode_addrs(iter: &mut NibbleIter) -> (TemplateAddr, AppAddr) {
-    let template_addr = decode_template_addr(iter);
-    let app_addr = decode_app_addr(iter);
+fn decode_func(cursor: &mut Cursor<&[u8]>) -> String {
+    cursor.read_string().unwrap().unwrap()
+}
+
+fn decode_addrs(cursor: &mut Cursor<&[u8]>) -> (TemplateAddr, AppAddr) {
+    let template_addr = decode_template_addr(cursor);
+    let app_addr = decode_app_addr(cursor);
 
     (template_addr.into(), app_addr.into())
 }
 
-fn decode_template_addr(iter: &mut NibbleIter) -> Address {
-    helpers::decode_address(iter, Field::TemplateAddr).unwrap()
+fn decode_template_addr(cursor: &mut Cursor<&[u8]>) -> Address {
+    cursor.read_address().unwrap()
 }
 
-fn decode_app_addr(iter: &mut NibbleIter) -> Address {
-    helpers::decode_address(iter, Field::AppAddr).unwrap()
+fn decode_app_addr(cursor: &mut Cursor<&[u8]>) -> Address {
+    cursor.read_address().unwrap()
 }
 
-fn decode_msg(iter: &mut NibbleIter) -> String {
-    helpers::decode_string(iter, Field::StringLength, Field::String).unwrap()
+fn decode_msg(cursor: &mut Cursor<&[u8]>) -> String {
+    cursor.read_string().unwrap().unwrap()
 }
 
 #[cfg(test)]
@@ -250,12 +252,11 @@ mod tests {
     fn decode_receipt_oog() {
         let err = ReceiptError::OOG;
 
-        let mut w = NibbleWriter::new();
-        encode_error(&err, &test_logs(), &mut w);
-        let bytes = w.into_bytes();
+        let mut buf = Vec::new();
+        encode_error(&err, &test_logs(), &mut buf);
 
-        let mut iter = NibbleIter::new(&bytes);
-        let decoded = decode_error(&mut iter);
+        let mut cursor = Cursor::new(&buf[..]);
+        let decoded = decode_error(&mut cursor);
     }
 
     #[test]
@@ -264,12 +265,11 @@ mod tests {
 
         let err = ReceiptError::TemplateNotFound(template_addr.into());
 
-        let mut w = NibbleWriter::new();
-        encode_error(&err, &test_logs(), &mut w);
-        let bytes = w.into_bytes();
+        let mut buf = Vec::new();
+        encode_error(&err, &test_logs(), &mut buf);
 
-        let mut iter = NibbleIter::new(&bytes);
-        let decoded = decode_error(&mut iter);
+        let mut cursor = Cursor::new(&buf[..]);
+        let decoded = decode_error(&mut cursor);
     }
 
     #[test]
@@ -278,12 +278,11 @@ mod tests {
 
         let err = ReceiptError::AppNotFound(app_addr.into());
 
-        let mut w = NibbleWriter::new();
-        encode_error(&err, &test_logs(), &mut w);
-        let bytes = w.into_bytes();
+        let mut bytes = Vec::new();
+        encode_error(&err, &test_logs(), &mut bytes);
 
-        let mut iter = NibbleIter::new(&bytes);
-        let decoded = decode_error(&mut iter);
+        let mut cursor = Cursor::new(&bytes[..]);
+        let decoded = decode_error(&mut cursor);
     }
 
     #[test]
@@ -297,12 +296,11 @@ mod tests {
             msg: "Invalid code".to_string(),
         };
 
-        let mut w = NibbleWriter::new();
-        encode_error(&err, &test_logs(), &mut w);
-        let bytes = w.into_bytes();
+        let mut buf = Vec::new();
+        encode_error(&err, &test_logs(), &mut buf);
 
-        let mut iter = NibbleIter::new(&bytes);
-        let decoded = decode_error(&mut iter);
+        let mut cursor = Cursor::new(&buf[..]);
+        let decoded = decode_error(&mut cursor);
     }
 
     #[test]
@@ -316,12 +314,11 @@ mod tests {
             msg: "Invalid input".to_string(),
         };
 
-        let mut w = NibbleWriter::new();
-        encode_error(&err, &test_logs(), &mut w);
-        let bytes = w.into_bytes();
+        let mut buf = Vec::new();
+        encode_error(&err, &test_logs(), &mut buf);
 
-        let mut iter = NibbleIter::new(&bytes);
-        let decoded = decode_error(&mut iter);
+        let mut cursor = Cursor::new(&buf[..]);
+        let decoded = decode_error(&mut cursor);
     }
 
     #[test]
@@ -336,12 +333,11 @@ mod tests {
             func,
         };
 
-        let mut w = NibbleWriter::new();
-        encode_error(&err, &test_logs(), &mut w);
-        let bytes = w.into_bytes();
+        let mut buf = Vec::new();
+        encode_error(&err, &test_logs(), &mut buf);
 
-        let mut iter = NibbleIter::new(&bytes);
-        let decoded = decode_error(&mut iter);
+        let mut cursor = Cursor::new(&buf[..]);
+        let decoded = decode_error(&mut cursor);
     }
 
     #[test]
@@ -358,11 +354,10 @@ mod tests {
             msg,
         };
 
-        let mut w = NibbleWriter::new();
-        encode_error(&err, &test_logs(), &mut w);
-        let bytes = w.into_bytes();
+        let mut buf = Vec::new();
+        encode_error(&err, &test_logs(), &mut buf);
 
-        let mut iter = NibbleIter::new(&bytes);
-        let decoded = decode_error(&mut iter);
+        let mut cursor = Cursor::new(&buf[..]);
+        let decoded = decode_error(&mut cursor);
     }
 }

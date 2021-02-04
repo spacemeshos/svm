@@ -1,13 +1,15 @@
+use std::io::Cursor;
+
 use crate::env::traits::{
     AppAddressCompute, AppStore, AppTemplateAddressCompute, AppTemplateHasher, AppTemplateStore,
 };
 use crate::env::types::AppTemplateHash;
 
-use svm_codec::error::ParseError;
 use svm_codec::serializers::{
     AppDeserializer, AppSerializer, AppTemplateDeserializer, AppTemplateSerializer,
 };
-use svm_nibble::NibbleIter;
+use svm_codec::ParseError;
+use svm_codec::{app, template, transaction};
 use svm_types::{
     App, AppAddr, AppTemplate, AppTransaction, AuthorAddr, CreatorAddr, SpawnApp, TemplateAddr,
 };
@@ -83,10 +85,9 @@ pub trait Env {
     /// On success returns `AppTemplate`,
     /// On failure returns `ParseError`.
     fn parse_deploy_template(&self, bytes: &[u8]) -> Result<AppTemplate, ParseError> {
-        let mut iter = NibbleIter::new(bytes);
+        let mut cursor = Cursor::new(bytes);
 
-        let template = svm_codec::api::raw::decode_deploy_template(&mut iter)?;
-        iter.ensure_eof(ParseError::ExpectedEOF)?;
+        let template = template::decode_deploy_template(&mut cursor)?;
 
         Ok(template)
     }
@@ -95,10 +96,9 @@ pub trait Env {
     /// On success returns `SpawnApp`,
     /// On failure returns `ParseError`.
     fn parse_spawn_app(&self, bytes: &[u8]) -> Result<SpawnApp, ParseError> {
-        let mut iter = NibbleIter::new(bytes);
+        let mut cursor = Cursor::new(bytes);
 
-        let spawn = svm_codec::api::raw::decode_spawn_app(&mut iter)?;
-        iter.ensure_eof(ParseError::ExpectedEOF)?;
+        let spawn = app::decode_spawn_app(&mut cursor)?;
 
         Ok(spawn)
     }
@@ -107,10 +107,9 @@ pub trait Env {
     /// On success returns `AppTransaction`,
     /// On failure returns `ParseError`.
     fn parse_exec_app(&self, bytes: &[u8]) -> Result<AppTransaction, ParseError> {
-        let mut iter = NibbleIter::new(bytes);
+        let mut cursor = Cursor::new(bytes);
 
-        let tx = svm_codec::api::raw::decode_exec_app(&mut iter)?;
-        iter.ensure_eof(ParseError::ExpectedEOF)?;
+        let tx = transaction::decode_exec_app(&mut cursor)?;
 
         Ok(tx)
     }
