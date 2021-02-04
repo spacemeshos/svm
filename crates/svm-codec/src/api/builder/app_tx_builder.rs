@@ -1,12 +1,11 @@
-use svm_nibble::NibbleWriter;
-use svm_types::{AppAddr, AppTransaction, WasmValue};
+use svm_types::{AppAddr, AppTransaction};
 
-use crate::api::raw::encode_exec_app;
+use crate::transaction;
 
 /// Builds a raw representation for `exec-app`
 /// Should be used for testing only.
 pub struct AppTxBuilder {
-    version: Option<u32>,
+    version: Option<u16>,
     app: Option<AppAddr>,
     func_name: Option<String>,
     calldata: Option<Vec<u8>>,
@@ -16,9 +15,11 @@ pub struct AppTxBuilder {
 /// # Example
 ///
 /// ```rust
-/// use svm_types::{AppTransaction, WasmValue, Address};
-/// use svm_nibble::NibbleIter;
-/// use svm_codec::api::{raw::decode_exec_app, builder::AppTxBuilder};
+/// use std::io::Cursor;
+///
+/// use svm_types::{AppTransaction, Address};
+/// use svm_codec::api::builder::AppTxBuilder;
+/// use svm_codec::transaction;
 ///
 /// let app = Address::of("@my-app").into();
 ///
@@ -32,8 +33,8 @@ pub struct AppTxBuilder {
 ///            .with_calldata(&calldata)
 ///            .build();
 ///
-/// let mut iter = NibbleIter::new(&bytes[..]);
-/// let actual = decode_exec_app(&mut iter).unwrap();
+/// let mut cursor = Cursor::new(&bytes[..]);
+/// let actual = transaction::decode_exec_app(&mut cursor).unwrap();
 /// let expected = AppTransaction {
 ///                  version: 0,
 ///                  app,
@@ -56,7 +57,7 @@ impl AppTxBuilder {
         }
     }
 
-    pub fn with_version(mut self, version: u32) -> Self {
+    pub fn with_version(mut self, version: u16) -> Self {
         self.version = Some(version);
         self
     }
@@ -93,10 +94,10 @@ impl AppTxBuilder {
             calldata,
         };
 
-        let mut w = NibbleWriter::new();
+        let mut w = Vec::new();
 
-        encode_exec_app(&tx, &mut w);
+        transaction::encode_exec_app(&tx, &mut w);
 
-        w.into_bytes()
+        w
     }
 }

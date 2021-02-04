@@ -1,3 +1,4 @@
+use std::cmp::min;
 use std::fmt;
 
 use svm_layout::DataLayout;
@@ -6,7 +7,7 @@ use svm_layout::DataLayout;
 #[allow(missing_docs)]
 #[derive(PartialEq)]
 pub struct AppTemplate {
-    pub version: u32,
+    pub version: u16,
     pub name: String,
     pub code: Vec<u8>,
     pub data: DataLayout,
@@ -26,8 +27,8 @@ impl fmt::Debug for AppTemplate {
 }
 
 impl AppTemplate {
-    fn fmt_version(&self, ver: u32) -> String {
-        format!("Version: {}", ver)
+    fn fmt_version(&self, version: u16) -> String {
+        format!("Version: {}", version)
     }
 
     fn fmt_name(&self, name: &str) -> String {
@@ -35,11 +36,9 @@ impl AppTemplate {
     }
 
     fn fmt_code(&self, code: &[u8]) -> String {
-        if code.len() >= 4 {
-            format!("Code: {:?}", &code[0..4])
-        } else {
-            format!("Code: {:?}", &code)
-        }
+        let n = min(code.len(), 4);
+
+        format!("Code: {:?}", &code[0..n])
     }
 
     fn fmt_data(&self, data: &DataLayout) -> String {

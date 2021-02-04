@@ -1,12 +1,7 @@
-use svm_nibble::NibbleWriter;
-
-use byteorder::{BigEndian, ByteOrder};
 use serde_json::Value;
 
-use crate::{
-    api::json::{self, JsonError},
-    template,
-};
+use crate::api::json::{self, JsonError};
+use crate::template;
 
 use svm_layout::{DataLayout, DataLayoutBuilder};
 use svm_types::AppTemplate;
@@ -21,7 +16,7 @@ use svm_types::AppTemplate;
 /// }
 /// ```
 pub fn deploy_template(json: &Value) -> Result<Vec<u8>, JsonError> {
-    let version = json::as_u32(json, "version")?;
+    let version = json::as_u32(json, "version")? as u16;
     let name = json::as_string(json, "name")?;
     let code = json::as_blob(json, "code")?;
     let data = json::as_blob(json, "data")?;
@@ -34,11 +29,11 @@ pub fn deploy_template(json: &Value) -> Result<Vec<u8>, JsonError> {
         data,
     };
 
-    let mut w = NibbleWriter::new();
-    template::encode_deploy_template(&template, &mut w);
+    let mut buf = Vec::new();
 
-    let bytes = w.into_bytes();
-    Ok(bytes)
+    template::encode_deploy_template(&template, &mut buf);
+
+    Ok(buf)
 }
 
 fn to_data_layout(blob: Vec<u8>) -> Result<DataLayout, JsonError> {
@@ -51,7 +46,11 @@ fn to_data_layout(blob: Vec<u8>) -> Result<DataLayout, JsonError> {
 
     let data: Vec<u32> = blob
         .chunks_exact(4)
-        .map(|buf| BigEndian::read_u32(&buf))
+        .map(|buf| {
+            let bytes: [u8; 4] = [buf[0], buf[1], buf[2], buf[3]];
+
+            u32::from_be_bytes(bytes)
+        })
         .collect();
 
     let mut builder = DataLayoutBuilder::new();
@@ -64,9 +63,10 @@ fn to_data_layout(blob: Vec<u8>) -> Result<DataLayout, JsonError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::json;
 
-    use svm_nibble::NibbleIter;
+    use std::io::Cursor;
+
+    use serde_json::json;
 
     #[test]
     fn json_deploy_template_missing_version() {
@@ -143,9 +143,9 @@ mod tests {
         });
 
         let bytes = deploy_template(&json).unwrap();
+        let mut cursor = Cursor::new(&bytes[..]);
 
-        let mut iter = NibbleIter::new(&bytes[..]);
-        let actual = crate::api::raw::decode_deploy_template(&mut iter).unwrap();
+        let actual = template::decode_deploy_template(&mut cursor).unwrap();
 
         let expected = AppTemplate {
             version: 0,

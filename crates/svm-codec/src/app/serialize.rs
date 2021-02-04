@@ -1,12 +1,9 @@
-use svm_nibble::{NibbleIter, NibbleWriter};
+use std::io::Cursor;
+
 use svm_types::{App, CreatorAddr, TemplateAddr};
 
-use crate::api::raw::{decode_version, encode_version, Field};
-
-use crate::{
-    helpers,
-    traits::{AppDeserializer, AppSerializer},
-};
+use crate::serialize::{AppDeserializer, AppSerializer};
+use crate::{Field, ReadExt, WriteExt};
 
 /// Default serializer for `App`
 pub struct DefaultAppSerializer;
@@ -16,60 +13,50 @@ pub struct DefaultAppDeserializer;
 
 impl AppSerializer for DefaultAppSerializer {
     fn serialize(app: &App, creator: &CreatorAddr) -> Vec<u8> {
-        let mut w = NibbleWriter::new();
+        let mut w = Vec::new();
 
-        encode_version(app.version, &mut w);
-        Self::encode_template(app, &mut w);
-        Self::encode_creator(creator, &mut w);
-        Self::encode_name(app, &mut w);
+        encode_template(app, &mut w);
+        encode_creator(creator, &mut w);
+        encode_name(app, &mut w);
 
-        w.into_bytes()
+        w
     }
 }
 
-impl DefaultAppSerializer {
-    fn encode_template(app: &App, w: &mut NibbleWriter) {
-        helpers::encode_address(app.template.inner(), w);
-    }
+fn encode_template(app: &App, w: &mut Vec<u8>) {
+    let addr = app.template.inner();
 
-    fn encode_creator(creator: &CreatorAddr, w: &mut NibbleWriter) {
-        helpers::encode_address(creator.inner(), w);
-    }
+    w.write_address(addr);
+}
 
-    fn encode_name(app: &App, w: &mut NibbleWriter) {
-        helpers::encode_string(&app.name, w);
-    }
+fn encode_creator(creator: &CreatorAddr, w: &mut Vec<u8>) {
+    w.write_address(creator.inner());
+}
+
+fn encode_name(app: &App, w: &mut Vec<u8>) {
+    w.write_string(&app.name);
 }
 
 impl AppDeserializer for DefaultAppDeserializer {
     fn deserialize(bytes: &[u8]) -> Option<(App, CreatorAddr)> {
-        let mut iter = NibbleIter::new(bytes);
+        let mut cursor = Cursor::new(bytes);
 
-        let version = match decode_version(&mut iter) {
-            Ok(ver) => ver,
-            _ => return None,
-        };
-
-        let template = match helpers::decode_address(&mut iter, Field::TemplateAddr) {
+        let template = match cursor.read_address() {
             Ok(addr) => TemplateAddr::new(addr),
             _ => return None,
         };
 
-        let creator = match helpers::decode_address(&mut iter, Field::Creator) {
+        let creator = match cursor.read_address() {
             Ok(addr) => CreatorAddr::new(addr),
             _ => return None,
         };
 
-        let name = match helpers::decode_string(&mut iter, Field::NameLength, Field::Name) {
-            Ok(name) => name,
+        let name = match cursor.read_string() {
+            Ok(Ok(name)) => name,
             _ => return None,
         };
 
-        let app = App {
-            version,
-            name,
-            template,
-        };
+        let app = App { name, template };
 
         Some((app, creator))
     }

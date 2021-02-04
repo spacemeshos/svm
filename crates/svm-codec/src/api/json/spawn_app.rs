@@ -1,13 +1,12 @@
-use svm_nibble::{NibbleIter, NibbleWriter};
-use svm_types::{AddressOf, App, SpawnApp, WasmValue};
+use std::io::Cursor;
+
+use svm_types::{AddressOf, App, SpawnApp};
 
 use serde_json::{json, Value};
 
-use crate::{
-    api::json::{self, JsonError},
-    api::raw,
-    app,
-};
+use crate::api::json::{self, JsonError};
+
+use crate::app;
 
 ///
 /// ```json
@@ -20,7 +19,7 @@ use crate::{
 /// }
 /// ```
 pub fn encode_spawn_app(json: &Value) -> Result<Vec<u8>, JsonError> {
-    let version = json::as_u32(json, "version")?;
+    let version = json::as_u32(json, "version")? as u16;
     let template = json::as_addr(json, "template")?.into();
     let name = json::as_string(json, "name")?;
     let ctor_name = json::as_string(json, "ctor_name")?;
@@ -29,30 +28,26 @@ pub fn encode_spawn_app(json: &Value) -> Result<Vec<u8>, JsonError> {
     let calldata = json::str_to_bytes(&calldata, "calldata")?;
 
     let spawn = SpawnApp {
-        app: App {
-            version,
-            name,
-            template,
-        },
+        version,
+        app: App { name, template },
         ctor_name,
         calldata,
     };
 
-    let mut w = NibbleWriter::new();
-    app::encode_spawn_app(&spawn, &mut w);
+    let mut buf = Vec::new();
+    app::encode_spawn_app(&spawn, &mut buf);
 
-    let bytes = w.into_bytes();
-    Ok(bytes)
+    Ok(buf)
 }
 
 pub fn decode_spawn_app(json: &Value) -> Result<Value, JsonError> {
     let data = json::as_string(json, "data")?;
     let bytes = json::str_to_bytes(&data, "data")?;
 
-    let mut iter = NibbleIter::new(&bytes);
-    let spawn = raw::decode_spawn_app(&mut iter).unwrap();
+    let mut cursor = Cursor::new(&bytes[..]);
+    let spawn = app::decode_spawn_app(&mut cursor).unwrap();
 
-    let version = spawn.app.version;
+    let version = spawn.version;
     let ctor_name = spawn.ctor_name;
     let template = json::addr_to_str(&spawn.app.template.inner());
 
@@ -77,8 +72,7 @@ mod tests {
     use super::*;
     use serde_json::json;
 
-    use svm_nibble::NibbleIter;
-    use svm_types::{Address, WasmValue};
+    use svm_types::Address;
 
     #[test]
     fn json_spawn_app_missing_version() {

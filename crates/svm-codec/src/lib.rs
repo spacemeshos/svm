@@ -1,5 +1,5 @@
 //! This crate is responsible for doing the binary encoding for SVM transactions.
-//! It code is compiled as a single WASM file and it should be integrated by Wallet Apps.
+//! It code is compiled as a single WASM file and it should be integrated by Wallet Apps (`smapp`).
 //!
 //! By doing that, a Wallet Apps can locally encode a binary transaction without having to re-implement all the logic
 //! of the `svm-codec`.
@@ -12,19 +12,18 @@
 #![allow(unreachable_code)]
 #![feature(vec_into_raw_parts)]
 
-#[macro_use]
-mod wasm;
-
-mod abi;
-mod app;
+mod calldata;
+mod common;
+mod ext;
 mod field;
-mod gas;
-mod helpers;
-mod template;
-mod traits;
-mod transaction;
-mod varuint14;
-mod version;
+mod serialize;
+
+pub mod app;
+pub mod template;
+pub mod transaction;
+
+pub use ext::{ReadExt, WriteExt};
+pub use field::Field;
 
 /// Wraps the exposed APIs under a single place.
 /// This crate exposes the following APIs:
@@ -36,12 +35,14 @@ mod version;
 pub mod api;
 pub mod receipt;
 
-pub mod error;
+mod error;
+pub use error::ParseError;
+
 pub mod serializers {
     pub use crate::app::{DefaultAppDeserializer, DefaultAppSerializer};
     pub use crate::template::{DefaultAppTemplateDeserializer, DefaultAppTemplateSerializer};
 
-    pub use crate::traits::{
+    pub use crate::serialize::{
         AppDeserializer, AppSerializer, AppTemplateDeserializer, AppTemplateSerializer,
     };
 }

@@ -1,6 +1,6 @@
 use std::fmt;
 
-use svm_codec::error::ParseError;
+use svm_codec::ParseError;
 use svm_gas::error::ProgramError;
 
 #[allow(missing_docs)]

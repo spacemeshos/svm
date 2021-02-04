@@ -6,7 +6,7 @@ use std::ffi::c_void;
 
 use svm_runtime_c_api as api;
 
-use svm_codec::api::raw;
+use svm_codec::receipt;
 use svm_ffi::{svm_byte_array, svm_env_t, svm_resource_iter_t, svm_resource_t, tracking};
 use svm_layout::DataLayout;
 use svm_runtime::{testing::WasmFile, vmcalls, Context};
@@ -226,14 +226,14 @@ unsafe fn create_success_imports() -> *mut c_void {
     imports as _
 }
 
-fn deploy_template_bytes(version: u32, name: &str, wasm: &[u8]) -> Vec<u8> {
+fn deploy_template_bytes(version: u16, name: &str, wasm: &[u8]) -> Vec<u8> {
     let data: DataLayout = vec![4].into();
 
     svm_runtime::testing::build_template(version, name, data, WasmFile::Binary(wasm))
 }
 
 fn spawn_app_bytes(
-    version: u32,
+    version: u16,
     template_addr: &svm_byte_array,
     name: &str,
     ctor_name: &str,
@@ -244,7 +244,7 @@ fn spawn_app_bytes(
 }
 
 fn exec_app_bytes(
-    version: u32,
+    version: u16,
     app_addr: &svm_byte_array,
     func_name: &str,
     calldata: &Vec<u8>,
@@ -322,7 +322,7 @@ fn svm_runtime_failure() {
 
         assert_eq!(tracking::total_live(), 0);
 
-        let version: u32 = 0;
+        let version = 0;
         let gas_metering = false;
         let gas_limit = 0;
 
@@ -359,7 +359,8 @@ fn svm_runtime_failure() {
         assert!(res.is_ok());
 
         // extract the `template-address` out of theh receipt
-        let receipt = raw::decode_receipt(template_receipt.clone().into()).into_deploy_template();
+        let receipt =
+            receipt::decode_receipt(template_receipt.clone().into()).into_deploy_template();
         let template_addr: &Address = receipt.get_template_addr().inner();
         let template_addr: svm_byte_array = (TEMPLATE_ADDR, template_addr).into();
 
@@ -387,7 +388,7 @@ fn svm_runtime_failure() {
         assert!(res.is_ok());
 
         // extracts the spawned-app `Address` and initial `State`.
-        let receipt = raw::decode_receipt(spawn_receipt.clone().into()).into_spawn_app();
+        let receipt = receipt::decode_receipt(spawn_receipt.clone().into()).into_spawn_app();
         assert_eq!(receipt.success, true);
 
         let app_addr = receipt.get_app_addr().inner();
@@ -427,7 +428,7 @@ fn svm_runtime_failure() {
         );
         assert!(res.is_ok());
 
-        let receipt = raw::decode_receipt(exec_receipt.clone().into()).into_exec_app();
+        let receipt = receipt::decode_receipt(exec_receipt.clone().into()).into_exec_app();
         assert_eq!(receipt.success, false);
 
         assert_ne!(tracking::total_live(), 0);
@@ -461,7 +462,7 @@ fn svm_runtime_success() {
 
         assert_eq!(tracking::total_live(), 0);
 
-        let version: u32 = 0;
+        let version = 0;
         let gas_metering = false;
         let gas_limit = 0;
 
@@ -498,7 +499,8 @@ fn svm_runtime_success() {
         assert!(res.is_ok());
 
         // extract the `template-address` out of theh receipt
-        let receipt = raw::decode_receipt(template_receipt.clone().into()).into_deploy_template();
+        let receipt =
+            receipt::decode_receipt(template_receipt.clone().into()).into_deploy_template();
         let template_addr: &Address = receipt.get_template_addr().inner();
         let template_addr: svm_byte_array = (TEMPLATE_ADDR, template_addr).into();
 
@@ -529,7 +531,7 @@ fn svm_runtime_success() {
         assert!(res.is_ok());
 
         // extracts the spawned-app `Address` and initial `State`.
-        let receipt = raw::decode_receipt(spawn_receipt.clone().into()).into_spawn_app();
+        let receipt = receipt::decode_receipt(spawn_receipt.clone().into()).into_spawn_app();
         assert_eq!(receipt.success, true);
         let app_addr = receipt.get_app_addr().inner();
         let app_addr: svm_byte_array = (APP_ADDR, app_addr).into();
@@ -574,7 +576,7 @@ fn svm_runtime_success() {
         );
         assert!(res.is_ok());
 
-        let receipt = raw::decode_receipt(exec_receipt.clone().into()).into_exec_app();
+        let receipt = receipt::decode_receipt(exec_receipt.clone().into()).into_exec_app();
         assert_eq!(receipt.success, true);
 
         let bytes = receipt.get_returndata();

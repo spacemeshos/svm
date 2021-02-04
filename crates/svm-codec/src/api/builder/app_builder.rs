@@ -1,12 +1,11 @@
-use svm_nibble::NibbleWriter;
 use svm_types::{App, SpawnApp, TemplateAddr, WasmValue};
 
-use crate::api::raw::encode_spawn_app;
+use crate::app;
 
 /// Builds a raw representation for `spawn-app`
 /// Should be used for testing only.
 pub struct SpawnAppBuilder {
-    version: Option<u32>,
+    version: Option<u16>,
     template: Option<TemplateAddr>,
     name: Option<String>,
     ctor_name: Option<String>,
@@ -17,9 +16,11 @@ pub struct SpawnAppBuilder {
 /// # Example
 ///
 /// ```rust
+/// use std::io::Cursor;
+///
 /// use svm_types::{App, SpawnApp, Address};
-/// use svm_nibble::NibbleIter;
-/// use svm_codec::api::{raw::decode_spawn_app, builder::SpawnAppBuilder};
+/// use svm_codec::api::builder::SpawnAppBuilder;
+/// use svm_codec::app;
 ///
 /// let template = Address::of("@template").into();
 /// let name = "My App".to_string();
@@ -34,10 +35,11 @@ pub struct SpawnAppBuilder {
 ///             .with_calldata(&calldata)
 ///             .build();
 ///
-/// let mut iter = NibbleIter::new(&bytes);
-/// let actual = decode_spawn_app(&mut iter).unwrap();
+/// let mut cursor = Cursor::new(&bytes[..]);
+/// let actual = app::decode_spawn_app(&mut cursor).unwrap();
 /// let expected = SpawnApp {
-///                  app: App { version: 0, name, template },
+///                  version: 0,
+///                  app: App { name, template },
 ///                  ctor_name: ctor_name.to_string(),
 ///                  calldata,
 ///                };
@@ -58,7 +60,7 @@ impl SpawnAppBuilder {
         }
     }
 
-    pub fn with_version(mut self, version: u32) -> Self {
+    pub fn with_version(mut self, version: u16) -> Self {
         self.version = Some(version);
         self
     }
@@ -95,19 +97,16 @@ impl SpawnAppBuilder {
         };
 
         let spawn = SpawnApp {
-            app: App {
-                version,
-                name,
-                template,
-            },
+            version,
+            app: App { name, template },
             ctor_name,
             calldata,
         };
 
-        let mut w = NibbleWriter::new();
+        let mut w = Vec::new();
 
-        encode_spawn_app(&spawn, &mut w);
+        app::encode_spawn_app(&spawn, &mut w);
 
-        w.into_bytes()
+        w
     }
 }

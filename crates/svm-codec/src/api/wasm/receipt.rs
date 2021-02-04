@@ -18,8 +18,9 @@ pub fn decode_receipt(ptr: usize) -> Result<usize, JsonError> {
 mod test {
     use super::*;
 
-    use svm_nibble::NibbleIter;
-    use svm_types::{gas::MaybeGas, receipt::SpawnAppReceipt, Address, State, WasmValue};
+    use svm_types::gas::MaybeGas;
+    use svm_types::receipt::SpawnAppReceipt;
+    use svm_types::{Address, State, WasmValue};
 
     use crate::api::wasm::{
         error_as_string, free, to_wasm_buffer, wasm_buffer_data, BUF_OK_MARKER,
@@ -34,6 +35,7 @@ mod test {
         let logs = Vec::new();
 
         let receipt = SpawnAppReceipt {
+            version: 0,
             success: true,
             error: None,
             app_addr: Some(app.into()),

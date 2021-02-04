@@ -9,8 +9,7 @@ use std::rc::Rc;
 use log::{debug, error};
 
 use svm_codec::api::builder::{AppTxBuilder, DeployAppTemplateBuilder, SpawnAppBuilder};
-use svm_codec::api::raw;
-use svm_codec::receipt::{encode_app_receipt, encode_exec_receipt, encode_template_receipt};
+use svm_codec::receipt;
 
 use svm_layout::DataLayout;
 use svm_storage::kv::{ExternKV, StatefulKV};
@@ -685,7 +684,7 @@ pub unsafe extern "C" fn svm_deploy_template(
 
     let rust_receipt = runtime.deploy_template(bytes.into(), &author.unwrap().into(), gas_limit);
 
-    let mut receipt_bytes = encode_template_receipt(&rust_receipt);
+    let mut receipt_bytes = receipt::encode_template_receipt(&rust_receipt);
 
     // returning encoded `TemplateReceipt` as `svm_byte_array`.
     // should call later `svm_receipt_destroy`
@@ -767,7 +766,7 @@ pub unsafe extern "C" fn svm_spawn_app(
 
     let rust_receipt = runtime.spawn_app(bytes.into(), &spawner.unwrap().into(), gas_limit);
 
-    let mut receipt_bytes = encode_app_receipt(&rust_receipt);
+    let mut receipt_bytes = receipt::encode_app_receipt(&rust_receipt);
 
     // returning encoded `AppReceipt` as `svm_byte_array`.
     // should call later `svm_receipt_destroy`
@@ -849,7 +848,7 @@ pub unsafe extern "C" fn svm_exec_app(
     let gas_limit = maybe_gas!(gas_metering, gas_limit);
 
     let rust_receipt = runtime.exec_app(bytes.into(), &state.unwrap(), gas_limit);
-    let mut receipt_bytes = encode_exec_receipt(&rust_receipt);
+    let mut receipt_bytes = receipt::encode_exec_receipt(&rust_receipt);
 
     // returning encoded `ExecReceipt` as `svm_byte_array`.
     // should call later `svm_receipt_destroy`
@@ -1107,115 +1106,4 @@ pub unsafe extern "C" fn svm_estimate_exec_app(
             svm_result_t::SVM_FAILURE
         }
     }
-}
-
-/// Constructs a new raw `app_template` transaction.
-///
-#[no_mangle]
-pub unsafe extern "C" fn svm_encode_app_template(
-    app_template: *mut svm_byte_array,
-    version: u32,
-    name: svm_byte_array,
-    code: svm_byte_array,
-    data: svm_byte_array,
-    error: *mut svm_byte_array,
-) -> svm_result_t {
-    let name = String::try_from(name);
-    if name.is_err() {
-        raw_utf8_error(name, error);
-        return svm_result_t::SVM_FAILURE;
-    }
-
-    let data: Result<DataLayout, io::Error> = DataLayout::try_from(data);
-    if let Err(e) = data {
-        raw_io_error(e, error);
-        return svm_result_t::SVM_FAILURE;
-    }
-
-    let mut bytes = DeployAppTemplateBuilder::new()
-        .with_version(version)
-        .with_name(&name.unwrap())
-        .with_code(code.into())
-        .with_data(&data.unwrap())
-        .build();
-
-    vec_to_svm_byte_array!(ENCODE_DEPLOY_TEMPLATE_TYPE, app_template, bytes);
-
-    svm_result_t::SVM_SUCCESS
-}
-
-/// Constructs a new raw `spawn_app` transaction.
-///
-#[no_mangle]
-pub unsafe extern "C" fn svm_encode_spawn_app(
-    spawn_app: *mut svm_byte_array,
-    version: u32,
-    template_addr: svm_byte_array,
-    name: svm_byte_array,
-    ctor_name: svm_byte_array,
-    calldata: svm_byte_array,
-    error: *mut svm_byte_array,
-) -> svm_result_t {
-    let template_addr: Result<Address, String> = Address::try_from(template_addr);
-    if let Err(s) = template_addr {
-        raw_error(s, error);
-        return svm_result_t::SVM_FAILURE;
-    }
-
-    let calldata: &[u8] = calldata.into();
-    let calldata: Vec<u8> = calldata.iter().cloned().collect();
-
-    let template_addr = template_addr.unwrap();
-
-    // TODO: return an error instead of `unwrap()`
-    let name = String::try_from(name).unwrap();
-    let ctor_name = String::try_from(ctor_name).unwrap();
-
-    let mut bytes = SpawnAppBuilder::new()
-        .with_version(version)
-        .with_template(&template_addr.into())
-        .with_name(&name)
-        .with_ctor(&ctor_name)
-        .with_calldata(&calldata)
-        .build();
-
-    vec_to_svm_byte_array!(ENCODE_SPAWN_APP_TYPE, spawn_app, bytes);
-
-    svm_result_t::SVM_SUCCESS
-}
-
-/// Constructs a new raw `app_tx` transaction.
-///
-#[no_mangle]
-pub unsafe extern "C" fn svm_encode_app_tx(
-    app_tx: *mut svm_byte_array,
-    version: u32,
-    app_addr: svm_byte_array,
-    func_name: svm_byte_array,
-    calldata: svm_byte_array,
-    error: *mut svm_byte_array,
-) -> svm_result_t {
-    let app_addr: Result<Address, String> = Address::try_from(app_addr);
-    if let Err(s) = app_addr {
-        raw_error(s, error);
-        return svm_result_t::SVM_FAILURE;
-    }
-
-    let calldata: &[u8] = calldata.into();
-    let calldata: Vec<u8> = calldata.iter().cloned().collect();
-
-    // TODO: return an error instead of `unwrap()`
-    let func_name = String::try_from(func_name).unwrap();
-    let app_addr = app_addr.unwrap();
-
-    let mut bytes = AppTxBuilder::new()
-        .with_version(version)
-        .with_app(&app_addr.into())
-        .with_func(&func_name)
-        .with_calldata(&calldata)
-        .build();
-
-    vec_to_svm_byte_array!(ENCODE_EXEC_APP_TYPE, app_tx, bytes);
-
-    svm_result_t::SVM_SUCCESS
 }

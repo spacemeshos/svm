@@ -1,5 +1,6 @@
 use super::wasm_buf_apply;
-use crate::{api, api::json::JsonError};
+
+use crate::api::{self, json::JsonError};
 
 ///
 /// Encodes a `deploy-template` json input into SVM `deploy-template` binary transaction.
@@ -17,12 +18,14 @@ pub fn encode_deploy_template(ptr: usize) -> Result<usize, JsonError> {
 mod test {
     use super::*;
 
-    use svm_nibble::NibbleIter;
+    use std::io::Cursor;
+
     use svm_types::AppTemplate;
 
     use crate::api::wasm::{
         error_as_string, free, to_wasm_buffer, wasm_buffer_data, BUF_OK_MARKER,
     };
+    use crate::template;
 
     #[test]
     fn wasm_encode_deploy_template_valid() {
@@ -39,8 +42,8 @@ mod test {
         let data = wasm_buffer_data(tx_buf);
         assert_eq!(data[0], BUF_OK_MARKER);
 
-        let mut iter = NibbleIter::new(&data[1..]);
-        let actual = crate::api::raw::decode_deploy_template(&mut iter).unwrap();
+        let mut cursor = Cursor::new(&data[1..]);
+        let actual = template::decode_deploy_template(&mut cursor).unwrap();
 
         let expected = AppTemplate {
             version: 0,
