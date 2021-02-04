@@ -22,11 +22,20 @@ pub fn deploy_template(json: &Value) -> Result<Vec<u8>, JsonError> {
     let data = json::as_blob(json, "data")?;
     let data = to_data_layout(data)?;
 
+    let mut ctors = Vec::new();
+
+    for ctor in json::as_array(json, "ctors")? {
+        let ctor = ctor.as_str().unwrap();
+
+        ctors.push(ctor.to_string());
+    }
+
     let template = AppTemplate {
         version,
         name,
         code,
         data,
+        ctors,
     };
 
     let mut buf = Vec::new();
@@ -134,12 +143,32 @@ mod tests {
     }
 
     #[test]
+    fn json_deploy_template_missing_ctors() {
+        let json = json!({
+            "version": 0,
+            "name": "My Template",
+            "code": "C0DE",
+            "data": "0000000100000003",
+        });
+
+        let err = deploy_template(&json).unwrap_err();
+        assert_eq!(
+            err,
+            JsonError::InvalidField {
+                field: "ctors".to_string(),
+                reason: "value `null` isn\'t an Array".to_string(),
+            }
+        );
+    }
+
+    #[test]
     fn json_deploy_template_valid() {
         let json = json!({
             "version": 0,
             "name": "My Template",
             "code": "C0DE",
-            "data": "0000000100000003"
+            "data": "0000000100000003",
+            "ctors": ["init", "start"]
         });
 
         let bytes = deploy_template(&json).unwrap();
@@ -152,6 +181,7 @@ mod tests {
             name: "My Template".to_string(),
             code: vec![0xC0, 0xDE],
             data: vec![1, 3].into(),
+            ctors: vec!["init".into(), "start".into()],
         };
 
         assert_eq!(actual, expected);

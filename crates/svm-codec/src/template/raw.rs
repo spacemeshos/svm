@@ -13,6 +13,7 @@ pub fn encode_deploy_template(template: &AppTemplate, w: &mut Vec<u8>) {
     encode_name(template, w);
     encode_code(template, w);
     encode_data(template, w);
+    encode_ctors(template, w);
 }
 
 /// Decodes a raw Deploy-Template.
@@ -21,8 +22,10 @@ pub fn decode_deploy_template(cursor: &mut Cursor<&[u8]>) -> Result<AppTemplate,
     let name = decode_name(cursor)?;
     let code = decode_code(cursor)?;
     let data = decode_data(cursor)?;
+    let ctors = decode_ctors(cursor)?;
 
     let template = AppTemplate {
+        ctors,
         version,
         name,
         code,
@@ -69,6 +72,18 @@ fn encode_code(template: &AppTemplate, w: &mut Vec<u8>) {
     w.write_bytes(code);
 }
 
+fn encode_ctors(template: &AppTemplate, w: &mut Vec<u8>) {
+    let count = template.ctors.len();
+
+    assert!(count < std::u8::MAX as usize);
+
+    w.write_byte(count as u8);
+
+    for ctor in template.ctors.iter() {
+        w.write_string(ctor);
+    }
+}
+
 /// Decoders
 
 #[inline]
@@ -112,6 +127,25 @@ fn decode_code(cursor: &mut Cursor<&[u8]>) -> Result<Vec<u8>, ParseError> {
     }
 }
 
+fn decode_ctors(cursor: &mut Cursor<&[u8]>) -> Result<Vec<String>, ParseError> {
+    match cursor.read_byte() {
+        Err(..) => Err(ParseError::NotEnoughBytes(Field::CtorsCount)),
+        Ok(count) => {
+            let mut ctors = Vec::with_capacity(count as usize);
+
+            for _ in 0..count {
+                if let Ok(Ok(ctor)) = cursor.read_string() {
+                    ctors.push(ctor);
+                } else {
+                    return Err(ParseError::NotEnoughBytes(Field::Ctor));
+                }
+            }
+
+            Ok(ctors)
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -123,6 +157,7 @@ mod tests {
             name: "My Template".to_string(),
             code: vec![0x0C, 0x00, 0x0D, 0x0E],
             data: vec![5, 10].into(),
+            ctors: vec!["init".into(), "start".into()],
         };
 
         let mut bytes = Vec::new();

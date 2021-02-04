@@ -9,7 +9,7 @@ pub use error::ReceiptError;
 pub use deploy_template::TemplateReceipt;
 pub use exec_app::ExecReceipt;
 pub use log::Log;
-pub use spawn_app::{make_spawn_app_receipt, SpawnAppReceipt};
+pub use spawn_app::{into_spawn_app_receipt, SpawnAppReceipt};
 
 use crate::gas::MaybeGas;
 

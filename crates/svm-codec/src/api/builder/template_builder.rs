@@ -10,6 +10,7 @@ pub struct DeployAppTemplateBuilder {
     name: Option<String>,
     code: Option<Vec<u8>>,
     data: Option<DataLayout>,
+    ctors: Option<Vec<String>>,
 }
 
 ///
@@ -23,12 +24,14 @@ pub struct DeployAppTemplateBuilder {
 /// use svm_codec::template;
 ///
 /// let layout = vec![5, 10].into();
+/// let ctors = vec!["init".to_string()];
 ///
 /// let bytes = DeployAppTemplateBuilder::new()
 ///            .with_version(0)
 ///            .with_name("My Template")
 ///            .with_code(&[0xC, 0x0, 0xD, 0xE])
 ///            .with_data(&layout)
+///            .with_ctors(&ctors)
 ///            .build();
 ///
 /// let mut cursor = Cursor::new(&bytes[..]);
@@ -38,7 +41,8 @@ pub struct DeployAppTemplateBuilder {
 ///                  version: 0,
 ///                  name: "My Template".to_string(),
 ///                  code: vec![0xC, 0x0, 0xD, 0xE],
-///                  data: layout
+///                  data: layout,
+///                  ctors: vec!["init".to_string()]
 ///                };
 ///
 /// assert_eq!(expected, actual);
@@ -53,6 +57,7 @@ impl DeployAppTemplateBuilder {
             name: None,
             code: None,
             data: None,
+            ctors: None,
         }
     }
 
@@ -76,17 +81,24 @@ impl DeployAppTemplateBuilder {
         self
     }
 
+    pub fn with_ctors(mut self, ctors: &[String]) -> Self {
+        self.ctors = Some(ctors.to_vec());
+        self
+    }
+
     pub fn build(self) -> Vec<u8> {
         let version = self.version.unwrap();
         let name = self.name.unwrap();
         let code = self.code.unwrap();
         let data = self.data.unwrap();
+        let ctors = self.ctors.unwrap();
 
         let app = AppTemplate {
             version,
             name,
             code,
             data,
+            ctors,
         };
 
         let mut w = Vec::new();

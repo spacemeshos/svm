@@ -97,6 +97,18 @@ fn decode_error(ty: &'static str, err: &ReceiptError, logs: &[Log]) -> Value {
                 "func": func,
                 "message": msg,
             }),
+            ReceiptError::FuncNotAllowed {
+                app_addr,
+                template_addr,
+                func,
+                msg,
+            } => json!({
+                "err_type": "function-not-allowed",
+                "template_addr": json::addr_to_str(template_addr.inner()),
+                "app_addr": json::addr_to_str(app_addr.inner()),
+                "func": func,
+                "message": msg,
+            }),
         }
     };
 

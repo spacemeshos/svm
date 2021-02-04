@@ -1,3 +1,4 @@
+use core::panic;
 use std::collections::HashMap;
 use std::ffi::c_void;
 use std::fmt;
@@ -6,13 +7,12 @@ use std::path::Path;
 
 use log::{debug, error, info};
 
-use crate::{
-    env::traits::{Env, EnvTypes},
-    error::ValidateError,
-    gas::GasEstimator,
-    storage::StorageBuilderFn,
-    vmcalls, Config, Context, ExternImport, Runtime,
-};
+use crate::env::traits::{Env, EnvTypes};
+use crate::error::ValidateError;
+use crate::gas::GasEstimator;
+use crate::storage::StorageBuilderFn;
+use crate::vmcalls;
+use crate::{Config, Context, ExternImport, Runtime};
 
 use svm_codec::ParseError;
 use svm_ffi::svm_env_t;
@@ -21,9 +21,7 @@ use svm_layout::DataLayout;
 use svm_storage::app::AppStorage;
 
 use svm_types::gas::{MaybeGas, OOGError};
-use svm_types::receipt::{
-    make_spawn_app_receipt, ExecReceipt, Log, ReceiptError, SpawnAppReceipt, TemplateReceipt,
-};
+use svm_types::receipt::{self, ExecReceipt, Log, ReceiptError, SpawnAppReceipt, TemplateReceipt};
 
 use svm_types::{
     AppAddr, AppTemplate, AppTransaction, AuthorAddr, CreatorAddr, SpawnApp, State, TemplateAddr,
@@ -157,7 +155,7 @@ where
         let tx = self.parse_exec_app(bytes).unwrap();
         let gas_used = MaybeGas::with(0);
 
-        self._exec_app(&tx, state, gas_used, gas_limit)
+        self.exec(&tx, state, gas_used, gas_limit, false)
     }
 }
 
@@ -208,9 +206,9 @@ where
     ) -> SpawnAppReceipt {
         let ctor = self.build_ctor_call(creator, spawn, app_addr);
 
-        let ctor_receipt = self._exec_app(&ctor, &State::empty(), gas_used, gas_left);
+        let ctor_receipt = self.exec(&ctor, &State::zeros(), gas_used, gas_left, true);
 
-        make_spawn_app_receipt(ctor_receipt, app_addr)
+        receipt::into_spawn_app_receipt(ctor_receipt, app_addr)
     }
 
     fn install_template(
@@ -243,12 +241,13 @@ where
         }
     }
 
-    fn _exec_app(
+    fn exec(
         &self,
         tx: &AppTransaction,
         state: &State,
         _gas_used: MaybeGas,
         gas_left: MaybeGas,
+        with_spawn: bool,
     ) -> ExecReceipt {
         info!("runtime `exec_app`");
 
@@ -262,7 +261,7 @@ where
                 let mut ctx = self.create_context(&template, &tx.app, &state, gas_left);
                 let (import_object, funcs_envs) = self.create_import_object(&store, &mut ctx);
 
-                let (result, logs) = self.do_exec_app(
+                let (result, logs) = self._exec(
                     &store,
                     &ctx,
                     &tx,
@@ -270,6 +269,7 @@ where
                     &template_addr,
                     &import_object,
                     gas_left,
+                    with_spawn,
                 );
 
                 self.funcs_envs_destroy(funcs_envs);
@@ -292,7 +292,7 @@ where
         }
     }
 
-    fn do_exec_app(
+    fn _exec(
         &self,
         store: &Store,
         ctx: &Context,
@@ -301,6 +301,7 @@ where
         template_addr: &TemplateAddr,
         import_object: &ImportObject,
         gas_left: MaybeGas,
+        within_spawn: bool,
     ) -> (
         Result<(Option<State>, Option<Vec<u8>>, MaybeGas), ReceiptError>,
         Vec<Log>,
@@ -309,6 +310,30 @@ where
 
         let module = self.compile_template(store, tx, &template, &template_addr, gas_left);
         if let Err(err) = module {
+            return (Err(err), empty_logs);
+        }
+
+        let func_name = &tx.func_name;
+
+        let is_ctor = template.ctors.iter().any(|ctor| ctor == func_name);
+
+        if within_spawn && !is_ctor {
+            let err = ReceiptError::FuncNotAllowed {
+                app_addr: tx.app.clone(),
+                template_addr: template_addr.clone(),
+                func: func_name.clone(),
+                msg: "expected function to be a constructor".to_string(),
+            };
+            return (Err(err), empty_logs);
+        }
+
+        if !within_spawn && is_ctor {
+            let err = ReceiptError::FuncNotAllowed {
+                app_addr: tx.app.clone(),
+                template_addr: template_addr.clone(),
+                func: func_name.clone(),
+                msg: "expected function to be a non-constructor".to_string(),
+            };
             return (Err(err), empty_logs);
         }
 
