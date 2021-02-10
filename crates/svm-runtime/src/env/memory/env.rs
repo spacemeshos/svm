@@ -9,15 +9,16 @@ use crate::env::{
     traits::{Env, EnvSerializerTypes, EnvTypes},
 };
 
-pub struct MemoryEnvTypes<Ser>(PhantomData<Ser>);
+/// Aggregates the types for in-memory environments.
+pub struct MemoryEnvTypes<S>(PhantomData<S>);
 
-impl<Ser> EnvTypes for MemoryEnvTypes<Ser>
+impl<S> EnvTypes for MemoryEnvTypes<S>
 where
-    Ser: EnvSerializerTypes,
+    S: EnvSerializerTypes,
 {
-    type TemplateStore = MemTemplateStore<Ser::TemplateSerializer, Ser::TemplateDeserializer>;
+    type TemplateStore = MemTemplateStore<S::TemplateSerializer, S::TemplateDeserializer>;
 
-    type AppStore = MemAppStore<Ser::AppSerializer, Ser::AppDeserializer>;
+    type AppStore = MemAppStore<S::AppSerializer, S::AppDeserializer>;
 
     type TemplateAddressCompute = DefaultTemplateAddressCompute;
 

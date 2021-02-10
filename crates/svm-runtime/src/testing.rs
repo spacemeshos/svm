@@ -1,12 +1,10 @@
 use std::cell::RefCell;
-use std::collections::HashMap;
-use std::ffi::c_void;
 use std::path::Path;
 use std::rc::Rc;
 
 use crate::env::memory::{DefaultMemAppStore, DefaultMemTemplateStore, DefaultMemoryEnv};
 use crate::{gas::DefaultGasEstimator, storage::StorageBuilderFn};
-use crate::{Config, Context, DefaultRuntime, ExternImport};
+use crate::{Config, DefaultRuntime, ExternImport};
 
 use svm_codec::api::builder::{AppTxBuilder, DeployTemplateBuilder, SpawnAppBuilder};
 use svm_layout::DataLayout;
@@ -14,13 +12,16 @@ use svm_storage::{
     app::{AppKVStore, AppStorage},
     kv::{FakeKV, StatefulKV},
 };
-use svm_types::{gas::MaybeGas, receipt::Log, Address, AppAddr, State, TemplateAddr, WasmValue};
+use svm_types::{gas::MaybeGas, Address, AppAddr, State, TemplateAddr};
 
-use wasmer::{Export, ImportObject, Instance, Memory, MemoryType, Module, Pages, Store};
+use wasmer::{ImportObject, Instance, Memory, MemoryType, Module, Pages, Store};
 
+/// Hold a Wasm file in textual or binary form
 pub enum WasmFile<'a> {
+    /// Textual Wasm
     Text(&'a str),
 
+    /// Binary Wasm
     Binary(&'a [u8]),
 }
 
@@ -45,10 +46,13 @@ impl<'a> From<&'a [u8]> for WasmFile<'a> {
     }
 }
 
+/// Creates a new `Wasmer Store`
 pub fn wasmer_store() -> Store {
     svm_compiler::new_store()
 }
 
+/// Creates a new `Wasmer Memory` consisting of a single page
+/// The memory is of type non-shared and can grow without a limit
 pub fn wasmer_memory(store: &Store) -> Memory {
     let min = Pages(1);
     let max = None;
@@ -80,6 +84,7 @@ pub fn wasmer_instantiate(
     Instance::new(&module, import_object).unwrap()
 }
 
+/// Given an App `Address` and its storage layout, it initializes a new blank `AppStorage`
 pub fn blank_storage(app_addr: &Address, layout: &DataLayout) -> AppStorage {
     let state_kv = memory_state_kv_init();
     let app_kv = AppKVStore::new(app_addr.clone(), &state_kv);
