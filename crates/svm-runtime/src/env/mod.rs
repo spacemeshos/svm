@@ -5,6 +5,7 @@ pub mod default;
 #[cfg(feature = "default-memory")]
 pub mod memory;
 
+/// Rocksdb related types
 #[cfg(feature = "default-rocksdb")]
 pub mod rocksdb;
 
