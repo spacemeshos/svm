@@ -1,6 +1,6 @@
 use std::{ffi::c_void, path::Path};
 
-use crate::env::rocksdb::{RocksdbAppStore, RocksdbAppTemplateStore, RocksdbEnv};
+use crate::env::rocksdb::{RocksdbAppStore, RocksdbTemplateStore, RocksdbEnv};
 use crate::env::traits::EnvSerializerTypes;
 
 use svm_layout::DataLayout;
@@ -37,7 +37,7 @@ where
         <S as EnvSerializerTypes>::AppDeserializer,
     >::new(kv_path);
 
-    let template_store = RocksdbAppTemplateStore::<
+    let template_store = RocksdbTemplateStore::<
         <S as EnvSerializerTypes>::TemplateSerializer,
         <S as EnvSerializerTypes>::TemplateDeserializer,
     >::new(kv_path);

@@ -1,4 +1,4 @@
-/// Represents an `AppTemplate` Hash
+/// Represents an `Template` Hash
 #[derive(Hash, PartialEq, Eq, Clone, Debug)]
 #[repr(transparent)]
-pub struct AppTemplateHash(pub [u8; 32]);
+pub struct TemplateHash(pub [u8; 32]);

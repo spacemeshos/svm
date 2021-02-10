@@ -2,13 +2,13 @@ use std::fs::File;
 use std::io::{Cursor, Read};
 
 use svm_layout::{DataLayout, DataLayoutBuilder};
-use svm_types::AppTemplate;
+use svm_types::Template;
 
 use crate::common;
 use crate::{Field, ParseError, ReadExt, WriteExt};
 
 /// Encodes a raw Deploy-Template.
-pub fn encode_deploy_template(template: &AppTemplate, w: &mut Vec<u8>) {
+pub fn encode_deploy_template(template: &Template, w: &mut Vec<u8>) {
     encode_version(template, w);
     encode_name(template, w);
     encode_code(template, w);
@@ -17,14 +17,14 @@ pub fn encode_deploy_template(template: &AppTemplate, w: &mut Vec<u8>) {
 }
 
 /// Decodes a raw Deploy-Template.
-pub fn decode_deploy_template(cursor: &mut Cursor<&[u8]>) -> Result<AppTemplate, ParseError> {
+pub fn decode_deploy_template(cursor: &mut Cursor<&[u8]>) -> Result<Template, ParseError> {
     let version = decode_version(cursor)?;
     let name = decode_name(cursor)?;
     let code = decode_code(cursor)?;
     let data = decode_data(cursor)?;
     let ctors = decode_ctors(cursor)?;
 
-    let template = AppTemplate {
+    let template = Template {
         ctors,
         version,
         name,
@@ -37,17 +37,17 @@ pub fn decode_deploy_template(cursor: &mut Cursor<&[u8]>) -> Result<AppTemplate,
 
 /// Encoders
 
-fn encode_version(template: &AppTemplate, w: &mut Vec<u8>) {
+fn encode_version(template: &Template, w: &mut Vec<u8>) {
     let v = &template.version;
 
     common::encode_version(*v, w);
 }
 
-fn encode_name(template: &AppTemplate, w: &mut Vec<u8>) {
+fn encode_name(template: &Template, w: &mut Vec<u8>) {
     w.write_string(&template.name);
 }
 
-fn encode_data(template: &AppTemplate, w: &mut Vec<u8>) {
+fn encode_data(template: &Template, w: &mut Vec<u8>) {
     let nvars = template.data.len();
 
     assert!(nvars < std::u16::MAX as usize);
@@ -59,7 +59,7 @@ fn encode_data(template: &AppTemplate, w: &mut Vec<u8>) {
     }
 }
 
-fn encode_code(template: &AppTemplate, w: &mut Vec<u8>) {
+fn encode_code(template: &Template, w: &mut Vec<u8>) {
     let code = &template.code;
 
     // code length
@@ -72,7 +72,7 @@ fn encode_code(template: &AppTemplate, w: &mut Vec<u8>) {
     w.write_bytes(code);
 }
 
-fn encode_ctors(template: &AppTemplate, w: &mut Vec<u8>) {
+fn encode_ctors(template: &Template, w: &mut Vec<u8>) {
     let count = template.ctors.len();
 
     assert!(count < std::u8::MAX as usize);
@@ -152,7 +152,7 @@ mod tests {
 
     #[test]
     fn encode_decode_deploy_template() {
-        let template = AppTemplate {
+        let template = Template {
             version: 0,
             name: "My Template".to_string(),
             code: vec![0x0C, 0x00, 0x0D, 0x0E],

@@ -24,7 +24,7 @@ use svm_types::gas::{MaybeGas, OOGError};
 use svm_types::receipt::{self, ExecReceipt, Log, ReceiptError, SpawnAppReceipt, TemplateReceipt};
 
 use svm_types::{
-    AppAddr, AppTemplate, AppTransaction, AuthorAddr, CreatorAddr, SpawnApp, State, TemplateAddr,
+    AppAddr, Template, AppTransaction, AuthorAddr, CreatorAddr, SpawnApp, State, TemplateAddr,
     Type,
 };
 
@@ -213,7 +213,7 @@ where
 
     fn install_template(
         &mut self,
-        template: &AppTemplate,
+        template: &Template,
         author: &AuthorAddr,
         gas_used: MaybeGas,
         _gas_left: MaybeGas,
@@ -297,7 +297,7 @@ where
         store: &Store,
         ctx: &Context,
         tx: &AppTransaction,
-        template: &AppTemplate,
+        template: &Template,
         template_addr: &TemplateAddr,
         import_object: &ImportObject,
         gas_left: MaybeGas,
@@ -559,7 +559,7 @@ where
 
     fn create_context(
         &self,
-        template: &AppTemplate,
+        template: &Template,
         app_addr: &AppAddr,
         state: &State,
         gas_limit: MaybeGas,
@@ -608,7 +608,7 @@ where
     fn load_template(
         &self,
         tx: &AppTransaction,
-    ) -> Result<(AppTemplate, TemplateAddr, AuthorAddr, CreatorAddr), ReceiptError> {
+    ) -> Result<(Template, TemplateAddr, AuthorAddr, CreatorAddr), ReceiptError> {
         info!("runtime `load_template`");
 
         self.env
@@ -620,7 +620,7 @@ where
         &self,
         store: &Store,
         tx: &AppTransaction,
-        template: &AppTemplate,
+        template: &Template,
         template_addr: &TemplateAddr,
         gas_left: MaybeGas,
     ) -> Result<Module, ReceiptError> {
@@ -640,7 +640,7 @@ where
         })
     }
 
-    fn parse_deploy_template(&self, bytes: &[u8]) -> Result<AppTemplate, ParseError> {
+    fn parse_deploy_template(&self, bytes: &[u8]) -> Result<Template, ParseError> {
         self.env.parse_deploy_template(bytes)
     }
 
@@ -653,7 +653,7 @@ where
     }
 
     /// Gas
-    fn compute_install_template_gas(&self, bytes: &[u8], _template: &AppTemplate) -> u64 {
+    fn compute_install_template_gas(&self, bytes: &[u8], _template: &Template) -> u64 {
         // todo!()
         1000 * (bytes.len() as u64)
     }

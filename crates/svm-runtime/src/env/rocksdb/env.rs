@@ -2,9 +2,9 @@ use std::marker::PhantomData;
 
 use crate::{
     env::default::{
-        DefaultAppAddressCompute, DefaultAppTemplateAddressCompute, DefaultTemplateHasher,
+        DefaultAppAddressCompute, DefaultTemplateAddressCompute, DefaultTemplateHasher,
     },
-    env::rocksdb::{RocksdbAppStore, RocksdbAppTemplateStore},
+    env::rocksdb::{RocksdbAppStore, RocksdbTemplateStore},
     env::traits::{Env, EnvSerializerTypes, EnvTypes},
 };
 
@@ -14,19 +14,18 @@ impl<Ser> EnvTypes for RocksdbEnvTypes<Ser>
 where
     Ser: EnvSerializerTypes,
 {
-    type TemplateStore =
-        RocksdbAppTemplateStore<Ser::TemplateSerializer, Ser::TemplateDeserializer>;
+    type TemplateStore = RocksdbTemplateStore<Ser::TemplateSerializer, Ser::TemplateDeserializer>;
 
     type AppStore = RocksdbAppStore<Ser::AppSerializer, Ser::AppDeserializer>;
 
-    type AppTemplateAddressCompute = DefaultAppTemplateAddressCompute;
+    type TemplateAddressCompute = DefaultTemplateAddressCompute;
 
     type AppAddressCompute = DefaultAppAddressCompute;
 
     type TemplateHasher = DefaultTemplateHasher;
 }
 
-/// AppTemplate environment backed-by `rocksdb`
+/// `Template` environment backed-by `rocksdb`
 pub struct RocksdbEnv<Ser>
 where
     Ser: EnvSerializerTypes,
@@ -40,7 +39,7 @@ impl<Ser> RocksdbEnv<Ser>
 where
     Ser: EnvSerializerTypes,
 {
-    /// Creates a new `RocksdbEnv`. Injects externally the `AppTemplateStore`
+    /// Creates a new `RocksdbEnv`. Injects externally the `TemplateStore`
     pub fn new(
         app_store: <RocksdbEnvTypes<Ser> as EnvTypes>::AppStore,
         template_store: <RocksdbEnvTypes<Ser> as EnvTypes>::TemplateStore,

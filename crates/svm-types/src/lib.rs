@@ -27,7 +27,7 @@ pub use app::App;
 pub use app_tx::AppTransaction;
 pub use spawn_app::SpawnApp;
 pub use state::State;
-pub use template::AppTemplate;
+pub use template::Template;
 pub use wasm_type::{WasmType, WasmTypeError};
 pub use wasm_value::WasmValue;
 

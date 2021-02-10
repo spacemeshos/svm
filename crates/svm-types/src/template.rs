@@ -6,7 +6,7 @@ use svm_layout::DataLayout;
 /// An in-memory representation of an app-template.
 #[allow(missing_docs)]
 #[derive(PartialEq)]
-pub struct AppTemplate {
+pub struct Template {
     pub version: u16,
     pub name: String,
     pub code: Vec<u8>,
@@ -14,9 +14,9 @@ pub struct AppTemplate {
     pub ctors: Vec<String>,
 }
 
-impl fmt::Debug for AppTemplate {
+impl fmt::Debug for Template {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_struct("AppTemplate")
+        f.debug_struct("Template")
             .field("version", &self.version)
             .field("name", &self.name)
             .field("code", &fmt_code(&self.code))
