@@ -1,25 +1,25 @@
 use std::{marker::PhantomData, path::Path};
 
 use svm_kv::{rocksdb::Rocksdb, traits::RawKV};
-use svm_types::{AppTemplate, AuthorAddr, TemplateAddr};
+use svm_types::{AuthorAddr, Template, TemplateAddr};
 
-use crate::env::traits::AppTemplateStore;
-use crate::env::types::AppTemplateHash;
+use crate::env::traits::TemplateStore;
+use crate::env::types::TemplateHash;
 
-use svm_codec::serializers::{AppTemplateDeserializer, AppTemplateSerializer};
+use svm_codec::serializers::{TemplateDeserializer, TemplateSerializer};
 
 use log::info;
 
-/// `AppTemplate` store backed by `rocksdb`
-pub struct RocksdbAppTemplateStore<S, D> {
+/// `Template` store backed by `rocksdb`
+pub struct RocksdbTemplateStore<S, D> {
     db: Rocksdb,
     phantom: PhantomData<(S, D)>,
 }
 
-impl<S, D> RocksdbAppTemplateStore<S, D>
+impl<S, D> RocksdbTemplateStore<S, D>
 where
-    S: AppTemplateSerializer,
-    D: AppTemplateDeserializer,
+    S: TemplateSerializer,
+    D: TemplateDeserializer,
 {
     /// Creates a new template store at the given path
     pub fn new<P>(path: P) -> Self
@@ -33,19 +33,19 @@ where
     }
 }
 
-impl<S, D> AppTemplateStore for RocksdbAppTemplateStore<S, D>
+impl<S, D> TemplateStore for RocksdbTemplateStore<S, D>
 where
-    S: AppTemplateSerializer,
-    D: AppTemplateDeserializer,
+    S: TemplateSerializer,
+    D: TemplateDeserializer,
 {
     fn store(
         &mut self,
-        template: &AppTemplate,
+        template: &Template,
         author: &AuthorAddr,
         addr: &TemplateAddr,
-        hash: &AppTemplateHash,
+        hash: &TemplateHash,
     ) {
-        info!("Storing `AppTemplate`: \n{:?}", template);
+        info!("Storing `Template`: \n{:?}", template);
         info!("     Account Address: {:?}", addr.inner());
         info!("     Hash: {:?}", hash);
 
@@ -60,10 +60,10 @@ where
         self.db.set(&[entry1, entry2]);
     }
 
-    fn load(&self, addr: &TemplateAddr) -> Option<(AppTemplate, AuthorAddr)> {
+    fn load(&self, addr: &TemplateAddr) -> Option<(Template, AuthorAddr)> {
         let addr = addr.inner().as_slice();
 
-        info!("Loading `AppTemplate` account {:?}", addr);
+        info!("Loading `Template` account {:?}", addr);
 
         self.db.get(addr).and_then(|hash| {
             self.db

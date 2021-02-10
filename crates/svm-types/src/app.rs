@@ -8,7 +8,7 @@ pub struct App {
     /// `App`'s name
     pub name: String,
 
-    /// `Address` of the `AppTemplate`, the App is being spawned from.
+    /// `Address` of the `Template`, the App is being spawned from.
     pub template: TemplateAddr,
 }
 

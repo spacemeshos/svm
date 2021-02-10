@@ -1,19 +1,19 @@
-use crate::env::traits::AppTemplateHasher;
-use crate::env::types::AppTemplateHash;
+use crate::env::traits::TemplateHasher;
+use crate::env::types::TemplateHash;
 
 use svm_common::{DefaultKeyHasher, KeyHasher};
-use svm_types::AppTemplate;
+use svm_types::Template;
 
-/// Default implementation for `AppTemplateCodeHasher`
+/// Default implementation for `TemplateCodeHasher`
 pub struct DefaultTemplateHasher;
 
-impl AppTemplateHasher for DefaultTemplateHasher {
+impl TemplateHasher for DefaultTemplateHasher {
     #[inline]
-    fn hash(template: &AppTemplate) -> AppTemplateHash {
+    fn hash(template: &Template) -> TemplateHash {
         let bytes = &template.code[..];
 
         let hash = DefaultKeyHasher::hash(bytes);
 
-        AppTemplateHash(hash)
+        TemplateHash(hash)
     }
 }
