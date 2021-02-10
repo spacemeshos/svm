@@ -1,7 +1,7 @@
 use std::io::Cursor;
 
 use crate::env::traits::{
-    AppAddressCompute, AppStore, AppTemplateAddressCompute, AppTemplateHasher, AppTemplateStore,
+    AppAddressCompute, AppStore, AppTemplateAddressCompute, AppTemplateHasher, TemplateStore,
 };
 use crate::env::types::AppTemplateHash;
 
@@ -11,7 +11,7 @@ use svm_codec::serializers::{
 use svm_codec::ParseError;
 use svm_codec::{app, template, transaction};
 use svm_types::{
-    App, AppAddr, AppTemplate, AppTransaction, AuthorAddr, CreatorAddr, SpawnApp, TemplateAddr,
+    App, AppAddr, Template, AppTransaction, AuthorAddr, CreatorAddr, SpawnApp, TemplateAddr,
 };
 
 /// `Env` storage serialization types
@@ -32,7 +32,7 @@ pub trait EnvSerializerTypes {
 /// Aggregates types that are required by `Env`
 pub trait EnvTypes {
     /// `AppTemplate` store type.
-    type TemplateStore: AppTemplateStore;
+    type TemplateStore: TemplateStore;
 
     /// `AppStore` store type.
     type AppStore: AppStore;
@@ -65,12 +65,12 @@ pub trait Env {
     fn get_app_store_mut(&mut self) -> &mut <Self::Types as EnvTypes>::AppStore;
 
     /// Computes `AppTemplate` Hash
-    fn compute_template_hash(&self, template: &AppTemplate) -> AppTemplateHash {
+    fn compute_template_hash(&self, template: &Template) -> AppTemplateHash {
         <Self::Types as EnvTypes>::TemplateHasher::hash(template)
     }
 
     /// Computes `AppTemplate` account address
-    fn derive_template_address(&self, template: &AppTemplate) -> TemplateAddr {
+    fn derive_template_address(&self, template: &Template) -> TemplateAddr {
         <Self::Types as EnvTypes>::AppTemplateAddressCompute::compute(template)
     }
 
@@ -84,7 +84,7 @@ pub trait Env {
     /// Parses raw a deploy-template.
     /// On success returns `AppTemplate`,
     /// On failure returns `ParseError`.
-    fn parse_deploy_template(&self, bytes: &[u8]) -> Result<AppTemplate, ParseError> {
+    fn parse_deploy_template(&self, bytes: &[u8]) -> Result<Template, ParseError> {
         let mut cursor = Cursor::new(bytes);
 
         let template = template::decode_deploy_template(&mut cursor)?;
@@ -117,7 +117,7 @@ pub trait Env {
     /// Stores the following:
     /// * `TemplateAddress` -> `TemplateHash`
     /// * `TemplateHash` -> `AppTemplate` data
-    fn store_template(&mut self, template: &AppTemplate, author: &AuthorAddr) -> TemplateAddr {
+    fn store_template(&mut self, template: &Template, author: &AuthorAddr) -> TemplateAddr {
         let addr = self.derive_template_address(template);
         let hash = self.compute_template_hash(template);
 
@@ -148,7 +148,7 @@ pub trait Env {
     fn load_template_by_app(
         &self,
         addr: &AppAddr,
-    ) -> Option<(AppTemplate, TemplateAddr, AuthorAddr, CreatorAddr)> {
+    ) -> Option<(Template, TemplateAddr, AuthorAddr, CreatorAddr)> {
         if let Some((app, creator)) = self.load_app(addr) {
             if let Some((template, author)) = self.load_template(&app.template) {
                 return Some((template, app.template, author, creator));
@@ -160,7 +160,7 @@ pub trait Env {
 
     /// Loads an `AppTemplate` given its `Address`
     #[must_use]
-    fn load_template(&self, addr: &TemplateAddr) -> Option<(AppTemplate, AuthorAddr)> {
+    fn load_template(&self, addr: &TemplateAddr) -> Option<(Template, AuthorAddr)> {
         let store = self.get_template_store();
         store.load(&addr)
     }

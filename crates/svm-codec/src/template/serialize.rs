@@ -1,6 +1,6 @@
 use std::io::Cursor;
 
-use svm_types::{AppTemplate, AuthorAddr};
+use svm_types::{Template, AuthorAddr};
 
 use crate::serialize::{AppTemplateDeserializer, AppTemplateSerializer};
 use crate::template;
@@ -13,7 +13,7 @@ pub struct DefaultAppTemplateSerializer;
 pub struct DefaultAppTemplateDeserializer;
 
 impl AppTemplateSerializer for DefaultAppTemplateSerializer {
-    fn serialize(template: &AppTemplate, author: &AuthorAddr) -> Vec<u8> {
+    fn serialize(template: &Template, author: &AuthorAddr) -> Vec<u8> {
         let mut w = Vec::new();
 
         template::encode_deploy_template(template, &mut w);
@@ -25,7 +25,7 @@ impl AppTemplateSerializer for DefaultAppTemplateSerializer {
 }
 
 impl AppTemplateDeserializer for DefaultAppTemplateDeserializer {
-    fn deserialize(bytes: &[u8]) -> Option<(AppTemplate, AuthorAddr)> {
+    fn deserialize(bytes: &[u8]) -> Option<(Template, AuthorAddr)> {
         let mut cursor = Cursor::new(bytes);
 
         let template = match template::decode_deploy_template(&mut cursor) {
@@ -55,7 +55,7 @@ mod tests {
 
     #[test]
     fn serialize_deploy_template() {
-        let template = AppTemplate {
+        let template = Template {
             version: 0,
             name: "My Template".to_string(),
             code: vec![0x0C, 0x00, 0x0D, 0x0E],

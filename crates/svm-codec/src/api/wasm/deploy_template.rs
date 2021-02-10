@@ -20,7 +20,7 @@ mod test {
 
     use std::{io::Cursor, vec};
 
-    use svm_types::AppTemplate;
+    use svm_types::Template;
 
     use crate::api::wasm::{
         error_as_string, free, to_wasm_buffer, wasm_buffer_data, BUF_OK_MARKER,
@@ -46,7 +46,7 @@ mod test {
         let mut cursor = Cursor::new(&data[1..]);
         let actual = template::decode_deploy_template(&mut cursor).unwrap();
 
-        let expected = AppTemplate {
+        let expected = Template {
             version: 0,
             name: "My Template".to_string(),
             code: vec![0xC0, 0xDE],

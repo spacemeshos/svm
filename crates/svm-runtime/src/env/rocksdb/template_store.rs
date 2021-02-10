@@ -1,9 +1,9 @@
 use std::{marker::PhantomData, path::Path};
 
 use svm_kv::{rocksdb::Rocksdb, traits::RawKV};
-use svm_types::{AppTemplate, AuthorAddr, TemplateAddr};
+use svm_types::{Template, AuthorAddr, TemplateAddr};
 
-use crate::env::traits::AppTemplateStore;
+use crate::env::traits::TemplateStore;
 use crate::env::types::AppTemplateHash;
 
 use svm_codec::serializers::{AppTemplateDeserializer, AppTemplateSerializer};
@@ -33,14 +33,14 @@ where
     }
 }
 
-impl<S, D> AppTemplateStore for RocksdbAppTemplateStore<S, D>
+impl<S, D> TemplateStore for RocksdbAppTemplateStore<S, D>
 where
     S: AppTemplateSerializer,
     D: AppTemplateDeserializer,
 {
     fn store(
         &mut self,
-        template: &AppTemplate,
+        template: &Template,
         author: &AuthorAddr,
         addr: &TemplateAddr,
         hash: &AppTemplateHash,
@@ -60,7 +60,7 @@ where
         self.db.set(&[entry1, entry2]);
     }
 
-    fn load(&self, addr: &TemplateAddr) -> Option<(AppTemplate, AuthorAddr)> {
+    fn load(&self, addr: &TemplateAddr) -> Option<(Template, AuthorAddr)> {
         let addr = addr.inner().as_slice();
 
         info!("Loading `AppTemplate` account {:?}", addr);

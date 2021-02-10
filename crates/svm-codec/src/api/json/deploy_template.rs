@@ -4,7 +4,7 @@ use crate::api::json::{self, JsonError};
 use crate::template;
 
 use svm_layout::{DataLayout, DataLayoutBuilder};
-use svm_types::AppTemplate;
+use svm_types::Template;
 
 ///
 /// ```json
@@ -30,7 +30,7 @@ pub fn deploy_template(json: &Value) -> Result<Vec<u8>, JsonError> {
         ctors.push(ctor.to_string());
     }
 
-    let template = AppTemplate {
+    let template = Template {
         version,
         name,
         code,
@@ -176,7 +176,7 @@ mod tests {
 
         let actual = template::decode_deploy_template(&mut cursor).unwrap();
 
-        let expected = AppTemplate {
+        let expected = Template {
             version: 0,
             name: "My Template".to_string(),
             code: vec![0xC0, 0xDE],

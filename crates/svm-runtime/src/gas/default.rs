@@ -1,4 +1,4 @@
-use svm_types::{AppTemplate, AppTransaction, SpawnApp};
+use svm_types::{Template, AppTransaction, SpawnApp};
 
 use super::estimator::{DeployTemplateEst, ExecAppEst, GasEstimator, SpawnAppEst};
 
@@ -6,7 +6,7 @@ use super::estimator::{DeployTemplateEst, ExecAppEst, GasEstimator, SpawnAppEst}
 pub struct DefaultGasEstimator;
 
 impl GasEstimator for DefaultGasEstimator {
-    fn est_deploy_template(_bytes: &[u8], _template: &AppTemplate) -> DeployTemplateEst {
+    fn est_deploy_template(_bytes: &[u8], _template: &Template) -> DeployTemplateEst {
         todo!()
     }
 

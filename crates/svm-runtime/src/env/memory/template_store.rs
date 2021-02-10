@@ -1,10 +1,10 @@
 use std::{collections::HashMap, marker::PhantomData};
 
 use svm_codec::serializers::{AppTemplateDeserializer, AppTemplateSerializer};
-use svm_types::{AppTemplate, AuthorAddr, TemplateAddr};
+use svm_types::{Template, AuthorAddr, TemplateAddr};
 
 use crate::env::default::DefaultSerializerTypes as DSer;
-use crate::env::traits::{AppTemplateStore, EnvSerializerTypes};
+use crate::env::traits::{TemplateStore, EnvSerializerTypes};
 use crate::env::types::AppTemplateHash;
 
 /// An in-memory implementation of `AppTemplateStore`
@@ -30,14 +30,14 @@ where
     }
 }
 
-impl<S, D> AppTemplateStore for MemAppTemplateStore<S, D>
+impl<S, D> TemplateStore for MemAppTemplateStore<S, D>
 where
     S: AppTemplateSerializer,
     D: AppTemplateDeserializer,
 {
     fn store(
         &mut self,
-        template: &AppTemplate,
+        template: &Template,
         author: &AuthorAddr,
         addr: &TemplateAddr,
         hash: &AppTemplateHash,
@@ -48,7 +48,7 @@ where
         self.bytes.insert(hash.clone(), bytes);
     }
 
-    fn load(&self, addr: &TemplateAddr) -> Option<(AppTemplate, AuthorAddr)> {
+    fn load(&self, addr: &TemplateAddr) -> Option<(Template, AuthorAddr)> {
         let hash = self.hash.get(addr);
 
         hash.and_then(|h| {

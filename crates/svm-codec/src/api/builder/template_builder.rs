@@ -1,5 +1,5 @@
 use svm_layout::DataLayout;
-use svm_types::AppTemplate;
+use svm_types::Template;
 
 use crate::template;
 
@@ -93,7 +93,7 @@ impl DeployAppTemplateBuilder {
         let data = self.data.unwrap();
         let ctors = self.ctors.unwrap();
 
-        let app = AppTemplate {
+        let app = Template {
             version,
             name,
             code,
