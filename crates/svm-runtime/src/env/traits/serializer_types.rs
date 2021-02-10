@@ -1,14 +1,14 @@
 use svm_codec::serializers::{
-    AppDeserializer, AppSerializer, AppTemplateDeserializer, AppTemplateSerializer,
+    AppDeserializer, AppSerializer, TemplateDeserializer, TemplateSerializer,
 };
 
 /// `Env` storage serialization types
 pub trait EnvSerializerTypes {
-    /// `AppTemplate`'s Serializer
-    type TemplateSerializer: AppTemplateSerializer;
+    /// `Template`'s Serializer
+    type TemplateSerializer: TemplateSerializer;
 
-    /// `AppTemplate`'s Deserializer
-    type TemplateDeserializer: AppTemplateDeserializer;
+    /// `Template`'s Deserializer
+    type TemplateDeserializer: TemplateDeserializer;
 
     /// `App`'s Serializer
     type AppSerializer: AppSerializer;

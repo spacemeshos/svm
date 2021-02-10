@@ -4,11 +4,11 @@ use std::ffi::c_void;
 use std::path::Path;
 use std::rc::Rc;
 
-use crate::env::memory::{DefaultMemAppStore, DefaultMemAppTemplateStore, DefaultMemoryEnv};
+use crate::env::memory::{DefaultMemAppStore, DefaultMemTemplateStore, DefaultMemoryEnv};
 use crate::{gas::DefaultGasEstimator, storage::StorageBuilderFn};
 use crate::{Config, Context, DefaultRuntime, ExternImport};
 
-use svm_codec::api::builder::{AppTxBuilder, DeployAppTemplateBuilder, SpawnAppBuilder};
+use svm_codec::api::builder::{AppTxBuilder, DeployTemplateBuilder, SpawnAppBuilder};
 use svm_layout::DataLayout;
 use svm_storage::{
     app::{AppKVStore, AppStorage},
@@ -127,7 +127,7 @@ pub fn runtime_memory_storage_builder(
 
 /// Creates a new in-memory runtime environment.
 pub fn runtime_memory_env_builder() -> DefaultMemoryEnv {
-    let template_store = DefaultMemAppTemplateStore::new();
+    let template_store = DefaultMemTemplateStore::new();
     let app_store = DefaultMemAppStore::new();
 
     DefaultMemoryEnv::new(app_store, template_store)
@@ -143,7 +143,7 @@ pub fn build_template(
 ) -> Vec<u8> {
     let wasm = wasm.into_bytes();
 
-    DeployAppTemplateBuilder::new()
+    DeployTemplateBuilder::new()
         .with_version(version)
         .with_name(name)
         .with_code(&wasm)

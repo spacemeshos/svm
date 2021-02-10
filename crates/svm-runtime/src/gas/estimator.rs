@@ -1,7 +1,7 @@
 use svm_gas::Gas;
-use svm_types::{Template, AppTransaction, SpawnApp};
+use svm_types::{AppTransaction, SpawnApp, Template};
 
-/// Holds estimated gas for deploying a new `AppTemplate`.
+/// Holds estimated gas for deploying a new `Template`.
 pub struct DeployTemplateEst {
     pub payload: Gas,
 

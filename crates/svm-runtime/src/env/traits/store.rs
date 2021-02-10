@@ -1,8 +1,8 @@
-use crate::env::types::AppTemplateHash;
+use crate::env::types::TemplateHash;
 
-use svm_types::{App, AppAddr, Template, AuthorAddr, CreatorAddr, TemplateAddr};
+use svm_types::{App, AppAddr, AuthorAddr, CreatorAddr, Template, TemplateAddr};
 
-/// A persistent store for `AppTemplate`(s).
+/// A persistent store for `Template`(s).
 pub trait TemplateStore {
     /// Stores template.
     ///
@@ -15,11 +15,11 @@ pub trait TemplateStore {
         template: &Template,
         author: &AuthorAddr,
         addr: &TemplateAddr,
-        hash: &AppTemplateHash,
+        hash: &TemplateHash,
     );
 
-    /// Given a `AppTemplate` account address, fetches its raw data
-    /// and deserializes it into `AppTemplate`. Returns `None` if `AppTemplatee` doesn't exist.
+    /// Given a `Template` account address, fetches its raw data
+    /// and deserializes it into `Template`. Returns `None` if `Template` doesn't exist.
     #[must_use]
     fn load(&self, addr: &TemplateAddr) -> Option<(Template, AuthorAddr)>;
 }
@@ -30,7 +30,7 @@ pub trait AppStore {
     fn store(&mut self, app: &App, creator: &CreatorAddr, addr: &AppAddr);
 
     /// Given a `App` account address, fetches its raw data
-    /// and deserializes it into `App`. Returns `None` if `AppTemplate` doesn't exist.
+    /// and deserializes it into `App`. Returns `None` if `Template` doesn't exist.
     #[must_use]
     fn load(&self, addr: &AppAddr) -> Option<(App, CreatorAddr)>;
 }

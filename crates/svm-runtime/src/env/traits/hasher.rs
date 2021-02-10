@@ -1,8 +1,9 @@
-use crate::env::types::AppTemplateHash;
+use crate::env::types::TemplateHash;
+
 use svm_types::Template;
 
-/// Computes Hash derived deterministically from raw `AppTemplate`.
-pub trait AppTemplateHasher {
+/// Computes Hash derived deterministically from raw `Template`.
+pub trait TemplateHasher {
     /// Given code as bytes, derives an Hash
-    fn hash(template: &Template) -> AppTemplateHash;
+    fn hash(template: &Template) -> TemplateHash;
 }

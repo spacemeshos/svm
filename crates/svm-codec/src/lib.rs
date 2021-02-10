@@ -40,10 +40,10 @@ pub use error::ParseError;
 
 pub mod serializers {
     pub use crate::app::{DefaultAppDeserializer, DefaultAppSerializer};
-    pub use crate::template::{DefaultAppTemplateDeserializer, DefaultAppTemplateSerializer};
+    pub use crate::template::{DefaultTemplateDeserializer, DefaultTemplateSerializer};
 
     pub use crate::serialize::{
-        AppDeserializer, AppSerializer, AppTemplateDeserializer, AppTemplateSerializer,
+        AppDeserializer, AppSerializer, TemplateDeserializer, TemplateSerializer,
     };
 }
 

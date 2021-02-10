@@ -1,23 +1,23 @@
 use std::{collections::HashMap, marker::PhantomData};
 
-use svm_codec::serializers::{AppTemplateDeserializer, AppTemplateSerializer};
-use svm_types::{Template, AuthorAddr, TemplateAddr};
+use svm_codec::serializers::{TemplateDeserializer, TemplateSerializer};
+use svm_types::{AuthorAddr, Template, TemplateAddr};
 
 use crate::env::default::DefaultSerializerTypes as DSer;
-use crate::env::traits::{TemplateStore, EnvSerializerTypes};
-use crate::env::types::AppTemplateHash;
+use crate::env::traits::{EnvSerializerTypes, TemplateStore};
+use crate::env::types::TemplateHash;
 
-/// An in-memory implementation of `AppTemplateStore`
-pub struct MemAppTemplateStore<S, D> {
-    bytes: HashMap<AppTemplateHash, Vec<u8>>,
-    hash: HashMap<TemplateAddr, AppTemplateHash>,
+/// An in-memory implementation of `TemplateStore`
+pub struct MemTemplateStore<S, D> {
+    bytes: HashMap<TemplateHash, Vec<u8>>,
+    hash: HashMap<TemplateAddr, TemplateHash>,
     phantom: PhantomData<(S, D)>,
 }
 
-impl<S, D> MemAppTemplateStore<S, D>
+impl<S, D> MemTemplateStore<S, D>
 where
-    S: AppTemplateSerializer,
-    D: AppTemplateDeserializer,
+    S: TemplateSerializer,
+    D: TemplateDeserializer,
 {
     #[allow(clippy::new_without_default)]
     /// Create a new store
@@ -30,17 +30,17 @@ where
     }
 }
 
-impl<S, D> TemplateStore for MemAppTemplateStore<S, D>
+impl<S, D> TemplateStore for MemTemplateStore<S, D>
 where
-    S: AppTemplateSerializer,
-    D: AppTemplateDeserializer,
+    S: TemplateSerializer,
+    D: TemplateDeserializer,
 {
     fn store(
         &mut self,
         template: &Template,
         author: &AuthorAddr,
         addr: &TemplateAddr,
-        hash: &AppTemplateHash,
+        hash: &TemplateHash,
     ) {
         self.hash.insert(addr.clone(), hash.clone());
 
@@ -59,8 +59,8 @@ where
     }
 }
 
-/// `MemAppTemplateStore` with default serialization.
-pub type DefaultMemAppTemplateStore = MemAppTemplateStore<
+/// `MemTemplateStore` with default serialization.
+pub type DefaultMemTemplateStore = MemTemplateStore<
     <DSer as EnvSerializerTypes>::TemplateSerializer,
     <DSer as EnvSerializerTypes>::TemplateDeserializer,
 >;

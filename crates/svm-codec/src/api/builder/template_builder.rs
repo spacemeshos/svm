@@ -5,7 +5,7 @@ use crate::template;
 
 /// Builds a raw representation for `deploy-template`
 /// Should be used for testing only.
-pub struct DeployAppTemplateBuilder {
+pub struct DeployTemplateBuilder {
     version: Option<u16>,
     name: Option<String>,
     code: Option<Vec<u8>>,
@@ -19,14 +19,14 @@ pub struct DeployAppTemplateBuilder {
 /// ```rust
 /// use std::io::Cursor;
 ///
-/// use svm_types::AppTemplate;
-/// use svm_codec::api::builder::DeployAppTemplateBuilder;
+/// use svm_types::Template;
+/// use svm_codec::api::builder::DeployTemplateBuilder;
 /// use svm_codec::template;
 ///
 /// let layout = vec![5, 10].into();
 /// let ctors = vec!["init".to_string()];
 ///
-/// let bytes = DeployAppTemplateBuilder::new()
+/// let bytes = DeployTemplateBuilder::new()
 ///            .with_version(0)
 ///            .with_name("My Template")
 ///            .with_code(&[0xC, 0x0, 0xD, 0xE])
@@ -37,7 +37,7 @@ pub struct DeployAppTemplateBuilder {
 /// let mut cursor = Cursor::new(&bytes[..]);
 /// let actual = template::decode_deploy_template(&mut cursor).unwrap();
 ///
-/// let expected = AppTemplate {
+/// let expected = Template {
 ///                  version: 0,
 ///                  name: "My Template".to_string(),
 ///                  code: vec![0xC, 0x0, 0xD, 0xE],
@@ -49,7 +49,7 @@ pub struct DeployAppTemplateBuilder {
 /// ```
 ///
 #[allow(missing_docs)]
-impl DeployAppTemplateBuilder {
+impl DeployTemplateBuilder {
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {

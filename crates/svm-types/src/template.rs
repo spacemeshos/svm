@@ -16,7 +16,7 @@ pub struct Template {
 
 impl fmt::Debug for Template {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_struct("AppTemplate")
+        f.debug_struct("Template")
             .field("version", &self.version)
             .field("name", &self.name)
             .field("code", &fmt_code(&self.code))

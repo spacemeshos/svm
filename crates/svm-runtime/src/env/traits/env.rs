@@ -1,26 +1,26 @@
 use std::io::Cursor;
 
 use crate::env::traits::{
-    AppAddressCompute, AppStore, AppTemplateAddressCompute, AppTemplateHasher, TemplateStore,
+    AppAddressCompute, AppStore, TemplateAddressCompute, TemplateHasher, TemplateStore,
 };
-use crate::env::types::AppTemplateHash;
+use crate::env::types::TemplateHash;
 
 use svm_codec::serializers::{
-    AppDeserializer, AppSerializer, AppTemplateDeserializer, AppTemplateSerializer,
+    AppDeserializer, AppSerializer, TemplateDeserializer, TemplateSerializer,
 };
 use svm_codec::ParseError;
 use svm_codec::{app, template, transaction};
 use svm_types::{
-    App, AppAddr, Template, AppTransaction, AuthorAddr, CreatorAddr, SpawnApp, TemplateAddr,
+    App, AppAddr, AppTransaction, AuthorAddr, CreatorAddr, SpawnApp, Template, TemplateAddr,
 };
 
 /// `Env` storage serialization types
 pub trait EnvSerializerTypes {
-    /// `AppTemplate`'s Serializer
-    type TemplateSerializer: AppTemplateSerializer;
+    /// `Template`'s Serializer
+    type TemplateSerializer: TemplateSerializer;
 
-    /// `AppTemplate`'s Deserializer
-    type TemplateDeserializer: AppTemplateDeserializer;
+    /// `Template`'s Deserializer
+    type TemplateDeserializer: TemplateDeserializer;
 
     /// `App`'s Serializer
     type AppSerializer: AppSerializer;
@@ -31,20 +31,20 @@ pub trait EnvSerializerTypes {
 
 /// Aggregates types that are required by `Env`
 pub trait EnvTypes {
-    /// `AppTemplate` store type.
+    /// `Template` store type.
     type TemplateStore: TemplateStore;
 
     /// `AppStore` store type.
     type AppStore: AppStore;
 
-    /// Compute `AppTemplate` address type.
-    type AppTemplateAddressCompute: AppTemplateAddressCompute;
+    /// Compute `Template` address type.
+    type TemplateAddressCompute: TemplateAddressCompute;
 
     /// Compute `App` address type.
     type AppAddressCompute: AppAddressCompute;
 
-    /// `AppTemplate` content hasher type.
-    type TemplateHasher: AppTemplateHasher;
+    /// `Template` content hasher type.
+    type TemplateHasher: TemplateHasher;
 }
 
 /// A trait for managing the `SVM` app environment.
@@ -52,10 +52,10 @@ pub trait Env {
     /// `Env` environment is dictated by its `Types`
     type Types: EnvTypes;
 
-    /// Borrows environment's `AppTemplate`(s) store
+    /// Borrows environment's `Template`(s) store
     fn get_template_store(&self) -> &<Self::Types as EnvTypes>::TemplateStore;
 
-    /// Borrows mutably environment's `AppTemplate`(s) store
+    /// Borrows mutably environment's `TemplateStore`
     fn get_template_store_mut(&mut self) -> &mut <Self::Types as EnvTypes>::TemplateStore;
 
     /// Borrows environment's `App`(s) store
@@ -64,14 +64,14 @@ pub trait Env {
     /// Borrows mutably environment's `App`(s) store
     fn get_app_store_mut(&mut self) -> &mut <Self::Types as EnvTypes>::AppStore;
 
-    /// Computes `AppTemplate` Hash
-    fn compute_template_hash(&self, template: &Template) -> AppTemplateHash {
+    /// Computes `Template` Hash
+    fn compute_template_hash(&self, template: &Template) -> TemplateHash {
         <Self::Types as EnvTypes>::TemplateHasher::hash(template)
     }
 
-    /// Computes `AppTemplate` account address
+    /// Computes `Template` account address
     fn derive_template_address(&self, template: &Template) -> TemplateAddr {
-        <Self::Types as EnvTypes>::AppTemplateAddressCompute::compute(template)
+        <Self::Types as EnvTypes>::TemplateAddressCompute::compute(template)
     }
 
     /// Computes `App` account address
@@ -82,7 +82,7 @@ pub trait Env {
     /// Wire
 
     /// Parses raw a deploy-template.
-    /// On success returns `AppTemplate`,
+    /// On success returns `Template`,
     /// On failure returns `ParseError`.
     fn parse_deploy_template(&self, bytes: &[u8]) -> Result<Template, ParseError> {
         let mut cursor = Cursor::new(bytes);
@@ -116,7 +116,7 @@ pub trait Env {
 
     /// Stores the following:
     /// * `TemplateAddress` -> `TemplateHash`
-    /// * `TemplateHash` -> `AppTemplate` data
+    /// * `TemplateHash`    -> `Template` data
     fn store_template(&mut self, template: &Template, author: &AuthorAddr) -> TemplateAddr {
         let addr = self.derive_template_address(template);
         let hash = self.compute_template_hash(template);
@@ -144,7 +144,7 @@ pub trait Env {
         }
     }
 
-    /// Given an `App` address, loads the `AppTemplate` the app is associated with.
+    /// Given an `App` address, loads the `Template` the app is associated with.
     fn load_template_by_app(
         &self,
         addr: &AppAddr,
@@ -158,7 +158,7 @@ pub trait Env {
         None
     }
 
-    /// Loads an `AppTemplate` given its `Address`
+    /// Loads an `Template` given its `Address`
     #[must_use]
     fn load_template(&self, addr: &TemplateAddr) -> Option<(Template, AuthorAddr)> {
         let store = self.get_template_store();

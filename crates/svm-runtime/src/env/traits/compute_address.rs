@@ -1,9 +1,9 @@
-use svm_types::{AppAddr, Template, SpawnApp, TemplateAddr};
+use svm_types::{AppAddr, SpawnApp, Template, TemplateAddr};
 
-/// Computes an `AppTemplate` account address.
+/// Computes an `Template` account address.
 /// Algorithm must be deterministic.
-pub trait AppTemplateAddressCompute {
-    /// Derives the `AppTemplate` address
+pub trait TemplateAddressCompute {
+    /// Derives the `Template` address
     fn compute(template: &Template) -> TemplateAddr;
 }
 

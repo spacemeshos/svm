@@ -1,18 +1,18 @@
 use std::io::Cursor;
 
-use svm_types::{Template, AuthorAddr};
+use svm_types::{AuthorAddr, Template};
 
-use crate::serialize::{AppTemplateDeserializer, AppTemplateSerializer};
+use crate::serialize::{TemplateDeserializer, TemplateSerializer};
 use crate::template;
 use crate::{Field, ReadExt, WriteExt};
 
-/// `AppTemplate` default Serializer
-pub struct DefaultAppTemplateSerializer;
+/// `Template` default Serializer
+pub struct DefaultTemplateSerializer;
 
-/// `AppTemplate` default Deserializer
-pub struct DefaultAppTemplateDeserializer;
+/// `Template` default Deserializer
+pub struct DefaultTemplateDeserializer;
 
-impl AppTemplateSerializer for DefaultAppTemplateSerializer {
+impl TemplateSerializer for DefaultTemplateSerializer {
     fn serialize(template: &Template, author: &AuthorAddr) -> Vec<u8> {
         let mut w = Vec::new();
 
@@ -24,7 +24,7 @@ impl AppTemplateSerializer for DefaultAppTemplateSerializer {
     }
 }
 
-impl AppTemplateDeserializer for DefaultAppTemplateDeserializer {
+impl TemplateDeserializer for DefaultTemplateDeserializer {
     fn deserialize(bytes: &[u8]) -> Option<(Template, AuthorAddr)> {
         let mut cursor = Cursor::new(bytes);
 
@@ -50,8 +50,8 @@ mod tests {
 
     use svm_types::Address;
 
-    use DefaultAppTemplateDeserializer as D;
-    use DefaultAppTemplateSerializer as S;
+    use DefaultTemplateDeserializer as D;
+    use DefaultTemplateSerializer as S;
 
     #[test]
     fn serialize_deploy_template() {

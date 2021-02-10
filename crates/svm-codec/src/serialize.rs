@@ -1,13 +1,13 @@
-use svm_types::{App, Template, AuthorAddr, CreatorAddr};
+use svm_types::{App, AuthorAddr, CreatorAddr, Template};
 
-/// Serializing an `AppTemplate` into its raw representation.
-pub trait AppTemplateSerializer {
+/// Serializing an `Template` into its raw representation.
+pub trait TemplateSerializer {
     #[allow(missing_docs)]
     fn serialize(template: &Template, author: &AuthorAddr) -> Vec<u8>;
 }
 
-/// Deserializing stored `AppTemplate` into its in-memory representation.
-pub trait AppTemplateDeserializer {
+/// Deserializing stored `Template` into its in-memory representation.
+pub trait TemplateDeserializer {
     #[allow(missing_docs)]
     fn deserialize(bytes: &[u8]) -> Option<(Template, AuthorAddr)>;
 }

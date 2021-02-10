@@ -1,4 +1,4 @@
-//! `AppTemplate` Raw Format
+//!  `Template` Raw Format
 //!
 //!  +_____________________________________________________+
 //!  |            |                                        |
@@ -21,5 +21,5 @@ mod serialize;
 mod validate;
 
 pub use raw::{decode_deploy_template, encode_deploy_template};
-pub use serialize::{DefaultAppTemplateDeserializer, DefaultAppTemplateSerializer};
+pub use serialize::{DefaultTemplateDeserializer, DefaultTemplateSerializer};
 pub use validate::validate_template;

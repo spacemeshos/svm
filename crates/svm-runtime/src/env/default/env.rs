@@ -1,5 +1,5 @@
 use crate::env::default::DefaultSerializerTypes as Ser;
-use crate::env::memory::{MemAppStore, MemAppTemplateStore, MemoryEnv};
+use crate::env::memory::{MemAppStore, MemTemplateStore, MemoryEnv};
 use crate::env::traits::EnvSerializerTypes;
 
 /// `MemAppStore` with default serialization.
@@ -8,8 +8,8 @@ pub type DefaultMemAppStore = MemAppStore<
     <Ser as EnvSerializerTypes>::AppDeserializer,
 >;
 
-/// `MemAppTemplateStore` with default serialization.
-pub type DefaultMemAppTemplateStore = MemAppTemplateStore<
+/// `MemTemplateStore` with default serialization.
+pub type DefaultMemTemplateStore = MemTemplateStore<
     <Ser as EnvSerializerTypes>::TemplateSerializer,
     <Ser as EnvSerializerTypes>::TemplateDeserializer,
 >;

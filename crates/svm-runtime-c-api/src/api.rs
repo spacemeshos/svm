@@ -8,7 +8,7 @@ use std::rc::Rc;
 
 use log::{debug, error};
 
-use svm_codec::api::builder::{AppTxBuilder, DeployAppTemplateBuilder, SpawnAppBuilder};
+use svm_codec::api::builder::{AppTxBuilder, DeployTemplateBuilder, SpawnAppBuilder};
 use svm_codec::receipt;
 
 use svm_layout::DataLayout;

@@ -1,11 +1,11 @@
 use std::marker::PhantomData;
 
 use crate::env::default::{
-    DefaultAppAddressCompute, DefaultAppTemplateAddressCompute, DefaultTemplateHasher,
+    DefaultAppAddressCompute, DefaultTemplateAddressCompute, DefaultTemplateHasher,
 };
 
 use crate::env::{
-    memory::{MemAppStore, MemAppTemplateStore},
+    memory::{MemAppStore, MemTemplateStore},
     traits::{Env, EnvSerializerTypes, EnvTypes},
 };
 
@@ -15,11 +15,11 @@ impl<Ser> EnvTypes for MemoryEnvTypes<Ser>
 where
     Ser: EnvSerializerTypes,
 {
-    type TemplateStore = MemAppTemplateStore<Ser::TemplateSerializer, Ser::TemplateDeserializer>;
+    type TemplateStore = MemTemplateStore<Ser::TemplateSerializer, Ser::TemplateDeserializer>;
 
     type AppStore = MemAppStore<Ser::AppSerializer, Ser::AppDeserializer>;
 
-    type AppTemplateAddressCompute = DefaultAppTemplateAddressCompute;
+    type TemplateAddressCompute = DefaultTemplateAddressCompute;
 
     type AppAddressCompute = DefaultAppAddressCompute;
 
