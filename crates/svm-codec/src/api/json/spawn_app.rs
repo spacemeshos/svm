@@ -40,6 +40,8 @@ pub fn encode_spawn_app(json: &Value) -> Result<Vec<u8>, JsonError> {
     Ok(buf)
 }
 
+/// Given a binary `spawn-app` transaction wrapped inside a JSON,
+/// decodes it into a user-friendly JSON.
 pub fn decode_spawn_app(json: &Value) -> Result<Value, JsonError> {
     let data = json::as_string(json, "data")?;
     let bytes = json::str_to_bytes(&data, "data")?;

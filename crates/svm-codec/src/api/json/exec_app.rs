@@ -37,6 +37,8 @@ pub fn encode_exec_app(json: &Value) -> Result<Vec<u8>, JsonError> {
     Ok(buf)
 }
 
+/// Given a binary `exec-app` transaction wrapped inside JSON.
+/// Decodes it and returns a user-friendly JSON.
 pub fn decode_exec_app(json: &Value) -> Result<Value, JsonError> {
     let data = json::as_string(json, "data")?;
     let bytes = json::str_to_bytes(&data, "data")?;

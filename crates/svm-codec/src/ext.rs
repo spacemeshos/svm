@@ -4,6 +4,7 @@ use std::string::FromUtf8Error;
 
 use svm_types::{Address, State};
 
+/// Trait to be implemented by Decoders
 pub trait ReadExt {
     fn read_byte(&mut self) -> Result<u8>;
 
