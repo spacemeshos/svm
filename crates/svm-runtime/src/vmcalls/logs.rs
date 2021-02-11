@@ -2,6 +2,10 @@ use crate::{use_gas, Context};
 
 use svm_types::receipt::Log;
 
+/// Logs the log entry given.
+///
+/// It's string message sits in memory starting from offset `msg_ptr` and its length is `msg_len`.
+/// The log entry numeric code is given via parameter `code`.
 pub fn log(ctx: &Context, msg_ptr: u32, msg_len: u32, code: u32) {
     use_gas!("log", ctx);
 

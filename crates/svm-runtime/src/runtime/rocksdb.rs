@@ -1,6 +1,6 @@
-use std::{ffi::c_void, path::Path};
+use std::path::Path;
 
-use crate::env::rocksdb::{RocksdbAppStore, RocksdbTemplateStore, RocksdbEnv};
+use crate::env::rocksdb::{RocksdbAppStore, RocksdbEnv, RocksdbTemplateStore};
 use crate::env::traits::EnvSerializerTypes;
 
 use svm_layout::DataLayout;
@@ -8,8 +8,6 @@ use svm_storage::app::AppStorage;
 use svm_types::{AppAddr, State};
 
 use crate::{gas::GasEstimator, runtime::DefaultRuntime, Config, ExternImport};
-
-use wasmer::Export;
 
 /// Creates a new `Runtime` backed by `rocksdb` for persistence.
 pub fn create_rocksdb_runtime<P, S, GE>(

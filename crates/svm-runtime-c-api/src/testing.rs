@@ -1,10 +1,6 @@
 use std::ffi::c_void;
 
-use svm_ffi::svm_byte_array;
-
-use svm_runtime::Context;
-
-// /// Allocates `count` imports array, returns a pointer to the first import.
+/// Allocates `count` imports array, returns a pointer to the first import.
 pub fn imports_alloc(count: u32) -> *mut c_void {
     let mut imports = std::ptr::null_mut();
 
