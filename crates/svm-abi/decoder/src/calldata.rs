@@ -6,9 +6,7 @@ use svm_sdk_types::value::Value;
 
 /// `CallData` exposes an ergonomic API for decoding a binary `calldata`.
 ///
-/// Its main usage is by the `svm-sdk` crate for decoding the binary `calldata`
-/// into an Rust native values.
-///
+/// Its main usage is by the `svm-sdk` crate for decoding the binary `calldata` into a Rust native values.
 pub struct CallData {
     cursor: Cursor,
 
@@ -34,12 +32,12 @@ impl CallData {
 /// # Example
 ///
 /// ```rust,no_run
-/// use svm_sdk_decoder::CallData;
+/// use svm_abi_decoder::CallData;
 ///
 /// let bytes = vec![];
 ///
 /// let mut calldata = CallData::new(&bytes);
-/// let value = CallData::next().unwrap();
+/// let value = calldata.next().unwrap();
 /// ```
 ///
 impl Iterator for CallData {
@@ -66,6 +64,15 @@ impl CallData {
     ///
     /// Panics if there is no next `Value` to decode or if the input is invalid.
     /// Also panics if the decoded `Value` cannot be converted into a `T1` Rust type.
+    ///
+    /// ```rust, no_run
+    /// use svm_abi_decoder::CallData;
+    ///
+    /// let bytes = vec![];
+    ///
+    /// let mut calldata = CallData::new(&bytes);
+    /// let num: u8 = calldata.next_1();
+    /// ```
     pub fn next_1<T1>(&mut self) -> T1
     where
         T1: From<Value<'static>>,

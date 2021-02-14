@@ -1,8 +1,6 @@
 extern crate alloc;
-extern crate core;
 
 use alloc::vec::Vec;
-use core::ops::Deref;
 
 /// A trait used to encoding a value (of `Primitive` or `Composite` type)
 pub trait Encoder {
