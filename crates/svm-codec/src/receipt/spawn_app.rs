@@ -27,6 +27,7 @@ use super::{decode_error, decode_receipt, encode_error, gas, logs, types};
 use crate::{calldata, common};
 use crate::{ReadExt, WriteExt};
 
+/// Encodes a `spawn-app` receipt into its binary format.
 pub fn encode_app_receipt(receipt: &SpawnAppReceipt) -> Vec<u8> {
     let mut w = Vec::new();
 
@@ -49,6 +50,7 @@ pub fn encode_app_receipt(receipt: &SpawnAppReceipt) -> Vec<u8> {
     w
 }
 
+/// Decodes a binary `spawn-app` receipt into its Rust struct.
 pub fn decode_app_receipt(bytes: &[u8]) -> SpawnAppReceipt {
     let mut cursor = Cursor::new(bytes);
 

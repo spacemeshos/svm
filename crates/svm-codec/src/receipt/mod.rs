@@ -22,6 +22,7 @@ pub use spawn_app::{decode_app_receipt, encode_app_receipt};
 
 use svm_types::receipt::{ExecReceipt, ReceiptOwned, SpawnAppReceipt, TemplateReceipt};
 
+/// Decodes a binary Receipt into its Rust struct wrapped as `ReceiptOwned`
 pub fn decode_receipt(bytes: &[u8]) -> ReceiptOwned {
     assert!(bytes.len() > 0);
 

@@ -194,7 +194,7 @@ pub fn to_wasm_buffer(bytes: &[u8]) -> usize {
     buf_offset
 }
 
-pub fn wasm_buf_data_copy(ptr: usize, offset: usize, data: &[u8]) {
+fn wasm_buf_data_copy(ptr: usize, offset: usize, data: &[u8]) {
     let buf: &mut [u8] = wasm_buffer_mut(ptr);
     let len = wasm_buf_len(ptr);
 
