@@ -26,7 +26,7 @@ impl WasmValue {
     pub fn as_i32(&self) -> Option<u32> {
         match self {
             WasmValue::I32(v) => Some(*v),
-            WasmValue::I64(v) => None,
+            WasmValue::I64(..) => None,
         }
     }
 
@@ -35,7 +35,7 @@ impl WasmValue {
     #[inline]
     pub fn as_i64(&self) -> Option<u64> {
         match self {
-            WasmValue::I32(v) => None,
+            WasmValue::I32(..) => None,
             WasmValue::I64(v) => Some(*v),
         }
     }

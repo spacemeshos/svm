@@ -1,5 +1,3 @@
-use std::vec;
-
 use crate::gas::MaybeGas;
 use crate::receipt::{Log, ReceiptError};
 

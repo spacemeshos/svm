@@ -88,7 +88,7 @@ macro_rules! impl_bytes_primitive {
             ///
             /// Decomposes a `$primitive` into its raw components.
             pub unsafe fn into_raw_parts(self) -> (*mut u8, usize, usize) {
-                let mut vec = self.0.to_vec();
+                let vec = self.0.to_vec();
 
                 vec.into_raw_parts()
             }

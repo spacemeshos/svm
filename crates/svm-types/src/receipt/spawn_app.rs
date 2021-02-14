@@ -1,5 +1,3 @@
-use std::io::SeekFrom;
-
 use crate::receipt::{ExecReceipt, Log, ReceiptError};
 use crate::{gas::MaybeGas, AppAddr, State};
 
@@ -33,7 +31,7 @@ pub struct SpawnAppReceipt {
 impl SpawnAppReceipt {
     /// Creates a `SpawnAppReceipt` for reaching reaching `Out-of-Gas`.
     pub fn new_oog(logs: Vec<Log>) -> Self {
-        Self::from_err(ReceiptError::OOG, Vec::new())
+        Self::from_err(ReceiptError::OOG, logs)
     }
 
     pub fn from_err(error: ReceiptError, logs: Vec<Log>) -> Self {

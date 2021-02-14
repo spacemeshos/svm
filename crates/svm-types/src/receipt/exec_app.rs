@@ -1,7 +1,6 @@
+use crate::gas::MaybeGas;
 use crate::receipt::{Log, ReceiptError};
-use crate::{gas::MaybeGas, State, WasmValue};
-
-use super::Receipt;
+use crate::State;
 
 /// Runtime transaction execution receipt
 #[derive(Debug, PartialEq, Clone)]
@@ -30,7 +29,7 @@ pub struct ExecReceipt {
 impl ExecReceipt {
     /// Creates a `ExecReceipt` for reaching reaching `Out-of-Gas`.
     pub fn new_oog(logs: Vec<Log>) -> Self {
-        Self::from_err(ReceiptError::OOG, Vec::new())
+        Self::from_err(ReceiptError::OOG, logs)
     }
 
     pub fn from_err(error: ReceiptError, logs: Vec<Log>) -> Self {
