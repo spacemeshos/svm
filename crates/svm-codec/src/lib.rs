@@ -18,8 +18,13 @@ mod ext;
 mod field;
 mod serialize;
 
+/// Encoding for apps
 pub mod app;
+
+/// Encoding for templates
 pub mod template;
+
+/// Encoding for apps-transactions
 pub mod transaction;
 
 pub use ext::{ReadExt, WriteExt};

@@ -1,25 +1,27 @@
 use serde_json::Value;
 
 use super::wasm_buf_apply;
-use crate::{
-    api,
-    api::json::{self, JsonError},
+use crate::api::{
+    self,
+    json::{self, JsonError},
 };
 
-///
-/// Encodes a `exec-app` json input into SVM `exec-app` binary transaction.
-/// The json input is passed by giving WASM memory start address (`ptr` parameter).
+/// Encodes an `exec-app` JSON into SVM `exec-app` binary transaction.
+/// The JSON input is passed by giving WASM memory start address (`ptr` parameter).
 ///
 /// Returns a pointer to a `transaction buffer`.
 ///
 /// See also: `alloc` and `free`
 ///
-pub fn encode_exec_app(ptr: usize) -> Result<usize, JsonError> {
-    wasm_buf_apply(ptr, api::json::encode_exec_app)
+pub fn encode_exec_app(offset: usize) -> Result<usize, JsonError> {
+    wasm_buf_apply(offset, api::json::encode_exec_app)
 }
 
-pub fn decode_exec_app(ptr: usize) -> Result<usize, JsonError> {
-    wasm_buf_apply(ptr, |json: &Value| {
+/// Decodes an `exec-app` transaction into a JSON,
+/// stores that JSON content into a new Wasm Buffer,
+/// and finally returns that Wasm buffer offset
+pub fn decode_exec_app(offset: usize) -> Result<usize, JsonError> {
+    wasm_buf_apply(offset, |json: &Value| {
         let json = api::json::decode_exec_app(json)?;
 
         api::json::to_bytes(&json)

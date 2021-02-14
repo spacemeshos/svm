@@ -14,6 +14,8 @@ pub fn encode_calldata(offset: usize) -> Result<usize, JsonError> {
     })
 }
 
+/// Given an offset to a Wasm buffer holding a binary `Calldata`,
+/// decodes it and returns an offset to be decoded `Calldata` (wrapped within a JSON)
 pub fn decode_calldata(offset: usize) -> Result<usize, JsonError> {
     wasm_buf_apply(offset, |json: &Value| {
         let json = api::json::decode_calldata(json)?;

@@ -4,44 +4,63 @@ use std::string::FromUtf8Error;
 
 use svm_types::{Address, State};
 
-/// Trait to be implemented by Decoders
+/// A trait to be implemented by Decoders
 pub trait ReadExt {
+    /// Reads a single byte
     fn read_byte(&mut self) -> Result<u8>;
 
+    /// Reads `length` bytes
     fn read_bytes(&mut self, length: usize) -> Result<Vec<u8>>;
 
+    /// Reads a boolean
     fn read_bool(&mut self) -> Result<bool>;
 
+    /// Reads an unsigned 16-bit integer (Big-Endian)
     fn read_u16_be(&mut self) -> Result<u16>;
 
+    /// Reads an unsigned 32-bit integer (Big-Endian)
     fn read_u32_be(&mut self) -> Result<u32>;
 
+    /// Reads an unsigned 64-bit integer (Big-Endian)
     fn read_u64_be(&mut self) -> Result<u64>;
 
+    /// Reads a UTF-8 String
     fn read_string(&mut self) -> Result<std::result::Result<String, FromUtf8Error>>;
 
+    /// Reads an `Address`
     fn read_address(&mut self) -> Result<Address>;
 
+    /// Reads a `State`
     fn read_state(&mut self) -> Result<State>;
 }
 
+/// A trait to be implemented by Encoders
 pub trait WriteExt {
+    /// Writes a single byte
     fn write_byte(&mut self, byte: u8);
 
+    /// Writes `length` bytes
     fn write_bytes(&mut self, bytes: &[u8]);
 
+    /// Writes a boolean
     fn write_bool(&mut self, b: bool);
 
+    /// Writes an unsigned 16-bit integer (Big-Endian)
     fn write_u16_be(&mut self, n: u16);
 
+    /// Writes an unsigned 32-bit integer (Big-Endian)
     fn write_u32_be(&mut self, n: u32);
 
+    /// Writes an unsigned 64-bit integer (Big-Endian)
     fn write_u64_be(&mut self, n: u64);
 
+    /// Writes a UTF-8 String
     fn write_string(&mut self, s: &str);
 
+    /// Writes an `Address`
     fn write_address(&mut self, addr: &Address);
 
+    /// Writes a `State`
     fn write_state(&mut self, state: &State);
 }
 
