@@ -35,9 +35,3 @@ impl From<*mut c_void> for &svm_env_t {
         unsafe { &*(env as *mut svm_env_t) }
     }
 }
-
-impl Drop for svm_env_t {
-    fn drop(&mut self) {
-        dbg!("dropping `svm_env_t`");
-    }
-}
