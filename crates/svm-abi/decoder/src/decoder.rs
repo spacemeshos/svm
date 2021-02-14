@@ -1,13 +1,12 @@
 use svm_abi_layout::layout;
 
-use svm_sdk_types::value::{self, Primitive, Value};
+use svm_sdk_types::value::{Primitive, Value};
 use svm_sdk_types::{Address, Amount};
 
 use crate::Cursor;
 
 extern crate alloc;
 
-use alloc::boxed::Box;
 use alloc::vec::Vec;
 
 #[derive(Debug)]

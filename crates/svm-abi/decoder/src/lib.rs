@@ -13,10 +13,10 @@
 //! For more info regarding the encoding scheme see the counterpart `svm-abi-encoder` crate.
 //!
 
-#![allow(missing_docs)]
-#![allow(unused)]
-#![allow(dead_code)]
-#![allow(unreachable_code)]
+#![deny(missing_docs)]
+#![deny(unused)]
+#![deny(dead_code)]
+#![deny(unreachable_code)]
 
 mod calldata;
 mod cursor;
@@ -24,7 +24,7 @@ mod decoder;
 
 pub use calldata::CallData;
 
-// `ReturnData` is a type alias to `CallData` for now.
+/// `ReturnData` is a type alias to `CallData` for now.
 pub type ReturnData = CallData;
 
 pub use cursor::Cursor;
