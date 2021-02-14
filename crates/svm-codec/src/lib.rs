@@ -135,14 +135,17 @@ pub extern "C" fn wasm_deploy_template(offset: i32) -> i32 {
 /// Encodes a `spawn-app` binary-transaction using that JSON value.
 ///
 /// Returns a pointer to a new WASM buffer holding the encoded transaction.
-/// If the encoding failed, the returned WASM buffer will contain a String containing the error message.
+/// If the encoding fails, the returned WASM buffer will contain a String containing the error message.
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
 pub extern "C" fn wasm_encode_spawn_app(offset: i32) -> i32 {
     wasm_func_call!(encode_spawn_app, offset)
 }
 
-#[doc(hidden)]
+/// Decodes the encoded `spawn-app` given as a WASM buffer (parameter `offset`).
+///
+/// Returns a pointer to a new WASM buffer holding the decoded transaction.
+/// If the decoding fails, the returned WASM buffer will contain a String containing the error message.
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
 pub extern "C" fn wasm_decode_spawn_app(offset: i32) -> i32 {
@@ -162,7 +165,10 @@ pub extern "C" fn wasm_encode_exec_app(offset: i32) -> i32 {
     wasm_func_call!(encode_exec_app, offset)
 }
 
-#[doc(hidden)]
+/// Decodes the encoded `exec-app` given as a WASM buffer (parameter `offset`).
+///
+/// Returns a pointer to a new WASM buffer holding the decoded transaction.
+/// If the decoding fails, the returned WASM buffer will contain a String containing the error message.
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
 pub extern "C" fn wasm_decode_exec_app(offset: i32) -> i32 {
@@ -215,21 +221,31 @@ pub extern "C" fn wasm_buffer_data(offset: i32) -> i32 {
     data_offset as _
 }
 
-#[doc(hidden)]
+/// ## Calldata
+///
+/// Reads the WASM buffer given at parameter `offset` containing a JSON value.
+/// Encodes the `Calldata, and returns a pointer to a new WASM buffer holding the encoded `Calldata`.
+/// If the encoding fails, the returned WASM buffer will contain a String containing the error message.
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
 pub extern "C" fn wasm_encode_calldata(offset: i32) -> i32 {
     wasm_func_call!(encode_calldata, offset)
 }
 
-#[doc(hidden)]
+/// Decodes the encoded `Calldata` given as a WASM buffer (parameter `offset`).
+///
+/// Returns a pointer to a new WASM buffer holding the decoded `Calldata`.
+/// If the decoding fails, the returned WASM buffer will contain a String containing the error message.
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
 pub extern "C" fn wasm_decode_calldata(offset: i32) -> i32 {
     wasm_func_call!(decode_calldata, offset)
 }
 
-#[doc(hidden)]
+/// Decodes the encoded `Receipt` given as a WASM buffer (parameter `offset`).
+///
+/// Returns a pointer to a new WASM buffer holding the decoded `Receipt`.
+/// If the decoding fails, the returned WASM buffer will contain a String containing the error message.
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
 pub extern "C" fn wasm_decode_receipt(offset: i32) -> i32 {
