@@ -21,6 +21,7 @@ use super::{decode_error, decode_receipt, encode_error, gas, logs, types};
 use crate::common;
 use crate::{ReadExt, WriteExt};
 
+/// Encodes a `deploy-template` into its binary format.
 pub fn encode_template_receipt(receipt: &TemplateReceipt) -> Vec<u8> {
     let mut w = Vec::new();
 
@@ -41,6 +42,7 @@ pub fn encode_template_receipt(receipt: &TemplateReceipt) -> Vec<u8> {
     w
 }
 
+/// Decodes a binary `deploy-template` transaction into its Rust struct.
 pub fn decode_template_receipt(bytes: &[u8]) -> TemplateReceipt {
     let mut cursor = Cursor::new(bytes);
 

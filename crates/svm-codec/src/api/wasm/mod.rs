@@ -72,7 +72,7 @@ pub fn alloc(length: usize) -> usize {
     let buf_len = HEADER_SIZE + length;
     let buf = vec![0; buf_len];
 
-    let (ptr, len, cap) = buf.into_raw_parts();
+    let (offset, len, cap) = buf.into_raw_parts();
     debug_assert_eq!(len, buf_len);
 
     // We subtract the `HEADER_SIZE` from `len` and `cap`.
@@ -81,38 +81,39 @@ pub fn alloc(length: usize) -> usize {
     let len = len - HEADER_SIZE;
     let cap = cap - HEADER_SIZE;
 
-    write_header_u32(ptr, len as u32, HEADER_LEN_OFF);
-    write_header_u32(ptr, cap as u32, HEADER_CAP_OFF);
+    write_header_u32(offset, len as u32, HEADER_LEN_OFF);
+    write_header_u32(offset, cap as u32, HEADER_CAP_OFF);
 
-    ptr as usize
+    offset as usize
 }
 
-/// Frees the WASM buffer allocated starting from offset `ptr`.
+/// Frees the WASM buffer allocated starting from offset `offset`.
 ///
 /// The range of WASM Memory cells that need to be released are
 /// determined by the WASM buffer `Header`.
-pub fn free(ptr: usize) {
-    let len = wasm_buf_len(ptr) + HEADER_SIZE;
-    let cap = wasm_buf_cap(ptr) + HEADER_SIZE;
+pub fn free(offset: usize) {
+    let len = wasm_buf_len(offset) + HEADER_SIZE;
+    let cap = wasm_buf_cap(offset) + HEADER_SIZE;
 
-    let _vec = unsafe { Vec::from_raw_parts(ptr as *mut u8, len, cap) };
+    let _vec = unsafe { Vec::from_raw_parts(offset as *mut u8, len, cap) };
+}
+
+/// Returns the WASM buffer `length` (excluding the `header`)
+#[inline]
+pub fn wasm_buf_len(offset: usize) -> usize {
+    read_header_u32(offset, HEADER_LEN_OFF) as usize
 }
 
 #[inline]
-pub fn wasm_buf_len(ptr: usize) -> usize {
-    read_header_u32(ptr, HEADER_LEN_OFF) as usize
-}
-
-#[inline]
-fn wasm_buf_cap(ptr: usize) -> usize {
-    read_header_u32(ptr, HEADER_CAP_OFF) as usize
+fn wasm_buf_cap(offset: usize) -> usize {
+    read_header_u32(offset, HEADER_CAP_OFF) as usize
 }
 
 #[inline]
 fn write_header_u32(buf: *mut u8, n: u32, off: usize) {
     unsafe {
-        let ptr = buf.add(off);
-        let slice = std::slice::from_raw_parts_mut(ptr, 4);
+        let offset = buf.add(off);
+        let slice = std::slice::from_raw_parts_mut(offset, 4);
 
         let bytes: [u8; 4] = n.to_be_bytes();
 
@@ -123,10 +124,10 @@ fn write_header_u32(buf: *mut u8, n: u32, off: usize) {
 }
 
 #[inline]
-fn read_header_u32(ptr: usize, off: usize) -> u32 {
+fn read_header_u32(offset: usize, off: usize) -> u32 {
     unsafe {
-        let ptr = ptr as *const u8;
-        let slice = std::slice::from_raw_parts(ptr.add(off), 4);
+        let offset = offset as *const u8;
+        let slice = std::slice::from_raw_parts(offset.add(off), 4);
 
         let bytes: [u8; 4] = [slice[0], slice[1], slice[2], slice[3]];
 
@@ -134,42 +135,42 @@ fn read_header_u32(ptr: usize, off: usize) -> u32 {
     }
 }
 
-/// Given a WASM buffer memory offset in `ptr` parameter,
+/// Given a WASM buffer memory offset in `offset` parameter,
 /// returns a '&[u8]' to its `Header` section.
-pub fn wasm_buffer<'a>(ptr: usize) -> &'a [u8] {
-    let len = wasm_buf_len(ptr);
+pub fn wasm_buffer<'a>(offset: usize) -> &'a [u8] {
+    let len = wasm_buf_len(offset);
     let len = len as usize + HEADER_SIZE;
 
-    unsafe { std::slice::from_raw_parts(ptr as *const u8, len) }
+    unsafe { std::slice::from_raw_parts(offset as *const u8, len) }
 }
 
-/// Given a WASM buffer memory offset in `ptr` parameter,
+/// Given a WASM buffer memory offset in `offset` parameter,
 /// returns a '&[u8]' to its `Data` section.
-pub fn wasm_buffer_data<'a>(ptr: usize) -> &'a [u8] {
-    let (ptr, len) = wasm_buf_data_ptr(ptr);
+pub fn wasm_buffer_data<'a>(offset: usize) -> &'a [u8] {
+    let (offset, len) = wasm_buf_data_offset(offset);
 
-    unsafe { std::slice::from_raw_parts(ptr as *const u8, len) }
+    unsafe { std::slice::from_raw_parts(offset as *const u8, len) }
 }
 
-/// Given a WASM buffer memory offset in `ptr` parameter,
+/// Given a WASM buffer memory offset in `offset` parameter,
 /// Returns a 2-item tuple. The left element will be the pointer to the buffer `Data`.
 /// The right element will have the buffer `Data` length
-pub fn wasm_buf_data_ptr<'a>(ptr: usize) -> (usize, usize) {
-    let len = wasm_buf_len(ptr);
+pub fn wasm_buf_data_offset<'a>(offset: usize) -> (usize, usize) {
+    let len = wasm_buf_len(offset);
 
-    let ptr = ptr as *const u8;
-    let data_ptr = unsafe { ptr.add(HEADER_SIZE) as usize };
+    let offset = offset as *const u8;
+    let data_offset = unsafe { offset.add(HEADER_SIZE) as usize };
 
-    (data_ptr, len)
+    (data_offset, len)
 }
 
-/// Given a WASM buffer memory offset in `ptr` parameter,
+/// Given a WASM buffer memory offset in `offset` parameter,
 /// returns a '&mut [u8]' to its `Header` section.
-pub fn wasm_buffer_mut<'a>(ptr: usize) -> &'a mut [u8] {
-    let len = wasm_buf_len(ptr);
+pub fn wasm_buffer_mut<'a>(offset: usize) -> &'a mut [u8] {
+    let len = wasm_buf_len(offset);
     let total_len = len + HEADER_SIZE;
 
-    unsafe { std::slice::from_raw_parts_mut(ptr as *mut u8, total_len) }
+    unsafe { std::slice::from_raw_parts_mut(offset as *mut u8, total_len) }
 }
 
 /// Consumes a `Vec<u8>`, and copies its data into a new allocated WASM buffer.
@@ -179,9 +180,9 @@ pub fn wasm_buffer_mut<'a>(ptr: usize) -> &'a mut [u8] {
 /// The WASM buffer should be destroyed later by calling `free` on its address.
 /// (Otherwise, it'll be a memory-leak).
 pub fn to_wasm_buffer(bytes: &[u8]) -> usize {
-    let buf_ptr = alloc(bytes.len());
+    let buf_offset = alloc(bytes.len());
 
-    let buf: &mut [u8] = wasm_buffer_mut(buf_ptr);
+    let buf: &mut [u8] = wasm_buffer_mut(buf_offset);
 
     let src = bytes.as_ptr();
     let dst = buf.as_mut_ptr();
@@ -190,10 +191,10 @@ pub fn to_wasm_buffer(bytes: &[u8]) -> usize {
         std::ptr::copy(src, dst.add(HEADER_SIZE), bytes.len());
     }
 
-    buf_ptr
+    buf_offset
 }
 
-pub fn wasm_buf_data_copy(ptr: usize, offset: usize, data: &[u8]) {
+fn wasm_buf_data_copy(ptr: usize, offset: usize, data: &[u8]) {
     let buf: &mut [u8] = wasm_buffer_mut(ptr);
     let len = wasm_buf_len(ptr);
 
@@ -210,11 +211,11 @@ pub fn wasm_buf_data_copy(ptr: usize, offset: usize, data: &[u8]) {
     }
 }
 
-pub(crate) fn wasm_buf_apply<F>(ptr: usize, func: F) -> Result<usize, JsonError>
+pub(crate) fn wasm_buf_apply<F>(offset: usize, func: F) -> Result<usize, JsonError>
 where
     F: Fn(&Value) -> Result<Vec<u8>, JsonError>,
 {
-    let bytes = wasm_buffer_data(ptr);
+    let bytes = wasm_buffer_data(offset);
     let json: json::Result<Value> = serde_json::from_slice(bytes);
 
     match json {
@@ -225,13 +226,13 @@ where
             buf.push(BUF_OK_MARKER);
             buf.extend_from_slice(&bytes);
 
-            let ptr = to_wasm_buffer(&buf);
-            Ok(ptr)
+            let offset = to_wasm_buffer(&buf);
+            Ok(offset)
         }
         Err(err) => {
-            let ptr = into_error_buffer(err);
+            let offset = into_error_buffer(err);
 
-            Ok(ptr)
+            Ok(offset)
         }
     }
 }
@@ -245,18 +246,18 @@ mod test {
         let data: &'static [u8] = b"Hello World";
         let len = data.len();
 
-        let buf_ptr = alloc(len);
+        let buf_offset = alloc(len);
 
-        wasm_buf_data_copy(buf_ptr, 0, data);
+        wasm_buf_data_copy(buf_offset, 0, data);
 
         // assert buffer Header `length` and `capacity` fields
-        assert_eq!(wasm_buf_len(buf_ptr), len);
-        assert_eq!(wasm_buf_cap(buf_ptr), len);
+        assert_eq!(wasm_buf_len(buf_offset), len);
+        assert_eq!(wasm_buf_cap(buf_offset), len);
 
         // assert the buffer data
-        assert_eq!(wasm_buffer_data(buf_ptr), b"Hello World");
+        assert_eq!(wasm_buffer_data(buf_offset), b"Hello World");
 
         // freeing the buffer
-        free(buf_ptr);
+        free(buf_offset);
     }
 }

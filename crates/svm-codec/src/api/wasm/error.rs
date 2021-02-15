@@ -2,6 +2,8 @@ use std::fmt;
 
 use super::{to_wasm_buffer, wasm_buffer_data, BUF_ERROR_MARKER};
 
+/// Given an error (implements `std::fmt::Debug`), allocates a Wasm buffer
+/// and stores in it the printable `String` of the error (prefixed with `Error Marker`)
 pub fn into_error_buffer<T: fmt::Debug>(err: T) -> usize {
     let msg: String = format!("{:?}", err);
     let bytes = msg.as_bytes();
@@ -14,6 +16,8 @@ pub fn into_error_buffer<T: fmt::Debug>(err: T) -> usize {
     to_wasm_buffer(&buf)
 }
 
+/// Given an error `String`, allocates a Wasm buffer
+/// and stores in it the error (prefixed with `Error Marker`)
 pub unsafe fn error_as_string(buf: usize) -> String {
     let bytes = wasm_buffer_data(buf);
     assert_eq!(bytes[0], BUF_ERROR_MARKER);

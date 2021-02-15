@@ -26,6 +26,7 @@ use super::{decode_error, encode_error, gas, logs};
 use crate::{calldata, common};
 use crate::{ReadExt, WriteExt};
 
+/// Encodes an `exec-receipt` into its binary format.
 pub fn encode_exec_receipt(receipt: &ExecReceipt) -> Vec<u8> {
     let mut w = Vec::new();
 
@@ -47,6 +48,7 @@ pub fn encode_exec_receipt(receipt: &ExecReceipt) -> Vec<u8> {
     w
 }
 
+/// Decodes a binary `exec-app` into its corresponding Rust struct.
 pub fn decode_exec_receipt(bytes: &[u8]) -> ExecReceipt {
     let mut cursor = Cursor::new(bytes);
 

@@ -1,3 +1,4 @@
+#[doc(hidden)]
 #[derive(Debug, PartialEq, Eq)]
 pub enum JsonError {
     Unknown(String),

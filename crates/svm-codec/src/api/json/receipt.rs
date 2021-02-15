@@ -7,6 +7,8 @@ use svm_types::receipt::{
     ExecReceipt, Log, ReceiptError, ReceiptOwned, SpawnAppReceipt, TemplateReceipt,
 };
 
+/// Given a binary Receipt wrappend inside a JSON,
+/// decodes it into a user-friendly JSON.
 pub fn decode_receipt(json: &Value) -> Result<Value, JsonError> {
     let data = json::as_string(json, "data")?;
     let bytes = json::str_to_bytes(&data, "data")?;
