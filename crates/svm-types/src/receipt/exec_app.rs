@@ -5,6 +5,7 @@ use crate::State;
 /// Runtime transaction execution receipt
 #[derive(Debug, PartialEq, Clone)]
 pub struct ExecReceipt {
+    /// Transaction format version.
     pub version: u16,
 
     /// Whether transaction succedded or not.
@@ -16,13 +17,13 @@ pub struct ExecReceipt {
     /// The new app `State` if execution succedded.
     pub new_state: Option<State>,
 
-    /// Returned the data
+    /// Returned the data.
     pub returndata: Option<Vec<u8>>,
 
     /// The amount of gas used.
     pub gas_used: MaybeGas,
 
-    /// logged entries during execution of app's transaction
+    /// Logs generated during execution of the transaction.
     pub logs: Vec<Log>,
 }
 
@@ -32,6 +33,7 @@ impl ExecReceipt {
         Self::from_err(ReceiptError::OOG, logs)
     }
 
+    /// Creates a new failure Receipt out of the `error` parameter
     pub fn from_err(error: ReceiptError, logs: Vec<Log>) -> Self {
         Self {
             version: 0,
@@ -54,10 +56,12 @@ impl ExecReceipt {
         self.returndata.as_ref().unwrap()
     }
 
+    /// Returns the error within the Receipt (for failing Receipts)
     pub fn get_error(&self) -> &ReceiptError {
         self.error.as_ref().unwrap()
     }
 
+    /// Returns the logs generated during the transaction execution
     pub fn get_logs(&self) -> &[Log] {
         &self.logs
     }

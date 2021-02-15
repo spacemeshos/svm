@@ -1,5 +1,6 @@
 use crate::{AppAddr, TemplateAddr};
 
+#[doc(hidden)]
 #[derive(Debug, PartialEq, Clone)]
 pub enum ReceiptError {
     OOG,

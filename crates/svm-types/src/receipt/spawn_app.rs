@@ -4,6 +4,7 @@ use crate::{gas::MaybeGas, AppAddr, State};
 /// Returned Receipt after spawning an App.
 #[derive(Debug, PartialEq, Clone)]
 pub struct SpawnAppReceipt {
+    /// The transaction format version
     pub version: u16,
 
     /// whether spawn succedded or not
@@ -34,6 +35,7 @@ impl SpawnAppReceipt {
         Self::from_err(ReceiptError::OOG, logs)
     }
 
+    /// Creates a new failure Receipt out of the `error` parameter
     pub fn from_err(error: ReceiptError, logs: Vec<Log>) -> Self {
         Self {
             version: 0,
@@ -72,10 +74,12 @@ impl SpawnAppReceipt {
         self.gas_used
     }
 
+    /// Returns the logs generated during the transaction execution
     pub fn get_logs(&self) -> &[Log] {
         &self.logs
     }
 
+    /// Take the Receipt's logged entries out
     pub fn take_logs(&mut self) -> Vec<Log> {
         std::mem::take(&mut self.logs)
     }

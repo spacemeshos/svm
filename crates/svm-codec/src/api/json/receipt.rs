@@ -4,7 +4,7 @@ use crate::api::json::{self, JsonError};
 use crate::receipt;
 
 use svm_types::receipt::{
-    ExecReceipt, Log, ReceiptError, ReceiptOwned, SpawnAppReceipt, TemplateReceipt,
+    ExecReceipt, Log, ReceiptError, Receipt, SpawnAppReceipt, TemplateReceipt,
 };
 
 /// Given a binary Receipt wrappend inside a JSON,
@@ -20,9 +20,9 @@ pub fn decode_receipt(json: &Value) -> Result<Value, JsonError> {
 
     let json = if receipt.success() {
         match receipt {
-            ReceiptOwned::DeployTemplate(receipt) => decode_deploy_template(&receipt, ty),
-            ReceiptOwned::SpawnApp(receipt) => decode_spawn_app(&receipt, ty),
-            ReceiptOwned::ExecApp(receipt) => decode_exe_app(&receipt, ty),
+            Receipt::DeployTemplate(receipt) => decode_deploy_template(&receipt, ty),
+            Receipt::SpawnApp(receipt) => decode_spawn_app(&receipt, ty),
+            Receipt::ExecApp(receipt) => decode_exe_app(&receipt, ty),
         }
     } else {
         let ty = receipt_type(&receipt);
@@ -35,11 +35,11 @@ pub fn decode_receipt(json: &Value) -> Result<Value, JsonError> {
     Ok(json)
 }
 
-fn receipt_type(receipt: &ReceiptOwned) -> &'static str {
+fn receipt_type(receipt: &Receipt) -> &'static str {
     match receipt {
-        ReceiptOwned::DeployTemplate(..) => "deploy-template",
-        ReceiptOwned::SpawnApp(..) => "spawn-app",
-        ReceiptOwned::ExecApp(..) => "exec-app",
+        Receipt::DeployTemplate(..) => "deploy-template",
+        Receipt::SpawnApp(..) => "spawn-app",
+        Receipt::ExecApp(..) => "exec-app",
     }
 }
 

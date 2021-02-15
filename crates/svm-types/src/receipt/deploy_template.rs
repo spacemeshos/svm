@@ -6,6 +6,7 @@ use crate::TemplateAddr;
 /// Returned Receipt after deploying a Template.
 #[derive(Debug, PartialEq, Clone)]
 pub struct TemplateReceipt {
+    /// Transaction format version
     pub version: u16,
 
     /// whether spawn succedded or not
@@ -42,6 +43,7 @@ impl TemplateReceipt {
         Self::from_err(ReceiptError::OOG, Vec::new())
     }
 
+    /// Creates a new failure Receipt out of the `error` parameter
     pub fn from_err(error: ReceiptError, logs: Vec<Log>) -> Self {
         Self {
             version: 0,
@@ -58,14 +60,17 @@ impl TemplateReceipt {
         self.addr.as_ref().unwrap()
     }
 
+    /// Returns the error within the Receipt (for failing Receipts)
     pub fn get_error(&self) -> &ReceiptError {
         self.error.as_ref().unwrap()
     }
 
+    /// Returns the logs generated during the transaction execution
     pub fn get_logs(&self) -> &[Log] {
         &self.logs
     }
 
+    /// Taking the `logs` out
     pub fn take_logs(&mut self) -> Vec<Log> {
         std::mem::take(&mut self.logs)
     }

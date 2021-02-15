@@ -19,7 +19,7 @@
 use std::io::Cursor;
 
 use svm_types::gas::MaybeGas;
-use svm_types::receipt::{ExecReceipt, Log, Receipt};
+use svm_types::receipt::{ExecReceipt, Log, ReceiptRef};
 
 use super::{decode_error, encode_error, gas, logs};
 
