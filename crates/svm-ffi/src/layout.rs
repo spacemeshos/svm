@@ -55,7 +55,7 @@ impl TryFrom<&svm_byte_array> for Layout {
         let bytes: &[u8] = bytes.into();
         let raw_layout: Vec<u32> = bytes.chunks(4).map(BigEndian::read_u32).collect();
 
-        let layout = Layout::from(&raw_layout);
+        let layout = Layout::from(&raw_layout[..]);
         Ok(layout)
     }
 }
