@@ -5,7 +5,7 @@ use std::ffi::c_void;
 
 use wasmer::{imports, Function, NativeFunc};
 
-use svm_layout::{DataLayout, VarId};
+use svm_layout::{Layout, VarId};
 use svm_runtime::{testing, vmcalls, Context};
 use svm_types::{gas::MaybeGas, receipt::Log, Address};
 
@@ -96,7 +96,7 @@ fn vmcalls_empty_wasm() {
 fn vmcalls_get32_set32() {
     let app_addr = Address::of("my-app");
     let gas_limit = MaybeGas::new();
-    let layout: DataLayout = vec![4, 2].into();
+    let layout: Layout = vec![4, 2].into();
 
     let store = testing::wasmer_store();
     let storage = testing::blank_storage(&app_addr, &layout);
@@ -130,7 +130,7 @@ fn vmcalls_get32_set32() {
 fn vmcalls_get64_set64() {
     let app_addr = Address::of("my-app");
     let gas_limit = MaybeGas::new();
-    let layout: DataLayout = vec![4, 2].into();
+    let layout: Layout = vec![4, 2].into();
 
     let store = testing::wasmer_store();
     let storage = testing::blank_storage(&app_addr, &layout);
@@ -164,7 +164,7 @@ fn vmcalls_get64_set64() {
 fn vmcalls_load160() {
     let app_addr = Address::of("11223344556677889900");
     let gas_limit = MaybeGas::new();
-    let layout: DataLayout = vec![20].into();
+    let layout: Layout = vec![20].into();
 
     let store = testing::wasmer_store();
     let memory = testing::wasmer_memory(&store);
@@ -207,7 +207,7 @@ fn vmcalls_load160() {
 fn vmcalls_store160() {
     let app_addr = Address::of("11223344556677889900");
     let gas_limit = MaybeGas::new();
-    let layout: DataLayout = vec![20].into();
+    let layout: Layout = vec![20].into();
 
     let store = testing::wasmer_store();
     let memory = testing::wasmer_memory(&store);
@@ -246,7 +246,7 @@ fn vmcalls_store160() {
 fn vmcalls_log() {
     let app_addr = Address::of("my-app");
     let gas_limit = MaybeGas::new();
-    let layout = DataLayout::empty();
+    let layout = Layout::empty();
 
     let store = testing::wasmer_store();
     let memory = testing::wasmer_memory(&store);

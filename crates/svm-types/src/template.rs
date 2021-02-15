@@ -1,6 +1,6 @@
 use std::fmt;
 
-use svm_layout::DataLayout;
+use svm_layout::Layout;
 
 /// An in-memory representation of an app-template.
 #[allow(missing_docs)]
@@ -9,7 +9,7 @@ pub struct Template {
     pub version: u16,
     pub name: String,
     pub code: Vec<u8>,
-    pub data: DataLayout,
+    pub data: Layout,
     pub ctors: Vec<String>,
 }
 

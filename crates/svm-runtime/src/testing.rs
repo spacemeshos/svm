@@ -7,7 +7,7 @@ use crate::{gas::DefaultGasEstimator, storage::StorageBuilderFn};
 use crate::{Config, DefaultRuntime, ExternImport};
 
 use svm_codec::api::builder::{AppTxBuilder, DeployTemplateBuilder, SpawnAppBuilder};
-use svm_layout::DataLayout;
+use svm_layout::Layout;
 use svm_storage::{
     app::{AppKVStore, AppStorage},
     kv::{FakeKV, StatefulKV},
@@ -85,7 +85,7 @@ pub fn wasmer_instantiate(
 }
 
 /// Given an App `Address` and its storage layout, it initializes a new blank `AppStorage`
-pub fn blank_storage(app_addr: &Address, layout: &DataLayout) -> AppStorage {
+pub fn blank_storage(app_addr: &Address, layout: &Layout) -> AppStorage {
     let state_kv = memory_state_kv_init();
     let app_kv = AppKVStore::new(app_addr.clone(), &state_kv);
 
@@ -117,7 +117,7 @@ pub fn runtime_memory_storage_builder(
 ) -> Box<StorageBuilderFn> {
     let state_kv = Rc::clone(state_kv);
 
-    let func = move |app_addr: &AppAddr, state: &State, layout: &DataLayout, _config: &Config| {
+    let func = move |app_addr: &AppAddr, state: &State, layout: &Layout, _config: &Config| {
         let app_addr = app_addr.inner();
         let app_kv = AppKVStore::new(app_addr.clone(), &state_kv);
 
@@ -142,7 +142,7 @@ pub fn runtime_memory_env_builder() -> DefaultMemoryEnv {
 pub fn build_template(
     version: u16,
     name: &str,
-    data: DataLayout,
+    data: Layout,
     ctors: &[String],
     wasm: WasmFile,
 ) -> Vec<u8> {

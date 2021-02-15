@@ -6,7 +6,7 @@ use raw::{RawChange, RawStorage};
 mod kv;
 pub use kv::AppKVStore;
 
-use svm_layout::{DataLayout, VarId};
+use svm_layout::{Layout, VarId};
 use svm_types::State;
 
 ///
@@ -26,7 +26,7 @@ pub struct AppStorage {
     raw_storage: RawStorage,
 
     /// App Fixed-Sized variables layout
-    layout: DataLayout,
+    layout: Layout,
 
     /// Uncommited changes
     uncommitted: HashMap<VarId, Vec<u8>>,
@@ -34,13 +34,13 @@ pub struct AppStorage {
 
 // TODO:
 // we need to decide whether `kv_value_size` should be
-// part of transaction (next to the `DataLayout`) or a constant value.
+// part of transaction (next to the `svm_layout::Layout`) or a constant value.
 const KV_VALUE_SIZE: u32 = 32;
 
 impl AppStorage {
     /// New instance for managing app's variabled specified by `layout`.
     /// App's storage is backed by key-value store `kv`.
-    pub fn new(layout: DataLayout, app_kv: AppKVStore) -> Self {
+    pub fn new(layout: Layout, app_kv: AppKVStore) -> Self {
         Self {
             layout,
             raw_storage: RawStorage::new(app_kv, KV_VALUE_SIZE),
