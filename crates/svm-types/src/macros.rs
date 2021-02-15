@@ -50,34 +50,38 @@ macro_rules! impl_bytes_primitive {
         }
 
         impl $primitive {
-            /// Returns a raw pointer into the `$primitive` internal array
+            /// Returns a raw pointer into the internal byte-array
             pub fn as_ptr(&self) -> *const u8 {
                 self.0.as_ptr()
             }
 
-            /// Returns a slice into the `$primitive` internal array
+            /// Returns a slice into the internal byte-array
             pub fn as_slice(&self) -> &[u8] {
                 &self.0[..]
             }
 
-            /// Returns a clone of the `$primitive` internal array
+            /// Returns a clone of the internal internal array
             pub fn bytes(&self) -> [u8; $byte_count] {
                 self.0.clone()
             }
 
-            /// Returns a String representation of $primitive
+            /// Returns a String representation
             pub fn as_str(&self) -> String {
                 svm_common::fmt::fmt_hex(&self.0, "")
             }
 
+            /// Generates a new instance with all-zeros data.
             pub fn zeros() -> Self {
                 Self::repeat(0)
             }
 
+            /// Returns whether the underlying data is all-zeros
             pub fn is_zeros(&self) -> bool {
                 self.0 == [0; $byte_count]
             }
 
+            /// Generates an instance where all the bytes equal `byte`
+            /// This method is very useful for generating data for tests.
             pub fn repeat(byte: u8) -> Self {
                 let bytes = [byte; $byte_count];
 
@@ -86,9 +90,9 @@ macro_rules! impl_bytes_primitive {
 
             /// # Safety
             ///
-            /// Decomposes a `$primitive` into its raw components.
+            /// Decomposes into its raw components.
             pub unsafe fn into_raw_parts(self) -> (*mut u8, usize, usize) {
-                let mut vec = self.0.to_vec();
+                let vec = self.0.to_vec();
 
                 vec.into_raw_parts()
             }
@@ -98,21 +102,21 @@ macro_rules! impl_bytes_primitive {
                 self.0.iter()
             }
 
-            /// Returns the first `n` number of bytes of `$primitive`
+            /// Returns the first `n` number of bytes
             pub fn first_n(&self, n: usize) -> Vec<u8> {
                 assert!(n <= $byte_count);
 
                 self.as_slice()[0..n].to_vec()
             }
 
-            /// Returns the last `n` number of bytes of `$primitive`
+            /// Returns the last `n` number of bytes
             pub fn last_n(&self, n: usize) -> Vec<u8> {
                 assert!(n <= $byte_count);
 
                 self.iter().skip($byte_count - n).cloned().collect()
             }
 
-            /// Returns the number of bytes of `$primitive`
+            /// Returns the number of bytes
             #[inline]
             pub const fn len() -> usize {
                 $byte_count

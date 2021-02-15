@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::{Address, TemplateAddr};
+use crate::TemplateAddr;
 
 /// An in-memory representation of an app.
 #[derive(PartialEq)]

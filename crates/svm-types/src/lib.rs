@@ -1,7 +1,10 @@
-#![allow(missing_docs)]
-#![allow(unused)]
-#![allow(dead_code)]
-#![allow(unreachable_code)]
+//! This crate contains types that are used throughout the SVM project.
+//! Whenever a type has a usage that exeeds a local crate then it should be considered a candidate for this crate.
+
+#![deny(missing_docs)]
+#![deny(unused)]
+#![deny(dead_code)]
+#![deny(unreachable_code)]
 #![feature(const_type_id)]
 #![feature(const_type_name)]
 #![feature(vec_into_raw_parts)]
@@ -19,10 +22,16 @@ mod template;
 mod wasm_type;
 mod wasm_value;
 
+/// Gas-related types
 pub mod gas;
+
+/// Receipts-related types
 pub mod receipt;
+
+/// Address-related types
 pub use address::{Address, AppAddr, AuthorAddr, CreatorAddr, TemplateAddr};
 pub use address_of::AddressOf;
+
 pub use app::App;
 pub use app_tx::AppTransaction;
 pub use spawn_app::SpawnApp;
@@ -62,6 +71,7 @@ impl fmt::Display for Type {
 }
 
 impl Type {
+    /// Creates a `Type` out of generic type (the `T`)
     pub const fn of<T: 'static>() -> Self {
         let ty = std::any::TypeId::of::<T>();
         let name = std::any::type_name::<T>();
