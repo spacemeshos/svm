@@ -6,16 +6,19 @@ use crate::api::{
     json::{self, JsonError},
 };
 
-/// Encodes a `spawn-app` json input into SVM `spawn-app` binary transaction.
-/// The json input is passed by giving WASM memory start address (`ptr` parameter).
+/// Encodes a `spawn-app` JSON input into SVM `spawn-app` binary.
+/// The JSON input is passed by giving WASM memory start address (`offset` parameter).
 ///
-/// Returns a pointer to a `transaction buffer`.
-pub fn encode_spawn_app(ptr: usize) -> Result<usize, JsonError> {
-    wasm_buf_apply(ptr, api::json::encode_spawn_app)
+/// Returns an offset to a Wasm buffer holding the encoded transaction (wrapped within a JSON)
+pub fn encode_spawn_app(offset: usize) -> Result<usize, JsonError> {
+    wasm_buf_apply(offset, api::json::encode_spawn_app)
 }
 
-pub fn decode_spawn_app(ptr: usize) -> Result<usize, JsonError> {
-    wasm_buf_apply(ptr, |json: &Value| {
+/// Decodes a binary `spawn-app` transaction given as a Wasm buffer (the `offset` parameter),
+///
+/// and returns a new Wasm buffer hodling the decoded transaction (wrapped with a JSON).
+pub fn decode_spawn_app(offset: usize) -> Result<usize, JsonError> {
+    wasm_buf_apply(offset, |json: &Value| {
         let json = api::json::decode_spawn_app(json)?;
 
         api::json::to_bytes(&json)

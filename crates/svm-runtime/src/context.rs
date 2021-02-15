@@ -1,8 +1,5 @@
 use std::cell::{Ref, RefCell, RefMut};
-use std::ffi::c_void;
 use std::rc::Rc;
-
-use log::debug;
 
 use wasmer::Memory;
 
@@ -25,6 +22,7 @@ unsafe impl Send for Context {}
 unsafe impl Sync for Context {}
 
 impl Context {
+    /// Creates a new instance
     pub fn new(gas_limit: MaybeGas, storage: AppStorage) -> Self {
         let inner = ContextInner::new(gas_limit, storage);
 
@@ -33,6 +31,7 @@ impl Context {
         }
     }
 
+    /// New instance with explicit memory
     pub fn new_with_memory(memory: Memory, gas_limit: MaybeGas, storage: AppStorage) -> Self {
         let ctx = Self::new(gas_limit, storage);
 
@@ -41,11 +40,13 @@ impl Context {
         ctx
     }
 
+    /// Borrows the `Context`
     #[inline]
     pub fn borrow(&self) -> Ref<ContextInner> {
         self.inner.borrow()
     }
 
+    /// Mutably-borrows the `Context`
     #[inline]
     pub fn borrow_mut(&self) -> RefMut<ContextInner> {
         self.inner.borrow_mut()

@@ -8,15 +8,16 @@ use crate::{
     env::traits::{Env, EnvSerializerTypes, EnvTypes},
 };
 
+/// Aggregates rocksdb environment types
 pub struct RocksdbEnvTypes<Ser>(PhantomData<Ser>);
 
-impl<Ser> EnvTypes for RocksdbEnvTypes<Ser>
+impl<S> EnvTypes for RocksdbEnvTypes<S>
 where
-    Ser: EnvSerializerTypes,
+    S: EnvSerializerTypes,
 {
-    type TemplateStore = RocksdbTemplateStore<Ser::TemplateSerializer, Ser::TemplateDeserializer>;
+    type TemplateStore = RocksdbTemplateStore<S::TemplateSerializer, S::TemplateDeserializer>;
 
-    type AppStore = RocksdbAppStore<Ser::AppSerializer, Ser::AppDeserializer>;
+    type AppStore = RocksdbAppStore<S::AppSerializer, S::AppDeserializer>;
 
     type TemplateAddressCompute = DefaultTemplateAddressCompute;
 
@@ -26,13 +27,13 @@ where
 }
 
 /// `Template` environment backed-by `rocksdb`
-pub struct RocksdbEnv<Ser>
+pub struct RocksdbEnv<S>
 where
-    Ser: EnvSerializerTypes,
+    S: EnvSerializerTypes,
 {
-    app_store: <RocksdbEnvTypes<Ser> as EnvTypes>::AppStore,
+    app_store: <RocksdbEnvTypes<S> as EnvTypes>::AppStore,
 
-    template_store: <RocksdbEnvTypes<Ser> as EnvTypes>::TemplateStore,
+    template_store: <RocksdbEnvTypes<S> as EnvTypes>::TemplateStore,
 }
 
 impl<Ser> RocksdbEnv<Ser>
@@ -51,11 +52,11 @@ where
     }
 }
 
-impl<Ser> Env for RocksdbEnv<Ser>
+impl<S> Env for RocksdbEnv<S>
 where
-    Ser: EnvSerializerTypes,
+    S: EnvSerializerTypes,
 {
-    type Types = RocksdbEnvTypes<Ser>;
+    type Types = RocksdbEnvTypes<S>;
 
     fn get_template_store(&self) -> &<Self::Types as EnvTypes>::TemplateStore {
         &self.template_store

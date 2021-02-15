@@ -26,6 +26,7 @@ impl RuntimePtr {
         svm_ffi::into_raw(RUNTIME_PTR_TY, self)
     }
 
+    /// Converts a raw pointer into `RuntimePtr`
     pub fn from_raw(ptr: *mut c_void) -> Self {
         let ptr: *mut RuntimePtr = ptr as _;
 

@@ -1,13 +1,16 @@
 use serde_json::Value;
 
 use super::wasm_buf_apply;
-use crate::{
-    api,
-    api::json::{self, JsonError},
+use crate::api::{
+    self,
+    json::{self, JsonError},
 };
 
-pub fn decode_receipt(ptr: usize) -> Result<usize, JsonError> {
-    wasm_buf_apply(ptr, |json: &Value| {
+/// Decodes a binary Receipt given as an offset to a Wasm buffer,
+/// and then returs an offset to a new Wasm buffer holding the decoded Receipt
+/// in a JSON format.
+pub fn decode_receipt(offset: usize) -> Result<usize, JsonError> {
+    wasm_buf_apply(offset, |json: &Value| {
         let json = api::json::decode_receipt(json)?;
 
         api::json::to_bytes(&json)

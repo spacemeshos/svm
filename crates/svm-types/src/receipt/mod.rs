@@ -14,7 +14,7 @@ pub use spawn_app::{into_spawn_app_receipt, SpawnAppReceipt};
 use crate::gas::MaybeGas;
 
 /// Borrowed Receipt
-pub enum Receipt<'a> {
+pub enum ReceiptRef<'a> {
     /// Borrows a `TemplateReceipt`.
     DeployTemplate(&'a TemplateReceipt),
 
@@ -25,7 +25,7 @@ pub enum Receipt<'a> {
     ExecApp(&'a ExecReceipt),
 }
 
-impl<'a> Receipt<'a> {
+impl<'a> ReceiptRef<'a> {
     /// Returns whether the transaction succeeded.
     pub fn is_success(&self) -> bool {
         match self {
@@ -63,59 +63,69 @@ impl<'a> Receipt<'a> {
     }
 }
 
-/// Owned Receipt
+/// Holds some Receipt-type
 #[derive(Debug, PartialEq)]
-pub enum ReceiptOwned {
+pub enum Receipt {
+    /// Deploy-Template
     DeployTemplate(TemplateReceipt),
 
+    /// Spawn-App
     SpawnApp(SpawnAppReceipt),
 
+    /// Exec-App
     ExecApp(ExecReceipt),
 }
 
-impl ReceiptOwned {
+impl Receipt {
+    /// Returns whether the transaction succedded.
+    /// A transaction counts as a `success` when it didn't panic.
     pub fn success(&self) -> bool {
         match self {
-            ReceiptOwned::DeployTemplate(receipt) => receipt.success,
-            ReceiptOwned::SpawnApp(receipt) => receipt.success,
-            ReceiptOwned::ExecApp(receipt) => receipt.success,
+            Receipt::DeployTemplate(receipt) => receipt.success,
+            Receipt::SpawnApp(receipt) => receipt.success,
+            Receipt::ExecApp(receipt) => receipt.success,
         }
     }
 
+    /// Returns the inner `deploy-template` receipt
     pub fn into_deploy_template(self) -> TemplateReceipt {
         match self {
-            ReceiptOwned::DeployTemplate(r) => r,
+            Receipt::DeployTemplate(r) => r,
             _ => unreachable!(),
         }
     }
 
+    /// Returns the inner `spawn-app` receipt
     pub fn into_spawn_app(self) -> SpawnAppReceipt {
         match self {
-            ReceiptOwned::SpawnApp(r) => r,
+            Receipt::SpawnApp(r) => r,
             _ => unreachable!(),
         }
     }
 
+    /// Returns the inner `exec-app` receipt
     pub fn into_exec_app(self) -> ExecReceipt {
         match self {
-            ReceiptOwned::ExecApp(r) => r,
+            Receipt::ExecApp(r) => r,
             _ => unreachable!(),
         }
     }
 
+    /// Returns the logs generated during the transaction execution
     pub fn get_logs(&self) -> &[Log] {
         match self {
-            ReceiptOwned::DeployTemplate(receipt) => receipt.get_logs(),
-            ReceiptOwned::SpawnApp(receipt) => receipt.get_logs(),
-            ReceiptOwned::ExecApp(receipt) => receipt.get_logs(),
+            Receipt::DeployTemplate(receipt) => receipt.get_logs(),
+            Receipt::SpawnApp(receipt) => receipt.get_logs(),
+            Receipt::ExecApp(receipt) => receipt.get_logs(),
         }
     }
 
+    /// Returns the error within the inner receipt (for failing receipts)
     pub fn get_error(&self) -> &ReceiptError {
         match self {
-            ReceiptOwned::DeployTemplate(receipt) => receipt.get_error(),
-            ReceiptOwned::SpawnApp(receipt) => receipt.get_error(),
-            ReceiptOwned::ExecApp(receipt) => receipt.get_error(),
+            Receipt::DeployTemplate(receipt) => receipt.get_error(),
+            Receipt::SpawnApp(receipt) => receipt.get_error(),
+            Receipt::ExecApp(receipt) => receipt.get_error(),
         }
     }
 }

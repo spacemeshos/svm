@@ -3,10 +3,10 @@
 
 #![no_std]
 #![feature(exclusive_range_pattern)]
-#![allow(missing_docs)]
-#![allow(unused)]
-#![allow(dead_code)]
-#![allow(unreachable_code)]
+#![deny(missing_docs)]
+#![deny(unused)]
+#![deny(dead_code)]
+#![deny(unreachable_code)]
 
 mod traits;
 mod types;

@@ -1,3 +1,12 @@
+//! The `svm-ffi` crate centralizes FFI related types to be used across the SVM project (mainly inside `svm-runtime-c-api`).
+//!
+//! Additionally, the crate exposes building blocks for tracking manually-allocated resources.
+//! The motivation is to ease detections of memory leaks and debugging them.
+
+#![deny(missing_docs)]
+#![deny(unused)]
+#![deny(dead_code)]
+#![deny(unreachable_code)]
 #![feature(vec_into_raw_parts)]
 
 mod address;

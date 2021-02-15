@@ -202,7 +202,7 @@ fn default_runtime_spawn_app_with_ctor_reaches_oog() {
     let maybe_gas = MaybeGas::with(0);
 
     let log = Log {
-        msg: b"not enough gas (installation_gas = 33000) for installation".to_vec(),
+        msg: b"not enough gas (installation_gas = 35000) for installation".to_vec(),
         code: 1,
     };
 

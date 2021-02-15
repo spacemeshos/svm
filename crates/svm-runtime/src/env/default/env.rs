@@ -4,7 +4,9 @@ use crate::env::traits::EnvSerializerTypes;
 
 /// `MemAppStore` with default serialization.
 pub type DefaultMemAppStore = MemAppStore<
+    // `AppStore` Serializer
     <Ser as EnvSerializerTypes>::AppSerializer,
+    // `AppStore` Deserializer
     <Ser as EnvSerializerTypes>::AppDeserializer,
 >;
 

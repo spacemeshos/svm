@@ -43,7 +43,7 @@ jobs:
       with:
         toolchain: nightly
         command: build
-        args: ${{ matrix.release }} --all --features=default-memory,default-rocksdb --no-default-features
+        args: ${{ matrix.release }} --all --features=default-memory
     - name: Cargo Test
       uses: actions-rs/cargo@v1
       with:

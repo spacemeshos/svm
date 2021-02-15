@@ -2,47 +2,24 @@ use std::cell::RefCell;
 use std::convert::TryFrom;
 use std::ffi::c_void;
 use std::io;
-use std::path::Path;
 use std::ptr::NonNull;
 use std::rc::Rc;
 
 use log::{debug, error};
 
-use svm_codec::api::builder::{AppTxBuilder, DeployTemplateBuilder, SpawnAppBuilder};
 use svm_codec::receipt;
-
-use svm_layout::DataLayout;
+use svm_ffi::{svm_byte_array, svm_func_callback_t, svm_resource_iter_t, svm_resource_t, tracking};
+use svm_runtime::{ExternImport, Runtime, RuntimePtr};
 use svm_storage::kv::{ExternKV, StatefulKV};
 use svm_types::{Address, State, Type, WasmType};
 
-use svm_runtime::env::default::DefaultSerializerTypes;
-use svm_runtime::{gas::DefaultGasEstimator, Context, ExternImport, Runtime, RuntimePtr};
-
-use svm_ffi::{
-    svm_byte_array, svm_env_t, svm_func_callback_t, svm_resource_iter_t, svm_resource_t, tracking,
-};
-
 use crate::{raw_error, raw_io_error, raw_utf8_error, raw_validate_error, svm_result_t};
-
-macro_rules! max_gas {
-    ($estimation:expr) => {{
-        use svm_gas::Gas;
-
-        match $estimation {
-            Gas::Fixed(gas) => gas,
-            Gas::Range { max: gas, .. } => gas,
-        }
-    }};
-}
 
 static KV_TYPE: Type = Type::Str("key-value store");
 static VALIDATE_TX_APP_ADDR_TYPE: Type = Type::Str("svm_validate_tx app_addr");
 static DEPLOY_TEMPLATE_RECEIPT_TYPE: Type = Type::Str("deploy-template receipt");
 static SPAWN_APP_RECEIPT_TYPE: Type = Type::Str("spawn-app receipt");
 static EXEC_APP_RECEIPT_TYPE: Type = Type::Str("exec-app receipt");
-static ENCODE_DEPLOY_TEMPLATE_TYPE: Type = Type::Str("svm_encode_app_template");
-static ENCODE_SPAWN_APP_TYPE: Type = Type::Str("svm_encode_spawn_app");
-static ENCODE_EXEC_APP_TYPE: Type = Type::Str("svm_encode_app_tx");
 
 macro_rules! maybe_gas {
     ($gas_metering:expr, $gas_limit:expr) => {{
@@ -59,14 +36,6 @@ macro_rules! maybe_gas {
 macro_rules! addr_to_svm_byte_array {
     ($ty:expr, $raw_byte_array:expr, $addr:expr) => {{
         let (ptr, len, cap) = $addr.into_raw_parts();
-
-        to_svm_byte_array!($ty, $raw_byte_array, ptr, len, cap);
-    }};
-}
-
-macro_rules! state_to_svm_byte_array {
-    ($ty:expr, $raw_byte_array:expr, $state:expr) => {{
-        let (ptr, len, cap) = $state.into_raw_parts();
 
         to_svm_byte_array!($ty, $raw_byte_array, ptr, len, cap);
     }};
@@ -681,10 +650,8 @@ pub unsafe extern "C" fn svm_deploy_template(
     }
 
     let gas_limit = maybe_gas!(gas_metering, gas_limit);
-
     let rust_receipt = runtime.deploy_template(bytes.into(), &author.unwrap().into(), gas_limit);
-
-    let mut receipt_bytes = receipt::encode_template_receipt(&rust_receipt);
+    let receipt_bytes = receipt::encode_template_receipt(&rust_receipt);
 
     // returning encoded `TemplateReceipt` as `svm_byte_array`.
     // should call later `svm_receipt_destroy`
@@ -763,10 +730,8 @@ pub unsafe extern "C" fn svm_spawn_app(
     }
 
     let gas_limit = maybe_gas!(gas_metering, gas_limit);
-
     let rust_receipt = runtime.spawn_app(bytes.into(), &spawner.unwrap().into(), gas_limit);
-
-    let mut receipt_bytes = receipt::encode_app_receipt(&rust_receipt);
+    let receipt_bytes = receipt::encode_app_receipt(&rust_receipt);
 
     // returning encoded `AppReceipt` as `svm_byte_array`.
     // should call later `svm_receipt_destroy`
@@ -846,9 +811,8 @@ pub unsafe extern "C" fn svm_exec_app(
     }
 
     let gas_limit = maybe_gas!(gas_metering, gas_limit);
-
     let rust_receipt = runtime.exec_app(bytes.into(), &state.unwrap(), gas_limit);
-    let mut receipt_bytes = receipt::encode_exec_receipt(&rust_receipt);
+    let receipt_bytes = receipt::encode_exec_receipt(&rust_receipt);
 
     // returning encoded `ExecReceipt` as `svm_byte_array`.
     // should call later `svm_receipt_destroy`
@@ -859,12 +823,14 @@ pub unsafe extern "C" fn svm_exec_app(
     svm_result_t::SVM_SUCCESS
 }
 
+/// Returns the total live manually-managed resources.
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_total_live_resources() -> i32 {
     tracking::total_live()
 }
 
+/// Initializes a new iterator over the manually-managed resources
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_resource_iter_new() -> *mut c_void {
@@ -874,6 +840,7 @@ pub unsafe extern "C" fn svm_resource_iter_new() -> *mut c_void {
     svm_ffi::into_raw(ty, snapshot)
 }
 
+/// Destroys the manually-managed resources iterator
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_resource_iter_destroy(iter: *mut c_void) {
@@ -881,6 +848,8 @@ pub unsafe extern "C" fn svm_resource_iter_destroy(iter: *mut c_void) {
     let _ = svm_ffi::from_raw(ty, iter);
 }
 
+/// Returns the next manually-managed resource.
+/// If there is no resource to return, returns `NULL`
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_resource_iter_next(iter: *mut c_void) -> *mut svm_resource_t {
@@ -897,12 +866,14 @@ pub unsafe extern "C" fn svm_resource_iter_next(iter: *mut c_void) -> *mut svm_r
     }
 }
 
+/// Destroy the resource
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_resource_destroy(resource: *mut svm_resource_t) {
     let _ = svm_ffi::from_raw(svm_ffi::SVM_RESOURCE_TYPE, resource);
 }
 
+/// Given a type in an interned form, returns its textual name
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_resource_type_name_resolve(ty: usize) -> *mut svm_byte_array {
@@ -918,6 +889,7 @@ pub unsafe extern "C" fn svm_resource_type_name_resolve(ty: usize) -> *mut svm_b
     }
 }
 
+/// Destorys a resource holding a type textual name
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_resource_type_name_destroy(ptr: *mut svm_byte_array) {
@@ -1004,6 +976,7 @@ pub unsafe extern "C" fn svm_byte_array_destroy(bytes: svm_byte_array) {
     bytes.destroy()
 }
 
+/// Allocates a new error. Its context is a clone of the data given by parameter `msg`.
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_wasm_error_create(msg: svm_byte_array) -> *mut svm_byte_array {
@@ -1016,94 +989,4 @@ pub unsafe extern "C" fn svm_wasm_error_create(msg: svm_byte_array) -> *mut svm_
     let err = svm_ffi::into_raw(ty, err);
 
     svm_ffi::as_mut(err)
-}
-
-/// Given a raw `deploy-template` transaction (the `bytes` parameter),
-/// if it's valid (i.e: passes the `svm_validate_template`), returns `SVM_SUCCESS` and the estimated gas that will be required
-/// in order to execute the transaction (via the `estimate` parameter).
-
-/// # Panics
-///
-/// Panics when `bytes` input is not a valid `deploy-template` raw transaction.
-/// Having `bytes` a valid raw input doesn't necessarily imply that `svm_validate_template` passes.
-///
-#[no_mangle]
-pub unsafe extern "C" fn svm_estimate_deploy_template(
-    estimation: *mut u64,
-    runtime: *mut c_void,
-    bytes: svm_byte_array,
-    error: *mut svm_byte_array,
-) -> svm_result_t {
-    let runtime: &mut Box<dyn Runtime> = runtime.into();
-
-    match runtime.estimate_deploy_template(bytes.into()) {
-        Ok(est) => {
-            *estimation = max_gas!(est);
-            svm_result_t::SVM_SUCCESS
-        }
-        Err(e) => {
-            raw_validate_error(&e, error);
-            svm_result_t::SVM_FAILURE
-        }
-    }
-}
-
-/// Given a raw `spawn-app` transaction (the `bytes` parameter),
-/// if it's valid (i.e: passes the `svm_validate_app`), returns `SVM_SUCCESS` and the estimated gas that will be required
-/// in order to execute the transaction (via the `estimate` parameter).
-///
-/// # Panics
-///
-/// Panics when `bytes` input is not a valid `spawn-app` raw transaction.
-/// Having `bytes` a valid raw input doesn't necessarily imply that `svm_validate_app` passes.
-///
-#[no_mangle]
-pub unsafe extern "C" fn svm_estimate_spawn_app(
-    estimation: *mut u64,
-    runtime: *mut c_void,
-    bytes: svm_byte_array,
-    error: *mut svm_byte_array,
-) -> svm_result_t {
-    let runtime: &mut Box<dyn Runtime> = runtime.into();
-
-    match runtime.estimate_spawn_app(bytes.into()) {
-        Ok(est) => {
-            *estimation = max_gas!(est);
-            svm_result_t::SVM_SUCCESS
-        }
-        Err(e) => {
-            raw_validate_error(&e, error);
-            svm_result_t::SVM_FAILURE
-        }
-    }
-}
-
-/// Given a raw `exec-app` transaction (the `bytes` parameter),
-/// if it's valid (i.e: passes the `svm_validate_tx`), returns `SVM_SUCCESS` and the estimated gas that will be required
-/// in order to execute the transaction (via the `estimate` parameter).
-///
-/// # Panics
-///
-/// Panics when `bytes` input is not a valid `exec-app` raw transaction.
-/// Having `bytes` a valid raw input doesn't necessarily imply that `svm_validate_tx` passes.
-///
-#[no_mangle]
-pub unsafe extern "C" fn svm_estimate_exec_app(
-    estimation: *mut u64,
-    runtime: *mut c_void,
-    bytes: svm_byte_array,
-    error: *mut svm_byte_array,
-) -> svm_result_t {
-    let runtime: &mut Box<dyn Runtime> = runtime.into();
-
-    match runtime.estimate_exec_app(bytes.into()) {
-        Ok(est) => {
-            *estimation = max_gas!(est);
-            svm_result_t::SVM_SUCCESS
-        }
-        Err(e) => {
-            raw_validate_error(&e, error);
-            svm_result_t::SVM_FAILURE
-        }
-    }
 }

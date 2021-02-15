@@ -1,11 +1,8 @@
-use core::panic;
 use std::collections::HashMap;
-use std::ffi::c_void;
-use std::fmt;
 use std::marker::PhantomData;
 use std::path::Path;
 
-use log::{debug, error, info};
+use log::{error, info};
 
 use crate::env::traits::{Env, EnvTypes};
 use crate::error::ValidateError;
@@ -16,7 +13,6 @@ use crate::{Config, Context, ExternImport, Runtime};
 
 use svm_codec::ParseError;
 use svm_ffi::svm_env_t;
-use svm_gas::Gas;
 use svm_layout::DataLayout;
 use svm_storage::app::AppStorage;
 
@@ -24,13 +20,11 @@ use svm_types::gas::{MaybeGas, OOGError};
 use svm_types::receipt::{self, ExecReceipt, Log, ReceiptError, SpawnAppReceipt, TemplateReceipt};
 
 use svm_types::{
-    AppAddr, Template, AppTransaction, AuthorAddr, CreatorAddr, SpawnApp, State, TemplateAddr,
-    Type,
+    AppAddr, AppTransaction, AuthorAddr, CreatorAddr, SpawnApp, State, Template, TemplateAddr, Type,
 };
 
 use wasmer::{
-    Export, Exports, Extern, Function, ImportObject, Instance, Memory, MemoryType, Module,
-    NativeFunc, Store, Type as WasmerType, Value as WasmerValue, WasmPtr,
+    Exports, Extern, Function, ImportObject, Instance, Module, NativeFunc, Store, WasmPtr,
 };
 
 /// Default `Runtime` implementation based on `Wasmer`.
@@ -74,24 +68,6 @@ where
             .parse_exec_app(bytes)
             .map(|tx| tx.app)
             .map_err(|e| e.into())
-    }
-
-    fn estimate_deploy_template(&self, bytes: &[u8]) -> Result<Gas, ValidateError> {
-        self.validate_template(bytes)?;
-
-        todo!()
-    }
-
-    fn estimate_spawn_app(&self, bytes: &[u8]) -> Result<Gas, ValidateError> {
-        self.validate_app(bytes)?;
-
-        todo!()
-    }
-
-    fn estimate_exec_app(&self, bytes: &[u8]) -> Result<Gas, ValidateError> {
-        self.validate_tx(bytes)?;
-
-        todo!()
     }
 
     fn deploy_template(
@@ -285,10 +261,8 @@ where
 
     fn funcs_envs_destroy(&self, mut funcs_envs: Vec<*mut svm_env_t>) {
         for func_env in funcs_envs.drain(..) {
-            unsafe {
-                let ty = Type::of::<svm_env_t>();
-                let _ = svm_ffi::from_raw(ty, func_env);
-            }
+            let ty = Type::of::<svm_env_t>();
+            let _ = svm_ffi::from_raw(ty, func_env);
         }
     }
 
@@ -377,8 +351,10 @@ where
                 func: tx.func_name.clone(),
                 msg: e.to_string(),
             }),
-            Ok(returns) => {
-                let returndata = self.take_returndata(ctx, returns);
+            Ok(_returns) => {
+                // TODO: assert that `returns` is empty
+
+                let returndata = self.take_returndata(ctx);
                 let new_state = self.commit_chages(ctx);
 
                 Ok((Some(new_state), Some(returndata), gas_used.unwrap()))
@@ -399,7 +375,7 @@ where
         assert!(ctx.borrow().returndata.is_none())
     }
 
-    fn take_returndata(&self, ctx: &Context, returns: Box<[WasmerValue]>) -> Vec<u8> {
+    fn take_returndata(&self, ctx: &Context) -> Vec<u8> {
         let data = ctx.borrow().returndata;
 
         match data {
@@ -490,7 +466,6 @@ where
         let (offset, len) = {
             let borrow = ctx.borrow();
             let memory = borrow.get_memory();
-            let offset = ptr.offset();
 
             // Each WASM instance memory contains at least one `WASM Page`. (A `Page` size is 64KB)
             // The `len(calldata)` will be less than the `WASM Page` size.
@@ -548,13 +523,16 @@ where
         template_addr: &TemplateAddr,
         instance: &'instance Instance,
     ) -> Result<&'instance Function, ReceiptError> {
-        instance.exports.get_function(&tx.func_name).or_else(|err| {
-            Err(ReceiptError::FuncNotFound {
-                app_addr: tx.app.clone(),
-                template_addr: template_addr.clone(),
-                func: tx.func_name.clone(),
+        instance
+            .exports
+            .get_function(&tx.func_name)
+            .or_else(|_err| {
+                Err(ReceiptError::FuncNotFound {
+                    app_addr: tx.app.clone(),
+                    template_addr: template_addr.clone(),
+                    func: tx.func_name.clone(),
+                })
             })
-        })
     }
 
     fn create_context(

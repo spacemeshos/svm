@@ -20,9 +20,10 @@ pub use deploy_template::{decode_template_receipt, encode_template_receipt};
 pub use exec_app::{decode_exec_receipt, encode_exec_receipt};
 pub use spawn_app::{decode_app_receipt, encode_app_receipt};
 
-use svm_types::receipt::{ExecReceipt, ReceiptOwned, SpawnAppReceipt, TemplateReceipt};
+use svm_types::receipt::{ExecReceipt, Receipt, SpawnAppReceipt, TemplateReceipt};
 
-pub fn decode_receipt(bytes: &[u8]) -> ReceiptOwned {
+/// Decodes a binary Receipt into its Rust struct wrapped as `ReceiptOwned`
+pub fn decode_receipt(bytes: &[u8]) -> Receipt {
     assert!(bytes.len() > 0);
 
     let ty = bytes[0];
@@ -30,15 +31,15 @@ pub fn decode_receipt(bytes: &[u8]) -> ReceiptOwned {
     match ty {
         types::DEPLOY_TEMPLATE => {
             let receipt = decode_template_receipt(bytes);
-            ReceiptOwned::DeployTemplate(receipt)
+            Receipt::DeployTemplate(receipt)
         }
         types::SPAWN_APP => {
             let receipt = decode_app_receipt(bytes);
-            ReceiptOwned::SpawnApp(receipt)
+            Receipt::SpawnApp(receipt)
         }
         types::EXEC_APP => {
             let receipt = decode_exec_receipt(bytes);
-            ReceiptOwned::ExecApp(receipt)
+            Receipt::ExecApp(receipt)
         }
         _ => unreachable!(),
     }

@@ -1,7 +1,7 @@
-#![allow(missing_docs)]
-#![allow(unused)]
-#![allow(dead_code)]
-#![allow(unreachable_code)]
+#![deny(missing_docs)]
+#![deny(unused)]
+#![deny(dead_code)]
+#![deny(unreachable_code)]
 #![feature(vec_into_raw_parts)]
 
 //! This crate is responsible of providing [FFI](https://doc.rust-lang.org/nomicon/ffi.html) interface for the `SVM`.
@@ -26,11 +26,6 @@ pub use api::{
     svm_deploy_template,
     svm_spawn_app,
     
-    // Gas Estimations
-    svm_estimate_deploy_template,
-    svm_estimate_exec_app,
-    svm_estimate_spawn_app,
-
     // Imports
     svm_import_func_new,
     svm_imports_alloc,

@@ -23,6 +23,8 @@ macro_rules! as_str {
     }};
 }
 
+/// Given a `Calldata` JSON, encodes it into a binary `Calldata`
+/// and returs the result wrapped with a JSON
 pub fn encode_calldata(json: &Json) -> Result<Json, JsonError> {
     let abi = json::as_array(json, "abi")?;
     let data = json::as_array(json, "data")?;
@@ -47,6 +49,7 @@ pub fn encode_calldata(json: &Json) -> Result<Json, JsonError> {
     Ok(json)
 }
 
+/// Given a binary `Calldata` (wrapped within a JSON), decodes it into a JSON
 pub fn decode_calldata(json: &Json) -> Result<Json, JsonError> {
     let data = json::as_string(json, "calldata")?;
     let calldata = json::str_to_bytes(&data, "calldata")?;

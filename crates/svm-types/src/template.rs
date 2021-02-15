@@ -1,4 +1,3 @@
-use std::cmp::min;
 use std::fmt;
 
 use svm_layout::DataLayout;

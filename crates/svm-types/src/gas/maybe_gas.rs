@@ -1,5 +1,4 @@
 use std::cmp::{Ordering, PartialEq, PartialOrd};
-use std::fmt;
 use std::ops::{Add, AddAssign, Sub};
 
 use crate::gas::OOGError;
