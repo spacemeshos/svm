@@ -1,16 +1,16 @@
 //! This crate tests the encoding & decoding of a function buffer.
 //! using SVM default ABI.
 
-#![allow(missing_docs)]
-#![allow(unused)]
-#![allow(dead_code)]
-#![allow(unreachable_code)]
+#![deny(missing_docs)]
+#![deny(unused)]
+#![deny(dead_code)]
+#![deny(unreachable_code)]
 
 #[cfg(test)]
 mod tests {
     use svm_abi_decoder::CallData;
     use svm_abi_encoder::Encoder;
-    use svm_sdk::value::{Composite, Primitive, Value};
+    use svm_sdk::value::Value;
     use svm_sdk::{Address, Amount};
 
     macro_rules! as_static {

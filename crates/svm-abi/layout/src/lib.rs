@@ -69,11 +69,12 @@
 //!
 
 #![no_std]
-#![allow(missing_docs)]
-#![allow(unused)]
-#![allow(dead_code)]
-#![allow(unreachable_code)]
+#![deny(missing_docs)]
+#![deny(unused)]
+#![deny(dead_code)]
+#![deny(unreachable_code)]
 
+#[doc(hidden)]
 pub mod layout {
     // Boolean
     pub const BOOL_FALSE: u8 = 0b_0_000_0000;

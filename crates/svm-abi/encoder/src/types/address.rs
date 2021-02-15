@@ -3,7 +3,7 @@ extern crate alloc;
 use alloc::vec::Vec;
 
 use svm_abi_layout::layout;
-use svm_sdk_types::{types::PrimitiveMarker, Address};
+use svm_sdk_types::Address;
 
 use crate::Encoder;
 
