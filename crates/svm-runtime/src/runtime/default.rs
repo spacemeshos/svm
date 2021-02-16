@@ -13,7 +13,7 @@ use crate::{Config, Context, ExternImport, Runtime};
 
 use svm_codec::ParseError;
 use svm_ffi::svm_env_t;
-use svm_layout::DataLayout;
+use svm_layout::Layout;
 use svm_storage::app::AppStorage;
 
 use svm_types::gas::{MaybeGas, OOGError};
@@ -167,7 +167,7 @@ where
         &self,
         addr: &AppAddr,
         state: &State,
-        layout: &DataLayout,
+        layout: &Layout,
     ) -> AppStorage {
         (self.storage_builder)(addr, state, layout, &self.config)
     }

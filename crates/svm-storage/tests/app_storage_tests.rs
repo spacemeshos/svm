@@ -1,4 +1,4 @@
-use svm_layout::{DataLayout, VarId};
+use svm_layout::{Layout, VarId};
 use svm_storage::{app::AppStorage, testing};
 use svm_types::Address;
 
@@ -23,7 +23,7 @@ macro_rules! write_vars {
 fn app_storage_vars_are_persisted_only_on_commit() {
     // `var #0` consumes 4 bytes (offsets: `[0..4)`)
     // `var #1` consumes 2 bytes (offsets: `[4, 6)`)
-    let layout = DataLayout::from(vec![4, 2].as_slice());
+    let layout = Layout::from(vec![4, 2].as_slice());
 
     let addr = Address::of("my-app");
     let kv = testing::create_app_kv(addr);
@@ -58,7 +58,7 @@ fn app_storage_vars_are_persisted_only_on_commit() {
 #[should_panic]
 fn app_storage_write_var_value_should_match_layout_length() {
     // `var #0` consumes 4 bytes (i.e `length = 4`)
-    let layout: DataLayout = vec![4].into();
+    let layout: Layout = vec![4].into();
     let addr = Address::of("my-app");
     let kv = testing::create_app_kv(addr);
 

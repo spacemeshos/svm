@@ -6,7 +6,7 @@ use svm_sdk::CallData;
 use svm_codec::{Field, ParseError};
 
 use svm_gas::error::ProgramError;
-use svm_layout::{DataLayout, VarId};
+use svm_layout::{Layout, VarId};
 use svm_runtime::{error::ValidateError, testing, Runtime};
 
 use svm_types::receipt::{ExecReceipt, Log, ReceiptError, SpawnAppReceipt, TemplateReceipt};
@@ -48,7 +48,7 @@ fn default_runtime_validate_template_invalid_wasm() {
     let bytes = testing::build_template(
         version,
         "My Template",
-        DataLayout::empty(),
+        Layout::empty(),
         &ctors,
         include_str!("wasm/wasm_with_floats.wast").into(),
     );
@@ -98,7 +98,7 @@ fn default_runtime_deploy_template_reaches_oog() {
     let bytes = testing::build_template(
         version,
         "My Template",
-        DataLayout::empty(),
+        Layout::empty(),
         &ctors,
         include_str!("wasm/runtime_app_ctor.wast").into(),
     );
@@ -120,7 +120,7 @@ fn default_runtime_deploy_template_has_enough_gas() {
     let bytes = testing::build_template(
         version,
         "My Template",
-        DataLayout::empty(),
+        Layout::empty(),
         &ctors,
         include_str!("wasm/runtime_app_ctor.wast").into(),
     );
@@ -144,7 +144,7 @@ fn default_runtime_spawn_app_with_non_ctor_fails() {
     let bytes = testing::build_template(
         version,
         "My Template",
-        DataLayout::empty(),
+        Layout::empty(),
         &ctors,
         include_str!("wasm/runtime_app_ctor.wast").into(),
     );
@@ -183,7 +183,7 @@ fn default_runtime_spawn_app_with_ctor_reaches_oog() {
     let bytes = testing::build_template(
         version,
         "My Template",
-        DataLayout::empty(),
+        Layout::empty(),
         &ctors,
         include_str!("wasm/runtime_app_ctor.wast").into(),
     );
@@ -224,7 +224,7 @@ fn default_runtime_spawn_app_with_ctor_with_enough_gas() {
     let ctors = vec!["ctor".to_string()];
 
     // raw layout consists on one variable of 8 bytes (offsets: `[0..8)`)
-    let layout: DataLayout = vec![8].into();
+    let layout: Layout = vec![8].into();
 
     let bytes = testing::build_template(
         version,
@@ -267,7 +267,7 @@ fn default_runtime_exec_app_with_ctor_fails() {
     let version = 0;
     let author = Address::of("author").into();
     let maybe_gas = MaybeGas::new();
-    let layout: DataLayout = vec![20].into();
+    let layout: Layout = vec![20].into();
     let ctors = vec!["initialize".to_string()];
 
     let bytes = testing::build_template(
@@ -316,7 +316,7 @@ fn default_runtime_exec_app_reaches_oog() {
     let author = Address::of("author").into();
     let creator = Address::of("creator").into();
     let maybe_gas = MaybeGas::new();
-    let layout: DataLayout = vec![4].into();
+    let layout: Layout = vec![4].into();
     let ctors = vec!["ctors".to_string()];
 
     let bytes = testing::build_template(
@@ -364,7 +364,7 @@ fn default_runtime_calldata_returndata() {
     let version = 0;
     let author = Address::of("author").into();
     let maybe_gas = MaybeGas::new();
-    let layout: DataLayout = vec![20].into();
+    let layout: Layout = vec![20].into();
     let ctors = vec!["initialize".to_string()];
 
     let bytes = testing::build_template(
