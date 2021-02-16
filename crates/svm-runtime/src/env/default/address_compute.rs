@@ -1,6 +1,6 @@
 use crate::env::traits::{AppAddressCompute, TemplateAddressCompute};
 
-use svm_common::{DefaultKeyHasher, KeyHasher};
+use svm_hash::{DefaultHasher, Hasher};
 use svm_types::{Address, AppAddr, SpawnApp, Template, TemplateAddr};
 
 /// Default implementation for computing an `App` address deterministically.
@@ -18,7 +18,7 @@ impl AppAddressCompute for DefaultAppAddressCompute {
         let template = app.template.inner();
         buf.extend_from_slice(template.as_slice());
 
-        let hash = DefaultKeyHasher::hash(&buf);
+        let hash = DefaultHasher::hash(&buf);
         let addr = Address::from(&hash[0..Address::len()]);
 
         AppAddr::new(addr)
@@ -38,7 +38,7 @@ impl TemplateAddressCompute for DefaultTemplateAddressCompute {
         // TODO: extract `author` from `host_ctx`
         buf.extend_from_slice(template.code.as_slice());
 
-        let hash = DefaultKeyHasher::hash(&buf);
+        let hash = DefaultHasher::hash(&buf);
         let addr = Address::from(&hash[0..Address::len()]);
 
         TemplateAddr::new(addr)

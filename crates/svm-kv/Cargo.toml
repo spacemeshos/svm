@@ -7,9 +7,6 @@ edition = "2018"
 readme = "README.md"
 publish = false
 
-[dependencies.svm-common]
-path = "../svm-common"
-
 [dependencies.svm-types]
 path = "../svm-types"
 
