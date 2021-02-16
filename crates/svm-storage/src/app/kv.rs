@@ -3,7 +3,7 @@ use std::rc::Rc;
 
 use crate::kv::StatefulKV;
 
-use svm_common::{DefaultKeyHasher, KeyHasher};
+use svm_hash::{DefaultHasher, Hasher};
 use svm_types::{Address, State};
 
 /// An application-aware (and `State`-aware) key-value store interface responsible of
@@ -85,7 +85,7 @@ impl AppKVStore {
 
     #[inline]
     fn hash(&self, bytes: &[u8]) -> Vec<u8> {
-        DefaultKeyHasher::hash(bytes).to_vec()
+        DefaultHasher::hash(bytes).to_vec()
     }
 }
 

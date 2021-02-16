@@ -1,7 +1,7 @@
 use std::fs::File;
 use std::io::{Cursor, Read};
 
-use svm_layout::{DataLayout, DataLayoutBuilder};
+use svm_layout::{Layout, LayoutBuilder};
 use svm_types::Template;
 
 use crate::common;
@@ -99,15 +99,15 @@ fn decode_name(cursor: &mut Cursor<&[u8]>) -> Result<String, ParseError> {
     }
 }
 
-fn decode_data(cursor: &mut Cursor<&[u8]>) -> Result<DataLayout, ParseError> {
+fn decode_data(cursor: &mut Cursor<&[u8]>) -> Result<Layout, ParseError> {
     match cursor.read_u16_be() {
-        Err(..) => Err(ParseError::NotEnoughBytes(Field::DataLayoutVarsCount)),
+        Err(..) => Err(ParseError::NotEnoughBytes(Field::VarsCount)),
         Ok(nvars) => {
-            let mut builder = DataLayoutBuilder::with_capacity(nvars as usize);
+            let mut builder = LayoutBuilder::with_capacity(nvars as usize);
 
             for _vid in 0..nvars as usize {
                 match cursor.read_u16_be() {
-                    Err(..) => return Err(ParseError::NotEnoughBytes(Field::DataLayoutVarLength)),
+                    Err(..) => return Err(ParseError::NotEnoughBytes(Field::VarLength)),
                     Ok(length) => builder.add_var(length as u32),
                 }
             }

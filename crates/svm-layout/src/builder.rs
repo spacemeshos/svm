@@ -1,14 +1,14 @@
-use crate::layout::DataLayout;
+use crate::Layout;
 
-/// Specifies the fixed-sized variables of an application.
-pub struct DataLayoutBuilder {
+/// Specifies the fixed-sized variables of an root.
+pub struct LayoutBuilder {
     vars: Vec<(u32, u32)>,
 
     next_offset: u32,
 }
 
-/// `DataLayoutBuilder` represents the fixed-sized variables (storage) of an application.
-impl DataLayoutBuilder {
+/// `LayoutBuilder` represents the fixed-sized variables (storage) of an application.
+impl LayoutBuilder {
     /// New builder
     pub fn new() -> Self {
         Self::with_capacity(0)
@@ -46,8 +46,8 @@ impl DataLayoutBuilder {
         self.next_offset += len;
     }
 
-    /// Finishes the data-layout building process and outputs the result `DataLayout`.
-    pub fn build(self) -> DataLayout {
-        DataLayout { vars: self.vars }
+    /// Finishes the layout building process and outputs the result `Layout`.
+    pub fn build(self) -> Layout {
+        Layout { vars: self.vars }
     }
 }

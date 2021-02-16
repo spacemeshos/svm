@@ -17,6 +17,9 @@ default-features = false
 [dependencies.svm-common]
 path = "../svm-common"
 
+[dependencies.svm-hash]
+path = "../svm-hash"
+
 [dependencies.svm-types]
 path = "../svm-types"
 

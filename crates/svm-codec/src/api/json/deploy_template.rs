@@ -3,7 +3,7 @@ use serde_json::Value;
 use crate::api::json::{self, JsonError};
 use crate::template;
 
-use svm_layout::{DataLayout, DataLayoutBuilder};
+use svm_layout::{Layout, LayoutBuilder};
 use svm_types::Template;
 
 ///
@@ -45,7 +45,7 @@ pub fn deploy_template(json: &Value) -> Result<Vec<u8>, JsonError> {
     Ok(buf)
 }
 
-fn to_data_layout(blob: Vec<u8>) -> Result<DataLayout, JsonError> {
+fn to_data_layout(blob: Vec<u8>) -> Result<Layout, JsonError> {
     if blob.len() % 4 != 0 {
         return Err(JsonError::InvalidField {
             field: "data".to_string(),
@@ -62,7 +62,7 @@ fn to_data_layout(blob: Vec<u8>) -> Result<DataLayout, JsonError> {
         })
         .collect();
 
-    let mut builder = DataLayoutBuilder::new();
+    let mut builder = LayoutBuilder::new();
     builder.extend_from_slice(&data);
     let data = builder.build();
 

@@ -1,4 +1,4 @@
-use svm_layout::DataLayout;
+use svm_layout::Layout;
 use svm_types::Template;
 
 use crate::template;
@@ -9,7 +9,7 @@ pub struct DeployTemplateBuilder {
     version: Option<u16>,
     name: Option<String>,
     code: Option<Vec<u8>>,
-    data: Option<DataLayout>,
+    data: Option<Layout>,
     ctors: Option<Vec<String>>,
 }
 
@@ -76,7 +76,7 @@ impl DeployTemplateBuilder {
         self
     }
 
-    pub fn with_data(mut self, data: &DataLayout) -> Self {
+    pub fn with_data(mut self, data: &Layout) -> Self {
         self.data = Some(data.clone());
         self
     }

@@ -39,6 +39,7 @@ log = "0.4"
 lazy_static = "1.4.0"
 hex = "0.4"
 svm-common = { path = "crates/svm-common" }
+svm-hash = { path = "crates/svm-hash" }
 svm-kv = { path = "crates/svm-kv", default-features = false }
 svm-gas = { path = "crates/svm-gas" }
 svm-app-query = { path = "crates/svm-app-query" }
@@ -76,6 +77,7 @@ members = [
   "crates/svm-nibble",
   "crates/svm-codec",
   "crates/svm-types",
+  "crates/svm-hash",
   "crates/svm-common",
   "crates/svm-sdk/alloc",
   "crates/svm-sdk/types",

@@ -1,0 +1,15 @@
+[package]
+name = "svm-hash"
+version = "0.0.0"
+authors = ["Yaron Wittenstein <yaron.wittenstein@gmail.com>"]
+license = "MIT"
+edition = "2018"
+readme = "README.md"
+repository = "https://github.com/spacemeshos/svm"
+homepage = "https://github.com/spacemeshos/svm"
+description = "Spacemesh Virtual Machine"
+publish = false
+
+
+[dependencies]
+tiny-keccak = "1.4.2"

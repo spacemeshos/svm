@@ -1,4 +1,4 @@
-use crate::builder::DataLayoutBuilder;
+use crate::LayoutBuilder;
 
 /// Repersents a variable. an unsigned integer.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -7,17 +7,17 @@ pub struct VarId(pub u32);
 
 /// In-memory representation of a program's fixed-sized storage variables.
 #[derive(Debug, PartialEq, Clone)]
-pub struct DataLayout {
+pub struct Layout {
     pub(crate) vars: Vec<(u32, u32)>,
 }
 
-impl DataLayout {
-    /// For tests that don't care about the `DataLayout`
+impl Layout {
+    /// For tests that don't care about the `Layout`
     pub fn empty() -> Self {
         Self { vars: Vec::new() }
     }
 
-    /// Returns varialbe's layout. i.e: `(offset, length)`
+    /// Returns variable's layout. i.e: `(offset, length)`
     ///
     /// # Panics
     ///
@@ -28,10 +28,10 @@ impl DataLayout {
         self.vars[vid]
     }
 
-    /// Returns a iterator over the data-layout variables.
+    /// Returns a iterator over the layout-variables.
     /// The iterators will return each time an entry of `(var_id, var_offset, var_length)`.
-    pub fn iter(&self) -> DataLayoutIter {
-        DataLayoutIter {
+    pub fn iter(&self) -> LayoutIter {
+        LayoutIter {
             cur: 0,
             layout: self,
         }
@@ -58,31 +58,31 @@ impl DataLayout {
     }
 }
 
-impl From<&[u32]> for DataLayout {
+impl From<&[u32]> for Layout {
     fn from(slice: &[u32]) -> Self {
         let nvars = slice.len();
 
-        let mut builder = DataLayoutBuilder::with_capacity(nvars);
+        let mut builder = LayoutBuilder::with_capacity(nvars);
         builder.extend_from_slice(slice);
 
         builder.build()
     }
 }
 
-impl From<Vec<u32>> for DataLayout {
+impl From<Vec<u32>> for Layout {
     #[inline]
     fn from(vec: Vec<u32>) -> Self {
         (*vec).into()
     }
 }
 
-pub struct DataLayoutIter<'iter> {
+pub struct LayoutIter<'iter> {
     cur: usize,
 
-    layout: &'iter DataLayout,
+    layout: &'iter Layout,
 }
 
-impl<'iter> std::iter::Iterator for DataLayoutIter<'iter> {
+impl<'iter> std::iter::Iterator for LayoutIter<'iter> {
     type Item = (VarId, u32, u32);
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -104,8 +104,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn data_layout_new() {
-        let mut builder = DataLayoutBuilder::with_capacity(2);
+    fn layout_new() {
+        let mut builder = LayoutBuilder::with_capacity(2);
         builder.add_var(10);
         builder.add_var(20);
 
@@ -116,18 +116,18 @@ mod tests {
     }
 
     #[test]
-    fn data_layout_from_slice() {
+    fn layout_from_slice() {
         let vec = vec![20, 40];
 
-        let layout: DataLayout = (*vec).into();
+        let layout: Layout = (*vec).into();
 
         assert_eq!(layout.get_var(VarId(0)), (0, 20));
         assert_eq!(layout.get_var(VarId(1)), (20, 40));
     }
 
     #[test]
-    fn data_layout_extend_from_slice() {
-        let mut builder = DataLayoutBuilder::with_capacity(2);
+    fn layout_extend_from_slice() {
+        let mut builder = LayoutBuilder::with_capacity(2);
         builder.add_var(10);
         builder.add_var(20);
 
@@ -142,8 +142,8 @@ mod tests {
     }
 
     #[test]
-    fn data_layout_iter() {
-        let mut builder = DataLayoutBuilder::with_capacity(2);
+    fn layout_iter() {
+        let mut builder = LayoutBuilder::with_capacity(2);
         builder.add_var(10);
         builder.add_var(20);
 

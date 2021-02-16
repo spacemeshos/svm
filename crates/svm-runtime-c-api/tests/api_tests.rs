@@ -8,7 +8,7 @@ use svm_runtime_c_api as api;
 
 use svm_codec::receipt;
 use svm_ffi::{svm_byte_array, svm_env_t, svm_resource_iter_t, svm_resource_t, tracking};
-use svm_layout::DataLayout;
+use svm_layout::Layout;
 use svm_runtime::{testing::WasmFile, vmcalls, Context};
 use svm_types::{Address, State, Type, WasmType, WasmValue};
 
@@ -227,7 +227,7 @@ unsafe fn create_success_imports() -> *mut c_void {
 }
 
 fn deploy_template_bytes(version: u16, name: &str, ctors: &[String], wasm: &[u8]) -> Vec<u8> {
-    let data: DataLayout = vec![4].into();
+    let data: Layout = vec![4].into();
 
     svm_runtime::testing::build_template(version, name, data, ctors, WasmFile::Binary(wasm))
 }

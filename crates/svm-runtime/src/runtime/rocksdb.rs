@@ -3,7 +3,7 @@ use std::path::Path;
 use crate::env::rocksdb::{RocksdbAppStore, RocksdbEnv, RocksdbTemplateStore};
 use crate::env::traits::EnvSerializerTypes;
 
-use svm_layout::DataLayout;
+use svm_layout::Layout;
 use svm_storage::app::AppStorage;
 use svm_types::{AppAddr, State};
 
@@ -46,7 +46,7 @@ where
 fn app_storage_build(
     _addr: &AppAddr,
     _state: &State,
-    _layout: &DataLayout,
+    _layout: &Layout,
     _config: &Config,
 ) -> AppStorage {
     todo!()
