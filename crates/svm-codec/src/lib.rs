@@ -125,7 +125,7 @@ macro_rules! wasm_func_call {
 /// If the encoding failed, the returned WASM buffer will contain a String containing the error message.
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
-pub extern "C" fn wasm_deploy_template(offset: i32) -> i32 {
+pub extern "C" fn wasm_encode_deploy_template(offset: i32) -> i32 {
     wasm_func_call!(encode_deploy_template, offset)
 }
 
