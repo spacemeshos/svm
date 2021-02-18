@@ -286,7 +286,7 @@ describe("Deploy Template", function () {
       };
 
       const buf = wasmNewBuffer(instance, tx);
-      const result = instanceCall(instance, "wasm_deploy_template", buf);
+      const result = instanceCall(instance, "wasm_encode_deploy_template", buf);
 
       let len = wasmBufferLength(instance, result);
       const slice = wasmBufferDataSlice(instance, result, 0, len);
@@ -306,7 +306,7 @@ describe("Deploy Template", function () {
       };
 
       const buf = wasmNewBuffer(instance, tx);
-      const result = instanceCall(instance, "wasm_deploy_template", buf);
+      const result = instanceCall(instance, "wasm_encode_deploy_template", buf);
 
       const error = loadWasmBufferError(instance, result);
       assert.strictEqual(
