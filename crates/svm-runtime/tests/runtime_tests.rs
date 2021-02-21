@@ -9,8 +9,8 @@ use svm_gas::error::ProgramError;
 use svm_layout::{Layout, VarId};
 use svm_runtime::{error::ValidateError, testing, Runtime};
 
-use svm_types::receipt::{ExecReceipt, Log, ReceiptError, SpawnAppReceipt, TemplateReceipt};
-use svm_types::{gas::MaybeGas, Address};
+use svm_types::receipt::{ExecReceipt, Log, SpawnAppReceipt, TemplateReceipt};
+use svm_types::{gas::MaybeGas, Address, RuntimeError};
 
 macro_rules! default_runtime {
     () => {{
@@ -165,7 +165,7 @@ fn default_runtime_spawn_app_with_non_ctor_fails() {
     let receipt = runtime.spawn_app(&bytes, &creator, maybe_gas);
     assert!(matches!(
         receipt.error.unwrap(),
-        ReceiptError::FuncNotAllowed { .. }
+        RuntimeError::FuncNotAllowed { .. }
     ));
 }
 
@@ -298,11 +298,13 @@ fn default_runtime_exec_app_with_ctor_fails() {
     // 3) execute a transaction
     let calldata = Vec::new();
     let bytes = testing::build_app_tx(version, &app_addr, ctor, &calldata);
-    let receipt = runtime.exec_app(&bytes, &init_state, maybe_gas);
+    let tx = runtime.validate_tx(&bytes).unwrap();
+
+    let receipt = runtime.exec_app(&tx, &init_state, maybe_gas);
 
     assert!(matches!(
         receipt.error.unwrap(),
-        ReceiptError::FuncNotAllowed { .. }
+        RuntimeError::FuncNotAllowed { .. }
     ));
 }
 
@@ -351,8 +353,9 @@ fn default_runtime_exec_app_reaches_oog() {
     let logs = Vec::new();
 
     let expected = ExecReceipt::new_oog(logs);
-    let actual = runtime.exec_app(&bytes, &init_state, maybe_gas);
+    let tx = runtime.validate_tx(&bytes).unwrap();
 
+    let actual = runtime.exec_app(&tx, &init_state, maybe_gas);
     assert_eq!(expected, actual)
 }
 
@@ -400,8 +403,9 @@ fn default_runtime_calldata_returndata() {
     msg.encode(&mut calldata);
 
     let bytes = testing::build_app_tx(version, &app_addr, func, &calldata);
+    let tx = runtime.validate_tx(&bytes).unwrap();
 
-    let receipt = runtime.exec_app(&bytes, &init_state, maybe_gas);
+    let receipt = runtime.exec_app(&tx, &init_state, maybe_gas);
     assert!(receipt.success);
 
     let state = receipt.get_new_state();
@@ -411,8 +415,9 @@ fn default_runtime_calldata_returndata() {
     let calldata = Vec::new();
 
     let bytes = testing::build_app_tx(version, &app_addr, func, &calldata);
+    let tx = runtime.validate_tx(&bytes).unwrap();
 
-    let receipt = runtime.exec_app(&bytes, &state, maybe_gas);
+    let receipt = runtime.exec_app(&tx, &state, maybe_gas);
     assert!(receipt.success);
 
     let bytes = receipt.returndata.unwrap();

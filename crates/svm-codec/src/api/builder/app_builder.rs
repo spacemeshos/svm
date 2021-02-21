@@ -87,7 +87,7 @@ impl SpawnAppBuilder {
 
     pub fn build(self) -> Vec<u8> {
         let version = self.version.unwrap();
-        let template = self.template.unwrap();
+        let template_addr = self.template.unwrap();
         let name = self.name.unwrap();
         let ctor_name = self.ctor_name.unwrap();
 
@@ -98,7 +98,7 @@ impl SpawnAppBuilder {
 
         let spawn = SpawnApp {
             version,
-            app: App { name, template },
+            app: App::new(template_addr, name),
             ctor_name,
             calldata,
         };

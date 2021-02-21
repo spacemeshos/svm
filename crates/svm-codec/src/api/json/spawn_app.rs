@@ -29,7 +29,7 @@ pub fn encode_spawn_app(json: &Value) -> Result<Vec<u8>, JsonError> {
 
     let spawn = SpawnApp {
         version,
-        app: App { name, template },
+        app: App::new(template, name),
         ctor_name,
         calldata,
     };
@@ -51,7 +51,7 @@ pub fn decode_spawn_app(json: &Value) -> Result<Value, JsonError> {
 
     let version = spawn.version;
     let ctor_name = spawn.ctor_name;
-    let template = json::addr_to_str(&spawn.app.template.inner());
+    let template = json::addr_to_str(&spawn.app.template_addr.inner());
 
     let calldata = json::bytes_to_str(&spawn.calldata);
     let calldata = json::decode_calldata(&json!({ "calldata": calldata }))?;

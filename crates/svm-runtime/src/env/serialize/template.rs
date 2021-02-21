@@ -1,10 +1,14 @@
 use std::io::Cursor;
 
+use svm_codec::template;
+use svm_codec::{Field, ReadExt, WriteExt};
+
 use svm_types::{AuthorAddr, Template};
 
-use crate::serialize::{TemplateDeserializer, TemplateSerializer};
-use crate::template;
-use crate::{Field, ReadExt, WriteExt};
+use crate::env::traits;
+use crate::env::ExtTemplate;
+
+use traits::{TemplateDeserializer, TemplateSerializer};
 
 /// `Template` default Serializer
 pub struct DefaultTemplateSerializer;
@@ -13,10 +17,13 @@ pub struct DefaultTemplateSerializer;
 pub struct DefaultTemplateDeserializer;
 
 impl TemplateSerializer for DefaultTemplateSerializer {
-    fn serialize(template: &Template, author: &AuthorAddr) -> Vec<u8> {
+    fn serialize(template: &ExtTemplate) -> Vec<u8> {
         let mut w = Vec::new();
 
-        template::encode_deploy_template(template, &mut w);
+        let base = template.base();
+        let author = template.author();
+
+        template::encode_deploy_template(base, &mut w);
 
         w.write_address(author.inner());
 
@@ -25,11 +32,11 @@ impl TemplateSerializer for DefaultTemplateSerializer {
 }
 
 impl TemplateDeserializer for DefaultTemplateDeserializer {
-    fn deserialize(bytes: &[u8]) -> Option<(Template, AuthorAddr)> {
+    fn deserialize(bytes: &[u8]) -> Option<ExtTemplate> {
         let mut cursor = Cursor::new(bytes);
 
-        let template = match template::decode_deploy_template(&mut cursor) {
-            Ok(template) => template,
+        let base = match template::decode_deploy_template(&mut cursor) {
+            Ok(base) => base,
             _ => return None,
         };
 
@@ -38,7 +45,9 @@ impl TemplateDeserializer for DefaultTemplateDeserializer {
             _ => return None,
         };
 
-        Some((template, author))
+        let template = ExtTemplate::new(base, &author);
+
+        Some(template)
     }
 }
 
@@ -54,12 +63,12 @@ mod tests {
     use DefaultTemplateSerializer as S;
 
     #[test]
-    fn serialize_deploy_template() {
+    fn serialize_template() {
         let template = Template {
             version: 0,
             name: "My Template".to_string(),
             code: vec![0x0C, 0x00, 0x0D, 0x0E],
-            data: vec![10, 20, 30].into(),
+            layout: vec![10, 20, 30].into(),
             ctors: vec!["init".into(), "start".into()],
         };
 

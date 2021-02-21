@@ -1,10 +1,16 @@
-use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
+use std::{
+    cell::{Ref, RefCell, RefMut},
+    env::temp_dir,
+};
 
+use svm_codec::template;
 use wasmer::Memory;
 
 use svm_storage::app::AppStorage;
-use svm_types::{gas::MaybeGas, receipt::Log};
+use svm_types::gas::MaybeGas;
+use svm_types::receipt::Log;
+use svm_types::{AppAddr, TemplateAddr};
 
 /// `Context` is a container for the accessible data by `wasmer` instances.
 ///
@@ -14,6 +20,10 @@ use svm_types::{gas::MaybeGas, receipt::Log};
 #[derive(wasmer::WasmerEnv, Clone)]
 pub struct Context {
     inner: Rc<RefCell<ContextInner>>,
+
+    template_addr: TemplateAddr,
+
+    app_addr: AppAddr,
 }
 
 // SVM is single-threaded.
@@ -23,21 +33,42 @@ unsafe impl Sync for Context {}
 
 impl Context {
     /// Creates a new instance
-    pub fn new(gas_limit: MaybeGas, storage: AppStorage) -> Self {
+    pub fn new(
+        gas_limit: MaybeGas,
+        storage: AppStorage,
+        template_addr: &TemplateAddr,
+        app_addr: &AppAddr,
+    ) -> Self {
         let inner = ContextInner::new(gas_limit, storage);
 
         Self {
             inner: Rc::new(RefCell::new(inner)),
+            template_addr: template_addr.clone(),
+            app_addr: app_addr.clone(),
         }
     }
 
     /// New instance with explicit memory
-    pub fn new_with_memory(memory: Memory, gas_limit: MaybeGas, storage: AppStorage) -> Self {
-        let ctx = Self::new(gas_limit, storage);
+    pub fn new_with_memory(
+        memory: Memory,
+        gas_limit: MaybeGas,
+        storage: AppStorage,
+        template_addr: &TemplateAddr,
+        app_addr: &AppAddr,
+    ) -> Self {
+        let ctx = Self::new(gas_limit, storage, template_addr, app_addr);
 
         ctx.borrow_mut().set_memory(memory);
 
         ctx
+    }
+
+    pub fn template_addr(&self) -> &TemplateAddr {
+        &self.template_addr
+    }
+
+    pub fn app_addr(&self) -> &AppAddr {
+        &self.app_addr
     }
 
     /// Borrows the `Context`

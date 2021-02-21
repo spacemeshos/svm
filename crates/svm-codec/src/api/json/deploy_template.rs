@@ -34,7 +34,7 @@ pub fn deploy_template(json: &Value) -> Result<Vec<u8>, JsonError> {
         version,
         name,
         code,
-        data,
+        layout: data,
         ctors,
     };
 
@@ -180,7 +180,7 @@ mod tests {
             version: 0,
             name: "My Template".to_string(),
             code: vec![0xC0, 0xDE],
-            data: vec![1, 3].into(),
+            layout: vec![1, 3].into(),
             ctors: vec!["init".into(), "start".into()],
         };
 

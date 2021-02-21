@@ -1,17 +1,20 @@
-use std::{collections::HashMap, marker::PhantomData};
+use std::collections::HashMap;
+use std::marker::PhantomData;
 
-use crate::env::default::DefaultSerializerTypes as DSer;
-use crate::env::traits::{AppStore, EnvSerializerTypes};
+use crate::env::ExtApp;
+use crate::env::{default, traits};
 
-use svm_codec::serializers::{AppDeserializer, AppSerializer};
-use svm_types::{Address, App, AppAddr, CreatorAddr};
+use default::DefaultSerializers as S;
+use traits::{AppDeserializer, AppSerializer, AppStore, EnvSerializers};
+
+use svm_types::{Address, AppAddr, SpawnerAddr};
 
 /// In-memory `AppStore` implementation.
 /// Should be used for testing purposes only.
 pub struct MemAppStore<S, D> {
     app_bytes: HashMap<Address, Vec<u8>>,
 
-    _phantom: PhantomData<(S, D)>,
+    phantom: PhantomData<(S, D)>,
 }
 
 impl<S, D> MemAppStore<S, D>
@@ -24,7 +27,7 @@ where
         Self {
             app_bytes: HashMap::new(),
 
-            _phantom: PhantomData,
+            phantom: PhantomData,
         }
     }
 }
@@ -34,13 +37,13 @@ where
     S: AppSerializer,
     D: AppDeserializer,
 {
-    fn store(&mut self, app: &App, creator: &CreatorAddr, addr: &AppAddr) {
-        let bytes = S::serialize(app, creator);
+    fn store(&mut self, app: &ExtApp, addr: &AppAddr) {
+        let bytes = S::serialize(app);
 
         self.app_bytes.insert(addr.inner().clone(), bytes);
     }
 
-    fn load(&self, addr: &AppAddr) -> Option<(App, CreatorAddr)> {
+    fn load(&self, addr: &AppAddr) -> Option<ExtApp> {
         let bytes = self.app_bytes.get(addr.inner());
 
         bytes.and_then(|bytes| D::deserialize(&bytes[..]))
@@ -48,7 +51,5 @@ where
 }
 
 /// `MemAppStore` with default serialization.
-pub type DefaultMemAppStore = MemAppStore<
-    <DSer as EnvSerializerTypes>::AppSerializer,
-    <DSer as EnvSerializerTypes>::AppDeserializer,
->;
+pub type DefaultMemAppStore =
+    MemAppStore<<S as EnvSerializers>::AppSerializer, <S as EnvSerializers>::AppDeserializer>;

@@ -1,20 +1,17 @@
 use std::marker::PhantomData;
 
-use crate::env::default::{
-    DefaultAppAddressCompute, DefaultTemplateAddressCompute, DefaultTemplateHasher,
-};
+use crate::env::{default, memory, traits};
 
-use crate::env::{
-    memory::{MemAppStore, MemTemplateStore},
-    traits::{Env, EnvSerializerTypes, EnvTypes},
-};
+use default::{DefaultAppAddressCompute, DefaultTemplateAddressCompute, DefaultTemplateHasher};
+use memory::{MemAppStore, MemTemplateStore};
+use traits::{Env, EnvSerializers, EnvTypes};
 
 /// Aggregates the types for in-memory environments.
 pub struct MemoryEnvTypes<S>(PhantomData<S>);
 
 impl<S> EnvTypes for MemoryEnvTypes<S>
 where
-    S: EnvSerializerTypes,
+    S: EnvSerializers,
 {
     type TemplateStore = MemTemplateStore<S::TemplateSerializer, S::TemplateDeserializer>;
 
@@ -28,23 +25,23 @@ where
 }
 
 /// An in-memory implementation for `Env`
-pub struct MemoryEnv<Ser>
+pub struct MemoryEnv<S>
 where
-    Ser: EnvSerializerTypes,
+    S: EnvSerializers,
 {
-    app_store: <MemoryEnvTypes<Ser> as EnvTypes>::AppStore,
+    app_store: <MemoryEnvTypes<S> as EnvTypes>::AppStore,
 
-    template_store: <MemoryEnvTypes<Ser> as EnvTypes>::TemplateStore,
+    template_store: <MemoryEnvTypes<S> as EnvTypes>::TemplateStore,
 }
 
-impl<Ser> MemoryEnv<Ser>
+impl<S> MemoryEnv<S>
 where
-    Ser: EnvSerializerTypes,
+    S: EnvSerializers,
 {
     /// Creates a new in-memory environment.
     pub fn new(
-        app_store: <MemoryEnvTypes<Ser> as EnvTypes>::AppStore,
-        template_store: <MemoryEnvTypes<Ser> as EnvTypes>::TemplateStore,
+        app_store: <MemoryEnvTypes<S> as EnvTypes>::AppStore,
+        template_store: <MemoryEnvTypes<S> as EnvTypes>::TemplateStore,
     ) -> Self {
         Self {
             app_store,
@@ -53,11 +50,11 @@ where
     }
 }
 
-impl<Ser> Env for MemoryEnv<Ser>
+impl<S> Env for MemoryEnv<S>
 where
-    Ser: EnvSerializerTypes,
+    S: EnvSerializers,
 {
-    type Types = MemoryEnvTypes<Ser>;
+    type Types = MemoryEnvTypes<S>;
 
     fn get_template_store(&self) -> &<Self::Types as EnvTypes>::TemplateStore {
         &self.template_store
@@ -77,4 +74,4 @@ where
 }
 
 /// `MemoryEnv` with default serialization.
-pub type DefaultMemoryEnv = MemoryEnv<crate::env::default::DefaultSerializerTypes>;
+pub type DefaultMemoryEnv = MemoryEnv<default::DefaultSerializers>;

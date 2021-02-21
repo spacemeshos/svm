@@ -1,3 +1,21 @@
+//!  `Template` Raw Format
+//!
+//!  +_____________________________________________________+
+//!  |            |                                        |
+//!  |  version   |               name                     |
+//!  |  (2 bytes) |             (String)                   |
+//!  +____________|________________________________________+
+//!  |               |                                     |
+//!  |  Code #bytes  |          Code (WASM)                |
+//!  |   (4 bytes)   |                                     |
+//!  +_______________|_____________________________________+
+//!  |               |             |         |             |
+//!  |  Data-Layout  |  var #0     |         |   var #N    |
+//!  |  #variables   |  length     |  . . .  |   length    |
+//!  +_______________|_____________|_________|_____________+
+//!
+//!
+
 use std::fs::File;
 use std::io::{Cursor, Read};
 
@@ -29,7 +47,7 @@ pub fn decode_deploy_template(cursor: &mut Cursor<&[u8]>) -> Result<Template, Pa
         version,
         name,
         code,
-        data,
+        layout: data,
     };
 
     Ok(template)
@@ -48,13 +66,13 @@ fn encode_name(template: &Template, w: &mut Vec<u8>) {
 }
 
 fn encode_data(template: &Template, w: &mut Vec<u8>) {
-    let nvars = template.data.len();
+    let nvars = template.layout.len();
 
     assert!(nvars < std::u16::MAX as usize);
 
     w.write_u16_be(nvars as u16);
 
-    for (_varid, _off, len) in template.data.iter() {
+    for (_varid, _off, len) in template.layout.iter() {
         w.write_u16_be(len as u16);
     }
 }
@@ -156,7 +174,7 @@ mod tests {
             version: 0,
             name: "My Template".to_string(),
             code: vec![0x0C, 0x00, 0x0D, 0x0E],
-            data: vec![5, 10].into(),
+            layout: vec![5, 10].into(),
             ctors: vec!["init".into(), "start".into()],
         };
 

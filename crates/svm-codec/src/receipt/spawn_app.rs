@@ -123,14 +123,14 @@ fn encode_returndata(receipt: &SpawnAppReceipt, w: &mut Vec<u8>) {
 mod tests {
     use super::*;
 
-    use svm_types::receipt::{Log, ReceiptError};
-    use svm_types::{gas::MaybeGas, Address, AppAddr, State};
+    use svm_types::receipt::Log;
+    use svm_types::{gas::MaybeGas, Address, AppAddr, RuntimeError, State};
 
     #[test]
     fn encode_decode_spawn_app_receipt_error() {
         let template_addr = Address::of("my-template").into();
 
-        let error = ReceiptError::TemplateNotFound(template_addr);
+        let error = RuntimeError::TemplateNotFound(template_addr);
 
         let receipt = SpawnAppReceipt {
             version: 0,

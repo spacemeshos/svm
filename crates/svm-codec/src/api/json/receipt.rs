@@ -3,9 +3,8 @@ use serde_json::{json, Value};
 use crate::api::json::{self, JsonError};
 use crate::receipt;
 
-use svm_types::receipt::{
-    ExecReceipt, Log, ReceiptError, Receipt, SpawnAppReceipt, TemplateReceipt,
-};
+use svm_types::receipt::{ExecReceipt, Log, Receipt, SpawnAppReceipt, TemplateReceipt};
+use svm_types::RuntimeError;
 
 /// Given a binary Receipt wrappend inside a JSON,
 /// decodes it into a user-friendly JSON.
@@ -43,21 +42,21 @@ fn receipt_type(receipt: &Receipt) -> &'static str {
     }
 }
 
-fn decode_error(ty: &'static str, err: &ReceiptError, logs: &[Log]) -> Value {
+fn decode_error(ty: &'static str, err: &RuntimeError, logs: &[Log]) -> Value {
     let mut json = {
         match err {
-            ReceiptError::OOG => json!({
+            RuntimeError::OOG => json!({
                 "err_type": "oog",
             }),
-            ReceiptError::TemplateNotFound(template_addr) => json!({
+            RuntimeError::TemplateNotFound(template_addr) => json!({
                 "err_type": "template-not-found",
                 "template_addr": json::addr_to_str(template_addr.inner()),
             }),
-            ReceiptError::AppNotFound(app_addr) => json!({
+            RuntimeError::AppNotFound(app_addr) => json!({
                 "err_type": "app-not-found",
                 "app_addr": json::addr_to_str(app_addr.inner()),
             }),
-            ReceiptError::CompilationFailed {
+            RuntimeError::CompilationFailed {
                 app_addr,
                 template_addr,
                 msg,
@@ -67,7 +66,7 @@ fn decode_error(ty: &'static str, err: &ReceiptError, logs: &[Log]) -> Value {
                 "app_addr": json::addr_to_str(app_addr.inner()),
                 "message": msg,
             }),
-            ReceiptError::InstantiationFailed {
+            RuntimeError::InstantiationFailed {
                 app_addr,
                 template_addr,
                 msg,
@@ -77,7 +76,7 @@ fn decode_error(ty: &'static str, err: &ReceiptError, logs: &[Log]) -> Value {
                 "app_addr": json::addr_to_str(app_addr.inner()),
                 "message": msg,
             }),
-            ReceiptError::FuncNotFound {
+            RuntimeError::FuncNotFound {
                 app_addr,
                 template_addr,
                 func,
@@ -87,7 +86,7 @@ fn decode_error(ty: &'static str, err: &ReceiptError, logs: &[Log]) -> Value {
                 "app_addr": json::addr_to_str(app_addr.inner()),
                 "func": func,
             }),
-            ReceiptError::FuncFailed {
+            RuntimeError::FuncFailed {
                 app_addr,
                 template_addr,
                 func,
@@ -99,7 +98,7 @@ fn decode_error(ty: &'static str, err: &ReceiptError, logs: &[Log]) -> Value {
                 "func": func,
                 "message": msg,
             }),
-            ReceiptError::FuncNotAllowed {
+            RuntimeError::FuncNotAllowed {
                 app_addr,
                 template_addr,
                 func,
@@ -110,6 +109,16 @@ fn decode_error(ty: &'static str, err: &ReceiptError, logs: &[Log]) -> Value {
                 "app_addr": json::addr_to_str(app_addr.inner()),
                 "func": func,
                 "message": msg,
+            }),
+            RuntimeError::FuncInvalidSignature {
+                app_addr,
+                template_addr,
+                func,
+            } => json!({
+                "err_type": "function-invalid-signature",
+                "template_addr": json::addr_to_str(template_addr.inner()),
+                "app_addr": json::addr_to_str(app_addr.inner()),
+                "func": func,
             }),
         }
     };
@@ -301,7 +310,7 @@ mod tests {
         let receipt = SpawnAppReceipt {
             version: 0,
             success: false,
-            error: Some(ReceiptError::OOG),
+            error: Some(RuntimeError::OOG),
             app_addr: None,
             init_state: None,
             returndata: None,

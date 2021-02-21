@@ -2,7 +2,7 @@ use crate::{AppAddr, TemplateAddr};
 
 #[doc(hidden)]
 #[derive(Debug, PartialEq, Clone)]
-pub enum ReceiptError {
+pub enum RuntimeError {
     OOG,
     TemplateNotFound(TemplateAddr),
     AppNotFound(AppAddr),
@@ -32,5 +32,10 @@ pub enum ReceiptError {
         template_addr: TemplateAddr,
         func: String,
         msg: String,
+    },
+    FuncInvalidSignature {
+        app_addr: AppAddr,
+        template_addr: TemplateAddr,
+        func: String,
     },
 }

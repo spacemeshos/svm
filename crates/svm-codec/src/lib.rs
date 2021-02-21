@@ -16,7 +16,6 @@ mod calldata;
 mod common;
 mod ext;
 mod field;
-mod serialize;
 
 /// Encoding for apps
 pub mod app;
@@ -44,24 +43,6 @@ pub mod receipt;
 
 mod error;
 pub use error::ParseError;
-
-/// Serializtions of SVM internals.
-///
-/// Important: these types are **NOT** for used the encoding of SVM transactions neither the SVM Receipts.
-///
-/// These are used for:
-/// * `Template-Store` - storing the `Templates` code and metadata
-/// * *App-Store` - storing the spawned `Apps`
-///
-/// The `App`s internal storage is managed in separate (a.k.a the Global-State, Accounts-db).
-pub mod serializers {
-    pub use crate::app::{DefaultAppDeserializer, DefaultAppSerializer};
-    pub use crate::template::{DefaultTemplateDeserializer, DefaultTemplateSerializer};
-
-    pub use crate::serialize::{
-        AppDeserializer, AppSerializer, TemplateDeserializer, TemplateSerializer,
-    };
-}
 
 /// # WASM API
 ///

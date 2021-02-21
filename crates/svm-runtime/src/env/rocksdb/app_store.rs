@@ -1,7 +1,7 @@
 use std::{marker::PhantomData, path::Path};
 
 use svm_codec::serializers::{AppDeserializer, AppSerializer};
-use svm_types::{App, AppAddr, CreatorAddr};
+use svm_types::{App, AppAddr, SpawnerAddr};
 
 use crate::env::traits::AppStore;
 
@@ -31,11 +31,11 @@ where
     S: AppSerializer,
     D: AppDeserializer,
 {
-    fn store(&mut self, _app: &App, _creator: &CreatorAddr, _addr: &AppAddr) {
+    fn store(&mut self, _app: &App, _creator: &SpawnerAddr, _addr: &AppAddr) {
         todo!()
     }
 
-    fn load(&self, _addr: &AppAddr) -> Option<(App, CreatorAddr)> {
+    fn load(&self, _addr: &AppAddr) -> Option<(App, SpawnerAddr)> {
         todo!()
     }
 }

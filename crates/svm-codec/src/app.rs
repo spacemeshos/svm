@@ -1,3 +1,14 @@
+//              Spawn-App Raw Format
+//
+//  +-------------------------------------------------------+
+//  |             |                                         |
+//  |  `version`  |        `Template` (`Address`)           |
+//  |_____________|_________________________________________|
+//  |               |                                       |
+//  | ctor (String) |           ctor `CallData`             |
+//  +_______________|_______________________________________+
+//
+
 use std::io::Cursor;
 
 use svm_types::{App, SpawnApp, TemplateAddr, WasmValue};
@@ -19,12 +30,15 @@ pub fn encode_spawn_app(spawn: &SpawnApp, w: &mut Vec<u8>) {
 /// On failure, returns `ParseError`.
 pub fn decode_spawn_app(cursor: &mut Cursor<&[u8]>) -> Result<SpawnApp, ParseError> {
     let version = decode_version(cursor)?;
-    let template = decode_template(cursor)?;
+    let template_addr = decode_template(cursor)?;
     let name = decode_name(cursor)?;
     let ctor_name = decode_ctor(cursor)?;
     let calldata = decode_ctor_calldata(cursor)?;
 
-    let app = App { name, template };
+    let app = App {
+        name,
+        template_addr,
+    };
 
     let spawn = SpawnApp {
         version,
@@ -45,13 +59,13 @@ fn encode_version(spawn: &SpawnApp, w: &mut Vec<u8>) {
 }
 
 fn encode_name(spawn: &SpawnApp, w: &mut Vec<u8>) {
-    let name = &spawn.app.name;
+    let name = spawn.app_name();
 
     w.write_string(name);
 }
 
 fn encode_template(spawn: &SpawnApp, w: &mut Vec<u8>) {
-    let template = &spawn.app.template;
+    let template = spawn.template_addr();
 
     w.write_address(template.inner());
 }

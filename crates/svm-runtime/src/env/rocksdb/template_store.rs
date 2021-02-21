@@ -4,7 +4,7 @@ use svm_kv::{rocksdb::Rocksdb, traits::RawKV};
 use svm_types::{AuthorAddr, Template, TemplateAddr};
 
 use crate::env::traits::TemplateStore;
-use crate::env::types::TemplateHash;
+use crate::env::hash::TemplateHash;
 
 use svm_codec::serializers::{TemplateDeserializer, TemplateSerializer};
 

@@ -209,10 +209,10 @@ pub unsafe extern "C" fn svm_validate_tx(
     let runtime: &mut Box<dyn Runtime> = runtime.into();
 
     match runtime.validate_tx(bytes.into()) {
-        Ok(addr) => {
+        Ok(tx) => {
             // returning encoded `AppReceipt` as `svm_byte_array`.
             // should call later `svm_receipt_destroy`
-            addr_to_svm_byte_array!(VALIDATE_TX_APP_ADDR_TYPE, app_addr, addr.unwrap());
+            addr_to_svm_byte_array!(VALIDATE_TX_APP_ADDR_TYPE, app_addr, tx.app.unwrap());
 
             debug!("`svm_validate_tx` returns `SVM_SUCCESS`");
             svm_result_t::SVM_SUCCESS
@@ -811,7 +811,9 @@ pub unsafe extern "C" fn svm_exec_app(
     }
 
     let gas_limit = maybe_gas!(gas_metering, gas_limit);
-    let rust_receipt = runtime.exec_app(bytes.into(), &state.unwrap(), gas_limit);
+
+    let tx = runtime.validate_tx(bytes.into()).unwrap();
+    let rust_receipt = runtime.exec_app(&tx, &state.unwrap(), gas_limit);
     let receipt_bytes = receipt::encode_exec_receipt(&rust_receipt);
 
     // returning encoded `ExecReceipt` as `svm_byte_array`.

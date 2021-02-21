@@ -11,7 +11,7 @@ macro_rules! impl_addr_type {
 }
 
 impl_addr_type!(Author);
-impl_addr_type!(Creator);
+impl_addr_type!(Spawner);
 impl_addr_type!(Template);
 impl_addr_type!(App);
 
@@ -21,8 +21,8 @@ pub type TemplateAddr = AddressOf<Template>;
 /// Address of a Template Author.
 pub type AuthorAddr = AddressOf<Author>;
 
-/// Address of an App Creator.
-pub type CreatorAddr = AddressOf<Creator>;
+/// Address of an App Spawner.
+pub type SpawnerAddr = AddressOf<Spawner>;
 
 /// Address of an App.
 pub type AppAddr = AddressOf<Author>;

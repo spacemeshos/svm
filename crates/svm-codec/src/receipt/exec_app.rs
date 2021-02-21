@@ -104,13 +104,12 @@ mod tests {
     use super::*;
 
     use svm_types::gas::MaybeGas;
-    use svm_types::receipt::ReceiptError;
-    use svm_types::{Address, State};
+    use svm_types::{Address, RuntimeError, State};
 
     #[test]
     fn encode_decode_exec_receipt_error() {
         let app = Address::of("my-app");
-        let error = ReceiptError::AppNotFound(app.into());
+        let error = RuntimeError::AppNotFound(app.into());
 
         let logs = vec![Log {
             msg: b"something happened".to_vec(),
