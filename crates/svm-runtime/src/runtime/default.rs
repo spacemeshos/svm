@@ -172,6 +172,7 @@ where
         }
     }
 
+    /// Opens the `AppStorage` associated with the input params.
     pub fn open_storage(&self, app_addr: &AppAddr, state: &State, layout: &Layout) -> AppStorage {
         (self.storage_builder)(app_addr, state, layout, &self.config)
     }

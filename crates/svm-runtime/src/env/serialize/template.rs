@@ -57,7 +57,7 @@ mod tests {
 
     use super::*;
 
-    use svm_types::Address;
+    use svm_types::{Address, Template};
 
     use DefaultTemplateDeserializer as D;
     use DefaultTemplateSerializer as S;

@@ -59,10 +59,13 @@ impl Context {
         ctx
     }
 
+    /// Returns the `Address` of the `Template` associated
+    /// with the current executed `App`.
     pub fn template_addr(&self) -> &TemplateAddr {
         &self.template_addr
     }
 
+    /// Returns the `Address` of the current executed `App`.
     pub fn app_addr(&self) -> &AppAddr {
         &self.app_addr
     }

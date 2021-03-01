@@ -27,6 +27,7 @@ impl TemplateAddressCompute for DefaultTemplateAddressCompute {
     }
 }
 
+/// Default implementation for computing an `App Address`
 pub struct DefaultAppAddressCompute;
 
 impl AppAddressCompute for DefaultAppAddressCompute {
