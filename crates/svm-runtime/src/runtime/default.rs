@@ -257,7 +257,7 @@ where
                     }
                 }
             }
-            Err(err) => ExecReceipt::from_err(err, Vec::new()),
+            Err(err) => err.into(),
         }
     }
 
@@ -276,34 +276,10 @@ where
         template: &ExtTemplate,
         import_object: &ImportObject,
     ) -> RuntimeResult<Vec<u8>> {
+        self.validate_call(call, template, ctx)?;
+
         let module = self.compile_template(store, ctx, &template, call.gas_left())?;
-
-        let within_spawn = call.within_spawn();
-        let is_ctor = template.is_ctor(call.func_name());
-
-        if within_spawn && !is_ctor {
-            let msg = "expected function to be a constructor";
-            let err = self.func_not_allowed(ctx, call.func_name(), msg);
-
-            return Err(err);
-        }
-
-        if !within_spawn && is_ctor {
-            let msg = "expected function to be a non-constructor";
-            let err = self.func_not_allowed(ctx, call.func_name(), msg);
-
-            return Err(err);
-        }
-
-        let instance = self.instantiate(ctx, &module, import_object);
-
-        if instance.is_err() {
-            let err = instance.unwrap_err();
-
-            return Err(err.into());
-        }
-
-        let instance = instance.unwrap();
+        let instance = self.instantiate(ctx, &module, import_object)?;
 
         self.set_memory(ctx, &instance);
 
@@ -346,7 +322,7 @@ where
         // TODO: return an error instead of `panic`
         self.assert_no_returndata(ctx);
 
-        let wasm_ptr = out.returns().clone();
+        let wasm_ptr = out.returns();
         self.set_calldata(ctx, calldata, wasm_ptr);
 
         self.call(instance, ctx, func, params)
@@ -509,7 +485,7 @@ where
         &self,
         instance: &'i Instance,
         ctx: &Context,
-        func_name: &str,
+        func_name: &'i str,
     ) -> Result<Function<'i, Args, Rets>, Failure>
     where
         Args: WasmTypeList,
@@ -597,6 +573,32 @@ where
 
         let module = svm_compiler::compile(store, template.code(), gas_left, gas_metering);
         module.map_err(|err| self.compilation_failed(ctx, err))
+    }
+
+    fn validate_call(
+        &self,
+        call: &Call,
+        template: &ExtTemplate,
+        ctx: &Context,
+    ) -> Result<(), Failure> {
+        let spawning = call.within_spawn();
+        let ctor = template.is_ctor(call.func_name());
+
+        if spawning && !ctor {
+            let msg = "expected function to be a constructor";
+            let err = self.func_not_allowed(ctx, call.func_name(), msg);
+
+            return Err(err);
+        }
+
+        if !spawning && ctor {
+            let msg = "expected function to be a non-constructor";
+            let err = self.func_not_allowed(ctx, call.func_name(), msg);
+
+            return Err(err);
+        }
+
+        Ok(())
     }
 
     /// Gas

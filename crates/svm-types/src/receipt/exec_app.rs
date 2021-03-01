@@ -27,6 +27,12 @@ pub struct ExecReceipt {
     pub logs: Vec<Log>,
 }
 
+impl From<RuntimeError> for ExecReceipt {
+    fn from(err: RuntimeError) -> Self {
+        Self::from_err(err, Vec::new())
+    }
+}
+
 impl ExecReceipt {
     /// Creates a `ExecReceipt` for reaching reaching `Out-of-Gas`.
     pub fn new_oog(logs: Vec<Log>) -> Self {

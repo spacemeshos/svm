@@ -9,7 +9,7 @@ where
 {
     func: &'a wasmer::Function,
 
-    name: String,
+    name: &'a str,
 
     phantom: PhantomData<(Args, Rets)>,
 }
@@ -19,10 +19,10 @@ where
     Args: WasmTypeList,
     Rets: WasmTypeList,
 {
-    pub fn new(func: &'a wasmer::Function, name: &str) -> Self {
+    pub fn new(func: &'a wasmer::Function, name: &'a str) -> Self {
         Self {
             func,
-            name: name.to_string(),
+            name,
             phantom: PhantomData,
         }
     }

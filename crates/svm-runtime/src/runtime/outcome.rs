@@ -28,10 +28,6 @@ impl<T> Outcome<T> {
         }
     }
 
-    pub fn returns(&self) -> &T {
-        &self.returns
-    }
-
     pub fn take_logs(&mut self) -> Vec<Log> {
         std::mem::take(&mut self.logs)
     }
@@ -44,5 +40,11 @@ impl<T> Outcome<T> {
 impl<T: Default> Outcome<T> {
     pub fn take_returns(&mut self) -> T {
         std::mem::take(&mut self.returns)
+    }
+}
+
+impl<T: Copy> Outcome<T> {
+    pub fn returns(&self) -> T {
+        self.returns
     }
 }
