@@ -9,8 +9,9 @@ use svm_gas::error::ProgramError;
 use svm_layout::{Layout, VarId};
 use svm_runtime::{error::ValidateError, testing, Runtime};
 
-use svm_types::receipt::{ExecReceipt, Log, SpawnAppReceipt, TemplateReceipt};
-use svm_types::{gas::MaybeGas, Address, RuntimeError};
+use svm_types::gas::MaybeGas;
+use svm_types::receipt::{ExecReceipt, SpawnAppReceipt, TemplateReceipt};
+use svm_types::{Address, RuntimeError};
 
 macro_rules! default_runtime {
     () => {{
@@ -201,12 +202,7 @@ fn default_runtime_spawn_app_with_ctor_reaches_oog() {
     let bytes = testing::build_app(version, &template_addr, name, ctor, &calldata);
     let maybe_gas = MaybeGas::with(0);
 
-    let log = Log {
-        msg: b"not enough gas (installation_gas = 35000) for installation".to_vec(),
-        code: 1,
-    };
-
-    let expected = SpawnAppReceipt::new_oog(vec![log]);
+    let expected = SpawnAppReceipt::new_oog(Vec::new());
     let actual = runtime.spawn_app(&bytes, &creator, maybe_gas);
     assert_eq!(expected, actual);
 }

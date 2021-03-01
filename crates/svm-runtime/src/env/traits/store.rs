@@ -24,8 +24,11 @@ pub trait AppStore {
     /// Stores `Address` -> `App`
     fn store(&mut self, app: &ExtApp, addr: &AppAddr);
 
-    /// Given a `App` account address, fetches its raw data
+    /// Given a `App` account `Address`, fetches its raw data
     /// and deserializes it into `App`. Returns `None` if `Template` doesn't exist.
     #[must_use]
     fn load(&self, addr: &AppAddr) -> Option<ExtApp>;
+
+    #[must_use]
+    fn find_template_addr(&self, addr: &AppAddr) -> Option<TemplateAddr>;
 }

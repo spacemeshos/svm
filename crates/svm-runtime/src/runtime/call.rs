@@ -28,12 +28,12 @@ impl<'a> CallAddr<'a> {
         Self(Some(template), Some(app))
     }
 
-    pub fn with_app(addr: &'a AppAddr) -> Self {
-        Self(None, Some(addr))
-    }
-
     pub fn with_template(addr: &'a TemplateAddr) -> Self {
         Self(Some(addr), None)
+    }
+
+    pub fn with_app(addr: &'a AppAddr) -> Self {
+        Self(None, Some(addr))
     }
 
     pub fn template_addr(&self) -> &TemplateAddr {

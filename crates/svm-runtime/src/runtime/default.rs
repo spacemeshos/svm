@@ -1,6 +1,6 @@
-use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::path::Path;
+use std::{collections::HashMap, todo};
 
 use log::{error, info};
 
@@ -124,17 +124,24 @@ where
     }
 
     fn exec_app(&self, tx: &Transaction, state: &State, gas_limit: MaybeGas) -> ExecReceipt {
-        let call = Call {
-            func_name: tx.func_name(),
-            calldata: tx.calldata(),
-            addr: CallAddr::with_app(tx.app_addr()),
-            state,
-            gas_used: MaybeGas::with(0),
-            gas_left: gas_limit,
-            within_spawn: false,
-        };
+        let app_addr = tx.app_addr();
+        let template_addr = self.env.find_template_addr(app_addr);
 
-        self.exec(&call)
+        if let Some(template_addr) = template_addr {
+            let call = Call {
+                func_name: tx.func_name(),
+                calldata: tx.calldata(),
+                addr: CallAddr::new(&template_addr, app_addr),
+                state,
+                gas_used: MaybeGas::with(0),
+                gas_left: gas_limit,
+                within_spawn: false,
+            };
+
+            self.exec(&call)
+        } else {
+            todo!()
+        }
     }
 }
 
@@ -276,6 +283,8 @@ where
 
         let mut instance = instance.unwrap();
 
+        self.set_memory(ctx, &instance);
+
         let func = self.get_func::<(), ()>(&instance, ctx, call.func_name());
 
         if func.is_err() {
@@ -304,6 +313,34 @@ where
         }
     }
 
+    fn call_with_alloc<Args, Rets>(
+        &self,
+        instance: &Instance,
+        ctx: &Context,
+        calldata: &[u8],
+        func: &Function<Args, Rets>,
+        params: &[wasmer::Val],
+    ) -> Outcome
+    where
+        Args: WasmTypeList,
+        Rets: WasmTypeList,
+    {
+        let outcome = self.call_alloc(instance, ctx, calldata.len());
+
+        if let Outcome::Failure { err, logs } = outcome {
+            return Outcome::Failure { err, logs };
+        }
+
+        // we assert that `svm_alloc` didn't touch the `returndata`
+        // TODO: return an error instead of `panic`
+        self.assert_no_returndata(ctx);
+
+        let wasm_ptr = outcome.returns().clone();
+        self.set_calldata(ctx, calldata, wasm_ptr);
+
+        self.call(instance, ctx, func, params)
+    }
+
     fn call_alloc(&self, instance: &Instance, ctx: &Context, size: usize) -> Outcome<WasmPtr<u8>> {
         let func_name = "svm_alloc";
 
@@ -329,34 +366,6 @@ where
 
             WasmPtr::new(ptr as u32)
         })
-    }
-
-    fn call_with_alloc<Args, Rets>(
-        &self,
-        instance: &Instance,
-        ctx: &Context,
-        calldata: &[u8],
-        func: &Function<Args, Rets>,
-        params: &[wasmer::Val],
-    ) -> Outcome
-    where
-        Args: WasmTypeList,
-        Rets: WasmTypeList,
-    {
-        let outcome = self.call_alloc(instance, ctx, calldata.len());
-
-        if let Outcome::Failure { err, logs } = outcome {
-            return Outcome::Failure { err, logs };
-        }
-
-        // we assert that `svm_alloc` didn't touch the `returndata`
-        // TODO: return an error instead of `panic`
-        self.assert_no_returndata(ctx);
-
-        let ptr = outcome.returns().clone();
-        self.set_calldata(ctx, calldata, ptr);
-
-        self.call(instance, ctx, func, params)
     }
 
     fn call<Args, Rets>(

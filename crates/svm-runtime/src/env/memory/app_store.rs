@@ -1,13 +1,13 @@
 use std::collections::HashMap;
 use std::marker::PhantomData;
 
-use crate::env::ExtApp;
-use crate::env::{default, traits};
+use crate::env::{self, default, traits};
 
 use default::DefaultSerializers as S;
+use env::ExtApp;
 use traits::{AppDeserializer, AppSerializer, AppStore, EnvSerializers};
 
-use svm_types::{Address, AppAddr, SpawnerAddr};
+use svm_types::{Address, AppAddr, SpawnerAddr, TemplateAddr};
 
 /// In-memory `AppStore` implementation.
 /// Should be used for testing purposes only.
@@ -47,6 +47,12 @@ where
         let bytes = self.app_bytes.get(addr.inner());
 
         bytes.and_then(|bytes| D::deserialize(&bytes[..]))
+    }
+
+    fn find_template_addr(&self, addr: &AppAddr) -> Option<TemplateAddr> {
+        let app = self.load(addr);
+
+        app.map(|x| x.template_addr().clone())
     }
 }
 

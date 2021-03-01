@@ -136,7 +136,13 @@ pub trait Env {
         }
     }
 
-    /// Given an `App` address, loads the `Template` the app is associated with.
+    fn find_template_addr(&self, addr: &AppAddr) -> Option<TemplateAddr> {
+        let store = self.get_app_store();
+
+        store.find_template_addr(&addr)
+    }
+
+    /// Given an `App` Address, loads the `Template` the app is associated with.
     fn load_template_by_app(&self, addr: &AppAddr) -> Option<ExtTemplate> {
         self.load_app(addr).and_then(|app| {
             let addr = app.template_addr();

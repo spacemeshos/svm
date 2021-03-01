@@ -64,14 +64,6 @@ macro_rules! __var_add_impl {
     }};
 }
 
-macro_rules! assert_host_ctx {
-    ($instance:expr, $( $field:expr => $expected:expr), *) => {{
-        let func: &NativeFunc<u32, u64> = &$instance.exports.get_native_function("get_host_ctx").unwrap();
-
-        $( assert_eq!(func.call($field).unwrap(), $expected); )*
-    }}
-}
-
 macro_rules! func {
     ($store:ident, $ctx:ident, $f:expr) => {{
         Function::new_native_with_env(&$store, $ctx.clone(), $f)
@@ -258,7 +250,7 @@ fn vmcalls_store160() {
 
     func.call(var_id, ptr).expect("function has failed");
 
-    assert_storage!(ctx, 0 => b"11223344556677889900");
+    assert_storage!(ctx, 0 => app_addr.as_slice());
 }
 
 #[test]
