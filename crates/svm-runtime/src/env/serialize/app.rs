@@ -1,9 +1,8 @@
 use std::io::Cursor;
 
-use svm_codec::{Field, ReadExt, WriteExt};
+use svm_codec::{ReadExt, WriteExt};
 use svm_types::{App, SpawnerAddr, TemplateAddr};
 
-use crate::env::ExtSpawnApp;
 use crate::env::{traits, ExtApp};
 
 use traits::{AppDeserializer, AppSerializer};

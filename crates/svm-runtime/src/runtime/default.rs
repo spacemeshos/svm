@@ -10,19 +10,18 @@ use env::{ExtApp, ExtSpawnApp, ExtTemplate};
 use traits::{Env, EnvTypes};
 
 use crate::error::ValidateError;
-use crate::gas::{self, GasEstimator};
+use crate::gas::GasEstimator;
 use crate::storage::StorageBuilderFn;
 use crate::vmcalls;
 use crate::{Config, Context, ExternImport, Runtime};
 
-use svm_codec::{app, template, ParseError};
 use svm_ffi::svm_env_t;
 use svm_layout::Layout;
 use svm_storage::app::AppStorage;
 
 use svm_types::gas::{MaybeGas, OOGError};
 use svm_types::receipt::{self, ExecReceipt, Log, SpawnAppReceipt, TemplateReceipt};
-use svm_types::{AppAddr, AuthorAddr, SpawnApp, SpawnerAddr, State, TemplateAddr, Type};
+use svm_types::{AppAddr, AuthorAddr, SpawnerAddr, State, Type};
 use svm_types::{RuntimeError, Transaction};
 
 use wasmer::{Exports, Extern, ImportObject, Instance, Module, Store, WasmPtr, WasmTypeList};
@@ -228,7 +227,7 @@ where
 
                 let (import_object, host_envs) = self.create_import_object(&store, &mut ctx);
 
-                let mut res = self.exec_(&call, &store, &ctx, &template, &import_object);
+                let res = self.exec_(&call, &store, &ctx, &template, &import_object);
 
                 self.drop_envs(host_envs);
 
@@ -604,7 +603,7 @@ where
         1000 * (bytes.len() as u64)
     }
 
-    fn spawn_payload_price(&self, bytes: &[u8], spawn: &ExtSpawnApp) -> u64 {
+    fn spawn_payload_price(&self, bytes: &[u8], _spawn: &ExtSpawnApp) -> u64 {
         // todo!()
         1000 * (bytes.len() as u64)
     }

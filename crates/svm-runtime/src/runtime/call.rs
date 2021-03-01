@@ -1,6 +1,4 @@
-use std::hint::unreachable_unchecked;
-
-use svm_types::{gas::MaybeGas, receipt::TemplateReceipt};
+use svm_types::gas::MaybeGas;
 use svm_types::{AppAddr, State, TemplateAddr};
 
 #[derive(Debug, Clone, PartialEq)]

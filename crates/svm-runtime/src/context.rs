@@ -1,7 +1,6 @@
 use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
 
-use svm_codec::template;
 use wasmer::Memory;
 
 use svm_storage::app::AppStorage;

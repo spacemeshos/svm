@@ -1,14 +1,14 @@
 use std::collections::HashMap;
 use std::marker::PhantomData;
 
-use svm_types::{AuthorAddr, Template, TemplateAddr};
+use svm_types::TemplateAddr;
 
 use crate::env::ExtTemplate;
-use crate::env::{default, traits, hash};
+use crate::env::{default, hash, traits};
 
 use default::DefaultSerializers as S;
-use traits::{EnvSerializers, TemplateDeserializer, TemplateSerializer, TemplateStore};
 use hash::TemplateHash;
+use traits::{EnvSerializers, TemplateDeserializer, TemplateSerializer, TemplateStore};
 
 /// An in-memory implementation of `TemplateStore`
 pub struct MemTemplateStore<S, D> {

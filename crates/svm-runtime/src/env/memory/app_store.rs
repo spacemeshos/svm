@@ -7,7 +7,7 @@ use default::DefaultSerializers as S;
 use env::ExtApp;
 use traits::{AppDeserializer, AppSerializer, AppStore, EnvSerializers};
 
-use svm_types::{Address, AppAddr, SpawnerAddr, TemplateAddr};
+use svm_types::{Address, AppAddr, TemplateAddr};
 
 /// In-memory `AppStore` implementation.
 /// Should be used for testing purposes only.

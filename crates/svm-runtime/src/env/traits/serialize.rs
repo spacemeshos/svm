@@ -1,6 +1,4 @@
 /// `Env` storage serialization types
-use svm_types::{AuthorAddr, SpawnerAddr};
-
 use crate::env::{ExtApp, ExtTemplate};
 
 /// Serializing an `Template` into its raw representation.

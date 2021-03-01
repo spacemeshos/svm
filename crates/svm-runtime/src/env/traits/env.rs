@@ -1,6 +1,6 @@
 use std::io::Cursor;
 
-use crate::env::{hash, serialize, traits};
+use crate::env::{hash, traits};
 use crate::env::{ExtApp, ExtSpawnApp, ExtTemplate};
 
 use hash::TemplateHash;
@@ -11,9 +11,7 @@ use traits::{
 
 use svm_codec::ParseError;
 use svm_codec::{app, template, transaction};
-use svm_types::{
-    App, AppAddr, AuthorAddr, SpawnApp, SpawnerAddr, Template, TemplateAddr, Transaction,
-};
+use svm_types::{AppAddr, SpawnApp, Template, TemplateAddr, Transaction};
 
 /// `Env` storage serialization types
 pub trait EnvSerializerTypes {

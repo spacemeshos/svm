@@ -23,9 +23,9 @@ pub use ptr::RuntimePtr;
 
 use crate::error::ValidateError;
 
+use svm_types::gas::MaybeGas;
 use svm_types::receipt::{ExecReceipt, SpawnAppReceipt, TemplateReceipt};
-use svm_types::{gas::MaybeGas, AppAddr, AuthorAddr, SpawnerAddr, State};
-use svm_types::{RuntimeError, Transaction};
+use svm_types::{AuthorAddr, SpawnerAddr, State, Transaction};
 
 /// Specifies the interface of a `SVM` Runtime.
 pub trait Runtime {

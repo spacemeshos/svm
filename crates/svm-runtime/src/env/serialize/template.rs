@@ -1,9 +1,9 @@
 use std::io::Cursor;
 
 use svm_codec::template;
-use svm_codec::{Field, ReadExt, WriteExt};
+use svm_codec::{ReadExt, WriteExt};
 
-use svm_types::{AuthorAddr, Template};
+use svm_types::AuthorAddr;
 
 use crate::env::traits;
 use crate::env::ExtTemplate;

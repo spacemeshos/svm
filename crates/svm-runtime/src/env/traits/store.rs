@@ -3,7 +3,7 @@ use crate::env::{self, hash};
 use env::{ExtApp, ExtTemplate};
 use hash::TemplateHash;
 
-use svm_types::{AppAddr, AuthorAddr, SpawnerAddr, TemplateAddr};
+use svm_types::{AppAddr, TemplateAddr};
 
 /// A persistent store for `Template`(s).
 pub trait TemplateStore {
