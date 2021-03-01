@@ -1,6 +1,7 @@
 mod call;
 mod config;
 mod default;
+mod failure;
 mod function;
 mod outcome;
 mod ptr;
@@ -8,6 +9,7 @@ mod ptr;
 pub use call::{Call, CallKind};
 pub use function::Function;
 pub use outcome::Outcome;
+pub use failure::Failure;
 
 #[cfg(feature = "default-rocksdb")]
 mod rocksdb;

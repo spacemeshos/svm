@@ -1,25 +1,13 @@
-use core::panic;
-use std::{hint::unreachable_unchecked, iter::Successors, unreachable};
-
 use svm_types::gas::MaybeGas;
 use svm_types::receipt::Log;
 use svm_types::{RuntimeError, State};
 
-use crate::Runtime;
+pub struct Outcome<T = Box<[wasmer::Val]>> {
+    returns: T,
 
-pub enum Outcome<T = Box<[wasmer::Val]>> {
-    Success {
-        returns: T,
+    gas_used: MaybeGas,
 
-        gas_used: MaybeGas,
-
-        logs: Vec<Log>,
-    },
-    Failure {
-        err: RuntimeError,
-
-        logs: Vec<Log>,
-    },
+    logs: Vec<Log>,
 }
 
 impl<T> Outcome<T> {
@@ -27,50 +15,34 @@ impl<T> Outcome<T> {
     where
         F: Fn(T) -> S,
     {
-        match self {
-            Outcome::Failure { err, logs } => Outcome::Failure { err, logs },
-            Outcome::Success {
-                logs,
-                gas_used,
-                returns,
-            } => Outcome::Success {
-                logs,
-                gas_used,
-                returns: f(returns),
-            },
-        }
+        Outcome::new(f(self.returns), self.gas_used, self.logs)
     }
 }
 
 impl<T> Outcome<T> {
-    pub fn take_logs(&mut self) -> Vec<Log> {
-        match self {
-            Self::Success { ref mut logs, .. } | Self::Failure { ref mut logs, .. } => {
-                std::mem::take(logs)
-            }
+    pub fn new(returns: T, gas_used: MaybeGas, logs: Vec<Log>) -> Self {
+        Self {
+            returns,
+            gas_used,
+            logs,
         }
     }
 
     pub fn returns(&self) -> &T {
-        match *self {
-            Outcome::Success { ref returns, .. } => returns,
-            Outcome::Failure { .. } => unreachable!(),
-        }
+        &self.returns
+    }
+
+    pub fn take_logs(&mut self) -> Vec<Log> {
+        std::mem::take(&mut self.logs)
     }
 
     pub fn gas_used(&self) -> MaybeGas {
-        match *self {
-            Outcome::Success { gas_used, .. } => gas_used,
-            Outcome::Failure { .. } => unreachable!(),
-        }
+        self.gas_used
     }
 }
 
-impl<T> From<RuntimeError> for Outcome<T> {
-    fn from(err: RuntimeError) -> Self {
-        Self::Failure {
-            err,
-            logs: Vec::new(),
-        }
+impl<T: Default> Outcome<T> {
+    pub fn take_returns(&mut self) -> T {
+        std::mem::take(&mut self.returns)
     }
 }

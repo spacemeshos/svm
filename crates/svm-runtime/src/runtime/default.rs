@@ -4,7 +4,10 @@ use std::{marker::PhantomData, unreachable};
 
 use log::{error, info};
 
-use crate::env::{self, traits};
+use crate::{
+    env::{self, traits},
+    gas,
+};
 
 use env::{ExtApp, ExtSpawnApp, ExtTemplate};
 use traits::{Env, EnvTypes};
@@ -27,7 +30,9 @@ use svm_types::{RuntimeError, Transaction};
 
 use wasmer::{Exports, Extern, ImportObject, Instance, Module, Store, WasmPtr, WasmTypeList};
 
-use super::{Call, CallKind, Function, Outcome};
+use super::{Call, CallKind, Failure, Function, Outcome};
+
+type RuntimeResult<T = Box<[wasmer::Val]>> = Result<Outcome<T>, Failure>;
 
 /// Default `Runtime` implementation based on `Wasmer`.
 pub struct DefaultRuntime<ENV, GE> {
@@ -83,7 +88,7 @@ where
         let base = self.env.parse_deploy_template(bytes).unwrap();
         let template = ExtTemplate::new(base, author);
 
-        let install_gas = self.compute_install_template_gas(bytes, &template);
+        let install_gas = self.template_installation_price(bytes, &template);
 
         if gas_limit >= install_gas {
             let gas_used = MaybeGas::with(install_gas);
@@ -105,7 +110,7 @@ where
         let base = self.env.parse_spawn_app(bytes).unwrap();
         let spawn = ExtSpawnApp::new(base, spawner);
 
-        let install_gas = self.compute_install_app_gas(bytes, &spawn);
+        let install_gas = self.spawn_payload_price(bytes, &spawn);
         let gas_left = gas_limit - install_gas;
 
         match gas_left {
@@ -223,16 +228,33 @@ where
                 );
 
                 let store = svm_compiler::new_store();
+
                 let (import_object, host_envs) = self.create_import_object(&store, &mut ctx);
+
+                let mut res = self.exec_(&call, &store, &ctx, &template, &import_object);
+
                 self.drop_envs(host_envs);
 
-                let out = self.do_exec(&call, &store, &ctx, &template, &import_object);
+                match res {
+                    Ok(mut out) => {
+                        let new_state = self.commit_changes(&ctx);
 
-                let new_state = self.commit_changes(&ctx);
-
-                self.make_receipt(out, Some(new_state))
+                        ExecReceipt {
+                            version: 0,
+                            success: true,
+                            error: None,
+                            returndata: Some(out.take_returns()),
+                            new_state: Some(new_state),
+                            gas_used: out.gas_used(),
+                            logs: out.take_logs(),
+                        }
+                    }
+                    Err(err) => {
+                        todo!()
+                    }
+                }
             }
-            Err(e) => ExecReceipt::from_err(e, Vec::new()),
+            Err(err) => ExecReceipt::from_err(err, Vec::new()),
         }
     }
 
@@ -243,22 +265,15 @@ where
         }
     }
 
-    fn do_exec(
+    fn exec_(
         &self,
         call: &Call,
         store: &Store,
         ctx: &Context,
         template: &ExtTemplate,
         import_object: &ImportObject,
-    ) -> Outcome<Vec<u8>> {
-        let module = self.compile_template(store, ctx, &template, call.gas_left());
-
-        if module.is_err() {
-            return Outcome::Failure {
-                err: module.unwrap_err(),
-                logs: Vec::new(),
-            };
-        }
+    ) -> RuntimeResult<Vec<u8>> {
+        let module = self.compile_template(store, ctx, &template, call.gas_left())?;
 
         let within_spawn = call.within_spawn();
         let is_ctor = template.is_ctor(call.func_name());
@@ -267,50 +282,45 @@ where
             let msg = "expected function to be a constructor";
             let err = self.func_not_allowed(ctx, call.func_name(), msg);
 
-            return err.into();
+            return Err(err);
         }
 
         if !within_spawn && is_ctor {
             let msg = "expected function to be a non-constructor";
             let err = self.func_not_allowed(ctx, call.func_name(), msg);
 
-            return err.into();
+            return Err(err);
         }
 
-        let instance = self.instantiate(ctx, &module.unwrap(), import_object);
+        let instance = self.instantiate(ctx, &module, import_object);
+
         if instance.is_err() {
             let err = instance.unwrap_err();
-            return err.into();
+
+            return Err(err.into());
         }
 
-        let mut instance = instance.unwrap();
+        let instance = instance.unwrap();
 
         self.set_memory(ctx, &instance);
 
-        let func = self.get_func::<(), ()>(&instance, ctx, call.func_name());
+        let func = self.get_func::<(), ()>(&instance, ctx, call.func_name())?;
 
-        if func.is_err() {
-            let err = self.func_not_found(ctx, call.func_name());
+        let mut out = self.call_with_alloc(&instance, ctx, call.calldata(), &func, &[])?;
 
-            return err.into();
-        }
+        let logs = out.take_logs();
 
-        let mut out = self.call_with_alloc(&instance, ctx, call.calldata(), &func.unwrap(), &[]);
+        match self.instance_gas_used(&instance) {
+            Ok(gas_used) => {
+                let returns = self.take_returndata(ctx);
 
-        if let Outcome::Failure { err, logs } = out {
-            return Outcome::Failure { err, logs };
-        }
-
-        if let Ok(gas_used) = self.instance_gas_used(&instance) {
-            Outcome::Success {
-                returns: self.take_returndata(ctx),
-                gas_used,
-                logs: out.take_logs(),
+                let out = Outcome::new(returns, gas_used, logs);
+                Ok(out)
             }
-        } else {
-            Outcome::Failure {
-                err: RuntimeError::OOG,
-                logs: out.take_logs(),
+            Err(..) => {
+                let err = Failure::new(RuntimeError::OOG, out.take_logs());
+
+                Err(err)
             }
         }
     }
@@ -322,22 +332,18 @@ where
         calldata: &[u8],
         func: &Function<Args, Rets>,
         params: &[wasmer::Val],
-    ) -> Outcome
+    ) -> RuntimeResult
     where
         Args: WasmTypeList,
         Rets: WasmTypeList,
     {
-        let outcome = self.call_alloc(instance, ctx, calldata.len());
-
-        if let Outcome::Failure { err, logs } = outcome {
-            return Outcome::Failure { err, logs };
-        }
+        let out = self.call_alloc(instance, ctx, calldata.len())?;
 
         // we assert that `svm_alloc` didn't touch the `returndata`
         // TODO: return an error instead of `panic`
         self.assert_no_returndata(ctx);
 
-        let wasm_ptr = outcome.returns().clone();
+        let wasm_ptr = out.returns().clone();
         self.set_calldata(ctx, calldata, wasm_ptr);
 
         dbg!("==============================");
@@ -348,7 +354,12 @@ where
         self.call(instance, ctx, func, params)
     }
 
-    fn call_alloc(&self, instance: &Instance, ctx: &Context, size: usize) -> Outcome<WasmPtr<u8>> {
+    fn call_alloc(
+        &self,
+        instance: &Instance,
+        ctx: &Context,
+        size: usize,
+    ) -> RuntimeResult<WasmPtr<u8>> {
         let func_name = "svm_alloc";
 
         let func = self.get_func::<u32, u32>(&instance, ctx, func_name);
@@ -356,23 +367,22 @@ where
         if func.is_err() {
             let err = self.func_not_found(ctx, func_name);
 
-            return Outcome::Failure {
-                err,
-                logs: Vec::new(),
-            };
+            return Err(err);
         }
 
         let func = func.unwrap();
         let params: [wasmer::Val; 1] = [(size as i32).into()];
 
-        let out = self.call(instance, ctx, &func, &params);
+        let out = self.call(instance, ctx, &func, &params)?;
 
-        out.map(|rets| {
+        let out = out.map(|rets| {
             let ret = &rets[0];
             let offset = ret.i32().unwrap() as u32;
 
             WasmPtr::new(offset)
-        })
+        });
+
+        Ok(out)
     }
 
     fn call<Args, Rets>(
@@ -381,34 +391,31 @@ where
         ctx: &Context,
         func: &Function<Args, Rets>,
         params: &[wasmer::Val],
-    ) -> Outcome
+    ) -> RuntimeResult
     where
         Args: WasmTypeList,
         Rets: WasmTypeList,
     {
         let wasmer_func = func.wasmer_func();
         let returns = wasmer_func.call(params);
-
         let logs = ctx.borrow_mut().take_logs();
 
         if returns.is_err() {
-            let err = self.func_failed(ctx, func.name(), returns.unwrap_err());
+            let err = self.func_failed(ctx, func.name(), returns.unwrap_err(), logs);
 
-            return Outcome::Failure { err, logs };
+            return Err(err);
         }
 
-        let gas_used = self.instance_gas_used(&instance);
+        match self.instance_gas_used(&instance) {
+            Ok(gas_used) => {
+                let out = Outcome::new(returns.unwrap(), gas_used, logs);
 
-        if let Ok(gas_used) = gas_used {
-            Outcome::Success {
-                gas_used,
-                logs,
-                returns: returns.unwrap(),
+                Ok(out)
             }
-        } else {
-            Outcome::Failure {
-                err: RuntimeError::OOG,
-                logs,
+            Err(..) => {
+                let err = Failure::new(RuntimeError::OOG, logs);
+
+                Err(err)
             }
         }
     }
@@ -442,25 +449,6 @@ where
         let cells = &view[offset..(offset + len)];
 
         cells.iter().map(|c| c.get()).collect()
-    }
-
-    fn make_receipt(&self, out: Outcome<Vec<u8>>, new_state: Option<State>) -> ExecReceipt {
-        match out {
-            Outcome::Failure { err, logs } => ExecReceipt::from_err(err, logs),
-            Outcome::Success {
-                returns,
-                gas_used,
-                logs,
-            } => ExecReceipt {
-                version: 0,
-                success: true,
-                error: None,
-                returndata: Some(returns),
-                new_state,
-                gas_used,
-                logs,
-            },
-        }
     }
 
     fn set_memory(&self, ctx: &Context, instance: &Instance) {
@@ -511,7 +499,7 @@ where
         ctx: &Context,
         module: &Module,
         import_object: &ImportObject,
-    ) -> Result<Instance, RuntimeError> {
+    ) -> Result<Instance, Failure> {
         info!("runtime `instantiate` (wasmer module instantiate)");
 
         let instance = Instance::new(module, import_object);
@@ -524,16 +512,20 @@ where
         instance: &'i Instance,
         ctx: &Context,
         func_name: &str,
-    ) -> Result<Function<'i, Args, Rets>, RuntimeError>
+    ) -> Result<Function<'i, Args, Rets>, Failure>
     where
         Args: WasmTypeList,
         Rets: WasmTypeList,
     {
-        let func = instance
-            .exports
-            .get_function(func_name)
-            .map_err(|_| self.func_not_found(ctx, func_name))?;
+        let func = instance.exports.get_function(func_name);
 
+        if func.is_err() {
+            let err = self.func_not_found(ctx, func_name);
+
+            return Err(err);
+        }
+
+        let func = func.unwrap();
         let native = func.native::<Args, Rets>();
 
         if native.is_err() {
@@ -596,7 +588,7 @@ where
         ctx: &Context,
         template: &ExtTemplate,
         gas_left: MaybeGas,
-    ) -> Result<Module, RuntimeError> {
+    ) -> Result<Module, Failure> {
         info!(
             "runtime `compile_template` (template={:?})",
             ctx.template_addr()
@@ -610,12 +602,12 @@ where
     }
 
     /// Gas
-    fn compute_install_template_gas(&self, bytes: &[u8], _template: &ExtTemplate) -> u64 {
+    fn template_installation_price(&self, bytes: &[u8], _template: &ExtTemplate) -> u64 {
         // todo!()
         1000 * (bytes.len() as u64)
     }
 
-    fn compute_install_app_gas(&self, bytes: &[u8], spawn: &ExtSpawnApp) -> u64 {
+    fn spawn_payload_price(&self, bytes: &[u8], spawn: &ExtSpawnApp) -> u64 {
         // todo!()
         1000 * (bytes.len() as u64)
     }
@@ -623,40 +615,44 @@ where
     /// Errors
 
     #[inline]
-    fn func_not_found(&self, ctx: &Context, func_name: &str) -> RuntimeError {
+    fn func_not_found(&self, ctx: &Context, func_name: &str) -> Failure {
         RuntimeError::FuncNotFound {
             app_addr: ctx.app_addr().clone(),
             template_addr: ctx.template_addr().clone(),
             func: func_name.to_string(),
         }
+        .into()
     }
 
     #[inline]
-    fn instantiation_failed(&self, ctx: &Context, err: wasmer::InstantiationError) -> RuntimeError {
+    fn instantiation_failed(&self, ctx: &Context, err: wasmer::InstantiationError) -> Failure {
         RuntimeError::InstantiationFailed {
             app_addr: ctx.app_addr().clone(),
             template_addr: ctx.template_addr().clone(),
             msg: err.to_string(),
         }
+        .into()
     }
 
     #[inline]
-    fn func_not_allowed(&self, ctx: &Context, func_name: &str, msg: &str) -> RuntimeError {
+    fn func_not_allowed(&self, ctx: &Context, func_name: &str, msg: &str) -> Failure {
         RuntimeError::FuncNotAllowed {
             app_addr: ctx.app_addr().clone(),
             template_addr: ctx.template_addr().clone(),
             func: func_name.to_string(),
             msg: msg.to_string(),
         }
+        .into()
     }
 
     #[inline]
-    fn func_invalid_sig(&self, ctx: &Context, func_name: &str) -> RuntimeError {
+    fn func_invalid_sig(&self, ctx: &Context, func_name: &str) -> Failure {
         RuntimeError::FuncInvalidSignature {
             app_addr: ctx.app_addr().clone(),
             template_addr: ctx.template_addr().clone(),
             func: func_name.to_string(),
         }
+        .into()
     }
 
     #[inline]
@@ -665,17 +661,20 @@ where
         ctx: &Context,
         func_name: &str,
         err: wasmer::RuntimeError,
-    ) -> RuntimeError {
-        RuntimeError::FuncFailed {
+        logs: Vec<Log>,
+    ) -> Failure {
+        let err = RuntimeError::FuncFailed {
             app_addr: ctx.app_addr().clone(),
             template_addr: ctx.template_addr().clone(),
             func: func_name.to_string(),
             msg: err.to_string(),
-        }
+        };
+
+        Failure::new(err, logs)
     }
 
     #[inline]
-    fn compilation_failed(&self, ctx: &Context, err: wasmer::CompileError) -> RuntimeError {
+    fn compilation_failed(&self, ctx: &Context, err: wasmer::CompileError) -> Failure {
         error!("module module failed (template={:?})", ctx.template_addr());
 
         RuntimeError::CompilationFailed {
@@ -683,5 +682,6 @@ where
             template_addr: ctx.template_addr().clone(),
             msg: err.to_string(),
         }
+        .into()
     }
 }
