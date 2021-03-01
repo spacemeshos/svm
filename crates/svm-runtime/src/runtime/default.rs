@@ -1,6 +1,6 @@
-use std::marker::PhantomData;
 use std::path::Path;
 use std::{collections::HashMap, todo};
+use std::{marker::PhantomData, unreachable};
 
 use log::{error, info};
 
@@ -27,7 +27,7 @@ use svm_types::{RuntimeError, Transaction};
 
 use wasmer::{Exports, Extern, ImportObject, Instance, Module, Store, WasmPtr, WasmTypeList};
 
-use super::{Call, CallAddr, CallKind, Function, Outcome};
+use super::{Call, CallKind, Function, Outcome};
 
 /// Default `Runtime` implementation based on `Wasmer`.
 pub struct DefaultRuntime<ENV, GE> {
@@ -131,7 +131,8 @@ where
             let call = Call {
                 func_name: tx.func_name(),
                 calldata: tx.calldata(),
-                addr: CallAddr::new(&template_addr, app_addr),
+                template_addr: &template_addr,
+                app_addr: &app_addr,
                 state,
                 gas_used: MaybeGas::with(0),
                 gas_left: gas_limit,
@@ -140,7 +141,7 @@ where
 
             self.exec(&call)
         } else {
-            todo!()
+            unreachable!("Should have failed earlier when doing `validate_tx`");
         }
     }
 }
@@ -181,13 +182,14 @@ where
         gas_used: MaybeGas,
         gas_left: MaybeGas,
     ) -> SpawnAppReceipt {
-        let addr = CallAddr::new(spawn.template_addr(), app_addr);
+        let template_addr = spawn.template_addr();
 
         let call = Call {
             func_name: spawn.ctor_name(),
             calldata: spawn.ctor_data(),
             state: &State::zeros(),
-            addr,
+            template_addr: &template_addr,
+            app_addr,
             within_spawn: true,
             gas_used,
             gas_left,
@@ -338,6 +340,11 @@ where
         let wasm_ptr = outcome.returns().clone();
         self.set_calldata(ctx, calldata, wasm_ptr);
 
+        dbg!("==============================");
+        dbg!(func.name());
+        dbg!(wasm_ptr);
+        dbg!("==============================");
+
         self.call(instance, ctx, func, params)
     }
 
@@ -362,9 +369,9 @@ where
 
         out.map(|rets| {
             let ret = &rets[0];
-            let ptr = ret.i32().unwrap();
+            let offset = ret.i32().unwrap() as u32;
 
-            WasmPtr::new(ptr as u32)
+            WasmPtr::new(offset)
         })
     }
 
@@ -462,7 +469,7 @@ where
         ctx.borrow_mut().set_memory(memory.clone());
     }
 
-    fn set_calldata(&self, ctx: &Context, calldata: &[u8], ptr: WasmPtr<u8>) {
+    fn set_calldata(&self, ctx: &Context, calldata: &[u8], wasm_ptr: WasmPtr<u8>) {
         let (offset, len) = {
             let borrow = ctx.borrow();
             let memory = borrow.get_memory();
@@ -477,7 +484,7 @@ where
             // (we'll need to decide on a `calldata` limit).
             //
             // See [issue #140](https://github.com/spacemeshos/svm/issues/140)
-            let offset = ptr.offset() as usize;
+            let offset = wasm_ptr.offset() as usize;
             let len = calldata.len();
 
             // TODO: guard again out-of-bounds

@@ -5,7 +5,7 @@ mod function;
 mod outcome;
 mod ptr;
 
-pub use call::{Call, CallAddr, CallKind};
+pub use call::{Call, CallKind};
 pub use function::Function;
 pub use outcome::Outcome;
 

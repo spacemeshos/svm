@@ -1,11 +1,13 @@
 use std::hint::unreachable_unchecked;
 
-use svm_types::gas::MaybeGas;
+use svm_types::{gas::MaybeGas, receipt::TemplateReceipt};
 use svm_types::{AppAddr, State, TemplateAddr};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Call<'a> {
-    pub addr: CallAddr<'a>,
+    pub app_addr: &'a AppAddr,
+
+    pub template_addr: &'a TemplateAddr,
 
     pub func_name: &'a str,
 
@@ -18,31 +20,6 @@ pub struct Call<'a> {
     pub gas_left: MaybeGas,
 
     pub within_spawn: bool,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct CallAddr<'a>(Option<&'a TemplateAddr>, Option<&'a AppAddr>);
-
-impl<'a> CallAddr<'a> {
-    pub fn new(template: &'a TemplateAddr, app: &'a AppAddr) -> Self {
-        Self(Some(template), Some(app))
-    }
-
-    pub fn with_template(addr: &'a TemplateAddr) -> Self {
-        Self(Some(addr), None)
-    }
-
-    pub fn with_app(addr: &'a AppAddr) -> Self {
-        Self(None, Some(addr))
-    }
-
-    pub fn template_addr(&self) -> &TemplateAddr {
-        self.0.as_ref().unwrap()
-    }
-
-    pub fn app_addr(&self) -> &AppAddr {
-        self.1.as_ref().unwrap()
-    }
 }
 
 #[derive(Debug, PartialEq, Copy, Clone, Hash)]
@@ -78,11 +55,11 @@ impl<'a> Call<'a> {
     }
 
     pub fn template_addr(&self) -> &TemplateAddr {
-        self.addr.template_addr()
+        &self.template_addr
     }
 
     pub fn app_addr(&self) -> &AppAddr {
-        self.addr.app_addr()
+        &self.app_addr
     }
 
     pub fn within_spawn(&self) -> bool {

@@ -579,6 +579,7 @@ fn svm_runtime_success() {
         assert!(res.is_ok());
 
         let receipt = receipt::decode_receipt(exec_receipt.clone().into()).into_exec_app();
+        dbg!(&receipt);
         assert_eq!(receipt.success, true);
 
         let bytes = receipt.get_returndata();
