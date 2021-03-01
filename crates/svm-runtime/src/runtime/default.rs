@@ -163,6 +163,10 @@ where
         }
     }
 
+    pub fn open_storage(&self, app_addr: &AppAddr, state: &State, layout: &Layout) -> AppStorage {
+        (self.storage_builder)(app_addr, state, layout, &self.config)
+    }
+
     fn call_ctor(
         &mut self,
         spawn: &ExtSpawnApp,
@@ -200,14 +204,7 @@ where
 
         match self.load_template(call.app_addr()) {
             Ok(template) => {
-                let store = svm_compiler::new_store();
-
-                let storage = (self.storage_builder)(
-                    call.app_addr(),
-                    call.state(),
-                    template.layout(),
-                    &self.config,
-                );
+                let storage = self.open_storage(call.app_addr(), call.state(), template.layout());
 
                 let mut ctx = Context::new(
                     call.gas_left(),
@@ -216,6 +213,7 @@ where
                     call.app_addr(),
                 );
 
+                let store = svm_compiler::new_store();
                 let (import_object, host_envs) = self.create_import_object(&store, &mut ctx);
                 self.drop_envs(host_envs);
 
@@ -292,9 +290,6 @@ where
             return Outcome::Failure { err, logs };
         }
 
-        // TODO: assert that `out.returns()` is empty
-        // an `endpoint` should always be of signature `[] -> []`
-
         if let Ok(gas_used) = self.instance_gas_used(&instance) {
             Outcome::Success {
                 returns: self.take_returndata(ctx),
@@ -329,8 +324,6 @@ where
         let out = self.call(instance, ctx, &func, &params);
 
         out.map(|rets| {
-            // TODO: assert that `rets.len() == 1`
-
             let ret = &rets[0];
             let ptr = ret.i32().unwrap();
 
@@ -380,7 +373,7 @@ where
         let wasmer_func = func.wasmer_func();
         let returns = wasmer_func.call(params);
 
-        let logs = self.take_logs(ctx);
+        let logs = ctx.borrow_mut().take_logs();
 
         if returns.is_err() {
             let err = self.func_failed(ctx, func.name(), returns.unwrap_err());
@@ -391,12 +384,10 @@ where
         let gas_used = self.instance_gas_used(&instance);
 
         if let Ok(gas_used) = gas_used {
-            let returns = returns.unwrap();
-
             Outcome::Success {
                 gas_used,
                 logs,
-                returns,
+                returns: returns.unwrap(),
             }
         } else {
             Outcome::Failure {
@@ -435,10 +426,6 @@ where
         let cells = &view[offset..(offset + len)];
 
         cells.iter().map(|c| c.get()).collect()
-    }
-
-    fn take_logs(&self, ctx: &Context) -> Vec<Log> {
-        ctx.borrow_mut().take_logs()
     }
 
     fn make_receipt(&self, out: Outcome<Vec<u8>>, new_state: Option<State>) -> ExecReceipt {

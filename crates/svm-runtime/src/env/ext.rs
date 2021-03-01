@@ -1,6 +1,7 @@
 use svm_layout::Layout;
 use svm_types::{App, AuthorAddr, SpawnApp, SpawnerAddr, Template, TemplateAddr};
 
+#[derive(Debug, PartialEq)]
 pub struct ExtTemplate {
     base: Template,
 

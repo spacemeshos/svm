@@ -253,7 +253,7 @@ fn default_runtime_spawn_app_with_ctor_with_enough_gas() {
 
     let addr = receipt.get_app_addr();
     let state = receipt.get_init_state();
-    let storage = runtime.open_app_storage(&addr, &state, &layout);
+    let storage = runtime.open_storage(&addr, &state, &layout);
 
     let var = storage.read_var(VarId(0));
     assert_eq!(var, 10_20_30_40_50_60_70_80u64.to_le_bytes());

@@ -1,5 +1,6 @@
 #![allow(unused)]
 use maplit::hashmap;
+use svm_codec::app;
 
 use std::ffi::c_void;
 
@@ -94,13 +95,15 @@ fn vmcalls_empty_wasm() {
 
 #[test]
 fn vmcalls_get32_set32() {
-    let app_addr = Address::of("my-app");
+    let template_addr = Address::repeat(0xAB);
+    let app_addr = Address::repeat(0xCD);
     let gas_limit = MaybeGas::new();
     let layout: Layout = vec![4, 2].into();
 
     let store = testing::wasmer_store();
     let storage = testing::blank_storage(&app_addr, &layout);
-    let ctx = Context::new(gas_limit, storage);
+
+    let ctx = Context::new(gas_limit, storage, &template_addr.into(), &app_addr.into());
 
     let import_object = imports! {
         "svm" => {
@@ -128,13 +131,14 @@ fn vmcalls_get32_set32() {
 
 #[test]
 fn vmcalls_get64_set64() {
-    let app_addr = Address::of("my-app");
+    let template_addr = Address::repeat(0xAB);
+    let app_addr = Address::repeat(0xCD);
     let gas_limit = MaybeGas::new();
     let layout: Layout = vec![4, 2].into();
 
     let store = testing::wasmer_store();
     let storage = testing::blank_storage(&app_addr, &layout);
-    let ctx = Context::new(gas_limit, storage);
+    let ctx = Context::new(gas_limit, storage, &template_addr.into(), &app_addr.into());
 
     let import_object = imports! {
         "svm" => {
@@ -162,14 +166,22 @@ fn vmcalls_get64_set64() {
 
 #[test]
 fn vmcalls_load160() {
-    let app_addr = Address::of("11223344556677889900");
+    let template_addr = Address::repeat(0xAB);
+    let app_addr = Address::repeat(0xCD);
     let gas_limit = MaybeGas::new();
     let layout: Layout = vec![20].into();
 
     let store = testing::wasmer_store();
     let memory = testing::wasmer_memory(&store);
     let storage = testing::blank_storage(&app_addr, &layout);
-    let ctx = Context::new_with_memory(memory.clone(), gas_limit, storage);
+
+    let ctx = Context::new_with_memory(
+        memory.clone(),
+        gas_limit,
+        storage,
+        &template_addr.into(),
+        &app_addr.clone().into(),
+    );
 
     let import_object = imports! {
         "svm" => {
@@ -205,14 +217,21 @@ fn vmcalls_load160() {
 
 #[test]
 fn vmcalls_store160() {
-    let app_addr = Address::of("11223344556677889900");
+    let template_addr = Address::repeat(0xAB);
+    let app_addr = Address::repeat(0xCD);
     let gas_limit = MaybeGas::new();
     let layout: Layout = vec![20].into();
 
     let store = testing::wasmer_store();
     let memory = testing::wasmer_memory(&store);
     let storage = testing::blank_storage(&app_addr, &layout);
-    let ctx = Context::new_with_memory(memory.clone(), gas_limit, storage);
+    let ctx = Context::new_with_memory(
+        memory.clone(),
+        gas_limit,
+        storage,
+        &template_addr.into(),
+        &app_addr.clone().into(),
+    );
 
     let import_object = imports! {
         "svm" => {
@@ -244,14 +263,21 @@ fn vmcalls_store160() {
 
 #[test]
 fn vmcalls_log() {
-    let app_addr = Address::of("my-app");
+    let template_addr = Address::repeat(0xAB);
+    let app_addr = Address::repeat(0xCD);
     let gas_limit = MaybeGas::new();
     let layout = Layout::empty();
 
     let store = testing::wasmer_store();
     let memory = testing::wasmer_memory(&store);
     let storage = testing::blank_storage(&app_addr, &layout);
-    let ctx = Context::new_with_memory(memory.clone(), gas_limit, storage);
+    let ctx = Context::new_with_memory(
+        memory.clone(),
+        gas_limit,
+        storage,
+        &template_addr.into(),
+        &app_addr.into(),
+    );
 
     let import_object = imports! {
         "svm" => {

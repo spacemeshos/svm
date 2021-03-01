@@ -128,7 +128,7 @@ mod tests {
             version: 0,
             app: App {
                 name: "my-app".to_string(),
-                template: Address::of("my-template").into(),
+                template_addr: Address::of("my-template").into(),
             },
             ctor_name: "initialize".to_string(),
             calldata: vec![0x10, 0x20, 0x30],

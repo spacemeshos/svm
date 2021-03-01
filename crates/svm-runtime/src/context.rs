@@ -1,8 +1,5 @@
+use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
-use std::{
-    cell::{Ref, RefCell, RefMut},
-    env::temp_dir,
-};
 
 use svm_codec::template;
 use wasmer::Memory;

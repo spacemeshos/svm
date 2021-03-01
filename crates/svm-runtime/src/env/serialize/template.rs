@@ -64,7 +64,7 @@ mod tests {
 
     #[test]
     fn serialize_template() {
-        let template = Template {
+        let base = Template {
             version: 0,
             name: "My Template".to_string(),
             code: vec![0x0C, 0x00, 0x0D, 0x0E],
@@ -73,9 +73,11 @@ mod tests {
         };
 
         let author = Address::of("@author").into();
-        let bytes = S::serialize(&template, &author);
+        let template = ExtTemplate::new(base, &author);
+
+        let bytes = S::serialize(&template);
 
         let decoded = D::deserialize(&bytes[..]).unwrap();
-        assert_eq!((template, author), decoded);
+        assert_eq!(decoded, template);
     }
 }
