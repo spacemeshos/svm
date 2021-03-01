@@ -22,14 +22,14 @@ pub struct SpawnAppBuilder {
 /// use svm_codec::api::builder::SpawnAppBuilder;
 /// use svm_codec::app;
 ///
-/// let template = Address::of("@template").into();
+/// let template_addr = Address::of("@template").into();
 /// let name = "My App".to_string();
 /// let ctor_name = "initialize";
 /// let calldata = vec![0x10, 0x20, 0x30];
 ///
 /// let bytes = SpawnAppBuilder::new()
 ///             .with_version(0)
-///             .with_template(&template)
+///             .with_template(&template_addr)
 ///             .with_name(&name)
 ///             .with_ctor(ctor_name)
 ///             .with_calldata(&calldata)
@@ -39,7 +39,7 @@ pub struct SpawnAppBuilder {
 /// let actual = app::decode_spawn_app(&mut cursor).unwrap();
 /// let expected = SpawnApp {
 ///                  version: 0,
-///                  app: App { name, template },
+///                  app: App { name, template_addr },
 ///                  ctor_name: ctor_name.to_string(),
 ///                  calldata,
 ///                };

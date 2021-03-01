@@ -17,8 +17,8 @@ impl Failure {
         std::mem::take(&mut self.logs)
     }
 
-    pub fn error(&self) -> &RuntimeError {
-        &self.err
+    pub fn take_error(self) -> RuntimeError {
+        self.err
     }
 }
 

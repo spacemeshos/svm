@@ -249,8 +249,11 @@ where
                             logs: out.take_logs(),
                         }
                     }
-                    Err(err) => {
-                        todo!()
+                    Err(mut fail) => {
+                        let logs = fail.take_logs();
+                        let err = fail.take_error();
+
+                        ExecReceipt::from_err(err, logs)
                     }
                 }
             }
@@ -345,11 +348,6 @@ where
 
         let wasm_ptr = out.returns().clone();
         self.set_calldata(ctx, calldata, wasm_ptr);
-
-        dbg!("==============================");
-        dbg!(func.name());
-        dbg!(wasm_ptr);
-        dbg!("==============================");
 
         self.call(instance, ctx, func, params)
     }
