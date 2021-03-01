@@ -33,7 +33,6 @@ mod test {
     };
 
     use serde_json::json;
-    use svm_common::fmt::fmt_hex;
 
     fn wasm_buf_as_json(buf_ptr: usize) -> Value {
         let data = wasm_buffer_data(buf_ptr);

@@ -7,9 +7,9 @@
 //! The CI of the SVM outputs the WASM package of `svm-codec` as one of its artifacts.
 
 #![deny(missing_docs)]
-#![allow(unused)]
-#![allow(dead_code)]
-#![allow(unreachable_code)]
+#![deny(unused)]
+#![deny(dead_code)]
+#![deny(unreachable_code)]
 #![feature(vec_into_raw_parts)]
 
 mod calldata;
@@ -84,6 +84,7 @@ pub use error::ParseError;
 /// ```
 ///
 
+#[cfg(target_arch = "wasm32")]
 macro_rules! wasm_func_call {
     ($func:ident, $buf_offset:expr) => {{
         match api::wasm::$func($buf_offset as usize) {

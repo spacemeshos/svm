@@ -16,8 +16,7 @@
 //!
 //!
 
-use std::fs::File;
-use std::io::{Cursor, Read};
+use std::io::Cursor;
 
 use svm_layout::{Layout, LayoutBuilder};
 use svm_types::Template;

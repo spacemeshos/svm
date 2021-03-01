@@ -103,7 +103,7 @@ fn composite_as_json(c: &Composite<'_>) -> (Json, Json) {
         Composite::ArrayOwned(inner) => inner,
     };
 
-    if (array.is_empty()) {
+    if array.is_empty() {
         return (Json::Null, Json::Array(Vec::new()));
     }
 

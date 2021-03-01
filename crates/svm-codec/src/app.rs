@@ -11,7 +11,7 @@
 
 use std::io::Cursor;
 
-use svm_types::{App, SpawnApp, TemplateAddr, WasmValue};
+use svm_types::{App, SpawnApp, TemplateAddr};
 
 use crate::{calldata, common};
 use crate::{Field, ParseError, ReadExt, WriteExt};

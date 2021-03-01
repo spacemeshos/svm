@@ -19,7 +19,7 @@
 //!
 //!
 
-use std::io::{Cursor, Read};
+use std::io::Cursor;
 
 use svm_types::{AppAddr, Transaction};
 

@@ -151,7 +151,7 @@ fn decode_deploy_template(receipt: &TemplateReceipt, ty: &'static str) -> Value 
         "success": true,
         "addr": json::addr_to_str(addr.as_ref().unwrap().inner()),
         "gas_used": json::gas_to_json(&gas_used),
-        "logs": json::logs_to_json(&receipt.logs),
+        "logs": json::logs_to_json(&logs),
     })
 }
 
@@ -175,7 +175,7 @@ fn decode_spawn_app(receipt: &SpawnAppReceipt, ty: &'static str) -> Value {
         "state": json::state_to_str(init_state.as_ref().unwrap()),
         "returndata": json::bytes_to_str(returndata.as_ref().unwrap()),
         "gas_used": json::gas_to_json(&gas_used),
-        "logs": json::logs_to_json(&receipt.logs),
+        "logs": json::logs_to_json(&logs),
     })
 }
 
@@ -197,7 +197,7 @@ fn decode_exe_app(receipt: &ExecReceipt, ty: &'static str) -> Value {
         "new_state": json::state_to_str(new_state.as_ref().unwrap()),
         "returndata": json::bytes_to_str(returndata.as_ref().unwrap()),
         "gas_used": json::gas_to_json(&gas_used),
-        "logs": json::logs_to_json(&receipt.logs),
+        "logs": json::logs_to_json(&logs),
     })
 }
 
@@ -207,7 +207,9 @@ mod tests {
 
     use super::json;
 
-    use svm_types::{gas::MaybeGas, receipt::Log, Address, AppAddr, State, WasmValue};
+    use svm_types::gas::MaybeGas;
+    use svm_types::receipt::Log;
+    use svm_types::{Address, State};
 
     #[test]
     fn decode_receipt_deploy_template_receipt_success() {

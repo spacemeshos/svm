@@ -18,8 +18,7 @@
 
 use std::io::Cursor;
 
-use svm_types::gas::MaybeGas;
-use svm_types::receipt::{ExecReceipt, Log, ReceiptRef};
+use svm_types::receipt::ExecReceipt;
 
 use super::{decode_error, encode_error, gas, logs};
 
@@ -81,7 +80,6 @@ pub fn decode_exec_receipt(bytes: &[u8]) -> ExecReceipt {
                 logs,
             }
         }
-        _ => unreachable!(),
     }
 }
 
@@ -104,6 +102,7 @@ mod tests {
     use super::*;
 
     use svm_types::gas::MaybeGas;
+    use svm_types::receipt::Log;
     use svm_types::{Address, RuntimeError, State};
 
     #[test]

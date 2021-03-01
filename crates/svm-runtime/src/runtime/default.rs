@@ -1,19 +1,16 @@
+use std::collections::HashMap;
+use std::marker::PhantomData;
 use std::path::Path;
-use std::{collections::HashMap, todo};
-use std::{marker::PhantomData, unreachable};
 
 use log::{error, info};
 
-use crate::{
-    env::{self, traits},
-    gas,
-};
+use crate::env::{self, traits};
 
 use env::{ExtApp, ExtSpawnApp, ExtTemplate};
 use traits::{Env, EnvTypes};
 
 use crate::error::ValidateError;
-use crate::gas::GasEstimator;
+use crate::gas::{self, GasEstimator};
 use crate::storage::StorageBuilderFn;
 use crate::vmcalls;
 use crate::{Config, Context, ExternImport, Runtime};
@@ -30,7 +27,7 @@ use svm_types::{RuntimeError, Transaction};
 
 use wasmer::{Exports, Extern, ImportObject, Instance, Module, Store, WasmPtr, WasmTypeList};
 
-use super::{Call, CallKind, Failure, Function, Outcome};
+use super::{Call, Failure, Function, Outcome};
 
 type RuntimeResult<T = Box<[wasmer::Val]>> = Result<Outcome<T>, Failure>;
 

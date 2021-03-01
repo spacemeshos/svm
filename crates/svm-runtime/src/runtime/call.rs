@@ -22,17 +22,6 @@ pub struct Call<'a> {
     pub within_spawn: bool,
 }
 
-#[derive(Debug, PartialEq, Copy, Clone, Hash)]
-pub enum CallKind {
-    Ctor,
-
-    Verify,
-
-    Alloc,
-
-    Endpoint,
-}
-
 impl<'a> Call<'a> {
     pub fn func_name(&self) -> &str {
         &self.func_name

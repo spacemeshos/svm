@@ -1,4 +1,4 @@
-use svm_types::{App, SpawnApp, TemplateAddr, WasmValue};
+use svm_types::{App, SpawnApp, TemplateAddr};
 
 use crate::app;
 

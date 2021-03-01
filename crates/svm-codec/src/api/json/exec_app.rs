@@ -5,7 +5,7 @@ use serde_json::{json, Value};
 use crate::api::json::{self, JsonError};
 use crate::transaction;
 
-use svm_types::{AddressOf, App, Transaction};
+use svm_types::Transaction;
 
 ///
 /// ```json
@@ -76,9 +76,8 @@ pub fn decode_exec_app(json: &Value) -> Result<Value, JsonError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::json;
 
-    use svm_types::Address;
+    use serde_json::json;
 
     #[test]
     fn json_exec_app_missing_version() {

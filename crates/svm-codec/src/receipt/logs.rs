@@ -1,4 +1,4 @@
-use std::io::{Cursor, Read};
+use std::io::Cursor;
 
 use svm_types::receipt::Log;
 
@@ -46,7 +46,7 @@ pub fn decode_logs(cursor: &mut Cursor<&[u8]>) -> Result<Vec<Log>, ParseError> {
         Ok(nlogs) => {
             let mut logs = Vec::with_capacity(nlogs as usize);
 
-            for _ in (0..nlogs) {
+            for _ in 0..nlogs {
                 let log = decode_log(cursor)?;
 
                 logs.push(log);

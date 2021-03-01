@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::{receipt::SpawnAppReceipt, App, TemplateAddr};
+use crate::{App, TemplateAddr};
 
 /// Struct representation of the parsed raw Spawn-App.
 #[derive(PartialEq)]
@@ -18,6 +18,7 @@ pub struct SpawnApp {
     pub calldata: Vec<u8>,
 }
 
+#[doc(hidden)]
 impl SpawnApp {
     pub fn app(&self) -> &App {
         &self.app

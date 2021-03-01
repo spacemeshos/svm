@@ -12,6 +12,7 @@ pub struct App {
     pub template_addr: TemplateAddr,
 }
 
+#[doc(hidden)]
 impl App {
     pub fn new(template_addr: TemplateAddr, name: String) -> Self {
         Self {

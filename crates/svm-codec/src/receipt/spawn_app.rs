@@ -19,10 +19,9 @@
 
 use std::io::Cursor;
 
-use svm_types::gas::MaybeGas;
-use svm_types::receipt::{ReceiptRef, SpawnAppReceipt};
+use svm_types::receipt::SpawnAppReceipt;
 
-use super::{decode_error, decode_receipt, encode_error, gas, logs, types};
+use super::{decode_error, encode_error, gas, logs, types};
 
 use crate::{calldata, common};
 use crate::{ReadExt, WriteExt};
@@ -85,7 +84,6 @@ pub fn decode_app_receipt(bytes: &[u8]) -> SpawnAppReceipt {
                 logs,
             }
         }
-        _ => unreachable!(),
     }
 }
 
@@ -125,6 +123,8 @@ mod tests {
 
     use svm_types::receipt::Log;
     use svm_types::{gas::MaybeGas, Address, AppAddr, RuntimeError, State};
+
+    use crate::receipt::decode_receipt;
 
     #[test]
     fn encode_decode_spawn_app_receipt_error() {
