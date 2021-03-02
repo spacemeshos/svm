@@ -60,6 +60,12 @@
 //!   |   (20 bytes)      |   (20 bytes)  |   (String) | (UTF-8 String) |
 //!   +-------------------+---------------------------------------------+
 //!
+//!  * Function Invalid Signature
+//!   +-------------------+---------------+------------+
+//!   |  Template Address |  App Address  |  Function  |     
+//!   |   (20 bytes)      |   (20 bytes)  |   (String) |
+//!   +-------------------+----------------------------+
+//!
 
 use std::io::Cursor;
 
@@ -324,7 +330,11 @@ mod tests {
         encode_error(&err, &test_logs(), &mut buf);
 
         let mut cursor = Cursor::new(&buf[..]);
-        let _decoded = decode_error(&mut cursor);
+
+        let (decoded, logs) = decode_error(&mut cursor);
+
+        assert_eq!(decoded, err);
+        assert_eq!(logs, test_logs());
     }
 
     #[test]
@@ -337,7 +347,11 @@ mod tests {
         encode_error(&err, &test_logs(), &mut bytes);
 
         let mut cursor = Cursor::new(&bytes[..]);
-        let _decoded = decode_error(&mut cursor);
+
+        let (decoded, logs) = decode_error(&mut cursor);
+
+        assert_eq!(decoded, err);
+        assert_eq!(logs, test_logs());
     }
 
     #[test]
@@ -355,7 +369,11 @@ mod tests {
         encode_error(&err, &test_logs(), &mut buf);
 
         let mut cursor = Cursor::new(&buf[..]);
-        let _decoded = decode_error(&mut cursor);
+
+        let (decoded, logs) = decode_error(&mut cursor);
+
+        assert_eq!(decoded, err);
+        assert_eq!(logs, test_logs());
     }
 
     #[test]
@@ -373,7 +391,11 @@ mod tests {
         encode_error(&err, &test_logs(), &mut buf);
 
         let mut cursor = Cursor::new(&buf[..]);
-        let _decoded = decode_error(&mut cursor);
+
+        let (decoded, logs) = decode_error(&mut cursor);
+
+        assert_eq!(decoded, err);
+        assert_eq!(logs, test_logs());
     }
 
     #[test]
@@ -392,7 +414,11 @@ mod tests {
         encode_error(&err, &test_logs(), &mut buf);
 
         let mut cursor = Cursor::new(&buf[..]);
-        let _decoded = decode_error(&mut cursor);
+
+        let (decoded, logs) = decode_error(&mut cursor);
+
+        assert_eq!(decoded, err);
+        assert_eq!(logs, test_logs());
     }
 
     #[test]
@@ -413,7 +439,11 @@ mod tests {
         encode_error(&err, &test_logs(), &mut buf);
 
         let mut cursor = Cursor::new(&buf[..]);
-        let _decoded = decode_error(&mut cursor);
+
+        let (decoded, logs) = decode_error(&mut cursor);
+
+        assert_eq!(decoded, err);
+        assert_eq!(logs, test_logs());
     }
 
     #[test]
@@ -434,6 +464,10 @@ mod tests {
         encode_error(&err, &test_logs(), &mut buf);
 
         let mut cursor = Cursor::new(&buf[..]);
-        let _decoded = decode_error(&mut cursor);
+
+        let (decoded, logs) = decode_error(&mut cursor);
+
+        assert_eq!(decoded, err);
+        assert_eq!(logs, test_logs());
     }
 }
