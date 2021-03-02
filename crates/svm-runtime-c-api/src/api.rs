@@ -813,7 +813,7 @@ pub unsafe extern "C" fn svm_exec_app(
     let gas_limit = maybe_gas!(gas_metering, gas_limit);
 
     let tx = runtime.validate_tx(bytes.into()).unwrap();
-    let rust_receipt = runtime.exec_app(&tx, &state.unwrap(), gas_limit);
+    let rust_receipt = runtime.exec_tx(&tx, &state.unwrap(), gas_limit);
     let receipt_bytes = receipt::encode_exec_receipt(&rust_receipt);
 
     // returning encoded `ExecReceipt` as `svm_byte_array`.

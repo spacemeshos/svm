@@ -14,7 +14,7 @@ pub struct ExecReceipt {
     /// The execution error in case execution failed.
     pub error: Option<RuntimeError>,
 
-    /// The new app `State` if execution succedded.
+    /// The new app `State` if execution succeeded.
     pub new_state: Option<State>,
 
     /// Returned the data.

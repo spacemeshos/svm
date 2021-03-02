@@ -1,6 +1,6 @@
-use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::path::Path;
+use std::{collections::HashMap, todo};
 
 use log::{error, info};
 
@@ -70,7 +70,12 @@ where
     fn validate_tx(&self, bytes: &[u8]) -> std::result::Result<Transaction, ValidateError> {
         let tx = self.env.parse_exec_app(bytes);
 
-        tx.map_err(|e| e.into())
+        match tx {
+            Ok(_tx) => {
+                todo!()
+            }
+            Err(err) => Err(err.into()),
+        }
     }
 
     fn deploy_template(
@@ -124,7 +129,11 @@ where
         }
     }
 
-    fn exec_app(&self, tx: &Transaction, state: &State, gas_limit: MaybeGas) -> ExecReceipt {
+    fn exec_verify(&self, tx: &Transaction, state: &State, gas_limit: MaybeGas) -> ExecReceipt {
+        todo!()
+    }
+
+    fn exec_tx(&self, tx: &Transaction, state: &State, gas_limit: MaybeGas) -> ExecReceipt {
         let app_addr = tx.app_addr();
         let template_addr = self.env.find_template_addr(app_addr);
 
@@ -133,14 +142,37 @@ where
                 func_name: tx.func_name(),
                 calldata: tx.calldata(),
                 template_addr: &template_addr,
-                app_addr: &app_addr,
+                app_addr,
                 state,
                 gas_used: MaybeGas::with(0),
                 gas_left: gas_limit,
                 within_spawn: false,
             };
 
-            self.exec(&call)
+            let result = self.exec_call::<(), (), _, ExecReceipt>(&call, |ctx, mut out| {
+                let returndata = self.take_returndata(ctx);
+                let new_state = self.commit_changes(&ctx);
+
+                ExecReceipt {
+                    version: 0,
+                    success: true,
+                    error: None,
+                    returndata: Some(returndata),
+                    new_state: Some(new_state),
+                    gas_used: out.gas_used(),
+                    logs: out.take_logs(),
+                }
+            });
+
+            match result {
+                Ok(receipt) => receipt,
+                Err(mut fail) => {
+                    let logs = fail.take_logs();
+                    let err = fail.take_error();
+
+                    ExecReceipt::from_err(err, logs)
+                }
+            }
         } else {
             unreachable!("Should have failed earlier when doing `validate_tx`");
         }
@@ -197,9 +229,10 @@ where
             gas_left,
         };
 
-        let receipt = self.exec(&call);
+        todo!();
+        /*         let receipt = self.exec::<(), ()>(&call);
 
-        receipt::into_spawn_app_receipt(receipt, app_addr)
+        receipt::into_spawn_app_receipt(receipt, app_addr) */
     }
 
     fn install_template(&mut self, template: &ExtTemplate, gas_used: MaybeGas) -> TemplateReceipt {
@@ -210,7 +243,12 @@ where
         TemplateReceipt::new(addr, gas_used)
     }
 
-    fn exec(&self, call: &Call) -> ExecReceipt {
+    fn exec_call<Args, Rets, F, T>(&self, call: &Call, f: F) -> std::result::Result<T, Failure>
+    where
+        Args: WasmTypeList,
+        Rets: WasmTypeList,
+        F: Fn(&Context, Outcome<Box<[wasmer::Val]>>) -> T,
+    {
         info!("runtime `exec`");
 
         match self.load_template(call.app_addr()) {
@@ -228,33 +266,17 @@ where
 
                 let (import_object, host_envs) = self.create_import_object(&store, &mut ctx);
 
-                let result = self.exec_(&call, &store, &ctx, &template, &import_object);
+                let result =
+                    self.exec_::<Args, Rets>(&call, &store, &ctx, &template, &import_object);
 
                 self.drop_envs(host_envs);
 
                 match result {
-                    Ok(mut out) => {
-                        let new_state = self.commit_changes(&ctx);
-
-                        ExecReceipt {
-                            version: 0,
-                            success: true,
-                            error: None,
-                            returndata: Some(out.take_returns()),
-                            new_state: Some(new_state),
-                            gas_used: out.gas_used(),
-                            logs: out.take_logs(),
-                        }
-                    }
-                    Err(mut fail) => {
-                        let logs = fail.take_logs();
-                        let err = fail.take_error();
-
-                        ExecReceipt::from_err(err, logs)
-                    }
+                    Ok(out) => Ok(f(&ctx, out)),
+                    Err(err) => Err(err),
                 }
             }
-            Err(err) => err.into(),
+            Err(err) => Err(err.into()),
         }
     }
 
@@ -265,14 +287,18 @@ where
         }
     }
 
-    fn exec_(
+    fn exec_<Args, Rets>(
         &self,
         call: &Call,
         store: &Store,
         ctx: &Context,
         template: &ExtTemplate,
         import_object: &ImportObject,
-    ) -> Result<Vec<u8>> {
+    ) -> Result<Box<[wasmer::Val]>>
+    where
+        Args: WasmTypeList,
+        Rets: WasmTypeList,
+    {
         self.validate_call(call, template, ctx)?;
 
         let module = self.compile_template(store, ctx, &template, call.gas_left())?;
@@ -280,7 +306,7 @@ where
 
         self.set_memory(ctx, &instance);
 
-        let func = self.get_func::<(), ()>(&instance, ctx, call.func_name())?;
+        let func = self.get_func::<Args, Rets>(&instance, ctx, call.func_name())?;
 
         let mut out = self.call_with_alloc(&instance, ctx, call.calldata(), &func, &[])?;
 
@@ -288,9 +314,9 @@ where
 
         match self.instance_gas_used(&instance) {
             Ok(gas_used) => {
-                let returns = self.take_returndata(ctx);
-
+                let returns = out.take_returns();
                 let out = Outcome::new(returns, gas_used, logs);
+
                 Ok(out)
             }
             Err(..) => {

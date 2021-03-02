@@ -54,6 +54,8 @@ pub trait Runtime {
         gas_limit: MaybeGas,
     ) -> SpawnAppReceipt;
 
+    fn exec_verify(&self, tx: &Transaction, state: &State, gas_limit: MaybeGas) -> ExecReceipt;
+
     /// Executes an transaction. Returns `ExecReceipt`.
     /// Should be called only if the `verify` stage passed.
     ///
@@ -65,5 +67,5 @@ pub trait Runtime {
     /// On failure:
     /// * Receipt returns the occurred error
     /// * Receipt informs the amount of gas used (transaction gas limit)
-    fn exec_app(&self, tx: &Transaction, state: &State, gas_limit: MaybeGas) -> ExecReceipt;
+    fn exec_tx(&self, tx: &Transaction, state: &State, gas_limit: MaybeGas) -> ExecReceipt;
 }
