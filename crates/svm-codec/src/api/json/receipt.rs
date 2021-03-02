@@ -213,7 +213,7 @@ mod tests {
 
     #[test]
     fn decode_receipt_deploy_template_receipt_success() {
-        let template: Address = [0x10; 20].into();
+        let template = Address::repeat(0x10);
 
         let logs = vec![
             Log {
@@ -256,8 +256,8 @@ mod tests {
 
     #[test]
     fn decode_receipt_spawn_app_receipt_success() {
-        let app: Address = [0x10; 20].into();
-        let state: State = [0xA0; 32].into();
+        let app = Address::repeat(0x10);
+        let state = State::repeat(0xA0);
 
         let logs = vec![
             Log {
@@ -337,7 +337,7 @@ mod tests {
 
     #[test]
     fn decode_receipt_exec_app_receipt_success() {
-        let state: State = [0xA0; 32].into();
+        let state = State::repeat(0xA0);
 
         let logs = vec![
             Log {

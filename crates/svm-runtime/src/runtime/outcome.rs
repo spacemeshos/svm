@@ -1,7 +1,7 @@
 use svm_types::gas::MaybeGas;
 use svm_types::receipt::Log;
 
-pub struct Outcome<T = Box<[wasmer::Val]>> {
+pub struct Outcome<T> {
     returns: T,
 
     gas_used: MaybeGas,

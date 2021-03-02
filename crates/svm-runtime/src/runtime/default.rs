@@ -28,7 +28,7 @@ use wasmer::{Exports, Extern, ImportObject, Instance, Module, Store, WasmPtr, Wa
 
 use super::{Call, Failure, Function, Outcome};
 
-type RuntimeResult<T = Box<[wasmer::Val]>> = Result<Outcome<T>, Failure>;
+type Result<T> = std::result::Result<Outcome<T>, Failure>;
 
 /// Default `Runtime` implementation based on `Wasmer`.
 pub struct DefaultRuntime<ENV, GE> {
@@ -53,21 +53,21 @@ where
     ENV: Env<Types = TY>,
     GE: GasEstimator,
 {
-    fn validate_template(&self, bytes: &[u8]) -> Result<(), ValidateError> {
+    fn validate_template(&self, bytes: &[u8]) -> std::result::Result<(), ValidateError> {
         let template = self.env.parse_deploy_template(bytes)?;
         let code = &template.code;
 
         svm_gas::validate_code(code).map_err(|e| e.into())
     }
 
-    fn validate_app(&self, bytes: &[u8]) -> Result<(), ValidateError> {
+    fn validate_app(&self, bytes: &[u8]) -> std::result::Result<(), ValidateError> {
         self.env
             .parse_spawn_app(bytes)
             .map(|_| ())
             .map_err(|e| e.into())
     }
 
-    fn validate_tx(&self, bytes: &[u8]) -> Result<Transaction, ValidateError> {
+    fn validate_tx(&self, bytes: &[u8]) -> std::result::Result<Transaction, ValidateError> {
         let tx = self.env.parse_exec_app(bytes);
 
         tx.map_err(|e| e.into())
@@ -228,11 +228,11 @@ where
 
                 let (import_object, host_envs) = self.create_import_object(&store, &mut ctx);
 
-                let res = self.exec_(&call, &store, &ctx, &template, &import_object);
+                let result = self.exec_(&call, &store, &ctx, &template, &import_object);
 
                 self.drop_envs(host_envs);
 
-                match res {
+                match result {
                     Ok(mut out) => {
                         let new_state = self.commit_changes(&ctx);
 
@@ -272,7 +272,7 @@ where
         ctx: &Context,
         template: &ExtTemplate,
         import_object: &ImportObject,
-    ) -> RuntimeResult<Vec<u8>> {
+    ) -> Result<Vec<u8>> {
         self.validate_call(call, template, ctx)?;
 
         let module = self.compile_template(store, ctx, &template, call.gas_left())?;
@@ -308,7 +308,7 @@ where
         calldata: &[u8],
         func: &Function<Args, Rets>,
         params: &[wasmer::Val],
-    ) -> RuntimeResult
+    ) -> Result<Box<[wasmer::Val]>>
     where
         Args: WasmTypeList,
         Rets: WasmTypeList,
@@ -325,12 +325,7 @@ where
         self.call(instance, ctx, func, params)
     }
 
-    fn call_alloc(
-        &self,
-        instance: &Instance,
-        ctx: &Context,
-        size: usize,
-    ) -> RuntimeResult<WasmPtr<u8>> {
+    fn call_alloc(&self, instance: &Instance, ctx: &Context, size: usize) -> Result<WasmPtr<u8>> {
         let func_name = "svm_alloc";
 
         let func = self.get_func::<u32, u32>(&instance, ctx, func_name);
@@ -362,7 +357,7 @@ where
         ctx: &Context,
         func: &Function<Args, Rets>,
         params: &[wasmer::Val],
-    ) -> RuntimeResult
+    ) -> Result<Box<[wasmer::Val]>>
     where
         Args: WasmTypeList,
         Rets: WasmTypeList,
@@ -460,7 +455,7 @@ where
     }
 
     #[inline]
-    fn instance_gas_used(&self, _instance: &Instance) -> Result<MaybeGas, OOGError> {
+    fn instance_gas_used(&self, _instance: &Instance) -> std::result::Result<MaybeGas, OOGError> {
         // TODO: read `gas_used` out of `instance`
         Ok(MaybeGas::new())
     }
@@ -470,7 +465,7 @@ where
         ctx: &Context,
         module: &Module,
         import_object: &ImportObject,
-    ) -> Result<Instance, Failure> {
+    ) -> std::result::Result<Instance, Failure> {
         info!("runtime `instantiate` (wasmer module instantiate)");
 
         let instance = Instance::new(module, import_object);
@@ -483,7 +478,7 @@ where
         instance: &'i Instance,
         ctx: &Context,
         func_name: &'i str,
-    ) -> Result<Function<'i, Args, Rets>, Failure>
+    ) -> std::result::Result<Function<'i, Args, Rets>, Failure>
     where
         Args: WasmTypeList,
         Rets: WasmTypeList,
@@ -545,7 +540,7 @@ where
         (import_object, funcs_envs)
     }
 
-    fn load_template(&self, app_addr: &AppAddr) -> Result<ExtTemplate, RuntimeError> {
+    fn load_template(&self, app_addr: &AppAddr) -> std::result::Result<ExtTemplate, RuntimeError> {
         info!("runtime `load_template`");
 
         let template = self.env.load_template_by_app(app_addr);
@@ -559,7 +554,7 @@ where
         ctx: &Context,
         template: &ExtTemplate,
         gas_left: MaybeGas,
-    ) -> Result<Module, Failure> {
+    ) -> std::result::Result<Module, Failure> {
         info!(
             "runtime `compile_template` (template={:?})",
             ctx.template_addr()
@@ -569,6 +564,7 @@ where
         let gas_left = gas_left.unwrap_or(0);
 
         let module = svm_compiler::compile(store, template.code(), gas_left, gas_metering);
+
         module.map_err(|err| self.compilation_failed(ctx, err))
     }
 
@@ -577,7 +573,7 @@ where
         call: &Call,
         template: &ExtTemplate,
         ctx: &Context,
-    ) -> Result<(), Failure> {
+    ) -> std::result::Result<(), Failure> {
         let spawning = call.within_spawn();
         let ctor = template.is_ctor(call.func_name());
 
