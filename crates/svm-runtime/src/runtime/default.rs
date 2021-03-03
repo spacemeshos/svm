@@ -68,14 +68,7 @@ where
     }
 
     fn validate_tx(&self, bytes: &[u8]) -> std::result::Result<Transaction, ValidateError> {
-        let tx = self.env.parse_exec_app(bytes);
-
-        match tx {
-            Ok(_tx) => {
-                todo!()
-            }
-            Err(err) => Err(err.into()),
-        }
+        self.env.parse_exec_app(bytes).map_err(|e| e.into())
     }
 
     fn deploy_template(
@@ -89,10 +82,10 @@ where
         let base = self.env.parse_deploy_template(bytes).unwrap();
         let template = ExtTemplate::new(base, author);
 
-        let install_gas = self.template_installation_price(bytes, &template);
+        let install_price = self.template_installation_price(bytes, &template);
 
-        if gas_limit >= install_gas {
-            let gas_used = MaybeGas::with(install_gas);
+        if gas_limit >= install_price {
+            let gas_used = MaybeGas::with(install_price);
 
             self.install_template(&template, gas_used)
         } else {
@@ -111,8 +104,8 @@ where
         let base = self.env.parse_spawn_app(bytes).unwrap();
         let spawn = ExtSpawnApp::new(base, spawner);
 
-        let install_gas = self.spawn_payload_price(bytes, &spawn);
-        let gas_left = gas_limit - install_gas;
+        let payload_price = self.spawn_payload_price(bytes, &spawn);
+        let gas_left = gas_limit - payload_price;
 
         match gas_left {
             Ok(gas_left) => {
@@ -121,7 +114,7 @@ where
 
                 self.env.store_app(&app, &addr);
 
-                let gas_used = install_gas.into();
+                let gas_used = payload_price.into();
 
                 self.call_ctor(&spawn, &addr, gas_used, gas_left)
             }
@@ -149,30 +142,7 @@ where
                 within_spawn: false,
             };
 
-            let result = self.exec_call::<(), (), _, ExecReceipt>(&call, |ctx, mut out| {
-                let returndata = self.take_returndata(ctx);
-                let new_state = self.commit_changes(&ctx);
-
-                ExecReceipt {
-                    version: 0,
-                    success: true,
-                    error: None,
-                    returndata: Some(returndata),
-                    new_state: Some(new_state),
-                    gas_used: out.gas_used(),
-                    logs: out.take_logs(),
-                }
-            });
-
-            match result {
-                Ok(receipt) => receipt,
-                Err(mut fail) => {
-                    let logs = fail.take_logs();
-                    let err = fail.take_error();
-
-                    ExecReceipt::from_err(err, logs)
-                }
-            }
+            self.exec_call::<(), ()>(&call)
         } else {
             unreachable!("Should have failed earlier when doing `validate_tx`");
         }
@@ -204,6 +174,32 @@ where
         }
     }
 
+    fn outcome_to_receipt(
+        &self,
+        ctx: &Context,
+        mut out: Outcome<Box<[wasmer::Val]>>,
+    ) -> ExecReceipt {
+        let returndata = self.take_returndata(ctx);
+        let new_state = self.commit_changes(&ctx);
+
+        ExecReceipt {
+            version: 0,
+            success: true,
+            error: None,
+            returndata: Some(returndata),
+            new_state: Some(new_state),
+            gas_used: out.gas_used(),
+            logs: out.take_logs(),
+        }
+    }
+
+    fn failure_to_receipt(&self, mut fail: Failure) -> ExecReceipt {
+        let logs = fail.take_logs();
+        let err = fail.take_error();
+
+        ExecReceipt::from_err(err, logs)
+    }
+
     /// Opens the `AppStorage` associated with the input params.
     pub fn open_storage(&self, app_addr: &AppAddr, state: &State, layout: &Layout) -> AppStorage {
         (self.storage_builder)(app_addr, state, layout, &self.config)
@@ -229,10 +225,9 @@ where
             gas_left,
         };
 
-        todo!();
-        /*         let receipt = self.exec::<(), ()>(&call);
+        let receipt = self.exec_call::<(), ()>(&call);
 
-        receipt::into_spawn_app_receipt(receipt, app_addr) */
+        receipt::into_spawn_app_receipt(receipt, app_addr)
     }
 
     fn install_template(&mut self, template: &ExtTemplate, gas_used: MaybeGas) -> TemplateReceipt {
@@ -243,7 +238,14 @@ where
         TemplateReceipt::new(addr, gas_used)
     }
 
-    fn exec_call<Args, Rets, F, T>(&self, call: &Call, f: F) -> std::result::Result<T, Failure>
+    fn exec_call<Args, Rets>(&self, call: &Call) -> ExecReceipt {
+        let result =
+            self.exec::<(), (), _, _>(&call, |ctx, mut out| self.outcome_to_receipt(ctx, out));
+
+        result.unwrap_or_else(|fail| self.failure_to_receipt(fail))
+    }
+
+    fn exec<Args, Rets, F, T>(&self, call: &Call, f: F) -> std::result::Result<T, Failure>
     where
         Args: WasmTypeList,
         Rets: WasmTypeList,
