@@ -25,6 +25,7 @@ use crate::error::ValidateError;
 
 use svm_types::gas::MaybeGas;
 use svm_types::receipt::{ExecReceipt, SpawnAppReceipt, TemplateReceipt};
+use svm_types::RuntimeError;
 use svm_types::{AuthorAddr, SpawnerAddr, State, Transaction};
 
 /// Specifies the interface of a `SVM` Runtime.
@@ -54,7 +55,12 @@ pub trait Runtime {
         gas_limit: MaybeGas,
     ) -> SpawnAppReceipt;
 
-    fn exec_verify(&self, tx: &Transaction, state: &State, gas_limit: MaybeGas) -> ExecReceipt;
+    fn exec_verify(
+        &self,
+        tx: &Transaction,
+        state: &State,
+        gas_limit: MaybeGas,
+    ) -> Result<bool, RuntimeError>;
 
     /// Executes an transaction. Returns `ExecReceipt`.
     /// Should be called only if the `verify` stage passed.
