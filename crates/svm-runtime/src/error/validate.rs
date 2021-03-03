@@ -7,6 +7,7 @@ use svm_gas::error::ProgramError;
 #[derive(Debug, PartialEq, Clone)]
 pub enum ValidateError {
     Parse(ParseError),
+
     Program(ProgramError),
 }
 

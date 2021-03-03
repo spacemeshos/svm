@@ -3,7 +3,7 @@ use std::fmt;
 use crate::AppAddr;
 
 /// An in-memory representation of an exec-app transaction.
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone)]
 pub struct Transaction {
     /// The app-transaction version.
     pub version: u16,
