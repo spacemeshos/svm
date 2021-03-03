@@ -15,12 +15,16 @@ mod macros;
 mod address;
 mod address_of;
 mod app;
-mod app_tx;
+mod error;
 mod spawn_app;
 mod state;
 mod template;
+mod transaction;
 mod wasm_type;
 mod wasm_value;
+
+/// Type for failed running transactions
+pub use error::RuntimeError;
 
 /// Gas-related types
 pub mod gas;
@@ -29,14 +33,14 @@ pub mod gas;
 pub mod receipt;
 
 /// Address-related types
-pub use address::{Address, AppAddr, AuthorAddr, CreatorAddr, TemplateAddr};
+pub use address::{Address, AppAddr, AuthorAddr, SpawnerAddr, TemplateAddr};
 pub use address_of::AddressOf;
 
 pub use app::App;
-pub use app_tx::AppTransaction;
 pub use spawn_app::SpawnApp;
 pub use state::State;
 pub use template::Template;
+pub use transaction::Transaction;
 pub use wasm_type::{WasmType, WasmTypeError};
 pub use wasm_value::WasmValue;
 

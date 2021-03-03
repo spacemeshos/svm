@@ -6,7 +6,7 @@ use crate::env::memory::{DefaultMemAppStore, DefaultMemTemplateStore, DefaultMem
 use crate::{gas::DefaultGasEstimator, storage::StorageBuilderFn};
 use crate::{Config, DefaultRuntime, ExternImport};
 
-use svm_codec::api::builder::{AppTxBuilder, DeployTemplateBuilder, SpawnAppBuilder};
+use svm_codec::api::builder::{DeployTemplateBuilder, SpawnAppBuilder, TxBuilder};
 use svm_layout::Layout;
 use svm_storage::{
     app::{AppKVStore, AppStorage},
@@ -152,7 +152,7 @@ pub fn build_template(
         .with_version(version)
         .with_name(name)
         .with_code(&wasm)
-        .with_data(&data)
+        .with_layout(&data)
         .with_ctors(ctors)
         .build()
 }
@@ -176,7 +176,7 @@ pub fn build_app(
 
 /// Synthesizes a raw exec-app transaction.
 pub fn build_app_tx(version: u16, app_addr: &AppAddr, func: &str, calldata: &Vec<u8>) -> Vec<u8> {
-    AppTxBuilder::new()
+    TxBuilder::new()
         .with_version(version)
         .with_app(app_addr)
         .with_func(func)

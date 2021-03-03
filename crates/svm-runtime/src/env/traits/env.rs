@@ -1,18 +1,17 @@
 use std::io::Cursor;
 
-use crate::env::traits::{
-    AppAddressCompute, AppStore, TemplateAddressCompute, TemplateHasher, TemplateStore,
-};
-use crate::env::types::TemplateHash;
+use crate::env::{hash, traits};
+use crate::env::{ExtApp, ExtSpawnApp, ExtTemplate};
 
-use svm_codec::serializers::{
-    AppDeserializer, AppSerializer, TemplateDeserializer, TemplateSerializer,
+use hash::TemplateHash;
+use traits::{
+    AppAddressCompute, AppDeserializer, AppSerializer, AppStore, TemplateAddressCompute,
+    TemplateDeserializer, TemplateHasher, TemplateSerializer, TemplateStore,
 };
+
 use svm_codec::ParseError;
 use svm_codec::{app, template, transaction};
-use svm_types::{
-    App, AppAddr, AppTransaction, AuthorAddr, CreatorAddr, SpawnApp, Template, TemplateAddr,
-};
+use svm_types::{AppAddr, SpawnApp, Template, TemplateAddr, Transaction};
 
 /// `Env` storage serialization types
 pub trait EnvSerializerTypes {
@@ -65,17 +64,17 @@ pub trait Env {
     fn get_app_store_mut(&mut self) -> &mut <Self::Types as EnvTypes>::AppStore;
 
     /// Computes `Template` Hash
-    fn compute_template_hash(&self, template: &Template) -> TemplateHash {
-        <Self::Types as EnvTypes>::TemplateHasher::hash(template)
+    fn compute_template_hash(&self, template: &ExtTemplate) -> TemplateHash {
+        <Self::Types as EnvTypes>::TemplateHasher::hash(template.base())
     }
 
     /// Computes `Template` account address
-    fn derive_template_address(&self, template: &Template) -> TemplateAddr {
+    fn derive_template_address(&self, template: &ExtTemplate) -> TemplateAddr {
         <Self::Types as EnvTypes>::TemplateAddressCompute::compute(template)
     }
 
     /// Computes `App` account address
-    fn derive_app_address(&self, spawn: &SpawnApp) -> AppAddr {
+    fn derive_app_address(&self, spawn: &ExtSpawnApp) -> AppAddr {
         <Self::Types as EnvTypes>::AppAddressCompute::compute(spawn)
     }
 
@@ -106,7 +105,7 @@ pub trait Env {
     /// Parses raw a app-transation to execute.
     /// On success returns `AppTransaction`,
     /// On failure returns `ParseError`.
-    fn parse_exec_app(&self, bytes: &[u8]) -> Result<AppTransaction, ParseError> {
+    fn parse_exec_app(&self, bytes: &[u8]) -> Result<Transaction, ParseError> {
         let mut cursor = Cursor::new(bytes);
 
         let tx = transaction::decode_exec_app(&mut cursor)?;
@@ -114,60 +113,52 @@ pub trait Env {
         Ok(tx)
     }
 
-    /// Stores the following:
-    /// * `TemplateAddress` -> `TemplateHash`
-    /// * `TemplateHash`    -> `Template` data
-    fn store_template(&mut self, template: &Template, author: &AuthorAddr) -> TemplateAddr {
-        let addr = self.derive_template_address(template);
+    fn store_template(&mut self, template: &ExtTemplate, addr: &TemplateAddr) {
         let hash = self.compute_template_hash(template);
 
         let store = self.get_template_store_mut();
-        store.store(template, author, &addr, &hash);
 
-        addr
+        store.store(template, &addr, &hash);
     }
 
     /// Stores `app address` -> `app-template address` relation.
-    fn store_app(&mut self, spawn: &SpawnApp, creator: &CreatorAddr) -> AppAddr {
-        let app = &spawn.app;
-        let template = &app.template;
+    fn store_app(&mut self, app: &ExtApp, addr: &AppAddr) {
+        let template = app.template_addr();
 
         if self.template_exists(template) {
-            let addr = self.derive_app_address(spawn);
             let store = self.get_app_store_mut();
 
-            store.store(app, creator, &addr);
-
-            addr
+            store.store(app, &addr);
         } else {
             unreachable!("Should have validated template transaction first.");
         }
     }
 
-    /// Given an `App` address, loads the `Template` the app is associated with.
-    fn load_template_by_app(
-        &self,
-        addr: &AppAddr,
-    ) -> Option<(Template, TemplateAddr, AuthorAddr, CreatorAddr)> {
-        if let Some((app, creator)) = self.load_app(addr) {
-            if let Some((template, author)) = self.load_template(&app.template) {
-                return Some((template, app.template, author, creator));
-            }
-        }
+    fn find_template_addr(&self, addr: &AppAddr) -> Option<TemplateAddr> {
+        let store = self.get_app_store();
 
-        None
+        store.find_template_addr(&addr)
+    }
+
+    /// Given an `App` Address, loads the `Template` the app is associated with.
+    fn load_template_by_app(&self, addr: &AppAddr) -> Option<ExtTemplate> {
+        self.load_app(addr).and_then(|app| {
+            let addr = app.template_addr();
+
+            self.load_template(addr)
+        })
     }
 
     /// Loads an `Template` given its `Address`
     #[must_use]
-    fn load_template(&self, addr: &TemplateAddr) -> Option<(Template, AuthorAddr)> {
+    fn load_template(&self, addr: &TemplateAddr) -> Option<ExtTemplate> {
         let store = self.get_template_store();
         store.load(&addr)
     }
 
     /// Loads an `App` given its `Address`
     #[must_use]
-    fn load_app(&self, addr: &AppAddr) -> Option<(App, CreatorAddr)> {
+    fn load_app(&self, addr: &AppAddr) -> Option<ExtApp> {
         let store = self.get_app_store();
         store.load(&addr)
     }

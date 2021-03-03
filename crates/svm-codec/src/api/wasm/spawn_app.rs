@@ -1,10 +1,7 @@
 use serde_json::Value;
 
 use super::wasm_buf_apply;
-use crate::api::{
-    self,
-    json::{self, JsonError},
-};
+use crate::api::{self, json::JsonError};
 
 /// Encodes a `spawn-app` JSON input into SVM `spawn-app` binary.
 /// The JSON input is passed by giving WASM memory start address (`offset` parameter).
@@ -29,8 +26,7 @@ pub fn decode_spawn_app(offset: usize) -> Result<usize, JsonError> {
 mod test {
     use super::*;
 
-    use svm_types::{Address, App, SpawnApp};
-
+    use crate::api::json;
     use crate::api::wasm::{
         error_as_string, free, to_wasm_buffer, wasm_buffer_data, BUF_OK_MARKER,
     };

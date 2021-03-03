@@ -1,10 +1,7 @@
 use serde_json::Value;
 
 use super::wasm_buf_apply;
-use crate::api::{
-    self,
-    json::{self, JsonError},
-};
+use crate::api::{self, json::JsonError};
 
 /// Encodes an `exec-app` JSON into SVM `exec-app` binary transaction.
 /// The JSON input is passed by giving WASM memory start address (`ptr` parameter).
@@ -32,8 +29,7 @@ pub fn decode_exec_app(offset: usize) -> Result<usize, JsonError> {
 mod test {
     use super::*;
 
-    use svm_types::{Address, AppTransaction, WasmValue};
-
+    use crate::api::json;
     use crate::api::wasm::{
         error_as_string, free, to_wasm_buffer, wasm_buffer_data, BUF_OK_MARKER,
     };
@@ -43,6 +39,12 @@ mod test {
     #[test]
     fn wasm_encode_exec_app_valid() {
         let app_addr = "1122334455667788990011223344556677889900";
+
+        let verifydata = api::json::encode_calldata(&json!({
+            "abi": ["bool", "i8"],
+            "data": [true, 3]
+        }))
+        .unwrap();
 
         let calldata = api::json::encode_calldata(&json!({
             "abi": ["i32", "i64"],
@@ -54,7 +56,8 @@ mod test {
           "version": 1,
           "app": app_addr,
           "func_name": "do_something",
-          "calldata": calldata["calldata"],
+          "verifydata": verifydata["calldata"],
+          "calldata": calldata["calldata"]
         });
 
         let json = serde_json::to_string(&json).unwrap();
@@ -84,6 +87,10 @@ mod test {
                 "version": 1,
                 "app": app_addr,
                 "func_name": "do_something",
+                "verifydata": {
+                    "abi": ["bool", "i8"],
+                    "data": [true, 3],
+                },
                 "calldata": {
                     "abi": ["i32", "i64"],
                     "data": [10, 20],

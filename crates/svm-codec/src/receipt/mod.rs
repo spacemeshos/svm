@@ -20,7 +20,7 @@ pub use deploy_template::{decode_template_receipt, encode_template_receipt};
 pub use exec_app::{decode_exec_receipt, encode_exec_receipt};
 pub use spawn_app::{decode_app_receipt, encode_app_receipt};
 
-use svm_types::receipt::{ExecReceipt, Receipt, SpawnAppReceipt, TemplateReceipt};
+use svm_types::receipt::Receipt;
 
 /// Decodes a binary Receipt into its Rust struct wrapped as `ReceiptOwned`
 pub fn decode_receipt(bytes: &[u8]) -> Receipt {

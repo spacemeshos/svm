@@ -1,4 +1,4 @@
-use crate::receipt::{ExecReceipt, Log, ReceiptError};
+use crate::receipt::{ExecReceipt, Log, RuntimeError};
 use crate::{gas::MaybeGas, AppAddr, State};
 
 /// Returned Receipt after spawning an App.
@@ -11,7 +11,7 @@ pub struct SpawnAppReceipt {
     pub success: bool,
 
     /// the error in case spawning failed
-    pub error: Option<ReceiptError>,
+    pub error: Option<RuntimeError>,
 
     /// the spawned app `Address`
     pub app_addr: Option<AppAddr>,
@@ -32,11 +32,11 @@ pub struct SpawnAppReceipt {
 impl SpawnAppReceipt {
     /// Creates a `SpawnAppReceipt` for reaching reaching `Out-of-Gas`.
     pub fn new_oog(logs: Vec<Log>) -> Self {
-        Self::from_err(ReceiptError::OOG, logs)
+        Self::from_err(RuntimeError::OOG, logs)
     }
 
     /// Creates a new failure Receipt out of the `error` parameter
-    pub fn from_err(error: ReceiptError, logs: Vec<Log>) -> Self {
+    pub fn from_err(error: RuntimeError, logs: Vec<Log>) -> Self {
         Self {
             version: 0,
             success: false,
@@ -50,7 +50,7 @@ impl SpawnAppReceipt {
     }
 
     /// Returns spawned-app `Error`. Panics if spawning has *not* failed.
-    pub fn get_error(&self) -> &ReceiptError {
+    pub fn get_error(&self) -> &RuntimeError {
         self.error.as_ref().unwrap()
     }
 

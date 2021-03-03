@@ -150,7 +150,7 @@ impl WriteExt for Vec<u8> {
     }
 
     fn write_bool(&mut self, b: bool) {
-        let byte = if (b == false) { 0 } else { 1 };
+        let byte = if b == false { 0 } else { 1 };
 
         self.write_byte(byte);
     }

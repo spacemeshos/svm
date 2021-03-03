@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use crate::env::rocksdb::{RocksdbAppStore, RocksdbEnv, RocksdbTemplateStore};
-use crate::env::traits::EnvSerializerTypes;
+use crate::env::traits::EnvSerializers;
 
 use svm_layout::Layout;
 use svm_storage::app::AppStorage;
@@ -16,7 +16,7 @@ pub fn create_rocksdb_runtime<P, S, GE>(
 ) -> DefaultRuntime<RocksdbEnv<S>, GE>
 where
     P: AsRef<Path>,
-    S: EnvSerializerTypes,
+    S: EnvSerializers,
     GE: GasEstimator,
 {
     let env = app_env_build(&kv_path);
@@ -28,16 +28,16 @@ where
 fn app_env_build<P, S>(kv_path: &P) -> RocksdbEnv<S>
 where
     P: AsRef<Path>,
-    S: EnvSerializerTypes,
+    S: EnvSerializers,
 {
     let app_store = RocksdbAppStore::<
-        <S as EnvSerializerTypes>::AppSerializer,
-        <S as EnvSerializerTypes>::AppDeserializer,
+        <S as EnvSerializers>::AppSerializer,
+        <S as EnvSerializers>::AppDeserializer,
     >::new(kv_path);
 
     let template_store = RocksdbTemplateStore::<
-        <S as EnvSerializerTypes>::TemplateSerializer,
-        <S as EnvSerializerTypes>::TemplateDeserializer,
+        <S as EnvSerializers>::TemplateSerializer,
+        <S as EnvSerializers>::TemplateDeserializer,
     >::new(kv_path);
 
     RocksdbEnv::new(app_store, template_store)

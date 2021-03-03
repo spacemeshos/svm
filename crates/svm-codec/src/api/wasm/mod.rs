@@ -117,9 +117,7 @@ fn write_header_u32(buf: *mut u8, n: u32, off: usize) {
 
         let bytes: [u8; 4] = n.to_be_bytes();
 
-        unsafe {
-            std::ptr::copy(bytes.as_ptr(), slice.as_mut_ptr(), 4);
-        }
+        std::ptr::copy(bytes.as_ptr(), slice.as_mut_ptr(), 4);
     }
 }
 
@@ -194,23 +192,6 @@ pub fn to_wasm_buffer(bytes: &[u8]) -> usize {
     buf_offset
 }
 
-fn wasm_buf_data_copy(ptr: usize, offset: usize, data: &[u8]) {
-    let buf: &mut [u8] = wasm_buffer_mut(ptr);
-    let len = wasm_buf_len(ptr);
-
-    // asserting there is no overflow
-    assert!(offset + data.len() - 1 < len as usize);
-
-    unsafe {
-        let src = data.as_ptr();
-
-        let dst = buf.as_mut_ptr();
-        let dst = dst.add(HEADER_SIZE).add(offset);
-
-        std::ptr::copy(src, dst, data.len());
-    }
-}
-
 pub(crate) fn wasm_buf_apply<F>(offset: usize, func: F) -> Result<usize, JsonError>
 where
     F: Fn(&Value) -> Result<Vec<u8>, JsonError>,
@@ -240,6 +221,23 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
+
+    fn wasm_buf_data_copy(ptr: usize, offset: usize, data: &[u8]) {
+        let buf: &mut [u8] = wasm_buffer_mut(ptr);
+        let len = wasm_buf_len(ptr);
+
+        // asserting there is no overflow
+        assert!(offset + data.len() - 1 < len as usize);
+
+        unsafe {
+            let src = data.as_ptr();
+
+            let dst = buf.as_mut_ptr();
+            let dst = dst.add(HEADER_SIZE).add(offset);
+
+            std::ptr::copy(src, dst, data.len());
+        }
+    }
 
     #[test]
     fn wasm_buffer_alloc_and_free() {

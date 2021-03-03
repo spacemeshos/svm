@@ -60,31 +60,38 @@
 //!   |   (20 bytes)      |   (20 bytes)  |   (String) | (UTF-8 String) |
 //!   +-------------------+---------------------------------------------+
 //!
+//!  * Function Invalid Signature
+//!   +-------------------+---------------+------------+
+//!   |  Template Address |  App Address  |  Function  |     
+//!   |   (20 bytes)      |   (20 bytes)  |   (String) |
+//!   +-------------------+----------------------------+
+//!
 
-use std::io::{Cursor, Read};
+use std::io::Cursor;
 
-use crate::{Field, ReadExt, WriteExt};
+use crate::{ReadExt, WriteExt};
 
-use svm_types::receipt::{Log, ReceiptError, ReceiptError as Err};
+use svm_types::receipt::Log;
+use svm_types::RuntimeError;
 use svm_types::{Address, AppAddr, TemplateAddr};
 
 use super::logs;
 
-pub(crate) fn encode_error(err: &ReceiptError, logs: &[Log], w: &mut Vec<u8>) {
+pub(crate) fn encode_error(err: &RuntimeError, logs: &[Log], w: &mut Vec<u8>) {
     encode_err_type(err, w);
 
     logs::encode_logs(logs, w);
 
     match err {
-        Err::OOG => (),
-        Err::TemplateNotFound(template_addr) => w.write_address(template_addr.inner()),
-        Err::AppNotFound(app_addr) => w.write_address(app_addr.inner()),
-        Err::CompilationFailed {
+        RuntimeError::OOG => (),
+        RuntimeError::TemplateNotFound(template_addr) => w.write_address(template_addr.inner()),
+        RuntimeError::AppNotFound(app_addr) => w.write_address(app_addr.inner()),
+        RuntimeError::CompilationFailed {
             app_addr,
             template_addr,
             msg,
         }
-        | Err::InstantiationFailed {
+        | RuntimeError::InstantiationFailed {
             app_addr,
             template_addr,
             msg,
@@ -93,7 +100,7 @@ pub(crate) fn encode_error(err: &ReceiptError, logs: &[Log], w: &mut Vec<u8>) {
             w.write_address(app_addr.inner());
             w.write_string(msg);
         }
-        Err::FuncNotFound {
+        RuntimeError::FuncNotFound {
             app_addr,
             template_addr,
             func,
@@ -102,18 +109,7 @@ pub(crate) fn encode_error(err: &ReceiptError, logs: &[Log], w: &mut Vec<u8>) {
             w.write_address(app_addr.inner());
             w.write_string(func);
         }
-        Err::FuncFailed {
-            app_addr,
-            template_addr,
-            func,
-            msg,
-        } => {
-            w.write_address(template_addr.inner());
-            w.write_address(app_addr.inner());
-            w.write_string(func);
-            w.write_string(msg);
-        }
-        Err::FuncNotAllowed {
+        RuntimeError::FuncFailed {
             app_addr,
             template_addr,
             func,
@@ -123,26 +119,47 @@ pub(crate) fn encode_error(err: &ReceiptError, logs: &[Log], w: &mut Vec<u8>) {
             w.write_address(app_addr.inner());
             w.write_string(func);
             w.write_string(msg);
+        }
+        RuntimeError::FuncNotAllowed {
+            app_addr,
+            template_addr,
+            func,
+            msg,
+        } => {
+            w.write_address(template_addr.inner());
+            w.write_address(app_addr.inner());
+            w.write_string(func);
+            w.write_string(msg);
+        }
+        RuntimeError::FuncInvalidSignature {
+            app_addr,
+            template_addr,
+            func,
+        } => {
+            w.write_address(template_addr.inner());
+            w.write_address(app_addr.inner());
+            w.write_string(func);
         }
     };
 }
 
-fn encode_err_type(err: &ReceiptError, w: &mut Vec<u8>) {
+fn encode_err_type(err: &RuntimeError, w: &mut Vec<u8>) {
     let ty = match err {
-        Err::OOG => 0,
-        Err::TemplateNotFound(..) => 1,
-        Err::AppNotFound(..) => 2,
-        Err::CompilationFailed { .. } => 3,
-        Err::InstantiationFailed { .. } => 4,
-        Err::FuncNotFound { .. } => 5,
-        Err::FuncFailed { .. } => 6,
-        Err::FuncNotAllowed { .. } => 7,
+        RuntimeError::OOG => 0,
+        RuntimeError::TemplateNotFound(..) => 1,
+        RuntimeError::AppNotFound(..) => 2,
+        RuntimeError::CompilationFailed { .. } => 3,
+        RuntimeError::InstantiationFailed { .. } => 4,
+        RuntimeError::FuncNotFound { .. } => 5,
+        RuntimeError::FuncFailed { .. } => 6,
+        RuntimeError::FuncNotAllowed { .. } => 7,
+        RuntimeError::FuncInvalidSignature { .. } => 8,
     };
 
     w.push(ty);
 }
 
-pub(crate) fn decode_error(cursor: &mut Cursor<&[u8]>) -> (ReceiptError, Vec<Log>) {
+pub(crate) fn decode_error(cursor: &mut Cursor<&[u8]>) -> (RuntimeError, Vec<Log>) {
     let ty = cursor.read_byte().unwrap();
     let logs = logs::decode_logs(cursor).unwrap();
 
@@ -156,6 +173,7 @@ pub(crate) fn decode_error(cursor: &mut Cursor<&[u8]>) -> (ReceiptError, Vec<Log
             5 => decode_func_not_found(cursor),
             6 => decode_func_failed(cursor),
             7 => decode_func_not_allowed(cursor),
+            8 => decode_func_invalid_sig(cursor),
             _ => unreachable!(),
         }
     };
@@ -163,61 +181,61 @@ pub(crate) fn decode_error(cursor: &mut Cursor<&[u8]>) -> (ReceiptError, Vec<Log
     (err, logs)
 }
 
-fn decode_oog(_cursor: &mut Cursor<&[u8]>) -> ReceiptError {
-    ReceiptError::OOG
+fn decode_oog(_cursor: &mut Cursor<&[u8]>) -> RuntimeError {
+    RuntimeError::OOG
 }
 
-fn decode_template_not_found(cursor: &mut Cursor<&[u8]>) -> ReceiptError {
+fn decode_template_not_found(cursor: &mut Cursor<&[u8]>) -> RuntimeError {
     let template_addr = decode_template_addr(cursor);
 
-    ReceiptError::TemplateNotFound(template_addr.into())
+    RuntimeError::TemplateNotFound(template_addr.into())
 }
 
-fn decode_app_not_found(cursor: &mut Cursor<&[u8]>) -> ReceiptError {
+fn decode_app_not_found(cursor: &mut Cursor<&[u8]>) -> RuntimeError {
     let app_addr = decode_app_addr(cursor);
 
-    ReceiptError::AppNotFound(app_addr.into())
+    RuntimeError::AppNotFound(app_addr.into())
 }
 
-fn decode_compilation_err(cursor: &mut Cursor<&[u8]>) -> ReceiptError {
+fn decode_compilation_err(cursor: &mut Cursor<&[u8]>) -> RuntimeError {
     let (template_addr, app_addr) = decode_addrs(cursor);
     let msg = decode_msg(cursor);
 
-    ReceiptError::CompilationFailed {
+    RuntimeError::CompilationFailed {
         template_addr,
         app_addr,
         msg,
     }
 }
 
-fn decode_instantiation_err(cursor: &mut Cursor<&[u8]>) -> ReceiptError {
+fn decode_instantiation_err(cursor: &mut Cursor<&[u8]>) -> RuntimeError {
     let (template_addr, app_addr) = decode_addrs(cursor);
     let msg = decode_msg(cursor);
 
-    ReceiptError::InstantiationFailed {
+    RuntimeError::InstantiationFailed {
         template_addr,
         app_addr,
         msg,
     }
 }
 
-fn decode_func_not_found(cursor: &mut Cursor<&[u8]>) -> ReceiptError {
+fn decode_func_not_found(cursor: &mut Cursor<&[u8]>) -> RuntimeError {
     let (template_addr, app_addr) = decode_addrs(cursor);
     let func = decode_func(cursor);
 
-    ReceiptError::FuncNotFound {
+    RuntimeError::FuncNotFound {
         template_addr,
         app_addr,
         func,
     }
 }
 
-fn decode_func_failed(cursor: &mut Cursor<&[u8]>) -> ReceiptError {
+fn decode_func_failed(cursor: &mut Cursor<&[u8]>) -> RuntimeError {
     let (template_addr, app_addr) = decode_addrs(cursor);
     let func = decode_func(cursor);
     let msg = decode_msg(cursor);
 
-    ReceiptError::FuncFailed {
+    RuntimeError::FuncFailed {
         template_addr,
         app_addr,
         func,
@@ -225,16 +243,27 @@ fn decode_func_failed(cursor: &mut Cursor<&[u8]>) -> ReceiptError {
     }
 }
 
-fn decode_func_not_allowed(cursor: &mut Cursor<&[u8]>) -> ReceiptError {
+fn decode_func_not_allowed(cursor: &mut Cursor<&[u8]>) -> RuntimeError {
     let (template_addr, app_addr) = decode_addrs(cursor);
     let func = decode_func(cursor);
     let msg = decode_msg(cursor);
 
-    ReceiptError::FuncNotAllowed {
+    RuntimeError::FuncNotAllowed {
         template_addr,
         app_addr,
         func,
         msg,
+    }
+}
+
+fn decode_func_invalid_sig(cursor: &mut Cursor<&[u8]>) -> RuntimeError {
+    let (template_addr, app_addr) = decode_addrs(cursor);
+    let func = decode_func(cursor);
+
+    RuntimeError::FuncInvalidSignature {
+        template_addr,
+        app_addr,
+        func,
     }
 }
 
@@ -282,49 +311,57 @@ mod tests {
 
     #[test]
     fn decode_receipt_oog() {
-        let err = ReceiptError::OOG;
+        let err = RuntimeError::OOG;
 
         let mut buf = Vec::new();
         encode_error(&err, &test_logs(), &mut buf);
 
         let mut cursor = Cursor::new(&buf[..]);
-        let decoded = decode_error(&mut cursor);
+        let _decoded = decode_error(&mut cursor);
     }
 
     #[test]
     fn decode_receipt_template_not_found() {
         let template_addr = Address::of("some-template");
 
-        let err = ReceiptError::TemplateNotFound(template_addr.into());
+        let err = RuntimeError::TemplateNotFound(template_addr.into());
 
         let mut buf = Vec::new();
         encode_error(&err, &test_logs(), &mut buf);
 
         let mut cursor = Cursor::new(&buf[..]);
-        let decoded = decode_error(&mut cursor);
+
+        let (decoded, logs) = decode_error(&mut cursor);
+
+        assert_eq!(decoded, err);
+        assert_eq!(logs, test_logs());
     }
 
     #[test]
     fn decode_receipt_app_not_found() {
         let app_addr = Address::of("some-app");
 
-        let err = ReceiptError::AppNotFound(app_addr.into());
+        let err = RuntimeError::AppNotFound(app_addr.into());
 
         let mut bytes = Vec::new();
         encode_error(&err, &test_logs(), &mut bytes);
 
         let mut cursor = Cursor::new(&bytes[..]);
-        let decoded = decode_error(&mut cursor);
+
+        let (decoded, logs) = decode_error(&mut cursor);
+
+        assert_eq!(decoded, err);
+        assert_eq!(logs, test_logs());
     }
 
     #[test]
     fn decode_receipt_compilation_failed() {
-        let template_addr = Address::of("some-template");
-        let app_addr = Address::of("some-app");
+        let template_addr = Address::of("some-template").into();
+        let app_addr = Address::of("some-app").into();
 
-        let err = ReceiptError::CompilationFailed {
-            app_addr: app_addr.into(),
-            template_addr: template_addr.into(),
+        let err = RuntimeError::CompilationFailed {
+            app_addr,
+            template_addr,
             msg: "Invalid code".to_string(),
         };
 
@@ -332,17 +369,21 @@ mod tests {
         encode_error(&err, &test_logs(), &mut buf);
 
         let mut cursor = Cursor::new(&buf[..]);
-        let decoded = decode_error(&mut cursor);
+
+        let (decoded, logs) = decode_error(&mut cursor);
+
+        assert_eq!(decoded, err);
+        assert_eq!(logs, test_logs());
     }
 
     #[test]
     fn decode_receipt_instantiation_failed() {
-        let template_addr = Address::of("some-template");
-        let app_addr = Address::of("some-app");
+        let template_addr = Address::of("some-template").into();
+        let app_addr = Address::of("some-app").into();
 
-        let err = ReceiptError::InstantiationFailed {
-            app_addr: app_addr.into(),
-            template_addr: template_addr.into(),
+        let err = RuntimeError::InstantiationFailed {
+            app_addr,
+            template_addr,
             msg: "Invalid input".to_string(),
         };
 
@@ -350,18 +391,22 @@ mod tests {
         encode_error(&err, &test_logs(), &mut buf);
 
         let mut cursor = Cursor::new(&buf[..]);
-        let decoded = decode_error(&mut cursor);
+
+        let (decoded, logs) = decode_error(&mut cursor);
+
+        assert_eq!(decoded, err);
+        assert_eq!(logs, test_logs());
     }
 
     #[test]
     fn decode_receipt_func_not_found() {
-        let template_addr = Address::of("some-template");
-        let app_addr = Address::of("some-app");
+        let template_addr = Address::of("some-template").into();
+        let app_addr = Address::of("some-app").into();
         let func = "do_something".to_string();
 
-        let err = ReceiptError::FuncNotFound {
-            app_addr: app_addr.into(),
-            template_addr: template_addr.into(),
+        let err = RuntimeError::FuncNotFound {
+            app_addr,
+            template_addr,
             func,
         };
 
@@ -369,19 +414,23 @@ mod tests {
         encode_error(&err, &test_logs(), &mut buf);
 
         let mut cursor = Cursor::new(&buf[..]);
-        let decoded = decode_error(&mut cursor);
+
+        let (decoded, logs) = decode_error(&mut cursor);
+
+        assert_eq!(decoded, err);
+        assert_eq!(logs, test_logs());
     }
 
     #[test]
     fn decode_receipt_func_failed() {
-        let template_addr = Address::of("some-template");
-        let app_addr = Address::of("some-app");
+        let template_addr = Address::of("some-template").into();
+        let app_addr = Address::of("some-app").into();
         let func = "do_something".to_string();
         let msg = "Invalid input".to_string();
 
-        let err = ReceiptError::FuncFailed {
-            app_addr: app_addr.into(),
-            template_addr: template_addr.into(),
+        let err = RuntimeError::FuncFailed {
+            app_addr,
+            template_addr,
             func,
             msg,
         };
@@ -390,19 +439,23 @@ mod tests {
         encode_error(&err, &test_logs(), &mut buf);
 
         let mut cursor = Cursor::new(&buf[..]);
-        let decoded = decode_error(&mut cursor);
+
+        let (decoded, logs) = decode_error(&mut cursor);
+
+        assert_eq!(decoded, err);
+        assert_eq!(logs, test_logs());
     }
 
     #[test]
     fn decode_receipt_func_not_allowed() {
-        let template_addr = Address::of("some-template");
-        let app_addr = Address::of("some-app");
+        let template_addr = Address::of("some-template").into();
+        let app_addr = Address::of("some-app").into();
         let func = "init".to_string();
         let msg = "expected a ctor".to_string();
 
-        let err = ReceiptError::FuncNotAllowed {
-            app_addr: app_addr.into(),
-            template_addr: template_addr.into(),
+        let err = RuntimeError::FuncNotAllowed {
+            app_addr,
+            template_addr,
             func,
             msg,
         };
@@ -411,6 +464,10 @@ mod tests {
         encode_error(&err, &test_logs(), &mut buf);
 
         let mut cursor = Cursor::new(&buf[..]);
-        let decoded = decode_error(&mut cursor);
+
+        let (decoded, logs) = decode_error(&mut cursor);
+
+        assert_eq!(decoded, err);
+        assert_eq!(logs, test_logs());
     }
 }

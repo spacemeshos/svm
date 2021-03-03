@@ -13,10 +13,9 @@
 
 use std::io::Cursor;
 
-use svm_types::gas::MaybeGas;
-use svm_types::receipt::{ReceiptRef, TemplateReceipt};
+use svm_types::receipt::TemplateReceipt;
 
-use super::{decode_error, decode_receipt, encode_error, gas, logs, types};
+use super::{decode_error, encode_error, gas, logs, types};
 
 use crate::common;
 use crate::{ReadExt, WriteExt};
@@ -74,7 +73,6 @@ pub fn decode_template_receipt(bytes: &[u8]) -> TemplateReceipt {
                 logs,
             }
         }
-        _ => unreachable!(),
     }
 }
 
@@ -98,7 +96,9 @@ mod tests {
 
     use svm_types::gas::MaybeGas;
     use svm_types::receipt::TemplateReceipt;
-    use svm_types::{Address, TemplateAddr};
+    use svm_types::Address;
+
+    use crate::receipt::decode_receipt;
 
     #[test]
     fn encode_decode_deploy_template_receipt() {

@@ -1,6 +1,6 @@
 use std::io::Cursor;
 
-use svm_types::{AddressOf, App, SpawnApp};
+use svm_types::{App, SpawnApp};
 
 use serde_json::{json, Value};
 
@@ -29,7 +29,7 @@ pub fn encode_spawn_app(json: &Value) -> Result<Vec<u8>, JsonError> {
 
     let spawn = SpawnApp {
         version,
-        app: App { name, template },
+        app: App::new(template, name),
         ctor_name,
         calldata,
     };
@@ -51,7 +51,7 @@ pub fn decode_spawn_app(json: &Value) -> Result<Value, JsonError> {
 
     let version = spawn.version;
     let ctor_name = spawn.ctor_name;
-    let template = json::addr_to_str(&spawn.app.template.inner());
+    let template = json::addr_to_str(&spawn.app.template_addr.inner());
 
     let calldata = json::bytes_to_str(&spawn.calldata);
     let calldata = json::decode_calldata(&json!({ "calldata": calldata }))?;
@@ -73,8 +73,6 @@ pub fn decode_spawn_app(json: &Value) -> Result<Value, JsonError> {
 mod tests {
     use super::*;
     use serde_json::json;
-
-    use svm_types::Address;
 
     #[test]
     fn json_spawn_app_missing_version() {
@@ -162,8 +160,6 @@ mod tests {
 
     #[test]
     fn json_spawn_app_valid() {
-        let template_addr = "1122334455667788990011223344556677889900";
-
         let calldata = json::encode_calldata(&json!({
             "abi": ["i32", "i64"],
             "data": [10, 20]

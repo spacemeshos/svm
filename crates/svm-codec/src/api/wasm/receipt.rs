@@ -1,10 +1,7 @@
 use serde_json::Value;
 
 use super::wasm_buf_apply;
-use crate::api::{
-    self,
-    json::{self, JsonError},
-};
+use crate::api::{self, json::JsonError};
 
 /// Decodes a binary Receipt given as an offset to a Wasm buffer,
 /// and then returs an offset to a new Wasm buffer holding the decoded Receipt
@@ -23,11 +20,10 @@ mod test {
 
     use svm_types::gas::MaybeGas;
     use svm_types::receipt::SpawnAppReceipt;
-    use svm_types::{Address, State, WasmValue};
+    use svm_types::{Address, State};
 
-    use crate::api::wasm::{
-        error_as_string, free, to_wasm_buffer, wasm_buffer_data, BUF_OK_MARKER,
-    };
+    use crate::api::json;
+    use crate::api::wasm::{free, to_wasm_buffer, wasm_buffer_data, BUF_OK_MARKER};
 
     use serde_json::{json, Value};
 

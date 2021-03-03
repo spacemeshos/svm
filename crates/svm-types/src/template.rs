@@ -9,7 +9,7 @@ pub struct Template {
     pub version: u16,
     pub name: String,
     pub code: Vec<u8>,
-    pub data: Layout,
+    pub layout: Layout,
     pub ctors: Vec<String>,
 }
 
@@ -19,7 +19,7 @@ impl fmt::Debug for Template {
             .field("version", &self.version)
             .field("name", &self.name)
             .field("code", &fmt_code(&self.code))
-            .field("data", &self.data)
+            .field("data", &self.layout)
             .field("ctors", &self.ctors)
             .finish()
     }
