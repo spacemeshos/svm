@@ -3,15 +3,13 @@ mod exec_app;
 mod log;
 mod spawn_app;
 
-mod error;
-pub use error::ReceiptError;
-
 pub use deploy_template::TemplateReceipt;
 pub use exec_app::ExecReceipt;
 pub use log::Log;
 pub use spawn_app::{into_spawn_app_receipt, SpawnAppReceipt};
 
 use crate::gas::MaybeGas;
+use crate::RuntimeError;
 
 /// Borrowed Receipt
 pub enum ReceiptRef<'a> {
@@ -54,7 +52,7 @@ impl<'a> ReceiptRef<'a> {
     }
 
     /// Returns a `ReceiptError`
-    pub fn get_error(&self) -> &ReceiptError {
+    pub fn get_error(&self) -> &RuntimeError {
         match self {
             Self::DeployTemplate(r) => r.error.as_ref().unwrap(),
             Self::SpawnApp(r) => r.error.as_ref().unwrap(),
@@ -121,7 +119,7 @@ impl Receipt {
     }
 
     /// Returns the error within the inner receipt (for failing receipts)
-    pub fn get_error(&self) -> &ReceiptError {
+    pub fn get_error(&self) -> &RuntimeError {
         match self {
             Receipt::DeployTemplate(receipt) => receipt.get_error(),
             Receipt::SpawnApp(receipt) => receipt.get_error(),

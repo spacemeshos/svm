@@ -278,7 +278,7 @@ pub(crate) fn gas_to_json(gas: &MaybeGas) -> i64 {
     if gas.is_some() {
         gas.unwrap() as _
     } else {
-        (-1)
+        -1
     }
 }
 

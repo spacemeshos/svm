@@ -1,6 +1,13 @@
 /// Default implementations
 pub mod default;
 
+pub mod serialize;
+
+/// Extensions
+mod ext;
+
+pub use ext::{ExtApp, ExtSpawnApp, ExtTemplate};
+
 /// In-memory types
 #[cfg(feature = "default-memory")]
 pub mod memory;
@@ -13,4 +20,4 @@ pub mod rocksdb;
 pub mod traits;
 
 /// Runtime types
-pub mod types;
+pub mod hash;

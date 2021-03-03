@@ -7,16 +7,15 @@
 //! The CI of the SVM outputs the WASM package of `svm-codec` as one of its artifacts.
 
 #![deny(missing_docs)]
-#![allow(unused)]
-#![allow(dead_code)]
-#![allow(unreachable_code)]
+#![deny(unused)]
+#![deny(dead_code)]
+#![deny(unreachable_code)]
 #![feature(vec_into_raw_parts)]
 
 mod calldata;
 mod common;
 mod ext;
 mod field;
-mod serialize;
 
 /// Encoding for apps
 pub mod app;
@@ -44,24 +43,6 @@ pub mod receipt;
 
 mod error;
 pub use error::ParseError;
-
-/// Serializtions of SVM internals.
-///
-/// Important: these types are **NOT** for used the encoding of SVM transactions neither the SVM Receipts.
-///
-/// These are used for:
-/// * `Template-Store` - storing the `Templates` code and metadata
-/// * *App-Store` - storing the spawned `Apps`
-///
-/// The `App`s internal storage is managed in separate (a.k.a the Global-State, Accounts-db).
-pub mod serializers {
-    pub use crate::app::{DefaultAppDeserializer, DefaultAppSerializer};
-    pub use crate::template::{DefaultTemplateDeserializer, DefaultTemplateSerializer};
-
-    pub use crate::serialize::{
-        AppDeserializer, AppSerializer, TemplateDeserializer, TemplateSerializer,
-    };
-}
 
 /// # WASM API
 ///
@@ -103,6 +84,7 @@ pub mod serializers {
 /// ```
 ///
 
+#[cfg(target_arch = "wasm32")]
 macro_rules! wasm_func_call {
     ($func:ident, $buf_offset:expr) => {{
         match api::wasm::$func($buf_offset as usize) {
@@ -125,7 +107,7 @@ macro_rules! wasm_func_call {
 /// If the encoding failed, the returned WASM buffer will contain a String containing the error message.
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
-pub extern "C" fn wasm_deploy_template(offset: i32) -> i32 {
+pub extern "C" fn wasm_encode_deploy_template(offset: i32) -> i32 {
     wasm_func_call!(encode_deploy_template, offset)
 }
 

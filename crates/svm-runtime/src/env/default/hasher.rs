@@ -1,5 +1,7 @@
-use crate::env::traits::TemplateHasher;
-use crate::env::types::TemplateHash;
+use crate::env::{traits, hash};
+
+use traits::TemplateHasher;
+use hash::TemplateHash;
 
 use svm_hash::{DefaultHasher, Hasher};
 use svm_types::Template;

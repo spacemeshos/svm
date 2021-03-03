@@ -1,6 +1,15 @@
+mod call;
 mod config;
 mod default;
+mod failure;
+mod function;
+mod outcome;
 mod ptr;
+
+pub use call::Call;
+pub use failure::Failure;
+pub use function::Function;
+pub use outcome::Outcome;
 
 #[cfg(feature = "default-rocksdb")]
 mod rocksdb;
@@ -14,8 +23,10 @@ pub use ptr::RuntimePtr;
 
 use crate::error::ValidateError;
 
+use svm_types::gas::MaybeGas;
 use svm_types::receipt::{ExecReceipt, SpawnAppReceipt, TemplateReceipt};
-use svm_types::{gas::MaybeGas, AppAddr, AuthorAddr, CreatorAddr, State};
+use svm_types::RuntimeError;
+use svm_types::{AuthorAddr, SpawnerAddr, State, Transaction};
 
 /// Specifies the interface of a `SVM` Runtime.
 pub trait Runtime {
@@ -26,7 +37,7 @@ pub trait Runtime {
     fn validate_app(&self, bytes: &[u8]) -> Result<(), ValidateError>;
 
     /// Validates a raw `exec-app` transaction prior to executing it.
-    fn validate_tx(&self, bytes: &[u8]) -> Result<AppAddr, ValidateError>;
+    fn validate_tx(&self, bytes: &[u8]) -> Result<Transaction, ValidateError>;
 
     /// Deploy an new app-template
     fn deploy_template(
@@ -36,15 +47,24 @@ pub trait Runtime {
         gas_limit: MaybeGas,
     ) -> TemplateReceipt;
 
-    /// Spawn a new app out of an existing app-template.
+    /// Spawns a new app out of an existing app-template.
     fn spawn_app(
         &mut self,
         bytes: &[u8],
-        creator: &CreatorAddr,
+        spawner: &SpawnerAddr,
         gas_limit: MaybeGas,
     ) -> SpawnAppReceipt;
 
-    /// Executes an app-transaction. Returns `ExecReceipt`.
+    fn exec_verify(
+        &self,
+        tx: &Transaction,
+        state: &State,
+        gas_limit: MaybeGas,
+    ) -> Result<bool, RuntimeError>;
+
+    /// Executes an transaction. Returns `ExecReceipt`.
+    /// Should be called only if the `verify` stage passed.
+    ///
     /// On success:
     /// * Persists changes to the app's own storage.
     /// * Receipt returns the app's new storage state.
@@ -53,5 +73,5 @@ pub trait Runtime {
     /// On failure:
     /// * Receipt returns the occurred error
     /// * Receipt informs the amount of gas used (transaction gas limit)
-    fn exec_app(&self, bytes: &[u8], state: &State, gas_limit: MaybeGas) -> ExecReceipt;
+    fn exec_tx(&self, tx: &Transaction, state: &State, gas_limit: MaybeGas) -> ExecReceipt;
 }

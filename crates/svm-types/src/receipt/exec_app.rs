@@ -1,5 +1,5 @@
 use crate::gas::MaybeGas;
-use crate::receipt::{Log, ReceiptError};
+use crate::receipt::{Log, RuntimeError};
 use crate::State;
 
 /// Runtime transaction execution receipt
@@ -12,9 +12,9 @@ pub struct ExecReceipt {
     pub success: bool,
 
     /// The execution error in case execution failed.
-    pub error: Option<ReceiptError>,
+    pub error: Option<RuntimeError>,
 
-    /// The new app `State` if execution succedded.
+    /// The new app `State` if execution succeeded.
     pub new_state: Option<State>,
 
     /// Returned the data.
@@ -27,18 +27,24 @@ pub struct ExecReceipt {
     pub logs: Vec<Log>,
 }
 
+impl From<RuntimeError> for ExecReceipt {
+    fn from(err: RuntimeError) -> Self {
+        Self::from_err(err, Vec::new())
+    }
+}
+
 impl ExecReceipt {
     /// Creates a `ExecReceipt` for reaching reaching `Out-of-Gas`.
     pub fn new_oog(logs: Vec<Log>) -> Self {
-        Self::from_err(ReceiptError::OOG, logs)
+        Self::from_err(RuntimeError::OOG, logs)
     }
 
     /// Creates a new failure Receipt out of the `error` parameter
-    pub fn from_err(error: ReceiptError, logs: Vec<Log>) -> Self {
+    pub fn from_err(err: RuntimeError, logs: Vec<Log>) -> Self {
         Self {
             version: 0,
             success: false,
-            error: Some(error),
+            error: Some(err),
             new_state: None,
             returndata: None,
             gas_used: MaybeGas::new(),
@@ -57,7 +63,7 @@ impl ExecReceipt {
     }
 
     /// Returns the error within the Receipt (for failing Receipts)
-    pub fn get_error(&self) -> &ReceiptError {
+    pub fn get_error(&self) -> &RuntimeError {
         self.error.as_ref().unwrap()
     }
 

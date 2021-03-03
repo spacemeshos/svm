@@ -1,5 +1,6 @@
 #![allow(unused)]
 use maplit::hashmap;
+use svm_codec::app;
 
 use std::ffi::c_void;
 
@@ -63,14 +64,6 @@ macro_rules! __var_add_impl {
     }};
 }
 
-macro_rules! assert_host_ctx {
-    ($instance:expr, $( $field:expr => $expected:expr), *) => {{
-        let func: &NativeFunc<u32, u64> = &$instance.exports.get_native_function("get_host_ctx").unwrap();
-
-        $( assert_eq!(func.call($field).unwrap(), $expected); )*
-    }}
-}
-
 macro_rules! func {
     ($store:ident, $ctx:ident, $f:expr) => {{
         Function::new_native_with_env(&$store, $ctx.clone(), $f)
@@ -94,13 +87,15 @@ fn vmcalls_empty_wasm() {
 
 #[test]
 fn vmcalls_get32_set32() {
-    let app_addr = Address::of("my-app");
+    let template_addr = Address::repeat(0xAB);
+    let app_addr = Address::repeat(0xCD);
     let gas_limit = MaybeGas::new();
     let layout: Layout = vec![4, 2].into();
 
     let store = testing::wasmer_store();
     let storage = testing::blank_storage(&app_addr, &layout);
-    let ctx = Context::new(gas_limit, storage);
+
+    let ctx = Context::new(gas_limit, storage, &template_addr.into(), &app_addr.into());
 
     let import_object = imports! {
         "svm" => {
@@ -128,13 +123,14 @@ fn vmcalls_get32_set32() {
 
 #[test]
 fn vmcalls_get64_set64() {
-    let app_addr = Address::of("my-app");
+    let template_addr = Address::repeat(0xAB);
+    let app_addr = Address::repeat(0xCD);
     let gas_limit = MaybeGas::new();
     let layout: Layout = vec![4, 2].into();
 
     let store = testing::wasmer_store();
     let storage = testing::blank_storage(&app_addr, &layout);
-    let ctx = Context::new(gas_limit, storage);
+    let ctx = Context::new(gas_limit, storage, &template_addr.into(), &app_addr.into());
 
     let import_object = imports! {
         "svm" => {
@@ -162,14 +158,22 @@ fn vmcalls_get64_set64() {
 
 #[test]
 fn vmcalls_load160() {
-    let app_addr = Address::of("11223344556677889900");
+    let template_addr = Address::repeat(0xAB);
+    let app_addr = Address::repeat(0xCD);
     let gas_limit = MaybeGas::new();
     let layout: Layout = vec![20].into();
 
     let store = testing::wasmer_store();
     let memory = testing::wasmer_memory(&store);
     let storage = testing::blank_storage(&app_addr, &layout);
-    let ctx = Context::new_with_memory(memory.clone(), gas_limit, storage);
+
+    let ctx = Context::new_with_memory(
+        memory.clone(),
+        gas_limit,
+        storage,
+        &template_addr.into(),
+        &app_addr.clone().into(),
+    );
 
     let import_object = imports! {
         "svm" => {
@@ -205,14 +209,21 @@ fn vmcalls_load160() {
 
 #[test]
 fn vmcalls_store160() {
-    let app_addr = Address::of("11223344556677889900");
+    let template_addr = Address::repeat(0xAB);
+    let app_addr = Address::repeat(0xCD);
     let gas_limit = MaybeGas::new();
     let layout: Layout = vec![20].into();
 
     let store = testing::wasmer_store();
     let memory = testing::wasmer_memory(&store);
     let storage = testing::blank_storage(&app_addr, &layout);
-    let ctx = Context::new_with_memory(memory.clone(), gas_limit, storage);
+    let ctx = Context::new_with_memory(
+        memory.clone(),
+        gas_limit,
+        storage,
+        &template_addr.into(),
+        &app_addr.clone().into(),
+    );
 
     let import_object = imports! {
         "svm" => {
@@ -239,19 +250,26 @@ fn vmcalls_store160() {
 
     func.call(var_id, ptr).expect("function has failed");
 
-    assert_storage!(ctx, 0 => b"11223344556677889900");
+    assert_storage!(ctx, 0 => app_addr.as_slice());
 }
 
 #[test]
 fn vmcalls_log() {
-    let app_addr = Address::of("my-app");
+    let template_addr = Address::repeat(0xAB);
+    let app_addr = Address::repeat(0xCD);
     let gas_limit = MaybeGas::new();
     let layout = Layout::empty();
 
     let store = testing::wasmer_store();
     let memory = testing::wasmer_memory(&store);
     let storage = testing::blank_storage(&app_addr, &layout);
-    let ctx = Context::new_with_memory(memory.clone(), gas_limit, storage);
+    let ctx = Context::new_with_memory(
+        memory.clone(),
+        gas_limit,
+        storage,
+        &template_addr.into(),
+        &app_addr.into(),
+    );
 
     let import_object = imports! {
         "svm" => {

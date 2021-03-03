@@ -1,5 +1,5 @@
 use svm_gas::Gas;
-use svm_types::{AppTransaction, SpawnApp, Template};
+use svm_types::{Transaction, SpawnApp, Template};
 
 /// Holds estimated gas for deploying a new `Template`.
 pub struct DeployTemplateEst {
@@ -33,5 +33,5 @@ pub trait GasEstimator {
     fn est_spawn_app(bytes: &[u8], spawn: &SpawnApp) -> SpawnAppEst;
 
     /// Estimates the gas required for executing transaction `tx`. (`bytes` is the exec-app raw format).
-    fn est_exec_app(bytes: &[u8], tx: &AppTransaction) -> ExecAppEst;
+    fn est_exec_app(bytes: &[u8], tx: &Transaction) -> ExecAppEst;
 }

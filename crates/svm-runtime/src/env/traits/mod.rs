@@ -1,11 +1,14 @@
 mod compute_address;
 mod env;
 mod hasher;
-mod serializer_types;
+mod serialize;
 mod store;
 
 pub use compute_address::{AppAddressCompute, TemplateAddressCompute};
 pub use env::{Env, EnvTypes};
 pub use hasher::TemplateHasher;
-pub use serializer_types::EnvSerializerTypes;
 pub use store::{AppStore, TemplateStore};
+
+pub use serialize::EnvSerializers;
+pub use serialize::{AppDeserializer, AppSerializer};
+pub use serialize::{TemplateDeserializer, TemplateSerializer};

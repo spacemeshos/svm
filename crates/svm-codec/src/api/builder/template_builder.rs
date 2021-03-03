@@ -9,7 +9,7 @@ pub struct DeployTemplateBuilder {
     version: Option<u16>,
     name: Option<String>,
     code: Option<Vec<u8>>,
-    data: Option<Layout>,
+    layout: Option<Layout>,
     ctors: Option<Vec<String>>,
 }
 
@@ -30,7 +30,7 @@ pub struct DeployTemplateBuilder {
 ///            .with_version(0)
 ///            .with_name("My Template")
 ///            .with_code(&[0xC, 0x0, 0xD, 0xE])
-///            .with_data(&layout)
+///            .with_layout(&layout)
 ///            .with_ctors(&ctors)
 ///            .build();
 ///
@@ -41,7 +41,7 @@ pub struct DeployTemplateBuilder {
 ///                  version: 0,
 ///                  name: "My Template".to_string(),
 ///                  code: vec![0xC, 0x0, 0xD, 0xE],
-///                  data: layout,
+///                  layout,
 ///                  ctors: vec!["init".to_string()]
 ///                };
 ///
@@ -56,7 +56,7 @@ impl DeployTemplateBuilder {
             version: None,
             name: None,
             code: None,
-            data: None,
+            layout: None,
             ctors: None,
         }
     }
@@ -76,8 +76,8 @@ impl DeployTemplateBuilder {
         self
     }
 
-    pub fn with_data(mut self, data: &Layout) -> Self {
-        self.data = Some(data.clone());
+    pub fn with_layout(mut self, data: &Layout) -> Self {
+        self.layout = Some(data.clone());
         self
     }
 
@@ -90,14 +90,14 @@ impl DeployTemplateBuilder {
         let version = self.version.unwrap();
         let name = self.name.unwrap();
         let code = self.code.unwrap();
-        let data = self.data.unwrap();
+        let layout = self.layout.unwrap();
         let ctors = self.ctors.unwrap();
 
         let app = Template {
             version,
             name,
             code,
-            data,
+            layout,
             ctors,
         };
 

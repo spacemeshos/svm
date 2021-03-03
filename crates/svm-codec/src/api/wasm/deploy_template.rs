@@ -50,7 +50,7 @@ mod test {
             version: 0,
             name: "My Template".to_string(),
             code: vec![0xC0, 0xDE],
-            data: vec![1, 3].into(),
+            layout: vec![1, 3].into(),
             ctors: vec!["init".into(), "start".into()],
         };
 
