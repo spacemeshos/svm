@@ -2,8 +2,9 @@ use std::cell::RefCell;
 use std::path::Path;
 use std::rc::Rc;
 
-use crate::env::memory::{DefaultMemAppStore, DefaultMemTemplateStore, DefaultMemoryEnv};
-use crate::{gas::DefaultGasEstimator, storage::StorageBuilderFn};
+use crate::env::default::{DefaultMemAppStore, DefaultMemTemplateStore, DefaultMemoryEnv};
+use crate::gas::DefaultGasEstimator;
+use crate::storage::StorageBuilderFn;
 use crate::{Config, DefaultRuntime, ExternImport};
 
 use svm_codec::api::builder::{DeployTemplateBuilder, SpawnAppBuilder, TxBuilder};

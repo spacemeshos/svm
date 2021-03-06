@@ -55,7 +55,3 @@ where
         app.map(|x| x.template_addr().clone())
     }
 }
-
-/// `MemAppStore` with default serialization.
-pub type DefaultMemAppStore =
-    MemAppStore<<S as EnvSerializers>::AppSerializer, <S as EnvSerializers>::AppDeserializer>;

@@ -1,12 +1,15 @@
-use std::{marker::PhantomData, path::Path};
+use std::marker::PhantomData;
+use std::path::Path;
 
 use svm_kv::{rocksdb::Rocksdb, traits::RawKV};
 use svm_types::{AuthorAddr, Template, TemplateAddr};
 
-use crate::env::traits::TemplateStore;
-use crate::env::hash::TemplateHash;
+use crate::env::ExtTemplate;
+use crate::env::{default, hash, traits};
 
-use svm_codec::serializers::{TemplateDeserializer, TemplateSerializer};
+use default::DefaultSerializers as S;
+use hash::TemplateHash;
+use traits::{EnvSerializers, TemplateDeserializer, TemplateSerializer, TemplateStore};
 
 use log::info;
 
@@ -38,14 +41,9 @@ where
     S: TemplateSerializer,
     D: TemplateDeserializer,
 {
-    fn store(
-        &mut self,
-        template: &Template,
-        author: &AuthorAddr,
-        addr: &TemplateAddr,
-        hash: &TemplateHash,
-    ) {
-        info!("Storing `Template`: \n{:?}", template);
+    fn store(&mut self, template: &ExtTemplate, addr: &TemplateAddr, hash: &TemplateHash) {
+        todo!()
+        /*         info!("Storing `Template`: \n{:?}", template);
         info!("     Account Address: {:?}", addr.inner());
         info!("     Hash: {:?}", hash);
 
@@ -57,11 +55,12 @@ where
         // code-hash -> code
         let entry2 = (&hash.0[..], &bytes[..]);
 
-        self.db.set(&[entry1, entry2]);
+        self.db.set(&[entry1, entry2]); */
     }
 
-    fn load(&self, addr: &TemplateAddr) -> Option<(Template, AuthorAddr)> {
-        let addr = addr.inner().as_slice();
+    fn load(&self, addr: &TemplateAddr) -> Option<ExtTemplate> {
+        todo!()
+        /*         let addr = addr.inner().as_slice();
 
         info!("Loading `Template` account {:?}", addr);
 
@@ -69,6 +68,6 @@ where
             self.db
                 .get(&hash)
                 .and_then(|bytes| D::deserialize(&bytes[..]))
-        })
+        }) */
     }
 }

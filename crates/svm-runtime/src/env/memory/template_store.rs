@@ -55,9 +55,3 @@ where
         })
     }
 }
-
-/// `MemTemplateStore` with default serialization.
-pub type DefaultMemTemplateStore = MemTemplateStore<
-    <S as EnvSerializers>::TemplateSerializer,
-    <S as EnvSerializers>::TemplateDeserializer,
->;

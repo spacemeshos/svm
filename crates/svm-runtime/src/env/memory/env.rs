@@ -72,6 +72,3 @@ where
         &mut self.app_store
     }
 }
-
-/// `MemoryEnv` with default serialization.
-pub type DefaultMemoryEnv = MemoryEnv<default::DefaultSerializers>;

@@ -1,9 +1,13 @@
-use std::{marker::PhantomData, path::Path};
+use std::path::Path;
+use std::{marker::PhantomData, todo};
 
-use svm_codec::serializers::{AppDeserializer, AppSerializer};
-use svm_types::{App, AppAddr, SpawnerAddr};
+use crate::env::{self, default, traits};
 
-use crate::env::traits::AppStore;
+use default::DefaultSerializers as S;
+use env::ExtApp;
+use svm_types::{Address, AppAddr, TemplateAddr};
+
+use traits::{AppDeserializer, AppSerializer, AppStore, EnvSerializers};
 
 /// `AppStore` implementation backed-by `rocksdb`
 pub struct RocksdbAppStore<S, D> {
@@ -31,11 +35,15 @@ where
     S: AppSerializer,
     D: AppDeserializer,
 {
-    fn store(&mut self, _app: &App, _creator: &SpawnerAddr, _addr: &AppAddr) {
+    fn store(&mut self, app: &ExtApp, addr: &AppAddr) {
         todo!()
     }
 
-    fn load(&self, _addr: &AppAddr) -> Option<(App, SpawnerAddr)> {
+    fn load(&self, addr: &AppAddr) -> Option<ExtApp> {
+        todo!()
+    }
+
+    fn find_template_addr(&self, addr: &AppAddr) -> Option<TemplateAddr> {
         todo!()
     }
 }
