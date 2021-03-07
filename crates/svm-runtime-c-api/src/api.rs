@@ -547,15 +547,16 @@ pub unsafe extern "C" fn svm_memory_runtime_create(
 /// use svm_ffi::svm_byte_array;
 ///
 /// let mut runtime = std::ptr::null_mut();
+/// let mut state_kv = std::ptr::null_mut();
 ///
 /// let ty = Type::Str("path");
-/// let path = String::from("path goes here");
+/// let kv_path = String::from("path for SVM internal db goes here");
 
-/// let path: svm_byte_array = (ty, path).into();
+/// let kv_path: svm_byte_array = (ty, kv_path).into();
 /// let mut imports = testing::imports_alloc(0);
 /// let mut error = svm_byte_array::default();
 ///
-/// let res = unsafe { svm_runtime_create(&mut runtime, path, imports, &mut error) };
+/// let res = unsafe { svm_runtime_create(&mut runtime, state_kv, kv_path, imports, &mut error) };
 /// assert!(res.is_ok());
 /// ```
 ///
