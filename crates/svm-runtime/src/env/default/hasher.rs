@@ -1,7 +1,7 @@
-use crate::env::{traits, hash};
+use crate::env::{hash, traits};
 
-use traits::TemplateHasher;
 use hash::TemplateHash;
+use traits::TemplateHasher;
 
 use svm_hash::{DefaultHasher, Hasher};
 use svm_types::Template;
@@ -16,6 +16,6 @@ impl TemplateHasher for DefaultTemplateHasher {
 
         let hash = DefaultHasher::hash(bytes);
 
-        TemplateHash(hash)
+        TemplateHash::new(hash)
     }
 }

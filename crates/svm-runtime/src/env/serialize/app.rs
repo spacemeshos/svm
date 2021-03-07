@@ -65,4 +65,10 @@ impl AppDeserializer for DefaultAppDeserializer {
 
         Some(app)
     }
+
+    fn desrialize_template_addr(bytes: &[u8]) -> Option<TemplateAddr> {
+        let mut cursor = Cursor::new(bytes);
+
+        cursor.read_address().ok().map(|addr| addr.into())
+    }
 }

@@ -5,6 +5,12 @@ use std::io;
 use std::ptr::NonNull;
 use std::rc::Rc;
 
+#[cfg(feature = "default-rocksdb")]
+use std::path::Path;
+
+#[cfg(feature = "default-rocksdb")]
+use svm_runtime::{DefaultGasEstimator, DefaultSerializers};
+
 use log::{debug, error};
 
 use svm_codec::receipt;
@@ -571,7 +577,7 @@ pub unsafe extern "C" fn svm_runtime_create(
 
     let rocksdb_runtime = svm_runtime::create_rocksdb_runtime::<
         &Path,
-        DefaultSerializerTypes,
+        DefaultSerializers,
         DefaultGasEstimator,
     >(Path::new(&kv_path), imports);
 

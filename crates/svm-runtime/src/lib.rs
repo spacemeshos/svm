@@ -17,10 +17,12 @@ pub use runtime::{Config, DefaultRuntime, Runtime, RuntimePtr};
 pub use runtime::create_rocksdb_runtime;
 
 /// Gas estimation and metering.
-pub mod gas;
+mod gas;
+pub use gas::DefaultGasEstimator;
 
 /// Managing the runtime's environment
-pub mod env;
+mod env;
+pub use env::DefaultSerializers;
 
 mod import;
 mod storage;

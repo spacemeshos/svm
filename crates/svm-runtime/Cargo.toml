@@ -33,6 +33,6 @@ maplit = "1.0.2"
 svm-sdk = { path = "../svm-sdk" }
 
 [features]
-default = ["default-memory"]
+default = ["default-memory", "default-rocksdb"]
 default-memory = ["svm-kv/default-memory", "svm-storage/default-memory"]
 default-rocksdb = ["svm-kv/default-rocksdb", "svm-storage/default-rocksdb"]

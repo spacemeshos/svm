@@ -7,7 +7,8 @@ use svm_layout::Layout;
 use svm_storage::app::AppStorage;
 use svm_types::{AppAddr, State};
 
-use crate::{gas::GasEstimator, runtime::DefaultRuntime, Config, ExternImport};
+use crate::gas::GasEstimator;
+use crate::{Config, DefaultRuntime, ExternImport};
 
 /// Creates a new `Runtime` backed by `rocksdb` for persistence.
 pub fn create_rocksdb_runtime<P, S, GE>(
@@ -19,13 +20,13 @@ where
     S: EnvSerializers,
     GE: GasEstimator,
 {
-    let env = app_env_build(&kv_path);
+    let env = build_env(&kv_path);
     let imports = unsafe { &*imports };
 
-    DefaultRuntime::new(env, kv_path, imports, Box::new(app_storage_build))
+    DefaultRuntime::new(env, kv_path, imports, Box::new(build_storage))
 }
 
-fn app_env_build<P, S>(kv_path: &P) -> RocksdbEnv<S>
+fn build_env<P, S>(kv_path: &P) -> RocksdbEnv<S>
 where
     P: AsRef<Path>,
     S: EnvSerializers,
@@ -43,7 +44,7 @@ where
     RocksdbEnv::new(app_store, template_store)
 }
 
-fn app_storage_build(
+fn build_storage(
     _addr: &AppAddr,
     _state: &State,
     _layout: &Layout,

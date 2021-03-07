@@ -1,6 +1,8 @@
 /// Default implementations
 pub mod default;
 
+pub use default::DefaultSerializers;
+
 pub mod serialize;
 
 /// Extensions
