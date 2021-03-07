@@ -11,12 +11,15 @@ use std::path::Path;
 #[cfg(feature = "default-rocksdb")]
 use svm_runtime::{DefaultGasEstimator, DefaultSerializers};
 
+#[cfg(feature = "default-rocksdb")]
+use svm_storage::kv::ExternKV;
+
 use log::{debug, error};
 
 use svm_codec::receipt;
 use svm_ffi::{svm_byte_array, svm_func_callback_t, svm_resource_iter_t, svm_resource_t, tracking};
 use svm_runtime::{ExternImport, Runtime, RuntimePtr};
-use svm_storage::kv::{ExternKV, StatefulKV};
+use svm_storage::kv::StatefulKV;
 use svm_types::{Address, State, Type, WasmType};
 
 use crate::{raw_error, raw_io_error, raw_utf8_error, raw_validate_error, svm_result_t};
@@ -437,6 +440,7 @@ pub unsafe extern "C" fn svm_memory_state_kv_create(kv: *mut *mut c_void) -> svm
 /// assert!(res.is_ok());
 /// ```
 ///
+#[cfg(feature = "default-rocksdb")]
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_ffi_state_kv_create(
@@ -509,6 +513,7 @@ pub unsafe extern "C" fn svm_state_kv_destroy(kv: *mut c_void) -> svm_result_t {
 /// assert!(res.is_ok());
 /// ```
 ///
+#[cfg(feature = "default-memory")]
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_memory_runtime_create(
@@ -559,6 +564,7 @@ pub unsafe extern "C" fn svm_memory_runtime_create(
 #[no_mangle]
 pub unsafe extern "C" fn svm_runtime_create(
     runtime: *mut *mut c_void,
+    state_kv: *mut c_void,
     kv_path: svm_byte_array,
     imports: *mut c_void,
     error: *mut svm_byte_array,
@@ -574,12 +580,13 @@ pub unsafe extern "C" fn svm_runtime_create(
 
     let kv_path = kv_path.unwrap();
     let imports = svm_ffi::as_mut::<Vec<ExternImport>>(imports);
+    let state_kv = svm_ffi::as_mut(state_kv);
 
     let rocksdb_runtime = svm_runtime::create_rocksdb_runtime::<
         &Path,
         DefaultSerializers,
         DefaultGasEstimator,
-    >(Path::new(&kv_path), imports);
+    >(&state_kv, Path::new(&kv_path), imports);
 
     let res = box_runtime!(runtime, rocksdb_runtime);
 

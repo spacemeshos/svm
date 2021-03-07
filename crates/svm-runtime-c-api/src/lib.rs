@@ -18,6 +18,12 @@ pub(crate) use error::{raw_error, raw_io_error, raw_utf8_error, raw_validate_err
 #[cfg(feature = "default-rocksdb")]
 pub use api::svm_runtime_create;
 
+#[cfg(feature = "default-rocksdb")]
+pub use api::svm_ffi_state_kv_create;
+
+#[cfg(feature = "default-memory")]
+pub use api::{svm_memory_runtime_create, svm_memory_state_kv_create};
+
 /// `SVM` FFI Interface
 #[rustfmt::skip]
 pub use api::{
@@ -29,13 +35,6 @@ pub use api::{
     // Imports
     svm_import_func_new,
     svm_imports_alloc,
-
-    // In-Memory
-    svm_memory_state_kv_create,
-    svm_memory_runtime_create,
-
-    // FFI
-    svm_ffi_state_kv_create,
 
     // Validations
     svm_validate_template,
