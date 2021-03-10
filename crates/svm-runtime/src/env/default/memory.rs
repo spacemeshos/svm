@@ -1,7 +1,8 @@
-use crate::env::{default, memory, traits};
+use crate::env::{default, memory};
 
 use memory::{MemAppStore, MemTemplateStore};
-use traits::EnvTypes;
+
+use crate::EnvTypes;
 
 /// `MemTemplateStore` with default serialization.
 pub type DefaultMemTemplateStore =

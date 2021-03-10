@@ -22,7 +22,7 @@ pub use gas::DefaultGasEstimator;
 
 /// Managing the Runtime's environment
 mod env;
-pub use env::Env;
+pub use env::{Env, EnvTypes};
 
 mod import;
 mod storage;

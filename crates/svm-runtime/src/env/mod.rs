@@ -38,12 +38,29 @@ pub use default::{DefaultRocksAppStore, DefaultRocksEnvTypes, DefaultRocksTempla
 mod traits;
 
 pub use traits::{
-    AppAddressCompute, AppStore, EnvTypes, TemplateAddressCompute, TemplateHasher, TemplateStore,
+    AppAddressCompute, AppStore, TemplateAddressCompute, TemplateHasher, TemplateStore,
 };
 
 /// Runtime types
 pub mod hash;
 use hash::TemplateHash;
+
+pub trait EnvTypes {
+    /// `Template` store type.
+    type TemplateStore: TemplateStore;
+
+    /// `AppStore` store type.
+    type AppStore: AppStore;
+
+    /// Compute `Template` address type.
+    type TemplateAddressCompute: TemplateAddressCompute;
+
+    /// Compute `App` address type.
+    type AppAddressCompute: AppAddressCompute;
+
+    /// `Template` content Hasher type.
+    type TemplateHasher: TemplateHasher;
+}
 
 pub struct Env<T>
 where
