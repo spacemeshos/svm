@@ -4,10 +4,10 @@ use svm_codec::ParseError;
 use svm_codec::{app, template, transaction};
 
 use svm_types::{AppAddr, SpawnApp, Template, TemplateAddr, Transaction};
-/// Default implementations
-pub mod default;
 
-pub use default::DefaultSerializers;
+/// Default implementations
+mod default;
+pub use default::{DefaultAppAddressCompute, DefaultSerializers, DefaultTemplateAddressCompute};
 
 pub mod serialize;
 
@@ -18,15 +18,30 @@ pub use ext::{ExtApp, ExtSpawnApp, ExtTemplate};
 
 /// In-memory types
 #[cfg(feature = "default-memory")]
-pub mod memory;
+mod memory;
+
+#[cfg(feature = "default-memory")]
+pub use memory::{MemAppStore, MemTemplateStore};
+
+#[cfg(feature = "default-memory")]
+pub use default::{DefaultMemAppStore, DefaultMemEnvTypes, DefaultMemTemplateStore};
 
 /// Rocksdb related types
 #[cfg(feature = "default-rocksdb")]
-pub mod rocksdb;
+mod rocksdb;
+
+#[cfg(feature = "default-rocksdb")]
+pub use rocksdb::{RocksAppStore, RocksTemplateStore};
+
+#[cfg(feature = "default-rocksdb")]
+pub use default::{DefaultRocksAppStore, DefaultRocksEnvTypes, DefaultRocksTemplateStore};
 
 /// Runtime traits
-pub mod traits;
-use traits::EnvTypes;
+mod traits;
+
+pub use traits::{
+    AppAddressCompute, AppStore, EnvTypes, TemplateAddressCompute, TemplateHasher, TemplateStore,
+};
 
 /// Runtime types
 pub mod hash;
@@ -34,7 +49,7 @@ use hash::TemplateHash;
 
 pub struct Env<T>
 where
-    T: traits::EnvTypes,
+    T: EnvTypes,
 {
     app_store: <T as EnvTypes>::AppStore,
 
@@ -171,6 +186,7 @@ where
     #[must_use]
     pub fn load_template(&self, addr: &TemplateAddr) -> Option<ExtTemplate> {
         let store = self.get_template_store();
+
         store.load(&addr)
     }
 
@@ -178,6 +194,7 @@ where
     #[must_use]
     pub fn load_app(&self, addr: &AppAddr) -> Option<ExtApp> {
         let store = self.get_app_store();
+
         store.load(&addr)
     }
 

@@ -3,11 +3,10 @@ use std::path::Path;
 
 use log::{error, info};
 
-use crate::env::{self, traits};
+use crate::env;
 use crate::Env;
 
-use env::{ExtApp, ExtSpawnApp, ExtTemplate};
-use traits::EnvTypes;
+use env::{EnvTypes, ExtApp, ExtSpawnApp, ExtTemplate};
 
 use crate::error::ValidateError;
 use crate::gas::GasEstimator;

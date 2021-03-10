@@ -18,13 +18,13 @@ const APP_KEY_PREFIX: &'static [u8] = b"app:";
 const APP_TEMPLATE_KEY_PREFIX: &'static [u8] = b"app-template:";
 
 /// `AppStore` implementation backed-by `rocksdb`
-pub struct RocksdbAppStore<S, D> {
+pub struct RocksAppStore<S, D> {
     db: Rocksdb,
 
     phantom: PhantomData<(S, D)>,
 }
 
-impl<S, D> AppStore for RocksdbAppStore<S, D>
+impl<S, D> AppStore for RocksAppStore<S, D>
 where
     S: AppSerializer,
     D: AppDeserializer,
@@ -70,7 +70,7 @@ where
     }
 }
 
-impl<S, D> RocksdbAppStore<S, D>
+impl<S, D> RocksAppStore<S, D>
 where
     S: AppSerializer,
     D: AppDeserializer,

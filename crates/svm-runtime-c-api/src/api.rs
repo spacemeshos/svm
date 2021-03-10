@@ -8,10 +8,6 @@ use std::rc::Rc;
 #[cfg(feature = "default-rocksdb")]
 use std::path::Path;
 
-#[cfg(feature = "default-rocksdb")]
-use svm_runtime::{DefaultGasEstimator, DefaultSerializers};
-
-#[cfg(feature = "default-rocksdb")]
 use svm_storage::kv::ExternKV;
 
 use log::{debug, error};
@@ -582,11 +578,8 @@ pub unsafe extern "C" fn svm_runtime_create(
     let imports = svm_ffi::as_mut::<Vec<ExternImport>>(imports);
     let state_kv = svm_ffi::as_mut(state_kv);
 
-    let rocksdb_runtime = svm_runtime::create_rocksdb_runtime::<
-        &Path,
-        DefaultSerializers,
-        DefaultGasEstimator,
-    >(&state_kv, Path::new(&kv_path), imports);
+    let rocksdb_runtime =
+        svm_runtime::create_rocksdb_runtime(&state_kv, &Path::new(&kv_path), imports);
 
     let res = box_runtime!(runtime, rocksdb_runtime);
 

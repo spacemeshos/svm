@@ -2,8 +2,7 @@ use std::cell::RefCell;
 use std::path::Path;
 use std::rc::Rc;
 
-use crate::env::default::{DefaultMemAppStore, DefaultMemTemplateStore};
-use crate::env::traits::EnvTypes;
+use crate::env::{EnvTypes, DefaultMemAppStore, DefaultMemEnvTypes, DefaultMemTemplateStore};
 use crate::storage::StorageBuilderFn;
 use crate::{Config, DefaultRuntime, Env, ExternImport};
 
@@ -100,19 +99,16 @@ pub fn memory_state_kv_init() -> Rc<RefCell<dyn StatefulKV>> {
 }
 
 /// Creates an in-memory `Runtime` backed by key-value and host vmcalls (`imports`).
-pub fn create_memory_runtime<T>(
+pub fn create_memory_runtime(
     state_kv: &Rc<RefCell<dyn StatefulKV>>,
     imports: &Vec<ExternImport>,
-) -> DefaultRuntime<T>
-where
-    T: EnvTypes,
-{
+) -> DefaultRuntime<DefaultMemEnvTypes> {
     let storage_builder = runtime_memory_storage_builder(state_kv);
 
     let template_store = DefaultMemTemplateStore::new();
     let app_store = DefaultMemAppStore::new();
 
-    let env = Env::new(app_store, template_store);
+    let env = Env::<DefaultMemEnvTypes>::new(app_store, template_store);
 
     let kv_path = Path::new("");
 

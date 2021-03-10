@@ -2,12 +2,13 @@ use std::cell::RefCell;
 use std::path::Path;
 use std::rc::Rc;
 
-use crate::env::traits::EnvTypes;
-use crate::Env;
 use crate::{env, storage};
 
-use env::rocksdb::{RocksdbAppStore, RocksdbTemplateStore};
-use env::traits::EnvSerializers;
+use env::{DefaultRocksAppStore, DefaultRocksEnvTypes, DefaultRocksTemplateStore, EnvTypes};
+use env::{RocksAppStore, RocksTemplateStore};
+
+use crate::Env;
+
 use storage::StorageBuilderFn;
 
 use svm_layout::Layout;
@@ -19,14 +20,13 @@ use svm_storage::kv::StatefulKV;
 use crate::{Config, DefaultRuntime, ExternImport};
 
 /// Creates a new `Runtime` backed by `rocksdb` for persistence.
-pub fn create_rocksdb_runtime<P, T>(
+pub fn create_rocksdb_runtime<P>(
     state_kv: &Rc<RefCell<dyn StatefulKV>>,
-    kv_path: P,
+    kv_path: &P,
     imports: *const Vec<ExternImport>,
-) -> DefaultRuntime<T>
+) -> DefaultRuntime<DefaultRocksEnvTypes>
 where
     P: AsRef<Path>,
-    T: EnvTypes,
 {
     let env = build_env(&kv_path);
     let imports = unsafe { &*imports };
@@ -34,20 +34,12 @@ where
     DefaultRuntime::new(env, kv_path, imports, storage_builder(state_kv))
 }
 
-fn build_env<T, P>(kv_path: &P) -> Env<T>
+fn build_env<P>(kv_path: &P) -> Env<DefaultRocksEnvTypes>
 where
-    T: EnvTypes,
     P: AsRef<Path>,
 {
-    let app_store = RocksdbAppStore::<
-        <T as EnvTypes>::AppSerializer,
-        <S as EnvSerializers>::AppDeserializer,
-    >::new(kv_path);
-
-    let template_store = RocksdbTemplateStore::<
-        <S as EnvSerializers>::TemplateSerializer,
-        <S as EnvSerializers>::TemplateDeserializer,
-    >::new(kv_path);
+    let app_store = DefaultRocksAppStore::new(kv_path);
+    let template_store = DefaultRocksTemplateStore::new(kv_path);
 
     Env::new(app_store, template_store)
 }

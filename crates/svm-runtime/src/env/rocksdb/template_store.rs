@@ -21,13 +21,13 @@ const TEMPLATE_KEY_PREFIX: &'static [u8] = b"template:";
 const TEMPLATE_HASH_KEY_PREFIX: &'static [u8] = b"template-hash:";
 
 /// `Template` store backed by `rocksdb`
-pub struct RocksdbTemplateStore<S, D> {
+pub struct RocksTemplateStore<S, D> {
     db: Rocksdb,
 
     phantom: PhantomData<(S, D)>,
 }
 
-impl<S, D> TemplateStore for RocksdbTemplateStore<S, D>
+impl<S, D> TemplateStore for RocksTemplateStore<S, D>
 where
     S: TemplateSerializer,
     D: TemplateDeserializer,
@@ -64,7 +64,7 @@ where
     }
 }
 
-impl<S, D> RocksdbTemplateStore<S, D>
+impl<S, D> RocksTemplateStore<S, D>
 where
     S: TemplateSerializer,
     D: TemplateDeserializer,
