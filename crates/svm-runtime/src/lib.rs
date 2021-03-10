@@ -20,9 +20,9 @@ pub use runtime::create_rocksdb_runtime;
 mod gas;
 pub use gas::DefaultGasEstimator;
 
-/// Managing the runtime's environment
+/// Managing the Runtime's environment
 mod env;
-pub use env::DefaultSerializers;
+pub use env::Env;
 
 mod import;
 mod storage;

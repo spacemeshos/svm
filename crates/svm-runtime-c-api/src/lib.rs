@@ -18,9 +18,6 @@ pub(crate) use error::{raw_error, raw_io_error, raw_utf8_error, raw_validate_err
 #[cfg(feature = "default-rocksdb")]
 pub use api::svm_runtime_create;
 
-#[cfg(feature = "default-rocksdb")]
-pub use api::svm_ffi_state_kv_create;
-
 #[cfg(feature = "default-memory")]
 pub use api::{svm_memory_runtime_create, svm_memory_state_kv_create};
 
@@ -40,6 +37,8 @@ pub use api::{
     svm_validate_template,
     svm_validate_app,
     svm_validate_tx,
+
+    svm_ffi_state_kv_create,
 
     // Destroy
     svm_runtime_destroy,

@@ -5,7 +5,7 @@ mod serialize;
 mod store;
 
 pub use compute_address::{AppAddressCompute, TemplateAddressCompute};
-pub use env::{Env, EnvTypes};
+pub use env::EnvTypes;
 pub use hasher::TemplateHasher;
 pub use store::{AppStore, TemplateStore};
 

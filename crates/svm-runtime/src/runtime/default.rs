@@ -1,13 +1,13 @@
-use std::marker::PhantomData;
+use std::collections::HashMap;
 use std::path::Path;
-use std::{collections::HashMap, todo};
 
 use log::{error, info};
 
 use crate::env::{self, traits};
+use crate::Env;
 
 use env::{ExtApp, ExtSpawnApp, ExtTemplate};
-use traits::{Env, EnvTypes};
+use traits::EnvTypes;
 
 use crate::error::ValidateError;
 use crate::gas::GasEstimator;
@@ -31,9 +31,12 @@ use super::{Call, Failure, Function, Outcome};
 type Result<T> = std::result::Result<Outcome<T>, Failure>;
 
 /// Default `Runtime` implementation based on `Wasmer`.
-pub struct DefaultRuntime<ENV, GE> {
+pub struct DefaultRuntime<T>
+where
+    T: EnvTypes,
+{
     /// The runtime environment. Used mainly for managing app persistence.
-    env: ENV,
+    env: Env<T>,
 
     /// The runtime configuration
     config: Config,
@@ -43,15 +46,11 @@ pub struct DefaultRuntime<ENV, GE> {
 
     /// builds a `AppStorage` instance.
     storage_builder: Box<StorageBuilderFn>,
-
-    phantom: PhantomData<GE>,
 }
 
-impl<TY, ENV, GE> Runtime for DefaultRuntime<ENV, GE>
+impl<T> Runtime for DefaultRuntime<T>
 where
-    TY: EnvTypes,
-    ENV: Env<Types = TY>,
-    GE: GasEstimator,
+    T: EnvTypes,
 {
     fn validate_template(&self, bytes: &[u8]) -> std::result::Result<(), ValidateError> {
         let template = self.env.parse_deploy_template(bytes)?;
@@ -182,15 +181,13 @@ where
     }
 }
 
-impl<TY, ENV, GE> DefaultRuntime<ENV, GE>
+impl<T> DefaultRuntime<T>
 where
-    TY: EnvTypes,
-    ENV: Env<Types = TY>,
-    GE: GasEstimator,
+    T: EnvTypes,
 {
     /// Initializes a new `DefaultRuntime`.
     pub fn new<P: AsRef<Path>>(
-        env: ENV,
+        env: Env<T>,
         kv_path: P,
         imports: &Vec<ExternImport>,
         storage_builder: Box<StorageBuilderFn>,
@@ -203,7 +200,6 @@ where
             config,
             imports,
             storage_builder,
-            phantom: PhantomData::<GE>,
         }
     }
 
@@ -278,11 +274,11 @@ where
         result.unwrap_or_else(|fail| self.failure_to_receipt(fail))
     }
 
-    fn exec<Args, Rets, F, T>(&self, call: &Call, f: F) -> std::result::Result<T, Failure>
+    fn exec<Args, Rets, F, R>(&self, call: &Call, f: F) -> std::result::Result<R, Failure>
     where
         Args: WasmTypeList,
         Rets: WasmTypeList,
-        F: Fn(&Context, Outcome<Box<[wasmer::Val]>>) -> T,
+        F: Fn(&Context, Outcome<Box<[wasmer::Val]>>) -> R,
     {
         info!("runtime `exec`");
 

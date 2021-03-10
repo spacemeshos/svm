@@ -440,7 +440,6 @@ pub unsafe extern "C" fn svm_memory_state_kv_create(kv: *mut *mut c_void) -> svm
 /// assert!(res.is_ok());
 /// ```
 ///
-#[cfg(feature = "default-rocksdb")]
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_ffi_state_kv_create(

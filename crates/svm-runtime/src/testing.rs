@@ -2,10 +2,10 @@ use std::cell::RefCell;
 use std::path::Path;
 use std::rc::Rc;
 
-use crate::env::default::{DefaultMemAppStore, DefaultMemTemplateStore, DefaultMemoryEnv};
-use crate::gas::DefaultGasEstimator;
+use crate::env::default::{DefaultMemAppStore, DefaultMemTemplateStore};
+use crate::env::traits::EnvTypes;
 use crate::storage::StorageBuilderFn;
-use crate::{Config, DefaultRuntime, ExternImport};
+use crate::{Config, DefaultRuntime, Env, ExternImport};
 
 use svm_codec::api::builder::{DeployTemplateBuilder, SpawnAppBuilder, TxBuilder};
 use svm_layout::Layout;
@@ -100,14 +100,21 @@ pub fn memory_state_kv_init() -> Rc<RefCell<dyn StatefulKV>> {
 }
 
 /// Creates an in-memory `Runtime` backed by key-value and host vmcalls (`imports`).
-pub fn create_memory_runtime(
+pub fn create_memory_runtime<T>(
     state_kv: &Rc<RefCell<dyn StatefulKV>>,
     imports: &Vec<ExternImport>,
-) -> DefaultRuntime<DefaultMemoryEnv, DefaultGasEstimator> {
+) -> DefaultRuntime<T>
+where
+    T: EnvTypes,
+{
     let storage_builder = runtime_memory_storage_builder(state_kv);
 
-    let env = runtime_memory_env_builder();
-    let kv_path = Path::new("mem");
+    let template_store = DefaultMemTemplateStore::new();
+    let app_store = DefaultMemAppStore::new();
+
+    let env = Env::new(app_store, template_store);
+
+    let kv_path = Path::new("");
 
     DefaultRuntime::new(env, &kv_path, imports, Box::new(storage_builder))
 }
@@ -129,14 +136,6 @@ pub fn runtime_memory_storage_builder(
     };
 
     Box::new(func)
-}
-
-/// Creates a new in-memory runtime environment.
-pub fn runtime_memory_env_builder() -> DefaultMemoryEnv {
-    let template_store = DefaultMemTemplateStore::new();
-    let app_store = DefaultMemAppStore::new();
-
-    DefaultMemoryEnv::new(app_store, template_store)
 }
 
 /// Synthesizes a raw deploy-template transaction.

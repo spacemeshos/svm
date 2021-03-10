@@ -1,11 +1,8 @@
 use crate::env::{default, memory, traits};
 
 use default::DefaultSerializers as S;
-use memory::{MemAppStore, MemTemplateStore, MemoryEnv};
+use memory::{MemAppStore, MemTemplateStore};
 use traits::EnvSerializers;
-
-/// `MemoryEnv` with default serialization.
-pub type DefaultMemoryEnv = MemoryEnv<S>;
 
 /// `MemTemplateStore` with default serialization.
 pub type DefaultMemTemplateStore = MemTemplateStore<

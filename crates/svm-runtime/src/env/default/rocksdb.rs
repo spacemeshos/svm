@@ -1,11 +1,8 @@
 use crate::env::{default, rocksdb, traits};
 
 use default::DefaultSerializers as S;
-use rocksdb::{RocksdbAppStore, RocksdbEnv, RocksdbTemplateStore};
+use rocksdb::{RocksdbAppStore, RocksdbTemplateStore};
 use traits::EnvSerializers;
-
-/// `MemoryEnv` with default serialization.
-pub type DefaultRocksdbEnv = RocksdbEnv<S>;
 
 /// `MemTemplateStore` with default serialization.
 pub type DefaultRocksdbTemplateStore = RocksdbTemplateStore<
