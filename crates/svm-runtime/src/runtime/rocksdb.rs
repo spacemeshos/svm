@@ -4,8 +4,7 @@ use std::rc::Rc;
 
 use crate::{env, storage};
 
-use env::{DefaultRocksAppStore, DefaultRocksEnvTypes, DefaultRocksTemplateStore, EnvTypes};
-use env::{RocksAppStore, RocksTemplateStore};
+use env::{DefaultRocksAppStore, DefaultRocksEnvTypes, DefaultRocksTemplateStore};
 
 use crate::Env;
 

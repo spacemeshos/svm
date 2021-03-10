@@ -1,14 +1,13 @@
+use std::marker::PhantomData;
 use std::path::Path;
-use std::{marker::PhantomData, todo};
 
 use svm_kv::rocksdb::Rocksdb;
 use svm_kv::traits::RawKV;
 
-use crate::env::{self, default, traits};
+use crate::env::{self, traits};
 
-use default::DefaultSerializers as S;
 use env::ExtApp;
-use traits::{AppDeserializer, AppSerializer, AppStore, EnvSerializers};
+use traits::{AppDeserializer, AppSerializer, AppStore};
 
 use log::info;
 
@@ -35,12 +34,12 @@ where
         info!("Storing `App`: \n{:?}", addr);
 
         // 1) `App Address` -> serialized `App`
-        let mut key = self.app_key(addr);
+        let key = self.app_key(addr);
         let bytes = S::serialize(app);
         let entry1 = (&key[..], &bytes[..]);
 
         // 2) `App Address` -> `Template Address`
-        let mut key = self.app_template_key(addr);
+        let key = self.app_template_key(addr);
         let addr = self.app_template_addr(app);
         let entry2 = (&key[..], addr.as_slice());
 

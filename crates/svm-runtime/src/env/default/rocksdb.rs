@@ -1,24 +1,15 @@
 use crate::env::{default, rocksdb, traits};
 
-use default::memory::DefaultMemAppStore;
-use default::DefaultSerializers as S;
 use rocksdb::{RocksAppStore, RocksTemplateStore};
-use traits::EnvSerializers;
 use traits::EnvTypes;
 
 /// `MemTemplateStore` with default serialization.
-pub type DefaultRocksTemplateStore = RocksTemplateStore<
-    <S as EnvSerializers>::TemplateSerializer,
-    <S as EnvSerializers>::TemplateDeserializer,
->;
+pub type DefaultRocksTemplateStore =
+    RocksTemplateStore<default::DefaultTemplateSerializer, default::DefaultTemplateDeserializer>;
 
 /// `MemAppStore` with default serialization.
-pub type DefaultRocksAppStore = RocksAppStore<
-    // `AppStore` Serializer
-    <S as EnvSerializers>::AppSerializer,
-    // `AppStore` Deserializer
-    <S as EnvSerializers>::AppDeserializer,
->;
+pub type DefaultRocksAppStore =
+    RocksAppStore<default::DefaultAppSerializer, default::DefaultAppDeserializer>;
 
 pub struct DefaultRocksEnvTypes;
 

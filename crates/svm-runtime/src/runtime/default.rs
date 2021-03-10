@@ -9,7 +9,6 @@ use crate::Env;
 use env::{EnvTypes, ExtApp, ExtSpawnApp, ExtTemplate};
 
 use crate::error::ValidateError;
-use crate::gas::GasEstimator;
 use crate::storage::StorageBuilderFn;
 use crate::vmcalls;
 use crate::{Config, Context, ExternImport, Runtime};
@@ -141,7 +140,7 @@ where
                 within_spawn: false,
             };
 
-            let out = self.exec::<(), u32, _, _>(&call, |ctx, mut out| {
+            let out = self.exec::<(), u32, _, _>(&call, |_ctx, mut out| {
                 let returns = out.take_returns();
 
                 debug_assert_eq!(returns.len(), 1);
@@ -151,7 +150,7 @@ where
                 v.i32().unwrap() == 0
             });
 
-            out.map_err(|mut fail| fail.take_error())
+            out.map_err(|fail| fail.take_error())
         } else {
             unreachable!("Should have failed earlier when doing `validate_tx`");
         }
@@ -267,8 +266,7 @@ where
     }
 
     fn exec_call<Args, Rets>(&self, call: &Call) -> ExecReceipt {
-        let result =
-            self.exec::<(), (), _, _>(&call, |ctx, mut out| self.outcome_to_receipt(ctx, out));
+        let result = self.exec::<(), (), _, _>(&call, |ctx, out| self.outcome_to_receipt(ctx, out));
 
         result.unwrap_or_else(|fail| self.failure_to_receipt(fail))
     }

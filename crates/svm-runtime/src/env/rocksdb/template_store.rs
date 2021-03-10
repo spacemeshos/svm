@@ -4,16 +4,15 @@ use std::path::Path;
 use svm_kv::rocksdb::Rocksdb;
 use svm_kv::traits::RawKV;
 
-use svm_types::{Address, AuthorAddr, Template, TemplateAddr};
+use svm_types::{Address, TemplateAddr};
 
 use crate::env;
 
-use env::{default, hash, traits};
+use env::{hash, traits};
 
-use default::DefaultSerializers as S;
 use env::ExtTemplate;
 use hash::TemplateHash;
-use traits::{EnvSerializers, TemplateDeserializer, TemplateSerializer, TemplateStore};
+use traits::{TemplateDeserializer, TemplateSerializer, TemplateStore};
 
 use log::info;
 
@@ -40,11 +39,11 @@ where
         info!("     Hash: {:?}", hash);
 
         // 1) Template `Address` -> `TemplateHash`
-        let mut key = self.template_key(addr);
+        let key = self.template_key(addr);
         let entry1 = (&key[..], hash.as_slice());
 
         // 2) `TemplateHash` -> serialized `Template`
-        let mut key = self.template_hash_key(hash);
+        let key = self.template_hash_key(hash);
         let bytes = S::serialize(template);
         let entry2 = (&key[..], bytes.as_slice());
 

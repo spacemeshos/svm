@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::path::Path;
 use std::rc::Rc;
 
-use crate::env::{EnvTypes, DefaultMemAppStore, DefaultMemEnvTypes, DefaultMemTemplateStore};
+use crate::env::{DefaultMemAppStore, DefaultMemEnvTypes, DefaultMemTemplateStore};
 use crate::storage::StorageBuilderFn;
 use crate::{Config, DefaultRuntime, Env, ExternImport};
 

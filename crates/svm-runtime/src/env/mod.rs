@@ -7,9 +7,7 @@ use svm_types::{AppAddr, SpawnApp, Template, TemplateAddr, Transaction};
 
 /// Default implementations
 mod default;
-pub use default::{DefaultAppAddressCompute, DefaultSerializers, DefaultTemplateAddressCompute};
-
-pub mod serialize;
+pub use default::{DefaultAppAddressCompute, DefaultTemplateAddressCompute};
 
 /// Extensions
 mod ext;

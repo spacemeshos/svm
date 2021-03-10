@@ -2,6 +2,11 @@ mod address_compute;
 mod hasher;
 mod serialize;
 
+pub use serialize::{
+    DefaultAppDeserializer, DefaultAppSerializer, DefaultTemplateDeserializer,
+    DefaultTemplateSerializer,
+};
+
 #[cfg(feature = "default-memory")]
 mod memory;
 
@@ -16,6 +21,3 @@ pub use rocksdb::{DefaultRocksAppStore, DefaultRocksEnvTypes, DefaultRocksTempla
 
 pub use address_compute::{DefaultAppAddressCompute, DefaultTemplateAddressCompute};
 pub use hasher::DefaultTemplateHasher;
-pub use serialize::DefaultSerializers;
-
-use super::traits::EnvTypes;
