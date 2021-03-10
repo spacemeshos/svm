@@ -26,7 +26,7 @@ pub trait AppDeserializer {
     #[allow(missing_docs)]
     fn deserialize(bytes: &[u8]) -> Option<ExtApp>;
 
-    fn desrialize_template_addr(bytes: &[u8]) -> Option<TemplateAddr> {
+    fn deserialize_template_addr(bytes: &[u8]) -> Option<TemplateAddr> {
         Self::deserialize(bytes).map(|app| app.template_addr().clone())
     }
 }

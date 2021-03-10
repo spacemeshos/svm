@@ -64,7 +64,7 @@ where
         self.db.get(addr).and_then(|hash| {
             self.db
                 .get(&hash)
-                .and_then(|bytes| D::desrialize_template_addr(&bytes[..]))
+                .and_then(|bytes| D::deserialize_template_addr(&bytes[..]))
         })
     }
 }
