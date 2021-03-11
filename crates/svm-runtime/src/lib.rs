@@ -1,6 +1,6 @@
 #![allow(missing_docs)]
-#![allow(unused)]
-#![allow(dead_code)]
+#![deny(unused)]
+#![deny(dead_code)]
 #![allow(unreachable_code)]
 #![feature(vec_into_raw_parts)]
 
@@ -17,10 +17,12 @@ pub use runtime::{Config, DefaultRuntime, Runtime, RuntimePtr};
 pub use runtime::create_rocksdb_runtime;
 
 /// Gas estimation and metering.
-pub mod gas;
+mod gas;
+pub use gas::DefaultGasEstimator;
 
-/// Managing the runtime's environment
-pub mod env;
+/// Managing the Runtime's environment
+mod env;
+pub use env::{Env, EnvTypes};
 
 mod import;
 mod storage;

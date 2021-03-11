@@ -1,11 +1,10 @@
 use std::collections::HashMap;
 use std::marker::PhantomData;
 
-use crate::env::{self, default, traits};
+use crate::env::{self, traits};
 
-use default::DefaultSerializers as S;
 use env::ExtApp;
-use traits::{AppDeserializer, AppSerializer, AppStore, EnvSerializers};
+use traits::{AppDeserializer, AppSerializer, AppStore};
 
 use svm_types::{Address, AppAddr, TemplateAddr};
 
@@ -55,7 +54,3 @@ where
         app.map(|x| x.template_addr().clone())
     }
 }
-
-/// `MemAppStore` with default serialization.
-pub type DefaultMemAppStore =
-    MemAppStore<<S as EnvSerializers>::AppSerializer, <S as EnvSerializers>::AppDeserializer>;

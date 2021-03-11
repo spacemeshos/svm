@@ -1,0 +1,17 @@
+[package]
+name = "svm-abi-tests"
+version = "0.0.0"
+authors = ["Yaron Wittenstein <yaron.wittenstein@gmail.com>"]
+license = "MIT"
+edition = "2018"
+readme = "README.md"
+repository = "https://github.com/spacemeshos/svm"
+homepage = "https://github.com/spacemeshos/svm"
+description = "Spacemesh Virtual Machine"
+publish = false
+
+[dev-dependencies]
+svm-abi-layout = { path = "./../layout" }
+svm-abi-encoder = { path = "./../encoder" }
+svm-abi-decoder = { path = "./../decoder" }
+svm-sdk = { path = "../../svm-sdk" }

@@ -1,3 +1,5 @@
+use svm_types::TemplateAddr;
+
 /// `Env` storage serialization types
 use crate::env::{ExtApp, ExtTemplate};
 
@@ -23,6 +25,10 @@ pub trait AppSerializer {
 pub trait AppDeserializer {
     #[allow(missing_docs)]
     fn deserialize(bytes: &[u8]) -> Option<ExtApp>;
+
+    fn deserialize_template_addr(bytes: &[u8]) -> Option<TemplateAddr> {
+        Self::deserialize(bytes).map(|app| app.template_addr().clone())
+    }
 }
 
 pub trait EnvSerializers {

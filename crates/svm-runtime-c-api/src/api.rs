@@ -5,12 +5,17 @@ use std::io;
 use std::ptr::NonNull;
 use std::rc::Rc;
 
+#[cfg(feature = "default-rocksdb")]
+use std::path::Path;
+
+use svm_storage::kv::ExternKV;
+
 use log::{debug, error};
 
 use svm_codec::receipt;
 use svm_ffi::{svm_byte_array, svm_func_callback_t, svm_resource_iter_t, svm_resource_t, tracking};
 use svm_runtime::{ExternImport, Runtime, RuntimePtr};
-use svm_storage::kv::{ExternKV, StatefulKV};
+use svm_storage::kv::StatefulKV;
 use svm_types::{Address, State, Type, WasmType};
 
 use crate::{raw_error, raw_io_error, raw_utf8_error, raw_validate_error, svm_result_t};
@@ -503,6 +508,7 @@ pub unsafe extern "C" fn svm_state_kv_destroy(kv: *mut c_void) -> svm_result_t {
 /// assert!(res.is_ok());
 /// ```
 ///
+#[cfg(feature = "default-memory")]
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_memory_runtime_create(
@@ -536,15 +542,16 @@ pub unsafe extern "C" fn svm_memory_runtime_create(
 /// use svm_ffi::svm_byte_array;
 ///
 /// let mut runtime = std::ptr::null_mut();
+/// let mut state_kv = std::ptr::null_mut();
 ///
 /// let ty = Type::Str("path");
-/// let path = String::from("path goes here");
+/// let kv_path = String::from("path for SVM internal db goes here");
 
-/// let path: svm_byte_array = (ty, path).into();
+/// let kv_path: svm_byte_array = (ty, kv_path).into();
 /// let mut imports = testing::imports_alloc(0);
 /// let mut error = svm_byte_array::default();
 ///
-/// let res = unsafe { svm_runtime_create(&mut runtime, path, imports, &mut error) };
+/// let res = unsafe { svm_runtime_create(&mut runtime, state_kv, kv_path, imports, &mut error) };
 /// assert!(res.is_ok());
 /// ```
 ///
@@ -553,6 +560,7 @@ pub unsafe extern "C" fn svm_memory_runtime_create(
 #[no_mangle]
 pub unsafe extern "C" fn svm_runtime_create(
     runtime: *mut *mut c_void,
+    state_kv: *mut c_void,
     kv_path: svm_byte_array,
     imports: *mut c_void,
     error: *mut svm_byte_array,
@@ -568,12 +576,10 @@ pub unsafe extern "C" fn svm_runtime_create(
 
     let kv_path = kv_path.unwrap();
     let imports = svm_ffi::as_mut::<Vec<ExternImport>>(imports);
+    let state_kv = svm_ffi::as_mut(state_kv);
 
-    let rocksdb_runtime = svm_runtime::create_rocksdb_runtime::<
-        &Path,
-        DefaultSerializerTypes,
-        DefaultGasEstimator,
-    >(Path::new(&kv_path), imports);
+    let rocksdb_runtime =
+        svm_runtime::create_rocksdb_runtime(&state_kv, &Path::new(&kv_path), imports);
 
     let res = box_runtime!(runtime, rocksdb_runtime);
 

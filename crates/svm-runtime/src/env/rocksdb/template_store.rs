@@ -1,22 +1,69 @@
-use std::{marker::PhantomData, path::Path};
+use std::marker::PhantomData;
+use std::path::Path;
 
-use svm_kv::{rocksdb::Rocksdb, traits::RawKV};
-use svm_types::{AuthorAddr, Template, TemplateAddr};
+use svm_kv::rocksdb::Rocksdb;
+use svm_kv::traits::RawKV;
 
-use crate::env::traits::TemplateStore;
-use crate::env::hash::TemplateHash;
+use svm_types::{Address, TemplateAddr};
 
-use svm_codec::serializers::{TemplateDeserializer, TemplateSerializer};
+use crate::env;
+
+use env::{hash, traits};
+
+use env::ExtTemplate;
+use hash::TemplateHash;
+use traits::{TemplateDeserializer, TemplateSerializer, TemplateStore};
 
 use log::info;
 
+const TEMPLATE_KEY_PREFIX: &'static [u8] = b"template:";
+const TEMPLATE_HASH_KEY_PREFIX: &'static [u8] = b"template-hash:";
+
 /// `Template` store backed by `rocksdb`
-pub struct RocksdbTemplateStore<S, D> {
+pub struct RocksTemplateStore<S, D> {
     db: Rocksdb,
+
     phantom: PhantomData<(S, D)>,
 }
 
-impl<S, D> RocksdbTemplateStore<S, D>
+impl<S, D> TemplateStore for RocksTemplateStore<S, D>
+where
+    S: TemplateSerializer,
+    D: TemplateDeserializer,
+{
+    fn store(&mut self, template: &ExtTemplate, addr: &TemplateAddr, hash: &TemplateHash) {
+        let addr = addr.inner();
+
+        info!("Storing `Template`: \n{:?}", addr);
+        info!("     Account Address: {:?}", addr);
+        info!("     Hash: {:?}", hash);
+
+        // 1) Template `Address` -> `TemplateHash`
+        let key = self.template_key(addr);
+        let entry1 = (&key[..], hash.as_slice());
+
+        // 2) `TemplateHash` -> serialized `Template`
+        let key = self.template_hash_key(hash);
+        let bytes = S::serialize(template);
+        let entry2 = (&key[..], bytes.as_slice());
+
+        self.db.set(&[entry1, entry2]);
+    }
+
+    fn load(&self, addr: &TemplateAddr) -> Option<ExtTemplate> {
+        let addr = addr.inner().as_slice();
+
+        info!("Loading `Template` {:?}", addr);
+
+        self.db.get(addr).and_then(|hash| {
+            self.db
+                .get(&hash)
+                .and_then(|bytes| D::deserialize(&bytes[..]))
+        })
+    }
+}
+
+impl<S, D> RocksTemplateStore<S, D>
 where
     S: TemplateSerializer,
     D: TemplateDeserializer,
@@ -31,44 +78,30 @@ where
             phantom: PhantomData,
         }
     }
-}
 
-impl<S, D> TemplateStore for RocksdbTemplateStore<S, D>
-where
-    S: TemplateSerializer,
-    D: TemplateDeserializer,
-{
-    fn store(
-        &mut self,
-        template: &Template,
-        author: &AuthorAddr,
-        addr: &TemplateAddr,
-        hash: &TemplateHash,
-    ) {
-        info!("Storing `Template`: \n{:?}", template);
-        info!("     Account Address: {:?}", addr.inner());
-        info!("     Hash: {:?}", hash);
+    #[inline]
+    fn template_key(&self, addr: &Address) -> Vec<u8> {
+        // Keys mapping from an `Template Address` to `Template Hash`
+        // are of the pattern "template:TEMPLATE_ADDRESS"
 
-        let bytes = S::serialize(template, author);
+        let mut key = Vec::with_capacity(Address::len() + TEMPLATE_KEY_PREFIX.len());
 
-        // template addr -> code-hash
-        let entry1 = (addr.inner().as_slice(), &hash.0[..]);
+        key.extend_from_slice(TEMPLATE_KEY_PREFIX);
+        key.extend_from_slice(addr.as_slice());
 
-        // code-hash -> code
-        let entry2 = (&hash.0[..], &bytes[..]);
-
-        self.db.set(&[entry1, entry2]);
+        key
     }
 
-    fn load(&self, addr: &TemplateAddr) -> Option<(Template, AuthorAddr)> {
-        let addr = addr.inner().as_slice();
+    #[inline]
+    fn template_hash_key(&self, hash: &TemplateHash) -> Vec<u8> {
+        // Keys mapping from an `Template Hash` to `Template`
+        // are of the pattern "template-hash:TEMPLATE_ADDRESS"
 
-        info!("Loading `Template` account {:?}", addr);
+        let mut key = Vec::with_capacity(TemplateHash::len() + TEMPLATE_HASH_KEY_PREFIX.len());
 
-        self.db.get(addr).and_then(|hash| {
-            self.db
-                .get(&hash)
-                .and_then(|bytes| D::deserialize(&bytes[..]))
-        })
+        key.extend_from_slice(TEMPLATE_HASH_KEY_PREFIX);
+        key.extend_from_slice(hash.as_slice());
+
+        key
     }
 }
