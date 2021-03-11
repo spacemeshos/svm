@@ -1,5 +1,5 @@
 [package]
-name = "svm-abi-encoder"
+name = "svm-compiler"
 version = "0.0.0"
 authors = ["Yaron Wittenstein <yaron.wittenstein@gmail.com>"]
 license = "MIT"
@@ -11,5 +11,9 @@ description = "Spacemesh Virtual Machine"
 publish = false
 
 [dependencies]
-svm-sdk-types = { path = "../../sdk/types" }
-svm-abi-layout = { path = "./../layout" }
+"svm-common" = { path = "../common" }
+"wasmer-compiler" = { version="1.0.0" }
+"wasmer" = { version="1.0.2", default-features = false, features = ["default-cranelift", "default-jit"] }
+
+[dev-dependencies]
+wat = "1.0"
