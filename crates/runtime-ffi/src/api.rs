@@ -76,7 +76,7 @@ macro_rules! to_svm_byte_array {
 /// # Example
 ///
 /// ```rust, no_run
-/// use svm_runtime_c_api::*;
+/// use svm_runtime_ffi::*;
 ///
 /// use svm_ffi::svm_byte_array;
 /// use svm_types::Address;
@@ -128,7 +128,7 @@ pub unsafe extern "C" fn svm_validate_template(
 /// # Example
 ///
 /// ```rust, no_run
-/// use svm_runtime_c_api::*;
+/// use svm_runtime_ffi::*;
 ///
 /// use svm_ffi::svm_byte_array;
 /// use svm_types::Address;
@@ -176,7 +176,7 @@ pub unsafe extern "C" fn svm_validate_app(
 /// # Example
 ///
 /// ```rust, no_run
-/// use svm_runtime_c_api::*;
+/// use svm_runtime_ffi::*;
 ///
 /// use svm_ffi::svm_byte_array;
 /// use svm_types::Address;
@@ -236,7 +236,7 @@ pub unsafe extern "C" fn svm_validate_tx(
 /// # Example
 ///
 /// ```rust
-/// use svm_runtime_c_api::svm_imports_alloc;
+/// use svm_runtime_ffi::svm_imports_alloc;
 ///
 /// let count = 2;
 /// let mut imports = std::ptr::null_mut();
@@ -262,7 +262,7 @@ pub unsafe extern "C" fn svm_imports_alloc(imports: *mut *mut c_void, count: u32
 /// # Example
 ///
 /// ```rust
-/// use svm_runtime_c_api::*;
+/// use svm_runtime_ffi::*;
 ///
 /// use svm_ffi::{svm_env_t, svm_func_callback_t, svm_byte_array};
 /// use svm_types::{WasmType, Type};
@@ -391,7 +391,7 @@ macro_rules! box_runtime {
 /// # Example
 ///
 /// ```rust
-/// use svm_runtime_c_api::*;
+/// use svm_runtime_ffi::*;
 ///
 /// let mut kv = std::ptr::null_mut();
 /// let res = unsafe { svm_memory_state_kv_create(&mut kv) };
@@ -414,7 +414,7 @@ pub unsafe extern "C" fn svm_memory_state_kv_create(kv: *mut *mut c_void) -> svm
 /// # Example
 ///
 /// ```rust
-/// use svm_runtime_c_api::*;
+/// use svm_runtime_ffi::*;
 ///
 /// unsafe extern "C" fn get(key_ptr: *const u8, key_len: u32, value_ptr: *mut u8, value_len: *mut u32) {}
 /// unsafe extern "C" fn set(key_ptr: *const u8, key_len: u32, value_ptr: *const u8, value_len: u32) {}
@@ -466,7 +466,7 @@ pub unsafe extern "C" fn svm_ffi_state_kv_create(
 /// # Example
 ///
 /// ```rust
-/// use svm_runtime_c_api::*;
+/// use svm_runtime_ffi::*;
 ///
 /// let mut kv = std::ptr::null_mut();
 /// let res = unsafe { svm_memory_state_kv_create(&mut kv) };
@@ -492,7 +492,7 @@ pub unsafe extern "C" fn svm_state_kv_destroy(kv: *mut c_void) -> svm_result_t {
 /// # Example
 ///
 /// ```rust
-/// use svm_runtime_c_api::*;
+/// use svm_runtime_ffi::*;
 ///
 /// use svm_ffi::svm_byte_array;
 ///
@@ -536,7 +536,7 @@ pub unsafe extern "C" fn svm_memory_runtime_create(
 /// # Example
 ///
 /// ```rust, no_run
-/// use svm_runtime_c_api::*;
+/// use svm_runtime_ffi::*;
 ///
 /// use svm_types::Type;
 /// use svm_ffi::svm_byte_array;
@@ -593,7 +593,7 @@ pub unsafe extern "C" fn svm_runtime_create(
 /// # Example
 ///
 /// ```rust, no_run
-/// use svm_runtime_c_api::*;
+/// use svm_runtime_ffi::*;
 ///
 /// use svm_ffi::svm_byte_array;
 /// use svm_types::{Address, Type};
@@ -673,7 +673,7 @@ pub unsafe extern "C" fn svm_deploy_template(
 /// # Example
 ///
 /// ```rust, no_run
-/// use svm_runtime_c_api::*;
+/// use svm_runtime_ffi::*;
 ///
 /// use svm_ffi::svm_byte_array;
 /// use svm_types::{Address, Type};
@@ -756,7 +756,7 @@ pub unsafe extern "C" fn svm_spawn_app(
 /// ```rust, no_run
 /// use std::ffi::c_void;
 ///
-/// use svm_runtime_c_api::*;
+/// use svm_runtime_ffi::*;
 ///
 /// use svm_types::{State, Address, Type};
 /// use svm_ffi::svm_byte_array;
@@ -911,7 +911,7 @@ pub unsafe extern "C" fn svm_resource_type_name_destroy(ptr: *mut svm_byte_array
 /// # Example
 ///
 /// ```rust, no_run
-/// use svm_runtime_c_api::*;
+/// use svm_runtime_ffi::*;
 ///
 /// use svm_types::Address;
 /// use svm_ffi::svm_byte_array;
@@ -945,7 +945,7 @@ pub unsafe extern "C" fn svm_runtime_destroy(runtime: *mut c_void) {
 /// # Example
 ///
 /// ```rust
-/// use svm_runtime_c_api::*;
+/// use svm_runtime_ffi::*;
 ///
 /// // allocate imports
 /// let count = 0;
@@ -970,7 +970,7 @@ pub unsafe extern "C" fn svm_imports_destroy(imports: *mut c_void) {
 /// # Example
 ///
 /// ```rust
-/// use svm_runtime_c_api::*;
+/// use svm_runtime_ffi::*;
 ///
 /// use svm_ffi::svm_byte_array;
 ///

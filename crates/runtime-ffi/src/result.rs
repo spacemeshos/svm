@@ -14,7 +14,7 @@ pub enum svm_result_t {
 /// # Example
 ///
 /// ```rust
-/// use svm_runtime_c_api::svm_result_t;
+/// use svm_runtime_ffi::svm_result_t;
 ///
 /// let truthy = svm_result_t::SVM_SUCCESS;
 /// let falsey = svm_result_t::SVM_FAILURE;
@@ -39,7 +39,7 @@ impl svm_result_t {
     /// # Example
     ///
     /// ```rust
-    /// use svm_runtime_c_api::svm_result_t;
+    /// use svm_runtime_ffi::svm_result_t;
     ///
     /// let truthy = svm_result_t::SVM_SUCCESS;
     /// let falsey = svm_result_t::SVM_FAILURE;
@@ -58,7 +58,7 @@ impl svm_result_t {
     /// # Example
     ///
     /// ```rust
-    /// use svm_runtime_c_api::svm_result_t;
+    /// use svm_runtime_ffi::svm_result_t;
     ///
     /// let truthy = svm_result_t::SVM_SUCCESS;
     /// let falsey = svm_result_t::SVM_FAILURE;
