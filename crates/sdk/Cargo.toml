@@ -1,0 +1,28 @@
+[package]
+name = "svm-sdk"
+version = "0.0.0"
+authors = ["Yaron Wittenstein <yaron.wittenstein@gmail.com>"]
+license = "MIT"
+edition = "2018"
+readme = "README.md"
+repository = "https://github.com/spacemeshos/svm"
+homepage = "https://github.com/spacemeshos/svm"
+description = "Spacemesh Virtual Machine"
+publish = false
+
+[dependencies]
+wee_alloc = "0.4.5"
+lazy_static = "1.4.0"
+svm-sdk-host = { path = "host" }
+svm-sdk-storage = { path = "storage", default-features = false }
+svm-sdk-alloc = { path = "alloc" }
+svm-sdk-types = { path = "types" }
+svm-abi-encoder = { path = "../abi/encoder" }
+svm-abi-decoder = { path = "../abi/decoder" }
+svm-sdk-macros = { path = "macros" }
+
+[features]
+default = ["mock"]
+ffi = ["svm-sdk-host/ffi", "svm-sdk-storage/ffi"]
+mock = ["svm-sdk-host/mock", "svm-sdk-storage/mock"]
+api = ["svm-sdk-macros/api"]

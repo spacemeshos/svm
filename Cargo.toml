@@ -38,61 +38,61 @@ tiny-keccak = "1.4.2"
 log = "0.4"
 lazy_static = "1.4.0"
 hex = "0.4"
-svm-common = { path = "crates/svm-common" }
-svm-hash = { path = "crates/svm-hash" }
-svm-kv = { path = "crates/svm-kv", default-features = false }
-svm-gas = { path = "crates/svm-gas" }
-svm-app-query = { path = "crates/svm-app-query" }
-svm-types = { path = "crates/svm-types" }
-svm-sdk-alloc = { path = "crates/svm-sdk/alloc" }
-svm-sdk-types = { path = "crates/svm-sdk/types" }
-svm-sdk-storage = { path = "crates/svm-sdk/storage" }
-svm-sdk-host = { path = "crates/svm-sdk/host" }
-svm-sdk-macros = { path = "crates/svm-sdk/macros" }
-svm-sdk = { path = "crates/svm-sdk" }
-svm-sdk-tests = { path = "crates/svm-sdk-tests" }
-svm-nibble = { path = "crates/svm-nibble" }
-svm-codec = { path = "crates/svm-codec" }
-svm-layout = { path = "crates/svm-layout" }
-svm-ffi = { path = "crates/svm-ffi" }
-svm-storage = { path = "crates/svm-storage", default-features = false }
-svm-compiler = { path = "crates/svm-compiler", default-features = false }
-svm-runtime = { path = "crates/svm-runtime", default-features = false }
-svm-runtime-c-api = { path = "crates/svm-runtime-c-api", default-features = false }
-svm-abi-layout = { path = "crates/svm-abi/layout" }
-svm-abi-encoder = { path = "crates/svm-abi/encoder" }
-svm-abi-decoder = { path = "crates/svm-abi/decoder" }
-svm-abi-tests = { path = "crates/svm-abi/tests" }
+svm-common = { path = "crates/common" }
+svm-hash = { path = "crates/hash" }
+svm-kv = { path = "crates/kv", default-features = false }
+svm-gas = { path = "crates/gas" }
+svm-query = { path = "crates/query" }
+svm-types = { path = "crates/types" }
+svm-sdk-alloc = { path = "crates/sdk/alloc" }
+svm-sdk-types = { path = "crates/sdk/types" }
+svm-sdk-storage = { path = "crates/sdk/storage" }
+svm-sdk-host = { path = "crates/sdk/host" }
+svm-sdk-macros = { path = "crates/sdk/macros" }
+svm-sdk = { path = "crates/sdk" }
+svm-sdk-tests = { path = "crates/sdk-tests" }
+svm-nibble = { path = "crates/nibble" }
+svm-codec = { path = "crates/codec" }
+svm-layout = { path = "crates/layout" }
+svm-storage = { path = "crates/storage", default-features = false }
+svm-compiler = { path = "crates/compiler", default-features = false }
+svm-runtime = { path = "crates/runtime", default-features = false }
+svm-ffi = { path = "crates/ffi" }
+svm-runtime-ffi = { path = "crates/runtime-ffi", default-features = false }
+svm-abi-layout = { path = "crates/abi/layout" }
+svm-abi-encoder = { path = "crates/abi/encoder" }
+svm-abi-decoder = { path = "crates/abi/decoder" }
+svm-abi-tests = { path = "crates/abi/tests" }
 
 [dev-dependencies]
 wat = "1.0"
 
 [workspace]
 members = [
-  "crates/svm-app-query",
-  "crates/svm-abi/layout",
-  "crates/svm-abi/encoder",
-  "crates/svm-abi/decoder",
-  "crates/svm-abi/tests",
-  "crates/svm-nibble",
-  "crates/svm-codec",
-  "crates/svm-types",
-  "crates/svm-hash",
-  "crates/svm-common",
-  "crates/svm-sdk/alloc",
-  "crates/svm-sdk/types",
-  "crates/svm-sdk/storage",
-  "crates/svm-sdk/host",
-  "crates/svm-sdk/macros",
-  "crates/svm-sdk",
-  "crates/svm-sdk-tests",
-  "crates/svm-kv",
-  "crates/svm-layout",
-  "crates/svm-storage",
-  "crates/svm-runtime",
-  "crates/svm-compiler",
-  "crates/svm-ffi",
-  "crates/svm-runtime-c-api",
+  "crates/query",
+  "crates/abi/layout",
+  "crates/abi/encoder",
+  "crates/abi/decoder",
+  "crates/abi/tests",
+  "crates/nibble",
+  "crates/codec",
+  "crates/types",
+  "crates/hash",
+  "crates/common",
+  "crates/sdk/alloc",
+  "crates/sdk/types",
+  "crates/sdk/storage",
+  "crates/sdk/host",
+  "crates/sdk/macros",
+  "crates/sdk",
+  "crates/sdk-tests",
+  "crates/kv",
+  "crates/layout",
+  "crates/storage",
+  "crates/runtime",
+  "crates/compiler",
+  "crates/ffi",
+  "crates/runtime-ffi",
 ]
 
 exclude = [
@@ -101,5 +101,5 @@ exclude = [
 
 [features]
 default = ["default-memory"]
-default-memory = ["svm-runtime-c-api/default-memory", "svm-runtime/default-memory", "svm-kv/default-memory"]
-default-rocksdb = ["svm-runtime-c-api/default-rocksdb", "svm-runtime/default-rocksdb", "svm-kv/default-rocksdb"]
+default-memory = ["svm-runtime-ffi/default-memory", "svm-runtime/default-memory", "svm-kv/default-memory"]
+default-rocksdb = ["svm-runtime-ffi/default-rocksdb", "svm-runtime/default-rocksdb", "svm-kv/default-rocksdb"]
