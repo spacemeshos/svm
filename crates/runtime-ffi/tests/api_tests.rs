@@ -4,7 +4,7 @@ use std::convert::TryFrom;
 use std::ffi::c_void;
 use std::{collections::HashMap, vec};
 
-use svm_runtime_c_api as api;
+use svm_runtime_ffi as api;
 
 use svm_codec::receipt;
 use svm_ffi::{svm_byte_array, svm_env_t, svm_resource_iter_t, svm_resource_t, tracking};
