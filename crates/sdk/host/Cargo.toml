@@ -1,5 +1,5 @@
 [package]
-name = "svm-abi-encoder"
+name = "svm-sdk-host"
 version = "0.0.0"
 authors = ["Yaron Wittenstein <yaron.wittenstein@gmail.com>"]
 license = "MIT"
@@ -11,5 +11,15 @@ description = "Spacemesh Virtual Machine"
 publish = false
 
 [dependencies]
-svm-sdk-types = { path = "../../sdk/types" }
-svm-abi-layout = { path = "./../layout" }
+svm-sdk-alloc = { path = "../alloc" }
+svm-sdk-types = { path = "../types" }
+svm-abi-encoder = { path = "../../abi/encoder" }
+svm-abi-decoder = { path = "../../abi/decoder" }
+
+[dev-dependencies]
+lazy_static = "1.4.0"
+
+[features]
+default = ["ffi", "mock"]
+ffi = []
+mock = []

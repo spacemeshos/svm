@@ -1,0 +1,26 @@
+[package]
+name = "svm-codec"
+version = "0.0.0"
+authors = ["Yaron Wittenstein <yaron.wittenstein@gmail.com>"]
+license = "MIT"
+edition = "2018"
+readme = "README.md"
+repository = "https://github.com/spacemeshos/svm"
+homepage = "https://github.com/spacemeshos/svm"
+description = "Spacemesh Virtual Machine"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+svm-common = { path = "../common" }
+svm-types = { path = "../types" }
+svm-layout = { path = "../layout" }
+svm-abi-encoder = { path = "../abi/encoder" }
+svm-abi-decoder = { path = "../abi/decoder" }
+svm-sdk-types = { path = "../sdk/types" }
+serde_json = "1.0"
+
+[dev-dependencies]
+maplit = "1.0.2"

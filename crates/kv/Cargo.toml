@@ -1,0 +1,22 @@
+[package]
+name = "svm-kv"
+version = "0.0.0"
+authors = ["Yaron Wittenstein <yaron.wittenstein@gmail.com>"]
+license = "MIT"
+edition = "2018"
+readme = "README.md"
+publish = false
+
+[dependencies]
+log = "0.4"
+"svm-types" = { path = "../types" }
+"db-key" = { version = "0.0.5", optional = true }
+"rocksdb" = { version = "0.12.4", optional = true, default-features = false, features = ["lz4"] }
+
+[dev-dependencies]
+env_logger = "0.7.0"
+
+[features]
+default = ["default-memory"]
+default-memory = []
+default-rocksdb = ["rocksdb"]

@@ -1,0 +1,41 @@
+[package]
+name = "svm-runtime-ffi"
+version = "0.0.0"
+authors = ["Yaron Wittenstein <yaron.wittenstein@gmail.com>"]
+license = "MIT"
+edition = "2018"
+readme = "README.md"
+repository = "https://github.com/spacemeshos/svm"
+homepage = "https://github.com/spacemeshos/svm"
+description = "Spacemesh Virtual Machine"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "staticlib", "rlib"]
+
+[dependencies]
+log = "0.4"
+svm-runtime = { path = "../runtime", default-features = false }
+svm-kv = { path = "../kv", default-features = false }
+svm-ffi = { path = "../ffi" }
+svm-types = { path = "../types" }
+svm-codec = { path = "../codec" }
+svm-gas = { path = "../gas" }
+svm-layout = { path = "../layout" }
+svm-storage = { path = "../storage", default-features = false }
+svm-compiler = { path = "../compiler" }
+
+[dev-dependencies]
+wabt = "0.7.4"
+serde_json = "1.0"
+maplit = "1.0.2"
+svm-sdk = { path = "../sdk" }
+svm-abi-encoder = { path = "../abi/encoder" }
+
+[build-dependencies]
+cbindgen = "0.15.0"
+
+[features]
+default = ["default-memory"]
+default-memory = ["svm-runtime/default-memory", "svm-kv/default-memory", "svm-storage/default-memory"]
+default-rocksdb = ["svm-runtime/default-rocksdb",  "svm-kv/default-rocksdb", "svm-storage/default-rocksdb"]
