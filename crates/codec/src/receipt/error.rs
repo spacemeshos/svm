@@ -71,11 +71,11 @@ use std::io::Cursor;
 
 use crate::{ReadExt, WriteExt};
 
-use svm_types::{Address, AppAddr, Log, RuntimeError, TemplateAddr};
+use svm_types::{Address, AppAddr, ReceiptLog, RuntimeError, TemplateAddr};
 
 use super::logs;
 
-pub(crate) fn encode_error(err: &RuntimeError, logs: &[Log], w: &mut Vec<u8>) {
+pub(crate) fn encode_error(err: &RuntimeError, logs: &[ReceiptLog], w: &mut Vec<u8>) {
     encode_err_type(err, w);
 
     logs::encode_logs(logs, w);
@@ -157,7 +157,7 @@ fn encode_err_type(err: &RuntimeError, w: &mut Vec<u8>) {
     w.push(ty);
 }
 
-pub(crate) fn decode_error(cursor: &mut Cursor<&[u8]>) -> (RuntimeError, Vec<Log>) {
+pub(crate) fn decode_error(cursor: &mut Cursor<&[u8]>) -> (RuntimeError, Vec<ReceiptLog>) {
     let ty = cursor.read_byte().unwrap();
     let logs = logs::decode_logs(cursor).unwrap();
 
@@ -294,13 +294,13 @@ mod tests {
 
     use svm_types::Address;
 
-    fn test_logs() -> Vec<Log> {
+    fn test_logs() -> Vec<ReceiptLog> {
         vec![
-            Log {
+            ReceiptLog {
                 msg: b"Log entry #1".to_vec(),
                 code: 0,
             },
-            Log {
+            ReceiptLog {
                 msg: b"Log entry #2".to_vec(),
                 code: 1,
             },

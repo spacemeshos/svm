@@ -5,7 +5,7 @@ mod spawn_app;
 
 pub use deploy_template::TemplateReceipt;
 pub use exec_app::ExecReceipt;
-pub use log::Log;
+pub use log::ReceiptLog;
 pub use spawn_app::{into_spawn_app_receipt, SpawnAppReceipt};
 
 use crate::gas::Gas;
@@ -110,7 +110,7 @@ impl Receipt {
     }
 
     /// Returns the logs generated during the transaction execution
-    pub fn get_logs(&self) -> &[Log] {
+    pub fn get_logs(&self) -> &[ReceiptLog] {
         match self {
             Receipt::DeployTemplate(receipt) => receipt.get_logs(),
             Receipt::SpawnApp(receipt) => receipt.get_logs(),

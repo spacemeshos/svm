@@ -1,4 +1,4 @@
-use crate::receipt::{ExecReceipt, Log, RuntimeError};
+use crate::receipt::{ExecReceipt, ReceiptLog, RuntimeError};
 use crate::{gas::Gas, AppAddr, State};
 
 /// Returned Receipt after spawning an App.
@@ -26,17 +26,17 @@ pub struct SpawnAppReceipt {
     pub gas_used: Gas,
 
     /// logged entries during spawn-app's ctor running
-    pub logs: Vec<Log>,
+    pub logs: Vec<ReceiptLog>,
 }
 
 impl SpawnAppReceipt {
     /// Creates a `SpawnAppReceipt` for reaching reaching `Out-of-Gas`.
-    pub fn new_oog(logs: Vec<Log>) -> Self {
+    pub fn new_oog(logs: Vec<ReceiptLog>) -> Self {
         Self::from_err(RuntimeError::OOG, logs)
     }
 
     /// Creates a new failure Receipt out of the `error` parameter
-    pub fn from_err(error: RuntimeError, logs: Vec<Log>) -> Self {
+    pub fn from_err(error: RuntimeError, logs: Vec<ReceiptLog>) -> Self {
         Self {
             version: 0,
             success: false,
@@ -75,12 +75,12 @@ impl SpawnAppReceipt {
     }
 
     /// Returns the logs generated during the transaction execution
-    pub fn get_logs(&self) -> &[Log] {
+    pub fn get_logs(&self) -> &[ReceiptLog] {
         &self.logs
     }
 
     /// Take the Receipt's logged entries out
-    pub fn take_logs(&mut self) -> Vec<Log> {
+    pub fn take_logs(&mut self) -> Vec<ReceiptLog> {
         std::mem::take(&mut self.logs)
     }
 }

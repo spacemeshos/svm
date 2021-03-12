@@ -4,7 +4,7 @@ use std::rc::Rc;
 use wasmer::Memory;
 
 use svm_storage::app::AppStorage;
-use svm_types::{AppAddr, Gas, Log, TemplateAddr};
+use svm_types::{AppAddr, Gas, ReceiptLog, TemplateAddr};
 
 /// `Context` is a container for the accessible data by `wasmer` instances.
 ///
@@ -92,7 +92,7 @@ pub struct ContextInner {
     pub storage: AppStorage,
 
     /// App's logs
-    pub logs: Vec<Log>,
+    pub logs: Vec<ReceiptLog>,
 
     /// Pointer to `returndata`. Tuple stores `(offset, len)`.
     pub returndata: Option<(usize, usize)>,
@@ -147,7 +147,7 @@ impl ContextInner {
         self.memory.as_ref().unwrap()
     }
 
-    pub fn take_logs(&mut self) -> Vec<Log> {
+    pub fn take_logs(&mut self) -> Vec<ReceiptLog> {
         std::mem::take(&mut self.logs)
     }
 }

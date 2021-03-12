@@ -121,7 +121,7 @@ fn encode_returndata(receipt: &SpawnAppReceipt, w: &mut Vec<u8>) {
 mod tests {
     use super::*;
 
-    use svm_types::{Address, AppAddr, Gas, Log, RuntimeError, State};
+    use svm_types::{Address, AppAddr, Gas, ReceiptLog, RuntimeError, State};
 
     use crate::receipt::decode_receipt;
 
@@ -153,7 +153,7 @@ mod tests {
         let addr: AppAddr = Address::of("my-app").into();
         let init_state = State::of("some-state");
 
-        let logs = vec![Log {
+        let logs = vec![ReceiptLog {
             msg: b"something happened".to_vec(),
             code: 200,
         }];
@@ -180,7 +180,7 @@ mod tests {
         let addr: AppAddr = Address::of("my-app").into();
         let init_state = State::of("some-state");
         let returndata = vec![0x10, 0x20];
-        let logs = vec![Log {
+        let logs = vec![ReceiptLog {
             msg: b"something happened".to_vec(),
             code: 200,
         }];

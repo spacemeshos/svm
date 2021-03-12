@@ -18,7 +18,7 @@ use svm_layout::Layout;
 use svm_storage::app::AppStorage;
 
 use svm_types::{AppAddr, AuthorAddr, SpawnerAddr, State, Type};
-use svm_types::{ExecReceipt, Log, SpawnAppReceipt, TemplateReceipt};
+use svm_types::{ExecReceipt, ReceiptLog, SpawnAppReceipt, TemplateReceipt};
 use svm_types::{Gas, OOGError};
 use svm_types::{RuntimeError, Transaction};
 
@@ -709,7 +709,7 @@ where
         ctx: &Context,
         func_name: &str,
         err: wasmer::RuntimeError,
-        logs: Vec<Log>,
+        logs: Vec<ReceiptLog>,
     ) -> Failure {
         let err = RuntimeError::FuncFailed {
             app_addr: ctx.app_addr().clone(),

@@ -101,14 +101,14 @@ fn encode_returndata(receipt: &ExecReceipt, w: &mut Vec<u8>) {
 mod tests {
     use super::*;
 
-    use svm_types::{Address, Gas, Log, RuntimeError, State};
+    use svm_types::{Address, Gas, ReceiptLog, RuntimeError, State};
 
     #[test]
     fn encode_decode_exec_receipt_error() {
         let app = Address::of("my-app");
         let error = RuntimeError::AppNotFound(app.into());
 
-        let logs = vec![Log {
+        let logs = vec![ReceiptLog {
             msg: b"something happened".to_vec(),
             code: 200,
         }];
@@ -133,7 +133,7 @@ mod tests {
     fn encode_decode_exec_receipt_success_without_returns() {
         let new_state = State::of("some-state");
 
-        let logs = vec![Log {
+        let logs = vec![ReceiptLog {
             msg: b"something happened".to_vec(),
             code: 200,
         }];
@@ -159,7 +159,7 @@ mod tests {
         let new_state = State::of("some-state");
         let returndata = vec![0x10, 0x20];
 
-        let logs = vec![Log {
+        let logs = vec![ReceiptLog {
             msg: b"something happened".to_vec(),
             code: 200,
         }];

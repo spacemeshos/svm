@@ -1,5 +1,5 @@
 use crate::gas::Gas;
-use crate::receipt::{Log, RuntimeError};
+use crate::receipt::{ReceiptLog, RuntimeError};
 
 use crate::TemplateAddr;
 
@@ -22,7 +22,7 @@ pub struct TemplateReceipt {
     pub gas_used: Gas,
 
     /// generated logs during transaction execution.
-    pub logs: Vec<Log>,
+    pub logs: Vec<ReceiptLog>,
 }
 
 impl TemplateReceipt {
@@ -44,7 +44,7 @@ impl TemplateReceipt {
     }
 
     /// Creates a new failure Receipt out of the `error` parameter
-    pub fn from_err(error: RuntimeError, logs: Vec<Log>) -> Self {
+    pub fn from_err(error: RuntimeError, logs: Vec<ReceiptLog>) -> Self {
         Self {
             version: 0,
             success: false,
@@ -66,12 +66,12 @@ impl TemplateReceipt {
     }
 
     /// Returns the logs generated during the transaction execution
-    pub fn get_logs(&self) -> &[Log] {
+    pub fn get_logs(&self) -> &[ReceiptLog] {
         &self.logs
     }
 
     /// Taking the `logs` out
-    pub fn take_logs(&mut self) -> Vec<Log> {
+    pub fn take_logs(&mut self) -> Vec<ReceiptLog> {
         std::mem::take(&mut self.logs)
     }
 }

@@ -1,5 +1,5 @@
 use crate::gas::Gas;
-use crate::receipt::{Log, RuntimeError};
+use crate::receipt::{ReceiptLog, RuntimeError};
 use crate::State;
 
 /// Runtime transaction execution receipt
@@ -24,7 +24,7 @@ pub struct ExecReceipt {
     pub gas_used: Gas,
 
     /// Logs generated during execution of the transaction.
-    pub logs: Vec<Log>,
+    pub logs: Vec<ReceiptLog>,
 }
 
 impl From<RuntimeError> for ExecReceipt {
@@ -35,12 +35,12 @@ impl From<RuntimeError> for ExecReceipt {
 
 impl ExecReceipt {
     /// Creates a `ExecReceipt` for reaching reaching `Out-of-Gas`.
-    pub fn new_oog(logs: Vec<Log>) -> Self {
+    pub fn new_oog(logs: Vec<ReceiptLog>) -> Self {
         Self::from_err(RuntimeError::OOG, logs)
     }
 
     /// Creates a new failure Receipt out of the `error` parameter
-    pub fn from_err(err: RuntimeError, logs: Vec<Log>) -> Self {
+    pub fn from_err(err: RuntimeError, logs: Vec<ReceiptLog>) -> Self {
         Self {
             version: 0,
             success: false,
@@ -68,12 +68,12 @@ impl ExecReceipt {
     }
 
     /// Returns the logs generated during the transaction execution
-    pub fn get_logs(&self) -> &[Log] {
+    pub fn get_logs(&self) -> &[ReceiptLog] {
         &self.logs
     }
 
     /// Take the Receipt's logged entries out
-    pub fn take_logs(&mut self) -> Vec<Log> {
+    pub fn take_logs(&mut self) -> Vec<ReceiptLog> {
         std::mem::take(&mut self.logs)
     }
 }
