@@ -18,7 +18,7 @@
 
 use std::io::Cursor;
 
-use svm_types::receipt::ExecReceipt;
+use svm_types::ExecReceipt;
 
 use super::{decode_error, encode_error, gas, logs};
 
@@ -101,8 +101,7 @@ fn encode_returndata(receipt: &ExecReceipt, w: &mut Vec<u8>) {
 mod tests {
     use super::*;
 
-    use svm_types::receipt::Log;
-    use svm_types::{Address, Gas, RuntimeError, State};
+    use svm_types::{Address, Gas, Log, RuntimeError, State};
 
     #[test]
     fn encode_decode_exec_receipt_error() {

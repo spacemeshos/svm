@@ -1,6 +1,6 @@
 use std::io::Cursor;
 
-use svm_types::receipt::Log;
+use svm_types::Log;
 
 use crate::{Field, ParseError, ReadExt, WriteExt};
 

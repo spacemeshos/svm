@@ -18,8 +18,7 @@ pub fn decode_receipt(offset: usize) -> Result<usize, JsonError> {
 mod test {
     use super::*;
 
-    use svm_types::receipt::SpawnAppReceipt;
-    use svm_types::{Address, Gas, State};
+    use svm_types::{Address, Gas, SpawnAppReceipt, State};
 
     use crate::api::json;
     use crate::api::wasm::{free, to_wasm_buffer, wasm_buffer_data, BUF_OK_MARKER};

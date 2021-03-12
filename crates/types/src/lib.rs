@@ -30,8 +30,12 @@ pub use error::RuntimeError;
 mod gas;
 pub use gas::{Gas, OOGError};
 
-/// Receipts-related types
-pub mod receipt;
+/// `Receipt`-related types
+mod receipt;
+
+pub use receipt::{
+    into_spawn_app_receipt, ExecReceipt, Log, Receipt, ReceiptRef, SpawnAppReceipt, TemplateReceipt,
+};
 
 /// Address-related types
 pub use address::{Address, AppAddr, AuthorAddr, SpawnerAddr, TemplateAddr};

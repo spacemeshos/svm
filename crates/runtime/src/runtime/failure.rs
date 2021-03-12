@@ -1,5 +1,4 @@
-use svm_types::receipt::Log;
-use svm_types::RuntimeError;
+use svm_types::{Log, RuntimeError};
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Failure {

@@ -1,6 +1,6 @@
 use crate::{use_gas, Context};
 
-use svm_types::receipt::Log;
+use svm_types::Log;
 
 /// Logs the log entry given.
 ///

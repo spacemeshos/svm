@@ -1,5 +1,4 @@
-use svm_types::receipt::Log;
-use svm_types::Gas;
+use svm_types::{Gas, Log};
 
 pub struct Outcome<T> {
     returns: T,

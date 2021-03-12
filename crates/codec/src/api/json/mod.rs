@@ -15,8 +15,7 @@ pub use spawn_app::{decode_spawn_app, encode_spawn_app};
 use serde_json::{json, Value};
 
 use svm_sdk_types::Amount;
-use svm_types::receipt::Log;
-use svm_types::{Address, Gas, State};
+use svm_types::{Address, Gas, Log, State};
 
 pub(crate) fn to_bytes(json: &Value) -> Result<Vec<u8>, JsonError> {
     match serde_json::to_string(&json) {

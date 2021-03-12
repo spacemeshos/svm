@@ -4,8 +4,7 @@ use std::rc::Rc;
 use wasmer::Memory;
 
 use svm_storage::app::AppStorage;
-use svm_types::receipt::Log;
-use svm_types::{AppAddr, Gas, TemplateAddr};
+use svm_types::{AppAddr, Gas, Log, TemplateAddr};
 
 /// `Context` is a container for the accessible data by `wasmer` instances.
 ///

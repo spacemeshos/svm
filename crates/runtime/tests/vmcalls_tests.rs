@@ -8,8 +8,7 @@ use wasmer::{imports, Function, NativeFunc};
 
 use svm_layout::{Layout, VarId};
 use svm_runtime::{testing, vmcalls, Context};
-use svm_types::receipt::Log;
-use svm_types::{Address, Gas};
+use svm_types::{Address, Gas, Log};
 
 macro_rules! assert_vars32 {
     ($instance:expr, $( $var_id:expr => $expected:expr), *) => {{

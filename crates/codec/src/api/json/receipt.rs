@@ -3,8 +3,8 @@ use serde_json::{json, Value};
 use crate::api::json::{self, JsonError};
 use crate::receipt;
 
-use svm_types::receipt::{ExecReceipt, Log, Receipt, SpawnAppReceipt, TemplateReceipt};
 use svm_types::RuntimeError;
+use svm_types::{ExecReceipt, Log, Receipt, SpawnAppReceipt, TemplateReceipt};
 
 /// Given a binary Receipt wrappend inside a JSON,
 /// decodes it into a user-friendly JSON.
@@ -207,8 +207,7 @@ mod tests {
 
     use super::json;
 
-    use svm_types::receipt::Log;
-    use svm_types::{Address, Gas, State};
+    use svm_types::{Address, Gas, Log, State};
 
     #[test]
     fn decode_receipt_deploy_template_receipt_success() {

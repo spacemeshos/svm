@@ -23,10 +23,10 @@ pub use ptr::RuntimePtr;
 
 use crate::error::ValidateError;
 
-use svm_types::receipt::{ExecReceipt, SpawnAppReceipt, TemplateReceipt};
-use svm_types::Gas;
-use svm_types::RuntimeError;
-use svm_types::{AuthorAddr, SpawnerAddr, State, Transaction};
+use svm_types::{
+    AuthorAddr, ExecReceipt, Gas, RuntimeError, SpawnAppReceipt, SpawnerAddr, State,
+    TemplateReceipt, Transaction,
+};
 
 /// Specifies the interface of a `SVM` Runtime.
 pub trait Runtime {

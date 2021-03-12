@@ -71,9 +71,7 @@ use std::io::Cursor;
 
 use crate::{ReadExt, WriteExt};
 
-use svm_types::receipt::Log;
-use svm_types::RuntimeError;
-use svm_types::{Address, AppAddr, TemplateAddr};
+use svm_types::{Address, AppAddr, Log, RuntimeError, TemplateAddr};
 
 use super::logs;
 

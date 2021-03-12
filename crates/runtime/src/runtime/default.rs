@@ -17,8 +17,8 @@ use svm_ffi::svm_env_t;
 use svm_layout::Layout;
 use svm_storage::app::AppStorage;
 
-use svm_types::receipt::{self, ExecReceipt, Log, SpawnAppReceipt, TemplateReceipt};
 use svm_types::{AppAddr, AuthorAddr, SpawnerAddr, State, Type};
+use svm_types::{ExecReceipt, Log, SpawnAppReceipt, TemplateReceipt};
 use svm_types::{Gas, OOGError};
 use svm_types::{RuntimeError, Transaction};
 
@@ -254,7 +254,8 @@ where
 
         let receipt = self.exec_call::<(), ()>(&call);
 
-        receipt::into_spawn_app_receipt(receipt, app_addr)
+        // TODO: move the `into_spawn_app_receipt` to a `From / TryFrom`
+        svm_types::into_spawn_app_receipt(receipt, app_addr)
     }
 
     fn install_template(&mut self, template: &ExtTemplate, gas_used: Gas) -> TemplateReceipt {

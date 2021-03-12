@@ -19,7 +19,7 @@
 
 use std::io::Cursor;
 
-use svm_types::receipt::SpawnAppReceipt;
+use svm_types::SpawnAppReceipt;
 
 use super::{decode_error, encode_error, gas, logs, types};
 
@@ -121,8 +121,7 @@ fn encode_returndata(receipt: &SpawnAppReceipt, w: &mut Vec<u8>) {
 mod tests {
     use super::*;
 
-    use svm_types::receipt::Log;
-    use svm_types::{Address, AppAddr, Gas, RuntimeError, State};
+    use svm_types::{Address, AppAddr, Gas, Log, RuntimeError, State};
 
     use crate::receipt::decode_receipt;
 
