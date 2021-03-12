@@ -11,10 +11,12 @@ mod call_graph;
 mod code_reader;
 mod estimate;
 mod function;
-mod gas;
 mod op;
 mod program;
 mod validation;
+
+mod gas;
+pub use gas::Gas;
 
 /// Crate errors
 pub mod error;
@@ -24,5 +26,4 @@ pub mod traits;
 
 pub use estimate::estimate_code;
 pub use function::FuncIndex;
-pub use gas::Gas;
 pub use validation::validate_code;

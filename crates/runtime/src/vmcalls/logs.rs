@@ -1,6 +1,6 @@
 use crate::{use_gas, Context};
 
-use svm_types::receipt::Log;
+use svm_types::ReceiptLog;
 
 /// Logs the log entry given.
 ///
@@ -22,7 +22,7 @@ pub fn log(ctx: &Context, msg_ptr: u32, msg_len: u32, code: u32) {
             .collect()
     };
 
-    let log = Log {
+    let log = ReceiptLog {
         msg,
         code: code as u8,
     };

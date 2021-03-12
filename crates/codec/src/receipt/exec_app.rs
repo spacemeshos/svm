@@ -18,7 +18,7 @@
 
 use std::io::Cursor;
 
-use svm_types::receipt::ExecReceipt;
+use svm_types::ExecReceipt;
 
 use super::{decode_error, encode_error, gas, logs};
 
@@ -101,16 +101,14 @@ fn encode_returndata(receipt: &ExecReceipt, w: &mut Vec<u8>) {
 mod tests {
     use super::*;
 
-    use svm_types::gas::MaybeGas;
-    use svm_types::receipt::Log;
-    use svm_types::{Address, RuntimeError, State};
+    use svm_types::{Address, Gas, ReceiptLog, RuntimeError, State};
 
     #[test]
     fn encode_decode_exec_receipt_error() {
         let app = Address::of("my-app");
         let error = RuntimeError::AppNotFound(app.into());
 
-        let logs = vec![Log {
+        let logs = vec![ReceiptLog {
             msg: b"something happened".to_vec(),
             code: 200,
         }];
@@ -121,7 +119,7 @@ mod tests {
             error: Some(error),
             new_state: None,
             returndata: None,
-            gas_used: MaybeGas::new(),
+            gas_used: Gas::new(),
             logs,
         };
 
@@ -135,7 +133,7 @@ mod tests {
     fn encode_decode_exec_receipt_success_without_returns() {
         let new_state = State::of("some-state");
 
-        let logs = vec![Log {
+        let logs = vec![ReceiptLog {
             msg: b"something happened".to_vec(),
             code: 200,
         }];
@@ -146,7 +144,7 @@ mod tests {
             error: None,
             new_state: Some(new_state),
             returndata: Some(Vec::new()),
-            gas_used: MaybeGas::with(100),
+            gas_used: Gas::with(100),
             logs: logs.clone(),
         };
 
@@ -161,7 +159,7 @@ mod tests {
         let new_state = State::of("some-state");
         let returndata = vec![0x10, 0x20];
 
-        let logs = vec![Log {
+        let logs = vec![ReceiptLog {
             msg: b"something happened".to_vec(),
             code: 200,
         }];
@@ -172,7 +170,7 @@ mod tests {
             error: None,
             new_state: Some(new_state),
             returndata: Some(returndata),
-            gas_used: MaybeGas::with(100),
+            gas_used: Gas::with(100),
             logs: logs.clone(),
         };
 

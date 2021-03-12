@@ -13,7 +13,7 @@
 
 use std::io::Cursor;
 
-use svm_types::receipt::TemplateReceipt;
+use svm_types::TemplateReceipt;
 
 use super::{decode_error, encode_error, gas, logs, types};
 
@@ -94,9 +94,7 @@ fn encode_template_addr(receipt: &TemplateReceipt, w: &mut Vec<u8>) {
 mod tests {
     use super::*;
 
-    use svm_types::gas::MaybeGas;
-    use svm_types::receipt::TemplateReceipt;
-    use svm_types::Address;
+    use svm_types::{Address, Gas, TemplateReceipt};
 
     use crate::receipt::decode_receipt;
 
@@ -109,7 +107,7 @@ mod tests {
             success: true,
             error: None,
             addr: Some(addr.into()),
-            gas_used: MaybeGas::with(100),
+            gas_used: Gas::with(100),
             logs: Vec::new(),
         };
 

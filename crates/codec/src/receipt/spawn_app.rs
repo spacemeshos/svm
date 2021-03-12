@@ -19,7 +19,7 @@
 
 use std::io::Cursor;
 
-use svm_types::receipt::SpawnAppReceipt;
+use svm_types::SpawnAppReceipt;
 
 use super::{decode_error, encode_error, gas, logs, types};
 
@@ -121,8 +121,7 @@ fn encode_returndata(receipt: &SpawnAppReceipt, w: &mut Vec<u8>) {
 mod tests {
     use super::*;
 
-    use svm_types::receipt::Log;
-    use svm_types::{gas::MaybeGas, Address, AppAddr, RuntimeError, State};
+    use svm_types::{Address, AppAddr, Gas, ReceiptLog, RuntimeError, State};
 
     use crate::receipt::decode_receipt;
 
@@ -139,7 +138,7 @@ mod tests {
             app_addr: None,
             init_state: None,
             returndata: None,
-            gas_used: MaybeGas::new(),
+            gas_used: Gas::new(),
             logs: Vec::new(),
         };
 
@@ -154,7 +153,7 @@ mod tests {
         let addr: AppAddr = Address::of("my-app").into();
         let init_state = State::of("some-state");
 
-        let logs = vec![Log {
+        let logs = vec![ReceiptLog {
             msg: b"something happened".to_vec(),
             code: 200,
         }];
@@ -166,7 +165,7 @@ mod tests {
             app_addr: Some(addr),
             init_state: Some(init_state),
             returndata: Some(Vec::new()),
-            gas_used: MaybeGas::with(100),
+            gas_used: Gas::with(100),
             logs: logs.clone(),
         };
 
@@ -181,7 +180,7 @@ mod tests {
         let addr: AppAddr = Address::of("my-app").into();
         let init_state = State::of("some-state");
         let returndata = vec![0x10, 0x20];
-        let logs = vec![Log {
+        let logs = vec![ReceiptLog {
             msg: b"something happened".to_vec(),
             code: 200,
         }];
@@ -193,7 +192,7 @@ mod tests {
             app_addr: Some(addr),
             init_state: Some(init_state),
             returndata: Some(returndata),
-            gas_used: MaybeGas::with(100),
+            gas_used: Gas::with(100),
             logs: logs.clone(),
         };
 

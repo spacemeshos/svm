@@ -1,5 +1,5 @@
-use crate::receipt::{ExecReceipt, Log, RuntimeError};
-use crate::{gas::MaybeGas, AppAddr, State};
+use crate::receipt::{ExecReceipt, ReceiptLog, RuntimeError};
+use crate::{gas::Gas, AppAddr, State};
 
 /// Returned Receipt after spawning an App.
 #[derive(Debug, PartialEq, Clone)]
@@ -23,20 +23,20 @@ pub struct SpawnAppReceipt {
     pub returndata: Option<Vec<u8>>,
 
     /// The amount of gas used
-    pub gas_used: MaybeGas,
+    pub gas_used: Gas,
 
     /// logged entries during spawn-app's ctor running
-    pub logs: Vec<Log>,
+    pub logs: Vec<ReceiptLog>,
 }
 
 impl SpawnAppReceipt {
     /// Creates a `SpawnAppReceipt` for reaching reaching `Out-of-Gas`.
-    pub fn new_oog(logs: Vec<Log>) -> Self {
+    pub fn new_oog(logs: Vec<ReceiptLog>) -> Self {
         Self::from_err(RuntimeError::OOG, logs)
     }
 
     /// Creates a new failure Receipt out of the `error` parameter
-    pub fn from_err(error: RuntimeError, logs: Vec<Log>) -> Self {
+    pub fn from_err(error: RuntimeError, logs: Vec<ReceiptLog>) -> Self {
         Self {
             version: 0,
             success: false,
@@ -44,7 +44,7 @@ impl SpawnAppReceipt {
             app_addr: None,
             init_state: None,
             returndata: None,
-            gas_used: MaybeGas::new(),
+            gas_used: Gas::new(),
             logs,
         }
     }
@@ -70,17 +70,17 @@ impl SpawnAppReceipt {
     }
 
     /// Returns spawned-app gas-used
-    pub fn get_gas_used(&self) -> MaybeGas {
+    pub fn get_gas_used(&self) -> Gas {
         self.gas_used
     }
 
     /// Returns the logs generated during the transaction execution
-    pub fn get_logs(&self) -> &[Log] {
+    pub fn get_logs(&self) -> &[ReceiptLog] {
         &self.logs
     }
 
     /// Take the Receipt's logged entries out
-    pub fn take_logs(&mut self) -> Vec<Log> {
+    pub fn take_logs(&mut self) -> Vec<ReceiptLog> {
         std::mem::take(&mut self.logs)
     }
 }
@@ -114,7 +114,7 @@ pub fn into_spawn_app_receipt(
             app_addr,
             init_state: None,
             returndata: None,
-            gas_used: MaybeGas::new(),
+            gas_used: Gas::new(),
             logs,
         }
     }

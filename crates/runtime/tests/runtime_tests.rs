@@ -9,9 +9,8 @@ use svm_gas::error::ProgramError;
 use svm_layout::{Layout, VarId};
 use svm_runtime::{error::ValidateError, testing, Runtime};
 
-use svm_types::gas::MaybeGas;
-use svm_types::receipt::{ExecReceipt, SpawnAppReceipt, TemplateReceipt};
-use svm_types::{Address, RuntimeError};
+use svm_types::{Address, Gas, RuntimeError};
+use svm_types::{ExecReceipt, SpawnAppReceipt, TemplateReceipt};
 
 macro_rules! default_runtime {
     () => {{
@@ -93,7 +92,7 @@ fn default_runtime_deploy_template_reaches_oog() {
 
     let version = 0;
     let author = Address::of("author").into();
-    let maybe_gas = MaybeGas::with(0);
+    let maybe_gas = Gas::with(0);
     let ctors = vec!["ctor".to_string()];
 
     let bytes = testing::build_template(
@@ -115,7 +114,7 @@ fn default_runtime_deploy_template_has_enough_gas() {
 
     let version = 0;
     let author = Address::of("author").into();
-    let gas_limit = MaybeGas::with(1_0000_000);
+    let gas_limit = Gas::with(1_0000_000);
     let ctors = vec!["ctor".to_string()];
 
     let bytes = testing::build_template(
@@ -139,7 +138,7 @@ fn default_runtime_spawn_app_with_non_ctor_fails() {
     let version = 0;
     let author = Address::of("author").into();
     let creator = Address::of("creator").into();
-    let maybe_gas = MaybeGas::new();
+    let maybe_gas = Gas::new();
     let ctors = vec!["ctor".to_string()];
 
     let bytes = testing::build_template(
@@ -161,7 +160,7 @@ fn default_runtime_spawn_app_with_non_ctor_fails() {
     let calldata = vec![];
 
     let bytes = testing::build_app(version, &template_addr, name, ctor, &calldata);
-    let maybe_gas = MaybeGas::new();
+    let maybe_gas = Gas::new();
 
     let receipt = runtime.spawn_app(&bytes, &creator, maybe_gas);
     assert!(matches!(
@@ -178,7 +177,7 @@ fn default_runtime_spawn_app_with_ctor_reaches_oog() {
     let version = 0;
     let author = Address::of("author").into();
     let creator = Address::of("creator").into();
-    let maybe_gas = MaybeGas::new();
+    let maybe_gas = Gas::new();
     let ctors = vec!["ctor".to_string()];
 
     let bytes = testing::build_template(
@@ -200,7 +199,7 @@ fn default_runtime_spawn_app_with_ctor_reaches_oog() {
     let calldata = vec![];
 
     let bytes = testing::build_app(version, &template_addr, name, ctor, &calldata);
-    let maybe_gas = MaybeGas::with(0);
+    let maybe_gas = Gas::with(0);
 
     let expected = SpawnAppReceipt::new_oog(Vec::new());
     let actual = runtime.spawn_app(&bytes, &creator, maybe_gas);
@@ -216,7 +215,7 @@ fn default_runtime_spawn_app_with_ctor_with_enough_gas() {
     let version = 0;
     let author = Address::of("author").into();
     let creator = Address::of("creator").into();
-    let maybe_gas = MaybeGas::new();
+    let maybe_gas = Gas::new();
     let ctors = vec!["ctor".to_string()];
 
     // raw layout consists on one variable of 8 bytes (offsets: `[0..8)`)
@@ -241,7 +240,7 @@ fn default_runtime_spawn_app_with_ctor_with_enough_gas() {
     let ctor = "ctor";
     let calldata = vec![];
     let bytes = testing::build_app(version, &template_addr, name, ctor, &calldata);
-    let gas_limit = MaybeGas::with(1_000_000);
+    let gas_limit = Gas::with(1_000_000);
 
     let receipt = runtime.spawn_app(&bytes, &creator, gas_limit);
     assert!(receipt.success);
@@ -262,7 +261,7 @@ fn default_runtime_exec_app_with_ctor_fails() {
     // 1) deploying the template
     let version = 0;
     let author = Address::of("author").into();
-    let maybe_gas = MaybeGas::new();
+    let maybe_gas = Gas::new();
     let layout: Layout = vec![20].into();
     let ctors = vec!["initialize".to_string()];
 
@@ -313,7 +312,7 @@ fn default_runtime_exec_app_reaches_oog() {
     let version = 0;
     let author = Address::of("author").into();
     let creator = Address::of("creator").into();
-    let maybe_gas = MaybeGas::new();
+    let maybe_gas = Gas::new();
     let layout: Layout = vec![4].into();
     let ctors = vec!["ctors".to_string()];
 
@@ -345,7 +344,7 @@ fn default_runtime_exec_app_reaches_oog() {
     let func = "add";
     let calldata = vec![];
     let bytes = testing::build_app_tx(version, &app_addr, func, &calldata);
-    let maybe_gas = MaybeGas::with(0);
+    let maybe_gas = Gas::with(0);
     let logs = Vec::new();
 
     let expected = ExecReceipt::new_oog(logs);
@@ -362,7 +361,7 @@ fn default_runtime_calldata_returndata() {
     // 1) deploying the template
     let version = 0;
     let author = Address::of("author").into();
-    let maybe_gas = MaybeGas::new();
+    let maybe_gas = Gas::new();
     let layout: Layout = vec![20].into();
     let ctors = vec!["initialize".to_string()];
 

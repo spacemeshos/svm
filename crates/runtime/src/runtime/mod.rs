@@ -23,10 +23,10 @@ pub use ptr::RuntimePtr;
 
 use crate::error::ValidateError;
 
-use svm_types::gas::MaybeGas;
-use svm_types::receipt::{ExecReceipt, SpawnAppReceipt, TemplateReceipt};
-use svm_types::RuntimeError;
-use svm_types::{AuthorAddr, SpawnerAddr, State, Transaction};
+use svm_types::{
+    AuthorAddr, ExecReceipt, Gas, RuntimeError, SpawnAppReceipt, SpawnerAddr, State,
+    TemplateReceipt, Transaction,
+};
 
 /// Specifies the interface of a `SVM` Runtime.
 pub trait Runtime {
@@ -44,22 +44,18 @@ pub trait Runtime {
         &mut self,
         bytes: &[u8],
         author: &AuthorAddr,
-        gas_limit: MaybeGas,
+        gas_limit: Gas,
     ) -> TemplateReceipt;
 
     /// Spawns a new app out of an existing app-template.
-    fn spawn_app(
-        &mut self,
-        bytes: &[u8],
-        spawner: &SpawnerAddr,
-        gas_limit: MaybeGas,
-    ) -> SpawnAppReceipt;
+    fn spawn_app(&mut self, bytes: &[u8], spawner: &SpawnerAddr, gas_limit: Gas)
+        -> SpawnAppReceipt;
 
     fn exec_verify(
         &self,
         tx: &Transaction,
         state: &State,
-        gas_limit: MaybeGas,
+        gas_limit: Gas,
     ) -> Result<bool, RuntimeError>;
 
     /// Executes an transaction. Returns `ExecReceipt`.
@@ -73,5 +69,5 @@ pub trait Runtime {
     /// On failure:
     /// * Receipt returns the occurred error
     /// * Receipt informs the amount of gas used (transaction gas limit)
-    fn exec_tx(&self, tx: &Transaction, state: &State, gas_limit: MaybeGas) -> ExecReceipt;
+    fn exec_tx(&self, tx: &Transaction, state: &State, gas_limit: Gas) -> ExecReceipt;
 }

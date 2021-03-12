@@ -1,19 +1,18 @@
-use svm_types::receipt::Log;
-use svm_types::RuntimeError;
+use svm_types::{ReceiptLog, RuntimeError};
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Failure {
     err: RuntimeError,
 
-    logs: Vec<Log>,
+    logs: Vec<ReceiptLog>,
 }
 
 impl Failure {
-    pub fn new(err: RuntimeError, logs: Vec<Log>) -> Self {
+    pub fn new(err: RuntimeError, logs: Vec<ReceiptLog>) -> Self {
         Self { err, logs }
     }
 
-    pub fn take_logs(&mut self) -> Vec<Log> {
+    pub fn take_logs(&mut self) -> Vec<ReceiptLog> {
         std::mem::take(&mut self.logs)
     }
 
