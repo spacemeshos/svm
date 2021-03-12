@@ -1,4 +1,4 @@
-use crate::gas::MaybeGas;
+use crate::gas::Gas;
 use crate::receipt::{Log, RuntimeError};
 
 use crate::TemplateAddr;
@@ -19,7 +19,7 @@ pub struct TemplateReceipt {
     pub addr: Option<TemplateAddr>,
 
     /// The amount of gas used for template deployment
-    pub gas_used: MaybeGas,
+    pub gas_used: Gas,
 
     /// generated logs during transaction execution.
     pub logs: Vec<Log>,
@@ -27,7 +27,7 @@ pub struct TemplateReceipt {
 
 impl TemplateReceipt {
     /// Creates a new `TemplateReceipt` struct.
-    pub fn new(addr: TemplateAddr, gas_used: MaybeGas) -> Self {
+    pub fn new(addr: TemplateAddr, gas_used: Gas) -> Self {
         Self {
             version: 0,
             success: true,
@@ -50,7 +50,7 @@ impl TemplateReceipt {
             success: false,
             error: Some(error),
             addr: None,
-            gas_used: MaybeGas::new(),
+            gas_used: Gas::new(),
             logs,
         }
     }

@@ -4,9 +4,8 @@ use std::rc::Rc;
 use wasmer::Memory;
 
 use svm_storage::app::AppStorage;
-use svm_types::gas::MaybeGas;
 use svm_types::receipt::Log;
-use svm_types::{AppAddr, TemplateAddr};
+use svm_types::{AppAddr, Gas, TemplateAddr};
 
 /// `Context` is a container for the accessible data by `wasmer` instances.
 ///
@@ -30,7 +29,7 @@ unsafe impl Sync for Context {}
 impl Context {
     /// Creates a new instance
     pub fn new(
-        gas_limit: MaybeGas,
+        gas_limit: Gas,
         storage: AppStorage,
         template_addr: &TemplateAddr,
         app_addr: &AppAddr,
@@ -47,7 +46,7 @@ impl Context {
     /// New instance with explicit memory
     pub fn new_with_memory(
         memory: Memory,
-        gas_limit: MaybeGas,
+        gas_limit: Gas,
         storage: AppStorage,
         template_addr: &TemplateAddr,
         app_addr: &AppAddr,
@@ -107,7 +106,7 @@ pub struct ContextInner {
 }
 
 impl ContextInner {
-    fn new(gas_limit: MaybeGas, storage: AppStorage) -> Self {
+    fn new(gas_limit: Gas, storage: AppStorage) -> Self {
         let gas_metering = gas_limit.is_some();
         let gas_limit = gas_limit.unwrap_or(0);
         let logs = Vec::new();

@@ -1,5 +1,5 @@
 use crate::receipt::{ExecReceipt, Log, RuntimeError};
-use crate::{gas::MaybeGas, AppAddr, State};
+use crate::{gas::Gas, AppAddr, State};
 
 /// Returned Receipt after spawning an App.
 #[derive(Debug, PartialEq, Clone)]
@@ -23,7 +23,7 @@ pub struct SpawnAppReceipt {
     pub returndata: Option<Vec<u8>>,
 
     /// The amount of gas used
-    pub gas_used: MaybeGas,
+    pub gas_used: Gas,
 
     /// logged entries during spawn-app's ctor running
     pub logs: Vec<Log>,
@@ -44,7 +44,7 @@ impl SpawnAppReceipt {
             app_addr: None,
             init_state: None,
             returndata: None,
-            gas_used: MaybeGas::new(),
+            gas_used: Gas::new(),
             logs,
         }
     }
@@ -70,7 +70,7 @@ impl SpawnAppReceipt {
     }
 
     /// Returns spawned-app gas-used
-    pub fn get_gas_used(&self) -> MaybeGas {
+    pub fn get_gas_used(&self) -> Gas {
         self.gas_used
     }
 
@@ -114,7 +114,7 @@ pub fn into_spawn_app_receipt(
             app_addr,
             init_state: None,
             returndata: None,
-            gas_used: MaybeGas::new(),
+            gas_used: Gas::new(),
             logs,
         }
     }

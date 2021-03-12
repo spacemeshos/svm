@@ -101,9 +101,8 @@ fn encode_returndata(receipt: &ExecReceipt, w: &mut Vec<u8>) {
 mod tests {
     use super::*;
 
-    use svm_types::gas::MaybeGas;
     use svm_types::receipt::Log;
-    use svm_types::{Address, RuntimeError, State};
+    use svm_types::{Address, Gas, RuntimeError, State};
 
     #[test]
     fn encode_decode_exec_receipt_error() {
@@ -121,7 +120,7 @@ mod tests {
             error: Some(error),
             new_state: None,
             returndata: None,
-            gas_used: MaybeGas::new(),
+            gas_used: Gas::new(),
             logs,
         };
 
@@ -146,7 +145,7 @@ mod tests {
             error: None,
             new_state: Some(new_state),
             returndata: Some(Vec::new()),
-            gas_used: MaybeGas::with(100),
+            gas_used: Gas::with(100),
             logs: logs.clone(),
         };
 
@@ -172,7 +171,7 @@ mod tests {
             error: None,
             new_state: Some(new_state),
             returndata: Some(returndata),
-            gas_used: MaybeGas::with(100),
+            gas_used: Gas::with(100),
             logs: logs.clone(),
         };
 

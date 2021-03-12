@@ -122,7 +122,7 @@ mod tests {
     use super::*;
 
     use svm_types::receipt::Log;
-    use svm_types::{gas::MaybeGas, Address, AppAddr, RuntimeError, State};
+    use svm_types::{Address, AppAddr, Gas, RuntimeError, State};
 
     use crate::receipt::decode_receipt;
 
@@ -139,7 +139,7 @@ mod tests {
             app_addr: None,
             init_state: None,
             returndata: None,
-            gas_used: MaybeGas::new(),
+            gas_used: Gas::new(),
             logs: Vec::new(),
         };
 
@@ -166,7 +166,7 @@ mod tests {
             app_addr: Some(addr),
             init_state: Some(init_state),
             returndata: Some(Vec::new()),
-            gas_used: MaybeGas::with(100),
+            gas_used: Gas::with(100),
             logs: logs.clone(),
         };
 
@@ -193,7 +193,7 @@ mod tests {
             app_addr: Some(addr),
             init_state: Some(init_state),
             returndata: Some(returndata),
-            gas_used: MaybeGas::with(100),
+            gas_used: Gas::with(100),
             logs: logs.clone(),
         };
 

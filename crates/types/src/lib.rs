@@ -27,7 +27,8 @@ mod wasm_value;
 pub use error::RuntimeError;
 
 /// Gas-related types
-pub mod gas;
+mod gas;
+pub use gas::{Gas, OOGError};
 
 /// Receipts-related types
 pub mod receipt;

@@ -28,12 +28,12 @@ static EXEC_APP_RECEIPT_TYPE: Type = Type::Str("exec-app receipt");
 
 macro_rules! maybe_gas {
     ($gas_metering:expr, $gas_limit:expr) => {{
-        use svm_types::gas::MaybeGas;
+        use svm_types::Gas;
 
         if $gas_metering {
-            MaybeGas::with($gas_limit)
+            Gas::with($gas_limit)
         } else {
-            MaybeGas::new()
+            Gas::new()
         }
     }};
 }

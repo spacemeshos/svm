@@ -207,9 +207,8 @@ mod tests {
 
     use super::json;
 
-    use svm_types::gas::MaybeGas;
     use svm_types::receipt::Log;
-    use svm_types::{Address, State};
+    use svm_types::{Address, Gas, State};
 
     #[test]
     fn decode_receipt_deploy_template_receipt_success() {
@@ -231,7 +230,7 @@ mod tests {
             success: true,
             error: None,
             addr: Some(template.into()),
-            gas_used: MaybeGas::with(10),
+            gas_used: Gas::with(10),
             logs,
         };
 
@@ -277,7 +276,7 @@ mod tests {
             app_addr: Some(app.into()),
             init_state: Some(state),
             returndata: Some(vec![0x10, 0x20, 0x30]),
-            gas_used: MaybeGas::with(10),
+            gas_used: Gas::with(10),
             logs,
         };
 
@@ -316,7 +315,7 @@ mod tests {
             app_addr: None,
             init_state: None,
             returndata: None,
-            gas_used: MaybeGas::with(1000),
+            gas_used: Gas::with(1000),
             logs,
         };
 
@@ -356,7 +355,7 @@ mod tests {
             error: None,
             new_state: Some(state),
             returndata: Some(vec![0x10, 0x20]),
-            gas_used: MaybeGas::with(10),
+            gas_used: Gas::with(10),
             logs,
         };
 

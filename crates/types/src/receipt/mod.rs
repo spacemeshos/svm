@@ -8,7 +8,7 @@ pub use exec_app::ExecReceipt;
 pub use log::Log;
 pub use spawn_app::{into_spawn_app_receipt, SpawnAppReceipt};
 
-use crate::gas::MaybeGas;
+use crate::gas::Gas;
 use crate::RuntimeError;
 
 /// Borrowed Receipt
@@ -43,7 +43,7 @@ impl<'a> ReceiptRef<'a> {
     }
 
     /// Returns the gas used for the transaction.
-    pub fn get_gas_used(&self) -> MaybeGas {
+    pub fn get_gas_used(&self) -> Gas {
         match self {
             Self::DeployTemplate(r) => r.gas_used,
             Self::SpawnApp(r) => r.gas_used,

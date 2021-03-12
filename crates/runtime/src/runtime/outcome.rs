@@ -1,10 +1,10 @@
-use svm_types::gas::MaybeGas;
 use svm_types::receipt::Log;
+use svm_types::Gas;
 
 pub struct Outcome<T> {
     returns: T,
 
-    gas_used: MaybeGas,
+    gas_used: Gas,
 
     logs: Vec<Log>,
 }
@@ -19,7 +19,7 @@ impl<T> Outcome<T> {
 }
 
 impl<T> Outcome<T> {
-    pub fn new(returns: T, gas_used: MaybeGas, logs: Vec<Log>) -> Self {
+    pub fn new(returns: T, gas_used: Gas, logs: Vec<Log>) -> Self {
         Self {
             returns,
             gas_used,
@@ -31,7 +31,7 @@ impl<T> Outcome<T> {
         std::mem::take(&mut self.logs)
     }
 
-    pub fn gas_used(&self) -> MaybeGas {
+    pub fn gas_used(&self) -> Gas {
         self.gas_used
     }
 }

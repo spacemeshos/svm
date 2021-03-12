@@ -1,4 +1,4 @@
-use crate::gas::MaybeGas;
+use crate::gas::Gas;
 use crate::receipt::{Log, RuntimeError};
 use crate::State;
 
@@ -21,7 +21,7 @@ pub struct ExecReceipt {
     pub returndata: Option<Vec<u8>>,
 
     /// The amount of gas used.
-    pub gas_used: MaybeGas,
+    pub gas_used: Gas,
 
     /// Logs generated during execution of the transaction.
     pub logs: Vec<Log>,
@@ -47,7 +47,7 @@ impl ExecReceipt {
             error: Some(err),
             new_state: None,
             returndata: None,
-            gas_used: MaybeGas::new(),
+            gas_used: Gas::new(),
             logs,
         }
     }
