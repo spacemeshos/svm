@@ -8,7 +8,7 @@ use wasmer::{imports, Function, NativeFunc};
 
 use svm_layout::{Layout, VarId};
 use svm_runtime::{testing, vmcalls, Context};
-use svm_types::{gas::MaybeGas, receipt::Log, Address};
+use svm_types::{Address, Gas, ReceiptLog};
 
 macro_rules! assert_vars32 {
     ($instance:expr, $( $var_id:expr => $expected:expr), *) => {{
@@ -77,7 +77,7 @@ fn vmcalls_empty_wasm() {
           (func (export "run")))"#
         .into();
 
-    let gas_limit = MaybeGas::new();
+    let gas_limit = Gas::new();
 
     let store = testing::wasmer_store();
     let import_object = imports! {};
@@ -89,7 +89,7 @@ fn vmcalls_empty_wasm() {
 fn vmcalls_get32_set32() {
     let template_addr = Address::repeat(0xAB);
     let app_addr = Address::repeat(0xCD);
-    let gas_limit = MaybeGas::new();
+    let gas_limit = Gas::new();
     let layout: Layout = vec![4, 2].into();
 
     let store = testing::wasmer_store();
@@ -125,7 +125,7 @@ fn vmcalls_get32_set32() {
 fn vmcalls_get64_set64() {
     let template_addr = Address::repeat(0xAB);
     let app_addr = Address::repeat(0xCD);
-    let gas_limit = MaybeGas::new();
+    let gas_limit = Gas::new();
     let layout: Layout = vec![4, 2].into();
 
     let store = testing::wasmer_store();
@@ -160,7 +160,7 @@ fn vmcalls_get64_set64() {
 fn vmcalls_load160() {
     let template_addr = Address::repeat(0xAB);
     let app_addr = Address::repeat(0xCD);
-    let gas_limit = MaybeGas::new();
+    let gas_limit = Gas::new();
     let layout: Layout = vec![20].into();
 
     let store = testing::wasmer_store();
@@ -211,7 +211,7 @@ fn vmcalls_load160() {
 fn vmcalls_store160() {
     let template_addr = Address::repeat(0xAB);
     let app_addr = Address::repeat(0xCD);
-    let gas_limit = MaybeGas::new();
+    let gas_limit = Gas::new();
     let layout: Layout = vec![20].into();
 
     let store = testing::wasmer_store();
@@ -257,7 +257,7 @@ fn vmcalls_store160() {
 fn vmcalls_log() {
     let template_addr = Address::repeat(0xAB);
     let app_addr = Address::repeat(0xCD);
-    let gas_limit = MaybeGas::new();
+    let gas_limit = Gas::new();
     let layout = Layout::empty();
 
     let store = testing::wasmer_store();
@@ -301,7 +301,7 @@ fn vmcalls_log() {
 
     assert_eq!(
         logs,
-        vec![Log {
+        vec![ReceiptLog {
             msg: b"Hello World".to_vec(),
             code: 200
         }]

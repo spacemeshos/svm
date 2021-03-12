@@ -4,9 +4,7 @@ use std::rc::Rc;
 use wasmer::Memory;
 
 use svm_storage::app::AppStorage;
-use svm_types::gas::MaybeGas;
-use svm_types::receipt::Log;
-use svm_types::{AppAddr, TemplateAddr};
+use svm_types::{AppAddr, Gas, ReceiptLog, TemplateAddr};
 
 /// `Context` is a container for the accessible data by `wasmer` instances.
 ///
@@ -30,7 +28,7 @@ unsafe impl Sync for Context {}
 impl Context {
     /// Creates a new instance
     pub fn new(
-        gas_limit: MaybeGas,
+        gas_limit: Gas,
         storage: AppStorage,
         template_addr: &TemplateAddr,
         app_addr: &AppAddr,
@@ -47,7 +45,7 @@ impl Context {
     /// New instance with explicit memory
     pub fn new_with_memory(
         memory: Memory,
-        gas_limit: MaybeGas,
+        gas_limit: Gas,
         storage: AppStorage,
         template_addr: &TemplateAddr,
         app_addr: &AppAddr,
@@ -94,7 +92,7 @@ pub struct ContextInner {
     pub storage: AppStorage,
 
     /// App's logs
-    pub logs: Vec<Log>,
+    pub logs: Vec<ReceiptLog>,
 
     /// Pointer to `returndata`. Tuple stores `(offset, len)`.
     pub returndata: Option<(usize, usize)>,
@@ -107,7 +105,7 @@ pub struct ContextInner {
 }
 
 impl ContextInner {
-    fn new(gas_limit: MaybeGas, storage: AppStorage) -> Self {
+    fn new(gas_limit: Gas, storage: AppStorage) -> Self {
         let gas_metering = gas_limit.is_some();
         let gas_limit = gas_limit.unwrap_or(0);
         let logs = Vec::new();
@@ -149,7 +147,7 @@ impl ContextInner {
         self.memory.as_ref().unwrap()
     }
 
-    pub fn take_logs(&mut self) -> Vec<Log> {
+    pub fn take_logs(&mut self) -> Vec<ReceiptLog> {
         std::mem::take(&mut self.logs)
     }
 }

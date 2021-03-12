@@ -1,5 +1,4 @@
-use svm_types::gas::MaybeGas;
-use svm_types::{AppAddr, State, TemplateAddr};
+use svm_types::{AppAddr, Gas, State, TemplateAddr};
 
 #[doc(hidden)]
 #[derive(Debug, Clone, PartialEq)]
@@ -14,9 +13,9 @@ pub struct Call<'a> {
 
     pub state: &'a State,
 
-    pub gas_used: MaybeGas,
+    pub gas_used: Gas,
 
-    pub gas_left: MaybeGas,
+    pub gas_left: Gas,
 
     pub within_spawn: bool,
 }
@@ -40,12 +39,12 @@ impl<'a> Call<'a> {
 
     #[doc(hidden)]
     #[allow(unused)]
-    pub fn gas_used(&self) -> MaybeGas {
+    pub fn gas_used(&self) -> Gas {
         self.gas_used
     }
 
     #[doc(hidden)]
-    pub fn gas_left(&self) -> MaybeGas {
+    pub fn gas_left(&self) -> Gas {
         self.gas_left
     }
 

@@ -15,7 +15,7 @@ pub use spawn_app::{decode_spawn_app, encode_spawn_app};
 use serde_json::{json, Value};
 
 use svm_sdk_types::Amount;
-use svm_types::{gas::MaybeGas, receipt::Log, Address, State};
+use svm_types::{Address, Gas, ReceiptLog, State};
 
 pub(crate) fn to_bytes(json: &Value) -> Result<Vec<u8>, JsonError> {
     match serde_json::to_string(&json) {
@@ -274,7 +274,7 @@ pub(crate) fn state_to_str(state: &State) -> String {
     bytes_to_str(state.as_slice())
 }
 
-pub(crate) fn gas_to_json(gas: &MaybeGas) -> i64 {
+pub(crate) fn gas_to_json(gas: &Gas) -> i64 {
     if gas.is_some() {
         gas.unwrap() as _
     } else {
@@ -282,7 +282,7 @@ pub(crate) fn gas_to_json(gas: &MaybeGas) -> i64 {
     }
 }
 
-pub(crate) fn logs_to_json(logs: &[Log]) -> Vec<Value> {
+pub(crate) fn logs_to_json(logs: &[ReceiptLog]) -> Vec<Value> {
     logs.iter()
         .map(|log| {
             let msg = unsafe { String::from_utf8_unchecked(log.msg.clone()) };

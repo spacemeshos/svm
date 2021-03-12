@@ -1,5 +1,4 @@
-use svm_gas::Gas;
-use svm_types::{Transaction, SpawnApp, Template};
+use svm_types::{Gas, SpawnApp, Template, Transaction};
 
 /// Holds estimated gas for deploying a new `Template`.
 pub struct DeployTemplateEst {

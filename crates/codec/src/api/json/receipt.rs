@@ -3,8 +3,8 @@ use serde_json::{json, Value};
 use crate::api::json::{self, JsonError};
 use crate::receipt;
 
-use svm_types::receipt::{ExecReceipt, Log, Receipt, SpawnAppReceipt, TemplateReceipt};
 use svm_types::RuntimeError;
+use svm_types::{ExecReceipt, ReceiptLog, Receipt, SpawnAppReceipt, TemplateReceipt};
 
 /// Given a binary Receipt wrappend inside a JSON,
 /// decodes it into a user-friendly JSON.
@@ -42,7 +42,7 @@ fn receipt_type(receipt: &Receipt) -> &'static str {
     }
 }
 
-fn decode_error(ty: &'static str, err: &RuntimeError, logs: &[Log]) -> Value {
+fn decode_error(ty: &'static str, err: &RuntimeError, logs: &[ReceiptLog]) -> Value {
     let mut json = {
         match err {
             RuntimeError::OOG => json!({
@@ -207,20 +207,18 @@ mod tests {
 
     use super::json;
 
-    use svm_types::gas::MaybeGas;
-    use svm_types::receipt::Log;
-    use svm_types::{Address, State};
+    use svm_types::{Address, Gas, ReceiptLog, State};
 
     #[test]
     fn decode_receipt_deploy_template_receipt_success() {
         let template = Address::repeat(0x10);
 
         let logs = vec![
-            Log {
+            ReceiptLog {
                 msg: b"Log entry #1".to_vec(),
                 code: 100,
             },
-            Log {
+            ReceiptLog {
                 msg: b"Log entry #2".to_vec(),
                 code: 200,
             },
@@ -231,7 +229,7 @@ mod tests {
             success: true,
             error: None,
             addr: Some(template.into()),
-            gas_used: MaybeGas::with(10),
+            gas_used: Gas::with(10),
             logs,
         };
 
@@ -260,11 +258,11 @@ mod tests {
         let state = State::repeat(0xA0);
 
         let logs = vec![
-            Log {
+            ReceiptLog {
                 msg: b"Log entry #1".to_vec(),
                 code: 100,
             },
-            Log {
+            ReceiptLog {
                 msg: b"Log entry #2".to_vec(),
                 code: 200,
             },
@@ -277,7 +275,7 @@ mod tests {
             app_addr: Some(app.into()),
             init_state: Some(state),
             returndata: Some(vec![0x10, 0x20, 0x30]),
-            gas_used: MaybeGas::with(10),
+            gas_used: Gas::with(10),
             logs,
         };
 
@@ -304,7 +302,7 @@ mod tests {
 
     #[test]
     fn decode_receipt_spawn_app_receipt_error() {
-        let logs = vec![Log {
+        let logs = vec![ReceiptLog {
             msg: b"Reached OOG".to_vec(),
             code: 0,
         }];
@@ -316,7 +314,7 @@ mod tests {
             app_addr: None,
             init_state: None,
             returndata: None,
-            gas_used: MaybeGas::with(1000),
+            gas_used: Gas::with(1000),
             logs,
         };
 
@@ -340,11 +338,11 @@ mod tests {
         let state = State::repeat(0xA0);
 
         let logs = vec![
-            Log {
+            ReceiptLog {
                 msg: b"Log entry #1".to_vec(),
                 code: 100,
             },
-            Log {
+            ReceiptLog {
                 msg: b"Log entry #2".to_vec(),
                 code: 200,
             },
@@ -356,7 +354,7 @@ mod tests {
             error: None,
             new_state: Some(state),
             returndata: Some(vec![0x10, 0x20]),
-            gas_used: MaybeGas::with(10),
+            gas_used: Gas::with(10),
             logs,
         };
 

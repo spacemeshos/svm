@@ -12,7 +12,7 @@ use svm_storage::{
     app::{AppKVStore, AppStorage},
     kv::{FakeKV, StatefulKV},
 };
-use svm_types::{gas::MaybeGas, Address, AppAddr, State, TemplateAddr};
+use svm_types::{Address, AppAddr, Gas, State, TemplateAddr};
 
 use wasmer::{ImportObject, Instance, Memory, MemoryType, Module, Pages, Store};
 
@@ -63,7 +63,7 @@ pub fn wasmer_memory(store: &Store) -> Memory {
 }
 
 /// Compiles a wasm program in text format (a.k.a WAST) into a `Module` (`wasmer`)
-pub fn wasmer_compile(store: &Store, wasm_file: WasmFile, gas_limit: MaybeGas) -> Module {
+pub fn wasmer_compile(store: &Store, wasm_file: WasmFile, gas_limit: Gas) -> Module {
     let wasm = wasm_file.into_bytes();
 
     let gas_metering = gas_limit.is_some();
@@ -77,7 +77,7 @@ pub fn wasmer_instantiate(
     store: &Store,
     import_object: &ImportObject,
     wasm_file: WasmFile,
-    gas_limit: MaybeGas,
+    gas_limit: Gas,
 ) -> Instance {
     let module = wasmer_compile(store, wasm_file, gas_limit);
 

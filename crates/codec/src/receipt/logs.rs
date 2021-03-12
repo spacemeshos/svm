@@ -1,6 +1,6 @@
 use std::io::Cursor;
 
-use svm_types::receipt::Log;
+use svm_types::ReceiptLog;
 
 use crate::{Field, ParseError, ReadExt, WriteExt};
 
@@ -19,7 +19,7 @@ use crate::{Field, ParseError, ReadExt, WriteExt};
 /// |  msg length (1 byte) | msg (blob of bytes) | code (1 byte)  |  ---> log #N
 /// +---------------------------------------+---------------------+
 ///
-pub fn encode_logs(logs: &[Log], w: &mut Vec<u8>) {
+pub fn encode_logs(logs: &[ReceiptLog], w: &mut Vec<u8>) {
     let nlogs = logs.len();
     assert!(nlogs <= std::u8::MAX as usize);
 
@@ -41,7 +41,7 @@ pub fn encode_logs(logs: &[Log], w: &mut Vec<u8>) {
     }
 }
 
-pub fn decode_logs(cursor: &mut Cursor<&[u8]>) -> Result<Vec<Log>, ParseError> {
+pub fn decode_logs(cursor: &mut Cursor<&[u8]>) -> Result<Vec<ReceiptLog>, ParseError> {
     match cursor.read_byte() {
         Ok(nlogs) => {
             let mut logs = Vec::with_capacity(nlogs as usize);
@@ -58,7 +58,7 @@ pub fn decode_logs(cursor: &mut Cursor<&[u8]>) -> Result<Vec<Log>, ParseError> {
     }
 }
 
-fn decode_log(cursor: &mut Cursor<&[u8]>) -> Result<Log, ParseError> {
+fn decode_log(cursor: &mut Cursor<&[u8]>) -> Result<ReceiptLog, ParseError> {
     match cursor.read_byte() {
         Ok(length) => {
             let msg = cursor.read_bytes(length as usize);
@@ -71,7 +71,7 @@ fn decode_log(cursor: &mut Cursor<&[u8]>) -> Result<Log, ParseError> {
                 return Err(ParseError::NotEnoughBytes(Field::LogCode));
             }
 
-            let log = Log {
+            let log = ReceiptLog {
                 msg: msg.unwrap(),
                 code: code.unwrap(),
             };
@@ -102,7 +102,7 @@ mod tests {
     fn encode_logs_single_entry() {
         let mut buf = Vec::new();
 
-        let log = Log {
+        let log = ReceiptLog {
             msg: b"been here".to_vec(),
             code: 200,
         };
@@ -119,12 +119,12 @@ mod tests {
     fn encode_logs_single_mulitiple_entries() {
         let mut buf = Vec::new();
 
-        let log1 = Log {
+        let log1 = ReceiptLog {
             msg: b"been here".to_vec(),
             code: 200,
         };
 
-        let log2 = Log {
+        let log2 = ReceiptLog {
             msg: b"been there".to_vec(),
             code: 201,
         };

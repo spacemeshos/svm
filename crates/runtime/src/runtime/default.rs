@@ -17,9 +17,9 @@ use svm_ffi::svm_env_t;
 use svm_layout::Layout;
 use svm_storage::app::AppStorage;
 
-use svm_types::gas::{MaybeGas, OOGError};
-use svm_types::receipt::{self, ExecReceipt, Log, SpawnAppReceipt, TemplateReceipt};
 use svm_types::{AppAddr, AuthorAddr, SpawnerAddr, State, Type};
+use svm_types::{ExecReceipt, ReceiptLog, SpawnAppReceipt, TemplateReceipt};
+use svm_types::{Gas, OOGError};
 use svm_types::{RuntimeError, Transaction};
 
 use wasmer::{Exports, Extern, ImportObject, Instance, Module, Store, WasmPtr, WasmTypeList};
@@ -72,7 +72,7 @@ where
         &mut self,
         bytes: &[u8],
         author: &AuthorAddr,
-        gas_limit: MaybeGas,
+        gas_limit: Gas,
     ) -> TemplateReceipt {
         info!("runtime `deploy_template`");
 
@@ -82,7 +82,7 @@ where
         let install_price = self.template_installation_price(bytes, &template);
 
         if gas_limit >= install_price {
-            let gas_used = MaybeGas::with(install_price);
+            let gas_used = Gas::with(install_price);
 
             self.install_template(&template, gas_used)
         } else {
@@ -94,7 +94,7 @@ where
         &mut self,
         bytes: &[u8],
         spawner: &SpawnerAddr,
-        gas_limit: MaybeGas,
+        gas_limit: Gas,
     ) -> SpawnAppReceipt {
         info!("runtime `spawn_app`");
 
@@ -123,7 +123,7 @@ where
         &self,
         tx: &Transaction,
         state: &State,
-        gas_limit: MaybeGas,
+        gas_limit: Gas,
     ) -> std::result::Result<bool, RuntimeError> {
         let app_addr = tx.app_addr();
         let template_addr = self.env.find_template_addr(app_addr);
@@ -135,7 +135,7 @@ where
                 template_addr: &template_addr,
                 app_addr,
                 state,
-                gas_used: MaybeGas::with(0),
+                gas_used: Gas::with(0),
                 gas_left: gas_limit,
                 within_spawn: false,
             };
@@ -156,7 +156,7 @@ where
         }
     }
 
-    fn exec_tx(&self, tx: &Transaction, state: &State, gas_limit: MaybeGas) -> ExecReceipt {
+    fn exec_tx(&self, tx: &Transaction, state: &State, gas_limit: Gas) -> ExecReceipt {
         let app_addr = tx.app_addr();
         let template_addr = self.env.find_template_addr(app_addr);
 
@@ -167,7 +167,7 @@ where
                 template_addr: &template_addr,
                 app_addr,
                 state,
-                gas_used: MaybeGas::with(0),
+                gas_used: Gas::with(0),
                 gas_left: gas_limit,
                 within_spawn: false,
             };
@@ -236,8 +236,8 @@ where
         &mut self,
         spawn: &ExtSpawnApp,
         app_addr: &AppAddr,
-        gas_used: MaybeGas,
-        gas_left: MaybeGas,
+        gas_used: Gas,
+        gas_left: Gas,
     ) -> SpawnAppReceipt {
         let template_addr = spawn.template_addr();
 
@@ -254,10 +254,11 @@ where
 
         let receipt = self.exec_call::<(), ()>(&call);
 
-        receipt::into_spawn_app_receipt(receipt, app_addr)
+        // TODO: move the `into_spawn_app_receipt` to a `From / TryFrom`
+        svm_types::into_spawn_app_receipt(receipt, app_addr)
     }
 
-    fn install_template(&mut self, template: &ExtTemplate, gas_used: MaybeGas) -> TemplateReceipt {
+    fn install_template(&mut self, template: &ExtTemplate, gas_used: Gas) -> TemplateReceipt {
         let addr = self.env.derive_template_address(template);
 
         self.env.store_template(template, &addr);
@@ -509,9 +510,9 @@ where
     }
 
     #[inline]
-    fn instance_gas_used(&self, _instance: &Instance) -> std::result::Result<MaybeGas, OOGError> {
+    fn instance_gas_used(&self, _instance: &Instance) -> std::result::Result<Gas, OOGError> {
         // TODO: read `gas_used` out of `instance`
-        Ok(MaybeGas::new())
+        Ok(Gas::new())
     }
 
     fn instantiate(
@@ -607,7 +608,7 @@ where
         store: &Store,
         ctx: &Context,
         template: &ExtTemplate,
-        gas_left: MaybeGas,
+        gas_left: Gas,
     ) -> std::result::Result<Module, Failure> {
         info!(
             "runtime `compile_template` (template={:?})",
@@ -708,7 +709,7 @@ where
         ctx: &Context,
         func_name: &str,
         err: wasmer::RuntimeError,
-        logs: Vec<Log>,
+        logs: Vec<ReceiptLog>,
     ) -> Failure {
         let err = RuntimeError::FuncFailed {
             app_addr: ctx.app_addr().clone(),
