@@ -1,7 +1,6 @@
-use core::iter::Iterator;
-
 use crate::{Cursor, Decoder};
 
+use svm_sdk_std::{Option, Result};
 use svm_sdk_types::value::Value;
 
 /// `CallData` exposes an ergonomic API for decoding a binary `calldata`.
@@ -18,6 +17,7 @@ impl CallData {
     pub fn new(bytes: &[u8]) -> Self {
         Self {
             cursor: Cursor::new(bytes),
+
             decoder: Decoder::new(),
         }
     }
@@ -27,7 +27,7 @@ impl CallData {
 /// Thus, calling `next` should return the next decoded `Value` (`svm_sdk_types::value::Value`)
 ///
 /// # Safety
-/// Since it's assumed that the binary input to `CallData` is valid it panics when input is in when input is invalid.
+/// Since it's assumed that the binary input to `CallData` is valid it aborts when input is in when input is invalid.
 ///
 /// # Example
 ///
@@ -40,30 +40,26 @@ impl CallData {
 /// let value = calldata.next().unwrap();
 /// ```
 ///
-impl Iterator for CallData {
-    type Item = Value<'static>;
-
-    fn next(&mut self) -> Option<Self::Item> {
+impl CallData {
+    pub fn next(&mut self) -> Option<Value> {
         if self.cursor.is_eof() {
-            return None;
+            return Option::None;
         }
 
         let value = self.decoder.decode_value(&mut self.cursor);
 
         match value {
-            Err(..) => panic!("Invalid `CallData`"),
-            Ok(value) => Some(value),
+            Result::Err(..) => core::intrinsics::abort(),
+            Result::Ok(value) => Option::Some(value),
         }
     }
-}
 
-impl CallData {
     /// Decodes the next `calldata` value, and returns it as type `T1`.
     ///
     /// # Safety
     ///
     /// Panics if there is no next `Value` to decode or if the input is invalid.
-    /// Also panics if the decoded `Value` cannot be converted into a `T1` Rust type.
+    /// Also aborts if the decoded `Value` cannot be converted into a `T1` Rust type.
     ///
     /// ```rust, no_run
     /// use svm_abi_decoder::CallData;
@@ -75,11 +71,11 @@ impl CallData {
     /// ```
     pub fn next_1<T1>(&mut self) -> T1
     where
-        T1: From<Value<'static>>,
+        T1: From<Value>,
     {
-        let v1 = self.next().unwrap();
+        let v = self.next().unwrap();
 
-        v1.into()
+        v.into()
     }
 
     /// Decodes the next `calldata` value, and returns it as tuple of `(T1, T2)`.
@@ -87,12 +83,12 @@ impl CallData {
     /// # Safety
     ///
     /// Panics if there are less than two `Value`s to be decoded.
-    /// Also panics if the first decoded `Value` cannot be converted into a `T1` Rust type.
+    /// Also aborts if the first decoded `Value` cannot be converted into a `T1` Rust type.
     /// (or if the second decoded `Value` cannot be converted into a `T2` Rust type).
     pub fn next_2<T1, T2>(&mut self) -> (T1, T2)
     where
-        T1: From<Value<'static>>,
-        T2: From<Value<'static>>,
+        T1: From<Value>,
+        T2: From<Value>,
     {
         let v1 = self.next().unwrap();
         let v2 = self.next().unwrap();
@@ -104,9 +100,9 @@ impl CallData {
     /// (the `next_3` is extended for an additional `Value`)
     pub fn next_3<T1, T2, T3>(&mut self) -> (T1, T2, T3)
     where
-        T1: From<Value<'static>>,
-        T2: From<Value<'static>>,
-        T3: From<Value<'static>>,
+        T1: From<Value>,
+        T2: From<Value>,
+        T3: From<Value>,
     {
         let v1 = self.next().unwrap();
         let v2 = self.next().unwrap();
@@ -119,10 +115,10 @@ impl CallData {
     /// (the `next_4` is extended for an additional `Value`s)
     pub fn next_4<T1, T2, T3, T4>(&mut self) -> (T1, T2, T3, T4)
     where
-        T1: From<Value<'static>>,
-        T2: From<Value<'static>>,
-        T3: From<Value<'static>>,
-        T4: From<Value<'static>>,
+        T1: From<Value>,
+        T2: From<Value>,
+        T3: From<Value>,
+        T4: From<Value>,
     {
         let v1 = self.next().unwrap();
         let v2 = self.next().unwrap();
@@ -136,11 +132,11 @@ impl CallData {
     /// (the `next_5` is extended for an additional `Value`s)
     pub fn next_5<T1, T2, T3, T4, T5>(&mut self) -> (T1, T2, T3, T4, T5)
     where
-        T1: From<Value<'static>>,
-        T2: From<Value<'static>>,
-        T3: From<Value<'static>>,
-        T4: From<Value<'static>>,
-        T5: From<Value<'static>>,
+        T1: From<Value>,
+        T2: From<Value>,
+        T3: From<Value>,
+        T4: From<Value>,
+        T5: From<Value>,
     {
         let v1 = self.next().unwrap();
         let v2 = self.next().unwrap();
@@ -155,12 +151,12 @@ impl CallData {
     /// (the `next_6` is extended for an additional `Value`s)
     pub fn next_6<T1, T2, T3, T4, T5, T6>(&mut self) -> (T1, T2, T3, T4, T5, T6)
     where
-        T1: From<Value<'static>>,
-        T2: From<Value<'static>>,
-        T3: From<Value<'static>>,
-        T4: From<Value<'static>>,
-        T5: From<Value<'static>>,
-        T6: From<Value<'static>>,
+        T1: From<Value>,
+        T2: From<Value>,
+        T3: From<Value>,
+        T4: From<Value>,
+        T5: From<Value>,
+        T6: From<Value>,
     {
         let v1 = self.next().unwrap();
         let v2 = self.next().unwrap();

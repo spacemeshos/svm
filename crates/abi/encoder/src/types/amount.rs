@@ -1,45 +1,52 @@
-extern crate alloc;
-use alloc::vec::Vec;
+use crate::{ByteSize, Encoder};
 
-use svm_abi_layout::layout;
 use svm_sdk_types::Amount;
 
-use crate::Encoder;
-
 macro_rules! encode {
-    ($ty:ty, $MARK_1B:expr, $MARK_2B:expr, $MARK_3B:expr, $MARK_4B:expr, $MARK_5B:expr, $MARK_6B:expr, $MARK_7B:expr, $MARK_8B:expr) => {
-        impl Encoder for $ty {
-            fn encode(&self, w: &mut Vec<u8>) {
+    ( $W:ty) => {
+        impl Encoder<$W> for Amount {
+            fn encode(&self, w: &mut $W) {
                 let v = self.0;
+                let size = self.byte_size();
 
-                match v {
-                    0x00..=0xFF => {
-                        w.push($MARK_1B);
+                use svm_abi_layout::layout;
+
+                match size {
+                    2 => {
+                        w.push(layout::AMOUNT_1B);
                         w.push(v as u8);
                     }
-                    0x01_00..=0xFF_FF => {
-                        w.push($MARK_2B);
+                    3 => {
+                        w.push(layout::AMOUNT_2B);
 
                         let bytes: [u8; 2] = (v as u16).to_be_bytes();
-                        w.extend_from_slice(&bytes);
+
+                        w.push(bytes[0]);
+                        w.push(bytes[1]);
                     }
-                    0x_01_00_00..=0xFF_FF_FF => {
-                        w.push($MARK_3B);
+                    4 => {
+                        w.push(layout::AMOUNT_3B);
 
                         let bytes: [u8; 4] = (v as u32).to_be_bytes();
 
                         debug_assert_eq!(bytes[0], 0);
 
-                        w.extend_from_slice(&bytes[1..]);
+                        w.push(bytes[1]);
+                        w.push(bytes[2]);
+                        w.push(bytes[3]);
                     }
-                    0x_01_00_00_00..=0xFF_FF_FF_FF => {
-                        w.push($MARK_4B);
+                    5 => {
+                        w.push(layout::AMOUNT_4B);
 
                         let bytes: [u8; 4] = (v as u32).to_be_bytes();
-                        w.extend_from_slice(&bytes);
+
+                        w.push(bytes[0]);
+                        w.push(bytes[1]);
+                        w.push(bytes[2]);
+                        w.push(bytes[3]);
                     }
-                    0x_01_00_00_00_00..=0xFF_FF_FF_FF_FF => {
-                        w.push($MARK_5B);
+                    6 => {
+                        w.push(layout::AMOUNT_5B);
 
                         let bytes: [u8; 8] = v.to_be_bytes();
 
@@ -47,47 +54,83 @@ macro_rules! encode {
                         debug_assert_eq!(bytes[1], 0);
                         debug_assert_eq!(bytes[2], 0);
 
-                        w.extend_from_slice(&bytes[3..]);
+                        w.push(bytes[3]);
+                        w.push(bytes[4]);
+                        w.push(bytes[5]);
+                        w.push(bytes[6]);
+                        w.push(bytes[7]);
                     }
-                    0x_01_00_00_00_00_00..=0xFF_FF_FF_FF_FF_FF => {
-                        w.push($MARK_6B);
+                    7 => {
+                        w.push(layout::AMOUNT_6B);
 
                         let bytes: [u8; 8] = v.to_be_bytes();
 
                         debug_assert_eq!(bytes[0], 0);
                         debug_assert_eq!(bytes[1], 0);
 
-                        w.extend_from_slice(&bytes[2..]);
+                        w.push(bytes[2]);
+                        w.push(bytes[3]);
+                        w.push(bytes[4]);
+                        w.push(bytes[5]);
+                        w.push(bytes[6]);
+                        w.push(bytes[7]);
                     }
-                    0x_01_00_00_00_00_00_00..=0xFF_FF_FF_FF_FF_FF_FF => {
-                        w.push($MARK_7B);
+                    8 => {
+                        w.push(layout::AMOUNT_7B);
 
                         let bytes: [u8; 8] = v.to_be_bytes();
 
                         debug_assert_eq!(bytes[0], 0);
 
-                        w.extend_from_slice(&bytes[1..]);
+                        w.push(bytes[1]);
+                        w.push(bytes[2]);
+                        w.push(bytes[3]);
+                        w.push(bytes[4]);
+                        w.push(bytes[5]);
+                        w.push(bytes[6]);
+                        w.push(bytes[7]);
                     }
-                    0x_01_00_00_00_00_00_00_00..=0xFF_FF_FF_FF_FF_FF_FF_FF => {
-                        w.push($MARK_8B);
+                    9 => {
+                        w.push(layout::AMOUNT_8B);
 
                         let bytes: [u8; 8] = v.to_be_bytes();
-                        w.extend_from_slice(&bytes);
+
+                        w.push(bytes[0]);
+                        w.push(bytes[1]);
+                        w.push(bytes[2]);
+                        w.push(bytes[3]);
+                        w.push(bytes[4]);
+                        w.push(bytes[5]);
+                        w.push(bytes[6]);
+                        w.push(bytes[7]);
                     }
+                    _ => unreachable!(),
                 }
             }
         }
     };
 }
 
-encode!(
-    Amount,
-    layout::AMOUNT_1B,
-    layout::AMOUNT_2B,
-    layout::AMOUNT_3B,
-    layout::AMOUNT_4B,
-    layout::AMOUNT_5B,
-    layout::AMOUNT_6B,
-    layout::AMOUNT_7B,
-    layout::AMOUNT_8B
-);
+encode!(svm_sdk_std::Vec<u8>);
+
+impl ByteSize for Amount {
+    #[inline]
+    fn byte_size(&self) -> usize {
+        let v = self.0;
+
+        match v {
+            0x00..=0xFF => 2,
+            0x01_00..=0xFF_FF => 3,
+            0x_01_00_00..=0xFF_FF_FF => 4,
+            0x_01_00_00_00..=0xFF_FF_FF_FF => 5,
+            0x_01_00_00_00_00..=0xFF_FF_FF_FF_FF => 6,
+            0x_01_00_00_00_00_00..=0xFF_FF_FF_FF_FF_FF => 7,
+            0x_01_00_00_00_00_00_00..=0xFF_FF_FF_FF_FF_FF_FF => 8,
+            0x_01_00_00_00_00_00_00_00..=0xFF_FF_FF_FF_FF_FF_FF_FF => 9,
+        }
+    }
+
+    fn max_byte_size() -> usize {
+        9
+    }
+}

@@ -1,13 +1,25 @@
-extern crate alloc;
-
-use alloc::vec::Vec;
-
 use svm_abi_layout::layout;
 
-use crate::Encoder;
+use crate::{ByteSize, Encoder};
 
-impl Encoder for () {
-    fn encode(&self, w: &mut Vec<u8>) {
-        w.push(layout::UNIT);
+macro_rules! encode {
+    ($W:ty) => {
+        impl Encoder<$W> for () {
+            fn encode(&self, w: &mut $W) {
+                w.push(layout::UNIT);
+            }
+        }
+    };
+}
+
+encode!(svm_sdk_std::Vec<u8>);
+
+impl ByteSize for () {
+    fn byte_size(&self) -> usize {
+        1
+    }
+
+    fn max_byte_size() -> usize {
+        1
     }
 }

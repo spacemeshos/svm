@@ -11,15 +11,15 @@ description = "Spacemesh Virtual Machine"
 publish = false
 
 [dependencies]
-wee_alloc = "0.4.5"
 lazy_static = "1.4.0"
 svm-sdk-host = { path = "host" }
+svm-sdk-std = { path = "std" }
 svm-sdk-storage = { path = "storage" }
 svm-sdk-alloc = { path = "alloc" }
 svm-sdk-types = { path = "types" }
+svm-sdk-macros = { path = "macros" }
 svm-abi-encoder = { path = "../abi/encoder" }
 svm-abi-decoder = { path = "../abi/decoder" }
-svm-sdk-macros = { path = "macros" }
 
 [features]
 default = ["mock"]

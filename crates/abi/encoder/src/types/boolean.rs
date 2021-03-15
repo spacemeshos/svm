@@ -1,16 +1,29 @@
-extern crate alloc;
-use alloc::vec::Vec;
-
 use svm_abi_layout::layout;
 
-use crate::Encoder;
+use crate::{ByteSize, Encoder};
 
-impl Encoder for bool {
-    fn encode(&self, w: &mut Vec<u8>) {
-        if *self {
-            w.push(layout::BOOL_TRUE);
-        } else {
-            w.push(layout::BOOL_FALSE);
+macro_rules! impl_bool {
+    ($W:ty) => {
+        impl Encoder<$W> for bool {
+            fn encode(&self, w: &mut $W) {
+                if *self {
+                    w.push(layout::BOOL_TRUE);
+                } else {
+                    w.push(layout::BOOL_FALSE);
+                }
+            }
         }
+    };
+}
+
+impl_bool!(svm_sdk_std::Vec<u8>);
+
+impl ByteSize for bool {
+    fn byte_size(&self) -> usize {
+        1
+    }
+
+    fn max_byte_size() -> usize {
+        1
     }
 }

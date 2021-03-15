@@ -45,6 +45,7 @@ svm-gas = { path = "crates/gas" }
 svm-query = { path = "crates/query" }
 svm-types = { path = "crates/types" }
 svm-sdk-alloc = { path = "crates/sdk/alloc" }
+svm-sdk-std = { path = "crates/sdk/std" }
 svm-sdk-types = { path = "crates/sdk/types" }
 svm-sdk-storage = { path = "crates/sdk/storage" }
 svm-sdk-host = { path = "crates/sdk/host" }

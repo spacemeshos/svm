@@ -30,96 +30,77 @@
 
 mod address;
 mod amount;
-mod array;
 mod boolean;
 mod num_i16;
 mod num_i32;
 mod num_i64;
 mod num_i8;
+mod option;
+mod small_array;
 mod tuples;
 mod unit;
 
 pub use address::*;
 pub use amount::*;
-pub use array::*;
 pub use boolean::*;
 pub use num_i16::*;
 pub use num_i32::*;
 pub use num_i64::*;
+pub use option::*;
+pub use small_array::*;
 pub use tuples::*;
 
-extern crate alloc;
-use alloc::vec::Vec;
-
 use crate::traits::Encoder;
-
 use svm_sdk_types::value::{Composite, Primitive, Value};
 
-impl<T> Encoder for Option<T>
-where
-    T: Encoder,
-{
-    fn encode(&self, w: &mut Vec<u8>) {
-        match self {
-            None => encode_none(w),
-            Some(v) => v.encode(w),
+macro_rules! encode_value {
+    ($W:ty) => {
+        impl Encoder<$W> for Value {
+            #[inline]
+            fn encode(&self, w: &mut $W) {
+                match self {
+                    Value::Primitive(p) => encode_primitive(p, w),
+                    Value::Composite(c) => encode_composite(c, w),
+                }
+            }
         }
-    }
-}
 
-impl Encoder for Value<'_> {
-    #[inline]
-    fn encode(&self, w: &mut Vec<u8>) {
-        do_encode(self, w)
-    }
-}
-
-fn do_encode(value: &Value<'_>, w: &mut Vec<u8>) {
-    match value {
-        Value::Primitive(p) => encode_primitive(p, w),
-        Value::Composite(c) => encode_composite(c, w),
-    }
-}
-
-fn encode_primitive(p: &Primitive, w: &mut Vec<u8>) {
-    match p {
-        Primitive::None => encode_none(w),
-        Primitive::Unit => encode_unit(w),
-        Primitive::Address(p) => p.encode(w),
-        Primitive::Amount(p) => p.encode(w),
-        Primitive::Bool(p) => p.encode(w),
-        Primitive::I8(p) => p.encode(w),
-        Primitive::U8(p) => p.encode(w),
-        Primitive::I16(p) => p.encode(w),
-        Primitive::U16(p) => p.encode(w),
-        Primitive::I32(p) => p.encode(w),
-        Primitive::U32(p) => p.encode(w),
-        Primitive::I64(p) => p.encode(w),
-        Primitive::U64(p) => p.encode(w),
-    }
-}
-
-fn encode_composite(c: &Composite, w: &mut Vec<u8>) {
-    match c {
-        Composite::Array(values) => {
-            let values: Vec<&dyn Encoder> = values.iter().map(|v| v as &dyn Encoder).collect();
-            values.encode(w);
+        fn encode_primitive(p: &Primitive, w: &mut $W) {
+            match p {
+                Primitive::None => encode_none(w),
+                Primitive::Unit => encode_unit(w),
+                Primitive::Address(p) => p.encode(w),
+                Primitive::Amount(p) => p.encode(w),
+                Primitive::Bool(p) => p.encode(w),
+                Primitive::I8(p) => p.encode(w),
+                Primitive::U8(p) => p.encode(w),
+                Primitive::I16(p) => p.encode(w),
+                Primitive::U16(p) => p.encode(w),
+                Primitive::I32(p) => p.encode(w),
+                Primitive::U32(p) => p.encode(w),
+                Primitive::I64(p) => p.encode(w),
+                Primitive::U64(p) => p.encode(w),
+            }
         }
-        Composite::ArrayOwned(values) => {
-            let values: Vec<&dyn Encoder> = values.iter().map(|v| v as &dyn Encoder).collect();
-            values.encode(w);
+
+        fn encode_composite(c: &Composite, w: &mut $W) {
+            match c {
+                Composite::Vec(values) => {
+                    values.as_slice().encode(w);
+                }
+            }
         }
-    }
+
+        #[inline]
+        fn encode_none(w: &mut $W) {
+            svm_sdk_std::Option::<bool>::None.encode(w)
+        }
+
+        #[inline]
+        fn encode_unit(w: &mut $W) {
+            ().encode(w)
+        }
+    };
 }
 
-fn encode_none(w: &mut Vec<u8>) {
-    use svm_abi_layout::layout;
-
-    w.push(layout::NONE);
-}
-
-fn encode_unit(w: &mut Vec<u8>) {
-    use svm_abi_layout::layout;
-
-    w.push(layout::UNIT);
-}
+encode_value!(svm_sdk_std::Vec<u8>);

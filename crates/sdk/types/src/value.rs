@@ -1,14 +1,9 @@
-use core::cmp::PartialEq;
-use core::fmt::{self, Debug};
-
 use crate::{Address, Amount};
 
-extern crate alloc;
-
-use alloc::vec::Vec;
+use svm_sdk_std::Option;
 
 /// Primitive value
-#[derive(Debug, PartialEq)]
+#[derive(PartialEq)]
 pub enum Primitive {
     None,
 
@@ -38,57 +33,36 @@ pub enum Primitive {
 }
 
 /// Composite value
-#[derive(Debug, PartialEq)]
-pub enum Composite<'a> {
-    /// A borrowed `Array`
-    Array(&'a [Value<'a>]),
-
-    /// An owned `Array`
-    ArrayOwned(Vec<Value<'a>>),
+pub enum Composite {
+    Vec(svm_sdk_std::Vec<Value>),
 }
 
-/// An ABI Value
-///
-/// # Example
-///
-/// ```rust
-/// use svm_sdk_types::Address;
-/// use svm_sdk_types::value::Value;
-///
-/// let addr1: Address = [0x10; Address::len()].into();
-///
-/// let value: Value = addr1.clone().into();
-/// let addr2: Address = value.into();
-///
-/// assert_eq!(addr1, addr2);
-/// ```
-///
-#[derive(Debug, PartialEq)]
-pub enum Value<'a> {
+pub enum Value {
     /// A `Primitive` value
     Primitive(Primitive),
 
     /// A `Composite` value
-    Composite(Composite<'a>),
+    Composite(Composite),
 }
 
-impl<'a> Value<'a> {
+impl Value {
     /// Returns a `Value` representing the ABI `Unit`
-    pub const fn unit() -> Value<'static> {
+    pub const fn unit() -> Value {
         Value::Primitive(Primitive::Unit)
     }
 
     /// Returns a `Value` representing the ABI `None`
-    pub const fn none() -> Value<'static> {
+    pub const fn none() -> Value {
         Value::Primitive(Primitive::None)
     }
 }
 
 macro_rules! impl_from_rust_to_value {
     ($prim_ident:ident, $T:ident) => {
-        impl From<$T> for Value<'_> {
+        impl From<$T> for Value {
             fn from(num: $T) -> Self {
                 let prim = Primitive::$prim_ident(num);
+
                 Value::Primitive(prim)
             }
         }
@@ -105,93 +79,29 @@ macro_rules! impl_from_rust_to_value {
 /// * `impl_value_to_rust_array`
 ///
 /// These macros facilitate the `ABI Value <=> Rust Type` conversions.  
-/// Here are a few examples (there're more examples in other parts of this file).
-///
-///
-/// # Example (boolean)
-///
-/// ```rust
-/// use svm_sdk_types::value::Value;
-///
-/// let value: Value = true.into();
-/// let truthy: bool = value.into();
-///
-/// assert_eq!(truthy, true);
-/// ```
-///
-///
-/// # Example (`i8` - same for other integers)
-///
-/// ```rust
-/// use svm_sdk_types::value::Value;
-///
-/// let value: Value = 100i8.into();
-/// let num: i8 = value.into();
-///
-/// assert_eq!(num, 100i8);
-/// ```
-///
-///
-/// # Example (`Amount`)
-///
-/// ```rust
-/// use svm_sdk_types::Amount;
-/// use svm_sdk_types::value::Value;
-///
-/// let value: Value = Amount(100).into();
-/// let amount: Amount = value.into();
-///
-/// assert_eq!(amount, Amount(100));
-/// ```
-///
-///
-/// # Example (Option<T>)
-///
-/// ```rust
-/// use svm_sdk_types::value::Value;
-///
-/// let value: Value = 10i32.into();
-/// let num: Option<i32> = value.into();
-///
-/// assert_eq!(num, Some(10i32));
-/// ```
-///
-///
-/// # Example
-///
-/// ```rust
-/// use svm_sdk_types::value::Value;
-///
-/// let value: Value = Value::none();
-/// let num: Option<i32> = value.into();
-///
-/// assert_eq!(num, None);
-/// ```
-impl<'a, T> From<Option<T>> for Value<'a>
+impl<T> From<Option<T>> for Value
 where
-    T: Into<Value<'a>>,
+    T: Into<Value>,
 {
     fn from(val: Option<T>) -> Self {
         match val {
-            None => Value::Primitive(Primitive::None),
-            Some(v) => v.into(),
+            Option::None => Value::Primitive(Primitive::None),
+            Option::Some(v) => v.into(),
         }
     }
 }
 
-/// # Example
-///
-/// ```rust
-/// use svm_sdk_types::value::Value;
-///
-/// let value: Value = ().into();
-/// let unit: () = value.into();
-///
-/// assert_eq!(unit, ());
-/// ```
-impl From<()> for Value<'_> {
+impl From<()> for Value {
     fn from(_val: ()) -> Self {
         Value::unit()
+    }
+}
+
+impl From<svm_sdk_std::Vec<Value>> for Value {
+    fn from(array: svm_sdk_std::Vec<Value>) -> Value {
+        let comp = Composite::Vec(array);
+
+        Value::Composite(comp)
     }
 }
 
@@ -212,57 +122,9 @@ impl_from_rust_to_value!(U64, u64);
 
 impl_from_rust_to_value!(Address, Address);
 
-/// Array value
-#[derive(Debug, PartialEq)]
-#[repr(transparent)]
-pub struct Array<'a, T>(pub &'a [T]);
-
-/// Takes `&[Value]` and turns it into
-/// a single (`Composite`) Value (of kind `Array`)
-///
-/// # Example
-///
-/// ```rust
-/// use svm_sdk_types::value::Value;
-///
-/// let value1: Value = 10u8.into();
-/// let value2: Value = 20u8.into();
-/// let value3: Value = 30u8.into();
-///
-/// let vec = vec![value1, value2, value3];
-/// let values: Value = vec.as_slice().into();
-/// ```
-impl<'a> From<&'a [Value<'_>]> for Value<'a> {
-    fn from(slice: &'a [Value]) -> Self {
-        let comp = Composite::Array(slice);
-        Value::Composite(comp)
-    }
-}
-
-/// Takes a `Vec<Value>` and turns it into
-/// a single (`Composite`) Value (of kind `ArrayOwned`)
-///
-/// # Example
-///
-/// ```rust
-/// use svm_sdk_types::value::Value;
-///
-/// let value1: Value = 10u8.into();
-/// let value2: Value = 20u8.into();
-/// let value3: Value = 30u8.into();
-///
-/// let values: Value = vec![value1, value2, value3].into();
-/// ```
-impl<'a> From<Vec<Value<'a>>> for Value<'a> {
-    fn from(array: Vec<Value<'a>>) -> Value<'a> {
-        let comp = Composite::ArrayOwned(array);
-        Value::Composite(comp)
-    }
-}
-
 macro_rules! impl_from_value_to_rust {
     ($prim_ident:ident, $T:ty) => {
-        impl From<Value<'_>> for $T {
+        impl From<Value> for $T {
             fn from(value: Value) -> Self {
                 match value {
                     Value::Primitive(Primitive::$prim_ident(v)) => v,
@@ -271,11 +133,11 @@ macro_rules! impl_from_value_to_rust {
             }
         }
 
-        impl From<Value<'_>> for Option<$T> {
+        impl From<Value> for Option<$T> {
             fn from(value: Value) -> Self {
                 match value {
-                    Value::Primitive(Primitive::None) => None,
-                    Value::Primitive(Primitive::$prim_ident(v)) => Some(v),
+                    Value::Primitive(Primitive::None) => Option::None,
+                    Value::Primitive(Primitive::$prim_ident(v)) => Option::Some(v),
                     _ => unreachable!(),
                 }
             }
@@ -283,7 +145,7 @@ macro_rules! impl_from_value_to_rust {
     };
 }
 
-impl From<Value<'_>> for () {
+impl From<Value> for () {
     fn from(value: Value) -> Self {
         match value {
             Value::Primitive(Primitive::Unit) => (),
@@ -322,19 +184,19 @@ macro_rules! impl_value_to_rust_array {
         impl_value_to_rust_array!($T => $($tt)*);
     };
     (@implement $T:tt $n:tt) => {
-        impl<'a> From<Value<'a>> for [$T; $n]
-        where Value<'a>: Into<$T>
+        impl From<Value> for [$T; $n]
+        where Value: Into<$T>
         {
-            fn from(value: Value<'a>) -> Self {
+            fn from(value: Value) -> Self {
                 use core::mem::{size_of, MaybeUninit};
 
                 match value {
-                    Value::Composite(Composite::ArrayOwned(mut values)) => {
+                    Value::Composite(Composite::Vec(mut values)) => {
                         assert_eq!(values.len(), $n);
 
                         let mut array: [MaybeUninit<$T>; $n] = MaybeUninit::uninit_array();
 
-                        for (i, v) in values.drain(..).enumerate() {
+                        for (i, v) in values.into_iter().enumerate() {
                             array[i] = MaybeUninit::new(v.into());
                         }
 
@@ -359,3 +221,82 @@ impl_value_to_rust_array!([
     i32 u32
     i64 u64
 ] => 1 2 3 4 5 6 7 8 9 10);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn addr_to_value() {
+        let addr1: Address = Address::repeat(0x10);
+
+        let value: Value = addr1.clone().into();
+        let addr2: Address = value.into();
+
+        assert_eq!(addr1, addr2);
+    }
+
+    #[test]
+    fn bool_to_value_and_vice_versa() {
+        let value: Value = true.into();
+        let truthy: bool = value.into();
+
+        assert_eq!(truthy, true);
+    }
+
+    #[test]
+    fn i8_to_value_and_vice_versa() {
+        let value: Value = 100i8.into();
+        let num: i8 = value.into();
+
+        assert_eq!(num, 100i8);
+    }
+
+    #[test]
+    fn amount_to_value_and_vice_versa() {
+        let value: Value = Amount(100).into();
+        let amount: Amount = value.into();
+
+        assert_eq!(amount, Amount(100));
+    }
+
+    #[test]
+    fn option_some_to_value_and_vice_versa() {
+        let value: Value = 10i32.into();
+        let num: Option<i32> = value.into();
+
+        assert_eq!(num, Option::Some(10i32));
+    }
+
+    #[test]
+    fn option_none_to_value_and_vice_versa() {
+        let value: Value = Value::none();
+        let num: Option<i32> = value.into();
+
+        assert_eq!(num, Option::None);
+    }
+
+    #[test]
+    fn vec_values_to_value_and_vice_versa() {
+        use svm_sdk_std::Vec;
+
+        let a: Value = 10u8.into();
+        let b: Value = 20u8.into();
+        let c: Value = 30u8.into();
+
+        let mut vec = Vec::with_capacity(3);
+        vec.push(a);
+        vec.push(b);
+        vec.push(c);
+
+        let values: Value = vec.into();
+    }
+
+    #[test]
+    fn unit_to_value_and_vice_versa() {
+        let value: Value = ().into();
+        let unit: () = value.into();
+
+        assert_eq!(unit, ());
+    }
+}

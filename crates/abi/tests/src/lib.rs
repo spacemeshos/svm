@@ -10,8 +10,11 @@
 mod tests {
     use svm_abi_decoder::CallData;
     use svm_abi_encoder::Encoder;
-    use svm_sdk::value::Value;
-    use svm_sdk::{Address, Amount};
+
+    use svm_sdk_std::{Option, Vec};
+
+    use svm_sdk_types::value::Value;
+    use svm_sdk_types::{Address, Amount};
 
     macro_rules! as_static {
         ($bytes:expr) => {
@@ -24,8 +27,8 @@ mod tests {
             let rust_value: $ty = $rust_value.clone();
             let value: Value = rust_value.into();
 
-            let mut buf_rust = Vec::new();
-            let mut buf_value = Vec::new();
+            let mut buf_rust = Vec::with_capacity(1000);
+            let mut buf_value = Vec::with_capacity(1000);
 
             let rust_value: $ty = $rust_value.clone();
             rust_value.encode(&mut buf_rust);
@@ -45,9 +48,9 @@ mod tests {
 
     macro_rules! test_array {
         ($ty:ty, $rust_array:expr) => {{
-            let mut bytes = Vec::new();
+            let mut bytes = Vec::with_capacity(1000);
 
-            $rust_array.to_vec().encode(&mut bytes);
+            $rust_array.encode(&mut bytes);
 
             let mut calldata = CallData::new(as_static!(&bytes));
             let value: Value = calldata.next().unwrap();
@@ -69,8 +72,8 @@ mod tests {
 
     #[test]
     fn encode_decode_none() {
-        test_primitive!(Option<u8>, None);
-        test_primitive!(Option<u32>, None);
+        test_primitive!(Option<u8>, Option::None);
+        test_primitive!(Option<u32>, Option::None);
     }
 
     #[test]
@@ -279,7 +282,7 @@ mod tests {
 
     #[test]
     fn encode_decode_addr() {
-        let addr: Address = [0x10; Address::len()].into();
+        let addr: Address = Address::repeat(0x10);
 
         test_primitive!(Address, addr);
     }
@@ -288,7 +291,7 @@ mod tests {
     fn calldata_next() {
         let a: u32 = 10;
 
-        let mut buf = Vec::new();
+        let mut buf = Vec::with_capacity(1000);
         a.encode(&mut buf);
 
         let mut calldata = CallData::new(as_static!(buf));
@@ -301,7 +304,7 @@ mod tests {
     fn calldata_next_1() {
         let a: u32 = 10;
 
-        let mut buf = Vec::new();
+        let mut buf = Vec::with_capacity(1000);
         a.encode(&mut buf);
 
         let mut calldata = CallData::new(as_static!(buf));
@@ -315,7 +318,8 @@ mod tests {
         let a: u32 = 10;
         let b: i16 = 20;
 
-        let mut buf = Vec::new();
+        let mut buf = Vec::with_capacity(1000);
+
         a.encode(&mut buf);
         b.encode(&mut buf);
 
@@ -332,7 +336,8 @@ mod tests {
         let b: i16 = 20;
         let c = true;
 
-        let mut buf = Vec::new();
+        let mut buf = Vec::with_capacity(1000);
+
         a.encode(&mut buf);
         b.encode(&mut buf);
         c.encode(&mut buf);
@@ -352,7 +357,8 @@ mod tests {
         let c = true;
         let d: [u8; 2] = [30, 40];
 
-        let mut buf = Vec::new();
+        let mut buf = Vec::with_capacity(1000);
+
         a.encode(&mut buf);
         b.encode(&mut buf);
         c.encode(&mut buf);
@@ -375,7 +381,8 @@ mod tests {
         let d: [u8; 2] = [30, 40];
         let e: [u16; 3] = [50, 60, 70];
 
-        let mut buf = Vec::new();
+        let mut buf = Vec::with_capacity(1000);
+
         a.encode(&mut buf);
         b.encode(&mut buf);
         c.encode(&mut buf);
@@ -401,7 +408,8 @@ mod tests {
         let e: [u16; 3] = [50, 60, 70];
         let f = Amount(100);
 
-        let mut buf = Vec::new();
+        let mut buf = Vec::with_capacity(1000);
+
         a.encode(&mut buf);
         b.encode(&mut buf);
         c.encode(&mut buf);
@@ -429,7 +437,7 @@ mod tests {
         ];
 
         let addr: Address = bytes.into();
-        let fmt = format!("{}", addr);
+        let fmt = format!("{:?}", addr);
         assert_eq!(fmt, "102030405060708090a0112233445566778899aa");
     }
 }

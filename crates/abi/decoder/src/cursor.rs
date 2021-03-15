@@ -1,3 +1,5 @@
+use svm_sdk_std::Option;
+
 /// Used for traversal of the encoded function buffer.
 /// It will be used by the `Decoder`.
 ///
@@ -48,11 +50,12 @@ impl Cursor {
     #[inline]
     pub fn peek(&self) -> Option<u8> {
         if self.is_eof() {
-            return None;
+            return Option::None;
         }
 
         let byte = unsafe { *self.offset_ptr() };
-        Some(byte)
+
+        Option::Some(byte)
     }
 
     /// Returns the next looked-at byte and increments the `offset`.
@@ -60,6 +63,7 @@ impl Cursor {
     #[inline]
     pub fn read_byte(&mut self) -> Option<u8> {
         let byte = self.peek();
+
         self.offset += 1;
 
         byte
@@ -74,13 +78,13 @@ impl Cursor {
         let last_byte_off = self.offset + nbytes - 1;
 
         if last_byte_off >= self.len() {
-            return None;
+            return Option::None;
         }
 
         let ptr = unsafe { self.offset_ptr() };
         self.offset += nbytes;
 
-        Some(ptr)
+        Option::Some(ptr)
     }
 
     /// Returns a raw pointer to the current pointed-at address.

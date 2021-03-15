@@ -1,4 +1,3 @@
-#![no_std]
 #![feature(maybe_uninit_uninit_array)]
 
 //! This crate implements SDK types or SVM.

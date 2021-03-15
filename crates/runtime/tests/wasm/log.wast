@@ -8,4 +8,3 @@
 	i32.const 11  ;; msg_len = len('Hello World')
 	i32.const 200 ;; code
 	call $log))
-  	

@@ -9,6 +9,11 @@ publish = false
 crate-type = ['cdylib']
 
 [dependencies]
-svm-sdk = { path = "../../../../sdk" }
+svm-sdk = { path = "../../../../sdk", default-features = false }
+
+[features]
+default = ["ffi"]
+ffi = ["svm-sdk/ffi"]
+mock = ["svm-sdk/mock"]
 
 [workspace]

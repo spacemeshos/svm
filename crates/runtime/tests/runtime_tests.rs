@@ -392,9 +392,9 @@ fn default_runtime_calldata_returndata() {
 
     // 3) execute a transaction
     let func = "store_addr";
-    let msg: sdk::Address = [0x10; 20].into();
+    let msg: sdk::Address = sdk::Address::repeat(0x10);
 
-    let mut calldata = Vec::new();
+    let mut calldata = svm_sdk::Vec::with_capacity(10000);
     msg.encode(&mut calldata);
 
     let bytes = testing::build_app_tx(version, &app_addr, func, &calldata);
@@ -406,7 +406,7 @@ fn default_runtime_calldata_returndata() {
     let state = receipt.get_new_state();
 
     // 4) execute a transaction with `returndata`
-    let func = "return_addr";
+    let func = "load_addr";
     let calldata = Vec::new();
 
     let bytes = testing::build_app_tx(version, &app_addr, func, &calldata);

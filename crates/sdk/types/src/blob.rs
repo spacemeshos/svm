@@ -2,19 +2,21 @@ macro_rules! impl_blob_type {
     ($ty:ident, $nbytes:expr) => {
         use core::char;
         use core::cmp::{Eq, PartialEq};
-        use core::fmt::{self, Debug};
 
-        extern crate alloc;
-
-        use alloc::boxed::Box;
-        use alloc::vec::Vec;
+        use svm_sdk_std::Vec;
 
         #[allow(missing_docs)]
         #[repr(transparent)]
-        #[derive(core::fmt::Debug, Copy, Clone, Hash)]
+        #[derive(Copy, Hash)]
         pub struct $ty(*const u8);
 
         impl $crate::types::PrimitiveMarker for $ty {}
+
+        impl core::clone::Clone for $ty {
+            fn clone(&self) -> Self {
+                $ty(self.0)
+            }
+        }
 
         impl $ty {
             #[allow(missing_docs)]
@@ -70,10 +72,20 @@ macro_rules! impl_blob_type {
         impl From<Vec<u8>> for $ty {
             #[inline]
             fn from(value: Vec<u8>) -> Self {
+                assert_eq!(value.len(), Self::len());
+
                 let slice = value.leak();
                 let ptr = slice.as_ptr();
 
                 $ty(ptr)
+            }
+        }
+
+        impl $ty {
+            pub fn repeat(byte: u8) -> Self {
+                let bytes = [byte; Self::len()];
+
+                bytes.into()
             }
         }
 
@@ -87,8 +99,9 @@ macro_rules! impl_blob_type {
             }
         }
 
-        impl fmt::Display for $ty {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        #[cfg(any(test, feature = "debug"))]
+        impl core::fmt::Debug for $ty {
+            fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
                 fn fmt_char(byte: u8) -> (char, char) {
                     let msb: u8 = (byte & 0xF0) >> 4;
                     let lsb: u8 = byte & 0x0F;

@@ -19,8 +19,9 @@ svm-types = { path = "../types" }
 svm-layout = { path = "../layout" }
 svm-abi-encoder = { path = "../abi/encoder" }
 svm-abi-decoder = { path = "../abi/decoder" }
-svm-sdk-types = { path = "../sdk/types" }
+svm-sdk-std     = { path = "../sdk/std", features = ["debug"]   }
+svm-sdk-types   = { path = "../sdk/types", features = ["debug"] }
 serde_json = "1.0"
 
 [dev-dependencies]
-maplit = "1.0.2"
+maplit = "1.0.2" 

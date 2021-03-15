@@ -13,6 +13,7 @@ publish = false
 [dependencies]
 svm-sdk-alloc = { path = "../alloc" }
 svm-sdk-types = { path = "../types" }
+svm-sdk-std = { path = "../std" }
 svm-abi-encoder = { path = "../../abi/encoder" }
 svm-abi-decoder = { path = "../../abi/decoder" }
 

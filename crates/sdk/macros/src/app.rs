@@ -1,11 +1,15 @@
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
+
 use serde_json::Value;
 
 use syn::{Error, Item, ItemMod, ItemStruct, ItemType, ItemUse, Result};
 
 use super::{function, r#struct};
-use crate::{api, schema, Function, Schema, Struct};
+use crate::{schema, Function, Schema, Struct};
+
+#[cfg(feature = "api")]
+use crate::api;
 
 use r#function::{func_attrs, has_default_fundable_hook_attr};
 use r#struct::has_storage_attr;
@@ -67,9 +71,13 @@ pub fn expand(_args: TokenStream, input: TokenStream) -> Result<(Schema, TokenSt
     #[cfg(feature = "api")]
     let stream = api::json_tokenstream(&api);
 
+    #[cfg(not(feature = "api"))]
+    let stream = quote! { "" };
+
     #[cfg(feature = "api")]
     let data = api::json_data_layout(&schema);
 
+    #[cfg(feature = "api")]
     write_schema(&app, &api, &data);
 
     let ast = quote! {

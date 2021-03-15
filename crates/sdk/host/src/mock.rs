@@ -1,5 +1,7 @@
 use crate::traits::Host;
 
+use svm_abi_encoder::{ByteSize, Encoder};
+use svm_sdk_std::Vec;
 use svm_sdk_types::{Address, Amount, LayerId};
 
 extern crate alloc;
@@ -13,7 +15,6 @@ use std::cell::UnsafeCell;
 use std::collections::HashMap;
 use std::mem::MaybeUninit;
 use std::sync::Once;
-use std::vec::Vec;
 
 /// Since SVM apps run one-by-one there is no need for any concurrency primitives usage.
 /// We implement the `Host`'s singleton initialization using `unsafe` tools.
@@ -39,7 +40,7 @@ impl MockHost {
 
     pub fn set_calldata<T>(calldata: T)
     where
-        T: svm_abi_encoder::Encoder,
+        T: Encoder<Vec<u8>> + ByteSize,
     {
         let host = Self::instance();
 
@@ -52,7 +53,7 @@ impl MockHost {
         host.set_raw_calldata(bytes)
     }
 
-    pub fn get_returndata() -> Option<Vec<u8>> {
+    pub fn get_returndata() -> Option<alloc::vec::Vec<u8>> {
         let host = Self::instance();
 
         host.get_returndata()
@@ -130,7 +131,7 @@ impl MockHost {
         host.log(msg, code);
     }
 
-    pub fn get_logs() -> Vec<(String, u8)> {
+    pub fn get_logs() -> alloc::vec::Vec<(String, u8)> {
         let host = Self::instance();
 
         host.get_logs()
@@ -202,7 +203,7 @@ impl Host for MockHost {
 pub struct InnerHost {
     pub calldata: Option<&'static [u8]>,
 
-    pub returndata: Option<Vec<u8>>,
+    pub returndata: Option<alloc::vec::Vec<u8>>,
 
     pub accounts: HashMap<Address, Amount>,
 
@@ -214,7 +215,7 @@ pub struct InnerHost {
 
     pub layer_id: Option<LayerId>,
 
-    pub logs: Vec<(String, u8)>,
+    pub logs: alloc::vec::Vec<(String, u8)>,
 }
 
 impl InnerHost {
@@ -227,15 +228,17 @@ impl InnerHost {
             app: None,
             accounts: HashMap::new(),
             layer_id: None,
-            logs: Vec::new(),
+            logs: alloc::vec::Vec::new(),
         }
     }
 
     pub fn set_calldata<T>(&mut self, calldata: T)
     where
-        T: svm_abi_encoder::Encoder,
+        T: Encoder<Vec<u8>> + ByteSize,
     {
-        let mut bytes = Vec::new();
+        let cap = calldata.byte_size();
+
+        let mut bytes = Vec::with_capacity(cap);
         calldata.encode(&mut bytes);
 
         let bytes: &'static [u8] = bytes.leak();
@@ -250,7 +253,7 @@ impl InnerHost {
         self.calldata = Some(bytes);
     }
 
-    pub fn get_returndata(&self) -> Option<Vec<u8>> {
+    pub fn get_returndata(&self) -> Option<alloc::vec::Vec<u8>> {
         self.returndata.clone()
     }
 
@@ -274,7 +277,7 @@ impl InnerHost {
         self.layer_id = Some(layer_id);
     }
 
-    pub fn get_logs(&self) -> Vec<(String, u8)> {
+    pub fn get_logs(&self) -> alloc::vec::Vec<(String, u8)> {
         self.logs.clone()
     }
 

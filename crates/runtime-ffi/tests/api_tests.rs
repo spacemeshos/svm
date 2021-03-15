@@ -237,7 +237,7 @@ fn spawn_app_bytes(
     template_addr: &svm_byte_array,
     name: &str,
     ctor_name: &str,
-    calldata: &Vec<u8>,
+    calldata: &[u8],
 ) -> Vec<u8> {
     let template_addr = Address::from(*&template_addr.bytes as *const c_void).into();
     svm_runtime::testing::build_app(version, &template_addr, name, ctor_name, calldata)
@@ -247,7 +247,7 @@ fn exec_app_bytes(
     version: u16,
     app_addr: &svm_byte_array,
     func_name: &str,
-    calldata: &Vec<u8>,
+    calldata: &[u8],
 ) -> Vec<u8> {
     let app_addr: &[u8] = app_addr.into();
     let app_addr = Address::from(app_addr).into();
@@ -500,7 +500,7 @@ fn svm_runtime_success() {
         );
         assert!(res.is_ok());
 
-        // extract the `template-address` out of theh receipt
+        // extract the `template-address` out of the receipt
         let receipt =
             receipt::decode_receipt(template_receipt.clone().into()).into_deploy_template();
         let template_addr: &Address = receipt.get_template_addr().inner();
@@ -512,11 +512,17 @@ fn svm_runtime_success() {
         let ctor_name = "initialize";
         let counter_init: u32 = 10;
 
-        let mut calldata = Vec::new();
+        let mut calldata = svm_sdk::Vec::with_capacity(1000);
         counter_init.encode(&mut calldata);
 
         // raw `spawn-app`
-        let app_bytes = spawn_app_bytes(version, &template_addr, name, ctor_name, &calldata);
+        let app_bytes = spawn_app_bytes(
+            version,
+            &template_addr,
+            name,
+            ctor_name,
+            calldata.as_slice(),
+        );
         let app_bytes: svm_byte_array = (SPAWN_APP_TX, app_bytes).into();
 
         let mut spawn_receipt = svm_byte_array::default();
@@ -546,7 +552,7 @@ fn svm_runtime_success() {
         let add = 5u32;
         let mul = 3u32;
 
-        let mut calldata = Vec::new();
+        let mut calldata = svm_sdk::Vec::with_capacity(1000);
 
         add.encode(&mut calldata);
         mul.encode(&mut calldata);

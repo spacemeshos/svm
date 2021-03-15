@@ -102,11 +102,11 @@ fn expand_epilogue() -> Result<TokenStream> {
 
             use svm_sdk::traits::Encoder;
 
-            extern crate alloc;
-
-            let mut bytes = alloc::vec::Vec::new();
-
             let returns = __inner__();
+
+            // TODO: pre-calculate the exact capacity required
+            let mut bytes: svm_sdk::Vec<u8> = svm_sdk::Vec::with_capacity(10_000);
+
             returns.encode(&mut bytes);
 
             Node.set_returndata(&bytes);

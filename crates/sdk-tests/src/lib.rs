@@ -4,28 +4,30 @@ extern crate svm_sdk;
 
 use svm_sdk::host::MockHost;
 use svm_sdk::storage::MockStorage;
-use svm_sdk::traits::Encoder;
-use svm_sdk::{Amount, ReturnData};
+use svm_sdk::traits::{ByteSize, Encoder};
+use svm_sdk::{Amount, ReturnData, Vec};
 use svm_sdk_types::value::Value;
 
-pub fn call<T>(func: extern "C" fn(), args: Vec<T>) -> ReturnData
+pub fn call<T>(func: extern "C" fn(), args: std::vec::Vec<T>) -> ReturnData
 where
-    T: Encoder,
+    T: Encoder<Vec<u8>> + ByteSize,
 {
     call_and_fund(func, args, Amount(0))
 }
 
-pub fn call_and_fund<T>(func: extern "C" fn(), args: Vec<T>, value: Amount) -> ReturnData
+pub fn call_and_fund<T>(func: extern "C" fn(), args: std::vec::Vec<T>, value: Amount) -> ReturnData
 where
-    T: Encoder,
+    T: Encoder<Vec<u8>> + ByteSize,
 {
-    let mut bytes = Vec::new();
+    let cap: usize = args.iter().map(|arg| arg.byte_size()).sum();
 
-    for arg in args {
+    let mut bytes: Vec<u8> = Vec::with_capacity(1 + cap);
+
+    for arg in args.iter() {
         arg.encode(&mut bytes);
     }
 
-    MockHost::set_raw_calldata(&bytes);
+    MockHost::set_raw_calldata(bytes.as_slice());
     MockHost::set_value(value);
 
     // In order to make the function fully compatible with
@@ -53,38 +55,42 @@ where
     returns
 }
 
-pub fn call_1<T, O>(func: extern "C" fn(), args: Vec<T>) -> O
+pub fn call_1<T, O>(func: extern "C" fn(), args: std::vec::Vec<T>) -> O
 where
-    T: Encoder,
-    O: From<Value<'static>>,
+    T: Encoder<Vec<u8>> + ByteSize,
+    O: From<Value>,
 {
     call_and_fund_1(func, args, Amount(0))
 }
 
-pub fn call_and_fund_1<T, O>(func: extern "C" fn(), args: Vec<T>, value: Amount) -> O
+pub fn call_and_fund_1<T, O>(func: extern "C" fn(), args: std::vec::Vec<T>, value: Amount) -> O
 where
-    T: Encoder,
-    O: From<Value<'static>>,
+    T: Encoder<Vec<u8>> + ByteSize,
+    O: From<Value>,
 {
     let mut returns = call_and_fund(func, args, value);
 
     returns.next_1()
 }
 
-pub fn call_2<T, O1, O2>(func: extern "C" fn(), args: Vec<T>) -> (O1, O2)
+pub fn call_2<T, O1, O2>(func: extern "C" fn(), args: std::vec::Vec<T>) -> (O1, O2)
 where
-    T: Encoder,
-    O1: From<Value<'static>>,
-    O2: From<Value<'static>>,
+    T: Encoder<Vec<u8>> + ByteSize,
+    O1: From<Value>,
+    O2: From<Value>,
 {
     call_and_fund_2(func, args, Amount(0))
 }
 
-pub fn call_and_fund_2<T, O1, O2>(func: extern "C" fn(), args: Vec<T>, value: Amount) -> (O1, O2)
+pub fn call_and_fund_2<T, O1, O2>(
+    func: extern "C" fn(),
+    args: std::vec::Vec<T>,
+    value: Amount,
+) -> (O1, O2)
 where
-    T: Encoder,
-    O1: From<Value<'static>>,
-    O2: From<Value<'static>>,
+    T: Encoder<Vec<u8>> + ByteSize,
+    O1: From<Value>,
+    O2: From<Value>,
 {
     let mut returns = call_and_fund(func, args, value);
 

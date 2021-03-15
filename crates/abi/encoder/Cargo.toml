@@ -12,4 +12,8 @@ publish = false
 
 [dependencies]
 svm-sdk-types = { path = "../../sdk/types" }
+svm-sdk-std = { path = "../../sdk/std" }
 svm-abi-layout = { path = "./../layout" }
+
+[features]
+default = []

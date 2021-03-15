@@ -8,7 +8,20 @@ publish = false
 [lib]
 crate-type = ['cdylib']
 
+[profile.release]
+panic = 'abort'
+opt-level = 'z'
+lto = true
+debug = false
+overflow-checks = false
+debug-assertions = false
+
 [dependencies]
-svm-sdk = { path = "../../../../sdk" }
+svm-sdk = { path = "../../../../sdk", default-features = false }
+
+[features]
+default = ["ffi"]
+ffi = ["svm-sdk/ffi"]
+mock = ["svm-sdk/mock"]
 
 [workspace]

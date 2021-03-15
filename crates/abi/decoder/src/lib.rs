@@ -1,4 +1,4 @@
-#![no_std]
+#![feature(core_intrinsics)]
 
 //! This crate is responsible on decoding function buffers.
 //! Its code is meant to be used as part of SVM Templates (i.e Smart-Contract) code.
@@ -13,14 +13,18 @@
 //! For more info regarding the encoding scheme see the counterpart `svm-abi-encoder` crate.
 //!
 
-#![deny(missing_docs)]
-#![deny(unused)]
+#![no_std]
+#![allow(missing_docs)]
+#![allow(unused)]
 #![deny(dead_code)]
 #![deny(unreachable_code)]
 
 mod calldata;
 mod cursor;
 mod decoder;
+
+#[cfg(feature = "full")]
+extern crate std;
 
 pub use calldata::CallData;
 

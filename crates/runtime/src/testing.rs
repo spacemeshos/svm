@@ -159,7 +159,7 @@ pub fn build_app(
     template: &TemplateAddr,
     name: &str,
     ctor: &str,
-    calldata: &Vec<u8>,
+    calldata: &[u8],
 ) -> Vec<u8> {
     SpawnAppBuilder::new()
         .with_version(version)
@@ -171,7 +171,7 @@ pub fn build_app(
 }
 
 /// Synthesizes a raw exec-app transaction.
-pub fn build_app_tx(version: u16, app_addr: &AppAddr, func: &str, calldata: &Vec<u8>) -> Vec<u8> {
+pub fn build_app_tx(version: u16, app_addr: &AppAddr, func: &str, calldata: &[u8]) -> Vec<u8> {
     TxBuilder::new()
         .with_version(version)
         .with_app(app_addr)

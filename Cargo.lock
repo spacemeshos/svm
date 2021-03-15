@@ -636,12 +636,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "memory_units"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8452105ba047068f40ff7093dd1d9da90898e63dd61736462e9cdda6a90ad3c3"
-
-[[package]]
 name = "miniz_oxide"
 version = "0.4.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1055,6 +1049,7 @@ dependencies = [
  "svm-sdk-alloc",
  "svm-sdk-host",
  "svm-sdk-macros",
+ "svm-sdk-std",
  "svm-sdk-storage",
  "svm-sdk-tests",
  "svm-sdk-types",
@@ -1070,6 +1065,7 @@ name = "svm-abi-decoder"
 version = "0.0.0"
 dependencies = [
  "svm-abi-layout",
+ "svm-sdk-std",
  "svm-sdk-types",
 ]
 
@@ -1078,6 +1074,7 @@ name = "svm-abi-encoder"
 version = "0.0.0"
 dependencies = [
  "svm-abi-layout",
+ "svm-sdk-std",
  "svm-sdk-types",
 ]
 
@@ -1092,7 +1089,8 @@ dependencies = [
  "svm-abi-decoder",
  "svm-abi-encoder",
  "svm-abi-layout",
- "svm-sdk",
+ "svm-sdk-std",
+ "svm-sdk-types",
 ]
 
 [[package]]
@@ -1105,6 +1103,7 @@ dependencies = [
  "svm-abi-encoder",
  "svm-common",
  "svm-layout",
+ "svm-sdk-std",
  "svm-sdk-types",
  "svm-types",
 ]
@@ -1241,17 +1240,14 @@ dependencies = [
  "svm-sdk-alloc",
  "svm-sdk-host",
  "svm-sdk-macros",
+ "svm-sdk-std",
  "svm-sdk-storage",
  "svm-sdk-types",
- "wee_alloc",
 ]
 
 [[package]]
 name = "svm-sdk-alloc"
 version = "0.0.0"
-dependencies = [
- "wee_alloc",
-]
 
 [[package]]
 name = "svm-sdk-host"
@@ -1261,6 +1257,7 @@ dependencies = [
  "svm-abi-decoder",
  "svm-abi-encoder",
  "svm-sdk-alloc",
+ "svm-sdk-std",
  "svm-sdk-types",
 ]
 
@@ -1275,11 +1272,18 @@ dependencies = [
  "svm-abi-decoder",
  "svm-abi-encoder",
  "svm-sdk-host",
+ "svm-sdk-std",
  "svm-sdk-storage",
  "svm-sdk-types",
  "syn",
  "trybuild",
- "wee_alloc",
+]
+
+[[package]]
+name = "svm-sdk-std"
+version = "0.0.0"
+dependencies = [
+ "svm-sdk-alloc",
 ]
 
 [[package]]
@@ -1304,6 +1308,9 @@ dependencies = [
 [[package]]
 name = "svm-sdk-types"
 version = "0.0.0"
+dependencies = [
+ "svm-sdk-std",
+]
 
 [[package]]
 name = "svm-storage"
@@ -1722,18 +1729,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b0fa059022c5dabe129f02b429d67086400deb8277f89c975555dacc1dadbcc"
 dependencies = [
  "wast",
-]
-
-[[package]]
-name = "wee_alloc"
-version = "0.4.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dbb3b5a6b2bb17cb6ad44a2e68a43e8d2722c997da10e928665c72ec6c0a0b8e"
-dependencies = [
- "cfg-if 0.1.10",
- "libc",
- "memory_units",
- "winapi",
 ]
 
 [[package]]

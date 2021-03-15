@@ -80,8 +80,8 @@ impl SpawnAppBuilder {
         self
     }
 
-    pub fn with_calldata(mut self, calldata: &Vec<u8>) -> Self {
-        self.calldata = Some(calldata.clone());
+    pub fn with_calldata(mut self, calldata: &[u8]) -> Self {
+        self.calldata = Some(calldata.to_vec());
         self
     }
 
