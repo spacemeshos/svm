@@ -11,7 +11,7 @@ description = "Spacemesh Virtual Machine"
 publish = false
 
 [dependencies]
-svm-sdk = { path = "../sdk", features = ["mock"] }
+svm-sdk = { path = "../sdk", default-features = false }
 svm-sdk-types = { path = "../sdk/types", features = ["debug"] }
 
 [dev-dependencies]

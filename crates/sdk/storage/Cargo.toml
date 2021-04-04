@@ -16,6 +16,6 @@ svm-sdk-types = { path = "../types" }
 svm-sdk-alloc = { path = "../alloc" }
 
 [features]
-default = ["ffi", "mock"]
+default = ["mock"]
 ffi = []
 mock = []

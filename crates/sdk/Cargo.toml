@@ -12,9 +12,9 @@ publish = false
 
 [dependencies]
 lazy_static = "1.4.0"
-svm-sdk-host = { path = "host" }
+svm-sdk-host = { path = "host", default-features = false }
+svm-sdk-storage = { path = "storage", default-features = false }
 svm-sdk-std = { path = "std" }
-svm-sdk-storage = { path = "storage" }
 svm-sdk-alloc = { path = "alloc" }
 svm-sdk-types = { path = "types" }
 svm-sdk-macros = { path = "macros" }

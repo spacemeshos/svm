@@ -14,17 +14,17 @@ syn = { version = "1.0.42", features = ["full"] }
 serde_json = { version = "1.0" }
 svm-abi-encoder = { path = "../../abi/encoder" }
 svm-abi-decoder = { path = "../../abi/decoder" }
-svm-sdk-storage = { path = "../storage" }
+svm-sdk-host = { path = "../host", default-features = false }
+svm-sdk-storage = { path = "../storage", default-features = false }
 svm-sdk-types = { path = "../types" }
 svm-sdk-std = { path = "../std" }
-svm-sdk-host = { path = "../host" }
 
 [dev-dependencies]
 lazy_static = "1.4.0"
 trybuild = { version = "1.0", features = ["diff"] }
 
 [features]
-default = ["mock"]
+default = []
 ffi = ["svm-sdk-host/ffi", "svm-sdk-storage/ffi"]
 mock = ["svm-sdk-host/mock", "svm-sdk-storage/mock"]
 api = []

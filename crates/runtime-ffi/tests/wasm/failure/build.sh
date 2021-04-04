@@ -1,4 +1,4 @@
-cargo +nightly build --release --target wasm32-unknown-unknown --features=ffi  
+cargo +nightly build --features=ffi --no-default-features --release --target wasm32-unknown-unknown 
 
 if [ -f ./../failure.wasm ]; then
     rm ./../failure.wasm

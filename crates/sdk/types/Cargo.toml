@@ -13,9 +13,6 @@ publish = false
 [dependencies]
 svm-sdk-std = { path = "../std" }
 
-[dev-dependencies]
-svm-sdk-std = { path = "../std", features = ["debug"] }
-
 [features]
 default = []
 debug = ["svm-sdk-std/debug"] 
