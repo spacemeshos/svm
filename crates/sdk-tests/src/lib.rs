@@ -1,7 +1,5 @@
 #![allow(unused)]
 
-extern crate svm_sdk;
-
 use svm_sdk::host::MockHost;
 use svm_sdk::storage::MockStorage;
 use svm_sdk::traits::{ByteSize, Encoder};

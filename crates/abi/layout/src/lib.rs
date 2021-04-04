@@ -76,6 +76,7 @@
 #![deny(dead_code)]
 #![deny(unreachable_code)]
 
+#[allow(clippy::unusual_byte_groupings)]
 #[doc(hidden)]
 pub mod layout {
     // Boolean

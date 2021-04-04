@@ -1,5 +1,4 @@
-use wasmer::{Module, Store, JIT};
-use wasmer_compiler::CompileError;
+use wasmer::{CompileError, Module, Store, JIT};
 
 /// Compiles the SVM app
 ///

@@ -402,8 +402,8 @@ mod tests {
     #[test]
     fn host_accounts() {
         test(|| {
-            let addr1: Address = [0x10; 20].into();
-            let addr2: Address = [0x20; 20].into();
+            let addr1: Address = Address::repeat(0x10).into();
+            let addr2: Address = Address::repeat(0x20).into();
 
             MockHost::set_balance(&addr1, Amount(10));
             MockHost::set_balance(&addr2, Amount(20));

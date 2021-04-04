@@ -1,5 +1,3 @@
-#![feature(core_intrinsics)]
-
 //! This crate is responsible on decoding function buffers.
 //! Its code is meant to be used as part of SVM Templates (i.e Smart-Contract) code.
 //! That's the reason why we add to the crate the `#![no_std]` annotation.
@@ -22,9 +20,6 @@
 mod calldata;
 mod cursor;
 mod decoder;
-
-#[cfg(feature = "full")]
-extern crate std;
 
 pub use calldata::CallData;
 

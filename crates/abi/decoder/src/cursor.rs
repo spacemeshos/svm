@@ -69,7 +69,7 @@ impl Cursor {
         byte
     }
 
-    /// If there are at laest `nbytes` unprocessed-yet bytes,
+    /// If there are at least `nbytes` unprocessed-yet bytes,
     /// returns a raw pointer to the current pointed-by address.
     /// And then, it increments the `offset` by `nbytes`.
     ///

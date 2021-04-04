@@ -12,7 +12,7 @@ impl VMCallsGasEstimator for PanicVMMCallstimator {
 
 macro_rules! estimate_code {
     ($code:expr) => {{
-        let wasm = wabt::wat2wasm($code).unwrap();
+        let wasm = wat::parse_str($code).unwrap();
 
         estimate_code::<PanicVMMCallstimator>(&wasm[..])
     }};

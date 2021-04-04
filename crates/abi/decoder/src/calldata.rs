@@ -49,7 +49,7 @@ impl CallData {
         let value = self.decoder.decode_value(&mut self.cursor);
 
         match value {
-            Result::Err(..) => core::intrinsics::abort(),
+            Result::Err(..) => svm_sdk_std::panic(),
             Result::Ok(value) => Option::Some(value),
         }
     }

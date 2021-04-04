@@ -9,19 +9,22 @@ publish = false
 crate-type = ['cdylib']
 
 [profile.release]
-panic = 'abort'
-opt-level = 'z'
+opt-level = "z"
+panic = "abort"
 lto = true
 debug = false
 overflow-checks = false
 debug-assertions = false
+incremental = false
+rpath = false
 
 [dependencies]
 svm-sdk = { path = "../../../../sdk", default-features = false }
 
 [features]
-default = ["ffi"]
+default = ["mock"]
 ffi = ["svm-sdk/ffi"]
 mock = ["svm-sdk/mock"]
+static-alloc = ["svm-sdk/static-alloc"]
 
 [workspace]

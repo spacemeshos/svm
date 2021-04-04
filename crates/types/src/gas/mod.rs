@@ -11,6 +11,12 @@ pub use error::OOGError;
 #[repr(transparent)]
 pub struct Gas(Option<u64>);
 
+impl Default for Gas {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Gas {
     /// New `MaybeGas` backed by a `None`
     pub fn new() -> Self {

@@ -1,12 +1,6 @@
 use svm_abi_layout::layout;
 
-#[cfg(feature = "full")]
-use std::vec::Vec;
-
-#[cfg(not(feature = "full"))]
-use svm_sdk_std::Vec;
-
-use svm_sdk_std::{safe_try, Result};
+use svm_sdk_std::{safe_try, Result, Vec};
 use svm_sdk_types::value::{Primitive, Value};
 use svm_sdk_types::{Address, Amount};
 
@@ -68,7 +62,7 @@ macro_rules! decode_fixed_primitive {
     }};
 }
 
-/// Decodes an encoded function buffer back into a `sdk_values::Value`
+/// Decodes an encoded function buffer back into a `svm_sdk_types::value::Value`
 pub struct Decoder;
 
 impl Decoder {
@@ -126,7 +120,7 @@ impl Decoder {
         let v = match byte {
             layout::BOOL_FALSE => false,
             layout::BOOL_TRUE => true,
-            _ => unreachable!(),
+            _ => svm_sdk_std::panic(),
         };
 
         Result::Ok(v.into())
@@ -137,7 +131,7 @@ impl Decoder {
 
         debug_assert_eq!(byte, layout::ADDRESS);
 
-        decode_fixed_primitive!(self, Address, 20, cursor)
+        decode_fixed_primitive!(self, Address, Address::len(), cursor)
     }
 
     fn decode_amount(&self, cursor: &mut Cursor) -> Result<Value, DecodeError> {
@@ -152,7 +146,7 @@ impl Decoder {
             layout::AMOUNT_6B => 6,
             layout::AMOUNT_7B => 7,
             layout::AMOUNT_8B => 8,
-            _ => unreachable!(),
+            _ => svm_sdk_std::panic(),
         };
 
         let num = safe_try!(self.read_num(cursor, nbytes));
@@ -183,7 +177,7 @@ impl Decoder {
         let nbytes = match byte {
             layout::I16_1B | layout::U16_1B => 1,
             layout::I16_2B | layout::U16_2B => 2,
-            _ => unreachable!(),
+            _ => svm_sdk_std::panic(),
         };
 
         let num = safe_try!(self.read_num(cursor, nbytes)) as i16;
@@ -205,7 +199,7 @@ impl Decoder {
             layout::I32_2B | layout::U32_2B => 2,
             layout::I32_3B | layout::U32_3B => 3,
             layout::I32_4B | layout::U32_4B => 4,
-            _ => unreachable!(),
+            _ => svm_sdk_std::panic(),
         };
 
         let num = safe_try!(self.read_num(cursor, nbytes)) as i32;
@@ -231,7 +225,7 @@ impl Decoder {
             layout::I64_6B | layout::U64_6B => 6,
             layout::I64_7B | layout::U64_7B => 7,
             layout::I64_8B | layout::U64_8B => 8,
-            _ => unreachable!(),
+            _ => svm_sdk_std::panic(),
         };
 
         let num = safe_try!(self.read_num(cursor, nbytes)) as i64;
@@ -315,7 +309,7 @@ impl Decoder {
             layout::ARR_8 => impl_decode!(8 cursor values),
             layout::ARR_9 => impl_decode!(9 cursor values),
             layout::ARR_10 => impl_decode!(10 cursor values),
-            _ => unreachable!(),
+            _ => svm_sdk_std::panic(),
         };
 
         let values: Value = values.into();
@@ -504,7 +498,7 @@ impl Decoder {
             6 => from_be_bytes_6!(ptr),
             7 => from_be_bytes_7!(ptr),
             8 => from_be_bytes_8!(ptr),
-            _ => unreachable!(),
+            _ => svm_sdk_std::panic(),
         };
 
         Result::Ok(num)
@@ -586,9 +580,7 @@ impl Decoder {
             | layout::ARR_9
             | layout::ARR_10 => TypeKind::Array,
 
-            _ => {
-                unreachable!()
-            }
+            _ => svm_sdk_std::panic(),
         };
 
         Result::Ok(kind)

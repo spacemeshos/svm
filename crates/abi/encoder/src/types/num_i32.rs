@@ -1,4 +1,5 @@
 use crate::{ByteSize, Encoder};
+
 use svm_abi_layout::layout;
 
 macro_rules! encode {
@@ -45,7 +46,7 @@ macro_rules! encode {
                         w.push(bytes[2]);
                         w.push(bytes[3]);
                     }
-                    _ => unreachable!(),
+                    _ => svm_sdk_std::panic(),
                 }
             }
         }

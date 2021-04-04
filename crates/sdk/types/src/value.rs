@@ -1,6 +1,6 @@
 use crate::{Address, Amount};
 
-use svm_sdk_std::Option;
+use svm_sdk_std::{ensure, panic, Option};
 
 /// Primitive value
 #[derive(PartialEq)]
@@ -128,7 +128,7 @@ macro_rules! impl_from_value_to_rust {
             fn from(value: Value) -> Self {
                 match value {
                     Value::Primitive(Primitive::$prim_ident(v)) => v,
-                    _ => unreachable!(),
+                    _ => panic(),
                 }
             }
         }
@@ -138,7 +138,7 @@ macro_rules! impl_from_value_to_rust {
                 match value {
                     Value::Primitive(Primitive::None) => Option::None,
                     Value::Primitive(Primitive::$prim_ident(v)) => Option::Some(v),
-                    _ => unreachable!(),
+                    _ => panic(),
                 }
             }
         }
@@ -149,7 +149,7 @@ impl From<Value> for () {
     fn from(value: Value) -> Self {
         match value {
             Value::Primitive(Primitive::Unit) => (),
-            _ => unreachable!(),
+            _ => panic(),
         }
     }
 }
@@ -192,7 +192,7 @@ macro_rules! impl_value_to_rust_array {
 
                 match value {
                     Value::Composite(Composite::Vec(mut values)) => {
-                        assert_eq!(values.len(), $n);
+                        ensure!(values.len() == $n);
 
                         let mut array: [MaybeUninit<$T>; $n] = MaybeUninit::uninit_array();
 
@@ -204,7 +204,7 @@ macro_rules! impl_value_to_rust_array {
 
                         unsafe { core::mem::transmute::<_, Self>(array) }
                     }
-                    _ => unreachable!(),
+                    _ => panic(),
                 }
             }
         }

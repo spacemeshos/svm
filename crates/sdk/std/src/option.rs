@@ -1,6 +1,6 @@
 use core::cmp::{Eq, PartialEq};
 
-use crate::Result;
+use crate::{panic, Result};
 pub enum Option<T> {
     None,
 
@@ -11,7 +11,7 @@ impl<T> Option<T> {
     #[inline]
     pub fn unwrap(self) -> T {
         match self {
-            Self::None => panic!(),
+            Self::None => panic(),
             Self::Some(val) => val,
         }
     }

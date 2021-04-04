@@ -11,11 +11,9 @@ description = "Spacemesh Virtual Machine"
 publish = false
 
 [dependencies]
-svm-sdk-std = { path = "../std" }
-
-[dev-dependencies]
-svm-sdk-std = { path = "../std", features = ["debug"] }
+svm-sdk-std = { path = "../std", default-features = false }
 
 [features]
 default = []
 debug = ["svm-sdk-std/debug"] 
+static-alloc = ["svm-sdk-std/static-alloc"]

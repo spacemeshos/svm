@@ -12,3 +12,4 @@ publish = false
 
 [features]
 default = []
+static-alloc = []

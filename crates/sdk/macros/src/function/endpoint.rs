@@ -1,5 +1,3 @@
-use std::fmt::format;
-
 use proc_macro2::{Span, TokenStream};
 
 use quote::{quote, ToTokens};
@@ -17,7 +15,7 @@ pub fn expand(func: &Function, attrs: &[FuncAttr], app: &App) -> Result<TokenStr
 
     let name = func.raw_name();
     let prologue = expand_prologue(func)?;
-    let epilogue = expand_epilogue()?;
+    let epilogue = expand_epilogue(func)?;
     let returns = expand_returns(func)?;
     let body = func.raw_body();
 
@@ -37,12 +35,12 @@ pub fn expand(func: &Function, attrs: &[FuncAttr], app: &App) -> Result<TokenStr
         }
     }
 
-    let func_attrs = func_attrs(func);
+    let attrs = func_attrs(func);
 
     let ast = quote! {
-        #func_attrs
+        #attrs
         pub extern "C" fn #name() {
-            #call_fundable_hook
+            // #call_fundable_hook
 
             fn __inner__() #returns {
                 #prologue
@@ -58,14 +56,19 @@ pub fn expand(func: &Function, attrs: &[FuncAttr], app: &App) -> Result<TokenStr
 }
 
 fn expand_prologue(func: &Function) -> Result<TokenStream> {
+    let sig = func.raw_sig();
+
+    if sig.inputs.is_empty() {
+        return Ok(quote! {});
+    }
+
     let calldata = quote! {
-        let bytes = Node.get_calldata();
+        let bytes: &'static [u8] = Node.get_calldata();
 
         let mut calldata = svm_sdk::CallData::new(bytes);
     };
 
     let mut assigns: Vec<TokenStream> = Vec::new();
-    let sig = func.raw_sig();
 
     for input in &sig.inputs {
         if let FnArg::Typed(PatType { pat, ty, .. }) = input {
@@ -93,8 +96,36 @@ fn expand_prologue(func: &Function) -> Result<TokenStream> {
     Ok(ast)
 }
 
-fn expand_epilogue() -> Result<TokenStream> {
+// fn expand_returns_size(func: &Function) -> Result<TokenStream> {
+//     let sig = func.raw_sig();
+
+//     let includes = quote! {
+//         use svm_sdk::traits::ByteSize;
+//     };
+
+//     let calculation = match &sig.output {
+//         ReturnType::Default => quote! {
+//             ()::max_byte_size()
+//         },
+//         ReturnType::Type(.., ty) => quote! {
+//            < #ty >::max_byte_size()
+//         },
+//     };
+
+//     let ast = quote! {
+//         {
+//             #includes
+
+//             #calculation
+//         }
+//     };
+
+//     Ok(ast)
+// }
+
+fn expand_epilogue(func: &Function) -> Result<TokenStream> {
     let includes = function::host_includes();
+    // let returns = expand_returns_size(func)?;
 
     let ast = quote! {
         {
@@ -104,12 +135,16 @@ fn expand_epilogue() -> Result<TokenStream> {
 
             let returns = __inner__();
 
-            // TODO: pre-calculate the exact capacity required
-            let mut bytes: svm_sdk::Vec<u8> = svm_sdk::Vec::with_capacity(10_000);
+            // TODO: calculate the required `capacity` (in compile-time)
+            let cap = 100;
+
+            let mut bytes: svm_sdk::Vec<u8> = svm_sdk::Vec::with_capacity(cap);
 
             returns.encode(&mut bytes);
 
-            Node.set_returndata(&bytes);
+            // if bytes.len() > 0 {
+                Node.set_returndata(&bytes);
+            // }
         }
     };
 
@@ -120,7 +155,17 @@ fn expand_returns(func: &Function) -> Result<TokenStream> {
     let mut tokens = TokenStream::new();
 
     let sig = func.raw_sig();
+
     sig.output.to_tokens(&mut tokens);
+
+    // match &sig.output {
+    //     ReturnType::Default => {
+    //         ().to_tokens(&mut tokens);
+    //     }
+    //     ReturnType::Type(.., ty) => {
+    //         ty.to_tokens(&mut tokens);
+    //     }
+    // }
 
     Ok(tokens)
 }

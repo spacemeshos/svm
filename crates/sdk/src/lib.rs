@@ -219,9 +219,9 @@
 ///     }
 ///
 ///     {
-///         use svm_sdk::traits::Encoder;
+///         use svm_sdk::traits::{Encoder, ByteSize};
 ///
-///         let cap = 100;
+///         let cap = Amount::max_byte_size();
 ///         let mut bytes = svm_sdk::Vec::with_capacity(cap);
 ///
 ///         let rets = __inner__();
@@ -318,9 +318,10 @@
 ///     }
 ///
 ///     {
-///         use svm_sdk::traits::Encoder;
+///         use svm_sdk::traits::{Encoder, ByteSize};
 ///
-///         let mut bytes = svm_sdk::Vec::with_capacity(0);
+///         let cap = <()>::max_byte_size();
+///         let mut bytes = svm_sdk::Vec::with_capacity(cap);
 ///
 ///         let rets = __inner__();
 ///         rets.encode(&mut bytes);
@@ -334,13 +335,11 @@
 pub use svm_abi_decoder::{CallData, DecodeError, ReturnData};
 pub use svm_sdk_macros::app;
 
-/// std
-pub use svm_sdk_std::Vec;
 pub use svm_sdk_std::{ensure, log};
+/// std
+pub use svm_sdk_std::{Option, Result, Vec};
 
-// using `extern crate` for importing the `Global Allocator`
-extern crate svm_sdk_alloc;
-
+// alloc
 pub use svm_sdk_alloc::{alloc, Ptr};
 
 #[cfg(not(any(feature = "ffi", feature = "mock")))]

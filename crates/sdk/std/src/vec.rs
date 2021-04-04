@@ -1,353 +1,357 @@
-use svm_sdk_alloc::alloc;
+extern crate alloc;
 
-use core::fmt;
-use core::mem::size_of;
-use core::ops::{Deref, DerefMut};
+pub use alloc::vec::Vec;
 
-use crate::ensure;
+// use svm_sdk_alloc::alloc;
 
-pub struct Vec<T> {
-    len: usize,
+// use core::fmt;
+// use core::mem::size_of;
+// use core::ops::{Deref, DerefMut};
 
-    cap: usize,
+// use crate::ensure;
 
-    ptr: *mut T,
-}
+// pub struct Vec<T> {
+//     len: usize,
 
-impl<T> Vec<T> {
-    pub fn with_capacity(cap: usize) -> Self {
-        let ptr = Vec::alloc(cap);
+//     cap: usize,
 
-        Self { len: 0, cap, ptr }
-    }
+//     ptr: *mut T,
+// }
 
-    pub fn push(&mut self, value: T) {
-        ensure!(self.len() < self.capacity());
+// impl<T> Vec<T> {
+//     pub fn with_capacity(cap: usize) -> Self {
+//         let ptr = Vec::alloc(cap);
 
-        unsafe {
-            let dest = self.get_ptr_mut(self.len());
+//         Self { len: 0, cap, ptr }
+//     }
 
-            core::ptr::write(dest, value);
-        }
+//     pub fn push(&mut self, value: T) {
+//         ensure!(self.len() < self.capacity());
 
-        self.len += 1;
-    }
+//         unsafe {
+//             let dest = self.get_ptr_mut(self.len());
 
-    pub fn pop(&mut self) -> T {
-        ensure!(self.len() > 0);
+//             core::ptr::write(dest, value);
+//         }
 
-        let last = self.len() - 1;
+//         self.len += 1;
+//     }
 
-        let value = unsafe { self.take(last) };
+//     pub fn pop(&mut self) -> T {
+//         ensure!(self.is_empty() == false);
 
-        self.len = last;
+//         let last = self.len() - 1;
 
-        value
-    }
+//         let value = unsafe { self.take(last) };
 
-    pub fn as_slice(&self) -> &[T] {
-        unsafe { core::slice::from_raw_parts(self.ptr, self.len) }
-    }
+//         self.len = last;
 
-    pub fn as_mut(&self) -> &mut [T] {
-        unsafe { core::slice::from_raw_parts_mut(self.ptr, self.len) }
-    }
+//         value
+//     }
 
-    pub fn clear(&mut self) {
-        self.len = 0;
-    }
+//     pub fn as_slice(&self) -> &[T] {
+//         unsafe { core::slice::from_raw_parts(self.ptr, self.len) }
+//     }
 
-    pub fn leak(self) -> &'static [T] {
-        let slice = self.as_slice();
+//     pub fn as_mut(&mut self) -> &mut [T] {
+//         unsafe { core::slice::from_raw_parts_mut(self.ptr, self.len) }
+//     }
 
-        let vec = unsafe { core::mem::transmute(slice) };
+//     pub fn clear(&mut self) {
+//         self.len = 0;
+//     }
 
-        core::mem::forget(self);
+//     pub fn leak(self) -> &'static [T] {
+//         let slice = self.as_slice();
 
-        vec
-    }
+//         let vec = unsafe { core::mem::transmute(slice) };
 
-    #[inline]
-    pub fn len(&self) -> usize {
-        self.len
-    }
+//         core::mem::forget(self);
 
-    #[inline]
-    pub fn capacity(&self) -> usize {
-        self.cap
-    }
+//         vec
+//     }
 
-    #[inline]
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
+//     #[inline]
+//     pub fn len(&self) -> usize {
+//         self.len
+//     }
 
-    pub fn iter(&self) -> Iter<T> {
-        Iter::new(self)
-    }
+//     #[inline]
+//     pub fn capacity(&self) -> usize {
+//         self.cap
+//     }
 
-    pub fn iter_mut(&mut self) -> Iter<T> {
-        Iter::new(self)
-    }
+//     #[inline]
+//     pub fn is_empty(&self) -> bool {
+//         self.len() == 0
+//     }
 
-    pub fn into_iter(self) -> IntoIter<T> {
-        IntoIter::new(self)
-    }
+//     pub fn iter(&self) -> Iter<T> {
+//         Iter::new(self)
+//     }
 
-    unsafe fn take(&mut self, offset: usize) -> T {
-        ensure!(self.len() > offset);
+//     pub fn iter_mut(&mut self) -> Iter<T> {
+//         Iter::new(self)
+//     }
 
-        let dest = self.get_ptr_mut(offset);
+//     pub fn into_iter(self) -> IntoIter<T> {
+//         IntoIter::new(self)
+//     }
 
-        core::ptr::read(dest)
-    }
+//     unsafe fn take(&mut self, offset: usize) -> T {
+//         ensure!(self.len() > offset);
+
+//         let dest = self.get_ptr_mut(offset);
 
-    fn get(&self, offset: usize) -> &T {
-        ensure!(self.len() > offset);
+//         core::ptr::read(dest)
+//     }
 
-        unsafe { self.get_unchecked(offset) }
-    }
+//     fn get(&self, offset: usize) -> &T {
+//         ensure!(self.len() > offset);
 
-    fn get_mut(&mut self, offset: usize) -> &mut T {
-        ensure!(self.len() > offset);
+//         unsafe { self.get_unchecked(offset) }
+//     }
 
-        unsafe { self.get_mut_unchecked(offset) }
-    }
+//     fn get_mut(&mut self, offset: usize) -> &mut T {
+//         ensure!(self.len() > offset);
 
-    #[inline]
-    unsafe fn get_unchecked(&self, offset: usize) -> &T {
-        let ptr = self.get_ptr(offset);
+//         unsafe { self.get_mut_unchecked(offset) }
+//     }
 
-        &*ptr
-    }
+//     #[inline]
+//     unsafe fn get_unchecked(&self, offset: usize) -> &T {
+//         let ptr = self.get_ptr(offset);
 
-    #[inline]
-    unsafe fn get_mut_unchecked(&mut self, offset: usize) -> &mut T {
-        let ptr = self.get_ptr_mut(offset);
+//         &*ptr
+//     }
 
-        &mut *ptr
-    }
+//     #[inline]
+//     unsafe fn get_mut_unchecked(&mut self, offset: usize) -> &mut T {
+//         let ptr = self.get_ptr_mut(offset);
 
-    #[inline]
-    unsafe fn get_ptr(&self, offset: usize) -> *const T {
-        self.ptr.offset(offset as isize)
-    }
+//         &mut *ptr
+//     }
 
-    #[inline]
-    unsafe fn get_ptr_mut(&self, offset: usize) -> *mut T {
-        self.ptr.offset(offset as isize)
-    }
+//     #[inline]
+//     unsafe fn get_ptr(&self, offset: usize) -> *const T {
+//         self.ptr.add(offset)
+//     }
 
-    #[inline]
-    fn alloc(size: usize) -> *mut T {
-        let nbytes = size_of::<T>() * size;
+//     #[inline]
+//     unsafe fn get_ptr_mut(&self, offset: usize) -> *mut T {
+//         self.ptr.add(offset)
+//     }
 
-        alloc(nbytes).as_mut_ptr() as _
-    }
-}
+//     #[inline]
+//     fn alloc(size: usize) -> *mut T {
+//         let nbytes = size_of::<T>() * size;
 
-#[cfg(feature = "debug")]
-impl<T> core::fmt::Debug for Vec<T> {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.debug_struct("svm_sdk::Vec")
-            .field("len", &self.len())
-            .field("capacity", &self.capacity())
-            .finish()
-    }
-}
+//         alloc(nbytes).as_mut_ptr() as _
+//     }
+// }
 
-impl<T: PartialEq> PartialEq for Vec<T> {
-    fn eq(&self, other: &Self) -> bool {
-        self.as_slice() == other.as_slice()
-    }
-}
+// #[cfg(feature = "debug")]
+// impl<T> core::fmt::Debug for Vec<T> {
+//     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+//         f.debug_struct("svm_sdk::Vec")
+//             .field("len", &self.len())
+//             .field("capacity", &self.capacity())
+//             .finish()
+//     }
+// }
 
-impl<T> Deref for Vec<T> {
-    type Target = [T];
+// impl<T: PartialEq> PartialEq for Vec<T> {
+//     fn eq(&self, other: &Self) -> bool {
+//         self.as_slice() == other.as_slice()
+//     }
+// }
 
-    fn deref(&self) -> &Self::Target {
-        self.as_slice()
-    }
-}
+// impl<T> Deref for Vec<T> {
+//     type Target = [T];
 
-impl<T> DerefMut for Vec<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        self.as_mut()
-    }
-}
+//     fn deref(&self) -> &Self::Target {
+//         self.as_slice()
+//     }
+// }
 
-pub struct Iter<'a, T> {
-    pos: usize,
+// impl<T> DerefMut for Vec<T> {
+//     fn deref_mut(&mut self) -> &mut Self::Target {
+//         self.as_mut()
+//     }
+// }
 
-    vec: &'a Vec<T>,
-}
+// pub struct Iter<'a, T> {
+//     pos: usize,
 
-impl<'a, T> Iter<'a, T> {
-    pub fn new(vec: &'a Vec<T>) -> Self {
-        Self { vec, pos: 0 }
-    }
-}
+//     vec: &'a Vec<T>,
+// }
 
-impl<'a, T> core::iter::Iterator for Iter<'a, T> {
-    type Item = &'a T;
+// impl<'a, T> Iter<'a, T> {
+//     pub fn new(vec: &'a Vec<T>) -> Self {
+//         Self { vec, pos: 0 }
+//     }
+// }
 
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.pos >= self.vec.len() {
-            return None;
-        }
+// impl<'a, T> core::iter::Iterator for Iter<'a, T> {
+//     type Item = &'a T;
 
-        let item = self.vec.get(self.pos);
+//     fn next(&mut self) -> Option<Self::Item> {
+//         if self.pos >= self.vec.len() {
+//             return None;
+//         }
 
-        self.pos += 1;
+//         let item = self.vec.get(self.pos);
 
-        Some(item)
-    }
-}
+//         self.pos += 1;
 
-pub struct IntoIter<T> {
-    pos: usize,
+//         Some(item)
+//     }
+// }
 
-    vec: Vec<T>,
-}
+// pub struct IntoIter<T> {
+//     pos: usize,
 
-impl<T> IntoIter<T> {
-    pub fn new(vec: Vec<T>) -> Self {
-        Self { vec, pos: 0 }
-    }
-}
+//     vec: Vec<T>,
+// }
 
-impl<T> core::iter::Iterator for IntoIter<T> {
-    type Item = T;
+// impl<T> IntoIter<T> {
+//     pub fn new(vec: Vec<T>) -> Self {
+//         Self { vec, pos: 0 }
+//     }
+// }
 
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.pos >= self.vec.len() {
-            return None;
-        }
+// impl<T> core::iter::Iterator for IntoIter<T> {
+//     type Item = T;
 
-        let v = unsafe { self.vec.take(self.pos) };
+//     fn next(&mut self) -> Option<Self::Item> {
+//         if self.pos >= self.vec.len() {
+//             return None;
+//         }
 
-        self.pos += 1;
+//         let v = unsafe { self.vec.take(self.pos) };
 
-        Some(v)
-    }
-}
+//         self.pos += 1;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+//         Some(v)
+//     }
+// }
 
-    #[test]
-    fn vec_empty() {
-        let vec: Vec<u8> = Vec::with_capacity(0);
+// #[cfg(test)]
+// mod tests {
+//     use super::*;
 
-        assert!(vec.is_empty());
-        assert_eq!(vec.len(), 0);
-    }
+//     #[test]
+//     fn vec_empty() {
+//         let vec: Vec<u8> = Vec::with_capacity(0);
 
-    #[test]
-    fn vec_one_item() {
-        let mut vec: Vec<u8> = Vec::with_capacity(1);
+//         assert!(vec.is_empty());
+//         assert_eq!(vec.len(), 0);
+//     }
 
-        assert!(vec.is_empty());
-        vec.push(10);
-        assert_eq!(vec.len(), 1);
-        assert!(vec.is_empty() == false);
+//     #[test]
+//     fn vec_one_item() {
+//         let mut vec: Vec<u8> = Vec::with_capacity(1);
 
-        let v = vec.pop();
-        assert_eq!(v, 10);
-        assert!(vec.is_empty());
-    }
+//         assert!(vec.is_empty());
+//         vec.push(10);
+//         assert_eq!(vec.len(), 1);
+//         assert!(vec.is_empty() == false);
 
-    #[test]
-    fn vec_two_items() {
-        let mut vec: Vec<u8> = Vec::with_capacity(2);
+//         let v = vec.pop();
+//         assert_eq!(v, 10);
+//         assert!(vec.is_empty());
+//     }
 
-        assert!(vec.is_empty());
-        vec.push(10);
-        vec.push(20);
+//     #[test]
+//     fn vec_two_items() {
+//         let mut vec: Vec<u8> = Vec::with_capacity(2);
 
-        assert_eq!(vec.len(), 2);
+//         assert!(vec.is_empty());
+//         vec.push(10);
+//         vec.push(20);
 
-        let v = vec.pop();
-        assert_eq!(v, 20);
+//         assert_eq!(vec.len(), 2);
 
-        let v = vec.pop();
-        assert_eq!(v, 10);
+//         let v = vec.pop();
+//         assert_eq!(v, 20);
 
-        assert!(vec.is_empty());
-    }
+//         let v = vec.pop();
+//         assert_eq!(v, 10);
 
-    #[should_panic]
-    #[test]
-    fn vec_pop_from_empty_panics() {
-        let mut vec: Vec<u8> = Vec::with_capacity(1);
+//         assert!(vec.is_empty());
+//     }
 
-        assert!(vec.is_empty());
-        vec.push(10);
+//     #[should_panic]
+//     #[test]
+//     fn vec_pop_from_empty_panics() {
+//         let mut vec: Vec<u8> = Vec::with_capacity(1);
 
-        let _ = vec.pop();
-        let _ = vec.pop();
-    }
+//         assert!(vec.is_empty());
+//         vec.push(10);
 
-    #[test]
-    fn vec_clear() {
-        let mut vec: Vec<u8> = Vec::with_capacity(2);
+//         let _ = vec.pop();
+//         let _ = vec.pop();
+//     }
 
-        vec.push(10);
-        vec.push(20);
+//     #[test]
+//     fn vec_clear() {
+//         let mut vec: Vec<u8> = Vec::with_capacity(2);
 
-        assert_eq!(vec.len(), 2);
+//         vec.push(10);
+//         vec.push(20);
 
-        vec.clear();
+//         assert_eq!(vec.len(), 2);
 
-        assert!(vec.is_empty());
-    }
+//         vec.clear();
 
-    #[test]
-    fn vec_leak() {
-        let mut vec: Vec<u8> = Vec::with_capacity(2);
+//         assert!(vec.is_empty());
+//     }
 
-        vec.push(10);
-        vec.push(20);
+//     #[test]
+//     fn vec_leak() {
+//         let mut vec: Vec<u8> = Vec::with_capacity(2);
 
-        let slice: &'static [u8] = vec.leak();
+//         vec.push(10);
+//         vec.push(20);
 
-        assert_eq!(slice, &[10, 20]);
-    }
+//         let slice: &'static [u8] = vec.leak();
 
-    #[test]
-    fn vec_iter() {
-        let mut vec: Vec<u8> = Vec::with_capacity(2);
+//         assert_eq!(slice, &[10, 20]);
+//     }
 
-        vec.push(10);
-        vec.push(20);
+//     #[test]
+//     fn vec_iter() {
+//         let mut vec: Vec<u8> = Vec::with_capacity(2);
 
-        let mut iter = vec.iter();
+//         vec.push(10);
+//         vec.push(20);
 
-        let v = iter.next().unwrap();
-        assert_eq!(v, &10);
+//         let mut iter = vec.iter();
 
-        let v = iter.next().unwrap();
-        assert_eq!(v, &20);
+//         let v = iter.next().unwrap();
+//         assert_eq!(v, &10);
 
-        assert_eq!(iter.next(), Option::None);
-    }
+//         let v = iter.next().unwrap();
+//         assert_eq!(v, &20);
 
-    #[test]
-    fn vec_into_iter() {
-        let mut vec: Vec<u8> = Vec::with_capacity(2);
+//         assert_eq!(iter.next(), Option::None);
+//     }
 
-        vec.push(10);
-        vec.push(20);
+//     #[test]
+//     fn vec_into_iter() {
+//         let mut vec: Vec<u8> = Vec::with_capacity(2);
 
-        let mut iter = vec.into_iter();
+//         vec.push(10);
+//         vec.push(20);
 
-        let v = iter.next().unwrap();
-        assert_eq!(v, 10);
+//         let mut iter = vec.into_iter();
 
-        let v = iter.next().unwrap();
-        assert_eq!(v, 20);
+//         let v = iter.next().unwrap();
+//         assert_eq!(v, 10);
 
-        assert_eq!(iter.next(), Option::None);
-    }
-}
+//         let v = iter.next().unwrap();
+//         assert_eq!(v, 20);
+
+//         assert_eq!(iter.next(), Option::None);
+//     }
+// }

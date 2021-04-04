@@ -12,10 +12,16 @@ publish = false
 
 [dependencies]
 lazy_static = "1.4.0"
-svm-sdk-types = { path = "../types" }
-svm-sdk-alloc = { path = "../alloc" }
+svm-sdk-alloc = { path = "../alloc", default-features = false }
+svm-sdk-types = { path = "../types", default-features = false }
+svm-sdk-std = { path = "../std", default-features = false }
 
 [features]
-default = ["ffi", "mock"]
+default = ["mock"]
 ffi = []
 mock = []
+static-alloc = [
+    "svm-sdk-alloc/static-alloc",
+    "svm-sdk-types/static-alloc",
+    "svm-sdk-std/static-alloc"
+]

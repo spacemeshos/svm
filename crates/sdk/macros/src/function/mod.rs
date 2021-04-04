@@ -1,7 +1,7 @@
 use proc_macro2::{Ident, Span, TokenStream};
 
 use quote::{quote, ToTokens};
-use syn::{Attribute, Block, Error, ItemFn, Result, Signature};
+use syn::{Attribute, Block, Error, ItemFn, Result, ReturnType, Signature, Type};
 
 mod attr;
 mod ctor;
