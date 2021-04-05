@@ -1,5 +1,6 @@
 use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
+use std::u64;
 
 use wasmer::Memory;
 
@@ -100,6 +101,8 @@ pub struct ContextInner {
     /// Instance's memory
     memory: Option<Memory>,
 
+    used_memory: u64,
+
     /// Pointer to `calldata`. Tuple stores `(offset, len)`.
     calldata: Option<(usize, usize)>,
 }
@@ -118,6 +121,7 @@ impl ContextInner {
             memory: None,
             calldata: None,
             returndata: None,
+            used_memory: 0,
         }
     }
 
@@ -145,6 +149,18 @@ impl ContextInner {
         debug_assert!(self.memory.is_some());
 
         self.memory.as_ref().unwrap()
+    }
+
+    pub fn set_used_memory(&mut self, used_memory: u64) {
+        self.used_memory = used_memory;
+    }
+
+    pub fn used_memory(&self) -> u64 {
+        self.used_memory
+    }
+
+    pub fn allocated_memory(&self) -> u64 {
+        self.get_memory().data_size()
     }
 
     pub fn take_logs(&mut self) -> Vec<ReceiptLog> {
