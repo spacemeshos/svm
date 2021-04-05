@@ -475,6 +475,9 @@ where
     fn set_memory(&self, ctx: &Context, instance: &Instance) {
         // TODO: raise when no exported memory exists
         let memory = instance.exports.get_memory("memory").unwrap();
+
+        // dbg!(format!("Runtime initial #pages {}", memory.size().0));
+
         ctx.borrow_mut().set_memory(memory.clone());
     }
 
