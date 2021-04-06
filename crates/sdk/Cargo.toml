@@ -22,7 +22,7 @@ svm-abi-encoder = { path = "../abi/encoder" }
 svm-abi-decoder = { path = "../abi/decoder" }
 
 [features]
-default = []
+default = ["mock"]
 ffi = ["svm-sdk-host/ffi", "svm-sdk-storage/ffi"]
 mock = ["svm-sdk-host/mock", "svm-sdk-storage/mock"]
 api = ["svm-sdk-macros/api"]
