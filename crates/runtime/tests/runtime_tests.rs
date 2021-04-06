@@ -262,7 +262,7 @@ fn default_runtime_exec_app_with_ctor_fails() {
     let version = 0;
     let author = Address::of("author").into();
     let maybe_gas = Gas::new();
-    let layout: Layout = vec![20].into();
+    let layout: Layout = vec![Address::len() as u32].into();
     let ctors = vec!["initialize".to_string()];
 
     let bytes = testing::build_template(
@@ -362,7 +362,7 @@ fn default_runtime_calldata_returndata() {
     let version = 0;
     let author = Address::of("author").into();
     let maybe_gas = Gas::new();
-    let layout: Layout = vec![20].into();
+    let layout: Layout = vec![Address::len() as u32].into();
     let ctors = vec!["initialize".to_string()];
 
     let bytes = testing::build_template(

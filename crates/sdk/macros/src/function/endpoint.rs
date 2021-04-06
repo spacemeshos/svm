@@ -58,6 +58,12 @@ pub fn expand(func: &Function, attrs: &[FuncAttr], app: &App) -> Result<TokenStr
 }
 
 fn expand_prologue(func: &Function) -> Result<TokenStream> {
+    let sig = func.raw_sig();
+
+    if sig.inputs.is_empty() {
+        return Ok(quote! {});
+    }
+
     let calldata = quote! {
         let bytes = Node.get_calldata();
 
@@ -65,7 +71,6 @@ fn expand_prologue(func: &Function) -> Result<TokenStream> {
     };
 
     let mut assigns: Vec<TokenStream> = Vec::new();
-    let sig = func.raw_sig();
 
     for input in &sig.inputs {
         if let FnArg::Typed(PatType { pat, ty, .. }) = input {
@@ -132,7 +137,7 @@ fn expand_epilogue(func: &Function) -> Result<TokenStream> {
 
             let returns = __inner__();
 
-            let cap = #returns;
+            let cap = 10_000;
 
             let mut bytes: svm_sdk::Vec<u8> = svm_sdk::Vec::with_capacity(cap);
 

@@ -17,12 +17,12 @@ svm-sdk-storage = { path = "storage", default-features = false }
 svm-sdk-std = { path = "std" }
 svm-sdk-alloc = { path = "alloc" }
 svm-sdk-types = { path = "types" }
-svm-sdk-macros = { path = "macros" }
+svm-sdk-macros = { path = "macros", default-features = false }
 svm-abi-encoder = { path = "../abi/encoder" }
 svm-abi-decoder = { path = "../abi/decoder" }
 
 [features]
-default = ["mock"]
+default = []
 ffi = ["svm-sdk-host/ffi", "svm-sdk-storage/ffi"]
 mock = ["svm-sdk-host/mock", "svm-sdk-storage/mock"]
 api = ["svm-sdk-macros/api"]

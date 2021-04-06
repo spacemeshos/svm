@@ -337,7 +337,11 @@ where
 
         let func = self.get_func::<Args, Rets>(&instance, ctx, call.func_name())?;
 
-        let mut out = self.call_with_alloc(&instance, ctx, call.calldata(), &func, &[])?;
+        let mut out = if call.calldata().len() > 0 {
+            self.call_with_alloc(&instance, ctx, call.calldata(), &func, &[])?
+        } else {
+            self.call(&instance, ctx, &func, &[])?
+        };
 
         let logs = out.take_logs();
 

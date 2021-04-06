@@ -5,6 +5,8 @@ use std::convert::TryFrom;
 use crate::Context;
 
 pub fn allocate(ctx: &Context, size: u32) -> u32 {
+    assert!(size > 0);
+
     let used = used_memory(ctx);
     let new_used = used + size as u64;
 

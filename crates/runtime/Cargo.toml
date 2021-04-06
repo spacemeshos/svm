@@ -30,7 +30,7 @@ svm-gas = { path = "../gas" }
 
 [dev-dependencies]
 maplit = "1.0.2"
-svm-sdk = { path = "../sdk" }
+svm-sdk = { path = "../sdk", features = ["mock"] }
 
 [features]
 default = ["default-memory", "default-rocksdb"]
