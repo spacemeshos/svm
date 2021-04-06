@@ -17,7 +17,7 @@ pub fn expand(func: &Function, attrs: &[FuncAttr], app: &App) -> Result<TokenStr
 
     let name = func.raw_name();
     let prologue = expand_prologue(func)?;
-    let epilogue = expand_epilogue()?;
+    let epilogue = expand_epilogue(func)?;
     let returns = expand_returns(func)?;
     let body = func.raw_body();
 
@@ -93,8 +93,36 @@ fn expand_prologue(func: &Function) -> Result<TokenStream> {
     Ok(ast)
 }
 
-fn expand_epilogue() -> Result<TokenStream> {
+fn expand_returns_size(func: &Function) -> Result<TokenStream> {
+    let sig = func.raw_sig();
+
+    let includes = quote! {
+        use svm_sdk::traits::ByteSize;
+    };
+
+    let calculation = match &sig.output {
+        ReturnType::Default => quote! {
+            ()::max_byte_size()
+        },
+        ReturnType::Type(.., ty) => quote! {
+           < #ty >::max_byte_size()
+        },
+    };
+
+    let ast = quote! {
+        {
+            #includes
+
+            #calculation
+        }
+    };
+
+    Ok(ast)
+}
+
+fn expand_epilogue(func: &Function) -> Result<TokenStream> {
     let includes = function::host_includes();
+    let returns = expand_returns_size(func)?;
 
     let ast = quote! {
         {
@@ -104,8 +132,9 @@ fn expand_epilogue() -> Result<TokenStream> {
 
             let returns = __inner__();
 
-            // TODO: pre-calculate the exact capacity required
-            let mut bytes: svm_sdk::Vec<u8> = svm_sdk::Vec::with_capacity(10_000);
+            let cap = #returns;
+
+            let mut bytes: svm_sdk::Vec<u8> = svm_sdk::Vec::with_capacity(cap);
 
             returns.encode(&mut bytes);
 

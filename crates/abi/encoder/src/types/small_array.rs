@@ -1,7 +1,7 @@
 use svm_abi_layout::layout;
 use svm_sdk_std::Vec;
 
-use crate::Encoder;
+use crate::{ByteSize, Encoder};
 
 macro_rules! impl_encode {
     ($W:ty) => {
@@ -112,3 +112,109 @@ macro_rules! impl_array_encode {
 }
 
 impl_array_encode!(svm_sdk_std::Vec<u8> => 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+
+impl<T, const N: usize> ByteSize for [T; N]
+where
+    T: ByteSize,
+{
+    fn byte_size(&self) -> usize {
+        assert!(N < 11);
+
+        1 + match N {
+            0 => 0,
+            1 => self[0].byte_size(),
+            2 => self[0].byte_size() + self[1].byte_size(),
+            3 => self[0].byte_size() + self[1].byte_size() + self[2].byte_size(),
+            4 => {
+                self[0].byte_size()
+                    + self[1].byte_size()
+                    + self[2].byte_size()
+                    + self[3].byte_size()
+            }
+            5 => {
+                self[0].byte_size()
+                    + self[1].byte_size()
+                    + self[2].byte_size()
+                    + self[3].byte_size()
+                    + self[4].byte_size()
+            }
+            6 => {
+                self[0].byte_size()
+                    + self[1].byte_size()
+                    + self[2].byte_size()
+                    + self[3].byte_size()
+                    + self[4].byte_size()
+                    + self[5].byte_size()
+            }
+            7 => {
+                self[0].byte_size()
+                    + self[1].byte_size()
+                    + self[2].byte_size()
+                    + self[3].byte_size()
+                    + self[4].byte_size()
+                    + self[5].byte_size()
+                    + self[6].byte_size()
+            }
+            8 => {
+                self[0].byte_size()
+                    + self[1].byte_size()
+                    + self[2].byte_size()
+                    + self[3].byte_size()
+                    + self[4].byte_size()
+                    + self[5].byte_size()
+                    + self[6].byte_size()
+                    + self[7].byte_size()
+            }
+            9 => {
+                self[0].byte_size()
+                    + self[1].byte_size()
+                    + self[2].byte_size()
+                    + self[3].byte_size()
+                    + self[4].byte_size()
+                    + self[5].byte_size()
+                    + self[6].byte_size()
+                    + self[7].byte_size()
+                    + self[8].byte_size()
+            }
+            10 => {
+                self[0].byte_size()
+                    + self[1].byte_size()
+                    + self[2].byte_size()
+                    + self[3].byte_size()
+                    + self[4].byte_size()
+                    + self[5].byte_size()
+                    + self[6].byte_size()
+                    + self[7].byte_size()
+                    + self[8].byte_size()
+                    + self[9].byte_size()
+            }
+            _ => unreachable!(),
+        }
+    }
+
+    fn max_byte_size() -> usize {
+        1 + T::max_byte_size() * N
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn array_empty() {
+        assert_eq!(<[bool; 0]>::max_byte_size(), 1);
+    }
+
+    #[test]
+    fn array_one_item() {
+        assert_eq!(<[bool; 1]>::max_byte_size(), 1 + bool::max_byte_size());
+        assert_eq!(<[u32; 1]>::max_byte_size(), 1 + u32::max_byte_size());
+    }
+
+    #[test]
+    fn array_two_items() {
+        assert_eq!(<[bool; 2]>::max_byte_size(), 1 + bool::max_byte_size() * 2);
+        assert_eq!(<[u32; 2]>::max_byte_size(), 1 + u32::max_byte_size() * 2);
+    }
+}

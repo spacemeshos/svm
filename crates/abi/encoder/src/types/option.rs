@@ -1,3 +1,7 @@
+use crate::traits::ByteSize;
+
+use svm_sdk_std::Option;
+
 macro_rules! encode {
     ($W:ty) => {
         impl<T> crate::traits::Encoder<$W> for svm_sdk_std::Option<T>
@@ -19,3 +23,19 @@ macro_rules! encode {
 }
 
 encode!(svm_sdk_std::Vec<u8>);
+
+impl<T> ByteSize for Option<T>
+where
+    T: ByteSize,
+{
+    fn byte_size(&self) -> usize {
+        match self {
+            Option::None => 1,
+            Option::Some(val) => val.byte_size(),
+        }
+    }
+
+    fn max_byte_size() -> usize {
+        T::max_byte_size()
+    }
+}

@@ -23,17 +23,17 @@ fn app_tests() {
 
     pass(&t, "tests/funding/funding.rs");
 
-    compile_fail(
-        &t,
-        "tests/funding/fundable_hook_and_fundable_not_allowed.rs",
-    );
+    // compile_fail(
+    //     &t,
+    //     "tests/funding/fundable_hook_and_fundable_not_allowed.rs",
+    // );
 
-    compile_fail(&t, "tests/funding/fundable_hook_used_twice_fails.rs");
-    compile_fail(&t, "tests/funding/fundable_used_twice_fails.rs");
-    compile_fail(&t, "tests/funding/fundable_hook_func_with_args_fails.rs");
+    // compile_fail(&t, "tests/funding/fundable_hook_used_twice_fails.rs");
+    // compile_fail(&t, "tests/funding/fundable_used_twice_fails.rs");
+    // compile_fail(&t, "tests/funding/fundable_hook_func_with_args_fails.rs");
 
-    compile_fail(
-        &t,
-        "tests/funding/fundable_hook_func_with_return_type_fails.rs",
-    );
+    // compile_fail(
+    //     &t,
+    //     "tests/funding/fundable_hook_func_with_return_type_fails.rs",
+    // );
 }

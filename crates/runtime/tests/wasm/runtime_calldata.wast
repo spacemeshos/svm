@@ -10,13 +10,13 @@
   (type (;8;) (func (param i32 i32) (result i64)))
   (type (;9;) (func (param i32 i64)))
   (type (;10;) (func (param i64) (result i32)))
-  (import "svm" "svm_calldata_offset" (func $_ZN12svm_sdk_host3ext19svm_calldata_offset17h07d24f45c5ac567fE (type 0)))
-  (import "svm" "svm_calldata_len" (func $_ZN12svm_sdk_host3ext16svm_calldata_len17h6d77304c58f043adE (type 0)))
-  (import "svm" "svm_set_returndata" (func $_ZN12svm_sdk_host3ext18svm_set_returndata17hc3f114854661f072E (type 1)))
-  (import "svm" "svm_allocate" (func $_ZN13svm_sdk_alloc12svm_allocate17h12629aa7a0722256E (type 2)))
-  (import "svm" "svm_store160" (func $_ZN15svm_sdk_storage3ext12svm_store16017hcc5844b34ea651e4E (type 1)))
-  (import "svm" "svm_load160" (func $_ZN15svm_sdk_storage3ext11svm_load16017hb02d905ebf79dc3bE (type 1)))
-  (func $_ZN73_$LT$svm_sdk_host..ext..ExtHost$u20$as$u20$svm_sdk_host..traits..Host$GT$12get_calldata17h9c3a1c3f928c46f6E (type 3) (param i32)
+  (import "svm" "svm_calldata_offset" (func (;0;) (type 0)))
+  (import "svm" "svm_calldata_len" (func (;1;) (type 0)))
+  (import "svm" "svm_set_returndata" (func (;2;) (type 1)))
+  (import "svm" "svm_allocate" (func (;3;) (type 2)))
+  (import "svm" "svm_store160" (func (;4;) (type 1)))
+  (import "svm" "svm_load160" (func (;5;) (type 1)))
+  (func (;6;) (type 3) (param i32)
     (local i32)
     block  ;; label = @1
       i32.const 0
@@ -26,15 +26,15 @@
       i32.const 1
       i32.store8 offset=1049484
     end
-    call $_ZN12svm_sdk_host3ext19svm_calldata_offset17h07d24f45c5ac567fE
+    call 0
     local.set 1
     local.get 0
-    call $_ZN12svm_sdk_host3ext16svm_calldata_len17h6d77304c58f043adE
+    call 1
     i32.store offset=4
     local.get 0
     local.get 1
     i32.store)
-  (func $_ZN73_$LT$svm_sdk_host..ext..ExtHost$u20$as$u20$svm_sdk_host..traits..Host$GT$14set_returndata17h50222e5da971306cE (type 1) (param i32 i32)
+  (func (;7;) (type 1) (param i32 i32)
     block  ;; label = @1
       i32.const 0
       i32.load8_u offset=1049484
@@ -45,11 +45,11 @@
     end
     local.get 0
     local.get 1
-    call $_ZN12svm_sdk_host3ext18svm_set_returndata17hc3f114854661f072E)
-  (func $svm_alloc (type 2) (param i32) (result i32)
+    call 2)
+  (func (;8;) (type 2) (param i32) (result i32)
     local.get 0
-    call $_ZN13svm_sdk_alloc12svm_allocate17h12629aa7a0722256E)
-  (func $initialize (type 4)
+    call 3)
+  (func (;9;) (type 4)
     (local i32)
     global.get 0
     i32.const 32
@@ -59,37 +59,37 @@
     local.get 0
     i32.const 8
     i32.add
-    call $_ZN73_$LT$svm_sdk_host..ext..ExtHost$u20$as$u20$svm_sdk_host..traits..Host$GT$12get_calldata17h9c3a1c3f928c46f6E
+    call 6
     local.get 0
     i32.const 16
     i32.add
-    call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$13with_capacity17h5c5f0a792dfa361bE
+    call 10
     local.get 0
     i32.const 16
     i32.add
-    call $_ZN15svm_abi_encoder5types4unit110_$LT$impl$u20$svm_abi_encoder..traits..Encoder$LT$svm_sdk_std..vec..Vec$LT$u8$GT$$GT$$u20$for$u20$$LP$$RP$$GT$6encode17hbc07c9d4026a86d9E
+    call 11
     local.get 0
     i32.load offset=24
     local.get 0
     i32.load offset=16
-    call $_ZN73_$LT$svm_sdk_host..ext..ExtHost$u20$as$u20$svm_sdk_host..traits..Host$GT$14set_returndata17h50222e5da971306cE
+    call 7
     local.get 0
     i32.const 32
     i32.add
     global.set 0)
-  (func $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$13with_capacity17h5c5f0a792dfa361bE (type 3) (param i32)
+  (func (;10;) (type 3) (param i32)
     local.get 0
     i32.const 10000
-    call $_ZN13svm_sdk_alloc12svm_allocate17h12629aa7a0722256E
+    call 3
     i32.store offset=8
     local.get 0
     i64.const 42949672960000
     i64.store align=4)
-  (func $_ZN15svm_abi_encoder5types4unit110_$LT$impl$u20$svm_abi_encoder..traits..Encoder$LT$svm_sdk_std..vec..Vec$LT$u8$GT$$GT$$u20$for$u20$$LP$$RP$$GT$6encode17hbc07c9d4026a86d9E (type 3) (param i32)
+  (func (;11;) (type 3) (param i32)
     local.get 0
     i32.const 48
-    call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h0af1a76b2490332dE)
-  (func $store_addr (type 4)
+    call 16)
+  (func (;12;) (type 4)
     (local i32 i32 i32)
     global.get 0
     i32.const 64
@@ -99,7 +99,7 @@
     local.get 0
     i32.const 8
     i32.add
-    call $_ZN73_$LT$svm_sdk_host..ext..ExtHost$u20$as$u20$svm_sdk_host..traits..Host$GT$12get_calldata17h9c3a1c3f928c46f6E
+    call 6
     local.get 0
     i32.load offset=8
     local.set 1
@@ -130,7 +130,7 @@
             local.get 0
             i32.const 16
             i32.add
-            call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+            call 13
             local.get 0
             i32.load8_u offset=32
             i32.const 1
@@ -143,7 +143,7 @@
           i32.const 1049248
           i32.const 14
           i32.const 1049264
-          call $_ZN4core9panicking5panic17hc64f9753b8a1be76E
+          call 14
           unreachable
         end
         local.get 0
@@ -160,20 +160,20 @@
         i32.add
         i32.load
         i32.const 0
-        call $_ZN15svm_sdk_storage3ext12svm_store16017hcc5844b34ea651e4E
+        call 4
         local.get 0
         i32.const 32
         i32.add
-        call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$13with_capacity17h5c5f0a792dfa361bE
+        call 10
         local.get 0
         i32.const 32
         i32.add
-        call $_ZN15svm_abi_encoder5types4unit110_$LT$impl$u20$svm_abi_encoder..traits..Encoder$LT$svm_sdk_std..vec..Vec$LT$u8$GT$$GT$$u20$for$u20$$LP$$RP$$GT$6encode17hbc07c9d4026a86d9E
+        call 11
         local.get 0
         i32.load offset=40
         local.get 0
         i32.load offset=32
-        call $_ZN73_$LT$svm_sdk_host..ext..ExtHost$u20$as$u20$svm_sdk_host..traits..Host$GT$14set_returndata17h50222e5da971306cE
+        call 7
         local.get 0
         i32.const 64
         i32.add
@@ -186,9 +186,9 @@
     i32.const 1049343
     i32.const 40
     i32.const 1049384
-    call $_ZN4core9panicking5panic17hc64f9753b8a1be76E
+    call 14
     unreachable)
-  (func $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E (type 5) (param i32 i32 i32)
+  (func (;13;) (type 5) (param i32 i32 i32)
     (local i32 i32 i32 i32 i32 i32 i32 i32 i32 i64)
     global.get 0
     i32.const 800
@@ -212,7 +212,7 @@
       i32.const 640
       i32.add
       local.get 2
-      call $_ZN15svm_abi_decoder6cursor6Cursor4peek17h67be1e4f303ac267E
+      call 27
       local.get 3
       i32.load8_u offset=641
       i32.const 2
@@ -302,7 +302,7 @@
                                                                                                                                           br_if 0 (;@67;)
                                                                                                                                           block  ;; label = @68
                                                                                                                                             local.get 5
-                                                                                                                                            call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h4dfab9955cc6c517E
+                                                                                                                                            call 28
                                                                                                                                             i32.const 255
                                                                                                                                             i32.and
                                                                                                                                             br_table 5 (;@63;) 7 (;@61;) 8 (;@60;) 12 (;@56;) 14 (;@54;) 15 (;@53;) 2 (;@66;) 2 (;@66;) 0 (;@68;) 0 (;@68;) 0 (;@68;) 0 (;@68;) 0 (;@68;) 0 (;@68;) 0 (;@68;) 0 (;@68;) 5 (;@63;) 7 (;@61;) 9 (;@59;) 12 (;@56;) 14 (;@54;) 15 (;@53;) 2 (;@66;) 2 (;@66;) 0 (;@68;) 0 (;@68;) 0 (;@68;) 0 (;@68;) 0 (;@68;) 0 (;@68;) 0 (;@68;) 0 (;@68;) 3 (;@65;) 7 (;@61;) 10 (;@58;) 12 (;@56;) 14 (;@54;) 15 (;@53;) 2 (;@66;) 2 (;@66;) 0 (;@68;) 0 (;@68;) 0 (;@68;) 0 (;@68;) 0 (;@68;) 0 (;@68;) 0 (;@68;) 0 (;@68;) 4 (;@64;) 7 (;@61;) 10 (;@58;) 12 (;@56;) 14 (;@54;) 15 (;@53;) 2 (;@66;) 0 (;@68;) 0 (;@68;) 0 (;@68;) 0 (;@68;) 0 (;@68;) 0 (;@68;) 0 (;@68;) 0 (;@68;) 0 (;@68;) 6 (;@62;) 7 (;@61;) 11 (;@57;) 13 (;@55;) 14 (;@54;) 15 (;@53;) 2 (;@66;) 0 (;@68;) 0 (;@68;) 0 (;@68;) 0 (;@68;) 0 (;@68;) 0 (;@68;) 0 (;@68;) 0 (;@68;) 0 (;@68;) 0 (;@68;) 7 (;@61;) 11 (;@57;) 13 (;@55;) 14 (;@54;) 15 (;@53;) 2 (;@66;) 0 (;@68;) 0 (;@68;) 0 (;@68;) 0 (;@68;) 0 (;@68;) 0 (;@68;) 0 (;@68;) 0 (;@68;) 0 (;@68;) 0 (;@68;) 7 (;@61;) 0 (;@68;) 13 (;@55;) 14 (;@54;) 15 (;@53;) 2 (;@66;) 0 (;@68;) 0 (;@68;) 0 (;@68;) 0 (;@68;) 0 (;@68;) 0 (;@68;) 0 (;@68;) 0 (;@68;) 0 (;@68;) 0 (;@68;) 7 (;@61;) 0 (;@68;) 13 (;@55;) 14 (;@54;) 15 (;@53;) 2 (;@66;) 0 (;@68;)
@@ -310,12 +310,12 @@
                                                                                                                                           i32.const 1049343
                                                                                                                                           i32.const 40
                                                                                                                                           i32.const 1048680
-                                                                                                                                          call $_ZN4core9panicking5panic17hc64f9753b8a1be76E
+                                                                                                                                          call 14
                                                                                                                                           unreachable
                                                                                                                                         end
                                                                                                                                         local.get 3
                                                                                                                                         local.get 5
-                                                                                                                                        call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17h614f58e3afa2a7eaE
+                                                                                                                                        call 29
                                                                                                                                         local.get 0
                                                                                                                                         local.get 3
                                                                                                                                         i32.load16_u
@@ -337,7 +337,7 @@
                                                                                                                                         br 64 (;@2;)
                                                                                                                                       end
                                                                                                                                       local.get 2
-                                                                                                                                      call $_ZN15svm_abi_decoder7decoder7Decoder9read_byte17h21ec604596f69413E
+                                                                                                                                      call 30
                                                                                                                                       local.tee 4
                                                                                                                                       i32.const 255
                                                                                                                                       i32.and
@@ -346,13 +346,13 @@
                                                                                                                                       br_if 13 (;@52;)
                                                                                                                                       local.get 3
                                                                                                                                       local.get 4
-                                                                                                                                      call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h4dfab9955cc6c517E
+                                                                                                                                      call 28
                                                                                                                                       i32.const 255
                                                                                                                                       i32.and
                                                                                                                                       local.tee 4
                                                                                                                                       i32.const 24
                                                                                                                                       i32.mul
-                                                                                                                                      call $_ZN13svm_sdk_alloc12svm_allocate17h12629aa7a0722256E
+                                                                                                                                      call 3
                                                                                                                                       i32.store offset=704
                                                                                                                                       local.get 3
                                                                                                                                       local.get 4
@@ -413,7 +413,7 @@
                                                                                                                                                               i32.const 1049343
                                                                                                                                                               i32.const 40
                                                                                                                                                               i32.const 1048696
-                                                                                                                                                              call $_ZN4core9panicking5panic17hc64f9753b8a1be76E
+                                                                                                                                                              call 14
                                                                                                                                                               unreachable
                                                                                                                                                             end
                                                                                                                                                             local.get 3
@@ -421,7 +421,7 @@
                                                                                                                                                             i32.add
                                                                                                                                                             local.get 1
                                                                                                                                                             local.get 2
-                                                                                                                                                            call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                                            call 13
                                                                                                                                                             block  ;; label = @77
                                                                                                                                                               local.get 3
                                                                                                                                                               i32.load8_u offset=736
@@ -476,7 +476,7 @@
                                                                                                                                                               local.get 3
                                                                                                                                                               i32.const 768
                                                                                                                                                               i32.add
-                                                                                                                                                              call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                                              call 31
                                                                                                                                                               local.get 2
                                                                                                                                                               local.get 3
                                                                                                                                                               i32.const 712
@@ -503,7 +503,7 @@
                                                                                                                                                               local.get 3
                                                                                                                                                               i32.const 768
                                                                                                                                                               i32.add
-                                                                                                                                                              call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                                              call 32
                                                                                                                                                               br 10 (;@67;)
                                                                                                                                                             end
                                                                                                                                                             local.get 3
@@ -514,7 +514,7 @@
                                                                                                                                                             i32.load8_u offset=737
                                                                                                                                                             local.get 3
                                                                                                                                                             i32.load8_u offset=738
-                                                                                                                                                            call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                                                                                                                                                            call 33
                                                                                                                                                             local.get 3
                                                                                                                                                             i32.load8_u offset=201
                                                                                                                                                             local.set 4
@@ -528,7 +528,7 @@
                                                                                                                                                           i32.add
                                                                                                                                                           local.get 1
                                                                                                                                                           local.get 2
-                                                                                                                                                          call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                                          call 13
                                                                                                                                                           local.get 3
                                                                                                                                                           i32.load8_u offset=736
                                                                                                                                                           i32.const 1
@@ -586,7 +586,7 @@
                                                                                                                                                           local.get 3
                                                                                                                                                           i32.const 768
                                                                                                                                                           i32.add
-                                                                                                                                                          call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                                          call 31
                                                                                                                                                           local.get 4
                                                                                                                                                           local.get 3
                                                                                                                                                           i32.const 712
@@ -615,13 +615,13 @@
                                                                                                                                                           local.get 3
                                                                                                                                                           i32.const 768
                                                                                                                                                           i32.add
-                                                                                                                                                          call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                                          call 32
                                                                                                                                                           local.get 3
                                                                                                                                                           i32.const 736
                                                                                                                                                           i32.add
                                                                                                                                                           local.get 1
                                                                                                                                                           local.get 2
-                                                                                                                                                          call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                                          call 13
                                                                                                                                                           block  ;; label = @76
                                                                                                                                                             local.get 3
                                                                                                                                                             i32.load8_u offset=736
@@ -650,7 +650,7 @@
                                                                                                                                                             local.get 3
                                                                                                                                                             i32.const 768
                                                                                                                                                             i32.add
-                                                                                                                                                            call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                                            call 31
                                                                                                                                                             local.get 4
                                                                                                                                                             local.get 10
                                                                                                                                                             i64.load
@@ -669,7 +669,7 @@
                                                                                                                                                             local.get 3
                                                                                                                                                             i32.const 768
                                                                                                                                                             i32.add
-                                                                                                                                                            call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                                            call 32
                                                                                                                                                             br 9 (;@67;)
                                                                                                                                                           end
                                                                                                                                                           local.get 3
@@ -680,7 +680,7 @@
                                                                                                                                                           i32.load8_u offset=737
                                                                                                                                                           local.get 3
                                                                                                                                                           i32.load8_u offset=738
-                                                                                                                                                          call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                                                                                                                                                          call 33
                                                                                                                                                           local.get 3
                                                                                                                                                           i32.load8_u offset=217
                                                                                                                                                           local.set 4
@@ -694,7 +694,7 @@
                                                                                                                                                         i32.add
                                                                                                                                                         local.get 1
                                                                                                                                                         local.get 2
-                                                                                                                                                        call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                                        call 13
                                                                                                                                                         local.get 3
                                                                                                                                                         i32.load8_u offset=736
                                                                                                                                                         i32.const 1
@@ -752,7 +752,7 @@
                                                                                                                                                         local.get 3
                                                                                                                                                         i32.const 768
                                                                                                                                                         i32.add
-                                                                                                                                                        call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                                        call 31
                                                                                                                                                         local.get 4
                                                                                                                                                         local.get 3
                                                                                                                                                         i32.const 712
@@ -781,13 +781,13 @@
                                                                                                                                                         local.get 3
                                                                                                                                                         i32.const 768
                                                                                                                                                         i32.add
-                                                                                                                                                        call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                                        call 32
                                                                                                                                                         local.get 3
                                                                                                                                                         i32.const 736
                                                                                                                                                         i32.add
                                                                                                                                                         local.get 1
                                                                                                                                                         local.get 2
-                                                                                                                                                        call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                                        call 13
                                                                                                                                                         local.get 3
                                                                                                                                                         i32.load8_u offset=736
                                                                                                                                                         i32.const 1
@@ -815,7 +815,7 @@
                                                                                                                                                         local.get 3
                                                                                                                                                         i32.const 768
                                                                                                                                                         i32.add
-                                                                                                                                                        call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                                        call 31
                                                                                                                                                         local.get 4
                                                                                                                                                         local.get 10
                                                                                                                                                         i64.load
@@ -834,13 +834,13 @@
                                                                                                                                                         local.get 3
                                                                                                                                                         i32.const 768
                                                                                                                                                         i32.add
-                                                                                                                                                        call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                                        call 32
                                                                                                                                                         local.get 3
                                                                                                                                                         i32.const 736
                                                                                                                                                         i32.add
                                                                                                                                                         local.get 1
                                                                                                                                                         local.get 2
-                                                                                                                                                        call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                                        call 13
                                                                                                                                                         block  ;; label = @75
                                                                                                                                                           local.get 3
                                                                                                                                                           i32.load8_u offset=736
@@ -895,7 +895,7 @@
                                                                                                                                                           local.get 3
                                                                                                                                                           i32.const 768
                                                                                                                                                           i32.add
-                                                                                                                                                          call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                                          call 31
                                                                                                                                                           local.get 2
                                                                                                                                                           local.get 3
                                                                                                                                                           i32.const 712
@@ -922,7 +922,7 @@
                                                                                                                                                           local.get 3
                                                                                                                                                           i32.const 768
                                                                                                                                                           i32.add
-                                                                                                                                                          call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                                          call 32
                                                                                                                                                           br 8 (;@67;)
                                                                                                                                                         end
                                                                                                                                                         local.get 3
@@ -933,7 +933,7 @@
                                                                                                                                                         i32.load8_u offset=737
                                                                                                                                                         local.get 3
                                                                                                                                                         i32.load8_u offset=738
-                                                                                                                                                        call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                                                                                                                                                        call 33
                                                                                                                                                         local.get 3
                                                                                                                                                         i32.load8_u offset=241
                                                                                                                                                         local.set 4
@@ -947,7 +947,7 @@
                                                                                                                                                       i32.add
                                                                                                                                                       local.get 1
                                                                                                                                                       local.get 2
-                                                                                                                                                      call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                                      call 13
                                                                                                                                                       local.get 3
                                                                                                                                                       i32.load8_u offset=736
                                                                                                                                                       i32.const 1
@@ -1005,7 +1005,7 @@
                                                                                                                                                       local.get 3
                                                                                                                                                       i32.const 768
                                                                                                                                                       i32.add
-                                                                                                                                                      call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                                      call 31
                                                                                                                                                       local.get 4
                                                                                                                                                       local.get 3
                                                                                                                                                       i32.const 712
@@ -1034,13 +1034,13 @@
                                                                                                                                                       local.get 3
                                                                                                                                                       i32.const 768
                                                                                                                                                       i32.add
-                                                                                                                                                      call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                                      call 32
                                                                                                                                                       local.get 3
                                                                                                                                                       i32.const 736
                                                                                                                                                       i32.add
                                                                                                                                                       local.get 1
                                                                                                                                                       local.get 2
-                                                                                                                                                      call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                                      call 13
                                                                                                                                                       local.get 3
                                                                                                                                                       i32.load8_u offset=736
                                                                                                                                                       i32.const 1
@@ -1068,7 +1068,7 @@
                                                                                                                                                       local.get 3
                                                                                                                                                       i32.const 768
                                                                                                                                                       i32.add
-                                                                                                                                                      call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                                      call 31
                                                                                                                                                       local.get 4
                                                                                                                                                       local.get 10
                                                                                                                                                       i64.load
@@ -1087,13 +1087,13 @@
                                                                                                                                                       local.get 3
                                                                                                                                                       i32.const 768
                                                                                                                                                       i32.add
-                                                                                                                                                      call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                                      call 32
                                                                                                                                                       local.get 3
                                                                                                                                                       i32.const 736
                                                                                                                                                       i32.add
                                                                                                                                                       local.get 1
                                                                                                                                                       local.get 2
-                                                                                                                                                      call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                                      call 13
                                                                                                                                                       local.get 3
                                                                                                                                                       i32.load8_u offset=736
                                                                                                                                                       i32.const 1
@@ -1151,7 +1151,7 @@
                                                                                                                                                       local.get 3
                                                                                                                                                       i32.const 768
                                                                                                                                                       i32.add
-                                                                                                                                                      call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                                      call 31
                                                                                                                                                       local.get 4
                                                                                                                                                       local.get 3
                                                                                                                                                       i32.const 712
@@ -1180,13 +1180,13 @@
                                                                                                                                                       local.get 3
                                                                                                                                                       i32.const 768
                                                                                                                                                       i32.add
-                                                                                                                                                      call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                                      call 32
                                                                                                                                                       local.get 3
                                                                                                                                                       i32.const 736
                                                                                                                                                       i32.add
                                                                                                                                                       local.get 1
                                                                                                                                                       local.get 2
-                                                                                                                                                      call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                                      call 13
                                                                                                                                                       block  ;; label = @74
                                                                                                                                                         local.get 3
                                                                                                                                                         i32.load8_u offset=736
@@ -1215,7 +1215,7 @@
                                                                                                                                                         local.get 3
                                                                                                                                                         i32.const 768
                                                                                                                                                         i32.add
-                                                                                                                                                        call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                                        call 31
                                                                                                                                                         local.get 4
                                                                                                                                                         local.get 10
                                                                                                                                                         i64.load
@@ -1234,7 +1234,7 @@
                                                                                                                                                         local.get 3
                                                                                                                                                         i32.const 768
                                                                                                                                                         i32.add
-                                                                                                                                                        call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                                        call 32
                                                                                                                                                         br 7 (;@67;)
                                                                                                                                                       end
                                                                                                                                                       local.get 3
@@ -1245,7 +1245,7 @@
                                                                                                                                                       i32.load8_u offset=737
                                                                                                                                                       local.get 3
                                                                                                                                                       i32.load8_u offset=738
-                                                                                                                                                      call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                                                                                                                                                      call 33
                                                                                                                                                       local.get 3
                                                                                                                                                       i32.load8_u offset=273
                                                                                                                                                       local.set 4
@@ -1259,7 +1259,7 @@
                                                                                                                                                     i32.add
                                                                                                                                                     local.get 1
                                                                                                                                                     local.get 2
-                                                                                                                                                    call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                                    call 13
                                                                                                                                                     local.get 3
                                                                                                                                                     i32.load8_u offset=736
                                                                                                                                                     i32.const 1
@@ -1317,7 +1317,7 @@
                                                                                                                                                     local.get 3
                                                                                                                                                     i32.const 768
                                                                                                                                                     i32.add
-                                                                                                                                                    call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                                    call 31
                                                                                                                                                     local.get 4
                                                                                                                                                     local.get 3
                                                                                                                                                     i32.const 712
@@ -1346,13 +1346,13 @@
                                                                                                                                                     local.get 3
                                                                                                                                                     i32.const 768
                                                                                                                                                     i32.add
-                                                                                                                                                    call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                                    call 32
                                                                                                                                                     local.get 3
                                                                                                                                                     i32.const 736
                                                                                                                                                     i32.add
                                                                                                                                                     local.get 1
                                                                                                                                                     local.get 2
-                                                                                                                                                    call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                                    call 13
                                                                                                                                                     local.get 3
                                                                                                                                                     i32.load8_u offset=736
                                                                                                                                                     i32.const 1
@@ -1380,7 +1380,7 @@
                                                                                                                                                     local.get 3
                                                                                                                                                     i32.const 768
                                                                                                                                                     i32.add
-                                                                                                                                                    call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                                    call 31
                                                                                                                                                     local.get 4
                                                                                                                                                     local.get 10
                                                                                                                                                     i64.load
@@ -1399,13 +1399,13 @@
                                                                                                                                                     local.get 3
                                                                                                                                                     i32.const 768
                                                                                                                                                     i32.add
-                                                                                                                                                    call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                                    call 32
                                                                                                                                                     local.get 3
                                                                                                                                                     i32.const 736
                                                                                                                                                     i32.add
                                                                                                                                                     local.get 1
                                                                                                                                                     local.get 2
-                                                                                                                                                    call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                                    call 13
                                                                                                                                                     local.get 3
                                                                                                                                                     i32.load8_u offset=736
                                                                                                                                                     i32.const 1
@@ -1463,7 +1463,7 @@
                                                                                                                                                     local.get 3
                                                                                                                                                     i32.const 768
                                                                                                                                                     i32.add
-                                                                                                                                                    call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                                    call 31
                                                                                                                                                     local.get 4
                                                                                                                                                     local.get 3
                                                                                                                                                     i32.const 712
@@ -1492,13 +1492,13 @@
                                                                                                                                                     local.get 3
                                                                                                                                                     i32.const 768
                                                                                                                                                     i32.add
-                                                                                                                                                    call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                                    call 32
                                                                                                                                                     local.get 3
                                                                                                                                                     i32.const 736
                                                                                                                                                     i32.add
                                                                                                                                                     local.get 1
                                                                                                                                                     local.get 2
-                                                                                                                                                    call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                                    call 13
                                                                                                                                                     local.get 3
                                                                                                                                                     i32.load8_u offset=736
                                                                                                                                                     i32.const 1
@@ -1526,7 +1526,7 @@
                                                                                                                                                     local.get 3
                                                                                                                                                     i32.const 768
                                                                                                                                                     i32.add
-                                                                                                                                                    call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                                    call 31
                                                                                                                                                     local.get 4
                                                                                                                                                     local.get 10
                                                                                                                                                     i64.load
@@ -1545,13 +1545,13 @@
                                                                                                                                                     local.get 3
                                                                                                                                                     i32.const 768
                                                                                                                                                     i32.add
-                                                                                                                                                    call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                                    call 32
                                                                                                                                                     local.get 3
                                                                                                                                                     i32.const 736
                                                                                                                                                     i32.add
                                                                                                                                                     local.get 1
                                                                                                                                                     local.get 2
-                                                                                                                                                    call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                                    call 13
                                                                                                                                                     block  ;; label = @73
                                                                                                                                                       local.get 3
                                                                                                                                                       i32.load8_u offset=736
@@ -1606,7 +1606,7 @@
                                                                                                                                                       local.get 3
                                                                                                                                                       i32.const 768
                                                                                                                                                       i32.add
-                                                                                                                                                      call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                                      call 31
                                                                                                                                                       local.get 2
                                                                                                                                                       local.get 3
                                                                                                                                                       i32.const 712
@@ -1633,7 +1633,7 @@
                                                                                                                                                       local.get 3
                                                                                                                                                       i32.const 768
                                                                                                                                                       i32.add
-                                                                                                                                                      call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                                      call 32
                                                                                                                                                       br 6 (;@67;)
                                                                                                                                                     end
                                                                                                                                                     local.get 3
@@ -1644,7 +1644,7 @@
                                                                                                                                                     i32.load8_u offset=737
                                                                                                                                                     local.get 3
                                                                                                                                                     i32.load8_u offset=738
-                                                                                                                                                    call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                                                                                                                                                    call 33
                                                                                                                                                     local.get 3
                                                                                                                                                     i32.load8_u offset=313
                                                                                                                                                     local.set 4
@@ -1658,7 +1658,7 @@
                                                                                                                                                   i32.add
                                                                                                                                                   local.get 1
                                                                                                                                                   local.get 2
-                                                                                                                                                  call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                                  call 13
                                                                                                                                                   local.get 3
                                                                                                                                                   i32.load8_u offset=736
                                                                                                                                                   i32.const 1
@@ -1716,7 +1716,7 @@
                                                                                                                                                   local.get 3
                                                                                                                                                   i32.const 768
                                                                                                                                                   i32.add
-                                                                                                                                                  call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                                  call 31
                                                                                                                                                   local.get 4
                                                                                                                                                   local.get 3
                                                                                                                                                   i32.const 712
@@ -1745,13 +1745,13 @@
                                                                                                                                                   local.get 3
                                                                                                                                                   i32.const 768
                                                                                                                                                   i32.add
-                                                                                                                                                  call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                                  call 32
                                                                                                                                                   local.get 3
                                                                                                                                                   i32.const 736
                                                                                                                                                   i32.add
                                                                                                                                                   local.get 1
                                                                                                                                                   local.get 2
-                                                                                                                                                  call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                                  call 13
                                                                                                                                                   local.get 3
                                                                                                                                                   i32.load8_u offset=736
                                                                                                                                                   i32.const 1
@@ -1779,7 +1779,7 @@
                                                                                                                                                   local.get 3
                                                                                                                                                   i32.const 768
                                                                                                                                                   i32.add
-                                                                                                                                                  call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                                  call 31
                                                                                                                                                   local.get 4
                                                                                                                                                   local.get 10
                                                                                                                                                   i64.load
@@ -1798,13 +1798,13 @@
                                                                                                                                                   local.get 3
                                                                                                                                                   i32.const 768
                                                                                                                                                   i32.add
-                                                                                                                                                  call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                                  call 32
                                                                                                                                                   local.get 3
                                                                                                                                                   i32.const 736
                                                                                                                                                   i32.add
                                                                                                                                                   local.get 1
                                                                                                                                                   local.get 2
-                                                                                                                                                  call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                                  call 13
                                                                                                                                                   local.get 3
                                                                                                                                                   i32.load8_u offset=736
                                                                                                                                                   i32.const 1
@@ -1862,7 +1862,7 @@
                                                                                                                                                   local.get 3
                                                                                                                                                   i32.const 768
                                                                                                                                                   i32.add
-                                                                                                                                                  call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                                  call 31
                                                                                                                                                   local.get 4
                                                                                                                                                   local.get 3
                                                                                                                                                   i32.const 712
@@ -1891,13 +1891,13 @@
                                                                                                                                                   local.get 3
                                                                                                                                                   i32.const 768
                                                                                                                                                   i32.add
-                                                                                                                                                  call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                                  call 32
                                                                                                                                                   local.get 3
                                                                                                                                                   i32.const 736
                                                                                                                                                   i32.add
                                                                                                                                                   local.get 1
                                                                                                                                                   local.get 2
-                                                                                                                                                  call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                                  call 13
                                                                                                                                                   local.get 3
                                                                                                                                                   i32.load8_u offset=736
                                                                                                                                                   i32.const 1
@@ -1925,7 +1925,7 @@
                                                                                                                                                   local.get 3
                                                                                                                                                   i32.const 768
                                                                                                                                                   i32.add
-                                                                                                                                                  call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                                  call 31
                                                                                                                                                   local.get 4
                                                                                                                                                   local.get 10
                                                                                                                                                   i64.load
@@ -1944,13 +1944,13 @@
                                                                                                                                                   local.get 3
                                                                                                                                                   i32.const 768
                                                                                                                                                   i32.add
-                                                                                                                                                  call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                                  call 32
                                                                                                                                                   local.get 3
                                                                                                                                                   i32.const 736
                                                                                                                                                   i32.add
                                                                                                                                                   local.get 1
                                                                                                                                                   local.get 2
-                                                                                                                                                  call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                                  call 13
                                                                                                                                                   local.get 3
                                                                                                                                                   i32.load8_u offset=736
                                                                                                                                                   i32.const 1
@@ -2008,7 +2008,7 @@
                                                                                                                                                   local.get 3
                                                                                                                                                   i32.const 768
                                                                                                                                                   i32.add
-                                                                                                                                                  call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                                  call 31
                                                                                                                                                   local.get 4
                                                                                                                                                   local.get 3
                                                                                                                                                   i32.const 712
@@ -2037,13 +2037,13 @@
                                                                                                                                                   local.get 3
                                                                                                                                                   i32.const 768
                                                                                                                                                   i32.add
-                                                                                                                                                  call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                                  call 32
                                                                                                                                                   local.get 3
                                                                                                                                                   i32.const 736
                                                                                                                                                   i32.add
                                                                                                                                                   local.get 1
                                                                                                                                                   local.get 2
-                                                                                                                                                  call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                                  call 13
                                                                                                                                                   block  ;; label = @72
                                                                                                                                                     local.get 3
                                                                                                                                                     i32.load8_u offset=736
@@ -2072,7 +2072,7 @@
                                                                                                                                                     local.get 3
                                                                                                                                                     i32.const 768
                                                                                                                                                     i32.add
-                                                                                                                                                    call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                                    call 31
                                                                                                                                                     local.get 4
                                                                                                                                                     local.get 10
                                                                                                                                                     i64.load
@@ -2091,7 +2091,7 @@
                                                                                                                                                     local.get 3
                                                                                                                                                     i32.const 768
                                                                                                                                                     i32.add
-                                                                                                                                                    call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                                    call 32
                                                                                                                                                     br 5 (;@67;)
                                                                                                                                                   end
                                                                                                                                                   local.get 3
@@ -2102,7 +2102,7 @@
                                                                                                                                                   i32.load8_u offset=737
                                                                                                                                                   local.get 3
                                                                                                                                                   i32.load8_u offset=738
-                                                                                                                                                  call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                                                                                                                                                  call 33
                                                                                                                                                   local.get 3
                                                                                                                                                   i32.load8_u offset=361
                                                                                                                                                   local.set 4
@@ -2116,7 +2116,7 @@
                                                                                                                                                 i32.add
                                                                                                                                                 local.get 1
                                                                                                                                                 local.get 2
-                                                                                                                                                call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                                call 13
                                                                                                                                                 local.get 3
                                                                                                                                                 i32.load8_u offset=736
                                                                                                                                                 i32.const 1
@@ -2174,7 +2174,7 @@
                                                                                                                                                 local.get 3
                                                                                                                                                 i32.const 768
                                                                                                                                                 i32.add
-                                                                                                                                                call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                                call 31
                                                                                                                                                 local.get 4
                                                                                                                                                 local.get 3
                                                                                                                                                 i32.const 712
@@ -2203,13 +2203,13 @@
                                                                                                                                                 local.get 3
                                                                                                                                                 i32.const 768
                                                                                                                                                 i32.add
-                                                                                                                                                call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                                call 32
                                                                                                                                                 local.get 3
                                                                                                                                                 i32.const 736
                                                                                                                                                 i32.add
                                                                                                                                                 local.get 1
                                                                                                                                                 local.get 2
-                                                                                                                                                call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                                call 13
                                                                                                                                                 local.get 3
                                                                                                                                                 i32.load8_u offset=736
                                                                                                                                                 i32.const 1
@@ -2237,7 +2237,7 @@
                                                                                                                                                 local.get 3
                                                                                                                                                 i32.const 768
                                                                                                                                                 i32.add
-                                                                                                                                                call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                                call 31
                                                                                                                                                 local.get 4
                                                                                                                                                 local.get 10
                                                                                                                                                 i64.load
@@ -2256,13 +2256,13 @@
                                                                                                                                                 local.get 3
                                                                                                                                                 i32.const 768
                                                                                                                                                 i32.add
-                                                                                                                                                call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                                call 32
                                                                                                                                                 local.get 3
                                                                                                                                                 i32.const 736
                                                                                                                                                 i32.add
                                                                                                                                                 local.get 1
                                                                                                                                                 local.get 2
-                                                                                                                                                call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                                call 13
                                                                                                                                                 local.get 3
                                                                                                                                                 i32.load8_u offset=736
                                                                                                                                                 i32.const 1
@@ -2320,7 +2320,7 @@
                                                                                                                                                 local.get 3
                                                                                                                                                 i32.const 768
                                                                                                                                                 i32.add
-                                                                                                                                                call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                                call 31
                                                                                                                                                 local.get 4
                                                                                                                                                 local.get 3
                                                                                                                                                 i32.const 712
@@ -2349,13 +2349,13 @@
                                                                                                                                                 local.get 3
                                                                                                                                                 i32.const 768
                                                                                                                                                 i32.add
-                                                                                                                                                call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                                call 32
                                                                                                                                                 local.get 3
                                                                                                                                                 i32.const 736
                                                                                                                                                 i32.add
                                                                                                                                                 local.get 1
                                                                                                                                                 local.get 2
-                                                                                                                                                call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                                call 13
                                                                                                                                                 local.get 3
                                                                                                                                                 i32.load8_u offset=736
                                                                                                                                                 i32.const 1
@@ -2383,7 +2383,7 @@
                                                                                                                                                 local.get 3
                                                                                                                                                 i32.const 768
                                                                                                                                                 i32.add
-                                                                                                                                                call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                                call 31
                                                                                                                                                 local.get 4
                                                                                                                                                 local.get 10
                                                                                                                                                 i64.load
@@ -2402,13 +2402,13 @@
                                                                                                                                                 local.get 3
                                                                                                                                                 i32.const 768
                                                                                                                                                 i32.add
-                                                                                                                                                call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                                call 32
                                                                                                                                                 local.get 3
                                                                                                                                                 i32.const 736
                                                                                                                                                 i32.add
                                                                                                                                                 local.get 1
                                                                                                                                                 local.get 2
-                                                                                                                                                call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                                call 13
                                                                                                                                                 local.get 3
                                                                                                                                                 i32.load8_u offset=736
                                                                                                                                                 i32.const 1
@@ -2466,7 +2466,7 @@
                                                                                                                                                 local.get 3
                                                                                                                                                 i32.const 768
                                                                                                                                                 i32.add
-                                                                                                                                                call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                                call 31
                                                                                                                                                 local.get 4
                                                                                                                                                 local.get 3
                                                                                                                                                 i32.const 712
@@ -2495,13 +2495,13 @@
                                                                                                                                                 local.get 3
                                                                                                                                                 i32.const 768
                                                                                                                                                 i32.add
-                                                                                                                                                call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                                call 32
                                                                                                                                                 local.get 3
                                                                                                                                                 i32.const 736
                                                                                                                                                 i32.add
                                                                                                                                                 local.get 1
                                                                                                                                                 local.get 2
-                                                                                                                                                call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                                call 13
                                                                                                                                                 local.get 3
                                                                                                                                                 i32.load8_u offset=736
                                                                                                                                                 i32.const 1
@@ -2529,7 +2529,7 @@
                                                                                                                                                 local.get 3
                                                                                                                                                 i32.const 768
                                                                                                                                                 i32.add
-                                                                                                                                                call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                                call 31
                                                                                                                                                 local.get 4
                                                                                                                                                 local.get 10
                                                                                                                                                 i64.load
@@ -2548,13 +2548,13 @@
                                                                                                                                                 local.get 3
                                                                                                                                                 i32.const 768
                                                                                                                                                 i32.add
-                                                                                                                                                call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                                call 32
                                                                                                                                                 local.get 3
                                                                                                                                                 i32.const 736
                                                                                                                                                 i32.add
                                                                                                                                                 local.get 1
                                                                                                                                                 local.get 2
-                                                                                                                                                call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                                call 13
                                                                                                                                                 block  ;; label = @71
                                                                                                                                                   local.get 3
                                                                                                                                                   i32.load8_u offset=736
@@ -2609,7 +2609,7 @@
                                                                                                                                                   local.get 3
                                                                                                                                                   i32.const 768
                                                                                                                                                   i32.add
-                                                                                                                                                  call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                                  call 31
                                                                                                                                                   local.get 2
                                                                                                                                                   local.get 3
                                                                                                                                                   i32.const 712
@@ -2636,7 +2636,7 @@
                                                                                                                                                   local.get 3
                                                                                                                                                   i32.const 768
                                                                                                                                                   i32.add
-                                                                                                                                                  call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                                  call 32
                                                                                                                                                   br 4 (;@67;)
                                                                                                                                                 end
                                                                                                                                                 local.get 3
@@ -2647,7 +2647,7 @@
                                                                                                                                                 i32.load8_u offset=737
                                                                                                                                                 local.get 3
                                                                                                                                                 i32.load8_u offset=738
-                                                                                                                                                call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                                                                                                                                                call 33
                                                                                                                                                 local.get 3
                                                                                                                                                 i32.load8_u offset=417
                                                                                                                                                 local.set 4
@@ -2661,7 +2661,7 @@
                                                                                                                                               i32.add
                                                                                                                                               local.get 1
                                                                                                                                               local.get 2
-                                                                                                                                              call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                              call 13
                                                                                                                                               local.get 3
                                                                                                                                               i32.load8_u offset=736
                                                                                                                                               i32.const 1
@@ -2719,7 +2719,7 @@
                                                                                                                                               local.get 3
                                                                                                                                               i32.const 768
                                                                                                                                               i32.add
-                                                                                                                                              call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                              call 31
                                                                                                                                               local.get 4
                                                                                                                                               local.get 3
                                                                                                                                               i32.const 712
@@ -2748,13 +2748,13 @@
                                                                                                                                               local.get 3
                                                                                                                                               i32.const 768
                                                                                                                                               i32.add
-                                                                                                                                              call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                              call 32
                                                                                                                                               local.get 3
                                                                                                                                               i32.const 736
                                                                                                                                               i32.add
                                                                                                                                               local.get 1
                                                                                                                                               local.get 2
-                                                                                                                                              call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                              call 13
                                                                                                                                               local.get 3
                                                                                                                                               i32.load8_u offset=736
                                                                                                                                               i32.const 1
@@ -2782,7 +2782,7 @@
                                                                                                                                               local.get 3
                                                                                                                                               i32.const 768
                                                                                                                                               i32.add
-                                                                                                                                              call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                              call 31
                                                                                                                                               local.get 4
                                                                                                                                               local.get 10
                                                                                                                                               i64.load
@@ -2801,13 +2801,13 @@
                                                                                                                                               local.get 3
                                                                                                                                               i32.const 768
                                                                                                                                               i32.add
-                                                                                                                                              call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                              call 32
                                                                                                                                               local.get 3
                                                                                                                                               i32.const 736
                                                                                                                                               i32.add
                                                                                                                                               local.get 1
                                                                                                                                               local.get 2
-                                                                                                                                              call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                              call 13
                                                                                                                                               local.get 3
                                                                                                                                               i32.load8_u offset=736
                                                                                                                                               i32.const 1
@@ -2865,7 +2865,7 @@
                                                                                                                                               local.get 3
                                                                                                                                               i32.const 768
                                                                                                                                               i32.add
-                                                                                                                                              call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                              call 31
                                                                                                                                               local.get 4
                                                                                                                                               local.get 3
                                                                                                                                               i32.const 712
@@ -2894,13 +2894,13 @@
                                                                                                                                               local.get 3
                                                                                                                                               i32.const 768
                                                                                                                                               i32.add
-                                                                                                                                              call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                              call 32
                                                                                                                                               local.get 3
                                                                                                                                               i32.const 736
                                                                                                                                               i32.add
                                                                                                                                               local.get 1
                                                                                                                                               local.get 2
-                                                                                                                                              call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                              call 13
                                                                                                                                               local.get 3
                                                                                                                                               i32.load8_u offset=736
                                                                                                                                               i32.const 1
@@ -2928,7 +2928,7 @@
                                                                                                                                               local.get 3
                                                                                                                                               i32.const 768
                                                                                                                                               i32.add
-                                                                                                                                              call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                              call 31
                                                                                                                                               local.get 4
                                                                                                                                               local.get 10
                                                                                                                                               i64.load
@@ -2947,13 +2947,13 @@
                                                                                                                                               local.get 3
                                                                                                                                               i32.const 768
                                                                                                                                               i32.add
-                                                                                                                                              call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                              call 32
                                                                                                                                               local.get 3
                                                                                                                                               i32.const 736
                                                                                                                                               i32.add
                                                                                                                                               local.get 1
                                                                                                                                               local.get 2
-                                                                                                                                              call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                              call 13
                                                                                                                                               local.get 3
                                                                                                                                               i32.load8_u offset=736
                                                                                                                                               i32.const 1
@@ -3011,7 +3011,7 @@
                                                                                                                                               local.get 3
                                                                                                                                               i32.const 768
                                                                                                                                               i32.add
-                                                                                                                                              call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                              call 31
                                                                                                                                               local.get 4
                                                                                                                                               local.get 3
                                                                                                                                               i32.const 712
@@ -3040,13 +3040,13 @@
                                                                                                                                               local.get 3
                                                                                                                                               i32.const 768
                                                                                                                                               i32.add
-                                                                                                                                              call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                              call 32
                                                                                                                                               local.get 3
                                                                                                                                               i32.const 736
                                                                                                                                               i32.add
                                                                                                                                               local.get 1
                                                                                                                                               local.get 2
-                                                                                                                                              call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                              call 13
                                                                                                                                               local.get 3
                                                                                                                                               i32.load8_u offset=736
                                                                                                                                               i32.const 1
@@ -3074,7 +3074,7 @@
                                                                                                                                               local.get 3
                                                                                                                                               i32.const 768
                                                                                                                                               i32.add
-                                                                                                                                              call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                              call 31
                                                                                                                                               local.get 4
                                                                                                                                               local.get 10
                                                                                                                                               i64.load
@@ -3093,13 +3093,13 @@
                                                                                                                                               local.get 3
                                                                                                                                               i32.const 768
                                                                                                                                               i32.add
-                                                                                                                                              call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                              call 32
                                                                                                                                               local.get 3
                                                                                                                                               i32.const 736
                                                                                                                                               i32.add
                                                                                                                                               local.get 1
                                                                                                                                               local.get 2
-                                                                                                                                              call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                              call 13
                                                                                                                                               local.get 3
                                                                                                                                               i32.load8_u offset=736
                                                                                                                                               i32.const 1
@@ -3157,7 +3157,7 @@
                                                                                                                                               local.get 3
                                                                                                                                               i32.const 768
                                                                                                                                               i32.add
-                                                                                                                                              call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                              call 31
                                                                                                                                               local.get 4
                                                                                                                                               local.get 3
                                                                                                                                               i32.const 712
@@ -3186,13 +3186,13 @@
                                                                                                                                               local.get 3
                                                                                                                                               i32.const 768
                                                                                                                                               i32.add
-                                                                                                                                              call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                              call 32
                                                                                                                                               local.get 3
                                                                                                                                               i32.const 736
                                                                                                                                               i32.add
                                                                                                                                               local.get 1
                                                                                                                                               local.get 2
-                                                                                                                                              call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                              call 13
                                                                                                                                               block  ;; label = @70
                                                                                                                                                 local.get 3
                                                                                                                                                 i32.load8_u offset=736
@@ -3221,7 +3221,7 @@
                                                                                                                                                 local.get 3
                                                                                                                                                 i32.const 768
                                                                                                                                                 i32.add
-                                                                                                                                                call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                                call 31
                                                                                                                                                 local.get 4
                                                                                                                                                 local.get 10
                                                                                                                                                 i64.load
@@ -3240,7 +3240,7 @@
                                                                                                                                                 local.get 3
                                                                                                                                                 i32.const 768
                                                                                                                                                 i32.add
-                                                                                                                                                call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                                call 32
                                                                                                                                                 br 3 (;@67;)
                                                                                                                                               end
                                                                                                                                               local.get 3
@@ -3251,7 +3251,7 @@
                                                                                                                                               i32.load8_u offset=737
                                                                                                                                               local.get 3
                                                                                                                                               i32.load8_u offset=738
-                                                                                                                                              call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                                                                                                                                              call 33
                                                                                                                                               local.get 3
                                                                                                                                               i32.load8_u offset=481
                                                                                                                                               local.set 4
@@ -3265,7 +3265,7 @@
                                                                                                                                             i32.add
                                                                                                                                             local.get 1
                                                                                                                                             local.get 2
-                                                                                                                                            call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                            call 13
                                                                                                                                             local.get 3
                                                                                                                                             i32.load8_u offset=736
                                                                                                                                             i32.const 1
@@ -3323,7 +3323,7 @@
                                                                                                                                             local.get 3
                                                                                                                                             i32.const 768
                                                                                                                                             i32.add
-                                                                                                                                            call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                            call 31
                                                                                                                                             local.get 4
                                                                                                                                             local.get 3
                                                                                                                                             i32.const 712
@@ -3352,13 +3352,13 @@
                                                                                                                                             local.get 3
                                                                                                                                             i32.const 768
                                                                                                                                             i32.add
-                                                                                                                                            call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                            call 32
                                                                                                                                             local.get 3
                                                                                                                                             i32.const 736
                                                                                                                                             i32.add
                                                                                                                                             local.get 1
                                                                                                                                             local.get 2
-                                                                                                                                            call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                            call 13
                                                                                                                                             local.get 3
                                                                                                                                             i32.load8_u offset=736
                                                                                                                                             i32.const 1
@@ -3386,7 +3386,7 @@
                                                                                                                                             local.get 3
                                                                                                                                             i32.const 768
                                                                                                                                             i32.add
-                                                                                                                                            call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                            call 31
                                                                                                                                             local.get 4
                                                                                                                                             local.get 10
                                                                                                                                             i64.load
@@ -3405,13 +3405,13 @@
                                                                                                                                             local.get 3
                                                                                                                                             i32.const 768
                                                                                                                                             i32.add
-                                                                                                                                            call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                            call 32
                                                                                                                                             local.get 3
                                                                                                                                             i32.const 736
                                                                                                                                             i32.add
                                                                                                                                             local.get 1
                                                                                                                                             local.get 2
-                                                                                                                                            call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                            call 13
                                                                                                                                             local.get 3
                                                                                                                                             i32.load8_u offset=736
                                                                                                                                             i32.const 1
@@ -3469,7 +3469,7 @@
                                                                                                                                             local.get 3
                                                                                                                                             i32.const 768
                                                                                                                                             i32.add
-                                                                                                                                            call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                            call 31
                                                                                                                                             local.get 4
                                                                                                                                             local.get 3
                                                                                                                                             i32.const 712
@@ -3498,13 +3498,13 @@
                                                                                                                                             local.get 3
                                                                                                                                             i32.const 768
                                                                                                                                             i32.add
-                                                                                                                                            call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                            call 32
                                                                                                                                             local.get 3
                                                                                                                                             i32.const 736
                                                                                                                                             i32.add
                                                                                                                                             local.get 1
                                                                                                                                             local.get 2
-                                                                                                                                            call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                            call 13
                                                                                                                                             local.get 3
                                                                                                                                             i32.load8_u offset=736
                                                                                                                                             i32.const 1
@@ -3532,7 +3532,7 @@
                                                                                                                                             local.get 3
                                                                                                                                             i32.const 768
                                                                                                                                             i32.add
-                                                                                                                                            call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                            call 31
                                                                                                                                             local.get 4
                                                                                                                                             local.get 10
                                                                                                                                             i64.load
@@ -3551,13 +3551,13 @@
                                                                                                                                             local.get 3
                                                                                                                                             i32.const 768
                                                                                                                                             i32.add
-                                                                                                                                            call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                            call 32
                                                                                                                                             local.get 3
                                                                                                                                             i32.const 736
                                                                                                                                             i32.add
                                                                                                                                             local.get 1
                                                                                                                                             local.get 2
-                                                                                                                                            call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                            call 13
                                                                                                                                             local.get 3
                                                                                                                                             i32.load8_u offset=736
                                                                                                                                             i32.const 1
@@ -3615,7 +3615,7 @@
                                                                                                                                             local.get 3
                                                                                                                                             i32.const 768
                                                                                                                                             i32.add
-                                                                                                                                            call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                            call 31
                                                                                                                                             local.get 4
                                                                                                                                             local.get 3
                                                                                                                                             i32.const 712
@@ -3644,13 +3644,13 @@
                                                                                                                                             local.get 3
                                                                                                                                             i32.const 768
                                                                                                                                             i32.add
-                                                                                                                                            call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                            call 32
                                                                                                                                             local.get 3
                                                                                                                                             i32.const 736
                                                                                                                                             i32.add
                                                                                                                                             local.get 1
                                                                                                                                             local.get 2
-                                                                                                                                            call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                            call 13
                                                                                                                                             local.get 3
                                                                                                                                             i32.load8_u offset=736
                                                                                                                                             i32.const 1
@@ -3678,7 +3678,7 @@
                                                                                                                                             local.get 3
                                                                                                                                             i32.const 768
                                                                                                                                             i32.add
-                                                                                                                                            call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                            call 31
                                                                                                                                             local.get 4
                                                                                                                                             local.get 10
                                                                                                                                             i64.load
@@ -3697,13 +3697,13 @@
                                                                                                                                             local.get 3
                                                                                                                                             i32.const 768
                                                                                                                                             i32.add
-                                                                                                                                            call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                            call 32
                                                                                                                                             local.get 3
                                                                                                                                             i32.const 736
                                                                                                                                             i32.add
                                                                                                                                             local.get 1
                                                                                                                                             local.get 2
-                                                                                                                                            call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                            call 13
                                                                                                                                             local.get 3
                                                                                                                                             i32.load8_u offset=736
                                                                                                                                             i32.const 1
@@ -3761,7 +3761,7 @@
                                                                                                                                             local.get 3
                                                                                                                                             i32.const 768
                                                                                                                                             i32.add
-                                                                                                                                            call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                            call 31
                                                                                                                                             local.get 4
                                                                                                                                             local.get 3
                                                                                                                                             i32.const 712
@@ -3790,13 +3790,13 @@
                                                                                                                                             local.get 3
                                                                                                                                             i32.const 768
                                                                                                                                             i32.add
-                                                                                                                                            call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                            call 32
                                                                                                                                             local.get 3
                                                                                                                                             i32.const 736
                                                                                                                                             i32.add
                                                                                                                                             local.get 1
                                                                                                                                             local.get 2
-                                                                                                                                            call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                            call 13
                                                                                                                                             local.get 3
                                                                                                                                             i32.load8_u offset=736
                                                                                                                                             i32.const 1
@@ -3824,7 +3824,7 @@
                                                                                                                                             local.get 3
                                                                                                                                             i32.const 768
                                                                                                                                             i32.add
-                                                                                                                                            call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                            call 31
                                                                                                                                             local.get 4
                                                                                                                                             local.get 10
                                                                                                                                             i64.load
@@ -3843,13 +3843,13 @@
                                                                                                                                             local.get 3
                                                                                                                                             i32.const 768
                                                                                                                                             i32.add
-                                                                                                                                            call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                            call 32
                                                                                                                                             local.get 3
                                                                                                                                             i32.const 736
                                                                                                                                             i32.add
                                                                                                                                             local.get 1
                                                                                                                                             local.get 2
-                                                                                                                                            call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                            call 13
                                                                                                                                             block  ;; label = @69
                                                                                                                                               local.get 3
                                                                                                                                               i32.load8_u offset=736
@@ -3904,7 +3904,7 @@
                                                                                                                                               local.get 3
                                                                                                                                               i32.const 768
                                                                                                                                               i32.add
-                                                                                                                                              call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                              call 31
                                                                                                                                               local.get 2
                                                                                                                                               local.get 3
                                                                                                                                               i32.const 712
@@ -3931,7 +3931,7 @@
                                                                                                                                               local.get 3
                                                                                                                                               i32.const 768
                                                                                                                                               i32.add
-                                                                                                                                              call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                              call 32
                                                                                                                                               br 2 (;@67;)
                                                                                                                                             end
                                                                                                                                             local.get 3
@@ -3942,7 +3942,7 @@
                                                                                                                                             i32.load8_u offset=737
                                                                                                                                             local.get 3
                                                                                                                                             i32.load8_u offset=738
-                                                                                                                                            call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                                                                                                                                            call 33
                                                                                                                                             local.get 3
                                                                                                                                             i32.load8_u offset=553
                                                                                                                                             local.set 4
@@ -3956,7 +3956,7 @@
                                                                                                                                           i32.add
                                                                                                                                           local.get 1
                                                                                                                                           local.get 2
-                                                                                                                                          call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                          call 13
                                                                                                                                           local.get 3
                                                                                                                                           i32.load8_u offset=736
                                                                                                                                           i32.const 1
@@ -4014,7 +4014,7 @@
                                                                                                                                           local.get 3
                                                                                                                                           i32.const 768
                                                                                                                                           i32.add
-                                                                                                                                          call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                          call 31
                                                                                                                                           local.get 4
                                                                                                                                           local.get 3
                                                                                                                                           i32.const 712
@@ -4043,13 +4043,13 @@
                                                                                                                                           local.get 3
                                                                                                                                           i32.const 768
                                                                                                                                           i32.add
-                                                                                                                                          call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                          call 32
                                                                                                                                           local.get 3
                                                                                                                                           i32.const 736
                                                                                                                                           i32.add
                                                                                                                                           local.get 1
                                                                                                                                           local.get 2
-                                                                                                                                          call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                          call 13
                                                                                                                                           local.get 3
                                                                                                                                           i32.load8_u offset=736
                                                                                                                                           i32.const 1
@@ -4077,7 +4077,7 @@
                                                                                                                                           local.get 3
                                                                                                                                           i32.const 768
                                                                                                                                           i32.add
-                                                                                                                                          call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                          call 31
                                                                                                                                           local.get 4
                                                                                                                                           local.get 10
                                                                                                                                           i64.load
@@ -4096,13 +4096,13 @@
                                                                                                                                           local.get 3
                                                                                                                                           i32.const 768
                                                                                                                                           i32.add
-                                                                                                                                          call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                          call 32
                                                                                                                                           local.get 3
                                                                                                                                           i32.const 736
                                                                                                                                           i32.add
                                                                                                                                           local.get 1
                                                                                                                                           local.get 2
-                                                                                                                                          call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                          call 13
                                                                                                                                           local.get 3
                                                                                                                                           i32.load8_u offset=736
                                                                                                                                           i32.const 1
@@ -4160,7 +4160,7 @@
                                                                                                                                           local.get 3
                                                                                                                                           i32.const 768
                                                                                                                                           i32.add
-                                                                                                                                          call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                          call 31
                                                                                                                                           local.get 4
                                                                                                                                           local.get 3
                                                                                                                                           i32.const 712
@@ -4189,13 +4189,13 @@
                                                                                                                                           local.get 3
                                                                                                                                           i32.const 768
                                                                                                                                           i32.add
-                                                                                                                                          call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                          call 32
                                                                                                                                           local.get 3
                                                                                                                                           i32.const 736
                                                                                                                                           i32.add
                                                                                                                                           local.get 1
                                                                                                                                           local.get 2
-                                                                                                                                          call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                          call 13
                                                                                                                                           local.get 3
                                                                                                                                           i32.load8_u offset=736
                                                                                                                                           i32.const 1
@@ -4223,7 +4223,7 @@
                                                                                                                                           local.get 3
                                                                                                                                           i32.const 768
                                                                                                                                           i32.add
-                                                                                                                                          call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                          call 31
                                                                                                                                           local.get 4
                                                                                                                                           local.get 10
                                                                                                                                           i64.load
@@ -4242,13 +4242,13 @@
                                                                                                                                           local.get 3
                                                                                                                                           i32.const 768
                                                                                                                                           i32.add
-                                                                                                                                          call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                          call 32
                                                                                                                                           local.get 3
                                                                                                                                           i32.const 736
                                                                                                                                           i32.add
                                                                                                                                           local.get 1
                                                                                                                                           local.get 2
-                                                                                                                                          call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                          call 13
                                                                                                                                           local.get 3
                                                                                                                                           i32.load8_u offset=736
                                                                                                                                           i32.const 1
@@ -4306,7 +4306,7 @@
                                                                                                                                           local.get 3
                                                                                                                                           i32.const 768
                                                                                                                                           i32.add
-                                                                                                                                          call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                          call 31
                                                                                                                                           local.get 4
                                                                                                                                           local.get 3
                                                                                                                                           i32.const 712
@@ -4335,13 +4335,13 @@
                                                                                                                                           local.get 3
                                                                                                                                           i32.const 768
                                                                                                                                           i32.add
-                                                                                                                                          call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                          call 32
                                                                                                                                           local.get 3
                                                                                                                                           i32.const 736
                                                                                                                                           i32.add
                                                                                                                                           local.get 1
                                                                                                                                           local.get 2
-                                                                                                                                          call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                          call 13
                                                                                                                                           local.get 3
                                                                                                                                           i32.load8_u offset=736
                                                                                                                                           i32.const 1
@@ -4369,7 +4369,7 @@
                                                                                                                                           local.get 3
                                                                                                                                           i32.const 768
                                                                                                                                           i32.add
-                                                                                                                                          call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                          call 31
                                                                                                                                           local.get 4
                                                                                                                                           local.get 10
                                                                                                                                           i64.load
@@ -4388,13 +4388,13 @@
                                                                                                                                           local.get 3
                                                                                                                                           i32.const 768
                                                                                                                                           i32.add
-                                                                                                                                          call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                          call 32
                                                                                                                                           local.get 3
                                                                                                                                           i32.const 736
                                                                                                                                           i32.add
                                                                                                                                           local.get 1
                                                                                                                                           local.get 2
-                                                                                                                                          call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                          call 13
                                                                                                                                           local.get 3
                                                                                                                                           i32.load8_u offset=736
                                                                                                                                           i32.const 1
@@ -4452,7 +4452,7 @@
                                                                                                                                           local.get 3
                                                                                                                                           i32.const 768
                                                                                                                                           i32.add
-                                                                                                                                          call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                          call 31
                                                                                                                                           local.get 4
                                                                                                                                           local.get 3
                                                                                                                                           i32.const 712
@@ -4481,13 +4481,13 @@
                                                                                                                                           local.get 3
                                                                                                                                           i32.const 768
                                                                                                                                           i32.add
-                                                                                                                                          call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                          call 32
                                                                                                                                           local.get 3
                                                                                                                                           i32.const 736
                                                                                                                                           i32.add
                                                                                                                                           local.get 1
                                                                                                                                           local.get 2
-                                                                                                                                          call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                          call 13
                                                                                                                                           local.get 3
                                                                                                                                           i32.load8_u offset=736
                                                                                                                                           i32.const 1
@@ -4515,7 +4515,7 @@
                                                                                                                                           local.get 3
                                                                                                                                           i32.const 768
                                                                                                                                           i32.add
-                                                                                                                                          call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                          call 31
                                                                                                                                           local.get 4
                                                                                                                                           local.get 10
                                                                                                                                           i64.load
@@ -4534,13 +4534,13 @@
                                                                                                                                           local.get 3
                                                                                                                                           i32.const 768
                                                                                                                                           i32.add
-                                                                                                                                          call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                          call 32
                                                                                                                                           local.get 3
                                                                                                                                           i32.const 736
                                                                                                                                           i32.add
                                                                                                                                           local.get 1
                                                                                                                                           local.get 2
-                                                                                                                                          call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                          call 13
                                                                                                                                           local.get 3
                                                                                                                                           i32.load8_u offset=736
                                                                                                                                           i32.const 1
@@ -4598,7 +4598,7 @@
                                                                                                                                           local.get 3
                                                                                                                                           i32.const 768
                                                                                                                                           i32.add
-                                                                                                                                          call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                          call 31
                                                                                                                                           local.get 4
                                                                                                                                           local.get 3
                                                                                                                                           i32.const 712
@@ -4627,13 +4627,13 @@
                                                                                                                                           local.get 3
                                                                                                                                           i32.const 768
                                                                                                                                           i32.add
-                                                                                                                                          call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                          call 32
                                                                                                                                           local.get 3
                                                                                                                                           i32.const 736
                                                                                                                                           i32.add
                                                                                                                                           local.get 1
                                                                                                                                           local.get 2
-                                                                                                                                          call $_ZN15svm_abi_decoder7decoder7Decoder12decode_value17h9d37954dd9c0d308E
+                                                                                                                                          call 13
                                                                                                                                           local.get 3
                                                                                                                                           i32.load8_u offset=736
                                                                                                                                           i32.const 1
@@ -4661,7 +4661,7 @@
                                                                                                                                           local.get 3
                                                                                                                                           i32.const 768
                                                                                                                                           i32.add
-                                                                                                                                          call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                          call 31
                                                                                                                                           local.get 4
                                                                                                                                           local.get 10
                                                                                                                                           i64.load
@@ -4680,7 +4680,7 @@
                                                                                                                                           local.get 3
                                                                                                                                           i32.const 768
                                                                                                                                           i32.add
-                                                                                                                                          call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E
+                                                                                                                                          call 32
                                                                                                                                         end
                                                                                                                                         local.get 3
                                                                                                                                         i32.const 672
@@ -4736,7 +4736,7 @@
                                                                                                                                         local.get 3
                                                                                                                                         i32.const 768
                                                                                                                                         i32.add
-                                                                                                                                        call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                        call 31
                                                                                                                                         local.get 3
                                                                                                                                         i32.const 648
                                                                                                                                         i32.add
@@ -4751,7 +4751,7 @@
                                                                                                                                       i32.load8_u offset=737
                                                                                                                                       local.get 3
                                                                                                                                       i32.load8_u offset=738
-                                                                                                                                      call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                                                                                                                                      call 33
                                                                                                                                       local.get 3
                                                                                                                                       i32.load8_u offset=633
                                                                                                                                       local.set 4
@@ -4761,7 +4761,7 @@
                                                                                                                                       br 63 (;@2;)
                                                                                                                                     end
                                                                                                                                     local.get 2
-                                                                                                                                    call $_ZN15svm_abi_decoder7decoder7Decoder9read_byte17h21ec604596f69413E
+                                                                                                                                    call 30
                                                                                                                                     local.tee 2
                                                                                                                                     i32.const 255
                                                                                                                                     i32.and
@@ -4769,7 +4769,7 @@
                                                                                                                                     i32.eq
                                                                                                                                     br_if 15 (;@49;)
                                                                                                                                     local.get 2
-                                                                                                                                    call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h4dfab9955cc6c517E
+                                                                                                                                    call 28
                                                                                                                                     drop
                                                                                                                                     local.get 3
                                                                                                                                     i32.const 768
@@ -4794,7 +4794,7 @@
                                                                                                                                     local.get 3
                                                                                                                                     i32.const 768
                                                                                                                                     i32.add
-                                                                                                                                    call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                    call 31
                                                                                                                                     local.get 3
                                                                                                                                     i32.const 648
                                                                                                                                     i32.add
@@ -4831,7 +4831,7 @@
                                                                                                                                   end
                                                                                                                                   block  ;; label = @64
                                                                                                                                     local.get 2
-                                                                                                                                    call $_ZN15svm_abi_decoder7decoder7Decoder9read_byte17h21ec604596f69413E
+                                                                                                                                    call 30
                                                                                                                                     local.tee 2
                                                                                                                                     i32.const 255
                                                                                                                                     i32.and
@@ -4839,7 +4839,7 @@
                                                                                                                                     i32.eq
                                                                                                                                     br_if 0 (;@64;)
                                                                                                                                     local.get 2
-                                                                                                                                    call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h4dfab9955cc6c517E
+                                                                                                                                    call 28
                                                                                                                                     drop
                                                                                                                                     local.get 3
                                                                                                                                     i32.const 768
@@ -4864,7 +4864,7 @@
                                                                                                                                     local.get 3
                                                                                                                                     i32.const 768
                                                                                                                                     i32.add
-                                                                                                                                    call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                    call 31
                                                                                                                                     local.get 3
                                                                                                                                     i32.const 648
                                                                                                                                     i32.add
@@ -4903,7 +4903,7 @@
                                                                                                                                   i32.const 32
                                                                                                                                   i32.add
                                                                                                                                   local.get 2
-                                                                                                                                  call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17h614f58e3afa2a7eaE
+                                                                                                                                  call 29
                                                                                                                                   local.get 3
                                                                                                                                   i32.const 24
                                                                                                                                   i32.add
@@ -4912,7 +4912,7 @@
                                                                                                                                   i32.load8_u offset=32
                                                                                                                                   local.get 3
                                                                                                                                   i32.load8_u offset=33
-                                                                                                                                  call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                                                                                                                                  call 33
                                                                                                                                   local.get 0
                                                                                                                                   local.get 3
                                                                                                                                   i32.load16_u offset=24
@@ -4924,7 +4924,7 @@
                                                                                                                                 end
                                                                                                                                 block  ;; label = @63
                                                                                                                                   local.get 2
-                                                                                                                                  call $_ZN15svm_abi_decoder7decoder7Decoder9read_byte17h21ec604596f69413E
+                                                                                                                                  call 30
                                                                                                                                   local.tee 2
                                                                                                                                   i32.const 255
                                                                                                                                   i32.and
@@ -4935,7 +4935,7 @@
                                                                                                                                   local.set 4
                                                                                                                                   block  ;; label = @64
                                                                                                                                     local.get 2
-                                                                                                                                    call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h4dfab9955cc6c517E
+                                                                                                                                    call 28
                                                                                                                                     i32.const 255
                                                                                                                                     i32.and
                                                                                                                                     local.tee 2
@@ -4976,7 +4976,7 @@
                                                                                                                                   local.get 3
                                                                                                                                   i32.const 768
                                                                                                                                   i32.add
-                                                                                                                                  call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                  call 31
                                                                                                                                   local.get 3
                                                                                                                                   i32.const 648
                                                                                                                                   i32.add
@@ -5015,7 +5015,7 @@
                                                                                                                                 i32.const 48
                                                                                                                                 i32.add
                                                                                                                                 local.get 2
-                                                                                                                                call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17h614f58e3afa2a7eaE
+                                                                                                                                call 29
                                                                                                                                 local.get 3
                                                                                                                                 i32.const 40
                                                                                                                                 i32.add
@@ -5024,7 +5024,7 @@
                                                                                                                                 i32.load8_u offset=48
                                                                                                                                 local.get 3
                                                                                                                                 i32.load8_u offset=49
-                                                                                                                                call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                                                                                                                                call 33
                                                                                                                                 local.get 0
                                                                                                                                 local.get 3
                                                                                                                                 i32.load16_u offset=40
@@ -5037,7 +5037,7 @@
                                                                                                                               block  ;; label = @62
                                                                                                                                 block  ;; label = @63
                                                                                                                                   local.get 2
-                                                                                                                                  call $_ZN15svm_abi_decoder7decoder7Decoder9read_byte17h21ec604596f69413E
+                                                                                                                                  call 30
                                                                                                                                   local.tee 4
                                                                                                                                   i32.const 255
                                                                                                                                   i32.and
@@ -5045,11 +5045,11 @@
                                                                                                                                   i32.eq
                                                                                                                                   br_if 0 (;@63;)
                                                                                                                                   local.get 4
-                                                                                                                                  call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h4dfab9955cc6c517E
+                                                                                                                                  call 28
                                                                                                                                   drop
                                                                                                                                   local.get 2
                                                                                                                                   i32.const 20
-                                                                                                                                  call $_ZN15svm_abi_decoder7decoder7Decoder10read_bytes17h60a0e41c7e5770a4E
+                                                                                                                                  call 34
                                                                                                                                   local.tee 12
                                                                                                                                   i32.wrap_i64
                                                                                                                                   i32.const 255
@@ -5061,7 +5061,7 @@
                                                                                                                                   i32.const 72
                                                                                                                                   i32.add
                                                                                                                                   local.get 12
-                                                                                                                                  call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17h7658ac3f58c8eb3aE
+                                                                                                                                  call 35
                                                                                                                                   local.get 3
                                                                                                                                   i32.load8_u offset=73
                                                                                                                                   local.set 2
@@ -5074,7 +5074,7 @@
                                                                                                                                 i32.const 64
                                                                                                                                 i32.add
                                                                                                                                 local.get 4
-                                                                                                                                call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17h614f58e3afa2a7eaE
+                                                                                                                                call 29
                                                                                                                                 local.get 3
                                                                                                                                 i32.load8_u offset=65
                                                                                                                                 local.set 2
@@ -5088,7 +5088,7 @@
                                                                                                                               i32.const 1
                                                                                                                               local.get 4
                                                                                                                               local.get 2
-                                                                                                                              call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                                                                                                                              call 33
                                                                                                                               local.get 0
                                                                                                                               local.get 3
                                                                                                                               i32.load16_u offset=56
@@ -5103,7 +5103,7 @@
                                                                                                                             block  ;; label = @61
                                                                                                                               block  ;; label = @62
                                                                                                                                 local.get 2
-                                                                                                                                call $_ZN15svm_abi_decoder7decoder7Decoder9read_byte17h21ec604596f69413E
+                                                                                                                                call 30
                                                                                                                                 local.tee 4
                                                                                                                                 i32.const 255
                                                                                                                                 i32.and
@@ -5120,7 +5120,7 @@
                                                                                                                                               block  ;; label = @70
                                                                                                                                                 block  ;; label = @71
                                                                                                                                                   local.get 4
-                                                                                                                                                  call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h4dfab9955cc6c517E
+                                                                                                                                                  call 28
                                                                                                                                                   i32.const -1
                                                                                                                                                   i32.add
                                                                                                                                                   local.tee 4
@@ -5139,7 +5139,7 @@
                                                                                                                                                 i32.const 1049343
                                                                                                                                                 i32.const 40
                                                                                                                                                 i32.const 1048728
-                                                                                                                                                call $_ZN4core9panicking5panic17hc64f9753b8a1be76E
+                                                                                                                                                call 14
                                                                                                                                                 unreachable
                                                                                                                                               end
                                                                                                                                               i32.const 2
@@ -5174,7 +5174,7 @@
                                                                                                                                 i32.add
                                                                                                                                 local.get 2
                                                                                                                                 local.get 1
-                                                                                                                                call $_ZN15svm_abi_decoder7decoder7Decoder8read_num17hd57ef9494a153fd8E
+                                                                                                                                call 36
                                                                                                                                 block  ;; label = @63
                                                                                                                                   local.get 3
                                                                                                                                   i32.load8_u offset=712
@@ -5189,7 +5189,7 @@
                                                                                                                                   i32.load8_u offset=713
                                                                                                                                   local.get 3
                                                                                                                                   i32.load8_u offset=714
-                                                                                                                                  call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hc0bbb41f48ff998cE
+                                                                                                                                  call 37
                                                                                                                                   local.get 3
                                                                                                                                   i32.load8_u offset=97
                                                                                                                                   local.set 2
@@ -5221,7 +5221,7 @@
                                                                                                                                 local.get 3
                                                                                                                                 i32.const 768
                                                                                                                                 i32.add
-                                                                                                                                call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h94af4025f3c7dd56E
+                                                                                                                                call 38
                                                                                                                                 i64.store
                                                                                                                                 local.get 3
                                                                                                                                 i32.const 768
@@ -5242,7 +5242,7 @@
                                                                                                                                 local.get 3
                                                                                                                                 i32.const 768
                                                                                                                                 i32.add
-                                                                                                                                call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                                                call 31
                                                                                                                                 local.get 3
                                                                                                                                 i32.const 648
                                                                                                                                 i32.add
@@ -5281,7 +5281,7 @@
                                                                                                                               i32.const 88
                                                                                                                               i32.add
                                                                                                                               local.get 4
-                                                                                                                              call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17h614f58e3afa2a7eaE
+                                                                                                                              call 29
                                                                                                                               local.get 3
                                                                                                                               i32.load8_u offset=89
                                                                                                                               local.set 2
@@ -5295,7 +5295,7 @@
                                                                                                                             i32.const 1
                                                                                                                             local.get 4
                                                                                                                             local.get 2
-                                                                                                                            call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                                                                                                                            call 33
                                                                                                                             local.get 0
                                                                                                                             local.get 3
                                                                                                                             i32.load16_u offset=80
@@ -5307,7 +5307,7 @@
                                                                                                                           end
                                                                                                                           block  ;; label = @60
                                                                                                                             local.get 2
-                                                                                                                            call $_ZN15svm_abi_decoder7decoder7Decoder9decode_i817h61d1a1dfe4440be9E
+                                                                                                                            call 39
                                                                                                                             local.tee 2
                                                                                                                             i32.const 255
                                                                                                                             i32.and
@@ -5318,7 +5318,7 @@
                                                                                                                             i32.const 657
                                                                                                                             i32.add
                                                                                                                             local.get 2
-                                                                                                                            call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17ha75a77b107b60e57E
+                                                                                                                            call 40
                                                                                                                             i32.store8
                                                                                                                             local.get 3
                                                                                                                             i32.const 5
@@ -5336,7 +5336,7 @@
                                                                                                                           i32.const 104
                                                                                                                           i32.add
                                                                                                                           local.get 2
-                                                                                                                          call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17h329d37ca6b8370f0E
+                                                                                                                          call 41
                                                                                                                           local.get 0
                                                                                                                           local.get 3
                                                                                                                           i32.load16_u offset=104
@@ -5351,7 +5351,7 @@
                                                                                                                         block  ;; label = @59
                                                                                                                           block  ;; label = @60
                                                                                                                             local.get 2
-                                                                                                                            call $_ZN15svm_abi_decoder7decoder7Decoder9decode_i817h61d1a1dfe4440be9E
+                                                                                                                            call 39
                                                                                                                             local.tee 2
                                                                                                                             i32.const 255
                                                                                                                             i32.and
@@ -5361,7 +5361,7 @@
                                                                                                                             i32.const 0
                                                                                                                             local.set 4
                                                                                                                             local.get 2
-                                                                                                                            call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17ha75a77b107b60e57E
+                                                                                                                            call 40
                                                                                                                             local.set 1
                                                                                                                             br 1 (;@59;)
                                                                                                                           end
@@ -5369,7 +5369,7 @@
                                                                                                                           i32.const 120
                                                                                                                           i32.add
                                                                                                                           local.get 2
-                                                                                                                          call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17h329d37ca6b8370f0E
+                                                                                                                          call 41
                                                                                                                           local.get 3
                                                                                                                           i32.load8_u offset=121
                                                                                                                           local.set 5
@@ -5400,7 +5400,7 @@
                                                                                                                           i32.const 657
                                                                                                                           i32.add
                                                                                                                           local.get 4
-                                                                                                                          call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h4dfab9955cc6c517E
+                                                                                                                          call 28
                                                                                                                           i32.store8
                                                                                                                           local.get 3
                                                                                                                           i32.const 6
@@ -5418,7 +5418,7 @@
                                                                                                                         i32.const 112
                                                                                                                         i32.add
                                                                                                                         local.get 4
-                                                                                                                        call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17h614f58e3afa2a7eaE
+                                                                                                                        call 29
                                                                                                                         local.get 0
                                                                                                                         local.get 3
                                                                                                                         i32.load16_u offset=112
@@ -5430,7 +5430,7 @@
                                                                                                                       end
                                                                                                                       block  ;; label = @58
                                                                                                                         local.get 2
-                                                                                                                        call $_ZN15svm_abi_decoder7decoder7Decoder10decode_i1617h543a552aefc49ae0E
+                                                                                                                        call 42
                                                                                                                         local.tee 2
                                                                                                                         i32.const 255
                                                                                                                         i32.and
@@ -5441,7 +5441,7 @@
                                                                                                                         i32.const 658
                                                                                                                         i32.add
                                                                                                                         local.get 2
-                                                                                                                        call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9434170550c1e1daE
+                                                                                                                        call 43
                                                                                                                         i32.store16
                                                                                                                         local.get 3
                                                                                                                         i32.const 7
@@ -5459,7 +5459,7 @@
                                                                                                                       i32.const 128
                                                                                                                       i32.add
                                                                                                                       local.get 2
-                                                                                                                      call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17h8022a205287793acE
+                                                                                                                      call 44
                                                                                                                       local.get 0
                                                                                                                       local.get 3
                                                                                                                       i32.load16_u offset=128
@@ -5471,7 +5471,7 @@
                                                                                                                     end
                                                                                                                     block  ;; label = @57
                                                                                                                       local.get 2
-                                                                                                                      call $_ZN15svm_abi_decoder7decoder7Decoder10decode_i1617h543a552aefc49ae0E
+                                                                                                                      call 42
                                                                                                                       local.tee 2
                                                                                                                       i32.const 255
                                                                                                                       i32.and
@@ -5482,7 +5482,7 @@
                                                                                                                       i32.const 658
                                                                                                                       i32.add
                                                                                                                       local.get 2
-                                                                                                                      call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9434170550c1e1daE
+                                                                                                                      call 43
                                                                                                                       i32.store16
                                                                                                                       local.get 3
                                                                                                                       i32.const 8
@@ -5500,7 +5500,7 @@
                                                                                                                     i32.const 136
                                                                                                                     i32.add
                                                                                                                     local.get 2
-                                                                                                                    call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17h8022a205287793acE
+                                                                                                                    call 44
                                                                                                                     local.get 0
                                                                                                                     local.get 3
                                                                                                                     i32.load16_u offset=136
@@ -5512,7 +5512,7 @@
                                                                                                                   end
                                                                                                                   block  ;; label = @56
                                                                                                                     local.get 2
-                                                                                                                    call $_ZN15svm_abi_decoder7decoder7Decoder10decode_i3217h88974b4922d1e3f2E
+                                                                                                                    call 45
                                                                                                                     local.tee 12
                                                                                                                     i32.wrap_i64
                                                                                                                     i32.const 255
@@ -5524,7 +5524,7 @@
                                                                                                                     i32.const 660
                                                                                                                     i32.add
                                                                                                                     local.get 12
-                                                                                                                    call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h6762501a24f861ddE
+                                                                                                                    call 46
                                                                                                                     i32.store
                                                                                                                     local.get 3
                                                                                                                     i32.const 9
@@ -5542,7 +5542,7 @@
                                                                                                                   i32.const 144
                                                                                                                   i32.add
                                                                                                                   local.get 12
-                                                                                                                  call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hbd78294bab8fc663E
+                                                                                                                  call 47
                                                                                                                   local.get 0
                                                                                                                   local.get 3
                                                                                                                   i32.load16_u offset=144
@@ -5554,7 +5554,7 @@
                                                                                                                 end
                                                                                                                 block  ;; label = @55
                                                                                                                   local.get 2
-                                                                                                                  call $_ZN15svm_abi_decoder7decoder7Decoder10decode_i3217h88974b4922d1e3f2E
+                                                                                                                  call 45
                                                                                                                   local.tee 12
                                                                                                                   i32.wrap_i64
                                                                                                                   i32.const 255
@@ -5566,7 +5566,7 @@
                                                                                                                   i32.const 660
                                                                                                                   i32.add
                                                                                                                   local.get 12
-                                                                                                                  call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h6762501a24f861ddE
+                                                                                                                  call 46
                                                                                                                   i32.store
                                                                                                                   local.get 3
                                                                                                                   i32.const 10
@@ -5584,7 +5584,7 @@
                                                                                                                 i32.const 152
                                                                                                                 i32.add
                                                                                                                 local.get 12
-                                                                                                                call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hbd78294bab8fc663E
+                                                                                                                call 47
                                                                                                                 local.get 0
                                                                                                                 local.get 3
                                                                                                                 i32.load16_u offset=152
@@ -5598,7 +5598,7 @@
                                                                                                               i32.const 736
                                                                                                               i32.add
                                                                                                               local.get 2
-                                                                                                              call $_ZN15svm_abi_decoder7decoder7Decoder10decode_i6417h6870fd9fd42a67aeE
+                                                                                                              call 48
                                                                                                               block  ;; label = @54
                                                                                                                 local.get 3
                                                                                                                 i32.load8_u offset=736
@@ -5627,7 +5627,7 @@
                                                                                                                 local.get 3
                                                                                                                 i32.const 768
                                                                                                                 i32.add
-                                                                                                                call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17hcd93f9c9a920f35eE
+                                                                                                                call 49
                                                                                                                 i64.store
                                                                                                                 local.get 3
                                                                                                                 i32.const 11
@@ -5649,7 +5649,7 @@
                                                                                                               i32.load8_u offset=737
                                                                                                               local.get 3
                                                                                                               i32.load8_u offset=738
-                                                                                                              call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hd6856279f96aa83aE
+                                                                                                              call 50
                                                                                                               local.get 0
                                                                                                               local.get 3
                                                                                                               i32.load16_u offset=160
@@ -5663,7 +5663,7 @@
                                                                                                             i32.const 736
                                                                                                             i32.add
                                                                                                             local.get 2
-                                                                                                            call $_ZN15svm_abi_decoder7decoder7Decoder10decode_i6417h6870fd9fd42a67aeE
+                                                                                                            call 48
                                                                                                             block  ;; label = @53
                                                                                                               local.get 3
                                                                                                               i32.load8_u offset=736
@@ -5691,7 +5691,7 @@
                                                                                                               local.get 3
                                                                                                               i32.const 768
                                                                                                               i32.add
-                                                                                                              call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17hcd93f9c9a920f35eE
+                                                                                                              call 49
                                                                                                               i64.store
                                                                                                               local.get 3
                                                                                                               i32.const 0
@@ -5702,7 +5702,7 @@
                                                                                                               local.get 3
                                                                                                               i32.const 768
                                                                                                               i32.add
-                                                                                                              call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h94af4025f3c7dd56E
+                                                                                                              call 38
                                                                                                               i64.store
                                                                                                               local.get 3
                                                                                                               i32.const 12
@@ -5724,7 +5724,7 @@
                                                                                                             i32.load8_u offset=737
                                                                                                             local.get 3
                                                                                                             i32.load8_u offset=738
-                                                                                                            call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hd6856279f96aa83aE
+                                                                                                            call 50
                                                                                                             local.get 3
                                                                                                             i32.const 168
                                                                                                             i32.add
@@ -5733,7 +5733,7 @@
                                                                                                             i32.load8_u offset=176
                                                                                                             local.get 3
                                                                                                             i32.load8_u offset=177
-                                                                                                            call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hc0bbb41f48ff998cE
+                                                                                                            call 37
                                                                                                             local.get 0
                                                                                                             local.get 3
                                                                                                             i32.load16_u offset=168
@@ -5747,7 +5747,7 @@
                                                                                                           i32.const 192
                                                                                                           i32.add
                                                                                                           local.get 4
-                                                                                                          call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17h614f58e3afa2a7eaE
+                                                                                                          call 29
                                                                                                           local.get 3
                                                                                                           i32.load8_u offset=193
                                                                                                           local.set 4
@@ -5762,7 +5762,7 @@
                                                                                                         i32.const 20
                                                                                                         i32.add
                                                                                                         local.get 12
-                                                                                                        call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h037337940127482eE
+                                                                                                        call 51
                                                                                                         i32.store
                                                                                                         local.get 3
                                                                                                         i32.const 768
@@ -5787,7 +5787,7 @@
                                                                                                         local.get 3
                                                                                                         i32.const 768
                                                                                                         i32.add
-                                                                                                        call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E
+                                                                                                        call 31
                                                                                                         local.get 3
                                                                                                         i32.const 648
                                                                                                         i32.add
@@ -5852,7 +5852,7 @@
                                                                                                     i32.const 16
                                                                                                     i32.add
                                                                                                     local.get 2
-                                                                                                    call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17h614f58e3afa2a7eaE
+                                                                                                    call 29
                                                                                                     local.get 3
                                                                                                     i32.const 8
                                                                                                     i32.add
@@ -5861,7 +5861,7 @@
                                                                                                     i32.load8_u offset=16
                                                                                                     local.get 3
                                                                                                     i32.load8_u offset=17
-                                                                                                    call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                                                                                                    call 33
                                                                                                     local.get 0
                                                                                                     local.get 3
                                                                                                     i32.load16_u offset=8
@@ -5879,7 +5879,7 @@
                                                                                                   i32.load8_u offset=737
                                                                                                   local.get 3
                                                                                                   i32.load8_u offset=738
-                                                                                                  call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                                                                                                  call 33
                                                                                                   local.get 3
                                                                                                   i32.load8_u offset=209
                                                                                                   local.set 4
@@ -5896,7 +5896,7 @@
                                                                                                 i32.load8_u offset=737
                                                                                                 local.get 3
                                                                                                 i32.load8_u offset=738
-                                                                                                call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                                                                                                call 33
                                                                                                 local.get 3
                                                                                                 i32.load8_u offset=225
                                                                                                 local.set 4
@@ -5913,7 +5913,7 @@
                                                                                               i32.load8_u offset=737
                                                                                               local.get 3
                                                                                               i32.load8_u offset=738
-                                                                                              call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                                                                                              call 33
                                                                                               local.get 3
                                                                                               i32.load8_u offset=233
                                                                                               local.set 4
@@ -5930,7 +5930,7 @@
                                                                                             i32.load8_u offset=737
                                                                                             local.get 3
                                                                                             i32.load8_u offset=738
-                                                                                            call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                                                                                            call 33
                                                                                             local.get 3
                                                                                             i32.load8_u offset=249
                                                                                             local.set 4
@@ -5947,7 +5947,7 @@
                                                                                           i32.load8_u offset=737
                                                                                           local.get 3
                                                                                           i32.load8_u offset=738
-                                                                                          call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                                                                                          call 33
                                                                                           local.get 3
                                                                                           i32.load8_u offset=257
                                                                                           local.set 4
@@ -5964,7 +5964,7 @@
                                                                                         i32.load8_u offset=737
                                                                                         local.get 3
                                                                                         i32.load8_u offset=738
-                                                                                        call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                                                                                        call 33
                                                                                         local.get 3
                                                                                         i32.load8_u offset=265
                                                                                         local.set 4
@@ -5981,7 +5981,7 @@
                                                                                       i32.load8_u offset=737
                                                                                       local.get 3
                                                                                       i32.load8_u offset=738
-                                                                                      call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                                                                                      call 33
                                                                                       local.get 3
                                                                                       i32.load8_u offset=281
                                                                                       local.set 4
@@ -5998,7 +5998,7 @@
                                                                                     i32.load8_u offset=737
                                                                                     local.get 3
                                                                                     i32.load8_u offset=738
-                                                                                    call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                                                                                    call 33
                                                                                     local.get 3
                                                                                     i32.load8_u offset=289
                                                                                     local.set 4
@@ -6015,7 +6015,7 @@
                                                                                   i32.load8_u offset=737
                                                                                   local.get 3
                                                                                   i32.load8_u offset=738
-                                                                                  call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                                                                                  call 33
                                                                                   local.get 3
                                                                                   i32.load8_u offset=297
                                                                                   local.set 4
@@ -6032,7 +6032,7 @@
                                                                                 i32.load8_u offset=737
                                                                                 local.get 3
                                                                                 i32.load8_u offset=738
-                                                                                call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                                                                                call 33
                                                                                 local.get 3
                                                                                 i32.load8_u offset=305
                                                                                 local.set 4
@@ -6049,7 +6049,7 @@
                                                                               i32.load8_u offset=737
                                                                               local.get 3
                                                                               i32.load8_u offset=738
-                                                                              call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                                                                              call 33
                                                                               local.get 3
                                                                               i32.load8_u offset=321
                                                                               local.set 4
@@ -6066,7 +6066,7 @@
                                                                             i32.load8_u offset=737
                                                                             local.get 3
                                                                             i32.load8_u offset=738
-                                                                            call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                                                                            call 33
                                                                             local.get 3
                                                                             i32.load8_u offset=329
                                                                             local.set 4
@@ -6083,7 +6083,7 @@
                                                                           i32.load8_u offset=737
                                                                           local.get 3
                                                                           i32.load8_u offset=738
-                                                                          call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                                                                          call 33
                                                                           local.get 3
                                                                           i32.load8_u offset=337
                                                                           local.set 4
@@ -6100,7 +6100,7 @@
                                                                         i32.load8_u offset=737
                                                                         local.get 3
                                                                         i32.load8_u offset=738
-                                                                        call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                                                                        call 33
                                                                         local.get 3
                                                                         i32.load8_u offset=345
                                                                         local.set 4
@@ -6117,7 +6117,7 @@
                                                                       i32.load8_u offset=737
                                                                       local.get 3
                                                                       i32.load8_u offset=738
-                                                                      call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                                                                      call 33
                                                                       local.get 3
                                                                       i32.load8_u offset=353
                                                                       local.set 4
@@ -6134,7 +6134,7 @@
                                                                     i32.load8_u offset=737
                                                                     local.get 3
                                                                     i32.load8_u offset=738
-                                                                    call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                                                                    call 33
                                                                     local.get 3
                                                                     i32.load8_u offset=369
                                                                     local.set 4
@@ -6151,7 +6151,7 @@
                                                                   i32.load8_u offset=737
                                                                   local.get 3
                                                                   i32.load8_u offset=738
-                                                                  call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                                                                  call 33
                                                                   local.get 3
                                                                   i32.load8_u offset=377
                                                                   local.set 4
@@ -6168,7 +6168,7 @@
                                                                 i32.load8_u offset=737
                                                                 local.get 3
                                                                 i32.load8_u offset=738
-                                                                call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                                                                call 33
                                                                 local.get 3
                                                                 i32.load8_u offset=385
                                                                 local.set 4
@@ -6185,7 +6185,7 @@
                                                               i32.load8_u offset=737
                                                               local.get 3
                                                               i32.load8_u offset=738
-                                                              call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                                                              call 33
                                                               local.get 3
                                                               i32.load8_u offset=393
                                                               local.set 4
@@ -6202,7 +6202,7 @@
                                                             i32.load8_u offset=737
                                                             local.get 3
                                                             i32.load8_u offset=738
-                                                            call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                                                            call 33
                                                             local.get 3
                                                             i32.load8_u offset=401
                                                             local.set 4
@@ -6219,7 +6219,7 @@
                                                           i32.load8_u offset=737
                                                           local.get 3
                                                           i32.load8_u offset=738
-                                                          call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                                                          call 33
                                                           local.get 3
                                                           i32.load8_u offset=409
                                                           local.set 4
@@ -6236,7 +6236,7 @@
                                                         i32.load8_u offset=737
                                                         local.get 3
                                                         i32.load8_u offset=738
-                                                        call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                                                        call 33
                                                         local.get 3
                                                         i32.load8_u offset=425
                                                         local.set 4
@@ -6253,7 +6253,7 @@
                                                       i32.load8_u offset=737
                                                       local.get 3
                                                       i32.load8_u offset=738
-                                                      call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                                                      call 33
                                                       local.get 3
                                                       i32.load8_u offset=433
                                                       local.set 4
@@ -6270,7 +6270,7 @@
                                                     i32.load8_u offset=737
                                                     local.get 3
                                                     i32.load8_u offset=738
-                                                    call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                                                    call 33
                                                     local.get 3
                                                     i32.load8_u offset=441
                                                     local.set 4
@@ -6287,7 +6287,7 @@
                                                   i32.load8_u offset=737
                                                   local.get 3
                                                   i32.load8_u offset=738
-                                                  call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                                                  call 33
                                                   local.get 3
                                                   i32.load8_u offset=449
                                                   local.set 4
@@ -6304,7 +6304,7 @@
                                                 i32.load8_u offset=737
                                                 local.get 3
                                                 i32.load8_u offset=738
-                                                call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                                                call 33
                                                 local.get 3
                                                 i32.load8_u offset=457
                                                 local.set 4
@@ -6321,7 +6321,7 @@
                                               i32.load8_u offset=737
                                               local.get 3
                                               i32.load8_u offset=738
-                                              call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                                              call 33
                                               local.get 3
                                               i32.load8_u offset=465
                                               local.set 4
@@ -6338,7 +6338,7 @@
                                             i32.load8_u offset=737
                                             local.get 3
                                             i32.load8_u offset=738
-                                            call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                                            call 33
                                             local.get 3
                                             i32.load8_u offset=473
                                             local.set 4
@@ -6355,7 +6355,7 @@
                                           i32.load8_u offset=737
                                           local.get 3
                                           i32.load8_u offset=738
-                                          call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                                          call 33
                                           local.get 3
                                           i32.load8_u offset=489
                                           local.set 4
@@ -6372,7 +6372,7 @@
                                         i32.load8_u offset=737
                                         local.get 3
                                         i32.load8_u offset=738
-                                        call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                                        call 33
                                         local.get 3
                                         i32.load8_u offset=497
                                         local.set 4
@@ -6389,7 +6389,7 @@
                                       i32.load8_u offset=737
                                       local.get 3
                                       i32.load8_u offset=738
-                                      call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                                      call 33
                                       local.get 3
                                       i32.load8_u offset=505
                                       local.set 4
@@ -6406,7 +6406,7 @@
                                     i32.load8_u offset=737
                                     local.get 3
                                     i32.load8_u offset=738
-                                    call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                                    call 33
                                     local.get 3
                                     i32.load8_u offset=513
                                     local.set 4
@@ -6423,7 +6423,7 @@
                                   i32.load8_u offset=737
                                   local.get 3
                                   i32.load8_u offset=738
-                                  call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                                  call 33
                                   local.get 3
                                   i32.load8_u offset=521
                                   local.set 4
@@ -6440,7 +6440,7 @@
                                 i32.load8_u offset=737
                                 local.get 3
                                 i32.load8_u offset=738
-                                call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                                call 33
                                 local.get 3
                                 i32.load8_u offset=529
                                 local.set 4
@@ -6457,7 +6457,7 @@
                               i32.load8_u offset=737
                               local.get 3
                               i32.load8_u offset=738
-                              call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                              call 33
                               local.get 3
                               i32.load8_u offset=537
                               local.set 4
@@ -6474,7 +6474,7 @@
                             i32.load8_u offset=737
                             local.get 3
                             i32.load8_u offset=738
-                            call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                            call 33
                             local.get 3
                             i32.load8_u offset=545
                             local.set 4
@@ -6491,7 +6491,7 @@
                           i32.load8_u offset=737
                           local.get 3
                           i32.load8_u offset=738
-                          call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                          call 33
                           local.get 3
                           i32.load8_u offset=561
                           local.set 4
@@ -6508,7 +6508,7 @@
                         i32.load8_u offset=737
                         local.get 3
                         i32.load8_u offset=738
-                        call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                        call 33
                         local.get 3
                         i32.load8_u offset=569
                         local.set 4
@@ -6525,7 +6525,7 @@
                       i32.load8_u offset=737
                       local.get 3
                       i32.load8_u offset=738
-                      call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                      call 33
                       local.get 3
                       i32.load8_u offset=577
                       local.set 4
@@ -6542,7 +6542,7 @@
                     i32.load8_u offset=737
                     local.get 3
                     i32.load8_u offset=738
-                    call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                    call 33
                     local.get 3
                     i32.load8_u offset=585
                     local.set 4
@@ -6559,7 +6559,7 @@
                   i32.load8_u offset=737
                   local.get 3
                   i32.load8_u offset=738
-                  call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                  call 33
                   local.get 3
                   i32.load8_u offset=593
                   local.set 4
@@ -6576,7 +6576,7 @@
                 i32.load8_u offset=737
                 local.get 3
                 i32.load8_u offset=738
-                call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+                call 33
                 local.get 3
                 i32.load8_u offset=601
                 local.set 4
@@ -6593,7 +6593,7 @@
               i32.load8_u offset=737
               local.get 3
               i32.load8_u offset=738
-              call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+              call 33
               local.get 3
               i32.load8_u offset=609
               local.set 4
@@ -6610,7 +6610,7 @@
             i32.load8_u offset=737
             local.get 3
             i32.load8_u offset=738
-            call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+            call 33
             local.get 3
             i32.load8_u offset=617
             local.set 4
@@ -6627,7 +6627,7 @@
           i32.load8_u offset=737
           local.get 3
           i32.load8_u offset=738
-          call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+          call 33
           local.get 3
           i32.load8_u offset=625
           local.set 4
@@ -6639,7 +6639,7 @@
         i32.const 1049343
         i32.const 40
         i32.const 1048712
-        call $_ZN4core9panicking5panic17hc64f9753b8a1be76E
+        call 14
         unreachable
       end
       local.get 3
@@ -6648,7 +6648,7 @@
       i32.const 1
       local.get 2
       local.get 4
-      call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE
+      call 33
       local.get 0
       local.get 3
       i32.load16_u offset=184
@@ -6661,7 +6661,7 @@
     i32.const 800
     i32.add
     global.set 0)
-  (func $_ZN4core9panicking5panic17hc64f9753b8a1be76E (type 5) (param i32 i32 i32)
+  (func (;14;) (type 5) (param i32 i32 i32)
     (local i32)
     global.get 0
     i32.const 32
@@ -6692,9 +6692,9 @@
     i32.store
     local.get 3
     local.get 2
-    call $_ZN4core9panicking9panic_fmt17hfa15f5472ef5e557E
+    call 18
     unreachable)
-  (func $load_addr (type 4)
+  (func (;15;) (type 4)
     (local i32 i32)
     global.get 0
     i32.const 32
@@ -6704,151 +6704,151 @@
     local.get 0
     i32.const 8
     i32.add
-    call $_ZN73_$LT$svm_sdk_host..ext..ExtHost$u20$as$u20$svm_sdk_host..traits..Host$GT$12get_calldata17h9c3a1c3f928c46f6E
+    call 6
     i32.const 0
     i32.const 20
-    call $_ZN13svm_sdk_alloc12svm_allocate17h12629aa7a0722256E
+    call 3
     local.tee 1
-    call $_ZN15svm_sdk_storage3ext11svm_load16017hb02d905ebf79dc3bE
+    call 5
     local.get 0
     i32.const 16
     i32.add
-    call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$13with_capacity17h5c5f0a792dfa361bE
+    call 10
     local.get 0
     i32.const 16
     i32.add
     i32.const 64
-    call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h0af1a76b2490332dE
+    call 16
     local.get 0
     i32.const 16
     i32.add
     local.get 1
     i32.load8_u
-    call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h0af1a76b2490332dE
+    call 16
     local.get 0
     i32.const 16
     i32.add
     local.get 1
     i32.load8_u offset=1
-    call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h0af1a76b2490332dE
+    call 16
     local.get 0
     i32.const 16
     i32.add
     local.get 1
     i32.load8_u offset=2
-    call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h0af1a76b2490332dE
+    call 16
     local.get 0
     i32.const 16
     i32.add
     local.get 1
     i32.load8_u offset=3
-    call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h0af1a76b2490332dE
+    call 16
     local.get 0
     i32.const 16
     i32.add
     local.get 1
     i32.load8_u offset=4
-    call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h0af1a76b2490332dE
+    call 16
     local.get 0
     i32.const 16
     i32.add
     local.get 1
     i32.load8_u offset=5
-    call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h0af1a76b2490332dE
+    call 16
     local.get 0
     i32.const 16
     i32.add
     local.get 1
     i32.load8_u offset=6
-    call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h0af1a76b2490332dE
+    call 16
     local.get 0
     i32.const 16
     i32.add
     local.get 1
     i32.load8_u offset=7
-    call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h0af1a76b2490332dE
+    call 16
     local.get 0
     i32.const 16
     i32.add
     local.get 1
     i32.load8_u offset=8
-    call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h0af1a76b2490332dE
+    call 16
     local.get 0
     i32.const 16
     i32.add
     local.get 1
     i32.load8_u offset=9
-    call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h0af1a76b2490332dE
+    call 16
     local.get 0
     i32.const 16
     i32.add
     local.get 1
     i32.load8_u offset=10
-    call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h0af1a76b2490332dE
+    call 16
     local.get 0
     i32.const 16
     i32.add
     local.get 1
     i32.load8_u offset=11
-    call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h0af1a76b2490332dE
+    call 16
     local.get 0
     i32.const 16
     i32.add
     local.get 1
     i32.load8_u offset=12
-    call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h0af1a76b2490332dE
+    call 16
     local.get 0
     i32.const 16
     i32.add
     local.get 1
     i32.load8_u offset=13
-    call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h0af1a76b2490332dE
+    call 16
     local.get 0
     i32.const 16
     i32.add
     local.get 1
     i32.load8_u offset=14
-    call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h0af1a76b2490332dE
+    call 16
     local.get 0
     i32.const 16
     i32.add
     local.get 1
     i32.load8_u offset=15
-    call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h0af1a76b2490332dE
+    call 16
     local.get 0
     i32.const 16
     i32.add
     local.get 1
     i32.load8_u offset=16
-    call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h0af1a76b2490332dE
+    call 16
     local.get 0
     i32.const 16
     i32.add
     local.get 1
     i32.load8_u offset=17
-    call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h0af1a76b2490332dE
+    call 16
     local.get 0
     i32.const 16
     i32.add
     local.get 1
     i32.load8_u offset=18
-    call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h0af1a76b2490332dE
+    call 16
     local.get 0
     i32.const 16
     i32.add
     local.get 1
     i32.load8_u offset=19
-    call $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h0af1a76b2490332dE
+    call 16
     local.get 0
     i32.load offset=24
     local.get 0
     i32.load offset=16
-    call $_ZN73_$LT$svm_sdk_host..ext..ExtHost$u20$as$u20$svm_sdk_host..traits..Host$GT$14set_returndata17h50222e5da971306cE
+    call 7
     local.get 0
     i32.const 32
     i32.add
     global.set 0)
-  (func $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h0af1a76b2490332dE (type 1) (param i32 i32)
+  (func (;16;) (type 1) (param i32 i32)
     (local i32)
     block  ;; label = @1
       local.get 0
@@ -6861,7 +6861,7 @@
       i32.const 1049248
       i32.const 14
       i32.const 1049172
-      call $_ZN4core9panicking5panic17hc64f9753b8a1be76E
+      call 14
       unreachable
     end
     local.get 0
@@ -6875,8 +6875,8 @@
     i32.add
     local.get 1
     i32.store8)
-  (func $svm_fund (type 4))
-  (func $_ZN4core9panicking9panic_fmt17hfa15f5472ef5e557E (type 1) (param i32 i32)
+  (func (;17;) (type 4))
+  (func (;18;) (type 1) (param i32 i32)
     (local i32)
     global.get 0
     i32.const 16
@@ -6896,9 +6896,9 @@
     i32.const 1048592
     i32.store
     local.get 2
-    call $rust_begin_unwind
+    call 19
     unreachable)
-  (func $rust_begin_unwind (type 3) (param i32)
+  (func (;19;) (type 3) (param i32)
     (local i32 i32 i32)
     global.get 0
     i32.const 16
@@ -6910,7 +6910,7 @@
     local.set 2
     local.get 0
     i32.load offset=8
-    call $_ZN4core6option15Option$LT$T$GT$6unwrap17h29d0a0f74d23cc07E
+    call 24
     local.set 3
     local.get 1
     local.get 2
@@ -6922,12 +6922,12 @@
     local.get 3
     i32.store
     local.get 1
-    call $_ZN3std10sys_common9backtrace26__rust_end_short_backtrace17h404ad66b7b407dddE
+    call 25
     unreachable)
-  (func $_ZN4core3ptr102drop_in_place$LT$$RF$core..iter..adapters..copied..Copied$LT$core..slice..iter..Iter$LT$u8$GT$$GT$$GT$17h0375e219d24c8f94E (type 3) (param i32))
-  (func $_ZN36_$LT$T$u20$as$u20$core..any..Any$GT$7type_id17h103f0123c0f85d75E (type 6) (param i32) (result i64)
+  (func (;20;) (type 3) (param i32))
+  (func (;21;) (type 6) (param i32) (result i64)
     i64.const -8904177938637813917)
-  (func $_ZN3std9panicking20rust_panic_with_hook17h4e1267e42c34e062E (type 4)
+  (func (;22;) (type 4)
     (local i32)
     i32.const 0
     i32.const 0
@@ -6974,26 +6974,26 @@
         i32.le_s
         br_if 1 (;@1;)
       end
-      call $rust_panic
+      call 23
       unreachable
     end
     unreachable
     unreachable)
-  (func $rust_panic (type 4)
+  (func (;23;) (type 4)
     unreachable
     unreachable)
-  (func $_ZN4core6option15Option$LT$T$GT$6unwrap17h29d0a0f74d23cc07E (type 2) (param i32) (result i32)
+  (func (;24;) (type 2) (param i32) (result i32)
     block  ;; label = @1
       local.get 0
       br_if 0 (;@1;)
       i32.const 1048592
       i32.const 43
       i32.const 1048636
-      call $_ZN4core9panicking5panic17hc64f9753b8a1be76E
+      call 14
       unreachable
     end
     local.get 0)
-  (func $_ZN3std10sys_common9backtrace26__rust_end_short_backtrace17h404ad66b7b407dddE (type 3) (param i32)
+  (func (;25;) (type 3) (param i32)
     (local i32)
     global.get 0
     i32.const 16
@@ -7013,9 +7013,9 @@
     i64.load align=4
     i64.store
     local.get 1
-    call $_ZN3std9panicking19begin_panic_handler28_$u7b$$u7b$closure$u7d$$u7d$17h55e6bb589840bdacE
+    call 26
     unreachable)
-  (func $_ZN3std9panicking19begin_panic_handler28_$u7b$$u7b$closure$u7d$$u7d$17h55e6bb589840bdacE (type 3) (param i32)
+  (func (;26;) (type 3) (param i32)
     local.get 0
     i32.load
     local.tee 0
@@ -7028,9 +7028,9 @@
       i32.load offset=4
       br_table 0 (;@1;) 0 (;@1;) 0 (;@1;)
     end
-    call $_ZN3std9panicking20rust_panic_with_hook17h4e1267e42c34e062E
+    call 22
     unreachable)
-  (func $_ZN15svm_abi_decoder6cursor6Cursor4peek17h67be1e4f303ac267E (type 1) (param i32 i32)
+  (func (;27;) (type 1) (param i32 i32)
     (local i32 i32 i32)
     block  ;; label = @1
       local.get 1
@@ -7056,7 +7056,7 @@
     local.get 3
     i32.lt_u
     i32.store8)
-  (func $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h4dfab9955cc6c517E (type 2) (param i32) (result i32)
+  (func (;28;) (type 2) (param i32) (result i32)
     block  ;; label = @1
       local.get 0
       i32.const 1
@@ -7066,7 +7066,7 @@
       i32.const 1049248
       i32.const 14
       i32.const 1048824
-      call $_ZN4core9panicking5panic17hc64f9753b8a1be76E
+      call 14
       unreachable
     end
     local.get 0
@@ -7074,7 +7074,7 @@
     i32.and
     i32.const 8
     i32.shr_u)
-  (func $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17h614f58e3afa2a7eaE (type 1) (param i32 i32)
+  (func (;29;) (type 1) (param i32 i32)
     block  ;; label = @1
       local.get 1
       i32.const 1
@@ -7083,7 +7083,7 @@
       i32.const 1049248
       i32.const 14
       i32.const 1048744
-      call $_ZN4core9panicking5panic17hc64f9753b8a1be76E
+      call 14
       unreachable
     end
     local.get 0
@@ -7096,7 +7096,7 @@
     i32.const 8
     i32.shr_u
     i32.store8)
-  (func $_ZN15svm_abi_decoder7decoder7Decoder9read_byte17h21ec604596f69413E (type 2) (param i32) (result i32)
+  (func (;30;) (type 2) (param i32) (result i32)
     (local i32 i32 i32 i32)
     global.get 0
     i32.const 16
@@ -7107,7 +7107,7 @@
     i32.const 8
     i32.add
     local.get 0
-    call $_ZN15svm_abi_decoder6cursor6Cursor4peek17h67be1e4f303ac267E
+    call 27
     block  ;; label = @1
       local.get 0
       i32.load offset=4
@@ -7121,7 +7121,7 @@
       i32.const 1048976
       i32.const 28
       i32.const 1049004
-      call $_ZN4core9panicking5panic17hc64f9753b8a1be76E
+      call 14
       unreachable
     end
     local.get 1
@@ -7152,7 +7152,7 @@
     i32.const 1
     i32.xor
     i32.or)
-  (func $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9918fe3a184f25c5E (type 1) (param i32 i32)
+  (func (;31;) (type 1) (param i32 i32)
     block  ;; label = @1
       local.get 1
       i32.load8_u
@@ -7162,7 +7162,7 @@
       i32.const 1049248
       i32.const 14
       i32.const 1048824
-      call $_ZN4core9panicking5panic17hc64f9753b8a1be76E
+      call 14
       unreachable
     end
     local.get 0
@@ -7187,7 +7187,7 @@
     i32.add
     i64.load
     i64.store)
-  (func $_ZN11svm_sdk_std3vec12Vec$LT$T$GT$4push17h35e4f67b148ff0e6E (type 1) (param i32 i32)
+  (func (;32;) (type 1) (param i32 i32)
     (local i32)
     block  ;; label = @1
       local.get 0
@@ -7200,7 +7200,7 @@
       i32.const 1049248
       i32.const 14
       i32.const 1049172
-      call $_ZN4core9panicking5panic17hc64f9753b8a1be76E
+      call 14
       unreachable
     end
     local.get 0
@@ -7234,7 +7234,7 @@
     i32.add
     i64.load
     i64.store)
-  (func $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hec4d04f204cac3cdE (type 7) (param i32 i32 i32 i32)
+  (func (;33;) (type 7) (param i32 i32 i32 i32)
     block  ;; label = @1
       local.get 1
       i32.const 255
@@ -7245,7 +7245,7 @@
       i32.const 1049248
       i32.const 14
       i32.const 1048744
-      call $_ZN4core9panicking5panic17hc64f9753b8a1be76E
+      call 14
       unreachable
     end
     local.get 0
@@ -7254,7 +7254,7 @@
     local.get 0
     local.get 2
     i32.store8)
-  (func $_ZN15svm_abi_decoder7decoder7Decoder10read_bytes17h60a0e41c7e5770a4E (type 8) (param i32 i32) (result i64)
+  (func (;34;) (type 8) (param i32 i32) (result i64)
     (local i32 i32 i64)
     block  ;; label = @1
       block  ;; label = @2
@@ -7306,15 +7306,15 @@
       i32.const 1049024
       i32.const 28
       i32.const 1049052
-      call $_ZN4core9panicking5panic17hc64f9753b8a1be76E
+      call 14
       unreachable
     end
     i32.const 1049072
     i32.const 33
     i32.const 1049052
-    call $_ZN4core9panicking5panic17hc64f9753b8a1be76E
+    call 14
     unreachable)
-  (func $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17h7658ac3f58c8eb3aE (type 9) (param i32 i64)
+  (func (;35;) (type 9) (param i32 i64)
     block  ;; label = @1
       local.get 1
       i32.wrap_i64
@@ -7324,7 +7324,7 @@
       i32.const 1049248
       i32.const 14
       i32.const 1048744
-      call $_ZN4core9panicking5panic17hc64f9753b8a1be76E
+      call 14
       unreachable
     end
     local.get 0
@@ -7337,7 +7337,7 @@
     i64.const 8
     i64.shr_u
     i64.store8)
-  (func $_ZN15svm_abi_decoder7decoder7Decoder8read_num17hd57ef9494a153fd8E (type 5) (param i32 i32 i32)
+  (func (;36;) (type 5) (param i32 i32 i32)
     (local i32 i64)
     global.get 0
     i32.const 16
@@ -7358,7 +7358,7 @@
                           block  ;; label = @12
                             local.get 1
                             local.get 2
-                            call $_ZN15svm_abi_decoder7decoder7Decoder10read_bytes17h60a0e41c7e5770a4E
+                            call 34
                             local.tee 4
                             i32.wrap_i64
                             i32.const 255
@@ -7367,7 +7367,7 @@
                             i32.eq
                             br_if 0 (;@12;)
                             local.get 4
-                            call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h037337940127482eE
+                            call 51
                             local.set 1
                             local.get 2
                             i32.const -1
@@ -7378,7 +7378,7 @@
                           i32.const 8
                           i32.add
                           local.get 4
-                          call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17h7658ac3f58c8eb3aE
+                          call 35
                           local.get 0
                           local.get 3
                           i32.load16_u offset=8
@@ -7391,7 +7391,7 @@
                         i32.const 1049343
                         i32.const 40
                         i32.const 1048956
-                        call $_ZN4core9panicking5panic17hc64f9753b8a1be76E
+                        call 14
                         unreachable
                       end
                       local.get 1
@@ -7594,7 +7594,7 @@
     i32.const 16
     i32.add
     global.set 0)
-  (func $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hc0bbb41f48ff998cE (type 7) (param i32 i32 i32 i32)
+  (func (;37;) (type 7) (param i32 i32 i32 i32)
     block  ;; label = @1
       local.get 1
       i32.const 255
@@ -7605,7 +7605,7 @@
       i32.const 1049248
       i32.const 14
       i32.const 1048744
-      call $_ZN4core9panicking5panic17hc64f9753b8a1be76E
+      call 14
       unreachable
     end
     local.get 0
@@ -7614,7 +7614,7 @@
     local.get 0
     local.get 2
     i32.store8)
-  (func $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h94af4025f3c7dd56E (type 6) (param i32) (result i64)
+  (func (;38;) (type 6) (param i32) (result i64)
     block  ;; label = @1
       local.get 0
       i32.load8_u
@@ -7624,14 +7624,14 @@
       i32.const 1049248
       i32.const 14
       i32.const 1048824
-      call $_ZN4core9panicking5panic17hc64f9753b8a1be76E
+      call 14
       unreachable
     end
     local.get 0
     i32.const 8
     i32.add
     i64.load)
-  (func $_ZN15svm_abi_decoder7decoder7Decoder9decode_i817h61d1a1dfe4440be9E (type 2) (param i32) (result i32)
+  (func (;39;) (type 2) (param i32) (result i32)
     (local i32 i32 i32)
     global.get 0
     i32.const 48
@@ -7643,7 +7643,7 @@
     block  ;; label = @1
       block  ;; label = @2
         local.get 0
-        call $_ZN15svm_abi_decoder7decoder7Decoder9read_byte17h21ec604596f69413E
+        call 30
         local.tee 3
         i32.const 255
         i32.and
@@ -7651,14 +7651,14 @@
         i32.eq
         br_if 0 (;@2;)
         local.get 3
-        call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h4dfab9955cc6c517E
+        call 28
         drop
         local.get 1
         i32.const 16
         i32.add
         local.get 0
         i32.const 1
-        call $_ZN15svm_abi_decoder7decoder7Decoder8read_num17hd57ef9494a153fd8E
+        call 36
         block  ;; label = @3
           local.get 1
           i32.load8_u offset=16
@@ -7684,7 +7684,7 @@
           local.get 1
           i32.const 32
           i32.add
-          call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h94af4025f3c7dd56E
+          call 38
           i32.wrap_i64
           local.set 0
           i32.const 0
@@ -7701,7 +7701,7 @@
         i32.load8_u offset=17
         local.get 1
         i32.load8_u offset=18
-        call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hc0bbb41f48ff998cE
+        call 37
         local.get 1
         i32.load8_u offset=9
         local.set 3
@@ -7712,7 +7712,7 @@
       end
       local.get 1
       local.get 3
-      call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17h614f58e3afa2a7eaE
+      call 29
       local.get 1
       i32.load8_u offset=1
       local.set 3
@@ -7735,7 +7735,7 @@
     i32.or
     local.get 2
     i32.or)
-  (func $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17ha75a77b107b60e57E (type 2) (param i32) (result i32)
+  (func (;40;) (type 2) (param i32) (result i32)
     block  ;; label = @1
       local.get 0
       i32.const 1
@@ -7745,7 +7745,7 @@
       i32.const 1049248
       i32.const 14
       i32.const 1048824
-      call $_ZN4core9panicking5panic17hc64f9753b8a1be76E
+      call 14
       unreachable
     end
     local.get 0
@@ -7753,7 +7753,7 @@
     i32.and
     i32.const 8
     i32.shr_u)
-  (func $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17h329d37ca6b8370f0E (type 1) (param i32 i32)
+  (func (;41;) (type 1) (param i32 i32)
     block  ;; label = @1
       local.get 1
       i32.const 1
@@ -7762,7 +7762,7 @@
       i32.const 1049248
       i32.const 14
       i32.const 1048744
-      call $_ZN4core9panicking5panic17hc64f9753b8a1be76E
+      call 14
       unreachable
     end
     local.get 0
@@ -7775,7 +7775,7 @@
     i32.const 8
     i32.shr_u
     i32.store8)
-  (func $_ZN15svm_abi_decoder7decoder7Decoder10decode_i1617h543a552aefc49ae0E (type 2) (param i32) (result i32)
+  (func (;42;) (type 2) (param i32) (result i32)
     (local i32 i32 i32 i32)
     global.get 0
     i32.const 48
@@ -7790,7 +7790,7 @@
           block  ;; label = @4
             block  ;; label = @5
               local.get 0
-              call $_ZN15svm_abi_decoder7decoder7Decoder9read_byte17h21ec604596f69413E
+              call 30
               local.tee 3
               i32.const 255
               i32.and
@@ -7798,7 +7798,7 @@
               i32.eq
               br_if 0 (;@5;)
               local.get 3
-              call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h4dfab9955cc6c517E
+              call 28
               i32.const -34
               i32.add
               local.tee 3
@@ -7816,7 +7816,7 @@
             end
             local.get 1
             local.get 3
-            call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17h614f58e3afa2a7eaE
+            call 29
             i32.const 1
             local.set 0
             i32.const 0
@@ -7832,7 +7832,7 @@
           i32.const 1049343
           i32.const 40
           i32.const 1048940
-          call $_ZN4core9panicking5panic17hc64f9753b8a1be76E
+          call 14
           unreachable
         end
         i32.const 2
@@ -7843,7 +7843,7 @@
       i32.add
       local.get 0
       local.get 2
-      call $_ZN15svm_abi_decoder7decoder7Decoder8read_num17hd57ef9494a153fd8E
+      call 36
       i32.const 1
       local.set 0
       block  ;; label = @2
@@ -7871,7 +7871,7 @@
         local.get 1
         i32.const 32
         i32.add
-        call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h94af4025f3c7dd56E
+        call 38
         i32.wrap_i64
         local.tee 2
         i32.const 65280
@@ -7889,7 +7889,7 @@
       i32.load8_u offset=17
       local.get 1
       i32.load8_u offset=18
-      call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hc0bbb41f48ff998cE
+      call 37
       local.get 1
       i32.load8_u offset=9
       local.set 2
@@ -7918,7 +7918,7 @@
     i32.const 16
     i32.shl
     i32.or)
-  (func $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h9434170550c1e1daE (type 2) (param i32) (result i32)
+  (func (;43;) (type 2) (param i32) (result i32)
     block  ;; label = @1
       local.get 0
       i32.const 1
@@ -7928,13 +7928,13 @@
       i32.const 1049248
       i32.const 14
       i32.const 1048824
-      call $_ZN4core9panicking5panic17hc64f9753b8a1be76E
+      call 14
       unreachable
     end
     local.get 0
     i32.const 16
     i32.shr_u)
-  (func $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17h8022a205287793acE (type 1) (param i32 i32)
+  (func (;44;) (type 1) (param i32 i32)
     block  ;; label = @1
       local.get 1
       i32.const 1
@@ -7943,7 +7943,7 @@
       i32.const 1049248
       i32.const 14
       i32.const 1048744
-      call $_ZN4core9panicking5panic17hc64f9753b8a1be76E
+      call 14
       unreachable
     end
     local.get 0
@@ -7956,7 +7956,7 @@
     i32.const 8
     i32.shr_u
     i32.store8)
-  (func $_ZN15svm_abi_decoder7decoder7Decoder10decode_i3217h88974b4922d1e3f2E (type 6) (param i32) (result i64)
+  (func (;45;) (type 6) (param i32) (result i64)
     (local i32 i32 i32 i64 i64)
     global.get 0
     i32.const 48
@@ -7973,7 +7973,7 @@
               block  ;; label = @6
                 block  ;; label = @7
                   local.get 0
-                  call $_ZN15svm_abi_decoder7decoder7Decoder9read_byte17h21ec604596f69413E
+                  call 30
                   local.tee 3
                   i32.const 255
                   i32.and
@@ -7981,7 +7981,7 @@
                   i32.eq
                   br_if 0 (;@7;)
                   local.get 3
-                  call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h4dfab9955cc6c517E
+                  call 28
                   i32.const -3
                   i32.add
                   local.tee 3
@@ -7999,7 +7999,7 @@
                 end
                 local.get 1
                 local.get 3
-                call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17h614f58e3afa2a7eaE
+                call 29
                 i64.const 1
                 local.set 4
                 i64.const 0
@@ -8015,7 +8015,7 @@
               i32.const 1049343
               i32.const 40
               i32.const 1048924
-              call $_ZN4core9panicking5panic17hc64f9753b8a1be76E
+              call 14
               unreachable
             end
             i32.const 2
@@ -8034,7 +8034,7 @@
       i32.add
       local.get 0
       local.get 2
-      call $_ZN15svm_abi_decoder7decoder7Decoder8read_num17hd57ef9494a153fd8E
+      call 36
       block  ;; label = @2
         local.get 1
         i32.load8_u offset=16
@@ -8060,7 +8060,7 @@
         local.get 1
         i32.const 32
         i32.add
-        call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h94af4025f3c7dd56E
+        call 38
         i64.const 32
         i64.shl
         local.set 5
@@ -8076,7 +8076,7 @@
       i32.load8_u offset=17
       local.get 1
       i32.load8_u offset=18
-      call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hc0bbb41f48ff998cE
+      call 37
       local.get 1
       i32.load8_u offset=9
       local.set 0
@@ -8109,7 +8109,7 @@
     i64.const 8
     i64.shl
     i64.or)
-  (func $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h6762501a24f861ddE (type 10) (param i64) (result i32)
+  (func (;46;) (type 10) (param i64) (result i32)
     block  ;; label = @1
       local.get 0
       i64.const 1
@@ -8119,14 +8119,14 @@
       i32.const 1049248
       i32.const 14
       i32.const 1048824
-      call $_ZN4core9panicking5panic17hc64f9753b8a1be76E
+      call 14
       unreachable
     end
     local.get 0
     i64.const 32
     i64.shr_u
     i32.wrap_i64)
-  (func $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hbd78294bab8fc663E (type 9) (param i32 i64)
+  (func (;47;) (type 9) (param i32 i64)
     block  ;; label = @1
       local.get 1
       i32.wrap_i64
@@ -8136,7 +8136,7 @@
       i32.const 1049248
       i32.const 14
       i32.const 1048744
-      call $_ZN4core9panicking5panic17hc64f9753b8a1be76E
+      call 14
       unreachable
     end
     local.get 0
@@ -8149,7 +8149,7 @@
     i64.const 8
     i64.shr_u
     i64.store8)
-  (func $_ZN15svm_abi_decoder7decoder7Decoder10decode_i6417h6870fd9fd42a67aeE (type 1) (param i32 i32)
+  (func (;48;) (type 1) (param i32 i32)
     (local i32 i32 i32 i64)
     global.get 0
     i32.const 48
@@ -8161,7 +8161,7 @@
     block  ;; label = @1
       block  ;; label = @2
         local.get 1
-        call $_ZN15svm_abi_decoder7decoder7Decoder9read_byte17h21ec604596f69413E
+        call 30
         local.tee 4
         i32.const 255
         i32.and
@@ -8170,7 +8170,7 @@
         br_if 0 (;@2;)
         block  ;; label = @3
           local.get 4
-          call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h4dfab9955cc6c517E
+          call 28
           i32.const 255
           i32.and
           local.tee 4
@@ -8231,7 +8231,7 @@
                         i32.const 1049343
                         i32.const 40
                         i32.const 1048840
-                        call $_ZN4core9panicking5panic17hc64f9753b8a1be76E
+                        call 14
                         unreachable
                       end
                       i32.const 2
@@ -8266,7 +8266,7 @@
         i32.add
         local.get 1
         local.get 3
-        call $_ZN15svm_abi_decoder7decoder7Decoder8read_num17hd57ef9494a153fd8E
+        call 36
         block  ;; label = @3
           local.get 2
           i32.load8_u offset=16
@@ -8292,7 +8292,7 @@
           local.get 2
           i32.const 32
           i32.add
-          call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h94af4025f3c7dd56E
+          call 38
           local.set 5
           local.get 0
           i32.const 0
@@ -8312,7 +8312,7 @@
         i32.load8_u offset=17
         local.get 2
         i32.load8_u offset=18
-        call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hc0bbb41f48ff998cE
+        call 37
         local.get 0
         local.get 2
         i32.load16_u offset=8
@@ -8324,7 +8324,7 @@
       end
       local.get 2
       local.get 4
-      call $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17h614f58e3afa2a7eaE
+      call 29
       local.get 0
       local.get 2
       i32.load16_u
@@ -8337,7 +8337,7 @@
     i32.const 48
     i32.add
     global.set 0)
-  (func $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17hcd93f9c9a920f35eE (type 6) (param i32) (result i64)
+  (func (;49;) (type 6) (param i32) (result i64)
     block  ;; label = @1
       local.get 0
       i32.load8_u
@@ -8347,14 +8347,14 @@
       i32.const 1049248
       i32.const 14
       i32.const 1048824
-      call $_ZN4core9panicking5panic17hc64f9753b8a1be76E
+      call 14
       unreachable
     end
     local.get 0
     i32.const 8
     i32.add
     i64.load)
-  (func $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$10unwrap_err17hd6856279f96aa83aE (type 7) (param i32 i32 i32 i32)
+  (func (;50;) (type 7) (param i32 i32 i32 i32)
     block  ;; label = @1
       local.get 1
       i32.const 255
@@ -8365,7 +8365,7 @@
       i32.const 1049248
       i32.const 14
       i32.const 1048744
-      call $_ZN4core9panicking5panic17hc64f9753b8a1be76E
+      call 14
       unreachable
     end
     local.get 0
@@ -8374,7 +8374,7 @@
     local.get 0
     local.get 2
     i32.store8)
-  (func $_ZN11svm_sdk_std6result19Result$LT$T$C$E$GT$6unwrap17h037337940127482eE (type 10) (param i64) (result i32)
+  (func (;51;) (type 10) (param i64) (result i32)
     block  ;; label = @1
       local.get 0
       i64.const 1
@@ -8384,7 +8384,7 @@
       i32.const 1049248
       i32.const 14
       i32.const 1048824
-      call $_ZN4core9panicking5panic17hc64f9753b8a1be76E
+      call 14
       unreachable
     end
     local.get 0
@@ -8397,12 +8397,12 @@
   (global (;1;) i32 (i32.const 1049485))
   (global (;2;) i32 (i32.const 1049485))
   (export "memory" (memory 0))
-  (export "svm_alloc" (func $svm_alloc))
-  (export "initialize" (func $initialize))
-  (export "store_addr" (func $store_addr))
-  (export "load_addr" (func $load_addr))
-  (export "svm_fund" (func $svm_fund))
+  (export "svm_alloc" (func 8))
+  (export "initialize" (func 9))
+  (export "store_addr" (func 12))
+  (export "load_addr" (func 15))
+  (export "svm_fund" (func 17))
   (export "__data_end" (global 1))
   (export "__heap_base" (global 2))
-  (elem (;0;) (i32.const 1) func $_ZN4core3ptr102drop_in_place$LT$$RF$core..iter..adapters..copied..Copied$LT$core..slice..iter..Iter$LT$u8$GT$$GT$$GT$17h0375e219d24c8f94E $_ZN36_$LT$T$u20$as$u20$core..any..Any$GT$7type_id17h103f0123c0f85d75E)
+  (elem (;0;) (i32.const 1) func 20 21)
   (data (;0;) (i32.const 1048576) "\01\00\00\00\00\00\00\00\01\00\00\00\02\00\00\00called `Option::unwrap()` on a `None` value\00L\00\10\00\1c\00\00\00\ec\01\00\00\1e\00\00\00library/std/src/panicking.rs\18\01\10\00D\00\00\00N\02\00\00\11\00\00\00\18\01\10\00D\00\00\00>\01\00\00\12\00\00\00\18\01\10\00D\00\00\00\81\00\00\00\12\00\00\00\18\01\10\00D\00\00\00\9b\00\00\00\12\00\00\00\b8\00\10\00?\00\00\00!\00\00\00\1d\00\00\00/home/yaronwittenstein/work/sm/svm/crates/sdk/std/src/result.rs\00\b8\00\10\00?\00\00\00\19\00\00\00\1e\00\00\00\18\01\10\00D\00\00\00\ea\00\00\00\12\00\00\00/home/yaronwittenstein/work/sm/svm/crates/abi/decoder/src/decoder.rs\18\01\10\00D\00\00\00\d0\00\00\00\12\00\00\00\18\01\10\00D\00\00\00\ba\00\00\00\12\00\00\00\18\01\10\00D\00\00\00\fb\01\00\00\12\00\00\00\00\00\00\00attempt to add with overflow\11\02\10\00C\00\00\00C\00\00\00\09\00\00\00\00\00\00\00attempt to add with overflow\11\02\10\00C\00\00\00N\00\00\00\1d\00\00\00\00\00\00\00attempt to subtract with overflow/home/yaronwittenstein/work/sm/svm/crates/abi/decoder/src/cursor.rsd\02\10\00<\00\00\00\19\00\00\00\09\00\00\00/home/yaronwittenstein/work/sm/svm/crates/sdk/std/src/vec.rsexplicit panic\00\00\c0\02\10\00?\00\00\00\0e\00\00\00\1b\00\00\00/home/yaronwittenstein/work/sm/svm/crates/sdk/std/src/option.rsinternal error: entered unreachable code\008\03\10\00@\00\00\00\ac\00\00\00\01\00\00\00/home/yaronwittenstein/work/sm/svm/crates/sdk/types/src/value.rs"))
