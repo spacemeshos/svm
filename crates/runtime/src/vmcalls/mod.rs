@@ -8,7 +8,7 @@ mod logs;
 mod returndata;
 mod storage;
 
-pub use alloc::allocate;
+pub use alloc::static_alloc;
 pub use calldata::{calldata_len, calldata_offset};
 pub use logs::log;
 pub use returndata::set_returndata;
@@ -26,7 +26,7 @@ macro_rules! func {
 /// Registers SVM internal host functions (a.k.a vmacalls) into
 /// Into `Wasmer` Import Object (it's done by inserting to input `Exports`)
 pub fn wasmer_register(store: &Store, ctx: &Context, ns: &mut Exports) {
-    ns.insert("svm_allocate", func!(store, ctx, allocate));
+    ns.insert("svm_static_alloc", func!(store, ctx, static_alloc));
 
     ns.insert("svm_calldata_offset", func!(store, ctx, calldata_offset));
     ns.insert("svm_calldata_len", func!(store, ctx, calldata_len));

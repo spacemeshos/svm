@@ -18,20 +18,20 @@ extern crate alloc;
 ///
 /// Returns `Ptr` to the allocated space.
 
-#[cfg(target_arch = "wasm32")]
+#[cfg(feature = "static-alloc")]
 #[link(wasm_import_module = "svm")]
 extern "C" {
-    fn svm_allocate(size: u32) -> u32;
+    fn svm_static_alloc(size: u32) -> u32;
 }
 
-#[cfg(target_arch = "wasm32")]
+#[cfg(feature = "static-alloc")]
 pub fn alloc(size: usize) -> Ptr {
-    let ptr = unsafe { svm_allocate(size as u32) };
+    let ptr = unsafe { svm_static_alloc(size as u32) };
 
     Ptr(ptr as usize)
 }
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(not(feature = "static-alloc"))]
 pub fn alloc(size: usize) -> Ptr {
     use alloc::alloc::Layout;
 

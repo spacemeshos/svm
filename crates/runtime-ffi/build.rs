@@ -22,7 +22,7 @@ fn generate_svm_header() {
     // build using cbindgen
     Builder::new()
         .with_language(Language::C)
-        .with_crate(crate_dir.clone())
+        .with_crate(crate_dir)
         .with_include_guard("SVM_H")
         .with_include("svm_types.h")
         .with_documentation(true)

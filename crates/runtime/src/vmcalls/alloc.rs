@@ -4,7 +4,25 @@ use std::convert::TryFrom;
 
 use crate::Context;
 
-pub fn allocate(ctx: &Context, size: u32) -> u32 {
+pub fn static_alloc(ctx: &Context, size: u32) -> u32 {
+    assert!(size > 0);
+
+    let used = used_memory(ctx);
+    let new_used = used + size as u64;
+
+    let allocated = allocated_memory(ctx);
+
+    if allocated < new_used {
+        panic!("Reached memory limit")
+    }
+
+    set_used_memory(ctx, new_used);
+
+    new_used as u32
+}
+
+#[allow(unused)]
+pub fn dynamic_alloc(ctx: &Context, size: u32) -> u32 {
     assert!(size > 0);
 
     let used = used_memory(ctx);

@@ -11,4 +11,5 @@ description = "Spacemesh Virtual Machine"
 publish = false
 
 [features]
-default = []
+default = ["static-alloc"]
+static-alloc = []

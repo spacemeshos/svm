@@ -12,8 +12,9 @@ publish = false
 
 [dependencies]
 svm-sdk-types = { path = "../../sdk/types" }
-svm-sdk-std = { path = "../../sdk/std" }
 svm-abi-layout = { path = "./../layout" }
+svm-sdk-std = { path = "../../sdk/std", default-features = false }
 
 [features]
-default = []
+default = ["static-alloc"]
+static-alloc = ["svm-sdk-std/static-alloc"]

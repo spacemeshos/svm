@@ -12,17 +12,26 @@ publish = false
 
 [dependencies]
 lazy_static = "1.4.0"
+svm-sdk-types = { path = "types" }
+svm-sdk-alloc = { path = "alloc", default-features = false }
+svm-sdk-std = { path = "std", default-features = false }
 svm-sdk-host = { path = "host", default-features = false }
 svm-sdk-storage = { path = "storage", default-features = false }
-svm-sdk-std = { path = "std" }
-svm-sdk-alloc = { path = "alloc" }
-svm-sdk-types = { path = "types" }
 svm-sdk-macros = { path = "macros", default-features = false }
-svm-abi-encoder = { path = "../abi/encoder" }
-svm-abi-decoder = { path = "../abi/decoder" }
+svm-abi-encoder = { path = "../abi/encoder", default-features = false }
+svm-abi-decoder = { path = "../abi/decoder", default-features = false }
 
 [features]
-default = ["mock"]
+default = ["mock", "static-alloc"]
 ffi = ["svm-sdk-host/ffi", "svm-sdk-storage/ffi"]
 mock = ["svm-sdk-host/mock", "svm-sdk-storage/mock"]
 api = ["svm-sdk-macros/api"]
+static-alloc = [
+    "svm-sdk-alloc/static-alloc",
+    "svm-sdk-std/static-alloc",
+    "svm-sdk-host/static-alloc",
+    "svm-sdk-storage/static-alloc",
+    "svm-sdk-macros/static-alloc",
+    "svm-abi-encoder/static-alloc",
+    "svm-abi-decoder/static-alloc",
+]

@@ -34,7 +34,7 @@ impl<T> Vec<T> {
     }
 
     pub fn pop(&mut self) -> T {
-        ensure!(self.len() > 0);
+        ensure!(self.is_empty() == false);
 
         let last = self.len() - 1;
 
@@ -49,7 +49,7 @@ impl<T> Vec<T> {
         unsafe { core::slice::from_raw_parts(self.ptr, self.len) }
     }
 
-    pub fn as_mut(&self) -> &mut [T] {
+    pub fn as_mut(&mut self) -> &mut [T] {
         unsafe { core::slice::from_raw_parts_mut(self.ptr, self.len) }
     }
 
@@ -130,12 +130,12 @@ impl<T> Vec<T> {
 
     #[inline]
     unsafe fn get_ptr(&self, offset: usize) -> *const T {
-        self.ptr.offset(offset as isize)
+        self.ptr.add(offset)
     }
 
     #[inline]
     unsafe fn get_ptr_mut(&self, offset: usize) -> *mut T {
-        self.ptr.offset(offset as isize)
+        self.ptr.add(offset)
     }
 
     #[inline]
