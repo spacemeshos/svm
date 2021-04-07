@@ -102,7 +102,7 @@ macro_rules! encode {
                         w.push(bytes[6]);
                         w.push(bytes[7]);
                     }
-                    _ => unreachable!(),
+                    _ => svm_sdk_std::panic(),
                 }
             }
         }

@@ -21,7 +21,7 @@ macro_rules! impl_encode {
                     8 => layout::ARR_8,
                     9 => layout::ARR_9,
                     10 => layout::ARR_10,
-                    _ => unreachable!(),
+                    _ => svm_sdk_std::panic(),
                 };
 
                 w.push(marker);
@@ -40,7 +40,7 @@ macro_rules! impl_encode {
                     8 => impl_encode!(8 iter w),
                     9 => impl_encode!(9 iter w),
                     10 => impl_encode!(10 iter w),
-                    _ => unreachable!(),
+                    _ => svm_sdk_std::panic(),
                 };
             }
         }
@@ -188,7 +188,7 @@ where
                     + self[8].byte_size()
                     + self[9].byte_size()
             }
-            _ => unreachable!(),
+            _ => svm_sdk_std::panic(),
         }
     }
 

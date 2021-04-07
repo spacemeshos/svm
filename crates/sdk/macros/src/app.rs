@@ -310,8 +310,7 @@ fn validate_funcs(app: &App) -> Result<()> {
 
 fn alloc_func_ast() -> TokenStream {
     quote! {
-        // injects the `#[global_allocator]`
-        extern crate svm_sdk;
+        use svm_sdk;
 
         #[no_mangle]
         pub extern "C" fn svm_alloc(size: u32) -> u32 {

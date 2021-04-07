@@ -1,4 +1,5 @@
 #![no_std]
+#![feature(core_intrinsics)]
 #![allow(unused)]
 
 mod log;
@@ -26,6 +27,9 @@ pub use result::Result;
 
 mod vec;
 pub use vec::Vec;
+
+mod panic;
+pub use panic::panic;
 
 #[macro_use]
 pub mod ensure;

@@ -9,11 +9,11 @@ publish = false
 crate-type = ['cdylib']
 
 [profile.release]
-opt-level = 'z'
-panic = 'abort'
+opt-level = "z"
+panic = "abort"
 lto = true
 debug = false
-overflow-checks = true
+overflow-checks = false
 debug-assertions = false
 incremental = false
 rpath = false

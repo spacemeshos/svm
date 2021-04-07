@@ -14,8 +14,9 @@ publish = false
 lazy_static = "1.4.0"
 svm-sdk-types = { path = "../types" }
 svm-sdk-alloc = { path = "../alloc" }
+svm-sdk-std = { path = "../std" }
 
 [features]
-default = ["mock"]
+default = []
 ffi = []
 mock = []

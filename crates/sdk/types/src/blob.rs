@@ -3,7 +3,7 @@ macro_rules! impl_blob_type {
         use core::char;
         use core::cmp::{Eq, PartialEq};
 
-        use svm_sdk_std::Vec;
+        use svm_sdk_std::{ensure, Vec};
 
         #[allow(missing_docs)]
         #[repr(transparent)]
@@ -63,7 +63,7 @@ macro_rules! impl_blob_type {
         impl From<&'static [u8]> for $ty {
             #[inline]
             fn from(bytes: &'static [u8]) -> Self {
-                assert_eq!(bytes.len(), $nbytes);
+                ensure!(bytes.len() == $nbytes);
 
                 $ty(bytes.as_ptr())
             }
@@ -72,7 +72,7 @@ macro_rules! impl_blob_type {
         impl From<Vec<u8>> for $ty {
             #[inline]
             fn from(value: Vec<u8>) -> Self {
-                assert_eq!(value.len(), Self::len());
+                ensure!(value.len() == Self::len());
 
                 let slice = value.leak();
                 let ptr = slice.as_ptr();
