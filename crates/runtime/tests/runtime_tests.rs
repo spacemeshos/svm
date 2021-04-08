@@ -123,7 +123,6 @@ fn default_runtime_spawn_app_with_non_ctor_fails() {
     ));
 }
 
-// #[ignore = "temporarily disabling this test"]
 #[test]
 fn default_runtime_exec_app_with_ctor_fails() {
     let mut runtime = default_runtime!();
@@ -173,7 +172,6 @@ fn default_runtime_exec_app_with_ctor_fails() {
     ));
 }
 
-#[ignore = "temporarily disabling this test"]
 #[test]
 fn default_runtime_calldata_returndata() {
     let mut runtime = default_runtime!();
