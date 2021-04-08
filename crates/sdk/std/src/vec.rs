@@ -69,12 +69,7 @@ impl<T> Vec<T> {
 
         let slice: &[T] = Box::leak(Box::new(slice));
 
-        let vec = unsafe { core::mem::transmute(slice) };
-        vec
-
-        // core::mem::forget(self);
-
-        // vec
+        unsafe { core::mem::transmute(slice) }
     }
 
     #[inline]
