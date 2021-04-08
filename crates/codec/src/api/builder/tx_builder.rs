@@ -8,7 +8,7 @@ pub struct TxBuilder {
     version: Option<u16>,
     app: Option<AppAddr>,
     func_name: Option<String>,
-    verifydata: Option<Vec<u8>>,
+    // verifydata: Option<Vec<u8>>,
     calldata: Option<Vec<u8>>,
 }
 
@@ -25,14 +25,14 @@ pub struct TxBuilder {
 /// let app = Address::of("@my-app").into();
 ///
 /// let func_name = "do_work";
-/// let verifydata = vec![0x10, 0x20, 0x30];
+/// // let verifydata = vec![0x10, 0x20, 0x30];
 /// let calldata = vec![0x10, 0x20, 0x30];
 ///
 /// let bytes = TxBuilder::new()
 ///            .with_version(0)
 ///            .with_app(&app)
 ///            .with_func(func_name)
-///            .with_verifydata(&verifydata)
+///            // .with_verifydata(&verifydata)
 ///            .with_calldata(&calldata)
 ///            .build();
 ///
@@ -42,7 +42,7 @@ pub struct TxBuilder {
 ///                  version: 0,
 ///                  app,
 ///                  func_name: func_name.to_string(),
-///                  verifydata,
+///                  // verifydata,
 ///                  calldata,
 ///                };
 ///
@@ -57,7 +57,7 @@ impl TxBuilder {
             version: None,
             app: None,
             func_name: None,
-            verifydata: None,
+            // verifydata: None,
             calldata: None,
         }
     }
@@ -77,10 +77,10 @@ impl TxBuilder {
         self
     }
 
-    pub fn with_verifydata(mut self, verifydata: &[u8]) -> Self {
-        self.verifydata = Some(verifydata.to_vec());
-        self
-    }
+    // pub fn with_verifydata(mut self, verifydata: &[u8]) -> Self {
+    //     self.verifydata = Some(verifydata.to_vec());
+    //     self
+    // }
 
     pub fn with_calldata(mut self, calldata: &[u8]) -> Self {
         self.calldata = Some(calldata.to_vec());
@@ -92,10 +92,10 @@ impl TxBuilder {
         let app = self.app.unwrap();
         let func_name = self.func_name.unwrap();
 
-        let verifydata = match self.verifydata {
-            None => vec![],
-            Some(verifydata) => verifydata.to_vec(),
-        };
+        // let verifydata = match self.verifydata {
+        //     None => vec![],
+        //     Some(verifydata) => verifydata.to_vec(),
+        // };
 
         let calldata = match self.calldata {
             None => vec![],
@@ -106,7 +106,7 @@ impl TxBuilder {
             version,
             app,
             func_name,
-            verifydata,
+            // verifydata,
             calldata,
         };
 

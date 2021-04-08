@@ -21,7 +21,7 @@ svm-abi-decoder = { path = "../../abi/decoder", default-features = false }
 lazy_static = "1.4.0"
 
 [features]
-default = ["mock", "static-alloc"]
+default = ["mock"]
 ffi = []
 mock = []
 static-alloc = [

@@ -29,13 +29,21 @@ svm-compiler = { path = "../compiler" }
 wabt = "0.7.4"
 serde_json = "1.0"
 maplit = "1.0.2"
-svm-sdk = { path = "../sdk", features = ["mock"] }
-svm-abi-encoder = { path = "../abi/encoder" }
+svm-sdk = { path = "../sdk", features = ["mock"], default-features = false }
+svm-abi-encoder = { path = "../abi/encoder", default-features = false }
 
 [build-dependencies]
 cbindgen = "0.15.0"
 
 [features]
 default = ["default-memory"]
-default-memory = ["svm-runtime/default-memory", "svm-kv/default-memory", "svm-storage/default-memory"]
-default-rocksdb = ["svm-runtime/default-rocksdb",  "svm-kv/default-rocksdb", "svm-storage/default-rocksdb"]
+default-memory = [
+    "svm-runtime/default-memory", 
+    "svm-kv/default-memory", 
+    "svm-storage/default-memory"
+]
+default-rocksdb = [
+    "svm-runtime/default-rocksdb",
+    "svm-kv/default-rocksdb",
+    "svm-storage/default-rocksdb"
+]

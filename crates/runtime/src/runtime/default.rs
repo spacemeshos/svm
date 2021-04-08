@@ -121,39 +121,40 @@ where
 
     fn exec_verify(
         &self,
-        tx: &Transaction,
-        state: &State,
-        gas_limit: Gas,
+        _tx: &Transaction,
+        _state: &State,
+        _gas_limit: Gas,
     ) -> std::result::Result<bool, RuntimeError> {
-        let app_addr = tx.app_addr();
-        let template_addr = self.env.find_template_addr(app_addr);
+        todo!()
+        //     let app_addr = tx.app_addr();
+        //     let template_addr = self.env.find_template_addr(app_addr);
 
-        if let Some(template_addr) = template_addr {
-            let call = Call {
-                func_name: "svm_verify",
-                calldata: tx.verifydata(),
-                template_addr: &template_addr,
-                app_addr,
-                state,
-                gas_used: Gas::with(0),
-                gas_left: gas_limit,
-                within_spawn: false,
-            };
+        //     if let Some(template_addr) = template_addr {
+        //         let call = Call {
+        //             func_name: "svm_verify",
+        //             calldata: tx.verifydata(),
+        //             template_addr: &template_addr,
+        //             app_addr,
+        //             state,
+        //             gas_used: Gas::with(0),
+        //             gas_left: gas_limit,
+        //             within_spawn: false,
+        //         };
 
-            let out = self.exec::<(), u32, _, _>(&call, |_ctx, mut out| {
-                let returns = out.take_returns();
+        //         let out = self.exec::<(), u32, _, _>(&call, |_ctx, mut out| {
+        //             let returns = out.take_returns();
 
-                debug_assert_eq!(returns.len(), 1);
+        //             debug_assert_eq!(returns.len(), 1);
 
-                let v: &wasmer::Val = returns.first().unwrap();
+        //             let v: &wasmer::Val = returns.first().unwrap();
 
-                v.i32().unwrap() == 0
-            });
+        //             v.i32().unwrap() == 0
+        //         });
 
-            out.map_err(|fail| fail.take_error())
-        } else {
-            unreachable!("Should have failed earlier when doing `validate_tx`");
-        }
+        //         out.map_err(|fail| fail.take_error())
+        //     } else {
+        //         unreachable!("Should have failed earlier when doing `validate_tx`");
+        //     }
     }
 
     fn exec_tx(&self, tx: &Transaction, state: &State, gas_limit: Gas) -> ExecReceipt {

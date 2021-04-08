@@ -16,7 +16,7 @@ svm-sdk-types = { path = "../../sdk/types", default-features = false }
 svm-sdk-std = { path = "../../sdk/std", default-features = false }
 
 [features]
-default = ["static-alloc"]
+default = []
 static-alloc = [
     "svm-sdk-types/static-alloc",
     "svm-sdk-std/static-alloc"

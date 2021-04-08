@@ -40,11 +40,11 @@ mod test {
     fn wasm_encode_exec_app_valid() {
         let app_addr = "1122334455667788990011223344556677889900";
 
-        let verifydata = api::json::encode_calldata(&json!({
-            "abi": ["bool", "i8"],
-            "data": [true, 3]
-        }))
-        .unwrap();
+        // let verifydata = api::json::encode_calldata(&json!({
+        //     "abi": ["bool", "i8"],
+        //     "data": [true, 3]
+        // }))
+        // .unwrap();
 
         let calldata = api::json::encode_calldata(&json!({
             "abi": ["i32", "i64"],
@@ -56,7 +56,7 @@ mod test {
           "version": 1,
           "app": app_addr,
           "func_name": "do_something",
-          "verifydata": verifydata["calldata"],
+        //   "verifydata": verifydata["calldata"],
           "calldata": calldata["calldata"]
         });
 
@@ -87,10 +87,10 @@ mod test {
                 "version": 1,
                 "app": app_addr,
                 "func_name": "do_something",
-                "verifydata": {
-                    "abi": ["bool", "i8"],
-                    "data": [true, 3],
-                },
+                // "verifydata": {
+                //     "abi": ["bool", "i8"],
+                //     "data": [true, 3],
+                // },
                 "calldata": {
                     "abi": ["i32", "i64"],
                     "data": [10, 20],

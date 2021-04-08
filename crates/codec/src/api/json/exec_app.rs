@@ -22,8 +22,8 @@ pub fn encode_exec_app(json: &Value) -> Result<Vec<u8>, JsonError> {
     let app = json::as_addr(json, "app")?.into();
     let func_name = json::as_string(json, "func_name")?;
 
-    let verifydata = json::as_string(json, "verifydata")?;
-    let verifydata = json::str_to_bytes(&verifydata, "verifydata")?;
+    // let verifydata = json::as_string(json, "verifydata")?;
+    // let verifydata = json::str_to_bytes(&verifydata, "verifydata")?;
 
     let calldata = json::as_string(json, "calldata")?;
     let calldata = json::str_to_bytes(&calldata, "calldata")?;
@@ -32,7 +32,7 @@ pub fn encode_exec_app(json: &Value) -> Result<Vec<u8>, JsonError> {
         version,
         app,
         func_name,
-        verifydata,
+        // verifydata,
         calldata,
     };
 
@@ -56,8 +56,8 @@ pub fn decode_exec_app(json: &Value) -> Result<Value, JsonError> {
     let func_name = tx.func_name.clone();
     let app = json::addr_to_str(&tx.app.inner());
 
-    let verifydata = json::bytes_to_str(&tx.verifydata);
-    let verifydata = json::decode_calldata(&json!({ "calldata": verifydata }))?;
+    // let verifydata = json::bytes_to_str(&tx.verifydata);
+    // let verifydata = json::decode_calldata(&json!({ "calldata": verifydata }))?;
 
     let calldata = json::bytes_to_str(&tx.calldata);
     let calldata = json::decode_calldata(&json!({ "calldata": calldata }))?;
@@ -66,7 +66,7 @@ pub fn decode_exec_app(json: &Value) -> Result<Value, JsonError> {
         "version": version,
         "app": app,
         "func_name": func_name,
-        "verifydata": verifydata,
+        // "verifydata": verifydata,
         "calldata": calldata,
     });
 
@@ -126,6 +126,7 @@ mod tests {
         );
     }
 
+    #[ignore]
     #[test]
     fn json_exec_app_missing_verifydata() {
         let json = json!({
@@ -187,7 +188,7 @@ mod tests {
             "version": 0,
             "app": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
             "func_name": "do_something",
-            "verifydata": verifydata["calldata"],
+            // "verifydata": verifydata["calldata"],
             "calldata": calldata["calldata"],
         });
 
@@ -201,10 +202,10 @@ mod tests {
                 "version": 0,
                 "app": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
                 "func_name": "do_something",
-                "verifydata": {
-                    "abi": ["bool", "i8"],
-                    "data": [true, 3]
-                },
+                // "verifydata": {
+                //     "abi": ["bool", "i8"],
+                //     "data": [true, 3]
+                // },
                 "calldata": {
                     "abi": ["i32", "i64"],
                     "data": [10, 20]

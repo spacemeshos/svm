@@ -15,7 +15,7 @@ pub struct Transaction {
     pub func_name: String,
 
     /// Transaction's `VerifyData`
-    pub verifydata: Vec<u8>,
+    // pub verifydata: Vec<u8>,
 
     /// Transaction's `CallData`
     pub calldata: Vec<u8>,
@@ -32,10 +32,10 @@ impl Transaction {
         &self.func_name
     }
 
-    #[doc(hidden)]
-    pub fn verifydata(&self) -> &[u8] {
-        &self.verifydata
-    }
+    // #[doc(hidden)]
+    // pub fn verifydata(&self) -> &[u8] {
+    //     &self.verifydata
+    // }
 
     #[doc(hidden)]
     pub fn calldata(&self) -> &[u8] {
@@ -45,13 +45,13 @@ impl Transaction {
 
 impl fmt::Debug for Transaction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let verifydata = self.verifydata.iter().take(4).collect::<Vec<_>>();
+        // let verifydata = self.verifydata.iter().take(4).collect::<Vec<_>>();
         let calldata = self.calldata.iter().take(4).collect::<Vec<_>>();
 
         f.debug_struct("Transaction")
             .field("version", &self.version)
             .field("app", self.app.inner())
-            .field("verifydata", &verifydata)
+            // .field("verifydata", &verifydata)
             .field("calldata", &calldata)
             .field("function", &self.func_name)
             .finish()
