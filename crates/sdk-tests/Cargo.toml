@@ -12,7 +12,7 @@ publish = false
 
 [dependencies]
 svm-sdk = { path = "../sdk", default-features = false }
-svm-sdk-types = { path = "../sdk/types", features = ["debug"] }
+svm-sdk-types = { path = "../sdk/types", features = ["debug"], default-features = false }
 
 [dev-dependencies]
 trybuild = { version = "1.0", features = ["diff"] }

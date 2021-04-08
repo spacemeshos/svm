@@ -173,7 +173,7 @@ pub fn array_set_addr<S: Storage>(var_id: u32, index: usize, length: u32, value:
 fn cell_offset(var_id: u32, index: usize, length: u32) -> u32 {
     let index = index as u32;
 
-    if (index < length) {
+    if (index >= length) {
         svm_sdk_std::panic();
     }
 
