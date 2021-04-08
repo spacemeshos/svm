@@ -12,8 +12,8 @@ publish = false
 
 [dependencies]
 lazy_static = "1.4.0"
-svm-sdk-types = { path = "types" }
 svm-sdk-alloc = { path = "alloc", default-features = false }
+svm-sdk-types = { path = "types", default-features = false }
 svm-sdk-std = { path = "std", default-features = false }
 svm-sdk-host = { path = "host", default-features = false }
 svm-sdk-storage = { path = "storage", default-features = false }
@@ -28,6 +28,7 @@ mock = ["svm-sdk-host/mock", "svm-sdk-storage/mock"]
 api = ["svm-sdk-macros/api"]
 static-alloc = [
     "svm-sdk-alloc/static-alloc",
+    "svm-sdk-types/static-alloc",
     "svm-sdk-std/static-alloc",
     "svm-sdk-host/static-alloc",
     "svm-sdk-storage/static-alloc",
