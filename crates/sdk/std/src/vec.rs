@@ -61,13 +61,20 @@ impl<T> Vec<T> {
     }
 
     pub fn leak(self) -> &'static [T] {
+        extern crate alloc;
+
+        use alloc::boxed::Box;
+
         let slice = self.as_slice();
 
+        let slice: &[T] = Box::leak(Box::new(slice));
+
         let vec = unsafe { core::mem::transmute(slice) };
-
-        core::mem::forget(self);
-
         vec
+
+        // core::mem::forget(self);
+
+        // vec
     }
 
     #[inline]
