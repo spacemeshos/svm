@@ -1,7 +1,7 @@
 use svm_sdk as sdk;
 
-use svm_sdk::traits::Encoder;
-use svm_sdk::CallData;
+use svm_sdk::traits::{ByteSize, Encoder};
+use svm_sdk::{CallData, ReturnData};
 
 use svm_codec::{Field, ParseError};
 
@@ -394,7 +394,7 @@ fn default_runtime_calldata_returndata() {
     let func = "store_addr";
     let msg: sdk::Address = sdk::Address::repeat(0x10);
 
-    let mut calldata = svm_sdk::Vec::with_capacity(10000);
+    let mut calldata = sdk::Vec::with_capacity(sdk::Address::max_byte_size());
     msg.encode(&mut calldata);
 
     let bytes = testing::build_app_tx(version, &app_addr, func, &calldata);
@@ -416,8 +416,8 @@ fn default_runtime_calldata_returndata() {
     assert!(receipt.success);
 
     let bytes = receipt.returndata.unwrap();
-    let mut calldata = CallData::new(&bytes);
+    let mut returndata = ReturnData::new(&bytes);
 
-    let addr: sdk::Address = calldata.next_1();
+    let addr: sdk::Address = returndata.next_1();
     assert_eq!(addr.as_slice(), &[0x10; 20]);
 }
