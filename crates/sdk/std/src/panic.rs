@@ -1,6 +1,6 @@
 #[cfg(target_arch = "wasm32")]
 pub fn panic() -> ! {
-    core::intrinsics::abort()
+    core::panic!()
 }
 
 #[cfg(not(target_arch = "wasm32"))]
