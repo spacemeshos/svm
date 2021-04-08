@@ -161,16 +161,16 @@ fn default_runtime_exec_app_with_ctor_fails() {
     let init_state = receipt.get_init_state();
 
     // 3) execute a transaction
-    // let calldata = Vec::new();
-    // let bytes = testing::build_app_tx(version, &app_addr, ctor, &calldata);
-    // let tx = runtime.validate_tx(&bytes).unwrap();
+    let calldata = Vec::new();
+    let bytes = testing::build_app_tx(version, &app_addr, ctor, &calldata);
+    let tx = runtime.validate_tx(&bytes).unwrap();
 
-    // let receipt = runtime.exec_tx(&tx, &init_state, maybe_gas);
+    let receipt = runtime.exec_tx(&tx, &init_state, maybe_gas);
 
-    // assert!(matches!(
-    //     receipt.error.unwrap(),
-    //     RuntimeError::FuncNotAllowed { .. }
-    // ));
+    assert!(matches!(
+        receipt.error.unwrap(),
+        RuntimeError::FuncNotAllowed { .. }
+    ));
 }
 
 #[ignore = "temporarily disabling this test"]

@@ -19,17 +19,17 @@ jobs:
         node: ["12"]
         profile: [""]
     steps:
-      - name: install automake (macOS)
+      - name: Install automake (macOS)
         if: matrix.os == 'macos-latest'
         run: brew install automake
-      - name: install LLVM (Windows)
+      - name: Install LLVM (Windows)
         if: matrix.os == 'windows-latest'
         run: choco install llvm -y
-      - name: download commit
+      - name: Download commit
         uses: actions/checkout@v1
         with:
           fetch-depth: 1
-      - name: cache cargo
+      - name: Cache cargo
         id: cache-cargo
         uses: actions/cache@v1
         with:
@@ -39,19 +39,19 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
-      - name: cargo build
+      - name: Cargo build
         uses: actions-rs/cargo@v1
         with:
           toolchain: nightly
           command: build
           args: ${{ matrix.profile }} --all --features=default-memory,default-rocksdb
-      - name: cargo test
+      - name: Cargo test
         uses: actions-rs/cargo@v1
         with:
           toolchain: nightly
           command: test
           args: ${{ matrix.profile }} --all --features=default-memory,default-rocksdb
-      - name: install node
+      - name: Install node
         uses: actions/setup-node@v1
         with:
           node-version: ${{ matrix.node }}
@@ -61,15 +61,15 @@ jobs:
       - name: test svm-codec.wasm
         shell: bash
         run: ./svm-codec-ci.sh
-      - name: Prepare Artifacts
+      - name: Prepare artifacts
         shell: bash
         run: mkdir bins/ && for i in $(ls target/release/{libsvm_runtime_c_api.dylib,libsvm_runtime_c_api.so,svm_runtime_c_api.dll,svm.h,svm_types.h}); do mv $i bins/; done
-      - name: upload artifacts
+      - name: Upload artifacts
         uses: actions/upload-artifact@master
         with:
           name: bins-${{ runner.os }}${{ matrix.profile }}
           path: bins/
-      - name: upload svm_codec.wasm
+      - name: Upload svm_codec.wasm
         uses: actions/upload-artifact@master
         with:
           name: svm_codec.wasm
