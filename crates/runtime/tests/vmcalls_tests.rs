@@ -258,7 +258,7 @@ fn vmcalls_log() {
     let template_addr = Address::repeat(0xAB);
     let app_addr = Address::repeat(0xCD);
     let gas_limit = Gas::new();
-    let layout = Layout::empty();
+    let layout = Layout::default();
 
     let store = testing::wasmer_store();
     let memory = testing::wasmer_memory(&store);

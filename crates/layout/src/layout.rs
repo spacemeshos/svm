@@ -11,12 +11,14 @@ pub struct Layout {
     pub(crate) vars: Vec<(u32, u32)>,
 }
 
-impl Layout {
+impl Default for Layout {
     /// For tests that don't care about the `Layout`
-    pub fn empty() -> Self {
+    fn default() -> Self {
         Self { vars: Vec::new() }
     }
+}
 
+impl Layout {
     /// Returns variable's layout. i.e: `(offset, length)`
     ///
     /// # Panics
