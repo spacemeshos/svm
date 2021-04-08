@@ -17,59 +17,59 @@ jobs:
         # os: [ubuntu-latest, macos-latest, windows-latest]
         os: [windows-latest]
         node: ["12"]
-        release: ["--release"]
+        profile: [""]
     steps:
-      - name: Automake (macOS)
+      - name: install automake (macOS)
         if: matrix.os == 'macos-latest'
         run: brew install automake
-      - name: LLVM (Windows)
+      - name: install LLVM (Windows)
         if: matrix.os == 'windows-latest'
         run: choco install llvm -y
-      - name: Download commit
+      - name: download commit
         uses: actions/checkout@v1
         with:
           fetch-depth: 1
-      - name: Cache cargo
+      - name: cache cargo
         id: cache-cargo
         uses: actions/cache@v1
         with:
           path: .cargo/
-          key: ${{ runner.os }}-${{ matrix.release }}-cargo
+          key: ${{ runner.os }}-${{ matrix.profile }}-cargo
       - name: Install latest nightly
         uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
-      - name: Cargo Build
+      - name: cargo build
         uses: actions-rs/cargo@v1
         with:
           toolchain: nightly
           command: build
-          args: ${{ matrix.release }} --all --features=default-memory,default-rocksdb
-      - name: Cargo Test
+          args: ${{ matrix.profile }} --all --features=default-memory,default-rocksdb
+      - name: cargo test
         uses: actions-rs/cargo@v1
         with:
           toolchain: nightly
           command: test
-          args: ${{ matrix.release }} --all --features=default-memory,default-rocksdb
-      - name: Setup node
+          args: ${{ matrix.profile }} --all --features=default-memory,default-rocksdb
+      - name: install node
         uses: actions/setup-node@v1
         with:
           node-version: ${{ matrix.node }}
       - name: rustup wasm32-unknown-unknown
         shell: bash
         run: rustup target add wasm32-unknown-unknown --toolchain nightly
-      - name: Test svm-codec.wasm
+      - name: test svm-codec.wasm
         shell: bash
         run: ./svm-codec-ci.sh
       - name: Prepare Artifacts
         shell: bash
         run: mkdir bins/ && for i in $(ls target/release/{libsvm_runtime_c_api.dylib,libsvm_runtime_c_api.so,svm_runtime_c_api.dll,svm.h,svm_types.h}); do mv $i bins/; done
-      - name: Upload Artifacts
+      - name: upload artifacts
         uses: actions/upload-artifact@master
         with:
-          name: bins-${{ runner.os }}${{ matrix.release }}
+          name: bins-${{ runner.os }}${{ matrix.profile }}
           path: bins/
-      - name: Upload `svm_codec.wasm`
+      - name: upload svm_codec.wasm
         uses: actions/upload-artifact@master
         with:
           name: svm_codec.wasm

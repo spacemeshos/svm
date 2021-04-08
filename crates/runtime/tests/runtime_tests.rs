@@ -10,7 +10,6 @@ use svm_layout::Layout;
 use svm_runtime::{error::ValidateError, testing, Runtime};
 
 use svm_types::{Address, Gas, RuntimeError};
-use svm_types::{SpawnAppReceipt, TemplateReceipt};
 
 macro_rules! default_runtime {
     () => {{
