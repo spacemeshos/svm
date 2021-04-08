@@ -39,13 +39,13 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
-      - name: Cargo build
-        uses: actions-rs/cargo@v1
-        with:
-          toolchain: nightly
-          command: build
-          args: ${{ matrix.profile }} --all --features=default-memory,default-rocksdb
-      - name: Cargo test
+      # - name: Cargo build
+      #   uses: actions-rs/cargo@v1
+      #   with:
+      #     toolchain: nightly
+      #     command: build
+      #     args: ${{ matrix.profile }} --all --features=default-memory,default-rocksdb
+      # - name: Cargo test
         uses: actions-rs/cargo@v1
         with:
           toolchain: nightly
