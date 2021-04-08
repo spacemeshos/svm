@@ -49,7 +49,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           toolchain: nightly
-          command: test --runtime_tests
+          command: test
           args: ${{ matrix.profile }} --all --features=default-memory,default-rocksdb
       - name: Install node
         uses: actions/setup-node@v1
