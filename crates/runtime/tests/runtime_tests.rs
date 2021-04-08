@@ -86,28 +86,6 @@ fn default_runtime_validate_tx_invalid_raw_format() {
 }
 
 #[test]
-fn default_runtime_deploy_template_has_enough_gas() {
-    let mut runtime = default_runtime!();
-
-    let version = 0;
-    let author = Address::of("author").into();
-    let gas_limit = Gas::with(1_0000_000);
-    let ctors = vec!["ctor".to_string()];
-
-    let bytes = testing::build_template(
-        version,
-        "My Template",
-        Layout::default(),
-        &ctors,
-        include_str!("wasm/runtime_app_ctor.wast").into(),
-    );
-
-    let receipt = runtime.deploy_template(&bytes, &author, gas_limit);
-    assert!(receipt.success);
-    assert!(receipt.gas_used.is_some());
-}
-
-#[test]
 fn default_runtime_spawn_app_with_non_ctor_fails() {
     let mut runtime = default_runtime!();
 
