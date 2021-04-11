@@ -143,13 +143,22 @@ fn expand_epilogue(func: &Function) -> Result<TokenStream> {
 
             returns.encode(&mut bytes);
 
-            // if bytes.len() > 0 {
-            core::panic!();
+            if bytes.len() > 0 {
+                let bytes: &'static [u8] = bytes.leak();
 
-            // let bytes: &'static [u8] = bytes.leak();
+                let offset = bytes.as_ptr() as usize as u32;
+                let length = bytes.len() as u32;
 
-            // Node.set_returndata(bytes);
-            // }
+                unsafe {
+                    #[link(wasm_import_module = "svm")]
+                    extern "C" {
+                        fn svm_set_returndata(offset: u32, length: u32);
+                    }
+
+                    svm_set_returndata(offset, length);
+                }
+                // Node.set_returndata(bytes);
+             }
         }
     };
 
