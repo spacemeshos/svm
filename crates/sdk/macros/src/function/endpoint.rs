@@ -143,11 +143,13 @@ fn expand_epilogue(func: &Function) -> Result<TokenStream> {
 
             returns.encode(&mut bytes);
 
-            if bytes.len() > 0 {
-                let bytes: &'static [u8] = bytes.leak();
+            // if bytes.len() > 0 {
+            core::panic!();
 
-                Node.set_returndata(bytes);
-            }
+            // let bytes: &'static [u8] = bytes.leak();
+
+            // Node.set_returndata(bytes);
+            // }
         }
     };
 
