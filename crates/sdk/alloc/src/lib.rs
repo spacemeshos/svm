@@ -11,6 +11,13 @@
 
 extern crate alloc;
 
+#[cfg(feature = "static-alloc")]
+use alloc::alloc::{GlobalAlloc, Layout};
+
+#[cfg(feature = "static-alloc")]
+#[global_allocator]
+static STATIC_ALLOC: StaticAlloc = StaticAlloc;
+
 /// This method uses the process's Global Allocator.
 /// It allocates `nbytes` bytes on the Heap.
 ///
@@ -18,29 +25,47 @@ extern crate alloc;
 ///
 /// Returns `Ptr` to the allocated space.
 
-// #[cfg(feature = "static-alloc")]
-// #[link(wasm_import_module = "svm")]
-// extern "C" {
-//     fn svm_static_alloc(size: u32) -> u32;
-// }
+#[cfg(feature = "static-alloc")]
+#[link(wasm_import_module = "svm")]
+extern "C" {
+    fn svm_static_alloc(size: u32) -> u32;
+}
 
-// #[cfg(feature = "static-alloc")]
-// pub fn alloc(size: usize) -> Ptr {
-//     let ptr = unsafe { svm_static_alloc(size as u32) };
-
-//     Ptr(ptr as usize)
-// }
-
-#[cfg(not(feature = "static-alloc"))]
+#[cfg(feature = "static-alloc")]
 pub fn alloc(size: usize) -> Ptr {
-    use alloc::alloc::Layout;
-
-    let layout = Layout::array::<u8>(size).unwrap();
-
-    let ptr = unsafe { alloc::alloc::alloc_zeroed(layout) };
+    let ptr = unsafe { svm_static_alloc(size as u32) };
 
     Ptr(ptr as usize)
 }
+
+#[cfg(feature = "static-alloc")]
+pub struct StaticAlloc;
+
+#[cfg(feature = "static-alloc")]
+unsafe impl GlobalAlloc for StaticAlloc {
+    unsafe fn alloc(&self, layout: core::alloc::Layout) -> *mut u8 {
+        let size = layout.size() as u32;
+
+        let offset = unsafe { svm_static_alloc(size) };
+
+        offset as _
+    }
+
+    unsafe fn dealloc(&self, ptr: *mut u8, layout: core::alloc::Layout) {
+        //
+    }
+}
+
+// #[cfg(not(feature = "static-alloc"))]
+// pub fn alloc(size: usize) -> Ptr {
+//     use alloc::alloc::Layout;
+
+//     let layout = Layout::array::<u8>(size).unwrap();
+
+//     let ptr = unsafe { alloc::alloc::alloc_zeroed(layout) };
+
+//     Ptr(ptr as usize)
+// }
 
 /// WASM memory addresses are represented as `32` or `64` bit.
 pub struct Ptr(usize);
