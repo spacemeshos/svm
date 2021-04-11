@@ -169,17 +169,7 @@ fn expand_returns(func: &Function) -> Result<TokenStream> {
     let mut tokens = TokenStream::new();
 
     let sig = func.raw_sig();
-
     sig.output.to_tokens(&mut tokens);
-
-    // match &sig.output {
-    //     ReturnType::Default => {
-    //         ().to_tokens(&mut tokens);
-    //     }
-    //     ReturnType::Type(.., ty) => {
-    //         ty.to_tokens(&mut tokens);
-    //     }
-    // }
 
     Ok(tokens)
 }

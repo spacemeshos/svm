@@ -51,61 +51,61 @@ jobs:
         with:
           toolchain: nightly
           command: test
-          args: ${{ matrix.profile }} -p svm-runtime --features=default-memory --no-default-features -- --test-threads=1
+          args: ${{ matrix.profile }} -p svm-runtime --features=default-memory --no-default-features -- --test-threads=1 --nocapture
       - name: Cargo Test (2nd run)
         uses: actions-rs/cargo@v1
         with:
           toolchain: nightly
           command: test
-          args: ${{ matrix.profile }} -p svm-runtime --features=default-memory --no-default-features -- --test-threads=1
+          args: ${{ matrix.profile }} -p svm-runtime --features=default-memory --no-default-features -- --test-threads=1 --nocapture
       - name: Cargo Test (3rd run)
         uses: actions-rs/cargo@v1
         with:
           toolchain: nightly
           command: test
-          args: ${{ matrix.profile }} -p svm-runtime --features=default-memory --no-default-features -- --test-threads=1
+          args: ${{ matrix.profile }} -p svm-runtime --features=default-memory --no-default-features -- --test-threads=1 --nocapture
       - name: Cargo Test (4th run)
         uses: actions-rs/cargo@v1
         with:
           toolchain: nightly
           command: test
-          args: ${{ matrix.profile }} -p svm-runtime --features=default-memory --no-default-features -- --test-threads=1
+          args: ${{ matrix.profile }} -p svm-runtime --features=default-memory --no-default-features -- --test-threads=1 --nocapture
       - name: Cargo Test (5th run)
         uses: actions-rs/cargo@v1
         with:
           toolchain: nightly
           command: test
-          args: ${{ matrix.profile }} -p svm-runtime --features=default-memory --no-default-features -- --test-threads=1
+          args: ${{ matrix.profile }} -p svm-runtime --features=default-memory --no-default-features -- --test-threads=1 --nocapture
       - name: Cargo Test (6th run)
         uses: actions-rs/cargo@v1
         with:
           toolchain: nightly
           command: test
-          args: ${{ matrix.profile }} -p svm-runtime --features=default-memory --no-default-features
+          args: ${{ matrix.profile }} -p svm-runtime --features=default-memory --no-default-features -- --nocapture
       - name: Cargo Test (7th run)
         uses: actions-rs/cargo@v1
         with:
           toolchain: nightly
           command: test
-          args: ${{ matrix.profile }} -p svm-runtime --features=default-memory --no-default-features
+          args: ${{ matrix.profile }} -p svm-runtime --features=default-memory --no-default-features -- --nocapture
       - name: Cargo Test (8th run)
         uses: actions-rs/cargo@v1
         with:
           toolchain: nightly
           command: test
-          args: ${{ matrix.profile }} -p svm-runtime --features=default-memory --no-default-features
+          args: ${{ matrix.profile }} -p svm-runtime --features=default-memory --no-default-features -- --nocapture
       - name: Cargo Test (9th run)
         uses: actions-rs/cargo@v1
         with:
           toolchain: nightly
           command: test
-          args: ${{ matrix.profile }} -p svm-runtime --features=default-memory --no-default-features
+          args: ${{ matrix.profile }} -p svm-runtime --features=default-memory --no-default-features -- --nocapture
       - name: Cargo Test (10th run)
         uses: actions-rs/cargo@v1
         with:
           toolchain: nightly
           command: test
-          args: ${{ matrix.profile }} -p svm-runtime --features=default-memory --no-default-features
+          args: ${{ matrix.profile }} -p svm-runtime --features=default-memory --no-default-features -- --nocapture
       # - name: Setup node
       #   uses: actions/setup-node@v1
       #   with:

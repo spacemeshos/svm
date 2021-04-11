@@ -373,6 +373,8 @@ where
         Args: WasmTypeList,
         Rets: WasmTypeList,
     {
+        debug_assert!(calldata.is_empty() == false);
+
         let out = self.call_alloc(instance, ctx, calldata.len())?;
 
         // we assert that `svm_alloc` didn't touch the `returndata`
@@ -491,6 +493,8 @@ where
     }
 
     fn set_calldata(&self, ctx: &Context, calldata: &[u8], wasm_ptr: WasmPtr<u8>) {
+        debug_assert!(calldata.is_empty() == false);
+
         let (offset, len) = {
             let borrow = ctx.borrow();
             let memory = borrow.get_memory();
