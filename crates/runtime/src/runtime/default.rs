@@ -299,7 +299,8 @@ where
                 let result =
                     self.exec_::<Args, Rets>(&call, &store, &ctx, &template, &import_object);
 
-                self.drop_envs(host_envs);
+                // TODO: uncomment
+                // self.drop_envs(host_envs);
 
                 match result {
                     Ok(out) => Ok(f(&ctx, out)),
@@ -415,6 +416,13 @@ where
         Ok(out)
     }
 
+    fn memory_size(&self, ctx: &Context) -> u64 {
+        let borrow = ctx.borrow();
+        let memory = borrow.get_memory();
+
+        memory.data_size()
+    }
+
     fn call<Args, Rets>(
         &self,
         instance: &Instance,
@@ -426,6 +434,11 @@ where
         Args: WasmTypeList,
         Rets: WasmTypeList,
     {
+        dbg!(
+            "About to invoke Wasmer (memory-size = {})",
+            self.memory_size(ctx)
+        );
+
         let wasmer_func = func.wasmer_func();
         let returns = wasmer_func.call(params);
 
@@ -473,7 +486,7 @@ where
         match data {
             Some((offset, length)) => {
                 dbg!(
-                    "about to read memory `returndata` (offset = {}, length = {})",
+                    "About to read memory `returndata` (offset = {}, length = {})",
                     offset,
                     length
                 );
