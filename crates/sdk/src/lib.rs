@@ -341,7 +341,7 @@ pub use svm_sdk_std::{Option, Result, Vec};
 
 // alloc
 //
-// exposing the `global alloactor` by using the `extern crate` syntax.
+// exposing the `global allocator` by using the `extern crate` syntax.
 extern crate svm_sdk_alloc;
 
 pub use svm_sdk_alloc::{alloc, Ptr};

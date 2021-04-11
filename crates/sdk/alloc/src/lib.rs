@@ -14,11 +14,11 @@ extern crate alloc;
 use alloc::alloc::Layout;
 
 #[cfg(feature = "static-alloc")]
-use alloc::alloc::GlobalAlloc;
+pub struct StaticAlloc;
 
 #[cfg(feature = "static-alloc")]
 #[global_allocator]
-static STATIC_ALLOC: StaticAlloc = StaticAlloc;
+pub static STATIC_ALLOC: StaticAlloc = StaticAlloc;
 
 /// This method uses the process's Global Allocator.
 /// It allocates `nbytes` bytes on the Heap.
@@ -41,11 +41,8 @@ pub fn alloc(size: usize) -> Ptr {
 }
 
 #[cfg(feature = "static-alloc")]
-pub struct StaticAlloc;
-
-#[cfg(feature = "static-alloc")]
-unsafe impl GlobalAlloc for StaticAlloc {
-    unsafe fn alloc(&self, layout: core::alloc::Layout) -> *mut u8 {
+unsafe impl alloc::alloc::GlobalAlloc for StaticAlloc {
+    unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         let size = layout.size() as u32;
 
         let offset = unsafe { svm_static_alloc(size) };
@@ -53,15 +50,13 @@ unsafe impl GlobalAlloc for StaticAlloc {
         offset as _
     }
 
-    unsafe fn dealloc(&self, ptr: *mut u8, layout: core::alloc::Layout) {
+    unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
         //
     }
 }
 
 #[cfg(not(feature = "static-alloc"))]
 pub fn alloc(size: usize) -> Ptr {
-    use alloc::alloc::Layout;
-
     let layout = Layout::array::<u8>(size).unwrap();
 
     let ptr = unsafe { alloc::alloc::alloc_zeroed(layout) };
