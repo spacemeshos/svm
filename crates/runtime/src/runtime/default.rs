@@ -486,17 +486,24 @@ where
         }
     }
 
-    fn read_memory(&self, ctx: &Context, offset: usize, len: usize) -> Vec<u8> {
-        debug_assert!(len > 0);
+    fn read_memory(&self, ctx: &Context, offset: usize, length: usize) -> Vec<u8> {
+        assert!(length > 0);
 
         let borrow = ctx.borrow();
         let memory = borrow.get_memory();
 
-        // TODO: guard again out-of-bounds
-        let view = memory.view::<u8>();
-        debug_assert!(view.len() > offset);
+        dbg!(
+            "read_memory (memory byte-size = {}, offset = {}, length = {})",
+            memory.data_size(),
+            offset,
+            length
+        );
 
-        let cells = &view[offset..(offset + len)];
+        let view = memory.view::<u8>();
+
+        assert!(view.len() > offset + length - 1);
+
+        let cells = &view[offset..(offset + length)];
 
         cells.iter().map(|c| c.get()).collect()
     }
