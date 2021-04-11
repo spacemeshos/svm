@@ -426,6 +426,12 @@ where
     {
         let wasmer_func = func.wasmer_func();
         let returns = wasmer_func.call(params);
+
+        dbg!(
+            "Wasmer finished running the called function (returns = {})",
+            &returns
+        );
+
         let logs = ctx.borrow_mut().take_logs();
 
         if returns.is_err() {
@@ -463,8 +469,20 @@ where
         let data = ctx.borrow().returndata;
 
         match data {
-            Some((offset, len)) => self.read_memory(ctx, offset, len),
-            None => Vec::new(),
+            Some((offset, length)) => {
+                dbg!(
+                    "about to read memory `returndata` (offset = {}, length = {})",
+                    offset,
+                    length
+                );
+
+                self.read_memory(ctx, offset, length)
+            }
+            None => {
+                dbg!("there is no `returndata`");
+
+                Vec::new()
+            }
         }
     }
 
