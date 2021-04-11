@@ -142,9 +142,9 @@ fn expand_epilogue(func: &Function) -> Result<TokenStream> {
 
             returns.encode(&mut bytes);
 
-            // if bytes.len() > 0 {
+            if bytes.len() > 0 {
                 Node.set_returndata(&bytes);
-            // }
+            }
         }
     };
 
