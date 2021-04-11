@@ -311,10 +311,12 @@ where
     }
 
     fn drop_envs(&self, mut host_envs: Vec<*mut svm_env_t>) {
-        for env in host_envs.drain(..) {
-            let ty = Type::of::<svm_env_t>();
-            let _ = svm_ffi::from_raw(ty, env);
-        }
+        // TODO: call only at the end...
+
+        // for env in host_envs.drain(..) {
+        //     let ty = Type::of::<svm_env_t>();
+        //     let _ = svm_ffi::from_raw(ty, env);
+        // }
     }
 
     fn exec_<Args, Rets>(
