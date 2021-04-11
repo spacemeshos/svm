@@ -416,13 +416,6 @@ where
         Ok(out)
     }
 
-    fn memory_size(&self, ctx: &Context) -> u64 {
-        let borrow = ctx.borrow();
-        let memory = borrow.get_memory();
-
-        memory.data_size()
-    }
-
     fn call<Args, Rets>(
         &self,
         instance: &Instance,
@@ -436,7 +429,7 @@ where
     {
         dbg!(
             "About to invoke Wasmer (memory-size = {})",
-            self.memory_size(ctx)
+            ctx.borrow().allocated_memory()
         );
 
         let wasmer_func = func.wasmer_func();
@@ -472,6 +465,7 @@ where
     #[inline]
     fn commit_changes(&self, ctx: &Context) -> State {
         let storage = &mut ctx.borrow_mut().storage;
+
         storage.commit()
     }
 
@@ -509,7 +503,7 @@ where
 
         dbg!(
             "read_memory (memory byte-size = {}, offset = {}, length = {})",
-            memory.data_size(),
+            borrow.allocated_memory(),
             offset,
             length
         );
@@ -550,16 +544,19 @@ where
             //
             // See [issue #140](https://github.com/spacemeshos/svm/issues/140)
             let offset = wasm_ptr.offset() as usize;
-            let len = calldata.len();
+            let length = calldata.len();
+            let view = memory.view::<u8>();
 
-            // TODO: guard again out-of-bounds
-            let view = &memory.view::<u8>()[offset..(offset + len)];
+            // TODO: fail safely, instead of using `assert!`
+            assert!(view.len() > offset + length - 1);
 
-            for (cell, &byte) in view.iter().zip(calldata.iter()) {
+            let cells = &view[offset..(offset + length)];
+
+            for (cell, &byte) in cells.iter().zip(calldata.iter()) {
                 cell.set(byte);
             }
 
-            (offset, len)
+            (offset, length)
         };
 
         ctx.borrow_mut().set_calldata(offset, len);

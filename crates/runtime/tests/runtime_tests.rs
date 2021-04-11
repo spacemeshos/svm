@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use svm_sdk as sdk;
 
 use svm_sdk::traits::Encoder;
