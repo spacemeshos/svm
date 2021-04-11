@@ -35,5 +35,13 @@ static-alloc = [
     "svm-sdk-host/static-alloc",
     "svm-sdk-storage/static-alloc",
 ]
+dynamic-alloc = [
+    "svm-sdk-types/dynamic-alloc",
+    "svm-abi-encoder/dynamic-alloc",
+    "svm-abi-decoder/dynamic-alloc",
+    "svm-sdk-std/dynamic-alloc",
+    "svm-sdk-host/dynamic-alloc",
+    "svm-sdk-storage/dynamic-alloc",
+]
 api = []
 layout = []

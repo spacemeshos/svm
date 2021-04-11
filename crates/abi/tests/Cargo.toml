@@ -12,7 +12,7 @@ publish = false
 
 [dependencies]
 svm-abi-layout = { path = "./../layout" }
-svm-abi-encoder = { path = "./../encoder", default-features = false }
-svm-abi-decoder = { path = "./../decoder", default-features = false }
-svm-sdk-types = { path = "../../sdk/types", features = ["debug"], default-features = false }
-svm-sdk-std = { path = "../../sdk/std", features = ["debug"], default-features = false }
+svm-abi-encoder = { path = "./../encoder", features = ["dynamic-alloc"], default-features = false }
+svm-abi-decoder = { path = "./../decoder", features = ["dynamic-alloc"], default-features = false }
+svm-sdk-types = { path = "../../sdk/types", features = ["debug", "dynamic-alloc"], default-features = false }
+svm-sdk-std = { path = "../../sdk/std", features = ["debug", "dynamic-alloc"], default-features = false }

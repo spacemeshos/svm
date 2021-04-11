@@ -28,6 +28,7 @@ log = "0.4"
 lazy_static = "1.4.0"
 hex = "0.4"
 wasmer = { version = "1.0.2", default-features = false }
+wee_alloc = { version = "0.4.5", optional = true }
 svm-common = { path = "crates/common" }
 svm-hash = { path = "crates/hash" }
 svm-kv = { path = "crates/kv", default-features = false }
@@ -90,11 +91,12 @@ default = [
   "default-memory",
   "default-cranelift",
 ]
-
 static-alloc = [
   "svm-sdk/static-alloc",
 ]
-
+dynamic-alloc = [
+  "svm-sdk/dynamic-alloc",
+]
 default-llvm = [
   "svm-runtime/default-llvm",
   "svm-runtime-ffi/default-llvm",

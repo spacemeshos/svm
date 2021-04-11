@@ -31,3 +31,10 @@ static-alloc = [
     "svm-abi-encoder/static-alloc",
     "svm-abi-decoder/static-alloc",
 ]
+dynamic-alloc = [
+    "svm-sdk-alloc/dynamic-alloc", 
+    "svm-sdk-types/dynamic-alloc", 
+    "svm-sdk-std/dynamic-alloc",
+    "svm-abi-encoder/dynamic-alloc",
+    "svm-abi-decoder/dynamic-alloc",
+]

@@ -331,6 +331,12 @@
 /// }
 /// ```
 
+#[cfg(all(feature = "static-alloc", feature = "dynamic-alloc"))]
+compile_error!("Cannot have both `static-alloc` and `dynamic-alloc` features turned-on");
+
+#[cfg(not(any(feature = "static-alloc", feature = "dynamic-alloc")))]
+compile_error!("Must have either `static-alloc` or `dynamic-alloc` features turned-on");
+
 /// Logging API
 pub use svm_abi_decoder::{CallData, DecodeError, ReturnData};
 pub use svm_sdk_macros::app;

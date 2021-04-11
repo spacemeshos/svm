@@ -17,3 +17,4 @@ svm-sdk-std = { path = "../std", default-features = false }
 default = []
 debug = ["svm-sdk-std/debug"] 
 static-alloc = ["svm-sdk-std/static-alloc"]
+dynamic-alloc = ["svm-sdk-std/dynamic-alloc"]

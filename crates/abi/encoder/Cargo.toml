@@ -21,3 +21,7 @@ static-alloc = [
     "svm-sdk-types/static-alloc",
     "svm-sdk-std/static-alloc"
 ]
+dynamic-alloc = [
+    "svm-sdk-types/dynamic-alloc",
+    "svm-sdk-std/dynamic-alloc"
+]

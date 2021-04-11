@@ -10,6 +10,10 @@ homepage = "https://github.com/spacemeshos/svm"
 description = "Spacemesh Virtual Machine"
 publish = false
 
+[dependencies]
+wee_alloc = { version = "0.4.5", optional = true }
+
 [features]
 default = []
 static-alloc = []
+dynamic-alloc = ["wee_alloc"]

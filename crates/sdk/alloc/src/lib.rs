@@ -13,12 +13,25 @@ extern crate alloc;
 
 use alloc::alloc::Layout;
 
+#[cfg(all(feature = "static-alloc", feature = "dynamic-alloc"))]
+compile_error!("Cannot have both `static-alloc` and `dynamic-alloc` features turned-on");
+
+#[cfg(not(any(feature = "static-alloc", feature = "dynamic-alloc")))]
+compile_error!("Must have either `static-alloc` or `dynamic-alloc` features turned-on");
+
+#[cfg(feature = "dynamic-alloc")]
+extern crate wee_alloc;
+
 #[cfg(feature = "static-alloc")]
 pub struct StaticAlloc;
 
 #[cfg(feature = "static-alloc")]
 #[global_allocator]
-pub static STATIC_ALLOC: StaticAlloc = StaticAlloc;
+pub static SVM_ALLOC: StaticAlloc = StaticAlloc;
+
+#[cfg(feature = "dynamic-alloc")]
+#[global_allocator]
+static SVM_ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 /// This method uses the process's Global Allocator.
 /// It allocates `nbytes` bytes on the Heap.
@@ -28,16 +41,16 @@ pub static STATIC_ALLOC: StaticAlloc = StaticAlloc;
 /// Returns `Ptr` to the allocated space.
 
 #[cfg(feature = "static-alloc")]
-#[link(wasm_import_module = "svm")]
-extern "C" {
-    fn svm_static_alloc(size: u32) -> u32;
-}
-
-#[cfg(feature = "static-alloc")]
 pub fn alloc(size: usize) -> Ptr {
     let ptr = unsafe { svm_static_alloc(size as u32) };
 
     Ptr(ptr as usize)
+}
+
+#[cfg(feature = "static-alloc")]
+#[link(wasm_import_module = "svm")]
+extern "C" {
+    fn svm_static_alloc(size: u32) -> u32;
 }
 
 #[cfg(feature = "static-alloc")]
@@ -55,7 +68,7 @@ unsafe impl alloc::alloc::GlobalAlloc for StaticAlloc {
     }
 }
 
-#[cfg(not(feature = "static-alloc"))]
+#[cfg(feature = "dynamic-alloc")]
 pub fn alloc(size: usize) -> Ptr {
     let layout = Layout::array::<u8>(size).unwrap();
 
