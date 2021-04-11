@@ -22,7 +22,7 @@ rpath = false
 svm-sdk = { path = "../../../../sdk", default-features = false }
 
 [features]
-default = ["mock"]
+default = ["mock", "static-alloc"]
 ffi = ["svm-sdk/ffi"]
 mock = ["svm-sdk/mock"]
 static-alloc = ["svm-sdk/static-alloc"]

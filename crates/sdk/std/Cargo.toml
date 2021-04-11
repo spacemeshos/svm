@@ -14,6 +14,6 @@ publish = false
 svm-sdk-alloc = { path = "../alloc", default-features = false }
 
 [features]
-default = []
+default = ["static-alloc"]
 debug = []
 static-alloc = ["svm-sdk-alloc/static-alloc"]

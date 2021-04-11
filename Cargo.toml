@@ -86,9 +86,15 @@ members = [
 
 [features]
 default = [
+  "static-alloc",
   "default-memory",
-   "default-cranelift"
+  "default-cranelift",
 ]
+
+static-alloc = [
+  "svm-sdk/static-alloc",
+]
+
 default-llvm = [
   "svm-runtime/default-llvm",
   "svm-runtime-ffi/default-llvm",

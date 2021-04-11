@@ -26,7 +26,7 @@ svm-gas = { path = "../gas" }
 
 [dev-dependencies]
 maplit = "1.0.2"
-svm-sdk = { path = "../sdk", features = ["mock"], default-features = false }
+svm-sdk = { path = "../sdk", features = ["mock", "static-alloc"], default-features = false }
 
 [features]
 default = [

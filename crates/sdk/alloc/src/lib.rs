@@ -11,8 +11,10 @@
 
 extern crate alloc;
 
+use alloc::alloc::Layout;
+
 #[cfg(feature = "static-alloc")]
-use alloc::alloc::{GlobalAlloc, Layout};
+use alloc::alloc::GlobalAlloc;
 
 #[cfg(feature = "static-alloc")]
 #[global_allocator]
@@ -56,16 +58,16 @@ unsafe impl GlobalAlloc for StaticAlloc {
     }
 }
 
-// #[cfg(not(feature = "static-alloc"))]
-// pub fn alloc(size: usize) -> Ptr {
-//     use alloc::alloc::Layout;
+#[cfg(not(feature = "static-alloc"))]
+pub fn alloc(size: usize) -> Ptr {
+    use alloc::alloc::Layout;
 
-//     let layout = Layout::array::<u8>(size).unwrap();
+    let layout = Layout::array::<u8>(size).unwrap();
 
-//     let ptr = unsafe { alloc::alloc::alloc_zeroed(layout) };
+    let ptr = unsafe { alloc::alloc::alloc_zeroed(layout) };
 
-//     Ptr(ptr as usize)
-// }
+    Ptr(ptr as usize)
+}
 
 /// WASM memory addresses are represented as `32` or `64` bit.
 pub struct Ptr(usize);
