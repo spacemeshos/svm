@@ -5,6 +5,8 @@ use std::convert::TryFrom;
 use crate::Context;
 
 pub fn static_alloc(ctx: &Context, size: u32) -> u32 {
+    dbg!("static_alloc - being asked to allocate {} bytes", size);
+
     assert!(size > 0);
 
     let used = used_memory(ctx);
