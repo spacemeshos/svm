@@ -138,12 +138,15 @@ fn expand_epilogue(func: &Function) -> Result<TokenStream> {
             // TODO: calculate the required `capacity` (in compile-time)
             let cap = 100;
 
+            // We need to make sure that `bytes` data isn't dropped
             let mut bytes: svm_sdk::Vec<u8> = svm_sdk::Vec::with_capacity(cap);
 
             returns.encode(&mut bytes);
 
             if bytes.len() > 0 {
-                Node.set_returndata(&bytes);
+                let bytes: &'static [u8] = bytes.leak();
+
+                Node.set_returndata(bytes);
             }
         }
     };
