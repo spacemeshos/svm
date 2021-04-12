@@ -40,7 +40,7 @@ pub fn expand(func: &Function, attrs: &[FuncAttr], app: &App) -> Result<TokenStr
     let ast = quote! {
         #attrs
         pub extern "C" fn #name() {
-            // #call_fundable_hook
+            #call_fundable_hook
 
             fn __inner__() #returns {
                 #prologue
@@ -136,7 +136,7 @@ fn expand_epilogue(func: &Function) -> Result<TokenStream> {
             let returns = __inner__();
 
             // TODO: calculate the required `capacity` (in compile-time)
-            let cap = 100;
+            let cap = 1000;
 
             // We need to make sure that `bytes` data isn't dropped
             let mut bytes: svm_sdk::Vec<u8> = svm_sdk::Vec::with_capacity(cap);
@@ -146,18 +146,7 @@ fn expand_epilogue(func: &Function) -> Result<TokenStream> {
             if bytes.len() > 0 {
                 let bytes: &'static [u8] = bytes.leak();
 
-                let offset = bytes.as_ptr() as usize as u32;
-                let length = bytes.len() as u32;
-
-                unsafe {
-                    #[link(wasm_import_module = "svm")]
-                    extern "C" {
-                        fn svm_set_returndata(offset: u32, length: u32);
-                    }
-
-                    svm_set_returndata(offset, length);
-                }
-                // Node.set_returndata(bytes);
+                Node.set_returndata(bytes);
              }
         }
     };
