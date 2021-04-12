@@ -1,4 +1,4 @@
-cargo +nightly build --features=ffi,static-alloc --no-default-features --release --target wasm32-unknown-unknown 
+cargo +nightly build --features=ffi,static-alloc --no-default-features --release --target wasm32-unknown-unknown
 
 if [ -f ./../counter.wasm ]; then
     rm ./../counter.wasm

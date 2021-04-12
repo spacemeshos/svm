@@ -11,9 +11,6 @@ pub mod traits;
 /// Helpers for composing keys.
 pub mod key;
 
-#[cfg(all(feature = "default-memory", feature = "default-rocksdb"))]
-compile_error!("should be compiled with only one feature (`default-memory` or `default-rocksdb`)");
-
 #[cfg(not(any(feature = "default-memory", feature = "default-rocksdb")))]
 compile_error!("should be compiled with feature `default-memory` or `default-rocksdb`");
 

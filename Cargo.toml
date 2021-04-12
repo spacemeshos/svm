@@ -17,7 +17,7 @@ include = [
 ]
 
 [lib]
-crate-type = ["cdylib", "rlib", "staticlib"]
+crate-type = ["cdylib", "staticlib", "rlib"]
 
 [dependencies]
 cfg-if = "1.0"
@@ -27,6 +27,7 @@ tiny-keccak = "1.4.2"
 log = "0.4"
 lazy_static = "1.4.0"
 hex = "0.4"
+# rocksdb = { version = "0.15.0", features = ["lz4"], default-features = false, optional=true }
 wasmer = { version = "1.0.2", default-features = false }
 wee_alloc = { version = "0.4.5", optional = true }
 svm-common = { path = "crates/common" }
@@ -54,8 +55,12 @@ svm-runtime-ffi = { path = "crates/runtime-ffi", default-features = false }
 svm-abi-layout = { path = "crates/abi/layout" }
 svm-abi-tests = { path = "crates/abi/tests" }
 
+[build-dependencies]
+cbindgen = "0.19.0"
+
 [dev-dependencies]
 wat = "1.0"
+maplit = "1.0.2"
 
 [workspace]
 members = [
@@ -87,15 +92,8 @@ members = [
 
 [features]
 default = [
-  "dynamic-alloc",
   "default-memory",
   "default-cranelift",
-]
-static-alloc = [
-  "svm-sdk/static-alloc",
-]
-dynamic-alloc = [
-  "svm-sdk/dynamic-alloc",
 ]
 default-llvm = [
   "svm-runtime/default-llvm",

@@ -26,5 +26,6 @@ default = ["mock", "static-alloc"]
 ffi = ["svm-sdk/ffi"]
 mock = ["svm-sdk/mock"]
 static-alloc = ["svm-sdk/static-alloc"]
+dynamic-alloc = ["svm-sdk/dynamic-alloc"]
 
 [workspace]

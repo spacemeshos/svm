@@ -311,7 +311,7 @@ describe("Deploy Template", function () {
       const error = loadWasmBufferError(instance, result);
       assert.strictEqual(
         error,
-        'InvalidField { field: "name", reason: "value `null` isn\\\'t a string" }'
+        'InvalidField { field: "name", reason: "value `null` isn\'t a string" }'
       );
 
       wasmBufferFree(instance, buf);

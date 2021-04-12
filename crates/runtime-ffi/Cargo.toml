@@ -17,10 +17,10 @@ crate-type = ["cdylib", "staticlib", "rlib"]
 log = "0.4"
 svm-runtime = { path = "../runtime", default-features = false }
 svm-kv = { path = "../kv", default-features = false }
+svm-gas = { path = "../gas" }
 svm-ffi = { path = "../ffi" }
 svm-types = { path = "../types" }
 svm-codec = { path = "../codec" }
-svm-gas = { path = "../gas" }
 svm-layout = { path = "../layout" }
 svm-storage = { path = "../storage", default-features = false }
 svm-compiler = { path = "../compiler", default-features = false }
@@ -29,11 +29,11 @@ svm-compiler = { path = "../compiler", default-features = false }
 wat = "1.0"
 serde_json = "1.0"
 maplit = "1.0.2"
-svm-sdk = { path = "../sdk", features = ["mock"], default-features = false }
-svm-abi-encoder = { path = "../abi/encoder", default-features = false }
+svm-sdk = { path = "../sdk", features = ["mock", "dynamic-alloc"], default-features = false }
+svm-abi-encoder = { path = "../abi/encoder", features = ["dynamic-alloc"], default-features = false }
 
 [build-dependencies]
-cbindgen = "0.15.0"
+cbindgen = "0.19.0"
 
 [features]
 default = [

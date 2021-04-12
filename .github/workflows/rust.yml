@@ -11,117 +11,190 @@ on:
 jobs:
   build:
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
     strategy:
       fail-fast: False
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        node: ["12"]
-        # profile: ["--release"]
-        profile: [""]
+        profile: ["release"]
     steps:
       - name: Automake (macOS)
         if: matrix.os == 'macos-latest'
-        run: brew install automake
-      # - name: LLVM (Windows)
-      #   if: matrix.os == 'windows-latest'
-      #   run: choco install llvm -y
-      - name: Download commit
+        run: |
+          set -e
+          brew update
+          brew install automake
+      - name: Cache LLVM (Windows)
+        if: matrix.os == 'windows-latest'
+        id: cache-llvm-windows
+        uses: actions/cache@v2
+        with:
+          path: |
+            C:\\Temp\\chocolatey\llvm
+            C:\\Program Files\\LLVM\bin
+          key: llvm-windows
+      - name: Install LLVM (Windows)
+        if: matrix.os == 'windows-latest' && steps.cache-llvm-windows.outputs.cache-hit != 'true'
+        run: |
+          choco config set cacheLocation C:\\Temp\\chocolatey
+          choco install llvm -y
+      - name: Checkout Code
         uses: actions/checkout@v2
         with:
           fetch-depth: 1
-      - name: Install latest nightly
-        uses: actions-rs/toolchain@v1
+      - name: Cache Cargo Registry
+        uses: actions/cache@v2
+        with:
+          path: ~/.cargo/registry
+          key: build-${{ runner.os }}-${{ matrix.profile }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            build-${{ runner.os }}-${{ matrix.profile }}-cargo-registry-
+      - name: Cache Cargo Index
+        uses: actions/cache@v2
+        with:
+          path: ~/.cargo/git
+          key: build-${{ runner.os }}-${{ matrix.profile }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            build-${{ runner.os }}-${{ matrix.profile }}-cargo-index-
+      - name: Cache Cargo Build
+        uses: actions/cache@v2
+        with:
+          path: target/${{ matrix.profile }}
+          key: build-${{ runner.os }}-${{ matrix.profile }}-nightly-target-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            build-${{ runner.os }}-${{ matrix.profile }}-nightly-target-
+      - name: Install Rust
+        run: |
+          rustup update nightly
+          rustup default nightly
+      - name: Cargo Build
+        uses: actions-rs/cargo@v1
         with:
           profile: minimal
           toolchain: nightly
-          default: true
-      # - name: Cargo Build
-      #   uses: actions-rs/cargo@v1
-      #   with:
-      #     toolchain: nightly
-      #     command: build
-      #     args: ${{ matrix.profile }} --features=default-memory,default-rocksdb --no-default-features
-      - name: Cargo Test (1st run)
-        uses: actions-rs/cargo@v1
-        with:
-          toolchain: nightly
-          command: test
-          args: ${{ matrix.profile }} -p svm-runtime --features=default-memory --no-default-features -- --test-threads=1 --nocapture
-      - name: Cargo Test (2nd run)
-        uses: actions-rs/cargo@v1
-        with:
-          toolchain: nightly
-          command: test
-          args: ${{ matrix.profile }} -p svm-runtime --features=default-memory --no-default-features -- --test-threads=1 --nocapture
-      - name: Cargo Test (3rd run)
-        uses: actions-rs/cargo@v1
-        with:
-          toolchain: nightly
-          command: test
-          args: ${{ matrix.profile }} -p svm-runtime --features=default-memory --no-default-features -- --test-threads=1 --nocapture
-      - name: Cargo Test (4th run)
-        uses: actions-rs/cargo@v1
-        with:
-          toolchain: nightly
-          command: test
-          args: ${{ matrix.profile }} -p svm-runtime --features=default-memory --no-default-features -- --test-threads=1 --nocapture
-      - name: Cargo Test (5th run)
-        uses: actions-rs/cargo@v1
-        with:
-          toolchain: nightly
-          command: test
-          args: ${{ matrix.profile }} -p svm-runtime --features=default-memory --no-default-features -- --test-threads=1 --nocapture
-      - name: Cargo Test (6th run)
-        uses: actions-rs/cargo@v1
-        with:
-          toolchain: nightly
-          command: test
-          args: ${{ matrix.profile }} -p svm-runtime --features=default-memory --no-default-features -- --nocapture
-      - name: Cargo Test (7th run)
-        uses: actions-rs/cargo@v1
-        with:
-          toolchain: nightly
-          command: test
-          args: ${{ matrix.profile }} -p svm-runtime --features=default-memory --no-default-features -- --nocapture
-      - name: Cargo Test (8th run)
-        uses: actions-rs/cargo@v1
-        with:
-          toolchain: nightly
-          command: test
-          args: ${{ matrix.profile }} -p svm-runtime --features=default-memory --no-default-features -- --nocapture
-      - name: Cargo Test (9th run)
-        uses: actions-rs/cargo@v1
-        with:
-          toolchain: nightly
-          command: test
-          args: ${{ matrix.profile }} -p svm-runtime --features=default-memory --no-default-features -- --nocapture
-      - name: Cargo Test (10th run)
-        uses: actions-rs/cargo@v1
-        with:
-          toolchain: nightly
-          command: test
-          args: ${{ matrix.profile }} -p svm-runtime --features=default-memory --no-default-features -- --nocapture
-      - name: Setup node
-        uses: actions/setup-node@v1
-        with:
-          node-version: ${{ matrix.node }}
-      - name: rustup wasm32-unknown-unknown
-        shell: bash
-        run: rustup target add wasm32-unknown-unknown --toolchain nightly
-      - name: Test svm-codec (WASM)
-        shell: bash
-        run: ./svm-codec-ci.sh
-      - name: Prepare Artifacts
-        shell: bash
-        run: mkdir bins/ && for i in $(ls target/${{ matrix.profile }}/{libsvm_runtime_c_api.dylib,libsvm_runtime_c_api.so,svm_runtime_c_api.dll,svm.h,svm_types.h}); do mv $i bins/; done
+          command: build
+          args: --${{ matrix.profile }}
+      - name: Prepare Artifact (General)
+        run: |
+          set -e
+          mkdir bins
+          mv target/${{ matrix.profile }}/svm.h bins/svm.h
+          mv target/${{ matrix.profile }}/svm_types.h bins/svm_types.h
+      - name: Prepare Artifact (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          set -e
+          mv target/${{ matrix.profile }}/libsvm.so bins/svm.so
+      - name: Prepare Artifact (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          set -e
+          mv target/${{ matrix.profile }}/libsvm.dylib bins/svm.dylib
+      - name: Prepare Artifact (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          set -e
+          mv target/${{ matrix.profile }}/svm.dll bins/svm.dll
       - name: Upload Artifacts
         uses: actions/upload-artifact@master
         with:
-          name: bins-${{ runner.os }}${{ matrix.profile }}
+          name: bins-${{ runner.os }}-${{ matrix.profile }}
           path: bins/
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: False
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+      - name: Cache Cargo Registry
+        uses: actions/cache@v2
+        with:
+          path: ~/.cargo/registry
+          key: test-${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            test-${{ runner.os }}-cargo-registry-
+      - name: Cache Cargo Index
+        uses: actions/cache@v2
+        with:
+          path: ~/.cargo/git
+          key: test-${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            test-${{ runner.os }}-cargo-index-
+      - name: Cache Cargo Test
+        uses: actions/cache@v2
+        with:
+          path: target/tests
+          key: test-${{ runner.os }}-${{ matrix.profile }}-nightly-target-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            test-${{ runner.os }}-${{ matrix.profile }}-nightly-target-
+      - name: Install Rust
+        run: |
+          rustup update nightly
+          rustup default nightly
+      - name: Cargo Test
+        uses: actions-rs/cargo@v1
+        with:
+          toolchain: nightly
+          command: test
+          args: --all --features=default-cranelift,default-memory --no-default-features -- --nocapture
+  wasm_codec:
+    runs-on: macos-latest
+    strategy:
+      fail-fast: False
+      matrix:
+        profile: ["release"]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Setup node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: 12
+      - name: Checkout Code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+      - name: Cache Cargo Registry
+        uses: actions/cache@v2
+        with:
+          path: ~/.cargo/registry
+          key: codec-${{ runner.os }}-${{ matrix.profile }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            codec-${{ runner.os }}-${{ matrix.profile }}-cargo-registry-
+      - name: Cache Cargo Index
+        uses: actions/cache@v2
+        with:
+          path: ~/.cargo/git
+          key: codec-${{ runner.os }}-${{ matrix.profile }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            codec-${{ runner.os }}-${{ matrix.profile }}-cargo-index-
+      - name: Cache Cargo wasm32
+        uses: actions/cache@v2
+        with:
+          path: target/wasm32-unknown-unknown
+          key: codec-${{ runner.os }}-${{ matrix.profile }}-nightly-target-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            codec-${{ runner.os }}-${{ matrix.profile }}-nightly-target-
+      - name: Install Rust
+        run: |
+          rustup update nightly
+          rustup default nightly
+          rustup target add wasm32-unknown-unknown --toolchain nightly
+      - name: Test svm-codec
+        working-directory: crates/codec/examples
+        run: |
+          set -e
+          ./run.sh
       - name: Upload `svm_codec.wasm`
         uses: actions/upload-artifact@master
         with:
           name: svm_codec.wasm
-          if: matrix.os == 'macos-latest'
-          path: target/wasm32-unknown-unknown/${{ matrix.profile }}/svm_codec.wasm
+          path: target/wasm32-unknown-unknown/release/svm_codec.wasm

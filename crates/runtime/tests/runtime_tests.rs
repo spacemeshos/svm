@@ -40,7 +40,6 @@ fn default_runtime_validate_template_invalid_raw_format() {
     assert_eq!(expected, actual);
 }
 
-#[ignore = "temporarily disabling this test"]
 #[test]
 fn default_runtime_validate_template_invalid_wasm() {
     let runtime = default_runtime!();
@@ -63,8 +62,8 @@ fn default_runtime_validate_template_invalid_wasm() {
     assert_eq!(expected, actual);
 }
 
-#[test]
 #[ignore]
+#[test]
 fn default_runtime_validate_app_invalid_raw_format() {
     let runtime = default_runtime!();
     let bytes = vec![0xFF, 0xFF];
@@ -76,7 +75,6 @@ fn default_runtime_validate_app_invalid_raw_format() {
     assert_eq!(expected, actual);
 }
 
-#[ignore = "temporarily disabling this test"]
 #[test]
 fn default_runtime_validate_tx_invalid_raw_format() {
     let runtime = default_runtime!();
@@ -90,7 +88,6 @@ fn default_runtime_validate_tx_invalid_raw_format() {
     assert_eq!(expected, actual);
 }
 
-#[ignore = "temporarily disabling this test"]
 #[test]
 fn default_runtime_deploy_template_reaches_oog() {
     let mut runtime = default_runtime!();
@@ -113,7 +110,6 @@ fn default_runtime_deploy_template_reaches_oog() {
     assert_eq!(expected, actual);
 }
 
-#[ignore = "temporarily disabling this test"]
 #[test]
 fn default_runtime_deploy_template_has_enough_gas() {
     let mut runtime = default_runtime!();
@@ -136,7 +132,6 @@ fn default_runtime_deploy_template_has_enough_gas() {
     assert!(receipt.gas_used.is_some());
 }
 
-#[ignore = "temporarily disabling this test"]
 #[test]
 fn default_runtime_spawn_app_with_non_ctor_fails() {
     let mut runtime = default_runtime!();
@@ -176,7 +171,6 @@ fn default_runtime_spawn_app_with_non_ctor_fails() {
     ));
 }
 
-#[ignore = "temporarily disabling this test"]
 #[test]
 fn default_runtime_spawn_app_with_ctor_reaches_oog() {
     let mut runtime = default_runtime!();
@@ -214,7 +208,6 @@ fn default_runtime_spawn_app_with_ctor_reaches_oog() {
     assert_eq!(expected, actual);
 }
 
-#[ignore = "temporarily disabling this test"]
 #[test]
 fn default_runtime_exec_app_with_ctor_fails() {
     let mut runtime = default_runtime!();
