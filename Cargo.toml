@@ -87,7 +87,7 @@ members = [
 
 [features]
 default = [
-  "static-alloc",
+  "dynamic-alloc",
   "default-memory",
   "default-cranelift",
 ]

@@ -301,33 +301,33 @@ fn default_runtime_calldata_returndata() {
     let init_state = receipt.get_init_state();
 
     // 3) execute a transaction
-    // let func = "store_addr";
-    // let msg: sdk::Address = sdk::Address::repeat(0x10);
+    let func = "store_addr";
+    let msg: sdk::Address = sdk::Address::repeat(0x10);
 
-    // let mut calldata = svm_sdk::Vec::with_capacity(100_000);
-    // msg.encode(&mut calldata);
+    let mut calldata = svm_sdk::Vec::with_capacity(100_000);
+    msg.encode(&mut calldata);
 
-    // let bytes = testing::build_app_tx(version, &app_addr, func, &calldata);
-    // let tx = runtime.validate_tx(&bytes).unwrap();
+    let bytes = testing::build_app_tx(version, &app_addr, func, &calldata);
+    let tx = runtime.validate_tx(&bytes).unwrap();
 
-    // let receipt = runtime.exec_tx(&tx, &init_state, maybe_gas);
-    // assert!(receipt.success);
+    let receipt = runtime.exec_tx(&tx, &init_state, maybe_gas);
+    assert!(receipt.success);
 
-    // let state = receipt.get_new_state();
+    let state = receipt.get_new_state();
 
     // 4) execute a transaction with `returndata`
-    // let func = "load_addr";
-    // let calldata = Vec::new();
+    let func = "load_addr";
+    let calldata = Vec::new();
 
-    // let bytes = testing::build_app_tx(version, &app_addr, func, &calldata);
-    // let tx = runtime.validate_tx(&bytes).unwrap();
+    let bytes = testing::build_app_tx(version, &app_addr, func, &calldata);
+    let tx = runtime.validate_tx(&bytes).unwrap();
 
-    // let receipt = runtime.exec_tx(&tx, &state, maybe_gas);
-    // assert!(receipt.success);
+    let receipt = runtime.exec_tx(&tx, &state, maybe_gas);
+    assert!(receipt.success);
 
-    // let bytes = receipt.returndata.unwrap();
-    // let mut returndata = ReturnData::new(&bytes);
+    let bytes = receipt.returndata.unwrap();
+    let mut returndata = ReturnData::new(&bytes);
 
-    // let addr: sdk::Address = returndata.next_1();
-    // assert_eq!(addr.as_slice(), &[0x10; 20]);
+    let addr: sdk::Address = returndata.next_1();
+    assert_eq!(addr.as_slice(), &[0x10; 20]);
 }

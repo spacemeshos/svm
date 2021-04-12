@@ -1,12 +1,11 @@
-use svm_sdk::{app, Address, Amount};
+use svm_sdk::{app, Address};
 
 #[app]
 mod App {
-    // #[storage]
-    // struct Storage {
-    //     // addr: Address,
-    //     amount: Amount,
-    // }
+    #[storage]
+    struct Storage {
+        addr: Address,
+    }
 
     #[ctor]
     fn initialize() {
@@ -14,21 +13,13 @@ mod App {
     }
 
     #[endpoint]
-    fn f(v: bool) {}
+    fn store_addr(addr: Address) {
+        Storage::set_addr(&addr);
+    }
 
-    // #[endpoint]
-    // fn load_amount() -> Amount {
-    //     Storage::get_amount()
-    // }
-
-    // #[endpoint]
-    // fn store_addr(addr: Address) {
-    //     Storage::set_addr(&addr);
-    // }
-
-    // #[endpoint]
-    // fn load_addr() -> Address {
-    //     // panic!()
-    //     Storage::get_addr()
-    // }
+    #[endpoint]
+    fn load_addr() -> Address {
+        // panic!()
+        Storage::get_addr()
+    }
 }
