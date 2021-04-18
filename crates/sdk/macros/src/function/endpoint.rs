@@ -127,8 +127,8 @@ fn expand_epilogue(func: &Function) -> Result<TokenStream> {
     let includes = function::host_includes();
     // let returns = expand_returns_size(func)?;
 
-    let ast = quote! {
-        {
+    let ast = if func.has_returns() {
+        quote! {
             #includes
 
             use svm_sdk::traits::Encoder;
@@ -138,7 +138,6 @@ fn expand_epilogue(func: &Function) -> Result<TokenStream> {
             // TODO: calculate the required `capacity` (in compile-time)
             let cap = 1000;
 
-            // We need to make sure that `bytes` data isn't dropped
             let mut bytes: svm_sdk::Vec<u8> = svm_sdk::Vec::with_capacity(cap);
 
             returns.encode(&mut bytes);
@@ -147,7 +146,13 @@ fn expand_epilogue(func: &Function) -> Result<TokenStream> {
                 let bytes: &'static [u8] = bytes.leak();
 
                 Node.set_returndata(bytes);
-             }
+            }
+        }
+    } else {
+        quote! {
+            {
+                let _: () = __inner__();
+            }
         }
     };
 

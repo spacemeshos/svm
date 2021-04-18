@@ -42,6 +42,15 @@ impl Function {
         &self.raw_func.sig
     }
 
+    pub fn has_returns(&self) -> bool {
+        let sig = self.raw_sig();
+
+        match &sig.output {
+            ReturnType::Default => false,
+            ReturnType::Type(_arrow, _ty) => true,
+        }
+    }
+
     pub fn raw_attrs(&self) -> Vec<Attribute> {
         self.raw_func.attrs.clone()
     }
