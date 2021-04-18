@@ -1,3 +1,5 @@
+use std::hint::unreachable_unchecked;
+
 use proc_macro2::{Span, TokenStream};
 
 use quote::{quote, ToTokens};
@@ -98,34 +100,18 @@ fn expand_prologue(func: &Function) -> Result<TokenStream> {
 
 fn expand_returns_size(func: &Function) -> Result<TokenStream> {
     let sig = func.raw_sig();
+    let mut ty_tokens = TokenStream::new();
 
-    let includes = quote! {
-        use svm_sdk::traits::ByteSize;
-    };
-
-    let returns_size = match &sig.output {
-        ReturnType::Default => quote! {
-            quote! {
-                ()::max_byte_size()
-            }
-        },
-        ReturnType::Type(.., ty) => quote! {
-            let ty: &Type = *ty;
-
-            quote! {
-                ()::max_byte_size()
-                // < #ty >::max_byte_size()
-            }
-        },
+    let ty = match &sig.output {
+        ReturnType::Type(.., ty) => ty.to_tokens(&mut ty_tokens),
+        ReturnType::Default => unreachable!(),
     };
 
     let ast = quote! {
         {
-            {
-                #includes
+            use svm_sdk::traits::ByteSize;
 
-                #returns_size
-            }
+            < #ty_tokens > :: max_byte_size()
         }
     };
 
@@ -135,7 +121,7 @@ fn expand_returns_size(func: &Function) -> Result<TokenStream> {
 fn expand_epilogue(func: &Function) -> Result<TokenStream> {
     let ast = if func.has_returns() {
         let includes = function::host_includes();
-        // let returns_size = expand_returns_size(func)?;
+        let returns_size = expand_returns_size(func)?;
 
         quote! {
             {
@@ -144,9 +130,10 @@ fn expand_epilogue(func: &Function) -> Result<TokenStream> {
                 use svm_sdk::traits::Encoder;
 
                 let returns = __inner__();
-                let cap = 100;
 
-                let mut bytes: svm_sdk::Vec<u8> = svm_sdk::Vec::with_capacity(cap);
+                let capacity = #returns_size;
+
+                let mut bytes: svm_sdk::Vec<u8> = svm_sdk::Vec::with_capacity(capacity);
 
                 returns.encode(&mut bytes);
 
