@@ -6,18 +6,14 @@ use svm_sdk::traits::{ByteSize, Encoder};
 use svm_sdk::{Amount, ReturnData, Vec};
 use svm_sdk_types::value::Value;
 
-pub fn call<T>(func: extern "C" fn(), args: std::vec::Vec<T>) -> Option<ReturnData>
+pub fn call<T>(func: extern "C" fn(), args: std::vec::Vec<T>) -> ReturnData
 where
     T: Encoder<Vec<u8>> + ByteSize,
 {
     call_and_fund(func, args, Amount(0))
 }
 
-pub fn call_and_fund<T>(
-    func: extern "C" fn(),
-    args: std::vec::Vec<T>,
-    value: Amount,
-) -> Option<ReturnData>
+pub fn call_and_fund<T>(func: extern "C" fn(), args: std::vec::Vec<T>, value: Amount) -> ReturnData
 where
     T: Encoder<Vec<u8>> + ByteSize,
 {
@@ -49,17 +45,21 @@ where
 
     let bytes = MockHost::get_returndata();
 
-    if bytes.is_some() {
-        let bytes = bytes.unwrap();
-
-        let returns = ReturnData::new(&bytes);
-
-        std::mem::forget(bytes);
-
-        Some(returns)
+    let bytes: std::vec::Vec<u8> = if let Some(bytes) = bytes {
+        bytes
     } else {
-        None
-    }
+        let mut bytes = Vec::with_capacity(<()>::max_byte_size());
+
+        ().encode(&mut bytes);
+
+        bytes.to_vec()
+    };
+
+    let returns = ReturnData::new(&bytes);
+
+    std::mem::forget(bytes);
+
+    returns
 }
 
 pub fn call_1<T, O>(func: extern "C" fn(), args: std::vec::Vec<T>) -> O
@@ -75,7 +75,7 @@ where
     T: Encoder<Vec<u8>> + ByteSize,
     O: From<Value>,
 {
-    let mut returns = call_and_fund(func, args, value).unwrap();
+    let mut returns = call_and_fund(func, args, value);
 
     returns.next_1()
 }
@@ -99,7 +99,7 @@ where
     O1: From<Value>,
     O2: From<Value>,
 {
-    let mut returns = call_and_fund(func, args, value).unwrap();
+    let mut returns = call_and_fund(func, args, value);
 
     returns.next_2()
 }

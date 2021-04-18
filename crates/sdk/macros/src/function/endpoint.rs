@@ -96,56 +96,65 @@ fn expand_prologue(func: &Function) -> Result<TokenStream> {
     Ok(ast)
 }
 
-// fn expand_returns_size(func: &Function) -> Result<TokenStream> {
-//     let sig = func.raw_sig();
+fn expand_returns_size(func: &Function) -> Result<TokenStream> {
+    let sig = func.raw_sig();
 
-//     let includes = quote! {
-//         use svm_sdk::traits::ByteSize;
-//     };
+    let includes = quote! {
+        use svm_sdk::traits::ByteSize;
+    };
 
-//     let calculation = match &sig.output {
-//         ReturnType::Default => quote! {
-//             ()::max_byte_size()
-//         },
-//         ReturnType::Type(.., ty) => quote! {
-//            < #ty >::max_byte_size()
-//         },
-//     };
+    let returns_size = match &sig.output {
+        ReturnType::Default => quote! {
+            quote! {
+                ()::max_byte_size()
+            }
+        },
+        ReturnType::Type(.., ty) => quote! {
+            let ty: &Type = *ty;
 
-//     let ast = quote! {
-//         {
-//             #includes
+            quote! {
+                ()::max_byte_size()
+                // < #ty >::max_byte_size()
+            }
+        },
+    };
 
-//             #calculation
-//         }
-//     };
+    let ast = quote! {
+        {
+            {
+                #includes
 
-//     Ok(ast)
-// }
+                #returns_size
+            }
+        }
+    };
+
+    Ok(ast)
+}
 
 fn expand_epilogue(func: &Function) -> Result<TokenStream> {
-    let includes = function::host_includes();
-    // let returns = expand_returns_size(func)?;
-
     let ast = if func.has_returns() {
+        let includes = function::host_includes();
+        // let returns_size = expand_returns_size(func)?;
+
         quote! {
-            #includes
+            {
+                #includes
 
-            use svm_sdk::traits::Encoder;
+                use svm_sdk::traits::Encoder;
 
-            let returns = __inner__();
+                let returns = __inner__();
+                let cap = 100;
 
-            // TODO: calculate the required `capacity` (in compile-time)
-            let cap = 1000;
+                let mut bytes: svm_sdk::Vec<u8> = svm_sdk::Vec::with_capacity(cap);
 
-            let mut bytes: svm_sdk::Vec<u8> = svm_sdk::Vec::with_capacity(cap);
+                returns.encode(&mut bytes);
 
-            returns.encode(&mut bytes);
+                if bytes.len() > 0 {
+                    let bytes: &'static [u8] = bytes.leak();
 
-            if bytes.len() > 0 {
-                let bytes: &'static [u8] = bytes.leak();
-
-                Node.set_returndata(bytes);
+                    Node.set_returndata(bytes);
+                }
             }
         }
     } else {
