@@ -13,7 +13,7 @@ opt-level = 'z'
 panic = 'abort'
 lto = true
 debug = false
-overflow-checks = true
+overflow-checks = false
 debug-assertions = false
 incremental = false
 rpath = false
@@ -23,7 +23,7 @@ svm-sdk = { path = "../../../../sdk", default-features = false }
 
 [features]
 default = []
-ffi = ["svm-sdk/ffi"]
+ffi = ["svm-sdk/ffi", "static-alloc"]
 mock = ["svm-sdk/mock"]
 static-alloc = ["svm-sdk/static-alloc"]
 dynamic-alloc = ["svm-sdk/dynamic-alloc"]
