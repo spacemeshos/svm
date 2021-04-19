@@ -25,10 +25,24 @@ extern crate wee_alloc;
 #[cfg(feature = "static-alloc")]
 pub struct StaticAlloc;
 
+/// When using `static-alloc`, the `global allocator` will be assigned to `StaticAlloc`.
+/// It means that each allocation request will be intercepted by it.
+///
+/// By doing that, we make sure that each allocation will be delegated to the `host` (by calling the `svm_static_alloc`)
+/// This feature flag is meant to be used when the compilation target is Wasm.
 #[cfg(feature = "static-alloc")]
 #[global_allocator]
 pub static SVM_ALLOC: StaticAlloc = StaticAlloc;
 
+/// When using `dynamic-alloc`, the `global allocator` will be assigned to `wee_alloc::WeeAlloc`.
+/// It means that each allocation request will be intercepted by it.
+///
+/// The `WeeAlloc` allocator is popular among Blockchain projects since it's footprint is very small
+/// and it's also very fast.
+///
+/// The SVM project is using the `WeeAlloc for its `svm-codec` crate.
+/// We compile the codec it into Wasm and because we want to keep it a standalone component (i.e no imports of host functions)
+/// Then we can't used the `static-alloc` feature flag (which relies on the existence of `svm_static_alloc` import function).
 #[cfg(feature = "dynamic-alloc")]
 #[global_allocator]
 static SVM_ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
@@ -40,6 +54,7 @@ static SVM_ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 ///
 /// Returns `Ptr` to the allocated space.
 
+/// When using `static-alloc` the allocation itself is delegated to the host.
 #[cfg(feature = "static-alloc")]
 pub fn alloc(size: usize) -> Ptr {
     let ptr = unsafe { svm_static_alloc(size as u32) };
@@ -47,6 +62,8 @@ pub fn alloc(size: usize) -> Ptr {
     Ptr(ptr as usize)
 }
 
+/// Host function import of `svm_static_alloc` under module namespace `svm`
+/// The implementation of the host function resides under the `svm-runtime` crate.
 #[cfg(feature = "static-alloc")]
 #[link(wasm_import_module = "svm")]
 extern "C" {
@@ -63,6 +80,8 @@ unsafe impl alloc::alloc::GlobalAlloc for StaticAlloc {
         offset as _
     }
 
+    /// We do nothing when being asked to deallocate memory.
+    /// This memory leaking is intentional - Running SVM Apps are short-lived programs.
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
         //
     }

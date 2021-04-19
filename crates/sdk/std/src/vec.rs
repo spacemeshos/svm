@@ -1,8 +1,7 @@
+/// This file
+/// extern crate alloc;
+/// pub use alloc::vec::Vec;
 extern crate svm_sdk_alloc;
-
-// extern crate alloc;
-
-// pub use alloc::vec::Vec;
 
 use svm_sdk_alloc::alloc;
 

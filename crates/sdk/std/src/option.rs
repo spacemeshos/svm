@@ -1,6 +1,10 @@
 use core::cmp::{Eq, PartialEq};
 
 use crate::{panic, Result};
+
+/// A re-implementation for `core::option::Option`
+/// Other parts of the SDK will use it. This way we can have maximum control
+/// over the final emitted Wasm.
 pub enum Option<T> {
     None,
 
