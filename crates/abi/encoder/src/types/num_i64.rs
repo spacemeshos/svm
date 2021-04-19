@@ -9,6 +9,11 @@ macro_rules! encode {
                 let v = *self as u64;
                 let size = self.byte_size();
 
+                // TODO:
+                // for a detailed explanation on how to make the following code
+                // more ergonomic see look at `address.rs` under this module.
+                // There is also an issue for that: [Issue #230](https://github.com/spacemeshos/svm/issues/230)
+
                 match size {
                     2 => {
                         w.push($MARK_1B);

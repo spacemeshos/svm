@@ -3,6 +3,11 @@ use svm_sdk_std::Vec;
 
 use crate::{ByteSize, Encoder};
 
+// TODO:
+// for a detailed explanation on how to make the following code
+// more ergonomic see look at `address.rs` under this module.
+// There is also an issue for that: [Issue #230](https://github.com/spacemeshos/svm/issues/230)
+
 macro_rules! impl_encode {
     ($W:ty) => {
         impl<T: Encoder<$W>> Encoder<$W> for &[T] {

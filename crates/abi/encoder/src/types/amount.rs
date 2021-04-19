@@ -11,6 +11,11 @@ macro_rules! encode {
 
                 use svm_abi_layout::layout;
 
+                // TODO:
+                // for a detailed explanation on how to make the following code
+                // more ergonomic see look at `address.rs` under this module.
+                // There is also an issue for that: [Issue #230](https://github.com/spacemeshos/svm/issues/230)
+
                 match size {
                     2 => {
                         w.push(layout::AMOUNT_1B);

@@ -12,6 +12,15 @@ macro_rules! impl_primitive_encoder {
 
                 let bytes = self.as_slice();
 
+                // This code calls for using a loop.
+                // In order to assure there is no usage of `loop` when compiled to Wasm,
+                // we manually inject multiple statements.
+                //
+                // A future feature will add an ergonomic way to achieve the same
+                // without this tedious copy-pase ugly code.
+                //
+                // TODO:
+                // There is an issue for that: [Issue #230](https://github.com/spacemeshos/svm/issues/230)
                 w.push(bytes[0]);
                 w.push(bytes[1]);
                 w.push(bytes[2]);
