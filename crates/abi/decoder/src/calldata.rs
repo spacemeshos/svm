@@ -27,7 +27,7 @@ impl CallData {
 /// Thus, calling `next` should return the next decoded `Value` (`svm_sdk_types::value::Value`)
 ///
 /// # Safety
-/// Since it's assumed that the binary input to `CallData` is valid it aborts when input is in when input is invalid.
+/// Since it's assumed that the binary input to `CallData` is valid it aborts when input is invalid.
 ///
 /// # Example
 ///
