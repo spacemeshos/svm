@@ -107,6 +107,8 @@ fn expand_returns_size(func: &Function) -> Result<TokenStream> {
         ReturnType::Default => unreachable!(),
     };
 
+    // We derive in compile-time the byte-capacity to be fed into the `returndata` buffer
+    // (when doing `Vec::with_capacity(..)`)
     let ast = quote! {
         {
             use svm_sdk::traits::ByteSize;
@@ -145,6 +147,8 @@ fn expand_epilogue(func: &Function) -> Result<TokenStream> {
             }
         }
     } else {
+        // Function has no returns (it returns `()` if to be more precise)
+        // We don't want to encode `()` as the `returndata` (even though we could)
         quote! {
             {
                 let _: () = __inner__();
