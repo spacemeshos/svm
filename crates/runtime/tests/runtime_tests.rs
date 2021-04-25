@@ -7,7 +7,7 @@ use svm_sdk::ReturnData;
 
 use svm_codec::{Field, ParseError};
 
-use svm_gas::error::ProgramError;
+use svm_gas::ProgramError;
 use svm_layout::Layout;
 use svm_runtime::{error::ValidateError, testing, Runtime};
 

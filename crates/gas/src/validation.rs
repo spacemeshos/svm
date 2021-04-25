@@ -15,9 +15,9 @@ use parity_wasm::elements::Instruction;
 ///   For example: function `F` calls function `G` which calls function `H` which calls again function `F`.
 ///   The recursive chain call is: `F -> G -> H -> F`.
 pub fn validate_code(wasm: &[u8]) -> Result<(), ProgramError> {
-    let program = crate::code_reader::read_program(wasm)?;
+    let program = crate::program_reader::read_program(wasm)?;
 
-    let funcs_ids = program.functions_ids();
+    let funcs_ids = program.functions();
     let mut call_graph = CallGraph::new(funcs_ids.clone());
 
     for &func_idx in funcs_ids.iter() {
@@ -34,7 +34,7 @@ fn validate_func(
     program: &Program,
     call_graph: &mut CallGraph,
 ) -> Result<(), ProgramError> {
-    let func_body = program.get_function_body(func_idx).to_vec();
+    let func_body = program.get_func_body(func_idx).to_vec();
 
     let _ = validate_func_block(func_idx, program, &func_body, 0, call_graph)?;
 

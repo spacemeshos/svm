@@ -1,7 +1,7 @@
 use std::fmt;
 
 use svm_codec::ParseError;
-use svm_gas::error::ProgramError;
+use svm_gas::ProgramError;
 
 #[allow(missing_docs)]
 #[derive(Debug, PartialEq, Clone)]

@@ -1,13 +1,12 @@
-use crate::{
-    BlockContext, CallGraph, FuncIndex, FuncsBlocks, FuncsGas, Gas, Op, OpsBlock, Program,
-    ProgramError,
-};
-
-use crate::traits::VMCallsGasEstimator;
-
 use std::collections::HashMap;
 
 use parity_wasm::elements::Instruction;
+
+use crate::{
+    Block, BlockContext, CallGraph, FuncGas, FuncIndex, FuncsBlocks, Gas, Op, Program, ProgramError,
+};
+
+use crate::traits::VMCallsGasEstimator;
 
 static FUNC_BLOCK_MAX_DEPTH: usize = 256;
 
@@ -19,11 +18,11 @@ pub fn estimate_code<VME>(wasm: &[u8]) -> Result<HashMap<FuncIndex, Gas>, Progra
 where
     VME: VMCallsGasEstimator,
 {
-    let program = crate::code_reader::read_program(wasm)?;
-    let funcs_ids = program.functions_ids();
+    let program = crate::program_reader::read_program(wasm)?;
+    let funcs_ids = program.functions();
 
     let mut funcs_blocks = FuncsBlocks::new();
-    let mut funcs_gas = FuncsGas::new();
+    let mut funcs_gas = FuncGas::new();
     let mut call_graph = CallGraph::new(funcs_ids.clone());
 
     for &func_idx in funcs_ids.iter() {
@@ -37,7 +36,7 @@ where
         funcs_gas.set_func_gas(*func_idx, gas);
     }
 
-    Ok(funcs_gas.inner)
+    Ok(funcs_gas.into_inner())
 }
 
 fn estimate_func(
@@ -46,7 +45,7 @@ fn estimate_func(
     funcs_blocks: &mut FuncsBlocks,
     call_graph: &mut CallGraph,
 ) -> Result<(), ProgramError> {
-    let func_body = program.get_function_body(func_idx).to_vec();
+    let func_body = program.get_func_body(func_idx).to_vec();
 
     let (_, block) = estimate_func_block(func_idx, program, &func_body, 0, call_graph)?;
     funcs_blocks.add_func_block(func_idx, block);
@@ -60,8 +59,8 @@ fn estimate_func_block(
     block_ops: &[Instruction],
     block_offset: usize,
     call_graph: &mut CallGraph,
-) -> Result<(usize, OpsBlock), ProgramError> {
-    let mut block = OpsBlock::new();
+) -> Result<(usize, Block), ProgramError> {
+    let mut block = Block::new();
     let mut cursor = block_offset;
 
     while let Some(op) = block_ops.get(cursor) {
@@ -72,14 +71,14 @@ fn estimate_func_block(
                 let to = FuncIndex(to as u16);
 
                 if program.is_imported(to) {
-                    block.append(Op::VMCall(to));
+                    block.append(Op::HostCall(to));
                 } else {
                     if func_idx == to {
                         return Err(ProgramError::RecursiveCall(vec![func_idx, func_idx]));
                     }
 
                     call_graph.add_call(func_idx, to);
-                    block.append(Op::FuncCall(to));
+                    block.append(Op::LocalCall(to));
                 }
                 cursor += 1;
             }
@@ -116,7 +115,7 @@ fn estimate_func_block(
                 break;
             }
             _ => {
-                block.append(Op::Plain(op.clone()));
+                block.append(Op::Instruction(op.clone()));
                 cursor += 1;
             }
         }
@@ -128,7 +127,7 @@ fn estimate_func_block(
 fn estimate_func_gas<VME>(
     func_idx: FuncIndex,
     funcs_blocks: &FuncsBlocks,
-    funcs_gas: &FuncsGas,
+    funcs_gas: &FuncGas,
 ) -> Gas
 where
     VME: VMCallsGasEstimator,
@@ -143,7 +142,7 @@ where
     estimate_block_gas::<VME>(&block_ctx, funcs_gas)
 }
 
-fn estimate_block_gas<VME>(ctx: &BlockContext, funcs_gas: &FuncsGas) -> Gas
+fn estimate_block_gas<VME>(ctx: &BlockContext, funcs_gas: &FuncGas) -> Gas
 where
     VME: VMCallsGasEstimator,
 {
@@ -155,11 +154,11 @@ where
 
     for op in ctx.ops.0.iter() {
         let op_gas = match *op {
-            Op::Plain(Instruction::Nop) => Gas::Fixed(0),
-            Op::Plain(..) => Gas::Fixed(1),
+            Op::Instruction(Instruction::Nop) => Gas::Fixed(0),
+            Op::Instruction(..) => Gas::Fixed(1),
             Op::Block(ref inner) => estimate_block_gas::<VME>(&ctx.child_block(inner), funcs_gas),
-            Op::VMCall(fid) => VME::estimate_code(fid),
-            Op::FuncCall(fid) => funcs_gas.get_func_gas(fid).unwrap(),
+            Op::HostCall(fid) => VME::estimate_code(fid),
+            Op::LocalCall(fid) => funcs_gas.get_func_gas(fid).unwrap(),
             Op::IfBlock(ref true_block) => {
                 let true_gas = estimate_block_gas::<VME>(&ctx.child_block(true_block), funcs_gas);
                 let else_gas = Gas::Fixed(0);

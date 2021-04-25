@@ -7,9 +7,9 @@
 //! SVM apps are essentially wasm programs importing SVM vmcalls.
 
 mod block;
-pub(crate) use block::{BlockContext, FuncsBlocks, OpsBlock};
+pub(crate) use block::{BlockContext, FuncsBlocks, Block};
 
-mod code_reader;
+mod program_reader;
 mod estimate;
 pub use estimate::estimate_code;
 
@@ -27,7 +27,7 @@ pub use gas::Gas;
 
 mod function;
 pub use function::FuncIndex;
-pub(crate) use function::{FuncBody, FuncsGas};
+pub(crate) use function::{FuncBody, FuncGas};
 
 mod error;
 pub use error::ProgramError;

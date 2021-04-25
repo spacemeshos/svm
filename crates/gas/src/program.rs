@@ -14,11 +14,11 @@ impl Program {
         func_idx.0 < self.import_count
     }
 
-    pub fn get_function_body(&self, func_idx: FuncIndex) -> &FuncBody {
+    pub fn get_func_body(&self, func_idx: FuncIndex) -> &FuncBody {
         self.functions.get(&func_idx).as_ref().unwrap()
     }
 
-    pub fn functions_ids(&self) -> Vec<FuncIndex> {
+    pub fn functions(&self) -> Vec<FuncIndex> {
         self.functions.keys().copied().collect()
     }
 }

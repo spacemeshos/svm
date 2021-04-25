@@ -23,6 +23,9 @@ pub enum ProgramError {
     /// `loop` isn't allowed
     LoopNotAllowed,
 
+    /// Wasm has no `code` section
+    MissingCodeSection,
+
     /// Recursive calls aren't allowed
     RecursiveCall(Vec<FuncIndex>),
 }
