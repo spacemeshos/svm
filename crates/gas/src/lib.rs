@@ -1,7 +1,7 @@
 #![deny(missing_docs)]
-#![deny(unused)]
-#![deny(dead_code)]
-#![deny(unreachable_code)]
+#![allow(unused)]
+#![allow(dead_code)]
+#![allow(unreachable_code)]
 
 //! This crate is responsible for doing gas validation & estimation for transactions.
 

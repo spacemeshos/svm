@@ -5,108 +5,109 @@ use crate::{FuncIndex, ProgramError};
 
 #[derive(Debug)]
 pub(crate) struct CallGraph {
-    all_funcs: HashSet<FuncIndex>,
-    root_funcs: HashSet<FuncIndex>,
+    functions: HashSet<FuncIndex>,
+    roots: HashSet<FuncIndex>,
     in_calls: HashMap<FuncIndex, HashSet<FuncIndex>>,
     out_calls: HashMap<FuncIndex, HashSet<FuncIndex>>,
 }
 
 impl CallGraph {
-    pub(crate) fn new(funcs_ids: Vec<FuncIndex>) -> Self {
-        let all_funcs = HashSet::from_iter(funcs_ids);
-        let root_funcs = all_funcs.clone();
+    pub(crate) fn new(functions: Vec<FuncIndex>) -> Self {
+        let functions = HashSet::from_iter(functions);
+        let roots = functions.clone();
 
         Self {
-            all_funcs,
-            root_funcs,
+            functions,
+            roots,
             out_calls: HashMap::new(),
             in_calls: HashMap::new(),
         }
     }
 
-    pub(crate) fn add_call(&mut self, from: FuncIndex, to: FuncIndex) {
-        assert!(from != to);
+    pub(crate) fn add_call(&mut self, source: FuncIndex, dest: FuncIndex) {
+        debug_assert!(source != dest);
+        debug_assert!(self.functions.contains(&source));
+        debug_assert!(self.functions.contains(&dest));
 
-        assert!(self.all_funcs.contains(&from));
+        self.roots.remove(&source);
 
-        assert!(self.all_funcs.contains(&to));
+        let entry = self.out_calls.entry(source).or_insert_with(HashSet::new);
+        entry.insert(dest);
 
-        self.root_funcs.remove(&from);
-
-        let entry = self.out_calls.entry(from).or_insert_with(HashSet::new);
-        entry.insert(to);
-
-        let entry = self.in_calls.entry(to).or_insert_with(HashSet::new);
-        entry.insert(from);
+        let entry = self.in_calls.entry(dest).or_insert_with(HashSet::new);
+        entry.insert(source);
     }
 
     #[must_use]
-    pub(crate) fn ensure_no_recursive_calls(&self) -> Result<(), ProgramError> {
+    pub(crate) fn assert_no_recursive_calls(&self) -> Result<(), ProgramError> {
         let mut visited = HashSet::new();
 
-        let mut all_funcs = self.all_funcs.iter().copied().collect::<Vec<FuncIndex>>();
+        let mut functions = self.functions.iter().copied().collect::<Vec<FuncIndex>>();
 
-        // we sort `all_funcs` in order to make the unit-tests execution determinstic
-        all_funcs.sort();
+        // we sort `functions` in order to make the unit-tests execution deterministic
+        functions.sort();
 
-        for func_idx in all_funcs.iter() {
-            let mut path = Vec::new();
-            self.internal_graph_traverse(*func_idx, &mut visited, &mut path)?;
+        for func in functions.iter() {
+            let mut call_stack = Vec::new();
+
+            self.traverse(*func, &mut visited, &mut call_stack)?;
         }
 
         Ok(())
     }
 
     pub(crate) fn topological_sort(&self) -> Vec<FuncIndex> {
-        let mut res = Vec::new();
+        let mut result = Vec::new();
         let mut out_calls = self.out_calls.clone();
 
-        let mut roots_funcs = self.root_funcs.iter().copied().collect::<Vec<FuncIndex>>();
+        let mut roots = self.roots.iter().copied().collect::<Vec<FuncIndex>>();
 
-        while let Some(root) = roots_funcs.pop() {
-            res.push(root);
+        while let Some(root) = roots.pop() {
+            result.push(root);
 
             if let Some(callers) = self.in_calls.get(&root) {
                 for caller in callers.iter() {
-                    let caller_callees = out_calls.get_mut(&caller).unwrap();
+                    let callees = out_calls.get_mut(&caller).unwrap();
 
-                    assert!(caller_callees.contains(&root));
+                    debug_assert!(callees.contains(&root));
 
-                    caller_callees.remove(&root);
+                    callees.remove(&root);
 
-                    if caller_callees.is_empty() {
-                        roots_funcs.push(*caller);
+                    if callees.is_empty() {
+                        roots.push(*caller);
                     }
                 }
             }
         }
 
-        assert_eq!(self.all_funcs.len(), res.len());
+        debug_assert_eq!(self.functions.len(), result.len());
 
-        res
+        result
     }
 
-    fn internal_graph_traverse(
+    fn traverse(
         &self,
         caller: FuncIndex,
         visited: &mut HashSet<FuncIndex>,
-        path: &mut Vec<FuncIndex>,
+        call_stack: &mut Vec<FuncIndex>,
     ) -> Result<(), ProgramError> {
         if visited.contains(&caller) {
             return Ok(());
         }
 
-        if path.contains(&caller) {
-            path.push(caller);
+        if call_stack.contains(&caller) {
+            call_stack.push(caller);
 
-            return Err(ProgramError::RecursiveCall(path.to_vec()));
+            let cycle = std::mem::take(call_stack);
+
+            return Err(ProgramError::RecursiveCall(cycle));
         }
 
-        path.push(caller);
+        call_stack.push(caller);
 
         if let Some(callees) = self.out_calls.get(&caller) {
             for callee in callees.iter() {
-                self.internal_graph_traverse(*callee, visited, path)?;
+                self.traverse(*callee, visited, call_stack)?;
             }
         }
 

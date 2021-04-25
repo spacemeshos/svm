@@ -17,14 +17,15 @@ use parity_wasm::elements::Instruction;
 pub fn validate_code(wasm: &[u8]) -> Result<(), ProgramError> {
     let program = crate::program_reader::read_program(wasm)?;
 
-    let funcs_ids = program.functions();
-    let mut call_graph = CallGraph::new(funcs_ids.clone());
+    let functions = program.functions();
 
-    for &func_idx in funcs_ids.iter() {
-        validate_func(func_idx, &program, &mut call_graph)?;
+    let mut call_graph = CallGraph::new(functions.clone());
+
+    for &func in functions.iter() {
+        validate_func(func, &program, &mut call_graph)?;
     }
 
-    call_graph.ensure_no_recursive_calls()?;
+    call_graph.assert_no_recursive_calls()?;
 
     Ok(())
 }
@@ -36,31 +37,40 @@ fn validate_func(
 ) -> Result<(), ProgramError> {
     let func_body = program.get_func_body(func_idx).to_vec();
 
-    let _ = validate_func_block(func_idx, program, &func_body, 0, call_graph)?;
+    let _ = validate_block(func_idx, program, &func_body, 0, call_graph)?;
 
     Ok(())
 }
 
-fn validate_func_block(
+fn validate_block(
     func_idx: FuncIndex,
     program: &Program,
-    block_ops: &[Instruction],
+    ops: &[Instruction],
     block_offset: usize,
     call_graph: &mut CallGraph,
 ) -> Result<usize, ProgramError> {
     let mut cursor = block_offset;
+    let mut local_offset = 0;
 
-    while let Some(op) = block_ops.get(cursor) {
-        match *op {
+    while let Some(op) = ops.get(cursor) {
+        match op {
             Instruction::Loop(..) => return Err(ProgramError::LoopNotAllowed),
             Instruction::CallIndirect(..) => return Err(ProgramError::CallIndirectNotAllowed),
-            Instruction::Call(to) => {
+            &Instruction::Call(to) => {
                 validate_func_index(to)?;
 
                 let to = FuncIndex(to as u16);
 
                 if program.is_imported(to) == false {
                     if func_idx == to {
+                        dbg!(format!(
+                            "Recursive call at function #{} (call instruction under block-start = {}, offset = {})",
+                            func_idx.0, block_offset, local_offset
+                        ));
+
+                        dbg!(block_offset);
+                        dbg!(&ops[127..140]);
+
                         return Err(ProgramError::RecursiveCall(vec![func_idx, func_idx]));
                     }
 
@@ -69,20 +79,15 @@ fn validate_func_block(
                 cursor += 1;
             }
             Instruction::Block(..) => {
-                cursor = validate_func_block(func_idx, program, block_ops, cursor + 1, call_graph)?;
+                cursor = validate_block(func_idx, program, ops, cursor + 1, call_graph)?;
             }
             Instruction::If(..) => {
                 let if_cont_cursor =
-                    validate_func_block(func_idx, program, block_ops, cursor + 1, call_graph)?;
+                    validate_block(func_idx, program, ops, cursor + 1, call_graph)?;
 
-                if let Some(Instruction::Else) = block_ops.get(if_cont_cursor) {
-                    let else_cont_cursor = validate_func_block(
-                        func_idx,
-                        program,
-                        block_ops,
-                        if_cont_cursor + 1,
-                        call_graph,
-                    )?;
+                if let Some(Instruction::Else) = ops.get(if_cont_cursor) {
+                    let else_cont_cursor =
+                        validate_block(func_idx, program, ops, if_cont_cursor + 1, call_graph)?;
                     cursor = else_cont_cursor;
                 } else {
                     cursor = if_cont_cursor;
@@ -91,12 +96,14 @@ fn validate_func_block(
             Instruction::Else => break,
             Instruction::End => {
                 cursor += 1;
+                local_offset += 1;
                 break;
             }
             _ => {
-                validate_non_float(op)?;
+                assert_non_float(op)?;
 
                 cursor += 1;
+                local_offset += 1;
             }
         }
     }
@@ -113,7 +120,7 @@ fn validate_func_index(func_idx: u32) -> Result<(), ProgramError> {
 }
 
 #[inline]
-fn validate_non_float(op: &Instruction) -> Result<(), ProgramError> {
+fn assert_non_float(op: &Instruction) -> Result<(), ProgramError> {
     match op {
         Instruction::F32Load(..)
         | Instruction::F64Load(..)

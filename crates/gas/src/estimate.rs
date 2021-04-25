@@ -29,7 +29,7 @@ where
         estimate_func(func_idx, &program, &mut funcs_blocks, &mut call_graph)?;
     }
 
-    call_graph.ensure_no_recursive_calls()?;
+    call_graph.assert_no_recursive_calls()?;
 
     for func_idx in call_graph.topological_sort().iter() {
         let gas = estimate_func_gas::<VME>(*func_idx, &funcs_blocks, &funcs_gas);
