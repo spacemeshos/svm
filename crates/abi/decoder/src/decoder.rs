@@ -102,7 +102,7 @@ impl Decoder {
             TypeKind::U32 => safe_try!(self.decode_u32(cursor)).into(),
             TypeKind::I64 => safe_try!(self.decode_i64(cursor)).into(),
             TypeKind::U64 => safe_try!(self.decode_u64(cursor)).into(),
-            _ => unreachable!(),
+            _ => svm_sdk_std::panic(),
         };
 
         Result::Ok(value)
@@ -114,7 +114,7 @@ impl Decoder {
         let value = match kind {
             TypeKind::Array => safe_try!(self.decode_array(cursor)).into(),
 
-            _ => unreachable!(),
+            _ => svm_sdk_std::panic(),
         };
 
         Result::Ok(value)

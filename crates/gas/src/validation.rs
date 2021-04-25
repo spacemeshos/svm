@@ -54,10 +54,6 @@ fn validate_block(
 ) -> Result<usize, ProgramError> {
     let mut offset = block_offset;
 
-    if func.0 == 9 {
-        dbg!(format!("Entering block at offset = {}", offset));
-    }
-
     while let Some(op) = ops.get(offset) {
         match op {
             Instruction::Loop(..) => return Err(ProgramError::LoopNotAllowed),
@@ -69,11 +65,6 @@ fn validate_block(
 
                 if program.is_imported(target) == false {
                     if func == target {
-                        dbg!(format!(
-                            "Recursive call at function #{} (`call` instruction at offset = {})",
-                            func.0, offset
-                        ));
-
                         return Err(ProgramError::RecursiveCall { func, offset });
                     }
 
@@ -106,10 +97,6 @@ fn validate_block(
                 offset += 1;
             }
         }
-    }
-
-    if func.0 == 9 {
-        dbg!(format!("Exiting block at offset = {}", offset));
     }
 
     Ok(offset)
