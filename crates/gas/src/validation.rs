@@ -35,13 +35,13 @@ pub fn validate_wasm(wasm: &[u8]) -> Result<(), ProgramError> {
 }
 
 fn validate_func(
-    func_idx: FuncIndex,
+    func: FuncIndex,
     program: &Program,
     call_graph: &mut CallGraph,
 ) -> Result<(), ProgramError> {
-    let func_body = program.get_func_body(func_idx).instructions();
+    let func_body = program.get_func_body(func).instructions();
 
-    let _offset = validate_block(func_idx, program, &func_body, 0, call_graph)?;
+    let _offset = validate_block(func, program, &func_body, 0, call_graph)?;
 
     Ok(())
 }
@@ -50,12 +50,20 @@ fn validate_block(
     func: FuncIndex,
     program: &Program,
     ops: &[Instruction],
-    func_offset: usize,
+    block_offset: usize,
     call_graph: &mut CallGraph,
 ) -> Result<usize, ProgramError> {
-    let mut offset = func_offset;
+    let mut offset = block_offset;
+
+    if func.0 == 9 {
+        dbg!(format!("Entering block at offset = {}", offset));
+    }
 
     while let Some(op) = ops.get(offset) {
+        if func.0 == 9 {
+            dbg!(&op);
+        }
+
         match op {
             Instruction::Loop(..) => return Err(ProgramError::LoopNotAllowed),
             Instruction::CallIndirect(..) => return Err(ProgramError::CallIndirectNotAllowed),
@@ -105,11 +113,15 @@ fn validate_block(
         }
     }
 
+    if func.0 == 9 {
+        dbg!(format!("Exiting block at offset = {}", offset));
+    }
+
     Ok(offset)
 }
 
-fn validate_func_index(func_idx: u32) -> Result<(), ProgramError> {
-    if func_idx <= std::u16::MAX as u32 {
+fn validate_func_index(func: u32) -> Result<(), ProgramError> {
+    if func <= std::u16::MAX as u32 {
         Ok(())
     } else {
         Err(ProgramError::FunctionIndexTooLarge)
