@@ -3,14 +3,13 @@
 #![deny(dead_code)]
 #![deny(unreachable_code)]
 
-//! This crate is responsible for doing gas estimation for apps.
-//! SVM apps are essentially wasm programs importing SVM vmcalls.
+//! This crate is responsible for doing gas validation & estimation for transactions.
 
 mod block;
-pub(crate) use block::{BlockContext, FuncsBlocks, Block};
+pub(crate) use block::{Block, BlockContext, FuncsBlocks};
 
-mod program_reader;
 mod estimate;
+mod program_reader;
 pub use estimate::estimate_code;
 
 mod call_graph;
