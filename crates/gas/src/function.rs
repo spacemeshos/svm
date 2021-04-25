@@ -24,8 +24,8 @@ impl Ord for FuncIndex {
 pub struct FuncBody(pub Instructions);
 
 impl FuncBody {
-    pub fn to_vec(&self) -> Vec<Instruction> {
-        self.0.elements().to_vec()
+    pub fn instructions(&self) -> &[Instruction] {
+        self.0.elements()
     }
 }
 

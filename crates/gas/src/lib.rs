@@ -19,7 +19,7 @@ mod program;
 pub(crate) use program::Program;
 
 mod validation;
-pub use validation::validate_code;
+pub use validation::validate_wasm;
 
 mod gas;
 pub use gas::Gas;

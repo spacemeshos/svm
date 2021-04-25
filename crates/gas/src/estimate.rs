@@ -45,7 +45,7 @@ fn estimate_func(
     funcs_blocks: &mut FuncsBlocks,
     call_graph: &mut CallGraph,
 ) -> Result<(), ProgramError> {
-    let func_body = program.get_func_body(func_idx).to_vec();
+    let func_body = program.get_func_body(func_idx).instructions();
 
     let (_, block) = estimate_func_block(func_idx, program, &func_body, 0, call_graph)?;
     funcs_blocks.add_func_block(func_idx, block);
@@ -74,7 +74,7 @@ fn estimate_func_block(
                     block.append(Op::HostCall(to));
                 } else {
                     if func_idx == to {
-                        return Err(ProgramError::RecursiveCall(vec![func_idx, func_idx]));
+                        return Err(ProgramError::CallCycle(vec![func_idx, func_idx]));
                     }
 
                     call_graph.add_call(func_idx, to);

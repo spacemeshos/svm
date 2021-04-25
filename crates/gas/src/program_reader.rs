@@ -19,18 +19,6 @@ pub(crate) fn read_program(wasm: &[u8]) -> Result<Program, ProgramError> {
     let import_count = module_import_count(&module)?;
 
     for (i, func_body) in code_section.bodies().iter().enumerate() {
-        // dbg!(format!(
-        //     "Reading function with relative-index = {} (absolute-index = {})",
-        //     i,
-        //     i as u16 + import_count
-        // ));
-
-        // if i == 3 {
-        //     let ops = func_body.code().elements();
-
-        //     dbg!(&ops[0..10]);
-        // }
-
         let fn_idx = FuncIndex((i as u16) + import_count);
         let fn_body = FuncBody(func_body.code().clone());
 

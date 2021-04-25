@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use structopt::StructOpt;
 
-use svm_gas::validate_code;
+use svm_gas::validate_wasm;
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "svm")]
@@ -29,7 +29,7 @@ fn main() {
         let mut wasm = Vec::new();
         let _ = file.read_to_end(&mut wasm).unwrap();
 
-        match validate_code(&wasm) {
+        match validate_wasm(&wasm) {
             Ok(()) => println!("File is a valid restricted Wasm file"),
             Err(e) => println!("File is NOT a valid restricted Wasm file: {}", e),
         }

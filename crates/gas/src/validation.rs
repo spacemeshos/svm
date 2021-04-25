@@ -1,20 +1,24 @@
-use crate::{call_graph::CallGraph, error::ProgramError, function::FuncIndex, program::Program};
+use crate::{CallGraph, FuncIndex, Program, ProgramError};
 
+use parity_wasm::elements::CustomSection;
 use parity_wasm::elements::Instruction;
 
 /// Validates a Wasm program.
 ///
-/// The wasm program is considered invalid when one of the following:
+/// The wasm program is considered INVALID when one of the following:
 ///
 /// * It contains instructions using floats.
 /// * It has more than `std::u16::MAX` imported functions.
 /// * The sum of imported functions and program functions exceeds `std::u16::MAX`.
-/// * It contains `loop`  
-/// * It contains `call_indirect`
+/// * It contains the `loop` opcode.
+/// * It contains the `call_indirect` opcode.
 /// * It contains a chain of recursive calls.
 ///   For example: function `F` calls function `G` which calls function `H` which calls again function `F`.
-///   The recursive chain call is: `F -> G -> H -> F`.
-pub fn validate_code(wasm: &[u8]) -> Result<(), ProgramError> {
+///   The recursive chain of calls is: `F -> G -> H -> F`.
+///
+/// If none of the above occurs, then we have a valid restricted-Wasm program.
+/// Otherwise, a `ProgramError` is returned.
+pub fn validate_wasm(wasm: &[u8]) -> Result<(), ProgramError> {
     let program = crate::program_reader::read_program(wasm)?;
 
     let functions = program.functions();
@@ -35,80 +39,73 @@ fn validate_func(
     program: &Program,
     call_graph: &mut CallGraph,
 ) -> Result<(), ProgramError> {
-    let func_body = program.get_func_body(func_idx).to_vec();
+    let func_body = program.get_func_body(func_idx).instructions();
 
-    let _ = validate_block(func_idx, program, &func_body, 0, call_graph)?;
+    let _offset = validate_block(func_idx, program, &func_body, 0, call_graph)?;
 
     Ok(())
 }
 
 fn validate_block(
-    func_idx: FuncIndex,
+    func: FuncIndex,
     program: &Program,
     ops: &[Instruction],
-    block_offset: usize,
+    func_offset: usize,
     call_graph: &mut CallGraph,
 ) -> Result<usize, ProgramError> {
-    let mut cursor = block_offset;
-    let mut local_offset = 0;
+    let mut offset = func_offset;
 
-    while let Some(op) = ops.get(cursor) {
+    while let Some(op) = ops.get(offset) {
         match op {
             Instruction::Loop(..) => return Err(ProgramError::LoopNotAllowed),
             Instruction::CallIndirect(..) => return Err(ProgramError::CallIndirectNotAllowed),
-            &Instruction::Call(to) => {
-                validate_func_index(to)?;
+            &Instruction::Call(target) => {
+                validate_func_index(target)?;
 
-                let to = FuncIndex(to as u16);
+                let target = FuncIndex(target as u16);
 
-                if program.is_imported(to) == false {
-                    if func_idx == to {
+                if program.is_imported(target) == false {
+                    if func == target {
                         dbg!(format!(
-                            "Recursive call at function #{} (call instruction under block-start = {}, offset = {})",
-                            func_idx.0, block_offset, local_offset
+                            "Recursive call at function #{} (`call` instruction at offset = {})",
+                            func.0, offset
                         ));
 
-                        dbg!(block_offset);
-                        dbg!(&ops[127..140]);
-
-                        return Err(ProgramError::RecursiveCall(vec![func_idx, func_idx]));
+                        return Err(ProgramError::RecursiveCall { func, offset });
                     }
 
-                    call_graph.add_call(func_idx, to);
+                    call_graph.add_call(func, target);
                 }
-                cursor += 1;
+                offset += 1;
             }
             Instruction::Block(..) => {
-                cursor = validate_block(func_idx, program, ops, cursor + 1, call_graph)?;
+                offset = validate_block(func, program, ops, offset + 1, call_graph)?;
             }
             Instruction::If(..) => {
-                let if_cont_cursor =
-                    validate_block(func_idx, program, ops, cursor + 1, call_graph)?;
+                let after_if = validate_block(func, program, ops, offset + 1, call_graph)?;
 
-                if let Some(Instruction::Else) = ops.get(if_cont_cursor) {
-                    let else_cont_cursor =
-                        validate_block(func_idx, program, ops, if_cont_cursor + 1, call_graph)?;
-                    cursor = else_cont_cursor;
+                if let Some(Instruction::Else) = ops.get(after_if) {
+                    let after_else = validate_block(func, program, ops, after_if + 1, call_graph)?;
+                    offset = after_else;
                 } else {
-                    cursor = if_cont_cursor;
+                    offset = after_if;
                 }
             }
             Instruction::Else => break,
             Instruction::End => {
-                cursor += 1;
-                local_offset += 1;
+                offset += 1;
+
                 break;
             }
             _ => {
                 assert_non_float(op)?;
 
-                cursor += 1;
-                local_offset += 1;
+                offset += 1;
             }
         }
     }
 
-    Ok(cursor)
+    Ok(offset)
 }
 
 fn validate_func_index(func_idx: u32) -> Result<(), ProgramError> {

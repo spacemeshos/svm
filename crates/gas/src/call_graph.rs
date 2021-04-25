@@ -100,7 +100,7 @@ impl CallGraph {
 
             let cycle = std::mem::take(call_stack);
 
-            return Err(ProgramError::RecursiveCall(cycle));
+            return Err(ProgramError::CallCycle(cycle));
         }
 
         call_stack.push(caller);

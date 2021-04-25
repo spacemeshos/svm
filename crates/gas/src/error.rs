@@ -1,4 +1,5 @@
 use std::fmt;
+use std::usize;
 
 use crate::FuncIndex;
 
@@ -27,7 +28,16 @@ pub enum ProgramError {
     MissingCodeSection,
 
     /// Recursive calls aren't allowed
-    RecursiveCall(Vec<FuncIndex>),
+    RecursiveCall {
+        /// Function containing the recursive-call
+        func: FuncIndex,
+
+        /// The `call` instruction offset relative to the beginning of the function
+        offset: usize,
+    },
+
+    /// Calls cycles (e.g `A -> B -> C -> A`) aren't allowed
+    CallCycle(Vec<FuncIndex>),
 }
 
 impl fmt::Display for ProgramError {
