@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::function::FuncIndex;
+use crate::FuncIndex;
 
 /// Represents error that may occur while doing gas estimation
 #[derive(Debug, PartialEq, Clone)]
@@ -22,15 +22,6 @@ pub enum ProgramError {
 
     /// `loop` isn't allowed
     LoopNotAllowed,
-
-    /// `br` isn't allowed
-    BrNotAllowed,
-
-    /// `br_if` isn't allowed
-    BrIfNotAllowed,
-
-    /// `br_table` isn't allowed
-    BrTableNotAllowed,
 
     /// Recursive calls aren't allowed
     RecursiveCall(Vec<FuncIndex>),

@@ -1,14 +1,10 @@
-use crate::{
-    error::ProgramError,
-    function::{FuncBody, FuncIndex},
-    program::Program,
-};
-
 use std::collections::HashMap;
 
 use parity_wasm::elements::{ImportCountType, Module};
 
-/// Reads wasm input and contruct a `Program` struct
+use crate::{FuncBody, FuncIndex, Program, ProgramError};
+
+/// Reads a Wasm program and constructs a `Program` struct
 pub(crate) fn read_program(wasm: &[u8]) -> Result<Program, ProgramError> {
     let mut functions = HashMap::new();
 

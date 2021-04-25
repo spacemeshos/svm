@@ -1,9 +1,7 @@
-use crate::{error::ProgramError, function::FuncIndex};
+use std::collections::{HashMap, HashSet};
+use std::iter::FromIterator;
 
-use std::{
-    collections::{HashMap, HashSet},
-    iter::FromIterator,
-};
+use crate::{FuncIndex, ProgramError};
 
 #[derive(Debug)]
 pub(crate) struct CallGraph {
@@ -28,7 +26,9 @@ impl CallGraph {
 
     pub(crate) fn add_call(&mut self, from: FuncIndex, to: FuncIndex) {
         assert!(from != to);
+
         assert!(self.all_funcs.contains(&from));
+
         assert!(self.all_funcs.contains(&to));
 
         self.root_funcs.remove(&from);

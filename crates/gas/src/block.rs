@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{function::FuncIndex, op::Op};
+use crate::{FuncIndex, Op};
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct OpsBlock(pub Vec<Op>);
@@ -15,13 +15,15 @@ impl OpsBlock {
     }
 }
 
-pub(crate) struct BlockCtx<'ctx> {
+pub(crate) struct BlockContext<'ctx> {
     pub ops: &'ctx OpsBlock,
+
     pub func_idx: FuncIndex,
+
     pub depth: usize,
 }
 
-impl<'ctx> BlockCtx<'ctx> {
+impl<'ctx> BlockContext<'ctx> {
     pub fn new(func_idx: FuncIndex, ops: &'ctx OpsBlock) -> Self {
         Self {
             ops,

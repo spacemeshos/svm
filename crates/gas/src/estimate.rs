@@ -1,13 +1,9 @@
 use crate::{
-    block::{BlockCtx, FuncsBlocks, OpsBlock},
-    call_graph::CallGraph,
-    error::ProgramError,
-    function::{FuncIndex, FuncsGas},
-    gas::Gas,
-    op::Op,
-    program::Program,
-    traits::VMCallsGasEstimator,
+    BlockContext, CallGraph, FuncIndex, FuncsBlocks, FuncsGas, Gas, Op, OpsBlock, Program,
+    ProgramError,
 };
+
+use crate::traits::VMCallsGasEstimator;
 
 use std::collections::HashMap;
 
@@ -15,7 +11,8 @@ use parity_wasm::elements::Instruction;
 
 static FUNC_BLOCK_MAX_DEPTH: usize = 256;
 
-/// Recursives a parsed program as `Program`.
+/// Recursively parses a wasm program function-by-function;
+///
 /// On success, returns for each function-index its estimated gas.
 /// On failure, returns an error.
 pub fn estimate_code<VME>(wasm: &[u8]) -> Result<HashMap<FuncIndex, Gas>, ProgramError>
@@ -70,9 +67,6 @@ fn estimate_func_block(
     while let Some(op) = block_ops.get(cursor) {
         match *op {
             Instruction::Loop(..) => return Err(ProgramError::LoopNotAllowed),
-            Instruction::Br(..) => return Err(ProgramError::BrNotAllowed),
-            Instruction::BrIf(..) => return Err(ProgramError::BrIfNotAllowed),
-            Instruction::BrTable(..) => return Err(ProgramError::BrTableNotAllowed),
             Instruction::CallIndirect(..) => return Err(ProgramError::CallIndirectNotAllowed),
             Instruction::Call(to) => {
                 let to = FuncIndex(to as u16);
@@ -144,12 +138,12 @@ where
     }
 
     let func_block = funcs_blocks.get_func_block(func_idx);
-    let block_ctx = BlockCtx::new(func_idx, func_block);
+    let block_ctx = BlockContext::new(func_idx, func_block);
 
     estimate_block_gas::<VME>(&block_ctx, funcs_gas)
 }
 
-fn estimate_block_gas<VME>(ctx: &BlockCtx, funcs_gas: &FuncsGas) -> Gas
+fn estimate_block_gas<VME>(ctx: &BlockContext, funcs_gas: &FuncsGas) -> Gas
 where
     VME: VMCallsGasEstimator,
 {

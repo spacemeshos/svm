@@ -2,17 +2,18 @@ use crate::{call_graph::CallGraph, error::ProgramError, function::FuncIndex, pro
 
 use parity_wasm::elements::Instruction;
 
-/// Validates the wasm program.
+/// Validates a Wasm program.
 ///
-/// The wasm program is NOT valid when:
+/// The wasm program is considered invalid when one of the following:
+///
+/// * It contains instructions using floats.
 /// * It has more than `std::u16::MAX` imported functions.
 /// * The sum of imported functions and program functions exceeds `std::u16::MAX`.
-/// * It contains one of: `loop / br / br_if / br_table / call_indirect`.
-/// * It contains chain of recursive calls.
+/// * It contains `loop`  
+/// * It contains `call_indirect`
+/// * It contains a chain of recursive calls.
 ///   For example: function `F` calls function `G` which calls function `H` which calls again function `F`.
 ///   The recursive chain call is: `F -> G -> H -> F`.
-/// * It contains instructions using floats.
-///
 pub fn validate_code(wasm: &[u8]) -> Result<(), ProgramError> {
     let program = crate::code_reader::read_program(wasm)?;
 
@@ -52,9 +53,6 @@ fn validate_func_block(
     while let Some(op) = block_ops.get(cursor) {
         match *op {
             Instruction::Loop(..) => return Err(ProgramError::LoopNotAllowed),
-            Instruction::Br(..) => return Err(ProgramError::BrNotAllowed),
-            Instruction::BrIf(..) => return Err(ProgramError::BrIfNotAllowed),
-            Instruction::BrTable(..) => return Err(ProgramError::BrTableNotAllowed),
             Instruction::CallIndirect(..) => return Err(ProgramError::CallIndirectNotAllowed),
             Instruction::Call(to) => {
                 validate_func_index(to)?;

@@ -1,10 +1,11 @@
 use std::collections::HashMap;
 
-use crate::function::{FuncBody, FuncIndex};
+use crate::{FuncBody, FuncIndex};
 
 #[derive(Debug)]
 pub(crate) struct Program {
     pub import_count: u16,
+
     pub functions: HashMap<FuncIndex, FuncBody>,
 }
 

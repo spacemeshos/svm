@@ -1,7 +1,6 @@
 use parity_wasm::elements::Instruction;
 
-use crate::block::OpsBlock;
-use crate::function::FuncIndex;
+use crate::{FuncIndex, OpsBlock};
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum Op {

@@ -8,7 +8,7 @@ readme = "README.md"
 publish = false
 
 [dependencies]
-parity-wasm = "0.40.2"
+parity-wasm = "0.42.2"
 log = "0.4"
 
 [dev-dependencies]

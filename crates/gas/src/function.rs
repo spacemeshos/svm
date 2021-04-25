@@ -1,5 +1,6 @@
-use crate::Gas;
 use std::collections::HashMap;
+
+use crate::Gas;
 
 use parity_wasm::elements::{Instruction, Instructions};
 

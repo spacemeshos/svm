@@ -756,9 +756,9 @@ checksum = "af8b08b04175473088b46763e51ee54da5f9a164bc162f615b91bc179dbf15a3"
 
 [[package]]
 name = "parity-wasm"
-version = "0.40.3"
+version = "0.42.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1e39faaa292a687ea15120b1ac31899b13586446521df6c149e46f1584671e0f"
+checksum = "be5e13c266502aadf83426d87d81a0f5d1ef45b8027f5a471c360abfe4bfae92"
 
 [[package]]
 name = "parking_lot"
@@ -1192,6 +1192,7 @@ dependencies = [
  "libc",
  "log",
  "maplit",
+ "parity-wasm",
  "svm-abi-layout",
  "svm-abi-tests",
  "svm-codec",
