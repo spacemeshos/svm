@@ -1,7 +1,6 @@
 use crate::{CallGraph, FuncIndex, Program, ProgramError};
 
-use parity_wasm::elements::CustomSection;
-use parity_wasm::elements::Instruction;
+use parity_wasm::elements::{CustomSection, Instruction};
 
 /// Validates a Wasm program.
 ///
@@ -60,10 +59,6 @@ fn validate_block(
     }
 
     while let Some(op) = ops.get(offset) {
-        if func.0 == 9 {
-            dbg!(&op);
-        }
-
         match op {
             Instruction::Loop(..) => return Err(ProgramError::LoopNotAllowed),
             Instruction::CallIndirect(..) => return Err(ProgramError::CallIndirectNotAllowed),

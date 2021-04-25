@@ -76,7 +76,17 @@ impl Decoder {
     pub fn decode_value(&self, cursor: &mut Cursor) -> Result<Value, DecodeError> {
         assert_no_eof!(cursor);
 
-        let kind = safe_try!(self.read_type_kind(cursor));
+        let kind = safe_try!(self.peek_kind(cursor));
+
+        match kind {
+            TypeKind::Array => self.decode_composite(cursor),
+
+            _ => self.decode_primitive(cursor),
+        }
+    }
+
+    fn decode_primitive(&self, cursor: &mut Cursor) -> Result<Value, DecodeError> {
+        let kind = safe_try!(self.peek_kind(cursor));
 
         let value = match kind {
             TypeKind::None => safe_try!(self.decode_none(cursor)).into(),
@@ -92,7 +102,19 @@ impl Decoder {
             TypeKind::U32 => safe_try!(self.decode_u32(cursor)).into(),
             TypeKind::I64 => safe_try!(self.decode_i64(cursor)).into(),
             TypeKind::U64 => safe_try!(self.decode_u64(cursor)).into(),
-            TypeKind::Array => safe_try!(self.decode_array(cursor)),
+            _ => unreachable!(),
+        };
+
+        Result::Ok(value)
+    }
+
+    fn decode_composite(&self, cursor: &mut Cursor) -> Result<Value, DecodeError> {
+        let kind = safe_try!(self.peek_kind(cursor));
+
+        let value = match kind {
+            TypeKind::Array => safe_try!(self.decode_array(cursor)).into(),
+
+            _ => unreachable!(),
         };
 
         Result::Ok(value)
@@ -287,7 +309,7 @@ impl Decoder {
                 impl_decode!(9 $cursor $values);
             }};
             (@ $cursor:ident $values:ident) => {{
-                let value = safe_try!(self.decode_value($cursor));
+                let value = safe_try!(self.decode_primitive($cursor));
 
                 $values.push(value);
             }}
@@ -523,7 +545,7 @@ impl Decoder {
     }
 
     #[inline]
-    fn read_type_kind(&self, cursor: &mut Cursor) -> Result<TypeKind, DecodeError> {
+    fn peek_kind(&self, cursor: &mut Cursor) -> Result<TypeKind, DecodeError> {
         let byte = safe_try!(self.peek(cursor));
 
         let kind = match byte {
