@@ -1,17 +1,17 @@
 use std::collections::HashMap;
 
-use crate::{FuncBody, FuncIndex};
+use crate::{FuncBody, FuncIndex, Imports};
 
 #[derive(Debug)]
 pub(crate) struct Program {
-    pub import_count: u16,
+    pub imports: Imports,
 
     pub functions: HashMap<FuncIndex, FuncBody>,
 }
 
 impl Program {
     pub fn is_imported(&self, func: FuncIndex) -> bool {
-        func.0 < self.import_count
+        (func.0 as usize) < self.imports.len()
     }
 
     pub fn get_func_body(&self, func: FuncIndex) -> &FuncBody {

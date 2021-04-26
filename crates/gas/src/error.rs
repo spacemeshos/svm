@@ -24,6 +24,9 @@ pub enum ProgramError {
     /// `loop` isn't allowed
     LoopNotAllowed,
 
+    /// Wasm has no `import` section
+    MissingImportSection,
+
     /// Wasm has no `code` section
     MissingCodeSection,
 

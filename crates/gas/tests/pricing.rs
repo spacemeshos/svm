@@ -1,32 +1,32 @@
 use maplit::hashmap;
 
-use svm_gas::{estimate_code, traits::VMCallsGasEstimator, FuncIndex, Gas};
+use svm_gas::{price_wasm, FuncIndex, Gas, ImportPriceResolver};
 
-struct PanicVMMCallstimator;
+struct TestImportResolver;
 
-impl VMCallsGasEstimator for PanicVMMCallstimator {
-    fn estimate_code(_func_idx: FuncIndex) -> Gas {
+impl ImportPriceResolver for TestImportResolver {
+    fn price_for(_func: FuncIndex) -> Gas {
         panic!()
     }
 }
 
-macro_rules! estimate_code {
+macro_rules! price_for {
     ($code:expr) => {{
         let wasm = wat::parse_str($code).unwrap();
 
-        estimate_code::<PanicVMMCallstimator>(&wasm[..])
+        price_wasm::<TestImportResolver>(&wasm)
     }};
 }
 
 #[test]
-fn estimate_nop_functions() {
-    let code = r#"
+fn price_nop_functions() {
+    let wasm = r#"
           (module
             (func $func0
             	(nop))
 
             (func $func1
-                (block (nop)))
+                 (nop)))
 
             (func $func2
                 (block (block (nop))))
@@ -35,7 +35,8 @@ fn estimate_nop_functions() {
                 (block (block (block (nop))))))
         "#;
 
-    let res = estimate_code!(code);
+    let result = price_for!(wasm);
+
     assert_eq!(
         hashmap! {
             FuncIndex(0) => Gas::Fixed(0),
@@ -43,14 +44,14 @@ fn estimate_nop_functions() {
             FuncIndex(2) => Gas::Fixed(0),
             FuncIndex(3) => Gas::Fixed(0)
         },
-        res.unwrap()
+        result.unwrap()
     );
 }
 
 #[test]
-fn estimate_program_with_functions_imports() {
-    let code = r#"
-          (module
+fn price_imports() {
+    let wasm = r#"
+        (module
 	     (import "env" "func0" (func $env_func0 (param i32)))
 	     (import "env" "func1" (func $env_func1 (param i32)))
 	     (import "env" "func2" (func $env_func2 (param i32)))
@@ -71,20 +72,20 @@ fn estimate_program_with_functions_imports() {
                 (call $func3)))
         "#;
 
-    let res = estimate_code!(code);
+    let result = price_for!(wasm);
 
     assert_eq!(
         hashmap! {
             FuncIndex(3) => Gas::Fixed(8),
             FuncIndex(4) => Gas::Fixed(10),
         },
-        res.unwrap()
+        result.unwrap()
     );
 }
 
 #[test]
-fn estimate_constant_function() {
-    let code = r#"
+fn price_constant_function() {
+    let wasm = r#"
           (module
             (func $func0 (result i32)
                 i32.const 10
@@ -92,13 +93,13 @@ fn estimate_constant_function() {
                 i32.const 20))
         "#;
 
-    let res = estimate_code!(code);
-    assert_eq!(hashmap! {FuncIndex(0) => Gas::Fixed(3)}, res.unwrap());
+    let result = price_for!(wasm);
+    assert_eq!(hashmap! {FuncIndex(0) => Gas::Fixed(3)}, result.unwrap());
 }
 
 #[test]
-fn estimate_if_stmt_without_else() {
-    let code = r#"
+fn price_if_stmt_without_else() {
+    let wasm = r#"
           (module
             (func $func0
                 (i32.const 0)
@@ -126,18 +127,18 @@ fn estimate_if_stmt_without_else() {
                 ;; fixed(2) * fixed(1) * range(0, 4) = fixed(3) * range(0, 4) = range(3, 7)
         "#;
 
-    let res = estimate_code!(code);
+    let result = price_for!(wasm);
     assert_eq!(
         hashmap! {
             FuncIndex(0) => Gas::Range { min: 3, max: 7 }
         },
-        res.unwrap()
+        result.unwrap()
     );
 }
 
 #[test]
-fn estimate_if_stmt_without_else_nested() {
-    let code = r#"
+fn price_if_stmt_without_else_nested() {
+    let wasm = r#"
           (module
             (func $func0
                 (i32.const 0)
@@ -182,18 +183,18 @@ fn estimate_if_stmt_without_else_nested() {
                 ;; fixed(2) * range(1, 12) = range(3, 14)
         "#;
 
-    let res = estimate_code!(code);
+    let result = price_for!(wasm);
     assert_eq!(
         hashmap! {
             FuncIndex(0) => Gas::Range { min: 3, max: 14 }
         },
-        res.unwrap()
+        result.unwrap()
     );
 }
 
 #[test]
-fn estimate_if_stmt_with_else_not_nested() {
-    let code = r#"
+fn price_if_stmt_with_else_not_nested() {
+    let wasm = r#"
           (module
             (func $func0
                 (i32.const 0)
@@ -229,18 +230,18 @@ fn estimate_if_stmt_with_else_not_nested() {
                 ;; fixed(2) * fixed(1) * range(2, 4) = fixed(3) * range(2, 4) = range(5, 7)
         "#;
 
-    let res = estimate_code!(code);
+    let result = price_for!(wasm);
     assert_eq!(
         hashmap! {
             FuncIndex(0) => Gas::Range { min: 5, max: 7 }
         },
-        res.unwrap()
+        result.unwrap()
     );
 }
 
 #[test]
-fn estimate_if_stmt_with_else_nested() {
-    let code = r#"
+fn price_if_stmt_with_else_nested() {
+    let wasm = r#"
           (module
             (func $func0
                 (i32.const 0)                                       ;; 0
@@ -298,11 +299,11 @@ fn estimate_if_stmt_with_else_nested() {
                 ;; fixed(2) * range(5, 10) = range(7, 12)
         "#;
 
-    let res = estimate_code!(code);
+    let result = price_for!(wasm);
     assert_eq!(
         hashmap! {
             FuncIndex(0) => Gas::Range { min: 7, max: 12 }
         },
-        res.unwrap()
+        result.unwrap()
     );
 }
