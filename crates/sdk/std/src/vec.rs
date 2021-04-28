@@ -1,6 +1,17 @@
-/// This file
+/// This file implements a `Vec` of a fixed-size.
+/// In order to use it, the maximum number of elements should be known before calling `Vec#with_capacity.
+/// The underlying allocated memory won't resize (grow or shrink) nor will it move.
+///
+/// The API of the fixed-sized `Vec` is a subset of `std::vec::Vec`.
+/// So in case we want to swap the implementation such that `svm_sdk_std::Vec` will be `std::vec::Vec`
+/// just comment the code of the file and add these lines instead
+///
+/// ```rust
 /// extern crate alloc;
 /// pub use alloc::vec::Vec;
+/// ```
+///
+/// This can be useful when debugging. We can turn-off the fixed-size `Vec` in cause we suspect it causes issues.
 extern crate svm_sdk_alloc;
 
 use svm_sdk_alloc::alloc;
@@ -20,6 +31,7 @@ pub struct Vec<T> {
 }
 
 impl<T> Vec<T> {
+    /// Allocating a fixed-size `Vec`.  More info above.
     pub fn with_capacity(cap: usize) -> Self {
         let ptr = Vec::alloc(cap);
 
