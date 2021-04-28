@@ -1,5 +1,3 @@
-#![no_std]
-
 //! This crate is responsible on decoding function buffers.
 //! Its code is meant to be used as part of SVM Templates (i.e Smart-Contract) code.
 //! That's the reason why we add to the crate the `#![no_std]` annotation.
@@ -13,8 +11,9 @@
 //! For more info regarding the encoding scheme see the counterpart `svm-abi-encoder` crate.
 //!
 
-#![deny(missing_docs)]
-#![deny(unused)]
+#![no_std]
+#![allow(missing_docs)]
+#![allow(unused)]
 #![deny(dead_code)]
 #![deny(unreachable_code)]
 

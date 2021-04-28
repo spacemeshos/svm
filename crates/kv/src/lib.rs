@@ -11,6 +11,9 @@ pub mod traits;
 /// Helpers for composing keys.
 pub mod key;
 
+#[cfg(not(any(feature = "default-memory", feature = "default-rocksdb")))]
+compile_error!("should be compiled with feature `default-memory` or `default-rocksdb`");
+
 /// An in-memory implementation for `KVStore`
 #[cfg(feature = "default-memory")]
 pub mod memory;

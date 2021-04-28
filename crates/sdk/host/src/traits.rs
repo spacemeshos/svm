@@ -1,10 +1,5 @@
 use svm_sdk_types::{Address, Amount, LayerId};
 
-extern crate alloc;
-
-use alloc::string::String;
-use alloc::vec::Vec;
-
 pub trait Host {
     fn get_calldata(&self) -> &'static [u8];
 

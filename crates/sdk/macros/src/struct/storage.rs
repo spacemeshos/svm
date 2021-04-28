@@ -388,6 +388,12 @@ fn include_storage_ast() -> TokenStream {
     quote! {
         use svm_sdk::traits::Storage;
 
+        #[cfg(all(feature = "mock", feature = "ffi"))]
+        compile_error!("`svm_sdk` must be compiled with feature \"mock\" or \"ffi\" but not both!");
+
+        #[cfg(all(not(feature = "mock"), not(feature = "ffi")))]
+        compile_error!("`svm_sdk` must be compiled with feature \"mock\" or \"ffi\"");
+
         #[cfg(feature = "mock")]
         use svm_sdk::storage::MockStorage as StorageImpl;
 

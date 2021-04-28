@@ -1,6 +1,6 @@
 #![allow(missing_docs)]
-#![deny(unused)]
-#![deny(dead_code)]
+#![allow(unused)]
+#![allow(dead_code)]
 #![allow(unreachable_code)]
 #![feature(vec_into_raw_parts)]
 

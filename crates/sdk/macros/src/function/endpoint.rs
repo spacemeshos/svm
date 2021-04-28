@@ -1,4 +1,4 @@
-use std::fmt::format;
+use std::hint::unreachable_unchecked;
 
 use proc_macro2::{Span, TokenStream};
 
@@ -17,7 +17,7 @@ pub fn expand(func: &Function, attrs: &[FuncAttr], app: &App) -> Result<TokenStr
 
     let name = func.raw_name();
     let prologue = expand_prologue(func)?;
-    let epilogue = expand_epilogue()?;
+    let epilogue = expand_epilogue(func)?;
     let returns = expand_returns(func)?;
     let body = func.raw_body();
 
@@ -37,10 +37,10 @@ pub fn expand(func: &Function, attrs: &[FuncAttr], app: &App) -> Result<TokenStr
         }
     }
 
-    let func_attrs = func_attrs(func);
+    let attrs = func_attrs(func);
 
     let ast = quote! {
-        #func_attrs
+        #attrs
         pub extern "C" fn #name() {
             #call_fundable_hook
 
@@ -58,14 +58,19 @@ pub fn expand(func: &Function, attrs: &[FuncAttr], app: &App) -> Result<TokenStr
 }
 
 fn expand_prologue(func: &Function) -> Result<TokenStream> {
+    let sig = func.raw_sig();
+
+    if sig.inputs.is_empty() {
+        return Ok(quote! {});
+    }
+
     let calldata = quote! {
-        let bytes = Node.get_calldata();
+        let bytes: &'static [u8] = Node.get_calldata();
 
         let mut calldata = svm_sdk::CallData::new(bytes);
     };
 
     let mut assigns: Vec<TokenStream> = Vec::new();
-    let sig = func.raw_sig();
 
     for input in &sig.inputs {
         if let FnArg::Typed(PatType { pat, ty, .. }) = input {
@@ -93,23 +98,61 @@ fn expand_prologue(func: &Function) -> Result<TokenStream> {
     Ok(ast)
 }
 
-fn expand_epilogue() -> Result<TokenStream> {
-    let includes = function::host_includes();
+fn expand_returns_size(func: &Function) -> Result<TokenStream> {
+    let sig = func.raw_sig();
+    let mut ty_tokens = TokenStream::new();
 
+    let ty = match &sig.output {
+        ReturnType::Type(.., ty) => ty.to_tokens(&mut ty_tokens),
+        ReturnType::Default => unreachable!(),
+    };
+
+    // We derive in compile-time the byte-capacity to be fed into the `returndata` buffer
+    // (when doing `Vec::with_capacity(..)`)
     let ast = quote! {
         {
-            #includes
+            use svm_sdk::traits::ByteSize;
 
-            use svm_sdk::traits::Encoder;
+            < #ty_tokens > :: max_byte_size()
+        }
+    };
 
-            extern crate alloc;
+    Ok(ast)
+}
 
-            let mut bytes = alloc::vec::Vec::new();
+fn expand_epilogue(func: &Function) -> Result<TokenStream> {
+    let ast = if func.has_returns() {
+        let includes = function::host_includes();
+        let returns_size = expand_returns_size(func)?;
 
-            let returns = __inner__();
-            returns.encode(&mut bytes);
+        quote! {
+            {
+                #includes
 
-            Node.set_returndata(&bytes);
+                use svm_sdk::traits::Encoder;
+
+                let returns = __inner__();
+
+                let capacity = #returns_size;
+
+                let mut bytes: svm_sdk::Vec<u8> = svm_sdk::Vec::with_capacity(capacity);
+
+                returns.encode(&mut bytes);
+
+                if bytes.len() > 0 {
+                    let bytes: &'static [u8] = bytes.leak();
+
+                    Node.set_returndata(bytes);
+                }
+            }
+        }
+    } else {
+        // Function has no returns (it returns `()` if to be more precise)
+        // We don't want to encode `()` as the `returndata` (even though we could)
+        quote! {
+            {
+                let _: () = __inner__();
+            }
         }
     };
 

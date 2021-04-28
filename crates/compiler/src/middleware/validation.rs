@@ -174,7 +174,7 @@ mod tests {
 
         let gas_metering = false;
         let gas_limit = 0;
-        let wasm = wabt::wat2wasm(input).unwrap();
+        let wasm = wat::parse_str(input).unwrap();
         let module = compile_program(&wasm, gas_limit, gas_metering).unwrap();
         let instance = module.instantiate(&imports! {}).unwrap();
 
@@ -196,7 +196,7 @@ mod tests {
 
         let gas_metering = false;
         let gas_limit = 0;
-        let wasm = wabt::wat2wasm(input).unwrap();
+        let wasm = wat::parse_str(input).unwrap();
         let res = compile_program(&wasm, gas_limit, gas_metering);
 
         assert!(res.is_err());

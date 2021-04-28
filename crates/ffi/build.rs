@@ -18,7 +18,7 @@ fn main() {
     // build using cbindgen
     Builder::new()
         .with_language(Language::C)
-        .with_crate(crate_dir.clone())
+        .with_crate(crate_dir)
         .with_include_guard("SVM_TYPES_H")
         .include_item("svm_byte_array")
         .include_item("svm_trap_t")

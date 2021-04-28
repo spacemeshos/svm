@@ -1,10 +1,5 @@
-#![allow(unused)]
-use maplit::hashmap;
-use svm_codec::app;
-
-use std::ffi::c_void;
-
-use wasmer::{imports, Function, NativeFunc};
+use wasmer::imports;
+use wasmer::{Function, NativeFunc};
 
 use svm_layout::{Layout, VarId};
 use svm_runtime::{testing, vmcalls, Context};

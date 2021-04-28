@@ -1,7 +1,7 @@
 use proc_macro2::{Ident, Span, TokenStream};
 
 use quote::{quote, ToTokens};
-use syn::{Attribute, Block, Error, ItemFn, Result, Signature};
+use syn::{Attribute, Block, Error, ItemFn, Result, ReturnType, Signature, Type};
 
 mod attr;
 mod ctor;
@@ -40,6 +40,15 @@ impl Function {
 
     pub fn raw_sig(&self) -> &Signature {
         &self.raw_func.sig
+    }
+
+    pub fn has_returns(&self) -> bool {
+        let sig = self.raw_sig();
+
+        match &sig.output {
+            ReturnType::Default => false,
+            ReturnType::Type(_arrow, _ty) => true,
+        }
     }
 
     pub fn raw_attrs(&self) -> Vec<Attribute> {

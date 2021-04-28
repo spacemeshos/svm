@@ -1,5 +1,4 @@
 #![no_std]
-#![feature(maybe_uninit_uninit_array)]
 #![allow(missing_docs)]
 #![allow(unused)]
 #![allow(dead_code)]
@@ -15,7 +14,7 @@
 /// The root procedural-macro is `[app]` and it should decorate a Rust module.
 /// Here is an example for a minimum App:
 ///
-/// ```rust
+/// ```rust, no_run
 /// use svm_sdk::app;
 ///
 /// #[app]
@@ -37,7 +36,7 @@
 ///
 /// Here is a simple example of declaring a storage:
 ///
-/// ```rust
+/// ```rust, no_run
 /// use svm_sdk::{app, Amount, Address};
 ///
 /// #[app]
@@ -54,7 +53,7 @@
 /// The above `MyStorage` struct code will be translated (roughly) in compile-time
 /// to the following lower-level code:
 ///
-/// ```rust
+/// ```rust, no_run
 /// use svm_sdk::{Amount, Address};
 ///
 /// #[cfg(feature = "ffi")]
@@ -102,7 +101,7 @@
 ///
 /// Here is a simple example of declaring a storage:
 ///
-/// ```rust
+/// ```rust, no_run
 /// use svm_sdk::{app, Amount, Address};
 ///
 /// #[app]
@@ -119,7 +118,7 @@
 /// The above `MyStorage` struct code will be translated (roughly) in compile-time
 /// to the following lower-level code:
 ///
-/// ```rust
+/// ```rust, no_run
 /// use svm_sdk::{Amount, Address};
 ///
 /// #[cfg(feature = "ffi")]
@@ -170,7 +169,7 @@
 ///
 /// Here is an example using `#[endpoint]`:
 ///
-/// ```rust
+/// ```rust, no_run
 /// use svm_sdk::{app, Amount, Address};
 ///
 /// #[app]
@@ -189,7 +188,7 @@
 ///
 /// The above method will be translated (roughly) to the following code:
 ///
-/// ```rust
+/// ```rust, no_run
 /// use svm_sdk::Amount;
 ///
 /// #[no_mangle]
@@ -220,9 +219,10 @@
 ///     }
 ///
 ///     {
-///         use svm_sdk::traits::Encoder;
+///         use svm_sdk::traits::{Encoder, ByteSize};
 ///
-///         let mut bytes = Vec::new();
+///         let cap = Amount::max_byte_size();
+///         let mut bytes = svm_sdk::Vec::with_capacity(cap);
 ///
 ///         let rets = __inner__();
 ///         rets.encode(&mut bytes);
@@ -245,7 +245,7 @@
 ///
 /// Here is an example:
 ///
-/// ```rust
+/// ```rust, no_run
 /// use svm_sdk::app;
 ///
 /// #[app]
@@ -290,7 +290,7 @@
 ///
 /// The way things truly works implementation-wise looks more like this:
 ///
-/// ```rust
+/// ```rust, no_run
 /// fn update_coins(value: svm_sdk::Amount) {
 ///   // ...
 /// }
@@ -318,9 +318,10 @@
 ///     }
 ///
 ///     {
-///         use svm_sdk::traits::Encoder;
+///         use svm_sdk::traits::{Encoder, ByteSize};
 ///
-///         let mut bytes = Vec::new();
+///         let cap = <()>::max_byte_size();
+///         let mut bytes = svm_sdk::Vec::with_capacity(cap);
 ///
 ///         let rets = __inner__();
 ///         rets.encode(&mut bytes);
@@ -329,23 +330,27 @@
 ///     }
 /// }
 /// ```
-mod log;
+
+#[cfg(all(feature = "static-alloc", feature = "dynamic-alloc"))]
+compile_error!("Cannot have both `static-alloc` and `dynamic-alloc` features turned-on");
+
+#[cfg(not(any(feature = "static-alloc", feature = "dynamic-alloc")))]
+compile_error!("Must have either `static-alloc` or `dynamic-alloc` features turned-on");
 
 /// Logging API
-pub use log::log;
-
-/// `ensure` macro
-#[macro_use]
-pub mod ensure;
-
 pub use svm_abi_decoder::{CallData, DecodeError, ReturnData};
-pub use svm_sdk_alloc::{alloc, Ptr};
 pub use svm_sdk_macros::app;
 
-// in order to use the following `global allocator` one should
-// call `extern crate svm_sdk;` (instead of `use svm_sdk;`)
-#[global_allocator]
-pub static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
+pub use svm_sdk_std::{ensure, log};
+/// std
+pub use svm_sdk_std::{Option, Result, Vec};
+
+// alloc
+//
+// exposing the `global allocator` by using the `extern crate` syntax.
+extern crate svm_sdk_alloc;
+
+pub use svm_sdk_alloc::{alloc, Ptr};
 
 #[cfg(not(any(feature = "ffi", feature = "mock")))]
 compile_error!("must have at least one feature flag turned-on (`ffi` or `mock`)");
@@ -362,7 +367,7 @@ pub mod host {
 }
 
 pub mod traits {
-    pub use svm_abi_encoder::Encoder;
+    pub use svm_abi_encoder::{ByteSize, Encoder};
     pub use svm_sdk_host::traits::Host;
     pub use svm_sdk_storage::Storage;
 }
@@ -413,4 +418,4 @@ pub mod storage {
     }
 }
 
-pub use svm_sdk_types::*;
+pub use svm_sdk_types::{Address, Amount, LayerId};

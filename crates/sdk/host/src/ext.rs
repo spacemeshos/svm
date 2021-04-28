@@ -3,14 +3,7 @@ use crate::traits::Host;
 use svm_sdk_alloc::Ptr;
 use svm_sdk_types::{Address, Amount, LayerId};
 
-extern crate alloc;
-extern crate std;
-
-use alloc::string::String;
-
-use std::mem::MaybeUninit;
-use std::sync::Once;
-use std::vec::Vec;
+use core::mem::MaybeUninit;
 
 /// ### `offset` meaning in this file:
 ///
@@ -81,9 +74,8 @@ extern "C" {
     fn sm_transfer(dst_offset: u32, amount: u64);
 }
 
-/// Regarding why we don't use any concurrency primitives for initializing `HOST`
-/// see the explanation of `MockHost`.
-static INIT: Once = Once::new();
+/// Regarding why we don't use any concurrency primitives for initializing `HOST` see the explanation of `MockHost`.
+static mut INITIALIZED: bool = false;
 
 static mut HOST: MaybeUninit<InnerHost> = MaybeUninit::uninit();
 
@@ -99,11 +91,13 @@ pub struct ExtHost;
 impl ExtHost {
     pub fn instance() -> &'static mut InnerHost {
         unsafe {
-            INIT.call_once(|| {
+            if !INITIALIZED {
                 HOST = MaybeUninit::new(InnerHost::new());
-            });
 
-            std::mem::transmute(HOST.as_mut_ptr())
+                INITIALIZED = true;
+            };
+
+            core::mem::transmute(HOST.as_mut_ptr())
         }
     }
 
@@ -189,7 +183,9 @@ impl Host for InnerHost {
             let offset = svm_calldata_offset();
             let len = svm_calldata_len() as _;
 
-            core::slice::from_raw_parts(offset as *const u8, len)
+            let bytes: &[u8] = core::slice::from_raw_parts(offset as *const u8, len);
+
+            core::mem::transmute(bytes)
         }
     }
 

@@ -1,0 +1,20 @@
+[package]
+name = "svm-sdk-std"
+version = "0.0.0"
+authors = ["Yaron Wittenstein <yaron.wittenstein@gmail.com>"]
+license = "MIT"
+edition = "2018"
+readme = "README.md"
+repository = "https://github.com/spacemeshos/svm"
+homepage = "https://github.com/spacemeshos/svm"
+description = "Spacemesh Virtual Machine"
+publish = false
+
+[dependencies]
+svm-sdk-alloc = { path = "../alloc", default-features = false }
+
+[features]
+default = []
+debug = []
+static-alloc = ["svm-sdk-alloc/static-alloc"]
+dynamic-alloc = ["svm-sdk-alloc/dynamic-alloc"]

@@ -31,7 +31,7 @@ pub fn encode_exec_app(tx: &Transaction, w: &mut Vec<u8>) {
     encode_version(tx, w);
     encode_app(tx, w);
     encode_func(tx, w);
-    encode_verifydata(tx, w);
+    // encode_verifydata(tx, w);
     encode_calldata(tx, w);
 }
 
@@ -42,14 +42,14 @@ pub fn decode_exec_app(cursor: &mut Cursor<&[u8]>) -> Result<Transaction, ParseE
     let version = decode_version(cursor)?;
     let app = decode_app(cursor)?;
     let func_name = decode_func(cursor)?;
-    let verifydata = calldata::decode_calldata(cursor)?;
+    // let verifydata = calldata::decode_calldata(cursor)?;
     let calldata = calldata::decode_calldata(cursor)?;
 
     let tx = Transaction {
         version,
         app,
         func_name,
-        verifydata,
+        // verifydata,
         calldata,
     };
 
@@ -76,11 +76,11 @@ fn encode_func(tx: &Transaction, w: &mut Vec<u8>) {
     w.write_string(func);
 }
 
-fn encode_verifydata(tx: &Transaction, w: &mut Vec<u8>) {
-    let verifydata = &tx.verifydata;
+// fn encode_verifydata(tx: &Transaction, w: &mut Vec<u8>) {
+//     let verifydata = &tx.verifydata;
 
-    calldata::encode_calldata(verifydata, w)
-}
+//     calldata::encode_calldata(verifydata, w)
+// }
 
 fn encode_calldata(tx: &Transaction, w: &mut Vec<u8>) {
     let calldata = &tx.calldata;
@@ -122,7 +122,7 @@ mod tests {
             version: 0,
             app: Address::of("my-app").into(),
             func_name: "do_work".to_string(),
-            verifydata: vec![0x10, 0x0, 0x30],
+            // verifydata: vec![0x10, 0x0, 0x30],
             calldata: vec![0x10, 0x0, 0x30],
         };
 

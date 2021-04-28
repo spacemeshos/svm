@@ -36,11 +36,7 @@ impl RawKV for Rocksdb {
         let mut batch = rocksdb::WriteBatch::default();
 
         for (k, v) in changes {
-            let res = batch.put(k, v.as_ref());
-
-            if res.is_err() {
-                panic!("failed `put`-ing bach data");
-            }
+            batch.put(k, v.as_ref());
         }
 
         let res = self.db.write(batch);
@@ -53,7 +49,7 @@ impl RawKV for Rocksdb {
 
 impl Drop for Rocksdb {
     fn drop(&mut self) {
-        info!("Dropping `Rocksdb`...");
+        info!("Dropping `rocksdb`...");
     }
 }
 

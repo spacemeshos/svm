@@ -43,6 +43,12 @@ impl Layout {
         self.vars.len()
     }
 
+    /// Whether layout has variables
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     /// Returns the variable index as `usize`.
     ///
     /// # Panics

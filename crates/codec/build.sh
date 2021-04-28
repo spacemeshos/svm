@@ -1,1 +1,2 @@
-cargo +nightly build --release --target wasm32-unknown-unknown
+set -e
+cargo +nightly build --release --target wasm32-unknown-unknown 

@@ -2,7 +2,7 @@ use svm_gas::{error::ProgramError, FuncIndex};
 
 macro_rules! validate_code {
     ($code:expr) => {{
-        let wasm = wabt::wat2wasm($code).unwrap();
+        let wasm = wat::parse_str($code).unwrap();
 
         svm_gas::validate_code(&wasm[..])
     }};

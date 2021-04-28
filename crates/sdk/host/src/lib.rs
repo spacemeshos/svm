@@ -17,6 +17,9 @@ pub mod traits;
 mod ext;
 mod mock;
 
+#[cfg(all(feature = "ffi", feature = "mock"))]
+compile_error!("can't have both `ffi` and `mock` features turned-on");
+
 #[cfg(not(any(feature = "ffi", feature = "mock")))]
 compile_error!("must have at least one feature flag turned-on (`ffi` or `mock`)");
 

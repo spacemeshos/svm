@@ -1,13 +1,22 @@
 use core::cmp::{Ordering, PartialOrd};
 use core::ops::{Add, AddAssign, Mul, MulAssign, Sub, SubAssign};
 
-#[derive(Debug, PartialEq, Copy, Clone, Hash)]
+use svm_sdk_std::ensure;
+
+#[derive(PartialEq, Copy, Clone, Hash)]
 #[repr(transparent)]
 pub struct Amount(pub u64);
 
 impl From<i64> for Amount {
     fn from(v: i64) -> Amount {
         Amount(v as _)
+    }
+}
+
+#[cfg(any(test, feature = "debug"))]
+impl core::fmt::Debug for Amount {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "Amount({})", self.0)
     }
 }
 
@@ -31,7 +40,7 @@ impl Sub for Amount {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self::Output {
-        assert!(self.0 >= rhs.0);
+        ensure!(self.0 >= rhs.0);
 
         Self(self.0 - rhs.0)
     }
@@ -41,7 +50,7 @@ impl Sub<u64> for Amount {
     type Output = Self;
 
     fn sub(self, rhs: u64) -> Self::Output {
-        assert!(self.0 >= rhs);
+        ensure!(self.0 >= rhs);
 
         Self(self.0 - rhs)
     }
@@ -77,7 +86,7 @@ impl AddAssign<u64> for Amount {
 
 impl SubAssign for Amount {
     fn sub_assign(&mut self, rhs: Self) {
-        assert!(self.0 >= rhs.0);
+        ensure!(self.0 >= rhs.0);
 
         *self = Amount(self.0 - rhs.0)
     }
@@ -85,7 +94,7 @@ impl SubAssign for Amount {
 
 impl SubAssign<u64> for Amount {
     fn sub_assign(&mut self, rhs: u64) {
-        assert!(self.0 >= rhs);
+        ensure!(self.0 >= rhs);
 
         *self = Amount(self.0 - rhs)
     }

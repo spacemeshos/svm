@@ -10,8 +10,9 @@ homepage = "https://github.com/spacemeshos/svm"
 description = "Spacemesh Virtual Machine"
 publish = false
 
-[dev-dependencies]
+[dependencies]
 svm-abi-layout = { path = "./../layout" }
-svm-abi-encoder = { path = "./../encoder" }
-svm-abi-decoder = { path = "./../decoder" }
-svm-sdk = { path = "../../sdk" }
+svm-abi-encoder = { path = "./../encoder", features = ["dynamic-alloc"], default-features = false }
+svm-abi-decoder = { path = "./../decoder", features = ["dynamic-alloc"], default-features = false }
+svm-sdk-types = { path = "../../sdk/types", features = ["debug", "dynamic-alloc"], default-features = false }
+svm-sdk-std = { path = "../../sdk/std", features = ["debug", "dynamic-alloc"], default-features = false }

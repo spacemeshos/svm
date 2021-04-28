@@ -8,24 +8,40 @@ edition = "2018"
 proc-macro = true
 
 [dependencies]
-wee_alloc = "0.4.5"
 proc-macro2 = "1.0.24"
 quote = "1.0.7"
 syn = { version = "1.0.42", features = ["full"] }
-serde_json = { version = "1.0", optional = true }
-svm-abi-encoder = { path = "../../abi/encoder" }
-svm-abi-decoder = { path = "../../abi/decoder" }
-svm-sdk-storage = { path = "../storage" }
-svm-sdk-types = { path = "../types" }
-svm-sdk-host = { path = "../host" }
+serde_json = { version = "1.0" }
+svm-sdk-types = { path = "../types", default-features = false }
+svm-abi-encoder = { path = "../../abi/encoder", default-features = false }
+svm-abi-decoder = { path = "../../abi/decoder", default-features = false }
+svm-sdk-host = { path = "../host", default-features = false }
+svm-sdk-storage = { path = "../storage", default-features = false }
+svm-sdk-std = { path = "../std", default-features = false }
 
 [dev-dependencies]
 lazy_static = "1.4.0"
 trybuild = { version = "1.0", features = ["diff"] }
 
 [features]
-default = ["mock", "api", "layout"]
+default = ["mock"]
 ffi = ["svm-sdk-host/ffi", "svm-sdk-storage/ffi"]
 mock = ["svm-sdk-host/mock", "svm-sdk-storage/mock"]
-api = ["serde_json"]
+static-alloc = [
+    "svm-sdk-types/static-alloc",
+    "svm-abi-encoder/static-alloc",
+    "svm-abi-decoder/static-alloc",
+    "svm-sdk-std/static-alloc",
+    "svm-sdk-host/static-alloc",
+    "svm-sdk-storage/static-alloc",
+]
+dynamic-alloc = [
+    "svm-sdk-types/dynamic-alloc",
+    "svm-abi-encoder/dynamic-alloc",
+    "svm-abi-decoder/dynamic-alloc",
+    "svm-sdk-std/dynamic-alloc",
+    "svm-sdk-host/dynamic-alloc",
+    "svm-sdk-storage/dynamic-alloc",
+]
+api = []
 layout = []

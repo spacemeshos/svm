@@ -17,18 +17,7 @@ include = [
 ]
 
 [lib]
-crate-type = ["cdylib", "rlib", "staticlib"]
-
-[dependencies.rocksdb]
-default-features = false
-optional = true
-version = "0.12.4"
-features = ["lz4"]
-
-[dependencies.wasmer]
-version="1.0.2"
-default-features = false
-features = ["default-cranelift", "default-jit"]
+crate-type = ["cdylib", "staticlib", "rlib"]
 
 [dependencies]
 cfg-if = "1.0"
@@ -38,18 +27,22 @@ tiny-keccak = "1.4.2"
 log = "0.4"
 lazy_static = "1.4.0"
 hex = "0.4"
+# rocksdb = { version = "0.15.0", features = ["lz4"], default-features = false, optional=true }
+wasmer = { version = "1.0.2", default-features = false }
+wee_alloc = { version = "0.4.5", optional = true }
 svm-common = { path = "crates/common" }
 svm-hash = { path = "crates/hash" }
 svm-kv = { path = "crates/kv", default-features = false }
 svm-gas = { path = "crates/gas" }
 svm-query = { path = "crates/query" }
 svm-types = { path = "crates/types" }
-svm-sdk-alloc = { path = "crates/sdk/alloc" }
-svm-sdk-types = { path = "crates/sdk/types" }
-svm-sdk-storage = { path = "crates/sdk/storage" }
-svm-sdk-host = { path = "crates/sdk/host" }
-svm-sdk-macros = { path = "crates/sdk/macros" }
-svm-sdk = { path = "crates/sdk" }
+svm-sdk-alloc = { path = "crates/sdk/alloc", default-features = false }
+svm-sdk-std = { path = "crates/sdk/std", default-features = false }
+svm-sdk-types = { path = "crates/sdk/types", default-features = false }
+svm-sdk-storage = { path = "crates/sdk/storage", default-features = false }
+svm-sdk-host = { path = "crates/sdk/host", default-features = false }
+svm-sdk-macros = { path = "crates/sdk/macros", default-features = false }
+svm-sdk = { path = "crates/sdk", default-features = false }
 svm-sdk-tests = { path = "crates/sdk-tests" }
 svm-nibble = { path = "crates/nibble" }
 svm-codec = { path = "crates/codec" }
@@ -60,12 +53,14 @@ svm-runtime = { path = "crates/runtime", default-features = false }
 svm-ffi = { path = "crates/ffi" }
 svm-runtime-ffi = { path = "crates/runtime-ffi", default-features = false }
 svm-abi-layout = { path = "crates/abi/layout" }
-svm-abi-encoder = { path = "crates/abi/encoder" }
-svm-abi-decoder = { path = "crates/abi/decoder" }
 svm-abi-tests = { path = "crates/abi/tests" }
+
+[build-dependencies]
+cbindgen = "0.19.0"
 
 [dev-dependencies]
 wat = "1.0"
+maplit = "1.0.2"
 
 [workspace]
 members = [
@@ -96,6 +91,25 @@ members = [
 ]
 
 [features]
-default = ["default-memory"]
-default-memory = ["svm-runtime-ffi/default-memory", "svm-runtime/default-memory", "svm-kv/default-memory"]
-default-rocksdb = ["svm-runtime-ffi/default-rocksdb", "svm-runtime/default-rocksdb", "svm-kv/default-rocksdb"]
+default = [
+  "default-memory",
+  "default-cranelift",
+]
+default-llvm = [
+  "svm-runtime/default-llvm",
+  "svm-runtime-ffi/default-llvm",
+]
+default-cranelift = [
+  "svm-runtime/default-cranelift",
+  "svm-runtime-ffi/default-cranelift",
+]
+default-memory = [
+  "svm-runtime-ffi/default-memory", 
+  "svm-runtime/default-memory", 
+  "svm-kv/default-memory"
+]
+default-rocksdb = [
+  "svm-runtime-ffi/default-rocksdb", 
+  "svm-runtime/default-rocksdb",
+  "svm-kv/default-rocksdb"
+]

@@ -76,8 +76,9 @@ pub fn set_amount<S: Storage>(var_id: u32, value: Amount) {
 }
 
 pub fn load160<S: Storage>(var_id: u32) -> &'static [u8] {
-    use svm_sdk_alloc::alloc;
-    let ptr = alloc(20);
+    extern crate svm_sdk_alloc;
+
+    let ptr = svm_sdk_alloc::alloc(20);
 
     S::load160(var_id, ptr.offset());
 
@@ -173,7 +174,9 @@ pub fn array_set_addr<S: Storage>(var_id: u32, index: usize, length: u32, value:
 fn cell_offset(var_id: u32, index: usize, length: u32) -> u32 {
     let index = index as u32;
 
-    assert!(index < length);
+    if (index >= length) {
+        svm_sdk_std::panic();
+    }
 
     var_id + index
 }

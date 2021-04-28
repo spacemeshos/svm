@@ -56,16 +56,18 @@
 //! | 0 | 1 1 0 | 0 1 0 1 |  i64 (unsigned) - 7 bytes |
 //! | 0 | 1 1 1 | 0 1 0 1 |  i64 (unsigned) - 8 bytes |
 //! +---+-------+---------+---------------------------+
-//! | 0 | 0 0 0 | 0 1 1 0 |  Array - 0 items          |
-//! | 0 | 0 0 1 | 0 1 1 0 |  Array - 1 item           |
-//! | 0 | 0 1 0 | 0 1 1 0 |  Array - 2 items          |
-//! | 0 | 0 1 1 | 0 1 1 0 |  Array - 3 items          |
-//! | 0 | 1 0 0 | 0 1 1 0 |  Array - 4 items          |
-//! | 0 | 1 0 1 | 0 1 1 0 |  Array - 5 items          |
-//! | 0 | 1 1 0 | 0 1 1 0 |  Array - 6 items          |
-//! | 0 | 1 1 1 | 0 1 1 0 |  Array - 0..255 items     |
-//! +---+----------------+---------------------------+
-//!
+//! | 0 | 0 0 0 | 0 1 1 0 |  Array - 0  items         | <------ Small-Array (at most 10 items inclusive)
+//! | 0 | 0 0 1 | 0 1 1 0 |  Array - 1  item          |
+//! | 0 | 0 1 0 | 0 1 1 0 |  Array - 2  items         |
+//! | 0 | 0 1 1 | 0 1 1 0 |  Array - 3  items         |
+//! | 0 | 1 0 0 | 0 1 1 0 |  Array - 4  items         |
+//! | 0 | 1 0 1 | 0 1 1 0 |  Array - 5  items         |
+//! | 0 | 1 1 0 | 0 1 1 0 |  Array - 6  items         |
+//! | 0 | 1 1 1 | 0 1 1 0 |  Array - 7  items         |
+//! | 0 | 0 0 0 | 0 1 1 1 |  Array - 8  items         |
+//! | 0 | 0 0 1 | 0 1 1 1 |  Array - 9  items         |
+//! | 0 | 0 1 0 | 0 1 1 1 |  Array - 10 items         |
+//! +---+-----------------+---------------------------+
 //!
 
 #![no_std]
@@ -74,6 +76,7 @@
 #![deny(dead_code)]
 #![deny(unreachable_code)]
 
+#[allow(clippy::unusual_byte_groupings)]
 #[doc(hidden)]
 pub mod layout {
     // Boolean
@@ -145,7 +148,7 @@ pub mod layout {
     pub const U64_7B: u8 = 0b_0_110_0101;
     pub const U64_8B: u8 = 0b_0_111_0101;
 
-    // Array
+    // Small-Array
     pub const ARR_0: u8 = 0b_0_000_0110;
     pub const ARR_1: u8 = 0b_0_001_0110;
     pub const ARR_2: u8 = 0b_0_010_0110;
@@ -153,5 +156,8 @@ pub mod layout {
     pub const ARR_4: u8 = 0b_0_100_0110;
     pub const ARR_5: u8 = 0b_0_101_0110;
     pub const ARR_6: u8 = 0b_0_110_0110;
-    pub const ARR_0_255: u8 = 0b_0_111_0110;
+    pub const ARR_7: u8 = 0b_0_111_0110;
+    pub const ARR_8: u8 = 0b_0_000_0111;
+    pub const ARR_9: u8 = 0b_0_001_0111;
+    pub const ARR_10: u8 = 0b_0_010_0111;
 }

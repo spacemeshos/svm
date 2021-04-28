@@ -121,39 +121,40 @@ where
 
     fn exec_verify(
         &self,
-        tx: &Transaction,
-        state: &State,
-        gas_limit: Gas,
+        _tx: &Transaction,
+        _state: &State,
+        _gas_limit: Gas,
     ) -> std::result::Result<bool, RuntimeError> {
-        let app_addr = tx.app_addr();
-        let template_addr = self.env.find_template_addr(app_addr);
+        todo!()
+        //     let app_addr = tx.app_addr();
+        //     let template_addr = self.env.find_template_addr(app_addr);
 
-        if let Some(template_addr) = template_addr {
-            let call = Call {
-                func_name: "svm_verify",
-                calldata: tx.verifydata(),
-                template_addr: &template_addr,
-                app_addr,
-                state,
-                gas_used: Gas::with(0),
-                gas_left: gas_limit,
-                within_spawn: false,
-            };
+        //     if let Some(template_addr) = template_addr {
+        //         let call = Call {
+        //             func_name: "svm_verify",
+        //             calldata: tx.verifydata(),
+        //             template_addr: &template_addr,
+        //             app_addr,
+        //             state,
+        //             gas_used: Gas::with(0),
+        //             gas_left: gas_limit,
+        //             within_spawn: false,
+        //         };
 
-            let out = self.exec::<(), u32, _, _>(&call, |_ctx, mut out| {
-                let returns = out.take_returns();
+        //         let out = self.exec::<(), u32, _, _>(&call, |_ctx, mut out| {
+        //             let returns = out.take_returns();
 
-                debug_assert_eq!(returns.len(), 1);
+        //             debug_assert_eq!(returns.len(), 1);
 
-                let v: &wasmer::Val = returns.first().unwrap();
+        //             let v: &wasmer::Val = returns.first().unwrap();
 
-                v.i32().unwrap() == 0
-            });
+        //             v.i32().unwrap() == 0
+        //         });
 
-            out.map_err(|fail| fail.take_error())
-        } else {
-            unreachable!("Should have failed earlier when doing `validate_tx`");
-        }
+        //         out.map_err(|fail| fail.take_error())
+        //     } else {
+        //         unreachable!("Should have failed earlier when doing `validate_tx`");
+        //     }
     }
 
     fn exec_tx(&self, tx: &Transaction, state: &State, gas_limit: Gas) -> ExecReceipt {
@@ -337,7 +338,11 @@ where
 
         let func = self.get_func::<Args, Rets>(&instance, ctx, call.func_name())?;
 
-        let mut out = self.call_with_alloc(&instance, ctx, call.calldata(), &func, &[])?;
+        let mut out = if call.calldata().len() > 0 {
+            self.call_with_alloc(&instance, ctx, call.calldata(), &func, &[])?
+        } else {
+            self.call(&instance, ctx, &func, &[])?
+        };
 
         let logs = out.take_logs();
 
@@ -368,6 +373,8 @@ where
         Args: WasmTypeList,
         Rets: WasmTypeList,
     {
+        debug_assert!(calldata.is_empty() == false);
+
         let out = self.call_alloc(instance, ctx, calldata.len())?;
 
         // we assert that `svm_alloc` didn't touch the `returndata`
@@ -417,8 +424,19 @@ where
         Args: WasmTypeList,
         Rets: WasmTypeList,
     {
+        dbg!(
+            "About to invoke Wasmer (memory-size = {})",
+            ctx.borrow().allocated_memory()
+        );
+
         let wasmer_func = func.wasmer_func();
         let returns = wasmer_func.call(params);
+
+        dbg!(
+            "Wasmer finished running the called function (returns = {})",
+            &returns
+        );
+
         let logs = ctx.borrow_mut().take_logs();
 
         if returns.is_err() {
@@ -444,6 +462,7 @@ where
     #[inline]
     fn commit_changes(&self, ctx: &Context) -> State {
         let storage = &mut ctx.borrow_mut().storage;
+
         storage.commit()
     }
 
@@ -456,18 +475,41 @@ where
         let data = ctx.borrow().returndata;
 
         match data {
-            Some((offset, len)) => self.read_memory(ctx, offset, len),
-            None => Vec::new(),
+            Some((offset, length)) => {
+                dbg!(
+                    "About to read memory `returndata` (offset = {}, length = {})",
+                    offset,
+                    length
+                );
+
+                self.read_memory(ctx, offset, length)
+            }
+            None => {
+                dbg!("there is no `returndata`");
+
+                Vec::new()
+            }
         }
     }
 
-    fn read_memory(&self, ctx: &Context, offset: usize, len: usize) -> Vec<u8> {
+    fn read_memory(&self, ctx: &Context, offset: usize, length: usize) -> Vec<u8> {
+        assert!(length > 0);
+
         let borrow = ctx.borrow();
         let memory = borrow.get_memory();
 
-        // TODO: guard again out-of-bounds
+        dbg!(
+            "read_memory (memory byte-size = {}, offset = {}, length = {})",
+            borrow.allocated_memory(),
+            offset,
+            length
+        );
+
         let view = memory.view::<u8>();
-        let cells = &view[offset..(offset + len)];
+
+        assert!(view.len() > offset + length - 1);
+
+        let cells = &view[offset..(offset + length)];
 
         cells.iter().map(|c| c.get()).collect()
     }
@@ -475,10 +517,15 @@ where
     fn set_memory(&self, ctx: &Context, instance: &Instance) {
         // TODO: raise when no exported memory exists
         let memory = instance.exports.get_memory("memory").unwrap();
+
+        // dbg!(format!("Runtime initial #pages {}", memory.size().0));
+
         ctx.borrow_mut().set_memory(memory.clone());
     }
 
     fn set_calldata(&self, ctx: &Context, calldata: &[u8], wasm_ptr: WasmPtr<u8>) {
+        debug_assert!(calldata.is_empty() == false);
+
         let (offset, len) = {
             let borrow = ctx.borrow();
             let memory = borrow.get_memory();
@@ -494,16 +541,19 @@ where
             //
             // See [issue #140](https://github.com/spacemeshos/svm/issues/140)
             let offset = wasm_ptr.offset() as usize;
-            let len = calldata.len();
+            let length = calldata.len();
+            let view = memory.view::<u8>();
 
-            // TODO: guard again out-of-bounds
-            let view = &memory.view::<u8>()[offset..(offset + len)];
+            // TODO: fail safely, instead of using `assert!`
+            assert!(view.len() > offset + length - 1);
 
-            for (cell, &byte) in view.iter().zip(calldata.iter()) {
+            let cells = &view[offset..(offset + length)];
+
+            for (cell, &byte) in cells.iter().zip(calldata.iter()) {
                 cell.set(byte);
             }
 
-            (offset, len)
+            (offset, length)
         };
 
         ctx.borrow_mut().set_calldata(offset, len);

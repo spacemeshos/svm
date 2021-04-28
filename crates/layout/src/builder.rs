@@ -7,6 +7,12 @@ pub struct LayoutBuilder {
     next_offset: u32,
 }
 
+impl Default for LayoutBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// `LayoutBuilder` represents the fixed-sized variables (storage) of an application.
 impl LayoutBuilder {
     /// New builder

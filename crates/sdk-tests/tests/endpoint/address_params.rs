@@ -24,20 +24,20 @@ fn test_zeros() {
     let params = Vec::<Address>::new();
     let res: Address = call_1(zeros, params);
 
-    let zeros_addr: Address = [0; Address::len()].into();
+    let zeros_addr: Address = Address::repeat(0);
     assert_eq!(res, zeros_addr);
 }
 
 fn test_identity() {
-    let addr: Address = [0x10; Address::len()].into();
+    let addr: Address = Address::repeat(0x10);
 
     let res: Address = call_1(identity, vec![addr.clone()]);
     assert_eq!(res, addr);
 }
 
 fn test_swap() {
-    let a: Address = [0x10; Address::len()].into();
-    let b: Address = [0x20; Address::len()].into();
+    let a: Address = Address::repeat(0x10);
+    let b: Address = Address::repeat(0x20);
 
     let res: (Address, Address) = call_2(swap, vec![a.clone(), b.clone()]);
     assert_eq!(res, (b, a));
