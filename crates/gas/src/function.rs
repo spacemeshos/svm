@@ -1,7 +1,8 @@
-use crate::Gas;
 use std::collections::HashMap;
 
 use parity_wasm::elements::{Instruction, Instructions};
+
+use crate::Gas;
 
 /// Represents a function index
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
@@ -23,17 +24,17 @@ impl Ord for FuncIndex {
 pub struct FuncBody(pub Instructions);
 
 impl FuncBody {
-    pub fn to_vec(&self) -> Vec<Instruction> {
-        self.0.elements().to_vec()
+    pub fn instructions(&self) -> &[Instruction] {
+        self.0.elements()
     }
 }
 
 #[derive(Debug)]
-pub(crate) struct FuncsGas {
-    pub inner: HashMap<FuncIndex, Gas>,
+pub struct FuncGas {
+    inner: HashMap<FuncIndex, Gas>,
 }
 
-impl FuncsGas {
+impl FuncGas {
     pub fn new() -> Self {
         Self {
             inner: HashMap::new(),
@@ -46,5 +47,9 @@ impl FuncsGas {
 
     pub fn get_func_gas(&self, func_idx: FuncIndex) -> Option<Gas> {
         self.inner.get(&func_idx).copied()
+    }
+
+    pub fn into_inner(self) -> HashMap<FuncIndex, Gas> {
+        self.inner
     }
 }

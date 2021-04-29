@@ -3,9 +3,13 @@ use core::ops::{Add, AddAssign, Mul, MulAssign, Sub, SubAssign};
 
 use svm_sdk_std::ensure;
 
+use crate::types::PrimitiveMarker;
+
 #[derive(PartialEq, Copy, Clone, Hash)]
 #[repr(transparent)]
 pub struct Amount(pub u64);
+
+impl PrimitiveMarker for Amount {}
 
 impl From<i64> for Amount {
     fn from(v: i64) -> Amount {

@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 
-use crate::{function::FuncIndex, op::Op};
+use crate::{FuncIndex, Op};
 
 #[derive(Debug, Clone, PartialEq)]
-pub(crate) struct OpsBlock(pub Vec<Op>);
+pub(crate) struct Block(pub Vec<Op>);
 
-impl OpsBlock {
+impl Block {
     pub fn new() -> Self {
         Self(Vec::new())
     }
@@ -15,14 +15,16 @@ impl OpsBlock {
     }
 }
 
-pub(crate) struct BlockCtx<'ctx> {
-    pub ops: &'ctx OpsBlock,
+pub(crate) struct BlockContext<'ctx> {
+    pub ops: &'ctx Block,
+
     pub func_idx: FuncIndex,
+
     pub depth: usize,
 }
 
-impl<'ctx> BlockCtx<'ctx> {
-    pub fn new(func_idx: FuncIndex, ops: &'ctx OpsBlock) -> Self {
+impl<'ctx> BlockContext<'ctx> {
+    pub fn new(func_idx: FuncIndex, ops: &'ctx Block) -> Self {
         Self {
             ops,
             func_idx,
@@ -30,7 +32,7 @@ impl<'ctx> BlockCtx<'ctx> {
         }
     }
 
-    pub fn child_block(&self, ops: &'ctx OpsBlock) -> Self {
+    pub fn child_block(&self, ops: &'ctx Block) -> Self {
         Self {
             ops,
             func_idx: self.func_idx,
@@ -40,7 +42,7 @@ impl<'ctx> BlockCtx<'ctx> {
 }
 
 pub(crate) struct FuncsBlocks {
-    inner: HashMap<FuncIndex, OpsBlock>,
+    inner: HashMap<FuncIndex, Block>,
 }
 
 impl FuncsBlocks {
@@ -50,11 +52,11 @@ impl FuncsBlocks {
         }
     }
 
-    pub fn add_func_block(&mut self, func_idx: FuncIndex, block: OpsBlock) {
+    pub fn add_func_block(&mut self, func_idx: FuncIndex, block: Block) {
         self.inner.insert(func_idx, block);
     }
 
-    pub fn get_func_block(&self, func_idx: FuncIndex) -> &OpsBlock {
+    pub fn get_func_block(&self, func_idx: FuncIndex) -> &Block {
         self.inner.get(&func_idx).unwrap()
     }
 }

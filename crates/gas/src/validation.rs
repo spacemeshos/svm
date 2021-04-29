@@ -1,113 +1,109 @@
-use crate::{call_graph::CallGraph, error::ProgramError, function::FuncIndex, program::Program};
+use crate::{CallGraph, FuncIndex, Program, ProgramError};
 
-use parity_wasm::elements::Instruction;
+use parity_wasm::elements::{CustomSection, Instruction};
 
-/// Validates the wasm program.
+/// Validates a Wasm program.
 ///
-/// The wasm program is NOT valid when:
+/// The wasm program is considered INVALID when one of the following:
+///
+/// * It contains instructions using floats.
 /// * It has more than `std::u16::MAX` imported functions.
 /// * The sum of imported functions and program functions exceeds `std::u16::MAX`.
-/// * It contains one of: `loop / br / br_if / br_table / call_indirect`.
-/// * It contains chain of recursive calls.
+/// * It contains the `loop` opcode.
+/// * It contains the `call_indirect` opcode.
+/// * It contains a chain of recursive calls.
 ///   For example: function `F` calls function `G` which calls function `H` which calls again function `F`.
-///   The recursive chain call is: `F -> G -> H -> F`.
-/// * It contains instructions using floats.
+///   The recursive chain of calls is: `F -> G -> H -> F`.
 ///
-pub fn validate_code(wasm: &[u8]) -> Result<(), ProgramError> {
-    let program = crate::code_reader::read_program(wasm)?;
+/// If none of the above occurs, then we have a valid restricted-Wasm program.
+/// Otherwise, a `ProgramError` is returned.
+pub fn validate_wasm(wasm: &[u8]) -> Result<(), ProgramError> {
+    let program = crate::program_reader::read_program(wasm)?;
 
-    let funcs_ids = program.functions_ids();
-    let mut call_graph = CallGraph::new(funcs_ids.clone());
+    let functions = program.functions();
 
-    for &func_idx in funcs_ids.iter() {
-        validate_func(func_idx, &program, &mut call_graph)?;
+    let mut call_graph = CallGraph::new(functions.clone());
+
+    for &func in functions.iter() {
+        validate_func(func, &program, &mut call_graph)?;
     }
 
-    call_graph.ensure_no_recursive_calls()?;
+    call_graph.assert_no_recursive_calls()?;
 
     Ok(())
 }
 
 fn validate_func(
-    func_idx: FuncIndex,
+    func: FuncIndex,
     program: &Program,
     call_graph: &mut CallGraph,
 ) -> Result<(), ProgramError> {
-    let func_body = program.get_function_body(func_idx).to_vec();
+    let func_body = program.get_func_body(func).instructions();
 
-    let _ = validate_func_block(func_idx, program, &func_body, 0, call_graph)?;
+    let _offset = validate_block(func, program, &func_body, 0, call_graph)?;
 
     Ok(())
 }
 
-fn validate_func_block(
-    func_idx: FuncIndex,
+fn validate_block(
+    func: FuncIndex,
     program: &Program,
-    block_ops: &[Instruction],
+    ops: &[Instruction],
     block_offset: usize,
     call_graph: &mut CallGraph,
 ) -> Result<usize, ProgramError> {
-    let mut cursor = block_offset;
+    let mut offset = block_offset;
 
-    while let Some(op) = block_ops.get(cursor) {
-        match *op {
+    while let Some(op) = ops.get(offset) {
+        match op {
             Instruction::Loop(..) => return Err(ProgramError::LoopNotAllowed),
-            Instruction::Br(..) => return Err(ProgramError::BrNotAllowed),
-            Instruction::BrIf(..) => return Err(ProgramError::BrIfNotAllowed),
-            Instruction::BrTable(..) => return Err(ProgramError::BrTableNotAllowed),
             Instruction::CallIndirect(..) => return Err(ProgramError::CallIndirectNotAllowed),
-            Instruction::Call(to) => {
-                validate_func_index(to)?;
+            &Instruction::Call(target) => {
+                validate_func_index(target)?;
 
-                let to = FuncIndex(to as u16);
+                let target = FuncIndex(target as u16);
 
-                if program.is_imported(to) == false {
-                    if func_idx == to {
-                        return Err(ProgramError::RecursiveCall(vec![func_idx, func_idx]));
+                if program.is_imported(target) == false {
+                    if func == target {
+                        return Err(ProgramError::RecursiveCall { func, offset });
                     }
 
-                    call_graph.add_call(func_idx, to);
+                    call_graph.add_call(func, target);
                 }
-                cursor += 1;
+                offset += 1;
             }
             Instruction::Block(..) => {
-                cursor = validate_func_block(func_idx, program, block_ops, cursor + 1, call_graph)?;
+                offset = validate_block(func, program, ops, offset + 1, call_graph)?;
             }
             Instruction::If(..) => {
-                let if_cont_cursor =
-                    validate_func_block(func_idx, program, block_ops, cursor + 1, call_graph)?;
+                let after_if = validate_block(func, program, ops, offset + 1, call_graph)?;
 
-                if let Some(Instruction::Else) = block_ops.get(if_cont_cursor) {
-                    let else_cont_cursor = validate_func_block(
-                        func_idx,
-                        program,
-                        block_ops,
-                        if_cont_cursor + 1,
-                        call_graph,
-                    )?;
-                    cursor = else_cont_cursor;
+                if let Some(Instruction::Else) = ops.get(after_if) {
+                    let after_else = validate_block(func, program, ops, after_if + 1, call_graph)?;
+                    offset = after_else;
                 } else {
-                    cursor = if_cont_cursor;
+                    offset = after_if;
                 }
             }
             Instruction::Else => break,
             Instruction::End => {
-                cursor += 1;
+                offset += 1;
+
                 break;
             }
             _ => {
-                validate_non_float(op)?;
+                assert_non_float(op)?;
 
-                cursor += 1;
+                offset += 1;
             }
         }
     }
 
-    Ok(cursor)
+    Ok(offset)
 }
 
-fn validate_func_index(func_idx: u32) -> Result<(), ProgramError> {
-    if func_idx <= std::u16::MAX as u32 {
+fn validate_func_index(func: u32) -> Result<(), ProgramError> {
+    if func <= std::u16::MAX as u32 {
         Ok(())
     } else {
         Err(ProgramError::FunctionIndexTooLarge)
@@ -115,7 +111,7 @@ fn validate_func_index(func_idx: u32) -> Result<(), ProgramError> {
 }
 
 #[inline]
-fn validate_non_float(op: &Instruction) -> Result<(), ProgramError> {
+fn assert_non_float(op: &Instruction) -> Result<(), ProgramError> {
     match op {
         Instruction::F32Load(..)
         | Instruction::F64Load(..)

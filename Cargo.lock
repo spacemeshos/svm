@@ -756,9 +756,9 @@ checksum = "af8b08b04175473088b46763e51ee54da5f9a164bc162f615b91bc179dbf15a3"
 
 [[package]]
 name = "parity-wasm"
-version = "0.40.3"
+version = "0.42.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1e39faaa292a687ea15120b1ac31899b13586446521df6c149e46f1584671e0f"
+checksum = "be5e13c266502aadf83426d87d81a0f5d1ef45b8027f5a471c360abfe4bfae92"
 
 [[package]]
 name = "parking_lot"
@@ -1181,6 +1181,30 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "73473c0e59e6d5812c5dfe2a064a6444949f089e20eec9a2e5506596494e4623"
 
 [[package]]
+name = "structopt"
+version = "0.3.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5277acd7ee46e63e5168a80734c9f6ee81b1367a7d8772a2d765df2a3705d28c"
+dependencies = [
+ "clap",
+ "lazy_static",
+ "structopt-derive",
+]
+
+[[package]]
+name = "structopt-derive"
+version = "0.4.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5ba9cdfda491b814720b6b06e0cac513d922fc407582032e8706e9f137976f90"
+dependencies = [
+ "heck",
+ "proc-macro-error",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "svm"
 version = "0.0.0"
 dependencies = [
@@ -1192,6 +1216,8 @@ dependencies = [
  "libc",
  "log",
  "maplit",
+ "parity-wasm",
+ "structopt",
  "svm-abi-layout",
  "svm-abi-tests",
  "svm-codec",
@@ -1253,6 +1279,15 @@ dependencies = [
  "svm-abi-layout",
  "svm-sdk-std",
  "svm-sdk-types",
+]
+
+[[package]]
+name = "svm-cli"
+version = "0.0.0"
+dependencies = [
+ "structopt",
+ "svm-gas",
+ "svm-runtime",
 ]
 
 [[package]]

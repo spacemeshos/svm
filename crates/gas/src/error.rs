@@ -1,6 +1,7 @@
 use std::fmt;
+use std::usize;
 
-use crate::function::FuncIndex;
+use crate::FuncIndex;
 
 /// Represents error that may occur while doing gas estimation
 #[derive(Debug, PartialEq, Clone)]
@@ -23,17 +24,20 @@ pub enum ProgramError {
     /// `loop` isn't allowed
     LoopNotAllowed,
 
-    /// `br` isn't allowed
-    BrNotAllowed,
-
-    /// `br_if` isn't allowed
-    BrIfNotAllowed,
-
-    /// `br_table` isn't allowed
-    BrTableNotAllowed,
+    /// Wasm has no `code` section
+    MissingCodeSection,
 
     /// Recursive calls aren't allowed
-    RecursiveCall(Vec<FuncIndex>),
+    RecursiveCall {
+        /// Function containing the recursive-call
+        func: FuncIndex,
+
+        /// The `call` instruction offset relative to the beginning of the function
+        offset: usize,
+    },
+
+    /// Calls cycles (e.g `A -> B -> C -> A`) aren't allowed
+    CallCycle(Vec<FuncIndex>),
 }
 
 impl fmt::Display for ProgramError {

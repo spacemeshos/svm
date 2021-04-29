@@ -54,7 +54,7 @@ where
         let template = self.env.parse_deploy_template(bytes)?;
         let code = &template.code;
 
-        svm_gas::validate_code(code).map_err(|e| e.into())
+        svm_gas::validate_wasm(code).map_err(|e| e.into())
     }
 
     fn validate_app(&self, bytes: &[u8]) -> std::result::Result<(), ValidateError> {

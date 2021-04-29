@@ -1,6 +1,3 @@
-use svm_abi_layout::layout;
-use svm_sdk_std::Vec;
-
 use crate::{ByteSize, Encoder};
 
 // TODO:
@@ -10,8 +7,12 @@ use crate::{ByteSize, Encoder};
 
 macro_rules! impl_encode {
     ($W:ty) => {
-        impl<T: Encoder<$W>> Encoder<$W> for &[T] {
+        impl<T> Encoder<$W> for &[T]
+            where T: Encoder<$W>
+         {
             fn encode(&self, w: &mut $W) {
+                use svm_abi_layout::layout;
+
                 assert!(self.len() < 11);
 
                 let marker = match self.len() {
@@ -93,7 +94,9 @@ macro_rules! impl_encode {
         impl_encode!(9 $iter $w);
      }};
     (@ $iter:ident $w:ident) => {{
-        let item = $iter.next().unwrap();
+        let item: svm_sdk_std::Option<_> = $iter.next().into();
+
+        let item = item.unwrap();
 
         item.encode($w);
     }}
@@ -107,7 +110,9 @@ macro_rules! impl_array_encode {
     };
 
     (@ $W:ty => $N:expr) => {
-        impl<T: Encoder<$W>> Encoder<$W> for [T; $N] {
+        impl<T> Encoder<$W> for [T; $N]
+            where T: Encoder<$W>
+        {
             #[inline]
             fn encode(&self, w: &mut $W) {
                 (&self[..]).encode(w)

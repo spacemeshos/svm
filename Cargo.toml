@@ -27,7 +27,9 @@ tiny-keccak = "1.4.2"
 log = "0.4"
 lazy_static = "1.4.0"
 hex = "0.4"
-# rocksdb = { version = "0.15.0", features = ["lz4"], default-features = false, optional=true }
+parity-wasm = "0.42.2"
+structopt = "0.3"
+# rocksdb = { version = "0.15.0", features = ["lz4"], default-features = false, optional = true }
 wasmer = { version = "1.0.2", default-features = false }
 wee_alloc = { version = "0.4.5", optional = true }
 svm-common = { path = "crates/common" }
@@ -86,6 +88,7 @@ members = [
   "crates/storage",
   "crates/runtime",
   "crates/compiler",
+  "crates/cli",
   "crates/ffi",
   "crates/runtime-ffi",
 ]
