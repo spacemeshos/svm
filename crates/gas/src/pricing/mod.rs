@@ -8,10 +8,12 @@ use crate::{Block, BlockContext, CallGraph, FuncIndex, Gas, Op, Program, Program
 mod function;
 mod import;
 mod instruction;
+mod program;
 
 pub use function::FuncPrice;
 pub use import::{ImportPriceResolver, Imports};
 pub use instruction::InstructionPriceResolver;
+pub use program::ProgramResolver;
 
 static FUNC_BLOCK_MAX_DEPTH: usize = 256;
 

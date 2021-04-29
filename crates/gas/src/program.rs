@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::{FuncBody, FuncIndex, Imports};
 
 #[derive(Debug)]
-pub(crate) struct Program {
+pub struct Program {
     pub imports: Imports,
 
     pub functions: HashMap<FuncIndex, FuncBody>,

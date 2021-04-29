@@ -64,19 +64,19 @@ impl ImportPriceResolver {
     }
 }
 
-pub fn price_for(imports: &Imports, resolver: &ImportPriceResolver, func: FuncIndex) -> Gas {
-    let (module, name) = imports.get_import(func);
-
-    resolver.price_for(module, name)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    fn price_for(imports: &Imports, resolver: &ImportPriceResolver, func: FuncIndex) -> Gas {
+        let (module, name) = imports.get_import(func);
+
+        resolver.price_for(module, name)
+    }
+
     #[test]
     fn test_price_for() {
-        let mut imports = Imports::with_capacity(3);
+        let mut imports = Imports::with_capacity(4);
 
         let f0 = FuncIndex(0);
         let f1 = FuncIndex(1);
@@ -85,7 +85,6 @@ mod tests {
 
         imports.add_import("env", "foo", f0);
         imports.add_import("env", "bar", f1);
-
         imports.add_import("host", "bar", f2);
         imports.add_import("host", "baz", f3);
 
