@@ -4,7 +4,9 @@ macro_rules! validate_wasm {
     ($code:expr) => {{
         let wasm = wat::parse_str($code).unwrap();
 
-        svm_gas::validate_wasm(&wasm)
+        let return_cycles = true;
+
+        svm_gas::validate_wasm(&wasm, return_cycles)
     }};
 }
 
@@ -17,7 +19,8 @@ fn validate_floats_not_allowed() {
         "#;
 
     let result = validate_wasm!(wasm);
-    assert_eq!(Err(ProgramError::FloatsNotAllowed), result);
+
+    assert_eq!(result, Err(ProgramError::FloatsNotAllowed));
 }
 
 #[test]
@@ -29,7 +32,8 @@ fn validate_loops_not_allowed() {
         "#;
 
     let result = validate_wasm!(wasm);
-    assert_eq!(Err(ProgramError::LoopNotAllowed), result);
+
+    assert_eq!(result, Err(ProgramError::LoopNotAllowed));
 }
 
 #[test]
@@ -45,11 +49,11 @@ fn validate_direct_recursive_call_not_allowed() {
     let result = validate_wasm!(wasm);
 
     assert_eq!(
+        result,
         Err(ProgramError::RecursiveCall {
             func: FuncIndex(0),
             offset: 2,
         }),
-        result
     );
 }
 
@@ -70,13 +74,13 @@ fn validate_indirect_recursive_call_not_allowed() {
     let result = validate_wasm!(wasm);
 
     assert_eq!(
-        Err(ProgramError::CallCycle(vec![
+        result,
+        Err(ProgramError::CallCycle(Some(vec![
             FuncIndex(0),
             FuncIndex(1),
             FuncIndex(2),
             FuncIndex(0),
-        ])),
-        result
+        ])))
     );
 }
 
@@ -98,5 +102,6 @@ fn validate_call_indirect_not_allowed() {
         "#;
 
     let result = validate_wasm!(wasm);
-    assert_eq!(Err(ProgramError::CallIndirectNotAllowed), result);
+
+    assert_eq!(result, Err(ProgramError::CallIndirectNotAllowed));
 }

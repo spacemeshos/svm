@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::fmt::{Debug, Display};
 
 use parity_wasm::elements::{Instruction, Instructions};
 
@@ -18,6 +19,12 @@ impl PartialOrd for FuncIndex {
 impl Ord for FuncIndex {
     fn cmp(&self, rhs: &FuncIndex) -> std::cmp::Ordering {
         self.0.cmp(&rhs.0)
+    }
+}
+
+impl Display for FuncIndex {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        <Self as Debug>::fmt(self, f)
     }
 }
 

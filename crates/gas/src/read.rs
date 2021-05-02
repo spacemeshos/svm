@@ -1,12 +1,11 @@
 use std::collections::HashMap;
 
-use parity_wasm::elements::CodeSection;
-use parity_wasm::elements::{External, ImportCountType, ImportEntry, Module};
+use parity_wasm::elements::{CodeSection, External, ImportCountType, ImportEntry, Module};
 
 use crate::{FuncBody, FuncIndex, Imports, Program, ProgramError};
 
 /// Reads a Wasm program and constructs a `Program` struct
-pub(crate) fn read_program(wasm: &[u8]) -> Result<Program, ProgramError> {
+pub fn read_program(wasm: &[u8]) -> Result<Program, ProgramError> {
     let mut functions = HashMap::new();
 
     let module = read_module(wasm)?;
@@ -28,7 +27,9 @@ pub(crate) fn read_program(wasm: &[u8]) -> Result<Program, ProgramError> {
 }
 
 fn read_module(wasm: &[u8]) -> Result<Module, ProgramError> {
-    parity_wasm::deserialize_buffer(wasm).map_err(|_| ProgramError::InvalidWasm)
+    let module = parity_wasm::deserialize_buffer(wasm);
+
+    module.map_err(|_| ProgramError::InvalidWasm)
 }
 
 fn read_code(module: &Module) -> Result<CodeSection, ProgramError> {
@@ -58,7 +59,7 @@ fn read_imports<'m>(module: &Module) -> Result<Imports, ProgramError> {
 
         Ok(imports)
     } else {
-        Err(ProgramError::MissingImportSection)
+        Ok(Imports::new())
     }
 }
 

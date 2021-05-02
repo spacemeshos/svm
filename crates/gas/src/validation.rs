@@ -17,7 +17,7 @@ use parity_wasm::elements::{CustomSection, Instruction};
 ///
 /// If none of the above occurs, then we have a valid restricted-Wasm program.
 /// Otherwise, a `ProgramError` is returned.
-pub fn validate_wasm(wasm: &[u8]) -> Result<(), ProgramError> {
+pub fn validate_wasm(wasm: &[u8], return_cycles: bool) -> Result<(), ProgramError> {
     let program = crate::read::read_program(wasm)?;
 
     let functions = program.functions();
@@ -29,9 +29,8 @@ pub fn validate_wasm(wasm: &[u8]) -> Result<(), ProgramError> {
     }
 
     let call_graph = builder.build();
-    call_graph.assert_no_cycles()?;
 
-    Ok(())
+    call_graph.find_cycles(return_cycles)
 }
 
 fn validate_func(

@@ -1,69 +1,67 @@
-use std::cell::RefCell;
-use std::collections::{HashMap, HashSet};
+use std::cell::{Ref, RefMut};
+use std::collections::HashMap;
+use std::fmt::Debug;
 use std::hash::Hash;
-use std::marker::PhantomData;
 use std::rc::Rc;
 
 use crate::FuncIndex;
 
-use super::{CallGraph, Node};
+use super::{CallGraph, Node, NodeRef, Value};
 
-#[derive(Debug)]
 pub struct CallGraphBuilder<T = FuncIndex> {
-    // nodes: HashMap<T, Rc<RefCell<Node<T>>>>,
-    phantom: PhantomData<T>,
+    nodes: HashMap<T, NodeRef<T>>,
 }
 
 impl<T> CallGraphBuilder<T>
 where
-    T: PartialEq + Eq + Copy + Clone + Hash + 'static,
+    T: Value,
 {
     pub fn new() -> Self {
         Self {
-            // nodes: HashMap::new(),
-            phantom: PhantomData,
+            nodes: HashMap::new(),
         }
     }
 
     pub fn add_target(&mut self, value: T) {
-        // let _ = self.get_or_create_mut(value);
+        let _ = self.get_or_create_mut(value);
     }
 
     pub fn add_call(&mut self, source: T, dest: T) {
-        //     debug_assert!(source != dest);
+        debug_assert!(source != dest);
 
-        //     self.add_outgoing(source, dest);
-        //     self.add_incoming(source, dest);
+        self.add_outgoing(source, dest);
+        self.add_incoming(source, dest);
     }
 
     pub fn build(self) -> CallGraph<T> {
-        CallGraph {
-            phantom: PhantomData,
-        }
-        //  CallGraph { nodes: self.nodes }
+        CallGraph { nodes: self.nodes }
     }
 
-    // fn get_or_create_mut(&mut self, value: T) -> &mut Rc<RefCell<Node<T>>> {
-    //     let entry = self.nodes.entry(value);
+    fn get_or_create_mut(&mut self, value: T) -> NodeRef<T> {
+        let entry = self.nodes.entry(value);
 
-    //     entry.or_insert(Rc::new(RefCell::new(Node::new(value))))
-    // }
+        entry
+            .or_insert_with(|| {
+                let node = Node::new(value);
 
-    // fn add_outgoing(&mut self, source: T, dest: T) {
-    //     let dest = self.get_or_create_mut(dest);
-    //     let dest = Rc::clone(dest);
+                NodeRef::new(node)
+            })
+            .clone()
+    }
 
-    //     let source = self.get_or_create_mut(source);
+    fn add_outgoing(&mut self, source: T, dest: T) {
+        let dest = self.get_or_create_mut(dest);
+        let source = self.get_or_create_mut(source);
 
-    //     // Rc::make_mut(source).add_out_edge(dest);
-    // }
+        let mut source = source.as_mut();
+        source.add_out_edge(dest);
+    }
 
-    // fn add_incoming(&mut self, source: T, dest: T) {
-    //     let source = self.get_or_create_mut(source);
-    //     let source = Rc::clone(source);
+    fn add_incoming(&mut self, source: T, dest: T) {
+        let source = self.get_or_create_mut(source);
+        let dest = self.get_or_create_mut(dest);
 
-    //     let dest = self.get_or_create_mut(dest);
-
-    //     // Rc::make_mut(dest).add_in_edge(source);
-    // }
+        let mut dest = dest.as_mut();
+        dest.add_in_edge(source);
+    }
 }
