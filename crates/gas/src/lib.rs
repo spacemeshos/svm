@@ -8,10 +8,13 @@
 mod block;
 pub(crate) use block::{Block, BlockContext};
 
+mod import;
 mod read;
 
-mod pricing;
-pub use pricing::{price_wasm, ImportPriceResolver, Imports};
+pub use import::Imports;
+
+// mod pricing;
+// pub use pricing::{price_wasm, ImportPriceResolver};
 
 mod call_graph;
 pub(crate) use call_graph::{CallGraph, CallGraphBuilder};

@@ -1,12 +1,13 @@
 use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
+use std::pin::Pin;
 use std::rc::Rc;
 
 #[derive(Debug, Clone)]
 pub struct Node<T> {
     value: T,
-    in_edges: HashSet<Rc<Node<T>>>,
-    out_edges: HashSet<Rc<Node<T>>>,
+    in_edges: HashSet<Rc<Pin<Node<T>>>>,
+    out_edges: HashSet<Rc<Pin<Node<T>>>>,
 }
 
 impl<T> Node<T>
@@ -26,15 +27,15 @@ where
     }
 
     pub fn add_out_edge(&mut self, dest: Rc<Node<T>>) {
-        self.out_edges.insert(dest);
+        // self.out_edges.insert(dest);
     }
 
     pub fn add_in_edge(&mut self, source: Rc<Node<T>>) {
-        self.in_edges.insert(source);
+        // self.in_edges.insert(source);
     }
 
     pub fn remove_out_edge(&mut self, dest: &Rc<Node<T>>) {
-        self.out_edges.remove(dest);
+        // self.out_edges.remove(dest);
     }
 }
 
