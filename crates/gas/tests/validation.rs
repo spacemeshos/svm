@@ -15,7 +15,7 @@ fn validate_floats_not_allowed() {
     let wasm = r#"
           (module
             (func $func0 (result f32)
-                 (f32.const 0)))
+                (f32.const 0)))
         "#;
 
     let result = validate_wasm!(wasm);

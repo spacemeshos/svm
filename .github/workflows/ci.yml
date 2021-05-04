@@ -141,7 +141,7 @@ jobs:
       - name: Cargo Test
         uses: actions-rs/cargo@v1
         with:
-          toolchain: nightly
+          toolchain: +nightly
           command: test
           args: --all --features=default-cranelift,default-memory --no-default-features -- --nocapture
   wasm_codec:
