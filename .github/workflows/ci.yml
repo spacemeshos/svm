@@ -66,9 +66,7 @@ jobs:
           restore-keys: |
             build-${{ runner.os }}-${{ matrix.profile }}-nightly-target-
       - name: Install Rust
-        run: |
-          rustup update nightly
-          rustup default nightly
+        run: rustup update nightly
       - name: Cargo Build
         uses: actions-rs/cargo@v1
         with:
@@ -135,9 +133,7 @@ jobs:
           restore-keys: |
             test-${{ runner.os }}-${{ matrix.profile }}-nightly-target-
       - name: Install Rust
-        run: |
-          rustup update nightly
-          rustup default nightly
+        run: rustup update nightly
       - name: Cargo Test
         uses: actions-rs/cargo@v1
         with:
@@ -186,7 +182,6 @@ jobs:
       - name: Install Rust
         run: |
           rustup update nightly
-          rustup default nightly
           rustup target add wasm32-unknown-unknown --toolchain nightly
       - name: Test svm-codec
         working-directory: crates/codec/examples
