@@ -8,6 +8,8 @@ use crate::FuncIndex;
 
 use super::{CallGraph, Node, NodeRef, Value};
 
+/// This struct is used while building the `Call-Graph` on-the-fly as part of validation process of a Wasm program.
+/// Once the building is done, calling `build` will output a `CallGraph` struct.
 pub struct CallGraphBuilder<T = FuncIndex> {
     nodes: HashMap<T, NodeRef<T>>,
 }

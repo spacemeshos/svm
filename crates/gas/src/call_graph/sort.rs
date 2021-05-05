@@ -4,6 +4,18 @@ use crate::{FuncIndex, Program, ProgramError};
 
 use super::{CallGraph, Node, NodeRef, Value};
 
+/// This function implements a [Topological-Sort](https://en.wikipedia.org/wiki/Topological_sorting) over the given `CallGraph`.
+/// The algorithm used is Kahn's algorithm which has a linear running time.
+///
+/// In case the are no cycles - a Topological sorted `Vec` of `T` (the type of a `Node` value) are returned.
+/// Otherwise, an error stating there are cycles in the `CallGraph` are returned.
+///
+/// When `return_cycles = true` a specific cycles is returned. This is handy for debugging / testing purposes.
+/// However, it should not be used in production for two reasons:
+///
+/// * It's a waste of CPU cycles. An invalid Wasm program should be discarded from the mem-pool at once.
+/// * The current code for deriving a cycles is recursive (it's much easier to code a DFS search using recursions).
+///   Malicious Wasm programs might contain very big cycles which has the potential to exhaust the Stack when recursing.
 pub fn try_topological_sort<T>(
     call_graph: &CallGraph<T>,
     return_cycles: bool,
@@ -66,10 +78,14 @@ fn derive_cycle<T>(call_graph: &CallGraph<T>, return_cycles: bool) -> Option<Vec
 where
     T: Value,
 {
+    // The `return_cycles` feature is optional.
+    // In production we should have it turned-off.
     if !return_cycles {
         return None;
     }
 
+    // Since, we know there is at least one cycle within the `CallGraph`.
+    // Each cycle's node must have at least one outgoing and one incoming edges.
     let mut candidates = call_graph
         .nodes()
         .iter()
@@ -77,6 +93,8 @@ where
         .cloned()
         .collect::<Vec<_>>();
 
+    // We order so that the tests will be deterministic.
+    // So we always pick the first node out of the sorted `candidates`
     candidates.sort_by_key(|node| node.value());
 
     let first = candidates.first().unwrap();

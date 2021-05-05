@@ -117,7 +117,9 @@ mod test {
         let g = graph! {
             "a" => "b",
             "b" => "c",
-            "c" => "a"
+            "c" => "a",
+            "c" => "d",
+            "c" => "e"
         };
 
         assert_cycles!(g, vec!["a", "b", "c", "a"]);
