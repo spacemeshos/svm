@@ -29,7 +29,7 @@ fn main() {
         let mut wasm = Vec::new();
         let _ = file.read_to_end(&mut wasm).unwrap();
 
-        match validate_wasm(&wasm) {
+        match validate_wasm(&wasm, true) {
             Ok(()) => println!("File is a valid restricted Wasm file"),
             Err(e) => println!("File is NOT a valid restricted Wasm file: {}", e),
         }

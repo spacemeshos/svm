@@ -6,6 +6,13 @@ use std::rc::Rc;
 
 use super::Value;
 
+/// This struct implement a Node for the `CallGraph`.
+///
+/// Each node has:
+///
+/// * A alue associated with it. This value is assumed to be unique across.
+/// * References to other Nodes it has edges connected to.
+///
 pub struct Node<T> {
     value: T,
     incoming: HashSet<NodeRef<T>>,
@@ -24,48 +31,64 @@ where
         }
     }
 
+    /// Returns the value associated with the `Node`
     pub fn value(&self) -> T {
         self.value
     }
 
+    /// Returns the a `Vec` of references to `Node`(s) with incoming edges to self
     pub fn incoming(&self) -> Vec<NodeRef<T>> {
         self.incoming.iter().cloned().collect()
     }
 
+    /// Whether the current node has incoming edges
     pub fn has_incoming(&self) -> bool {
         self.incoming.len() > 0
     }
 
+    /// Returns the a `Vec` of references to outgoing `Node`(s) from `self`
     pub fn outgoing(&self) -> Vec<NodeRef<T>> {
         self.outgoing.iter().cloned().collect()
     }
 
+    /// Whether the current node has outgoing edges
     pub fn has_outgoing(&self) -> bool {
         self.outgoing.len() > 0
     }
 
+    /// Adds an outgoing edge to `dest` (i.e: `self` -> `dest`)
     pub fn add_out_edge(&mut self, dest: NodeRef<T>) {
         self.outgoing.insert(dest);
     }
 
+    /// Adds an incoming edge from `dest` (i.e: `dest` -> `self`)
     pub fn add_in_edge(&mut self, source: NodeRef<T>) {
         self.incoming.insert(source);
     }
 
+    /// Removes an incoming edge from `dest` (i.e: `dest` -> `self`)
     pub fn remove_in_edge(&mut self, source: &NodeRef<T>) {
         self.incoming.remove(source);
     }
 
+    /// Removes an outgoing edge to `dest` (i.e: `self` -> `dest`)
     pub fn remove_out_edge(&mut self, dest: &NodeRef<T>) {
         self.outgoing.remove(dest);
     }
 
+    /// Whether is a `sink` node. (i.e: has no outgoing edges)
     pub fn is_sink(&self) -> bool {
         self.outgoing.is_empty()
     }
 
+    /// Whether is a `source` node. (i.e: has no incoming edges)
     pub fn is_source(&self) -> bool {
         self.incoming.is_empty()
+    }
+
+    /// Whether is an `isolated` node. (i.e: has neither incoming nor outgoing edges)
+    pub fn is_isolated(&self) -> bool {
+        (self.is_sink() == false) && (self.is_source() == false)
     }
 }
 
@@ -92,6 +115,8 @@ where
 
 impl<T> Eq for Node<T> where T: Value {}
 
+/// The `NodeRef wrapper struct it adds readability to the code
+/// (less cognitive load instead of seeing `Rc<RefCell<Node<T>>>` all over the place
 #[repr(transparent)]
 pub struct NodeRef<T> {
     inner: Rc<RefCell<Node<T>>>,
@@ -138,16 +163,6 @@ where
         <Ref<Node<T>> as Debug>::fmt(&node, f)
     }
 }
-// impl<T> Display for NodeRef<T>
-// where
-//     T: Value,
-// {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         let node: Ref<Node<T>> = self.as_ref();
-
-//         <Ref<Node<T>> as Display>::fmt(&node, f)
-//     }
-// }
 
 impl<T> Clone for NodeRef<T>
 where
