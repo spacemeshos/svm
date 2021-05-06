@@ -29,6 +29,9 @@ lazy_static = "1.4.0"
 hex = "0.4"
 parity-wasm = "0.42.2"
 structopt = "0.3"
+tracing = "0.1"
+tracing-subscriber = "0.2"
+indexmap = "1.6.2"
 # rocksdb = { version = "0.15.0", features = ["lz4"], default-features = false, optional = true }
 wasmer = { version = "1.0.2", default-features = false }
 wee_alloc = { version = "0.4.5", optional = true }

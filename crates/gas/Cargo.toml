@@ -9,9 +9,10 @@ publish = false
 
 [dependencies]
 parity-wasm = "0.42.2"
-log = "0.4"
+indexmap = "1.6.2"
+tracing = "0.1"
+tracing-subscriber = "0.2"
 
 [dev-dependencies]
 wat = "1.0"
 maplit = "1.0.2"
-env_logger = "0.7.1"

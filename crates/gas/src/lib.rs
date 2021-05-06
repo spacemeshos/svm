@@ -5,22 +5,17 @@
 
 //! This crate is responsible for doing gas validation & estimation for transactions.
 
-mod block;
-pub(crate) use block::{Block, BlockContext};
-
 mod import;
-mod read;
-
 pub use import::Imports;
 
-// mod pricing;
-// pub use pricing::{price_wasm, ImportPriceResolver};
+mod read;
+pub use read::read_program;
 
 mod call_graph;
-pub(crate) use call_graph::{CallGraph, CallGraphBuilder};
+pub use call_graph::{CallGraph, CallGraphBuilder};
 
 mod program;
-pub(crate) use program::Program;
+pub use program::Program;
 
 mod validation;
 pub use validation::validate_wasm;
@@ -29,11 +24,13 @@ mod gas;
 pub use gas::Gas;
 
 mod function;
-pub(crate) use function::FuncBody;
-pub use function::FuncIndex;
+pub use function::{FuncBody, FuncIndex};
 
 mod error;
 pub use error::ProgramError;
 
-mod op;
-pub(crate) use op::Op;
+mod pricing;
+pub use pricing::{
+    build_func_cfg, price_for, Block, BlockBuilder, BlockNum, BlockRef, CFGBuilder, Cont, Edge,
+    FuncIterator, Function, Jump, Op, CFG,
+};
