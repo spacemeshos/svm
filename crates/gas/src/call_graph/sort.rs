@@ -67,11 +67,10 @@ fn has_edges<T>(call_graph: &CallGraph<T>) -> bool
 where
     T: Value,
 {
-    call_graph.nodes().iter().any(|node| {
-        let isolated = node.is_source() && node.is_sink();
-
-        (!isolated)
-    })
+    call_graph
+        .nodes()
+        .iter()
+        .any(|node| node.is_isolated() == false)
 }
 
 fn derive_cycle<T>(call_graph: &CallGraph<T>, return_cycles: bool) -> Option<Vec<T>>
@@ -97,19 +96,27 @@ where
     // So we always pick the first node out of the sorted `candidates`
     candidates.sort_by_key(|node| node.value());
 
-    let first = candidates.first().unwrap();
-
-    let mut cycle = Vec::new();
-    let mut visited = HashSet::new();
-
-    let found = find_cycle(&first, &mut cycle, &mut visited);
-
-    debug_assert!(found);
+    let start = candidates.first().unwrap();
+    let cycle = find_cycle(&start);
 
     Some(cycle)
 }
 
-fn find_cycle<T>(current: &NodeRef<T>, cycle: &mut Vec<T>, visited: &mut HashSet<T>) -> bool
+fn find_cycle<T>(start: &NodeRef<T>) -> Vec<T>
+where
+    T: Value,
+{
+    let mut cycle = Vec::new();
+    let mut visited = HashSet::new();
+
+    let found = recur_find_cycle(start, &mut cycle, &mut visited);
+
+    debug_assert!(found);
+
+    cycle
+}
+
+fn recur_find_cycle<T>(current: &NodeRef<T>, cycle: &mut Vec<T>, visited: &mut HashSet<T>) -> bool
 where
     T: Value,
 {
@@ -124,7 +131,7 @@ where
     visited.insert(value);
 
     for next in current.outgoing().iter() {
-        let found = find_cycle(next, cycle, visited);
+        let found = recur_find_cycle(next, cycle, visited);
 
         if found {
             return true;
