@@ -6,13 +6,13 @@ use std::rc::Rc;
 
 use super::Value;
 
-/// This struct implement a Node for the `CallGraph`.
+/// This struct implements a Node for the `CallGraph`.
 ///
-/// Each node has:
+/// Each `Node` has:
 ///
-/// * A alue associated with it. This value is assumed to be unique across.
-/// * References to other Nodes it has edges connected to.
-///
+/// * `value`    - It's a value associated with it, and is assumed to be unique across the Graph.
+/// * `incoming` - References to other `Nodes` that have *incoming* connections to `self`.
+/// * `outgoing` - References to other `Nodes` that have *outgoing* connections to `self`.
 pub struct Node<T> {
     value: T,
     incoming: HashSet<NodeRef<T>>,
@@ -88,7 +88,7 @@ where
 
     /// Whether is an `isolated` node. (i.e: has neither incoming nor outgoing edges)
     pub fn is_isolated(&self) -> bool {
-        (self.is_sink() == false) && (self.is_source() == false)
+        self.is_sink() && self.is_source()
     }
 }
 
@@ -115,7 +115,7 @@ where
 
 impl<T> Eq for Node<T> where T: Value {}
 
-/// The `NodeRef wrapper struct it adds readability to the code
+/// The `NodeRef` wrapper struct adds readability to the code
 /// (less cognitive load instead of seeing `Rc<RefCell<Node<T>>>` all over the place
 #[repr(transparent)]
 pub struct NodeRef<T> {
@@ -219,6 +219,10 @@ where
 
     pub fn is_source(&self) -> bool {
         self.as_ref().is_source()
+    }
+
+    pub fn is_isolated(&self) -> bool {
+        self.as_ref().is_isolated()
     }
 }
 
