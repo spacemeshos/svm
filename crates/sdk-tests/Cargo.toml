@@ -15,7 +15,7 @@ svm-sdk = { path = "../sdk", features = ["dynamic-alloc"], default-features = fa
 svm-sdk-types = { path = "../sdk/types", features = ["dynamic-alloc", "debug"], default-features = false }
 
 [dev-dependencies]
-trybuild = { version = "1.0", features = ["diff"] }
+trybuild = { version = "1.0.42", features = ["diff"] }
 serde_json = { version = "1.0" }
 
 [features]
