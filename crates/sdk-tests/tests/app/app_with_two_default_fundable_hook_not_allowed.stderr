@@ -4,4 +4,4 @@ error: There can be only a single default `fundable hook`
 3 | #[app]
   | ^^^^^^
   |
-  = note: this error originates in an attribute macro (in Nightly builds, run with -Z macro-backtrace for more info)
+  = note: this error originates in the attribute macro `app` (in Nightly builds, run with -Z macro-backtrace for more info)
