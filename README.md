@@ -1,6 +1,6 @@
 # SVM - _Spacemesh_ Virtual Machine
 
-![build](https://github.com/spacemeshos/svm/workflows/SVM%20CI/badge.svg)
+[![build](https://github.com/spacemeshos/svm/actions/workflows/ci.yml/badge.svg)](https://github.com/spacemeshos/svm/actions/workflows/ci.yml)
 [![license](https://img.shields.io/badge/License-MIT-brightgreen.svg)](https://github.com/spacemeshos/svm/blob/master/LICENSE)
 [![gitter](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/spacemesh-os/svm)
 
