@@ -116,7 +116,7 @@ where
 impl<T> Eq for Node<T> where T: Value {}
 
 /// The `NodeRef` wrapper struct adds readability to the code
-/// (less cognitive load instead of seeing `Rc<RefCell<Node<T>>>` all over the place
+/// (less cognitive load instead of seeing `Rc<RefCell<Node<T>>>` all over the place).
 #[repr(transparent)]
 pub struct NodeRef<T> {
     inner: Rc<RefCell<Node<T>>>,
