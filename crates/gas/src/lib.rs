@@ -11,6 +11,11 @@ pub use import::Imports;
 mod read;
 pub use read::read_program;
 
+pub use import::Imports;
+
+// mod pricing;
+// pub use pricing::{price_wasm, ImportPriceResolver};
+
 mod call_graph;
 pub use call_graph::{CallGraph, CallGraphBuilder};
 
