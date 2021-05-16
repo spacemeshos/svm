@@ -4,4 +4,4 @@ error: Each function can be annotated with `#[endpoint]` exactly once.
 3 | #[app]
   | ^^^^^^
   |
-  = note: this error originates in an attribute macro (in Nightly builds, run with -Z macro-backtrace for more info)
+  = note: this error originates in the attribute macro `app` (in Nightly builds, run with -Z macro-backtrace for more info)

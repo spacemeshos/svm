@@ -1,4 +1,4 @@
-use crate::{CallGraph, FuncIndex, Program, ProgramError};
+use crate::{CallGraphBuilder, FuncIndex, Program, ProgramError};
 
 use parity_wasm::elements::{CustomSection, Instruction};
 
@@ -17,30 +17,30 @@ use parity_wasm::elements::{CustomSection, Instruction};
 ///
 /// If none of the above occurs, then we have a valid restricted-Wasm program.
 /// Otherwise, a `ProgramError` is returned.
-pub fn validate_wasm(wasm: &[u8]) -> Result<(), ProgramError> {
-    let program = crate::program_reader::read_program(wasm)?;
+pub fn validate_wasm(wasm: &[u8], return_cycles: bool) -> Result<(), ProgramError> {
+    let program = crate::read::read_program(wasm)?;
 
     let functions = program.functions();
 
-    let mut call_graph = CallGraph::new(functions.clone());
+    let mut builder = CallGraphBuilder::new();
 
     for &func in functions.iter() {
-        validate_func(func, &program, &mut call_graph)?;
+        validate_func(func, &program, &mut builder)?;
     }
 
-    call_graph.assert_no_recursive_calls()?;
+    let call_graph = builder.build();
 
-    Ok(())
+    call_graph.find_cycles(return_cycles)
 }
 
 fn validate_func(
     func: FuncIndex,
     program: &Program,
-    call_graph: &mut CallGraph,
+    builder: &mut CallGraphBuilder<FuncIndex>,
 ) -> Result<(), ProgramError> {
     let func_body = program.get_func_body(func).instructions();
 
-    let _offset = validate_block(func, program, &func_body, 0, call_graph)?;
+    let _offset = validate_block(func, program, &func_body, 0, builder)?;
 
     Ok(())
 }
@@ -50,7 +50,7 @@ fn validate_block(
     program: &Program,
     ops: &[Instruction],
     block_offset: usize,
-    call_graph: &mut CallGraph,
+    builder: &mut CallGraphBuilder<FuncIndex>,
 ) -> Result<usize, ProgramError> {
     let mut offset = block_offset;
 
@@ -68,18 +68,18 @@ fn validate_block(
                         return Err(ProgramError::RecursiveCall { func, offset });
                     }
 
-                    call_graph.add_call(func, target);
+                    builder.add_call(func, target);
                 }
                 offset += 1;
             }
             Instruction::Block(..) => {
-                offset = validate_block(func, program, ops, offset + 1, call_graph)?;
+                offset = validate_block(func, program, ops, offset + 1, builder)?;
             }
             Instruction::If(..) => {
-                let after_if = validate_block(func, program, ops, offset + 1, call_graph)?;
+                let after_if = validate_block(func, program, ops, offset + 1, builder)?;
 
                 if let Some(Instruction::Else) = ops.get(after_if) {
-                    let after_else = validate_block(func, program, ops, after_if + 1, call_graph)?;
+                    let after_else = validate_block(func, program, ops, after_if + 1, builder)?;
                     offset = after_else;
                 } else {
                     offset = after_if;

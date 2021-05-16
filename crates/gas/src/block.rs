@@ -18,16 +18,16 @@ impl Block {
 pub(crate) struct BlockContext<'ctx> {
     pub ops: &'ctx Block,
 
-    pub func_idx: FuncIndex,
+    pub func: FuncIndex,
 
     pub depth: usize,
 }
 
 impl<'ctx> BlockContext<'ctx> {
-    pub fn new(func_idx: FuncIndex, ops: &'ctx Block) -> Self {
+    pub fn new(func: FuncIndex, ops: &'ctx Block) -> Self {
         Self {
             ops,
-            func_idx,
+            func,
             depth: 1,
         }
     }
@@ -35,28 +35,8 @@ impl<'ctx> BlockContext<'ctx> {
     pub fn child_block(&self, ops: &'ctx Block) -> Self {
         Self {
             ops,
-            func_idx: self.func_idx,
+            func: self.func,
             depth: self.depth + 1,
         }
-    }
-}
-
-pub(crate) struct FuncsBlocks {
-    inner: HashMap<FuncIndex, Block>,
-}
-
-impl FuncsBlocks {
-    pub fn new() -> Self {
-        Self {
-            inner: HashMap::new(),
-        }
-    }
-
-    pub fn add_func_block(&mut self, func_idx: FuncIndex, block: Block) {
-        self.inner.insert(func_idx, block);
-    }
-
-    pub fn get_func_block(&self, func_idx: FuncIndex) -> &Block {
-        self.inner.get(&func_idx).unwrap()
     }
 }
