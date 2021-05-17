@@ -20,11 +20,11 @@ use parity_wasm::elements::{CustomSection, Instruction};
 pub fn validate_wasm(wasm: &[u8], return_cycles: bool) -> Result<(), ProgramError> {
     let program = crate::read::read_program(wasm)?;
 
-    let functions = program.functions();
+    let func_index = program.func_indexes();
 
     let mut builder = CallGraphBuilder::new();
 
-    for &func in functions.iter() {
+    for &func in func_index.iter() {
         validate_func(func, &program, &mut builder)?;
     }
 
@@ -38,9 +38,10 @@ fn validate_func(
     program: &Program,
     builder: &mut CallGraphBuilder<FuncIndex>,
 ) -> Result<(), ProgramError> {
-    let func_body = program.get_func_body(func).instructions();
+    let func = program.get_func(func);
+    let func_body = func.code();
 
-    let _offset = validate_block(func, program, &func_body, 0, builder)?;
+    let _offset = validate_block(func.index(), program, func_body, 0, builder)?;
 
     Ok(())
 }

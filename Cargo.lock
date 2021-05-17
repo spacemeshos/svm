@@ -1409,8 +1409,6 @@ dependencies = [
  "indexmap",
  "maplit",
  "parity-wasm",
- "tracing",
- "tracing-subscriber",
  "wat",
 ]
 

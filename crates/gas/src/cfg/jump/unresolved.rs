@@ -1,4 +1,4 @@
-use super::{BlockNum, Depth, Jump};
+use super::{BlockNum, Jump};
 
 #[derive(Debug, Clone)]
 pub struct UnresolvedJump {
