@@ -7,17 +7,11 @@ pub struct Op<'f> {
     raw: &'f Instruction,
 
     pub offset: usize,
-
-    pub is_last: bool,
 }
 
 impl<'f> Op<'f> {
-    pub fn new(raw: &'f Instruction, offset: usize, is_last: bool) -> Self {
-        Self {
-            raw,
-            offset,
-            is_last,
-        }
+    pub fn new(raw: &'f Instruction, offset: usize) -> Self {
+        Self { raw, offset }
     }
 
     pub fn raw(&self) -> &Instruction {
@@ -26,10 +20,6 @@ impl<'f> Op<'f> {
 
     pub fn offset(&self) -> usize {
         self.offset
-    }
-
-    pub fn is_last(&self) -> bool {
-        self.is_last
     }
 }
 

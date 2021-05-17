@@ -1,6 +1,6 @@
 use parity_wasm::elements::Instruction;
 
-use crate::pricing::Op;
+use crate::cfg::Op;
 
 use super::Function;
 
@@ -22,18 +22,13 @@ impl<'f> FuncIterator<'f> {
             code,
         }
     }
-
-    #[inline]
-    fn is_eof(&self) -> bool {
-        self.offset >= self.length
-    }
 }
 
 impl<'f> Iterator for FuncIterator<'f> {
     type Item = Op<'f>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.is_eof() {
+        if self.offset >= self.length {
             return None;
         }
 
@@ -41,7 +36,7 @@ impl<'f> Iterator for FuncIterator<'f> {
 
         self.offset += 1;
 
-        let op = Op::new(raw, self.offset, self.is_eof());
+        let op = Op::new(raw, self.offset);
 
         Some(op)
     }

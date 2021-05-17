@@ -111,7 +111,13 @@ impl<'f> Block<'f> {
 
         match edge {
             Edge::Jump(..) => writeln!(f, "\t\t{} -> {} (Wasm branch)", origin.0, target.0)?,
-            Edge::Cont(..) => writeln!(f, "\t\t{} -> {} (Cont.)", origin.0, target.0)?,
+            Edge::Cont(cont) => writeln!(
+                f,
+                "\t\t{} -> {} (`{:?}` Cont.)",
+                origin.0,
+                target.0,
+                cont.kind()
+            )?,
         }
 
         Ok(())

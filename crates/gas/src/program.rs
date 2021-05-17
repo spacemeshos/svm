@@ -1,24 +1,45 @@
 use std::collections::HashMap;
 
-use crate::{FuncBody, FuncIndex, Imports};
+use parity_wasm::elements::Instruction;
+
+use crate::{FuncIndex, Function, Imports};
 
 #[derive(Debug)]
 pub struct Program {
-    pub imports: Imports,
+    imports: Imports,
 
-    pub functions: HashMap<FuncIndex, FuncBody>,
+    functions: HashMap<FuncIndex, Vec<Instruction>>,
 }
 
 impl Program {
+    pub fn imports(&self) -> &Imports {
+        &self.imports
+    }
+
+    pub fn add_func(&mut self, index: FuncIndex, code: Vec<Instruction>) {
+        self.functions.insert(index, code);
+    }
+
     pub fn is_imported(&self, func: FuncIndex) -> bool {
         (func.0 as usize) < self.imports.len()
     }
 
-    pub fn get_func_body(&self, func: FuncIndex) -> &FuncBody {
-        self.functions.get(&func).as_ref().unwrap()
+    pub fn get_func(&self, index: FuncIndex) -> Function {
+        let code = self.functions.get(&index).unwrap();
+
+        Function::new(index, code)
     }
 
-    pub fn functions(&self) -> Vec<FuncIndex> {
+    pub fn func_indexes(&self) -> Vec<FuncIndex> {
         self.functions.keys().copied().collect()
+    }
+}
+
+impl Default for Program {
+    fn default() -> Self {
+        Program {
+            imports: Imports::default(),
+            functions: HashMap::new(),
+        }
     }
 }

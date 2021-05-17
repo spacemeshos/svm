@@ -1,6 +1,6 @@
 use indexmap::IndexSet;
 
-use crate::pricing::Op;
+use crate::cfg::Op;
 
 use super::{Block, BlockNum, Depth, Edge};
 

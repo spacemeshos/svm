@@ -8,6 +8,7 @@ pub enum WasmJump {
     Br(u32),
     BrTable(Box<WasmBrTable>),
     Return,
+    Unreachable,
 }
 
 #[derive(Clone, PartialEq)]
@@ -31,6 +32,7 @@ impl From<&Instruction> for WasmJump {
     fn from(op: &Instruction) -> Self {
         match *op {
             Instruction::Return => WasmJump::Return,
+            Instruction::Unreachable => WasmJump::Unreachable,
             Instruction::Br(index) => WasmJump::Br(index),
             Instruction::BrIf(index) => WasmJump::BrIf(index),
             Instruction::BrTable(ref table) => {
@@ -50,6 +52,7 @@ impl Debug for WasmJump {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             WasmJump::Return => write!(f, "return"),
+            WasmJump::Unreachable => write!(f, "unreachable"),
             WasmJump::Br(n) => write!(f, "br {}", n),
             WasmJump::BrIf(n) => write!(f, "br_if {}", n),
             WasmJump::BrTable(ref table) => {
@@ -80,6 +83,13 @@ mod tests {
         let op = Instruction::Return;
 
         assert_eq!(WasmJump::from(&op), WasmJump::Return);
+    }
+
+    #[test]
+    fn wasm_unreachable_convert() {
+        let op = Instruction::Unreachable;
+
+        assert_eq!(WasmJump::from(&op), WasmJump::Unreachable);
     }
 
     #[test]

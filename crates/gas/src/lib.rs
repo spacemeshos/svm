@@ -24,13 +24,13 @@ mod gas;
 pub use gas::Gas;
 
 mod function;
-pub use function::{FuncBody, FuncIndex};
+pub use function::{FuncIndex, FuncIterator, Function};
 
 mod error;
 pub use error::ProgramError;
 
-mod pricing;
-pub use pricing::{
-    build_func_cfg, price_for, Block, BlockBuilder, BlockNum, BlockRef, CFGBuilder, Cont, Edge,
-    FuncIterator, Function, Jump, Op, CFG,
+mod cfg;
+pub use cfg::{
+    build_func_cfg, Block, BlockBuilder, BlockNum, BlockRef, CFGBuilder, Cont, ContKind, Edge,
+    Jump, Op, CFG,
 };

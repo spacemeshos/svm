@@ -1,11 +1,12 @@
 use parity_wasm::elements::Instruction;
 
-use crate::FuncIndex;
-
+mod index;
 mod iter;
 
+pub use index::FuncIndex;
 pub use iter::FuncIterator;
 
+#[derive(Debug)]
 pub struct Function<'f> {
     index: FuncIndex,
 

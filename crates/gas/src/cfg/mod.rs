@@ -2,6 +2,17 @@ use std::fmt::{self, Debug};
 
 use parity_wasm::elements::Instruction;
 
+use crate::{CallGraph, Function, Gas, Program};
+
+mod depth;
+pub use depth::Depth;
+
+mod block;
+pub use block::{Block, BlockBuilder, BlockNum, BlockRef};
+
+mod jump;
+pub use jump::{Jump, UnresolvedJump, WasmJump};
+
 mod edge;
 pub use edge::Edge;
 
@@ -9,17 +20,14 @@ mod builder;
 pub use builder::CFGBuilder;
 
 mod cont;
-pub use cont::Cont;
+pub use cont::{Cont, ContKind, DepthUnresolvedCont};
 
 mod op;
 pub use op::Op;
 
-use super::{Block, BlockNum, Depth, Function, UnresolvedJump, WasmJump};
-
 pub fn build_func_cfg<'f>(func: &'f Function<'f>) -> CFG<'f> {
     println!("Starting to build CFG for function #{:?}", func.index().0);
 
-    let mut offset = 1;
     let mut builder = CFGBuilder::new();
 
     debug_assert_eq!(builder.current_block(), BlockNum(1));
@@ -28,12 +36,12 @@ pub fn build_func_cfg<'f>(func: &'f Function<'f>) -> CFG<'f> {
     for op in func.iter() {
         match op_kind(&op) {
             OpKind::Jump => on_jump(op, &mut builder),
+            OpKind::If => on_if(op, &mut builder),
+            OpKind::Else => on_else(op, &mut builder),
             OpKind::ScopeStart => on_scope_start(op, &mut builder),
             OpKind::ScopeEnd => on_scope_end(op, &mut builder),
             OpKind::Other => on_general_op(op, &mut builder),
         }
-
-        offset += 1;
     }
 
     builder.build()
@@ -43,6 +51,8 @@ enum OpKind {
     Jump,
     ScopeStart,
     ScopeEnd,
+    If,
+    Else,
     Other,
 }
 
@@ -92,10 +102,10 @@ fn on_jump<'f>(op: Op<'f>, builder: &mut CFGBuilder<'f>) {
     let branch: WasmJump = op.raw().into();
 
     match branch {
-        WasmJump::Return => {
+        WasmJump::Return | WasmJump::Unreachable => {
             conditional = false;
 
-            // For `return` we explicitly set `target_depth = 0` (i.e jumping off the function)
+            // For `return` and `unreachable` we explicitly set `target_depth = 0` (i.e jumping off the function)
             add_jump(origin, Depth(0), builder);
         }
         WasmJump::Br(label) => {
@@ -131,7 +141,17 @@ fn add_jump<'f>(origin: BlockNum, target_depth: Depth, builder: &mut CFGBuilder<
 
 #[inline]
 fn add_continuation(origin: BlockNum, target: BlockNum, builder: &mut CFGBuilder) {
-    builder.add_continuation(origin, target);
+    builder.add_cont(origin, target, ContKind::Default);
+}
+
+#[inline]
+fn on_if<'f>(op: Op<'f>, builder: &mut CFGBuilder<'f>) {
+    builder.enter_if(op);
+}
+
+#[inline]
+fn on_else<'f>(op: Op<'f>, builder: &mut CFGBuilder<'f>) {
+    builder.enter_else(op);
 }
 
 #[inline]
@@ -157,6 +177,10 @@ fn op_kind(op: &Op) -> OpKind {
 
     if is_jump(op) {
         OpKind::Jump
+    } else if is_if(op) {
+        OpKind::If
+    } else if is_else(op) {
+        OpKind::Else
     } else if is_scope_start(op) {
         OpKind::ScopeStart
     } else if is_scope_end(op) {
@@ -174,21 +198,22 @@ fn is_jump(op: &Instruction) -> bool {
             | Instruction::BrIf(..)
             | Instruction::BrTable(..)
             | Instruction::Return
+            | Instruction::Unreachable
     )
 }
 
 #[inline]
 fn is_scope_start(op: &Instruction) -> bool {
-    matches!(op, Instruction::Block(..) | Instruction::If(..))
+    matches!(op, Instruction::Block(..))
+}
+
+#[inline]
+fn is_if(op: &Instruction) -> bool {
+    matches!(op, Instruction::If(..))
 }
 
 #[inline]
 fn is_scope_end(op: &Instruction) -> bool {
-    is_end(op) || is_else(op)
-}
-
-#[inline]
-fn is_end(op: &Instruction) -> bool {
     matches!(op, Instruction::End)
 }
 
