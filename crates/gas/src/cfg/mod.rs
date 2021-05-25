@@ -512,6 +512,20 @@ impl<'f> CFG<'f> {
 
         &self.blocks[num]
     }
+
+    pub fn start(&self) -> BlockNum {
+        BlockNum(0)
+    }
+
+    pub fn end(&self) -> BlockNum {
+        let len = self.blocks().len();
+
+        debug_assert!(len > 0);
+
+        let end = len - 1;
+
+        BlockNum(end)
+    }
 }
 
 impl<'f> Debug for CFG<'f> {

@@ -1,12 +1,20 @@
 use super::Block;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+use std::fmt::{self, Display};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
 pub struct BlockNum(pub usize);
 
 impl BlockNum {
     pub fn inc(&mut self) {
         self.0 += 1;
+    }
+}
+
+impl Display for BlockNum {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "#{}", self.0)
     }
 }
 

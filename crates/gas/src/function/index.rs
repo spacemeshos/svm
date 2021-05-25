@@ -2,7 +2,7 @@ use std::fmt::{self, Debug, Display};
 
 #[repr(transparent)]
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
-pub struct FuncIndex(pub u16);
+pub struct FuncIndex(pub u32);
 
 impl PartialOrd for FuncIndex {
     fn partial_cmp(&self, rhs: &FuncIndex) -> Option<std::cmp::Ordering> {
@@ -18,6 +18,6 @@ impl Ord for FuncIndex {
 
 impl Display for FuncIndex {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        <Self as Debug>::fmt(self, f)
+        write!(f, "{}", self.0)
     }
 }

@@ -1,7 +1,9 @@
 use crate::read::read_program;
-use crate::{CallGraphBuilder, FuncIndex, Op, Program, ProgramError, ProgramVisitor};
+use crate::{CallGraphBuilder, FuncIndex, GraphCycles, Op, Program, ProgramVisitor};
 
 use parity_wasm::elements::{CustomSection, Instruction};
+
+type ProgramError = crate::ProgramError<FuncIndex>;
 
 /// Validates a Wasm program.
 ///
@@ -23,7 +25,7 @@ pub fn validate_wasm(wasm: &[u8], return_cycles: bool) -> Result<(), ProgramErro
 
     let mut validator = ProgramValidator::new(&program, return_cycles);
 
-    crate::visit_program(&program, validator)
+    validator.visit(&program)
 }
 
 pub struct ProgramValidator<'p> {
@@ -31,7 +33,7 @@ pub struct ProgramValidator<'p> {
 
     program: &'p Program,
 
-    builder: CallGraphBuilder,
+    builder: CallGraphBuilder<FuncIndex>,
 
     return_cycles: bool,
 }
@@ -88,11 +90,18 @@ impl ProgramVisitor for ProgramValidator<'_> {
     fn on_end(mut self) -> Result<(), Self::Error> {
         let call_graph = self.builder.build();
 
-        call_graph.find_cycles(self.return_cycles)
+        let result = call_graph.find_cycles(self.return_cycles);
+
+        match result {
+            GraphCycles::NoCycles => Ok(()),
+            GraphCycles::HasCycles(..) => Err(ProgramError::CallCycle(result)),
+        }
     }
 
     fn on_func_start(&mut self, func_index: FuncIndex) -> Result<(), Self::Error> {
         self.current_func = Some(func_index);
+
+        self.builder.add_target(func_index);
 
         Ok(())
     }
@@ -110,7 +119,7 @@ impl ProgramVisitor for ProgramValidator<'_> {
             Instruction::Call(target) => {
                 self.validate_func_index(target)?;
 
-                let target = FuncIndex(target as u16);
+                let target = FuncIndex(target);
 
                 if self.program.is_imported(target) == false {
                     let origin = self.current_func();

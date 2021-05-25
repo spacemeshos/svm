@@ -1,10 +1,11 @@
 use std::cell::{Ref, RefCell, RefMut};
-use std::collections::HashSet;
 use std::fmt::{Debug, Display};
 use std::hash::{Hash, Hasher};
 use std::rc::Rc;
 
-use super::Value;
+use indexmap::IndexSet;
+
+use super::{NodeData, NodeLabel};
 
 /// This struct implements a Node for the `CallGraph`.
 ///
@@ -13,31 +14,47 @@ use super::Value;
 /// * `value`    - It's a value associated with it, and is assumed to be unique across the Graph.
 /// * `incoming` - References to other `Nodes` that have *incoming* connections to `self`.
 /// * `outgoing` - References to other `Nodes` that have *outgoing* connections to `self`.
-pub struct Node<T> {
-    value: T,
-    incoming: HashSet<NodeRef<T>>,
-    outgoing: HashSet<NodeRef<T>>,
+pub struct Node<L, D>
+where
+    L: NodeLabel,
+    D: NodeData,
+{
+    label: L,
+    data: D,
+    incoming: IndexSet<NodeRef<L, D>>,
+    outgoing: IndexSet<NodeRef<L, D>>,
 }
 
-impl<T> Node<T>
+impl<L, D> Node<L, D>
 where
-    T: Value,
+    L: NodeLabel,
+    D: NodeData,
 {
-    pub fn new(value: T) -> Self {
+    pub fn new(label: L) -> Self {
         Self {
-            value,
-            incoming: HashSet::new(),
-            outgoing: HashSet::new(),
+            label,
+            data: D::default(),
+            incoming: IndexSet::new(),
+            outgoing: IndexSet::new(),
         }
     }
 
-    /// Returns the value associated with the `Node`
-    pub fn value(&self) -> T {
-        self.value
+    /// Returns the `label` associated with the `Node`
+    pub fn label(&self) -> L {
+        self.label
     }
 
-    /// Returns the a `Vec` of references to `Node`(s) with incoming edges to self
-    pub fn incoming(&self) -> Vec<NodeRef<T>> {
+    /// Returns the `data` associated with the `Node`
+    pub fn data(&self) -> &D {
+        &self.data
+    }
+
+    pub fn set_data(&mut self, data: D) {
+        self.data = data;
+    }
+
+    /// Returns the a `Vec` of references to `Node`(s) with incoming edges to `self`
+    pub fn incoming(&self) -> Vec<NodeRef<L, D>> {
         self.incoming.iter().cloned().collect()
     }
 
@@ -47,7 +64,7 @@ where
     }
 
     /// Returns the a `Vec` of references to outgoing `Node`(s) from `self`
-    pub fn outgoing(&self) -> Vec<NodeRef<T>> {
+    pub fn outgoing(&self) -> Vec<NodeRef<L, D>> {
         self.outgoing.iter().cloned().collect()
     }
 
@@ -57,22 +74,22 @@ where
     }
 
     /// Adds an outgoing edge to `dest` (i.e: `self` -> `dest`)
-    pub fn add_out_edge(&mut self, dest: NodeRef<T>) {
+    pub fn add_out_edge(&mut self, dest: NodeRef<L, D>) {
         self.outgoing.insert(dest);
     }
 
     /// Adds an incoming edge from `dest` (i.e: `dest` -> `self`)
-    pub fn add_in_edge(&mut self, source: NodeRef<T>) {
+    pub fn add_in_edge(&mut self, source: NodeRef<L, D>) {
         self.incoming.insert(source);
     }
 
     /// Removes an incoming edge from `dest` (i.e: `dest` -> `self`)
-    pub fn remove_in_edge(&mut self, source: &NodeRef<T>) {
+    pub fn remove_in_edge(&mut self, source: &NodeRef<L, D>) {
         self.incoming.remove(source);
     }
 
     /// Removes an outgoing edge to `dest` (i.e: `self` -> `dest`)
-    pub fn remove_out_edge(&mut self, dest: &NodeRef<T>) {
+    pub fn remove_out_edge(&mut self, dest: &NodeRef<L, D>) {
         self.outgoing.remove(dest);
     }
 
@@ -92,42 +109,54 @@ where
     }
 }
 
-impl<T> Hash for Node<T>
+impl<L, D> Hash for Node<L, D>
 where
-    T: Value,
+    L: NodeLabel,
+    D: NodeData,
 {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.value().hash(state);
+        self.label().hash(state);
     }
 }
 
-impl<T> PartialEq for Node<T>
+impl<L, D> PartialEq for Node<L, D>
 where
-    T: Value,
+    L: NodeLabel,
+    D: NodeData,
 {
     fn eq(&self, other: &Self) -> bool {
-        let value = self.value();
-        let other = other.value();
+        let value = self.label();
+        let other = other.label();
 
         value.eq(&other)
     }
 }
 
-impl<T> Eq for Node<T> where T: Value {}
+impl<L, D> Eq for Node<L, D>
+where
+    L: NodeLabel,
+    D: NodeData,
+{
+}
 
 /// The `NodeRef` wrapper struct adds readability to the code
 /// (less cognitive load instead of seeing `Rc<RefCell<Node<T>>>` all over the place).
 #[repr(transparent)]
-pub struct NodeRef<T> {
-    inner: Rc<RefCell<Node<T>>>,
+pub struct NodeRef<L, D>
+where
+    L: NodeLabel,
+    D: NodeData,
+{
+    inner: Rc<RefCell<Node<L, D>>>,
 }
 
-impl<T> Debug for Node<T>
+impl<L, D> Debug for Node<L, D>
 where
-    T: Value,
+    L: NodeLabel,
+    D: NodeData,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let value = self.value();
+        let value = self.label();
 
         write!(f, "{} [outgoing]\n", value)?;
 
@@ -135,7 +164,7 @@ where
             write!(f, "\tno outgoing\n")?;
         } else {
             for node in self.outgoing() {
-                write!(f, "\t{} -> {}\n", value, node.value())?;
+                write!(f, "\t{} -> {}\n", value, node.label())?;
             }
         }
 
@@ -145,7 +174,7 @@ where
             write!(f, "\tno incoming\n")?;
         } else {
             for node in self.incoming() {
-                write!(f, "\t{} -> {}\n", node.value(), value)?;
+                write!(f, "\t{} -> {}\n", node.label(), value)?;
             }
         }
 
@@ -153,20 +182,22 @@ where
     }
 }
 
-impl<T> Debug for NodeRef<T>
+impl<L, D> Debug for NodeRef<L, D>
 where
-    T: Value,
+    L: NodeLabel,
+    D: NodeData,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let node: Ref<Node<T>> = self.as_ref();
+        let node: Ref<Node<L, D>> = self.as_ref();
 
-        <Ref<Node<T>> as Debug>::fmt(&node, f)
+        <Ref<Node<L, D>> as Debug>::fmt(&node, f)
     }
 }
 
-impl<T> Clone for NodeRef<T>
+impl<L, D> Clone for NodeRef<L, D>
 where
-    T: Value,
+    L: NodeLabel,
+    D: NodeData,
 {
     fn clone(&self) -> Self {
         let inner = Rc::clone(&self.inner);
@@ -175,29 +206,30 @@ where
     }
 }
 
-impl<T> NodeRef<T>
+impl<L, D> NodeRef<L, D>
 where
-    T: Value,
+    L: NodeLabel,
+    D: NodeData,
 {
-    pub fn new(node: Node<T>) -> Self {
+    pub fn new(node: Node<L, D>) -> Self {
         Self {
             inner: Rc::new(RefCell::new(node)),
         }
     }
 
-    pub fn as_ref(&self) -> Ref<Node<T>> {
+    pub fn as_ref(&self) -> Ref<Node<L, D>> {
         self.inner.borrow()
     }
 
-    pub fn as_mut(&self) -> RefMut<Node<T>> {
+    pub fn as_mut(&self) -> RefMut<Node<L, D>> {
         self.inner.borrow_mut()
     }
 
-    pub fn value(&self) -> T {
-        self.as_ref().value()
+    pub fn label(&self) -> L {
+        self.as_ref().label()
     }
 
-    pub fn incoming(&self) -> Vec<NodeRef<T>> {
+    pub fn incoming(&self) -> Vec<NodeRef<L, D>> {
         self.as_ref().incoming()
     }
 
@@ -205,7 +237,7 @@ where
         self.as_ref().has_incoming()
     }
 
-    pub fn outgoing(&self) -> Vec<NodeRef<T>> {
+    pub fn outgoing(&self) -> Vec<NodeRef<L, D>> {
         self.as_ref().outgoing()
     }
 
@@ -226,25 +258,32 @@ where
     }
 }
 
-impl<T> Hash for NodeRef<T>
+impl<L, D> Hash for NodeRef<L, D>
 where
-    T: Value,
+    L: NodeLabel,
+    D: NodeData,
 {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.value().hash(state);
+        self.label().hash(state);
     }
 }
 
-impl<T> PartialEq for NodeRef<T>
+impl<L, D> PartialEq for NodeRef<L, D>
 where
-    T: Value,
+    L: NodeLabel,
+    D: NodeData,
 {
     fn eq(&self, other: &Self) -> bool {
-        let value = self.value();
-        let other = other.value();
+        let value = self.label();
+        let other = other.label();
 
         value.eq(&other)
     }
 }
 
-impl<T> Eq for NodeRef<T> where T: Value {}
+impl<L, D> Eq for NodeRef<L, D>
+where
+    L: NodeLabel,
+    D: NodeData,
+{
+}

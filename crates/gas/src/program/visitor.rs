@@ -3,6 +3,10 @@ use crate::{FuncIndex, FuncIterator, Function, Op, Program};
 pub trait ProgramVisitor: Sized {
     type Error;
 
+    fn visit(mut self, program: &Program) -> Result<(), Self::Error> {
+        visit_program(program, self)
+    }
+
     fn on_start(&mut self) -> Result<(), Self::Error> {
         Ok(())
     }
@@ -24,7 +28,7 @@ pub trait ProgramVisitor: Sized {
     }
 }
 
-pub fn visit_program<V: ProgramVisitor>(program: &Program, mut visitor: V) -> Result<(), V::Error> {
+fn visit_program<V: ProgramVisitor>(program: &Program, mut visitor: V) -> Result<(), V::Error> {
     let func_index = program.func_indexes();
 
     visitor.on_start()?;

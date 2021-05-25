@@ -2,7 +2,9 @@ use std::collections::HashMap;
 
 use parity_wasm::elements::{CodeSection, External, ImportCountType, ImportEntry, Module};
 
-use crate::{FuncIndex, Function, Imports, Program, ProgramError};
+use crate::{FuncIndex, Function, Imports, NodeLabel, Program};
+
+type ProgramError = crate::ProgramError<FuncIndex>;
 
 /// Reads a Wasm program and constructs a `Program` struct
 pub fn read_program(wasm: &[u8]) -> Result<Program, ProgramError> {
@@ -12,13 +14,15 @@ pub fn read_program(wasm: &[u8]) -> Result<Program, ProgramError> {
     let mut program = Program::default();
 
     for (i, func_body) in code.bodies().iter().enumerate() {
-        let fn_index = i + imports.len();
+        let fn_index = i + imports.count();
 
-        let index = FuncIndex(fn_index as u16);
+        let index = FuncIndex(fn_index as u32);
         let code = func_body.code().elements().to_vec();
 
         program.add_func(index, code);
     }
+
+    program.set_imports(imports);
 
     Ok(program)
 }
@@ -45,12 +49,12 @@ fn read_imports<'m>(module: &Module) -> Result<Imports, ProgramError> {
         let mut imports = Imports::with_capacity(count as usize);
 
         import_section.entries().iter().for_each(|import| {
-            if let External::Function(func) = import.external() {
+            if let External::Function(fn_index) = import.external() {
                 let module = import.module();
                 let name = import.field();
-                let func = FuncIndex(*func as u16);
+                let func = FuncIndex(*fn_index);
 
-                imports.add_import(module, name, func);
+                imports.insert(module, name, func);
             }
         });
 
