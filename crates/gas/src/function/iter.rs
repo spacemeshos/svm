@@ -1,8 +1,6 @@
 use parity_wasm::elements::Instruction;
 
-use crate::cfg::Op;
-
-use super::Function;
+use crate::{Function, Op};
 
 pub struct FuncIterator<'f> {
     offset: usize,

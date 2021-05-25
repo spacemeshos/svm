@@ -293,7 +293,7 @@ use std::fmt::{self, Debug};
 
 use parity_wasm::elements::Instruction;
 
-use crate::{CallGraph, Function, Gas, Program};
+use crate::{CallGraph, Function, Gas, Op, Program};
 
 mod depth;
 pub use depth::Depth;
@@ -312,9 +312,6 @@ pub use builder::CFGBuilder;
 
 mod cont;
 pub use cont::{Cont, ContKind, DepthUnresolvedCont};
-
-mod op;
-pub use op::Op;
 
 pub fn build_func_cfg<'f>(func: &'f Function<'f>) -> CFG<'f> {
     println!("Starting to build CFG for function #{:?}", func.index().0);

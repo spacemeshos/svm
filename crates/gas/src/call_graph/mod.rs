@@ -6,7 +6,9 @@ use crate::{FuncIndex, ProgramError};
 
 mod builder;
 mod node;
+
 mod sort;
+pub use sort::try_topological_sort;
 
 pub use builder::CallGraphBuilder;
 pub use node::{Node, NodeRef};
@@ -25,7 +27,7 @@ where
 {
     #[must_use]
     pub fn find_cycles(&self, return_cycles: bool) -> Result<(), ProgramError<T>> {
-        let result = sort::try_topological_sort::<T>(self, return_cycles);
+        let result = try_topological_sort::<T>(self, return_cycles);
 
         result.map(|_cycle| ())
     }

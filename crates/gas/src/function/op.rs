@@ -20,7 +20,7 @@ impl<'f> Op<'f> {
 
     pub fn offset(&self) -> usize {
         self.offset
-    }
+}
 }
 
 impl<'f> Debug for Op<'f> {

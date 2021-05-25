@@ -4,6 +4,9 @@ use parity_wasm::elements::Instruction;
 
 use crate::{FuncIndex, Function, Imports};
 
+mod visitor;
+pub use visitor::{visit_program, ProgramVisitor};
+
 #[derive(Debug)]
 pub struct Program {
     imports: Imports,

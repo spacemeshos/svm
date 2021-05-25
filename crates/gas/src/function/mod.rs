@@ -2,9 +2,11 @@ use parity_wasm::elements::Instruction;
 
 mod index;
 mod iter;
+mod op;
 
 pub use index::FuncIndex;
 pub use iter::FuncIterator;
+pub use op::Op;
 
 #[derive(Debug)]
 pub struct Function<'f> {

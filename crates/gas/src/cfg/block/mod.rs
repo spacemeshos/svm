@@ -1,6 +1,8 @@
 use indexmap::IndexSet;
 
-use super::{Depth, Edge, Jump, Op};
+use super::{Depth, Edge, Jump};
+
+use crate::Op;
 
 use std::fmt::{self, Debug};
 

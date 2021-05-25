@@ -15,7 +15,7 @@ mod call_graph;
 pub use call_graph::{CallGraph, CallGraphBuilder};
 
 mod program;
-pub use program::Program;
+pub use program::{visit_program, Program, ProgramVisitor};
 
 mod validation;
 pub use validation::validate_wasm;
@@ -24,7 +24,7 @@ mod gas;
 pub use gas::Gas;
 
 mod function;
-pub use function::{FuncIndex, FuncIterator, Function};
+pub use function::{FuncIndex, FuncIterator, Function, Op};
 
 mod error;
 pub use error::ProgramError;
@@ -32,5 +32,7 @@ pub use error::ProgramError;
 mod cfg;
 pub use cfg::{
     build_func_cfg, Block, BlockBuilder, BlockNum, BlockRef, CFGBuilder, Cont, ContKind, Edge,
-    Jump, Op, CFG,
+    Jump, CFG,
 };
+
+mod pricing;
