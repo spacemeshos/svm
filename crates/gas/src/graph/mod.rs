@@ -36,6 +36,14 @@ where
         self.nodes.values().cloned().collect()
     }
 
+    pub fn remove_node(&self, node: &NodeRef<L, D>) {
+        for neighbor in node.outgoing() {
+            let edge = (node.label(), neighbor.label());
+
+            self.remove_edge(edge);
+        }
+    }
+
     pub fn remove_edge(&self, (source, dest): (L, L)) {
         let source = self.nodes.get(&source).unwrap();
         let dest = self.nodes.get(&dest).unwrap();

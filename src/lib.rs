@@ -1,4 +1,5 @@
 extern crate svm_codec;
+extern crate svm_common;
 extern crate svm_compiler;
 extern crate svm_ffi;
 extern crate svm_gas;

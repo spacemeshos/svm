@@ -314,7 +314,7 @@ mod cont;
 pub use cont::{Cont, ContKind, DepthUnresolvedCont};
 
 pub fn build_func_cfg<'f>(func: &'f Function<'f>) -> CFG<'f> {
-    println!("Starting to build CFG for function #{:?}", func.index().0);
+    // println!("Starting to build CFG for function #{:?}", func.index().0);
 
     let mut builder = CFGBuilder::new();
 
@@ -331,6 +331,11 @@ pub fn build_func_cfg<'f>(func: &'f Function<'f>) -> CFG<'f> {
             OpKind::Other => on_general_op(op, &mut builder),
         }
     }
+
+    // println!(
+    //     "Finalizing building the CFG for function #{:?}",
+    //     func.index().0
+    // );
 
     builder.build()
 }

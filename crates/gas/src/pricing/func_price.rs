@@ -1,3 +1,5 @@
+use std::fmt::{self, Display};
+
 use indexmap::IndexMap;
 
 use crate::FuncIndex;
@@ -24,5 +26,21 @@ impl FuncPrice {
 
     pub fn get(&self, fn_index: FuncIndex) -> usize {
         *self.inner.get(&fn_index).unwrap()
+    }
+}
+
+impl Display for FuncPrice {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let min = self.inner.keys().min().unwrap().0;
+        let max = self.inner.keys().max().unwrap().0;
+
+        for i in min..=max {
+            let fn_index = FuncIndex(i);
+            let fn_price = self.get(fn_index);
+
+            writeln!(f, "Function #{} price: {}", fn_index, fn_price)?;
+        }
+
+        Ok(())
     }
 }

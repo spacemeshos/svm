@@ -9,17 +9,18 @@ type ProgramError = crate::ProgramError<FuncIndex>;
 /// Reads a Wasm program and constructs a `Program` struct
 pub fn read_program(wasm: &[u8]) -> Result<Program, ProgramError> {
     let module = read_module(wasm)?;
+
     let code = read_code(&module)?;
     let imports = read_imports(&module)?;
     let mut program = Program::default();
 
-    for (i, func_body) in code.bodies().iter().enumerate() {
+    for (i, fn_body) in code.bodies().iter().enumerate() {
         let fn_index = i + imports.count();
 
-        let index = FuncIndex(fn_index as u32);
-        let code = func_body.code().elements().to_vec();
+        let fn_index = FuncIndex(fn_index as u32);
+        let fn_code = fn_body.code().elements().to_vec();
 
-        program.add_func(index, code);
+        program.add_func(fn_index, fn_code);
     }
 
     program.set_imports(imports);
@@ -44,17 +45,20 @@ fn read_imports<'m>(module: &Module) -> Result<Imports, ProgramError> {
     let import_section = module.import_section();
 
     if let Some(import_section) = import_section {
-        let count = module_import_count(module)?;
+        let import_count = module_import_count(module)?;
 
-        let mut imports = Imports::with_capacity(count as usize);
+        let mut imports = Imports::with_capacity(import_count as usize);
+        let mut offset = 0;
 
         import_section.entries().iter().for_each(|import| {
-            if let External::Function(fn_index) = import.external() {
+            if let External::Function(..) = import.external() {
                 let module = import.module();
                 let name = import.field();
-                let func = FuncIndex(*fn_index);
+                let fn_index = FuncIndex(offset);
 
-                imports.insert(module, name, func);
+                imports.insert(module, name, fn_index);
+
+                offset += 1;
             }
         });
 

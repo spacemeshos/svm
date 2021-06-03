@@ -1,5 +1,4 @@
-use std::collections::HashMap;
-
+use indexmap::IndexMap;
 use parity_wasm::elements::Instruction;
 
 use crate::{FuncIndex, Function};
@@ -14,7 +13,7 @@ pub use import::Imports;
 pub struct Program {
     imports: Imports,
 
-    functions: HashMap<FuncIndex, Vec<Instruction>>,
+    functions: IndexMap<FuncIndex, Vec<Instruction>>,
 }
 
 impl Program {
@@ -26,18 +25,18 @@ impl Program {
         self.imports = imports;
     }
 
-    pub fn add_func(&mut self, index: FuncIndex, code: Vec<Instruction>) {
-        self.functions.insert(index, code);
+    pub fn add_func(&mut self, fn_index: FuncIndex, ops: Vec<Instruction>) {
+        self.functions.insert(fn_index, ops);
     }
 
     pub fn is_imported(&self, func: FuncIndex) -> bool {
         (func.0 as usize) < self.imports.count()
     }
 
-    pub fn get_func(&self, index: FuncIndex) -> Function {
-        let code = self.functions.get(&index).unwrap();
+    pub fn get_func(&self, fn_index: FuncIndex) -> Function {
+        let code = self.functions.get(&fn_index).unwrap();
 
-        Function::new(index, code)
+        Function::new(fn_index, code)
     }
 
     pub fn func_indexes(&self) -> Vec<FuncIndex> {
@@ -49,7 +48,7 @@ impl Default for Program {
     fn default() -> Self {
         Program {
             imports: Imports::default(),
-            functions: HashMap::new(),
+            functions: IndexMap::new(),
         }
     }
 }

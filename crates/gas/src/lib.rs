@@ -40,5 +40,5 @@ pub use cfg::{
 };
 
 mod pricing;
-pub use pricing::build_weighted_graph;
+pub use pricing::{build_weighted_graph, resolvers};
 pub use pricing::{FuncPrice, PriceResolver, ProgramPricing};

@@ -1,10 +1,10 @@
-use std::collections::HashMap;
+use indexmap::IndexMap;
 
 use crate::FuncIndex;
 
 #[derive(Debug)]
 pub struct Imports {
-    inner: HashMap<FuncIndex, (String, String)>,
+    inner: IndexMap<FuncIndex, (String, String)>,
 }
 
 impl Default for Imports {
@@ -20,7 +20,7 @@ impl Imports {
 
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
-            inner: HashMap::with_capacity(capacity),
+            inner: IndexMap::with_capacity(capacity),
         }
     }
 
@@ -41,5 +41,9 @@ impl Imports {
 
     pub fn count(&self) -> usize {
         self.inner.len()
+    }
+
+    pub fn iter(&self) -> indexmap::map::Iter<FuncIndex, (String, String)> {
+        self.inner.iter()
     }
 }

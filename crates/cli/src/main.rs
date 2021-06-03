@@ -1,10 +1,15 @@
+#![allow(unused)]
+
 use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
 
 use structopt::StructOpt;
 
-use svm_gas::validate_wasm;
+use svm_gas::resolvers::V0Resolver;
+use svm_gas::{read_program, validate_wasm};
+
+use svm_gas::{ProgramPricing, ProgramVisitor};
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "svm")]
@@ -30,8 +35,18 @@ fn main() {
         let _ = file.read_to_end(&mut wasm).unwrap();
 
         match validate_wasm(&wasm, true) {
-            Ok(()) => println!("File is a valid restricted Wasm file"),
+            Ok(()) => {
+                println!("File is a valid restricted-Wasm file (Fixed-Gas pricing can be used!)")
+            }
             Err(e) => println!("File is NOT a valid restricted Wasm file: {}", e),
         }
+
+        let resolver = V0Resolver::default();
+        let program = read_program(&wasm).unwrap();
+
+        let mut pp = ProgramPricing::new(resolver);
+        let func_price = pp.visit(&program).unwrap();
+
+        println!("{}", func_price);
     }
 }

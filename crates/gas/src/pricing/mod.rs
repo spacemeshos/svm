@@ -14,89 +14,92 @@ type ProgramError = crate::ProgramError<FuncIndex>;
 mod resolver;
 pub use resolver::PriceResolver;
 
+pub mod resolvers;
+
 mod cfg;
 pub use cfg::build_weighted_graph;
 
 mod func_price;
 pub use func_price::FuncPrice;
 
-pub struct ProgramPricing<'p, F, R>
+pub struct ProgramPricing<R>
 where
     R: PriceResolver,
-    F: FnOnce(FuncPrice),
 {
     current_func: Option<FuncIndex>,
 
     builder: CallGraphBuilder<FuncIndex>,
 
-    program: &'p Program,
-
     resolver: R,
-
-    callback: F,
 }
 
-impl<'p, F, R> ProgramPricing<'p, F, R>
+impl<R> ProgramPricing<R>
 where
     R: PriceResolver,
-    F: FnOnce(FuncPrice),
 {
-    pub fn new(program: &'p Program, resolver: R, callback: F) -> Self {
+    pub fn new(resolver: R) -> Self {
         Self {
             current_func: None,
             builder: CallGraphBuilder::new(),
-            program,
-            callback,
             resolver,
         }
     }
 
-    pub fn current_func(&self) -> FuncIndex {
+    pub fn run(
+        self,
+        program: &Program,
+    ) -> Result<<Self as ProgramVisitor>::Output, <Self as ProgramVisitor>::Error> {
+        self.visit(program)
+    }
+
+    fn current_func(&self) -> FuncIndex {
         self.current_func.unwrap()
     }
 
-    pub fn add_target(&mut self, label: FuncIndex) {
+    fn add_target(&mut self, label: FuncIndex) {
         self.builder.add_target(label);
     }
 
-    pub fn add_call(&mut self, op: &Op, origin: FuncIndex, target: FuncIndex) {
+    fn add_call(&mut self, op: &Op, origin: FuncIndex, target: FuncIndex) {
         debug_assert!(origin != target);
 
         self.builder.add_call(origin, target);
     }
 }
 
-impl<F, R> ProgramVisitor for ProgramPricing<'_, F, R>
+impl<R> ProgramVisitor for ProgramPricing<R>
 where
     R: PriceResolver,
-    F: FnOnce(FuncPrice),
 {
     type Error = ProgramError;
 
-    fn on_start(&mut self) -> Result<(), Self::Error> {
+    type Output = FuncPrice;
+
+    fn on_start(&mut self, _program: &Program) -> Result<(), Self::Error> {
         Ok(())
     }
 
-    fn on_end(mut self) -> Result<(), Self::Error> {
+    fn on_end(mut self, program: &Program) -> Result<Self::Output, Self::Error> {
         let mut call_graph = self.builder.build();
-
         let mut sorted = graph::topological_sort(&call_graph);
 
         let mut func_price = FuncPrice::new();
         let imports = Imports::new();
 
-        while let Some(func_index) = sorted.pop() {
-            let price = compute_func_price(&self.program, func_index, &self.resolver, &func_price);
+        while let Some(fn_index) = sorted.pop() {
+            let price = compute_func_price(program, fn_index, &self.resolver, &func_price);
 
-            func_price.set(func_index, price);
+            func_price.set(fn_index, price);
         }
 
-        (self.callback)(func_price);
-
-        Ok(())
+        Ok(func_price)
     }
 
-    fn on_func_start(&mut self, fn_index: FuncIndex) -> Result<(), Self::Error> {
+    fn on_func_start(
+        &mut self,
+        fn_index: FuncIndex,
+        _program: &Program,
+    ) -> Result<(), Self::Error> {
         self.current_func = Some(fn_index);
 
         self.add_target(fn_index);
@@ -104,17 +107,17 @@ where
         Ok(())
     }
 
-    fn on_func_end(&mut self, func_index: FuncIndex) -> Result<(), Self::Error> {
+    fn on_func_end(&mut self, fn_index: FuncIndex, _program: &Program) -> Result<(), Self::Error> {
         self.current_func = None;
 
         Ok(())
     }
 
-    fn on_op(&mut self, op: &Op) -> Result<(), Self::Error> {
+    fn on_op(&mut self, op: &Op, program: &Program) -> Result<(), Self::Error> {
         if let Instruction::Call(target) = *op.raw() {
             let target = FuncIndex(target);
 
-            if self.program.is_imported(target) == false {
+            if program.is_imported(target) == false {
                 let origin = self.current_func();
 
                 self.add_call(op, origin, target);

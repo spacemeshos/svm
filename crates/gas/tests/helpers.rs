@@ -32,14 +32,11 @@ where
 
     let mut func_price: Option<FuncPrice> = None;
 
-    let callback = |fp| func_price = Some(fp);
+    let mut pp = ProgramPricing::new(resolver);
 
-    let mut pp = ProgramPricing::new(&program, resolver, callback);
+    let func_price = pp.visit(&program).unwrap();
 
-    let result = pp.visit(&program);
-    assert!(result.is_ok());
-
-    func_price.unwrap()
+    func_price
 }
 
 #[macro_export]

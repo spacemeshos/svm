@@ -1,5 +1,6 @@
 use std::cell::Cell;
 use std::fmt::{self, Debug, Display};
+use std::rc::Weak;
 
 use crate::{Graph, Node, NodeData, NodeLabel, NodeRef};
 
@@ -11,18 +12,24 @@ where
 {
     init_start(graph, start);
 
+    prune_unreachable_nodes(graph, start);
+
     let start_node = graph.get_node(start);
 
     let mut queued = vec![start_node];
+    let mut touched_end = false;
 
     while queued.is_empty() == false {
         let source = queued.pop().unwrap();
+
+        if source.label() == end {
+            touched_end = true;
+        }
 
         for dest in source.outgoing() {
             relax(graph, &dest, &source);
 
             let edge = (source.label(), dest.label());
-
             graph.remove_edge(edge);
 
             if dest.is_source() {
@@ -31,7 +38,22 @@ where
         }
     }
 
+    assert!(touched_end);
+
     construct_path(graph, start, end)
+}
+
+fn prune_unreachable_nodes<L>(graph: &WeightedGraph<L>, start: L)
+where
+    L: NodeLabel,
+{
+    graph
+        .source_nodes()
+        .iter()
+        .filter(|node| node.label() != start)
+        .for_each(|source| {
+            graph.remove_node(source);
+        });
 }
 
 fn construct_path<L>(graph: &WeightedGraph<L>, start: L, end: L) -> WeightedPath<L>
@@ -44,6 +66,8 @@ where
     while label != start {
         let weight = node_weight_by_label(graph, label);
         path.push((label, weight));
+
+        // println!("path node: (label = `{}`, weight = {})", label, weight);
 
         label = node_dep_by_label(graph, label);
     }
@@ -413,6 +437,24 @@ mod tests {
         let g = graph! {
             nodes: [("a", 10), ("b", 20), ("c", 5), ("d", 6)],
             edges: ["a" => "b", "a" => "c", "b" => "d", "c" => "d"]
+        };
+
+        let path = compute_max_weight_path(&g, "a", "d");
+
+        assert_eq!(
+            path,
+            WeightedPath {
+                path: vec![("a", 10), ("b", 20), ("d", 6)],
+                total: 36
+            }
+        );
+    }
+
+    #[test]
+    fn max_weight_path_5() {
+        let g = graph! {
+            nodes: [("a", 10), ("b", 20), ("c", 5), ("d", 6), ("e", 1000)],
+            edges: ["a" => "b", "a" => "c", "b" => "d", "c" => "d", "e" => "d"]
         };
 
         let path = compute_max_weight_path(&g, "a", "d");

@@ -23,36 +23,33 @@ type ProgramError = crate::ProgramError<FuncIndex>;
 pub fn validate_wasm(wasm: &[u8], return_cycles: bool) -> Result<(), ProgramError> {
     let program = read_program(wasm)?;
 
-    let mut validator = ProgramValidator::new(&program, return_cycles);
+    let mut validator = ProgramValidator::new(return_cycles);
 
     validator.visit(&program)
 }
 
-pub struct ProgramValidator<'p> {
+pub struct ProgramValidator {
     current_func: Option<FuncIndex>,
-
-    program: &'p Program,
 
     builder: CallGraphBuilder<FuncIndex>,
 
     return_cycles: bool,
 }
 
-impl<'p> ProgramValidator<'p> {
-    pub fn new(program: &'p Program, return_cycles: bool) -> Self {
+impl ProgramValidator {
+    pub fn new(return_cycles: bool) -> Self {
         Self {
-            program,
             current_func: None,
             builder: CallGraphBuilder::new(),
             return_cycles,
         }
     }
 
-    pub fn current_func(&self) -> FuncIndex {
+    fn current_func(&self) -> FuncIndex {
         self.current_func.unwrap()
     }
 
-    pub fn add_call(
+    fn add_call(
         &mut self,
         op: &Op,
         origin: FuncIndex,
@@ -80,14 +77,16 @@ impl<'p> ProgramValidator<'p> {
     }
 }
 
-impl ProgramVisitor for ProgramValidator<'_> {
+impl ProgramVisitor for ProgramValidator {
     type Error = ProgramError;
 
-    fn on_start(&mut self) -> Result<(), Self::Error> {
+    type Output = ();
+
+    fn on_start(&mut self, _program: &Program) -> Result<Self::Output, Self::Error> {
         Ok(())
     }
 
-    fn on_end(mut self) -> Result<(), Self::Error> {
+    fn on_end(mut self, _program: &Program) -> Result<Self::Output, Self::Error> {
         let call_graph = self.builder.build();
 
         let result = call_graph.find_cycles(self.return_cycles);
@@ -98,21 +97,29 @@ impl ProgramVisitor for ProgramValidator<'_> {
         }
     }
 
-    fn on_func_start(&mut self, func_index: FuncIndex) -> Result<(), Self::Error> {
-        self.current_func = Some(func_index);
+    fn on_func_start(
+        &mut self,
+        fn_index: FuncIndex,
+        _program: &Program,
+    ) -> Result<(), Self::Error> {
+        self.current_func = Some(fn_index);
 
-        self.builder.add_target(func_index);
+        self.builder.add_target(fn_index);
 
         Ok(())
     }
 
-    fn on_func_end(&mut self, func_index: FuncIndex) -> Result<(), Self::Error> {
+    fn on_func_end(
+        &mut self,
+        _fn_index: FuncIndex,
+        _program: &Program,
+    ) -> Result<Self::Output, Self::Error> {
         self.current_func = None;
 
         Ok(())
     }
 
-    fn on_op(&mut self, op: &Op) -> Result<(), Self::Error> {
+    fn on_op(&mut self, op: &Op, program: &Program) -> Result<(), Self::Error> {
         match *op.raw() {
             Instruction::Loop(..) => Err(ProgramError::LoopNotAllowed),
             Instruction::CallIndirect(..) => Err(ProgramError::CallIndirectNotAllowed),
@@ -121,7 +128,7 @@ impl ProgramVisitor for ProgramValidator<'_> {
 
                 let target = FuncIndex(target);
 
-                if self.program.is_imported(target) == false {
+                if program.is_imported(target) == false {
                     let origin = self.current_func();
 
                     self.add_call(op, origin, target)?;
@@ -138,7 +145,7 @@ impl ProgramVisitor for ProgramValidator<'_> {
     }
 }
 
-impl ProgramValidator<'_> {
+impl ProgramValidator {
     #[inline]
     fn validate_non_float(&self, op: &Op) -> Result<(), ProgramError> {
         match op.raw() {

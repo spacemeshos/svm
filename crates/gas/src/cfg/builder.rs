@@ -64,7 +64,7 @@ impl<'f> CFGBuilder<'f> {
     pub fn append(&mut self, op: Op<'f>) {
         let block = self.get_current_block_mut();
 
-        dbg!("Appending op {:?} (Block #{:?})", &op, block.block_num());
+        // dbg!("Appending op {:?} (Block #{:?})", &op, block.block_num());
 
         block.append(op);
     }
@@ -72,7 +72,7 @@ impl<'f> CFGBuilder<'f> {
     pub fn enter_scope(&mut self, op: Option<Op<'f>>) {
         self.current_depth += 1;
 
-        dbg!("Entering Scope depth {:?}", self.current_depth().0);
+        // dbg!("Entering Scope depth {:?}", self.current_depth().0);
 
         if let Some(op) = op {
             self.append(op);
@@ -92,7 +92,7 @@ impl<'f> CFGBuilder<'f> {
         let block = self.current_block();
         let depth = self.current_depth();
 
-        dbg!("Entering `IF`");
+        // dbg!("Entering `IF`");
 
         let entry = self.depth_unresolved_entry(depth);
 
@@ -116,7 +116,7 @@ impl<'f> CFGBuilder<'f> {
         let block = self.current_block();
         let depth = self.current_depth();
 
-        dbg!("Entering `ELSE` at depth = {}", depth.0);
+        // dbg!("Entering `ELSE` at depth = {}", depth.0);
 
         debug_assert!(depth > Depth(1));
 
@@ -140,7 +140,7 @@ impl<'f> CFGBuilder<'f> {
 
         debug_assert!(self.current_depth() > Depth(0));
 
-        dbg!("Starting Exiting Scope depth {:?}", self.current_depth().0);
+        // dbg!("Starting Exiting Scope depth {:?}", self.current_depth().0);
 
         if self.is_within_else() {
             self.exit_else();
@@ -156,7 +156,7 @@ impl<'f> CFGBuilder<'f> {
 
         let block_num = self.current_block();
 
-        dbg!("Creating Block #{:?}", block_num.0);
+        // dbg!("Creating Block #{:?}", block_num.0);
 
         let block = BlockBuilder::new(block_num);
         let block_ref = BlockRef::NotReady(block);
@@ -167,11 +167,11 @@ impl<'f> CFGBuilder<'f> {
     }
 
     pub fn add_jump(&mut self, origin: BlockNum, depth: Depth) {
-        dbg!(
-            "Adding an unresolved jump. origin = {}, target-depth = {}",
-            origin.0,
-            depth.0
-        );
+        // dbg!(
+        //     "Adding an unresolved jump. origin = {}, target-depth = {}",
+        //     origin.0,
+        //     depth.0
+        // );
 
         let jump = UnresolvedJump::new(origin);
         let jumps = self
@@ -182,12 +182,12 @@ impl<'f> CFGBuilder<'f> {
     }
 
     pub fn add_cont(&mut self, origin: BlockNum, target: BlockNum, kind: ContKind) {
-        dbg!(
-            "Adding a continuation edge {:?} -> {:?} (kind = `{:?}`)",
-            origin.0,
-            target.0,
-            kind
-        );
+        // dbg!(
+        //     "Adding a continuation edge {:?} -> {:?} (kind = `{:?}`)",
+        //     origin.0,
+        //     target.0,
+        //     kind
+        // );
 
         let cont = Cont {
             origin,
@@ -200,17 +200,17 @@ impl<'f> CFGBuilder<'f> {
     }
 
     fn resolve_jumps(&mut self, depth: Depth, create_new_block: bool) {
-        dbg!(
-            "Starting to address unresolved jumps for depth = {:?}",
-            depth.0
-        );
+        // dbg!(
+        //     "Starting to address unresolved jumps for depth = {:?}",
+        //     depth.0
+        // );
 
         let origin = self.current_block();
         let jumps = self.unresolved_jumps.remove(&depth);
 
         if let Some(mut jumps) = jumps {
             if jumps.is_empty() {
-                dbg!("There are NO unresolved jumps for depth = {:?}", depth.0);
+                // dbg!("There are NO unresolved jumps for depth = {:?}", depth.0);
                 return;
             }
 
@@ -227,7 +227,7 @@ impl<'f> CFGBuilder<'f> {
             // For each unresolved jump - we add an edge of kind `jump` between the
             // unresolved-jump's previous `current block` to the new one.
             for jump in jumps.drain(..) {
-                dbg!("Resolving jump {:?} -> {:?}", jump.origin().0, target.0);
+                // dbg!("Resolving jump {:?} -> {:?}", jump.origin().0, target.0);
 
                 let jump = jump.resolve(target);
                 let edge = Edge::Jump(jump);
@@ -326,7 +326,7 @@ impl<'f> CFGBuilder<'f> {
     fn exit_else(&mut self) {
         let depth = self.parent_depth();
 
-        dbg!("Exiting `ELSE` at depth {:?}", self.current_depth());
+        // dbg!("Exiting `ELSE` at depth {:?}", self.current_depth());
 
         let old_current = self.current_block();
         let new_current = self.create_block();
@@ -348,7 +348,7 @@ impl<'f> CFGBuilder<'f> {
     fn exit_then(&mut self) {
         let depth = self.parent_depth();
 
-        dbg!("Exiting `THEN` at depth {:?}", self.current_depth());
+        // dbg!("Exiting `THEN` at depth {:?}", self.current_depth());
 
         let old_current = self.current_block();
         let new_current = self.create_block();
@@ -372,7 +372,7 @@ impl<'f> CFGBuilder<'f> {
 
         let depth = self.current_depth();
 
-        dbg!("Back to Scope depth {:?}", depth.0);
+        // dbg!("Back to Scope depth {:?}", depth.0);
 
         self.resolve_jumps(depth, create_new_block);
     }
