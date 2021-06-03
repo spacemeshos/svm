@@ -1,4 +1,4 @@
-use wasmer::{CompileError, Module, Store, JIT};
+use wasmer::{CompileError, Cranelift, Module, Store, Universal};
 
 /// Compiles the SVM app
 ///
@@ -19,7 +19,8 @@ pub fn compile(
 /// New fresh `Store`
 #[must_use]
 pub fn new_store() -> Store {
-    let engine = JIT::new(wasmer::Cranelift::default()).engine();
+    let compiler_config = Cranelift::default();
+    let engine = Universal::new(compiler_config).engine();
 
     Store::new(&engine)
 }
