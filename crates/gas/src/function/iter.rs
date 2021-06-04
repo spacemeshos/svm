@@ -4,6 +4,9 @@ use crate::cfg::Op;
 
 use super::Function;
 
+/// An iterator over a function's code.
+/// Each iteration return an `Op` which is essentially a code `Instruction`
+/// along with its `offset` (local offset within the parent function)  
 pub struct FuncIterator<'f> {
     offset: usize,
 
@@ -13,6 +16,7 @@ pub struct FuncIterator<'f> {
 }
 
 impl<'f> FuncIterator<'f> {
+    /// New iterator over input `Function`
     pub fn new(func: &'f Function) -> Self {
         let code = func.code();
 

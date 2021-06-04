@@ -42,8 +42,8 @@
 ///    (When debugging an emitted CFG, it's very handy to have more information).
 ///
 /// 7. `Jump` - In Wasm there are a couple of branching instructions: `br / br_if / br_table`.
-///    A branch instruction can result in jumping to other locations in the code. Without going here about the nuances of each branching instruction,
-///    we want to draw a jump-edges in the CFG between possible jumps. We are able to do that since there is no arbitrary `goto`(s) in Wasm.
+///    A branch instruction can result in `UMP-ing to other locations in the code. Without going here about the nuances of each branching instruction,
+///    we want to draw a `Jump`-edges in the CFG between possible jumps. We are able to do that since there is no arbitrary `goto`(s) in Wasm.
 ///    The control-flow is structured and we can determine the targets of each branch.
 ///
 ///    Note: we treat `return` and `unreachable` the same as branch. We look at it as "jumping" out of the function.
@@ -316,6 +316,7 @@ pub use cont::{Cont, ContKind, DepthUnresolvedCont};
 mod op;
 pub use op::Op;
 
+/// This is the API that should be used externally when we want to feed with a  `Function` and get back its `CFG`
 pub fn build_func_cfg<'f>(func: &'f Function<'f>) -> CFG<'f> {
     println!("Starting to build CFG for function #{:?}", func.index().0);
 
@@ -500,16 +501,20 @@ fn is_else(op: &Instruction) -> bool {
     matches!(op, Instruction::Else)
 }
 
+/// Since an `Block` is self-contained in the sense it has all its relevant data
+/// The `CFG` is merely a container of its `Block`s.
 #[derive(PartialEq)]
 pub struct CFG<'f> {
     pub blocks: Vec<Block<'f>>,
 }
 
 impl<'f> CFG<'f> {
+    /// Returns a slice to the `CFG` blocks
     pub fn blocks(&self) -> &[Block] {
         &self.blocks
     }
 
+    /// Borrows a `Block` with the specified `block_num` parameter
     pub fn get_block(&self, block_num: BlockNum) -> &Block {
         let num = block_num.0 as usize;
 
