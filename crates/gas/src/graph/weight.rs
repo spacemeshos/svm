@@ -418,7 +418,11 @@ mod tests {
     fn max_weight_path_3() {
         let g = graph! {
             nodes: [("a", 10), ("b", 20), ("c", 5)],
-            edges: ["a" => "b", "b" => "c", "a" => "c"]
+            edges: [
+                "a" => "b",
+                "b" => "c",
+                "a" => "c"
+            ]
         };
 
         let path = compute_max_weight_path(&g, "a", "c");
@@ -436,7 +440,12 @@ mod tests {
     fn max_weight_path_4() {
         let g = graph! {
             nodes: [("a", 10), ("b", 20), ("c", 5), ("d", 6)],
-            edges: ["a" => "b", "a" => "c", "b" => "d", "c" => "d"]
+            edges: [
+                "a" => "b",
+                "a" => "c",
+                "b" => "d",
+                "c" => "d"
+            ]
         };
 
         let path = compute_max_weight_path(&g, "a", "d");
@@ -454,7 +463,13 @@ mod tests {
     fn max_weight_path_5() {
         let g = graph! {
             nodes: [("a", 10), ("b", 20), ("c", 5), ("d", 6), ("e", 1000)],
-            edges: ["a" => "b", "a" => "c", "b" => "d", "c" => "d", "e" => "d"]
+            edges: [
+                "a" => "b",
+                "a" => "c",
+                "b" => "d",
+                "c" => "d",
+                "e" => "d"
+            ]
         };
 
         let path = compute_max_weight_path(&g, "a", "d");
