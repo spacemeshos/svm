@@ -9,6 +9,12 @@ use super::{
     Block, BlockNum, Cont, ContKind, Depth, DepthUnresolvedCont, Edge, Op, UnresolvedJump, CFG,
 };
 
+/// Used to build `CFG`
+///
+/// The entry point of the building algorithm in located under function `build_func_cfg` at `mod.rs`
+/// This function invokes methods on the `CFGBuilder` implemented in this file.
+///
+/// Read `mod.rs` for more detailed information about the algorithm (also contains illustrations).
 pub struct CFGBuilder<'f> {
     current_depth: Depth,
 
@@ -22,6 +28,7 @@ pub struct CFGBuilder<'f> {
 }
 
 impl<'f> CFGBuilder<'f> {
+    /// Creates a new `CFG` builder
     pub fn new() -> Self {
         let start_block = BlockBuilder::new(BlockNum(0));
 

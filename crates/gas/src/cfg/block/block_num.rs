@@ -2,11 +2,13 @@ use super::Block;
 
 use std::fmt::{self, Display};
 
+/// `BlockNum` is the `label` type used for each node in a function `CFG`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
 pub struct BlockNum(pub usize);
 
 impl BlockNum {
+    /// Increment the inner block number.
     pub fn inc(&mut self) {
         self.0 += 1;
     }

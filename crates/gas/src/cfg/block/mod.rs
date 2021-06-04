@@ -14,6 +14,7 @@ pub use block_num::BlockNum;
 pub use block_ref::BlockRef;
 pub use builder::BlockBuilder;
 
+/// A `Block` is the node type used for `CFG`s
 #[derive(PartialEq)]
 pub struct Block<'f> {
     pub num: BlockNum,
@@ -26,33 +27,44 @@ pub struct Block<'f> {
 }
 
 impl<'f> Block<'f> {
+    /// Returns the `Block` id
     pub fn num(&self) -> BlockNum {
         self.num
     }
 
+    /// Returns a slice for the code associated with the `Block`
     pub fn ops(&self) -> &[Op] {
         &self.ops
     }
 
+    /// Returns whether there is code associated with the `Block`.
     pub fn is_empty(&self) -> bool {
         self.ops.is_empty()
     }
 
+    /// Returns the first instruction `offset` of the code.
+    ///
+    /// When there is no code (i.e `Block` is considered empty) - returns `None`
     pub fn start_offset(&self) -> Option<usize> {
         let first = self.ops.first();
 
         first.map(|op| op.offset())
     }
 
+    /// Returns the last instruction `offset` of the code.
+    ///
+    /// When there is no code (i.e `Block` is considered empty) - returns `None`
     pub fn end_offset(&self) -> Option<usize> {
         self.start_offset()
             .map(|start_off| start_off + self.ops.len() - 1)
     }
 
+    /// Returns a borrowed Set to the `Block` outgoing edges
     pub fn outgoing_edges(&self) -> &IndexSet<Edge> {
         &self.outgoing_edges
     }
 
+    /// Returns a borrowed Set to the `Block` incoming edges
     pub fn incoming_edges(&self) -> &IndexSet<Edge> {
         &self.incoming_edges
     }

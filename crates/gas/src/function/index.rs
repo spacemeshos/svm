@@ -1,5 +1,6 @@
 use std::fmt::{self, Debug, Display};
 
+/// A type that represent a function index.
 #[repr(transparent)]
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
 pub struct FuncIndex(pub u32);

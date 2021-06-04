@@ -5,6 +5,8 @@ use crate::{FuncIndex, Graph, GraphCycles, NodeLabel, ProgramError};
 mod builder;
 pub use builder::CallGraphBuilder;
 
+/// A `CallGraph` is a `Graph` where its nodes represent functions and its edges represent for possible `call`s
+/// between functions as appears in the original code.
 use super::graph;
 
 pub struct CallGraph<L>
@@ -18,6 +20,10 @@ impl<L> CallGraph<L>
 where
     L: NodeLabel,
 {
+    /// Looks for cycles in the `CallGraph`.
+    ///
+    /// If there are no cycles - the graph is a DAG and we return `Ok())`
+    /// Otherwise, an error is returned signaling there is at least one cycle within the `CallGraph`
     #[must_use]
     pub fn find_cycles(&self, return_cycles: bool) -> GraphCycles<L> {
         let result = graph::try_topological_sort::<L, (), CallGraph<L>>(self, return_cycles);
