@@ -1,11 +1,17 @@
 use std::cell::Cell;
 use std::fmt::{self, Debug, Display};
-use std::rc::Weak;
 
 use crate::{Graph, Node, NodeData, NodeLabel, NodeRef};
 
 pub type WeightedGraph<L> = Graph<L, NodeWeight<L>>;
 
+/// Given an input `Weighted Graph` which is assumed to be a DAG (has no cycles).
+///
+/// Usually, a `weighted graph` is implemented where each `Edge` has `weight`.
+/// We use `WeightedGraph` where each `Node`'s data has an associated `weight`.
+///
+/// This function computes a path where the sum of its `Node`s weights is the maximum.
+/// The result is the `maximum weight path` and an example yielding the maximum total weight.
 pub fn compute_max_weight_path<L>(graph: &WeightedGraph<L>, start: L, end: L) -> WeightedPath<L>
 where
     L: NodeLabel,

@@ -42,7 +42,7 @@
 ///    (When debugging an emitted CFG, it's very handy to have more information).
 ///
 /// 7. `Jump` - In Wasm there are a couple of branching instructions: `br / br_if / br_table`.
-///    A branch instruction can result in `UMP-ing to other locations in the code. Without going here about the nuances of each branching instruction,
+///    A branch instruction can result in `JUMP-ing to other locations in the code. Without going here about the nuances of each branching instruction,
 ///    we want to draw a `Jump`-edges in the CFG between possible jumps. We are able to do that since there is no arbitrary `goto`(s) in Wasm.
 ///    The control-flow is structured and we can determine the targets of each branch.
 ///

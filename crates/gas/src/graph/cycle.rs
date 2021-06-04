@@ -2,13 +2,20 @@ use std::fmt::{self, Debug};
 
 use crate::{Graph, NodeLabel};
 
+/// Represents an optional `Cycle` in a `Graph`.
 #[derive(Clone, PartialEq)]
 pub enum GraphCycles<L>
 where
     L: NodeLabel,
 {
+    /// Graph has no cycles (it's a DAG)
     NoCycles,
 
+    /// Graph has at least one cycle.
+    ///
+    /// If its owned data is `None` - we can't give a concrete example of a cycle.
+    /// Otherwise, it's a `Some(cycle)` and owns an example of a cycle.
+    /// (there might be more cycles within the `Graph`).
     HasCycles(Option<Vec<L>>),
 }
 
