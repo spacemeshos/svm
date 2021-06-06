@@ -14,6 +14,7 @@ type ProgramError = crate::ProgramError<FuncIndex>;
 mod resolver;
 pub use resolver::PriceResolver;
 
+/// Ready-made `PriceResolver`s
 pub mod resolvers;
 
 mod cfg;
@@ -39,15 +40,11 @@ pub use func_price::FuncPrice;
 /// * SET `FuncPrice <- {)`
 /// * foreach `func` in `Program`'s functions (iterate over the functions in the Topological-Order derived from the `CallGraph`)
 ///         * Build `CFG` for function `func` (see `build_func_cfg` in the code)
-///
 ///         * Translate the `CFG` into a weighted-graph, `func_graph` (see the `build_weighted_graph` in the code)
 ///           Note an implementation detail: the `weight` resides within the `Node`s (and NOT in the `Edge`s)
-///
 ///         * (max_path, max_price) <- Find the maximum-weighted-path (see `graph::compute_max_weight_path` later)
-///
 ///           `max_path`  is the nodes-path within `func_graph` (it's useful for debugging and testing)
 ///           `max_price` is essentially the price of function `func`
-///
 ///         * SET `FuncPrice[func] <- max_price`
 ///             
 /// Important:              

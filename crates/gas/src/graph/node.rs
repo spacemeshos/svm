@@ -11,7 +11,8 @@ use super::{NodeData, NodeLabel};
 ///
 /// Each `Node` has:
 ///
-/// * `value`    - It's a value associated with it, and is assumed to be unique across the Graph.
+/// * `value`    - An identifier associated with it, and is assumed to be unique across the Graph.
+/// * `data`     - The `Node` data
 /// * `incoming` - References to other `Nodes` that have *incoming* connections to `self`.
 /// * `outgoing` - References to other `Nodes` that have *outgoing* connections to `self`.
 pub struct Node<L, D>
@@ -30,7 +31,7 @@ where
     L: NodeLabel,
     D: NodeData,
 {
-    // Creates a new `Node` labeled as `label`
+    /// Creates a new `Node` labeled as `label`
     pub fn new(label: L) -> Self {
         Self {
             label,
@@ -50,6 +51,7 @@ where
         &self.data
     }
 
+    /// Sets `Node`'s data to `data`
     pub fn set_data(&mut self, data: D) {
         self.data = data;
     }
@@ -212,6 +214,7 @@ where
     L: NodeLabel,
     D: NodeData,
 {
+    /// Creates a new reference for parameter `node`
     pub fn new(node: Node<L, D>) -> Self {
         Self {
             inner: Rc::new(RefCell::new(node)),
@@ -226,34 +229,42 @@ where
         self.inner.borrow_mut()
     }
 
+    /// Returns the `label` that identify the `Node`
     pub fn label(&self) -> L {
         self.as_ref().label()
     }
 
+    /// Returns references to the incoming `Node`s (forming together incoming edges)
     pub fn incoming(&self) -> Vec<NodeRef<L, D>> {
         self.as_ref().incoming()
     }
 
+    /// Returns whether `Node` has any incoming `Edge`s
     pub fn has_incoming(&self) -> bool {
         self.as_ref().has_incoming()
     }
 
+    /// Returns references to outgoing `Node`s (forming together outgoing edges)
     pub fn outgoing(&self) -> Vec<NodeRef<L, D>> {
         self.as_ref().outgoing()
     }
 
+    /// Returns whether `Node` has any outgoing edges
     pub fn has_outgoing(&self) -> bool {
         self.as_ref().has_outgoing()
     }
 
+    /// Returns whether `Node` is a sink `Node` (i.e has no outgoing edges)
     pub fn is_sink(&self) -> bool {
         self.as_ref().is_sink()
     }
 
+    /// Returns whether `Node` is a source `Node` (i.e has no incoming edges)
     pub fn is_source(&self) -> bool {
         self.as_ref().is_source()
     }
 
+    /// Returns whether `Node` is an isolated `Node` (i.e both `source` and `sink`)
     pub fn is_isolated(&self) -> bool {
         self.as_ref().is_isolated()
     }

@@ -6,8 +6,10 @@ use parity_wasm::elements::Instruction;
 /// The offset is the instruction's location within the function for which the instruction belongs to.
 #[derive(Clone, PartialEq, Eq)]
 pub struct Op<'f> {
+    /// Reference to the `Instruction`
     pub raw: &'f Instruction,
 
+    /// The `offset` from the start of the function
     pub offset: usize,
 }
 
@@ -25,7 +27,7 @@ impl<'f> Op<'f> {
     /// Returns the `Op` local-offset within the function it's associated to
     pub fn offset(&self) -> usize {
         self.offset
-}
+    }
 }
 
 impl<'f> Debug for Op<'f> {

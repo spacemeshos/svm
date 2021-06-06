@@ -1,8 +1,10 @@
 use crate::{FuncIndex, FuncIterator, Function, Op, Program};
 
 pub trait ProgramVisitor: Sized {
+    /// Type to return after `visit` completes
     type Output;
 
+    /// Type for `Error`(s) returned while visiting the `Program`
     type Error;
 
     /// An Entry point to visiting a `Program`

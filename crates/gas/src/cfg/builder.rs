@@ -52,14 +52,17 @@ impl<'f> CFGBuilder<'f> {
         builder
     }
 
+    /// Returns the currently built `BlockNum`
     pub fn current_block(&self) -> BlockNum {
         self.block_num
     }
 
+    /// Returns the code's current scope `Depth`
     pub fn current_depth(&self) -> Depth {
         self.current_depth
     }
 
+    /// Returns the code's current scope `Depth` minus one
     pub fn parent_depth(&self) -> Depth {
         let depth = self.current_depth();
 
@@ -68,6 +71,7 @@ impl<'f> CFGBuilder<'f> {
         depth - 1u32
     }
 
+    /// Appending op `op` to the currently built `Block`
     pub fn append(&mut self, op: Op<'f>) {
         let block = self.get_current_block_mut();
 
@@ -76,6 +80,7 @@ impl<'f> CFGBuilder<'f> {
         block.append(op);
     }
 
+    /// Entering a new `Scope`. Incrementing the `current depth`
     pub fn enter_scope(&mut self, op: Option<Op<'f>>) {
         self.current_depth += 1;
 
@@ -93,6 +98,7 @@ impl<'f> CFGBuilder<'f> {
         }
     }
 
+    /// Handling an `IF` instruction
     pub fn enter_if(&mut self, op: Op<'f>) {
         debug_assert!(matches!(op.raw(), Instruction::If(..)));
 
@@ -117,6 +123,7 @@ impl<'f> CFGBuilder<'f> {
         self.enter_scope(None);
     }
 
+    /// Handling an `ELSE` instruction
     pub fn enter_else(&mut self, op: Op<'f>) {
         debug_assert!(matches!(op.raw(), Instruction::Else));
 
@@ -142,6 +149,7 @@ impl<'f> CFGBuilder<'f> {
         }
     }
 
+    /// Handing exit of an `ELSE Block` / `IF Block` / `General Block`
     pub fn exit_scope(&mut self, op: Op<'f>) {
         debug_assert!(matches!(op.raw(), Instruction::End));
 
@@ -158,6 +166,7 @@ impl<'f> CFGBuilder<'f> {
         }
     }
 
+    /// Creates a new `Block` and returns its `BlockNum`
     pub fn create_block(&mut self) -> BlockNum {
         self.block_num.inc();
 
@@ -173,6 +182,7 @@ impl<'f> CFGBuilder<'f> {
         block_num
     }
 
+    /// Adds a new unresolved-jump associated with `target_depth = depth` starting at `origin`
     pub fn add_jump(&mut self, origin: BlockNum, depth: Depth) {
         // dbg!(
         //     "Adding an unresolved jump. origin = {}, target-depth = {}",
@@ -188,6 +198,7 @@ impl<'f> CFGBuilder<'f> {
         jumps.push(jump);
     }
 
+    /// Adds a continuation-edge of input `kind` between blocks `origin` and `target`
     pub fn add_cont(&mut self, origin: BlockNum, target: BlockNum, kind: ContKind) {
         // dbg!(
         //     "Adding a continuation edge {:?} -> {:?} (kind = `{:?}`)",
@@ -245,17 +256,18 @@ impl<'f> CFGBuilder<'f> {
     }
 
     #[inline]
-    pub fn get_block_mut(&mut self, block_num: BlockNum) -> &mut BlockRef<'f> {
+    fn get_block_mut(&mut self, block_num: BlockNum) -> &mut BlockRef<'f> {
         &mut self.blocks[block_num.0]
     }
 
     #[inline]
-    pub fn get_current_block_mut(&mut self) -> &mut BlockRef<'f> {
+    fn get_current_block_mut(&mut self) -> &mut BlockRef<'f> {
         let block_num = self.current_block();
 
         self.get_block_mut(block_num)
     }
 
+    /// Finish the building process and output a `CFG`
     pub fn build(mut self) -> CFG<'f> {
         debug_assert!(self.unresolved_jumps.is_empty());
         debug_assert_eq!(self.current_depth(), Depth(0));

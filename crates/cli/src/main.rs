@@ -6,7 +6,7 @@ use std::path::PathBuf;
 
 use structopt::StructOpt;
 
-use svm_gas::resolvers::V0Resolver;
+use svm_gas::resolvers::ExampleResolver;
 use svm_gas::{read_program, validate_wasm};
 
 use svm_gas::{ProgramPricing, ProgramVisitor};
@@ -41,7 +41,7 @@ fn main() {
             Err(e) => println!("File is NOT a valid restricted Wasm file: {}", e),
         }
 
-        let resolver = V0Resolver::default();
+        let resolver = ExampleResolver::default();
         let program = read_program(&wasm).unwrap();
 
         let mut pp = ProgramPricing::new(resolver);

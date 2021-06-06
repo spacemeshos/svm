@@ -3,6 +3,7 @@ use std::fmt::{self, Debug, Display};
 
 use crate::{Graph, Node, NodeData, NodeLabel, NodeRef};
 
+/// An alias for a `Graph` having `NodeWeight<..>` has its `NodeData` type
 pub type WeightedGraph<L> = Graph<L, NodeWeight<L>>;
 
 /// Given an input `Weighted Graph` which is assumed to be a DAG (has no cycles).

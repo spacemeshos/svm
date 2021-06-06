@@ -17,12 +17,16 @@ pub use builder::BlockBuilder;
 /// A `Block` is the node type used for `CFG`s
 #[derive(PartialEq)]
 pub struct Block<'f> {
+    /// Block's number
     pub num: BlockNum,
 
+    /// Block's code
     pub ops: Vec<Op<'f>>,
 
+    /// Block's incoming `Edge`s
     pub incoming_edges: IndexSet<Edge>,
 
+    /// Block's outgoing `Edge`s
     pub outgoing_edges: IndexSet<Edge>,
 }
 

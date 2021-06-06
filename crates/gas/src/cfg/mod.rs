@@ -507,6 +507,7 @@ fn is_else(op: &Instruction) -> bool {
 /// The `CFG` is merely a container of its `Block`s.
 #[derive(PartialEq)]
 pub struct CFG<'f> {
+    /// The `Block`s of the `CFG`
     pub blocks: Vec<Block<'f>>,
 }
 
@@ -523,10 +524,12 @@ impl<'f> CFG<'f> {
         &self.blocks[num]
     }
 
+    /// The `BlockNum` of the entry `Node` starting each flow
     pub fn start(&self) -> BlockNum {
         BlockNum(0)
     }
 
+    /// The `BlockNum` of the last created `Node` ending each flow
     pub fn end(&self) -> BlockNum {
         let len = self.blocks().len();
 

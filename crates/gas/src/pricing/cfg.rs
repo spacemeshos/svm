@@ -6,6 +6,23 @@ use crate::{
     NodeWeight, Op, PriceResolver, WeightedGraph, WeightedPath, CFG,
 };
 
+/// This function's job is to take an input `CFG` and translate it into a `WeightedGraph`.
+/// A `WeightedGraph` is a `Graph` having `NodeWeight` for its `data` type.
+///
+/// In `WeightedGraph` each `Node` has an associated `weight`.
+/// In addition to `weight`, a `NodeWeight` has `dependant weight` and `dependant label` fields.
+///
+/// They are not used inside `build_weighted_graph`. Their serve as assisting fields when
+/// computing a maximum-path (or similar) as done in `ProgramPricing` (see `mod.rs`) in order to find
+/// the maximum price of a given function.
+///
+/// The `weight` for each `Node` under the built `WeightedGraph` is computed by summing the prices of each `op`
+/// under the original `Block` in the `CFG`. So if some `Block`, let's named it `B0` contained 3 `ops` namely `op_1`, `op_2` and `op_3` -
+/// the corresponding `Node` under the `WeightedGraph` will have `weight = price(op_1) + price(op_2) + price(op_3)`
+///
+/// There is no weight associated with the `Edge`(s) of the `WeightedGraph`.
+/// This is an implementation detail. We preferred to use a `Graph` which has no weight in its `Edge`(s)
+/// and pick a `Data` type for the `Node`(s) that will contain `weight`.
 pub fn build_weighted_graph<R>(
     cfg: &CFG,
     resolver: &R,

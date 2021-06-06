@@ -1,3 +1,3 @@
-mod v0;
+mod example;
 
-pub use v0::V0Resolver;
+pub use example::ExampleResolver;
