@@ -11,6 +11,8 @@ mod sort;
 pub use builder::CallGraphBuilder;
 pub use node::{Node, NodeRef};
 
+/// A `CallGraph` is a `Graph` where its nodes represent functions and its edges represent for possible `call`s
+/// between functions as appears in the original code.
 pub struct CallGraph<T = FuncIndex> {
     nodes: HashMap<T, NodeRef<T>>,
 }
@@ -23,6 +25,10 @@ impl<T> CallGraph<T>
 where
     T: Value,
 {
+    /// Looks for cycles in the `CallGraph`.
+    ///
+    /// If there are no cycles - the graph is a DAG and we return `Ok())`
+    /// Otherwise, an error is returned signaling there is at least one cycle within the `CallGraph`
     #[must_use]
     pub fn find_cycles(&self, return_cycles: bool) -> Result<(), ProgramError<T>> {
         let result = sort::try_topological_sort::<T>(self, return_cycles);
@@ -30,10 +36,12 @@ where
         result.map(|_cycle| ())
     }
 
+    /// Returns references to `Node` of the `CallGraph`
     pub fn nodes(&self) -> Vec<NodeRef<T>> {
         self.nodes.values().cloned().collect()
     }
 
+    /// Removes an edge from the Graph
     pub fn remove_edge(&self, (source, dest): (T, T)) {
         let source = self.nodes.get(&source).unwrap();
         let dest = self.nodes.get(&dest).unwrap();
@@ -42,6 +50,7 @@ where
         dest.as_mut().remove_in_edge(source);
     }
 
+    /// Returns the number of nodes in the `CallGraph`
     pub fn len(&self) -> usize {
         self.nodes.len()
     }

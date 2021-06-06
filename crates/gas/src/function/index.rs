@@ -1,11 +1,6 @@
-use std::collections::HashMap;
-use std::fmt::{Debug, Display};
+use std::fmt::{self, Debug, Display};
 
-use parity_wasm::elements::{Instruction, Instructions};
-
-use crate::Gas;
-
-/// Represents a function index
+/// A type that represent a function index.
 #[repr(transparent)]
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
 pub struct FuncIndex(pub u16);
@@ -23,16 +18,7 @@ impl Ord for FuncIndex {
 }
 
 impl Display for FuncIndex {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         <Self as Debug>::fmt(self, f)
-    }
-}
-
-#[derive(Debug)]
-pub struct FuncBody(pub Instructions);
-
-impl FuncBody {
-    pub fn instructions(&self) -> &[Instruction] {
-        self.0.elements()
     }
 }

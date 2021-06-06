@@ -2,26 +2,23 @@ use std::collections::HashMap;
 
 use parity_wasm::elements::{CodeSection, External, ImportCountType, ImportEntry, Module};
 
-use crate::{FuncBody, FuncIndex, Imports, Program, ProgramError};
+use crate::{FuncIndex, Function, Imports, Program, ProgramError};
 
 /// Reads a Wasm program and constructs a `Program` struct
 pub fn read_program(wasm: &[u8]) -> Result<Program, ProgramError> {
-    let mut functions = HashMap::new();
-
     let module = read_module(wasm)?;
     let code = read_code(&module)?;
     let imports = read_imports(&module)?;
+    let mut program = Program::default();
 
     for (i, func_body) in code.bodies().iter().enumerate() {
-        let abs_index = i + imports.len();
+        let fn_index = i + imports.len();
 
-        let fn_index = FuncIndex(abs_index as u16);
-        let fn_body = FuncBody(func_body.code().clone());
+        let index = FuncIndex(fn_index as u16);
+        let code = func_body.code().elements().to_vec();
 
-        functions.insert(fn_index, fn_body);
+        program.add_func(index, code);
     }
-
-    let program = Program { functions, imports };
 
     Ok(program)
 }
