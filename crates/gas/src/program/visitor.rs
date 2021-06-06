@@ -5,10 +5,12 @@ pub trait ProgramVisitor: Sized {
 
     type Error;
 
+    /// An Entry point to visiting a `Program`
     fn visit(mut self, program: &Program) -> Result<Self::Output, Self::Error> {
         visit_program(program, self)
     }
 
+    /// An hook to be called just when about to start
     fn on_start(&mut self, program: &Program) -> Result<(), Self::Error> {
         Ok(())
     }

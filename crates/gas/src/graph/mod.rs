@@ -32,10 +32,12 @@ where
     L: NodeLabel,
     D: NodeData,
 {
+    /// Returns references to the `Graph`'s nodes
     pub fn nodes(&self) -> Vec<NodeRef<L, D>> {
         self.nodes.values().cloned().collect()
     }
 
+    /// Removes a `Node` from the `Graph`
     pub fn remove_node(&self, node: &NodeRef<L, D>) {
         for neighbor in node.outgoing() {
             let edge = (node.label(), neighbor.label());
@@ -44,6 +46,7 @@ where
         }
     }
 
+    /// Removes an `Edge` from the `Graph`
     pub fn remove_edge(&self, (source, dest): (L, L)) {
         let source = self.nodes.get(&source).unwrap();
         let dest = self.nodes.get(&dest).unwrap();
@@ -52,10 +55,12 @@ where
         dest.as_mut().remove_in_edge(source);
     }
 
+    /// Returns the number of `Node`s in the `Graph`
     pub fn node_count(&self) -> usize {
         self.nodes.len()
     }
 
+    //// Returns references to `Nodes` which have no incoming edges
     pub fn source_nodes(&self) -> Vec<NodeRef<L, D>> {
         self.nodes()
             .iter()
@@ -64,10 +69,17 @@ where
             .collect()
     }
 
+    /// Returns a reference to a `Node` given its `label` identifier
+    ///
+    /// # Panics
+    ///  
+    /// Panics if there is node `Node` labeled with `label`
+    ///
     pub fn get_node(&self, label: L) -> NodeRef<L, D> {
         self.try_get_node(label).unwrap()
     }
 
+    /// Tries to return a reference to a `Node` given its `label` identifier
     pub fn try_get_node(&self, label: L) -> Option<NodeRef<L, D>> {
         let node_ref = self.nodes.get(&label);
 

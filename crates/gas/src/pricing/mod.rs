@@ -22,6 +22,38 @@ pub use cfg::build_weighted_graph;
 mod func_price;
 pub use func_price::FuncPrice;
 
+/// The `ProgramPricing` is responsible of receiving a `Program` and pricing each of its functions.
+/// The input `Program` is assumed to have passed validation and hence have no `call-cycles`.
+///
+/// The `Program` pricing works in high-level as follows:
+///
+/// Input:
+/// * `program: Program`
+///_* `resolver: PriceResolver` (should be part of the consensus protocol)
+///
+/// Algorithm:
+/// * Parse `program` and derive:
+///     * The `CallGraph` of `program`
+//      * The `import functions` of `program` (see `Imports` in the code)
+///
+/// * SET `FuncPrice <- {)`
+/// * foreach `func` in `Program`'s functions (iterate over the functions in the Topological-Order derived from the `CallGraph`)
+///         * Build `CFG` for function `func` (see `build_func_cfg` in the code)
+///
+///         * Translate the `CFG` into a weighted-graph, `func_graph` (see the `build_weighted_graph` in the code)
+///           Note an implementation detail: the `weight` resides within the `Node`s (and NOT in the `Edge`s)
+///
+///         * (max_path, max_price) <- Find the maximum-weighted-path (see `graph::compute_max_weight_path` later)
+///
+///           `max_path`  is the nodes-path within `func_graph` (it's useful for debugging and testing)
+///           `max_price` is essentially the price of function `func`
+///
+///         * SET `FuncPrice[func] <- max_price`
+///             
+/// Important:              
+/// If function `f1` is calling another function `f2` (in some execution flow of function `f1`),
+/// then when we stumble upon `call f2` as part of building `weighted_graph` then we've have the `price(f1)` for sure,
+/// since we're visiting the functions in Topological-Order of the `CallGraph`.
 pub struct ProgramPricing<R>
 where
     R: PriceResolver,
@@ -37,6 +69,7 @@ impl<R> ProgramPricing<R>
 where
     R: PriceResolver,
 {
+    /// New instance using the input `resolver` (implements `PriceResolver`)
     pub fn new(resolver: R) -> Self {
         Self {
             current_func: None,
@@ -45,6 +78,7 @@ where
         }
     }
 
+    /// An entry point to the `Program` pricing process
     pub fn run(
         self,
         program: &Program,

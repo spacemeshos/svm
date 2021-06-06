@@ -19,6 +19,7 @@ where
     L: NodeLabel,
     D: NodeData,
 {
+    /// Creates a new `GraphBuilder`
     pub fn new() -> Self {
         Self {
             nodes: IndexMap::new(),

@@ -30,6 +30,7 @@ where
     L: NodeLabel,
     D: NodeData,
 {
+    // Creates a new `Node` labeled as `label`
     pub fn new(label: L) -> Self {
         Self {
             label,
