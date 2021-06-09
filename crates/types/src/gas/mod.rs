@@ -6,7 +6,7 @@ mod error;
 pub use error::OOGError;
 
 /// `MaybeGas` is essentially an `Option<u64>` with extensions
-/// to faciliate arithmetic additions and subtractions.
+/// to facilitate arithmetic additions and subtractions.
 #[derive(Debug, PartialEq, Clone, Copy)]
 #[repr(transparent)]
 pub struct Gas(Option<u64>);

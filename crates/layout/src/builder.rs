@@ -1,6 +1,6 @@
 use crate::Layout;
 
-/// Specifies the fixed-sized variables of an root.
+/// Specifies the fixed-sized variables
 pub struct LayoutBuilder {
     vars: Vec<(u32, u32)>,
 

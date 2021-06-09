@@ -1,7 +1,7 @@
 use wasmer::imports;
 use wasmer::{Function, NativeFunc};
 
-use svm_layout::{Layout, VarId};
+use svm_layout::{Id, Layout};
 use svm_runtime::{testing, vmcalls, Context};
 use svm_types::{Address, Gas, ReceiptLog};
 
@@ -30,7 +30,7 @@ macro_rules! assert_storage {
         let storage = &$ctx.borrow().storage;
 
         $(
-            let actual = storage.read_var(VarId($var_id));
+            let actual = storage.read_var(Id($var_id));
             assert_eq!(actual, $expected);
          )*
     }};
@@ -187,7 +187,7 @@ fn vmcalls_load160() {
 
     {
         let storage = &mut ctx.borrow_mut().storage;
-        storage.write_var(VarId(0), app_addr.as_slice().to_vec());
+        storage.write_var(Id(0), app_addr.as_slice().to_vec());
     }
 
     let func: NativeFunc<(u32, u32)> = instance.exports.get_native_function("load").unwrap();

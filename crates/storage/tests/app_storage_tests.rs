@@ -1,11 +1,11 @@
-use svm_layout::{Layout, VarId};
+use svm_layout::{Id, Layout};
 use svm_storage::{app::AppStorage, testing};
 use svm_types::Address;
 
 macro_rules! assert_vars {
         ($app:expr, $($var_id:expr => $expected:expr), *) => {{
             $(
-                let actual = $app.read_var(VarId($var_id));
+                let actual = $app.read_var(Id($var_id));
                 assert_eq!(actual, $expected);
              )*
         }};
@@ -14,7 +14,7 @@ macro_rules! assert_vars {
 macro_rules! write_vars {
         ($app:expr, $($var_id:expr => $value:expr), *) => {{
             $(
-                $app.write_var(VarId($var_id), $value.to_vec());
+                $app.write_var(Id($var_id), $value.to_vec());
              )*
         }};
     }
@@ -65,5 +65,5 @@ fn app_storage_write_var_value_should_match_layout_length() {
     let mut app = AppStorage::new(layout, kv);
 
     // calling `write_var` with 2-byte value (expected variable's to value to be 4 bytes)
-    app.write_var(VarId(0), vec![0, 0]);
+    app.write_var(Id(0), vec![0, 0]);
 }

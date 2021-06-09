@@ -71,8 +71,8 @@ fn encode_data(template: &Template, w: &mut Vec<u8>) {
 
     w.write_u16_be(nvars as u16);
 
-    for (_varid, _off, len) in template.layout.iter() {
-        w.write_u16_be(len as u16);
+    for var in template.layout.iter() {
+        w.write_u16_be(var.byte_size() as u16);
     }
 }
 

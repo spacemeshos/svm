@@ -1,9 +1,4 @@
-use crate::LayoutBuilder;
-
-/// Repersents a variable. an unsigned integer.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-#[repr(transparent)]
-pub struct VarId(pub u32);
+use crate::{Id, LayoutBuilder, RawVar};
 
 /// In-memory representation of a program's fixed-sized storage variables.
 #[derive(Debug, PartialEq, Clone)]
@@ -22,17 +17,18 @@ impl Layout {
     /// # Panics
     ///
     /// Panics when there is no layout to variable `var_id`
-    pub fn get_var(&self, var_id: VarId) -> (u32, u32) {
-        let vid = self.var_index(var_id);
+    pub fn get_var(&self, id: Id) -> RawVar {
+        let index = self.var_index(id);
+        let (offset, byte_size) = self.vars[index];
 
-        self.vars[vid]
+        RawVar::new(id, offset, byte_size)
     }
 
     /// Returns a iterator over the layout-variables.
     /// The iterators will return each time an entry of `(var_id, var_offset, var_length)`.
     pub fn iter(&self) -> LayoutIter {
         LayoutIter {
-            cur: 0,
+            current: 0,
             layout: self,
         }
     }
@@ -55,12 +51,12 @@ impl Layout {
     ///
     /// Panics when `var_id` is out-of-range.
     #[inline]
-    fn var_index(&self, var_id: VarId) -> usize {
-        let vid = var_id.0 as usize;
+    fn var_index(&self, id: Id) -> usize {
+        let id = id.0 as usize;
 
-        assert!(vid < self.vars.capacity());
+        assert!(id < self.vars.capacity());
 
-        vid
+        id
     }
 }
 
@@ -83,25 +79,25 @@ impl From<Vec<u32>> for Layout {
 }
 
 pub struct LayoutIter<'iter> {
-    cur: usize,
+    current: usize,
 
     layout: &'iter Layout,
 }
 
 impl<'iter> std::iter::Iterator for LayoutIter<'iter> {
-    type Item = (VarId, u32, u32);
+    type Item = RawVar;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.cur >= self.layout.len() {
+        if self.current >= self.layout.len() {
             return None;
         }
 
-        let var_id = VarId(self.cur as u32);
-        let (off, len) = self.layout.get_var(var_id);
+        let id = Id(self.current as u32);
+        let var = self.layout.get_var(id);
 
-        self.cur += 1;
+        self.current += 1;
 
-        Some((var_id, off, len))
+        Some(var)
     }
 }
 
@@ -117,8 +113,8 @@ mod tests {
 
         let layout = builder.build();
 
-        assert_eq!(layout.get_var(VarId(0)), (0, 10));
-        assert_eq!(layout.get_var(VarId(1)), (10, 20));
+        assert_eq!(layout.get_var(Id(0)), RawVar::new(Id(0), 0, 10));
+        assert_eq!(layout.get_var(Id(1)), RawVar::new(Id(1), 10, 20));
     }
 
     #[test]
@@ -127,8 +123,8 @@ mod tests {
 
         let layout: Layout = (*vec).into();
 
-        assert_eq!(layout.get_var(VarId(0)), (0, 20));
-        assert_eq!(layout.get_var(VarId(1)), (20, 40));
+        assert_eq!(layout.get_var(Id(0)), RawVar::new(Id(0), 0, 20));
+        assert_eq!(layout.get_var(Id(1)), RawVar::new(Id(1), 20, 40));
     }
 
     #[test]
@@ -141,10 +137,10 @@ mod tests {
 
         let layout = builder.build();
 
-        assert_eq!(layout.get_var(VarId(0)), (0, 10));
-        assert_eq!(layout.get_var(VarId(1)), (10, 20));
-        assert_eq!(layout.get_var(VarId(2)), (30, 30));
-        assert_eq!(layout.get_var(VarId(3)), (60, 40));
+        assert_eq!(layout.get_var(Id(0)), RawVar::new(Id(0), 0, 10));
+        assert_eq!(layout.get_var(Id(1)), RawVar::new(Id(1), 10, 20));
+        assert_eq!(layout.get_var(Id(2)), RawVar::new(Id(2), 30, 30));
+        assert_eq!(layout.get_var(Id(3)), RawVar::new(Id(3), 60, 40));
     }
 
     #[test]
@@ -162,8 +158,8 @@ mod tests {
         let third = iter.next();
         let fourth = iter.next();
 
-        assert_eq!(first, Some((VarId(0), 0, 10)));
-        assert_eq!(second, Some((VarId(1), 10, 20)));
+        assert_eq!(first, Some(RawVar::new(Id(0), 0, 10)));
+        assert_eq!(second, Some(RawVar::new(Id(1), 10, 20)));
 
         assert_eq!(third, None);
         assert_eq!(fourth, None);
