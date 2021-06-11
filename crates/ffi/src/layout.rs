@@ -5,7 +5,7 @@ use byteorder::{BigEndian, ByteOrder};
 
 use crate::svm_byte_array;
 
-pub use svm_layout::Layout;
+pub use svm_layout::FixedLayout;
 
 ///
 /// Parsing a raw `layout` given as `svm_byte_array` into `svm_layout::Layout`.
@@ -44,7 +44,7 @@ pub use svm_layout::Layout;
 /// assert_eq!(layout.get_var(VarId(2)), (30, 30));
 /// ```
 ///
-impl TryFrom<&svm_byte_array> for Layout {
+impl TryFrom<&svm_byte_array> for FixedLayout {
     type Error = io::Error;
 
     fn try_from(bytes: &svm_byte_array) -> Result<Self, Self::Error> {
@@ -55,12 +55,12 @@ impl TryFrom<&svm_byte_array> for Layout {
         let bytes: &[u8] = bytes.into();
         let raw_layout: Vec<u32> = bytes.chunks(4).map(BigEndian::read_u32).collect();
 
-        let layout = Layout::from(&raw_layout[..]);
+        let layout = FixedLayout::from(&raw_layout[..]);
         Ok(layout)
     }
 }
 
-impl TryFrom<svm_byte_array> for Layout {
+impl TryFrom<svm_byte_array> for FixedLayout {
     type Error = io::Error;
 
     #[inline]

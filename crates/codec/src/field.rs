@@ -3,7 +3,9 @@ use std::fmt;
 #[allow(missing_docs)]
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum Field {
+    SectionKind,
     String,
+    Section,
     GasUsed,
     Author,
     Creator,
@@ -17,8 +19,8 @@ pub enum Field {
     AppAddr,
     CallDataLength,
     CallData,
-    VarsCount,
-    VarLength,
+    RawVarCount,
+    RawVarSize,
     ErrorLength,
     Function,
     Ctor,
@@ -29,6 +31,9 @@ pub enum Field {
     LogMessage,
     LogMessageLength,
     LogCode,
+    SymbolicVarCount,
+    SymbolicVarType,
+    SymbolicVarName,
 }
 
 impl fmt::Display for Field {

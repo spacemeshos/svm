@@ -12,7 +12,7 @@ pub trait TemplateSerializer {
 /// Deserializing stored `Template` into its in-memory representation.
 pub trait TemplateDeserializer {
     #[allow(missing_docs)]
-    fn deserialize(bytes: &[u8]) -> Option<ExtTemplate>;
+    fn deserialize(bytes: &[u8], include_extra: bool) -> Option<ExtTemplate>;
 }
 
 /// Serializing an `App` into its raw representation.

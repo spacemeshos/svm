@@ -44,13 +44,13 @@ mod test {
         assert_eq!(data[0], BUF_OK_MARKER);
 
         let mut cursor = Cursor::new(&data[1..]);
-        let actual = template::decode_deploy_template(&mut cursor).unwrap();
+        let actual = template::decode(&mut cursor).unwrap();
 
         let expected = Template {
             version: 0,
             name: "My Template".to_string(),
             code: vec![0xC0, 0xDE],
-            layout: vec![1, 3].into(),
+            data: vec![1, 3].into(),
             ctors: vec!["init".into(), "start".into()],
         };
 

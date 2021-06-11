@@ -16,6 +16,8 @@ mod calldata;
 mod common;
 mod ext;
 mod field;
+mod section;
+mod r#type;
 
 /// Encoding for apps
 pub mod app;

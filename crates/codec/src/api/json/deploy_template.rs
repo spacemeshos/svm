@@ -3,7 +3,7 @@ use serde_json::Value;
 use crate::api::json::{self, JsonError};
 use crate::template;
 
-use svm_layout::{Layout, LayoutBuilder};
+use svm_layout::{FixedLayout, LayoutBuilder};
 use svm_types::Template;
 
 ///
@@ -34,18 +34,18 @@ pub fn deploy_template(json: &Value) -> Result<Vec<u8>, JsonError> {
         version,
         name,
         code,
-        layout: data,
+        data,
         ctors,
     };
 
     let mut buf = Vec::new();
 
-    template::encode_deploy_template(&template, &mut buf);
+    template::encode(&template, &mut buf);
 
     Ok(buf)
 }
 
-fn to_data_layout(blob: Vec<u8>) -> Result<Layout, JsonError> {
+fn to_data_layout(blob: Vec<u8>) -> Result<FixedLayout, JsonError> {
     if blob.len() % 4 != 0 {
         return Err(JsonError::InvalidField {
             field: "data".to_string(),
@@ -174,13 +174,13 @@ mod tests {
         let bytes = deploy_template(&json).unwrap();
         let mut cursor = Cursor::new(&bytes[..]);
 
-        let actual = template::decode_deploy_template(&mut cursor).unwrap();
+        let actual = template::decode(&mut cursor).unwrap();
 
         let expected = Template {
             version: 0,
             name: "My Template".to_string(),
             code: vec![0xC0, 0xDE],
-            layout: vec![1, 3].into(),
+            data: vec![1, 3].into(),
             ctors: vec!["init".into(), "start".into()],
         };
 

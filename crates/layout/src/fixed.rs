@@ -2,26 +2,46 @@ use crate::{Id, LayoutBuilder, RawVar};
 
 /// In-memory representation of a program's fixed-sized storage variables.
 #[derive(Debug, PartialEq, Clone)]
-pub struct Layout {
-    pub(crate) vars: Vec<(u32, u32)>,
+pub struct FixedLayout {
+    first: Option<Id>,
+
+    vars: Vec<RawVar>,
 }
 
-impl Layout {
-    /// For tests that don't care about the `Layout`
-    pub fn empty() -> Self {
-        Self { vars: Vec::new() }
+impl Default for FixedLayout {
+    fn default() -> Self {
+        Self {
+            first: None,
+            vars: Vec::new(),
+        }
+    }
+}
+
+impl FixedLayout {
+    pub fn new(vars: Vec<RawVar>) -> Self {
+        let first = vars.get(0).map(|var| var.id());
+
+        Self { first, vars }
     }
 
-    /// Returns variable's layout. i.e: `(offset, length)`
+    /// Returns a fixed-variable's layout
     ///
     /// # Panics
     ///
     /// Panics when there is no layout to variable `var_id`
-    pub fn get_var(&self, id: Id) -> RawVar {
+    ///
+    #[inline]
+    pub fn try_get(&self, id: Id) -> Option<&RawVar> {
         let index = self.var_index(id);
-        let (offset, byte_size) = self.vars[index];
 
-        RawVar::new(id, offset, byte_size)
+        self.vars.get(index)
+    }
+
+    #[inline]
+    pub fn get(&self, id: Id) -> &RawVar {
+        let index = self.var_index(id);
+
+        &self.vars[index]
     }
 
     /// Returns a iterator over the layout-variables.
@@ -33,16 +53,26 @@ impl Layout {
         }
     }
 
+    #[inline]
+    pub fn try_first(&self) -> Option<Id> {
+        self.first
+    }
+
+    #[inline]
+    pub fn first(&self) -> Id {
+        self.first.unwrap()
+    }
+
     /// The number of variables mapped by the layout.
     #[inline]
-    pub fn len(&self) -> usize {
+    pub fn count(&self) -> usize {
         self.vars.len()
     }
 
     /// Whether layout has variables
     #[inline]
     pub fn is_empty(&self) -> bool {
-        self.len() == 0
+        self.vars.is_empty()
     }
 
     /// Returns the variable index as `usize`.
@@ -52,26 +82,32 @@ impl Layout {
     /// Panics when `var_id` is out-of-range.
     #[inline]
     fn var_index(&self, id: Id) -> usize {
-        let id = id.0 as usize;
+        assert!(id >= self.first());
 
-        assert!(id < self.vars.capacity());
+        let index = (id.0 - self.first().0) as usize;
 
-        id
+        assert!(index < self.vars.len());
+
+        index
     }
 }
 
-impl From<&[u32]> for Layout {
+impl From<&[u32]> for FixedLayout {
     fn from(slice: &[u32]) -> Self {
-        let nvars = slice.len();
+        let cap = slice.len();
 
-        let mut builder = LayoutBuilder::with_capacity(nvars);
-        builder.extend_from_slice(slice);
+        let mut builder = LayoutBuilder::with_capacity(cap);
+
+        if slice.len() > 0 {
+            builder.set_first(Id(0));
+            builder.extend_from_slice(slice);
+        }
 
         builder.build()
     }
 }
 
-impl From<Vec<u32>> for Layout {
+impl From<Vec<u32>> for FixedLayout {
     #[inline]
     fn from(vec: Vec<u32>) -> Self {
         (*vec).into()
@@ -81,23 +117,23 @@ impl From<Vec<u32>> for Layout {
 pub struct LayoutIter<'iter> {
     current: usize,
 
-    layout: &'iter Layout,
+    layout: &'iter FixedLayout,
 }
 
 impl<'iter> std::iter::Iterator for LayoutIter<'iter> {
     type Item = RawVar;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.current >= self.layout.len() {
+        if self.current >= self.layout.count() {
             return None;
         }
 
         let id = Id(self.current as u32);
-        let var = self.layout.get_var(id);
+        let var = self.layout.get(id);
 
         self.current += 1;
 
-        Some(var)
+        Some(var.clone())
     }
 }
 
@@ -108,46 +144,46 @@ mod tests {
     #[test]
     fn layout_new() {
         let mut builder = LayoutBuilder::with_capacity(2);
-        builder.add_var(10);
-        builder.add_var(20);
+        builder.push(10);
+        builder.push(20);
 
         let layout = builder.build();
 
-        assert_eq!(layout.get_var(Id(0)), RawVar::new(Id(0), 0, 10));
-        assert_eq!(layout.get_var(Id(1)), RawVar::new(Id(1), 10, 20));
+        assert_eq!(layout.get(Id(0)), RawVar::new(Id(0), 0, 10));
+        assert_eq!(layout.get(Id(1)), RawVar::new(Id(1), 10, 20));
     }
 
     #[test]
     fn layout_from_slice() {
         let vec = vec![20, 40];
 
-        let layout: Layout = (*vec).into();
+        let layout: FixedLayout = (*vec).into();
 
-        assert_eq!(layout.get_var(Id(0)), RawVar::new(Id(0), 0, 20));
-        assert_eq!(layout.get_var(Id(1)), RawVar::new(Id(1), 20, 40));
+        assert_eq!(layout.get(Id(0)), RawVar::new(Id(0), 0, 20));
+        assert_eq!(layout.get(Id(1)), RawVar::new(Id(1), 20, 40));
     }
 
     #[test]
     fn layout_extend_from_slice() {
         let mut builder = LayoutBuilder::with_capacity(2);
-        builder.add_var(10);
-        builder.add_var(20);
+        builder.push(10);
+        builder.push(20);
 
         builder.extend_from_slice(&[30, 40]);
 
         let layout = builder.build();
 
-        assert_eq!(layout.get_var(Id(0)), RawVar::new(Id(0), 0, 10));
-        assert_eq!(layout.get_var(Id(1)), RawVar::new(Id(1), 10, 20));
-        assert_eq!(layout.get_var(Id(2)), RawVar::new(Id(2), 30, 30));
-        assert_eq!(layout.get_var(Id(3)), RawVar::new(Id(3), 60, 40));
+        assert_eq!(layout.get(Id(0)), RawVar::new(Id(0), 0, 10));
+        assert_eq!(layout.get(Id(1)), RawVar::new(Id(1), 10, 20));
+        assert_eq!(layout.get(Id(2)), RawVar::new(Id(2), 30, 30));
+        assert_eq!(layout.get(Id(3)), RawVar::new(Id(3), 60, 40));
     }
 
     #[test]
     fn layout_iter() {
         let mut builder = LayoutBuilder::with_capacity(2);
-        builder.add_var(10);
-        builder.add_var(20);
+        builder.push(10);
+        builder.push(20);
 
         let layout = builder.build();
 

@@ -12,6 +12,7 @@ pub enum ParseError {
     NotSupported(Field),
     InvalidUTF8String(Field),
     UnexpectedLayout(Field),
+    InvalidSection,
 }
 
 impl fmt::Display for ParseError {
@@ -28,6 +29,7 @@ impl fmt::Display for ParseError {
             ParseError::UnexpectedLayout(f) => {
                 write!(fmt, "Unexpected Wasm value layout for field `{}`", f)
             }
+            ParseError::InvalidSection => write!(fmt, "Invalid section kind"),
         }
     }
 }

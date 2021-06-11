@@ -4,4 +4,4 @@ mod template_builder;
 
 pub use app_builder::SpawnAppBuilder;
 pub use tx_builder::TxBuilder;
-pub use template_builder::DeployTemplateBuilder;
+pub use template_builder::TemplateBuilder;

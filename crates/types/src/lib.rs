@@ -1,10 +1,10 @@
 //! This crate contains types that are used throughout the SVM project.
 //! Whenever a type has a usage that exeeds a local crate then it should be considered a candidate for this crate.
 
-#![deny(missing_docs)]
-#![deny(unused)]
-#![deny(dead_code)]
-#![deny(unreachable_code)]
+#![allow(missing_docs)]
+#![allow(unused)]
+#![allow(dead_code)]
+#![allow(unreachable_code)]
 #![feature(const_type_id)]
 #![feature(const_type_name)]
 #![feature(vec_into_raw_parts)]
@@ -34,7 +34,8 @@ pub use gas::{Gas, OOGError};
 mod receipt;
 
 pub use receipt::{
-    into_spawn_app_receipt, ExecReceipt, ReceiptLog, Receipt, ReceiptRef, SpawnAppReceipt, TemplateReceipt,
+    into_spawn_app_receipt, ExecReceipt, Receipt, ReceiptLog, ReceiptRef, SpawnAppReceipt,
+    TemplateReceipt,
 };
 
 /// Address-related types
@@ -44,7 +45,10 @@ pub use address_of::AddressOf;
 pub use app::App;
 pub use spawn_app::SpawnApp;
 pub use state::State;
-pub use template::Template;
+pub use template::{
+    ApiSection, ByteCodeKind, CodeSection, CtorsSection, DataSection, DeploySection, HeaderSection,
+    SchemaSection, Section, SectionKind, Sections, SectionsIter, Template,
+};
 pub use transaction::Transaction;
 pub use wasm_type::{WasmType, WasmTypeError};
 pub use wasm_value::WasmValue;

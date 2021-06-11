@@ -105,7 +105,7 @@ impl SpawnAppBuilder {
 
         let mut w = Vec::new();
 
-        app::encode_spawn_app(&spawn, &mut w);
+        app::encode(&spawn, &mut w);
 
         w
     }

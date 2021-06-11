@@ -1,15 +1,15 @@
-use svm_layout::Layout;
+use svm_layout::FixedLayout;
 use svm_types::Template;
 
 use crate::template;
 
 /// Builds a raw representation for `deploy-template`
 /// Should be used for testing only.
-pub struct DeployTemplateBuilder {
+pub struct TemplateBuilder {
     version: Option<u16>,
     name: Option<String>,
     code: Option<Vec<u8>>,
-    layout: Option<Layout>,
+    layout: Option<FixedLayout>,
     ctors: Option<Vec<String>>,
 }
 
@@ -26,7 +26,7 @@ pub struct DeployTemplateBuilder {
 /// let layout = vec![5, 10].into();
 /// let ctors = vec!["init".to_string()];
 ///
-/// let bytes = DeployTemplateBuilder::new()
+/// let bytes = TemplateBuilder::new()
 ///            .with_version(0)
 ///            .with_name("My Template")
 ///            .with_code(&[0xC, 0x0, 0xD, 0xE])
@@ -49,7 +49,7 @@ pub struct DeployTemplateBuilder {
 /// ```
 ///
 #[allow(missing_docs)]
-impl DeployTemplateBuilder {
+impl TemplateBuilder {
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {
@@ -76,7 +76,7 @@ impl DeployTemplateBuilder {
         self
     }
 
-    pub fn with_layout(mut self, data: &Layout) -> Self {
+    pub fn with_layout(mut self, data: &FixedLayout) -> Self {
         self.layout = Some(data.clone());
         self
     }
@@ -97,13 +97,13 @@ impl DeployTemplateBuilder {
             version,
             name,
             code,
-            layout,
+            data: layout,
             ctors,
         };
 
         let mut w = Vec::new();
 
-        template::encode_deploy_template(&app, &mut w);
+        template::encode(&app, &mut w);
 
         w
     }

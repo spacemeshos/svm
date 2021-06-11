@@ -14,7 +14,7 @@ use crate::vmcalls;
 use crate::{Config, Context, ExternImport, Runtime};
 
 use svm_ffi::svm_env_t;
-use svm_layout::Layout;
+use svm_layout::FixedLayout;
 use svm_storage::app::AppStorage;
 
 use svm_types::{AppAddr, AuthorAddr, SpawnerAddr, State, Type};
@@ -77,7 +77,8 @@ where
         info!("runtime `deploy_template`");
 
         let base = self.env.parse_deploy_template(bytes).unwrap();
-        let template = ExtTemplate::new(base, author);
+        let mut template = ExtTemplate::new(base);
+        template.set_author(author);
 
         let install_price = self.template_installation_price(bytes, &template);
 
@@ -229,7 +230,7 @@ where
     }
 
     /// Opens the `AppStorage` associated with the input params.
-    pub fn open_storage(&self, app_addr: &AppAddr, state: &State, layout: &Layout) -> AppStorage {
+    pub fn open_storage(&self, app_addr: &AppAddr, state: &State, layout: &FixedLayout) -> AppStorage {
         (self.storage_builder)(app_addr, state, layout, &self.config)
     }
 
@@ -281,7 +282,7 @@ where
     {
         info!("runtime `exec`");
 
-        match self.load_template(call.app_addr()) {
+        match self.load_template(call.app_addr(), false) {
             Ok(template) => {
                 let storage = self.open_storage(call.app_addr(), call.state(), template.layout());
 
@@ -645,10 +646,14 @@ where
         (import_object, funcs_envs)
     }
 
-    fn load_template(&self, app_addr: &AppAddr) -> std::result::Result<ExtTemplate, RuntimeError> {
+    fn load_template(
+        &self,
+        app_addr: &AppAddr,
+        include_schema: bool,
+    ) -> std::result::Result<ExtTemplate, RuntimeError> {
         info!("runtime `load_template`");
 
-        let template = self.env.load_template_by_app(app_addr);
+        let template = self.env.load_template_by_app(app_addr, include_schema);
 
         template.ok_or_else(|| RuntimeError::AppNotFound(app_addr.clone()))
     }

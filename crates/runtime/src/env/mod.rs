@@ -132,7 +132,7 @@ where
     pub fn parse_deploy_template(&self, bytes: &[u8]) -> Result<Template, ParseError> {
         let mut cursor = Cursor::new(bytes);
 
-        let template = template::decode_deploy_template(&mut cursor)?;
+        let template = template::decode(&mut cursor)?;
 
         Ok(template)
     }
@@ -144,7 +144,7 @@ where
     pub fn parse_spawn_app(&self, bytes: &[u8]) -> Result<SpawnApp, ParseError> {
         let mut cursor = Cursor::new(bytes);
 
-        let spawn = app::decode_spawn_app(&mut cursor)?;
+        let spawn = app::decode(&mut cursor)?;
 
         Ok(spawn)
     }
@@ -189,20 +189,20 @@ where
     }
 
     /// Given an `App` Address, loads the `Template` the app is associated with.
-    pub fn load_template_by_app(&self, addr: &AppAddr) -> Option<ExtTemplate> {
+    pub fn load_template_by_app(&self, addr: &AppAddr, include_extra: bool) -> Option<ExtTemplate> {
         self.load_app(addr).and_then(|app| {
             let addr = app.template_addr();
 
-            self.load_template(addr)
+            self.load_template(addr, include_extra)
         })
     }
 
     /// Loads an `Template` given its `Address`
     #[must_use]
-    pub fn load_template(&self, addr: &TemplateAddr) -> Option<ExtTemplate> {
+    pub fn load_template(&self, addr: &TemplateAddr, include_extra: bool) -> Option<ExtTemplate> {
         let store = self.get_template_store();
 
-        store.load(&addr)
+        store.load(&addr, include_extra)
     }
 
     /// Loads an `App` given its `Address`
@@ -216,7 +216,7 @@ where
     /// Returns whether a `Template` with given the `Address` exists.
     #[inline]
     pub fn template_exists(&self, addr: &TemplateAddr) -> bool {
-        self.load_template(addr).is_some()
+        self.load_template(addr, false).is_some()
     }
 
     /// Returns whether an `App` with given the `Address` exists.

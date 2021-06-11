@@ -44,13 +44,13 @@ where
         self.bytes.insert(hash.clone(), bytes);
     }
 
-    fn load(&self, addr: &TemplateAddr) -> Option<ExtTemplate> {
+    fn load(&self, addr: &TemplateAddr, include_extra: bool) -> Option<ExtTemplate> {
         let hash = self.hash.get(addr);
 
         hash.and_then(|h| {
             self.bytes
                 .get(&h)
-                .and_then(|bytes| D::deserialize(&bytes[..]))
+                .and_then(|bytes| D::deserialize(&bytes[..], include_extra))
         })
     }
 }

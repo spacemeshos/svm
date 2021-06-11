@@ -6,7 +6,7 @@ use raw::{RawChange, RawStorage};
 mod kv;
 pub use kv::AppKVStore;
 
-use svm_layout::{Id, Layout};
+use svm_layout::{Id, FixedLayout};
 use svm_types::State;
 
 ///
@@ -26,7 +26,7 @@ pub struct AppStorage {
     raw_storage: RawStorage,
 
     /// App Fixed-Sized variables layout
-    layout: Layout,
+    layout: FixedLayout,
 
     /// Uncommited changes
     uncommitted: HashMap<Id, Vec<u8>>,
@@ -40,7 +40,7 @@ const KV_VALUE_SIZE: u32 = 32;
 impl AppStorage {
     /// New instance for managing app's variabled specified by `layout`.
     /// App's storage is backed by key-value store `kv`.
-    pub fn new(layout: Layout, app_kv: AppKVStore) -> Self {
+    pub fn new(layout: FixedLayout, app_kv: AppKVStore) -> Self {
         Self {
             layout,
             raw_storage: RawStorage::new(app_kv, KV_VALUE_SIZE),
@@ -88,7 +88,7 @@ impl AppStorage {
     /// The layout is a tuple of `(offset, length)`.
     #[inline]
     pub fn var_layout(&self, var_id: Id) -> (u32, u32) {
-        let var = self.layout.get_var(var_id);
+        let var = self.layout.get(var_id);
 
         (var.offset(), var.byte_size())
     }

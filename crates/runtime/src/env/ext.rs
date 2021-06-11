@@ -1,47 +1,8 @@
-use svm_layout::Layout;
+use std::collections::HashMap;
+
+use svm_codec::{SectionHeader, SectionKind};
+use svm_layout::{FixedLayout, SymbolicVar};
 use svm_types::{App, AuthorAddr, SpawnApp, SpawnerAddr, Template, TemplateAddr};
-
-#[derive(Debug, PartialEq)]
-pub struct ExtTemplate {
-    base: Template,
-
-    author: AuthorAddr,
-}
-
-impl ExtTemplate {
-    pub fn new(base: Template, author: &AuthorAddr) -> Self {
-        Self {
-            base,
-            author: author.clone(),
-        }
-    }
-
-    pub fn base(&self) -> &Template {
-        &self.base
-    }
-
-    pub fn name(&self) -> &str {
-        &self.base.name
-    }
-
-    pub fn code(&self) -> &[u8] {
-        &self.base.code
-    }
-
-    pub fn layout(&self) -> &Layout {
-        &self.base.layout
-    }
-
-    pub fn author(&self) -> &AuthorAddr {
-        &self.author
-    }
-
-    pub fn is_ctor(&self, func_name: &str) -> bool {
-        let base = self.base();
-
-        base.ctors.iter().any(|ctor| ctor == func_name)
-    }
-}
 
 pub struct ExtApp {
     base: App,

@@ -6,8 +6,8 @@ use crate::env::{DefaultMemAppStore, DefaultMemEnvTypes, DefaultMemTemplateStore
 use crate::storage::StorageBuilderFn;
 use crate::{Config, DefaultRuntime, Env, ExternImport};
 
-use svm_codec::api::builder::{DeployTemplateBuilder, SpawnAppBuilder, TxBuilder};
-use svm_layout::Layout;
+use svm_codec::api::builder::{TemplateBuilder, SpawnAppBuilder, TxBuilder};
+use svm_layout::FixedLayout;
 use svm_storage::{
     app::{AppKVStore, AppStorage},
     kv::{FakeKV, StatefulKV},
@@ -85,7 +85,7 @@ pub fn wasmer_instantiate(
 }
 
 /// Given an App `Address` and its storage layout, it initializes a new blank `AppStorage`
-pub fn blank_storage(app_addr: &Address, layout: &Layout) -> AppStorage {
+pub fn blank_storage(app_addr: &Address, layout: &FixedLayout) -> AppStorage {
     let state_kv = memory_state_kv_init();
     let app_kv = AppKVStore::new(app_addr.clone(), &state_kv);
 
@@ -121,7 +121,7 @@ pub fn runtime_memory_storage_builder(
 ) -> Box<StorageBuilderFn> {
     let state_kv = Rc::clone(state_kv);
 
-    let func = move |app_addr: &AppAddr, state: &State, layout: &Layout, _config: &Config| {
+    let func = move |app_addr: &AppAddr, state: &State, layout: &FixedLayout, _config: &Config| {
         let app_addr = app_addr.inner();
         let app_kv = AppKVStore::new(app_addr.clone(), &state_kv);
 
@@ -138,13 +138,13 @@ pub fn runtime_memory_storage_builder(
 pub fn build_template(
     version: u16,
     name: &str,
-    data: Layout,
+    data: FixedLayout,
     ctors: &[String],
     wasm: WasmFile,
 ) -> Vec<u8> {
     let wasm = wasm.into_bytes();
 
-    DeployTemplateBuilder::new()
+    TemplateBuilder::new()
         .with_version(version)
         .with_name(name)
         .with_code(&wasm)

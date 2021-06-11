@@ -13,10 +13,10 @@ pub trait TemplateStore {
     /// hash     - Template's code Hash.
     fn store(&mut self, template: &ExtTemplate, addr: &TemplateAddr, hash: &TemplateHash);
 
-    /// Given a `Template` account address, fetches its raw data
-    /// and deserializes it into `Template`. Returns `None` if `Template` doesn't exist.
+    /// Given a `Template` account `Address`, fetches its raw data and deserializes it into `Template`.
+    /// Returns `None` if `Template` doesn't exist.
     #[must_use]
-    fn load(&self, addr: &TemplateAddr) -> Option<ExtTemplate>;
+    fn load(&self, addr: &TemplateAddr, include_schema: bool) -> Option<ExtTemplate>;
 }
 
 /// A persistent store for `A}pp`(s)

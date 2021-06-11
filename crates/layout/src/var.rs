@@ -1,5 +1,5 @@
 /// Represents a raw variable. an unsigned integer.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
 pub struct Id(pub u32);
 
@@ -36,14 +36,20 @@ impl RawVar {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct SymbolicVar {
+    id: Id,
+
     name: String,
 
     ty: Type,
 }
 
 impl SymbolicVar {
-    pub fn new(name: String, ty: Type) -> Self {
-        Self { name, ty }
+    pub fn new(id: Id, name: String, ty: Type) -> Self {
+        Self { id, name, ty }
+    }
+
+    pub fn id(&self) -> Id {
+        self.id
     }
 
     pub fn name(&self) -> &str {

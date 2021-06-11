@@ -1,4 +1,4 @@
-//! Execute `AppTransaction` Raw Format Version 0.0
+//! `Transaction` Raw Format
 //!
 //!  +--------------------------------------------+
 //!  |             |                              |
@@ -6,7 +6,7 @@
 //!  |  (2 bytes)  |         (20 bytes)           |
 //!  |_____________|______________________________|
 //!  |                                            |
-//!  |            Function (String)               |
+//!  |            `Function` (String)             |
 //!  |____________________________________________|
 //!  |                |                           |
 //!  |  `VerifyData`  |       `VerifyData`        |

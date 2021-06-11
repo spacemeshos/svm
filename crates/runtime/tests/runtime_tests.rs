@@ -8,7 +8,7 @@ use svm_sdk::ReturnData;
 use svm_codec::{Field, ParseError};
 
 use svm_gas::ProgramError;
-use svm_layout::Layout;
+use svm_layout::FixedLayout;
 use svm_runtime::{error::ValidateError, testing, Runtime};
 
 use svm_types::{Address, Gas, RuntimeError};
@@ -50,7 +50,7 @@ fn default_runtime_validate_template_invalid_wasm() {
     let bytes = testing::build_template(
         version,
         "My Template",
-        Layout::empty(),
+        FixedLayout::empty(),
         &ctors,
         include_str!("wasm/wasm_with_floats.wast").into(),
     );
@@ -100,7 +100,7 @@ fn default_runtime_deploy_template_reaches_oog() {
     let bytes = testing::build_template(
         version,
         "My Template",
-        Layout::empty(),
+        FixedLayout::empty(),
         &ctors,
         include_str!("wasm/runtime_app_ctor.wast").into(),
     );
@@ -122,7 +122,7 @@ fn default_runtime_deploy_template_has_enough_gas() {
     let bytes = testing::build_template(
         version,
         "My Template",
-        Layout::empty(),
+        FixedLayout::empty(),
         &ctors,
         include_str!("wasm/runtime_app_ctor.wast").into(),
     );
@@ -146,7 +146,7 @@ fn default_runtime_spawn_app_with_non_ctor_fails() {
     let bytes = testing::build_template(
         version,
         "My Template",
-        Layout::empty(),
+        FixedLayout::empty(),
         &ctors,
         include_str!("wasm/runtime_app_ctor.wast").into(),
     );
@@ -185,7 +185,7 @@ fn default_runtime_spawn_app_with_ctor_reaches_oog() {
     let bytes = testing::build_template(
         version,
         "My Template",
-        Layout::empty(),
+        FixedLayout::empty(),
         &ctors,
         include_str!("wasm/runtime_app_ctor.wast").into(),
     );
@@ -216,7 +216,7 @@ fn default_runtime_exec_app_with_ctor_fails() {
     let version = 0;
     let author = Address::of("author").into();
     let maybe_gas = Gas::new();
-    let layout: Layout = vec![Address::len() as u32].into();
+    let layout: FixedLayout = vec![Address::len() as u32].into();
     let ctors = vec!["initialize".to_string()];
 
     let bytes = testing::build_template(
@@ -265,7 +265,7 @@ fn default_runtime_calldata_returndata() {
     let version = 0;
     let author = Address::of("author").into();
     let maybe_gas = Gas::new();
-    let layout: Layout = vec![Address::len() as u32].into();
+    let layout: FixedLayout = vec![Address::len() as u32].into();
     let ctors = vec!["initialize".to_string()];
 
     let bytes = testing::build_template(

@@ -89,31 +89,43 @@ impl TemplateSerializer for DefaultTemplateSerializer {
         let mut w = Vec::new();
 
         let base = template.base();
-        let author = template.author();
 
-        template::encode_deploy_template(base, &mut w);
+        template::encode(base, &mut w);
 
+        // Encoding the `extras`
+        let extra = template.extra().unwrap();
+
+        let author = extra.author();
         w.write_address(author.inner());
+
+        let schema = extra.schema();
+        //
 
         w
     }
 }
 
 impl TemplateDeserializer for DefaultTemplateDeserializer {
-    fn deserialize(bytes: &[u8]) -> Option<ExtTemplate> {
+    fn deserialize(bytes: &[u8], include_extra: bool) -> Option<ExtTemplate> {
         let mut cursor = Cursor::new(bytes);
 
-        let base = match template::decode_deploy_template(&mut cursor) {
+        let base = match template::decode(&mut cursor) {
             Ok(base) => base,
             _ => return None,
         };
 
-        let author = match cursor.read_address() {
-            Ok(addr) => AuthorAddr::new(addr.into()),
-            _ => return None,
-        };
+        let mut template = ExtTemplate::new(base);
 
-        let template = ExtTemplate::new(base, &author);
+        if include_extra {
+            let author = match cursor.read_address() {
+                Ok(addr) => AuthorAddr::new(addr.into()),
+                _ => return None,
+            };
+
+            template.set_author(&author);
+
+            todo!("load schema...");
+        }
 
         Some(template)
     }
@@ -136,16 +148,15 @@ mod tests {
             version: 0,
             name: "My Template".to_string(),
             code: vec![0x0C, 0x00, 0x0D, 0x0E],
-            layout: vec![10, 20, 30].into(),
+            data: vec![10, 20, 30].into(),
             ctors: vec!["init".into(), "start".into()],
         };
 
-        let author = Address::of("@author").into();
-        let template = ExtTemplate::new(base, &author);
+        let template = ExtTemplate::new(base);
 
         let bytes = S::serialize(&template);
 
-        let decoded = D::deserialize(&bytes[..]).unwrap();
+        let decoded = D::deserialize(&bytes[..], false).unwrap();
         assert_eq!(decoded, template);
     }
 }
