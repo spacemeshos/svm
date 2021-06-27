@@ -65,7 +65,7 @@ impl FixedLayout {
 
     /// The number of variables mapped by the layout.
     #[inline]
-    pub fn count(&self) -> usize {
+    pub fn len(&self) -> usize {
         self.vars.len()
     }
 
@@ -94,12 +94,13 @@ impl FixedLayout {
 
 impl From<&[u32]> for FixedLayout {
     fn from(slice: &[u32]) -> Self {
-        let cap = slice.len();
+        let len = slice.len();
 
-        let mut builder = LayoutBuilder::with_capacity(cap);
+        let mut builder = LayoutBuilder::with_capacity(len);
 
-        if slice.len() > 0 {
+        if len > 0 {
             builder.set_first(Id(0));
+
             builder.extend_from_slice(slice);
         }
 
@@ -124,7 +125,7 @@ impl<'iter> std::iter::Iterator for LayoutIter<'iter> {
     type Item = RawVar;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.current >= self.layout.count() {
+        if self.current >= self.layout.len() {
             return None;
         }
 

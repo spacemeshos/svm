@@ -5,7 +5,12 @@ mod error;
 
 pub use error::OOGError;
 
-/// `MaybeGas` is essentially an `Option<u64>` with extensions
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum GasMode {
+    Fixed,
+    Metering,
+}
+/// `Gas` is essentially an `Option<u64>` with extensions
 /// to facilitate arithmetic additions and subtractions.
 #[derive(Debug, PartialEq, Clone, Copy)]
 #[repr(transparent)]

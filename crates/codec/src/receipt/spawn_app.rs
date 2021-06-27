@@ -23,7 +23,7 @@ use svm_types::SpawnAppReceipt;
 
 use super::{decode_error, encode_error, gas, logs, types};
 
-use crate::{calldata, common};
+use crate::{calldata, version};
 use crate::{ReadExt, WriteExt};
 
 /// Encodes a `spawn-app` receipt into its binary format.
@@ -56,7 +56,7 @@ pub fn decode_app_receipt(bytes: &[u8]) -> SpawnAppReceipt {
     let ty = cursor.read_byte().unwrap();
     debug_assert_eq!(ty, types::SPAWN_APP);
 
-    let version = common::decode_version(&mut cursor).unwrap();
+    let version = version::decode_version(&mut cursor).unwrap();
     debug_assert_eq!(0, version);
 
     let is_success = cursor.read_bool().unwrap();
@@ -90,7 +90,7 @@ pub fn decode_app_receipt(bytes: &[u8]) -> SpawnAppReceipt {
 fn encode_version(receipt: &SpawnAppReceipt, w: &mut Vec<u8>) {
     let v = &receipt.version;
 
-    common::encode_version(*v, w);
+    version::encode_version(*v, w);
 }
 
 fn encode_app_addr(receipt: &SpawnAppReceipt, w: &mut Vec<u8>) {

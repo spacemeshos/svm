@@ -24,7 +24,7 @@ pub use ptr::RuntimePtr;
 use crate::error::ValidateError;
 
 use svm_types::{
-    AuthorAddr, ExecReceipt, Gas, RuntimeError, SpawnAppReceipt, SpawnerAddr, State,
+    DeployerAddr, ExecReceipt, Gas, RuntimeError, SpawnAppReceipt, SpawnerAddr, State,
     TemplateReceipt, Transaction,
 };
 
@@ -43,7 +43,7 @@ pub trait Runtime {
     fn deploy_template(
         &mut self,
         bytes: &[u8],
-        author: &AuthorAddr,
+        deployer: &DeployerAddr,
         gas_limit: Gas,
     ) -> TemplateReceipt;
 

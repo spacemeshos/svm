@@ -30,6 +30,12 @@ pub enum Layout {
 }
 
 impl Layout {
+    pub fn kind(&self) -> LayoutKind {
+        match self {
+            Self::Fixed(..) => LayoutKind::Fixed,
+        }
+    }
+
     pub fn as_fixed(&self) -> &FixedLayout {
         match self {
             Self::Fixed(layout) => layout,

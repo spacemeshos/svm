@@ -1,9 +1,8 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::marker::PhantomData;
 
-use svm_types::TemplateAddr;
+use svm_types::{SectionKind, Template, TemplateAddr};
 
-use crate::env::ExtTemplate;
 use crate::env::{hash, traits};
 
 use hash::TemplateHash;
@@ -37,20 +36,24 @@ where
     S: TemplateSerializer,
     D: TemplateDeserializer,
 {
-    fn store(&mut self, template: &ExtTemplate, addr: &TemplateAddr, hash: &TemplateHash) {
+    fn store(&mut self, template: &Template, addr: &TemplateAddr, hash: &TemplateHash) {
         self.hash.insert(addr.clone(), hash.clone());
 
         let bytes = S::serialize(template);
         self.bytes.insert(hash.clone(), bytes);
     }
 
-    fn load(&self, addr: &TemplateAddr, include_extra: bool) -> Option<ExtTemplate> {
+    fn load(
+        &self,
+        addr: &TemplateAddr,
+        interests: Option<HashSet<SectionKind>>,
+    ) -> Option<Template> {
         let hash = self.hash.get(addr);
 
         hash.and_then(|h| {
             self.bytes
                 .get(&h)
-                .and_then(|bytes| D::deserialize(&bytes[..], include_extra))
+                .and_then(|bytes| D::deserialize(&bytes, interests))
         })
     }
 }

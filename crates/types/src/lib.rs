@@ -1,5 +1,5 @@
 //! This crate contains types that are used throughout the SVM project.
-//! Whenever a type has a usage that exeeds a local crate then it should be considered a candidate for this crate.
+//! Whenever a type has a usage that exceeds a local crate then it should be considered a candidate for this crate.
 
 #![allow(missing_docs)]
 #![allow(unused)]
@@ -28,7 +28,7 @@ pub use error::RuntimeError;
 
 /// Gas-related types
 mod gas;
-pub use gas::{Gas, OOGError};
+pub use gas::{Gas, GasMode, OOGError};
 
 /// `Receipt`-related types
 mod receipt;
@@ -39,17 +39,17 @@ pub use receipt::{
 };
 
 /// Address-related types
-pub use address::{Address, AppAddr, AuthorAddr, SpawnerAddr, TemplateAddr};
+pub use address::{Address, AppAddr, DeployerAddr, SpawnerAddr, TemplateAddr};
 pub use address_of::AddressOf;
 
 pub use app::App;
 pub use spawn_app::SpawnApp;
 pub use state::State;
 pub use template::{
-    ApiSection, ByteCodeKind, CodeSection, CtorsSection, DataSection, DeploySection, HeaderSection,
-    SchemaSection, Section, SectionKind, Sections, SectionsIter, Template,
+    ApiSection, CodeKind, CodeSection, CtorsSection, DataSection, DeploySection, HeaderSection,
+    SchemaSection, Section, SectionKind, SectionWrapper, Sections, SectionsIter, Template,
 };
-pub use transaction::Transaction;
+pub use transaction::{Layer, Nonce, Transaction, TransactionId};
 pub use wasm_type::{WasmType, WasmTypeError};
 pub use wasm_value::WasmValue;
 
@@ -67,8 +67,8 @@ pub enum Type {
     /// It enables the API user to attach descriptive names as types.
     ///
     /// One can name instances of the same Rust native `struct/enum`
-    /// using different strings. It makes it easier to troubleshoot
-    /// allocation/deallocation of resources since we can pinpoint each resource.
+    /// using different strings.  It makes it easier to troubleshoot
+    /// leaking resources since we can pinpoint each resource.
     Str(&'static str),
 }
 

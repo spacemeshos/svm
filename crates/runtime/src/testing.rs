@@ -6,14 +6,19 @@ use crate::env::{DefaultMemAppStore, DefaultMemEnvTypes, DefaultMemTemplateStore
 use crate::storage::StorageBuilderFn;
 use crate::{Config, DefaultRuntime, Env, ExternImport};
 
-use svm_codec::api::builder::{TemplateBuilder, SpawnAppBuilder, TxBuilder};
-use svm_layout::FixedLayout;
+use svm_codec::api::builder::{SpawnAppBuilder, TemplateBuilder, TxBuilder};
+use svm_codec::template;
+use svm_layout::{FixedLayout, Layout};
 use svm_storage::{
     app::{AppKVStore, AppStorage},
     kv::{FakeKV, StatefulKV},
 };
-use svm_types::{Address, AppAddr, Gas, State, TemplateAddr};
+use svm_types::{
+    Address, AppAddr, CodeSection, CtorsSection, DataSection, Gas, HeaderSection, State,
+    TemplateAddr,
+};
 
+use wasmer::wasmparser::Data;
 use wasmer::{ImportObject, Instance, Memory, MemoryType, Module, Pages, Store};
 
 /// Hold a Wasm file in textual or binary form
@@ -134,35 +139,33 @@ pub fn runtime_memory_storage_builder(
     Box::new(func)
 }
 
-/// Synthesizes a raw deploy-template transaction.
+/// Builds a  raw `Deploy Template` transaction
 pub fn build_template(
-    version: u16,
+    code_version: u32,
     name: &str,
-    data: FixedLayout,
+    layout: FixedLayout,
     ctors: &[String],
     wasm: WasmFile,
 ) -> Vec<u8> {
-    let wasm = wasm.into_bytes();
+    let code = CodeSection::new_fixed(wasm.into_bytes(), 0);
+    let ctors = CtorsSection::new(ctors.to_vec());
+    let data = DataSection::with_layout(Layout::Fixed(layout));
+    let header = HeaderSection::new(code_version, name.to_string(), "".to_string());
 
-    TemplateBuilder::new()
-        .with_version(version)
-        .with_name(name)
-        .with_code(&wasm)
-        .with_layout(&data)
+    let template = TemplateBuilder::default()
+        .with_code(code)
+        .with_data(data)
         .with_ctors(ctors)
-        .build()
+        .with_header(header)
+        .build();
+
+    template::encode(&template)
 }
 
-/// Synthesizes a raw spaw-app transaction.
-pub fn build_app(
-    version: u16,
-    template: &TemplateAddr,
-    name: &str,
-    ctor: &str,
-    calldata: &[u8],
-) -> Vec<u8> {
+/// Builds a raw `Spawn App` transaction
+pub fn build_app(template: &TemplateAddr, name: &str, ctor: &str, calldata: &[u8]) -> Vec<u8> {
     SpawnAppBuilder::new()
-        .with_version(version)
+        .with_version(0)
         .with_template(template)
         .with_name(name)
         .with_ctor(ctor)
@@ -170,10 +173,10 @@ pub fn build_app(
         .build()
 }
 
-/// Synthesizes a raw exec-app transaction.
-pub fn build_app_tx(version: u16, app_addr: &AppAddr, func: &str, calldata: &[u8]) -> Vec<u8> {
+/// Builds a raw `Transaction`
+pub fn build_transaction(app_addr: &AppAddr, func: &str, calldata: &[u8]) -> Vec<u8> {
     TxBuilder::new()
-        .with_version(version)
+        .with_version(0)
         .with_app(app_addr)
         .with_func(func)
         .with_calldata(calldata)

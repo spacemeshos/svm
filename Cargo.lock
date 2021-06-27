@@ -1349,6 +1349,7 @@ dependencies = [
 name = "svm-codec"
 version = "0.0.0"
 dependencies = [
+ "indexmap",
  "maplit",
  "serde_json",
  "svm-abi-decoder",
@@ -1581,6 +1582,7 @@ dependencies = [
 name = "svm-types"
 version = "0.0.0"
 dependencies = [
+ "indexmap",
  "svm-common",
  "svm-layout",
 ]

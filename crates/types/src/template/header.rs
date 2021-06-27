@@ -1,8 +1,8 @@
-#[derive(Clone)]
-pub struct HeaderSection {
-    svm_version: u32,
+use crate::{DeployerAddr, Section, SectionKind};
 
-    executable: bool,
+#[derive(Debug, Clone, PartialEq)]
+pub struct HeaderSection {
+    code_version: u32,
 
     name: String,
 
@@ -10,12 +10,16 @@ pub struct HeaderSection {
 }
 
 impl HeaderSection {
-    pub fn svm_version(&self) -> u32 {
-        self.svm_version
+    pub fn new(code_version: u32, name: String, desc: String) -> Self {
+        Self {
+            code_version,
+            name,
+            desc,
+        }
     }
 
-    pub fn is_executable(&self) -> bool {
-        self.executable
+    pub fn code_version(&self) -> u32 {
+        self.code_version
     }
 
     pub fn name(&self) -> &str {
@@ -25,4 +29,8 @@ impl HeaderSection {
     pub fn desc(&self) -> &str {
         &self.desc
     }
+}
+
+impl Section for HeaderSection {
+    const KIND: SectionKind = SectionKind::Header;
 }

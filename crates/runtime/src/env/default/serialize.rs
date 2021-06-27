@@ -1,13 +1,14 @@
+use std::collections::HashSet;
 use std::io::Cursor;
 
 use svm_codec::{ReadExt, WriteExt};
 
 use svm_codec::template;
-use svm_types::{App, AuthorAddr, SpawnerAddr, TemplateAddr};
+use svm_types::{App, DeployerAddr, SectionKind, SpawnerAddr, Template, TemplateAddr};
 
 use crate::env::{self, traits};
 
-use env::{ExtApp, ExtTemplate};
+use env::ExtApp;
 
 use traits::{AppDeserializer, AppSerializer};
 use traits::{TemplateDeserializer, TemplateSerializer};
@@ -85,78 +86,17 @@ pub struct DefaultTemplateSerializer;
 pub struct DefaultTemplateDeserializer;
 
 impl TemplateSerializer for DefaultTemplateSerializer {
-    fn serialize(template: &ExtTemplate) -> Vec<u8> {
-        let mut w = Vec::new();
-
-        let base = template.base();
-
-        template::encode(base, &mut w);
-
-        // Encoding the `extras`
-        let extra = template.extra().unwrap();
-
-        let author = extra.author();
-        w.write_address(author.inner());
-
-        let schema = extra.schema();
-        //
-
-        w
+    fn serialize(template: &Template) -> Vec<u8> {
+        template::encode(template)
     }
 }
 
 impl TemplateDeserializer for DefaultTemplateDeserializer {
-    fn deserialize(bytes: &[u8], include_extra: bool) -> Option<ExtTemplate> {
+    fn deserialize(bytes: &[u8], interests: Option<HashSet<SectionKind>>) -> Option<Template> {
         let mut cursor = Cursor::new(bytes);
 
-        let base = match template::decode(&mut cursor) {
-            Ok(base) => base,
-            _ => return None,
-        };
+        let template = template::decode(cursor, interests);
 
-        let mut template = ExtTemplate::new(base);
-
-        if include_extra {
-            let author = match cursor.read_address() {
-                Ok(addr) => AuthorAddr::new(addr.into()),
-                _ => return None,
-            };
-
-            template.set_author(&author);
-
-            todo!("load schema...");
-        }
-
-        Some(template)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use std::vec;
-
-    use super::*;
-
-    use svm_types::{Address, Template};
-
-    use DefaultTemplateDeserializer as D;
-    use DefaultTemplateSerializer as S;
-
-    #[test]
-    fn serialize_template() {
-        let base = Template {
-            version: 0,
-            name: "My Template".to_string(),
-            code: vec![0x0C, 0x00, 0x0D, 0x0E],
-            data: vec![10, 20, 30].into(),
-            ctors: vec!["init".into(), "start".into()],
-        };
-
-        let template = ExtTemplate::new(base);
-
-        let bytes = S::serialize(&template);
-
-        let decoded = D::deserialize(&bytes[..], false).unwrap();
-        assert_eq!(decoded, template);
+        template.ok()
     }
 }

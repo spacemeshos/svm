@@ -15,6 +15,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 serde_json = "1.0"
+indexmap = "1.6.2"
 svm-common = { path = "../common" }
 svm-types = { path = "../types" }
 svm-layout = { path = "../layout" }

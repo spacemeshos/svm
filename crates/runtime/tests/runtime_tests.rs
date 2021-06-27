@@ -43,14 +43,14 @@ fn default_runtime_validate_template_invalid_raw_format() {
 #[test]
 fn default_runtime_validate_template_invalid_wasm() {
     let runtime = default_runtime!();
-    let version = 0;
+    let code_version = 0;
     let ctors = Vec::new();
 
     // invalid wasm (has floats)
     let bytes = testing::build_template(
-        version,
+        code_version,
         "My Template",
-        FixedLayout::empty(),
+        FixedLayout::default(),
         &ctors,
         include_str!("wasm/wasm_with_floats.wast").into(),
     );
@@ -92,21 +92,21 @@ fn default_runtime_validate_tx_invalid_raw_format() {
 fn default_runtime_deploy_template_reaches_oog() {
     let mut runtime = default_runtime!();
 
-    let version = 0;
-    let author = Address::of("author").into();
+    let code_version = 0;
+    let deployer = Address::of("deployer").into();
     let maybe_gas = Gas::with(0);
     let ctors = vec!["ctor".to_string()];
 
     let bytes = testing::build_template(
-        version,
+        code_version,
         "My Template",
-        FixedLayout::empty(),
+        FixedLayout::default(),
         &ctors,
         include_str!("wasm/runtime_app_ctor.wast").into(),
     );
 
     let expected = TemplateReceipt::new_oog();
-    let actual = runtime.deploy_template(&bytes, &author, maybe_gas);
+    let actual = runtime.deploy_template(&bytes, &deployer, maybe_gas);
     assert_eq!(expected, actual);
 }
 
@@ -114,20 +114,20 @@ fn default_runtime_deploy_template_reaches_oog() {
 fn default_runtime_deploy_template_has_enough_gas() {
     let mut runtime = default_runtime!();
 
-    let version = 0;
-    let author = Address::of("author").into();
+    let code_version = 0;
+    let deployer = Address::of("deployer").into();
     let gas_limit = Gas::with(1_0000_000);
     let ctors = vec!["ctor".to_string()];
 
     let bytes = testing::build_template(
-        version,
+        code_version,
         "My Template",
-        FixedLayout::empty(),
+        FixedLayout::default(),
         &ctors,
         include_str!("wasm/runtime_app_ctor.wast").into(),
     );
 
-    let receipt = runtime.deploy_template(&bytes, &author, gas_limit);
+    let receipt = runtime.deploy_template(&bytes, &deployer, gas_limit);
     assert!(receipt.success);
     assert!(receipt.gas_used.is_some());
 }
@@ -137,21 +137,21 @@ fn default_runtime_spawn_app_with_non_ctor_fails() {
     let mut runtime = default_runtime!();
 
     // 1) deploying the template
-    let version = 0;
-    let author = Address::of("author").into();
+    let code_version = 0;
+    let deployer = Address::of("deployer").into();
     let creator = Address::of("creator").into();
     let maybe_gas = Gas::new();
     let ctors = vec!["ctor".to_string()];
 
     let bytes = testing::build_template(
-        version,
+        code_version,
         "My Template",
-        FixedLayout::empty(),
+        FixedLayout::default(),
         &ctors,
         include_str!("wasm/runtime_app_ctor.wast").into(),
     );
 
-    let receipt = runtime.deploy_template(&bytes, &author, maybe_gas);
+    let receipt = runtime.deploy_template(&bytes, &deployer, maybe_gas);
     assert!(receipt.success);
 
     let template_addr = receipt.addr.unwrap();
@@ -161,7 +161,7 @@ fn default_runtime_spawn_app_with_non_ctor_fails() {
     let ctor = "non-ctor";
     let calldata = vec![];
 
-    let bytes = testing::build_app(version, &template_addr, name, ctor, &calldata);
+    let bytes = testing::build_app(&template_addr, name, ctor, &calldata);
     let maybe_gas = Gas::new();
 
     let receipt = runtime.spawn_app(&bytes, &creator, maybe_gas);
@@ -176,21 +176,21 @@ fn default_runtime_spawn_app_with_ctor_reaches_oog() {
     let mut runtime = default_runtime!();
 
     // 1) deploying the template
-    let version = 0;
-    let author = Address::of("author").into();
+    let code_version = 0;
+    let deployer = Address::of("deployer").into();
     let creator = Address::of("creator").into();
     let maybe_gas = Gas::new();
     let ctors = vec!["ctor".to_string()];
 
     let bytes = testing::build_template(
-        version,
+        code_version,
         "My Template",
-        FixedLayout::empty(),
+        FixedLayout::default(),
         &ctors,
         include_str!("wasm/runtime_app_ctor.wast").into(),
     );
 
-    let receipt = runtime.deploy_template(&bytes, &author, maybe_gas);
+    let receipt = runtime.deploy_template(&bytes, &deployer, maybe_gas);
     assert!(receipt.success);
 
     let template_addr = receipt.addr.unwrap();
@@ -200,7 +200,7 @@ fn default_runtime_spawn_app_with_ctor_reaches_oog() {
     let ctor = "ctor";
     let calldata = vec![];
 
-    let bytes = testing::build_app(version, &template_addr, name, ctor, &calldata);
+    let bytes = testing::build_app(&template_addr, name, ctor, &calldata);
     let maybe_gas = Gas::with(0);
 
     let expected = SpawnAppReceipt::new_oog(Vec::new());
@@ -213,21 +213,21 @@ fn default_runtime_exec_app_with_ctor_fails() {
     let mut runtime = default_runtime!();
 
     // 1) deploying the template
-    let version = 0;
-    let author = Address::of("author").into();
+    let code_version = 0;
+    let deployer = Address::of("deployer").into();
     let maybe_gas = Gas::new();
     let layout: FixedLayout = vec![Address::len() as u32].into();
     let ctors = vec!["initialize".to_string()];
 
     let bytes = testing::build_template(
-        version,
+        code_version,
         "My Template",
         layout.clone(),
         &ctors,
         (&include_bytes!("wasm/runtime_calldata.wasm")[..]).into(),
     );
 
-    let receipt = runtime.deploy_template(&bytes, &author, maybe_gas);
+    let receipt = runtime.deploy_template(&bytes, &deployer, maybe_gas);
     assert!(receipt.success);
 
     let template_addr = receipt.addr.unwrap();
@@ -237,7 +237,7 @@ fn default_runtime_exec_app_with_ctor_fails() {
     let ctor = "initialize";
     let calldata = vec![];
     let creator = Address::of("creator").into();
-    let bytes = testing::build_app(version, &template_addr, name, ctor, &calldata);
+    let bytes = testing::build_app(&template_addr, name, ctor, &calldata);
     let receipt = runtime.spawn_app(&bytes, &creator, maybe_gas);
     assert!(receipt.success);
 
@@ -246,7 +246,7 @@ fn default_runtime_exec_app_with_ctor_fails() {
 
     // 3) execute a transaction
     let calldata = Vec::new();
-    let bytes = testing::build_app_tx(version, &app_addr, ctor, &calldata);
+    let bytes = testing::build_transaction(&app_addr, ctor, &calldata);
     let tx = runtime.validate_tx(&bytes).unwrap();
 
     let receipt = runtime.exec_tx(&tx, &init_state, maybe_gas);
@@ -262,21 +262,21 @@ fn default_runtime_calldata_returndata() {
     let mut runtime = default_runtime!();
 
     // 1) deploying the template
-    let version = 0;
-    let author = Address::of("author").into();
+    let code_version = 0;
+    let deployer = Address::of("deployer").into();
     let maybe_gas = Gas::new();
     let layout: FixedLayout = vec![Address::len() as u32].into();
     let ctors = vec!["initialize".to_string()];
 
     let bytes = testing::build_template(
-        version,
+        code_version,
         "My Template",
         layout.clone(),
         &ctors,
         (&include_bytes!("wasm/runtime_calldata.wasm")[..]).into(),
     );
 
-    let receipt = runtime.deploy_template(&bytes, &author, maybe_gas);
+    let receipt = runtime.deploy_template(&bytes, &deployer, maybe_gas);
     assert!(receipt.success);
 
     let template_addr = receipt.addr.unwrap();
@@ -286,7 +286,7 @@ fn default_runtime_calldata_returndata() {
     let ctor = "initialize";
     let calldata = vec![];
     let creator = Address::of("creator").into();
-    let bytes = testing::build_app(version, &template_addr, name, ctor, &calldata);
+    let bytes = testing::build_app(&template_addr, name, ctor, &calldata);
     let receipt = runtime.spawn_app(&bytes, &creator, maybe_gas);
     assert!(receipt.success);
 
@@ -300,7 +300,7 @@ fn default_runtime_calldata_returndata() {
     let mut calldata = svm_sdk::Vec::with_capacity(100_000);
     msg.encode(&mut calldata);
 
-    let bytes = testing::build_app_tx(version, &app_addr, func, &calldata);
+    let bytes = testing::build_transaction(&app_addr, func, &calldata);
     let tx = runtime.validate_tx(&bytes).unwrap();
 
     let receipt = runtime.exec_tx(&tx, &init_state, maybe_gas);
@@ -312,7 +312,7 @@ fn default_runtime_calldata_returndata() {
     let func = "load_addr";
     let calldata = Vec::new();
 
-    let bytes = testing::build_app_tx(version, &app_addr, func, &calldata);
+    let bytes = testing::build_transaction(&app_addr, func, &calldata);
     let tx = runtime.validate_tx(&bytes).unwrap();
 
     let receipt = runtime.exec_tx(&tx, &state, maybe_gas);

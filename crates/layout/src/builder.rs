@@ -69,6 +69,12 @@ impl LayoutBuilder {
 
     /// Finishes the layout building process and outputs the result `Layout`.
     pub fn build(self) -> FixedLayout {
+        if self.vars.is_empty() {
+            return FixedLayout::default();
+        }
+
+        debug_assert!(!self.vars.is_empty());
+
         let first = self.first().0;
 
         let vars = self

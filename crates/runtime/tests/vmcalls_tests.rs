@@ -1,7 +1,7 @@
 use wasmer::imports;
 use wasmer::{Function, NativeFunc};
 
-use svm_layout::{Id, FixedLayout};
+use svm_layout::{FixedLayout, Id};
 use svm_runtime::{testing, vmcalls, Context};
 use svm_types::{Address, Gas, ReceiptLog};
 
@@ -253,7 +253,7 @@ fn vmcalls_log() {
     let template_addr = Address::repeat(0xAB);
     let app_addr = Address::repeat(0xCD);
     let gas_limit = Gas::new();
-    let layout = FixedLayout::empty();
+    let layout = FixedLayout::default();
 
     let store = testing::wasmer_store();
     let memory = testing::wasmer_memory(&store);

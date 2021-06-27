@@ -22,7 +22,7 @@ use svm_types::ExecReceipt;
 
 use super::{decode_error, encode_error, gas, logs};
 
-use crate::{calldata, common};
+use crate::{calldata, version};
 use crate::{ReadExt, WriteExt};
 
 /// Encodes an `exec-receipt` into its binary format.
@@ -30,7 +30,7 @@ pub fn encode_exec_receipt(receipt: &ExecReceipt) -> Vec<u8> {
     let mut w = Vec::new();
 
     w.write_byte(super::types::EXEC_APP);
-    common::encode_version(receipt.version, &mut w);
+    version::encode_version(receipt.version, &mut w);
     w.write_bool(receipt.success);
 
     if receipt.success {
@@ -54,7 +54,7 @@ pub fn decode_exec_receipt(bytes: &[u8]) -> ExecReceipt {
     let ty = cursor.read_byte().unwrap();
     debug_assert_eq!(ty, crate::receipt::types::EXEC_APP);
 
-    let version = common::decode_version(&mut cursor).unwrap();
+    let version = version::decode_version(&mut cursor).unwrap();
     debug_assert_eq!(0, version);
 
     let is_success = cursor.read_bool().unwrap();

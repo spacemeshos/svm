@@ -1,14 +1,18 @@
-use std::collections::hash_map::Values;
-use std::collections::HashMap;
 use std::fmt;
 use std::iter::Iterator;
+
+use indexmap::{map::Values, IndexMap};
 
 use super::{
     ApiSection, CodeSection, CtorsSection, DataSection, DeploySection, HeaderSection, SchemaSection,
 };
 
-#[derive(Clone)]
-pub enum Section {
+pub trait Section {
+    const KIND: SectionKind;
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum SectionWrapper {
     Header(HeaderSection),
     Code(CodeSection),
     Data(DataSection),
@@ -18,7 +22,7 @@ pub enum Section {
     Deploy(DeploySection),
 }
 
-impl Section {
+impl SectionWrapper {
     pub fn kind(&self) -> SectionKind {
         match *self {
             Self::Header(..) => SectionKind::Header,
@@ -81,17 +85,50 @@ impl Section {
     }
 }
 
-impl fmt::Display for Section {
+impl From<HeaderSection> for SectionWrapper {
+    fn from(section: HeaderSection) -> Self {
+        SectionWrapper::Header(section)
+    }
+}
+
+impl From<CodeSection> for SectionWrapper {
+    fn from(section: CodeSection) -> Self {
+        SectionWrapper::Code(section)
+    }
+}
+
+impl From<DataSection> for SectionWrapper {
+    fn from(section: DataSection) -> Self {
+        SectionWrapper::Data(section)
+    }
+}
+impl From<CtorsSection> for SectionWrapper {
+    fn from(section: CtorsSection) -> Self {
+        SectionWrapper::Ctors(section)
+    }
+}
+
+impl From<SchemaSection> for SectionWrapper {
+    fn from(section: SchemaSection) -> Self {
+        SectionWrapper::Schema(section)
+    }
+}
+
+impl From<ApiSection> for SectionWrapper {
+    fn from(section: ApiSection) -> Self {
+        SectionWrapper::Api(section)
+    }
+}
+
+impl From<DeploySection> for SectionWrapper {
+    fn from(section: DeploySection) -> Self {
+        SectionWrapper::Deploy(section)
+    }
+}
+
+impl fmt::Display for SectionWrapper {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match *self {
-            Self::Header(..) => write!(f, "Header Section"),
-            Self::Code(..) => write!(f, "Code Section"),
-            Self::Data(..) => write!(f, "Data Section"),
-            Self::Ctors(..) => write!(f, "Ctors Section"),
-            Self::Schema(..) => write!(f, "Schema Section"),
-            Self::Api(..) => write!(f, "API Section"),
-            Self::Deploy(..) => write!(f, "Deploy Section"),
-        }
+        self.kind().fmt(f)
     }
 }
 
@@ -106,13 +143,43 @@ pub enum SectionKind {
     Deploy,
 }
 
-#[derive(Clone)]
+impl fmt::Display for SectionKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Header => write!(f, "Header Section"),
+            Self::Code => write!(f, "Code Section"),
+            Self::Data => write!(f, "Data Section"),
+            Self::Ctors => write!(f, "Ctors Section"),
+            Self::Schema => write!(f, "Schema Section"),
+            Self::Api => write!(f, "API Section"),
+            Self::Deploy => write!(f, "Deploy Section"),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct Sections {
-    inner: HashMap<SectionKind, Section>,
+    inner: IndexMap<SectionKind, SectionWrapper>,
+}
+
+impl Default for Sections {
+    fn default() -> Self {
+        Self::with_capacity(0)
+    }
 }
 
 impl Sections {
-    pub fn insert(&mut self, section: Section) {
+    pub fn with_capacity(capacity: usize) -> Self {
+        Self {
+            inner: IndexMap::with_capacity(capacity),
+        }
+    }
+
+    pub fn len(&self) -> usize {
+        self.inner.len()
+    }
+
+    pub fn insert(&mut self, section: SectionWrapper) {
         self.inner.insert(section.kind(), section);
     }
 
@@ -120,12 +187,20 @@ impl Sections {
         self.inner.contains_key(&kind)
     }
 
-    pub fn get(&self, kind: SectionKind) -> &Section {
-        self.inner.get(&kind).unwrap()
+    pub fn get(&self, kind: SectionKind) -> &SectionWrapper {
+        self.try_get(kind).unwrap()
     }
 
-    pub fn try_get(&self, kind: SectionKind) -> Option<&Section> {
+    pub fn take(&mut self, kind: SectionKind) -> SectionWrapper {
+        self.try_take(kind).unwrap()
+    }
+
+    pub fn try_get(&self, kind: SectionKind) -> Option<&SectionWrapper> {
         self.inner.get(&kind)
+    }
+
+    pub fn try_take(&mut self, kind: SectionKind) -> Option<SectionWrapper> {
+        self.inner.remove(&kind)
     }
 
     pub fn iter<'a>(&'a self) -> SectionsIter<'a> {
@@ -136,17 +211,17 @@ impl Sections {
 }
 
 pub struct SectionsIter<'a> {
-    sections: Values<'a, SectionKind, Section>,
+    sections: Values<'a, SectionKind, SectionWrapper>,
 }
 
 impl<'a> SectionsIter<'a> {
-    fn new(sections: Values<'a, SectionKind, Section>) -> Self {
+    fn new(sections: Values<'a, SectionKind, SectionWrapper>) -> Self {
         Self { sections }
     }
 }
 
 impl<'a> Iterator for SectionsIter<'a> {
-    type Item = &'a Section;
+    type Item = &'a SectionWrapper;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.sections.next()

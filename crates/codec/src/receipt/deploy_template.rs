@@ -17,7 +17,7 @@ use svm_types::TemplateReceipt;
 
 use super::{decode_error, encode_error, gas, logs, types};
 
-use crate::common;
+use crate::version;
 use crate::{ReadExt, WriteExt};
 
 /// Encodes a `deploy-template` into its binary format.
@@ -48,7 +48,7 @@ pub fn decode_template_receipt(bytes: &[u8]) -> TemplateReceipt {
     let ty = cursor.read_byte().unwrap();
     debug_assert_eq!(ty, types::DEPLOY_TEMPLATE);
 
-    let version = common::decode_version(&mut cursor).unwrap();
+    let version = version::decode_version(&mut cursor).unwrap();
     debug_assert_eq!(version, 0);
 
     let is_success = cursor.read_bool().unwrap();
@@ -79,7 +79,7 @@ pub fn decode_template_receipt(bytes: &[u8]) -> TemplateReceipt {
 fn encode_version(receipt: &TemplateReceipt, w: &mut Vec<u8>) {
     let v = receipt.version;
 
-    common::encode_version(v, w);
+    version::encode_version(v, w);
 }
 
 fn encode_template_addr(receipt: &TemplateReceipt, w: &mut Vec<u8>) {

@@ -13,7 +13,7 @@ use std::io::Cursor;
 
 use svm_types::{App, SpawnApp, TemplateAddr};
 
-use crate::{calldata, common};
+use crate::{calldata, version};
 use crate::{Field, ParseError, ReadExt, WriteExt};
 
 /// Encodes a raw Spawn-App transaction.
@@ -55,7 +55,7 @@ pub fn decode(cursor: &mut Cursor<&[u8]>) -> Result<SpawnApp, ParseError> {
 fn encode_version(spawn: &SpawnApp, w: &mut Vec<u8>) {
     let v = &spawn.version;
 
-    common::encode_version(*v, w);
+    version::encode_version(*v, w);
 }
 
 fn encode_name(spawn: &SpawnApp, w: &mut Vec<u8>) {
@@ -86,7 +86,7 @@ fn encode_ctor_calldata(spawn: &SpawnApp, w: &mut Vec<u8>) {
 
 #[inline]
 fn decode_version(cursor: &mut Cursor<&[u8]>) -> Result<u16, ParseError> {
-    common::decode_version(cursor)
+    version::decode_version(cursor)
 }
 
 fn decode_template(cursor: &mut Cursor<&[u8]>) -> Result<TemplateAddr, ParseError> {

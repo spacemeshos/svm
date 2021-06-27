@@ -5,6 +5,7 @@ use crate::Field;
 #[allow(missing_docs)]
 #[derive(PartialEq, Clone)]
 pub enum ParseError {
+    ReachedEOF,
     ExpectedEOF,
     EmptyField(Field),
     NotEnoughBytes(Field),
@@ -16,20 +17,25 @@ pub enum ParseError {
 }
 
 impl fmt::Display for ParseError {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            ParseError::ExpectedEOF => write!(fmt, "Expected EOF but there are more left bytes"),
-            ParseError::EmptyField(f) => write!(fmt, "Field `{}` must not be empty", f),
-            ParseError::NotEnoughBytes(f) => write!(fmt, "Not enough bytes for field `{}`", f),
-            ParseError::TooManyBytes(f) => write!(fmt, "Too many bytes for field `{}`", f),
-            ParseError::NotSupported(f) => write!(fmt, "Feature `{}` is not supported yet", f),
-            ParseError::InvalidUTF8String(f) => {
-                write!(fmt, "Field `{}` must be a valid UTF-8 string", f)
+            ParseError::ReachedEOF => write!(f, "Reached EOF"),
+            ParseError::ExpectedEOF => write!(f, "Expected EOF but there are more left bytes"),
+            ParseError::EmptyField(field) => write!(f, "Field `{}` must not be empty", field),
+            ParseError::NotEnoughBytes(field) => {
+                write!(f, "Not enough bytes for field `{}`", field)
             }
-            ParseError::UnexpectedLayout(f) => {
-                write!(fmt, "Unexpected Wasm value layout for field `{}`", f)
+            ParseError::TooManyBytes(field) => write!(f, "Too many bytes for field `{}`", field),
+            ParseError::NotSupported(field) => {
+                write!(f, "Feature `{}` is not supported yet", field)
             }
-            ParseError::InvalidSection => write!(fmt, "Invalid section kind"),
+            ParseError::InvalidUTF8String(field) => {
+                write!(f, "Field `{}` must be a valid UTF-8 string", field)
+            }
+            ParseError::UnexpectedLayout(field) => {
+                write!(f, "Unexpected Wasm value layout for field `{}`", field)
+            }
+            ParseError::InvalidSection => write!(f, "Invalid section kind"),
         }
     }
 }

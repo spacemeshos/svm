@@ -1,9 +1,10 @@
+use std::collections::HashSet;
 use std::io::Cursor;
 
 use svm_codec::ParseError;
 use svm_codec::{app, template, transaction};
 
-use svm_types::{AppAddr, SpawnApp, Template, TemplateAddr, Transaction};
+use svm_types::{AppAddr, SectionKind, SpawnApp, Template, TemplateAddr, Transaction};
 
 /// Default implementations
 mod default;
@@ -12,7 +13,7 @@ pub use default::{DefaultAppAddressCompute, DefaultTemplateAddressCompute};
 /// Extensions
 mod ext;
 
-pub use ext::{ExtApp, ExtSpawnApp, ExtTemplate};
+pub use ext::{ExtApp, ExtSpawnApp};
 
 /// In-memory types
 #[cfg(feature = "default-memory")]
@@ -109,12 +110,12 @@ where
     }
 
     /// Computes `TemplateHash`
-    pub fn compute_template_hash(&self, template: &ExtTemplate) -> TemplateHash {
-        <T as EnvTypes>::TemplateHasher::hash(template.base())
+    pub fn compute_template_hash(&self, template: &Template) -> TemplateHash {
+        <T as EnvTypes>::TemplateHasher::hash(template)
     }
 
     /// Computes `Template` account address
-    pub fn derive_template_address(&self, template: &ExtTemplate) -> TemplateAddr {
+    pub fn derive_template_address(&self, template: &Template) -> TemplateAddr {
         <T as EnvTypes>::TemplateAddressCompute::compute(template)
     }
 
@@ -129,10 +130,14 @@ where
     ///
     /// On success returns `Template`,
     /// On failure returns `ParseError`.
-    pub fn parse_deploy_template(&self, bytes: &[u8]) -> Result<Template, ParseError> {
+    pub fn parse_deploy_template(
+        &self,
+        bytes: &[u8],
+        interests: Option<HashSet<SectionKind>>,
+    ) -> Result<Template, ParseError> {
         let mut cursor = Cursor::new(bytes);
 
-        let template = template::decode(&mut cursor)?;
+        let template = template::decode(cursor, interests)?;
 
         Ok(template)
     }
@@ -161,7 +166,7 @@ where
         Ok(tx)
     }
 
-    pub fn store_template(&mut self, template: &ExtTemplate, addr: &TemplateAddr) {
+    pub fn store_template(&mut self, template: &Template, addr: &TemplateAddr) {
         let hash = self.compute_template_hash(template);
 
         let store = self.get_template_store_mut();
@@ -189,20 +194,28 @@ where
     }
 
     /// Given an `App` Address, loads the `Template` the app is associated with.
-    pub fn load_template_by_app(&self, addr: &AppAddr, include_extra: bool) -> Option<ExtTemplate> {
+    pub fn load_template_by_app(
+        &self,
+        addr: &AppAddr,
+        interests: Option<HashSet<SectionKind>>,
+    ) -> Option<Template> {
         self.load_app(addr).and_then(|app| {
             let addr = app.template_addr();
 
-            self.load_template(addr, include_extra)
+            self.load_template(addr, interests)
         })
     }
 
     /// Loads an `Template` given its `Address`
     #[must_use]
-    pub fn load_template(&self, addr: &TemplateAddr, include_extra: bool) -> Option<ExtTemplate> {
+    pub fn load_template(
+        &self,
+        addr: &TemplateAddr,
+        interests: Option<HashSet<SectionKind>>,
+    ) -> Option<Template> {
         let store = self.get_template_store();
 
-        store.load(&addr, include_extra)
+        store.load(&addr, interests)
     }
 
     /// Loads an `App` given its `Address`
@@ -216,7 +229,7 @@ where
     /// Returns whether a `Template` with given the `Address` exists.
     #[inline]
     pub fn template_exists(&self, addr: &TemplateAddr) -> bool {
-        self.load_template(addr, false).is_some()
+        self.load_template(addr, None).is_some()
     }
 
     /// Returns whether an `App` with given the `Address` exists.
