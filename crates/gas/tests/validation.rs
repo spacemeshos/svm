@@ -1,4 +1,4 @@
-use svm_gas::{FuncIndex, ProgramError};
+use svm_gas::{FuncIndex, GraphCycles, ProgramError};
 
 macro_rules! validate_wasm {
     ($code:expr) => {{
@@ -73,15 +73,14 @@ fn validate_indirect_recursive_call_not_allowed() {
 
     let result = validate_wasm!(wasm);
 
-    assert_eq!(
-        result,
-        Err(ProgramError::CallCycle(Some(vec![
-            FuncIndex(0),
-            FuncIndex(1),
-            FuncIndex(2),
-            FuncIndex(0),
-        ])))
-    );
+    let cycle = GraphCycles::HasCycles(Some(vec![
+        FuncIndex(0),
+        FuncIndex(1),
+        FuncIndex(2),
+        FuncIndex(0),
+    ]));
+
+    assert_eq!(result, Err(ProgramError::CallCycle(cycle)));
 }
 
 #[test]

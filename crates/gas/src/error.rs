@@ -1,12 +1,13 @@
 use std::fmt;
-use std::usize;
 
-use crate::call_graph::Value;
-use crate::FuncIndex;
+use crate::{FuncIndex, GraphCycles, NodeLabel};
 
 /// Represents error that may occur while doing gas estimation
 #[derive(Debug, PartialEq, Clone)]
-pub enum ProgramError<T = FuncIndex> {
+pub enum ProgramError<T = FuncIndex>
+where
+    T: NodeLabel,
+{
     /// Invalid wasm
     InvalidWasm,
 
@@ -38,12 +39,12 @@ pub enum ProgramError<T = FuncIndex> {
     },
 
     /// Calls cycles (e.g `A -> B -> C -> A`) aren't allowed
-    CallCycle(Option<Vec<T>>),
+    CallCycle(GraphCycles<T>),
 }
 
 impl<T> fmt::Display for ProgramError<T>
 where
-    T: Value,
+    T: NodeLabel,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         <Self as fmt::Debug>::fmt(self, f)

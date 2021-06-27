@@ -1,158 +1,21 @@
 #![allow(unused)]
 
-use svm_gas::{build_func_cfg, read_program, BlockNum, FuncIndex, Function, Program, CFG};
+use svm_gas::{build_func_cfg, read_program};
+use svm_gas::{BlockNum, FuncIndex, Function, Program, CFG};
 
-fn parse_wasm(wasm: &str) -> Program {
-    let wasm = wat::parse_str(wasm).unwrap();
-
-    read_program(&wasm).unwrap()
-}
-
-fn get_func(program: &Program, fn_index: u16) -> Function {
-    let index = FuncIndex(fn_index);
-    let func = program.get_func(index);
-    let code = func.code();
-
-    // Please uncomment this code when adding new tests in order to grab the instructions in flat WAT format
-    for (i, op) in code.iter().enumerate() {
-        println!("{}: {:?}", i, op);
-    }
-
-    Function::new(index, code)
-}
+mod helpers;
 
 macro_rules! test_cfg {
     ($cfg_path:expr, $wasm:expr) => {{
         let expected = include!($cfg_path);
 
-        let program = parse_wasm($wasm);
-        let func = get_func(&program, 0);
+        let program = helpers::parse_wasm($wasm);
+        let func = helpers::get_func(&program, 0);
 
         let actual = build_func_cfg(&func);
 
-        dbg!(&actual);
-
-        assert_cfg_eq(&actual, &expected);
+        helpers::assert_cfg_eq(&actual, &expected);
     }};
-}
-
-macro_rules! cfg {
-    (id: $id:expr, blocks: [ $( $block:expr ),* ]) => {{
-        use svm_gas::CFG;
-
-        let mut blocks = Vec::new();
-
-        $( blocks.push($block); )*
-
-        CFG { blocks }
-    }};
-}
-
-macro_rules! block {
-    (
-      id: $id:expr,
-      offset: $offset:expr,
-      ops: [ $( $op:expr ),* ],
-      in_jumps: [ $( $a:expr ),* ],
-      out_jumps: [ $( $b:expr ),* ],
-      in_cont: [ $( ($c1:expr, $c2:expr) ),* ],
-      out_cont: [ $( ($d1:expr, $d2:expr) ),* ]
-    ) => {{
-        use indexmap::IndexSet;
-        use parity_wasm::elements::{Instruction, BlockType, ValueType};
-
-        use svm_gas::{Block, BlockNum, Op, Cont, ContKind, Jump, Edge};
-
-        let mut ops: Vec<Op> = Vec::new();
-
-        $(
-            let op = Op::new(&$op, 0);
-            ops.push(op);
-        )*
-
-        for (i, op) in ops.iter_mut().enumerate() {
-            op.offset = $offset + i;
-        }
-
-        let mut incoming_edges: IndexSet<Edge> = IndexSet::new();
-        let mut outgoing_edges: IndexSet<Edge> = IndexSet::new();
-
-        let me = BlockNum($id);
-
-        $(
-            let jump = Jump { origin: BlockNum($a), target: me };
-            let edge = Edge::Jump(jump);
-
-            incoming_edges.insert(edge);
-        )*
-
-        $(
-            let jump = Jump { origin: me, target: BlockNum($b) };
-            let edge = Edge::Jump(jump);
-
-            outgoing_edges.insert(edge);
-        )*
-
-        $(
-            let cont = Cont { origin: BlockNum($c1), target: me, kind: $c2.into() };
-            let edge = Edge::Cont(cont);
-
-            incoming_edges.insert(edge);
-        )*
-
-        $(
-            let cont = Cont { origin: me, target: BlockNum($d1), kind: $d2.into() };
-            let edge = Edge::Cont(cont);
-
-            outgoing_edges.insert(edge);
-        )*
-
-        Block {
-            num: me,
-            ops,
-            incoming_edges,
-            outgoing_edges
-        }
-    }};
-}
-
-fn assert_cfg_eq<'f>(actual: &CFG<'f>, expected: &CFG<'f>) {
-    let n = actual.blocks().len();
-    let m = expected.blocks().len();
-
-    if n != m {
-        panic!("Not the same #Blocks. left = {}, right = {}", n, m);
-    }
-
-    for i in 0..n {
-        let block_num = BlockNum(i);
-
-        let left = actual.get_block(block_num);
-        let right = expected.get_block(block_num);
-
-        if left.start_offset() != right.start_offset() {
-            panic!(
-                "Block {} `offset` mismatch.\n\nleft: {:?}\n\nright: {:?}",
-                i, left, right
-            );
-        }
-
-        if left.ops() != right.ops() {
-            panic!(
-                "Block {} `instructions` mismatch.\n\nleft: {:?}\n\nright: {:?}",
-                i, left, right
-            );
-        }
-
-        if left.outgoing_edges() != right.outgoing_edges()
-            || left.incoming_edges() != right.incoming_edges()
-        {
-            panic!(
-                "Block {} `edges` mismatch.\n\nleft: {:?}\n\nright: {:?}",
-                i, left, right
-            );
-        }
-    }
 }
 
 #[test]

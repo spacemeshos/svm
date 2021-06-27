@@ -2,9 +2,11 @@ use parity_wasm::elements::Instruction;
 
 mod index;
 mod iter;
+mod op;
 
 pub use index::FuncIndex;
 pub use iter::FuncIterator;
+pub use op::Op;
 
 /// A `Function` wraps its code instructions.
 /// In addition each function has a unique identifier, a.k.a the `function index`

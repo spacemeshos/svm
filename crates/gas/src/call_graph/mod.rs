@@ -1,80 +1,58 @@
-use std::collections::HashMap;
-use std::fmt::{Debug, Display};
-use std::hash::Hash;
+use std::ops::{Deref, DerefMut};
 
-use crate::{FuncIndex, ProgramError};
+use crate::{FuncIndex, Graph, GraphCycles, NodeLabel, ProgramError};
 
 mod builder;
-mod node;
-mod sort;
-
 pub use builder::CallGraphBuilder;
-pub use node::{Node, NodeRef};
 
 /// A `CallGraph` is a `Graph` where its nodes represent functions and its edges represent for possible `call`s
 /// between functions as appears in the original code.
-pub struct CallGraph<T = FuncIndex> {
-    nodes: HashMap<T, NodeRef<T>>,
+use super::graph;
+
+pub struct CallGraph<L>
+where
+    L: NodeLabel,
+{
+    inner: Graph<L, ()>,
 }
 
-pub trait Value: Copy + Eq + Ord + Copy + Clone + Hash + Debug + Display + 'static {}
-
-impl<T: Copy + Eq + Ord + Copy + Clone + Hash + Debug + Display + 'static> Value for T {}
-
-impl<T> CallGraph<T>
+impl<L> CallGraph<L>
 where
-    T: Value,
+    L: NodeLabel,
 {
     /// Looks for cycles in the `CallGraph`.
     ///
     /// If there are no cycles - the graph is a DAG and we return `Ok())`
     /// Otherwise, an error is returned signaling there is at least one cycle within the `CallGraph`
     #[must_use]
-    pub fn find_cycles(&self, return_cycles: bool) -> Result<(), ProgramError<T>> {
-        let result = sort::try_topological_sort::<T>(self, return_cycles);
+    pub fn find_cycles(&self, return_cycles: bool) -> GraphCycles<L> {
+        let result = graph::try_topological_sort::<L, (), CallGraph<L>>(self, return_cycles);
 
-        result.map(|_cycle| ())
-    }
-
-    /// Returns references to `Node` of the `CallGraph`
-    pub fn nodes(&self) -> Vec<NodeRef<T>> {
-        self.nodes.values().cloned().collect()
-    }
-
-    /// Removes an edge from the Graph
-    pub fn remove_edge(&self, (source, dest): (T, T)) {
-        let source = self.nodes.get(&source).unwrap();
-        let dest = self.nodes.get(&dest).unwrap();
-
-        source.as_mut().remove_out_edge(dest);
-        dest.as_mut().remove_in_edge(source);
-    }
-
-    /// Returns the number of nodes in the `CallGraph`
-    pub fn len(&self) -> usize {
-        self.nodes.len()
-    }
-}
-
-impl<T> Debug for CallGraph<T>
-where
-    T: Value,
-{
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for node in self.nodes() {
-            node.fmt(f);
+        match result {
+            Ok(_sorted) => GraphCycles::NoCycles,
+            Err(cycle) => cycle,
         }
-
-        Ok(())
     }
 }
+
+impl<L> Deref for CallGraph<L>
+where
+    L: NodeLabel,
+{
+    type Target = Graph<L, ()>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
 #[cfg(test)]
 mod test {
     use std::vec;
 
     use super::*;
 
-    macro_rules! graph {
+    macro_rules! call_graph {
         ( $( $source:expr => $dest:expr ),* ) => {{
             let mut builder = CallGraphBuilder::<&str>::new();
 
@@ -88,32 +66,30 @@ mod test {
         ($graph:expr, $expected:expr) => {
             let return_cycles = true;
 
-            let actual = $graph.find_cycles(return_cycles).unwrap_err();
+            let actual = $graph.find_cycles(return_cycles);
 
-            let err = ProgramError::CallCycle(Some($expected));
+            let expected = GraphCycles::HasCycles(Some($expected));
 
-            assert_eq!(actual, err);
+            assert_eq!(actual, expected);
         };
     }
 
     macro_rules! assert_no_cycles {
         ($g:expr) => {
-            let return_cycles = true;
-
-            assert!($g.find_cycles(return_cycles).is_ok());
+            assert!(matches!($g.find_cycles(false), GraphCycles::NoCycles));
         };
     }
 
     #[test]
     fn call_graph_empty() {
-        let g = graph! {};
+        let g = call_graph! {};
 
         assert_no_cycles!(g);
     }
 
     #[test]
     fn call_graph_cycle_size_2() {
-        let g = graph! {
+        let g = call_graph! {
             "a" => "b",
             "b" => "a"
         };
@@ -123,7 +99,7 @@ mod test {
 
     #[test]
     fn call_graph_cycle_size_3() {
-        let g = graph! {
+        let g = call_graph! {
             "a" => "b",
             "b" => "c",
             "c" => "a",
@@ -136,7 +112,7 @@ mod test {
 
     #[test]
     fn call_graph_two_subgraphs_no_cycles() {
-        let g = graph! {
+        let g = call_graph! {
             "a" => "b",
             "b" => "c",
             "c" => "d",
@@ -150,7 +126,7 @@ mod test {
 
     #[test]
     fn call_graph_two_subgraphs_one_cycle() {
-        let g = graph! {
+        let g = call_graph! {
             "a" => "b",
             "b" => "c",
             "c" => "d",

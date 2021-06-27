@@ -35,6 +35,7 @@ indexmap = "1.6.2"
 # rocksdb = { version = "0.15.0", features = ["lz4"], default-features = false, optional = true }
 wasmer = { version = "2.0.0-rc1", default-features = false }
 wee_alloc = { version = "0.4.5", optional = true }
+svm-cli = { path = "crates/cli" }
 svm-common = { path = "crates/common" }
 svm-hash = { path = "crates/hash" }
 svm-kv = { path = "crates/kv", default-features = false }

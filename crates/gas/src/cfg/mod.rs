@@ -42,7 +42,7 @@
 ///    (When debugging an emitted CFG, it's very handy to have more information).
 ///
 /// 7. `Jump` - In Wasm there are a couple of branching instructions: `br / br_if / br_table`.
-///    A branch instruction can result in `UMP-ing to other locations in the code. Without going here about the nuances of each branching instruction,
+///    A branch instruction can result in `JUMP-ing to other locations in the code. Without going here about the nuances of each branching instruction,
 ///    we want to draw a `Jump`-edges in the CFG between possible jumps. We are able to do that since there is no arbitrary `goto`(s) in Wasm.
 ///    The control-flow is structured and we can determine the targets of each branch.
 ///
@@ -293,7 +293,7 @@ use std::fmt::{self, Debug};
 
 use parity_wasm::elements::Instruction;
 
-use crate::{CallGraph, Function, Gas, Program};
+use crate::{CallGraph, Function, Gas, Op, Program};
 
 mod depth;
 pub use depth::Depth;
@@ -313,12 +313,9 @@ pub use builder::CFGBuilder;
 mod cont;
 pub use cont::{Cont, ContKind, DepthUnresolvedCont};
 
-mod op;
-pub use op::Op;
-
 /// This is the API that should be used externally when we want to feed with a  `Function` and get back its `CFG`
 pub fn build_func_cfg<'f>(func: &'f Function<'f>) -> CFG<'f> {
-    println!("Starting to build CFG for function #{:?}", func.index().0);
+    // println!("Starting to build CFG for function #{:?}", func.index().0);
 
     let mut builder = CFGBuilder::new();
 
@@ -335,6 +332,11 @@ pub fn build_func_cfg<'f>(func: &'f Function<'f>) -> CFG<'f> {
             OpKind::Other => on_general_op(op, &mut builder),
         }
     }
+
+    // println!(
+    //     "Finalizing building the CFG for function #{:?}",
+    //     func.index().0
+    // );
 
     builder.build()
 }
@@ -505,6 +507,7 @@ fn is_else(op: &Instruction) -> bool {
 /// The `CFG` is merely a container of its `Block`s.
 #[derive(PartialEq)]
 pub struct CFG<'f> {
+    /// The `Block`s of the `CFG`
     pub blocks: Vec<Block<'f>>,
 }
 
@@ -519,6 +522,22 @@ impl<'f> CFG<'f> {
         let num = block_num.0 as usize;
 
         &self.blocks[num]
+    }
+
+    /// The `BlockNum` of the entry `Node` starting each flow
+    pub fn start(&self) -> BlockNum {
+        BlockNum(0)
+    }
+
+    /// The `BlockNum` of the last created `Node` ending each flow
+    pub fn end(&self) -> BlockNum {
+        let len = self.blocks().len();
+
+        debug_assert!(len > 0);
+
+        let end = len - 1;
+
+        BlockNum(end)
     }
 }
 

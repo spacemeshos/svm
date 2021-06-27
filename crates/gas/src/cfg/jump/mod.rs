@@ -19,8 +19,10 @@ use super::{BlockNum, Depth};
 /// This plays well with our design, and that's the reason why we reserve `Scope #0` to the function's entry.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Jump {
+    /// The `origin`'s `BlockNum`
     pub origin: BlockNum,
 
+    /// The `target`'s `BlockNum`
     pub target: BlockNum,
 }
 

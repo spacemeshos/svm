@@ -1272,6 +1272,7 @@ dependencies = [
  "structopt",
  "svm-abi-layout",
  "svm-abi-tests",
+ "svm-cli",
  "svm-codec",
  "svm-common",
  "svm-compiler",

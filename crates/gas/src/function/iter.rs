@@ -1,8 +1,6 @@
 use parity_wasm::elements::Instruction;
 
-use crate::cfg::Op;
-
-use super::Function;
+use crate::{Function, Op};
 
 /// An iterator over a function's code.
 /// Each iteration return an `Op` which is essentially a code `Instruction`
