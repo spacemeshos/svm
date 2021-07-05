@@ -4,7 +4,7 @@ use crate::api::json::{self, JsonError};
 use crate::receipt;
 
 use svm_types::RuntimeError;
-use svm_types::{ExecReceipt, ReceiptLog, Receipt, SpawnAppReceipt, TemplateReceipt};
+use svm_types::{ExecReceipt, Receipt, ReceiptLog, SpawnAppReceipt, TemplateReceipt};
 
 /// Given a binary Receipt wrappend inside a JSON,
 /// decodes it into a user-friendly JSON.
