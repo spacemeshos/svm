@@ -7,42 +7,6 @@ pub struct TemplateBuilder {
     sections: Sections,
 }
 
-///
-/// # Example
-///  
-/// ```rust
-/// use std::io::Cursor;
-///
-/// use svm_types::Template;
-/// use svm_codec::api::builder::DeployTemplateBuilder;
-/// use svm_codec::template;
-///
-/// let layout = vec![5, 10].into();
-/// let ctors = vec!["init".to_string()];
-///
-/// let bytes = TemplateBuilder::new()
-///            .with_version(0)
-///            .with_name("My Template")
-///            .with_code(&[0xC, 0x0, 0xD, 0xE])
-///            .with_layout(&layout)
-///            .with_ctors(&ctors)
-///            .build();
-///
-/// let mut cursor = Cursor::new(&bytes[..]);
-/// let actual = template::decode_deploy_template(&mut cursor).unwrap();
-///
-/// let expected = Template {
-///                  version: 0,
-///                  name: "My Template".to_string(),
-///                  code: vec![0xC, 0x0, 0xD, 0xE],
-///                  layout,
-///                  ctors: vec!["init".to_string()]
-///                };
-///
-/// assert_eq!(expected, actual);
-/// ```
-///
-
 impl Default for TemplateBuilder {
     fn default() -> Self {
         Self {

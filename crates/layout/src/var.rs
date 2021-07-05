@@ -1,7 +1,25 @@
+use std::ops::{self, Add, AddAssign};
+
 /// Represents a raw variable. an unsigned integer.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
 pub struct Id(pub u32);
+
+impl Add<u32> for Id {
+    type Output = Id;
+
+    fn add(self, rhs: u32) -> Self::Output {
+        let n = self.0.checked_add(rhs).unwrap();
+
+        Id(n)
+    }
+}
+
+impl AddAssign<u32> for Id {
+    fn add_assign(&mut self, rhs: u32) {
+        self.0 = self.0.checked_add(rhs).unwrap();
+    }
+}
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct RawVar {

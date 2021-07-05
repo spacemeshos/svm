@@ -19,9 +19,13 @@ impl Default for FixedLayout {
 
 impl FixedLayout {
     pub fn new(vars: Vec<RawVar>) -> Self {
-        let first = vars.get(0).map(|var| var.id());
+        if vars.is_empty() {
+            Self::default()
+        } else {
+            let first = vars.get(0).map(|var| var.id());
 
-        Self { first, vars }
+            Self { first, vars }
+        }
     }
 
     /// Returns a fixed-variable's layout
@@ -47,10 +51,7 @@ impl FixedLayout {
     /// Returns a iterator over the layout-variables.
     /// The iterators will return each time an entry of `(var_id, var_offset, var_length)`.
     pub fn iter(&self) -> LayoutIter {
-        LayoutIter {
-            current: 0,
-            layout: self,
-        }
+        LayoutIter::new(self)
     }
 
     #[inline]
@@ -116,25 +117,41 @@ impl From<Vec<u32>> for FixedLayout {
 }
 
 pub struct LayoutIter<'iter> {
-    current: usize,
+    offset: usize,
+
+    current: Option<Id>,
 
     layout: &'iter FixedLayout,
+}
+
+impl<'iter> LayoutIter<'iter> {
+    pub fn new(layout: &'iter FixedLayout) -> Self {
+        Self {
+            offset: 0,
+            current: layout.try_first(),
+            layout,
+        }
+    }
 }
 
 impl<'iter> std::iter::Iterator for LayoutIter<'iter> {
     type Item = RawVar;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.current >= self.layout.len() {
-            return None;
-        }
+        self.current.and_then(|current| {
+            if self.offset >= self.layout.len() {
+                self.current = None;
 
-        let id = Id(self.current as u32);
-        let var = self.layout.get(id);
+                return None;
+            }
 
-        self.current += 1;
+            let var = self.layout.get(current);
 
-        Some(var.clone())
+            self.offset += 1;
+            self.current = Some(current + 1);
+
+            Some(var.clone())
+        })
     }
 }
 
@@ -145,13 +162,15 @@ mod tests {
     #[test]
     fn layout_new() {
         let mut builder = LayoutBuilder::with_capacity(2);
+
+        builder.set_first(Id(3));
         builder.push(10);
         builder.push(20);
 
         let layout = builder.build();
 
-        assert_eq!(layout.get(Id(0)), RawVar::new(Id(0), 0, 10));
-        assert_eq!(layout.get(Id(1)), RawVar::new(Id(1), 10, 20));
+        assert_eq!(layout.get(Id(3)), &RawVar::new(Id(3), 0, 10));
+        assert_eq!(layout.get(Id(4)), &RawVar::new(Id(4), 10, 20));
     }
 
     #[test]
@@ -160,13 +179,15 @@ mod tests {
 
         let layout: FixedLayout = (*vec).into();
 
-        assert_eq!(layout.get(Id(0)), RawVar::new(Id(0), 0, 20));
-        assert_eq!(layout.get(Id(1)), RawVar::new(Id(1), 20, 40));
+        assert_eq!(layout.get(Id(0)), &RawVar::new(Id(0), 0, 20));
+        assert_eq!(layout.get(Id(1)), &RawVar::new(Id(1), 20, 40));
     }
 
     #[test]
     fn layout_extend_from_slice() {
         let mut builder = LayoutBuilder::with_capacity(2);
+
+        builder.set_first(Id(4));
         builder.push(10);
         builder.push(20);
 
@@ -174,15 +195,17 @@ mod tests {
 
         let layout = builder.build();
 
-        assert_eq!(layout.get(Id(0)), RawVar::new(Id(0), 0, 10));
-        assert_eq!(layout.get(Id(1)), RawVar::new(Id(1), 10, 20));
-        assert_eq!(layout.get(Id(2)), RawVar::new(Id(2), 30, 30));
-        assert_eq!(layout.get(Id(3)), RawVar::new(Id(3), 60, 40));
+        assert_eq!(layout.get(Id(4)), &RawVar::new(Id(4), 0, 10));
+        assert_eq!(layout.get(Id(5)), &RawVar::new(Id(5), 10, 20));
+        assert_eq!(layout.get(Id(6)), &RawVar::new(Id(6), 30, 30));
+        assert_eq!(layout.get(Id(7)), &RawVar::new(Id(7), 60, 40));
     }
 
     #[test]
     fn layout_iter() {
         let mut builder = LayoutBuilder::with_capacity(2);
+
+        builder.set_first(Id(1));
         builder.push(10);
         builder.push(20);
 
@@ -195,8 +218,8 @@ mod tests {
         let third = iter.next();
         let fourth = iter.next();
 
-        assert_eq!(first, Some(RawVar::new(Id(0), 0, 10)));
-        assert_eq!(second, Some(RawVar::new(Id(1), 10, 20)));
+        assert_eq!(first, Some(RawVar::new(Id(1), 0, 10)));
+        assert_eq!(second, Some(RawVar::new(Id(2), 10, 20)));
 
         assert_eq!(third, None);
         assert_eq!(fourth, None);

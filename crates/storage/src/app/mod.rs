@@ -6,7 +6,7 @@ use raw::{RawChange, RawStorage};
 mod kv;
 pub use kv::AppKVStore;
 
-use svm_layout::{Id, FixedLayout};
+use svm_layout::{FixedLayout, Id};
 use svm_types::State;
 
 ///
@@ -15,7 +15,7 @@ use svm_types::State;
 /// While an app is running it performs read and write operations.
 ///
 /// Reads operations don't modify the app's storage.
-/// Write operations save changes to be commited after an app's execution succeeded.
+/// Write operations save changes to be committed after an app's execution succeeded.
 ///
 /// Reading a variable will return the most updated value of the variable.
 ///
