@@ -1,4 +1,4 @@
-use svm_types::{Template, Transaction, SpawnApp};
+use svm_types::{SpawnApp, Template, Transaction};
 
 use super::estimator::{DeployTemplateEst, ExecAppEst, GasEstimator, SpawnAppEst};
 
