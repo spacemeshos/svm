@@ -1,6 +1,6 @@
 //!  `Template` Binary Format
 //!
-//!  Important: There are no assumptions regarding Sections order
+//!  Important: There are no assumptions regarding the order of the `Section`s
 //!
 //!
 //!  +----------------+
@@ -48,6 +48,9 @@ use crate::section::decode::decode_sections;
 use crate::section::SectionsEncoder;
 use crate::ParseError;
 
+/// Encodes a `Template` into binary
+///
+/// This is essentially equivalent to encoding the `Sections` residing within the `Template`
 pub fn encode(template: &Template) -> Vec<u8> {
     let sections = template.sections();
 
@@ -59,6 +62,9 @@ pub fn encode(template: &Template) -> Vec<u8> {
     bytes
 }
 
+/// Decodes a list of `Section`s that we're interested at (see `interest` parameter) and returns them wrapped within a `Template`
+///
+/// If the input `interests` is `None` - decodes any kind `Section` belonging to the `Template` pointed by the input `cursor`
 pub fn decode(
     cursor: Cursor<&[u8]>,
     interests: Option<HashSet<SectionKind>>,
@@ -78,7 +84,7 @@ mod tests {
     use svm_layout::{FixedLayout, Id, Layout, RawVar};
     use svm_types::{
         Address, CodeKind, CodeSection, CtorsSection, DataSection, DeploySection, GasMode,
-        HeaderSection, Layer, Nonce, Sections, TemplateAddr, TransactionId,
+        HeaderSection, Layer, Sections, TemplateAddr, TransactionId,
     };
 
     fn make_code_section() -> CodeSection {

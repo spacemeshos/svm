@@ -6,9 +6,9 @@
 //
 //! The CI of the SVM outputs the WASM package of `svm-codec` as one of its artifacts.
 
-#![allow(missing_docs)]
-#![allow(unused)]
-#![allow(dead_code)]
+#![deny(missing_docs)]
+#![deny(unused)]
+#![deny(dead_code)]
 #![allow(unreachable_code)]
 #![feature(vec_into_raw_parts)]
 
@@ -16,7 +16,6 @@ mod calldata;
 mod ext;
 mod field;
 mod section;
-mod r#type;
 mod version;
 
 /// Encoding for apps
