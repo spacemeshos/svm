@@ -57,7 +57,7 @@ pub const FIXED: u16 = 0x00_01;
 impl SectionEncoder for DataSection {
     fn encode(&self, w: &mut Vec<u8>) {
         // `#Layouts`
-        encode_layout_count(self.layout_count(), w);
+        encode_layout_count(self.len(), w);
 
         // Encoding each `Layout`
         for layout in self.layouts() {

@@ -1,7 +1,8 @@
 use std::fmt;
 use std::iter::Iterator;
 
-use indexmap::{map::Values, IndexMap};
+use indexmap::map::Values;
+use indexmap::IndexMap;
 
 use super::{
     ApiSection, CodeSection, CtorsSection, DataSection, DeploySection, HeaderSection, SchemaSection,

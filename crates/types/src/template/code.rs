@@ -1,7 +1,8 @@
-use crate::{Gas, GasMode, Section, SectionKind};
+use crate::{GasMode, Section, SectionKind};
 
 const EXEC_FLAGS: u64 = 0x01;
 
+/// Contains the `Template` Code along other properties
 #[derive(Debug, Clone, PartialEq)]
 pub struct CodeSection {
     kind: CodeKind,

@@ -5,9 +5,13 @@ mod error;
 
 pub use error::OOGError;
 
+/// The method for deriving the `Gas Units` of a transaction
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum GasMode {
+    /// Fixed-Gas - Determined by using static-analysis prior to execution
     Fixed,
+
+    /// Fixed-Gas - Determined as part of transaction execution
     Metering,
 }
 /// `Gas` is essentially an `Option<u64>` with extensions

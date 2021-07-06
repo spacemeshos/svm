@@ -1,6 +1,6 @@
 use svm_layout::SymbolicVar;
 
-use crate::{DeployerAddr, Section, SectionKind};
+use crate::{Section, SectionKind};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct SchemaSection {
