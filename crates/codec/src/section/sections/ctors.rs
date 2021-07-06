@@ -12,7 +12,7 @@
 
 use std::io::Cursor;
 
-use svm_types::{CtorsSection, Section, SectionKind};
+use svm_types::CtorsSection;
 
 use crate::section::{SectionDecoder, SectionEncoder};
 use crate::{Field, ParseError, ReadExt, WriteExt};

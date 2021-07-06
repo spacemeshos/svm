@@ -12,7 +12,7 @@
 
 use std::io::Cursor;
 
-use svm_types::{HeaderSection, Section, SectionKind, Template};
+use svm_types::HeaderSection;
 
 use crate::section::{SectionDecoder, SectionEncoder};
 use crate::{Field, ParseError, ReadExt, WriteExt};

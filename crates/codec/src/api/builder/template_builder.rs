@@ -51,7 +51,7 @@ impl TemplateBuilder {
         self
     }
 
-    pub fn build(mut self) -> Template {
+    pub fn build(self) -> Template {
         macro_rules! assert_section {
             ($kind:expr) => {{
                 if self.sections.contains($kind) == false {

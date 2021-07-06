@@ -44,7 +44,6 @@ use std::io::Cursor;
 
 use svm_types::{SectionKind, Template};
 
-use crate::api::builder::TemplateBuilder;
 use crate::section::decode::decode_sections;
 use crate::section::SectionsEncoder;
 use crate::ParseError;

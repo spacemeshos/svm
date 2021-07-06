@@ -1,15 +1,13 @@
-use std::io::Cursor;
-use std::iter::Scan;
+// use svm_layout::{Primitive, SymbolicVar, Type};
+use svm_types::SchemaSection;
 
-use svm_layout::{Id, Primitive, SymbolicVar, Type};
-use svm_types::{SchemaSection, Section, SectionKind};
-
-use crate::r#type;
-use crate::section::{self, SectionDecoder, SectionEncoder};
-use crate::{Field, ParseError, ReadExt, WriteExt};
+// use crate::r#type;
+use crate::section::{SectionDecoder, SectionEncoder};
+use crate::ParseError;
+// use crate::{Field, ParseError, ReadExt, WriteExt};
 
 impl SectionEncoder for SchemaSection {
-    fn encode(&self, w: &mut Vec<u8>) {
+    fn encode(&self, _w: &mut Vec<u8>) {
         todo!("will be implemented in a future PR...");
         // let mut raw_section = Vec::new();
 
@@ -31,7 +29,7 @@ impl SectionEncoder for SchemaSection {
 }
 
 impl SectionDecoder for SchemaSection {
-    fn decode(cursor: &mut std::io::Cursor<&[u8]>) -> Result<Self, ParseError> {
+    fn decode(_cursor: &mut std::io::Cursor<&[u8]>) -> Result<Self, ParseError> {
         todo!("will be implemented in a future PR...");
     }
 }

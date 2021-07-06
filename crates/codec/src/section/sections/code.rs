@@ -12,7 +12,7 @@
 
 use std::io::Cursor;
 
-use svm_types::{CodeKind, CodeSection, GasMode, Section};
+use svm_types::{CodeKind, CodeSection, GasMode};
 
 use crate::section::{SectionDecoder, SectionEncoder};
 use crate::{Field, ParseError, ReadExt, WriteExt};

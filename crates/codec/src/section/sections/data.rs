@@ -43,11 +43,10 @@
 //!
 //!
 
-use std::char::UNICODE_VERSION;
 use std::io::Cursor;
 
-use svm_layout::{FixedLayout, Id, Layout, LayoutBuilder, LayoutKind, RawVar};
-use svm_types::{DataSection, Section, SectionKind};
+use svm_layout::{Id, Layout, LayoutBuilder, LayoutKind, RawVar};
+use svm_types::DataSection;
 
 use crate::section::{SectionDecoder, SectionEncoder};
 use crate::{Field, ParseError, ReadExt, WriteExt};

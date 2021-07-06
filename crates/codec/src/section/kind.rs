@@ -1,5 +1,3 @@
-use std::io::Cursor;
-
 use svm_types::SectionKind;
 
 use crate::{Field, ParseError, ReadExt, WriteExt};

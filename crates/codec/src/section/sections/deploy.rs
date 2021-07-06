@@ -12,9 +12,7 @@
 
 use std::io::Cursor;
 
-use svm_types::{
-    DeploySection, DeployerAddr, Layer, Section, SectionKind, TemplateAddr, TransactionId,
-};
+use svm_types::{DeploySection, DeployerAddr, Layer, TemplateAddr, TransactionId};
 
 use crate::section::{SectionDecoder, SectionEncoder};
 use crate::{Field, ParseError, ReadExt, WriteExt};

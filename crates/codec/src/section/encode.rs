@@ -88,7 +88,8 @@ impl SectionsEncoder {
     }
 
     fn section_buf_mut(&mut self, kind: SectionKind) -> &mut Vec<u8> {
-        let entry = self.section_buf.entry(kind).or_insert_with(|| Vec::new());
+        // initializes an `Section buffer` if not exists
+        let _entry = self.section_buf.entry(kind).or_insert_with(|| Vec::new());
 
         if let Some(buf) = self.section_buf.get_mut(&kind) {
             buf
