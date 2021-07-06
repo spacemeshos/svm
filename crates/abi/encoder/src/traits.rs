@@ -5,23 +5,23 @@ pub trait Encoder<W> {
     fn encode(&self, w: &mut W);
 }
 
-impl<T, W> Encoder<W> for &T
-where
-    T: Encoder<W>,
-{
-    fn encode(&self, w: &mut W) {
-        (**self).encode(w);
-    }
-}
+//impl<T, W> Encoder<W> for &T
+//where
+//    T: Encoder<W>,
+//{
+//    fn encode(&self, w: &mut W) {
+//        (**self).encode(w);
+//    }
+//}
 
-impl<T, W> Encoder<W> for &mut T
-where
-    T: Encoder<W>,
-{
-    fn encode(&self, w: &mut W) {
-        (**self).encode(w);
-    }
-}
+//impl<T, W> Encoder<W> for &mut T
+//where
+//    T: Encoder<W>,
+//{
+//    fn encode(&self, w: &mut W) {
+//        (**self).encode(w);
+//    }
+//}
 
 pub trait Push {
     type Item;
