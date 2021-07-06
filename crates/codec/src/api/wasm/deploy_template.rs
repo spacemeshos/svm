@@ -21,10 +21,8 @@ mod test {
     use std::io::Cursor;
     use std::vec;
 
-    use svm_layout::{FixedLayout, Layout};
-    use svm_types::{
-        CodeKind, CodeSection, CtorsSection, DataSection, GasMode, HeaderSection, Template,
-    };
+    use svm_layout::Layout;
+    use svm_types::{CodeKind, CodeSection, CtorsSection, DataSection, GasMode, HeaderSection};
 
     use crate::api::builder::TemplateBuilder;
     use crate::api::wasm::{
@@ -51,7 +49,7 @@ mod test {
         let data = wasm_buffer_data(tx_buf);
         assert_eq!(data[0], BUF_OK_MARKER);
 
-        let mut cursor = Cursor::new(&data[1..]);
+        let cursor = Cursor::new(&data[1..]);
         let actual = template::decode(cursor, None).unwrap();
 
         let code = CodeSection::new(

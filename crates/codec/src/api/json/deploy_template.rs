@@ -86,10 +86,10 @@ fn to_data_layout(blob: Vec<u8>) -> Result<Layout, JsonError> {
 mod tests {
     use super::*;
 
-    use std::{collections::HashSet, io::Cursor};
+    use std::io::Cursor;
 
     use serde_json::json;
-    use svm_types::SectionKind;
+    use svm_layout::FixedLayout;
 
     #[test]
     fn json_deploy_template_missing_svm_version() {
@@ -229,7 +229,7 @@ mod tests {
         });
 
         let bytes = deploy_template(&json).unwrap();
-        let mut cursor = Cursor::new(&bytes[..]);
+        let cursor = Cursor::new(&bytes[..]);
         let actual = template::decode(cursor, None).unwrap();
 
         let code = CodeSection::new_fixed(vec![0xC0, 0xDE], 1);

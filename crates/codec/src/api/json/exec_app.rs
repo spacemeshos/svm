@@ -172,7 +172,7 @@ mod tests {
 
     #[test]
     fn json_exec_app_valid() {
-        let verifydata = json::encode_calldata(&json!({
+        let _verifydata = json::encode_calldata(&json!({
             "abi": ["bool", "i8"],
             "data": [true, 3],
         }))

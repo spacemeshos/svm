@@ -77,6 +77,8 @@ pub fn decode(
 
 #[cfg(test)]
 mod tests {
+    use crate::api::builder::TemplateBuilder;
+
     use super::*;
 
     use maplit::hashset;
@@ -84,7 +86,7 @@ mod tests {
     use svm_layout::{FixedLayout, Id, Layout, RawVar};
     use svm_types::{
         Address, CodeKind, CodeSection, CtorsSection, DataSection, DeploySection, GasMode,
-        HeaderSection, Layer, Sections, TemplateAddr, TransactionId,
+        HeaderSection, Layer, TransactionId,
     };
 
     fn make_code_section() -> CodeSection {
@@ -118,11 +120,10 @@ mod tests {
     fn make_deploy_section() -> DeploySection {
         let tx_id = TransactionId::repeat(0xFF);
         let layer = Layer(10);
-        let nonce = Nonce(20);
         let deployer = Address::repeat(0xAB).into();
         let template = Address::repeat(0xCD).into();
 
-        DeploySection::new(tx_id, layer, nonce, deployer, template)
+        DeploySection::new(tx_id, layer, deployer, template)
     }
 
     #[test]
@@ -144,7 +145,7 @@ mod tests {
 
         let bytes = encode(&template);
 
-        let mut cursor = Cursor::new(&bytes[..]);
+        let cursor = Cursor::new(&bytes[..]);
 
         let interests = hashset! {
             SectionKind::Code,
