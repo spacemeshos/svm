@@ -107,8 +107,8 @@ impl Template {
         section.as_data()
     }
 
-    // For now - there can be only a single `Layout` (of type `FixedLayout`)
-    // TODO: this method should become obsolete once SVM will support more than one `Layout`s per `Template`
+    /// For now - there can be only a single `Layout` (of type `FixedLayout`)
+    /// TODO: this method should become obsolete once SVM will support more than one `Layout`s per `Template`
     pub fn fixed_layout(&self) -> &FixedLayout {
         let data = self.data_section();
         let layouts = data.layouts();
@@ -165,6 +165,7 @@ impl Template {
         section.as_schema()
     }
 
+    /// Sets the `DeploySection` to a `Template`
     pub fn set_deploy_section(&mut self, section: DeploySection) {
         debug_assert!(self.sections.contains(SectionKind::Deploy) == false);
 
@@ -182,6 +183,11 @@ impl Template {
         section.as_deploy()
     }
 
+    /// Returns the `Address` of a deployed `Template`
+    ///
+    /// # Panics
+    ///
+    /// Panics if there is no `Deploy Section`
     pub fn template_addr(&self) -> &TemplateAddr {
         let section = self.deploy_section();
 

@@ -17,6 +17,7 @@ impl Default for DataSection {
 }
 
 impl DataSection {
+    /// Creates a new Section containing a single `Layout`
     pub fn with_layout(layout: Layout) -> Self {
         Self {
             layouts: vec![layout],

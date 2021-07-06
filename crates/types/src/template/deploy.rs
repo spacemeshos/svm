@@ -1,4 +1,4 @@
-use crate::{DeployerAddr, Layer, Nonce, Section, SectionKind, TemplateAddr, TransactionId};
+use crate::{DeployerAddr, Layer, Section, SectionKind, TemplateAddr, TransactionId};
 
 /// Stores data related to the deployment of a `Template`
 #[derive(Debug, Clone, PartialEq)]
@@ -7,25 +7,22 @@ pub struct DeploySection {
 
     layer: Layer,
 
-    nonce: Nonce,
-
     deployer: DeployerAddr,
 
     template: TemplateAddr,
 }
 
 impl DeploySection {
+    /// Creates a new `Section`
     pub fn new(
         tx_id: TransactionId,
         layer: Layer,
-        nonce: Nonce,
         deployer: DeployerAddr,
         template: TemplateAddr,
     ) -> Self {
         Self {
             tx_id,
             layer,
-            nonce,
             deployer,
             template,
         }
@@ -34,10 +31,6 @@ impl DeploySection {
     /// The `TransactionId` of the `Deploy Template` transaction
     pub fn tx_id(&self) -> &TransactionId {
         &self.tx_id
-    }
-
-    pub fn nonce(&self) -> Nonce {
-        self.nonce
     }
 
     /// The `Layer` at which the `Template` has been deployed at

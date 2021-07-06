@@ -23,7 +23,6 @@ pub enum Field {
     CodeVersion,
     SvmVersion,
     TransactionId,
-    Nonce,
     Layer,
     Address,
     TemplateAddr,

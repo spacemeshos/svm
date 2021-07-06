@@ -1,10 +1,8 @@
 mod id;
 mod layer;
-mod nonce;
 
 pub use id::TransactionId;
 pub use layer::Layer;
-pub use nonce::Nonce;
 
 use std::fmt;
 

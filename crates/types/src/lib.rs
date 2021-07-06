@@ -1,10 +1,10 @@
 //! This crate contains types that are used throughout the SVM project.
 //! Whenever a type has a usage that exceeds a local crate then it should be considered a candidate for this crate.
 
-#![allow(missing_docs)]
-#![allow(unused)]
-#![allow(dead_code)]
-#![allow(unreachable_code)]
+#![deny(missing_docs)]
+#![deny(unused)]
+#![deny(dead_code)]
+#![deny(unreachable_code)]
 #![feature(const_type_id)]
 #![feature(const_type_name)]
 #![feature(vec_into_raw_parts)]
@@ -49,7 +49,7 @@ pub use template::{
     ApiSection, CodeKind, CodeSection, CtorsSection, DataSection, DeploySection, HeaderSection,
     SchemaSection, Section, SectionKind, SectionWrapper, Sections, SectionsIter, Template,
 };
-pub use transaction::{Layer, Nonce, Transaction, TransactionId};
+pub use transaction::{Layer, Transaction, TransactionId};
 pub use wasm_type::{WasmType, WasmTypeError};
 pub use wasm_value::WasmValue;
 
