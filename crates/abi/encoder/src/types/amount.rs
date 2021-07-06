@@ -1,122 +1,26 @@
-use crate::{ByteSize, Encoder};
-
+use seq_macro::seq;
 use svm_sdk_types::Amount;
 
-macro_rules! encode {
-    ( $W:ty) => {
-        impl Encoder<$W> for Amount {
-            fn encode(&self, w: &mut $W) {
-                let v = self.0;
-                let size = self.byte_size();
+use crate::{traits::Push, ByteSize, Encoder};
 
-                use svm_abi_layout::layout;
+impl<W> Encoder<W> for Amount
+where
+    W: Push<Item = u8>,
+{
+    fn encode(&self, w: &mut W) {
+        let v = self.0;
+        let size = self.byte_size();
 
-                // TODO:
-                // for a detailed explanation on how to make the following code
-                // more ergonomic see look at `address.rs` under this module.
-                // There is also an issue for that: [Issue #230](https://github.com/spacemeshos/svm/issues/230)
+        w.push(svm_abi_layout::layout::amount_b(size as u8 - 2));
+        let bytes: [u8; 8] = v.to_be_bytes();
 
-                match size {
-                    2 => {
-                        w.push(layout::AMOUNT_1B);
-                        w.push(v as u8);
-                    }
-                    3 => {
-                        w.push(layout::AMOUNT_2B);
-
-                        let bytes: [u8; 2] = (v as u16).to_be_bytes();
-
-                        w.push(bytes[0]);
-                        w.push(bytes[1]);
-                    }
-                    4 => {
-                        w.push(layout::AMOUNT_3B);
-
-                        let bytes: [u8; 4] = (v as u32).to_be_bytes();
-
-                        debug_assert_eq!(bytes[0], 0);
-
-                        w.push(bytes[1]);
-                        w.push(bytes[2]);
-                        w.push(bytes[3]);
-                    }
-                    5 => {
-                        w.push(layout::AMOUNT_4B);
-
-                        let bytes: [u8; 4] = (v as u32).to_be_bytes();
-
-                        w.push(bytes[0]);
-                        w.push(bytes[1]);
-                        w.push(bytes[2]);
-                        w.push(bytes[3]);
-                    }
-                    6 => {
-                        w.push(layout::AMOUNT_5B);
-
-                        let bytes: [u8; 8] = v.to_be_bytes();
-
-                        debug_assert_eq!(bytes[0], 0);
-                        debug_assert_eq!(bytes[1], 0);
-                        debug_assert_eq!(bytes[2], 0);
-
-                        w.push(bytes[3]);
-                        w.push(bytes[4]);
-                        w.push(bytes[5]);
-                        w.push(bytes[6]);
-                        w.push(bytes[7]);
-                    }
-                    7 => {
-                        w.push(layout::AMOUNT_6B);
-
-                        let bytes: [u8; 8] = v.to_be_bytes();
-
-                        debug_assert_eq!(bytes[0], 0);
-                        debug_assert_eq!(bytes[1], 0);
-
-                        w.push(bytes[2]);
-                        w.push(bytes[3]);
-                        w.push(bytes[4]);
-                        w.push(bytes[5]);
-                        w.push(bytes[6]);
-                        w.push(bytes[7]);
-                    }
-                    8 => {
-                        w.push(layout::AMOUNT_7B);
-
-                        let bytes: [u8; 8] = v.to_be_bytes();
-
-                        debug_assert_eq!(bytes[0], 0);
-
-                        w.push(bytes[1]);
-                        w.push(bytes[2]);
-                        w.push(bytes[3]);
-                        w.push(bytes[4]);
-                        w.push(bytes[5]);
-                        w.push(bytes[6]);
-                        w.push(bytes[7]);
-                    }
-                    9 => {
-                        w.push(layout::AMOUNT_8B);
-
-                        let bytes: [u8; 8] = v.to_be_bytes();
-
-                        w.push(bytes[0]);
-                        w.push(bytes[1]);
-                        w.push(bytes[2]);
-                        w.push(bytes[3]);
-                        w.push(bytes[4]);
-                        w.push(bytes[5]);
-                        w.push(bytes[6]);
-                        w.push(bytes[7]);
-                    }
-                    _ => svm_sdk_std::panic(),
-                }
+        seq!(I in 0..8 {
+            if size >= 9 - I {
+                w.push(bytes[I]);
             }
-        }
-    };
+        });
+    }
 }
-
-encode!(svm_sdk_std::Vec<u8>);
 
 impl ByteSize for Amount {
     #[inline]

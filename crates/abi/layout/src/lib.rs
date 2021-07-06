@@ -83,6 +83,14 @@ pub mod layout {
     pub const BOOL_FALSE: u8 = 0b_0_000_0000;
     pub const BOOL_TRUE: u8 = 0b_0_001_0000;
 
+    pub const fn boolean(b: bool) -> u8 {
+        if b {
+            0b_0_001_0000
+        } else {
+            0b_0_000_0000
+        }
+    }
+
     // None
     pub const NONE: u8 = 0b_0_010_0000;
 
@@ -101,6 +109,11 @@ pub mod layout {
     pub const AMOUNT_6B: u8 = 0b_0_101_0001;
     pub const AMOUNT_7B: u8 = 0b_0_110_0001;
     pub const AMOUNT_8B: u8 = 0b_0_111_0001;
+
+    #[inline]
+    pub const fn amount_b(i: u8) -> u8 {
+        (i << 4) | 1
+    }
 
     // i8
     //// signed

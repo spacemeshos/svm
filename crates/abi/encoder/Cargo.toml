@@ -11,17 +11,12 @@ description = "Spacemesh Virtual Machine"
 publish = false
 
 [dependencies]
-svm-abi-layout = { path = "./../layout" }
-svm-sdk-types = { path = "../../sdk/types", default-features = false }
-svm-sdk-std = { path = "../../sdk/std", default-features = false }
+seq-macro = "0.2.2"
+svm-abi-layout = { path="./../layout" }
+svm-sdk-types = { path="../../sdk/types", default-features=false }
+svm-sdk-std = { path="../../sdk/std", default-features=false }
 
 [features]
 default = []
-static-alloc = [
-    "svm-sdk-types/static-alloc",
-    "svm-sdk-std/static-alloc"
-]
-dynamic-alloc = [
-    "svm-sdk-types/dynamic-alloc",
-    "svm-sdk-std/dynamic-alloc"
-]
+static-alloc = ["svm-sdk-types/static-alloc", "svm-sdk-std/static-alloc"]
+dynamic-alloc = ["svm-sdk-types/dynamic-alloc", "svm-sdk-std/dynamic-alloc"]

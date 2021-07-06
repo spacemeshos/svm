@@ -23,6 +23,20 @@ where
     }
 }
 
+pub trait Push {
+    type Item;
+
+    fn push(&mut self, item: Self::Item);
+}
+
+impl<T> Push for svm_sdk_std::Vec<T> {
+    type Item = T;
+
+    fn push(&mut self, item: Self::Item) {
+        svm_sdk_std::Vec::push(self, item);
+    }
+}
+
 // This trait has been added to let to-be-encoded values
 // to expose how much bytes they will consume.
 //
