@@ -7,7 +7,11 @@ where
     W: Push<Item = u8>,
 {
     fn encode(&self, w: &mut W) {
-        w.push(layout::boolean(*self));
+        w.push(if *self {
+            layout::BOOL_TRUE
+        } else {
+            layout::BOOL_FALSE
+        });
     }
 }
 

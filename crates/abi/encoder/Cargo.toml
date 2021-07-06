@@ -11,6 +11,7 @@ description = "Spacemesh Virtual Machine"
 publish = false
 
 [dependencies]
+num-traits = { version="0.2.14", default-features=false }
 seq-macro = "0.2.2"
 svm-abi-layout = { path="./../layout" }
 svm-sdk-types = { path="../../sdk/types", default-features=false }

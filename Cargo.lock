@@ -1322,6 +1322,7 @@ dependencies = [
 name = "svm-abi-encoder"
 version = "0.0.0"
 dependencies = [
+ "num-traits",
  "seq-macro",
  "svm-abi-layout",
  "svm-sdk-std",

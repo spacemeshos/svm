@@ -1,28 +1,23 @@
-use crate::traits::ByteSize;
-
 use svm_sdk_std::Option;
 
-macro_rules! encode {
-    ($W:ty) => {
-        impl<T> crate::traits::Encoder<$W> for svm_sdk_std::Option<T>
-        where
-            T: crate::traits::Encoder<$W>,
-        {
-            fn encode(&self, w: &mut $W) {
-                match self {
-                    svm_sdk_std::Option::None => {
-                        use svm_abi_layout::layout;
+use crate::traits::{ByteSize, Encoder, Push};
 
-                        w.push(layout::NONE);
-                    }
-                    svm_sdk_std::Option::Some(val) => val.encode(w),
-                }
+impl<T, W> Encoder<W> for svm_sdk_std::Option<T>
+where
+    T: Encoder<W>,
+    W: Push<Item = u8>,
+{
+    fn encode(&self, w: &mut W) {
+        match self {
+            svm_sdk_std::Option::None => {
+                use svm_abi_layout::layout;
+
+                w.push(layout::NONE);
             }
+            svm_sdk_std::Option::Some(val) => val.encode(w),
         }
-    };
+    }
 }
-
-encode!(svm_sdk_std::Vec<u8>);
 
 impl<T> ByteSize for Option<T>
 where
