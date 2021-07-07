@@ -7,8 +7,6 @@ where
     W: Push<Item = u8>,
 {
     fn encode(&self, w: &mut W) {
-        use svm_abi_layout::layout;
-
         assert!(self.len() < 11);
 
         w.push(layout_array(self.len()));
@@ -54,7 +52,8 @@ where
     }
 }
 
-pub const fn layout_array(len: usize) -> u8 {
+/// Calculates the layout marker byte of an array of size `len`.
+const fn layout_array(len: usize) -> u8 {
     if len < 8 {
         0b_0_000_0110 | (len << 4) as u8
     } else {

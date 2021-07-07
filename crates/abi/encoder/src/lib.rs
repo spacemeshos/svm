@@ -2,10 +2,10 @@
 //! according to a simple ABI format.
 
 #![no_std]
-#![allow(missing_docs)]
-#![allow(unused)]
-#![allow(dead_code)]
-#![allow(unreachable_code)]
+#![deny(missing_docs)]
+#![deny(unused)]
+#![deny(dead_code)]
+#![deny(unreachable_code)]
 
 mod traits;
 mod types;

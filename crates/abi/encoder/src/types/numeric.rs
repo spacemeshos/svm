@@ -1,5 +1,4 @@
 use num_traits::{AsPrimitive, Bounded};
-use svm_abi_layout::layout;
 
 use crate::traits::{Numeric, Push};
 use crate::{ByteSize, Encoder};
