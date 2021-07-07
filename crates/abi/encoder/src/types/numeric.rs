@@ -9,8 +9,18 @@ where
     W: Push<Item = u8>,
 {
     fn encode(&self, w: &mut W) {
+        // We need three pieces of information to generate the layout marker
+        // bytes on the fly:
+        //
+        // 1. Sign. Is the number type signed or unsigned?
+        // 2. Max. width. How many bytes is it? (e.g. u32 is 4 bytes).
+        // 3. Actual width. How many bytes do we need to store this specific
+        //    number? (e.g. 0-127 only takes one byte, regardless of the number
+        //    type).
         let type_is_signed = T::min_value() < T::zero();
 
+        // We get the payload size by subtracing 1, which is the space required
+        // by the layout marker byte. Same for the max. width.
         let payload_size = self.byte_size() - 1;
         let layout_marker = layout_integer(
             T::max_byte_size() as u32 - 1,
@@ -19,10 +29,14 @@ where
         );
         w.push(layout_marker);
 
+        // Encoding is tricky and requires first to cast to the relevant
+        // unsigned type, then extending to 64 bits. Note: you can't cast
+        // directly as some numbers will result in different representations.
         let self_unsigned: T::Unsigned = self.as_();
         let self_u64: u64 = self_unsigned.as_();
         let bytes: [u8; 8] = self_u64.to_be_bytes();
 
+        // Finally, push all relevant bytes.
         seq_macro::seq!(i in 0..8 {
             if payload_size >= 8 - i {
                 w.push(bytes[i]);
@@ -88,6 +102,8 @@ impl Numeric for u64 {
     type Unsigned = u64;
 }
 
+/// Integer layout marker bytes generator. It looks scary, but all it does is it
+/// dynamically encodes the layout formula specificied by the ABI.
 pub fn layout_integer(max_width_in_bytes: u32, width_in_bytes: u32, signed: bool) -> u8 {
     use svm_abi_layout::layout::*;
     debug_assert!(width_in_bytes <= max_width_in_bytes);

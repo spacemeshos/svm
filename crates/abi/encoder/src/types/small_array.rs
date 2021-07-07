@@ -39,6 +39,8 @@ where
 
         let mut payload_size = 0;
         seq_macro::seq!(i in 0..11 {
+            // The compiler complains, but it's wrong! The following comparison
+            // might be useless or not, depending on the array const generic.
             #[allow(unused_comparisons)]
             if N >= i {
                 payload_size += self[i].byte_size();

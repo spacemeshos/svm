@@ -46,7 +46,9 @@ pub trait ByteSize {
     fn max_byte_size() -> usize;
 }
 
-/// Integer layout type information.
+/// Integer layout type information. This is needed for encoding numeric types
+/// and accessing type information about them (we need to cast everything to the
+/// unsigned type of the same width).
 pub trait Numeric: AsPrimitive<Self::Unsigned> {
     type Unsigned: Copy + Numeric + AsPrimitive<u64>;
 }
