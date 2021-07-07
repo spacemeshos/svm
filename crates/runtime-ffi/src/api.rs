@@ -8,8 +8,6 @@ use std::rc::Rc;
 #[cfg(feature = "default-rocksdb")]
 use std::path::Path;
 
-use svm_storage::kv::ExternKV;
-
 use log::{debug, error};
 
 use svm_codec::receipt;
@@ -404,59 +402,6 @@ pub unsafe extern "C" fn svm_memory_state_kv_create(kv: *mut *mut c_void) -> svm
     let state_kv = svm_runtime::testing::memory_state_kv_init();
 
     *kv = svm_ffi::into_raw(KV_TYPE, state_kv);
-
-    svm_result_t::SVM_SUCCESS
-}
-
-/// Creates a new FFI key-value client.
-/// Returns a raw pointer to allocated kv-store via input parameter `kv`.
-///
-/// # Example
-///
-/// ```rust
-/// use svm_runtime_ffi::*;
-///
-/// unsafe extern "C" fn get(key_ptr: *const u8, key_len: u32, value_ptr: *mut u8, value_len: *mut u32) {}
-/// unsafe extern "C" fn set(key_ptr: *const u8, key_len: u32, value_ptr: *const u8, value_len: u32) {}
-/// unsafe extern "C" fn discard() {}
-/// unsafe extern "C" fn checkpoint(state: *mut u8) {}
-/// unsafe extern "C" fn head(state: *mut u8) {}
-///
-/// let mut kv = std::ptr::null_mut();
-/// let res = unsafe {
-///   svm_ffi_state_kv_create(
-///     &mut kv,
-///     get,
-///     set,
-///     discard,
-///     checkpoint,
-///     head)
-/// };
-//
-/// assert!(res.is_ok());
-/// ```
-///
-#[must_use]
-#[no_mangle]
-pub unsafe extern "C" fn svm_ffi_state_kv_create(
-    state_kv: *mut *mut c_void,
-    get_fn: unsafe extern "C" fn(*const u8, u32, *mut u8, *mut u32),
-    set_fn: unsafe extern "C" fn(*const u8, u32, *const u8, u32),
-    discard_fn: unsafe extern "C" fn(),
-    checkpoint_fn: unsafe extern "C" fn(*mut u8),
-    head_fn: unsafe extern "C" fn(*mut u8),
-) -> svm_result_t {
-    let ffi_kv = ExternKV {
-        get_fn,
-        set_fn,
-        discard_fn,
-        checkpoint_fn,
-        head_fn,
-    };
-
-    let ffi_kv: Rc<RefCell<dyn StatefulKV>> = Rc::new(RefCell::new(ffi_kv));
-
-    *state_kv = svm_ffi::into_raw(KV_TYPE, ffi_kv);
 
     svm_result_t::SVM_SUCCESS
 }

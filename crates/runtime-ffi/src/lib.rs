@@ -38,8 +38,6 @@ pub use api::{
     svm_validate_app,
     svm_validate_tx,
 
-    svm_ffi_state_kv_create,
-
     // Destroy
     svm_runtime_destroy,
     svm_state_kv_destroy,
