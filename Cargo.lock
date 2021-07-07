@@ -1313,6 +1313,7 @@ dependencies = [
 name = "svm-abi-decoder"
 version = "0.0.0"
 dependencies = [
+ "seq-macro",
  "svm-abi-layout",
  "svm-sdk-std",
  "svm-sdk-types",
