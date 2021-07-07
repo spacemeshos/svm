@@ -4,6 +4,37 @@ use svm_types::{
 };
 
 /// Builds a `Template`
+///
+/// # Example
+///  
+/// ```rust
+/// use std::io::Cursor;
+///
+/// use svm_codec::template;
+/// use svm_codec::api::builder::TemplateBuilder;
+///
+/// use svm_layout::Layout;
+/// use svm_types::{Template, CodeKind, CodeSection, CtorsSection, DataSection, GasMode, HeaderSection};
+///
+/// let code = CodeSection::new(
+///      CodeKind::Wasm,
+///      vec![0xC0, 0xDE],
+///      CodeSection::exec_flags(),
+///      GasMode::Fixed,
+///      1,
+/// );
+///
+/// let data = DataSection::with_layout(Layout::Fixed(vec![1, 3].into()));
+/// let ctors = CtorsSection::new(vec!["init".into(), "start".into()]);
+/// let header = HeaderSection::new(2, "My Template".into(), "A few words".into());
+///
+/// let template = TemplateBuilder::default()
+///     .with_code(code)
+///     .with_data(data)
+///     .with_ctors(ctors)
+///     .with_header(header)
+///     .build();
+/// ```
 pub struct TemplateBuilder {
     sections: Sections,
 }

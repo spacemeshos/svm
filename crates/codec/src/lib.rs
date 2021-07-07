@@ -4,7 +4,7 @@
 //! By doing that, a Wallet Apps can locally encode a binary transaction without having to re-implement all the logic
 //! of the `svm-codec`.
 //
-//! The CI of the SVM outputs the WASM package of `svm-codec` as one of its artifacts.
+//! SVM's CI emits the WASM package of `svm-codec` as one of its artifacts (`svm_codec.wasm`)
 
 #![deny(missing_docs)]
 #![deny(unused)]

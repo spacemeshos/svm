@@ -1,22 +1,19 @@
 use svm_abi_layout::layout;
 
-use crate::{ByteSize, Encoder};
+use crate::{traits::Push, ByteSize, Encoder};
 
-macro_rules! impl_bool {
-    ($W:ty) => {
-        impl Encoder<$W> for bool {
-            fn encode(&self, w: &mut $W) {
-                if *self {
-                    w.push(layout::BOOL_TRUE);
-                } else {
-                    w.push(layout::BOOL_FALSE);
-                }
-            }
-        }
-    };
+impl<W> Encoder<W> for bool
+where
+    W: Push<Item = u8>,
+{
+    fn encode(&self, w: &mut W) {
+        w.push(if *self {
+            layout::BOOL_TRUE
+        } else {
+            layout::BOOL_FALSE
+        });
+    }
 }
-
-impl_bool!(svm_sdk_std::Vec<u8>);
 
 impl ByteSize for bool {
     fn byte_size(&self) -> usize {
