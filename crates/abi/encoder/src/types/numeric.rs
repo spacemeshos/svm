@@ -131,7 +131,32 @@ mod test {
         assert_eq!(layout_integer(1, 1, true), layout::I8);
         assert_eq!(layout_integer(1, 1, false), layout::U8);
         assert_eq!(layout_integer(2, 1, true), layout::I16_1B);
+        assert_eq!(layout_integer(2, 2, true), layout::I16_2B);
+        assert_eq!(layout_integer(2, 1, false), layout::U16_1B);
         assert_eq!(layout_integer(2, 2, false), layout::U16_2B);
+        assert_eq!(layout_integer(4, 1, true), layout::I32_1B);
+        assert_eq!(layout_integer(4, 2, true), layout::I32_2B);
+        assert_eq!(layout_integer(4, 3, true), layout::I32_3B);
+        assert_eq!(layout_integer(4, 4, true), layout::I32_4B);
+        assert_eq!(layout_integer(4, 1, false), layout::U32_1B);
+        assert_eq!(layout_integer(4, 2, false), layout::U32_2B);
+        assert_eq!(layout_integer(4, 3, false), layout::U32_3B);
+        assert_eq!(layout_integer(4, 4, false), layout::U32_4B);
+        assert_eq!(layout_integer(8, 1, true), layout::I64_1B);
+        assert_eq!(layout_integer(8, 2, true), layout::I64_2B);
+        assert_eq!(layout_integer(8, 3, true), layout::I64_3B);
+        assert_eq!(layout_integer(8, 4, true), layout::I64_4B);
+        assert_eq!(layout_integer(8, 5, true), layout::I64_5B);
+        assert_eq!(layout_integer(8, 6, true), layout::I64_6B);
+        assert_eq!(layout_integer(8, 7, true), layout::I64_7B);
+        assert_eq!(layout_integer(8, 8, true), layout::I64_8B);
+        assert_eq!(layout_integer(8, 1, false), layout::U64_1B);
+        assert_eq!(layout_integer(8, 2, false), layout::U64_2B);
+        assert_eq!(layout_integer(8, 3, false), layout::U64_3B);
+        assert_eq!(layout_integer(8, 4, false), layout::U64_4B);
+        assert_eq!(layout_integer(8, 5, false), layout::U64_5B);
+        assert_eq!(layout_integer(8, 6, false), layout::U64_6B);
+        assert_eq!(layout_integer(8, 7, false), layout::U64_7B);
         assert_eq!(layout_integer(8, 8, false), layout::U64_8B);
     }
 }
