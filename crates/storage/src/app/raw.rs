@@ -62,7 +62,7 @@ impl RawStorage {
         slice.to_vec()
     }
 
-    /// Write a batch of changes into underlying key-value store.
+    /// Writes a batch of `RawChange` into the underlying key-value store.
     pub fn write(&mut self, changes: &[RawChange]) {
         let changes = self.group_changes_by_key(changes);
 
@@ -113,13 +113,13 @@ impl RawStorage {
         debug_assert_eq!(value.len(), self.kv_value_size as usize);
 
         for change in changes.iter() {
-            unsafe {
-                let src = change.data.as_ptr();
-                let dst = value.as_mut_ptr().offset(change.offset as isize);
-                let count = change.data.len() as usize;
+            let src = &change.data;
+            let offset = change.offset as usize;
+            let len = src.len();
 
-                std::ptr::copy(src, dst, count)
-            }
+            let dst = &mut value[offset..offset + len];
+
+            dst.copy_from_slice(src);
         }
     }
 
@@ -160,6 +160,7 @@ impl RawStorage {
 #[cfg(test)]
 mod tests {
     use super::*;
+
     use crate::testing;
 
     use svm_types::Address;
