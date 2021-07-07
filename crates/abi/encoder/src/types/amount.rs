@@ -10,7 +10,7 @@ where
     fn encode(&self, w: &mut W) {
         let size = self.byte_size();
 
-        w.push(svm_abi_layout::layout::amount_b(size as u8 - 2));
+        w.push(layout_amount_b(size as u8 - 2));
         let bytes: [u8; 8] = self.0.to_be_bytes();
 
         seq!(I in 0..8 {
@@ -30,4 +30,9 @@ impl ByteSize for Amount {
     fn max_byte_size() -> usize {
         u64::MAX.byte_size()
     }
+}
+
+#[inline]
+const fn layout_amount_b(i: u8) -> u8 {
+    (i << 4) | 1
 }

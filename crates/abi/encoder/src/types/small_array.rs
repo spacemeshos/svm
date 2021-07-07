@@ -11,7 +11,7 @@ where
 
         assert!(self.len() < 11);
 
-        w.push(layout::arr(self.len()));
+        w.push(layout_array(self.len()));
 
         seq_macro::seq!(i in 0..11 {
             if self.len() > i {
@@ -51,6 +51,14 @@ where
 
     fn max_byte_size() -> usize {
         1 + T::max_byte_size() * N
+    }
+}
+
+pub const fn layout_array(len: usize) -> u8 {
+    if len < 8 {
+        0b_0_000_0110 | (len << 4) as u8
+    } else {
+        0b_0_000_0111 | ((len - 8) << 4) as u8
     }
 }
 

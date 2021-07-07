@@ -102,27 +102,6 @@ pub mod layout {
     pub const AMOUNT_7B: u8 = 0b_0_110_0001;
     pub const AMOUNT_8B: u8 = 0b_0_111_0001;
 
-    #[inline]
-    pub const fn amount_b(i: u8) -> u8 {
-        (i << 4) | 1
-    }
-
-    pub fn integer(max_width_in_bytes: u32, width_in_bytes: u32, signed: bool) -> u8 {
-        debug_assert!(width_in_bytes <= max_width_in_bytes);
-        debug_assert!(max_width_in_bytes <= 8);
-        match (max_width_in_bytes, (width_in_bytes - 1) as u8, signed) {
-            (1, 0, true) => I8,
-            (1, 0, false) => U8,
-            (2, n, true) => I16_1B | ((n & 0b1) << 4),
-            (2, n, false) => U16_1B | ((n & 0b1) << 4),
-            (4, n, true) => I32_1B | ((n & 0b11) << 4),
-            (4, n, false) => U32_1B | ((n & 0b11) << 4),
-            (8, n, true) => I64_1B | ((n & 0b111) << 4),
-            (8, n, false) => U64_1B | ((n & 0b111) << 4),
-            _ => panic!("Invalid argument for layout information."),
-        }
-    }
-
     // i8
     //// signed
     pub const I8: u8 = 0b_0_000_0010;
@@ -181,26 +160,4 @@ pub mod layout {
     pub const ARR_8: u8 = 0b_0_000_0111;
     pub const ARR_9: u8 = 0b_0_001_0111;
     pub const ARR_10: u8 = 0b_0_010_0111;
-
-    pub const fn arr(len: usize) -> u8 {
-        if len < 8 {
-            0b_0_000_0110 | (len << 4) as u8
-        } else {
-            0b_0_000_0111 | ((len - 8) << 4) as u8
-        }
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[test]
-    fn integer_layouts() {
-        assert_eq!(layout::integer(1, 1, true), layout::I8);
-        assert_eq!(layout::integer(1, 1, false), layout::U8);
-        assert_eq!(layout::integer(2, 1, true), layout::I16_1B);
-        assert_eq!(layout::integer(2, 2, false), layout::U16_2B);
-        assert_eq!(layout::integer(8, 8, false), layout::U64_8B);
-    }
 }
