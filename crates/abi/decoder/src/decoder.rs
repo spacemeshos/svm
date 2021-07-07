@@ -264,75 +264,30 @@ impl Decoder {
     fn decode_array(&self, cursor: &mut Cursor) -> Result<Value, DecodeError> {
         assert_no_eof!(cursor);
 
-        macro_rules! impl_decode {
-            (0 $cursor:ident $values:ident) => {{
-                //
-            }};
-            (1 $cursor:ident $values:ident) => {{
-                impl_decode!(@ $cursor $values);
-                impl_decode!(0 $cursor $values);
-            }};
-            (2 $cursor:ident $values:ident) => {{
-                impl_decode!(@ $cursor $values);
-                impl_decode!(1 $cursor $values);
-            }};
-            (3 $cursor:ident $values:ident) => {{
-                impl_decode!(@ $cursor $values);
-                impl_decode!(2 $cursor $values);
-            }};
-            (4 $cursor:ident $values:ident) => {{
-                impl_decode!(@ $cursor $values);
-                impl_decode!(3 $cursor $values);
-            }};
-            (5 $cursor:ident $values:ident) => {{
-                impl_decode!(@ $cursor $values);
-                impl_decode!(4 $cursor $values);
-            }};
-            (6 $cursor:ident $values:ident) => {{
-                impl_decode!(@ $cursor $values);
-                impl_decode!(5 $cursor $values);
-            }};
-            (7 $cursor:ident $values:ident) => {{
-                impl_decode!(@ $cursor $values);
-                impl_decode!(6 $cursor $values);
-            }};
-            (8 $cursor:ident $values:ident) => {{
-                impl_decode!(@ $cursor $values);
-                impl_decode!(7 $cursor $values);
-            }};
-            (9 $cursor:ident $values:ident) => {{
-                impl_decode!(@ $cursor $values);
-                impl_decode!(8 $cursor $values);
-            }};
-            (10 $cursor:ident $values:ident) => {{
-                impl_decode!(@ $cursor $values);
-                impl_decode!(9 $cursor $values);
-            }};
-            (@ $cursor:ident $values:ident) => {{
-                let value = safe_try!(self.decode_primitive($cursor));
-
-                $values.push(value);
-            }}
-        }
-
         let len = safe_try!(self.read_byte(cursor));
 
         let mut values: Vec<Value> = Vec::with_capacity(len as usize);
 
-        match len {
-            layout::ARR_0 => impl_decode!(0 cursor values),
-            layout::ARR_1 => impl_decode!(1 cursor values),
-            layout::ARR_2 => impl_decode!(2 cursor values),
-            layout::ARR_3 => impl_decode!(3 cursor values),
-            layout::ARR_4 => impl_decode!(4 cursor values),
-            layout::ARR_5 => impl_decode!(5 cursor values),
-            layout::ARR_6 => impl_decode!(6 cursor values),
-            layout::ARR_7 => impl_decode!(7 cursor values),
-            layout::ARR_8 => impl_decode!(8 cursor values),
-            layout::ARR_9 => impl_decode!(9 cursor values),
-            layout::ARR_10 => impl_decode!(10 cursor values),
+        let len = match len {
+            layout::ARR_0 => 0,
+            layout::ARR_1 => 1,
+            layout::ARR_2 => 2,
+            layout::ARR_3 => 3,
+            layout::ARR_4 => 4,
+            layout::ARR_5 => 5,
+            layout::ARR_6 => 6,
+            layout::ARR_7 => 7,
+            layout::ARR_8 => 8,
+            layout::ARR_9 => 9,
+            layout::ARR_10 => 10,
             _ => svm_sdk_std::panic(),
         };
+        seq_macro::seq!(n in 0..11 {
+            if len > n {
+                let value = safe_try!(self.decode_primitive(cursor));
+                values.push(value);
+            }
+        });
 
         let values: Value = values.into();
 
@@ -350,180 +305,18 @@ impl Decoder {
     fn read_num(&self, cursor: &mut Cursor, nbytes: usize) -> Result<u64, DecodeError> {
         debug_assert!(nbytes > 0 && nbytes <= 8);
 
-        macro_rules! from_be_bytes_1 {
-            ($ptr:expr) => {{
-                let mut n: u64 = 0;
-                let ptr = $ptr as *const u8;
-
-                let d0 = unsafe { *ptr.offset(0) };
-                n = d0 as u64;
-
-                n
-            }};
-        }
-
-        macro_rules! from_be_bytes_2 {
-            ($ptr:expr) => {{
-                let mut n: u64 = 0;
-                let ptr = $ptr as *const u8;
-
-                let d0 = unsafe { *ptr.offset(0) };
-                let d1 = unsafe { *ptr.offset(1) };
-
-                n = (n << 8) + d0 as u64;
-                n = (n << 8) + d1 as u64;
-
-                n
-            }};
-        }
-
-        macro_rules! from_be_bytes_3 {
-            ($ptr:expr) => {{
-                let mut n: u64 = 0;
-                let ptr = $ptr as *const u8;
-
-                let d0 = unsafe { *ptr.offset(0) };
-                let d1 = unsafe { *ptr.offset(1) };
-                let d2 = unsafe { *ptr.offset(2) };
-
-                n = (n << 8) + d0 as u64;
-                n = (n << 8) + d1 as u64;
-                n = (n << 8) + d2 as u64;
-
-                n
-            }};
-        }
-
-        macro_rules! from_be_bytes_4 {
-            ($ptr:expr) => {{
-                let mut n: u64 = 0;
-                let ptr = $ptr as *const u8;
-
-                let d0 = unsafe { *ptr.offset(0) };
-                let d1 = unsafe { *ptr.offset(1) };
-                let d2 = unsafe { *ptr.offset(2) };
-                let d3 = unsafe { *ptr.offset(3) };
-
-                n = (n << 8) + d0 as u64;
-                n = (n << 8) + d1 as u64;
-                n = (n << 8) + d2 as u64;
-                n = (n << 8) + d3 as u64;
-
-                n
-            }};
-        }
-
-        macro_rules! from_be_bytes_5 {
-            ($ptr:expr) => {{
-                let mut n: u64 = 0;
-                let ptr = $ptr as *const u8;
-
-                let d0 = unsafe { *ptr.offset(0) };
-                let d1 = unsafe { *ptr.offset(1) };
-                let d2 = unsafe { *ptr.offset(2) };
-                let d3 = unsafe { *ptr.offset(3) };
-                let d4 = unsafe { *ptr.offset(4) };
-
-                n = (n << 8) + d0 as u64;
-                n = (n << 8) + d1 as u64;
-                n = (n << 8) + d2 as u64;
-                n = (n << 8) + d3 as u64;
-                n = (n << 8) + d4 as u64;
-
-                n
-            }};
-        }
-
-        macro_rules! from_be_bytes_6 {
-            ($ptr:expr) => {{
-                let mut n: u64 = 0;
-                let ptr = $ptr as *const u8;
-
-                let d0 = unsafe { *ptr.offset(0) };
-                let d1 = unsafe { *ptr.offset(1) };
-                let d2 = unsafe { *ptr.offset(2) };
-                let d3 = unsafe { *ptr.offset(3) };
-                let d4 = unsafe { *ptr.offset(4) };
-                let d5 = unsafe { *ptr.offset(5) };
-
-                n = (n << 8) + d0 as u64;
-                n = (n << 8) + d1 as u64;
-                n = (n << 8) + d2 as u64;
-                n = (n << 8) + d3 as u64;
-                n = (n << 8) + d4 as u64;
-                n = (n << 8) + d5 as u64;
-
-                n
-            }};
-        }
-
-        macro_rules! from_be_bytes_7 {
-            ($ptr:expr) => {{
-                let mut n: u64 = 0;
-                let ptr = $ptr as *const u8;
-
-                let d0 = unsafe { *ptr.offset(0) };
-                let d1 = unsafe { *ptr.offset(1) };
-                let d2 = unsafe { *ptr.offset(2) };
-                let d3 = unsafe { *ptr.offset(3) };
-                let d4 = unsafe { *ptr.offset(4) };
-                let d5 = unsafe { *ptr.offset(5) };
-                let d6 = unsafe { *ptr.offset(6) };
-
-                n = (n << 8) + d0 as u64;
-                n = (n << 8) + d1 as u64;
-                n = (n << 8) + d2 as u64;
-                n = (n << 8) + d3 as u64;
-                n = (n << 8) + d4 as u64;
-                n = (n << 8) + d5 as u64;
-                n = (n << 8) + d6 as u64;
-
-                n
-            }};
-        }
-
-        macro_rules! from_be_bytes_8 {
-            ($ptr:expr) => {{
-                let mut n: u64 = 0;
-                let ptr = $ptr as *const u8;
-
-                let d0 = unsafe { *ptr.offset(0) };
-                let d1 = unsafe { *ptr.offset(1) };
-                let d2 = unsafe { *ptr.offset(2) };
-                let d3 = unsafe { *ptr.offset(3) };
-                let d4 = unsafe { *ptr.offset(4) };
-                let d5 = unsafe { *ptr.offset(5) };
-                let d6 = unsafe { *ptr.offset(6) };
-                let d7 = unsafe { *ptr.offset(7) };
-
-                n = (n << 8) + d0 as u64;
-                n = (n << 8) + d1 as u64;
-                n = (n << 8) + d2 as u64;
-                n = (n << 8) + d3 as u64;
-                n = (n << 8) + d4 as u64;
-                n = (n << 8) + d5 as u64;
-                n = (n << 8) + d6 as u64;
-                n = (n << 8) + d7 as u64;
-
-                n
-            }};
-        }
-
-        let ptr = safe_try!(self.read_bytes(cursor, nbytes));
-
-        let num = match nbytes {
-            1 => from_be_bytes_1!(ptr),
-            2 => from_be_bytes_2!(ptr),
-            3 => from_be_bytes_3!(ptr),
-            4 => from_be_bytes_4!(ptr),
-            5 => from_be_bytes_5!(ptr),
-            6 => from_be_bytes_6!(ptr),
-            7 => from_be_bytes_7!(ptr),
-            8 => from_be_bytes_8!(ptr),
-            _ => svm_sdk_std::panic(),
+        let slice = unsafe {
+            core::slice::from_raw_parts(safe_try!(self.read_bytes(cursor, nbytes)), nbytes)
         };
+        let mut data = [0u8; 8];
 
-        Result::Ok(num)
+        seq_macro::seq!(i in 0..8 {
+            if nbytes > i {
+                data[7 - i] = slice[nbytes - i - 1];
+            }
+        });
+
+        Result::Ok(u64::from_be_bytes(data))
     }
 
     #[inline]

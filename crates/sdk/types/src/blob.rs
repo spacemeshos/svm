@@ -72,8 +72,6 @@ macro_rules! impl_blob_type {
         impl From<Vec<u8>> for $ty {
             #[inline]
             fn from(vec: Vec<u8>) -> Self {
-                // TODO: leak `vec`
-
                 ensure!(vec.len() == Self::len());
 
                 let slice = vec.leak();
