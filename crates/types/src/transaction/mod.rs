@@ -1,8 +1,6 @@
-mod envelope;
 mod id;
 mod layer;
 
-pub use envelope::TxEnvelope;
 pub use id::TransactionId;
 pub use layer::Layer;
 
