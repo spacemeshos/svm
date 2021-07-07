@@ -228,18 +228,31 @@ impl<L> NodeWeight<L>
 where
     L: NodeLabel,
 {
+    /// Setting the `label` of the `Node`
+    ///
+    /// This data already resides under the `Node` itself
+    /// But it's handy to have it in the `NodeWeight` as well for better formatting
     pub fn set_label(&self, label: L) {
         self.label.set((Some(label)));
     }
 
+    /// Setting the `weight` of the `Node`
     pub fn set_weight(&self, weight: usize) {
         self.weight.set(Some(weight));
     }
 
+    /// Marking `Node` as the first `Node` of the original `CFG`
+    ///
+    /// This `Node` has no dependency has that's why we explicitly assign it with `dep weight` of zero
     pub fn mark_start(&self) {
         self.dep_weight.set(Some(0));
     }
 
+    /// Updating the `Node` dependency's `weight` (and associated `label`)
+    ///
+    /// If the current `Node` has no dependency then the input is assigned.
+    /// Otherwise, if the input `dependency weight` is greater than the current one,
+    /// it becomes the new `dependency` for the current `Node`.
     pub fn relax(&self, dep_label: L, dep_weight: usize) {
         match self.try_dep_weight() {
             Some(cur_depw) => {
@@ -255,6 +268,11 @@ where
         }
     }
 
+    /// Returns the `total weight`
+    ///
+    /// The `total weight` is the sum of:  
+    /// * `Node`'s weight    
+    /// * `Node`*s dependency weight
     pub fn total_weight(&self) -> usize {
         let dep_weight = self.try_dep_weight().unwrap();
 
@@ -302,6 +320,7 @@ where
     }
 }
 
+/// Stores a maximum-weighted `Path` and its `total` weight
 #[derive(Debug, Clone, PartialEq)]
 pub struct WeightedPath<L>
 where
@@ -316,16 +335,14 @@ impl<L> WeightedPath<L>
 where
     L: NodeLabel,
 {
+    /// The `total` path
     pub fn total(&self) -> usize {
         self.total
     }
 
+    /// The maximum-weight `Path`. Each item is a tuple of `(label, weight)`
     pub fn path(&self) -> &[(L, usize)] {
         &self.path
-    }
-
-    pub fn iter(&self) -> std::slice::Iter<(L, usize)> {
-        self.path.iter()
     }
 }
 

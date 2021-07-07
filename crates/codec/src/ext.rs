@@ -2,7 +2,7 @@ use std::io::{Cursor, Read, Result};
 
 use std::string::FromUtf8Error;
 
-use svm_types::{Address, State};
+use svm_types::{Address, State, TransactionId};
 
 /// A trait to be implemented by Decoders
 pub trait ReadExt {
@@ -32,6 +32,9 @@ pub trait ReadExt {
 
     /// Reads a `State`
     fn read_state(&mut self) -> Result<State>;
+
+    /// Reads a `TransactionId`
+    fn read_tx_id(&mut self) -> Result<TransactionId>;
 }
 
 /// A trait to be implemented by Encoders
@@ -62,6 +65,9 @@ pub trait WriteExt {
 
     /// Writes a `State`
     fn write_state(&mut self, state: &State);
+
+    /// Writes a `Transaction Id`
+    fn write_tx_id(&mut self, tx: &TransactionId);
 }
 
 impl ReadExt for Cursor<&[u8]> {
@@ -138,6 +144,13 @@ impl ReadExt for Cursor<&[u8]> {
 
         Ok(state)
     }
+
+    fn read_tx_id(&mut self) -> Result<TransactionId> {
+        let bytes = self.read_bytes(TransactionId::len())?;
+        let tx_id = bytes.as_slice().into();
+
+        Ok(tx_id)
+    }
 }
 
 impl WriteExt for Vec<u8> {
@@ -192,6 +205,12 @@ impl WriteExt for Vec<u8> {
 
     fn write_state(&mut self, state: &State) {
         let bytes = state.as_slice();
+
+        self.write_bytes(bytes);
+    }
+
+    fn write_tx_id(&mut self, tx: &TransactionId) {
+        let bytes = tx.as_slice();
 
         self.write_bytes(bytes);
     }

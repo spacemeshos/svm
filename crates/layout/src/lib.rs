@@ -1,12 +1,44 @@
-#![deny(missing_docs)]
-#![deny(unused)]
-#![deny(dead_code)]
-#![deny(unreachable_code)]
+#![allow(missing_docs)]
+#![allow(unused)]
+#![allow(dead_code)]
+#![allow(unreachable_code)]
 
-//! This crate is responsible on representing an Application's storage variables layout.
+//! This crate is responsible of representing an App's storage variables `Layout`.
 
 mod builder;
-mod layout;
+mod fixed;
+mod var;
 
 pub use builder::LayoutBuilder;
-pub use layout::{Layout, VarId};
+pub use fixed::FixedLayout;
+pub use var::{Id, Primitive, RawVar, SymbolicVar, Type};
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum LayoutKind {
+    Fixed,
+    //
+    // TODO: In the future:
+    // Dynamic
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum Layout {
+    Fixed(FixedLayout),
+    //
+    // TODO: In the future:
+    // Dynamic
+}
+
+impl Layout {
+    pub fn kind(&self) -> LayoutKind {
+        match self {
+            Self::Fixed(..) => LayoutKind::Fixed,
+        }
+    }
+
+    pub fn as_fixed(&self) -> &FixedLayout {
+        match self {
+            Self::Fixed(layout) => layout,
+        }
+    }
+}

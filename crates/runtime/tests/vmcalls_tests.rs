@@ -1,7 +1,7 @@
 use wasmer::imports;
 use wasmer::{Function, NativeFunc};
 
-use svm_layout::{Layout, VarId};
+use svm_layout::{FixedLayout, Id};
 use svm_runtime::{testing, vmcalls, Context};
 use svm_types::{Address, Gas, ReceiptLog};
 
@@ -30,7 +30,7 @@ macro_rules! assert_storage {
         let storage = &$ctx.borrow().storage;
 
         $(
-            let actual = storage.read_var(VarId($var_id));
+            let actual = storage.read_var(Id($var_id));
             assert_eq!(actual, $expected);
          )*
     }};
@@ -85,7 +85,7 @@ fn vmcalls_get32_set32() {
     let template_addr = Address::repeat(0xAB);
     let app_addr = Address::repeat(0xCD);
     let gas_limit = Gas::new();
-    let layout: Layout = vec![4, 2].into();
+    let layout: FixedLayout = vec![4, 2].into();
 
     let store = testing::wasmer_store();
     let storage = testing::blank_storage(&app_addr, &layout);
@@ -121,7 +121,7 @@ fn vmcalls_get64_set64() {
     let template_addr = Address::repeat(0xAB);
     let app_addr = Address::repeat(0xCD);
     let gas_limit = Gas::new();
-    let layout: Layout = vec![4, 2].into();
+    let layout: FixedLayout = vec![4, 2].into();
 
     let store = testing::wasmer_store();
     let storage = testing::blank_storage(&app_addr, &layout);
@@ -156,7 +156,7 @@ fn vmcalls_load160() {
     let template_addr = Address::repeat(0xAB);
     let app_addr = Address::repeat(0xCD);
     let gas_limit = Gas::new();
-    let layout: Layout = vec![20].into();
+    let layout: FixedLayout = vec![20].into();
 
     let store = testing::wasmer_store();
     let memory = testing::wasmer_memory(&store);
@@ -187,7 +187,7 @@ fn vmcalls_load160() {
 
     {
         let storage = &mut ctx.borrow_mut().storage;
-        storage.write_var(VarId(0), app_addr.as_slice().to_vec());
+        storage.write_var(Id(0), app_addr.as_slice().to_vec());
     }
 
     let func: NativeFunc<(u32, u32)> = instance.exports.get_native_function("load").unwrap();
@@ -207,7 +207,7 @@ fn vmcalls_store160() {
     let template_addr = Address::repeat(0xAB);
     let app_addr = Address::repeat(0xCD);
     let gas_limit = Gas::new();
-    let layout: Layout = vec![20].into();
+    let layout: FixedLayout = vec![20].into();
 
     let store = testing::wasmer_store();
     let memory = testing::wasmer_memory(&store);
@@ -253,7 +253,7 @@ fn vmcalls_log() {
     let template_addr = Address::repeat(0xAB);
     let app_addr = Address::repeat(0xCD);
     let gas_limit = Gas::new();
-    let layout = Layout::empty();
+    let layout = FixedLayout::default();
 
     let store = testing::wasmer_store();
     let memory = testing::wasmer_memory(&store);

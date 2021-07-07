@@ -1,18 +1,20 @@
-use svm_types::TemplateAddr;
+use std::collections::HashSet;
+
+use svm_types::{SectionKind, Template, TemplateAddr};
 
 /// `Env` storage serialization types
-use crate::env::{ExtApp, ExtTemplate};
+use crate::env::ExtApp;
 
 /// Serializing an `Template` into its raw representation.
 pub trait TemplateSerializer {
     #[allow(missing_docs)]
-    fn serialize(template: &ExtTemplate) -> Vec<u8>;
+    fn serialize(template: &Template) -> Vec<u8>;
 }
 
 /// Deserializing stored `Template` into its in-memory representation.
 pub trait TemplateDeserializer {
     #[allow(missing_docs)]
-    fn deserialize(bytes: &[u8]) -> Option<ExtTemplate>;
+    fn deserialize(bytes: &[u8], interests: Option<HashSet<SectionKind>>) -> Option<Template>;
 }
 
 /// Serializing an `App` into its raw representation.

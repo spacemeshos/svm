@@ -278,8 +278,10 @@ describe("Deploy Template", function () {
   it("Encodes & Decodes valid transactions", function () {
     return compileWasmCodec().then((instance) => {
       let tx = {
-        version: 0,
+        svm_version: 1,
+        code_version: 2,
         name: "My Template",
+        desc: "A few words",
         code: "C0DE",
         data: "0000000100000003",
         ctors: ["init", "start"],
@@ -302,7 +304,8 @@ describe("Deploy Template", function () {
   it("Handles errors for invalid transactions", function () {
     return compileWasmCodec().then((instance) => {
       let tx = {
-        version: 0,
+        svm_version: 1,
+        code_version: 2,
       };
 
       const buf = wasmNewBuffer(instance, tx);

@@ -18,21 +18,27 @@ pub fn encode_deploy_template(ptr: usize) -> Result<usize, JsonError> {
 mod test {
     use super::*;
 
-    use std::{io::Cursor, vec};
+    use std::io::Cursor;
+    use std::vec;
 
-    use svm_types::Template;
+    use svm_layout::Layout;
+    use svm_types::{CodeKind, CodeSection, CtorsSection, DataSection, GasMode, HeaderSection};
 
+    use crate::api::builder::TemplateBuilder;
     use crate::api::wasm::{
         error_as_string, free, to_wasm_buffer, wasm_buffer_data, BUF_OK_MARKER,
     };
+
     use crate::template;
 
     #[test]
     fn wasm_encode_deploy_template_valid() {
         let json = r#"{
-          "version": 0,
           "name": "My Template",
+          "desc": "A few words",
           "code": "C0DE",
+          "svm_version": 1,
+          "code_version": 2,
           "data": "0000000100000003",
           "ctors": ["init", "start"]
         }"#;
@@ -43,16 +49,26 @@ mod test {
         let data = wasm_buffer_data(tx_buf);
         assert_eq!(data[0], BUF_OK_MARKER);
 
-        let mut cursor = Cursor::new(&data[1..]);
-        let actual = template::decode_deploy_template(&mut cursor).unwrap();
+        let cursor = Cursor::new(&data[1..]);
+        let actual = template::decode(cursor, None).unwrap();
 
-        let expected = Template {
-            version: 0,
-            name: "My Template".to_string(),
-            code: vec![0xC0, 0xDE],
-            layout: vec![1, 3].into(),
-            ctors: vec!["init".into(), "start".into()],
-        };
+        let code = CodeSection::new(
+            CodeKind::Wasm,
+            vec![0xC0, 0xDE],
+            CodeSection::exec_flags(),
+            GasMode::Fixed,
+            1,
+        );
+        let data = DataSection::with_layout(Layout::Fixed(vec![1, 3].into()));
+        let ctors = CtorsSection::new(vec!["init".into(), "start".into()]);
+        let header = HeaderSection::new(2, "My Template".into(), "A few words".into());
+
+        let expected = TemplateBuilder::default()
+            .with_code(code)
+            .with_data(data)
+            .with_ctors(ctors)
+            .with_header(header)
+            .build();
 
         assert_eq!(actual, expected);
 

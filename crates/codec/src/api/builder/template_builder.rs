@@ -1,110 +1,144 @@
-use svm_layout::Layout;
-use svm_types::Template;
+use svm_types::{
+    ApiSection, CodeSection, CtorsSection, DataSection, DeploySection, HeaderSection,
+    SchemaSection, SectionKind, SectionWrapper, Sections, Template,
+};
 
-use crate::template;
-
-/// Builds a raw representation for `deploy-template`
-/// Should be used for testing only.
-pub struct DeployTemplateBuilder {
-    version: Option<u16>,
-    name: Option<String>,
-    code: Option<Vec<u8>>,
-    layout: Option<Layout>,
-    ctors: Option<Vec<String>>,
-}
-
+/// Builds a `Template`
 ///
 /// # Example
 ///  
 /// ```rust
 /// use std::io::Cursor;
 ///
-/// use svm_types::Template;
-/// use svm_codec::api::builder::DeployTemplateBuilder;
 /// use svm_codec::template;
+/// use svm_codec::api::builder::TemplateBuilder;
 ///
-/// let layout = vec![5, 10].into();
-/// let ctors = vec!["init".to_string()];
+/// use svm_layout::Layout;
+/// use svm_types::{Template, CodeKind, CodeSection, CtorsSection, DataSection, GasMode, HeaderSection};
 ///
-/// let bytes = DeployTemplateBuilder::new()
-///            .with_version(0)
-///            .with_name("My Template")
-///            .with_code(&[0xC, 0x0, 0xD, 0xE])
-///            .with_layout(&layout)
-///            .with_ctors(&ctors)
-///            .build();
+/// let code = CodeSection::new(
+///      CodeKind::Wasm,
+///      vec![0xC0, 0xDE],
+///      CodeSection::exec_flags(),
+///      GasMode::Fixed,
+///      1,
+/// );
 ///
-/// let mut cursor = Cursor::new(&bytes[..]);
-/// let actual = template::decode_deploy_template(&mut cursor).unwrap();
+/// let data = DataSection::with_layout(Layout::Fixed(vec![1, 3].into()));
+/// let ctors = CtorsSection::new(vec!["init".into(), "start".into()]);
+/// let header = HeaderSection::new(2, "My Template".into(), "A few words".into());
 ///
-/// let expected = Template {
-///                  version: 0,
-///                  name: "My Template".to_string(),
-///                  code: vec![0xC, 0x0, 0xD, 0xE],
-///                  layout,
-///                  ctors: vec!["init".to_string()]
-///                };
-///
-/// assert_eq!(expected, actual);
+/// let template = TemplateBuilder::default()
+///     .with_code(code)
+///     .with_data(data)
+///     .with_ctors(ctors)
+///     .with_header(header)
+///     .build();
 /// ```
-///
-#[allow(missing_docs)]
-impl DeployTemplateBuilder {
-    #[allow(clippy::new_without_default)]
-    pub fn new() -> Self {
+pub struct TemplateBuilder {
+    sections: Sections,
+}
+
+impl Default for TemplateBuilder {
+    fn default() -> Self {
         Self {
-            version: None,
-            name: None,
-            code: None,
-            layout: None,
-            ctors: None,
+            sections: Sections::default(),
         }
     }
+}
 
-    pub fn with_version(mut self, version: u16) -> Self {
-        self.version = Some(version);
+impl TemplateBuilder {
+    /// Appends `HeaderSection`
+    pub fn with_header(mut self, section: HeaderSection) -> Self {
+        self.add(section.into());
         self
     }
 
-    pub fn with_name(mut self, name: &str) -> Self {
-        self.name = Some(name.to_string());
+    /// Appends `CodeSection`
+    pub fn with_code(mut self, section: CodeSection) -> Self {
+        self.add(section.into());
         self
     }
 
-    pub fn with_code(mut self, code: &[u8]) -> Self {
-        self.code = Some(code.to_vec());
+    /// Appends `DataSection`
+    pub fn with_data(mut self, section: DataSection) -> Self {
+        self.add(section.into());
         self
     }
 
-    pub fn with_layout(mut self, data: &Layout) -> Self {
-        self.layout = Some(data.clone());
+    /// Appends `CtorsSection`
+    pub fn with_ctors(mut self, section: CtorsSection) -> Self {
+        self.add(section.into());
         self
     }
 
-    pub fn with_ctors(mut self, ctors: &[String]) -> Self {
-        self.ctors = Some(ctors.to_vec());
+    /// Appends `SchemaSection`
+    pub fn with_schema(mut self, section: SchemaSection) -> Self {
+        self.add(section.into());
         self
     }
 
-    pub fn build(self) -> Vec<u8> {
-        let version = self.version.unwrap();
-        let name = self.name.unwrap();
-        let code = self.code.unwrap();
-        let layout = self.layout.unwrap();
-        let ctors = self.ctors.unwrap();
+    /// Appends `ApiSection`
+    pub fn with_api(mut self, section: ApiSection) -> Self {
+        self.add(section.into());
+        self
+    }
 
-        let app = Template {
-            version,
-            name,
-            code,
-            layout,
-            ctors,
-        };
+    /// Appends `DeploySection`
+    pub fn with_deploy(mut self, section: DeploySection) -> Self {
+        self.add(section.into());
+        self
+    }
 
-        let mut w = Vec::new();
+    /// Builds a `Template` and drops `self`
+    ///
+    /// # Panics
+    ///
+    /// Panics if one of these `Section`s is missing:
+    ///
+    /// * `CodeSection
+    /// * `DataSection
+    /// * `CtorsSection
+    ///
+    /// Also panics is the `DeploySection` exists.
+    ///
+    /// #### Why is that?
+    ///
+    /// The `TemplateBuilder` is meant to be used primarily for:
+    ///
+    /// * Crafting a `Deploy Template` as part of a test
+    /// * Crafting a `Deploy Template` transaction prior to dispatching to the network.
+    ///
+    /// Given a `Template` the best practice to enrich it with a `DeployTemplate` is by calling `Template#set_deploy_template`
+    pub fn build(self) -> Template {
+        macro_rules! assert_section {
+            ($kind:expr) => {{
+                if self.sections.contains($kind) == false {
+                    panic!("Missing `{}`", $kind)
+                }
+            }};
+        }
 
-        template::encode_deploy_template(&app, &mut w);
+        macro_rules! assert_no_section {
+            ($kind:expr) => {{
+                if self.sections.contains($kind) {
+                    panic!(
+                        "`{}` can only be added later directly to a `Template`",
+                        $kind
+                    )
+                }
+            }};
+        }
 
-        w
+        assert_section!(SectionKind::Code);
+        assert_section!(SectionKind::Data);
+        assert_section!(SectionKind::Ctors);
+        assert_no_section!(SectionKind::Deploy);
+
+        Template::new(self.sections)
+    }
+
+    fn add(&mut self, section: SectionWrapper) {
+        self.sections.insert(section);
     }
 }

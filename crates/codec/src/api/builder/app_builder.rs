@@ -36,7 +36,7 @@ pub struct SpawnAppBuilder {
 ///             .build();
 ///
 /// let mut cursor = Cursor::new(&bytes[..]);
-/// let actual = app::decode_spawn_app(&mut cursor).unwrap();
+/// let actual = app::decode(&mut cursor).unwrap();
 /// let expected = SpawnApp {
 ///                  version: 0,
 ///                  app: App { name, template_addr },
@@ -105,7 +105,7 @@ impl SpawnAppBuilder {
 
         let mut w = Vec::new();
 
-        app::encode_spawn_app(&spawn, &mut w);
+        app::encode(&spawn, &mut w);
 
         w
     }

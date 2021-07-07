@@ -1,11 +1,11 @@
-use svm_layout::{Layout, VarId};
+use svm_layout::{FixedLayout, Id};
 use svm_storage::{app::AppStorage, testing};
 use svm_types::Address;
 
 macro_rules! assert_vars {
         ($app:expr, $($var_id:expr => $expected:expr), *) => {{
             $(
-                let actual = $app.read_var(VarId($var_id));
+                let actual = $app.read_var(Id($var_id));
                 assert_eq!(actual, $expected);
              )*
         }};
@@ -14,7 +14,7 @@ macro_rules! assert_vars {
 macro_rules! write_vars {
         ($app:expr, $($var_id:expr => $value:expr), *) => {{
             $(
-                $app.write_var(VarId($var_id), $value.to_vec());
+                $app.write_var(Id($var_id), $value.to_vec());
              )*
         }};
     }
@@ -23,7 +23,7 @@ macro_rules! write_vars {
 fn app_storage_vars_are_persisted_only_on_commit() {
     // `var #0` consumes 4 bytes (offsets: `[0..4)`)
     // `var #1` consumes 2 bytes (offsets: `[4, 6)`)
-    let layout = Layout::from(vec![4, 2].as_slice());
+    let layout = FixedLayout::from(vec![4, 2].as_slice());
 
     let addr = Address::of("my-app");
     let kv = testing::create_app_kv(addr);
@@ -58,12 +58,12 @@ fn app_storage_vars_are_persisted_only_on_commit() {
 #[should_panic]
 fn app_storage_write_var_value_should_match_layout_length() {
     // `var #0` consumes 4 bytes (i.e `length = 4`)
-    let layout: Layout = vec![4].into();
+    let layout: FixedLayout = vec![4].into();
     let addr = Address::of("my-app");
     let kv = testing::create_app_kv(addr);
 
     let mut app = AppStorage::new(layout, kv);
 
     // calling `write_var` with 2-byte value (expected variable's to value to be 4 bytes)
-    app.write_var(VarId(0), vec![0, 0]);
+    app.write_var(Id(0), vec![0, 0]);
 }

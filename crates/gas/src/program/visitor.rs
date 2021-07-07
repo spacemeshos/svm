@@ -1,5 +1,6 @@
 use crate::{FuncIndex, FuncIterator, Function, Op, Program};
 
+/// A trait to be implemented for adding logic while visiting a `Program`
 pub trait ProgramVisitor: Sized {
     /// Type to return after `visit` completes
     type Output;
@@ -12,21 +13,25 @@ pub trait ProgramVisitor: Sized {
         visit_program(program, self)
     }
 
-    /// An hook to be called just when about to start
+    /// An hook to be called when about to start visiting `Program`
     fn on_start(&mut self, program: &Program) -> Result<(), Self::Error> {
         Ok(())
     }
 
+    /// An hook to be called just when about to finish visiting `Program`
     fn on_end(self, program: &Program) -> Result<Self::Output, Self::Error>;
 
+    /// An hook to be called when about to start visiting function `fn_index`
     fn on_func_start(&mut self, fn_index: FuncIndex, program: &Program) -> Result<(), Self::Error> {
         Ok(())
     }
 
+    /// An hook to be called when about to finish visiting function `fn_index`
     fn on_func_end(&mut self, fn_index: FuncIndex, program: &Program) -> Result<(), Self::Error> {
         Ok(())
     }
 
+    /// An hook to be called when visiting instruction `op`
     fn on_op(&mut self, op: &Op, program: &Program) -> Result<(), Self::Error> {
         Ok(())
     }

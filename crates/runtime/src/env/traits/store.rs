@@ -1,22 +1,28 @@
+use std::collections::HashSet;
+
 use crate::env::{self, hash};
 
-use env::{ExtApp, ExtTemplate};
+use env::ExtApp;
 use hash::TemplateHash;
 
-use svm_types::{AppAddr, TemplateAddr};
+use svm_types::{AppAddr, SectionKind, Template, TemplateAddr};
 
 /// A persistent store for `Template`(s).
 pub trait TemplateStore {
     /// Stores template.
     ///
-    /// template - Struct holding the data of Template (plus additional data such as the `author`)
-    /// hash     - Template's code Hash.
-    fn store(&mut self, template: &ExtTemplate, addr: &TemplateAddr, hash: &TemplateHash);
+    /// `template` - Struct holding the data of a `Template`
+    /// `hash`     - Template's code Hash.
+    fn store(&mut self, template: &Template, addr: &TemplateAddr, hash: &TemplateHash);
 
-    /// Given a `Template` account address, fetches its raw data
-    /// and deserializes it into `Template`. Returns `None` if `Template` doesn't exist.
+    /// Given a `Template` account `Address`, fetches its raw data and deserializes it into `Template`.
+    /// Returns `None` if `Template` doesn't exist.
     #[must_use]
-    fn load(&self, addr: &TemplateAddr) -> Option<ExtTemplate>;
+    fn load(
+        &self,
+        addr: &TemplateAddr,
+        interests: Option<HashSet<SectionKind>>,
+    ) -> Option<Template>;
 }
 
 /// A persistent store for `A}pp`(s)

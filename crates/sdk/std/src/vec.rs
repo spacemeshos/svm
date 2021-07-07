@@ -11,7 +11,7 @@
 /// pub use alloc::vec::Vec;
 /// ```
 ///
-/// This can be useful when debugging. We can turn-off the fixed-size `Vec` in cause we suspect it causes issues.
+/// This can be useful when debugging. We can turn-off the fixed-size `Vec` in case we suspect it causes issues.
 extern crate svm_sdk_alloc;
 
 use svm_sdk_alloc::alloc;

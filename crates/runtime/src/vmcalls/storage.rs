@@ -2,11 +2,11 @@ use crate::Context;
 
 use byteorder::{ByteOrder, LittleEndian};
 
-use svm_layout::VarId;
+use svm_layout::Id;
 
 macro_rules! store_n_impl {
     ($nbytes:expr, $ctx:ident, $mem_ptr:expr, $var_id:expr) => {{
-        use svm_layout::VarId;
+        use svm_layout::Id;
 
         let bytes: Vec<u8> = {
             let borrow = $ctx.borrow();
@@ -20,17 +20,17 @@ macro_rules! store_n_impl {
         assert_eq!(bytes.len(), $nbytes);
 
         let storage = &mut $ctx.borrow_mut().storage;
-        storage.write_var(VarId($var_id), bytes);
+        storage.write_var(Id($var_id), bytes);
     }};
 }
 
 macro_rules! load_n_impl {
     ($nbytes:expr, $ctx:ident, $var_id:expr, $mem_ptr:expr) => {{
-        use svm_layout::VarId;
+        use svm_layout::Id;
 
         let storage = &$ctx.borrow().storage;
 
-        let bytes = storage.read_var(VarId($var_id));
+        let bytes = storage.read_var(Id($var_id));
         let nbytes = bytes.len();
         assert_eq!(nbytes, $nbytes);
 
@@ -74,7 +74,7 @@ pub fn load160(ctx: &Context, var_id: u32, mem_ptr: u32) {
 pub fn get32(ctx: &Context, var_id: u32) -> u32 {
     let storage = &ctx.borrow().storage;
 
-    let bytes = storage.read_var(VarId(var_id));
+    let bytes = storage.read_var(Id(var_id));
     let nbytes = bytes.len();
 
     assert!(nbytes <= 4);
@@ -95,14 +95,14 @@ pub fn get32(ctx: &Context, var_id: u32) -> u32 {
 pub fn set32(ctx: &Context, var_id: u32, value: u32) {
     let storage = &mut ctx.borrow_mut().storage;
 
-    let (_off, nbytes) = storage.var_layout(VarId(var_id));
+    let (_off, nbytes) = storage.var_layout(Id(var_id));
 
     assert!(nbytes <= 4);
 
     let mut buf = vec![0; nbytes as usize];
     LittleEndian::write_uint(&mut buf, value as u64, nbytes as usize);
 
-    storage.write_var(VarId(var_id), buf);
+    storage.write_var(Id(var_id), buf);
 }
 
 /// Returns the data stored by variable `var_id` as 64-bit integer.
@@ -113,7 +113,7 @@ pub fn set32(ctx: &Context, var_id: u32, value: u32) {
 pub fn get64(ctx: &Context, var_id: u32) -> u64 {
     let storage = &ctx.borrow().storage;
 
-    let bytes = storage.read_var(VarId(var_id));
+    let bytes = storage.read_var(Id(var_id));
     let nbytes = bytes.len();
 
     assert!(nbytes <= 8);
@@ -130,12 +130,12 @@ pub fn get64(ctx: &Context, var_id: u32) -> u64 {
 pub fn set64(ctx: &Context, var_id: u32, value: u64) {
     let storage = &mut ctx.borrow_mut().storage;
 
-    let (_off, nbytes) = storage.var_layout(VarId(var_id));
+    let (_off, nbytes) = storage.var_layout(Id(var_id));
 
     assert!(nbytes <= 8);
 
     let mut buf = vec![0; nbytes as usize];
     LittleEndian::write_uint(&mut buf, value, nbytes as usize);
 
-    storage.write_var(VarId(var_id), buf);
+    storage.write_var(Id(var_id), buf);
 }

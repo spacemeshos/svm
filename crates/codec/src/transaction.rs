@@ -1,4 +1,4 @@
-//! Execute `AppTransaction` Raw Format Version 0.0
+//! `Transaction` Raw Format
 //!
 //!  +--------------------------------------------+
 //!  |             |                              |
@@ -6,7 +6,7 @@
 //!  |  (2 bytes)  |         (20 bytes)           |
 //!  |_____________|______________________________|
 //!  |                                            |
-//!  |            Function (String)               |
+//!  |            `Function` (String)             |
 //!  |____________________________________________|
 //!  |                |                           |
 //!  |  `VerifyData`  |       `VerifyData`        |
@@ -23,7 +23,7 @@ use std::io::Cursor;
 
 use svm_types::{AppAddr, Transaction};
 
-use crate::{calldata, common};
+use crate::{calldata, version};
 use crate::{Field, ParseError, ReadExt, WriteExt};
 
 /// Encodes a raw App transaction.
@@ -61,7 +61,7 @@ pub fn decode_exec_app(cursor: &mut Cursor<&[u8]>) -> Result<Transaction, ParseE
 fn encode_version(tx: &Transaction, w: &mut Vec<u8>) {
     let v = &tx.version;
 
-    common::encode_version(*v, w);
+    version::encode_version(*v, w);
 }
 
 fn encode_app(tx: &Transaction, w: &mut Vec<u8>) {
@@ -92,7 +92,7 @@ fn encode_calldata(tx: &Transaction, w: &mut Vec<u8>) {
 
 #[inline]
 fn decode_version(cursor: &mut Cursor<&[u8]>) -> Result<u16, ParseError> {
-    common::decode_version(cursor)
+    version::decode_version(cursor)
 }
 
 fn decode_app(cursor: &mut Cursor<&[u8]>) -> Result<AppAddr, ParseError> {

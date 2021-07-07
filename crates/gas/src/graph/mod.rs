@@ -19,6 +19,17 @@ pub use node::{Node, NodeRef};
 pub use sort::{topological_sort, try_topological_sort};
 pub use weight::{compute_max_weight_path, NodeWeight, WeightedGraph, WeightedPath};
 
+/// Implements a `Graph`
+///
+/// * Each `Node` is associated with a unique identifier called a `label` (type `L`)
+/// * Each `Node` has references to:
+///     * `incoming Nodes` - forming together `incoming edges`
+///     * `outgoing Nodes` - forming together `outgoing edges`
+///
+///  Note:
+///  * There is no `Edge` type in the implementation and no data (such as weight) associated with a logical `edge`
+///  * There can be only a single logical edge between any two nodes.
+///    (that makes sense since as stated above, there is no data stored for an `edge` besides its `source` and `destination`
 pub struct Graph<L, D>
 where
     L: NodeLabel,
@@ -60,7 +71,7 @@ where
         self.nodes.len()
     }
 
-    //// Returns references to `Nodes` which have no incoming edges
+    /// Returns references to `Nodes` which have no incoming edges
     pub fn source_nodes(&self) -> Vec<NodeRef<L, D>> {
         self.nodes()
             .iter()

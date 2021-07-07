@@ -9,6 +9,9 @@ pub use builder::CallGraphBuilder;
 /// between functions as appears in the original code.
 use super::graph;
 
+/// A `CallGraph` is a `Graph` where the `Node` are `Program` functions
+/// and each `call` between a function `origin` to another `target` function results
+/// in an `Edge` in the derived `CallGraph`
 pub struct CallGraph<L>
 where
     L: NodeLabel,

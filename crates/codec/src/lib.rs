@@ -1,21 +1,22 @@
 //! This crate is responsible for doing the binary encoding for SVM transactions.
-//! It code is compiled as a single WASM file and it should be integrated by Wallet Apps (`smapp`).
+//! It code is compiled as a single WASM file and it should be integrated by Wallet Apps (e.g `smapp / CLI Wallet`).
 //!
 //! By doing that, a Wallet Apps can locally encode a binary transaction without having to re-implement all the logic
 //! of the `svm-codec`.
 //
-//! The CI of the SVM outputs the WASM package of `svm-codec` as one of its artifacts.
+//! SVM's CI emits the WASM package of `svm-codec` as one of its artifacts (`svm_codec.wasm`)
 
-#![allow(missing_docs)]
-#![allow(unused)]
-#![allow(dead_code)]
+#![deny(missing_docs)]
+#![deny(unused)]
+#![deny(dead_code)]
 #![allow(unreachable_code)]
 #![feature(vec_into_raw_parts)]
 
 mod calldata;
-mod common;
 mod ext;
 mod field;
+mod section;
+mod version;
 
 /// Encoding for apps
 pub mod app;

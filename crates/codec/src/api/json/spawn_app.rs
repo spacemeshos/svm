@@ -35,7 +35,7 @@ pub fn encode_spawn_app(json: &Value) -> Result<Vec<u8>, JsonError> {
     };
 
     let mut buf = Vec::new();
-    app::encode_spawn_app(&spawn, &mut buf);
+    app::encode(&spawn, &mut buf);
 
     Ok(buf)
 }
@@ -47,7 +47,7 @@ pub fn decode_spawn_app(json: &Value) -> Result<Value, JsonError> {
     let bytes = json::str_to_bytes(&data, "data")?;
 
     let mut cursor = Cursor::new(&bytes[..]);
-    let spawn = app::decode_spawn_app(&mut cursor).unwrap();
+    let spawn = app::decode(&mut cursor).unwrap();
 
     let version = spawn.version;
     let ctor_name = spawn.ctor_name;

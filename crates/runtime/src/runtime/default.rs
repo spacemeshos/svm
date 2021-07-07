@@ -1,12 +1,14 @@
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::path::Path;
 
 use log::{error, info};
+use svm_types::SectionKind;
 
 use crate::env;
 use crate::Env;
 
-use env::{EnvTypes, ExtApp, ExtSpawnApp, ExtTemplate};
+use env::{EnvTypes, ExtApp, ExtSpawnApp};
 
 use crate::error::ValidateError;
 use crate::storage::StorageBuilderFn;
@@ -14,10 +16,10 @@ use crate::vmcalls;
 use crate::{Config, Context, ExternImport, Runtime};
 
 use svm_ffi::svm_env_t;
-use svm_layout::Layout;
+use svm_layout::FixedLayout;
 use svm_storage::app::AppStorage;
 
-use svm_types::{AppAddr, AuthorAddr, SpawnerAddr, State, Type};
+use svm_types::{AppAddr, DeployerAddr, SpawnerAddr, State, Template, Type};
 use svm_types::{ExecReceipt, ReceiptLog, SpawnAppReceipt, TemplateReceipt};
 use svm_types::{Gas, OOGError};
 use svm_types::{RuntimeError, Transaction};
@@ -51,8 +53,8 @@ where
     T: EnvTypes,
 {
     fn validate_template(&self, bytes: &[u8]) -> std::result::Result<(), ValidateError> {
-        let template = self.env.parse_deploy_template(bytes)?;
-        let code = &template.code;
+        let template = self.env.parse_deploy_template(bytes, None)?;
+        let code = template.code();
 
         svm_gas::validate_wasm(code, false).map_err(|e| e.into())
     }
@@ -71,13 +73,15 @@ where
     fn deploy_template(
         &mut self,
         bytes: &[u8],
-        author: &AuthorAddr,
+        deployer: &DeployerAddr,
         gas_limit: Gas,
     ) -> TemplateReceipt {
         info!("runtime `deploy_template`");
 
-        let base = self.env.parse_deploy_template(bytes).unwrap();
-        let template = ExtTemplate::new(base, author);
+        let template = self.env.parse_deploy_template(bytes, None).unwrap();
+
+        // TODO:
+        //
 
         let install_price = self.template_installation_price(bytes, &template);
 
@@ -229,7 +233,12 @@ where
     }
 
     /// Opens the `AppStorage` associated with the input params.
-    pub fn open_storage(&self, app_addr: &AppAddr, state: &State, layout: &Layout) -> AppStorage {
+    pub fn open_storage(
+        &self,
+        app_addr: &AppAddr,
+        state: &State,
+        layout: &FixedLayout,
+    ) -> AppStorage {
         (self.storage_builder)(app_addr, state, layout, &self.config)
     }
 
@@ -259,7 +268,7 @@ where
         svm_types::into_spawn_app_receipt(receipt, app_addr)
     }
 
-    fn install_template(&mut self, template: &ExtTemplate, gas_used: Gas) -> TemplateReceipt {
+    fn install_template(&mut self, template: &Template, gas_used: Gas) -> TemplateReceipt {
         let addr = self.env.derive_template_address(template);
 
         self.env.store_template(template, &addr);
@@ -283,7 +292,8 @@ where
 
         match self.load_template(call.app_addr()) {
             Ok(template) => {
-                let storage = self.open_storage(call.app_addr(), call.state(), template.layout());
+                let storage =
+                    self.open_storage(call.app_addr(), call.state(), template.fixed_layout());
 
                 let mut ctx = Context::new(
                     call.gas_left(),
@@ -322,7 +332,7 @@ where
         call: &Call,
         store: &Store,
         ctx: &Context,
-        template: &ExtTemplate,
+        template: &Template,
         import_object: &ImportObject,
     ) -> Result<Box<[wasmer::Val]>>
     where
@@ -645,10 +655,15 @@ where
         (import_object, funcs_envs)
     }
 
-    fn load_template(&self, app_addr: &AppAddr) -> std::result::Result<ExtTemplate, RuntimeError> {
+    fn load_template(&self, app_addr: &AppAddr) -> std::result::Result<Template, RuntimeError> {
         info!("runtime `load_template`");
 
-        let template = self.env.load_template_by_app(app_addr);
+        let mut interests = HashSet::new();
+        interests.insert(SectionKind::Code);
+        interests.insert(SectionKind::Data);
+        interests.insert(SectionKind::Ctors);
+
+        let template = self.env.load_template_by_app(app_addr, Some(interests));
 
         template.ok_or_else(|| RuntimeError::AppNotFound(app_addr.clone()))
     }
@@ -657,7 +672,7 @@ where
         &self,
         store: &Store,
         ctx: &Context,
-        template: &ExtTemplate,
+        template: &Template,
         gas_left: Gas,
     ) -> std::result::Result<Module, Failure> {
         info!(
@@ -676,7 +691,7 @@ where
     fn validate_call(
         &self,
         call: &Call,
-        template: &ExtTemplate,
+        template: &Template,
         ctx: &Context,
     ) -> std::result::Result<(), Failure> {
         let spawning = call.within_spawn();
@@ -700,7 +715,7 @@ where
     }
 
     /// Gas
-    fn template_installation_price(&self, bytes: &[u8], _template: &ExtTemplate) -> u64 {
+    fn template_installation_price(&self, bytes: &[u8], _template: &Template) -> u64 {
         // todo!()
         1000 * (bytes.len() as u64)
     }

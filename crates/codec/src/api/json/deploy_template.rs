@@ -1,26 +1,32 @@
 use serde_json::Value;
 
+use crate::api::builder::TemplateBuilder;
 use crate::api::json::{self, JsonError};
 use crate::template;
 
-use svm_layout::{Layout, LayoutBuilder};
-use svm_types::Template;
+use svm_layout::{Id, Layout, LayoutBuilder};
+use svm_types::{CodeSection, CtorsSection, DataSection, HeaderSection};
 
 ///
 /// ```json
 /// {
-///   version: 0,   // number
-///   name: '...',  // string
-///   code: '...',  // string (represents a `blob`)
-///   data: '',     // string (represents a `blob`)
+///   name: '...',          // string
+///   svm_version: '...',   // number (`u32`)
+///   code_version: '...',  // number (`u32`)
+///   desc: '...',          // string
+///   code: '...',          // string (represents a `blob`)
+///   data: '',             // string (represents a `blob`)
+///   ctors: ['', ''],      // string[]
 /// }
 /// ```
 pub fn deploy_template(json: &Value) -> Result<Vec<u8>, JsonError> {
-    let version = json::as_u32(json, "version")? as u16;
+    let svm_version = json::as_u32(json, "svm_version")?;
+    let code_version = json::as_u32(json, "code_version")?;
     let name = json::as_string(json, "name")?;
-    let code = json::as_blob(json, "code")?;
-    let data = json::as_blob(json, "data")?;
-    let data = to_data_layout(data)?;
+    let desc = json::as_string(json, "desc")?;
+    let wasm = json::as_blob(json, "code")?;
+    let layout = json::as_blob(json, "data")?;
+    let layout = to_data_layout(layout)?;
 
     let mut ctors = Vec::new();
 
@@ -30,19 +36,21 @@ pub fn deploy_template(json: &Value) -> Result<Vec<u8>, JsonError> {
         ctors.push(ctor.to_string());
     }
 
-    let template = Template {
-        version,
-        name,
-        code,
-        layout: data,
-        ctors,
-    };
+    let code = CodeSection::new_fixed(wasm, svm_version);
+    let data = DataSection::with_layout(layout);
+    let ctors = CtorsSection::new(ctors);
+    let header = HeaderSection::new(code_version, name, desc);
 
-    let mut buf = Vec::new();
+    let template = TemplateBuilder::default()
+        .with_code(code)
+        .with_data(data)
+        .with_ctors(ctors)
+        .with_header(header)
+        .build();
 
-    template::encode_deploy_template(&template, &mut buf);
+    let bytes = template::encode(&template);
 
-    Ok(buf)
+    Ok(bytes)
 }
 
 fn to_data_layout(blob: Vec<u8>) -> Result<Layout, JsonError> {
@@ -62,11 +70,16 @@ fn to_data_layout(blob: Vec<u8>) -> Result<Layout, JsonError> {
         })
         .collect();
 
-    let mut builder = LayoutBuilder::new();
-    builder.extend_from_slice(&data);
-    let data = builder.build();
+    // Note: `LayoutBuilder` assume that the `first var id` is zero
+    let mut builder = LayoutBuilder::with_capacity(data.len());
 
-    Ok(data)
+    builder.set_first(Id(0));
+    builder.extend_from_slice(&data);
+
+    let fixed = builder.build();
+    let layout = Layout::Fixed(fixed);
+
+    Ok(layout)
 }
 
 #[cfg(test)]
@@ -76,16 +89,33 @@ mod tests {
     use std::io::Cursor;
 
     use serde_json::json;
+    use svm_layout::FixedLayout;
 
     #[test]
-    fn json_deploy_template_missing_version() {
+    fn json_deploy_template_missing_svm_version() {
         let json = json!({});
 
         let err = deploy_template(&json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
-                field: "version".to_string(),
+                field: "svm_version".to_string(),
+                reason: "value `null` isn\'t a number".to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn json_deploy_template_missing_code_version() {
+        let json = json!({
+            "svm_version": 1
+        });
+
+        let err = deploy_template(&json).unwrap_err();
+        assert_eq!(
+            err,
+            JsonError::InvalidField {
+                field: "code_version".to_string(),
                 reason: "value `null` isn\'t a number".to_string(),
             }
         );
@@ -94,7 +124,8 @@ mod tests {
     #[test]
     fn json_deploy_template_missing_name() {
         let json = json!({
-            "version": 0
+            "svm_version": 1,
+            "code_version": 2
         });
 
         let err = deploy_template(&json).unwrap_err();
@@ -108,10 +139,30 @@ mod tests {
     }
 
     #[test]
+    fn json_deploy_template_missing_desc() {
+        let json = json!({
+            "svm_version": 1,
+            "code_version": 2,
+            "name": "My Template",
+        });
+
+        let err = deploy_template(&json).unwrap_err();
+        assert_eq!(
+            err,
+            JsonError::InvalidField {
+                field: "desc".to_string(),
+                reason: "value `null` isn\'t a string".to_string(),
+            }
+        );
+    }
+
+    #[test]
     fn json_deploy_template_missing_code() {
         let json = json!({
-            "version": 0,
+            "svm_version": 1,
+            "code_version": 2,
             "name": "My Template",
+            "desc": "A few words"
         });
 
         let err = deploy_template(&json).unwrap_err();
@@ -127,8 +178,10 @@ mod tests {
     #[test]
     fn json_deploy_template_missing_data() {
         let json = json!({
-            "version": 0,
+            "svm_version": 1,
+            "code_version": 2,
             "name": "My Template",
+            "desc": "A few words",
             "code": "C0DE"
         });
 
@@ -145,8 +198,10 @@ mod tests {
     #[test]
     fn json_deploy_template_missing_ctors() {
         let json = json!({
-            "version": 0,
+            "svm_version": 1,
+            "code_version": 2,
             "name": "My Template",
+            "desc": "A few words",
             "code": "C0DE",
             "data": "0000000100000003",
         });
@@ -164,25 +219,31 @@ mod tests {
     #[test]
     fn json_deploy_template_valid() {
         let json = json!({
-            "version": 0,
+            "svm_version": 1,
+            "code_version": 2,
             "name": "My Template",
+            "desc": "A few words",
             "code": "C0DE",
             "data": "0000000100000003",
             "ctors": ["init", "start"]
         });
 
         let bytes = deploy_template(&json).unwrap();
-        let mut cursor = Cursor::new(&bytes[..]);
+        let cursor = Cursor::new(&bytes[..]);
+        let actual = template::decode(cursor, None).unwrap();
 
-        let actual = template::decode_deploy_template(&mut cursor).unwrap();
+        let code = CodeSection::new_fixed(vec![0xC0, 0xDE], 1);
+        let fixed = FixedLayout::from(vec![1, 3]);
+        let data = DataSection::with_layout(Layout::Fixed(fixed));
+        let ctors = CtorsSection::new(vec!["init".into(), "start".into()]);
+        let header = HeaderSection::new(2, "My Template".into(), "A few words".into());
 
-        let expected = Template {
-            version: 0,
-            name: "My Template".to_string(),
-            code: vec![0xC0, 0xDE],
-            layout: vec![1, 3].into(),
-            ctors: vec!["init".into(), "start".into()],
-        };
+        let expected = TemplateBuilder::default()
+            .with_code(code)
+            .with_data(data)
+            .with_ctors(ctors)
+            .with_header(header)
+            .build();
 
         assert_eq!(actual, expected);
     }

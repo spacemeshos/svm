@@ -5,8 +5,17 @@ mod error;
 
 pub use error::OOGError;
 
-/// `MaybeGas` is essentially an `Option<u64>` with extensions
-/// to faciliate arithmetic additions and subtractions.
+/// The method for deriving the `Gas Units` of a transaction
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum GasMode {
+    /// Fixed-Gas - Determined by using static-analysis prior to execution
+    Fixed,
+
+    /// Fixed-Gas - Determined as part of transaction execution
+    Metering,
+}
+/// `Gas` is essentially an `Option<u64>` with extensions
+/// to facilitate arithmetic additions and subtractions.
 #[derive(Debug, PartialEq, Clone, Copy)]
 #[repr(transparent)]
 pub struct Gas(Option<u64>);

@@ -13,11 +13,11 @@ use std::io::Cursor;
 
 use svm_types::{App, SpawnApp, TemplateAddr};
 
-use crate::{calldata, common};
+use crate::{calldata, version};
 use crate::{Field, ParseError, ReadExt, WriteExt};
 
 /// Encodes a raw Spawn-App transaction.
-pub fn encode_spawn_app(spawn: &SpawnApp, w: &mut Vec<u8>) {
+pub fn encode(spawn: &SpawnApp, w: &mut Vec<u8>) {
     encode_version(spawn, w);
     encode_template(spawn, w);
     encode_name(spawn, w);
@@ -28,7 +28,7 @@ pub fn encode_spawn_app(spawn: &SpawnApp, w: &mut Vec<u8>) {
 /// Parsing a raw `spawn-app` transaction given as raw bytes.
 /// Returns the parsed transaction as a tuple consisting of an `App` struct and `ctor_name` buffer args.
 /// On failure, returns `ParseError`.
-pub fn decode_spawn_app(cursor: &mut Cursor<&[u8]>) -> Result<SpawnApp, ParseError> {
+pub fn decode(cursor: &mut Cursor<&[u8]>) -> Result<SpawnApp, ParseError> {
     let version = decode_version(cursor)?;
     let template_addr = decode_template(cursor)?;
     let name = decode_name(cursor)?;
@@ -55,7 +55,7 @@ pub fn decode_spawn_app(cursor: &mut Cursor<&[u8]>) -> Result<SpawnApp, ParseErr
 fn encode_version(spawn: &SpawnApp, w: &mut Vec<u8>) {
     let v = &spawn.version;
 
-    common::encode_version(*v, w);
+    version::encode_version(*v, w);
 }
 
 fn encode_name(spawn: &SpawnApp, w: &mut Vec<u8>) {
@@ -86,7 +86,7 @@ fn encode_ctor_calldata(spawn: &SpawnApp, w: &mut Vec<u8>) {
 
 #[inline]
 fn decode_version(cursor: &mut Cursor<&[u8]>) -> Result<u16, ParseError> {
-    common::decode_version(cursor)
+    version::decode_version(cursor)
 }
 
 fn decode_template(cursor: &mut Cursor<&[u8]>) -> Result<TemplateAddr, ParseError> {
@@ -135,11 +135,11 @@ mod tests {
         };
 
         let mut bytes = Vec::new();
-        encode_spawn_app(&spawn, &mut bytes);
+        encode(&spawn, &mut bytes);
 
         let mut cursor = Cursor::new(&bytes[..]);
 
-        let decoded = decode_spawn_app(&mut cursor).unwrap();
+        let decoded = decode(&mut cursor).unwrap();
 
         assert_eq!(spawn, decoded);
     }

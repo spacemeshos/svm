@@ -12,7 +12,7 @@ pub struct DefaultTemplateHasher;
 impl TemplateHasher for DefaultTemplateHasher {
     #[inline]
     fn hash(template: &Template) -> TemplateHash {
-        let bytes = &template.code;
+        let bytes = template.code();
 
         let hash = DefaultHasher::hash(bytes);
 

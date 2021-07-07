@@ -6,7 +6,7 @@ use raw::{RawChange, RawStorage};
 mod kv;
 pub use kv::AppKVStore;
 
-use svm_layout::{Layout, VarId};
+use svm_layout::{FixedLayout, Id};
 use svm_types::State;
 
 ///
@@ -15,7 +15,7 @@ use svm_types::State;
 /// While an app is running it performs read and write operations.
 ///
 /// Reads operations don't modify the app's storage.
-/// Write operations save changes to be commited after an app's execution succeeded.
+/// Write operations save changes to be committed after an app's execution succeeded.
 ///
 /// Reading a variable will return the most updated value of the variable.
 ///
@@ -26,10 +26,10 @@ pub struct AppStorage {
     raw_storage: RawStorage,
 
     /// App Fixed-Sized variables layout
-    layout: Layout,
+    layout: FixedLayout,
 
     /// Uncommited changes
-    uncommitted: HashMap<VarId, Vec<u8>>,
+    uncommitted: HashMap<Id, Vec<u8>>,
 }
 
 // TODO:
@@ -40,7 +40,7 @@ const KV_VALUE_SIZE: u32 = 32;
 impl AppStorage {
     /// New instance for managing app's variabled specified by `layout`.
     /// App's storage is backed by key-value store `kv`.
-    pub fn new(layout: Layout, app_kv: AppKVStore) -> Self {
+    pub fn new(layout: FixedLayout, app_kv: AppKVStore) -> Self {
         Self {
             layout,
             raw_storage: RawStorage::new(app_kv, KV_VALUE_SIZE),
@@ -61,7 +61,7 @@ impl AppStorage {
     }
 
     /// Reads variable `var_id`.
-    pub fn read_var(&self, var_id: VarId) -> Vec<u8> {
+    pub fn read_var(&self, var_id: Id) -> Vec<u8> {
         let var = self.uncommitted.get(&var_id).cloned();
 
         var.unwrap_or_else(|| {
@@ -76,7 +76,7 @@ impl AppStorage {
     }
 
     /// Marks variable as `dirty`. Upon `commit` will persist the variable.
-    pub fn write_var(&mut self, var_id: VarId, value: Vec<u8>) {
+    pub fn write_var(&mut self, var_id: Id, value: Vec<u8>) {
         let (_off, len) = self.var_layout(var_id);
 
         assert_eq!(value.len(), len as usize);
@@ -87,14 +87,16 @@ impl AppStorage {
     /// Returns the layout of variable `var_id`.
     /// The layout is a tuple of `(offset, length)`.
     #[inline]
-    pub fn var_layout(&self, var_id: VarId) -> (u32, u32) {
-        self.layout.get_var(var_id)
+    pub fn var_layout(&self, var_id: Id) -> (u32, u32) {
+        let var = self.layout.get(var_id);
+
+        (var.offset(), var.byte_size())
     }
 
     /// Commits modified variables into the raw storage.
     #[must_use]
     pub fn commit(&mut self) -> State {
-        let var_offset: HashMap<VarId, u32> = self
+        let var_offset: HashMap<Id, u32> = self
             .uncommitted
             .keys()
             .map(|var_id| {

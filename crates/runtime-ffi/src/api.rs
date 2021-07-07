@@ -613,8 +613,8 @@ pub unsafe extern "C" fn svm_runtime_create(
 ///
 /// // deploy template
 /// let mut receipt = svm_byte_array::default();
-/// let ty = Type::Str("author");
-/// let author: svm_byte_array = (ty, Address::of("@author")).into();
+/// let ty = Type::Str("deployer");
+/// let deployer: svm_byte_array = (ty, Address::of("@deployer")).into();
 /// let template_bytes = svm_byte_array::default();
 /// let gas_metering = false;
 /// let gas_limit = 0;
@@ -624,7 +624,7 @@ pub unsafe extern "C" fn svm_runtime_create(
 ///     &mut receipt,
 ///     runtime,
 ///     template_bytes,
-///     author,
+///     deployer,
 ///     gas_metering,
 ///     gas_limit,
 ///     &mut error)
@@ -639,7 +639,7 @@ pub unsafe extern "C" fn svm_deploy_template(
     receipt: *mut svm_byte_array,
     runtime: *mut c_void,
     bytes: svm_byte_array,
-    author: svm_byte_array,
+    deployer: svm_byte_array,
     gas_metering: bool,
     gas_limit: u64,
     error: *mut svm_byte_array,
@@ -648,15 +648,15 @@ pub unsafe extern "C" fn svm_deploy_template(
 
     let runtime: &mut Box<dyn Runtime> = runtime.into();
 
-    let author: Result<Address, String> = Address::try_from(author);
+    let deployer: Result<Address, String> = Address::try_from(deployer);
 
-    if let Err(s) = author {
+    if let Err(s) = deployer {
         raw_error(s, error);
         return svm_result_t::SVM_FAILURE;
     }
 
     let gas_limit = maybe_gas!(gas_metering, gas_limit);
-    let rust_receipt = runtime.deploy_template(bytes.into(), &author.unwrap().into(), gas_limit);
+    let rust_receipt = runtime.deploy_template(bytes.into(), &deployer.unwrap().into(), gas_limit);
     let receipt_bytes = receipt::encode_template_receipt(&rust_receipt);
 
     // returning encoded `TemplateReceipt` as `svm_byte_array`.

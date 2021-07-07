@@ -1,3 +1,9 @@
+mod id;
+mod layer;
+
+pub use id::TransactionId;
+pub use layer::Layer;
+
 use std::fmt;
 
 use crate::AppAddr;

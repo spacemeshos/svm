@@ -10,7 +10,7 @@ macro_rules! impl_addr_type {
     };
 }
 
-impl_addr_type!(Author);
+impl_addr_type!(Deployer);
 impl_addr_type!(Spawner);
 impl_addr_type!(Template);
 impl_addr_type!(App);
@@ -18,14 +18,14 @@ impl_addr_type!(App);
 /// Address of a Template.
 pub type TemplateAddr = AddressOf<Template>;
 
-/// Address of a Template Author.
-pub type AuthorAddr = AddressOf<Author>;
+/// Address of a Template Deployer.
+pub type DeployerAddr = AddressOf<Deployer>;
 
 /// Address of an App Spawner.
 pub type SpawnerAddr = AddressOf<Spawner>;
 
 /// Address of an App.
-pub type AppAddr = AddressOf<Author>;
+pub type AppAddr = AddressOf<App>;
 
 #[cfg(test)]
 mod tests {
