@@ -16,12 +16,11 @@
 //!  On success (`is_success = 0`)
 //!  See [error.rs][./error.rs]
 
-use std::io::Cursor;
-
 use svm_types::ExecReceipt;
 
-use super::{decode_error, encode_error, gas, logs};
+use std::io::Cursor;
 
+use super::{decode_error, encode_error, gas, logs};
 use crate::{calldata, version};
 use crate::{ReadExt, WriteExt};
 

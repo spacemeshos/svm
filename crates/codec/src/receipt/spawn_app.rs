@@ -17,12 +17,11 @@
 //!  On success (`is_success = 0`)
 //!  See [error.rs][./error.rs]
 
-use std::io::Cursor;
-
 use svm_types::SpawnAppReceipt;
 
-use super::{decode_error, encode_error, gas, logs, types};
+use std::io::Cursor;
 
+use super::{decode_error, encode_error, gas, logs, types};
 use crate::{calldata, version};
 use crate::{ReadExt, WriteExt};
 
