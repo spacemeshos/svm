@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use log::{error, info};
 use svm_types::SectionKind;
@@ -189,19 +189,18 @@ where
     T: EnvTypes,
 {
     /// Initializes a new `DefaultRuntime`.
-    pub fn new<P: AsRef<Path>>(
+    pub fn new<P: Into<PathBuf>>(
         env: Env<T>,
         kv_path: P,
         imports: &Vec<ExternImport>,
         storage_builder: Box<StorageBuilderFn>,
     ) -> Self {
-        let config = Config::new(kv_path);
-        let imports = imports as *const _;
-
         Self {
             env,
-            config,
-            imports,
+            config: Config {
+                kv_path: kv_path.into(),
+            },
+            imports: imports as *const _,
             storage_builder,
         }
     }
@@ -211,15 +210,12 @@ where
         ctx: &Context,
         mut out: Outcome<Box<[wasmer::Val]>>,
     ) -> ExecReceipt {
-        let returndata = self.take_returndata(ctx);
-        let new_state = self.commit_changes(&ctx);
-
         ExecReceipt {
             version: 0,
             success: true,
             error: None,
-            returndata: Some(returndata),
-            new_state: Some(new_state),
+            returndata: Some(self.take_returndata(ctx)),
+            new_state: Some(self.commit_changes(&ctx)),
             gas_used: out.gas_used(),
             logs: out.take_logs(),
         }
@@ -255,7 +251,7 @@ where
             func_name: spawn.ctor_name(),
             calldata: spawn.ctor_data(),
             state: &State::zeros(),
-            template_addr: &template_addr,
+            template_addr,
             app_addr,
             within_spawn: true,
             gas_used,
