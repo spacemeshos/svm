@@ -3,23 +3,19 @@ use svm_types::{Gas, SpawnApp, Template, Transaction};
 /// Holds estimated gas for deploying a new `Template`.
 pub struct DeployTemplateEst {
     pub payload: Gas,
-
     pub install: Gas,
 }
 
 /// Holds estimated gas for spawning an new `App`.
 pub struct SpawnAppEst {
     pub payload: Gas,
-
     pub install: Gas,
-
     pub ctor: Gas,
 }
 
 /// Holds estimated gas for executing an `AppTransaction`.
 pub struct ExecAppEst {
     pub payload: Gas,
-
     pub exec: Gas,
 }
 
