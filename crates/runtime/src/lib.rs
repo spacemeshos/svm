@@ -1,13 +1,13 @@
+//! `SVM-runtime` crate is the glue between `SVM` to a Wasm Runtime.
+//!
+//! Currently there is one a single [`Runtime`] implementation supporting
+//! [`Wasmer`](https://wasmer.io/), but future WASM Runtime might be added.
+
 #![allow(missing_docs)]
 #![allow(unused)]
 #![allow(dead_code)]
 #![allow(unreachable_code)]
 #![feature(vec_into_raw_parts)]
-
-//! `SVM-runtime` crate is the glue between `SVM` to a Wasm Runtime
-//!
-//! Currently there is one a single `Runtime` implementation supporting `Wasmer`,
-//! But future WASM Runtime might be added.
 
 /// Implements the most high-level API of `SVM`.
 mod runtime;
