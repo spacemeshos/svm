@@ -39,9 +39,9 @@ pub fn encode_exec_receipt(receipt: &ExecReceipt) -> Vec<u8> {
         gas::encode_gas_used(&receipt.gas_used, &mut w);
         logs::encode_logs(&receipt.logs, &mut w);
     } else {
-        let logs = receipt.get_logs();
+        let logs = receipt.logs();
 
-        encode_error(receipt.get_error(), logs, &mut w);
+        encode_error(receipt.error(), logs, &mut w);
     };
 
     w
@@ -86,14 +86,14 @@ pub fn decode_exec_receipt(bytes: &[u8]) -> ExecReceipt {
 fn encode_new_state(receipt: &ExecReceipt, w: &mut Vec<u8>) {
     debug_assert!(receipt.success);
 
-    let state = receipt.get_new_state();
+    let state = receipt.new_state();
     w.write_state(state);
 }
 
 fn encode_returndata(receipt: &ExecReceipt, w: &mut Vec<u8>) {
     debug_assert!(receipt.success);
 
-    let data = receipt.get_returndata();
+    let data = receipt.returndata();
     calldata::encode_calldata(&data, w);
 }
 

@@ -34,11 +34,11 @@ impl<'a> ReceiptRef<'a> {
     }
 
     /// Returns the executed transaction results.
-    pub fn get_returndata(&self) -> &Vec<u8> {
+    pub fn returndata(&self) -> &Vec<u8> {
         match self {
             Self::DeployTemplate(..) => unreachable!(),
-            Self::SpawnApp(r) => r.get_returndata(),
-            Self::ExecApp(r) => r.get_returndata(),
+            Self::SpawnApp(r) => r.returndata(),
+            Self::ExecApp(r) => r.returndata(),
         }
     }
 
@@ -52,7 +52,7 @@ impl<'a> ReceiptRef<'a> {
     }
 
     /// Returns a `ReceiptError`
-    pub fn get_error(&self) -> &RuntimeError {
+    pub fn error(&self) -> &RuntimeError {
         match self {
             Self::DeployTemplate(r) => r.error.as_ref().unwrap(),
             Self::SpawnApp(r) => r.error.as_ref().unwrap(),
@@ -110,20 +110,20 @@ impl Receipt {
     }
 
     /// Returns the logs generated during the transaction execution
-    pub fn get_logs(&self) -> &[ReceiptLog] {
+    pub fn logs(&self) -> &[ReceiptLog] {
         match self {
-            Receipt::DeployTemplate(receipt) => receipt.get_logs(),
-            Receipt::SpawnApp(receipt) => receipt.get_logs(),
-            Receipt::ExecApp(receipt) => receipt.get_logs(),
+            Receipt::DeployTemplate(receipt) => receipt.logs(),
+            Receipt::SpawnApp(receipt) => receipt.logs(),
+            Receipt::ExecApp(receipt) => receipt.logs(),
         }
     }
 
     /// Returns the error within the inner receipt (for failing receipts)
-    pub fn get_error(&self) -> &RuntimeError {
+    pub fn error(&self) -> &RuntimeError {
         match self {
-            Receipt::DeployTemplate(receipt) => receipt.get_error(),
-            Receipt::SpawnApp(receipt) => receipt.get_error(),
-            Receipt::ExecApp(receipt) => receipt.get_error(),
+            Receipt::DeployTemplate(receipt) => receipt.error(),
+            Receipt::SpawnApp(receipt) => receipt.error(),
+            Receipt::ExecApp(receipt) => receipt.error(),
         }
     }
 }

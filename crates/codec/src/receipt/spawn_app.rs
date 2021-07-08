@@ -41,9 +41,9 @@ pub fn encode_app_receipt(receipt: &SpawnAppReceipt) -> Vec<u8> {
         gas::encode_gas_used(&receipt.gas_used, &mut w);
         logs::encode_logs(&receipt.logs, &mut w);
     } else {
-        let logs = receipt.get_logs();
+        let logs = receipt.logs();
 
-        encode_error(receipt.get_error(), logs, &mut w);
+        encode_error(receipt.error(), logs, &mut w);
     };
 
     w
@@ -96,7 +96,7 @@ fn encode_version(receipt: &SpawnAppReceipt, w: &mut Vec<u8>) {
 fn encode_app_addr(receipt: &SpawnAppReceipt, w: &mut Vec<u8>) {
     debug_assert!(receipt.success);
 
-    let addr = receipt.get_app_addr();
+    let addr = receipt.app_addr();
 
     w.write_address(addr.inner());
 }
@@ -104,7 +104,7 @@ fn encode_app_addr(receipt: &SpawnAppReceipt, w: &mut Vec<u8>) {
 fn encode_init_state(receipt: &SpawnAppReceipt, w: &mut Vec<u8>) {
     debug_assert!(receipt.success);
 
-    let state = receipt.get_init_state();
+    let state = receipt.init_state();
 
     w.write_state(state);
 }
@@ -112,7 +112,7 @@ fn encode_init_state(receipt: &SpawnAppReceipt, w: &mut Vec<u8>) {
 fn encode_returndata(receipt: &SpawnAppReceipt, w: &mut Vec<u8>) {
     debug_assert!(receipt.success);
 
-    let data = receipt.get_returndata();
+    let data = receipt.returndata();
 
     calldata::encode_calldata(&data, w);
 }

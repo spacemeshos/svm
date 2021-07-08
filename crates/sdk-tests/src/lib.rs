@@ -43,7 +43,7 @@ where
 
     func();
 
-    let bytes = MockHost::get_returndata();
+    let bytes = MockHost::returndata();
 
     let bytes: std::vec::Vec<u8> = if let Some(bytes) = bytes {
         bytes
