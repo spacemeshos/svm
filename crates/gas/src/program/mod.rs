@@ -10,10 +10,9 @@ mod import;
 pub use import::Imports;
 
 /// Parsed Wasm Program.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Program {
     imports: Imports,
-
     functions: IndexMap<FuncIndex, Vec<Instruction>>,
 }
 
@@ -48,14 +47,5 @@ impl Program {
     /// Returns the indexes of the non-import functions
     pub fn func_indexes(&self) -> Vec<FuncIndex> {
         self.functions.keys().copied().collect()
-    }
-}
-
-impl Default for Program {
-    fn default() -> Self {
-        Program {
-            imports: Imports::default(),
-            functions: IndexMap::new(),
-        }
     }
 }
