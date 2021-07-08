@@ -1,3 +1,5 @@
+//! Builder API
+
 mod app_builder;
 mod template_builder;
 mod tx_builder;

@@ -73,7 +73,7 @@ impl<'f> CFGBuilder<'f> {
 
     /// Appending op `op` to the currently built `Block`
     pub fn append(&mut self, op: Op<'f>) {
-        let block = self.get_current_block_mut();
+        let block = self.current_block_mut();
 
         // dbg!("Appending op {:?} (Block #{:?})", &op, block.block_num());
 
@@ -256,15 +256,15 @@ impl<'f> CFGBuilder<'f> {
     }
 
     #[inline]
-    fn get_block_mut(&mut self, block_num: BlockNum) -> &mut BlockRef<'f> {
+    fn block_mut(&mut self, block_num: BlockNum) -> &mut BlockRef<'f> {
         &mut self.blocks[block_num.0]
     }
 
     #[inline]
-    fn get_current_block_mut(&mut self) -> &mut BlockRef<'f> {
+    fn current_block_mut(&mut self) -> &mut BlockRef<'f> {
         let block_num = self.current_block();
 
-        self.get_block_mut(block_num)
+        self.block_mut(block_num)
     }
 
     /// Finish the building process and output a `CFG`
@@ -315,10 +315,10 @@ impl<'f> CFGBuilder<'f> {
     }
 
     fn add_edge(&mut self, edge: Edge) {
-        let origin = self.get_block_mut(edge.origin());
+        let origin = self.block_mut(edge.origin());
         origin.add_outgoing_edge(edge.clone());
 
-        let target = self.get_block_mut(edge.target());
+        let target = self.block_mut(edge.target());
         target.add_incoming_edge(edge);
     }
 

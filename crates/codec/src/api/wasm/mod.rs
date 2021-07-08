@@ -1,3 +1,5 @@
+//! WASM API
+
 mod calldata;
 mod deploy_template;
 mod error;
@@ -12,9 +14,9 @@ pub use exec_app::{decode_exec_app, encode_exec_app};
 pub use receipt::decode_receipt;
 pub use spawn_app::{decode_spawn_app, encode_spawn_app};
 
-use crate::api::json::JsonError;
-
 use serde_json::{self as json, Value};
+
+use crate::api::json::JsonError;
 
 const HEADER_LEN_OFF: usize = 0;
 const HEADER_CAP_OFF: usize = 4;
@@ -63,7 +65,7 @@ const BUF_ERROR_MARKER: u8 = 0;
 /// ## WASM Buffer Data Section
 ///
 /// Contains the raw data of the buffer.
-
+///
 /// Allocates a new WASM buffer having `Data` of `length` bytes.
 ///
 /// The total allocation size of the buffer will always be bigger due to the `Header` section.

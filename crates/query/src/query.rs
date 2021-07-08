@@ -41,7 +41,7 @@ pub trait StorageReader<V, VR: VarRenderer<V>> {
     /// First, reads its raw data by calling `read_raw`.
     /// Then, renders the raw data into a `String`.
     fn read_var(&mut self, schema: &Schema, req: &StorageReq) -> Option<V> {
-        let var = schema.get_var(req.var_id);
+        let var = schema.var(req.var_id);
 
         var.and_then(|v| {
             let bytes = self.read_var_raw(req, &v);

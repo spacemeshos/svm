@@ -1,8 +1,12 @@
-/// Builder API
+//! Wraps the exposed APIs under a single place.
+//!
+//! This crate exposes the following APIs:
+//!
+//! * Builder
+//! * Raw  
+//! * JSON   
+//! * WASM
+
 pub mod builder;
-
-/// JSON API
 pub mod json;
-
-/// WASM API
 pub mod wasm;

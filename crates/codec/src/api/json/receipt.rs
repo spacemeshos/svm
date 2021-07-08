@@ -25,8 +25,8 @@ pub fn decode_receipt(json: &Value) -> Result<Value, JsonError> {
         }
     } else {
         let ty = receipt_type(&receipt);
-        let logs = receipt.get_logs();
-        let err = receipt.get_error();
+        let logs = receipt.logs();
+        let err = receipt.error();
 
         decode_error(ty, err, logs)
     };

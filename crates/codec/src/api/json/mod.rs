@@ -1,3 +1,5 @@
+//! JSON API
+
 mod calldata;
 mod deploy_template;
 mod error;

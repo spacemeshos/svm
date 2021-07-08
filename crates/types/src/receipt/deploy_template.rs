@@ -56,17 +56,17 @@ impl TemplateReceipt {
     }
 
     /// Returns the deployed template address. Panics if deploy has failed.
-    pub fn get_template_addr(&self) -> &TemplateAddr {
+    pub fn template_addr(&self) -> &TemplateAddr {
         self.addr.as_ref().unwrap()
     }
 
     /// Returns the error within the Receipt (for failing Receipts)
-    pub fn get_error(&self) -> &RuntimeError {
+    pub fn error(&self) -> &RuntimeError {
         self.error.as_ref().unwrap()
     }
 
     /// Returns the logs generated during the transaction execution
-    pub fn get_logs(&self) -> &[ReceiptLog] {
+    pub fn logs(&self) -> &[ReceiptLog] {
         &self.logs
     }
 

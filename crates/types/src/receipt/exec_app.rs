@@ -53,22 +53,22 @@ impl ExecReceipt {
     }
 
     /// Returns App's new `State``. Panics if transaction has failed.
-    pub fn get_new_state(&self) -> &State {
+    pub fn new_state(&self) -> &State {
         self.new_state.as_ref().unwrap()
     }
 
     /// Returns executed transaction results. Panics if transaction has failed.
-    pub fn get_returndata(&self) -> &Vec<u8> {
+    pub fn returndata(&self) -> &Vec<u8> {
         self.returndata.as_ref().unwrap()
     }
 
     /// Returns the error within the Receipt (for failing Receipts)
-    pub fn get_error(&self) -> &RuntimeError {
+    pub fn error(&self) -> &RuntimeError {
         self.error.as_ref().unwrap()
     }
 
     /// Returns the logs generated during the transaction execution
-    pub fn get_logs(&self) -> &[ReceiptLog] {
+    pub fn logs(&self) -> &[ReceiptLog] {
         &self.logs
     }
 
