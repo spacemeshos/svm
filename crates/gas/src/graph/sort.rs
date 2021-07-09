@@ -56,7 +56,7 @@ where
     if has_edges(graph) {
         let cycle = derive_cycle(graph, return_cycles);
 
-        let cycle = GraphCycles::HasCycles(cycle);
+        let cycle = GraphCycles::HasCycles(cycle.unwrap_or_default());
 
         Err(cycle)
     } else {
