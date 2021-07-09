@@ -4,18 +4,19 @@ use wasmer_runtime_core::{
     wasmparser::Operator,
 };
 
-use super::error::ParseError;
+use super::ParseError;
 
 /// The `ValidationMiddleware` has two main objectives:
 /// * validation - make sure the wasm is valid and doesn't contain and opcodes not supported by `svm` (for example: floats)
 /// * preprocessing - we want to know whether the input contains loops or not.
 ///   In case there no loop we can later compute ahead-of-time the gas for each function,
 ///   otherwise we'll have a dynamic gas-metering used.
+#[derive(Default)]
 pub struct ValidationMiddleware;
 
 impl ValidationMiddleware {
     pub fn new() -> Self {
-        Self {}
+        Self::default()
     }
 }
 
@@ -46,8 +47,8 @@ fn parse_wasm_opcode(opcode: &Operator) -> Result<(), ParseError> {
         Operator::Unreachable
         | Operator::Nop
         | Operator::Block { .. }
-        | Operator::Loop { .. }
         | Operator::If { .. }
+        | Operator::Loop { .. }
         | Operator::Else
         | Operator::End
         | Operator::Br { .. }
@@ -157,54 +158,34 @@ fn parse_wasm_opcode(opcode: &Operator) -> Result<(), ParseError> {
 
 #[cfg(test)]
 mod tests {
-    use crate::compile_program;
-    use wasmer_runtime::error::CompileError;
-    use wasmer_runtime::{imports, Func};
+    use crate::compile;
+    use wasmer::{CompileError, Store};
 
     #[test]
     fn valid_wasm_instance_sanity() {
-        let input = r#"
-            (module
-                (func (export "sum") (param i32 i32) (result i32)
-                    get_local 0
-                    get_local 1
-                    i32.add
-                ))
-            "#;
+        let input = include_str!("test_files/sanity.wat");
 
-        let gas_metering = false;
-        let gas_limit = 0;
         let wasm = wat::parse_str(input).unwrap();
-        let module = compile_program(&wasm, gas_limit, gas_metering).unwrap();
-        let instance = module.instantiate(&imports! {}).unwrap();
-
-        let func: Func<(i32, i32), i32> = instance.exports.get("sum").unwrap();
-        let res = func.call(10, 20);
+        let wasm_store = Store::default();
+        let module = compile(&wasm_store, &wasm, 0, false).unwrap();
+        let instance = wasmer::Instance::new(&module, &wasmer::imports! {}).unwrap();
+        let func = instance.exports.get_function("sum").unwrap();
+        let res = func.call(&[wasmer::Value::I32(10), wasmer::Value::I32(20)]);
         assert!(res.is_ok());
-        assert_eq!(30, res.unwrap());
+        let boxed_result: Box<[wasmer::Value]> = Box::new([wasmer::Value::I32(30)]);
+        assert_eq!(boxed_result, res.unwrap());
     }
 
     #[test]
     fn floats_are_not_supported() {
-        let input = r#"
-            (module
-                (func $to_float (param i32) (result f32)
-                    get_local 0
-                    f32.convert_u/i32
-                ))
-            "#;
+        let input = include_str!("test_files/with_floats.wat");
 
         let gas_metering = false;
         let gas_limit = 0;
         let wasm = wat::parse_str(input).unwrap();
-        let res = compile_program(&wasm, gas_limit, gas_metering);
+        let res = compile(&Store::default(), &wasm, gas_limit, gas_metering);
 
-        assert!(res.is_err());
-
-        if let Err(CompileError::InternalError { msg }) = res {
-            assert_eq!("Codegen(\"UnsupportedOpcode\")", msg.as_str());
-        } else {
-            unreachable!()
-        }
+        let expected_error_string = r#"Codegen("UnsupportedOpcode")"#.to_string();
+        assert!(matches!(res, Err(_)));
     }
 }
