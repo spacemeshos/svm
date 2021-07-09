@@ -1,5 +1,10 @@
 use svm_types::{Gas, ReceiptLog};
 
+/// A wrapper time for `T` that ships with gas information and collected logs.
+///
+/// # Type parameters
+///
+/// This `struct` is generic over `T`, which has no restrictions.
 pub struct Outcome<T> {
     returns: T,
     gas_used: Gas,

@@ -24,7 +24,7 @@ use crate::{Config, Context, ExternImport, Runtime};
 
 type Result<T> = std::result::Result<Outcome<T>, Failure>;
 
-/// Default `Runtime` implementation based on `Wasmer`.
+/// Default [`Runtime`] implementation based on [`Wasmer`](https://wasmer.io).
 pub struct DefaultRuntime<T>
 where
     T: EnvTypes,
@@ -86,7 +86,7 @@ where
         ExecReceipt::from_err(err, logs)
     }
 
-    /// Opens the `AppStorage` associated with the input params.
+    /// Opens the [`AppStorage`] associated with the input parameters.
     pub fn open_storage(
         &self,
         app_addr: &AppAddr,
@@ -418,6 +418,7 @@ where
         ctx.borrow_mut().set_calldata(offset, len);
     }
 
+    /// Calculates the amount of gas used by `intance`.
     #[inline]
     fn instance_gas_used(&self, _instance: &Instance) -> std::result::Result<Gas, OOGError> {
         // TODO: read `gas_used` out of `instance`
