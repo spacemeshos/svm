@@ -1,3 +1,5 @@
+//! Implements the most high-level API of `SVM`.
+
 mod call;
 mod config;
 mod default;

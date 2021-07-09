@@ -1,3 +1,5 @@
+//! Gas estimation and metering.
+
 mod default;
 mod estimator;
 mod pricing;

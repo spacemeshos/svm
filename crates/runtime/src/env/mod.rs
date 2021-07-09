@@ -1,3 +1,5 @@
+//! Managing the Runtime's environment
+
 use std::collections::HashSet;
 use std::io::Cursor;
 

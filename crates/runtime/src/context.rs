@@ -1,3 +1,5 @@
+//! Implements `Context`. Used for managing data of running `SVM` apps.
+
 use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
 use std::u64;

@@ -1,3 +1,5 @@
+//! Implements common functionality to be consnumed by tests.
+
 use std::cell::RefCell;
 use std::path::Path;
 use std::rc::Rc;
