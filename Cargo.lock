@@ -1287,7 +1287,6 @@ dependencies = [
  "svm-hash",
  "svm-kv",
  "svm-layout",
- "svm-nibble",
  "svm-query",
  "svm-runtime",
  "svm-runtime-ffi",
@@ -1429,10 +1428,6 @@ dependencies = [
 
 [[package]]
 name = "svm-layout"
-version = "0.0.0"
-
-[[package]]
-name = "svm-nibble"
 version = "0.0.0"
 
 [[package]]
