@@ -14,6 +14,7 @@ mod env;
 mod import;
 mod runtime;
 mod storage;
+mod validation;
 
 pub mod error;
 pub mod testing;

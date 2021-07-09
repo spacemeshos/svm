@@ -1,9 +1,11 @@
+use thiserror::Error;
+
 use std::fmt;
 
 use crate::{FuncIndex, GraphCycles, NodeLabel};
 
 /// Represents error that may occur while doing gas estimation
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Error)]
 pub enum ProgramError<T = FuncIndex>
 where
     T: NodeLabel,
