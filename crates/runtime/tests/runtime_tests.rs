@@ -235,8 +235,8 @@ fn memory_runtime_exec_app_with_ctor_fails() {
     let receipt = runtime.spawn_app(&bytes, &creator, maybe_gas);
     assert!(receipt.success);
 
-    let app_addr = receipt.get_app_addr();
-    let init_state = receipt.get_init_state();
+    let app_addr = receipt.app_addr();
+    let init_state = receipt.init_state();
 
     // 3) execute a transaction
     let calldata = Vec::new();
@@ -284,8 +284,8 @@ fn memory_runtime_calldata_returndata() {
     let receipt = runtime.spawn_app(&bytes, &creator, maybe_gas);
     assert!(receipt.success);
 
-    let app_addr = receipt.get_app_addr();
-    let init_state = receipt.get_init_state();
+    let app_addr = receipt.app_addr();
+    let init_state = receipt.init_state();
 
     // 3) execute a transaction
     let func = "store_addr";
@@ -300,7 +300,7 @@ fn memory_runtime_calldata_returndata() {
     let receipt = runtime.exec_tx(&tx, &init_state, maybe_gas);
     assert!(receipt.success);
 
-    let state = receipt.get_new_state();
+    let state = receipt.new_state();
 
     // 4) execute a transaction with `returndata`
     let func = "load_addr";

@@ -35,7 +35,7 @@ pub fn encode_template_receipt(receipt: &TemplateReceipt) -> Vec<u8> {
     } else {
         let logs = Vec::new();
 
-        encode_error(receipt.get_error(), &logs, &mut w);
+        encode_error(receipt.error(), &logs, &mut w);
     };
 
     w
@@ -85,7 +85,7 @@ fn encode_version(receipt: &TemplateReceipt, w: &mut Vec<u8>) {
 fn encode_template_addr(receipt: &TemplateReceipt, w: &mut Vec<u8>) {
     debug_assert!(receipt.success);
 
-    let addr = receipt.get_template_addr();
+    let addr = receipt.template_addr();
 
     w.write_address(addr.inner());
 }

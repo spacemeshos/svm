@@ -67,7 +67,7 @@ impl Schema {
     }
 
     /// Returns the variable's Schema data
-    pub fn get_var(&self, id: usize) -> Option<Var> {
+    pub fn var(&self, id: usize) -> Option<Var> {
         self.0.get(&id).cloned()
     }
 }
