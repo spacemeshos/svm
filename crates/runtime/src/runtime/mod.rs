@@ -23,14 +23,18 @@ pub use config::Config;
 pub use default::DefaultRuntime;
 pub use ptr::RuntimePtr;
 
-use crate::error::ValidateError;
-
 use svm_types::{
     DeployerAddr, ExecReceipt, Gas, RuntimeError, SpawnAppReceipt, SpawnerAddr, State,
     TemplateReceipt, Transaction,
 };
 
-/// Specifies the interface of a `SVM` Runtime.
+use crate::error::ValidateError;
+
+/// Specifies the interface of a SVM runtime. All [`Runtime`] implementors can:
+///
+/// * Deploy templates.
+/// * Spawn new SVM apps by "populating" templates with custom data.
+/// * Execute arbitrary transactions.
 pub trait Runtime {
     /// Validates raw `deploy-template` transaction prior to executing it.
     fn validate_template(&self, bytes: &[u8]) -> Result<(), ValidateError>;
@@ -60,8 +64,9 @@ pub trait Runtime {
         gas_limit: Gas,
     ) -> Result<bool, RuntimeError>;
 
-    /// Executes an transaction. Returns `ExecReceipt`.
-    /// Should be called only if the `verify` stage passed.
+    /// Executes an transaction and returns its associated [`ExecReceipt`].
+    ///
+    /// This function should be called only if the `verify` stage passed.
     ///
     /// On success:
     /// * Persists changes to the app's own storage.

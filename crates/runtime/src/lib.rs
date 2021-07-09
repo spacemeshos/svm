@@ -15,6 +15,7 @@ mod import;
 mod runtime;
 mod storage;
 mod validation;
+mod wasm_store;
 
 pub mod error;
 pub mod testing;

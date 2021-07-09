@@ -1,4 +1,5 @@
 use log::{error, info};
+use svm_codec::ParseError;
 use svm_ffi::svm_env_t;
 use svm_layout::FixedLayout;
 use svm_storage::app::AppStorage;
@@ -151,7 +152,7 @@ where
                 let mut ctx =
                     Context::new(call.gas_left, storage, call.template_addr, call.app_addr);
 
-                let store = svm_compiler::new_store();
+                let store = crate::wasm_store::new_store();
 
                 let (import_object, host_envs) = self.create_import_object(&store, &mut ctx);
 
@@ -533,9 +534,9 @@ where
         let gas_metering = gas_left.is_some();
         let gas_left = gas_left.unwrap_or(0);
 
-        let module = svm_compiler::compile(store, template.code(), gas_left, gas_metering);
+        let module_res = Module::from_binary(store, template.code());
 
-        module.map_err(|err| self.compilation_failed(ctx, err))
+        module_res.map_err(|err| self.compilation_failed(ctx, err))
     }
 
     fn validate_call(
@@ -564,7 +565,7 @@ where
         Ok(())
     }
 
-    /// Gas
+    /// Calculates the cost of saving a template on-chain.
     fn template_installation_price(&self, bytes: &[u8], _template: &Template) -> u64 {
         // todo!()
         1000 * (bytes.len() as u64)
@@ -654,7 +655,10 @@ where
     T: EnvTypes,
 {
     fn validate_template(&self, bytes: &[u8]) -> std::result::Result<(), ValidateError> {
-        // TODO: float validation logic.
+        if !crate::validation::validate_opcodes(bytes) {
+            // FIXME error type.
+            return Err(ValidateError::Parse(ParseError::ReachedEOF));
+        }
         let template = self.env.parse_deploy_template(bytes, None)?;
         let code = template.code();
 
@@ -665,7 +669,7 @@ where
         self.env
             .parse_spawn_app(bytes)
             .map(|_| ())
-            .map_err(|e| e.into())
+            .map_err(Into::into)
     }
 
     fn validate_tx(&self, bytes: &[u8]) -> std::result::Result<Transaction, ValidateError> {
@@ -678,7 +682,7 @@ where
         deployer: &DeployerAddr,
         gas_limit: Gas,
     ) -> TemplateReceipt {
-        info!("runtime `deploy_template`");
+        info!("Deploying a template.");
 
         let template = self.env.parse_deploy_template(bytes, None).unwrap();
 
@@ -689,7 +693,6 @@ where
 
         if gas_limit >= install_price {
             let gas_used = Gas::with(install_price);
-
             self.install_template(&template, gas_used)
         } else {
             TemplateReceipt::new_oog()

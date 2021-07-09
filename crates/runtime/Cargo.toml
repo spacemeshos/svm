@@ -21,9 +21,11 @@ svm-layout = { path="../layout" }
 svm-kv = { path="../kv", default-features=false }
 svm-storage = { path="../storage", default-features=false }
 svm-codec = { path="../codec" }
-svm-compiler = { path="../compiler", default-features=false }
 svm-gas = { path="../gas" }
-wasmer = { version="2.0.0-rc1", default-features=false }
+wasmer = { version="2", default-features=false }
+wasmer-runtime-core = "0.17"
+wasmer-runtime = "0.17"
+wasmparser = "0.79"
 
 [dev-dependencies]
 maplit = "1.0.2"
@@ -31,15 +33,7 @@ svm-sdk = { path="../sdk", features=["mock", "dynamic-alloc"], default-features=
 
 [features]
 default = ["default-cranelift", "default-memory"]
-default-cranelift = [
-    "svm-compiler/default-cranelift",
-    "wasmer/default-cranelift",
-    "wasmer/default-universal",
-]
-default-llvm = [
-    "svm-compiler/default-llvm",
-    "wasmer/default-llvm",
-    "wasmer/default-universal",
-]
+default-cranelift = ["wasmer/default-cranelift", "wasmer/default-universal"]
+default-llvm = ["wasmer/default-llvm", "wasmer/default-universal"]
 default-memory = ["svm-kv/default-memory", "svm-storage/default-memory"]
 default-rocksdb = ["svm-kv/default-rocksdb", "svm-storage/default-rocksdb"]

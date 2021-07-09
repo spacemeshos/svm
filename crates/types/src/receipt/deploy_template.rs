@@ -1,9 +1,11 @@
-use crate::gas::Gas;
 use crate::receipt::{ReceiptLog, RuntimeError};
+use crate::{Gas, TemplateAddr};
 
-use crate::TemplateAddr;
-
-/// Returned Receipt after deploying a Template.
+/// Information about the attempted deployment of a
+/// [`Template`](crate::Template).
+///
+/// [`TemplateReceipt`] should *not* be wrapped in a [`Result`] for failure
+/// detection; error detection is built-in the type itself.
 #[derive(Debug, PartialEq, Clone)]
 pub struct TemplateReceipt {
     /// Transaction format version
@@ -26,7 +28,8 @@ pub struct TemplateReceipt {
 }
 
 impl TemplateReceipt {
-    /// Creates a new `TemplateReceipt` struct.
+    /// Creates a [`TemplateReceipt`] which indicates a successful deployment of
+    /// the template located at `addr` which cost `gas_used`.
     pub fn new(addr: TemplateAddr, gas_used: Gas) -> Self {
         Self {
             version: 0,
@@ -38,12 +41,12 @@ impl TemplateReceipt {
         }
     }
 
-    /// Creates a `TemplateReceipt` for reaching reaching `Out-of-Gas`.
+    /// Creates a [`TemplateReceipt`] for reaching `Out-of-Gas`.
     pub fn new_oog() -> Self {
         Self::from_err(RuntimeError::OOG, Vec::new())
     }
 
-    /// Creates a new failure Receipt out of the `error` parameter
+    /// Creates a new failure [`TemplateReceipt`] out of the `error` parameter.
     pub fn from_err(error: RuntimeError, logs: Vec<ReceiptLog>) -> Self {
         Self {
             version: 0,
@@ -55,7 +58,12 @@ impl TemplateReceipt {
         }
     }
 
-    /// Returns the deployed template address. Panics if deploy has failed.
+    /// Returns the deployed template address.
+    ///
+    /// # Panics
+    ///
+    /// This function will panic if the [`Template`](crate::Template) deployment
+    /// has failed.
     pub fn template_addr(&self) -> &TemplateAddr {
         self.addr.as_ref().unwrap()
     }

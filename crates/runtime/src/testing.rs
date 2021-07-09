@@ -53,11 +53,6 @@ impl<'a> From<&'a [u8]> for WasmFile<'a> {
     }
 }
 
-/// Creates a new `Wasmer Store`
-pub fn wasmer_store() -> Store {
-    svm_compiler::new_store()
-}
-
 /// Creates a new `Wasmer Memory` consisting of a single page
 /// The memory is of type non-shared and can grow without a limit
 pub fn wasmer_memory(store: &Store) -> Memory {
@@ -76,7 +71,7 @@ pub fn wasmer_compile(store: &Store, wasm_file: WasmFile, gas_limit: Gas) -> Mod
     let gas_metering = gas_limit.is_some();
     let gas_limit = gas_limit.unwrap_or(0);
 
-    svm_compiler::compile(store, &wasm, gas_limit, gas_metering).unwrap()
+    Module::from_binary(&store, &wasm[..]).unwrap()
 }
 
 /// Instantiate a `wasmer` instance
@@ -122,7 +117,7 @@ pub fn create_memory_runtime(
     DefaultRuntime::new(env, &kv_path, imports, Box::new(storage_builder))
 }
 
-/// Returns a function (wrapped inside `Box`) that initializes an App's storage client.
+/// Returns a function (wrapped inside [`Box`]) that initializes an App's storage client.
 pub fn runtime_memory_storage_builder(
     state_kv: &Rc<RefCell<dyn StatefulKV>>,
 ) -> Box<StorageBuilderFn> {
@@ -141,7 +136,7 @@ pub fn runtime_memory_storage_builder(
     Box::new(func)
 }
 
-/// Builds a  raw `Deploy Template` transaction
+/// Builds a raw `Deploy Template` transaction.
 pub fn build_template(
     code_version: u32,
     name: &str,
