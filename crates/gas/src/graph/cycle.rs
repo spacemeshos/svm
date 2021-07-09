@@ -45,12 +45,11 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::fmt::format;
-
     use parity_wasm::elements::Func;
 
-    use super::*;
+    use std::fmt::format;
 
+    use super::*;
     use crate::{FuncIndex, GraphCycles};
 
     fn fmt_cycle(cycle: GraphCycles<FuncIndex>) -> String {
