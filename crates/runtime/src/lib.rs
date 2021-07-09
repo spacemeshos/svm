@@ -11,7 +11,6 @@
 
 mod context;
 mod env;
-mod gas;
 mod import;
 mod runtime;
 mod storage;
@@ -22,7 +21,6 @@ pub mod vmcalls;
 
 pub use context::Context;
 pub use env::{Env, EnvTypes};
-pub use gas::DefaultGasEstimator;
 pub use import::ExternImport;
 #[cfg(feature = "default-rocksdb")]
 pub use runtime::create_rocksdb_runtime;

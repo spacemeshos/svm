@@ -32,7 +32,7 @@ where
     /// Recursive calls aren't allowed
     RecursiveCall {
         /// Function containing the recursive-call
-        func: FuncIndex,
+        func: T,
 
         /// The `call` instruction offset relative to the beginning of the function
         offset: usize,

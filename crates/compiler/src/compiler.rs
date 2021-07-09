@@ -1,12 +1,7 @@
 use svm_gas::{FuncPrice, ProgramVisitor};
 use wasmer::{CompileError, Cranelift, Module, Store, Universal};
 
-/// Compiles the SVM app
-///
-// TODO:
-// ====
-// * inject `gas-metering` middleware.
-// * inject the validation middleware.
+/// Compiles the SVM app.
 #[must_use]
 pub fn compile(
     store: &Store,

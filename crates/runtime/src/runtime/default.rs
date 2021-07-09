@@ -47,6 +47,7 @@ where
     T: EnvTypes,
 {
     fn validate_template(&self, bytes: &[u8]) -> std::result::Result<(), ValidateError> {
+        // TODO: float validation logic.
         let template = self.env.parse_deploy_template(bytes, None)?;
         let code = template.code();
 
@@ -75,7 +76,7 @@ where
         let template = self.env.parse_deploy_template(bytes, None).unwrap();
 
         // TODO:
-        //
+        // Gas limit validation.
 
         let install_price = self.template_installation_price(bytes, &template);
 
