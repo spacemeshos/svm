@@ -2,8 +2,6 @@ use svm_codec::ParseError;
 use svm_gas::ProgramError;
 use thiserror::Error;
 
-use std::fmt;
-
 /// The error type that can arise when validating SVM-dialect WASM files.
 #[derive(Debug, PartialEq, Clone, Error)]
 pub enum ValidateError {

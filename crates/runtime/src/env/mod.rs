@@ -44,9 +44,8 @@ pub use traits::{
     AppAddressCompute, AppStore, TemplateAddressCompute, TemplateHasher, TemplateStore,
 };
 
-/// Runtime types
-pub mod hash;
-use hash::TemplateHash;
+/// Represents an `Template` Hash.
+pub type TemplateHash = [u8; 32];
 
 pub trait EnvTypes {
     /// `Template` store type.
@@ -69,9 +68,9 @@ pub struct Env<T>
 where
     T: EnvTypes,
 {
-    app_store: <T as EnvTypes>::AppStore,
+    app_store: T::AppStore,
 
-    template_store: <T as EnvTypes>::TemplateStore,
+    template_store: T::TemplateStore,
 }
 
 impl<T> Env<T>
@@ -97,33 +96,33 @@ where
     }
 
     /// Borrows mutably a `TemplateStore`
-    pub fn get_template_store_mut(&mut self) -> &mut <T as EnvTypes>::TemplateStore {
+    pub fn get_template_store_mut(&mut self) -> &mut T::TemplateStore {
         &mut self.template_store
     }
 
     /// Borrows environment's `AppStore`
-    pub fn get_app_store(&self) -> &<T as EnvTypes>::AppStore {
+    pub fn get_app_store(&self) -> &T::AppStore {
         &self.app_store
     }
 
     /// Borrows mutably environment's `App`(s) store
-    pub fn get_app_store_mut(&mut self) -> &mut <T as EnvTypes>::AppStore {
+    pub fn get_app_store_mut(&mut self) -> &mut T::AppStore {
         &mut self.app_store
     }
 
-    /// Computes `TemplateHash`
+    /// Computes a [`TemplateHash`].
     pub fn compute_template_hash(&self, template: &Template) -> TemplateHash {
-        <T as EnvTypes>::TemplateHasher::hash(template)
+        T::TemplateHasher::hash(template)
     }
 
-    /// Computes `Template` account address
+    /// Computes [`Template`] account address.
     pub fn derive_template_address(&self, template: &Template) -> TemplateAddr {
-        <T as EnvTypes>::TemplateAddressCompute::compute(template)
+        T::TemplateAddressCompute::compute(template)
     }
 
-    /// Computes `App` account `Address`
+    /// Computes `App` account `Address`.
     pub fn derive_app_address(&self, spawn: &ExtSpawnApp) -> AppAddr {
-        <T as EnvTypes>::AppAddressCompute::compute(spawn)
+        T::AppAddressCompute::compute(spawn)
     }
 
     /// Wire

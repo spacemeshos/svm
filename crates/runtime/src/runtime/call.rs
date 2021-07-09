@@ -1,5 +1,6 @@
 use svm_types::{AppAddr, Gas, State, TemplateAddr};
 
+/// Information regarding a WASM function call.
 #[doc(hidden)]
 #[derive(Debug, Clone, PartialEq)]
 pub struct Call<'a> {
