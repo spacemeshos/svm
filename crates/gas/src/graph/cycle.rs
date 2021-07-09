@@ -56,26 +56,22 @@ mod tests {
         format!("{:?}", cycle)
     }
 
-    fn elem(n: u32) -> FuncIndex {
-        FuncIndex(n)
-    }
-
     #[test]
     fn graph_cycle_fmt() {
         assert_eq!(fmt_cycle(GraphCycles::NoCycles), "no-cycles");
         assert_eq!(fmt_cycle(GraphCycles::HasCycles(None)), "has-cycles");
 
         assert_eq!(
-            fmt_cycle(GraphCycles::HasCycles(Some(vec![elem(1)]))),
+            fmt_cycle(GraphCycles::HasCycles(Some(vec![FuncIndex(1)]))),
             "has-cycles (for example: `1`)"
         );
 
         assert_eq!(
             fmt_cycle(GraphCycles::HasCycles(Some(vec![
-                elem(1),
-                elem(2),
-                elem(5),
-                elem(1),
+                FuncIndex(1),
+                FuncIndex(2),
+                FuncIndex(5),
+                FuncIndex(1),
             ]))),
             "has-cycles (for example: `1 -> 2 -> 5 -> 1`)"
         );
