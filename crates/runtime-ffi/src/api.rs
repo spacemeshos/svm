@@ -1,3 +1,5 @@
+use log::{debug, error};
+
 use std::cell::RefCell;
 use std::convert::TryFrom;
 use std::ffi::c_void;
@@ -5,8 +7,6 @@ use std::rc::Rc;
 
 #[cfg(feature = "default-rocksdb")]
 use std::path::Path;
-
-use log::{debug, error};
 
 use svm_codec::receipt;
 use svm_ffi::{svm_byte_array, svm_resource_iter_t, svm_resource_t, tracking};

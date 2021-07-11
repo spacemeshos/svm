@@ -1,4 +1,6 @@
 use log::{error, info};
+use wasmer::{Exports, Extern, ImportObject, Instance, Module, Store, WasmPtr, WasmTypeList};
+
 use svm_layout::FixedLayout;
 use svm_storage::app::AppStorage;
 use svm_types::SectionKind;
@@ -6,7 +8,6 @@ use svm_types::{AppAddr, DeployerAddr, SpawnerAddr, State, Template, Type};
 use svm_types::{ExecReceipt, ReceiptLog, SpawnAppReceipt, TemplateReceipt};
 use svm_types::{Gas, OOGError};
 use svm_types::{RuntimeError, Transaction};
-use wasmer::{Exports, Extern, ImportObject, Instance, Module, Store, WasmPtr, WasmTypeList};
 
 use std::collections::HashMap;
 use std::collections::HashSet;

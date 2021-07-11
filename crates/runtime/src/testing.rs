@@ -1,10 +1,8 @@
+use wasmer::{ImportObject, Instance, Memory, MemoryType, Module, Pages, Store};
+
 use std::cell::RefCell;
 use std::path::Path;
 use std::rc::Rc;
-
-use crate::env::{DefaultMemAppStore, DefaultMemEnvTypes, DefaultMemTemplateStore};
-use crate::storage::StorageBuilderFn;
-use crate::{Config, DefaultRuntime, Env};
 
 use svm_codec::api::builder::{SpawnAppBuilder, TemplateBuilder, TxBuilder};
 use svm_codec::template;
@@ -18,7 +16,9 @@ use svm_types::{
     TemplateAddr,
 };
 
-use wasmer::{ImportObject, Instance, Memory, MemoryType, Module, Pages, Store};
+use crate::env::{DefaultMemAppStore, DefaultMemEnvTypes, DefaultMemTemplateStore};
+use crate::storage::StorageBuilderFn;
+use crate::{Config, DefaultRuntime, Env};
 
 /// Hold a Wasm file in textual or binary form
 pub enum WasmFile<'a> {

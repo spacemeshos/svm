@@ -11,10 +11,8 @@
 
 mod address;
 mod byte_array;
-mod layout;
 mod macros;
 mod state;
-mod types;
 
 /// Tracking manually-allocated resources.
 pub mod tracking;

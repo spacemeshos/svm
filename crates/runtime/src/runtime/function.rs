@@ -1,6 +1,6 @@
-use std::marker::PhantomData;
-
 use wasmer::WasmTypeList;
+
+use std::marker::PhantomData;
 
 pub struct Function<'a, Args, Rets>
 where
