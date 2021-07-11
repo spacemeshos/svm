@@ -4,7 +4,7 @@ use std::rc::Rc;
 
 use crate::env::{DefaultMemAppStore, DefaultMemEnvTypes, DefaultMemTemplateStore};
 use crate::storage::StorageBuilderFn;
-use crate::{Config, DefaultRuntime, Env, ExternImport};
+use crate::{Config, DefaultRuntime, Env};
 
 use svm_codec::api::builder::{SpawnAppBuilder, TemplateBuilder, TxBuilder};
 use svm_codec::template;
@@ -18,7 +18,6 @@ use svm_types::{
     TemplateAddr,
 };
 
-use wasmer::wasmparser::Data;
 use wasmer::{ImportObject, Instance, Memory, MemoryType, Module, Pages, Store};
 
 /// Hold a Wasm file in textual or binary form
@@ -106,7 +105,6 @@ pub fn memory_state_kv_init() -> Rc<RefCell<dyn StatefulKV>> {
 /// Creates an in-memory `Runtime` backed by key-value and host vmcalls (`imports`).
 pub fn create_memory_runtime(
     state_kv: &Rc<RefCell<dyn StatefulKV>>,
-    imports: &Vec<ExternImport>,
 ) -> DefaultRuntime<DefaultMemEnvTypes> {
     let storage_builder = runtime_memory_storage_builder(state_kv);
 
@@ -117,7 +115,7 @@ pub fn create_memory_runtime(
 
     let kv_path = Path::new("");
 
-    DefaultRuntime::new(env, &kv_path, imports, Box::new(storage_builder))
+    DefaultRuntime::new(env, &kv_path, Box::new(storage_builder))
 }
 
 /// Returns a function (wrapped inside `Box`) that initializes an App's storage client.
