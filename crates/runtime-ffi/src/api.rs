@@ -72,7 +72,7 @@ macro_rules! to_svm_byte_array {
 /// In case the transaction isn't valid - the transaction should be discarded.
 ///
 ///
-/// # Example
+/// # Examples
 ///
 /// ```rust, no_run
 /// use svm_runtime_ffi::*;
@@ -121,7 +121,7 @@ pub unsafe extern "C" fn svm_validate_template(
 /// In case the transaction isn't valid - the transaction should be discarded.
 ///
 ///
-/// # Example
+/// # Examples
 ///
 /// ```rust, no_run
 /// use svm_runtime_ffi::*;
@@ -166,7 +166,7 @@ pub unsafe extern "C" fn svm_validate_app(
 /// Validates syntactically a raw `execute app` transaction.
 /// Returns the `App` address that appears in the transaction.
 ///
-/// # Example
+/// # Examples
 ///
 /// ```rust, no_run
 /// use svm_runtime_ffi::*;
@@ -234,7 +234,7 @@ macro_rules! box_runtime {
 /// Creates a new in-memory key-value client.
 /// Returns a raw pointer to allocated kv-store via input parameter `kv`.
 ///
-/// # Example
+/// # Examples
 ///
 /// ```rust
 /// use svm_runtime_ffi::*;
@@ -256,7 +256,7 @@ pub unsafe extern "C" fn svm_memory_state_kv_create(kv: *mut *mut c_void) -> svm
 
 /// Frees an in-memory key-value.
 ///
-/// # Example
+/// # Examples
 ///
 /// ```rust
 /// use svm_runtime_ffi::*;
@@ -282,7 +282,7 @@ pub unsafe extern "C" fn svm_state_kv_destroy(kv: *mut c_void) -> svm_result_t {
 /// Creates a new SVM Runtime instance baced-by an in-memory KV.
 /// Returns it via the `runtime` parameter.
 ///
-/// # Example
+/// # Examples
 ///
 /// ```rust
 /// use svm_runtime_ffi::*;
@@ -323,7 +323,7 @@ pub unsafe extern "C" fn svm_memory_runtime_create(
 /// Creates a new SVM Runtime instance.
 /// Returns it via the `runtime` parameter.
 ///
-/// # Example
+/// # Examples
 ///
 /// ```rust, no_run
 /// use svm_runtime_ffi::*;
@@ -376,7 +376,7 @@ pub unsafe extern "C" fn svm_runtime_create(
 
 /// Deploys a new app-template
 ///
-/// # Example
+/// # Examples
 ///
 /// ```rust, no_run
 /// use svm_runtime_ffi::*;
@@ -453,7 +453,7 @@ pub unsafe extern "C" fn svm_deploy_template(
 
 /// Spawns a new App.
 ///
-/// # Example
+/// # Examples
 ///
 /// ```rust, no_run
 /// use svm_runtime_ffi::*;
@@ -531,7 +531,7 @@ pub unsafe extern "C" fn svm_spawn_app(
 /// Triggers an app-transaction execution of an already deployed app.
 /// Returns the receipt of the execution via the `receipt` parameter.
 ///
-/// # Example
+/// # Examples
 ///
 /// ```rust, no_run
 /// use std::ffi::c_void;
@@ -674,7 +674,7 @@ pub unsafe extern "C" fn svm_resource_type_name_resolve(ty: usize) -> *mut svm_b
     }
 }
 
-/// Destorys a resource holding a type textual name
+/// Destroys a resource holding a type textual name
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_resource_type_name_destroy(ptr: *mut svm_byte_array) {
@@ -685,7 +685,7 @@ pub unsafe extern "C" fn svm_resource_type_name_destroy(ptr: *mut svm_byte_array
 
 /// Destroys the Runtime and its associated resources.
 ///
-/// # Example
+/// # Examples
 ///
 /// ```rust, no_run
 /// use svm_runtime_ffi::*;
@@ -716,7 +716,7 @@ pub unsafe extern "C" fn svm_runtime_destroy(runtime: *mut c_void) {
 
 /// Frees `svm_byte_array`
 ///
-/// # Example
+/// # Examples
 ///
 /// ```rust
 /// use svm_runtime_ffi::*;

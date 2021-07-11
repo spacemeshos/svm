@@ -1,5 +1,4 @@
 use log::{error, info};
-use svm_ffi::svm_env_t;
 use svm_layout::FixedLayout;
 use svm_storage::app::AppStorage;
 use svm_types::SectionKind;
@@ -283,27 +282,12 @@ where
                     Context::new(call.gas_left, storage, call.template_addr, call.app_addr);
 
                 let store = svm_compiler::new_store();
+                let import_object = self.create_import_object(&store, &mut ctx);
 
-                let (import_object, host_envs) = self.create_import_object(&store, &mut ctx);
-
-                let result =
-                    self.exec_::<Args, Rets>(&call, &store, &ctx, &template, &import_object);
-
-                self.drop_envs(host_envs);
-
-                match result {
-                    Ok(out) => Ok(f(&ctx, out)),
-                    Err(err) => Err(err),
-                }
+                let res = self.exec_::<Args, Rets>(&call, &store, &ctx, &template, &import_object);
+                res.map(|out| f(&ctx, out))
             }
             Err(err) => Err(err.into()),
-        }
-    }
-
-    fn drop_envs(&self, mut host_envs: Vec<*mut svm_env_t>) {
-        for env in host_envs.drain(..) {
-            let ty = Type::of::<svm_env_t>();
-            let _ = svm_ffi::from_raw(ty, env);
         }
     }
 
@@ -600,13 +584,8 @@ where
         Ok(func)
     }
 
-    fn create_import_object(
-        &self,
-        store: &Store,
-        ctx: &mut Context,
-    ) -> (ImportObject, Vec<*mut svm_env_t>) {
+    fn create_import_object(&self, store: &Store, ctx: &mut Context) -> ImportObject {
         let mut import_object = ImportObject::new();
-        let mut funcs_envs = Vec::new();
 
         // let mut exports = HashMap::new();
         // for import in imports.iter() {
@@ -630,7 +609,7 @@ where
         vmcalls::wasmer_register(store, ctx, &mut svm);
         import_object.register("svm", svm);
 
-        (import_object, funcs_envs)
+        import_object
     }
 
     fn load_template(&self, app_addr: &AppAddr) -> std::result::Result<Template, RuntimeError> {
