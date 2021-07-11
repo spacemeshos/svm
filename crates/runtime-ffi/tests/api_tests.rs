@@ -259,6 +259,7 @@ fn svm_runtime_failure() {
     }
 }
 
+#[ignore]
 #[test]
 fn svm_runtime_success() {
     unsafe {
