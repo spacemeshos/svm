@@ -67,13 +67,12 @@
 //!   +-------------------+----------------------------+
 //!
 
-use std::io::Cursor;
-
-use crate::{ReadExt, WriteExt};
-
 use svm_types::{Address, AppAddr, ReceiptLog, RuntimeError, TemplateAddr};
 
+use std::io::Cursor;
+
 use super::logs;
+use crate::{ReadExt, WriteExt};
 
 pub(crate) fn encode_error(err: &RuntimeError, logs: &[ReceiptLog], w: &mut Vec<u8>) {
     encode_err_type(err, w);

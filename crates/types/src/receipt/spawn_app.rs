@@ -50,22 +50,22 @@ impl SpawnAppReceipt {
     }
 
     /// Returns spawned-app `Error`. Panics if spawning has *not* failed.
-    pub fn get_error(&self) -> &RuntimeError {
+    pub fn error(&self) -> &RuntimeError {
         self.error.as_ref().unwrap()
     }
 
     /// Returns spawned-app `Address`. Panics if spawning has failed.
-    pub fn get_app_addr(&self) -> &AppAddr {
+    pub fn app_addr(&self) -> &AppAddr {
         self.app_addr.as_ref().unwrap()
     }
 
     /// Returns spawned-app initial `State`. Panics if spawning has failed.
-    pub fn get_init_state(&self) -> &State {
+    pub fn init_state(&self) -> &State {
         self.init_state.as_ref().unwrap()
     }
 
     /// Returns spawned-app results. Panics if spawning has failed.
-    pub fn get_returndata(&self) -> &Vec<u8> {
+    pub fn returndata(&self) -> &Vec<u8> {
         self.returndata.as_ref().unwrap()
     }
 
@@ -75,7 +75,7 @@ impl SpawnAppReceipt {
     }
 
     /// Returns the logs generated during the transaction execution
-    pub fn get_logs(&self) -> &[ReceiptLog] {
+    pub fn logs(&self) -> &[ReceiptLog] {
         &self.logs
     }
 

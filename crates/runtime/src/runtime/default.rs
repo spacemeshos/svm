@@ -1,32 +1,26 @@
-use std::collections::HashMap;
-use std::collections::HashSet;
-use std::path::Path;
-
 use log::{error, info};
-use svm_types::SectionKind;
-
-use crate::env;
-use crate::Env;
-
-use env::{EnvTypes, ExtApp, ExtSpawnApp};
-
-use crate::error::ValidateError;
-use crate::storage::StorageBuilderFn;
-use crate::vmcalls;
-use crate::{Config, Context, ExternImport, Runtime};
-
 use svm_ffi::svm_env_t;
 use svm_layout::FixedLayout;
 use svm_storage::app::AppStorage;
-
+use svm_types::SectionKind;
 use svm_types::{AppAddr, DeployerAddr, SpawnerAddr, State, Template, Type};
 use svm_types::{ExecReceipt, ReceiptLog, SpawnAppReceipt, TemplateReceipt};
 use svm_types::{Gas, OOGError};
 use svm_types::{RuntimeError, Transaction};
-
 use wasmer::{Exports, Extern, ImportObject, Instance, Module, Store, WasmPtr, WasmTypeList};
 
+use std::collections::HashMap;
+use std::collections::HashSet;
+use std::path::{Path, PathBuf};
+
 use super::{Call, Failure, Function, Outcome};
+use crate::env;
+use crate::env::{EnvTypes, ExtApp, ExtSpawnApp};
+use crate::error::ValidateError;
+use crate::storage::StorageBuilderFn;
+use crate::vmcalls;
+use crate::Env;
+use crate::{Config, Context, ExternImport, Runtime};
 
 type Result<T> = std::result::Result<Outcome<T>, Failure>;
 
@@ -189,19 +183,18 @@ where
     T: EnvTypes,
 {
     /// Initializes a new `DefaultRuntime`.
-    pub fn new<P: AsRef<Path>>(
+    pub fn new<P: Into<PathBuf>>(
         env: Env<T>,
         kv_path: P,
         imports: &Vec<ExternImport>,
         storage_builder: Box<StorageBuilderFn>,
     ) -> Self {
-        let config = Config::new(kv_path);
-        let imports = imports as *const _;
-
         Self {
             env,
-            config,
-            imports,
+            config: Config {
+                kv_path: kv_path.into(),
+            },
+            imports: imports as *const _,
             storage_builder,
         }
     }
@@ -211,15 +204,12 @@ where
         ctx: &Context,
         mut out: Outcome<Box<[wasmer::Val]>>,
     ) -> ExecReceipt {
-        let returndata = self.take_returndata(ctx);
-        let new_state = self.commit_changes(&ctx);
-
         ExecReceipt {
             version: 0,
             success: true,
             error: None,
-            returndata: Some(returndata),
-            new_state: Some(new_state),
+            returndata: Some(self.take_returndata(ctx)),
+            new_state: Some(self.commit_changes(&ctx)),
             gas_used: out.gas_used(),
             logs: out.take_logs(),
         }
@@ -255,7 +245,7 @@ where
             func_name: spawn.ctor_name(),
             calldata: spawn.ctor_data(),
             state: &State::zeros(),
-            template_addr: &template_addr,
+            template_addr,
             app_addr,
             within_spawn: true,
             gas_used,
@@ -290,17 +280,12 @@ where
     {
         info!("runtime `exec`");
 
-        match self.load_template(call.app_addr()) {
+        match self.load_template(call.app_addr) {
             Ok(template) => {
-                let storage =
-                    self.open_storage(call.app_addr(), call.state(), template.fixed_layout());
+                let storage = self.open_storage(call.app_addr, call.state, template.fixed_layout());
 
-                let mut ctx = Context::new(
-                    call.gas_left(),
-                    storage,
-                    call.template_addr(),
-                    call.app_addr(),
-                );
+                let mut ctx =
+                    Context::new(call.gas_left, storage, call.template_addr, call.app_addr);
 
                 let store = svm_compiler::new_store();
 
@@ -341,15 +326,15 @@ where
     {
         self.validate_call(call, template, ctx)?;
 
-        let module = self.compile_template(store, ctx, &template, call.gas_left())?;
+        let module = self.compile_template(store, ctx, &template, call.gas_left)?;
         let instance = self.instantiate(ctx, &module, import_object)?;
 
         self.set_memory(ctx, &instance);
 
-        let func = self.get_func::<Args, Rets>(&instance, ctx, call.func_name())?;
+        let func = self.get_func::<Args, Rets>(&instance, ctx, call.func_name)?;
 
-        let mut out = if call.calldata().len() > 0 {
-            self.call_with_alloc(&instance, ctx, call.calldata(), &func, &[])?
+        let mut out = if call.calldata.len() > 0 {
+            self.call_with_alloc(&instance, ctx, call.calldata, &func, &[])?
         } else {
             self.call(&instance, ctx, &func, &[])?
         };
@@ -694,19 +679,19 @@ where
         template: &Template,
         ctx: &Context,
     ) -> std::result::Result<(), Failure> {
-        let spawning = call.within_spawn();
-        let ctor = template.is_ctor(call.func_name());
+        let spawning = call.within_spawn;
+        let ctor = template.is_ctor(call.func_name);
 
         if spawning && !ctor {
             let msg = "expected function to be a constructor";
-            let err = self.func_not_allowed(ctx, call.func_name(), msg);
+            let err = self.func_not_allowed(ctx, call.func_name, msg);
 
             return Err(err);
         }
 
         if !spawning && ctor {
             let msg = "expected function to be a non-constructor";
-            let err = self.func_not_allowed(ctx, call.func_name(), msg);
+            let err = self.func_not_allowed(ctx, call.func_name, msg);
 
             return Err(err);
         }
