@@ -586,29 +586,12 @@ where
     }
 
     fn create_import_object(&self, store: &Store, ctx: &mut Context) -> ImportObject {
+        let mut internals = Exports::new();
+
+        vmcalls::wasmer_register(store, ctx, &mut internals);
+
         let mut import_object = ImportObject::new();
-
-        // let mut exports = HashMap::new();
-        // for import in imports.iter() {
-        //     let namespace = import.namespace();
-        //     let ns_exports = exports.entry(namespace).or_insert(Exports::new());
-
-        //     let (export, func_env) = import.wasmer_export(store, ctx);
-
-        //     funcs_envs.push(func_env);
-        //     let ext = Extern::from_vm_export(store, export);
-
-        //     ns_exports.insert(import.name(), ext);
-        // }
-
-        // for (ns, exports) in exports {
-        //     import_object.register(ns, exports);
-        // }
-
-        let mut svm = Exports::new();
-
-        vmcalls::wasmer_register(store, ctx, &mut svm);
-        import_object.register("svm", svm);
+        import_object.register("svm", internals);
 
         import_object
     }
