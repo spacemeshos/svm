@@ -2,7 +2,7 @@ use std::io;
 use std::string::FromUtf8Error;
 
 use svm_ffi::svm_byte_array;
-use svm_runtime::error::ValidateError;
+use svm_runtime::ValidateError;
 use svm_types::Type;
 
 pub(crate) unsafe fn raw_validate_error(err: &ValidateError, raw_err: *mut svm_byte_array) {

@@ -9,7 +9,7 @@ use svm_codec::{Field, ParseError};
 
 use svm_gas::ProgramError;
 use svm_layout::FixedLayout;
-use svm_runtime::{error::ValidateError, testing, Runtime};
+use svm_runtime::{testing, Runtime, ValidateError};
 
 use svm_types::{Address, Gas, RuntimeError};
 use svm_types::{SpawnAppReceipt, TemplateReceipt};

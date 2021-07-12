@@ -1,12 +1,8 @@
 use svm_gas::{FuncPrice, ProgramVisitor};
 use wasmer::{ExternType, FunctionType};
-use wasmer_runtime_core::{
-    codegen::{Event, EventSink, FunctionMiddleware},
-    module::ModuleInfo,
-};
 use wasmparser::Operator;
 
-fn calculate_gas_limit(wasm_module: &[u8], _gas_limit: u64) -> FuncPrice {
+pub fn calculate_gas_limit(wasm_module: &[u8], _gas_limit: u64) -> FuncPrice {
     let program = svm_gas::read_program(wasm_module).unwrap();
     let pricing_resolver = svm_gas::resolvers::ExampleResolver::default();
     let program_pricing = svm_gas::ProgramPricing::new(pricing_resolver);
@@ -38,7 +34,7 @@ pub fn validate_svm_alloc(wasm_module: &[u8]) -> bool {
 // Checks whether `wasm_module` only contains the WASM opcodes that are
 // supported by SVM.
 pub fn validate_opcodes(wasm_module: &[u8]) -> bool {
-    use wasmparser::{Operator, Parser, Payload};
+    use wasmparser::{Parser, Payload};
 
     let parser = Parser::default();
     let parser_events = parser.parse_all(wasm_module);

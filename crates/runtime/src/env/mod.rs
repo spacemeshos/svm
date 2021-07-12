@@ -37,7 +37,6 @@ pub use rocksdb::{RocksAppStore, RocksTemplateStore};
 #[cfg(feature = "default-rocksdb")]
 pub use default::{DefaultRocksAppStore, DefaultRocksEnvTypes, DefaultRocksTemplateStore};
 
-/// Runtime traits
 mod traits;
 
 pub use traits::{
@@ -136,8 +135,7 @@ where
         bytes: &[u8],
         interests: Option<HashSet<SectionKind>>,
     ) -> Result<Template, ParseError> {
-        let mut cursor = Cursor::new(bytes);
-
+        let cursor = Cursor::new(bytes);
         let template = template::decode(cursor, interests)?;
 
         Ok(template)

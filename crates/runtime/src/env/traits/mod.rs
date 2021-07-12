@@ -1,3 +1,5 @@
+//! Runtime traits
+
 mod compute_address;
 mod hasher;
 mod serialize;

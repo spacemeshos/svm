@@ -2,7 +2,7 @@ use svm_hash::{DefaultHasher, Hasher};
 use svm_types::Template;
 
 use super::super::traits::TemplateHasher;
-use crate::env::{traits, TemplateHash};
+use crate::env::TemplateHash;
 
 /// Default implementation for `TemplateCodeHasher`
 pub struct DefaultTemplateHasher;

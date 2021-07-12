@@ -1,5 +1,4 @@
 use log::{error, info};
-use svm_codec::ParseError;
 use svm_ffi::svm_env_t;
 use svm_gas::ProgramError;
 use svm_layout::FixedLayout;
@@ -13,10 +12,9 @@ use wasmer::{Exports, Extern, ImportObject, Instance, Module, Store, WasmPtr, Wa
 
 use std::collections::HashMap;
 use std::collections::HashSet;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use super::{Call, Failure, Function, Outcome};
-use crate::env;
 use crate::env::{EnvTypes, ExtApp, ExtSpawnApp};
 use crate::error::ValidateError;
 use crate::storage::StorageBuilderFn;
@@ -525,15 +523,12 @@ where
         store: &Store,
         ctx: &Context,
         template: &Template,
-        gas_left: Gas,
+        _gas_left: Gas,
     ) -> std::result::Result<Module, Failure> {
         info!(
             "runtime `compile_template` (template={:?})",
             ctx.template_addr()
         );
-
-        let gas_metering = gas_left.is_some();
-        let gas_left = gas_left.unwrap_or(0);
 
         let module_res = Module::from_binary(store, template.code());
 
@@ -684,7 +679,7 @@ where
     fn deploy_template(
         &mut self,
         bytes: &[u8],
-        deployer: &DeployerAddr,
+        _deployer: &DeployerAddr,
         gas_limit: Gas,
     ) -> TemplateReceipt {
         info!("Deploying a template.");

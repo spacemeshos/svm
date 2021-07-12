@@ -3,10 +3,10 @@
 //! Currently there is one a single [`Runtime`] implementation supporting
 //! [`Wasmer`](https://wasmer.io/), but future WASM Runtime might be added.
 
-#![allow(missing_docs)]
-#![allow(unused)]
-#![allow(dead_code)]
-#![allow(unreachable_code)]
+#![warn(missing_docs)]
+#![deny(unused)]
+#![warn(dead_code)]
+#![deny(unreachable_code)]
 #![feature(vec_into_raw_parts)]
 
 mod context;
@@ -17,12 +17,13 @@ mod storage;
 mod validation;
 mod wasm_store;
 
-pub mod error;
+mod error;
 pub mod testing;
 pub mod vmcalls;
 
 pub use context::Context;
 pub use env::{Env, EnvTypes};
+pub use error::ValidateError;
 pub use import::ExternImport;
 #[cfg(feature = "default-rocksdb")]
 pub use runtime::create_rocksdb_runtime;

@@ -57,6 +57,7 @@ pub trait Runtime {
     fn spawn_app(&mut self, bytes: &[u8], spawner: &SpawnerAddr, gas_limit: Gas)
         -> SpawnAppReceipt;
 
+    /// Validates a [`Transaction`] before deployment.
     fn exec_verify(
         &self,
         tx: &Transaction,

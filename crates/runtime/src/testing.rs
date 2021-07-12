@@ -1,13 +1,5 @@
 //! Implements common functionality to be consnumed by tests.
 
-use std::cell::RefCell;
-use std::path::Path;
-use std::rc::Rc;
-
-use crate::env::{DefaultMemAppStore, DefaultMemEnvTypes, DefaultMemTemplateStore};
-use crate::storage::StorageBuilderFn;
-use crate::{Config, DefaultRuntime, Env, ExternImport};
-
 use svm_codec::api::builder::{SpawnAppBuilder, TemplateBuilder, TxBuilder};
 use svm_codec::template;
 use svm_layout::{FixedLayout, Layout};
@@ -19,9 +11,15 @@ use svm_types::{
     Address, AppAddr, CodeSection, CtorsSection, DataSection, Gas, HeaderSection, State,
     TemplateAddr,
 };
-
-use wasmer::wasmparser::Data;
 use wasmer::{ImportObject, Instance, Memory, MemoryType, Module, Pages, Store};
+
+use std::cell::RefCell;
+use std::path::Path;
+use std::rc::Rc;
+
+use crate::env::{DefaultMemAppStore, DefaultMemEnvTypes, DefaultMemTemplateStore};
+use crate::storage::StorageBuilderFn;
+use crate::{Config, DefaultRuntime, Env, ExternImport};
 
 /// Hold a Wasm file in textual or binary form
 pub enum WasmFile<'a> {
@@ -65,11 +63,8 @@ pub fn wasmer_memory(store: &Store) -> Memory {
 }
 
 /// Compiles a wasm program in text format (a.k.a WAST) into a `Module` (`wasmer`)
-pub fn wasmer_compile(store: &Store, wasm_file: WasmFile, gas_limit: Gas) -> Module {
+pub fn wasmer_compile(store: &Store, wasm_file: WasmFile, _gas_limit: Gas) -> Module {
     let wasm = wasm_file.into_bytes();
-
-    let gas_metering = gas_limit.is_some();
-    let gas_limit = gas_limit.unwrap_or(0);
 
     Module::from_binary(&store, &wasm[..]).unwrap()
 }

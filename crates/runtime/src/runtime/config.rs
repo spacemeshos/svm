@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 /// Runtime configuration
 #[derive(Debug, Clone)]
