@@ -1,4 +1,4 @@
-//! Implements `Context`. Used for managing data of running `SVM` apps.
+//! Implements [`Context`]. Used for managing data of running `SVM` apps.
 
 use svm_storage::app::AppStorage;
 use svm_types::{AppAddr, Gas, ReceiptLog, TemplateAddr};
@@ -8,9 +8,9 @@ use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
 use std::u64;
 
-/// `Context` is a container for the accessible data by `wasmer` instances.
+/// [`Context`] is a container for the accessible data by [`wasmer`] instances.
 ///
-/// * `storage`      - Instance's `AppStorage`.
+/// * `storage`      - Instance's [`AppStorage`].
 /// * `gas_metering` - Whether gas metering is enabled.
 
 #[derive(wasmer::WasmerEnv, Clone)]
