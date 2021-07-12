@@ -1,14 +1,18 @@
 //! Rendering related stuff.
 
 use byteorder::{BigEndian, ByteOrder};
-use serde_json::{Number, Value};
+use serde_json::Value;
 
 use crate::schema::{Var, VarType};
 
+/// Allows implementors to instantiate `V` objects from [`Var`] and raw bytes.
 pub trait VarRenderer<V> {
+    /// Instantiates (*renders*) an optional `V` from metadata [`Var`] and
+    /// bytes.
     fn render(var: &Var, bytes: &[u8]) -> Option<V>;
 }
 
+/// A [`VarRenderer`] implementor for JSON values.
 pub struct JsonVarRenderer;
 
 impl VarRenderer<Value> for JsonVarRenderer {
@@ -30,7 +34,7 @@ impl JsonVarRenderer {
         let length = var.layout.length;
 
         if length > 8 {
-            /// Currently, an integer can be at most 8 bytes
+            // Currently, an integer can be at most 8 bytes
             return None;
         }
 

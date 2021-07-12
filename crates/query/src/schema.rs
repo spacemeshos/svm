@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 
-///  Schema's variable representation
+/// Schema's variable representation
 #[derive(Debug, Clone, PartialEq)]
 pub struct Var {
     /// Var's unique id

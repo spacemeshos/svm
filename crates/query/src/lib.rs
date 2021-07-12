@@ -3,10 +3,10 @@
 //!
 //! The obvious usage use-case is a UX Wallet that needs to render the App's current state in a friendly way.
 
-#![allow(missing_docs)]
-#![allow(unused)]
-#![allow(dead_code)]
-#![allow(unreachable_code)]
+#![deny(missing_docs)]
+#![deny(unused)]
+#![deny(dead_code)]
+#![deny(unreachable_code)]
 
 pub mod query;
 pub mod render;
