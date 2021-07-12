@@ -1,4 +1,5 @@
-use svm_gas::FuncPrice;
+use svm_gas::{FuncPrice, ProgramVisitor};
+use wasmer::{ExternType, FunctionType};
 use wasmer_runtime_core::{
     codegen::{Event, EventSink, FunctionMiddleware},
     module::ModuleInfo,
@@ -12,6 +13,26 @@ fn calculate_gas_limit(wasm_module: &[u8], _gas_limit: u64) -> FuncPrice {
 
     let prices = program_pricing.visit(&program).unwrap();
     prices
+}
+
+/// Checks whether `wasm_module` exports a well-defined `svm_alloc` function.
+/// `svm_alloc` is required by SVM for all WASM code and must have a `I32 ->
+/// I32` type signature.
+pub fn validate_svm_alloc(wasm_module: &[u8]) -> bool {
+    let store = crate::new_store();
+    let module = if let Ok(m) = wasmer::Module::new(&store, wasm_module) {
+        m
+    } else {
+        return false;
+    };
+    for export in module.exports() {
+        let expected_type_signature =
+            ExternType::Function(FunctionType::new([wasmer::Type::I32], [wasmer::Type::I32]));
+        if export.name() == "svm_alloc" && export.ty() == &expected_type_signature {
+            return true;
+        }
+    }
+    false
 }
 
 // Checks whether `wasm_module` only contains the WASM opcodes that are

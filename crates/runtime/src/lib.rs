@@ -27,3 +27,4 @@ pub use import::ExternImport;
 #[cfg(feature = "default-rocksdb")]
 pub use runtime::create_rocksdb_runtime;
 pub use runtime::{Config, DefaultRuntime, Runtime, RuntimePtr};
+pub use wasm_store::new_store;

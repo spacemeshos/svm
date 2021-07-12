@@ -74,7 +74,7 @@ fn vmcalls_empty_wasm() {
 
     let gas_limit = Gas::new();
 
-    let store = testing::wasmer_store();
+    let store = svm_runtime::new_store();
     let import_object = imports! {};
 
     testing::wasmer_instantiate(&store, &import_object, wasm, gas_limit);
@@ -87,7 +87,7 @@ fn vmcalls_get32_set32() {
     let gas_limit = Gas::new();
     let layout: FixedLayout = vec![4, 2].into();
 
-    let store = testing::wasmer_store();
+    let store = svm_runtime::new_store();
     let storage = testing::blank_storage(&app_addr, &layout);
 
     let ctx = Context::new(gas_limit, storage, &template_addr.into(), &app_addr.into());
@@ -123,7 +123,7 @@ fn vmcalls_get64_set64() {
     let gas_limit = Gas::new();
     let layout: FixedLayout = vec![4, 2].into();
 
-    let store = testing::wasmer_store();
+    let store = svm_runtime::new_store();
     let storage = testing::blank_storage(&app_addr, &layout);
     let ctx = Context::new(gas_limit, storage, &template_addr.into(), &app_addr.into());
 
@@ -158,7 +158,7 @@ fn vmcalls_load160() {
     let gas_limit = Gas::new();
     let layout: FixedLayout = vec![20].into();
 
-    let store = testing::wasmer_store();
+    let store = svm_runtime::new_store();
     let memory = testing::wasmer_memory(&store);
     let storage = testing::blank_storage(&app_addr, &layout);
 
@@ -209,7 +209,7 @@ fn vmcalls_store160() {
     let gas_limit = Gas::new();
     let layout: FixedLayout = vec![20].into();
 
-    let store = testing::wasmer_store();
+    let store = svm_runtime::new_store();
     let memory = testing::wasmer_memory(&store);
     let storage = testing::blank_storage(&app_addr, &layout);
     let ctx = Context::new_with_memory(
@@ -255,7 +255,7 @@ fn vmcalls_log() {
     let gas_limit = Gas::new();
     let layout = FixedLayout::default();
 
-    let store = testing::wasmer_store();
+    let store = svm_runtime::new_store();
     let memory = testing::wasmer_memory(&store);
     let storage = testing::blank_storage(&app_addr, &layout);
     let ctx = Context::new_with_memory(

@@ -655,6 +655,9 @@ where
     T: EnvTypes,
 {
     fn validate_template(&self, bytes: &[u8]) -> std::result::Result<(), ValidateError> {
+        if !crate::validation::validate_svm_alloc(bytes) {
+            return Err(ValidateError::Parse(ParseError::ReachedEOF));
+        }
         if !crate::validation::validate_opcodes(bytes) {
             // FIXME error type.
             return Err(ValidateError::Parse(ParseError::ReachedEOF));
