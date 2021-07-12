@@ -1,6 +1,7 @@
 use log::{error, info};
 use svm_codec::ParseError;
 use svm_ffi::svm_env_t;
+use svm_gas::ProgramError;
 use svm_layout::FixedLayout;
 use svm_storage::app::AppStorage;
 use svm_types::{AppAddr, DeployerAddr, SpawnerAddr, State, Template, Type};
@@ -395,7 +396,7 @@ where
             //
             // In any case, the `alloc_memory` is in charge of allocating enough memory
             // for the program to run (so we don't need to have any bounds-checking here).
-
+            //
             // TODO: add to `validate_template` checking that `calldata` doesn't exceed ???
             // (we'll need to decide on a `calldata` limit).
             //
@@ -655,12 +656,13 @@ where
     T: EnvTypes,
 {
     fn validate_template(&self, bytes: &[u8]) -> std::result::Result<(), ValidateError> {
-        if !crate::validation::validate_svm_alloc(bytes) {
-            return Err(ValidateError::Parse(ParseError::ReachedEOF));
-        }
+        // Opcode and `svm_alloc` checks should only ever be run when deploying
+        // templates. There's no reason to also do it when spawning new apps
+        // over already-validated templates.
         if !crate::validation::validate_opcodes(bytes) {
-            // FIXME error type.
-            return Err(ValidateError::Parse(ParseError::ReachedEOF));
+            return Err(ValidateError::Program(ProgramError::FloatsNotAllowed));
+        } else if !crate::validation::validate_svm_alloc(bytes) {
+            return Err(ValidateError::Program(ProgramError::BadSvmAlloc));
         }
         let template = self.env.parse_deploy_template(bytes, None)?;
         let code = template.code();

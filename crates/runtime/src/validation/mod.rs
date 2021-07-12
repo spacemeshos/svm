@@ -42,8 +42,13 @@ pub fn validate_opcodes(wasm_module: &[u8]) -> bool {
 
     let parser = Parser::default();
     let parser_events = parser.parse_all(wasm_module);
-    for event in parser_events {
-        match event.unwrap() {
+    for event_res in parser_events {
+        let event = if let Ok(e) = event_res {
+            e
+        } else {
+            return false;
+        };
+        match event {
             Payload::CodeSectionEntry(function_body) => {
                 let operators = function_body.get_operators_reader().unwrap();
                 for op in operators.into_iter() {

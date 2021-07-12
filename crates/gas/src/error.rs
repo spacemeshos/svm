@@ -12,34 +12,27 @@ where
 {
     /// Invalid wasm
     InvalidWasm,
-
+    /// No valid `svm_alloc` function found.
+    BadSvmAlloc,
     /// Floats not allowed
     FloatsNotAllowed,
-
     /// Too many function imports
     TooManyFunctionImports,
-
     /// Function index is too large
     FunctionIndexTooLarge,
-
     /// `call_indirect` isn't allowed
     CallIndirectNotAllowed,
-
     /// `loop` isn't allowed
     LoopNotAllowed,
-
     /// Wasm has no `code` section
     MissingCodeSection,
-
     /// Recursive calls aren't allowed
     RecursiveCall {
         /// Function containing the recursive-call
         func: T,
-
         /// The `call` instruction offset relative to the beginning of the function
         offset: usize,
     },
-
     /// Calls cycles (e.g `A -> B -> C -> A`) aren't allowed
     CallCycle(GraphCycles<T>),
 }
