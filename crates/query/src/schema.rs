@@ -1,3 +1,5 @@
+//! Contains Schema related stuff (a.k.a `ABI`).
+
 use std::collections::HashMap;
 
 ///  Schema's variable representation

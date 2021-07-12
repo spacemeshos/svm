@@ -1,7 +1,9 @@
-use crate::schema::{Var, VarType};
+//! Rendering related stuff.
 
 use byteorder::{BigEndian, ByteOrder};
 use serde_json::{Number, Value};
+
+use crate::schema::{Var, VarType};
 
 pub trait VarRenderer<V> {
     fn render(var: &Var, bytes: &[u8]) -> Option<V>;
