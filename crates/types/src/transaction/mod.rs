@@ -20,9 +20,10 @@ pub struct Transaction {
     /// Function's name to execute
     pub func_name: String,
 
-    /// Transaction's `VerifyData`
+    // TODO:
+    // Transaction's `VerifyData`
+    //  See issue: https://github.com/spacemeshos/svm/issues/248
     // pub verifydata: Vec<u8>,
-
     /// Transaction's `CallData`
     pub calldata: Vec<u8>,
 }
@@ -38,6 +39,8 @@ impl Transaction {
         &self.func_name
     }
 
+    // TODO:
+    // See issue: https://github.com/spacemeshos/svm/issues/248
     // #[doc(hidden)]
     // pub fn verifydata(&self) -> &[u8] {
     //     &self.verifydata
@@ -57,6 +60,8 @@ impl fmt::Debug for Transaction {
         f.debug_struct("Transaction")
             .field("version", &self.version)
             .field("app", self.app.inner())
+            // TODO:
+            // See issue: https://github.com/spacemeshos/svm/issues/248
             // .field("verifydata", &verifydata)
             .field("calldata", &calldata)
             .field("function", &self.func_name)
