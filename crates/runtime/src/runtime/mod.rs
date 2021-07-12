@@ -45,7 +45,7 @@ pub trait Runtime {
     /// Validates a raw `exec-app` transaction prior to executing it.
     fn validate_tx(&self, bytes: &[u8]) -> Result<Transaction, ValidateError>;
 
-    /// Deploy an new app-template
+    /// Deploy the "template" of an app.
     fn deploy_template(
         &mut self,
         bytes: &[u8],
