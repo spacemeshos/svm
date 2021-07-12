@@ -71,7 +71,7 @@ mod test {
 
             let actual = $graph.find_cycles(return_cycles);
 
-            let expected = GraphCycles::HasCycles(Some($expected));
+            let expected = GraphCycles::HasCycles($expected);
 
             assert_eq!(actual, expected);
         };

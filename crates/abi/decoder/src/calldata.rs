@@ -1,7 +1,7 @@
-use crate::{Cursor, Decoder};
-
 use svm_sdk_std::{Option, Result};
 use svm_sdk_types::value::Value;
+
+use crate::{Cursor, Decoder};
 
 /// `CallData` exposes an ergonomic API for decoding a binary `calldata`.
 ///

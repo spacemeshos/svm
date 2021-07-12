@@ -36,7 +36,7 @@ impl InnerStorage {
     }
 
     pub fn get32(&self, var_id: u32) -> u32 {
-        let var = self.get_var(var_id, || Var::I32(0));
+        let var = self.var(var_id, || Var::I32(0));
 
         match var {
             Var::I32(v) => v,
@@ -45,7 +45,7 @@ impl InnerStorage {
     }
 
     pub fn get64(&self, var_id: u32) -> u64 {
-        let var = self.get_var(var_id, || Var::I64(0));
+        let var = self.var(var_id, || Var::I64(0));
 
         match var {
             Var::I64(v) => v,
@@ -69,7 +69,7 @@ impl InnerStorage {
         self.load_vec(var_id, offset, 20)
     }
 
-    fn get_var<F>(&self, var_id: u32, default: F) -> Var
+    fn var<F>(&self, var_id: u32, default: F) -> Var
     where
         F: Fn() -> Var,
     {
@@ -88,7 +88,7 @@ impl InnerStorage {
     }
 
     fn load_vec(&self, var_id: u32, offset: usize, len: usize) {
-        let var = self.get_var(var_id, || Var::Blob(vec![0; len]));
+        let var = self.var(var_id, || Var::Blob(vec![0; len]));
 
         match var {
             Var::Blob(vec) => unsafe {

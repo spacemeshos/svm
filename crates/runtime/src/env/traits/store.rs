@@ -1,11 +1,8 @@
+use svm_types::{AppAddr, SectionKind, Template, TemplateAddr};
+
 use std::collections::HashSet;
 
-use crate::env::{self, hash};
-
-use env::ExtApp;
-use hash::TemplateHash;
-
-use svm_types::{AppAddr, SectionKind, Template, TemplateAddr};
+use crate::env::{self, ExtApp, TemplateHash};
 
 /// A persistent store for `Template`(s).
 pub trait TemplateStore {

@@ -3,7 +3,7 @@
 //!
 //! By doing that, a Wallet Apps can locally encode a binary transaction without having to re-implement all the logic
 //! of the `svm-codec`.
-//
+//!
 //! SVM's CI emits the WASM package of `svm-codec` as one of its artifacts (`svm_codec.wasm`)
 
 #![deny(missing_docs)]
@@ -18,25 +18,11 @@ mod field;
 mod section;
 mod version;
 
-/// Encoding for apps
 pub mod app;
-
-/// Encoding for templates
 pub mod template;
-
-/// Encoding for apps-transactions
 pub mod transaction;
-
 pub use ext::{ReadExt, WriteExt};
 pub use field::Field;
-
-/// Wraps the exposed APIs under a single place.
-/// This crate exposes the following APIs:
-///
-/// * Builder
-/// * Raw  
-/// * JSON   
-/// * WASM
 pub mod api;
 
 /// Encoding of receipts.

@@ -15,40 +15,36 @@ crate-type = ["cdylib", "staticlib", "rlib"]
 
 [dependencies]
 log = "0.4"
-svm-runtime = { path = "../runtime", default-features = false }
-svm-kv = { path = "../kv", default-features = false }
-svm-gas = { path = "../gas" }
-svm-ffi = { path = "../ffi" }
-svm-types = { path = "../types" }
-svm-codec = { path = "../codec" }
-svm-layout = { path = "../layout" }
-svm-storage = { path = "../storage", default-features = false }
-svm-compiler = { path = "../compiler", default-features = false }
+svm-runtime = { path="../runtime", default-features=false }
+svm-kv = { path="../kv", default-features=false }
+svm-gas = { path="../gas" }
+svm-ffi = { path="../ffi" }
+svm-types = { path="../types" }
+svm-codec = { path="../codec" }
+svm-layout = { path="../layout" }
+svm-storage = { path="../storage", default-features=false }
 
 [dev-dependencies]
 wat = "1.0"
 serde_json = "1.0"
 maplit = "1.0.2"
-svm-sdk = { path = "../sdk", features = ["mock", "dynamic-alloc"], default-features = false }
-svm-abi-encoder = { path = "../abi/encoder", features = ["dynamic-alloc"], default-features = false }
+svm-sdk = { path="../sdk", features=["mock", "dynamic-alloc"], default-features=false }
+svm-abi-encoder = { path="../abi/encoder", features=["dynamic-alloc"], default-features=false }
 
 [build-dependencies]
 cbindgen = "0.19.0"
 
 [features]
-default = [
-    "default-memory", 
-    "default-cranelift"
-]
-default-llvm = ["svm-runtime/default-llvm"] 
-default-cranelift = ["svm-runtime/default-cranelift"] 
+default = ["default-memory", "default-cranelift"]
+default-llvm = ["svm-runtime/default-llvm"]
+default-cranelift = ["svm-runtime/default-cranelift"]
 default-memory = [
-    "svm-runtime/default-memory", 
-    "svm-kv/default-memory", 
-    "svm-storage/default-memory"
+    "svm-runtime/default-memory",
+    "svm-kv/default-memory",
+    "svm-storage/default-memory",
 ]
 default-rocksdb = [
     "svm-runtime/default-rocksdb",
     "svm-kv/default-rocksdb",
-    "svm-storage/default-rocksdb"
+    "svm-storage/default-rocksdb",
 ]

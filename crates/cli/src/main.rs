@@ -1,15 +1,13 @@
 #![allow(unused)]
 
+use structopt::StructOpt;
+use svm_gas::resolvers::ExampleResolver;
+use svm_gas::{read_program, validate_wasm};
+use svm_gas::{ProgramPricing, ProgramVisitor};
+
 use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
-
-use structopt::StructOpt;
-
-use svm_gas::resolvers::ExampleResolver;
-use svm_gas::{read_program, validate_wasm};
-
-use svm_gas::{ProgramPricing, ProgramVisitor};
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "svm")]

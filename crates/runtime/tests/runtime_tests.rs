@@ -14,23 +14,17 @@ use svm_runtime::{error::ValidateError, testing, Runtime};
 use svm_types::{Address, Gas, RuntimeError};
 use svm_types::{SpawnAppReceipt, TemplateReceipt};
 
-macro_rules! default_runtime {
-    () => {{
-        use svm_runtime::testing;
+fn memory_runtime() -> impl Runtime {
+    let state_kv = testing::memory_state_kv_init();
+    let imports = Box::leak(Box::new(vec![]));
 
-        let state_kv = testing::memory_state_kv_init();
-        let imports = Vec::new();
-
-        let imports = Box::leak(Box::new(imports));
-
-        testing::create_memory_runtime(&state_kv, imports)
-    }};
+    testing::create_memory_runtime(&state_kv, imports)
 }
 
 #[ignore]
 #[test]
-fn default_runtime_validate_template_invalid_raw_format() {
-    let runtime = default_runtime!();
+fn memory_runtime_validate_template_invalid_raw_format() {
+    let runtime = memory_runtime();
     let bytes = vec![0xFF, 0xFF];
 
     let parse_err = ParseError::NotEnoughBytes(Field::Name);
@@ -41,8 +35,8 @@ fn default_runtime_validate_template_invalid_raw_format() {
 }
 
 #[test]
-fn default_runtime_validate_template_invalid_wasm() {
-    let runtime = default_runtime!();
+fn memory_runtime_validate_template_invalid_wasm() {
+    let runtime = memory_runtime();
     let code_version = 0;
     let ctors = Vec::new();
 
@@ -64,8 +58,8 @@ fn default_runtime_validate_template_invalid_wasm() {
 
 #[ignore]
 #[test]
-fn default_runtime_validate_app_invalid_raw_format() {
-    let runtime = default_runtime!();
+fn memory_runtime_validate_app_invalid_raw_format() {
+    let runtime = memory_runtime();
     let bytes = vec![0xFF, 0xFF];
 
     let parse_err = ParseError::NotEnoughBytes(Field::TemplateAddr);
@@ -76,8 +70,8 @@ fn default_runtime_validate_app_invalid_raw_format() {
 }
 
 #[test]
-fn default_runtime_validate_tx_invalid_raw_format() {
-    let runtime = default_runtime!();
+fn memory_runtime_validate_tx_invalid_raw_format() {
+    let runtime = memory_runtime();
 
     let bytes = vec![0xFF, 0xFF];
 
@@ -89,8 +83,8 @@ fn default_runtime_validate_tx_invalid_raw_format() {
 }
 
 #[test]
-fn default_runtime_deploy_template_reaches_oog() {
-    let mut runtime = default_runtime!();
+fn memory_runtime_deploy_template_reaches_oog() {
+    let mut runtime = memory_runtime();
 
     let code_version = 0;
     let deployer = Address::of("deployer").into();
@@ -111,8 +105,8 @@ fn default_runtime_deploy_template_reaches_oog() {
 }
 
 #[test]
-fn default_runtime_deploy_template_has_enough_gas() {
-    let mut runtime = default_runtime!();
+fn memory_runtime_deploy_template_has_enough_gas() {
+    let mut runtime = memory_runtime();
 
     let code_version = 0;
     let deployer = Address::of("deployer").into();
@@ -133,8 +127,8 @@ fn default_runtime_deploy_template_has_enough_gas() {
 }
 
 #[test]
-fn default_runtime_spawn_app_with_non_ctor_fails() {
-    let mut runtime = default_runtime!();
+fn memory_runtime_spawn_app_with_non_ctor_fails() {
+    let mut runtime = memory_runtime();
 
     // 1) deploying the template
     let code_version = 0;
@@ -172,8 +166,8 @@ fn default_runtime_spawn_app_with_non_ctor_fails() {
 }
 
 #[test]
-fn default_runtime_spawn_app_with_ctor_reaches_oog() {
-    let mut runtime = default_runtime!();
+fn memory_runtime_spawn_app_with_ctor_reaches_oog() {
+    let mut runtime = memory_runtime();
 
     // 1) deploying the template
     let code_version = 0;
@@ -209,8 +203,8 @@ fn default_runtime_spawn_app_with_ctor_reaches_oog() {
 }
 
 #[test]
-fn default_runtime_exec_app_with_ctor_fails() {
-    let mut runtime = default_runtime!();
+fn memory_runtime_exec_app_with_ctor_fails() {
+    let mut runtime = memory_runtime();
 
     // 1) deploying the template
     let code_version = 0;
@@ -241,8 +235,8 @@ fn default_runtime_exec_app_with_ctor_fails() {
     let receipt = runtime.spawn_app(&bytes, &creator, maybe_gas);
     assert!(receipt.success);
 
-    let app_addr = receipt.get_app_addr();
-    let init_state = receipt.get_init_state();
+    let app_addr = receipt.app_addr();
+    let init_state = receipt.init_state();
 
     // 3) execute a transaction
     let calldata = Vec::new();
@@ -258,8 +252,8 @@ fn default_runtime_exec_app_with_ctor_fails() {
 }
 
 #[test]
-fn default_runtime_calldata_returndata() {
-    let mut runtime = default_runtime!();
+fn memory_runtime_calldata_returndata() {
+    let mut runtime = memory_runtime();
 
     // 1) deploying the template
     let code_version = 0;
@@ -290,8 +284,8 @@ fn default_runtime_calldata_returndata() {
     let receipt = runtime.spawn_app(&bytes, &creator, maybe_gas);
     assert!(receipt.success);
 
-    let app_addr = receipt.get_app_addr();
-    let init_state = receipt.get_init_state();
+    let app_addr = receipt.app_addr();
+    let init_state = receipt.init_state();
 
     // 3) execute a transaction
     let func = "store_addr";
@@ -306,7 +300,7 @@ fn default_runtime_calldata_returndata() {
     let receipt = runtime.exec_tx(&tx, &init_state, maybe_gas);
     assert!(receipt.success);
 
-    let state = receipt.get_new_state();
+    let state = receipt.new_state();
 
     // 4) execute a transaction with `returndata`
     let func = "load_addr";

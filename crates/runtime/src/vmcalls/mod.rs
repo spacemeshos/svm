@@ -1,3 +1,5 @@
+//! Implements the `SVM` vmcalls (a.k.a libcalls / hostcalls / syscalls)
+
 use wasmer::{Exports, Function, Store};
 
 use crate::Context;

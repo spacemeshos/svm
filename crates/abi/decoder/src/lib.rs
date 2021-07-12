@@ -22,9 +22,8 @@ mod cursor;
 mod decoder;
 
 pub use calldata::CallData;
+pub use cursor::Cursor;
+pub use decoder::{DecodeError, Decoder};
 
 /// `ReturnData` is a type alias to `CallData` for now.
 pub type ReturnData = CallData;
-
-pub use cursor::Cursor;
-pub use decoder::{DecodeError, Decoder};

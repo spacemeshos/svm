@@ -1,36 +1,32 @@
-use std::collections::HashMap;
-use std::collections::HashSet;
-use std::path::Path;
-
 use log::{error, info};
-use svm_types::SectionKind;
-
-use crate::env;
-use crate::Env;
-
-use env::{EnvTypes, ExtApp, ExtSpawnApp};
-
-use crate::error::ValidateError;
-use crate::storage::StorageBuilderFn;
-use crate::vmcalls;
-use crate::{Config, Context, ExternImport, Runtime};
-
+use svm_codec::ParseError;
 use svm_ffi::svm_env_t;
+use svm_gas::ProgramError;
 use svm_layout::FixedLayout;
 use svm_storage::app::AppStorage;
-
 use svm_types::{AppAddr, DeployerAddr, SpawnerAddr, State, Template, Type};
 use svm_types::{ExecReceipt, ReceiptLog, SpawnAppReceipt, TemplateReceipt};
 use svm_types::{Gas, OOGError};
+use svm_types::{GasMode, SectionKind};
 use svm_types::{RuntimeError, Transaction};
-
 use wasmer::{Exports, Extern, ImportObject, Instance, Module, Store, WasmPtr, WasmTypeList};
 
+use std::collections::HashMap;
+use std::collections::HashSet;
+use std::path::{Path, PathBuf};
+
 use super::{Call, Failure, Function, Outcome};
+use crate::env;
+use crate::env::{EnvTypes, ExtApp, ExtSpawnApp};
+use crate::error::ValidateError;
+use crate::storage::StorageBuilderFn;
+use crate::vmcalls;
+use crate::Env;
+use crate::{Config, Context, ExternImport, Runtime};
 
 type Result<T> = std::result::Result<Outcome<T>, Failure>;
 
-/// Default `Runtime` implementation based on `Wasmer`.
+/// Default [`Runtime`] implementation based on [`Wasmer`](https://wasmer.io).
 pub struct DefaultRuntime<T>
 where
     T: EnvTypes,
@@ -48,160 +44,23 @@ where
     storage_builder: Box<StorageBuilderFn>,
 }
 
-impl<T> Runtime for DefaultRuntime<T>
-where
-    T: EnvTypes,
-{
-    fn validate_template(&self, bytes: &[u8]) -> std::result::Result<(), ValidateError> {
-        let template = self.env.parse_deploy_template(bytes, None)?;
-        let code = template.code();
-
-        svm_gas::validate_wasm(code, false).map_err(|e| e.into())
-    }
-
-    fn validate_app(&self, bytes: &[u8]) -> std::result::Result<(), ValidateError> {
-        self.env
-            .parse_spawn_app(bytes)
-            .map(|_| ())
-            .map_err(|e| e.into())
-    }
-
-    fn validate_tx(&self, bytes: &[u8]) -> std::result::Result<Transaction, ValidateError> {
-        self.env.parse_exec_app(bytes).map_err(|e| e.into())
-    }
-
-    fn deploy_template(
-        &mut self,
-        bytes: &[u8],
-        deployer: &DeployerAddr,
-        gas_limit: Gas,
-    ) -> TemplateReceipt {
-        info!("runtime `deploy_template`");
-
-        let template = self.env.parse_deploy_template(bytes, None).unwrap();
-
-        // TODO:
-        //
-
-        let install_price = self.template_installation_price(bytes, &template);
-
-        if gas_limit >= install_price {
-            let gas_used = Gas::with(install_price);
-
-            self.install_template(&template, gas_used)
-        } else {
-            TemplateReceipt::new_oog()
-        }
-    }
-
-    fn spawn_app(
-        &mut self,
-        bytes: &[u8],
-        spawner: &SpawnerAddr,
-        gas_limit: Gas,
-    ) -> SpawnAppReceipt {
-        info!("runtime `spawn_app`");
-
-        let base = self.env.parse_spawn_app(bytes).unwrap();
-        let spawn = ExtSpawnApp::new(base, spawner);
-
-        let payload_price = self.spawn_payload_price(bytes, &spawn);
-        let gas_left = gas_limit - payload_price;
-
-        match gas_left {
-            Ok(gas_left) => {
-                let app = ExtApp::new(spawn.app(), spawner);
-                let addr = self.env.derive_app_address(&spawn);
-
-                self.env.store_app(&app, &addr);
-
-                let gas_used = payload_price.into();
-
-                self.call_ctor(&spawn, &addr, gas_used, gas_left)
-            }
-            Err(..) => SpawnAppReceipt::new_oog(Vec::new()),
-        }
-    }
-
-    fn exec_verify(
-        &self,
-        _tx: &Transaction,
-        _state: &State,
-        _gas_limit: Gas,
-    ) -> std::result::Result<bool, RuntimeError> {
-        todo!()
-        //     let app_addr = tx.app_addr();
-        //     let template_addr = self.env.find_template_addr(app_addr);
-
-        //     if let Some(template_addr) = template_addr {
-        //         let call = Call {
-        //             func_name: "svm_verify",
-        //             calldata: tx.verifydata(),
-        //             template_addr: &template_addr,
-        //             app_addr,
-        //             state,
-        //             gas_used: Gas::with(0),
-        //             gas_left: gas_limit,
-        //             within_spawn: false,
-        //         };
-
-        //         let out = self.exec::<(), u32, _, _>(&call, |_ctx, mut out| {
-        //             let returns = out.take_returns();
-
-        //             debug_assert_eq!(returns.len(), 1);
-
-        //             let v: &wasmer::Val = returns.first().unwrap();
-
-        //             v.i32().unwrap() == 0
-        //         });
-
-        //         out.map_err(|fail| fail.take_error())
-        //     } else {
-        //         unreachable!("Should have failed earlier when doing `validate_tx`");
-        //     }
-    }
-
-    fn exec_tx(&self, tx: &Transaction, state: &State, gas_limit: Gas) -> ExecReceipt {
-        let app_addr = tx.app_addr();
-        let template_addr = self.env.find_template_addr(app_addr);
-
-        if let Some(template_addr) = template_addr {
-            let call = Call {
-                func_name: tx.func_name(),
-                calldata: tx.calldata(),
-                template_addr: &template_addr,
-                app_addr,
-                state,
-                gas_used: Gas::with(0),
-                gas_left: gas_limit,
-                within_spawn: false,
-            };
-
-            self.exec_call::<(), ()>(&call)
-        } else {
-            unreachable!("Should have failed earlier when doing `validate_tx`");
-        }
-    }
-}
-
 impl<T> DefaultRuntime<T>
 where
     T: EnvTypes,
 {
-    /// Initializes a new `DefaultRuntime`.
-    pub fn new<P: AsRef<Path>>(
+    /// Initializes a new [`DefaultRuntime`].
+    pub fn new<P: Into<PathBuf>>(
         env: Env<T>,
         kv_path: P,
         imports: &Vec<ExternImport>,
         storage_builder: Box<StorageBuilderFn>,
     ) -> Self {
-        let config = Config::new(kv_path);
-        let imports = imports as *const _;
-
         Self {
             env,
-            config,
-            imports,
+            config: Config {
+                kv_path: kv_path.into(),
+            },
+            imports: imports as *const _,
             storage_builder,
         }
     }
@@ -211,15 +70,12 @@ where
         ctx: &Context,
         mut out: Outcome<Box<[wasmer::Val]>>,
     ) -> ExecReceipt {
-        let returndata = self.take_returndata(ctx);
-        let new_state = self.commit_changes(&ctx);
-
         ExecReceipt {
             version: 0,
             success: true,
             error: None,
-            returndata: Some(returndata),
-            new_state: Some(new_state),
+            returndata: Some(self.take_returndata(ctx)),
+            new_state: Some(self.commit_changes(&ctx)),
             gas_used: out.gas_used(),
             logs: out.take_logs(),
         }
@@ -232,7 +88,7 @@ where
         ExecReceipt::from_err(err, logs)
     }
 
-    /// Opens the `AppStorage` associated with the input params.
+    /// Opens the [`AppStorage`] associated with the input parameters.
     pub fn open_storage(
         &self,
         app_addr: &AppAddr,
@@ -255,7 +111,7 @@ where
             func_name: spawn.ctor_name(),
             calldata: spawn.ctor_data(),
             state: &State::zeros(),
-            template_addr: &template_addr,
+            template_addr,
             app_addr,
             within_spawn: true,
             gas_used,
@@ -290,19 +146,14 @@ where
     {
         info!("runtime `exec`");
 
-        match self.load_template(call.app_addr()) {
+        match self.load_template(call.app_addr) {
             Ok(template) => {
-                let storage =
-                    self.open_storage(call.app_addr(), call.state(), template.fixed_layout());
+                let storage = self.open_storage(call.app_addr, call.state, template.fixed_layout());
 
-                let mut ctx = Context::new(
-                    call.gas_left(),
-                    storage,
-                    call.template_addr(),
-                    call.app_addr(),
-                );
+                let mut ctx =
+                    Context::new(call.gas_left, storage, call.template_addr, call.app_addr);
 
-                let store = svm_compiler::new_store();
+                let store = crate::wasm_store::new_store();
 
                 let (import_object, host_envs) = self.create_import_object(&store, &mut ctx);
 
@@ -341,15 +192,15 @@ where
     {
         self.validate_call(call, template, ctx)?;
 
-        let module = self.compile_template(store, ctx, &template, call.gas_left())?;
+        let module = self.compile_template(store, ctx, &template, call.gas_left)?;
         let instance = self.instantiate(ctx, &module, import_object)?;
 
         self.set_memory(ctx, &instance);
 
-        let func = self.get_func::<Args, Rets>(&instance, ctx, call.func_name())?;
+        let func = self.get_func::<Args, Rets>(&instance, ctx, call.func_name)?;
 
-        let mut out = if call.calldata().len() > 0 {
-            self.call_with_alloc(&instance, ctx, call.calldata(), &func, &[])?
+        let mut out = if call.calldata.len() > 0 {
+            self.call_with_alloc(&instance, ctx, call.calldata, &func, &[])?
         } else {
             self.call(&instance, ctx, &func, &[])?
         };
@@ -545,7 +396,7 @@ where
             //
             // In any case, the `alloc_memory` is in charge of allocating enough memory
             // for the program to run (so we don't need to have any bounds-checking here).
-
+            //
             // TODO: add to `validate_template` checking that `calldata` doesn't exceed ???
             // (we'll need to decide on a `calldata` limit).
             //
@@ -569,6 +420,7 @@ where
         ctx.borrow_mut().set_calldata(offset, len);
     }
 
+    /// Calculates the amount of gas used by `intance`.
     #[inline]
     fn instance_gas_used(&self, _instance: &Instance) -> std::result::Result<Gas, OOGError> {
         // TODO: read `gas_used` out of `instance`
@@ -683,9 +535,9 @@ where
         let gas_metering = gas_left.is_some();
         let gas_left = gas_left.unwrap_or(0);
 
-        let module = svm_compiler::compile(store, template.code(), gas_left, gas_metering);
+        let module_res = Module::from_binary(store, template.code());
 
-        module.map_err(|err| self.compilation_failed(ctx, err))
+        module_res.map_err(|err| self.compilation_failed(ctx, err))
     }
 
     fn validate_call(
@@ -694,19 +546,19 @@ where
         template: &Template,
         ctx: &Context,
     ) -> std::result::Result<(), Failure> {
-        let spawning = call.within_spawn();
-        let ctor = template.is_ctor(call.func_name());
+        let spawning = call.within_spawn;
+        let ctor = template.is_ctor(call.func_name);
 
         if spawning && !ctor {
             let msg = "expected function to be a constructor";
-            let err = self.func_not_allowed(ctx, call.func_name(), msg);
+            let err = self.func_not_allowed(ctx, call.func_name, msg);
 
             return Err(err);
         }
 
         if !spawning && ctor {
             let msg = "expected function to be a non-constructor";
-            let err = self.func_not_allowed(ctx, call.func_name(), msg);
+            let err = self.func_not_allowed(ctx, call.func_name, msg);
 
             return Err(err);
         }
@@ -714,7 +566,7 @@ where
         Ok(())
     }
 
-    /// Gas
+    /// Calculates the cost of saving a template on-chain.
     fn template_installation_price(&self, bytes: &[u8], _template: &Template) -> u64 {
         // todo!()
         1000 * (bytes.len() as u64)
@@ -796,5 +648,163 @@ where
             msg: err.to_string(),
         }
         .into()
+    }
+}
+
+impl<T> Runtime for DefaultRuntime<T>
+where
+    T: EnvTypes,
+{
+    fn validate_template(&self, bytes: &[u8]) -> std::result::Result<(), ValidateError> {
+        // Opcode and `svm_alloc` checks should only ever be run when deploying
+        // templates. There's no reason to also do it when spawning new apps
+        // over already-validated templates.
+        if !crate::validation::validate_opcodes(bytes) {
+            return Err(ValidateError::Program(ProgramError::FloatsNotAllowed));
+        } else if !crate::validation::validate_svm_alloc(bytes) {
+            return Err(ValidateError::Program(ProgramError::BadSvmAlloc));
+        }
+        let template = self.env.parse_deploy_template(bytes, None)?;
+        let code = template.code();
+
+        svm_gas::validate_wasm(code, false).map_err(|e| e.into())
+    }
+
+    fn validate_app(&self, bytes: &[u8]) -> std::result::Result<(), ValidateError> {
+        self.env
+            .parse_spawn_app(bytes)
+            .map(|_| ())
+            .map_err(Into::into)
+    }
+
+    fn validate_tx(&self, bytes: &[u8]) -> std::result::Result<Transaction, ValidateError> {
+        self.env.parse_exec_app(bytes).map_err(|e| e.into())
+    }
+
+    fn deploy_template(
+        &mut self,
+        bytes: &[u8],
+        deployer: &DeployerAddr,
+        gas_limit: Gas,
+    ) -> TemplateReceipt {
+        info!("Deploying a template.");
+
+        let template = self.env.parse_deploy_template(bytes, None).unwrap();
+
+        // TODO:
+        // Gas limit validation.
+
+        let install_price = self.template_installation_price(bytes, &template);
+
+        if gas_limit >= install_price {
+            let gas_used = Gas::with(install_price);
+            self.install_template(&template, gas_used)
+        } else {
+            TemplateReceipt::new_oog()
+        }
+    }
+
+    fn spawn_app(
+        &mut self,
+        bytes: &[u8],
+        spawner: &SpawnerAddr,
+        gas_limit: Gas,
+    ) -> SpawnAppReceipt {
+        info!("runtime `spawn_app`");
+
+        let base = self.env.parse_spawn_app(bytes).unwrap();
+        let template = {
+            let template_address = base.app.template_addr();
+            self.env.load_template(template_address, None).unwrap()
+        };
+        let template_code_section = template.sections().get(SectionKind::Code).as_code();
+        let gas_mode = template_code_section.gas_mode();
+        match gas_mode {
+            GasMode::Fixed => {
+                if let Err(_) = svm_gas::validate_wasm(template_code_section.code(), false) {
+                    return SpawnAppReceipt::new_oog(vec![]);
+                }
+            }
+            GasMode::Metering => {}
+        }
+
+        let spawn = ExtSpawnApp::new(base, spawner);
+
+        let payload_price = self.spawn_payload_price(bytes, &spawn);
+        let gas_left = gas_limit - payload_price;
+
+        match gas_left {
+            Ok(gas_left) => {
+                let app = ExtApp::new(spawn.app(), spawner);
+                let addr = self.env.derive_app_address(&spawn);
+
+                self.env.store_app(&app, &addr);
+
+                let gas_used = payload_price.into();
+
+                self.call_ctor(&spawn, &addr, gas_used, gas_left)
+            }
+            Err(..) => SpawnAppReceipt::new_oog(Vec::new()),
+        }
+    }
+
+    fn exec_verify(
+        &self,
+        _tx: &Transaction,
+        _state: &State,
+        _gas_limit: Gas,
+    ) -> std::result::Result<bool, RuntimeError> {
+        todo!()
+        //     let app_addr = tx.app_addr();
+        //     let template_addr = self.env.find_template_addr(app_addr);
+
+        //     if let Some(template_addr) = template_addr {
+        //         let call = Call {
+        //             func_name: "svm_verify",
+        //             calldata: tx.verifydata(),
+        //             template_addr: &template_addr,
+        //             app_addr,
+        //             state,
+        //             gas_used: Gas::with(0),
+        //             gas_left: gas_limit,
+        //             within_spawn: false,
+        //         };
+
+        //         let out = self.exec::<(), u32, _, _>(&call, |_ctx, mut out| {
+        //             let returns = out.take_returns();
+
+        //             debug_assert_eq!(returns.len(), 1);
+
+        //             let v: &wasmer::Val = returns.first().unwrap();
+
+        //             v.i32().unwrap() == 0
+        //         });
+
+        //         out.map_err(|fail| fail.take_error())
+        //     } else {
+        //         unreachable!("Should have failed earlier when doing `validate_tx`");
+        //     }
+    }
+
+    fn exec_tx(&self, tx: &Transaction, state: &State, gas_limit: Gas) -> ExecReceipt {
+        let app_addr = tx.app_addr();
+        let template_addr = self.env.find_template_addr(app_addr);
+
+        if let Some(template_addr) = template_addr {
+            let call = Call {
+                func_name: tx.func_name(),
+                calldata: tx.calldata(),
+                template_addr: &template_addr,
+                app_addr,
+                state,
+                gas_used: Gas::with(0),
+                gas_left: gas_limit,
+                within_spawn: false,
+            };
+
+            self.exec_call::<(), ()>(&call)
+        } else {
+            unreachable!("Should have failed earlier when doing `validate_tx`");
+        }
     }
 }

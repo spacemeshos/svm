@@ -356,7 +356,7 @@ fn svm_runtime_failure() {
         // extract the `Template Address` out of the `Receipt`
         let receipt =
             receipt::decode_receipt(template_receipt.clone().into()).into_deploy_template();
-        let template_addr: &Address = receipt.get_template_addr().inner();
+        let template_addr: &Address = receipt.template_addr().inner();
         let template_addr: svm_byte_array = (TEMPLATE_ADDR, template_addr).into();
 
         // 3) `Spawn App`
@@ -387,10 +387,10 @@ fn svm_runtime_failure() {
         let receipt = receipt::decode_receipt(spawn_receipt.clone().into()).into_spawn_app();
         assert_eq!(receipt.success, true);
 
-        let app_addr = receipt.get_app_addr().inner();
+        let app_addr = receipt.app_addr().inner();
         let app_addr: svm_byte_array = (APP_ADDR, app_addr).into();
 
-        let init_state = receipt.get_init_state();
+        let init_state = receipt.init_state();
         let init_state: svm_byte_array = (INIT_STATE, init_state).into();
 
         // 4) execute app
@@ -498,7 +498,7 @@ fn svm_runtime_success() {
         // extract the `template-address` out of the receipt
         let receipt =
             receipt::decode_receipt(template_receipt.clone().into()).into_deploy_template();
-        let template_addr: &Address = receipt.get_template_addr().inner();
+        let template_addr: &Address = receipt.template_addr().inner();
         let template_addr: svm_byte_array = (TEMPLATE_ADDR, template_addr).into();
 
         // 3) spawn app
@@ -530,10 +530,10 @@ fn svm_runtime_success() {
         // extracts the spawned-app `Address` and initial `State`.
         let receipt = receipt::decode_receipt(spawn_receipt.clone().into()).into_spawn_app();
         assert_eq!(receipt.success, true);
-        let app_addr = receipt.get_app_addr().inner();
+        let app_addr = receipt.app_addr().inner();
         let app_addr: svm_byte_array = (APP_ADDR, app_addr).into();
 
-        let init_state = receipt.get_init_state();
+        let init_state = receipt.init_state();
         let init_state: svm_byte_array = (INIT_STATE, init_state).into();
 
         // 4) execute app
@@ -576,7 +576,7 @@ fn svm_runtime_success() {
         let receipt = receipt::decode_receipt(exec_receipt.clone().into()).into_exec_app();
         assert_eq!(receipt.success, true);
 
-        let bytes = receipt.get_returndata();
+        let bytes = receipt.returndata();
         let mut returndata = ReturnData::new(bytes.as_slice());
 
         let [a, b, c]: [u32; 3] = returndata.next_1();

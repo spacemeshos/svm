@@ -1,10 +1,8 @@
-use crate::env::{hash, traits};
-
-use hash::TemplateHash;
-use traits::TemplateHasher;
-
 use svm_hash::{DefaultHasher, Hasher};
 use svm_types::Template;
+
+use super::super::traits::TemplateHasher;
+use crate::env::{traits, TemplateHash};
 
 /// Default implementation for `TemplateCodeHasher`
 pub struct DefaultTemplateHasher;
@@ -12,10 +10,6 @@ pub struct DefaultTemplateHasher;
 impl TemplateHasher for DefaultTemplateHasher {
     #[inline]
     fn hash(template: &Template) -> TemplateHash {
-        let bytes = template.code();
-
-        let hash = DefaultHasher::hash(bytes);
-
-        TemplateHash::new(hash)
+        DefaultHasher::hash(template.code())
     }
 }

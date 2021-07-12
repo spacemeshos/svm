@@ -1,3 +1,5 @@
+//! Encoding for apps-transactions.
+//!
 //! `Transaction` Raw Format
 //!
 //!  +--------------------------------------------+
@@ -19,9 +21,9 @@
 //!
 //!
 
-use std::io::Cursor;
-
 use svm_types::{AppAddr, Transaction};
+
+use std::io::Cursor;
 
 use crate::{calldata, version};
 use crate::{Field, ParseError, ReadExt, WriteExt};
