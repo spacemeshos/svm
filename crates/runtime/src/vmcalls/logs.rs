@@ -1,6 +1,6 @@
-use crate::Context;
-
 use svm_types::ReceiptLog;
+
+use crate::Context;
 
 /// Logs the log entry given.
 ///

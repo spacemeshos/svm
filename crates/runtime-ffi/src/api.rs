@@ -1,22 +1,23 @@
+use log::{debug, error};
+
 use std::cell::RefCell;
 use std::convert::TryFrom;
 use std::ffi::c_void;
-use std::io;
-use std::ptr::NonNull;
 use std::rc::Rc;
 
 #[cfg(feature = "default-rocksdb")]
 use std::path::Path;
 
-use log::{debug, error};
-
 use svm_codec::receipt;
-use svm_ffi::{svm_byte_array, svm_func_callback_t, svm_resource_iter_t, svm_resource_t, tracking};
-use svm_runtime::{ExternImport, Runtime, RuntimePtr};
+use svm_ffi::{svm_byte_array, svm_resource_iter_t, svm_resource_t, tracking};
+use svm_runtime::{Runtime, RuntimePtr};
 use svm_storage::kv::StatefulKV;
-use svm_types::{Address, State, Type, WasmType};
+use svm_types::{Address, State, Type};
 
-use crate::{raw_error, raw_io_error, raw_utf8_error, raw_validate_error, svm_result_t};
+#[cfg(feature = "default-rocksdb")]
+use crate::raw_utf8_error;
+
+use crate::{raw_error, raw_validate_error, svm_result_t};
 
 static KV_TYPE: Type = Type::Str("key-value store");
 static VALIDATE_TX_APP_ADDR_TYPE: Type = Type::Str("svm_validate_tx app_addr");
@@ -71,16 +72,13 @@ macro_rules! to_svm_byte_array {
 /// In case the transaction isn't valid - the transaction should be discarded.
 ///
 ///
-/// # Example
+/// # Examples
 ///
 /// ```rust, no_run
 /// use svm_runtime_ffi::*;
 ///
 /// use svm_ffi::svm_byte_array;
 /// use svm_types::Address;
-///
-/// // allocate imports
-/// let mut imports = testing::imports_alloc(0);
 ///
 /// // create runtime
 ///
@@ -91,7 +89,7 @@ macro_rules! to_svm_byte_array {
 /// let mut runtime = std::ptr::null_mut();
 /// let mut error = svm_byte_array::default();
 ///
-/// let res = unsafe { svm_memory_runtime_create(&mut runtime, kv, imports, &mut error) };
+/// let res = unsafe { svm_memory_runtime_create(&mut runtime, kv, &mut error) };
 /// assert!(res.is_ok());
 ///
 /// let bytes = svm_byte_array::default();
@@ -123,16 +121,13 @@ pub unsafe extern "C" fn svm_validate_template(
 /// In case the transaction isn't valid - the transaction should be discarded.
 ///
 ///
-/// # Example
+/// # Examples
 ///
 /// ```rust, no_run
 /// use svm_runtime_ffi::*;
 ///
 /// use svm_ffi::svm_byte_array;
 /// use svm_types::Address;
-///
-/// // allocate imports
-/// let mut imports = testing::imports_alloc(0);
 ///
 /// // create runtime
 /// let mut kv = std::ptr::null_mut();
@@ -142,7 +137,7 @@ pub unsafe extern "C" fn svm_validate_template(
 /// let mut runtime = std::ptr::null_mut();
 /// let mut error = svm_byte_array::default();
 ///
-/// let res = unsafe { svm_memory_runtime_create(&mut runtime, kv, imports, &mut error) };
+/// let res = unsafe { svm_memory_runtime_create(&mut runtime, kv, &mut error) };
 /// assert!(res.is_ok());
 ///
 /// let bytes = svm_byte_array::default();
@@ -171,16 +166,13 @@ pub unsafe extern "C" fn svm_validate_app(
 /// Validates syntactically a raw `execute app` transaction.
 /// Returns the `App` address that appears in the transaction.
 ///
-/// # Example
+/// # Examples
 ///
 /// ```rust, no_run
 /// use svm_runtime_ffi::*;
 ///
 /// use svm_ffi::svm_byte_array;
 /// use svm_types::Address;
-///
-/// // allocate imports
-/// let mut imports = testing::imports_alloc(0);
 ///
 /// // create runtime
 ///
@@ -191,7 +183,7 @@ pub unsafe extern "C" fn svm_validate_app(
 /// let mut runtime = std::ptr::null_mut();
 /// let mut error = svm_byte_array::default();
 ///
-/// let res = unsafe { svm_memory_runtime_create(&mut runtime, kv, imports, &mut error) };
+/// let res = unsafe { svm_memory_runtime_create(&mut runtime, kv, &mut error) };
 /// assert!(res.is_ok());
 ///
 /// let mut app_addr = svm_byte_array::default();
@@ -228,150 +220,6 @@ pub unsafe extern "C" fn svm_validate_tx(
     }
 }
 
-/// Allocates space for the host imports.
-/// See `svm_imports_destroy` for freeing the imports.
-///
-/// # Example
-///
-/// ```rust
-/// use svm_runtime_ffi::svm_imports_alloc;
-///
-/// let count = 2;
-/// let mut imports = std::ptr::null_mut();
-///
-/// let res = unsafe { svm_imports_alloc(&mut imports, count) };
-/// assert!(res.is_ok());
-/// ```
-///
-#[must_use]
-#[no_mangle]
-pub unsafe extern "C" fn svm_imports_alloc(imports: *mut *mut c_void, count: u32) -> svm_result_t {
-    let vec: Vec<ExternImport> = Vec::with_capacity(count as usize);
-    let ty = Type::of::<Vec<ExternImport>>();
-
-    *imports = svm_ffi::into_raw(ty, vec);
-
-    svm_result_t::SVM_SUCCESS
-}
-
-/// Builds a new `svm_import` (returned via `import` function parameter).
-/// New built `svm_import_t` is pushed into `imports`
-///
-/// # Example
-///
-/// ```rust
-/// use svm_runtime_ffi::*;
-///
-/// use svm_ffi::{svm_env_t, svm_func_callback_t, svm_byte_array};
-/// use svm_types::{WasmType, Type};
-///
-/// unsafe extern "C" fn host_func(
-///   env:     *mut svm_env_t,
-///   args:    *const svm_byte_array,
-///   results: *mut svm_byte_array
-/// ) -> *mut svm_byte_array {
-///   // ...
-///   return std::ptr::null_mut()
-/// }
-///
-/// #[repr(C)]
-/// struct function_id(u32);
-///
-/// // allocate one import
-/// let mut imports = testing::imports_alloc(1);
-///
-/// let namespace_ty = Type::Str("import ns");
-/// let name_ty = Type::Str("import name");
-/// let params_ty = Type::Str("import params");
-/// let returns_ty = Type::Str("import returns");
-/// let host_env_ty = Type::Str("host env");
-///
-/// let namespace: svm_byte_array = (namespace_ty, String::from("env")).into();
-/// let import_name: svm_byte_array = (name_ty, String::from("foo")).into();
-/// let params: svm_byte_array = (params_ty, Vec::<WasmType>::new()).into();
-/// let returns: svm_byte_array = (returns_ty,Vec::<WasmType>::new()).into();
-/// let mut error = svm_byte_array::default();
-///
-/// let host_env = svm_ffi::into_raw(host_env_ty, function_id(0));
-///
-/// let res = unsafe {
-///   svm_import_func_new(
-///     imports,
-///     namespace.clone(),
-///     import_name.clone(),
-///     host_func,
-///     host_env,
-///     params.clone(),
-///     returns.clone(),
-///     &mut error)
-/// };
-/// assert!(res.is_ok());
-/// ```
-///
-#[must_use]
-#[no_mangle]
-pub unsafe extern "C" fn svm_import_func_new(
-    imports: *mut c_void,
-    namespace: svm_byte_array,
-    import_name: svm_byte_array,
-    func: svm_func_callback_t,
-    host_env: *const c_void,
-    params: svm_byte_array,
-    returns: svm_byte_array,
-    error: *mut svm_byte_array,
-) -> svm_result_t {
-    let imports = svm_ffi::as_mut::<Vec<ExternImport>>(imports);
-
-    assert!(imports.len() < imports.capacity());
-
-    let host_env = NonNull::new(host_env as *mut c_void);
-    if host_env.is_none() {
-        let s = String::from("`host_env` parameter must not be NULL");
-        raw_error(s, error);
-
-        return svm_result_t::SVM_FAILURE;
-    }
-
-    let host_env: *const c_void = host_env.unwrap().as_ptr();
-
-    let params: Result<Vec<WasmType>, io::Error> = Vec::try_from(params);
-    if let Err(e) = params {
-        raw_io_error(e, error);
-        return svm_result_t::SVM_FAILURE;
-    }
-
-    let returns: Result<Vec<WasmType>, io::Error> = Vec::try_from(returns);
-    if let Err(e) = returns {
-        raw_io_error(e, error);
-        return svm_result_t::SVM_FAILURE;
-    }
-
-    let import_name = String::try_from(import_name);
-    if import_name.is_err() {
-        raw_utf8_error(import_name, error);
-        return svm_result_t::SVM_FAILURE;
-    }
-
-    let namespace = String::try_from(namespace);
-    if namespace.is_err() {
-        raw_utf8_error(namespace, error);
-        return svm_result_t::SVM_FAILURE;
-    }
-
-    let import = ExternImport::new(
-        import_name.unwrap(),
-        namespace.unwrap(),
-        params.unwrap(),
-        returns.unwrap(),
-        func,
-        host_env,
-    );
-
-    imports.push(import);
-
-    svm_result_t::SVM_SUCCESS
-}
-
 macro_rules! box_runtime {
     ($raw_runtime:expr, $runtime:expr) => {{
         let runtime_ptr = RuntimePtr::new(Box::new($runtime));
@@ -386,7 +234,7 @@ macro_rules! box_runtime {
 /// Creates a new in-memory key-value client.
 /// Returns a raw pointer to allocated kv-store via input parameter `kv`.
 ///
-/// # Example
+/// # Examples
 ///
 /// ```rust
 /// use svm_runtime_ffi::*;
@@ -408,7 +256,7 @@ pub unsafe extern "C" fn svm_memory_state_kv_create(kv: *mut *mut c_void) -> svm
 
 /// Frees an in-memory key-value.
 ///
-/// # Example
+/// # Examples
 ///
 /// ```rust
 /// use svm_runtime_ffi::*;
@@ -434,7 +282,7 @@ pub unsafe extern "C" fn svm_state_kv_destroy(kv: *mut c_void) -> svm_result_t {
 /// Creates a new SVM Runtime instance baced-by an in-memory KV.
 /// Returns it via the `runtime` parameter.
 ///
-/// # Example
+/// # Examples
 ///
 /// ```rust
 /// use svm_runtime_ffi::*;
@@ -442,14 +290,13 @@ pub unsafe extern "C" fn svm_state_kv_destroy(kv: *mut c_void) -> svm_result_t {
 /// use svm_ffi::svm_byte_array;
 ///
 /// let mut runtime = std::ptr::null_mut();
-/// let mut imports = testing::imports_alloc(0);
 ///
 /// let mut kv = std::ptr::null_mut();
 /// let res = unsafe { svm_memory_state_kv_create(&mut kv) };
 /// assert!(res.is_ok());
 ///
 /// let mut error = svm_byte_array::default();
-/// let res = unsafe { svm_memory_runtime_create(&mut runtime, kv, imports, &mut error) };
+/// let res = unsafe { svm_memory_runtime_create(&mut runtime, kv, &mut error) };
 /// assert!(res.is_ok());
 /// ```
 ///
@@ -459,14 +306,12 @@ pub unsafe extern "C" fn svm_state_kv_destroy(kv: *mut c_void) -> svm_result_t {
 pub unsafe extern "C" fn svm_memory_runtime_create(
     runtime: *mut *mut c_void,
     state_kv: *mut c_void,
-    imports: *mut c_void,
     _error: *mut svm_byte_array,
 ) -> svm_result_t {
     debug!("`svm_memory_runtime_create` start");
 
-    let imports = svm_ffi::as_mut::<Vec<ExternImport>>(imports);
     let state_kv = svm_ffi::as_mut(state_kv);
-    let mem_runtime = svm_runtime::testing::create_memory_runtime(state_kv, imports);
+    let mem_runtime = svm_runtime::testing::create_memory_runtime(state_kv);
 
     let res = box_runtime!(runtime, mem_runtime);
 
@@ -478,7 +323,7 @@ pub unsafe extern "C" fn svm_memory_runtime_create(
 /// Creates a new SVM Runtime instance.
 /// Returns it via the `runtime` parameter.
 ///
-/// # Example
+/// # Examples
 ///
 /// ```rust, no_run
 /// use svm_runtime_ffi::*;
@@ -493,10 +338,9 @@ pub unsafe extern "C" fn svm_memory_runtime_create(
 /// let kv_path = String::from("path for SVM internal db goes here");
 
 /// let kv_path: svm_byte_array = (ty, kv_path).into();
-/// let mut imports = testing::imports_alloc(0);
 /// let mut error = svm_byte_array::default();
 ///
-/// let res = unsafe { svm_runtime_create(&mut runtime, state_kv, kv_path, imports, &mut error) };
+/// let res = unsafe { svm_runtime_create(&mut runtime, state_kv, kv_path, &mut error) };
 /// assert!(res.is_ok());
 /// ```
 ///
@@ -507,7 +351,6 @@ pub unsafe extern "C" fn svm_runtime_create(
     runtime: *mut *mut c_void,
     state_kv: *mut c_void,
     kv_path: svm_byte_array,
-    imports: *mut c_void,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
     debug!("`svm_runtime_create` start");
@@ -520,11 +363,9 @@ pub unsafe extern "C" fn svm_runtime_create(
     }
 
     let kv_path = kv_path.unwrap();
-    let imports = svm_ffi::as_mut::<Vec<ExternImport>>(imports);
     let state_kv = svm_ffi::as_mut(state_kv);
 
-    let rocksdb_runtime =
-        svm_runtime::create_rocksdb_runtime(&state_kv, &Path::new(&kv_path), imports);
+    let rocksdb_runtime = svm_runtime::create_rocksdb_runtime(&state_kv, &Path::new(&kv_path));
 
     let res = box_runtime!(runtime, rocksdb_runtime);
 
@@ -535,16 +376,13 @@ pub unsafe extern "C" fn svm_runtime_create(
 
 /// Deploys a new app-template
 ///
-/// # Example
+/// # Examples
 ///
 /// ```rust, no_run
 /// use svm_runtime_ffi::*;
 ///
 /// use svm_ffi::svm_byte_array;
 /// use svm_types::{Address, Type};
-///
-/// // allocate imports
-/// let mut imports = testing::imports_alloc(0);
 ///
 /// // create runtime
 /// let mut state_kv = std::ptr::null_mut();
@@ -553,7 +391,7 @@ pub unsafe extern "C" fn svm_runtime_create(
 ///
 /// let mut runtime = std::ptr::null_mut();
 /// let mut error = svm_byte_array::default();
-/// let res = unsafe { svm_memory_runtime_create(&mut runtime, state_kv, imports, &mut error) };
+/// let res = unsafe { svm_memory_runtime_create(&mut runtime, state_kv, &mut error) };
 /// assert!(res.is_ok());
 ///
 /// // deploy template
@@ -615,16 +453,13 @@ pub unsafe extern "C" fn svm_deploy_template(
 
 /// Spawns a new App.
 ///
-/// # Example
+/// # Examples
 ///
 /// ```rust, no_run
 /// use svm_runtime_ffi::*;
 ///
 /// use svm_ffi::svm_byte_array;
 /// use svm_types::{Address, Type};
-///
-/// // allocate imports
-/// let mut imports = testing::imports_alloc(0);
 ///
 /// // create runtime
 ///
@@ -635,7 +470,7 @@ pub unsafe extern "C" fn svm_deploy_template(
 /// let mut runtime = std::ptr::null_mut();
 /// let mut error = svm_byte_array::default();
 ///
-/// let res = unsafe { svm_memory_runtime_create(&mut runtime, state_kv, imports, &mut error) };
+/// let res = unsafe { svm_memory_runtime_create(&mut runtime, state_kv, &mut error) };
 /// assert!(res.is_ok());
 ///
 /// let mut app_receipt = svm_byte_array::default();
@@ -696,7 +531,7 @@ pub unsafe extern "C" fn svm_spawn_app(
 /// Triggers an app-transaction execution of an already deployed app.
 /// Returns the receipt of the execution via the `receipt` parameter.
 ///
-/// # Example
+/// # Examples
 ///
 /// ```rust, no_run
 /// use std::ffi::c_void;
@@ -705,9 +540,6 @@ pub unsafe extern "C" fn svm_spawn_app(
 ///
 /// use svm_types::{State, Address, Type};
 /// use svm_ffi::svm_byte_array;
-///
-/// // allocate imports
-/// let mut imports = testing::imports_alloc(0);
 ///
 /// // create runtime
 ///
@@ -718,7 +550,7 @@ pub unsafe extern "C" fn svm_spawn_app(
 /// let mut runtime = std::ptr::null_mut();
 /// let mut error = svm_byte_array::default();
 ///
-/// let res = unsafe { svm_memory_runtime_create(&mut runtime, state_kv, imports, &mut error) };
+/// let res = unsafe { svm_memory_runtime_create(&mut runtime, state_kv, &mut error) };
 /// assert!(res.is_ok());
 ///
 /// let mut exec_receipt = svm_byte_array::default();
@@ -842,7 +674,7 @@ pub unsafe extern "C" fn svm_resource_type_name_resolve(ty: usize) -> *mut svm_b
     }
 }
 
-/// Destorys a resource holding a type textual name
+/// Destroys a resource holding a type textual name
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_resource_type_name_destroy(ptr: *mut svm_byte_array) {
@@ -853,16 +685,13 @@ pub unsafe extern "C" fn svm_resource_type_name_destroy(ptr: *mut svm_byte_array
 
 /// Destroys the Runtime and its associated resources.
 ///
-/// # Example
+/// # Examples
 ///
 /// ```rust, no_run
 /// use svm_runtime_ffi::*;
 ///
 /// use svm_types::Address;
 /// use svm_ffi::svm_byte_array;
-///
-/// // allocate imports
-/// let mut imports = testing::imports_alloc(0);
 ///
 /// // create runtime
 ///
@@ -872,7 +701,7 @@ pub unsafe extern "C" fn svm_resource_type_name_destroy(ptr: *mut svm_byte_array
 ///
 /// let mut runtime = std::ptr::null_mut();
 /// let mut error = svm_byte_array::default();
-/// let res = unsafe { svm_memory_runtime_create(&mut runtime, state_kv, imports, &mut error) };
+/// let res = unsafe { svm_memory_runtime_create(&mut runtime, state_kv, &mut error) };
 /// assert!(res.is_ok());
 ///
 /// // destroy runtime
@@ -885,34 +714,9 @@ pub unsafe extern "C" fn svm_runtime_destroy(runtime: *mut c_void) {
     let _ = RuntimePtr::from_raw(runtime);
 }
 
-/// Frees allocated imports resources.
-///
-/// # Example
-///
-/// ```rust
-/// use svm_runtime_ffi::*;
-///
-/// // allocate imports
-/// let count = 0;
-/// let mut imports = std::ptr::null_mut();
-/// let _res = unsafe { svm_imports_alloc(&mut imports, count) };
-///
-/// // destroy imports
-/// unsafe { svm_imports_destroy(imports); }
-/// ```
-///
-#[must_use]
-#[no_mangle]
-pub unsafe extern "C" fn svm_imports_destroy(imports: *mut c_void) {
-    let imports = svm_ffi::as_mut::<Vec<ExternImport>>(imports);
-    let ty = Type::of::<Vec<ExternImport>>();
-
-    let _ = svm_ffi::from_raw::<Vec<ExternImport>>(ty, imports);
-}
-
 /// Frees `svm_byte_array`
 ///
-/// # Example
+/// # Examples
 ///
 /// ```rust
 /// use svm_runtime_ffi::*;

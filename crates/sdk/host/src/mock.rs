@@ -53,10 +53,10 @@ impl MockHost {
         host.set_raw_calldata(bytes)
     }
 
-    pub fn get_returndata() -> Option<alloc::vec::Vec<u8>> {
+    pub fn returndata() -> Option<alloc::vec::Vec<u8>> {
         let host = Self::instance();
 
-        host.get_returndata()
+        host.returndata()
     }
 
     pub fn set_balance(addr: &Address, amount: Amount) {
@@ -131,10 +131,10 @@ impl MockHost {
         host.log(msg, code);
     }
 
-    pub fn get_logs() -> alloc::vec::Vec<(String, u8)> {
+    pub fn logs() -> alloc::vec::Vec<(String, u8)> {
         let host = Self::instance();
 
-        host.get_logs()
+        host.logs()
     }
 
     pub fn reset() {
@@ -253,7 +253,7 @@ impl InnerHost {
         self.calldata = Some(bytes);
     }
 
-    pub fn get_returndata(&self) -> Option<alloc::vec::Vec<u8>> {
+    pub fn returndata(&self) -> Option<alloc::vec::Vec<u8>> {
         self.returndata.clone()
     }
 
@@ -277,7 +277,7 @@ impl InnerHost {
         self.layer_id = Some(layer_id);
     }
 
-    pub fn get_logs(&self) -> alloc::vec::Vec<(String, u8)> {
+    pub fn logs(&self) -> alloc::vec::Vec<(String, u8)> {
         self.logs.clone()
     }
 
@@ -388,13 +388,13 @@ mod tests {
         test(|| {
             let host = MockHost::instance();
 
-            let returndata = host.get_returndata();
+            let returndata = host.returndata();
             assert_eq!(returndata, None);
 
             let returndata = b"Done.";
             host.set_returndata(returndata);
 
-            let returndata = host.get_returndata().unwrap();
+            let returndata = host.returndata().unwrap();
             assert_eq!(returndata, b"Done.");
         });
     }
@@ -456,13 +456,13 @@ mod tests {
     #[test]
     fn host_logs() {
         test(|| {
-            let logs = MockHost::get_logs();
+            let logs = MockHost::logs();
             assert!(logs.is_empty());
 
             MockHost::log("Log #1", 100);
             MockHost::log("Log #2", 200);
 
-            let logs = MockHost::get_logs();
+            let logs = MockHost::logs();
 
             assert_eq!(
                 logs,

@@ -1,8 +1,8 @@
-use crate::Context;
-
 use byteorder::{ByteOrder, LittleEndian};
 
 use svm_layout::Id;
+
+use crate::Context;
 
 macro_rules! store_n_impl {
     ($nbytes:expr, $ctx:ident, $mem_ptr:expr, $var_id:expr) => {{

@@ -2,19 +2,8 @@ use svm_types::{Gas, ReceiptLog};
 
 pub struct Outcome<T> {
     returns: T,
-
     gas_used: Gas,
-
     logs: Vec<ReceiptLog>,
-}
-
-impl<T> Outcome<T> {
-    pub fn map<S, F>(self, f: F) -> Outcome<S>
-    where
-        F: Fn(T) -> S,
-    {
-        Outcome::new(f(self.returns), self.gas_used, self.logs)
-    }
 }
 
 impl<T> Outcome<T> {
@@ -32,6 +21,13 @@ impl<T> Outcome<T> {
 
     pub fn gas_used(&self) -> Gas {
         self.gas_used
+    }
+
+    pub fn map<S, F>(self, f: F) -> Outcome<S>
+    where
+        F: Fn(T) -> S,
+    {
+        Outcome::new(f(self.returns), self.gas_used, self.logs)
     }
 }
 

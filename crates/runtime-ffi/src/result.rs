@@ -11,7 +11,7 @@ pub enum svm_result_t {
 }
 
 ///
-/// # Example
+/// # Examples
 ///
 /// ```rust
 /// use svm_runtime_ffi::svm_result_t;
@@ -36,7 +36,7 @@ impl From<svm_result_t> for bool {
 impl svm_result_t {
     /// Returns whether equals to `svm_result::SVM_SUCCESS`
     ///
-    /// # Example
+    /// # Examples
     ///
     /// ```rust
     /// use svm_runtime_ffi::svm_result_t;
@@ -55,7 +55,7 @@ impl svm_result_t {
 
     /// Returns whether equals to `svm_result::SVM_FAILURE`
     ///
-    /// # Example
+    /// # Examples
     ///
     /// ```rust
     /// use svm_runtime_ffi::svm_result_t;

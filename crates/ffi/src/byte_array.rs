@@ -1,22 +1,20 @@
 use std::convert::TryFrom;
 use std::string::FromUtf8Error;
 
-use byteorder::{BigEndian, ByteOrder};
-
-use svm_types::{Type, WasmType, WasmValue};
+use svm_types::Type;
 
 use crate::tracking;
 
 /// FFI representation for a byte-array
 ///
-/// # Example
+/// # Examples
 ///
 /// ```rust
-/// use std::convert::TryFrom;
-/// use std::string::FromUtf8Error;
-///
 /// use svm_types::Type;
 /// use svm_ffi::svm_byte_array;
+///
+/// use std::convert::TryFrom;
+/// use std::string::FromUtf8Error;
 ///
 /// let ty = Type::Str("test string");
 ///
@@ -39,7 +37,7 @@ pub struct svm_byte_array {
 
     /// Total number of allocated bytes.
     /// It may be unequal and bigger than `length` if the `svm_byte_array` instance is an alias to
-    /// an instance of a data structure such as `Vec` (which in order to properly get deallocated
+    /// an instance of a data structure such as `Vec` (which in order to properly get de-allocated
     /// needs first to be re-constructed using the proper allocated capacity).
     pub capacity: u32,
 
@@ -66,75 +64,10 @@ impl svm_byte_array {
 
         tracking::decrement_live_1(self.type_id)
     }
-
-    /// Copies the WASM values given by `values` into the raw format of `self` (i.e `svm_byte_array`).
-    /// The function receives an allocated buffer filled with zeros it should fill-in.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use std::convert::TryFrom;
-    ///
-    /// use svm_types::{WasmValue, Type};
-    /// use svm_ffi::svm_byte_array;
-    ///
-    /// let src = vec![WasmValue::I64(10), WasmValue::I32(20), WasmValue::I64(30)];
-    ///
-    /// // We allocate `dst` with zeros.
-    /// let size = 1 + 9 * src.len();
-    ///
-    /// let ty = Type::of::<Vec<WasmValue>>();
-    /// let vec = vec![0u8; size];
-    ///
-    /// let mut dst: svm_byte_array = (ty, vec).into();
-    ///
-    /// // We fill-in `dst` with the WASM values given by `src`
-    /// unsafe { dst.copy_wasm_values(&src) };
-    ///
-    /// let copied = Vec::<WasmValue>::try_from(&dst).unwrap();
-    /// assert_eq!(copied, src);
-    ///
-    /// // de-allocate `dst`
-    /// unsafe { dst.destroy() };
-    /// ```
-    pub unsafe fn copy_wasm_values(&mut self, values: &[WasmValue]) {
-        assert!(values.len() <= 255);
-
-        let nvalues = values.len() as u8;
-
-        let mut ptr = self.bytes as *mut u8;
-
-        // The first byte signifies the `#values`.
-        std::ptr::write::<u8>(ptr, nvalues);
-        ptr = ptr.add(1);
-
-        macro_rules! copy_wasm_val {
-            ($ty:expr, $val:expr, $size:expr, $bits:expr) => {{
-                paste::item! {
-                    // First we copy the `type` of the WASM value
-                    let type_id: u8 = $ty.into();
-                    std::ptr::write::<u8>(ptr, type_id);
-                    ptr = ptr.add(1);
-
-                    // We copy the `value` with the data given by `$val`
-                    let buf = std::slice::from_raw_parts_mut(ptr as *mut u8, $size);
-                    BigEndian::[<write_u $bits>](buf, *$val);
-                    ptr = ptr.add($size);
-                }
-            }};
-        }
-
-        for val in values {
-            match val {
-                WasmValue::I32(v) => copy_wasm_val!(WasmType::I32, v, 4, 32),
-                WasmValue::I64(v) => copy_wasm_val!(WasmType::I64, v, 8, 64),
-            }
-        }
-    }
 }
 
 // ///
-// /// # Example
+// /// # Examples
 // ///
 // /// ```rust
 // /// use svm_ffi::svm_byte_array;
@@ -187,7 +120,7 @@ impl TryFrom<&svm_byte_array> for String {
         let slice: &[u8] = bytes.into();
 
         // data is cloned here, so the new `String` won't be merely an alias,
-        // and `bytes` will still require a separate deallocation.
+        // and `bytes` will still require a separate de-allocation.
         //
         // Making it an alias is unsafe because the data may not have
         // been dynamically allocated, or not by Rust's global allocator.

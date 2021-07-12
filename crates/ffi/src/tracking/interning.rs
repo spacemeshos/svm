@@ -1,9 +1,9 @@
+use lazy_static::lazy_static;
+
 use std::collections::HashMap;
 use std::sync::Mutex;
 
 use svm_types::Type;
-
-use lazy_static::lazy_static;
 
 // Since `svm_byte_array` is exchanged between `Rust` and external-code (i.e FFI code)
 // we can't use `Type` for `type_id`.

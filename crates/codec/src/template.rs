@@ -1,3 +1,5 @@
+//! Encoding for templates
+//!
 //!  `Template` Binary Format
 //!
 //!  Important: There are no assumptions regarding the order of the `Section`s
@@ -39,10 +41,10 @@
 //!
 //!
 
+use svm_types::{SectionKind, Template};
+
 use std::collections::HashSet;
 use std::io::Cursor;
-
-use svm_types::{SectionKind, Template};
 
 use crate::section::decode::decode_sections;
 use crate::section::SectionsEncoder;

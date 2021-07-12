@@ -36,6 +36,7 @@ mod option;
 mod small_array;
 mod tuples;
 mod unit;
+use svm_sdk_types::value::{Composite, Primitive, Value};
 
 pub use address::*;
 pub use amount::*;
@@ -45,7 +46,6 @@ pub use small_array::*;
 pub use tuples::*;
 
 use crate::traits::{Encoder, Push};
-use svm_sdk_types::value::{Composite, Primitive, Value};
 
 impl<W> Encoder<W> for Value
 where

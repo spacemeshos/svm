@@ -1,32 +1,26 @@
-use std::collections::HashMap;
-use std::collections::HashSet;
-use std::path::Path;
-
 use log::{error, info};
-use svm_types::SectionKind;
+use wasmer::{Exports, Extern, ImportObject, Instance, Module, Store, WasmPtr, WasmTypeList};
 
-use crate::env;
-use crate::Env;
-
-use env::{EnvTypes, ExtApp, ExtSpawnApp};
-
-use crate::error::ValidateError;
-use crate::storage::StorageBuilderFn;
-use crate::vmcalls;
-use crate::{Config, Context, ExternImport, Runtime};
-
-use svm_ffi::svm_env_t;
 use svm_layout::FixedLayout;
 use svm_storage::app::AppStorage;
-
+use svm_types::SectionKind;
 use svm_types::{AppAddr, DeployerAddr, SpawnerAddr, State, Template, Type};
 use svm_types::{ExecReceipt, ReceiptLog, SpawnAppReceipt, TemplateReceipt};
 use svm_types::{Gas, OOGError};
 use svm_types::{RuntimeError, Transaction};
 
-use wasmer::{Exports, Extern, ImportObject, Instance, Module, Store, WasmPtr, WasmTypeList};
+use std::collections::HashMap;
+use std::collections::HashSet;
+use std::path::{Path, PathBuf};
 
 use super::{Call, Failure, Function, Outcome};
+use crate::env;
+use crate::env::{EnvTypes, ExtApp, ExtSpawnApp};
+use crate::error::ValidateError;
+use crate::storage::StorageBuilderFn;
+use crate::vmcalls;
+use crate::Env;
+use crate::{Config, Context, Runtime};
 
 type Result<T> = std::result::Result<Outcome<T>, Failure>;
 
@@ -40,9 +34,6 @@ where
 
     /// The runtime configuration
     config: Config,
-
-    /// External imports (living in the so-called `Host` or `Node`) to be consumed by the App.
-    imports: *const Vec<ExternImport>,
 
     /// builds a `AppStorage` instance.
     storage_builder: Box<StorageBuilderFn>,
@@ -189,19 +180,16 @@ where
     T: EnvTypes,
 {
     /// Initializes a new `DefaultRuntime`.
-    pub fn new<P: AsRef<Path>>(
+    pub fn new<P: Into<PathBuf>>(
         env: Env<T>,
         kv_path: P,
-        imports: &Vec<ExternImport>,
         storage_builder: Box<StorageBuilderFn>,
     ) -> Self {
-        let config = Config::new(kv_path);
-        let imports = imports as *const _;
-
         Self {
             env,
-            config,
-            imports,
+            config: Config {
+                kv_path: kv_path.into(),
+            },
             storage_builder,
         }
     }
@@ -211,15 +199,12 @@ where
         ctx: &Context,
         mut out: Outcome<Box<[wasmer::Val]>>,
     ) -> ExecReceipt {
-        let returndata = self.take_returndata(ctx);
-        let new_state = self.commit_changes(&ctx);
-
         ExecReceipt {
             version: 0,
             success: true,
             error: None,
-            returndata: Some(returndata),
-            new_state: Some(new_state),
+            returndata: Some(self.take_returndata(ctx)),
+            new_state: Some(self.commit_changes(&ctx)),
             gas_used: out.gas_used(),
             logs: out.take_logs(),
         }
@@ -255,7 +240,7 @@ where
             func_name: spawn.ctor_name(),
             calldata: spawn.ctor_data(),
             state: &State::zeros(),
-            template_addr: &template_addr,
+            template_addr,
             app_addr,
             within_spawn: true,
             gas_used,
@@ -290,40 +275,20 @@ where
     {
         info!("runtime `exec`");
 
-        match self.load_template(call.app_addr()) {
+        match self.load_template(call.app_addr) {
             Ok(template) => {
-                let storage =
-                    self.open_storage(call.app_addr(), call.state(), template.fixed_layout());
+                let storage = self.open_storage(call.app_addr, call.state, template.fixed_layout());
 
-                let mut ctx = Context::new(
-                    call.gas_left(),
-                    storage,
-                    call.template_addr(),
-                    call.app_addr(),
-                );
+                let mut ctx =
+                    Context::new(call.gas_left, storage, call.template_addr, call.app_addr);
 
                 let store = svm_compiler::new_store();
+                let import_object = self.create_import_object(&store, &mut ctx);
 
-                let (import_object, host_envs) = self.create_import_object(&store, &mut ctx);
-
-                let result =
-                    self.exec_::<Args, Rets>(&call, &store, &ctx, &template, &import_object);
-
-                self.drop_envs(host_envs);
-
-                match result {
-                    Ok(out) => Ok(f(&ctx, out)),
-                    Err(err) => Err(err),
-                }
+                let res = self.exec_::<Args, Rets>(&call, &store, &ctx, &template, &import_object);
+                res.map(|out| f(&ctx, out))
             }
             Err(err) => Err(err.into()),
-        }
-    }
-
-    fn drop_envs(&self, mut host_envs: Vec<*mut svm_env_t>) {
-        for env in host_envs.drain(..) {
-            let ty = Type::of::<svm_env_t>();
-            let _ = svm_ffi::from_raw(ty, env);
         }
     }
 
@@ -341,15 +306,15 @@ where
     {
         self.validate_call(call, template, ctx)?;
 
-        let module = self.compile_template(store, ctx, &template, call.gas_left())?;
+        let module = self.compile_template(store, ctx, &template, call.gas_left)?;
         let instance = self.instantiate(ctx, &module, import_object)?;
 
         self.set_memory(ctx, &instance);
 
-        let func = self.get_func::<Args, Rets>(&instance, ctx, call.func_name())?;
+        let func = self.get_func::<Args, Rets>(&instance, ctx, call.func_name)?;
 
-        let mut out = if call.calldata().len() > 0 {
-            self.call_with_alloc(&instance, ctx, call.calldata(), &func, &[])?
+        let mut out = if call.calldata.len() > 0 {
+            self.call_with_alloc(&instance, ctx, call.calldata, &func, &[])?
         } else {
             self.call(&instance, ctx, &func, &[])?
         };
@@ -620,39 +585,15 @@ where
         Ok(func)
     }
 
-    fn create_import_object(
-        &self,
-        store: &Store,
-        ctx: &mut Context,
-    ) -> (ImportObject, Vec<*mut svm_env_t>) {
+    fn create_import_object(&self, store: &Store, ctx: &mut Context) -> ImportObject {
+        let mut internals = Exports::new();
+
+        vmcalls::wasmer_register(store, ctx, &mut internals);
+
         let mut import_object = ImportObject::new();
-        let mut funcs_envs = Vec::new();
+        import_object.register("svm", internals);
 
-        let mut exports = HashMap::new();
-
-        let imports: &[ExternImport] = unsafe { &*self.imports as _ };
-
-        for import in imports.iter() {
-            let namespace = import.namespace();
-            let ns_exports = exports.entry(namespace).or_insert(Exports::new());
-
-            let (export, func_env) = import.wasmer_export(store, ctx);
-
-            funcs_envs.push(func_env);
-            let ext = Extern::from_vm_export(store, export);
-
-            ns_exports.insert(import.name(), ext);
-        }
-
-        for (ns, exports) in exports {
-            import_object.register(ns, exports);
-        }
-
-        let mut svm = Exports::new();
-        vmcalls::wasmer_register(store, ctx, &mut svm);
-        import_object.register("svm", svm);
-
-        (import_object, funcs_envs)
+        import_object
     }
 
     fn load_template(&self, app_addr: &AppAddr) -> std::result::Result<Template, RuntimeError> {
@@ -694,19 +635,19 @@ where
         template: &Template,
         ctx: &Context,
     ) -> std::result::Result<(), Failure> {
-        let spawning = call.within_spawn();
-        let ctor = template.is_ctor(call.func_name());
+        let spawning = call.within_spawn;
+        let ctor = template.is_ctor(call.func_name);
 
         if spawning && !ctor {
             let msg = "expected function to be a constructor";
-            let err = self.func_not_allowed(ctx, call.func_name(), msg);
+            let err = self.func_not_allowed(ctx, call.func_name, msg);
 
             return Err(err);
         }
 
         if !spawning && ctor {
             let msg = "expected function to be a non-constructor";
-            let err = self.func_not_allowed(ctx, call.func_name(), msg);
+            let err = self.func_not_allowed(ctx, call.func_name, msg);
 
             return Err(err);
         }
