@@ -5,7 +5,7 @@ mod hasher;
 mod serialize;
 mod store;
 
-pub use compute_address::{AppAddressCompute, TemplateAddressCompute};
+pub use compute_address::AddressLocator;
 pub use hasher::TemplateHasher;
 pub use store::{AppStore, TemplateStore};
 
