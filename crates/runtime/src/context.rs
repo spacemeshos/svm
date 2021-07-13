@@ -1,3 +1,5 @@
+//! Implements `Context`. Used for managing data of running `SVM` apps.
+
 use wasmer::Memory;
 
 use std::cell::{Ref, RefCell, RefMut};

@@ -1,3 +1,5 @@
+//! Implements common functionality to be consumed by tests.
+
 use wasmer::{ImportObject, Instance, Memory, MemoryType, Module, Pages, Store};
 
 use std::cell::RefCell;
@@ -110,12 +112,12 @@ pub fn create_memory_runtime(
 
     let template_store = DefaultMemTemplateStore::new();
     let app_store = DefaultMemAppStore::new();
-
     let env = Env::<DefaultMemEnvTypes>::new(app_store, template_store);
 
-    let kv_path = Path::new("");
+    let config = Config::default();
+    let imports = ("sm".to_string(), wasmer::Exports::new());
 
-    DefaultRuntime::new(env, &kv_path, Box::new(storage_builder))
+    DefaultRuntime::new(env, imports, Box::new(storage_builder), config)
 }
 
 /// Returns a function (wrapped inside `Box`) that initializes an App's storage client.

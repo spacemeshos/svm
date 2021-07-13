@@ -36,5 +36,5 @@ pub trait AppStore {
     fn load(&self, addr: &AppAddr) -> Option<ExtApp>;
 
     #[must_use]
-    fn find_template_addr(&self, addr: &AppAddr) -> Option<TemplateAddr>;
+    fn resolve_template_addr(&self, addr: &AppAddr) -> Option<TemplateAddr>;
 }

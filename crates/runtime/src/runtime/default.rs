@@ -1,5 +1,5 @@
 use log::{error, info};
-use wasmer::{Exports, Extern, ImportObject, Instance, Module, Store, WasmPtr, WasmTypeList};
+use wasmer::{Instance, Module, WasmPtr, WasmTypeList};
 
 use svm_layout::FixedLayout;
 use svm_storage::app::AppStorage;
@@ -14,13 +14,11 @@ use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
 use super::{Call, Failure, Function, Outcome};
-use crate::env;
-use crate::env::{EnvTypes, ExtApp, ExtSpawnApp};
+use crate::env::{self, EnvTypes, ExtApp, ExtSpawnApp};
 use crate::error::ValidateError;
 use crate::storage::StorageBuilderFn;
 use crate::vmcalls;
-use crate::Env;
-use crate::{Config, Context, Runtime};
+use crate::{Config, Context, Env, Runtime};
 
 type Result<T> = std::result::Result<Outcome<T>, Failure>;
 
@@ -29,13 +27,18 @@ pub struct DefaultRuntime<T>
 where
     T: EnvTypes,
 {
-    /// The runtime environment. Used mainly for managing app persistence.
+    /// Runtime Environment.
+    ///
+    /// Used mainly for managing an Account's persistence.
     env: Env<T>,
 
-    /// The runtime configuration
+    /// Provided host functions to be consumed by running transactions.
+    imports: (String, wasmer::Exports),
+
+    /// Runtime configuration.
     config: Config,
 
-    /// builds a `AppStorage` instance.
+    /// Builds a `AppStorage` instance.
     storage_builder: Box<StorageBuilderFn>,
 }
 
@@ -78,7 +81,6 @@ where
 
         if gas_limit >= install_price {
             let gas_used = Gas::with(install_price);
-
             self.install_template(&template, gas_used)
         } else {
             TemplateReceipt::new_oog()
@@ -102,12 +104,11 @@ where
         match gas_left {
             Ok(gas_left) => {
                 let app = ExtApp::new(spawn.app(), spawner);
-                let addr = self.env.derive_app_address(&spawn);
+                let addr = self.env.compute_account_addr(&spawn);
 
                 self.env.store_app(&app, &addr);
 
                 let gas_used = payload_price.into();
-
                 self.call_ctor(&spawn, &addr, gas_used, gas_left)
             }
             Err(..) => SpawnAppReceipt::new_oog(Vec::new()),
@@ -120,41 +121,12 @@ where
         _state: &State,
         _gas_limit: Gas,
     ) -> std::result::Result<bool, RuntimeError> {
-        todo!()
-        //     let app_addr = tx.app_addr();
-        //     let template_addr = self.env.find_template_addr(app_addr);
-
-        //     if let Some(template_addr) = template_addr {
-        //         let call = Call {
-        //             func_name: "svm_verify",
-        //             calldata: tx.verifydata(),
-        //             template_addr: &template_addr,
-        //             app_addr,
-        //             state,
-        //             gas_used: Gas::with(0),
-        //             gas_left: gas_limit,
-        //             within_spawn: false,
-        //         };
-
-        //         let out = self.exec::<(), u32, _, _>(&call, |_ctx, mut out| {
-        //             let returns = out.take_returns();
-
-        //             debug_assert_eq!(returns.len(), 1);
-
-        //             let v: &wasmer::Val = returns.first().unwrap();
-
-        //             v.i32().unwrap() == 0
-        //         });
-
-        //         out.map_err(|fail| fail.take_error())
-        //     } else {
-        //         unreachable!("Should have failed earlier when doing `validate_tx`");
-        //     }
+        todo!("https://github.com/spacemeshos/svm/issues/248")
     }
 
     fn exec_tx(&self, tx: &Transaction, state: &State, gas_limit: Gas) -> ExecReceipt {
         let app_addr = tx.app_addr();
-        let template_addr = self.env.find_template_addr(app_addr);
+        let template_addr = self.env.resolve_template_addr(app_addr);
 
         if let Some(template_addr) = template_addr {
             let call = Call {
@@ -180,17 +152,17 @@ where
     T: EnvTypes,
 {
     /// Initializes a new `DefaultRuntime`.
-    pub fn new<P: Into<PathBuf>>(
+    pub fn new(
         env: Env<T>,
-        kv_path: P,
+        imports: (String, wasmer::Exports),
         storage_builder: Box<StorageBuilderFn>,
+        config: Config,
     ) -> Self {
         Self {
             env,
-            config: Config {
-                kv_path: kv_path.into(),
-            },
+            imports,
             storage_builder,
+            config,
         }
     }
 
@@ -254,7 +226,7 @@ where
     }
 
     fn install_template(&mut self, template: &Template, gas_used: Gas) -> TemplateReceipt {
-        let addr = self.env.derive_template_address(template);
+        let addr = self.env.compute_template_addr(template);
 
         self.env.store_template(template, &addr);
 
@@ -275,7 +247,7 @@ where
     {
         info!("runtime `exec`");
 
-        match self.load_template(call.app_addr) {
+        match self.account_template(call.app_addr) {
             Ok(template) => {
                 let storage = self.open_storage(call.app_addr, call.state, template.fixed_layout());
 
@@ -285,20 +257,20 @@ where
                 let store = svm_compiler::new_store();
                 let import_object = self.create_import_object(&store, &mut ctx);
 
-                let res = self.exec_::<Args, Rets>(&call, &store, &ctx, &template, &import_object);
-                res.map(|out| f(&ctx, out))
+                self.do_exec::<Args, Rets>(&call, &store, &ctx, &template, &import_object)
+                    .map(|outcome| f(&ctx, outcome))
             }
             Err(err) => Err(err.into()),
         }
     }
 
-    fn exec_<Args, Rets>(
+    fn do_exec<Args, Rets>(
         &self,
         call: &Call,
-        store: &Store,
+        store: &wasmer::Store,
         ctx: &Context,
         template: &Template,
-        import_object: &ImportObject,
+        import_object: &wasmer::ImportObject,
     ) -> Result<Box<[wasmer::Val]>>
     where
         Args: WasmTypeList,
@@ -311,7 +283,7 @@ where
 
         self.set_memory(ctx, &instance);
 
-        let func = self.get_func::<Args, Rets>(&instance, ctx, call.func_name)?;
+        let func = self.func::<Args, Rets>(&instance, ctx, call.func_name)?;
 
         let mut out = if call.calldata.len() > 0 {
             self.call_with_alloc(&instance, ctx, call.calldata, &func, &[])?
@@ -330,7 +302,6 @@ where
             }
             Err(..) => {
                 let err = Failure::new(RuntimeError::OOG, out.take_logs());
-
                 Err(err)
             }
         }
@@ -365,8 +336,7 @@ where
     fn call_alloc(&self, instance: &Instance, ctx: &Context, size: usize) -> Result<WasmPtr<u8>> {
         let func_name = "svm_alloc";
 
-        let func = self.get_func::<u32, u32>(&instance, ctx, func_name);
-
+        let func = self.func::<u32, u32>(&instance, ctx, func_name);
         if func.is_err() {
             let err = self.func_not_found(ctx, func_name);
 
@@ -377,7 +347,6 @@ where
         let params: [wasmer::Val; 1] = [(size as i32).into()];
 
         let out = self.call(instance, ctx, &func, &params)?;
-
         let out = out.map(|rets| {
             let ret = &rets[0];
             let offset = ret.i32().unwrap() as u32;
@@ -399,19 +368,8 @@ where
         Args: WasmTypeList,
         Rets: WasmTypeList,
     {
-        dbg!(
-            "About to invoke Wasmer (memory-size = {})",
-            ctx.borrow().allocated_memory()
-        );
-
         let wasmer_func = func.wasmer_func();
         let returns = wasmer_func.call(params);
-
-        dbg!(
-            "Wasmer finished running the called function (returns = {})",
-            &returns
-        );
-
         let logs = ctx.borrow_mut().take_logs();
 
         if returns.is_err() {
@@ -423,12 +381,10 @@ where
         match self.instance_gas_used(&instance) {
             Ok(gas_used) => {
                 let out = Outcome::new(returns.unwrap(), gas_used, logs);
-
                 Ok(out)
             }
             Err(..) => {
                 let err = Failure::new(RuntimeError::OOG, logs);
-
                 Err(err)
             }
         }
@@ -437,7 +393,6 @@ where
     #[inline]
     fn commit_changes(&self, ctx: &Context) -> State {
         let storage = &mut ctx.borrow_mut().storage;
-
         storage.commit()
     }
 
@@ -450,20 +405,8 @@ where
         let data = ctx.borrow().returndata;
 
         match data {
-            Some((offset, length)) => {
-                dbg!(
-                    "About to read memory `returndata` (offset = {}, length = {})",
-                    offset,
-                    length
-                );
-
-                self.read_memory(ctx, offset, length)
-            }
-            None => {
-                dbg!("there is no `returndata`");
-
-                Vec::new()
-            }
+            Some((offset, length)) => self.read_memory(ctx, offset, length),
+            None => Vec::new(),
         }
     }
 
@@ -473,27 +416,16 @@ where
         let borrow = ctx.borrow();
         let memory = borrow.get_memory();
 
-        dbg!(
-            "read_memory (memory byte-size = {}, offset = {}, length = {})",
-            borrow.allocated_memory(),
-            offset,
-            length
-        );
-
         let view = memory.view::<u8>();
-
         assert!(view.len() > offset + length - 1);
 
         let cells = &view[offset..(offset + length)];
-
         cells.iter().map(|c| c.get()).collect()
     }
 
     fn set_memory(&self, ctx: &Context, instance: &Instance) {
         // TODO: raise when no exported memory exists
         let memory = instance.exports.get_memory("memory").unwrap();
-
-        // dbg!(format!("Runtime initial #pages {}", memory.size().0));
 
         ctx.borrow_mut().set_memory(memory.clone());
     }
@@ -523,7 +455,6 @@ where
             assert!(view.len() > offset + length - 1);
 
             let cells = &view[offset..(offset + length)];
-
             for (cell, &byte) in cells.iter().zip(calldata.iter()) {
                 cell.set(byte);
             }
@@ -544,7 +475,7 @@ where
         &self,
         ctx: &Context,
         module: &Module,
-        import_object: &ImportObject,
+        import_object: &wasmer::ImportObject,
     ) -> std::result::Result<Instance, Failure> {
         info!("runtime `instantiate` (wasmer module instantiate)");
 
@@ -553,7 +484,7 @@ where
         instance.map_err(|err| self.instantiation_failed(ctx, err))
     }
 
-    fn get_func<'i, Args, Rets>(
+    fn func<'i, Args, Rets>(
         &self,
         instance: &'i Instance,
         ctx: &Context,
@@ -564,10 +495,8 @@ where
         Rets: WasmTypeList,
     {
         let func = instance.exports.get_function(func_name);
-
         if func.is_err() {
             let err = self.func_not_found(ctx, func_name);
-
             return Err(err);
         }
 
@@ -576,27 +505,31 @@ where
 
         if native.is_err() {
             let err = self.func_invalid_sig(ctx, func_name);
-
             return Err(err);
         }
 
         let func = Function::new(func, func_name);
-
         Ok(func)
     }
 
-    fn create_import_object(&self, store: &Store, ctx: &mut Context) -> ImportObject {
-        let mut internals = Exports::new();
+    fn create_import_object(
+        &self,
+        store: &wasmer::Store,
+        ctx: &mut Context,
+    ) -> wasmer::ImportObject {
+        let mut import_object = wasmer::ImportObject::new();
 
+        // Registering SVM internals
+        let mut internals = wasmer::Exports::new();
         vmcalls::wasmer_register(store, ctx, &mut internals);
-
-        let mut import_object = ImportObject::new();
         import_object.register("svm", internals);
+
+        // Registering the externals provided to the Runtime
 
         import_object
     }
 
-    fn load_template(&self, app_addr: &AppAddr) -> std::result::Result<Template, RuntimeError> {
+    fn account_template(&self, app_addr: &AppAddr) -> std::result::Result<Template, RuntimeError> {
         info!("runtime `load_template`");
 
         let mut interests = HashSet::new();
@@ -604,14 +537,14 @@ where
         interests.insert(SectionKind::Data);
         interests.insert(SectionKind::Ctors);
 
-        let template = self.env.load_template_by_app(app_addr, Some(interests));
+        let template = self.env.account_template(app_addr, Some(interests));
 
         template.ok_or_else(|| RuntimeError::AppNotFound(app_addr.clone()))
     }
 
     fn compile_template(
         &self,
-        store: &Store,
+        store: &wasmer::Store,
         ctx: &Context,
         template: &Template,
         gas_left: Gas,

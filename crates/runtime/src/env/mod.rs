@@ -67,9 +67,8 @@ pub struct Env<T>
 where
     T: EnvTypes,
 {
-    app_store: <T as EnvTypes>::AppStore,
-
-    template_store: <T as EnvTypes>::TemplateStore,
+    app_store: T::AppStore,
+    template_store: T::TemplateStore,
 }
 
 impl<T> Env<T>
@@ -79,10 +78,7 @@ where
     /// `Env` environment is dictated by its `Types`
 
     /// Creates a new `Env`. Injects externally the `TemplateStore` and `AppStore`.
-    pub fn new(
-        app_store: <T as EnvTypes>::AppStore,
-        template_store: <T as EnvTypes>::TemplateStore,
-    ) -> Self {
+    pub fn new(app_store: T::AppStore, template_store: T::TemplateStore) -> Self {
         Self {
             app_store,
             template_store,
@@ -90,43 +86,41 @@ where
     }
 
     /// Borrows environment's `TemplateStore`
-    pub fn get_template_store(&self) -> &<T as EnvTypes>::TemplateStore {
+    pub fn template_store(&self) -> &T::TemplateStore {
         &self.template_store
     }
 
     /// Borrows mutably a `TemplateStore`
-    pub fn get_template_store_mut(&mut self) -> &mut <T as EnvTypes>::TemplateStore {
+    pub fn template_store_mut(&mut self) -> &mut T::TemplateStore {
         &mut self.template_store
     }
 
     /// Borrows environment's `AppStore`
-    pub fn get_app_store(&self) -> &<T as EnvTypes>::AppStore {
+    pub fn account_store(&self) -> &T::AppStore {
         &self.app_store
     }
 
     /// Borrows mutably environment's `App`(s) store
-    pub fn get_app_store_mut(&mut self) -> &mut <T as EnvTypes>::AppStore {
+    pub fn account_store_mut(&mut self) -> &mut T::AppStore {
         &mut self.app_store
     }
 
     /// Computes `TemplateHash`
     pub fn compute_template_hash(&self, template: &Template) -> TemplateHash {
-        <T as EnvTypes>::TemplateHasher::hash(template)
+        T::TemplateHasher::hash(template)
     }
 
-    /// Computes `Template` account address
-    pub fn derive_template_address(&self, template: &Template) -> TemplateAddr {
-        <T as EnvTypes>::TemplateAddressCompute::compute(template)
+    /// Computes a `Template`'s `Address`
+    pub fn compute_template_addr(&self, template: &Template) -> TemplateAddr {
+        T::TemplateAddressCompute::compute(template)
     }
 
-    /// Computes `App` account `Address`
-    pub fn derive_app_address(&self, spawn: &ExtSpawnApp) -> AppAddr {
-        <T as EnvTypes>::AppAddressCompute::compute(spawn)
+    /// Computes an `Account`'s `Address`
+    pub fn compute_account_addr(&self, spawn: &ExtSpawnApp) -> AppAddr {
+        T::AppAddressCompute::compute(spawn)
     }
 
-    /// Wire
-
-    /// Parses raw a `Template`
+    /// Parses a raw `Template`
     ///
     /// On success returns `Template`,
     /// On failure returns `ParseError`.
@@ -142,7 +136,7 @@ where
         Ok(template)
     }
 
-    /// Parses raw a `SpawnApp`
+    /// Parses a raw `SpawnApp`
     ///
     /// On success returns `SpawnApp`,
     /// On failure returns `ParseError`.
@@ -154,7 +148,7 @@ where
         Ok(spawn)
     }
 
-    /// Parses raw a `Transaction`
+    /// Parses a raw `Transaction`
     ///
     /// On success returns `AppTransaction`,
     /// On failure returns `ParseError`.
@@ -169,7 +163,7 @@ where
     pub fn store_template(&mut self, template: &Template, addr: &TemplateAddr) {
         let hash = self.compute_template_hash(template);
 
-        let store = self.get_template_store_mut();
+        let store = self.template_store_mut();
 
         store.store(template, &addr, &hash);
     }
@@ -178,8 +172,8 @@ where
     pub fn store_app(&mut self, app: &ExtApp, addr: &AppAddr) {
         let template = app.template_addr();
 
-        if self.template_exists(template) {
-            let store = self.get_app_store_mut();
+        if self.contains_template(template) {
+            let store = self.account_store_mut();
 
             store.store(app, &addr);
         } else {
@@ -187,54 +181,53 @@ where
         }
     }
 
-    pub fn find_template_addr(&self, addr: &AppAddr) -> Option<TemplateAddr> {
-        let store = self.get_app_store();
+    pub fn resolve_template_addr(&self, addr: &AppAddr) -> Option<TemplateAddr> {
+        let store = self.account_store();
 
-        store.find_template_addr(&addr)
+        store.resolve_template_addr(&addr)
     }
 
-    /// Given an `App` Address, loads the `Template` the app is associated with.
-    pub fn load_template_by_app(
+    /// Given an `Account` Address, loads the associated `Template`
+    pub fn account_template(
         &self,
         addr: &AppAddr,
         interests: Option<HashSet<SectionKind>>,
     ) -> Option<Template> {
-        self.load_app(addr).and_then(|app| {
+        self.account(addr).and_then(|app| {
             let addr = app.template_addr();
-
-            self.load_template(addr, interests)
+            self.template(addr, interests)
         })
     }
 
     /// Loads an `Template` given its `Address`
     #[must_use]
-    pub fn load_template(
+    pub fn template(
         &self,
         addr: &TemplateAddr,
         interests: Option<HashSet<SectionKind>>,
     ) -> Option<Template> {
-        let store = self.get_template_store();
+        let store = self.template_store();
 
         store.load(&addr, interests)
     }
 
-    /// Loads an `App` given its `Address`
+    /// Loads an `Account` given its `Address`
     #[must_use]
-    pub fn load_app(&self, addr: &AppAddr) -> Option<ExtApp> {
-        let store = self.get_app_store();
+    pub fn account(&self, addr: &AppAddr) -> Option<ExtApp> {
+        let store = self.account_store();
 
         store.load(&addr)
     }
 
     /// Returns whether a `Template` with given the `Address` exists.
     #[inline]
-    pub fn template_exists(&self, addr: &TemplateAddr) -> bool {
-        self.load_template(addr, None).is_some()
+    pub fn contains_template(&self, addr: &TemplateAddr) -> bool {
+        self.template(addr, None).is_some()
     }
 
-    /// Returns whether an `App` with given the `Address` exists.
+    /// Returns whether an `Account` with given the `Address` exists.
     #[inline]
-    pub fn app_exists(&self, addr: &AppAddr) -> bool {
-        self.load_app(addr).is_some()
+    pub fn contains_account(&self, addr: &AppAddr) -> bool {
+        self.account(addr).is_some()
     }
 }
