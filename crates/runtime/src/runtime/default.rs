@@ -520,7 +520,7 @@ where
 
         // Registering the externals provided to the Runtime
         let (name, exports) = &self.imports;
-        debug_assert_ne!(name, "sm");
+        debug_assert_ne!(name, "svm");
 
         import_object.register(name, exports.clone());
 
