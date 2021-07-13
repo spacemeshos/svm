@@ -1,3 +1,5 @@
+//! Implements `Context`. Used for managing data of running `SVM` apps.
+
 use wasmer::Memory;
 
 use std::cell::{Ref, RefCell, RefMut};
@@ -5,7 +7,7 @@ use std::rc::Rc;
 use std::u64;
 
 use svm_storage::app::AppStorage;
-use svm_types::{AppAddr, Gas, ReceiptLog, TemplateAddr};
+use svm_types::{AccountAddr, Gas, ReceiptLog, TemplateAddr};
 
 /// `Context` is a container for the accessible data by `wasmer` instances.
 ///
@@ -18,7 +20,7 @@ pub struct Context {
 
     template_addr: TemplateAddr,
 
-    app_addr: AppAddr,
+    app_addr: AccountAddr,
 }
 
 // SVM is single-threaded.
@@ -32,7 +34,7 @@ impl Context {
         gas_limit: Gas,
         storage: AppStorage,
         template_addr: &TemplateAddr,
-        app_addr: &AppAddr,
+        app_addr: &AccountAddr,
     ) -> Self {
         let inner = ContextInner::new(gas_limit, storage);
 
@@ -49,7 +51,7 @@ impl Context {
         gas_limit: Gas,
         storage: AppStorage,
         template_addr: &TemplateAddr,
-        app_addr: &AppAddr,
+        app_addr: &AccountAddr,
     ) -> Self {
         let ctx = Self::new(gas_limit, storage, template_addr, app_addr);
 
@@ -65,7 +67,7 @@ impl Context {
     }
 
     /// Returns the `Address` of the current executed `App`.
-    pub fn app_addr(&self) -> &AppAddr {
+    pub fn app_addr(&self) -> &AccountAddr {
         &self.app_addr
     }
 

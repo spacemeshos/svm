@@ -1,4 +1,4 @@
-use svm_types::{AppAddr, Template, TemplateAddr};
+use svm_types::{AccountAddr, Template, TemplateAddr};
 
 use crate::env::ExtSpawnApp;
 
@@ -13,5 +13,5 @@ pub trait TemplateAddressCompute {
 /// Algorithm must be deterministic.
 pub trait AppAddressCompute {
     /// Derives the `App` address
-    fn compute(app: &ExtSpawnApp) -> AppAddr;
+    fn compute(app: &ExtSpawnApp) -> AccountAddr;
 }

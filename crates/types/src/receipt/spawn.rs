@@ -1,36 +1,36 @@
-use crate::receipt::{ExecReceipt, ReceiptLog, RuntimeError};
-use crate::{gas::Gas, AppAddr, State};
+use crate::receipt::{ReceiptLog, RuntimeError, TxReceipt};
+use crate::{gas::Gas, AccountAddr, State};
 
-/// Returned Receipt after spawning an App.
+/// Returned Receipt after spawning an [`Account`].
 #[derive(Debug, PartialEq, Clone)]
-pub struct SpawnAppReceipt {
+pub struct SpawnReceipt {
     /// The transaction format version
     pub version: u16,
 
-    /// whether spawn succedded or not
+    /// Whether spawn has succeeded or not
     pub success: bool,
 
-    /// the error in case spawning failed
+    /// The error in case spawning has failed
     pub error: Option<RuntimeError>,
 
-    /// the spawned app `Address`
-    pub app_addr: Option<AppAddr>,
+    /// The spawned [`Account`] `Address`
+    pub account_addr: Option<AccountAddr>,
 
-    /// the spawned app initial state (after executing its ctor)
+    /// The spawned [`Account`] initial [`State`] (after executing its ctor)
     pub init_state: Option<State>,
 
-    /// returned ctor data
+    /// Returned `ctor` data
     pub returndata: Option<Vec<u8>>,
 
     /// The amount of gas used
     pub gas_used: Gas,
 
-    /// logged entries during spawn-app's ctor running
+    /// Logged entries during `ctor` running
     pub logs: Vec<ReceiptLog>,
 }
 
-impl SpawnAppReceipt {
-    /// Creates a `SpawnAppReceipt` for reaching reaching `Out-of-Gas`.
+impl SpawnReceipt {
+    /// Creates a `SpawnReceipt` for reaching reaching `Out-of-Gas`.
     pub fn new_oog(logs: Vec<ReceiptLog>) -> Self {
         Self::from_err(RuntimeError::OOG, logs)
     }
@@ -41,7 +41,7 @@ impl SpawnAppReceipt {
             version: 0,
             success: false,
             error: Some(error),
-            app_addr: None,
+            account_addr: None,
             init_state: None,
             returndata: None,
             gas_used: Gas::new(),
@@ -49,27 +49,39 @@ impl SpawnAppReceipt {
         }
     }
 
-    /// Returns spawned-app `Error`. Panics if spawning has *not* failed.
+    /// Returns transaction's `Error`
+    ///
+    /// # Panics
+    /// Panics if spawning has **NOT** failed.
     pub fn error(&self) -> &RuntimeError {
         self.error.as_ref().unwrap()
     }
 
-    /// Returns spawned-app `Address`. Panics if spawning has failed.
-    pub fn app_addr(&self) -> &AppAddr {
-        self.app_addr.as_ref().unwrap()
+    /// Returns spawned [`Account`] [`Address`].
+    ///
+    /// # Panics
+    /// Panics if spawning has failed.
+    pub fn account_addr(&self) -> &AccountAddr {
+        self.account_addr.as_ref().unwrap()
     }
 
-    /// Returns spawned-app initial `State`. Panics if spawning has failed.
+    /// Returns spawned [`Account`] initial [`State`].
+    ///
+    /// # Panics
+    /// Panics if spawning has failed.
     pub fn init_state(&self) -> &State {
         self.init_state.as_ref().unwrap()
     }
 
-    /// Returns spawned-app results. Panics if spawning has failed.
+    /// Returns spawned [`Account`] `ctor` returns.
+    ///
+    /// # Panics
+    /// Panics if spawning has failed.
     pub fn returndata(&self) -> &Vec<u8> {
         self.returndata.as_ref().unwrap()
     }
 
-    /// Returns spawned-app gas-used
+    /// Returns amount of [`Gas`] used during spawning.
     pub fn get_gas_used(&self) -> Gas {
         self.gas_used
     }
@@ -86,19 +98,15 @@ impl SpawnAppReceipt {
 }
 
 #[allow(missing_docs)]
-pub fn into_spawn_app_receipt(
-    mut ctor_receipt: ExecReceipt,
-    app_addr: &AppAddr,
-) -> SpawnAppReceipt {
-    let app_addr = Some(app_addr.clone());
+pub fn into_spawn_receipt(mut ctor_receipt: TxReceipt, account_addr: &AccountAddr) -> SpawnReceipt {
     let logs = ctor_receipt.take_logs();
 
     if ctor_receipt.success {
-        SpawnAppReceipt {
+        SpawnReceipt {
             version: 0,
             success: true,
             error: None,
-            app_addr,
+            account_addr: Some(account_addr.clone()),
             init_state: ctor_receipt.new_state,
             returndata: ctor_receipt.returndata,
             gas_used: ctor_receipt.gas_used,
@@ -107,11 +115,11 @@ pub fn into_spawn_app_receipt(
     } else {
         let error = ctor_receipt.error.unwrap();
 
-        SpawnAppReceipt {
+        SpawnReceipt {
             version: 0,
             success: false,
             error: Some(error),
-            app_addr,
+            account_addr: None,
             init_state: None,
             returndata: None,
             gas_used: Gas::new(),

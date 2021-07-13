@@ -20,20 +20,13 @@ pub use runtime::create_rocksdb_runtime;
 mod gas;
 pub use gas::DefaultGasEstimator;
 
-/// Managing the Runtime environment
+mod context;
 mod env;
-pub use env::{Env, EnvTypes};
-
 mod storage;
 
-/// Implements `Context`. Used for managing data of running `SVM` apps.
-mod context;
 pub use context::Context;
+pub use env::{Env, EnvTypes};
 
-/// Implements common functionality to be consumed by tests.
-pub mod testing;
-
-pub mod vmcalls;
-
-/// Crate errors
 pub mod error;
+pub mod testing;
+pub mod vmcalls;

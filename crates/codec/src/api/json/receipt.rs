@@ -4,7 +4,7 @@ use crate::api::json::{self, JsonError};
 use crate::receipt;
 
 use svm_types::RuntimeError;
-use svm_types::{ExecReceipt, Receipt, ReceiptLog, SpawnAppReceipt, TemplateReceipt};
+use svm_types::{TxReceipt, Receipt, ReceiptLog, SpawnReceipt, TemplateReceipt};
 
 /// Given a binary Receipt wrappend inside a JSON,
 /// decodes it into a user-friendly JSON.
@@ -52,12 +52,12 @@ fn decode_error(ty: &'static str, err: &RuntimeError, logs: &[ReceiptLog]) -> Va
                 "err_type": "template-not-found",
                 "template_addr": json::addr_to_str(template_addr.inner()),
             }),
-            RuntimeError::AppNotFound(app_addr) => json!({
+            RuntimeError::AccountNotFound(app_addr) => json!({
                 "err_type": "app-not-found",
                 "app_addr": json::addr_to_str(app_addr.inner()),
             }),
             RuntimeError::CompilationFailed {
-                app_addr,
+                account_addr: app_addr,
                 template_addr,
                 msg,
             } => json!({
@@ -67,7 +67,7 @@ fn decode_error(ty: &'static str, err: &RuntimeError, logs: &[ReceiptLog]) -> Va
                 "message": msg,
             }),
             RuntimeError::InstantiationFailed {
-                app_addr,
+                account_addr: app_addr,
                 template_addr,
                 msg,
             } => json!({
@@ -77,7 +77,7 @@ fn decode_error(ty: &'static str, err: &RuntimeError, logs: &[ReceiptLog]) -> Va
                 "message": msg,
             }),
             RuntimeError::FuncNotFound {
-                app_addr,
+                account_addr: app_addr,
                 template_addr,
                 func,
             } => json!({
@@ -87,7 +87,7 @@ fn decode_error(ty: &'static str, err: &RuntimeError, logs: &[ReceiptLog]) -> Va
                 "func": func,
             }),
             RuntimeError::FuncFailed {
-                app_addr,
+                account_addr: app_addr,
                 template_addr,
                 func,
                 msg,
@@ -99,7 +99,7 @@ fn decode_error(ty: &'static str, err: &RuntimeError, logs: &[ReceiptLog]) -> Va
                 "message": msg,
             }),
             RuntimeError::FuncNotAllowed {
-                app_addr,
+                account_addr: app_addr,
                 template_addr,
                 func,
                 msg,
@@ -111,7 +111,7 @@ fn decode_error(ty: &'static str, err: &RuntimeError, logs: &[ReceiptLog]) -> Va
                 "message": msg,
             }),
             RuntimeError::FuncInvalidSignature {
-                app_addr,
+                account_addr: app_addr,
                 template_addr,
                 func,
             } => json!({
@@ -155,12 +155,12 @@ fn decode_deploy_template(receipt: &TemplateReceipt, ty: &'static str) -> Value 
     })
 }
 
-fn decode_spawn_app(receipt: &SpawnAppReceipt, ty: &'static str) -> Value {
+fn decode_spawn_app(receipt: &SpawnReceipt, ty: &'static str) -> Value {
     debug_assert!(receipt.success);
     debug_assert!(receipt.error.is_none());
 
-    let SpawnAppReceipt {
-        app_addr,
+    let SpawnReceipt {
+        account_addr: app_addr,
         init_state,
         returndata,
         gas_used,
@@ -179,11 +179,11 @@ fn decode_spawn_app(receipt: &SpawnAppReceipt, ty: &'static str) -> Value {
     })
 }
 
-fn decode_exe_app(receipt: &ExecReceipt, ty: &'static str) -> Value {
+fn decode_exe_app(receipt: &TxReceipt, ty: &'static str) -> Value {
     debug_assert!(receipt.success);
     debug_assert!(receipt.error.is_none());
 
-    let ExecReceipt {
+    let TxReceipt {
         new_state,
         returndata,
         gas_used,
@@ -268,11 +268,11 @@ mod tests {
             },
         ];
 
-        let receipt = SpawnAppReceipt {
+        let receipt = SpawnReceipt {
             version: 0,
             success: true,
             error: None,
-            app_addr: Some(app.into()),
+            account_addr: Some(app.into()),
             init_state: Some(state),
             returndata: Some(vec![0x10, 0x20, 0x30]),
             gas_used: Gas::with(10),
@@ -307,11 +307,11 @@ mod tests {
             code: 0,
         }];
 
-        let receipt = SpawnAppReceipt {
+        let receipt = SpawnReceipt {
             version: 0,
             success: false,
             error: Some(RuntimeError::OOG),
-            app_addr: None,
+            account_addr: None,
             init_state: None,
             returndata: None,
             gas_used: Gas::with(1000),
@@ -348,7 +348,7 @@ mod tests {
             },
         ];
 
-        let receipt = ExecReceipt {
+        let receipt = TxReceipt {
             version: 0,
             success: true,
             error: None,

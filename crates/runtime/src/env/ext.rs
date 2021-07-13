@@ -1,23 +1,23 @@
 use std::collections::HashMap;
 
 use svm_layout::{FixedLayout, SymbolicVar};
-use svm_types::{App, DeployerAddr, SpawnApp, SpawnerAddr, Template, TemplateAddr};
+use svm_types::{Account, DeployerAddr, SpawnAccount, SpawnerAddr, Template, TemplateAddr};
 
 pub struct ExtApp {
-    base: App,
+    base: Account,
 
     spawner: SpawnerAddr,
 }
 
 impl ExtApp {
-    pub fn new(base: &App, spawner: &SpawnerAddr) -> Self {
+    pub fn new(base: &Account, spawner: &SpawnerAddr) -> Self {
         Self {
             base: base.clone(),
             spawner: spawner.clone(),
         }
     }
 
-    pub fn base(&self) -> &App {
+    pub fn base(&self) -> &Account {
         &self.base
     }
 
@@ -35,24 +35,24 @@ impl ExtApp {
 }
 
 pub struct ExtSpawnApp {
-    base: SpawnApp,
+    base: SpawnAccount,
 
     spawner: SpawnerAddr,
 }
 
 impl ExtSpawnApp {
-    pub fn new(base: SpawnApp, spawner: &SpawnerAddr) -> Self {
+    pub fn new(base: SpawnAccount, spawner: &SpawnerAddr) -> Self {
         Self {
             base,
             spawner: spawner.clone(),
         }
     }
 
-    pub fn base(&self) -> &SpawnApp {
+    pub fn base(&self) -> &SpawnAccount {
         &self.base
     }
 
-    pub fn app(&self) -> &App {
+    pub fn app(&self) -> &Account {
         self.base.app()
     }
 
@@ -61,7 +61,7 @@ impl ExtSpawnApp {
     }
 
     pub fn name(&self) -> &str {
-        self.base().app_name()
+        self.base().account_name()
     }
 
     pub fn ctor_name(&self) -> &str {
@@ -69,7 +69,7 @@ impl ExtSpawnApp {
     }
 
     pub fn ctor_data(&self) -> &[u8] {
-        self.base().ctor_data()
+        self.base().ctor_calldata()
     }
 
     pub fn spawner(&self) -> &SpawnerAddr {

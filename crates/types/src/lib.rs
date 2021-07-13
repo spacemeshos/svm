@@ -14,9 +14,9 @@ mod macros;
 
 mod address;
 mod address_of;
-mod app;
+mod account;
 mod error;
-mod spawn_app;
+mod spawn;
 mod state;
 mod template;
 mod transaction;
@@ -34,16 +34,16 @@ pub use gas::{Gas, GasMode, OOGError};
 mod receipt;
 
 pub use receipt::{
-    into_spawn_app_receipt, ExecReceipt, Receipt, ReceiptLog, ReceiptRef, SpawnAppReceipt,
+    into_spawn_receipt, TxReceipt, Receipt, ReceiptLog, ReceiptRef, SpawnReceipt,
     TemplateReceipt,
 };
 
 /// Address-related types
-pub use address::{Address, AppAddr, DeployerAddr, SpawnerAddr, TemplateAddr};
+pub use address::{Address, AccountAddr, DeployerAddr, SpawnerAddr, TemplateAddr};
 pub use address_of::AddressOf;
 
-pub use app::App;
-pub use spawn_app::SpawnApp;
+pub use account::Account;
+pub use spawn::SpawnAccount;
 pub use state::State;
 pub use template::{
     ApiSection, CodeKind, CodeSection, CtorsSection, DataSection, DeploySection, HeaderSection,

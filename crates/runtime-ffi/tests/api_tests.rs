@@ -196,7 +196,7 @@ fn svm_runtime_failure() {
         let receipt = receipt::decode_receipt(spawn_receipt.clone().into()).into_spawn_app();
         assert_eq!(receipt.success, true);
 
-        let app_addr = receipt.app_addr().inner();
+        let app_addr = receipt.account_addr().inner();
         let app_addr: svm_byte_array = (APP_ADDR, app_addr).into();
 
         let init_state = receipt.init_state();
@@ -338,7 +338,7 @@ fn svm_runtime_success() {
         // extracts the spawned-app `Address` and initial `State`.
         let receipt = receipt::decode_receipt(spawn_receipt.clone().into()).into_spawn_app();
         assert_eq!(receipt.success, true);
-        let app_addr = receipt.app_addr().inner();
+        let app_addr = receipt.account_addr().inner();
         let app_addr: svm_byte_array = (APP_ADDR, app_addr).into();
 
         let init_state = receipt.init_state();

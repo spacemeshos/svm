@@ -1,4 +1,4 @@
-use svm_types::{SpawnApp, Template, Transaction};
+use svm_types::{SpawnAccount, Template, Transaction};
 
 use super::estimator::{DeployTemplateEst, ExecAppEst, GasEstimator, SpawnAppEst};
 
@@ -10,7 +10,7 @@ impl GasEstimator for DefaultGasEstimator {
         todo!()
     }
 
-    fn est_spawn_app(_bytes: &[u8], _spawn: &SpawnApp) -> SpawnAppEst {
+    fn est_spawn_app(_bytes: &[u8], _spawn: &SpawnAccount) -> SpawnAppEst {
         todo!()
     }
 
