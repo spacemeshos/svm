@@ -33,7 +33,7 @@ impl PriceResolver for StandardPriceResolver {
             ("svm", "svm_load160") => 500,
             ("svm", "svm_store160") => 5_000_000,
             ("svm", "svm_log") => 3_000,
-            _ => unreachable!(),
+            _ => 1000,
         }
     }
 }
