@@ -19,7 +19,7 @@ mod call_graph;
 pub use call_graph::{CallGraph, CallGraphBuilder};
 
 mod program;
-pub use program::{Imports, Program, ProgramVisitor};
+pub use program::{Exports, Imports, Program, ProgramVisitor};
 
 mod validation;
 pub use validation::validate_wasm;

@@ -3,17 +3,21 @@ use parity_wasm::elements::Instruction;
 
 use crate::{FuncIndex, Function};
 
+mod exports;
+mod import;
 mod visitor;
+
+pub use import::Imports;
 pub use visitor::ProgramVisitor;
 
-mod import;
-pub use import::Imports;
+pub use self::exports::Exports;
 
 /// Parsed Wasm Program.
 #[derive(Debug, Default)]
 pub struct Program {
     imports: Imports,
     functions: IndexMap<FuncIndex, Vec<Instruction>>,
+    exports: Exports,
 }
 
 impl Program {
@@ -22,9 +26,17 @@ impl Program {
         &self.imports
     }
 
+    pub fn exports(&self) -> &Exports {
+        &self.exports
+    }
+
     /// Setting the functions imports
     pub fn set_imports(&mut self, imports: Imports) {
         self.imports = imports;
+    }
+
+    pub fn set_exports(&mut self, exports: Exports) {
+        self.exports = exports;
     }
 
     /// Adding a function with index` fn_index` and instructions `ops`
@@ -37,10 +49,13 @@ impl Program {
         (fn_index.0 as usize) < self.imports.count()
     }
 
+    pub fn is_exported(&self, func_name: &str) -> bool {
+        self.exports.contains(func_name)
+    }
+
     /// Returns a `Function` with index `fn_index`
     pub fn get_func(&self, fn_index: FuncIndex) -> Function {
         let code = self.functions.get(&fn_index).unwrap();
-
         Function::new(fn_index, code)
     }
 

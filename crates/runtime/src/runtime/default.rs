@@ -43,7 +43,7 @@ impl svm_gas::PriceResolver for TestResolver {
         match import {
             ("env", "foo") => 100,
             ("env", "bar") => 50,
-            _ => unreachable!(),
+            _ => 10,
         }
     }
 }
@@ -733,18 +733,26 @@ where
         };
         let template_code_section = template.sections().get(SectionKind::Code).as_code();
         let gas_mode = template_code_section.gas_mode();
-        let _func_price = {
-            let template_code = template_code_section.code();
+        let template_code = template_code_section.code();
+        let program = svm_gas::read_program(template_code).unwrap();
+        let func_price = {
             let program_pricing = svm_gas::ProgramPricing::new(TestResolver::new(1));
-            let program = svm_gas::read_program(template_code).unwrap();
             program_pricing.visit(&program).unwrap()
         };
         let spawn = ExtSpawnApp::new(base, spawner);
-        template.is_ctor(spawn.ctor_name());
+        if !template.is_ctor(spawn.ctor_name()) {
+            // The template is faulty.
+            return SpawnAppReceipt::from_err(
+                RuntimeError::TemplateNotFound(spawn.app().template_addr().clone()),
+                vec![],
+            );
+        }
 
         match gas_mode {
             GasMode::Fixed => {
-                if let Err(_) = svm_gas::validate_wasm(template_code_section.code(), false) {
+                let ctor_func_index = program.exports().get(spawn.ctor_name()).unwrap();
+                let price = func_price.get(ctor_func_index) as u64;
+                if gas_limit <= price {
                     return SpawnAppReceipt::new_oog(vec![]);
                 }
             }

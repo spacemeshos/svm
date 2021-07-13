@@ -1,8 +1,10 @@
 use std::collections::HashMap;
 
-use parity_wasm::elements::{CodeSection, External, ImportCountType, ImportEntry, Module};
+use parity_wasm::elements::{
+    CodeSection, ExportSection, External, ImportCountType, ImportEntry, Module,
+};
 
-use crate::{FuncIndex, Function, Imports, NodeLabel, Program};
+use crate::{Exports, FuncIndex, Function, Imports, NodeLabel, Program};
 
 type ProgramError = crate::ProgramError<FuncIndex>;
 
@@ -14,6 +16,7 @@ pub fn read_program(wasm: &[u8]) -> Result<Program, ProgramError> {
     let imports = read_imports(&module)?;
     let mut program = Program::default();
 
+    let exports = read_exports(&module)?;
     for (i, fn_body) in code.bodies().iter().enumerate() {
         let fn_index = i + imports.count();
 
@@ -24,6 +27,7 @@ pub fn read_program(wasm: &[u8]) -> Result<Program, ProgramError> {
     }
 
     program.set_imports(imports);
+    program.set_exports(exports);
 
     Ok(program)
 }
@@ -66,6 +70,28 @@ fn read_imports<'m>(module: &Module) -> Result<Imports, ProgramError> {
     } else {
         Ok(Imports::new())
     }
+}
+
+fn read_exports(module: &Module) -> Result<Exports, ProgramError> {
+    let empty_exports_section = ExportSection::with_entries(vec![]);
+
+    let mut exports = Exports::default();
+    let items = module
+        .export_section()
+        .unwrap_or(&empty_exports_section)
+        .entries()
+        .iter()
+        .filter_map(|entry| {
+            if let parity_wasm::elements::Internal::Function(i) = entry.internal() {
+                Some((entry.field().to_string(), *i))
+            } else {
+                None
+            }
+        });
+    for (name, func_index) in items {
+        exports.insert(name, FuncIndex(func_index))
+    }
+    Ok(exports)
 }
 
 fn module_import_count(module: &Module) -> Result<u16, ProgramError> {

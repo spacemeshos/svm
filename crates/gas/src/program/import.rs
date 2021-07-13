@@ -3,15 +3,9 @@ use indexmap::IndexMap;
 use crate::FuncIndex;
 
 /// Stores a mapping between a function index to its corresponding `(module_name, import_name)`
-#[derive(Debug)]
+#[derive(Debug, Clone, Default)]
 pub struct Imports {
     inner: IndexMap<FuncIndex, (String, String)>,
-}
-
-impl Default for Imports {
-    fn default() -> Self {
-        Imports::new()
-    }
 }
 
 impl Imports {
