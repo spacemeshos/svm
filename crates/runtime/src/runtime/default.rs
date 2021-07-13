@@ -686,9 +686,6 @@ where
 
         let template = self.env.parse_deploy_template(bytes, None).unwrap();
 
-        // TODO:
-        // Gas limit validation.
-
         let install_price = self.template_installation_price(bytes, &template);
 
         if gas_limit >= install_price {
