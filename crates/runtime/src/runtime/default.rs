@@ -742,8 +742,15 @@ where
         let spawn = ExtSpawnApp::new(base, spawner);
         if !template.is_ctor(spawn.ctor_name()) {
             // The template is faulty.
+            let app = ExtApp::new(spawn.app(), spawner);
+            let app_addr = self.env.derive_app_address(&spawn);
             return SpawnAppReceipt::from_err(
-                RuntimeError::TemplateNotFound(spawn.app().template_addr().clone()),
+                RuntimeError::FuncNotAllowed {
+                    app_addr,
+                    template_addr: app.template_addr().clone(),
+                    func: spawn.ctor_name().to_string(),
+                    msg: "The given function is not a `ctor`.".to_string(),
+                },
                 vec![],
             );
         }
