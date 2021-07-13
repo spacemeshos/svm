@@ -6,16 +6,16 @@ pub use layer::Layer;
 
 use std::fmt;
 
-use crate::AppAddr;
+use crate::AccountAddr;
 
-/// An in-memory representation of an exec-app transaction.
+/// Represents an [`Account`] [`Transaction`]
 #[derive(PartialEq, Clone)]
 pub struct Transaction {
-    /// The app-transaction version.
+    /// The `Transaction` version.
     pub version: u16,
 
-    /// The `App` account address
-    pub app: AppAddr,
+    /// The `Principal`'s `address`
+    pub principal: AccountAddr,
 
     /// Function's name to execute
     pub func_name: String,
@@ -30,8 +30,8 @@ pub struct Transaction {
 
 impl Transaction {
     #[doc(hidden)]
-    pub fn app_addr(&self) -> &AppAddr {
-        &self.app
+    pub fn principal_addr(&self) -> &AccountAddr {
+        &self.principal
     }
 
     #[doc(hidden)]
@@ -59,7 +59,7 @@ impl fmt::Debug for Transaction {
 
         f.debug_struct("Transaction")
             .field("version", &self.version)
-            .field("app", self.app.inner())
+            .field("principal", self.principal.inner())
             // TODO:
             // See issue: https://github.com/spacemeshos/svm/issues/248
             // .field("verifydata", &verifydata)

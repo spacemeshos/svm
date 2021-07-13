@@ -21,7 +21,7 @@
 //!
 //!
 
-use svm_types::{AppAddr, Transaction};
+use svm_types::{AccountAddr, Transaction};
 
 use std::io::Cursor;
 
@@ -49,7 +49,7 @@ pub fn decode_exec_app(cursor: &mut Cursor<&[u8]>) -> Result<Transaction, ParseE
 
     let tx = Transaction {
         version,
-        app,
+        principal: app,
         func_name,
         // verifydata,
         calldata,
@@ -67,7 +67,7 @@ fn encode_version(tx: &Transaction, w: &mut Vec<u8>) {
 }
 
 fn encode_app(tx: &Transaction, w: &mut Vec<u8>) {
-    let addr = tx.app.inner();
+    let addr = tx.principal.inner();
 
     w.write_address(addr);
 }
@@ -97,7 +97,7 @@ fn decode_version(cursor: &mut Cursor<&[u8]>) -> Result<u16, ParseError> {
     version::decode_version(cursor)
 }
 
-fn decode_app(cursor: &mut Cursor<&[u8]>) -> Result<AppAddr, ParseError> {
+fn decode_app(cursor: &mut Cursor<&[u8]>) -> Result<AccountAddr, ParseError> {
     match cursor.read_address() {
         Ok(addr) => Ok(addr.into()),
         Err(..) => Err(ParseError::NotEnoughBytes(Field::AppAddr)),
@@ -122,7 +122,7 @@ mod tests {
     fn encode_decode_exec_app() {
         let tx = Transaction {
             version: 0,
-            app: Address::of("my-app").into(),
+            principal: Address::of("my-app").into(),
             func_name: "do_work".to_string(),
             // verifydata: vec![0x10, 0x0, 0x30],
             calldata: vec![0x10, 0x0, 0x30],

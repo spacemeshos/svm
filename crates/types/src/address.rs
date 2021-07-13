@@ -25,7 +25,7 @@ pub type DeployerAddr = AddressOf<Deployer>;
 pub type SpawnerAddr = AddressOf<Spawner>;
 
 /// Address of an App.
-pub type AppAddr = AddressOf<App>;
+pub type AccountAddr = AddressOf<App>;
 
 #[cfg(test)]
 mod tests {

@@ -18,7 +18,7 @@ pub fn decode_receipt(offset: usize) -> Result<usize, JsonError> {
 mod test {
     use super::*;
 
-    use svm_types::{Address, Gas, SpawnAppReceipt, State};
+    use svm_types::{Address, Gas, SpawnReceipt, State};
 
     use crate::api::json;
     use crate::api::wasm::{free, to_wasm_buffer, wasm_buffer_data, BUF_OK_MARKER};
@@ -31,11 +31,11 @@ mod test {
         let state: State = [0xA0; 32].into();
         let logs = Vec::new();
 
-        let receipt = SpawnAppReceipt {
+        let receipt = SpawnReceipt {
             version: 0,
             success: true,
             error: None,
-            app_addr: Some(app.into()),
+            account_addr: Some(app.into()),
             init_state: Some(state),
             returndata: Some(vec![0x10, 0x20]),
             gas_used: Gas::with(10),

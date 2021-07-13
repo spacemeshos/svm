@@ -1,4 +1,4 @@
-use svm_types::{App, SpawnApp, TemplateAddr};
+use svm_types::{Account, SpawnAccount, TemplateAddr};
 
 use crate::app;
 
@@ -86,22 +86,20 @@ impl SpawnAppBuilder {
     }
 
     pub fn build(self) -> Vec<u8> {
-        let version = self.version.unwrap();
+        // TODO: decide if we want to store it under `SpawnAccount`
+        let _version = self.version.unwrap();
+
         let template_addr = self.template.unwrap();
         let name = self.name.unwrap();
         let ctor_name = self.ctor_name.unwrap();
 
-        let calldata = match self.calldata {
+        let ctor_calldata = match self.calldata {
             None => vec![],
             Some(calldata) => calldata.to_vec(),
         };
 
-        let spawn = SpawnApp {
-            version,
-            app: App::new(template_addr, name),
-            ctor_name,
-            calldata,
-        };
+        let account = Account::new(template_addr, name);
+        let spawn = SpawnAccount::new(account, ctor_name, ctor_calldata);
 
         let mut w = Vec::new();
 

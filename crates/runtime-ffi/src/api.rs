@@ -207,7 +207,7 @@ pub unsafe extern "C" fn svm_validate_tx(
         Ok(tx) => {
             // returning encoded `AppReceipt` as `svm_byte_array`.
             // should call later `svm_receipt_destroy`
-            addr_to_svm_byte_array!(VALIDATE_TX_APP_ADDR_TYPE, app_addr, tx.app.unwrap());
+            addr_to_svm_byte_array!(VALIDATE_TX_APP_ADDR_TYPE, app_addr, tx.principal.unwrap());
 
             debug!("`svm_validate_tx` returns `SVM_SUCCESS`");
             svm_result_t::SVM_SUCCESS

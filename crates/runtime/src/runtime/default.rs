@@ -4,8 +4,8 @@ use wasmer::{Instance, Module, WasmPtr, WasmTypeList};
 use svm_layout::FixedLayout;
 use svm_storage::app::AppStorage;
 use svm_types::SectionKind;
-use svm_types::{AppAddr, DeployerAddr, SpawnerAddr, State, Template, Type};
-use svm_types::{ExecReceipt, ReceiptLog, SpawnAppReceipt, TemplateReceipt};
+use svm_types::{AccountAddr, DeployerAddr, SpawnerAddr, State, Template, Type};
+use svm_types::{TxReceipt, ReceiptLog, SpawnReceipt, TemplateReceipt};
 use svm_types::{Gas, OOGError};
 use svm_types::{RuntimeError, Transaction};
 
@@ -92,7 +92,7 @@ where
         bytes: &[u8],
         spawner: &SpawnerAddr,
         gas_limit: Gas,
-    ) -> SpawnAppReceipt {
+    ) -> SpawnReceipt {
         info!("runtime `spawn_app`");
 
         let base = self.env.parse_spawn_app(bytes).unwrap();
@@ -111,7 +111,7 @@ where
                 let gas_used = payload_price.into();
                 self.call_ctor(&spawn, &addr, gas_used, gas_left)
             }
-            Err(..) => SpawnAppReceipt::new_oog(Vec::new()),
+            Err(..) => SpawnReceipt::new_oog(Vec::new()),
         }
     }
 
@@ -124,8 +124,8 @@ where
         todo!("https://github.com/spacemeshos/svm/issues/248")
     }
 
-    fn exec_tx(&self, tx: &Transaction, state: &State, gas_limit: Gas) -> ExecReceipt {
-        let app_addr = tx.app_addr();
+    fn exec_tx(&self, tx: &Transaction, state: &State, gas_limit: Gas) -> TxReceipt {
+        let app_addr = tx.principal_addr();
         let template_addr = self.env.resolve_template_addr(app_addr);
 
         if let Some(template_addr) = template_addr {
@@ -170,8 +170,8 @@ where
         &self,
         ctx: &Context,
         mut out: Outcome<Box<[wasmer::Val]>>,
-    ) -> ExecReceipt {
-        ExecReceipt {
+    ) -> TxReceipt {
+        TxReceipt {
             version: 0,
             success: true,
             error: None,
@@ -182,17 +182,17 @@ where
         }
     }
 
-    fn failure_to_receipt(&self, mut fail: Failure) -> ExecReceipt {
+    fn failure_to_receipt(&self, mut fail: Failure) -> TxReceipt {
         let logs = fail.take_logs();
         let err = fail.take_error();
 
-        ExecReceipt::from_err(err, logs)
+        TxReceipt::from_err(err, logs)
     }
 
     /// Opens the `AppStorage` associated with the input params.
     pub fn open_storage(
         &self,
-        app_addr: &AppAddr,
+        app_addr: &AccountAddr,
         state: &State,
         layout: &FixedLayout,
     ) -> AppStorage {
@@ -202,10 +202,10 @@ where
     fn call_ctor(
         &mut self,
         spawn: &ExtSpawnApp,
-        app_addr: &AppAddr,
+        app_addr: &AccountAddr,
         gas_used: Gas,
         gas_left: Gas,
-    ) -> SpawnAppReceipt {
+    ) -> SpawnReceipt {
         let template_addr = spawn.template_addr();
 
         let call = Call {
@@ -222,7 +222,7 @@ where
         let receipt = self.exec_call::<(), ()>(&call);
 
         // TODO: move the `into_spawn_app_receipt` to a `From / TryFrom`
-        svm_types::into_spawn_app_receipt(receipt, app_addr)
+        svm_types::into_spawn_receipt(receipt, app_addr)
     }
 
     fn install_template(&mut self, template: &Template, gas_used: Gas) -> TemplateReceipt {
@@ -232,7 +232,7 @@ where
         TemplateReceipt::new(addr, gas_used)
     }
 
-    fn exec_call<Args, Rets>(&self, call: &Call) -> ExecReceipt {
+    fn exec_call<Args, Rets>(&self, call: &Call) -> TxReceipt {
         let result = self.exec::<(), (), _, _>(&call, |ctx, out| self.outcome_to_receipt(ctx, out));
 
         result.unwrap_or_else(|fail| self.failure_to_receipt(fail))
@@ -527,14 +527,14 @@ where
         import_object
     }
 
-    fn account_template(&self, app_addr: &AppAddr) -> std::result::Result<Template, RuntimeError> {
+    fn account_template(&self, app_addr: &AccountAddr) -> std::result::Result<Template, RuntimeError> {
         let mut interests = HashSet::new();
         interests.insert(SectionKind::Code);
         interests.insert(SectionKind::Data);
         interests.insert(SectionKind::Ctors);
 
         let template = self.env.account_template(app_addr, Some(interests));
-        template.ok_or_else(|| RuntimeError::AppNotFound(app_addr.clone()))
+        template.ok_or_else(|| RuntimeError::AccountNotFound(app_addr.clone()))
     }
 
     fn compile_template(
@@ -594,7 +594,7 @@ where
     #[inline]
     fn func_not_found(&self, ctx: &Context, func_name: &str) -> Failure {
         RuntimeError::FuncNotFound {
-            app_addr: ctx.app_addr().clone(),
+            account_addr: ctx.app_addr().clone(),
             template_addr: ctx.template_addr().clone(),
             func: func_name.to_string(),
         }
@@ -604,7 +604,7 @@ where
     #[inline]
     fn instantiation_failed(&self, ctx: &Context, err: wasmer::InstantiationError) -> Failure {
         RuntimeError::InstantiationFailed {
-            app_addr: ctx.app_addr().clone(),
+            account_addr: ctx.app_addr().clone(),
             template_addr: ctx.template_addr().clone(),
             msg: err.to_string(),
         }
@@ -614,7 +614,7 @@ where
     #[inline]
     fn func_not_allowed(&self, ctx: &Context, func_name: &str, msg: &str) -> Failure {
         RuntimeError::FuncNotAllowed {
-            app_addr: ctx.app_addr().clone(),
+            account_addr: ctx.app_addr().clone(),
             template_addr: ctx.template_addr().clone(),
             func: func_name.to_string(),
             msg: msg.to_string(),
@@ -625,7 +625,7 @@ where
     #[inline]
     fn func_invalid_sig(&self, ctx: &Context, func_name: &str) -> Failure {
         RuntimeError::FuncInvalidSignature {
-            app_addr: ctx.app_addr().clone(),
+            account_addr: ctx.app_addr().clone(),
             template_addr: ctx.template_addr().clone(),
             func: func_name.to_string(),
         }
@@ -641,7 +641,7 @@ where
         logs: Vec<ReceiptLog>,
     ) -> Failure {
         let err = RuntimeError::FuncFailed {
-            app_addr: ctx.app_addr().clone(),
+            account_addr: ctx.app_addr().clone(),
             template_addr: ctx.template_addr().clone(),
             func: func_name.to_string(),
             msg: err.to_string(),
@@ -653,7 +653,7 @@ where
     #[inline]
     fn compilation_failed(&self, ctx: &Context, err: wasmer::CompileError) -> Failure {
         RuntimeError::CompilationFailed {
-            app_addr: ctx.app_addr().clone(),
+            account_addr: ctx.app_addr().clone(),
             template_addr: ctx.template_addr().clone(),
             msg: err.to_string(),
         }
