@@ -22,7 +22,7 @@ pub trait TemplateStore {
     ) -> Option<Template>;
 }
 
-/// A persistent store for `A}pp`(s)
+/// A persistent store for `App`(s)
 pub trait AppStore {
     /// Stores `Address` -> `App`
     fn store(&mut self, app: &ExtApp, addr: &AppAddr);
