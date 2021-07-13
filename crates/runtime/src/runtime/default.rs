@@ -50,18 +50,18 @@ where
         let template = self.env.parse_deploy_template(bytes, None)?;
         let code = template.code();
 
-        svm_gas::validate_wasm(code, false).map_err(|e| e.into())
+        svm_gas::validate_wasm(code, false).map_err(Into::into)
     }
 
     fn validate_app(&self, bytes: &[u8]) -> std::result::Result<(), ValidateError> {
         self.env
             .parse_spawn_app(bytes)
             .map(|_| ())
-            .map_err(|e| e.into())
+            .map_err(Into::into)
     }
 
     fn validate_tx(&self, bytes: &[u8]) -> std::result::Result<Transaction, ValidateError> {
-        self.env.parse_exec_app(bytes).map_err(|e| e.into())
+        self.env.parse_exec_app(bytes).map_err(Into::into)
     }
 
     fn deploy_template(
@@ -227,7 +227,6 @@ where
 
     fn install_template(&mut self, template: &Template, gas_used: Gas) -> TemplateReceipt {
         let addr = self.env.compute_template_addr(template);
-
         self.env.store_template(template, &addr);
 
         TemplateReceipt::new(addr, gas_used)
@@ -245,8 +244,6 @@ where
         Rets: WasmTypeList,
         F: Fn(&Context, Outcome<Box<[wasmer::Val]>>) -> R,
     {
-        info!("runtime `exec`");
-
         match self.account_template(call.app_addr) {
             Ok(template) => {
                 let storage = self.open_storage(call.app_addr, call.state, template.fixed_layout());
@@ -257,14 +254,14 @@ where
                 let store = svm_compiler::new_store();
                 let import_object = self.create_import_object(&store, &mut ctx);
 
-                self.do_exec::<Args, Rets>(&call, &store, &ctx, &template, &import_object)
-                    .map(|outcome| f(&ctx, outcome))
+                let res = self.run::<Args, Rets>(&call, &store, &ctx, &template, &import_object);
+                res.map(|rets| f(&ctx, rets))
             }
             Err(err) => Err(err.into()),
         }
     }
 
-    fn do_exec<Args, Rets>(
+    fn run<Args, Rets>(
         &self,
         call: &Call,
         store: &wasmer::Store,
@@ -339,7 +336,6 @@ where
         let func = self.func::<u32, u32>(&instance, ctx, func_name);
         if func.is_err() {
             let err = self.func_not_found(ctx, func_name);
-
             return Err(err);
         }
 
@@ -374,7 +370,6 @@ where
 
         if returns.is_err() {
             let err = self.func_failed(ctx, func.name(), returns.unwrap_err(), logs);
-
             return Err(err);
         }
 
@@ -480,7 +475,6 @@ where
         info!("runtime `instantiate` (wasmer module instantiate)");
 
         let instance = Instance::new(module, import_object);
-
         instance.map_err(|err| self.instantiation_failed(ctx, err))
     }
 
@@ -525,20 +519,19 @@ where
         import_object.register("svm", internals);
 
         // Registering the externals provided to the Runtime
+        let (name, exports) = &self.imports;
+        import_object.register(name, exports.clone());
 
         import_object
     }
 
     fn account_template(&self, app_addr: &AppAddr) -> std::result::Result<Template, RuntimeError> {
-        info!("runtime `load_template`");
-
         let mut interests = HashSet::new();
         interests.insert(SectionKind::Code);
         interests.insert(SectionKind::Data);
         interests.insert(SectionKind::Ctors);
 
         let template = self.env.account_template(app_addr, Some(interests));
-
         template.ok_or_else(|| RuntimeError::AppNotFound(app_addr.clone()))
     }
 
@@ -549,11 +542,6 @@ where
         template: &Template,
         gas_left: Gas,
     ) -> std::result::Result<Module, Failure> {
-        info!(
-            "runtime `compile_template` (template={:?})",
-            ctx.template_addr()
-        );
-
         let gas_metering = gas_left.is_some();
         let gas_left = gas_left.unwrap_or(0);
 
@@ -662,8 +650,6 @@ where
 
     #[inline]
     fn compilation_failed(&self, ctx: &Context, err: wasmer::CompileError) -> Failure {
-        error!("module module failed (template={:?})", ctx.template_addr());
-
         RuntimeError::CompilationFailed {
             app_addr: ctx.app_addr().clone(),
             template_addr: ctx.template_addr().clone(),
