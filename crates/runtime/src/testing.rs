@@ -1,3 +1,5 @@
+//! Implements common functionality to be consumed by tests.
+
 use wasmer::{ImportObject, Instance, Memory, MemoryType, Module, Pages, Store};
 
 use std::cell::RefCell;
@@ -50,22 +52,6 @@ impl<'a> From<&'a [u8]> for WasmFile<'a> {
     }
 }
 
-/// Creates a new `Wasmer Store`
-pub fn wasmer_store() -> Store {
-    svm_compiler::new_store()
-}
-
-/// Creates a new `Wasmer Memory` consisting of a single page
-/// The memory is of type non-shared and can grow without a limit
-pub fn wasmer_memory(store: &Store) -> Memory {
-    let min = Pages(1);
-    let max = None;
-    let shared = false;
-    let ty = MemoryType::new(min, max, shared);
-
-    Memory::new(store, ty).expect("Memory allocation has failed.")
-}
-
 /// Compiles a wasm program in text format (a.k.a WAST) into a `Module` (`wasmer`)
 pub fn wasmer_compile(store: &Store, wasm_file: WasmFile, gas_limit: Gas) -> Module {
     let wasm = wasm_file.into_bytes();
@@ -110,12 +96,12 @@ pub fn create_memory_runtime(
 
     let template_store = DefaultMemTemplateStore::new();
     let app_store = DefaultMemAppStore::new();
-
     let env = Env::<DefaultMemEnvTypes>::new(app_store, template_store);
 
-    let kv_path = Path::new("");
+    let config = Config::default();
+    let imports = ("sm".to_string(), wasmer::Exports::new());
 
-    DefaultRuntime::new(env, &kv_path, Box::new(storage_builder))
+    DefaultRuntime::new(env, imports, Box::new(storage_builder), config)
 }
 
 /// Returns a function (wrapped inside `Box`) that initializes an App's storage client.
