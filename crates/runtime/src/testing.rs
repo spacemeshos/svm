@@ -1,7 +1,8 @@
-//! Implements common functionality to be consnumed by tests.
+//! Implements common functionality to be consumed by tests.
 
 use svm_codec::api::builder::{SpawnAppBuilder, TemplateBuilder, TxBuilder};
 use svm_codec::template;
+use svm_gas::resolvers::StandardPriceResolver;
 use svm_layout::{FixedLayout, Layout};
 use svm_storage::{
     app::{AppKVStore, AppStorage},
@@ -109,7 +110,13 @@ pub fn create_memory_runtime(
 
     let kv_path = Path::new("");
 
-    DefaultRuntime::new(env, &kv_path, imports, Box::new(storage_builder))
+    DefaultRuntime::new(
+        env,
+        &kv_path,
+        StandardPriceResolver::default(),
+        imports,
+        Box::new(storage_builder),
+    )
 }
 
 /// Returns a function (wrapped inside [`Box`]) that initializes an App's storage client.

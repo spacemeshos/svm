@@ -5,6 +5,7 @@ authors = ["Yaron Wittenstein <yaron.wittenstein@gmail.com>"]
 license = "MIT"
 edition = "2018"
 readme = "README.md"
+description = "SVM gas formulas, metering, fixed gas compilation etc."
 publish = false
 
 [dependencies]

@@ -10,6 +10,7 @@ use svm_gas::{
 
 type WeightedGraphBuilder = GraphBuilder<BlockNum, NodeWeight<BlockNum>>;
 
+#[derive(Copy, Clone, Debug)]
 struct TestResolver {
     op_price: usize,
 }

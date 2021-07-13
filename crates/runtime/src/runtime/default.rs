@@ -24,30 +24,6 @@ use crate::{Config, Context, ExternImport, Runtime};
 
 type Result<T> = std::result::Result<Outcome<T>, Failure>;
 
-struct TestResolver {
-    op_price: usize,
-}
-
-impl TestResolver {
-    pub fn new(num: usize) -> Self {
-        Self { op_price: num }
-    }
-}
-
-impl svm_gas::PriceResolver for TestResolver {
-    fn op_price(&self, _op: &svm_gas::Op) -> usize {
-        self.op_price
-    }
-
-    fn import_price(&self, import: (&str, &str)) -> usize {
-        match import {
-            ("env", "foo") => 100,
-            ("env", "bar") => 50,
-            _ => 10,
-        }
-    }
-}
-
 /// Default [`Runtime`] implementation based on [`Wasmer`](https://wasmer.io).
 pub struct DefaultRuntime<T>
 where
@@ -55,6 +31,8 @@ where
 {
     /// The runtime environment. Used mainly for managing app persistence.
     env: Env<T>,
+
+    pricer: T::Pricer,
 
     /// The runtime configuration
     config: Config,
@@ -74,6 +52,7 @@ where
     pub fn new<P: Into<PathBuf>>(
         env: Env<T>,
         kv_path: P,
+        pricer: T::Pricer,
         imports: &Vec<ExternImport>,
         storage_builder: Box<StorageBuilderFn>,
     ) -> Self {
@@ -82,6 +61,7 @@ where
             config: Config {
                 kv_path: kv_path.into(),
             },
+            pricer,
             imports: imports as *const _,
             storage_builder,
         }
@@ -577,17 +557,6 @@ where
         Ok(())
     }
 
-    /// Calculates the cost of saving a template on-chain.
-    fn template_installation_price(&self, bytes: &[u8], _template: &Template) -> u64 {
-        // todo!()
-        1000 * (bytes.len() as u64)
-    }
-
-    fn spawn_payload_price(&self, bytes: &[u8], _spawn: &ExtSpawnApp) -> u64 {
-        // todo!()
-        1000 * (bytes.len() as u64)
-    }
-
     /// Errors
 
     #[inline]
@@ -703,7 +672,7 @@ where
 
         let template = self.env.parse_deploy_template(bytes, None).unwrap();
 
-        let install_price = self.template_installation_price(bytes, &template);
+        let install_price = svm_gas::price_of_deploying_template(bytes);
 
         if gas_limit >= install_price {
             let gas_used = Gas::with(install_price);
@@ -736,7 +705,7 @@ where
         let template_code = template_code_section.code();
         let program = svm_gas::read_program(template_code).unwrap();
         let func_price = {
-            let program_pricing = svm_gas::ProgramPricing::new(TestResolver::new(1));
+            let program_pricing = svm_gas::ProgramPricing::new(self.pricer.clone());
             program_pricing.visit(&program).unwrap()
         };
         let spawn = ExtSpawnApp::new(base, spawner);
@@ -766,7 +735,7 @@ where
             GasMode::Metering => {}
         }
 
-        let payload_price = self.spawn_payload_price(bytes, &spawn);
+        let payload_price = svm_gas::price_of_spawning_app(bytes);
         let gas_left = gas_limit - payload_price;
 
         match gas_left {

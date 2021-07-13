@@ -42,3 +42,13 @@ pub use cfg::{
 mod pricing;
 pub use pricing::{build_weighted_graph, resolvers};
 pub use pricing::{FuncPrice, PriceResolver, ProgramPricing};
+
+pub fn price_of_deploying_template(bytes: &[u8]) -> u64 {
+    // todo!()
+    1000 * (bytes.len() as u64)
+}
+
+pub fn price_of_spawning_app(bytes: &[u8]) -> u64 {
+    // todo!()
+    1000 * (bytes.len() as u64)
+}

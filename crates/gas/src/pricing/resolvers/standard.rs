@@ -1,16 +1,21 @@
 use crate::{Op, PriceResolver};
 
-/// An example `PriceResolver`
-#[derive(Copy, Clone, Debug)]
-pub struct ExampleResolver;
+// We don't `derive(Copy)` because we might want to store non-`Copy` data in the
+// future.
+#[derive(Clone, Debug)]
+pub struct StandardPriceResolver {
+    price_per_opcode: u64,
+}
 
-impl Default for ExampleResolver {
+impl Default for StandardPriceResolver {
     fn default() -> Self {
-        ExampleResolver {}
+        Self {
+            price_per_opcode: 1,
+        }
     }
 }
 
-impl PriceResolver for ExampleResolver {
+impl PriceResolver for StandardPriceResolver {
     fn op_price(&self, op: &Op) -> usize {
         1
     }

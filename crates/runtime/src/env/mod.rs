@@ -1,12 +1,12 @@
 //! Managing the Runtime's environment
 
-use std::collections::HashSet;
-use std::io::Cursor;
-
 use svm_codec::ParseError;
 use svm_codec::{app, template, transaction};
-
+use svm_gas::PriceResolver;
 use svm_types::{AppAddr, SectionKind, SpawnApp, Template, TemplateAddr, Transaction};
+
+use std::collections::HashSet;
+use std::io::Cursor;
 
 /// Default implementations
 mod default;
@@ -59,6 +59,9 @@ pub trait EnvTypes {
 
     /// `Template` content Hasher type.
     type TemplateHasher: TemplateHasher;
+
+    /// A pricing engine for templates.
+    type Pricer: PriceResolver;
 }
 
 pub struct Env<T>

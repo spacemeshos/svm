@@ -252,7 +252,41 @@ fn memory_runtime_exec_app_with_ctor_fails() {
 }
 
 #[test]
-fn memory_runtime_calldata_returndata() {
+fn runtime_spawn_app_without_gas() {
+    let mut runtime = memory_runtime();
+
+    // 1) deploying the template
+    let code_version = 0;
+    let deployer = Address::of("deployer").into();
+    let layout: FixedLayout = vec![Address::len() as u32].into();
+    let ctors = vec!["initialize".to_string()];
+
+    let bytes = testing::build_template(
+        code_version,
+        "My Template",
+        layout.clone(),
+        &ctors,
+        (&include_bytes!("wasm/runtime_calldata.wasm")[..]).into(),
+    );
+
+    let receipt = runtime.deploy_template(&bytes, &deployer, Gas::new());
+    assert!(receipt.success);
+
+    let template_addr = receipt.addr.unwrap();
+
+    // 2) spawn app
+    let name = "My App";
+    let ctor = "initialize";
+    let calldata = vec![];
+    let creator = Address::of("creator").into();
+    let bytes = testing::build_app(&template_addr, name, ctor, &calldata);
+    let receipt = runtime.spawn_app(&bytes, &creator, Gas::with(0));
+
+    assert!(matches!(receipt.error.unwrap(), RuntimeError::OOG));
+}
+
+#[test]
+fn runtime_calldata_returndata() {
     let mut runtime = memory_runtime();
 
     // 1) deploying the template
