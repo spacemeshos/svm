@@ -24,6 +24,30 @@ use crate::{Config, Context, ExternImport, Runtime};
 
 type Result<T> = std::result::Result<Outcome<T>, Failure>;
 
+struct TestResolver {
+    op_price: usize,
+}
+
+impl TestResolver {
+    pub fn new(num: usize) -> Self {
+        Self { op_price: num }
+    }
+}
+
+impl svm_gas::PriceResolver for TestResolver {
+    fn op_price(&self, _op: &svm_gas::Op) -> usize {
+        self.op_price
+    }
+
+    fn import_price(&self, import: (&str, &str)) -> usize {
+        match import {
+            ("env", "foo") => 100,
+            ("env", "bar") => 50,
+            _ => unreachable!(),
+        }
+    }
+}
+
 /// Default [`Runtime`] implementation based on [`Wasmer`](https://wasmer.io).
 pub struct DefaultRuntime<T>
 where
@@ -120,14 +144,6 @@ where
 
         // TODO: move the `into_spawn_app_receipt` to a `From / TryFrom`
         svm_types::into_spawn_app_receipt(receipt, app_addr)
-    }
-
-    fn install_template(&mut self, template: &Template, gas_used: Gas) -> TemplateReceipt {
-        let addr = self.env.derive_template_address(template);
-
-        self.env.store_template(template, &addr);
-
-        TemplateReceipt::new(addr, gas_used)
     }
 
     fn exec_call<Args, Rets>(&self, call: &Call) -> ExecReceipt {
@@ -651,16 +667,17 @@ where
     T: EnvTypes,
 {
     fn validate_template(&self, bytes: &[u8]) -> std::result::Result<(), ValidateError> {
+        let template = self.env.parse_deploy_template(bytes, None)?;
+        let code = template.code();
+
         // Opcode and `svm_alloc` checks should only ever be run when deploying
         // templates. There's no reason to also do it when spawning new apps
         // over already-validated templates.
-        if !crate::validation::validate_opcodes(bytes) {
+        if !crate::validation::validate_opcodes(code) {
             return Err(ValidateError::Program(ProgramError::FloatsNotAllowed));
-        } else if !crate::validation::validate_svm_alloc(bytes) {
+        } else if !crate::validation::validate_svm_alloc(code) {
             return Err(ValidateError::Program(ProgramError::BadSvmAlloc));
         }
-        let template = self.env.parse_deploy_template(bytes, None)?;
-        let code = template.code();
 
         svm_gas::validate_wasm(code, false).map_err(|e| e.into())
     }
@@ -690,7 +707,10 @@ where
 
         if gas_limit >= install_price {
             let gas_used = Gas::with(install_price);
-            self.install_template(&template, gas_used)
+            let addr = self.env.derive_template_address(&template);
+
+            self.env.store_template(&template, &addr);
+            TemplateReceipt::new(addr, gas_used)
         } else {
             TemplateReceipt::new_oog()
         }
@@ -702,6 +722,8 @@ where
         spawner: &SpawnerAddr,
         gas_limit: Gas,
     ) -> SpawnAppReceipt {
+        use svm_gas::ProgramVisitor;
+
         info!("runtime `spawn_app`");
 
         let base = self.env.parse_spawn_app(bytes).unwrap();
@@ -711,6 +733,15 @@ where
         };
         let template_code_section = template.sections().get(SectionKind::Code).as_code();
         let gas_mode = template_code_section.gas_mode();
+        let _func_price = {
+            let template_code = template_code_section.code();
+            let program_pricing = svm_gas::ProgramPricing::new(TestResolver::new(1));
+            let program = svm_gas::read_program(template_code).unwrap();
+            program_pricing.visit(&program).unwrap()
+        };
+        let spawn = ExtSpawnApp::new(base, spawner);
+        template.is_ctor(spawn.ctor_name());
+
         match gas_mode {
             GasMode::Fixed => {
                 if let Err(_) = svm_gas::validate_wasm(template_code_section.code(), false) {
@@ -719,8 +750,6 @@ where
             }
             GasMode::Metering => {}
         }
-
-        let spawn = ExtSpawnApp::new(base, spawner);
 
         let payload_price = self.spawn_payload_price(bytes, &spawn);
         let gas_left = gas_limit - payload_price;
