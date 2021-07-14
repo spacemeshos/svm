@@ -1587,7 +1587,6 @@ dependencies = [
  "svm-abi-tests",
  "svm-cli",
  "svm-codec",
- "svm-common",
  "svm-ffi",
  "svm-gas",
  "svm-hash",
@@ -1664,25 +1663,17 @@ dependencies = [
 name = "svm-codec"
 version = "0.0.0"
 dependencies = [
+ "hex",
  "indexmap",
  "maplit",
  "serde_json",
  "svm-abi-decoder",
  "svm-abi-encoder",
- "svm-common",
  "svm-layout",
  "svm-sdk-std",
  "svm-sdk-types",
  "svm-types",
  "thiserror",
-]
-
-[[package]]
-name = "svm-common"
-version = "0.0.0"
-dependencies = [
- "byteorder",
- "tiny-keccak",
 ]
 
 [[package]]
@@ -1748,7 +1739,6 @@ dependencies = [
  "log",
  "maplit",
  "svm-codec",
- "svm-common",
  "svm-ffi",
  "svm-gas",
  "svm-hash",
@@ -1876,8 +1866,8 @@ dependencies = [
 name = "svm-storage"
 version = "0.0.0"
 dependencies = [
+ "hex",
  "lazy_static",
- "svm-common",
  "svm-hash",
  "svm-kv",
  "svm-layout",
@@ -1888,8 +1878,8 @@ dependencies = [
 name = "svm-types"
 version = "0.0.0"
 dependencies = [
+ "hex",
  "indexmap",
- "svm-common",
  "svm-layout",
 ]
 
