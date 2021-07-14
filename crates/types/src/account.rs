@@ -4,16 +4,16 @@ use crate::TemplateAddr;
 
 /// An in-memory representation of an app.
 #[derive(PartialEq, Clone)]
-pub struct App {
-    /// `App`'s name
+pub struct Account {
+    /// [`Account`]'s name
     pub name: String,
 
-    /// `Address` of the `Template`, the App is being spawned from.
+    /// Address of the `Template`, the [`Account`] is being spawned from.
     pub template_addr: TemplateAddr,
 }
 
 #[doc(hidden)]
-impl App {
+impl Account {
     pub fn new(template_addr: TemplateAddr, name: String) -> Self {
         Self {
             name,
@@ -30,9 +30,9 @@ impl App {
     }
 }
 
-impl fmt::Debug for App {
+impl fmt::Debug for Account {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_struct("App")
+        f.debug_struct("Account")
             .field("name", &self.name())
             .field("template", self.template_addr().inner())
             .finish()

@@ -1,15 +1,15 @@
 use std::fmt;
 
-use crate::{App, TemplateAddr};
+use crate::{Account, TemplateAddr};
 
-/// Struct representation of the parsed raw Spawn-App.
+/// Struct representation of the parsed raw Spawn-Account.
 #[derive(PartialEq)]
 pub struct SpawnApp {
     /// Transaction format version
     pub version: u16,
 
     /// Holds all `SpawnApp` non-ctor_name related data.
-    pub app: App,
+    pub app: Account,
 
     /// ctor function name
     pub ctor_name: String,
@@ -20,7 +20,7 @@ pub struct SpawnApp {
 
 #[doc(hidden)]
 impl SpawnApp {
-    pub fn app(&self) -> &App {
+    pub fn app(&self) -> &Account {
         &self.app
     }
 
