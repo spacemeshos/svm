@@ -50,7 +50,7 @@ where
 
         hash.and_then(|h| {
             self.bytes
-                .get(h as &[u8])
+                .get(h)
                 .and_then(|bytes| D::deserialize(&bytes, interests))
         })
     }
