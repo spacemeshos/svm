@@ -3,7 +3,6 @@
 //! This crate exposes the following APIs:
 //!
 //! * Builder
-//! * Raw  
 //! * JSON   
 //! * WASM
 
