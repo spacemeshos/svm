@@ -1,6 +1,4 @@
 use log::{error, info};
-use wasmer::{Instance, Module, WasmPtr, WasmTypeList};
-
 use svm_layout::FixedLayout;
 use svm_storage::app::AppStorage;
 use svm_types::SectionKind;
@@ -8,9 +6,9 @@ use svm_types::{AppAddr, DeployerAddr, SpawnerAddr, State, Template, Type};
 use svm_types::{ExecReceipt, ReceiptLog, SpawnAppReceipt, TemplateReceipt};
 use svm_types::{Gas, OOGError};
 use svm_types::{RuntimeError, Transaction};
+use wasmer::{Exports, Extern, ImportObject, Instance, Module, Store, WasmPtr, WasmTypeList};
 
-use std::collections::HashMap;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 use super::{Call, Failure, Function, Outcome};
@@ -18,7 +16,8 @@ use crate::env::{self, EnvTypes, ExtApp, ExtSpawnApp};
 use crate::error::ValidateError;
 use crate::storage::StorageBuilderFn;
 use crate::vmcalls;
-use crate::{Config, Context, Env, Runtime};
+use crate::Env;
+use crate::{Config, Context, Runtime};
 
 type Result<T> = std::result::Result<Outcome<T>, Failure>;
 
