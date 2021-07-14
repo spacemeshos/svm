@@ -22,7 +22,8 @@ pub struct Context {
     app_addr: AppAddr,
 }
 
-// On SAFETY:
+// # Safety
+//
 // SVM is single-threaded. `Send`, `Sync` and `Clone` are required by
 // `wasmer::WasmerEnv`.
 unsafe impl Send for Context {}
