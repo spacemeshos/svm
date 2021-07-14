@@ -288,13 +288,13 @@ describe("Deploy Template", function () {
       };
 
       const buf = wasmNewBuffer(instance, tx);
-      const result = instanceCall(instance, "wasm_encode_deploy_template", buf);
+      const result = instanceCall(instance, "wasm_encode_deploy", buf);
 
       let len = wasmBufferLength(instance, result);
       const slice = wasmBufferDataSlice(instance, result, 0, len);
       assert.strictEqual(slice[0], OK_MARKER);
 
-      // `bytes` is a `Uint8Array` holding the encoded `SVM spawn-app` transaction
+      // `bytes` is a `Uint8Array` holding the encoded `SVM spawn-account` transaction
       const bytes = slice.slice(1);
 
       wasmBufferFree(instance, buf);
@@ -309,7 +309,7 @@ describe("Deploy Template", function () {
       };
 
       const buf = wasmNewBuffer(instance, tx);
-      const result = instanceCall(instance, "wasm_encode_deploy_template", buf);
+      const result = instanceCall(instance, "wasm_encode_deploy", buf);
 
       const error = loadWasmBufferError(instance, result);
       assert.strictEqual(
@@ -323,8 +323,8 @@ describe("Deploy Template", function () {
   });
 });
 
-describe("Spawn App", function () {
-  function encodeSpawnApp(instance, template, name, calldata) {
+describe("Spawn Account", function () {
+  function encodeSpawn(instance, template, name, calldata) {
     let tx = {
       version: 0,
       template: template,
@@ -334,7 +334,7 @@ describe("Spawn App", function () {
     };
 
     const buf = wasmNewBuffer(instance, tx);
-    const result = instanceCall(instance, "wasm_encode_spawn_app", buf);
+    const result = instanceCall(instance, "wasm_encode_spawn", buf);
 
     let len = wasmBufferLength(instance, result);
     const slice = wasmBufferDataSlice(instance, result, 0, len);
@@ -346,11 +346,11 @@ describe("Spawn App", function () {
     return slice.slice(1);
   }
 
-  function decodeSpawnApp(instance, bytes) {
+  function decodeSpawn(instance, bytes) {
     const data = binToString(bytes);
 
     const buf = wasmNewBuffer(instance, { data: data });
-    const result = instanceCall(instance, "wasm_decode_spawn_app", buf);
+    const result = instanceCall(instance, "wasm_decode_spawn", buf);
     const json = loadWasmBufferDataAsJson(instance, result);
 
     wasmBufferFree(instance, buf);
@@ -362,7 +362,7 @@ describe("Spawn App", function () {
   it("Encodes & Decodes valid transactions", function () {
     return compileWasmCodec().then((instance) => {
       const template = generateAddress("1020304050");
-      const name = "My App";
+      const name = "My Account";
 
       const object = {
         abi: ["i32", "i64"],
@@ -370,13 +370,8 @@ describe("Spawn App", function () {
       };
 
       let calldata = encodeCallData(instance, object);
-      const bytes = encodeSpawnApp(
-        instance,
-        template,
-        name,
-        calldata["calldata"]
-      );
-      const json = decodeSpawnApp(instance, bytes);
+      const bytes = encodeSpawn(instance, template, name, calldata["calldata"]);
+      const json = decodeSpawn(instance, bytes);
 
       assert.deepStrictEqual(json, {
         version: 0,
@@ -398,7 +393,7 @@ describe("Spawn App", function () {
       };
 
       const buf = wasmNewBuffer(instance, tx);
-      const result = instanceCall(instance, "wasm_encode_spawn_app", buf);
+      const result = instanceCall(instance, "wasm_encode_spawn", buf);
 
       const error = loadWasmBufferError(instance, result);
       assert.strictEqual(
@@ -412,17 +407,17 @@ describe("Spawn App", function () {
   });
 });
 
-describe("Execute App (a.k.a `Call Method`)", function () {
-  function encodeExecApp(instance, app, calldata) {
+describe("Call Account", function () {
+  function encodeCall(instance, account, calldata) {
     let tx = {
       version: 0,
-      app: app,
+      account: account,
       func_name: "do_something",
       calldata: calldata,
     };
 
     const buf = wasmNewBuffer(instance, tx);
-    const result = instanceCall(instance, "wasm_encode_exec_app", buf);
+    const result = instanceCall(instance, "wasm_encode_call", buf);
 
     let len = wasmBufferLength(instance, result);
     const slice = wasmBufferDataSlice(instance, result, 0, len);
@@ -434,11 +429,11 @@ describe("Execute App (a.k.a `Call Method`)", function () {
     return slice.slice(1);
   }
 
-  function decodeExecApp(instance, bytes) {
+  function decodeCall(instance, bytes) {
     const data = binToString(bytes);
 
     const buf = wasmNewBuffer(instance, { data: data });
-    const result = instanceCall(instance, "wasm_decode_exec_app", buf);
+    const result = instanceCall(instance, "wasm_decode_call", buf);
     const json = loadWasmBufferDataAsJson(instance, result);
 
     wasmBufferFree(instance, buf);
@@ -449,7 +444,7 @@ describe("Execute App (a.k.a `Call Method`)", function () {
 
   it("Encodes & Decodes valid transaction", function () {
     return compileWasmCodec().then((instance) => {
-      const app = generateAddress("1020304050");
+      const target = generateAddress("1020304050");
 
       const object = {
         abi: ["i32", "i64"],
@@ -457,12 +452,12 @@ describe("Execute App (a.k.a `Call Method`)", function () {
       };
 
       let calldata = encodeCallData(instance, object);
-      const bytes = encodeExecApp(instance, app, calldata["calldata"]);
-      const json = decodeExecApp(instance, bytes);
+      const bytes = encodeCall(instance, target, calldata["calldata"]);
+      const json = decodeCall(instance, bytes);
 
       assert.deepStrictEqual(json, {
         version: 0,
-        app: app,
+        target: target,
         func_name: "do_something",
         calldata: {
           abi: ["i32", "i64"],
@@ -473,15 +468,15 @@ describe("Execute App (a.k.a `Call Method`)", function () {
   });
   it("Handles errors for invalid transactions", function () {
     return compileWasmCodec().then((instance) => {
-      let tx = { version: 0, app: "102030" };
+      let tx = { version: 0, target: "102030" };
 
       const buf = wasmNewBuffer(instance, tx);
-      const result = instanceCall(instance, "wasm_encode_exec_app", buf);
+      const result = instanceCall(instance, "wasm_encode_call", buf);
 
       const error = loadWasmBufferError(instance, result);
       assert.strictEqual(
         error,
-        'InvalidField { field: "app", reason: "value should be exactly 40 hex digits" }'
+        'InvalidField { field: "target", reason: "value should be exactly 40 hex digits" }'
       );
 
       wasmBufferFree(instance, buf);
