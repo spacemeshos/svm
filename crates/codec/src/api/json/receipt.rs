@@ -52,12 +52,12 @@ fn decode_error(ty: &'static str, err: &RuntimeError, logs: &[ReceiptLog]) -> Va
                 "err_type": "template-not-found",
                 "template_addr": json::addr_to_str(template_addr.inner()),
             }),
-            RuntimeError::AppNotFound(app_addr) => json!({
+            RuntimeError::AccountNotFound(app_addr) => json!({
                 "err_type": "app-not-found",
                 "app_addr": json::addr_to_str(app_addr.inner()),
             }),
             RuntimeError::CompilationFailed {
-                app_addr,
+                account_addr: app_addr,
                 template_addr,
                 msg,
             } => json!({
@@ -67,7 +67,7 @@ fn decode_error(ty: &'static str, err: &RuntimeError, logs: &[ReceiptLog]) -> Va
                 "message": msg,
             }),
             RuntimeError::InstantiationFailed {
-                app_addr,
+                account_addr: app_addr,
                 template_addr,
                 msg,
             } => json!({
@@ -77,7 +77,7 @@ fn decode_error(ty: &'static str, err: &RuntimeError, logs: &[ReceiptLog]) -> Va
                 "message": msg,
             }),
             RuntimeError::FuncNotFound {
-                app_addr,
+                accunt_addr: app_addr,
                 template_addr,
                 func,
             } => json!({
@@ -87,7 +87,7 @@ fn decode_error(ty: &'static str, err: &RuntimeError, logs: &[ReceiptLog]) -> Va
                 "func": func,
             }),
             RuntimeError::FuncFailed {
-                app_addr,
+                account_addr: app_addr,
                 template_addr,
                 func,
                 msg,
@@ -99,7 +99,7 @@ fn decode_error(ty: &'static str, err: &RuntimeError, logs: &[ReceiptLog]) -> Va
                 "message": msg,
             }),
             RuntimeError::FuncNotAllowed {
-                app_addr,
+                account_addr: app_addr,
                 template_addr,
                 func,
                 msg,
@@ -111,7 +111,7 @@ fn decode_error(ty: &'static str, err: &RuntimeError, logs: &[ReceiptLog]) -> Va
                 "message": msg,
             }),
             RuntimeError::FuncInvalidSignature {
-                app_addr,
+                account_addr: app_addr,
                 template_addr,
                 func,
             } => json!({
