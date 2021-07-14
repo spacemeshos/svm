@@ -37,9 +37,9 @@ pub fn validate_opcodes(wasm_module: &[u8]) -> bool {
     use wasmparser::{Parser, Payload};
 
     let parser = Parser::default();
-    let mut parser_events = parser.parse_all(wasm_module);
+    let mut events = parser.parse_all(wasm_module);
 
-    parser_events.all(|event_res| match event_res {
+    events.all(|event_res| match event_res {
         Err(_) => false,
         Ok(event) => {
             // We only validate opcodes in the WASM code section. Other sections
