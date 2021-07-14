@@ -54,8 +54,7 @@ pub trait Runtime {
     ) -> TemplateReceipt;
 
     /// Spawns a new app out of an existing app-template.
-    fn spawn_app(&mut self, bytes: &[u8], spawner: &SpawnerAddr, gas_limit: Gas)
-        -> SpawnReceipt;
+    fn spawn_app(&mut self, bytes: &[u8], spawner: &SpawnerAddr, gas_limit: Gas) -> SpawnReceipt;
 
     /// Validates a [`Transaction`] before deployment.
     fn exec_verify(

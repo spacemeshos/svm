@@ -598,12 +598,7 @@ where
         }
     }
 
-    fn spawn_app(
-        &mut self,
-        bytes: &[u8],
-        spawner: &SpawnerAddr,
-        gas_limit: Gas,
-    ) -> SpawnReceipt {
+    fn spawn_app(&mut self, bytes: &[u8], spawner: &SpawnerAddr, gas_limit: Gas) -> SpawnReceipt {
         use svm_gas::ProgramVisitor;
 
         info!("runtime `spawn_app`");
