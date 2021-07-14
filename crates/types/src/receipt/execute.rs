@@ -4,7 +4,7 @@ use crate::State;
 
 /// Runtime transaction execution receipt
 #[derive(Debug, PartialEq, Clone)]
-pub struct ExecReceipt {
+pub struct CallReceipt {
     /// Transaction format version.
     pub version: u16,
 
@@ -27,13 +27,13 @@ pub struct ExecReceipt {
     pub logs: Vec<ReceiptLog>,
 }
 
-impl From<RuntimeError> for ExecReceipt {
+impl From<RuntimeError> for CallReceipt {
     fn from(err: RuntimeError) -> Self {
         Self::from_err(err, Vec::new())
     }
 }
 
-impl ExecReceipt {
+impl CallReceipt {
     /// Creates a `ExecReceipt` for reaching reaching `Out-of-Gas`.
     pub fn new_oog(logs: Vec<ReceiptLog>) -> Self {
         Self::from_err(RuntimeError::OOG, logs)

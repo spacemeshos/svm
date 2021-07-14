@@ -24,7 +24,7 @@ pub use default::DefaultRuntime;
 pub use ptr::RuntimePtr;
 
 use svm_types::{
-    DeployerAddr, ExecReceipt, Gas, RuntimeError, SpawnReceipt, SpawnerAddr, State,
+    CallReceipt, DeployerAddr, Gas, RuntimeError, SpawnReceipt, SpawnerAddr, State,
     TemplateReceipt, Transaction,
 };
 
@@ -76,5 +76,5 @@ pub trait Runtime {
     /// On failure:
     /// * Receipt returns the occurred error
     /// * Receipt informs the amount of gas used (transaction gas limit)
-    fn exec_tx(&self, tx: &Transaction, state: &State, gas_limit: Gas) -> ExecReceipt;
+    fn exec_tx(&self, tx: &Transaction, state: &State, gas_limit: Gas) -> CallReceipt;
 }

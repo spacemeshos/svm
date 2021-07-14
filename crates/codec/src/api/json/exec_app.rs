@@ -30,7 +30,7 @@ pub fn encode_exec_app(json: &Value) -> Result<Vec<u8>, JsonError> {
 
     let tx = Transaction {
         version,
-        app,
+        target: app,
         func_name,
         // verifydata,
         calldata,
@@ -54,7 +54,7 @@ pub fn decode_exec_app(json: &Value) -> Result<Value, JsonError> {
 
     let version = tx.version;
     let func_name = tx.func_name.clone();
-    let app = json::addr_to_str(&tx.app.inner());
+    let app = json::addr_to_str(&tx.target.inner());
 
     // let verifydata = json::bytes_to_str(&tx.verifydata);
     // let verifydata = json::decode_calldata(&json!({ "calldata": verifydata }))?;

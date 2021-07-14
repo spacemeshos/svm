@@ -34,7 +34,7 @@ pub use gas::{Gas, GasMode, OOGError};
 mod receipt;
 
 pub use receipt::{
-    into_spawn_receipt, ExecReceipt, Receipt, ReceiptLog, ReceiptRef, SpawnReceipt, TemplateReceipt,
+    into_spawn_receipt, CallReceipt, Receipt, ReceiptLog, ReceiptRef, SpawnReceipt, TemplateReceipt,
 };
 
 /// Address-related types

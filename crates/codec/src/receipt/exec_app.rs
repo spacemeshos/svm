@@ -16,7 +16,7 @@
 //!  On success (`is_success = 0`)
 //!  See [error.rs][./error.rs]
 
-use svm_types::ExecReceipt;
+use svm_types::CallReceipt;
 
 use std::io::Cursor;
 
@@ -25,7 +25,7 @@ use crate::{calldata, version};
 use crate::{ReadExt, WriteExt};
 
 /// Encodes an `exec-receipt` into its binary format.
-pub fn encode_exec_receipt(receipt: &ExecReceipt) -> Vec<u8> {
+pub fn encode_exec_receipt(receipt: &CallReceipt) -> Vec<u8> {
     let mut w = Vec::new();
 
     w.write_byte(super::types::EXEC_APP);
@@ -47,7 +47,7 @@ pub fn encode_exec_receipt(receipt: &ExecReceipt) -> Vec<u8> {
 }
 
 /// Decodes a binary `exec-app` into its corresponding Rust struct.
-pub fn decode_exec_receipt(bytes: &[u8]) -> ExecReceipt {
+pub fn decode_exec_receipt(bytes: &[u8]) -> CallReceipt {
     let mut cursor = Cursor::new(bytes);
 
     let ty = cursor.read_byte().unwrap();
@@ -61,7 +61,7 @@ pub fn decode_exec_receipt(bytes: &[u8]) -> ExecReceipt {
     match is_success {
         false => {
             let (err, logs) = decode_error(&mut cursor);
-            ExecReceipt::from_err(err, logs)
+            CallReceipt::from_err(err, logs)
         }
         true => {
             let new_state = cursor.read_state().unwrap();
@@ -69,7 +69,7 @@ pub fn decode_exec_receipt(bytes: &[u8]) -> ExecReceipt {
             let gas_used = gas::decode_gas_used(&mut cursor).unwrap();
             let logs = logs::decode_logs(&mut cursor).unwrap();
 
-            ExecReceipt {
+            CallReceipt {
                 version,
                 success: true,
                 error: None,
@@ -82,14 +82,14 @@ pub fn decode_exec_receipt(bytes: &[u8]) -> ExecReceipt {
     }
 }
 
-fn encode_new_state(receipt: &ExecReceipt, w: &mut Vec<u8>) {
+fn encode_new_state(receipt: &CallReceipt, w: &mut Vec<u8>) {
     debug_assert!(receipt.success);
 
     let state = receipt.new_state();
     w.write_state(state);
 }
 
-fn encode_returndata(receipt: &ExecReceipt, w: &mut Vec<u8>) {
+fn encode_returndata(receipt: &CallReceipt, w: &mut Vec<u8>) {
     debug_assert!(receipt.success);
 
     let data = receipt.returndata();
@@ -112,7 +112,7 @@ mod tests {
             code: 200,
         }];
 
-        let receipt = ExecReceipt {
+        let receipt = CallReceipt {
             version: 0,
             success: false,
             error: Some(error),
@@ -137,7 +137,7 @@ mod tests {
             code: 200,
         }];
 
-        let receipt = ExecReceipt {
+        let receipt = CallReceipt {
             version: 0,
             success: true,
             error: None,
@@ -163,7 +163,7 @@ mod tests {
             code: 200,
         }];
 
-        let receipt = ExecReceipt {
+        let receipt = CallReceipt {
             version: 0,
             success: true,
             error: None,

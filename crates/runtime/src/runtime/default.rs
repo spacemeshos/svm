@@ -5,7 +5,7 @@ use svm_storage::app::AppStorage;
 use svm_types::GasMode;
 use svm_types::SectionKind;
 use svm_types::{AccountAddr, DeployerAddr, SpawnerAddr, State, Template};
-use svm_types::{ExecReceipt, ReceiptLog, SpawnReceipt, TemplateReceipt};
+use svm_types::{CallReceipt, ReceiptLog, SpawnReceipt, TemplateReceipt};
 use svm_types::{Gas, OOGError};
 use svm_types::{RuntimeError, Transaction};
 use wasmer::{Instance, Module, WasmPtr, WasmTypeList};
@@ -69,8 +69,8 @@ where
         &self,
         ctx: &Context,
         mut out: Outcome<Box<[wasmer::Val]>>,
-    ) -> ExecReceipt {
-        ExecReceipt {
+    ) -> CallReceipt {
+        CallReceipt {
             version: 0,
             success: true,
             error: None,
@@ -81,11 +81,11 @@ where
         }
     }
 
-    fn failure_to_receipt(&self, mut fail: Failure) -> ExecReceipt {
+    fn failure_to_receipt(&self, mut fail: Failure) -> CallReceipt {
         let logs = fail.take_logs();
         let err = fail.take_error();
 
-        ExecReceipt::from_err(err, logs)
+        CallReceipt::from_err(err, logs)
     }
 
     /// Opens the [`AppStorage`] associated with the input parameters.
@@ -124,7 +124,7 @@ where
         svm_types::into_spawn_receipt(receipt, app_addr)
     }
 
-    fn exec_call<Args, Rets>(&self, call: &Call) -> ExecReceipt {
+    fn exec_call<Args, Rets>(&self, call: &Call) -> CallReceipt {
         let result = self.exec::<(), (), _, _>(&call, |ctx, out| self.outcome_to_receipt(ctx, out));
 
         result.unwrap_or_else(|fail| self.failure_to_receipt(fail))
@@ -702,8 +702,8 @@ where
         //     }
     }
 
-    fn exec_tx(&self, tx: &Transaction, state: &State, gas_limit: Gas) -> ExecReceipt {
-        let app_addr = tx.app_addr();
+    fn exec_tx(&self, tx: &Transaction, state: &State, gas_limit: Gas) -> CallReceipt {
+        let app_addr = tx.target_addr();
         let template_addr = self.env.resolve_template_addr(app_addr);
 
         if let Some(template_addr) = template_addr {

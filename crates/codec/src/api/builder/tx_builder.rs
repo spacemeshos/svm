@@ -22,7 +22,7 @@ pub struct TxBuilder {
 /// use svm_codec::api::builder::TxBuilder;
 /// use svm_codec::transaction;
 ///
-/// let app = Address::of("@my-app").into();
+/// let target = Address::of("@my-app").into();
 ///
 /// let func_name = "do_work";
 /// // let verifydata = vec![0x10, 0x20, 0x30];
@@ -30,7 +30,7 @@ pub struct TxBuilder {
 ///
 /// let bytes = TxBuilder::new()
 ///            .with_version(0)
-///            .with_app(&app)
+///            .with_app(&target)
 ///            .with_func(func_name)
 ///            // .with_verifydata(&verifydata)
 ///            .with_calldata(&calldata)
@@ -40,7 +40,7 @@ pub struct TxBuilder {
 /// let actual = transaction::decode_exec_app(&mut cursor).unwrap();
 /// let expected = Transaction {
 ///                  version: 0,
-///                  app,
+///                  target,
 ///                  func_name: func_name.to_string(),
 ///                  // verifydata,
 ///                  calldata,
@@ -104,7 +104,7 @@ impl TxBuilder {
 
         let tx = Transaction {
             version,
-            app,
+            target: app,
             func_name,
             // verifydata,
             calldata,
