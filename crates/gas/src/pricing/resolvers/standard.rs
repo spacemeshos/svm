@@ -4,14 +4,12 @@ use crate::{Op, PriceResolver};
 // future.
 #[derive(Clone, Debug)]
 pub struct StandardPriceResolver {
-    price_per_opcode: u64,
+    opcode_price: u64,
 }
 
 impl Default for StandardPriceResolver {
     fn default() -> Self {
-        Self {
-            price_per_opcode: 1,
-        }
+        Self { opcode_price: 1 }
     }
 }
 
