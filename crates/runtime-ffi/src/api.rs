@@ -26,8 +26,8 @@ static SPAWN_APP_RECEIPT_TYPE: Type = Type::Str("spawn-app receipt");
 static EXEC_APP_RECEIPT_TYPE: Type = Type::Str("exec-app receipt");
 
 #[inline(always)]
-fn maybe_gas(gas_metering: bool, gas_limit: u64) -> Gas {
-    if gas_metering {
+fn maybe_gas(gas_enabled: bool, gas_limit: u64) -> Gas {
+    if gas_enabled {
         Gas::with(gas_limit)
     } else {
         Gas::new()
