@@ -12,7 +12,7 @@ use svm_layout::FixedLayout;
 use svm_runtime::{testing, Runtime, ValidateError};
 
 use svm_types::{Address, Gas, RuntimeError};
-use svm_types::{SpawnAppReceipt, TemplateReceipt};
+use svm_types::{SpawnReceipt, TemplateReceipt};
 
 fn memory_runtime() -> impl Runtime {
     let state_kv = testing::memory_state_kv_init();
@@ -195,7 +195,7 @@ fn memory_runtime_spawn_app_with_ctor_reaches_oog() {
     let bytes = testing::build_app(&template_addr, name, ctor, &calldata);
     let maybe_gas = Gas::with(0);
 
-    let expected = SpawnAppReceipt::new_oog(Vec::new());
+    let expected = SpawnReceipt::new_oog(Vec::new());
     let actual = runtime.spawn_app(&bytes, &creator, maybe_gas);
     assert_eq!(expected, actual);
 }
