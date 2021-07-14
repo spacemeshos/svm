@@ -82,59 +82,59 @@ pub(crate) fn encode_error(err: &RuntimeError, logs: &[ReceiptLog], w: &mut Vec<
     match err {
         RuntimeError::OOG => (),
         RuntimeError::TemplateNotFound(template_addr) => w.write_address(template_addr.inner()),
-        RuntimeError::AccountNotFound(app_addr) => w.write_address(app_addr.inner()),
+        RuntimeError::AccountNotFound(account_addr) => w.write_address(account_addr.inner()),
         RuntimeError::CompilationFailed {
-            account_addr: app_addr,
+            account_addr,
             template_addr,
             msg,
         }
         | RuntimeError::InstantiationFailed {
-            account_addr: app_addr,
+            account_addr,
             template_addr,
             msg,
         } => {
             w.write_address(template_addr.inner());
-            w.write_address(app_addr.inner());
+            w.write_address(account_addr.inner());
             w.write_string(msg);
         }
         RuntimeError::FuncNotFound {
-            accunt_addr: app_addr,
+            account_addr,
             template_addr,
             func,
         } => {
             w.write_address(template_addr.inner());
-            w.write_address(app_addr.inner());
+            w.write_address(account_addr.inner());
             w.write_string(func);
         }
         RuntimeError::FuncFailed {
-            account_addr: app_addr,
+            account_addr,
             template_addr,
             func,
             msg,
         } => {
             w.write_address(template_addr.inner());
-            w.write_address(app_addr.inner());
+            w.write_address(account_addr.inner());
             w.write_string(func);
             w.write_string(msg);
         }
         RuntimeError::FuncNotAllowed {
-            account_addr: app_addr,
+            account_addr,
             template_addr,
             func,
             msg,
         } => {
             w.write_address(template_addr.inner());
-            w.write_address(app_addr.inner());
+            w.write_address(account_addr.inner());
             w.write_string(func);
             w.write_string(msg);
         }
         RuntimeError::FuncInvalidSignature {
-            account_addr: app_addr,
+            account_addr,
             template_addr,
             func,
         } => {
             w.write_address(template_addr.inner());
-            w.write_address(app_addr.inner());
+            w.write_address(account_addr.inner());
             w.write_string(func);
         }
     };
@@ -217,49 +217,49 @@ fn decode_instantiation_err(cursor: &mut Cursor<&[u8]>) -> RuntimeError {
 }
 
 fn decode_func_not_found(cursor: &mut Cursor<&[u8]>) -> RuntimeError {
-    let (template_addr, app_addr) = decode_addrs(cursor);
+    let (template_addr, account_addr) = decode_addrs(cursor);
     let func = decode_func(cursor);
 
     RuntimeError::FuncNotFound {
         template_addr,
-        accunt_addr: app_addr,
+        account_addr,
         func,
     }
 }
 
 fn decode_func_failed(cursor: &mut Cursor<&[u8]>) -> RuntimeError {
-    let (template_addr, app_addr) = decode_addrs(cursor);
+    let (template_addr, account_addr) = decode_addrs(cursor);
     let func = decode_func(cursor);
     let msg = decode_msg(cursor);
 
     RuntimeError::FuncFailed {
         template_addr,
-        account_addr: app_addr,
+        account_addr,
         func,
         msg,
     }
 }
 
 fn decode_func_not_allowed(cursor: &mut Cursor<&[u8]>) -> RuntimeError {
-    let (template_addr, app_addr) = decode_addrs(cursor);
+    let (template_addr, account_addr) = decode_addrs(cursor);
     let func = decode_func(cursor);
     let msg = decode_msg(cursor);
 
     RuntimeError::FuncNotAllowed {
         template_addr,
-        account_addr: app_addr,
+        account_addr,
         func,
         msg,
     }
 }
 
 fn decode_func_invalid_sig(cursor: &mut Cursor<&[u8]>) -> RuntimeError {
-    let (template_addr, app_addr) = decode_addrs(cursor);
+    let (template_addr, account_addr) = decode_addrs(cursor);
     let func = decode_func(cursor);
 
     RuntimeError::FuncInvalidSignature {
         template_addr,
-        account_addr: app_addr,
+        account_addr,
         func,
     }
 }
@@ -398,11 +398,11 @@ mod tests {
     #[test]
     fn decode_receipt_func_not_found() {
         let template_addr = Address::of("some-template").into();
-        let app_addr = Address::of("some-app").into();
+        let account_addr = Address::of("some-app").into();
         let func = "do_something".to_string();
 
         let err = RuntimeError::FuncNotFound {
-            accunt_addr: app_addr,
+            account_addr,
             template_addr,
             func,
         };

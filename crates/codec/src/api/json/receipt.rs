@@ -77,7 +77,7 @@ fn decode_error(ty: &'static str, err: &RuntimeError, logs: &[ReceiptLog]) -> Va
                 "message": msg,
             }),
             RuntimeError::FuncNotFound {
-                accunt_addr: app_addr,
+                account_addr: app_addr,
                 template_addr,
                 func,
             } => json!({

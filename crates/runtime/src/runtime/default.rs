@@ -478,7 +478,7 @@ where
     #[inline]
     fn func_not_found(&self, ctx: &Context, func_name: &str) -> Failure {
         RuntimeError::FuncNotFound {
-            accunt_addr: ctx.app_addr().clone(),
+            account_addr: ctx.app_addr().clone(),
             template_addr: ctx.template_addr().clone(),
             func: func_name.to_string(),
         }
