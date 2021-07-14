@@ -8,13 +8,13 @@ pub struct ExecReceipt {
     /// Transaction format version.
     pub version: u16,
 
-    /// Whether transaction succedded or not.
+    /// Whether transaction succeeded or not.
     pub success: bool,
 
     /// The execution error in case execution failed.
     pub error: Option<RuntimeError>,
 
-    /// The new app `State` if execution succeeded.
+    /// The new [`Account`](crate::Account) `State` if execution succeeded.
     pub new_state: Option<State>,
 
     /// Returned the data.
@@ -39,7 +39,7 @@ impl ExecReceipt {
         Self::from_err(RuntimeError::OOG, logs)
     }
 
-    /// Creates a new failure Receipt out of the `error` parameter
+    /// Creates a new failure Receipt out of the `err` parameter
     pub fn from_err(err: RuntimeError, logs: Vec<ReceiptLog>) -> Self {
         Self {
             version: 0,
@@ -52,12 +52,20 @@ impl ExecReceipt {
         }
     }
 
-    /// Returns App's new `State``. Panics if transaction has failed.
+    /// Returns [`Account`](crate::Account)'s new `State``
+    ///
+    /// # Panics
+    ///
+    /// Panics if transaction has failed.
     pub fn new_state(&self) -> &State {
         self.new_state.as_ref().unwrap()
     }
 
-    /// Returns executed transaction results. Panics if transaction has failed.
+    /// Returns executed transaction results.
+    ///
+    /// # Panics
+    ///
+    // Panics if transaction has failed.
     pub fn returndata(&self) -> &Vec<u8> {
         self.returndata.as_ref().unwrap()
     }
