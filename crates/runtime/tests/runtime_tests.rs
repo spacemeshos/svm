@@ -12,7 +12,7 @@ use svm_layout::FixedLayout;
 use svm_runtime::{testing, Runtime, ValidateError};
 
 use svm_types::{Address, Gas, RuntimeError};
-use svm_types::{SpawnReceipt, TemplateReceipt};
+use svm_types::{SpawnReceipt, DeployReceipt};
 
 fn memory_runtime() -> impl Runtime {
     let state_kv = testing::memory_state_kv_init();
@@ -97,7 +97,7 @@ fn memory_runtime_deploy_template_reaches_oog() {
         include_str!("wasm/runtime_app_ctor.wast").into(),
     );
 
-    let expected = TemplateReceipt::new_oog();
+    let expected = DeployReceipt::new_oog();
     let actual = runtime.deploy_template(&bytes, &deployer, maybe_gas);
     assert_eq!(expected, actual);
 }

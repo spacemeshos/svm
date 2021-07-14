@@ -25,7 +25,7 @@ pub use ptr::RuntimePtr;
 
 use svm_types::{
     CallReceipt, DeployerAddr, Gas, RuntimeError, SpawnReceipt, SpawnerAddr, State,
-    TemplateReceipt, Transaction,
+    DeployReceipt, Transaction,
 };
 
 use crate::error::ValidateError;
@@ -51,7 +51,7 @@ pub trait Runtime {
         bytes: &[u8],
         deployer: &DeployerAddr,
         gas_limit: Gas,
-    ) -> TemplateReceipt;
+    ) -> DeployReceipt;
 
     /// Spawns a new app out of an existing app-template.
     fn spawn_app(&mut self, bytes: &[u8], spawner: &SpawnerAddr, gas_limit: Gas) -> SpawnReceipt;

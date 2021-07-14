@@ -29,15 +29,15 @@ pub fn decode_receipt(bytes: &[u8]) -> Receipt {
     match ty {
         types::DEPLOY_TEMPLATE => {
             let receipt = decode_template_receipt(bytes);
-            Receipt::DeployTemplate(receipt)
+            Receipt::Deploy(receipt)
         }
         types::SPAWN_APP => {
             let receipt = decode_app_receipt(bytes);
-            Receipt::SpawnApp(receipt)
+            Receipt::Spawn(receipt)
         }
         types::EXEC_APP => {
             let receipt = decode_exec_receipt(bytes);
-            Receipt::ExecApp(receipt)
+            Receipt::Call(receipt)
         }
         _ => unreachable!(),
     }

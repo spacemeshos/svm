@@ -4,7 +4,7 @@ use crate::api::json::{self, JsonError};
 use crate::receipt;
 
 use svm_types::RuntimeError;
-use svm_types::{CallReceipt, Receipt, ReceiptLog, SpawnReceipt, TemplateReceipt};
+use svm_types::{CallReceipt, Receipt, ReceiptLog, SpawnReceipt, DeployReceipt};
 
 /// Given a binary Receipt wrappend inside a JSON,
 /// decodes it into a user-friendly JSON.
@@ -19,9 +19,9 @@ pub fn decode_receipt(json: &Value) -> Result<Value, JsonError> {
 
     let json = if receipt.success() {
         match receipt {
-            Receipt::DeployTemplate(receipt) => decode_deploy_template(&receipt, ty),
-            Receipt::SpawnApp(receipt) => decode_spawn_app(&receipt, ty),
-            Receipt::ExecApp(receipt) => decode_exe_app(&receipt, ty),
+            Receipt::Deploy(receipt) => decode_deploy_template(&receipt, ty),
+            Receipt::Spawn(receipt) => decode_spawn_app(&receipt, ty),
+            Receipt::Call(receipt) => decode_exe_app(&receipt, ty),
         }
     } else {
         let ty = receipt_type(&receipt);
@@ -36,9 +36,9 @@ pub fn decode_receipt(json: &Value) -> Result<Value, JsonError> {
 
 fn receipt_type(receipt: &Receipt) -> &'static str {
     match receipt {
-        Receipt::DeployTemplate(..) => "deploy-template",
-        Receipt::SpawnApp(..) => "spawn-app",
-        Receipt::ExecApp(..) => "exec-app",
+        Receipt::Deploy(..) => "deploy-template",
+        Receipt::Spawn(..) => "spawn-app",
+        Receipt::Call(..) => "exec-app",
     }
 }
 
@@ -135,11 +135,11 @@ fn decode_error(ty: &'static str, err: &RuntimeError, logs: &[ReceiptLog]) -> Va
     map.into()
 }
 
-fn decode_deploy_template(receipt: &TemplateReceipt, ty: &'static str) -> Value {
+fn decode_deploy_template(receipt: &DeployReceipt, ty: &'static str) -> Value {
     debug_assert!(receipt.success);
     debug_assert!(receipt.error.is_none());
 
-    let TemplateReceipt {
+    let DeployReceipt {
         addr,
         gas_used,
         logs,
@@ -224,7 +224,7 @@ mod tests {
             },
         ];
 
-        let receipt = TemplateReceipt {
+        let receipt = DeployReceipt {
             version: 0,
             success: true,
             error: None,

@@ -164,7 +164,7 @@ fn svm_runtime_failure() {
 
         // extract the `Template Address` out of the `Receipt`
         let receipt =
-            receipt::decode_receipt(template_receipt.clone().into()).into_deploy_template();
+            receipt::decode_receipt(template_receipt.clone().into()).into_deploy();
         let template_addr: &Address = receipt.template_addr().inner();
         let template_addr: svm_byte_array = (TEMPLATE_ADDR, template_addr).into();
 
@@ -305,7 +305,7 @@ fn svm_runtime_success() {
 
         // extract the `template-address` out of the receipt
         let receipt =
-            receipt::decode_receipt(template_receipt.clone().into()).into_deploy_template();
+            receipt::decode_receipt(template_receipt.clone().into()).into_deploy();
         let template_addr: &Address = receipt.template_addr().inner();
         let template_addr: svm_byte_array = (TEMPLATE_ADDR, template_addr).into();
 
