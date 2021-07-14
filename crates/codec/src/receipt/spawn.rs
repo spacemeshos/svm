@@ -26,7 +26,7 @@ use crate::{calldata, version};
 use crate::{ReadExt, WriteExt};
 
 /// Encodes a `spawn-app` receipt into its binary format.
-pub fn encode_app_receipt(receipt: &SpawnReceipt) -> Vec<u8> {
+pub fn encode_spawn(receipt: &SpawnReceipt) -> Vec<u8> {
     let mut w = Vec::new();
 
     w.write_byte(types::SPAWN);
@@ -141,7 +141,7 @@ mod tests {
             logs: Vec::new(),
         };
 
-        let bytes = encode_app_receipt(&receipt);
+        let bytes = encode_spawn(&receipt);
         let decoded = decode_receipt(&bytes);
 
         assert_eq!(decoded.into_spawn(), receipt);
@@ -168,7 +168,7 @@ mod tests {
             logs: logs.clone(),
         };
 
-        let bytes = encode_app_receipt(&receipt);
+        let bytes = encode_spawn(&receipt);
         let decoded = decode_receipt(&bytes);
 
         assert_eq!(decoded.into_spawn(), receipt);
@@ -195,7 +195,7 @@ mod tests {
             logs: logs.clone(),
         };
 
-        let bytes = encode_app_receipt(&receipt);
+        let bytes = encode_spawn(&receipt);
         let decoded = decode_receipt(&bytes);
 
         assert_eq!(decoded.into_spawn(), receipt);

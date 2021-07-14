@@ -210,7 +210,7 @@ mod tests {
     use svm_types::{Address, Gas, ReceiptLog, State};
 
     #[test]
-    fn decode_receipt_deploy_template_receipt_success() {
+    fn decode_receipt_deploy_success() {
         let template = Address::repeat(0x10);
 
         let logs = vec![
@@ -279,7 +279,7 @@ mod tests {
             logs,
         };
 
-        let bytes = crate::receipt::encode_app_receipt(&receipt);
+        let bytes = crate::receipt::encode_spawn(&receipt);
         let data = json::bytes_to_str(&bytes);
         let json = decode_receipt(&json!({ "data": data })).unwrap();
 
@@ -288,7 +288,7 @@ mod tests {
             json!({
                 "success": true,
                 "type": "spawn-account",
-                "app": "1010101010101010101010101010101010101010",
+                "account": "1010101010101010101010101010101010101010",
                 "gas_used": 10,
                 "returndata": "102030",
                 "state": "A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0",
@@ -318,7 +318,7 @@ mod tests {
             logs,
         };
 
-        let bytes = crate::receipt::encode_app_receipt(&receipt);
+        let bytes = crate::receipt::encode_spawn(&receipt);
         let data = json::bytes_to_str(&bytes);
         let json = decode_receipt(&json!({ "data": data })).unwrap();
 

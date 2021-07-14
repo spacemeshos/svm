@@ -10,7 +10,7 @@ pub(crate) use error::{decode_error, encode_error};
 
 pub use call::{decode_call, encode_call_receipt};
 pub use deploy::{decode_deploy, encode_deploy_receipt};
-pub use spawn::{decode_spawn, encode_app_receipt};
+pub use spawn::{decode_spawn, encode_spawn};
 
 use svm_types::Receipt;
 

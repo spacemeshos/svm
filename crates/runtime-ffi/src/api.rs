@@ -506,7 +506,7 @@ pub unsafe extern "C" fn svm_spawn_app(
 
     let gas_limit = maybe_gas(gas_metering, gas_limit);
     let rust_receipt = runtime.spawn_app(bytes.into(), &spawner.unwrap().into(), gas_limit);
-    let receipt_bytes = receipt::encode_app_receipt(&rust_receipt);
+    let receipt_bytes = receipt::encode_spawn(&rust_receipt);
 
     // returning encoded `AppReceipt` as `svm_byte_array`.
     // should call later `svm_receipt_destroy`

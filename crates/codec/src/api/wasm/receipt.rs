@@ -4,7 +4,7 @@ use super::wasm_buf_apply;
 use crate::api::{self, json::JsonError};
 
 /// Decodes a binary Receipt given as an offset to a Wasm buffer,
-/// and then returs an offset to a new Wasm buffer holding the decoded Receipt
+/// and then returns an offset to a new Wasm buffer holding the decoded Receipt
 /// in a JSON format.
 pub fn decode_receipt(offset: usize) -> Result<usize, JsonError> {
     wasm_buf_apply(offset, |json: &Value| {
@@ -27,7 +27,7 @@ mod test {
 
     #[test]
     fn wasm_decode_receipt_valid() {
-        let app: Address = [0x10; 20].into();
+        let account: Address = [0x10; 20].into();
         let state: State = [0xA0; 32].into();
         let logs = Vec::new();
 
@@ -35,14 +35,14 @@ mod test {
             version: 0,
             success: true,
             error: None,
-            account_addr: Some(app.into()),
+            account_addr: Some(account.into()),
             init_state: Some(state),
             returndata: Some(vec![0x10, 0x20]),
             gas_used: Gas::with(10),
             logs,
         };
 
-        let bytes = crate::receipt::encode_app_receipt(&receipt);
+        let bytes = crate::receipt::encode_spawn(&receipt);
         let data = json::bytes_to_str(&bytes);
         let json = json!({ "data": data });
         let json = serde_json::to_string(&json).unwrap();
@@ -59,8 +59,8 @@ mod test {
             json,
             json!({
                 "success": true,
-                "type": "spawn-app",
-                "app": "1010101010101010101010101010101010101010",
+                "type": "spawn-account",
+                "account": "1010101010101010101010101010101010101010",
                 "gas_used": 10,
                 "returndata": "1020",
                 "state": "A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0",
