@@ -12,7 +12,7 @@ use svm_layout::FixedLayout;
 use svm_runtime::{testing, Runtime, ValidateError};
 
 use svm_types::{Address, Gas, RuntimeError};
-use svm_types::{SpawnReceipt, DeployReceipt};
+use svm_types::{DeployReceipt, SpawnReceipt};
 
 fn memory_runtime() -> impl Runtime {
     let state_kv = testing::memory_state_kv_init();

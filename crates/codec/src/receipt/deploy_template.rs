@@ -94,7 +94,7 @@ fn encode_template_addr(receipt: &DeployReceipt, w: &mut Vec<u8>) {
 mod tests {
     use super::*;
 
-    use svm_types::{Address, Gas, DeployReceipt};
+    use svm_types::{Address, DeployReceipt, Gas};
 
     use crate::receipt::decode_receipt;
 

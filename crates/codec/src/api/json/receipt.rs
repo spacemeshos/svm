@@ -4,9 +4,9 @@ use crate::api::json::{self, JsonError};
 use crate::receipt;
 
 use svm_types::RuntimeError;
-use svm_types::{CallReceipt, Receipt, ReceiptLog, SpawnReceipt, DeployReceipt};
+use svm_types::{CallReceipt, DeployReceipt, Receipt, ReceiptLog, SpawnReceipt};
 
-/// Given a binary Receipt wrappend inside a JSON,
+/// Given a binary Receipt wrapped inside a JSON,
 /// decodes it into a user-friendly JSON.
 pub fn decode_receipt(json: &Value) -> Result<Value, JsonError> {
     let data = json::as_string(json, "data")?;

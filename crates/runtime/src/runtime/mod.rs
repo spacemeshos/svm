@@ -24,8 +24,8 @@ pub use default::DefaultRuntime;
 pub use ptr::RuntimePtr;
 
 use svm_types::{
-    CallReceipt, DeployerAddr, Gas, RuntimeError, SpawnReceipt, SpawnerAddr, State,
-    DeployReceipt, Transaction,
+    CallReceipt, DeployReceipt, DeployerAddr, Gas, RuntimeError, SpawnReceipt, SpawnerAddr, State,
+    Transaction,
 };
 
 use crate::error::ValidateError;

@@ -5,7 +5,7 @@ use svm_storage::app::AppStorage;
 use svm_types::GasMode;
 use svm_types::SectionKind;
 use svm_types::{AccountAddr, DeployerAddr, SpawnerAddr, State, Template};
-use svm_types::{CallReceipt, ReceiptLog, SpawnReceipt, DeployReceipt};
+use svm_types::{CallReceipt, DeployReceipt, ReceiptLog, SpawnReceipt};
 use svm_types::{Gas, OOGError};
 use svm_types::{RuntimeError, Transaction};
 use wasmer::{Instance, Module, WasmPtr, WasmTypeList};
