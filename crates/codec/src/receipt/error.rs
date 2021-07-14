@@ -67,7 +67,7 @@
 //!   +-------------------+----------------------------+
 //!
 
-use svm_types::{Address, AppAddr, ReceiptLog, RuntimeError, TemplateAddr};
+use svm_types::{AccountAddr, Address, ReceiptLog, RuntimeError, TemplateAddr};
 
 use std::io::Cursor;
 
@@ -268,7 +268,7 @@ fn decode_func(cursor: &mut Cursor<&[u8]>) -> String {
     cursor.read_string().unwrap().unwrap()
 }
 
-fn decode_addrs(cursor: &mut Cursor<&[u8]>) -> (TemplateAddr, AppAddr) {
+fn decode_addrs(cursor: &mut Cursor<&[u8]>) -> (TemplateAddr, AccountAddr) {
     let template_addr = decode_template_addr(cursor);
     let app_addr = decode_app_addr(cursor);
 

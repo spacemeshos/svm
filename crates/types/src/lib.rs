@@ -38,7 +38,7 @@ pub use receipt::{
 };
 
 /// Address-related types
-pub use address::{Address, AppAddr, DeployerAddr, SpawnerAddr, TemplateAddr};
+pub use address::{AccountAddr, Address, DeployerAddr, SpawnerAddr, TemplateAddr};
 pub use address_of::AddressOf;
 
 pub use account::Account;

@@ -6,7 +6,7 @@ use crate::env::{self, traits};
 use env::ExtApp;
 use traits::{AppDeserializer, AppSerializer, AppStore};
 
-use svm_types::{Address, AppAddr, TemplateAddr};
+use svm_types::{AccountAddr, Address, TemplateAddr};
 
 /// In-memory `AppStore` implementation.
 /// Should be used for testing purposes only.
@@ -36,19 +36,19 @@ where
     S: AppSerializer,
     D: AppDeserializer,
 {
-    fn store(&mut self, app: &ExtApp, addr: &AppAddr) {
+    fn store(&mut self, app: &ExtApp, addr: &AccountAddr) {
         let bytes = S::serialize(app);
 
         self.app_bytes.insert(addr.inner().clone(), bytes);
     }
 
-    fn load(&self, addr: &AppAddr) -> Option<ExtApp> {
+    fn load(&self, addr: &AccountAddr) -> Option<ExtApp> {
         let bytes = self.app_bytes.get(addr.inner());
 
         bytes.and_then(|bytes| D::deserialize(&bytes[..]))
     }
 
-    fn resolve_template_addr(&self, addr: &AppAddr) -> Option<TemplateAddr> {
+    fn resolve_template_addr(&self, addr: &AccountAddr) -> Option<TemplateAddr> {
         let app = self.load(addr);
 
         app.map(|x| x.template_addr().clone())

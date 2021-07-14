@@ -21,7 +21,7 @@
 //!
 //!
 
-use svm_types::{AppAddr, Transaction};
+use svm_types::{AccountAddr, Transaction};
 
 use std::io::Cursor;
 
@@ -97,7 +97,7 @@ fn decode_version(cursor: &mut Cursor<&[u8]>) -> Result<u16, ParseError> {
     version::decode_version(cursor)
 }
 
-fn decode_app(cursor: &mut Cursor<&[u8]>) -> Result<AppAddr, ParseError> {
+fn decode_app(cursor: &mut Cursor<&[u8]>) -> Result<AccountAddr, ParseError> {
     match cursor.read_address() {
         Ok(addr) => Ok(addr.into()),
         Err(..) => Err(ParseError::NotEnoughBytes(Field::AppAddr)),

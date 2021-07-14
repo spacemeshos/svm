@@ -1,4 +1,4 @@
-use svm_types::{AppAddr, Transaction};
+use svm_types::{AccountAddr, Transaction};
 
 use crate::transaction;
 
@@ -6,7 +6,7 @@ use crate::transaction;
 /// Should be used for testing only.
 pub struct TxBuilder {
     version: Option<u16>,
-    app: Option<AppAddr>,
+    app: Option<AccountAddr>,
     func_name: Option<String>,
     // verifydata: Option<Vec<u8>>,
     calldata: Option<Vec<u8>>,
@@ -67,7 +67,7 @@ impl TxBuilder {
         self
     }
 
-    pub fn with_app(mut self, app: &AppAddr) -> Self {
+    pub fn with_app(mut self, app: &AccountAddr) -> Self {
         self.app = Some(app.clone());
         self
     }

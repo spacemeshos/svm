@@ -1,7 +1,7 @@
 //! Implements [`Context`]. Used for managing data of running `SVM` apps.
 
 use svm_storage::app::AppStorage;
-use svm_types::{AppAddr, Gas, ReceiptLog, TemplateAddr};
+use svm_types::{AccountAddr, Gas, ReceiptLog, TemplateAddr};
 use wasmer::Memory;
 
 use std::cell::{Ref, RefCell, RefMut};
@@ -19,7 +19,7 @@ pub struct Context {
 
     template_addr: TemplateAddr,
 
-    app_addr: AppAddr,
+    app_addr: AccountAddr,
 }
 
 // # Safety
@@ -35,7 +35,7 @@ impl Context {
         gas_limit: Gas,
         storage: AppStorage,
         template_addr: &TemplateAddr,
-        app_addr: &AppAddr,
+        app_addr: &AccountAddr,
     ) -> Self {
         let inner = ContextInner::new(gas_limit, storage);
 
@@ -52,7 +52,7 @@ impl Context {
         gas_limit: Gas,
         storage: AppStorage,
         template_addr: &TemplateAddr,
-        app_addr: &AppAddr,
+        app_addr: &AccountAddr,
     ) -> Self {
         let ctx = Self::new(gas_limit, storage, template_addr, app_addr);
 
@@ -68,7 +68,7 @@ impl Context {
     }
 
     /// Returns the `Address` of the current executed `App`.
-    pub fn app_addr(&self) -> &AppAddr {
+    pub fn app_addr(&self) -> &AccountAddr {
         &self.app_addr
     }
 
