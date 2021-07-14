@@ -1,3 +1,5 @@
+//! Implements the `SVM` vmcalls (a.k.a `libcalls / hostcalls / syscalls`)
+
 use wasmer::{Exports, Function, Store};
 
 use crate::Context;
@@ -23,8 +25,8 @@ macro_rules! func {
     }};
 }
 
-/// Registers SVM internal host functions (a.k.a vmacalls) into
-/// Into `Wasmer` Import Object (it's done by inserting to input `Exports`)
+/// Registers SVM internal host functions (a.k.a `vmcalls`)
+/// into `Wasmer` Import Object (it's done by inserting to input `Exports`)
 pub fn wasmer_register(store: &Store, ctx: &Context, ns: &mut Exports) {
     ns.insert("svm_static_alloc", func!(store, ctx, static_alloc));
 

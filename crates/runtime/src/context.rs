@@ -1,8 +1,10 @@
+//! Implements `Context`. Used for managing data of running `SVM` apps.
+
+use wasmer::Memory;
+
 use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
 use std::u64;
-
-use wasmer::Memory;
 
 use svm_storage::app::AppStorage;
 use svm_types::{AppAddr, Gas, ReceiptLog, TemplateAddr};

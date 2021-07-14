@@ -19,7 +19,7 @@ fn generate_svm_header() {
     src_header.push("svm");
     src_header.set_extension("h");
 
-    // build using cbindgen
+    // build using `cbindgen`
     Builder::new()
         .with_language(Language::C)
         .with_crate(crate_dir)

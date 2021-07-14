@@ -11,32 +11,24 @@
 
 mod address;
 mod byte_array;
-mod callback;
-mod env;
-mod layout;
 mod macros;
 mod state;
-mod types;
-mod value;
 
 /// Tracking manually-allocated resources.
 pub mod tracking;
 
 pub use byte_array::svm_byte_array;
 
-pub use callback::svm_func_callback_t;
-pub use env::svm_env_t;
 pub use tracking::{svm_resource_iter_t, svm_resource_t};
-pub use value::alloc_wasm_values;
 
 use std::ffi::c_void;
 use svm_types::Type;
 
 /// Type for `Wasm Error`
-pub static SVM_WASM_ERROR_TYPE: Type = Type::Str("wasm error type");
+pub static SVM_WASM_ERROR_TYPE: Type = Type::Str("Wasm error type");
 
 /// Type for a pointer to `Wasm Error`
-pub static SVM_WASM_ERROR_TYPE_PTR: Type = Type::Str("wasm error type pointer");
+pub static SVM_WASM_ERROR_TYPE_PTR: Type = Type::Str("Wasm error type pointer");
 
 /// Type for `svm_resource_t`
 pub static SVM_RESOURCE_TYPE: Type = Type::of::<svm_resource_t>();

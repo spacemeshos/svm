@@ -5,6 +5,22 @@ use svm_layout::{FixedLayout, Id};
 use svm_runtime::{testing, vmcalls, Context};
 use svm_types::{Address, Gas, ReceiptLog};
 
+/// Creates a new `Wasmer Store`
+pub fn wasmer_store() -> wasmer::Store {
+    svm_compiler::new_store()
+}
+
+/// Creates a new `Wasmer Memory` consisting of a single page
+/// The memory is of type non-shared and can grow without a limit
+fn wasmer_memory(store: &wasmer::Store) -> wasmer::Memory {
+    let min = wasmer::Pages(1);
+    let max = None;
+    let shared = false;
+    let ty = wasmer::MemoryType::new(min, max, shared);
+
+    wasmer::Memory::new(store, ty).expect("Memory allocation has failed.")
+}
+
 macro_rules! assert_vars32 {
     ($instance:expr, $( $var_id:expr => $expected:expr), *) => {{
         __assert_vars_impl!(u32, $instance, $( $var_id => $expected), *)
@@ -74,7 +90,7 @@ fn vmcalls_empty_wasm() {
 
     let gas_limit = Gas::new();
 
-    let store = testing::wasmer_store();
+    let store = wasmer_store();
     let import_object = imports! {};
 
     testing::wasmer_instantiate(&store, &import_object, wasm, gas_limit);
@@ -87,7 +103,7 @@ fn vmcalls_get32_set32() {
     let gas_limit = Gas::new();
     let layout: FixedLayout = vec![4, 2].into();
 
-    let store = testing::wasmer_store();
+    let store = wasmer_store();
     let storage = testing::blank_storage(&app_addr, &layout);
 
     let ctx = Context::new(gas_limit, storage, &template_addr.into(), &app_addr.into());
@@ -123,7 +139,7 @@ fn vmcalls_get64_set64() {
     let gas_limit = Gas::new();
     let layout: FixedLayout = vec![4, 2].into();
 
-    let store = testing::wasmer_store();
+    let store = wasmer_store();
     let storage = testing::blank_storage(&app_addr, &layout);
     let ctx = Context::new(gas_limit, storage, &template_addr.into(), &app_addr.into());
 
@@ -158,8 +174,8 @@ fn vmcalls_load160() {
     let gas_limit = Gas::new();
     let layout: FixedLayout = vec![20].into();
 
-    let store = testing::wasmer_store();
-    let memory = testing::wasmer_memory(&store);
+    let store = wasmer_store();
+    let memory = wasmer_memory(&store);
     let storage = testing::blank_storage(&app_addr, &layout);
 
     let ctx = Context::new_with_memory(
@@ -209,8 +225,8 @@ fn vmcalls_store160() {
     let gas_limit = Gas::new();
     let layout: FixedLayout = vec![20].into();
 
-    let store = testing::wasmer_store();
-    let memory = testing::wasmer_memory(&store);
+    let store = wasmer_store();
+    let memory = wasmer_memory(&store);
     let storage = testing::blank_storage(&app_addr, &layout);
     let ctx = Context::new_with_memory(
         memory.clone(),
@@ -255,8 +271,8 @@ fn vmcalls_log() {
     let gas_limit = Gas::new();
     let layout = FixedLayout::default();
 
-    let store = testing::wasmer_store();
-    let memory = testing::wasmer_memory(&store);
+    let store = wasmer_store();
+    let memory = wasmer_memory(&store);
     let storage = testing::blank_storage(&app_addr, &layout);
     let ctx = Context::new_with_memory(
         memory.clone(),

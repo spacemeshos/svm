@@ -17,7 +17,7 @@ svm-ffi = { path = "../ffi" }
 svm-hash = { path = "../hash" }
 svm-common = { path = "../common" }
 svm-types = { path = "../types" }
-svm-layout = { path = "../layout" } 
+svm-layout = { path = "../layout" }
 svm-kv = { path = "../kv", default-features = false }
 svm-storage = { path = "../storage", default-features = false }
 svm-codec = { path = "../codec" }
