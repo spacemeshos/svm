@@ -48,7 +48,7 @@ where
         bytes.and_then(|bytes| D::deserialize(&bytes[..]))
     }
 
-    fn find_template_addr(&self, addr: &AppAddr) -> Option<TemplateAddr> {
+    fn resolve_template_addr(&self, addr: &AppAddr) -> Option<TemplateAddr> {
         let app = self.load(addr);
 
         app.map(|x| x.template_addr().clone())

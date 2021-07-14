@@ -1,6 +1,3 @@
-use std::io;
-use std::string::FromUtf8Error;
-
 use svm_ffi::svm_byte_array;
 use svm_runtime::ValidateError;
 use svm_types::Type;
@@ -10,13 +7,9 @@ pub(crate) unsafe fn raw_validate_error(err: &ValidateError, raw_err: *mut svm_b
     raw_error(s, raw_err);
 }
 
-pub(crate) unsafe fn raw_io_error(err: io::Error, raw_err: *mut svm_byte_array) {
-    let s = format!("{}", err);
-    raw_error(s, raw_err);
-}
-
+#[cfg(feature = "default-rocksdb")]
 pub(crate) unsafe fn raw_utf8_error<T>(
-    utf8_res: Result<T, FromUtf8Error>,
+    utf8_res: Result<T, std::string::FromUtf8Error>,
     raw_err: *mut svm_byte_array,
 ) {
     let utf8_err = utf8_res.err().unwrap();
@@ -25,7 +18,7 @@ pub(crate) unsafe fn raw_utf8_error<T>(
 }
 
 pub(crate) unsafe fn raw_error(s: String, raw_err: *mut svm_byte_array) {
-    let ty = Type::Str("runtime-c-api-error");
+    let ty = Type::Str("runtime-ffi-error");
     let err: svm_byte_array = (ty, s).into();
 
     let raw_err = &mut *raw_err;

@@ -15,12 +15,11 @@ use svm_types::{
 use wasmer::{ImportObject, Instance, Memory, MemoryType, Module, Pages, Store};
 
 use std::cell::RefCell;
-use std::path::Path;
 use std::rc::Rc;
 
 use crate::env::{DefaultMemAppStore, DefaultMemEnvTypes, DefaultMemTemplateStore};
 use crate::storage::StorageBuilderFn;
-use crate::{Config, DefaultRuntime, Env, ExternImport};
+use crate::{Config, DefaultRuntime, Env};
 
 /// Hold a Wasm file in textual or binary form
 pub enum WasmFile<'a> {
@@ -99,23 +98,22 @@ pub fn memory_state_kv_init() -> Rc<RefCell<dyn StatefulKV>> {
 /// Creates an in-memory `Runtime` backed by key-value and host vmcalls (`imports`).
 pub fn create_memory_runtime(
     state_kv: &Rc<RefCell<dyn StatefulKV>>,
-    imports: &Vec<ExternImport>,
 ) -> DefaultRuntime<DefaultMemEnvTypes> {
     let storage_builder = runtime_memory_storage_builder(state_kv);
 
     let template_store = DefaultMemTemplateStore::new();
     let app_store = DefaultMemAppStore::new();
-
     let env = Env::<DefaultMemEnvTypes>::new(app_store, template_store);
 
-    let kv_path = Path::new("");
+    let config = Config::default();
+    let imports = ("sm".to_string(), wasmer::Exports::new());
 
     DefaultRuntime::new(
         env,
-        &kv_path,
         StandardPriceResolver::default(),
         imports,
         Box::new(storage_builder),
+        config,
     )
 }
 

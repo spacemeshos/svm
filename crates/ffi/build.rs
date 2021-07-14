@@ -15,15 +15,12 @@ fn main() {
     src_header.push("svm_types");
     src_header.set_extension("h");
 
-    // build using cbindgen
+    // build using `cbindgen`
     Builder::new()
         .with_language(Language::C)
         .with_crate(crate_dir)
         .with_include_guard("SVM_TYPES_H")
         .include_item("svm_byte_array")
-        .include_item("svm_trap_t")
-        .include_item("svm_func_callback_t")
-        .include_item("svm_env_t")
         .include_item("svm_resource_t")
         .with_documentation(true)
         .generate()

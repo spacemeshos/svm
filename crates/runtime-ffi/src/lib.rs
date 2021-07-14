@@ -6,14 +6,14 @@
 
 //! This crate is responsible of providing [FFI](https://doc.rust-lang.org/nomicon/ffi.html) interface for the `SVM`.
 
-/// Crate common tests specific helpers
-pub mod testing;
-
 mod api;
 mod error;
 mod result;
 
-pub(crate) use error::{raw_error, raw_io_error, raw_utf8_error, raw_validate_error};
+#[cfg(feature = "default-rocksdb")]
+pub(crate) use error::raw_utf8_error;
+
+pub(crate) use error::{raw_error, raw_validate_error};
 
 #[cfg(feature = "default-rocksdb")]
 pub use api::svm_runtime_create;
@@ -29,10 +29,6 @@ pub use api::{
     svm_deploy_template,
     svm_spawn_app,
     
-    // Imports
-    svm_import_func_new,
-    svm_imports_alloc,
-
     // Validations
     svm_validate_template,
     svm_validate_app,
@@ -41,7 +37,6 @@ pub use api::{
     // Destroy
     svm_runtime_destroy,
     svm_state_kv_destroy,
-    svm_imports_destroy,
     svm_byte_array_destroy,
 
     // Error

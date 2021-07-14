@@ -16,9 +16,7 @@ use svm_types::{SpawnAppReceipt, TemplateReceipt};
 
 fn memory_runtime() -> impl Runtime {
     let state_kv = testing::memory_state_kv_init();
-    let imports = Box::leak(Box::new(vec![]));
-
-    testing::create_memory_runtime(&state_kv, imports)
+    testing::create_memory_runtime(&state_kv)
 }
 
 #[ignore]

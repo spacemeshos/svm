@@ -8,28 +8,31 @@ publish = false
 
 
 [dependencies]
-wat = "1"
-log = "0.4"
 byteorder = "1.3"
+log = "0.4"
 lazy_static = "1.4"
+svm-ffi = { path = "../ffi" }
+svm-hash = { path = "../hash" }
+svm-common = { path = "../common" }
+svm-types = { path = "../types" }
+svm-layout = { path = "../layout" }
+svm-kv = { path = "../kv", default-features = false }
+svm-storage = { path = "../storage", default-features = false }
+svm-codec = { path = "../codec" }
+svm-gas = { path = "../gas" }
 thiserror = "1"
-svm-ffi = { path="../ffi" }
-svm-hash = { path="../hash" }
-svm-common = { path="../common" }
-svm-types = { path="../types" }
-svm-layout = { path="../layout" }
-svm-kv = { path="../kv", default-features=false }
-svm-storage = { path="../storage", default-features=false }
-svm-codec = { path="../codec" }
-svm-gas = { path="../gas" }
-wasmer = { version="2", default-features=false }
+wasmer = { version = "2", default-features = false }
 wasmer-runtime-core = "0.17"
 wasmer-runtime = "0.17"
 wasmparser = "0.79"
+wat = "1"
 
 [dev-dependencies]
 maplit = "1.0.2"
-svm-sdk = { path="../sdk", features=["mock", "dynamic-alloc"], default-features=false }
+svm-sdk = { path = "../sdk", features = [
+	"mock",
+	"dynamic-alloc",
+], default-features = false }
 
 [features]
 default = ["default-cranelift", "default-memory"]

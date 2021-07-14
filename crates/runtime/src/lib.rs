@@ -11,20 +11,17 @@
 
 mod context;
 mod env;
-mod import;
+mod error;
 mod runtime;
 mod storage;
-mod validation;
-mod wasm_store;
-
-mod error;
 pub mod testing;
+mod validation;
 pub mod vmcalls;
+mod wasm_store;
 
 pub use context::Context;
 pub use env::{Env, EnvTypes};
 pub use error::ValidateError;
-pub use import::ExternImport;
 #[cfg(feature = "default-rocksdb")]
 pub use runtime::create_rocksdb_runtime;
 pub use runtime::{Config, DefaultRuntime, Runtime, RuntimePtr};
