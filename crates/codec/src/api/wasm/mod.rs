@@ -1,18 +1,18 @@
 //! WASM API
 
 mod calldata;
-mod deploy_template;
+mod deploy;
 mod error;
-mod exec_app;
+mod call;
 mod receipt;
-mod spawn_app;
+mod spawn;
 
 pub use calldata::{decode_calldata, encode_calldata};
-pub use deploy_template::encode_deploy_template;
+pub use deploy::encode_deploy;
 pub use error::{error_as_string, into_error_buffer};
-pub use exec_app::{decode_exec_app, encode_exec_app};
+pub use call::{decode_call, encode_call};
 pub use receipt::decode_receipt;
-pub use spawn_app::{decode_spawn_app, encode_spawn_app};
+pub use spawn::{decode_spawn, encode_spawn};
 
 use serde_json::{self as json, Value};
 

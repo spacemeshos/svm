@@ -27,8 +27,8 @@ mod test {
 
     #[test]
     fn wasm_decode_receipt_valid() {
-        let account: Address = [0x10; 20].into();
-        let state: State = [0xA0; 32].into();
+        let account = Address::repeat(0x10);
+        let state = State::repeat(0xA0);
         let logs = Vec::new();
 
         let receipt = SpawnReceipt {

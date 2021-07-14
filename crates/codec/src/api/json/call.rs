@@ -11,7 +11,7 @@ use svm_types::Transaction;
 /// ```json
 /// {
 ///   version: 0,           // number
-///   app: 'A2FB...',       // string
+///   target: 'A2FB...',   // string
 ///   func_name: 'do_work', // string
 ///   verifydata: '',       // string
 ///   calldata: '',         // string
@@ -19,7 +19,7 @@ use svm_types::Transaction;
 /// ```
 pub fn encode_call(json: &Value) -> Result<Vec<u8>, JsonError> {
     let version = json::as_u32(json, "version")? as u16;
-    let target = json::as_addr(json, "app")?.into();
+    let target = json::as_addr(json, "target")?.into();
     let func_name = json::as_string(json, "func_name")?;
 
     // let verifydata = json::as_string(json, "verifydata")?;
@@ -43,7 +43,7 @@ pub fn encode_call(json: &Value) -> Result<Vec<u8>, JsonError> {
     Ok(buf)
 }
 
-/// Given a binary `exec-app` transaction wrapped inside JSON.
+/// Given a binary [`Transaction`] wrapped inside JSON,
 /// Decodes it and returns a user-friendly JSON.
 pub fn decode_call(json: &Value) -> Result<Value, JsonError> {
     let data = json::as_string(json, "data")?;
@@ -54,7 +54,7 @@ pub fn decode_call(json: &Value) -> Result<Value, JsonError> {
 
     let version = tx.version;
     let func_name = tx.func_name.clone();
-    let app = json::addr_to_str(&tx.target.inner());
+    let target = json::addr_to_str(&tx.target.inner());
 
     // let verifydata = json::bytes_to_str(&tx.verifydata);
     // let verifydata = json::decode_calldata(&json!({ "calldata": verifydata }))?;
@@ -64,7 +64,7 @@ pub fn decode_call(json: &Value) -> Result<Value, JsonError> {
 
     let json = json!({
         "version": version,
-        "app": app,
+        "target": target,
         "func_name": func_name,
         // "verifydata": verifydata,
         "calldata": calldata,
@@ -80,7 +80,7 @@ mod tests {
     use serde_json::json;
 
     #[test]
-    fn json_exec_app_missing_version() {
+    fn json_call_missing_version() {
         let json = json!({});
 
         let err = encode_call(&json).unwrap_err();
@@ -94,7 +94,7 @@ mod tests {
     }
 
     #[test]
-    fn json_exec_app_missing_app_addr() {
+    fn json_call_missing_target() {
         let json = json!({
             "version": 0
         });
@@ -103,17 +103,17 @@ mod tests {
         assert_eq!(
             err,
             JsonError::InvalidField {
-                field: "app".to_string(),
+                field: "target".to_string(),
                 reason: "value `null` isn\'t a string".to_string(),
             }
         );
     }
 
     #[test]
-    fn json_exec_app_missing_func_name() {
+    fn json_call_missing_func_name() {
         let json = json!({
             "version": 0,
-            "app": "10203040506070809000A0B0C0D0E0F0ABCDEFFF"
+            "target": "10203040506070809000A0B0C0D0E0F0ABCDEFFF"
         });
 
         let err = encode_call(&json).unwrap_err();
@@ -128,10 +128,10 @@ mod tests {
 
     #[ignore]
     #[test]
-    fn json_exec_app_missing_verifydata() {
+    fn json_call_missing_verifydata() {
         let json = json!({
             "version": 0,
-            "app": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
+            "target": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
             "func_name": "do_something",
         });
 
@@ -146,7 +146,7 @@ mod tests {
     }
 
     #[test]
-    fn json_exec_app_missing_calldata() {
+    fn json_call_missing_calldata() {
         let verifydata = json::encode_calldata(&json!({
             "abi": ["bool", "i8"],
             "data": [true, 3],
@@ -155,7 +155,7 @@ mod tests {
 
         let json = json!({
             "version": 0,
-            "app": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
+            "target": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
             "func_name": "do_something",
             "verifydata": verifydata["calldata"]
         });
@@ -171,7 +171,7 @@ mod tests {
     }
 
     #[test]
-    fn json_exec_app_valid() {
+    fn json_call_valid() {
         let _verifydata = json::encode_calldata(&json!({
             "abi": ["bool", "i8"],
             "data": [true, 3],
@@ -186,7 +186,7 @@ mod tests {
 
         let json = json!({
             "version": 0,
-            "app": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
+            "target": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
             "func_name": "do_something",
             // "verifydata": verifydata["calldata"],
             "calldata": calldata["calldata"],
@@ -200,7 +200,7 @@ mod tests {
             json,
             json!({
                 "version": 0,
-                "app": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
+                "target": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
                 "func_name": "do_something",
                 // "verifydata": {
                 //     "abi": ["bool", "i8"],
