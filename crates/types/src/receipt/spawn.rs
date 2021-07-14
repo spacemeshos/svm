@@ -1,4 +1,4 @@
-use crate::receipt::{ExecReceipt, ReceiptLog, RuntimeError};
+use crate::receipt::{CallReceipt, ReceiptLog, RuntimeError};
 use crate::{gas::Gas, AccountAddr, State};
 
 /// Returned Receipt after spawning an [`Account`](crate::Account)
@@ -86,7 +86,7 @@ impl SpawnReceipt {
 }
 
 #[allow(missing_docs)]
-pub fn into_spawn_receipt(mut ctor_receipt: ExecReceipt, app_addr: &AccountAddr) -> SpawnReceipt {
+pub fn into_spawn_receipt(mut ctor_receipt: CallReceipt, app_addr: &AccountAddr) -> SpawnReceipt {
     let logs = ctor_receipt.take_logs();
 
     if ctor_receipt.success {

@@ -8,14 +8,14 @@ use std::fmt;
 
 use crate::AccountAddr;
 
-/// An in-memory representation of an exec-app transaction.
+/// An in-memory representation of an `Call Account` transaction.
 #[derive(PartialEq, Clone)]
 pub struct Transaction {
-    /// The app-transaction version.
+    /// The `version`.
     pub version: u16,
 
-    /// The `App` account address
-    pub app: AccountAddr,
+    /// The target [`Account`]
+    pub target: AccountAddr,
 
     /// Function's name to execute
     pub func_name: String,
@@ -30,8 +30,8 @@ pub struct Transaction {
 
 impl Transaction {
     #[doc(hidden)]
-    pub fn app_addr(&self) -> &AccountAddr {
-        &self.app
+    pub fn target_addr(&self) -> &AccountAddr {
+        &self.target
     }
 
     #[doc(hidden)]
@@ -59,7 +59,7 @@ impl fmt::Debug for Transaction {
 
         f.debug_struct("Transaction")
             .field("version", &self.version)
-            .field("app", self.app.inner())
+            .field("target", self.target.inner())
             // TODO:
             // See issue: https://github.com/spacemeshos/svm/issues/248
             // .field("verifydata", &verifydata)

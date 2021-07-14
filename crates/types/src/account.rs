@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::TemplateAddr;
 
-/// An in-memory representation of an app.
+/// An in-memory representation of an [`Account`].
 #[derive(PartialEq, Clone)]
 pub struct Account {
     /// [`Account`]'s name

@@ -195,7 +195,7 @@ pub unsafe extern "C" fn svm_validate_tx(
             data_to_svm_byte_array(
                 VALIDATE_TX_APP_ADDR_TYPE,
                 app_addr,
-                tx.app.unwrap().as_slice().to_vec(),
+                tx.target.unwrap().as_slice().to_vec(),
             );
 
             debug!("`svm_validate_tx` returns `SVM_SUCCESS`");

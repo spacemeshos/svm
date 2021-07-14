@@ -1,10 +1,10 @@
 mod deploy_template;
-mod exec_app;
+mod execute;
 mod log;
 mod spawn;
 
 pub use deploy_template::TemplateReceipt;
-pub use exec_app::ExecReceipt;
+pub use execute::CallReceipt;
 pub use log::ReceiptLog;
 pub use spawn::{into_spawn_receipt, SpawnReceipt};
 
@@ -20,7 +20,7 @@ pub enum ReceiptRef<'a> {
     SpawnApp(&'a SpawnReceipt),
 
     /// Borrows a `ExecReceipt`.
-    ExecApp(&'a ExecReceipt),
+    ExecApp(&'a CallReceipt),
 }
 
 impl<'a> ReceiptRef<'a> {
@@ -71,7 +71,7 @@ pub enum Receipt {
     SpawnApp(SpawnReceipt),
 
     /// Exec-App
-    ExecApp(ExecReceipt),
+    ExecApp(CallReceipt),
 }
 
 impl Receipt {
@@ -102,7 +102,7 @@ impl Receipt {
     }
 
     /// Returns the inner `exec-app` receipt
-    pub fn into_exec_app(self) -> ExecReceipt {
+    pub fn into_exec_app(self) -> CallReceipt {
         match self {
             Receipt::ExecApp(r) => r,
             _ => unreachable!(),

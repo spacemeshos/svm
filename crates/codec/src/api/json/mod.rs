@@ -5,14 +5,14 @@ mod deploy_template;
 mod error;
 mod exec_app;
 mod receipt;
-mod spawn_app;
+mod spawn;
 
 pub use calldata::{decode_calldata, encode_calldata};
 pub use deploy_template::deploy_template;
 pub use error::JsonError;
 pub use exec_app::{decode_exec_app, encode_exec_app};
 pub use receipt::decode_receipt;
-pub use spawn_app::{decode_spawn_app, encode_spawn_app};
+pub use spawn::{decode_spawn_app, encode_spawn_app};
 
 use serde_json::{json, Value};
 

@@ -4,7 +4,7 @@ use crate::api::json::{self, JsonError};
 use crate::receipt;
 
 use svm_types::RuntimeError;
-use svm_types::{ExecReceipt, Receipt, ReceiptLog, SpawnReceipt, TemplateReceipt};
+use svm_types::{CallReceipt, Receipt, ReceiptLog, SpawnReceipt, TemplateReceipt};
 
 /// Given a binary Receipt wrappend inside a JSON,
 /// decodes it into a user-friendly JSON.
@@ -179,11 +179,11 @@ fn decode_spawn_app(receipt: &SpawnReceipt, ty: &'static str) -> Value {
     })
 }
 
-fn decode_exe_app(receipt: &ExecReceipt, ty: &'static str) -> Value {
+fn decode_exe_app(receipt: &CallReceipt, ty: &'static str) -> Value {
     debug_assert!(receipt.success);
     debug_assert!(receipt.error.is_none());
 
-    let ExecReceipt {
+    let CallReceipt {
         new_state,
         returndata,
         gas_used,
@@ -348,7 +348,7 @@ mod tests {
             },
         ];
 
-        let receipt = ExecReceipt {
+        let receipt = CallReceipt {
             version: 0,
             success: true,
             error: None,
