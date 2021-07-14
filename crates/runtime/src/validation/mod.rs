@@ -37,15 +37,14 @@ pub fn validate_opcodes(wasm_module: &[u8]) -> bool {
     use wasmparser::{Parser, Payload};
 
     let parser = Parser::default();
-    let parser_events = parser.parse_all(wasm_module);
-    for event_res in parser_events {
-        let event = if let Ok(e) = event_res {
-            e
-        } else {
-            return false;
-        };
-        match event {
-            Payload::CodeSectionEntry(function_body) => {
+    let mut parser_events = parser.parse_all(wasm_module);
+
+    parser_events.all(|event_res| match event_res {
+        Err(_) => false,
+        Ok(event) => {
+            // We only validate opcodes in the WASM code section. Other sections
+            // don't interest us.
+            if let Payload::CodeSectionEntry(function_body) = event {
                 let operators = function_body.get_operators_reader().unwrap();
                 for op in operators.into_iter() {
                     if !opcode_is_valid(op.unwrap()) {
@@ -53,10 +52,9 @@ pub fn validate_opcodes(wasm_module: &[u8]) -> bool {
                     }
                 }
             }
-            _ => (),
+            true
         }
-    }
-    true
+    })
 }
 
 fn opcode_is_valid(op: Operator) -> bool {
