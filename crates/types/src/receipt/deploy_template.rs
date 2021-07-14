@@ -58,7 +58,8 @@ impl TemplateReceipt {
         }
     }
 
-    /// Returns the deployed template address.
+    /// Returns the address of the deployed [`Template`](crate::Template) as a
+    /// [`TemplateAddr`].
     ///
     /// # Panics
     ///
