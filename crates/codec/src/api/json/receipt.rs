@@ -233,7 +233,7 @@ mod tests {
             logs,
         };
 
-        let bytes = crate::receipt::encode_template_receipt(&receipt);
+        let bytes = crate::receipt::encode_deploy_receipt(&receipt);
         let data = json::bytes_to_str(&bytes);
         let json = decode_receipt(&json!({ "data": data })).unwrap();
 
@@ -358,7 +358,7 @@ mod tests {
             logs,
         };
 
-        let bytes = crate::receipt::encode_exec_receipt(&receipt);
+        let bytes = crate::receipt::encode_call_receipt(&receipt);
         let data = json::bytes_to_str(&bytes);
         let json = decode_receipt(&json!({ "data": data })).unwrap();
 

@@ -1,12 +1,13 @@
 use svm_types::{AccountAddr, Transaction};
 
-use crate::transaction;
+use crate::call;
 
-/// Builds a raw representation for `exec-app`
-/// Should be used for testing only.
+/// Builds a raw representation for [`Transaction`]
+///
+/// Should be used mainly for testing only.
 pub struct TxBuilder {
     version: Option<u16>,
-    app: Option<AccountAddr>,
+    target: Option<AccountAddr>,
     func_name: Option<String>,
     // verifydata: Option<Vec<u8>>,
     calldata: Option<Vec<u8>>,
@@ -20,9 +21,9 @@ pub struct TxBuilder {
 ///
 /// use svm_types::{Transaction, Address};
 /// use svm_codec::api::builder::TxBuilder;
-/// use svm_codec::transaction;
+/// use svm_codec::call;
 ///
-/// let target = Address::of("@my-app").into();
+/// let target = Address::of("@target").into();
 ///
 /// let func_name = "do_work";
 /// // let verifydata = vec![0x10, 0x20, 0x30];
@@ -30,14 +31,14 @@ pub struct TxBuilder {
 ///
 /// let bytes = TxBuilder::new()
 ///            .with_version(0)
-///            .with_app(&target)
+///            .with_target(&target)
 ///            .with_func(func_name)
 ///            // .with_verifydata(&verifydata)
 ///            .with_calldata(&calldata)
 ///            .build();
 ///
 /// let mut cursor = Cursor::new(&bytes[..]);
-/// let actual = transaction::decode_call(&mut cursor).unwrap();
+/// let actual = call::decode_call(&mut cursor).unwrap();
 /// let expected = Transaction {
 ///                  version: 0,
 ///                  target,
@@ -55,7 +56,7 @@ impl TxBuilder {
     pub fn new() -> Self {
         Self {
             version: None,
-            app: None,
+            target: None,
             func_name: None,
             // verifydata: None,
             calldata: None,
@@ -67,8 +68,8 @@ impl TxBuilder {
         self
     }
 
-    pub fn with_app(mut self, app: &AccountAddr) -> Self {
-        self.app = Some(app.clone());
+    pub fn with_target(mut self, target: &AccountAddr) -> Self {
+        self.target = Some(target.clone());
         self
     }
 
@@ -89,7 +90,7 @@ impl TxBuilder {
 
     pub fn build(self) -> Vec<u8> {
         let version = self.version.unwrap();
-        let target = self.app.unwrap();
+        let target = self.target.unwrap();
         let func_name = self.func_name.unwrap();
 
         // let verifydata = match self.verifydata {
@@ -112,7 +113,7 @@ impl TxBuilder {
 
         let mut w = Vec::new();
 
-        transaction::encode_call(&tx, &mut w);
+        call::encode_call(&tx, &mut w);
 
         w
     }

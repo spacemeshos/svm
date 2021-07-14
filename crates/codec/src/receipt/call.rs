@@ -16,16 +16,16 @@
 //!  On success (`is_success = 0`)
 //!  See [error.rs][./error.rs]
 
-use svm_types::CallReceipt;
-
 use std::io::Cursor;
+
+use svm_types::CallReceipt;
 
 use super::{decode_error, encode_error, gas, logs};
 use crate::{calldata, version};
 use crate::{ReadExt, WriteExt};
 
 /// Encodes an `exec-receipt` into its binary format.
-pub fn encode_exec_receipt(receipt: &CallReceipt) -> Vec<u8> {
+pub fn encode_call_receipt(receipt: &CallReceipt) -> Vec<u8> {
     let mut w = Vec::new();
 
     w.write_byte(super::types::EXEC_APP);
@@ -122,7 +122,7 @@ mod tests {
             logs,
         };
 
-        let bytes = encode_exec_receipt(&receipt);
+        let bytes = encode_call_receipt(&receipt);
         let decoded = crate::receipt::decode_receipt(&bytes[..]);
 
         assert_eq!(decoded.into_call(), receipt);
@@ -147,7 +147,7 @@ mod tests {
             logs: logs.clone(),
         };
 
-        let bytes = encode_exec_receipt(&receipt);
+        let bytes = encode_call_receipt(&receipt);
         let decoded = crate::receipt::decode_receipt(&bytes[..]);
 
         assert_eq!(decoded.into_call(), receipt);
@@ -173,7 +173,7 @@ mod tests {
             logs: logs.clone(),
         };
 
-        let bytes = encode_exec_receipt(&receipt);
+        let bytes = encode_call_receipt(&receipt);
         let decoded = crate::receipt::decode_receipt(&bytes[..]);
 
         assert_eq!(decoded.into_call(), receipt);

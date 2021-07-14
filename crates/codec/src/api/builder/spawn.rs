@@ -1,10 +1,11 @@
 use svm_types::{Account, SpawnAccount, TemplateAddr};
 
-use crate::app;
+use crate::spawn;
 
-/// Builds a raw representation for `spawn-app`
-/// Should be used for testing only.
-pub struct SpawnAppBuilder {
+/// Builds a binary representation for [`SpawnAccount`]
+///
+/// Should be used mainly for testing only.
+pub struct SpawnBuilder {
     version: Option<u16>,
     template: Option<TemplateAddr>,
     name: Option<String>,
@@ -19,15 +20,15 @@ pub struct SpawnAppBuilder {
 /// use std::io::Cursor;
 ///
 /// use svm_types::{Account, SpawnAccount, Address};
-/// use svm_codec::api::builder::SpawnAppBuilder;
-/// use svm_codec::app;
+/// use svm_codec::api::builder::SpawnBuilder;
+/// use svm_codec::spawn;
 ///
 /// let template_addr = Address::of("@template").into();
 /// let name = "My Account".to_string();
 /// let ctor_name = "initialize";
 /// let calldata = vec![0x10, 0x20, 0x30];
 ///
-/// let bytes = SpawnAppBuilder::new()
+/// let bytes = SpawnBuilder::new()
 ///             .with_version(0)
 ///             .with_template(&template_addr)
 ///             .with_name(&name)
@@ -36,7 +37,7 @@ pub struct SpawnAppBuilder {
 ///             .build();
 ///
 /// let mut cursor = Cursor::new(&bytes[..]);
-/// let actual = app::decode(&mut cursor).unwrap();
+/// let actual = spawn::decode(&mut cursor).unwrap();
 /// let expected = SpawnAccount {
 ///                  version: 0,
 ///                  account: Account { name, template_addr },
@@ -48,7 +49,7 @@ pub struct SpawnAppBuilder {
 /// ```
 ///
 #[allow(missing_docs)]
-impl SpawnAppBuilder {
+impl SpawnBuilder {
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {
@@ -105,7 +106,7 @@ impl SpawnAppBuilder {
 
         let mut w = Vec::new();
 
-        app::encode(&spawn, &mut w);
+        spawn::encode(&spawn, &mut w);
 
         w
     }

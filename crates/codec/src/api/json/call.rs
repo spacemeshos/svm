@@ -3,7 +3,7 @@ use std::io::Cursor;
 use serde_json::{json, Value};
 
 use crate::api::json::{self, JsonError};
-use crate::transaction;
+use crate::call;
 
 use svm_types::Transaction;
 
@@ -38,7 +38,7 @@ pub fn encode_call(json: &Value) -> Result<Vec<u8>, JsonError> {
 
     let mut buf = Vec::new();
 
-    transaction::encode_call(&tx, &mut buf);
+    call::encode_call(&tx, &mut buf);
 
     Ok(buf)
 }
@@ -50,7 +50,7 @@ pub fn decode_call(json: &Value) -> Result<Value, JsonError> {
     let bytes = json::str_to_bytes(&data, "data")?;
 
     let mut cursor = Cursor::new(&bytes[..]);
-    let tx = transaction::decode_call(&mut cursor).unwrap();
+    let tx = call::decode_call(&mut cursor).unwrap();
 
     let version = tx.version;
     let func_name = tx.func_name.clone();

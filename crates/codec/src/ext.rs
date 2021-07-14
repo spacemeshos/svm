@@ -1,5 +1,4 @@
 use std::io::{Cursor, Read, Result};
-
 use std::string::FromUtf8Error;
 
 use svm_types::{Address, State, TransactionId};

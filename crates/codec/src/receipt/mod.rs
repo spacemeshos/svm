@@ -1,16 +1,16 @@
-mod deploy_template;
+mod deploy;
 mod error;
-mod exec_app;
+mod call;
 mod gas;
-mod spawn_app;
+mod spawn;
 
 pub(crate) mod logs;
 
 pub(crate) use error::{decode_error, encode_error};
 
-pub use deploy_template::{decode_template_receipt, encode_template_receipt};
-pub use exec_app::{decode_exec_receipt, encode_exec_receipt};
-pub use spawn_app::{decode_app_receipt, encode_app_receipt};
+pub use deploy::{decode_deploy_receipt, encode_deploy_receipt};
+pub use call::{decode_exec_receipt, encode_call_receipt};
+pub use spawn::{decode_app_receipt, encode_app_receipt};
 
 use svm_types::Receipt;
 
@@ -28,7 +28,7 @@ pub fn decode_receipt(bytes: &[u8]) -> Receipt {
 
     match ty {
         types::DEPLOY_TEMPLATE => {
-            let receipt = decode_template_receipt(bytes);
+            let receipt = decode_deploy_receipt(bytes);
             Receipt::Deploy(receipt)
         }
         types::SPAWN_APP => {
