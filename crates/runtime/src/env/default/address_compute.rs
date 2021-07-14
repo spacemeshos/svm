@@ -4,7 +4,7 @@ use env::{ExtSpawnApp, Template};
 use traits::ComputeAddress;
 
 use svm_hash::{DefaultHasher, Hasher};
-use svm_types::{Address, AppAddr, TemplateAddr};
+use svm_types::{Address, AccountAddr, TemplateAddr};
 
 /// Default implementation for computing an `App` address deterministically.
 ///
@@ -32,7 +32,7 @@ impl ComputeAddress<Template> for DefaultTemplateAddressCompute {
 pub struct DefaultAppAddressCompute;
 
 impl ComputeAddress<ExtSpawnApp> for DefaultAppAddressCompute {
-    type Address = AppAddr;
+    type Address = AccountAddr;
 
     fn compute(spawn: &ExtSpawnApp) -> Self::Address {
         let mut buf = Vec::with_capacity(Address::len() * 2);
@@ -43,6 +43,6 @@ impl ComputeAddress<ExtSpawnApp> for DefaultAppAddressCompute {
         let hash = DefaultHasher::hash(&buf);
         let addr = Address::from(&hash[0..Address::len()]);
 
-        AppAddr::new(addr)
+        AccountAddr::new(addr)
     }
 }

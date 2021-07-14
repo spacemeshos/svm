@@ -1,40 +1,40 @@
-use crate::{AppAddr, TemplateAddr};
+use crate::{AccountAddr, TemplateAddr};
 
 #[doc(hidden)]
 #[derive(Debug, PartialEq, Clone)]
 pub enum RuntimeError {
     OOG,
     TemplateNotFound(TemplateAddr),
-    AppNotFound(AppAddr),
+    AppNotFound(AccountAddr),
     CompilationFailed {
-        app_addr: AppAddr,
+        app_addr: AccountAddr,
         template_addr: TemplateAddr,
         msg: String,
     },
     InstantiationFailed {
-        app_addr: AppAddr,
+        app_addr: AccountAddr,
         template_addr: TemplateAddr,
         msg: String,
     },
     FuncNotFound {
-        app_addr: AppAddr,
+        app_addr: AccountAddr,
         template_addr: TemplateAddr,
         func: String,
     },
     FuncFailed {
-        app_addr: AppAddr,
+        app_addr: AccountAddr,
         template_addr: TemplateAddr,
         func: String,
         msg: String,
     },
     FuncNotAllowed {
-        app_addr: AppAddr,
+        app_addr: AccountAddr,
         template_addr: TemplateAddr,
         func: String,
         msg: String,
     },
     FuncInvalidSignature {
-        app_addr: AppAddr,
+        app_addr: AccountAddr,
         template_addr: TemplateAddr,
         func: String,
     },

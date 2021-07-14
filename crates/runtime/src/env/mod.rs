@@ -3,7 +3,7 @@
 use svm_codec::ParseError;
 use svm_codec::{app, template, transaction};
 use svm_gas::PriceResolver;
-use svm_types::{AppAddr, SectionKind, SpawnApp, Template, TemplateAddr, Transaction};
+use svm_types::{AccountAddr, SectionKind, SpawnApp, Template, TemplateAddr, Transaction};
 
 use std::collections::HashSet;
 use std::io::Cursor;
@@ -55,7 +55,7 @@ pub trait EnvTypes {
     type TemplateAddressCompute: ComputeAddress<Template, Address = TemplateAddr>;
 
     /// Compute `App` address type.
-    type AppAddressCompute: ComputeAddress<ExtSpawnApp, Address = AppAddr>;
+    type AppAddressCompute: ComputeAddress<ExtSpawnApp, Address = AccountAddr>;
 
     /// `Template` content Hasher type.
     type TemplateHasher: TemplateHasher;
@@ -117,7 +117,7 @@ where
     }
 
     /// Computes an `Account`'s `Address`
-    pub fn compute_account_addr(&self, spawn: &ExtSpawnApp) -> AppAddr {
+    pub fn compute_account_addr(&self, spawn: &ExtSpawnApp) -> AccountAddr {
         T::AppAddressCompute::compute(spawn)
     }
 
@@ -169,7 +169,7 @@ where
     }
 
     /// Stores `app address` -> `app-template address` relation.
-    pub fn store_app(&mut self, app: &ExtApp, addr: &AppAddr) {
+    pub fn store_app(&mut self, app: &ExtApp, addr: &AccountAddr) {
         let template = app.template_addr();
 
         if self.contains_template(template) {
@@ -181,7 +181,7 @@ where
         }
     }
 
-    pub fn resolve_template_addr(&self, addr: &AppAddr) -> Option<TemplateAddr> {
+    pub fn resolve_template_addr(&self, addr: &AccountAddr) -> Option<TemplateAddr> {
         let store = self.account_store();
 
         store.resolve_template_addr(&addr)
@@ -190,7 +190,7 @@ where
     /// Given an `Account` Address, loads the associated `Template`
     pub fn account_template(
         &self,
-        addr: &AppAddr,
+        addr: &AccountAddr,
         interests: Option<HashSet<SectionKind>>,
     ) -> Option<Template> {
         self.account(addr).and_then(|app| {
@@ -213,7 +213,7 @@ where
 
     /// Loads an `Account` given its `Address`
     #[must_use]
-    pub fn account(&self, addr: &AppAddr) -> Option<ExtApp> {
+    pub fn account(&self, addr: &AccountAddr) -> Option<ExtApp> {
         let store = self.account_store();
 
         store.load(&addr)
@@ -227,7 +227,7 @@ where
 
     /// Returns whether an `Account` with given the `Address` exists.
     #[inline]
-    pub fn contains_account(&self, addr: &AppAddr) -> bool {
+    pub fn contains_account(&self, addr: &AccountAddr) -> bool {
         self.account(addr).is_some()
     }
 }

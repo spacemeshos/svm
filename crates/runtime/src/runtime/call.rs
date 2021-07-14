@@ -1,4 +1,4 @@
-use svm_types::{AppAddr, Gas, State, TemplateAddr};
+use svm_types::{AccountAddr, Gas, State, TemplateAddr};
 
 /// Information regarding a WASM function call.
 #[doc(hidden)]
@@ -6,7 +6,7 @@ use svm_types::{AppAddr, Gas, State, TemplateAddr};
 pub struct Call<'a> {
     pub func_name: &'a str,
     pub calldata: &'a [u8],
-    pub app_addr: &'a AppAddr,
+    pub app_addr: &'a AccountAddr,
     pub template_addr: &'a TemplateAddr,
     pub state: &'a State,
     pub gas_used: Gas,

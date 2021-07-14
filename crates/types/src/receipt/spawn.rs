@@ -1,5 +1,5 @@
 use crate::receipt::{ExecReceipt, ReceiptLog, RuntimeError};
-use crate::{gas::Gas, AccountAddr, State};
+use crate::{gas::Gas, AppAddr, State};
 
 /// Returned Receipt after spawning an [`Account`](crate::Account)
 #[derive(Debug, PartialEq, Clone)]
@@ -14,7 +14,7 @@ pub struct SpawnReceipt {
     pub error: Option<RuntimeError>,
 
     /// the spawned app `Address`
-    pub account_addr: Option<AccountAddr>,
+    pub account_addr: Option<AppAddr>,
 
     /// the spawned app initial state (after executing its ctor)
     pub init_state: Option<State>,
@@ -55,7 +55,7 @@ impl SpawnReceipt {
     }
 
     /// Returns spawned-app `Address`. Panics if spawning has failed.
-    pub fn app_addr(&self) -> &AccountAddr {
+    pub fn app_addr(&self) -> &AppAddr {
         self.account_addr.as_ref().unwrap()
     }
 
@@ -86,7 +86,7 @@ impl SpawnReceipt {
 }
 
 #[allow(missing_docs)]
-pub fn into_spawn_receipt(mut ctor_receipt: ExecReceipt, app_addr: &AccountAddr) -> SpawnReceipt {
+pub fn into_spawn_receipt(mut ctor_receipt: ExecReceipt, app_addr: &AppAddr) -> SpawnReceipt {
     let logs = ctor_receipt.take_logs();
 
     if ctor_receipt.success {

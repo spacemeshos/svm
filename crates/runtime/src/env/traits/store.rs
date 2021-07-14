@@ -1,4 +1,4 @@
-use svm_types::{AppAddr, SectionKind, Template, TemplateAddr};
+use svm_types::{AccountAddr, SectionKind, Template, TemplateAddr};
 
 use std::collections::HashSet;
 
@@ -25,13 +25,13 @@ pub trait TemplateStore {
 /// A persistent store for `App`(s)
 pub trait AppStore {
     /// Stores `Address` -> `App`
-    fn store(&mut self, app: &ExtApp, addr: &AppAddr);
+    fn store(&mut self, app: &ExtApp, addr: &AccountAddr);
 
     /// Given a `App` account `Address`, fetches its raw data
     /// and deserializes it into `App`. Returns `None` if `Template` doesn't exist.
     #[must_use]
-    fn load(&self, addr: &AppAddr) -> Option<ExtApp>;
+    fn load(&self, addr: &AccountAddr) -> Option<ExtApp>;
 
     #[must_use]
-    fn resolve_template_addr(&self, addr: &AppAddr) -> Option<TemplateAddr>;
+    fn resolve_template_addr(&self, addr: &AccountAddr) -> Option<TemplateAddr>;
 }

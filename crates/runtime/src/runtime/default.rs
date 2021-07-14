@@ -4,7 +4,7 @@ use svm_layout::FixedLayout;
 use svm_storage::app::AppStorage;
 use svm_types::GasMode;
 use svm_types::SectionKind;
-use svm_types::{AppAddr, DeployerAddr, SpawnerAddr, State, Template};
+use svm_types::{AccountAddr, DeployerAddr, SpawnerAddr, State, Template};
 use svm_types::{ExecReceipt, ReceiptLog, SpawnReceipt, TemplateReceipt};
 use svm_types::{Gas, OOGError};
 use svm_types::{RuntimeError, Transaction};
@@ -91,7 +91,7 @@ where
     /// Opens the [`AppStorage`] associated with the input parameters.
     pub fn open_storage(
         &self,
-        app_addr: &AppAddr,
+        app_addr: &AccountAddr,
         state: &State,
         layout: &FixedLayout,
     ) -> AppStorage {
@@ -101,7 +101,7 @@ where
     fn call_ctor(
         &mut self,
         spawn: &ExtSpawnApp,
-        app_addr: &AppAddr,
+        app_addr: &AccountAddr,
         gas_used: Gas,
         gas_left: Gas,
     ) -> SpawnReceipt {
@@ -420,7 +420,7 @@ where
         import_object
     }
 
-    fn account_template(&self, app_addr: &AppAddr) -> std::result::Result<Template, RuntimeError> {
+    fn account_template(&self, app_addr: &AccountAddr) -> std::result::Result<Template, RuntimeError> {
         let mut interests = HashSet::new();
         interests.insert(SectionKind::Code);
         interests.insert(SectionKind::Data);
