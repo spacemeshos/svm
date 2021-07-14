@@ -37,7 +37,7 @@ pub struct TxBuilder {
 ///            .build();
 ///
 /// let mut cursor = Cursor::new(&bytes[..]);
-/// let actual = transaction::decode_exec_app(&mut cursor).unwrap();
+/// let actual = transaction::decode_call(&mut cursor).unwrap();
 /// let expected = Transaction {
 ///                  version: 0,
 ///                  target,
@@ -89,7 +89,7 @@ impl TxBuilder {
 
     pub fn build(self) -> Vec<u8> {
         let version = self.version.unwrap();
-        let app = self.app.unwrap();
+        let target = self.app.unwrap();
         let func_name = self.func_name.unwrap();
 
         // let verifydata = match self.verifydata {
@@ -104,7 +104,7 @@ impl TxBuilder {
 
         let tx = Transaction {
             version,
-            target: app,
+            target,
             func_name,
             // verifydata,
             calldata,
@@ -112,7 +112,7 @@ impl TxBuilder {
 
         let mut w = Vec::new();
 
-        transaction::encode_exec_app(&tx, &mut w);
+        transaction::encode_call(&tx, &mut w);
 
         w
     }

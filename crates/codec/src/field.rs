@@ -26,7 +26,7 @@ pub enum Field {
     Layer,
     Address,
     TemplateAddr,
-    AppAddr,
+    AccountAddr,
     CallDataLength,
     CallData,
     LayoutKind,

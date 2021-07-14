@@ -11,7 +11,7 @@ use crate::api::{self, json::JsonError};
 /// See also: `alloc` and `free`
 ///
 pub fn encode_exec_app(offset: usize) -> Result<usize, JsonError> {
-    wasm_buf_apply(offset, api::json::encode_exec_app)
+    wasm_buf_apply(offset, api::json::encode_call)
 }
 
 /// Decodes an `exec-app` transaction into a JSON,
@@ -19,7 +19,7 @@ pub fn encode_exec_app(offset: usize) -> Result<usize, JsonError> {
 /// and finally returns that Wasm buffer offset
 pub fn decode_exec_app(offset: usize) -> Result<usize, JsonError> {
     wasm_buf_apply(offset, |json: &Value| {
-        let json = api::json::decode_exec_app(json)?;
+        let json = api::json::decode_call(json)?;
 
         api::json::to_bytes(&json)
     })

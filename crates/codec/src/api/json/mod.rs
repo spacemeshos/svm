@@ -1,16 +1,16 @@
 //! JSON API
 
+mod call;
 mod calldata;
-mod deploy_template;
+mod deploy;
 mod error;
-mod exec_app;
 mod receipt;
 mod spawn;
 
+pub use call::{decode_call, encode_call};
 pub use calldata::{decode_calldata, encode_calldata};
-pub use deploy_template::deploy_template;
+pub use deploy::deploy_template;
 pub use error::JsonError;
-pub use exec_app::{decode_exec_app, encode_exec_app};
 pub use receipt::decode_receipt;
 pub use spawn::{decode_spawn_app, encode_spawn_app};
 

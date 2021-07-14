@@ -155,7 +155,7 @@ where
     pub fn parse_exec_app(&self, bytes: &[u8]) -> Result<Transaction, ParseError> {
         let mut cursor = Cursor::new(bytes);
 
-        let tx = transaction::decode_exec_app(&mut cursor)?;
+        let tx = transaction::decode_call(&mut cursor)?;
 
         Ok(tx)
     }

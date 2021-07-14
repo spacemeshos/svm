@@ -73,7 +73,7 @@ fn memory_runtime_validate_tx_invalid_raw_format() {
 
     let bytes = vec![0xFF, 0xFF];
 
-    let parse_err = ParseError::NotEnoughBytes(Field::AppAddr);
+    let parse_err = ParseError::NotEnoughBytes(Field::AccountAddr);
     let expected = Err(ValidateError::Parse(parse_err));
 
     let actual = runtime.validate_tx(&bytes);
