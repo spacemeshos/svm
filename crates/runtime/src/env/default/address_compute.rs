@@ -4,7 +4,7 @@ use env::{ExtSpawnApp, Template};
 use traits::ComputeAddress;
 
 use svm_hash::{DefaultHasher, Hasher};
-use svm_types::{Address, AccountAddr, TemplateAddr};
+use svm_types::{AccountAddr, Address, TemplateAddr};
 
 /// Default implementation for computing an `App` address deterministically.
 ///

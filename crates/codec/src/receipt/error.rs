@@ -67,7 +67,7 @@
 //!   +-------------------+----------------------------+
 //!
 
-use svm_types::{Address, AccountAddr, ReceiptLog, RuntimeError, TemplateAddr};
+use svm_types::{AccountAddr, Address, ReceiptLog, RuntimeError, TemplateAddr};
 
 use std::io::Cursor;
 

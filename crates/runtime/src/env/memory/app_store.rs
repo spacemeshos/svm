@@ -6,7 +6,7 @@ use crate::env::{self, traits};
 use env::ExtApp;
 use traits::{AppDeserializer, AppSerializer, AppStore};
 
-use svm_types::{Address, AccountAddr, TemplateAddr};
+use svm_types::{AccountAddr, Address, TemplateAddr};
 
 /// In-memory `AppStore` implementation.
 /// Should be used for testing purposes only.

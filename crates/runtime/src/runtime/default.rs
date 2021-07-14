@@ -420,7 +420,10 @@ where
         import_object
     }
 
-    fn account_template(&self, app_addr: &AccountAddr) -> std::result::Result<Template, RuntimeError> {
+    fn account_template(
+        &self,
+        app_addr: &AccountAddr,
+    ) -> std::result::Result<Template, RuntimeError> {
         let mut interests = HashSet::new();
         interests.insert(SectionKind::Code);
         interests.insert(SectionKind::Data);

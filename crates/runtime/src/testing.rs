@@ -9,7 +9,7 @@ use svm_storage::{
     kv::{FakeKV, StatefulKV},
 };
 use svm_types::{
-    Address, AccountAddr, CodeSection, CtorsSection, DataSection, Gas, HeaderSection, State,
+    AccountAddr, Address, CodeSection, CtorsSection, DataSection, Gas, HeaderSection, State,
     TemplateAddr,
 };
 use wasmer::{ImportObject, Instance, Memory, MemoryType, Module, Pages, Store};
@@ -123,15 +123,16 @@ pub fn runtime_memory_storage_builder(
 ) -> Box<StorageBuilderFn> {
     let state_kv = Rc::clone(state_kv);
 
-    let func = move |app_addr: &AccountAddr, state: &State, layout: &FixedLayout, _config: &Config| {
-        let app_addr = app_addr.inner();
-        let app_kv = AppKVStore::new(app_addr.clone(), &state_kv);
+    let func =
+        move |app_addr: &AccountAddr, state: &State, layout: &FixedLayout, _config: &Config| {
+            let app_addr = app_addr.inner();
+            let app_kv = AppKVStore::new(app_addr.clone(), &state_kv);
 
-        let mut storage = AppStorage::new(layout.clone(), app_kv);
-        storage.rewind(state);
+            let mut storage = AppStorage::new(layout.clone(), app_kv);
+            storage.rewind(state);
 
-        storage
-    };
+            storage
+        };
 
     Box::new(func)
 }

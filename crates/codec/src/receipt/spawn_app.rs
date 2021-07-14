@@ -120,7 +120,7 @@ fn encode_returndata(receipt: &SpawnReceipt, w: &mut Vec<u8>) {
 mod tests {
     use super::*;
 
-    use svm_types::{Address, AccountAddr, Gas, ReceiptLog, RuntimeError, State};
+    use svm_types::{AccountAddr, Address, Gas, ReceiptLog, RuntimeError, State};
 
     use crate::receipt::decode_receipt;
 
