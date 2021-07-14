@@ -105,7 +105,7 @@ mod tests {
     #[test]
     fn encode_decode_exec_receipt_error() {
         let app = Address::of("my-app");
-        let error = RuntimeError::AppNotFound(app.into());
+        let error = RuntimeError::AccountNotFound(app.into());
 
         let logs = vec![ReceiptLog {
             msg: b"something happened".to_vec(),

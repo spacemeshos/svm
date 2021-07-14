@@ -430,7 +430,7 @@ where
         interests.insert(SectionKind::Ctors);
 
         let template = self.env.account_template(app_addr, Some(interests));
-        template.ok_or_else(|| RuntimeError::AppNotFound(app_addr.clone()))
+        template.ok_or_else(|| RuntimeError::AccountNotFound(app_addr.clone()))
     }
 
     fn compile_template(
@@ -478,7 +478,7 @@ where
     #[inline]
     fn func_not_found(&self, ctx: &Context, func_name: &str) -> Failure {
         RuntimeError::FuncNotFound {
-            app_addr: ctx.app_addr().clone(),
+            account_addr: ctx.app_addr().clone(),
             template_addr: ctx.template_addr().clone(),
             func: func_name.to_string(),
         }
@@ -488,7 +488,7 @@ where
     #[inline]
     fn instantiation_failed(&self, ctx: &Context, err: wasmer::InstantiationError) -> Failure {
         RuntimeError::InstantiationFailed {
-            app_addr: ctx.app_addr().clone(),
+            account_addr: ctx.app_addr().clone(),
             template_addr: ctx.template_addr().clone(),
             msg: err.to_string(),
         }
@@ -498,7 +498,7 @@ where
     #[inline]
     fn func_not_allowed(&self, ctx: &Context, func_name: &str, msg: &str) -> Failure {
         RuntimeError::FuncNotAllowed {
-            app_addr: ctx.app_addr().clone(),
+            account_addr: ctx.app_addr().clone(),
             template_addr: ctx.template_addr().clone(),
             func: func_name.to_string(),
             msg: msg.to_string(),
@@ -509,7 +509,7 @@ where
     #[inline]
     fn func_invalid_sig(&self, ctx: &Context, func_name: &str) -> Failure {
         RuntimeError::FuncInvalidSignature {
-            app_addr: ctx.app_addr().clone(),
+            account_addr: ctx.app_addr().clone(),
             template_addr: ctx.template_addr().clone(),
             func: func_name.to_string(),
         }
@@ -525,7 +525,7 @@ where
         logs: Vec<ReceiptLog>,
     ) -> Failure {
         let err = RuntimeError::FuncFailed {
-            app_addr: ctx.app_addr().clone(),
+            account_addr: ctx.app_addr().clone(),
             template_addr: ctx.template_addr().clone(),
             func: func_name.to_string(),
             msg: err.to_string(),
@@ -537,7 +537,7 @@ where
     #[inline]
     fn compilation_failed(&self, ctx: &Context, err: wasmer::CompileError) -> Failure {
         RuntimeError::CompilationFailed {
-            app_addr: ctx.app_addr().clone(),
+            account_addr: ctx.app_addr().clone(),
             template_addr: ctx.template_addr().clone(),
             msg: err.to_string(),
         }
@@ -608,7 +608,7 @@ where
 
         let base = self.env.parse_spawn_app(bytes).unwrap();
         let template = {
-            let template_address = base.app.template_addr();
+            let template_address = base.account.template_addr();
             self.env.template(template_address, None).unwrap()
         };
         let template_code_section = template.sections().get(SectionKind::Code).as_code();
@@ -626,7 +626,7 @@ where
             let app_addr = self.env.compute_account_addr(&spawn);
             return SpawnReceipt::from_err(
                 RuntimeError::FuncNotAllowed {
-                    app_addr,
+                    account_addr: app_addr,
                     template_addr: app.template_addr().clone(),
                     func: spawn.ctor_name().to_string(),
                     msg: "The given function is not a `ctor`.".to_string(),

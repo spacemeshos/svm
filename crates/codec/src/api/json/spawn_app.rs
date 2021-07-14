@@ -1,6 +1,6 @@
 use std::io::Cursor;
 
-use svm_types::{Account, SpawnApp};
+use svm_types::{Account, SpawnAccount};
 
 use serde_json::{json, Value};
 
@@ -27,9 +27,9 @@ pub fn encode_spawn_app(json: &Value) -> Result<Vec<u8>, JsonError> {
     let calldata = json::as_string(json, "calldata")?;
     let calldata = json::str_to_bytes(&calldata, "calldata")?;
 
-    let spawn = SpawnApp {
+    let spawn = SpawnAccount {
         version,
-        app: Account::new(template, name),
+        account: Account::new(template, name),
         ctor_name,
         calldata,
     };
@@ -51,12 +51,12 @@ pub fn decode_spawn_app(json: &Value) -> Result<Value, JsonError> {
 
     let version = spawn.version;
     let ctor_name = spawn.ctor_name;
-    let template = json::addr_to_str(&spawn.app.template_addr.inner());
+    let template = json::addr_to_str(&spawn.account.template_addr.inner());
 
     let calldata = json::bytes_to_str(&spawn.calldata);
     let calldata = json::decode_calldata(&json!({ "calldata": calldata }))?;
 
-    let name = spawn.app.name;
+    let name = spawn.account.name;
 
     let json = json!({
         "version": version,
