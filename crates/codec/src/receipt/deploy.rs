@@ -25,7 +25,7 @@ use crate::{ReadExt, WriteExt};
 pub fn encode_deploy_receipt(receipt: &DeployReceipt) -> Vec<u8> {
     let mut w = Vec::new();
 
-    w.write_byte(types::DEPLOY_TEMPLATE);
+    w.write_byte(types::DEPLOY);
     encode_version(receipt, &mut w);
     w.write_bool(receipt.success);
 
@@ -43,11 +43,11 @@ pub fn encode_deploy_receipt(receipt: &DeployReceipt) -> Vec<u8> {
 }
 
 /// Decodes a binary [`DeployReceipt`] transaction.
-pub fn decode_deploy_receipt(bytes: &[u8]) -> DeployReceipt {
+pub fn decode_deploy(bytes: &[u8]) -> DeployReceipt {
     let mut cursor = Cursor::new(bytes);
 
     let ty = cursor.read_byte().unwrap();
-    debug_assert_eq!(ty, types::DEPLOY_TEMPLATE);
+    debug_assert_eq!(ty, types::DEPLOY);
 
     let version = version::decode_version(&mut cursor).unwrap();
     debug_assert_eq!(version, 0);

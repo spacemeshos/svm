@@ -12,7 +12,7 @@ pub use calldata::{decode_calldata, encode_calldata};
 pub use deploy::deploy_template;
 pub use error::JsonError;
 pub use receipt::decode_receipt;
-pub use spawn::{decode_spawn_app, encode_spawn_app};
+pub use spawn::{decode_spawn, encode_spawn};
 
 use serde_json::{json, Value};
 

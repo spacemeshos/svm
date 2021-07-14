@@ -29,7 +29,7 @@ use crate::{ReadExt, WriteExt};
 pub fn encode_app_receipt(receipt: &SpawnReceipt) -> Vec<u8> {
     let mut w = Vec::new();
 
-    w.write_byte(types::SPAWN_APP);
+    w.write_byte(types::SPAWN);
     encode_version(receipt, &mut w);
     w.write_bool(receipt.success);
 
@@ -49,11 +49,11 @@ pub fn encode_app_receipt(receipt: &SpawnReceipt) -> Vec<u8> {
 }
 
 /// Decodes a binary `spawn-app` receipt into its Rust struct.
-pub fn decode_app_receipt(bytes: &[u8]) -> SpawnReceipt {
+pub fn decode_spawn(bytes: &[u8]) -> SpawnReceipt {
     let mut cursor = Cursor::new(bytes);
 
     let ty = cursor.read_byte().unwrap();
-    debug_assert_eq!(ty, types::SPAWN_APP);
+    debug_assert_eq!(ty, types::SPAWN);
 
     let version = version::decode_version(&mut cursor).unwrap();
     debug_assert_eq!(0, version);

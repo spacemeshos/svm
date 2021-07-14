@@ -1,7 +1,7 @@
 //! Managing the Runtime's environment
 
 use svm_codec::ParseError;
-use svm_codec::{spawn, template, call};
+use svm_codec::{call, spawn, template};
 use svm_gas::PriceResolver;
 use svm_types::{AccountAddr, SectionKind, SpawnAccount, Template, TemplateAddr, Transaction};
 

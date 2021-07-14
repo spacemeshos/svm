@@ -28,7 +28,7 @@ use crate::{ReadExt, WriteExt};
 pub fn encode_call_receipt(receipt: &CallReceipt) -> Vec<u8> {
     let mut w = Vec::new();
 
-    w.write_byte(super::types::EXEC_APP);
+    w.write_byte(super::types::CALL);
     version::encode_version(receipt.version, &mut w);
     w.write_bool(receipt.success);
 
@@ -47,11 +47,11 @@ pub fn encode_call_receipt(receipt: &CallReceipt) -> Vec<u8> {
 }
 
 /// Decodes a binary `exec-app` into its corresponding Rust struct.
-pub fn decode_exec_receipt(bytes: &[u8]) -> CallReceipt {
+pub fn decode_call(bytes: &[u8]) -> CallReceipt {
     let mut cursor = Cursor::new(bytes);
 
     let ty = cursor.read_byte().unwrap();
-    debug_assert_eq!(ty, crate::receipt::types::EXEC_APP);
+    debug_assert_eq!(ty, crate::receipt::types::CALL);
 
     let version = version::decode_version(&mut cursor).unwrap();
     debug_assert_eq!(0, version);

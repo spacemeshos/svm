@@ -8,7 +8,7 @@ use crate::api::{self, json::JsonError};
 ///
 /// Returns an offset to a Wasm buffer holding the encoded transaction (wrapped within a JSON)
 pub fn encode_spawn_app(offset: usize) -> Result<usize, JsonError> {
-    wasm_buf_apply(offset, api::json::encode_spawn_app)
+    wasm_buf_apply(offset, api::json::encode_spawn)
 }
 
 /// Decodes a binary `spawn-app` transaction given as a Wasm buffer (the `offset` parameter),
@@ -16,7 +16,7 @@ pub fn encode_spawn_app(offset: usize) -> Result<usize, JsonError> {
 /// and returns a new Wasm buffer hodling the decoded transaction (wrapped with a JSON).
 pub fn decode_spawn_app(offset: usize) -> Result<usize, JsonError> {
     wasm_buf_apply(offset, |json: &Value| {
-        let json = api::json::decode_spawn_app(json)?;
+        let json = api::json::decode_spawn(json)?;
 
         api::json::to_bytes(&json)
     })
