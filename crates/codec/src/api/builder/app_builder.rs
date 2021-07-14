@@ -18,7 +18,7 @@ pub struct SpawnAppBuilder {
 /// ```rust
 /// use std::io::Cursor;
 ///
-/// use svm_types::{Account, SpawnApp, Address};
+/// use svm_types::{Account, SpawnAccount, Address};
 /// use svm_codec::api::builder::SpawnAppBuilder;
 /// use svm_codec::app;
 ///
@@ -37,9 +37,9 @@ pub struct SpawnAppBuilder {
 ///
 /// let mut cursor = Cursor::new(&bytes[..]);
 /// let actual = app::decode(&mut cursor).unwrap();
-/// let expected = SpawnApp {
+/// let expected = SpawnAccount {
 ///                  version: 0,
-///                  app: Account { name, template_addr },
+///                  account: Account { name, template_addr },
 ///                  ctor_name: ctor_name.to_string(),
 ///                  calldata,
 ///                };
