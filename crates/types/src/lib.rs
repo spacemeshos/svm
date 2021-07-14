@@ -14,7 +14,7 @@ mod macros;
 
 mod address;
 mod address_of;
-mod app;
+mod account;
 mod error;
 mod spawn_app;
 mod state;
@@ -42,7 +42,7 @@ pub use receipt::{
 pub use address::{Address, AppAddr, DeployerAddr, SpawnerAddr, TemplateAddr};
 pub use address_of::AddressOf;
 
-pub use app::App;
+pub use account::App;
 pub use spawn_app::SpawnApp;
 pub use state::State;
 pub use template::{
