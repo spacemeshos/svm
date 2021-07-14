@@ -13,7 +13,7 @@ where
     /// Invalid wasm
     InvalidWasm,
     /// No valid `svm_alloc` function found.
-    BadSvmAlloc,
+    FunctionNotFound { func_name: String },
     /// Floats not allowed
     FloatsNotAllowed,
     /// Too many function imports

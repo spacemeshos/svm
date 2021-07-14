@@ -556,7 +556,9 @@ where
         if !crate::validation::validate_opcodes(code) {
             return Err(ValidateError::Program(ProgramError::FloatsNotAllowed));
         } else if !crate::validation::validate_svm_alloc(code) {
-            return Err(ValidateError::Program(ProgramError::BadSvmAlloc));
+            return Err(ValidateError::Program(ProgramError::FunctionNotFound {
+                func_name: "svm_alloc".to_string(),
+            }));
         }
 
         svm_gas::validate_wasm(code, false).map_err(|e| e.into())
