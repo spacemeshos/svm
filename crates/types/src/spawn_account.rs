@@ -2,14 +2,14 @@ use std::fmt;
 
 use crate::{Account, TemplateAddr};
 
-/// Struct representation of the parsed raw Spawn-Account.
+/// Struct representation of the parsed raw `Spawn Account` transaction.
 #[derive(PartialEq)]
-pub struct SpawnApp {
+pub struct SpawnAccount {
     /// Transaction format version
     pub version: u16,
 
-    /// Holds all `SpawnApp` non-ctor_name related data.
-    pub app: Account,
+    /// Holds all [`SpawnAccount`] non `ctor/calldata` related data.
+    pub account: Account,
 
     /// ctor function name
     pub ctor_name: String,
@@ -19,17 +19,17 @@ pub struct SpawnApp {
 }
 
 #[doc(hidden)]
-impl SpawnApp {
-    pub fn app(&self) -> &Account {
-        &self.app
+impl SpawnAccount {
+    pub fn account(&self) -> &Account {
+        &self.account
     }
 
-    pub fn app_name(&self) -> &str {
-        &self.app.name
+    pub fn account_name(&self) -> &str {
+        &self.account.name
     }
 
     pub fn template_addr(&self) -> &TemplateAddr {
-        &self.app.template_addr
+        &self.account.template_addr
     }
 
     pub fn ctor_name(&self) -> &str {
@@ -41,9 +41,9 @@ impl SpawnApp {
     }
 }
 
-impl fmt::Debug for SpawnApp {
+impl fmt::Debug for SpawnAccount {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        self.app.fmt(f)?;
+        self.account.fmt(f)?;
 
         writeln!(f, "ctor_name: {}", self.ctor_name)?;
         writeln!(

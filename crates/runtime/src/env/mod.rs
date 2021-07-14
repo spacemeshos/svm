@@ -3,7 +3,7 @@
 use svm_codec::ParseError;
 use svm_codec::{app, template, transaction};
 use svm_gas::PriceResolver;
-use svm_types::{AccountAddr, SectionKind, SpawnApp, Template, TemplateAddr, Transaction};
+use svm_types::{AccountAddr, SectionKind, SpawnAccount, Template, TemplateAddr, Transaction};
 
 use std::collections::HashSet;
 use std::io::Cursor;
@@ -140,7 +140,7 @@ where
     ///
     /// On success returns `SpawnApp`,
     /// On failure returns `ParseError`.
-    pub fn parse_spawn_app(&self, bytes: &[u8]) -> Result<SpawnApp, ParseError> {
+    pub fn parse_spawn_app(&self, bytes: &[u8]) -> Result<SpawnAccount, ParseError> {
         let mut cursor = Cursor::new(bytes);
 
         let spawn = app::decode(&mut cursor)?;

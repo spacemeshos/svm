@@ -1,4 +1,4 @@
-use svm_types::{Account, SpawnApp, SpawnerAddr, TemplateAddr};
+use svm_types::{Account, SpawnAccount, SpawnerAddr, TemplateAddr};
 
 pub struct ExtApp {
     base: Account,
@@ -32,25 +32,25 @@ impl ExtApp {
 }
 
 pub struct ExtSpawnApp {
-    base: SpawnApp,
+    base: SpawnAccount,
 
     spawner: SpawnerAddr,
 }
 
 impl ExtSpawnApp {
-    pub fn new(base: SpawnApp, spawner: &SpawnerAddr) -> Self {
+    pub fn new(base: SpawnAccount, spawner: &SpawnerAddr) -> Self {
         Self {
             base,
             spawner: spawner.clone(),
         }
     }
 
-    pub fn base(&self) -> &SpawnApp {
+    pub fn base(&self) -> &SpawnAccount {
         &self.base
     }
 
     pub fn app(&self) -> &Account {
-        self.base.app()
+        self.base.account()
     }
 
     pub fn template_addr(&self) -> &TemplateAddr {
@@ -58,7 +58,7 @@ impl ExtSpawnApp {
     }
 
     pub fn name(&self) -> &str {
-        self.base().app_name()
+        self.base().account_name()
     }
 
     pub fn ctor_name(&self) -> &str {

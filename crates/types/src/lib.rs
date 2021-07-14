@@ -16,7 +16,7 @@ mod account;
 mod address;
 mod address_of;
 mod error;
-mod spawn_app;
+mod spawn_account;
 mod state;
 mod template;
 mod transaction;
@@ -42,7 +42,7 @@ pub use address::{AccountAddr, Address, DeployerAddr, SpawnerAddr, TemplateAddr}
 pub use address_of::AddressOf;
 
 pub use account::Account;
-pub use spawn_app::SpawnApp;
+pub use spawn_account::SpawnAccount;
 pub use state::State;
 pub use template::{
     ApiSection, CodeKind, CodeSection, CtorsSection, DataSection, DeploySection, HeaderSection,

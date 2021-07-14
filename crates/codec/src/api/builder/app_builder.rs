@@ -1,4 +1,4 @@
-use svm_types::{Account, SpawnApp, TemplateAddr};
+use svm_types::{Account, SpawnAccount, TemplateAddr};
 
 use crate::app;
 
@@ -96,9 +96,9 @@ impl SpawnAppBuilder {
             Some(calldata) => calldata.to_vec(),
         };
 
-        let spawn = SpawnApp {
+        let spawn = SpawnAccount {
             version,
-            app: Account::new(template_addr, name),
+            account: Account::new(template_addr, name),
             ctor_name,
             calldata,
         };

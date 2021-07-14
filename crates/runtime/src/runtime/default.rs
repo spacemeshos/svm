@@ -608,7 +608,7 @@ where
 
         let base = self.env.parse_spawn_app(bytes).unwrap();
         let template = {
-            let template_address = base.app.template_addr();
+            let template_address = base.account.template_addr();
             self.env.template(template_address, None).unwrap()
         };
         let template_code_section = template.sections().get(SectionKind::Code).as_code();
