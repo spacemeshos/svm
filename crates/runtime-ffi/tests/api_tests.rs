@@ -192,10 +192,10 @@ fn svm_runtime_failure() {
         assert!(res.is_ok());
 
         // extracts the spawned-app `Address` and initial `State`.
-        let receipt = receipt::decode_receipt(spawn_receipt.clone().into()).into_spawn_app();
+        let receipt = receipt::decode_receipt(spawn_receipt.clone().into()).into_spawn();
         assert_eq!(receipt.success, true);
 
-        let app_addr = receipt.app_addr().inner();
+        let app_addr = receipt.account_addr().inner();
         let app_addr: svm_byte_array = (APP_ADDR, app_addr).into();
 
         let init_state = receipt.init_state();
@@ -232,7 +232,7 @@ fn svm_runtime_failure() {
         );
         assert!(res.is_ok());
 
-        let receipt = receipt::decode_receipt(exec_receipt.clone().into()).into_exec_app();
+        let receipt = receipt::decode_receipt(exec_receipt.clone().into()).into_call();
         assert_eq!(receipt.success, false);
 
         assert_ne!(tracking::total_live(), 0);
@@ -334,9 +334,9 @@ fn svm_runtime_success() {
         assert!(res.is_ok());
 
         // extracts the spawned-app `Address` and initial `State`.
-        let receipt = receipt::decode_receipt(spawn_receipt.clone().into()).into_spawn_app();
+        let receipt = receipt::decode_receipt(spawn_receipt.clone().into()).into_spawn();
         assert_eq!(receipt.success, true);
-        let app_addr = receipt.app_addr().inner();
+        let app_addr = receipt.account_addr().inner();
         let app_addr: svm_byte_array = (APP_ADDR, app_addr).into();
 
         let init_state = receipt.init_state();
@@ -379,7 +379,7 @@ fn svm_runtime_success() {
         );
         assert!(res.is_ok());
 
-        let receipt = receipt::decode_receipt(exec_receipt.clone().into()).into_exec_app();
+        let receipt = receipt::decode_receipt(exec_receipt.clone().into()).into_call();
         assert_eq!(receipt.success, true);
 
         let bytes = receipt.returndata();

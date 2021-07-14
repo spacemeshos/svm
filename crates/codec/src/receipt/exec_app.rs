@@ -125,7 +125,7 @@ mod tests {
         let bytes = encode_exec_receipt(&receipt);
         let decoded = crate::receipt::decode_receipt(&bytes[..]);
 
-        assert_eq!(decoded.into_exec_app(), receipt);
+        assert_eq!(decoded.into_call(), receipt);
     }
 
     #[test]
@@ -150,7 +150,7 @@ mod tests {
         let bytes = encode_exec_receipt(&receipt);
         let decoded = crate::receipt::decode_receipt(&bytes[..]);
 
-        assert_eq!(decoded.into_exec_app(), receipt);
+        assert_eq!(decoded.into_call(), receipt);
     }
 
     #[test]
@@ -176,6 +176,6 @@ mod tests {
         let bytes = encode_exec_receipt(&receipt);
         let decoded = crate::receipt::decode_receipt(&bytes[..]);
 
-        assert_eq!(decoded.into_exec_app(), receipt);
+        assert_eq!(decoded.into_call(), receipt);
     }
 }

@@ -95,7 +95,7 @@ fn encode_version(receipt: &SpawnReceipt, w: &mut Vec<u8>) {
 fn encode_app_addr(receipt: &SpawnReceipt, w: &mut Vec<u8>) {
     debug_assert!(receipt.success);
 
-    let addr = receipt.app_addr();
+    let addr = receipt.account_addr();
 
     w.write_address(addr.inner());
 }
@@ -144,7 +144,7 @@ mod tests {
         let bytes = encode_app_receipt(&receipt);
         let decoded = decode_receipt(&bytes);
 
-        assert_eq!(decoded.into_spawn_app(), receipt);
+        assert_eq!(decoded.into_spawn(), receipt);
     }
 
     #[test]
@@ -171,7 +171,7 @@ mod tests {
         let bytes = encode_app_receipt(&receipt);
         let decoded = decode_receipt(&bytes);
 
-        assert_eq!(decoded.into_spawn_app(), receipt);
+        assert_eq!(decoded.into_spawn(), receipt);
     }
 
     #[test]
@@ -198,6 +198,6 @@ mod tests {
         let bytes = encode_app_receipt(&receipt);
         let decoded = decode_receipt(&bytes);
 
-        assert_eq!(decoded.into_spawn_app(), receipt);
+        assert_eq!(decoded.into_spawn(), receipt);
     }
 }

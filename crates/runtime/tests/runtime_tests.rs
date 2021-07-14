@@ -233,7 +233,7 @@ fn memory_runtime_exec_app_with_ctor_fails() {
     let receipt = runtime.spawn_app(&bytes, &creator, maybe_gas);
     assert!(receipt.success);
 
-    let app_addr = receipt.app_addr();
+    let app_addr = receipt.account_addr();
     let init_state = receipt.init_state();
 
     // 3) execute a transaction
@@ -316,7 +316,7 @@ fn runtime_calldata_returndata() {
     let receipt = runtime.spawn_app(&bytes, &creator, maybe_gas);
     assert!(receipt.success);
 
-    let app_addr = receipt.app_addr();
+    let app_addr = receipt.account_addr();
     let init_state = receipt.init_state();
 
     // 3) execute a transaction
