@@ -75,10 +75,10 @@ mod tests {
     use serde_json::json;
 
     #[test]
-    fn json_spawn_app_missing_version() {
+    fn json_spawn_missing_version() {
         let json = json!({});
-
         let err = encode_spawn(&json).unwrap_err();
+
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -89,12 +89,12 @@ mod tests {
     }
 
     #[test]
-    fn json_spawn_app_missing_template_addr() {
+    fn json_spawn_missing_template_addr() {
         let json = json!({
             "version": 0
         });
-
         let err = encode_spawn(&json).unwrap_err();
+
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -105,13 +105,13 @@ mod tests {
     }
 
     #[test]
-    fn json_spawn_app_missing_name() {
+    fn json_spawn_missing_name() {
         let json = json!({
             "version": 0,
             "template": "10203040506070809000A0B0C0D0E0F0ABCDEFFF"
         });
-
         let err = encode_spawn(&json).unwrap_err();
+
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -122,14 +122,14 @@ mod tests {
     }
 
     #[test]
-    fn json_spawn_app_missing_ctor_name() {
+    fn json_spawn_missing_ctor_name() {
         let json = json!({
             "version": 0,
             "template": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
             "name": "My App",
         });
-
         let err = encode_spawn(&json).unwrap_err();
+
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -140,15 +140,15 @@ mod tests {
     }
 
     #[test]
-    fn json_spawn_app_missing_ctor_buf() {
+    fn json_spawn_missing_ctor_buf() {
         let json = json!({
             "version": 0,
             "template": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
             "name": "My Account",
             "ctor_name": "initialize",
         });
-
         let err = encode_spawn(&json).unwrap_err();
+
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -159,7 +159,7 @@ mod tests {
     }
 
     #[test]
-    fn json_spawn_app_valid() {
+    fn json_spawn_valid() {
         let calldata = json::encode_calldata(&json!({
             "abi": ["i32", "i64"],
             "data": [10, 20]
