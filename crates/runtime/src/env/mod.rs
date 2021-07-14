@@ -39,7 +39,7 @@ pub use default::{DefaultRocksAppStore, DefaultRocksEnvTypes, DefaultRocksTempla
 
 mod traits;
 
-pub use traits::{AddressLocator, AppStore, TemplateHasher, TemplateStore};
+pub use traits::{AppStore, ComputeAddress, TemplateHasher, TemplateStore};
 
 /// Represents an `Template` Hash.
 pub type TemplateHash = [u8; 32];
@@ -52,10 +52,10 @@ pub trait EnvTypes {
     type AppStore: AppStore;
 
     /// Compute `Template` address type.
-    type TemplateAddressCompute: AddressLocator<Template, Address = TemplateAddr>;
+    type TemplateAddressCompute: ComputeAddress<Template, Address = TemplateAddr>;
 
     /// Compute `App` address type.
-    type AppAddressCompute: AddressLocator<ExtSpawnApp, Address = AppAddr>;
+    type AppAddressCompute: ComputeAddress<ExtSpawnApp, Address = AppAddr>;
 
     /// `Template` content Hasher type.
     type TemplateHasher: TemplateHasher;

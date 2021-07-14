@@ -1,7 +1,7 @@
 use crate::env::{self, traits};
 
 use env::{ExtSpawnApp, Template};
-use traits::AddressLocator;
+use traits::ComputeAddress;
 
 use svm_hash::{DefaultHasher, Hasher};
 use svm_types::{Address, AppAddr, TemplateAddr};
@@ -12,7 +12,7 @@ use svm_types::{Address, AppAddr, TemplateAddr};
 /// Taking `Address::len()` bytes of `HASH(template.deployer || template.code)`
 pub struct DefaultTemplateAddressCompute;
 
-impl AddressLocator<Template> for DefaultTemplateAddressCompute {
+impl ComputeAddress<Template> for DefaultTemplateAddressCompute {
     type Address = TemplateAddr;
 
     fn compute(template: &Template) -> TemplateAddr {
@@ -31,7 +31,7 @@ impl AddressLocator<Template> for DefaultTemplateAddressCompute {
 /// Default implementation for computing an `App Address`
 pub struct DefaultAppAddressCompute;
 
-impl AddressLocator<ExtSpawnApp> for DefaultAppAddressCompute {
+impl ComputeAddress<ExtSpawnApp> for DefaultAppAddressCompute {
     type Address = AppAddr;
 
     fn compute(spawn: &ExtSpawnApp) -> Self::Address {
