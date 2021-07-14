@@ -25,5 +25,5 @@ impl EnvTypes for DefaultMemEnvTypes {
 
     type TemplateHasher = default::DefaultTemplateHasher;
 
-    type Pricer = svm_gas::resolvers::StandardPriceResolver;
+    type Pricer = svm_gas::resolvers::V0PriceResolver;
 }

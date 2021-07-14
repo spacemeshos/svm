@@ -2,7 +2,7 @@
 
 use svm_codec::api::builder::{SpawnAppBuilder, TemplateBuilder, TxBuilder};
 use svm_codec::template;
-use svm_gas::resolvers::StandardPriceResolver;
+use svm_gas::resolvers::V0PriceResolver;
 use svm_layout::{FixedLayout, Layout};
 use svm_storage::{
     app::{AppKVStore, AppStorage},
@@ -110,7 +110,7 @@ pub fn create_memory_runtime(
 
     DefaultRuntime::new(
         env,
-        StandardPriceResolver::default(),
+        V0PriceResolver::default(),
         imports,
         Box::new(storage_builder),
         config,

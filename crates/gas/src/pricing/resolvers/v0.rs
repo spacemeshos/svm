@@ -3,17 +3,17 @@ use crate::{Op, PriceResolver};
 // We don't `derive(Copy)` because we might want to store non-`Copy` data in the
 // future.
 #[derive(Clone, Debug)]
-pub struct StandardPriceResolver {
+pub struct V0PriceResolver {
     opcode_price: u64,
 }
 
-impl Default for StandardPriceResolver {
+impl Default for V0PriceResolver {
     fn default() -> Self {
         Self { opcode_price: 1 }
     }
 }
 
-impl PriceResolver for StandardPriceResolver {
+impl PriceResolver for V0PriceResolver {
     fn op_price(&self, op: &Op) -> usize {
         1
     }

@@ -1,5 +1,5 @@
 mod example;
-mod standard;
+mod v0;
 
 pub use example::ExampleResolver;
-pub use standard::StandardPriceResolver;
+pub use v0::V0PriceResolver;
