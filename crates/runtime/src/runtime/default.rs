@@ -585,7 +585,7 @@ where
 
         let template = self.env.parse_deploy_template(bytes, None).unwrap();
 
-        let install_price = svm_gas::price_of_deploying_template(bytes);
+        let install_price = svm_gas::transaction::deploy_template_price(bytes);
 
         if gas_limit >= install_price {
             let gas_used = Gas::with(install_price);
@@ -648,7 +648,7 @@ where
             GasMode::Metering => {}
         }
 
-        let payload_price = svm_gas::price_of_spawning_app(bytes);
+        let payload_price = svm_gas::transaction::spawn_app_price(bytes);
         let gas_left = gas_limit - payload_price;
 
         match gas_left {
