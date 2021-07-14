@@ -250,7 +250,7 @@ fn memory_runtime_exec_app_with_ctor_fails() {
 }
 
 #[test]
-fn runtime_spawn_app_without_gas() {
+fn memory_runtime_spawn_app_without_gas() {
     let mut runtime = memory_runtime();
 
     // 1) deploying the template
