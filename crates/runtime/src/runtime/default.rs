@@ -618,7 +618,7 @@ where
         let template_code = template_code_section.code();
         let program = svm_gas::read_program(template_code).unwrap();
         let func_price = {
-            let program_pricing = svm_gas::ProgramPricing::new(self.pricer.clone());
+            let program_pricing = svm_gas::ProgramPricing::new(&self.pricer);
             program_pricing.visit(&program).unwrap()
         };
         let spawn = ExtSpawnApp::new(base, spawner);
