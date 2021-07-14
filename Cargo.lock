@@ -1606,6 +1606,7 @@ dependencies = [
  "svm-sdk-types",
  "svm-storage",
  "svm-types",
+ "thiserror",
  "tiny-keccak",
  "tracing",
  "tracing-subscriber",

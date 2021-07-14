@@ -15,21 +15,16 @@ include = ["README.md", "LICENSE", "Cargo.toml", "Cargo.lock"]
 crate-type = ["cdylib", "staticlib", "rlib"]
 
 [dependencies]
-cfg-if = "1.0"
-libc = "0.2"
 byteorder = "1.3.2"
-tiny-keccak = "1.4.2"
-log = "0.4"
-lazy_static = "1.4.0"
+cfg-if = "1.0"
 hex = "0.4"
-parity-wasm = "0.42.2"
-structopt = "0.3"
-tracing = "0.1"
-tracing-subscriber = "0.2"
+lazy_static = "1.4.0"
+libc = "0.2"
+log = "0.4"
 indexmap = "1.6.2"
+parity-wasm = "0.42.2"
 # rocksdb = { version = "0.15.0", features = ["lz4"], default-features = false, optional = true }
-wasmer = { version = "2.0.0-rc1", default-features = false }
-wee_alloc = { version = "0.4.5", optional = true }
+structopt = "0.3"
 svm-cli = { path = "crates/cli" }
 svm-common = { path = "crates/common" }
 svm-hash = { path = "crates/hash" }
@@ -53,6 +48,12 @@ svm-ffi = { path = "crates/ffi" }
 svm-runtime-ffi = { path = "crates/runtime-ffi", default-features = false }
 svm-abi-layout = { path = "crates/abi/layout" }
 svm-abi-tests = { path = "crates/abi/tests" }
+thiserror = "1"
+tiny-keccak = "1.4.2"
+tracing = "0.1"
+tracing-subscriber = "0.2"
+wasmer = { version = "2.0.0-rc1", default-features = false }
+wee_alloc = { version = "0.4.5", optional = true }
 
 [build-dependencies]
 cbindgen = "0.19.0"
