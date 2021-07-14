@@ -1,3 +1,5 @@
+//! Contains Query-related stuff.
+
 use crate::{
     render::VarRenderer,
     schema::{Schema, Var},

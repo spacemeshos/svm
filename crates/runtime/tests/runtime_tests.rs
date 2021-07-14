@@ -9,20 +9,19 @@ use svm_codec::{Field, ParseError};
 
 use svm_gas::ProgramError;
 use svm_layout::FixedLayout;
-use svm_runtime::{error::ValidateError, testing, Runtime};
+use svm_runtime::{testing, Runtime, ValidateError};
 
 use svm_types::{Address, Gas, RuntimeError};
 use svm_types::{SpawnAppReceipt, TemplateReceipt};
 
 fn memory_runtime() -> impl Runtime {
     let state_kv = testing::memory_state_kv_init();
-
     testing::create_memory_runtime(&state_kv)
 }
 
 #[ignore]
 #[test]
-fn runtime_validate_template_invalid_raw_format() {
+fn memory_runtime_validate_template_invalid_raw_format() {
     let runtime = memory_runtime();
     let bytes = vec![0xFF, 0xFF];
 
@@ -34,7 +33,7 @@ fn runtime_validate_template_invalid_raw_format() {
 }
 
 #[test]
-fn runtime_validate_template_invalid_wasm() {
+fn memory_runtime_validate_template_invalid_wasm() {
     let runtime = memory_runtime();
     let code_version = 0;
     let ctors = Vec::new();
@@ -57,7 +56,7 @@ fn runtime_validate_template_invalid_wasm() {
 
 #[ignore]
 #[test]
-fn runtime_validate_app_invalid_raw_format() {
+fn memory_runtime_validate_app_invalid_raw_format() {
     let runtime = memory_runtime();
     let bytes = vec![0xFF, 0xFF];
 
@@ -69,7 +68,7 @@ fn runtime_validate_app_invalid_raw_format() {
 }
 
 #[test]
-fn runtime_validate_tx_invalid_raw_format() {
+fn memory_runtime_validate_tx_invalid_raw_format() {
     let runtime = memory_runtime();
 
     let bytes = vec![0xFF, 0xFF];
@@ -82,7 +81,7 @@ fn runtime_validate_tx_invalid_raw_format() {
 }
 
 #[test]
-fn runtime_deploy_template_reaches_oog() {
+fn memory_runtime_deploy_template_reaches_oog() {
     let mut runtime = memory_runtime();
 
     let code_version = 0;
@@ -104,7 +103,7 @@ fn runtime_deploy_template_reaches_oog() {
 }
 
 #[test]
-fn runtime_deploy_template_has_enough_gas() {
+fn memory_runtime_deploy_template_has_enough_gas() {
     let mut runtime = memory_runtime();
 
     let code_version = 0;
@@ -126,7 +125,7 @@ fn runtime_deploy_template_has_enough_gas() {
 }
 
 #[test]
-fn runtime_spawn_app_with_non_ctor_fails() {
+fn memory_runtime_spawn_app_with_non_ctor_fails() {
     let mut runtime = memory_runtime();
 
     // 1) deploying the template
@@ -165,7 +164,7 @@ fn runtime_spawn_app_with_non_ctor_fails() {
 }
 
 #[test]
-fn runtime_spawn_app_with_ctor_reaches_oog() {
+fn memory_runtime_spawn_app_with_ctor_reaches_oog() {
     let mut runtime = memory_runtime();
 
     // 1) deploying the template
@@ -202,7 +201,7 @@ fn runtime_spawn_app_with_ctor_reaches_oog() {
 }
 
 #[test]
-fn runtime_exec_app_with_ctor_fails() {
+fn memory_runtime_exec_app_with_ctor_fails() {
     let mut runtime = memory_runtime();
 
     // 1) deploying the template
@@ -248,6 +247,40 @@ fn runtime_exec_app_with_ctor_fails() {
         receipt.error.unwrap(),
         RuntimeError::FuncNotAllowed { .. }
     ));
+}
+
+#[test]
+fn memory_runtime_spawn_app_without_gas() {
+    let mut runtime = memory_runtime();
+
+    // 1) deploying the template
+    let code_version = 0;
+    let deployer = Address::of("deployer").into();
+    let layout: FixedLayout = vec![Address::len() as u32].into();
+    let ctors = vec!["initialize".to_string()];
+
+    let bytes = testing::build_template(
+        code_version,
+        "My Template",
+        layout.clone(),
+        &ctors,
+        (&include_bytes!("wasm/runtime_calldata.wasm")[..]).into(),
+    );
+
+    let receipt = runtime.deploy_template(&bytes, &deployer, Gas::new());
+    assert!(receipt.success);
+
+    let template_addr = receipt.addr.unwrap();
+
+    // 2) spawn app
+    let name = "My App";
+    let ctor = "initialize";
+    let calldata = vec![];
+    let creator = Address::of("creator").into();
+    let bytes = testing::build_app(&template_addr, name, ctor, &calldata);
+    let receipt = runtime.spawn_app(&bytes, &creator, Gas::with(0));
+
+    assert!(matches!(receipt.error.unwrap(), RuntimeError::OOG));
 }
 
 #[test]

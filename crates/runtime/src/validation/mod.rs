@@ -1,53 +1,69 @@
-use wasmer_runtime_core::{
-    codegen::{Event, EventSink, FunctionMiddleware},
-    module::ModuleInfo,
-    wasmparser::Operator,
-};
+use svm_gas::{FuncPrice, ProgramVisitor};
+use wasmer::{ExternType, FunctionType};
+use wasmparser::Operator;
 
-use super::error::ParseError;
+pub fn calculate_gas_limit(wasm_module: &[u8], _gas_limit: u64) -> FuncPrice {
+    let program = svm_gas::read_program(wasm_module).unwrap();
+    let pricing_resolver = svm_gas::resolvers::ExampleResolver::default();
+    let program_pricing = svm_gas::ProgramPricing::new(pricing_resolver);
 
-/// The `ValidationMiddleware` has two main objectives:
-/// * validation - make sure the wasm is valid and doesn't contain and opcodes not supported by `svm` (for example: floats)
-/// * preprocessing - we want to know whether the input contains loops or not.
-///   In case there no loop we can later compute ahead-of-time the gas for each function,
-///   otherwise we'll have a dynamic gas-metering used.
-pub struct ValidationMiddleware;
-
-impl ValidationMiddleware {
-    pub fn new() -> Self {
-        Self {}
-    }
+    let prices = program_pricing.visit(&program).unwrap();
+    prices
 }
 
-impl FunctionMiddleware for ValidationMiddleware {
-    type Error = ParseError;
-
-    fn feed_event<'a, 'b: 'a>(
-        &mut self,
-        event: Event<'a, 'b>,
-        _module_info: &ModuleInfo,
-        sink: &mut EventSink<'a, 'b>,
-        _source_loc: u32,
-    ) -> Result<(), Self::Error> {
-        match event {
-            Event::Wasm(op) => parse_wasm_opcode(op)?,
-            Event::WasmOwned(ref op) => parse_wasm_opcode(op)?,
-            _ => (),
-        };
-
-        sink.push(event);
-        Ok(())
+/// Checks whether `wasm_module` exports a well-defined `svm_alloc` function.
+/// `svm_alloc` is required by SVM for all WASM code and must have a `I32 ->
+/// I32` type signature.
+pub fn validate_svm_alloc(wasm_module: &[u8]) -> bool {
+    let store = crate::new_store();
+    let module = if let Ok(m) = wasmer::Module::new(&store, wasm_module) {
+        m
+    } else {
+        return false;
+    };
+    let expected_sig =
+        ExternType::Function(FunctionType::new([wasmer::Type::I32], [wasmer::Type::I32]));
+    for export in module.exports() {
+        if export.name() == "svm_alloc" && export.ty() == &expected_sig {
+            return true;
+        }
     }
+    false
 }
 
-/// we explicitly whitelist the supported opcodes
-fn parse_wasm_opcode(opcode: &Operator) -> Result<(), ParseError> {
-    match opcode {
+// Checks whether `wasm_module` only contains the WASM opcodes that are
+// supported by SVM.
+pub fn validate_opcodes(wasm_module: &[u8]) -> bool {
+    use wasmparser::{Parser, Payload};
+
+    let parser = Parser::default();
+    let mut events = parser.parse_all(wasm_module);
+
+    events.all(|event_res| match event_res {
+        Err(_) => false,
+        Ok(event) => {
+            // We only validate opcodes in the WASM code section. Other sections
+            // don't interest us.
+            if let Payload::CodeSectionEntry(function_body) = event {
+                let operators = function_body.get_operators_reader().unwrap();
+                for op in operators.into_iter() {
+                    if !opcode_is_valid(op.unwrap()) {
+                        return false;
+                    }
+                }
+            }
+            true
+        }
+    })
+}
+
+fn opcode_is_valid(op: Operator) -> bool {
+    match op {
         Operator::Unreachable
         | Operator::Nop
         | Operator::Block { .. }
-        | Operator::Loop { .. }
         | Operator::If { .. }
+        | Operator::Loop { .. }
         | Operator::Else
         | Operator::End
         | Operator::Br { .. }
@@ -150,61 +166,7 @@ fn parse_wasm_opcode(opcode: &Operator) -> Result<(), ParseError> {
         | Operator::I32Extend16S
         | Operator::I64Extend8S
         | Operator::I64Extend16S
-        | Operator::I64Extend32S => Ok(()),
-        _ => Err(ParseError::UnsupportedOpcode),
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::compile_program;
-    use wasmer_runtime::error::CompileError;
-    use wasmer_runtime::{imports, Func};
-
-    #[test]
-    fn valid_wasm_instance_sanity() {
-        let input = r#"
-            (module
-                (func (export "sum") (param i32 i32) (result i32)
-                    get_local 0
-                    get_local 1
-                    i32.add
-                ))
-            "#;
-
-        let gas_metering = false;
-        let gas_limit = 0;
-        let wasm = wat::parse_str(input).unwrap();
-        let module = compile_program(&wasm, gas_limit, gas_metering).unwrap();
-        let instance = module.instantiate(&imports! {}).unwrap();
-
-        let func: Func<(i32, i32), i32> = instance.exports.get("sum").unwrap();
-        let res = func.call(10, 20);
-        assert!(res.is_ok());
-        assert_eq!(30, res.unwrap());
-    }
-
-    #[test]
-    fn floats_are_not_supported() {
-        let input = r#"
-            (module
-                (func $to_float (param i32) (result f32)
-                    get_local 0
-                    f32.convert_u/i32
-                ))
-            "#;
-
-        let gas_metering = false;
-        let gas_limit = 0;
-        let wasm = wat::parse_str(input).unwrap();
-        let res = compile_program(&wasm, gas_limit, gas_metering);
-
-        assert!(res.is_err());
-
-        if let Err(CompileError::InternalError { msg }) = res {
-            assert_eq!("Codegen(\"UnsupportedOpcode\")", msg.as_str());
-        } else {
-            unreachable!()
-        }
+        | Operator::I64Extend32S => true,
+        _ => false,
     }
 }

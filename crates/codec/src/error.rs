@@ -1,9 +1,11 @@
+use thiserror::Error;
+
 use std::fmt;
 
 use crate::Field;
 
 #[allow(missing_docs)]
-#[derive(PartialEq, Clone)]
+#[derive(PartialEq, Clone, Error)]
 pub enum ParseError {
     ReachedEOF,
     ExpectedEOF,

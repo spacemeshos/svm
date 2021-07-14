@@ -1,5 +1,15 @@
 use svm_types::{Gas, ReceiptLog};
 
+/// [`Outcome`] is the output (`T`) of the transaction.
+///
+/// It can denote a succeeding transaction or a failing one. In both cases,
+/// the [`Outcome`] will report the amount of Gas used for executing the
+/// transaction and collected logs while running it.
+///
+/// # Type parameters
+///
+/// This `struct` is generic over `T`, which has no restrictions and denotes the
+/// return value of the transaction.
 pub struct Outcome<T> {
     returns: T,
     gas_used: Gas,

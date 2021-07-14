@@ -1,7 +1,4 @@
-use std::collections::HashMap;
-
-use svm_layout::{FixedLayout, SymbolicVar};
-use svm_types::{App, DeployerAddr, SpawnApp, SpawnerAddr, Template, TemplateAddr};
+use svm_types::{App, SpawnApp, SpawnerAddr, TemplateAddr};
 
 pub struct ExtApp {
     base: App,

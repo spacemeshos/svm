@@ -4,7 +4,7 @@ use std::io::Cursor;
 use svm_codec::{ReadExt, WriteExt};
 
 use svm_codec::template;
-use svm_types::{App, DeployerAddr, SectionKind, SpawnerAddr, Template, TemplateAddr};
+use svm_types::{App, SectionKind, SpawnerAddr, Template, TemplateAddr};
 
 use crate::env::{self, traits};
 
@@ -93,8 +93,7 @@ impl TemplateSerializer for DefaultTemplateSerializer {
 
 impl TemplateDeserializer for DefaultTemplateDeserializer {
     fn deserialize(bytes: &[u8], interests: Option<HashSet<SectionKind>>) -> Option<Template> {
-        let mut cursor = Cursor::new(bytes);
-
+        let cursor = Cursor::new(bytes);
         let template = template::decode(cursor, interests);
 
         template.ok()

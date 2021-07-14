@@ -56,9 +56,7 @@ where
     R: PriceResolver,
 {
     current_func: Option<FuncIndex>,
-
     builder: CallGraphBuilder<FuncIndex>,
-
     resolver: R,
 }
 
@@ -66,7 +64,7 @@ impl<R> ProgramPricing<R>
 where
     R: PriceResolver,
 {
-    /// New instance using the input `resolver` (implements `PriceResolver`)
+    /// New instance using the input `resolver` (implements [`PriceResolver`]).
     pub fn new(resolver: R) -> Self {
         Self {
             current_func: None,
@@ -75,7 +73,7 @@ where
         }
     }
 
-    /// An entry point to the `Program` pricing process
+    /// An entry point to the [`Program`] pricing process.
     pub fn run(
         self,
         program: &Program,
@@ -103,7 +101,6 @@ where
     R: PriceResolver,
 {
     type Error = ProgramError;
-
     type Output = FuncPrice;
 
     fn on_start(&mut self, _program: &Program) -> Result<(), Self::Error> {

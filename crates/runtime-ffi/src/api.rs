@@ -12,7 +12,7 @@ use svm_codec::receipt;
 use svm_ffi::{svm_byte_array, svm_resource_iter_t, svm_resource_t, tracking};
 use svm_runtime::{Runtime, RuntimePtr};
 use svm_storage::kv::StatefulKV;
-use svm_types::{Address, State, Type};
+use svm_types::{Address, Gas, State, Type};
 
 #[cfg(feature = "default-rocksdb")]
 use crate::raw_utf8_error;
@@ -25,45 +25,30 @@ static DEPLOY_TEMPLATE_RECEIPT_TYPE: Type = Type::Str("deploy-template receipt")
 static SPAWN_APP_RECEIPT_TYPE: Type = Type::Str("spawn-app receipt");
 static EXEC_APP_RECEIPT_TYPE: Type = Type::Str("exec-app receipt");
 
-macro_rules! maybe_gas {
-    ($gas_metering:expr, $gas_limit:expr) => {{
-        use svm_types::Gas;
-
-        if $gas_metering {
-            Gas::with($gas_limit)
-        } else {
-            Gas::new()
-        }
-    }};
+#[inline(always)]
+fn maybe_gas(gas_enabled: bool, gas_limit: u64) -> Gas {
+    if gas_enabled {
+        Gas::with(gas_limit)
+    } else {
+        Gas::new()
+    }
 }
 
-macro_rules! addr_to_svm_byte_array {
-    ($ty:expr, $raw_byte_array:expr, $addr:expr) => {{
-        let (ptr, len, cap) = $addr.into_raw_parts();
+#[inline(always)]
+unsafe fn data_to_svm_byte_array(
+    svm_type: Type,
+    raw_byte_array: *mut svm_byte_array,
+    data: Vec<u8>,
+) {
+    let (ptr, len, cap) = data.into_raw_parts();
+    let bytes: &mut svm_byte_array = &mut *raw_byte_array;
 
-        to_svm_byte_array!($ty, $raw_byte_array, ptr, len, cap);
-    }};
-}
+    tracking::increment_live(svm_type);
 
-macro_rules! vec_to_svm_byte_array {
-    ($ty:expr, $raw_byte_array:expr, $vec:expr) => {{
-        let (ptr, len, cap) = $vec.into_raw_parts();
-
-        to_svm_byte_array!($ty, $raw_byte_array, ptr, len, cap);
-    }};
-}
-
-macro_rules! to_svm_byte_array {
-    ($ty:expr, $raw_byte_array:expr, $ptr:expr, $len:expr, $cap:expr) => {{
-        let bytes: &mut svm_byte_array = &mut *$raw_byte_array;
-
-        tracking::increment_live($ty);
-
-        bytes.bytes = $ptr;
-        bytes.length = $len as u32;
-        bytes.capacity = $cap as u32;
-        bytes.type_id = tracking::interned_type($ty);
-    }};
+    bytes.bytes = ptr;
+    bytes.length = len as u32;
+    bytes.capacity = cap as u32;
+    bytes.type_id = tracking::interned_type(svm_type);
 }
 
 /// Validates syntactically a raw `deploy template` transaction.
@@ -207,7 +192,11 @@ pub unsafe extern "C" fn svm_validate_tx(
         Ok(tx) => {
             // returning encoded `AppReceipt` as `svm_byte_array`.
             // should call later `svm_receipt_destroy`
-            addr_to_svm_byte_array!(VALIDATE_TX_APP_ADDR_TYPE, app_addr, tx.app.unwrap());
+            data_to_svm_byte_array(
+                VALIDATE_TX_APP_ADDR_TYPE,
+                app_addr,
+                tx.app.unwrap().as_slice().to_vec(),
+            );
 
             debug!("`svm_validate_tx` returns `SVM_SUCCESS`");
             svm_result_t::SVM_SUCCESS
@@ -438,13 +427,13 @@ pub unsafe extern "C" fn svm_deploy_template(
         return svm_result_t::SVM_FAILURE;
     }
 
-    let gas_limit = maybe_gas!(gas_metering, gas_limit);
+    let gas_limit = maybe_gas(gas_metering, gas_limit);
     let rust_receipt = runtime.deploy_template(bytes.into(), &deployer.unwrap().into(), gas_limit);
     let receipt_bytes = receipt::encode_template_receipt(&rust_receipt);
 
     // returning encoded `TemplateReceipt` as `svm_byte_array`.
     // should call later `svm_receipt_destroy`
-    vec_to_svm_byte_array!(DEPLOY_TEMPLATE_RECEIPT_TYPE, receipt, receipt_bytes);
+    data_to_svm_byte_array(DEPLOY_TEMPLATE_RECEIPT_TYPE, receipt, receipt_bytes);
 
     debug!("`svm_deploy_template` returns `SVM_SUCCESS`");
 
@@ -515,13 +504,13 @@ pub unsafe extern "C" fn svm_spawn_app(
         return svm_result_t::SVM_FAILURE;
     }
 
-    let gas_limit = maybe_gas!(gas_metering, gas_limit);
+    let gas_limit = maybe_gas(gas_metering, gas_limit);
     let rust_receipt = runtime.spawn_app(bytes.into(), &spawner.unwrap().into(), gas_limit);
     let receipt_bytes = receipt::encode_app_receipt(&rust_receipt);
 
     // returning encoded `AppReceipt` as `svm_byte_array`.
     // should call later `svm_receipt_destroy`
-    vec_to_svm_byte_array!(SPAWN_APP_RECEIPT_TYPE, receipt, receipt_bytes);
+    data_to_svm_byte_array(SPAWN_APP_RECEIPT_TYPE, receipt, receipt_bytes);
 
     debug!("`svm_spawn_app` returns `SVM_SUCCESS`");
 
@@ -593,7 +582,7 @@ pub unsafe extern "C" fn svm_exec_app(
         return svm_result_t::SVM_FAILURE;
     }
 
-    let gas_limit = maybe_gas!(gas_metering, gas_limit);
+    let gas_limit = maybe_gas(gas_metering, gas_limit);
 
     let tx = runtime.validate_tx(bytes.into()).unwrap();
     let rust_receipt = runtime.exec_tx(&tx, &state.unwrap(), gas_limit);
@@ -601,7 +590,7 @@ pub unsafe extern "C" fn svm_exec_app(
 
     // returning encoded `ExecReceipt` as `svm_byte_array`.
     // should call later `svm_receipt_destroy`
-    vec_to_svm_byte_array!(EXEC_APP_RECEIPT_TYPE, receipt, receipt_bytes);
+    data_to_svm_byte_array(EXEC_APP_RECEIPT_TYPE, receipt, receipt_bytes);
 
     debug!("`svm_exec_app` returns `SVM_SUCCESS`");
 

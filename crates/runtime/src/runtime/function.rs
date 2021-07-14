@@ -2,6 +2,7 @@ use wasmer::WasmTypeList;
 
 use std::marker::PhantomData;
 
+/// A [`wasmer`] function with a checked type signature and name.
 pub struct Function<'a, Args, Rets>
 where
     Args: WasmTypeList,

@@ -1,13 +1,8 @@
 //! Implements common functionality to be consumed by tests.
 
-use wasmer::{ImportObject, Instance, Memory, MemoryType, Module, Pages, Store};
-
-use std::cell::RefCell;
-use std::path::Path;
-use std::rc::Rc;
-
 use svm_codec::api::builder::{SpawnAppBuilder, TemplateBuilder, TxBuilder};
 use svm_codec::template;
+use svm_gas::resolvers::V0PriceResolver;
 use svm_layout::{FixedLayout, Layout};
 use svm_storage::{
     app::{AppKVStore, AppStorage},
@@ -17,6 +12,10 @@ use svm_types::{
     Address, AppAddr, CodeSection, CtorsSection, DataSection, Gas, HeaderSection, State,
     TemplateAddr,
 };
+use wasmer::{ImportObject, Instance, Memory, MemoryType, Module, Pages, Store};
+
+use std::cell::RefCell;
+use std::rc::Rc;
 
 use crate::env::{DefaultMemAppStore, DefaultMemEnvTypes, DefaultMemTemplateStore};
 use crate::storage::StorageBuilderFn;
@@ -52,14 +51,22 @@ impl<'a> From<&'a [u8]> for WasmFile<'a> {
     }
 }
 
+/// Creates a new `Wasmer Memory` consisting of a single page
+/// The memory is of type non-shared and can grow without a limit
+pub fn wasmer_memory(store: &Store) -> Memory {
+    let min = Pages(1);
+    let max = None;
+    let shared = false;
+    let ty = MemoryType::new(min, max, shared);
+
+    Memory::new(store, ty).expect("Memory allocation has failed.")
+}
+
 /// Compiles a wasm program in text format (a.k.a WAST) into a `Module` (`wasmer`)
-pub fn wasmer_compile(store: &Store, wasm_file: WasmFile, gas_limit: Gas) -> Module {
+pub fn wasmer_compile(store: &Store, wasm_file: WasmFile, _gas_limit: Gas) -> Module {
     let wasm = wasm_file.into_bytes();
 
-    let gas_metering = gas_limit.is_some();
-    let gas_limit = gas_limit.unwrap_or(0);
-
-    svm_compiler::compile(store, &wasm, gas_limit, gas_metering).unwrap()
+    Module::from_binary(&store, &wasm[..]).unwrap()
 }
 
 /// Instantiate a `wasmer` instance
@@ -101,10 +108,16 @@ pub fn create_memory_runtime(
     let config = Config::default();
     let imports = ("sm".to_string(), wasmer::Exports::new());
 
-    DefaultRuntime::new(env, imports, Box::new(storage_builder), config)
+    DefaultRuntime::new(
+        env,
+        V0PriceResolver::default(),
+        imports,
+        Box::new(storage_builder),
+        config,
+    )
 }
 
-/// Returns a function (wrapped inside `Box`) that initializes an App's storage client.
+/// Returns a function (wrapped inside [`Box`]) that initializes an App's storage client.
 pub fn runtime_memory_storage_builder(
     state_kv: &Rc<RefCell<dyn StatefulKV>>,
 ) -> Box<StorageBuilderFn> {
@@ -123,7 +136,7 @@ pub fn runtime_memory_storage_builder(
     Box::new(func)
 }
 
-/// Builds a  raw `Deploy Template` transaction
+/// Builds a raw `Deploy Template` transaction.
 pub fn build_template(
     code_version: u32,
     name: &str,

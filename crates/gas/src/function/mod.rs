@@ -13,7 +13,6 @@ pub use op::Op;
 #[derive(Debug)]
 pub struct Function<'f> {
     index: FuncIndex,
-
     code: &'f [Instruction],
 }
 

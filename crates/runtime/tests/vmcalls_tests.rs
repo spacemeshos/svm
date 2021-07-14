@@ -7,7 +7,7 @@ use svm_types::{Address, Gas, ReceiptLog};
 
 /// Creates a new `Wasmer Store`
 pub fn wasmer_store() -> wasmer::Store {
-    svm_compiler::new_store()
+    svm_runtime::new_store()
 }
 
 /// Creates a new `Wasmer Memory` consisting of a single page

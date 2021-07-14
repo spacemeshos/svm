@@ -1,11 +1,12 @@
-mod compute_address;
+//! Runtime traits
+
+mod address_locator;
 mod hasher;
 mod serialize;
 mod store;
 
-pub use compute_address::{AppAddressCompute, TemplateAddressCompute};
+pub use address_locator::ComputeAddress;
 pub use hasher::TemplateHasher;
-pub use store::{AppStore, TemplateStore};
-
 pub use serialize::{AppDeserializer, AppSerializer};
 pub use serialize::{TemplateDeserializer, TemplateSerializer};
+pub use store::{AppStore, TemplateStore};

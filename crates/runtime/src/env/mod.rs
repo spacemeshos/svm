@@ -1,10 +1,12 @@
-use std::collections::HashSet;
-use std::io::Cursor;
+//! Managing the Runtime's environment
 
 use svm_codec::ParseError;
 use svm_codec::{app, template, transaction};
-
+use svm_gas::PriceResolver;
 use svm_types::{AppAddr, SectionKind, SpawnApp, Template, TemplateAddr, Transaction};
+
+use std::collections::HashSet;
+use std::io::Cursor;
 
 /// Default implementations
 mod default;
@@ -35,16 +37,12 @@ pub use rocksdb::{RocksAppStore, RocksTemplateStore};
 #[cfg(feature = "default-rocksdb")]
 pub use default::{DefaultRocksAppStore, DefaultRocksEnvTypes, DefaultRocksTemplateStore};
 
-/// Runtime traits
 mod traits;
 
-pub use traits::{
-    AppAddressCompute, AppStore, TemplateAddressCompute, TemplateHasher, TemplateStore,
-};
+pub use traits::{AppStore, ComputeAddress, TemplateHasher, TemplateStore};
 
-/// Runtime types
-pub mod hash;
-use hash::TemplateHash;
+/// Represents an `Template` Hash.
+pub type TemplateHash = [u8; 32];
 
 pub trait EnvTypes {
     /// `Template` store type.
@@ -54,13 +52,16 @@ pub trait EnvTypes {
     type AppStore: AppStore;
 
     /// Compute `Template` address type.
-    type TemplateAddressCompute: TemplateAddressCompute;
+    type TemplateAddressCompute: ComputeAddress<Template, Address = TemplateAddr>;
 
     /// Compute `App` address type.
-    type AppAddressCompute: AppAddressCompute;
+    type AppAddressCompute: ComputeAddress<ExtSpawnApp, Address = AppAddr>;
 
     /// `Template` content Hasher type.
     type TemplateHasher: TemplateHasher;
+
+    /// A pricing engine for templates.
+    type Pricer: PriceResolver;
 }
 
 pub struct Env<T>
@@ -105,7 +106,7 @@ where
         &mut self.app_store
     }
 
-    /// Computes `TemplateHash`
+    /// Computes a [`TemplateHash`].
     pub fn compute_template_hash(&self, template: &Template) -> TemplateHash {
         T::TemplateHasher::hash(template)
     }
@@ -129,8 +130,7 @@ where
         bytes: &[u8],
         interests: Option<HashSet<SectionKind>>,
     ) -> Result<Template, ParseError> {
-        let mut cursor = Cursor::new(bytes);
-
+        let cursor = Cursor::new(bytes);
         let template = template::decode(cursor, interests)?;
 
         Ok(template)

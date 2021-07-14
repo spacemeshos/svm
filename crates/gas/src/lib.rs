@@ -19,7 +19,7 @@ mod call_graph;
 pub use call_graph::{CallGraph, CallGraphBuilder};
 
 mod program;
-pub use program::{Imports, Program, ProgramVisitor};
+pub use program::{Exports, Imports, Program, ProgramVisitor};
 
 mod validation;
 pub use validation::validate_wasm;
@@ -42,3 +42,18 @@ pub use cfg::{
 mod pricing;
 pub use pricing::{build_weighted_graph, resolvers};
 pub use pricing::{FuncPrice, PriceResolver, ProgramPricing};
+
+/// Transaction gas pricing utilities.
+pub mod transaction {
+    /// Calculates the cost of deploying `bytes` as a template.
+    pub fn deploy_template_price(bytes: &[u8]) -> u64 {
+        // todo!()
+        1000 * (bytes.len() as u64)
+    }
+
+    /// Calculates the cost of spawning a new app with `bytes` as its contents.
+    pub fn spawn_app_price(bytes: &[u8]) -> u64 {
+        // todo!()
+        1000 * (bytes.len() as u64)
+    }
+}

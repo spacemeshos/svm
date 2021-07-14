@@ -73,12 +73,8 @@ fn validate_indirect_recursive_call_not_allowed() {
 
     let result = validate_wasm!(wasm);
 
-    let cycle = GraphCycles::HasCycles(Some(vec![
-        FuncIndex(0),
-        FuncIndex(1),
-        FuncIndex(2),
-        FuncIndex(0),
-    ]));
+    let cycle =
+        GraphCycles::HasCycles(vec![FuncIndex(0), FuncIndex(1), FuncIndex(2), FuncIndex(0)]);
 
     assert_eq!(result, Err(ProgramError::CallCycle(cycle)));
 }

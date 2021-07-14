@@ -5,11 +5,13 @@ authors = ["Yaron Wittenstein <yaron.wittenstein@gmail.com>"]
 license = "MIT"
 edition = "2018"
 readme = "README.md"
+description = "SVM gas formulas, metering, fixed gas compilation etc."
 publish = false
 
 [dependencies]
 parity-wasm = "0.42.2"
 indexmap = "1.6.2"
+thiserror = "1"
 
 [dev-dependencies]
 wat = "1.0"

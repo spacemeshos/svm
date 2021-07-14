@@ -5,13 +5,13 @@ use std::ffi::c_void;
 use std::{collections::HashMap, vec};
 
 use svm_codec::receipt;
-use svm_ffi::{svm_byte_array, svm_resource_iter_t, svm_resource_t, tracking};
+use svm_ffi::{svm_byte_array, tracking};
 use svm_layout::FixedLayout;
-use svm_runtime::{testing::WasmFile, vmcalls, Context};
+use svm_runtime::testing::WasmFile;
 use svm_runtime_ffi as api;
 use svm_sdk::traits::Encoder;
 use svm_sdk::ReturnData;
-use svm_types::{Address, State, Type, WasmType, WasmValue};
+use svm_types::{Address, Type};
 
 static TEST_STRING_TY: Type = Type::Str("test String");
 static DEPLOYER: Type = Type::Str("deployer");

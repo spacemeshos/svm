@@ -4,6 +4,8 @@ use std::convert::TryFrom;
 
 use crate::Context;
 
+/// Statistically allocate `size` bytes within a [`Context`] `ctx`. It returns
+/// the offset of newly allocated memory.
 pub fn static_alloc(ctx: &Context, size: u32) -> u32 {
     dbg!("static_alloc - being asked to allocate {} bytes", size);
 

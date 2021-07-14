@@ -1,11 +1,8 @@
+use svm_types::{AppAddr, SectionKind, Template, TemplateAddr};
+
 use std::collections::HashSet;
 
-use crate::env::{self, hash};
-
-use env::ExtApp;
-use hash::TemplateHash;
-
-use svm_types::{AppAddr, SectionKind, Template, TemplateAddr};
+use crate::env::{ExtApp, TemplateHash};
 
 /// A persistent store for `Template`(s).
 pub trait TemplateStore {
@@ -25,7 +22,7 @@ pub trait TemplateStore {
     ) -> Option<Template>;
 }
 
-/// A persistent store for `A}pp`(s)
+/// A persistent store for `App`(s)
 pub trait AppStore {
     /// Stores `Address` -> `App`
     fn store(&mut self, app: &ExtApp, addr: &AppAddr);

@@ -3,9 +3,7 @@ use std::marker::PhantomData;
 
 use svm_types::{SectionKind, Template, TemplateAddr};
 
-use crate::env::{hash, traits};
-
-use hash::TemplateHash;
+use crate::env::{traits, TemplateHash};
 use traits::{TemplateDeserializer, TemplateSerializer, TemplateStore};
 
 /// An in-memory implementation of `TemplateStore`
@@ -52,7 +50,7 @@ where
 
         hash.and_then(|h| {
             self.bytes
-                .get(&h)
+                .get(h)
                 .and_then(|bytes| D::deserialize(&bytes, interests))
         })
     }

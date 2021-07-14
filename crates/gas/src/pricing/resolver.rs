@@ -9,3 +9,16 @@ pub trait PriceResolver {
     /// Returns the price for import function `import`
     fn import_price(&self, import: (&str, &str)) -> usize;
 }
+
+impl<R> PriceResolver for &R
+where
+    R: PriceResolver,
+{
+    fn op_price(&self, op: &Op) -> usize {
+        R::op_price(self, op)
+    }
+
+    fn import_price(&self, import: (&str, &str)) -> usize {
+        R::import_price(&self, import)
+    }
+}
