@@ -34,7 +34,7 @@ pub use gas::{Gas, GasMode, OOGError};
 mod receipt;
 
 pub use receipt::{
-    into_spawn_app_receipt, ExecReceipt, Receipt, ReceiptLog, ReceiptRef, SpawnAppReceipt,
+    into_spawn_receipt, ExecReceipt, Receipt, ReceiptLog, ReceiptRef, SpawnReceipt,
     TemplateReceipt,
 };
 

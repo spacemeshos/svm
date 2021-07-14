@@ -17,7 +17,7 @@
 //!  On success (`is_success = 0`)
 //!  See [error.rs][./error.rs]
 
-use svm_types::SpawnAppReceipt;
+use svm_types::SpawnReceipt;
 
 use std::io::Cursor;
 
@@ -26,7 +26,7 @@ use crate::{calldata, version};
 use crate::{ReadExt, WriteExt};
 
 /// Encodes a `spawn-app` receipt into its binary format.
-pub fn encode_app_receipt(receipt: &SpawnAppReceipt) -> Vec<u8> {
+pub fn encode_app_receipt(receipt: &SpawnReceipt) -> Vec<u8> {
     let mut w = Vec::new();
 
     w.write_byte(types::SPAWN_APP);
@@ -49,7 +49,7 @@ pub fn encode_app_receipt(receipt: &SpawnAppReceipt) -> Vec<u8> {
 }
 
 /// Decodes a binary `spawn-app` receipt into its Rust struct.
-pub fn decode_app_receipt(bytes: &[u8]) -> SpawnAppReceipt {
+pub fn decode_app_receipt(bytes: &[u8]) -> SpawnReceipt {
     let mut cursor = Cursor::new(bytes);
 
     let ty = cursor.read_byte().unwrap();
@@ -63,7 +63,7 @@ pub fn decode_app_receipt(bytes: &[u8]) -> SpawnAppReceipt {
     match is_success {
         false => {
             let (err, logs) = decode_error(&mut cursor);
-            SpawnAppReceipt::from_err(err, logs)
+            SpawnReceipt::from_err(err, logs)
         }
         true => {
             let addr = cursor.read_address().unwrap();
@@ -72,11 +72,11 @@ pub fn decode_app_receipt(bytes: &[u8]) -> SpawnAppReceipt {
             let gas_used = gas::decode_gas_used(&mut cursor).unwrap();
             let logs = logs::decode_logs(&mut cursor).unwrap();
 
-            SpawnAppReceipt {
+            SpawnReceipt {
                 version,
                 success: true,
                 error: None,
-                app_addr: Some(addr.into()),
+                account_addr: Some(addr.into()),
                 init_state: Some(init_state),
                 returndata: Some(returndata),
                 gas_used,
@@ -86,13 +86,13 @@ pub fn decode_app_receipt(bytes: &[u8]) -> SpawnAppReceipt {
     }
 }
 
-fn encode_version(receipt: &SpawnAppReceipt, w: &mut Vec<u8>) {
+fn encode_version(receipt: &SpawnReceipt, w: &mut Vec<u8>) {
     let v = &receipt.version;
 
     version::encode_version(*v, w);
 }
 
-fn encode_app_addr(receipt: &SpawnAppReceipt, w: &mut Vec<u8>) {
+fn encode_app_addr(receipt: &SpawnReceipt, w: &mut Vec<u8>) {
     debug_assert!(receipt.success);
 
     let addr = receipt.app_addr();
@@ -100,7 +100,7 @@ fn encode_app_addr(receipt: &SpawnAppReceipt, w: &mut Vec<u8>) {
     w.write_address(addr.inner());
 }
 
-fn encode_init_state(receipt: &SpawnAppReceipt, w: &mut Vec<u8>) {
+fn encode_init_state(receipt: &SpawnReceipt, w: &mut Vec<u8>) {
     debug_assert!(receipt.success);
 
     let state = receipt.init_state();
@@ -108,7 +108,7 @@ fn encode_init_state(receipt: &SpawnAppReceipt, w: &mut Vec<u8>) {
     w.write_state(state);
 }
 
-fn encode_returndata(receipt: &SpawnAppReceipt, w: &mut Vec<u8>) {
+fn encode_returndata(receipt: &SpawnReceipt, w: &mut Vec<u8>) {
     debug_assert!(receipt.success);
 
     let data = receipt.returndata();
@@ -130,11 +130,11 @@ mod tests {
 
         let error = RuntimeError::TemplateNotFound(template_addr);
 
-        let receipt = SpawnAppReceipt {
+        let receipt = SpawnReceipt {
             version: 0,
             success: false,
             error: Some(error),
-            app_addr: None,
+            account_addr: None,
             init_state: None,
             returndata: None,
             gas_used: Gas::new(),
@@ -157,11 +157,11 @@ mod tests {
             code: 200,
         }];
 
-        let receipt = SpawnAppReceipt {
+        let receipt = SpawnReceipt {
             version: 0,
             success: true,
             error: None,
-            app_addr: Some(addr),
+            account_addr: Some(addr),
             init_state: Some(init_state),
             returndata: Some(Vec::new()),
             gas_used: Gas::with(100),
@@ -184,11 +184,11 @@ mod tests {
             code: 200,
         }];
 
-        let receipt = SpawnAppReceipt {
+        let receipt = SpawnReceipt {
             version: 0,
             success: true,
             error: None,
-            app_addr: Some(addr),
+            account_addr: Some(addr),
             init_state: Some(init_state),
             returndata: Some(returndata),
             gas_used: Gas::with(100),

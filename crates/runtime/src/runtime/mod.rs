@@ -24,7 +24,7 @@ pub use default::DefaultRuntime;
 pub use ptr::RuntimePtr;
 
 use svm_types::{
-    DeployerAddr, ExecReceipt, Gas, RuntimeError, SpawnAppReceipt, SpawnerAddr, State,
+    DeployerAddr, ExecReceipt, Gas, RuntimeError, SpawnReceipt, SpawnerAddr, State,
     TemplateReceipt, Transaction,
 };
 
@@ -55,7 +55,7 @@ pub trait Runtime {
 
     /// Spawns a new app out of an existing app-template.
     fn spawn_app(&mut self, bytes: &[u8], spawner: &SpawnerAddr, gas_limit: Gas)
-        -> SpawnAppReceipt;
+        -> SpawnReceipt;
 
     /// Validates a [`Transaction`] before deployment.
     fn exec_verify(

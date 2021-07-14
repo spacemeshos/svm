@@ -6,7 +6,7 @@ mod spawn_app;
 pub use deploy_template::TemplateReceipt;
 pub use exec_app::ExecReceipt;
 pub use log::ReceiptLog;
-pub use spawn_app::{into_spawn_app_receipt, SpawnAppReceipt};
+pub use spawn_app::{into_spawn_receipt, SpawnReceipt};
 
 use crate::gas::Gas;
 use crate::RuntimeError;
@@ -17,7 +17,7 @@ pub enum ReceiptRef<'a> {
     DeployTemplate(&'a TemplateReceipt),
 
     /// Borrows a `SpawnAppReceipt`.
-    SpawnApp(&'a SpawnAppReceipt),
+    SpawnApp(&'a SpawnReceipt),
 
     /// Borrows a `ExecReceipt`.
     ExecApp(&'a ExecReceipt),
@@ -68,7 +68,7 @@ pub enum Receipt {
     DeployTemplate(TemplateReceipt),
 
     /// Spawn-App
-    SpawnApp(SpawnAppReceipt),
+    SpawnApp(SpawnReceipt),
 
     /// Exec-App
     ExecApp(ExecReceipt),
@@ -94,7 +94,7 @@ impl Receipt {
     }
 
     /// Returns the inner `spawn-app` receipt
-    pub fn into_spawn_app(self) -> SpawnAppReceipt {
+    pub fn into_spawn_app(self) -> SpawnReceipt {
         match self {
             Receipt::SpawnApp(r) => r,
             _ => unreachable!(),

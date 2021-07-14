@@ -5,7 +5,7 @@ use svm_storage::app::AppStorage;
 use svm_types::GasMode;
 use svm_types::SectionKind;
 use svm_types::{AppAddr, DeployerAddr, SpawnerAddr, State, Template};
-use svm_types::{ExecReceipt, ReceiptLog, SpawnAppReceipt, TemplateReceipt};
+use svm_types::{ExecReceipt, ReceiptLog, SpawnReceipt, TemplateReceipt};
 use svm_types::{Gas, OOGError};
 use svm_types::{RuntimeError, Transaction};
 use wasmer::{Instance, Module, WasmPtr, WasmTypeList};
@@ -104,7 +104,7 @@ where
         app_addr: &AppAddr,
         gas_used: Gas,
         gas_left: Gas,
-    ) -> SpawnAppReceipt {
+    ) -> SpawnReceipt {
         let template_addr = spawn.template_addr();
 
         let call = Call {
@@ -121,7 +121,7 @@ where
         let receipt = self.exec_call::<(), ()>(&call);
 
         // TODO: move the `into_spawn_app_receipt` to a `From / TryFrom`
-        svm_types::into_spawn_app_receipt(receipt, app_addr)
+        svm_types::into_spawn_receipt(receipt, app_addr)
     }
 
     fn exec_call<Args, Rets>(&self, call: &Call) -> ExecReceipt {
@@ -603,7 +603,7 @@ where
         bytes: &[u8],
         spawner: &SpawnerAddr,
         gas_limit: Gas,
-    ) -> SpawnAppReceipt {
+    ) -> SpawnReceipt {
         use svm_gas::ProgramVisitor;
 
         info!("runtime `spawn_app`");
@@ -626,7 +626,7 @@ where
             // The template is faulty.
             let app = ExtApp::new(spawn.app(), spawner);
             let app_addr = self.env.compute_account_addr(&spawn);
-            return SpawnAppReceipt::from_err(
+            return SpawnReceipt::from_err(
                 RuntimeError::FuncNotAllowed {
                     app_addr,
                     template_addr: app.template_addr().clone(),
@@ -642,7 +642,7 @@ where
                 let ctor_func_index = program.exports().get(spawn.ctor_name()).unwrap();
                 let price = func_price.get(ctor_func_index) as u64;
                 if gas_limit <= price {
-                    return SpawnAppReceipt::new_oog(vec![]);
+                    return SpawnReceipt::new_oog(vec![]);
                 }
             }
             GasMode::Metering => {}
@@ -662,7 +662,7 @@ where
 
                 self.call_ctor(&spawn, &addr, gas_used, gas_left)
             }
-            Err(..) => SpawnAppReceipt::new_oog(Vec::new()),
+            Err(..) => SpawnReceipt::new_oog(Vec::new()),
         }
     }
 

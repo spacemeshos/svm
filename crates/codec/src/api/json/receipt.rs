@@ -4,7 +4,7 @@ use crate::api::json::{self, JsonError};
 use crate::receipt;
 
 use svm_types::RuntimeError;
-use svm_types::{ExecReceipt, Receipt, ReceiptLog, SpawnAppReceipt, TemplateReceipt};
+use svm_types::{ExecReceipt, Receipt, ReceiptLog, SpawnReceipt, TemplateReceipt};
 
 /// Given a binary Receipt wrappend inside a JSON,
 /// decodes it into a user-friendly JSON.
@@ -155,12 +155,12 @@ fn decode_deploy_template(receipt: &TemplateReceipt, ty: &'static str) -> Value 
     })
 }
 
-fn decode_spawn_app(receipt: &SpawnAppReceipt, ty: &'static str) -> Value {
+fn decode_spawn_app(receipt: &SpawnReceipt, ty: &'static str) -> Value {
     debug_assert!(receipt.success);
     debug_assert!(receipt.error.is_none());
 
-    let SpawnAppReceipt {
-        app_addr,
+    let SpawnReceipt {
+        account_addr: app_addr,
         init_state,
         returndata,
         gas_used,
@@ -268,11 +268,11 @@ mod tests {
             },
         ];
 
-        let receipt = SpawnAppReceipt {
+        let receipt = SpawnReceipt {
             version: 0,
             success: true,
             error: None,
-            app_addr: Some(app.into()),
+            account_addr: Some(app.into()),
             init_state: Some(state),
             returndata: Some(vec![0x10, 0x20, 0x30]),
             gas_used: Gas::with(10),
@@ -307,11 +307,11 @@ mod tests {
             code: 0,
         }];
 
-        let receipt = SpawnAppReceipt {
+        let receipt = SpawnReceipt {
             version: 0,
             success: false,
             error: Some(RuntimeError::OOG),
-            app_addr: None,
+            account_addr: None,
             init_state: None,
             returndata: None,
             gas_used: Gas::with(1000),
