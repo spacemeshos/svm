@@ -14,9 +14,10 @@ pub fn read_program(wasm: &[u8]) -> Result<Program, ProgramError> {
 
     let code = read_code(&module)?;
     let imports = read_imports(&module)?;
+    let exports = read_exports(&module)?;
+
     let mut program = Program::default();
 
-    let exports = read_exports(&module)?;
     for (i, fn_body) in code.bodies().iter().enumerate() {
         let fn_index = i + imports.count();
 

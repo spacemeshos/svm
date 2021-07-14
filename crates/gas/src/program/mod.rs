@@ -16,8 +16,8 @@ pub use self::exports::Exports;
 #[derive(Debug, Default)]
 pub struct Program {
     imports: Imports,
-    functions: IndexMap<FuncIndex, Vec<Instruction>>,
     exports: Exports,
+    functions: IndexMap<FuncIndex, Vec<Instruction>>,
 }
 
 impl Program {
@@ -39,11 +39,6 @@ impl Program {
         self.exports = exports;
     }
 
-    /// Adding a function with index` fn_index` and instructions `ops`
-    pub fn add_func(&mut self, fn_index: FuncIndex, ops: Vec<Instruction>) {
-        self.functions.insert(fn_index, ops);
-    }
-
     /// Returns whether function is an import function or not
     pub fn is_imported(&self, fn_index: FuncIndex) -> bool {
         (fn_index.0 as usize) < self.imports.count()
@@ -51,6 +46,11 @@ impl Program {
 
     pub fn is_exported(&self, func_name: &str) -> bool {
         self.exports.contains(func_name)
+    }
+
+    /// Adding a function with index` fn_index` and instructions `ops`
+    pub fn add_func(&mut self, fn_index: FuncIndex, ops: Vec<Instruction>) {
+        self.functions.insert(fn_index, ops);
     }
 
     /// Returns a `Function` with index `fn_index`
