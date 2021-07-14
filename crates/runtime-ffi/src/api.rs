@@ -586,7 +586,7 @@ pub unsafe extern "C" fn svm_exec_app(
 
     let tx = runtime.validate_tx(bytes.into()).unwrap();
     let rust_receipt = runtime.exec_tx(&tx, &state.unwrap(), gas_limit);
-    let receipt_bytes = receipt::encode_call_receipt(&rust_receipt);
+    let receipt_bytes = receipt::encode_call(&rust_receipt);
 
     // returning encoded `ExecReceipt` as `svm_byte_array`.
     // should call later `svm_receipt_destroy`
