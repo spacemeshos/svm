@@ -21,10 +21,10 @@ pub fn validate_svm_alloc(wasm_module: &[u8]) -> bool {
     } else {
         return false;
     };
+    let expected_sig =
+        ExternType::Function(FunctionType::new([wasmer::Type::I32], [wasmer::Type::I32]));
     for export in module.exports() {
-        let expected_type_signature =
-            ExternType::Function(FunctionType::new([wasmer::Type::I32], [wasmer::Type::I32]));
-        if export.name() == "svm_alloc" && export.ty() == &expected_type_signature {
+        if export.name() == "svm_alloc" && export.ty() == &expected_sig {
             return true;
         }
     }
