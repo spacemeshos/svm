@@ -14,16 +14,26 @@ publish = false
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+hex = "0.4"
 indexmap = "1.6"
-thiserror = "1"
 serde_json = "1"
-svm-common = { path="../common" }
-svm-types = { path="../types" }
-svm-layout = { path="../layout" }
-svm-abi-encoder = { path="../abi/encoder", features=["dynamic-alloc"], default-features=false }
-svm-abi-decoder = { path="../abi/decoder", features=["dynamic-alloc"], default-features=false }
-svm-sdk-std = { path="../sdk/std", features=["debug", "dynamic-alloc"], default-features=false }
-svm-sdk-types = { path="../sdk/types", features=["debug", "dynamic-alloc"], default-features=false }
+svm-types = { path = "../types" }
+svm-layout = { path = "../layout" }
+svm-abi-encoder = { path = "../abi/encoder", features = [
+	"dynamic-alloc",
+], default-features = false }
+svm-abi-decoder = { path = "../abi/decoder", features = [
+	"dynamic-alloc",
+], default-features = false }
+svm-sdk-std = { path = "../sdk/std", features = [
+	"debug",
+	"dynamic-alloc",
+], default-features = false }
+svm-sdk-types = { path = "../sdk/types", features = [
+	"debug",
+	"dynamic-alloc",
+], default-features = false }
+thiserror = "1"
 
 [dev-dependencies]
 maplit = "1.0.2"

@@ -67,7 +67,7 @@ macro_rules! impl_bytes_primitive {
 
             /// Returns a String representation
             pub fn as_str(&self) -> String {
-                svm_common::fmt::fmt_hex(&self.0, "")
+                hex::encode_upper(self.0)
             }
 
             /// Generates a new instance with all-zeros data.
@@ -126,15 +126,11 @@ macro_rules! impl_bytes_primitive {
             /// * first `first` bytes in hex
             /// * ...
             /// * last `last` bytes in hex
-            pub fn fmt(&self, first: usize, last: usize, separator: &str) -> String {
+            pub fn fmt(&self, first: usize, last: usize) -> String {
                 let first = self.first_n(first);
                 let last = self.last_n(last);
 
-                format!(
-                    "{} ... {}",
-                    svm_common::fmt::fmt_hex(first.as_slice(), separator),
-                    svm_common::fmt::fmt_hex(last.as_slice(), separator)
-                )
+                format!("{}...{}", hex::encode_upper(first), hex::encode_upper(last),)
             }
 
             /// Should be used **only** for tests
