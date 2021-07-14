@@ -206,7 +206,7 @@ pub(crate) fn as_array<'a>(json: &'a Value, field: &str) -> Result<&'a Vec<Value
 }
 
 pub(crate) fn bytes_to_str(bytes: &[u8]) -> String {
-    svm_common::fmt::fmt_hex(bytes, "")
+    hex::encode_upper(bytes)
 }
 
 pub(crate) fn str_to_bytes(v: &str, field: &str) -> Result<Vec<u8>, JsonError> {

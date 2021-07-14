@@ -11,12 +11,12 @@ description = "Spacemesh Virtual Machine"
 publish = false
 
 [dependencies]
+hex = "0.4"
 lazy_static = "1.4.0"
-"svm-kv" = { path = "../kv", default-features = false }
-"svm-common" = { path = "../common" }
-"svm-hash" = { path = "../hash" }
-"svm-types" = { path = "../types" }
-"svm-layout" = { path = "../layout" }
+svm-kv = { path = "../kv", default-features = false }
+svm-hash = { path = "../hash" }
+svm-types = { path = "../types" }
+svm-layout = { path = "../layout" }
 
 [features]
 default = ["default-memory"]

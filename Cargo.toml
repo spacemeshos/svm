@@ -26,7 +26,6 @@ parity-wasm = "0.42.2"
 # rocksdb = { version = "0.15.0", features = ["lz4"], default-features = false, optional = true }
 structopt = "0.3"
 svm-cli = { path = "crates/cli" }
-svm-common = { path = "crates/common" }
 svm-hash = { path = "crates/hash" }
 svm-kv = { path = "crates/kv", default-features = false }
 svm-gas = { path = "crates/gas" }
@@ -72,7 +71,6 @@ members = [
   "crates/codec",
   "crates/types",
   "crates/hash",
-  "crates/common",
   "crates/sdk/alloc",
   "crates/sdk/types",
   "crates/sdk/storage",

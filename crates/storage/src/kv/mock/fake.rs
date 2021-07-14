@@ -3,7 +3,6 @@ use std::fmt;
 
 use super::super::StatefulKV;
 
-use svm_common::fmt::fmt_hex;
 use svm_hash::{DefaultHasher, Hasher};
 use svm_types::State;
 
@@ -287,8 +286,8 @@ impl FakeKV {
             write!(f, "state: {}", &fmt_state(state))?;
 
             for (k, v) in node.data.iter() {
-                let k = fmt_hex(k, ", ");
-                let v = fmt_hex(v, ", ");
+                let k = hex::encode_upper(k);
+                let v = hex::encode_upper(v);
 
                 write!(f, "{} -> {}", k, v)?;
             }
@@ -318,9 +317,7 @@ impl Drop for FakeKV {
 }
 
 fn fmt_state(state: &State) -> String {
-    let bytes = &state.as_slice();
-
-    fmt_hex(&bytes[0..6], "")
+    hex::encode_upper(&state.as_slice()[0..6])
 }
 
 #[cfg(test)]

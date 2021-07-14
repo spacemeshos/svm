@@ -156,7 +156,7 @@ mod tests {
             0x00, 0x00, 0xAA, 0xBB, 0xCC, 0xDD,
         ]);
 
-        assert_eq!("10 20 30 40 ... AA BB CC DD", addr.fmt(4, 4, " "));
+        assert_eq!("10203040...AABBCCDD", addr.fmt(4, 4));
     }
 
     #[test]
