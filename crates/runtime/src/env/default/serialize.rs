@@ -4,7 +4,7 @@ use std::io::Cursor;
 use svm_codec::{ReadExt, WriteExt};
 
 use svm_codec::template;
-use svm_types::{App, SectionKind, SpawnerAddr, Template, TemplateAddr};
+use svm_types::{Account, SectionKind, SpawnerAddr, Template, TemplateAddr};
 
 use crate::env::{self, traits};
 
@@ -66,7 +66,7 @@ impl AppDeserializer for DefaultAppDeserializer {
             _ => return None,
         };
 
-        let base = App::new(template, name);
+        let base = Account::new(template, name);
         let app = ExtApp::new(&base, &spawner);
 
         Some(app)

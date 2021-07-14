@@ -1,4 +1,4 @@
-use svm_types::{App, SpawnApp, TemplateAddr};
+use svm_types::{Account, SpawnApp, TemplateAddr};
 
 use crate::app;
 
@@ -18,12 +18,12 @@ pub struct SpawnAppBuilder {
 /// ```rust
 /// use std::io::Cursor;
 ///
-/// use svm_types::{App, SpawnApp, Address};
+/// use svm_types::{Account, SpawnApp, Address};
 /// use svm_codec::api::builder::SpawnAppBuilder;
 /// use svm_codec::app;
 ///
 /// let template_addr = Address::of("@template").into();
-/// let name = "My App".to_string();
+/// let name = "My Account".to_string();
 /// let ctor_name = "initialize";
 /// let calldata = vec![0x10, 0x20, 0x30];
 ///
@@ -39,7 +39,7 @@ pub struct SpawnAppBuilder {
 /// let actual = app::decode(&mut cursor).unwrap();
 /// let expected = SpawnApp {
 ///                  version: 0,
-///                  app: App { name, template_addr },
+///                  app: Account { name, template_addr },
 ///                  ctor_name: ctor_name.to_string(),
 ///                  calldata,
 ///                };
@@ -98,7 +98,7 @@ impl SpawnAppBuilder {
 
         let spawn = SpawnApp {
             version,
-            app: App::new(template_addr, name),
+            app: Account::new(template_addr, name),
             ctor_name,
             calldata,
         };

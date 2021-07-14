@@ -15,7 +15,7 @@
 
 use std::io::Cursor;
 
-use svm_types::{App, SpawnApp, TemplateAddr};
+use svm_types::{Account, SpawnApp, TemplateAddr};
 
 use crate::{calldata, version};
 use crate::{Field, ParseError, ReadExt, WriteExt};
@@ -39,7 +39,7 @@ pub fn decode(cursor: &mut Cursor<&[u8]>) -> Result<SpawnApp, ParseError> {
     let ctor_name = decode_ctor(cursor)?;
     let calldata = decode_ctor_calldata(cursor)?;
 
-    let app = App {
+    let app = Account {
         name,
         template_addr,
     };
@@ -130,7 +130,7 @@ mod tests {
     fn encode_decode_spawn_app() {
         let spawn = SpawnApp {
             version: 0,
-            app: App {
+            app: Account {
                 name: "my-app".to_string(),
                 template_addr: Address::of("my-template").into(),
             },

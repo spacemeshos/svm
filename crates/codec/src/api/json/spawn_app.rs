@@ -1,6 +1,6 @@
 use std::io::Cursor;
 
-use svm_types::{App, SpawnApp};
+use svm_types::{Account, SpawnApp};
 
 use serde_json::{json, Value};
 
@@ -29,7 +29,7 @@ pub fn encode_spawn_app(json: &Value) -> Result<Vec<u8>, JsonError> {
 
     let spawn = SpawnApp {
         version,
-        app: App::new(template, name),
+        app: Account::new(template, name),
         ctor_name,
         calldata,
     };
