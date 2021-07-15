@@ -1,20 +1,13 @@
+use log::info;
+
+use std::collections::HashSet;
 use std::marker::PhantomData;
 use std::path::Path;
 
-use svm_kv::rocksdb::Rocksdb;
-use svm_kv::traits::RawKV;
+use svm_types::{Address, SectionKind, Template, TemplateAddr};
 
-use svm_types::{Address, TemplateAddr};
-
-use crate::env;
-
-use env::{hash, traits};
-
-use env::ExtTemplate;
-use hash::TemplateHash;
+use crate::env::{traits, TemplateHash};
 use traits::{TemplateDeserializer, TemplateSerializer, TemplateStore};
-
-use log::info;
 
 const TEMPLATE_KEY_PREFIX: &'static [u8] = b"template:";
 const TEMPLATE_HASH_KEY_PREFIX: &'static [u8] = b"template-hash:";
@@ -22,7 +15,6 @@ const TEMPLATE_HASH_KEY_PREFIX: &'static [u8] = b"template-hash:";
 /// `Template` store backed by `rocksdb`
 pub struct RocksTemplateStore<S, D> {
     db: Rocksdb,
-
     phantom: PhantomData<(S, D)>,
 }
 
@@ -31,7 +23,7 @@ where
     S: TemplateSerializer,
     D: TemplateDeserializer,
 {
-    fn store(&mut self, template: &ExtTemplate, addr: &TemplateAddr, hash: &TemplateHash) {
+    fn store(&mut self, template: &Template, addr: &TemplateAddr, hash: &TemplateHash) {
         let addr = addr.inner();
 
         info!("Storing `Template`: \n{:?}", addr);
@@ -50,7 +42,11 @@ where
         self.db.set(&[entry1, entry2]);
     }
 
-    fn load(&self, addr: &TemplateAddr) -> Option<ExtTemplate> {
+    fn load(
+        &self,
+        addr: &TemplateAddr,
+        interests: Option<HashSet<SectionKind>>,
+    ) -> Option<Template> {
         let addr = addr.inner().as_slice();
 
         info!("Loading `Template` {:?}", addr);
@@ -58,7 +54,7 @@ where
         self.db.get(addr).and_then(|hash| {
             self.db
                 .get(&hash)
-                .and_then(|bytes| D::deserialize(&bytes[..]))
+                .and_then(|bytes| D::deserialize(&bytes[..], interests))
         })
     }
 }

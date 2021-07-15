@@ -14,10 +14,11 @@ mod env;
 mod error;
 mod runtime;
 mod storage;
-pub mod testing;
 mod validation;
-pub mod vmcalls;
 mod wasm_store;
+
+pub mod testing;
+pub mod vmcalls;
 
 pub use context::Context;
 pub use env::{Env, EnvTypes};

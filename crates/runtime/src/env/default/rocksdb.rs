@@ -1,27 +1,28 @@
+use rocksdb::{RocksAccountStore, RocksTemplateStore};
+
 use crate::env::{default, rocksdb};
-
-use rocksdb::{RocksAppStore, RocksTemplateStore};
-
 use crate::EnvTypes;
 
-/// `MemTemplateStore` with default serialization.
+/// `RocksTemplateStore` with a default serialization.
 pub type DefaultRocksTemplateStore =
     RocksTemplateStore<default::DefaultTemplateSerializer, default::DefaultTemplateDeserializer>;
 
-/// `MemAppStore` with default serialization.
-pub type DefaultRocksAppStore =
-    RocksAppStore<default::DefaultAppSerializer, default::DefaultAppDeserializer>;
+/// `RocksAccountStore` with a default serialization.
+pub type DefaultRocksAccountStore =
+    RocksAccountStore<default::DefaultAccountSerializer, default::DefaultAccountDeserializer>;
 
 pub struct DefaultRocksEnvTypes;
 
 impl EnvTypes for DefaultRocksEnvTypes {
     type TemplateStore = DefaultRocksTemplateStore;
 
-    type AppStore = DefaultRocksAppStore;
+    type AccountStore = DefaultRocksAccountStore;
 
     type TemplateAddressCompute = default::DefaultTemplateAddressCompute;
 
-    type AppAddressCompute = default::DefaultAppAddressCompute;
+    type AccountAddressCompute = default::DefaultAccountAddressCompute;
 
     type TemplateHasher = default::DefaultTemplateHasher;
+
+    type Pricer = svm_gas::resolvers::V0PriceResolver;
 }

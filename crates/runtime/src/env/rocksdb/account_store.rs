@@ -3,12 +3,8 @@ use log::info;
 use std::marker::PhantomData;
 use std::path::Path;
 
-use svm_kv::rocksdb::Rocksdb;
-use svm_kv::traits::RawKV;
+use crate::env::{traits, ExtAccount};
 
-use crate::env::{self, traits};
-
-use env::ExtApp;
 use svm_types::{AccountAddr, Address, TemplateAddr};
 use traits::{AccountDeserializer, AccountSerializer, AccountStore};
 
@@ -26,7 +22,7 @@ where
     S: AccountSerializer,
     D: AccountDeserializer,
 {
-    fn store(&mut self, account: &ExtApp, addr: &AccountAddr) {
+    fn store(&mut self, account: &ExtAccount, addr: &AccountAddr) {
         let addr = addr.inner();
 
         info!("Storing an `Account`: \n{:?}", addr);
@@ -44,7 +40,7 @@ where
         self.db.set(&[entry1, entry2]);
     }
 
-    fn load(&self, addr: &AccountAddr) -> Option<ExtApp> {
+    fn load(&self, addr: &AccountAddr) -> Option<ExtAccount> {
         let addr = addr.inner().as_slice();
 
         info!("Loading an `Account` {:?}", addr);
@@ -56,7 +52,7 @@ where
         })
     }
 
-    fn find_template_addr(&self, addr: &AccountAddr) -> Option<TemplateAddr> {
+    fn resolve_template_addr(&self, addr: &AccountAddr) -> Option<TemplateAddr> {
         let addr = addr.inner().as_slice();
 
         self.db.get(addr).and_then(|hash| {
@@ -109,7 +105,7 @@ where
     }
 
     #[inline]
-    fn account_template_addr<'a>(&self, account: &'a ExtApp) -> &'a Address {
+    fn account_template_addr<'a>(&self, account: &'a ExtAccount) -> &'a Address {
         let addr = account.template_addr();
         addr.inner()
     }
