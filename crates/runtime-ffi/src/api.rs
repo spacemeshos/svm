@@ -173,7 +173,7 @@ pub unsafe extern "C" fn svm_validate_spawn(
 ///
 /// let mut target_addr = svm_byte_array::default();
 /// let bytes = svm_byte_array::default();
-/// let _res = unsafe { svm_validate_tx(&mut target_addr, runtime, bytes, &mut error) };
+/// let _res = unsafe { svm_validate_call(&mut target_addr, runtime, bytes, &mut error) };
 /// ```
 ///
 #[must_use]
@@ -552,6 +552,7 @@ pub unsafe extern "C" fn svm_spawn(
 /// let bytes = svm_byte_array::default();
 /// let ty = Type::of::<State>();
 /// let state = (ty, State::zeros()).into();
+/// let gas_enabled = false;
 /// let gas_limit = 0;
 ///
 /// let _res = unsafe {
@@ -560,6 +561,7 @@ pub unsafe extern "C" fn svm_spawn(
 ///     runtime,
 ///     bytes,
 ///     state,
+///     gas_enabled,
 ///     gas_limit,
 ///     &mut error)
 /// };

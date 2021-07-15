@@ -14,17 +14,17 @@ use svm_sdk::ReturnData;
 use svm_types::{Address, Type};
 
 static TEST_STRING_TY: Type = Type::Str("test String");
-static DEPLOYER: Type = Type::Str("deployer");
-static SPAWNER: Type = Type::Str("spawner");
-static SENDER: Type = Type::Str("sender");
-static TEMPLATE_ADDR: Type = Type::Str("template address");
-static APP_ADDR: Type = Type::Str("app address");
-static INIT_STATE: Type = Type::Str("init state");
-static DEPLOY_TEMPLATE_TX: Type = Type::Str("deploy template tx");
-static SPAWN_APP_TX: Type = Type::Str("spawn app tx");
-static EXEC_APP_TX: Type = Type::Str("exec app tx");
-static PARAMS_TYPES: Type = Type::Str("import params types");
-static RETURNS_TYPES: Type = Type::Str("import returns types");
+static DEPLOYER: Type = Type::Str("Deployer");
+static SPAWNER: Type = Type::Str("Spawner");
+static PRINCIPAL: Type = Type::Str("Principal");
+static TEMPLATE_ADDR: Type = Type::Str("Template Address");
+static ACCOUNT_ADDR: Type = Type::Str("Account Address");
+static INIT_STATE: Type = Type::Str("Initial State");
+static DEPLOY_TX: Type = Type::Str("Deploy tx");
+static SPAWN_TX: Type = Type::Str("Spawn Tx");
+static CALL_TX: Type = Type::Str("Call Tx");
+static PARAMS_TYPES: Type = Type::Str("Import Params Types");
+static RETURNS_TYPES: Type = Type::Str("Import Returns Types");
 
 unsafe fn wasm_error(msg: String) -> *mut svm_byte_array {
     let msg: svm_byte_array = (TEST_STRING_TY, msg).into();
@@ -35,13 +35,13 @@ unsafe fn wasm_error(msg: String) -> *mut svm_byte_array {
     err
 }
 
-fn deploy_template_bytes(code_version: u32, name: &str, ctors: &[String], wasm: &[u8]) -> Vec<u8> {
+fn deploy_bytes(code_version: u32, name: &str, ctors: &[String], wasm: &[u8]) -> Vec<u8> {
     let data: FixedLayout = vec![4].into();
 
     svm_runtime::testing::build_template(code_version, name, data, ctors, WasmFile::Binary(wasm))
 }
 
-fn spawn_app_bytes(
+fn spawn_bytes(
     template_addr: &svm_byte_array,
     name: &str,
     ctor_name: &str,
@@ -51,11 +51,11 @@ fn spawn_app_bytes(
     svm_runtime::testing::build_spawn(&template_addr, name, ctor_name, calldata)
 }
 
-fn exec_app_bytes(app_addr: &svm_byte_array, func_name: &str, calldata: &[u8]) -> Vec<u8> {
-    let app_addr: &[u8] = app_addr.into();
-    let app_addr = Address::from(app_addr).into();
+fn call_bytes(target_addr: &svm_byte_array, func_name: &str, calldata: &[u8]) -> Vec<u8> {
+    let target_addr: &[u8] = target_addr.into();
+    let target_addr = Address::from(target_addr).into();
 
-    svm_runtime::testing::build_transaction(&app_addr, func_name, calldata)
+    svm_runtime::testing::build_transaction(&target_addr, func_name, calldata)
 }
 
 #[test]
@@ -127,10 +127,10 @@ fn svm_runtime_failure() {
         assert_eq!(tracking::total_live(), 0);
 
         let code_version = 1;
-        let gas_metering = false;
+        let gas_enabled = false;
         let gas_limit = 0;
 
-        // 1) init Runtime
+        // 1) `Init Runtime`
         let mut state_kv = std::ptr::null_mut();
         let mut runtime = std::ptr::null_mut();
         let mut error = svm_byte_array::default();
@@ -142,113 +142,106 @@ fn svm_runtime_failure() {
         assert!(res.is_ok());
 
         // 2) `Deploy Template`
-        let deployer: svm_byte_array = (DEPLOYER, Address::of("deployer")).into();
+        let deployer: svm_byte_array = (DEPLOYER, Address::of("@Deployer")).into();
         let wasm = include_bytes!("wasm/failure.wasm");
 
-        // raw `Deploy Template`
         let ctors = vec!["initialize".to_string()];
-        let msg = deploy_template_bytes(code_version, "My Template", &ctors, wasm);
-        let msg: svm_byte_array = (DEPLOY_TEMPLATE_TX, msg).into();
+        let msg = deploy_bytes(code_version, "My Template", &ctors, wasm);
+        let msg: svm_byte_array = (DEPLOY_TX, msg).into();
 
-        let mut template_receipt = svm_byte_array::default();
+        let mut deploy_receipt = svm_byte_array::default();
         let res = api::svm_deploy(
-            &mut template_receipt,
+            &mut deploy_receipt,
             runtime,
             msg.clone(),
             deployer.clone(),
-            gas_metering,
+            gas_enabled,
             gas_limit,
             &mut error,
         );
         assert!(res.is_ok());
 
-        // extract the `Template Address` out of the `Receipt`
-        let receipt = receipt::decode_receipt(template_receipt.clone().into()).into_deploy();
+        // Extracts the deployed `Template Address`
+        let receipt = receipt::decode_receipt(deploy_receipt.clone().into()).into_deploy();
         let template_addr: &Address = receipt.template_addr().inner();
         let template_addr: svm_byte_array = (TEMPLATE_ADDR, template_addr).into();
 
-        // 3) `Spawn App`
-        let name = "My App";
-        let spawner: svm_byte_array = (SPAWNER, Address::of("spawner")).into();
+        // 3) `Spawn Account`
+        let name = "My Account";
+        let spawner: svm_byte_array = (SPAWNER, Address::of("@Spawner")).into();
         let ctor_name = "initialize";
         let calldata = vec![];
 
-        // raw `Spawn App`
         let version = 0;
-        let app_bytes = spawn_app_bytes(&template_addr, name, ctor_name, &calldata);
-        let app_bytes: svm_byte_array = (SPAWN_APP_TX, app_bytes).into();
+        let spawn_bytes = spawn_bytes(&template_addr, name, ctor_name, &calldata);
+        let spawn_bytes: svm_byte_array = (SPAWN_TX, spawn_bytes).into();
 
         let mut spawn_receipt = svm_byte_array::default();
 
         let res = api::svm_spawn(
             &mut spawn_receipt,
             runtime,
-            app_bytes.clone(),
+            spawn_bytes.clone(),
             spawner.clone(),
-            gas_metering,
+            gas_enabled,
             gas_limit,
             &mut error,
         );
         assert!(res.is_ok());
 
-        // extracts the spawned-app `Address` and initial `State`.
         let receipt = receipt::decode_receipt(spawn_receipt.clone().into()).into_spawn();
         assert_eq!(receipt.success, true);
 
-        let app_addr = receipt.account_addr().inner();
-        let app_addr: svm_byte_array = (APP_ADDR, app_addr).into();
+        // Extracts the Spawned `Account Address` and its initial `State`.
+        let account_addr = receipt.account_addr().inner();
+        let account_addr: svm_byte_array = (ACCOUNT_ADDR, account_addr).into();
 
         let init_state = receipt.init_state();
         let init_state: svm_byte_array = (INIT_STATE, init_state).into();
 
-        // 4) execute app
+        // 4) `Call Account`
         let func_name = "fail";
         let mut calldata = vec![];
 
-        let exec_bytes = exec_app_bytes(&app_addr, func_name, &calldata);
-        let exec_bytes: svm_byte_array = (EXEC_APP_TX, exec_bytes).into();
+        let call_bytes = call_bytes(&account_addr, func_name, &calldata);
+        let exec_bytes: svm_byte_array = (CALL_TX, call_bytes).into();
 
-        // 4.1) validates tx and extracts its `App`'s `Address`
-        let mut derived_app_addr = svm_byte_array::default();
-        let res = api::svm_validate_call(
-            &mut derived_app_addr,
-            runtime,
-            exec_bytes.clone(),
-            &mut error,
-        );
+        // 4.1) Validates tx and extracts its `Target`'s `Address`
+        let mut target_addr = svm_byte_array::default();
+        let res = api::svm_validate_call(&mut target_addr, runtime, exec_bytes.clone(), &mut error);
         assert!(res.is_ok());
 
-        // 4.2) execute the app-transaction
-        let mut exec_receipt = svm_byte_array::default();
+        // 4.2) Executes the `Call Account` transaction.
+        let mut call_receipt = svm_byte_array::default();
 
         let res = api::svm_call(
-            &mut exec_receipt,
+            &mut call_receipt,
             runtime,
             exec_bytes.clone(),
             init_state.clone(),
-            gas_metering,
+            gas_enabled,
             gas_limit,
             &mut error,
         );
         assert!(res.is_ok());
 
-        let receipt = receipt::decode_receipt(exec_receipt.clone().into()).into_call();
+        let receipt = receipt::decode_receipt(call_receipt.clone().into()).into_call();
         assert_eq!(receipt.success, false);
 
         assert_ne!(tracking::total_live(), 0);
 
         let _ = api::svm_byte_array_destroy(msg);
-        let _ = api::svm_byte_array_destroy(app_bytes);
+        let _ = api::svm_byte_array_destroy(spawn_bytes);
         let _ = api::svm_byte_array_destroy(exec_bytes);
         let _ = api::svm_byte_array_destroy(deployer);
         let _ = api::svm_byte_array_destroy(spawner);
         let _ = api::svm_byte_array_destroy(template_addr);
-        let _ = api::svm_byte_array_destroy(app_addr);
-        let _ = api::svm_byte_array_destroy(derived_app_addr);
+        let _ = api::svm_byte_array_destroy(account_addr);
+        let _ = api::svm_byte_array_destroy(target_addr);
         let _ = api::svm_byte_array_destroy(init_state);
-        let _ = api::svm_byte_array_destroy(template_receipt);
+        let _ = api::svm_byte_array_destroy(deploy_receipt);
         let _ = api::svm_byte_array_destroy(spawn_receipt);
-        let _ = api::svm_byte_array_destroy(exec_receipt);
+        let _ = api::svm_byte_array_destroy(call_receipt);
         let _ = api::svm_runtime_destroy(runtime);
         let _ = api::svm_state_kv_destroy(state_kv);
 
@@ -267,10 +260,10 @@ fn svm_runtime_success() {
         assert_eq!(tracking::total_live(), 0);
 
         let code_version = 0;
-        let gas_metering = false;
+        let gas_enabled = false;
         let gas_limit = 0;
 
-        // 1) init runtime
+        // 1) `Init Runtime`
         let mut state_kv = std::ptr::null_mut();
         let mut runtime = std::ptr::null_mut();
         let mut error = svm_byte_array::default();
@@ -281,34 +274,33 @@ fn svm_runtime_success() {
         let res = api::svm_memory_runtime_create(&mut runtime, state_kv, &mut error);
         assert!(res.is_ok());
 
-        // 2) deploy Template
-        let deployer: svm_byte_array = (DEPLOYER, Address::of("deployer")).into();
+        // 2) `Deploy Template`
+        let deployer: svm_byte_array = (DEPLOYER, Address::of("@Deployer")).into();
         let ctors = vec!["initialize".to_string()];
         let wasm = include_bytes!("wasm/counter.wasm");
 
-        // raw template
-        let msg = deploy_template_bytes(code_version, "My Template", &ctors, wasm);
-        let msg: svm_byte_array = (DEPLOY_TEMPLATE_TX, msg).into();
+        let msg = deploy_bytes(code_version, "My Template", &ctors, wasm);
+        let msg: svm_byte_array = (DEPLOY_TX, msg).into();
 
-        let mut template_receipt = svm_byte_array::default();
+        let mut deploy_receipt = svm_byte_array::default();
         let res = api::svm_deploy(
-            &mut template_receipt,
+            &mut deploy_receipt,
             runtime,
             msg.clone(),
             deployer.clone(),
-            gas_metering,
+            gas_enabled,
             gas_limit,
             &mut error,
         );
         assert!(res.is_ok());
 
-        // extract the `template-address` out of the receipt
-        let receipt = receipt::decode_receipt(template_receipt.clone().into()).into_deploy();
+        // Extracts the deployed `Template Address`
+        let receipt = receipt::decode_receipt(deploy_receipt.clone().into()).into_deploy();
         let template_addr: &Address = receipt.template_addr().inner();
         let template_addr: svm_byte_array = (TEMPLATE_ADDR, template_addr).into();
 
-        // 3) spawn app
-        let name = "My App";
+        // 3) `Spawn Account`
+        let name = "My Account";
         let spawner: svm_byte_array = (SPAWNER, Address::of("spawner")).into();
         let ctor_name = "initialize";
         let counter_init: u32 = 10;
@@ -316,33 +308,33 @@ fn svm_runtime_success() {
         let mut calldata = svm_sdk::Vec::with_capacity(1000);
         counter_init.encode(&mut calldata);
 
-        // raw `spawn-app`
-        let app_bytes = spawn_app_bytes(&template_addr, name, ctor_name, calldata.as_slice());
-        let app_bytes: svm_byte_array = (SPAWN_APP_TX, app_bytes).into();
+        let spawn_bytes = spawn_bytes(&template_addr, name, ctor_name, calldata.as_slice());
+        let spawn_bytes: svm_byte_array = (SPAWN_TX, spawn_bytes).into();
 
         let mut spawn_receipt = svm_byte_array::default();
 
         let res = api::svm_spawn(
             &mut spawn_receipt,
             runtime,
-            app_bytes.clone(),
+            spawn_bytes.clone(),
             spawner.clone(),
-            gas_metering,
+            gas_enabled,
             gas_limit,
             &mut error,
         );
         assert!(res.is_ok());
 
-        // extracts the spawned-app `Address` and initial `State`.
         let receipt = receipt::decode_receipt(spawn_receipt.clone().into()).into_spawn();
         assert_eq!(receipt.success, true);
-        let app_addr = receipt.account_addr().inner();
-        let app_addr: svm_byte_array = (APP_ADDR, app_addr).into();
+
+        // Extracts the Spawned `Account Address` and its initial `State`.
+        let account_addr = receipt.account_addr().inner();
+        let account_addr: svm_byte_array = (ACCOUNT_ADDR, account_addr).into();
 
         let init_state = receipt.init_state();
         let init_state: svm_byte_array = (INIT_STATE, init_state).into();
 
-        // 4) execute app
+        // 4) `Call Account`
         let func_name = "add_and_mul";
         let add = 5u32;
         let mul = 3u32;
@@ -352,34 +344,29 @@ fn svm_runtime_success() {
         add.encode(&mut calldata);
         mul.encode(&mut calldata);
 
-        let exec_bytes = exec_app_bytes(&app_addr, func_name, &calldata);
-        let exec_bytes: svm_byte_array = (EXEC_APP_TX, exec_bytes).into();
+        let call_bytes = call_bytes(&account_addr, func_name, &calldata);
+        let exec_bytes: svm_byte_array = (CALL_TX, call_bytes).into();
 
-        // 4.1) validates tx and extracts its `App`'s `Address`
-        let mut derived_app_addr = svm_byte_array::default();
-        let res = api::svm_validate_call(
-            &mut derived_app_addr,
-            runtime,
-            exec_bytes.clone(),
-            &mut error,
-        );
+        // 4.1) Validates tx and extracts its `Target`'s `Address`
+        let mut target_addr = svm_byte_array::default();
+        let res = api::svm_validate_call(&mut target_addr, runtime, exec_bytes.clone(), &mut error);
         assert!(res.is_ok());
 
-        // 4.2) execute the app-transaction
-        let mut exec_receipt = svm_byte_array::default();
+        // 4.2) Executes the `Call Account` transaction.
+        let mut call_receipt = svm_byte_array::default();
 
         let res = api::svm_call(
-            &mut exec_receipt,
+            &mut call_receipt,
             runtime,
             exec_bytes.clone(),
             init_state.clone(),
-            gas_metering,
+            gas_enabled,
             gas_limit,
             &mut error,
         );
         assert!(res.is_ok());
 
-        let receipt = receipt::decode_receipt(exec_receipt.clone().into()).into_call();
+        let receipt = receipt::decode_receipt(call_receipt.clone().into()).into_call();
         assert_eq!(receipt.success, true);
 
         let bytes = receipt.returndata();
@@ -395,17 +382,17 @@ fn svm_runtime_success() {
         assert_ne!(tracking::total_live(), 0);
 
         let _ = api::svm_byte_array_destroy(msg);
-        let _ = api::svm_byte_array_destroy(app_bytes);
+        let _ = api::svm_byte_array_destroy(spawn_bytes);
         let _ = api::svm_byte_array_destroy(exec_bytes);
         let _ = api::svm_byte_array_destroy(deployer);
         let _ = api::svm_byte_array_destroy(spawner);
         let _ = api::svm_byte_array_destroy(template_addr);
-        let _ = api::svm_byte_array_destroy(app_addr);
-        let _ = api::svm_byte_array_destroy(derived_app_addr);
+        let _ = api::svm_byte_array_destroy(account_addr);
+        let _ = api::svm_byte_array_destroy(target_addr);
         let _ = api::svm_byte_array_destroy(init_state);
-        let _ = api::svm_byte_array_destroy(template_receipt);
+        let _ = api::svm_byte_array_destroy(deploy_receipt);
         let _ = api::svm_byte_array_destroy(spawn_receipt);
-        let _ = api::svm_byte_array_destroy(exec_receipt);
+        let _ = api::svm_byte_array_destroy(call_receipt);
         let _ = api::svm_runtime_destroy(runtime);
         let _ = api::svm_state_kv_destroy(state_kv);
 
