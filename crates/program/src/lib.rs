@@ -18,31 +18,6 @@ pub use program::Program;
 pub use validators::OpcodeValidator;
 pub use visitor::ProgramVisitor;
 
-fn count_functions_in_program(program: &Program) -> u64 {
-    #[derive(Debug, Default, Copy, Clone)]
-    struct Counter(u64);
-
-    impl ProgramVisitor for Counter {
-        type Output = u64;
-        type Error = ();
-
-        fn on_func_end(
-            &mut self,
-            _fn_index: FuncIndex,
-            _program: &Program,
-        ) -> Result<(), Self::Error> {
-            self.0 += 1;
-            Ok(())
-        }
-
-        fn on_end(self, _program: &Program) -> Result<Self::Output, Self::Error> {
-            Ok(self.0)
-        }
-    }
-
-    Counter::default().visit(program).unwrap()
-}
-
 fn validate_no_floats(program: &Program) -> Result<(), ProgramError> {
     OpcodeValidator::new(validate_opcode).visit(program)
 }

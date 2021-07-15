@@ -1,7 +1,10 @@
 use indexmap::IndexMap;
 use parity_wasm::elements::{CodeSection, Module};
 
-use crate::{validate_no_floats, Exports, FuncIndex, Function, Imports, Instruction, ProgramError};
+use crate::{
+    validate_no_floats, Exports, FuncIndex, Function, Imports, Instruction, ProgramError,
+    ProgramVisitor,
+};
 
 /// A fully parsed and validated smWasm program.
 ///
@@ -53,6 +56,11 @@ impl Program {
         program.set_exports(exports);
 
         validate_no_floats(&program)?;
+        validate_exports(&module)?;
+        if count_functions_in_program(&program) > u16::MAX as u64 {
+            return Err(ProgramError::FunctionIndexTooLarge);
+        }
+
         Ok(program)
     }
 
@@ -122,4 +130,82 @@ fn read_code(module: &Module) -> Result<CodeSection, ProgramError> {
         Some(code) => Ok(code.clone()),
         None => Err(ProgramError::MissingCodeSection),
     }
+}
+
+fn count_functions_in_program(program: &Program) -> u64 {
+    #[derive(Debug, Default, Copy, Clone)]
+    struct Counter(u64);
+
+    impl ProgramVisitor for Counter {
+        type Output = u64;
+        type Error = ();
+
+        fn on_func_end(
+            &mut self,
+            _fn_index: FuncIndex,
+            _program: &Program,
+        ) -> Result<(), Self::Error> {
+            self.0 += 1;
+            Ok(())
+        }
+
+        fn on_end(self, _program: &Program) -> Result<Self::Output, Self::Error> {
+            Ok(self.0)
+        }
+    }
+
+    Counter::default().visit(program).unwrap()
+}
+
+/// Checks whether `wasm_module` exports a well-defined `svm_alloc` function.
+/// `svm_alloc` is required by SVM for all WASM code and must have a `I32 ->
+/// I32` type signature.
+fn validate_exports(wasm_module: &Module) -> Result<(), ProgramError> {
+    use parity_wasm::elements::{ExportSection, FunctionSection, Type, TypeSection, ValueType};
+
+    let empty_export_section = ExportSection::with_entries(vec![]);
+    let empty_function_sig_section = FunctionSection::with_entries(vec![]);
+    let empty_type_section = TypeSection::with_types(vec![]);
+
+    //let expected_sig =
+    //    ExternType::Function(FunctionType::new([wasmer::Type::I32], [wasmer::Type::I32]));
+    let module_functions = wasm_module
+        .function_section()
+        .unwrap_or(&empty_function_sig_section)
+        .entries();
+    let module_types = wasm_module
+        .type_section()
+        .unwrap_or(&empty_type_section)
+        .types();
+    let module_exports = wasm_module
+        .export_section()
+        .unwrap_or(&empty_export_section)
+        .entries();
+
+    for entry in module_exports.iter() {
+        if entry.field() != "svm_alloc" {
+            continue;
+        }
+
+        let type_signature = {
+            let function = if let parity_wasm::elements::Internal::Function(i) = entry.internal() {
+                module_functions[*i as usize]
+            } else {
+                // We don't care about anything but functions right now.
+                continue;
+            };
+            &module_types[function.type_ref() as usize]
+        };
+
+        #[allow(irrefutable_let_patterns)]
+        if let Type::Function(f) = type_signature {
+            if f.params() == &[ValueType::I32] && f.results() == &[ValueType::I32] {
+                return Ok(());
+            }
+        }
+    }
+
+    Err(ProgramError::FunctionNotFound {
+        func_name: "svm_alloc".to_string(),
+    })
 }

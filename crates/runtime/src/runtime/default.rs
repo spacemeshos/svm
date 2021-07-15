@@ -7,8 +7,10 @@ use svm_layout::FixedLayout;
 use svm_program::Program;
 use svm_storage::account::AccountStorage;
 use svm_types::SectionKind;
-use svm_types::{AccountAddr, DeployerAddr, SpawnerAddr, State, Template};
-use svm_types::{CallReceipt, DeployReceipt, ReceiptLog, SpawnReceipt};
+use svm_types::{
+    AccountAddr, CallReceipt, DeployReceipt, DeployerAddr, ReceiptLog, SpawnReceipt, SpawnerAddr,
+    State, Template,
+};
 use svm_types::{Gas, GasMode, OOGError};
 use svm_types::{RuntimeError, Transaction};
 
