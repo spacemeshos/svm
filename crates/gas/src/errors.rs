@@ -1,8 +1,8 @@
 use thiserror::Error;
 
-use svm_program::FuncIndex;
-
 use std::fmt;
+
+use svm_program::FuncIndex;
 
 use crate::{GraphCycles, NodeLabel};
 
