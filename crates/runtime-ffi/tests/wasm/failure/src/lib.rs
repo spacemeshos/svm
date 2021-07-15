@@ -1,12 +1,12 @@
-use svm_sdk::app;
+use svm_sdk::template;
 
 #[link(wasm_import_module = "host")]
 extern "C" {
     fn host_fail();
 }
 
-#[app]
-mod App {
+#[template]
+mod Template {
     #[ctor]
     fn initialize() {}
 
