@@ -408,10 +408,10 @@ describe("Spawn Account", function () {
 });
 
 describe("Call Account", function () {
-  function encodeCall(instance, account, calldata) {
+  function encodeCall(instance, target, calldata) {
     let tx = {
       version: 0,
-      account: account,
+      target: target,
       func_name: "do_something",
       calldata: calldata,
     };
