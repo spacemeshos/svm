@@ -1,16 +1,13 @@
-use std::hint::unreachable_unchecked;
-
 use proc_macro2::{Span, TokenStream};
-
 use quote::{quote, ToTokens};
 use syn::{Error, FnArg, Pat, PatType, Result, ReturnType, Type};
 
 use super::{attr, fundable};
 use attr::{has_endpoint_or_ctor_attr, has_fundable_attr, FuncAttr};
 
-use crate::{function, App, Function};
+use crate::{function, Function, Template};
 
-pub fn expand(func: &Function, attrs: &[FuncAttr], app: &App) -> Result<TokenStream> {
+pub fn expand(func: &Function, attrs: &[FuncAttr], template: &Template) -> Result<TokenStream> {
     debug_assert!(has_endpoint_or_ctor_attr(attrs));
 
     validate_sig(func)?;
@@ -22,7 +19,7 @@ pub fn expand(func: &Function, attrs: &[FuncAttr], app: &App) -> Result<TokenStr
     let body = func.raw_body();
 
     let call_fundable_hook = if has_fundable_attr(attrs) {
-        fundable::expand(&attrs, app)?
+        fundable::expand(&attrs, template)?
     } else {
         quote! {}
     };
@@ -65,7 +62,7 @@ fn expand_prologue(func: &Function) -> Result<TokenStream> {
     }
 
     let calldata = quote! {
-        let bytes: &'static [u8] = Node.get_calldata();
+        let bytes: &'static [u8] = Node.calldata();
 
         let mut calldata = svm_sdk::CallData::new(bytes);
     };

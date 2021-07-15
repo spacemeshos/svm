@@ -4,15 +4,15 @@ use syn::Result;
 
 use super::attr::{find_attr, has_fundable_attr, FuncAttr, FuncAttrKind};
 
-use crate::{function, App};
+use crate::{function, Template};
 
-pub fn expand(attrs: &[FuncAttr], app: &App) -> Result<TokenStream> {
+pub fn expand(attrs: &[FuncAttr], template: &Template) -> Result<TokenStream> {
     debug_assert!(has_fundable_attr(attrs));
 
     let attr = find_attr(attrs, FuncAttrKind::Fundable).unwrap();
 
     let fundable_hook = match attr {
-        FuncAttr::Fundable(None) => app
+        FuncAttr::Fundable(None) => template
             .default_fundable_hook()
             .unwrap_or(Ident::new("svm_fund", Span::call_site())),
 

@@ -1,9 +1,9 @@
-use svm_sdk::app;
+use svm_sdk::template;
 
 use svm_sdk_tests::{call_1, call_2};
 
-#[app]
-mod App {
+#[template]
+mod Template {
     #[ctor]
     fn not(a: bool) -> bool {
         !(a)
