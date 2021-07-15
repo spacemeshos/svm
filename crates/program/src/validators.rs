@@ -8,6 +8,7 @@ pub struct OpcodeValidator<F> {
 }
 
 impl<F> OpcodeValidator<F> {
+    /// Creates an [`OpcodeValidator`] that tests for the property `f`.
     pub fn new<E>(f: F) -> Self
     where
         F: Fn(&Op) -> Result<(), E>,

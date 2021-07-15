@@ -8,15 +8,16 @@ pub enum ProgramError {
     /// Invalid wasm
     InvalidWasm,
     /// No valid `svm_alloc` function found.
-    FunctionNotFound { func_name: String },
+    FunctionNotFound {
+        /// The name of the WebAssembly function that wasn't found.
+        func_name: String,
+    },
     /// Floats not allowed
     FloatsNotAllowed,
     /// Too many function imports
     TooManyFunctionImports,
     /// Function index is too large
     FunctionIndexTooLarge,
-    /// `call_indirect` isn't allowed
-    CallIndirectNotAllowed,
     /// Wasm has no `code` section
     MissingCodeSection,
 }

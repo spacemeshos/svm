@@ -80,15 +80,17 @@ impl Program {
         &self.imports
     }
 
+    /// Returns an immutable borrow to the [`Exports`] of `self`.
     pub fn exports(&self) -> &Exports {
         &self.exports
     }
 
-    /// Setting the functions imports
+    /// Replace the function [`Imports`] of `self`.
     pub fn set_imports(&mut self, imports: Imports) {
         self.imports = imports;
     }
 
+    /// Replace the function [`Exports`] of `self`.
     pub fn set_exports(&mut self, exports: Exports) {
         self.exports = exports;
     }
@@ -98,6 +100,7 @@ impl Program {
         (fn_index.0 as usize) < self.imports.count()
     }
 
+    /// Returns whether function is an export function or not.
     pub fn is_exported(&self, func_name: &str) -> bool {
         self.exports.contains(func_name)
     }

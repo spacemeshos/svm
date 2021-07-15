@@ -36,10 +36,13 @@ impl Exports {
         self.inner.insert(export_name.into(), fn_index);
     }
 
+    /// Check to see if the module exports a function named `func_name`.
     pub fn contains(&self, func_name: &str) -> bool {
         self.inner.contains_key(func_name)
     }
 
+    /// Attempts to revrieve the [`FuncIndex`] of `func_index` if it is an
+    /// exported function. Returns [`None`] on failure.
     pub fn get(&self, func_name: &str) -> Option<FuncIndex> {
         self.inner.get(func_name).copied()
     }

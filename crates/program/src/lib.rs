@@ -1,3 +1,12 @@
+//! Validation logic for smWasm code, the SVM-flavored subset of WebAssembly.
+//!
+//! The main entity in this crate is [`Program`].
+
+#![deny(missing_docs)]
+#![deny(unused)]
+#![deny(dead_code)]
+#![deny(unreachable_code)]
+
 use parity_wasm::elements::Instruction;
 
 mod error;
