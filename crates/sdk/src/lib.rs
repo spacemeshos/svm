@@ -4,25 +4,25 @@
 #![allow(dead_code)]
 #![allow(unreachable_code)]
 
-//! This crate implements SDK procedural-macros for writing apps (templates if to be more precise) on the SVM platform.
+//! This crate implements SDK procedural-macros for writing Templates on the SVM platform.
 //! Using this crate when writing SVM Templates in Rust isn't mandatory but should be very useful.
 //!
 //! The crate is compiled with `![no_std]` (no Rust standard library) in order to reduce the compiled WASM size.
 ///
-/// ### `#[app]` proc-macro:
+/// ### `#[template]` proc-macro:
 ///
-/// The root procedural-macro is `[app]` and it should decorate a Rust module.
-/// Here is an example for a minimum App:
+/// The root procedural-macro is `[template]` and it should decorate a Rust module.
+/// Here is an example for a minimal Template:
 ///
 /// ```rust, no_run
-/// use svm_sdk::app;
+/// use svm_sdk::template;
 ///
-/// #[app]
-/// mod App {
+/// #[template]
+/// mod MyTemplate {
 /// }
 /// ```
 ///
-/// Generally, each app should have a way to manage its own storage.
+/// Generally, each Template should have a way to manage its own storage.
 /// And that's what we'll cover now - the `#[storage]` proc-macro.
 ///
 /// ### `#[storage]`` proc-macro
@@ -37,10 +37,10 @@
 /// Here is a simple example of declaring a storage:
 ///
 /// ```rust, no_run
-/// use svm_sdk::{app, Amount, Address};
+/// use svm_sdk::{template, Amount, Address};
 ///
-/// #[app]
-/// mod App {
+/// #[template]
+/// mod MyTemplate {
 ///   #[storage]
 ///   struct MyStorage {
 ///     amount: Amount,
@@ -102,10 +102,10 @@
 /// Here is a simple example of declaring a storage:
 ///
 /// ```rust, no_run
-/// use svm_sdk::{app, Amount, Address};
+/// use svm_sdk::{template, Amount, Address};
 ///
-/// #[app]
-/// mod App {
+/// #[template]
+/// mod MyTemplate {
 ///   #[storage]
 ///   struct MyStorage {
 ///     amount: Amount,
@@ -157,12 +157,12 @@
 /// }
 /// ```
 ///
-/// Besides `#[storage]` each app should expose a public API for the platform, otherwise
+/// Besides `#[storage]` each Template should expose a public API for the platform, otherwise
 /// no one can use it - that's the role of the endpoints.
 ///
 /// ### `[endpoint]` proc-macro:
 ///
-/// The `#[endpoint]` attribute facilitates the task of implementing SVM app's endpoint.
+/// The `#[endpoint]` attribute facilitates the task of implementing Template's endpoints.
 /// Each function annotated with this proc-macro will be transformed into a WASM function export in the compiler's final output.
 ///
 /// # Example
@@ -170,10 +170,10 @@
 /// Here is an example using `#[endpoint]`:
 ///
 /// ```rust, no_run
-/// use svm_sdk::{app, Amount, Address};
+/// use svm_sdk::{template, Amount, Address};
 ///
-/// #[app]
-/// mod App {
+/// #[template]
+/// mod MyTemplate {
 ///   #[endpoint]
 ///   fn work(a: Amount, to_double: bool) -> Amount {
 ///     if to_double {
@@ -204,7 +204,7 @@
 ///     fn __inner__() -> Amount {
 ///         use svm_sdk::CallData;
 ///
-///         let bytes = Node.get_calldata();
+///         let bytes = Node.calldata();
 ///         let mut calldata = CallData::new(bytes);
 ///
 ///         let a: Amount = calldata.next_1();
@@ -234,10 +234,10 @@
 ///
 /// ### Funding
 ///
-/// Each running app is also an account meaning it has its own balance.
-/// When calling an app's endpoint, the transaction `value` field is allowed to be positive.
+/// Each Account (instance of a Template) is holds a balance.
+/// When calling an `Account`'s endpoint, the Transaction's `value` field is allowed to be positive.
 ///
-/// In such case we'd like to let the running an app a chance to be notified about the funding
+/// In such case we'd like to let the running Account a chance to be notified about the funding
 /// and let it invoke some arbitrary hook to update its state.
 ///
 /// Thus, each `#[endpoint]` might be annotated with an additional `#[fundable(..)]` attribute.  
@@ -246,10 +246,10 @@
 /// Here is an example:
 ///
 /// ```rust, no_run
-/// use svm_sdk::app;
+/// use svm_sdk::template;
 ///
-/// #[app]
-/// mod App {
+/// #[template]
+/// mod MyTemplate {
 ///   #[storage]
 ///   struct Storage {
 ///     coins: Amount
@@ -274,16 +274,16 @@
 /// If we invoke SVM transaction over function `do_nothing` and `value = 100`
 /// What logically happens behind-the-scenes is:
 ///
-/// 1) Since `value > 0` - the transaction `sender` transfers `100` coins
-///  to the `app` balance.
+/// 1) Since `value > 0` - the transaction `principal` transfers `100` coins
+///  to the `Account`'s balance. (assuming the transaction is valid and verified).
 ///
-/// 2) Now, SVM is invokes the app `update_coins` with `value = Amount(100)`.
+/// 2) Now, SVM call the `Account`'s `update_coins` with `value = Amount(100)`.
 /// The reason that this is the fundable-hook to be called is since it's being
 /// referenced by the `#[fundable(..)]` of `do_nothing` endpoint.
 ///
-/// The running of `update_coins` gives the app a chance to update it's state.
+/// The running of `update_coins` gives the `Account` a chance to update it's state.
 /// In our example it updates the `coins` field. That means that real balance
-/// of the app in any given point will be at-least the value of the `coins` field.
+/// of an `Account` in any given point will be at-least the value of the `coins` field.
 ///
 /// 3) The `do_nothing` endpoint code is being executed.
 ///
@@ -339,7 +339,7 @@ compile_error!("Must have either `static-alloc` or `dynamic-alloc` features turn
 
 /// Logging API
 pub use svm_abi_decoder::{CallData, DecodeError, ReturnData};
-pub use svm_sdk_macros::app;
+pub use svm_sdk_macros::template;
 
 pub use svm_sdk_std::{ensure, log};
 /// std

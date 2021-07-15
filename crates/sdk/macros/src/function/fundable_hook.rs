@@ -1,5 +1,4 @@
 use proc_macro2::{Span, TokenStream};
-
 use quote::{quote, ToTokens};
 use syn::{Error, FnArg, PatType, Result, ReturnType};
 

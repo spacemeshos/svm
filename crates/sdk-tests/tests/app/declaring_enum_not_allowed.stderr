@@ -1,7 +1,0 @@
-error: declaring `enum` inside `#[app]` is not supported.
- --> $DIR/declaring_enum_not_allowed.rs:3:1
-  |
-3 | #[app]
-  | ^^^^^^
-  |
-  = note: this error originates in the attribute macro `app` (in Nightly builds, run with -Z macro-backtrace for more info)

@@ -14,7 +14,7 @@ use crate::api;
 use r#function::{func_attrs, has_default_fundable_hook_attr};
 use r#struct::has_storage_attr;
 
-pub struct App {
+pub struct Template {
     name: Ident,
     functions: Vec<Function>,
     structs: Vec<Struct>,
@@ -23,7 +23,7 @@ pub struct App {
     default_fundable_hook: Option<Ident>,
 }
 
-impl App {
+impl Template {
     pub fn name(&self) -> String {
         self.name.to_string()
     }
@@ -55,14 +55,14 @@ impl App {
 
 pub fn expand(_args: TokenStream, input: TokenStream) -> Result<(Schema, TokenStream)> {
     let module = syn::parse2(input)?;
-    let app = parse_app(module)?;
-    let schema = schema::app_schema(&app)?;
+    let template = parse_template(module)?;
+    let schema = schema::template_schema(&template)?;
 
-    let imports = app.imports();
-    let aliases = app.aliases();
+    let imports = template.imports();
+    let aliases = template.aliases();
 
-    let structs = expand_structs(&app)?;
-    let functions = expand_functions(&app)?;
+    let structs = expand_structs(&template)?;
+    let functions = expand_functions(&template)?;
     let alloc_func = alloc_func_ast();
 
     #[cfg(feature = "api")]
@@ -78,7 +78,7 @@ pub fn expand(_args: TokenStream, input: TokenStream) -> Result<(Schema, TokenSt
     let data = api::json_data_layout(&schema);
 
     #[cfg(feature = "api")]
-    write_schema(&app, &api, &data);
+    write_schema(&template, &api, &data);
 
     let ast = quote! {
         // #(#imports)*
@@ -100,15 +100,15 @@ pub fn expand(_args: TokenStream, input: TokenStream) -> Result<(Schema, TokenSt
     Ok((schema, ast))
 }
 
-pub fn parse_app(mut raw_app: ItemMod) -> Result<App> {
-    let name = raw_app.ident.clone();
+pub fn parse_template(mut raw_template: ItemMod) -> Result<Template> {
+    let name = raw_template.ident.clone();
 
     let mut functions = Vec::new();
     let mut structs = Vec::new();
     let mut imports = Vec::new();
     let mut aliases = Vec::new();
 
-    let (_, content) = raw_app.content.take().unwrap();
+    let (_, content) = raw_template.content.take().unwrap();
 
     for item in content {
         // TODO: Is is possible to extract the `item` real `Span`?
@@ -127,52 +127,52 @@ pub fn parse_app(mut raw_app: ItemMod) -> Result<App> {
             Item::Use(item) => imports.push(item),
             Item::Type(item) => aliases.push(item),
             Item::Const(..) => {
-                let msg = "declaring `const` inside `#[app]` is not supported.";
+                let msg = "declaring `const` inside `#[template]` is not supported.";
                 return Err(Error::new(span, msg));
             }
             Item::Enum(..) => {
-                let msg = "declaring `enum` inside `#[app]` is not supported.";
+                let msg = "declaring `enum` inside `#[template]` is not supported.";
                 return Err(Error::new(span, msg));
             }
             Item::ExternCrate(..) => {
-                let msg = "using `extern crate` inside `#[app]` is not supported.";
+                let msg = "using `extern crate` inside `#[template]` is not supported.";
                 return Err(Error::new(span, msg));
             }
             Item::ForeignMod(..) => {
                 let msg =
-                    "using foreign items such as `extern \"C\"` inside `#[app]` is not supported.";
+                    "using foreign items such as `extern \"C\"` inside `#[template]` is not supported.";
                 return Err(Error::new(span, msg));
             }
             Item::Impl(..) => {
-                let msg = "using `impl` inside `#[app]` is not supported.";
+                let msg = "using `impl` inside `#[template]` is not supported.";
                 return Err(Error::new(span, msg));
             }
             Item::Macro(..) => {
-                let msg = "declaring `macro_rules!` inside `#[app]` is not supported.";
+                let msg = "declaring `macro_rules!` inside `#[template]` is not supported.";
                 return Err(Error::new(span, msg));
             }
             Item::Macro2(..) => {
-                let msg = "declaring `macro` inside `#[app]` is not supported.";
+                let msg = "declaring `macro` inside `#[template]` is not supported.";
                 return Err(Error::new(span, msg));
             }
             Item::Mod(..) => {
-                let msg = "declaring new modules inside `#[app]` is not supported.";
+                let msg = "declaring new modules inside `#[template]` is not supported.";
                 return Err(Error::new(span, msg));
             }
             Item::Static(..) => {
-                let msg = "declaring new `static` items inside `#[app]` is not supported.";
+                let msg = "declaring new `static` items inside `#[template]` is not supported.";
                 return Err(Error::new(span, msg));
             }
             Item::Trait(..) => {
-                let msg = "declaring new traits inside `#[app]` is not supported.";
+                let msg = "declaring new traits inside `#[template]` is not supported.";
                 return Err(Error::new(span, msg));
             }
             Item::TraitAlias(..) => {
-                let msg = "using trait aliases inside `#[app]` is not supported.";
+                let msg = "using trait aliases inside `#[template]` is not supported.";
                 return Err(Error::new(span, msg));
             }
             Item::Union(..) => {
-                let msg = "declaring `union` inside `#[app]` is not supported.";
+                let msg = "declaring `union` inside `#[template]` is not supported.";
                 return Err(Error::new(span, msg));
             }
             Item::Verbatim(item) => {
@@ -183,7 +183,7 @@ pub fn parse_app(mut raw_app: ItemMod) -> Result<App> {
         }
     }
 
-    let mut app = App {
+    let mut template = Template {
         name,
         functions,
         structs,
@@ -192,21 +192,21 @@ pub fn parse_app(mut raw_app: ItemMod) -> Result<App> {
         default_fundable_hook: None,
     };
 
-    let default = extract_default_fundable_hook(&app)?;
+    let default = extract_default_fundable_hook(&template)?;
 
     if default.is_some() {
-        app.set_default_fundable_hook(default.unwrap());
+        template.set_default_fundable_hook(default.unwrap());
     }
 
-    Ok(app)
+    Ok(template)
 }
 
-fn extract_default_fundable_hook(app: &App) -> Result<Option<Ident>> {
+fn extract_default_fundable_hook(template: &Template) -> Result<Option<Ident>> {
     let span = Span::call_site();
     let mut seen_default_fundable_hook = false;
     let mut default = None;
 
-    for func in app.functions().iter() {
+    for func in template.functions().iter() {
         let attrs = func_attrs(func).unwrap();
 
         if has_default_fundable_hook_attr(&attrs) {
@@ -227,22 +227,22 @@ fn extract_default_fundable_hook(app: &App) -> Result<Option<Ident>> {
 }
 
 #[cfg(all(feature = "api", target_arch = "wasm32"))]
-fn write_schema(app: &App, api: &Value, data: &Value) {
-    api::json_write(&format!("{}-api.json", app.name()), api);
-    api::json_write(&format!("{}-data.json", app.name()), data);
+fn write_schema(template: &Template, api: &Value, data: &Value) {
+    api::json_write(&format!("{}-api.json", template.name()), api);
+    api::json_write(&format!("{}-data.json", template.name()), data);
 }
 
 #[cfg(any(not(feature = "api"), not(target_arch = "wasm32")))]
-fn write_schema(app: &App, api: &Value, data: &Value) {
+fn write_schema(template: &Template, api: &Value, data: &Value) {
     //
 }
 
-fn expand_structs(app: &App) -> Result<TokenStream> {
+fn expand_structs(template: &Template) -> Result<TokenStream> {
     let mut structs = Vec::new();
 
-    validate_structs(app)?;
+    validate_structs(template)?;
 
-    for strukt in app.structs() {
+    for strukt in template.structs() {
         let strukt = r#struct::expand(strukt)?;
 
         structs.push(strukt);
@@ -255,15 +255,15 @@ fn expand_structs(app: &App) -> Result<TokenStream> {
     Ok(ast)
 }
 
-fn validate_structs(app: &App) -> Result<()> {
+fn validate_structs(template: &Template) -> Result<()> {
     let mut seen_storage = false;
 
-    for strukt in app.structs() {
+    for strukt in template.structs() {
         match strukt.attrs() {
             Ok(attrs) => {
                 if has_storage_attr(attrs) {
                     if seen_storage {
-                        let msg = format!("an App can have only a single `#[storage]`");
+                        let msg = format!("A Template can have only a single `#[storage]`");
                         let span = Span::call_site();
 
                         return Err(Error::new(span, msg));
@@ -279,18 +279,18 @@ fn validate_structs(app: &App) -> Result<()> {
     Ok(())
 }
 
-fn expand_functions(app: &App) -> Result<TokenStream> {
-    validate_funcs(app)?;
+fn expand_functions(template: &Template) -> Result<TokenStream> {
+    validate_funcs(template)?;
 
     let mut funcs = Vec::new();
 
-    for func in app.functions() {
-        let func = function::expand(func, app)?;
+    for func in template.functions() {
+        let func = function::expand(func, template)?;
 
         funcs.push(func);
     }
 
-    let implicit_fundable_hook = if app.default_fundable_hook().is_some() {
+    let implicit_fundable_hook = if template.default_fundable_hook().is_some() {
         quote! {}
     } else {
         function::fundable_hook::expand_default()?
@@ -305,7 +305,7 @@ fn expand_functions(app: &App) -> Result<TokenStream> {
     Ok(ast)
 }
 
-fn validate_funcs(app: &App) -> Result<()> {
+fn validate_funcs(template: &Template) -> Result<()> {
     Ok(())
 }
 

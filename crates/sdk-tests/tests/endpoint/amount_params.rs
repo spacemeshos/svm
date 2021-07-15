@@ -1,9 +1,9 @@
-use svm_sdk::{app, Amount};
+use svm_sdk::{template, Amount};
 
 use svm_sdk_tests::{call_1, call_2};
 
-#[app]
-mod App {
+#[template]
+mod Template {
     #[endpoint]
     fn add(a: Amount, b: Amount) -> Amount {
         a + b

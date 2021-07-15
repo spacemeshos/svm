@@ -1,9 +1,9 @@
-use svm_sdk::app;
+use svm_sdk::template;
 
 use svm_sdk_tests::call_1;
 
-#[app]
-mod App {
+#[template]
+mod Template {
     #[endpoint]
     fn add_u8(a: u8, b: u8) -> u8 {
         a + b

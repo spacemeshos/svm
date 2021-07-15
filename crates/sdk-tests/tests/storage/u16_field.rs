@@ -1,11 +1,10 @@
-use svm_sdk::app;
+use svm_sdk::template;
 
-#[app]
-mod App {
+#[template]
+mod Template {
     #[storage]
     struct Storage {
         word: u16,
-
         words: [u16; 3],
     }
 }

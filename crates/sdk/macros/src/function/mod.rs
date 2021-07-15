@@ -1,5 +1,4 @@
 use proc_macro2::{Ident, Span, TokenStream};
-
 use quote::{quote, ToTokens};
 use syn::{Attribute, Block, Error, ItemFn, Result, ReturnType, Signature, Type};
 
@@ -17,11 +16,10 @@ pub use attr::{
 pub use attr::{FuncAttr, FuncAttrKind};
 
 use crate::schema::Schema;
-use crate::App;
+use crate::Template;
 
 pub struct Function {
     raw_func: ItemFn,
-
     index: usize,
 }
 
@@ -68,15 +66,15 @@ impl Function {
     }
 }
 
-pub fn expand(func: &Function, app: &App) -> Result<TokenStream> {
+pub fn expand(func: &Function, template: &Template) -> Result<TokenStream> {
     let attrs = func_attrs(func)?;
 
     validate_attrs(&attrs)?;
 
     let ast = if has_ctor_attr(&attrs) {
-        ctor::expand(func, &attrs, app)?
+        ctor::expand(func, &attrs, template)?
     } else if has_endpoint_attr(&attrs) {
-        endpoint::expand(func, &attrs, app)?
+        endpoint::expand(func, &attrs, template)?
     } else if has_fundable_hook_attr(&attrs) {
         fundable_hook::expand(func, &attrs)?
     } else {

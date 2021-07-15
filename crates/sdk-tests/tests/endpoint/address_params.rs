@@ -1,9 +1,9 @@
-use svm_sdk::{app, Address};
+use svm_sdk::{template, Address};
 
 use svm_sdk_tests::{call_1, call_2};
 
-#[app]
-mod App {
+#[template]
+mod Template {
     #[endpoint]
     fn zeros() -> Address {
         [0; Address::len()].into()

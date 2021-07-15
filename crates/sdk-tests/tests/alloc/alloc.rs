@@ -1,7 +1,7 @@
-use svm_sdk::app;
+use svm_sdk::template;
 
-#[app]
-mod App {
+#[template]
+mod Template {
     // The `svm_alloc` is auto-generated.
 }
 
