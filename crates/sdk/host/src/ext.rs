@@ -12,9 +12,9 @@ use core::mem::MaybeUninit;
 
 /// ## SVM Imports  
 ///
-/// WASM Imports under namespace `svm` for SVM programs.
-/// Each running SVM app can assume their existence regardless of
-/// the additional imports given by the Spacemesh node.
+/// WASM Imports under the `svm` namespace `svm` (Node-agnostic)
+/// Each running SVM transaction (a.k.a `Call Account) can assume these imports exist regardless of
+/// the additional imports which are `Node aware`.
 
 #[link(wasm_import_module = "svm")]
 extern "C" {
@@ -27,7 +27,7 @@ extern "C" {
     /// Signals to SVM that the current running transaction output (a.k.a `returndata`)
     /// lays out in memory starting from offset `offset` and its byte-length is `length`.
     ///
-    /// * Not calling that method during app execution will result in an empty `returndata`.
+    /// * Not calling that method during a transaction execution will result in an empty `returndata`.
     ///
     /// * Calling this method multiple times - the last call wins.
     fn svm_set_returndata(offset: u32, length: u32);
@@ -50,26 +50,23 @@ extern "C" {
     /// Returns the `value` field of the current executed transaction.
     fn sm_value() -> u64;
 
-    /// Receives an account address.
-    /// (The `Address::len()` bytes starting at memory offset `offset`)
-    ///
-    /// Returns the account balance.
-    fn sm_balance(offset: u32) -> u64;
+    /// Returns the currently executed `Account`'s (a.k.a the `target`) balance.
+    fn sm_balance() -> u64;
 
     /// Receives an offset to allocated `Address` (`Address::len()` of bytes).
-    /// The node will copy the address of the current executed transaction `sender`
+    /// The `Node` will copy the `Address` of the transaction's `Principal`
     /// starting at offset `offset`.
-    fn sm_sender(offset: u32);
+    fn sm_principal(offset: u32);
 
     /// Receives an offset to allocated `Address` (`Address::len()` of bytes).
-    /// The node will copy the address of the current executed transaction `app`
+    /// The `Node` will copy the `Address` of the transaction's `Target` (the currently executing `Account`)
     /// starting at offset `offset`.
-    fn sm_app(offset: u32);
+    fn sm_target(offset: u32);
 
     /// Returns the Spacemesh layer the current executed transaction is running at.
     fn sm_layer() -> u64;
 
-    /// Transfers `amount` coins from the current running `app` ("the source")
+    /// Transfers `amount` coins from the currently executed `Account` (the `target`)
     /// to the account ("the destination") which is address is starts offset `dst_offset` (`Address::len()` of bytes).
     fn sm_transfer(dst_offset: u32, amount: u64);
 }
@@ -104,72 +101,63 @@ impl ExtHost {
     #[inline]
     pub fn value() -> Amount {
         let host = Self::instance();
-
         host.value()
     }
 }
 
 impl Host for ExtHost {
     #[inline]
-    fn get_calldata(&self) -> &'static [u8] {
+    fn calldata(&self) -> &'static [u8] {
         let host = Self::instance();
-
-        host.get_calldata()
+        host.calldata()
     }
 
     #[inline]
     fn set_returndata(&mut self, bytes: &[u8]) {
         let host = Self::instance();
-
         host.set_returndata(bytes);
     }
 
     #[inline]
     fn value(&self) -> Amount {
         let host = Self::instance();
-
         host.value()
     }
 
     #[inline]
-    fn sender(&self) -> Address {
+    fn principal(&self) -> Address {
         let host = Self::instance();
-
-        host.sender()
+        host.principal()
     }
 
     #[inline]
-    fn app(&self) -> Address {
+    fn target(&self) -> Address {
         let host = Self::instance();
-
-        host.app()
+        host.target()
     }
 
     #[inline]
     fn layer_id(&self) -> LayerId {
         let host = Self::instance();
-
         host.layer_id()
     }
 
     #[inline]
-    fn balance_of(&self, addr: &Address) -> Amount {
+    fn balance(&self) -> Amount {
         let host = Self::instance();
 
-        host.balance_of(&addr)
+        host.balance()
     }
 
     #[inline]
     fn transfer(&mut self, dst: &Address, amount: Amount) {
         let host = Self::instance();
-
         host.transfer(&dst, amount);
     }
 
     #[inline]
     fn log(&mut self, msg: &str, code: u8) {
         let host = Self::instance();
-
         host.log(msg, code);
     }
 }
@@ -178,11 +166,10 @@ pub struct InnerHost;
 
 impl Host for InnerHost {
     #[inline]
-    fn get_calldata(&self) -> &'static [u8] {
+    fn calldata(&self) -> &'static [u8] {
         unsafe {
             let offset = svm_calldata_offset();
             let len = svm_calldata_len() as _;
-
             let bytes: &[u8] = core::slice::from_raw_parts(offset as *const u8, len);
 
             core::mem::transmute(bytes)
@@ -203,28 +190,27 @@ impl Host for InnerHost {
     fn value(&self) -> Amount {
         unsafe {
             let value = sm_value();
-
             Amount(value)
         }
     }
 
     #[inline]
-    fn sender(&self) -> Address {
+    fn principal(&self) -> Address {
         unsafe {
             let offset = self.alloc_addr();
 
-            sm_sender(offset);
+            sm_principal(offset);
 
             offset.into()
         }
     }
 
     #[inline]
-    fn app(&self) -> Address {
+    fn target(&self) -> Address {
         unsafe {
             let offset = self.alloc_addr();
 
-            sm_app(offset);
+            sm_target(offset);
 
             offset.into()
         }
@@ -234,18 +220,14 @@ impl Host for InnerHost {
     fn layer_id(&self) -> LayerId {
         unsafe {
             let id = sm_layer();
-
             LayerId(id)
         }
     }
 
     #[inline]
-    fn balance_of(&self, addr: &Address) -> Amount {
+    fn balance(&self) -> Amount {
         unsafe {
-            let offset = addr.offset() as u32;
-
-            let amount = sm_balance(offset);
-
+            let amount = sm_balance();
             Amount(amount)
         }
     }
@@ -254,7 +236,6 @@ impl Host for InnerHost {
     fn transfer(&mut self, dst: &Address, amount: Amount) {
         unsafe {
             let dst = dst.offset() as u32;
-
             sm_transfer(dst, amount.0);
         }
     }
@@ -278,7 +259,6 @@ impl InnerHost {
     #[inline]
     fn alloc_addr(&self) -> u32 {
         let ptr = svm_sdk_alloc::alloc(Address::len());
-
         ptr.offset() as u32
     }
 }

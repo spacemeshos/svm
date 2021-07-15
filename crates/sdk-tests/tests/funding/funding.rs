@@ -1,10 +1,10 @@
 use svm_sdk::storage::MockStorage;
-use svm_sdk::{app, Amount};
+use svm_sdk::{template, Amount};
 
 use svm_sdk_tests::call_and_fund_1;
 
-#[app]
-mod App {
+#[template]
+mod Template {
     #[storage]
     struct Storage {
         coins: Amount,

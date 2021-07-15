@@ -29,12 +29,13 @@ where
     MockHost::set_value(value);
 
     // In order to make the function fully compatible with
-    // a real-world scenario, we need to feed it with the `sender`
-    // executing `app` address as well.
+    // a real-world scenario, we need to feed it with a `principal`
+    // and the called `target` as well.
     //
     // ```
-    // MockHost:set_sender(sender);
-    // MockHost::transfer(app, value);
+    // MockHost::set_principal(principal);
+    // MockHost::set_target(target);
+    // MockHost::transfer(target, value);
     // ```
     //
     // This won't assist us in any way to check the functionality of the proc-macros

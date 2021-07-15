@@ -1,22 +1,20 @@
 use crate::{FixedLayout, Id, RawVar};
 
 /// Specifies the fixed-sized variables
-pub struct LayoutBuilder {
+pub struct FixedLayoutBuilder {
     first: Option<Id>,
-
     vars: Vec<(u32, u32)>,
-
     next_offset: u32,
 }
 
-impl Default for LayoutBuilder {
+impl Default for FixedLayoutBuilder {
     fn default() -> Self {
         Self::new()
     }
 }
 
-/// `LayoutBuilder` represents the fixed-sized variables (storage) of an application.
-impl LayoutBuilder {
+/// Builds [`FixedLayout`].
+impl FixedLayoutBuilder {
     /// New builder
     pub fn new() -> Self {
         Self::with_capacity(0)
@@ -61,9 +59,7 @@ impl LayoutBuilder {
     /// The starting offset is right after where the previous variable ended.
     pub fn push(&mut self, len: u32) {
         let offset = self.next_offset;
-
         self.vars.push((offset, len));
-
         self.next_offset += len;
     }
 

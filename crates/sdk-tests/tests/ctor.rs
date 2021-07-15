@@ -24,8 +24,8 @@ fn ctor_tests() {
     // `#[ctor]` and `#[endpoint]` should behave exactly the same.
     //
     // The difference between the two is that a `ctor` is allowed to execute
-    // only when spawning a new app, whilst an `endpoint` is allowed to run only
-    // from within an existing `app`.
+    // only when spawning a new `Account`, whilst an `endpoint` is allowed to run only
+    // from within an existing `Account`.
     //
     // The job of the `svm-sdk` is only to communicate for which exported function
     // whether it represents an `endpoint` or a `ctor`.
@@ -33,11 +33,11 @@ fn ctor_tests() {
     //
     // This restriction should be enforced by the `SVM` Runtime:
     //
-    // * When trying to spawn a new `app` with a public function not defined as `ctor`
-    // in the `deploy-template` - the validation phase should fail the transaction.
+    // * When trying to spawn a new `Account` with a public function not defined as `ctor`,
+    //   the validation phase should fail the transaction.
     //
-    // * When trying to execute a function of an existing `app` defined as a `ctor`
-    // in the `deploy-template` - the validation phase should fail the transaction.
+    // * When trying to execute a function of an existing `Account` defined as a `ctor`,
+    //   the validation phase should fail the transaction.
     pass(&t, "tests/ctor/bool_params.rs");
 
     compile_fail(&t, "tests/ctor/ctor_and_fundable_attrs_wrong_order.rs");
