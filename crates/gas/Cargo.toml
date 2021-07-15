@@ -11,7 +11,6 @@ publish = false
 [dependencies]
 indexmap = "1.6.2"
 parity-wasm = "0.42.2"
-petgraph = "0.6"
 svm-program = { path = "../program" }
 thiserror = "1"
 
