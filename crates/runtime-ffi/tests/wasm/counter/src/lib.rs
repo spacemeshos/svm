@@ -1,12 +1,12 @@
-use svm_sdk::app;
+use svm_sdk::template;
 
 #[link(wasm_import_module = "host")]
 extern "C" {
     fn counter_mul(var_id: u32, mul_by: u32) -> u32;
 }
 
-#[app]
-mod App {
+#[template]
+mod Template {
     #[storage]
     struct Storage {
         counter: u32, // var_id = 0

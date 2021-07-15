@@ -1,7 +1,7 @@
-use svm_sdk::{app, Address};
+use svm_sdk::{template, Address};
 
-#[app]
-mod App {
+#[template]
+mod Template {
     #[storage]
     struct Storage {
         addr: Address,
