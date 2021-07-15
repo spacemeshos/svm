@@ -106,6 +106,11 @@ impl MockHost {
         host.balance()
     }
 
+    pub fn balance_of(addr: &Address) -> Amount {
+        let host = Self::instance();
+        host.balance_of(addr)
+    }
+
     pub fn transfer(dst: &Address, amount: Amount) {
         let host = Self::instance();
         host.transfer(dst, amount);
@@ -406,7 +411,7 @@ mod tests {
             MockHost::set_balance(&target, Amount(10));
             MockHost::set_balance(&dst, Amount(20));
 
-            let amount1 = MockHost::balance_of();
+            let amount1 = MockHost::balance();
             let amount2 = MockHost::balance_of(&dst);
 
             assert_eq!(amount1, Amount(10));
@@ -414,7 +419,7 @@ mod tests {
 
             MockHost::transfer(&dst, Amount(5));
 
-            let amount1 = MockHost::balance_of();
+            let amount1 = MockHost::balance();
             let amount2 = MockHost::balance_of(&dst);
 
             assert_eq!(amount1, Amount(10 - 5));
