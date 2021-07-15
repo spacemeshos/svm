@@ -1,4 +1,4 @@
-use crate::{Id, FixedLayoutBuilder, RawVar};
+use crate::{FixedLayoutBuilder, Id, RawVar};
 
 /// In-memory representation of a program's fixed-sized storage variables.
 #[derive(Debug, PartialEq, Clone)]

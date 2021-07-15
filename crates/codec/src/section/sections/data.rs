@@ -45,7 +45,7 @@
 
 use std::io::Cursor;
 
-use svm_layout::{Id, Layout, FixedLayoutBuilder, LayoutKind, RawVar};
+use svm_layout::{FixedLayoutBuilder, Id, Layout, LayoutKind, RawVar};
 use svm_types::DataSection;
 
 use crate::section::{SectionDecoder, SectionEncoder};

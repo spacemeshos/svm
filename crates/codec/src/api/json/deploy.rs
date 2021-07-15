@@ -4,7 +4,7 @@ use crate::api::builder::TemplateBuilder;
 use crate::api::json::{self, JsonError};
 use crate::template;
 
-use svm_layout::{Id, Layout, FixedLayoutBuilder};
+use svm_layout::{FixedLayoutBuilder, Id, Layout};
 use svm_types::{CodeSection, CtorsSection, DataSection, HeaderSection};
 
 ///
