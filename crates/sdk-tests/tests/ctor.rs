@@ -34,7 +34,7 @@ fn ctor_tests() {
     // This restriction should be enforced by the `SVM` Runtime:
     //
     // * When trying to spawn a new `Account` with a public function not defined as `ctor`,
-    ///  the validation phase should fail the transaction.
+    //   the validation phase should fail the transaction.
     //
     // * When trying to execute a function of an existing `Account` defined as a `ctor`,
     //   the validation phase should fail the transaction.

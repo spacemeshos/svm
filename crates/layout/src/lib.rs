@@ -9,7 +9,7 @@ mod builder;
 mod fixed;
 mod var;
 
-pub use builder::LayoutBuilder;
+pub use builder::FixedLayoutBuilder;
 pub use fixed::FixedLayout;
 pub use var::{Id, Primitive, RawVar, SymbolicVar, Type};
 

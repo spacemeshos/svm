@@ -25,14 +25,14 @@ pub use api::{svm_memory_runtime_create, svm_memory_state_kv_create};
 #[rustfmt::skip]
 pub use api::{
     // Runtime
-    svm_exec_app,
-    svm_deploy_template,
-    svm_spawn_app,
+    svm_call,
+    svm_deploy,
+    svm_spawn,
     
     // Validations
-    svm_validate_template,
-    svm_validate_app,
-    svm_validate_tx,
+    svm_validate_deploy,
+    svm_validate_spawn,
+    svm_validate_call,
 
     // Destroy
     svm_runtime_destroy,

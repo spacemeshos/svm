@@ -4,7 +4,7 @@ use crate::api::builder::TemplateBuilder;
 use crate::api::json::{self, JsonError};
 use crate::template;
 
-use svm_layout::{Id, Layout, LayoutBuilder};
+use svm_layout::{FixedLayoutBuilder, Id, Layout};
 use svm_types::{CodeSection, CtorsSection, DataSection, HeaderSection};
 
 ///
@@ -71,7 +71,7 @@ fn to_data_layout(blob: Vec<u8>) -> Result<Layout, JsonError> {
         .collect();
 
     // Note: `LayoutBuilder` assume that the `first var id` is zero
-    let mut builder = LayoutBuilder::with_capacity(data.len());
+    let mut builder = FixedLayoutBuilder::with_capacity(data.len());
 
     builder.set_first(Id(0));
     builder.extend_from_slice(&data);
