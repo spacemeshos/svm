@@ -1,8 +1,8 @@
 use indexmap::IndexSet;
 
-use svm_program::Op;
-
 use std::fmt::{self, Debug};
+
+use svm_program::Op;
 
 use super::{Depth, Edge, Jump};
 
