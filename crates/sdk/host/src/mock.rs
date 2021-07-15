@@ -16,7 +16,7 @@ use std::collections::HashMap;
 use std::mem::MaybeUninit;
 use std::sync::Once;
 
-/// Since SVM apps run one-by-one there is no need for any concurrency primitives usage.
+/// Since SVM Transactions run one-by-one there is no need for any concurrency primitives usage.
 /// We implement the `Host`'s singleton initialization using `unsafe` tools.
 ///
 /// This pattern is similarly used in other cases throughout this crate.
@@ -71,6 +71,11 @@ impl MockHost {
         host.set_value(value);
     }
 
+    pub fn set_principal(target: Address) {
+        let host = Self::instance();
+        host.set_principal(target);
+    }
+
     pub fn set_target(target: Address) {
         let host = Self::instance();
         host.set_target(target);
@@ -96,9 +101,9 @@ impl MockHost {
         host.layer_id()
     }
 
-    pub fn balance_of(addr: &Address) -> Amount {
+    pub fn balance() -> Amount {
         let host = Self::instance();
-        host.balance_of(addr)
+        host.balance()
     }
 
     pub fn transfer(dst: &Address, amount: Amount) {
@@ -125,32 +130,27 @@ impl MockHost {
 impl Host for MockHost {
     fn calldata(&self) -> &'static [u8] {
         let host = Self::instance();
-
         host.calldata()
     }
 
     fn set_returndata(&mut self, bytes: &[u8]) {
         let host = Self::instance();
-
         host.set_returndata(bytes);
     }
 
     fn value(&self) -> Amount {
         let host = Self::instance();
-
         host.value()
+    }
+
+    fn principal(&self) -> Address {
+        let host = Self::instance();
+        host.principal()
     }
 
     fn target(&self) -> Address {
         let host = Self::instance();
-
         host.target()
-    }
-
-    fn address(&self) -> Address {
-        let host = Self::instance();
-
-        host.address()
     }
 
     fn layer_id(&self) -> LayerId {
@@ -158,9 +158,9 @@ impl Host for MockHost {
         host.layer_id()
     }
 
-    fn balance_of(&self, addr: &Address) -> Amount {
+    fn balance(&self) -> Amount {
         let host = Self::instance();
-        host.balance_of(addr)
+        host.balance()
     }
 
     fn transfer(&mut self, dst: &Address, amount: Amount) {
@@ -183,6 +183,8 @@ pub struct InnerHost {
 
     pub value: Option<Amount>,
 
+    pub principal: Option<Address>,
+
     pub target: Option<Address>,
 
     pub layer_id: Option<LayerId>,
@@ -196,6 +198,7 @@ impl InnerHost {
             calldata: None,
             returndata: None,
             value: None,
+            principal: None,
             target: None,
             accounts: HashMap::new(),
             layer_id: None,
@@ -236,6 +239,10 @@ impl InnerHost {
         self.value = Some(value);
     }
 
+    pub fn set_principal(&mut self, principal: Address) {
+        self.principal = Some(principal);
+    }
+
     pub fn set_target(&mut self, target: Address) {
         self.target = Some(target);
     }
@@ -248,12 +255,16 @@ impl InnerHost {
         self.logs.clone()
     }
 
+    pub fn balance_of(&self, addr: &Address) -> Amount {
+        *self.accounts.get(&addr).unwrap_or(&Amount(0))
+    }
+
     pub fn reset(&mut self) {
         self.calldata = None;
         self.returndata = None;
         self.value = None;
+        self.principal = None;
         self.target = None;
-        self.app = None;
         self.layer_id = None;
         self.logs.clear();
     }
@@ -272,33 +283,34 @@ impl Host for InnerHost {
         self.value.unwrap().clone()
     }
 
-    fn target(&self) -> Address {
-        self.target.unwrap().clone()
+    fn principal(&self) -> Address {
+        self.principal.unwrap().clone()
     }
 
-    fn address(&self) -> Address {
-        self.app.unwrap().clone()
+    fn target(&self) -> Address {
+        self.target.unwrap().clone()
     }
 
     fn layer_id(&self) -> LayerId {
         self.layer_id.unwrap()
     }
 
-    fn balance_of(&self, addr: &Address) -> Amount {
-        *self.accounts.get(addr).unwrap_or(&Amount(0))
+    fn balance(&self) -> Amount {
+        let target = self.target();
+        self.balance_of(&target)
     }
 
     fn transfer(&mut self, dst: &Address, amount: Amount) {
-        let app_balance = self.app_balance();
+        let target_balance = self.balance();
 
-        assert!(app_balance >= amount);
+        assert!(target_balance >= amount);
 
         let dst_balance = self.balance_of(dst);
 
-        let src_balance = app_balance - amount;
+        let src_balance = target_balance - amount;
         let dst_balance = dst_balance + amount;
 
-        let src = self.address();
+        let src = self.target();
 
         self.accounts.insert(src, src_balance);
         self.accounts.insert(dst.clone(), dst_balance);
@@ -386,15 +398,15 @@ mod tests {
     #[test]
     fn host_transfer() {
         test(|| {
-            let src: Address = [0x10; 20].into();
+            let target: Address = [0x10; 20].into();
             let dst: Address = [0x20; 20].into();
 
-            MockHost::set_app(src);
+            MockHost::set_target(target);
 
-            MockHost::set_balance(&src, Amount(10));
+            MockHost::set_balance(&target, Amount(10));
             MockHost::set_balance(&dst, Amount(20));
 
-            let amount1 = MockHost::balance_of(&src);
+            let amount1 = MockHost::balance_of();
             let amount2 = MockHost::balance_of(&dst);
 
             assert_eq!(amount1, Amount(10));
@@ -402,7 +414,7 @@ mod tests {
 
             MockHost::transfer(&dst, Amount(5));
 
-            let amount1 = MockHost::balance_of(&src);
+            let amount1 = MockHost::balance_of();
             let amount2 = MockHost::balance_of(&dst);
 
             assert_eq!(amount1, Amount(10 - 5));

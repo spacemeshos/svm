@@ -1,4 +1,4 @@
-/// The `ensure!` macro is intended to be used within written SVM apps.
+/// The `ensure!` macro is intended to be used within written SVM Templates.
 /// The macro is very similar to the `assert` macro used for writing tests.
 /// Aborting in case the exercised expression isn't satisfied,
 /// the passed `msg` will be logged-in first.

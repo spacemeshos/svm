@@ -50,21 +50,18 @@ extern "C" {
     /// Returns the `value` field of the current executed transaction.
     fn sm_value() -> u64;
 
-    /// Receives an account address.
-    /// (The `Address::len()` bytes starting at memory offset `offset`)
-    ///
-    /// Returns the currently executed `Account`'s balance.
-    fn sm_balance(offset: u32) -> u64;
+    /// Returns the currently executed `Account`'s (a.k.a the `target`) balance.
+    fn sm_balance() -> u64;
 
     /// Receives an offset to allocated `Address` (`Address::len()` of bytes).
-    /// The node will copy the address of the current executed transaction `sender`
-    /// starting at offset `offset`.
-    fn sm_sender(offset: u32);
-
-    /// Receives an offset to allocated `Address` (`Address::len()` of bytes).
-    /// The node will copy the address of the currently called `Account` (a.k.a the `target`)
+    /// The `Node` will copy the `Address` of the transaction's `Principal`
     /// starting at offset `offset`.
     fn sm_principal(offset: u32);
+
+    /// Receives an offset to allocated `Address` (`Address::len()` of bytes).
+    /// The `Node` will copy the `Address` of the transaction's `Target` (the currently executing `Account`)
+    /// starting at offset `offset`.
+    fn sm_target(offset: u32);
 
     /// Returns the Spacemesh layer the current executed transaction is running at.
     fn sm_layer() -> u64;
@@ -104,7 +101,6 @@ impl ExtHost {
     #[inline]
     pub fn value() -> Amount {
         let host = Self::instance();
-
         host.value()
     }
 }
@@ -129,15 +125,15 @@ impl Host for ExtHost {
     }
 
     #[inline]
-    fn target(&self) -> Address {
+    fn principal(&self) -> Address {
         let host = Self::instance();
-        host.target()
+        host.principal()
     }
 
     #[inline]
-    fn address(&self) -> Address {
+    fn target(&self) -> Address {
         let host = Self::instance();
-        host.address()
+        host.target()
     }
 
     #[inline]
@@ -147,10 +143,10 @@ impl Host for ExtHost {
     }
 
     #[inline]
-    fn balance_of(&self, addr: &Address) -> Amount {
+    fn balance(&self) -> Amount {
         let host = Self::instance();
 
-        host.balance_of(&addr)
+        host.balance()
     }
 
     #[inline]
@@ -199,9 +195,21 @@ impl Host for InnerHost {
     }
 
     #[inline]
+    fn principal(&self) -> Address {
+        unsafe {
+            let offset = self.alloc_addr();
+
+            sm_principal(offset);
+
+            offset.into()
+        }
+    }
+
+    #[inline]
     fn target(&self) -> Address {
         unsafe {
             let offset = self.alloc_addr();
+
             sm_target(offset);
 
             offset.into()
@@ -217,11 +225,9 @@ impl Host for InnerHost {
     }
 
     #[inline]
-    fn balance_of(&self, addr: &Address) -> Amount {
+    fn balance(&self) -> Amount {
         unsafe {
-            let offset = addr.offset() as u32;
-            let amount = sm_balance(offset);
-
+            let amount = sm_balance();
             Amount(amount)
         }
     }
