@@ -4,13 +4,10 @@ use svm_program::*;
 
 use crate::{CallGraphBuilder, FixedGasError, GraphCycles};
 
-/// Validates a Wasm program.
+/// Further validates a smWasm [`Program`] according to the fixed-gas rules.
 ///
-/// The wasm program is considered INVALID when one of the following:
+/// The smWash [`Program`] is considered INVALID when one of the following:
 ///
-/// * It contains instructions using floats.
-/// * It has more than `std::u16::MAX` imported functions.
-/// * The sum of imported functions and program functions exceeds `std::u16::MAX`.
 /// * It contains the `loop` opcode.
 /// * It contains the `call_indirect` opcode.
 /// * It contains a call-cycles (at least one).
@@ -126,8 +123,7 @@ impl ProgramVisitor for ProgramValidator {
                 if program.is_imported(target) == false {
                     let origin = self.current_func();
 
-                    self.add_call(op, origin, target)
-                        .map_err(|_| FixedGasError::LoopNotAllowed)?;
+                    self.add_call(op, origin, target)?;
                 }
 
                 Ok(())

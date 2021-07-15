@@ -8,9 +8,9 @@ pub struct OpcodeValidator<F> {
 }
 
 impl<F> OpcodeValidator<F> {
-    pub fn new(f: F) -> Self
+    pub fn new<E>(f: F) -> Self
     where
-        F: Fn(&Op) -> bool,
+        F: Fn(&Op) -> Result<(), E>,
     {
         Self {
             opcode_validator: f,
@@ -18,19 +18,15 @@ impl<F> OpcodeValidator<F> {
     }
 }
 
-impl<F> ProgramVisitor for OpcodeValidator<F>
+impl<F, E> ProgramVisitor for OpcodeValidator<F>
 where
-    F: Fn(&Op) -> bool,
+    F: Fn(&Op) -> Result<(), E>,
 {
     type Output = ();
-    type Error = usize;
+    type Error = E;
 
     fn on_op(&mut self, op: &Op, _program: &Program) -> Result<(), Self::Error> {
-        if (self.opcode_validator)(op) {
-            Ok(())
-        } else {
-            Err(op.offset())
-        }
+        (self.opcode_validator)(op)
     }
 
     fn on_end(self, _program: &Program) -> Result<Self::Output, Self::Error> {

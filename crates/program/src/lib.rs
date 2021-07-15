@@ -43,8 +43,8 @@ fn count_functions_in_program(program: &Program) -> u64 {
     Counter::default().visit(program).unwrap()
 }
 
-fn validate_no_floats(program: &Program) -> Result<(), usize> {
-    OpcodeValidator::new(|op| validate_opcode(op).is_ok()).visit(program)
+fn validate_no_floats(program: &Program) -> Result<(), ProgramError> {
+    OpcodeValidator::new(validate_opcode).visit(program)
 }
 
 fn validate_opcode(op: &Op) -> Result<(), ProgramError> {

@@ -1,9 +1,27 @@
 use indexmap::IndexMap;
-use parity_wasm::elements::{CodeSection, ExportSection, External, ImportCountType, Module};
+use parity_wasm::elements::{CodeSection, Module};
 
-use crate::{Exports, FuncIndex, Function, Imports, Instruction, ProgramError};
+use crate::{validate_no_floats, Exports, FuncIndex, Function, Imports, Instruction, ProgramError};
 
-/// Parsed smWasm Program.
+/// A fully parsed and validated smWasm program.
+///
+/// smWash is the language in which Spacemesh smart contracts are written in.
+/// It's a proper subset of WebAssembly, also known as Wasm, similarly to
+/// Ethereum's [*ewasm*](https://github.com/ewasm/design).
+///
+/// smWasm follows the official WebAssembly specification, but imposes some
+/// other restrictions as well:
+///
+/// * No floating-point operations.
+/// * No more than [`std::u16::MAX`] functions. This includes functions that are
+///   both imported and defined.
+/// * It must
+///   [export](https://webassembly.github.io/spec/core/syntax/modules.html#syntax-export)
+///   several functions which are part of the SVM APIs.
+///
+/// The main use of [`Program`] is providing a simple smWasm validation tool.
+/// Introspection capabilities into actual smWasm modules' contents are very
+/// basic and limited in scope.
 #[derive(Debug, Default)]
 pub struct Program {
     imports: Imports,
@@ -17,8 +35,8 @@ impl Program {
         let module = read_module(wasm_module)?;
 
         let code = read_code(&module)?;
-        let imports = read_imports(&module)?;
-        let exports = read_exports(&module)?;
+        let imports = Imports::read(&module)?;
+        let exports = Exports::read(&module)?;
 
         let mut program = Program::default();
 
@@ -34,6 +52,7 @@ impl Program {
         program.set_imports(imports);
         program.set_exports(exports);
 
+        validate_no_floats(&program)?;
         Ok(program)
     }
 
@@ -91,64 +110,5 @@ fn read_code(module: &Module) -> Result<CodeSection, ProgramError> {
     match module.code_section() {
         Some(code) => Ok(code.clone()),
         None => Err(ProgramError::MissingCodeSection),
-    }
-}
-
-fn read_imports<'m>(module: &Module) -> Result<Imports, ProgramError> {
-    let import_section = module.import_section();
-
-    if let Some(import_section) = import_section {
-        let import_count = module_import_count(module)?;
-
-        let mut imports = Imports::with_capacity(import_count as usize);
-        let mut offset = 0;
-
-        import_section.entries().iter().for_each(|import| {
-            if let External::Function(..) = import.external() {
-                let module = import.module();
-                let name = import.field();
-                let fn_index = FuncIndex(offset);
-
-                imports.insert(module, name, fn_index);
-
-                offset += 1;
-            }
-        });
-
-        Ok(imports)
-    } else {
-        Ok(Imports::new())
-    }
-}
-
-fn read_exports(module: &Module) -> Result<Exports, ProgramError> {
-    let empty_exports_section = ExportSection::with_entries(vec![]);
-
-    let mut exports = Exports::default();
-    let items = module
-        .export_section()
-        .unwrap_or(&empty_exports_section)
-        .entries()
-        .iter()
-        .filter_map(|entry| {
-            if let parity_wasm::elements::Internal::Function(i) = entry.internal() {
-                Some((entry.field().to_string(), *i))
-            } else {
-                None
-            }
-        });
-    for (name, func_index) in items {
-        exports.insert(name, FuncIndex(func_index))
-    }
-    Ok(exports)
-}
-
-fn module_import_count(module: &Module) -> Result<u16, ProgramError> {
-    let import_count = module.import_count(ImportCountType::Function);
-
-    if import_count <= std::u16::MAX as usize {
-        Ok(import_count as u16)
-    } else {
-        Err(ProgramError::TooManyFunctionImports)
     }
 }

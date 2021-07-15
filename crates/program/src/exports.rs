@@ -1,6 +1,7 @@
 use indexmap::IndexMap;
+use parity_wasm::elements::{ExportSection, Internal, Module};
 
-use crate::FuncIndex;
+use crate::{FuncIndex, ProgramError};
 
 /// Stores a mapping between an export name to its corresponding function index.
 #[derive(Debug, Clone, Default)]
@@ -9,6 +10,27 @@ pub struct Exports {
 }
 
 impl Exports {
+    pub(crate) fn read(module: &Module) -> Result<Exports, ProgramError> {
+        let empty_exports_section = ExportSection::with_entries(vec![]);
+
+        let mut exports = Exports::default();
+        let items = module
+            .export_section()
+            .unwrap_or(&empty_exports_section)
+            .entries()
+            .iter()
+            .filter_map(|entry| {
+                if let Internal::Function(i) = entry.internal() {
+                    Some((entry.field().to_string(), *i))
+                } else {
+                    None
+                }
+            });
+        for (name, func_index) in items {
+            exports.insert(name, FuncIndex(func_index))
+        }
+        Ok(exports)
+    }
     /// Insert a mapping between `export_naem` to `fn_index`
     pub fn insert<S: Into<String>>(&mut self, export_name: S, fn_index: FuncIndex) {
         self.inner.insert(export_name.into(), fn_index);

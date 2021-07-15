@@ -6,10 +6,9 @@ use crate::FixedGasError;
 
 pub fn detect_loops(program: &Program) -> Result<(), FixedGasError> {
     OpcodeValidator::new(|opcode| match opcode.raw() {
-        Instruction::Loop(_) => false,
-        Instruction::CallIndirect(_, _) => false,
-        _ => true,
+        Instruction::Loop(_) => Err(FixedGasError::LoopNotAllowed),
+        Instruction::CallIndirect(_, _) => Err(FixedGasError::CallIndirectNotAllowed),
+        _ => Ok(()),
     })
     .visit(program)
-    .map_err(|opcode_offset| FixedGasError::LoopNotAllowed)
 }
