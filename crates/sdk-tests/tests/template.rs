@@ -18,7 +18,7 @@ fn compile_fail(t: &TestCases, test: &'static str) {
 }
 
 #[test]
-fn app_tests() {
+fn template_tests() {
     let t = TestCases::new();
 
     pass(&t, "tests/template/empty.rs");
