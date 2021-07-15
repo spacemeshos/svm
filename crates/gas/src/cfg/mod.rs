@@ -291,9 +291,9 @@
 ///
 use parity_wasm::elements::Instruction;
 
-use svm_program::*;
-
 use std::fmt::{self, Debug};
+
+use svm_program::*;
 
 use crate::{CallGraph, Gas};
 
