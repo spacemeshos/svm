@@ -4,4 +4,4 @@ error: using foreign items such as `extern "C"` inside `#[template]` is not supp
 3 | #[template]
   | ^^^^^^
   |
-  = note: this error originates in the attribute macro `app` (in Nightly builds, run with -Z macro-backtrace for more info)
+  = note: this error originates in the attribute macro `template` (in Nightly builds, run with -Z macro-backtrace for more info)

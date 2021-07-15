@@ -1,9 +1,10 @@
 #![allow(unused)]
 use serde_json::{json, Value};
-use svm_sdk::{app, Address, Amount};
 
-#[app]
-mod App {
+use svm_sdk::{template, Address, Amount};
+
+#[template]
+mod Template {
     #[endpoint]
     fn call() -> (bool, u64, Amount) {
         (true, 10, Amount(20))
@@ -12,7 +13,6 @@ mod App {
 
 fn main() {
     let raw = raw_schema();
-
     let json: Value = serde_json::from_str(&raw).unwrap();
 
     assert_eq!(

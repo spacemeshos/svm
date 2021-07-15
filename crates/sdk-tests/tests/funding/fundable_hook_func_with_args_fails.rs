@@ -1,7 +1,7 @@
-use svm_sdk::app;
+use svm_sdk::template;
 
-#[app]
-mod App {
+#[template]
+mod Template {
     #[fundable_hook]
     fn deny(v: svm_sdk::Amount) {}
 }
