@@ -429,7 +429,7 @@ pub unsafe extern "C" fn svm_deploy_template(
 
     let gas_limit = maybe_gas(gas_metering, gas_limit);
     let rust_receipt = runtime.deploy(bytes.into(), &deployer.unwrap().into(), gas_limit);
-    let receipt_bytes = receipt::encode_deploy_receipt(&rust_receipt);
+    let receipt_bytes = receipt::encode_deploy(&rust_receipt);
 
     // returning encoded `TemplateReceipt` as `svm_byte_array`.
     // should call later `svm_receipt_destroy`
