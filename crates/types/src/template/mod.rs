@@ -107,9 +107,9 @@ impl Template {
         section.as_data()
     }
 
-    /// For now - there can be only a single `Layout` (of type `FixedLayout`)
-    /// TODO: this method should become obsolete once SVM will support more than one `Layout`s per `Template`
+    /// Returns an immutable borrow of `self`'s [`FixedLayout`].
     pub fn fixed_layout(&self) -> &FixedLayout {
+        // See <https://github.com/spacemeshos/svm/issues/281>.
         let data = self.data_section();
         let layouts = data.layouts();
 

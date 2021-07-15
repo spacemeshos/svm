@@ -19,6 +19,7 @@ pub enum LayoutKind {
     //
     // TODO: In the future:
     // Dynamic
+    // <https://github.com/spacemeshos/svm/issues/281>
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -27,6 +28,7 @@ pub enum Layout {
     //
     // TODO: In the future:
     // Dynamic
+    // <https://github.com/spacemeshos/svm/issues/281>
 }
 
 impl Layout {

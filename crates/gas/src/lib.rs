@@ -47,13 +47,13 @@ pub use pricing::{FuncPrice, PriceResolver, ProgramPricing};
 pub mod transaction {
     /// Calculates the cost of deploying `bytes` as a template.
     pub fn deploy_template_price(bytes: &[u8]) -> u64 {
-        // todo!()
+        // TODO: <https://github.com/spacemeshos/svm/issues/241>.
         1000 * (bytes.len() as u64)
     }
 
     /// Calculates the cost of spawning a new app with `bytes` as its contents.
     pub fn spawn_app_price(bytes: &[u8]) -> u64 {
-        // todo!()
+        // TODO: <https://github.com/spacemeshos/svm/issues/241>.
         1000 * (bytes.len() as u64)
     }
 }
