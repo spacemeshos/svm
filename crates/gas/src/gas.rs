@@ -2,7 +2,7 @@ use std::cmp;
 use std::fmt;
 use std::ops::{Add, AddAssign, Mul, MulAssign};
 
-/// Represents the gas units for running SVM apps.
+/// Represents the a `Units of Gas`
 #[derive(Copy, Clone, PartialEq)]
 pub enum Gas {
     /// Gas is known-ahead precisely
@@ -14,7 +14,7 @@ pub enum Gas {
         min: u64,
 
         /// Upper-gas boundary. This value guarantees that the executed
-        /// app function will not run out-of-gas.
+        /// function will not run out-of-gas.
         max: u64,
     },
 }
