@@ -1,15 +1,12 @@
-use svm_program::{FuncIndex, ProgramError};
-
 use std::ops::{Deref, DerefMut};
 
+use svm_program::{FuncIndex, ProgramError};
+
+use super::graph;
 use crate::{Graph, GraphCycles, NodeLabel};
 
 mod builder;
 pub use builder::CallGraphBuilder;
-
-/// A `CallGraph` is a `Graph` where its nodes represent functions and its edges represent for possible `call`s
-/// between functions as appears in the original code.
-use super::graph;
 
 /// A `CallGraph` is a `Graph` where the `Node` are `Program` functions
 /// and each `call` between a function `origin` to another `target` function results
