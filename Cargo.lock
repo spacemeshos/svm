@@ -1748,6 +1748,7 @@ dependencies = [
  "indexmap",
  "parity-wasm",
  "thiserror",
+ "wat",
 ]
 
 [[package]]

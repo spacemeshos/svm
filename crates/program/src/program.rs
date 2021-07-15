@@ -56,6 +56,12 @@ impl Program {
         Ok(program)
     }
 
+    pub fn from_wat(wat_module: &str) -> Result<Self, ProgramError> {
+        wat::parse_str(wat_module)
+            .map_err(|_| ProgramError::InvalidWasm)
+            .and_then(|wasm| Program::new(&wasm))
+    }
+
     /// The functions imports
     pub fn imports(&self) -> &Imports {
         &self.imports

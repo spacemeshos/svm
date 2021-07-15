@@ -16,5 +16,5 @@ svm-program = { path = "../program" }
 thiserror = "1"
 
 [dev-dependencies]
-wat = "1.0"
+wat = "1"
 maplit = "1.0.2"
