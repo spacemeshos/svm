@@ -2,10 +2,11 @@
 //!
 //!  On success (`is_success = 1`)
 //!
-//!  +--------------------------------------:------------------------------+
-//!  | tx type  |   version   |  is_success | template address | gas_used  |
-//!  | (1 byte) |  (2 bytes)  |  (1 byte)   |    (20 bytes)    | (8 bytes) |
-//!  +__________|_____________|_____________|__________________|___________+
+//!  +-----------------------------------------------------------------------+
+//!  |          |             |             |                    |           |
+//!  | tx type  |   version   |  is_success | template `Address` | gas_used  |
+//!  | (1 byte) |  (2 bytes)  |  (1 byte)   |     (20 bytes)     | (8 bytes) |
+//!  +__________|_____________|_____________|____________________|___________+
 //!
 //!  On success (`is_success = 0`)
 //!  See [error.rs][./error.rs]
@@ -13,18 +14,18 @@
 
 use std::io::Cursor;
 
-use svm_types::TemplateReceipt;
+use svm_types::DeployReceipt;
 
 use super::{decode_error, encode_error, gas, logs, types};
 
 use crate::version;
 use crate::{ReadExt, WriteExt};
 
-/// Encodes a `deploy-template` into its binary format.
-pub fn encode_template_receipt(receipt: &TemplateReceipt) -> Vec<u8> {
+/// Encodes a [`DeployReceipt`] into its binary format.
+pub fn encode_deploy(receipt: &DeployReceipt) -> Vec<u8> {
     let mut w = Vec::new();
 
-    w.write_byte(types::DEPLOY_TEMPLATE);
+    w.write_byte(types::DEPLOY);
     encode_version(receipt, &mut w);
     w.write_bool(receipt.success);
 
@@ -41,12 +42,12 @@ pub fn encode_template_receipt(receipt: &TemplateReceipt) -> Vec<u8> {
     w
 }
 
-/// Decodes a binary `deploy-template` transaction into its Rust struct.
-pub fn decode_template_receipt(bytes: &[u8]) -> TemplateReceipt {
+/// Decodes a binary [`DeployReceipt`] transaction.
+pub fn decode_deploy(bytes: &[u8]) -> DeployReceipt {
     let mut cursor = Cursor::new(bytes);
 
     let ty = cursor.read_byte().unwrap();
-    debug_assert_eq!(ty, types::DEPLOY_TEMPLATE);
+    debug_assert_eq!(ty, types::DEPLOY);
 
     let version = version::decode_version(&mut cursor).unwrap();
     debug_assert_eq!(version, 0);
@@ -57,14 +58,14 @@ pub fn decode_template_receipt(bytes: &[u8]) -> TemplateReceipt {
         false => {
             let (err, logs) = decode_error(&mut cursor);
 
-            TemplateReceipt::from_err(err, logs)
+            DeployReceipt::from_err(err, logs)
         }
         true => {
             let addr = cursor.read_address().expect("expected an address");
             let gas_used = gas::decode_gas_used(&mut cursor).unwrap();
             let logs = logs::decode_logs(&mut cursor).unwrap();
 
-            TemplateReceipt {
+            DeployReceipt {
                 version,
                 success: true,
                 error: None,
@@ -76,13 +77,13 @@ pub fn decode_template_receipt(bytes: &[u8]) -> TemplateReceipt {
     }
 }
 
-fn encode_version(receipt: &TemplateReceipt, w: &mut Vec<u8>) {
+fn encode_version(receipt: &DeployReceipt, w: &mut Vec<u8>) {
     let v = receipt.version;
 
     version::encode_version(v, w);
 }
 
-fn encode_template_addr(receipt: &TemplateReceipt, w: &mut Vec<u8>) {
+fn encode_template_addr(receipt: &DeployReceipt, w: &mut Vec<u8>) {
     debug_assert!(receipt.success);
 
     let addr = receipt.template_addr();
@@ -94,7 +95,7 @@ fn encode_template_addr(receipt: &TemplateReceipt, w: &mut Vec<u8>) {
 mod tests {
     use super::*;
 
-    use svm_types::{Address, Gas, TemplateReceipt};
+    use svm_types::{Address, DeployReceipt, Gas};
 
     use crate::receipt::decode_receipt;
 
@@ -102,7 +103,7 @@ mod tests {
     fn encode_decode_deploy_template_receipt() {
         let addr = Address::repeat(0xAB);
 
-        let receipt = TemplateReceipt {
+        let receipt = DeployReceipt {
             version: 0,
             success: true,
             error: None,
@@ -111,9 +112,9 @@ mod tests {
             logs: Vec::new(),
         };
 
-        let bytes = encode_template_receipt(&receipt);
+        let bytes = encode_deploy(&receipt);
         let decoded = decode_receipt(&bytes);
 
-        assert_eq!(decoded.into_deploy_template(), receipt);
+        assert_eq!(decoded.into_deploy(), receipt);
     }
 }

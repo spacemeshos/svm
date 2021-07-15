@@ -1,12 +1,11 @@
 use svm_types::{Account, SpawnAccount, SpawnerAddr, TemplateAddr};
 
-pub struct ExtApp {
+pub struct ExtAccount {
     base: Account,
-
     spawner: SpawnerAddr,
 }
 
-impl ExtApp {
+impl ExtAccount {
     pub fn new(base: &Account, spawner: &SpawnerAddr) -> Self {
         Self {
             base: base.clone(),
@@ -31,13 +30,12 @@ impl ExtApp {
     }
 }
 
-pub struct ExtSpawnApp {
+pub struct ExtSpawn {
     base: SpawnAccount,
-
     spawner: SpawnerAddr,
 }
 
-impl ExtSpawnApp {
+impl ExtSpawn {
     pub fn new(base: SpawnAccount, spawner: &SpawnerAddr) -> Self {
         Self {
             base,
@@ -49,7 +47,7 @@ impl ExtSpawnApp {
         &self.base
     }
 
-    pub fn app(&self) -> &Account {
+    pub fn account(&self) -> &Account {
         self.base.account()
     }
 

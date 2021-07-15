@@ -3,7 +3,7 @@ mod execute;
 mod log;
 mod spawn;
 
-pub use deploy_template::TemplateReceipt;
+pub use deploy_template::DeployReceipt;
 pub use execute::CallReceipt;
 pub use log::ReceiptLog;
 pub use spawn::{into_spawn_receipt, SpawnReceipt};
@@ -13,98 +13,98 @@ use crate::RuntimeError;
 
 /// Borrowed Receipt
 pub enum ReceiptRef<'a> {
-    /// Borrows a `TemplateReceipt`.
-    DeployTemplate(&'a TemplateReceipt),
+    /// Borrows a `DeployReceipt`.
+    Deploy(&'a DeployReceipt),
 
-    /// Borrows a `SpawnAppReceipt`.
-    SpawnApp(&'a SpawnReceipt),
+    /// Borrows a `SpawnReceipt`.
+    Spawn(&'a SpawnReceipt),
 
-    /// Borrows a `ExecReceipt`.
-    ExecApp(&'a CallReceipt),
+    /// Borrows a `CallReceipt`.
+    Call(&'a CallReceipt),
 }
 
 impl<'a> ReceiptRef<'a> {
     /// Returns whether the transaction succeeded.
     pub fn is_success(&self) -> bool {
         match self {
-            Self::DeployTemplate(r) => r.success,
-            Self::SpawnApp(r) => r.success,
-            Self::ExecApp(r) => r.success,
+            Self::Deploy(r) => r.success,
+            Self::Spawn(r) => r.success,
+            Self::Call(r) => r.success,
         }
     }
 
     /// Returns the executed transaction results.
     pub fn returndata(&self) -> &Vec<u8> {
         match self {
-            Self::DeployTemplate(..) => unreachable!(),
-            Self::SpawnApp(r) => r.returndata(),
-            Self::ExecApp(r) => r.returndata(),
+            Self::Deploy(..) => unreachable!(),
+            Self::Spawn(r) => r.returndata(),
+            Self::Call(r) => r.returndata(),
         }
     }
 
     /// Returns the gas used for the transaction.
-    pub fn get_gas_used(&self) -> Gas {
+    pub fn gas_used(&self) -> Gas {
         match self {
-            Self::DeployTemplate(r) => r.gas_used,
-            Self::SpawnApp(r) => r.gas_used,
-            Self::ExecApp(r) => r.gas_used,
+            Self::Deploy(r) => r.gas_used,
+            Self::Spawn(r) => r.gas_used,
+            Self::Call(r) => r.gas_used,
         }
     }
 
     /// Returns a `ReceiptError`
     pub fn error(&self) -> &RuntimeError {
         match self {
-            Self::DeployTemplate(r) => r.error.as_ref().unwrap(),
-            Self::SpawnApp(r) => r.error.as_ref().unwrap(),
-            Self::ExecApp(r) => r.error.as_ref().unwrap(),
+            Self::Deploy(r) => r.error.as_ref().unwrap(),
+            Self::Spawn(r) => r.error.as_ref().unwrap(),
+            Self::Call(r) => r.error.as_ref().unwrap(),
         }
     }
 }
 
-/// Holds some Receipt-type
+/// Holds a Receipt of kind `Deploy/Spawn/Call`
 #[derive(Debug, PartialEq)]
 pub enum Receipt {
-    /// Deploy-Template
-    DeployTemplate(TemplateReceipt),
+    /// `Deploy Template`
+    Deploy(DeployReceipt),
 
-    /// Spawn-App
-    SpawnApp(SpawnReceipt),
+    /// `Spawn Account`
+    Spawn(SpawnReceipt),
 
-    /// Exec-App
-    ExecApp(CallReceipt),
+    /// `Call Account`
+    Call(CallReceipt),
 }
 
 impl Receipt {
-    /// Returns whether the transaction succedded.
+    /// Returns whether the transaction succeeded.
     /// A transaction counts as a `success` when it didn't panic.
     pub fn success(&self) -> bool {
         match self {
-            Receipt::DeployTemplate(receipt) => receipt.success,
-            Receipt::SpawnApp(receipt) => receipt.success,
-            Receipt::ExecApp(receipt) => receipt.success,
+            Receipt::Deploy(receipt) => receipt.success,
+            Receipt::Spawn(receipt) => receipt.success,
+            Receipt::Call(receipt) => receipt.success,
         }
     }
 
-    /// Returns the inner `deploy-template` receipt
-    pub fn into_deploy_template(self) -> TemplateReceipt {
+    /// Returns the inner [`DeployReceipt`]
+    pub fn into_deploy(self) -> DeployReceipt {
         match self {
-            Receipt::DeployTemplate(r) => r,
+            Receipt::Deploy(r) => r,
             _ => unreachable!(),
         }
     }
 
-    /// Returns the inner `spawn-app` receipt
-    pub fn into_spawn_app(self) -> SpawnReceipt {
+    /// Returns the inner [`SpawnReceipt`]
+    pub fn into_spawn(self) -> SpawnReceipt {
         match self {
-            Receipt::SpawnApp(r) => r,
+            Receipt::Spawn(r) => r,
             _ => unreachable!(),
         }
     }
 
-    /// Returns the inner `exec-app` receipt
-    pub fn into_exec_app(self) -> CallReceipt {
+    /// Returns the inner [`CallReceipt`]
+    pub fn into_call(self) -> CallReceipt {
         match self {
-            Receipt::ExecApp(r) => r,
+            Receipt::Call(r) => r,
             _ => unreachable!(),
         }
     }
@@ -112,18 +112,18 @@ impl Receipt {
     /// Returns the logs generated during the transaction execution
     pub fn logs(&self) -> &[ReceiptLog] {
         match self {
-            Receipt::DeployTemplate(receipt) => receipt.logs(),
-            Receipt::SpawnApp(receipt) => receipt.logs(),
-            Receipt::ExecApp(receipt) => receipt.logs(),
+            Receipt::Deploy(receipt) => receipt.logs(),
+            Receipt::Spawn(receipt) => receipt.logs(),
+            Receipt::Call(receipt) => receipt.logs(),
         }
     }
 
     /// Returns the error within the inner receipt (for failing receipts)
     pub fn error(&self) -> &RuntimeError {
         match self {
-            Receipt::DeployTemplate(receipt) => receipt.error(),
-            Receipt::SpawnApp(receipt) => receipt.error(),
-            Receipt::ExecApp(receipt) => receipt.error(),
+            Receipt::Deploy(receipt) => receipt.error(),
+            Receipt::Spawn(receipt) => receipt.error(),
+            Receipt::Call(receipt) => receipt.error(),
         }
     }
 }

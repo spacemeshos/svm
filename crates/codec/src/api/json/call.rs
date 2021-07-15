@@ -3,7 +3,7 @@ use std::io::Cursor;
 use serde_json::{json, Value};
 
 use crate::api::json::{self, JsonError};
-use crate::transaction;
+use crate::call;
 
 use svm_types::Transaction;
 
@@ -11,15 +11,15 @@ use svm_types::Transaction;
 /// ```json
 /// {
 ///   version: 0,           // number
-///   app: 'A2FB...',       // string
+///   target: 'A2FB...',   // string
 ///   func_name: 'do_work', // string
 ///   verifydata: '',       // string
 ///   calldata: '',         // string
 /// }
 /// ```
-pub fn encode_exec_app(json: &Value) -> Result<Vec<u8>, JsonError> {
+pub fn encode_call(json: &Value) -> Result<Vec<u8>, JsonError> {
     let version = json::as_u32(json, "version")? as u16;
-    let app = json::as_addr(json, "app")?.into();
+    let target = json::as_addr(json, "target")?.into();
     let func_name = json::as_string(json, "func_name")?;
 
     // let verifydata = json::as_string(json, "verifydata")?;
@@ -30,7 +30,7 @@ pub fn encode_exec_app(json: &Value) -> Result<Vec<u8>, JsonError> {
 
     let tx = Transaction {
         version,
-        target: app,
+        target,
         func_name,
         // verifydata,
         calldata,
@@ -38,23 +38,23 @@ pub fn encode_exec_app(json: &Value) -> Result<Vec<u8>, JsonError> {
 
     let mut buf = Vec::new();
 
-    transaction::encode_exec_app(&tx, &mut buf);
+    call::encode_call(&tx, &mut buf);
 
     Ok(buf)
 }
 
-/// Given a binary `exec-app` transaction wrapped inside JSON.
+/// Given a binary [`Transaction`] wrapped inside JSON,
 /// Decodes it and returns a user-friendly JSON.
-pub fn decode_exec_app(json: &Value) -> Result<Value, JsonError> {
+pub fn decode_call(json: &Value) -> Result<Value, JsonError> {
     let data = json::as_string(json, "data")?;
     let bytes = json::str_to_bytes(&data, "data")?;
 
     let mut cursor = Cursor::new(&bytes[..]);
-    let tx = transaction::decode_exec_app(&mut cursor).unwrap();
+    let tx = call::decode_call(&mut cursor).unwrap();
 
     let version = tx.version;
     let func_name = tx.func_name.clone();
-    let app = json::addr_to_str(&tx.target.inner());
+    let target = json::addr_to_str(&tx.target.inner());
 
     // let verifydata = json::bytes_to_str(&tx.verifydata);
     // let verifydata = json::decode_calldata(&json!({ "calldata": verifydata }))?;
@@ -64,7 +64,7 @@ pub fn decode_exec_app(json: &Value) -> Result<Value, JsonError> {
 
     let json = json!({
         "version": version,
-        "app": app,
+        "target": target,
         "func_name": func_name,
         // "verifydata": verifydata,
         "calldata": calldata,
@@ -80,10 +80,10 @@ mod tests {
     use serde_json::json;
 
     #[test]
-    fn json_exec_app_missing_version() {
+    fn json_call_missing_version() {
         let json = json!({});
 
-        let err = encode_exec_app(&json).unwrap_err();
+        let err = encode_call(&json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -94,29 +94,29 @@ mod tests {
     }
 
     #[test]
-    fn json_exec_app_missing_app_addr() {
+    fn json_call_missing_target() {
         let json = json!({
             "version": 0
         });
 
-        let err = encode_exec_app(&json).unwrap_err();
+        let err = encode_call(&json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
-                field: "app".to_string(),
+                field: "target".to_string(),
                 reason: "value `null` isn\'t a string".to_string(),
             }
         );
     }
 
     #[test]
-    fn json_exec_app_missing_func_name() {
+    fn json_call_missing_func_name() {
         let json = json!({
             "version": 0,
-            "app": "10203040506070809000A0B0C0D0E0F0ABCDEFFF"
+            "target": "10203040506070809000A0B0C0D0E0F0ABCDEFFF"
         });
 
-        let err = encode_exec_app(&json).unwrap_err();
+        let err = encode_call(&json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -128,14 +128,14 @@ mod tests {
 
     #[ignore]
     #[test]
-    fn json_exec_app_missing_verifydata() {
+    fn json_call_missing_verifydata() {
         let json = json!({
             "version": 0,
-            "app": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
+            "target": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
             "func_name": "do_something",
         });
 
-        let err = encode_exec_app(&json).unwrap_err();
+        let err = encode_call(&json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -146,7 +146,7 @@ mod tests {
     }
 
     #[test]
-    fn json_exec_app_missing_calldata() {
+    fn json_call_missing_calldata() {
         let verifydata = json::encode_calldata(&json!({
             "abi": ["bool", "i8"],
             "data": [true, 3],
@@ -155,12 +155,12 @@ mod tests {
 
         let json = json!({
             "version": 0,
-            "app": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
+            "target": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
             "func_name": "do_something",
             "verifydata": verifydata["calldata"]
         });
 
-        let err = encode_exec_app(&json).unwrap_err();
+        let err = encode_call(&json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -171,7 +171,7 @@ mod tests {
     }
 
     #[test]
-    fn json_exec_app_valid() {
+    fn json_call_valid() {
         let _verifydata = json::encode_calldata(&json!({
             "abi": ["bool", "i8"],
             "data": [true, 3],
@@ -186,21 +186,21 @@ mod tests {
 
         let json = json!({
             "version": 0,
-            "app": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
+            "target": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
             "func_name": "do_something",
             // "verifydata": verifydata["calldata"],
             "calldata": calldata["calldata"],
         });
 
-        let bytes = encode_exec_app(&json).unwrap();
+        let bytes = encode_call(&json).unwrap();
         let data = json::bytes_to_str(&bytes);
-        let json = decode_exec_app(&json!({ "data": data })).unwrap();
+        let json = decode_call(&json!({ "data": data })).unwrap();
 
         assert_eq!(
             json,
             json!({
                 "version": 0,
-                "app": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
+                "target": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
                 "func_name": "do_something",
                 // "verifydata": {
                 //     "abi": ["bool", "i8"],

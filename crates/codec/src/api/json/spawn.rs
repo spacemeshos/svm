@@ -6,19 +6,19 @@ use serde_json::{json, Value};
 
 use crate::api::json::{self, JsonError};
 
-use crate::app;
+use crate::spawn;
 
 ///
 /// ```json
 /// {
 ///   version: 0,              // number
 ///   template: 'A2FB...',     // string
-///   name: 'My App',          // string
+///   name: 'My Account',      // string
 ///   ctor_name: 'initialize', // number
 ///   calldata: '',            // string
 /// }
 /// ```
-pub fn encode_spawn_app(json: &Value) -> Result<Vec<u8>, JsonError> {
+pub fn encode_spawn(json: &Value) -> Result<Vec<u8>, JsonError> {
     let version = json::as_u32(json, "version")? as u16;
     let template = json::as_addr(json, "template")?.into();
     let name = json::as_string(json, "name")?;
@@ -35,19 +35,19 @@ pub fn encode_spawn_app(json: &Value) -> Result<Vec<u8>, JsonError> {
     };
 
     let mut buf = Vec::new();
-    app::encode(&spawn, &mut buf);
+    spawn::encode(&spawn, &mut buf);
 
     Ok(buf)
 }
 
-/// Given a binary `spawn-app` transaction wrapped inside a JSON,
+/// Given a binary [`SpawnAccount`] transaction wrapped inside a JSON,
 /// decodes it into a user-friendly JSON.
-pub fn decode_spawn_app(json: &Value) -> Result<Value, JsonError> {
+pub fn decode_spawn(json: &Value) -> Result<Value, JsonError> {
     let data = json::as_string(json, "data")?;
     let bytes = json::str_to_bytes(&data, "data")?;
 
     let mut cursor = Cursor::new(&bytes[..]);
-    let spawn = app::decode(&mut cursor).unwrap();
+    let spawn = spawn::decode(&mut cursor).unwrap();
 
     let version = spawn.version;
     let ctor_name = spawn.ctor_name;
@@ -75,10 +75,10 @@ mod tests {
     use serde_json::json;
 
     #[test]
-    fn json_spawn_app_missing_version() {
+    fn json_spawn_missing_version() {
         let json = json!({});
+        let err = encode_spawn(&json).unwrap_err();
 
-        let err = encode_spawn_app(&json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -89,12 +89,12 @@ mod tests {
     }
 
     #[test]
-    fn json_spawn_app_missing_template_addr() {
+    fn json_spawn_missing_template_addr() {
         let json = json!({
             "version": 0
         });
+        let err = encode_spawn(&json).unwrap_err();
 
-        let err = encode_spawn_app(&json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -105,13 +105,13 @@ mod tests {
     }
 
     #[test]
-    fn json_spawn_app_missing_name() {
+    fn json_spawn_missing_name() {
         let json = json!({
             "version": 0,
             "template": "10203040506070809000A0B0C0D0E0F0ABCDEFFF"
         });
+        let err = encode_spawn(&json).unwrap_err();
 
-        let err = encode_spawn_app(&json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -122,14 +122,14 @@ mod tests {
     }
 
     #[test]
-    fn json_spawn_app_missing_ctor_name() {
+    fn json_spawn_missing_ctor_name() {
         let json = json!({
             "version": 0,
             "template": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
             "name": "My App",
         });
+        let err = encode_spawn(&json).unwrap_err();
 
-        let err = encode_spawn_app(&json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -140,15 +140,15 @@ mod tests {
     }
 
     #[test]
-    fn json_spawn_app_missing_ctor_buf() {
+    fn json_spawn_missing_ctor_buf() {
         let json = json!({
             "version": 0,
             "template": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
-            "name": "My App",
+            "name": "My Account",
             "ctor_name": "initialize",
         });
+        let err = encode_spawn(&json).unwrap_err();
 
-        let err = encode_spawn_app(&json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -159,7 +159,7 @@ mod tests {
     }
 
     #[test]
-    fn json_spawn_app_valid() {
+    fn json_spawn_valid() {
         let calldata = json::encode_calldata(&json!({
             "abi": ["i32", "i64"],
             "data": [10, 20]
@@ -169,21 +169,21 @@ mod tests {
         let json = json!({
             "version": 1,
             "template": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
-            "name": "My App",
+            "name": "My Account",
             "ctor_name": "initialize",
             "calldata": calldata["calldata"],
         });
 
-        let bytes = encode_spawn_app(&json).unwrap();
+        let bytes = encode_spawn(&json).unwrap();
         let data = json::bytes_to_str(&bytes);
-        let json = decode_spawn_app(&json!({ "data": data })).unwrap();
+        let json = decode_spawn(&json!({ "data": data })).unwrap();
 
         assert_eq!(
             json,
             json!({
                 "version": 1,
                 "template": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
-                "name": "My App",
+                "name": "My Account",
                 "ctor_name": "initialize",
                 "calldata": {
                     "abi": ["i32", "i64"],

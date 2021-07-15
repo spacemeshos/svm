@@ -1,7 +1,8 @@
-//! `Exec App` Receipt Raw Format Version 0
+//! `Call Account` Receipt Raw Format Version 0
 //!
 //!  On success (`is_success = 1`)
 //!  +---------------------------------------------------+
+//!  |           |            |            |             |
 //!  |  tx type  |  version   | is_success |  new state  |
 //!  | (1 byte)  |  (2 bytes) |  (1 byte)  | (32 bytes)  |
 //!  +___________|____________|____________|_____________+
@@ -16,19 +17,19 @@
 //!  On success (`is_success = 0`)
 //!  See [error.rs][./error.rs]
 
-use svm_types::CallReceipt;
-
 use std::io::Cursor;
+
+use svm_types::CallReceipt;
 
 use super::{decode_error, encode_error, gas, logs};
 use crate::{calldata, version};
 use crate::{ReadExt, WriteExt};
 
-/// Encodes an `exec-receipt` into its binary format.
-pub fn encode_exec_receipt(receipt: &CallReceipt) -> Vec<u8> {
+/// Encodes an [`CallReceipt`] into its binary format.
+pub fn encode_call(receipt: &CallReceipt) -> Vec<u8> {
     let mut w = Vec::new();
 
-    w.write_byte(super::types::EXEC_APP);
+    w.write_byte(super::types::CALL);
     version::encode_version(receipt.version, &mut w);
     w.write_bool(receipt.success);
 
@@ -46,12 +47,12 @@ pub fn encode_exec_receipt(receipt: &CallReceipt) -> Vec<u8> {
     w
 }
 
-/// Decodes a binary `exec-app` into its corresponding Rust struct.
-pub fn decode_exec_receipt(bytes: &[u8]) -> CallReceipt {
+/// Decodes a binary [`CallReceipt`].
+pub fn decode_call(bytes: &[u8]) -> CallReceipt {
     let mut cursor = Cursor::new(bytes);
 
     let ty = cursor.read_byte().unwrap();
-    debug_assert_eq!(ty, crate::receipt::types::EXEC_APP);
+    debug_assert_eq!(ty, crate::receipt::types::CALL);
 
     let version = version::decode_version(&mut cursor).unwrap();
     debug_assert_eq!(0, version);
@@ -103,9 +104,9 @@ mod tests {
     use svm_types::{Address, Gas, ReceiptLog, RuntimeError, State};
 
     #[test]
-    fn encode_decode_exec_receipt_error() {
-        let app = Address::of("my-app");
-        let error = RuntimeError::AccountNotFound(app.into());
+    fn encode_decode_call_receipt_error() {
+        let account = Address::of("@Account");
+        let error = RuntimeError::AccountNotFound(account.into());
 
         let logs = vec![ReceiptLog {
             msg: b"something happened".to_vec(),
@@ -122,14 +123,14 @@ mod tests {
             logs,
         };
 
-        let bytes = encode_exec_receipt(&receipt);
+        let bytes = encode_call(&receipt);
         let decoded = crate::receipt::decode_receipt(&bytes[..]);
 
-        assert_eq!(decoded.into_exec_app(), receipt);
+        assert_eq!(decoded.into_call(), receipt);
     }
 
     #[test]
-    fn encode_decode_exec_receipt_success_without_returns() {
+    fn encode_decode_call_receipt_success_without_returns() {
         let new_state = State::of("some-state");
 
         let logs = vec![ReceiptLog {
@@ -147,14 +148,14 @@ mod tests {
             logs: logs.clone(),
         };
 
-        let bytes = encode_exec_receipt(&receipt);
+        let bytes = encode_call(&receipt);
         let decoded = crate::receipt::decode_receipt(&bytes[..]);
 
-        assert_eq!(decoded.into_exec_app(), receipt);
+        assert_eq!(decoded.into_call(), receipt);
     }
 
     #[test]
-    fn encode_decode_exec_receipt_success_with_returns() {
+    fn encode_decode_call_receipt_success_with_returns() {
         let new_state = State::of("some-state");
         let returndata = vec![0x10, 0x20];
 
@@ -173,9 +174,9 @@ mod tests {
             logs: logs.clone(),
         };
 
-        let bytes = encode_exec_receipt(&receipt);
+        let bytes = encode_call(&receipt);
         let decoded = crate::receipt::decode_receipt(&bytes[..]);
 
-        assert_eq!(decoded.into_exec_app(), receipt);
+        assert_eq!(decoded.into_call(), receipt);
     }
 }

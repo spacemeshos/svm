@@ -1,3 +1,5 @@
+//! Key-value abstractions
+
 mod mock;
 mod traits;
 

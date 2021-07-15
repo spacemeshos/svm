@@ -90,7 +90,7 @@ pub unsafe extern "C" fn svm_validate_template(
 ) -> svm_result_t {
     let runtime: &mut Box<dyn Runtime> = runtime.into();
 
-    match runtime.validate_template(bytes.into()) {
+    match runtime.validate_deploy(bytes.into()) {
         Ok(()) => svm_result_t::SVM_SUCCESS,
         Err(e) => {
             error!("`svm_validate_template` returns `SVM_FAILURE`");
@@ -138,7 +138,7 @@ pub unsafe extern "C" fn svm_validate_app(
 ) -> svm_result_t {
     let runtime: &mut Box<dyn Runtime> = runtime.into();
 
-    match runtime.validate_app(bytes.into()) {
+    match runtime.validate_spawn(bytes.into()) {
         Ok(()) => svm_result_t::SVM_SUCCESS,
         Err(e) => {
             error!("`svm_validate_app` returns `SVM_FAILURE`");
@@ -188,7 +188,7 @@ pub unsafe extern "C" fn svm_validate_tx(
 
     let runtime: &mut Box<dyn Runtime> = runtime.into();
 
-    match runtime.validate_tx(bytes.into()) {
+    match runtime.validate_call(bytes.into()) {
         Ok(tx) => {
             // returning encoded `AppReceipt` as `svm_byte_array`.
             // should call later `svm_receipt_destroy`
@@ -428,8 +428,8 @@ pub unsafe extern "C" fn svm_deploy_template(
     }
 
     let gas_limit = maybe_gas(gas_metering, gas_limit);
-    let rust_receipt = runtime.deploy_template(bytes.into(), &deployer.unwrap().into(), gas_limit);
-    let receipt_bytes = receipt::encode_template_receipt(&rust_receipt);
+    let rust_receipt = runtime.deploy(bytes.into(), &deployer.unwrap().into(), gas_limit);
+    let receipt_bytes = receipt::encode_deploy(&rust_receipt);
 
     // returning encoded `TemplateReceipt` as `svm_byte_array`.
     // should call later `svm_receipt_destroy`
@@ -505,8 +505,8 @@ pub unsafe extern "C" fn svm_spawn_app(
     }
 
     let gas_limit = maybe_gas(gas_metering, gas_limit);
-    let rust_receipt = runtime.spawn_app(bytes.into(), &spawner.unwrap().into(), gas_limit);
-    let receipt_bytes = receipt::encode_app_receipt(&rust_receipt);
+    let rust_receipt = runtime.spawn(bytes.into(), &spawner.unwrap().into(), gas_limit);
+    let receipt_bytes = receipt::encode_spawn(&rust_receipt);
 
     // returning encoded `AppReceipt` as `svm_byte_array`.
     // should call later `svm_receipt_destroy`
@@ -584,9 +584,9 @@ pub unsafe extern "C" fn svm_exec_app(
 
     let gas_limit = maybe_gas(gas_metering, gas_limit);
 
-    let tx = runtime.validate_tx(bytes.into()).unwrap();
-    let rust_receipt = runtime.exec_tx(&tx, &state.unwrap(), gas_limit);
-    let receipt_bytes = receipt::encode_exec_receipt(&rust_receipt);
+    let tx = runtime.validate_call(bytes.into()).unwrap();
+    let rust_receipt = runtime.call(&tx, &state.unwrap(), gas_limit);
+    let receipt_bytes = receipt::encode_call(&rust_receipt);
 
     // returning encoded `ExecReceipt` as `svm_byte_array`.
     // should call later `svm_receipt_destroy`

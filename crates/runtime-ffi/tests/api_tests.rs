@@ -48,7 +48,7 @@ fn spawn_app_bytes(
     calldata: &[u8],
 ) -> Vec<u8> {
     let template_addr = Address::from(*&template_addr.bytes as *const c_void).into();
-    svm_runtime::testing::build_app(&template_addr, name, ctor_name, calldata)
+    svm_runtime::testing::build_spawn(&template_addr, name, ctor_name, calldata)
 }
 
 fn exec_app_bytes(app_addr: &svm_byte_array, func_name: &str, calldata: &[u8]) -> Vec<u8> {
@@ -163,8 +163,7 @@ fn svm_runtime_failure() {
         assert!(res.is_ok());
 
         // extract the `Template Address` out of the `Receipt`
-        let receipt =
-            receipt::decode_receipt(template_receipt.clone().into()).into_deploy_template();
+        let receipt = receipt::decode_receipt(template_receipt.clone().into()).into_deploy();
         let template_addr: &Address = receipt.template_addr().inner();
         let template_addr: svm_byte_array = (TEMPLATE_ADDR, template_addr).into();
 
@@ -193,10 +192,10 @@ fn svm_runtime_failure() {
         assert!(res.is_ok());
 
         // extracts the spawned-app `Address` and initial `State`.
-        let receipt = receipt::decode_receipt(spawn_receipt.clone().into()).into_spawn_app();
+        let receipt = receipt::decode_receipt(spawn_receipt.clone().into()).into_spawn();
         assert_eq!(receipt.success, true);
 
-        let app_addr = receipt.app_addr().inner();
+        let app_addr = receipt.account_addr().inner();
         let app_addr: svm_byte_array = (APP_ADDR, app_addr).into();
 
         let init_state = receipt.init_state();
@@ -233,7 +232,7 @@ fn svm_runtime_failure() {
         );
         assert!(res.is_ok());
 
-        let receipt = receipt::decode_receipt(exec_receipt.clone().into()).into_exec_app();
+        let receipt = receipt::decode_receipt(exec_receipt.clone().into()).into_call();
         assert_eq!(receipt.success, false);
 
         assert_ne!(tracking::total_live(), 0);
@@ -304,8 +303,7 @@ fn svm_runtime_success() {
         assert!(res.is_ok());
 
         // extract the `template-address` out of the receipt
-        let receipt =
-            receipt::decode_receipt(template_receipt.clone().into()).into_deploy_template();
+        let receipt = receipt::decode_receipt(template_receipt.clone().into()).into_deploy();
         let template_addr: &Address = receipt.template_addr().inner();
         let template_addr: svm_byte_array = (TEMPLATE_ADDR, template_addr).into();
 
@@ -336,9 +334,9 @@ fn svm_runtime_success() {
         assert!(res.is_ok());
 
         // extracts the spawned-app `Address` and initial `State`.
-        let receipt = receipt::decode_receipt(spawn_receipt.clone().into()).into_spawn_app();
+        let receipt = receipt::decode_receipt(spawn_receipt.clone().into()).into_spawn();
         assert_eq!(receipt.success, true);
-        let app_addr = receipt.app_addr().inner();
+        let app_addr = receipt.account_addr().inner();
         let app_addr: svm_byte_array = (APP_ADDR, app_addr).into();
 
         let init_state = receipt.init_state();
@@ -381,7 +379,7 @@ fn svm_runtime_success() {
         );
         assert!(res.is_ok());
 
-        let receipt = receipt::decode_receipt(exec_receipt.clone().into()).into_exec_app();
+        let receipt = receipt::decode_receipt(exec_receipt.clone().into()).into_call();
         assert_eq!(receipt.success, true);
 
         let bytes = receipt.returndata();

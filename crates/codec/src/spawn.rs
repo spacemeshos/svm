@@ -1,14 +1,13 @@
-//! Encoding for apps.
+//! Encoding of [`SpawnAccount`] transactions.
 //!
 //! ```text
-//!              Spawn-App Raw Format
 //!
 //!  +-------------------------------------------------------+
 //!  |             |                                         |
 //!  |  `version`  |        `Template` (`Address`)           |
 //!  |_____________|_________________________________________|
 //!  |               |                                       |
-//!  | ctor (String) |           ctor `CallData`             |
+//!  | ctor (String) |           ctor (`CallData`)           |
 //!  +_______________|_______________________________________+
 //!
 //! ```
@@ -20,7 +19,7 @@ use svm_types::{Account, SpawnAccount, TemplateAddr};
 use crate::{calldata, version};
 use crate::{Field, ParseError, ReadExt, WriteExt};
 
-/// Encodes a raw Spawn-App transaction.
+/// Encodes a raw [`SpawnAccount`] transaction.
 pub fn encode(spawn: &SpawnAccount, w: &mut Vec<u8>) {
     encode_version(spawn, w);
     encode_template(spawn, w);
@@ -29,9 +28,10 @@ pub fn encode(spawn: &SpawnAccount, w: &mut Vec<u8>) {
     encode_ctor_calldata(spawn, w);
 }
 
-/// Parsing a raw `spawn-app` transaction given as raw bytes.
-/// Returns the parsed transaction as a tuple consisting of an `App` struct and `ctor_name` buffer args.
-/// On failure, returns `ParseError`.
+/// Parsing a raw [`SpawnAccount`] transaction.
+///
+/// Returns the parsed [`SpawnAccount`],
+/// On failure, returns [`ParseError`].
 pub fn decode(cursor: &mut Cursor<&[u8]>) -> Result<SpawnAccount, ParseError> {
     let version = decode_version(cursor)?;
     let template_addr = decode_template(cursor)?;
@@ -39,14 +39,14 @@ pub fn decode(cursor: &mut Cursor<&[u8]>) -> Result<SpawnAccount, ParseError> {
     let ctor_name = decode_ctor(cursor)?;
     let calldata = decode_ctor_calldata(cursor)?;
 
-    let app = Account {
+    let account = Account {
         name,
         template_addr,
     };
 
     let spawn = SpawnAccount {
         version,
-        account: app,
+        account,
         ctor_name,
         calldata,
     };
@@ -127,12 +127,12 @@ mod tests {
     use svm_types::Address;
 
     #[test]
-    fn encode_decode_spawn_app() {
+    fn encode_decode_spawn() {
         let spawn = SpawnAccount {
             version: 0,
             account: Account {
-                name: "my-app".to_string(),
-                template_addr: Address::of("my-template").into(),
+                name: "@account".to_string(),
+                template_addr: Address::of("@template").into(),
             },
             ctor_name: "initialize".to_string(),
             calldata: vec![0x10, 0x20, 0x30],

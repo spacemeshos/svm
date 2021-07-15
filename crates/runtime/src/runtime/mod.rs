@@ -24,57 +24,50 @@ pub use default::DefaultRuntime;
 pub use ptr::RuntimePtr;
 
 use svm_types::{
-    CallReceipt, DeployerAddr, Gas, RuntimeError, SpawnReceipt, SpawnerAddr, State,
-    TemplateReceipt, Transaction,
+    CallReceipt, DeployReceipt, DeployerAddr, Gas, RuntimeError, SpawnReceipt, SpawnerAddr, State,
+    Transaction,
 };
 
 use crate::error::ValidateError;
 
-/// Specifies the interface of a SVM runtime. All [`Runtime`] implementors can:
+/// Specifies the interface of a SVM [`Runtime`].
 ///
-/// * Deploy templates.
-/// * Spawn new SVM apps by "populating" templates with custom data.
-/// * Execute arbitrary transactions.
+/// Any [`Runtime`] implementation will implement:
+///
+/// * `Deploy Template`s
+/// * `Spawn `Account`s
+/// * `Call Account`s
 pub trait Runtime {
-    /// Validates raw `deploy-template` transaction prior to executing it.
-    fn validate_template(&self, bytes: &[u8]) -> Result<(), ValidateError>;
+    /// Validates a raw `Deploy Template` transaction prior to executing it.
+    fn validate_deploy(&self, bytes: &[u8]) -> Result<(), ValidateError>;
 
-    /// Validates a raw `spawn-app` transaction prior to executing it.
-    fn validate_app(&self, bytes: &[u8]) -> Result<(), ValidateError>;
+    /// Validates a raw `Spawn Account` transaction prior to executing it.
+    fn validate_spawn(&self, bytes: &[u8]) -> Result<(), ValidateError>;
 
-    /// Validates a raw `exec-app` transaction prior to executing it.
-    fn validate_tx(&self, bytes: &[u8]) -> Result<Transaction, ValidateError>;
+    /// Validates a raw `Call Account` transaction (a.k.a a [`Transaction`]) prior to executing it.
+    fn validate_call(&self, bytes: &[u8]) -> Result<Transaction, ValidateError>;
 
-    /// Deploy the "template" of an app.
-    fn deploy_template(
-        &mut self,
-        bytes: &[u8],
-        deployer: &DeployerAddr,
-        gas_limit: Gas,
-    ) -> TemplateReceipt;
+    /// Deploy a `Template`
+    fn deploy(&mut self, bytes: &[u8], deployer: &DeployerAddr, gas_limit: Gas) -> DeployReceipt;
 
-    /// Spawns a new app out of an existing app-template.
-    fn spawn_app(&mut self, bytes: &[u8], spawner: &SpawnerAddr, gas_limit: Gas) -> SpawnReceipt;
+    /// Spawns a new `Account`
+    fn spawn(&mut self, bytes: &[u8], spawner: &SpawnerAddr, gas_limit: Gas) -> SpawnReceipt;
 
-    /// Validates a [`Transaction`] before deployment.
-    fn exec_verify(
-        &self,
-        tx: &Transaction,
-        state: &State,
-        gas_limit: Gas,
-    ) -> Result<bool, RuntimeError>;
+    /// Verifies a [`Transaction`] before execution.
+    fn verify(&self, tx: &Transaction, state: &State, gas_limit: Gas)
+        -> Result<bool, RuntimeError>;
 
-    /// Executes an transaction and returns its associated [`ExecReceipt`].
+    /// Executes an [`Transaction`] and returns its output [`ExecReceipt`].
     ///
     /// This function should be called only if the `verify` stage passed.
     ///
-    /// On success:
-    /// * Persists changes to the app's own storage.
-    /// * Receipt returns the app's new storage state.
-    /// * Receipt informs the amount of gas used.
+    /// On Success:
+    /// * Persists changes to the called `Account`'s storage.
+    /// * Receipt returns the `Account`'s new `State`.
+    /// * Receipt returns the amount of [`Gas`] used.
     ///
     /// On failure:
     /// * Receipt returns the occurred error
     /// * Receipt informs the amount of gas used (transaction gas limit)
-    fn exec_tx(&self, tx: &Transaction, state: &State, gas_limit: Gas) -> CallReceipt;
+    fn call(&self, tx: &Transaction, state: &State, gas_limit: Gas) -> CallReceipt;
 }

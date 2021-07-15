@@ -18,9 +18,9 @@ mod field;
 mod section;
 mod version;
 
-pub mod app;
+pub mod call;
+pub mod spawn;
 pub mod template;
-pub mod transaction;
 pub use ext::{ReadExt, WriteExt};
 pub use field::Field;
 pub mod api;
@@ -47,11 +47,11 @@ pub use error::ParseError;
 
 /// ## WASM API Usage
 ///
-/// Before calling `wasm_deploy_template/wasm_spawn_app/wasm_exec_app` we need first to allocate
+/// Before calling `wasm_deploy / wasm_spawn / wasm_call` we need first to allocate
 /// a WASM buffer using the `wasm_alloc` method. After the buffer isn't needed anymore, make sure to
 /// call the `wasm_free` method. (otherwise it'll be a memory-leak).
 ///
-/// The data returned by `wasm_deploy_template/wasm_spawn_app/wasm_exec_app` is a pointer to a new allocated
+/// The data returned by `wasm_deploy / wasm_spawn / wasm_call` is a pointer to a new allocated
 /// WASM buffer. This WASM buffer is allocated internally by the method and have to be freed later too using `wasm_free`.
 ///
 ///
@@ -85,63 +85,63 @@ macro_rules! wasm_func_call {
     }};
 }
 
-/// ## WASM Deploy-Template
+/// ## WASM `Deploy Template`
 ///
 /// Reads the WASM buffer given at parameter `offset` containing a JSON value.
-/// Encodes a `deploy-template` binary-transaction using that JSON value.
+/// Encodes a `Deploy Template` binary-transaction using that JSON value.
 ///
 /// Returns a pointer to a new WASM buffer holding the encoded transaction.
 /// If the encoding failed, the returned WASM buffer will contain a String containing the error message.
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
-pub extern "C" fn wasm_encode_deploy_template(offset: i32) -> i32 {
-    wasm_func_call!(encode_deploy_template, offset)
+pub extern "C" fn wasm_encode_deploy(offset: i32) -> i32 {
+    wasm_func_call!(encode_deploy, offset)
 }
 
-/// ## WASM Spawn-App
+/// ## WASM `Spawn Account`
 ///
 /// Reads the WASM buffer given at parameter `offset` containing a JSON value.
-/// Encodes a `spawn-app` binary-transaction using that JSON value.
+/// Encodes a `Spawn Account` binary-transaction using that JSON value.
 ///
 /// Returns a pointer to a new WASM buffer holding the encoded transaction.
 /// If the encoding fails, the returned WASM buffer will contain a String containing the error message.
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
-pub extern "C" fn wasm_encode_spawn_app(offset: i32) -> i32 {
-    wasm_func_call!(encode_spawn_app, offset)
+pub extern "C" fn wasm_encode_spawn(offset: i32) -> i32 {
+    wasm_func_call!(encode_spawn, offset)
 }
 
-/// Decodes the encoded `spawn-app` given as a WASM buffer (parameter `offset`).
+/// Decodes the encoded `Spawn Account` given as a WASM buffer (parameter `offset`).
 ///
 /// Returns a pointer to a new WASM buffer holding the decoded transaction.
 /// If the decoding fails, the returned WASM buffer will contain a String containing the error message.
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
-pub extern "C" fn wasm_decode_spawn_app(offset: i32) -> i32 {
-    wasm_func_call!(decode_spawn_app, offset)
+pub extern "C" fn wasm_decode_spawn(offset: i32) -> i32 {
+    wasm_func_call!(decode_spawn, offset)
 }
 
-/// ## WASM Execute-App
+/// ## WASM `Call App`
 ///
 /// Reads the WASM buffer given at parameter `offset` containing a JSON value.
-/// Encodes a `exec-app` binary-transaction using that JSON value.
+/// Encodes a `Call App` binary-transaction using that JSON value.
 ///
 /// Returns a pointer to a new WASM buffer holding the encoded transaction.
 /// If the encoding failed, the returned WASM buffer will contain a String containing the error message.
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
-pub extern "C" fn wasm_encode_exec_app(offset: i32) -> i32 {
-    wasm_func_call!(encode_exec_app, offset)
+pub extern "C" fn wasm_encode_call(offset: i32) -> i32 {
+    wasm_func_call!(encode_call, offset)
 }
 
-/// Decodes the encoded `exec-app` given as a WASM buffer (parameter `offset`).
+/// Decodes the encoded `Call App` given as a WASM buffer (parameter `offset`).
 ///
 /// Returns a pointer to a new WASM buffer holding the decoded transaction.
 /// If the decoding fails, the returned WASM buffer will contain a String containing the error message.
 #[no_mangle]
 #[cfg(target_arch = "wasm32")]
-pub extern "C" fn wasm_decode_exec_app(offset: i32) -> i32 {
-    wasm_func_call!(decode_exec_app, offset)
+pub extern "C" fn wasm_decode_call(offset: i32) -> i32 {
+    wasm_func_call!(decode_call, offset)
 }
 
 /// ## WASM Buffer Allocation

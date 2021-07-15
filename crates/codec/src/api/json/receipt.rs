@@ -4,9 +4,9 @@ use crate::api::json::{self, JsonError};
 use crate::receipt;
 
 use svm_types::RuntimeError;
-use svm_types::{CallReceipt, Receipt, ReceiptLog, SpawnReceipt, TemplateReceipt};
+use svm_types::{CallReceipt, DeployReceipt, Receipt, ReceiptLog, SpawnReceipt};
 
-/// Given a binary Receipt wrappend inside a JSON,
+/// Given a binary Receipt wrapped inside a JSON,
 /// decodes it into a user-friendly JSON.
 pub fn decode_receipt(json: &Value) -> Result<Value, JsonError> {
     let data = json::as_string(json, "data")?;
@@ -19,9 +19,9 @@ pub fn decode_receipt(json: &Value) -> Result<Value, JsonError> {
 
     let json = if receipt.success() {
         match receipt {
-            Receipt::DeployTemplate(receipt) => decode_deploy_template(&receipt, ty),
-            Receipt::SpawnApp(receipt) => decode_spawn_app(&receipt, ty),
-            Receipt::ExecApp(receipt) => decode_exe_app(&receipt, ty),
+            Receipt::Deploy(receipt) => decode_deploy(&receipt, ty),
+            Receipt::Spawn(receipt) => decode_spawn(&receipt, ty),
+            Receipt::Call(receipt) => decode_call(&receipt, ty),
         }
     } else {
         let ty = receipt_type(&receipt);
@@ -36,9 +36,9 @@ pub fn decode_receipt(json: &Value) -> Result<Value, JsonError> {
 
 fn receipt_type(receipt: &Receipt) -> &'static str {
     match receipt {
-        Receipt::DeployTemplate(..) => "deploy-template",
-        Receipt::SpawnApp(..) => "spawn-app",
-        Receipt::ExecApp(..) => "exec-app",
+        Receipt::Deploy(..) => "deploy-template",
+        Receipt::Spawn(..) => "spawn-account",
+        Receipt::Call(..) => "call-account",
     }
 }
 
@@ -52,72 +52,72 @@ fn decode_error(ty: &'static str, err: &RuntimeError, logs: &[ReceiptLog]) -> Va
                 "err_type": "template-not-found",
                 "template_addr": json::addr_to_str(template_addr.inner()),
             }),
-            RuntimeError::AccountNotFound(app_addr) => json!({
-                "err_type": "app-not-found",
-                "app_addr": json::addr_to_str(app_addr.inner()),
+            RuntimeError::AccountNotFound(account_addr) => json!({
+                "err_type": "account-not-found",
+                "account_addr": json::addr_to_str(account_addr.inner()),
             }),
             RuntimeError::CompilationFailed {
-                account_addr: app_addr,
+                account_addr,
                 template_addr,
                 msg,
             } => json!({
                 "err_type": "compilation-failed",
                 "template_addr": json::addr_to_str(template_addr.inner()),
-                "app_addr": json::addr_to_str(app_addr.inner()),
+                "account_addr": json::addr_to_str(account_addr.inner()),
                 "message": msg,
             }),
             RuntimeError::InstantiationFailed {
-                account_addr: app_addr,
+                account_addr,
                 template_addr,
                 msg,
             } => json!({
                 "err_type": "instantiation-failed",
                 "template_addr": json::addr_to_str(template_addr.inner()),
-                "app_addr": json::addr_to_str(app_addr.inner()),
+                "account_addr": json::addr_to_str(account_addr.inner()),
                 "message": msg,
             }),
             RuntimeError::FuncNotFound {
-                account_addr: app_addr,
+                account_addr,
                 template_addr,
                 func,
             } => json!({
                 "err_type": "function-not-found",
                 "template_addr": json::addr_to_str(template_addr.inner()),
-                "app_addr": json::addr_to_str(app_addr.inner()),
+                "account_addr": json::addr_to_str(account_addr.inner()),
                 "func": func,
             }),
             RuntimeError::FuncFailed {
-                account_addr: app_addr,
+                account_addr,
                 template_addr,
                 func,
                 msg,
             } => json!({
                 "err_type": "function-failed",
                 "template_addr": json::addr_to_str(template_addr.inner()),
-                "app_addr": json::addr_to_str(app_addr.inner()),
+                "account_addr": json::addr_to_str(account_addr.inner()),
                 "func": func,
                 "message": msg,
             }),
             RuntimeError::FuncNotAllowed {
-                account_addr: app_addr,
+                account_addr,
                 template_addr,
                 func,
                 msg,
             } => json!({
                 "err_type": "function-not-allowed",
                 "template_addr": json::addr_to_str(template_addr.inner()),
-                "app_addr": json::addr_to_str(app_addr.inner()),
+                "account_addr": json::addr_to_str(account_addr.inner()),
                 "func": func,
                 "message": msg,
             }),
             RuntimeError::FuncInvalidSignature {
-                account_addr: app_addr,
+                account_addr,
                 template_addr,
                 func,
             } => json!({
                 "err_type": "function-invalid-signature",
                 "template_addr": json::addr_to_str(template_addr.inner()),
-                "app_addr": json::addr_to_str(app_addr.inner()),
+                "account_addr": json::addr_to_str(account_addr.inner()),
                 "func": func,
             }),
         }
@@ -135,11 +135,11 @@ fn decode_error(ty: &'static str, err: &RuntimeError, logs: &[ReceiptLog]) -> Va
     map.into()
 }
 
-fn decode_deploy_template(receipt: &TemplateReceipt, ty: &'static str) -> Value {
+fn decode_deploy(receipt: &DeployReceipt, ty: &'static str) -> Value {
     debug_assert!(receipt.success);
     debug_assert!(receipt.error.is_none());
 
-    let TemplateReceipt {
+    let DeployReceipt {
         addr,
         gas_used,
         logs,
@@ -155,12 +155,12 @@ fn decode_deploy_template(receipt: &TemplateReceipt, ty: &'static str) -> Value 
     })
 }
 
-fn decode_spawn_app(receipt: &SpawnReceipt, ty: &'static str) -> Value {
+fn decode_spawn(receipt: &SpawnReceipt, ty: &'static str) -> Value {
     debug_assert!(receipt.success);
     debug_assert!(receipt.error.is_none());
 
     let SpawnReceipt {
-        account_addr: app_addr,
+        account_addr,
         init_state,
         returndata,
         gas_used,
@@ -171,7 +171,7 @@ fn decode_spawn_app(receipt: &SpawnReceipt, ty: &'static str) -> Value {
     json!({
         "type": ty,
         "success": true,
-        "app": json::addr_to_str(app_addr.as_ref().unwrap().inner()),
+        "account": json::addr_to_str(account_addr.as_ref().unwrap().inner()),
         "state": json::state_to_str(init_state.as_ref().unwrap()),
         "returndata": json::bytes_to_str(returndata.as_ref().unwrap()),
         "gas_used": json::gas_to_json(&gas_used),
@@ -179,7 +179,7 @@ fn decode_spawn_app(receipt: &SpawnReceipt, ty: &'static str) -> Value {
     })
 }
 
-fn decode_exe_app(receipt: &CallReceipt, ty: &'static str) -> Value {
+fn decode_call(receipt: &CallReceipt, ty: &'static str) -> Value {
     debug_assert!(receipt.success);
     debug_assert!(receipt.error.is_none());
 
@@ -210,7 +210,7 @@ mod tests {
     use svm_types::{Address, Gas, ReceiptLog, State};
 
     #[test]
-    fn decode_receipt_deploy_template_receipt_success() {
+    fn decode_receipt_deploy_success() {
         let template = Address::repeat(0x10);
 
         let logs = vec![
@@ -224,7 +224,7 @@ mod tests {
             },
         ];
 
-        let receipt = TemplateReceipt {
+        let receipt = DeployReceipt {
             version: 0,
             success: true,
             error: None,
@@ -233,7 +233,7 @@ mod tests {
             logs,
         };
 
-        let bytes = crate::receipt::encode_template_receipt(&receipt);
+        let bytes = crate::receipt::encode_deploy(&receipt);
         let data = json::bytes_to_str(&bytes);
         let json = decode_receipt(&json!({ "data": data })).unwrap();
 
@@ -253,8 +253,8 @@ mod tests {
     }
 
     #[test]
-    fn decode_receipt_spawn_app_receipt_success() {
-        let app = Address::repeat(0x10);
+    fn decode_receipt_spawn_success() {
+        let account = Address::repeat(0x10);
         let state = State::repeat(0xA0);
 
         let logs = vec![
@@ -272,14 +272,14 @@ mod tests {
             version: 0,
             success: true,
             error: None,
-            account_addr: Some(app.into()),
+            account_addr: Some(account.into()),
             init_state: Some(state),
             returndata: Some(vec![0x10, 0x20, 0x30]),
             gas_used: Gas::with(10),
             logs,
         };
 
-        let bytes = crate::receipt::encode_app_receipt(&receipt);
+        let bytes = crate::receipt::encode_spawn(&receipt);
         let data = json::bytes_to_str(&bytes);
         let json = decode_receipt(&json!({ "data": data })).unwrap();
 
@@ -287,8 +287,8 @@ mod tests {
             json,
             json!({
                 "success": true,
-                "type": "spawn-app",
-                "app": "1010101010101010101010101010101010101010",
+                "type": "spawn-account",
+                "account": "1010101010101010101010101010101010101010",
                 "gas_used": 10,
                 "returndata": "102030",
                 "state": "A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0",
@@ -301,7 +301,7 @@ mod tests {
     }
 
     #[test]
-    fn decode_receipt_spawn_app_receipt_error() {
+    fn decode_receipt_spawn_error() {
         let logs = vec![ReceiptLog {
             msg: b"Reached OOG".to_vec(),
             code: 0,
@@ -318,14 +318,14 @@ mod tests {
             logs,
         };
 
-        let bytes = crate::receipt::encode_app_receipt(&receipt);
+        let bytes = crate::receipt::encode_spawn(&receipt);
         let data = json::bytes_to_str(&bytes);
         let json = decode_receipt(&json!({ "data": data })).unwrap();
 
         assert_eq!(
             json,
             json!({
-               "type": "spawn-app",
+               "type": "spawn-account",
                "success": false,
                "err_type": "oog",
                "logs": [{"code": 0, "msg": "Reached OOG"}],
@@ -334,7 +334,7 @@ mod tests {
     }
 
     #[test]
-    fn decode_receipt_exec_app_receipt_success() {
+    fn decode_receipt_call_success() {
         let state = State::repeat(0xA0);
 
         let logs = vec![
@@ -358,7 +358,7 @@ mod tests {
             logs,
         };
 
-        let bytes = crate::receipt::encode_exec_receipt(&receipt);
+        let bytes = crate::receipt::encode_call(&receipt);
         let data = json::bytes_to_str(&bytes);
         let json = decode_receipt(&json!({ "data": data })).unwrap();
 
@@ -366,7 +366,7 @@ mod tests {
             json,
             json!({
                 "success": true,
-                "type": "exec-app",
+                "type": "call-account",
                 "gas_used": 10,
                 "returndata": "1020",
                 "new_state": "A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0A0",

@@ -1,6 +1,6 @@
-use svm_types::Gas;
-
 use std::io::Cursor;
+
+use svm_types::Gas;
 
 use crate::{Field, ParseError, ReadExt, WriteExt};
 

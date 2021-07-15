@@ -1,15 +1,13 @@
 use super::wasm_buf_apply;
 use crate::api::{self, json::JsonError};
 
-///
-/// Encodes a `deploy-template` json input into SVM `deploy-template` binary transaction.
+/// Encodes a `Deploy Template` json input into SVM a binary format.
 /// The json input is passed by giving WASM memory start address (`ptr` parameter).
 ///
 /// Returns a pointer to a `transaction buffer`.
 ///
 /// See also: `alloc` and `free`
-///
-pub fn encode_deploy_template(ptr: usize) -> Result<usize, JsonError> {
+pub fn encode_deploy(ptr: usize) -> Result<usize, JsonError> {
     wasm_buf_apply(ptr, api::json::deploy_template)
 }
 
@@ -31,7 +29,7 @@ mod test {
     use crate::template;
 
     #[test]
-    fn wasm_encode_deploy_template_valid() {
+    fn wasm_deploy_valid() {
         let json = r#"{
           "name": "My Template",
           "desc": "A few words",
@@ -43,7 +41,7 @@ mod test {
         }"#;
 
         let json_buf = to_wasm_buffer(json.as_bytes());
-        let tx_buf = encode_deploy_template(json_buf).unwrap();
+        let tx_buf = encode_deploy(json_buf).unwrap();
 
         let data = wasm_buffer_data(tx_buf);
         assert_eq!(data[0], BUF_OK_MARKER);
@@ -76,11 +74,11 @@ mod test {
     }
 
     #[test]
-    fn wasm_encode_deploy_template_invalid_json() {
+    fn wasm_deploy_invalid() {
         let json = "{";
 
         let json_buf = to_wasm_buffer(json.as_bytes());
-        let error_buf = encode_deploy_template(json_buf).unwrap();
+        let error_buf = encode_deploy(json_buf).unwrap();
 
         let error = unsafe { error_as_string(error_buf) };
 

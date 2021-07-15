@@ -7,30 +7,30 @@ pub struct SpawnReceipt {
     /// The transaction format version
     pub version: u16,
 
-    /// whether spawn succeeded or not
+    /// Whether Spawn succeeded or not
     pub success: bool,
 
-    /// the error in case spawning failed
+    /// The [`RuntimeError`] in case spawning has failed.
     pub error: Option<RuntimeError>,
 
-    /// the spawned app `Address`
+    /// The spawned [`Account`](crate:Account) Address
     pub account_addr: Option<AccountAddr>,
 
-    /// the spawned app initial state (after executing its ctor)
+    /// The spawned [`Account`](crate::Account) initial state (after executing its ctor)
     pub init_state: Option<State>,
 
-    /// returned ctor data
+    /// Returned `ctor` data
     pub returndata: Option<Vec<u8>>,
 
-    /// The amount of gas used
+    /// The amount of gas used.
     pub gas_used: Gas,
 
-    /// logged entries during spawn-app's ctor running
+    /// Logs collected during `Spawning` `ctor` running.
     pub logs: Vec<ReceiptLog>,
 }
 
 impl SpawnReceipt {
-    /// Creates a `SpawnAppReceipt` for reaching reaching `Out-of-Gas`.
+    /// Creates a [`SpawnReceipt`] for reaching reaching `Out-of-Gas`.
     pub fn new_oog(logs: Vec<ReceiptLog>) -> Self {
         Self::from_err(RuntimeError::OOG, logs)
     }
@@ -49,44 +49,59 @@ impl SpawnReceipt {
         }
     }
 
-    /// Returns spawned-app `Error`. Panics if spawning has *not* failed.
+    /// Returns [`RuntimeError`].
+    ///
+    /// # Panics
+    ///
+    /// Panics if spawning has **NOT** failed.
     pub fn error(&self) -> &RuntimeError {
         self.error.as_ref().unwrap()
     }
 
-    /// Returns spawned-app `Address`. Panics if spawning has failed.
-    pub fn app_addr(&self) -> &AccountAddr {
+    /// Returns spawned [`Account`](crate::Account) Address.
+    ///
+    /// # Panics
+    ///
+    /// Panics if spawning has failed.
+    pub fn account_addr(&self) -> &AccountAddr {
         self.account_addr.as_ref().unwrap()
     }
 
-    /// Returns spawned-app initial `State`. Panics if spawning has failed.
+    /// Returns spawned [`Account`](crate::Account) initial `State`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if spawning has failed.
     pub fn init_state(&self) -> &State {
         self.init_state.as_ref().unwrap()
     }
 
-    /// Returns spawned-app results. Panics if spawning has failed.
+    /// Returns spawned [`Account`](crate::Account) results. Panics if spawning has failed.
     pub fn returndata(&self) -> &Vec<u8> {
         self.returndata.as_ref().unwrap()
     }
 
-    /// Returns spawned-app gas-used
-    pub fn get_gas_used(&self) -> Gas {
+    /// Returns [`Account`](crate::Account) amount of gas-used.
+    pub fn gas_used(&self) -> Gas {
         self.gas_used
     }
 
-    /// Returns the logs generated during the transaction execution
+    /// Returns the collected Logs during the transaction execution.
     pub fn logs(&self) -> &[ReceiptLog] {
         &self.logs
     }
 
-    /// Take the Receipt's logged entries out
+    /// Takes the Receipt's collected logs.
     pub fn take_logs(&mut self) -> Vec<ReceiptLog> {
         std::mem::take(&mut self.logs)
     }
 }
 
 #[allow(missing_docs)]
-pub fn into_spawn_receipt(mut ctor_receipt: CallReceipt, app_addr: &AccountAddr) -> SpawnReceipt {
+pub fn into_spawn_receipt(
+    mut ctor_receipt: CallReceipt,
+    account_addr: &AccountAddr,
+) -> SpawnReceipt {
     let logs = ctor_receipt.take_logs();
 
     if ctor_receipt.success {
@@ -94,7 +109,7 @@ pub fn into_spawn_receipt(mut ctor_receipt: CallReceipt, app_addr: &AccountAddr)
             version: 0,
             success: true,
             error: None,
-            account_addr: Some(app_addr.clone()),
+            account_addr: Some(account_addr.clone()),
             init_state: ctor_receipt.new_state,
             returndata: ctor_receipt.returndata,
             gas_used: ctor_receipt.gas_used,

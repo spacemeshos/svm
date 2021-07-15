@@ -1,9 +1,9 @@
 //! Builder API
 
-mod app_builder;
-mod template_builder;
-mod tx_builder;
+mod call;
+mod deploy;
+mod spawn;
 
-pub use app_builder::SpawnAppBuilder;
-pub use template_builder::TemplateBuilder;
-pub use tx_builder::TxBuilder;
+pub use call::TxBuilder;
+pub use deploy::TemplateBuilder;
+pub use spawn::SpawnBuilder;
