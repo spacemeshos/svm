@@ -1,6 +1,6 @@
 use parity_wasm::elements::Instruction;
 
-use svm_program::FuncIndex;
+use svm_program::{FuncIndex, Program};
 
 mod helpers;
 
@@ -27,7 +27,7 @@ fn read_program_multiple_imports() {
           )
         "#;
 
-    let program = helpers::parse_wasm(wasm);
+    let program = Program::from_wat(wasm).unwrap();
     let imports = program.imports();
 
     assert_eq!(imports.count(), 6);

@@ -5,12 +5,6 @@ use svm_gas::{
 };
 use svm_program::*;
 
-pub fn parse_wasm(wasm: &str) -> Program {
-    let wasm = wat::parse_str(wasm).unwrap();
-
-    Program::new(&wasm).unwrap()
-}
-
 pub fn get_func(program: &Program, fn_index: u32) -> Function {
     let index = FuncIndex(fn_index);
     let func = program.get_func(index);
@@ -24,19 +18,16 @@ pub fn get_func(program: &Program, fn_index: u32) -> Function {
     Function::new(index, code)
 }
 
-pub fn price_program<R>(wasm: &str, resolver: R) -> FuncPrice
+pub fn price_program<R>(wat: &str, resolver: R) -> FuncPrice
 where
     R: PriceResolver,
 {
-    let program = parse_wasm(wasm);
-
     let mut func_price: Option<FuncPrice> = None;
-
     let mut pp = ProgramPricing::new(resolver);
 
-    let func_price = pp.visit(&program).unwrap();
+    let program = Program::from_wat(wat).unwrap();
 
-    func_price
+    pp.visit(&program).unwrap()
 }
 
 #[macro_export]
