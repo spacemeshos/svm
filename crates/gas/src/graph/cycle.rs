@@ -45,10 +45,12 @@ where
 mod tests {
     use parity_wasm::elements::Func;
 
+    use svm_program::FuncIndex;
+
     use std::fmt::format;
 
     use super::*;
-    use crate::{FuncIndex, GraphCycles};
+    use crate::GraphCycles;
 
     fn fmt_cycle(cycle: GraphCycles<FuncIndex>) -> String {
         format!("{:?}", cycle)

@@ -15,7 +15,6 @@ mod error;
 mod runtime;
 mod storage;
 pub mod testing;
-mod validation;
 pub mod vmcalls;
 mod wasm_store;
 

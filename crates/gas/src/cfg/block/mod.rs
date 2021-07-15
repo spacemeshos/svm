@@ -1,10 +1,10 @@
 use indexmap::IndexSet;
 
-use super::{Depth, Edge, Jump};
-
-use crate::Op;
+use svm_program::Op;
 
 use std::fmt::{self, Debug};
+
+use super::{Depth, Edge, Jump};
 
 mod block_num;
 mod block_ref;

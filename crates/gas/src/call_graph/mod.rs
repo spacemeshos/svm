@@ -1,6 +1,8 @@
+use svm_program::{FuncIndex, ProgramError};
+
 use std::ops::{Deref, DerefMut};
 
-use crate::{FuncIndex, Graph, GraphCycles, NodeLabel, ProgramError};
+use crate::{Graph, GraphCycles, NodeLabel};
 
 mod builder;
 pub use builder::CallGraphBuilder;

@@ -19,6 +19,7 @@ svm-kv = { path = "../kv", default-features = false }
 svm-storage = { path = "../storage", default-features = false }
 svm-codec = { path = "../codec" }
 svm-gas = { path = "../gas" }
+svm-program = { path = "../program" }
 thiserror = "1"
 wasmer = { version = "2", default-features = false }
 wasmer-runtime-core = "0.17"

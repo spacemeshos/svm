@@ -1,14 +1,14 @@
 #![allow(unused)]
 
 use svm_gas::{
-    BlockNum, FuncIndex, FuncPrice, Function, Graph, NodeData, NodeLabel, PriceResolver, Program,
-    ProgramPricing, ProgramVisitor, CFG,
+    BlockNum, FuncPrice, Graph, NodeData, NodeLabel, PriceResolver, ProgramPricing, CFG,
 };
+use svm_program::*;
 
 pub fn parse_wasm(wasm: &str) -> Program {
     let wasm = wat::parse_str(wasm).unwrap();
 
-    svm_gas::read_program(&wasm).unwrap()
+    Program::new(&wasm).unwrap()
 }
 
 pub fn get_func(program: &Program, fn_index: u32) -> Function {
@@ -69,7 +69,8 @@ macro_rules! block {
         use parity_wasm::elements::{Instruction, BlockType, ValueType};
 
         #[allow(unused)]
-        use svm_gas::{Block, BlockNum, Op, Cont, ContKind, Jump, Edge};
+        use svm_gas::{Block, BlockNum, Cont, ContKind, Jump, Edge};
+        use svm_program::Op;
 
         let mut ops: Vec<Op> = Vec::new();
 

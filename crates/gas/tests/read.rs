@@ -1,8 +1,8 @@
-mod helpers;
-
-use svm_gas::FuncIndex;
-
 use parity_wasm::elements::Instruction;
+
+use svm_program::FuncIndex;
+
+mod helpers;
 
 #[test]
 fn read_program_multiple_imports() {

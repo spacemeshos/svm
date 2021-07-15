@@ -1,7 +1,8 @@
+use svm_program::{Program, ProgramError};
+
 use std::collections::HashSet;
 
 use crate::{Graph, GraphCycles, Node, NodeData, NodeLabel, NodeRef};
-use crate::{Program, ProgramError};
 
 /// This file implements a [Topological-Sort](https://en.wikipedia.org/wiki/Topological_sorting) over the given `Graph`.
 /// The algorithm used is Kahn's algorithm which has a linear running time.

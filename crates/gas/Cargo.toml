@@ -9,8 +9,10 @@ description = "SVM gas formulas, metering, fixed gas compilation etc."
 publish = false
 
 [dependencies]
-parity-wasm = "0.42.2"
 indexmap = "1.6.2"
+parity-wasm = "0.42.2"
+petgraph = "0.6"
+svm-program = { path = "../program" }
 thiserror = "1"
 
 [dev-dependencies]

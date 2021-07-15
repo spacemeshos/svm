@@ -1,26 +1,11 @@
-use svm_gas::{FuncIndex, GraphCycles, ProgramError};
+use svm_gas::{FixedGasError, GraphCycles};
+use svm_program::*;
 
-macro_rules! validate_wasm {
-    ($code:expr) => {{
-        let wasm = wat::parse_str($code).unwrap();
+fn validate_wasm(code: &str) -> Result<(), FixedGasError> {
+    let wasm = wat::parse_str(code).unwrap();
+    let return_cycles = true;
 
-        let return_cycles = true;
-
-        svm_gas::validate_wasm(&wasm, return_cycles)
-    }};
-}
-
-#[test]
-fn validate_floats_not_allowed() {
-    let wasm = r#"
-          (module
-            (func $func0 (result f32)
-                (f32.const 0)))
-        "#;
-
-    let result = validate_wasm!(wasm);
-
-    assert_eq!(result, Err(ProgramError::FloatsNotAllowed));
+    svm_gas::validate_wasm(&Program::new(&wasm).unwrap(), return_cycles)
 }
 
 #[test]
@@ -31,9 +16,9 @@ fn validate_loops_not_allowed() {
                 (loop (nop))))
         "#;
 
-    let result = validate_wasm!(wasm);
+    let result = validate_wasm(wasm);
 
-    assert_eq!(result, Err(ProgramError::LoopNotAllowed));
+    assert_eq!(result, Err(FixedGasError::LoopNotAllowed));
 }
 
 #[test]
@@ -46,11 +31,11 @@ fn validate_direct_recursive_call_not_allowed() {
                 (call $func0)))
         "#;
 
-    let result = validate_wasm!(wasm);
+    let result = validate_wasm(wasm);
 
     assert_eq!(
         result,
-        Err(ProgramError::RecursiveCall {
+        Err(FixedGasError::RecursiveCall {
             func: FuncIndex(0),
             offset: 2,
         }),
@@ -71,12 +56,12 @@ fn validate_indirect_recursive_call_not_allowed() {
                 (call $func0)))
         "#;
 
-    let result = validate_wasm!(wasm);
+    let result = validate_wasm(wasm);
 
     let cycle =
         GraphCycles::HasCycles(vec![FuncIndex(0), FuncIndex(1), FuncIndex(2), FuncIndex(0)]);
 
-    assert_eq!(result, Err(ProgramError::CallCycle(cycle)));
+    assert_eq!(result, Err(FixedGasError::CallCycle(cycle)));
 }
 
 #[test]
@@ -96,7 +81,7 @@ fn validate_call_indirect_not_allowed() {
                 (call_indirect (type $proc) (i32.const 0))))
         "#;
 
-    let result = validate_wasm!(wasm);
+    let result = validate_wasm(wasm);
 
-    assert_eq!(result, Err(ProgramError::CallIndirectNotAllowed));
+    assert_eq!(result, Err(FixedGasError::CallIndirectNotAllowed));
 }

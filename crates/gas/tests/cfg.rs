@@ -1,7 +1,8 @@
 #![allow(unused)]
 
-use svm_gas::{build_func_cfg, read_program};
-use svm_gas::{BlockNum, FuncIndex, Function, Program, CFG};
+use svm_gas::build_func_cfg;
+use svm_gas::{BlockNum, CFG};
+use svm_program::*;
 
 mod helpers;
 

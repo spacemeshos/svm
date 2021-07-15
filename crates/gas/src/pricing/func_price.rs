@@ -1,8 +1,8 @@
-use std::fmt::{self, Display};
-
 use indexmap::IndexMap;
 
-use crate::FuncIndex;
+use svm_program::FuncIndex;
+
+use std::fmt::{self, Display};
 
 /// Stores a mapping between a function to its price
 #[derive(Debug, Clone, PartialEq)]

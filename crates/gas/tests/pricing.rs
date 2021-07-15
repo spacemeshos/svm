@@ -4,9 +4,8 @@ mod helpers;
 use helpers::assert_graph_eq;
 
 use svm_gas::build_weighted_graph;
-use svm_gas::{
-    BlockNum, FuncIndex, FuncPrice, GraphBuilder, Imports, NodeWeight, Op, PriceResolver,
-};
+use svm_gas::{BlockNum, FuncPrice, GraphBuilder, NodeWeight, PriceResolver};
+use svm_program::*;
 
 type WeightedGraphBuilder = GraphBuilder<BlockNum, NodeWeight<BlockNum>>;
 

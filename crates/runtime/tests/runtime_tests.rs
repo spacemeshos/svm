@@ -6,9 +6,8 @@ use svm_sdk::traits::Encoder;
 use svm_sdk::ReturnData;
 
 use svm_codec::{Field, ParseError};
-
-use svm_gas::ProgramError;
 use svm_layout::FixedLayout;
+use svm_program::ProgramError;
 use svm_runtime::{testing, Runtime, ValidateError};
 
 use svm_types::{Address, Gas, RuntimeError};
