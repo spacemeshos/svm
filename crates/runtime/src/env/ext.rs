@@ -2,7 +2,6 @@ use svm_types::{Account, SpawnAccount, SpawnerAddr, TemplateAddr};
 
 pub struct ExtApp {
     base: Account,
-
     spawner: SpawnerAddr,
 }
 

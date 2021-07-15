@@ -26,10 +26,10 @@ use crate::{calldata, version};
 use crate::{ReadExt, WriteExt};
 
 /// Encodes a `spawn-app` receipt into its binary format.
-pub fn encode_app_receipt(receipt: &SpawnReceipt) -> Vec<u8> {
+pub fn encode_spawn(receipt: &SpawnReceipt) -> Vec<u8> {
     let mut w = Vec::new();
 
-    w.write_byte(types::SPAWN_APP);
+    w.write_byte(types::SPAWN);
     encode_version(receipt, &mut w);
     w.write_bool(receipt.success);
 
@@ -49,11 +49,11 @@ pub fn encode_app_receipt(receipt: &SpawnReceipt) -> Vec<u8> {
 }
 
 /// Decodes a binary `spawn-app` receipt into its Rust struct.
-pub fn decode_app_receipt(bytes: &[u8]) -> SpawnReceipt {
+pub fn decode_spawn(bytes: &[u8]) -> SpawnReceipt {
     let mut cursor = Cursor::new(bytes);
 
     let ty = cursor.read_byte().unwrap();
-    debug_assert_eq!(ty, types::SPAWN_APP);
+    debug_assert_eq!(ty, types::SPAWN);
 
     let version = version::decode_version(&mut cursor).unwrap();
     debug_assert_eq!(0, version);
@@ -95,7 +95,7 @@ fn encode_version(receipt: &SpawnReceipt, w: &mut Vec<u8>) {
 fn encode_app_addr(receipt: &SpawnReceipt, w: &mut Vec<u8>) {
     debug_assert!(receipt.success);
 
-    let addr = receipt.app_addr();
+    let addr = receipt.account_addr();
 
     w.write_address(addr.inner());
 }
@@ -141,10 +141,10 @@ mod tests {
             logs: Vec::new(),
         };
 
-        let bytes = encode_app_receipt(&receipt);
+        let bytes = encode_spawn(&receipt);
         let decoded = decode_receipt(&bytes);
 
-        assert_eq!(decoded.into_spawn_app(), receipt);
+        assert_eq!(decoded.into_spawn(), receipt);
     }
 
     #[test]
@@ -168,10 +168,10 @@ mod tests {
             logs: logs.clone(),
         };
 
-        let bytes = encode_app_receipt(&receipt);
+        let bytes = encode_spawn(&receipt);
         let decoded = decode_receipt(&bytes);
 
-        assert_eq!(decoded.into_spawn_app(), receipt);
+        assert_eq!(decoded.into_spawn(), receipt);
     }
 
     #[test]
@@ -195,9 +195,9 @@ mod tests {
             logs: logs.clone(),
         };
 
-        let bytes = encode_app_receipt(&receipt);
+        let bytes = encode_spawn(&receipt);
         let decoded = decode_receipt(&bytes);
 
-        assert_eq!(decoded.into_spawn_app(), receipt);
+        assert_eq!(decoded.into_spawn(), receipt);
     }
 }

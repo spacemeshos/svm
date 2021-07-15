@@ -1,7 +1,7 @@
 //! Managing the Runtime's environment
 
 use svm_codec::ParseError;
-use svm_codec::{app, template, transaction};
+use svm_codec::{call, spawn, template};
 use svm_gas::PriceResolver;
 use svm_types::{AccountAddr, SectionKind, SpawnAccount, Template, TemplateAddr, Transaction};
 
@@ -143,7 +143,7 @@ where
     pub fn parse_spawn_app(&self, bytes: &[u8]) -> Result<SpawnAccount, ParseError> {
         let mut cursor = Cursor::new(bytes);
 
-        let spawn = app::decode(&mut cursor)?;
+        let spawn = spawn::decode(&mut cursor)?;
 
         Ok(spawn)
     }
@@ -155,7 +155,7 @@ where
     pub fn parse_exec_app(&self, bytes: &[u8]) -> Result<Transaction, ParseError> {
         let mut cursor = Cursor::new(bytes);
 
-        let tx = transaction::decode_exec_app(&mut cursor)?;
+        let tx = call::decode_call(&mut cursor)?;
 
         Ok(tx)
     }

@@ -1,6 +1,6 @@
 //! Implements common functionality to be consumed by tests.
 
-use svm_codec::api::builder::{SpawnAppBuilder, TemplateBuilder, TxBuilder};
+use svm_codec::api::builder::{SpawnBuilder, TemplateBuilder, TxBuilder};
 use svm_codec::template;
 use svm_gas::resolvers::V0PriceResolver;
 use svm_layout::{FixedLayout, Layout};
@@ -162,7 +162,7 @@ pub fn build_template(
 
 /// Builds a raw `Spawn App` transaction
 pub fn build_app(template: &TemplateAddr, name: &str, ctor: &str, calldata: &[u8]) -> Vec<u8> {
-    SpawnAppBuilder::new()
+    SpawnBuilder::new()
         .with_version(0)
         .with_template(template)
         .with_name(name)
@@ -175,7 +175,7 @@ pub fn build_app(template: &TemplateAddr, name: &str, ctor: &str, calldata: &[u8
 pub fn build_transaction(app_addr: &AccountAddr, func: &str, calldata: &[u8]) -> Vec<u8> {
     TxBuilder::new()
         .with_version(0)
-        .with_app(app_addr)
+        .with_target(app_addr)
         .with_func(func)
         .with_calldata(calldata)
         .build()

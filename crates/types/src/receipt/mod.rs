@@ -94,7 +94,7 @@ impl Receipt {
     }
 
     /// Returns the inner [`SpawnReceipt`]
-    pub fn into_spawn_app(self) -> SpawnReceipt {
+    pub fn into_spawn(self) -> SpawnReceipt {
         match self {
             Receipt::Spawn(r) => r,
             _ => unreachable!(),
@@ -102,7 +102,7 @@ impl Receipt {
     }
 
     /// Returns the inner [`CallReceipt`]
-    pub fn into_exec_app(self) -> CallReceipt {
+    pub fn into_call(self) -> CallReceipt {
         match self {
             Receipt::Call(r) => r,
             _ => unreachable!(),

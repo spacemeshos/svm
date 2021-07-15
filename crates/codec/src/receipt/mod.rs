@@ -1,23 +1,23 @@
-mod deploy_template;
+mod call;
+mod deploy;
 mod error;
-mod exec_app;
 mod gas;
-mod spawn_app;
+mod spawn;
 
 pub(crate) mod logs;
 
 pub(crate) use error::{decode_error, encode_error};
 
-pub use deploy_template::{decode_template_receipt, encode_template_receipt};
-pub use exec_app::{decode_exec_receipt, encode_exec_receipt};
-pub use spawn_app::{decode_app_receipt, encode_app_receipt};
+pub use call::{decode_call, encode_call_receipt};
+pub use deploy::{decode_deploy, encode_deploy_receipt};
+pub use spawn::{decode_spawn, encode_spawn};
 
 use svm_types::Receipt;
 
 mod types {
-    pub const DEPLOY_TEMPLATE: u8 = 0;
-    pub const SPAWN_APP: u8 = 1;
-    pub const EXEC_APP: u8 = 2;
+    pub const DEPLOY: u8 = 0;
+    pub const SPAWN: u8 = 1;
+    pub const CALL: u8 = 2;
 }
 
 /// Decodes a binary Receipt into its Rust struct wrapped as `ReceiptOwned`
@@ -27,16 +27,16 @@ pub fn decode_receipt(bytes: &[u8]) -> Receipt {
     let ty = bytes[0];
 
     match ty {
-        types::DEPLOY_TEMPLATE => {
-            let receipt = decode_template_receipt(bytes);
+        types::DEPLOY => {
+            let receipt = decode_deploy(bytes);
             Receipt::Deploy(receipt)
         }
-        types::SPAWN_APP => {
-            let receipt = decode_app_receipt(bytes);
+        types::SPAWN => {
+            let receipt = decode_spawn(bytes);
             Receipt::Spawn(receipt)
         }
-        types::EXEC_APP => {
-            let receipt = decode_exec_receipt(bytes);
+        types::CALL => {
+            let receipt = decode_call(bytes);
             Receipt::Call(receipt)
         }
         _ => unreachable!(),
