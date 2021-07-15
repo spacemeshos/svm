@@ -1,4 +1,4 @@
-use crate::{Id, LayoutBuilder, RawVar};
+use crate::{Id, FixedLayoutBuilder, RawVar};
 
 /// In-memory representation of a program's fixed-sized storage variables.
 #[derive(Debug, PartialEq, Clone)]
@@ -97,7 +97,7 @@ impl From<&[u32]> for FixedLayout {
     fn from(slice: &[u32]) -> Self {
         let len = slice.len();
 
-        let mut builder = LayoutBuilder::with_capacity(len);
+        let mut builder = FixedLayoutBuilder::with_capacity(len);
 
         if len > 0 {
             builder.set_first(Id(0));
@@ -161,7 +161,7 @@ mod tests {
 
     #[test]
     fn layout_new() {
-        let mut builder = LayoutBuilder::with_capacity(2);
+        let mut builder = FixedLayoutBuilder::with_capacity(2);
 
         builder.set_first(Id(3));
         builder.push(10);
@@ -185,7 +185,7 @@ mod tests {
 
     #[test]
     fn layout_extend_from_slice() {
-        let mut builder = LayoutBuilder::with_capacity(2);
+        let mut builder = FixedLayoutBuilder::with_capacity(2);
 
         builder.set_first(Id(4));
         builder.push(10);
@@ -203,7 +203,7 @@ mod tests {
 
     #[test]
     fn layout_iter() {
-        let mut builder = LayoutBuilder::with_capacity(2);
+        let mut builder = FixedLayoutBuilder::with_capacity(2);
 
         builder.set_first(Id(1));
         builder.push(10);

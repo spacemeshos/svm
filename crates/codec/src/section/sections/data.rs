@@ -45,7 +45,7 @@
 
 use std::io::Cursor;
 
-use svm_layout::{Id, Layout, LayoutBuilder, LayoutKind, RawVar};
+use svm_layout::{Id, Layout, FixedLayoutBuilder, LayoutKind, RawVar};
 use svm_types::DataSection;
 
 use crate::section::{SectionDecoder, SectionEncoder};
@@ -124,7 +124,7 @@ fn decode_layout(cursor: &mut Cursor<&[u8]>) -> Result<Layout, ParseError> {
                 Ok(var_count) => {
                     let var_count = var_count as usize;
 
-                    let mut builder = LayoutBuilder::with_capacity(var_count);
+                    let mut builder = FixedLayoutBuilder::with_capacity(var_count);
 
                     if var_count > 0 {
                         // `First Var Id`

@@ -151,7 +151,7 @@ fn svm_runtime_failure() {
         let msg: svm_byte_array = (DEPLOY_TEMPLATE_TX, msg).into();
 
         let mut template_receipt = svm_byte_array::default();
-        let res = api::svm_deploy_template(
+        let res = api::svm_deploy(
             &mut template_receipt,
             runtime,
             msg.clone(),
@@ -180,7 +180,7 @@ fn svm_runtime_failure() {
 
         let mut spawn_receipt = svm_byte_array::default();
 
-        let res = api::svm_spawn_app(
+        let res = api::svm_spawn(
             &mut spawn_receipt,
             runtime,
             app_bytes.clone(),
@@ -210,7 +210,7 @@ fn svm_runtime_failure() {
 
         // 4.1) validates tx and extracts its `App`'s `Address`
         let mut derived_app_addr = svm_byte_array::default();
-        let res = api::svm_validate_tx(
+        let res = api::svm_validate_call(
             &mut derived_app_addr,
             runtime,
             exec_bytes.clone(),
@@ -221,7 +221,7 @@ fn svm_runtime_failure() {
         // 4.2) execute the app-transaction
         let mut exec_receipt = svm_byte_array::default();
 
-        let res = api::svm_exec_app(
+        let res = api::svm_call(
             &mut exec_receipt,
             runtime,
             exec_bytes.clone(),
@@ -291,7 +291,7 @@ fn svm_runtime_success() {
         let msg: svm_byte_array = (DEPLOY_TEMPLATE_TX, msg).into();
 
         let mut template_receipt = svm_byte_array::default();
-        let res = api::svm_deploy_template(
+        let res = api::svm_deploy(
             &mut template_receipt,
             runtime,
             msg.clone(),
@@ -322,7 +322,7 @@ fn svm_runtime_success() {
 
         let mut spawn_receipt = svm_byte_array::default();
 
-        let res = api::svm_spawn_app(
+        let res = api::svm_spawn(
             &mut spawn_receipt,
             runtime,
             app_bytes.clone(),
@@ -357,7 +357,7 @@ fn svm_runtime_success() {
 
         // 4.1) validates tx and extracts its `App`'s `Address`
         let mut derived_app_addr = svm_byte_array::default();
-        let res = api::svm_validate_tx(
+        let res = api::svm_validate_call(
             &mut derived_app_addr,
             runtime,
             exec_bytes.clone(),
@@ -368,7 +368,7 @@ fn svm_runtime_success() {
         // 4.2) execute the app-transaction
         let mut exec_receipt = svm_byte_array::default();
 
-        let res = api::svm_exec_app(
+        let res = api::svm_call(
             &mut exec_receipt,
             runtime,
             exec_bytes.clone(),
