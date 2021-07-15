@@ -1,7 +1,7 @@
 use log::info;
 use svm_gas::ProgramError;
 use svm_layout::FixedLayout;
-use svm_storage::app::AppStorage;
+use svm_storage::account::AccountStorage;
 use svm_types::GasMode;
 use svm_types::SectionKind;
 use svm_types::{AccountAddr, DeployerAddr, SpawnerAddr, State, Template};
@@ -94,7 +94,7 @@ where
         app_addr: &AccountAddr,
         state: &State,
         layout: &FixedLayout,
-    ) -> AppStorage {
+    ) -> AccountStorage {
         (self.storage_builder)(app_addr, state, layout, &self.config)
     }
 

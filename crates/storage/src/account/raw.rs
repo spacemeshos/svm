@@ -2,15 +2,13 @@ use std::collections::HashMap;
 
 use svm_types::State;
 
-use super::AppKVStore;
-
+use super::AccountKVStore;
 use crate::kv::StatefulKV;
 
-/// Interface against the key-value store.
+/// Interface against the underling key-value store.
 /// Data is manipulated using `offset` and `length`.
 pub struct RawStorage {
-    app_kv: AppKVStore,
-
+    account_kv: AccountKVStore,
     kv_value_size: u32,
 }
 
@@ -33,21 +31,21 @@ impl RawChange {
 
 impl RawStorage {
     /// New instance backed by key-value `kv`.
-    pub fn new(app_kv: AppKVStore, kv_value_size: u32) -> Self {
+    pub fn new(account_kv: AccountKVStore, kv_value_size: u32) -> Self {
         Self {
-            app_kv,
+            account_kv,
             kv_value_size,
         }
     }
 
     #[inline]
     pub fn rewind(&mut self, state: &State) {
-        self.app_kv.rewind(state)
+        self.account_kv.rewind(state)
     }
 
     #[inline]
     pub fn head(&self) -> State {
-        self.app_kv.head()
+        self.account_kv.head()
     }
 
     /// Reads the raw data under `offset, offset + 1, ..., offset + length - 1`
@@ -80,19 +78,19 @@ impl RawStorage {
         }
 
         for (k, v) in raw_changes.iter() {
-            self.app_kv.set(k, v);
+            self.account_kv.set(k, v);
         }
 
-        let _state = self.app_kv.checkpoint();
+        let _state = self.account_kv.checkpoint();
 
-        self.app_kv.flush();
+        self.account_kv.flush();
     }
 
     #[inline]
     fn do_read_key(&self, key: u32) -> Vec<u8> {
         let key = key.to_be_bytes();
 
-        self.app_kv
+        self.account_kv
             .get(&key[..])
             .unwrap_or(vec![0; self.kv_value_size as usize])
     }
@@ -169,8 +167,8 @@ mod tests {
 
     #[test]
     fn raw_storage_var_defaults_to_zeros() {
-        let addr = Address::of("my-app");
-        let kv = testing::create_app_kv(addr);
+        let addr = Address::of("@Account");
+        let kv = testing::create_account_kv(addr);
 
         let off = 10;
         let len = 20;
@@ -183,8 +181,8 @@ mod tests {
 
     #[test]
     fn raw_storage_store() {
-        let addr = Address::of("my-app");
-        let kv = testing::create_app_kv(addr);
+        let addr = Address::of("@Account");
+        let kv = testing::create_account_kv(addr);
 
         let var1 = RawChange {
             offset: 0,

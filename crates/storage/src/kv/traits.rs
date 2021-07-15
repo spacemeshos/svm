@@ -3,7 +3,7 @@ use svm_types::State;
 /// This trait should be implemented by `State`-aware key-value stores.
 ///
 /// Implementations of this trait will probably want to use a raw-key value store
-/// for implementating primitive operations.
+/// for implementing primitive operations.
 ///
 pub trait StatefulKV {
     /// Gets the `value` pointed by by `key`.
@@ -27,7 +27,7 @@ pub trait StatefulKV {
 
     /// Discards all pending changes
     ///
-    /// This functionality is useful when an executed application transaction has failed.
+    /// This functionality is useful when an executed transaction has failed.
     /// When that happens, we want to discard its changes.
     ///
     /// All the pending changes since the last `checkpoint` will be discarded.
@@ -39,14 +39,14 @@ pub trait StatefulKV {
 
     /// Persists all pending changes since last `flush` call.
     ///
-    /// A single `flush` call might invlove persisting a coupl of checkpoints.
+    /// A single `flush` call might involve persisting a couple of checkpoints.
     ///
     /// # Panics
     ///
     /// Traits implementations are expected to panic in cases there are pending changes
     /// not associated with any checkpoint.
     ///
-    /// In order to aviod that, a call to `checkpoint` should be invoked prior to calling `flush`.
+    /// In order to avoid that, a call to `checkpoint` should be invoked prior to calling `flush`.
     ///
     fn flush(&mut self);
 

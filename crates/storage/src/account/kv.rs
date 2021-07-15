@@ -6,17 +6,17 @@ use crate::kv::StatefulKV;
 use svm_hash::{DefaultHasher, Hasher};
 use svm_types::{Address, State};
 
-/// An application-aware (and `State`-aware) key-value store interface responsible of
+/// An Account-aware (and `State`-aware) key-value store interface responsible of
 /// mapping `u32` input keys (given as a 4 byte-length slice) to global keys under a raw key-value store.
 ///
-/// The mapping is dependant on the contextual app's `Address` (see the `new` method).
-pub struct AppKVStore {
-    pub(crate) app_addr: Address,
+/// The mapping is dependant on the contextual `Account`'s `Address` (see the `new` method).
+pub struct AccountKVStore {
+    pub(crate) account_addr: Address,
 
     pub(crate) kv: Rc<RefCell<dyn StatefulKV>>,
 }
 
-impl StatefulKV for AppKVStore {
+impl StatefulKV for AccountKVStore {
     #[inline]
     #[must_use]
     fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
@@ -61,14 +61,14 @@ impl StatefulKV for AppKVStore {
     }
 }
 
-impl AppKVStore {
-    /// Create a new `AppKVStore` instance for application `app_addr`.
+impl AccountKVStore {
+    /// Create a new `AccountStore` instance for `Address` `account_addr`.
     ///
-    /// Delegates work to raw key-value store `kv`.
-    pub fn new(app_addr: Address, kv: &Rc<RefCell<dyn StatefulKV>>) -> Self {
+    /// Delegates work to underlying key-value store `kv`.
+    pub fn new(account_addr: Address, kv: &Rc<RefCell<dyn StatefulKV>>) -> Self {
         let kv = Rc::clone(&kv);
 
-        Self { app_addr, kv }
+        Self { account_addr, kv }
     }
 
     #[inline]
@@ -77,7 +77,7 @@ impl AppKVStore {
 
         let mut buf = Vec::with_capacity(Address::len() + key.len());
 
-        buf.extend_from_slice(self.app_addr.as_slice());
+        buf.extend_from_slice(self.account_addr.as_slice());
         buf.extend_from_slice(key);
 
         self.hash(&buf)
@@ -89,10 +89,10 @@ impl AppKVStore {
     }
 }
 
-impl Clone for AppKVStore {
+impl Clone for AccountKVStore {
     fn clone(&self) -> Self {
         Self {
-            app_addr: self.app_addr.clone(),
+            account_addr: self.account_addr.clone(),
             kv: Rc::clone(&self.kv),
         }
     }

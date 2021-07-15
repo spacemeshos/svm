@@ -1,6 +1,6 @@
 //! Implements [`Context`]. Used for managing data of running `SVM` apps.
 
-use svm_storage::app::AppStorage;
+use svm_storage::account::AccountStorage;
 use svm_types::{AccountAddr, Gas, ReceiptLog, TemplateAddr};
 use wasmer::Memory;
 
@@ -33,7 +33,7 @@ impl Context {
     /// Creates a new instance
     pub fn new(
         gas_limit: Gas,
-        storage: AppStorage,
+        storage: AccountStorage,
         template_addr: &TemplateAddr,
         app_addr: &AccountAddr,
     ) -> Self {
@@ -50,7 +50,7 @@ impl Context {
     pub fn new_with_memory(
         memory: Memory,
         gas_limit: Gas,
-        storage: AppStorage,
+        storage: AccountStorage,
         template_addr: &TemplateAddr,
         app_addr: &AccountAddr,
     ) -> Self {
@@ -93,7 +93,7 @@ pub struct ContextInner {
     pub gas_metering: bool,
 
     /// An accessor to the App's storage
-    pub storage: AppStorage,
+    pub storage: AccountStorage,
 
     /// App's logs
     pub logs: Vec<ReceiptLog>,
@@ -111,7 +111,7 @@ pub struct ContextInner {
 }
 
 impl ContextInner {
-    fn new(gas_limit: Gas, storage: AppStorage) -> Self {
+    fn new(gas_limit: Gas, storage: AccountStorage) -> Self {
         let gas_metering = gas_limit.is_some();
         let gas_limit = gas_limit.unwrap_or(0);
         let logs = Vec::new();

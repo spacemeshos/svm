@@ -5,7 +5,7 @@ use svm_codec::template;
 use svm_gas::resolvers::V0PriceResolver;
 use svm_layout::{FixedLayout, Layout};
 use svm_storage::{
-    app::{AppKVStore, AppStorage},
+    account::{AccountKVStore, AccountStorage},
     kv::{FakeKV, StatefulKV},
 };
 use svm_types::{
@@ -82,11 +82,11 @@ pub fn wasmer_instantiate(
 }
 
 /// Given an App `Address` and its storage layout, it initializes a new blank `AppStorage`
-pub fn blank_storage(app_addr: &Address, layout: &FixedLayout) -> AppStorage {
+pub fn blank_storage(app_addr: &Address, layout: &FixedLayout) -> AccountStorage {
     let state_kv = memory_state_kv_init();
-    let app_kv = AppKVStore::new(app_addr.clone(), &state_kv);
+    let app_kv = AccountKVStore::new(app_addr.clone(), &state_kv);
 
-    AppStorage::new(layout.clone(), app_kv)
+    AccountStorage::new(layout.clone(), app_kv)
 }
 
 /// Returns a new in-memory stateful-kv.
@@ -126,9 +126,9 @@ pub fn runtime_memory_storage_builder(
     let func =
         move |app_addr: &AccountAddr, state: &State, layout: &FixedLayout, _config: &Config| {
             let app_addr = app_addr.inner();
-            let app_kv = AppKVStore::new(app_addr.clone(), &state_kv);
+            let app_kv = AccountKVStore::new(app_addr.clone(), &state_kv);
 
-            let mut storage = AppStorage::new(layout.clone(), app_kv);
+            let mut storage = AccountStorage::new(layout.clone(), app_kv);
             storage.rewind(state);
 
             storage

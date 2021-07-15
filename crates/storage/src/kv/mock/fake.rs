@@ -32,10 +32,10 @@ use svm_types::State;
 ///   (k2, v2)                             (k4, v4)
 ///   (k3, v3)
 ///
-/// * `journal` - a vector of unflushed changes.
+/// * `journal` - a vector of un-flushed changes.
 ///
 ///   Each vector item consists of a 2-item tuple.
-///   The first tuple item holds the checkpoint `State`. This is optional since the last uncheckpointed-yet
+///   The first tuple item holds the checkpoint `State`. This is optional since the last not-checkpointed-yet
 ///   changes has no checkpoint `State` yet. It will be determined only after finalizing the next checkpoint.
 ///   Besides that "un-checkpoint" yet one, all previous `State` have a value. (i.e they are `Some(State)`).
 ///   with a single checkpoint.
