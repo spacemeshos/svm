@@ -43,112 +43,90 @@ impl MockHost {
         T: Encoder<Vec<u8>> + ByteSize,
     {
         let host = Self::instance();
-
         host.set_calldata(calldata)
     }
 
     pub fn set_raw_calldata(bytes: &[u8]) {
         let host = Self::instance();
-
         host.set_raw_calldata(bytes)
     }
 
     pub fn returndata() -> Option<alloc::vec::Vec<u8>> {
         let host = Self::instance();
-
         host.returndata()
     }
 
     pub fn set_balance(addr: &Address, amount: Amount) {
         let host = Self::instance();
-
         host.set_balance(addr, amount);
     }
 
     pub fn set_returndata(bytes: &[u8]) {
         let host = Self::instance();
-
         host.set_returndata(bytes);
     }
 
     pub fn set_value(value: Amount) {
         let host = Self::instance();
-
         host.set_value(value);
     }
 
-    pub fn set_sender(sender: Address) {
+    pub fn set_target(target: Address) {
         let host = Self::instance();
-
-        host.set_sender(sender);
-    }
-
-    pub fn set_app(app: Address) {
-        let host = Self::instance();
-
-        host.set_app(app);
+        host.set_target(target);
     }
 
     pub fn set_layer_id(layer_id: LayerId) {
         let host = Self::instance();
-
         host.set_layer_id(layer_id);
     }
 
     pub fn value() -> Amount {
         let host = Self::instance();
-
         host.value()
     }
 
-    pub fn sender() -> Address {
+    pub fn target() -> Address {
         let host = Self::instance();
-
-        host.sender()
+        host.target()
     }
 
     pub fn layer_id() -> LayerId {
         let host = Self::instance();
-
         host.layer_id()
     }
 
     pub fn balance_of(addr: &Address) -> Amount {
         let host = Self::instance();
-
         host.balance_of(addr)
     }
 
     pub fn transfer(dst: &Address, amount: Amount) {
         let host = Self::instance();
-
         host.transfer(dst, amount);
     }
 
     pub fn log(msg: &str, code: u8) {
         let host = Self::instance();
-
         host.log(msg, code);
     }
 
     pub fn logs() -> alloc::vec::Vec<(String, u8)> {
         let host = Self::instance();
-
         host.logs()
     }
 
     pub fn reset() {
         let host = Self::instance();
-
         host.reset();
     }
 }
 
 impl Host for MockHost {
-    fn get_calldata(&self) -> &'static [u8] {
+    fn calldata(&self) -> &'static [u8] {
         let host = Self::instance();
 
-        host.get_calldata()
+        host.calldata()
     }
 
     fn set_returndata(&mut self, bytes: &[u8]) {
@@ -163,39 +141,35 @@ impl Host for MockHost {
         host.value()
     }
 
-    fn sender(&self) -> Address {
+    fn target(&self) -> Address {
         let host = Self::instance();
 
-        host.sender()
+        host.target()
     }
 
-    fn app(&self) -> Address {
+    fn address(&self) -> Address {
         let host = Self::instance();
 
-        host.app()
+        host.address()
     }
 
     fn layer_id(&self) -> LayerId {
         let host = Self::instance();
-
         host.layer_id()
     }
 
     fn balance_of(&self, addr: &Address) -> Amount {
         let host = Self::instance();
-
         host.balance_of(addr)
     }
 
     fn transfer(&mut self, dst: &Address, amount: Amount) {
         let host = Self::instance();
-
         host.transfer(dst, amount);
     }
 
     fn log(&mut self, msg: &str, code: u8) {
         let host = Self::instance();
-
         host.log(msg, code);
     }
 }
@@ -209,9 +183,7 @@ pub struct InnerHost {
 
     pub value: Option<Amount>,
 
-    pub sender: Option<Address>,
-
-    pub app: Option<Address>,
+    pub target: Option<Address>,
 
     pub layer_id: Option<LayerId>,
 
@@ -224,8 +196,7 @@ impl InnerHost {
             calldata: None,
             returndata: None,
             value: None,
-            sender: None,
-            app: None,
+            target: None,
             accounts: HashMap::new(),
             layer_id: None,
             logs: alloc::vec::Vec::new(),
@@ -265,12 +236,8 @@ impl InnerHost {
         self.value = Some(value);
     }
 
-    pub fn set_sender(&mut self, sender: Address) {
-        self.sender = Some(sender);
-    }
-
-    pub fn set_app(&mut self, app: Address) {
-        self.app = Some(app);
+    pub fn set_target(&mut self, target: Address) {
+        self.target = Some(target);
     }
 
     pub fn set_layer_id(&mut self, layer_id: LayerId) {
@@ -285,7 +252,7 @@ impl InnerHost {
         self.calldata = None;
         self.returndata = None;
         self.value = None;
-        self.sender = None;
+        self.target = None;
         self.app = None;
         self.layer_id = None;
         self.logs.clear();
@@ -293,7 +260,7 @@ impl InnerHost {
 }
 
 impl Host for InnerHost {
-    fn get_calldata(&self) -> &'static [u8] {
+    fn calldata(&self) -> &'static [u8] {
         self.calldata.unwrap()
     }
 
@@ -305,11 +272,11 @@ impl Host for InnerHost {
         self.value.unwrap().clone()
     }
 
-    fn sender(&self) -> Address {
-        self.sender.unwrap().clone()
+    fn target(&self) -> Address {
+        self.target.unwrap().clone()
     }
 
-    fn app(&self) -> Address {
+    fn address(&self) -> Address {
         self.app.unwrap().clone()
     }
 
@@ -331,7 +298,7 @@ impl Host for InnerHost {
         let src_balance = app_balance - amount;
         let dst_balance = dst_balance + amount;
 
-        let src = self.app();
+        let src = self.address();
 
         self.accounts.insert(src, src_balance);
         self.accounts.insert(dst.clone(), dst_balance);
@@ -378,7 +345,7 @@ mod tests {
             let calldata = b"Hello World!";
             host.set_raw_calldata(calldata);
 
-            let calldata = host.get_calldata();
+            let calldata = host.calldata();
             assert_eq!(calldata, b"Hello World!");
         });
     }
