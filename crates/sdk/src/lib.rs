@@ -204,7 +204,7 @@
 ///     fn __inner__() -> Amount {
 ///         use svm_sdk::CallData;
 ///
-///         let bytes = Node.get_calldata();
+///         let bytes = Node.calldata();
 ///         let mut calldata = CallData::new(bytes);
 ///
 ///         let a: Amount = calldata.next_1();

@@ -2,6 +2,6 @@ error: `#[fundable_hook]` annotated function should have signature of `fn() -> (
  --> $DIR/fundable_hook_func_with_return_type_fails.rs:3:1
   |
 3 | #[template]
-  | ^^^^^^
+  | ^^^^^^^^^^^
   |
   = note: this error originates in the attribute macro `template` (in Nightly builds, run with -Z macro-backtrace for more info)

@@ -62,7 +62,7 @@ fn expand_prologue(func: &Function) -> Result<TokenStream> {
     }
 
     let calldata = quote! {
-        let bytes: &'static [u8] = Node.get_calldata();
+        let bytes: &'static [u8] = Node.calldata();
 
         let mut calldata = svm_sdk::CallData::new(bytes);
     };

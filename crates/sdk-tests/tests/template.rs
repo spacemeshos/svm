@@ -31,7 +31,7 @@ fn app_tests() {
 
     compile_fail(
         &t,
-        "tests/template/app_with_two_default_fundable_hook_not_allowed.rs",
+        "tests/template/template_with_two_default_fundable_hook_not_allowed.rs",
     );
 
     compile_fail(&t, "tests/template/using_extern_crate_not_allowed.rs");
