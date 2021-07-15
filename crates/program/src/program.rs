@@ -167,8 +167,6 @@ fn validate_exports(wasm_module: &Module) -> Result<(), ProgramError> {
     let empty_function_sig_section = FunctionSection::with_entries(vec![]);
     let empty_type_section = TypeSection::with_types(vec![]);
 
-    //let expected_sig =
-    //    ExternType::Function(FunctionType::new([wasmer::Type::I32], [wasmer::Type::I32]));
     let module_functions = wasm_module
         .function_section()
         .unwrap_or(&empty_function_sig_section)
