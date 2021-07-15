@@ -35,7 +35,7 @@ mod rocksdb;
 pub use rocksdb::{RocksAccountStore, RocksTemplateStore};
 
 #[cfg(feature = "default-rocksdb")]
-pub use default::{DefaultRocksAccountStore, DefaultRocksEnvTypes, DefaultRocksTemplateStore};
+pub use default::{DefaultRocksEnvTypes, DefaultRocksTemplateStore};
 
 mod traits;
 
