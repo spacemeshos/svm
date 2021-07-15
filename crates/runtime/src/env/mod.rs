@@ -140,7 +140,7 @@ where
     ///
     /// On success returns `SpawnApp`,
     /// On failure returns `ParseError`.
-    pub fn parse_spawn_app(&self, bytes: &[u8]) -> Result<SpawnAccount, ParseError> {
+    pub fn parse_spawn(&self, bytes: &[u8]) -> Result<SpawnAccount, ParseError> {
         let mut cursor = Cursor::new(bytes);
         let spawn = spawn::decode(&mut cursor)?;
 

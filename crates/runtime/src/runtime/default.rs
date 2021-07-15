@@ -2,11 +2,10 @@ use log::info;
 use svm_gas::ProgramError;
 use svm_layout::FixedLayout;
 use svm_storage::account::AccountStorage;
-use svm_types::GasMode;
 use svm_types::SectionKind;
 use svm_types::{AccountAddr, DeployerAddr, SpawnerAddr, State, Template};
 use svm_types::{CallReceipt, DeployReceipt, ReceiptLog, SpawnReceipt};
-use svm_types::{Gas, OOGError};
+use svm_types::{Gas, GasMode, OOGError};
 use svm_types::{RuntimeError, Transaction};
 use wasmer::{Instance, Module, WasmPtr, WasmTypeList};
 
@@ -40,7 +39,7 @@ where
     /// Runtime configuration.
     config: Config,
 
-    /// Builds a `AppStorage` instance.
+    /// Builds an `AccountStorage` instance.
     storage_builder: Box<StorageBuilderFn>,
 }
 
@@ -88,20 +87,20 @@ where
         CallReceipt::from_err(err, logs)
     }
 
-    /// Opens the [`AppStorage`] associated with the input parameters.
+    /// Opens the [`AccountStorage`] associated with the input parameters.
     pub fn open_storage(
         &self,
-        app_addr: &AccountAddr,
+        account_addr: &AccountAddr,
         state: &State,
         layout: &FixedLayout,
     ) -> AccountStorage {
-        (self.storage_builder)(app_addr, state, layout, &self.config)
+        (self.storage_builder)(account_addr, state, layout, &self.config)
     }
 
     fn call_ctor(
         &mut self,
         spawn: &ExtSpawn,
-        app_addr: &AccountAddr,
+        account_addr: &AccountAddr,
         gas_used: Gas,
         gas_left: Gas,
     ) -> SpawnReceipt {
@@ -112,7 +111,7 @@ where
             calldata: spawn.ctor_data(),
             state: &State::zeros(),
             template_addr,
-            account_addr: app_addr,
+            account_addr,
             within_spawn: true,
             gas_used,
             gas_left,
@@ -120,8 +119,8 @@ where
 
         let receipt = self.exec_call::<(), ()>(&call);
 
-        // TODO: move the `into_spawn_app_receipt` to a `From / TryFrom`
-        svm_types::into_spawn_receipt(receipt, app_addr)
+        // TODO: move the `into_spawn_receipt` to a `From / TryFrom`
+        svm_types::into_spawn_receipt(receipt, account_addr)
     }
 
     fn exec_call<Args, Rets>(&self, call: &Call) -> CallReceipt {
@@ -138,10 +137,15 @@ where
     {
         match self.account_template(call.account_addr) {
             Ok(template) => {
-                let storage = self.open_storage(call.account_addr, call.state, template.fixed_layout());
+                let storage =
+                    self.open_storage(call.account_addr, call.state, template.fixed_layout());
 
-                let mut ctx =
-                    Context::new(call.gas_left, storage, call.template_addr, call.account_addr);
+                let mut ctx = Context::new(
+                    call.gas_left,
+                    storage,
+                    call.template_addr,
+                    call.account_addr,
+                );
 
                 let store = crate::wasm_store::new_store();
                 let import_object = self.create_import_object(&store, &mut ctx);
@@ -422,15 +426,15 @@ where
 
     fn account_template(
         &self,
-        app_addr: &AccountAddr,
+        account_addr: &AccountAddr,
     ) -> std::result::Result<Template, RuntimeError> {
         let mut interests = HashSet::new();
         interests.insert(SectionKind::Code);
         interests.insert(SectionKind::Data);
         interests.insert(SectionKind::Ctors);
 
-        let template = self.env.account_template(app_addr, Some(interests));
-        template.ok_or_else(|| RuntimeError::AccountNotFound(app_addr.clone()))
+        let template = self.env.account_template(account_addr, Some(interests));
+        template.ok_or_else(|| RuntimeError::AccountNotFound(account_addr.clone()))
     }
 
     fn compile_template(
@@ -553,9 +557,9 @@ where
         let template = self.env.parse_deploy(bytes, None)?;
         let code = template.code();
 
-        // Opcode and `svm_alloc` checks should only ever be run when deploying
-        // templates. There's no reason to also do it when spawning new apps
-        // over already-validated templates.
+        // Opcode and `svm_alloc` checks should only ever be run when deploying [`Template`]s.
+        // There's no reason to also do it when spawning new `Account`
+        // over already-validated [`Template`]s
         if !crate::validation::validate_opcodes(code) {
             return Err(ValidateError::Program(ProgramError::FloatsNotAllowed));
         } else if !crate::validation::validate_svm_alloc(code) {
@@ -568,27 +572,18 @@ where
     }
 
     fn validate_spawn(&self, bytes: &[u8]) -> std::result::Result<(), ValidateError> {
-        self.env
-            .parse_spawn_app(bytes)
-            .map(|_| ())
-            .map_err(Into::into)
+        self.env.parse_spawn(bytes).map(|_| ()).map_err(Into::into)
     }
 
     fn validate_call(&self, bytes: &[u8]) -> std::result::Result<Transaction, ValidateError> {
         self.env.parse_call(bytes).map_err(|e| e.into())
     }
 
-    fn deploy(
-        &mut self,
-        bytes: &[u8],
-        _deployer: &DeployerAddr,
-        gas_limit: Gas,
-    ) -> DeployReceipt {
-        info!("Deploying a template.");
+    fn deploy(&mut self, bytes: &[u8], _deployer: &DeployerAddr, gas_limit: Gas) -> DeployReceipt {
+        info!("Runtime `deploy`");
 
         let template = self.env.parse_deploy(bytes, None).unwrap();
-
-        let install_price = svm_gas::transaction::deploy_template_price(bytes);
+        let install_price = svm_gas::transaction::deploy(bytes);
 
         if gas_limit >= install_price {
             let gas_used = Gas::with(install_price);
@@ -604,13 +599,13 @@ where
     fn spawn(&mut self, bytes: &[u8], spawner: &SpawnerAddr, gas_limit: Gas) -> SpawnReceipt {
         use svm_gas::ProgramVisitor;
 
-        info!("runtime `spawn_app`");
+        info!("Runtime `spawn`");
 
-        let base = self.env.parse_spawn_app(bytes).unwrap();
-        let template = {
-            let template_address = base.account.template_addr();
-            self.env.template(template_address, None).unwrap()
-        };
+        let base = self.env.parse_spawn(bytes).unwrap();
+        let template_address = base.account.template_addr();
+
+        let template = self.env.template(template_address, None).unwrap();
+
         let template_code_section = template.sections().get(SectionKind::Code).as_code();
         let gas_mode = template_code_section.gas_mode();
         let template_code = template_code_section.code();
@@ -621,13 +616,13 @@ where
         };
         let spawn = ExtSpawn::new(base, spawner);
         if !template.is_ctor(spawn.ctor_name()) {
-            // The template is faulty.
-            let app = ExtAccount::new(spawn.account(), spawner);
-            let app_addr = self.env.compute_account_addr(&spawn);
+            // The [`Template`] is faulty.
+            let account = ExtAccount::new(spawn.account(), spawner);
+            let account_addr = self.env.compute_account_addr(&spawn);
             return SpawnReceipt::from_err(
                 RuntimeError::FuncNotAllowed {
-                    account_addr: app_addr,
-                    template_addr: app.template_addr().clone(),
+                    account_addr,
+                    template_addr: account.template_addr().clone(),
                     func: spawn.ctor_name().to_string(),
                     msg: "The given function is not a `ctor`.".to_string(),
                 },
@@ -646,15 +641,15 @@ where
             GasMode::Metering => {}
         }
 
-        let payload_price = svm_gas::transaction::spawn_app_price(bytes);
+        let payload_price = svm_gas::transaction::spawn(bytes);
         let gas_left = gas_limit - payload_price;
 
         match gas_left {
             Ok(gas_left) => {
-                let app = ExtAccount::new(spawn.account(), spawner);
+                let account = ExtAccount::new(spawn.account(), spawner);
                 let addr = self.env.compute_account_addr(&spawn);
 
-                self.env.store_account(&app, &addr);
+                self.env.store_account(&account, &addr);
 
                 let gas_used = payload_price.into();
 
@@ -671,15 +666,15 @@ where
         _gas_limit: Gas,
     ) -> std::result::Result<bool, RuntimeError> {
         todo!()
-        //     let app_addr = tx.app_addr();
-        //     let template_addr = self.env.find_template_addr(app_addr);
+        //     let account_addr = tx.account_addr();
+        //     let template_addr = self.env.find_template_addr(account_addr);
 
         //     if let Some(template_addr) = template_addr {
         //         let call = Call {
         //             func_name: "svm_verify",
         //             calldata: tx.verifydata(),
         //             template_addr: &template_addr,
-        //             app_addr,
+        //             account_addr,
         //             state,
         //             gas_used: Gas::with(0),
         //             gas_left: gas_limit,
@@ -703,15 +698,15 @@ where
     }
 
     fn call(&self, tx: &Transaction, state: &State, gas_limit: Gas) -> CallReceipt {
-        let app_addr = tx.target_addr();
-        let template_addr = self.env.resolve_template_addr(app_addr);
+        let account_addr = tx.target_addr();
+        let template_addr = self.env.resolve_template_addr(account_addr);
 
         if let Some(template_addr) = template_addr {
             let call = Call {
                 func_name: tx.func_name(),
                 calldata: tx.calldata(),
                 template_addr: &template_addr,
-                account_addr: app_addr,
+                account_addr: account_addr,
                 state,
                 gas_used: Gas::with(0),
                 gas_left: gas_limit,
