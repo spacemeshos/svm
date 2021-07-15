@@ -1,6 +1,6 @@
-use svm_program::{Program, ProgramError};
-
 use std::collections::HashSet;
+
+use svm_program::{Program, ProgramError};
 
 use crate::{Graph, GraphCycles, Node, NodeData, NodeLabel, NodeRef};
 
