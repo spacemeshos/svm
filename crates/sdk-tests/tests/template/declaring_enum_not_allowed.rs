@@ -2,10 +2,7 @@ use svm_sdk::template;
 
 #[template]
 mod Template {
-    #[storage]
-    struct Storage {
-        name: String,
-    }
+    enum MyEum {}
 }
 
 fn main() {}

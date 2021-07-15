@@ -1,11 +1,10 @@
-use svm_sdk::app;
+use svm_sdk::template;
 
-#[app]
-mod App {
+#[template]
+mod Template {
     #[storage]
     struct Storage {
         byte: i8,
-
         bytes: [i8; 3],
     }
 }

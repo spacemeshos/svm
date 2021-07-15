@@ -1,11 +1,10 @@
-use svm_sdk::app;
+use svm_sdk::template;
 
-#[app]
-mod App {
+#[template]
+mod Template {
     #[storage]
     struct Storage {
         qword: u64,
-
         qwords: [u64; 3],
     }
 }

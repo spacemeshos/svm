@@ -1,11 +1,10 @@
-use svm_sdk::{app, Amount};
+use svm_sdk::{template, Amount};
 
-#[app]
-mod App {
+#[template]
+mod Template {
     #[storage]
     struct Storage {
         amount: Amount,
-
         amounts: [Amount; 3],
     }
 }
