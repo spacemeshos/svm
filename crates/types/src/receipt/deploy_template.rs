@@ -7,7 +7,7 @@ use crate::{Gas, TemplateAddr};
 /// [`TemplateReceipt`] should *not* be wrapped in a [`Result`] for failure
 /// detection; error detection is built-in the type itself.
 #[derive(Debug, PartialEq, Clone)]
-pub struct TemplateReceipt {
+pub struct DeployReceipt {
     /// Transaction format version
     pub version: u16,
 
@@ -27,7 +27,7 @@ pub struct TemplateReceipt {
     pub logs: Vec<ReceiptLog>,
 }
 
-impl TemplateReceipt {
+impl DeployReceipt {
     /// Creates a [`TemplateReceipt`] which indicates a successful deployment of
     /// the template located at `addr` which cost `gas_used`.
     pub fn new(addr: TemplateAddr, gas_used: Gas) -> Self {

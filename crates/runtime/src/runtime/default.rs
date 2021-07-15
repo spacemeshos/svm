@@ -5,7 +5,7 @@ use svm_storage::app::AppStorage;
 use svm_types::GasMode;
 use svm_types::SectionKind;
 use svm_types::{AccountAddr, DeployerAddr, SpawnerAddr, State, Template};
-use svm_types::{CallReceipt, ReceiptLog, SpawnReceipt, TemplateReceipt};
+use svm_types::{CallReceipt, DeployReceipt, ReceiptLog, SpawnReceipt};
 use svm_types::{Gas, OOGError};
 use svm_types::{RuntimeError, Transaction};
 use wasmer::{Instance, Module, WasmPtr, WasmTypeList};
@@ -583,7 +583,7 @@ where
         bytes: &[u8],
         _deployer: &DeployerAddr,
         gas_limit: Gas,
-    ) -> TemplateReceipt {
+    ) -> DeployReceipt {
         info!("Deploying a template.");
 
         let template = self.env.parse_deploy_template(bytes, None).unwrap();
@@ -595,9 +595,9 @@ where
             let addr = self.env.compute_template_addr(&template);
 
             self.env.store_template(&template, &addr);
-            TemplateReceipt::new(addr, gas_used)
+            DeployReceipt::new(addr, gas_used)
         } else {
-            TemplateReceipt::new_oog()
+            DeployReceipt::new_oog()
         }
     }
 
