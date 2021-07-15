@@ -293,7 +293,7 @@ use parity_wasm::elements::Instruction;
 
 use std::fmt::{self, Debug};
 
-use svm_program::*;
+use svm_program::{Function, Op};
 
 use crate::{CallGraph, Gas};
 

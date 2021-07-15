@@ -1,6 +1,6 @@
 use parity_wasm::elements::{CustomSection, Instruction};
 
-use svm_program::*;
+use svm_program::{FuncIndex, Op, Program, ProgramError, ProgramVisitor};
 
 use crate::{CallGraphBuilder, FixedGasError, GraphCycles};
 

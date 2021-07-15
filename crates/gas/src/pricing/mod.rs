@@ -1,7 +1,7 @@
 use indexmap::IndexMap;
 use parity_wasm::elements::{Func, Instruction};
 
-use svm_program::*;
+use svm_program::{FuncIndex, Imports, Op, Program, ProgramError, ProgramVisitor};
 
 use std::ops::Index;
 

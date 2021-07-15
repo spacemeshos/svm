@@ -1,5 +1,5 @@
 use svm_gas::{FixedGasError, GraphCycles};
-use svm_program::*;
+use svm_program::{FuncIndex, Program};
 
 fn validate_wasm(code: &str) -> Result<(), FixedGasError> {
     let wasm = wat::parse_str(code).unwrap();

@@ -2,7 +2,7 @@
 
 use svm_gas::build_func_cfg;
 use svm_gas::{BlockNum, CFG};
-use svm_program::*;
+use svm_program::{Op, Program};
 
 mod helpers;
 

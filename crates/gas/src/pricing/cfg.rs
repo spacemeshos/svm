@@ -1,7 +1,7 @@
 use indexmap::IndexMap;
 use parity_wasm::elements::Instruction;
 
-use svm_program::*;
+use svm_program::{FuncIndex, Imports, Op};
 
 use crate::{
     Block, BlockNum, Edge, FuncPrice, Graph, GraphBuilder, NodeLabel, NodeWeight, PriceResolver,

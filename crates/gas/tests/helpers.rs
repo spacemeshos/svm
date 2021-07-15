@@ -3,7 +3,7 @@
 use svm_gas::{
     BlockNum, FuncPrice, Graph, NodeData, NodeLabel, PriceResolver, ProgramPricing, CFG,
 };
-use svm_program::*;
+use svm_program::{FuncIndex, Function, Program, ProgramVisitor};
 
 pub fn get_func(program: &Program, fn_index: u32) -> Function {
     let index = FuncIndex(fn_index);
