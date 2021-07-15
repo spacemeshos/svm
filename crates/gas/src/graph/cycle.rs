@@ -45,9 +45,9 @@ where
 mod tests {
     use parity_wasm::elements::Func;
 
-    use svm_program::FuncIndex;
-
     use std::fmt::format;
+
+    use svm_program::FuncIndex;
 
     use super::*;
     use crate::GraphCycles;
