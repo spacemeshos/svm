@@ -48,7 +48,7 @@ fn spawn_app_bytes(
     calldata: &[u8],
 ) -> Vec<u8> {
     let template_addr = Address::from(*&template_addr.bytes as *const c_void).into();
-    svm_runtime::testing::build_app(&template_addr, name, ctor_name, calldata)
+    svm_runtime::testing::build_spawn(&template_addr, name, ctor_name, calldata)
 }
 
 fn exec_app_bytes(app_addr: &svm_byte_array, func_name: &str, calldata: &[u8]) -> Vec<u8> {

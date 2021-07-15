@@ -1,34 +1,35 @@
+//! High-level `Storage`
 use std::collections::HashMap;
 
 mod raw;
 use raw::{RawChange, RawStorage};
 
 mod kv;
-pub use kv::AppKVStore;
+pub use kv::AccountKVStore;
 
 use svm_layout::{FixedLayout, Id};
 use svm_types::State;
 
 ///
-/// The `AppStorage` manages a running app's storage.
+/// The `AccountStorage` manages a running `Account`'s storage.
 ///
-/// While an app is running it performs read and write operations.
+/// While an `Account` is running it performs read and write operations.
 ///
-/// Reads operations don't modify the app's storage.
-/// Write operations save changes to be committed after an app's execution succeeded.
+/// Reads operations don't modify the `Account`'s storage.
+/// Write operations save changes to be committed after an `Account`'s execution succeeded.
 ///
 /// Reading a variable will return the most updated value of the variable.
 ///
-/// If app's execution fails - no changes will be persisted (`commit` won't be called).
+/// If `Account`'s execution fails - no changes will be persisted (`commit` won't be called).
 ///
-pub struct AppStorage {
-    /// Interface to the raw storage (key-value wrapper)
+pub struct AccountStorage {
+    /// Interface to the underlying raw storage.
     raw_storage: RawStorage,
 
-    /// App Fixed-Sized variables layout
+    /// Fixed-Sized variables layout.
     layout: FixedLayout,
 
-    /// Uncommited changes
+    /// Uncommitted changes.
     uncommitted: HashMap<Id, Vec<u8>>,
 }
 
@@ -37,24 +38,24 @@ pub struct AppStorage {
 // part of transaction (next to the `svm_layout::Layout`) or a constant value.
 const KV_VALUE_SIZE: u32 = 32;
 
-impl AppStorage {
-    /// New instance for managing app's variabled specified by `layout`.
-    /// App's storage is backed by key-value store `kv`.
-    pub fn new(layout: FixedLayout, app_kv: AppKVStore) -> Self {
+impl AccountStorage {
+    /// New instance for managing an `Account`'s variables specified by `layout`.
+    /// `Account`'s storage is backed by key-value store `kv`.
+    pub fn new(layout: FixedLayout, account_kv: AccountKVStore) -> Self {
         Self {
             layout,
-            raw_storage: RawStorage::new(app_kv, KV_VALUE_SIZE),
+            raw_storage: RawStorage::new(account_kv, KV_VALUE_SIZE),
             uncommitted: HashMap::new(),
         }
     }
 
-    /// Rewinds the current application `State` to point to `state`.
+    /// Rewinds the current `Account`'s `State` to point to `state`.
     #[inline]
     pub fn rewind(&mut self, state: &State) {
         self.raw_storage.rewind(state);
     }
 
-    /// Returns the current `State` of the application.
+    /// Returns the current `Account`'s `State`.
     #[inline]
     pub fn head(&self) -> State {
         self.raw_storage.head()

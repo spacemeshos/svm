@@ -1,17 +1,18 @@
-//! `Spawn App` Receipt Raw Format Version 0
+//! `Spawn Account` Receipt Raw Format Version 0
 //!
 //!  On success (`is_success = 1`)
-//!  +-----------------------------------------------------+
-//!  |  tx type  |  version   | is_success  | App Address  |
-//!  | (1 byte)  |            |  (1 byte)   |  (20 bytes)  |
-//!  +___________|____________|_____________|______________+
-//!  |              |              |                       |
-//!  |  init state  | #returndata  |      gas_used         |
-//!  |  (32 bytes)  |              |                       |
-//!  +______________|______________|_______________________+
-//!  |          |            |         |                   |
-//!  |  #logs   | log 1 blob |  . . .  |     log #N        |
-//!  +__________|____________|_________|___________________+
+//!  +---------------------------------------------------------+
+//!  |           |            |             |                  |
+//!  |  tx type  |  version   | is_success  |  Account Address |
+//!  | (1 byte)  |            |  (1 byte)   |    (20 bytes)    |
+//!  +___________|____________|_____________|__________________+
+//!  |              |              |                           |
+//!  |  init state  | #returndata  |         gas_used          |
+//!  |  (32 bytes)  |              |                           |
+//!  +______________|______________|___________________________+
+//!  |          |            |         |                       |
+//!  |  #logs   | log 1 blob |  . . .  |     log #N            |
+//!  +__________|____________|_________|_______________________+
 //!
 //!
 //!  On success (`is_success = 0`)
@@ -25,7 +26,7 @@ use super::{decode_error, encode_error, gas, logs, types};
 use crate::{calldata, version};
 use crate::{ReadExt, WriteExt};
 
-/// Encodes a `spawn-app` receipt into its binary format.
+/// Encodes a [`SpawnReceipt`] into its binary format.
 pub fn encode_spawn(receipt: &SpawnReceipt) -> Vec<u8> {
     let mut w = Vec::new();
 
@@ -34,7 +35,7 @@ pub fn encode_spawn(receipt: &SpawnReceipt) -> Vec<u8> {
     w.write_bool(receipt.success);
 
     if receipt.success {
-        encode_app_addr(receipt, &mut w);
+        encode_account_addr(receipt, &mut w);
         encode_init_state(receipt, &mut w);
         encode_returndata(&receipt, &mut w);
         gas::encode_gas_used(&receipt.gas_used, &mut w);
@@ -48,7 +49,7 @@ pub fn encode_spawn(receipt: &SpawnReceipt) -> Vec<u8> {
     w
 }
 
-/// Decodes a binary `spawn-app` receipt into its Rust struct.
+/// Decodes a binary [`SpawnReceipt`].
 pub fn decode_spawn(bytes: &[u8]) -> SpawnReceipt {
     let mut cursor = Cursor::new(bytes);
 
@@ -92,7 +93,7 @@ fn encode_version(receipt: &SpawnReceipt, w: &mut Vec<u8>) {
     version::encode_version(*v, w);
 }
 
-fn encode_app_addr(receipt: &SpawnReceipt, w: &mut Vec<u8>) {
+fn encode_account_addr(receipt: &SpawnReceipt, w: &mut Vec<u8>) {
     debug_assert!(receipt.success);
 
     let addr = receipt.account_addr();
@@ -125,9 +126,8 @@ mod tests {
     use crate::receipt::decode_receipt;
 
     #[test]
-    fn encode_decode_spawn_app_receipt_error() {
-        let template_addr = Address::of("my-template").into();
-
+    fn encode_decode_spawn_receipt_error() {
+        let template_addr = Address::of("@Template").into();
         let error = RuntimeError::TemplateNotFound(template_addr);
 
         let receipt = SpawnReceipt {
@@ -148,8 +148,8 @@ mod tests {
     }
 
     #[test]
-    fn encode_decode_spawn_app_receipt_success_without_returns() {
-        let addr: AccountAddr = Address::of("my-app").into();
+    fn encode_decode_spawn_receipt_success_without_returns() {
+        let addr: AccountAddr = Address::of("@Account").into();
         let init_state = State::of("some-state");
 
         let logs = vec![ReceiptLog {
@@ -175,8 +175,8 @@ mod tests {
     }
 
     #[test]
-    fn encode_decode_spawn_app_receipt_success_with_returns() {
-        let addr: AccountAddr = Address::of("my-app").into();
+    fn encode_decode_spawn_receipt_success_with_returns() {
+        let addr: AccountAddr = Address::of("@Account").into();
         let init_state = State::of("some-state");
         let returndata = vec![0x10, 0x20];
         let logs = vec![ReceiptLog {

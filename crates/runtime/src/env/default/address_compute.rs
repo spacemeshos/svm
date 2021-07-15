@@ -1,6 +1,6 @@
 use crate::env::{self, traits};
 
-use env::{ExtSpawnApp, Template};
+use env::{ExtSpawn, Template};
 use traits::ComputeAddress;
 
 use svm_hash::{DefaultHasher, Hasher};
@@ -29,12 +29,12 @@ impl ComputeAddress<Template> for DefaultTemplateAddressCompute {
 }
 
 /// Default implementation for computing an `App Address`
-pub struct DefaultAppAddressCompute;
+pub struct DefaultAccountAddressCompute;
 
-impl ComputeAddress<ExtSpawnApp> for DefaultAppAddressCompute {
+impl ComputeAddress<ExtSpawn> for DefaultAccountAddressCompute {
     type Address = AccountAddr;
 
-    fn compute(spawn: &ExtSpawnApp) -> Self::Address {
+    fn compute(spawn: &ExtSpawn) -> Self::Address {
         let mut buf = Vec::with_capacity(Address::len() * 2);
 
         let template_addr = spawn.template_addr().inner();

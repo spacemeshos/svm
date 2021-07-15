@@ -54,7 +54,7 @@ fn decode_error(ty: &'static str, err: &RuntimeError, logs: &[ReceiptLog]) -> Va
             }),
             RuntimeError::AccountNotFound(account_addr) => json!({
                 "err_type": "account-not-found",
-                "app_addr": json::addr_to_str(account_addr.inner()),
+                "account_addr": json::addr_to_str(account_addr.inner()),
             }),
             RuntimeError::CompilationFailed {
                 account_addr,
@@ -63,7 +63,7 @@ fn decode_error(ty: &'static str, err: &RuntimeError, logs: &[ReceiptLog]) -> Va
             } => json!({
                 "err_type": "compilation-failed",
                 "template_addr": json::addr_to_str(template_addr.inner()),
-                "app_addr": json::addr_to_str(account_addr.inner()),
+                "account_addr": json::addr_to_str(account_addr.inner()),
                 "message": msg,
             }),
             RuntimeError::InstantiationFailed {
@@ -73,7 +73,7 @@ fn decode_error(ty: &'static str, err: &RuntimeError, logs: &[ReceiptLog]) -> Va
             } => json!({
                 "err_type": "instantiation-failed",
                 "template_addr": json::addr_to_str(template_addr.inner()),
-                "app_addr": json::addr_to_str(account_addr.inner()),
+                "account_addr": json::addr_to_str(account_addr.inner()),
                 "message": msg,
             }),
             RuntimeError::FuncNotFound {
@@ -83,7 +83,7 @@ fn decode_error(ty: &'static str, err: &RuntimeError, logs: &[ReceiptLog]) -> Va
             } => json!({
                 "err_type": "function-not-found",
                 "template_addr": json::addr_to_str(template_addr.inner()),
-                "app_addr": json::addr_to_str(account_addr.inner()),
+                "account_addr": json::addr_to_str(account_addr.inner()),
                 "func": func,
             }),
             RuntimeError::FuncFailed {
@@ -94,7 +94,7 @@ fn decode_error(ty: &'static str, err: &RuntimeError, logs: &[ReceiptLog]) -> Va
             } => json!({
                 "err_type": "function-failed",
                 "template_addr": json::addr_to_str(template_addr.inner()),
-                "app_addr": json::addr_to_str(account_addr.inner()),
+                "account_addr": json::addr_to_str(account_addr.inner()),
                 "func": func,
                 "message": msg,
             }),
@@ -106,7 +106,7 @@ fn decode_error(ty: &'static str, err: &RuntimeError, logs: &[ReceiptLog]) -> Va
             } => json!({
                 "err_type": "function-not-allowed",
                 "template_addr": json::addr_to_str(template_addr.inner()),
-                "app_addr": json::addr_to_str(account_addr.inner()),
+                "account_addr": json::addr_to_str(account_addr.inner()),
                 "func": func,
                 "message": msg,
             }),
@@ -117,7 +117,7 @@ fn decode_error(ty: &'static str, err: &RuntimeError, logs: &[ReceiptLog]) -> Va
             } => json!({
                 "err_type": "function-invalid-signature",
                 "template_addr": json::addr_to_str(template_addr.inner()),
-                "app_addr": json::addr_to_str(account_addr.inner()),
+                "account_addr": json::addr_to_str(account_addr.inner()),
                 "func": func,
             }),
         }
@@ -233,7 +233,7 @@ mod tests {
             logs,
         };
 
-        let bytes = crate::receipt::encode_deploy_receipt(&receipt);
+        let bytes = crate::receipt::encode_deploy(&receipt);
         let data = json::bytes_to_str(&bytes);
         let json = decode_receipt(&json!({ "data": data })).unwrap();
 
@@ -358,7 +358,7 @@ mod tests {
             logs,
         };
 
-        let bytes = crate::receipt::encode_call_receipt(&receipt);
+        let bytes = crate::receipt::encode_call(&receipt);
         let data = json::bytes_to_str(&bytes);
         let json = decode_receipt(&json!({ "data": data })).unwrap();
 

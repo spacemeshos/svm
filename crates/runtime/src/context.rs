@@ -1,6 +1,6 @@
-//! Implements [`Context`]. Used for managing data of running `SVM` apps.
+//! Implements [`Context`]. Used for managing data of running `Transaction`s.
 
-use svm_storage::app::AppStorage;
+use svm_storage::account::AccountStorage;
 use svm_types::{AccountAddr, Gas, ReceiptLog, TemplateAddr};
 use wasmer::Memory;
 
@@ -9,23 +9,17 @@ use std::rc::Rc;
 use std::u64;
 
 /// [`Context`] is a container for the accessible data by [`wasmer`] instances.
-///
-/// * `storage`      - Instance's [`AppStorage`].
-/// * `gas_metering` - Whether gas metering is enabled.
-
 #[derive(wasmer::WasmerEnv, Clone)]
 pub struct Context {
-    inner: Rc<RefCell<ContextInner>>,
-
+    inner: Rc<RefCell<Inner>>,
     template_addr: TemplateAddr,
-
-    app_addr: AccountAddr,
+    account_addr: AccountAddr,
 }
 
-// # Safety
-//
-// SVM is single-threaded. `Send`, `Sync` and `Clone` are required by
-// `wasmer::WasmerEnv`.
+/// # Safety
+///
+/// SVM is single-threaded.
+/// `Send`, `Sync` and `Clone` are required by `wasmer::WasmerEnv`.
 unsafe impl Send for Context {}
 unsafe impl Sync for Context {}
 
@@ -33,16 +27,16 @@ impl Context {
     /// Creates a new instance
     pub fn new(
         gas_limit: Gas,
-        storage: AppStorage,
+        storage: AccountStorage,
         template_addr: &TemplateAddr,
-        app_addr: &AccountAddr,
+        account_addr: &AccountAddr,
     ) -> Self {
-        let inner = ContextInner::new(gas_limit, storage);
+        let inner = Inner::new(gas_limit, storage);
 
         Self {
             inner: Rc::new(RefCell::new(inner)),
             template_addr: template_addr.clone(),
-            app_addr: app_addr.clone(),
+            account_addr: account_addr.clone(),
         }
     }
 
@@ -50,52 +44,51 @@ impl Context {
     pub fn new_with_memory(
         memory: Memory,
         gas_limit: Gas,
-        storage: AppStorage,
+        storage: AccountStorage,
         template_addr: &TemplateAddr,
-        app_addr: &AccountAddr,
+        account_addr: &AccountAddr,
     ) -> Self {
-        let ctx = Self::new(gas_limit, storage, template_addr, app_addr);
+        let ctx = Self::new(gas_limit, storage, template_addr, account_addr);
 
         ctx.borrow_mut().set_memory(memory);
 
         ctx
     }
 
-    /// Returns the `Address` of the `Template` associated
-    /// with the current executed `App`.
+    /// Returns the `Address` of the `Template` associated with the currently executed `Account`.
     pub fn template_addr(&self) -> &TemplateAddr {
         &self.template_addr
     }
 
-    /// Returns the `Address` of the current executed `App`.
-    pub fn app_addr(&self) -> &AccountAddr {
-        &self.app_addr
+    /// Returns the `Address` of the currently executed `Account`.
+    pub fn account_addr(&self) -> &AccountAddr {
+        &self.account_addr
     }
 
     /// Borrows the `Context`
     #[inline]
-    pub fn borrow(&self) -> Ref<ContextInner> {
+    pub fn borrow(&self) -> Ref<Inner> {
         self.inner.borrow()
     }
 
     /// Mutably-borrows the `Context`
     #[inline]
-    pub fn borrow_mut(&self) -> RefMut<ContextInner> {
+    pub fn borrow_mut(&self) -> RefMut<Inner> {
         self.inner.borrow_mut()
     }
 }
 
-pub struct ContextInner {
-    /// Gas limit (relevant only when `gas_metering = true`)
+pub struct Inner {
+    /// Gas limit (relevant only for `gas_metering`)
     pub gas_limit: u64,
 
     /// Whether gas metering is enabled or not
     pub gas_metering: bool,
 
-    /// An accessor to the App's storage
-    pub storage: AppStorage,
+    /// An accessor to the `Account`'s storage
+    pub storage: AccountStorage,
 
-    /// App's logs
+    /// Collected logs during execution.
     pub logs: Vec<ReceiptLog>,
 
     /// Pointer to `returndata`. Tuple stores `(offset, len)`.
@@ -110,8 +103,8 @@ pub struct ContextInner {
     calldata: Option<(usize, usize)>,
 }
 
-impl ContextInner {
-    fn new(gas_limit: Gas, storage: AppStorage) -> Self {
+impl Inner {
+    fn new(gas_limit: Gas, storage: AccountStorage) -> Self {
         let gas_metering = gas_limit.is_some();
         let gas_limit = gas_limit.unwrap_or(0);
         let logs = Vec::new();

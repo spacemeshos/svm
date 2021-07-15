@@ -32,14 +32,14 @@ pub use validation::validate_wasm;
 
 /// Transaction gas pricing utilities.
 pub mod transaction {
-    /// Calculates the cost of deploying `bytes` as a template.
-    pub fn deploy_template_price(bytes: &[u8]) -> u64 {
+    /// Calculates the cost of deploying a new `Template` with `bytes` its binary `deploy` transaction
+    pub fn deploy(bytes: &[u8]) -> u64 {
         // todo!()
         1000 * (bytes.len() as u64)
     }
 
-    /// Calculates the cost of spawning a new app with `bytes` as its contents.
-    pub fn spawn_app_price(bytes: &[u8]) -> u64 {
+    /// Calculates the cost of spawning a new `Account` with `bytes` as its binary `spawn` transaction.
+    pub fn spawn(bytes: &[u8]) -> u64 {
         // todo!()
         1000 * (bytes.len() as u64)
     }
