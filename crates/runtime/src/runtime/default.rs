@@ -13,7 +13,7 @@ use wasmer::{Instance, Module, WasmPtr, WasmTypeList};
 use std::collections::HashSet;
 
 use super::{Call, Failure, Function, Outcome};
-use crate::env::{EnvTypes, ExtApp, ExtSpawnApp};
+use crate::env::{EnvTypes, ExtAccount, ExtSpawn};
 use crate::error::ValidateError;
 use crate::storage::StorageBuilderFn;
 use crate::vmcalls;
@@ -100,7 +100,7 @@ where
 
     fn call_ctor(
         &mut self,
-        spawn: &ExtSpawnApp,
+        spawn: &ExtSpawn,
         app_addr: &AccountAddr,
         gas_used: Gas,
         gas_left: Gas,
@@ -550,7 +550,7 @@ where
     T: EnvTypes,
 {
     fn validate_deploy(&self, bytes: &[u8]) -> std::result::Result<(), ValidateError> {
-        let template = self.env.parse_deploy_template(bytes, None)?;
+        let template = self.env.parse_deploy(bytes, None)?;
         let code = template.code();
 
         // Opcode and `svm_alloc` checks should only ever be run when deploying
@@ -575,7 +575,7 @@ where
     }
 
     fn validate_call(&self, bytes: &[u8]) -> std::result::Result<Transaction, ValidateError> {
-        self.env.parse_exec_app(bytes).map_err(|e| e.into())
+        self.env.parse_call(bytes).map_err(|e| e.into())
     }
 
     fn deploy(
@@ -586,7 +586,7 @@ where
     ) -> DeployReceipt {
         info!("Deploying a template.");
 
-        let template = self.env.parse_deploy_template(bytes, None).unwrap();
+        let template = self.env.parse_deploy(bytes, None).unwrap();
 
         let install_price = svm_gas::transaction::deploy_template_price(bytes);
 
@@ -619,10 +619,10 @@ where
             let program_pricing = svm_gas::ProgramPricing::new(&self.pricer);
             program_pricing.visit(&program).unwrap()
         };
-        let spawn = ExtSpawnApp::new(base, spawner);
+        let spawn = ExtSpawn::new(base, spawner);
         if !template.is_ctor(spawn.ctor_name()) {
             // The template is faulty.
-            let app = ExtApp::new(spawn.app(), spawner);
+            let app = ExtAccount::new(spawn.account(), spawner);
             let app_addr = self.env.compute_account_addr(&spawn);
             return SpawnReceipt::from_err(
                 RuntimeError::FuncNotAllowed {
@@ -651,10 +651,10 @@ where
 
         match gas_left {
             Ok(gas_left) => {
-                let app = ExtApp::new(spawn.app(), spawner);
+                let app = ExtAccount::new(spawn.account(), spawner);
                 let addr = self.env.compute_account_addr(&spawn);
 
-                self.env.store_app(&app, &addr);
+                self.env.store_account(&app, &addr);
 
                 let gas_used = payload_price.into();
 

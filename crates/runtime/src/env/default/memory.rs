@@ -1,6 +1,6 @@
 use crate::env::{default, memory};
 
-use memory::{MemAppStore, MemTemplateStore};
+use memory::{MemAccountStore, MemTemplateStore};
 
 use crate::EnvTypes;
 
@@ -10,14 +10,14 @@ pub type DefaultMemTemplateStore =
 
 /// `MemAppStore` with default serialization.
 pub type DefaultMemAppStore =
-    MemAppStore<default::DefaultAppSerializer, default::DefaultAppDeserializer>;
+    MemAccountStore<default::DefaultAccountSerializer, default::DefaultAccountDeserializer>;
 
 pub struct DefaultMemEnvTypes;
 
 impl EnvTypes for DefaultMemEnvTypes {
     type TemplateStore = DefaultMemTemplateStore;
 
-    type AppStore = DefaultMemAppStore;
+    type AccountStore = DefaultMemAppStore;
 
     type TemplateAddressCompute = default::DefaultTemplateAddressCompute;
 

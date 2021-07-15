@@ -3,7 +3,7 @@ mod hasher;
 mod serialize;
 
 pub use serialize::{
-    DefaultAppDeserializer, DefaultAppSerializer, DefaultTemplateDeserializer,
+    DefaultAccountDeserializer, DefaultAccountSerializer, DefaultTemplateDeserializer,
     DefaultTemplateSerializer,
 };
 

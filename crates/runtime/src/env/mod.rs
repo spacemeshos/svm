@@ -1,4 +1,4 @@
-//! Managing the Runtime's environment
+//! Managing a `Runtime`'s environment (see [`Env`]).
 
 use svm_codec::ParseError;
 use svm_codec::{call, spawn, template};
@@ -15,14 +15,14 @@ pub use default::{DefaultAppAddressCompute, DefaultTemplateAddressCompute};
 /// Extensions
 mod ext;
 
-pub use ext::{ExtApp, ExtSpawnApp};
+pub use ext::{ExtAccount, ExtSpawn};
 
 /// In-memory types
 #[cfg(feature = "default-memory")]
 mod memory;
 
 #[cfg(feature = "default-memory")]
-pub use memory::{MemAppStore, MemTemplateStore};
+pub use memory::{MemAccountStore, MemTemplateStore};
 
 #[cfg(feature = "default-memory")]
 pub use default::{DefaultMemAppStore, DefaultMemEnvTypes, DefaultMemTemplateStore};
@@ -39,28 +39,28 @@ pub use default::{DefaultRocksAppStore, DefaultRocksEnvTypes, DefaultRocksTempla
 
 mod traits;
 
-pub use traits::{AppStore, ComputeAddress, TemplateHasher, TemplateStore};
+pub use traits::{AccountStore, ComputeAddress, TemplateHasher, TemplateStore};
 
 /// Represents an `Template` Hash.
 pub type TemplateHash = [u8; 32];
 
 pub trait EnvTypes {
-    /// `Template` store type.
+    /// [`Template`] type.
     type TemplateStore: TemplateStore;
 
-    /// `AppStore` store type.
-    type AppStore: AppStore;
+    /// [`AccountStore`] type.
+    type AccountStore: AccountStore;
 
-    /// Compute `Template` address type.
+    /// Compute a `Template` `Address`
     type TemplateAddressCompute: ComputeAddress<Template, Address = TemplateAddr>;
 
-    /// Compute `App` address type.
-    type AppAddressCompute: ComputeAddress<ExtSpawnApp, Address = AccountAddr>;
+    /// Compute an `Account`'s `Address`
+    type AppAddressCompute: ComputeAddress<ExtSpawn, Address = AccountAddr>;
 
-    /// `Template` content Hasher type.
+    /// `Template` content [`TemplateHasher`] type.
     type TemplateHasher: TemplateHasher;
 
-    /// A pricing engine for templates.
+    /// A `Gas` [`PriceResolver`] type.
     type Pricer: PriceResolver;
 }
 
@@ -68,8 +68,8 @@ pub struct Env<T>
 where
     T: EnvTypes,
 {
-    app_store: T::AppStore,
-    template_store: T::TemplateStore,
+    accounts: T::AccountStore,
+    templates: T::TemplateStore,
 }
 
 impl<T> Env<T>
@@ -79,53 +79,53 @@ where
     /// `Env` environment is dictated by its `Types`
 
     /// Creates a new `Env`. Injects externally the `TemplateStore` and `AppStore`.
-    pub fn new(app_store: T::AppStore, template_store: T::TemplateStore) -> Self {
+    pub fn new(account_store: T::AccountStore, template_store: T::TemplateStore) -> Self {
         Self {
-            app_store,
-            template_store,
+            accounts: account_store,
+            templates: template_store,
         }
     }
 
-    /// Borrows environment's `TemplateStore`
+    /// Borrows environment's `TemplateStore`.
     pub fn template_store(&self) -> &T::TemplateStore {
-        &self.template_store
+        &self.templates
     }
 
-    /// Borrows mutably a `TemplateStore`
+    /// Borrows mutably a `TemplateStore`.
     pub fn template_store_mut(&mut self) -> &mut T::TemplateStore {
-        &mut self.template_store
+        &mut self.templates
     }
 
-    /// Borrows environment's `AppStore`
-    pub fn account_store(&self) -> &T::AppStore {
-        &self.app_store
+    /// Borrows the environment's [`AccountStore`].
+    pub fn account_store(&self) -> &T::AccountStore {
+        &self.accounts
     }
 
-    /// Borrows mutably environment's `App`(s) store
-    pub fn account_store_mut(&mut self) -> &mut T::AppStore {
-        &mut self.app_store
+    /// Mutably Borrows the environment's [`AccountStore`].
+    pub fn account_store_mut(&mut self) -> &mut T::AccountStore {
+        &mut self.accounts
     }
 
-    /// Computes a [`TemplateHash`].
+    /// Computes the [`TemplateHash`] of `template`.
     pub fn compute_template_hash(&self, template: &Template) -> TemplateHash {
         T::TemplateHasher::hash(template)
     }
 
-    /// Computes a `Template`'s `Address`
+    /// Computes the `Template`'s `Address` of `template`
     pub fn compute_template_addr(&self, template: &Template) -> TemplateAddr {
         T::TemplateAddressCompute::compute(template)
     }
 
     /// Computes an `Account`'s `Address`
-    pub fn compute_account_addr(&self, spawn: &ExtSpawnApp) -> AccountAddr {
+    pub fn compute_account_addr(&self, spawn: &ExtSpawn) -> AccountAddr {
         T::AppAddressCompute::compute(spawn)
     }
 
-    /// Parses a raw `Template`
+    /// Parses a binary `Deploy Template` transaction
     ///
     /// On success returns `Template`,
     /// On failure returns `ParseError`.
-    pub fn parse_deploy_template(
+    pub fn parse_deploy(
         &self,
         bytes: &[u8],
         interests: Option<HashSet<SectionKind>>,
@@ -136,48 +136,44 @@ where
         Ok(template)
     }
 
-    /// Parses a raw `SpawnApp`
+    /// Parses a binary [`SpawnAccount`] transaction.
     ///
     /// On success returns `SpawnApp`,
     /// On failure returns `ParseError`.
     pub fn parse_spawn_app(&self, bytes: &[u8]) -> Result<SpawnAccount, ParseError> {
         let mut cursor = Cursor::new(bytes);
-
         let spawn = spawn::decode(&mut cursor)?;
 
         Ok(spawn)
     }
 
-    /// Parses a raw `Transaction`
+    /// Parses a binary `Call Account` (a.k.a a [`Transaction`]).
     ///
-    /// On success returns `AppTransaction`,
-    /// On failure returns `ParseError`.
-    pub fn parse_exec_app(&self, bytes: &[u8]) -> Result<Transaction, ParseError> {
+    /// On success returns [`Transaction`],
+    /// On failure returns [`ParseError`].
+    pub fn parse_call(&self, bytes: &[u8]) -> Result<Transaction, ParseError> {
         let mut cursor = Cursor::new(bytes);
+        let call = call::decode_call(&mut cursor)?;
 
-        let tx = call::decode_call(&mut cursor)?;
-
-        Ok(tx)
+        Ok(call)
     }
 
     pub fn store_template(&mut self, template: &Template, addr: &TemplateAddr) {
         let hash = self.compute_template_hash(template);
-
         let store = self.template_store_mut();
 
         store.store(template, &addr, &hash);
     }
 
-    /// Stores `app address` -> `app-template address` relation.
-    pub fn store_app(&mut self, app: &ExtApp, addr: &AccountAddr) {
-        let template = app.template_addr();
+    /// Stores an `Account Address` -> `Account`'s `Template Address`.
+    pub fn store_account(&mut self, account: &ExtAccount, addr: &AccountAddr) {
+        let template = account.template_addr();
 
         if self.contains_template(template) {
             let store = self.account_store_mut();
-
-            store.store(app, &addr);
+            store.store(account, &addr);
         } else {
-            unreachable!("Should have validated template transaction first.");
+            unreachable!("Should have validated transaction's associate `Template Address` first.");
         }
     }
 
@@ -193,13 +189,13 @@ where
         addr: &AccountAddr,
         interests: Option<HashSet<SectionKind>>,
     ) -> Option<Template> {
-        self.account(addr).and_then(|app| {
-            let addr = app.template_addr();
+        self.account(addr).and_then(|account| {
+            let addr = account.template_addr();
             self.template(addr, interests)
         })
     }
 
-    /// Loads an `Template` given its `Address`
+    /// Loads a [`Template`] given its `Address`
     #[must_use]
     pub fn template(
         &self,
@@ -207,25 +203,23 @@ where
         interests: Option<HashSet<SectionKind>>,
     ) -> Option<Template> {
         let store = self.template_store();
-
         store.load(&addr, interests)
     }
 
-    /// Loads an `Account` given its `Address`
+    /// Loads an [`ExtAccount`] given its `Address`
     #[must_use]
-    pub fn account(&self, addr: &AccountAddr) -> Option<ExtApp> {
+    pub fn account(&self, addr: &AccountAddr) -> Option<ExtAccount> {
         let store = self.account_store();
-
         store.load(&addr)
     }
 
-    /// Returns whether a `Template` with given the `Address` exists.
+    /// Returns whether a `Template` with the given `Address` exists.
     #[inline]
     pub fn contains_template(&self, addr: &TemplateAddr) -> bool {
         self.template(addr, None).is_some()
     }
 
-    /// Returns whether an `Account` with given the `Address` exists.
+    /// Returns whether an [`Account`] with given the `Address` exists.
     #[inline]
     pub fn contains_account(&self, addr: &AccountAddr) -> bool {
         self.account(addr).is_some()
