@@ -1,6 +1,7 @@
 use svm_program::FuncIndex;
 
 use crate::{CallGraph, GraphBuilder, NodeLabel};
+
 /// This struct is used while building the `Call-Graph` on-the-fly as part of validation process of a Wasm program.
 /// Once the build is done, calling `build` will output a `CallGraph` struct.
 pub struct CallGraphBuilder<L>
