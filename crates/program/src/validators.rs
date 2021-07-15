@@ -26,10 +26,12 @@ where
     type Output = ();
     type Error = E;
 
+    #[inline]
     fn on_op(&mut self, op: &Op, _program: &Program) -> Result<(), Self::Error> {
         (self.opcode_validator)(op)
     }
 
+    #[inline]
     fn on_end(self, _program: &Program) -> Result<Self::Output, Self::Error> {
         Ok(())
     }
