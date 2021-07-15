@@ -29,9 +29,9 @@ impl ComputeAddress<Template> for DefaultTemplateAddressCompute {
 }
 
 /// Default implementation for computing an `App Address`
-pub struct DefaultAppAddressCompute;
+pub struct DefaultAccountAddressCompute;
 
-impl ComputeAddress<ExtSpawn> for DefaultAppAddressCompute {
+impl ComputeAddress<ExtSpawn> for DefaultAccountAddressCompute {
     type Address = AccountAddr;
 
     fn compute(spawn: &ExtSpawn) -> Self::Address {

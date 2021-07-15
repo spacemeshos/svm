@@ -1,5 +1,10 @@
 //! Implements common functionality to be consumed by tests.
 
+use wasmer::{ImportObject, Instance, Module, Store};
+
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use svm_codec::api::builder::{SpawnBuilder, TemplateBuilder, TxBuilder};
 use svm_codec::template;
 use svm_gas::resolvers::V0PriceResolver;
@@ -12,12 +17,8 @@ use svm_types::{
     AccountAddr, Address, CodeSection, CtorsSection, DataSection, Gas, HeaderSection, State,
     TemplateAddr,
 };
-use wasmer::{ImportObject, Instance, Memory, MemoryType, Module, Pages, Store};
 
-use std::cell::RefCell;
-use std::rc::Rc;
-
-use crate::env::{DefaultMemAppStore, DefaultMemEnvTypes, DefaultMemTemplateStore};
+use crate::env::{DefaultMemAccountStore, DefaultMemEnvTypes, DefaultMemTemplateStore};
 use crate::storage::StorageBuilderFn;
 use crate::{Config, DefaultRuntime, Env};
 
@@ -51,17 +52,6 @@ impl<'a> From<&'a [u8]> for WasmFile<'a> {
     }
 }
 
-/// Creates a new `Wasmer Memory` consisting of a single page
-/// The memory is of type non-shared and can grow without a limit
-pub fn wasmer_memory(store: &Store) -> Memory {
-    let min = Pages(1);
-    let max = None;
-    let shared = false;
-    let ty = MemoryType::new(min, max, shared);
-
-    Memory::new(store, ty).expect("Memory allocation has failed.")
-}
-
 /// Compiles a wasm program in text format (a.k.a WAST) into a `Module` (`wasmer`)
 pub fn wasmer_compile(store: &Store, wasm_file: WasmFile, _gas_limit: Gas) -> Module {
     let wasm = wasm_file.into_bytes();
@@ -81,29 +71,28 @@ pub fn wasmer_instantiate(
     Instance::new(&module, import_object).unwrap()
 }
 
-/// Given an App `Address` and its storage layout, it initializes a new blank `AppStorage`
-pub fn blank_storage(app_addr: &Address, layout: &FixedLayout) -> AccountStorage {
+/// Given an `Account` `Address` and its `layout`, it initializes a new blank [`AccountStorage`].
+pub fn blank_storage(account_addr: &Address, layout: &FixedLayout) -> AccountStorage {
     let state_kv = memory_state_kv_init();
-    let app_kv = AccountKVStore::new(app_addr.clone(), &state_kv);
+    let account_kv = AccountKVStore::new(account_addr.clone(), &state_kv);
 
-    AccountStorage::new(layout.clone(), app_kv)
+    AccountStorage::new(layout.clone(), account_kv)
 }
 
-/// Returns a new in-memory stateful-kv.
-/// It should be used for managing apps' storage.
+/// Returns a new in-memory [`StatefulKV`].
 pub fn memory_state_kv_init() -> Rc<RefCell<dyn StatefulKV>> {
     Rc::new(RefCell::new(FakeKV::new()))
 }
 
-/// Creates an in-memory `Runtime` backed by key-value and host vmcalls (`imports`).
+/// Creates an in-memory `Runtime` backed by a `state_kv`.
 pub fn create_memory_runtime(
     state_kv: &Rc<RefCell<dyn StatefulKV>>,
 ) -> DefaultRuntime<DefaultMemEnvTypes> {
     let storage_builder = runtime_memory_storage_builder(state_kv);
 
     let template_store = DefaultMemTemplateStore::new();
-    let app_store = DefaultMemAppStore::new();
-    let env = Env::<DefaultMemEnvTypes>::new(app_store, template_store);
+    let account_store = DefaultMemAccountStore::new();
+    let env = Env::<DefaultMemEnvTypes>::new(account_store, template_store);
 
     let config = Config::default();
     let imports = ("sm".to_string(), wasmer::Exports::new());
@@ -117,18 +106,18 @@ pub fn create_memory_runtime(
     )
 }
 
-/// Returns a function (wrapped inside [`Box`]) that initializes an App's storage client.
+/// Returns a function (wrapped inside [`Box`]) that initializes `Account`'s storage client.
 pub fn runtime_memory_storage_builder(
     state_kv: &Rc<RefCell<dyn StatefulKV>>,
 ) -> Box<StorageBuilderFn> {
     let state_kv = Rc::clone(state_kv);
 
     let func =
-        move |app_addr: &AccountAddr, state: &State, layout: &FixedLayout, _config: &Config| {
-            let app_addr = app_addr.inner();
-            let app_kv = AccountKVStore::new(app_addr.clone(), &state_kv);
+        move |account_addr: &AccountAddr, state: &State, layout: &FixedLayout, _config: &Config| {
+            let account_addr = account_addr.inner();
+            let account_kv = AccountKVStore::new(account_addr.clone(), &state_kv);
 
-            let mut storage = AccountStorage::new(layout.clone(), app_kv);
+            let mut storage = AccountStorage::new(layout.clone(), account_kv);
             storage.rewind(state);
 
             storage
@@ -160,8 +149,8 @@ pub fn build_template(
     template::encode(&template)
 }
 
-/// Builds a raw `Spawn App` transaction
-pub fn build_app(template: &TemplateAddr, name: &str, ctor: &str, calldata: &[u8]) -> Vec<u8> {
+/// Builds a raw `Spawn Account` transaction.
+pub fn build_spawn(template: &TemplateAddr, name: &str, ctor: &str, calldata: &[u8]) -> Vec<u8> {
     SpawnBuilder::new()
         .with_version(0)
         .with_template(template)
@@ -171,11 +160,11 @@ pub fn build_app(template: &TemplateAddr, name: &str, ctor: &str, calldata: &[u8
         .build()
 }
 
-/// Builds a raw `Transaction`
-pub fn build_transaction(app_addr: &AccountAddr, func: &str, calldata: &[u8]) -> Vec<u8> {
+/// Builds a raw `Call App` transaction. (a.k.a a [`Transaction`]).
+pub fn build_transaction(target: &AccountAddr, func: &str, calldata: &[u8]) -> Vec<u8> {
     TxBuilder::new()
         .with_version(0)
-        .with_target(app_addr)
+        .with_target(target)
         .with_func(func)
         .with_calldata(calldata)
         .build()

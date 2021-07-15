@@ -9,7 +9,7 @@ pub type DefaultMemTemplateStore =
     MemTemplateStore<default::DefaultTemplateSerializer, default::DefaultTemplateDeserializer>;
 
 /// `MemAppStore` with default serialization.
-pub type DefaultMemAppStore =
+pub type DefaultMemAccountStore =
     MemAccountStore<default::DefaultAccountSerializer, default::DefaultAccountDeserializer>;
 
 pub struct DefaultMemEnvTypes;
@@ -17,11 +17,11 @@ pub struct DefaultMemEnvTypes;
 impl EnvTypes for DefaultMemEnvTypes {
     type TemplateStore = DefaultMemTemplateStore;
 
-    type AccountStore = DefaultMemAppStore;
+    type AccountStore = DefaultMemAccountStore;
 
     type TemplateAddressCompute = default::DefaultTemplateAddressCompute;
 
-    type AppAddressCompute = default::DefaultAppAddressCompute;
+    type AccountAddressCompute = default::DefaultAccountAddressCompute;
 
     type TemplateHasher = default::DefaultTemplateHasher;
 

@@ -10,7 +10,7 @@ use std::io::Cursor;
 
 /// Default implementations
 mod default;
-pub use default::{DefaultAppAddressCompute, DefaultTemplateAddressCompute};
+pub use default::{DefaultAccountAddressCompute, DefaultTemplateAddressCompute};
 
 /// Extensions
 mod ext;
@@ -25,17 +25,17 @@ mod memory;
 pub use memory::{MemAccountStore, MemTemplateStore};
 
 #[cfg(feature = "default-memory")]
-pub use default::{DefaultMemAppStore, DefaultMemEnvTypes, DefaultMemTemplateStore};
+pub use default::{DefaultMemAccountStore, DefaultMemEnvTypes, DefaultMemTemplateStore};
 
 /// Rocksdb related types
 #[cfg(feature = "default-rocksdb")]
 mod rocksdb;
 
 #[cfg(feature = "default-rocksdb")]
-pub use rocksdb::{RocksAppStore, RocksTemplateStore};
+pub use rocksdb::{RocksAccountStore, RocksTemplateStore};
 
 #[cfg(feature = "default-rocksdb")]
-pub use default::{DefaultRocksAppStore, DefaultRocksEnvTypes, DefaultRocksTemplateStore};
+pub use default::{DefaultRocksAccountStore, DefaultRocksEnvTypes, DefaultRocksTemplateStore};
 
 mod traits;
 
@@ -55,7 +55,7 @@ pub trait EnvTypes {
     type TemplateAddressCompute: ComputeAddress<Template, Address = TemplateAddr>;
 
     /// Compute an `Account`'s `Address`
-    type AppAddressCompute: ComputeAddress<ExtSpawn, Address = AccountAddr>;
+    type AccountAddressCompute: ComputeAddress<ExtSpawn, Address = AccountAddr>;
 
     /// `Template` content [`TemplateHasher`] type.
     type TemplateHasher: TemplateHasher;
@@ -78,7 +78,7 @@ where
 {
     /// `Env` environment is dictated by its `Types`
 
-    /// Creates a new `Env`. Injects externally the `TemplateStore` and `AppStore`.
+    /// Creates a new [`Env`]. Injects the `TemplateStore` and `AccountStore`.
     pub fn new(account_store: T::AccountStore, template_store: T::TemplateStore) -> Self {
         Self {
             accounts: account_store,
@@ -118,13 +118,13 @@ where
 
     /// Computes an `Account`'s `Address`
     pub fn compute_account_addr(&self, spawn: &ExtSpawn) -> AccountAddr {
-        T::AppAddressCompute::compute(spawn)
+        T::AccountAddressCompute::compute(spawn)
     }
 
     /// Parses a binary `Deploy Template` transaction
     ///
-    /// On success returns `Template`,
-    /// On failure returns `ParseError`.
+    /// On success returns [`Template`],
+    /// On failure returns [`ParseError`].
     pub fn parse_deploy(
         &self,
         bytes: &[u8],
@@ -138,8 +138,8 @@ where
 
     /// Parses a binary [`SpawnAccount`] transaction.
     ///
-    /// On success returns `SpawnApp`,
-    /// On failure returns `ParseError`.
+    /// On success returns [`Spawn Account`],
+    /// On failure returns [`ParseError`].
     pub fn parse_spawn(&self, bytes: &[u8]) -> Result<SpawnAccount, ParseError> {
         let mut cursor = Cursor::new(bytes);
         let spawn = spawn::decode(&mut cursor)?;
