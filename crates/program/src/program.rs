@@ -8,7 +8,7 @@ use crate::{
 
 /// A fully parsed and validated smWasm program.
 ///
-/// smWash is the language in which Spacemesh smart contracts are written in.
+/// smWasm is the language in which Spacemesh smart contracts are written in.
 /// It's a proper subset of WebAssembly, also known as Wasm, similarly to
 /// Ethereum's [*ewasm*](https://github.com/ewasm/design).
 ///

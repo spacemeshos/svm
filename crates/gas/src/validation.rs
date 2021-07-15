@@ -6,7 +6,7 @@ use crate::{CallGraphBuilder, FixedGasError, GraphCycles};
 
 /// Further validates a smWasm [`Program`] according to the fixed-gas rules.
 ///
-/// The smWash [`Program`] is considered INVALID when one of the following:
+/// The smWasm [`Program`] is considered INVALID when one of the following:
 ///
 /// * It contains the `loop` opcode.
 /// * It contains the `call_indirect` opcode.
