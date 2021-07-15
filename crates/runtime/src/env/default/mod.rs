@@ -3,7 +3,7 @@ mod hasher;
 mod serialize;
 
 pub use serialize::{
-    DefaultAppDeserializer, DefaultAppSerializer, DefaultTemplateDeserializer,
+    DefaultAccountDeserializer, DefaultAccountSerializer, DefaultTemplateDeserializer,
     DefaultTemplateSerializer,
 };
 
@@ -11,7 +11,7 @@ pub use serialize::{
 mod memory;
 
 #[cfg(feature = "default-memory")]
-pub use memory::{DefaultMemAppStore, DefaultMemEnvTypes, DefaultMemTemplateStore};
+pub use memory::{DefaultMemAccountStore, DefaultMemEnvTypes, DefaultMemTemplateStore};
 
 #[cfg(feature = "default-rocksdb")]
 mod rocksdb;
@@ -19,5 +19,5 @@ mod rocksdb;
 #[cfg(feature = "default-rocksdb")]
 pub use rocksdb::{DefaultRocksAppStore, DefaultRocksEnvTypes, DefaultRocksTemplateStore};
 
-pub use address_compute::{DefaultAppAddressCompute, DefaultTemplateAddressCompute};
+pub use address_compute::{DefaultAccountAddressCompute, DefaultTemplateAddressCompute};
 pub use hasher::DefaultTemplateHasher;

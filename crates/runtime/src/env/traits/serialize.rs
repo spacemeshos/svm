@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use svm_types::{SectionKind, Template, TemplateAddr};
 
 /// `Env` storage serialization types
-use crate::env::ExtApp;
+use crate::env::ExtAccount;
 
 /// Serializing an `Template` into its raw representation.
 pub trait TemplateSerializer {
@@ -17,19 +17,19 @@ pub trait TemplateDeserializer {
     fn deserialize(bytes: &[u8], interests: Option<HashSet<SectionKind>>) -> Option<Template>;
 }
 
-/// Serializing an `App` into its raw representation.
-pub trait AppSerializer {
+/// Serializing an `Account` into its binary representation.
+pub trait AccountSerializer {
     #[allow(missing_docs)]
-    fn serialize(app: &ExtApp) -> Vec<u8>;
+    fn serialize(account: &ExtAccount) -> Vec<u8>;
 }
 
-/// Deserializing stored `App` into its in-memory representation.
-pub trait AppDeserializer {
+/// Deserializing stored `Account` into its in-memory representation.
+pub trait AccountDeserializer {
     #[allow(missing_docs)]
-    fn deserialize(bytes: &[u8]) -> Option<ExtApp>;
+    fn deserialize(bytes: &[u8]) -> Option<ExtAccount>;
 
     fn deserialize_template_addr(bytes: &[u8]) -> Option<TemplateAddr> {
-        Self::deserialize(bytes).map(|app| app.template_addr().clone())
+        Self::deserialize(bytes).map(|account| account.template_addr().clone())
     }
 }
 
@@ -40,9 +40,9 @@ pub trait EnvSerializers {
     /// `Template`'s Deserializer
     type TemplateDeserializer: TemplateDeserializer;
 
-    /// `App`'s Serializer
-    type AppSerializer: AppSerializer;
+    /// `Account`'s Serializer
+    type AccountSerializer: AccountSerializer;
 
-    /// `App`'s Deserializer
-    type AppDeserializer: AppDeserializer;
+    /// `Account`'s Deserializer
+    type AccountDeserializer: AccountDeserializer;
 }

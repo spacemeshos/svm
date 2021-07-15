@@ -22,7 +22,7 @@ use crate::version;
 use crate::{ReadExt, WriteExt};
 
 /// Encodes a [`DeployReceipt`] into its binary format.
-pub fn encode_deploy_receipt(receipt: &DeployReceipt) -> Vec<u8> {
+pub fn encode_deploy(receipt: &DeployReceipt) -> Vec<u8> {
     let mut w = Vec::new();
 
     w.write_byte(types::DEPLOY);
@@ -112,7 +112,7 @@ mod tests {
             logs: Vec::new(),
         };
 
-        let bytes = encode_deploy_receipt(&receipt);
+        let bytes = encode_deploy(&receipt);
         let decoded = decode_receipt(&bytes);
 
         assert_eq!(decoded.into_deploy(), receipt);

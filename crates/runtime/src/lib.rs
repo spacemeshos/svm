@@ -1,7 +1,7 @@
-//! `SVM-runtime` crate is the glue between `SVM` to a Wasm Runtime.
+//! This crate is the glue between `SVM` to a Wasm Runtime.
 //!
 //! Currently there is one a single [`Runtime`] implementation supporting
-//! [`Wasmer`](https://wasmer.io/), but future WASM Runtime might be added.
+//! [`Wasmer`](https://wasmer.io/), but future WASM Runtimes might be added.
 
 #![warn(missing_docs)]
 #![deny(unused)]
@@ -22,7 +22,8 @@ mod wasm_store;
 pub use context::Context;
 pub use env::{Env, EnvTypes};
 pub use error::ValidateError;
-#[cfg(feature = "default-rocksdb")]
-pub use runtime::create_rocksdb_runtime;
 pub use runtime::{Config, DefaultRuntime, Runtime, RuntimePtr};
 pub use wasm_store::new_store;
+
+#[cfg(feature = "default-rocksdb")]
+pub use runtime::create_rocksdb_runtime;

@@ -1,5 +1,5 @@
-mod app_store;
+mod account_store;
 mod template_store;
 
-pub use app_store::MemAppStore;
+pub use account_store::MemAccountStore;
 pub use template_store::MemTemplateStore;
