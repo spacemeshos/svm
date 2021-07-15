@@ -10,7 +10,7 @@ use crate::env::{self, traits};
 
 use env::ExtApp;
 
-use traits::{AppDeserializer, AppSerializer};
+use traits::{AccountDeserializer, AccountSerializer};
 use traits::{TemplateDeserializer, TemplateSerializer};
 
 /// Default serializer for `App`
@@ -19,7 +19,7 @@ pub struct DefaultAppSerializer;
 /// Default deserializer for `App`
 pub struct DefaultAppDeserializer;
 
-impl AppSerializer for DefaultAppSerializer {
+impl AccountSerializer for DefaultAppSerializer {
     fn serialize(app: &ExtApp) -> Vec<u8> {
         let mut w = Vec::new();
 
@@ -47,7 +47,7 @@ fn encode_spawner(app: &ExtApp, w: &mut Vec<u8>) {
     w.write_address(spawner.inner());
 }
 
-impl AppDeserializer for DefaultAppDeserializer {
+impl AccountDeserializer for DefaultAppDeserializer {
     fn deserialize(bytes: &[u8]) -> Option<ExtApp> {
         let mut cursor = Cursor::new(bytes);
 

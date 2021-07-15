@@ -28,7 +28,7 @@ fn memory_runtime_validate_template_invalid_raw_format() {
     let parse_err = ParseError::NotEnoughBytes(Field::Name);
     let expected = ValidateError::Parse(parse_err);
 
-    let actual = runtime.validate_template(&bytes[..]).unwrap_err();
+    let actual = runtime.validate_deploy(&bytes[..]).unwrap_err();
     assert_eq!(expected, actual);
 }
 
@@ -50,20 +50,20 @@ fn memory_runtime_validate_template_invalid_wasm() {
     let prog_err = ProgramError::FloatsNotAllowed;
     let expected = Err(ValidateError::Program(prog_err));
 
-    let actual = runtime.validate_template(&bytes[..]);
+    let actual = runtime.validate_deploy(&bytes[..]);
     assert_eq!(expected, actual);
 }
 
 #[ignore]
 #[test]
-fn memory_runtime_validate_app_invalid_raw_format() {
+fn memory_runtime_validate_call_invalid_raw_format() {
     let runtime = memory_runtime();
     let bytes = vec![0xFF, 0xFF];
 
     let parse_err = ParseError::NotEnoughBytes(Field::TemplateAddr);
     let expected = ValidateError::Parse(parse_err);
 
-    let actual = runtime.validate_app(&bytes).unwrap_err();
+    let actual = runtime.validate_spawn(&bytes).unwrap_err();
     assert_eq!(expected, actual);
 }
 
@@ -76,7 +76,7 @@ fn memory_runtime_validate_tx_invalid_raw_format() {
     let parse_err = ParseError::NotEnoughBytes(Field::AccountAddr);
     let expected = Err(ValidateError::Parse(parse_err));
 
-    let actual = runtime.validate_tx(&bytes);
+    let actual = runtime.validate_call(&bytes);
     assert_eq!(expected, actual);
 }
 
@@ -98,7 +98,7 @@ fn memory_runtime_deploy_template_reaches_oog() {
     );
 
     let expected = DeployReceipt::new_oog();
-    let actual = runtime.deploy_template(&bytes, &deployer, maybe_gas);
+    let actual = runtime.deploy(&bytes, &deployer, maybe_gas);
     assert_eq!(expected, actual);
 }
 
@@ -119,7 +119,7 @@ fn memory_runtime_deploy_template_has_enough_gas() {
         include_str!("wasm/runtime_app_ctor.wast").into(),
     );
 
-    let receipt = runtime.deploy_template(&bytes, &deployer, gas_limit);
+    let receipt = runtime.deploy(&bytes, &deployer, gas_limit);
     assert!(receipt.success);
     assert!(receipt.gas_used.is_some());
 }
@@ -143,7 +143,7 @@ fn memory_runtime_spawn_app_with_non_ctor_fails() {
         include_str!("wasm/runtime_app_ctor.wast").into(),
     );
 
-    let receipt = runtime.deploy_template(&bytes, &deployer, maybe_gas);
+    let receipt = runtime.deploy(&bytes, &deployer, maybe_gas);
     assert!(receipt.success);
 
     let template_addr = receipt.addr.unwrap();
@@ -156,7 +156,7 @@ fn memory_runtime_spawn_app_with_non_ctor_fails() {
     let bytes = testing::build_app(&template_addr, name, ctor, &calldata);
     let maybe_gas = Gas::new();
 
-    let receipt = runtime.spawn_app(&bytes, &creator, maybe_gas);
+    let receipt = runtime.spawn(&bytes, &creator, maybe_gas);
     assert!(matches!(
         receipt.error.unwrap(),
         RuntimeError::FuncNotAllowed { .. }
@@ -182,7 +182,7 @@ fn memory_runtime_spawn_app_with_ctor_reaches_oog() {
         include_str!("wasm/runtime_app_ctor.wast").into(),
     );
 
-    let receipt = runtime.deploy_template(&bytes, &deployer, maybe_gas);
+    let receipt = runtime.deploy(&bytes, &deployer, maybe_gas);
     assert!(receipt.success);
 
     let template_addr = receipt.addr.unwrap();
@@ -196,7 +196,7 @@ fn memory_runtime_spawn_app_with_ctor_reaches_oog() {
     let maybe_gas = Gas::with(0);
 
     let expected = SpawnReceipt::new_oog(Vec::new());
-    let actual = runtime.spawn_app(&bytes, &creator, maybe_gas);
+    let actual = runtime.spawn(&bytes, &creator, maybe_gas);
     assert_eq!(expected, actual);
 }
 
@@ -219,7 +219,7 @@ fn memory_runtime_exec_app_with_ctor_fails() {
         (&include_bytes!("wasm/runtime_calldata.wasm")[..]).into(),
     );
 
-    let receipt = runtime.deploy_template(&bytes, &deployer, maybe_gas);
+    let receipt = runtime.deploy(&bytes, &deployer, maybe_gas);
     assert!(receipt.success);
 
     let template_addr = receipt.addr.unwrap();
@@ -230,7 +230,7 @@ fn memory_runtime_exec_app_with_ctor_fails() {
     let calldata = vec![];
     let creator = Address::of("creator").into();
     let bytes = testing::build_app(&template_addr, name, ctor, &calldata);
-    let receipt = runtime.spawn_app(&bytes, &creator, maybe_gas);
+    let receipt = runtime.spawn(&bytes, &creator, maybe_gas);
     assert!(receipt.success);
 
     let app_addr = receipt.account_addr();
@@ -239,9 +239,9 @@ fn memory_runtime_exec_app_with_ctor_fails() {
     // 3) execute a transaction
     let calldata = Vec::new();
     let bytes = testing::build_transaction(&app_addr, ctor, &calldata);
-    let tx = runtime.validate_tx(&bytes).unwrap();
+    let tx = runtime.validate_call(&bytes).unwrap();
 
-    let receipt = runtime.exec_tx(&tx, &init_state, maybe_gas);
+    let receipt = runtime.call(&tx, &init_state, maybe_gas);
 
     assert!(matches!(
         receipt.error.unwrap(),
@@ -267,7 +267,7 @@ fn memory_runtime_spawn_app_without_gas() {
         (&include_bytes!("wasm/runtime_calldata.wasm")[..]).into(),
     );
 
-    let receipt = runtime.deploy_template(&bytes, &deployer, Gas::new());
+    let receipt = runtime.deploy(&bytes, &deployer, Gas::new());
     assert!(receipt.success);
 
     let template_addr = receipt.addr.unwrap();
@@ -278,7 +278,7 @@ fn memory_runtime_spawn_app_without_gas() {
     let calldata = vec![];
     let creator = Address::of("creator").into();
     let bytes = testing::build_app(&template_addr, name, ctor, &calldata);
-    let receipt = runtime.spawn_app(&bytes, &creator, Gas::with(0));
+    let receipt = runtime.spawn(&bytes, &creator, Gas::with(0));
 
     assert!(matches!(receipt.error.unwrap(), RuntimeError::OOG));
 }
@@ -302,7 +302,7 @@ fn runtime_calldata_returndata() {
         (&include_bytes!("wasm/runtime_calldata.wasm")[..]).into(),
     );
 
-    let receipt = runtime.deploy_template(&bytes, &deployer, maybe_gas);
+    let receipt = runtime.deploy(&bytes, &deployer, maybe_gas);
     assert!(receipt.success);
 
     let template_addr = receipt.addr.unwrap();
@@ -313,7 +313,7 @@ fn runtime_calldata_returndata() {
     let calldata = vec![];
     let creator = Address::of("creator").into();
     let bytes = testing::build_app(&template_addr, name, ctor, &calldata);
-    let receipt = runtime.spawn_app(&bytes, &creator, maybe_gas);
+    let receipt = runtime.spawn(&bytes, &creator, maybe_gas);
     assert!(receipt.success);
 
     let app_addr = receipt.account_addr();
@@ -327,9 +327,9 @@ fn runtime_calldata_returndata() {
     msg.encode(&mut calldata);
 
     let bytes = testing::build_transaction(&app_addr, func, &calldata);
-    let tx = runtime.validate_tx(&bytes).unwrap();
+    let tx = runtime.validate_call(&bytes).unwrap();
 
-    let receipt = runtime.exec_tx(&tx, &init_state, maybe_gas);
+    let receipt = runtime.call(&tx, &init_state, maybe_gas);
     assert!(receipt.success);
 
     let state = receipt.new_state();
@@ -339,9 +339,9 @@ fn runtime_calldata_returndata() {
     let calldata = Vec::new();
 
     let bytes = testing::build_transaction(&app_addr, func, &calldata);
-    let tx = runtime.validate_tx(&bytes).unwrap();
+    let tx = runtime.validate_call(&bytes).unwrap();
 
-    let receipt = runtime.exec_tx(&tx, &state, maybe_gas);
+    let receipt = runtime.call(&tx, &state, maybe_gas);
     assert!(receipt.success);
 
     let bytes = receipt.returndata.unwrap();

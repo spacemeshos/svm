@@ -112,7 +112,7 @@ where
             calldata: spawn.ctor_data(),
             state: &State::zeros(),
             template_addr,
-            app_addr,
+            account_addr: app_addr,
             within_spawn: true,
             gas_used,
             gas_left,
@@ -136,12 +136,12 @@ where
         Rets: WasmTypeList,
         F: Fn(&Context, Outcome<Box<[wasmer::Val]>>) -> R,
     {
-        match self.account_template(call.app_addr) {
+        match self.account_template(call.account_addr) {
             Ok(template) => {
-                let storage = self.open_storage(call.app_addr, call.state, template.fixed_layout());
+                let storage = self.open_storage(call.account_addr, call.state, template.fixed_layout());
 
                 let mut ctx =
-                    Context::new(call.gas_left, storage, call.template_addr, call.app_addr);
+                    Context::new(call.gas_left, storage, call.template_addr, call.account_addr);
 
                 let store = crate::wasm_store::new_store();
                 let import_object = self.create_import_object(&store, &mut ctx);
@@ -478,7 +478,7 @@ where
     #[inline]
     fn func_not_found(&self, ctx: &Context, func_name: &str) -> Failure {
         RuntimeError::FuncNotFound {
-            account_addr: ctx.app_addr().clone(),
+            account_addr: ctx.account_addr().clone(),
             template_addr: ctx.template_addr().clone(),
             func: func_name.to_string(),
         }
@@ -488,7 +488,7 @@ where
     #[inline]
     fn instantiation_failed(&self, ctx: &Context, err: wasmer::InstantiationError) -> Failure {
         RuntimeError::InstantiationFailed {
-            account_addr: ctx.app_addr().clone(),
+            account_addr: ctx.account_addr().clone(),
             template_addr: ctx.template_addr().clone(),
             msg: err.to_string(),
         }
@@ -498,7 +498,7 @@ where
     #[inline]
     fn func_not_allowed(&self, ctx: &Context, func_name: &str, msg: &str) -> Failure {
         RuntimeError::FuncNotAllowed {
-            account_addr: ctx.app_addr().clone(),
+            account_addr: ctx.account_addr().clone(),
             template_addr: ctx.template_addr().clone(),
             func: func_name.to_string(),
             msg: msg.to_string(),
@@ -509,7 +509,7 @@ where
     #[inline]
     fn func_invalid_sig(&self, ctx: &Context, func_name: &str) -> Failure {
         RuntimeError::FuncInvalidSignature {
-            account_addr: ctx.app_addr().clone(),
+            account_addr: ctx.account_addr().clone(),
             template_addr: ctx.template_addr().clone(),
             func: func_name.to_string(),
         }
@@ -525,7 +525,7 @@ where
         logs: Vec<ReceiptLog>,
     ) -> Failure {
         let err = RuntimeError::FuncFailed {
-            account_addr: ctx.app_addr().clone(),
+            account_addr: ctx.account_addr().clone(),
             template_addr: ctx.template_addr().clone(),
             func: func_name.to_string(),
             msg: err.to_string(),
@@ -537,7 +537,7 @@ where
     #[inline]
     fn compilation_failed(&self, ctx: &Context, err: wasmer::CompileError) -> Failure {
         RuntimeError::CompilationFailed {
-            account_addr: ctx.app_addr().clone(),
+            account_addr: ctx.account_addr().clone(),
             template_addr: ctx.template_addr().clone(),
             msg: err.to_string(),
         }
@@ -549,7 +549,7 @@ impl<T> Runtime for DefaultRuntime<T>
 where
     T: EnvTypes,
 {
-    fn validate_template(&self, bytes: &[u8]) -> std::result::Result<(), ValidateError> {
+    fn validate_deploy(&self, bytes: &[u8]) -> std::result::Result<(), ValidateError> {
         let template = self.env.parse_deploy_template(bytes, None)?;
         let code = template.code();
 
@@ -567,18 +567,18 @@ where
         svm_gas::validate_wasm(code, false).map_err(|e| e.into())
     }
 
-    fn validate_app(&self, bytes: &[u8]) -> std::result::Result<(), ValidateError> {
+    fn validate_spawn(&self, bytes: &[u8]) -> std::result::Result<(), ValidateError> {
         self.env
             .parse_spawn_app(bytes)
             .map(|_| ())
             .map_err(Into::into)
     }
 
-    fn validate_tx(&self, bytes: &[u8]) -> std::result::Result<Transaction, ValidateError> {
+    fn validate_call(&self, bytes: &[u8]) -> std::result::Result<Transaction, ValidateError> {
         self.env.parse_exec_app(bytes).map_err(|e| e.into())
     }
 
-    fn deploy_template(
+    fn deploy(
         &mut self,
         bytes: &[u8],
         _deployer: &DeployerAddr,
@@ -601,7 +601,7 @@ where
         }
     }
 
-    fn spawn_app(&mut self, bytes: &[u8], spawner: &SpawnerAddr, gas_limit: Gas) -> SpawnReceipt {
+    fn spawn(&mut self, bytes: &[u8], spawner: &SpawnerAddr, gas_limit: Gas) -> SpawnReceipt {
         use svm_gas::ProgramVisitor;
 
         info!("runtime `spawn_app`");
@@ -664,7 +664,7 @@ where
         }
     }
 
-    fn exec_verify(
+    fn verify(
         &self,
         _tx: &Transaction,
         _state: &State,
@@ -702,7 +702,7 @@ where
         //     }
     }
 
-    fn exec_tx(&self, tx: &Transaction, state: &State, gas_limit: Gas) -> CallReceipt {
+    fn call(&self, tx: &Transaction, state: &State, gas_limit: Gas) -> CallReceipt {
         let app_addr = tx.target_addr();
         let template_addr = self.env.resolve_template_addr(app_addr);
 
@@ -711,7 +711,7 @@ where
                 func_name: tx.func_name(),
                 calldata: tx.calldata(),
                 template_addr: &template_addr,
-                app_addr,
+                account_addr: app_addr,
                 state,
                 gas_used: Gas::with(0),
                 gas_left: gas_limit,

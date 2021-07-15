@@ -4,7 +4,7 @@ use std::marker::PhantomData;
 use crate::env::{self, traits};
 
 use env::ExtApp;
-use traits::{AppDeserializer, AppSerializer, AppStore};
+use traits::{AccountDeserializer, AccountSerializer, AppStore};
 
 use svm_types::{AccountAddr, Address, TemplateAddr};
 
@@ -18,8 +18,8 @@ pub struct MemAppStore<S, D> {
 
 impl<S, D> MemAppStore<S, D>
 where
-    S: AppSerializer,
-    D: AppDeserializer,
+    S: AccountSerializer,
+    D: AccountDeserializer,
 {
     /// Initializes a new `MemAppStore`
     pub fn new() -> Self {
@@ -33,8 +33,8 @@ where
 
 impl<S, D> AppStore for MemAppStore<S, D>
 where
-    S: AppSerializer,
-    D: AppDeserializer,
+    S: AccountSerializer,
+    D: AccountDeserializer,
 {
     fn store(&mut self, app: &ExtApp, addr: &AccountAddr) {
         let bytes = S::serialize(app);
