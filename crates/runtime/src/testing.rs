@@ -152,7 +152,7 @@ pub fn build_spawn(template: &TemplateAddr, name: &str, ctor: &str, calldata: &[
         .build()
 }
 
-/// Builds a raw `Call App` transaction. (a.k.a a [`Transaction`]).
+/// Builds a raw `Call App` transaction. (a.k.a a `Transaction`).
 pub fn build_transaction(target: &AccountAddr, func: &str, calldata: &[u8]) -> Vec<u8> {
     TxBuilder::new()
         .with_version(0)

@@ -50,7 +50,7 @@ pub trait EnvTypes {
     /// [`Template`] type.
     type TemplateStore: TemplateStore;
 
-    /// [`AccountStore`] type.
+    /// `AccountStore` type.
     type AccountStore: AccountStore;
 
     /// Compute a `Template` `Address`
@@ -59,7 +59,7 @@ pub trait EnvTypes {
     /// Compute an `Account`'s `Address`
     type AccountAddressCompute: ComputeAddress<ExtSpawn, Address = AccountAddr>;
 
-    /// `Template` content [`TemplateHasher`] type.
+    /// `Template` content `TemplateHasher` type.
     type TemplateHasher: TemplateHasher;
 }
 
@@ -98,17 +98,17 @@ where
         &mut self.templates
     }
 
-    /// Borrows the environment's [`AccountStore`].
+    /// Borrows the environment's `AccountStore`.
     pub fn account_store(&self) -> &T::AccountStore {
         &self.accounts
     }
 
-    /// Mutably Borrows the environment's [`AccountStore`].
+    /// Mutably Borrows the environment's `AccountStore`.
     pub fn account_store_mut(&mut self) -> &mut T::AccountStore {
         &mut self.accounts
     }
 
-    /// Computes the [`TemplateHash`] of `template`.
+    /// Computes the `TemplateHash` of `template`.
     pub fn compute_template_hash(&self, template: &Template) -> TemplateHash {
         T::TemplateHasher::hash(template)
     }
@@ -211,7 +211,7 @@ where
         store.load(&addr, interests)
     }
 
-    /// Loads an [`ExtAccount`] given its `Address`
+    /// Loads an `ExtAccount` given its `Address`
     #[must_use]
     pub fn account(&self, addr: &AccountAddr) -> Option<ExtAccount> {
         let store = self.account_store();
@@ -224,7 +224,7 @@ where
         self.template(addr, None).is_some()
     }
 
-    /// Returns whether an [`Account`] with given the `Address` exists.
+    /// Returns whether an `Account` with given the `Address` exists.
     #[inline]
     pub fn contains_account(&self, addr: &AccountAddr) -> bool {
         self.account(addr).is_some()

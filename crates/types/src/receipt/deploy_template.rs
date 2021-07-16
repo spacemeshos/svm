@@ -4,14 +4,14 @@ use crate::{Gas, TemplateAddr};
 /// Information about the attempted deployment of a
 /// [`Template`](crate::Template).
 ///
-/// [`TemplateReceipt`] should *not* be wrapped in a [`Result`] for failure
+/// [`DeployReceipt`] should *not* be wrapped in a [`Result`] for failure
 /// detection; error detection is built-in the type itself.
 #[derive(Debug, PartialEq, Clone)]
 pub struct DeployReceipt {
     /// Transaction format version
     pub version: u16,
 
-    /// whether spawn succedded or not
+    /// whether spawn succeeded or not
     pub success: bool,
 
     /// the error in case spawning failed
@@ -28,7 +28,7 @@ pub struct DeployReceipt {
 }
 
 impl DeployReceipt {
-    /// Creates a [`TemplateReceipt`] which indicates a successful deployment of
+    /// Creates a [`DeployReceipt`] which indicates a successful deployment of
     /// the template located at `addr` which cost `gas_used`.
     pub fn new(addr: TemplateAddr, gas_used: Gas) -> Self {
         Self {
@@ -41,12 +41,12 @@ impl DeployReceipt {
         }
     }
 
-    /// Creates a [`TemplateReceipt`] for reaching `Out-of-Gas`.
+    /// Creates a [`DeployReceipt`] for reaching `Out-of-Gas`.
     pub fn new_oog() -> Self {
         Self::from_err(RuntimeError::OOG, Vec::new())
     }
 
-    /// Creates a new failure [`TemplateReceipt`] out of the `error` parameter.
+    /// Creates a new failure [`DeployReceipt`] out of the `error` parameter.
     pub fn from_err(error: RuntimeError, logs: Vec<ReceiptLog>) -> Self {
         Self {
             version: 0,
