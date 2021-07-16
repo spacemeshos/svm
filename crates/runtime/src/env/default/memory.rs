@@ -24,6 +24,4 @@ impl EnvTypes for DefaultMemEnvTypes {
     type AccountAddressCompute = default::DefaultAccountAddressCompute;
 
     type TemplateHasher = default::DefaultTemplateHasher;
-
-    type Pricer = svm_gas::resolvers::V0PriceResolver;
 }

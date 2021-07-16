@@ -34,8 +34,6 @@ where
     /// Used mainly for managing an Account's persistence.
     env: Env<T>,
 
-    pricer: T::Pricer,
-
     /// Provided host functions to be consumed by running transactions.
     imports: (String, wasmer::Exports),
 
@@ -53,14 +51,12 @@ where
     /// Initializes a new `DefaultRuntime`.
     pub fn new(
         env: Env<T>,
-        pricer: T::Pricer,
         imports: (String, wasmer::Exports),
         storage_builder: Box<StorageBuilderFn>,
         config: Config,
     ) -> Self {
         Self {
             env,
-            pricer,
             imports,
             storage_builder,
             config,
@@ -594,6 +590,7 @@ where
     }
 
     fn spawn(&mut self, bytes: &[u8], spawner: &SpawnerAddr, gas_limit: Gas) -> SpawnReceipt {
+        use svm_gas::ProgramPricing;
         use svm_program::ProgramVisitor;
 
         info!("Runtime `spawn`");
@@ -608,7 +605,8 @@ where
         let template_code = template_code_section.code();
         let program = Program::new(template_code, false).unwrap();
         let func_price = {
-            let program_pricing = svm_gas::ProgramPricing::new(&self.pricer);
+            let pricer = self.env.price_resolver();
+            let program_pricing = ProgramPricing::new(pricer);
             program_pricing.visit(&program).unwrap()
         };
         let spawn = ExtSpawn::new(base, spawner);

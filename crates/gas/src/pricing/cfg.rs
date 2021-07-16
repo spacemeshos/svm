@@ -25,15 +25,12 @@ use crate::{
 /// There is no weight associated with the `Edge`(s) of the `WeightedGraph`.
 /// This is an implementation detail. We preferred to use a `Graph` which has no weight in its `Edge`(s)
 /// and pick a `Data` type for the `Node`(s) that will contain `weight`.
-pub fn build_weighted_graph<R>(
+pub fn build_weighted_graph(
     cfg: &CFG,
-    resolver: &R,
+    resolver: &dyn PriceResolver,
     imports: &Imports,
     func_price: &FuncPrice,
-) -> WeightedGraph<BlockNum>
-where
-    R: PriceResolver,
-{
+) -> WeightedGraph<BlockNum> {
     let mut builder = GraphBuilder::new();
 
     for block in cfg.blocks() {
@@ -60,24 +57,23 @@ where
     builder.build()
 }
 
-fn compute_block_price<R>(
+fn compute_block_price(
     block: &Block,
-    resolver: &R,
+    resolver: &dyn PriceResolver,
     imports: &Imports,
     func_price: &FuncPrice,
-) -> usize
-where
-    R: PriceResolver,
-{
+) -> usize {
     block.ops().iter().fold(0, |acc, op| {
         acc + resolve_op(op, resolver, imports, func_price)
     })
 }
 
-fn resolve_op<R>(op: &Op, resolver: &R, imports: &Imports, func_price: &FuncPrice) -> usize
-where
-    R: PriceResolver,
-{
+fn resolve_op(
+    op: &Op,
+    resolver: &dyn PriceResolver,
+    imports: &Imports,
+    func_price: &FuncPrice,
+) -> usize {
     if let Instruction::Call(target) = op.raw() {
         resolve_call_price(op, resolver, imports, func_price)
     } else {
@@ -85,10 +81,12 @@ where
     }
 }
 
-fn resolve_call_price<R>(op: &Op, resolver: &R, imports: &Imports, func_price: &FuncPrice) -> usize
-where
-    R: PriceResolver,
-{
+fn resolve_call_price(
+    op: &Op,
+    resolver: &dyn PriceResolver,
+    imports: &Imports,
+    func_price: &FuncPrice,
+) -> usize {
     if let Instruction::Call(target) = op.raw() {
         let target = FuncIndex(*target);
 

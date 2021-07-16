@@ -1,11 +1,14 @@
 #![allow(unused)]
 
 mod helpers;
-use helpers::assert_graph_eq;
+
+use std::rc::Rc;
 
 use svm_gas::build_weighted_graph;
 use svm_gas::{BlockNum, FuncPrice, GraphBuilder, NodeWeight, PriceResolver};
 use svm_program::{FuncIndex, Imports, Op, Program};
+
+use helpers::assert_graph_eq;
 
 type WeightedGraphBuilder = GraphBuilder<BlockNum, NodeWeight<BlockNum>>;
 
@@ -149,7 +152,7 @@ fn program_pricing_1() {
         "#;
 
     let resolver = TestResolver::new(1);
-    let actual = helpers::price_program(wasm, resolver);
+    let actual = helpers::price_program(wasm, Rc::new(resolver));
 
     let expected = func_price! {
         (func: 1, price: 1 + 100 + 1),

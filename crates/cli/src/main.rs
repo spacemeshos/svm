@@ -5,6 +5,7 @@ use structopt::StructOpt;
 use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
+use std::rc::Rc;
 
 use svm_gas::resolvers::ExampleResolver;
 use svm_gas::validate_wasm;
@@ -47,7 +48,7 @@ fn main() {
 
         let resolver = ExampleResolver::default();
 
-        let mut pp = ProgramPricing::new(resolver);
+        let mut pp = ProgramPricing::new(Rc::new(resolver));
         let func_price = pp.visit(&program).unwrap();
 
         println!("{}", func_price);
