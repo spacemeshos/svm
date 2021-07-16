@@ -5,6 +5,7 @@ use thiserror::Error;
 use std::fs::File;
 use std::io::{self, Read};
 use std::path::PathBuf;
+use std::rc::Rc;
 use std::str::Utf8Error;
 
 use svm_gas::resolvers::ExampleResolver;
@@ -58,7 +59,7 @@ fn main() -> anyhow::Result<()> {
             println!("The given file contains a valid smWasm module.");
 
             let resolver = ExampleResolver::default();
-            let mut pp = ProgramPricing::new(resolver);
+            let mut pp = ProgramPricing::new(Rc::new(resolver));
             let func_price = pp.visit(&program).unwrap();
 
             println!("{}", func_price);

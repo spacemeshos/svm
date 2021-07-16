@@ -7,7 +7,6 @@ use std::rc::Rc;
 
 use svm_codec::api::builder::{SpawnBuilder, TemplateBuilder, TxBuilder};
 use svm_codec::template;
-use svm_gas::resolvers::V0PriceResolver;
 use svm_layout::{FixedLayout, Layout};
 use svm_storage::{
     account::{AccountKVStore, AccountStorage},
@@ -97,13 +96,7 @@ pub fn create_memory_runtime(
     let config = Config::default();
     let imports = ("sm".to_string(), wasmer::Exports::new());
 
-    DefaultRuntime::new(
-        env,
-        V0PriceResolver::default(),
-        imports,
-        Box::new(storage_builder),
-        config,
-    )
+    DefaultRuntime::new(env, imports, Box::new(storage_builder), config)
 }
 
 /// Returns a function (wrapped inside [`Box`]) that initializes `Account`'s storage client.

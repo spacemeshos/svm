@@ -1,5 +1,7 @@
 #![allow(unused)]
 
+use std::rc::Rc;
+
 use svm_gas::{
     BlockNum, FuncPrice, Graph, NodeData, NodeLabel, PriceResolver, ProgramPricing, CFG,
 };
@@ -18,10 +20,7 @@ pub fn get_func(program: &Program, fn_index: u32) -> Function {
     Function::new(index, code)
 }
 
-pub fn price_program<R>(wat: &str, resolver: R) -> FuncPrice
-where
-    R: PriceResolver,
-{
+pub fn price_program(wat: &str, resolver: Rc<dyn PriceResolver>) -> FuncPrice {
     let mut func_price: Option<FuncPrice> = None;
     let mut pp = ProgramPricing::new(resolver);
 

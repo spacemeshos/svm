@@ -12,6 +12,7 @@
 mod context;
 mod env;
 mod error;
+mod price_resolver_registry;
 mod runtime;
 mod storage;
 mod wasm_store;
