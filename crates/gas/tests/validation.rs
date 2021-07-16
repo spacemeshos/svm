@@ -5,7 +5,7 @@ fn validate_wasm(code: &str) -> Result<(), FixedGasError> {
     let wasm = wat::parse_str(code).unwrap();
     let return_cycles = true;
 
-    svm_gas::validate_wasm(&Program::new(&wasm).unwrap(), return_cycles)
+    svm_gas::validate_wasm(&Program::new(&wasm, false).unwrap(), return_cycles)
 }
 
 #[test]

@@ -10,7 +10,7 @@ macro_rules! test_cfg {
     ($cfg_path:expr, $wasm:expr) => {{
         let expected = include!($cfg_path);
 
-        let program = Program::from_wat($wasm).unwrap();
+        let program = Program::from_wat($wasm, false).unwrap();
         let func = helpers::get_func(&program, 0);
 
         let actual = build_func_cfg(&func);

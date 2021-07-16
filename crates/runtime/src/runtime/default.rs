@@ -563,7 +563,7 @@ where
         // Opcode and `svm_alloc` checks should only ever be run when deploying [`Template`]s.
         // There's no reason to also do it when spawning new `Account`
         // over already-validated [`Template`]s
-        let program = Program::new(code).map_err(ValidateError::from)?;
+        let program = Program::new(code, true).map_err(ValidateError::from)?;
         svm_gas::validate_wasm(&program, false).map_err(ValidateError::from)?;
         Ok(())
     }
@@ -606,7 +606,7 @@ where
         let template_code_section = template.sections().get(SectionKind::Code).as_code();
         let gas_mode = template_code_section.gas_mode();
         let template_code = template_code_section.code();
-        let program = Program::new(template_code).unwrap();
+        let program = Program::new(template_code, false).unwrap();
         let func_price = {
             let program_pricing = svm_gas::ProgramPricing::new(&self.pricer);
             program_pricing.visit(&program).unwrap()

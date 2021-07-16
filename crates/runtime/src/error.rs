@@ -14,6 +14,8 @@ pub enum ValidateError {
     /// allowed by SVM.
     #[error("{0}")]
     Program(#[from] ProgramError),
+    /// The given smWasm code is valid, but it doesn't pass the requirements to
+    /// run in fixed-gas mode.
     #[error("{0}")]
     FixedGas(#[from] FixedGasError),
 }

@@ -34,7 +34,7 @@ fn main() {
         let mut wasm = Vec::new();
         let _ = file.read_to_end(&mut wasm).unwrap();
 
-        let program = match Program::new(&wasm) {
+        let program = match Program::new(&wasm, false) {
             Ok(p) => {
                 println!("File is a valid restricted-Wasm file (Fixed-Gas pricing can be used!)");
                 p

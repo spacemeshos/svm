@@ -3,7 +3,7 @@
 //! Currently there is one a single [`Runtime`] implementation supporting
 //! [`Wasmer`](https://wasmer.io/), but future WASM Runtimes might be added.
 
-#![warn(missing_docs)]
+#![deny(missing_docs)]
 #![deny(unused)]
 #![warn(dead_code)]
 #![deny(unreachable_code)]

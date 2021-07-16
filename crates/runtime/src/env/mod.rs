@@ -44,6 +44,8 @@ pub use traits::{AccountStore, ComputeAddress, TemplateHasher, TemplateStore};
 /// Represents an `Template` Hash.
 pub type TemplateHash = [u8; 32];
 
+/// A collection of associated `type`s that customize the behavior of a
+/// [`Runtime`](crate::Runtime).
 pub trait EnvTypes {
     /// [`Template`] type.
     type TemplateStore: TemplateStore;
@@ -64,6 +66,7 @@ pub trait EnvTypes {
     type Pricer: PriceResolver;
 }
 
+/// The persistent state of a [`Runtime`](crate::Runtime).
 pub struct Env<T>
 where
     T: EnvTypes,
@@ -158,6 +161,7 @@ where
         Ok(call)
     }
 
+    /// Saves a [`Template`] at the given [`TemplateAddr`].
     pub fn store_template(&mut self, template: &Template, addr: &TemplateAddr) {
         let hash = self.compute_template_hash(template);
         let store = self.template_store_mut();
@@ -177,6 +181,8 @@ where
         }
     }
 
+    /// Given an [`AccountAddr`] `addr`, locates the [`TemplateAddr`] of its
+    /// [`Template`]. Returns [`None`] if and only if no [`Template`] was found.
     pub fn resolve_template_addr(&self, addr: &AccountAddr) -> Option<TemplateAddr> {
         let store = self.account_store();
 

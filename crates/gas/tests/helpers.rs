@@ -25,7 +25,7 @@ where
     let mut func_price: Option<FuncPrice> = None;
     let mut pp = ProgramPricing::new(resolver);
 
-    let program = Program::from_wat(wat).unwrap();
+    let program = Program::from_wat(wat, false).unwrap();
 
     pp.visit(&program).unwrap()
 }

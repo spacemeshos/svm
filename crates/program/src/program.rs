@@ -34,7 +34,7 @@ pub struct Program {
 
 impl Program {
     /// Reads a Wasm program and constructs a `Program` struct
-    pub fn new(wasm_module: &[u8]) -> Result<Self, ProgramError> {
+    pub fn new(wasm_module: &[u8], validate_exports: bool) -> Result<Self, ProgramError> {
         let module = read_module(wasm_module)?;
 
         let code = read_code(&module)?;
@@ -56,7 +56,9 @@ impl Program {
         program.set_exports(exports);
 
         validate_no_floats(&program)?;
-        validate_exports(&module)?;
+        if validate_exports {
+            module_validate_exports(&module)?;
+        }
         if count_functions_in_program(&program) > u16::MAX as u64 {
             return Err(ProgramError::FunctionIndexTooLarge);
         }
@@ -71,10 +73,10 @@ impl Program {
     /// https://webassembly.github.io/spec/core/text/index.html
     /// WebAssembly Binary Format:
     /// https://webassembly.github.io/spec/core/binary/index.html
-    pub fn from_wat(wat_module: &str) -> Result<Self, ProgramError> {
+    pub fn from_wat(wat_module: &str, validate_exports: bool) -> Result<Self, ProgramError> {
         wat::parse_str(wat_module)
             .map_err(|_| ProgramError::InvalidWasm)
-            .and_then(|wasm| Program::new(&wasm))
+            .and_then(|wasm| Program::new(&wasm, validate_exports))
     }
 
     /// The functions imports
@@ -165,7 +167,7 @@ fn count_functions_in_program(program: &Program) -> u64 {
 /// Checks whether `wasm_module` exports a well-defined `svm_alloc` function.
 /// `svm_alloc` is required by SVM for all WASM code and must have a `I32 ->
 /// I32` type signature.
-fn validate_exports(wasm_module: &Module) -> Result<(), ProgramError> {
+fn module_validate_exports(wasm_module: &Module) -> Result<(), ProgramError> {
     use parity_wasm::elements::{ExportSection, FunctionSection, Type, TypeSection, ValueType};
 
     let empty_export_section = ExportSection::with_entries(vec![]);

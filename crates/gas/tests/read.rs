@@ -27,7 +27,7 @@ fn read_program_multiple_imports() {
           )
         "#;
 
-    let program = Program::from_wat(wasm).unwrap();
+    let program = Program::from_wat(wasm, false).unwrap();
     let imports = program.imports();
 
     assert_eq!(imports.count(), 6);
