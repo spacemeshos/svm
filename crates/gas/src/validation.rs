@@ -128,10 +128,7 @@ impl ProgramVisitor for ProgramValidator {
 
                 Ok(())
             }
-            _ => {
-                //self.validate_non_float(op)?;
-                Ok(())
-            }
+            _ => Ok(()),
         }
     }
 }
