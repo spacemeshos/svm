@@ -1,4 +1,4 @@
-/// Computes the address of an item.
+/// Computes the `Address` of an `Account / Template`.
 ///
 /// The algorithm must be deterministic.
 pub trait ComputeAddress<T> {

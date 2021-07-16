@@ -1,11 +1,11 @@
 //! Runtime traits
 
-mod address_locator;
+mod compute_address;
 mod hasher;
 mod serialize;
 mod store;
 
-pub use address_locator::ComputeAddress;
+pub use compute_address::ComputeAddress;
 pub use hasher::TemplateHasher;
 pub use serialize::{AccountDeserializer, AccountSerializer};
 pub use serialize::{TemplateDeserializer, TemplateSerializer};

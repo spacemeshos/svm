@@ -1,19 +1,22 @@
-use svm_types::{AccountAddr, SectionKind, Template, TemplateAddr};
-
 use std::collections::HashSet;
+
+use svm_types::{AccountAddr, SectionKind, Template, TemplateAddr};
 
 use crate::env::{ExtAccount, TemplateHash};
 
-/// A persistent store for `Template`(s).
+/// A persistent store for [`Template`](s).
 pub trait TemplateStore {
-    /// Stores template.
+    /// Stores a [`Template`].
     ///
-    /// `template` - Struct holding the data of a `Template`
-    /// `hash`     - Template's code Hash.
+    /// parameters:
+    ///
+    /// `template` - Struct holding the data of the [`Template`].
+    /// `addr`     - [`Template`]'s `Address`.
+    /// `hash`     - [`Template`]'s [`TemplateHash`].
     fn store(&mut self, template: &Template, addr: &TemplateAddr, hash: &TemplateHash);
 
-    /// Given a `Template` account `Address`, fetches its raw data and deserializes it into `Template`.
-    /// Returns `None` if `Template` doesn't exist.
+    /// Given a [`Template`]'s `Address`, fetches its raw data and deserializes it into `Template`.
+    /// Returns `None` if [`Template`] doesn't exist.
     #[must_use]
     fn load(
         &self,
@@ -30,7 +33,7 @@ pub trait AccountStore {
     /// Given a `Account` `Address`, fetches its raw data
     /// and deserializes it into an [`ExtAccount`].
     ///
-    /// Returns `None` if `Template` doesn't exist.
+    /// Returns `None` if [`Template`] doesn't exist.
     #[must_use]
     fn load(&self, addr: &AccountAddr) -> Option<ExtAccount>;
 
