@@ -112,6 +112,7 @@ pub fn parse_template(mut raw_template: ItemMod) -> Result<Template> {
 
     for item in content {
         // TODO: Is is possible to extract the `item` real `Span`?
+        // See <https://github.com/spacemeshos/svm/issues/278>.
         let span = Span::call_site();
 
         match item {
