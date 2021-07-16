@@ -1,12 +1,11 @@
 //! Implements [`Context`]. Used for managing data of running `Transaction`s.
 
 use svm_storage::account::AccountStorage;
-use svm_types::{AccountAddr, Gas, ReceiptLog, TemplateAddr};
+use svm_types::{AccountAddr, ReceiptLog, TemplateAddr};
 use wasmer::Memory;
 
 use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
-use std::u64;
 
 /// [`Context`] is a container for the accessible data by [`wasmer`] instances.
 #[derive(wasmer::WasmerEnv, Clone)]
@@ -26,12 +25,11 @@ unsafe impl Sync for Context {}
 impl Context {
     /// Creates a new instance
     pub fn new(
-        gas_limit: Gas,
         storage: AccountStorage,
         template_addr: &TemplateAddr,
         account_addr: &AccountAddr,
     ) -> Self {
-        let inner = Inner::new(gas_limit, storage);
+        let inner = Inner::new(storage);
 
         Self {
             inner: Rc::new(RefCell::new(inner)),
@@ -43,12 +41,11 @@ impl Context {
     /// New instance with explicit memory
     pub fn new_with_memory(
         memory: Memory,
-        gas_limit: Gas,
         storage: AccountStorage,
         template_addr: &TemplateAddr,
         account_addr: &AccountAddr,
     ) -> Self {
-        let ctx = Self::new(gas_limit, storage, template_addr, account_addr);
+        let ctx = Self::new(storage, template_addr, account_addr);
 
         ctx.borrow_mut().set_memory(memory);
 
@@ -71,7 +68,7 @@ impl Context {
         self.inner.borrow()
     }
 
-    /// Mutably-borrows the `Context`
+    /// Mutably Borrows the `Context`
     #[inline]
     pub fn borrow_mut(&self) -> RefMut<Inner> {
         self.inner.borrow_mut()
@@ -79,12 +76,6 @@ impl Context {
 }
 
 pub struct Inner {
-    /// Gas limit (relevant only for `gas_metering`)
-    pub gas_limit: u64,
-
-    /// Whether gas metering is enabled or not
-    pub gas_metering: bool,
-
     /// An accessor to the `Account`'s storage
     pub storage: AccountStorage,
 
@@ -104,15 +95,11 @@ pub struct Inner {
 }
 
 impl Inner {
-    fn new(gas_limit: Gas, storage: AccountStorage) -> Self {
-        let gas_metering = gas_limit.is_some();
-        let gas_limit = gas_limit.unwrap_or(0);
+    fn new(storage: AccountStorage) -> Self {
         let logs = Vec::new();
 
         Self {
             storage,
-            gas_metering,
-            gas_limit,
             logs,
             memory: None,
             calldata: None,

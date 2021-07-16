@@ -139,12 +139,7 @@ where
                 let storage =
                     self.open_storage(call.account_addr, call.state, template.fixed_layout());
 
-                let mut ctx = Context::new(
-                    call.gas_left,
-                    storage,
-                    call.template_addr,
-                    call.account_addr,
-                );
+                let mut ctx = Context::new(storage, call.template_addr, call.account_addr);
 
                 let store = crate::wasm_store::new_store();
                 let import_object = self.create_import_object(&store, &mut ctx);

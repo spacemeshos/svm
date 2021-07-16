@@ -3,7 +3,7 @@ use wasmer::{Function, NativeFunc};
 
 use svm_layout::{FixedLayout, Id};
 use svm_runtime::{testing, vmcalls, Context};
-use svm_types::{Address, Gas, ReceiptLog};
+use svm_types::{Address, ReceiptLog};
 
 /// Creates a new `Wasmer Store`
 pub fn wasmer_store() -> wasmer::Store {
@@ -11,7 +11,7 @@ pub fn wasmer_store() -> wasmer::Store {
 }
 
 /// Creates a new `Wasmer Memory` consisting of a single page
-/// The memory is of type non-shared and can grow without a limit
+/// The memory is of type non-shared and can grow unbounded.
 fn wasmer_memory(store: &wasmer::Store) -> wasmer::Memory {
     let min = wasmer::Pages(1);
     let max = None;
@@ -88,30 +88,22 @@ fn vmcalls_empty_wasm() {
           (func (export "run")))"#
         .into();
 
-    let gas_limit = Gas::new();
-
     let store = wasmer_store();
     let import_object = imports! {};
 
-    testing::wasmer_instantiate(&store, &import_object, wasm, gas_limit);
+    testing::wasmer_instantiate(&store, &import_object, wasm);
 }
 
 #[test]
 fn vmcalls_get32_set32() {
     let template_addr = Address::repeat(0xAB);
     let account_addr = Address::repeat(0xCD);
-    let gas_limit = Gas::new();
     let layout: FixedLayout = vec![4, 2].into();
 
     let store = wasmer_store();
     let storage = testing::blank_storage(&account_addr, &layout);
 
-    let ctx = Context::new(
-        gas_limit,
-        storage,
-        &template_addr.into(),
-        &account_addr.into(),
-    );
+    let ctx = Context::new(storage, &template_addr.into(), &account_addr.into());
 
     let import_object = imports! {
         "svm" => {
@@ -124,7 +116,6 @@ fn vmcalls_get32_set32() {
         &store,
         &import_object,
         include_str!("wasm/get32_set32.wast").into(),
-        gas_limit,
     );
 
     assert_vars32!(instance, 0 => 0, 1 => 0);
@@ -141,17 +132,11 @@ fn vmcalls_get32_set32() {
 fn vmcalls_get64_set64() {
     let template_addr = Address::repeat(0xAB);
     let account_addr = Address::repeat(0xCD);
-    let gas_limit = Gas::new();
     let layout: FixedLayout = vec![4, 2].into();
 
     let store = wasmer_store();
     let storage = testing::blank_storage(&account_addr, &layout);
-    let ctx = Context::new(
-        gas_limit,
-        storage,
-        &template_addr.into(),
-        &account_addr.into(),
-    );
+    let ctx = Context::new(storage, &template_addr.into(), &account_addr.into());
 
     let import_object = imports! {
         "svm" => {
@@ -164,7 +149,6 @@ fn vmcalls_get64_set64() {
         &store,
         &import_object,
         include_str!("wasm/get64_set64.wast").into(),
-        gas_limit,
     );
 
     assert_vars64!(instance, 0 => 0, 1 => 0);
@@ -181,7 +165,6 @@ fn vmcalls_get64_set64() {
 fn vmcalls_load160() {
     let template_addr = Address::repeat(0xAB);
     let account_addr = Address::repeat(0xCD);
-    let gas_limit = Gas::new();
     let layout: FixedLayout = vec![20].into();
 
     let store = wasmer_store();
@@ -190,7 +173,6 @@ fn vmcalls_load160() {
 
     let ctx = Context::new_with_memory(
         memory.clone(),
-        gas_limit,
         storage,
         &template_addr.into(),
         &account_addr.clone().into(),
@@ -208,7 +190,6 @@ fn vmcalls_load160() {
         &store,
         &import_object,
         include_str!("wasm/load160_store160.wast").into(),
-        gas_limit,
     );
 
     {
@@ -232,7 +213,6 @@ fn vmcalls_load160() {
 fn vmcalls_store160() {
     let template_addr = Address::repeat(0xAB);
     let account_addr = Address::repeat(0xCD);
-    let gas_limit = Gas::new();
     let layout: FixedLayout = vec![20].into();
 
     let store = wasmer_store();
@@ -240,7 +220,6 @@ fn vmcalls_store160() {
     let storage = testing::blank_storage(&account_addr, &layout);
     let ctx = Context::new_with_memory(
         memory.clone(),
-        gas_limit,
         storage,
         &template_addr.into(),
         &account_addr.clone().into(),
@@ -258,7 +237,6 @@ fn vmcalls_store160() {
         &store,
         &import_object,
         include_str!("wasm/load160_store160.wast").into(),
-        gas_limit,
     );
 
     for (cell, byte) in memory.view::<u8>().iter().zip(account_addr.as_slice()) {
@@ -278,7 +256,6 @@ fn vmcalls_store160() {
 fn vmcalls_log() {
     let template_addr = Address::repeat(0xAB);
     let account_addr = Address::repeat(0xCD);
-    let gas_limit = Gas::new();
     let layout = FixedLayout::default();
 
     let store = wasmer_store();
@@ -286,7 +263,6 @@ fn vmcalls_log() {
     let storage = testing::blank_storage(&account_addr, &layout);
     let ctx = Context::new_with_memory(
         memory.clone(),
-        gas_limit,
         storage,
         &template_addr.into(),
         &account_addr.into(),
@@ -299,12 +275,8 @@ fn vmcalls_log() {
         },
     };
 
-    let instance = testing::wasmer_instantiate(
-        &store,
-        &import_object,
-        include_str!("wasm/log.wast").into(),
-        gas_limit,
-    );
+    let instance =
+        testing::wasmer_instantiate(&store, &import_object, include_str!("wasm/log.wast").into());
 
     let data = b"Hello World";
 
