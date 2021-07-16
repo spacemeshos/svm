@@ -31,7 +31,7 @@ fn clap_app() -> clap::App<'static, 'static> {
 enum Error {
     #[error("Invalid UTF-8 in .wat file.")]
     InvalidUtf8(#[from] Utf8Error),
-    #[error("Unknown file extension. Only .wat and .wasm are supported.")]
+    #[error("Unknown file extension. Only .wat, .wast and .wasm are supported.")]
     UnknownFileExtension,
 }
 
@@ -40,7 +40,7 @@ fn main() -> anyhow::Result<()> {
     let file_path = cli_matches.value_of("input").unwrap();
     let file_contents = std::fs::read(file_path)?;
 
-    let program_res = if file_path.ends_with(".wat") {
+    let program_res = if file_path.ends_with(".wat") || file_path.ends_with(".wast") {
         std::str::from_utf8(&file_contents)
             .map_err(|e| {
                 println!("[ERROR] .wat files MUST be valid UTF-8.");
