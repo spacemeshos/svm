@@ -69,10 +69,8 @@ impl Program {
     /// Calls [`Program::new`] after parsing `wat_module` and transforming it
     /// from [WebAssembly Text Format] to [WebAssembly Binary Format].
     ///
-    /// WebAssembly Text Format:
-    /// https://webassembly.github.io/spec/core/text/index.html
-    /// WebAssembly Binary Format:
-    /// https://webassembly.github.io/spec/core/binary/index.html
+    /// [WebAssembly Text Format]: https://webassembly.github.io/spec/core/text/index.html
+    /// [WebAssembly Binary Format]: https://webassembly.github.io/spec/core/binary/index.html
     pub fn from_wat(wat_module: &str, validate_exports: bool) -> Result<Self, ProgramError> {
         wat::parse_str(wat_module)
             .map_err(|_| ProgramError::InvalidWasm)
