@@ -1,18 +1,17 @@
 use log::info;
 use wasmer::{Instance, Module, WasmPtr, WasmTypeList};
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
+use svm_gas::FuncPrice;
 use svm_layout::FixedLayout;
 use svm_program::Program;
 use svm_storage::account::AccountStorage;
-use svm_types::SectionKind;
 use svm_types::{
-    AccountAddr, CallReceipt, DeployReceipt, DeployerAddr, ReceiptLog, SpawnReceipt, SpawnerAddr,
-    State, Template,
+    AccountAddr, CallReceipt, DeployReceipt, DeployerAddr, Gas, GasMode, OOGError, ReceiptLog,
+    RuntimeError, SectionKind, SpawnReceipt, SpawnerAddr, State, Template, TemplateAddr,
+    Transaction,
 };
-use svm_types::{Gas, GasMode, OOGError};
-use svm_types::{RuntimeError, Transaction};
 
 use super::{Call, Failure, Function, Outcome};
 use crate::env::{EnvTypes, ExtAccount, ExtSpawn};
@@ -42,6 +41,8 @@ where
 
     /// Builds an `AccountStorage` instance.
     storage_builder: Box<StorageBuilderFn>,
+
+    template_prices: HashMap<TemplateAddr, FuncPrice>,
 }
 
 impl<T> DefaultRuntime<T>
@@ -60,6 +61,7 @@ where
             imports,
             storage_builder,
             config,
+            template_prices: HashMap::new(),
         }
     }
 
@@ -599,15 +601,20 @@ where
         let template_address = base.account.template_addr();
 
         let template = self.env.template(template_address, None).unwrap();
-
         let template_code_section = template.sections().get(SectionKind::Code).as_code();
-        let gas_mode = template_code_section.gas_mode();
         let template_code = template_code_section.code();
+        let gas_mode = template_code_section.gas_mode();
         let program = Program::new(template_code, false).unwrap();
-        let func_price = {
+
+        let func_price = if let Some(prices) = self.template_prices.get(&template_address) {
+            prices
+        } else {
             let pricer = self.env.price_resolver();
             let program_pricing = ProgramPricing::new(pricer);
-            program_pricing.visit(&program).unwrap()
+            let prices = program_pricing.visit(&program).unwrap();
+            self.template_prices
+                .insert(template_address.clone(), prices);
+            self.template_prices.get(template_address).unwrap()
         };
         let spawn = ExtSpawn::new(base, spawner);
         if !template.is_ctor(spawn.ctor_name()) {
