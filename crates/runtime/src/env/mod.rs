@@ -70,7 +70,6 @@ where
 {
     accounts: T::AccountStore,
     templates: T::TemplateStore,
-    /// A [`PriceResolverRegistry`] for calculating gas prices.
     price_resolver_registry: PriceResolverRegistry,
 }
 
