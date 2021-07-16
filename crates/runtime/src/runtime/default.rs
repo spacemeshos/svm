@@ -606,6 +606,10 @@ where
         let gas_mode = template_code_section.gas_mode();
         let program = Program::new(template_code, false).unwrap();
 
+        // We're using a naive memoization mechanism: we only ever add, never
+        // remove. This means there's no cache invalidation at all. We can
+        // easily afford to do this because the number of templates that exist
+        // at genesis is fixed and won't grow.
         let func_price = if let Some(prices) = self.template_prices.get(&template_address) {
             prices
         } else {
