@@ -1,7 +1,8 @@
 #![allow(unused)]
 
-use svm_gas::{build_func_cfg, read_program};
-use svm_gas::{BlockNum, FuncIndex, Function, Program, CFG};
+use svm_gas::build_func_cfg;
+use svm_gas::{BlockNum, CFG};
+use svm_program::{Op, Program};
 
 mod helpers;
 
@@ -9,7 +10,7 @@ macro_rules! test_cfg {
     ($cfg_path:expr, $wasm:expr) => {{
         let expected = include!($cfg_path);
 
-        let program = helpers::parse_wasm($wasm);
+        let program = Program::from_wat($wasm, false).unwrap();
         let func = helpers::get_func(&program, 0);
 
         let actual = build_func_cfg(&func);

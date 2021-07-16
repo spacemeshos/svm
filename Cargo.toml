@@ -41,6 +41,7 @@ svm-sdk = { path = "crates/sdk", default-features = false }
 svm-sdk-tests = { path = "crates/sdk-tests" }
 svm-codec = { path = "crates/codec" }
 svm-layout = { path = "crates/layout" }
+svm-program = { path = "crates/program" }
 svm-storage = { path = "crates/storage", default-features = false }
 svm-runtime = { path = "crates/runtime", default-features = false }
 svm-ffi = { path = "crates/ffi" }

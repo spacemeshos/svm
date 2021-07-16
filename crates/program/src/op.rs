@@ -6,8 +6,11 @@ use parity_wasm::elements::Instruction;
 /// The offset is the instruction's location within the function for which the instruction belongs to.
 #[derive(Clone, PartialEq, Eq)]
 pub struct Op<'f> {
+    /// The raw WebAssembly instruction of this [`Op`].
     pub raw: &'f Instruction,
 
+    /// The byte offset within the WebAssembly module at which this [`Op`] was
+    /// found.
     pub offset: usize,
 }
 

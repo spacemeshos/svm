@@ -1,6 +1,7 @@
 use indexmap::IndexMap;
+use parity_wasm::elements::{External, ImportCountType, Module};
 
-use crate::FuncIndex;
+use crate::{FuncIndex, ProgramError};
 
 /// Stores a mapping between a function index to its corresponding `(module_name, import_name)`
 #[derive(Debug, Clone, Default)]
@@ -9,6 +10,32 @@ pub struct Imports {
 }
 
 impl Imports {
+    pub(crate) fn read<'m>(module: &Module) -> Result<Imports, ProgramError> {
+        let import_section = module.import_section();
+
+        if let Some(import_section) = import_section {
+            let import_count = module_import_count(module)?;
+
+            let mut imports = Imports::with_capacity(import_count as usize);
+            let mut offset = 0;
+
+            import_section.entries().iter().for_each(|import| {
+                if let External::Function(..) = import.external() {
+                    let module = import.module();
+                    let name = import.field();
+                    let fn_index = FuncIndex(offset);
+
+                    imports.insert(module, name, fn_index);
+
+                    offset += 1;
+                }
+            });
+
+            Ok(imports)
+        } else {
+            Ok(Imports::new())
+        }
+    }
     /// Creates a new instance
     pub fn new() -> Self {
         Self::with_capacity(0)
@@ -46,5 +73,15 @@ impl Imports {
     /// Returns the number of imports mapped
     pub fn count(&self) -> usize {
         self.inner.len()
+    }
+}
+
+fn module_import_count(module: &Module) -> Result<u16, ProgramError> {
+    let import_count = module.import_count(ImportCountType::Function);
+
+    if import_count <= std::u16::MAX as usize {
+        Ok(import_count as u16)
+    } else {
+        Err(ProgramError::TooManyFunctionImports)
     }
 }

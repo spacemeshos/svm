@@ -1,15 +1,12 @@
-use std::ops::Index;
-
 use indexmap::IndexMap;
 use parity_wasm::elements::{Func, Instruction};
 
-use crate::{build_func_cfg, graph};
-use crate::{
-    BlockNum, CFGBuilder, CallGraphBuilder, FuncIndex, Function, Imports, Op, Program,
-    ProgramVisitor,
-};
+use svm_program::{FuncIndex, Imports, Op, Program, ProgramError, ProgramVisitor};
 
-type ProgramError = crate::ProgramError<FuncIndex>;
+use std::ops::Index;
+
+use crate::{build_func_cfg, graph};
+use crate::{BlockNum, CFGBuilder, CallGraphBuilder};
 
 mod resolver;
 pub use resolver::PriceResolver;

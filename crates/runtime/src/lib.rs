@@ -3,7 +3,7 @@
 //! Currently there is one a single [`Runtime`] implementation supporting
 //! [`Wasmer`](https://wasmer.io/), but future WASM Runtimes might be added.
 
-#![warn(missing_docs)]
+#![deny(missing_docs)]
 #![deny(unused)]
 #![warn(dead_code)]
 #![deny(unreachable_code)]
@@ -14,7 +14,6 @@ mod env;
 mod error;
 mod runtime;
 mod storage;
-mod validation;
 mod wasm_store;
 
 pub mod testing;

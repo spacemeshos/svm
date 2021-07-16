@@ -1,4 +1,6 @@
-use crate::{Op, PriceResolver};
+use svm_program::Op;
+
+use crate::PriceResolver;
 
 // We don't `derive(Copy)` because we might want to store non-`Copy` data in the
 // future.

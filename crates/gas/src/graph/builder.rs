@@ -1,6 +1,8 @@
 use indexmap::IndexMap;
 
-use crate::{FuncIndex, Graph, Node, NodeData, NodeLabel, NodeRef};
+use svm_program::FuncIndex;
+
+use crate::{Graph, Node, NodeData, NodeLabel, NodeRef};
 
 /// Builders a `Graph`
 ///

@@ -1,9 +1,11 @@
 use indexmap::IndexMap;
 use parity_wasm::elements::Instruction;
 
+use svm_program::{FuncIndex, Imports, Op};
+
 use crate::{
-    Block, BlockNum, Edge, FuncIndex, FuncPrice, Graph, GraphBuilder, Imports, NodeLabel,
-    NodeWeight, Op, PriceResolver, WeightedGraph, WeightedPath, CFG,
+    Block, BlockNum, Edge, FuncPrice, Graph, GraphBuilder, NodeLabel, NodeWeight, PriceResolver,
+    WeightedGraph, WeightedPath, CFG,
 };
 
 /// This function's job is to take an input `CFG` and translate it into a `WeightedGraph`.

@@ -2,30 +2,19 @@ use thiserror::Error;
 
 use std::fmt;
 
-use crate::{FuncIndex, GraphCycles, NodeLabel};
+use svm_program::FuncIndex;
+
+use crate::{GraphCycles, NodeLabel};
 
 /// Represents error that may occur while doing gas estimation
 #[derive(Debug, PartialEq, Clone, Error)]
-pub enum ProgramError<T = FuncIndex>
+pub enum FixedGasError<T = FuncIndex>
 where
     T: NodeLabel,
 {
-    /// Invalid wasm
-    InvalidWasm,
-    /// No valid `svm_alloc` function found.
-    FunctionNotFound { func_name: String },
-    /// Floats not allowed
-    FloatsNotAllowed,
-    /// Too many function imports
-    TooManyFunctionImports,
-    /// Function index is too large
-    FunctionIndexTooLarge,
-    /// `call_indirect` isn't allowed
     CallIndirectNotAllowed,
     /// `loop` isn't allowed
     LoopNotAllowed,
-    /// Wasm has no `code` section
-    MissingCodeSection,
     /// Recursive calls aren't allowed
     RecursiveCall {
         /// Function containing the recursive-call
@@ -37,7 +26,7 @@ where
     CallCycle(GraphCycles<T>),
 }
 
-impl<T> fmt::Display for ProgramError<T>
+impl<T> fmt::Display for FixedGasError<T>
 where
     T: NodeLabel,
 {

@@ -1,15 +1,9 @@
 #![allow(unused)]
 
 use svm_gas::{
-    BlockNum, FuncIndex, FuncPrice, Function, Graph, NodeData, NodeLabel, PriceResolver, Program,
-    ProgramPricing, ProgramVisitor, CFG,
+    BlockNum, FuncPrice, Graph, NodeData, NodeLabel, PriceResolver, ProgramPricing, CFG,
 };
-
-pub fn parse_wasm(wasm: &str) -> Program {
-    let wasm = wat::parse_str(wasm).unwrap();
-
-    svm_gas::read_program(&wasm).unwrap()
-}
+use svm_program::{FuncIndex, Function, Program, ProgramVisitor};
 
 pub fn get_func(program: &Program, fn_index: u32) -> Function {
     let index = FuncIndex(fn_index);
@@ -24,19 +18,16 @@ pub fn get_func(program: &Program, fn_index: u32) -> Function {
     Function::new(index, code)
 }
 
-pub fn price_program<R>(wasm: &str, resolver: R) -> FuncPrice
+pub fn price_program<R>(wat: &str, resolver: R) -> FuncPrice
 where
     R: PriceResolver,
 {
-    let program = parse_wasm(wasm);
-
     let mut func_price: Option<FuncPrice> = None;
-
     let mut pp = ProgramPricing::new(resolver);
 
-    let func_price = pp.visit(&program).unwrap();
+    let program = Program::from_wat(wat, false).unwrap();
 
-    func_price
+    pp.visit(&program).unwrap()
 }
 
 #[macro_export]
@@ -69,7 +60,8 @@ macro_rules! block {
         use parity_wasm::elements::{Instruction, BlockType, ValueType};
 
         #[allow(unused)]
-        use svm_gas::{Block, BlockNum, Op, Cont, ContKind, Jump, Edge};
+        use svm_gas::{Block, BlockNum, Cont, ContKind, Jump, Edge};
+        use svm_program::Op;
 
         let mut ops: Vec<Op> = Vec::new();
 

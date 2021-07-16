@@ -1,15 +1,18 @@
 use log::info;
-use svm_gas::ProgramError;
-use svm_layout::FixedLayout;
-use svm_storage::account::AccountStorage;
-use svm_types::SectionKind;
-use svm_types::{AccountAddr, DeployerAddr, SpawnerAddr, State, Template};
-use svm_types::{CallReceipt, DeployReceipt, ReceiptLog, SpawnReceipt};
-use svm_types::{Gas, GasMode, OOGError};
-use svm_types::{RuntimeError, Transaction};
 use wasmer::{Instance, Module, WasmPtr, WasmTypeList};
 
 use std::collections::HashSet;
+
+use svm_layout::FixedLayout;
+use svm_program::Program;
+use svm_storage::account::AccountStorage;
+use svm_types::SectionKind;
+use svm_types::{
+    AccountAddr, CallReceipt, DeployReceipt, DeployerAddr, ReceiptLog, SpawnReceipt, SpawnerAddr,
+    State, Template,
+};
+use svm_types::{Gas, GasMode, OOGError};
+use svm_types::{RuntimeError, Transaction};
 
 use super::{Call, Failure, Function, Outcome};
 use crate::env::{EnvTypes, ExtAccount, ExtSpawn};
@@ -560,15 +563,9 @@ where
         // Opcode and `svm_alloc` checks should only ever be run when deploying [`Template`]s.
         // There's no reason to also do it when spawning new `Account`
         // over already-validated [`Template`]s
-        if !crate::validation::validate_opcodes(code) {
-            return Err(ValidateError::Program(ProgramError::FloatsNotAllowed));
-        } else if !crate::validation::validate_svm_alloc(code) {
-            return Err(ValidateError::Program(ProgramError::FunctionNotFound {
-                func_name: "svm_alloc".to_string(),
-            }));
-        }
-
-        svm_gas::validate_wasm(code, false).map_err(|e| e.into())
+        let program = Program::new(code, true).map_err(ValidateError::from)?;
+        svm_gas::validate_wasm(&program, false).map_err(ValidateError::from)?;
+        Ok(())
     }
 
     fn validate_spawn(&self, bytes: &[u8]) -> std::result::Result<(), ValidateError> {
@@ -597,7 +594,7 @@ where
     }
 
     fn spawn(&mut self, bytes: &[u8], spawner: &SpawnerAddr, gas_limit: Gas) -> SpawnReceipt {
-        use svm_gas::ProgramVisitor;
+        use svm_program::ProgramVisitor;
 
         info!("Runtime `spawn`");
 
@@ -609,7 +606,7 @@ where
         let template_code_section = template.sections().get(SectionKind::Code).as_code();
         let gas_mode = template_code_section.gas_mode();
         let template_code = template_code_section.code();
-        let program = svm_gas::read_program(template_code).unwrap();
+        let program = Program::new(template_code, false).unwrap();
         let func_price = {
             let program_pricing = svm_gas::ProgramPricing::new(&self.pricer);
             program_pricing.visit(&program).unwrap()

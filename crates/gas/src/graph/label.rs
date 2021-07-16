@@ -13,5 +13,5 @@ fn assert_labels() {
 
     assert_label::<usize>();
     assert_label::<&str>();
-    assert_label::<crate::FuncIndex>();
+    assert_label::<svm_program::FuncIndex>();
 }

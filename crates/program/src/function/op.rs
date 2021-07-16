@@ -13,25 +13,8 @@ pub struct Op<'f> {
     pub offset: usize,
 }
 
-impl<'f> Op<'f> {
-    /// Creates a new `Op`
-    pub fn new(raw: &'f Instruction, offset: usize) -> Self {
-        Self { raw, offset }
-    }
-
-    /// Returns the wrapped raw `Instruction`
-    pub fn raw(&self) -> &Instruction {
-        &self.raw
-    }
-
-    /// Returns the `Op` local-offset within the function it's associated to
-    pub fn offset(&self) -> usize {
-        self.offset
-    }
-}
-
 impl<'f> Debug for Op<'f> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}: {:?}", self.offset(), self.raw())
+        write!(f, "{:?}: {:?}", self.offset, self.raw)
     }
 }

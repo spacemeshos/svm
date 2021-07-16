@@ -1592,6 +1592,7 @@ dependencies = [
  "svm-hash",
  "svm-kv",
  "svm-layout",
+ "svm-program",
  "svm-query",
  "svm-runtime",
  "svm-runtime-ffi",
@@ -1656,6 +1657,7 @@ version = "0.0.0"
 dependencies = [
  "structopt",
  "svm-gas",
+ "svm-program",
  "svm-runtime",
 ]
 
@@ -1696,6 +1698,7 @@ dependencies = [
  "indexmap",
  "maplit",
  "parity-wasm",
+ "svm-program",
  "thiserror",
  "wat",
 ]
@@ -1722,6 +1725,16 @@ name = "svm-layout"
 version = "0.0.0"
 
 [[package]]
+name = "svm-program"
+version = "0.1.0"
+dependencies = [
+ "indexmap",
+ "parity-wasm",
+ "thiserror",
+ "wat",
+]
+
+[[package]]
 name = "svm-query"
 version = "0.0.0"
 dependencies = [
@@ -1744,6 +1757,7 @@ dependencies = [
  "svm-hash",
  "svm-kv",
  "svm-layout",
+ "svm-program",
  "svm-sdk",
  "svm-storage",
  "svm-types",

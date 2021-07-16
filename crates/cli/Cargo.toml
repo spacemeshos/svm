@@ -13,4 +13,5 @@ publish = false
 [dependencies]
 structopt = "0.3"
 svm-gas = { path = "../gas" }
+svm-program = { path = "../program" }
 svm-runtime = { path = "../runtime" }

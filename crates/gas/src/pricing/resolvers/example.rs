@@ -1,4 +1,6 @@
-use crate::{Op, PriceResolver};
+use svm_program::Op;
+
+use crate::PriceResolver;
 
 /// An example `PriceResolver`
 #[derive(Copy, Clone, Debug)]

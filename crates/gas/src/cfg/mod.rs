@@ -289,29 +289,27 @@
 ///
 ///
 ///
-use std::fmt::{self, Debug};
-
 use parity_wasm::elements::Instruction;
 
-use crate::{CallGraph, Function, Gas, Op, Program};
+use std::fmt::{self, Debug};
 
-mod depth;
-pub use depth::Depth;
+use svm_program::{Function, Op};
+
+use crate::{CallGraph, Gas};
 
 mod block;
-pub use block::{Block, BlockBuilder, BlockNum, BlockRef};
-
-mod jump;
-pub use jump::{Jump, UnresolvedJump, WasmJump};
-
-mod edge;
-pub use edge::Edge;
-
 mod builder;
-pub use builder::CFGBuilder;
-
 mod cont;
+mod depth;
+mod edge;
+mod jump;
+
+pub use block::{Block, BlockBuilder, BlockNum, BlockRef};
+pub use builder::CFGBuilder;
 pub use cont::{Cont, ContKind, DepthUnresolvedCont};
+pub use depth::Depth;
+pub use edge::Edge;
+pub use jump::{Jump, UnresolvedJump, WasmJump};
 
 /// This is the API that should be used externally when we want to feed with a  `Function` and get back its `CFG`
 pub fn build_func_cfg<'f>(func: &'f Function<'f>) -> CFG<'f> {

@@ -47,8 +47,10 @@ mod tests {
 
     use std::fmt::format;
 
+    use svm_program::FuncIndex;
+
     use super::*;
-    use crate::{FuncIndex, GraphCycles};
+    use crate::GraphCycles;
 
     fn fmt_cycle(cycle: GraphCycles<FuncIndex>) -> String {
         format!("{:?}", cycle)

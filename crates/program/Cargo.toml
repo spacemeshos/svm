@@ -1,0 +1,12 @@
+[package]
+name = "svm-program"
+version = "0.1.0"
+edition = "2018"
+license = "MIT"
+publish = false
+
+[dependencies]
+indexmap = "1.6.2"
+parity-wasm = "0.42.2"
+thiserror = "1"
+wat = "1"
