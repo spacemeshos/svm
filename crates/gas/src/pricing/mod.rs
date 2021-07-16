@@ -1,9 +1,10 @@
 use indexmap::IndexMap;
 use parity_wasm::elements::{Func, Instruction};
 
-use svm_program::{FuncIndex, Imports, Op, Program, ProgramError, ProgramVisitor};
-
 use std::ops::Index;
+use std::rc::Rc;
+
+use svm_program::{FuncIndex, Imports, Op, Program, ProgramError, ProgramVisitor};
 
 use crate::{build_func_cfg, graph};
 use crate::{BlockNum, CFGBuilder, CallGraphBuilder};
@@ -48,21 +49,15 @@ pub use func_price::FuncPrice;
 /// If function `f1` is calling another function `f2` (in some execution flow of function `f1`),
 /// then when we stumble upon `call f2` as part of building `weighted_graph` then we've have the `price(f1)` for sure,
 /// since we're visiting the functions in Topological-Order of the `CallGraph`.
-pub struct ProgramPricing<R>
-where
-    R: PriceResolver,
-{
+pub struct ProgramPricing {
     current_func: Option<FuncIndex>,
     builder: CallGraphBuilder<FuncIndex>,
-    resolver: R,
+    resolver: Rc<dyn PriceResolver>,
 }
 
-impl<R> ProgramPricing<R>
-where
-    R: PriceResolver,
-{
+impl ProgramPricing {
     /// New instance using the input `resolver` (implements [`PriceResolver`]).
-    pub fn new(resolver: R) -> Self {
+    pub fn new(resolver: Rc<dyn PriceResolver>) -> Self {
         Self {
             current_func: None,
             builder: CallGraphBuilder::new(),
@@ -93,10 +88,7 @@ where
     }
 }
 
-impl<R> ProgramVisitor for ProgramPricing<R>
-where
-    R: PriceResolver,
-{
+impl ProgramVisitor for ProgramPricing {
     type Error = ProgramError;
     type Output = FuncPrice;
 
@@ -112,7 +104,7 @@ where
         let imports = Imports::new();
 
         while let Some(fn_index) = sorted.pop() {
-            let price = compute_func_price(program, fn_index, &self.resolver, &func_price);
+            let price = compute_func_price(program, fn_index, &*self.resolver, &func_price);
 
             func_price.set(fn_index, price);
         }
@@ -153,15 +145,12 @@ where
     }
 }
 
-fn compute_func_price<R>(
+fn compute_func_price(
     program: &Program,
     func_index: FuncIndex,
-    resolver: &R,
+    resolver: &dyn PriceResolver,
     func_price: &FuncPrice,
-) -> usize
-where
-    R: PriceResolver,
-{
+) -> usize {
     let func = program.get_func(func_index);
     let imports = program.imports();
 

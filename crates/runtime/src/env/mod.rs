@@ -1,12 +1,12 @@
 //! Managing a `Runtime`'s environment (see [`Env`]).
+use std::collections::{HashMap, HashSet};
+use std::io::Cursor;
+use std::rc::Rc;
 
 use svm_codec::ParseError;
 use svm_codec::{call, spawn, template};
-use svm_gas::PriceResolver;
+use svm_gas::{resolvers, PriceResolver};
 use svm_types::{AccountAddr, SectionKind, SpawnAccount, Template, TemplateAddr, Transaction};
-
-use std::collections::HashSet;
-use std::io::Cursor;
 
 /// Default implementations
 mod default;
@@ -61,9 +61,6 @@ pub trait EnvTypes {
 
     /// `Template` content [`TemplateHasher`] type.
     type TemplateHasher: TemplateHasher;
-
-    /// A `Gas` [`PriceResolver`] type.
-    type Pricer: PriceResolver;
 }
 
 /// The persistent state of a [`Runtime`](crate::Runtime).
@@ -73,6 +70,7 @@ where
 {
     accounts: T::AccountStore,
     templates: T::TemplateStore,
+    price_resolver_registry: PriceResolverRegistry,
 }
 
 impl<T> Env<T>
@@ -86,6 +84,7 @@ where
         Self {
             accounts: account_store,
             templates: template_store,
+            price_resolver_registry: PriceResolverRegistry::default(),
         }
     }
 
@@ -229,5 +228,42 @@ where
     #[inline]
     pub fn contains_account(&self, addr: &AccountAddr) -> bool {
         self.account(addr).is_some()
+    }
+
+    /// Returns the `dyn` implementor of [`PriceResolver`] that should be used
+    /// to price transactions.
+    pub fn price_resolver(&self) -> Rc<dyn PriceResolver> {
+        self.price_resolver_registry
+            .get(0)
+            .expect("Missing pricing utility.")
+    }
+}
+
+#[derive(Clone)]
+pub struct PriceResolverRegistry {
+    price_resolvers: HashMap<u16, Rc<dyn PriceResolver>>,
+}
+
+impl PriceResolverRegistry {
+    pub fn empty() -> Self {
+        Self {
+            price_resolvers: HashMap::default(),
+        }
+    }
+
+    pub fn add(&mut self, version: u16, price_resolver: Rc<dyn PriceResolver>) {
+        self.price_resolvers.insert(version, price_resolver);
+    }
+
+    pub fn get(&self, version: u16) -> Option<Rc<dyn PriceResolver>> {
+        self.price_resolvers.get(&version).cloned()
+    }
+}
+
+impl Default for PriceResolverRegistry {
+    fn default() -> Self {
+        let mut registry = Self::empty();
+        registry.add(0, Rc::new(resolvers::V0PriceResolver::default()));
+        registry
     }
 }
