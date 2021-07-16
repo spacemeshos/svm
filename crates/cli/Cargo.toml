@@ -11,7 +11,9 @@ description = "Spacemesh Virtual Machine"
 publish = false
 
 [dependencies]
-structopt = "0.3"
+anyhow = "1"
+clap = "2.33"
 svm-gas = { path = "../gas" }
 svm-program = { path = "../program" }
 svm-runtime = { path = "../runtime" }
+thiserror = "1"

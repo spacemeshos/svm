@@ -45,6 +45,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "anyhow"
+version = "1.0.42"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "595d3cfa7a60d4555cb5067b99f07142a08ea778de5cf993f7b75c7d8fabc486"
+
+[[package]]
 name = "arrayref"
 version = "0.3.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1539,30 +1545,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "73473c0e59e6d5812c5dfe2a064a6444949f089e20eec9a2e5506596494e4623"
 
 [[package]]
-name = "structopt"
-version = "0.3.21"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5277acd7ee46e63e5168a80734c9f6ee81b1367a7d8772a2d765df2a3705d28c"
-dependencies = [
- "clap",
- "lazy_static",
- "structopt-derive",
-]
-
-[[package]]
-name = "structopt-derive"
-version = "0.4.14"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5ba9cdfda491b814720b6b06e0cac513d922fc407582032e8706e9f137976f90"
-dependencies = [
- "heck",
- "proc-macro-error",
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "subtle"
 version = "2.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1572,9 +1554,11 @@ checksum = "1e81da0851ada1f3e9d4312c704aa4f8806f0f9d69faaf8df2f3464b4a9437c2"
 name = "svm"
 version = "0.0.0"
 dependencies = [
+ "anyhow",
  "byteorder",
  "cbindgen",
  "cfg-if 1.0.0",
+ "clap",
  "hex",
  "indexmap",
  "lazy_static",
@@ -1582,7 +1566,6 @@ dependencies = [
  "log",
  "maplit",
  "parity-wasm",
- "structopt",
  "svm-abi-layout",
  "svm-abi-tests",
  "svm-cli",
@@ -1655,10 +1638,12 @@ dependencies = [
 name = "svm-cli"
 version = "0.0.0"
 dependencies = [
- "structopt",
+ "anyhow",
+ "clap",
  "svm-gas",
  "svm-program",
  "svm-runtime",
+ "thiserror",
 ]
 
 [[package]]
