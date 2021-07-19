@@ -74,7 +74,7 @@ where
 
     /// Initializes a new [`DefaultRuntime`](DefaultRuntime) with a naive cache
     /// of [`Template`] [`FuncPrice`]s.
-    pub fn new_with_template_prices(
+    pub fn with_template_prices(
         env: Env<T>,
         imports: (String, wasmer::Exports),
         storage_builder: Box<StorageBuilderFn>,
