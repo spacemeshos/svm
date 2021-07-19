@@ -50,7 +50,7 @@ pub trait EnvTypes {
     /// [`Template`] type.
     type TemplateStore: TemplateStore;
 
-    /// `AccountStore` type.
+    /// [`AccountStore`] type.
     type AccountStore: AccountStore;
 
     /// Compute a [`Template`] `Address`
@@ -79,7 +79,7 @@ where
 {
     /// `Env` environment is dictated by its `Types`
 
-    /// Creates a new [`Env`]. Injects the `TemplateStore` and `AccountStore`.
+    /// Creates a new [`Env`]. Injects the [`TemplateStore`] and [`AccountStore`].
     pub fn new(account_store: T::AccountStore, template_store: T::TemplateStore) -> Self {
         Self {
             accounts: account_store,
@@ -98,12 +98,12 @@ where
         &mut self.templates
     }
 
-    /// Borrows the environment's `AccountStore`.
+    /// Borrows the environment's [`AccountStore`].
     pub fn account_store(&self) -> &T::AccountStore {
         &self.accounts
     }
 
-    /// Mutably Borrows the environment's `AccountStore`.
+    /// Mutably Borrows the environment's [`AccountStore`].
     pub fn account_store_mut(&mut self) -> &mut T::AccountStore {
         &mut self.accounts
     }
@@ -113,7 +113,7 @@ where
         T::TemplateHasher::hash(template)
     }
 
-    /// Computes the `Template`'s `Address` of `template`
+    /// Computes the [`Template`]'s `Address` of `template`
     pub fn compute_template_addr(&self, template: &Template) -> TemplateAddr {
         T::TemplateAddressCompute::compute(template)
     }
