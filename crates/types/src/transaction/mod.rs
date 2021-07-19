@@ -1,12 +1,12 @@
+use std::fmt;
+
+use crate::AccountAddr;
+
 mod id;
 mod layer;
 
 pub use id::TransactionId;
 pub use layer::Layer;
-
-use std::fmt;
-
-use crate::AccountAddr;
 
 /// An in-memory representation of an `Call Account` transaction.
 #[derive(PartialEq, Clone)]
@@ -14,7 +14,7 @@ pub struct Transaction {
     /// The `version`.
     pub version: u16,
 
-    /// The target [`Account`]
+    /// The target `Account`.
     pub target: AccountAddr,
 
     /// Function's name to execute

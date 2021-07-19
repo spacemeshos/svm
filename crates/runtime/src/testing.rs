@@ -13,7 +13,7 @@ use svm_storage::{
     kv::{FakeKV, StatefulKV},
 };
 use svm_types::{
-    AccountAddr, Address, CodeSection, CtorsSection, DataSection, Gas, HeaderSection, State,
+    AccountAddr, Address, CodeSection, CtorsSection, DataSection, HeaderSection, State,
     TemplateAddr,
 };
 
@@ -51,8 +51,8 @@ impl<'a> From<&'a [u8]> for WasmFile<'a> {
     }
 }
 
-/// Compiles a wasm program in text format (a.k.a WAST) into a `Module` (`wasmer`)
-pub fn wasmer_compile(store: &Store, wasm_file: WasmFile, _gas_limit: Gas) -> Module {
+/// Compiles a Wasm program in textual format (a.k.a Wast) into a [`wasmer::Module`].
+pub fn wasmer_compile(store: &Store, wasm_file: WasmFile) -> Module {
     let wasm = wasm_file.into_bytes();
 
     Module::from_binary(&store, &wasm[..]).unwrap()
@@ -63,9 +63,8 @@ pub fn wasmer_instantiate(
     store: &Store,
     import_object: &ImportObject,
     wasm_file: WasmFile,
-    gas_limit: Gas,
 ) -> Instance {
-    let module = wasmer_compile(store, wasm_file, gas_limit);
+    let module = wasmer_compile(store, wasm_file);
 
     Instance::new(&module, import_object).unwrap()
 }
@@ -153,7 +152,7 @@ pub fn build_spawn(template: &TemplateAddr, name: &str, ctor: &str, calldata: &[
         .build()
 }
 
-/// Builds a raw `Call App` transaction. (a.k.a a [`Transaction`]).
+/// Builds a raw `Call App` transaction. (a.k.a a `Transaction`).
 pub fn build_transaction(target: &AccountAddr, func: &str, calldata: &[u8]) -> Vec<u8> {
     TxBuilder::new()
         .with_version(0)

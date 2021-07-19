@@ -156,12 +156,7 @@ where
                 let storage =
                     self.open_storage(call.account_addr, call.state, template.fixed_layout());
 
-                let mut ctx = Context::new(
-                    call.gas_left,
-                    storage,
-                    call.template_addr,
-                    call.account_addr,
-                );
+                let mut ctx = Context::new(storage, call.template_addr, call.account_addr);
 
                 let store = crate::wasm_store::new_store();
                 let import_object = self.create_import_object(&store, &mut ctx);
@@ -372,7 +367,7 @@ where
         ctx.borrow_mut().set_calldata(offset, len);
     }
 
-    /// Calculates the amount of gas used by `intance`.
+    /// Calculates the amount of gas used by `instance`.
     #[inline]
     fn instance_gas_used(&self, _instance: &Instance) -> std::result::Result<Gas, OOGError> {
         // TODO: read `gas_used` out of `instance`
@@ -385,7 +380,7 @@ where
         module: &Module,
         import_object: &wasmer::ImportObject,
     ) -> std::result::Result<Instance, Failure> {
-        info!("runtime `instantiate` (wasmer module instantiate)");
+        info!("Runtime `instantiate` (using Wasmer `Instance#new`)");
 
         let instance = Instance::new(module, import_object);
         instance.map_err(|err| self.instantiation_failed(ctx, err))
@@ -461,7 +456,6 @@ where
         gas_left: Gas,
     ) -> std::result::Result<Module, Failure> {
         let module_res = Module::from_binary(store, template.code());
-        let _gas_metering = gas_left.is_some();
         let _gas_left = gas_left.unwrap_or(0);
 
         module_res.map_err(|err| self.compilation_failed(ctx, err))
@@ -661,7 +655,7 @@ where
                     return SpawnReceipt::new_oog(vec![]);
                 }
             }
-            GasMode::Metering => {}
+            GasMode::Metering => unreachable!("Not supported yet... (TODO)"),
         }
 
         // We don't need this anymore!
@@ -741,7 +735,7 @@ where
 
             self.exec_call::<(), ()>(&call)
         } else {
-            unreachable!("Should have failed earlier when doing `validate_tx`");
+            unreachable!("Should have failed earlier when doing `validate_call`");
         }
     }
 }

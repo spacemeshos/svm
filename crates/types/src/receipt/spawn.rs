@@ -13,7 +13,7 @@ pub struct SpawnReceipt {
     /// The [`RuntimeError`] in case spawning has failed.
     pub error: Option<RuntimeError>,
 
-    /// The spawned [`Account`](crate:Account) Address
+    /// The spawned `Account Address`
     pub account_addr: Option<AccountAddr>,
 
     /// The spawned [`Account`](crate::Account) initial state (after executing its ctor)

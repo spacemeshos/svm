@@ -57,7 +57,7 @@ pub trait Runtime {
     fn verify(&self, tx: &Transaction, state: &State, gas_limit: Gas)
         -> Result<bool, RuntimeError>;
 
-    /// Executes an [`Transaction`] and returns its output [`ExecReceipt`].
+    /// Executes an [`Transaction`] and returns its output [`CallReceipt`].
     ///
     /// This function should be called only if the `verify` stage passed.
     ///

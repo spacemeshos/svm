@@ -12,7 +12,6 @@
 mod context;
 mod env;
 mod error;
-mod price_resolver_registry;
 mod runtime;
 mod storage;
 mod wasm_store;
@@ -21,7 +20,9 @@ pub mod testing;
 pub mod vmcalls;
 
 pub use context::Context;
-pub use env::{Env, EnvTypes};
+pub use env::{
+    AccountStore, Env, EnvTypes, ExtAccount, TemplateHash, TemplateHasher, TemplateStore,
+};
 pub use error::ValidateError;
 pub use runtime::{Config, DefaultRuntime, Runtime, RuntimePtr};
 pub use wasm_store::new_store;
