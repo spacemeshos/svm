@@ -1640,9 +1640,11 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "clap",
+ "svm-codec",
  "svm-gas",
  "svm-program",
  "svm-runtime",
+ "svm-types",
  "thiserror",
 ]
 
