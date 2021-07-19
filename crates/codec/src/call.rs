@@ -1,25 +1,20 @@
-//! Encoding for `Call Account` transactions (a.k.a [`Transaction`])
+//! Encoding of binary [`Transaction`].
 //!
-//! `Transaction` Raw Format
+//! ```text
 //!
-//!  +--------------------------------------------+
-//!  |             |                              |
-//!  |  version    |         `Address`            |
-//!  |  (2 bytes)  |         (20 bytes)           |
-//!  |_____________|______________________________|
-//!  |                                            |
-//!  |            `Function` (String)             |
-//!  |____________________________________________|
-//!  |                |                           |
-//!  |  `VerifyData`  |       `VerifyData`        |
-//!  |   #length      |          (blob)           |
-//!  +________________|___________________________+
-//!  |              |                             |
-//!  |  `CallData`  |         `CallData`          |
-//!  |   #length    |           (blob)            |
-//!  +______________|_____________________________+
+//!  +-----------+-------------+----------------+
+//!  |           |             |                |
+//!  |  Version  |  Template   |      Name      |
+//!  |   (u16)   |  (Address)  |    (String)    |
+//!  |           |             |                |
+//!  +-----------+-------------+----------------+
+//!  |           |             |                |
+//!  |  Function | VerifyData  |    CallData    |
+//!  | (String)  |   (Blob)    |     (Blob)     |
+//!  |           |             |                |
+//!  +-----------+-------------+----------------+
 //!
-//!
+//! ```
 
 use svm_types::{AccountAddr, Transaction};
 
