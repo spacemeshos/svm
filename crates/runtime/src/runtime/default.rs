@@ -1,18 +1,19 @@
 use log::info;
 use wasmer::{Instance, Module, WasmPtr, WasmTypeList};
 
-use std::collections::HashSet;
+use std::cell::RefCell;
+use std::collections::{HashMap, HashSet};
+use std::rc::Rc;
 
+use svm_gas::FuncPrice;
 use svm_layout::FixedLayout;
 use svm_program::Program;
 use svm_storage::account::AccountStorage;
-use svm_types::SectionKind;
 use svm_types::{
-    AccountAddr, CallReceipt, DeployReceipt, DeployerAddr, ReceiptLog, SpawnReceipt, SpawnerAddr,
-    State, Template,
+    AccountAddr, CallReceipt, DeployReceipt, DeployerAddr, Gas, GasMode, OOGError, ReceiptLog,
+    RuntimeError, SectionKind, SpawnReceipt, SpawnerAddr, State, Template, TemplateAddr,
+    Transaction,
 };
-use svm_types::{Gas, GasMode, OOGError};
-use svm_types::{RuntimeError, Transaction};
 
 use super::{Call, Failure, Function, Outcome};
 use crate::env::{EnvTypes, ExtAccount, ExtSpawn};
@@ -42,24 +43,40 @@ where
 
     /// Builds an `AccountStorage` instance.
     storage_builder: Box<StorageBuilderFn>,
+
+    /// A naive cache for [`Template`]s' [`FuncPrice`]s. The cache key will, in
+    /// the future, also include an identifier for which
+    /// [`PriceResolver`](svm_gas::PriceResolver) should be used (possibly an
+    /// `u16`?).
+    template_prices: Rc<RefCell<HashMap<TemplateAddr, FuncPrice>>>,
 }
 
 impl<T> DefaultRuntime<T>
 where
     T: EnvTypes,
 {
-    /// Initializes a new `DefaultRuntime`.
+    /// Initializes a new [`DefaultRuntime`](DefaultRuntime). `template_prices`
+    /// offers an easy way to inject an append-only, naive caching mechanism to
+    /// the [`Template`] pricing logic; using a `None` will result in a new
+    /// empty cache and on-the-fly calculation for all [`Template`]s.
     pub fn new(
         env: Env<T>,
         imports: (String, wasmer::Exports),
         storage_builder: Box<StorageBuilderFn>,
         config: Config,
+        template_prices: Option<Rc<RefCell<HashMap<TemplateAddr, FuncPrice>>>>,
     ) -> Self {
+        let template_prices = if let Some(tp) = template_prices {
+            tp
+        } else {
+            Rc::new(RefCell::new(HashMap::default()))
+        };
         Self {
             env,
             imports,
             storage_builder,
             config,
+            template_prices,
         }
     }
 
@@ -593,15 +610,26 @@ where
         let template_address = base.account.template_addr();
 
         let template = self.env.template(template_address, None).unwrap();
-
         let template_code_section = template.sections().get(SectionKind::Code).as_code();
-        let gas_mode = template_code_section.gas_mode();
         let template_code = template_code_section.code();
+        let gas_mode = template_code_section.gas_mode();
         let program = Program::new(template_code, false).unwrap();
+
+        // We're using a naive memoization mechanism: we only ever add, never
+        // remove. This means there's no cache invalidation at all. We can
+        // easily afford to do this because the number of templates that exist
+        // at genesis is fixed and won't grow.
+        let mut template_prices = self.template_prices.borrow_mut();
         let func_price = {
-            let pricer = self.env.price_resolver();
-            let program_pricing = ProgramPricing::new(pricer);
-            program_pricing.visit(&program).unwrap()
+            if let Some(prices) = template_prices.get(&template_address) {
+                prices
+            } else {
+                let pricer = self.env.price_resolver();
+                let program_pricing = ProgramPricing::new(pricer);
+                let prices = program_pricing.visit(&program).unwrap();
+                template_prices.insert(template_address.clone(), prices);
+                template_prices.get(template_address).unwrap()
+            }
         };
         let spawn = ExtSpawn::new(base, spawner);
         if !template.is_ctor(spawn.ctor_name()) {
@@ -629,6 +657,9 @@ where
             }
             GasMode::Metering => unreachable!("Not supported yet... (TODO)"),
         }
+
+        // We don't need this anymore!
+        drop(template_prices);
 
         let payload_price = svm_gas::transaction::spawn(bytes);
         let gas_left = gas_limit - payload_price;
