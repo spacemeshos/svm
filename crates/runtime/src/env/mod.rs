@@ -79,7 +79,7 @@ where
 {
     /// `Env` environment is dictated by its `Types`
 
-    /// Creates a new [`Env`]. Injects the `TemplateStore` and `AccountStore`.
+    /// Creates a new [`Env`]. Injects the [`TemplateStore`] and [`AccountStore`].
     pub fn new(account_store: T::AccountStore, template_store: T::TemplateStore) -> Self {
         Self {
             accounts: account_store,
@@ -113,7 +113,7 @@ where
         T::TemplateHasher::hash(template)
     }
 
-    /// Computes the `Template`'s `Address` of `template`
+    /// Computes the [`Template`]'s `Address` of `template`
     pub fn compute_template_addr(&self, template: &Template) -> TemplateAddr {
         T::TemplateAddressCompute::compute(template)
     }

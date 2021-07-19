@@ -1,4 +1,4 @@
-//! Implements [`Context`]. Used for managing data of running `Transaction`s.
+//! Implements [`FuncEnv`]. Used for managing data of running `Transaction`s.
 
 use svm_storage::account::AccountStorage;
 use svm_types::{AccountAddr, ReceiptLog, TemplateAddr};
@@ -7,9 +7,9 @@ use wasmer::Memory;
 use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
 
-/// [`Context`] is a container for the accessible data by [`wasmer`] instances.
+/// [`FuncEnv`] is a container for the accessible data by [`wasmer`] instances.
 #[derive(wasmer::WasmerEnv, Clone)]
-pub struct Context {
+pub struct FuncEnv {
     inner: Rc<RefCell<Inner>>,
     template_addr: TemplateAddr,
     account_addr: AccountAddr,
@@ -19,10 +19,10 @@ pub struct Context {
 ///
 /// SVM is single-threaded.
 /// `Send`, `Sync` and `Clone` are required by `wasmer::WasmerEnv`.
-unsafe impl Send for Context {}
-unsafe impl Sync for Context {}
+unsafe impl Send for FuncEnv {}
+unsafe impl Sync for FuncEnv {}
 
-impl Context {
+impl FuncEnv {
     /// Creates a new instance
     pub fn new(
         storage: AccountStorage,
@@ -45,11 +45,11 @@ impl Context {
         template_addr: &TemplateAddr,
         account_addr: &AccountAddr,
     ) -> Self {
-        let ctx = Self::new(storage, template_addr, account_addr);
+        let env = Self::new(storage, template_addr, account_addr);
 
-        ctx.borrow_mut().set_memory(memory);
+        env.borrow_mut().set_memory(memory);
 
-        ctx
+        env
     }
 
     /// Returns the `Address` of the `Template` associated with the currently executed `Account`.
@@ -62,13 +62,13 @@ impl Context {
         &self.account_addr
     }
 
-    /// Borrows the `Context`
+    /// Borrows the `FuncEnv`
     #[inline]
     pub fn borrow(&self) -> Ref<Inner> {
         self.inner.borrow()
     }
 
-    /// Mutably Borrows the `Context`
+    /// Mutably Borrows the `FuncEnv`
     #[inline]
     pub fn borrow_mut(&self) -> RefMut<Inner> {
         self.inner.borrow_mut()

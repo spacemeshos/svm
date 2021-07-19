@@ -9,9 +9,9 @@
 #![deny(unreachable_code)]
 #![feature(vec_into_raw_parts)]
 
-mod context;
 mod env;
 mod error;
+mod func_env;
 mod runtime;
 mod storage;
 mod wasm_store;
@@ -19,11 +19,9 @@ mod wasm_store;
 pub mod testing;
 pub mod vmcalls;
 
-pub use context::Context;
-pub use env::{
-    AccountStore, Env, EnvTypes, ExtAccount, TemplateHash, TemplateHasher, TemplateStore,
-};
+pub use env::{Env, EnvTypes};
 pub use error::ValidateError;
+pub use func_env::FuncEnv;
 pub use runtime::{Config, DefaultRuntime, Runtime, RuntimePtr};
 pub use wasm_store::new_store;
 

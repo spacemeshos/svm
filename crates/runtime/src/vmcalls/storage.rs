@@ -2,14 +2,14 @@ use byteorder::{ByteOrder, LittleEndian};
 
 use svm_layout::Id;
 
-use crate::Context;
+use crate::FuncEnv;
 
 macro_rules! store_n_impl {
-    ($nbytes:expr, $ctx:ident, $mem_ptr:expr, $var_id:expr) => {{
+    ($nbytes:expr, $env:ident, $mem_ptr:expr, $var_id:expr) => {{
         use svm_layout::Id;
 
         let bytes: Vec<u8> = {
-            let borrow = $ctx.borrow();
+            let borrow = $env.borrow();
             let memory = borrow.get_memory();
             let start = $mem_ptr as usize;
             let end = start + $nbytes;
@@ -19,22 +19,22 @@ macro_rules! store_n_impl {
         };
         assert_eq!(bytes.len(), $nbytes);
 
-        let storage = &mut $ctx.borrow_mut().storage;
+        let storage = &mut $env.borrow_mut().storage;
         storage.write_var(Id($var_id), bytes);
     }};
 }
 
 macro_rules! load_n_impl {
-    ($nbytes:expr, $ctx:ident, $var_id:expr, $mem_ptr:expr) => {{
+    ($nbytes:expr, $env:ident, $var_id:expr, $mem_ptr:expr) => {{
         use svm_layout::Id;
 
-        let storage = &$ctx.borrow().storage;
+        let storage = &$env.borrow().storage;
 
         let bytes = storage.read_var(Id($var_id));
         let nbytes = bytes.len();
         assert_eq!(nbytes, $nbytes);
 
-        let borrow = $ctx.borrow();
+        let borrow = $env.borrow();
         let memory = borrow.get_memory();
         let start = $mem_ptr as usize;
         let end = start + $nbytes;
@@ -51,8 +51,8 @@ macro_rules! load_n_impl {
 /// # Panics
 ///
 /// Panics if variable `var_id`'s length isn't 20 bytes.
-pub fn store160(ctx: &Context, mem_ptr: u32, var_id: u32) {
-    store_n_impl!(20, ctx, mem_ptr, var_id);
+pub fn store160(env: &FuncEnv, mem_ptr: u32, var_id: u32) {
+    store_n_impl!(20, env, mem_ptr, var_id);
 }
 
 /// Loads variable `var_id` data into memory cells `[mem_ptr, mem_ptr + 1, ..., mem_ptr + 19]`
@@ -62,8 +62,8 @@ pub fn store160(ctx: &Context, mem_ptr: u32, var_id: u32) {
 /// # Panics
 ///
 /// Panics if variable `var_id`'s length isn't 20 bytes.
-pub fn load160(ctx: &Context, var_id: u32, mem_ptr: u32) {
-    load_n_impl!(20, ctx, var_id, mem_ptr);
+pub fn load160(env: &FuncEnv, var_id: u32, mem_ptr: u32) {
+    load_n_impl!(20, env, var_id, mem_ptr);
 }
 
 /// Returns the data stored by variable `var_id` as 32-bit integer.
@@ -71,8 +71,8 @@ pub fn load160(ctx: &Context, var_id: u32, mem_ptr: u32) {
 /// # Panics
 ///
 /// Panics when variable `var_id` doesn't exist or when it consumes more than 32-bit.
-pub fn get32(ctx: &Context, var_id: u32) -> u32 {
-    let storage = &ctx.borrow().storage;
+pub fn get32(env: &FuncEnv, var_id: u32) -> u32 {
+    let storage = &env.borrow().storage;
 
     let bytes = storage.read_var(Id(var_id));
     let nbytes = bytes.len();
@@ -92,8 +92,8 @@ pub fn get32(ctx: &Context, var_id: u32) -> u32 {
 ///
 /// Panics when variable `var_id` doesn't exist or when it consumes more than 32-bit,
 /// or when it has not enough bytes to hold `value`.
-pub fn set32(ctx: &Context, var_id: u32, value: u32) {
-    let storage = &mut ctx.borrow_mut().storage;
+pub fn set32(env: &FuncEnv, var_id: u32, value: u32) {
+    let storage = &mut env.borrow_mut().storage;
 
     let (_off, nbytes) = storage.var_layout(Id(var_id));
 
@@ -110,8 +110,8 @@ pub fn set32(ctx: &Context, var_id: u32, value: u32) {
 /// # Panics
 ///
 /// Panics when variable `var_id` doesn't exist or when it consumes more than 64-bit.
-pub fn get64(ctx: &Context, var_id: u32) -> u64 {
-    let storage = &ctx.borrow().storage;
+pub fn get64(env: &FuncEnv, var_id: u32) -> u64 {
+    let storage = &env.borrow().storage;
 
     let bytes = storage.read_var(Id(var_id));
     let nbytes = bytes.len();
@@ -127,8 +127,8 @@ pub fn get64(ctx: &Context, var_id: u32) -> u64 {
 ///
 /// Panics when variable `var_id` consumes more than 64-bit,
 /// or when it has not enough bytes to hold `value`.
-pub fn set64(ctx: &Context, var_id: u32, value: u64) {
-    let storage = &mut ctx.borrow_mut().storage;
+pub fn set64(env: &FuncEnv, var_id: u32, value: u64) {
+    let storage = &mut env.borrow_mut().storage;
 
     let (_off, nbytes) = storage.var_layout(Id(var_id));
 
