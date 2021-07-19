@@ -5,7 +5,7 @@ use crate::{Layer, State, TransactionId};
 /// It contains properties related to the context in which a Transaction will execute.
 /// Additionally, it will encapsulate properties inferred from the binary Transaction sent over-the-wire.
 #[derive(Debug, Clone)]
-pub struct TxContext {
+pub struct Context {
     /// The `Transaction` Id
     pub tx_id: TransactionId,
 
