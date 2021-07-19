@@ -5,7 +5,7 @@ use svm_types::{SectionKind, Template, TemplateAddr};
 /// `Env` storage serialization types
 use crate::env::ExtAccount;
 
-/// Serializing an [`Template`] into its raw representation.
+/// Serializing an [`Template`] into its binary representation.
 pub trait TemplateSerializer {
     #[allow(missing_docs)]
     fn serialize(template: &Template) -> Vec<u8>;

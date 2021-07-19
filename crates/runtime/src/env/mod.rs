@@ -50,16 +50,16 @@ pub trait EnvTypes {
     /// [`Template`] type.
     type TemplateStore: TemplateStore;
 
-    /// `AccountStore` type.
+    /// [`AccountStore`] type.
     type AccountStore: AccountStore;
 
-    /// Compute a `Template` `Address`
+    /// Compute a [`Template`] `Address`
     type TemplateAddressCompute: ComputeAddress<Template, Address = TemplateAddr>;
 
     /// Compute an `Account`'s `Address`
     type AccountAddressCompute: ComputeAddress<ExtSpawn, Address = AccountAddr>;
 
-    /// `Template` content `TemplateHasher` type.
+    /// [`Template`] content [`TemplateHasher`] type.
     type TemplateHasher: TemplateHasher;
 }
 
@@ -88,27 +88,27 @@ where
         }
     }
 
-    /// Borrows environment's `TemplateStore`.
+    /// Borrows environment's [`TemplateStore`].
     pub fn template_store(&self) -> &T::TemplateStore {
         &self.templates
     }
 
-    /// Borrows mutably a `TemplateStore`.
+    /// Borrows mutably a [`TemplateStore`].
     pub fn template_store_mut(&mut self) -> &mut T::TemplateStore {
         &mut self.templates
     }
 
-    /// Borrows the environment's `AccountStore`.
+    /// Borrows the environment's [`AccountStore`].
     pub fn account_store(&self) -> &T::AccountStore {
         &self.accounts
     }
 
-    /// Mutably Borrows the environment's `AccountStore`.
+    /// Mutably Borrows the environment's [`AccountStore`].
     pub fn account_store_mut(&mut self) -> &mut T::AccountStore {
         &mut self.accounts
     }
 
-    /// Computes the `TemplateHash` of `template`.
+    /// Computes the [`TemplateHash`] of a [`Template`].
     pub fn compute_template_hash(&self, template: &Template) -> TemplateHash {
         T::TemplateHasher::hash(template)
     }
