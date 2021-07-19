@@ -1,10 +1,12 @@
 use svm_types::{Account, SpawnAccount, SpawnerAddr, TemplateAddr};
 
+#[doc(hidden)]
 pub struct ExtAccount {
     base: Account,
     spawner: SpawnerAddr,
 }
 
+#[doc(hidden)]
 impl ExtAccount {
     pub fn new(base: &Account, spawner: &SpawnerAddr) -> Self {
         Self {

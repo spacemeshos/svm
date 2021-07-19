@@ -53,13 +53,13 @@ pub trait EnvTypes {
     /// `AccountStore` type.
     type AccountStore: AccountStore;
 
-    /// Compute a `Template` `Address`
+    /// Compute a [`Template`] `Address`
     type TemplateAddressCompute: ComputeAddress<Template, Address = TemplateAddr>;
 
     /// Compute an `Account`'s `Address`
     type AccountAddressCompute: ComputeAddress<ExtSpawn, Address = AccountAddr>;
 
-    /// `Template` content `TemplateHasher` type.
+    /// [`Template`] content [`TemplateHasher`] type.
     type TemplateHasher: TemplateHasher;
 }
 
@@ -88,12 +88,12 @@ where
         }
     }
 
-    /// Borrows environment's `TemplateStore`.
+    /// Borrows environment's [`TemplateStore`].
     pub fn template_store(&self) -> &T::TemplateStore {
         &self.templates
     }
 
-    /// Borrows mutably a `TemplateStore`.
+    /// Borrows mutably a [`TemplateStore`].
     pub fn template_store_mut(&mut self) -> &mut T::TemplateStore {
         &mut self.templates
     }
@@ -108,7 +108,7 @@ where
         &mut self.accounts
     }
 
-    /// Computes the `TemplateHash` of `template`.
+    /// Computes the [`TemplateHash`] of a [`Template`].
     pub fn compute_template_hash(&self, template: &Template) -> TemplateHash {
         T::TemplateHasher::hash(template)
     }

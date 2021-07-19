@@ -4,7 +4,7 @@ use svm_types::{AccountAddr, SectionKind, Template, TemplateAddr};
 
 use crate::env::{ExtAccount, TemplateHash};
 
-/// A persistent store for [`Template`](s).
+/// A persistent store for [`Template`](svm_types::Template)s.
 pub trait TemplateStore {
     /// Stores a [`Template`].
     ///
@@ -30,13 +30,16 @@ pub trait AccountStore {
     /// Stores `Address` -> `Account`
     fn store(&mut self, account: &ExtAccount, addr: &AccountAddr);
 
-    /// Given a `Account` `Address`, fetches its raw data
+    /// Given a `Account Address`, fetches its raw data
     /// and deserializes it into an [`ExtAccount`].
     ///
     /// Returns `None` if [`Template`] doesn't exist.
     #[must_use]
     fn load(&self, addr: &AccountAddr) -> Option<ExtAccount>;
 
+    /// Given an `Account Address`, returns it's associated [`TemplateAddr`].
+    ///
+    /// Returns `None` if there is no associated [`TemplateAddr`].
     #[must_use]
     fn resolve_template_addr(&self, addr: &AccountAddr) -> Option<TemplateAddr>;
 }
