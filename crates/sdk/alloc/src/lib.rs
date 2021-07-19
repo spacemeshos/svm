@@ -81,7 +81,7 @@ unsafe impl alloc::alloc::GlobalAlloc for StaticAlloc {
     }
 
     /// We do nothing when being asked to deallocate memory.
-    /// This memory leaking is intentional - Running SVM Apps are short-lived programs.
+    /// This memory leaking is intentional - Running SVM Transactions are short-lived programs.
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
         //
     }

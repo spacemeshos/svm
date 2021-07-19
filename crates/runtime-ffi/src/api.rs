@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use log::{debug, error};
 
 use std::cell::RefCell;
@@ -21,11 +23,11 @@ use crate::{raw_error, raw_validate_error, svm_result_t};
 
 static KV_TYPE: Type = Type::Str("Key-Value Store");
 static VALIDATE_CALL_TARGET_TYPE: Type = Type::Str("validate_call Target");
-static DEPLOY_RECEIPT_TYPE: Type = Type::Str("Deploy Receipt");
-static SPAWN_RECEIPT_TYPE: Type = Type::Str("Spawn Receipt");
-static CALL_RECEIPT_TYPE: Type = Type::Str("Call Receipt");
+static _DEPLOY_RECEIPT_TYPE: Type = Type::Str("Deploy Receipt");
+static _SPAWN_RECEIPT_TYPE: Type = Type::Str("Spawn Receipt");
+static _CALL_RECEIPT_TYPE: Type = Type::Str("Call Receipt");
 
-#[inline(always)]
+#[inline]
 fn maybe_gas(gas_enabled: bool, gas_limit: u64) -> Gas {
     if gas_enabled {
         Gas::with(gas_limit)
@@ -34,7 +36,7 @@ fn maybe_gas(gas_enabled: bool, gas_limit: u64) -> Gas {
     }
 }
 
-#[inline(always)]
+#[inline]
 unsafe fn data_to_svm_byte_array(
     svm_type: Type,
     raw_byte_array: *mut svm_byte_array,
@@ -85,12 +87,14 @@ unsafe fn data_to_svm_byte_array(
 #[no_mangle]
 pub unsafe extern "C" fn svm_validate_deploy(
     runtime: *mut c_void,
-    bytes: svm_byte_array,
+    _envelope: svm_byte_array,
+    message: svm_byte_array,
+    _context: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
     let runtime: &mut Box<dyn Runtime> = runtime.into();
 
-    match runtime.validate_deploy(bytes.into()) {
+    match runtime.validate_deploy(message.into()) {
         Ok(()) => svm_result_t::SVM_SUCCESS,
         Err(e) => {
             error!("`svm_validate_template` returns `SVM_FAILURE`");
@@ -133,12 +137,14 @@ pub unsafe extern "C" fn svm_validate_deploy(
 #[no_mangle]
 pub unsafe extern "C" fn svm_validate_spawn(
     runtime: *mut c_void,
-    bytes: svm_byte_array,
+    _envelope: svm_byte_array,
+    message: svm_byte_array,
+    _context: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
     let runtime: &mut Box<dyn Runtime> = runtime.into();
 
-    match runtime.validate_spawn(bytes.into()) {
+    match runtime.validate_spawn(message.into()) {
         Ok(()) => svm_result_t::SVM_SUCCESS,
         Err(e) => {
             error!("`svm_validate_spawn` returns `SVM_FAILURE`");
@@ -179,16 +185,18 @@ pub unsafe extern "C" fn svm_validate_spawn(
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_validate_call(
-    target_addr: *mut svm_byte_array,
+    target: *mut svm_byte_array,
     runtime: *mut c_void,
-    bytes: svm_byte_array,
+    _envelope: svm_byte_array,
+    message: svm_byte_array,
+    _context: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
     debug!("`svm_validate_call` start");
 
     let runtime: &mut Box<dyn Runtime> = runtime.into();
 
-    match runtime.validate_call(bytes.into()) {
+    match runtime.validate_call(message.into()) {
         Ok(tx) => {
             // Returns `target Address` that appears in `bytes`.
             //
@@ -197,7 +205,7 @@ pub unsafe extern "C" fn svm_validate_call(
             // should call later `svm_receipt_destroy`
             data_to_svm_byte_array(
                 VALIDATE_CALL_TARGET_TYPE,
-                target_addr,
+                target,
                 tx.target.unwrap().as_slice().to_vec(),
             );
 
@@ -411,39 +419,41 @@ pub unsafe extern "C" fn svm_runtime_create(
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_deploy(
-    receipt: *mut svm_byte_array,
-    runtime: *mut c_void,
-    bytes: svm_byte_array,
-    deployer: svm_byte_array,
-    gas_enabled: bool,
-    gas_limit: u64,
-    error: *mut svm_byte_array,
+    _receipt: *mut svm_byte_array,
+    _runtime: *mut c_void,
+    _envelope: svm_byte_array,
+    _message: svm_byte_array,
+    _context: svm_byte_array,
+    _gas_enabled: bool,
+    _error: *mut svm_byte_array,
 ) -> svm_result_t {
-    debug!("`svm_deploy_template` start`");
+    debug!("`svm_deploy` start`");
 
-    let runtime: &mut Box<dyn Runtime> = runtime.into();
+    todo!("extract `gas_limit`, `deployer`");
 
-    let deployer: Result<Address, String> = Address::try_from(deployer);
+    // let runtime: &mut Box<dyn Runtime> = runtime.into();
 
-    if let Err(s) = deployer {
-        raw_error(s, error);
-        return svm_result_t::SVM_FAILURE;
-    }
+    // let deployer: Result<Address, String> = Address::try_from(deployer);
 
-    let gas_limit = maybe_gas(gas_enabled, gas_limit);
-    let rust_receipt = runtime.deploy(bytes.into(), &deployer.unwrap().into(), gas_limit);
-    let receipt_bytes = receipt::encode_deploy(&rust_receipt);
+    // if let Err(s) = deployer {
+    //     raw_error(s, error);
+    //     return svm_result_t::SVM_FAILURE;
+    // }
 
-    // returning encoded `TemplateReceipt` as `svm_byte_array`.
-    // should call later `svm_receipt_destroy`
-    data_to_svm_byte_array(DEPLOY_RECEIPT_TYPE, receipt, receipt_bytes);
+    // let gas_limit = maybe_gas(gas_enabled, gas_limit);
+    // let rust_receipt = runtime.deploy(message.into(), &deployer.unwrap().into(), gas_limit);
+    // let receipt_bytes = receipt::encode_deploy(&rust_receipt);
 
-    debug!("`svm_deploy_template` returns `SVM_SUCCESS`");
+    // // returning encoded `TemplateReceipt` as `svm_byte_array`.
+    // // should call later `svm_receipt_destroy`
+    // data_to_svm_byte_array(DEPLOY_RECEIPT_TYPE, receipt, receipt_bytes);
 
-    svm_result_t::SVM_SUCCESS
+    // debug!("`svm_deploy` returns `SVM_SUCCESS`");
+
+    // svm_result_t::SVM_SUCCESS
 }
 
-/// Spawns a new App.
+/// Spawns a new Account.
 ///
 /// # Examples
 ///
@@ -451,7 +461,7 @@ pub unsafe extern "C" fn svm_deploy(
 /// use svm_runtime_ffi::*;
 ///
 /// use svm_ffi::svm_byte_array;
-/// use svm_types::{Address, Type};
+/// use svm_types::Address};
 ///
 /// // create runtime
 ///
@@ -468,20 +478,19 @@ pub unsafe extern "C" fn svm_deploy(
 /// let mut receipt = svm_byte_array::default();
 /// let mut init_state = svm_byte_array::default();
 ///
-/// let spawner_ty = Type::Str("spawner");
-/// let spawner: svm_byte_array = (spawner_ty, Address::of("@spawner")).into();
-/// let bytes = svm_byte_array::default();
+/// let envelope = svm_byte_array::default();
+/// let message = svm_byte_array::default();
+/// let context = svm_byte_array::default();
 /// let gas_enabled = false;
-/// let gas_limit = 0;
 ///
 /// let _res = unsafe {
 ///   svm_spawn(
 ///     &mut receipt,
 ///     runtime,
-///     bytes,
-///     spawner,
+///     envelope,
+///     envelope,
+///     context,
 ///     gas_enabled,
-///     gas_limit,
 ///     &mut error)
 /// };
 /// ```
@@ -489,41 +498,43 @@ pub unsafe extern "C" fn svm_deploy(
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_spawn(
-    receipt: *mut svm_byte_array,
-    runtime: *mut c_void,
-    bytes: svm_byte_array,
-    spawner: svm_byte_array,
-    gas_enabled: bool,
-    gas_limit: u64,
-    error: *mut svm_byte_array,
+    _receipt: *mut svm_byte_array,
+    _runtime: *mut c_void,
+    _envelope: svm_byte_array,
+    _message: svm_byte_array,
+    _context: svm_byte_array,
+    _gas_enabled: bool,
+    _error: *mut svm_byte_array,
 ) -> svm_result_t {
-    debug!("`svm_spawn_account` start");
+    debug!("`svm_spawn` start");
 
-    let runtime: &mut Box<dyn Runtime> = runtime.into();
-    let spawner: Result<Address, String> = Address::try_from(spawner);
+    todo!("extract `spawner, gas_limit`");
 
-    if let Err(s) = spawner {
-        raw_error(s, error);
-        return svm_result_t::SVM_FAILURE;
-    }
+    // let runtime: &mut Box<dyn Runtime> = runtime.into();
+    // let spawner: Result<Address, String> = Address::try_from(spawner);
 
-    let gas_limit = maybe_gas(gas_enabled, gas_limit);
-    let rust_receipt = runtime.spawn(bytes.into(), &spawner.unwrap().into(), gas_limit);
-    let receipt_bytes = receipt::encode_spawn(&rust_receipt);
+    // if let Err(s) = spawner {
+    //     raw_error(s, error);
+    //     return svm_result_t::SVM_FAILURE;
+    // }
 
-    // Returns the encoded `SpawnReceipt` as `svm_byte_array`.
-    //
-    // # Notes:
-    //
-    // Should call later `svm_receipt_destroy`
-    data_to_svm_byte_array(SPAWN_RECEIPT_TYPE, receipt, receipt_bytes);
+    // let gas_limit = maybe_gas(gas_enabled, gas_limit);
+    // let rust_receipt = runtime.spawn(message.into(), &spawner.unwrap().into(), gas_limit);
+    // let receipt_bytes = receipt::encode_spawn(&rust_receipt);
 
-    debug!("`svm_spawn_account` returns `SVM_SUCCESS`");
+    // // Returns the encoded `SpawnReceipt` as `svm_byte_array`.
+    // //
+    // // # Notes:
+    // //
+    // // Should call later `svm_receipt_destroy`
+    // data_to_svm_byte_array(SPAWN_RECEIPT_TYPE, receipt, receipt_bytes);
 
-    svm_result_t::SVM_SUCCESS
+    // debug!("`svm_spawn` returns `SVM_SUCCESS`");
+
+    // svm_result_t::SVM_SUCCESS
 }
 
-/// Triggers a `Call App` transaction.
+/// Triggers a `Call Account` transaction.
 /// Returns the Receipt of the execution via the `receipt` parameter.
 ///
 /// # Examples
@@ -533,7 +544,7 @@ pub unsafe extern "C" fn svm_spawn(
 ///
 /// use svm_runtime_ffi::*;
 ///
-/// use svm_types::{State, Address, Type};
+/// use svm_types::{State, Address,};
 /// use svm_ffi::svm_byte_array;
 ///
 /// // create runtime
@@ -549,19 +560,18 @@ pub unsafe extern "C" fn svm_spawn(
 /// assert!(res.is_ok());
 ///
 /// let mut receipt = svm_byte_array::default();
-/// let bytes = svm_byte_array::default();
-/// let ty = Type::of::<State>();
-/// let state = (ty, State::zeros()).into();
+/// let envelope = svm_byte_array::default();
+/// let message = svm_byte_array::default();
+/// let context = svm_byte_array::default();
 /// let gas_enabled = false;
-/// let gas_limit = 0;
 ///
 /// let _res = unsafe {
 ///   svm_call(
 ///     &mut receipt,
 ///     runtime,
-///     bytes,
-///     state,
-///     gas_enabled,
+///     envelope,
+///     message,
+///     context,
 ///     gas_limit,
 ///     &mut error)
 /// };
@@ -570,40 +580,42 @@ pub unsafe extern "C" fn svm_spawn(
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_call(
-    receipt: *mut svm_byte_array,
-    runtime: *mut c_void,
-    bytes: svm_byte_array,
-    state: svm_byte_array,
-    gas_enabled: bool,
-    gas_limit: u64,
-    error: *mut svm_byte_array,
+    _receipt: *mut svm_byte_array,
+    _runtime: *mut c_void,
+    _envelope: svm_byte_array,
+    _message: svm_byte_array,
+    _context: svm_byte_array,
+    _gas_enabled: bool,
+    _error: *mut svm_byte_array,
 ) -> svm_result_t {
     debug!("`svm_call` start");
 
-    let runtime: &mut Box<dyn Runtime> = runtime.into();
-    let state: Result<State, String> = State::try_from(state);
+    todo!("extract `state` (from `context`), `gas_limit` (from `envelope`)");
 
-    if let Err(msg) = state {
-        raw_error(msg, error);
-        return svm_result_t::SVM_FAILURE;
-    }
+    // let runtime: &mut Box<dyn Runtime> = runtime.into();
+    // let state: Result<State, String> = State::try_from(state);
 
-    let gas_limit = maybe_gas(gas_enabled, gas_limit);
+    // if let Err(msg) = state {
+    //     raw_error(msg, error);
+    //     return svm_result_t::SVM_FAILURE;
+    // }
 
-    let tx = runtime.validate_call(bytes.into()).unwrap();
-    let rust_receipt = runtime.call(&tx, &state.unwrap(), gas_limit);
-    let receipt_bytes = receipt::encode_call(&rust_receipt);
+    // let gas_limit = maybe_gas(gas_enabled, gas_limit);
+
+    // let tx = runtime.validate_call(message.into()).unwrap();
+    // let rust_receipt = runtime.call(&tx, &state.unwrap(), gas_limit);
+    // let receipt_bytes = receipt::encode_call(&rust_receipt);
 
     // Returns encoded `CallReceipt` as `svm_byte_array`.
     //
     // # Notes:
     //
     // Should call later `svm_receipt_destroy`
-    data_to_svm_byte_array(CALL_RECEIPT_TYPE, receipt, receipt_bytes);
+    // data_to_svm_byte_array(CALL_RECEIPT_TYPE, receipt, receipt_bytes);
 
-    debug!("`svm_call` returns `SVM_SUCCESS`");
+    // debug!("`svm_call` returns `SVM_SUCCESS`");
 
-    svm_result_t::SVM_SUCCESS
+    // svm_result_t::SVM_SUCCESS
 }
 
 /// Returns the total live manually-managed resources.

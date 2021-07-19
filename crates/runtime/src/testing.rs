@@ -118,7 +118,7 @@ pub fn runtime_memory_storage_builder(
     Box::new(func)
 }
 
-/// Builds a raw `Deploy Template` transaction.
+/// Builds a binary `Deploy Template` transaction.
 pub fn build_template(
     code_version: u32,
     name: &str,
@@ -141,7 +141,7 @@ pub fn build_template(
     template::encode(&template)
 }
 
-/// Builds a raw `Spawn Account` transaction.
+/// Builds a binary `Spawn Account` transaction.
 pub fn build_spawn(template: &TemplateAddr, name: &str, ctor: &str, calldata: &[u8]) -> Vec<u8> {
     SpawnBuilder::new()
         .with_version(0)
@@ -152,7 +152,7 @@ pub fn build_spawn(template: &TemplateAddr, name: &str, ctor: &str, calldata: &[
         .build()
 }
 
-/// Builds a raw `Call App` transaction. (a.k.a a `Transaction`).
+/// Builds a raw binary `Call Account` transaction. (a.k.a a `Transaction`).
 pub fn build_transaction(target: &AccountAddr, func: &str, calldata: &[u8]) -> Vec<u8> {
     TxBuilder::new()
         .with_version(0)

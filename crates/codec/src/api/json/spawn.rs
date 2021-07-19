@@ -126,7 +126,7 @@ mod tests {
         let json = json!({
             "version": 0,
             "template": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
-            "name": "My App",
+            "name": "My Account",
         });
         let err = encode_spawn(&json).unwrap_err();
 

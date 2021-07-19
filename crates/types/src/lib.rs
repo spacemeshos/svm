@@ -48,7 +48,7 @@ pub use template::{
     ApiSection, CodeKind, CodeSection, CtorsSection, DataSection, DeploySection, HeaderSection,
     SchemaSection, Section, SectionKind, SectionWrapper, Sections, SectionsIter, Template,
 };
-pub use transaction::{Context, Layer, Transaction, TransactionId};
+pub use transaction::{Context, Envelope, Layer, Transaction, TransactionId};
 pub use wasm_type::{WasmType, WasmTypeError};
 pub use wasm_value::WasmValue;
 

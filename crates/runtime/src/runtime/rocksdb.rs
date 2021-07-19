@@ -44,7 +44,7 @@ pub fn storage_builder(state_kv: &Rc<RefCell<dyn StatefulKV>>) -> Box<StorageBui
         // The current pointed-to `State` is managed externally, so we ignore here the `state` parameter.
         //
         // Similarly, we ignore the `config` parameter since it only contains the `Path` of the key-value store
-        // used managing the App's storage. We talk with the external key-value store via FFI interface.
+        // used for managing the Account's storage. We talk with the external key-value store via FFI interface.
 
         let addr = addr.inner();
         let account_kv = AccountKVStore::new(addr.clone(), &state_kv);

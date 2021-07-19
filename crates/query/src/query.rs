@@ -31,12 +31,12 @@ pub struct StorageReq {
 
 /// A `StorageQuery` contains a batch of requests.
 pub struct StorageQuery {
-    reqs: Vec<StorageReq>,
+    requests: Vec<StorageReq>,
 }
 
-/// This trait should be implemented by App's storage interfaces.
+/// This trait should be implemented by `AccountStorage` interfaces.
 ///
-/// See `AppStorage` under the `svm-storage` crate.
+/// See `AccountStorage` under the `svm-storage` crate.
 pub trait StorageReader<V, VR: VarRenderer<V>> {
     /// Executes a read request.
     ///
@@ -59,12 +59,14 @@ pub trait StorageReader<V, VR: VarRenderer<V>> {
 impl StorageQuery {
     /// New query.
     pub fn new() -> Self {
-        Self { reqs: Vec::new() }
+        Self {
+            requests: Vec::new(),
+        }
     }
 
     /// Adds a request to the query
     pub fn add_req(&mut self, req: StorageReq) {
-        self.reqs.push(req);
+        self.requests.push(req);
     }
 
     /// Executes batch of query's requests.
@@ -83,7 +85,7 @@ impl StorageQuery {
     where
         VR: VarRenderer<V>,
     {
-        self.reqs
+        self.requests
             .iter()
             .map(|req| storage.read_var(schema, req))
             .collect()

@@ -1,7 +1,7 @@
 //! This crate is responsible for doing the binary encoding for SVM transactions.
-//! It code is compiled as a single WASM file and it should be integrated by Wallet Apps (e.g `smapp / CLI Wallet`).
+//! It code is compiled as a single WASM file and it should be integrated by clients (e.g `smapp / CLI Wallet`).
 //!
-//! By doing that, a Wallet Apps can locally encode a binary transaction without having to re-implement all the logic
+//! By doing that, a client can locally encode a binary transaction without having to re-implement all the logic
 //! of the `svm-codec`.
 //!
 //! SVM's CI emits the WASM package of `svm-codec` as one of its artifacts (`svm_codec.wasm`)
@@ -121,10 +121,10 @@ pub extern "C" fn wasm_decode_spawn(offset: i32) -> i32 {
     wasm_func_call!(decode_spawn, offset)
 }
 
-/// ## WASM `Call App`
+/// ## WASM `Call Account`
 ///
 /// Reads the WASM buffer given at parameter `offset` containing a JSON value.
-/// Encodes a `Call App` binary-transaction using that JSON value.
+/// Encodes a `Call Account` binary-transaction using that JSON value.
 ///
 /// Returns a pointer to a new WASM buffer holding the encoded transaction.
 /// If the encoding failed, the returned WASM buffer will contain a String containing the error message.
@@ -134,7 +134,7 @@ pub extern "C" fn wasm_encode_call(offset: i32) -> i32 {
     wasm_func_call!(encode_call, offset)
 }
 
-/// Decodes the encoded `Call App` given as a WASM buffer (parameter `offset`).
+/// Decodes the encoded `Call Account` given as a WASM buffer (parameter `offset`).
 ///
 /// Returns a pointer to a new WASM buffer holding the decoded transaction.
 /// If the decoding fails, the returned WASM buffer will contain a String containing the error message.

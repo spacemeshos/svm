@@ -6,7 +6,7 @@ use traits::ComputeAddress;
 use svm_hash::{DefaultHasher, Hasher};
 use svm_types::{AccountAddr, Address, TemplateAddr};
 
-/// Default implementation for computing an `App` address deterministically.
+/// Default implementation for computing an `Account's Address` deterministically.
 ///
 /// Computing the template's account address as follows:
 /// Taking `Address::len()` bytes of `HASH(template.deployer || template.code)`
@@ -28,7 +28,7 @@ impl ComputeAddress<Template> for DefaultTemplateAddressCompute {
     }
 }
 
-/// Default implementation for computing an `App Address`
+/// Default implementation for computing an `Account's Address`
 pub struct DefaultAccountAddressCompute;
 
 impl ComputeAddress<ExtSpawn> for DefaultAccountAddressCompute {

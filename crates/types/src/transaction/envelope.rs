@@ -1,6 +1,6 @@
 use crate::{Address, Gas};
 
-#[allow(unused)]
+/// Holds `Transaction` **agnostic** content.
 pub struct Envelope {
     /// The `Address` of the `Account` paying for the [`Gas`].
     pub principal: Address,

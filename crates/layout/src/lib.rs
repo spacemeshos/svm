@@ -3,7 +3,7 @@
 #![allow(dead_code)]
 #![allow(unreachable_code)]
 
-//! This crate is responsible of representing an App's storage variables `Layout`.
+//! This crate is responsible of representing an `Account`'s storage variables `Layout`.
 
 mod builder;
 mod fixed;

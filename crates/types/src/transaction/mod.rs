@@ -8,7 +8,7 @@ mod id;
 mod layer;
 
 pub use context::Context;
-pub use envelope::TxEnvelope;
+pub use envelope::Envelope;
 pub use id::TransactionId;
 pub use layer::Layer;
 
