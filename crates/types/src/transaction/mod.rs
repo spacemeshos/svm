@@ -2,9 +2,13 @@ use std::fmt;
 
 use crate::AccountAddr;
 
+mod context;
+mod envelope;
 mod id;
 mod layer;
 
+pub use context::TxContext;
+pub use envelope::Envelope;
 pub use id::TransactionId;
 pub use layer::Layer;
 
