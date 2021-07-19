@@ -1,5 +1,6 @@
 #![allow(unused)]
 
+use clap::ArgMatches;
 use thiserror::Error;
 
 use std::fs::File;
@@ -16,16 +17,31 @@ use svm_program::{Program, ProgramVisitor};
 fn clap_app() -> clap::App<'static, 'static> {
     use clap::*;
 
-    App::new("smwasm")
+    // Help messages all use the third person rather than the imperative form,
+    // e.g. "prints" rather than "print".
+
+    App::new("svm-cli")
         .version("1.0")
         .author("The Spacemesh team")
-        .about("A smWasm validation tool")
-        .arg(
-            Arg::with_name("input")
-                .help("Sets the input file to use")
-                .required(true)
-                .index(1),
+        .about("A CLI tool to access SVM internal utilities")
+        // The user must provide a valid subcommand, otherwise we don't really
+        // know what to do.
+        .setting(clap::AppSettings::SubcommandRequired)
+        .subcommand(
+            SubCommand::with_name("validate")
+                .about("Runs validation logic on a smWasm file")
+                .arg(
+                    Arg::with_name("input")
+                        .help("Sets the input file to use")
+                        .required(true)
+                        .index(1),
+                ),
         )
+        .subcommand(SubCommand::with_name("tx-spawn").about("Crafts a transaction of type `spawn`"))
+        .subcommand(
+            SubCommand::with_name("tx-deploy").about("Crafts a transactino of type`deploy`"),
+        )
+        .subcommand(SubCommand::with_name("tx-call").about("Crafts a transaction of type `call`"))
 }
 
 #[derive(Clone, Debug, Error)]
@@ -38,6 +54,17 @@ enum Error {
 
 fn main() -> anyhow::Result<()> {
     let cli_matches = clap_app().get_matches();
+    match cli_matches.subcommand() {
+        ("validate", Some(args)) => subcmd_validate(args)?,
+        ("tx-spawn", Some(args)) => subcmd_validate(args)?,
+        ("tx-deploy", Some(args)) => subcmd_validate(args)?,
+        ("tx-call", Some(args)) => subcmd_validate(args)?,
+        (_, _) => unreachable!(),
+    }
+    Ok(())
+}
+
+fn subcmd_validate(cli_matches: &ArgMatches) -> anyhow::Result<()> {
     let file_path = cli_matches.value_of("input").unwrap();
     let file_contents = std::fs::read(file_path)?;
 
