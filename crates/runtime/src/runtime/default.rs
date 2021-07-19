@@ -1,7 +1,9 @@
 use log::info;
 use wasmer::{Instance, Module, WasmPtr, WasmTypeList};
 
+use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
+use std::rc::Rc;
 
 use svm_gas::FuncPrice;
 use svm_layout::FixedLayout;
@@ -42,26 +44,49 @@ where
     /// Builds an `AccountStorage` instance.
     storage_builder: Box<StorageBuilderFn>,
 
-    template_prices: HashMap<TemplateAddr, FuncPrice>,
+    /// A naive cache for [`Template`]s' [`FuncPrice`]s. The cache key will, in
+    /// the future, also include an identifier for which
+    /// [`PriceResolver`](svm_gas::PriceResolver) should be used (possibly an
+    /// `u16`?).
+    template_prices: Rc<RefCell<HashMap<TemplateAddr, FuncPrice>>>,
 }
 
 impl<T> DefaultRuntime<T>
 where
     T: EnvTypes,
 {
-    /// Initializes a new `DefaultRuntime`.
+    /// Initializes a new [`DefaultRuntime`](DefaultRuntime).
     pub fn new(
         env: Env<T>,
         imports: (String, wasmer::Exports),
         storage_builder: Box<StorageBuilderFn>,
         config: Config,
     ) -> Self {
+        let template_prices = Rc::new(RefCell::new(HashMap::default()));
         Self {
             env,
             imports,
             storage_builder,
             config,
-            template_prices: HashMap::new(),
+            template_prices,
+        }
+    }
+
+    /// Initializes a new [`DefaultRuntime`](DefaultRuntime) with a naive cache
+    /// of [`Template`] [`FuncPrice`]s.
+    pub fn new_with_template_prices(
+        env: Env<T>,
+        imports: (String, wasmer::Exports),
+        storage_builder: Box<StorageBuilderFn>,
+        config: Config,
+        template_prices: Rc<RefCell<HashMap<TemplateAddr, FuncPrice>>>,
+    ) -> Self {
+        Self {
+            env,
+            imports,
+            storage_builder,
+            config,
+            template_prices,
         }
     }
 
@@ -610,15 +635,17 @@ where
         // remove. This means there's no cache invalidation at all. We can
         // easily afford to do this because the number of templates that exist
         // at genesis is fixed and won't grow.
-        let func_price = if let Some(prices) = self.template_prices.get(&template_address) {
-            prices
-        } else {
-            let pricer = self.env.price_resolver();
-            let program_pricing = ProgramPricing::new(pricer);
-            let prices = program_pricing.visit(&program).unwrap();
-            self.template_prices
-                .insert(template_address.clone(), prices);
-            self.template_prices.get(template_address).unwrap()
+        let mut template_prices = self.template_prices.borrow_mut();
+        let func_price = {
+            if let Some(prices) = template_prices.get(&template_address) {
+                prices
+            } else {
+                let pricer = self.env.price_resolver();
+                let program_pricing = ProgramPricing::new(pricer);
+                let prices = program_pricing.visit(&program).unwrap();
+                template_prices.insert(template_address.clone(), prices);
+                template_prices.get(template_address).unwrap()
+            }
         };
         let spawn = ExtSpawn::new(base, spawner);
         if !template.is_ctor(spawn.ctor_name()) {
@@ -646,6 +673,9 @@ where
             }
             GasMode::Metering => {}
         }
+
+        // We don't need this anymore!
+        drop(template_prices);
 
         let payload_price = svm_gas::transaction::spawn(bytes);
         let gas_left = gas_limit - payload_price;
