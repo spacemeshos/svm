@@ -55,32 +55,22 @@ impl<T> DefaultRuntime<T>
 where
     T: EnvTypes,
 {
-    /// Initializes a new [`DefaultRuntime`](DefaultRuntime).
+    /// Initializes a new [`DefaultRuntime`](DefaultRuntime). `template_prices`
+    /// offers an easy way to inject an append-only, naive caching mechanism to
+    /// the [`Template`] pricing logic; using a `None` will result in a new
+    /// empty cache and on-the-fly calculation for all [`Template`]s.
     pub fn new(
         env: Env<T>,
         imports: (String, wasmer::Exports),
         storage_builder: Box<StorageBuilderFn>,
         config: Config,
+        template_prices: Option<Rc<RefCell<HashMap<TemplateAddr, FuncPrice>>>>,
     ) -> Self {
-        let template_prices = Rc::new(RefCell::new(HashMap::default()));
-        Self {
-            env,
-            imports,
-            storage_builder,
-            config,
-            template_prices,
-        }
-    }
-
-    /// Initializes a new [`DefaultRuntime`](DefaultRuntime) with a naive cache
-    /// of [`Template`] [`FuncPrice`]s.
-    pub fn with_template_prices(
-        env: Env<T>,
-        imports: (String, wasmer::Exports),
-        storage_builder: Box<StorageBuilderFn>,
-        config: Config,
-        template_prices: Rc<RefCell<HashMap<TemplateAddr, FuncPrice>>>,
-    ) -> Self {
+        let template_prices = if let Some(tp) = template_prices {
+            tp
+        } else {
+            Rc::new(RefCell::new(HashMap::default()))
+        };
         Self {
             env,
             imports,

@@ -96,7 +96,7 @@ pub fn create_memory_runtime(
     let config = Config::default();
     let imports = ("sm".to_string(), wasmer::Exports::new());
 
-    DefaultRuntime::new(env, imports, Box::new(storage_builder), config)
+    DefaultRuntime::new(env, imports, Box::new(storage_builder), config, None)
 }
 
 /// Returns a function (wrapped inside [`Box`]) that initializes `Account`'s storage client.

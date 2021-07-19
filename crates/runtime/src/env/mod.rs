@@ -64,7 +64,6 @@ pub trait EnvTypes {
 }
 
 /// The persistent state of a [`Runtime`](crate::Runtime).
-#[derive(Clone)]
 pub struct Env<T>
 where
     T: EnvTypes,
