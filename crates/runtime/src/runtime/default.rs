@@ -21,7 +21,7 @@ use crate::error::ValidateError;
 use crate::storage::StorageBuilderFn;
 use crate::vmcalls;
 use crate::Env;
-use crate::{Config, Context, Runtime};
+use crate::{Config, FuncEnv, Runtime};
 
 type Result<T> = std::result::Result<Outcome<T>, Failure>;
 
@@ -82,15 +82,15 @@ where
 
     fn outcome_to_receipt(
         &self,
-        ctx: &Context,
+        env: &FuncEnv,
         mut out: Outcome<Box<[wasmer::Val]>>,
     ) -> CallReceipt {
         CallReceipt {
             version: 0,
             success: true,
             error: None,
-            returndata: Some(self.take_returndata(ctx)),
-            new_state: Some(self.commit_changes(&ctx)),
+            returndata: Some(self.take_returndata(env)),
+            new_state: Some(self.commit_changes(&env)),
             gas_used: out.gas_used(),
             logs: out.take_logs(),
         }
@@ -140,7 +140,7 @@ where
     }
 
     fn exec_call<Args, Rets>(&self, call: &Call) -> CallReceipt {
-        let result = self.exec::<(), (), _, _>(&call, |ctx, out| self.outcome_to_receipt(ctx, out));
+        let result = self.exec::<(), (), _, _>(&call, |env, out| self.outcome_to_receipt(env, out));
 
         result.unwrap_or_else(|fail| self.failure_to_receipt(fail))
     }
@@ -149,20 +149,20 @@ where
     where
         Args: WasmTypeList,
         Rets: WasmTypeList,
-        F: Fn(&Context, Outcome<Box<[wasmer::Val]>>) -> R,
+        F: Fn(&FuncEnv, Outcome<Box<[wasmer::Val]>>) -> R,
     {
         match self.account_template(call.account_addr) {
             Ok(template) => {
                 let storage =
                     self.open_storage(call.account_addr, call.state, template.fixed_layout());
 
-                let mut ctx = Context::new(storage, call.template_addr, call.account_addr);
+                let mut env = FuncEnv::new(storage, call.template_addr, call.account_addr);
 
                 let store = crate::wasm_store::new_store();
-                let import_object = self.create_import_object(&store, &mut ctx);
+                let import_object = self.create_import_object(&store, &mut env);
 
-                let res = self.run::<Args, Rets>(&call, &store, &ctx, &template, &import_object);
-                res.map(|rets| f(&ctx, rets))
+                let res = self.run::<Args, Rets>(&call, &store, &env, &template, &import_object);
+                res.map(|rets| f(&env, rets))
             }
             Err(err) => Err(err.into()),
         }
@@ -172,7 +172,7 @@ where
         &self,
         call: &Call,
         store: &wasmer::Store,
-        ctx: &Context,
+        env: &FuncEnv,
         template: &Template,
         import_object: &wasmer::ImportObject,
     ) -> Result<Box<[wasmer::Val]>>
@@ -180,19 +180,19 @@ where
         Args: WasmTypeList,
         Rets: WasmTypeList,
     {
-        self.validate_call(call, template, ctx)?;
+        self.validate_call(call, template, env)?;
 
-        let module = self.compile_template(store, ctx, &template, call.gas_left)?;
-        let instance = self.instantiate(ctx, &module, import_object)?;
+        let module = self.compile_template(store, env, &template, call.gas_left)?;
+        let instance = self.instantiate(env, &module, import_object)?;
 
-        self.set_memory(ctx, &instance);
+        self.set_memory(env, &instance);
 
-        let func = self.func::<Args, Rets>(&instance, ctx, call.func_name)?;
+        let func = self.func::<Args, Rets>(&instance, env, call.func_name)?;
 
         let mut out = if call.calldata.len() > 0 {
-            self.call_with_alloc(&instance, ctx, call.calldata, &func, &[])?
+            self.call_with_alloc(&instance, env, call.calldata, &func, &[])?
         } else {
-            self.call(&instance, ctx, &func, &[])?
+            self.call(&instance, env, &func, &[])?
         };
 
         let logs = out.take_logs();
@@ -214,7 +214,7 @@ where
     fn call_with_alloc<Args, Rets>(
         &self,
         instance: &Instance,
-        ctx: &Context,
+        env: &FuncEnv,
         calldata: &[u8],
         func: &Function<Args, Rets>,
         params: &[wasmer::Val],
@@ -225,31 +225,31 @@ where
     {
         debug_assert!(calldata.is_empty() == false);
 
-        let out = self.call_alloc(instance, ctx, calldata.len())?;
+        let out = self.call_alloc(instance, env, calldata.len())?;
 
         // we assert that `svm_alloc` didn't touch the `returndata`
         // TODO: return an error instead of `panic`
-        self.assert_no_returndata(ctx);
+        self.assert_no_returndata(env);
 
         let wasm_ptr = out.returns();
-        self.set_calldata(ctx, calldata, wasm_ptr);
+        self.set_calldata(env, calldata, wasm_ptr);
 
-        self.call(instance, ctx, func, params)
+        self.call(instance, env, func, params)
     }
 
-    fn call_alloc(&self, instance: &Instance, ctx: &Context, size: usize) -> Result<WasmPtr<u8>> {
+    fn call_alloc(&self, instance: &Instance, env: &FuncEnv, size: usize) -> Result<WasmPtr<u8>> {
         let func_name = "svm_alloc";
 
-        let func = self.func::<u32, u32>(&instance, ctx, func_name);
+        let func = self.func::<u32, u32>(&instance, env, func_name);
         if func.is_err() {
-            let err = self.func_not_found(ctx, func_name);
+            let err = self.func_not_found(env, func_name);
             return Err(err);
         }
 
         let func = func.unwrap();
         let params: [wasmer::Val; 1] = [(size as i32).into()];
 
-        let out = self.call(instance, ctx, &func, &params)?;
+        let out = self.call(instance, env, &func, &params)?;
         let out = out.map(|rets| {
             let ret = &rets[0];
             let offset = ret.i32().unwrap() as u32;
@@ -263,7 +263,7 @@ where
     fn call<Args, Rets>(
         &self,
         instance: &Instance,
-        ctx: &Context,
+        env: &FuncEnv,
         func: &Function<Args, Rets>,
         params: &[wasmer::Val],
     ) -> Result<Box<[wasmer::Val]>>
@@ -273,10 +273,10 @@ where
     {
         let wasmer_func = func.wasmer_func();
         let returns = wasmer_func.call(params);
-        let logs = ctx.borrow_mut().take_logs();
+        let logs = env.borrow_mut().take_logs();
 
         if returns.is_err() {
-            let err = self.func_failed(ctx, func.name(), returns.unwrap_err(), logs);
+            let err = self.func_failed(env, func.name(), returns.unwrap_err(), logs);
             return Err(err);
         }
 
@@ -293,29 +293,29 @@ where
     }
 
     #[inline]
-    fn commit_changes(&self, ctx: &Context) -> State {
-        let storage = &mut ctx.borrow_mut().storage;
+    fn commit_changes(&self, env: &FuncEnv) -> State {
+        let storage = &mut env.borrow_mut().storage;
         storage.commit()
     }
 
     #[inline]
-    fn assert_no_returndata(&self, ctx: &Context) {
-        assert!(ctx.borrow().returndata.is_none())
+    fn assert_no_returndata(&self, env: &FuncEnv) {
+        assert!(env.borrow().returndata.is_none())
     }
 
-    fn take_returndata(&self, ctx: &Context) -> Vec<u8> {
-        let data = ctx.borrow().returndata;
+    fn take_returndata(&self, env: &FuncEnv) -> Vec<u8> {
+        let data = env.borrow().returndata;
 
         match data {
-            Some((offset, length)) => self.read_memory(ctx, offset, length),
+            Some((offset, length)) => self.read_memory(env, offset, length),
             None => Vec::new(),
         }
     }
 
-    fn read_memory(&self, ctx: &Context, offset: usize, length: usize) -> Vec<u8> {
+    fn read_memory(&self, env: &FuncEnv, offset: usize, length: usize) -> Vec<u8> {
         assert!(length > 0);
 
-        let borrow = ctx.borrow();
+        let borrow = env.borrow();
         let memory = borrow.get_memory();
 
         let view = memory.view::<u8>();
@@ -325,18 +325,18 @@ where
         cells.iter().map(|c| c.get()).collect()
     }
 
-    fn set_memory(&self, ctx: &Context, instance: &Instance) {
+    fn set_memory(&self, env: &FuncEnv, instance: &Instance) {
         // TODO: raise when no exported memory exists
         let memory = instance.exports.get_memory("memory").unwrap();
 
-        ctx.borrow_mut().set_memory(memory.clone());
+        env.borrow_mut().set_memory(memory.clone());
     }
 
-    fn set_calldata(&self, ctx: &Context, calldata: &[u8], wasm_ptr: WasmPtr<u8>) {
+    fn set_calldata(&self, env: &FuncEnv, calldata: &[u8], wasm_ptr: WasmPtr<u8>) {
         debug_assert!(calldata.is_empty() == false);
 
         let (offset, len) = {
-            let borrow = ctx.borrow();
+            let borrow = env.borrow();
             let memory = borrow.get_memory();
 
             // Each WASM instance memory contains at least one `WASM Page`. (A `Page` size is 64KB)
@@ -364,7 +364,7 @@ where
             (offset, length)
         };
 
-        ctx.borrow_mut().set_calldata(offset, len);
+        env.borrow_mut().set_calldata(offset, len);
     }
 
     /// Calculates the amount of gas used by `instance`.
@@ -376,20 +376,20 @@ where
 
     fn instantiate(
         &self,
-        ctx: &Context,
+        env: &FuncEnv,
         module: &Module,
         import_object: &wasmer::ImportObject,
     ) -> std::result::Result<Instance, Failure> {
         info!("Runtime `instantiate` (using Wasmer `Instance#new`)");
 
         let instance = Instance::new(module, import_object);
-        instance.map_err(|err| self.instantiation_failed(ctx, err))
+        instance.map_err(|err| self.instantiation_failed(env, err))
     }
 
     fn func<'i, Args, Rets>(
         &self,
         instance: &'i Instance,
-        ctx: &Context,
+        env: &FuncEnv,
         func_name: &'i str,
     ) -> std::result::Result<Function<'i, Args, Rets>, Failure>
     where
@@ -398,7 +398,7 @@ where
     {
         let func = instance.exports.get_function(func_name);
         if func.is_err() {
-            let err = self.func_not_found(ctx, func_name);
+            let err = self.func_not_found(env, func_name);
             return Err(err);
         }
 
@@ -406,7 +406,7 @@ where
         let native = func.native::<Args, Rets>();
 
         if native.is_err() {
-            let err = self.func_invalid_sig(ctx, func_name);
+            let err = self.func_invalid_sig(env, func_name);
             return Err(err);
         }
 
@@ -417,13 +417,13 @@ where
     fn create_import_object(
         &self,
         store: &wasmer::Store,
-        ctx: &mut Context,
+        env: &mut FuncEnv,
     ) -> wasmer::ImportObject {
         let mut import_object = wasmer::ImportObject::new();
 
         // Registering SVM internals
         let mut internals = wasmer::Exports::new();
-        vmcalls::wasmer_register(store, ctx, &mut internals);
+        vmcalls::wasmer_register(store, env, &mut internals);
         import_object.register("svm", internals);
 
         // Registering the externals provided to the Runtime
@@ -451,35 +451,35 @@ where
     fn compile_template(
         &self,
         store: &wasmer::Store,
-        ctx: &Context,
+        env: &FuncEnv,
         template: &Template,
         gas_left: Gas,
     ) -> std::result::Result<Module, Failure> {
         let module_res = Module::from_binary(store, template.code());
         let _gas_left = gas_left.unwrap_or(0);
 
-        module_res.map_err(|err| self.compilation_failed(ctx, err))
+        module_res.map_err(|err| self.compilation_failed(env, err))
     }
 
     fn validate_call(
         &self,
         call: &Call,
         template: &Template,
-        ctx: &Context,
+        env: &FuncEnv,
     ) -> std::result::Result<(), Failure> {
         let spawning = call.within_spawn;
         let ctor = template.is_ctor(call.func_name);
 
         if spawning && !ctor {
             let msg = "expected function to be a constructor";
-            let err = self.func_not_allowed(ctx, call.func_name, msg);
+            let err = self.func_not_allowed(env, call.func_name, msg);
 
             return Err(err);
         }
 
         if !spawning && ctor {
             let msg = "expected function to be a non-constructor";
-            let err = self.func_not_allowed(ctx, call.func_name, msg);
+            let err = self.func_not_allowed(env, call.func_name, msg);
 
             return Err(err);
         }
@@ -490,30 +490,30 @@ where
     /// Errors
 
     #[inline]
-    fn func_not_found(&self, ctx: &Context, func_name: &str) -> Failure {
+    fn func_not_found(&self, env: &FuncEnv, func_name: &str) -> Failure {
         RuntimeError::FuncNotFound {
-            account_addr: ctx.account_addr().clone(),
-            template_addr: ctx.template_addr().clone(),
+            account_addr: env.account_addr().clone(),
+            template_addr: env.template_addr().clone(),
             func: func_name.to_string(),
         }
         .into()
     }
 
     #[inline]
-    fn instantiation_failed(&self, ctx: &Context, err: wasmer::InstantiationError) -> Failure {
+    fn instantiation_failed(&self, env: &FuncEnv, err: wasmer::InstantiationError) -> Failure {
         RuntimeError::InstantiationFailed {
-            account_addr: ctx.account_addr().clone(),
-            template_addr: ctx.template_addr().clone(),
+            account_addr: env.account_addr().clone(),
+            template_addr: env.template_addr().clone(),
             msg: err.to_string(),
         }
         .into()
     }
 
     #[inline]
-    fn func_not_allowed(&self, ctx: &Context, func_name: &str, msg: &str) -> Failure {
+    fn func_not_allowed(&self, env: &FuncEnv, func_name: &str, msg: &str) -> Failure {
         RuntimeError::FuncNotAllowed {
-            account_addr: ctx.account_addr().clone(),
-            template_addr: ctx.template_addr().clone(),
+            account_addr: env.account_addr().clone(),
+            template_addr: env.template_addr().clone(),
             func: func_name.to_string(),
             msg: msg.to_string(),
         }
@@ -521,10 +521,10 @@ where
     }
 
     #[inline]
-    fn func_invalid_sig(&self, ctx: &Context, func_name: &str) -> Failure {
+    fn func_invalid_sig(&self, env: &FuncEnv, func_name: &str) -> Failure {
         RuntimeError::FuncInvalidSignature {
-            account_addr: ctx.account_addr().clone(),
-            template_addr: ctx.template_addr().clone(),
+            account_addr: env.account_addr().clone(),
+            template_addr: env.template_addr().clone(),
             func: func_name.to_string(),
         }
         .into()
@@ -533,14 +533,14 @@ where
     #[inline]
     fn func_failed(
         &self,
-        ctx: &Context,
+        env: &FuncEnv,
         func_name: &str,
         err: wasmer::RuntimeError,
         logs: Vec<ReceiptLog>,
     ) -> Failure {
         let err = RuntimeError::FuncFailed {
-            account_addr: ctx.account_addr().clone(),
-            template_addr: ctx.template_addr().clone(),
+            account_addr: env.account_addr().clone(),
+            template_addr: env.template_addr().clone(),
             func: func_name.to_string(),
             msg: err.to_string(),
         };
@@ -549,10 +549,10 @@ where
     }
 
     #[inline]
-    fn compilation_failed(&self, ctx: &Context, err: wasmer::CompileError) -> Failure {
+    fn compilation_failed(&self, env: &FuncEnv, err: wasmer::CompileError) -> Failure {
         RuntimeError::CompilationFailed {
-            account_addr: ctx.account_addr().clone(),
-            template_addr: ctx.template_addr().clone(),
+            account_addr: env.account_addr().clone(),
+            template_addr: env.template_addr().clone(),
             msg: err.to_string(),
         }
         .into()
@@ -701,7 +701,7 @@ where
         //             within_spawn: false,
         //         };
 
-        //         let out = self.exec::<(), u32, _, _>(&call, |_ctx, mut out| {
+        //         let out = self.exec::<(), u32, _, _>(&call, |_env, mut out| {
         //             let returns = out.take_returns();
 
         //             debug_assert_eq!(returns.len(), 1);

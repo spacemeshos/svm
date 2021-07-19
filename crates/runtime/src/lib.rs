@@ -9,7 +9,7 @@
 #![deny(unreachable_code)]
 #![feature(vec_into_raw_parts)]
 
-mod context;
+mod func_env;
 mod env;
 mod error;
 mod runtime;
@@ -19,7 +19,7 @@ mod wasm_store;
 pub mod testing;
 pub mod vmcalls;
 
-pub use context::Context;
+pub use func_env::FuncEnv;
 pub use env::{Env, EnvTypes};
 pub use error::ValidateError;
 pub use runtime::{Config, DefaultRuntime, Runtime, RuntimePtr};
