@@ -21,6 +21,8 @@ use crate::raw_utf8_error;
 
 use crate::{raw_error, raw_validate_error, svm_result_t};
 
+static ENVELOPE_TYPE: Type = Type::Str("Tx Envelope");
+static CONTEXT_TYPE: Type = Type::Str("Tx Context");
 static KV_TYPE: Type = Type::Str("Key-Value Store");
 static VALIDATE_CALL_TARGET_TYPE: Type = Type::Str("validate_call Target");
 static _DEPLOY_RECEIPT_TYPE: Type = Type::Str("Deploy Receipt");
@@ -37,20 +39,30 @@ fn maybe_gas(gas_enabled: bool, gas_limit: u64) -> Gas {
 }
 
 #[inline]
-unsafe fn data_to_svm_byte_array(
-    svm_type: Type,
-    raw_byte_array: *mut svm_byte_array,
-    data: Vec<u8>,
-) {
+unsafe fn data_to_svm_byte_array(ty: Type, byte_array: *mut svm_byte_array, data: Vec<u8>) {
     let (ptr, len, cap) = data.into_raw_parts();
-    let bytes: &mut svm_byte_array = &mut *raw_byte_array;
+    let bytes: &mut svm_byte_array = &mut *byte_array;
 
-    tracking::increment_live(svm_type);
+    tracking::increment_live(ty);
 
     bytes.bytes = ptr;
     bytes.length = len as u32;
     bytes.capacity = cap as u32;
-    bytes.type_id = tracking::interned_type(svm_type);
+    bytes.type_id = tracking::interned_type(ty);
+}
+
+/// Allocates `svm_byte_array` of `size` bytes, destined to be used for passing a binary [`Envelope`].
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_envelope_alloc(size: u32) -> svm_byte_array {
+    svm_byte_array::new(size as usize, ENVELOPE_TYPE)
+}
+
+/// Allocates `svm_byte_array` of `size` bytes, destined to be used for passing a binary [`Context`].
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_context_alloc(size: u32) -> svm_byte_array {
+    svm_byte_array::new(size as usize, CONTEXT_TYPE)
 }
 
 /// Validates syntactically a raw `deploy template` transaction.
@@ -94,7 +106,7 @@ pub unsafe extern "C" fn svm_validate_deploy(
 ) -> svm_result_t {
     let runtime: &mut Box<dyn Runtime> = runtime.into();
 
-    match runtime.validate_deploy(message.into()) {
+    match runtime.validate_deploy(message.as_bytes()) {
         Ok(()) => svm_result_t::SVM_SUCCESS,
         Err(e) => {
             error!("`svm_validate_template` returns `SVM_FAILURE`");
@@ -144,7 +156,7 @@ pub unsafe extern "C" fn svm_validate_spawn(
 ) -> svm_result_t {
     let runtime: &mut Box<dyn Runtime> = runtime.into();
 
-    match runtime.validate_spawn(message.into()) {
+    match runtime.validate_spawn(message.as_bytes()) {
         Ok(()) => svm_result_t::SVM_SUCCESS,
         Err(e) => {
             error!("`svm_validate_spawn` returns `SVM_FAILURE`");
@@ -196,13 +208,13 @@ pub unsafe extern "C" fn svm_validate_call(
 
     let runtime: &mut Box<dyn Runtime> = runtime.into();
 
-    match runtime.validate_call(message.into()) {
+    match runtime.validate_call(message.as_bytes()) {
         Ok(tx) => {
             // Returns `target Address` that appears in `bytes`.
             //
             // # Notes
             //
-            // should call later `svm_receipt_destroy`
+            // Should call later `svm_receipt_destroy`
             data_to_svm_byte_array(
                 VALIDATE_CALL_TARGET_TYPE,
                 target,
@@ -442,7 +454,7 @@ pub unsafe extern "C" fn svm_deploy(
     // }
 
     // let gas_limit = maybe_gas(gas_enabled, gas_limit);
-    // let rust_receipt = runtime.deploy(message.into(), &deployer.unwrap().into(), gas_limit);
+    // let rust_receipt = runtime.deploy(message.as_bytes(), &deployer.unwrap().into(), gas_limit);
     // let receipt_bytes = receipt::encode_deploy(&rust_receipt);
 
     // // returning encoded `TemplateReceipt` as `svm_byte_array`.
@@ -512,15 +524,9 @@ pub unsafe extern "C" fn svm_spawn(
     todo!("extract `spawner, gas_limit`");
 
     // let runtime: &mut Box<dyn Runtime> = runtime.into();
-    // let spawner: Result<Address, String> = Address::try_from(spawner);
-
-    // if let Err(s) = spawner {
-    //     raw_error(s, error);
-    //     return svm_result_t::SVM_FAILURE;
-    // }
 
     // let gas_limit = maybe_gas(gas_enabled, gas_limit);
-    // let rust_receipt = runtime.spawn(message.into(), &spawner.unwrap().into(), gas_limit);
+    // let rust_receipt = runtime.spawn(envelope, message.as_bytes(), context);
     // let receipt_bytes = receipt::encode_spawn(&rust_receipt);
 
     // // Returns the encoded `SpawnReceipt` as `svm_byte_array`.
@@ -594,17 +600,8 @@ pub unsafe extern "C" fn svm_call(
     todo!("extract `state` (from `context`), `gas_limit` (from `envelope`)");
 
     // let runtime: &mut Box<dyn Runtime> = runtime.into();
-    // let state: Result<State, String> = State::try_from(state);
 
-    // if let Err(msg) = state {
-    //     raw_error(msg, error);
-    //     return svm_result_t::SVM_FAILURE;
-    // }
-
-    // let gas_limit = maybe_gas(gas_enabled, gas_limit);
-
-    // let tx = runtime.validate_call(message.into()).unwrap();
-    // let rust_receipt = runtime.call(&tx, &state.unwrap(), gas_limit);
+    // let rust_receipt = runtime.call(&envelope, message.as_bytes(), &context);
     // let receipt_bytes = receipt::encode_call(&rust_receipt);
 
     // Returns encoded `CallReceipt` as `svm_byte_array`.
@@ -748,9 +745,7 @@ pub unsafe extern "C" fn svm_byte_array_destroy(bytes: svm_byte_array) {
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_wasm_error_create(msg: svm_byte_array) -> *mut svm_byte_array {
-    let msg: &[u8] = msg.into();
     let bytes = msg.to_vec();
-
     let err: svm_byte_array = (svm_ffi::SVM_WASM_ERROR_TYPE, bytes).into();
 
     let ty = svm_ffi::SVM_WASM_ERROR_TYPE_PTR;

@@ -42,6 +42,10 @@ pub use api::{
     // Error
     svm_wasm_error_create,
 
+    // Allocation
+    svm_envelope_alloc,
+    svm_context_alloc,
+
     // Resources tracking
     svm_total_live_resources,
     svm_resource_iter_new,

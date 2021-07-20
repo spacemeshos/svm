@@ -64,6 +64,16 @@ impl svm_byte_array {
 
         tracking::decrement_live_1(self.type_id)
     }
+
+    /// Returns a byte slice over the contents.
+    pub fn as_bytes(&self) -> &[u8] {
+        unsafe { std::slice::from_raw_parts(self.bytes, self.length as usize) }
+    }
+
+    /// Copies `self` into a new `Vec`.
+    pub fn to_vec(&self) -> Vec<u8> {
+        self.as_bytes().to_vec()
+    }
 }
 
 // ///
@@ -117,16 +127,13 @@ impl TryFrom<&svm_byte_array> for String {
     type Error = FromUtf8Error;
 
     fn try_from(bytes: &svm_byte_array) -> Result<Self, Self::Error> {
-        let slice: &[u8] = bytes.into();
-
         // data is cloned here, so the new `String` won't be merely an alias,
         // and `bytes` will still require a separate de-allocation.
         //
         // Making it an alias is unsafe because the data may not have
         // been dynamically allocated, or not by Rust's global allocator.
-        let vec = slice.to_vec();
 
-        String::from_utf8(vec)
+        String::from_utf8(bytes.to_vec())
     }
 }
 
@@ -135,18 +142,6 @@ impl TryFrom<svm_byte_array> for String {
 
     fn try_from(value: svm_byte_array) -> Result<Self, Self::Error> {
         String::try_from(&value)
-    }
-}
-
-impl From<&svm_byte_array> for &[u8] {
-    fn from(bytes: &svm_byte_array) -> Self {
-        unsafe { std::slice::from_raw_parts(bytes.bytes, bytes.length as usize) }
-    }
-}
-
-impl From<svm_byte_array> for &[u8] {
-    fn from(bytes: svm_byte_array) -> Self {
-        (&bytes).into()
     }
 }
 
