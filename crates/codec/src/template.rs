@@ -1,9 +1,11 @@
-//! Encoding for templates
+//! Encoding for binary a [`Template`]s
 //!
-//!  `Template` Binary Format
+//!  [`Template`] Binary Format
 //!
 //!  Important: There are no assumptions regarding the order of the `Section`s
 //!
+//!
+//! ```text
 //!
 //!  +----------------+
 //!  |                |
@@ -35,11 +37,11 @@
 //!  |                |
 //!  +----------------+
 //!  |                |
-//!  | Deploy Section | (Optional, will be derived from the `Transaction Envelope`)
+//!  | Deploy Section | (Optional, will be derived from the `Transaction Envelope` and `Transaction Context`)
 //!  |                |
 //!  +----------------+
 //!
-//!
+//! ```
 
 use svm_types::{SectionKind, Template};
 
