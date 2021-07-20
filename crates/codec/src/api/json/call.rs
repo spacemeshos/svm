@@ -31,7 +31,7 @@ pub fn encode_call(json: &Value) -> Result<Vec<u8>, JsonError> {
     let tx = Transaction {
         version,
         target,
-        func_name,
+        function: func_name,
         // verifydata,
         calldata,
     };
@@ -53,7 +53,7 @@ pub fn decode_call(json: &Value) -> Result<Value, JsonError> {
     let tx = call::decode_call(&mut cursor).unwrap();
 
     let version = tx.version;
-    let func_name = tx.func_name.clone();
+    let func_name = tx.function.clone();
     let target = json::addr_to_str(&tx.target.inner());
 
     // let verifydata = json::bytes_to_str(&tx.verifydata);

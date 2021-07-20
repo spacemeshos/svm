@@ -106,7 +106,7 @@ impl TxBuilder {
         let tx = Transaction {
             version,
             target,
-            func_name,
+            function: func_name,
             // verifydata,
             calldata,
         };

@@ -6,7 +6,7 @@ use svm_types::{AccountAddr, Gas, State, TemplateAddr};
 pub struct Call<'a> {
     pub func_name: &'a str,
     pub calldata: &'a [u8],
-    pub account_addr: &'a AccountAddr,
+    pub principal: &'a AccountAddr,
     pub template_addr: &'a TemplateAddr,
     pub state: &'a State,
     pub gas_used: Gas,

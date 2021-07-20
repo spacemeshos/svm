@@ -24,8 +24,7 @@ pub use default::DefaultRuntime;
 pub use ptr::RuntimePtr;
 
 use svm_types::{
-    CallReceipt, DeployReceipt, DeployerAddr, Gas, RuntimeError, SpawnReceipt, SpawnerAddr, State,
-    Transaction,
+    CallReceipt, Context, DeployReceipt, Envelope, RuntimeError, SpawnReceipt, Transaction,
 };
 
 use crate::error::ValidateError;
@@ -35,39 +34,34 @@ use crate::error::ValidateError;
 /// Any [`Runtime`] implementation will implement:
 ///
 /// * `Deploy Template`s
-/// * `Spawn `Account`s
+/// * `Spawn Account`s
 /// * `Call Account`s
 pub trait Runtime {
-    /// Validates a raw `Deploy Template` transaction prior to executing it.
-    fn validate_deploy(&self, bytes: &[u8]) -> Result<(), ValidateError>;
+    /// Validates syntactically a binary `Deploy Template` message prior to executing it.
+    fn validate_deploy(&self, message: &[u8]) -> Result<(), ValidateError>;
 
-    /// Validates a raw `Spawn Account` transaction prior to executing it.
-    fn validate_spawn(&self, bytes: &[u8]) -> Result<(), ValidateError>;
+    /// Validates syntactically a binary `Spawn Account` message prior to executing it.
+    fn validate_spawn(&self, message: &[u8]) -> Result<(), ValidateError>;
 
-    /// Validates a raw `Call Account` transaction (a.k.a a [`Transaction`]) prior to executing it.
-    fn validate_call(&self, bytes: &[u8]) -> Result<Transaction, ValidateError>;
+    /// Validates syntactically a binary `Call Account` message prior to executing it.
+    fn validate_call(&self, message: &[u8]) -> Result<Transaction, ValidateError>;
 
-    /// Deploy a `Template`
-    fn deploy(&mut self, bytes: &[u8], deployer: &DeployerAddr, gas_limit: Gas) -> DeployReceipt;
+    /// Deploys a `Template`
+    fn deploy(&mut self, envelope: &Envelope, message: &[u8], context: &Context) -> DeployReceipt;
 
     /// Spawns a new `Account`
-    fn spawn(&mut self, bytes: &[u8], spawner: &SpawnerAddr, gas_limit: Gas) -> SpawnReceipt;
+    fn spawn(&mut self, envelope: &Envelope, message: &[u8], context: &Context) -> SpawnReceipt;
 
     /// Verifies a [`Transaction`] before execution.
-    fn verify(&self, tx: &Transaction, state: &State, gas_limit: Gas)
-        -> Result<bool, RuntimeError>;
+    fn verify(
+        &self,
+        envelope: &Envelope,
+        message: &[u8],
+        context: &Context,
+    ) -> Result<bool, RuntimeError>;
 
-    /// Executes an [`Transaction`] and returns its output [`CallReceipt`].
+    /// Executes a [`Transaction`] and returns its output [`CallReceipt`].
     ///
-    /// This function should be called only if the `verify` stage passed.
-    ///
-    /// On Success:
-    /// * Persists changes to the called `Account`'s storage.
-    /// * Receipt returns the `Account`'s new `State`.
-    /// * Receipt returns the amount of [`Gas`] used.
-    ///
-    /// On failure:
-    /// * Receipt returns the occurred error
-    /// * Receipt informs the amount of gas used (transaction gas limit)
-    fn call(&self, tx: &Transaction, state: &State, gas_limit: Gas) -> CallReceipt;
+    /// This function should be called only if the `verify` stage has passed.
+    fn call(&self, envelope: &Envelope, message: &[u8], context: &Context) -> CallReceipt;
 }

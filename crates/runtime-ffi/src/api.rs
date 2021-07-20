@@ -224,6 +224,8 @@ macro_rules! box_runtime {
     ($raw_runtime:expr, $runtime:expr) => {{
         let runtime_ptr = RuntimePtr::new(Box::new($runtime));
 
+        // # Notes
+        //
         // `svm_runtime_destroy` should be called later for freeing memory.
         *$raw_runtime = RuntimePtr::into_raw(runtime_ptr);
 
