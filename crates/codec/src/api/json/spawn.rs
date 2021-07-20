@@ -6,7 +6,7 @@ use std::io::Cursor;
 use svm_types::{Account, SpawnAccount};
 
 use super::TypeInformation;
-use crate::api::json::{self, JsonError};
+use crate::api::json::{self, HexBlob, JsonError};
 use crate::spawn;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -15,7 +15,7 @@ struct SpawnJsonlike {
     template: String,
     name: String,
     ctor_name: String,
-    calldata: String,
+    calldata: HexBlob,
 }
 
 impl TypeInformation for SpawnJsonlike {
@@ -47,7 +47,7 @@ pub fn encode_spawn(json: &Value) -> Result<Vec<u8>, JsonError> {
         version: jsonlike.version,
         account: Account::new(template, jsonlike.name),
         ctor_name: jsonlike.ctor_name,
-        calldata: jsonlike.calldata.into_bytes(),
+        calldata: jsonlike.calldata.0,
     };
 
     let mut buf = Vec::new();

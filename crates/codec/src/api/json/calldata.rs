@@ -143,10 +143,16 @@ fn composite_as_json(c: &Composite) -> (Json, Json) {
 }
 
 // See <https://serde.rs/enum-representations.html>.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(untagged)]
+enum Ty {
+    Prim(TyPrim),
+    Array(Vec<Ty>),
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
-enum Ty {
-    Array(Vec<Ty>),
+enum TyPrim {
     Bool,
     I8,
     U8,
@@ -166,7 +172,7 @@ impl Ty {
             Ty::Array(types) => {
                 assert_eq!(types.len(), 1);
 
-                let _ty = &types[0];
+                let ty = &types[0];
 
                 // we initialize `byte_size` for the `length` marker.
                 let mut byte_size = 1;
@@ -175,22 +181,24 @@ impl Ty {
                 let elems = json::as_array(&json, "calldata")?;
 
                 for elem in elems {
-                    byte_size += self.value_byte_size(elem)?;
+                    byte_size += ty.value_byte_size(elem)?;
                 }
 
                 byte_size
             }
-            Ty::Bool => bool::max_byte_size(),
-            Ty::I8 => i8::max_byte_size(),
-            Ty::U8 => u8::max_byte_size(),
-            Ty::I16 => i16::max_byte_size(),
-            Ty::U16 => u16::max_byte_size(),
-            Ty::I32 => i32::max_byte_size(),
-            Ty::U32 => u32::max_byte_size(),
-            Ty::I64 => i64::max_byte_size(),
-            Ty::U64 => u64::max_byte_size(),
-            Ty::Amount => Amount::max_byte_size(),
-            Ty::Address => Address::max_byte_size(),
+            Ty::Prim(prim) => match prim {
+                TyPrim::Bool => bool::max_byte_size(),
+                TyPrim::I8 => i8::max_byte_size(),
+                TyPrim::U8 => u8::max_byte_size(),
+                TyPrim::I16 => i16::max_byte_size(),
+                TyPrim::U16 => u16::max_byte_size(),
+                TyPrim::I32 => i32::max_byte_size(),
+                TyPrim::U32 => u32::max_byte_size(),
+                TyPrim::I64 => i64::max_byte_size(),
+                TyPrim::U64 => u64::max_byte_size(),
+                TyPrim::Amount => Amount::max_byte_size(),
+                TyPrim::Address => Address::max_byte_size(),
+            },
         };
         //      return Err(JsonError::InvalidField {
         //          field: "abi".to_string(),
@@ -205,62 +213,59 @@ impl ToString for Ty {
     fn to_string(&self) -> String {
         match self {
             Self::Array(_) => "array".to_string(),
-            Self::Bool => "bool".to_string(),
-            Self::I8 => "i8".to_string(),
-            Self::U8 => "u8".to_string(),
-            Self::I16 => "i16".to_string(),
-            Self::U16 => "u16".to_string(),
-            Self::I32 => "i32".to_string(),
-            Self::U32 => "u32".to_string(),
-            Self::I64 => "i64".to_string(),
-            Self::U64 => "u64".to_string(),
-            Self::Amount => "amount".to_string(),
-            Self::Address => "address".to_string(),
+            Self::Prim(prim) => match prim {
+                TyPrim::Bool => "bool".to_string(),
+                TyPrim::I8 => "i8".to_string(),
+                TyPrim::U8 => "u8".to_string(),
+                TyPrim::I16 => "i16".to_string(),
+                TyPrim::U16 => "u16".to_string(),
+                TyPrim::I32 => "i32".to_string(),
+                TyPrim::U32 => "u32".to_string(),
+                TyPrim::I64 => "i64".to_string(),
+                TyPrim::U64 => "u64".to_string(),
+                TyPrim::Amount => "amount".to_string(),
+                TyPrim::Address => "address".to_string(),
+            },
         }
     }
 }
 
 fn encode_value(ty: &Ty, value: &Json) -> Result<Value, JsonError> {
-    if let Ty::Array(types) = ty {
-        return encode_array(types, value);
-    }
+    match ty {
+        Ty::Array(types) => encode_array(types, value),
+        Ty::Prim(prim) => {
+            let json = json!({ "calldata": value });
 
-    let json = json!({ "calldata": value });
+            macro_rules! encode {
+                ($func:ident) => {{
+                    json::$func(&json, "calldata")?.into()
+                }};
+            }
 
-    macro_rules! encode {
-        ($func:ident) => {{
-            json::$func(&json, "calldata")?.into()
-        }};
-    }
+            let value: Value = match prim {
+                TyPrim::Bool => encode!(as_bool),
+                TyPrim::I8 => encode!(as_i8),
+                TyPrim::U8 => encode!(as_u8),
+                TyPrim::I16 => encode!(as_i16),
+                TyPrim::U16 => encode!(as_u16),
+                TyPrim::I32 => encode!(as_i32),
+                TyPrim::U32 => encode!(as_u32),
+                TyPrim::I64 => encode!(as_i64),
+                TyPrim::U64 => encode!(as_u64),
+                TyPrim::Amount => encode!(as_amount),
+                TyPrim::Address => {
+                    let addr: svm_types::Address = json::as_addr(&json, "calldata")?;
 
-    let value: Value = match ty {
-        Ty::Bool => encode!(as_bool),
-        Ty::I8 => encode!(as_i8),
-        Ty::U8 => encode!(as_u8),
-        Ty::I16 => encode!(as_i16),
-        Ty::U16 => encode!(as_u16),
-        Ty::I32 => encode!(as_i32),
-        Ty::U32 => encode!(as_u32),
-        Ty::I64 => encode!(as_i64),
-        Ty::U64 => encode!(as_u64),
-        Ty::Amount => encode!(as_amount),
-        Ty::Address => {
-            let addr: svm_types::Address = json::as_addr(&json, "calldata")?;
+                    let bytes = addr.bytes();
+                    let addr: Address = bytes.into();
 
-            let bytes = addr.bytes();
-            let addr: Address = bytes.into();
+                    addr.into()
+                }
+            };
 
-            addr.into()
+            Ok(value)
         }
-        _ => {
-            return Err(JsonError::InvalidField {
-                field: "abi".to_string(),
-                reason: format!("invalid ABI type: `{}`", ty.to_string()),
-            })
-        }
-    };
-
-    Ok(value)
+    }
 }
 
 fn encode_array(types: &[Ty], value: &Json) -> Result<Value, JsonError> {
@@ -295,25 +300,22 @@ mod tests {
             let encoded = encode_calldata(&json).unwrap();
             let decoded = decode_calldata(&encoded).unwrap();
 
-            assert_eq!(
-                decoded,
-                json!({"abi": $abi, "data": $data })
-            );
+            assert_eq!(decoded, json);
         }}
     }
 
     #[test]
-    pub fn encode_calldata_bool() {
+    fn encode_calldata_bool() {
         test!(["bool", "bool"], [true, false]);
     }
 
     #[test]
-    pub fn encode_calldata_i8_u8() {
+    fn encode_calldata_i8_u8() {
         test!(["i8", "u8"], [std::i8::MIN as isize, std::u8::MAX as isize]);
     }
 
     #[test]
-    pub fn encode_calldata_i16_u16() {
+    fn encode_calldata_i16_u16() {
         test!(
             ["i16", "u16"],
             [std::i16::MIN as isize, std::u16::MAX as isize]
@@ -321,7 +323,7 @@ mod tests {
     }
 
     #[test]
-    pub fn encode_calldata_i32_u32() {
+    fn encode_calldata_i32_u32() {
         test!(
             ["i32", "u32"],
             [std::i32::MIN as isize, std::u32::MAX as isize]
@@ -329,25 +331,25 @@ mod tests {
     }
 
     #[test]
-    pub fn encode_calldata_i64_u64() {
+    fn encode_calldata_i64_u64() {
         test!(["i64"], [std::i64::MIN as isize]);
         test!(["u64"], [std::u64::MAX as usize]);
     }
 
     #[test]
-    pub fn encode_calldata_amount() {
+    fn encode_calldata_amount() {
         test!(["amount", "amount"], [10 as u64, 20 as u64]);
     }
 
     #[test]
-    pub fn encode_calldata_address() {
+    fn encode_calldata_address() {
         let addr = "1020304050607080900010203040506070809000";
 
         test!(["address"], [addr]);
     }
 
     #[test]
-    pub fn encode_calldata_array() {
+    fn encode_calldata_array() {
         test!([["u32"]], [[10, 20, 30]]);
         test!([["i8"]], [[-10, 0, 30]]);
         test!([["u32"], ["i8"]], [[10, 20, 30], [-10, 0, 20]]);

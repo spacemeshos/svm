@@ -12,8 +12,8 @@ use crate::template;
 #[derive(Debug, Clone, Deserialize, Serialize)]
 struct DeployJsonlike {
     svm_version: u32,
-    name: String,
     code_version: u32,
+    name: String,
     desc: String,
     code: HexBlob,
     data: HexBlob,
