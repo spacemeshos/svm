@@ -12,7 +12,7 @@ use svm_types::{Address, Gas, RuntimeError};
 use svm_types::{DeployReceipt, SpawnReceipt};
 
 fn memory_runtime() -> impl Runtime {
-    let state_kv = testing::memory_state_kv_init();
+    let state_kv = testing::memory_kv_init();
     testing::create_memory_runtime(&state_kv)
 }
 
@@ -36,7 +36,7 @@ fn memory_runtime_validate_deploy_invalid_wasm() {
     let ctors = Vec::new();
 
     // An invalid Wasm (has floats)
-    let bytes = testing::build_template(
+    let bytes = testing::build_deploy(
         code_version,
         "My Template",
         FixedLayout::default(),
@@ -86,7 +86,7 @@ fn memory_runtime_deploy_reaches_oog() {
     let maybe_gas = Gas::with(0);
     let ctors = vec!["ctor".to_string()];
 
-    let bytes = testing::build_template(
+    let bytes = testing::build_deploy(
         code_version,
         "My Template",
         FixedLayout::default(),
@@ -108,7 +108,7 @@ fn memory_runtime_deploy_success() {
     let gas_limit = Gas::with(1_0000_000);
     let ctors = vec!["ctor".to_string()];
 
-    let bytes = testing::build_template(
+    let bytes = testing::build_deploy(
         code_version,
         "My Template",
         FixedLayout::default(),
@@ -132,7 +132,7 @@ fn memory_runtime_spawn_invoking_non_ctor_fails() {
     let maybe_gas = Gas::new();
     let ctors = vec!["ctor".to_string()];
 
-    let bytes = testing::build_template(
+    let bytes = testing::build_deploy(
         code_version,
         "My Template",
         FixedLayout::default(),
@@ -171,7 +171,7 @@ fn memory_runtime_spawn_reaches_oog() {
     let maybe_gas = Gas::new();
     let ctors = vec!["ctor".to_string()];
 
-    let bytes = testing::build_template(
+    let bytes = testing::build_deploy(
         code_version,
         "My Template",
         FixedLayout::default(),
@@ -208,7 +208,7 @@ fn memory_runtime_call_func_not_found() {
     let layout: FixedLayout = vec![Address::len() as u32].into();
     let ctors = vec!["initialize".to_string()];
 
-    let bytes = testing::build_template(
+    let bytes = testing::build_deploy(
         code_version,
         "My Template",
         layout.clone(),
@@ -235,7 +235,7 @@ fn memory_runtime_call_func_not_found() {
 
     // 3) `Call Account`
     let calldata = Vec::new();
-    let bytes = testing::build_transaction(&account_addr, ctor, &calldata);
+    let bytes = testing::build_call(&account_addr, ctor, &calldata);
     let tx = runtime.validate_call(&bytes).unwrap();
 
     let receipt = runtime.call(&tx, &init_state, maybe_gas);
@@ -256,7 +256,7 @@ fn memory_runtime_spawn_without_gas() {
     let layout: FixedLayout = vec![Address::len() as u32].into();
     let ctors = vec!["initialize".to_string()];
 
-    let bytes = testing::build_template(
+    let bytes = testing::build_deploy(
         code_version,
         "My Template",
         layout.clone(),
@@ -291,7 +291,7 @@ fn runtime_calldata_returndata() {
     let layout: FixedLayout = vec![Address::len() as u32].into();
     let ctors = vec!["initialize".to_string()];
 
-    let bytes = testing::build_template(
+    let bytes = testing::build_deploy(
         code_version,
         "My Template",
         layout.clone(),
@@ -323,7 +323,7 @@ fn runtime_calldata_returndata() {
     let mut calldata = svm_sdk::Vec::with_capacity(100_000);
     msg.encode(&mut calldata);
 
-    let bytes = testing::build_transaction(&account_addr, func, &calldata);
+    let bytes = testing::build_call(&account_addr, func, &calldata);
     let tx = runtime.validate_call(&bytes).unwrap();
 
     let receipt = runtime.call(&tx, &init_state, maybe_gas);
@@ -335,7 +335,7 @@ fn runtime_calldata_returndata() {
     let func = "load_addr";
     let calldata = Vec::new();
 
-    let bytes = testing::build_transaction(&account_addr, func, &calldata);
+    let bytes = testing::build_call(&account_addr, func, &calldata);
     let tx = runtime.validate_call(&bytes).unwrap();
 
     let receipt = runtime.call(&tx, &state, maybe_gas);

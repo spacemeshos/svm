@@ -19,7 +19,7 @@ pub(crate) use error::{raw_error, raw_validate_error};
 pub use api::svm_runtime_create;
 
 #[cfg(feature = "default-memory")]
-pub use api::{svm_memory_runtime_create, svm_memory_state_kv_create};
+pub use api::svm_memory_runtime_create;
 
 /// `SVM` FFI Interface
 #[rustfmt::skip]
@@ -36,7 +36,6 @@ pub use api::{
 
     // Destroy
     svm_runtime_destroy,
-    svm_state_kv_destroy,
     svm_byte_array_destroy,
 
     // Error

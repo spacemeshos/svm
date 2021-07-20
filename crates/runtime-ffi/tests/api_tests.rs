@@ -32,7 +32,7 @@ unsafe fn wasm_error(msg: String) -> *mut svm_byte_array {
 fn deploy_bytes(code_version: u32, name: &str, ctors: &[String], wasm: &[u8]) -> Vec<u8> {
     let data: FixedLayout = vec![4].into();
 
-    svm_runtime::testing::build_template(code_version, name, data, ctors, WasmFile::Binary(wasm))
+    svm_runtime::testing::build_deploy(code_version, name, data, ctors, WasmFile::Binary(wasm))
 }
 
 fn spawn_bytes(template_addr: &TemplateAddr, name: &str, ctor: &str, calldata: &[u8]) -> Vec<u8> {
@@ -43,7 +43,7 @@ fn call_bytes(target_addr: &svm_byte_array, func_name: &str, calldata: &[u8]) ->
     let target_addr: &[u8] = target_addr.into();
     let target_addr = Address::from(target_addr).into();
 
-    svm_runtime::testing::build_transaction(&target_addr, func_name, calldata)
+    svm_runtime::testing::build_call(&target_addr, func_name, calldata)
 }
 
 #[test]

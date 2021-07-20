@@ -10,6 +10,17 @@ pub fn wasmer_store() -> wasmer::Store {
     svm_runtime::new_store()
 }
 
+/// Instantiate a `Wasmer` instance
+pub fn wasmer_instantiate(
+    store: &Store,
+    import_object: &ImportObject,
+    wasm_file: WasmFile,
+) -> Instance {
+    let module = wasmer_compile(store, wasm_file);
+
+    Instance::new(&module, import_object).unwrap()
+}
+
 /// Creates a new `Wasmer Memory` consisting of a single page
 /// The memory is of type non-shared and can grow unbounded.
 fn wasmer_memory(store: &wasmer::Store) -> wasmer::Memory {
@@ -91,7 +102,7 @@ fn vmcalls_empty_wasm() {
     let store = wasmer_store();
     let import_object = imports! {};
 
-    testing::wasmer_instantiate(&store, &import_object, wasm);
+    wasmer_instantiate(&store, &import_object, wasm);
 }
 
 #[test]
@@ -112,7 +123,7 @@ fn vmcalls_get32_set32() {
         }
     };
 
-    let instance = testing::wasmer_instantiate(
+    let instance = wasmer_instantiate(
         &store,
         &import_object,
         include_str!("wasm/get32_set32.wast").into(),
@@ -145,7 +156,7 @@ fn vmcalls_get64_set64() {
         },
     };
 
-    let instance = testing::wasmer_instantiate(
+    let instance = wasmer_instantiate(
         &store,
         &import_object,
         include_str!("wasm/get64_set64.wast").into(),
@@ -185,7 +196,7 @@ fn vmcalls_load160() {
         },
     };
 
-    let instance = testing::wasmer_instantiate(
+    let instance = wasmer_instantiate(
         &store,
         &import_object,
         include_str!("wasm/load160_store160.wast").into(),
@@ -232,7 +243,7 @@ fn vmcalls_store160() {
         },
     };
 
-    let instance = testing::wasmer_instantiate(
+    let instance = wasmer_instantiate(
         &store,
         &import_object,
         include_str!("wasm/load160_store160.wast").into(),
@@ -274,8 +285,7 @@ fn vmcalls_log() {
         },
     };
 
-    let instance =
-        testing::wasmer_instantiate(&store, &import_object, include_str!("wasm/log.wast").into());
+    let instance = wasmer_instantiate(&store, &import_object, include_str!("wasm/log.wast").into());
 
     let data = b"Hello World";
 
