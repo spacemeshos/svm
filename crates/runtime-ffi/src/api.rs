@@ -113,9 +113,12 @@ pub unsafe extern "C" fn svm_validate_deploy(
     let runtime: &mut Box<dyn Runtime> = runtime.into();
 
     match runtime.validate_deploy(message.as_bytes()) {
-        Ok(()) => svm_result_t::SVM_SUCCESS,
+        Ok(()) => {
+            debug!("`svm_validate_deploy` returns `SVM_SUCCESS`");
+            svm_result_t::SVM_SUCCESS
+        }
         Err(e) => {
-            error!("`svm_validate_template` returns `SVM_FAILURE`");
+            error!("`svm_validate_deploy` returns `SVM_FAILURE`");
             raw_validate_error(&e, error);
             svm_result_t::SVM_FAILURE
         }
@@ -159,7 +162,10 @@ pub unsafe extern "C" fn svm_validate_spawn(
     let message = message.as_bytes();
 
     match runtime.validate_spawn(message) {
-        Ok(()) => svm_result_t::SVM_SUCCESS,
+        Ok(()) => {
+            debug!("`svm_validate_spawn` returns `SVM_SUCCESS`");
+            svm_result_t::SVM_SUCCESS
+        }
         Err(e) => {
             error!("`svm_validate_spawn` returns `SVM_FAILURE`");
             raw_validate_error(&e, error);
@@ -169,7 +175,6 @@ pub unsafe extern "C" fn svm_validate_spawn(
 }
 
 /// Validates syntactically a binary `Call Account` transaction.
-/// Returns the `Target Address` that appears in the transaction.
 ///
 /// # Examples
 ///
@@ -193,7 +198,6 @@ pub unsafe extern "C" fn svm_validate_spawn(
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_validate_call(
-    target: *mut svm_byte_array,
     runtime: *mut c_void,
     _envelope: svm_byte_array,
     message: svm_byte_array,
@@ -207,17 +211,6 @@ pub unsafe extern "C" fn svm_validate_call(
 
     match runtime.validate_call(message) {
         Ok(tx) => {
-            // Returns the `target Address` that appears in `message`.
-            //
-            // # Notes
-            //
-            // Should call later `svm_receipt_destroy`
-            data_to_svm_byte_array(
-                VALIDATE_CALL_TARGET_TYPE,
-                target,
-                tx.target.unwrap().as_slice().to_vec(),
-            );
-
             debug!("`svm_validate_call` returns `SVM_SUCCESS`");
             svm_result_t::SVM_SUCCESS
         }

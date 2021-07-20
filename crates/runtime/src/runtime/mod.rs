@@ -23,9 +23,7 @@ pub use config::Config;
 pub use default::DefaultRuntime;
 pub use ptr::RuntimePtr;
 
-use svm_types::{
-    CallReceipt, Context, DeployReceipt, Envelope, RuntimeError, SpawnReceipt, Transaction,
-};
+use svm_types::{CallReceipt, Context, DeployReceipt, Envelope, RuntimeError, SpawnReceipt};
 
 use crate::error::ValidateError;
 
@@ -44,7 +42,7 @@ pub trait Runtime {
     fn validate_spawn(&self, message: &[u8]) -> Result<(), ValidateError>;
 
     /// Validates syntactically a binary `Call Account` message prior to executing it.
-    fn validate_call(&self, message: &[u8]) -> Result<Transaction, ValidateError>;
+    fn validate_call(&self, message: &[u8]) -> Result<(), ValidateError>;
 
     /// Deploys a `Template`
     fn deploy(&mut self, envelope: &Envelope, message: &[u8], context: &Context) -> DeployReceipt;

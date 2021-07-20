@@ -12,7 +12,6 @@ use svm_storage::account::AccountStorage;
 use svm_types::{
     AccountAddr, CallReceipt, Context, DeployReceipt, Envelope, Gas, GasMode, OOGError, ReceiptLog,
     RuntimeError, SectionKind, SpawnReceipt, SpawnerAddr, State, Template, TemplateAddr,
-    Transaction,
 };
 
 use super::{Call, Failure, Function, Outcome};
@@ -582,8 +581,11 @@ where
             .map_err(Into::into)
     }
 
-    fn validate_call(&self, message: &[u8]) -> std::result::Result<Transaction, ValidateError> {
-        self.env.parse_call(message).map_err(|e| e.into())
+    fn validate_call(&self, message: &[u8]) -> std::result::Result<(), ValidateError> {
+        self.env
+            .parse_call(message)
+            .map(|_| ())
+            .map_err(|e| e.into())
     }
 
     fn deploy(&mut self, envelope: &Envelope, message: &[u8], _context: &Context) -> DeployReceipt {
