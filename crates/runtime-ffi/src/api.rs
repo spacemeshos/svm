@@ -382,7 +382,7 @@ pub unsafe extern "C" fn svm_runtime_create(
 /// use svm_runtime_ffi::*;
 ///
 /// use svm_ffi::svm_byte_array;
-/// use svm_types::{Address, Type};
+/// use svm_types::Address;
 ///
 /// // create runtime
 /// let mut state_kv = std::ptr::null_mut();
@@ -396,20 +396,19 @@ pub unsafe extern "C" fn svm_runtime_create(
 ///
 /// // deploy template
 /// let mut receipt = svm_byte_array::default();
-/// let ty = Type::Str("deployer");
-/// let deployer: svm_byte_array = (ty, Address::of("@deployer")).into();
-/// let template_bytes = svm_byte_array::default();
+/// let envelope = svm_byte_array::default();
+/// let message = svm_byte_array::default();
+/// let context = svm_byte_array::default();
 /// let gas_enabled = false;
-/// let gas_limit = 0;
 ///
 /// let res = unsafe {
 ///   svm_deploy(
 ///     &mut receipt,
 ///     runtime,
-///     template_bytes,
-///     deployer,
+///     envelope,
+///     message,
+///     context,
 ///     gas_enabled,
-///     gas_limit,
 ///     &mut error)
 /// };
 ///
@@ -488,7 +487,7 @@ pub unsafe extern "C" fn svm_deploy(
 ///     &mut receipt,
 ///     runtime,
 ///     envelope,
-///     envelope,
+///     message,
 ///     context,
 ///     gas_enabled,
 ///     &mut error)
