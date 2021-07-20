@@ -22,6 +22,7 @@ use crate::raw_utf8_error;
 use crate::{raw_error, raw_validate_error, svm_result_t};
 
 static ENVELOPE_TYPE: Type = Type::Str("Tx Envelope");
+static MESSAGE_TYPE: Type = Type::Str("Tx Message");
 static CONTEXT_TYPE: Type = Type::Str("Tx Context");
 static VALIDATE_CALL_TARGET_TYPE: Type = Type::Str("validate_call Target");
 static _DEPLOY_RECEIPT_TYPE: Type = Type::Str("Deploy Receipt");
@@ -60,6 +61,13 @@ unsafe fn into_raw_runtime<R: Runtime + 'static>(
 #[no_mangle]
 pub unsafe extern "C" fn svm_envelope_alloc(size: u32) -> svm_byte_array {
     svm_byte_array::new(size as usize, ENVELOPE_TYPE)
+}
+
+/// Allocates `svm_byte_array` of `size` bytes, destined to be used for passing a binary [`Message`].
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_message_alloc(size: u32) -> svm_byte_array {
+    svm_byte_array::new(size as usize, MESSAGE_TYPE)
 }
 
 /// Allocates `svm_byte_array` of `size` bytes, destined to be used for passing a binary [`Context`].
@@ -299,7 +307,6 @@ pub unsafe extern "C" fn svm_runtime_create(
     let kv_path = kv_path.unwrap();
 
     let rocksdb_runtime = svm_runtime::create_rocksdb_runtime(&Path::new(&kv_path));
-
     let res = into_raw_runtime(runtime, rocksdb_runtime);
 
     debug!("`svm_runtime_create` end");

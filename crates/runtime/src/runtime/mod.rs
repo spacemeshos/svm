@@ -63,5 +63,5 @@ pub trait Runtime {
     /// Executes a [`Transaction`] and returns its output [`CallReceipt`].
     ///
     /// This function should be called only if the `verify` stage has passed.
-    fn call(&self, envelope: &Envelope, message: &[u8], context: &Context) -> CallReceipt;
+    fn call(&mut self, envelope: &Envelope, message: &[u8], context: &Context) -> CallReceipt;
 }

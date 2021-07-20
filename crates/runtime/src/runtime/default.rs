@@ -106,17 +106,17 @@ where
     /// Opens the [`AccountStorage`] associated with the input parameters.
     pub fn open_storage(
         &self,
-        account_addr: &AccountAddr,
+        target: &AccountAddr,
         state: &State,
         layout: &FixedLayout,
     ) -> AccountStorage {
-        (self.storage_builder)(account_addr, state, layout, &self.config)
+        (self.storage_builder)(target, state, layout, &self.config)
     }
 
     fn call_ctor(
         &mut self,
         spawn: &ExtSpawn,
-        account_addr: &AccountAddr,
+        target: &AccountAddr,
         gas_used: Gas,
         gas_left: Gas,
     ) -> SpawnReceipt {
@@ -127,7 +127,7 @@ where
             calldata: spawn.ctor_data(),
             state: &State::zeros(),
             template_addr,
-            principal: account_addr,
+            target,
             within_spawn: true,
             gas_used,
             gas_left,
@@ -136,10 +136,10 @@ where
         let receipt = self.exec_call::<(), ()>(&call);
 
         // TODO: move the `into_spawn_receipt` to a `From / TryFrom`
-        svm_types::into_spawn_receipt(receipt, account_addr)
+        svm_types::into_spawn_receipt(receipt, target)
     }
 
-    fn exec_call<Args, Rets>(&self, call: &Call) -> CallReceipt {
+    fn exec_call<Args, Rets>(&mut self, call: &Call) -> CallReceipt {
         let result = self.exec::<(), (), _, _>(&call, |env, out| self.outcome_to_receipt(env, out));
 
         result.unwrap_or_else(|fail| self.failure_to_receipt(fail))
@@ -151,12 +151,11 @@ where
         Rets: WasmTypeList,
         F: Fn(&FuncEnv, Outcome<Box<[wasmer::Val]>>) -> R,
     {
-        match self.account_template(call.principal) {
+        match self.account_template(call.target) {
             Ok(template) => {
-                let storage =
-                    self.open_storage(call.principal, call.state, template.fixed_layout());
+                let storage = self.open_storage(call.target, call.state, template.fixed_layout());
 
-                let mut env = FuncEnv::new(storage, call.template_addr, call.principal);
+                let mut env = FuncEnv::new(storage, call.template_addr, call.target);
 
                 let store = crate::wasm_store::new_store();
                 let import_object = self.create_import_object(&store, &mut env);
@@ -698,7 +697,7 @@ where
         todo!("https://github.com/spacemeshos/svm/issues/248")
     }
 
-    fn call(&self, envelope: &Envelope, message: &[u8], context: &Context) -> CallReceipt {
+    fn call(&mut self, envelope: &Envelope, message: &[u8], context: &Context) -> CallReceipt {
         let tx = self
             .env
             .parse_call(message)
@@ -713,7 +712,7 @@ where
                 func_name: tx.function(),
                 calldata: tx.calldata(),
                 template_addr: &template,
-                principal: &&principal,
+                target: &&principal,
                 state: context.state(),
                 gas_used: Gas::with(0),
                 gas_left: envelope.gas_limit(),
