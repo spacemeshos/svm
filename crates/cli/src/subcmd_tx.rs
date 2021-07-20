@@ -54,7 +54,7 @@ pub fn subcmd_tx(args: &ArgMatches) -> anyhow::Result<()> {
         Action::Spawn => json::encode_spawn(&json_value).expect("Invalid JSON"),
     };
 
-    let mut file = File::create(args.value_of("file").unwrap())?;
+    let mut file = File::create(args.value_of("output").unwrap())?;
     file.write_all(&bytes)?;
 
     Ok(())
