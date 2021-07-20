@@ -1640,6 +1640,7 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "clap",
+ "serde_json",
  "svm-codec",
  "svm-gas",
  "svm-program",
@@ -1655,6 +1656,7 @@ dependencies = [
  "hex",
  "indexmap",
  "maplit",
+ "serde",
  "serde_json",
  "svm-abi-decoder",
  "svm-abi-encoder",
@@ -1663,6 +1665,7 @@ dependencies = [
  "svm-sdk-types",
  "svm-types",
  "thiserror",
+ "toml",
 ]
 
 [[package]]

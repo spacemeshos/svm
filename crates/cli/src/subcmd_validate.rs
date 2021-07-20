@@ -15,9 +15,11 @@ pub fn clap_app_validate() -> clap::App<'static, 'static> {
         .about("Runs validation logic on a smWasm file")
         .arg(
             Arg::with_name("input")
+                .short("i")
+                .long("input")
                 .help("Sets the input file to use")
-                .required(true)
-                .index(1),
+                .takes_value(true)
+                .required(true),
         )
 }
 
