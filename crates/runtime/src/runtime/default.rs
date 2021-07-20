@@ -591,7 +591,11 @@ where
     fn deploy(&mut self, envelope: &Envelope, message: &[u8], _context: &Context) -> DeployReceipt {
         info!("Runtime `deploy`");
 
-        let template = self.env.parse_deploy(message, None).unwrap();
+        let template = self
+            .env
+            .parse_deploy(message, None)
+            .expect("Should have called `validate_deploy` first");
+
         let gas_limit = envelope.gas_limit();
         let install_price = svm_gas::transaction::deploy(message);
 
@@ -607,17 +611,28 @@ where
     }
 
     fn spawn(&mut self, envelope: &Envelope, message: &[u8], _context: &Context) -> SpawnReceipt {
+        // TODO: refactor this function (it has got a bit lengthy...)
+
         use svm_gas::ProgramPricing;
         use svm_program::ProgramVisitor;
 
         info!("Runtime `spawn`");
 
         let gas_limit = envelope.gas_limit();
-        let base = self.env.parse_spawn(message).unwrap();
+        let base = self
+            .env
+            .parse_spawn(message)
+            .expect("Should have called `validate_spawn` first");
+
         let template_addr = base.account.template_addr();
 
-        let template = self.env.template(template_addr, None).unwrap();
-        let code_section = template.sections().get(SectionKind::Code).as_code();
+        // TODO: load only the `Sections` relevant for spawning
+        let template = self
+            .env
+            .template(template_addr, None)
+            .expect("Should have failed earlier when doing `validate_spawn`");
+
+        let code_section = template.code_section();
         let code = code_section.code();
         let gas_mode = code_section.gas_mode();
         let program = Program::new(code, false).unwrap();
@@ -634,6 +649,7 @@ where
                 let pricer = self.env.price_resolver();
                 let program_pricing = ProgramPricing::new(pricer);
                 let prices = program_pricing.visit(&program).unwrap();
+
                 template_prices.insert(template_addr.clone(), prices);
                 template_prices.get(template_addr).unwrap()
             }
@@ -672,7 +688,6 @@ where
         drop(template_prices);
 
         let payload_price = svm_gas::transaction::spawn(message);
-        let gas_limit = envelope.gas_limit();
         let gas_left = gas_limit - payload_price;
 
         match gas_left {
@@ -681,7 +696,6 @@ where
                 let addr = self.env.compute_account_addr(&spawn);
 
                 self.env.store_account(&account, &addr);
-
                 let gas_used = payload_price.into();
 
                 self.call_ctor(&spawn, &addr, gas_used, gas_left)
