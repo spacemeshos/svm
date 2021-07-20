@@ -2,8 +2,6 @@
   (func $get64 (import "svm" "svm_get64") (param i32) (result i64))
   (func $set64 (import "svm" "svm_set64") (param i32 i64))
 
-  (import "svm" "memory" (memory 1))
-
   (func (export "ctor")
   	nop)
 

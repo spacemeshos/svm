@@ -12,6 +12,12 @@ pub struct Context {
     state: State,
 }
 
+impl Default for Context {
+    fn default() -> Self {
+        Self::with_state(State::zeros())
+    }
+}
+
 impl Context {
     /// Creates a new [`Context`].
     pub fn new(tx_id: TransactionId, layer: Layer, state: State) -> Self {
@@ -19,6 +25,21 @@ impl Context {
             tx_id,
             layer,
             state,
+        }
+    }
+
+    /// Creates a new [`Context`] with the given `state` parameter.
+    ///
+    /// Sets default values for all remaining fields.
+    ///
+    /// # Notes
+    ///
+    /// This method should be useful to ease tests setup.
+    pub fn with_state(state: State) -> Self {
+        Self {
+            tx_id: TransactionId::zeros(),
+            layer: Layer::default(),
+            state: state,
         }
     }
 
