@@ -1,12 +1,31 @@
+use serde::{Deserialize, Serialize};
+use serde_json::{json, Value};
+
 use std::io::Cursor;
 
 use svm_types::{Account, SpawnAccount};
 
-use serde_json::{json, Value};
-
+use super::TypeInformation;
 use crate::api::json::{self, JsonError};
-
 use crate::spawn;
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+struct SpawnJsonlike {
+    version: u16,
+    template: String,
+    name: String,
+    ctor_name: String,
+    calldata: String,
+}
+
+impl TypeInformation for SpawnJsonlike {
+    fn type_of_field_as_str(field: &str) -> Option<&str> {
+        Some(match field {
+            "version" => "number",
+            _ => "string",
+        })
+    }
+}
 
 ///
 /// ```json
@@ -19,19 +38,16 @@ use crate::spawn;
 /// }
 /// ```
 pub fn encode_spawn(json: &Value) -> Result<Vec<u8>, JsonError> {
-    let version = json::as_u32(json, "version")? as u16;
-    let template = json::as_addr(json, "template")?.into();
-    let name = json::as_string(json, "name")?;
-    let ctor_name = json::as_string(json, "ctor_name")?;
+    let jsonlike: SpawnJsonlike = serde_json::from_value(json.clone())
+        .map_err(|e| JsonError::from_serde::<SpawnJsonlike>(e))?;
 
-    let calldata = json::as_string(json, "calldata")?;
-    let calldata = json::str_to_bytes(&calldata, "calldata")?;
+    let template = json::as_addr(json, "template")?.into();
 
     let spawn = SpawnAccount {
-        version,
-        account: Account::new(template, name),
-        ctor_name,
-        calldata,
+        version: jsonlike.version,
+        account: Account::new(template, jsonlike.name),
+        ctor_name: jsonlike.ctor_name,
+        calldata: jsonlike.calldata.into_bytes(),
     };
 
     let mut buf = Vec::new();
@@ -83,7 +99,7 @@ mod tests {
             err,
             JsonError::InvalidField {
                 field: "version".to_string(),
-                reason: "value `null` isn\'t a number".to_string(),
+                reason: "value `null` isn\'t a(n) number".to_string(),
             }
         );
     }
@@ -99,7 +115,7 @@ mod tests {
             err,
             JsonError::InvalidField {
                 field: "template".to_string(),
-                reason: "value `null` isn\'t a string".to_string(),
+                reason: "value `null` isn\'t a(n) string".to_string(),
             }
         );
     }
@@ -116,7 +132,7 @@ mod tests {
             err,
             JsonError::InvalidField {
                 field: "name".to_string(),
-                reason: "value `null` isn\'t a string".to_string(),
+                reason: "value `null` isn\'t a(n) string".to_string(),
             }
         );
     }
@@ -134,7 +150,7 @@ mod tests {
             err,
             JsonError::InvalidField {
                 field: "ctor_name".to_string(),
-                reason: "value `null` isn\'t a string".to_string(),
+                reason: "value `null` isn\'t a(n) string".to_string(),
             }
         );
     }
@@ -153,7 +169,7 @@ mod tests {
             err,
             JsonError::InvalidField {
                 field: "calldata".to_string(),
-                reason: "value `null` isn\'t a string".to_string(),
+                reason: "value `null` isn\'t a(n) string".to_string(),
             }
         );
     }

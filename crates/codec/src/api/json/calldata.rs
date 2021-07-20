@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 use serde_json::Value as Json;
 
@@ -6,51 +7,62 @@ use svm_abi_encoder::{ByteSize, Encoder};
 use svm_sdk_types::value::{Composite, Primitive, Value};
 use svm_sdk_types::{Address, Amount};
 
+use super::TypeInformation;
 use crate::api::json::{self, JsonError};
 
-macro_rules! as_str {
-    ($json:expr) => {{
-        let s = $json.as_str();
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+struct CalldataJsonlike {
+    abi: Vec<Ty>,
+    data: Vec<Json>,
+}
 
-        if s.is_none() {
-            return Err(JsonError::InvalidField {
+impl TypeInformation for CalldataJsonlike {
+    fn type_of_field_as_str(_field: &str) -> Option<&str> {
+        Some("array")
+    }
+}
+
+impl CalldataJsonlike {
+    fn new(json: &Json) -> Result<Self, JsonError> {
+        let jsonlike: Self =
+            serde_json::from_value(json.clone()).map_err(|e| JsonError::from_serde::<Self>(e))?;
+
+        if jsonlike.abi.len() != jsonlike.data.len() {
+            Err(JsonError::InvalidField {
                 field: "data".to_string(),
-                reason: "non-string value".to_string(),
-            });
+                reason: "`abi` and `data` must be of the same length".to_string(),
+            })
+        } else {
+            Ok(jsonlike)
         }
+    }
 
-        Ok(s.unwrap())
-    }};
+    fn zip(&self) -> impl Iterator<Item = (&Ty, &Json)> {
+        self.abi.iter().zip(self.data.iter())
+    }
+
+    fn cap(&self) -> Result<usize, JsonError> {
+        self.zip().map(|(ty, raw)| ty.value_byte_size(&raw)).sum()
+    }
+
+    fn encode_to_buf(&self) -> Result<svm_sdk_std::Vec<u8>, JsonError> {
+        let cap = self.cap()?;
+        let mut buf = svm_sdk_std::Vec::with_capacity(cap);
+
+        self.zip()
+            .try_for_each(|(ty, raw)| encode_value(ty, &raw).map(|value| value.encode(&mut buf)))?;
+
+        Ok(buf)
+    }
 }
 
 /// Given a `Calldata` JSON, encodes it into a binary `Calldata`
 /// and returns the result wrapped with a JSON
 pub fn encode_calldata(json: &Json) -> Result<Json, JsonError> {
-    let abi = json::as_array(json, "abi")?;
-    let data = json::as_array(json, "data")?;
-
-    if abi.len() != data.len() {
-        return Err(JsonError::InvalidField {
-            field: "data".to_string(),
-            reason: "`abi` and `data` must be of the same length".to_string(),
-        });
-    }
-
-    let mut cap = 0;
-
-    for (ty, raw) in abi.iter().zip(data) {
-        cap += value_byte_size(ty, raw)?;
-    }
-
-    let mut buf = svm_sdk_std::Vec::with_capacity(cap);
-
-    for (ty, raw) in abi.iter().zip(data) {
-        let value = encode_value(ty, raw)?;
-
-        value.encode(&mut buf);
-    }
-
-    let calldata = json::bytes_to_str(buf.as_slice());
+    let jsonlike = CalldataJsonlike::new(json)?;
+    let buf = jsonlike.encode_to_buf()?;
+    let calldata = json::bytes_to_str(&buf);
     let json = json!({ "calldata": calldata });
 
     Ok(json)
@@ -130,57 +142,89 @@ fn composite_as_json(c: &Composite) -> (Json, Json) {
     (Json::Array(vec![ty]), Json::Array(values))
 }
 
-fn value_byte_size(ty: &Json, value: &Json) -> Result<usize, JsonError> {
-    if ty.is_array() {
-        let types = ty.as_array().unwrap();
-        assert_eq!(types.len(), 1);
-
-        let ty = &types[0];
-
-        // we initialize `byte_size` for the `length` marker.
-        let mut byte_size = 1;
-
-        let json = json!({ "calldata": value });
-        let elems = json::as_array(&json, "calldata")?;
-
-        for elem in elems {
-            byte_size += value_byte_size(ty, elem)?;
-        }
-
-        return Ok(byte_size);
-    }
-
-    let ty = as_str!(ty)?;
-
-    let size = match ty {
-        "bool" => bool::max_byte_size(),
-        "i8" => i8::max_byte_size(),
-        "u8" => u8::max_byte_size(),
-        "i16" => i16::max_byte_size(),
-        "u16" => u16::max_byte_size(),
-        "i32" => i32::max_byte_size(),
-        "u32" => u32::max_byte_size(),
-        "i64" => i64::max_byte_size(),
-        "u64" => u64::max_byte_size(),
-        "amount" => Amount::max_byte_size(),
-        "address" => Address::max_byte_size(),
-        _ => {
-            return Err(JsonError::InvalidField {
-                field: "abi".to_string(),
-                reason: format!("invalid ABI type: `{}`", ty),
-            })
-        }
-    };
-
-    Ok(size)
+// See <https://serde.rs/enum-representations.html>.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+enum Ty {
+    Array(Vec<Ty>),
+    Bool,
+    I8,
+    U8,
+    I16,
+    U16,
+    I32,
+    U32,
+    I64,
+    U64,
+    Amount,
+    Address,
 }
 
-fn encode_value(ty: &Json, value: &Json) -> Result<Value, JsonError> {
-    if ty.is_array() {
-        return encode_array(ty, value);
+impl Ty {
+    fn value_byte_size(&self, value: &Json) -> Result<usize, JsonError> {
+        let byte_size = match self {
+            Ty::Array(types) => {
+                assert_eq!(types.len(), 1);
+
+                let _ty = &types[0];
+
+                // we initialize `byte_size` for the `length` marker.
+                let mut byte_size = 1;
+
+                let json = json!({ "calldata": value });
+                let elems = json::as_array(&json, "calldata")?;
+
+                for elem in elems {
+                    byte_size += self.value_byte_size(elem)?;
+                }
+
+                byte_size
+            }
+            Ty::Bool => bool::max_byte_size(),
+            Ty::I8 => i8::max_byte_size(),
+            Ty::U8 => u8::max_byte_size(),
+            Ty::I16 => i16::max_byte_size(),
+            Ty::U16 => u16::max_byte_size(),
+            Ty::I32 => i32::max_byte_size(),
+            Ty::U32 => u32::max_byte_size(),
+            Ty::I64 => i64::max_byte_size(),
+            Ty::U64 => u64::max_byte_size(),
+            Ty::Amount => Amount::max_byte_size(),
+            Ty::Address => Address::max_byte_size(),
+        };
+        //      return Err(JsonError::InvalidField {
+        //          field: "abi".to_string(),
+        //          reason: format!("invalid ABI type: `{}`", ty),
+        //      })
+
+        Ok(byte_size)
+    }
+}
+
+impl ToString for Ty {
+    fn to_string(&self) -> String {
+        match self {
+            Self::Array(_) => "array".to_string(),
+            Self::Bool => "bool".to_string(),
+            Self::I8 => "i8".to_string(),
+            Self::U8 => "u8".to_string(),
+            Self::I16 => "i16".to_string(),
+            Self::U16 => "u16".to_string(),
+            Self::I32 => "i32".to_string(),
+            Self::U32 => "u32".to_string(),
+            Self::I64 => "i64".to_string(),
+            Self::U64 => "u64".to_string(),
+            Self::Amount => "amount".to_string(),
+            Self::Address => "address".to_string(),
+        }
+    }
+}
+
+fn encode_value(ty: &Ty, value: &Json) -> Result<Value, JsonError> {
+    if let Ty::Array(types) = ty {
+        return encode_array(types, value);
     }
 
-    let ty = as_str!(ty)?;
     let json = json!({ "calldata": value });
 
     macro_rules! encode {
@@ -190,17 +234,17 @@ fn encode_value(ty: &Json, value: &Json) -> Result<Value, JsonError> {
     }
 
     let value: Value = match ty {
-        "bool" => encode!(as_bool),
-        "i8" => encode!(as_i8),
-        "u8" => encode!(as_u8),
-        "i16" => encode!(as_i16),
-        "u16" => encode!(as_u16),
-        "i32" => encode!(as_i32),
-        "u32" => encode!(as_u32),
-        "i64" => encode!(as_i64),
-        "u64" => encode!(as_u64),
-        "amount" => encode!(as_amount),
-        "address" => {
+        Ty::Bool => encode!(as_bool),
+        Ty::I8 => encode!(as_i8),
+        Ty::U8 => encode!(as_u8),
+        Ty::I16 => encode!(as_i16),
+        Ty::U16 => encode!(as_u16),
+        Ty::I32 => encode!(as_i32),
+        Ty::U32 => encode!(as_u32),
+        Ty::I64 => encode!(as_i64),
+        Ty::U64 => encode!(as_u64),
+        Ty::Amount => encode!(as_amount),
+        Ty::Address => {
             let addr: svm_types::Address = json::as_addr(&json, "calldata")?;
 
             let bytes = addr.bytes();
@@ -211,7 +255,7 @@ fn encode_value(ty: &Json, value: &Json) -> Result<Value, JsonError> {
         _ => {
             return Err(JsonError::InvalidField {
                 field: "abi".to_string(),
-                reason: format!("invalid ABI type: `{}`", ty),
+                reason: format!("invalid ABI type: `{}`", ty.to_string()),
             })
         }
     };
@@ -219,10 +263,7 @@ fn encode_value(ty: &Json, value: &Json) -> Result<Value, JsonError> {
     Ok(value)
 }
 
-fn encode_array(ty: &Json, value: &Json) -> Result<Value, JsonError> {
-    debug_assert!(ty.is_array());
-
-    let types = ty.as_array().unwrap();
+fn encode_array(types: &[Ty], value: &Json) -> Result<Value, JsonError> {
     assert_eq!(types.len(), 1);
 
     let ty = &types[0];

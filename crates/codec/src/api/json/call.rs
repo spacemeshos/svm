@@ -1,11 +1,38 @@
-use std::io::Cursor;
-
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
+use std::io::Cursor;
+
+use svm_types::{AccountAddr, Address, Transaction};
+
+use super::{HexBlob, TypeInformation};
 use crate::api::json::{self, JsonError};
 use crate::call;
 
-use svm_types::Transaction;
+#[derive(Clone, Serialize, Deserialize)]
+struct CallJsonlike {
+    version: u16,
+    target: HexBlob,
+    func_name: String,
+    // verifydata: String,
+    calldata: HexBlob,
+}
+
+impl CallJsonlike {
+    fn account_addr(&self) -> AccountAddr {
+        AccountAddr::new(Address::from(&self.target.0[..]))
+    }
+}
+
+impl TypeInformation for CallJsonlike {
+    fn type_of_field_as_str(field: &str) -> Option<&str> {
+        Some(match field {
+            "version" => "number",
+            "func_name" | "target" | "calldata" => "string",
+            _ => unreachable!(),
+        })
+    }
+}
 
 ///
 /// ```json
@@ -18,22 +45,16 @@ use svm_types::Transaction;
 /// }
 /// ```
 pub fn encode_call(json: &Value) -> Result<Vec<u8>, JsonError> {
-    let version = json::as_u32(json, "version")? as u16;
-    let target = json::as_addr(json, "target")?.into();
-    let func_name = json::as_string(json, "func_name")?;
-
-    // let verifydata = json::as_string(json, "verifydata")?;
-    // let verifydata = json::str_to_bytes(&verifydata, "verifydata")?;
-
-    let calldata = json::as_string(json, "calldata")?;
-    let calldata = json::str_to_bytes(&calldata, "calldata")?;
+    let jsonlike: CallJsonlike = serde_json::from_value(json.clone())
+        .map_err(|e| JsonError::from_serde::<CallJsonlike>(e))?;
+    let account_addr = jsonlike.account_addr();
 
     let tx = Transaction {
-        version,
-        target,
-        func_name,
+        version: jsonlike.version,
+        func_name: jsonlike.func_name,
+        target: account_addr,
         // verifydata,
-        calldata,
+        calldata: jsonlike.calldata.0,
     };
 
     let mut buf = Vec::new();
@@ -41,6 +62,11 @@ pub fn encode_call(json: &Value) -> Result<Vec<u8>, JsonError> {
     call::encode_call(&tx, &mut buf);
 
     Ok(buf)
+}
+
+#[derive(Serialize, Deserialize)]
+struct WrappedCall {
+    data: HexBlob,
 }
 
 /// Given a binary [`Transaction`] wrapped inside JSON,
@@ -88,7 +114,7 @@ mod tests {
             err,
             JsonError::InvalidField {
                 field: "version".to_string(),
-                reason: "value `null` isn\'t a number".to_string(),
+                reason: "value `null` isn\'t a(n) number".to_string(),
             }
         );
     }
@@ -104,7 +130,7 @@ mod tests {
             err,
             JsonError::InvalidField {
                 field: "target".to_string(),
-                reason: "value `null` isn\'t a string".to_string(),
+                reason: "value `null` isn\'t a(n) string".to_string(),
             }
         );
     }
@@ -121,7 +147,7 @@ mod tests {
             err,
             JsonError::InvalidField {
                 field: "func_name".to_string(),
-                reason: "value `null` isn\'t a string".to_string(),
+                reason: "value `null` isn\'t a(n) string".to_string(),
             }
         );
     }
@@ -140,7 +166,7 @@ mod tests {
             err,
             JsonError::InvalidField {
                 field: "verifydata".to_string(),
-                reason: "value `null` isn\'t a string".to_string(),
+                reason: "value `null` isn\'t a(n) string".to_string(),
             }
         );
     }
@@ -165,7 +191,7 @@ mod tests {
             err,
             JsonError::InvalidField {
                 field: "calldata".to_string(),
-                reason: "value `null` isn\'t a string".to_string(),
+                reason: "value `null` isn\'t a(n) string".to_string(),
             }
         );
     }

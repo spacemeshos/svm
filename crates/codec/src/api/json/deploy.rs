@@ -1,11 +1,35 @@
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
-
-use crate::api::builder::TemplateBuilder;
-use crate::api::json::{self, JsonError};
-use crate::template;
 
 use svm_layout::{FixedLayoutBuilder, Id, Layout};
 use svm_types::{CodeSection, CtorsSection, DataSection, HeaderSection};
+
+use super::{HexBlob, TypeInformation};
+use crate::api::builder::TemplateBuilder;
+use crate::api::json::JsonError;
+use crate::template;
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+struct DeployJsonlike {
+    svm_version: u32,
+    name: String,
+    code_version: u32,
+    desc: String,
+    code: HexBlob,
+    data: HexBlob,
+    ctors: Vec<String>,
+}
+
+impl TypeInformation for DeployJsonlike {
+    fn type_of_field_as_str(field: &str) -> Option<&str> {
+        Some(match field {
+            "svm_version" | "code_version" => "number",
+            "name" | "desc" => "string",
+            "ctors" => "Array",
+            _ => "string",
+        })
+    }
+}
 
 ///
 /// ```json
@@ -20,26 +44,14 @@ use svm_types::{CodeSection, CtorsSection, DataSection, HeaderSection};
 /// }
 /// ```
 pub fn deploy_template(json: &Value) -> Result<Vec<u8>, JsonError> {
-    let svm_version = json::as_u32(json, "svm_version")?;
-    let code_version = json::as_u32(json, "code_version")?;
-    let name = json::as_string(json, "name")?;
-    let desc = json::as_string(json, "desc")?;
-    let wasm = json::as_blob(json, "code")?;
-    let layout = json::as_blob(json, "data")?;
-    let layout = to_data_layout(layout)?;
+    let jsonlike: DeployJsonlike = serde_json::from_value(json.clone())
+        .map_err(|e| JsonError::from_serde::<DeployJsonlike>(e))?;
 
-    let mut ctors = Vec::new();
-
-    for ctor in json::as_array(json, "ctors")? {
-        let ctor = ctor.as_str().unwrap();
-
-        ctors.push(ctor.to_string());
-    }
-
-    let code = CodeSection::new_fixed(wasm, svm_version);
+    let layout = to_data_layout(jsonlike.data.0)?;
+    let code = CodeSection::new_fixed(jsonlike.code.0, jsonlike.svm_version);
     let data = DataSection::with_layout(layout);
-    let ctors = CtorsSection::new(ctors);
-    let header = HeaderSection::new(code_version, name, desc);
+    let ctors = CtorsSection::new(jsonlike.ctors);
+    let header = HeaderSection::new(jsonlike.code_version, jsonlike.name, jsonlike.desc);
 
     let template = TemplateBuilder::default()
         .with_code(code)
@@ -49,7 +61,6 @@ pub fn deploy_template(json: &Value) -> Result<Vec<u8>, JsonError> {
         .build();
 
     let bytes = template::encode(&template);
-
     Ok(bytes)
 }
 
@@ -100,7 +111,7 @@ mod tests {
             err,
             JsonError::InvalidField {
                 field: "svm_version".to_string(),
-                reason: "value `null` isn\'t a number".to_string(),
+                reason: "value `null` isn\'t a(n) number".to_string(),
             }
         );
     }
@@ -116,7 +127,7 @@ mod tests {
             err,
             JsonError::InvalidField {
                 field: "code_version".to_string(),
-                reason: "value `null` isn\'t a number".to_string(),
+                reason: "value `null` isn\'t a(n) number".to_string(),
             }
         );
     }
@@ -133,7 +144,7 @@ mod tests {
             err,
             JsonError::InvalidField {
                 field: "name".to_string(),
-                reason: "value `null` isn\'t a string".to_string(),
+                reason: "value `null` isn\'t a(n) string".to_string(),
             }
         );
     }
@@ -151,7 +162,7 @@ mod tests {
             err,
             JsonError::InvalidField {
                 field: "desc".to_string(),
-                reason: "value `null` isn\'t a string".to_string(),
+                reason: "value `null` isn\'t a(n) string".to_string(),
             }
         );
     }
@@ -170,7 +181,7 @@ mod tests {
             err,
             JsonError::InvalidField {
                 field: "code".to_string(),
-                reason: "value `null` isn\'t a string".to_string(),
+                reason: "value `null` isn\'t a(n) string".to_string(),
             }
         );
     }
@@ -190,7 +201,7 @@ mod tests {
             err,
             JsonError::InvalidField {
                 field: "data".to_string(),
-                reason: "value `null` isn\'t a string".to_string(),
+                reason: "value `null` isn\'t a(n) string".to_string(),
             }
         );
     }
@@ -211,7 +222,7 @@ mod tests {
             err,
             JsonError::InvalidField {
                 field: "ctors".to_string(),
-                reason: "value `null` isn\'t an Array".to_string(),
+                reason: "value `null` isn\'t a(n) Array".to_string(),
             }
         );
     }
