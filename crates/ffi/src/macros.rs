@@ -24,16 +24,16 @@ macro_rules! impl_from_svm_byte_array {
             type Error = String;
 
             fn try_from(bytes: $crate::svm_byte_array) -> Result<Self, Self::Error> {
-                if bytes.length != $struct::len() as u32 {
+                if bytes.len() != $struct::len() as u32 {
                     return Err(format!(
                         "Wrong `length` value for `svm_byte_array` representing `{}` (expected: {}, got: {})",
                         stringify!($struct),
                         $struct::len(),
-                        bytes.length
+                        bytes.len()
                     ));
                 }
 
-                let slice: &[u8] = unsafe { std::slice::from_raw_parts(bytes.bytes, bytes.length as usize) };
+                let slice: &[u8] = bytes.as_slice();
 
                 Ok($struct::from(slice))
             }
@@ -80,12 +80,10 @@ macro_rules! impl_into_svm_byte_array {
 
                 let type_id = crate::tracking::interned_type(ty);
 
-                $crate::svm_byte_array {
-                    bytes: bytes.as_ptr(),
-                    length,
-                    capacity: length,
-                    type_id,
-                }
+                let bytes = bytes.as_ptr();
+                let capacity = length;
+
+                unsafe { $crate::svm_byte_array::from_raw_parts(bytes, length, capacity, type_id) }
             }
         }
 

@@ -23,16 +23,16 @@ static SPAWN_RECEIPT_TYPE: Type = Type::Str("Spawn Receipt");
 static CALL_RECEIPT_TYPE: Type = Type::Str("Call Receipt");
 
 #[inline]
-unsafe fn data_to_svm_byte_array(ty: Type, byte_array: *mut svm_byte_array, data: Vec<u8>) {
+fn data_to_svm_byte_array(ty: Type, byte_array: &mut svm_byte_array, data: Vec<u8>) {
     let (ptr, len, cap) = data.into_raw_parts();
-    let bytes: &mut svm_byte_array = &mut *byte_array;
 
     tracking::increment_live(ty);
 
-    bytes.bytes = ptr;
-    bytes.length = len as u32;
-    bytes.capacity = cap as u32;
-    bytes.type_id = tracking::interned_type(ty);
+    let length = len as u32;
+    let capacity = cap as u32;
+    let type_id = tracking::interned_type(ty);
+
+    *byte_array = unsafe { svm_byte_array::from_raw_parts(ptr, length, capacity, type_id) };
 }
 
 unsafe fn into_raw_runtime<R: Runtime + 'static>(
@@ -50,7 +50,7 @@ unsafe fn into_raw_runtime<R: Runtime + 'static>(
 }
 
 #[must_use]
-fn decode_envelope(envelope: svm_byte_array) -> std::io::Result<Envelope> {
+unsafe fn decode_envelope(envelope: svm_byte_array) -> std::io::Result<Envelope> {
     use std::io::Cursor;
     use svm_codec::envelope;
 
@@ -59,7 +59,7 @@ fn decode_envelope(envelope: svm_byte_array) -> std::io::Result<Envelope> {
 }
 
 #[must_use]
-fn decode_context(context: svm_byte_array) -> std::io::Result<Context> {
+unsafe fn decode_context(context: svm_byte_array) -> std::io::Result<Context> {
     use std::io::Cursor;
     use svm_codec::context;
 
@@ -71,21 +71,21 @@ fn decode_context(context: svm_byte_array) -> std::io::Result<Context> {
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_envelope_alloc(size: u32) -> svm_byte_array {
-    svm_byte_array::new(size as usize, ENVELOPE_TYPE)
+    svm_byte_array::with_capacity(size as usize, ENVELOPE_TYPE)
 }
 
 /// Allocates `svm_byte_array` of `size` bytes, destined to be used for passing a binary [`Message`].
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_message_alloc(size: u32) -> svm_byte_array {
-    svm_byte_array::new(size as usize, MESSAGE_TYPE)
+    svm_byte_array::with_capacity(size as usize, MESSAGE_TYPE)
 }
 
 /// Allocates `svm_byte_array` of `size` bytes, destined to be used for passing a binary [`Context`].
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_context_alloc(size: u32) -> svm_byte_array {
-    svm_byte_array::new(size as usize, CONTEXT_TYPE)
+    svm_byte_array::with_capacity(size as usize, CONTEXT_TYPE)
 }
 
 /// Validates syntactically a binary `Deploy Template` transaction.
@@ -128,7 +128,7 @@ pub unsafe extern "C" fn svm_validate_deploy(
         }
         Err(e) => {
             error!("`svm_validate_deploy` returns `SVM_FAILURE`");
-            raw_validate_error(&e, error);
+            raw_validate_error(&e, &mut *error);
             svm_result_t::SVM_FAILURE
         }
     }
@@ -174,7 +174,7 @@ pub unsafe extern "C" fn svm_validate_spawn(
         }
         Err(e) => {
             error!("`svm_validate_spawn` returns `SVM_FAILURE`");
-            raw_validate_error(&e, error);
+            raw_validate_error(&e, &mut *error);
             svm_result_t::SVM_FAILURE
         }
     }
@@ -218,7 +218,7 @@ pub unsafe extern "C" fn svm_validate_call(
         }
         Err(e) => {
             error!("`svm_validate_call` returns `SVM_FAILURE`");
-            raw_validate_error(&e, error);
+            raw_validate_error(&e, &mut *error);
             svm_result_t::SVM_FAILURE
         }
     }
@@ -358,13 +358,13 @@ pub unsafe extern "C" fn svm_deploy(
 
     let envelope = decode_envelope(envelope);
     if let Err(e) = envelope {
-        raw_io_error(e, error);
+        raw_io_error(e, &mut *error);
         return svm_result_t::SVM_FAILURE;
     }
 
     let context = decode_context(context);
     if let Err(e) = context {
-        raw_io_error(e, error);
+        raw_io_error(e, &mut *error);
         return svm_result_t::SVM_FAILURE;
     }
 
@@ -378,7 +378,7 @@ pub unsafe extern "C" fn svm_deploy(
     // # Notes
     //
     // Should call later `svm_receipt_destroy`
-    data_to_svm_byte_array(DEPLOY_RECEIPT_TYPE, receipt, receipt_bytes);
+    data_to_svm_byte_array(DEPLOY_RECEIPT_TYPE, &mut *receipt, receipt_bytes);
 
     debug!("`svm_deploy` returns `SVM_SUCCESS`");
     svm_result_t::SVM_SUCCESS
@@ -434,13 +434,13 @@ pub unsafe extern "C" fn svm_spawn(
 
     let envelope = decode_envelope(envelope);
     if let Err(e) = envelope {
-        raw_io_error(e, error);
+        raw_io_error(e, &mut *error);
         return svm_result_t::SVM_FAILURE;
     }
 
     let context = decode_context(context);
     if let Err(e) = context {
-        raw_io_error(e, error);
+        raw_io_error(e, &mut *error);
         return svm_result_t::SVM_FAILURE;
     }
 
@@ -454,7 +454,7 @@ pub unsafe extern "C" fn svm_spawn(
     // # Notes:
     //
     // Should call later `svm_receipt_destroy`
-    data_to_svm_byte_array(SPAWN_RECEIPT_TYPE, receipt, receipt_bytes);
+    data_to_svm_byte_array(SPAWN_RECEIPT_TYPE, &mut *receipt, receipt_bytes);
 
     debug!("`svm_spawn` returns `SVM_SUCCESS`");
 
@@ -512,13 +512,13 @@ pub unsafe extern "C" fn svm_call(
 
     let envelope = decode_envelope(envelope);
     if let Err(e) = envelope {
-        raw_io_error(e, error);
+        raw_io_error(e, &mut *error);
         return svm_result_t::SVM_FAILURE;
     }
 
     let context = decode_context(context);
     if let Err(e) = context {
-        raw_io_error(e, error);
+        raw_io_error(e, &mut *error);
         return svm_result_t::SVM_FAILURE;
     }
 
@@ -532,7 +532,7 @@ pub unsafe extern "C" fn svm_call(
     // # Notes:
     //
     // Should call later `svm_receipt_destroy`
-    data_to_svm_byte_array(CALL_RECEIPT_TYPE, receipt, receipt_bytes);
+    data_to_svm_byte_array(CALL_RECEIPT_TYPE, &mut *receipt, receipt_bytes);
 
     debug!("`svm_call` returns `SVM_SUCCESS`");
     svm_result_t::SVM_SUCCESS
