@@ -2,7 +2,7 @@ use svm_types::{AccountAddr, Transaction};
 
 use crate::call;
 
-/// Builds a raw representation for [`Transaction`]
+/// Builds a binary representation for [`Transaction`].
 ///
 /// Should be used mainly for testing only.
 pub struct CallBuilder {
@@ -106,7 +106,7 @@ impl CallBuilder {
         let tx = Transaction {
             version,
             target,
-            function: func_name,
+            func_name,
             // verifydata,
             calldata,
         };

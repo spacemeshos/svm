@@ -22,7 +22,7 @@ pub struct Transaction {
     pub target: AccountAddr,
 
     /// Function's name to execute
-    pub function: String,
+    pub func_name: String,
 
     // TODO:
     // Transaction's `VerifyData`
@@ -40,7 +40,7 @@ impl Transaction {
 
     #[doc(hidden)]
     pub fn function(&self) -> &str {
-        &self.function
+        &self.func_name
     }
 
     // TODO:
@@ -68,7 +68,7 @@ impl fmt::Debug for Transaction {
             // See issue: https://github.com/spacemeshos/svm/issues/248
             // .field("verifydata", &verifydata)
             .field("calldata", &calldata)
-            .field("function", &self.function)
+            .field("function", &self.func_name)
             .finish()
     }
 }

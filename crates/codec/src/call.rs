@@ -46,7 +46,7 @@ pub fn decode_call(cursor: &mut Cursor<&[u8]>) -> Result<Transaction, ParseError
     let tx = Transaction {
         version,
         target,
-        function: func_name,
+        func_name,
         // verifydata,
         calldata,
     };
@@ -69,7 +69,7 @@ fn encode_target(tx: &Transaction, w: &mut Vec<u8>) {
 }
 
 fn encode_func(tx: &Transaction, w: &mut Vec<u8>) {
-    let func = &tx.function;
+    let func = &tx.func_name;
 
     w.write_string(func);
 }
@@ -119,7 +119,7 @@ mod tests {
         let tx = Transaction {
             version: 0,
             target: Address::of("@target").into(),
-            function: "do_work".to_string(),
+            func_name: "do_work".to_string(),
             // verifydata: vec![0x10, 0x0, 0x30],
             calldata: vec![0x10, 0x0, 0x30],
         };

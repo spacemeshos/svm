@@ -1,4 +1,4 @@
-//! `Deploy Template` Receipt Raw Format Version 0
+//! Encoding of a binary [`DeployReceipt`].
 //!
 //!  On success (`is_success = 1`)
 //!
@@ -6,7 +6,8 @@
 //!  |          |             |             |                    |           |
 //!  | tx type  |   version   |  is_success | template `Address` | gas_used  |
 //!  | (1 byte) |  (2 bytes)  |  (1 byte)   |     (20 bytes)     | (8 bytes) |
-//!  +__________|_____________|_____________|____________________|___________+
+//!  +          |             |             |                    |           |
+//!  +-----------------------------------------------------------------------+
 //!
 //!  On success (`is_success = 0`)
 //!  See [error.rs][./error.rs]
