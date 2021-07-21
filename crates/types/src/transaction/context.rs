@@ -1,6 +1,6 @@
 use crate::{Layer, State, TransactionId};
 
-/// Holds the a `Transaction`'s Context.
+/// Holds the `Transaction`'s Context.
 ///
 /// Once created it should NOT be modified (immutable).
 /// It contains properties related to the context in which a Transaction will execute.
