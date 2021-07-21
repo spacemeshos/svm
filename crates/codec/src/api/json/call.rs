@@ -6,7 +6,7 @@ use std::io::Cursor;
 use svm_types::{AccountAddr, Transaction};
 
 use super::wrappers::*;
-use crate::api::json::{self, JsonError, TypeInformation};
+use crate::api::json::{JsonError, TypeInformation};
 use crate::call;
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -58,14 +58,25 @@ pub fn json_call_to_bytes(json: &Json) -> Result<Vec<u8>, JsonError> {
     Ok(buf)
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+struct WrappedCall {
+    data: HexBlob<Vec<u8>>,
+}
+
+impl TypeInformation for WrappedCall {
+    fn type_of_field_as_str(_field: &str) -> Option<&str> {
+        Some("data")
+    }
+}
+
 /// Given a binary [`Transaction`] wrapped inside JSON,
 /// Decodes it and returns a user-friendly JSON.
 pub fn unwrap_binary_json_call(json: &Json) -> Result<Json, JsonError> {
-    let data = json::as_string(json, "data")?;
-    let bytes = json::str_to_bytes(&data, "data")?;
+    let wrapped_call: WrappedCall = serde_json::from_value(json.clone())
+        .map_err(|e| JsonError::from_serde::<WrappedCall>(e))?;
 
     let tx = {
-        let mut cursor = Cursor::new(&bytes[..]);
+        let mut cursor = Cursor::new(&wrapped_call.data.0[..]);
         call::decode_call(&mut cursor).unwrap()
     };
 
@@ -83,9 +94,10 @@ pub fn unwrap_binary_json_call(json: &Json) -> Result<Json, JsonError> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     use serde_json::json;
+
+    use super::*;
+    use crate::api::json;
 
     #[test]
     fn json_call_missing_version() {
