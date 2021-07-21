@@ -31,11 +31,11 @@ impl TypeInformation for CallWrapper {
 ///
 /// ```json
 /// {
-///   version: 0,           // number
-///   target: 'A2FB...',   // string
-///   func_name: 'do_work', // string
-///   verifydata: '',       // string
-///   calldata: '',         // string
+///   "version": 0,           // number
+///   "target": "A2FB...",    // string
+///   "func_name": "do_work", // string
+///   "verifydata": "",       // string
+///   "calldata": "",         // string
 /// }
 /// ```
 pub fn json_call_to_bytes(json: &Json) -> Result<Vec<u8>, JsonError> {
