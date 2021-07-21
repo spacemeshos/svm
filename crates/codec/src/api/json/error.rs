@@ -4,7 +4,7 @@ use super::TypeInformation;
 #[derive(Debug, PartialEq, Eq)]
 pub enum JsonError {
     Unknown(String),
-    InvalidJson(String),
+    InvalidJson,
     InvalidField { field: String, reason: String },
 }
 
@@ -26,7 +26,7 @@ impl JsonError {
                 reason: format!("value `null` isn't a(n) {}", expected_type),
             }
         } else if serde_err.is_syntax() {
-            Self::InvalidJson("Invalid JSON syntax.".to_string())
+            Self::InvalidJson
         } else if serde_err.is_data() {
             Self::InvalidField {
                 field: serde_err.to_string(),

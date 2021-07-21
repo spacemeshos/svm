@@ -5,9 +5,8 @@ use std::io::Cursor;
 
 use svm_types::{AccountAddr, Transaction};
 
-use super::wrappers::AddressWrapper;
-use super::{HexBlob, TypeInformation};
-use crate::api::json::{self, JsonError};
+use super::wrappers::*;
+use crate::api::json::{self, JsonError, TypeInformation};
 use crate::call;
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -16,7 +15,7 @@ struct CallWrapper {
     target: AddressWrapper,
     func_name: String,
     // verifydata: String,
-    calldata: HexBlob,
+    calldata: HexBlob<Vec<u8>>,
 }
 
 impl TypeInformation for CallWrapper {
@@ -27,6 +26,11 @@ impl TypeInformation for CallWrapper {
             _ => unreachable!(),
         })
     }
+}
+
+#[derive(Serialize, Deserialize)]
+struct WrappedCall {
+    data: HexBlob<Vec<u8>>,
 }
 
 ///
@@ -57,11 +61,6 @@ pub fn encode_call(json: &Value) -> Result<Vec<u8>, JsonError> {
     call::encode_call(&tx, &mut buf);
 
     Ok(buf)
-}
-
-#[derive(Serialize, Deserialize)]
-struct WrappedCall {
-    data: HexBlob,
 }
 
 /// Given a binary [`Transaction`] wrapped inside JSON,

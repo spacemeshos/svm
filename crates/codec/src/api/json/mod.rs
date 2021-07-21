@@ -24,6 +24,10 @@ pub(crate) trait TypeInformation {
     fn type_of_field_as_str(field: &str) -> Option<&str>;
 }
 
+//fn parse_json(json: &str) -> Result<Value, JsonError> {
+//    serde_json::from_str(json).map_err(|_| JsonError::InvalidJson)
+//}
+
 /// A blob of binary data that is encoded with Base16.
 #[derive(Clone, Debug)]
 pub struct HexBlob(Vec<u8>);
