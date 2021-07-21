@@ -9,34 +9,6 @@ use crate::api::builder::TemplateBuilder;
 use crate::api::json::JsonError;
 use crate::template;
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
-struct DeployWrapper {
-    svm_version: u32,
-    code_version: u32,
-    name: String,
-    desc: String,
-    code: HexBlob,
-    data: HexBlob,
-    ctors: Vec<String>,
-}
-
-impl DeployWrapper {
-    fn new(json: &Json) -> Result<Self, JsonError> {
-        serde_json::from_value(json.clone()).map_err(|e| JsonError::from_serde::<DeployWrapper>(e))
-    }
-}
-
-impl TypeInformation for DeployWrapper {
-    fn type_of_field_as_str(field: &str) -> Option<&str> {
-        Some(match field {
-            "svm_version" | "code_version" => "number",
-            "name" | "desc" => "string",
-            "ctors" => "Array",
-            _ => "string",
-        })
-    }
-}
-
 ///
 /// ```json
 /// {
@@ -94,6 +66,34 @@ fn to_data_layout(blob: Vec<u8>) -> Result<Layout, JsonError> {
     let layout = Layout::Fixed(fixed);
 
     Ok(layout)
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+struct DeployWrapper {
+    svm_version: u32,
+    code_version: u32,
+    name: String,
+    desc: String,
+    code: HexBlob,
+    data: HexBlob,
+    ctors: Vec<String>,
+}
+
+impl DeployWrapper {
+    fn new(json: &Json) -> Result<Self, JsonError> {
+        serde_json::from_value(json.clone()).map_err(|e| JsonError::from_serde::<DeployWrapper>(e))
+    }
+}
+
+impl TypeInformation for DeployWrapper {
+    fn type_of_field_as_str(field: &str) -> Option<&str> {
+        Some(match field {
+            "svm_version" | "code_version" => "number",
+            "name" | "desc" => "string",
+            "ctors" => "Array",
+            _ => "string",
+        })
+    }
 }
 
 #[cfg(test)]
