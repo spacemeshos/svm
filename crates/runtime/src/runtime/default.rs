@@ -125,8 +125,8 @@ where
             func_name: spawn.ctor_name(),
             calldata: spawn.ctor_data(),
             state: &State::zeros(),
-            template_addr,
-            target,
+            target_template: template_addr,
+            target_addr: target,
             within_spawn: true,
             gas_used,
             gas_left,
@@ -150,11 +150,12 @@ where
         Rets: WasmTypeList,
         F: Fn(&FuncEnv, Outcome<Box<[wasmer::Val]>>) -> R,
     {
-        match self.account_template(call.target) {
+        match self.account_template(call.target_addr) {
             Ok(template) => {
-                let storage = self.open_storage(call.target, call.state, template.fixed_layout());
+                let storage =
+                    self.open_storage(call.target_addr, call.state, template.fixed_layout());
 
-                let mut env = FuncEnv::new(storage, call.template_addr, call.target);
+                let mut env = FuncEnv::new(storage, call.target_template, call.target_addr);
 
                 let store = crate::wasm_store::new_store();
                 let import_object = self.create_import_object(&store, &mut env);
@@ -722,13 +723,11 @@ where
         let template = self.env.resolve_template_addr(tx.target());
 
         if let Some(template) = template {
-            let principal = AccountAddr::new(envelope.principal().clone());
-
             let call = Call {
                 func_name: tx.function(),
                 calldata: tx.calldata(),
-                template_addr: &template,
-                target: &&principal,
+                target_addr: tx.target(),
+                target_template: &template,
                 state: context.state(),
                 gas_used: Gas::with(0),
                 gas_left: envelope.gas_limit(),

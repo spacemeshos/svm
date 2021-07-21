@@ -5,7 +5,7 @@ use crate::call;
 /// Builds a raw representation for [`Transaction`]
 ///
 /// Should be used mainly for testing only.
-pub struct TxBuilder {
+pub struct CallBuilder {
     version: Option<u16>,
     target: Option<AccountAddr>,
     func_name: Option<String>,
@@ -20,7 +20,7 @@ pub struct TxBuilder {
 /// use std::io::Cursor;
 ///
 /// use svm_types::{Transaction, Address};
-/// use svm_codec::api::builder::TxBuilder;
+/// use svm_codec::api::builder::CallBuilder;
 /// use svm_codec::call;
 ///
 /// let target = Address::of("@target").into();
@@ -29,7 +29,7 @@ pub struct TxBuilder {
 /// // let verifydata = vec![0x10, 0x20, 0x30];
 /// let calldata = vec![0x10, 0x20, 0x30];
 ///
-/// let bytes = TxBuilder::new()
+/// let bytes = CallBuilder::new()
 ///            .with_version(0)
 ///            .with_target(&target)
 ///            .with_func(func_name)
@@ -51,7 +51,7 @@ pub struct TxBuilder {
 /// ```
 ///
 #[allow(missing_docs)]
-impl TxBuilder {
+impl CallBuilder {
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {

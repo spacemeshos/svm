@@ -1,11 +1,9 @@
 //! Implements common functionality to be consumed by tests.
 
-use wasmer::{Module, Store};
-
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use svm_codec::api::builder::{SpawnBuilder, TemplateBuilder, TxBuilder};
+use svm_codec::api::builder::{CallBuilder, SpawnBuilder, TemplateBuilder};
 use svm_codec::template;
 use svm_layout::{FixedLayout, Layout};
 use svm_storage::{
@@ -31,7 +29,8 @@ pub enum WasmFile<'a> {
 }
 
 impl<'a> WasmFile<'a> {
-    fn into_bytes(self) -> Vec<u8> {
+    /// Returns the underlying bytes of the Wasm file binary.  
+    pub fn into_bytes(self) -> Vec<u8> {
         match self {
             Self::Text(text) => wat::parse_str(text).unwrap(),
             Self::Binary(wasm) => wasm.to_vec(),
@@ -49,13 +48,6 @@ impl<'a> From<&'a [u8]> for WasmFile<'a> {
     fn from(wasm: &'a [u8]) -> Self {
         Self::Binary(wasm)
     }
-}
-
-/// Compiles a Wasm program in textual format (a.k.a Wast) into a [`wasmer::Module`].
-pub fn wasmer_compile(store: &Store, wasm_file: WasmFile) -> Module {
-    let wasm = wasm_file.into_bytes();
-
-    Module::from_binary(&store, &wasm[..]).unwrap()
 }
 
 /// Given an `Account` `Address` and its `layout`, it initializes a new blank [`AccountStorage`].
@@ -138,9 +130,9 @@ pub fn build_spawn(template: &TemplateAddr, name: &str, ctor: &str, calldata: &[
         .build()
 }
 
-/// Builds a raw binary `Call Account` transaction. (a.k.a a `Transaction`).
+/// Builds a binary `Call Account` transaction. (a.k.a a `Transaction`).
 pub fn build_call(target: &AccountAddr, func: &str, calldata: &[u8]) -> Vec<u8> {
-    TxBuilder::new()
+    CallBuilder::new()
         .with_version(0)
         .with_target(target)
         .with_func(func)

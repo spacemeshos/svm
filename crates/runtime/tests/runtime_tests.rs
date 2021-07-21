@@ -161,10 +161,7 @@ fn memory_runtime_spawn_reaches_oog() {
     let template_addr = receipt.addr.unwrap();
 
     // 2) `Spawn Account`
-    let name = "My Account";
-    let ctor = "ctor";
-    let calldata = vec![];
-    let message = testing::build_spawn(&template_addr, name, ctor, &calldata);
+    let message = testing::build_spawn(&template_addr, "My Account", "ctor", &[]);
     let envelope = Envelope::with_gas_limit(Gas::with(0));
 
     let expected = SpawnReceipt::new_oog(Vec::new());
@@ -178,14 +175,12 @@ fn memory_runtime_call_func_not_found() {
     let mut runtime = testing::create_memory_runtime();
 
     // 1) `Deploy Template`
-    let code_version = 0;
     let layout: FixedLayout = vec![Address::len() as u32].into();
-    let ctors = vec!["initialize".to_string()];
     let message = testing::build_deploy(
-        code_version,
+        0,
         "My Template",
         layout.clone(),
-        &ctors,
+        &["initialize".to_string()],
         (&include_bytes!("wasm/runtime_calldata.wasm")[..]).into(),
     );
     let envelope = Envelope::default();
@@ -197,122 +192,82 @@ fn memory_runtime_call_func_not_found() {
     let template_addr = receipt.addr.unwrap();
 
     // 2) `Spawn Account`
-    let name = "My Account";
-    let ctor = "initialize";
-    let calldata = vec![];
-    let message = testing::build_spawn(&template_addr, name, ctor, &calldata);
+    let message = testing::build_spawn(&template_addr, "My Account", "initialize", &[]);
     let receipt = runtime.spawn(&envelope, &message, &context);
     assert!(receipt.success);
 
-    let account_addr = receipt.account_addr();
+    let spawned_addr = receipt.account_addr();
     let init_state = receipt.init_state();
     let envelope = Envelope::default();
     let context = Context::with_state(init_state.clone());
 
     // 3) `Call Account`
-    let message = testing::build_call(&account_addr, ctor, &[]);
+    let message = testing::build_call(&spawned_addr, "initialize", &[]);
     let receipt = runtime.call(&envelope, &message, &context);
 
-    dbg!(receipt);
-
-    // assert!(matches!(
-    //     receipt.error.unwrap(),
-    //     RuntimeError::FuncNotAllowed { .. }
-    // ));
+    assert!(matches!(
+        receipt.error.unwrap(),
+        RuntimeError::FuncNotAllowed { .. }
+    ));
 }
 
-// #[test]
-// fn memory_runtime_spawn_without_gas() {
-//     let mut runtime = testing::create_memory_runtime();
+#[test]
+fn memory_runtime_call_success() {
+    let mut runtime = testing::create_memory_runtime();
 
-//     // 1) `Deploy Template`
-//     let code_version = 0;
-//     let layout: FixedLayout = vec![Address::len() as u32].into();
-//     let ctors = vec!["initialize".to_string()];
+    // 1) `Deploy Template`
+    let layout: FixedLayout = vec![Address::len() as u32].into();
+    let message = testing::build_deploy(
+        0,
+        "My Template",
+        layout.clone(),
+        &["initialize".to_string()],
+        (&include_bytes!("wasm/runtime_calldata.wasm")[..]).into(),
+    );
+    let envelope = Envelope::default();
+    let context = Context::default();
 
-//     let bytes = testing::build_deploy(
-//         code_version,
-//         "My Template",
-//         layout.clone(),
-//         &ctors,
-//         (&include_bytes!("wasm/runtime_calldata.wasm")[..]).into(),
-//     );
+    let receipt = runtime.deploy(&envelope, &message, &context);
+    assert!(receipt.success);
 
-//     let receipt = runtime.deploy(&envelope, &message, &context);
-//     assert!(receipt.success);
+    let template_addr = receipt.addr.unwrap();
 
-//     let template_addr = receipt.addr.unwrap();
+    // 2) `Spawn Account`
+    let message = testing::build_spawn(&template_addr, "My Account", "initialize", &[]);
+    let receipt = runtime.spawn(&envelope, &message, &context);
+    assert!(receipt.success);
 
-//     // 2) `Spawn Account`
-//     let name = "My Account";
-//     let ctor = "initialize";
-//     let calldata = vec![];
-//     let message = testing::build_spawn(&template_addr, name, ctor, &calldata);
-//     let receipt = runtime.spawn(&envelope, &message, &context);
+    let spawned_addr = receipt.account_addr();
+    let init_state = receipt.init_state();
 
-//     assert!(matches!(receipt.error.unwrap(), RuntimeError::OOG));
-// }
+    // 3) `Call Account`
 
-// #[test]
-// fn runtime_calldata_returndata() {
-//     let mut runtime = testing::create_memory_runtime();
+    // Preparing the binary `CallData`
+    // Encoding the `Address = "10 10 ... 10"`
+    let param: sdk::Address = sdk::Address::repeat(0x10);
+    let mut calldata = svm_sdk::Vec::with_capacity(Address::len() + 1);
+    param.encode(&mut calldata);
 
-//     // 1) `Deploy Template`
-//     let code_version = 0;
-//     let layout: FixedLayout = vec![Address::len() as u32].into();
-//     let ctors = vec!["initialize".to_string()];
+    let message = testing::build_call(&spawned_addr, "store_addr", &calldata);
+    let envelope = Envelope::default();
+    let context = Context::with_state(init_state.clone());
 
-//     let bytes = testing::build_deploy(
-//         code_version,
-//         "My Template",
-//         layout.clone(),
-//         &ctors,
-//         (&include_bytes!("wasm/runtime_calldata.wasm")[..]).into(),
-//     );
+    let receipt = runtime.call(&envelope, &message, &context);
+    assert!(receipt.success);
 
-//     let receipt = runtime.deploy(&envelope, &message, &context);
-//     assert!(receipt.success);
+    let new_state = receipt.new_state();
 
-//     let template_addr = receipt.addr.unwrap();
+    // 4) `Call Account` (calling a function this with `returns` this time)
+    let message = testing::build_call(&spawned_addr, "load_addr", &[]);
+    let envelope = Envelope::default();
+    let context = Context::with_state(new_state.clone());
 
-//     // 2) `Spawn Account`
-//     let name = "My Account";
-//     let ctor = "initialize";
-//     let calldata = vec![];
-//     let message = testing::build_spawn(&template_addr, name, ctor, &calldata);
-//     let receipt = runtime.spawn(&envelope, &message, &context);
-//     assert!(receipt.success);
+    let receipt = runtime.call(&envelope, &message, &context);
+    assert!(receipt.success);
 
-//     let account_addr = receipt.account_addr();
-//     let init_state = receipt.init_state();
+    let bytes = receipt.returndata.unwrap();
+    let mut returndata = ReturnData::new(&bytes);
 
-//     // 3) `Call Account`
-//     let func = "store_addr";
-//     let msg: sdk::Address = sdk::Address::repeat(0x10);
-
-//     let mut calldata = svm_sdk::Vec::with_capacity(100_000);
-//     msg.encode(&mut calldata);
-
-//     let message = testing::build_call(&account_addr, func, &calldata);
-//     let res = runtime.validate_call(&message).unwrap();
-//     assert!(res.is_ok());
-
-//     let receipt = runtime.call(&envelope, &message, &context);
-//     assert!(receipt.success);
-
-//     let state = receipt.new_state();
-
-//     // 4) `Call Account` (calling a function with returns)
-//     let func = "load_addr";
-//     let calldata = Vec::new();
-
-//     let message = testing::build_call(&account_addr, func, &calldata);
-//     let receipt = runtime.call(&envelope, &message, &context);
-//     assert!(receipt.success);
-
-//     let bytes = receipt.returndata.unwrap();
-//     let mut returndata = ReturnData::new(&bytes);
-
-//     let addr: sdk::Address = returndata.next_1();
-//     assert_eq!(addr.as_slice(), &[0x10; 20]);
-// }
+    let addr: sdk::Address = returndata.next_1();
+    assert_eq!(addr.as_slice(), &[0x10; 20]);
+}
