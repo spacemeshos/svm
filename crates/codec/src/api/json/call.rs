@@ -20,20 +20,10 @@ use crate::call;
 /// }
 /// ```
 pub fn json_call_to_bytes(json: &Json) -> Result<Vec<u8>, JsonError> {
-    let wrapper = CallWrapper::new(json)?;
-    let target = wrapper.account_addr();
-    let tx = Transaction {
-        version: wrapper.version,
-        func_name: wrapper.func_name,
-        target,
-        // verifydata,
-        calldata: wrapper.calldata.0,
-    };
+    let tx = Transaction::from(CallWrapper::new(json)?);
 
     let mut buf = Vec::new();
-
     call::encode_call(&tx, &mut buf);
-
     Ok(buf)
 }
 
@@ -46,8 +36,8 @@ pub fn json_call_to_bytes(json: &Json) -> Result<Vec<u8>, JsonError> {
 /// }
 /// ```
 pub fn unwrap_binary_json_call(json: &Json) -> Result<Json, JsonError> {
-    let wrapped_call = WrappedCall::new(json)?;
     let tx = {
+        let wrapped_call = WrappedCall::new(json)?;
         let mut cursor = Cursor::new(&wrapped_call.data.0[..]);
         call::decode_call(&mut cursor).unwrap()
     };
@@ -55,13 +45,7 @@ pub fn unwrap_binary_json_call(json: &Json) -> Result<Json, JsonError> {
     // let verifydata = json::bytes_to_str(&tx.verifydata);
     // let verifydata = json::decode_calldata(&json!({ "calldata": verifydata }))?;
 
-    Ok(serde_json::to_value(CallWrapper {
-        version: tx.version,
-        target: AddressWrapper(tx.target.inner().clone()),
-        func_name: tx.func_name.clone(),
-        calldata: HexBlob(tx.calldata),
-    })
-    .unwrap())
+    Ok(serde_json::to_value(CallWrapper::from(tx)).unwrap())
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -80,6 +64,29 @@ impl CallWrapper {
 
     fn account_addr(&self) -> AccountAddr {
         AccountAddr::new(self.target.0.clone())
+    }
+}
+
+impl From<CallWrapper> for Transaction {
+    fn from(wrapper: CallWrapper) -> Self {
+        let target = wrapper.account_addr();
+        Transaction {
+            version: wrapper.version,
+            func_name: wrapper.func_name,
+            target,
+            calldata: wrapper.calldata.0,
+        }
+    }
+}
+
+impl From<Transaction> for CallWrapper {
+    fn from(tx: Transaction) -> Self {
+        CallWrapper {
+            version: tx.version,
+            target: AddressWrapper(tx.target.inner().clone()),
+            func_name: tx.func_name.clone(),
+            calldata: HexBlob(tx.calldata),
+        }
     }
 }
 
