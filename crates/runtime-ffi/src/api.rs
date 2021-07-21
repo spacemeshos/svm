@@ -112,7 +112,7 @@ pub unsafe extern "C" fn svm_validate_deploy(
 ) -> svm_result_t {
     let runtime: &mut Box<dyn Runtime> = runtime.into();
 
-    match runtime.validate_deploy(message.as_bytes()) {
+    match runtime.validate_deploy(message.as_slice()) {
         Ok(()) => {
             debug!("`svm_validate_deploy` returns `SVM_SUCCESS`");
             svm_result_t::SVM_SUCCESS
@@ -159,7 +159,7 @@ pub unsafe extern "C" fn svm_validate_spawn(
     error: *mut svm_byte_array,
 ) -> svm_result_t {
     let runtime: &mut Box<dyn Runtime> = runtime.into();
-    let message = message.as_bytes();
+    let message = message.as_slice();
 
     match runtime.validate_spawn(message) {
         Ok(()) => {
@@ -207,7 +207,7 @@ pub unsafe extern "C" fn svm_validate_call(
     debug!("`svm_validate_call` start");
 
     let runtime: &mut Box<dyn Runtime> = runtime.into();
-    let message = message.as_bytes();
+    let message = message.as_slice();
 
     match runtime.validate_call(message) {
         Ok(tx) => {
@@ -357,7 +357,7 @@ pub unsafe extern "C" fn svm_deploy(
     debug!("`svm_deploy` start`");
 
     let runtime: &mut Box<dyn Runtime> = runtime.into();
-    let message = _message.as_bytes();
+    let message = _message.as_slice();
 
     todo!()
 

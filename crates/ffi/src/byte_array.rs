@@ -66,13 +66,13 @@ impl svm_byte_array {
     }
 
     /// Returns a byte slice over the contents.
-    pub fn as_bytes(&self) -> &[u8] {
+    pub fn as_slice(&self) -> &[u8] {
         unsafe { std::slice::from_raw_parts(self.bytes, self.length as usize) }
     }
 
     /// Copies `self` into a new `Vec`.
     pub fn to_vec(&self) -> Vec<u8> {
-        self.as_bytes().to_vec()
+        self.as_slice().to_vec()
     }
 }
 

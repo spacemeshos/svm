@@ -23,7 +23,7 @@ use svm_types::{Account, SpawnAccount, TemplateAddr};
 use crate::{calldata, version};
 use crate::{Field, ParseError, ReadExt, WriteExt};
 
-/// Encodes a raw [`SpawnAccount`] transaction.
+/// Encodes a binary [`SpawnAccount`] transaction.
 pub fn encode(spawn: &SpawnAccount, w: &mut Vec<u8>) {
     encode_version(spawn, w);
     encode_template(spawn, w);
@@ -32,7 +32,7 @@ pub fn encode(spawn: &SpawnAccount, w: &mut Vec<u8>) {
     encode_ctor_calldata(spawn, w);
 }
 
-/// Parsing a raw [`SpawnAccount`] transaction.
+/// Parsing a binary [`SpawnAccount`] transaction.
 ///
 /// Returns the parsed [`SpawnAccount`],
 /// On failure, returns [`ParseError`].
