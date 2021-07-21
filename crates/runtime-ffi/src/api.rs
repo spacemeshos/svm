@@ -330,7 +330,7 @@ pub unsafe extern "C" fn svm_runtime_create(
 /// let res = unsafe { svm_memory_runtime_create(&mut runtime, &mut error) };
 /// assert!(res.is_ok());
 ///
-/// let mut {receipt, envelope} = svm_byte_array::default();
+/// let mut receipt = svm_byte_array::default();
 /// let envelope = svm_byte_array::default();
 /// let message = svm_byte_array::default();
 /// let context = svm_byte_array::default();
