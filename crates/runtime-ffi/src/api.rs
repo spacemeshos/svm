@@ -26,7 +26,7 @@ static MESSAGE_TYPE: Type = Type::Str("Tx Message");
 static CONTEXT_TYPE: Type = Type::Str("Tx Context");
 static VALIDATE_CALL_TARGET_TYPE: Type = Type::Str("validate_call Target");
 static DEPLOY_RECEIPT_TYPE: Type = Type::Str("Deploy Receipt");
-static _SPAWN_RECEIPT_TYPE: Type = Type::Str("Spawn Receipt");
+static SPAWN_RECEIPT_TYPE: Type = Type::Str("Spawn Receipt");
 static _CALL_RECEIPT_TYPE: Type = Type::Str("Call Receipt");
 
 #[inline]
@@ -412,7 +412,6 @@ pub unsafe extern "C" fn svm_deploy(
 /// let envelope = svm_byte_array::default();
 /// let message = svm_byte_array::default();
 /// let context = svm_byte_array::default();
-/// let gas_enabled = false;
 ///
 /// let _res = unsafe {
 ///   svm_spawn(
@@ -421,7 +420,6 @@ pub unsafe extern "C" fn svm_deploy(
 ///     envelope,
 ///     message,
 ///     context,
-///     gas_enabled,
 ///     &mut error)
 /// };
 /// ```
@@ -429,34 +427,46 @@ pub unsafe extern "C" fn svm_deploy(
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_spawn(
-    _receipt: *mut svm_byte_array,
-    _runtime: *mut c_void,
-    _envelope: svm_byte_array,
-    _message: svm_byte_array,
-    _context: svm_byte_array,
-    _gas_enabled: bool,
-    _error: *mut svm_byte_array,
+    receipt: *mut svm_byte_array,
+    runtime: *mut c_void,
+    envelope: svm_byte_array,
+    message: svm_byte_array,
+    context: svm_byte_array,
+    gas_enabled: bool,
+    error: *mut svm_byte_array,
 ) -> svm_result_t {
     debug!("`svm_spawn` start");
 
-    todo!();
+    let runtime: &mut Box<dyn Runtime> = runtime.into();
+    let message = message.as_slice();
 
-    // let runtime: &mut Box<dyn Runtime> = runtime.into();
-    // let message = message.as_bytes();
+    let envelope = decode_envelope(envelope);
+    if let Err(e) = envelope {
+        raw_io_error(e, error);
+        return svm_result_t::SVM_FAILURE;
+    }
 
-    // let rust_receipt = runtime.spawn(envelope, message, context);
-    // let receipt_bytes = receipt::encode_spawn(&rust_receipt);
+    let context = decode_context(context);
+    if let Err(e) = context {
+        raw_io_error(e, error);
+        return svm_result_t::SVM_FAILURE;
+    }
 
-    // // Returns the encoded `SpawnReceipt` as `svm_byte_array`.
-    // //
-    // // # Notes:
-    // //
-    // // Should call later `svm_receipt_destroy`
-    // data_to_svm_byte_array(SPAWN_RECEIPT_TYPE, receipt, receipt_bytes);
+    let envelope = envelope.unwrap();
+    let context = context.unwrap();
+    let rust_receipt = runtime.spawn(&envelope, &message, &context);
+    let receipt_bytes = receipt::encode_spawn(&rust_receipt);
 
-    // debug!("`svm_spawn` returns `SVM_SUCCESS`");
+    // Returns the encoded `SpawnReceipt` as `svm_byte_array`.
+    //
+    // # Notes:
+    //
+    // Should call later `svm_receipt_destroy`
+    data_to_svm_byte_array(SPAWN_RECEIPT_TYPE, receipt, receipt_bytes);
 
-    // svm_result_t::SVM_SUCCESS
+    debug!("`svm_spawn` returns `SVM_SUCCESS`");
+
+    svm_result_t::SVM_SUCCESS
 }
 
 /// `Call Account` transaction.
