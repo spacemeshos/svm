@@ -28,11 +28,6 @@ impl TypeInformation for CallWrapper {
     }
 }
 
-#[derive(Serialize, Deserialize)]
-struct WrappedCall {
-    data: HexBlob<Vec<u8>>,
-}
-
 ///
 /// ```json
 /// {
