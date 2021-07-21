@@ -14,18 +14,18 @@ use svm_codec::receipt;
 use svm_ffi::{svm_byte_array, svm_resource_iter_t, svm_resource_t, tracking};
 use svm_runtime::{Runtime, RuntimePtr};
 use svm_storage::kv::StatefulKV;
-use svm_types::Type;
+use svm_types::{Context, Envelope, Type};
 
 #[cfg(feature = "default-rocksdb")]
 use crate::raw_utf8_error;
 
-use crate::{raw_error, raw_validate_error, svm_result_t};
+use crate::{raw_error, raw_io_error, raw_validate_error, svm_result_t};
 
 static ENVELOPE_TYPE: Type = Type::Str("Tx Envelope");
 static MESSAGE_TYPE: Type = Type::Str("Tx Message");
 static CONTEXT_TYPE: Type = Type::Str("Tx Context");
 static VALIDATE_CALL_TARGET_TYPE: Type = Type::Str("validate_call Target");
-static _DEPLOY_RECEIPT_TYPE: Type = Type::Str("Deploy Receipt");
+static DEPLOY_RECEIPT_TYPE: Type = Type::Str("Deploy Receipt");
 static _SPAWN_RECEIPT_TYPE: Type = Type::Str("Spawn Receipt");
 static _CALL_RECEIPT_TYPE: Type = Type::Str("Call Receipt");
 
@@ -54,6 +54,24 @@ unsafe fn into_raw_runtime<R: Runtime + 'static>(
     *raw_runtime = RuntimePtr::into_raw(runtime_ptr);
 
     svm_result_t::SVM_SUCCESS
+}
+
+#[must_use]
+fn decode_envelope(envelope: svm_byte_array) -> std::io::Result<Envelope> {
+    use std::io::Cursor;
+    use svm_codec::envelope;
+
+    let mut cursor = Cursor::new(envelope.as_slice());
+    envelope::decode(&mut cursor)
+}
+
+#[must_use]
+fn decode_context(context: svm_byte_array) -> std::io::Result<Context> {
+    use std::io::Cursor;
+    use svm_codec::context;
+
+    let mut cursor = Cursor::new(context.as_slice());
+    context::decode(&mut cursor)
 }
 
 /// Allocates `svm_byte_array` of `size` bytes, destined to be used for passing a binary [`Envelope`].
@@ -312,11 +330,10 @@ pub unsafe extern "C" fn svm_runtime_create(
 /// let res = unsafe { svm_memory_runtime_create(&mut runtime, &mut error) };
 /// assert!(res.is_ok());
 ///
-/// let mut receipt = svm_byte_array::default();
+/// let mut {receipt, envelope} = svm_byte_array::default();
 /// let envelope = svm_byte_array::default();
 /// let message = svm_byte_array::default();
 /// let context = svm_byte_array::default();
-/// let gas_enabled = false;
 ///
 /// let res = unsafe {
 ///   svm_deploy(
@@ -325,7 +342,6 @@ pub unsafe extern "C" fn svm_runtime_create(
 ///     envelope,
 ///     message,
 ///     context,
-///     gas_enabled,
 ///     &mut error)
 /// };
 ///
@@ -335,31 +351,44 @@ pub unsafe extern "C" fn svm_runtime_create(
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_deploy(
-    _receipt: *mut svm_byte_array,
+    receipt: *mut svm_byte_array,
     runtime: *mut c_void,
-    _envelope: svm_byte_array,
-    _message: svm_byte_array,
-    _context: svm_byte_array,
-    _gas_enabled: bool,
-    _error: *mut svm_byte_array,
+    envelope: svm_byte_array,
+    message: svm_byte_array,
+    context: svm_byte_array,
+    error: *mut svm_byte_array,
 ) -> svm_result_t {
     debug!("`svm_deploy` start`");
 
     let runtime: &mut Box<dyn Runtime> = runtime.into();
-    let message = _message.as_slice();
+    let message = message.as_slice();
 
-    todo!()
+    let envelope = decode_envelope(envelope);
+    if let Err(e) = envelope {
+        raw_io_error(e, error);
+        return svm_result_t::SVM_FAILURE;
+    }
 
-    // let rust_receipt = runtime.deploy(envelope, message, context);
-    // let receipt_bytes = receipt::encode_deploy(&rust_receipt);
+    let context = decode_context(context);
+    if let Err(e) = context {
+        raw_io_error(e, error);
+        return svm_result_t::SVM_FAILURE;
+    }
 
-    // // returning encoded `TemplateReceipt` as `svm_byte_array`.
-    // // should call later `svm_receipt_destroy`
-    // data_to_svm_byte_array(DEPLOY_RECEIPT_TYPE, receipt, receipt_bytes);
+    let envelope = envelope.unwrap();
+    let context = context.unwrap();
+    let rust_receipt = runtime.deploy(&envelope, &message, &context);
+    let receipt_bytes = receipt::encode_deploy(&rust_receipt);
 
-    // debug!("`svm_deploy` returns `SVM_SUCCESS`");
+    // returning encoded `TemplateReceipt` as `svm_byte_array`.
+    //
+    // # Notes
+    //
+    // Should call later `svm_receipt_destroy`
+    data_to_svm_byte_array(DEPLOY_RECEIPT_TYPE, receipt, receipt_bytes);
 
-    // svm_result_t::SVM_SUCCESS
+    debug!("`svm_deploy` returns `SVM_SUCCESS`");
+    svm_result_t::SVM_SUCCESS
 }
 
 /// Spawns a new `Account`.

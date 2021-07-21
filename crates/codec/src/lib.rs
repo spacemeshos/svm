@@ -24,6 +24,7 @@ pub mod template;
 pub use ext::{ReadExt, WriteExt};
 pub use field::Field;
 pub mod api;
+pub mod context;
 pub mod envelope;
 
 /// Encoding of receipts.

@@ -1,8 +1,15 @@
+use std::io;
+
 use svm_ffi::svm_byte_array;
 use svm_runtime::ValidateError;
 use svm_types::Type;
 
 pub(crate) unsafe fn raw_validate_error(err: &ValidateError, raw_err: *mut svm_byte_array) {
+    let s = format!("{}", err);
+    raw_error(s, raw_err);
+}
+
+pub(crate) unsafe fn raw_io_error(err: io::Error, raw_err: *mut svm_byte_array) {
     let s = format!("{}", err);
     raw_error(s, raw_err);
 }
