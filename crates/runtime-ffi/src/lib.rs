@@ -24,15 +24,15 @@ pub use api::svm_memory_runtime_create;
 /// `SVM` FFI Interface
 #[rustfmt::skip]
 pub use api::{
-    // Runtime
-    svm_call,
-    svm_deploy,
-    svm_spawn,
-    
-    // Validations
+    // Transactions Validation
     svm_validate_deploy,
     svm_validate_spawn,
     svm_validate_call,
+
+    // Transactions Execution
+    svm_call,
+    svm_deploy,
+    svm_spawn,
 
     // Destroy
     svm_runtime_destroy,

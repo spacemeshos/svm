@@ -77,7 +77,7 @@ pub unsafe extern "C" fn svm_context_alloc(size: u32) -> svm_byte_array {
     svm_byte_array::new(size as usize, CONTEXT_TYPE)
 }
 
-/// Validates syntactically a binary `deploy template` transaction.
+/// Validates syntactically a binary `Deploy Template` transaction.
 ///
 /// Should be called while the transaction is in the `mempool` of the Host.
 /// In case the transaction isn't valid - the transaction should be discarded.
@@ -96,20 +96,16 @@ pub unsafe extern "C" fn svm_context_alloc(size: u32) -> svm_byte_array {
 /// let res = unsafe { svm_memory_runtime_create(&mut runtime, &mut error) };
 /// assert!(res.is_ok());
 ///
-/// let envelope = svm_byte_array::default();
 /// let message = svm_byte_array::default();
-/// let context = svm_byte_array::default();
 ///
-/// let _res = unsafe { svm_validate_deploy(runtime, envelope, message, context, &mut error) };
+/// let _res = unsafe { svm_validate_deploy(runtime, message, &mut error) };
 /// ```
 ///
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_validate_deploy(
     runtime: *mut c_void,
-    _envelope: svm_byte_array,
     message: svm_byte_array,
-    _context: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
     let runtime: &mut Box<dyn Runtime> = runtime.into();
@@ -146,20 +142,15 @@ pub unsafe extern "C" fn svm_validate_deploy(
 /// let res = unsafe { svm_memory_runtime_create(&mut runtime, &mut error) };
 /// assert!(res.is_ok());
 ///
-/// let envelope = svm_byte_array::default();
 /// let message = svm_byte_array::default();
-/// let context = svm_byte_array::default();
-///
-/// let _res = unsafe { svm_validate_spawn(runtime, envelope, message, context, &mut error) };
+/// let _res = unsafe { svm_validate_spawn(runtime, message, &mut error) };
 /// ```
 ///
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_validate_spawn(
     runtime: *mut c_void,
-    _envelope: svm_byte_array,
     message: svm_byte_array,
-    _context: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
     let runtime: &mut Box<dyn Runtime> = runtime.into();
@@ -193,20 +184,15 @@ pub unsafe extern "C" fn svm_validate_spawn(
 /// let res = unsafe { svm_memory_runtime_create(&mut runtime, &mut error) };
 /// assert!(res.is_ok());
 ///
-/// let envelope = svm_byte_array::default();
 /// let message = svm_byte_array::default();
-/// let context = svm_byte_array::default();
-///
-/// let _res = unsafe { svm_validate_call(runtime, envelope, message, context, &mut error) };
+/// let _res = unsafe { svm_validate_call(runtime, message, &mut error) };
 /// ```
 ///
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_validate_call(
     runtime: *mut c_void,
-    _envelope: svm_byte_array,
     message: svm_byte_array,
-    _context: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
     debug!("`svm_validate_call` start");
@@ -326,7 +312,6 @@ pub unsafe extern "C" fn svm_runtime_create(
 /// let res = unsafe { svm_memory_runtime_create(&mut runtime, &mut error) };
 /// assert!(res.is_ok());
 ///
-/// // deploy template
 /// let mut receipt = svm_byte_array::default();
 /// let envelope = svm_byte_array::default();
 /// let message = svm_byte_array::default();
@@ -363,7 +348,7 @@ pub unsafe extern "C" fn svm_deploy(
     let runtime: &mut Box<dyn Runtime> = runtime.into();
     let message = _message.as_slice();
 
-    todo!()
+    // todo!()
 
     // let rust_receipt = runtime.deploy(envelope, message, context);
     // let receipt_bytes = receipt::encode_deploy(&rust_receipt);
@@ -377,7 +362,7 @@ pub unsafe extern "C" fn svm_deploy(
     // svm_result_t::SVM_SUCCESS
 }
 
-/// Spawns a new Account.
+/// Spawns a new `Account`.
 ///
 /// # Examples
 ///
@@ -445,7 +430,7 @@ pub unsafe extern "C" fn svm_spawn(
     // svm_result_t::SVM_SUCCESS
 }
 
-/// Triggers a `Call Account` transaction.
+/// `Call Account` transaction.
 /// Returns the Receipt of the execution via the `receipt` parameter.
 ///
 /// # Examples
@@ -603,7 +588,7 @@ pub unsafe extern "C" fn svm_resource_type_name_destroy(ptr: *mut svm_byte_array
 /// let res = unsafe { svm_memory_runtime_create(&mut runtime, &mut error) };
 /// assert!(res.is_ok());
 ///
-/// // destroy runtime
+/// // Destroys the Runtime
 /// unsafe { svm_runtime_destroy(runtime); }
 /// ```
 ///

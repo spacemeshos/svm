@@ -1,5 +1,5 @@
 ///
-/// # Example
+/// # Examples
 ///
 /// ```rust
 /// use std::convert::TryFrom;
@@ -20,29 +20,29 @@
 #[macro_export]
 macro_rules! impl_from_svm_byte_array {
     ($struct:ident) => {
-	impl std::convert::TryFrom<$crate::svm_byte_array> for $struct {
-	    type Error = String;
+        impl std::convert::TryFrom<$crate::svm_byte_array> for $struct {
+            type Error = String;
 
-	    fn try_from(bytes: $crate::svm_byte_array) -> Result<Self, Self::Error> {
-		if bytes.length != $struct::len() as u32 {
-		    return Err(format!(
-			"Wrong `length` value for `svm_byte_array` representing `{}` (expected: {}, got: {})",
-			stringify!($struct),
-			$struct::len(),
-			bytes.length
-		    ));
-		}
+            fn try_from(bytes: $crate::svm_byte_array) -> Result<Self, Self::Error> {
+                if bytes.length != $struct::len() as u32 {
+                    return Err(format!(
+                        "Wrong `length` value for `svm_byte_array` representing `{}` (expected: {}, got: {})",
+                        stringify!($struct),
+                        $struct::len(),
+                        bytes.length
+                    ));
+                }
 
-		let slice: &[u8] = unsafe { std::slice::from_raw_parts(bytes.bytes, bytes.length as usize) };
+                let slice: &[u8] = unsafe { std::slice::from_raw_parts(bytes.bytes, bytes.length as usize) };
 
-		Ok($struct::from(slice))
-	    }
-	}
+                Ok($struct::from(slice))
+            }
+        }
     }
 }
 
 ///
-/// # Example
+/// # Examples
 ///
 /// ```rust
 /// use std::convert::TryFrom;
