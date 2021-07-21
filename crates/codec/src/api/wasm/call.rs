@@ -11,7 +11,7 @@ use crate::api::{self, json::JsonError};
 /// See also: `alloc` and `free`
 ///
 pub fn encode_call(offset: usize) -> Result<usize, JsonError> {
-    wasm_buf_apply(offset, api::json::encode_call)
+    wasm_buf_apply(offset, api::json::json_call_to_bytes)
 }
 
 /// Decodes a `Call Account` transaction into a JSON,
@@ -19,7 +19,7 @@ pub fn encode_call(offset: usize) -> Result<usize, JsonError> {
 /// and finally returns that Wasm buffer offset
 pub fn decode_call(offset: usize) -> Result<usize, JsonError> {
     wasm_buf_apply(offset, |json: &Value| {
-        let json = api::json::decode_call(json)?;
+        let json = api::json::unwrap_binary_json_call(json)?;
 
         api::json::to_bytes(&json)
     })

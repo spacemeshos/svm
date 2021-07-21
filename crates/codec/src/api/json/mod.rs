@@ -8,7 +8,7 @@ mod receipt;
 mod spawn;
 mod wrappers;
 
-pub use call::{decode_call, encode_call};
+pub use call::{json_call_to_bytes, unwrap_binary_json_call};
 pub use calldata::{decode_calldata, encode_calldata};
 pub use deploy::deploy_template;
 pub use error::JsonError;
