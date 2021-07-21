@@ -3,8 +3,9 @@ use serde_json::{json, Value};
 
 use std::io::Cursor;
 
-use svm_types::{AccountAddr, Address, Transaction};
+use svm_types::{AccountAddr, Transaction};
 
+use super::wrappers::AddressWrapper;
 use super::{HexBlob, TypeInformation};
 use crate::api::json::{self, JsonError};
 use crate::call;
@@ -12,16 +13,10 @@ use crate::call;
 #[derive(Clone, Serialize, Deserialize)]
 struct CallJsonlike {
     version: u16,
-    target: HexBlob,
+    target: AddressWrapper,
     func_name: String,
     // verifydata: String,
     calldata: HexBlob,
-}
-
-impl CallJsonlike {
-    fn account_addr(&self) -> AccountAddr {
-        AccountAddr::new(Address::from(&self.target.0[..]))
-    }
 }
 
 impl TypeInformation for CallJsonlike {
@@ -47,7 +42,7 @@ impl TypeInformation for CallJsonlike {
 pub fn encode_call(json: &Value) -> Result<Vec<u8>, JsonError> {
     let jsonlike: CallJsonlike = serde_json::from_value(json.clone())
         .map_err(|e| JsonError::from_serde::<CallJsonlike>(e))?;
-    let account_addr = jsonlike.account_addr();
+    let account_addr = AccountAddr::new(jsonlike.target.0);
 
     let tx = Transaction {
         version: jsonlike.version,

@@ -3,9 +3,12 @@ use svm_types::Address;
 
 /// A blob of binary data that is encoded with Base16.
 #[derive(Clone, Debug)]
-pub struct HexBlob(pub Vec<u8>);
+pub struct HexBlob<T>(pub T);
 
-impl Serialize for HexBlob {
+impl<T> Serialize for HexBlob<T>
+where
+    T: AsRef<[u8]>,
+{
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -14,7 +17,7 @@ impl Serialize for HexBlob {
     }
 }
 
-impl<'de> Deserialize<'de> for HexBlob {
+impl<'de> Deserialize<'de> for HexBlob<Vec<u8>> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
@@ -31,11 +34,32 @@ impl<'de> Deserialize<'de> for HexBlob {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct AddressWrapper(pub HexBlob);
+#[derive(Clone, Debug)]
+pub struct AddressWrapper(pub Address);
 
-impl AddressWrapper {
-    pub fn address(&self) -> Address {
-        Address::from(&self.0 .0[..])
+impl Serialize for AddressWrapper {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let blob = HexBlob(self.0.as_slice());
+        blob.serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for AddressWrapper {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        use serde::de::Error;
+
+        let blob = HexBlob::deserialize(deserializer)?;
+
+        if blob.0.len() != Address::len() {
+            Err(D::Error::custom("Bad length"))
+        } else {
+            Ok(Self(Address::from(&blob.0[..])))
+        }
     }
 }

@@ -6,6 +6,7 @@ mod deploy;
 mod error;
 mod receipt;
 mod spawn;
+mod wrappers;
 
 pub use call::{decode_call, encode_call};
 pub use calldata::{decode_calldata, encode_calldata};
