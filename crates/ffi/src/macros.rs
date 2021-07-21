@@ -11,7 +11,7 @@
 /// let addr = Address::of("@someone");
 ///
 /// let bytes: svm_byte_array = (ty, addr).into();
-/// assert_eq!(Address::len(), bytes.length as usize);
+/// assert_eq!(Address::len(), bytes.len() as usize);
 ///
 /// let res: Result<Address, String> = Address::try_from(bytes);
 /// assert_eq!(Address::of("@someone"), res.unwrap());
@@ -54,7 +54,7 @@ macro_rules! impl_from_svm_byte_array {
 /// let addr = Address::of("@someone");
 ///
 /// let bytes: svm_byte_array = (ty, addr).into();
-/// assert_eq!(Address::len(), bytes.length as usize);
+/// assert_eq!(Address::len(), bytes.len() as usize);
 ///
 /// let res: Result<Address, String> = Address::try_from(bytes);
 /// assert_eq!(Address::of("@someone"), res.unwrap());

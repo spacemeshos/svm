@@ -2,9 +2,13 @@ use crate::{Layer, State, TransactionId};
 
 /// Holds the `Transaction`'s Context.
 ///
-/// Once created it should NOT be modified (immutable).
+/// Once created it **can't** be modified (it's immutable).
+///
 /// It contains properties related to the context in which a Transaction will execute.
 /// Additionally, it will encapsulate properties inferred from the binary Transaction sent over-the-wire.
+///
+/// The [`Context`]'s data should be passed externally from the `Node`.
+/// That's why we are not allowed to touch its content, and have it immutable.
 #[derive(Debug, Clone)]
 pub struct Context {
     tx_id: TransactionId,

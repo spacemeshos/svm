@@ -2,7 +2,10 @@ use crate::{Address, Gas};
 
 /// Holds `Transaction` **agnostic** content.
 ///
-/// Once created it should NOT be modified (immutable).
+/// Once created it **can't** be modified (immutable).
+///
+/// The [`Envelope`]'s data should be passed externally from the `Node`.
+/// That's why we are not allowed to touch its content, and have it immutable.
 pub struct Envelope {
     principal: Address,
     amount: u64,

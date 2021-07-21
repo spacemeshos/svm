@@ -4,7 +4,7 @@
 //! (not using the Rust standard library should result in a smaller WASM file).
 
 //! Besides Smart-Contracts, this crate should be ready to use in other contexts.
-//! For example, a client` (UX or CLI)` or `Process Explorer` should be able to interpret an encoded `CallData`
+//! For example, a client such as `smapp` or the `Process Explorer` should be able to interpret an encoded `CallData`
 //! (which is part of the SVM transaction) in a friendly manner.
 //!
 //! For more info regarding the encoding scheme see the counterpart `svm-abi-encoder` crate.
