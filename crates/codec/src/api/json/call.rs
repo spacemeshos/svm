@@ -71,6 +71,12 @@ impl TypeInformation for WrappedCall {
 
 /// Given a binary [`Transaction`] wrapped inside JSON,
 /// Decodes it and returns a user-friendly JSON.
+///
+/// ```json
+/// {
+///   "data": "E9E50C787F2076BD5E44"
+/// }
+/// ```
 pub fn unwrap_binary_json_call(json: &Json) -> Result<Json, JsonError> {
     let wrapped_call: WrappedCall = serde_json::from_value(json.clone())
         .map_err(|e| JsonError::from_serde::<WrappedCall>(e))?;
