@@ -1,11 +1,6 @@
-#![allow(unused)]
-
 use log::{debug, error};
 
-use std::cell::RefCell;
-use std::convert::TryFrom;
 use std::ffi::c_void;
-use std::rc::Rc;
 
 #[cfg(feature = "default-rocksdb")]
 use std::path::Path;
@@ -13,18 +8,16 @@ use std::path::Path;
 use svm_codec::receipt;
 use svm_ffi::{svm_byte_array, svm_resource_iter_t, svm_resource_t, tracking};
 use svm_runtime::{Runtime, RuntimePtr};
-use svm_storage::kv::StatefulKV;
 use svm_types::{Context, Envelope, Type};
 
 #[cfg(feature = "default-rocksdb")]
 use crate::raw_utf8_error;
 
-use crate::{raw_error, raw_io_error, raw_validate_error, svm_result_t};
+use crate::{raw_io_error, raw_validate_error, svm_result_t};
 
 static ENVELOPE_TYPE: Type = Type::Str("Tx Envelope");
 static MESSAGE_TYPE: Type = Type::Str("Tx Message");
 static CONTEXT_TYPE: Type = Type::Str("Tx Context");
-static VALIDATE_CALL_TARGET_TYPE: Type = Type::Str("validate_call Target");
 static DEPLOY_RECEIPT_TYPE: Type = Type::Str("Deploy Receipt");
 static SPAWN_RECEIPT_TYPE: Type = Type::Str("Spawn Receipt");
 static CALL_RECEIPT_TYPE: Type = Type::Str("Call Receipt");
@@ -219,7 +212,7 @@ pub unsafe extern "C" fn svm_validate_call(
     let message = message.as_slice();
 
     match runtime.validate_call(message) {
-        Ok(tx) => {
+        Ok(()) => {
             debug!("`svm_validate_call` returns `SVM_SUCCESS`");
             svm_result_t::SVM_SUCCESS
         }
