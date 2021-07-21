@@ -515,9 +515,6 @@ pub unsafe extern "C" fn svm_call(
     debug!("`svm_call` start");
 
     let runtime: &mut Box<dyn Runtime> = runtime.into();
-    let message = message.as_bytes();
-
-    let runtime: &mut Box<dyn Runtime> = runtime.into();
     let message = message.as_slice();
 
     let envelope = decode_envelope(envelope);
