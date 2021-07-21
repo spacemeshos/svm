@@ -348,7 +348,7 @@ pub unsafe extern "C" fn svm_deploy(
     let runtime: &mut Box<dyn Runtime> = runtime.into();
     let message = _message.as_slice();
 
-    // todo!()
+    todo!()
 
     // let rust_receipt = runtime.deploy(envelope, message, context);
     // let receipt_bytes = receipt::encode_deploy(&rust_receipt);
