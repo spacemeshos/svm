@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::Value as Json;
 
 use std::io::Cursor;
 
@@ -43,7 +43,7 @@ struct WrappedCall {
 ///   calldata: '',         // string
 /// }
 /// ```
-pub fn json_call_to_bytes(json: &Value) -> Result<Vec<u8>, JsonError> {
+pub fn json_call_to_bytes(json: &Json) -> Result<Vec<u8>, JsonError> {
     let wrapper: CallWrapper = serde_json::from_value(json.clone())
         .map_err(|e| JsonError::from_serde::<CallWrapper>(e))?;
     let account_addr = AccountAddr::new(wrapper.target.0);
@@ -65,32 +65,25 @@ pub fn json_call_to_bytes(json: &Value) -> Result<Vec<u8>, JsonError> {
 
 /// Given a binary [`Transaction`] wrapped inside JSON,
 /// Decodes it and returns a user-friendly JSON.
-pub fn unwrap_binary_json_call(json: &Value) -> Result<Value, JsonError> {
+pub fn unwrap_binary_json_call(json: &Json) -> Result<Json, JsonError> {
     let data = json::as_string(json, "data")?;
     let bytes = json::str_to_bytes(&data, "data")?;
 
-    let mut cursor = Cursor::new(&bytes[..]);
-    let tx = call::decode_call(&mut cursor).unwrap();
-
-    let version = tx.version;
-    let func_name = tx.func_name.clone();
-    let target = json::addr_to_str(&tx.target.inner());
+    let tx = {
+        let mut cursor = Cursor::new(&bytes[..]);
+        call::decode_call(&mut cursor).unwrap()
+    };
 
     // let verifydata = json::bytes_to_str(&tx.verifydata);
     // let verifydata = json::decode_calldata(&json!({ "calldata": verifydata }))?;
 
-    let calldata = json::bytes_to_str(&tx.calldata);
-    let calldata = json::decode_calldata(&json!({ "calldata": calldata }))?;
-
-    let json = json!({
-        "version": version,
-        "target": target,
-        "func_name": func_name,
-        // "verifydata": verifydata,
-        "calldata": calldata,
-    });
-
-    Ok(json)
+    Ok(serde_json::to_value(CallWrapper {
+        version: tx.version,
+        target: AddressWrapper(tx.target.inner().clone()),
+        func_name: tx.func_name.clone(),
+        calldata: HexBlob(tx.calldata),
+    })
+    .unwrap())
 }
 
 #[cfg(test)]
