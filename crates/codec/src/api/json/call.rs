@@ -11,7 +11,7 @@ use crate::api::json::{self, JsonError};
 use crate::call;
 
 #[derive(Clone, Serialize, Deserialize)]
-struct CallJsonlike {
+struct CallWrapper {
     version: u16,
     target: AddressWrapper,
     func_name: String,
@@ -19,7 +19,7 @@ struct CallJsonlike {
     calldata: HexBlob,
 }
 
-impl TypeInformation for CallJsonlike {
+impl TypeInformation for CallWrapper {
     fn type_of_field_as_str(field: &str) -> Option<&str> {
         Some(match field {
             "version" => "number",
@@ -40,16 +40,16 @@ impl TypeInformation for CallJsonlike {
 /// }
 /// ```
 pub fn encode_call(json: &Value) -> Result<Vec<u8>, JsonError> {
-    let jsonlike: CallJsonlike = serde_json::from_value(json.clone())
-        .map_err(|e| JsonError::from_serde::<CallJsonlike>(e))?;
-    let account_addr = AccountAddr::new(jsonlike.target.0);
+    let wrapper: CallWrapper = serde_json::from_value(json.clone())
+        .map_err(|e| JsonError::from_serde::<CallWrapper>(e))?;
+    let account_addr = AccountAddr::new(wrapper.target.0);
 
     let tx = Transaction {
-        version: jsonlike.version,
-        func_name: jsonlike.func_name,
+        version: wrapper.version,
+        func_name: wrapper.func_name,
         target: account_addr,
         // verifydata,
-        calldata: jsonlike.calldata.0,
+        calldata: wrapper.calldata.0,
     };
 
     let mut buf = Vec::new();

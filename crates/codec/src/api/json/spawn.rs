@@ -10,7 +10,7 @@ use crate::api::json::{self, HexBlob, JsonError};
 use crate::spawn;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
-struct SpawnJsonlike {
+struct SpawnWrapper {
     version: u16,
     template: String,
     name: String,
@@ -18,7 +18,7 @@ struct SpawnJsonlike {
     calldata: HexBlob,
 }
 
-impl TypeInformation for SpawnJsonlike {
+impl TypeInformation for SpawnWrapper {
     fn type_of_field_as_str(field: &str) -> Option<&str> {
         Some(match field {
             "version" => "number",
@@ -38,16 +38,16 @@ impl TypeInformation for SpawnJsonlike {
 /// }
 /// ```
 pub fn encode_spawn(json: &Value) -> Result<Vec<u8>, JsonError> {
-    let jsonlike: SpawnJsonlike = serde_json::from_value(json.clone())
-        .map_err(|e| JsonError::from_serde::<SpawnJsonlike>(e))?;
+    let wrapper: SpawnWrapper = serde_json::from_value(json.clone())
+        .map_err(|e| JsonError::from_serde::<SpawnWrapper>(e))?;
 
     let template = json::as_addr(json, "template")?.into();
 
     let spawn = SpawnAccount {
-        version: jsonlike.version,
-        account: Account::new(template, jsonlike.name),
-        ctor_name: jsonlike.ctor_name,
-        calldata: jsonlike.calldata.0,
+        version: wrapper.version,
+        account: Account::new(template, wrapper.name),
+        ctor_name: wrapper.ctor_name,
+        calldata: wrapper.calldata.0,
     };
 
     let mut buf = Vec::new();

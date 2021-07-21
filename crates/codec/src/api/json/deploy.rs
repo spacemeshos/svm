@@ -10,7 +10,7 @@ use crate::api::json::JsonError;
 use crate::template;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
-struct DeployJsonlike {
+struct DeployWrapper {
     svm_version: u32,
     code_version: u32,
     name: String,
@@ -20,7 +20,7 @@ struct DeployJsonlike {
     ctors: Vec<String>,
 }
 
-impl TypeInformation for DeployJsonlike {
+impl TypeInformation for DeployWrapper {
     fn type_of_field_as_str(field: &str) -> Option<&str> {
         Some(match field {
             "svm_version" | "code_version" => "number",
@@ -44,14 +44,14 @@ impl TypeInformation for DeployJsonlike {
 /// }
 /// ```
 pub fn deploy_template(json: &Value) -> Result<Vec<u8>, JsonError> {
-    let jsonlike: DeployJsonlike = serde_json::from_value(json.clone())
-        .map_err(|e| JsonError::from_serde::<DeployJsonlike>(e))?;
+    let wrapper: DeployWrapper = serde_json::from_value(json.clone())
+        .map_err(|e| JsonError::from_serde::<DeployWrapper>(e))?;
 
-    let layout = to_data_layout(jsonlike.data.0)?;
-    let code = CodeSection::new_fixed(jsonlike.code.0, jsonlike.svm_version);
+    let layout = to_data_layout(wrapper.data.0)?;
+    let code = CodeSection::new_fixed(wrapper.code.0, wrapper.svm_version);
     let data = DataSection::with_layout(layout);
-    let ctors = CtorsSection::new(jsonlike.ctors);
-    let header = HeaderSection::new(jsonlike.code_version, jsonlike.name, jsonlike.desc);
+    let ctors = CtorsSection::new(wrapper.ctors);
+    let header = HeaderSection::new(wrapper.code_version, wrapper.name, wrapper.desc);
 
     let template = TemplateBuilder::default()
         .with_code(code)

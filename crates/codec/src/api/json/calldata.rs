@@ -12,29 +12,29 @@ use crate::api::json::{self, JsonError};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
-struct CalldataJsonlike {
+struct CalldataWrapper {
     abi: Vec<Ty>,
     data: Vec<Json>,
 }
 
-impl TypeInformation for CalldataJsonlike {
+impl TypeInformation for CalldataWrapper {
     fn type_of_field_as_str(_field: &str) -> Option<&str> {
         Some("array")
     }
 }
 
-impl CalldataJsonlike {
+impl CalldataWrapper {
     fn new(json: &Json) -> Result<Self, JsonError> {
-        let jsonlike: Self =
+        let wrapper: Self =
             serde_json::from_value(json.clone()).map_err(|e| JsonError::from_serde::<Self>(e))?;
 
-        if jsonlike.abi.len() != jsonlike.data.len() {
+        if wrapper.abi.len() != wrapper.data.len() {
             Err(JsonError::InvalidField {
                 field: "data".to_string(),
                 reason: "`abi` and `data` must be of the same length".to_string(),
             })
         } else {
-            Ok(jsonlike)
+            Ok(wrapper)
         }
     }
 
@@ -60,8 +60,8 @@ impl CalldataJsonlike {
 /// Given a `Calldata` JSON, encodes it into a binary `Calldata`
 /// and returns the result wrapped with a JSON
 pub fn encode_calldata(json: &Json) -> Result<Json, JsonError> {
-    let jsonlike = CalldataJsonlike::new(json)?;
-    let buf = jsonlike.encode_to_buf()?;
+    let wrapper = CalldataWrapper::new(json)?;
+    let buf = wrapper.encode_to_buf()?;
     let calldata = json::bytes_to_str(&buf);
     let json = json!({ "calldata": calldata });
 
