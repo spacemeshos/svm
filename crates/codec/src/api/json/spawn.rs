@@ -1,58 +1,30 @@
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::Value;
 
 use std::io::Cursor;
 
-use svm_types::{Account, SpawnAccount};
+use svm_types::{Account, SpawnAccount, TemplateAddr};
 
+use super::wrappers::AddressWrapper;
 use super::TypeInformation;
 use crate::api::json::{self, HexBlob, JsonError};
 use crate::spawn;
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
-struct SpawnWrapper {
-    version: u16,
-    template: String,
-    name: String,
-    ctor_name: String,
-    calldata: HexBlob,
-}
-
-impl TypeInformation for SpawnWrapper {
-    fn type_of_field_as_str(field: &str) -> Option<&str> {
-        Some(match field {
-            "version" => "number",
-            _ => "string",
-        })
-    }
-}
-
 ///
 /// ```json
 /// {
-///   version: 0,              // number
-///   template: 'A2FB...',     // string
-///   name: 'My Account',      // string
-///   ctor_name: 'initialize', // number
-///   calldata: '',            // string
+///   "version": 0,              // number
+///   "template": "A2FB...",     // string
+///   "name": "My Account",      // string
+///   "ctor_name": "initialize", // number
+///   "calldata": "",            // string
 /// }
 /// ```
 pub fn encode_spawn(json: &Value) -> Result<Vec<u8>, JsonError> {
-    let wrapper: SpawnWrapper = serde_json::from_value(json.clone())
-        .map_err(|e| JsonError::from_serde::<SpawnWrapper>(e))?;
-
-    let template = json::as_addr(json, "template")?.into();
-
-    let spawn = SpawnAccount {
-        version: wrapper.version,
-        account: Account::new(template, wrapper.name),
-        ctor_name: wrapper.ctor_name,
-        calldata: wrapper.calldata.0,
-    };
+    let wrapper = SpawnWrapper::new(json)?;
 
     let mut buf = Vec::new();
-    spawn::encode(&spawn, &mut buf);
-
+    spawn::encode(&SpawnAccount::from(wrapper), &mut buf);
     Ok(buf)
 }
 
@@ -65,24 +37,59 @@ pub fn decode_spawn(json: &Value) -> Result<Value, JsonError> {
     let mut cursor = Cursor::new(&bytes[..]);
     let spawn = spawn::decode(&mut cursor).unwrap();
 
-    let version = spawn.version;
-    let ctor_name = spawn.ctor_name;
-    let template = json::addr_to_str(&spawn.account.template_addr.inner());
+    Ok(serde_json::to_value(SpawnWrapper::from(spawn)).unwrap())
+}
 
-    let calldata = json::bytes_to_str(&spawn.calldata);
-    let calldata = json::decode_calldata(&json!({ "calldata": calldata }))?;
+#[derive(Debug, Deserialize, Serialize, Clone)]
+struct SpawnWrapper {
+    version: u16,
+    #[serde(rename = "template")]
+    template_addr: AddressWrapper,
+    name: String,
+    ctor_name: String,
+    calldata: HexBlob,
+}
 
-    let name = spawn.account.name;
+impl SpawnWrapper {
+    fn new(json: &Value) -> Result<Self, JsonError> {
+        serde_json::from_value(json.clone()).map_err(|e| JsonError::from_serde::<SpawnWrapper>(e))
+    }
+}
 
-    let json = json!({
-        "version": version,
-        "template": template,
-        "name": name,
-        "ctor_name": ctor_name,
-        "calldata": calldata,
-    });
+impl From<SpawnAccount> for SpawnWrapper {
+    fn from(spawn: SpawnAccount) -> Self {
+        let template_addr = AddressWrapper(spawn.account.template_addr().inner().clone());
 
-    Ok(json)
+        Self {
+            version: spawn.version,
+            name: spawn.account.name,
+            template_addr,
+            ctor_name: spawn.ctor_name,
+            calldata: HexBlob(spawn.calldata),
+        }
+    }
+}
+
+impl From<SpawnWrapper> for SpawnAccount {
+    fn from(wrapper: SpawnWrapper) -> Self {
+        let template_addr = TemplateAddr::new(wrapper.template_addr.0);
+
+        SpawnAccount {
+            version: wrapper.version,
+            account: Account::new(template_addr, wrapper.name),
+            ctor_name: wrapper.ctor_name,
+            calldata: wrapper.calldata.0,
+        }
+    }
+}
+
+impl TypeInformation for SpawnWrapper {
+    fn type_of_field_as_str(field: &str) -> Option<&str> {
+        Some(match field {
+            "version" => "number",
+            _ => "string",
+        })
+    }
 }
 
 #[cfg(test)]
