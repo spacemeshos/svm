@@ -30,6 +30,7 @@ pub struct StorageReq {
 }
 
 /// A `StorageQuery` contains a batch of requests.
+#[derive(Default)]
 pub struct StorageQuery {
     requests: Vec<StorageReq>,
 }
@@ -59,9 +60,7 @@ pub trait StorageReader<V, VR: VarRenderer<V>> {
 impl StorageQuery {
     /// New query.
     pub fn new() -> Self {
-        Self {
-            requests: Vec::new(),
-        }
+        Self::default()
     }
 
     /// Adds a request to the query
