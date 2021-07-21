@@ -9,25 +9,6 @@ use super::wrappers::*;
 use crate::api::json::{JsonError, TypeInformation};
 use crate::call;
 
-#[derive(Clone, Serialize, Deserialize)]
-struct CallWrapper {
-    version: u16,
-    target: AddressWrapper,
-    func_name: String,
-    // verifydata: String,
-    calldata: HexBlob<Vec<u8>>,
-}
-
-impl TypeInformation for CallWrapper {
-    fn type_of_field_as_str(field: &str) -> Option<&str> {
-        Some(match field {
-            "version" => "number",
-            "func_name" | "target" | "calldata" => "string",
-            _ => unreachable!(),
-        })
-    }
-}
-
 ///
 /// ```json
 /// {
@@ -39,14 +20,12 @@ impl TypeInformation for CallWrapper {
 /// }
 /// ```
 pub fn json_call_to_bytes(json: &Json) -> Result<Vec<u8>, JsonError> {
-    let wrapper: CallWrapper = serde_json::from_value(json.clone())
-        .map_err(|e| JsonError::from_serde::<CallWrapper>(e))?;
-    let account_addr = AccountAddr::new(wrapper.target.0);
-
+    let wrapper = CallWrapper::new(json)?;
+    let target = wrapper.account_addr();
     let tx = Transaction {
         version: wrapper.version,
         func_name: wrapper.func_name,
-        target: account_addr,
+        target,
         // verifydata,
         calldata: wrapper.calldata.0,
     };
@@ -58,17 +37,6 @@ pub fn json_call_to_bytes(json: &Json) -> Result<Vec<u8>, JsonError> {
     Ok(buf)
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-struct WrappedCall {
-    data: HexBlob<Vec<u8>>,
-}
-
-impl TypeInformation for WrappedCall {
-    fn type_of_field_as_str(_field: &str) -> Option<&str> {
-        Some("data")
-    }
-}
-
 /// Given a binary [`Transaction`] wrapped inside JSON,
 /// Decodes it and returns a user-friendly JSON.
 ///
@@ -78,9 +46,7 @@ impl TypeInformation for WrappedCall {
 /// }
 /// ```
 pub fn unwrap_binary_json_call(json: &Json) -> Result<Json, JsonError> {
-    let wrapped_call: WrappedCall = serde_json::from_value(json.clone())
-        .map_err(|e| JsonError::from_serde::<WrappedCall>(e))?;
-
+    let wrapped_call = WrappedCall::new(json)?;
     let tx = {
         let mut cursor = Cursor::new(&wrapped_call.data.0[..]);
         call::decode_call(&mut cursor).unwrap()
@@ -96,6 +62,52 @@ pub fn unwrap_binary_json_call(json: &Json) -> Result<Json, JsonError> {
         calldata: HexBlob(tx.calldata),
     })
     .unwrap())
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+struct CallWrapper {
+    version: u16,
+    target: AddressWrapper,
+    func_name: String,
+    // verifydata: String,
+    calldata: HexBlob<Vec<u8>>,
+}
+
+impl CallWrapper {
+    fn new(json: &Json) -> Result<Self, JsonError> {
+        serde_json::from_value(json.clone()).map_err(|e| JsonError::from_serde::<CallWrapper>(e))
+    }
+
+    fn account_addr(&self) -> AccountAddr {
+        AccountAddr::new(self.target.0.clone())
+    }
+}
+
+impl TypeInformation for CallWrapper {
+    fn type_of_field_as_str(field: &str) -> Option<&str> {
+        Some(match field {
+            "version" => "number",
+            "func_name" | "target" | "calldata" => "string",
+            _ => unreachable!(),
+        })
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct WrappedCall {
+    data: HexBlob<Vec<u8>>,
+}
+
+impl WrappedCall {
+    fn new(json: &Json) -> Result<Self, JsonError> {
+        serde_json::from_value(json.clone()).map_err(|e| JsonError::from_serde::<WrappedCall>(e))
+    }
+}
+
+impl TypeInformation for WrappedCall {
+    fn type_of_field_as_str(_field: &str) -> Option<&str> {
+        Some("data")
+    }
 }
 
 #[cfg(test)]

@@ -10,53 +10,6 @@ use svm_sdk_types::{Address, Amount};
 use super::TypeInformation;
 use crate::api::json::{self, JsonError};
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-struct CalldataWrapper {
-    abi: Vec<Ty>,
-    data: Vec<Json>,
-}
-
-impl TypeInformation for CalldataWrapper {
-    fn type_of_field_as_str(_field: &str) -> Option<&str> {
-        Some("array")
-    }
-}
-
-impl CalldataWrapper {
-    fn new(json: &Json) -> Result<Self, JsonError> {
-        let wrapper: Self =
-            serde_json::from_value(json.clone()).map_err(|e| JsonError::from_serde::<Self>(e))?;
-
-        if wrapper.abi.len() != wrapper.data.len() {
-            Err(JsonError::InvalidField {
-                field: "data".to_string(),
-                reason: "`abi` and `data` must be of the same length".to_string(),
-            })
-        } else {
-            Ok(wrapper)
-        }
-    }
-
-    fn zip(&self) -> impl Iterator<Item = (&Ty, &Json)> {
-        self.abi.iter().zip(self.data.iter())
-    }
-
-    fn cap(&self) -> Result<usize, JsonError> {
-        self.zip().map(|(ty, raw)| ty.value_byte_size(&raw)).sum()
-    }
-
-    fn encode_to_buf(&self) -> Result<svm_sdk_std::Vec<u8>, JsonError> {
-        let cap = self.cap()?;
-        let mut buf = svm_sdk_std::Vec::with_capacity(cap);
-
-        self.zip()
-            .try_for_each(|(ty, raw)| encode_value(ty, &raw).map(|value| value.encode(&mut buf)))?;
-
-        Ok(buf)
-    }
-}
-
 /// Given a `Calldata` JSON, encodes it into a binary `Calldata`
 /// and returns the result wrapped with a JSON
 pub fn encode_calldata(json: &Json) -> Result<Json, JsonError> {
@@ -287,6 +240,53 @@ fn encode_array(types: &[Ty], value: &Json) -> Result<Value, JsonError> {
     let c = Composite::Vec(vec);
 
     Ok(Value::Composite(c))
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+struct CalldataWrapper {
+    abi: Vec<Ty>,
+    data: Vec<Json>,
+}
+
+impl TypeInformation for CalldataWrapper {
+    fn type_of_field_as_str(_field: &str) -> Option<&str> {
+        Some("array")
+    }
+}
+
+impl CalldataWrapper {
+    fn new(json: &Json) -> Result<Self, JsonError> {
+        let wrapper: Self =
+            serde_json::from_value(json.clone()).map_err(|e| JsonError::from_serde::<Self>(e))?;
+
+        if wrapper.abi.len() != wrapper.data.len() {
+            Err(JsonError::InvalidField {
+                field: "data".to_string(),
+                reason: "`abi` and `data` must be of the same length".to_string(),
+            })
+        } else {
+            Ok(wrapper)
+        }
+    }
+
+    fn zip(&self) -> impl Iterator<Item = (&Ty, &Json)> {
+        self.abi.iter().zip(self.data.iter())
+    }
+
+    fn cap(&self) -> Result<usize, JsonError> {
+        self.zip().map(|(ty, raw)| ty.value_byte_size(&raw)).sum()
+    }
+
+    fn encode_to_buf(&self) -> Result<svm_sdk_std::Vec<u8>, JsonError> {
+        let cap = self.cap()?;
+        let mut buf = svm_sdk_std::Vec::with_capacity(cap);
+
+        self.zip()
+            .try_for_each(|(ty, raw)| encode_value(ty, &raw).map(|value| value.encode(&mut buf)))?;
+
+        Ok(buf)
+    }
 }
 
 #[cfg(test)]

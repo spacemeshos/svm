@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde_json::Value as Json;
 
 use svm_layout::{FixedLayoutBuilder, Id, Layout};
 use svm_types::{CodeSection, CtorsSection, DataSection, HeaderSection};
@@ -18,6 +18,12 @@ struct DeployWrapper {
     code: HexBlob,
     data: HexBlob,
     ctors: Vec<String>,
+}
+
+impl DeployWrapper {
+    fn new(json: &Json) -> Result<Self, JsonError> {
+        serde_json::from_value(json.clone()).map_err(|e| JsonError::from_serde::<DeployWrapper>(e))
+    }
 }
 
 impl TypeInformation for DeployWrapper {
@@ -43,10 +49,8 @@ impl TypeInformation for DeployWrapper {
 ///   ctors: ['', ''],      // string[]
 /// }
 /// ```
-pub fn deploy_template(json: &Value) -> Result<Vec<u8>, JsonError> {
-    let wrapper: DeployWrapper = serde_json::from_value(json.clone())
-        .map_err(|e| JsonError::from_serde::<DeployWrapper>(e))?;
-
+pub fn deploy_template(json: &Json) -> Result<Vec<u8>, JsonError> {
+    let wrapper = DeployWrapper::new(json)?;
     let layout = to_data_layout(wrapper.data.0)?;
     let code = CodeSection::new_fixed(wrapper.code.0, wrapper.svm_version);
     let data = DataSection::with_layout(layout);
@@ -60,8 +64,7 @@ pub fn deploy_template(json: &Value) -> Result<Vec<u8>, JsonError> {
         .with_header(header)
         .build();
 
-    let bytes = template::encode(&template);
-    Ok(bytes)
+    Ok(template::encode(&template))
 }
 
 fn to_data_layout(blob: Vec<u8>) -> Result<Layout, JsonError> {
