@@ -27,7 +27,7 @@ static CONTEXT_TYPE: Type = Type::Str("Tx Context");
 static VALIDATE_CALL_TARGET_TYPE: Type = Type::Str("validate_call Target");
 static DEPLOY_RECEIPT_TYPE: Type = Type::Str("Deploy Receipt");
 static SPAWN_RECEIPT_TYPE: Type = Type::Str("Spawn Receipt");
-static _CALL_RECEIPT_TYPE: Type = Type::Str("Call Receipt");
+static CALL_RECEIPT_TYPE: Type = Type::Str("Call Receipt");
 
 #[inline]
 unsafe fn data_to_svm_byte_array(ty: Type, byte_array: *mut svm_byte_array, data: Vec<u8>) {
@@ -432,7 +432,6 @@ pub unsafe extern "C" fn svm_spawn(
     envelope: svm_byte_array,
     message: svm_byte_array,
     context: svm_byte_array,
-    gas_enabled: bool,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
     debug!("`svm_spawn` start");
@@ -491,7 +490,6 @@ pub unsafe extern "C" fn svm_spawn(
 /// let envelope = svm_byte_array::default();
 /// let message = svm_byte_array::default();
 /// let context = svm_byte_array::default();
-/// let gas_enabled = false;
 ///
 /// let _res = unsafe {
 ///   svm_call(
@@ -500,7 +498,6 @@ pub unsafe extern "C" fn svm_spawn(
 ///     envelope,
 ///     message,
 ///     context,
-///     gas_enabled,
 ///     &mut error)
 /// };
 /// ```
@@ -508,34 +505,47 @@ pub unsafe extern "C" fn svm_spawn(
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_call(
-    _receipt: *mut svm_byte_array,
-    _runtime: *mut c_void,
-    _envelope: svm_byte_array,
-    _message: svm_byte_array,
-    _context: svm_byte_array,
-    _gas_enabled: bool,
-    _error: *mut svm_byte_array,
+    receipt: *mut svm_byte_array,
+    runtime: *mut c_void,
+    envelope: svm_byte_array,
+    message: svm_byte_array,
+    context: svm_byte_array,
+    error: *mut svm_byte_array,
 ) -> svm_result_t {
     debug!("`svm_call` start");
 
-    todo!();
+    let runtime: &mut Box<dyn Runtime> = runtime.into();
+    let message = message.as_bytes();
 
-    // let runtime: &mut Box<dyn Runtime> = runtime.into();
-    // let message = message.as_bytes();
+    let runtime: &mut Box<dyn Runtime> = runtime.into();
+    let message = message.as_slice();
 
-    // let rust_receipt = runtime.call(envelope, message, context);
-    // let receipt_bytes = receipt::encode_call(&rust_receipt);
+    let envelope = decode_envelope(envelope);
+    if let Err(e) = envelope {
+        raw_io_error(e, error);
+        return svm_result_t::SVM_FAILURE;
+    }
+
+    let context = decode_context(context);
+    if let Err(e) = context {
+        raw_io_error(e, error);
+        return svm_result_t::SVM_FAILURE;
+    }
+
+    let envelope = envelope.unwrap();
+    let context = context.unwrap();
+    let rust_receipt = runtime.call(&envelope, &message, &context);
+    let receipt_bytes = receipt::encode_call(&rust_receipt);
 
     // Returns encoded `CallReceipt` as `svm_byte_array`.
     //
     // # Notes:
     //
     // Should call later `svm_receipt_destroy`
-    // data_to_svm_byte_array(CALL_RECEIPT_TYPE, receipt, receipt_bytes);
+    data_to_svm_byte_array(CALL_RECEIPT_TYPE, receipt, receipt_bytes);
 
-    // debug!("`svm_call` returns `SVM_SUCCESS`");
-
-    // svm_result_t::SVM_SUCCESS
+    debug!("`svm_call` returns `SVM_SUCCESS`");
+    svm_result_t::SVM_SUCCESS
 }
 
 /// Returns the total live manually-managed resources.
