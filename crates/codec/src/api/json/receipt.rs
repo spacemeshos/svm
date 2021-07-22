@@ -1,25 +1,17 @@
-use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 use svm_types::RuntimeError;
 use svm_types::{CallReceipt, DeployReceipt, Receipt, ReceiptLog, SpawnReceipt};
 
-use super::wrappers::HexBlob;
 use super::JsonSerdeUtils;
+use crate::api::json::wrappers::EncodedData;
 use crate::api::json::{self, JsonError};
 use crate::receipt;
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-struct EncodedReceipt {
-    data: HexBlob<Vec<u8>>,
-}
-
-impl JsonSerdeUtils for EncodedReceipt {}
 
 /// Given a binary Receipt wrapped inside a JSON,
 /// decodes it into a user-friendly JSON.
 pub fn decode_receipt(json: &str) -> Result<Value, JsonError> {
-    let encoded_receipt = EncodedReceipt::from_json_str(json)?;
+    let encoded_receipt = EncodedData::from_json_str(json)?;
     let bytes = encoded_receipt.data.0.as_slice();
 
     assert!(bytes.len() > 0);

@@ -8,6 +8,7 @@ use svm_sdk_types::value::{Composite, Primitive, Value as SdkValue};
 use svm_sdk_types::{Address, Amount};
 
 use super::wrappers::AddressWrapper;
+use super::wrappers::EncodedData;
 use super::wrappers::HexBlob;
 use super::JsonSerdeUtils;
 use crate::api::json::{self, JsonError};
@@ -16,7 +17,8 @@ use crate::api::json::{self, JsonError};
 /// and returns the result wrapped with a JSON
 pub fn encode_calldata(json: &str) -> Result<Json, JsonError> {
     let decoded = DecodedCallData::new(json)?;
-    let encoded = EncodedCallData::from(decoded);
+    let calldata = HexBlob(decoded.encode().unwrap());
+    let encoded = EncodedData { data: calldata };
     Ok(serde_json::to_value(encoded).unwrap())
 }
 
@@ -61,26 +63,6 @@ impl DecodedCallData {
 
 impl JsonSerdeUtils for DecodedCallData {}
 
-#[derive(Debug, Serialize, Deserialize)]
-struct EncodedCallData {
-    calldata: HexBlob<Vec<u8>>,
-}
-
-impl EncodedCallData {
-    fn decode(self) -> CallData {
-        CallData::new(&self.calldata.0)
-    }
-}
-
-impl From<DecodedCallData> for EncodedCallData {
-    fn from(decoded: DecodedCallData) -> Self {
-        let calldata = HexBlob(decoded.encode().unwrap());
-        Self { calldata }
-    }
-}
-
-impl JsonSerdeUtils for EncodedCallData {}
-
 fn calldata_to_json(mut calldata: CallData) -> Json {
     let mut abi = vec![];
     let mut data = vec![];
@@ -95,8 +77,8 @@ fn calldata_to_json(mut calldata: CallData) -> Json {
 
 /// Given a binary `Calldata` (wrapped within a JSON), decodes it into a JSON
 pub fn decode_calldata(json: &str) -> Result<Json, JsonError> {
-    let encoded_calldata = EncodedCallData::from_json_str(json)?;
-    let calldata = encoded_calldata.decode();
+    let encoded = EncodedData::from_json_str(json)?;
+    let calldata = CallData::new(&encoded.data.0);
     Ok(calldata_to_json(calldata))
 }
 
@@ -308,12 +290,6 @@ fn encode_array(types: &[TySig], value: &Json) -> Result<SdkValue, JsonError> {
 struct CalldataEncoded {
     calldata: HexBlob<Vec<u8>>,
 }
-
-//impl CalldataEncoded {
-//    fn new(json: &Json) -> Result<Self, JsonError> {
-//        serde_json::from_value(json.clone()).map_err(|e| JsonError::from_serde::<Self>(e))
-//    }
-//}
 
 impl JsonSerdeUtils for CalldataEncoded {}
 

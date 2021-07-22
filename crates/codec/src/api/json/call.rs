@@ -37,7 +37,7 @@ pub fn json_call_to_bytes(json: &str) -> Result<Vec<u8>, JsonError> {
 /// }
 /// ```
 pub fn unwrap_binary_json_call(json: &str) -> Result<Json, JsonError> {
-    let encoded_call = EncodedCall::from_json_str(json)?;
+    let encoded_call = EncodedData::from_json_str(json)?;
     let tx = {
         let mut cursor = Cursor::new(&encoded_call.data.0[..]);
         call::decode_call(&mut cursor).unwrap()
@@ -88,13 +88,6 @@ impl From<Transaction> for DecodedCall {
         }
     }
 }
-
-#[derive(Debug, Serialize, Deserialize)]
-struct EncodedCall {
-    data: HexBlob<Vec<u8>>,
-}
-
-impl JsonSerdeUtils for EncodedCall {}
 
 #[cfg(test)]
 mod tests {

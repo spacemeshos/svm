@@ -5,7 +5,7 @@ use std::io::Cursor;
 
 use svm_types::{Account, SpawnAccount, TemplateAddr};
 
-use super::wrappers::{AddressWrapper, HexBlob};
+use super::wrappers::{AddressWrapper, EncodedData, HexBlob};
 use super::JsonSerdeUtils;
 use crate::api::json::JsonError;
 use crate::spawn;
@@ -29,17 +29,10 @@ pub fn encode_spawn(json: &str) -> Result<Vec<u8>, JsonError> {
     Ok(buf)
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
-struct EncodedSpawn {
-    data: HexBlob<Vec<u8>>,
-}
-
-impl JsonSerdeUtils for EncodedSpawn {}
-
 /// Given a binary [`SpawnAccount`] transaction wrapped inside a JSON,
 /// decodes it into a user-friendly JSON.
 pub fn decode_spawn(json: &str) -> Result<Value, JsonError> {
-    let encoded_spawn = EncodedSpawn::from_json_str(json)?;
+    let encoded_spawn = EncodedData::from_json_str(json)?;
 
     let mut cursor = Cursor::new(&encoded_spawn.data.0[..]);
     let spawn = spawn::decode(&mut cursor).unwrap();

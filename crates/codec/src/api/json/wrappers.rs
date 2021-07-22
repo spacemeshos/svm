@@ -2,6 +2,8 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use svm_types::Address;
 
+use super::JsonSerdeUtils;
+
 /// A blob of binary data that is encoded with Base16.
 #[derive(Clone, Debug)]
 pub struct HexBlob<T>(pub T);
@@ -64,3 +66,10 @@ impl<'de> Deserialize<'de> for AddressWrapper {
         }
     }
 }
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct EncodedData {
+    pub data: HexBlob<Vec<u8>>,
+}
+
+impl JsonSerdeUtils for EncodedData {}
