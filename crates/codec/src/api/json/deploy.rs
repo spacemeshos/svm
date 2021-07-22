@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use svm_layout::{FixedLayoutBuilder, Id, Layout};
 use svm_types::{CodeSection, CtorsSection, DataSection, HeaderSection};
 
-use super::{HexBlob, JsonSerdeUtils};
+use super::{wrappers::HexBlob, JsonSerdeUtils};
 use crate::api::builder::TemplateBuilder;
 use crate::api::json::JsonError;
 use crate::template;
@@ -72,8 +72,8 @@ struct DecodedDeploy {
     code_version: u32,
     name: String,
     desc: String,
-    code: HexBlob,
-    data: HexBlob,
+    code: HexBlob<Vec<u8>>,
+    data: HexBlob<Vec<u8>>,
     ctors: Vec<String>,
 }
 

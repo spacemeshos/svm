@@ -5,9 +5,9 @@ use std::io::Cursor;
 
 use svm_types::{Account, SpawnAccount, TemplateAddr};
 
-use super::wrappers::AddressWrapper;
+use super::wrappers::{AddressWrapper, HexBlob};
 use super::JsonSerdeUtils;
-use crate::api::json::{HexBlob, JsonError};
+use crate::api::json::JsonError;
 use crate::spawn;
 
 ///
@@ -31,7 +31,7 @@ pub fn encode_spawn(json: &str) -> Result<Vec<u8>, JsonError> {
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 struct EncodedSpawn {
-    data: HexBlob,
+    data: HexBlob<Vec<u8>>,
 }
 
 impl JsonSerdeUtils for EncodedSpawn {}
@@ -56,7 +56,7 @@ struct DecodedSpawn {
     template_addr: AddressWrapper,
     name: String,
     ctor_name: String,
-    calldata: HexBlob,
+    calldata: HexBlob<Vec<u8>>,
 }
 
 impl From<SpawnAccount> for DecodedSpawn {

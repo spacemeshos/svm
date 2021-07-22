@@ -20,7 +20,8 @@ use crate::call;
 /// }
 /// ```
 pub fn json_call_to_bytes(json: &str) -> Result<Vec<u8>, JsonError> {
-    let tx = Transaction::from(DecodedCall::from_json_str(json)?);
+    let decoded_call = DecodedCall::from_json_str(json)?;
+    let tx = Transaction::from(decoded_call);
 
     let mut buf = Vec::new();
     call::encode_call(&tx, &mut buf);
@@ -36,9 +37,9 @@ pub fn json_call_to_bytes(json: &str) -> Result<Vec<u8>, JsonError> {
 /// }
 /// ```
 pub fn unwrap_binary_json_call(json: &str) -> Result<Json, JsonError> {
+    let encoded_call = EncodedCall::from_json_str(json)?;
     let tx = {
-        let wrapped_call = EncodedCall::from_json_str(json)?;
-        let mut cursor = Cursor::new(&wrapped_call.data.0[..]);
+        let mut cursor = Cursor::new(&encoded_call.data.0[..]);
         call::decode_call(&mut cursor).unwrap()
     };
 
@@ -63,14 +64,16 @@ impl DecodedCall {
     }
 }
 
+impl JsonSerdeUtils for DecodedCall {}
+
 impl From<DecodedCall> for Transaction {
-    fn from(wrapper: DecodedCall) -> Self {
-        let target = wrapper.account_addr();
+    fn from(decoded: DecodedCall) -> Self {
+        let target = decoded.account_addr();
         Transaction {
-            version: wrapper.version,
-            func_name: wrapper.func_name,
+            version: decoded.version,
+            func_name: decoded.func_name,
             target,
-            calldata: wrapper.calldata.0,
+            calldata: decoded.calldata.0,
         }
     }
 }
@@ -85,8 +88,6 @@ impl From<Transaction> for DecodedCall {
         }
     }
 }
-
-impl JsonSerdeUtils for DecodedCall {}
 
 #[derive(Debug, Serialize, Deserialize)]
 struct EncodedCall {
