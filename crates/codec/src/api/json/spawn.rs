@@ -100,8 +100,8 @@ mod tests {
 
         assert_eq!(
             err,
-            JsonError::InvalidField {
-                path: "version".to_string(),
+            JsonError::MissingField {
+                field_name: "version".to_string(),
             }
         );
     }
@@ -116,8 +116,8 @@ mod tests {
 
         assert_eq!(
             err,
-            JsonError::InvalidField {
-                path: "template".to_string(),
+            JsonError::MissingField {
+                field_name: "template".to_string(),
             }
         );
     }
