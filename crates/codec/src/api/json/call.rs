@@ -19,8 +19,8 @@ use crate::call;
 ///   "calldata": "",         // string
 /// }
 /// ```
-pub fn json_call_to_bytes(json: Json) -> Result<Vec<u8>, JsonError> {
-    let tx = Transaction::from(DecodedCall::new(json)?);
+pub fn json_call_to_bytes(json: &str) -> Result<Vec<u8>, JsonError> {
+    let tx = Transaction::from(DecodedCall::from_json_str(json)?);
 
     let mut buf = Vec::new();
     call::encode_call(&tx, &mut buf);
@@ -58,10 +58,6 @@ struct DecodedCall {
 }
 
 impl DecodedCall {
-    fn new(json: Json) -> Result<Self, JsonError> {
-        serde_json::from_value(json).map_err(|e| JsonError::from_serde::<Self>(e))
-    }
-
     fn account_addr(&self) -> AccountAddr {
         AccountAddr::new(self.target.0.clone())
     }
@@ -126,9 +122,9 @@ mod tests {
 
     #[test]
     fn json_call_missing_version() {
-        let json = json!({});
+        let json = json!({}).to_string();
 
-        let err = json_call_to_bytes(json).unwrap_err();
+        let err = json_call_to_bytes(&json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -141,9 +137,10 @@ mod tests {
     fn json_call_missing_target() {
         let json = json!({
             "version": 0
-        });
+        })
+        .to_string();
 
-        let err = json_call_to_bytes(json).unwrap_err();
+        let err = json_call_to_bytes(&json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -157,9 +154,10 @@ mod tests {
         let json = json!({
             "version": 0,
             "target": "10203040506070809000A0B0C0D0E0F0ABCDEFFF"
-        });
+        })
+        .to_string();
 
-        let err = json_call_to_bytes(json).unwrap_err();
+        let err = json_call_to_bytes(&json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -175,9 +173,10 @@ mod tests {
             "version": 0,
             "target": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
             "func_name": "do_something",
-        });
+        })
+        .to_string();
 
-        let err = json_call_to_bytes(json).unwrap_err();
+        let err = json_call_to_bytes(&json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -199,9 +198,10 @@ mod tests {
             "target": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
             "func_name": "do_something",
             "verifydata": verifydata["calldata"]
-        });
+        })
+        .to_string();
 
-        let err = json_call_to_bytes(json).unwrap_err();
+        let err = json_call_to_bytes(&json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -230,9 +230,10 @@ mod tests {
             "func_name": "do_something",
             // "verifydata": verifydata["calldata"],
             "calldata": calldata["calldata"],
-        });
+        })
+        .to_string();
 
-        let bytes = json_call_to_bytes(json).unwrap();
+        let bytes = json_call_to_bytes(&json).unwrap();
         let data = json::bytes_to_str(&bytes);
         let json = unwrap_binary_json_call(json!({ "data": data })).unwrap();
 

@@ -8,6 +8,8 @@ mod receipt;
 mod spawn;
 mod wrappers;
 
+use std::str::FromStr;
+
 pub use call::{json_call_to_bytes, unwrap_binary_json_call};
 pub use calldata::{decode_calldata, encode_calldata};
 pub use deploy::deploy_template;
@@ -28,6 +30,11 @@ pub(crate) trait BetterConversionToJson: Serialize + for<'a> Deserialize<'a> {
     }
 
     fn from_json(json: Json) -> Result<Self, JsonError> {
+        serde_json::from_value(json).map_err(JsonError::from_serde::<Self>)
+    }
+
+    fn from_json_str(json_str: &str) -> Result<Self, JsonError> {
+        let json = Json::from_str(json_str).map_err(|_| JsonError::InvalidJson)?;
         serde_json::from_value(json).map_err(JsonError::from_serde::<Self>)
     }
 }
