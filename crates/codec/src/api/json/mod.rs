@@ -8,8 +8,6 @@ mod receipt;
 mod spawn;
 mod wrappers;
 
-use std::str::FromStr;
-
 pub use call::{json_call_to_bytes, unwrap_binary_json_call};
 pub use calldata::{decode_calldata, encode_calldata};
 pub use deploy::deploy_template;
@@ -27,20 +25,20 @@ pub(crate) trait JsonSerdeUtils: Serialize + for<'a> Deserialize<'a> {
         serde_json::to_value(self).unwrap()
     }
 
-    fn from_json(json: Json) -> Result<Self, JsonError> {
-        serde_json::from_value(json).map_err(JsonError::from_serde::<Self>)
-    }
-
     fn from_json_str(json_str: &str) -> Result<Self, JsonError> {
-        let json = Json::from_str(json_str).map_err(|_| JsonError::InvalidJson)?;
-        serde_json::from_value(json).map_err(JsonError::from_serde::<Self>)
+        let json_deserializer = &mut serde_json::Deserializer::from_str(json_str);
+        let item = serde_path_to_error::deserialize(json_deserializer)?;
+        Ok(item)
     }
 }
 
 pub(crate) fn to_bytes(json: &Json) -> Result<Vec<u8>, JsonError> {
     match serde_json::to_string(&json) {
         Ok(s) => Ok(s.into_bytes()),
-        Err(_) => Err(JsonError::InvalidJson),
+        Err(e) => Err(JsonError::InvalidJson {
+            line: e.line(),
+            column: e.column(),
+        }),
     }
 }
 
@@ -48,7 +46,7 @@ pub(crate) fn as_array<'a>(json: &'a Json, field: &str) -> Result<&'a Vec<Json>,
     let v: &Json = &json[field];
 
     v.as_array().ok_or(JsonError::InvalidField {
-        field: field.to_string(),
+        path: field.to_string(),
     })
 }
 

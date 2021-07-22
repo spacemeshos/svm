@@ -33,7 +33,7 @@ impl DecodedCallData {
 
         if decoded.abi.len() != decoded.data.len() {
             Err(JsonError::InvalidField {
-                field: "data".to_string(),
+                path: "data".to_string(),
             })
         } else {
             Ok(decoded)
@@ -276,7 +276,7 @@ fn encode_value(ty: &TySig, value: &Json) -> Result<SdkValue, JsonError> {
         TySig::Array(types) => encode_array(types, value),
         TySig::Prim(prim) => {
             sdk_value_utils::sdk_value_from_json(value, *prim).ok_or(JsonError::InvalidField {
-                field: "calldata".to_string(),
+                path: "calldata".to_string(),
             })
         }
     }

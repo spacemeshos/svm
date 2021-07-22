@@ -41,7 +41,7 @@ pub fn deploy_template(json: &str) -> Result<Vec<u8>, JsonError> {
 fn to_data_layout(blob: Vec<u8>) -> Result<Layout, JsonError> {
     if blob.len() % 4 != 0 {
         return Err(JsonError::InvalidField {
-            field: "data".to_string(),
+            path: "data".to_string(),
         });
     }
 
@@ -95,8 +95,8 @@ mod tests {
         let err = deploy_template(&json).unwrap_err();
         assert_eq!(
             err,
-            JsonError::InvalidField {
-                field: "svm_version".to_string(),
+            JsonError::MissingField {
+                field_name: "svm_version".to_string(),
             }
         );
     }
@@ -111,8 +111,8 @@ mod tests {
         let err = deploy_template(&json).unwrap_err();
         assert_eq!(
             err,
-            JsonError::InvalidField {
-                field: "code_version".to_string(),
+            JsonError::MissingField {
+                field_name: "code_version".to_string(),
             }
         );
     }
@@ -128,8 +128,8 @@ mod tests {
         let err = deploy_template(&json).unwrap_err();
         assert_eq!(
             err,
-            JsonError::InvalidField {
-                field: "name".to_string(),
+            JsonError::MissingField {
+                field_name: "name".to_string(),
             }
         );
     }
@@ -146,8 +146,8 @@ mod tests {
         let err = deploy_template(&json).unwrap_err();
         assert_eq!(
             err,
-            JsonError::InvalidField {
-                field: "desc".to_string(),
+            JsonError::MissingField {
+                field_name: "desc".to_string(),
             }
         );
     }
@@ -165,8 +165,8 @@ mod tests {
         let err = deploy_template(&json).unwrap_err();
         assert_eq!(
             err,
-            JsonError::InvalidField {
-                field: "code".to_string(),
+            JsonError::MissingField {
+                field_name: "code".to_string(),
             }
         );
     }
@@ -185,8 +185,8 @@ mod tests {
         let err = deploy_template(&json).unwrap_err();
         assert_eq!(
             err,
-            JsonError::InvalidField {
-                field: "data".to_string(),
+            JsonError::MissingField {
+                field_name: "data".to_string(),
             }
         );
     }
@@ -206,8 +206,8 @@ mod tests {
         let err = deploy_template(&json).unwrap_err();
         assert_eq!(
             err,
-            JsonError::InvalidField {
-                field: "ctors".to_string(),
+            JsonError::MissingField {
+                field_name: "ctors".to_string(),
             }
         );
     }

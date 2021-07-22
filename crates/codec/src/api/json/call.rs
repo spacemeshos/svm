@@ -110,8 +110,8 @@ mod tests {
         let err = json_call_to_bytes(&json).unwrap_err();
         assert_eq!(
             err,
-            JsonError::InvalidField {
-                field: "version".to_string(),
+            JsonError::MissingField {
+                field_name: "version".to_string(),
             }
         );
     }
@@ -126,8 +126,8 @@ mod tests {
         let err = json_call_to_bytes(&json).unwrap_err();
         assert_eq!(
             err,
-            JsonError::InvalidField {
-                field: "target".to_string(),
+            JsonError::MissingField {
+                field_name: "target".to_string(),
             }
         );
     }
@@ -143,8 +143,8 @@ mod tests {
         let err = json_call_to_bytes(&json).unwrap_err();
         assert_eq!(
             err,
-            JsonError::InvalidField {
-                field: "func_name".to_string(),
+            JsonError::MissingField {
+                field_name: "func_name".to_string(),
             }
         );
     }
@@ -162,8 +162,8 @@ mod tests {
         let err = json_call_to_bytes(&json).unwrap_err();
         assert_eq!(
             err,
-            JsonError::InvalidField {
-                field: "verifydata".to_string(),
+            JsonError::MissingField {
+                field_name: "verifydata".to_string(),
             }
         );
     }
@@ -190,8 +190,8 @@ mod tests {
         let err = json_call_to_bytes(&json).unwrap_err();
         assert_eq!(
             err,
-            JsonError::InvalidField {
-                field: "calldata".to_string(),
+            JsonError::MissingField {
+                field_name: "calldata".to_string(),
             }
         );
     }

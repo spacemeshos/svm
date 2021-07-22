@@ -1,35 +1,38 @@
-use super::JsonSerdeUtils;
-
 #[doc(hidden)]
 #[derive(Debug, PartialEq, Eq)]
 pub enum JsonError {
-    InvalidJson,
-    InvalidField { field: String },
+    /// JSON syntax error.
+    InvalidJson {
+        line: usize,
+        column: usize,
+    },
+    MissingField {
+        field_name: String,
+    },
+    InvalidField {
+        path: String,
+    },
 }
 
-impl JsonError {
-    /// Creates a new [`JsonError`] that mirrors a [`serde_json::Error`].
-    /// `expected_type` offers some error details that `serde_json` does not
-    /// expose (e.g. "string", "number", "array").
-    pub(crate) fn from_serde<T>(serde_err: serde_json::Error) -> Self
-    where
-        T: JsonSerdeUtils,
-    {
-        let err_s = serde_err.to_string();
+impl From<serde_path_to_error::Error<serde_json::Error>> for JsonError {
+    fn from(err: serde_path_to_error::Error<serde_json::Error>) -> Self {
+        if err.inner().is_data() {
+            let path_of_error = err.path().to_string();
+            let serde_json_err = err.inner().to_string();
 
-        if err_s.starts_with("missing field") {
-            let missing_field = err_s.split('`').nth(1).unwrap();
-            JsonError::InvalidField {
-                field: missing_field.to_string(),
-            }
-        } else if serde_err.is_syntax() {
-            Self::InvalidJson
-        } else if serde_err.is_data() {
-            Self::InvalidField {
-                field: serde_err.to_string(),
+            if serde_json_err.starts_with("missing field") {
+                let field_name = serde_json_err.split('`').nth(1).unwrap().to_string();
+                Self::MissingField { field_name }
+            } else {
+                JsonError::InvalidField {
+                    path: path_of_error,
+                }
             }
         } else {
-            Self::InvalidJson
+            Self::InvalidJson {
+                line: err.inner().line(),
+                column: err.inner().column(),
+            }
         }
     }
 }

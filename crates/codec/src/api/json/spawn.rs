@@ -101,7 +101,7 @@ mod tests {
         assert_eq!(
             err,
             JsonError::InvalidField {
-                field: "version".to_string(),
+                path: "version".to_string(),
             }
         );
     }
@@ -117,7 +117,7 @@ mod tests {
         assert_eq!(
             err,
             JsonError::InvalidField {
-                field: "template".to_string(),
+                path: "template".to_string(),
             }
         );
     }
@@ -133,8 +133,8 @@ mod tests {
 
         assert_eq!(
             err,
-            JsonError::InvalidField {
-                field: "name".to_string(),
+            JsonError::MissingField {
+                field_name: "name".to_string(),
             }
         );
     }
@@ -151,8 +151,8 @@ mod tests {
 
         assert_eq!(
             err,
-            JsonError::InvalidField {
-                field: "ctor_name".to_string(),
+            JsonError::MissingField {
+                field_name: "ctor_name".to_string(),
             }
         );
     }
@@ -170,8 +170,8 @@ mod tests {
 
         assert_eq!(
             err,
-            JsonError::InvalidField {
-                field: "calldata".to_string(),
+            JsonError::MissingField {
+                field_name: "calldata".to_string(),
             }
         );
     }
