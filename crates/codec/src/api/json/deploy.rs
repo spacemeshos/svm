@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use serde_json::Value as Json;
 
 use svm_layout::{FixedLayoutBuilder, Id, Layout};
 use svm_types::{CodeSection, CtorsSection, DataSection, HeaderSection};
@@ -21,8 +20,8 @@ use crate::template;
 ///   "ctors": ["", ""],      // string[]
 /// }
 /// ```
-pub fn deploy_template(json: Json) -> Result<Vec<u8>, JsonError> {
-    let deploy = DecodedDeploy::new(json)?;
+pub fn deploy_template(json: &str) -> Result<Vec<u8>, JsonError> {
+    let deploy = DecodedDeploy::from_json_str(json)?;
     let layout = to_data_layout(deploy.data.0)?;
     let code = CodeSection::new_fixed(deploy.code.0, deploy.svm_version);
     let data = DataSection::with_layout(layout);
@@ -78,12 +77,6 @@ struct DecodedDeploy {
     ctors: Vec<String>,
 }
 
-impl DecodedDeploy {
-    fn new(json: Json) -> Result<Self, JsonError> {
-        serde_json::from_value(json).map_err(JsonError::from_serde::<Self>)
-    }
-}
-
 impl BetterConversionToJson for DecodedDeploy {
     fn type_of_field_as_str(field: &str) -> Option<&str> {
         Some(match field {
@@ -106,9 +99,9 @@ mod tests {
 
     #[test]
     fn json_deploy_template_missing_svm_version() {
-        let json = json!({});
+        let json = json!({}).to_string();
 
-        let err = deploy_template(json).unwrap_err();
+        let err = deploy_template(&json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -121,9 +114,10 @@ mod tests {
     fn json_deploy_template_missing_code_version() {
         let json = json!({
             "svm_version": 1
-        });
+        })
+        .to_string();
 
-        let err = deploy_template(json).unwrap_err();
+        let err = deploy_template(&json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -137,9 +131,10 @@ mod tests {
         let json = json!({
             "svm_version": 1,
             "code_version": 2
-        });
+        })
+        .to_string();
 
-        let err = deploy_template(json).unwrap_err();
+        let err = deploy_template(&json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -154,9 +149,10 @@ mod tests {
             "svm_version": 1,
             "code_version": 2,
             "name": "My Template",
-        });
+        })
+        .to_string();
 
-        let err = deploy_template(json).unwrap_err();
+        let err = deploy_template(&json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -172,9 +168,10 @@ mod tests {
             "code_version": 2,
             "name": "My Template",
             "desc": "A few words"
-        });
+        })
+        .to_string();
 
-        let err = deploy_template(json).unwrap_err();
+        let err = deploy_template(&json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -191,9 +188,10 @@ mod tests {
             "name": "My Template",
             "desc": "A few words",
             "code": "C0DE"
-        });
+        })
+        .to_string();
 
-        let err = deploy_template(json).unwrap_err();
+        let err = deploy_template(&json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -211,9 +209,10 @@ mod tests {
             "desc": "A few words",
             "code": "C0DE",
             "data": "0000000100000003",
-        });
+        })
+        .to_string();
 
-        let err = deploy_template(json).unwrap_err();
+        let err = deploy_template(&json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -232,9 +231,10 @@ mod tests {
             "code": "C0DE",
             "data": "0000000100000003",
             "ctors": ["init", "start"]
-        });
+        })
+        .to_string();
 
-        let bytes = deploy_template(json).unwrap();
+        let bytes = deploy_template(&json).unwrap();
         let cursor = Cursor::new(&bytes[..]);
         let actual = template::decode(cursor, None).unwrap();
 

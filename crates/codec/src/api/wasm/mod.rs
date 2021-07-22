@@ -14,8 +14,6 @@ pub use error::{error_as_string, into_error_buffer};
 pub use receipt::decode_receipt;
 pub use spawn::{decode_spawn, encode_spawn};
 
-use serde_json::{self as json, Value};
-
 use crate::api::json::JsonError;
 
 const HEADER_LEN_OFF: usize = 0;
@@ -196,12 +194,12 @@ pub fn to_wasm_buffer(bytes: &[u8]) -> usize {
 
 pub(crate) fn wasm_buf_apply<F>(offset: usize, func: F) -> Result<usize, JsonError>
 where
-    F: Fn(Value) -> Result<Vec<u8>, JsonError>,
+    F: Fn(&str) -> Result<Vec<u8>, JsonError>,
 {
     let bytes = wasm_buffer_data(offset);
-    let json: json::Result<Value> = serde_json::from_slice(bytes);
+    let json_s = std::str::from_utf8(bytes);
 
-    match json {
+    match json_s {
         Ok(json) => {
             let bytes = func(json)?;
 

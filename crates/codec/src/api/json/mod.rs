@@ -80,16 +80,6 @@ pub(crate) fn to_bytes(json: &Json) -> Result<Vec<u8>, JsonError> {
     }
 }
 
-pub(crate) fn as_string(json: &Json, field: &str) -> Result<String, JsonError> {
-    let v: &Json = &json[field];
-
-    v.as_str()
-        .map(|v| v.to_string())
-        .ok_or(JsonError::InvalidField {
-            field: field.to_string(),
-        })
-}
-
 pub(crate) fn as_array<'a>(json: &'a Json, field: &str) -> Result<&'a Vec<Json>, JsonError> {
     let v: &Json = &json[field];
 
@@ -100,39 +90,6 @@ pub(crate) fn as_array<'a>(json: &'a Json, field: &str) -> Result<&'a Vec<Json>,
 
 pub(crate) fn bytes_to_str(bytes: &[u8]) -> String {
     hex::encode_upper(bytes)
-}
-
-pub(crate) fn str_to_bytes(v: &str, field: &str) -> Result<Vec<u8>, JsonError> {
-    if v.len() % 2 == 1 {
-        return Err(JsonError::InvalidField {
-            field: field.to_string(),
-        });
-    }
-
-    if v.chars().any(|c| c.is_ascii_hexdigit() == false) {
-        return Err(JsonError::InvalidField {
-            field: field.to_string(),
-        });
-    }
-
-    fn chars_as_byte(c1: char, c2: char) -> u8 {
-        let c1 = c1.to_digit(16).unwrap() as u8;
-        let c2 = c2.to_digit(16).unwrap() as u8;
-
-        (c1 << 4) | c2
-    }
-
-    let bytes = v
-        .chars()
-        .collect::<Vec<_>>()
-        .chunks_exact(2)
-        .map(|slice| {
-            let (c1, c2) = (slice[0], slice[1]);
-            chars_as_byte(c1, c2)
-        })
-        .collect();
-
-    Ok(bytes)
 }
 
 pub(crate) fn addr_to_str(addr: &Address) -> String {
@@ -162,56 +119,4 @@ pub(crate) fn logs_to_json(logs: &[ReceiptLog]) -> Vec<Json> {
             })
         })
         .collect()
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    use serde_json::json;
-
-    fn as_blob(json: &Json, field: &str) -> Result<Vec<u8>, JsonError> {
-        let v = as_string(json, field)?;
-        str_to_bytes(&v, field)
-    }
-
-    #[test]
-    fn json_as_blob_valid() {
-        let json = json!({
-            "blob": "1DB30F"
-        });
-
-        let blob = as_blob(&json, "blob").unwrap();
-        assert_eq!(blob, vec![0x1D, 0xB3, 0x0F])
-    }
-
-    #[test]
-    fn json_as_blob_invalid_chars() {
-        let json = json!({
-            "blob": "NOT HEX!"
-        });
-
-        let err = as_blob(&json, "blob").unwrap_err();
-        assert_eq!(
-            err,
-            JsonError::InvalidField {
-                field: "blob".to_string(),
-            }
-        );
-    }
-
-    #[test]
-    fn json_as_blob_invalid_odd_length() {
-        let json = json!({
-            "blob": "A0B"
-        });
-
-        let err = as_blob(&json, "blob").unwrap_err();
-        assert_eq!(
-            err,
-            JsonError::InvalidField {
-                field: "blob".to_string(),
-            }
-        );
-    }
 }

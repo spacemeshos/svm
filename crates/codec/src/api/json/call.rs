@@ -35,9 +35,9 @@ pub fn json_call_to_bytes(json: &str) -> Result<Vec<u8>, JsonError> {
 ///   "data": "E9E50C787F2076BD5E44"
 /// }
 /// ```
-pub fn unwrap_binary_json_call(json: Json) -> Result<Json, JsonError> {
+pub fn unwrap_binary_json_call(json: &str) -> Result<Json, JsonError> {
     let tx = {
-        let wrapped_call = EncodedCall::new(json)?;
+        let wrapped_call = EncodedCall::from_json_str(json)?;
         let mut cursor = Cursor::new(&wrapped_call.data.0[..]);
         call::decode_call(&mut cursor).unwrap()
     };
@@ -45,7 +45,7 @@ pub fn unwrap_binary_json_call(json: Json) -> Result<Json, JsonError> {
     // let verifydata = json::bytes_to_str(&tx.verifydata);
     // let verifydata = json::decode_calldata(&json!({ "calldata": verifydata }))?;
 
-    Ok(serde_json::to_value(DecodedCall::from(tx)).unwrap())
+    Ok(DecodedCall::from(tx).to_json())
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -99,12 +99,6 @@ impl BetterConversionToJson for DecodedCall {
 #[derive(Debug, Serialize, Deserialize)]
 struct EncodedCall {
     data: HexBlob<Vec<u8>>,
-}
-
-impl EncodedCall {
-    fn new(json: Json) -> Result<Self, JsonError> {
-        serde_json::from_value(json.clone()).map_err(|e| JsonError::from_serde::<EncodedCall>(e))
-    }
 }
 
 impl BetterConversionToJson for EncodedCall {
@@ -187,10 +181,13 @@ mod tests {
 
     #[test]
     fn json_call_missing_calldata() {
-        let verifydata = json::encode_calldata(json!({
-            "abi": ["bool", "i8"],
-            "data": [true, 3],
-        }))
+        let verifydata = json::encode_calldata(
+            &json!({
+                "abi": ["bool", "i8"],
+                "data": [true, 3],
+            })
+            .to_string(),
+        )
         .unwrap();
 
         let json = json!({
@@ -212,16 +209,22 @@ mod tests {
 
     #[test]
     fn json_call_valid() {
-        let _verifydata = json::encode_calldata(json!({
-            "abi": ["bool", "i8"],
-            "data": [true, 3],
-        }))
+        let _verifydata = json::encode_calldata(
+            &json!({
+                "abi": ["bool", "i8"],
+                "data": [true, 3],
+            })
+            .to_string(),
+        )
         .unwrap();
 
-        let calldata = json::encode_calldata(json!({
-            "abi": ["i32", "i64"],
-            "data": [10, 20],
-        }))
+        let calldata = json::encode_calldata(
+            &json!({
+                "abi": ["i32", "i64"],
+                "data": [10, 20],
+            })
+            .to_string(),
+        )
         .unwrap();
 
         let json = json!({
@@ -235,7 +238,7 @@ mod tests {
 
         let bytes = json_call_to_bytes(&json).unwrap();
         let data = json::bytes_to_str(&bytes);
-        let json = unwrap_binary_json_call(json!({ "data": data })).unwrap();
+        let json = unwrap_binary_json_call(&json!({ "data": data }).to_string()).unwrap();
 
         assert_eq!(
             json,

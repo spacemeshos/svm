@@ -14,7 +14,7 @@ use crate::api::json::{self, JsonError};
 
 /// Given a `Calldata` JSON, encodes it into a binary `Calldata`
 /// and returns the result wrapped with a JSON
-pub fn encode_calldata(json: Json) -> Result<Json, JsonError> {
+pub fn encode_calldata(json: &str) -> Result<Json, JsonError> {
     let decoded = DecodedCallData::new(json)?;
     let encoded = EncodedCallData::from(decoded);
     Ok(serde_json::to_value(encoded).unwrap())
@@ -28,16 +28,15 @@ struct DecodedCallData {
 }
 
 impl DecodedCallData {
-    fn new(json: Json) -> Result<Self, JsonError> {
-        let wrapper: Self =
-            serde_json::from_value(json.clone()).map_err(JsonError::from_serde::<Self>)?;
+    fn new(json: &str) -> Result<Self, JsonError> {
+        let decoded = Self::from_json_str(json)?;
 
-        if wrapper.abi.len() != wrapper.data.len() {
+        if decoded.abi.len() != decoded.data.len() {
             Err(JsonError::InvalidField {
                 field: "data".to_string(),
             })
         } else {
-            Ok(wrapper)
+            Ok(decoded)
         }
     }
 
@@ -72,10 +71,6 @@ struct EncodedCallData {
 }
 
 impl EncodedCallData {
-    fn new(json: Json) -> Result<Self, JsonError> {
-        serde_json::from_value(json).map_err(|e| JsonError::from_serde::<Self>(e))
-    }
-
     fn decode(self) -> CallData {
         CallData::new(&self.calldata.0)
     }
@@ -110,8 +105,8 @@ fn calldata_to_json(mut calldata: CallData) -> Json {
 }
 
 /// Given a binary `Calldata` (wrapped within a JSON), decodes it into a JSON
-pub fn decode_calldata(json: Json) -> Result<Json, JsonError> {
-    let encoded_calldata = EncodedCallData::new(json)?;
+pub fn decode_calldata(json: &str) -> Result<Json, JsonError> {
+    let encoded_calldata = EncodedCallData::from_json_str(json)?;
     let calldata = encoded_calldata.decode();
     Ok(calldata_to_json(calldata))
 }
@@ -345,8 +340,8 @@ mod tests {
         ($abi:expr, $data:expr) => {{
             let json = json!({"abi": $abi, "data": $data });
 
-            let encoded = encode_calldata(json.clone()).unwrap();
-            let decoded = decode_calldata(encoded).unwrap();
+            let encoded = encode_calldata(&json.to_string()).unwrap();
+            let decoded = decode_calldata(&encoded.to_string()).unwrap();
 
             assert_eq!(decoded, json);
         }}

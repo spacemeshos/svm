@@ -1,16 +1,30 @@
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-
-use crate::api::json::{self, JsonError};
-use crate::receipt;
 
 use svm_types::RuntimeError;
 use svm_types::{CallReceipt, DeployReceipt, Receipt, ReceiptLog, SpawnReceipt};
 
+use super::wrappers::HexBlob;
+use super::BetterConversionToJson;
+use crate::api::json::{self, JsonError};
+use crate::receipt;
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+struct EncodedReceipt {
+    data: HexBlob<Vec<u8>>,
+}
+
+impl BetterConversionToJson for EncodedReceipt {
+    fn type_of_field_as_str(_field: &str) -> Option<&str> {
+        Some("string")
+    }
+}
+
 /// Given a binary Receipt wrapped inside a JSON,
 /// decodes it into a user-friendly JSON.
-pub fn decode_receipt(json: Value) -> Result<Value, JsonError> {
-    let data = json::as_string(&json, "data")?;
-    let bytes = json::str_to_bytes(&data, "data")?;
+pub fn decode_receipt(json: &str) -> Result<Value, JsonError> {
+    let encoded_receipt = EncodedReceipt::from_json_str(json)?;
+    let bytes = encoded_receipt.data.0.as_slice();
 
     assert!(bytes.len() > 0);
 
@@ -235,7 +249,7 @@ mod tests {
 
         let bytes = crate::receipt::encode_deploy(&receipt);
         let data = json::bytes_to_str(&bytes);
-        let json = decode_receipt(json!({ "data": data })).unwrap();
+        let json = decode_receipt(&json!({ "data": data }).to_string()).unwrap();
 
         assert_eq!(
             json,
@@ -281,7 +295,7 @@ mod tests {
 
         let bytes = crate::receipt::encode_spawn(&receipt);
         let data = json::bytes_to_str(&bytes);
-        let json = decode_receipt(json!({ "data": data })).unwrap();
+        let json = decode_receipt(&json!({ "data": data }).to_string()).unwrap();
 
         assert_eq!(
             json,
@@ -320,7 +334,7 @@ mod tests {
 
         let bytes = crate::receipt::encode_spawn(&receipt);
         let data = json::bytes_to_str(&bytes);
-        let json = decode_receipt(json!({ "data": data })).unwrap();
+        let json = decode_receipt(&json!({ "data": data }).to_string()).unwrap();
 
         assert_eq!(
             json,
@@ -360,7 +374,7 @@ mod tests {
 
         let bytes = crate::receipt::encode_call(&receipt);
         let data = json::bytes_to_str(&bytes);
-        let json = decode_receipt(json!({ "data": data })).unwrap();
+        let json = decode_receipt(&json!({ "data": data }).to_string()).unwrap();
 
         assert_eq!(
             json,
