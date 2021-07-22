@@ -4,5 +4,5 @@ use svm_types::{AccountAddr, State};
 
 use crate::Config;
 
-/// `AppStorage` building function signature.
+/// [`AccountStorage`] building function signature.
 pub type StorageBuilderFn = dyn Fn(&AccountAddr, &State, &FixedLayout, &Config) -> AccountStorage;

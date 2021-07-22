@@ -2,9 +2,13 @@ use std::fmt;
 
 use crate::AccountAddr;
 
+mod context;
+mod envelope;
 mod id;
 mod layer;
 
+pub use context::Context;
+pub use envelope::Envelope;
 pub use id::TransactionId;
 pub use layer::Layer;
 
@@ -30,12 +34,12 @@ pub struct Transaction {
 
 impl Transaction {
     #[doc(hidden)]
-    pub fn target_addr(&self) -> &AccountAddr {
+    pub fn target(&self) -> &AccountAddr {
         &self.target
     }
 
     #[doc(hidden)]
-    pub fn func_name(&self) -> &str {
+    pub fn function(&self) -> &str {
         &self.func_name
     }
 

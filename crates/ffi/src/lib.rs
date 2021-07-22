@@ -3,7 +3,7 @@
 //! Additionally, the crate exposes building blocks for tracking manually-allocated resources.
 //! The motivation is to ease detections of memory leaks and debugging them.
 
-#![deny(missing_docs)]
+#![allow(missing_docs)]
 #![deny(unused)]
 #![deny(dead_code)]
 #![deny(unreachable_code)]

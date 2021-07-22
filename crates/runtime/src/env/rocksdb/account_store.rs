@@ -11,7 +11,7 @@ use traits::{AccountDeserializer, AccountSerializer, AccountStore};
 const ACCOUNT_KEY_PREFIX: &'static [u8] = b"acc:";
 const ACCOUNT_TEMPLATE_KEY_PREFIX: &'static [u8] = b"acc-temp:";
 
-/// `AppStore` implementation backed-by `rocksdb`
+/// [`AccountStore`] implementation backed-by `rocksdb`
 pub struct RocksAccountStore<S, D> {
     db: Rocksdb,
     phantom: PhantomData<(S, D)>,

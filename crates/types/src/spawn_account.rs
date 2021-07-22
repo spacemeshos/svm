@@ -8,7 +8,7 @@ pub struct SpawnAccount {
     /// Transaction format version
     pub version: u16,
 
-    /// Holds all [`SpawnAccount`] non `ctor/calldata` related data.
+    /// Holds all [`SpawnAccount`] non-`ctor/calldata` related data.
     pub account: Account,
 
     /// ctor function name

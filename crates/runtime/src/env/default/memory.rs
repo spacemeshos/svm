@@ -4,11 +4,11 @@ use memory::{MemAccountStore, MemTemplateStore};
 
 use crate::EnvTypes;
 
-/// `MemTemplateStore` with default serialization.
+/// [`MemTemplateStore`] with default serialization.
 pub type DefaultMemTemplateStore =
     MemTemplateStore<default::DefaultTemplateSerializer, default::DefaultTemplateDeserializer>;
 
-/// `MemAppStore` with default serialization.
+/// [`MemAccountStore`] with default serialization.
 pub type DefaultMemAccountStore =
     MemAccountStore<default::DefaultAccountSerializer, default::DefaultAccountDeserializer>;
 

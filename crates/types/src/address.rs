@@ -13,7 +13,7 @@ macro_rules! impl_addr_type {
 impl_addr_type!(Deployer);
 impl_addr_type!(Spawner);
 impl_addr_type!(Template);
-impl_addr_type!(App);
+impl_addr_type!(Account);
 
 /// Address of a Template.
 pub type TemplateAddr = AddressOf<Template>;
@@ -21,11 +21,11 @@ pub type TemplateAddr = AddressOf<Template>;
 /// Address of a Template Deployer.
 pub type DeployerAddr = AddressOf<Deployer>;
 
-/// Address of an App Spawner.
+/// Address of an `Account` Spawner.
 pub type SpawnerAddr = AddressOf<Spawner>;
 
 /// Address of an [`Account`](crate::Account)
-pub type AccountAddr = AddressOf<App>;
+pub type AccountAddr = AddressOf<Account>;
 
 #[cfg(test)]
 mod tests {

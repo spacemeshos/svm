@@ -17,7 +17,7 @@ pub use memory::{DefaultMemAccountStore, DefaultMemEnvTypes, DefaultMemTemplateS
 mod rocksdb;
 
 #[cfg(feature = "default-rocksdb")]
-pub use rocksdb::{DefaultRocksAppStore, DefaultRocksEnvTypes, DefaultRocksTemplateStore};
+pub use rocksdb::{DefaultRocksAccountStore, DefaultRocksEnvTypes, DefaultRocksTemplateStore};
 
 pub use address_compute::{DefaultAccountAddressCompute, DefaultTemplateAddressCompute};
 pub use hasher::DefaultTemplateHasher;

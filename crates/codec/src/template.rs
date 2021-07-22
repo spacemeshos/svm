@@ -1,4 +1,4 @@
-//! Encoding for binary a [`Template`]s
+//! Encoding for binary [`Template`]s.
 //!
 //!  [`Template`] Binary Format
 //!

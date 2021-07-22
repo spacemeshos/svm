@@ -1,6 +1,6 @@
 //! ## Why do we need this crate?
 //!
-//! We want the Wasm-compiled code of SVM Apps to have restrictions that will enable us to give fixed-gas estimations for transactions.
+//! We want the Wasm-compiled code of SVM Templates to have restrictions that will enable us to give fixed-gas estimations for transactions.
 //! From the end-user point of view, he/she will know prior to dispatching a transaction to the network the exact quantity of gas units
 //! required to execute the transaction without hitting the out of gas error.
 //! Having said that, a transaction can still fail - for example by `panic`-ing.
@@ -28,7 +28,7 @@ extern "C" {
     fn svm_log(msg_ptr: u32, msg_len: u32, code: u32);
 }
 
-/// Log the string `msg` along with code `code` into the running App logs.
+/// Log the string `msg` along with code `code`.
 pub fn log(msg: &str, code: u8) {
     let ptr = msg.as_ptr() as u32;
     let len = msg.len() as u32;

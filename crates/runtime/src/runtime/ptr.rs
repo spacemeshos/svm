@@ -1,7 +1,7 @@
-use svm_types::Type;
-
 use std::ffi::c_void;
 use std::ops::{Deref, DerefMut};
+
+use svm_types::Type;
 
 use crate::Runtime;
 

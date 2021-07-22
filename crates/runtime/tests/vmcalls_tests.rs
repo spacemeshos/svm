@@ -1,13 +1,31 @@
-use wasmer::imports;
-use wasmer::{Function, NativeFunc};
+use wasmer::{imports, NativeFunc};
 
 use svm_layout::{FixedLayout, Id};
-use svm_runtime::{testing, vmcalls, FuncEnv};
+use svm_runtime::testing::{self, WasmFile};
+use svm_runtime::{vmcalls, FuncEnv};
 use svm_types::{Address, ReceiptLog};
 
 /// Creates a new `Wasmer Store`
 pub fn wasmer_store() -> wasmer::Store {
     svm_runtime::new_store()
+}
+
+/// Compiles a Wasm program in textual format (a.k.a Wast) into a [`wasmer::Module`].
+pub fn wasmer_compile(store: &wasmer::Store, wasm_file: WasmFile) -> wasmer::Module {
+    let wasm = wasm_file.into_bytes();
+
+    wasmer::Module::from_binary(&store, &wasm[..]).unwrap()
+}
+
+/// Instantiate a `Wasmer` instance
+pub fn wasmer_instantiate(
+    store: &wasmer::Store,
+    import_object: &wasmer::ImportObject,
+    wasm_file: WasmFile,
+) -> wasmer::Instance {
+    let module = wasmer_compile(store, wasm_file);
+
+    wasmer::Instance::new(&module, import_object).unwrap()
 }
 
 /// Creates a new `Wasmer Memory` consisting of a single page
@@ -77,7 +95,7 @@ macro_rules! __var_add_impl {
 
 macro_rules! func {
     ($store:ident, $env:ident, $f:expr) => {{
-        Function::new_native_with_env(&$store, $env.clone(), $f)
+        wasmer::Function::new_native_with_env(&$store, $env.clone(), $f)
     }};
 }
 
@@ -91,7 +109,7 @@ fn vmcalls_empty_wasm() {
     let store = wasmer_store();
     let import_object = imports! {};
 
-    testing::wasmer_instantiate(&store, &import_object, wasm);
+    wasmer_instantiate(&store, &import_object, wasm);
 }
 
 #[test]
@@ -112,7 +130,7 @@ fn vmcalls_get32_set32() {
         }
     };
 
-    let instance = testing::wasmer_instantiate(
+    let instance = wasmer_instantiate(
         &store,
         &import_object,
         include_str!("wasm/get32_set32.wast").into(),
@@ -145,7 +163,7 @@ fn vmcalls_get64_set64() {
         },
     };
 
-    let instance = testing::wasmer_instantiate(
+    let instance = wasmer_instantiate(
         &store,
         &import_object,
         include_str!("wasm/get64_set64.wast").into(),
@@ -185,7 +203,7 @@ fn vmcalls_load160() {
         },
     };
 
-    let instance = testing::wasmer_instantiate(
+    let instance = wasmer_instantiate(
         &store,
         &import_object,
         include_str!("wasm/load160_store160.wast").into(),
@@ -232,7 +250,7 @@ fn vmcalls_store160() {
         },
     };
 
-    let instance = testing::wasmer_instantiate(
+    let instance = wasmer_instantiate(
         &store,
         &import_object,
         include_str!("wasm/load160_store160.wast").into(),
@@ -274,8 +292,7 @@ fn vmcalls_log() {
         },
     };
 
-    let instance =
-        testing::wasmer_instantiate(&store, &import_object, include_str!("wasm/log.wast").into());
+    let instance = wasmer_instantiate(&store, &import_object, include_str!("wasm/log.wast").into());
 
     let data = b"Hello World";
 
