@@ -4,7 +4,7 @@ use serde_json::Value as Json;
 use svm_layout::{FixedLayoutBuilder, Id, Layout};
 use svm_types::{CodeSection, CtorsSection, DataSection, HeaderSection};
 
-use super::{HexBlob, TypeInformation};
+use super::{BetterConversionToJson, HexBlob};
 use crate::api::builder::TemplateBuilder;
 use crate::api::json::JsonError;
 use crate::template;
@@ -85,7 +85,7 @@ impl DecodedDeploy {
     }
 }
 
-impl TypeInformation for DecodedDeploy {
+impl BetterConversionToJson for DecodedDeploy {
     fn type_of_field_as_str(field: &str) -> Option<&str> {
         Some(match field {
             "svm_version" | "code_version" => "number",

@@ -9,7 +9,7 @@ use svm_sdk_types::{Address, Amount};
 
 use super::wrappers::AddressWrapper;
 use super::wrappers::HexBlob;
-use super::TypeInformation;
+use super::BetterConversionToJson;
 use crate::api::json::{self, JsonError};
 
 /// Given a `Calldata` JSON, encodes it into a binary `Calldata`
@@ -61,7 +61,7 @@ impl DecodedCallData {
     }
 }
 
-impl TypeInformation for DecodedCallData {
+impl BetterConversionToJson for DecodedCallData {
     fn type_of_field_as_str(_field: &str) -> Option<&str> {
         Some("array")
     }
@@ -89,7 +89,7 @@ impl From<DecodedCallData> for EncodedCallData {
     }
 }
 
-impl TypeInformation for EncodedCallData {
+impl BetterConversionToJson for EncodedCallData {
     fn type_of_field_as_str(field: &str) -> Option<&str> {
         match field {
             "calldata" => Some("string"),
@@ -333,7 +333,7 @@ struct CalldataEncoded {
 //    }
 //}
 
-impl TypeInformation for CalldataEncoded {
+impl BetterConversionToJson for CalldataEncoded {
     fn type_of_field_as_str(_field: &str) -> Option<&str> {
         Some("string")
     }

@@ -15,12 +15,21 @@ pub use error::JsonError;
 pub use receipt::decode_receipt;
 pub use spawn::{decode_spawn, encode_spawn};
 
-use serde_json::{json, Value};
+use serde::{Deserialize, Serialize};
+use serde_json::{json, Value as Json};
 
 use svm_types::{Address, Gas, ReceiptLog, State};
 
-pub(crate) trait TypeInformation {
+pub(crate) trait BetterConversionToJson: Serialize + for<'a> Deserialize<'a> {
     fn type_of_field_as_str(field: &str) -> Option<&str>;
+
+    fn to_json(self) -> Json {
+        serde_json::to_value(self).unwrap()
+    }
+
+    fn from_json(json: Json) -> Result<Self, JsonError> {
+        serde_json::from_value(json).map_err(JsonError::from_serde::<Self>)
+    }
 }
 
 //fn parse_json(json: &str) -> Result<Value, JsonError> {
@@ -40,7 +49,7 @@ impl serde::Serialize for HexBlob {
     }
 }
 
-impl<'de> serde::Deserialize<'de> for HexBlob {
+impl<'de> Deserialize<'de> for HexBlob {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
@@ -57,15 +66,15 @@ impl<'de> serde::Deserialize<'de> for HexBlob {
     }
 }
 
-pub(crate) fn to_bytes(json: &Value) -> Result<Vec<u8>, JsonError> {
+pub(crate) fn to_bytes(json: &Json) -> Result<Vec<u8>, JsonError> {
     match serde_json::to_string(&json) {
         Ok(s) => Ok(s.into_bytes()),
         Err(e) => Err(JsonError::Unknown(format!("{}", e))),
     }
 }
 
-pub(crate) fn as_string(json: &Value, field: &str) -> Result<String, JsonError> {
-    let v: &Value = &json[field];
+pub(crate) fn as_string(json: &Json, field: &str) -> Result<String, JsonError> {
+    let v: &Json = &json[field];
 
     v.as_str()
         .map(|v| v.to_string())
@@ -75,8 +84,8 @@ pub(crate) fn as_string(json: &Value, field: &str) -> Result<String, JsonError> 
         })
 }
 
-pub(crate) fn as_array<'a>(json: &'a Value, field: &str) -> Result<&'a Vec<Value>, JsonError> {
-    let v: &Value = &json[field];
+pub(crate) fn as_array<'a>(json: &'a Json, field: &str) -> Result<&'a Vec<Json>, JsonError> {
+    let v: &Json = &json[field];
 
     v.as_array().ok_or(JsonError::InvalidField {
         field: field.to_string(),
@@ -139,7 +148,7 @@ pub(crate) fn gas_to_json(gas: &Gas) -> i64 {
     }
 }
 
-pub(crate) fn logs_to_json(logs: &[ReceiptLog]) -> Vec<Value> {
+pub(crate) fn logs_to_json(logs: &[ReceiptLog]) -> Vec<Json> {
     logs.iter()
         .map(|log| {
             let msg = unsafe { String::from_utf8_unchecked(log.msg.clone()) };
@@ -158,7 +167,7 @@ mod test {
 
     use serde_json::json;
 
-    fn as_blob(json: &Value, field: &str) -> Result<Vec<u8>, JsonError> {
+    fn as_blob(json: &Json, field: &str) -> Result<Vec<u8>, JsonError> {
         let v = as_string(json, field)?;
         str_to_bytes(&v, field)
     }

@@ -6,7 +6,7 @@ use std::io::Cursor;
 use svm_types::{AccountAddr, Transaction};
 
 use super::wrappers::*;
-use crate::api::json::{JsonError, TypeInformation};
+use crate::api::json::{BetterConversionToJson, JsonError};
 use crate::call;
 
 ///
@@ -90,7 +90,7 @@ impl From<Transaction> for DecodedCall {
     }
 }
 
-impl TypeInformation for DecodedCall {
+impl BetterConversionToJson for DecodedCall {
     fn type_of_field_as_str(field: &str) -> Option<&str> {
         Some(match field {
             "version" => "number",
@@ -111,7 +111,7 @@ impl EncodedCall {
     }
 }
 
-impl TypeInformation for EncodedCall {
+impl BetterConversionToJson for EncodedCall {
     fn type_of_field_as_str(_field: &str) -> Option<&str> {
         Some("data")
     }

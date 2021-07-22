@@ -6,8 +6,8 @@ use std::io::Cursor;
 use svm_types::{Account, SpawnAccount, TemplateAddr};
 
 use super::wrappers::AddressWrapper;
-use super::TypeInformation;
-use crate::api::json::{self, HexBlob, JsonError};
+use super::BetterConversionToJson;
+use crate::api::json::{HexBlob, JsonError};
 use crate::spawn;
 
 ///
@@ -21,27 +21,38 @@ use crate::spawn;
 /// }
 /// ```
 pub fn encode_spawn(json: Value) -> Result<Vec<u8>, JsonError> {
-    let wrapper = SpawnWrapper::new(json)?;
+    let decoded = DecodedSpawn::from_json(json)?;
+    let spawn = decoded.into();
 
     let mut buf = Vec::new();
-    spawn::encode(&SpawnAccount::from(wrapper), &mut buf);
+    spawn::encode(&spawn, &mut buf);
     Ok(buf)
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+struct EncodedSpawn {
+    data: HexBlob,
+}
+
+impl BetterConversionToJson for EncodedSpawn {
+    fn type_of_field_as_str(_field: &str) -> Option<&str> {
+        Some("string")
+    }
 }
 
 /// Given a binary [`SpawnAccount`] transaction wrapped inside a JSON,
 /// decodes it into a user-friendly JSON.
 pub fn decode_spawn(json: Value) -> Result<Value, JsonError> {
-    let data = json::as_string(&json, "data")?;
-    let bytes = json::str_to_bytes(&data, "data")?;
+    let encoded_spawn = EncodedSpawn::from_json(json)?;
 
-    let mut cursor = Cursor::new(&bytes[..]);
+    let mut cursor = Cursor::new(&encoded_spawn.data.0[..]);
     let spawn = spawn::decode(&mut cursor).unwrap();
 
-    Ok(serde_json::to_value(SpawnWrapper::from(spawn)).unwrap())
+    Ok(DecodedSpawn::from(spawn).to_json())
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
-struct SpawnWrapper {
+struct DecodedSpawn {
     version: u16,
     #[serde(rename = "template")]
     template_addr: AddressWrapper,
@@ -50,13 +61,7 @@ struct SpawnWrapper {
     calldata: HexBlob,
 }
 
-impl SpawnWrapper {
-    fn new(json: Value) -> Result<Self, JsonError> {
-        serde_json::from_value(json).map_err(JsonError::from_serde::<Self>)
-    }
-}
-
-impl From<SpawnAccount> for SpawnWrapper {
+impl From<SpawnAccount> for DecodedSpawn {
     fn from(spawn: SpawnAccount) -> Self {
         let template_addr = AddressWrapper(spawn.account.template_addr().inner().clone());
 
@@ -70,8 +75,8 @@ impl From<SpawnAccount> for SpawnWrapper {
     }
 }
 
-impl From<SpawnWrapper> for SpawnAccount {
-    fn from(wrapper: SpawnWrapper) -> Self {
+impl From<DecodedSpawn> for SpawnAccount {
+    fn from(wrapper: DecodedSpawn) -> Self {
         let template_addr = TemplateAddr::new(wrapper.template_addr.0);
 
         SpawnAccount {
@@ -83,7 +88,7 @@ impl From<SpawnWrapper> for SpawnAccount {
     }
 }
 
-impl TypeInformation for SpawnWrapper {
+impl BetterConversionToJson for DecodedSpawn {
     fn type_of_field_as_str(field: &str) -> Option<&str> {
         Some(match field {
             "version" => "number",
@@ -94,8 +99,10 @@ impl TypeInformation for SpawnWrapper {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use serde_json::json;
+
+    use super::*;
+    use crate::api::json;
 
     #[test]
     fn json_spawn_missing_version() {
