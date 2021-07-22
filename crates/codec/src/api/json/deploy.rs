@@ -43,7 +43,6 @@ fn to_data_layout(blob: Vec<u8>) -> Result<Layout, JsonError> {
     if blob.len() % 4 != 0 {
         return Err(JsonError::InvalidField {
             field: "data".to_string(),
-            reason: "invalid value".to_string(),
         });
     }
 
@@ -114,7 +113,6 @@ mod tests {
             err,
             JsonError::InvalidField {
                 field: "svm_version".to_string(),
-                reason: "value `null` isn\'t a(n) number".to_string(),
             }
         );
     }
@@ -130,7 +128,6 @@ mod tests {
             err,
             JsonError::InvalidField {
                 field: "code_version".to_string(),
-                reason: "value `null` isn\'t a(n) number".to_string(),
             }
         );
     }
@@ -147,7 +144,6 @@ mod tests {
             err,
             JsonError::InvalidField {
                 field: "name".to_string(),
-                reason: "value `null` isn\'t a(n) string".to_string(),
             }
         );
     }
@@ -165,7 +161,6 @@ mod tests {
             err,
             JsonError::InvalidField {
                 field: "desc".to_string(),
-                reason: "value `null` isn\'t a(n) string".to_string(),
             }
         );
     }
@@ -184,7 +179,6 @@ mod tests {
             err,
             JsonError::InvalidField {
                 field: "code".to_string(),
-                reason: "value `null` isn\'t a(n) string".to_string(),
             }
         );
     }
@@ -204,7 +198,6 @@ mod tests {
             err,
             JsonError::InvalidField {
                 field: "data".to_string(),
-                reason: "value `null` isn\'t a(n) string".to_string(),
             }
         );
     }
@@ -225,7 +218,6 @@ mod tests {
             err,
             JsonError::InvalidField {
                 field: "ctors".to_string(),
-                reason: "value `null` isn\'t a(n) Array".to_string(),
             }
         );
     }

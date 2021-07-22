@@ -3,9 +3,8 @@ use super::BetterConversionToJson;
 #[doc(hidden)]
 #[derive(Debug, PartialEq, Eq)]
 pub enum JsonError {
-    Unknown(String),
     InvalidJson,
-    InvalidField { field: String, reason: String },
+    InvalidField { field: String },
 }
 
 impl JsonError {
@@ -20,20 +19,17 @@ impl JsonError {
 
         if err_s.starts_with("missing field") {
             let missing_field = err_s.split('`').nth(1).unwrap();
-            let expected_type = T::type_of_field_as_str(missing_field).unwrap();
             JsonError::InvalidField {
                 field: missing_field.to_string(),
-                reason: format!("value `null` isn't a(n) {}", expected_type),
             }
         } else if serde_err.is_syntax() {
             Self::InvalidJson
         } else if serde_err.is_data() {
             Self::InvalidField {
                 field: serde_err.to_string(),
-                reason: "Expected other type.".to_string(),
             }
         } else {
-            Self::Unknown("Unknown JSON validation error.".to_string())
+            Self::InvalidJson
         }
     }
 }

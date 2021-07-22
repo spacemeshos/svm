@@ -113,7 +113,6 @@ mod tests {
             err,
             JsonError::InvalidField {
                 field: "version".to_string(),
-                reason: "value `null` isn\'t a(n) number".to_string(),
             }
         );
     }
@@ -129,7 +128,6 @@ mod tests {
             err,
             JsonError::InvalidField {
                 field: "template".to_string(),
-                reason: "value `null` isn\'t a(n) string".to_string(),
             }
         );
     }
@@ -146,7 +144,6 @@ mod tests {
             err,
             JsonError::InvalidField {
                 field: "name".to_string(),
-                reason: "value `null` isn\'t a(n) string".to_string(),
             }
         );
     }
@@ -164,7 +161,6 @@ mod tests {
             err,
             JsonError::InvalidField {
                 field: "ctor_name".to_string(),
-                reason: "value `null` isn\'t a(n) string".to_string(),
             }
         );
     }
@@ -183,7 +179,6 @@ mod tests {
             err,
             JsonError::InvalidField {
                 field: "calldata".to_string(),
-                reason: "value `null` isn\'t a(n) string".to_string(),
             }
         );
     }

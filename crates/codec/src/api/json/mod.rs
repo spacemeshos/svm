@@ -69,7 +69,7 @@ impl<'de> Deserialize<'de> for HexBlob {
 pub(crate) fn to_bytes(json: &Json) -> Result<Vec<u8>, JsonError> {
     match serde_json::to_string(&json) {
         Ok(s) => Ok(s.into_bytes()),
-        Err(e) => Err(JsonError::Unknown(format!("{}", e))),
+        Err(_) => Err(JsonError::InvalidJson),
     }
 }
 
@@ -80,7 +80,6 @@ pub(crate) fn as_string(json: &Json, field: &str) -> Result<String, JsonError> {
         .map(|v| v.to_string())
         .ok_or(JsonError::InvalidField {
             field: field.to_string(),
-            reason: format!("value `{}` isn't a(n) string", v),
         })
 }
 
@@ -89,7 +88,6 @@ pub(crate) fn as_array<'a>(json: &'a Json, field: &str) -> Result<&'a Vec<Json>,
 
     v.as_array().ok_or(JsonError::InvalidField {
         field: field.to_string(),
-        reason: format!("value `{}` isn't a(n)n Array", v),
     })
 }
 
@@ -101,14 +99,12 @@ pub(crate) fn str_to_bytes(v: &str, field: &str) -> Result<Vec<u8>, JsonError> {
     if v.len() % 2 == 1 {
         return Err(JsonError::InvalidField {
             field: field.to_string(),
-            reason: "value should be of even length".to_string(),
         });
     }
 
     if v.chars().any(|c| c.is_ascii_hexdigit() == false) {
         return Err(JsonError::InvalidField {
             field: field.to_string(),
-            reason: "value should have only hex digits".to_string(),
         });
     }
 
@@ -193,7 +189,6 @@ mod test {
             err,
             JsonError::InvalidField {
                 field: "blob".to_string(),
-                reason: "value should have only hex digits".to_string(),
             }
         );
     }
@@ -209,7 +204,6 @@ mod test {
             err,
             JsonError::InvalidField {
                 field: "blob".to_string(),
-                reason: "value should be of even length".to_string(),
             }
         );
     }
