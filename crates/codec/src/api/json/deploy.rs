@@ -12,22 +12,22 @@ use crate::template;
 ///
 /// ```json
 /// {
-///   name: '...',          // string
-///   svm_version: '...',   // number (`u32`)
-///   code_version: '...',  // number (`u32`)
-///   desc: '...',          // string
-///   code: '...',          // string (represents a `blob`)
-///   data: '',             // string (represents a `blob`)
-///   ctors: ['', ''],      // string[]
+///   "name": "...",          // string
+///   "svm_version": "...",   // number (`u32`)
+///   "code_version": "...",  // number (`u32`)
+///   "desc": "...",          // string
+///   "code": "...",          // string (represents a `blob`)
+///   "data": "",             // string (represents a `blob`)
+///   "ctors": ["", ""],      // string[]
 /// }
 /// ```
 pub fn deploy_template(json: &Json) -> Result<Vec<u8>, JsonError> {
-    let wrapper = DeployWrapper::new(json)?;
-    let layout = to_data_layout(wrapper.data.0)?;
-    let code = CodeSection::new_fixed(wrapper.code.0, wrapper.svm_version);
+    let deploy = DecodedDeploy::new(json)?;
+    let layout = to_data_layout(deploy.data.0)?;
+    let code = CodeSection::new_fixed(deploy.code.0, deploy.svm_version);
     let data = DataSection::with_layout(layout);
-    let ctors = CtorsSection::new(wrapper.ctors);
-    let header = HeaderSection::new(wrapper.code_version, wrapper.name, wrapper.desc);
+    let ctors = CtorsSection::new(deploy.ctors);
+    let header = HeaderSection::new(deploy.code_version, deploy.name, deploy.desc);
 
     let template = TemplateBuilder::default()
         .with_code(code)
@@ -69,7 +69,7 @@ fn to_data_layout(blob: Vec<u8>) -> Result<Layout, JsonError> {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
-struct DeployWrapper {
+struct DecodedDeploy {
     svm_version: u32,
     code_version: u32,
     name: String,
@@ -79,13 +79,13 @@ struct DeployWrapper {
     ctors: Vec<String>,
 }
 
-impl DeployWrapper {
+impl DecodedDeploy {
     fn new(json: &Json) -> Result<Self, JsonError> {
-        serde_json::from_value(json.clone()).map_err(|e| JsonError::from_serde::<DeployWrapper>(e))
+        serde_json::from_value(json.clone()).map_err(JsonError::from_serde::<Self>)
     }
 }
 
-impl TypeInformation for DeployWrapper {
+impl TypeInformation for DecodedDeploy {
     fn type_of_field_as_str(field: &str) -> Option<&str> {
         Some(match field {
             "svm_version" | "code_version" => "number",
