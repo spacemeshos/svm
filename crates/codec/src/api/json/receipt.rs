@@ -4,7 +4,7 @@ use svm_types::RuntimeError;
 use svm_types::{CallReceipt, DeployReceipt, Receipt, ReceiptLog, SpawnReceipt};
 
 use super::JsonSerdeUtils;
-use crate::api::json::wrappers::EncodedData;
+use crate::api::json::wrappers::{EncodedData, HexBlob};
 use crate::api::json::{self, JsonError};
 use crate::receipt;
 
@@ -174,7 +174,7 @@ fn decode_spawn(receipt: &SpawnReceipt, ty: &'static str) -> Value {
         "type": ty,
         "success": true,
         "account": json::addr_to_str(account_addr.as_ref().unwrap().inner()),
-        "state": json::state_to_str(init_state.as_ref().unwrap()),
+        "state": HexBlob(init_state.as_ref().unwrap().as_slice()),
         "returndata": json::bytes_to_str(returndata.as_ref().unwrap()),
         "gas_used": json::gas_to_json(&gas_used),
         "logs": json::logs_to_json(&logs),
@@ -196,7 +196,7 @@ fn decode_call(receipt: &CallReceipt, ty: &'static str) -> Value {
     json!({
         "type": ty,
         "success": true,
-        "new_state": json::state_to_str(new_state.as_ref().unwrap()),
+        "new_state": HexBlob(new_state.as_ref().unwrap().as_slice()),
         "returndata": json::bytes_to_str(returndata.as_ref().unwrap()),
         "gas_used": json::gas_to_json(&gas_used),
         "logs": json::logs_to_json(&logs),

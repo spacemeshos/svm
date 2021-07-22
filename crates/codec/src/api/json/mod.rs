@@ -18,7 +18,7 @@ pub use spawn::{decode_spawn, encode_spawn};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value as Json};
 
-use svm_types::{Address, Gas, ReceiptLog, State};
+use svm_types::{Address, Gas, ReceiptLog};
 
 pub(crate) trait JsonSerdeUtils: Serialize + for<'a> Deserialize<'a> {
     fn to_json(self) -> Json {
@@ -42,24 +42,12 @@ pub(crate) fn to_bytes(json: &Json) -> Result<Vec<u8>, JsonError> {
     }
 }
 
-pub(crate) fn as_array<'a>(json: &'a Json, field: &str) -> Result<&'a Vec<Json>, JsonError> {
-    let v: &Json = &json[field];
-
-    v.as_array().ok_or(JsonError::InvalidField {
-        path: field.to_string(),
-    })
-}
-
 pub(crate) fn bytes_to_str(bytes: &[u8]) -> String {
     hex::encode_upper(bytes)
 }
 
 pub(crate) fn addr_to_str(addr: &Address) -> String {
     bytes_to_str(addr.as_slice())
-}
-
-pub(crate) fn state_to_str(state: &State) -> String {
-    bytes_to_str(state.as_slice())
 }
 
 pub(crate) fn gas_to_json(gas: &Gas) -> i64 {

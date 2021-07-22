@@ -11,7 +11,7 @@ use super::wrappers::AddressWrapper;
 use super::wrappers::EncodedData;
 use super::wrappers::HexBlob;
 use super::JsonSerdeUtils;
-use crate::api::json::{self, JsonError};
+use crate::api::json::JsonError;
 
 /// Given a `Calldata` JSON, encodes it into a binary `Calldata`
 /// and returns the result wrapped with a JSON
@@ -194,8 +194,9 @@ impl TySig {
                 // we initialize `byte_size` for the `length` marker.
                 let mut byte_size = 1;
 
-                let json = json!({ "calldata": value });
-                let elems = json::as_array(&json, "calldata")?;
+                let elems = value.as_array().ok_or(JsonError::InvalidField {
+                    path: "calldata".to_string(),
+                })?;
 
                 for elem in elems {
                     byte_size += ty.value_byte_size(elem)?;
@@ -269,8 +270,9 @@ fn encode_array(types: &[TySig], value: &Json) -> Result<SdkValue, JsonError> {
 
     let ty = &types[0];
 
-    let json = json!({ "calldata": value });
-    let elems = json::as_array(&json, "calldata")?;
+    let elems = value.as_array().ok_or(JsonError::InvalidField {
+        path: "calldata".to_string(),
+    })?;
 
     let mut vec = svm_sdk_std::Vec::with_capacity(10);
 
