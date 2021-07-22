@@ -21,7 +21,7 @@ use crate::template;
 ///   "ctors": ["", ""],      // string[]
 /// }
 /// ```
-pub fn deploy_template(json: &Json) -> Result<Vec<u8>, JsonError> {
+pub fn deploy_template(json: Json) -> Result<Vec<u8>, JsonError> {
     let deploy = DecodedDeploy::new(json)?;
     let layout = to_data_layout(deploy.data.0)?;
     let code = CodeSection::new_fixed(deploy.code.0, deploy.svm_version);
@@ -80,8 +80,8 @@ struct DecodedDeploy {
 }
 
 impl DecodedDeploy {
-    fn new(json: &Json) -> Result<Self, JsonError> {
-        serde_json::from_value(json.clone()).map_err(JsonError::from_serde::<Self>)
+    fn new(json: Json) -> Result<Self, JsonError> {
+        serde_json::from_value(json).map_err(JsonError::from_serde::<Self>)
     }
 }
 
@@ -109,7 +109,7 @@ mod tests {
     fn json_deploy_template_missing_svm_version() {
         let json = json!({});
 
-        let err = deploy_template(&json).unwrap_err();
+        let err = deploy_template(json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -125,7 +125,7 @@ mod tests {
             "svm_version": 1
         });
 
-        let err = deploy_template(&json).unwrap_err();
+        let err = deploy_template(json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -142,7 +142,7 @@ mod tests {
             "code_version": 2
         });
 
-        let err = deploy_template(&json).unwrap_err();
+        let err = deploy_template(json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -160,7 +160,7 @@ mod tests {
             "name": "My Template",
         });
 
-        let err = deploy_template(&json).unwrap_err();
+        let err = deploy_template(json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -179,7 +179,7 @@ mod tests {
             "desc": "A few words"
         });
 
-        let err = deploy_template(&json).unwrap_err();
+        let err = deploy_template(json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -199,7 +199,7 @@ mod tests {
             "code": "C0DE"
         });
 
-        let err = deploy_template(&json).unwrap_err();
+        let err = deploy_template(json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -220,7 +220,7 @@ mod tests {
             "data": "0000000100000003",
         });
 
-        let err = deploy_template(&json).unwrap_err();
+        let err = deploy_template(json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -242,7 +242,7 @@ mod tests {
             "ctors": ["init", "start"]
         });
 
-        let bytes = deploy_template(&json).unwrap();
+        let bytes = deploy_template(json).unwrap();
         let cursor = Cursor::new(&bytes[..]);
         let actual = template::decode(cursor, None).unwrap();
 

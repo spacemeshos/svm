@@ -19,7 +19,7 @@ use crate::call;
 ///   "calldata": "",         // string
 /// }
 /// ```
-pub fn json_call_to_bytes(json: &Json) -> Result<Vec<u8>, JsonError> {
+pub fn json_call_to_bytes(json: Json) -> Result<Vec<u8>, JsonError> {
     let tx = Transaction::from(DecodedCall::new(json)?);
 
     let mut buf = Vec::new();
@@ -35,7 +35,7 @@ pub fn json_call_to_bytes(json: &Json) -> Result<Vec<u8>, JsonError> {
 ///   "data": "E9E50C787F2076BD5E44"
 /// }
 /// ```
-pub fn unwrap_binary_json_call(json: &Json) -> Result<Json, JsonError> {
+pub fn unwrap_binary_json_call(json: Json) -> Result<Json, JsonError> {
     let tx = {
         let wrapped_call = EncodedCall::new(json)?;
         let mut cursor = Cursor::new(&wrapped_call.data.0[..]);
@@ -58,8 +58,8 @@ struct DecodedCall {
 }
 
 impl DecodedCall {
-    fn new(json: &Json) -> Result<Self, JsonError> {
-        serde_json::from_value(json.clone()).map_err(|e| JsonError::from_serde::<Self>(e))
+    fn new(json: Json) -> Result<Self, JsonError> {
+        serde_json::from_value(json).map_err(|e| JsonError::from_serde::<Self>(e))
     }
 
     fn account_addr(&self) -> AccountAddr {
@@ -106,7 +106,7 @@ struct EncodedCall {
 }
 
 impl EncodedCall {
-    fn new(json: &Json) -> Result<Self, JsonError> {
+    fn new(json: Json) -> Result<Self, JsonError> {
         serde_json::from_value(json.clone()).map_err(|e| JsonError::from_serde::<EncodedCall>(e))
     }
 }
@@ -128,7 +128,7 @@ mod tests {
     fn json_call_missing_version() {
         let json = json!({});
 
-        let err = json_call_to_bytes(&json).unwrap_err();
+        let err = json_call_to_bytes(json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -144,7 +144,7 @@ mod tests {
             "version": 0
         });
 
-        let err = json_call_to_bytes(&json).unwrap_err();
+        let err = json_call_to_bytes(json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -161,7 +161,7 @@ mod tests {
             "target": "10203040506070809000A0B0C0D0E0F0ABCDEFFF"
         });
 
-        let err = json_call_to_bytes(&json).unwrap_err();
+        let err = json_call_to_bytes(json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -180,7 +180,7 @@ mod tests {
             "func_name": "do_something",
         });
 
-        let err = json_call_to_bytes(&json).unwrap_err();
+        let err = json_call_to_bytes(json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -192,7 +192,7 @@ mod tests {
 
     #[test]
     fn json_call_missing_calldata() {
-        let verifydata = json::encode_calldata(&json!({
+        let verifydata = json::encode_calldata(json!({
             "abi": ["bool", "i8"],
             "data": [true, 3],
         }))
@@ -205,7 +205,7 @@ mod tests {
             "verifydata": verifydata["calldata"]
         });
 
-        let err = json_call_to_bytes(&json).unwrap_err();
+        let err = json_call_to_bytes(json).unwrap_err();
         assert_eq!(
             err,
             JsonError::InvalidField {
@@ -217,13 +217,13 @@ mod tests {
 
     #[test]
     fn json_call_valid() {
-        let _verifydata = json::encode_calldata(&json!({
+        let _verifydata = json::encode_calldata(json!({
             "abi": ["bool", "i8"],
             "data": [true, 3],
         }))
         .unwrap();
 
-        let calldata = json::encode_calldata(&json!({
+        let calldata = json::encode_calldata(json!({
             "abi": ["i32", "i64"],
             "data": [10, 20],
         }))
@@ -237,9 +237,9 @@ mod tests {
             "calldata": calldata["calldata"],
         });
 
-        let bytes = json_call_to_bytes(&json).unwrap();
+        let bytes = json_call_to_bytes(json).unwrap();
         let data = json::bytes_to_str(&bytes);
-        let json = unwrap_binary_json_call(&json!({ "data": data })).unwrap();
+        let json = unwrap_binary_json_call(json!({ "data": data })).unwrap();
 
         assert_eq!(
             json,

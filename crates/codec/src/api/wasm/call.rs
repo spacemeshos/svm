@@ -18,7 +18,7 @@ pub fn encode_call(offset: usize) -> Result<usize, JsonError> {
 /// stores that JSON content into a new Wasm Buffer,
 /// and finally returns that Wasm buffer offset
 pub fn decode_call(offset: usize) -> Result<usize, JsonError> {
-    wasm_buf_apply(offset, |json: &Value| {
+    wasm_buf_apply(offset, |json: Value| {
         let json = api::json::unwrap_binary_json_call(json)?;
 
         api::json::to_bytes(&json)
@@ -46,7 +46,7 @@ mod test {
         // }))
         // .unwrap();
 
-        let calldata = api::json::encode_calldata(&json!({
+        let calldata = api::json::encode_calldata(json!({
             "abi": ["i32", "i64"],
             "data": [10, 20]
         }))

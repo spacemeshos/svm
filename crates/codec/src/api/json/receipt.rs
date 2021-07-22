@@ -8,8 +8,8 @@ use svm_types::{CallReceipt, DeployReceipt, Receipt, ReceiptLog, SpawnReceipt};
 
 /// Given a binary Receipt wrapped inside a JSON,
 /// decodes it into a user-friendly JSON.
-pub fn decode_receipt(json: &Value) -> Result<Value, JsonError> {
-    let data = json::as_string(json, "data")?;
+pub fn decode_receipt(json: Value) -> Result<Value, JsonError> {
+    let data = json::as_string(&json, "data")?;
     let bytes = json::str_to_bytes(&data, "data")?;
 
     assert!(bytes.len() > 0);
@@ -235,7 +235,7 @@ mod tests {
 
         let bytes = crate::receipt::encode_deploy(&receipt);
         let data = json::bytes_to_str(&bytes);
-        let json = decode_receipt(&json!({ "data": data })).unwrap();
+        let json = decode_receipt(json!({ "data": data })).unwrap();
 
         assert_eq!(
             json,
@@ -281,7 +281,7 @@ mod tests {
 
         let bytes = crate::receipt::encode_spawn(&receipt);
         let data = json::bytes_to_str(&bytes);
-        let json = decode_receipt(&json!({ "data": data })).unwrap();
+        let json = decode_receipt(json!({ "data": data })).unwrap();
 
         assert_eq!(
             json,
@@ -320,7 +320,7 @@ mod tests {
 
         let bytes = crate::receipt::encode_spawn(&receipt);
         let data = json::bytes_to_str(&bytes);
-        let json = decode_receipt(&json!({ "data": data })).unwrap();
+        let json = decode_receipt(json!({ "data": data })).unwrap();
 
         assert_eq!(
             json,
@@ -360,7 +360,7 @@ mod tests {
 
         let bytes = crate::receipt::encode_call(&receipt);
         let data = json::bytes_to_str(&bytes);
-        let json = decode_receipt(&json!({ "data": data })).unwrap();
+        let json = decode_receipt(json!({ "data": data })).unwrap();
 
         assert_eq!(
             json,

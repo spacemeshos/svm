@@ -7,7 +7,7 @@ use crate::api::{self, json::JsonError};
 /// and then returns an offset to a new Wasm buffer holding the decoded Receipt
 /// in a JSON format.
 pub fn decode_receipt(offset: usize) -> Result<usize, JsonError> {
-    wasm_buf_apply(offset, |json: &Value| {
+    wasm_buf_apply(offset, |json: Value| {
         let json = api::json::decode_receipt(json)?;
 
         api::json::to_bytes(&json)

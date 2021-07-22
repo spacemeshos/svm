@@ -15,7 +15,7 @@ pub fn encode_spawn(offset: usize) -> Result<usize, JsonError> {
 ///
 /// and returns a new Wasm buffer holding the decoded transaction (wrapped with a JSON).
 pub fn decode_spawn(offset: usize) -> Result<usize, JsonError> {
-    wasm_buf_apply(offset, |json: &Value| {
+    wasm_buf_apply(offset, |json: Value| {
         let json = api::json::decode_spawn(json)?;
 
         api::json::to_bytes(&json)
@@ -37,7 +37,7 @@ mod test {
     fn wasm_spawn_valid() {
         let template_addr = "1122334455667788990011223344556677889900";
 
-        let calldata = json::encode_calldata(&json!({
+        let calldata = json::encode_calldata(json!({
             "abi": ["i32", "i64"],
             "data": [10, 20]
         }))

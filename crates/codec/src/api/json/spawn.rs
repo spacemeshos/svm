@@ -20,7 +20,7 @@ use crate::spawn;
 ///   "calldata": "",            // string
 /// }
 /// ```
-pub fn encode_spawn(json: &Value) -> Result<Vec<u8>, JsonError> {
+pub fn encode_spawn(json: Value) -> Result<Vec<u8>, JsonError> {
     let wrapper = SpawnWrapper::new(json)?;
 
     let mut buf = Vec::new();
@@ -30,8 +30,8 @@ pub fn encode_spawn(json: &Value) -> Result<Vec<u8>, JsonError> {
 
 /// Given a binary [`SpawnAccount`] transaction wrapped inside a JSON,
 /// decodes it into a user-friendly JSON.
-pub fn decode_spawn(json: &Value) -> Result<Value, JsonError> {
-    let data = json::as_string(json, "data")?;
+pub fn decode_spawn(json: Value) -> Result<Value, JsonError> {
+    let data = json::as_string(&json, "data")?;
     let bytes = json::str_to_bytes(&data, "data")?;
 
     let mut cursor = Cursor::new(&bytes[..]);
@@ -51,8 +51,8 @@ struct SpawnWrapper {
 }
 
 impl SpawnWrapper {
-    fn new(json: &Value) -> Result<Self, JsonError> {
-        serde_json::from_value(json.clone()).map_err(|e| JsonError::from_serde::<SpawnWrapper>(e))
+    fn new(json: Value) -> Result<Self, JsonError> {
+        serde_json::from_value(json).map_err(JsonError::from_serde::<Self>)
     }
 }
 
@@ -100,7 +100,7 @@ mod tests {
     #[test]
     fn json_spawn_missing_version() {
         let json = json!({});
-        let err = encode_spawn(&json).unwrap_err();
+        let err = encode_spawn(json).unwrap_err();
 
         assert_eq!(
             err,
@@ -116,7 +116,7 @@ mod tests {
         let json = json!({
             "version": 0
         });
-        let err = encode_spawn(&json).unwrap_err();
+        let err = encode_spawn(json).unwrap_err();
 
         assert_eq!(
             err,
@@ -133,7 +133,7 @@ mod tests {
             "version": 0,
             "template": "10203040506070809000A0B0C0D0E0F0ABCDEFFF"
         });
-        let err = encode_spawn(&json).unwrap_err();
+        let err = encode_spawn(json).unwrap_err();
 
         assert_eq!(
             err,
@@ -151,7 +151,7 @@ mod tests {
             "template": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
             "name": "My App",
         });
-        let err = encode_spawn(&json).unwrap_err();
+        let err = encode_spawn(json).unwrap_err();
 
         assert_eq!(
             err,
@@ -170,7 +170,7 @@ mod tests {
             "name": "My Account",
             "ctor_name": "initialize",
         });
-        let err = encode_spawn(&json).unwrap_err();
+        let err = encode_spawn(json).unwrap_err();
 
         assert_eq!(
             err,
@@ -183,7 +183,7 @@ mod tests {
 
     #[test]
     fn json_spawn_valid() {
-        let calldata = json::encode_calldata(&json!({
+        let calldata = json::encode_calldata(json!({
             "abi": ["i32", "i64"],
             "data": [10, 20]
         }))
@@ -197,9 +197,9 @@ mod tests {
             "calldata": calldata["calldata"],
         });
 
-        let bytes = encode_spawn(&json).unwrap();
+        let bytes = encode_spawn(json).unwrap();
         let data = json::bytes_to_str(&bytes);
-        let json = decode_spawn(&json!({ "data": data })).unwrap();
+        let json = decode_spawn(json!({ "data": data })).unwrap();
 
         assert_eq!(
             json,

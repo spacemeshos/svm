@@ -196,14 +196,14 @@ pub fn to_wasm_buffer(bytes: &[u8]) -> usize {
 
 pub(crate) fn wasm_buf_apply<F>(offset: usize, func: F) -> Result<usize, JsonError>
 where
-    F: Fn(&Value) -> Result<Vec<u8>, JsonError>,
+    F: Fn(Value) -> Result<Vec<u8>, JsonError>,
 {
     let bytes = wasm_buffer_data(offset);
     let json: json::Result<Value> = serde_json::from_slice(bytes);
 
     match json {
-        Ok(ref json) => {
-            let bytes = func(&json)?;
+        Ok(json) => {
+            let bytes = func(json)?;
 
             let mut buf = Vec::with_capacity(1 + bytes.len());
             buf.push(BUF_OK_MARKER);

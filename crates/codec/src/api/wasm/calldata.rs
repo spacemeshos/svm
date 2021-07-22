@@ -7,7 +7,7 @@ use crate::{api, api::json::JsonError};
 /// to a binary `Calldata`, encodes it and returns an offset to the encoded
 /// binary `Calldata` (wrapped within a JSON).
 pub fn encode_calldata(offset: usize) -> Result<usize, JsonError> {
-    wasm_buf_apply(offset, |json: &Value| {
+    wasm_buf_apply(offset, |json: Value| {
         let json = api::json::encode_calldata(json)?;
 
         api::json::to_bytes(&json)
@@ -17,7 +17,7 @@ pub fn encode_calldata(offset: usize) -> Result<usize, JsonError> {
 /// Given an offset to a Wasm buffer holding a binary `Calldata`,
 /// decodes it and returns an offset to be decoded `Calldata` (wrapped within a JSON)
 pub fn decode_calldata(offset: usize) -> Result<usize, JsonError> {
-    wasm_buf_apply(offset, |json: &Value| {
+    wasm_buf_apply(offset, |json: Value| {
         let json = api::json::decode_calldata(json)?;
 
         api::json::to_bytes(&json)
