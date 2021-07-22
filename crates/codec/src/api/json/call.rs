@@ -6,7 +6,7 @@ use std::io::Cursor;
 use svm_types::{AccountAddr, Transaction};
 
 use super::wrappers::*;
-use crate::api::json::{BetterConversionToJson, JsonError};
+use crate::api::json::{JsonError, JsonSerdeUtils};
 use crate::call;
 
 ///
@@ -86,26 +86,14 @@ impl From<Transaction> for DecodedCall {
     }
 }
 
-impl BetterConversionToJson for DecodedCall {
-    fn type_of_field_as_str(field: &str) -> Option<&str> {
-        Some(match field {
-            "version" => "number",
-            "func_name" | "target" | "calldata" => "string",
-            _ => unreachable!(),
-        })
-    }
-}
+impl JsonSerdeUtils for DecodedCall {}
 
 #[derive(Debug, Serialize, Deserialize)]
 struct EncodedCall {
     data: HexBlob<Vec<u8>>,
 }
 
-impl BetterConversionToJson for EncodedCall {
-    fn type_of_field_as_str(_field: &str) -> Option<&str> {
-        Some("data")
-    }
-}
+impl JsonSerdeUtils for EncodedCall {}
 
 #[cfg(test)]
 mod tests {

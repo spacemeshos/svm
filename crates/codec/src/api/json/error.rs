@@ -1,4 +1,4 @@
-use super::BetterConversionToJson;
+use super::JsonSerdeUtils;
 
 #[doc(hidden)]
 #[derive(Debug, PartialEq, Eq)]
@@ -13,7 +13,7 @@ impl JsonError {
     /// expose (e.g. "string", "number", "array").
     pub(crate) fn from_serde<T>(serde_err: serde_json::Error) -> Self
     where
-        T: BetterConversionToJson,
+        T: JsonSerdeUtils,
     {
         let err_s = serde_err.to_string();
 

@@ -5,7 +5,7 @@ use svm_types::RuntimeError;
 use svm_types::{CallReceipt, DeployReceipt, Receipt, ReceiptLog, SpawnReceipt};
 
 use super::wrappers::HexBlob;
-use super::BetterConversionToJson;
+use super::JsonSerdeUtils;
 use crate::api::json::{self, JsonError};
 use crate::receipt;
 
@@ -14,11 +14,7 @@ struct EncodedReceipt {
     data: HexBlob<Vec<u8>>,
 }
 
-impl BetterConversionToJson for EncodedReceipt {
-    fn type_of_field_as_str(_field: &str) -> Option<&str> {
-        Some("string")
-    }
-}
+impl JsonSerdeUtils for EncodedReceipt {}
 
 /// Given a binary Receipt wrapped inside a JSON,
 /// decodes it into a user-friendly JSON.

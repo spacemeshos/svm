@@ -22,9 +22,7 @@ use serde_json::{json, Value as Json};
 
 use svm_types::{Address, Gas, ReceiptLog, State};
 
-pub(crate) trait BetterConversionToJson: Serialize + for<'a> Deserialize<'a> {
-    fn type_of_field_as_str(field: &str) -> Option<&str>;
-
+pub(crate) trait JsonSerdeUtils: Serialize + for<'a> Deserialize<'a> {
     fn to_json(self) -> Json {
         serde_json::to_value(self).unwrap()
     }

@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use svm_layout::{FixedLayoutBuilder, Id, Layout};
 use svm_types::{CodeSection, CtorsSection, DataSection, HeaderSection};
 
-use super::{BetterConversionToJson, HexBlob};
+use super::{HexBlob, JsonSerdeUtils};
 use crate::api::builder::TemplateBuilder;
 use crate::api::json::JsonError;
 use crate::template;
@@ -77,16 +77,7 @@ struct DecodedDeploy {
     ctors: Vec<String>,
 }
 
-impl BetterConversionToJson for DecodedDeploy {
-    fn type_of_field_as_str(field: &str) -> Option<&str> {
-        Some(match field {
-            "svm_version" | "code_version" => "number",
-            "name" | "desc" => "string",
-            "ctors" => "Array",
-            _ => "string",
-        })
-    }
-}
+impl JsonSerdeUtils for DecodedDeploy {}
 
 #[cfg(test)]
 mod tests {

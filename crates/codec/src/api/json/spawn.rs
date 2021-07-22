@@ -6,7 +6,7 @@ use std::io::Cursor;
 use svm_types::{Account, SpawnAccount, TemplateAddr};
 
 use super::wrappers::AddressWrapper;
-use super::BetterConversionToJson;
+use super::JsonSerdeUtils;
 use crate::api::json::{HexBlob, JsonError};
 use crate::spawn;
 
@@ -34,11 +34,7 @@ struct EncodedSpawn {
     data: HexBlob,
 }
 
-impl BetterConversionToJson for EncodedSpawn {
-    fn type_of_field_as_str(_field: &str) -> Option<&str> {
-        Some("string")
-    }
-}
+impl JsonSerdeUtils for EncodedSpawn {}
 
 /// Given a binary [`SpawnAccount`] transaction wrapped inside a JSON,
 /// decodes it into a user-friendly JSON.
@@ -50,6 +46,8 @@ pub fn decode_spawn(json: &str) -> Result<Value, JsonError> {
 
     Ok(DecodedSpawn::from(spawn).to_json())
 }
+
+impl JsonSerdeUtils for DecodedSpawn {}
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 struct DecodedSpawn {
@@ -85,15 +83,6 @@ impl From<DecodedSpawn> for SpawnAccount {
             ctor_name: wrapper.ctor_name,
             calldata: wrapper.calldata.0,
         }
-    }
-}
-
-impl BetterConversionToJson for DecodedSpawn {
-    fn type_of_field_as_str(field: &str) -> Option<&str> {
-        Some(match field {
-            "version" => "number",
-            _ => "string",
-        })
     }
 }
 
