@@ -8,8 +8,7 @@ use svm_types::{Account, SpawnAccount, TemplateAddr};
 use super::call::EncodedOrDecodedCalldata;
 use super::calldata::DecodedCallData;
 use super::serde_types::{AddressWrapper, EncodedData};
-use super::JsonSerdeUtils;
-use crate::api::json::JsonError;
+use super::{JsonError, JsonSerdeUtils};
 use crate::spawn;
 
 ///

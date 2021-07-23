@@ -1,10 +1,12 @@
+//! Reusable implementors of [`serde::Serialize`] and [`serde::Deserialize`].
+
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use svm_types::{Address, AddressOf};
 
 use super::JsonSerdeUtils;
 
-/// A blob of binary data that is encoded with Base16.
+/// A blob of binary data that is encoded via Base16.
 #[derive(Clone, Debug)]
 pub struct HexBlob<T>(pub T);
 
@@ -43,12 +45,6 @@ impl<'a, T> From<&'a AddressOf<T>> for AddressWrapper {
     }
 }
 
-impl<T> From<AddressWrapper> for AddressOf<T> {
-    fn from(wrapper: AddressWrapper) -> Self {
-        AddressOf::new(wrapper.0)
-    }
-}
-
 impl Serialize for AddressWrapper {
     fn serialize<S>(&self, s: S) -> Result<S::Ok, S::Error>
     where
@@ -73,6 +69,12 @@ impl<'de> Deserialize<'de> for AddressWrapper {
         } else {
             Ok(Self(Address::from(&blob.0[..])))
         }
+    }
+}
+
+impl<T> From<AddressWrapper> for AddressOf<T> {
+    fn from(wrapper: AddressWrapper) -> Self {
+        AddressOf::new(wrapper.0)
     }
 }
 
