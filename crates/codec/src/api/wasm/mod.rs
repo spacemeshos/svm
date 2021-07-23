@@ -197,25 +197,24 @@ where
     F: Fn(&str) -> Result<Vec<u8>, JsonError>,
 {
     let bytes = wasm_buffer_data(offset);
-    let json_s = std::str::from_utf8(bytes);
+    let json_s = std::str::from_utf8(bytes)?;
+    let result = func(json_s);
 
-    match json_s {
-        Ok(json) => {
-            let bytes = func(json)?;
-
-            let mut buf = Vec::with_capacity(1 + bytes.len());
-            buf.push(BUF_OK_MARKER);
-            buf.extend_from_slice(&bytes);
-
-            let offset = to_wasm_buffer(&buf);
-            Ok(offset)
+    let bytes = match result {
+        Err(JsonError::Eof | JsonError::InvalidJson { .. }) => {
+            let offset = into_error_buffer(result.unwrap_err());
+            return Ok(offset);
         }
-        Err(err) => {
-            let offset = into_error_buffer(err);
+        Err(e) => return Err(e),
+        Ok(bytes) => bytes,
+    };
 
-            Ok(offset)
-        }
-    }
+    let mut buf = Vec::with_capacity(1 + bytes.len());
+    buf.push(BUF_OK_MARKER);
+    buf.extend_from_slice(&bytes);
+
+    let offset = to_wasm_buffer(&buf);
+    Ok(offset)
 }
 
 #[cfg(test)]

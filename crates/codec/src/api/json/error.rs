@@ -1,6 +1,8 @@
 #[doc(hidden)]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(PartialEq, Eq)]
 pub enum JsonError {
+    /// The JSON is syntactically invalid due to EOF.
+    Eof,
     /// JSON syntax error.
     InvalidJson {
         /// The line number at which this error was found.
@@ -14,9 +16,27 @@ pub enum JsonError {
     InvalidField { path: String },
 }
 
+impl std::fmt::Debug for JsonError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Eof => writeln!(f, r#"Error("EOF while parsing JSON")"#),
+            Self::InvalidJson { .. } => writeln!(f, r#"Error("Invalid JSON syntax")"#),
+            _ => writeln!(f, r#"Error("JSON schema validation error")"#),
+        }
+    }
+}
+
+impl From<std::str::Utf8Error> for JsonError {
+    fn from(_: std::str::Utf8Error) -> Self {
+        Self::InvalidJson { line: 0, column: 0 }
+    }
+}
+
 impl From<serde_path_to_error::Error<serde_json::Error>> for JsonError {
     fn from(err: serde_path_to_error::Error<serde_json::Error>) -> Self {
-        if err.inner().is_data() {
+        if err.inner().is_eof() {
+            Self::Eof
+        } else if err.inner().is_data() {
             let path_of_error = err.path().to_string();
             let serde_json_err = err.inner().to_string();
 

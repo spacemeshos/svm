@@ -43,6 +43,12 @@ impl<'a, T> From<&'a AddressOf<T>> for AddressWrapper {
     }
 }
 
+impl<T> From<AddressWrapper> for AddressOf<T> {
+    fn from(wrapper: AddressWrapper) -> Self {
+        AddressOf::new(wrapper.0)
+    }
+}
+
 impl Serialize for AddressWrapper {
     fn serialize<S>(&self, s: S) -> Result<S::Ok, S::Error>
     where

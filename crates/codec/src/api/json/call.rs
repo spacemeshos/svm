@@ -3,11 +3,11 @@ use serde_json::Value as Json;
 
 use std::io::Cursor;
 
-use svm_types::{AccountAddr, Transaction};
+use svm_types::Transaction;
 
+use super::calldata::DecodedCallData;
 use super::wrappers::*;
 use crate::api::json::{JsonError, JsonSerdeUtils};
-use crate::call;
 
 ///
 /// ```json
@@ -16,15 +16,28 @@ use crate::call;
 ///   "target": "A2FB...",    // string
 ///   "func_name": "do_work", // string
 ///   "verifydata": "",       // string
-///   "calldata": "",         // string
+///   "calldata": {
+///     ...
+///   },
 /// }
 /// ```
-pub fn json_call_to_bytes(json: &str) -> Result<Vec<u8>, JsonError> {
+pub fn encode_call(json: &str) -> Result<Json, JsonError> {
+    let encoded_bytes = encode_call_raw(json)?;
+    Ok(EncodedData {
+        data: HexBlob(encoded_bytes),
+    }
+    .to_json())
+}
+
+/// Much like [`encode_call`], but instead of returning a JSON wrapper it
+/// returns the raw bytes.
+pub fn encode_call_raw(json: &str) -> Result<Vec<u8>, JsonError> {
     let decoded_call = DecodedCall::from_json_str(json)?;
     let tx = Transaction::from(decoded_call);
 
     let mut buf = Vec::new();
-    call::encode_call(&tx, &mut buf);
+    crate::call::encode_call(&tx, &mut buf);
+
     Ok(buf)
 }
 
@@ -36,11 +49,11 @@ pub fn json_call_to_bytes(json: &str) -> Result<Vec<u8>, JsonError> {
 ///   "data": "E9E50C787F2076BD5E44"
 /// }
 /// ```
-pub fn unwrap_binary_json_call(json: &str) -> Result<Json, JsonError> {
+pub fn decode_call(json: &str) -> Result<Json, JsonError> {
     let encoded_call = EncodedData::from_json_str(json)?;
     let tx = {
         let mut cursor = Cursor::new(&encoded_call.data.0[..]);
-        call::decode_call(&mut cursor).unwrap()
+        crate::call::decode_call(&mut cursor).unwrap()
     };
 
     // let verifydata = json::bytes_to_str(&tx.verifydata);
@@ -55,25 +68,19 @@ struct DecodedCall {
     target: AddressWrapper,
     func_name: String,
     // verifydata: String,
-    calldata: HexBlob<Vec<u8>>,
-}
-
-impl DecodedCall {
-    fn account_addr(&self) -> AccountAddr {
-        AccountAddr::new(self.target.0.clone())
-    }
+    calldata: DecodedCallData,
 }
 
 impl JsonSerdeUtils for DecodedCall {}
 
 impl From<DecodedCall> for Transaction {
     fn from(decoded: DecodedCall) -> Self {
-        let target = decoded.account_addr();
+        let target = decoded.target.into();
         Transaction {
             version: decoded.version,
             func_name: decoded.func_name,
             target,
-            calldata: decoded.calldata.0,
+            calldata: decoded.calldata.encode().unwrap(),
         }
     }
 }
@@ -82,9 +89,9 @@ impl From<Transaction> for DecodedCall {
     fn from(tx: Transaction) -> Self {
         DecodedCall {
             version: tx.version,
-            target: AddressWrapper(tx.target.inner().clone()),
+            target: AddressWrapper::from(&tx.target),
             func_name: tx.func_name.clone(),
-            calldata: HexBlob(tx.calldata),
+            calldata: DecodedCallData::decode(tx.calldata).unwrap(),
         }
     }
 }
@@ -100,7 +107,7 @@ mod tests {
     fn json_call_missing_version() {
         let json = json!({}).to_string();
 
-        let err = json_call_to_bytes(&json).unwrap_err();
+        let err = encode_call(&json).unwrap_err();
         assert_eq!(
             err,
             JsonError::MissingField {
@@ -116,7 +123,7 @@ mod tests {
         })
         .to_string();
 
-        let err = json_call_to_bytes(&json).unwrap_err();
+        let err = encode_call(&json).unwrap_err();
         assert_eq!(
             err,
             JsonError::MissingField {
@@ -133,7 +140,7 @@ mod tests {
         })
         .to_string();
 
-        let err = json_call_to_bytes(&json).unwrap_err();
+        let err = encode_call(&json).unwrap_err();
         assert_eq!(
             err,
             JsonError::MissingField {
@@ -152,7 +159,7 @@ mod tests {
         })
         .to_string();
 
-        let err = json_call_to_bytes(&json).unwrap_err();
+        let err = encode_call(&json).unwrap_err();
         assert_eq!(
             err,
             JsonError::MissingField {
@@ -180,7 +187,7 @@ mod tests {
         })
         .to_string();
 
-        let err = json_call_to_bytes(&json).unwrap_err();
+        let err = encode_call(&json).unwrap_err();
         assert_eq!(
             err,
             JsonError::MissingField {
@@ -214,13 +221,12 @@ mod tests {
             "target": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
             "func_name": "do_something",
             // "verifydata": verifydata["calldata"],
-            "calldata": calldata["calldata"],
+            "calldata": calldata,
         })
         .to_string();
 
-        let bytes = json_call_to_bytes(&json).unwrap();
-        let data = HexBlob(&bytes);
-        let json = unwrap_binary_json_call(&json!({ "data": data }).to_string()).unwrap();
+        let encoded_json = encode_call(&json).unwrap();
+        let json = decode_call(&encoded_json.to_string()).unwrap();
 
         assert_eq!(
             json,

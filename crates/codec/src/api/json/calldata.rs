@@ -25,13 +25,13 @@ pub fn encode_calldata(json: &str) -> Result<Json, JsonError> {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
-struct DecodedCallData {
+pub(crate) struct DecodedCallData {
     abi: Vec<TySig>,
     data: Vec<Json>,
 }
 
 impl DecodedCallData {
-    fn new(json: &str) -> Result<Self, JsonError> {
+    pub fn new(json: &str) -> Result<Self, JsonError> {
         let decoded = Self::from_json_str(json)?;
 
         if decoded.abi.len() != decoded.data.len() {
@@ -41,6 +41,14 @@ impl DecodedCallData {
         } else {
             Ok(decoded)
         }
+    }
+
+    pub fn decode(bytes: Vec<u8>) -> Option<Self> {
+        let encoded = EncodedData {
+            data: HexBlob(bytes),
+        };
+        let encoded_json = encoded.to_json().to_string();
+        Self::new(&encoded_json).ok()
     }
 
     fn zip_ref(&self) -> impl Iterator<Item = (&TySig, &Json)> {
@@ -57,7 +65,7 @@ impl DecodedCallData {
             .sum()
     }
 
-    fn encode(self) -> Result<Vec<u8>, JsonError> {
+    pub fn encode(self) -> Result<Vec<u8>, JsonError> {
         let cap = self.cap()?;
         let mut buf = svm_sdk_std::Vec::with_capacity(cap);
 

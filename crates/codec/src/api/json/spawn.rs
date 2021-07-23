@@ -5,6 +5,7 @@ use std::io::Cursor;
 
 use svm_types::{Account, SpawnAccount, TemplateAddr};
 
+use super::calldata::DecodedCallData;
 use super::wrappers::{AddressWrapper, EncodedData, HexBlob};
 use super::JsonSerdeUtils;
 use crate::api::json::JsonError;
@@ -40,8 +41,6 @@ pub fn decode_spawn(json: &str) -> Result<Value, JsonError> {
     Ok(DecodedSpawn::from(spawn).to_json())
 }
 
-impl JsonSerdeUtils for DecodedSpawn {}
-
 #[derive(Debug, Deserialize, Serialize, Clone)]
 struct DecodedSpawn {
     version: u16,
@@ -49,19 +48,26 @@ struct DecodedSpawn {
     template_addr: AddressWrapper,
     name: String,
     ctor_name: String,
-    calldata: HexBlob<Vec<u8>>,
+    calldata: DecodedCallData,
 }
+
+impl JsonSerdeUtils for DecodedSpawn {}
 
 impl From<SpawnAccount> for DecodedSpawn {
     fn from(spawn: SpawnAccount) -> Self {
         let template_addr = AddressWrapper(spawn.account.template_addr().inner().clone());
+        let encoded_calldata = EncodedData {
+            data: HexBlob(spawn.calldata),
+        };
+        let calldata = DecodedCallData::from_json_str(&encoded_calldata.to_json().to_string())
+            .expect("Invalid JSON immediately after serialization");
 
         Self {
             version: spawn.version,
             name: spawn.account.name,
             template_addr,
             ctor_name: spawn.ctor_name,
-            calldata: HexBlob(spawn.calldata),
+            calldata,
         }
     }
 }
@@ -74,7 +80,7 @@ impl From<DecodedSpawn> for SpawnAccount {
             version: wrapper.version,
             account: Account::new(template_addr, wrapper.name),
             ctor_name: wrapper.ctor_name,
-            calldata: wrapper.calldata.0,
+            calldata: wrapper.calldata.encode().unwrap(),
         }
     }
 }
@@ -185,9 +191,10 @@ mod tests {
             "template": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
             "name": "My Account",
             "ctor_name": "initialize",
-            "calldata": calldata,
+            "calldata": calldata["data"],
         })
         .to_string();
+        println!("SPAWNING {}", json);
 
         let bytes = encode_spawn(&json).unwrap();
         let data = HexBlob(&bytes);
