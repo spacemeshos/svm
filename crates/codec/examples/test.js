@@ -398,7 +398,7 @@ describe("Spawn Account", function () {
       const error = loadWasmBufferError(instance, result);
       assert.strictEqual(
         error,
-        'The value of a specific field is invalid (`./template`).'
+        'The value of a specific field is invalid (`template`).'
       );
 
       wasmBufferFree(instance, buf);
