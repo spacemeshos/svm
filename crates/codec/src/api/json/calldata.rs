@@ -146,12 +146,8 @@ mod sdk_value_utils {
                 if values.is_empty() {
                     Json::Null
                 } else {
-                    Json::Array(
-                        values
-                            .iter()
-                            .map(|sdk_value| ty_sig_of_sdk_value(sdk_value))
-                            .collect(),
-                    )
+                    let ty = &values.last().unwrap();
+                    Json::Array(vec![ty_sig_of_sdk_value(ty)])
                 }
             }
         }
