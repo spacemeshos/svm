@@ -219,7 +219,7 @@ mod tests {
         .to_string();
 
         let bytes = json_call_to_bytes(&json).unwrap();
-        let data = json::bytes_to_str(&bytes);
+        let data = HexBlob(&bytes);
         let json = unwrap_binary_json_call(&json!({ "data": data }).to_string()).unwrap();
 
         assert_eq!(

@@ -6,7 +6,8 @@ mod deploy;
 mod error;
 mod receipt;
 mod spawn;
-mod wrappers;
+
+pub(crate) mod wrappers;
 
 pub use call::{json_call_to_bytes, unwrap_binary_json_call};
 pub use calldata::{decode_calldata, encode_calldata};
@@ -18,8 +19,10 @@ pub use spawn::{decode_spawn, encode_spawn};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value as Json};
 
-use svm_types::{Address, Gas, ReceiptLog};
+use svm_types::{Gas, ReceiptLog};
 
+/// Provides very simple utilily functions to working with [`serde_json::Value`]
+/// in an easy way.
 pub(crate) trait JsonSerdeUtils: Serialize + for<'a> Deserialize<'a> {
     fn to_json(self) -> Json {
         serde_json::to_value(self).unwrap()
@@ -32,22 +35,16 @@ pub(crate) trait JsonSerdeUtils: Serialize + for<'a> Deserialize<'a> {
     }
 }
 
-pub(crate) fn to_bytes(json: &Json) -> Result<Vec<u8>, JsonError> {
-    match serde_json::to_string(&json) {
-        Ok(s) => Ok(s.into_bytes()),
-        Err(e) => Err(JsonError::InvalidJson {
-            line: e.line(),
-            column: e.column(),
-        }),
-    }
-}
-
-pub(crate) fn bytes_to_str(bytes: &[u8]) -> String {
-    hex::encode_upper(bytes)
-}
-
-pub(crate) fn addr_to_str(addr: &Address) -> String {
-    bytes_to_str(addr.as_slice())
+/// Converts a [`Json`] value to a UTF-8 valid [`Vec<u8>`] JSON representation.
+///
+/// # Panics
+///
+/// Panics if serialization type implementations fail or `json` contains a map
+/// with non-string keys.
+pub(crate) fn to_bytes(json: &Json) -> Vec<u8> {
+    serde_json::to_string(&json)
+        .expect("JSON serialization error")
+        .into_bytes()
 }
 
 pub(crate) fn gas_to_json(gas: &Gas) -> i64 {

@@ -16,7 +16,7 @@ pub fn decode_spawn(offset: usize) -> Result<usize, JsonError> {
     wasm_buf_apply(offset, |json: &str| {
         let json = api::json::decode_spawn(json)?;
 
-        api::json::to_bytes(&json)
+        Ok(api::json::to_bytes(&json))
     })
 }
 
@@ -25,6 +25,7 @@ mod test {
     use super::*;
 
     use crate::api::json;
+    use crate::api::json::wrappers::HexBlob;
     use crate::api::wasm::{
         error_as_string, free, to_wasm_buffer, wasm_buffer_data, BUF_OK_MARKER,
     };
@@ -58,7 +59,7 @@ mod test {
         let data = wasm_buffer_data(tx_buf);
         assert_eq!(data[0], BUF_OK_MARKER);
 
-        let data = json::bytes_to_str(&data[1..]);
+        let data = HexBlob(&data[1..]);
         let json = json!({ "data": data });
         let json = serde_json::to_string(&json).unwrap();
 

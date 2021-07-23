@@ -8,7 +8,7 @@ pub fn encode_calldata(offset: usize) -> Result<usize, JsonError> {
     wasm_buf_apply(offset, |json: &str| {
         let json = api::json::encode_calldata(json)?;
 
-        api::json::to_bytes(&json)
+        Ok(api::json::to_bytes(&json))
     })
 }
 
@@ -18,7 +18,7 @@ pub fn decode_calldata(offset: usize) -> Result<usize, JsonError> {
     wasm_buf_apply(offset, |json: &str| {
         let json = api::json::decode_calldata(json)?;
 
-        api::json::to_bytes(&json)
+        Ok(api::json::to_bytes(&json))
     })
 }
 

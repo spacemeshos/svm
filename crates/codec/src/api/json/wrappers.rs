@@ -1,6 +1,6 @@
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use svm_types::Address;
+use svm_types::{Address, AddressOf};
 
 use super::JsonSerdeUtils;
 
@@ -12,25 +12,22 @@ impl<T> Serialize for HexBlob<T>
 where
     T: AsRef<[u8]>,
 {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    fn serialize<S>(&self, s: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
-        serializer.serialize_str(hex::encode_upper(&self.0).as_str())
+        s.serialize_str(hex::encode_upper(&self.0).as_str())
     }
 }
 
 impl<'de> Deserialize<'de> for HexBlob<Vec<u8>> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    fn deserialize<D>(de: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
         use serde::de::Error;
 
-        let s: String = Deserialize::deserialize(deserializer)?;
-        if s.len() % 2 != 0 {
-            return Err(D::Error::custom("Bad length"));
-        }
+        let s: String = Deserialize::deserialize(de)?;
         hex::decode(s)
             .map(|bytes| Self(bytes))
             .map_err(|_| D::Error::custom("Bad hex"))
@@ -40,24 +37,30 @@ impl<'de> Deserialize<'de> for HexBlob<Vec<u8>> {
 #[derive(Clone, Debug)]
 pub struct AddressWrapper(pub Address);
 
+impl<'a, T> From<&'a AddressOf<T>> for AddressWrapper {
+    fn from(addr: &'a AddressOf<T>) -> Self {
+        Self(Address::from(addr.inner().bytes()))
+    }
+}
+
 impl Serialize for AddressWrapper {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    fn serialize<S>(&self, s: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
         let blob = HexBlob(self.0.as_slice());
-        blob.serialize(serializer)
+        blob.serialize(s)
     }
 }
 
 impl<'de> Deserialize<'de> for AddressWrapper {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    fn deserialize<D>(de: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
         use serde::de::Error;
 
-        let blob = HexBlob::deserialize(deserializer)?;
+        let blob = HexBlob::deserialize(de)?;
 
         if blob.0.len() != Address::len() {
             Err(D::Error::custom("Bad length"))

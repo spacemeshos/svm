@@ -8,20 +8,19 @@ pub fn decode_receipt(offset: usize) -> Result<usize, JsonError> {
     wasm_buf_apply(offset, |json: &str| {
         let json = api::json::decode_receipt(json)?;
 
-        api::json::to_bytes(&json)
+        Ok(api::json::to_bytes(&json))
     })
 }
 
 #[cfg(test)]
 mod test {
-    use super::*;
+    use serde_json::{json, Value};
 
     use svm_types::{Address, Gas, SpawnReceipt, State};
 
-    use crate::api::json;
+    use super::*;
+    use crate::api::json::wrappers::HexBlob;
     use crate::api::wasm::{free, to_wasm_buffer, wasm_buffer_data, BUF_OK_MARKER};
-
-    use serde_json::{json, Value};
 
     #[test]
     fn wasm_decode_receipt_valid() {
@@ -41,7 +40,7 @@ mod test {
         };
 
         let bytes = crate::receipt::encode_spawn(&receipt);
-        let data = json::bytes_to_str(&bytes);
+        let data = HexBlob(&bytes);
         let json = json!({ "data": data });
         let json = serde_json::to_string(&json).unwrap();
 

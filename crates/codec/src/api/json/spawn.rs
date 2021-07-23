@@ -190,7 +190,7 @@ mod tests {
         .to_string();
 
         let bytes = encode_spawn(&json).unwrap();
-        let data = json::bytes_to_str(&bytes);
+        let data = HexBlob(&bytes);
         let json = decode_spawn(&json!({ "data": data }).to_string()).unwrap();
 
         assert_eq!(
