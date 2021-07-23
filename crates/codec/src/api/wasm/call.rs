@@ -58,7 +58,7 @@ mod test {
           "target": target,
           "func_name": "do_something",
         //   "verifydata": verifydata["calldata"],
-          "calldata": calldata["calldata"]
+          "calldata": calldata["data"]
         });
 
         let json = serde_json::to_string(&json).unwrap();

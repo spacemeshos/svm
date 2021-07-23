@@ -7,7 +7,7 @@ use svm_types::{Account, SpawnAccount, TemplateAddr};
 
 use super::call::EncodedOrDecodedCalldata;
 use super::calldata::DecodedCallData;
-use super::serde_types::{AddressWrapper, EncodedData, HexBlob};
+use super::serde_types::{AddressWrapper, EncodedData};
 use super::JsonSerdeUtils;
 use crate::api::json::JsonError;
 use crate::spawn;
@@ -57,24 +57,17 @@ impl JsonSerdeUtils for DecodedSpawn {}
 impl From<SpawnAccount> for DecodedSpawn {
     fn from(spawn: SpawnAccount) -> Self {
         let template_addr = AddressWrapper(spawn.account.template_addr().inner().clone());
-        let encoded_calldata = super::calldata::encode_calldata(
-            &EncodedData {
-                data: HexBlob(spawn.calldata),
-            }
-            .to_json()
-            .to_string(),
-        )
-        .unwrap()
-        .to_string();
-        let calldata = DecodedCallData::from_json_str(&encoded_calldata)
-            .expect("Invalid JSON immediately after serialization");
+        let decoded_calldata = super::calldata::decode_raw_calldata(&spawn.calldata).unwrap();
 
         Self {
             version: spawn.version,
             name: spawn.account.name,
             template_addr,
             ctor_name: spawn.ctor_name,
-            calldata: EncodedOrDecodedCalldata::Decoded(calldata),
+            calldata: EncodedOrDecodedCalldata::Decoded(
+                DecodedCallData::new(&decoded_calldata.to_string())
+                    .expect("Invalid JSON immediately after serialization"),
+            ),
         }
     }
 }
@@ -98,6 +91,7 @@ mod tests {
 
     use super::*;
     use crate::api::json;
+    use crate::api::json::serde_types::HexBlob;
 
     #[test]
     fn json_spawn_missing_version() {

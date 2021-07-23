@@ -50,7 +50,7 @@ mod test {
           "template": template_addr,
           "name": "My Account",
           "ctor_name": "initialize",
-          "calldata": calldata["calldata"],
+          "calldata": calldata["data"],
         });
 
         let json = serde_json::to_string(&json).unwrap();
