@@ -5,10 +5,11 @@ use std::io::Cursor;
 
 use svm_types::Transaction;
 
-use super::calldata::DecodedCallData;
-use super::wrappers::*;
+use super::calldata::{decode_raw_calldata, DecodedCallData};
+use super::serde_types::*;
 use crate::api::json::{JsonError, JsonSerdeUtils};
 
+/// Transforms a user-friendly `call` into an encoded form:
 ///
 /// ```json
 /// {
@@ -18,7 +19,16 @@ use crate::api::json::{JsonError, JsonSerdeUtils};
 ///   "verifydata": "",       // string
 ///   "calldata": {
 ///     ...
-///   },
+///   }
+/// }
+///
+/// The `calldata` field can be both encoded and user-friendly form.
+///
+/// Result:
+///
+/// ```json
+/// {
+///   "data": "AABBCCFF81..."
 /// }
 /// ```
 pub fn encode_call(json: &str) -> Result<Json, JsonError> {
@@ -68,7 +78,7 @@ struct DecodedCall {
     target: AddressWrapper,
     func_name: String,
     // verifydata: String,
-    calldata: DecodedCallData,
+    calldata: EncodedOrDecodedCalldata,
 }
 
 impl JsonSerdeUtils for DecodedCall {}
@@ -80,7 +90,7 @@ impl From<DecodedCall> for Transaction {
             version: decoded.version,
             func_name: decoded.func_name,
             target,
-            calldata: decoded.calldata.encode().unwrap(),
+            calldata: decoded.calldata.encode(),
         }
     }
 }
@@ -91,7 +101,29 @@ impl From<Transaction> for DecodedCall {
             version: tx.version,
             target: AddressWrapper::from(&tx.target),
             func_name: tx.func_name.clone(),
-            calldata: DecodedCallData::decode(tx.calldata).unwrap(),
+            calldata: EncodedOrDecodedCalldata::Decoded(
+                DecodedCallData::new(&decode_raw_calldata(&tx.calldata).unwrap().to_string())
+                    .unwrap(),
+            ),
+        }
+    }
+}
+
+/// This serves to provide an alternative to users between and decoded
+/// `calldata`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub(crate) enum EncodedOrDecodedCalldata {
+    Encoded(HexBlob<Vec<u8>>),
+    Decoded(DecodedCallData),
+}
+
+impl EncodedOrDecodedCalldata {
+    pub fn encode(self) -> Vec<u8> {
+        match self {
+            // It's encoded already.
+            Self::Encoded(encoded) => encoded.0,
+            Self::Decoded(decoded) => decoded.encode().unwrap(),
         }
     }
 }
@@ -198,15 +230,6 @@ mod tests {
 
     #[test]
     fn json_call_valid() {
-        let _verifydata = json::encode_calldata(
-            &json!({
-                "abi": ["bool", "i8"],
-                "data": [true, 3],
-            })
-            .to_string(),
-        )
-        .unwrap();
-
         let calldata = json::encode_calldata(
             &json!({
                 "abi": ["i32", "i64"],
@@ -221,7 +244,7 @@ mod tests {
             "target": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
             "func_name": "do_something",
             // "verifydata": verifydata["calldata"],
-            "calldata": calldata,
+            "calldata": calldata["data"],
         })
         .to_string();
 

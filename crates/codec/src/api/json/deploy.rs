@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use svm_layout::{FixedLayoutBuilder, Id, Layout};
 use svm_types::{CodeSection, CtorsSection, DataSection, HeaderSection};
 
-use super::{wrappers::HexBlob, JsonSerdeUtils};
+use super::{serde_types::HexBlob, JsonSerdeUtils};
 use crate::api::builder::TemplateBuilder;
 use crate::api::json::JsonError;
 use crate::template;

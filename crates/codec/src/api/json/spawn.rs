@@ -5,8 +5,9 @@ use std::io::Cursor;
 
 use svm_types::{Account, SpawnAccount, TemplateAddr};
 
+use super::call::EncodedOrDecodedCalldata;
 use super::calldata::DecodedCallData;
-use super::wrappers::{AddressWrapper, EncodedData, HexBlob};
+use super::serde_types::{AddressWrapper, EncodedData, HexBlob};
 use super::JsonSerdeUtils;
 use crate::api::json::JsonError;
 use crate::spawn;
@@ -48,7 +49,7 @@ struct DecodedSpawn {
     template_addr: AddressWrapper,
     name: String,
     ctor_name: String,
-    calldata: DecodedCallData,
+    calldata: EncodedOrDecodedCalldata,
 }
 
 impl JsonSerdeUtils for DecodedSpawn {}
@@ -56,10 +57,16 @@ impl JsonSerdeUtils for DecodedSpawn {}
 impl From<SpawnAccount> for DecodedSpawn {
     fn from(spawn: SpawnAccount) -> Self {
         let template_addr = AddressWrapper(spawn.account.template_addr().inner().clone());
-        let encoded_calldata = EncodedData {
-            data: HexBlob(spawn.calldata),
-        };
-        let calldata = DecodedCallData::from_json_str(&encoded_calldata.to_json().to_string())
+        let encoded_calldata = super::calldata::encode_calldata(
+            &EncodedData {
+                data: HexBlob(spawn.calldata),
+            }
+            .to_json()
+            .to_string(),
+        )
+        .unwrap()
+        .to_string();
+        let calldata = DecodedCallData::from_json_str(&encoded_calldata)
             .expect("Invalid JSON immediately after serialization");
 
         Self {
@@ -67,7 +74,7 @@ impl From<SpawnAccount> for DecodedSpawn {
             name: spawn.account.name,
             template_addr,
             ctor_name: spawn.ctor_name,
-            calldata,
+            calldata: EncodedOrDecodedCalldata::Decoded(calldata),
         }
     }
 }
@@ -80,7 +87,7 @@ impl From<DecodedSpawn> for SpawnAccount {
             version: wrapper.version,
             account: Account::new(template_addr, wrapper.name),
             ctor_name: wrapper.ctor_name,
-            calldata: wrapper.calldata.encode().unwrap(),
+            calldata: wrapper.calldata.encode(),
         }
     }
 }

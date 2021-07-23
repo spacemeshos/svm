@@ -9,18 +9,36 @@ use svm_abi_encoder::{ByteSize, Encoder};
 use svm_sdk_types::value::{Composite, Primitive, Value as SdkValue};
 use svm_sdk_types::{Address, Amount};
 
-use super::wrappers::AddressWrapper;
-use super::wrappers::EncodedData;
-use super::wrappers::HexBlob;
+use super::serde_types::AddressWrapper;
+use super::serde_types::EncodedData;
+use super::serde_types::HexBlob;
 use super::JsonSerdeUtils;
 use crate::api::json::JsonError;
 
 /// Given a `Calldata` JSON, encodes it into a binary `Calldata`
-/// and returns the result wrapped with a JSON
+/// and returns the result wrapped with a JSON.
+///
+/// ```json
+/// {
+///   "data": "FFC103..."
+/// }
+/// ```
 pub fn encode_calldata(json: &str) -> Result<Json, JsonError> {
     let decoded = DecodedCallData::new(json)?;
     let calldata = HexBlob(decoded.encode().unwrap());
     Ok(EncodedData { data: calldata }.to_json())
+}
+
+pub fn decode_raw_calldata(data: &[u8]) -> Result<Json, JsonError> {
+    let calldata = CallData::new(data);
+    Ok(calldata_to_json(calldata))
+}
+
+/// Given a binary `Calldata` (wrapped within a JSON), decodes it into a JSON
+pub fn decode_calldata(json: &str) -> Result<Json, JsonError> {
+    let encoded = EncodedData::from_json_str(json)?;
+    let calldata = CallData::new(&encoded.data.0);
+    Ok(calldata_to_json(calldata))
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -43,14 +61,7 @@ impl DecodedCallData {
         }
     }
 
-    pub fn decode(bytes: Vec<u8>) -> Option<Self> {
-        let encoded = EncodedData {
-            data: HexBlob(bytes),
-        };
-        let encoded_json = encoded.to_json().to_string();
-        Self::new(&encoded_json).ok()
-    }
-
+    /// Like `Self::zip`, but in borrowed form.
     fn zip_ref(&self) -> impl Iterator<Item = (&TySig, &Json)> {
         self.abi.iter().zip(self.data.iter())
     }
@@ -88,13 +99,6 @@ fn calldata_to_json(mut calldata: CallData) -> Json {
     }
 
     json!({ "abi": abi, "data": data })
-}
-
-/// Given a binary `Calldata` (wrapped within a JSON), decodes it into a JSON
-pub fn decode_calldata(json: &str) -> Result<Json, JsonError> {
-    let encoded = EncodedData::from_json_str(json)?;
-    let calldata = CallData::new(&encoded.data.0);
-    Ok(calldata_to_json(calldata))
 }
 
 mod sdk_value_utils {

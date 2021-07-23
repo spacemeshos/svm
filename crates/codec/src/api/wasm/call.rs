@@ -27,7 +27,7 @@ pub fn decode_call(offset: usize) -> Result<usize, JsonError> {
 mod test {
     use super::*;
 
-    use crate::api::json::wrappers::HexBlob;
+    use crate::api::json::serde_types::HexBlob;
     use crate::api::wasm::{
         error_as_string, free, to_wasm_buffer, wasm_buffer_data, BUF_OK_MARKER,
     };

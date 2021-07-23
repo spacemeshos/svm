@@ -4,7 +4,7 @@ use svm_types::RuntimeError;
 use svm_types::{CallReceipt, DeployReceipt, Receipt, ReceiptLog, SpawnReceipt};
 
 use super::JsonSerdeUtils;
-use crate::api::json::wrappers::{AddressWrapper, EncodedData, HexBlob};
+use crate::api::json::serde_types::{AddressWrapper, EncodedData, HexBlob};
 use crate::api::json::{self, JsonError};
 use crate::receipt;
 

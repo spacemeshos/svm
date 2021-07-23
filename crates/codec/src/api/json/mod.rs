@@ -7,7 +7,7 @@ mod error;
 mod receipt;
 mod spawn;
 
-pub(crate) mod wrappers;
+pub(crate) mod serde_types;
 
 pub use call::{decode_call, encode_call, encode_call_raw};
 pub use calldata::{decode_calldata, encode_calldata};

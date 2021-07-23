@@ -19,7 +19,7 @@ mod test {
     use svm_types::{Address, Gas, SpawnReceipt, State};
 
     use super::*;
-    use crate::api::json::wrappers::HexBlob;
+    use crate::api::json::serde_types::HexBlob;
     use crate::api::wasm::{free, to_wasm_buffer, wasm_buffer_data, BUF_OK_MARKER};
 
     #[test]
