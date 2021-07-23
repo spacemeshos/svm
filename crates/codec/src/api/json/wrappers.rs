@@ -70,6 +70,8 @@ impl<'de> Deserialize<'de> for AddressWrapper {
     }
 }
 
+impl JsonSerdeUtils for AddressWrapper {}
+
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct EncodedData {
     pub data: HexBlob<Vec<u8>>,

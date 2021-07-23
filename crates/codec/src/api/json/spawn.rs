@@ -185,7 +185,7 @@ mod tests {
             "template": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
             "name": "My Account",
             "ctor_name": "initialize",
-            "calldata": calldata["calldata"],
+            "calldata": calldata,
         })
         .to_string();
 

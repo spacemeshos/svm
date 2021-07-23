@@ -2,6 +2,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use serde_json::Value as Json;
 
+use std::convert::TryFrom;
+
 use svm_abi_decoder::CallData;
 use svm_abi_encoder::{ByteSize, Encoder};
 use svm_sdk_types::value::{Composite, Primitive, Value as SdkValue};
@@ -18,8 +20,7 @@ use crate::api::json::JsonError;
 pub fn encode_calldata(json: &str) -> Result<Json, JsonError> {
     let decoded = DecodedCallData::new(json)?;
     let calldata = HexBlob(decoded.encode().unwrap());
-    let encoded = EncodedData { data: calldata };
-    Ok(serde_json::to_value(encoded).unwrap())
+    Ok(EncodedData { data: calldata }.to_json())
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -89,6 +90,8 @@ pub fn decode_calldata(json: &str) -> Result<Json, JsonError> {
 }
 
 mod sdk_value_utils {
+    use svm_types::Address;
+
     use super::*;
 
     /// Given a [`svm_sdk_types::value::Value`], encodes its value as a
@@ -108,10 +111,7 @@ mod sdk_value_utils {
                 Primitive::I64(x) => json!(x),
                 Primitive::U64(x) => json!(x),
                 Primitive::Amount(x) => json!(x.0),
-                Primitive::Address(x) => {
-                    let hex_blob = HexBlob(x.as_slice());
-                    serde_json::to_value(hex_blob).unwrap()
-                }
+                Primitive::Address(x) => AddressWrapper(Address::from(x.as_slice())).to_json(),
                 _ => unreachable!(),
             },
             SdkValue::Composite(Composite::Vec(values)) => Json::Array(
@@ -158,6 +158,15 @@ mod sdk_value_utils {
     }
 
     pub fn sdk_value_from_json(json: Json, ty_sig: TySigPrim) -> Option<SdkValue> {
+        fn json_as_numeric<N>(json: Json) -> Option<SdkValue>
+        where
+            N: TryFrom<i64> + Into<SdkValue>,
+        {
+            json.as_i64()
+                .and_then(|n| N::try_from(n).ok())
+                .map(Into::into)
+        }
+
         match ty_sig {
             TySigPrim::Bool => json.as_bool().map(Into::into),
             TySigPrim::Amount => json
@@ -166,16 +175,17 @@ mod sdk_value_utils {
             TySigPrim::Address => serde_json::from_value::<AddressWrapper>(json)
                 .ok()
                 .map(|addr| {
-                    SdkValue::Primitive(Primitive::Address(Address::from(addr.0.as_ptr())))
+                    let addr = svm_sdk_types::Address::from(addr.0.bytes());
+                    SdkValue::Primitive(Primitive::Address(addr))
                 }),
-            // FIXME: boundaries
-            TySigPrim::I8 => json.as_i64().map(|n| (n as i8).into()),
-            TySigPrim::U8 => json.as_i64().map(|n| (n as u8).into()),
-            TySigPrim::I16 => json.as_i64().map(|n| (n as i16).into()),
-            TySigPrim::U16 => json.as_i64().map(|n| (n as u16).into()),
-            TySigPrim::I32 => json.as_i64().map(|n| (n as i32).into()),
-            TySigPrim::U32 => json.as_i64().map(|n| (n as u32).into()),
-            TySigPrim::I64 => json.as_i64().map(Into::into),
+            TySigPrim::I8 => json_as_numeric::<i8>(json),
+            TySigPrim::U8 => json_as_numeric::<u8>(json),
+            TySigPrim::I16 => json_as_numeric::<i16>(json),
+            TySigPrim::U16 => json_as_numeric::<u16>(json),
+            TySigPrim::I32 => json_as_numeric::<i32>(json),
+            TySigPrim::U32 => json_as_numeric::<u32>(json),
+            TySigPrim::I64 => json_as_numeric::<i64>(json),
+            // [`u64`] is the only JSON integer type which doesn't fit into `i64`.
             TySigPrim::U64 => json.as_u64().map(Into::into),
         }
     }
