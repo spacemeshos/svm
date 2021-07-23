@@ -476,7 +476,7 @@ describe("Call Account", function () {
       const error = loadWasmBufferError(instance, result);
       assert.strictEqual(
         error,
-        'The value of a specific field is invalid (`./target`).'
+        'The value of a specific field is invalid (`target`).'
       );
 
       wasmBufferFree(instance, buf);
