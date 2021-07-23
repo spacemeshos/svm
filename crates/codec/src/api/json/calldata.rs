@@ -42,20 +42,26 @@ impl DecodedCallData {
         }
     }
 
-    fn zip(&self) -> impl Iterator<Item = (&TySig, &Json)> {
+    fn zip_ref(&self) -> impl Iterator<Item = (&TySig, &Json)> {
         self.abi.iter().zip(self.data.iter())
     }
 
-    fn cap(&self) -> Result<usize, JsonError> {
-        self.zip().map(|(ty, raw)| ty.value_byte_size(&raw)).sum()
+    fn zip(self) -> impl Iterator<Item = (TySig, Json)> {
+        self.abi.into_iter().zip(self.data.into_iter())
     }
 
-    fn encode(&self) -> Result<Vec<u8>, JsonError> {
+    fn cap(&self) -> Result<usize, JsonError> {
+        self.zip_ref()
+            .map(|(ty, raw)| ty.value_byte_size(&raw))
+            .sum()
+    }
+
+    fn encode(self) -> Result<Vec<u8>, JsonError> {
         let cap = self.cap()?;
         let mut buf = svm_sdk_std::Vec::with_capacity(cap);
 
         self.zip()
-            .try_for_each(|(ty, raw)| encode_value(ty, &raw).map(|value| value.encode(&mut buf)))?;
+            .try_for_each(|(ty, raw)| encode_value(ty, raw).map(|value| value.encode(&mut buf)))?;
 
         Ok(buf.as_slice().to_vec())
     }
@@ -151,13 +157,13 @@ mod sdk_value_utils {
         }
     }
 
-    pub fn sdk_value_from_json(json: &Json, ty_sig: TySigPrim) -> Option<SdkValue> {
+    pub fn sdk_value_from_json(json: Json, ty_sig: TySigPrim) -> Option<SdkValue> {
         match ty_sig {
             TySigPrim::Bool => json.as_bool().map(Into::into),
             TySigPrim::Amount => json
                 .as_u64()
                 .map(|val| SdkValue::Primitive(Primitive::Amount(Amount(val)))),
-            TySigPrim::Address => serde_json::from_value::<AddressWrapper>(json.clone())
+            TySigPrim::Address => serde_json::from_value::<AddressWrapper>(json)
                 .ok()
                 .map(|addr| {
                     SdkValue::Primitive(Primitive::Address(Address::from(addr.0.as_ptr())))
@@ -254,30 +260,31 @@ enum TyPrimSdkValue {
     Address(AddressWrapper),
 }
 
-fn encode_value(ty: &TySig, value: &Json) -> Result<SdkValue, JsonError> {
+fn encode_value(ty: TySig, value: Json) -> Result<SdkValue, JsonError> {
     match ty {
-        TySig::Array(types) => encode_array(types, value),
+        TySig::Array(types) => encode_array(&types, value),
         TySig::Prim(prim) => {
-            sdk_value_utils::sdk_value_from_json(value, *prim).ok_or(JsonError::InvalidField {
+            sdk_value_utils::sdk_value_from_json(value, prim).ok_or(JsonError::InvalidField {
                 path: "calldata".to_string(),
             })
         }
     }
 }
 
-fn encode_array(types: &[TySig], value: &Json) -> Result<SdkValue, JsonError> {
+fn encode_array(types: &[TySig], mut value: Json) -> Result<SdkValue, JsonError> {
     assert_eq!(types.len(), 1);
 
     let ty = &types[0];
 
-    let elems = value.as_array().ok_or(JsonError::InvalidField {
+    let mut value = value.take();
+    let elems = value.as_array_mut().ok_or(JsonError::InvalidField {
         path: "calldata".to_string(),
     })?;
 
     let mut vec = svm_sdk_std::Vec::with_capacity(10);
 
-    for elem in elems {
-        let elem = encode_value(ty, elem)?;
+    for elem in elems.iter_mut() {
+        let elem = encode_value(ty.clone(), elem.take())?;
 
         vec.push(elem);
     }
