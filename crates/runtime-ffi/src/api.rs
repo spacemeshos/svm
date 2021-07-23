@@ -1,9 +1,6 @@
 use log::{debug, error};
 
-use std::cell::RefCell;
-use std::convert::TryFrom;
 use std::ffi::c_void;
-use std::rc::Rc;
 
 #[cfg(feature = "default-rocksdb")]
 use std::path::Path;
@@ -11,47 +8,87 @@ use std::path::Path;
 use svm_codec::receipt;
 use svm_ffi::{svm_byte_array, svm_resource_iter_t, svm_resource_t, tracking};
 use svm_runtime::{Runtime, RuntimePtr};
-use svm_storage::kv::StatefulKV;
-use svm_types::{Address, Gas, State, Type};
+use svm_types::{Context, Envelope, Type};
 
 #[cfg(feature = "default-rocksdb")]
 use crate::raw_utf8_error;
 
-use crate::{raw_error, raw_validate_error, svm_result_t};
+use crate::{raw_io_error, raw_validate_error, svm_result_t};
 
-static KV_TYPE: Type = Type::Str("Key-Value Store");
-static VALIDATE_CALL_TARGET_TYPE: Type = Type::Str("validate_call Target");
+static ENVELOPE_TYPE: Type = Type::Str("Tx Envelope");
+static MESSAGE_TYPE: Type = Type::Str("Tx Message");
+static CONTEXT_TYPE: Type = Type::Str("Tx Context");
 static DEPLOY_RECEIPT_TYPE: Type = Type::Str("Deploy Receipt");
 static SPAWN_RECEIPT_TYPE: Type = Type::Str("Spawn Receipt");
 static CALL_RECEIPT_TYPE: Type = Type::Str("Call Receipt");
 
-#[inline(always)]
-fn maybe_gas(gas_enabled: bool, gas_limit: u64) -> Gas {
-    if gas_enabled {
-        Gas::with(gas_limit)
-    } else {
-        Gas::new()
-    }
-}
-
-#[inline(always)]
-unsafe fn data_to_svm_byte_array(
-    svm_type: Type,
-    raw_byte_array: *mut svm_byte_array,
-    data: Vec<u8>,
-) {
+#[inline]
+fn data_to_svm_byte_array(ty: Type, byte_array: &mut svm_byte_array, data: Vec<u8>) {
     let (ptr, len, cap) = data.into_raw_parts();
-    let bytes: &mut svm_byte_array = &mut *raw_byte_array;
 
-    tracking::increment_live(svm_type);
+    tracking::increment_live(ty);
 
-    bytes.bytes = ptr;
-    bytes.length = len as u32;
-    bytes.capacity = cap as u32;
-    bytes.type_id = tracking::interned_type(svm_type);
+    let length = len as u32;
+    let capacity = cap as u32;
+    let type_id = tracking::interned_type(ty);
+
+    *byte_array = unsafe { svm_byte_array::from_raw_parts(ptr, length, capacity, type_id) };
 }
 
-/// Validates syntactically a raw `deploy template` transaction.
+unsafe fn into_raw_runtime<R: Runtime + 'static>(
+    raw_runtime: *mut *mut c_void,
+    runtime: R,
+) -> svm_result_t {
+    let runtime_ptr = RuntimePtr::new(Box::new(runtime));
+
+    // # Notes
+    //
+    // `svm_runtime_destroy` should be called later for freeing memory.
+    *raw_runtime = RuntimePtr::into_raw(runtime_ptr);
+
+    svm_result_t::SVM_SUCCESS
+}
+
+#[must_use]
+unsafe fn decode_envelope(envelope: svm_byte_array) -> std::io::Result<Envelope> {
+    use std::io::Cursor;
+    use svm_codec::envelope;
+
+    let mut cursor = Cursor::new(envelope.as_slice());
+    envelope::decode(&mut cursor)
+}
+
+#[must_use]
+unsafe fn decode_context(context: svm_byte_array) -> std::io::Result<Context> {
+    use std::io::Cursor;
+    use svm_codec::context;
+
+    let mut cursor = Cursor::new(context.as_slice());
+    context::decode(&mut cursor)
+}
+
+/// Allocates `svm_byte_array` of `size` bytes, destined to be used for passing a binary [`Envelope`].
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_envelope_alloc(size: u32) -> svm_byte_array {
+    svm_byte_array::with_capacity(size as usize, ENVELOPE_TYPE)
+}
+
+/// Allocates `svm_byte_array` of `size` bytes, destined to be used for passing a binary [`Message`].
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_message_alloc(size: u32) -> svm_byte_array {
+    svm_byte_array::with_capacity(size as usize, MESSAGE_TYPE)
+}
+
+/// Allocates `svm_byte_array` of `size` bytes, destined to be used for passing a binary [`Context`].
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_context_alloc(size: u32) -> svm_byte_array {
+    svm_byte_array::with_capacity(size as usize, CONTEXT_TYPE)
+}
+
+/// Validates syntactically a binary `Deploy Template` transaction.
 ///
 /// Should be called while the transaction is in the `mempool` of the Host.
 /// In case the transaction isn't valid - the transaction should be discarded.
@@ -63,38 +100,35 @@ unsafe fn data_to_svm_byte_array(
 /// use svm_runtime_ffi::*;
 ///
 /// use svm_ffi::svm_byte_array;
-/// use svm_types::Address;
-///
-/// // Create runtime
-///
-/// let mut kv = std::ptr::null_mut();
-/// let res = unsafe { svm_memory_state_kv_create(&mut kv) };
-/// assert!(res.is_ok());
 ///
 /// let mut runtime = std::ptr::null_mut();
 /// let mut error = svm_byte_array::default();
 ///
-/// let res = unsafe { svm_memory_runtime_create(&mut runtime, kv, &mut error) };
+/// let res = unsafe { svm_memory_runtime_create(&mut runtime, &mut error) };
 /// assert!(res.is_ok());
 ///
-/// let bytes = svm_byte_array::default();
-/// let _res = unsafe { svm_validate_deploy(runtime, bytes, &mut error) };
+/// let message = svm_byte_array::default();
+///
+/// let _res = unsafe { svm_validate_deploy(runtime, message, &mut error) };
 /// ```
 ///
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_validate_deploy(
     runtime: *mut c_void,
-    bytes: svm_byte_array,
+    message: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
     let runtime: &mut Box<dyn Runtime> = runtime.into();
 
-    match runtime.validate_deploy(bytes.into()) {
-        Ok(()) => svm_result_t::SVM_SUCCESS,
+    match runtime.validate_deploy(message.as_slice()) {
+        Ok(()) => {
+            debug!("`svm_validate_deploy` returns `SVM_SUCCESS`");
+            svm_result_t::SVM_SUCCESS
+        }
         Err(e) => {
-            error!("`svm_validate_template` returns `SVM_FAILURE`");
-            raw_validate_error(&e, error);
+            error!("`svm_validate_deploy` returns `SVM_FAILURE`");
+            raw_validate_error(&e, &mut *error);
             svm_result_t::SVM_FAILURE
         }
     }
@@ -112,44 +146,41 @@ pub unsafe extern "C" fn svm_validate_deploy(
 /// use svm_runtime_ffi::*;
 ///
 /// use svm_ffi::svm_byte_array;
-/// use svm_types::Address;
-///
-/// // create runtime
-/// let mut kv = std::ptr::null_mut();
-/// let res = unsafe { svm_memory_state_kv_create(&mut kv) };
-/// assert!(res.is_ok());
 ///
 /// let mut runtime = std::ptr::null_mut();
 /// let mut error = svm_byte_array::default();
 ///
-/// let res = unsafe { svm_memory_runtime_create(&mut runtime, kv, &mut error) };
+/// let res = unsafe { svm_memory_runtime_create(&mut runtime, &mut error) };
 /// assert!(res.is_ok());
 ///
-/// let bytes = svm_byte_array::default();
-/// let _res = unsafe { svm_validate_spawn(runtime, bytes, &mut error) };
+/// let message = svm_byte_array::default();
+/// let _res = unsafe { svm_validate_spawn(runtime, message, &mut error) };
 /// ```
 ///
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_validate_spawn(
     runtime: *mut c_void,
-    bytes: svm_byte_array,
+    message: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
     let runtime: &mut Box<dyn Runtime> = runtime.into();
+    let message = message.as_slice();
 
-    match runtime.validate_spawn(bytes.into()) {
-        Ok(()) => svm_result_t::SVM_SUCCESS,
+    match runtime.validate_spawn(message) {
+        Ok(()) => {
+            debug!("`svm_validate_spawn` returns `SVM_SUCCESS`");
+            svm_result_t::SVM_SUCCESS
+        }
         Err(e) => {
             error!("`svm_validate_spawn` returns `SVM_FAILURE`");
-            raw_validate_error(&e, error);
+            raw_validate_error(&e, &mut *error);
             svm_result_t::SVM_FAILURE
         }
     }
 }
 
 /// Validates syntactically a binary `Call Account` transaction.
-/// Returns the `Target Address` that appears in the transaction.
 ///
 /// # Examples
 ///
@@ -157,138 +188,56 @@ pub unsafe extern "C" fn svm_validate_spawn(
 /// use svm_runtime_ffi::*;
 ///
 /// use svm_ffi::svm_byte_array;
-/// use svm_types::Address;
-///
-/// // create runtime
-///
-/// let mut kv = std::ptr::null_mut();
-/// let res = unsafe { svm_memory_state_kv_create(&mut kv) };
-/// assert!(res.is_ok());
 ///
 /// let mut runtime = std::ptr::null_mut();
 /// let mut error = svm_byte_array::default();
 ///
-/// let res = unsafe { svm_memory_runtime_create(&mut runtime, kv, &mut error) };
+/// let res = unsafe { svm_memory_runtime_create(&mut runtime, &mut error) };
 /// assert!(res.is_ok());
 ///
-/// let mut target_addr = svm_byte_array::default();
-/// let bytes = svm_byte_array::default();
-/// let _res = unsafe { svm_validate_call(&mut target_addr, runtime, bytes, &mut error) };
+/// let message = svm_byte_array::default();
+/// let _res = unsafe { svm_validate_call(runtime, message, &mut error) };
 /// ```
 ///
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_validate_call(
-    target_addr: *mut svm_byte_array,
     runtime: *mut c_void,
-    bytes: svm_byte_array,
+    message: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
     debug!("`svm_validate_call` start");
 
     let runtime: &mut Box<dyn Runtime> = runtime.into();
+    let message = message.as_slice();
 
-    match runtime.validate_call(bytes.into()) {
-        Ok(tx) => {
-            // Returns `target Address` that appears in `bytes`.
-            //
-            // # Notes
-            //
-            // should call later `svm_receipt_destroy`
-            data_to_svm_byte_array(
-                VALIDATE_CALL_TARGET_TYPE,
-                target_addr,
-                tx.target.unwrap().as_slice().to_vec(),
-            );
-
+    match runtime.validate_call(message) {
+        Ok(()) => {
             debug!("`svm_validate_call` returns `SVM_SUCCESS`");
             svm_result_t::SVM_SUCCESS
         }
         Err(e) => {
             error!("`svm_validate_call` returns `SVM_FAILURE`");
-            raw_validate_error(&e, error);
+            raw_validate_error(&e, &mut *error);
             svm_result_t::SVM_FAILURE
         }
     }
 }
 
-macro_rules! box_runtime {
-    ($raw_runtime:expr, $runtime:expr) => {{
-        let runtime_ptr = RuntimePtr::new(Box::new($runtime));
-
-        // `svm_runtime_destroy` should be called later for freeing memory.
-        *$raw_runtime = RuntimePtr::into_raw(runtime_ptr);
-
-        svm_result_t::SVM_SUCCESS
-    }};
-}
-
-/// Creates a new in-memory key-value client.
-/// Returns a raw pointer to allocated kv-store via input parameter `kv`.
+/// Creates a new SVM Runtime instance backed-by an in-memory KV.
+///
+/// Returns it the created Runtime via the `runtime` parameter.
 ///
 /// # Examples
 ///
 /// ```rust
 /// use svm_runtime_ffi::*;
-///
-/// let mut kv = std::ptr::null_mut();
-/// let res = unsafe { svm_memory_state_kv_create(&mut kv) };
-/// assert!(res.is_ok());
-/// ```
-///
-#[must_use]
-#[no_mangle]
-pub unsafe extern "C" fn svm_memory_state_kv_create(kv: *mut *mut c_void) -> svm_result_t {
-    let state_kv = svm_runtime::testing::memory_state_kv_init();
-
-    *kv = svm_ffi::into_raw(KV_TYPE, state_kv);
-
-    svm_result_t::SVM_SUCCESS
-}
-
-/// Frees an in-memory key-value.
-///
-/// # Examples
-///
-/// ```rust
-/// use svm_runtime_ffi::*;
-///
-/// let mut kv = std::ptr::null_mut();
-/// let res = unsafe { svm_memory_state_kv_create(&mut kv) };
-/// assert!(res.is_ok());
-///
-/// let res = unsafe { svm_state_kv_destroy(kv) };
-/// assert!(res.is_ok());
-/// ```
-///
-#[must_use]
-#[no_mangle]
-pub unsafe extern "C" fn svm_state_kv_destroy(kv: *mut c_void) -> svm_result_t {
-    let kv: &mut Rc<RefCell<dyn StatefulKV>> = svm_ffi::as_mut(kv);
-
-    let _ = svm_ffi::from_raw(KV_TYPE, kv);
-
-    svm_result_t::SVM_SUCCESS
-}
-
-/// Creates a new SVM Runtime instance baced-by an in-memory KV.
-/// Returns it via the `runtime` parameter.
-///
-/// # Examples
-///
-/// ```rust
-/// use svm_runtime_ffi::*;
-///
 /// use svm_ffi::svm_byte_array;
 ///
 /// let mut runtime = std::ptr::null_mut();
 ///
-/// let mut kv = std::ptr::null_mut();
-/// let res = unsafe { svm_memory_state_kv_create(&mut kv) };
-/// assert!(res.is_ok());
-///
 /// let mut error = svm_byte_array::default();
-/// let res = unsafe { svm_memory_runtime_create(&mut runtime, kv, &mut error) };
+/// let res = unsafe { svm_memory_runtime_create(&mut runtime, &mut error) };
 /// assert!(res.is_ok());
 /// ```
 ///
@@ -297,15 +246,14 @@ pub unsafe extern "C" fn svm_state_kv_destroy(kv: *mut c_void) -> svm_result_t {
 #[no_mangle]
 pub unsafe extern "C" fn svm_memory_runtime_create(
     runtime: *mut *mut c_void,
-    state_kv: *mut c_void,
     _error: *mut svm_byte_array,
 ) -> svm_result_t {
+    use svm_runtime::testing;
+
     debug!("`svm_memory_runtime_create` start");
 
-    let state_kv = svm_ffi::as_mut(state_kv);
-    let mem_runtime = svm_runtime::testing::create_memory_runtime(state_kv);
-
-    let res = box_runtime!(runtime, mem_runtime);
+    let mem_runtime = testing::create_memory_runtime();
+    let res = into_raw_runtime(runtime, mem_runtime);
 
     debug!("`svm_memory_runtime_create` end");
 
@@ -320,11 +268,9 @@ pub unsafe extern "C" fn svm_memory_runtime_create(
 /// ```rust, no_run
 /// use svm_runtime_ffi::*;
 ///
-/// use svm_types::Type;
 /// use svm_ffi::svm_byte_array;
 ///
 /// let mut runtime = std::ptr::null_mut();
-/// let mut state_kv = std::ptr::null_mut();
 ///
 /// let ty = Type::Str("path");
 /// let kv_path = String::from("path for SVM internal db goes here");
@@ -332,7 +278,7 @@ pub unsafe extern "C" fn svm_memory_runtime_create(
 /// let kv_path: svm_byte_array = (ty, kv_path).into();
 /// let mut error = svm_byte_array::default();
 ///
-/// let res = unsafe { svm_runtime_create(&mut runtime, state_kv, kv_path, &mut error) };
+/// let res = unsafe { svm_runtime_create(&mut runtime, kv_path, &mut error) };
 /// assert!(res.is_ok());
 /// ```
 ///
@@ -341,7 +287,6 @@ pub unsafe extern "C" fn svm_memory_runtime_create(
 #[no_mangle]
 pub unsafe extern "C" fn svm_runtime_create(
     runtime: *mut *mut c_void,
-    state_kv: *mut c_void,
     kv_path: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
@@ -355,11 +300,9 @@ pub unsafe extern "C" fn svm_runtime_create(
     }
 
     let kv_path = kv_path.unwrap();
-    let state_kv = svm_ffi::as_mut(state_kv);
 
-    let rocksdb_runtime = svm_runtime::create_rocksdb_runtime(&state_kv, &Path::new(&kv_path));
-
-    let res = box_runtime!(runtime, rocksdb_runtime);
+    let rocksdb_runtime = svm_runtime::create_rocksdb_runtime(&Path::new(&kv_path));
+    let res = into_raw_runtime(runtime, rocksdb_runtime);
 
     debug!("`svm_runtime_create` end");
 
@@ -374,34 +317,24 @@ pub unsafe extern "C" fn svm_runtime_create(
 /// use svm_runtime_ffi::*;
 ///
 /// use svm_ffi::svm_byte_array;
-/// use svm_types::{Address, Type};
-///
-/// // create runtime
-/// let mut state_kv = std::ptr::null_mut();
-/// let res = unsafe { svm_memory_state_kv_create(&mut state_kv) };
-/// assert!(res.is_ok());
 ///
 /// let mut runtime = std::ptr::null_mut();
 /// let mut error = svm_byte_array::default();
-/// let res = unsafe { svm_memory_runtime_create(&mut runtime, state_kv, &mut error) };
+/// let res = unsafe { svm_memory_runtime_create(&mut runtime, &mut error) };
 /// assert!(res.is_ok());
 ///
-/// // deploy template
 /// let mut receipt = svm_byte_array::default();
-/// let ty = Type::Str("deployer");
-/// let deployer: svm_byte_array = (ty, Address::of("@deployer")).into();
-/// let template_bytes = svm_byte_array::default();
-/// let gas_enabled = false;
-/// let gas_limit = 0;
+/// let envelope = svm_byte_array::default();
+/// let message = svm_byte_array::default();
+/// let context = svm_byte_array::default();
 ///
 /// let res = unsafe {
 ///   svm_deploy(
 ///     &mut receipt,
 ///     runtime,
-///     template_bytes,
-///     deployer,
-///     gas_enabled,
-///     gas_limit,
+///     envelope,
+///     message,
+///     context,
 ///     &mut error)
 /// };
 ///
@@ -413,37 +346,45 @@ pub unsafe extern "C" fn svm_runtime_create(
 pub unsafe extern "C" fn svm_deploy(
     receipt: *mut svm_byte_array,
     runtime: *mut c_void,
-    bytes: svm_byte_array,
-    deployer: svm_byte_array,
-    gas_enabled: bool,
-    gas_limit: u64,
+    envelope: svm_byte_array,
+    message: svm_byte_array,
+    context: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
-    debug!("`svm_deploy_template` start`");
+    debug!("`svm_deploy` start`");
 
     let runtime: &mut Box<dyn Runtime> = runtime.into();
+    let message = message.as_slice();
 
-    let deployer: Result<Address, String> = Address::try_from(deployer);
-
-    if let Err(s) = deployer {
-        raw_error(s, error);
+    let envelope = decode_envelope(envelope);
+    if let Err(e) = envelope {
+        raw_io_error(e, &mut *error);
         return svm_result_t::SVM_FAILURE;
     }
 
-    let gas_limit = maybe_gas(gas_enabled, gas_limit);
-    let rust_receipt = runtime.deploy(bytes.into(), &deployer.unwrap().into(), gas_limit);
+    let context = decode_context(context);
+    if let Err(e) = context {
+        raw_io_error(e, &mut *error);
+        return svm_result_t::SVM_FAILURE;
+    }
+
+    let envelope = envelope.unwrap();
+    let context = context.unwrap();
+    let rust_receipt = runtime.deploy(&envelope, &message, &context);
     let receipt_bytes = receipt::encode_deploy(&rust_receipt);
 
     // returning encoded `TemplateReceipt` as `svm_byte_array`.
-    // should call later `svm_receipt_destroy`
-    data_to_svm_byte_array(DEPLOY_RECEIPT_TYPE, receipt, receipt_bytes);
+    //
+    // # Notes
+    //
+    // Should call later `svm_receipt_destroy`
+    data_to_svm_byte_array(DEPLOY_RECEIPT_TYPE, &mut *receipt, receipt_bytes);
 
-    debug!("`svm_deploy_template` returns `SVM_SUCCESS`");
-
+    debug!("`svm_deploy` returns `SVM_SUCCESS`");
     svm_result_t::SVM_SUCCESS
 }
 
-/// Spawns a new App.
+/// Spawns a new `Account`.
 ///
 /// # Examples
 ///
@@ -451,37 +392,27 @@ pub unsafe extern "C" fn svm_deploy(
 /// use svm_runtime_ffi::*;
 ///
 /// use svm_ffi::svm_byte_array;
-/// use svm_types::{Address, Type};
-///
-/// // create runtime
-///
-/// let mut state_kv = std::ptr::null_mut();
-/// let res = unsafe { svm_memory_state_kv_create(&mut state_kv) };
-/// assert!(res.is_ok());
 ///
 /// let mut runtime = std::ptr::null_mut();
 /// let mut error = svm_byte_array::default();
 ///
-/// let res = unsafe { svm_memory_runtime_create(&mut runtime, state_kv, &mut error) };
+/// let res = unsafe { svm_memory_runtime_create(&mut runtime, &mut error) };
 /// assert!(res.is_ok());
 ///
 /// let mut receipt = svm_byte_array::default();
 /// let mut init_state = svm_byte_array::default();
 ///
-/// let spawner_ty = Type::Str("spawner");
-/// let spawner: svm_byte_array = (spawner_ty, Address::of("@spawner")).into();
-/// let bytes = svm_byte_array::default();
-/// let gas_enabled = false;
-/// let gas_limit = 0;
+/// let envelope = svm_byte_array::default();
+/// let message = svm_byte_array::default();
+/// let context = svm_byte_array::default();
 ///
 /// let _res = unsafe {
 ///   svm_spawn(
 ///     &mut receipt,
 ///     runtime,
-///     bytes,
-///     spawner,
-///     gas_enabled,
-///     gas_limit,
+///     envelope,
+///     message,
+///     context,
 ///     &mut error)
 /// };
 /// ```
@@ -491,24 +422,31 @@ pub unsafe extern "C" fn svm_deploy(
 pub unsafe extern "C" fn svm_spawn(
     receipt: *mut svm_byte_array,
     runtime: *mut c_void,
-    bytes: svm_byte_array,
-    spawner: svm_byte_array,
-    gas_enabled: bool,
-    gas_limit: u64,
+    envelope: svm_byte_array,
+    message: svm_byte_array,
+    context: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
-    debug!("`svm_spawn_account` start");
+    debug!("`svm_spawn` start");
 
     let runtime: &mut Box<dyn Runtime> = runtime.into();
-    let spawner: Result<Address, String> = Address::try_from(spawner);
+    let message = message.as_slice();
 
-    if let Err(s) = spawner {
-        raw_error(s, error);
+    let envelope = decode_envelope(envelope);
+    if let Err(e) = envelope {
+        raw_io_error(e, &mut *error);
         return svm_result_t::SVM_FAILURE;
     }
 
-    let gas_limit = maybe_gas(gas_enabled, gas_limit);
-    let rust_receipt = runtime.spawn(bytes.into(), &spawner.unwrap().into(), gas_limit);
+    let context = decode_context(context);
+    if let Err(e) = context {
+        raw_io_error(e, &mut *error);
+        return svm_result_t::SVM_FAILURE;
+    }
+
+    let envelope = envelope.unwrap();
+    let context = context.unwrap();
+    let rust_receipt = runtime.spawn(&envelope, &message, &context);
     let receipt_bytes = receipt::encode_spawn(&rust_receipt);
 
     // Returns the encoded `SpawnReceipt` as `svm_byte_array`.
@@ -516,14 +454,14 @@ pub unsafe extern "C" fn svm_spawn(
     // # Notes:
     //
     // Should call later `svm_receipt_destroy`
-    data_to_svm_byte_array(SPAWN_RECEIPT_TYPE, receipt, receipt_bytes);
+    data_to_svm_byte_array(SPAWN_RECEIPT_TYPE, &mut *receipt, receipt_bytes);
 
-    debug!("`svm_spawn_account` returns `SVM_SUCCESS`");
+    debug!("`svm_spawn` returns `SVM_SUCCESS`");
 
     svm_result_t::SVM_SUCCESS
 }
 
-/// Triggers a `Call App` transaction.
+/// `Call Account` transaction.
 /// Returns the Receipt of the execution via the `receipt` parameter.
 ///
 /// # Examples
@@ -533,36 +471,26 @@ pub unsafe extern "C" fn svm_spawn(
 ///
 /// use svm_runtime_ffi::*;
 ///
-/// use svm_types::{State, Address, Type};
 /// use svm_ffi::svm_byte_array;
-///
-/// // create runtime
-///
-/// let mut state_kv = std::ptr::null_mut();
-/// let res = unsafe { svm_memory_state_kv_create(&mut state_kv) };
-/// assert!(res.is_ok());
 ///
 /// let mut runtime = std::ptr::null_mut();
 /// let mut error = svm_byte_array::default();
 ///
-/// let res = unsafe { svm_memory_runtime_create(&mut runtime, state_kv, &mut error) };
+/// let res = unsafe { svm_memory_runtime_create(&mut runtime, &mut error) };
 /// assert!(res.is_ok());
 ///
 /// let mut receipt = svm_byte_array::default();
-/// let bytes = svm_byte_array::default();
-/// let ty = Type::of::<State>();
-/// let state = (ty, State::zeros()).into();
-/// let gas_enabled = false;
-/// let gas_limit = 0;
+/// let envelope = svm_byte_array::default();
+/// let message = svm_byte_array::default();
+/// let context = svm_byte_array::default();
 ///
 /// let _res = unsafe {
 ///   svm_call(
 ///     &mut receipt,
 ///     runtime,
-///     bytes,
-///     state,
-///     gas_enabled,
-///     gas_limit,
+///     envelope,
+///     message,
+///     context,
 ///     &mut error)
 /// };
 /// ```
@@ -572,26 +500,31 @@ pub unsafe extern "C" fn svm_spawn(
 pub unsafe extern "C" fn svm_call(
     receipt: *mut svm_byte_array,
     runtime: *mut c_void,
-    bytes: svm_byte_array,
-    state: svm_byte_array,
-    gas_enabled: bool,
-    gas_limit: u64,
+    envelope: svm_byte_array,
+    message: svm_byte_array,
+    context: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
     debug!("`svm_call` start");
 
     let runtime: &mut Box<dyn Runtime> = runtime.into();
-    let state: Result<State, String> = State::try_from(state);
+    let message = message.as_slice();
 
-    if let Err(msg) = state {
-        raw_error(msg, error);
+    let envelope = decode_envelope(envelope);
+    if let Err(e) = envelope {
+        raw_io_error(e, &mut *error);
         return svm_result_t::SVM_FAILURE;
     }
 
-    let gas_limit = maybe_gas(gas_enabled, gas_limit);
+    let context = decode_context(context);
+    if let Err(e) = context {
+        raw_io_error(e, &mut *error);
+        return svm_result_t::SVM_FAILURE;
+    }
 
-    let tx = runtime.validate_call(bytes.into()).unwrap();
-    let rust_receipt = runtime.call(&tx, &state.unwrap(), gas_limit);
+    let envelope = envelope.unwrap();
+    let context = context.unwrap();
+    let rust_receipt = runtime.call(&envelope, &message, &context);
     let receipt_bytes = receipt::encode_call(&rust_receipt);
 
     // Returns encoded `CallReceipt` as `svm_byte_array`.
@@ -599,10 +532,9 @@ pub unsafe extern "C" fn svm_call(
     // # Notes:
     //
     // Should call later `svm_receipt_destroy`
-    data_to_svm_byte_array(CALL_RECEIPT_TYPE, receipt, receipt_bytes);
+    data_to_svm_byte_array(CALL_RECEIPT_TYPE, &mut *receipt, receipt_bytes);
 
     debug!("`svm_call` returns `SVM_SUCCESS`");
-
     svm_result_t::SVM_SUCCESS
 }
 
@@ -688,21 +620,14 @@ pub unsafe extern "C" fn svm_resource_type_name_destroy(ptr: *mut svm_byte_array
 /// ```rust, no_run
 /// use svm_runtime_ffi::*;
 ///
-/// use svm_types::Address;
 /// use svm_ffi::svm_byte_array;
-///
-/// // create runtime
-///
-/// let mut state_kv = std::ptr::null_mut();
-/// let res = unsafe { svm_memory_state_kv_create(&mut state_kv) };
-/// assert!(res.is_ok());
 ///
 /// let mut runtime = std::ptr::null_mut();
 /// let mut error = svm_byte_array::default();
-/// let res = unsafe { svm_memory_runtime_create(&mut runtime, state_kv, &mut error) };
+/// let res = unsafe { svm_memory_runtime_create(&mut runtime, &mut error) };
 /// assert!(res.is_ok());
 ///
-/// // destroy runtime
+/// // Destroys the Runtime
 /// unsafe { svm_runtime_destroy(runtime); }
 /// ```
 ///
@@ -735,9 +660,7 @@ pub unsafe extern "C" fn svm_byte_array_destroy(bytes: svm_byte_array) {
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_wasm_error_create(msg: svm_byte_array) -> *mut svm_byte_array {
-    let msg: &[u8] = msg.into();
     let bytes = msg.to_vec();
-
     let err: svm_byte_array = (svm_ffi::SVM_WASM_ERROR_TYPE, bytes).into();
 
     let ty = svm_ffi::SVM_WASM_ERROR_TYPE_PTR;

@@ -13,34 +13,37 @@ mod result;
 #[cfg(feature = "default-rocksdb")]
 pub(crate) use error::raw_utf8_error;
 
-pub(crate) use error::{raw_error, raw_validate_error};
+pub(crate) use error::{raw_io_error, raw_validate_error};
 
 #[cfg(feature = "default-rocksdb")]
 pub use api::svm_runtime_create;
 
 #[cfg(feature = "default-memory")]
-pub use api::{svm_memory_runtime_create, svm_memory_state_kv_create};
+pub use api::svm_memory_runtime_create;
 
 /// `SVM` FFI Interface
 #[rustfmt::skip]
 pub use api::{
-    // Runtime
-    svm_call,
-    svm_deploy,
-    svm_spawn,
-    
-    // Validations
+    // Transactions Validation
     svm_validate_deploy,
     svm_validate_spawn,
     svm_validate_call,
 
+    // Transactions Execution
+    svm_call,
+    svm_deploy,
+    svm_spawn,
+
     // Destroy
     svm_runtime_destroy,
-    svm_state_kv_destroy,
     svm_byte_array_destroy,
 
     // Error
     svm_wasm_error_create,
+
+    // Allocation
+    svm_envelope_alloc,
+    svm_context_alloc,
 
     // Resources tracking
     svm_total_live_resources,

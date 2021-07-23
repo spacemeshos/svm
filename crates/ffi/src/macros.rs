@@ -1,5 +1,5 @@
 ///
-/// # Example
+/// # Examples
 ///
 /// ```rust
 /// use std::convert::TryFrom;
@@ -11,7 +11,7 @@
 /// let addr = Address::of("@someone");
 ///
 /// let bytes: svm_byte_array = (ty, addr).into();
-/// assert_eq!(Address::len(), bytes.length as usize);
+/// assert_eq!(Address::len(), bytes.len() as usize);
 ///
 /// let res: Result<Address, String> = Address::try_from(bytes);
 /// assert_eq!(Address::of("@someone"), res.unwrap());
@@ -20,29 +20,29 @@
 #[macro_export]
 macro_rules! impl_from_svm_byte_array {
     ($struct:ident) => {
-	impl std::convert::TryFrom<$crate::svm_byte_array> for $struct {
-	    type Error = String;
+        impl std::convert::TryFrom<$crate::svm_byte_array> for $struct {
+            type Error = String;
 
-	    fn try_from(bytes: $crate::svm_byte_array) -> Result<Self, Self::Error> {
-		if bytes.length != $struct::len() as u32 {
-		    return Err(format!(
-			"Wrong `length` value for `svm_byte_array` representing `{}` (expected: {}, got: {})",
-			stringify!($struct),
-			$struct::len(),
-			bytes.length
-		    ));
-		}
+            fn try_from(bytes: $crate::svm_byte_array) -> Result<Self, Self::Error> {
+                if bytes.len() != $struct::len() as u32 {
+                    return Err(format!(
+                        "Wrong `length` value for `svm_byte_array` representing `{}` (expected: {}, got: {})",
+                        stringify!($struct),
+                        $struct::len(),
+                        bytes.len()
+                    ));
+                }
 
-		let slice: &[u8] = unsafe { std::slice::from_raw_parts(bytes.bytes, bytes.length as usize) };
+                let slice: &[u8] = bytes.as_slice();
 
-		Ok($struct::from(slice))
-	    }
-	}
+                Ok($struct::from(slice))
+            }
+        }
     }
 }
 
 ///
-/// # Example
+/// # Examples
 ///
 /// ```rust
 /// use std::convert::TryFrom;
@@ -54,7 +54,7 @@ macro_rules! impl_from_svm_byte_array {
 /// let addr = Address::of("@someone");
 ///
 /// let bytes: svm_byte_array = (ty, addr).into();
-/// assert_eq!(Address::len(), bytes.length as usize);
+/// assert_eq!(Address::len(), bytes.len() as usize);
 ///
 /// let res: Result<Address, String> = Address::try_from(bytes);
 /// assert_eq!(Address::of("@someone"), res.unwrap());
@@ -80,12 +80,10 @@ macro_rules! impl_into_svm_byte_array {
 
                 let type_id = crate::tracking::interned_type(ty);
 
-                $crate::svm_byte_array {
-                    bytes: bytes.as_ptr(),
-                    length,
-                    capacity: length,
-                    type_id,
-                }
+                let bytes = bytes.as_ptr();
+                let capacity = length;
+
+                unsafe { $crate::svm_byte_array::from_raw_parts(bytes, length, capacity, type_id) }
             }
         }
 

@@ -29,26 +29,29 @@ use crate::tracking;
 #[derive(Clone)]
 #[repr(C)]
 pub struct svm_byte_array {
-    /// Raw pointer to the beginning of array.
-    pub bytes: *const u8,
-
-    /// Number of bytes of the data view.
-    pub length: u32,
-
-    /// Total number of allocated bytes.
-    /// It may be unequal and bigger than `length` if the `svm_byte_array` instance is an alias to
-    /// an instance of a data structure such as `Vec` (which in order to properly get de-allocated
-    /// needs first to be re-constructed using the proper allocated capacity).
-    pub capacity: u32,
-
-    /// The `svm_types::Type` associated with the data represented by `bytes`.
-    /// It's the interned value of the type. (For more info see `tracking::interning.rs`)
-    pub type_id: usize,
+    bytes: *const u8,
+    length: u32,
+    capacity: u32,
+    type_id: usize,
 }
 
 impl svm_byte_array {
+    pub unsafe fn from_raw_parts(
+        bytes: *const u8,
+        length: u32,
+        capacity: u32,
+        type_id: usize,
+    ) -> Self {
+        Self {
+            bytes,
+            length,
+            capacity,
+            type_id,
+        }
+    }
+
     /// Creates a new `svm_byte_array` backed by a buffer of zeros sized `size`.
-    pub fn new(size: usize, ty: Type) -> Self {
+    pub fn with_capacity(size: usize, ty: Type) -> Self {
         let vec = vec![0u8; size];
 
         (ty, vec).into()
@@ -63,6 +66,36 @@ impl svm_byte_array {
         let _ = Vec::from_raw_parts(ptr, length, capacity);
 
         tracking::decrement_live_1(self.type_id)
+    }
+
+    /// Returns a byte slice over the contents.
+    pub fn as_slice(&self) -> &[u8] {
+        unsafe { std::slice::from_raw_parts(self.bytes, self.length as usize) }
+    }
+
+    /// Copies `self` into a new `Vec`.
+    pub fn to_vec(&self) -> Vec<u8> {
+        self.as_slice().to_vec()
+    }
+
+    /// Total number of allocated bytes.
+    ///
+    /// It may be unequal and bigger than `length` if the `svm_byte_array` instance is an alias to
+    /// an instance of a data structure such as `Vec` (which in order to properly get de-allocated
+    /// needs first to be re-constructed using the proper allocated capacity).
+    pub fn capacity(&self) -> u32 {
+        self.capacity
+    }
+
+    /// Number of allocated bytes
+    pub fn len(&self) -> u32 {
+        self.length
+    }
+
+    /// The `svm_types::Type` associated with the data represented by `bytes`.
+    /// It's the interned value of the type. (For more info see `tracking::interning.rs`)
+    pub fn type_id(&self) -> usize {
+        self.type_id
     }
 }
 
@@ -112,21 +145,17 @@ impl From<(Type, String)> for svm_byte_array {
         (ty, vec).into()
     }
 }
-
 impl TryFrom<&svm_byte_array> for String {
     type Error = FromUtf8Error;
 
     fn try_from(bytes: &svm_byte_array) -> Result<Self, Self::Error> {
-        let slice: &[u8] = bytes.into();
-
         // data is cloned here, so the new `String` won't be merely an alias,
         // and `bytes` will still require a separate de-allocation.
         //
         // Making it an alias is unsafe because the data may not have
         // been dynamically allocated, or not by Rust's global allocator.
-        let vec = slice.to_vec();
 
-        String::from_utf8(vec)
+        String::from_utf8(bytes.to_vec())
     }
 }
 
@@ -135,18 +164,6 @@ impl TryFrom<svm_byte_array> for String {
 
     fn try_from(value: svm_byte_array) -> Result<Self, Self::Error> {
         String::try_from(&value)
-    }
-}
-
-impl From<&svm_byte_array> for &[u8] {
-    fn from(bytes: &svm_byte_array) -> Self {
-        unsafe { std::slice::from_raw_parts(bytes.bytes, bytes.length as usize) }
-    }
-}
-
-impl From<svm_byte_array> for &[u8] {
-    fn from(bytes: svm_byte_array) -> Self {
-        (&bytes).into()
     }
 }
 

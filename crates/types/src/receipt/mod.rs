@@ -1,10 +1,10 @@
-mod deploy_template;
-mod execute;
+mod call;
+mod deploy;
 mod log;
 mod spawn;
 
-pub use deploy_template::DeployReceipt;
-pub use execute::CallReceipt;
+pub use call::CallReceipt;
+pub use deploy::DeployReceipt;
 pub use log::ReceiptLog;
 pub use spawn::{into_spawn_receipt, SpawnReceipt};
 

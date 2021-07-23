@@ -1,12 +1,11 @@
 //! This crate is responsible on decoding function buffers.
 //! Its code is meant to be used as part of SVM Templates (i.e Smart-Contract) code.
 //! That's the reason why we add to the crate the `#![no_std]` annotation.
-//! (not using the Rust stdlib should result in smaller WASM file).
+//! (not using the Rust standard library should result in a smaller WASM file).
 
-//! Besides Smart-Contracts, it crate should be ready to called in other contexts.
-//! For example, a `Wallet Apps` (UX or CLI)` or `Transactions Explorer` should be able to interpret an encoded function buffer
+//! Besides Smart-Contracts, this crate should be ready to use in other contexts.
+//! For example, a client such as `smapp` or the `Process Explorer` should be able to interpret an encoded `CallData`
 //! (which is part of the SVM transaction) in a friendly manner.
-//! That's why the `svm-codec` crate also exposes a `decode func-buf` interface.
 //!
 //! For more info regarding the encoding scheme see the counterpart `svm-abi-encoder` crate.
 //!
