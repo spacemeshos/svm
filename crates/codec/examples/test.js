@@ -314,7 +314,7 @@ describe("Deploy Template", function () {
       const error = loadWasmBufferError(instance, result);
       assert.strictEqual(
         error,
-        'InvalidField { field: "name", reason: "value `null` isn\'t a(n) string" }'
+        'A non-optional field was missing (`name`).'
       );
 
       wasmBufferFree(instance, buf);
@@ -370,7 +370,7 @@ describe("Spawn Account", function () {
       };
 
       let calldata = encodeCallData(instance, object);
-      const bytes = encodeSpawn(instance, template, name, calldata["calldata"]);
+      const bytes = encodeSpawn(instance, template, name, calldata["data"]);
       const json = decodeSpawn(instance, bytes);
 
       assert.deepStrictEqual(json, {
@@ -398,7 +398,7 @@ describe("Spawn Account", function () {
       const error = loadWasmBufferError(instance, result);
       assert.strictEqual(
         error,
-        'InvalidField { field: "template", reason: "value should be exactly 40 hex digits" }'
+        'The value of a specific field is invalid (`./template`).'
       );
 
       wasmBufferFree(instance, buf);
@@ -452,7 +452,7 @@ describe("Call Account", function () {
       };
 
       let calldata = encodeCallData(instance, object);
-      const bytes = encodeCall(instance, target, calldata["calldata"]);
+      const bytes = encodeCall(instance, target, calldata["data"]);
       const json = decodeCall(instance, bytes);
 
       assert.deepStrictEqual(json, {
@@ -476,7 +476,7 @@ describe("Call Account", function () {
       const error = loadWasmBufferError(instance, result);
       assert.strictEqual(
         error,
-        'InvalidField { field: "target", reason: "value should be exactly 40 hex digits" }'
+        'The value of a specific field is invalid (`./target`).'
       );
 
       wasmBufferFree(instance, buf);

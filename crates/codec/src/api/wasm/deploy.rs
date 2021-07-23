@@ -82,8 +82,7 @@ mod test {
 
         let error = unsafe { error_as_string(error_buf) };
 
-        println!("ERROR IS {}", error);
-        assert!(error.starts_with(r#"Error("EOF while parsing"#));
+        assert_eq!(error, "The given JSON is syntactically invalid due to EOF.");
 
         free(json_buf);
         free(error_buf);

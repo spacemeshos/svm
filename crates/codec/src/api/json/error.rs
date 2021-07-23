@@ -1,9 +1,13 @@
+use thiserror::Error;
+
 #[doc(hidden)]
-#[derive(PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Error)]
 pub enum JsonError {
     /// The JSON is syntactically invalid due to EOF.
+    #[error("The given JSON is syntactically invalid due to EOF.")]
     Eof,
     /// JSON syntax error.
+    #[error("The given JSON is syntactically invalid at line {line} and column {column}.")]
     InvalidJson {
         /// The line number at which this error was found.
         line: usize,
@@ -11,19 +15,11 @@ pub enum JsonError {
         column: usize,
     },
     /// A non-optional field was missing.
+    #[error("A non-optional field was missing (`{field_name}`).")]
     MissingField { field_name: String },
-    /// A field was found, but its value is invalid.
+    /// The value of a specific field is invalid.
+    #[error("The value of a specific field is invalid (`{path}`).")]
     InvalidField { path: String },
-}
-
-impl std::fmt::Debug for JsonError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Eof => writeln!(f, r#"Error("EOF while parsing JSON")"#),
-            Self::InvalidJson { .. } => writeln!(f, r#"Error("Invalid JSON syntax")"#),
-            _ => writeln!(f, r#"Error("JSON schema validation error")"#),
-        }
-    }
 }
 
 impl From<std::str::Utf8Error> for JsonError {
