@@ -1,4 +1,4 @@
-use crate::{GasMode, SectionLike, SectionKind};
+use crate::{GasMode, SectionKind, SectionLike};
 
 const EXEC_FLAGS: u64 = 0x01;
 

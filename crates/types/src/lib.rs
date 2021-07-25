@@ -46,7 +46,7 @@ pub use spawn_account::SpawnAccount;
 pub use state::State;
 pub use template::{
     ApiSection, CodeKind, CodeSection, CtorsSection, DataSection, DeploySection, HeaderSection,
-    SchemaSection, SectionLike, SectionKind, Section, Sections, SectionsIter, Template,
+    SchemaSection, Section, SectionKind, SectionLike, Sections, SectionsIter, Template,
 };
 pub use transaction::{Context, Envelope, Layer, Transaction, TransactionId};
 pub use wasm_type::{WasmType, WasmTypeError};

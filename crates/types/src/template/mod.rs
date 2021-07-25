@@ -37,7 +37,7 @@ pub use data::DataSection;
 pub use deploy::DeploySection;
 pub use header::HeaderSection;
 pub use schema::SchemaSection;
-pub use section::{SectionLike, SectionKind, Section, Sections, SectionsIter};
+pub use section::{Section, SectionKind, SectionLike, Sections, SectionsIter};
 
 use svm_layout::FixedLayout;
 

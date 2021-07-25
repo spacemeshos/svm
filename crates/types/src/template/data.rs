@@ -1,6 +1,6 @@
 use svm_layout::Layout;
 
-use crate::{SectionLike, SectionKind};
+use crate::{SectionKind, SectionLike};
 
 /// Aggregates the `Layouts` of `Template`'s Storage
 ///

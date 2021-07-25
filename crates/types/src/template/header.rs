@@ -1,4 +1,4 @@
-use crate::{SectionLike, SectionKind};
+use crate::{SectionKind, SectionLike};
 
 /// Contains descriptive info about a `Template`
 #[derive(Debug, Clone, PartialEq)]

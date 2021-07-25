@@ -1,4 +1,4 @@
-use crate::{SectionLike, SectionKind};
+use crate::{SectionKind, SectionLike};
 
 /// TODO: ...
 /// See <https://github.com/spacemeshos/svm/issues/277>.

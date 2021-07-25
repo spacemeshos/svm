@@ -1,4 +1,4 @@
-use crate::{DeployerAddr, Layer, SectionLike, SectionKind, TemplateAddr, TransactionId};
+use crate::{DeployerAddr, Layer, SectionKind, SectionLike, TemplateAddr, TransactionId};
 
 /// Stores data related to the deployment of a `Template`
 #[derive(Debug, Clone, PartialEq)]

@@ -1,6 +1,6 @@
 use svm_types::{
     ApiSection, CodeSection, CtorsSection, DataSection, DeploySection, HeaderSection,
-    SchemaSection, SectionKind, Section, Sections, Template,
+    SchemaSection, Section, SectionKind, Sections, Template,
 };
 
 /// Builds a `Template`
