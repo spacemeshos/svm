@@ -15,7 +15,7 @@ pub use attr::{
 
 pub use attr::{FuncAttr, FuncAttrKind};
 
-use crate::schema::Schema;
+use crate::program::Program;
 use crate::Template;
 
 pub struct Function {

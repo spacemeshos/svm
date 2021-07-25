@@ -1,19 +1,18 @@
 #![allow(unused)]
 
+mod api;
 mod function;
-mod schema;
+mod program;
+mod autogen;
 mod r#struct;
 mod template;
 mod r#type;
-
-#[cfg(feature = "api")]
-mod api;
 
 use function::{FuncAttr, FuncAttrKind, Function};
 use r#struct::storage_vars;
 use r#struct::{Struct, Var};
 use r#type::{PrimType, Type};
-use schema::{Export, Schema, Signature};
+use program::{Export, Program, Signature};
 use template::{parse_template, Template};
 
 #[proc_macro_attribute]

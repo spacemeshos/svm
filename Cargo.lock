@@ -1824,10 +1824,13 @@ dependencies = [
  "serde_json",
  "svm-abi-decoder",
  "svm-abi-encoder",
+ "svm-codec",
+ "svm-layout",
  "svm-sdk-host",
  "svm-sdk-std",
  "svm-sdk-storage",
  "svm-sdk-types",
+ "svm-types",
  "syn",
  "trybuild",
 ]

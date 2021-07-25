@@ -1,19 +1,19 @@
 use std::io::Write;
 
-use crate::{Export, PrimType, Schema, Signature, Type, Var};
+use crate::{Export, PrimType, Program, Signature, Type, Var};
 
 use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
 use serde_json::{json, Value};
 
-pub fn json_api(schema: &Schema) -> Value {
+pub fn json_api(schema: &Program) -> Value {
     let exports = exports_api(schema);
     let storage = storage_api(schema);
 
     json!({"exports": exports, "storage": storage})
 }
 
-pub fn json_data_layout(schema: &Schema) -> Value {
+pub fn json_data_layout(schema: &Program) -> Value {
     let data: Vec<usize> = schema
         .storage()
         .iter()
@@ -45,7 +45,7 @@ pub fn json_tokenstream(json: &Value) -> TokenStream {
     quote! { #json }
 }
 
-fn exports_api(schema: &Schema) -> Value {
+fn exports_api(schema: &Program) -> Value {
     let exports = schema
         .exports()
         .map(|e| {
@@ -118,7 +118,7 @@ fn emit_output_type(ty: &Type) -> Value {
     }
 }
 
-fn storage_api(schema: &Schema) -> Value {
+fn storage_api(schema: &Program) -> Value {
     let vars = schema
         .storage()
         .iter()

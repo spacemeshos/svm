@@ -12,7 +12,7 @@ use crate::r#struct::has_storage_attr;
 use crate::storage_vars;
 use crate::{FuncAttr, FuncAttrKind, Function, Template, Type, Var};
 
-pub struct Schema {
+pub struct Program {
     name: String,
     exports: HashMap<String, Export>,
     storage: Vec<Var>,
@@ -57,7 +57,7 @@ impl Signature {
     }
 }
 
-impl Schema {
+impl Program {
     pub fn new(name: String) -> Self {
         Self {
             name,
@@ -97,7 +97,7 @@ impl Schema {
     }
 }
 
-pub fn template_schema(template: &Template) -> Result<Schema> {
+pub fn template_schema(template: &Template) -> Result<Program> {
     let name = template.name().to_string();
     let storage = storage_schema(template);
 
@@ -116,7 +116,7 @@ pub fn template_schema(template: &Template) -> Result<Schema> {
         .map(|export| (export.api_name.clone(), export))
         .collect();
 
-    let schema = Schema {
+    let schema = Program {
         name,
         storage,
         exports,

@@ -6,9 +6,8 @@ use serde_json::Value;
 use syn::{Error, Item, ItemMod, ItemStruct, ItemType, ItemUse, Result};
 
 use super::{function, r#struct};
-use crate::{schema, Function, Schema, Struct};
+use crate::{program, Function, Program, Struct};
 
-#[cfg(feature = "api")]
 use crate::api;
 
 use r#function::{func_attrs, has_default_fundable_hook_attr};
@@ -53,10 +52,10 @@ impl Template {
     }
 }
 
-pub fn expand(_args: TokenStream, input: TokenStream) -> Result<(Schema, TokenStream)> {
+pub fn expand(_args: TokenStream, input: TokenStream) -> Result<(Program, TokenStream)> {
     let module = syn::parse2(input)?;
     let template = parse_template(module)?;
-    let schema = schema::template_schema(&template)?;
+    let schema = program::template_schema(&template)?;
 
     let imports = template.imports();
     let aliases = template.aliases();
@@ -65,20 +64,9 @@ pub fn expand(_args: TokenStream, input: TokenStream) -> Result<(Schema, TokenSt
     let functions = expand_functions(&template)?;
     let alloc_func = alloc_func_ast();
 
-    #[cfg(feature = "api")]
     let api = api::json_api(&schema);
-
-    #[cfg(feature = "api")]
     let stream = api::json_tokenstream(&api);
-
-    #[cfg(not(feature = "api"))]
-    let stream = quote! { "" };
-
-    #[cfg(feature = "api")]
     let data = api::json_data_layout(&schema);
-
-    #[cfg(feature = "api")]
-    write_schema(&template, &api, &data);
 
     let ast = quote! {
         // #(#imports)*
@@ -90,11 +78,6 @@ pub fn expand(_args: TokenStream, input: TokenStream) -> Result<(Schema, TokenSt
         #structs
 
         #functions
-
-        #[cfg(all(feature = "api", not(target_arch = "wasm32")))]
-        pub fn raw_schema() -> String {
-            #stream.to_string()
-        }
     };
 
     Ok((schema, ast))
@@ -224,17 +207,6 @@ fn extract_default_fundable_hook(template: &Template) -> Result<Option<Ident>> {
     }
 
     Ok(default)
-}
-
-#[cfg(all(feature = "api", target_arch = "wasm32"))]
-fn write_schema(template: &Template, api: &Value, data: &Value) {
-    api::json_write(&format!("{}-api.json", template.name()), api);
-    api::json_write(&format!("{}-data.json", template.name()), data);
-}
-
-#[cfg(any(not(feature = "api"), not(target_arch = "wasm32")))]
-fn write_schema(template: &Template, api: &Value, data: &Value) {
-    //
 }
 
 fn expand_structs(template: &Template) -> Result<TokenStream> {
