@@ -17,6 +17,11 @@ pub fn to_tokens(json: &Value) -> TokenStream {
     quote! { #json }
 }
 
+pub fn json_write<P: AsRef<std::path::Path>>(path: P, json: &Value) {
+    let bytes = serde_json::to_vec(json).unwrap();
+    std::fs::write(path, bytes).unwrap();
+}
+
 fn api(meta: &TemplateMeta) -> Value {
     let exports = meta
         .exports()

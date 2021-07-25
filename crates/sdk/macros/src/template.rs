@@ -59,9 +59,6 @@ pub fn expand(_args: TokenStream, input: TokenStream) -> Result<(TemplateMeta, T
     let functions = expand_functions(&template)?;
     let alloc_func = alloc_func_ast();
 
-    let meta_json = json::meta(&meta);
-    let meta_stream = json::to_tokens(&meta_json);
-
     let ast = quote! {
         // #(#imports)*
 
@@ -72,13 +69,6 @@ pub fn expand(_args: TokenStream, input: TokenStream) -> Result<(TemplateMeta, T
         #structs
 
         #functions
-
-        #[cfg(not(target_arch = "wasm32"))]
-        pub fn raw_meta() -> String {
-            // We can't implement [`quote::ToTokens`] for [`serde_json::Value`] since both are defined in other crates.
-            // Instead, we return a `String` and we'll use [`serde_json::from_str`] within the tests.
-            #meta_stream.to_string()
-        }
     };
 
     Ok((meta, ast))

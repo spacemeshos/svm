@@ -1,10 +1,8 @@
-#![allow(unused)]
+use std::collections::hash_map::Values;
+use std::collections::HashMap;
 
 use quote::quote;
 use syn::{FnArg, PatType, Result, ReturnType};
-
-use std::collections::hash_map::Values;
-use std::collections::HashMap;
 
 use crate::function::{find_attr, func_attrs, has_ctor_attr, has_endpoint_attr, has_fundable_attr};
 use crate::r#struct::has_storage_attr;
