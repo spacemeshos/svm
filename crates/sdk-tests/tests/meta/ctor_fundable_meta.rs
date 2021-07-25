@@ -4,12 +4,18 @@ use svm_sdk::template;
 
 #[template]
 mod Template {
-    #[ctor(doc = "Initializing a new Account")]
-    fn initialize() {}
+    #[fundable]
+    #[ctor]
+    fn init() {}
+
+    #[fundable_hook(default)]
+    fn fund() {
+        //
+    }
 }
 
 fn main() {
-    let raw = raw_schema();
+    let raw = raw_meta();
     let json: Value = serde_json::from_str(&raw).unwrap();
 
     assert_eq!(
@@ -17,11 +23,11 @@ fn main() {
         json!({
             "storage": [],
             "exports": [json!({
-                "api_name": "initialize",
-                "wasm_name": "initialize",
+                "api_name": "init",
+                "wasm_name": "init",
                 "is_ctor": true,
-                "is_fundable": false,
-                "doc": "Initializing a new Account",
+                "is_fundable": true,
+                "doc": "",
                 "signature": json!({"params": [], "returns": {}}),
             })],
         })

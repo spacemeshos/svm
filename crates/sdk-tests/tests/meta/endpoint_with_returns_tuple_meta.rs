@@ -1,17 +1,18 @@
 #![allow(unused)]
 use serde_json::{json, Value};
+
 use svm_sdk::{template, Address, Amount};
 
 #[template]
 mod Template {
     #[endpoint]
-    fn call() -> Amount {
-        Amount(20)
+    fn call() -> (bool, u64, Amount) {
+        (true, 10, Amount(20))
     }
 }
 
 fn main() {
-    let raw = raw_schema();
+    let raw = raw_meta();
     let json: Value = serde_json::from_str(&raw).unwrap();
 
     assert_eq!(
@@ -26,7 +27,11 @@ fn main() {
                 "doc": "",
                 "signature": json!({
                     "params": [],
-                    "returns": { "type": "Amount" },
+                    "returns": [
+                        { "type": "bool" },
+                        { "type": "u64" },
+                        { "type": "Amount" },
+                     ]
                 }),
             })],
         })

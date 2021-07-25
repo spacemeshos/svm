@@ -4,10 +4,7 @@ use serde_json::Value;
 use syn::{Error, Item, ItemMod, ItemType, ItemUse, Result};
 
 use super::{function, r#struct};
-use crate::{
-    meta::{self, TemplateMeta},
-    Function, Struct,
-};
+use crate::{meta, Function, Struct, TemplateMeta};
 
 use r#function::{func_attrs, has_default_fundable_hook_attr};
 use r#struct::has_storage_attr;
@@ -63,6 +60,9 @@ pub fn expand(_args: TokenStream, input: TokenStream) -> Result<(TemplateMeta, T
     let functions = expand_functions(&template)?;
     let alloc_func = alloc_func_ast();
 
+    let meta_json = crate::json::meta(&meta);
+    let meta_stream = crate::json::to_tokens(&meta_json);
+
     let ast = quote! {
         // #(#imports)*
 
@@ -74,10 +74,10 @@ pub fn expand(_args: TokenStream, input: TokenStream) -> Result<(TemplateMeta, T
 
         #functions
 
-        // #[cfg(all(feature = "api", not(target_arch = "wasm32")))]
-        // pub fn raw_schema() -> String {
-        //     #stream.to_string()
-        // }
+        #[cfg(not(target_arch = "wasm32"))]
+        pub fn raw_meta() -> String {
+            #meta_stream.to_string()
+        }
     };
 
     Ok((meta, ast))

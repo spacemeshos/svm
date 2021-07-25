@@ -11,7 +11,7 @@ mod Template {
 }
 
 fn main() {
-    let raw = raw_schema();
+    let raw = raw_meta();
     let json: Value = serde_json::from_str(&raw).unwrap();
 
     assert_eq!(

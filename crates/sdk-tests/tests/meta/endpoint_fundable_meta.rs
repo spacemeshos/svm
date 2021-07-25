@@ -5,8 +5,8 @@ use svm_sdk::template;
 #[template]
 mod Template {
     #[fundable]
-    #[ctor]
-    fn init() {}
+    #[endpoint]
+    fn call() {}
 
     #[fundable_hook(default)]
     fn fund() {
@@ -15,7 +15,7 @@ mod Template {
 }
 
 fn main() {
-    let raw = raw_schema();
+    let raw = raw_meta();
     let json: Value = serde_json::from_str(&raw).unwrap();
 
     assert_eq!(
@@ -23,9 +23,9 @@ fn main() {
         json!({
             "storage": [],
             "exports": [json!({
-                "api_name": "init",
-                "wasm_name": "init",
-                "is_ctor": true,
+                "api_name": "call",
+                "wasm_name": "call",
+                "is_ctor": false,
                 "is_fundable": true,
                 "doc": "",
                 "signature": json!({"params": [], "returns": {}}),
