@@ -1,8 +1,10 @@
+#![allow(unused)]
+
 use svm_codec::SectionsEncoder;
 use svm_layout::{FixedLayoutBuilder, Id, Layout};
-use svm_types::{CtorsSection, DataSection, Section, SectionKind, SectionLike, Sections};
+use svm_types::{CtorsSection, DataSection, Section, Sections};
 
-use crate::program::Program;
+use crate::data::TemplateData;
 use crate::r#struct::Var;
 
 pub fn emit_binary_sections(sections: &Sections) -> Vec<u8> {
@@ -12,9 +14,9 @@ pub fn emit_binary_sections(sections: &Sections) -> Vec<u8> {
     encoder.finish()
 }
 
-pub fn build_sections(program: &Program) -> Sections {
-    let ctors = ctors_section(program);
-    let data = data_section(program);
+pub fn build_sections(template: &TemplateData) -> Sections {
+    let ctors = ctors_section(template);
+    let data = data_section(template);
 
     let mut sections = Sections::with_capacity(2);
 
@@ -24,10 +26,10 @@ pub fn build_sections(program: &Program) -> Sections {
     sections
 }
 
-fn ctors_section(program: &Program) -> CtorsSection {
+fn ctors_section(template: &TemplateData) -> CtorsSection {
     let mut section = CtorsSection::default();
 
-    for ctor in program.ctors() {
+    for ctor in template.ctors() {
         let ctor = ctor.api_name.clone();
         section.push(ctor);
     }
@@ -35,20 +37,17 @@ fn ctors_section(program: &Program) -> CtorsSection {
     section
 }
 
-fn data_section(program: &Program) -> DataSection {
+fn data_section(template: &TemplateData) -> DataSection {
     let mut section = DataSection::with_capacity(1);
 
     let mut builder = FixedLayoutBuilder::default();
     builder.set_first(Id(0));
 
-    for var in program.storage() {
+    for var in template.storage() {
         match *var {
             Var::Primitive { byte_count, .. } => builder.push(byte_count as u32),
             Var::Array {
-                id,
-                byte_count,
-                length,
-                ..
+                byte_count, length, ..
             } => {
                 for _ in 0..length {
                     builder.push(byte_count as u32);

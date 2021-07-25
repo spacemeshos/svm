@@ -1,12 +1,11 @@
 use proc_macro2::{Ident, Span, TokenStream};
 
-use quote::{quote, ToTokens};
-use syn::{Error, Field, Fields, ItemStruct, Path, PathArguments, Result};
+use quote::quote;
+use syn::{Error, Field, Fields, Result};
 
 use super::{attr, Var, VarId};
 use attr::{has_storage_attr, StructAttr};
 
-use crate::r#type;
 use crate::{PrimType, Struct, Type};
 
 pub fn expand(strukt: &Struct, attrs: &[StructAttr]) -> Result<TokenStream> {

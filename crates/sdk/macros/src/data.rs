@@ -1,18 +1,17 @@
-use proc_macro2::Span;
+#![allow(unused)]
+
 use quote::quote;
-use syn::{Error, FnArg, PatType, Result, ReturnType, TypeTuple};
+use syn::{FnArg, PatType, Result, ReturnType};
 
-use std::collections::{hash_map::Values, HashMap};
+use std::collections::hash_map::Values;
+use std::collections::HashMap;
 
-use crate::function::{
-    find_attr, func_attrs, has_ctor_attr, has_default_fundable_hook_attr, has_endpoint_attr,
-    has_fundable_attr,
-};
+use crate::function::{find_attr, func_attrs, has_ctor_attr, has_endpoint_attr, has_fundable_attr};
 use crate::r#struct::has_storage_attr;
 use crate::storage_vars;
 use crate::{FuncAttr, FuncAttrKind, Function, Template, Type, Var};
 
-pub struct Program {
+pub struct TemplateData {
     name: String,
     exports: HashMap<String, Export>,
     storage: Vec<Var>,
@@ -57,7 +56,7 @@ impl Signature {
     }
 }
 
-impl Program {
+impl TemplateData {
     pub fn new(name: String) -> Self {
         Self {
             name,
@@ -68,7 +67,6 @@ impl Program {
 
     pub fn add_export(&mut self, export: Export) {
         let name = export.api_name.clone();
-
         self.exports.insert(name, export);
     }
 
@@ -97,7 +95,7 @@ impl Program {
     }
 }
 
-pub fn template_schema(template: &Template) -> Result<Program> {
+pub fn template_data(template: &Template) -> Result<TemplateData> {
     let name = template.name().to_string();
     let storage = storage_schema(template);
 
@@ -116,7 +114,7 @@ pub fn template_schema(template: &Template) -> Result<Program> {
         .map(|export| (export.api_name.clone(), export))
         .collect();
 
-    let schema = Program {
+    let schema = TemplateData {
         name,
         storage,
         exports,

@@ -1,14 +1,9 @@
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
-
-use serde_json::Value;
-
-use syn::{Error, Item, ItemMod, ItemStruct, ItemType, ItemUse, Result};
+use syn::{Error, Item, ItemMod, ItemType, ItemUse, Result};
 
 use super::{function, r#struct};
-use crate::{program, Function, Program, Struct};
-
-use crate::api;
+use crate::{data, Function, Struct, TemplateData};
 
 use r#function::{func_attrs, has_default_fundable_hook_attr};
 use r#struct::has_storage_attr;
@@ -52,21 +47,17 @@ impl Template {
     }
 }
 
-pub fn expand(_args: TokenStream, input: TokenStream) -> Result<(Program, TokenStream)> {
+pub fn expand(_args: TokenStream, input: TokenStream) -> Result<(TemplateData, TokenStream)> {
     let module = syn::parse2(input)?;
     let template = parse_template(module)?;
-    let schema = program::template_schema(&template)?;
+    let schema = data::template_data(&template)?;
 
-    let imports = template.imports();
-    let aliases = template.aliases();
+    let _imports = template.imports();
+    let _aliases = template.aliases();
 
     let structs = expand_structs(&template)?;
     let functions = expand_functions(&template)?;
     let alloc_func = alloc_func_ast();
-
-    let api = api::json_api(&schema);
-    let stream = api::json_tokenstream(&api);
-    let data = api::json_data_layout(&schema);
 
     let ast = quote! {
         // #(#imports)*
@@ -277,7 +268,7 @@ fn expand_functions(template: &Template) -> Result<TokenStream> {
     Ok(ast)
 }
 
-fn validate_funcs(template: &Template) -> Result<()> {
+fn validate_funcs(_template: &Template) -> Result<()> {
     Ok(())
 }
 

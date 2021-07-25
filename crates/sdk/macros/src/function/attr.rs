@@ -1,14 +1,9 @@
-use proc_macro2::{Delimiter, Span, TokenStream, TokenTree};
+use proc_macro2::TokenStream;
 
 use quote::{quote, ToTokens};
 
-use syn::punctuated::Punctuated;
-use syn::{
-    parse::{Parse, ParseStream},
-    token::Else,
-    Path,
-};
-use syn::{Attribute, Error, Ident, LitStr, Result, Token};
+use syn::parse::{Parse, ParseStream};
+use syn::{Attribute, Ident, LitStr, Result, Token};
 
 use crate::Function;
 
@@ -40,7 +35,7 @@ impl Parse for Doc {
         }
 
         let ident: Ident = input.parse()?;
-        let equals: Token![=] = input.parse()?;
+        let _equals: Token![=] = input.parse()?;
 
         if ident.to_string().as_str() == "doc" {
             let doc: LitStr = input.parse()?;
@@ -128,7 +123,7 @@ pub fn parse_attr(attr: Attribute) -> Result<FuncAttr> {
             if attr.tokens.is_empty() {
                 FuncAttr::FundableHook { default: false }
             } else {
-                let ident = attr.parse_args::<Ident>()?;
+                let _ident = attr.parse_args::<Ident>()?;
                 FuncAttr::FundableHook { default: true }
             }
         }
@@ -202,10 +197,6 @@ pub fn has_default_fundable_hook_attr(attrs: &[FuncAttr]) -> bool {
 
 pub fn has_fundable_attr(attrs: &[FuncAttr]) -> bool {
     has_attr(attrs, FuncAttrKind::Fundable)
-}
-
-pub fn has_other_attr(attrs: &[FuncAttr]) -> bool {
-    has_attr(attrs, FuncAttrKind::Other)
 }
 
 pub fn has_attr(attrs: &[FuncAttr], kind: FuncAttrKind) -> bool {

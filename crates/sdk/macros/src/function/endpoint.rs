@@ -99,7 +99,7 @@ fn expand_returns_size(func: &Function) -> Result<TokenStream> {
     let sig = func.raw_sig();
     let mut ty_tokens = TokenStream::new();
 
-    let ty = match &sig.output {
+    match &sig.output {
         ReturnType::Type(.., ty) => ty.to_tokens(&mut ty_tokens),
         ReturnType::Default => unreachable!(),
     };

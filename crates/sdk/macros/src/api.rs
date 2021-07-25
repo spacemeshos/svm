@@ -1,19 +1,19 @@
-use std::io::Write;
+#![allow(unused)]
 
-use crate::{Export, PrimType, Program, Signature, Type, Var};
+use crate::{r#type::Type, Export, PrimType, TemplateData, Var};
 
 use proc_macro2::TokenStream;
-use quote::{quote, ToTokens};
+use quote::quote;
 use serde_json::{json, Value};
 
-pub fn json_api(schema: &Program) -> Value {
+pub fn json_api(schema: &TemplateData) -> Value {
     let exports = exports_api(schema);
     let storage = storage_api(schema);
 
     json!({"exports": exports, "storage": storage})
 }
 
-pub fn json_data_layout(schema: &Program) -> Value {
+pub fn json_data_layout(schema: &TemplateData) -> Value {
     let data: Vec<usize> = schema
         .storage()
         .iter()
@@ -45,7 +45,7 @@ pub fn json_tokenstream(json: &Value) -> TokenStream {
     quote! { #json }
 }
 
-fn exports_api(schema: &Program) -> Value {
+fn exports_api(schema: &TemplateData) -> Value {
     let exports = schema
         .exports()
         .map(|e| {
@@ -66,8 +66,8 @@ fn exports_api(schema: &Program) -> Value {
 fn emit_signature(e: &Export) -> Value {
     let sig = &e.signature;
 
-    let mut params: Vec<Value> = sig.params().iter().map(emit_param).collect();
-    let mut returns = emit_output(sig.output());
+    let params: Vec<Value> = sig.params().iter().map(emit_param).collect();
+    let returns = emit_output(sig.output());
 
     json!({"params": params, "returns": returns})
 }
@@ -118,7 +118,7 @@ fn emit_output_type(ty: &Type) -> Value {
     }
 }
 
-fn storage_api(schema: &Program) -> Value {
+fn storage_api(schema: &TemplateData) -> Value {
     let vars = schema
         .storage()
         .iter()
