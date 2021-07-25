@@ -1,7 +1,5 @@
 use proc_macro2::TokenStream;
-
 use quote::{quote, ToTokens};
-
 use syn::parse::{Parse, ParseStream};
 use syn::{Attribute, Ident, LitStr, Result, Token};
 
@@ -50,26 +48,18 @@ impl Parse for Doc {
 #[derive(Debug, PartialEq)]
 pub enum FuncAttrKind {
     Ctor,
-
     Endpoint,
-
     Fundable,
-
     FundableHook,
-
     Other,
 }
 
 #[derive(Debug)]
 pub enum FuncAttr {
     Ctor(Doc),
-
     Endpoint(Doc),
-
     Fundable(Option<String>),
-
     FundableHook { default: bool },
-
     Other(TokenStream),
 }
 
@@ -90,7 +80,6 @@ pub fn func_attrs(func: &Function) -> Result<Vec<FuncAttr>> {
 
     for attr in func.raw_attrs() {
         let attr = parse_attr(attr)?;
-
         attrs.push(attr);
     }
 
@@ -111,12 +100,10 @@ pub fn parse_attr(attr: Attribute) -> Result<FuncAttr> {
     let attr = match kind {
         FuncAttrKind::Ctor => {
             let doc = parse_doc(&attr)?;
-
             FuncAttr::Ctor(doc)
         }
         FuncAttrKind::Endpoint => {
             let doc = parse_doc(&attr)?;
-
             FuncAttr::Endpoint(doc)
         }
         FuncAttrKind::FundableHook => {
@@ -221,11 +208,6 @@ pub fn filter_attrs(attrs: &[FuncAttr], kind: FuncAttrKind) -> Vec<&FuncAttr> {
 mod test {
     use super::*;
 
-    use proc_macro2::TokenStream;
-
-    use quote::quote;
-    use quote::ToTokens;
-
     use syn::{parse_quote, Attribute};
 
     #[test]
@@ -276,11 +258,12 @@ mod test {
             #[fundable(deny_funding)]
         };
 
-        let actual = parse_attr(attr).unwrap();
-        assert_eq!(actual.kind(), FuncAttrKind::Fundable);
+        let attr = parse_attr(attr).unwrap();
 
-        let expected = FuncAttr::Fundable(Some("deny_funding".to_string()));
-        assert!(matches!(actual, expected));
+        match attr {
+            FuncAttr::Fundable(Some(attr)) => assert_eq!(attr, "deny_funding".to_string()),
+            _ => panic!(),
+        }
     }
 
     #[test]
