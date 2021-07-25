@@ -26,6 +26,7 @@ trybuild = { version = "1.0", features = ["diff"] }
 
 [features]
 refault = ["mock", "dynamic-alloc"]
+meta = []
 ffi = ["svm-sdk-host/ffi", "svm-sdk-storage/ffi"]
 mock = ["svm-sdk-host/mock", "svm-sdk-storage/mock"]
 static-alloc = [

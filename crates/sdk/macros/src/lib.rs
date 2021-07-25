@@ -23,13 +23,13 @@ pub fn template(
     input: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
     match template::expand(args.into(), input.into()) {
-        Ok((ast, meta)) => finalize_ast(&ast, &meta),
+        Ok((ast, meta)) => finalize_ast(ast, &meta),
         Err(err) => err.to_compile_error().into(),
     }
 }
 
-#[cfg(target_arch = "wasm32")]
-fn finalize_ast(ast: &proc_macro2::TokenStream, meta: &TemplateMeta) -> proc_macro::TokenStream {
+#[cfg(feature = "meta")]
+fn finalize_ast(ast: proc_macro2::TokenStream, meta: &TemplateMeta) -> proc_macro::TokenStream {
     let path = format!("{}-meta.json", meta.name());
     let meta_json = json::meta(&meta);
     json::json_write(&path, &meta_json);
@@ -37,8 +37,8 @@ fn finalize_ast(ast: &proc_macro2::TokenStream, meta: &TemplateMeta) -> proc_mac
     ast.into()
 }
 
-#[cfg(not(target_arch = "wasm32"))]
-fn finalize_ast(ast: &proc_macro2::TokenStream, meta: &TemplateMeta) -> proc_macro::TokenStream {
+#[cfg(not(feature = "meta"))]
+fn finalize_ast(ast: proc_macro2::TokenStream, meta: &TemplateMeta) -> proc_macro::TokenStream {
     use quote::quote;
 
     let meta_json = json::meta(&meta);
