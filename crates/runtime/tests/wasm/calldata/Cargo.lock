@@ -15,6 +15,28 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4785bdd1c96b2a846b2bd7cc02e86b6b3dbf14e7e53446c4f54c92a361040822"
 
 [[package]]
+name = "hashbrown"
+version = "0.11.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ab5ef0d4909ef3724cc8cce6ccc8572c5c817592e9285f5464f8e86f8bd3726e"
+
+[[package]]
+name = "hex"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
+
+[[package]]
+name = "indexmap"
+version = "1.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bc633605454125dec4b66843673f01c7df2b89479b32e0ed634e43a91cff62a5"
+dependencies = [
+ "autocfg",
+ "hashbrown",
+]
+
+[[package]]
 name = "itoa"
 version = "0.4.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -82,6 +104,20 @@ name = "serde"
 version = "1.0.124"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bd761ff957cb2a45fbb9ab3da6512de9de55872866160b23c25f1a841e99d29f"
+dependencies = [
+ "serde_derive",
+]
+
+[[package]]
+name = "serde_derive"
+version = "1.0.124"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1800f7693e94e186f5e25a28291ae1570da908aff7d97a095dec1e56ff99069b"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
 
 [[package]]
 name = "serde_json"
@@ -117,6 +153,28 @@ dependencies = [
 
 [[package]]
 name = "svm-abi-layout"
+version = "0.0.0"
+
+[[package]]
+name = "svm-codec"
+version = "0.0.0"
+dependencies = [
+ "hex",
+ "indexmap",
+ "serde",
+ "serde_json",
+ "svm-abi-decoder",
+ "svm-abi-encoder",
+ "svm-layout",
+ "svm-sdk-std",
+ "svm-sdk-types",
+ "svm-types",
+ "thiserror",
+ "toml",
+]
+
+[[package]]
+name = "svm-layout"
 version = "0.0.0"
 
 [[package]]
@@ -168,10 +226,13 @@ dependencies = [
  "serde_json",
  "svm-abi-decoder",
  "svm-abi-encoder",
+ "svm-codec",
+ "svm-layout",
  "svm-sdk-host",
  "svm-sdk-std",
  "svm-sdk-storage",
  "svm-sdk-types",
+ "svm-types",
  "syn",
 ]
 
@@ -200,6 +261,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "svm-types"
+version = "0.0.0"
+dependencies = [
+ "hex",
+ "indexmap",
+ "svm-layout",
+]
+
+[[package]]
 name = "syn"
 version = "1.0.64"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -208,6 +278,35 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-xid",
+]
+
+[[package]]
+name = "thiserror"
+version = "1.0.26"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "93119e4feac1cbe6c798c34d3a53ea0026b0b1de6a120deef895137c0529bfe2"
+dependencies = [
+ "thiserror-impl",
+]
+
+[[package]]
+name = "thiserror-impl"
+version = "1.0.26"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "060d69a0afe7796bf42e9e2ff91f5ee691fb15c53d38b4b62a9a53eb23164745"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "toml"
+version = "0.5.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a31142970826733df8241ef35dc040ef98c679ab14d7c3e54d827099b3acecaa"
+dependencies = [
+ "serde",
 ]
 
 [[package]]

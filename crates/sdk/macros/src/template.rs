@@ -4,7 +4,7 @@ use serde_json::Value;
 use syn::{Error, Item, ItemMod, ItemType, ItemUse, Result};
 
 use super::{function, r#struct};
-use crate::{meta, Function, Struct, TemplateMeta};
+use crate::{json, meta, Function, Struct, TemplateMeta};
 
 use r#function::{func_attrs, has_default_fundable_hook_attr};
 use r#struct::has_storage_attr;
@@ -60,8 +60,16 @@ pub fn expand(_args: TokenStream, input: TokenStream) -> Result<(TemplateMeta, T
     let functions = expand_functions(&template)?;
     let alloc_func = alloc_func_ast();
 
-    let meta_json = crate::json::meta(&meta);
-    let meta_stream = crate::json::to_tokens(&meta_json);
+    let meta_json = json::meta(&meta);
+    let meta_stream = json::to_tokens(&meta_json);
+
+    if cfg!(target_arch = "wasm32") {
+        let path = format!("{}.sections", template.name());
+        let sections = crate::sections::build_sections(&meta);
+        let bytes = crate::sections::emit_binary_sections(&sections);
+
+        std::fs::write(path, bytes);
+    }
 
     let ast = quote! {
         // #(#imports)*
@@ -76,6 +84,8 @@ pub fn expand(_args: TokenStream, input: TokenStream) -> Result<(TemplateMeta, T
 
         #[cfg(not(target_arch = "wasm32"))]
         pub fn raw_meta() -> String {
+            // We can't implement [`quote::ToTokens`] for [`serde_json::Value`] since both are defined in other crates.
+            // Instead, we return a `String` and we'll use [`serde_json::from_str`] within the tests.
             #meta_stream.to_string()
         }
     };
@@ -207,17 +217,6 @@ fn extract_default_fundable_hook(template: &Template) -> Result<Option<Ident>> {
     }
 
     Ok(default)
-}
-
-#[cfg(all(feature = "api", target_arch = "wasm32"))]
-fn write_schema(template: &Template, api: &Value, data: &Value) {
-    api::json_write(&format!("{}-api.json", template.name()), api);
-    api::json_write(&format!("{}-data.json", template.name()), data);
-}
-
-#[cfg(any(not(feature = "api"), not(target_arch = "wasm32")))]
-fn write_schema(template: &Template, api: &Value, data: &Value) {
-    //
 }
 
 fn expand_structs(template: &Template) -> Result<TokenStream> {
