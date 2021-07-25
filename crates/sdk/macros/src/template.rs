@@ -1,6 +1,5 @@
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
-use serde_json::Value;
 use syn::{Error, Item, ItemMod, ItemType, ItemUse, Result};
 
 use super::{function, r#struct};
@@ -53,8 +52,8 @@ pub fn expand(_args: TokenStream, input: TokenStream) -> Result<(TemplateMeta, T
     let template = parse_template(module)?;
     let meta = meta::template_meta(&template)?;
 
-    let imports = template.imports();
-    let aliases = template.aliases();
+    let _imports = template.imports();
+    let _aliases = template.aliases();
 
     let structs = expand_structs(&template)?;
     let functions = expand_functions(&template)?;
@@ -254,8 +253,6 @@ fn validate_structs(template: &Template) -> Result<()> {
 }
 
 fn expand_functions(template: &Template) -> Result<TokenStream> {
-    validate_funcs(template)?;
-
     let mut funcs = Vec::new();
 
     for func in template.functions() {
@@ -277,10 +274,6 @@ fn expand_functions(template: &Template) -> Result<TokenStream> {
     };
 
     Ok(ast)
-}
-
-fn validate_funcs(template: &Template) -> Result<()> {
-    Ok(())
 }
 
 fn alloc_func_ast() -> TokenStream {

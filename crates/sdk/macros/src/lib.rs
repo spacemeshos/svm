@@ -1,9 +1,11 @@
-#![allow(unused)]
+#![allow(missing_docs)]
+#![deny(unused)]
+#![deny(dead_code)]
+#![deny(unreachable_code)]
 
 mod function;
 mod json;
 mod meta;
-// mod sections;
 mod r#struct;
 mod template;
 mod r#type;
