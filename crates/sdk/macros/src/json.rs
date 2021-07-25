@@ -1,52 +1,24 @@
-#![allow(unused)]
-
-use crate::{r#type::Type, Export, PrimType, TemplateData, Var};
+use crate::{r#type::Type, Export, PrimType, TemplateMeta, Var};
 
 use proc_macro2::TokenStream;
 use quote::quote;
 use serde_json::{json, Value};
 
-pub fn json_api(schema: &TemplateData) -> Value {
-    let exports = exports_api(schema);
-    let storage = storage_api(schema);
+pub fn meta(meta: &TemplateMeta) -> Value {
+    let exports = exports_api(meta);
+    let storage = storage_api(meta);
 
     json!({"exports": exports, "storage": storage})
 }
 
-pub fn json_data_layout(schema: &TemplateData) -> Value {
-    let data: Vec<usize> = schema
-        .storage()
-        .iter()
-        .fold(Vec::new(), |mut acc, v| match v {
-            Var::Primitive { byte_count, .. } => {
-                acc.push(*byte_count);
-                acc
-            }
-            Var::Array {
-                byte_count, length, ..
-            } => {
-                acc.extend(vec![*byte_count; *length as usize]);
-                acc
-            }
-        });
-
-    json!({ "data": data })
-}
-
-pub fn json_write(file_name: &str, json: &Value) {
-    let bytes = serde_json::to_vec(json).unwrap();
-
-    std::fs::write(file_name, bytes);
-}
-
-pub fn json_tokenstream(json: &Value) -> TokenStream {
+pub fn to_tokens(json: &Value) -> TokenStream {
     let json = json.to_string();
 
     quote! { #json }
 }
 
-fn exports_api(schema: &TemplateData) -> Value {
-    let exports = schema
+fn exports_api(meta: &TemplateMeta) -> Value {
+    let exports = meta
         .exports()
         .map(|e| {
             json!({
@@ -118,8 +90,8 @@ fn emit_output_type(ty: &Type) -> Value {
     }
 }
 
-fn storage_api(schema: &TemplateData) -> Value {
-    let vars = schema
+fn storage_api(meta: &TemplateMeta) -> Value {
+    let vars = meta
         .storage()
         .iter()
         .map(|v| match v {

@@ -1,9 +1,13 @@
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
+use serde_json::Value;
 use syn::{Error, Item, ItemMod, ItemType, ItemUse, Result};
 
 use super::{function, r#struct};
-use crate::{data, Function, Struct, TemplateData};
+use crate::{
+    meta::{self, TemplateMeta},
+    Function, Struct,
+};
 
 use r#function::{func_attrs, has_default_fundable_hook_attr};
 use r#struct::has_storage_attr;
@@ -47,13 +51,13 @@ impl Template {
     }
 }
 
-pub fn expand(_args: TokenStream, input: TokenStream) -> Result<(TemplateData, TokenStream)> {
+pub fn expand(_args: TokenStream, input: TokenStream) -> Result<(TemplateMeta, TokenStream)> {
     let module = syn::parse2(input)?;
     let template = parse_template(module)?;
-    let schema = data::template_data(&template)?;
+    let meta = meta::template_meta(&template)?;
 
-    let _imports = template.imports();
-    let _aliases = template.aliases();
+    let imports = template.imports();
+    let aliases = template.aliases();
 
     let structs = expand_structs(&template)?;
     let functions = expand_functions(&template)?;
@@ -69,9 +73,14 @@ pub fn expand(_args: TokenStream, input: TokenStream) -> Result<(TemplateData, T
         #structs
 
         #functions
+
+        // #[cfg(all(feature = "api", not(target_arch = "wasm32")))]
+        // pub fn raw_schema() -> String {
+        //     #stream.to_string()
+        // }
     };
 
-    Ok((schema, ast))
+    Ok((meta, ast))
 }
 
 pub fn parse_template(mut raw_template: ItemMod) -> Result<Template> {
@@ -200,6 +209,17 @@ fn extract_default_fundable_hook(template: &Template) -> Result<Option<Ident>> {
     Ok(default)
 }
 
+#[cfg(all(feature = "api", target_arch = "wasm32"))]
+fn write_schema(template: &Template, api: &Value, data: &Value) {
+    api::json_write(&format!("{}-api.json", template.name()), api);
+    api::json_write(&format!("{}-data.json", template.name()), data);
+}
+
+#[cfg(any(not(feature = "api"), not(target_arch = "wasm32")))]
+fn write_schema(template: &Template, api: &Value, data: &Value) {
+    //
+}
+
 fn expand_structs(template: &Template) -> Result<TokenStream> {
     let mut structs = Vec::new();
 
@@ -268,7 +288,7 @@ fn expand_functions(template: &Template) -> Result<TokenStream> {
     Ok(ast)
 }
 
-fn validate_funcs(_template: &Template) -> Result<()> {
+fn validate_funcs(template: &Template) -> Result<()> {
     Ok(())
 }
 

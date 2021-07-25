@@ -11,7 +11,7 @@ use crate::r#struct::has_storage_attr;
 use crate::storage_vars;
 use crate::{FuncAttr, FuncAttrKind, Function, Template, Type, Var};
 
-pub struct TemplateData {
+pub struct TemplateMeta {
     name: String,
     exports: HashMap<String, Export>,
     storage: Vec<Var>,
@@ -56,7 +56,7 @@ impl Signature {
     }
 }
 
-impl TemplateData {
+impl TemplateMeta {
     pub fn new(name: String) -> Self {
         Self {
             name,
@@ -95,7 +95,7 @@ impl TemplateData {
     }
 }
 
-pub fn template_data(template: &Template) -> Result<TemplateData> {
+pub fn template_meta(template: &Template) -> Result<TemplateMeta> {
     let name = template.name().to_string();
     let storage = storage_schema(template);
 
@@ -114,7 +114,7 @@ pub fn template_data(template: &Template) -> Result<TemplateData> {
         .map(|export| (export.api_name.clone(), export))
         .collect();
 
-    let schema = TemplateData {
+    let schema = TemplateMeta {
         name,
         storage,
         exports,

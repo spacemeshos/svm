@@ -1,15 +1,15 @@
-#![deny(unused)]
+#![allow(unused)]
 
-mod api;
 mod function;
-mod data;
+mod json;
+mod meta;
 mod sections;
 mod r#struct;
 mod template;
 mod r#type;
 
 use function::{FuncAttr, FuncAttrKind, Function};
-use data::{Export, TemplateData};
+use meta::{Export, TemplateMeta};
 use r#struct::storage_vars;
 use r#struct::{Struct, Var};
 use r#type::{PrimType, Type};

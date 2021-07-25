@@ -4,7 +4,7 @@ use svm_codec::SectionsEncoder;
 use svm_layout::{FixedLayoutBuilder, Id, Layout};
 use svm_types::{CtorsSection, DataSection, Section, Sections};
 
-use crate::data::TemplateData;
+use crate::meta::TemplateMeta;
 use crate::r#struct::Var;
 
 pub fn emit_binary_sections(sections: &Sections) -> Vec<u8> {
@@ -14,7 +14,7 @@ pub fn emit_binary_sections(sections: &Sections) -> Vec<u8> {
     encoder.finish()
 }
 
-pub fn build_sections(template: &TemplateData) -> Sections {
+pub fn build_sections(template: &TemplateMeta) -> Sections {
     let ctors = ctors_section(template);
     let data = data_section(template);
 
@@ -26,7 +26,7 @@ pub fn build_sections(template: &TemplateData) -> Sections {
     sections
 }
 
-fn ctors_section(template: &TemplateData) -> CtorsSection {
+fn ctors_section(template: &TemplateMeta) -> CtorsSection {
     let mut section = CtorsSection::default();
 
     for ctor in template.ctors() {
@@ -37,7 +37,7 @@ fn ctors_section(template: &TemplateData) -> CtorsSection {
     section
 }
 
-fn data_section(template: &TemplateData) -> DataSection {
+fn data_section(template: &TemplateMeta) -> DataSection {
     let mut section = DataSection::with_capacity(1);
 
     let mut builder = FixedLayoutBuilder::default();

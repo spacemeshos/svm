@@ -19,4 +19,5 @@ trybuild = { version = "1.0.42", features = ["diff"] }
 serde_json = { version = "1.0" }
 
 [features]
-default = ["svm-sdk/mock"]
+default = ["mock"]
+mock = ["svm-sdk/mock"]
