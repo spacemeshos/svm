@@ -63,14 +63,6 @@ pub fn expand(_args: TokenStream, input: TokenStream) -> Result<(TemplateMeta, T
     let meta_json = json::meta(&meta);
     let meta_stream = json::to_tokens(&meta_json);
 
-    if cfg!(target_arch = "wasm32") {
-        let path = format!("{}.sections", template.name());
-        let sections = crate::sections::build_sections(&meta);
-        let bytes = crate::sections::emit_binary_sections(&sections);
-
-        std::fs::write(path, bytes);
-    }
-
     let ast = quote! {
         // #(#imports)*
 

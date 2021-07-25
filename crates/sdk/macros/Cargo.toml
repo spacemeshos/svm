@@ -13,8 +13,6 @@ quote = "1.0.7"
 syn = { version = "1.0.42", features = ["full"] }
 serde_json = { version = "1.0" }
 svm-types = { path = "../../types" }
-svm-layout = { path = "../../layout" }
-svm-codec = { path = "../../codec" }
 svm-sdk-types = { path = "../types", default-features = false }
 svm-abi-encoder = { path = "../../abi/encoder", default-features = false }
 svm-abi-decoder = { path = "../../abi/decoder", default-features = false }
@@ -27,7 +25,7 @@ lazy_static = "1.4.0"
 trybuild = { version = "1.0", features = ["diff"] }
 
 [features]
-default = ["mock"]
+refault = ["mock", "dynamic-alloc"]
 ffi = ["svm-sdk-host/ffi", "svm-sdk-storage/ffi"]
 mock = ["svm-sdk-host/mock", "svm-sdk-storage/mock"]
 static-alloc = [
