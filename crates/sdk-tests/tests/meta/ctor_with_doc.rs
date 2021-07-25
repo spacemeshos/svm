@@ -15,9 +15,9 @@ fn main() {
     assert_eq!(
         json,
         json!({
-            "storage": [],
-            "exports": [json!({
-                "api_name": "initialize",
+            "schema": [],
+            "api": [json!({
+                "name": "initialize",
                 "wasm_name": "initialize",
                 "is_ctor": true,
                 "is_fundable": false,

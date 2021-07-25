@@ -13,15 +13,15 @@ use crate::{FuncAttr, FuncAttrKind, Function, Template, Type, Var};
 
 pub struct TemplateMeta {
     name: String,
+    schema: Vec<Var>,
     exports: HashMap<String, Export>,
-    storage: Vec<Var>,
 }
 
 pub struct Export {
     pub is_ctor: bool,
     pub is_fundable: bool,
-    pub api_name: String,
-    pub export_name: String,
+    pub name: String,
+    pub wasm_name: String,
     pub signature: Signature,
     pub doc: String,
 }
@@ -61,16 +61,16 @@ impl TemplateMeta {
         Self {
             name,
             exports: HashMap::new(),
-            storage: Vec::new(),
+            schema: Vec::new(),
         }
     }
 
     pub fn add_export(&mut self, export: Export) {
-        let name = export.api_name.clone();
+        let name = export.name.clone();
         self.exports.insert(name, export);
     }
 
-    pub fn get_export(&self, name: &str) -> &Export {
+    pub fn export(&self, name: &str) -> &Export {
         self.exports.get(name).as_ref().unwrap()
     }
 
@@ -90,14 +90,14 @@ impl TemplateMeta {
         self.exports().filter(|exp| exp.is_ctor).collect()
     }
 
-    pub fn storage(&self) -> &[Var] {
-        &self.storage
+    pub fn schema(&self) -> &[Var] {
+        &self.schema
     }
 }
 
 pub fn template_meta(template: &Template) -> Result<TemplateMeta> {
     let name = template.name().to_string();
-    let storage = storage_schema(template);
+    let schema = template_schema(template);
 
     let exports = template
         .functions()
@@ -111,19 +111,19 @@ pub fn template_meta(template: &Template) -> Result<TemplateMeta> {
             is_endpoint || is_ctor
         })
         .map(export_schema)
-        .map(|export| (export.api_name.clone(), export))
+        .map(|export| (export.name.clone(), export))
         .collect();
 
     let schema = TemplateMeta {
         name,
-        storage,
+        schema,
         exports,
     };
 
     Ok(schema)
 }
 
-fn storage_schema(template: &Template) -> Vec<Var> {
+fn template_schema(template: &Template) -> Vec<Var> {
     let storage = template.structs().iter().find(|s| {
         let attrs = s.attrs().as_ref().unwrap();
 
@@ -163,8 +163,8 @@ fn export_schema(func: &Function) -> Export {
     Export {
         is_ctor,
         is_fundable,
-        api_name,
-        export_name,
+        name: api_name,
+        wasm_name: export_name,
         signature,
         doc,
     }

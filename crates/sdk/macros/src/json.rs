@@ -5,10 +5,10 @@ use quote::quote;
 use serde_json::{json, Value};
 
 pub fn meta(meta: &TemplateMeta) -> Value {
-    let exports = exports_api(meta);
-    let storage = storage_api(meta);
+    let api = api(meta);
+    let schema = schema(meta);
 
-    json!({"exports": exports, "storage": storage})
+    json!({"api": api, "schema": schema})
 }
 
 pub fn to_tokens(json: &Value) -> TokenStream {
@@ -17,16 +17,16 @@ pub fn to_tokens(json: &Value) -> TokenStream {
     quote! { #json }
 }
 
-fn exports_api(meta: &TemplateMeta) -> Value {
+fn api(meta: &TemplateMeta) -> Value {
     let exports = meta
         .exports()
         .map(|e| {
             json!({
+                "name": e.name,
+                "doc": e.doc,
+                "wasm_name": e.wasm_name,
                 "is_ctor": e.is_ctor,
                 "is_fundable": e.is_fundable,
-                "api_name": e.api_name,
-                "wasm_name": e.export_name,
-                "doc": e.doc,
                 "signature": emit_signature(e)
             })
         })
@@ -55,7 +55,11 @@ fn emit_param(param: &(String, Type)) -> Value {
             length,
             ..
         } => {
-            json!({"name": name, "type": format!("[{}]", elem.as_str()), "length": length})
+            json!({
+                "name": name,
+                "type": format!("[{}]", elem.as_str()),
+                "length": length
+            })
         }
         Type::Tuple { .. } => unreachable!(),
     }
@@ -78,21 +82,21 @@ fn emit_output(ty: Option<&Type>) -> Value {
 
 fn emit_output_type(ty: &Type) -> Value {
     match ty {
-        Type::Primitive(prim) => json!({ "type": prim.as_str() }),
+        Type::Primitive(prim) => json!({"type": prim.as_str()}),
         Type::Array {
             elem_ty: elem,
             length,
             ..
         } => {
-            json!({ "type": elem.as_str(), "length": length })
+            json!({"type": elem.as_str(), "length": length})
         }
         Type::Tuple { .. } => unreachable!("Nested tuples are not allowed"),
     }
 }
 
-fn storage_api(meta: &TemplateMeta) -> Value {
+fn schema(meta: &TemplateMeta) -> Value {
     let vars = meta
-        .storage()
+        .schema()
         .iter()
         .map(|v| match v {
             Var::Primitive { .. } => emit_primitive_var(v),
