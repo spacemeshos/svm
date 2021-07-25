@@ -23,21 +23,21 @@ pub fn template(
     input: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
     match template::expand(args.into(), input.into()) {
+        Ok((ast, meta)) => finalize_ast(&ast, &meta),
         Err(err) => err.to_compile_error().into(),
-        Ok((meta, ast)) => {
-            let path = format!("{}-meta.json", meta.name());
-
-            if cfg!(target_arch = "wasm32") {
-                emit_metadata(&meta, path);
-
-                ast.into()
-            } else {
-                finalize_ast(&ast, &meta)
-            }
-        }
     }
 }
 
+#[cfg(target_arch = "wasm32")]
+fn finalize_ast(ast: &proc_macro2::TokenStream, meta: &TemplateMeta) -> proc_macro::TokenStream {
+    let path = format!("{}-meta.json", meta.name());
+    let meta_json = json::meta(&meta);
+    json::json_write(&path, &meta_json);
+
+    ast.into()
+}
+
+#[cfg(not(target_arch = "wasm32"))]
 fn finalize_ast(ast: &proc_macro2::TokenStream, meta: &TemplateMeta) -> proc_macro::TokenStream {
     use quote::quote;
 
@@ -55,9 +55,4 @@ fn finalize_ast(ast: &proc_macro2::TokenStream, meta: &TemplateMeta) -> proc_mac
     };
 
     final_ast.into()
-}
-
-fn emit_metadata<P: AsRef<std::path::Path>>(meta: &TemplateMeta, path: P) {
-    let meta_json = json::meta(&meta);
-    json::json_write(&path, &meta_json);
 }

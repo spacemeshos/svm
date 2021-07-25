@@ -47,7 +47,7 @@ impl Template {
     }
 }
 
-pub fn expand(_args: TokenStream, input: TokenStream) -> Result<(TemplateMeta, TokenStream)> {
+pub fn expand(_args: TokenStream, input: TokenStream) -> Result<(TokenStream, TemplateMeta)> {
     let module = syn::parse2(input)?;
     let template = parse_template(module)?;
     let meta = meta::template_meta(&template)?;
@@ -71,7 +71,7 @@ pub fn expand(_args: TokenStream, input: TokenStream) -> Result<(TemplateMeta, T
         #functions
     };
 
-    Ok((meta, ast))
+    Ok((ast, meta))
 }
 
 pub fn parse_template(mut raw_template: ItemMod) -> Result<Template> {
