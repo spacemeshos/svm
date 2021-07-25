@@ -3,7 +3,7 @@ use std::io::Cursor;
 
 use svm_types::{
     ApiSection, CodeSection, CtorsSection, DataSection, DeploySection, HeaderSection,
-    SchemaSection, SectionKind, SectionWrapper, Sections,
+    SchemaSection, Section, SectionKind, Sections,
 };
 
 use super::{preview, SectionPreview};
@@ -14,17 +14,21 @@ pub trait SectionDecoder: Sized {
     fn decode(cursor: &mut Cursor<&[u8]>) -> Result<Self, ParseError>;
 }
 
+/// Decodes a collection of [`Section`] into their native form.
+///
+/// While running the decoding process, each encountered binary [`Section`] can be decided
+/// to be decoded into its matching Rust form or skipped until the next binary [`Section`].
+/// This mechanism works thanks to having each binary [`Section`] prefixed with a [`SectionPreview`].
+/// It contains information about the kind of [`Section`] and its byte-count.
 pub struct SectionsDecoder<'a> {
     last_preview: Option<SectionPreview>,
-
     read_previews: usize,
-
     section_count: usize,
-
     cursor: Cursor<&'a [u8]>,
 }
 
 impl<'a> SectionsDecoder<'a> {
+    /// New Decoder
     pub fn new(cursor: Cursor<&'a [u8]>) -> Result<Self, ParseError> {
         let mut me = Self {
             cursor,
@@ -38,14 +42,17 @@ impl<'a> SectionsDecoder<'a> {
         Ok(me)
     }
 
+    /// Returns the number of binary [`Section`]s given as input.
     pub fn section_count(&self) -> usize {
         self.section_count
     }
 
+    /// Returns whether decoder has reached it's end of input.
     pub fn is_eof(&mut self) -> bool {
         self.read_previews >= self.section_count
     }
 
+    /// Returns the next [`SectionPreview`].
     pub fn next_preview(&mut self) -> Result<SectionPreview, ParseError> {
         if self.is_eof() {
             return Err(ParseError::ReachedEOF);
@@ -64,7 +71,8 @@ impl<'a> SectionsDecoder<'a> {
         Ok(preview)
     }
 
-    pub fn decode_section(&mut self) -> Result<SectionWrapper, ParseError> {
+    /// Decodes the current pointed to binary [`Section`].
+    pub fn decode_section(&mut self) -> Result<Section, ParseError> {
         assert!(
             self.last_preview.is_some(),
             "Please call `next_preview` prior to calling `decode_section`"
@@ -87,6 +95,7 @@ impl<'a> SectionsDecoder<'a> {
         Ok(section)
     }
 
+    /// Skips the current pointed to binary [`Section`].
     pub fn skip_section(&mut self) -> Result<(), ParseError> {
         assert!(
             self.last_preview.is_some(),
@@ -125,7 +134,6 @@ pub fn decode_sections(
     let interests = interests.unwrap_or_else(|| HashSet::default());
 
     let section_count = decoder.section_count();
-
     let mut sections = Sections::with_capacity(section_count);
 
     for _ in 0..section_count {

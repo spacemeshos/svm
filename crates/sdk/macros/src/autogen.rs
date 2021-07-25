@@ -1,12 +1,28 @@
-use svm_codec::template;
+use svm_codec::SectionsEncoder;
 use svm_layout::{FixedLayoutBuilder, Id, Layout};
-use svm_types::{CtorsSection, DataSection, Section, SectionKind};
+use svm_types::{CtorsSection, DataSection, Section, SectionKind, SectionLike, Sections};
 
 use crate::program::Program;
 use crate::r#struct::Var;
 
-// * Auto-generated `ctors` [`Section`].
-// * Auto-generated `data` [`Section`].
+pub fn emit_binary_sections(sections: &Sections) -> Vec<u8> {
+    let mut encoder = SectionsEncoder::with_capacity(sections.len());
+    encoder.encode(sections);
+
+    encoder.finish()
+}
+
+pub fn build_sections(program: &Program) -> Sections {
+    let ctors = ctors_section(program);
+    let data = data_section(program);
+
+    let mut sections = Sections::with_capacity(2);
+
+    sections.insert(Section::Ctors(ctors));
+    sections.insert(Section::Data(data));
+
+    sections
+}
 
 fn ctors_section(program: &Program) -> CtorsSection {
     let mut section = CtorsSection::default();

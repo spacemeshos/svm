@@ -1,6 +1,6 @@
 use svm_layout::SymbolicVar;
 
-use crate::{Section, SectionKind};
+use crate::{SectionLike, SectionKind};
 
 /// Stores high-level definitions of a `Template` persistent storage
 #[derive(Debug, Clone, PartialEq)]
@@ -39,6 +39,6 @@ impl SchemaSection {
     }
 }
 
-impl Section for SchemaSection {
+impl SectionLike for SchemaSection {
     const KIND: SectionKind = SectionKind::Schema;
 }

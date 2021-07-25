@@ -1,6 +1,6 @@
 use svm_layout::Layout;
 
-use crate::{Section, SectionKind};
+use crate::{SectionLike, SectionKind};
 
 /// Aggregates the `Layouts` of `Template`'s Storage
 ///
@@ -49,6 +49,6 @@ impl DataSection {
     }
 }
 
-impl Section for DataSection {
+impl SectionLike for DataSection {
     const KIND: SectionKind = SectionKind::Data;
 }

@@ -1,4 +1,4 @@
-use crate::{Section, SectionKind};
+use crate::{SectionLike, SectionKind};
 
 /// Contains descriptive info about a `Template`
 #[derive(Debug, Clone, PartialEq)]
@@ -36,6 +36,6 @@ impl HeaderSection {
     }
 }
 
-impl Section for HeaderSection {
+impl SectionLike for HeaderSection {
     const KIND: SectionKind = SectionKind::Header;
 }

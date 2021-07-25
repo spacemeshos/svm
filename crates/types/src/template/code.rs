@@ -1,4 +1,4 @@
-use crate::{GasMode, Section, SectionKind};
+use crate::{GasMode, SectionLike, SectionKind};
 
 const EXEC_FLAGS: u64 = 0x01;
 
@@ -88,7 +88,7 @@ impl CodeSection {
     }
 }
 
-impl Section for CodeSection {
+impl SectionLike for CodeSection {
     const KIND: SectionKind = SectionKind::Code;
 }
 

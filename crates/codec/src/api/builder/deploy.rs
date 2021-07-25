@@ -1,6 +1,6 @@
 use svm_types::{
     ApiSection, CodeSection, CtorsSection, DataSection, DeploySection, HeaderSection,
-    SchemaSection, SectionKind, SectionWrapper, Sections, Template,
+    SchemaSection, SectionKind, Section, Sections, Template,
 };
 
 /// Builds a `Template`
@@ -138,7 +138,7 @@ impl TemplateBuilder {
         Template::new(self.sections)
     }
 
-    fn add(&mut self, section: SectionWrapper) {
+    fn add(&mut self, section: Section) {
         self.sections.insert(section);
     }
 }

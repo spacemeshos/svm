@@ -8,38 +8,38 @@ use super::{
     ApiSection, CodeSection, CtorsSection, DataSection, DeploySection, HeaderSection, SchemaSection,
 };
 
-/// A trait to be implemented by each `Section` type
-pub trait Section {
-    /// The `SectionKind` value associated with the `Section` type implementation
+/// A trait to be implemented by each `Section` type.
+pub trait SectionLike {
+    /// The [`SectionKind`] value associated with the `Section` type implementation.
     const KIND: SectionKind;
 }
 
 /// Holds a `Section`
 #[derive(Debug, Clone, PartialEq)]
-pub enum SectionWrapper {
-    /// Wraps a Section of kind `Header`
+pub enum Section {
+    /// A Section of kind `Header`.
     Header(HeaderSection),
 
-    /// Wraps a Section of kind `Code`
+    /// A Section of kind `Code`.
     Code(CodeSection),
 
-    /// Wraps a Section of kind `Data`
+    /// A Section of kind `Data`.
     Data(DataSection),
 
-    /// Wraps a Section of kind `Ctors`
+    /// A Section of kind `Ctors`.
     Ctors(CtorsSection),
 
-    /// Wraps a Section of kind `Schema`
+    /// A Section of kind `Schema`.
     Schema(SchemaSection),
 
-    /// Wraps a Section of kind `Api`
+    /// A Section of kind `Api`.
     Api(ApiSection),
 
-    /// Wraps a Section of kind `Deploy`
+    /// A Section of kind `Deploy`.
     Deploy(DeploySection),
 }
 
-impl SectionWrapper {
+impl Section {
     /// Returns the `SectionKind` associated with the wrapped `Section`
     pub fn kind(&self) -> SectionKind {
         match *self {
@@ -138,48 +138,48 @@ impl SectionWrapper {
     }
 }
 
-impl From<HeaderSection> for SectionWrapper {
+impl From<HeaderSection> for Section {
     fn from(section: HeaderSection) -> Self {
-        SectionWrapper::Header(section)
+        Section::Header(section)
     }
 }
 
-impl From<CodeSection> for SectionWrapper {
+impl From<CodeSection> for Section {
     fn from(section: CodeSection) -> Self {
-        SectionWrapper::Code(section)
+        Section::Code(section)
     }
 }
 
-impl From<DataSection> for SectionWrapper {
+impl From<DataSection> for Section {
     fn from(section: DataSection) -> Self {
-        SectionWrapper::Data(section)
+        Section::Data(section)
     }
 }
-impl From<CtorsSection> for SectionWrapper {
+impl From<CtorsSection> for Section {
     fn from(section: CtorsSection) -> Self {
-        SectionWrapper::Ctors(section)
+        Section::Ctors(section)
     }
 }
 
-impl From<SchemaSection> for SectionWrapper {
+impl From<SchemaSection> for Section {
     fn from(section: SchemaSection) -> Self {
-        SectionWrapper::Schema(section)
+        Section::Schema(section)
     }
 }
 
-impl From<ApiSection> for SectionWrapper {
+impl From<ApiSection> for Section {
     fn from(section: ApiSection) -> Self {
-        SectionWrapper::Api(section)
+        Section::Api(section)
     }
 }
 
-impl From<DeploySection> for SectionWrapper {
+impl From<DeploySection> for Section {
     fn from(section: DeploySection) -> Self {
-        SectionWrapper::Deploy(section)
+        Section::Deploy(section)
     }
 }
 
-impl fmt::Display for SectionWrapper {
+impl fmt::Display for Section {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.kind().fmt(f)
     }
@@ -230,7 +230,7 @@ impl fmt::Display for SectionKind {
 /// There may be only one `Section` of each kind.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Sections {
-    inner: IndexMap<SectionKind, SectionWrapper>,
+    inner: IndexMap<SectionKind, Section>,
 }
 
 impl Default for Sections {
@@ -240,61 +240,61 @@ impl Default for Sections {
 }
 
 impl Sections {
-    /// Reserves room for `capacity` number of `Section`s
+    /// Reserves room for `capacity` number of [`Section`]s.
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
             inner: IndexMap::with_capacity(capacity),
         }
     }
 
-    /// Returns the number of held `Section`s
+    /// Returns the number of contained [`Section`].
     pub fn len(&self) -> usize {
         self.inner.len()
     }
 
-    /// Inserts a new `Section`
-    pub fn insert(&mut self, section: SectionWrapper) {
+    /// Inserts a new [`Section`].
+    pub fn insert(&mut self, section: Section) {
         self.inner.insert(section.kind(), section);
     }
 
-    /// Returns whether collection has a `Section` of `kind`
+    /// Returns whether collection has a [`Section`] of `kind`.
     pub fn contains(&self, kind: SectionKind) -> bool {
         self.inner.contains_key(&kind)
     }
 
-    /// Returns the `Section` of the requested `kind`
+    /// Returns the [`Section`] of the requested `kind`.
     ///
     /// # Panics
     ///
-    /// Panics if there is no `Section` of the requested kind
-    pub fn get(&self, kind: SectionKind) -> &SectionWrapper {
+    /// Panics if there is no [`Section`] of the requested kind.
+    pub fn get(&self, kind: SectionKind) -> &Section {
         self.try_get(kind).unwrap()
     }
 
-    /// Returns the `Section` of the requested `kind`
+    /// Returns the [`Section`] of the requested `kind`.
     ///
-    /// Returns `None` if no such `Section` exists within the collection
-    pub fn try_get(&self, kind: SectionKind) -> Option<&SectionWrapper> {
+    /// Returns `None` if no such [`Section`] exists within `self`.
+    pub fn try_get(&self, kind: SectionKind) -> Option<&Section> {
         self.inner.get(&kind)
     }
 
-    /// Takes the `Section` of the requested `kind` out of the collection and returns it
+    /// Takes the [`Section`] of the requested `kind` out of the collection and returns it.
     ///
     /// # Panics
     ///
-    /// Panics if there is no `Section` of the requested kind
-    pub fn take(&mut self, kind: SectionKind) -> SectionWrapper {
+    /// Panics if there is no `Section` of the requested kind.
+    pub fn take(&mut self, kind: SectionKind) -> Section {
         self.try_take(kind).unwrap()
     }
 
-    /// Takes the `Section` of the requested `kind` out of the collection and returns it
+    /// Takes the [`Section`] of the requested `kind` out of `self` and returns it.
     ///
-    /// Returns `None` if no such `Section` exists within the collection
-    pub fn try_take(&mut self, kind: SectionKind) -> Option<SectionWrapper> {
+    /// Returns `None` if no such [`Section`] exists within `self`.
+    pub fn try_take(&mut self, kind: SectionKind) -> Option<Section> {
         self.inner.remove(&kind)
     }
 
-    /// Returns an iterator over the collection of `Section`s
+    /// Returns an iterator over the collection of [`Section`]s.
     pub fn iter<'a>(&'a self) -> SectionsIter<'a> {
         let sections = self.inner.values();
 
@@ -302,20 +302,20 @@ impl Sections {
     }
 }
 
-/// An iterator over `Sections~
+/// An iterator over a collection of [`Section`]s.
 pub struct SectionsIter<'a> {
-    sections: Values<'a, SectionKind, SectionWrapper>,
+    sections: Values<'a, SectionKind, Section>,
 }
 
 impl<'a> SectionsIter<'a> {
-    /// Creates a new `Iterator`
-    fn new(sections: Values<'a, SectionKind, SectionWrapper>) -> Self {
+    /// Creates a new Iterator.
+    fn new(sections: Values<'a, SectionKind, Section>) -> Self {
         Self { sections }
     }
 }
 
 impl<'a> Iterator for SectionsIter<'a> {
-    type Item = &'a SectionWrapper;
+    type Item = &'a Section;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.sections.next()

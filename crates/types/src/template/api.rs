@@ -1,4 +1,4 @@
-use crate::{Section, SectionKind};
+use crate::{SectionLike, SectionKind};
 
 /// TODO: ...
 /// See <https://github.com/spacemeshos/svm/issues/277>.
@@ -8,6 +8,6 @@ pub struct ApiSection {
 // See <https://github.com/spacemeshos/svm/issues/277>.
 }
 
-impl Section for ApiSection {
+impl SectionLike for ApiSection {
     const KIND: SectionKind = SectionKind::Api;
 }
