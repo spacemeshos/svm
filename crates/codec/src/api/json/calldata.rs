@@ -1,247 +1,322 @@
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 use serde_json::Value as Json;
 
+use std::convert::TryFrom;
+
 use svm_abi_decoder::CallData;
 use svm_abi_encoder::{ByteSize, Encoder};
-use svm_sdk_types::value::{Composite, Primitive, Value};
+use svm_sdk_types::value::{Composite, Primitive, Value as SdkValue};
 use svm_sdk_types::{Address, Amount};
 
-use crate::api::json::{self, JsonError};
-
-macro_rules! as_str {
-    ($json:expr) => {{
-        let s = $json.as_str();
-
-        if s.is_none() {
-            return Err(JsonError::InvalidField {
-                field: "data".to_string(),
-                reason: "non-string value".to_string(),
-            });
-        }
-
-        Ok(s.unwrap())
-    }};
-}
+use super::serde_types::{AddressWrapper, EncodedData, HexBlob};
+use super::JsonSerdeUtils;
+use crate::api::json::JsonError;
 
 /// Given a `Calldata` JSON, encodes it into a binary `Calldata`
-/// and returns the result wrapped with a JSON
-pub fn encode_calldata(json: &Json) -> Result<Json, JsonError> {
-    let abi = json::as_array(json, "abi")?;
-    let data = json::as_array(json, "data")?;
+/// and returns the result wrapped with a JSON.
+///
+/// ```json
+/// {
+///   "data": "FFC103..."
+/// }
+/// ```
+pub fn encode_calldata(json: &str) -> Result<Json, JsonError> {
+    let decoded = DecodedCallData::new(json)?;
+    let calldata = HexBlob(decoded.encode().unwrap());
+    Ok(EncodedData { data: calldata }.to_json())
+}
 
-    if abi.len() != data.len() {
-        return Err(JsonError::InvalidField {
-            field: "data".to_string(),
-            reason: "`abi` and `data` must be of the same length".to_string(),
-        });
-    }
-
-    let mut cap = 0;
-
-    for (ty, raw) in abi.iter().zip(data) {
-        cap += value_byte_size(ty, raw)?;
-    }
-
-    let mut buf = svm_sdk_std::Vec::with_capacity(cap);
-
-    for (ty, raw) in abi.iter().zip(data) {
-        let value = encode_value(ty, raw)?;
-
-        value.encode(&mut buf);
-    }
-
-    let calldata = json::bytes_to_str(buf.as_slice());
-    let json = json!({ "calldata": calldata });
-
-    Ok(json)
+pub fn decode_raw_calldata(data: &[u8]) -> Result<Json, JsonError> {
+    let calldata = CallData::new(data);
+    Ok(calldata_to_json(calldata))
 }
 
 /// Given a binary `Calldata` (wrapped within a JSON), decodes it into a JSON
-pub fn decode_calldata(json: &Json) -> Result<Json, JsonError> {
-    let data = json::as_string(json, "calldata")?;
-    let calldata = json::str_to_bytes(&data, "calldata")?;
-    let mut calldata = CallData::new(&calldata);
+pub fn decode_calldata(json: &str) -> Result<Json, JsonError> {
+    let encoded = EncodedData::from_json_str(json)?;
+    let calldata = CallData::new(&encoded.data.0);
+    Ok(calldata_to_json(calldata))
+}
 
-    let mut abi = Vec::<Json>::new();
-    let mut data = Vec::<Json>::new();
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub(crate) struct DecodedCallData {
+    abi: Vec<TySig>,
+    data: Vec<Json>,
+}
+
+impl DecodedCallData {
+    pub fn new(json: &str) -> Result<Self, JsonError> {
+        let decoded = Self::from_json_str(json)?;
+
+        if decoded.abi.len() != decoded.data.len() {
+            Err(JsonError::InvalidField {
+                path: "data".to_string(),
+            })
+        } else {
+            Ok(decoded)
+        }
+    }
+
+    /// Like `Self::zip`, but in borrowed form.
+    fn zip_ref(&self) -> impl Iterator<Item = (&TySig, &Json)> {
+        self.abi.iter().zip(self.data.iter())
+    }
+
+    fn zip(self) -> impl Iterator<Item = (TySig, Json)> {
+        self.abi.into_iter().zip(self.data.into_iter())
+    }
+
+    fn cap(&self) -> Result<usize, JsonError> {
+        self.zip_ref()
+            .map(|(ty, raw)| ty.value_byte_size(&raw))
+            .sum()
+    }
+
+    pub fn encode(self) -> Result<Vec<u8>, JsonError> {
+        let cap = self.cap()?;
+        let mut buf = svm_sdk_std::Vec::with_capacity(cap);
+
+        self.zip()
+            .try_for_each(|(ty, raw)| encode_value(ty, raw).map(|value| value.encode(&mut buf)))?;
+
+        Ok(buf.as_slice().to_vec())
+    }
+}
+
+impl JsonSerdeUtils for DecodedCallData {}
+
+fn calldata_to_json(mut calldata: CallData) -> Json {
+    let mut abi = vec![];
+    let mut data = vec![];
 
     while let Some(value) = calldata.next().into() {
-        let (ty, item) = value_as_json(&value);
-
-        abi.push(ty);
-        data.push(item);
+        abi.push(sdk_value_utils::ty_sig_of_sdk_value(&value));
+        data.push(sdk_value_utils::sdk_value_to_json(value));
     }
 
-    let result = json!({ "abi": abi, "data": data });
-
-    Ok(result)
+    json!({ "abi": abi, "data": data })
 }
 
-fn value_as_json(value: &Value) -> (Json, Json) {
-    match value {
-        Value::Primitive(p) => primitive_as_json(p),
-        Value::Composite(c) => composite_as_json(c),
-    }
-}
+mod sdk_value_utils {
+    use svm_types::Address;
 
-fn primitive_as_json(p: &Primitive) -> (Json, Json) {
-    match p {
-        Primitive::Bool(b) => (Json::String("bool".into()), json!(b)),
-        Primitive::Amount(a) => (Json::String("amount".into()), json!(a.0)),
-        Primitive::I8(n) => (Json::String("i8".into()), json!(n)),
-        Primitive::U8(n) => (Json::String("u8".into()), json!(n)),
-        Primitive::I16(n) => (Json::String("i16".into()), json!(n)),
-        Primitive::U16(n) => (Json::String("u16".into()), json!(n)),
-        Primitive::I32(n) => (Json::String("i32".into()), json!(n)),
-        Primitive::U32(n) => (Json::String("u32".into()), json!(n)),
-        Primitive::I64(n) => (Json::String("i64".into()), json!(n)),
-        Primitive::U64(n) => (Json::String("u64".into()), json!(n)),
-        Primitive::Address(addr) => {
-            let s = json::bytes_to_str(addr.as_slice());
-            (Json::String("address".into()), json!(s))
+    use super::*;
+
+    /// Given a [`svm_sdk_types::value::Value`], encodes its value as a
+    /// JSON value. This function, together with [`ty_sig_of_sdk_value`], can
+    /// give a **ful** overview over some values, with both its type signature
+    /// and its value.
+    pub fn sdk_value_to_json(value: SdkValue) -> Json {
+        match value {
+            SdkValue::Primitive(prim) => match prim {
+                Primitive::Bool(x) => json!(x),
+                Primitive::I8(x) => json!(x),
+                Primitive::U8(x) => json!(x),
+                Primitive::I16(x) => json!(x),
+                Primitive::U16(x) => json!(x),
+                Primitive::I32(x) => json!(x),
+                Primitive::U32(x) => json!(x),
+                Primitive::I64(x) => json!(x),
+                Primitive::U64(x) => json!(x),
+                Primitive::Amount(x) => json!(x.0),
+                Primitive::Address(x) => AddressWrapper(Address::from(x.as_slice())).to_json(),
+                _ => unreachable!(),
+            },
+            SdkValue::Composite(Composite::Vec(values)) => Json::Array(
+                values
+                    .into_iter()
+                    .map(|sdk_value| sdk_value_to_json(sdk_value))
+                    .collect(),
+            ),
         }
-        Primitive::None => unreachable!(),
-        Primitive::Unit => unreachable!(),
-    }
-}
-
-fn composite_as_json(c: &Composite) -> (Json, Json) {
-    let slice: &[Value] = match c {
-        Composite::Vec(inner) => inner.as_slice(),
-    };
-
-    if slice.is_empty() {
-        return (Json::Null, Json::Array(std::vec::Vec::new()));
     }
 
-    let mut types: Vec<Json> = Vec::new();
-    let mut values: Vec<Json> = Vec::new();
-
-    for elem in slice {
-        let (ty, value) = value_as_json(elem);
-
-        types.push(ty);
-        values.push(value);
+    /// Given a [`svm_sdk_types::value::Value`], encodes its type signature as a
+    /// JSON value.
+    pub fn ty_sig_of_sdk_value(value: &SdkValue) -> Json {
+        match value {
+            SdkValue::Primitive(prim) => match prim {
+                Primitive::Bool(_) => "bool",
+                Primitive::I8(_) => "i8",
+                Primitive::U8(_) => "u8",
+                Primitive::I16(_) => "i16",
+                Primitive::U16(_) => "u16",
+                Primitive::I32(_) => "i32",
+                Primitive::U32(_) => "u32",
+                Primitive::I64(_) => "i64",
+                Primitive::U64(_) => "u64",
+                Primitive::Amount(_) => "amount",
+                Primitive::Address(_) => "address",
+                _ => unreachable!(),
+            }
+            .into(),
+            SdkValue::Composite(Composite::Vec(values)) => {
+                if values.is_empty() {
+                    Json::Null
+                } else {
+                    let ty = &values.last().unwrap();
+                    Json::Array(vec![ty_sig_of_sdk_value(ty)])
+                }
+            }
+        }
     }
 
-    // TODO: assert that all `types` are the same
-    let ty = types.pop().unwrap();
-
-    (Json::Array(vec![ty]), Json::Array(values))
-}
-
-fn value_byte_size(ty: &Json, value: &Json) -> Result<usize, JsonError> {
-    if ty.is_array() {
-        let types = ty.as_array().unwrap();
-        assert_eq!(types.len(), 1);
-
-        let ty = &types[0];
-
-        // we initialize `byte_size` for the `length` marker.
-        let mut byte_size = 1;
-
-        let json = json!({ "calldata": value });
-        let elems = json::as_array(&json, "calldata")?;
-
-        for elem in elems {
-            byte_size += value_byte_size(ty, elem)?;
+    pub fn sdk_value_from_json(json: Json, ty_sig: TySigPrim) -> Option<SdkValue> {
+        fn json_as_numeric<N>(json: Json) -> Option<SdkValue>
+        where
+            N: TryFrom<i64> + Into<SdkValue>,
+        {
+            json.as_i64()
+                .and_then(|n| N::try_from(n).ok())
+                .map(Into::into)
         }
 
-        return Ok(byte_size);
+        match ty_sig {
+            TySigPrim::Bool => json.as_bool().map(Into::into),
+            TySigPrim::Amount => json
+                .as_u64()
+                .map(|val| SdkValue::Primitive(Primitive::Amount(Amount(val)))),
+            TySigPrim::Address => serde_json::from_value::<AddressWrapper>(json)
+                .ok()
+                .map(|addr| {
+                    let addr = svm_sdk_types::Address::from(addr.0.bytes());
+                    SdkValue::Primitive(Primitive::Address(addr))
+                }),
+            TySigPrim::I8 => json_as_numeric::<i8>(json),
+            TySigPrim::U8 => json_as_numeric::<u8>(json),
+            TySigPrim::I16 => json_as_numeric::<i16>(json),
+            TySigPrim::U16 => json_as_numeric::<u16>(json),
+            TySigPrim::I32 => json_as_numeric::<i32>(json),
+            TySigPrim::U32 => json_as_numeric::<u32>(json),
+            TySigPrim::I64 => json_as_numeric::<i64>(json),
+            // [`u64`] is the only JSON integer type which doesn't fit into `i64`.
+            TySigPrim::U64 => json.as_u64().map(Into::into),
+        }
     }
+}
 
-    let ty = as_str!(ty)?;
+// See <https://serde.rs/enum-representations.html>.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(untagged)]
+enum TySig {
+    Prim(TySigPrim),
+    Array(Vec<TySig>),
+}
 
-    let size = match ty {
-        "bool" => bool::max_byte_size(),
-        "i8" => i8::max_byte_size(),
-        "u8" => u8::max_byte_size(),
-        "i16" => i16::max_byte_size(),
-        "u16" => u16::max_byte_size(),
-        "i32" => i32::max_byte_size(),
-        "u32" => u32::max_byte_size(),
-        "i64" => i64::max_byte_size(),
-        "u64" => u64::max_byte_size(),
-        "amount" => Amount::max_byte_size(),
-        "address" => Address::max_byte_size(),
-        _ => {
-            return Err(JsonError::InvalidField {
-                field: "abi".to_string(),
-                reason: format!("invalid ABI type: `{}`", ty),
+impl TySig {
+    fn value_byte_size(&self, value: &Json) -> Result<usize, JsonError> {
+        let byte_size = match self {
+            TySig::Array(types) => {
+                assert_eq!(types.len(), 1);
+
+                let ty = &types[0];
+
+                // we initialize `byte_size` for the `length` marker.
+                let mut byte_size = 1;
+
+                let elems = value.as_array().ok_or(JsonError::InvalidField {
+                    path: "calldata".to_string(),
+                })?;
+
+                for elem in elems {
+                    byte_size += ty.value_byte_size(elem)?;
+                }
+
+                byte_size
+            }
+            TySig::Prim(prim) => match prim {
+                TySigPrim::Bool => bool::max_byte_size(),
+                TySigPrim::I8 => i8::max_byte_size(),
+                TySigPrim::U8 => u8::max_byte_size(),
+                TySigPrim::I16 => i16::max_byte_size(),
+                TySigPrim::U16 => u16::max_byte_size(),
+                TySigPrim::I32 => i32::max_byte_size(),
+                TySigPrim::U32 => u32::max_byte_size(),
+                TySigPrim::I64 => i64::max_byte_size(),
+                TySigPrim::U64 => u64::max_byte_size(),
+                TySigPrim::Amount => Amount::max_byte_size(),
+                TySigPrim::Address => Address::max_byte_size(),
+            },
+        };
+        Ok(byte_size)
+    }
+}
+
+#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum TySigPrim {
+    Bool,
+    I8,
+    U8,
+    I16,
+    U16,
+    I32,
+    U32,
+    I64,
+    U64,
+    Amount,
+    Address,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+enum TyPrimSdkValue {
+    Bool(bool),
+    I8(i8),
+    U8(u8),
+    I16(i16),
+    U16(u16),
+    I32(i32),
+    U32(u32),
+    I64(i64),
+    U64(u64),
+    Amount(u64),
+    Address(AddressWrapper),
+}
+
+fn encode_value(ty: TySig, value: Json) -> Result<SdkValue, JsonError> {
+    match ty {
+        TySig::Array(types) => encode_array(&types, value),
+        TySig::Prim(prim) => {
+            sdk_value_utils::sdk_value_from_json(value, prim).ok_or(JsonError::InvalidField {
+                path: "calldata".to_string(),
             })
         }
-    };
-
-    Ok(size)
+    }
 }
 
-fn encode_value(ty: &Json, value: &Json) -> Result<Value, JsonError> {
-    if ty.is_array() {
-        return encode_array(ty, value);
-    }
-
-    let ty = as_str!(ty)?;
-    let json = json!({ "calldata": value });
-
-    macro_rules! encode {
-        ($func:ident) => {{
-            json::$func(&json, "calldata")?.into()
-        }};
-    }
-
-    let value: Value = match ty {
-        "bool" => encode!(as_bool),
-        "i8" => encode!(as_i8),
-        "u8" => encode!(as_u8),
-        "i16" => encode!(as_i16),
-        "u16" => encode!(as_u16),
-        "i32" => encode!(as_i32),
-        "u32" => encode!(as_u32),
-        "i64" => encode!(as_i64),
-        "u64" => encode!(as_u64),
-        "amount" => encode!(as_amount),
-        "address" => {
-            let addr: svm_types::Address = json::as_addr(&json, "calldata")?;
-
-            let bytes = addr.bytes();
-            let addr: Address = bytes.into();
-
-            addr.into()
-        }
-        _ => {
-            return Err(JsonError::InvalidField {
-                field: "abi".to_string(),
-                reason: format!("invalid ABI type: `{}`", ty),
-            })
-        }
-    };
-
-    Ok(value)
-}
-
-fn encode_array(ty: &Json, value: &Json) -> Result<Value, JsonError> {
-    debug_assert!(ty.is_array());
-
-    let types = ty.as_array().unwrap();
+fn encode_array(types: &[TySig], mut value: Json) -> Result<SdkValue, JsonError> {
     assert_eq!(types.len(), 1);
 
     let ty = &types[0];
 
-    let json = json!({ "calldata": value });
-    let elems = json::as_array(&json, "calldata")?;
+    let mut value = value.take();
+    let elems = value.as_array_mut().ok_or(JsonError::InvalidField {
+        path: "calldata".to_string(),
+    })?;
 
     let mut vec = svm_sdk_std::Vec::with_capacity(10);
 
-    for elem in elems {
-        let elem = encode_value(ty, elem)?;
+    for elem in elems.iter_mut() {
+        let elem = encode_value(ty.clone(), elem.take())?;
 
         vec.push(elem);
     }
 
     let c = Composite::Vec(vec);
 
-    Ok(Value::Composite(c))
+    Ok(SdkValue::Composite(c))
 }
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+struct CalldataEncoded {
+    calldata: HexBlob<Vec<u8>>,
+}
+
+impl JsonSerdeUtils for CalldataEncoded {}
 
 #[cfg(test)]
 mod tests {
@@ -251,28 +326,25 @@ mod tests {
         ($abi:expr, $data:expr) => {{
             let json = json!({"abi": $abi, "data": $data });
 
-            let encoded = encode_calldata(&json).unwrap();
-            let decoded = decode_calldata(&encoded).unwrap();
+            let encoded = encode_calldata(&json.to_string()).unwrap();
+            let decoded = decode_calldata(&encoded.to_string()).unwrap();
 
-            assert_eq!(
-                decoded,
-                json!({"abi": $abi, "data": $data })
-            );
+            assert_eq!(decoded, json);
         }}
     }
 
     #[test]
-    pub fn encode_calldata_bool() {
+    fn encode_calldata_bool() {
         test!(["bool", "bool"], [true, false]);
     }
 
     #[test]
-    pub fn encode_calldata_i8_u8() {
+    fn encode_calldata_i8_u8() {
         test!(["i8", "u8"], [std::i8::MIN as isize, std::u8::MAX as isize]);
     }
 
     #[test]
-    pub fn encode_calldata_i16_u16() {
+    fn encode_calldata_i16_u16() {
         test!(
             ["i16", "u16"],
             [std::i16::MIN as isize, std::u16::MAX as isize]
@@ -280,7 +352,7 @@ mod tests {
     }
 
     #[test]
-    pub fn encode_calldata_i32_u32() {
+    fn encode_calldata_i32_u32() {
         test!(
             ["i32", "u32"],
             [std::i32::MIN as isize, std::u32::MAX as isize]
@@ -288,25 +360,25 @@ mod tests {
     }
 
     #[test]
-    pub fn encode_calldata_i64_u64() {
+    fn encode_calldata_i64_u64() {
         test!(["i64"], [std::i64::MIN as isize]);
         test!(["u64"], [std::u64::MAX as usize]);
     }
 
     #[test]
-    pub fn encode_calldata_amount() {
+    fn encode_calldata_amount() {
         test!(["amount", "amount"], [10 as u64, 20 as u64]);
     }
 
     #[test]
-    pub fn encode_calldata_address() {
+    fn encode_calldata_address() {
         let addr = "1020304050607080900010203040506070809000";
 
         test!(["address"], [addr]);
     }
 
     #[test]
-    pub fn encode_calldata_array() {
+    fn encode_calldata_array() {
         test!([["u32"]], [[10, 20, 30]]);
         test!([["i8"]], [[-10, 0, 30]]);
         test!([["u32"], ["i8"]], [[10, 20, 30], [-10, 0, 20]]);

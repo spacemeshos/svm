@@ -1,5 +1,3 @@
-use serde_json::Value;
-
 use super::wasm_buf_apply;
 use crate::api::{self, json::JsonError};
 
@@ -15,10 +13,10 @@ pub fn encode_spawn(offset: usize) -> Result<usize, JsonError> {
 ///
 /// and returns a new Wasm buffer holding the decoded transaction (wrapped with a JSON).
 pub fn decode_spawn(offset: usize) -> Result<usize, JsonError> {
-    wasm_buf_apply(offset, |json: &Value| {
+    wasm_buf_apply(offset, |json: &str| {
         let json = api::json::decode_spawn(json)?;
 
-        api::json::to_bytes(&json)
+        Ok(api::json::to_bytes(&json))
     })
 }
 
@@ -27,6 +25,7 @@ mod test {
     use super::*;
 
     use crate::api::json;
+    use crate::api::json::serde_types::HexBlob;
     use crate::api::wasm::{
         error_as_string, free, to_wasm_buffer, wasm_buffer_data, BUF_OK_MARKER,
     };
@@ -37,10 +36,13 @@ mod test {
     fn wasm_spawn_valid() {
         let template_addr = "1122334455667788990011223344556677889900";
 
-        let calldata = json::encode_calldata(&json!({
-            "abi": ["i32", "i64"],
-            "data": [10, 20]
-        }))
+        let calldata = json::encode_calldata(
+            &json!({
+                "abi": ["i32", "i64"],
+                "data": [10, 20]
+            })
+            .to_string(),
+        )
         .unwrap();
 
         let json = json!({
@@ -48,7 +50,7 @@ mod test {
           "template": template_addr,
           "name": "My Account",
           "ctor_name": "initialize",
-          "calldata": calldata["calldata"],
+          "calldata": calldata["data"],
         });
 
         let json = serde_json::to_string(&json).unwrap();
@@ -57,7 +59,7 @@ mod test {
         let data = wasm_buffer_data(tx_buf);
         assert_eq!(data[0], BUF_OK_MARKER);
 
-        let data = json::bytes_to_str(&data[1..]);
+        let data = HexBlob(&data[1..]);
         let json = json!({ "data": data });
         let json = serde_json::to_string(&json).unwrap();
 
@@ -99,7 +101,7 @@ mod test {
 
         let error = unsafe { error_as_string(error_buf) };
 
-        assert!(error.starts_with(r#"Error("EOF while parsing"#));
+        assert_eq!(error, "The given JSON is syntactically invalid due to EOF.");
 
         free(json_buf);
         free(error_buf);

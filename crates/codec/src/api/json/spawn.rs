@@ -1,89 +1,106 @@
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+
 use std::io::Cursor;
 
-use svm_types::{Account, SpawnAccount};
+use svm_types::{Account, SpawnAccount, TemplateAddr};
 
-use serde_json::{json, Value};
-
-use crate::api::json::{self, JsonError};
-
+use super::call::EncodedOrDecodedCalldata;
+use super::calldata::DecodedCallData;
+use super::serde_types::{AddressWrapper, EncodedData};
+use super::{JsonError, JsonSerdeUtils};
 use crate::spawn;
 
 ///
 /// ```json
 /// {
-///   version: 0,              // number
-///   template: 'A2FB...',     // string
-///   name: 'My Account',      // string
-///   ctor_name: 'initialize', // number
-///   calldata: '',            // string
+///   "version": 0,              // number
+///   "template": "A2FB...",     // string
+///   "name": "My Account",      // string
+///   "ctor_name": "initialize", // number
+///   "calldata": "",            // string
 /// }
 /// ```
-pub fn encode_spawn(json: &Value) -> Result<Vec<u8>, JsonError> {
-    let version = json::as_u32(json, "version")? as u16;
-    let template = json::as_addr(json, "template")?.into();
-    let name = json::as_string(json, "name")?;
-    let ctor_name = json::as_string(json, "ctor_name")?;
-
-    let calldata = json::as_string(json, "calldata")?;
-    let calldata = json::str_to_bytes(&calldata, "calldata")?;
-
-    let spawn = SpawnAccount {
-        version,
-        account: Account::new(template, name),
-        ctor_name,
-        calldata,
-    };
+pub fn encode_spawn(json: &str) -> Result<Vec<u8>, JsonError> {
+    let decoded = DecodedSpawn::from_json_str(json)?;
+    let spawn = decoded.into();
 
     let mut buf = Vec::new();
     spawn::encode(&spawn, &mut buf);
-
     Ok(buf)
 }
 
 /// Given a binary [`SpawnAccount`] transaction wrapped inside a JSON,
 /// decodes it into a user-friendly JSON.
-pub fn decode_spawn(json: &Value) -> Result<Value, JsonError> {
-    let data = json::as_string(json, "data")?;
-    let bytes = json::str_to_bytes(&data, "data")?;
+pub fn decode_spawn(json: &str) -> Result<Value, JsonError> {
+    let encoded_spawn = EncodedData::from_json_str(json)?;
 
-    let mut cursor = Cursor::new(&bytes[..]);
+    let mut cursor = Cursor::new(&encoded_spawn.data.0[..]);
     let spawn = spawn::decode(&mut cursor).unwrap();
 
-    let version = spawn.version;
-    let ctor_name = spawn.ctor_name;
-    let template = json::addr_to_str(&spawn.account.template_addr.inner());
+    Ok(DecodedSpawn::from(spawn).to_json())
+}
 
-    let calldata = json::bytes_to_str(&spawn.calldata);
-    let calldata = json::decode_calldata(&json!({ "calldata": calldata }))?;
+#[derive(Debug, Deserialize, Serialize, Clone)]
+struct DecodedSpawn {
+    version: u16,
+    #[serde(rename = "template")]
+    template_addr: AddressWrapper,
+    name: String,
+    ctor_name: String,
+    calldata: EncodedOrDecodedCalldata,
+}
 
-    let name = spawn.account.name;
+impl JsonSerdeUtils for DecodedSpawn {}
 
-    let json = json!({
-        "version": version,
-        "template": template,
-        "name": name,
-        "ctor_name": ctor_name,
-        "calldata": calldata,
-    });
+impl From<SpawnAccount> for DecodedSpawn {
+    fn from(spawn: SpawnAccount) -> Self {
+        let template_addr = AddressWrapper(spawn.account.template_addr().inner().clone());
+        let decoded_calldata = super::calldata::decode_raw_calldata(&spawn.calldata).unwrap();
 
-    Ok(json)
+        Self {
+            version: spawn.version,
+            name: spawn.account.name,
+            template_addr,
+            ctor_name: spawn.ctor_name,
+            calldata: EncodedOrDecodedCalldata::Decoded(
+                DecodedCallData::new(&decoded_calldata.to_string())
+                    .expect("Invalid JSON immediately after serialization"),
+            ),
+        }
+    }
+}
+
+impl From<DecodedSpawn> for SpawnAccount {
+    fn from(wrapper: DecodedSpawn) -> Self {
+        let template_addr = TemplateAddr::new(wrapper.template_addr.0);
+
+        SpawnAccount {
+            version: wrapper.version,
+            account: Account::new(template_addr, wrapper.name),
+            ctor_name: wrapper.ctor_name,
+            calldata: wrapper.calldata.encode(),
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use serde_json::json;
+
+    use super::*;
+    use crate::api::json;
+    use crate::api::json::serde_types::HexBlob;
 
     #[test]
     fn json_spawn_missing_version() {
-        let json = json!({});
+        let json = json!({}).to_string();
         let err = encode_spawn(&json).unwrap_err();
 
         assert_eq!(
             err,
-            JsonError::InvalidField {
-                field: "version".to_string(),
-                reason: "value `null` isn\'t a number".to_string(),
+            JsonError::MissingField {
+                field_name: "version".to_string(),
             }
         );
     }
@@ -92,14 +109,14 @@ mod tests {
     fn json_spawn_missing_template_addr() {
         let json = json!({
             "version": 0
-        });
+        })
+        .to_string();
         let err = encode_spawn(&json).unwrap_err();
 
         assert_eq!(
             err,
-            JsonError::InvalidField {
-                field: "template".to_string(),
-                reason: "value `null` isn\'t a string".to_string(),
+            JsonError::MissingField {
+                field_name: "template".to_string(),
             }
         );
     }
@@ -109,14 +126,14 @@ mod tests {
         let json = json!({
             "version": 0,
             "template": "10203040506070809000A0B0C0D0E0F0ABCDEFFF"
-        });
+        })
+        .to_string();
         let err = encode_spawn(&json).unwrap_err();
 
         assert_eq!(
             err,
-            JsonError::InvalidField {
-                field: "name".to_string(),
-                reason: "value `null` isn\'t a string".to_string(),
+            JsonError::MissingField {
+                field_name: "name".to_string(),
             }
         );
     }
@@ -127,14 +144,14 @@ mod tests {
             "version": 0,
             "template": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
             "name": "My Account",
-        });
+        })
+        .to_string();
         let err = encode_spawn(&json).unwrap_err();
 
         assert_eq!(
             err,
-            JsonError::InvalidField {
-                field: "ctor_name".to_string(),
-                reason: "value `null` isn\'t a string".to_string(),
+            JsonError::MissingField {
+                field_name: "ctor_name".to_string(),
             }
         );
     }
@@ -146,24 +163,27 @@ mod tests {
             "template": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
             "name": "My Account",
             "ctor_name": "initialize",
-        });
+        })
+        .to_string();
         let err = encode_spawn(&json).unwrap_err();
 
         assert_eq!(
             err,
-            JsonError::InvalidField {
-                field: "calldata".to_string(),
-                reason: "value `null` isn\'t a string".to_string(),
+            JsonError::MissingField {
+                field_name: "calldata".to_string(),
             }
         );
     }
 
     #[test]
     fn json_spawn_valid() {
-        let calldata = json::encode_calldata(&json!({
-            "abi": ["i32", "i64"],
-            "data": [10, 20]
-        }))
+        let calldata = json::encode_calldata(
+            &json!({
+                "abi": ["i32", "i64"],
+                "data": [10, 20]
+            })
+            .to_string(),
+        )
         .unwrap();
 
         let json = json!({
@@ -171,12 +191,14 @@ mod tests {
             "template": "10203040506070809000A0B0C0D0E0F0ABCDEFFF",
             "name": "My Account",
             "ctor_name": "initialize",
-            "calldata": calldata["calldata"],
-        });
+            "calldata": calldata["data"],
+        })
+        .to_string();
+        println!("SPAWNING {}", json);
 
         let bytes = encode_spawn(&json).unwrap();
-        let data = json::bytes_to_str(&bytes);
-        let json = decode_spawn(&json!({ "data": data })).unwrap();
+        let data = HexBlob(&bytes);
+        let json = decode_spawn(&json!({ "data": data }).to_string()).unwrap();
 
         assert_eq!(
             json,

@@ -47,11 +47,10 @@ pub fn subcmd_tx(args: &ArgMatches) -> anyhow::Result<()> {
 
     let input_path = args.value_of("input").unwrap();
     let input_s = std::fs::read_to_string(input_path)?;
-    let json_value: serde_json::Value = serde_json::from_str(input_s.as_str())?;
     let bytes = match action {
-        Action::Call => json::encode_call(&json_value).expect("Invalid JSON"),
-        Action::Deploy => json::deploy_template(&json_value).expect("Invalid JSON"),
-        Action::Spawn => json::encode_spawn(&json_value).expect("Invalid JSON"),
+        Action::Call => json::encode_call_raw(&input_s).expect("Invalid JSON"),
+        Action::Deploy => json::deploy_template(&input_s).expect("Invalid JSON"),
+        Action::Spawn => json::encode_spawn(&input_s).expect("Invalid JSON"),
     };
 
     let mut file = File::create(args.value_of("output").unwrap())?;
