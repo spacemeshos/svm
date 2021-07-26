@@ -66,7 +66,7 @@ struct TemplateMetaApiSignatureParam {
     name: String,
     #[serde(rename = "type")]
     ty: String,
-    length: usize,
+    length: Option<usize>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
