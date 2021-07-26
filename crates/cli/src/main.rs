@@ -1,7 +1,5 @@
 #![allow(unused)]
 
-mod clap_app;
-mod sections;
 mod subcmd_auto_deploy;
 mod subcmd_tx;
 mod subcmd_validate;
@@ -22,18 +20,9 @@ use svm_gas::validate_wasm;
 use svm_gas::ProgramPricing;
 use svm_program::{Program, ProgramVisitor};
 
-use clap_app::clap_app;
-use subcmd_auto_deploy::subcmd_auto_deploy;
-use subcmd_tx::subcmd_tx;
-use subcmd_validate::subcmd_validate;
-
-#[derive(Clone, Debug, Error)]
-enum Error {
-    #[error("Invalid UTF-8 in .wat file.")]
-    InvalidUtf8(#[from] Utf8Error),
-    #[error("Unknown file extension. Only .wat, .wast and .wasm are supported.")]
-    UnknownFileExtension,
-}
+use subcmd_auto_deploy::{clap_app_auto_deploy, subcmd_auto_deploy};
+use subcmd_tx::{clap_app_tx, subcmd_tx};
+use subcmd_validate::{clap_app_validate, subcmd_validate};
 
 fn main() -> anyhow::Result<()> {
     let clap_matches = clap_app().get_matches();
@@ -44,4 +33,30 @@ fn main() -> anyhow::Result<()> {
         (_, _) => unreachable!(),
     }
     Ok(())
+}
+
+#[derive(Clone, Debug, Error)]
+enum Error {
+    #[error("Invalid UTF-8 in .wat file.")]
+    InvalidUtf8(#[from] Utf8Error),
+    #[error("Unknown file extension. Only .wat, .wast and .wasm are supported.")]
+    UnknownFileExtension,
+}
+
+fn clap_app() -> clap::App<'static, 'static> {
+    use clap::*;
+
+    // Help messages all use the third person rather than the imperative form,
+    // e.g. "prints" rather than "print".
+
+    App::new("svm-cli")
+        .version("1.0")
+        .author("The Spacemesh team")
+        .about("A CLI tool to access SVM internal utilities")
+        // The user must provide a valid subcommand, otherwise we don't really
+        // know what to do.
+        .setting(clap::AppSettings::SubcommandRequired)
+        .subcommand(clap_app_validate())
+        .subcommand(clap_app_tx())
+        .subcommand(clap_app_auto_deploy())
 }
