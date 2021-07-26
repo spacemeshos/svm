@@ -1,7 +1,5 @@
 use std::fmt;
 
-use crate::AccountAddr;
-
 mod context;
 mod envelope;
 mod id;
@@ -12,14 +10,16 @@ pub use envelope::Envelope;
 pub use id::TransactionId;
 pub use layer::Layer;
 
+use crate::Address;
+
 /// An in-memory representation of an `Call Account` transaction.
 #[derive(PartialEq, Clone)]
 pub struct Transaction {
     /// The `version`.
     pub version: u16,
 
-    /// The target `Account`.
-    pub target: AccountAddr,
+    /// The target `Address`.
+    pub target: Address,
 
     /// Function's name to execute
     pub func_name: String,
@@ -34,7 +34,7 @@ pub struct Transaction {
 
 impl Transaction {
     #[doc(hidden)]
-    pub fn target(&self) -> &AccountAddr {
+    pub fn target(&self) -> &Address {
         &self.target
     }
 
@@ -63,12 +63,12 @@ impl fmt::Debug for Transaction {
 
         f.debug_struct("Transaction")
             .field("version", &self.version)
-            .field("target", self.target.inner())
+            .field("target", self.target())
             // TODO:
             // See issue: https://github.com/spacemeshos/svm/issues/248
             // .field("verifydata", &verifydata)
             .field("calldata", &calldata)
-            .field("function", &self.func_name)
+            .field("function", &self.function())
             .finish()
     }
 }

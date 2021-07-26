@@ -10,8 +10,8 @@ use svm_layout::FixedLayout;
 use svm_program::Program;
 use svm_storage::account::AccountStorage;
 use svm_types::{
-    AccountAddr, CallReceipt, Context, DeployReceipt, Envelope, Gas, GasMode, OOGError, ReceiptLog,
-    RuntimeError, SectionKind, SpawnReceipt, SpawnerAddr, State, Template, TemplateAddr,
+    Address, CallReceipt, Context, DeployReceipt, Envelope, Gas, GasMode, OOGError, ReceiptLog,
+    RuntimeError, SectionKind, SpawnReceipt, State, Template, TemplateAddr,
 };
 
 use super::{Call, Failure, Function, Outcome};
@@ -105,7 +105,7 @@ where
     /// Opens the [`AccountStorage`] associated with the input parameters.
     pub fn open_storage(
         &self,
-        target: &AccountAddr,
+        target: &Address,
         state: &State,
         layout: &FixedLayout,
     ) -> AccountStorage {
@@ -115,7 +115,7 @@ where
     fn call_ctor(
         &mut self,
         spawn: &ExtSpawn,
-        target: &AccountAddr,
+        target: &Address,
         gas_used: Gas,
         gas_left: Gas,
     ) -> SpawnReceipt {
@@ -436,7 +436,7 @@ where
 
     fn account_template(
         &self,
-        account_addr: &AccountAddr,
+        account_addr: &Address,
     ) -> std::result::Result<Template, RuntimeError> {
         let mut interests = HashSet::new();
         interests.insert(SectionKind::Code);
@@ -656,7 +656,7 @@ where
             }
         };
 
-        let spawner = SpawnerAddr::new(envelope.principal().clone());
+        let spawner = envelope.principal();
         let spawn = ExtSpawn::new(base, &spawner);
 
         if !template.is_ctor(spawn.ctor_name()) {

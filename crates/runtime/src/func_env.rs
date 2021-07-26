@@ -1,7 +1,7 @@
 //! Implements [`FuncEnv`]. Used for managing data of running `Transaction`s.
 
 use svm_storage::account::AccountStorage;
-use svm_types::{AccountAddr, ReceiptLog, TemplateAddr};
+use svm_types::{Address, ReceiptLog, TemplateAddr};
 use wasmer::Memory;
 
 use std::cell::{Ref, RefCell, RefMut};
@@ -12,7 +12,7 @@ use std::rc::Rc;
 pub struct FuncEnv {
     inner: Rc<RefCell<Inner>>,
     template_addr: TemplateAddr,
-    account_addr: AccountAddr,
+    account_addr: Address,
 }
 
 /// # Safety
@@ -27,7 +27,7 @@ impl FuncEnv {
     pub fn new(
         storage: AccountStorage,
         template_addr: &TemplateAddr,
-        account_addr: &AccountAddr,
+        account_addr: &Address,
     ) -> Self {
         let inner = Inner::new(storage);
 
@@ -43,7 +43,7 @@ impl FuncEnv {
         memory: Memory,
         storage: AccountStorage,
         template_addr: &TemplateAddr,
-        account_addr: &AccountAddr,
+        account_addr: &Address,
     ) -> Self {
         let env = Self::new(storage, template_addr, account_addr);
 
@@ -58,7 +58,7 @@ impl FuncEnv {
     }
 
     /// Returns the `Address` of the currently executed `Account`.
-    pub fn account_addr(&self) -> &AccountAddr {
+    pub fn account_addr(&self) -> &Address {
         &self.account_addr
     }
 

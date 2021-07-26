@@ -4,7 +4,7 @@ use svm_types::RuntimeError;
 use svm_types::{CallReceipt, DeployReceipt, Receipt, ReceiptLog, SpawnReceipt};
 
 use super::JsonSerdeUtils;
-use crate::api::json::serde_types::{AddressWrapper, EncodedData, HexBlob};
+use crate::api::json::serde_types::{AddressWrapper, EncodedData, HexBlob, TemplateAddrWrapper};
 use crate::api::json::{self, JsonError};
 use crate::receipt;
 
@@ -52,7 +52,7 @@ fn decode_error(ty: &'static str, err: &RuntimeError, logs: &[ReceiptLog]) -> Va
             }),
             RuntimeError::TemplateNotFound(template_addr) => json!({
                 "err_type": "template-not-found",
-                "template_addr": AddressWrapper::from(template_addr),
+                "template_addr": TemplateAddrWrapper::from(template_addr),
             }),
             RuntimeError::AccountNotFound(account_addr) => json!({
                 "err_type": "account-not-found",
@@ -64,7 +64,7 @@ fn decode_error(ty: &'static str, err: &RuntimeError, logs: &[ReceiptLog]) -> Va
                 msg,
             } => json!({
                 "err_type": "compilation-failed",
-                "template_addr": AddressWrapper::from(template_addr),
+                "template_addr": TemplateAddrWrapper::from(template_addr),
                 "account_addr": AddressWrapper::from(account_addr),
                 "message": msg,
             }),
@@ -74,7 +74,7 @@ fn decode_error(ty: &'static str, err: &RuntimeError, logs: &[ReceiptLog]) -> Va
                 msg,
             } => json!({
                 "err_type": "instantiation-failed",
-                "template_addr": AddressWrapper::from(template_addr),
+                "template_addr": TemplateAddrWrapper::from(template_addr),
                 "account_addr": AddressWrapper::from(account_addr),
                 "message": msg,
             }),
@@ -84,7 +84,7 @@ fn decode_error(ty: &'static str, err: &RuntimeError, logs: &[ReceiptLog]) -> Va
                 func,
             } => json!({
                 "err_type": "function-not-found",
-                "template_addr": AddressWrapper::from(template_addr),
+                "template_addr": TemplateAddrWrapper::from(template_addr),
                 "account_addr": AddressWrapper::from(account_addr),
                 "func": func,
             }),
@@ -95,7 +95,7 @@ fn decode_error(ty: &'static str, err: &RuntimeError, logs: &[ReceiptLog]) -> Va
                 msg,
             } => json!({
                 "err_type": "function-failed",
-                "template_addr": AddressWrapper::from(template_addr),
+                "template_addr": TemplateAddrWrapper::from(template_addr),
                 "account_addr": AddressWrapper::from(account_addr),
                 "func": func,
                 "message": msg,
@@ -107,7 +107,7 @@ fn decode_error(ty: &'static str, err: &RuntimeError, logs: &[ReceiptLog]) -> Va
                 msg,
             } => json!({
                 "err_type": "function-not-allowed",
-                "template_addr": AddressWrapper::from(template_addr),
+                "template_addr": TemplateAddrWrapper::from(template_addr),
                 "account_addr": AddressWrapper::from(account_addr),
                 "func": func,
                 "message": msg,
@@ -118,7 +118,7 @@ fn decode_error(ty: &'static str, err: &RuntimeError, logs: &[ReceiptLog]) -> Va
                 func,
             } => json!({
                 "err_type": "function-invalid-signature",
-                "template_addr": AddressWrapper::from(template_addr),
+                "template_addr": TemplateAddrWrapper::from(template_addr),
                 "account_addr": AddressWrapper::from(account_addr),
                 "func": func,
             }),
@@ -151,7 +151,7 @@ fn decode_deploy(receipt: &DeployReceipt, ty: &'static str) -> Value {
     json!({
         "type": ty,
         "success": true,
-        "addr": AddressWrapper::from(addr.as_ref().unwrap()),
+        "addr": TemplateAddrWrapper::from(addr.as_ref().unwrap()),
         "gas_used": json::gas_to_json(&gas_used),
         "logs": json::logs_to_json(&logs),
     })
@@ -209,11 +209,11 @@ mod tests {
 
     use super::json;
 
-    use svm_types::{Address, Gas, ReceiptLog, State};
+    use svm_types::{Address, Gas, ReceiptLog, State, TemplateAddr};
 
     #[test]
     fn decode_receipt_deploy_success() {
-        let template = Address::repeat(0x10);
+        let template = TemplateAddr::repeat(0x10);
 
         let logs = vec![
             ReceiptLog {
@@ -230,7 +230,7 @@ mod tests {
             version: 0,
             success: true,
             error: None,
-            addr: Some(template.into()),
+            addr: Some(template),
             gas_used: Gas::with(10),
             logs,
         };

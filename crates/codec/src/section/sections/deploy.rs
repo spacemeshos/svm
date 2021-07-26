@@ -12,7 +12,7 @@
 
 use std::io::Cursor;
 
-use svm_types::{DeploySection, DeployerAddr, Layer, TemplateAddr, TransactionId};
+use svm_types::{Address, DeploySection, Layer, TemplateAddr, TransactionId};
 
 use crate::section::{SectionDecoder, SectionEncoder};
 use crate::{Field, ParseError, ReadExt, WriteExt};
@@ -34,12 +34,12 @@ fn encode_layer(layer: Layer, w: &mut Vec<u8>) {
     w.write_u64_be(layer.0);
 }
 
-fn encode_deployer(deployer: &DeployerAddr, w: &mut Vec<u8>) {
-    w.write_address(deployer.inner());
+fn encode_deployer(deployer: &Address, w: &mut Vec<u8>) {
+    w.write_address(deployer);
 }
 
 fn encode_template(template: &TemplateAddr, w: &mut Vec<u8>) {
-    w.write_address(template.inner());
+    w.write_template_addr(template);
 }
 
 impl SectionDecoder for DeploySection {
@@ -70,20 +70,14 @@ fn decode_layer(cursor: &mut Cursor<&[u8]>) -> Result<Layer, ParseError> {
     }
 }
 
-fn decode_deployer(cursor: &mut Cursor<&[u8]>) -> Result<DeployerAddr, ParseError> {
-    let addr = cursor.read_address();
-
-    match addr {
-        Ok(addr) => Ok(addr.into()),
-        Err(..) => Err(ParseError::NotEnoughBytes(Field::DeployerAddr)),
-    }
+fn decode_deployer(cursor: &mut Cursor<&[u8]>) -> Result<Address, ParseError> {
+    cursor
+        .read_address()
+        .map_err(|_| ParseError::NotEnoughBytes(Field::DeployerAddr))
 }
 
 fn decode_template(cursor: &mut Cursor<&[u8]>) -> Result<TemplateAddr, ParseError> {
-    let addr = cursor.read_address();
-
-    match addr {
-        Ok(addr) => Ok(addr.into()),
-        Err(..) => Err(ParseError::NotEnoughBytes(Field::TemplateAddr)),
-    }
+    cursor
+        .read_template_addr()
+        .map_err(|_| ParseError::NotEnoughBytes(Field::TemplateAddr))
 }

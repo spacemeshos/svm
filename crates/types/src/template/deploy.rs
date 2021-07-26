@@ -1,11 +1,11 @@
-use crate::{DeployerAddr, Layer, SectionKind, SectionLike, TemplateAddr, TransactionId};
+use crate::{Address, Layer, SectionKind, SectionLike, TemplateAddr, TransactionId};
 
 /// Stores data related to the deployment of a `Template`
 #[derive(Debug, Clone, PartialEq)]
 pub struct DeploySection {
     tx_id: TransactionId,
     layer: Layer,
-    deployer: DeployerAddr,
+    deployer: Address,
     template: TemplateAddr,
 }
 
@@ -14,7 +14,7 @@ impl DeploySection {
     pub fn new(
         tx_id: TransactionId,
         layer: Layer,
-        deployer: DeployerAddr,
+        deployer: Address,
         template: TemplateAddr,
     ) -> Self {
         Self {
@@ -36,7 +36,7 @@ impl DeploySection {
     }
 
     /// The `Address` of the transaction's principal.
-    pub fn deployer(&self) -> &DeployerAddr {
+    pub fn deployer(&self) -> &Address {
         &self.deployer
     }
 

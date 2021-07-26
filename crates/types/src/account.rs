@@ -34,7 +34,7 @@ impl fmt::Debug for Account {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("Account")
             .field("name", &self.name())
-            .field("template", self.template_addr().inner())
+            .field("template", self.template_addr())
             .finish()
     }
 }

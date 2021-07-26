@@ -62,7 +62,7 @@ pub fn decode_deploy(bytes: &[u8]) -> DeployReceipt {
             DeployReceipt::from_err(err, logs)
         }
         true => {
-            let addr = cursor.read_address().expect("expected an address");
+            let addr = cursor.read_template_addr().expect("expected an address");
             let gas_used = gas::decode_gas_used(&mut cursor).unwrap();
             let logs = logs::decode_logs(&mut cursor).unwrap();
 
@@ -70,7 +70,7 @@ pub fn decode_deploy(bytes: &[u8]) -> DeployReceipt {
                 version,
                 success: true,
                 error: None,
-                addr: Some(addr.into()),
+                addr: Some(addr),
                 gas_used,
                 logs,
             }
@@ -80,7 +80,6 @@ pub fn decode_deploy(bytes: &[u8]) -> DeployReceipt {
 
 fn encode_version(receipt: &DeployReceipt, w: &mut Vec<u8>) {
     let v = receipt.version;
-
     version::encode_version(v, w);
 }
 
@@ -88,27 +87,26 @@ fn encode_template_addr(receipt: &DeployReceipt, w: &mut Vec<u8>) {
     debug_assert!(receipt.success);
 
     let addr = receipt.template_addr();
-
-    w.write_address(addr.inner());
+    w.write_template_addr(addr);
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    use svm_types::{Address, DeployReceipt, Gas};
+    use svm_types::{DeployReceipt, Gas, TemplateAddr};
 
     use crate::receipt::decode_receipt;
 
     #[test]
     fn encode_decode_deploy_template_receipt() {
-        let addr = Address::repeat(0xAB);
+        let addr = TemplateAddr::repeat(0xAB);
 
         let receipt = DeployReceipt {
             version: 0,
             success: true,
             error: None,
-            addr: Some(addr.into()),
+            addr: Some(addr),
             gas_used: Gas::with(100),
             logs: Vec::new(),
         };

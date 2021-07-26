@@ -90,7 +90,7 @@ mod tests {
     use svm_layout::{FixedLayout, Id, Layout, RawVar};
     use svm_types::{
         Address, CodeKind, CodeSection, CtorsSection, DataSection, DeploySection, GasMode,
-        HeaderSection, Layer, TransactionId,
+        HeaderSection, Layer, TemplateAddr, TransactionId,
     };
 
     fn make_code_section() -> CodeSection {
@@ -124,8 +124,8 @@ mod tests {
     fn make_deploy_section() -> DeploySection {
         let tx_id = TransactionId::repeat(0xFF);
         let layer = Layer(10);
-        let deployer = Address::repeat(0xAB).into();
-        let template = Address::repeat(0xCD).into();
+        let deployer = Address::repeat(0xAB);
+        let template = TemplateAddr::repeat(0xCD);
 
         DeploySection::new(tx_id, layer, deployer, template)
     }

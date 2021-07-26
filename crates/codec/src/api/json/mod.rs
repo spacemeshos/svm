@@ -21,7 +21,7 @@ use serde_json::{json, Value as Json};
 
 use svm_types::{Gas, ReceiptLog};
 
-/// Provides very simple utilily functions to working with [`serde_json::Value`]
+/// Provides very simple utility functions to working with [`serde_json::Value`]
 /// in an easy way.
 pub(crate) trait JsonSerdeUtils: Serialize + for<'a> Deserialize<'a> {
     fn to_json(self) -> Json {
