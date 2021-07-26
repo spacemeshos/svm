@@ -3,6 +3,12 @@ use serde::{Deserialize, Serialize};
 use svm_layout::{FixedLayoutBuilder, Id};
 use svm_types::{CtorsSection, DataSection};
 
+// Note: at the time of writing (2021-07-26), we don't care about most fields
+// within the "meta" JSON. As such, the [`TemplateMeta`] sub-entities can be
+// removed or replaced with [`serde_json::Value`]. However, let's leave them for
+// future use once we want to add support for optional template sections.
+
+/// A fully parsed JSON from the "meta" output of the SVM SDK.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TemplateMeta {
     schema: Vec<TemplateMetaSchema>,
