@@ -1,6 +1,6 @@
 use log::{debug, error};
 
-use std::ffi::c_void;
+use std::{ffi::c_void, panic::UnwindSafe};
 
 #[cfg(feature = "default-rocksdb")]
 use std::path::Path;
@@ -13,7 +13,7 @@ use svm_types::{Context, Envelope, Type};
 #[cfg(feature = "default-rocksdb")]
 use crate::raw_utf8_error;
 
-use crate::{raw_io_error, raw_validate_error, svm_result_t};
+use crate::{error::raw_error, raw_io_error, raw_validate_error, svm_result_t};
 
 static ENVELOPE_TYPE: Type = Type::Str("Tx Envelope");
 static MESSAGE_TYPE: Type = Type::Str("Tx Message");
@@ -21,6 +21,16 @@ static CONTEXT_TYPE: Type = Type::Str("Tx Context");
 static DEPLOY_RECEIPT_TYPE: Type = Type::Str("Deploy Receipt");
 static SPAWN_RECEIPT_TYPE: Type = Type::Str("Spawn Receipt");
 static CALL_RECEIPT_TYPE: Type = Type::Str("Call Receipt");
+
+fn catch_unwind_with_err<T, F>(error: &mut svm_byte_array, default: T, f: F) -> T
+where
+    F: FnOnce() -> T + UnwindSafe,
+{
+    std::panic::catch_unwind(f).unwrap_or_else(|_| {
+        raw_error("Internal SVM failure. This is a bug and we'd appreciate a bug report. Please provide any information that was printed to stderr.".to_string(), error);
+        default
+    })
+}
 
 #[inline]
 fn data_to_svm_byte_array(ty: Type, byte_array: &mut svm_byte_array, data: Vec<u8>) {
@@ -119,7 +129,7 @@ pub unsafe extern "C" fn svm_validate_deploy(
     message: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
-    std::panic::catch_unwind(|| {
+    catch_unwind_with_err(&mut *error, svm_result_t::SVM_FAILURE, || {
         let runtime: &mut Box<dyn Runtime> = runtime.into();
 
         match runtime.validate_deploy(message.as_slice()) {
@@ -134,7 +144,6 @@ pub unsafe extern "C" fn svm_validate_deploy(
             }
         }
     })
-    .unwrap_or(svm_result_t::SVM_FAILURE)
 }
 
 /// Validates syntactically a binary `Spawn Account` transaction.
@@ -167,7 +176,7 @@ pub unsafe extern "C" fn svm_validate_spawn(
     message: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
-    std::panic::catch_unwind(|| {
+    catch_unwind_with_err(&mut *error, svm_result_t::SVM_FAILURE, || {
         let runtime: &mut Box<dyn Runtime> = runtime.into();
         let message = message.as_slice();
 
@@ -183,7 +192,6 @@ pub unsafe extern "C" fn svm_validate_spawn(
             }
         }
     })
-    .unwrap_or(svm_result_t::SVM_FAILURE)
 }
 
 /// Validates syntactically a binary `Call Account` transaction.
@@ -212,7 +220,7 @@ pub unsafe extern "C" fn svm_validate_call(
     message: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
-    std::panic::catch_unwind(|| {
+    catch_unwind_with_err(&mut *error, svm_result_t::SVM_FAILURE, || {
         debug!("`svm_validate_call` start");
 
         let runtime: &mut Box<dyn Runtime> = runtime.into();
@@ -230,7 +238,6 @@ pub unsafe extern "C" fn svm_validate_call(
             }
         }
     })
-    .unwrap_or(svm_result_t::SVM_FAILURE)
 }
 
 /// Creates a new SVM Runtime instance backed-by an in-memory KV.
@@ -255,9 +262,9 @@ pub unsafe extern "C" fn svm_validate_call(
 #[no_mangle]
 pub unsafe extern "C" fn svm_memory_runtime_create(
     runtime: *mut *mut c_void,
-    _error: *mut svm_byte_array,
+    error: *mut svm_byte_array,
 ) -> svm_result_t {
-    std::panic::catch_unwind(|| {
+    catch_unwind_with_err(&mut *error, svm_result_t::SVM_FAILURE, || {
         use svm_runtime::testing;
 
         debug!("`svm_memory_runtime_create` start");
@@ -269,7 +276,6 @@ pub unsafe extern "C" fn svm_memory_runtime_create(
 
         res
     })
-    .unwrap_or(svm_result_t::SVM_FAILURE)
 }
 
 /// Creates a new SVM Runtime instance.
@@ -302,7 +308,7 @@ pub unsafe extern "C" fn svm_runtime_create(
     kv_path: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
-    std::panic::catch_unwind(|| {
+    catch_unwind(&mut *error, svm_result_t::SVM_FAILURE, || {
         debug!("`svm_runtime_create` start");
 
         let kv_path: Result<String, std::string::FromUtf8Error> = String::try_from(kv_path);
@@ -321,7 +327,6 @@ pub unsafe extern "C" fn svm_runtime_create(
 
         res
     })
-    .unwrap_or(svm_result_t::SVM_FAILURE)
 }
 
 /// Deploys a `Template`
@@ -366,7 +371,7 @@ pub unsafe extern "C" fn svm_deploy(
     context: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
-    std::panic::catch_unwind(|| {
+    catch_unwind_with_err(&mut *error, svm_result_t::SVM_FAILURE, || {
         debug!("`svm_deploy` start`");
 
         let runtime: &mut Box<dyn Runtime> = runtime.into();
@@ -399,7 +404,6 @@ pub unsafe extern "C" fn svm_deploy(
         debug!("`svm_deploy` returns `SVM_SUCCESS`");
         svm_result_t::SVM_SUCCESS
     })
-    .unwrap_or(svm_result_t::SVM_FAILURE)
 }
 
 /// Spawns a new `Account`.
@@ -445,7 +449,7 @@ pub unsafe extern "C" fn svm_spawn(
     context: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
-    std::panic::catch_unwind(|| {
+    catch_unwind_with_err(&mut *error, svm_result_t::SVM_FAILURE, || {
         debug!("`svm_spawn` start");
 
         let runtime: &mut Box<dyn Runtime> = runtime.into();
@@ -479,7 +483,6 @@ pub unsafe extern "C" fn svm_spawn(
 
         svm_result_t::SVM_SUCCESS
     })
-    .unwrap_or(svm_result_t::SVM_FAILURE)
 }
 
 /// `Call Account` transaction.
@@ -526,7 +529,7 @@ pub unsafe extern "C" fn svm_call(
     context: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
-    std::panic::catch_unwind(|| {
+    catch_unwind_with_err(&mut *error, svm_result_t::SVM_FAILURE, || {
         debug!("`svm_call` start");
 
         let runtime: &mut Box<dyn Runtime> = runtime.into();
@@ -559,7 +562,6 @@ pub unsafe extern "C" fn svm_call(
         debug!("`svm_call` returns `SVM_SUCCESS`");
         svm_result_t::SVM_SUCCESS
     })
-    .unwrap_or(svm_result_t::SVM_FAILURE)
 }
 
 /// Returns the total live manually-managed resources.
