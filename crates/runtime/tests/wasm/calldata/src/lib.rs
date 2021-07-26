@@ -1,7 +1,7 @@
 use svm_sdk::{template, Address};
 
 #[template]
-mod Template {
+mod CallDataTemplate {
     #[storage]
     struct Storage {
         addr: Address,

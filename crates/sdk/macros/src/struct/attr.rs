@@ -1,11 +1,7 @@
 use proc_macro2::TokenStream;
-
 use quote::{quote, ToTokens};
-
 use syn::parse::{Parse, ParseStream};
-use syn::{Attribute, Error, Ident, Result};
-
-use crate::Struct;
+use syn::{Attribute, Ident, Result};
 
 #[derive(Debug, PartialEq)]
 pub enum StructAttrKind {

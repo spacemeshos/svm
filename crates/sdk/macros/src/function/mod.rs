@@ -1,6 +1,6 @@
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::{quote, ToTokens};
-use syn::{Attribute, Block, Error, ItemFn, Result, ReturnType, Signature, Type};
+use syn::{Attribute, Block, Error, ItemFn, Result, ReturnType, Signature};
 
 mod attr;
 mod ctor;
@@ -8,15 +8,12 @@ mod endpoint;
 mod fundable;
 pub mod fundable_hook;
 
+use crate::Template;
 pub use attr::{
     find_attr, func_attrs, has_ctor_attr, has_default_fundable_hook_attr, has_endpoint_attr,
     has_fundable_attr, has_fundable_hook_attr,
 };
-
 pub use attr::{FuncAttr, FuncAttrKind};
-
-use crate::schema::Schema;
-use crate::Template;
 
 pub struct Function {
     raw_func: ItemFn,
@@ -53,6 +50,7 @@ impl Function {
         self.raw_func.attrs.clone()
     }
 
+    #[cfg(target_arch = "wasm32")]
     pub fn index(&self) -> usize {
         self.index
     }

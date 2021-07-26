@@ -1,6 +1,6 @@
 use proc_macro2::{Span, TokenStream};
-use quote::{quote, ToTokens};
-use syn::{Error, FnArg, PatType, Result, ReturnType};
+use quote::quote;
+use syn::{Error, Result, ReturnType};
 
 use super::attr;
 use attr::{has_fundable_hook_attr, FuncAttr};

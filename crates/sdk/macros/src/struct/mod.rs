@@ -1,9 +1,5 @@
-use proc_macro2::{Ident, Span, TokenStream};
-use quote::{quote, ToTokens};
-use syn::{
-    Attribute, Data, DataStruct, DeriveInput, Expr, ExprLit, Field, Fields, FieldsNamed, Generics,
-    ItemStruct, Lit, Path, PathArguments, Result, Type, TypeArray, TypePath,
-};
+use proc_macro2::{Ident, TokenStream};
+use syn::{Fields, ItemStruct, Result};
 
 mod attr;
 mod storage;
@@ -15,7 +11,6 @@ pub use var::{Var, VarId};
 
 pub struct Struct {
     raw_struct: ItemStruct,
-
     attrs: Result<Vec<StructAttr>>,
 }
 
@@ -30,24 +25,12 @@ impl Struct {
         self.raw_struct.ident.clone()
     }
 
-    pub fn raw_attrs(&self) -> &[Attribute] {
-        &self.raw_struct.attrs
-    }
-
     pub fn raw_fields(&self) -> &Fields {
         &self.raw_struct.fields
     }
 
     pub fn attrs(&self) -> &Result<Vec<StructAttr>> {
         &self.attrs
-    }
-
-    pub fn stream(&self) -> TokenStream {
-        let mut tokens = TokenStream::new();
-
-        self.raw_struct.to_tokens(&mut tokens);
-
-        tokens
     }
 }
 

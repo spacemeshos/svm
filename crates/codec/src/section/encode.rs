@@ -2,17 +2,20 @@ use std::u16;
 
 use indexmap::IndexMap;
 
-use svm_types::{SectionKind, SectionWrapper, Sections};
+use svm_types::{Section, SectionKind, Sections};
 
 use crate::WriteExt;
 
 use super::preview;
 use super::SectionPreview;
 
+/// A trait to be implemented by [`Section`] encoders.
 pub trait SectionEncoder {
+    /// Encodes `Self` into its binary format. Bytes are appended into `w`.
     fn encode(&self, w: &mut Vec<u8>);
 }
 
+/// Encodes a collection of [`Section`] into a binary form.
 pub struct SectionsEncoder {
     section_buf: IndexMap<SectionKind, Vec<u8>>,
 }
@@ -26,18 +29,21 @@ impl Default for SectionsEncoder {
 }
 
 impl SectionsEncoder {
+    /// Creates a new encoder,and allocates room for `capacity` sections.
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
             section_buf: IndexMap::with_capacity(capacity),
         }
     }
 
+    /// Encodes each [`Section`] provided by `sections` and stores them internally.
     pub fn encode(&mut self, sections: &Sections) {
         for section in sections.iter() {
             self.encode_section(section);
         }
     }
 
+    /// Returns the binary encoding of the [`Section`]s provided so far.
     pub fn finish(mut self) -> Vec<u8> {
         let section_count = self.section_buf.len();
 
@@ -70,7 +76,7 @@ impl SectionsEncoder {
         w
     }
 
-    fn encode_section(&mut self, section: &SectionWrapper) {
+    fn encode_section(&mut self, section: &Section) {
         let kind = section.kind();
         let buf = self.section_buf_mut(kind);
 

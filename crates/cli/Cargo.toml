@@ -1,7 +1,7 @@
 [package]
 name = "svm-cli"
 version = "0.0.0"
-authors = ["Yaron Wittenstein <yaron.wittenstein@gmail.com>"]
+authors = ["Spacemesh SVM Team"]
 license = "MIT"
 edition = "2018"
 readme = "README.md"
@@ -19,4 +19,5 @@ svm-gas = { path = "../gas" }
 svm-program = { path = "../program" }
 svm-runtime = { path = "../runtime" }
 svm-types = { path = "../types" }
+svm-layout = { path = "../layout" }
 thiserror = "1"

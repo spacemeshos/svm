@@ -1,4 +1,4 @@
-use crate::{Section, SectionKind};
+use crate::{SectionKind, SectionLike};
 
 /// Contains the `Ctors` of the `Template's` Code
 #[derive(Debug, Clone, PartialEq)]
@@ -43,6 +43,6 @@ impl CtorsSection {
     }
 }
 
-impl Section for CtorsSection {
+impl SectionLike for CtorsSection {
     const KIND: SectionKind = SectionKind::Ctors;
 }

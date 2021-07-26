@@ -1,9 +1,9 @@
-use std::fmt;
-
-use crate::{PrimType, Type};
-
 use proc_macro2::{Ident, TokenStream};
 use quote::{quote, ToTokens};
+
+use std::fmt;
+
+use crate::PrimType;
 
 pub enum Var {
     Primitive {

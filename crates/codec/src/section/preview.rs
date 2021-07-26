@@ -2,30 +2,33 @@ use std::io::Cursor;
 
 use svm_types::SectionKind;
 
+use super::kind;
 use crate::{Field, ParseError, ReadExt, WriteExt};
 
-use super::kind;
-
+/// Preview data for a [`Section`](svm_types::Section).
 #[derive(Debug, Clone, PartialEq)]
 pub struct SectionPreview {
     kind: SectionKind,
-
     byte_size: u32,
 }
 
 impl SectionPreview {
+    /// New preview.
     pub fn new(kind: SectionKind, byte_size: u32) -> Self {
         Self { kind, byte_size }
     }
 
+    /// Returns the preview's kind.
     pub fn kind(&self) -> SectionKind {
         self.kind
     }
 
+    /// Returns the referred [`Section`]'s binary byte size.
     pub fn byte_size(&self) -> u32 {
         self.byte_size
     }
 
+    /// The binary byte size of [`Self`].
     pub const fn len() -> usize {
         8
     }

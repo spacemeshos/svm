@@ -1,6 +1,7 @@
 #![allow(unused)]
 
 mod clap_app;
+mod sections;
 mod subcmd_tx;
 mod subcmd_validate;
 

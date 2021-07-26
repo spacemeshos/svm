@@ -4,7 +4,6 @@ use syn::{Error, Expr, ExprLit, Lit, Result, TypeArray, TypePath};
 
 pub struct PrimType {
     ty_raw: TokenStream,
-
     ty_str: String,
 }
 
@@ -15,10 +14,6 @@ impl ToTokens for PrimType {
 }
 
 impl PrimType {
-    pub fn new(path: &TypePath) -> Result<Self> {
-        parse_primitive_type(path)
-    }
-
     pub fn ty_raw(&self) -> &TokenStream {
         &self.ty_raw
     }
@@ -39,7 +34,6 @@ pub enum Type {
 
     Tuple {
         elems: Vec<Box<Type>>,
-
         tuple_raw: TokenStream,
     },
 }
@@ -65,13 +59,6 @@ impl Type {
                 Ok(ty)
             }
             syn::Type::Tuple(ty) => parse_tuple_type(ty),
-            _ => unreachable!(),
-        }
-    }
-
-    pub fn into_primitive(self) -> PrimType {
-        match self {
-            Type::Primitive(prim) => prim,
             _ => unreachable!(),
         }
     }

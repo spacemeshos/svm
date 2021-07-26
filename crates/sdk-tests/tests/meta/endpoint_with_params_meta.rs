@@ -10,15 +10,15 @@ mod Template {
 }
 
 fn main() {
-    let raw = raw_schema();
+    let raw = raw_meta();
     let json: Value = serde_json::from_str(&raw).unwrap();
 
     assert_eq!(
         json,
         json!({
-            "storage": [],
-            "exports": [json!({
-                "api_name": "call",
+            "schema": [],
+            "api": [json!({
+                "name": "call",
                 "wasm_name": "call",
                 "is_ctor": false,
                 "is_fundable": false,

@@ -1652,6 +1652,7 @@ dependencies = [
  "serde_json",
  "svm-codec",
  "svm-gas",
+ "svm-layout",
  "svm-program",
  "svm-runtime",
  "svm-types",
@@ -1838,6 +1839,7 @@ dependencies = [
  "svm-sdk-std",
  "svm-sdk-storage",
  "svm-sdk-types",
+ "svm-types",
  "syn",
  "trybuild",
 ]

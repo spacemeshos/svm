@@ -1,28 +1,25 @@
-use proc_macro2::Span;
+use std::collections::hash_map::Values;
+use std::collections::HashMap;
+
 use quote::quote;
-use syn::{Error, FnArg, PatType, Result, ReturnType, TypeTuple};
+use syn::{FnArg, PatType, Result, ReturnType};
 
-use std::collections::{hash_map::Values, HashMap};
-
-use crate::function::{
-    find_attr, func_attrs, has_ctor_attr, has_default_fundable_hook_attr, has_endpoint_attr,
-    has_fundable_attr,
-};
+use crate::function::{find_attr, func_attrs, has_ctor_attr, has_endpoint_attr, has_fundable_attr};
 use crate::r#struct::has_storage_attr;
 use crate::storage_vars;
 use crate::{FuncAttr, FuncAttrKind, Function, Template, Type, Var};
 
-pub struct Schema {
+pub struct TemplateMeta {
     name: String,
+    schema: Vec<Var>,
     exports: HashMap<String, Export>,
-    storage: Vec<Var>,
 }
 
 pub struct Export {
     pub is_ctor: bool,
     pub is_fundable: bool,
-    pub api_name: String,
-    pub export_name: String,
+    pub name: String,
+    pub wasm_name: String,
     pub signature: Signature,
     pub doc: String,
 }
@@ -57,22 +54,21 @@ impl Signature {
     }
 }
 
-impl Schema {
+impl TemplateMeta {
     pub fn new(name: String) -> Self {
         Self {
             name,
             exports: HashMap::new(),
-            storage: Vec::new(),
+            schema: Vec::new(),
         }
     }
 
     pub fn add_export(&mut self, export: Export) {
-        let name = export.api_name.clone();
-
+        let name = export.name.clone();
         self.exports.insert(name, export);
     }
 
-    pub fn get_export(&self, name: &str) -> &Export {
+    pub fn export(&self, name: &str) -> &Export {
         self.exports.get(name).as_ref().unwrap()
     }
 
@@ -92,14 +88,14 @@ impl Schema {
         self.exports().filter(|exp| exp.is_ctor).collect()
     }
 
-    pub fn storage(&self) -> &[Var] {
-        &self.storage
+    pub fn schema(&self) -> &[Var] {
+        &self.schema
     }
 }
 
-pub fn template_schema(template: &Template) -> Result<Schema> {
+pub fn template_meta(template: &Template) -> Result<TemplateMeta> {
     let name = template.name().to_string();
-    let storage = storage_schema(template);
+    let schema = template_schema(template);
 
     let exports = template
         .functions()
@@ -113,19 +109,19 @@ pub fn template_schema(template: &Template) -> Result<Schema> {
             is_endpoint || is_ctor
         })
         .map(export_schema)
-        .map(|export| (export.api_name.clone(), export))
+        .map(|export| (export.name.clone(), export))
         .collect();
 
-    let schema = Schema {
+    let schema = TemplateMeta {
         name,
-        storage,
+        schema,
         exports,
     };
 
     Ok(schema)
 }
 
-fn storage_schema(template: &Template) -> Vec<Var> {
+fn template_schema(template: &Template) -> Vec<Var> {
     let storage = template.structs().iter().find(|s| {
         let attrs = s.attrs().as_ref().unwrap();
 
@@ -165,8 +161,8 @@ fn export_schema(func: &Function) -> Export {
     Export {
         is_ctor,
         is_fundable,
-        api_name,
-        export_name,
+        name: api_name,
+        wasm_name: export_name,
         signature,
         doc,
     }

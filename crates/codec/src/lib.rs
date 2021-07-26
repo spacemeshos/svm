@@ -27,6 +27,8 @@ pub mod api;
 pub mod context;
 pub mod envelope;
 
+pub use section::{SectionPreview, SectionsDecoder, SectionsEncoder};
+
 /// Encoding of receipts.
 pub mod receipt;
 

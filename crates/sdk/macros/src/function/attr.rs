@@ -1,14 +1,7 @@
-use proc_macro2::{Delimiter, Span, TokenStream, TokenTree};
-
+use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
-
-use syn::punctuated::Punctuated;
-use syn::{
-    parse::{Parse, ParseStream},
-    token::Else,
-    Path,
-};
-use syn::{Attribute, Error, Ident, LitStr, Result, Token};
+use syn::parse::{Parse, ParseStream};
+use syn::{Attribute, Ident, LitStr, Result, Token};
 
 use crate::Function;
 
@@ -40,7 +33,7 @@ impl Parse for Doc {
         }
 
         let ident: Ident = input.parse()?;
-        let equals: Token![=] = input.parse()?;
+        let _equals: Token![=] = input.parse()?;
 
         if ident.to_string().as_str() == "doc" {
             let doc: LitStr = input.parse()?;
@@ -55,26 +48,18 @@ impl Parse for Doc {
 #[derive(Debug, PartialEq)]
 pub enum FuncAttrKind {
     Ctor,
-
     Endpoint,
-
     Fundable,
-
     FundableHook,
-
     Other,
 }
 
 #[derive(Debug)]
 pub enum FuncAttr {
     Ctor(Doc),
-
     Endpoint(Doc),
-
     Fundable(Option<String>),
-
     FundableHook { default: bool },
-
     Other(TokenStream),
 }
 
@@ -95,7 +80,6 @@ pub fn func_attrs(func: &Function) -> Result<Vec<FuncAttr>> {
 
     for attr in func.raw_attrs() {
         let attr = parse_attr(attr)?;
-
         attrs.push(attr);
     }
 
@@ -116,19 +100,17 @@ pub fn parse_attr(attr: Attribute) -> Result<FuncAttr> {
     let attr = match kind {
         FuncAttrKind::Ctor => {
             let doc = parse_doc(&attr)?;
-
             FuncAttr::Ctor(doc)
         }
         FuncAttrKind::Endpoint => {
             let doc = parse_doc(&attr)?;
-
             FuncAttr::Endpoint(doc)
         }
         FuncAttrKind::FundableHook => {
             if attr.tokens.is_empty() {
                 FuncAttr::FundableHook { default: false }
             } else {
-                let ident = attr.parse_args::<Ident>()?;
+                let _ident = attr.parse_args::<Ident>()?;
                 FuncAttr::FundableHook { default: true }
             }
         }
@@ -204,10 +186,6 @@ pub fn has_fundable_attr(attrs: &[FuncAttr]) -> bool {
     has_attr(attrs, FuncAttrKind::Fundable)
 }
 
-pub fn has_other_attr(attrs: &[FuncAttr]) -> bool {
-    has_attr(attrs, FuncAttrKind::Other)
-}
-
 pub fn has_attr(attrs: &[FuncAttr], kind: FuncAttrKind) -> bool {
     attrs.iter().any(|attr| attr.kind() == kind)
 }
@@ -229,11 +207,6 @@ pub fn filter_attrs(attrs: &[FuncAttr], kind: FuncAttrKind) -> Vec<&FuncAttr> {
 #[cfg(test)]
 mod test {
     use super::*;
-
-    use proc_macro2::TokenStream;
-
-    use quote::quote;
-    use quote::ToTokens;
 
     use syn::{parse_quote, Attribute};
 
@@ -285,11 +258,12 @@ mod test {
             #[fundable(deny_funding)]
         };
 
-        let actual = parse_attr(attr).unwrap();
-        assert_eq!(actual.kind(), FuncAttrKind::Fundable);
+        let attr = parse_attr(attr).unwrap();
 
-        let expected = FuncAttr::Fundable(Some("deny_funding".to_string()));
-        assert!(matches!(actual, expected));
+        match attr {
+            FuncAttr::Fundable(Some(attr)) => assert_eq!(attr, "deny_funding".to_string()),
+            _ => panic!(),
+        }
     }
 
     #[test]

@@ -1,60 +1,37 @@
-use std::io::Write;
-
-use crate::{Export, PrimType, Schema, Signature, Type, Var};
+use crate::{r#type::Type, Export, PrimType, TemplateMeta, Var};
 
 use proc_macro2::TokenStream;
-use quote::{quote, ToTokens};
+use quote::quote;
 use serde_json::{json, Value};
 
-pub fn json_api(schema: &Schema) -> Value {
-    let exports = exports_api(schema);
-    let storage = storage_api(schema);
+pub fn meta(meta: &TemplateMeta) -> Value {
+    let api = api(meta);
+    let schema = schema(meta);
 
-    json!({"exports": exports, "storage": storage})
+    json!({"api": api, "schema": schema})
 }
 
-pub fn json_data_layout(schema: &Schema) -> Value {
-    let data: Vec<usize> = schema
-        .storage()
-        .iter()
-        .fold(Vec::new(), |mut acc, v| match v {
-            Var::Primitive { byte_count, .. } => {
-                acc.push(*byte_count);
-                acc
-            }
-            Var::Array {
-                byte_count, length, ..
-            } => {
-                acc.extend(vec![*byte_count; *length as usize]);
-                acc
-            }
-        });
-
-    json!({ "data": data })
-}
-
-pub fn json_write(file_name: &str, json: &Value) {
-    let bytes = serde_json::to_vec(json).unwrap();
-
-    std::fs::write(file_name, bytes);
-}
-
-pub fn json_tokenstream(json: &Value) -> TokenStream {
+pub fn to_tokens(json: &Value) -> TokenStream {
     let json = json.to_string();
 
     quote! { #json }
 }
 
-fn exports_api(schema: &Schema) -> Value {
-    let exports = schema
+pub fn json_write<P: AsRef<std::path::Path>>(path: P, json: &Value) {
+    let bytes = serde_json::to_vec(json).unwrap();
+    std::fs::write(path, bytes).unwrap();
+}
+
+fn api(meta: &TemplateMeta) -> Value {
+    let exports = meta
         .exports()
         .map(|e| {
             json!({
+                "name": e.name,
+                "doc": e.doc,
+                "wasm_name": e.wasm_name,
                 "is_ctor": e.is_ctor,
                 "is_fundable": e.is_fundable,
-                "api_name": e.api_name,
-                "wasm_name": e.export_name,
-                "doc": e.doc,
                 "signature": emit_signature(e)
             })
         })
@@ -66,8 +43,8 @@ fn exports_api(schema: &Schema) -> Value {
 fn emit_signature(e: &Export) -> Value {
     let sig = &e.signature;
 
-    let mut params: Vec<Value> = sig.params().iter().map(emit_param).collect();
-    let mut returns = emit_output(sig.output());
+    let params: Vec<Value> = sig.params().iter().map(emit_param).collect();
+    let returns = emit_output(sig.output());
 
     json!({"params": params, "returns": returns})
 }
@@ -83,7 +60,11 @@ fn emit_param(param: &(String, Type)) -> Value {
             length,
             ..
         } => {
-            json!({"name": name, "type": format!("[{}]", elem.as_str()), "length": length})
+            json!({
+                "name": name,
+                "type": format!("[{}]", elem.as_str()),
+                "length": length
+            })
         }
         Type::Tuple { .. } => unreachable!(),
     }
@@ -106,21 +87,21 @@ fn emit_output(ty: Option<&Type>) -> Value {
 
 fn emit_output_type(ty: &Type) -> Value {
     match ty {
-        Type::Primitive(prim) => json!({ "type": prim.as_str() }),
+        Type::Primitive(prim) => json!({"type": prim.as_str()}),
         Type::Array {
             elem_ty: elem,
             length,
             ..
         } => {
-            json!({ "type": elem.as_str(), "length": length })
+            json!({"type": elem.as_str(), "length": length})
         }
         Type::Tuple { .. } => unreachable!("Nested tuples are not allowed"),
     }
 }
 
-fn storage_api(schema: &Schema) -> Value {
-    let vars = schema
-        .storage()
+fn schema(meta: &TemplateMeta) -> Value {
+    let vars = meta
+        .schema()
         .iter()
         .map(|v| match v {
             Var::Primitive { .. } => emit_primitive_var(v),

@@ -1,15 +1,9 @@
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
-
-use serde_json::Value;
-
-use syn::{Error, Item, ItemMod, ItemStruct, ItemType, ItemUse, Result};
+use syn::{Error, Item, ItemMod, ItemType, ItemUse, Result};
 
 use super::{function, r#struct};
-use crate::{schema, Function, Schema, Struct};
-
-#[cfg(feature = "api")]
-use crate::api;
+use crate::{json, meta, Function, Struct, TemplateMeta};
 
 use r#function::{func_attrs, has_default_fundable_hook_attr};
 use r#struct::has_storage_attr;
@@ -53,32 +47,17 @@ impl Template {
     }
 }
 
-pub fn expand(_args: TokenStream, input: TokenStream) -> Result<(Schema, TokenStream)> {
+pub fn expand(_args: TokenStream, input: TokenStream) -> Result<(TokenStream, TemplateMeta)> {
     let module = syn::parse2(input)?;
     let template = parse_template(module)?;
-    let schema = schema::template_schema(&template)?;
+    let meta = meta::template_meta(&template)?;
 
-    let imports = template.imports();
-    let aliases = template.aliases();
+    let _imports = template.imports();
+    let _aliases = template.aliases();
 
     let structs = expand_structs(&template)?;
     let functions = expand_functions(&template)?;
     let alloc_func = alloc_func_ast();
-
-    #[cfg(feature = "api")]
-    let api = api::json_api(&schema);
-
-    #[cfg(feature = "api")]
-    let stream = api::json_tokenstream(&api);
-
-    #[cfg(not(feature = "api"))]
-    let stream = quote! { "" };
-
-    #[cfg(feature = "api")]
-    let data = api::json_data_layout(&schema);
-
-    #[cfg(feature = "api")]
-    write_schema(&template, &api, &data);
 
     let ast = quote! {
         // #(#imports)*
@@ -90,14 +69,9 @@ pub fn expand(_args: TokenStream, input: TokenStream) -> Result<(Schema, TokenSt
         #structs
 
         #functions
-
-        #[cfg(all(feature = "api", not(target_arch = "wasm32")))]
-        pub fn raw_schema() -> String {
-            #stream.to_string()
-        }
     };
 
-    Ok((schema, ast))
+    Ok((ast, meta))
 }
 
 pub fn parse_template(mut raw_template: ItemMod) -> Result<Template> {
@@ -226,17 +200,6 @@ fn extract_default_fundable_hook(template: &Template) -> Result<Option<Ident>> {
     Ok(default)
 }
 
-#[cfg(all(feature = "api", target_arch = "wasm32"))]
-fn write_schema(template: &Template, api: &Value, data: &Value) {
-    api::json_write(&format!("{}-api.json", template.name()), api);
-    api::json_write(&format!("{}-data.json", template.name()), data);
-}
-
-#[cfg(any(not(feature = "api"), not(target_arch = "wasm32")))]
-fn write_schema(template: &Template, api: &Value, data: &Value) {
-    //
-}
-
 fn expand_structs(template: &Template) -> Result<TokenStream> {
     let mut structs = Vec::new();
 
@@ -280,8 +243,6 @@ fn validate_structs(template: &Template) -> Result<()> {
 }
 
 fn expand_functions(template: &Template) -> Result<TokenStream> {
-    validate_funcs(template)?;
-
     let mut funcs = Vec::new();
 
     for func in template.functions() {
@@ -303,10 +264,6 @@ fn expand_functions(template: &Template) -> Result<TokenStream> {
     };
 
     Ok(ast)
-}
-
-fn validate_funcs(template: &Template) -> Result<()> {
-    Ok(())
 }
 
 fn alloc_func_ast() -> TokenStream {

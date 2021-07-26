@@ -37,7 +37,7 @@ pub use data::DataSection;
 pub use deploy::DeploySection;
 pub use header::HeaderSection;
 pub use schema::SchemaSection;
-pub use section::{Section, SectionKind, SectionWrapper, Sections, SectionsIter};
+pub use section::{Section, SectionKind, SectionLike, Sections, SectionsIter};
 
 use svm_layout::FixedLayout;
 
@@ -199,14 +199,14 @@ impl Template {
     /// # Panics
     ///
     /// Panics if there is no `Section` having the requested `SectionKind`
-    pub fn get(&self, kind: SectionKind) -> &SectionWrapper {
+    pub fn get(&self, kind: SectionKind) -> &Section {
         self.sections.get(kind)
     }
 
     /// Borrows the `Section` of the requested `SectionKind`
     ///
     /// Returns `None` when there is no `Section` of the specified `SectionKind`
-    pub fn try_get(&self, kind: SectionKind) -> Option<&SectionWrapper> {
+    pub fn try_get(&self, kind: SectionKind) -> Option<&Section> {
         self.sections.try_get(kind)
     }
 }

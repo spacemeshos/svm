@@ -24,13 +24,13 @@ mod Template {
 }
 
 fn main() {
-    let raw = raw_schema();
+    let raw = raw_meta();
     let json: Value = serde_json::from_str(&raw).unwrap();
 
     assert_eq!(
         json,
         json!({
-            "storage": [
+            "schema": [
                 {"id": 0,  "name": "a", "type": "bool",     "offset": 0,  "byte_count": 1},
                 {"id": 1,  "name": "b", "type": "u8",       "offset": 1,  "byte_count": 1},
                 {"id": 2,  "name": "c", "type": "i8",       "offset": 2,  "byte_count": 1},
@@ -46,7 +46,7 @@ fn main() {
                 {"id": 14, "name": "m", "type": "[u16]",    "offset": 62, "byte_count": 2, "length": 4},
                 {"id": 18, "name": "o", "type": "[Amount]", "offset": 70, "byte_count": 8, "length": 2},
             ],
-            "exports": [],
+            "api": [],
         })
     );
 }
