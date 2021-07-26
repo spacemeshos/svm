@@ -76,7 +76,7 @@ fn encode_template(spawn: &SpawnAccount, w: &mut Vec<u8>) {
 }
 
 fn encode_ctor(spawn: &SpawnAccount, w: &mut Vec<u8>) {
-    let ctor = &spawn.ctor_name();
+    let ctor = spawn.ctor_name();
     w.write_string(ctor);
 }
 

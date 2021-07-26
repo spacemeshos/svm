@@ -180,7 +180,7 @@ where
         }
     }
 
-    /// Given an [`Address`] `addr`, locates the [`TemplateAddr`] of its
+    /// Given an `Address` `addr`, locates the `TemplateAddr` of its
     /// [`Template`]. Returns [`None`] if and only if no [`Template`] was found.
     pub fn resolve_template_addr(&self, addr: &Address) -> Option<TemplateAddr> {
         let store = self.account_store();

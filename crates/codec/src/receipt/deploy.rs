@@ -62,7 +62,9 @@ pub fn decode_deploy(bytes: &[u8]) -> DeployReceipt {
             DeployReceipt::from_err(err, logs)
         }
         true => {
-            let addr = cursor.read_template_addr().expect("expected an address");
+            let addr = cursor
+                .read_template_addr()
+                .expect("expected a Template Address");
             let gas_used = gas::decode_gas_used(&mut cursor).unwrap();
             let logs = logs::decode_logs(&mut cursor).unwrap();
 
