@@ -302,23 +302,26 @@ pub unsafe extern "C" fn svm_runtime_create(
     kv_path: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
-    debug!("`svm_runtime_create` start");
+    std::panic::catch_unwind(|| {
+        debug!("`svm_runtime_create` start");
 
-    let kv_path: Result<String, std::string::FromUtf8Error> = String::try_from(kv_path);
+        let kv_path: Result<String, std::string::FromUtf8Error> = String::try_from(kv_path);
 
-    if kv_path.is_err() {
-        raw_utf8_error(kv_path, error);
-        return svm_result_t::SVM_FAILURE;
-    }
+        if kv_path.is_err() {
+            raw_utf8_error(kv_path, error);
+            return svm_result_t::SVM_FAILURE;
+        }
 
-    let kv_path = kv_path.unwrap();
+        let kv_path = kv_path.unwrap();
 
-    let rocksdb_runtime = svm_runtime::create_rocksdb_runtime(&Path::new(&kv_path));
-    let res = into_raw_runtime(runtime, rocksdb_runtime);
+        let rocksdb_runtime = svm_runtime::create_rocksdb_runtime(&Path::new(&kv_path));
+        let res = into_raw_runtime(runtime, rocksdb_runtime);
 
-    debug!("`svm_runtime_create` end");
+        debug!("`svm_runtime_create` end");
 
-    res
+        res
+    })
+    .unwrap_or(svm_result_t::SVM_FAILURE)
 }
 
 /// Deploys a `Template`
@@ -570,10 +573,13 @@ pub unsafe extern "C" fn svm_total_live_resources() -> i32 {
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_resource_iter_new() -> *mut c_void {
-    let ty = svm_ffi::SVM_RESOURCES_ITER_TYPE;
-    let snapshot = tracking::take_snapshot();
+    std::panic::catch_unwind(|| {
+        let ty = svm_ffi::SVM_RESOURCES_ITER_TYPE;
+        let snapshot = tracking::take_snapshot();
 
-    svm_ffi::into_raw(ty, snapshot)
+        svm_ffi::into_raw(ty, snapshot)
+    })
+    .unwrap_or(std::ptr::null_mut())
 }
 
 /// Destroys the manually-managed resources iterator
@@ -629,9 +635,12 @@ pub unsafe extern "C" fn svm_resource_type_name_resolve(ty: usize) -> *mut svm_b
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_resource_type_name_destroy(ptr: *mut svm_byte_array) {
-    let ptr = svm_ffi::from_raw(svm_ffi::SVM_RESOURCE_NAME_PTR_TYPE, ptr);
+    std::panic::catch_unwind(|| {
+        let ptr = svm_ffi::from_raw(svm_ffi::SVM_RESOURCE_NAME_PTR_TYPE, ptr);
 
-    svm_byte_array_destroy(ptr)
+        svm_byte_array_destroy(ptr)
+    })
+    .unwrap_or(())
 }
 
 /// Destroys the Runtime and its associated resources.
