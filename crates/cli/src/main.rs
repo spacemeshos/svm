@@ -2,6 +2,7 @@
 
 mod clap_app;
 mod sections;
+mod subcmd_auto_deploy;
 mod subcmd_tx;
 mod subcmd_validate;
 
@@ -22,6 +23,7 @@ use svm_gas::ProgramPricing;
 use svm_program::{Program, ProgramVisitor};
 
 use clap_app::clap_app;
+use subcmd_auto_deploy::subcmd_auto_deploy;
 use subcmd_tx::subcmd_tx;
 use subcmd_validate::subcmd_validate;
 
@@ -38,6 +40,7 @@ fn main() -> anyhow::Result<()> {
     match clap_matches.subcommand() {
         ("validate", Some(args)) => subcmd_validate(args)?,
         ("tx", Some(args)) => subcmd_tx(args)?,
+        ("auto-deploy", Some(args)) => subcmd_auto_deploy(args)?,
         (_, _) => unreachable!(),
     }
     Ok(())

@@ -1,3 +1,4 @@
+use super::subcmd_auto_deploy::clap_app_auto_deploy;
 use super::subcmd_tx::clap_app_tx;
 use super::subcmd_validate::clap_app_validate;
 
@@ -16,4 +17,5 @@ pub fn clap_app() -> clap::App<'static, 'static> {
         .setting(clap::AppSettings::SubcommandRequired)
         .subcommand(clap_app_validate())
         .subcommand(clap_app_tx())
+        .subcommand(clap_app_auto_deploy())
 }
