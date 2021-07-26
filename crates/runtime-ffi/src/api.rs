@@ -119,19 +119,22 @@ pub unsafe extern "C" fn svm_validate_deploy(
     message: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
-    let runtime: &mut Box<dyn Runtime> = runtime.into();
+    std::panic::catch_unwind(|| {
+        let runtime: &mut Box<dyn Runtime> = runtime.into();
 
-    match runtime.validate_deploy(message.as_slice()) {
-        Ok(()) => {
-            debug!("`svm_validate_deploy` returns `SVM_SUCCESS`");
-            svm_result_t::SVM_SUCCESS
+        match runtime.validate_deploy(message.as_slice()) {
+            Ok(()) => {
+                debug!("`svm_validate_deploy` returns `SVM_SUCCESS`");
+                svm_result_t::SVM_SUCCESS
+            }
+            Err(e) => {
+                error!("`svm_validate_deploy` returns `SVM_FAILURE`");
+                raw_validate_error(&e, &mut *error);
+                svm_result_t::SVM_FAILURE
+            }
         }
-        Err(e) => {
-            error!("`svm_validate_deploy` returns `SVM_FAILURE`");
-            raw_validate_error(&e, &mut *error);
-            svm_result_t::SVM_FAILURE
-        }
-    }
+    })
+    .unwrap_or(svm_result_t::SVM_FAILURE)
 }
 
 /// Validates syntactically a binary `Spawn Account` transaction.
@@ -164,20 +167,23 @@ pub unsafe extern "C" fn svm_validate_spawn(
     message: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
-    let runtime: &mut Box<dyn Runtime> = runtime.into();
-    let message = message.as_slice();
+    std::panic::catch_unwind(|| {
+        let runtime: &mut Box<dyn Runtime> = runtime.into();
+        let message = message.as_slice();
 
-    match runtime.validate_spawn(message) {
-        Ok(()) => {
-            debug!("`svm_validate_spawn` returns `SVM_SUCCESS`");
-            svm_result_t::SVM_SUCCESS
+        match runtime.validate_spawn(message) {
+            Ok(()) => {
+                debug!("`svm_validate_spawn` returns `SVM_SUCCESS`");
+                svm_result_t::SVM_SUCCESS
+            }
+            Err(e) => {
+                error!("`svm_validate_spawn` returns `SVM_FAILURE`");
+                raw_validate_error(&e, &mut *error);
+                svm_result_t::SVM_FAILURE
+            }
         }
-        Err(e) => {
-            error!("`svm_validate_spawn` returns `SVM_FAILURE`");
-            raw_validate_error(&e, &mut *error);
-            svm_result_t::SVM_FAILURE
-        }
-    }
+    })
+    .unwrap_or(svm_result_t::SVM_FAILURE)
 }
 
 /// Validates syntactically a binary `Call Account` transaction.
@@ -206,22 +212,25 @@ pub unsafe extern "C" fn svm_validate_call(
     message: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
-    debug!("`svm_validate_call` start");
+    std::panic::catch_unwind(|| {
+        debug!("`svm_validate_call` start");
 
-    let runtime: &mut Box<dyn Runtime> = runtime.into();
-    let message = message.as_slice();
+        let runtime: &mut Box<dyn Runtime> = runtime.into();
+        let message = message.as_slice();
 
-    match runtime.validate_call(message) {
-        Ok(()) => {
-            debug!("`svm_validate_call` returns `SVM_SUCCESS`");
-            svm_result_t::SVM_SUCCESS
+        match runtime.validate_call(message) {
+            Ok(()) => {
+                debug!("`svm_validate_call` returns `SVM_SUCCESS`");
+                svm_result_t::SVM_SUCCESS
+            }
+            Err(e) => {
+                error!("`svm_validate_call` returns `SVM_FAILURE`");
+                raw_validate_error(&e, &mut *error);
+                svm_result_t::SVM_FAILURE
+            }
         }
-        Err(e) => {
-            error!("`svm_validate_call` returns `SVM_FAILURE`");
-            raw_validate_error(&e, &mut *error);
-            svm_result_t::SVM_FAILURE
-        }
-    }
+    })
+    .unwrap_or(svm_result_t::SVM_FAILURE)
 }
 
 /// Creates a new SVM Runtime instance backed-by an in-memory KV.
@@ -248,16 +257,19 @@ pub unsafe extern "C" fn svm_memory_runtime_create(
     runtime: *mut *mut c_void,
     _error: *mut svm_byte_array,
 ) -> svm_result_t {
-    use svm_runtime::testing;
+    std::panic::catch_unwind(|| {
+        use svm_runtime::testing;
 
-    debug!("`svm_memory_runtime_create` start");
+        debug!("`svm_memory_runtime_create` start");
 
-    let mem_runtime = testing::create_memory_runtime();
-    let res = into_raw_runtime(runtime, mem_runtime);
+        let mem_runtime = testing::create_memory_runtime();
+        let res = into_raw_runtime(runtime, mem_runtime);
 
-    debug!("`svm_memory_runtime_create` end");
+        debug!("`svm_memory_runtime_create` end");
 
-    res
+        res
+    })
+    .unwrap_or(svm_result_t::SVM_FAILURE)
 }
 
 /// Creates a new SVM Runtime instance.
@@ -351,37 +363,40 @@ pub unsafe extern "C" fn svm_deploy(
     context: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
-    debug!("`svm_deploy` start`");
+    std::panic::catch_unwind(|| {
+        debug!("`svm_deploy` start`");
 
-    let runtime: &mut Box<dyn Runtime> = runtime.into();
-    let message = message.as_slice();
+        let runtime: &mut Box<dyn Runtime> = runtime.into();
+        let message = message.as_slice();
 
-    let envelope = decode_envelope(envelope);
-    if let Err(e) = envelope {
-        raw_io_error(e, &mut *error);
-        return svm_result_t::SVM_FAILURE;
-    }
+        let envelope = decode_envelope(envelope);
+        if let Err(e) = envelope {
+            raw_io_error(e, &mut *error);
+            return svm_result_t::SVM_FAILURE;
+        }
 
-    let context = decode_context(context);
-    if let Err(e) = context {
-        raw_io_error(e, &mut *error);
-        return svm_result_t::SVM_FAILURE;
-    }
+        let context = decode_context(context);
+        if let Err(e) = context {
+            raw_io_error(e, &mut *error);
+            return svm_result_t::SVM_FAILURE;
+        }
 
-    let envelope = envelope.unwrap();
-    let context = context.unwrap();
-    let rust_receipt = runtime.deploy(&envelope, &message, &context);
-    let receipt_bytes = receipt::encode_deploy(&rust_receipt);
+        let envelope = envelope.unwrap();
+        let context = context.unwrap();
+        let rust_receipt = runtime.deploy(&envelope, &message, &context);
+        let receipt_bytes = receipt::encode_deploy(&rust_receipt);
 
-    // returning encoded `TemplateReceipt` as `svm_byte_array`.
-    //
-    // # Notes
-    //
-    // Should call later `svm_receipt_destroy`
-    data_to_svm_byte_array(DEPLOY_RECEIPT_TYPE, &mut *receipt, receipt_bytes);
+        // returning encoded `TemplateReceipt` as `svm_byte_array`.
+        //
+        // # Notes
+        //
+        // Should call later `svm_receipt_destroy`
+        data_to_svm_byte_array(DEPLOY_RECEIPT_TYPE, &mut *receipt, receipt_bytes);
 
-    debug!("`svm_deploy` returns `SVM_SUCCESS`");
-    svm_result_t::SVM_SUCCESS
+        debug!("`svm_deploy` returns `SVM_SUCCESS`");
+        svm_result_t::SVM_SUCCESS
+    })
+    .unwrap_or(svm_result_t::SVM_FAILURE)
 }
 
 /// Spawns a new `Account`.
@@ -427,38 +442,41 @@ pub unsafe extern "C" fn svm_spawn(
     context: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
-    debug!("`svm_spawn` start");
+    std::panic::catch_unwind(|| {
+        debug!("`svm_spawn` start");
 
-    let runtime: &mut Box<dyn Runtime> = runtime.into();
-    let message = message.as_slice();
+        let runtime: &mut Box<dyn Runtime> = runtime.into();
+        let message = message.as_slice();
 
-    let envelope = decode_envelope(envelope);
-    if let Err(e) = envelope {
-        raw_io_error(e, &mut *error);
-        return svm_result_t::SVM_FAILURE;
-    }
+        let envelope = decode_envelope(envelope);
+        if let Err(e) = envelope {
+            raw_io_error(e, &mut *error);
+            return svm_result_t::SVM_FAILURE;
+        }
 
-    let context = decode_context(context);
-    if let Err(e) = context {
-        raw_io_error(e, &mut *error);
-        return svm_result_t::SVM_FAILURE;
-    }
+        let context = decode_context(context);
+        if let Err(e) = context {
+            raw_io_error(e, &mut *error);
+            return svm_result_t::SVM_FAILURE;
+        }
 
-    let envelope = envelope.unwrap();
-    let context = context.unwrap();
-    let rust_receipt = runtime.spawn(&envelope, &message, &context);
-    let receipt_bytes = receipt::encode_spawn(&rust_receipt);
+        let envelope = envelope.unwrap();
+        let context = context.unwrap();
+        let rust_receipt = runtime.spawn(&envelope, &message, &context);
+        let receipt_bytes = receipt::encode_spawn(&rust_receipt);
 
-    // Returns the encoded `SpawnReceipt` as `svm_byte_array`.
-    //
-    // # Notes:
-    //
-    // Should call later `svm_receipt_destroy`
-    data_to_svm_byte_array(SPAWN_RECEIPT_TYPE, &mut *receipt, receipt_bytes);
+        // Returns the encoded `SpawnReceipt` as `svm_byte_array`.
+        //
+        // # Notes:
+        //
+        // Should call later `svm_receipt_destroy`
+        data_to_svm_byte_array(SPAWN_RECEIPT_TYPE, &mut *receipt, receipt_bytes);
 
-    debug!("`svm_spawn` returns `SVM_SUCCESS`");
+        debug!("`svm_spawn` returns `SVM_SUCCESS`");
 
-    svm_result_t::SVM_SUCCESS
+        svm_result_t::SVM_SUCCESS
+    })
+    .unwrap_or(svm_result_t::SVM_FAILURE)
 }
 
 /// `Call Account` transaction.
@@ -505,44 +523,47 @@ pub unsafe extern "C" fn svm_call(
     context: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
-    debug!("`svm_call` start");
+    std::panic::catch_unwind(|| {
+        debug!("`svm_call` start");
 
-    let runtime: &mut Box<dyn Runtime> = runtime.into();
-    let message = message.as_slice();
+        let runtime: &mut Box<dyn Runtime> = runtime.into();
+        let message = message.as_slice();
 
-    let envelope = decode_envelope(envelope);
-    if let Err(e) = envelope {
-        raw_io_error(e, &mut *error);
-        return svm_result_t::SVM_FAILURE;
-    }
+        let envelope = decode_envelope(envelope);
+        if let Err(e) = envelope {
+            raw_io_error(e, &mut *error);
+            return svm_result_t::SVM_FAILURE;
+        }
 
-    let context = decode_context(context);
-    if let Err(e) = context {
-        raw_io_error(e, &mut *error);
-        return svm_result_t::SVM_FAILURE;
-    }
+        let context = decode_context(context);
+        if let Err(e) = context {
+            raw_io_error(e, &mut *error);
+            return svm_result_t::SVM_FAILURE;
+        }
 
-    let envelope = envelope.unwrap();
-    let context = context.unwrap();
-    let rust_receipt = runtime.call(&envelope, &message, &context);
-    let receipt_bytes = receipt::encode_call(&rust_receipt);
+        let envelope = envelope.unwrap();
+        let context = context.unwrap();
+        let rust_receipt = runtime.call(&envelope, &message, &context);
+        let receipt_bytes = receipt::encode_call(&rust_receipt);
 
-    // Returns encoded `CallReceipt` as `svm_byte_array`.
-    //
-    // # Notes:
-    //
-    // Should call later `svm_receipt_destroy`
-    data_to_svm_byte_array(CALL_RECEIPT_TYPE, &mut *receipt, receipt_bytes);
+        // Returns encoded `CallReceipt` as `svm_byte_array`.
+        //
+        // # Notes:
+        //
+        // Should call later `svm_receipt_destroy`
+        data_to_svm_byte_array(CALL_RECEIPT_TYPE, &mut *receipt, receipt_bytes);
 
-    debug!("`svm_call` returns `SVM_SUCCESS`");
-    svm_result_t::SVM_SUCCESS
+        debug!("`svm_call` returns `SVM_SUCCESS`");
+        svm_result_t::SVM_SUCCESS
+    })
+    .unwrap_or(svm_result_t::SVM_FAILURE)
 }
 
 /// Returns the total live manually-managed resources.
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_total_live_resources() -> i32 {
-    tracking::total_live()
+    std::panic::catch_unwind(tracking::total_live).unwrap_or(-1)
 }
 
 /// Initializes a new iterator over the manually-managed resources
