@@ -78,10 +78,3 @@ pub fn subcmd_craft_deploy(args: &ArgMatches) -> anyhow::Result<()> {
     file.write_all(&encoded)?;
     Ok(())
 }
-
-pub fn emit_binary_sections(sections: &Sections) -> Vec<u8> {
-    let mut encoder = SectionsEncoder::with_capacity(sections.len());
-    encoder.encode(sections);
-
-    encoder.finish()
-}
