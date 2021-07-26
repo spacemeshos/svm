@@ -5,8 +5,8 @@ use svm_types::{CtorsSection, DataSection};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TemplateMeta {
-    pub schema: Vec<TemplateMetaSchema>,
-    pub api: Vec<TemplateMetaApi>,
+    schema: Vec<TemplateMetaSchema>,
+    api: Vec<TemplateMetaApi>,
 }
 
 impl TemplateMeta {
@@ -35,44 +35,44 @@ impl TemplateMeta {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct TemplateMetaSchema {
-    pub id: u64,
-    pub name: String,
+struct TemplateMetaSchema {
+    id: u64,
+    name: String,
     #[serde(rename = "type")]
-    pub ty: String,
-    pub offset: usize,
-    pub byte_count: usize,
-    pub length: Option<usize>,
+    ty: String,
+    offset: usize,
+    byte_count: usize,
+    length: Option<usize>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct TemplateMetaApi {
-    pub name: String,
-    pub wasm_name: String,
-    pub is_ctor: bool,
-    pub is_fundable: bool,
-    pub doc: String,
-    pub signature: TemplateMetaApiSignature,
+struct TemplateMetaApi {
+    name: String,
+    wasm_name: String,
+    is_ctor: bool,
+    is_fundable: bool,
+    doc: String,
+    signature: TemplateMetaApiSignature,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct TemplateMetaApiSignature {
-    pub params: Vec<TemplateMetaApiSignatureParam>,
-    pub returns: Vec<TemplateMetaApiSignatureReturn>,
+struct TemplateMetaApiSignature {
+    params: Vec<TemplateMetaApiSignatureParam>,
+    returns: Vec<TemplateMetaApiSignatureReturn>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct TemplateMetaApiSignatureParam {
-    pub name: String,
+struct TemplateMetaApiSignatureParam {
+    name: String,
     #[serde(rename = "type")]
-    pub ty: String,
-    pub length: usize,
+    ty: String,
+    length: usize,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct TemplateMetaApiSignatureReturn {
-    pub name: String,
+struct TemplateMetaApiSignatureReturn {
+    name: String,
     #[serde(rename = "type")]
-    pub ty: String,
-    pub length: usize,
+    ty: String,
+    length: usize,
 }
