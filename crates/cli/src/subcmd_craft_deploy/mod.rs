@@ -43,38 +43,35 @@ pub fn clap_app_craft_deploy() -> clap::App<'static, 'static> {
 }
 
 pub fn subcmd_craft_deploy(args: &ArgMatches) -> anyhow::Result<()> {
-    let smwasm_code = {
+    let smwasm = {
         let path = args.value_of("smwasm").unwrap();
         std::fs::read(path)?
     };
-    let smwasm_meta: TemplateMeta = {
+    let meta: TemplateMeta = {
         let path = args.value_of("meta").unwrap();
         let string = std::fs::read_to_string(path)?;
         serde_json::from_str(string.as_str())?
     };
 
-    let code_section = {
-        let flags = CodeSection::exec_flags();
-        CodeSection::new(
-            svm_types::CodeKind::Wasm,
-            smwasm_code,
-            flags,
-            svm_types::GasMode::Fixed,
-            0,
-        )
-    };
+    let flags = CodeSection::exec_flags();
+    let code_section = CodeSection::new(
+        svm_types::CodeKind::Wasm,
+        smwasm,
+        flags,
+        svm_types::GasMode::Fixed,
+        0,
+    );
 
-    let encoded = {
-        let mut sections = Sections::with_capacity(3);
-        sections.insert(Section::Code(code_section));
-        sections.insert(Section::Ctors(smwasm_meta.ctors_section()));
-        sections.insert(Section::Data(smwasm_meta.data_section()));
-        let mut encoder = SectionsEncoder::with_capacity(3);
-        encoder.encode(&sections);
-        encoder.finish()
-    };
+    let mut sections = Sections::with_capacity(3);
+    sections.insert(Section::Code(code_section));
+    sections.insert(Section::Ctors(meta.ctors_section()));
+    sections.insert(Section::Data(meta.data_section()));
+
+    let mut encoder = SectionsEncoder::with_capacity(3);
+    encoder.encode(&sections);
+    let bytes = encoder.finish();
 
     let mut file = File::create(args.value_of("output").unwrap())?;
-    file.write_all(&encoded)?;
+    file.write_all(&bytes)?;
     Ok(())
 }

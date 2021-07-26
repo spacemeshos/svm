@@ -12,7 +12,7 @@ use svm_types::{CtorsSection, DataSection};
 /// A fully parsed JSON from the "meta" output of the SVM SDK.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TemplateMeta {
-    schema: Vec<TemplateMetaSchema>,
+    schema: Vec<TemplateMetaVar>,
     api: Vec<TemplateMetaApi>,
 }
 
@@ -21,8 +21,8 @@ impl TemplateMeta {
         let ctors = self
             .api
             .iter()
-            .filter(|api_entry| api_entry.is_ctor)
-            .map(|api_entry| api_entry.name.clone())
+            .filter(|export| export.is_ctor)
+            .map(|export| export.name.clone())
             .collect();
         CtorsSection::new(ctors)
     }
@@ -42,7 +42,7 @@ impl TemplateMeta {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct TemplateMetaSchema {
+struct TemplateMetaVar {
     id: u64,
     name: String,
     #[serde(rename = "type")]
@@ -59,17 +59,17 @@ struct TemplateMetaApi {
     is_ctor: bool,
     is_fundable: bool,
     doc: String,
-    signature: TemplateMetaApiSignature,
+    signature: TemplateMetaSig,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct TemplateMetaApiSignature {
-    params: Vec<TemplateMetaApiSignatureParam>,
+struct TemplateMetaSig {
+    params: Vec<TemplateMetaSigParam>,
     returns: Json,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct TemplateMetaApiSignatureParam {
+struct TemplateMetaSigParam {
     name: String,
     #[serde(rename = "type")]
     ty: String,
