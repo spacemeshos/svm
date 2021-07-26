@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use serde_json::Value as Json;
 
 use svm_layout::{FixedLayoutBuilder, Id};
 use svm_types::{CtorsSection, DataSection};
@@ -64,7 +65,7 @@ struct TemplateMetaApi {
 #[derive(Debug, Serialize, Deserialize)]
 struct TemplateMetaApiSignature {
     params: Vec<TemplateMetaApiSignatureParam>,
-    returns: Vec<TemplateMetaApiSignatureReturn>,
+    returns: Vec<Json>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -73,12 +74,4 @@ struct TemplateMetaApiSignatureParam {
     #[serde(rename = "type")]
     ty: String,
     length: Option<usize>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct TemplateMetaApiSignatureReturn {
-    name: String,
-    #[serde(rename = "type")]
-    ty: String,
-    length: usize,
 }
