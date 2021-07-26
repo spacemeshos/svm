@@ -65,7 +65,7 @@ struct TemplateMetaApi {
 #[derive(Debug, Serialize, Deserialize)]
 struct TemplateMetaApiSignature {
     params: Vec<TemplateMetaApiSignatureParam>,
-    returns: Vec<Json>,
+    returns: Json,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
