@@ -1,16 +1,18 @@
 use serde_json::{json, Value};
 
-use crate::api::json::{self, JsonError};
-use crate::receipt;
-
 use svm_types::RuntimeError;
 use svm_types::{CallReceipt, DeployReceipt, Receipt, ReceiptLog, SpawnReceipt};
 
+use super::JsonSerdeUtils;
+use crate::api::json::serde_types::{AddressWrapper, EncodedData, HexBlob};
+use crate::api::json::{self, JsonError};
+use crate::receipt;
+
 /// Given a binary Receipt wrapped inside a JSON,
 /// decodes it into a user-friendly JSON.
-pub fn decode_receipt(json: &Value) -> Result<Value, JsonError> {
-    let data = json::as_string(json, "data")?;
-    let bytes = json::str_to_bytes(&data, "data")?;
+pub fn decode_receipt(json: &str) -> Result<Value, JsonError> {
+    let encoded_receipt = EncodedData::from_json_str(json)?;
+    let bytes = encoded_receipt.data.0.as_slice();
 
     assert!(bytes.len() > 0);
 
@@ -50,11 +52,11 @@ fn decode_error(ty: &'static str, err: &RuntimeError, logs: &[ReceiptLog]) -> Va
             }),
             RuntimeError::TemplateNotFound(template_addr) => json!({
                 "err_type": "template-not-found",
-                "template_addr": json::addr_to_str(template_addr.inner()),
+                "template_addr": AddressWrapper::from(template_addr),
             }),
             RuntimeError::AccountNotFound(account_addr) => json!({
                 "err_type": "account-not-found",
-                "account_addr": json::addr_to_str(account_addr.inner()),
+                "account_addr": AddressWrapper::from(account_addr),
             }),
             RuntimeError::CompilationFailed {
                 account_addr,
@@ -62,8 +64,8 @@ fn decode_error(ty: &'static str, err: &RuntimeError, logs: &[ReceiptLog]) -> Va
                 msg,
             } => json!({
                 "err_type": "compilation-failed",
-                "template_addr": json::addr_to_str(template_addr.inner()),
-                "account_addr": json::addr_to_str(account_addr.inner()),
+                "template_addr": AddressWrapper::from(template_addr),
+                "account_addr": AddressWrapper::from(account_addr),
                 "message": msg,
             }),
             RuntimeError::InstantiationFailed {
@@ -72,8 +74,8 @@ fn decode_error(ty: &'static str, err: &RuntimeError, logs: &[ReceiptLog]) -> Va
                 msg,
             } => json!({
                 "err_type": "instantiation-failed",
-                "template_addr": json::addr_to_str(template_addr.inner()),
-                "account_addr": json::addr_to_str(account_addr.inner()),
+                "template_addr": AddressWrapper::from(template_addr),
+                "account_addr": AddressWrapper::from(account_addr),
                 "message": msg,
             }),
             RuntimeError::FuncNotFound {
@@ -82,8 +84,8 @@ fn decode_error(ty: &'static str, err: &RuntimeError, logs: &[ReceiptLog]) -> Va
                 func,
             } => json!({
                 "err_type": "function-not-found",
-                "template_addr": json::addr_to_str(template_addr.inner()),
-                "account_addr": json::addr_to_str(account_addr.inner()),
+                "template_addr": AddressWrapper::from(template_addr),
+                "account_addr": AddressWrapper::from(account_addr),
                 "func": func,
             }),
             RuntimeError::FuncFailed {
@@ -93,8 +95,8 @@ fn decode_error(ty: &'static str, err: &RuntimeError, logs: &[ReceiptLog]) -> Va
                 msg,
             } => json!({
                 "err_type": "function-failed",
-                "template_addr": json::addr_to_str(template_addr.inner()),
-                "account_addr": json::addr_to_str(account_addr.inner()),
+                "template_addr": AddressWrapper::from(template_addr),
+                "account_addr": AddressWrapper::from(account_addr),
                 "func": func,
                 "message": msg,
             }),
@@ -105,8 +107,8 @@ fn decode_error(ty: &'static str, err: &RuntimeError, logs: &[ReceiptLog]) -> Va
                 msg,
             } => json!({
                 "err_type": "function-not-allowed",
-                "template_addr": json::addr_to_str(template_addr.inner()),
-                "account_addr": json::addr_to_str(account_addr.inner()),
+                "template_addr": AddressWrapper::from(template_addr),
+                "account_addr": AddressWrapper::from(account_addr),
                 "func": func,
                 "message": msg,
             }),
@@ -116,8 +118,8 @@ fn decode_error(ty: &'static str, err: &RuntimeError, logs: &[ReceiptLog]) -> Va
                 func,
             } => json!({
                 "err_type": "function-invalid-signature",
-                "template_addr": json::addr_to_str(template_addr.inner()),
-                "account_addr": json::addr_to_str(account_addr.inner()),
+                "template_addr": AddressWrapper::from(template_addr),
+                "account_addr": AddressWrapper::from(account_addr),
                 "func": func,
             }),
         }
@@ -149,7 +151,7 @@ fn decode_deploy(receipt: &DeployReceipt, ty: &'static str) -> Value {
     json!({
         "type": ty,
         "success": true,
-        "addr": json::addr_to_str(addr.as_ref().unwrap().inner()),
+        "addr": AddressWrapper::from(addr.as_ref().unwrap()),
         "gas_used": json::gas_to_json(&gas_used),
         "logs": json::logs_to_json(&logs),
     })
@@ -171,9 +173,9 @@ fn decode_spawn(receipt: &SpawnReceipt, ty: &'static str) -> Value {
     json!({
         "type": ty,
         "success": true,
-        "account": json::addr_to_str(account_addr.as_ref().unwrap().inner()),
-        "state": json::state_to_str(init_state.as_ref().unwrap()),
-        "returndata": json::bytes_to_str(returndata.as_ref().unwrap()),
+        "account": AddressWrapper::from(account_addr.as_ref().unwrap()),
+        "state": HexBlob(init_state.as_ref().unwrap().as_slice()),
+        "returndata": HexBlob(returndata.as_ref().unwrap()),
         "gas_used": json::gas_to_json(&gas_used),
         "logs": json::logs_to_json(&logs),
     })
@@ -194,8 +196,8 @@ fn decode_call(receipt: &CallReceipt, ty: &'static str) -> Value {
     json!({
         "type": ty,
         "success": true,
-        "new_state": json::state_to_str(new_state.as_ref().unwrap()),
-        "returndata": json::bytes_to_str(returndata.as_ref().unwrap()),
+        "new_state": HexBlob(new_state.as_ref().unwrap().as_slice()),
+        "returndata": HexBlob(returndata.as_ref().unwrap()),
         "gas_used": json::gas_to_json(&gas_used),
         "logs": json::logs_to_json(&logs),
     })
@@ -234,8 +236,8 @@ mod tests {
         };
 
         let bytes = crate::receipt::encode_deploy(&receipt);
-        let data = json::bytes_to_str(&bytes);
-        let json = decode_receipt(&json!({ "data": data })).unwrap();
+        let data = HexBlob(&bytes);
+        let json = decode_receipt(&json!({ "data": data }).to_string()).unwrap();
 
         assert_eq!(
             json,
@@ -280,8 +282,8 @@ mod tests {
         };
 
         let bytes = crate::receipt::encode_spawn(&receipt);
-        let data = json::bytes_to_str(&bytes);
-        let json = decode_receipt(&json!({ "data": data })).unwrap();
+        let data = HexBlob(&bytes);
+        let json = decode_receipt(&json!({ "data": data }).to_string()).unwrap();
 
         assert_eq!(
             json,
@@ -319,8 +321,8 @@ mod tests {
         };
 
         let bytes = crate::receipt::encode_spawn(&receipt);
-        let data = json::bytes_to_str(&bytes);
-        let json = decode_receipt(&json!({ "data": data })).unwrap();
+        let data = HexBlob(&bytes);
+        let json = decode_receipt(&json!({ "data": data }).to_string()).unwrap();
 
         assert_eq!(
             json,
@@ -359,8 +361,8 @@ mod tests {
         };
 
         let bytes = crate::receipt::encode_call(&receipt);
-        let data = json::bytes_to_str(&bytes);
-        let json = decode_receipt(&json!({ "data": data })).unwrap();
+        let data = HexBlob(&bytes);
+        let json = decode_receipt(&json!({ "data": data }).to_string()).unwrap();
 
         assert_eq!(
             json,

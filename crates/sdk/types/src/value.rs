@@ -3,7 +3,7 @@ use crate::{Address, Amount};
 use svm_sdk_std::{ensure, panic, Option};
 
 /// Primitive value
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 pub enum Primitive {
     None,
 
@@ -32,11 +32,13 @@ pub enum Primitive {
     U64(u64),
 }
 
+#[derive(Debug)]
 /// Composite value
 pub enum Composite {
     Vec(svm_sdk_std::Vec<Value>),
 }
 
+#[derive(Debug)]
 pub enum Value {
     /// A `Primitive` value
     Primitive(Primitive),

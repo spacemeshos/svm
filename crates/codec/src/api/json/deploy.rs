@@ -1,45 +1,31 @@
-use serde_json::Value;
-
-use crate::api::builder::TemplateBuilder;
-use crate::api::json::{self, JsonError};
-use crate::template;
+use serde::{Deserialize, Serialize};
 
 use svm_layout::{FixedLayoutBuilder, Id, Layout};
 use svm_types::{CodeSection, CtorsSection, DataSection, HeaderSection};
 
+use super::{serde_types::HexBlob, JsonError, JsonSerdeUtils};
+use crate::api::builder::TemplateBuilder;
+use crate::template;
+
 ///
 /// ```json
 /// {
-///   name: '...',          // string
-///   svm_version: '...',   // number (`u32`)
-///   code_version: '...',  // number (`u32`)
-///   desc: '...',          // string
-///   code: '...',          // string (represents a `blob`)
-///   data: '',             // string (represents a `blob`)
-///   ctors: ['', ''],      // string[]
+///   "name": "...",          // string
+///   "svm_version": "...",   // number (`u32`)
+///   "code_version": "...",  // number (`u32`)
+///   "desc": "...",          // string
+///   "code": "...",          // string (represents a `blob`)
+///   "data": "",             // string (represents a `blob`)
+///   "ctors": ["", ""],      // string[]
 /// }
 /// ```
-pub fn deploy_template(json: &Value) -> Result<Vec<u8>, JsonError> {
-    let svm_version = json::as_u32(json, "svm_version")?;
-    let code_version = json::as_u32(json, "code_version")?;
-    let name = json::as_string(json, "name")?;
-    let desc = json::as_string(json, "desc")?;
-    let wasm = json::as_blob(json, "code")?;
-    let layout = json::as_blob(json, "data")?;
-    let layout = to_data_layout(layout)?;
-
-    let mut ctors = Vec::new();
-
-    for ctor in json::as_array(json, "ctors")? {
-        let ctor = ctor.as_str().unwrap();
-
-        ctors.push(ctor.to_string());
-    }
-
-    let code = CodeSection::new_fixed(wasm, svm_version);
+pub fn deploy_template(json: &str) -> Result<Vec<u8>, JsonError> {
+    let deploy = DecodedDeploy::from_json_str(json)?;
+    let layout = to_data_layout(deploy.data.0)?;
+    let code = CodeSection::new_fixed(deploy.code.0, deploy.svm_version);
     let data = DataSection::with_layout(layout);
-    let ctors = CtorsSection::new(ctors);
-    let header = HeaderSection::new(code_version, name, desc);
+    let ctors = CtorsSection::new(deploy.ctors);
+    let header = HeaderSection::new(deploy.code_version, deploy.name, deploy.desc);
 
     let template = TemplateBuilder::default()
         .with_code(code)
@@ -48,16 +34,13 @@ pub fn deploy_template(json: &Value) -> Result<Vec<u8>, JsonError> {
         .with_header(header)
         .build();
 
-    let bytes = template::encode(&template);
-
-    Ok(bytes)
+    Ok(template::encode(&template))
 }
 
 fn to_data_layout(blob: Vec<u8>) -> Result<Layout, JsonError> {
     if blob.len() % 4 != 0 {
         return Err(JsonError::InvalidField {
-            field: "data".to_string(),
-            reason: "invalid value".to_string(),
+            path: "data".to_string(),
         });
     }
 
@@ -82,6 +65,19 @@ fn to_data_layout(blob: Vec<u8>) -> Result<Layout, JsonError> {
     Ok(layout)
 }
 
+#[derive(Debug, Clone, Deserialize, Serialize)]
+struct DecodedDeploy {
+    svm_version: u32,
+    code_version: u32,
+    name: String,
+    desc: String,
+    code: HexBlob<Vec<u8>>,
+    data: HexBlob<Vec<u8>>,
+    ctors: Vec<String>,
+}
+
+impl JsonSerdeUtils for DecodedDeploy {}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -93,14 +89,13 @@ mod tests {
 
     #[test]
     fn json_deploy_template_missing_svm_version() {
-        let json = json!({});
+        let json = json!({}).to_string();
 
         let err = deploy_template(&json).unwrap_err();
         assert_eq!(
             err,
-            JsonError::InvalidField {
-                field: "svm_version".to_string(),
-                reason: "value `null` isn\'t a number".to_string(),
+            JsonError::MissingField {
+                field_name: "svm_version".to_string(),
             }
         );
     }
@@ -109,14 +104,14 @@ mod tests {
     fn json_deploy_template_missing_code_version() {
         let json = json!({
             "svm_version": 1
-        });
+        })
+        .to_string();
 
         let err = deploy_template(&json).unwrap_err();
         assert_eq!(
             err,
-            JsonError::InvalidField {
-                field: "code_version".to_string(),
-                reason: "value `null` isn\'t a number".to_string(),
+            JsonError::MissingField {
+                field_name: "code_version".to_string(),
             }
         );
     }
@@ -126,14 +121,14 @@ mod tests {
         let json = json!({
             "svm_version": 1,
             "code_version": 2
-        });
+        })
+        .to_string();
 
         let err = deploy_template(&json).unwrap_err();
         assert_eq!(
             err,
-            JsonError::InvalidField {
-                field: "name".to_string(),
-                reason: "value `null` isn\'t a string".to_string(),
+            JsonError::MissingField {
+                field_name: "name".to_string(),
             }
         );
     }
@@ -144,14 +139,14 @@ mod tests {
             "svm_version": 1,
             "code_version": 2,
             "name": "My Template",
-        });
+        })
+        .to_string();
 
         let err = deploy_template(&json).unwrap_err();
         assert_eq!(
             err,
-            JsonError::InvalidField {
-                field: "desc".to_string(),
-                reason: "value `null` isn\'t a string".to_string(),
+            JsonError::MissingField {
+                field_name: "desc".to_string(),
             }
         );
     }
@@ -163,14 +158,14 @@ mod tests {
             "code_version": 2,
             "name": "My Template",
             "desc": "A few words"
-        });
+        })
+        .to_string();
 
         let err = deploy_template(&json).unwrap_err();
         assert_eq!(
             err,
-            JsonError::InvalidField {
-                field: "code".to_string(),
-                reason: "value `null` isn\'t a string".to_string(),
+            JsonError::MissingField {
+                field_name: "code".to_string(),
             }
         );
     }
@@ -183,14 +178,14 @@ mod tests {
             "name": "My Template",
             "desc": "A few words",
             "code": "C0DE"
-        });
+        })
+        .to_string();
 
         let err = deploy_template(&json).unwrap_err();
         assert_eq!(
             err,
-            JsonError::InvalidField {
-                field: "data".to_string(),
-                reason: "value `null` isn\'t a string".to_string(),
+            JsonError::MissingField {
+                field_name: "data".to_string(),
             }
         );
     }
@@ -204,14 +199,14 @@ mod tests {
             "desc": "A few words",
             "code": "C0DE",
             "data": "0000000100000003",
-        });
+        })
+        .to_string();
 
         let err = deploy_template(&json).unwrap_err();
         assert_eq!(
             err,
-            JsonError::InvalidField {
-                field: "ctors".to_string(),
-                reason: "value `null` isn\'t an Array".to_string(),
+            JsonError::MissingField {
+                field_name: "ctors".to_string(),
             }
         );
     }
@@ -226,7 +221,8 @@ mod tests {
             "code": "C0DE",
             "data": "0000000100000003",
             "ctors": ["init", "start"]
-        });
+        })
+        .to_string();
 
         let bytes = deploy_template(&json).unwrap();
         let cursor = Cursor::new(&bytes[..]);

@@ -4,8 +4,8 @@ use super::{to_wasm_buffer, wasm_buffer_data, BUF_ERROR_MARKER};
 
 /// Given an error (implements `std::fmt::Debug`), allocates a Wasm buffer
 /// and stores in it the printable `String` of the error (prefixed with `Error Marker`)
-pub fn into_error_buffer<T: fmt::Debug>(err: T) -> usize {
-    let msg: String = format!("{:?}", err);
+pub fn into_error_buffer<T: fmt::Display>(err: T) -> usize {
+    let msg: String = format!("{}", err);
     let bytes = msg.as_bytes();
 
     let mut buf = Vec::with_capacity(1 + bytes.len());
@@ -30,11 +30,13 @@ pub unsafe fn error_as_string(buf: usize) -> String {
 
 #[cfg(test)]
 mod test {
-    use super::*;
+    use thiserror::Error;
 
+    use super::*;
     use crate::api::wasm;
 
-    #[derive(Debug)]
+    #[derive(Debug, Error)]
+    #[error("Reason: {reason}")]
     struct MyError {
         reason: String,
     }
@@ -49,7 +51,7 @@ mod test {
 
         let loaded = unsafe { error_as_string(buf) };
         println!("{:?}", loaded);
-        assert_eq!(loaded, r#"MyError { reason: "An error has occurred..." }"#);
+        assert_eq!(loaded, "Reason: An error has occurred...");
 
         wasm::free(buf);
     }

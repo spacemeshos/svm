@@ -1,5 +1,3 @@
-use serde_json::Value;
-
 use super::wasm_buf_apply;
 use crate::{api, api::json::JsonError};
 
@@ -7,20 +5,20 @@ use crate::{api, api::json::JsonError};
 /// to a binary `Calldata`, encodes it and returns an offset to the encoded
 /// binary `Calldata` (wrapped within a JSON).
 pub fn encode_calldata(offset: usize) -> Result<usize, JsonError> {
-    wasm_buf_apply(offset, |json: &Value| {
+    wasm_buf_apply(offset, |json: &str| {
         let json = api::json::encode_calldata(json)?;
 
-        api::json::to_bytes(&json)
+        Ok(api::json::to_bytes(&json))
     })
 }
 
 /// Given an offset to a Wasm buffer holding a binary `Calldata`,
 /// decodes it and returns an offset to be decoded `Calldata` (wrapped within a JSON)
 pub fn decode_calldata(offset: usize) -> Result<usize, JsonError> {
-    wasm_buf_apply(offset, |json: &Value| {
+    wasm_buf_apply(offset, |json: &str| {
         let json = api::json::decode_calldata(json)?;
 
-        api::json::to_bytes(&json)
+        Ok(api::json::to_bytes(&json))
     })
 }
 
@@ -32,14 +30,14 @@ mod test {
         error_as_string, free, to_wasm_buffer, wasm_buffer_data, BUF_OK_MARKER,
     };
 
-    use serde_json::json;
+    use serde_json::{json, Value as Json};
 
-    fn wasm_buf_as_json(buf_ptr: usize) -> Value {
+    fn wasm_buf_as_json(buf_ptr: usize) -> Json {
         let data = wasm_buffer_data(buf_ptr);
         assert_eq!(data[0], BUF_OK_MARKER);
 
         let s = unsafe { String::from_utf8_unchecked(data[1..].to_vec()) };
-        let json: Value = serde_json::from_str(&s).unwrap();
+        let json: Json = serde_json::from_str(&s).unwrap();
 
         json
     }
@@ -84,7 +82,7 @@ mod test {
 
         let error = unsafe { error_as_string(error_buf) };
 
-        assert!(error.starts_with(r#"Error("EOF while parsing"#));
+        assert_eq!(error, "The given JSON is syntactically invalid due to EOF.");
 
         free(json_buf);
         free(error_buf);
@@ -99,7 +97,7 @@ mod test {
 
         let error = unsafe { error_as_string(error_buf) };
 
-        assert!(error.starts_with(r#"Error("EOF while parsing"#));
+        assert_eq!(error, "The given JSON is syntactically invalid due to EOF.");
 
         free(json_buf);
         free(error_buf);
