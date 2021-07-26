@@ -13,11 +13,11 @@ use svm_types::{CodeSection, CtorsSection, DataSection, Section, Sections};
 
 use meta::TemplateMeta;
 
-pub fn clap_app_auto_deploy() -> clap::App<'static, 'static> {
+pub fn clap_app_craft_deploy() -> clap::App<'static, 'static> {
     use clap::*;
 
-    SubCommand::with_name("auto-deploy")
-        .about("Crafts a \"Deploy\" transaction directly from the SVM SDK output.")
+    SubCommand::with_name("craft-deploy")
+        .about("High-level API to craft \"Deploy\" transactions")
         .arg(
             Arg::with_name("smwasm")
                 .help("Path to the smWasm `#[template]` code")
@@ -42,7 +42,7 @@ pub fn clap_app_auto_deploy() -> clap::App<'static, 'static> {
         )
 }
 
-pub fn subcmd_auto_deploy(args: &ArgMatches) -> anyhow::Result<()> {
+pub fn subcmd_craft_deploy(args: &ArgMatches) -> anyhow::Result<()> {
     let smwasm_code = {
         let path = args.value_of("smwasm").unwrap();
         std::fs::read(path)?
@@ -54,7 +54,7 @@ pub fn subcmd_auto_deploy(args: &ArgMatches) -> anyhow::Result<()> {
     };
 
     let code_section = {
-        let flags = 0;
+        let flags = CodeSection::exec_flags();
         CodeSection::new(
             svm_types::CodeKind::Wasm,
             smwasm_code,
