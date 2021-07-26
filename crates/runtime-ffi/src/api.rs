@@ -1,6 +1,6 @@
 use log::{debug, error};
 
-use std::ffi::c_void;
+use std::{ffi::c_void, panic::UnwindSafe};
 
 #[cfg(feature = "default-rocksdb")]
 use std::path::Path;
@@ -13,7 +13,7 @@ use svm_types::{Context, Envelope, Type};
 #[cfg(feature = "default-rocksdb")]
 use crate::raw_utf8_error;
 
-use crate::{raw_io_error, raw_validate_error, svm_result_t};
+use crate::{error::raw_error, raw_io_error, raw_validate_error, svm_result_t};
 
 static ENVELOPE_TYPE: Type = Type::Str("Tx Envelope");
 static MESSAGE_TYPE: Type = Type::Str("Tx Message");
@@ -21,6 +21,16 @@ static CONTEXT_TYPE: Type = Type::Str("Tx Context");
 static DEPLOY_RECEIPT_TYPE: Type = Type::Str("Deploy Receipt");
 static SPAWN_RECEIPT_TYPE: Type = Type::Str("Spawn Receipt");
 static CALL_RECEIPT_TYPE: Type = Type::Str("Call Receipt");
+
+fn catch_unwind_with_err<T, F>(error: &mut svm_byte_array, default: T, f: F) -> T
+where
+    F: FnOnce() -> T + UnwindSafe,
+{
+    std::panic::catch_unwind(f).unwrap_or_else(|_| {
+        raw_error("Internal SVM failure. This is a bug and we'd appreciate a bug report. Please provide any information that was printed to stderr.".to_string(), error);
+        default
+    })
+}
 
 #[inline]
 fn data_to_svm_byte_array(ty: Type, byte_array: &mut svm_byte_array, data: Vec<u8>) {
@@ -119,19 +129,21 @@ pub unsafe extern "C" fn svm_validate_deploy(
     message: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
-    let runtime: &mut Box<dyn Runtime> = runtime.into();
+    catch_unwind_with_err(&mut *error, svm_result_t::SVM_FAILURE, || {
+        let runtime: &mut Box<dyn Runtime> = runtime.into();
 
-    match runtime.validate_deploy(message.as_slice()) {
-        Ok(()) => {
-            debug!("`svm_validate_deploy` returns `SVM_SUCCESS`");
-            svm_result_t::SVM_SUCCESS
+        match runtime.validate_deploy(message.as_slice()) {
+            Ok(()) => {
+                debug!("`svm_validate_deploy` returns `SVM_SUCCESS`");
+                svm_result_t::SVM_SUCCESS
+            }
+            Err(e) => {
+                error!("`svm_validate_deploy` returns `SVM_FAILURE`");
+                raw_validate_error(&e, &mut *error);
+                svm_result_t::SVM_FAILURE
+            }
         }
-        Err(e) => {
-            error!("`svm_validate_deploy` returns `SVM_FAILURE`");
-            raw_validate_error(&e, &mut *error);
-            svm_result_t::SVM_FAILURE
-        }
-    }
+    })
 }
 
 /// Validates syntactically a binary `Spawn Account` transaction.
@@ -164,20 +176,22 @@ pub unsafe extern "C" fn svm_validate_spawn(
     message: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
-    let runtime: &mut Box<dyn Runtime> = runtime.into();
-    let message = message.as_slice();
+    catch_unwind_with_err(&mut *error, svm_result_t::SVM_FAILURE, || {
+        let runtime: &mut Box<dyn Runtime> = runtime.into();
+        let message = message.as_slice();
 
-    match runtime.validate_spawn(message) {
-        Ok(()) => {
-            debug!("`svm_validate_spawn` returns `SVM_SUCCESS`");
-            svm_result_t::SVM_SUCCESS
+        match runtime.validate_spawn(message) {
+            Ok(()) => {
+                debug!("`svm_validate_spawn` returns `SVM_SUCCESS`");
+                svm_result_t::SVM_SUCCESS
+            }
+            Err(e) => {
+                error!("`svm_validate_spawn` returns `SVM_FAILURE`");
+                raw_validate_error(&e, &mut *error);
+                svm_result_t::SVM_FAILURE
+            }
         }
-        Err(e) => {
-            error!("`svm_validate_spawn` returns `SVM_FAILURE`");
-            raw_validate_error(&e, &mut *error);
-            svm_result_t::SVM_FAILURE
-        }
-    }
+    })
 }
 
 /// Validates syntactically a binary `Call Account` transaction.
@@ -206,22 +220,24 @@ pub unsafe extern "C" fn svm_validate_call(
     message: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
-    debug!("`svm_validate_call` start");
+    catch_unwind_with_err(&mut *error, svm_result_t::SVM_FAILURE, || {
+        debug!("`svm_validate_call` start");
 
-    let runtime: &mut Box<dyn Runtime> = runtime.into();
-    let message = message.as_slice();
+        let runtime: &mut Box<dyn Runtime> = runtime.into();
+        let message = message.as_slice();
 
-    match runtime.validate_call(message) {
-        Ok(()) => {
-            debug!("`svm_validate_call` returns `SVM_SUCCESS`");
-            svm_result_t::SVM_SUCCESS
+        match runtime.validate_call(message) {
+            Ok(()) => {
+                debug!("`svm_validate_call` returns `SVM_SUCCESS`");
+                svm_result_t::SVM_SUCCESS
+            }
+            Err(e) => {
+                error!("`svm_validate_call` returns `SVM_FAILURE`");
+                raw_validate_error(&e, &mut *error);
+                svm_result_t::SVM_FAILURE
+            }
         }
-        Err(e) => {
-            error!("`svm_validate_call` returns `SVM_FAILURE`");
-            raw_validate_error(&e, &mut *error);
-            svm_result_t::SVM_FAILURE
-        }
-    }
+    })
 }
 
 /// Creates a new SVM Runtime instance backed-by an in-memory KV.
@@ -246,18 +262,20 @@ pub unsafe extern "C" fn svm_validate_call(
 #[no_mangle]
 pub unsafe extern "C" fn svm_memory_runtime_create(
     runtime: *mut *mut c_void,
-    _error: *mut svm_byte_array,
+    error: *mut svm_byte_array,
 ) -> svm_result_t {
-    use svm_runtime::testing;
+    catch_unwind_with_err(&mut *error, svm_result_t::SVM_FAILURE, || {
+        use svm_runtime::testing;
 
-    debug!("`svm_memory_runtime_create` start");
+        debug!("`svm_memory_runtime_create` start");
 
-    let mem_runtime = testing::create_memory_runtime();
-    let res = into_raw_runtime(runtime, mem_runtime);
+        let mem_runtime = testing::create_memory_runtime();
+        let res = into_raw_runtime(runtime, mem_runtime);
 
-    debug!("`svm_memory_runtime_create` end");
+        debug!("`svm_memory_runtime_create` end");
 
-    res
+        res
+    })
 }
 
 /// Creates a new SVM Runtime instance.
@@ -290,23 +308,25 @@ pub unsafe extern "C" fn svm_runtime_create(
     kv_path: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
-    debug!("`svm_runtime_create` start");
+    catch_unwind(&mut *error, svm_result_t::SVM_FAILURE, || {
+        debug!("`svm_runtime_create` start");
 
-    let kv_path: Result<String, std::string::FromUtf8Error> = String::try_from(kv_path);
+        let kv_path: Result<String, std::string::FromUtf8Error> = String::try_from(kv_path);
 
-    if kv_path.is_err() {
-        raw_utf8_error(kv_path, error);
-        return svm_result_t::SVM_FAILURE;
-    }
+        if kv_path.is_err() {
+            raw_utf8_error(kv_path, error);
+            return svm_result_t::SVM_FAILURE;
+        }
 
-    let kv_path = kv_path.unwrap();
+        let kv_path = kv_path.unwrap();
 
-    let rocksdb_runtime = svm_runtime::create_rocksdb_runtime(&Path::new(&kv_path));
-    let res = into_raw_runtime(runtime, rocksdb_runtime);
+        let rocksdb_runtime = svm_runtime::create_rocksdb_runtime(&Path::new(&kv_path));
+        let res = into_raw_runtime(runtime, rocksdb_runtime);
 
-    debug!("`svm_runtime_create` end");
+        debug!("`svm_runtime_create` end");
 
-    res
+        res
+    })
 }
 
 /// Deploys a `Template`
@@ -351,37 +371,39 @@ pub unsafe extern "C" fn svm_deploy(
     context: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
-    debug!("`svm_deploy` start`");
+    catch_unwind_with_err(&mut *error, svm_result_t::SVM_FAILURE, || {
+        debug!("`svm_deploy` start`");
 
-    let runtime: &mut Box<dyn Runtime> = runtime.into();
-    let message = message.as_slice();
+        let runtime: &mut Box<dyn Runtime> = runtime.into();
+        let message = message.as_slice();
 
-    let envelope = decode_envelope(envelope);
-    if let Err(e) = envelope {
-        raw_io_error(e, &mut *error);
-        return svm_result_t::SVM_FAILURE;
-    }
+        let envelope = decode_envelope(envelope);
+        if let Err(e) = envelope {
+            raw_io_error(e, &mut *error);
+            return svm_result_t::SVM_FAILURE;
+        }
 
-    let context = decode_context(context);
-    if let Err(e) = context {
-        raw_io_error(e, &mut *error);
-        return svm_result_t::SVM_FAILURE;
-    }
+        let context = decode_context(context);
+        if let Err(e) = context {
+            raw_io_error(e, &mut *error);
+            return svm_result_t::SVM_FAILURE;
+        }
 
-    let envelope = envelope.unwrap();
-    let context = context.unwrap();
-    let rust_receipt = runtime.deploy(&envelope, &message, &context);
-    let receipt_bytes = receipt::encode_deploy(&rust_receipt);
+        let envelope = envelope.unwrap();
+        let context = context.unwrap();
+        let rust_receipt = runtime.deploy(&envelope, &message, &context);
+        let receipt_bytes = receipt::encode_deploy(&rust_receipt);
 
-    // returning encoded `TemplateReceipt` as `svm_byte_array`.
-    //
-    // # Notes
-    //
-    // Should call later `svm_receipt_destroy`
-    data_to_svm_byte_array(DEPLOY_RECEIPT_TYPE, &mut *receipt, receipt_bytes);
+        // returning encoded `TemplateReceipt` as `svm_byte_array`.
+        //
+        // # Notes
+        //
+        // Should call later `svm_receipt_destroy`
+        data_to_svm_byte_array(DEPLOY_RECEIPT_TYPE, &mut *receipt, receipt_bytes);
 
-    debug!("`svm_deploy` returns `SVM_SUCCESS`");
-    svm_result_t::SVM_SUCCESS
+        debug!("`svm_deploy` returns `SVM_SUCCESS`");
+        svm_result_t::SVM_SUCCESS
+    })
 }
 
 /// Spawns a new `Account`.
@@ -427,38 +449,40 @@ pub unsafe extern "C" fn svm_spawn(
     context: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
-    debug!("`svm_spawn` start");
+    catch_unwind_with_err(&mut *error, svm_result_t::SVM_FAILURE, || {
+        debug!("`svm_spawn` start");
 
-    let runtime: &mut Box<dyn Runtime> = runtime.into();
-    let message = message.as_slice();
+        let runtime: &mut Box<dyn Runtime> = runtime.into();
+        let message = message.as_slice();
 
-    let envelope = decode_envelope(envelope);
-    if let Err(e) = envelope {
-        raw_io_error(e, &mut *error);
-        return svm_result_t::SVM_FAILURE;
-    }
+        let envelope = decode_envelope(envelope);
+        if let Err(e) = envelope {
+            raw_io_error(e, &mut *error);
+            return svm_result_t::SVM_FAILURE;
+        }
 
-    let context = decode_context(context);
-    if let Err(e) = context {
-        raw_io_error(e, &mut *error);
-        return svm_result_t::SVM_FAILURE;
-    }
+        let context = decode_context(context);
+        if let Err(e) = context {
+            raw_io_error(e, &mut *error);
+            return svm_result_t::SVM_FAILURE;
+        }
 
-    let envelope = envelope.unwrap();
-    let context = context.unwrap();
-    let rust_receipt = runtime.spawn(&envelope, &message, &context);
-    let receipt_bytes = receipt::encode_spawn(&rust_receipt);
+        let envelope = envelope.unwrap();
+        let context = context.unwrap();
+        let rust_receipt = runtime.spawn(&envelope, &message, &context);
+        let receipt_bytes = receipt::encode_spawn(&rust_receipt);
 
-    // Returns the encoded `SpawnReceipt` as `svm_byte_array`.
-    //
-    // # Notes:
-    //
-    // Should call later `svm_receipt_destroy`
-    data_to_svm_byte_array(SPAWN_RECEIPT_TYPE, &mut *receipt, receipt_bytes);
+        // Returns the encoded `SpawnReceipt` as `svm_byte_array`.
+        //
+        // # Notes:
+        //
+        // Should call later `svm_receipt_destroy`
+        data_to_svm_byte_array(SPAWN_RECEIPT_TYPE, &mut *receipt, receipt_bytes);
 
-    debug!("`svm_spawn` returns `SVM_SUCCESS`");
+        debug!("`svm_spawn` returns `SVM_SUCCESS`");
 
-    svm_result_t::SVM_SUCCESS
+        svm_result_t::SVM_SUCCESS
+    })
 }
 
 /// `Call Account` transaction.
@@ -505,54 +529,59 @@ pub unsafe extern "C" fn svm_call(
     context: svm_byte_array,
     error: *mut svm_byte_array,
 ) -> svm_result_t {
-    debug!("`svm_call` start");
+    catch_unwind_with_err(&mut *error, svm_result_t::SVM_FAILURE, || {
+        debug!("`svm_call` start");
 
-    let runtime: &mut Box<dyn Runtime> = runtime.into();
-    let message = message.as_slice();
+        let runtime: &mut Box<dyn Runtime> = runtime.into();
+        let message = message.as_slice();
 
-    let envelope = decode_envelope(envelope);
-    if let Err(e) = envelope {
-        raw_io_error(e, &mut *error);
-        return svm_result_t::SVM_FAILURE;
-    }
+        let envelope = decode_envelope(envelope);
+        if let Err(e) = envelope {
+            raw_io_error(e, &mut *error);
+            return svm_result_t::SVM_FAILURE;
+        }
 
-    let context = decode_context(context);
-    if let Err(e) = context {
-        raw_io_error(e, &mut *error);
-        return svm_result_t::SVM_FAILURE;
-    }
+        let context = decode_context(context);
+        if let Err(e) = context {
+            raw_io_error(e, &mut *error);
+            return svm_result_t::SVM_FAILURE;
+        }
 
-    let envelope = envelope.unwrap();
-    let context = context.unwrap();
-    let rust_receipt = runtime.call(&envelope, &message, &context);
-    let receipt_bytes = receipt::encode_call(&rust_receipt);
+        let envelope = envelope.unwrap();
+        let context = context.unwrap();
+        let rust_receipt = runtime.call(&envelope, &message, &context);
+        let receipt_bytes = receipt::encode_call(&rust_receipt);
 
-    // Returns encoded `CallReceipt` as `svm_byte_array`.
-    //
-    // # Notes:
-    //
-    // Should call later `svm_receipt_destroy`
-    data_to_svm_byte_array(CALL_RECEIPT_TYPE, &mut *receipt, receipt_bytes);
+        // Returns encoded `CallReceipt` as `svm_byte_array`.
+        //
+        // # Notes:
+        //
+        // Should call later `svm_receipt_destroy`
+        data_to_svm_byte_array(CALL_RECEIPT_TYPE, &mut *receipt, receipt_bytes);
 
-    debug!("`svm_call` returns `SVM_SUCCESS`");
-    svm_result_t::SVM_SUCCESS
+        debug!("`svm_call` returns `SVM_SUCCESS`");
+        svm_result_t::SVM_SUCCESS
+    })
 }
 
 /// Returns the total live manually-managed resources.
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_total_live_resources() -> i32 {
-    tracking::total_live()
+    std::panic::catch_unwind(tracking::total_live).unwrap_or(-1)
 }
 
 /// Initializes a new iterator over the manually-managed resources
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_resource_iter_new() -> *mut c_void {
-    let ty = svm_ffi::SVM_RESOURCES_ITER_TYPE;
-    let snapshot = tracking::take_snapshot();
+    std::panic::catch_unwind(|| {
+        let ty = svm_ffi::SVM_RESOURCES_ITER_TYPE;
+        let snapshot = tracking::take_snapshot();
 
-    svm_ffi::into_raw(ty, snapshot)
+        svm_ffi::into_raw(ty, snapshot)
+    })
+    .unwrap_or(std::ptr::null_mut())
 }
 
 /// Destroys the manually-managed resources iterator
@@ -608,9 +637,12 @@ pub unsafe extern "C" fn svm_resource_type_name_resolve(ty: usize) -> *mut svm_b
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_resource_type_name_destroy(ptr: *mut svm_byte_array) {
-    let ptr = svm_ffi::from_raw(svm_ffi::SVM_RESOURCE_NAME_PTR_TYPE, ptr);
+    std::panic::catch_unwind(|| {
+        let ptr = svm_ffi::from_raw(svm_ffi::SVM_RESOURCE_NAME_PTR_TYPE, ptr);
 
-    svm_byte_array_destroy(ptr)
+        svm_byte_array_destroy(ptr)
+    })
+    .unwrap_or(())
 }
 
 /// Destroys the Runtime and its associated resources.
