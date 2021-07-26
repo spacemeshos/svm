@@ -1,7 +1,6 @@
 #![allow(unused)]
 
-mod clap_app;
-mod sections;
+mod subcmd_craft_deploy;
 mod subcmd_tx;
 mod subcmd_validate;
 
@@ -21,9 +20,20 @@ use svm_gas::validate_wasm;
 use svm_gas::ProgramPricing;
 use svm_program::{Program, ProgramVisitor};
 
-use clap_app::clap_app;
-use subcmd_tx::subcmd_tx;
-use subcmd_validate::subcmd_validate;
+use subcmd_craft_deploy::{clap_app_craft_deploy, subcmd_craft_deploy};
+use subcmd_tx::{clap_app_tx, subcmd_tx};
+use subcmd_validate::{clap_app_validate, subcmd_validate};
+
+fn main() -> anyhow::Result<()> {
+    let clap_matches = clap_app().get_matches();
+    match clap_matches.subcommand() {
+        ("validate", Some(args)) => subcmd_validate(args)?,
+        ("tx", Some(args)) => subcmd_tx(args)?,
+        ("craft-deploy", Some(args)) => subcmd_craft_deploy(args)?,
+        (_, _) => unreachable!(),
+    }
+    Ok(())
+}
 
 #[derive(Clone, Debug, Error)]
 enum Error {
@@ -33,12 +43,20 @@ enum Error {
     UnknownFileExtension,
 }
 
-fn main() -> anyhow::Result<()> {
-    let clap_matches = clap_app().get_matches();
-    match clap_matches.subcommand() {
-        ("validate", Some(args)) => subcmd_validate(args)?,
-        ("tx", Some(args)) => subcmd_tx(args)?,
-        (_, _) => unreachable!(),
-    }
-    Ok(())
+fn clap_app() -> clap::App<'static, 'static> {
+    use clap::*;
+
+    // Help messages all use the third person rather than the imperative form,
+    // e.g. "prints" rather than "print".
+
+    App::new("svm-cli")
+        .version("1.0")
+        .author("The Spacemesh team")
+        .about("A CLI tool to access SVM internal utilities")
+        // The user must provide a valid subcommand, otherwise we don't really
+        // know what to do.
+        .setting(clap::AppSettings::SubcommandRequired)
+        .subcommand(clap_app_validate())
+        .subcommand(clap_app_tx())
+        .subcommand(clap_app_craft_deploy())
 }

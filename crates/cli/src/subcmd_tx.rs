@@ -10,7 +10,7 @@ pub fn clap_app_tx() -> clap::App<'static, 'static> {
     use clap::*;
 
     SubCommand::with_name("tx")
-        .about("Crafts a transaction and writes its byte representation to a file")
+        .about("Low-level API to craft transactions from JSON specification files")
         .arg(
             Arg::with_name("input")
                 .help("Reads JSON-formatted transactions from this file")
