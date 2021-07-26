@@ -1,0 +1,31 @@
+[package]
+name = "svm-cli-craft-deploy-example"
+version = "0.1.0"
+edition = "2018"
+publish = false
+
+[lib]
+crate-type = ['cdylib']
+
+[profile.release]
+opt-level = "z"
+panic = "abort"
+lto = true
+debug = false
+overflow-checks = false
+debug-assertions = false
+incremental = false
+rpath = false
+
+[dependencies]
+svm-sdk = { path = "../../../sdk", default-features = false }
+
+[features]
+default = ["mock", "static-alloc"]
+meta = ["svm-sdk/meta"]
+ffi = ["svm-sdk/ffi"]
+mock = ["svm-sdk/mock"]
+static-alloc = ["svm-sdk/static-alloc"]
+dynamic-alloc = ["svm-sdk/dynamic-alloc"]
+
+[workspace]
