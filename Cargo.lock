@@ -1984,6 +1984,7 @@ version = "0.1.0"
 dependencies = [
  "blake3 1.0.0",
  "merkle",
+ "thiserror",
  "trie-db",
 ]
 

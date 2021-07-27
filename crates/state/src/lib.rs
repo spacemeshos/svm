@@ -1,7 +1,11 @@
-use std::convert::TryInto;
-
 use blake3::Hash;
+use thiserror::Error;
+use trie_db::node::{NibbleSlicePlan, NodeHandlePlan, NodePlan};
 use trie_db::triedbmut::TrieDBMut;
+use trie_db::Hasher;
+
+use std::convert::TryInto;
+use std::fmt::Display;
 
 struct TrieLayout;
 
@@ -30,7 +34,7 @@ impl std::hash::Hasher for Blake3StdHasher {
     }
 }
 
-impl trie_db::Hasher for Blake3Hasher {
+impl Hasher for Blake3Hasher {
     type Out = [u8; 32];
     type StdHasher = Blake3StdHasher;
 
@@ -43,24 +47,56 @@ impl trie_db::Hasher for Blake3Hasher {
     }
 }
 
+const NULL_NODE_ENCODING: &[u8] = b"e";
+
 struct TrieCodec;
 
+#[derive(Clone, Debug, Error)]
+pub struct CodecError {}
+
+impl Display for CodecError {
+    fn fmt(&self, _f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        Ok(())
+    }
+}
+
 impl trie_db::NodeCodec for TrieCodec {
-    type Error = std::io::Error;
+    type Error = CodecError;
     type HashOut = [u8; 32];
 
     fn hashed_null_node() -> Self::HashOut {
-        [0; 32]
+        Blake3Hasher::hash(NULL_NODE_ENCODING)
     }
 
     fn empty_node() -> &'static [u8] {
-        &[]
+        NULL_NODE_ENCODING
     }
 
-    fn decode_plan(data: &[u8]) -> Result<trie_db::node::NodePlan, Self::Error> {}
+    fn decode_plan(data: &[u8]) -> Result<NodePlan, Self::Error> {
+        if data.is_empty() {
+            return Err(Self::Error {});
+        }
+        match data[0] {
+            b'e' => Ok(NodePlan::Empty),
+            b'b' => Ok(NodePlan::Branch {
+                value: None,
+                children: [None; 16],
+            }),
+            b'l' => Ok(NodePlan::Leaf {
+                partial: 0,
+                value: 0..0,
+            }),
+            b'x' => Ok(NodePlan::Extension {
+                partial: NibbleSlicePlan::new(0..0, 0),
+                child: NodeHandlePlan::Hash(0..0),
+            }),
+            _ => Err(Self::Error {}),
+        }
+    }
 
     fn leaf_node(partial: trie_db::Partial, value: &[u8]) -> Vec<u8> {
-        vec![]
+        let mut node = b"l".to_vec();
+        node
     }
 
     fn extension_node(
@@ -68,7 +104,11 @@ impl trie_db::NodeCodec for TrieCodec {
         number_nibble: usize,
         child_ref: trie_db::ChildReference<Self::HashOut>,
     ) -> Vec<u8> {
-        vec![]
+        let mut node = b"x".to_vec();
+        for byte in partial {
+            node.push(byte);
+        }
+        node
     }
 
     fn is_empty_node(data: &[u8]) -> bool {
@@ -81,6 +121,8 @@ impl trie_db::NodeCodec for TrieCodec {
         >,
         value: Option<&[u8]>,
     ) -> Vec<u8> {
+        let mut node = b"b".to_vec();
+        node
     }
 
     fn branch_node_nibbled(
@@ -91,6 +133,11 @@ impl trie_db::NodeCodec for TrieCodec {
         >,
         value: Option<&[u8]>,
     ) -> Vec<u8> {
+        let mut node = b"n".to_vec();
+        for byte in partial {
+            node.push(byte);
+        }
+        node
     }
 }
 

@@ -9,4 +9,5 @@ publish = false
 [dependencies]
 blake3 = "1"
 merkle = "1"
+thiserror = "1"
 trie-db = "0.22"
