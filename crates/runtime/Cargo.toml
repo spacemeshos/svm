@@ -16,6 +16,7 @@ svm-hash = { path = "../hash" }
 svm-types = { path = "../types" }
 svm-layout = { path = "../layout" }
 svm-kv = { path = "../kv", default-features = false }
+svm-state = { path = "../state" }
 svm-storage = { path = "../storage", default-features = false }
 svm-codec = { path = "../codec" }
 svm-gas = { path = "../gas" }

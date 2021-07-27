@@ -47,6 +47,7 @@ svm-storage = { path = "crates/storage", default-features = false }
 svm-runtime = { path = "crates/runtime", default-features = false }
 svm-ffi = { path = "crates/ffi" }
 svm-runtime-ffi = { path = "crates/runtime-ffi", default-features = false }
+svm-state = { path = "crates/state", default-features = false }
 svm-abi-layout = { path = "crates/abi/layout" }
 svm-abi-tests = { path = "crates/abi/tests" }
 thiserror = "1"
