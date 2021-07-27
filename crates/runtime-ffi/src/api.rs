@@ -1,19 +1,21 @@
 use log::{debug, error};
 
-use std::{ffi::c_void, panic::UnwindSafe};
+use std::ffi::c_void;
+use std::panic::UnwindSafe;
 
 #[cfg(feature = "default-rocksdb")]
 use std::path::Path;
 
 use svm_codec::receipt;
-use svm_ffi::{svm_byte_array, svm_resource_iter_t, svm_resource_t, tracking};
-use svm_runtime::{Runtime, RuntimePtr};
+use svm_runtime::Runtime;
 use svm_types::{Context, Envelope, Type};
 
+use crate::ptr::RuntimePtr;
 #[cfg(feature = "default-rocksdb")]
 use crate::raw_utf8_error;
 
-use crate::{error::raw_error, raw_io_error, raw_validate_error, svm_result_t};
+use crate::{raw_error, raw_io_error, raw_validate_error, svm_result_t};
+use crate::{svm_byte_array, svm_resource_iter_t, svm_resource_t, tracking};
 
 static ENVELOPE_TYPE: Type = Type::Str("Tx Envelope");
 static MESSAGE_TYPE: Type = Type::Str("Tx Message");
@@ -576,10 +578,10 @@ pub unsafe extern "C" fn svm_total_live_resources() -> i32 {
 #[no_mangle]
 pub unsafe extern "C" fn svm_resource_iter_new() -> *mut c_void {
     std::panic::catch_unwind(|| {
-        let ty = svm_ffi::SVM_RESOURCES_ITER_TYPE;
+        let ty = SVM_RESOURCES_ITER_TYPE;
         let snapshot = tracking::take_snapshot();
 
-        svm_ffi::into_raw(ty, snapshot)
+        crate::into_raw(ty, snapshot)
     })
     .unwrap_or(std::ptr::null_mut())
 }
@@ -588,8 +590,8 @@ pub unsafe extern "C" fn svm_resource_iter_new() -> *mut c_void {
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_resource_iter_destroy(iter: *mut c_void) {
-    let ty = svm_ffi::SVM_RESOURCES_ITER_TYPE;
-    let _ = svm_ffi::from_raw(ty, iter);
+    let ty = crate::SVM_RESOURCES_ITER_TYPE;
+    let _ = crate::from_raw(ty, iter);
 }
 
 /// Returns the next manually-managed resource.
@@ -597,16 +599,11 @@ pub unsafe extern "C" fn svm_resource_iter_destroy(iter: *mut c_void) {
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_resource_iter_next(iter: *mut c_void) -> *mut svm_resource_t {
-    let iter = svm_ffi::as_mut::<svm_resource_iter_t>(iter);
+    let iter = crate::as_mut::<svm_resource_iter_t>(iter);
 
     match iter.next() {
         None => std::ptr::null_mut(),
-        Some(resource) => {
-            let ty = svm_ffi::SVM_RESOURCE_TYPE;
-            let ptr = svm_ffi::into_raw(ty, resource);
-
-            svm_ffi::as_mut::<svm_resource_t>(ptr)
-        }
+        Some(resource) => crate::as_mut::<svm_resource_t>(ptr),
     }
 }
 
@@ -614,7 +611,7 @@ pub unsafe extern "C" fn svm_resource_iter_next(iter: *mut c_void) -> *mut svm_r
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_resource_destroy(resource: *mut svm_resource_t) {
-    let _ = svm_ffi::from_raw(svm_ffi::SVM_RESOURCE_TYPE, resource);
+    let _ = crate::from_raw(SVM_RESOURCE_TYPE, resource);
 }
 
 /// Given a type in an interned form, returns its textual name
@@ -624,9 +621,9 @@ pub unsafe extern "C" fn svm_resource_type_name_resolve(ty: usize) -> *mut svm_b
     match tracking::interned_type_rev(ty) {
         Some(ty) => {
             let ty = format!("{}", ty);
-            let ty: svm_byte_array = (svm_ffi::SVM_RESOURCE_NAME_TYPE, ty).into();
+            let ty: svm_byte_array = (SVM_RESOURCE_NAME_TYPE, ty).into();
 
-            let ptr = svm_ffi::into_raw(svm_ffi::SVM_RESOURCE_NAME_PTR_TYPE, ty);
+            let ptr = crate::into_raw(SVM_RESOURCE_NAME_PTR_TYPE, ty);
             ptr as _
         }
         None => std::ptr::null_mut(),
@@ -638,7 +635,7 @@ pub unsafe extern "C" fn svm_resource_type_name_resolve(ty: usize) -> *mut svm_b
 #[no_mangle]
 pub unsafe extern "C" fn svm_resource_type_name_destroy(ptr: *mut svm_byte_array) {
     std::panic::catch_unwind(|| {
-        let ptr = svm_ffi::from_raw(svm_ffi::SVM_RESOURCE_NAME_PTR_TYPE, ptr);
+        let ptr = crate::from_raw(SVM_RESOURCE_NAME_PTR_TYPE, ptr);
 
         svm_byte_array_destroy(ptr)
     })

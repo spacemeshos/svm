@@ -1,9 +1,8 @@
 use std::ffi::c_void;
 use std::ops::{Deref, DerefMut};
 
+use svm_runtime::Runtime;
 use svm_types::Type;
-
-use crate::Runtime;
 
 /// A Smart-pointer for a [`Runtime`] implementor.
 ///
@@ -24,20 +23,20 @@ impl RuntimePtr {
     /// Copies the [`RuntimePtr`] into the heap, and returns a raw pointer to
     /// it.
     pub fn into_raw(self) -> *mut c_void {
-        svm_ffi::into_raw(RUNTIME_PTR_TY, self)
+        crate::into_raw(RUNTIME_PTR_TY, self)
     }
 
     /// Converts a raw pointer into [`RuntimePtr`].
     pub fn from_raw(ptr: *mut c_void) -> Self {
         let ptr: *mut RuntimePtr = ptr as _;
 
-        svm_ffi::from_raw(RUNTIME_PTR_TY, ptr)
+        crate::from_raw(RUNTIME_PTR_TY, ptr)
     }
 }
 
 impl<'a> From<*mut c_void> for &'a mut Box<dyn Runtime> {
     fn from(ptr: *mut c_void) -> Self {
-        let ptr: &mut RuntimePtr = unsafe { svm_ffi::as_mut(ptr) };
+        let ptr: &mut RuntimePtr = unsafe { crate::as_mut(ptr) };
 
         &mut *ptr
     }
