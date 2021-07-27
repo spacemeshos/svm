@@ -131,6 +131,28 @@ pub unsafe extern "C" fn svm_memory_runtime_create(
     })
 }
 
+/// Destroys the Runtime and its associated resources.
+///
+/// # Examples
+///
+/// ```rust, no_run
+/// use svm_runtime_ffi::*;
+///
+/// let mut runtime = std::ptr::null_mut();
+/// let mut error = svm_byte_array::default();
+/// let res = unsafe { svm_memory_runtime_create(&mut runtime, &mut error) };
+/// assert!(res.is_ok());
+///
+/// // Destroys the Runtime
+/// unsafe { svm_runtime_destroy(runtime); }
+/// ```
+///
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_runtime_destroy(runtime: *mut c_void) {
+    let _ = RuntimeRef::from_raw(runtime);
+}
+
 /// Allocates `svm_byte_array` of `size` bytes, meant to be used for passing a binary [`Envelope`].
 #[must_use]
 #[no_mangle]
@@ -308,34 +330,34 @@ pub unsafe extern "C" fn svm_validate_call(
 /// assert!(res.is_ok());
 /// ```
 ///
-#[cfg(feature = "default-rocksdb")]
-#[must_use]
-#[no_mangle]
-pub unsafe extern "C" fn svm_runtime_create(
-    runtime: *mut *mut c_void,
-    kv_path: svm_byte_array,
-    error: *mut svm_byte_array,
-) -> svm_result_t {
-    catch_unwind(&mut *error, svm_result_t::SVM_FAILURE, || {
-        debug!("`svm_runtime_create` start");
+// #[cfg(feature = "default-rocksdb")]
+// #[must_use]
+// #[no_mangle]
+// pub unsafe extern "C" fn svm_runtime_create(
+//     runtime: *mut *mut c_void,
+//     kv_path: svm_byte_array,
+//     error: *mut svm_byte_array,
+// ) -> svm_result_t {
+//     catch_unwind(&mut *error, svm_result_t::SVM_FAILURE, || {
+//         debug!("`svm_runtime_create` start");
 
-        let kv_path: Result<String, std::string::FromUtf8Error> = String::try_from(kv_path);
+//         let kv_path: Result<String, std::string::FromUtf8Error> = String::try_from(kv_path);
 
-        if kv_path.is_err() {
-            raw_utf8_error(kv_path, error);
-            return svm_result_t::SVM_FAILURE;
-        }
+//         if kv_path.is_err() {
+//             raw_utf8_error(kv_path, error);
+//             return svm_result_t::SVM_FAILURE;
+//         }
 
-        let kv_path = kv_path.unwrap();
+//         let kv_path = kv_path.unwrap();
 
-        let rocksdb_runtime = svm_runtime::create_rocksdb_runtime(&Path::new(&kv_path));
-        let res = into_raw_runtime(runtime, rocksdb_runtime);
+//         let rocksdb_runtime = svm_runtime::create_rocksdb_runtime(&Path::new(&kv_path));
+//         let res = into_raw_runtime(runtime, rocksdb_runtime);
 
-        debug!("`svm_runtime_create` end");
+//         debug!("`svm_runtime_create` end");
 
-        res
-    })
-}
+//         res
+//     })
+// }
 
 /// Deploys a `Template`
 ///
@@ -645,28 +667,6 @@ pub unsafe extern "C" fn svm_resource_type_name_destroy(ptr: *mut svm_byte_array
         svm_byte_array_destroy(ptr)
     })
     .unwrap_or(())
-}
-
-/// Destroys the Runtime and its associated resources.
-///
-/// # Examples
-///
-/// ```rust, no_run
-/// use svm_runtime_ffi::*;
-///
-/// let mut runtime = std::ptr::null_mut();
-/// let mut error = svm_byte_array::default();
-/// let res = unsafe { svm_memory_runtime_create(&mut runtime, &mut error) };
-/// assert!(res.is_ok());
-///
-/// // Destroys the Runtime
-/// unsafe { svm_runtime_destroy(runtime); }
-/// ```
-///
-#[must_use]
-#[no_mangle]
-pub unsafe extern "C" fn svm_runtime_destroy(runtime: *mut c_void) {
-    let _ = RuntimeRef::from_raw(runtime);
 }
 
 /// Frees `svm_byte_array`
