@@ -10,8 +10,8 @@ use crate::tracking;
 /// # Examples
 ///
 /// ```rust
+/// use svm_runtime_ffi::svm_byte_array;
 /// use svm_types::Type;
-/// use svm_ffi::svm_byte_array;
 ///
 /// use std::convert::TryFrom;
 /// use std::string::FromUtf8Error;
@@ -103,7 +103,7 @@ impl svm_byte_array {
 // /// # Examples
 // ///
 // /// ```rust
-// /// use svm_ffi::svm_byte_array;
+// /// use svm_runtime_ffi::svm_byte_array;
 // ///
 // /// let array = svm_byte_array::default();
 // ///

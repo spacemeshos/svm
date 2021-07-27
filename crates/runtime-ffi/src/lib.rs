@@ -2,37 +2,26 @@
 //!
 //! [FFI]: https://doc.rust-lang.org/nomicon/ffi.html
 
-#![deny(missing_docs)]
-#![deny(unused)]
-#![deny(dead_code)]
-#![deny(unreachable_code)]
+#![allow(missing_docs)]
+#![allow(unused)]
+#![allow(dead_code)]
+#![allow(unreachable_code)]
 #![feature(vec_into_raw_parts)]
 
 mod address;
 mod byte_array;
 mod macros;
-mod ptr;
+mod r#ref;
 mod state;
-mod tracking;
+pub mod tracking;
 
 pub use byte_array::svm_byte_array;
 
-pub(crate) use tracking::{svm_resource_iter_t, svm_resource_t};
+pub use tracking::{svm_resource_iter_t, svm_resource_t};
 
 use std::ffi::c_void;
 
 use svm_types::Type;
-
-/// Receives an object, and returns a raw `*mut c_void` pointer to it.
-#[must_use]
-#[inline]
-pub fn into_raw<T: 'static>(ty: Type, obj: T) -> *mut c_void {
-    let ptr: *mut T = Box::into_raw(Box::new(obj));
-
-    tracking::increment_live(ty);
-
-    ptr as _
-}
 
 mod api;
 mod error;
@@ -82,18 +71,32 @@ pub use api::{
 
 pub use result::svm_result_t;
 
-/// Given a pointer to a `T` object allocated on the heap, returns its (uses `Box::from_raw`)
+/// Receives an object, and returns a raw `*mut c_void` pointer to it.
 #[must_use]
 #[inline]
-pub(crate) fn from_raw<T: 'static>(ty: Type, ptr: *mut T) -> T {
-    tracking::decrement_live(ty);
+pub fn into_raw<T: 'static>(ty: Type, obj: T) -> *mut c_void {
+    let ptr: *mut T = Box::into_raw(Box::new(obj));
 
-    unsafe { *Box::from_raw(ptr) }
+    tracking::increment_live(ty);
+
+    ptr as _
 }
 
+/// Given a **pointer** to an object (of type `T`) allocated on the heap, returns the object (uses `Box::from_raw`)
+#[must_use]
+#[inline]
+pub(crate) unsafe fn from_raw<T: 'static>(ty: Type, ptr: *mut T) -> T {
+    tracking::decrement_live(ty);
+
+    *Box::from_raw(ptr)
+}
+
+/// Receives a `*const c_void` pointer and returns the a mutable borrowed reference to the underlying object.
+///
 /// # Safety
 ///
-/// Receives a `*const c_void` pointer and returns the a mutable borrowed reference to the underlying object.
+/// * If raw pointer doesn't point to a struct of type T it's an U.B
+/// * In case the referenced struct is already borrowed it's an U.B
 #[must_use]
 #[inline]
 pub(crate) unsafe fn as_mut<'a, T>(ptr: *mut c_void) -> &'a mut T {

@@ -10,7 +10,8 @@ use svm_codec::receipt;
 use svm_runtime::Runtime;
 use svm_types::{Context, Envelope, Type};
 
-use crate::ptr::RuntimePtr;
+use crate::r#ref::RuntimeRef;
+
 #[cfg(feature = "default-rocksdb")]
 use crate::raw_utf8_error;
 
@@ -23,6 +24,11 @@ static CONTEXT_TYPE: Type = Type::Str("Tx Context");
 static DEPLOY_RECEIPT_TYPE: Type = Type::Str("Deploy Receipt");
 static SPAWN_RECEIPT_TYPE: Type = Type::Str("Spawn Receipt");
 static CALL_RECEIPT_TYPE: Type = Type::Str("Call Receipt");
+
+static SVM_RESOURCE_TYPE: Type = Type::of::<svm_resource_t>();
+static SVM_RESOURCES_ITER_TYPE: Type = Type::of::<svm_resource_iter_t>();
+static SVM_RESOURCE_NAME_TYPE: Type = Type::Str("resource-name");
+static SVM_RESOURCE_NAME_PTR_TYPE: Type = Type::Str("resource-name ptr");
 
 fn catch_unwind_with_err<T, F>(error: &mut svm_byte_array, default: T, f: F) -> T
 where
@@ -51,12 +57,12 @@ unsafe fn into_raw_runtime<R: Runtime + 'static>(
     raw_runtime: *mut *mut c_void,
     runtime: R,
 ) -> svm_result_t {
-    let runtime_ptr = RuntimePtr::new(Box::new(runtime));
+    let runtime_ptr = RuntimeRef::new(Box::new(runtime));
 
     // # Notes
     //
     // `svm_runtime_destroy` should be called later for freeing memory.
-    *raw_runtime = RuntimePtr::into_raw(runtime_ptr);
+    *raw_runtime = RuntimeRef::into_raw(runtime_ptr);
 
     svm_result_t::SVM_SUCCESS
 }
@@ -79,169 +85,15 @@ unsafe fn decode_context(context: svm_byte_array) -> std::io::Result<Context> {
     context::decode(&mut cursor)
 }
 
-/// Allocates `svm_byte_array` of `size` bytes, destined to be used for passing a binary [`Envelope`].
-#[must_use]
-#[no_mangle]
-pub unsafe extern "C" fn svm_envelope_alloc(size: u32) -> svm_byte_array {
-    svm_byte_array::with_capacity(size as usize, ENVELOPE_TYPE)
-}
-
-/// Allocates `svm_byte_array` of `size` bytes, destined to be used for passing a binary [`Message`].
-#[must_use]
-#[no_mangle]
-pub unsafe extern "C" fn svm_message_alloc(size: u32) -> svm_byte_array {
-    svm_byte_array::with_capacity(size as usize, MESSAGE_TYPE)
-}
-
-/// Allocates `svm_byte_array` of `size` bytes, destined to be used for passing a binary [`Context`].
-#[must_use]
-#[no_mangle]
-pub unsafe extern "C" fn svm_context_alloc(size: u32) -> svm_byte_array {
-    svm_byte_array::with_capacity(size as usize, CONTEXT_TYPE)
-}
-
-/// Validates syntactically a binary `Deploy Template` transaction.
 ///
-/// Should be called while the transaction is in the `mempool` of the Host.
-/// In case the transaction isn't valid - the transaction should be discarded.
+/// Start of the Public C-API
+///
+/// * Each method is annotated with `#[no_mangle]`
+/// * Each method has `unsafe extern "C"` before `fn`
+///
+/// See `build.rs` for using `cbindgen` to generate `svm.h`
 ///
 ///
-/// # Examples
-///
-/// ```rust, no_run
-/// use svm_runtime_ffi::*;
-///
-/// use svm_ffi::svm_byte_array;
-///
-/// let mut runtime = std::ptr::null_mut();
-/// let mut error = svm_byte_array::default();
-///
-/// let res = unsafe { svm_memory_runtime_create(&mut runtime, &mut error) };
-/// assert!(res.is_ok());
-///
-/// let message = svm_byte_array::default();
-///
-/// let _res = unsafe { svm_validate_deploy(runtime, message, &mut error) };
-/// ```
-///
-#[must_use]
-#[no_mangle]
-pub unsafe extern "C" fn svm_validate_deploy(
-    runtime: *mut c_void,
-    message: svm_byte_array,
-    error: *mut svm_byte_array,
-) -> svm_result_t {
-    catch_unwind_with_err(&mut *error, svm_result_t::SVM_FAILURE, || {
-        let runtime: &mut Box<dyn Runtime> = runtime.into();
-
-        match runtime.validate_deploy(message.as_slice()) {
-            Ok(()) => {
-                debug!("`svm_validate_deploy` returns `SVM_SUCCESS`");
-                svm_result_t::SVM_SUCCESS
-            }
-            Err(e) => {
-                error!("`svm_validate_deploy` returns `SVM_FAILURE`");
-                raw_validate_error(&e, &mut *error);
-                svm_result_t::SVM_FAILURE
-            }
-        }
-    })
-}
-
-/// Validates syntactically a binary `Spawn Account` transaction.
-///
-/// Should be called while the transaction is in the `mempool` of the Host.
-/// In case the transaction isn't valid - the transaction should be discarded.
-///
-///
-/// # Examples
-///
-/// ```rust, no_run
-/// use svm_runtime_ffi::*;
-///
-/// use svm_ffi::svm_byte_array;
-///
-/// let mut runtime = std::ptr::null_mut();
-/// let mut error = svm_byte_array::default();
-///
-/// let res = unsafe { svm_memory_runtime_create(&mut runtime, &mut error) };
-/// assert!(res.is_ok());
-///
-/// let message = svm_byte_array::default();
-/// let _res = unsafe { svm_validate_spawn(runtime, message, &mut error) };
-/// ```
-///
-#[must_use]
-#[no_mangle]
-pub unsafe extern "C" fn svm_validate_spawn(
-    runtime: *mut c_void,
-    message: svm_byte_array,
-    error: *mut svm_byte_array,
-) -> svm_result_t {
-    catch_unwind_with_err(&mut *error, svm_result_t::SVM_FAILURE, || {
-        let runtime: &mut Box<dyn Runtime> = runtime.into();
-        let message = message.as_slice();
-
-        match runtime.validate_spawn(message) {
-            Ok(()) => {
-                debug!("`svm_validate_spawn` returns `SVM_SUCCESS`");
-                svm_result_t::SVM_SUCCESS
-            }
-            Err(e) => {
-                error!("`svm_validate_spawn` returns `SVM_FAILURE`");
-                raw_validate_error(&e, &mut *error);
-                svm_result_t::SVM_FAILURE
-            }
-        }
-    })
-}
-
-/// Validates syntactically a binary `Call Account` transaction.
-///
-/// # Examples
-///
-/// ```rust, no_run
-/// use svm_runtime_ffi::*;
-///
-/// use svm_ffi::svm_byte_array;
-///
-/// let mut runtime = std::ptr::null_mut();
-/// let mut error = svm_byte_array::default();
-///
-/// let res = unsafe { svm_memory_runtime_create(&mut runtime, &mut error) };
-/// assert!(res.is_ok());
-///
-/// let message = svm_byte_array::default();
-/// let _res = unsafe { svm_validate_call(runtime, message, &mut error) };
-/// ```
-///
-#[must_use]
-#[no_mangle]
-pub unsafe extern "C" fn svm_validate_call(
-    runtime: *mut c_void,
-    message: svm_byte_array,
-    error: *mut svm_byte_array,
-) -> svm_result_t {
-    catch_unwind_with_err(&mut *error, svm_result_t::SVM_FAILURE, || {
-        debug!("`svm_validate_call` start");
-
-        let runtime: &mut Box<dyn Runtime> = runtime.into();
-        let message = message.as_slice();
-
-        match runtime.validate_call(message) {
-            Ok(()) => {
-                debug!("`svm_validate_call` returns `SVM_SUCCESS`");
-                svm_result_t::SVM_SUCCESS
-            }
-            Err(e) => {
-                error!("`svm_validate_call` returns `SVM_FAILURE`");
-                raw_validate_error(&e, &mut *error);
-                svm_result_t::SVM_FAILURE
-            }
-        }
-    })
-}
-
 /// Creates a new SVM Runtime instance backed-by an in-memory KV.
 ///
 /// Returns it the created Runtime via the `runtime` parameter.
@@ -250,7 +102,6 @@ pub unsafe extern "C" fn svm_validate_call(
 ///
 /// ```rust
 /// use svm_runtime_ffi::*;
-/// use svm_ffi::svm_byte_array;
 ///
 /// let mut runtime = std::ptr::null_mut();
 ///
@@ -280,6 +131,163 @@ pub unsafe extern "C" fn svm_memory_runtime_create(
     })
 }
 
+/// Allocates `svm_byte_array` of `size` bytes, meant to be used for passing a binary [`Envelope`].
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_envelope_alloc(size: u32) -> svm_byte_array {
+    svm_byte_array::with_capacity(size as usize, ENVELOPE_TYPE)
+}
+
+/// Allocates `svm_byte_array` of `size` bytes, meant to be used for passing a binary [`Message`].
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_message_alloc(size: u32) -> svm_byte_array {
+    svm_byte_array::with_capacity(size as usize, MESSAGE_TYPE)
+}
+
+/// Allocates `svm_byte_array` of `size` bytes, meant to be used for passing a binary [`Context`].
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_context_alloc(size: u32) -> svm_byte_array {
+    svm_byte_array::with_capacity(size as usize, CONTEXT_TYPE)
+}
+
+/// Validates syntactically a binary `Deploy Template` transaction.
+///
+/// Should be called while the transaction is in the `mempool` of the Host.
+/// In case the transaction isn't valid - the transaction should be discarded.
+///
+///
+/// # Examples
+///
+/// ```rust, no_run
+/// use svm_runtime_ffi::*;
+///
+/// let mut runtime = std::ptr::null_mut();
+/// let mut error = svm_byte_array::default();
+///
+/// let res = unsafe { svm_memory_runtime_create(&mut runtime, &mut error) };
+/// assert!(res.is_ok());
+///
+/// let message = svm_byte_array::default();
+///
+/// let _res = unsafe { svm_validate_deploy(runtime, message, &mut error) };
+/// ```
+///
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_validate_deploy(
+    runtime: *mut c_void,
+    message: svm_byte_array,
+    error: *mut svm_byte_array,
+) -> svm_result_t {
+    catch_unwind_with_err(&mut *error, svm_result_t::SVM_FAILURE, || {
+        let runtime = RuntimeRef::as_native(runtime);
+
+        match runtime.validate_deploy(message.as_slice()) {
+            Ok(()) => {
+                debug!("`svm_validate_deploy` returns `SVM_SUCCESS`");
+                svm_result_t::SVM_SUCCESS
+            }
+            Err(e) => {
+                error!("`svm_validate_deploy` returns `SVM_FAILURE`");
+                raw_validate_error(&e, &mut *error);
+                svm_result_t::SVM_FAILURE
+            }
+        }
+    })
+}
+
+/// Validates syntactically a binary `Spawn Account` transaction.
+///
+/// Should be called while the transaction is in the `mempool` of the Host.
+/// In case the transaction isn't valid - the transaction should be discarded.
+///
+///
+/// # Examples
+///
+/// ```rust, no_run
+/// use svm_runtime_ffi::*;
+///
+/// let mut runtime = std::ptr::null_mut();
+/// let mut error = svm_byte_array::default();
+///
+/// let res = unsafe { svm_memory_runtime_create(&mut runtime, &mut error) };
+/// assert!(res.is_ok());
+///
+/// let message = svm_byte_array::default();
+/// let _res = unsafe { svm_validate_spawn(runtime, message, &mut error) };
+/// ```
+///
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_validate_spawn(
+    runtime: *mut c_void,
+    message: svm_byte_array,
+    error: *mut svm_byte_array,
+) -> svm_result_t {
+    catch_unwind_with_err(&mut *error, svm_result_t::SVM_FAILURE, || {
+        let runtime = RuntimeRef::as_native(runtime);
+        let message = message.as_slice();
+
+        match runtime.validate_spawn(message) {
+            Ok(()) => {
+                debug!("`svm_validate_spawn` returns `SVM_SUCCESS`");
+                svm_result_t::SVM_SUCCESS
+            }
+            Err(e) => {
+                error!("`svm_validate_spawn` returns `SVM_FAILURE`");
+                raw_validate_error(&e, &mut *error);
+                svm_result_t::SVM_FAILURE
+            }
+        }
+    })
+}
+
+/// Validates syntactically a binary `Call Account` transaction.
+///
+/// # Examples
+///
+/// ```rust, no_run
+/// use svm_runtime_ffi::*;
+///
+/// let mut runtime = std::ptr::null_mut();
+/// let mut error = svm_byte_array::default();
+///
+/// let res = unsafe { svm_memory_runtime_create(&mut runtime, &mut error) };
+/// assert!(res.is_ok());
+///
+/// let message = svm_byte_array::default();
+/// let _res = unsafe { svm_validate_call(runtime, message, &mut error) };
+/// ```
+///
+#[must_use]
+#[no_mangle]
+pub unsafe extern "C" fn svm_validate_call(
+    runtime: *mut c_void,
+    message: svm_byte_array,
+    error: *mut svm_byte_array,
+) -> svm_result_t {
+    catch_unwind_with_err(&mut *error, svm_result_t::SVM_FAILURE, || {
+        debug!("`svm_validate_call` start");
+
+        let runtime = RuntimeRef::as_native(runtime);
+        let message = message.as_slice();
+
+        match runtime.validate_call(message) {
+            Ok(()) => {
+                debug!("`svm_validate_call` returns `SVM_SUCCESS`");
+                svm_result_t::SVM_SUCCESS
+            }
+            Err(e) => {
+                error!("`svm_validate_call` returns `SVM_FAILURE`");
+                raw_validate_error(&e, &mut *error);
+                svm_result_t::SVM_FAILURE
+            }
+        }
+    })
+}
+
 /// Creates a new SVM Runtime instance.
 /// Returns it via the `runtime` parameter.
 ///
@@ -287,8 +295,6 @@ pub unsafe extern "C" fn svm_memory_runtime_create(
 ///
 /// ```rust, no_run
 /// use svm_runtime_ffi::*;
-///
-/// use svm_ffi::svm_byte_array;
 ///
 /// let mut runtime = std::ptr::null_mut();
 ///
@@ -338,8 +344,6 @@ pub unsafe extern "C" fn svm_runtime_create(
 /// ```rust, no_run
 /// use svm_runtime_ffi::*;
 ///
-/// use svm_ffi::svm_byte_array;
-///
 /// let mut runtime = std::ptr::null_mut();
 /// let mut error = svm_byte_array::default();
 /// let res = unsafe { svm_memory_runtime_create(&mut runtime, &mut error) };
@@ -376,7 +380,7 @@ pub unsafe extern "C" fn svm_deploy(
     catch_unwind_with_err(&mut *error, svm_result_t::SVM_FAILURE, || {
         debug!("`svm_deploy` start`");
 
-        let runtime: &mut Box<dyn Runtime> = runtime.into();
+        let runtime = RuntimeRef::as_native(runtime);
         let message = message.as_slice();
 
         let envelope = decode_envelope(envelope);
@@ -415,8 +419,6 @@ pub unsafe extern "C" fn svm_deploy(
 /// ```rust, no_run
 /// use svm_runtime_ffi::*;
 ///
-/// use svm_ffi::svm_byte_array;
-///
 /// let mut runtime = std::ptr::null_mut();
 /// let mut error = svm_byte_array::default();
 ///
@@ -454,7 +456,7 @@ pub unsafe extern "C" fn svm_spawn(
     catch_unwind_with_err(&mut *error, svm_result_t::SVM_FAILURE, || {
         debug!("`svm_spawn` start");
 
-        let runtime: &mut Box<dyn Runtime> = runtime.into();
+        let runtime = RuntimeRef::as_native(runtime);
         let message = message.as_slice();
 
         let envelope = decode_envelope(envelope);
@@ -497,8 +499,6 @@ pub unsafe extern "C" fn svm_spawn(
 ///
 /// use svm_runtime_ffi::*;
 ///
-/// use svm_ffi::svm_byte_array;
-///
 /// let mut runtime = std::ptr::null_mut();
 /// let mut error = svm_byte_array::default();
 ///
@@ -534,7 +534,7 @@ pub unsafe extern "C" fn svm_call(
     catch_unwind_with_err(&mut *error, svm_result_t::SVM_FAILURE, || {
         debug!("`svm_call` start");
 
-        let runtime: &mut Box<dyn Runtime> = runtime.into();
+        let runtime = RuntimeRef::as_native(runtime);
         let message = message.as_slice();
 
         let envelope = decode_envelope(envelope);
@@ -590,7 +590,7 @@ pub unsafe extern "C" fn svm_resource_iter_new() -> *mut c_void {
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_resource_iter_destroy(iter: *mut c_void) {
-    let ty = crate::SVM_RESOURCES_ITER_TYPE;
+    let ty = SVM_RESOURCES_ITER_TYPE;
     let _ = crate::from_raw(ty, iter);
 }
 
@@ -603,7 +603,12 @@ pub unsafe extern "C" fn svm_resource_iter_next(iter: *mut c_void) -> *mut svm_r
 
     match iter.next() {
         None => std::ptr::null_mut(),
-        Some(resource) => crate::as_mut::<svm_resource_t>(ptr),
+        Some(resource) => {
+            let ty = SVM_RESOURCE_TYPE;
+            let ptr = crate::into_raw(ty, resource);
+
+            crate::as_mut::<svm_resource_t>(ptr)
+        }
     }
 }
 
@@ -649,8 +654,6 @@ pub unsafe extern "C" fn svm_resource_type_name_destroy(ptr: *mut svm_byte_array
 /// ```rust, no_run
 /// use svm_runtime_ffi::*;
 ///
-/// use svm_ffi::svm_byte_array;
-///
 /// let mut runtime = std::ptr::null_mut();
 /// let mut error = svm_byte_array::default();
 /// let res = unsafe { svm_memory_runtime_create(&mut runtime, &mut error) };
@@ -663,7 +666,7 @@ pub unsafe extern "C" fn svm_resource_type_name_destroy(ptr: *mut svm_byte_array
 #[must_use]
 #[no_mangle]
 pub unsafe extern "C" fn svm_runtime_destroy(runtime: *mut c_void) {
-    let _ = RuntimePtr::from_raw(runtime);
+    let _ = RuntimeRef::from_raw(runtime);
 }
 
 /// Frees `svm_byte_array`
@@ -672,8 +675,6 @@ pub unsafe extern "C" fn svm_runtime_destroy(runtime: *mut c_void) {
 ///
 /// ```rust
 /// use svm_runtime_ffi::*;
-///
-/// use svm_ffi::svm_byte_array;
 ///
 /// let bytes = svm_byte_array::default();
 /// unsafe { svm_byte_array_destroy(bytes); }

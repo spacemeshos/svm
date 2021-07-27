@@ -12,7 +12,7 @@ use lazy_static::lazy_static;
 lazy_static! {
     /// Stores for each interned type its number of live instances.
     /// In case a value is negative, it signals there is probably a bug in the code.
-    /// (There must not be more deallocations than allocations for a type).
+    /// (There must not be more de-allocations than allocations for a type).
     static ref STATS: Mutex<HashMap<usize, i32>> = Mutex::new(HashMap::new());
 
     /// By default when a tests are running, their resources tracking is off.

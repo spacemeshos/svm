@@ -4,8 +4,8 @@
 /// ```rust
 /// use std::convert::TryFrom;
 ///
+/// use svm_runtime_ffi::svm_byte_array;
 /// use svm_types::{Address, Type};
-/// use svm_ffi::svm_byte_array;
 ///
 /// let ty = Type::Str("@someone address");
 /// let addr = Address::of("@someone");
@@ -47,8 +47,8 @@ macro_rules! impl_from_svm_byte_array {
 /// ```rust
 /// use std::convert::TryFrom;
 ///
+/// use svm_runtime_ffi::svm_byte_array;
 /// use svm_types::{Address, Type};
-/// use svm_ffi::svm_byte_array;
 
 /// let ty = Type::Str("@someone address");
 /// let addr = Address::of("@someone");

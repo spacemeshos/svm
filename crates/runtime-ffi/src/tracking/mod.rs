@@ -13,11 +13,9 @@ mod test {
     use super::*;
 
     use maplit::hashmap;
-
     use svm_types::Type;
 
     struct A;
-
     struct B;
 
     #[test]
