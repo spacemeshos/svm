@@ -310,55 +310,6 @@ pub unsafe extern "C" fn svm_validate_call(
     })
 }
 
-/// Creates a new SVM Runtime instance.
-/// Returns it via the `runtime` parameter.
-///
-/// # Examples
-///
-/// ```rust, no_run
-/// use svm_runtime_ffi::*;
-///
-/// let mut runtime = std::ptr::null_mut();
-///
-/// let ty = Type::Str("path");
-/// let kv_path = String::from("path for SVM internal db goes here");
-
-/// let kv_path: svm_byte_array = (ty, kv_path).into();
-/// let mut error = svm_byte_array::default();
-///
-/// let res = unsafe { svm_runtime_create(&mut runtime, kv_path, &mut error) };
-/// assert!(res.is_ok());
-/// ```
-///
-// #[cfg(feature = "default-rocksdb")]
-// #[must_use]
-// #[no_mangle]
-// pub unsafe extern "C" fn svm_runtime_create(
-//     runtime: *mut *mut c_void,
-//     kv_path: svm_byte_array,
-//     error: *mut svm_byte_array,
-// ) -> svm_result_t {
-//     catch_unwind(&mut *error, svm_result_t::SVM_FAILURE, || {
-//         debug!("`svm_runtime_create` start");
-
-//         let kv_path: Result<String, std::string::FromUtf8Error> = String::try_from(kv_path);
-
-//         if kv_path.is_err() {
-//             raw_utf8_error(kv_path, error);
-//             return svm_result_t::SVM_FAILURE;
-//         }
-
-//         let kv_path = kv_path.unwrap();
-
-//         let rocksdb_runtime = svm_runtime::create_rocksdb_runtime(&Path::new(&kv_path));
-//         let res = into_raw_runtime(runtime, rocksdb_runtime);
-
-//         debug!("`svm_runtime_create` end");
-
-//         res
-//     })
-// }
-
 /// Deploys a `Template`
 ///
 /// # Examples

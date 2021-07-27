@@ -2,10 +2,10 @@
 //!
 //! [FFI]: https://doc.rust-lang.org/nomicon/ffi.html
 
-#![allow(missing_docs)]
-#![allow(unused)]
-#![allow(dead_code)]
-#![allow(unreachable_code)]
+#![deny(missing_docs)]
+#![deny(unused)]
+#![deny(dead_code)]
+#![deny(unreachable_code)]
 #![feature(vec_into_raw_parts)]
 
 mod address;
@@ -13,10 +13,10 @@ mod byte_array;
 mod macros;
 mod r#ref;
 mod state;
+
 pub mod tracking;
 
 pub use byte_array::svm_byte_array;
-
 pub use tracking::{svm_resource_iter_t, svm_resource_t};
 
 use std::ffi::c_void;

@@ -36,6 +36,7 @@ pub struct svm_byte_array {
 }
 
 impl svm_byte_array {
+    /// Creates a new [`svm_byte_array`] out of its raw parts.
     pub unsafe fn from_raw_parts(
         bytes: *const u8,
         length: u32,
@@ -50,7 +51,7 @@ impl svm_byte_array {
         }
     }
 
-    /// Creates a new `svm_byte_array` backed by a buffer of zeros sized `size`.
+    /// Creates a new [`svm_byte_array`] backed by a buffer of zeros sized `size`.
     pub fn with_capacity(size: usize, ty: Type) -> Self {
         let vec = vec![0u8; size];
 
@@ -73,7 +74,7 @@ impl svm_byte_array {
         unsafe { std::slice::from_raw_parts(self.bytes, self.length as usize) }
     }
 
-    /// Copies `self` into a new `Vec`.
+    /// Copies `self` into a new [`Vec`](std::vec::Vec).
     pub fn to_vec(&self) -> Vec<u8> {
         self.as_slice().to_vec()
     }
@@ -92,7 +93,7 @@ impl svm_byte_array {
         self.length
     }
 
-    /// The `svm_types::Type` associated with the data represented by `bytes`.
+    /// The [`Type`] associated with the data represented by `bytes`.
     /// It's the interned value of the type. (For more info see `tracking::interning.rs`)
     pub fn type_id(&self) -> usize {
         self.type_id

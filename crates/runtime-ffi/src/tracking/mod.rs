@@ -1,3 +1,5 @@
+//! Manually-Managed Resources Tracking
+
 mod interning;
 mod snapshot;
 
