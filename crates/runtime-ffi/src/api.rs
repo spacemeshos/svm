@@ -687,16 +687,3 @@ pub unsafe extern "C" fn svm_runtime_destroy(runtime: *mut c_void) {
 pub unsafe extern "C" fn svm_byte_array_destroy(bytes: svm_byte_array) {
     bytes.destroy()
 }
-
-/// Allocates a new error. Its context is a clone of the data given by parameter `msg`.
-#[must_use]
-#[no_mangle]
-pub unsafe extern "C" fn svm_wasm_error_create(msg: svm_byte_array) -> *mut svm_byte_array {
-    let bytes = msg.to_vec();
-    let err: svm_byte_array = (svm_ffi::SVM_WASM_ERROR_TYPE, bytes).into();
-
-    let ty = svm_ffi::SVM_WASM_ERROR_TYPE_PTR;
-    let err = svm_ffi::into_raw(ty, err);
-
-    svm_ffi::as_mut(err)
-}

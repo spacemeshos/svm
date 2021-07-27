@@ -45,7 +45,6 @@ svm-layout = { path = "crates/layout" }
 svm-program = { path = "crates/program" }
 svm-storage = { path = "crates/storage", default-features = false }
 svm-runtime = { path = "crates/runtime", default-features = false }
-svm-ffi = { path = "crates/ffi" }
 svm-runtime-ffi = { path = "crates/runtime-ffi", default-features = false }
 svm-abi-layout = { path = "crates/abi/layout" }
 svm-abi-tests = { path = "crates/abi/tests" }
@@ -85,13 +84,15 @@ members = [
   "crates/storage",
   "crates/runtime",
   "crates/cli",
-  "crates/ffi",
   "crates/runtime-ffi",
 ]
 
 [features]
 default = ["default-memory", "default-cranelift"]
-default-llvm = ["svm-runtime/default-llvm", "svm-runtime-ffi/default-llvm"]
+default-llvm = [
+  "svm-runtime/default-llvm", 
+  "svm-runtime-ffi/default-llvm"
+]
 default-cranelift = [
   "svm-runtime/default-cranelift",
   "svm-runtime-ffi/default-cranelift",
