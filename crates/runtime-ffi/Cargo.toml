@@ -35,8 +35,8 @@ svm-abi-encoder = { path="../abi/encoder", features = ["dynamic-alloc"], default
 cbindgen = "0.19.0"
 
 [features]
-default = ["default-memory", "default-cranelift"]
-default-llvm = ["svm-runtime/default-llvm"]
+default = []
+default-singlepass = ["svm-runtime/default-singlepass"]
 default-cranelift = ["svm-runtime/default-cranelift"]
 default-memory = [
     "svm-runtime/default-memory",

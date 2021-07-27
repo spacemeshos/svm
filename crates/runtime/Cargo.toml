@@ -13,9 +13,6 @@ log = "0.4"
 lazy_static = "1.4"
 thiserror = "1"
 wasmer = { version = "2", default-features = false }
-wasmer-runtime-core = "0.17"
-wasmer-runtime = "0.17"
-wasmparser = "0.79"
 wat = "1"
 svm-hash = { path = "../hash" }
 svm-types = { path = "../types" }
@@ -31,8 +28,14 @@ maplit = "1.0.2"
 svm-sdk = { path = "../sdk", features = ["mock", "dynamic-alloc"], default-features = false }
 
 [features]
-default = ["default-cranelift", "default-memory"]
-default-cranelift = ["wasmer/default-cranelift", "wasmer/default-universal"]
-default-llvm = ["wasmer/default-llvm", "wasmer/default-universal"]
+default = []
+default-singlepass = [
+    "wasmer/default-singlepass", 
+    "wasmer/default-universal",
+]
+default-cranelift = [
+    "wasmer/default-cranelift",
+    "wasmer/default-universal"
+]
 default-memory = ["svm-kv/default-memory", "svm-storage/default-memory"]
 default-rocksdb = ["svm-kv/default-rocksdb", "svm-storage/default-rocksdb"]
