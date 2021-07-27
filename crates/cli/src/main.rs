@@ -51,7 +51,7 @@ fn clap_app() -> clap::App<'static, 'static> {
 
     App::new("svm-cli")
         .version("1.0")
-        .author("The Spacemesh team")
+        .author("The Spacemesh Team")
         .about("A CLI tool to access SVM internal utilities")
         // The user must provide a valid subcommand, otherwise we don't really
         // know what to do.
