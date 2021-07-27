@@ -1,4 +1,4 @@
-use svm_types::{AccountAddr, Transaction};
+use svm_types::{Address, Transaction};
 
 use crate::call;
 
@@ -7,7 +7,7 @@ use crate::call;
 /// Should be used mainly for testing only.
 pub struct CallBuilder {
     version: Option<u16>,
-    target: Option<AccountAddr>,
+    target: Option<Address>,
     func_name: Option<String>,
     // verifydata: Option<Vec<u8>>,
     calldata: Option<Vec<u8>>,
@@ -68,7 +68,7 @@ impl CallBuilder {
         self
     }
 
-    pub fn with_target(mut self, target: &AccountAddr) -> Self {
+    pub fn with_target(mut self, target: &Address) -> Self {
         self.target = Some(target.clone());
         self
     }

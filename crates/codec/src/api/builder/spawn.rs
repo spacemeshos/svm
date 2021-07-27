@@ -14,16 +14,16 @@ pub struct SpawnBuilder {
 }
 
 ///
-/// # Example
+/// # Examples
 ///
 /// ```rust
 /// use std::io::Cursor;
 ///
-/// use svm_types::{Account, SpawnAccount, Address};
+/// use svm_types::{Account, SpawnAccount, TemplateAddr};
 /// use svm_codec::api::builder::SpawnBuilder;
 /// use svm_codec::spawn;
 ///
-/// let template_addr = Address::of("@template").into();
+/// let template_addr = TemplateAddr::of("@template");
 /// let name = "My Account".to_string();
 /// let ctor_name = "initialize";
 /// let calldata = vec![0x10, 0x20, 0x30];

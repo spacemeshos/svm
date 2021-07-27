@@ -6,7 +6,7 @@ use std::rc::Rc;
 use svm_codec::ParseError;
 use svm_codec::{call, spawn, template};
 use svm_gas::{resolvers, PriceResolver};
-use svm_types::{AccountAddr, SectionKind, SpawnAccount, Template, TemplateAddr, Transaction};
+use svm_types::{Address, SectionKind, SpawnAccount, Template, TemplateAddr, Transaction};
 
 /// Default implementations
 mod default;
@@ -57,7 +57,7 @@ pub trait EnvTypes {
     type TemplateAddressCompute: ComputeAddress<Template, Address = TemplateAddr>;
 
     /// Compute an `Account`'s `Address`
-    type AccountAddressCompute: ComputeAddress<ExtSpawn, Address = AccountAddr>;
+    type AccountAddressCompute: ComputeAddress<ExtSpawn, Address = Address>;
 
     /// [`Template`] content [`TemplateHasher`] type.
     type TemplateHasher: TemplateHasher;
@@ -119,7 +119,7 @@ where
     }
 
     /// Computes an `Account`'s `Address`
-    pub fn compute_account_addr(&self, spawn: &ExtSpawn) -> AccountAddr {
+    pub fn compute_account_addr(&self, spawn: &ExtSpawn) -> Address {
         T::AccountAddressCompute::compute(spawn)
     }
 
@@ -169,7 +169,7 @@ where
     }
 
     /// Stores an `Account Address` -> `Account`'s `Template Address`.
-    pub fn store_account(&mut self, account: &ExtAccount, addr: &AccountAddr) {
+    pub fn store_account(&mut self, account: &ExtAccount, addr: &Address) {
         let template = account.template_addr();
 
         if self.contains_template(template) {
@@ -180,9 +180,9 @@ where
         }
     }
 
-    /// Given an [`AccountAddr`] `addr`, locates the [`TemplateAddr`] of its
+    /// Given an `Address` `addr`, locates the `TemplateAddr` of its
     /// [`Template`]. Returns [`None`] if and only if no [`Template`] was found.
-    pub fn resolve_template_addr(&self, addr: &AccountAddr) -> Option<TemplateAddr> {
+    pub fn resolve_template_addr(&self, addr: &Address) -> Option<TemplateAddr> {
         let store = self.account_store();
 
         store.resolve_template_addr(&addr)
@@ -191,7 +191,7 @@ where
     /// Given an `Account` Address, loads the associated `Template`
     pub fn account_template(
         &self,
-        addr: &AccountAddr,
+        addr: &Address,
         interests: Option<HashSet<SectionKind>>,
     ) -> Option<Template> {
         self.account(addr).and_then(|account| {
@@ -213,7 +213,7 @@ where
 
     /// Loads an `ExtAccount` given its `Address`
     #[must_use]
-    pub fn account(&self, addr: &AccountAddr) -> Option<ExtAccount> {
+    pub fn account(&self, addr: &Address) -> Option<ExtAccount> {
         let store = self.account_store();
         store.load(&addr)
     }
@@ -226,7 +226,7 @@ where
 
     /// Returns whether an `Account` with given the `Address` exists.
     #[inline]
-    pub fn contains_account(&self, addr: &AccountAddr) -> bool {
+    pub fn contains_account(&self, addr: &Address) -> bool {
         self.account(addr).is_some()
     }
 

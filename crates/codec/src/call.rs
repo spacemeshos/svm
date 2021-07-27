@@ -16,7 +16,7 @@
 //!
 //! ```
 
-use svm_types::{AccountAddr, Transaction};
+use svm_types::{Address, Transaction};
 
 use std::io::Cursor;
 
@@ -63,14 +63,11 @@ fn encode_version(tx: &Transaction, w: &mut Vec<u8>) {
 }
 
 fn encode_target(tx: &Transaction, w: &mut Vec<u8>) {
-    let addr = tx.target.inner();
-
-    w.write_address(addr);
+    w.write_address(tx.target());
 }
 
 fn encode_func(tx: &Transaction, w: &mut Vec<u8>) {
-    let func = &tx.func_name;
-
+    let func = tx.function();
     w.write_string(func);
 }
 
@@ -81,8 +78,7 @@ fn encode_func(tx: &Transaction, w: &mut Vec<u8>) {
 // }
 
 fn encode_calldata(tx: &Transaction, w: &mut Vec<u8>) {
-    let calldata = &tx.calldata;
-
+    let calldata = tx.calldata();
     calldata::encode_calldata(calldata, w)
 }
 
@@ -93,11 +89,10 @@ fn decode_version(cursor: &mut Cursor<&[u8]>) -> Result<u16, ParseError> {
     version::decode_version(cursor)
 }
 
-fn decode_target(cursor: &mut Cursor<&[u8]>) -> Result<AccountAddr, ParseError> {
-    match cursor.read_address() {
-        Ok(addr) => Ok(addr.into()),
-        Err(..) => Err(ParseError::NotEnoughBytes(Field::AccountAddr)),
-    }
+fn decode_target(cursor: &mut Cursor<&[u8]>) -> Result<Address, ParseError> {
+    cursor
+        .read_address()
+        .map_err(|_| ParseError::NotEnoughBytes(Field::TargetAddr))
 }
 
 fn decode_func(cursor: &mut Cursor<&[u8]>) -> Result<String, ParseError> {

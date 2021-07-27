@@ -4,7 +4,7 @@ use std::io::Cursor;
 use svm_codec::{ReadExt, WriteExt};
 
 use svm_codec::template;
-use svm_types::{Account, SectionKind, SpawnerAddr, Template, TemplateAddr};
+use svm_types::{Account, SectionKind, Template, TemplateAddr};
 
 use crate::env::{self, traits};
 
@@ -33,8 +33,7 @@ impl AccountSerializer for DefaultAccountSerializer {
 
 fn encode_template(account: &ExtAccount, w: &mut Vec<u8>) {
     let addr = account.template_addr();
-
-    w.write_address(addr.inner());
+    w.write_template_addr(addr);
 }
 
 fn encode_name(account: &ExtAccount, w: &mut Vec<u8>) {
@@ -43,16 +42,15 @@ fn encode_name(account: &ExtAccount, w: &mut Vec<u8>) {
 
 fn encode_spawner(account: &ExtAccount, w: &mut Vec<u8>) {
     let spawner = account.spawner();
-
-    w.write_address(spawner.inner());
+    w.write_address(spawner);
 }
 
 impl AccountDeserializer for DefaultAccountDeserializer {
     fn deserialize(bytes: &[u8]) -> Option<ExtAccount> {
         let mut cursor = Cursor::new(bytes);
 
-        let template = match cursor.read_address() {
-            Ok(addr) => TemplateAddr::new(addr),
+        let template = match cursor.read_template_addr() {
+            Ok(addr) => addr,
             _ => return None,
         };
 
@@ -62,7 +60,7 @@ impl AccountDeserializer for DefaultAccountDeserializer {
         };
 
         let spawner = match cursor.read_address() {
-            Ok(addr) => SpawnerAddr::new(addr),
+            Ok(addr) => addr,
             _ => return None,
         };
 
@@ -75,7 +73,7 @@ impl AccountDeserializer for DefaultAccountDeserializer {
     fn deserialize_template_addr(bytes: &[u8]) -> Option<TemplateAddr> {
         let mut cursor = Cursor::new(bytes);
 
-        cursor.read_address().ok().map(|addr| addr.into())
+        cursor.read_template_addr().ok()
     }
 }
 

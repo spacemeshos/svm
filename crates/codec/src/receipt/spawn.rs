@@ -5,14 +5,17 @@
 //!  |           |            |             |                  |
 //!  |  tx type  |  version   | is_success  |  Account Address |
 //!  | (1 byte)  |            |  (1 byte)   |    (20 bytes)    |
-//!  +___________|____________|_____________|__________________+
+//!  |           |            |             |                  |
+//!  +---------------------------------------------------------+
 //!  |              |              |                           |
 //!  |  init state  | #returndata  |         gas_used          |
 //!  |  (32 bytes)  |              |                           |
-//!  +______________|______________|___________________________+
+//!  |              |              |                           |
+//!  +---------------------------------------------------------+
 //!  |          |            |         |                       |
 //!  |  #logs   | log 1 blob |  . . .  |     log #N            |
-//!  +__________|____________|_________|_______________________+
+//!  |          |            |         |                       |
+//!  +---------------------------------------------------------+
 //!
 //!
 //!  On success (`is_success = 0`)
@@ -89,7 +92,6 @@ pub fn decode_spawn(bytes: &[u8]) -> SpawnReceipt {
 
 fn encode_version(receipt: &SpawnReceipt, w: &mut Vec<u8>) {
     let v = &receipt.version;
-
     version::encode_version(*v, w);
 }
 
@@ -97,15 +99,13 @@ fn encode_account_addr(receipt: &SpawnReceipt, w: &mut Vec<u8>) {
     debug_assert!(receipt.success);
 
     let addr = receipt.account_addr();
-
-    w.write_address(addr.inner());
+    w.write_address(addr);
 }
 
 fn encode_init_state(receipt: &SpawnReceipt, w: &mut Vec<u8>) {
     debug_assert!(receipt.success);
 
     let state = receipt.init_state();
-
     w.write_state(state);
 }
 
@@ -113,7 +113,6 @@ fn encode_returndata(receipt: &SpawnReceipt, w: &mut Vec<u8>) {
     debug_assert!(receipt.success);
 
     let data = receipt.returndata();
-
     calldata::encode_calldata(&data, w);
 }
 
@@ -121,13 +120,13 @@ fn encode_returndata(receipt: &SpawnReceipt, w: &mut Vec<u8>) {
 mod tests {
     use super::*;
 
-    use svm_types::{AccountAddr, Address, Gas, ReceiptLog, RuntimeError, State};
+    use svm_types::{Address, Gas, ReceiptLog, RuntimeError, State, TemplateAddr};
 
     use crate::receipt::decode_receipt;
 
     #[test]
     fn encode_decode_spawn_receipt_error() {
-        let template_addr = Address::of("@Template").into();
+        let template_addr = TemplateAddr::of("@Template");
         let error = RuntimeError::TemplateNotFound(template_addr);
 
         let receipt = SpawnReceipt {
@@ -149,7 +148,7 @@ mod tests {
 
     #[test]
     fn encode_decode_spawn_receipt_success_without_returns() {
-        let addr: AccountAddr = Address::of("@Account").into();
+        let addr = Address::of("@Account").into();
         let init_state = State::of("some-state");
 
         let logs = vec![ReceiptLog {
@@ -176,7 +175,7 @@ mod tests {
 
     #[test]
     fn encode_decode_spawn_receipt_success_with_returns() {
-        let addr: AccountAddr = Address::of("@Account").into();
+        let addr = Address::of("@Account");
         let init_state = State::of("some-state");
         let returndata = vec![0x10, 0x20];
         let logs = vec![ReceiptLog {
