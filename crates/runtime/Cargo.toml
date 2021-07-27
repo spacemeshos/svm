@@ -11,7 +11,12 @@ publish = false
 byteorder = "1.3"
 log = "0.4"
 lazy_static = "1.4"
-svm-ffi = { path = "../ffi" }
+thiserror = "1"
+wasmer = { version = "2", default-features = false }
+wasmer-runtime-core = "0.17"
+wasmer-runtime = "0.17"
+wasmparser = "0.79"
+wat = "1"
 svm-hash = { path = "../hash" }
 svm-types = { path = "../types" }
 svm-layout = { path = "../layout" }
@@ -20,19 +25,10 @@ svm-storage = { path = "../storage", default-features = false }
 svm-codec = { path = "../codec" }
 svm-gas = { path = "../gas" }
 svm-program = { path = "../program" }
-thiserror = "1"
-wasmer = { version = "2", default-features = false }
-wasmer-runtime-core = "0.17"
-wasmer-runtime = "0.17"
-wasmparser = "0.79"
-wat = "1"
 
 [dev-dependencies]
 maplit = "1.0.2"
-svm-sdk = { path = "../sdk", features = [
-	"mock",
-	"dynamic-alloc",
-], default-features = false }
+svm-sdk = { path = "../sdk", features = ["mock", "dynamic-alloc"], default-features = false }
 
 [features]
 default = ["default-cranelift", "default-memory"]

@@ -6,7 +6,6 @@ mod default;
 mod failure;
 mod function;
 mod outcome;
-mod ptr;
 
 pub use call::Call;
 pub use failure::Failure;
@@ -21,7 +20,6 @@ pub use rocksdb::create_rocksdb_runtime;
 
 pub use config::Config;
 pub use default::DefaultRuntime;
-pub use ptr::RuntimePtr;
 
 use svm_types::{CallReceipt, Context, DeployReceipt, Envelope, RuntimeError, SpawnReceipt};
 

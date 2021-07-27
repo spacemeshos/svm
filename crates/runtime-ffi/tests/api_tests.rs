@@ -3,28 +3,19 @@ use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::ffi::c_void;
 
-use svm_codec::receipt;
-use svm_ffi::{svm_byte_array, tracking};
-use svm_runtime::testing;
 use svm_runtime_ffi as api;
+use svm_runtime_ffi::{svm_byte_array, tracking};
+
+use svm_codec::receipt;
+use svm_runtime::testing;
 use svm_sdk::traits::Encoder;
 use svm_sdk::ReturnData;
 use svm_types::{Address, Envelope, TemplateAddr, Type};
 
-static TEST_STRING_TY: Type = Type::Str("Test String");
 static ACCOUNT_ADDR: Type = Type::Str("Account Address");
 static DEPLOY_TX: Type = Type::Str("Deploy Tx");
 static SPAWN_TX: Type = Type::Str("Spawn Tx");
 static CALL_TX: Type = Type::Str("Call Tx");
-
-unsafe fn wasm_error(msg: String) -> *mut svm_byte_array {
-    let msg: svm_byte_array = (TEST_STRING_TY, msg).into();
-    let err = api::svm_wasm_error_create(msg.clone());
-
-    msg.destroy();
-
-    err
-}
 
 fn deploy_message(code_version: u32, name: &str, ctors: &[String], wasm: &[u8]) -> svm_byte_array {
     use svm_layout::{FixedLayoutBuilder, Id};
