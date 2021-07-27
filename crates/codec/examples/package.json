@@ -19,7 +19,7 @@
     "svm",
     "wasm"
   ],
-  "author": "Yaron Wittenstein",
+  "author": "Spacemesh SVM Team",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/spacemeshos/svm/issues"

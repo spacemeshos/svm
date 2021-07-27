@@ -1255,7 +1255,7 @@ version = "0.0.0"
 
 [[package]]
 name = "svm-program"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "indexmap",
  "parity-wasm",
@@ -1351,7 +1351,7 @@ dependencies = [
 
 [[package]]
 name = "svm-sdk-macros"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "lazy_static",
  "proc-macro2",

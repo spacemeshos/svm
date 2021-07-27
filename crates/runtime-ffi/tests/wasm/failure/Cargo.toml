@@ -1,8 +1,10 @@
 [package]
 name = "svm-runtime-examples-failure"
-version = "0.1.0"
-authors = ["Yaron Wittenstein <yaron.wittenstein@gmail.com>"]
+version = "0.0.0"
+authors = ["Spacemesh SVM Team"]
+license = "MIT"
 edition = "2018"
+readme = "README.md"
 publish = false
 
 [lib]
