@@ -15,9 +15,24 @@ impl trie_db::TrieLayout for TrieLayout {
 
 struct Blake3Hasher;
 
+#[derive(Clone, Debug, Default)]
+struct Blake3StdHasher(blake3::Hasher);
+
+impl std::hash::Hasher for Blake3StdHasher {
+    fn write(&mut self, bytes: &[u8]) {
+        self.0.update(bytes);
+    }
+
+    fn finish(&self) -> u64 {
+        let mut hash = [0; 8];
+        self.0.finalize_xof().fill(&mut hash);
+        u64::from_be_bytes(hash)
+    }
+}
+
 impl trie_db::Hasher for Blake3Hasher {
     type Out = [u8; 32];
-    type StdHasher = std::collections::hash_map::DefaultHasher;
+    type StdHasher = Blake3StdHasher;
 
     const LENGTH: usize = 32;
 
