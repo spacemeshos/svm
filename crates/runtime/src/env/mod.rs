@@ -72,7 +72,7 @@ where
     accounts: T::AccountStore,
     templates: T::TemplateStore,
     price_resolver_registry: PriceResolverRegistry,
-    state: GlobalState,
+    state: GlobalState<'static>,
 }
 
 impl<T> Env<T>

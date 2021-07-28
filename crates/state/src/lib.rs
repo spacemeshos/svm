@@ -1,8 +1,9 @@
 use blake3::Hash;
+use rlp::{Rlp, RlpStream, EMPTY_LIST_RLP};
 use thiserror::Error;
 use trie_db::node::{NibbleSlicePlan, NodeHandlePlan, NodePlan};
-use trie_db::triedbmut::TrieDBMut;
-use trie_db::Hasher;
+use trie_db::triedbmut::{ChildReference, TrieDBMut};
+use trie_db::{Hasher, TrieMut};
 
 use std::convert::TryInto;
 use std::fmt::Display;
@@ -52,7 +53,10 @@ const NULL_NODE_ENCODING: &[u8] = b"e";
 struct TrieCodec;
 
 #[derive(Clone, Debug, Error)]
-pub struct CodecError {}
+pub enum CodecError {
+    Rlp(#[from] rlp::DecoderError),
+    Other,
+}
 
 impl Display for CodecError {
     fn fmt(&self, _f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -60,6 +64,7 @@ impl Display for CodecError {
     }
 }
 
+// https://www.programmersought.com/article/33363860077/
 impl trie_db::NodeCodec for TrieCodec {
     type Error = CodecError;
     type HashOut = [u8; 32];
@@ -74,23 +79,31 @@ impl trie_db::NodeCodec for TrieCodec {
 
     fn decode_plan(data: &[u8]) -> Result<NodePlan, Self::Error> {
         if data.is_empty() {
-            return Err(Self::Error {});
+            return Err(Self::Error::Other);
         }
         match data[0] {
             b'e' => Ok(NodePlan::Empty),
             b'b' => Ok(NodePlan::Branch {
                 value: None,
-                children: [None; 16],
+                children: [
+                    None, None, None, None, None, None, None, None, None, None, None, None, None,
+                    None, None, None,
+                ],
             }),
-            b'l' => Ok(NodePlan::Leaf {
-                partial: 0,
-                value: 0..0,
-            }),
+            b'l' => {
+                let rlp = Rlp::new(&data[1..]);
+                let rlp_partial = rlp.at(0)?.as_raw();
+                let (rlp_value, rlp_value_offset) = rlp.at_with_offset(1)?;
+                Ok(NodePlan::Leaf {
+                    partial: NibbleSlicePlan::new(0..0, 0),
+                    value: rlp_value_offset..rlp_value_offset + rlp_value.as_raw().len(),
+                })
+            }
             b'x' => Ok(NodePlan::Extension {
                 partial: NibbleSlicePlan::new(0..0, 0),
                 child: NodeHandlePlan::Hash(0..0),
             }),
-            _ => Err(Self::Error {}),
+            _ => Err(Self::Error::Other),
         }
     }
 
@@ -112,7 +125,7 @@ impl trie_db::NodeCodec for TrieCodec {
     }
 
     fn is_empty_node(data: &[u8]) -> bool {
-        data == Self::empty_node()
+        Rlp::new(data).is_empty()
     }
 
     fn branch_node(
@@ -122,22 +135,40 @@ impl trie_db::NodeCodec for TrieCodec {
         value: Option<&[u8]>,
     ) -> Vec<u8> {
         let mut node = b"b".to_vec();
+        let mut rlp = RlpStream::default();
+        rlp.begin_list(17);
+        for child in children {
+            if let Some(c) = child.borrow() {
+                match c {
+                    ChildReference::Hash(hash) => {
+                        rlp.append(&&hash[..]);
+                    }
+                    ChildReference::Inline(inline_data, len) => {
+                        rlp.append_raw(&inline_data[..*len], 1);
+                    }
+                };
+            } else {
+                rlp.append_empty_data();
+            }
+        }
+        if let Some(value) = value {
+            rlp.append(&value);
+        } else {
+            rlp.append_empty_data();
+        }
+        node.extend_from_slice(rlp.as_raw());
         node
     }
 
     fn branch_node_nibbled(
-        partial: impl Iterator<Item = u8>,
-        number_nibble: usize,
-        children: impl Iterator<
+        _partial: impl Iterator<Item = u8>,
+        _number_nibble: usize,
+        _children: impl Iterator<
             Item = impl std::borrow::Borrow<Option<trie_db::ChildReference<Self::HashOut>>>,
         >,
-        value: Option<&[u8]>,
+        _value: Option<&[u8]>,
     ) -> Vec<u8> {
-        let mut node = b"n".to_vec();
-        for byte in partial {
-            node.push(byte);
-        }
-        node
+        panic!("Branch nibbled nodes are not supported.")
     }
 }
 
@@ -146,14 +177,16 @@ pub struct GlobalState<'a> {
 }
 
 impl<'a> GlobalState<'a> {
-    pub fn deploy(&mut self) {}
+    pub fn get(&mut self, key: &[u8]) -> anyhow::Result<Option<Vec<u8>>> {
+        Ok(self.trie.get(key)?)
+    }
 
-    pub fn call(&mut self) {}
-
-    pub fn spawn(&mut self) {}
+    pub fn upsert(&mut self, key: &[u8], value: &[u8]) -> anyhow::Result<Option<Vec<u8>>> {
+        Ok(self.trie.insert(key, value)?)
+    }
 }
 
-impl Default for GlobalState {
+impl<'a> Default for GlobalState<'a> {
     fn default() -> Self {
         unimplemented!()
     }
