@@ -48,7 +48,7 @@ pub trait Runtime {
     /// Spawns a new `Account`
     fn spawn(&mut self, envelope: &Envelope, message: &[u8], context: &Context) -> SpawnReceipt;
 
-    /// Verifies a [`Transaction`] before execution.
+    /// Verifies a [`Transaction`](svm_types::Transaction) before execution.
     fn verify(
         &self,
         envelope: &Envelope,
@@ -56,7 +56,7 @@ pub trait Runtime {
         context: &Context,
     ) -> Result<bool, RuntimeError>;
 
-    /// Executes a [`Transaction`] and returns its output [`CallReceipt`].
+    /// Executes a [`Transaction`](svm_types::Transaction) and returns its output [`CallReceipt`].
     ///
     /// This function should be called only if the `verify` stage has passed.
     fn call(&mut self, envelope: &Envelope, message: &[u8], context: &Context) -> CallReceipt;

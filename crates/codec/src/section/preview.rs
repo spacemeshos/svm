@@ -23,7 +23,7 @@ impl SectionPreview {
         self.kind
     }
 
-    /// Returns the referred [`Section`]'s binary byte size.
+    /// Returns the referred [`Section`](svm_types::Section)'s binary byte size.
     pub fn byte_size(&self) -> u32 {
         self.byte_size
     }

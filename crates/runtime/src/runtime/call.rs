@@ -1,4 +1,4 @@
-use svm_types::{Address, Gas, State, TemplateAddr};
+use svm_types::{Address, Context, Envelope, Gas, State, TemplateAddr};
 
 /// Information regarding a Wasm function call.
 #[doc(hidden)]
@@ -12,4 +12,6 @@ pub struct Call<'a> {
     pub gas_used: Gas,
     pub gas_left: Gas,
     pub within_spawn: bool,
+    pub context: &'a Context,
+    pub envelope: &'a Envelope,
 }

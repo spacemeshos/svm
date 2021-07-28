@@ -54,8 +54,9 @@ impl<T> DefaultRuntime<T>
 where
     T: EnvTypes,
 {
-    /// Initializes a new [`DefaultRuntime`](DefaultRuntime). `template_prices`
-    /// offers an easy way to inject an append-only, naive caching mechanism to
+    /// Initializes a new [`DefaultRuntime`].
+    ///
+    /// `template_prices` offers an easy way to inject an append-only, naive caching mechanism to
     /// the [`Template`] pricing logic; using a `None` will result in a new
     /// empty cache and on-the-fly calculation for all [`Template`]s.
     pub fn new(
@@ -118,6 +119,8 @@ where
         target: &Address,
         gas_used: Gas,
         gas_left: Gas,
+        envelope: &Envelope,
+        context: &Context,
     ) -> SpawnReceipt {
         let template_addr = spawn.template_addr();
 
@@ -130,6 +133,8 @@ where
             within_spawn: true,
             gas_used,
             gas_left,
+            envelope,
+            context,
         };
 
         let receipt = self.exec_call::<(), ()>(&call);
@@ -155,7 +160,13 @@ where
                 let storage =
                     self.open_storage(call.target_addr, call.state, template.fixed_layout());
 
-                let mut env = FuncEnv::new(storage, call.target_template, call.target_addr);
+                let mut env = FuncEnv::new(
+                    storage,
+                    call.envelope,
+                    call.context,
+                    call.target_template,
+                    call.target_addr,
+                );
 
                 let store = crate::wasm_store::new_store();
                 let import_object = self.create_import_object(&store, &mut env);
@@ -171,7 +182,7 @@ where
         &self,
         call: &Call,
         store: &wasmer::Store,
-        env: &FuncEnv,
+        func_env: &FuncEnv,
         template: &Template,
         import_object: &wasmer::ImportObject,
     ) -> Result<Box<[wasmer::Val]>>
@@ -179,19 +190,19 @@ where
         Args: WasmTypeList,
         Rets: WasmTypeList,
     {
-        self.validate_call(call, template, env)?;
+        self.validate_call(call, template, func_env)?;
 
-        let module = self.compile_template(store, env, &template, call.gas_left)?;
-        let instance = self.instantiate(env, &module, import_object)?;
+        let module = self.compile_template(store, func_env, &template, call.gas_left)?;
+        let instance = self.instantiate(func_env, &module, import_object)?;
 
-        self.set_memory(env, &instance);
+        self.set_memory(func_env, &instance);
 
-        let func = self.func::<Args, Rets>(&instance, env, call.func_name)?;
+        let func = self.func::<Args, Rets>(&instance, func_env, call.func_name)?;
 
         let mut out = if call.calldata.len() > 0 {
-            self.call_with_alloc(&instance, env, call.calldata, &func, &[])?
+            self.call_with_alloc(&instance, func_env, call.calldata, &func, &[])?
         } else {
-            self.call(&instance, env, &func, &[])?
+            self.call(&instance, func_env, &func, &[])?
         };
 
         let logs = out.take_logs();
@@ -315,7 +326,7 @@ where
         assert!(length > 0);
 
         let borrow = env.borrow();
-        let memory = borrow.get_memory();
+        let memory = borrow.memory();
 
         let view = memory.view::<u8>();
         assert!(view.len() > offset + length - 1);
@@ -336,7 +347,7 @@ where
 
         let (offset, len) = {
             let borrow = env.borrow();
-            let memory = borrow.get_memory();
+            let memory = borrow.memory();
 
             // Each WASM instance memory contains at least one `WASM Page`. (A `Page` size is 64KB)
             // The `len(calldata)` will be less than the `WASM Page` size.
@@ -491,7 +502,7 @@ where
     #[inline]
     fn func_not_found(&self, env: &FuncEnv, func_name: &str) -> Failure {
         RuntimeError::FuncNotFound {
-            account_addr: env.account_addr().clone(),
+            account_addr: env.target_addr().clone(),
             template_addr: env.template_addr().clone(),
             func: func_name.to_string(),
         }
@@ -501,7 +512,7 @@ where
     #[inline]
     fn instantiation_failed(&self, env: &FuncEnv, err: wasmer::InstantiationError) -> Failure {
         RuntimeError::InstantiationFailed {
-            account_addr: env.account_addr().clone(),
+            account_addr: env.target_addr().clone(),
             template_addr: env.template_addr().clone(),
             msg: err.to_string(),
         }
@@ -511,7 +522,7 @@ where
     #[inline]
     fn func_not_allowed(&self, env: &FuncEnv, func_name: &str, msg: &str) -> Failure {
         RuntimeError::FuncNotAllowed {
-            account_addr: env.account_addr().clone(),
+            account_addr: env.target_addr().clone(),
             template_addr: env.template_addr().clone(),
             func: func_name.to_string(),
             msg: msg.to_string(),
@@ -522,7 +533,7 @@ where
     #[inline]
     fn func_invalid_sig(&self, env: &FuncEnv, func_name: &str) -> Failure {
         RuntimeError::FuncInvalidSignature {
-            account_addr: env.account_addr().clone(),
+            account_addr: env.target_addr().clone(),
             template_addr: env.template_addr().clone(),
             func: func_name.to_string(),
         }
@@ -538,7 +549,7 @@ where
         logs: Vec<ReceiptLog>,
     ) -> Failure {
         let err = RuntimeError::FuncFailed {
-            account_addr: env.account_addr().clone(),
+            account_addr: env.target_addr().clone(),
             template_addr: env.template_addr().clone(),
             func: func_name.to_string(),
             msg: err.to_string(),
@@ -550,7 +561,7 @@ where
     #[inline]
     fn compilation_failed(&self, env: &FuncEnv, err: wasmer::CompileError) -> Failure {
         RuntimeError::CompilationFailed {
-            account_addr: env.account_addr().clone(),
+            account_addr: env.target_addr().clone(),
             template_addr: env.template_addr().clone(),
             msg: err.to_string(),
         }
@@ -611,7 +622,7 @@ where
         }
     }
 
-    fn spawn(&mut self, envelope: &Envelope, message: &[u8], _context: &Context) -> SpawnReceipt {
+    fn spawn(&mut self, envelope: &Envelope, message: &[u8], context: &Context) -> SpawnReceipt {
         // TODO: refactor this function (it has got a bit lengthy...)
 
         use svm_gas::ProgramPricing;
@@ -699,7 +710,7 @@ where
                 self.env.store_account(&account, &addr);
                 let gas_used = payload_price.into();
 
-                self.call_ctor(&spawn, &addr, gas_used, gas_left)
+                self.call_ctor(&spawn, &addr, gas_used, gas_left, envelope, context)
             }
             Err(..) => SpawnReceipt::new_oog(Vec::new()),
         }
@@ -732,6 +743,8 @@ where
                 gas_used: Gas::with(0),
                 gas_left: envelope.gas_limit(),
                 within_spawn: false,
+                envelope,
+                context,
             };
 
             self.exec_call::<(), ()>(&call)

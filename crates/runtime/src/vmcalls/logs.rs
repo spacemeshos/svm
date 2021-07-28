@@ -12,7 +12,7 @@ pub fn log(env: &FuncEnv, msg_ptr: u32, msg_len: u32, code: u32) {
 
     let msg: Vec<u8> = {
         let borrow = env.borrow();
-        let memory = borrow.get_memory();
+        let memory = borrow.memory();
 
         memory.view()[start..end]
             .iter()

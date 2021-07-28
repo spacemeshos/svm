@@ -10,7 +10,7 @@ macro_rules! store_n_impl {
 
         let bytes: Vec<u8> = {
             let borrow = $env.borrow();
-            let memory = borrow.get_memory();
+            let memory = borrow.memory();
             let start = $mem_ptr as usize;
             let end = start + $nbytes;
             let view = &memory.view::<u8>()[start..end];
@@ -35,7 +35,7 @@ macro_rules! load_n_impl {
         assert_eq!(nbytes, $nbytes);
 
         let borrow = $env.borrow();
-        let memory = borrow.get_memory();
+        let memory = borrow.memory();
         let start = $mem_ptr as usize;
         let end = start + $nbytes;
         let view = &memory.view::<u8>()[start..end];

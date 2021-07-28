@@ -3,7 +3,6 @@ use svm_types::{ReceiptLog, RuntimeError};
 #[derive(Debug, PartialEq, Clone)]
 pub struct Failure {
     err: RuntimeError,
-
     logs: Vec<ReceiptLog>,
 }
 

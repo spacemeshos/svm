@@ -9,7 +9,7 @@ use crate::{Layer, State, TransactionId};
 ///
 /// The [`Context`]'s data should be passed externally from the `Node`.
 /// That's why we are not allowed to touch its content, and have it immutable.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Context {
     tx_id: TransactionId,
     layer: Layer,
