@@ -1,18 +1,21 @@
 //! Implements [`FuncEnv`]. Used for managing data of running `Transaction`s.
 
-use svm_storage::account::AccountStorage;
-use svm_types::{Address, ReceiptLog, TemplateAddr};
 use wasmer::Memory;
 
 use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
 
-/// [`FuncEnv`] is a container for the accessible data by [`wasmer`] instances.
+use svm_storage::account::AccountStorage;
+use svm_types::{Address, Context, Envelope, ReceiptLog, TemplateAddr};
+
+/// [`FuncEnv`] is a container for the accessible data by running [`Wasmer instance`](wasmer::Instance).
 #[derive(wasmer::WasmerEnv, Clone)]
 pub struct FuncEnv {
     inner: Rc<RefCell<Inner>>,
     template_addr: TemplateAddr,
-    account_addr: Address,
+    target_addr: Address,
+    envelope: Envelope,
+    context: Context,
 }
 
 /// # Safety
@@ -26,15 +29,19 @@ impl FuncEnv {
     /// Creates a new instance
     pub fn new(
         storage: AccountStorage,
+        envelope: &Envelope,
+        context: &Context,
         template_addr: &TemplateAddr,
-        account_addr: &Address,
+        target_addr: &Address,
     ) -> Self {
         let inner = Inner::new(storage);
 
         Self {
             inner: Rc::new(RefCell::new(inner)),
             template_addr: template_addr.clone(),
-            account_addr: account_addr.clone(),
+            target_addr: target_addr.clone(),
+            envelope: envelope.clone(),
+            context: context.clone(),
         }
     }
 
@@ -42,14 +49,15 @@ impl FuncEnv {
     pub fn new_with_memory(
         memory: Memory,
         storage: AccountStorage,
+        envelope: &Envelope,
+        context: &Context,
         template_addr: &TemplateAddr,
-        account_addr: &Address,
+        target_addr: &Address,
     ) -> Self {
-        let env = Self::new(storage, template_addr, account_addr);
+        let func_env = Self::new(storage, envelope, context, template_addr, target_addr);
+        func_env.borrow_mut().set_memory(memory);
 
-        env.borrow_mut().set_memory(memory);
-
-        env
+        func_env
     }
 
     /// Returns the `Address` of the `Template` associated with the currently executed `Account`.
@@ -57,9 +65,9 @@ impl FuncEnv {
         &self.template_addr
     }
 
-    /// Returns the `Address` of the currently executed `Account`.
-    pub fn account_addr(&self) -> &Address {
-        &self.account_addr
+    /// Returns the `Address` of the currently executed `Account` (a.k.a the `target`).
+    pub fn target_addr(&self) -> &Address {
+        &self.target_addr
     }
 
     /// Borrows the `FuncEnv`
@@ -76,7 +84,7 @@ impl FuncEnv {
 }
 
 pub struct Inner {
-    /// An accessor to the `Account`'s storage
+    /// An accessor to the `Account`'s storage.
     pub storage: AccountStorage,
 
     /// Collected logs during execution.
@@ -85,9 +93,10 @@ pub struct Inner {
     /// Pointer to `returndata`. Tuple stores `(offset, len)`.
     pub returndata: Option<(usize, usize)>,
 
-    /// Instance's memory
+    /// Instance's allocated memory.
     memory: Option<Memory>,
 
+    /// Instance's amount of used space.
     used_memory: u64,
 
     /// Pointer to `calldata`. Tuple stores `(offset, len)`.
@@ -112,7 +121,7 @@ impl Inner {
         self.calldata = Some((offset, len));
     }
 
-    pub fn get_calldata(&self) -> (usize, usize) {
+    pub fn calldata(&self) -> (usize, usize) {
         debug_assert!(self.calldata.is_some());
 
         self.calldata.unwrap()
@@ -134,7 +143,7 @@ impl Inner {
         self.memory = Some(memory);
     }
 
-    pub fn get_memory(&self) -> &Memory {
+    pub fn memory(&self) -> &Memory {
         debug_assert!(self.memory.is_some());
 
         self.memory.as_ref().unwrap()
@@ -149,7 +158,7 @@ impl Inner {
     }
 
     pub fn allocated_memory(&self) -> u64 {
-        self.get_memory().data_size()
+        self.memory().data_size()
     }
 
     pub fn take_logs(&mut self) -> Vec<ReceiptLog> {

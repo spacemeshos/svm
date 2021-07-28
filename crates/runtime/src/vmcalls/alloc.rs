@@ -70,7 +70,7 @@ fn grow_memory(env: &FuncEnv, bytes: u32) {
     }
 
     let env_ref = env.borrow();
-    let memory = env_ref.get_memory();
+    let memory = env_ref.memory();
 
     memory.grow(pages).unwrap();
 }
@@ -80,5 +80,5 @@ fn set_used_memory(env: &FuncEnv, used: u64) {
 }
 
 fn allocated_pages(env: &FuncEnv) -> u32 {
-    env.borrow().get_memory().size().0
+    env.borrow().memory().size().0
 }
