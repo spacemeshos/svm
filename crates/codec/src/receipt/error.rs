@@ -158,8 +158,13 @@ fn encode_func(func: &str, w: &mut Vec<u8>) {
 }
 
 fn encode_msg(msg: &str, w: &mut Vec<u8>) {
-    let msg = &msg[0..256];
-    w.write_string(msg);
+    if msg.len() > 255 {
+        let bytes = &msg.as_bytes()[0..255];
+        let msg = unsafe { String::from_utf8_unchecked(bytes.to_vec()) };
+        w.write_string(&msg);
+    } else {
+        w.write_string(msg);
+    }
 }
 
 fn encode_err_type(err: &RuntimeError, w: &mut Vec<u8>) {
