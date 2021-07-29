@@ -12,13 +12,11 @@ use svm_sdk::traits::Encoder;
 use svm_sdk::ReturnData;
 use svm_types::{Address, Context, Envelope, TemplateAddr, Type};
 
-unsafe fn byte_array_copy(byte_array: &svm_byte_array, bytes: &[u8]) {
-    debug_assert_eq!(byte_array.len() as usize, bytes.len());
+fn byte_array_copy(dst: &svm_byte_array, src: &[u8]) {
+    debug_assert_eq!(dst.len() as usize, src.len());
 
-    let src = bytes.as_ptr();
-    let dst = byte_array.bytes_mut();
-
-    std::ptr::copy(src, dst, bytes.len());
+    let dst = dst.as_slice_mut();
+    dst.copy_from_slice(src)
 }
 
 fn deploy_message(code_version: u32, name: &str, ctors: &[String], wasm: &[u8]) -> svm_byte_array {
@@ -37,9 +35,8 @@ fn deploy_message(code_version: u32, name: &str, ctors: &[String], wasm: &[u8]) 
         testing::WasmFile::Binary(wasm),
     );
 
-    let byte_array = unsafe { api::svm_message_alloc(msg.len() as u32) };
-    unsafe { byte_array_copy(&byte_array, &msg) };
-
+    let byte_array = api::svm_message_alloc(msg.len() as u32);
+    byte_array_copy(&byte_array, &msg);
     byte_array
 }
 
@@ -51,44 +48,40 @@ fn spawn_message(
 ) -> svm_byte_array {
     let msg = testing::build_spawn(template_addr, name, ctor, calldata);
 
-    let byte_array = unsafe { api::svm_message_alloc(msg.len() as u32) };
-    unsafe { byte_array_copy(&byte_array, &msg) };
-
+    let byte_array = api::svm_message_alloc(msg.len() as u32);
+    byte_array_copy(&byte_array, &msg);
     byte_array
 }
 
 fn call_message(target: &Address, func_name: &str, calldata: &[u8]) -> svm_byte_array {
     let msg = testing::build_call(&target, func_name, calldata);
 
-    let byte_array = unsafe { api::svm_message_alloc(msg.len() as u32) };
-    unsafe { byte_array_copy(&byte_array, &msg) };
-
+    let byte_array = api::svm_message_alloc(msg.len() as u32);
+    byte_array_copy(&byte_array, &msg);
     byte_array
 }
 
 fn encode_envelope(env: &Envelope) -> svm_byte_array {
     use svm_codec::envelope;
 
-    let byte_array = unsafe { api::svm_envelope_alloc() };
+    let byte_array = api::svm_envelope_alloc();
 
     let mut bytes = Vec::new();
     envelope::encode(env, &mut bytes);
 
-    unsafe { byte_array_copy(&byte_array, &bytes) };
-
+    byte_array_copy(&byte_array, &bytes);
     byte_array
 }
 
 fn encode_context(ctx: &Context) -> svm_byte_array {
     use svm_codec::context;
 
-    let byte_array = unsafe { api::svm_context_alloc() };
+    let byte_array = api::svm_context_alloc();
 
     let mut bytes = Vec::new();
     context::encode(ctx, &mut bytes);
 
-    unsafe { byte_array_copy(&byte_array, &bytes) };
-
+    byte_array_copy(&byte_array, &bytes);
     byte_array
 }
 
