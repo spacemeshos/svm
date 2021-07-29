@@ -1,10 +1,5 @@
 use svm_sdk::template;
 
-#[link(wasm_import_module = "host")]
-extern "C" {
-    fn host_fail();
-}
-
 #[template]
 mod Template {
     #[ctor]
@@ -12,6 +7,6 @@ mod Template {
 
     #[endpoint]
     fn fail() {
-        unsafe { host_fail() }
+        panic!()
     }
 }

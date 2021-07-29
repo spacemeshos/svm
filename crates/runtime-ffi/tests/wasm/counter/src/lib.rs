@@ -1,15 +1,10 @@
 use svm_sdk::template;
 
-#[link(wasm_import_module = "host")]
-extern "C" {
-    fn counter_mul(var_id: u32, mul_by: u32) -> u32;
-}
-
 #[template]
 mod Template {
     #[storage]
     struct Storage {
-        counter: u32, // var_id = 0
+        counter: u32,
     }
 
     #[ctor]
@@ -18,18 +13,22 @@ mod Template {
     }
 
     #[endpoint]
-    fn add_and_mul(add: u32, mul: u32) -> [u32; 3] {
-        const VAR_ID: u32 = 0;
-
+    fn add(n: u32) -> [u32; 2] {
         let a = Storage::get_counter();
-        let b = a + add;
+        let b = a + n;
 
         Storage::set_counter(b);
 
-        let c = unsafe { counter_mul(VAR_ID, mul) };
+        [a, b]
+    }
 
-        Storage::set_counter(c);
+    #[endpoint]
+    fn mul(n: u32) -> [u32; 2] {
+        let a = Storage::get_counter();
+        let b = a * n;
 
-        [a, b, c]
+        Storage::set_counter(b);
+
+        [a, b]
     }
 }

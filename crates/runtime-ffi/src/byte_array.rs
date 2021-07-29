@@ -69,9 +69,14 @@ impl svm_byte_array {
         tracking::decrement_live_1(self.type_id)
     }
 
-    /// Returns a byte slice over the contents.
+    /// Returns a shared slice over the contents.
     pub fn as_slice(&self) -> &[u8] {
         unsafe { std::slice::from_raw_parts(self.bytes, self.length as usize) }
+    }
+
+    /// Returns a mutable slice over the contents.
+    pub fn as_slice_mut(&mut self) -> &mut [u8] {
+        unsafe { std::slice::from_raw_parts_mut(self.bytes as _, self.length as usize) }
     }
 
     /// Copies `self` into a new [`Vec`](std::vec::Vec).

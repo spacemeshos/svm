@@ -20,11 +20,16 @@ use svm_types::{Envelope, Gas};
 
 use crate::{ReadExt, WriteExt};
 
+/// Returns the number of bytes required to hold a binary [`Envelope`].
+pub const fn byte_size() -> usize {
+    20 + 8 + 8 + 8
+}
+
 /// Encodes a binary [`Envelope`] of a transaction.
 pub fn encode(envelope: &Envelope, w: &mut Vec<u8>) {
     w.write_address(envelope.principal());
     w.write_u64_be(envelope.amount());
-    w.write_u64_be(envelope.gas_limit().unwrap());
+    w.write_u64_be(envelope.gas_limit().unwrap_or(0));
     w.write_u64_be(envelope.gas_fee());
 }
 
@@ -38,6 +43,12 @@ pub fn decode(cursor: &mut Cursor<&[u8]>) -> std::io::Result<Envelope> {
     let gas_limit = cursor.read_u64_be()?;
     let gas_fee = cursor.read_u64_be()?;
 
-    let envelope = Envelope::new(principal, amount, Gas::with(gas_limit), gas_fee);
+    let gas_limit = if gas_limit > 0 {
+        Gas::with(gas_limit)
+    } else {
+        Gas::new()
+    };
+
+    let envelope = Envelope::new(principal, amount, gas_limit, gas_fee);
     Ok(envelope)
 }

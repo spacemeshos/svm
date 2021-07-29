@@ -502,8 +502,8 @@ where
     #[inline]
     fn func_not_found(&self, env: &FuncEnv, func_name: &str) -> Failure {
         RuntimeError::FuncNotFound {
-            account_addr: env.target_addr().clone(),
-            template_addr: env.template_addr().clone(),
+            target: env.target_addr().clone(),
+            template: env.template_addr().clone(),
             func: func_name.to_string(),
         }
         .into()
@@ -512,8 +512,8 @@ where
     #[inline]
     fn instantiation_failed(&self, env: &FuncEnv, err: wasmer::InstantiationError) -> Failure {
         RuntimeError::InstantiationFailed {
-            account_addr: env.target_addr().clone(),
-            template_addr: env.template_addr().clone(),
+            target: env.target_addr().clone(),
+            template: env.template_addr().clone(),
             msg: err.to_string(),
         }
         .into()
@@ -522,8 +522,8 @@ where
     #[inline]
     fn func_not_allowed(&self, env: &FuncEnv, func_name: &str, msg: &str) -> Failure {
         RuntimeError::FuncNotAllowed {
-            account_addr: env.target_addr().clone(),
-            template_addr: env.template_addr().clone(),
+            target: env.target_addr().clone(),
+            template: env.template_addr().clone(),
             func: func_name.to_string(),
             msg: msg.to_string(),
         }
@@ -533,8 +533,8 @@ where
     #[inline]
     fn func_invalid_sig(&self, env: &FuncEnv, func_name: &str) -> Failure {
         RuntimeError::FuncInvalidSignature {
-            account_addr: env.target_addr().clone(),
-            template_addr: env.template_addr().clone(),
+            target: env.target_addr().clone(),
+            template: env.template_addr().clone(),
             func: func_name.to_string(),
         }
         .into()
@@ -549,8 +549,8 @@ where
         logs: Vec<ReceiptLog>,
     ) -> Failure {
         let err = RuntimeError::FuncFailed {
-            account_addr: env.target_addr().clone(),
-            template_addr: env.template_addr().clone(),
+            target: env.target_addr().clone(),
+            template: env.template_addr().clone(),
             func: func_name.to_string(),
             msg: err.to_string(),
         };
@@ -561,8 +561,8 @@ where
     #[inline]
     fn compilation_failed(&self, env: &FuncEnv, err: wasmer::CompileError) -> Failure {
         RuntimeError::CompilationFailed {
-            account_addr: env.target_addr().clone(),
-            template_addr: env.template_addr().clone(),
+            target: env.target_addr().clone(),
+            template: env.template_addr().clone(),
             msg: err.to_string(),
         }
         .into()
@@ -676,8 +676,8 @@ where
             let account_addr = self.env.compute_account_addr(&spawn);
             return SpawnReceipt::from_err(
                 RuntimeError::FuncNotAllowed {
-                    account_addr,
-                    template_addr: account.template_addr().clone(),
+                    target: account_addr,
+                    template: account.template_addr().clone(),
                     func: spawn.ctor_name().to_string(),
                     msg: "The given function is not a `ctor`.".to_string(),
                 },
