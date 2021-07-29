@@ -13,8 +13,6 @@ use svm_sdk::ReturnData;
 use svm_types::{Address, Context, Envelope, TemplateAddr, Type};
 
 fn byte_array_copy(dst: &svm_byte_array, src: &[u8]) {
-    debug_assert_eq!(dst.len() as usize, src.len());
-
     let dst = dst.as_slice_mut();
     dst.copy_from_slice(src)
 }

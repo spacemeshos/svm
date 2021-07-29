@@ -75,7 +75,7 @@ impl svm_byte_array {
     }
 
     /// Returns a mutable slice over the contents.
-    pub fn as_slice_mut(&self) -> &mut [u8] {
+    pub fn as_slice_mut(&mut self) -> &mut [u8] {
         unsafe { std::slice::from_raw_parts_mut(self.bytes as _, self.length as usize) }
     }
 
