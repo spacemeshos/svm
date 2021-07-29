@@ -12,7 +12,7 @@ use svm_sdk::traits::Encoder;
 use svm_sdk::ReturnData;
 use svm_types::{Address, Context, Envelope, TemplateAddr, Type};
 
-fn byte_array_copy(dst: &svm_byte_array, src: &[u8]) {
+fn byte_array_copy(dst: &mut svm_byte_array, src: &[u8]) {
     let dst = dst.as_slice_mut();
     dst.copy_from_slice(src)
 }
@@ -33,8 +33,8 @@ fn deploy_message(code_version: u32, name: &str, ctors: &[String], wasm: &[u8]) 
         testing::WasmFile::Binary(wasm),
     );
 
-    let byte_array = api::svm_message_alloc(msg.len() as u32);
-    byte_array_copy(&byte_array, &msg);
+    let mut byte_array = api::svm_message_alloc(msg.len() as u32);
+    byte_array_copy(&mut byte_array, &msg);
     byte_array
 }
 
@@ -46,40 +46,40 @@ fn spawn_message(
 ) -> svm_byte_array {
     let msg = testing::build_spawn(template_addr, name, ctor, calldata);
 
-    let byte_array = api::svm_message_alloc(msg.len() as u32);
-    byte_array_copy(&byte_array, &msg);
+    let mut byte_array = api::svm_message_alloc(msg.len() as u32);
+    byte_array_copy(&mut byte_array, &msg);
     byte_array
 }
 
 fn call_message(target: &Address, func_name: &str, calldata: &[u8]) -> svm_byte_array {
     let msg = testing::build_call(&target, func_name, calldata);
 
-    let byte_array = api::svm_message_alloc(msg.len() as u32);
-    byte_array_copy(&byte_array, &msg);
+    let mut byte_array = api::svm_message_alloc(msg.len() as u32);
+    byte_array_copy(&mut byte_array, &msg);
     byte_array
 }
 
 fn encode_envelope(env: &Envelope) -> svm_byte_array {
     use svm_codec::envelope;
 
-    let byte_array = api::svm_envelope_alloc();
+    let mut byte_array = api::svm_envelope_alloc();
 
     let mut bytes = Vec::new();
     envelope::encode(env, &mut bytes);
 
-    byte_array_copy(&byte_array, &bytes);
+    byte_array_copy(&mut byte_array, &bytes);
     byte_array
 }
 
 fn encode_context(ctx: &Context) -> svm_byte_array {
     use svm_codec::context;
 
-    let byte_array = api::svm_context_alloc();
+    let mut byte_array = api::svm_context_alloc();
 
     let mut bytes = Vec::new();
     context::encode(ctx, &mut bytes);
 
-    byte_array_copy(&byte_array, &bytes);
+    byte_array_copy(&mut byte_array, &bytes);
     byte_array
 }
 
