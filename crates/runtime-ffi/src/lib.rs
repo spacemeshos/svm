@@ -57,6 +57,7 @@ pub use api::{
 
     // Allocation
     svm_envelope_alloc,
+    svm_message_alloc,
     svm_context_alloc,
 
     // Resources tracking

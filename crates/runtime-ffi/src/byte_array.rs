@@ -93,6 +93,16 @@ impl svm_byte_array {
         self.length
     }
 
+    /// Returns a raw pointer to the first byte.
+    pub unsafe fn bytes(&self) -> *const u8 {
+        self.bytes
+    }
+
+    /// Returns a raw pointer to the first byte.
+    pub unsafe fn bytes_mut(&self) -> *mut u8 {
+        self.bytes as _
+    }
+
     /// The [`Type`] associated with the data represented by `bytes`.
     /// It's the interned value of the type. (For more info see `tracking::interning.rs`)
     pub fn type_id(&self) -> usize {

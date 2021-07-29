@@ -153,11 +153,16 @@ pub unsafe extern "C" fn svm_runtime_destroy(runtime: *mut c_void) {
     let _ = RuntimeRef::from_raw(runtime);
 }
 
-/// Allocates `svm_byte_array` of `size` bytes, meant to be used for passing a binary [`Envelope`].
+/// Allocates `svm_byte_array` to be used later for passing a binary [`Envelope`].
+///
+/// The number of allocated bytes is a fixed, and it equals to [`svm_codec::envelope::byte_size()`](svm_codec::envelope::byte_size).
 #[must_use]
 #[no_mangle]
-pub unsafe extern "C" fn svm_envelope_alloc(size: u32) -> svm_byte_array {
-    svm_byte_array::with_capacity(size as usize, ENVELOPE_TYPE)
+pub unsafe extern "C" fn svm_envelope_alloc() -> svm_byte_array {
+    use svm_codec::envelope;
+
+    let size = envelope::byte_size();
+    svm_byte_array::with_capacity(size, ENVELOPE_TYPE)
 }
 
 /// Allocates `svm_byte_array` of `size` bytes, meant to be used for passing a binary [`Message`].
@@ -167,11 +172,16 @@ pub unsafe extern "C" fn svm_message_alloc(size: u32) -> svm_byte_array {
     svm_byte_array::with_capacity(size as usize, MESSAGE_TYPE)
 }
 
-/// Allocates `svm_byte_array` of `size` bytes, meant to be used for passing a binary [`Context`].
+/// Allocates `svm_byte_array` to be used later for passing a binary [`Context`].
+///
+/// The number of allocated bytes is a fixed, and it equals to [`svm_codec::context::byte_size()`](svm_codec::context::byte_size).
 #[must_use]
 #[no_mangle]
-pub unsafe extern "C" fn svm_context_alloc(size: u32) -> svm_byte_array {
-    svm_byte_array::with_capacity(size as usize, CONTEXT_TYPE)
+pub unsafe extern "C" fn svm_context_alloc() -> svm_byte_array {
+    use svm_codec::context;
+
+    let size = context::byte_size();
+    svm_byte_array::with_capacity(size, CONTEXT_TYPE)
 }
 
 /// Validates syntactically a binary `Deploy Template` transaction.

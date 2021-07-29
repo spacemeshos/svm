@@ -20,6 +20,11 @@ use svm_types::{Context, Layer};
 
 use crate::{ReadExt, WriteExt};
 
+/// Returns the number of bytes required to hold a binary [`Context`].
+pub const fn byte_size() -> usize {
+    32 + 8 + 32
+}
+
 /// Encodes a binary [`Context`] of a transaction.
 pub fn encode(context: &Context, w: &mut Vec<u8>) {
     w.write_tx_id(context.tx_id());
