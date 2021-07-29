@@ -200,7 +200,6 @@ impl WriteExt for Vec<u8> {
 
     fn write_string(&mut self, s: &str) {
         let length = s.len();
-
         assert!(length <= std::u8::MAX as usize);
 
         self.write_byte(length as u8);

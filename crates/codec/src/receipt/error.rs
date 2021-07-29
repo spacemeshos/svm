@@ -17,6 +17,10 @@
 //!
 //!  ## Error Blob
 //!
+//!  ### Important:
+//!
+//!  Each `Error Message` Field is truncated to fit into at most 255 bytes.
+//!
 //!  * OOG (Out-of-Gas) - no data
 //!
 //!  * Template Not Found
@@ -33,13 +37,13 @@
 //!
 //!  * Compilation Failed
 //!   +-------------------+-----------------+-----------------+
-//!   |  Template Address | Account Address |     Error       |
+//!   |  Template Address | Account Address |     Message     |
 //!   |   (20 bytes)      |  (20 bytes)     |  (UTF-8 String) |
 //!   +-------------------+-----------------+-----------------+
 //!
 //!  * Instantiation Failed
 //!   +-------------------+-----------------+-----------------+
-//!   |  Template Address | Account Address |     Error       |
+//!   |  Template Address | Account Address |     Message     |
 //!   |   (20 bytes)      |  (20 bytes)     |  (UTF-8 String) |
 //!   +-------------------+-----------------+-----------------+
 //!
@@ -50,21 +54,21 @@
 //!   +-------------------+-----------------+--------------+
 //!
 //!  * Function Failed
-//!   +-------------------+------------------+-----------------------------+
-//!   |  Template Address |  Account Address |  Function  |     Error      |
+//!   +-------------------+------------------+------------+----------------+
+//!   |  Template Address |  Account Address |  Function  |    Message     |
 //!   |   (20 bytes)      |   (20 bytes)     |  (String)  | (UTF-8 String) |
 //!   +-------------------+------------------+------------+----------------+
 //!
 //!  * Function Not Allowed
-//!   +-------------------+-------------------+-----------------------------+
-//!   |  Template Address |  Account Address  |  Function  |     Error      |
-//!   |   (20 bytes)      |   (20 bytes)      |   (String) | (UTF-8 String) |
+//!   +-------------------+-------------------+------------+----------------+
+//!   |  Template Address |  Account Address  |  Function  |    Message     |
+//!   |   (20 bytes)      |   (20 bytes)      |  (String)  | (UTF-8 String) |
 //!   +-------------------+-------------------+------------+----------------+
 //!
 //!  * Function Invalid Signature
 //!   +-------------------+-------------------+------------+
 //!   |  Template Address |  Account Address  |  Function  |     
-//!   |   (20 bytes)      |   (20 bytes)      |   (String) |
+//!   |   (20 bytes)      |   (20 bytes)      |  (String)  |
 //!   +-------------------+-------------------+------------+
 //!
 
@@ -82,63 +86,80 @@ pub(crate) fn encode_error(err: &RuntimeError, logs: &[ReceiptLog], w: &mut Vec<
 
     match err {
         RuntimeError::OOG => (),
-        RuntimeError::TemplateNotFound(template_addr) => w.write_template_addr(template_addr),
-        RuntimeError::AccountNotFound(account_addr) => w.write_address(account_addr),
+        RuntimeError::TemplateNotFound(template) => encode_template(template, w),
+        RuntimeError::AccountNotFound(target) => encode_target(target, w),
         RuntimeError::CompilationFailed {
-            account_addr,
-            template_addr,
+            target,
+            template,
             msg,
         }
         | RuntimeError::InstantiationFailed {
-            account_addr,
-            template_addr,
+            target,
+            template,
             msg,
         } => {
-            w.write_template_addr(template_addr);
-            w.write_address(account_addr);
-            w.write_string(msg);
+            encode_template(template, w);
+            encode_target(target, w);
+            encode_msg(msg, w);
         }
         RuntimeError::FuncNotFound {
-            account_addr,
-            template_addr,
+            target,
+            template,
             func,
         } => {
-            w.write_template_addr(template_addr);
-            w.write_address(account_addr);
-            w.write_string(func);
+            encode_template(template, w);
+            encode_target(target, w);
+            encode_func(func, w);
         }
         RuntimeError::FuncFailed {
-            account_addr,
-            template_addr,
+            target,
+            template,
             func,
             msg,
         } => {
-            w.write_template_addr(template_addr);
-            w.write_address(account_addr);
-            w.write_string(func);
-            w.write_string(msg);
+            encode_template(template, w);
+            encode_target(target, w);
+            encode_func(func, w);
+            encode_msg(msg, w);
         }
         RuntimeError::FuncNotAllowed {
-            account_addr,
-            template_addr,
+            target,
+            template,
             func,
             msg,
         } => {
-            w.write_template_addr(template_addr);
-            w.write_address(account_addr);
-            w.write_string(func);
-            w.write_string(msg);
+            encode_template(template, w);
+            encode_target(target, w);
+            encode_func(func, w);
+            encode_msg(msg, w);
         }
         RuntimeError::FuncInvalidSignature {
-            account_addr,
-            template_addr,
+            target,
+            template,
             func,
         } => {
-            w.write_template_addr(template_addr);
-            w.write_address(account_addr);
-            w.write_string(func);
+            encode_template(template, w);
+            encode_target(target, w);
+            encode_func(func, w);
         }
     };
+}
+
+fn encode_template(template: &TemplateAddr, w: &mut Vec<u8>) {
+    w.write_template_addr(template);
+}
+
+fn encode_target(target: &Address, w: &mut Vec<u8>) {
+    w.write_address(target);
+}
+
+fn encode_func(func: &str, w: &mut Vec<u8>) {
+    w.write_string(func);
+}
+
+fn encode_msg(msg: &str, w: &mut Vec<u8>) {
+    let msg = &msg[0..256];
+    w.write_string(msg);
 }
 
 fn encode_err_type(err: &RuntimeError, w: &mut Vec<u8>) {
@@ -199,8 +220,8 @@ fn compilation_error(cursor: &mut Cursor<&[u8]>) -> RuntimeError {
     let msg = decode_msg(cursor);
 
     RuntimeError::CompilationFailed {
-        template_addr,
-        account_addr,
+        template: template_addr,
+        target: account_addr,
         msg,
     }
 }
@@ -211,8 +232,8 @@ fn instantiation_error(cursor: &mut Cursor<&[u8]>) -> RuntimeError {
     let msg = decode_msg(cursor);
 
     RuntimeError::InstantiationFailed {
-        template_addr,
-        account_addr,
+        template: template_addr,
+        target: account_addr,
         msg,
     }
 }
@@ -223,8 +244,8 @@ fn func_not_found(cursor: &mut Cursor<&[u8]>) -> RuntimeError {
     let func = decode_func(cursor);
 
     RuntimeError::FuncNotFound {
-        template_addr,
-        account_addr,
+        template: template_addr,
+        target: account_addr,
         func,
     }
 }
@@ -236,8 +257,8 @@ fn func_failed(cursor: &mut Cursor<&[u8]>) -> RuntimeError {
     let msg = decode_msg(cursor);
 
     RuntimeError::FuncFailed {
-        template_addr,
-        account_addr,
+        template: template_addr,
+        target: account_addr,
         func,
         msg,
     }
@@ -250,8 +271,8 @@ fn func_not_allowed(cursor: &mut Cursor<&[u8]>) -> RuntimeError {
     let msg = decode_msg(cursor);
 
     RuntimeError::FuncNotAllowed {
-        template_addr,
-        account_addr,
+        template: template_addr,
+        target: account_addr,
         func,
         msg,
     }
@@ -263,8 +284,8 @@ fn func_invalid_sig(cursor: &mut Cursor<&[u8]>) -> RuntimeError {
     let func = decode_func(cursor);
 
     RuntimeError::FuncInvalidSignature {
-        template_addr,
-        account_addr,
+        template: template_addr,
+        target: account_addr,
         func,
     }
 }
@@ -353,8 +374,8 @@ mod tests {
         let account_addr = Address::of("@Account");
 
         let err = RuntimeError::CompilationFailed {
-            account_addr,
-            template_addr,
+            target: account_addr,
+            template: template_addr,
             msg: "Invalid code".to_string(),
         };
 
@@ -375,8 +396,8 @@ mod tests {
         let account_addr = Address::of("@Account");
 
         let err = RuntimeError::InstantiationFailed {
-            account_addr,
-            template_addr,
+            target: account_addr,
+            template: template_addr,
             msg: "Invalid input".to_string(),
         };
 
@@ -398,8 +419,8 @@ mod tests {
         let func = "do_something".to_string();
 
         let err = RuntimeError::FuncNotFound {
-            account_addr,
-            template_addr,
+            target: account_addr,
+            template: template_addr,
             func,
         };
 
@@ -422,8 +443,8 @@ mod tests {
         let msg = "Invalid input".to_string();
 
         let err = RuntimeError::FuncFailed {
-            account_addr,
-            template_addr,
+            target: account_addr,
+            template: template_addr,
             func,
             msg,
         };
@@ -447,8 +468,8 @@ mod tests {
         let msg = "expected a ctor".to_string();
 
         let err = RuntimeError::FuncNotAllowed {
-            account_addr,
-            template_addr,
+            target: account_addr,
+            template: template_addr,
             func,
             msg,
         };
