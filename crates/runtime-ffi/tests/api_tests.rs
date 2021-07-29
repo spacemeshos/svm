@@ -1,10 +1,7 @@
-#![allow(unused)]
-
 use maplit::hashmap;
 
 use std::collections::HashMap;
 use std::convert::TryFrom;
-use std::ffi::c_void;
 
 use svm_runtime_ffi as api;
 use svm_runtime_ffi::{svm_byte_array, tracking};
@@ -117,8 +114,6 @@ fn svm_resources_tracking() {
         let s3 = "New World".to_string();
         let new_world: svm_byte_array = (ty2, s3).into();
 
-        let snapshot = tracking::take_snapshot();
-
         assert_eq!(api::svm_total_live_resources(), 3);
 
         let iter = api::svm_resource_iter_new();
@@ -144,15 +139,14 @@ fn svm_resources_tracking() {
         let r3 = api::svm_resource_iter_next(iter);
         assert_eq!(r3, std::ptr::null_mut());
 
-        api::svm_resource_type_name_destroy(raw_ty1);
-        api::svm_resource_type_name_destroy(raw_ty2);
+        let _ = api::svm_resource_type_name_destroy(raw_ty1);
+        let _ = api::svm_resource_type_name_destroy(raw_ty2);
 
-        api::svm_resource_destroy(r1);
-        api::svm_resource_destroy(r2);
-        api::svm_resource_iter_destroy(iter);
+        let _ = api::svm_resource_destroy(r1);
+        let _ = api::svm_resource_destroy(r2);
+        let _ = api::svm_resource_iter_destroy(iter);
 
-        api::svm_byte_array_destroy(world);
-        api::svm_byte_array_destroy(new_world);
+        let _ = destroy(&[hello, world, new_world]);
 
         assert_eq!(api::svm_total_live_resources(), 0);
 
@@ -253,7 +247,7 @@ fn svm_runtime_success() {
         let bytes = receipt.returndata();
         let mut returndata = ReturnData::new(bytes.as_slice());
 
-        /// Decodes the `Returns` back into native types.
+        // Decodes the `Returns` back into native types.
         let [a, b]: [u32; 2] = returndata.next_1();
         assert_eq!((a, b), (10, 15));
 
