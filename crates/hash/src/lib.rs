@@ -1,7 +1,7 @@
 use tiny_keccak::Keccak;
 
 /// A low-level trait for defining a hasher
-pub trait Hasher {
+pub trait Hasher: Default {
     /// `KeyHasher` produces hashes of type `Self::Hash`
     type Hash: AsRef<[u8]> + Copy + Clone + std::fmt::Debug + Sized;
 
@@ -10,6 +10,7 @@ pub trait Hasher {
 }
 
 /// Implements the `KeyHasher` trait using the `keccak256` hashing algorithm (output: 32 bytes)
+#[derive(Default)]
 pub struct DefaultHasher;
 
 impl Hasher for DefaultHasher {

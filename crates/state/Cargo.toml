@@ -8,8 +8,12 @@ publish = false
 
 [dependencies]
 anyhow = "1"
+bitvec = "0.22"
 blake3 = "1"
-merkle = "1"
-rlp = "0.5"
 thiserror = "1"
-trie-db = "0.22"
+svm-hash = { path = "../hash" }
+rocksdb = { version = "0.15", default-features = false }
+
+[dev-dependencies]
+quickcheck = "1"
+quickcheck_macros = "1"

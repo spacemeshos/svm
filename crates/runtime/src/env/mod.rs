@@ -6,7 +6,6 @@ use std::rc::Rc;
 use svm_codec::ParseError;
 use svm_codec::{call, spawn, template};
 use svm_gas::{resolvers, PriceResolver};
-use svm_state::GlobalState;
 use svm_types::{AccountAddr, SectionKind, SpawnAccount, Template, TemplateAddr, Transaction};
 
 /// Default implementations
@@ -72,7 +71,6 @@ where
     accounts: T::AccountStore,
     templates: T::TemplateStore,
     price_resolver_registry: PriceResolverRegistry,
-    state: GlobalState<'static>,
 }
 
 impl<T> Env<T>
@@ -87,7 +85,6 @@ where
             accounts: account_store,
             templates: template_store,
             price_resolver_registry: PriceResolverRegistry::default(),
-            state: GlobalState::default(),
         }
     }
 
